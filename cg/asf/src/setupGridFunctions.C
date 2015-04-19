@@ -42,9 +42,11 @@ setupGridFunctions()
   int stencilSize=int( pow(3,cg.numberOfDimensions())+1 ); 
   coeff.updateToMatchGrid(cg,stencilSize,all,all,all);  // add one for interpolation
   
+  int numberOfGhostLines=1; // *wdh* 2015/04/19
+  coeff.setIsACoefficientMatrix(true,stencilSize,numberOfGhostLines);  
+
   coeff.setOperators(operators); 
   
-  coeff.setIsACoefficientMatrix(TRUE,stencilSize);  
   operators.setStencilSize(stencilSize);
   
   if( implicitSolver==NULL )

@@ -258,7 +258,7 @@ c =============================================================
 
 
 c ============== from inspf.bf ***
-c Return nuT and it's first derivatives for SPAL
+c Return nuT and it''s first derivatives for SPAL
 #beginMacro getSpalartAllmarasEddyViscosityAndFirstDerivatives(DIM)
   chi=u(i1,i2,i3,nc)/nu
   chi3= chi**3
@@ -284,7 +284,7 @@ c Return nuT and it's first derivatives for SPAL
 #endMacro
 
 c ============== from inspf.bf ***
-c Return nuT and it's first derivatives for BL
+c Return nuT and it''s first derivatives for BL
 #beginMacro getBaldwinLomaxEddyViscosityAndFirstDerivatives(DIM)
 
   nuT = nu+u(i1,i2,i3,nc)
@@ -298,7 +298,7 @@ c Return nuT and it's first derivatives for BL
 #endMacro
 
 c ============== from inspf.bf ***
-c Return nuT and it's first derivatives for KE
+c Return nuT and it''s first derivatives for KE
 #beginMacro getKEpsilonViscosityAndFirstDerivatives(DIM)
  k0=u(i1,i2,i3,kc)
  e0=u(i1,i2,i3,ec)
@@ -359,6 +359,10 @@ defineDerivativeMacros(DIM,ORDER,GRIDTYPE)
 
 imLambda=0.
 reLambda=0.
+imLambdaExplicit=0.
+reLambdaExplicit=0.
+imLambdaImplicit=0.
+reLambdaImplicit=0.
 
 dtVarMin=1.e22  ! we need a REAL_MAX for fortran
 dtVarMax=0.
@@ -741,7 +745,7 @@ c ==============================================================================
 
 
 #beginMacro getTimeSteppingEigenvaluesByArtificialDissipation(SOLVER,METHOD,OPTION)
-c Don't split by ADTYPE since this makes the file too long for no big benefit.
+c Don''t split by ADTYPE since this makes the file too long for no big benefit.
 c if( use2ndOrderAD.eq.0 .and. use4thOrderAD.eq.0 )then 
 c  getTimeSteppingEigenvaluesByOrder(SOLVER,METHOD,OPTION,NONE)
 c else if( use2ndOrderAD.eq.1 .and. use4thOrderAD.eq.0 )then 
@@ -1082,6 +1086,7 @@ c Include "selfAdjointArtificialDiffusion.h"
  yEps              =rpar(14) ! for axisymmetric y<yEps => y is on the axis
  ajEps             =rpar(15) ! for minimum value of the jacobian
 
+ cdv=0. ! no divergence damping *wdh* 2015/04/19
  getRealPar('ad21',ad21)
  getRealPar('ad22',ad22)
  getRealPar('ad41',ad41)

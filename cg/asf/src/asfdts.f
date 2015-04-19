@@ -47,13 +47,13 @@ c =============================================================
 
 
 c ============== from inspf.bf ***
-c Return nuT and it's first derivatives for SPAL
+c Return nuT and it''s first derivatives for SPAL
 
 c ============== from inspf.bf ***
-c Return nuT and it's first derivatives for BL
+c Return nuT and it''s first derivatives for BL
 
 c ============== from inspf.bf ***
-c Return nuT and it's first derivatives for KE
+c Return nuT and it''s first derivatives for KE
 
 c ============== from inspf.bf ***
 

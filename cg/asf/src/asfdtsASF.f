@@ -1340,6 +1340,7 @@ c Include "selfAdjointArtificialDiffusion.h"
         za                =rpar(13)
         yEps              =rpar(14) ! for axisymmetric y<yEps => y is on the axis
         ajEps             =rpar(15) ! for minimum value of the jacobian
+        cdv=0. ! no divergence damping *wdh* 2015/04/19
          ok = getReal(pdb,'ad21',ad21)
          if( ok.eq.1 )then
            ! write(*,'("*** asfdts: ''ad21''=",e11.4)') ad21
@@ -1541,7 +1542,7 @@ c Include "selfAdjointArtificialDiffusion.h"
         !     *****************************************************      
          if( useLocalTimeStepping.eq.0 )then
            if( gridIsImplicit.eq.0 )then
-c Don't split by ADTYPE since this makes the file too long for no big benefit.
+c Don''t split by ADTYPE since this makes the file too long for no big benefit.
 c if( use2ndOrderAD.eq.0 .and. use4thOrderAD.eq.0 )then 
 c  getTimeSteppingEigenvaluesByOrder(ASF,GLOBAL,EXPLICIT,NONE)
 c else if( use2ndOrderAD.eq.1 .and. use4thOrderAD.eq.0 )then 
@@ -1562,6 +1563,10 @@ c end if
                         crr = 4.     ! [1 -2 1  ]/ 1
                       imLambda=0.
                       reLambda=0.
+                      imLambdaExplicit=0.
+                      reLambdaExplicit=0.
+                      imLambdaImplicit=0.
+                      reLambdaImplicit=0.
                       dtVarMin=1.e22  ! we need a REAL_MAX for fortran
                       dtVarMax=0.
 c ...............................................
@@ -1611,6 +1616,10 @@ c ...............................................
                         crr = 4.     ! [1 -2 1  ]/ 1
                       imLambda=0.
                       reLambda=0.
+                      imLambdaExplicit=0.
+                      reLambdaExplicit=0.
+                      imLambdaImplicit=0.
+                      reLambdaImplicit=0.
                       dtVarMin=1.e22  ! we need a REAL_MAX for fortran
                       dtVarMax=0.
 c ...............................................
@@ -1684,6 +1693,10 @@ c ...............................................
                           crr = 4.     ! [1 -2 1  ]/ 1
                         imLambda=0.
                         reLambda=0.
+                        imLambdaExplicit=0.
+                        reLambdaExplicit=0.
+                        imLambdaImplicit=0.
+                        reLambdaImplicit=0.
                         dtVarMin=1.e22  ! we need a REAL_MAX for fortran
                         dtVarMax=0.
 c ...............................................
@@ -1743,6 +1756,10 @@ c ...............................................
                           crr = 4.     ! [1 -2 1  ]/ 1
                         imLambda=0.
                         reLambda=0.
+                        imLambdaExplicit=0.
+                        reLambdaExplicit=0.
+                        imLambdaImplicit=0.
+                        reLambdaImplicit=0.
                         dtVarMin=1.e22  ! we need a REAL_MAX for fortran
                         dtVarMax=0.
 c ...............................................
@@ -1831,6 +1848,10 @@ c ...............................................
                         crr = 4.     ! [1 -2 1  ]/ 1
                       imLambda=0.
                       reLambda=0.
+                      imLambdaExplicit=0.
+                      reLambdaExplicit=0.
+                      imLambdaImplicit=0.
+                      reLambdaImplicit=0.
                       dtVarMin=1.e22  ! we need a REAL_MAX for fortran
                       dtVarMax=0.
 c ...............................................
@@ -1884,6 +1905,10 @@ c ...............................................
                         crr = 4.     ! [1 -2 1  ]/ 1
                       imLambda=0.
                       reLambda=0.
+                      imLambdaExplicit=0.
+                      reLambdaExplicit=0.
+                      imLambdaImplicit=0.
+                      reLambdaImplicit=0.
                       dtVarMin=1.e22  ! we need a REAL_MAX for fortran
                       dtVarMax=0.
 c ...............................................
@@ -1972,6 +1997,10 @@ c ...............................................
                           crr = 4.     ! [1 -2 1  ]/ 1
                         imLambda=0.
                         reLambda=0.
+                        imLambdaExplicit=0.
+                        reLambdaExplicit=0.
+                        imLambdaImplicit=0.
+                        reLambdaImplicit=0.
                         dtVarMin=1.e22  ! we need a REAL_MAX for fortran
                         dtVarMax=0.
 c ...............................................
@@ -2036,6 +2065,10 @@ c ...............................................
                           crr = 4.     ! [1 -2 1  ]/ 1
                         imLambda=0.
                         reLambda=0.
+                        imLambdaExplicit=0.
+                        reLambdaExplicit=0.
+                        imLambdaImplicit=0.
+                        reLambdaImplicit=0.
                         dtVarMin=1.e22  ! we need a REAL_MAX for fortran
                         dtVarMax=0.
 c ...............................................
@@ -2128,7 +2161,7 @@ c ...............................................
               end if
            else
             !kkc 060228 activated this line, not sure what differs yet
-c Don't split by ADTYPE since this makes the file too long for no big benefit.
+c Don''t split by ADTYPE since this makes the file too long for no big benefit.
 c if( use2ndOrderAD.eq.0 .and. use4thOrderAD.eq.0 )then 
 c  getTimeSteppingEigenvaluesByOrder(ASF,GLOBAL,IMPLICIT,NONE)
 c else if( use2ndOrderAD.eq.1 .and. use4thOrderAD.eq.0 )then 
@@ -2149,6 +2182,10 @@ c end if
                         crr = 4.     ! [1 -2 1  ]/ 1
                       imLambda=0.
                       reLambda=0.
+                      imLambdaExplicit=0.
+                      reLambdaExplicit=0.
+                      imLambdaImplicit=0.
+                      reLambdaImplicit=0.
                       dtVarMin=1.e22  ! we need a REAL_MAX for fortran
                       dtVarMax=0.
 c ...............................................
@@ -2187,6 +2224,10 @@ c ...............................................
                         crr = 4.     ! [1 -2 1  ]/ 1
                       imLambda=0.
                       reLambda=0.
+                      imLambdaExplicit=0.
+                      reLambdaExplicit=0.
+                      imLambdaImplicit=0.
+                      reLambdaImplicit=0.
                       dtVarMin=1.e22  ! we need a REAL_MAX for fortran
                       dtVarMax=0.
 c ...............................................
@@ -2240,6 +2281,10 @@ c ...............................................
                           crr = 4.     ! [1 -2 1  ]/ 1
                         imLambda=0.
                         reLambda=0.
+                        imLambdaExplicit=0.
+                        reLambdaExplicit=0.
+                        imLambdaImplicit=0.
+                        reLambdaImplicit=0.
                         dtVarMin=1.e22  ! we need a REAL_MAX for fortran
                         dtVarMax=0.
 c ...............................................
@@ -2278,6 +2323,10 @@ c ...............................................
                           crr = 4.     ! [1 -2 1  ]/ 1
                         imLambda=0.
                         reLambda=0.
+                        imLambdaExplicit=0.
+                        reLambdaExplicit=0.
+                        imLambdaImplicit=0.
+                        reLambdaImplicit=0.
                         dtVarMin=1.e22  ! we need a REAL_MAX for fortran
                         dtVarMax=0.
 c ...............................................
@@ -2331,6 +2380,10 @@ c ...............................................
                         crr = 4.     ! [1 -2 1  ]/ 1
                       imLambda=0.
                       reLambda=0.
+                      imLambdaExplicit=0.
+                      reLambdaExplicit=0.
+                      imLambdaImplicit=0.
+                      reLambdaImplicit=0.
                       dtVarMin=1.e22  ! we need a REAL_MAX for fortran
                       dtVarMax=0.
 c ...............................................
@@ -2369,6 +2422,10 @@ c ...............................................
                         crr = 4.     ! [1 -2 1  ]/ 1
                       imLambda=0.
                       reLambda=0.
+                      imLambdaExplicit=0.
+                      reLambdaExplicit=0.
+                      imLambdaImplicit=0.
+                      reLambdaImplicit=0.
                       dtVarMin=1.e22  ! we need a REAL_MAX for fortran
                       dtVarMax=0.
 c ...............................................
@@ -2425,6 +2482,10 @@ c ...............................................
                           crr = 4.     ! [1 -2 1  ]/ 1
                         imLambda=0.
                         reLambda=0.
+                        imLambdaExplicit=0.
+                        reLambdaExplicit=0.
+                        imLambdaImplicit=0.
+                        reLambdaImplicit=0.
                         dtVarMin=1.e22  ! we need a REAL_MAX for fortran
                         dtVarMax=0.
 c ...............................................
@@ -2464,6 +2525,10 @@ c ...............................................
                           crr = 4.     ! [1 -2 1  ]/ 1
                         imLambda=0.
                         reLambda=0.
+                        imLambdaExplicit=0.
+                        reLambdaExplicit=0.
+                        imLambdaImplicit=0.
+                        reLambdaImplicit=0.
                         dtVarMin=1.e22  ! we need a REAL_MAX for fortran
                         dtVarMax=0.
 c ...............................................
@@ -2526,7 +2591,7 @@ c ...............................................
            end if
          else
             if( gridIsImplicit.eq.0 )then
-c Don't split by ADTYPE since this makes the file too long for no big benefit.
+c Don''t split by ADTYPE since this makes the file too long for no big benefit.
 c if( use2ndOrderAD.eq.0 .and. use4thOrderAD.eq.0 )then 
 c  getTimeSteppingEigenvaluesByOrder(ASF,LOCAL,EXPLICIT,NONE)
 c else if( use2ndOrderAD.eq.1 .and. use4thOrderAD.eq.0 )then 
@@ -2547,6 +2612,10 @@ c end if
                          crr = 4.     ! [1 -2 1  ]/ 1
                        imLambda=0.
                        reLambda=0.
+                       imLambdaExplicit=0.
+                       reLambdaExplicit=0.
+                       imLambdaImplicit=0.
+                       reLambdaImplicit=0.
                        dtVarMin=1.e22  ! we need a REAL_MAX for fortran
                        dtVarMax=0.
 c ...............................................
@@ -2606,6 +2675,10 @@ c ...............................................
                          crr = 4.     ! [1 -2 1  ]/ 1
                        imLambda=0.
                        reLambda=0.
+                       imLambdaExplicit=0.
+                       reLambdaExplicit=0.
+                       imLambdaImplicit=0.
+                       reLambdaImplicit=0.
                        dtVarMin=1.e22  ! we need a REAL_MAX for fortran
                        dtVarMax=0.
 c ...............................................
@@ -2689,6 +2762,10 @@ c ...............................................
                            crr = 4.     ! [1 -2 1  ]/ 1
                          imLambda=0.
                          reLambda=0.
+                         imLambdaExplicit=0.
+                         reLambdaExplicit=0.
+                         imLambdaImplicit=0.
+                         reLambdaImplicit=0.
                          dtVarMin=1.e22  ! we need a REAL_MAX for fortran
                          dtVarMax=0.
 c ...............................................
@@ -2758,6 +2835,10 @@ c ...............................................
                            crr = 4.     ! [1 -2 1  ]/ 1
                          imLambda=0.
                          reLambda=0.
+                         imLambdaExplicit=0.
+                         reLambdaExplicit=0.
+                         imLambdaImplicit=0.
+                         reLambdaImplicit=0.
                          dtVarMin=1.e22  ! we need a REAL_MAX for fortran
                          dtVarMax=0.
 c ...............................................
@@ -2856,6 +2937,10 @@ c ...............................................
                          crr = 4.     ! [1 -2 1  ]/ 1
                        imLambda=0.
                        reLambda=0.
+                       imLambdaExplicit=0.
+                       reLambdaExplicit=0.
+                       imLambdaImplicit=0.
+                       reLambdaImplicit=0.
                        dtVarMin=1.e22  ! we need a REAL_MAX for fortran
                        dtVarMax=0.
 c ...............................................
@@ -2920,6 +3005,10 @@ c ...............................................
                          crr = 4.     ! [1 -2 1  ]/ 1
                        imLambda=0.
                        reLambda=0.
+                       imLambdaExplicit=0.
+                       reLambdaExplicit=0.
+                       imLambdaImplicit=0.
+                       reLambdaImplicit=0.
                        dtVarMin=1.e22  ! we need a REAL_MAX for fortran
                        dtVarMax=0.
 c ...............................................
@@ -3018,6 +3107,10 @@ c ...............................................
                            crr = 4.     ! [1 -2 1  ]/ 1
                          imLambda=0.
                          reLambda=0.
+                         imLambdaExplicit=0.
+                         reLambdaExplicit=0.
+                         imLambdaImplicit=0.
+                         reLambdaImplicit=0.
                          dtVarMin=1.e22  ! we need a REAL_MAX for fortran
                          dtVarMax=0.
 c ...............................................
@@ -3092,6 +3185,10 @@ c ...............................................
                            crr = 4.     ! [1 -2 1  ]/ 1
                          imLambda=0.
                          reLambda=0.
+                         imLambdaExplicit=0.
+                         reLambdaExplicit=0.
+                         imLambdaImplicit=0.
+                         reLambdaImplicit=0.
                          dtVarMin=1.e22  ! we need a REAL_MAX for fortran
                          dtVarMax=0.
 c ...............................................
@@ -3194,7 +3291,7 @@ c ...............................................
                end if
             else
              !kkc 060228 activated this line, not sure what differs yet
-c Don't split by ADTYPE since this makes the file too long for no big benefit.
+c Don''t split by ADTYPE since this makes the file too long for no big benefit.
 c if( use2ndOrderAD.eq.0 .and. use4thOrderAD.eq.0 )then 
 c  getTimeSteppingEigenvaluesByOrder(ASF,LOCAL,IMPLICIT,NONE)
 c else if( use2ndOrderAD.eq.1 .and. use4thOrderAD.eq.0 )then 
@@ -3215,6 +3312,10 @@ c end if
                          crr = 4.     ! [1 -2 1  ]/ 1
                        imLambda=0.
                        reLambda=0.
+                       imLambdaExplicit=0.
+                       reLambdaExplicit=0.
+                       imLambdaImplicit=0.
+                       reLambdaImplicit=0.
                        dtVarMin=1.e22  ! we need a REAL_MAX for fortran
                        dtVarMax=0.
 c ...............................................
@@ -3263,6 +3364,10 @@ c ...............................................
                          crr = 4.     ! [1 -2 1  ]/ 1
                        imLambda=0.
                        reLambda=0.
+                       imLambdaExplicit=0.
+                       reLambdaExplicit=0.
+                       imLambdaImplicit=0.
+                       reLambdaImplicit=0.
                        dtVarMin=1.e22  ! we need a REAL_MAX for fortran
                        dtVarMax=0.
 c ...............................................
@@ -3326,6 +3431,10 @@ c ...............................................
                            crr = 4.     ! [1 -2 1  ]/ 1
                          imLambda=0.
                          reLambda=0.
+                         imLambdaExplicit=0.
+                         reLambdaExplicit=0.
+                         imLambdaImplicit=0.
+                         reLambdaImplicit=0.
                          dtVarMin=1.e22  ! we need a REAL_MAX for fortran
                          dtVarMax=0.
 c ...............................................
@@ -3374,6 +3483,10 @@ c ...............................................
                            crr = 4.     ! [1 -2 1  ]/ 1
                          imLambda=0.
                          reLambda=0.
+                         imLambdaExplicit=0.
+                         reLambdaExplicit=0.
+                         imLambdaImplicit=0.
+                         reLambdaImplicit=0.
                          dtVarMin=1.e22  ! we need a REAL_MAX for fortran
                          dtVarMax=0.
 c ...............................................
@@ -3437,6 +3550,10 @@ c ...............................................
                          crr = 4.     ! [1 -2 1  ]/ 1
                        imLambda=0.
                        reLambda=0.
+                       imLambdaExplicit=0.
+                       reLambdaExplicit=0.
+                       imLambdaImplicit=0.
+                       reLambdaImplicit=0.
                        dtVarMin=1.e22  ! we need a REAL_MAX for fortran
                        dtVarMax=0.
 c ...............................................
@@ -3486,6 +3603,10 @@ c ...............................................
                          crr = 4.     ! [1 -2 1  ]/ 1
                        imLambda=0.
                        reLambda=0.
+                       imLambdaExplicit=0.
+                       reLambdaExplicit=0.
+                       imLambdaImplicit=0.
+                       reLambdaImplicit=0.
                        dtVarMin=1.e22  ! we need a REAL_MAX for fortran
                        dtVarMax=0.
 c ...............................................
@@ -3552,6 +3673,10 @@ c ...............................................
                            crr = 4.     ! [1 -2 1  ]/ 1
                          imLambda=0.
                          reLambda=0.
+                         imLambdaExplicit=0.
+                         reLambdaExplicit=0.
+                         imLambdaImplicit=0.
+                         reLambdaImplicit=0.
                          dtVarMin=1.e22  ! we need a REAL_MAX for fortran
                          dtVarMax=0.
 c ...............................................
@@ -3601,6 +3726,10 @@ c ...............................................
                            crr = 4.     ! [1 -2 1  ]/ 1
                          imLambda=0.
                          reLambda=0.
+                         imLambdaExplicit=0.
+                         reLambdaExplicit=0.
+                         imLambdaImplicit=0.
+                         reLambdaImplicit=0.
                          dtVarMin=1.e22  ! we need a REAL_MAX for fortran
                          dtVarMax=0.
 c ...............................................

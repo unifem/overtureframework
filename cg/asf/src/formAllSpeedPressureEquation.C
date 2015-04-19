@@ -153,7 +153,8 @@ formAllSpeedPressureEquation( GridFunction & gf0, real t, real deltaT,
   if( movingGridProblem() )
   {
     coeff.updateToMatchGrid(cg,stencilSize);  
-    coeff.setIsACoefficientMatrix(TRUE,stencilSize);  
+    int numberOfGhostLines=1; // *wdh* 2015/04/19
+    coeff.setIsACoefficientMatrix(true,stencilSize,numberOfGhostLines);  
     operators.setStencilSize(stencilSize);
   }
   coeff.setOperators(operators);
@@ -187,6 +188,8 @@ formAllSpeedPressureEquation( GridFunction & gf0, real t, real deltaT,
       bool ok = ParallelUtility::getLocalArrayBounds(u1[grid],u1Local,I1,I2,I3,includeGhost);
       if( !ok ) continue;
       coeffLocal=0.;
+
+      getIndex(mg.gridIndexRange(),I1,I2,I3);  // assign coefficients here *wdh* 2015/04/19 
       operators[grid].assignCoefficients(MappedGridOperators::laplacianOperator,coeffLocal,I1,I2,I3,0,0);
     }
     
