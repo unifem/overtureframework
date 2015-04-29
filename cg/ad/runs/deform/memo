@@ -1,3 +1,73 @@
+**************** GRIDS *********************
+
+ogen -noplot eyeGrid2d -interp=e -factor=4
+ogen -noplot eyeGrid2d -interp=e -factor=8
+ogen -noplot eyeGrid2d -interp=e -factor=16
+
+-- ellipse: 
+ ogen -noplot deformingEyeGrid -interp=e -factor=4
+ ogen -noplot deformingEyeGrid -interp=e -factor=8
+ ogen -noplot deformingEyeGrid -interp=e -factor=16
+ ogen -noplot deformingEyeGrid -interp=e -factor=32
+
+*******************************************
+
+2015/04/17 -- start on thin-film equations
+
+cgad deformingSurface -g=eyeGrid2de8.order2 -motion=deformingEye -kappa=.005 -tf=1. -tp=.01 -tz=none -ic=pulse -alphaPulse=80. -x0=.0 -y0=0 -bc=n -ts=bdf -a=0 -b=0 -ampb=-.4 -implicitAdvection=1 -evalGridAsNurbs=1 -pde=thinFilm -go=halt
+
+
+
+2015/04/10 -- try using nurbs evaluation of DPM
+
+cgad -noplot deformingSurface -g=eyeGrid2de8.order2 -motion=deformingEye -kappa=.005 -tf=1. -tp=.01 -tz=none -ic=pulse -alphaPulse=80. -x0=.0 -y0=0 -bc=n -ts=bdf -a=0 -b=0 -ampb=-.4 -implicitAdvection=1 -evalGridAsNurbs=1 -go=og
+
+
+
+2015/04/8 ---
+
+TRY BDF solver -- add implicit terms to advection, including moving grids 
+cgad deformingSurface -g=eyeGrid2de8.order2 -motion=deformingEye -kappa=.005 -tf=1. -tp=.01 -tz=none -ic=pulse -alphaPulse=80. -x0=.0 -y0=0 -bc=n -ts=bdf -a=0 -b=0 -ampb=-.4 -implicitAdvection=1 -go=halt
+
+2015/04/07 ---
+
+TRY BDF solver
+cgad deformingSurface -g=eyeGrid2de8.order2 -motion=deformingEye -kappa=.005 -tf=1. -tp=.01 -tz=none -ic=pulse -alphaPulse=80. -x0=.0 -y0=0 -bc=n -ts=bdf -a=0 -b=0 -ampb=-.4  -go=halt
+
+
+
+2014/09/12 -- initial deforming eye computation
+
+
+# ********************* Gaussian eye ************
+
+cgad deformingSurface -g=eyeGrid2de32.order2 -motion=deformingEye -kappa=.0005 -tf=1. -tp=.01 -tz=none -ic=pulse -alphaPulse=80. -x0=-.2 -y0=0 -bc=n -ts=im -ampb=-.35  -solver=best -go=halt
+
+cgad deformingSurface -g=eyeGrid2de16.order2 -motion=deformingEye -kappa=.001 -tf=1. -tp=.01 -tz=none -ic=pulse -alphaPulse=80. -x0=-.2 -y0=0 -bc=n -ts=im -ampb=-.4  -solver=best -show=deformingEye16.show -go=halt
+
+cgad deformingSurface -g=eyeGrid2de8.order2 -motion=deformingEye -kappa=.005 -tf=1. -tp=.01 -tz=none -ic=pulse -alphaPulse=80. -x0=-.2 -y0=0 -bc=n -ts=im -ampb=-.4 -go=halt
+
+
+
+# ****************************** elliptical eye ******************************
+# initial ellipse : a=1 b=.5 
+#  ampb = amplitude of motion : b +- ampb
+
+-- PETSc -- 
+cgad deformingSurface -g=deformingEyeGride8.order2 -motion=deformingEye -eyeOption=1 -kappa=.01 -tf=1. -tp=.01 -tz=none -ic=pulse  -x0=-.25 -y0=-.25 -bc=n -ts=im -ampb=-.2 -solver=best -go=halt
+
+cgad deformingSurface -g=deformingEyeGride32.order2 -motion=deformingEye -eyeOption=1 -kappa=.0005 -tf=1. -tp=.01 -tz=none -ic=pulse  -x0=-.25 -y0=-.25 -bc=n -ts=im -ampb=-.4  -go=halt
+
+OK: 
+cgad deformingSurface -g=deformingEyeGride16.order2 -motion=deformingEye -eyeOption=1 -kappa=.001 -tf=1. -tp=.01 -tz=none -ic=pulse  -x0=-.25 -y0=-.25 -bc=n -ts=im -ampb=-.3  -solver=best -go=halt
+
+
+cgad deformingSurface -g=deformingEyeGride8.order2 -motion=deformingEye -eyeOption=1 -kappa=.01 -tf=1. -tp=.01 -tz=none -ic=pulse  -x0=-.25 -y0=-.25 -bc=n -ts=im -ampb=-.2  -go=halt
+
+
+cgad deformingSurface -g=deformingEyeGride4.order2 -motion=deformingEye -eyeOption=1 -kappa=.01 -tf=1. -tp=.01 -tz=none -ic=pulse  -x0=-.25 -y0=-.25 -bc=n -ts=im -ampb=-.2 -go=halt
+
+
 # 2014/03/10-11
 
 ----- Concentration motion: (neumann BC's)

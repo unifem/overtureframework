@@ -115,7 +115,7 @@ userDefinedForcing( realArray & f, int iparam[], real rparam[] )
       real z0   = gaussianParameters(6,m);
       real t0   = gaussianParameters(7,m);
 
-      if( false )
+      if( false && t0 < 5.*dt )
 	printF("Gaussian source %i: setting a=%8.2e, beta=%8.2e, omega=%8.2e, p=%8.2e, x0=%8.2e, y0=%8.2e, "
                "z0=%8.2e, t0=%8.2e\n", m,a,beta,omega,p,x0,y0,z0,t0);
 
@@ -127,13 +127,18 @@ userDefinedForcing( realArray & f, int iparam[], real rparam[] )
 	FOR_3D(i1,i2,i3,I1,I2,I3)
 	{
           real x= xLocal(i1,i2,i3,0), y=xLocal(i1,i2,i3,1);
-	  real g = a*cost*exp( -beta*pow( SQR(x-x0)+SQR(y-y0), p ) );
+          real rSq = SQR(x-x0)+SQR(y-y0);
+	  // real g = a*cost*exp( -beta*pow( rSq, p ) );
+	  real g = a*cost*exp( -beta*pow( rSq, p ) );
+          real rPow = p==1. ? 1 :  pow(rSq,p-1.);
 
-	  fLocal(i1,i2,i3,ex)+= -(y-y0)*g;
-	  fLocal(i1,i2,i3,ey)+=  (x-x0)*g;
+          // *wdh* 2015/04/19 -- fixed to be divergence free for p!=1
+          //  Fx = - const * g_y
+          //  Fy =   const * g_x
+          // => (Fx)_x + (Fy)_y = 0 
+	  fLocal(i1,i2,i3,ex)+= -(y-y0)*rPow*g;
+	  fLocal(i1,i2,i3,ey)+=  (x-x0)*rPow*g;
 	  fLocal(i1,i2,i3,hz)+=         g;
-
-	  fLocal(i1,i2,i3,ey)=0.; // *****************
 	  
 	}
       }
@@ -143,12 +148,18 @@ userDefinedForcing( realArray & f, int iparam[], real rparam[] )
 	FOR_3D(i1,i2,i3,I1,I2,I3)
 	{
           real x= xLocal(i1,i2,i3,0), y=xLocal(i1,i2,i3,1), z=xLocal(i1,i2,i3,2);
-	  real g = a*cost*exp( -beta*pow( SQR(x-x0)+SQR(y-y0)+SQR(z-z0), p ) );
-
-	  fLocal(i1,i2,i3,ex)+= ((z-z0)-(y-y0))*g;
-	  fLocal(i1,i2,i3,ey)+= ((x-x0)-(z-z0))*g;
-	  fLocal(i1,i2,i3,ez) =0.;  // *****************
-	  // fLocal(i1,i2,i3,ez)+= ((y-y0)-(x-x0))*g;
+          real rSq =  SQR(x-x0)+SQR(y-y0)+SQR(z-z0);
+	  real g = a*cost*exp( -beta*pow( rSq, p ) );
+	  real rPow = pow(rSq,p-1.);
+	  
+          // *wdh* 2015/04/19 --FIX ME to be DIV FREE
+          //   Fx = -const* g_y + const* g_z 
+          //   Fy =  const* g_x - const* g_z
+          //   Fz =  const* g_y - const* g_x 
+          // => (Fx)_x + (Fy)_y + (Fz)_z = 0 
+	  fLocal(i1,i2,i3,ex)+= ((z-z0)-(y-y0))*rPow*g;
+	  fLocal(i1,i2,i3,ey)+= ((x-x0)-(z-z0))*rPow*g;
+	  fLocal(i1,i2,i3,ez)+= ((y-y0)-(x-x0))*rPow*g;
 	}
       }
     }
@@ -304,8 +315,9 @@ setupUserDefinedForcing()
       {
 	printF("The Gaussian source in 2D is of the form:\n"
                " g(x,y,t) = a*sin(2*pi*omega*(t-t0) )*exp( -beta*[ (x-x0)^2 + (y-y0)^2 ]^p )\n"
-	       " F(Ex) = -(y-y0)*g(x,y,t) \n"
-	       " F(Ey) =  (x-x0)*g(x,y,t) \n"
+               "     R = (x-x0)^2 + (y-y0)^2\n"
+	       " F(Ex) = -(y-y0)*R^(p-1)*g(x,y,t) \n"
+	       " F(Ey) =  (x-x0)*R^(p-1)**g(x,y,t) \n"
 	       " F(Hz) =         g(x,y,t) \n"
 	  );
       }
@@ -313,9 +325,10 @@ setupUserDefinedForcing()
       {
 	printF("The Gaussian source in 3D is of the form:\n"
                " g(x,y,z,t) = a*sin(2*pi*omega*(t-t0) )*exp( -beta*[ (x-x0)^2 + (y-y0)^2 + (z-z0)^2 ]^p )\n"
-	       " F(Ex) = [(z-z0)-(y-y0)]*g(x,y,z,t) \n"
-	       " F(Ey) = [(x-x0)-(z-z0)]*g(x,y,z,t) \n"
-	       " F(Ez) = [(y-xy)-(x-x0)]*g(x,y,z,t) \n"
+               "     R = (x-x0)^2 + (y-y0)^2\n"
+	       " F(Ex) = [(z-z0)-(y-y0)]*R^(p-1)**g(x,y,z,t) \n"
+	       " F(Ey) = [(x-x0)-(z-z0)]*R^(p-1)**g(x,y,z,t) \n"
+	       " F(Ez) = [(y-xy)-(x-x0)]*R^(p-1)**g(x,y,z,t) \n"
 	  );
       }
       

@@ -25,6 +25,8 @@
 $order=2; $factor=1; $interp="i";  $ml=0; # default values
 $orderOfAccuracy = "second order"; $ng=2; $interpType = "implicit for all grids";
 $numGhost=-1;  # if this value is set, then use this number of ghost points
+$xa=-1.; $xb=1.; $ya=-1.; $yb=1.;  # bounds on outer square
+$xai=-.5; $xbi=.5; $yai=-.5; $ybi=.5;   # bounds on inner square
 * 
 * get command line arguments
 GetOptions( "order=i"=>\$order,"factor=i"=> \$factor,"interp=s"=> \$interp,"ml=i"=>\$ml,"numGhost=i"=>\$numGhost);
@@ -49,7 +51,6 @@ $ds=.1/$factor;
 create mappings
   rectangle
     set corners
-     $xa=-1.; $xb=1.; $ya=-1.; $yb=1.; 
      $xa $xb $ya $yb 
     lines
       $nx=intmg( ($xb-$xa)/$ds+1.5 );
@@ -61,7 +62,6 @@ create mappings
 *
   rectangle
     set corners
-     $xai=-.5; $xbi=.5; $yai=-.5; $ybi=.5; 
      $xai $xbi $yai $ybi 
     lines
       $nx=intmg( ($xbi-$xai)/$ds+1.5 );
