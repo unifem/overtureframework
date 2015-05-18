@@ -1,42 +1,42 @@
-*
-* Create an overlapping grid for a 2D valve
-*
-*  time to make: old:27s (ultra) new: 4.4s
-*                .34 (tux50)
-*                .27 tux50
-*                .12 tux231
-*                .063 tux291
-*                .047 (ansel)
-*                .033 (cg6)
-*
+#
+# Create an overlapping grid for a 2D valve
+#
+#  time to make: old:27s (ultra) new: 4.4s
+#                .34 (tux50)
+#                .27 tux50
+#                .12 tux231
+#                .063 tux291
+#                .047 (ansel)
+#                .033 (cg6)
+#
 create mappings
-  *
-  * First make a back-ground grid  
-  *
+ #
+ # First make a back-ground grid  
+ #
   rectangle
     mappingName
       backGround
     set corners
       0 1.  0 1.
     lines
-      * 41 41
-      * 51 51
+ # 41 41
+ # 51 51
       49 49 
     share
       1 2 3 4
   exit
-  *
-  * Now make the valve  
-  *
+ #
+ # Now make the valve  
+ #
   SmoothedPolygon
     mappingName
       valve
     vertices
-    * .4 .4 .65 .65  ok
-    * .45 .45 .7 .7  ok
-    * .47  .47  .72  .72  ok
-    * .475 .475 .725 .725 no
-    * .47  .47  .72  .72  last used, ok
+ # .4 .4 .65 .65  ok
+ # .45 .45 .7 .7  ok
+ # .47  .47  .72  .72  ok
+ # .475 .475 .725 .725 no
+ # .47  .47  .72  .72  last used, ok
      4
      0.47  0.
      0.47  .75
@@ -44,11 +44,11 @@ create mappings
      0.72  0.
     n-dist
       fixed normal distance
-      * .1
+ # .1
       .05
     lines
-      * 65 9
-      * 75 9
+ # 65 9
+ # 75 9
       73 9 
     boundary conditions
       1 1 1 0
@@ -67,10 +67,10 @@ create mappings
     n-stretch
       1. 4. 0.
   exit
-  *
-  * Here is the part of the boundary that 
-  * the valve closes against  
-  *
+ #
+ # Here is the part of the boundary that 
+ # the valve closes against  
+ #
   SmoothedPolygon
     mappingName
       stopper
@@ -82,11 +82,11 @@ create mappings
       0.5 1.
       n-dist
         fixed normal distance
-        * .1
+ # .1
         .05
       lines
-        * 61 9
-        * 61 9
+ # 61 9
+ # 61 9
         65 9
       t-stretch
         1. 0. 
@@ -101,9 +101,9 @@ create mappings
         2 4 0 0
   exit
 exit
-*
-* Make the overlapping grid
-*
+#
+# Make the overlapping grid
+#
 generate an overlapping grid
     backGround
     stopper
@@ -114,14 +114,14 @@ generate an overlapping grid
       all
       2 2 2 2 2 2
   exit
-*  debug
-*    7
-*  display intermediate results
+#  debug
+#    7
+#  display intermediate results
   compute overlap
-*  pause
+#  pause
   exit
-*
-* save an overlapping grid
+#
+# save an overlapping grid
 save a grid (compressed)
 valve.hdf
 valve

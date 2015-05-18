@@ -19,6 +19,7 @@
 % \setlength{\topmargin}{(\paperheight-\textheight -\headheight-\headsep-\footskip)/2 - 1in + .8in }
 \setlength{\topmargin}{(\paperheight-\textheight -\headheight-\headsep-\footskip)/2 - 1in -.2in }
 
+
 \input homeHenshaw
 
 % \input pstricks
@@ -34,9 +35,20 @@
 
 % \usepackage{program}  % trouble with pdflatex
 
+% -- new way: todo: 
+% \usepackage{listings}
+% \lstset{
+% basicstyle=\footnotesize\ttfamily,
+% columns=flexible,
+% breaklines=true,
+% commentstyle=\color{red},
+% keywordstyle=\color{black}\bfseries
+% }
+
 \usepackage{makeidx} % index
 \makeindex
 \newcommand{\Index}[1]{#1\index{#1}}
+
 
 \usepackage{tikz}
 \input trimFig.tex
@@ -62,20 +74,19 @@
 
 \newcommand{\primer}{Overture/primer}
 \newcommand{\sampleGrids}{Overture/sampleGrids}
-% \newcommand{\gf}{/home/henshaw/res/gf}
 \newcommand{\figures}{\homeHenshaw/OvertureFigures}
-\newcommand{\mapping}{\homeHenshaw/Overture/mapping}
-\newcommand{\ogshow}{\homeHenshaw/Overture/ogshow}
-\newcommand{\ogen}{\homeHenshaw/Overture/ogen}
-\newcommand{\cguser}{\homeHenshaw/cgap/cguser}
+\newcommand{\mapping}{\OvertureDir/mapping}
+\newcommand{\ogshow}{\OvertureDir/ogshow}
+\newcommand{\ogen}{\OvertureDir/ogen}
+% \newcommand{\cguser}{\homeHenshaw/cgap/cguser}
 
 
 % *** See http://www.eng.cam.ac.uk/help/tpl/textprocessing/squeeze.html
 % By default, LaTeX doesn't like to fill more than 0.7 of a text page with tables and graphics, nor does it like too many figures per page. This behaviour can be changed by placing lines like the following before \begin{document}
 
-\renewcommand\floatpagefraction{.9}
-\renewcommand\topfraction{.9}
-\renewcommand\bottomfraction{.9}
+\renewcommand\floatpagefraction{.99}
+\renewcommand\topfraction{.99}
+\renewcommand\bottomfraction{.99}
 \renewcommand\textfraction{.1}   
 \setcounter{totalnumber}{50}
 \setcounter{topnumber}{50}
@@ -97,21 +108,25 @@
 Ogen: An Overlapping Grid Generator for Overture \\
 }
 \vspace{2\baselineskip}
-William D. Henshaw
-\footnote{
-        This work was partially
-        supported by grant N00014-95-F-0067 from the Office of Naval
-        Research}  \\
-CASC: Centre for Applied Scientific Computing\footnote{Management prefers the spelling `Center'}  \\
-Lawrence Livermore National Laboratory    \\
-Livermore, CA, 94551   \\
-henshaw@llnl.gov \\
-http://www.llnl.gov/casc/people/henshaw \\
-http://www.llnl.gov/casc/Overture  \\
+William D. Henshaw  \\
+Department of Mathematical Sciences, \\
+Rensselaer Polytechnic Institute, \\
+Troy, NY, USA, 12180.
+% William D. Henshaw
+% \footnote{
+%         This work was partially
+%         supported by grant N00014-95-F-0067 from the Office of Naval
+%         Research}  \\
+% CASC: Centre for Applied Scientific Computing\footnote{Management prefers the spelling `Center'}  \\
+% Lawrence Livermore National Laboratory    \\
+% Livermore, CA, 94551   \\
+% henshaw@llnl.gov \\
+% http://www.llnl.gov/casc/people/henshaw \\
+% http://www.llnl.gov/casc/Overture  \\
 \vspace{2\baselineskip}
-\today \\
-\vspace{\baselineskip}
-UCRL-MA-132237
+\today 
+% \vspace{\baselineskip}
+% UCRL-MA-132237
 % LA-UR-96-3466
 
 \vspace{4\baselineskip}
@@ -487,7 +502,9 @@ where {\tt plotStuff} is found in {\tt Overture/bin}.
 % \noindent
 \begin{minipage}{.4\linewidth}
 {\footnotesize
-\listinginput[1]{1}{\ogen /square5.cmd}
+% new way: todo:
+% \lstinputlisting[language=Matlab, numbers=left, stepnumber=1, firstline=1,caption={square5.cmd},label=cmd:square5,frame=single]{\ogen/square5.cmd}
+\listinginput[1]{1}{\ogen/square5.cmd}
 }
 \end{minipage}\hfill
 \begin{minipage}{.6\linewidth}
@@ -610,20 +627,19 @@ width to 5. This can either be done explicitly or the option ``{\tt order of acc
 can be used.
 Notice that two lines of interpolation points are generated as required
 by the wider stencil.
-
-\noindent
-\begin{minipage}{.4\linewidth}
+%
+\begin{multicols}{2}
 {\footnotesize
-\listinginput[1]{1}{\ogen /cic.4.cmd}
+\listinginput[1]{1}{\ogen/cic.4.cmd}
 }
-\end{minipage}\hfill
-\begin{minipage}{.6\linewidth}
+\end{multicols}
+% 
   \begin{center}
    % \epsfig{file=\figures/cic.4.ps,height=4.5in}  \\
-   \includegraphics[height=4.5in]{\figures/cic_4}\\
+   \includegraphics[height=3.5in]{\figures/cic_4}\\
   {An overlapping grid for a cylinder in a channel, fourth-order case.}  \label{fig:cicFour}
   \end{center}
-\end{minipage}
+
 
 % % ----------------------------------------------------------------------------------------------
 % \clearpage
@@ -2081,7 +2097,7 @@ sib4.bbmg        & 3D   & 3     &  8.3         &  100.           &  50.1   &    
 
 
 \vfill\eject
-\bibliography{\homeHenshaw/papers/henshaw,\homeHenshaw/papers/henshawPapers}
+\bibliography{\homeHenshaw/papers/common/henshaw,\homeHenshaw/papers/common/henshawPapers}
 \bibliographystyle{siam}
 
 \printindex

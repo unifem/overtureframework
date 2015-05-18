@@ -1,14 +1,14 @@
-*
-* command file to create a sphere in cylindrical tube
-*
-*
+#
+# command file to create a sphere in cylindrical tube
+#
+#
 create mappings
-* first make a sphere
+# first make a sphere
 Sphere
 exit
-*
-* now make a mapping for the north pole
-*
+#
+# now make a mapping for the north pole
+#
 reparameterize
   orthographic
     specify sa,sb
@@ -23,9 +23,9 @@ reparameterize
   mappingName
     north-pole
 exit
-*
-* now make a mapping for the south pole
-*
+#
+# now make a mapping for the south pole
+#
 reparameterize
   orthographic
     choose north or south pole
@@ -42,14 +42,14 @@ reparameterize
   mappingName
     south-pole
 exit
-*
-* Here is the cylinder
-*
-  * main cylinder
+#
+# Here is the cylinder
+#
+ # main cylinder
   Cylinder
     mappingName
       cylinder
-    * orient the cylinder so y-axis is axial direction
+ # orient the cylinder so y-axis is axial direction
     orientation
       2 0 1
     bounds on the radial variable
@@ -63,7 +63,7 @@ exit
     share
       0 0 2 3 0 0 
   exit
-* core of the main cylinder
+# core of the main cylinder
   Box
     mappingName
       cylinderCore
@@ -76,8 +76,8 @@ exit
     share
       0 0 2 3 0 0
   exit
-*  pause
-*
+#  pause
+#
 exit
 generate an overlapping grid
   cylinderCore 
@@ -90,10 +90,10 @@ generate an overlapping grid
       all
       2 2 2 2 2 2
   exit
-   * display intermediate
+ # display intermediate
   compute overlap
-  * continue
-  * pause
+ # continue
+ # pause
 exit
 save an overlapping grid
 sphereInATube.hdf

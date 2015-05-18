@@ -1,8 +1,8 @@
-*
-* add mappings to an existing overlapping grid
-*
+#
+# add mappings to an existing overlapping grid
+#
 create mappings
-*
+#
   annulus
   centre
     1. 1. 
@@ -11,7 +11,7 @@ create mappings
   mappingName
     annulus2
   exit
-*
+#
   rectangle
     boundary conditions
       0 0 0 0
@@ -20,7 +20,7 @@ create mappings
     mappingName
      refine
     exit
-*
+#
   exit this menu
   generate an overlapping grid
     read in an old grid

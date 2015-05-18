@@ -1,10 +1,10 @@
-*
-* Make a grid around a NACA0012 airfoil
-*
+#
+# Make a grid around a NACA0012 airfoil
+#
 create mappings
-  *
-  * First make a back-ground grid  
-  *
+ #
+ # First make a back-ground grid  
+ #
   rectangle
     mappingName
       backGround
@@ -13,19 +13,19 @@ create mappings
     lines
       41 33  41 31
   exit
-  * make the NACA0012 airfoil (curve)
+ # make the NACA0012 airfoil (curve)
   Airfoil
     airfoil type
       naca
   exit
-  * make an ellipse as an outer boundary
+ # make an ellipse as an outer boundary
   Circle or ellipse
     specify centre
      .5 .0
     specify axes of the ellipse
       1.5 1.
   exit
-  * blend the airfoil to the ellipse to make a grid
+ # blend the airfoil to the ellipse to make a grid
   tfi
     choose bottom curve
       airfoil
@@ -37,15 +37,15 @@ create mappings
       73 17
     mappingName
       airfoil-tfi
-    * pause
+ # pause
   exit
-  *
+ #
   elliptic
-    *project onto original mapping (toggle)
+ #project onto original mapping (toggle)
     transform which mapping?
       airfoil-tfi
   elliptic smoothing
-    * slow start to avoid porblems at trailing edge
+ # slow start to avoid porblems at trailing edge
     number of multigrid levels
       3
     maximum number of iterations
@@ -54,7 +54,7 @@ create mappings
     smoother relaxation coefficient
       .1
     generate grid
-    * now reset parameters for better convergence
+ # now reset parameters for better convergence
     maximum number of iterations
       30
     smoother relaxation coefficient
@@ -63,12 +63,12 @@ create mappings
     exit
     mappingName
       airfoil-grid
-    * pause
+ # pause
   exit
 exit
-*
-* make an overlapping grid
-*
+#
+# make an overlapping grid
+#
 generate an overlapping grid
     backGround
     airfoil-grid
@@ -80,7 +80,7 @@ generate an overlapping grid
   exit
   compute overlap
 exit
-*
+#
 save an overlapping grid
 naca0012.hdf
 naca

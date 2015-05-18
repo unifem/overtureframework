@@ -1,16 +1,16 @@
-*
-* command file to create a sphere in a box
-*
-*  time to make: 594s new: 3.5
-*     cpu=2s (ov15 sun-ultra optimized)
-*        =.37 (tux50)
+#
+# command file to create a sphere in a box
+#
+#  time to make: 594s new: 3.5
+#     cpu=2s (ov15 sun-ultra optimized)
+#        =.37 (tux50)
 create mappings
-* first make a sphere
+# first make a sphere
 Sphere
 exit
-*
-* now make a mapping for the north pole
-*
+#
+# now make a mapping for the north pole
+#
 reparameterize
   orthographic
     specify sa,sb
@@ -25,9 +25,9 @@ reparameterize
   mappingName
     north-pole
 exit
-*
-* now make a mapping for the south pole
-*
+#
+# now make a mapping for the south pole
+#
 reparameterize
   orthographic
     choose north or south pole
@@ -44,9 +44,9 @@ reparameterize
   mappingName
     south-pole
 exit
-*
-* Here is the box
-*
+#
+# Here is the box
+#
 Box
   set corners
     -2 2 -2 2 -2 2 
@@ -56,23 +56,23 @@ Box
     box
   exit
 exit
-*
+#
 generate an overlapping grid
   box
   north-pole
   south-pole
   done
   change parameters
-*    interpolation type
-*      explicit for all grids
+#    interpolation type
+#      explicit for all grids
     ghost points
       all
       2 2 2 2 2 2
   exit
-*   set debug parameter
-*    15
+#   set debug parameter
+#    15
   compute overlap
-* 
+# 
 exit
 save an overlapping grid
 sib.hdf

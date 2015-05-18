@@ -1,4 +1,4 @@
-* make a simple square
+# make a simple square
 create mappings
   rectangle
     mappingName
@@ -9,7 +9,7 @@ create mappings
       1 1 1 1
   exit
 exit
-*
+#
 generate an overlapping grid
   square
   done
@@ -20,7 +20,7 @@ generate an overlapping grid
   exit
   compute overlap
 exit
-*
+#
 save an overlapping grid
   square5.hdf
   square5

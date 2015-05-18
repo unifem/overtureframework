@@ -1,13 +1,13 @@
-*
-* Make a 3d valve
-*  
-*     cpu=78s (ov15 sun-ultra optimized)
+#
+# Make a 3d valve
+#  
+#     cpu=78s (ov15 sun-ultra optimized)
 create mappings
-  * main cylinder
+ # main cylinder
   Cylinder
     mappingName
       outerCylinder
-    * orient the cylinder so y-axis is axial direction
+ # orient the cylinder so y-axis is axial direction
     orientation
       2 0 1
     bounds on the radial variable
@@ -21,7 +21,7 @@ create mappings
     share
       0 0 0 1 0 2 
   exit
-* core of the main cylinder
+# core of the main cylinder
   Box
     mappingName
       cylinderCore
@@ -34,11 +34,11 @@ create mappings
     share
       0 0 3 1 0 0
   exit
-* valve stem  
+# valve stem  
   Cylinder
     mappingName
       valveStem
-    * orient the cylinder so y-axis uis axial direction
+ # orient the cylinder so y-axis uis axial direction
     orientation
       2 0 1
     bounds on the radial variable
@@ -52,7 +52,7 @@ create mappings
     share
       0 0 4 3 0 0 
     exit
-*  Make a 2d cross-section of the valve
+#  Make a 2d cross-section of the valve
   SmoothedPolygon
     mappingName
       valveCrossSection
@@ -75,7 +75,7 @@ create mappings
     boundary conditions
       0 0 1 0
   exit
-*  Make the valve as a body of revolution
+#  Make the valve as a body of revolution
   body of revolution
     mappingName
     valve
@@ -88,7 +88,7 @@ create mappings
     share
       0 0 3 0 0 0
   exit
-* 2D cross section for the stopper
+# 2D cross section for the stopper
   SmoothedPolygon
     mappingName
       stopperCrossSection
@@ -102,7 +102,7 @@ create mappings
       fixed normal distance
       .15
   exit
-* stopper
+# stopper
   body of revolution
     mappingName
       stopper
@@ -123,7 +123,7 @@ create mappings
     stopper
   exit
 exit
-* 
+# 
 generate an overlapping grid
     cylinderCore
     outerCylinder
@@ -136,7 +136,7 @@ generate an overlapping grid
       all
       2 2 2 2 2 2
   exit
-  * pause
+ # pause
   compute overlap
 exit
 save an overlapping grid

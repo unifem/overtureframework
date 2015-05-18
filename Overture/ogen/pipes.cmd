@@ -1,9 +1,9 @@
-*
-* Make an overlapping grid for two intersecting pipes
-*     cpu=2s (ov15 sun-ultra optimized)
-*
+#
+# Make an overlapping grid for two intersecting pipes
+#     cpu=2s (ov15 sun-ultra optimized)
+#
 create mappings
-* Here is the main pipe
+# Here is the main pipe
   Cylinder
     orientation
       1 2 0
@@ -20,11 +20,11 @@ create mappings
     share
       0 0 1 2 0 0
     exit
-* Here is the core of the main pipe
-*  note: there is trouble if corner of the core just
-*  sticks outside the main pipe -- hole cutter
-*  misses. (happens with core half width= .3). OK if the
-*  core is bigger or smaller
+# Here is the core of the main pipe
+#  note: there is trouble if corner of the core just
+#  sticks outside the main pipe -- hole cutter
+#  misses. (happens with core half width= .3). OK if the
+#  core is bigger or smaller
   Box
     specify corners
       -1.5 -.25 -.25 1. .25 .25
@@ -37,7 +37,7 @@ create mappings
     share
       1 2 0 0 0 0
     exit
-* Here is the branch pipe
+# Here is the branch pipe
   Cylinder
     orientation
       2 0 1
@@ -54,7 +54,7 @@ create mappings
     mappingName
       branchPipe
     exit
-* Here is the core of the branch pipe
+# Here is the core of the branch pipe
   Box
     specify corners
       -.25 .25 -.25 .25 1.25 .25
@@ -89,7 +89,7 @@ generate an overlapping grid
       all
       2 2 2 2 2 2
   exit
-  * pause
+ # pause
   compute overlap
 exit
 save an overlapping grid

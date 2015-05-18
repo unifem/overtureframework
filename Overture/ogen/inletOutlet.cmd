@@ -1,8 +1,8 @@
-*
-* create a grid to demonstrate various features
-*
+#
+# create a grid to demonstrate various features
+#
 create mappings
-  * make a back ground grid
+ # make a back ground grid
   rectangle
     set corners
       0 2.  0 1.
@@ -13,7 +13,7 @@ create mappings
     share
       1 2 3 4
   exit
-  * make an annulus
+ # make an annulus
   Annulus
     centre for annulus
       1. .5
@@ -28,8 +28,8 @@ create mappings
     boundary conditions
       -1 -1 1 0
   exit
-  * the inlet (on the right) will consist of two 
-  * smoothed polygons
+ # the inlet (on the right) will consist of two 
+ # smoothed polygons
   SmoothedPolygon
     mappingName
       inlet-top
@@ -53,14 +53,14 @@ create mappings
      25 11 
    boundary conditions
      0 1 1 0
-   * One boundary here should match one boundary of 
-   * the backGroundGrid, while another boundary 
-   * should match a boundary on the inlet-bottom.
-   * Set share flag to match corresponding share values
+ # One boundary here should match one boundary of 
+ # the backGroundGrid, while another boundary 
+ # should match a boundary on the inlet-bottom.
+ # Set share flag to match corresponding share values
    share
      0 5 2 0
    exit
-* 
+# 
   SmoothedPolygon
     mappingName
       inlet-bottom
@@ -84,14 +84,14 @@ create mappings
      0. 10.
    boundary conditions
      0 1 1 0
-   * One boundary here should match one boundary 
-   * of the backGroundGrid, while another boundary 
-   * should match a bounbdary on the inlet-bottom.
-   * Set share flag to match corresponding share values
+ # One boundary here should match one boundary 
+ # of the backGroundGrid, while another boundary 
+ # should match a bounbdary on the inlet-bottom.
+ # Set share flag to match corresponding share values
    share
      0 5 2 0
    exit
-  * here is an outlet grid made in the poor man's way
+ # here is an outlet grid made in the poor man's way
   rectangle
     set corners
       -.35 .05  .3 .7
@@ -102,31 +102,31 @@ create mappings
     boundary conditions
       1 0 1 1
   exit
-  * now look at the mappings
+ # now look at the mappings
   view mappings
     backGroundGrid
     annulus
     inlet-top
     inlet-bottom
     outlet
-    *
-    * The grid is plotted with boundaries coloured
-    *  by the boundary condition number. Here we 
-    * should check that all interpolation boundaries 
-    * are 0 (blue), all physical boundaries are positive 
-    * and periodic boundaries are black
-    * pause
-    *
-    * now we plot the boundaries by share value
-    * The sides that correspond to the same boundary 
-    * should be the same colour
+ #
+ # The grid is plotted with boundaries coloured
+ #  by the boundary condition number. Here we 
+ # should check that all interpolation boundaries 
+ # are 0 (blue), all physical boundaries are positive 
+ # and periodic boundaries are black
+ # pause
+ #
+ # now we plot the boundaries by share value
+ # The sides that correspond to the same boundary 
+ # should be the same colour
     colour boundaries by share value 
-    * pause
+ # pause
     erase and exit
   exit
 generate an overlapping grid
-* put the nonconforming grid first to be a lower 
-* priority than the back-ground
+# put the nonconforming grid first to be a lower 
+# priority than the back-ground
     outlet
     backGroundGrid
     annulus
@@ -144,12 +144,12 @@ generate an overlapping grid
       all
       2 2 2 2 2 2
   exit
-*  display intermediate
-*  set debug parameter
-*    31
+#  display intermediate
+#  set debug parameter
+#    31
   compute overlap
   exit
-*
+#
 save an overlapping grid
   inletOutlet.hdf
   inletOutlet

@@ -1,7 +1,7 @@
-*
-* Create a cylindrical body of revolution 
-* from a Smoothed Polygon
-*     cpu=48s (ov15 sun-ultra optimized)
+#
+# Create a cylindrical body of revolution 
+# from a Smoothed Polygon
+#     cpu=48s (ov15 sun-ultra optimized)
 create mappings
   SmoothedPolygon
     vertices
@@ -34,8 +34,8 @@ create mappings
     .15 10
     0 10
   exit
-* making a body of revolution
-*  pause
+# making a body of revolution
+#  pause
   body of revolution
     tangent of line to revolve about
     1. 0 0
@@ -48,7 +48,7 @@ create mappings
     share
       0 0  0  0 1 0
   exit
-* patch on the front singularity
+# patch on the front singularity
   reparameterize
     mappingName
       front
@@ -63,7 +63,7 @@ create mappings
     share
       0 0 0 0 1 0
   exit
-*   patch on back singularity
+#   patch on back singularity
   reparameterize
     mappingName
       back
@@ -80,9 +80,9 @@ create mappings
     share
       0 0 0 0 1 0
   exit
-*
-* Here is the box
-*
+#
+# Here is the box
+#
   Box
     specify corners
       -2 -1 -1 2 1 1 
@@ -91,7 +91,7 @@ create mappings
     mappingName
       box
     exit
-  * pause
+ # pause
 exit
 generate an overlapping grid
   box
@@ -101,7 +101,7 @@ generate an overlapping grid
   done
   compute overlap
 exit
-*
+#
 save an overlapping grid
 revolve.hdf
 revolve

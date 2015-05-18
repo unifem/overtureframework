@@ -43,13 +43,6 @@ ogenDoc: $(docIncludeFiles)
 	bibtex ogen
 	makeindex ogen.idx
 
-ogen.pdf: $(docIncludeFiles)
-	latex ogen
-	makeindex ogen.idx
-	latex ogen
-	dvips -P pdf -G0 -o ogen.ps ogen.dvi
-	ps2pdf ogen.ps
-
 ogenDocOld: $(docIncludeFiles)
 	latex ogen
 	makeindex ogen.idx
