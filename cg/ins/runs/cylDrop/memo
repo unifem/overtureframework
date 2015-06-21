@@ -1,0 +1,105 @@
+NOTE: I think density=1.25 is close to AMP limit so dt cannot be too large with ts=IM
+
+
+***** May 26, 2015 
+
+
+mpirun -np 2 $cginsp cylDrop -g=cylDropGride4.order2.s3.ml2.hdf -tf=1. -tp=.01 -nu=.1 -density=1.25 -dtMax=1.e-3 -project=0 -ts=im -psolver=mg -solver=mg -bcOption=inflowOutflow -freqFullUpdate=1 -go=halt
+
+
+
+
+***** May 25, 2015 
+
+*NEW* detectCollisions **
+
+-----------------TEST parallel-------------------------
+
+G4: -- stretched background --OK
+mpirun -np 4 $cginsp -noplot cylDrop -g=cylGridSmallStretchede4.order2.s3.hdf -tf=1. -tp=.01 -nu=.1 -density=5. -dtMax=1e-3 -project=0 -ts=im -psolver=mg -solver=mg -bcOption=inflowOutflow -freqFullUpdate=1 -forceLimit=1e4 -gravity=-10. -radius=.25 -sep=3.5 -go=og
+
+mpirun -np 4 $cginsp -noplot cylDrop -g=cylGridSmalle2.order2.s3.hdf -tf=1. -tp=.01 -nu=.1 -density=5. -dtMax=1e-3 -project=0 -ts=im -psolver=mg -solver=mg -bcOption=inflowOutflow -freqFullUpdate=1 -forceLimit=1e4 -gravity=-10. -radius=.25 -sep=3 -go=og
+
+-np=4 : OK
+-np=1 : OK
+mpirun -np 4 $cginsp -noplot cylDrop -g=cylGridSmalle4.order2.s3.hdf -tf=1. -tp=.01 -nu=.1 -density=5. -dtMax=1e-3 -project=0 -ts=im -psolver=mg -solver=mg -bcOption=inflowOutflow -freqFullUpdate=1 -forceLimit=1e4 -gravity=-10. -radius=.25 -sep=3 -go=og
+
+
+mpirun -np 2 $cginsp -noplot cylDrop -g=cylGridSmalle2.order2.s3.hdf -tf=1. -tp=.01 -nu=.1 -density=5. -dtMax=1e-3 -project=0 -ts=im -psolver=mg -solver=mg -bcOption=inflowOutflow -freqFullUpdate=1 -forceLimit=1e4 -gravity=-10. -radius=.25 -sep=3 -go=og
+
+-------------------------------------------------------------
+
+
+G4: -- stretched background
+cgins -noplot cylDrop -g=cylGridSmallStretchede4.order2.s3.hdf -tf=1. -tp=.01 -nu=.1 -density=5. -dtMax=1e-3 -project=0 -ts=im -psolver=mg -solver=mg -bcOption=inflowOutflow -freqFullUpdate=1 -forceLimit=1e4 -gravity=-10. -radius=.25 -sep=3.5 -go=og
+
+G2: -- stretched background
+cgins -noplot cylDrop -g=cylGridSmallStretchede2.order2.s3.hdf -tf=1. -tp=.01 -nu=.1 -density=5. -dtMax=1e-3 -project=0 -ts=im -psolver=mg -solver=mg -bcOption=inflowOutflow -freqFullUpdate=1 -forceLimit=1e4 -gravity=-10. -radius=.25 -sep=3.5 -go=og
+
+cgins -noplot cylDrop -g=cylGridSmalle2.order2.s3.hdf -tf=1. -tp=.01 -nu=.1 -density=5. -dtMax=1e-3 -project=0 -ts=im -psolver=mg -solver=mg -bcOption=inflowOutflow -freqFullUpdate=1 -forceLimit=1e4 -gravity=-10. -radius=.25 -sep=3 -go=og
+
+***** May 24, 2015 
+
+----- Smaller domain: test collision with a wall
+
+MAKE HEAVIER: 
+
+G4: collision: t=.64 
+cgins -noplot cylDrop -g=cylGridSmalle4.order2.s3.hdf -tf=1. -tp=.01 -nu=.1 -density=5. -dtMax=.5e-3 -project=0 -ts=im -psolver=mg -solver=mg -bcOption=inflowOutflow -freqFullUpdate=1 -forceLimit=1e4 -gravity=-10. -radius=.25 -go=og
+
+G2: collision around t=.56 
+cgins -noplot cylDrop -g=cylGridSmalle2.order2.s3.hdf -tf=1. -tp=.01 -nu=.1 -density=5. -dtMax=1e-3 -project=0 -ts=im -psolver=mg -solver=mg -bcOption=inflowOutflow -freqFullUpdate=1 -forceLimit=1e4 -gravity=-10. -radius=.25 -go=og
+
+
+
+Parallel:
+
+OK: 
+mpirun -np 2 $cginsp -noplot cylDrop -g=cylDropGride4.order2.s3.ml2.hdf -tf=1. -tp=.01 -nu=.1 -density=1.25 -dtMax=1.e-3 -project=0 -ts=im -psolver=mg -solver=mg -bcOption=inflowOutflow -freqFullUpdate=1 -go=og
+
+
+OK:
+mpirun -np 1 $cginsp -noplot cylDrop -g=cylDropGride4.order2.s3.ml2.hdf -tf=1. -tp=.01 -nu=.1 -density=1.25 -dtMax=1.e-3 -project=0 -ts=im -psolver=mg -solver=mg -bcOption=inflowOutflow -freqFullUpdate=1 -go=og
+
+
+
+IM + MG + inflow-outflow
+cgins -noplot cylDrop -g=cylDropGride4.order2.s3.ml2.hdf -tf=1. -tp=.01 -nu=.1 -density=1.25 -dtMax=1.e-3 -project=0 -ts=im -psolver=mg -solver=mg -bcOption=inflowOutflow -go=og
+
+
+BUG FOUND -- NO MOVING GRID CORRECTIONS WERE BEING PERFORMED!
+
+IM22: OK now:
+cgins -noplot cylDrop -g=cylDropGride2.order2.s3.hdf -tf=1. -tp=.01 -nu=.1 -density=1.25 -dtMax=1.e-3 -project=0 -ts=im -go=og
+
+
+
+IM22: 
+cgins -noplot cylDrop -g=cylDropGride2.order2.s3.hdf -tf=1. -tp=.0001 -nu=.1 -density=1.25 -dtMax=.55e-3 -project=0 -ts=im -psolver=yale -go=og
+
+cgins cylDrop -g=cylDropGride2.order2.s3.hdf -tf=1. -tp=.0001 -nu=.1 -density=1.25 -dtMax=.55e-3 -project=0 -go=halt -psolver=yale
+
+Test IM:  TROUBLE
+cgins cylDrop -g=cylDropGride2.order2.s3.hdf -tf=1. -tp=.001 -nu=1. -density=2. -dtMax=.75e-3 -project=0 -ts=im -go=halt -solver=yale -psolver=yale
+
+
+IM22: TROUBLE
+cgins -noplot cylDrop -g=cylDropGride2.order2.s3.hdf -tf=1. -tp=.001 -nu=.1 -density=1.25 -dtMax=1.e-3 -project=0 -ts=im -go=og
+
+
+PC22 : THIS IS OK:  --> dt=4e-4
+cgins cylDrop -g=cylDropGride2.order2.s3.hdf -tf=1. -tp=.05 -nu=.1 -density=1.25 -dtMax=.75e-3 -project=0 -go=halt
+
+
+***** May 23, 2015 -- created runs/cylDrop
+
+Grids:
+   ogen -noplot cylDropGrid.cmd -interp=e -factor=2 
+   ogen -noplot cylDropGrid.cmd -interp=e -factor=4
+
+
+TRY TS=IM -- broken 
+cgins cylDrop -g=cylDropGride2.order2.s3.hdf -tf=1. -tp=.001 -nu=.1 -density=1.25 -dtMax=.75e-3 -project=1 -ts=im -go=halt
+
+OK: 
+cgins cylDrop -g=cylDropGride2.order2.s3.hdf -tf=1. -tp=.05 -nu=.1 -density=1.25 -dtMax=.75e-3 -project=1 -go=halt

@@ -1,0 +1,337 @@
+=== NOTE: see also runs/ins/conv/memo =====
+
+
+**** 2015/06/03 ***REDO OSCILLATING BEAM***
+
+BUG FOUND (pcMacros.h -- get past times)
+
+CHANGE FINAL TIME:
+
+HEAVY: tf=.8
+conv.p exact.conv -option=beamPiston -ts=pc -nu=.05 -tf=.8 -tp=.4 -rhoBeam=100.0 -E=1.e-4 -tension=1.e-2 -psolver=yale -cg=flexiblePartition -saveVectorErrors=1 -ng=3
+                grid  & N & $p$ & r &  $\vv$ & r & $\grad\cdot\uv$  & r
+  flexiblePartition1 &     1 & 2.69e-06 &      & 4.44e-06 &      & 2.56e-06 &
+  flexiblePartition2 &     2 & 1.78e-07 & 15.1 & 2.94e-07 & 15.1 & 9.39e-08 & 27.3
+  flexiblePartition4 &     4 & 1.27e-08 & 14.0 & 2.06e-08 & 14.3 & 3.52e-09 & 26.7
+Convergence rates: c0=3.86 c1=3.88 c2=4.75
+
+MEDIUM
+conv.p exact.conv -option=beamPiston -ts=pc -nu=.05 -tf=.8 -tp=.4 -rhoBeam=10.0 -E=1.e-4 -tension=1.e-2 -psolver=yale -cg=flexiblePartition -saveVectorErrors=1 -ng=3
+                grid  & N & $p$ & r &  $\vv$ & r & $\grad\cdot\uv$  & r
+  flexiblePartition1 &     1 & 2.23e-04 &      & 2.96e-05 &      & 1.02e-05 &
+  flexiblePartition2 &     2 & 1.62e-05 & 13.8 & 2.33e-06 & 12.7 & 5.06e-07 & 20.2
+  flexiblePartition4 &     4 & 1.16e-06 & 14.0 & 1.69e-07 & 13.8 & 2.39e-08 & 21.2
+Convergence rates: c0=3.79 c1=3.73 c2=4.37
+
+
+VERY LIGHT: tf=1 ** STILL TROUBLE ON FINE GRID**
+conv.p exact.conv -option=beamPiston -ts=pc -nu=.05 -tf=1. -tp=.5 -rhoBeam=0.1 -E=1.e-4 -tension=1.e-2 -psolver=yale -cg=flexiblePartition -saveVectorErrors=1 -ng=3
+
+LIGHT:
+conv.p exact.conv -option=beamPiston -ts=pc -nu=.05 -tf=1. -tp=.5 -rhoBeam=1.0 -E=1.e-4 -tension=1.e-2 -psolver=yale -cg=flexiblePartition -saveVectorErrors=1 -ng=3
+               grid  & N & $p$ & r &  $\vv$ & r & $\grad\cdot\uv$  & r
+  flexiblePartition1 &     1 & 1.48e-04 &      & 7.68e-04 &      & 2.60e-04 &
+  flexiblePartition2 &     2 & 1.05e-05 & 14.1 & 5.05e-05 & 15.2 & 9.90e-06 & 26.3
+  flexiblePartition4 &     4 & 8.87e-07 & 11.8 & 3.54e-06 & 14.3 & 1.98e-06 &  5.0
+Convergence rates: c0=3.69 c1=3.88 c2=3.52
+
+
+HEAVY: tf=1
+conv.p exact.conv -option=beamPiston -ts=pc -nu=.05 -tf=1. -tp=.5 -rhoBeam=100.0 -E=1.e-4 -tension=1.e-2 -psolver=yale -cg=flexiblePartition -saveVectorErrors=1 -ng=3
+               grid  & N & $p$ & r &  $\vv$ & r & $\grad\cdot\uv$  & r
+  flexiblePartition1 &     1 & 3.23e-06 &      & 4.02e-06 &      & 1.94e-06 &
+  flexiblePartition2 &     2 & 2.41e-07 & 13.4 & 2.93e-07 & 13.7 & 7.72e-08 & 25.1
+  flexiblePartition4 &     4 & 1.70e-08 & 14.2 & 2.06e-08 & 14.2 & 2.68e-09 & 28.8
+Convergence rates: c0=3.78 c1=3.80 c2=4.75
+
+
+MEDIUM: 
+conv.p exact.conv -option=beamPiston -ts=pc -nu=.05 -tf=.5 -tp=.5 -rhoBeam=10.0 -E=1.e-4 -tension=1.e-2 -psolver=yale -cg=flexiblePartition -saveVectorErrors=1 -ng=3
+
+
+                grid  & N & $p$ & r &  $\vv$ & r & $\grad\cdot\uv$  & r
+  flexiblePartition1 &     1 & 1.09e-04 &      & 5.02e-05 &      & 3.43e-05 &
+  flexiblePartition2 &     2 & 8.69e-06 & 12.5 & 3.64e-06 & 13.8 & 1.63e-06 & 21.0
+  flexiblePartition4 &     4 & 6.21e-07 & 14.0 & 2.54e-07 & 14.3 & 5.02e-08 & 32.5
+Convergence rates: c0=3.73 c1=3.81 c2=4.71
+
+
+
+
+**** 2015/06/02 ***REDO OSCILLATING BEAM***
+
+LIGHT: tf=1 -- TROUBLE ON THE FINE GRID **WHY***
+conv.p exact.conv -option=beamPiston -ts=pc -nu=.05 -tf=1. -tp=.5 -rhoBeam=0.1 -E=1.e-4 -tension=1.e-2 -psolver=yale -cg=flexiblePartition -saveVectorErrors=1 -ng=3
+
+HEAVY: tf=1 *BROKEN**
+conv.p exact.conv -option=beamPiston -ts=pc -nu=.05 -tf=1. -tp=.5 -rhoBeam=100.0 -E=1.e-4 -tension=1.e-2 -psolver=yale -cg=flexiblePartition -saveVectorErrors=1 -ng=3
+
+                grid  & N & $p$ & r &  $\vv$ & r & $\grad\cdot\uv$  & r                
+  flexiblePartition1 &     1 & 5.11e-05 &      & 8.42e-05 &      & 3.87e-05 & 
+  flexiblePartition2 &     2 & 1.41e-05 &  3.6 & 2.01e-05 &  4.2 & 1.20e-05 &  3.2 
+  flexiblePartition4 &     4 & 3.91e-06 &  3.6 & 5.15e-06 &  3.9 & 2.58e-06 &  4.7                                                                                                                                                                                   
+Convergence rates: c0=1.85 c1=2.02 c2=1.95 
+
+
+**** 2015/04/02 ** REDO OSCILLATING BEAM***  more beam piston runs:
+
+LIGHT: tf=1
+conv.p exact.conv -option=beamPiston -ts=pc -nu=.05 -tf=1. -tp=.5 -rhoBeam=0.1 -E=1.e-4 -tension=1.e-2 -psolver=yale -cg=flexiblePartition -saveVectorErrors=1 -ng=3
+
+
+HEAVY: tf=1 
+conv.p exact.conv -option=beamPiston -ts=pc -nu=.05 -tf=1. -tp=.5 -rhoBeam=100.0 -E=1.e-4 -tension=1.e-2 -psolver=yale -cg=flexiblePartition -saveVectorErrors=1 -ng=3
+
+                grid  & N & $p$ & r &  $\vv$ & r & $\grad\cdot\uv$  & r
+  flexiblePartition1 &     1 & 3.33e-06 &      & 3.78e-06 &      & 2.06e-06 &
+  flexiblePartition2 &     2 & 2.46e-07 & 13.5 & 2.80e-07 & 13.5 & 8.17e-08 & 25.2
+  flexiblePartition4 &     4 & 1.79e-08 & 13.7 & 1.96e-08 & 14.3 & 3.27e-09 & 25.0
+Convergence rates: c0=3.77 c1=3.80 c2=4.65
+
+ ****Output written to ./exact.beamPistonRhos100p0.pc.flexiblePartition.ins.order2.vector.ConvTable.tex *****
+
+
+
+**** 2015/02/01  more beam piston runs:
+
+LIGHT:
+conv.p exact.conv -option=beamPiston -ts=pc -nu=.05 -tf=1. -tp=.5 -rhoBeam=0.1 -E=1.e-4 -tension=1.e-2 -psolver=yale -cg=flexiblePartition -saveVectorErrors=1 -ng=3
+                grid  & N & $p$ & r &  $\vv$ & r & $\grad\cdot\uv$  & r 
+  flexiblePartition1 &     1 & 3.59e-03 &      & 5.53e-04 &      & 7.77e-05 &      
+  flexiblePartition2 &     2 & 2.08e-05 &172.6 & 5.42e-05 & 10.2 & 1.73e-05 &  4.5 
+  flexiblePartition4 &     4 & 4.34e-08 &479.3 & 4.04e-06 & 13.4 & 7.08e-07 & 24.4 
+Convergence rates: c0=8.17 c1=3.55 c2=3.39 
+
+ ****Output written to ./exact.beamPistonRhos0p1.pc.flexiblePartition.ins.order2.vector.ConvTable.tex *****
+
+HEAVY: tf=1 
+conv.p exact.conv -option=beamPiston -ts=pc -nu=.05 -tf=1. -tp=.5 -rhoBeam=100.0 -E=1.e-4 -tension=1.e-2 -psolver=yale -cg=flexiblePartition -saveVectorErrors=1 -ng=3
+                grid  & N & $p$ & r &  $\vv$ & r & $\grad\cdot\uv$  & r 
+  flexiblePartition1 &     1 & 3.31e-06 &      & 3.78e-06 &      & 2.07e-06 &      
+  flexiblePartition2 &     2 & 2.44e-07 & 13.6 & 2.80e-07 & 13.5 & 8.23e-08 & 25.2 
+  flexiblePartition4 &     4 & 1.73e-08 & 14.1 & 1.96e-08 & 14.3 & 2.82e-09 & 29.2 
+Convergence rates: c0=3.79 c1=3.80 c2=4.76 
+
+ ****Output written to ./exact.beamPistonRhos100p0.pc.flexiblePartition.ins.order2.vector.ConvTable.tex *****
+
+
+
+conv.p exact.conv -option=beamPiston -ts=pc -nu=.05 -tf=.5 -tp=.5 -rhoBeam=10.0 -E=1.e-4 -tension=1.e-2 -psolver=yale -cg=flexiblePartition -saveVectorErrors=1 -ng=3
+                grid  & N & $p$ & r &  $v_1$ & r & $v_2$ & r & $\uv$ & r & $\grad\cdot\uv$  & r
+   flexiblePartiton1 &     1 & 1.04e-04 &      & 4.91e-07 &      & 4.43e-05 &      & 4.43e-05 &      & 6.36e-05 &
+   flexiblePartiton2 &     2 & 8.50e-06 & 12.2 & 2.79e-08 & 17.6 & 3.24e-06 & 13.7 & 3.24e-06 & 13.7 & 2.30e-06 & 27.7
+   flexiblePartiton4 &     4 & 6.14e-07 & 13.8 & 1.07e-09 & 26.1 & 2.25e-07 & 14.4 & 2.25e-07 & 14.4 & 7.53e-08 & 30.5
+Convergence rates: c0=3.70 c1=4.42 c2=3.81 c3=3.81 c4=4.86
+
+
+**** 2015/01/30 -- add more interface smoothing for light beams
+
+VERY-LIGHT rhos=.1
+conv.p exact.conv -option=beamPiston -ts=pc -nu=.05 -tf=.5 -tp=.5 -rhoBeam=0.1 -E=1.e-4 -tension=1.e-2 -psolver=yale -cg=flexiblePartition -ng=3
+
+                grid  & N & $p$ & r &  $v_1$ & r & $v_2$ & r & $\uv$ & r & $\grad\cdot\uv$  & r
+   flexiblePartiton1 &     1 & 1.30e-03 &      & 6.94e-06 &      & 1.00e-03 &      & 1.00e-03 &      & 3.89e-05 &
+   flexiblePartiton2 &     2 & 5.21e-05 & 25.0 & 2.81e-07 & 24.7 & 7.42e-06 &134.8 & 7.42e-06 &134.8 & 1.89e-06 & 20.6
+   flexiblePartiton4 &     4 & 3.75e-06 & 13.9 & 1.90e-09 &147.9 & 8.21e-09 &903.8 & 8.21e-09 &903.8 & 1.95e-08 & 96.9
+Convergence rates: c0=4.22 c1=5.92 c2=8.45 c3=8.45 c4=5.48
+
+
+LIGHT rhos=1
+conv.p exact.conv -option=beamPiston -ts=pc -nu=.05 -tf=.5 -tp=.5 -rhoBeam=1. -E=1.e-4 -tension=1.e-2 -psolver=yale -cg=flexiblePartition -ng=3
+               grid  & N & $p$ & r &  $v_1$ & r & $v_2$ & r & $\uv$ & r & $\grad\cdot\uv$  & r
+   flexiblePartiton1 &     1 & 4.36e-04 &      & 1.93e-06 &      & 5.29e-05 &      & 5.29e-05 &      & 9.27e-05 &
+   flexiblePartiton2 &     2 & 3.96e-05 & 11.0 & 3.24e-08 & 59.6 & 1.94e-06 & 27.3 & 1.94e-06 & 27.3 & 2.45e-06 & 37.8
+   flexiblePartiton4 &     4 & 3.00e-06 & 13.2 & 4.60e-10 & 70.4 & 1.26e-07 & 15.4 & 1.26e-07 & 15.4 & 4.95e-08 & 49.5
+Convergence rates: c0=3.59 c1=6.02 c2=4.36 c3=4.36 c4=5.44
+
+
+
+DECREASE E and tension so dt does not scale like dx^2 --> STILL MUST SCALE THIS WAY!
+conv.p exact.conv -option=beamPiston -ts=pc -nu=.05 -tf=.5 -tp=.5 -rhoBeam=10.0 -E=1.e-4 -tension=1.e-2 -psolver=yale -cg=flexiblePartition -ng=3
+                grid  & N & $p$ & r &  $v_1$ & r & $v_2$ & r & $\uv$ & r & $\grad\cdot\uv$  & r
+   flexiblePartiton1 &     1 & 1.04e-04 &      & 4.91e-07 &      & 4.43e-05 &      & 4.43e-05 &      & 6.36e-05 &
+   flexiblePartiton2 &     2 & 8.50e-06 & 12.2 & 2.79e-08 & 17.6 & 3.24e-06 & 13.7 & 3.24e-06 & 13.7 & 2.30e-06 & 27.7
+   flexiblePartiton4 &     4 & 6.14e-07 & 13.8 & 1.07e-09 & 26.1 & 2.25e-07 & 14.4 & 2.25e-07 & 14.4 & 7.53e-08 & 30.5
+Convergence rates: c0=3.70 c1=4.42 c2=3.81 c3=3.81 c4=4.86
+
+
+
+conv.p exact.conv -option=beamPiston -ts=pc -nu=.05 -tf=.5 -tp=.5 -psolver=yale -cg=flexiblePartition -ng=3
+                grid  & N & $p$ & r &  $v_1$ & r & $v_2$ & r & $\uv$ & r & $\grad\cdot\uv$  & r
+   flexiblePartiton1 &     1 & 8.13e-06 &      & 7.76e-09 &      & 3.27e-06 &      & 3.27e-06 &      & 1.31e-06 &
+   flexiblePartiton2 &     2 & 6.67e-07 & 12.2 & 1.19e-10 & 65.2 & 2.59e-07 & 12.6 & 2.59e-07 & 12.6 & 4.86e-08 & 27.0
+   flexiblePartiton4 &     4 & 4.54e-08 & 14.7 & 5.25e-12 & 22.7 & 1.73e-08 & 15.0 & 1.73e-08 & 15.0 & 1.55e-09 & 31.4
+Convergence rates: c0=3.74 c1=5.26 c2=3.78 c3=3.78 c4=4.86
+
+
+
+**** 2015/01/29 **MORE FIXES STARTUP**
+
+NOTE: Beam reaches top at around t=1.5 for rhos*hs=1. 
+
+LIGHT-BEAM
+conv.p exact.conv -option=beamPiston -ts=pc -nu=.05 -tf=.1 -tp=.1 -rhoBeam=1. -psolver=yale -cg=flexiblePartition -ng=3
+
+MEDIUM BEAM:
+conv.p exact.conv -option=beamPiston -ts=pc -nu=.05 -tf=.5 -tp=.5 -psolver=yale -cg=flexiblePartition -ng=3
+
+                grid  & N & $p$ & r &  $v_1$ & r & $v_2$ & r & $\uv$ & r & $\grad\cdot\uv$  & r
+   flexiblePartiton1 &     1 & 8.13e-06 &      & 7.98e-09 &      & 3.26e-06 &      & 3.26e-06 &      & 1.31e-06 &
+   flexiblePartiton2 &     2 & 6.67e-07 & 12.2 & 1.29e-10 & 61.9 & 2.60e-07 & 12.5 & 2.60e-07 & 12.5 & 4.86e-08 & 27.0
+   flexiblePartiton4 &     4 & 4.53e-08 & 14.7 & 9.48e-12 & 13.6 & 1.73e-08 & 15.0 & 1.73e-08 & 15.0 & 1.67e-09 & 29.1
+Convergence rates: c0=3.74 c1=4.86 c2=3.78 c3=3.78 c4=4.81
+
+
+**** 2015/01/26 **FIXED STARTUP**
+
+LOOKS FOURTH-ORDER
+
+conv.p exact.conv -option=beamPiston -ts=pc -nu=.05 -tf=.1 -tp=.5 -psolver=yale -cg=flexiblePartition -ng=3
+
+                grid  & N & $p$ & r &  $v_1$ & r & $v_2$ & r & $\uv$ & r & $\grad\cdot\uv$  & r 
+   flexiblePartiton1 &     1 & 8.54e-07 &      & 2.19e-09 &      & 1.62e-06 &      & 1.62e-06 &      & 1.85e-06 &      
+   flexiblePartiton2 &     2 & 5.83e-08 & 14.6 & 1.18e-10 & 18.6 & 1.20e-07 & 13.5 & 1.20e-07 & 13.5 & 9.37e-08 & 19.7 
+   flexiblePartiton4 &     4 & 3.94e-09 & 14.8 & 2.45e-12 & 48.2 & 7.79e-09 & 15.4 & 7.79e-09 & 15.4 & 3.29e-09 & 28.5 
+Convergence rates: c0=3.88 c1=4.90 c2=3.85 c3=3.85 c4=4.57 
+
+
+conv.p exact.conv -option=beamPiston -ts=pc -nu=.05 -tf=.1 -tp=.1 -psolver=yale -cg=flexiblePartition -ng=3
+
+                grid  & N & $p$ & r &  $v_1$ & r & $v_2$ & r & $\uv$ & r & $\grad\cdot\uv$  & r 
+   flexiblePartiton1 &     1 & 8.54e-07 &      & 2.19e-09 &      & 1.62e-06 &      & 1.62e-06 &      & 1.85e-06 &      
+   flexiblePartiton2 &     2 & 5.83e-08 & 14.6 & 1.18e-10 & 18.6 & 1.20e-07 & 13.5 & 1.20e-07 & 13.5 & 9.37e-08 & 19.7 
+   flexiblePartiton4 &     4 & 3.94e-09 & 14.8 & 2.45e-12 & 48.2 & 7.79e-09 & 15.4 & 7.79e-09 & 15.4 & 3.29e-09 & 28.5 
+Convergence rates: c0=3.88 c1=4.90 c2=3.85 c3=3.85 c4=4.57
+
+
+***** 2015/01/25 -- beamPiston FSI solution:
+
+conv.p exact.conv -option=beamPiston -ts=pc -nu=.05 -tf=.5 -tp=.1 -psolver=yale -cg=flexiblePartition -ng=3
+
+conv.p exact.conv -option=beamPiston -ts=pc -nu=.05 -tf=.1 -tp=.1 -psolver=yale -cg=flexiblePartition -ng=3
+
+                grid  & N & $p$ & r &  $v_1$ & r & $v_2$ & r & $\uv$ & r & $\grad\cdot\uv$  & r 
+   flexiblePartiton1 &     1 & 9.43e-04 &      & 5.18e-05 &      & 7.78e-04 &      & 7.78e-04 &      & 3.55e-03 &      
+   flexiblePartiton2 &     2 & 3.25e-04 &  2.9 & 7.56e-06 &  6.9 & 1.88e-04 &  4.1 & 1.88e-04 &  4.1 & 3.67e-04 &  9.7 
+   flexiblePartiton4 &     4 & 1.46e-04 &  2.2 & 1.70e-06 &  4.4 & 4.67e-05 &  4.0 & 4.67e-05 &  4.0 & 2.29e-06 &160.3 
+Convergence rates: c0=1.35 c1=2.46 c2=2.03 c3=2.03 c4=5.30 
+
+
+**** 2014/09/01
+
+--- PC22
+conv.p tz.conv -model=ins -tz=trig -bcn=noSlip -tf=.2 -cg=cicFixed -order=2  -ts=pc -fx=.7 -ft=5. -nu=.025 -ngStart=2 -ng=5
+conv.p tz.conv -model=ins -tz=trig -bcn=noSlip -tf=.2 -cg=cicFixed -order=2  -ts=pc -fx=.7 -ft=5. -nu=.025 -ngStart=2 -ng=4
+                grid  & N & $p$ & r &  $v_1$ & r & $v_2$ & r & $\uv$ & r & $\grad\cdot\uv$  & r 
+                cic2 &     2 & 9.71e-03 &      & 2.24e-03 &      & 2.24e-03 &      & 2.24e-03 &      & 1.20e-02 &      
+                cic4 &     4 & 1.07e-03 &  9.1 & 3.41e-04 &  6.6 & 2.44e-04 &  9.2 & 3.41e-04 &  6.6 & 1.32e-03 &  9.1 
+                cic8 &     8 & 1.81e-04 &  5.9 & 5.57e-05 &  6.1 & 1.86e-05 & 13.1 & 5.57e-05 &  6.1 & 3.00e-04 &  4.4 
+Convergence rates: c0=2.87 c1=2.66 c2=3.46 c3=2.66 c4=2.66 
+                grid  & N & $p$ & r &  $v_1$ & r & $v_2$ & r & $\uv$ & r & $\grad\cdot\uv$  & r 
+                cic2 &     2 & 9.71e-03 &      & 2.24e-03 &      & 2.24e-03 &      & 2.24e-03 &      & 1.20e-02 &      
+                cic4 &     4 & 1.07e-03 &  9.1 & 3.41e-04 &  6.6 & 2.44e-04 &  9.2 & 3.41e-04 &  6.6 & 1.32e-03 &  9.1 
+                cic8 &     8 & 1.81e-04 &  5.9 & 5.57e-05 &  6.1 & 1.86e-05 & 13.1 & 5.57e-05 &  6.1 & 3.00e-04 &  4.4 
+               cic16 &    16 & 4.07e-05 &  4.4 & 1.14e-05 &  4.9 & 5.13e-06 &  3.6 & 1.14e-05 &  4.9 & 6.93e-05 &  4.3 
+Convergence rates: c0=2.63 c1=2.55 c2=3.00 c3=2.55 c4=2.44 
+
+
+
+-- PC44 : high frequency in time
+conv.p tz.conv -model=ins -tz=trig -bcn=noSlip -tf=.2 -cg=cicFixed -order=4  -ts=pc4 -fx=.7 -ft=5. -nu=.025 -ngStart=2 -ng=4
+                grid  & N & $p$ & r &  $v_1$ & r & $v_2$ & r & $\uv$ & r & $\grad\cdot\uv$  & r 
+                cic2 &     2 & 2.28e-05 &      & 7.32e-06 &      & 9.82e-06 &      & 9.82e-06 &      & 1.01e-04 &      
+                cic4 &     4 & 1.11e-06 & 20.5 & 5.85e-07 & 12.5 & 2.97e-07 & 33.1 & 5.85e-07 & 16.8 & 6.11e-06 & 16.5 
+                cic8 &     8 & 7.28e-08 & 15.2 & 3.91e-08 & 15.0 & 1.97e-08 & 15.1 & 3.91e-08 & 15.0 & 3.84e-07 & 15.9 
+Convergence rates: c0=4.15 c1=3.77 c2=4.48 c3=3.99 c4=4.02 
+                grid  & N & $p$ & r &  $v_1$ & r & $v_2$ & r & $\uv$ & r & $\grad\cdot\uv$  & r 
+                cic2 &     2 & 2.28e-05 &      & 7.32e-06 &      & 9.82e-06 &      & 9.82e-06 &      & 1.01e-04 &      
+                cic4 &     4 & 1.11e-06 & 20.5 & 5.85e-07 & 12.5 & 2.97e-07 & 33.1 & 5.85e-07 & 16.8 & 6.11e-06 & 16.5 
+                cic8 &     8 & 7.28e-08 & 15.2 & 3.91e-08 & 15.0 & 1.97e-08 & 15.1 & 3.91e-08 & 15.0 & 3.84e-07 & 15.9 
+               cic16 &    16 & 4.33e-09 & 16.8 & 2.52e-09 & 15.5 & 1.31e-09 & 15.0 & 2.52e-09 & 15.5 & 2.59e-08 & 14.8 
+Convergence rates: c0=4.10 c1=3.84 c2=4.25 c3=3.97 c4=3.98 
+
+
+-- PC24 : high frequency in time
+conv.p tz.conv -model=ins -tz=trig -bcn=noSlip -tf=.2 -cg=cicFixed -order=4  -ts=pc -fx=.7 -ft=5. -nu=.025 -ngStart=2 -ng=4
+                grid  & N & $p$ & r &  $v_1$ & r & $v_2$ & r & $\uv$ & r & $\grad\cdot\uv$  & r 
+                cic2 &     2 & 4.16e-03 &      & 1.36e-03 &      & 1.39e-03 &      & 1.39e-03 &      & 5.38e-03 &      
+                cic4 &     4 & 3.27e-04 & 12.7 & 1.18e-04 & 11.5 & 1.37e-04 & 10.1 & 1.37e-04 & 10.1 & 3.28e-04 & 16.4 
+                cic8 &     8 & 1.32e-05 & 24.8 & 8.60e-06 & 13.7 & 9.90e-06 & 13.8 & 9.90e-06 & 13.8 & 3.44e-06 & 95.3 
+Convergence rates: c0=4.15 c1=3.65 c2=3.57 c3=3.57 c4=5.31 
+                grid  & N & $p$ & r &  $v_1$ & r & $v_2$ & r & $\uv$ & r & $\grad\cdot\uv$  & r 
+                cic2 &     2 & 4.16e-03 &      & 1.36e-03 &      & 1.39e-03 &      & 1.39e-03 &      & 5.38e-03 &      
+                cic4 &     4 & 3.27e-04 & 12.7 & 1.18e-04 & 11.5 & 1.37e-04 & 10.1 & 1.37e-04 & 10.1 & 3.28e-04 & 16.4 
+                cic8 &     8 & 1.32e-05 & 24.8 & 8.60e-06 & 13.7 & 9.90e-06 & 13.8 & 9.90e-06 & 13.8 & 3.44e-06 & 95.3 
+               cic16 &    16 & 6.61e-07 & 20.0 & 5.62e-07 & 15.3 & 6.49e-07 & 15.3 & 6.49e-07 & 15.3 & 2.75e-08 &125.1 
+Convergence rates: c0=4.25 c1=3.75 c2=3.70 c3=3.70 c4=5.93
+
+
+
+-- PC44 nu=.025 tf=1
+conv.p tz.conv -model=ins -tz=trig -bcn=noSlip -tf=.2 -cg=cicFixed -order=4  -ts=pc4 -fx=.7 -nu=.025 -ngStart=2 -ng=3
+                grid  & N & $p$ & r &  $v_1$ & r & $v_2$ & r & $\uv$ & r & $\grad\cdot\uv$  & r 
+                cic2 &     2 & 1.40e-05 &      & 1.21e-05 &      & 1.58e-05 &      & 1.58e-05 &      & 1.07e-04 &      
+                cic4 &     4 & 8.68e-07 & 16.1 & 6.54e-07 & 18.5 & 8.18e-07 & 19.3 & 8.18e-07 & 19.3 & 5.20e-06 & 20.6 
+Convergence rates: c0=4.01 c1=4.21 c2=4.27 c3=4.27 c4=4.36
+
+
+
+******* 2014/08/27 
+
+TZ=poly:
+
+-- PC44 nu=.025 tf=.2  -- TROUBLE : CORNER
+conv.p tz.conv -model=ins -tz=poly -bcn=noSlip -tf=.2 -cg=cicFixed -order=4  -ts=pc4  -degreeX=4 -degreeT=3 -nu=.025 -ngStart=2 -ng=3
+
+
+2014/0826 -- re-rerun PC44 to see if it still works 
+
+-- PC44 nu=.025 tf=1
+conv.p tz.conv -model=ins -tz=trig -bcn=noSlip -tf=1. -cg=cicFixed -order=4  -ts=pc4 -fx=.7 -nu=.025 -ngStart=2 -ng=3
+                grid  & N & $p$ & r &  $v_1$ & r & $v_2$ & r & $\uv$ & r & $\grad\cdot\uv$  & r
+                cic2 &     2 & 1.05e-05 &      & 4.44e-06 &      & 4.90e-06 &      & 4.90e-06 &      & 6.37e-05 &
+                cic4 &     4 & 7.34e-07 & 14.3 & 3.48e-07 & 12.8 & 3.01e-07 & 16.3 & 3.48e-07 & 14.1 & 3.55e-06 & 17.9
+Convergence rates: c0=3.84 c1=3.67 c2=4.02 c3=3.82 c4=4.17
+
+
+PC44 - 
+conv.p tz.conv -model=ins -tz=trig -bcn=noSlip -tf=.1 -cg=cicFixed -order=4 -ts=pc4 -fx=.7 -ngStart=2 -ng=3
+                grid  & N & $p$ & r &  $v_1$ & r & $v_2$ & r & $\uv$ & r & $\grad\cdot\uv$  & r
+                cic2 &     2 & 1.73e-05 &      & 7.42e-06 &      & 8.61e-06 &      & 8.61e-06 &      & 9.38e-05 &
+                cic4 &     4 & 1.04e-06 & 16.6 & 5.60e-07 & 13.2 & 4.16e-07 & 20.7 & 5.60e-07 & 15.4 & 5.10e-06 & 18.4
+Convergence rates: c0=4.06 c1=3.73 c2=4.37 c3=3.94 c4=4.20
+
+
+-- PC24 nu=.025 tf=1
+conv.p tz.conv -model=ins -tz=trig -bcn=noSlip -tf=1. -cg=cicFixed -order=4 -fx=.7 -nu=.025 -ngStart=2 -ng=4
+               grid  & N & $p$ & r &  $v_1$ & r & $v_2$ & r & $\uv$ & r & $\grad\cdot\uv$  & r
+                cic2 &     2 & 2.89e-05 &      & 1.87e-05 &      & 2.00e-05 &      & 2.00e-05 &      & 6.36e-05 &
+                cic4 &     4 & 2.31e-06 & 12.5 & 1.65e-06 & 11.3 & 1.82e-06 & 11.0 & 1.82e-06 & 11.0 & 3.55e-06 & 17.9
+                cic8 &     8 & 1.52e-07 & 15.2 & 1.15e-07 & 14.3 & 1.25e-07 & 14.6 & 1.25e-07 & 14.6 & 2.20e-07 & 16.1
+Convergence rates: c0=3.79 c1=3.67 c2=3.66 c3=3.66 c4=4.09
+
+
+
+-- PC24 nu=.025 tf=1
+conv.p tz.conv -model=ins -tz=trig -bcn=noSlip -tf=1. -cg=cicFixed -order=4 -fx=.7 -nu=.025 -ngStart=2 -ng=3
+                grid  & N & $p$ & r &  $v_1$ & r & $v_2$ & r & $\uv$ & r & $\grad\cdot\uv$  & r
+                cic2 &     2 & 2.89e-05 &      & 1.87e-05 &      & 2.00e-05 &      & 2.00e-05 &      & 6.36e-05 &
+                cic4 &     4 & 2.31e-06 & 12.5 & 1.65e-06 & 11.3 & 1.82e-06 & 11.0 & 1.82e-06 & 11.0 & 3.55e-06 & 17.9
+Convergence rates: c0=3.65 c1=3.50 c2=3.46 c3=3.46 c4=4.16
+
+
+-- PC24 nu=.025 
+conv.p tz.conv -model=ins -tz=trig -bcn=noSlip -tf=.1 -cg=cicFixed -order=4 -fx=.7 -nu=.025 -ngStart=2 -ng=3
+               grid  & N & $p$ & r &  $v_1$ & r & $v_2$ & r & $\uv$ & r & $\grad\cdot\uv$  & r
+                cic2 &     2 & 1.71e-05 &      & 8.84e-06 &      & 1.10e-05 &      & 1.10e-05 &      & 1.08e-04 &
+                cic4 &     4 & 1.01e-06 & 16.9 & 5.42e-07 & 16.3 & 5.69e-07 & 19.3 & 5.69e-07 & 19.3 & 5.63e-06 & 19.2
+Convergence rates: c0=4.08 c1=4.03 c2=4.27 c3=4.27 c4=4.26
+
+
+PC24 : nu=.05
+conv.p tz.conv -model=ins -tz=trig -bcn=noSlip -tf=.1 -cg=cicFixed -order=4 -fx=.7 -ngStart=2 -ng=3
+
+                grid  & N & $p$ & r &  $v_1$ & r & $v_2$ & r & $\uv$ & r & $\grad\cdot\uv$  & r
+                cic2 &     2 & 1.69e-05 &      & 7.43e-06 &      & 8.61e-06 &      & 8.61e-06 &      & 9.38e-05 &
+                cic4 &     4 & 1.01e-06 & 16.7 & 5.55e-07 & 13.4 & 4.16e-07 & 20.7 & 5.55e-07 & 15.5 & 5.10e-06 & 18.4
+Convergence rates: c0=4.06 c1=3.74 c2=4.37 c3=3.96 c4=4.20

@@ -1,3 +1,75 @@
+==== 2015/05/31
+
+
+
+OK: 
+increase nu a bit , TRY a bit lower CFL -- maybe dt is exceeded?
+nohup $cgins -noplot drops -g=dropsGride16.order2.hdf -nu=.005 -tp=.0025 -tf=5. -inflowVelocity=.7 -forceLimit=100. -solver=mg -psolver=mg -freqFullUpdate=1 -d=.05 -show=drops16f.show -rtolp=1.e-16 -atolp=1.e-2 -debug=3 -cfl=.75 -go=go >! drops16f.out &
+
+
+==== 2015/05/30
+
+OGMG: max-defect < rtol*l2NormRHS + atol
+
+Trouble at t=2.5 -- pressure get very large
+TRY THIS: USE atol : -- make max-defect < atol
+nohup $cgins -noplot drops -g=dropsGride16.order2.hdf -nu=.002 -tp=.0025 -tf=5. -inflowVelocity=.7 -forceLimit=100. -solver=mg -psolver=mg -freqFullUpdate=1 -d=.05 -show=drops16e.show -rtolp=1.e-16 -atolp=1.e-2 -debug=3 -go=go >! drops16e.out &
+
+==== 2015/05/28-29
+
+QUESTION: do we need to solve the pressure equation more accurately when bodies collide?
+
+OK to t=3 .. then trouble, pressure large locally, MG solve not so good, --> dt too small 
+$cgins drops -g=dropsGride16.order2.hdf -nu=.002 -tp=.0025 -tf=5. -inflowVelocity=.7 -forceLimit=100. -solver=mg -psolver=mg -freqFullUpdate=1 -d=.05  -rtolp=1.e-6 -atolp=1.e-8 -debug=3 -go=halt
+
+Decrease rtol, forceLimit
+nohup $cgins -noplot drops -g=dropsGride16.order2.hdf -nu=.002 -tp=.0025 -tf=5. -inflowVelocity=.7 -forceLimit=100. -solver=mg -psolver=mg -freqFullUpdate=1 -d=.05 -show=drops16d.show -rtolp=1.e-6 -atolp=1.e-8 -debug=3 -go=go >! drops16d.out &
+
+==== 2015/05/27 -- FINE GRID DROPS
+
+decrease inflow, output more often: --> TROUBLE around t=.75 when drops collide 
+nohup $cgins -noplot drops -g=dropsGride16.order2.hdf -nu=.002 -tp=.0025 -tf=5. -inflowVelocity=.7 -forceLimit=200. -solver=mg -psolver=mg -freqFullUpdate=1 -d=.05 -show=drops16c.show -rtolp=1.e-4 -atolp=1.e-5 -go=go >! drops16c.out &
+
+
+==== 2015/05/27 -- FINE GRID DROPS
+
+NOTE: larger forceLimit -> smaller dt 
+
+
+Run again -- decrease rtolp, increase forceLimit
+nohup $cgins -noplot drops -g=dropsGride16.order2.hdf -nu=.002 -tp=.01 -tf=5. -inflowVelocity=.75 -forceLimit=200. -solver=mg -psolver=mg -freqFullUpdate=1 -d=.05 -show=drops16b.show -rtolp=1.e-4 -atolp=1.e-5 -go=go >! drops16b.out &
+
+
+==== 2015/05/26 -- FINE GRID DROPS
+
+ogen -noplot dropsGrid -interp=e -order=2 -factor=16 -ml=3 -saveWeights=0
+
+G16: 
+$cgins -noplot drops -g=dropsGride16.order2.hdf -nu=.002 -tp=.01 -tf=5. -inflowVelocity=.75 -forceLimit=100. -solver=mg -psolver=mg -freqFullUpdate=1 -d=.05 -show=drops16.show -go=go >! drops16.out 
+
+
+==== 2015/05/25 -- test parallel
+
+parallel movie 
+mpirun -np 4 $cginsp -noplot drops -g=dropsGride4.order2.hdf -nu=.01 -tp=.01 -tf=10. -inflowVelocity=.65 -forceLimit=80. -solver=mg -psolver=mg -freqFullUpdate=1 -show=drops4p.show -go=go >! drops4p.out 
+
+serial movie:
+nohup $cgins -noplot drops -g=dropsGride4.order2.hdf -nu=.01 -tp=.01 -tf=2. -inflowVelocity=.65 -forceLimit=80. -solver=mg -psolver=mg -freqFullUpdate=1 -show=drops4.show -go=go >! drops4.out &
+
+nohup $cgins -noplot drops -g=dropsGride4.order2.hdf -nu=.01 -tp=.01 -tf=2. -inflowVelocity=.65 -forceLimit=80. -solver=mg -psolver=mg -freqFullUpdate=1 -show=drops4.show -go=go >! drops4.out &
+
+
+=== 2015/05/23 -- check parallel for Ryo 
+
+Grids: 
+ogen -noplot dropsGrid -interp=e -order=2 -factor=4 -ml=2 -saveWeights=0
+ogen -noplot dropsGrid -interp=e -order=2 -factor=8 -ml=3 -saveWeights=0
+
+serial:
+
+$cgins -noplot drops -g=dropsGride4.order2.hdf -nu=.01 -tp=.1 -tf=10. -inflowVelocity=.75 -forceLimit=40. -solver=mg -psolver=mg -go=og
+
+
 === 2012/10/28 -- look to add to cns/runs
 
 #  ogen -noplot dropsGrid -interp=e -order=2 -factor=4 -ml=2 -saveWeights=0

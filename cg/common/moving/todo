@@ -1,0 +1,13 @@
+*****************************************************
+***************** cg/common/move ********************
+*****************************************************
+
+
+
+--------- Things to do: -----------
+
+2015: generalize "detectCollisions" to treat more general bodies.
+     Create a class CollisonDetector".
+
+
+--------- Things done: ----------------

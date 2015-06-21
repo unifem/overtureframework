@@ -1,6 +1,10 @@
+To-do list: (see also lists in ad, cns, ins, mx, etc.)
+
 *****************************************
 ***************** cg ********************
 *****************************************
+
+
 
 --------- Things to do: -----------
 
@@ -14,89 +18,3 @@
 --------- Things done: ----------------
 
 
-*****************************************
-************** cg/cns *******************
-*****************************************
-
---------- Things to do: -----------
-
-2012/11/23 -- cicShockMove.cmd, sibShockMove.cmd : fix for parallel -- CnsParameters.C : getNormalForce
-              (see version in InsParameters.C)
-
---------- Things done: ----------------
-
-
-
-
-*****************************************
-************** cg/ins *******************
-*****************************************
-
---------- Things to do: -----------
-
-2013/01/12 - fix advect passive scalar 
-
-2012/11/26 - ins/src/addForcing.C -- line 1004 : fix TZ forcing for parallel (AFS)
-
-0801 : addForcing.bC, pressureEquation.C : useOpt version for TZ forcing for all cases, remove old way
-
-0801: Finish moving grids and visco-plastic model.
-
-0801: cgins : get parallel s.s. line solver working
-
---------- Things done: ----------------
-
-0801 : pressureEquation.C : add axisymmetric case to assignPressureRHSOpt
-
-*****************************************
-************** cg/mp ********************
-*****************************************
-
---------- Things to do: -----------
-
-0801 : implicit INS and implicit AD
-
-0801 : check on so many sub-show files when running with cgmp
-
-0712 : implicit interface equations: 
-       - add under-relaxed iteration
-       - add mixed BC interface condition
-       - solve domains from largest to smallest kappa
-       - extrapolate in time the RHS to the jump conditions 
-
---------- Things done: ---------------
-
-
-*****************************************
-**************** cg/mx ******************
-*****************************************
-
---------- Things to do: -----------
-
-2015/04 : Fix corner problem for abcEM2 
-   --> unstable at corners Corners:
-   cgmx userDefinedForcing -g=rsise8.order2 -x1=0.1 -y1=0.1 -beta1=100 -x2=-.1 -y2=-.1 -beta2=100. -rbc=abcEM2 -diss=1. -go=halt
-
-
-080116 : Add cmd examples to the documentation
-
-080114 : rework and cleanup forcing.bC
-
-080113 : cg/mx/check : need a script to build the grids used by these tests.
-
-
-
---------- Things done: ----------------
-
-080116 -> 080113 : add memory usage 
-
-
-*****************************************
-************** cg/sm ********************
-*****************************************
-
---------- Things to do: -----------
-
-0801 : cgsm should derive from DomainSolver 
-
---------- Things done: ---------------

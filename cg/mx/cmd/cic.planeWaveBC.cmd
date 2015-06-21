@@ -133,7 +133,8 @@ show file options...
 exit
 #**********************************
 error norm $errorNorm
-use conservative divergence $cons 
+# use conservative divergence $cons 
+use conservative difference $cons
 # plot scattered field 1
 plot errors 1
 check errors 1

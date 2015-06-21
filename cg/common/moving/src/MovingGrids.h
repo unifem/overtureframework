@@ -143,6 +143,9 @@ aString movingGridOptionName(MovingGridOption option) const;
 
 bool isMovingGridProblem() const;
 
+// output probe info
+int outputProbes( GridFunction & gf0, int stepNumber );
+
 // --- plot things related to moving grids (e.g. the center lines of beams or shells)
 int plot(GenericGraphicsInterface & gi, GridFunction & cgf, GraphicsParameters & psp );
 
@@ -208,6 +211,9 @@ int userDefinedGridAccelerationBC(const int & grid,
 				  const Index & I3g );
 
 int updateUserDefinedMotion(CompositeGrid & cg, GenericGraphicsInterface & gi);
+
+// Write information to the `check file' 
+int writeCheckFile( FILE *file );
 
 // Write information about the moving grids
 void writeParameterSummary( FILE *file= stdout );

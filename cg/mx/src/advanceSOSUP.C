@@ -122,7 +122,7 @@ advanceSOSUP(  int numberOfStepsTaken, int current, real t, real dt )
 
     //  ::display(lap,"lap","%8.1e ");
 
-    realArray f;
+    realArray f; // *** SAVE FORCING HERE ***
     const bool addForcing = forcingOption!=noForcing && forcingOption!=planeWaveBoundaryForcing;
 
     if( addForcing )

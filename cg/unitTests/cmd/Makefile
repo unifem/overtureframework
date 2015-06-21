@@ -8,4 +8,8 @@ tbm:
 tblp:
 	@cd ..;      $(MAKE) -$(MAKEFLAGS) tblp
 
+# test eye curves
+eyeTest:
+	@cd ..;      $(MAKE) -$(MAKEFLAGS) eyeTest
+
 # Here are targets to build grids for some of the examples. 

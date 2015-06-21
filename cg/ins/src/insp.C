@@ -40,7 +40,7 @@ updatePressureEquation(CompositeGrid & cg0, GridFunction & cgf )
 {
   if( parameters.dbase.get<int>("simulateGridMotion")>0 ) return;
 
-  if( debug() & 2 )
+  if( debug() & 4 )
     printF("Cgins::updatePressureEquation t=%9.3e, dt=%8.2e...\n",cgf.t,dt);
 
   checkArrays("Cgins::updatePressureEquation: start");
@@ -603,7 +603,7 @@ updateDivergenceDamping( CompositeGrid & cg0, const int & geometryHasChanged )
   if( geometryHasChanged || dt>1.5*dampingDt || dt<dampingDt/1.5 )
   {
     // recompute the divergence damping term.
-    if( debug() & 2 )
+    if( debug() & 4 )
       printF(" xxxxxxxx recompute the divergence damping term, dt=%9.2e, dampingDt=%9.2e, nu=%9.2e, cdv=%9.2e \n",
               dt,dampingDt,nu,cdv);
     dampingDt=dt;

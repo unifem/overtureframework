@@ -69,7 +69,7 @@ include $(CONFIGDIR)/make.src
 DEP += trb.d tblp.d tbm.d
 
 
-.PHONY: doc clean lib trb tbm tblp
+.PHONY: doc clean lib trb tbm tblp eyeTest
 
 # libCommon:=$(CGBUILDPREFIX)common/lib/libCgCommon.so
 libCommon:=$(CGBUILDPREFIX)common/libCgCommon
@@ -95,6 +95,14 @@ trb : $(BINDIR)trb
 $(BINDIR)trb: $(OBJDIR)trb.o  $(libCommon)
 	-@mkdir -p $(BINDIR)
 	$(CXX) $(CXX_FLAGS) -o $@ $(OBJDIR)trb.o $(LIBS)
+
+
+# test routine for EyeCurves class (moving eye-lid)
+TESTS += $(BINDIR)eyeTest
+eyeTest : $(BINDIR)eyeTest
+$(BINDIR)eyeTest: $(OBJDIR)eyeTest.o   $(libCommon)
+	-@mkdir -p $(BINDIR)
+	$(CXX) $(CXX_FLAGS) -o $@ $(OBJDIR)eyeTest.o $(LIBS)
 
 
 

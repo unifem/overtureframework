@@ -1,5 +1,5 @@
 SRC_FILES += MovingGrids.C RigidBodyMotion.C detectCollisions.C userDefinedMotion.C userDefinedDeformingSurface.C
-SRC_FILES += TimeFunction.C MatrixMotion.C PistonMotion.C
+SRC_FILES += TimeFunction.C MatrixMotion.C PistonMotion.C EyeCurves.C
 
 SRC_FILES +=  DeformingBodyMotion.C DeformingGrid.C ElasticFilament.C GridEvolution.C
 

@@ -242,15 +242,18 @@ intArray & mask = mg.mask();
 #endif
 
 
-const bool buildCenter = !( isRectangular &&
-			    ( initialConditionOption==squareEigenfunctionInitialCondition ||
-			      initialConditionOption==gaussianPulseInitialCondition ||
-                              (forcingOption==gaussianChargeSource && initialConditionOption==defaultInitialCondition)
-                               // || initialConditionOption==planeMaterialInterfaceInitialCondition
-			       // ||  initialConditionOption==annulusEigenfunctionInitialCondition
-			       ) 
-			    ); // fix this 
+// const bool buildCenter = !( isRectangular &&
+// 			    ( initialConditionOption==squareEigenfunctionInitialCondition ||
+// 			      initialConditionOption==gaussianPulseInitialCondition ||
+//                               (forcingOption==gaussianChargeSource && initialConditionOption==defaultInitialCondition)
+//                               || initialConditionOption==userDefinedKnownSolutionInitialCondition 
+//                               || initialConditionOption==userDefinedInitialConditionsOption
+//                                // || initialConditionOption==planeMaterialInterfaceInitialCondition
+// 			       // ||  initialConditionOption==annulusEigenfunctionInitialCondition
+// 			       ) 
+// 			    ); // fix this 
 
+const bool buildCenter = vertexArrayIsNeeded( grid );
 if( buildCenter )
 {
   // printF("assignInitialConditions:INFO:build the grid vertices, grid=%i\n",grid);

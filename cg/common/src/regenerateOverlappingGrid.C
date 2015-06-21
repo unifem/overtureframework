@@ -22,7 +22,7 @@ regenerateOverlappingGrid( CompositeGrid & cg , CompositeGrid & cgOld, bool rese
   for( grid=0; grid<cg.numberOfComponentGrids(); grid++ )
     hasMoved(grid)=parameters.gridIsMoving(grid);
   
-  if( debug & 2 )
+  if( debug & 4 )
     printF("--ROG-- regenerateOverlappingGrid: call the grid generator to updateOverlap ...\n");
 
   // const int fullUpdateFreq=max(1,parameters.dbase.get<int >("frequencyToUseFullUpdateForMovingGridGeneration"));
@@ -30,7 +30,7 @@ regenerateOverlappingGrid( CompositeGrid & cg , CompositeGrid & cgOld, bool rese
 
   if( resetToFirstPriority )
   {
-    if( debug & 2 )
+    if( debug & 4 )
       printF("\n --ROG-- +++++++++ moveGrids: use resetToFirstPriority (full update) in Ogen::updateOverlap +++++++++++++ \n");
   }
   //  GridGenerator.updateOverlap(cg);  // use full algorithm

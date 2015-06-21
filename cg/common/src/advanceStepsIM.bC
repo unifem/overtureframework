@@ -136,13 +136,13 @@ initializeTimeSteppingIM( real & t0, real & dt0 )
 
   assert( parameters.dbase.get<int >("orderOfPredictorCorrector")==2 );  // for now we just have 2nd-order in time
 
-  if( !parameters.dbase.get<DataBase >("modelData").has_key("AdamsImplicitData") )
+  if( !parameters.dbase.get<DataBase >("modelData").has_key("AdamsPCData") )
   {
     // this must be the initial call to this routine
-    parameters.dbase.get<DataBase >("modelData").put<AdamsPCData>("AdamsImplicitData");
+    parameters.dbase.get<DataBase >("modelData").put<AdamsPCData>("AdamsPCData");
   }
 
-  AdamsPCData & adamsData = parameters.dbase.get<DataBase >("modelData").get<AdamsPCData>("AdamsImplicitData");
+  AdamsPCData & adamsData = parameters.dbase.get<DataBase >("modelData").get<AdamsPCData>("AdamsPCData");
   
   real & dtb=adamsData.dtb;
   int &mab0 =adamsData.mab0, &mab1=adamsData.mab1, &mab2=adamsData.mab2;
@@ -232,8 +232,8 @@ startTimeStepIM( real & t0, real & dt0, int & currentGF, int & nextGF, AdvanceOp
     parameters.dbase.get<int >("globalStepNumber")=0;
   parameters.dbase.get<int >("globalStepNumber")++;
 
-  assert( parameters.dbase.get<DataBase >("modelData").has_key("AdamsImplicitData") );
-  AdamsPCData & adamsData = parameters.dbase.get<DataBase >("modelData").get<AdamsPCData>("AdamsImplicitData");
+  assert( parameters.dbase.get<DataBase >("modelData").has_key("AdamsPCData") );
+  AdamsPCData & adamsData = parameters.dbase.get<DataBase >("modelData").get<AdamsPCData>("AdamsPCData");
   int &mab0 =adamsData.mab0, &mab1=adamsData.mab1, &mab2=adamsData.mab2;
 
   currentGF=mab0;
@@ -278,8 +278,8 @@ takeTimeStepIM( real & t0, real & dt0, int correction, AdvanceOptions & advanceO
 
   assert( parameters.dbase.get<int >("orderOfPredictorCorrector")==2 );  // for now we just have 2nd-order in time
 
-  assert( parameters.dbase.get<DataBase >("modelData").has_key("AdamsImplicitData") );
-  AdamsPCData & adamsData = parameters.dbase.get<DataBase >("modelData").get<AdamsPCData>("AdamsImplicitData");
+  assert( parameters.dbase.get<DataBase >("modelData").has_key("AdamsPCData") );
+  AdamsPCData & adamsData = parameters.dbase.get<DataBase >("modelData").get<AdamsPCData>("AdamsPCData");
   
   real & dtb=adamsData.dtb;
   int &mab0 =adamsData.mab0, &mab1=adamsData.mab1, &mab2=adamsData.mab2;
@@ -655,9 +655,9 @@ endTimeStepIM( real & t0, real & dt0, AdvanceOptions & advanceOptions )
   assert( parameters.dbase.get<Parameters::TimeSteppingMethod >("timeSteppingMethod")==Parameters::implicit );
   assert( parameters.dbase.get<int >("orderOfPredictorCorrector")==2 );  // for now we just have 2nd-order in time
 
-  assert( parameters.dbase.get<DataBase >("modelData").has_key("AdamsImplicitData") );
+  assert( parameters.dbase.get<DataBase >("modelData").has_key("AdamsPCData") );
 
-  AdamsPCData & adamsData = parameters.dbase.get<DataBase >("modelData").get<AdamsPCData>("AdamsImplicitData");
+  AdamsPCData & adamsData = parameters.dbase.get<DataBase >("modelData").get<AdamsPCData>("AdamsPCData");
   
   real & dtb=adamsData.dtb;
   int &mab0 =adamsData.mab0, &mab1=adamsData.mab1, &mab2=adamsData.mab2;

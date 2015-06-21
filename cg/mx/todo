@@ -1,0 +1,35 @@
+*****************************************
+**************** cg/mx ******************
+*****************************************
+
+--------- Things to do: -----------
+
+
+2015/ : fix forcing in SOSUP to use past times instead of re-evaluating at Gauss points
+
+
+2015/05 : fix forcing for modified equation - extra terms appear
+
+
+2015/04 : Fix corner problem for abcEM2 
+   --> unstable at corners Corners:
+   cgmx userDefinedForcing -g=rsise8.order2 -x1=0.1 -y1=0.1 -beta1=100 -x2=-.1 -y2=-.1 -beta2=100. -rbc=abcEM2 -diss=1. -go=halt
+
+2015: fix material interfaces for SOSUP
+
+2014: fix accuracy of interp points on surfaces -- SOSUP example
+
+
+080116 : Add cmd examples to the documentation
+
+080114 : rework and cleanup forcing.bC
+
+080113 : cg/mx/check : need a script to build the grids used by these tests.
+
+
+
+--------- Things done: ----------------
+
+080116 -> 080113 : add memory usage 
+
+

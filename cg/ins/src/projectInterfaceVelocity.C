@@ -310,13 +310,13 @@ projectInterfaceVelocity(const real & t, realMappedGridFunction & u,
 	    }
 	  }
 	  
-
+         // *********** FIX ME -- THIS IS DUPLICATED ************
           // -- Add a fourth-order filter to interface velocity --
 	  const bool & smoothInterfaceVelocity = parameters.dbase.get<bool>("smoothInterfaceVelocity");
 	  const int numberOfInterfaceVelocitySmooths=parameters.dbase.get<int>("numberOfInterfaceVelocitySmooths");
 	  if( smoothInterfaceVelocity )
 	  {
-	    const real omega=.5;
+	    const real omega=1.; // .5;
 	    // real omega=.125; 
             if( t <= 10.*parameters.dbase.get<real>("dt") )
 	      printF("--PIV--: smooth interface velocity, numberOSmooths=%i (4th order filter, omega=%g) grid=%i t=%9.3e...\n",
@@ -435,7 +435,7 @@ assignInterfaceBoundaryConditions(GridFunction & cgf,
 	    const int axis=boundaryFaces(1,face);
 	    const int grid=boundaryFaces(2,face);
 	    MappedGrid & mg = cg[grid];
-	    OV_GET_SERIAL_ARRAY_CONST(real,cgf.u[grid],uLocal);
+	    OV_GET_SERIAL_ARRAY(real,cgf.u[grid],uLocal);
 	    getBoundaryIndex(mg.gridIndexRange(),side,axis,Ib1,Ib2,Ib3); // boundary index's for mg
 
 	    Range Rx=numberOfDimensions;
@@ -443,7 +443,57 @@ assignInterfaceBoundaryConditions(GridFunction & cgf,
 	    deformingBody.getVelocityBC( cgf.t, grid, mg, Ib1,Ib2,Ib3, vSolid );
 
 	    uLocal(Ib1,Ib2,Ib3,V)=vSolid(Ib1,Ib2,Ib3,Rx);
+
+
+            // *********** FIX ME -- THIS IS DUPLICATED ************
+	    // -- Add a fourth-order filter to interface velocity --
+	    const bool & smoothInterfaceVelocity = parameters.dbase.get<bool>("smoothInterfaceVelocity");
+	    const int numberOfInterfaceVelocitySmooths=parameters.dbase.get<int>("numberOfInterfaceVelocitySmooths");
+	    if( smoothInterfaceVelocity )
+	    {
+	      const real omega=1.; // .5 
+	      // real omega=.125; 
+	      if( cgf.t <= 10.*parameters.dbase.get<real>("dt") )
+		printF("--IBC--: smooth interface velocity, numberOSmooths=%i (4th order filter, omega=%g) grid=%i t=%9.3e...\n",
+		       numberOfInterfaceVelocitySmooths,omega,grid,cgf.t);
+	    
+	      int extra=-1;
+	      getBoundaryIndex(mg.gridIndexRange(),side,axis,Ib1,Ib2,Ib3,extra); // leave off end points
+
+	      assert( numberOfDimensions==2 );  // *FIX ME for 3D*
+	    
+	      int isv[3], &is1=isv[0], &is2=isv[1], &is3=isv[2];
+	      is1=is2=is3=0;
+	      const int axisp1 = (axis+1) % numberOfDimensions;
+	      isv[axisp1]=1;
+	      realArray & gv = uLocal;
+	      for( int smooth=0; smooth<numberOfInterfaceVelocitySmooths; smooth++ )
+	      {
+		// ADJACENT boundary conditions **FINISH ME**
+		if( true )
+		{
+		  assert( axisp1==0 );
+		  int i1a=mg.gridIndexRange(0,0), i1b=mg.gridIndexRange(1,0);
+		  // -- extrapolate ghost points ---
+		  gv(i1a-1,Ib2,Ib3,V)=3.*gv(i1a,Ib2,Ib3,V)-3.*gv(i1a+1,Ib2,Ib3,V)+gv(i1a+2,Ib2,Ib3,V);
+		  gv(i1b+1,Ib2,Ib3,V)=3.*gv(i1b,Ib2,Ib3,V)-3.*gv(i1b-1,Ib2,Ib3,V)+gv(i1b-2,Ib2,Ib3,V);
+		}
+	      
+
+		// smooth interface values
+		// NOTE: for now we smooth all components of the velocity
+		gv(Ib1,Ib2,Ib3,V)= gv(Ib1,Ib2,Ib3,V) + 
+		  (omega/16.)*( -   gv(Ib1-2*is1,Ib2-2*is2,Ib3,V) 
+				+4.*gv(Ib1-  is1,Ib2-  is2,Ib3,V) 
+				-6.*gv(Ib1,      Ib2      ,Ib3,V) 
+				+4.*gv(Ib1+  is1,Ib2+  is2,Ib3,V) 
+				-   gv(Ib1+2*is1,Ib2+2*is2,Ib3,V) );
+	      } // end smooths
+	    } // end smoothSurface
+
+
 	  }
+	  
 	} // end if beamModelHasFluidOnTwoSides
 	
       } // end for body

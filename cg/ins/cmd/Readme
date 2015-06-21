@@ -38,7 +38,7 @@ cic.ss.cmd : flow past a cylinder using the "steady state" line-solver
 
 cicMove.cmd : moving cylinder-in-a-channel example
 
-cylDrop.cmd : A dropping cylinder -- compare to the results from Glowinski, Pan, et.al.dropping cylinders
+cylDrop.cmd : A dropping cylinder: NOW in ins/runs/cyDrop/
 
 cylinder.cmd : flow past a 2d cylinder
 

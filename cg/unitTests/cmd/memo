@@ -1,3 +1,198 @@
+**** 2015/06/17 
+
+CLAMPED+SLIDE EIGENMODE
+
+Smoother:
+
+tbm tzbeam.cmd -nElem=40 -tz=eigenmode -bc=cs -Em=1. -tension=0. -tf=1. -tp=.1 -smooth=1 -numberOfSmooths=1 -smoothOrder=6 -go=halt
+
+C-S MODE=2:
+tbm tzbeam.cmd -nElem=40 -tz=eigenmode -eigenmode=2 -bc=cs -Em=1. -tension=0. -tf=10. -tp=.025 -smooth=0 -numberOfSmooths=1 -smoothOrder=6 -go=halt
+
+
+tbm tzbeam.cmd -nElem=40 -tz=eigenmode -bc=cs -Em=1. -tension=0. -tf=1. -tp=.1 -smooth=0 -numberOfSmooths=1 -smoothOrder=6 -go=halt
+-- BM -- tbm: Error t=1.000e+00 Ne=20: uErr=(4.71e-08,1.67e-06)=(max,max/uNorm), vErr=(7.00e-08,2.81e-07)=(max,max/vNorm) (steps=1011)
+-- BM -- tbm: Error t=1.000e+00 Ne=40: uErr=(2.91e-09,1.03e-07)=(max,max/uNorm), vErr=(4.37e-09,1.76e-08)=(max,max/vNorm) (steps=4051)
+
+
+
+
+ TEST SLIDE-BC :
+
+
+
+SLIDE-BC : EXACT 
+tbm -cmd=tzbeam.cmd -nElem=5 -tz=poly -degreex=4 -degreet=1 -bc=s -Em=1. -tension=1. -tf=.5 -orderOfProjection=4 [EXACT 
+
+ TEST BEAM SMOOTHER
+
+NOTE: For free-end set boundary values by BC;s too
+SMOOTHING:
+tbm tzbeam.cmd -nElem=40 -tz=eigenmode -bc=cf -Em=1. -tension=0. -tf=1. -tp=.001 -smooth=1 -numberOfSmooths=1 -smoothOrder=6 -go=halt
+
+smoothOmega=.25: 
+-- BM -- tbm: Error t=1.000e+00 Ne=40: uErr=(4.66e-08,6.44e-07)=(max,max/uNorm), vErr=(1.16e-07,7.12e-07)=(max,max/vNorm) (steps=4001)
+-- BM -- tbm: Error t=1.000e+00 Ne=80: uErr=(1.26e-09,1.75e-08)=(max,max/uNorm), vErr=(4.14e-09,2.56e-08)=(max,max/vNorm) (steps=16191)
+
+**** 2015/06/16  TEST BEAM SMOOTHER
+
+add EIGEN-MODE for CLAMPED + FREE
+
+SMOOTHING:
+tbm tzbeam.cmd -nElem=40 -tz=eigenmode -bc=cf -Em=1. -tension=0. -tf=1. -tp=.001 -smooth=1 -numberOfSmooths=1 -smoothOrder=6 -go=halt
+
+NO-SMOOTHING
+-- BM -- tbm: Error t=1.000e-01 Ne=40: uErr=(1.17e-11,7.19e-11)=(max,max/uNorm), vErr=(1.68e-11,8.36e-10)=(max,max/vNorm) (steps=406)
+-- BM -- tbm: Error t=2.000e-01 Ne=40: uErr=(4.63e-11,2.91e-10)=(max,max/uNorm), vErr=(3.70e-11,9.24e-10)=(max,max/vNorm) (steps=811)
+
+
+
+CLAMPED+FREE
+
+tbm tzbeam.cmd -nElem=40 -tz=eigenmode -bc=cf -Em=1. -tension=0. -tf=1. -tp=.1 -smooth=0 -numberOfSmooths=1 -smoothOrder=6 -go=halt
+
+-- BM -- tbm: Error t=1.000e+00 Ne=20: uErr=(1.52e-08,2.08e-07)=(max,max/uNorm), vErr=(8.84e-09,5.37e-08)=(max,max/vNorm) (steps=1011)
+-- BM -- tbm: Error t=1.000e+00 Ne=40: uErr=(9.41e-10,1.30e-08)=(max,max/uNorm), vErr=(5.61e-10,3.45e-09)=(max,max/vNorm) (steps=4051)
+-- BM -- tbm: Error t=1.000e+00 Ne=80: uErr=(5.86e-11,8.15e-10)=(max,max/uNorm), vErr=(4.43e-11,2.74e-10)=(max,max/vNorm) (steps=16191)
+
+CLAMPED + SMOOTHS:
+tbm tzbeam.cmd -nElem=40 -tz=eigenmode -bc=c -Em=1. -tension=0. -tf=1. -tp=.01 -smooth=1 -numberOfSmooths=1 -smoothOrder=6 -go=halt
+
+-- BM -- tbm: Error t=1.000e+00 Ne=80: uErr=(2.34e-07,2.35e-06)=(max,max/uNorm), vErr=(1.69e-06,2.37e-06)=(max,max/vNorm) (steps=16201)
+-- BM -- tbm: Error t=1.000e+00 Ne=40: uErr=(3.74e-06,3.77e-05)=(max,max/uNorm), vErr=(2.62e-05,3.69e-05)=(max,max/vNorm) (steps=4001)
+-- BM -- tbm: Error t=1.000e+00 Ne=20: uErr=(6.03e-05,6.17e-04)=(max,max/uNorm), vErr=(3.93e-04,5.60e-04)=(max,max/vNorm) (steps=1001)
+
+
+**** 2015/06/15  TEST BEAM SMOOTHER
+
+
+CLAMPED + SMOOTHS:
+tbm tzbeam.cmd -nElem=40 -tz=eigenmode -bc=c -Em=1. -tension=0. -tf=1. -tp=.01 -smooth=1 -numberOfSmooths=1 -smoothOrder=6 -go=halt
+
+-- BM -- tbm: Error t=1.000e+00 Ne=80: uErr=(2.34e-07,2.35e-06)=(max,max/uNorm), vErr=(1.69e-06,2.37e-06)=(max,max/vNorm) (steps=16201)
+-- BM -- tbm: Error t=1.000e+00 Ne=40: uErr=(3.74e-06,3.77e-05)=(max,max/uNorm), vErr=(2.62e-05,3.69e-05)=(max,max/vNorm) (steps=4001)
+-- BM -- tbm: Error t=1.000e+00 Ne=20: uErr=(6.03e-05,6.17e-04)=(max,max/uNorm), vErr=(3.93e-04,5.60e-04)=(max,max/vNorm) (steps=1001)
+
+
+tbm tzbeam.cmd -nElem=40 -tz=eigenmode -bc=c -Em=1. -tension=0. -tf=1. -tp=.0001 -smooth=1 -numberOfSmooths=1 -smoothOrder=6 -go=halt
+
+NO SMOOTHS:
+
+-- BM -- tbm: Error t=1.000e+00 Ne=40: uErr=(1.43e-07,1.44e-06)=(max,max/uNorm), vErr=(8.41e-07,1.18e-06)=(max,max/vNorm) (steps=4001)
+
+
+**** 2015/06/15  TEST BEAM SMOOTHER
+
+EIGENMODE: clamped beam:
+
+
+NO SMOOTHS:
+tbm tzbeam.cmd -nElem=40 -tz=eigenmode -bc=c -Em=1. -tension=0. -tf=1. -tp=.01 -smooth=0 -numberOfSmooths=1 -smoothOrder=6 -go=halt
+
+-- BM -- tbm: Error t=1.000e+00 Ne=20: uErr=(2.19e-06,2.24e-05)=(max,max/uNorm), vErr=(1.28e-05,1.83e-05)=(max,max/vNorm) (steps=1011)
+-- BM -- tbm: Error t=1.000e+00 Ne=40: uErr=(1.35e-07,1.37e-06)=(max,max/uNorm), vErr=(7.90e-07,1.11e-06)=(max,max/vNorm) (steps=4051)
+
+
+
+ADD tension: 
+tbm tzbeam.cmd -nElem=40 -tz=sw -bc=p -Em=1. -tension=1. -tf=1. -tp=.001 -smooth=1 -numberOfSmooths=1 -smoothOrder=6 -go=halt
+
+-- BM -- tbm: Error t=1.000e+00 Ne=40: uErr=(9.41e-05,1.35e-03)=(max,max/uNorm), vErr=(9.48e-05,1.43e-03)=(max,max/vNorm) (steps=4051)
+-- BM -- tbm: Error t=1.000e+00 Ne=80: uErr=(5.91e-06,8.43e-05)=(max,max/uNorm), vErr=(5.99e-06,9.01e-05)=(max,max/vNorm) (steps=16191)
+
+
+tbm -noplot tzbeam.cmd -nElem=40 -tz=sw -bc=p -Em=1. -tension=0. -tf=1. -tp=.1 -smooth=1 -numberOfSmooths=1 -smoothOrder=6 -go=go
+
+-- BM -- tbm: Error t=1.000e+00 Ne=40: uErr=(9.41e-05,1.35e-03)=(max,max/uNorm), vErr=(9.19e-05,1.28e-03)=(max,max/vNorm) (steps=4051)
+-- BM -- tbm: Error t=1.000e+00 Ne=80: uErr=(5.91e-06,8.44e-05)=(max,max/uNorm), vErr=(5.73e-06,7.95e-05)=(max,max/vNorm) (steps=16191)
+
+6th-order SMOOTHER:
+tbm tzbeam.cmd -nElem=40 -tz=sw -bc=p -Em=1. -tension=0. -tf=1. -tp=.0001 -smooth=1 -numberOfSmooths=1 -smoothOrder=6 -go=halt
+--BM-- smooth u: corrector, numberOfSmooths=1 (6th order filter), omega=1.000e+00 isPeriodic=0 t=1.00e-04.
+-- BM -- tbm: Error t=1.000e-04 Ne=40: uErr=(2.33e-08,3.34e-07)=(max,max/uNorm), vErr=(7.44e-10,6.84e-07)=(max,max/vNorm) (steps=2)
+-- BM -- tbm: Error t=2.000e-04 Ne=40: uErr=(4.67e-08,6.68e-07)=(max,max/uNorm), vErr=(9.60e-10,4.41e-07)=(max,max/vNorm) (steps=3)
+-- BM -- tbm: Error t=3.000e-04 Ne=40: uErr=(7.00e-08,1.00e-06)=(max,max/uNorm), vErr=(4.40e-10,1.35e-07)=(max,max/vNorm) (steps=4)
+-- BM -- tbm: Error t=4.000e-04 Ne=40: uErr=(9.33e-08,1.34e-06)=(max,max/uNorm), vErr=(8.19e-10,1.88e-07)=(max,max/vNorm) (steps=5)
+
+
+FIX SMOOTHER PINNED BC's: 
+tbm tzbeam.cmd -nElem=40 -tz=sw -bc=p -Em=1. -tension=0. -tf=1. -tp=.0001 -smooth=1 -numberOfSmooths=1 -go=halt
+
+--BM-- smooth u: corrector, numberOfSmooths=1 (4th order filter), omega=1.000e+00 isPeriodic=0 t=1.00e-04.
+-- BM -- tbm: Error t=1.000e-04 Ne=40: uErr=(3.79e-06,5.43e-05)=(max,max/uNorm), vErr=(5.80e-08,5.32e-05)=(max,max/vNorm) (steps=2)
+-- BM -- tbm: Error t=2.000e-04 Ne=40: uErr=(7.58e-06,1.09e-04)=(max,max/uNorm), vErr=(2.04e-07,9.39e-05)=(max,max/vNorm) (steps=3)
+-- BM -- tbm: Error t=3.000e-04 Ne=40: uErr=(1.14e-05,1.63e-04)=(max,max/uNorm), vErr=(4.69e-07,1.44e-04)=(max,max/vNorm) (steps=4)
+
+
+**** 2015/06/14  TEST BEAM SMOOTHER
+
+
+ tbm -noplot tzbeam.cmd -nElem=80 -tz=sw -bc=per -Em=1. -tension=0. -tf=1. -tp=.1 -smooth=1 -numberOfSmooths=1 -go=go
+
+omega=dt:
+-- BM -- tbm: Error t=1.000e+00 Ne=40: uErr=(3.81e-06,5.48e-05)=(max,max/uNorm), vErr=(1.86e-06,2.60e-05)=(max,max/vNorm) (steps=4051)
+-- BM -- tbm: Error t=1.000e+00 Ne=80: uErr=(2.39e-07,3.41e-06)=(max,max/uNorm), vErr=(1.18e-07,1.64e-06)=(max,max/vNorm) (steps=16191)
+
+-- BM -- tbm: Error t=1.000e+00 Ne=80: uErr=(1.90e-03,2.71e-02)=(max,max/uNorm), vErr=(1.96e-03,2.72e-02)=(max,max/vNorm) (steps=16191)
+-Ne=40
+-- BM -- tbm: Error t=1.000e+00 Ne=40: uErr=(7.36e-03,1.06e-01)=(max,max/uNorm), vErr=(7.63e-03,1.07e-01)=(max,max/vNorm) (steps=4051)
+
+... no smooths: 
+-- BM -- tbm: Error t=1.000e+00 Ne=40: uErr=(3.79e-08,5.44e-07)=(max,max/uNorm), vErr=(5.78e-06,8.07e-05)=(max,max/vNorm) (steps=4051)
+
+tbm tzbeam.cmd -nElem=80 -tz=sw -bc=per -Em=1. -tension=0. -tf=1. -tp=.0001 -smooth=1 -numberOfSmooths=1 -go=halt
+-- BM -- tbm: Error t=1.000e-04 Ne=80: uErr=(2.38e-07,3.38e-06)=(max,max/uNorm), vErr=(3.21e-09,2.93e-06)=(max,max/vNorm) (steps=3)
+-- BM -- tbm: Error t=2.000e-04 Ne=80: uErr=(4.75e-07,6.76e-06)=(max,max/uNorm), vErr=(1.34e-08,6.10e-06)=(max,max/vNorm) (steps=5)
+-- BM -- tbm: Error t=3.000e-04 Ne=80: uErr=(7.13e-07,1.01e-05)=(max,max/uNorm), vErr=(3.09e-08,9.41e-06)=(max,max/vNorm) (steps=7)
+-- BM -- tbm: Error t=4.000e-04 Ne=80: uErr=(9.50e-07,1.35e-05)=(max,max/uNorm), vErr=(5.59e-08,1.28e-05)=(max,max/vNorm) (steps=9)
+-- BM -- tbm: Error t=5.000e-04 Ne=80: uErr=(1.19e-06,1.69e-05)=(max,max/uNorm), vErr=(8.82e-08,1.61e-05)=(max,max/vNorm) (steps=11)
+
+tbm tzbeam.cmd -nElem=40 -tz=sw -bc=per -Em=1. -tension=0. -tf=1. -tp=.0001 -smooth=1 -numberOfSmooths=1 -go=halt
+--BM-- smooth u: corrector, numberOfSmooths=1 (4th order filter), omega=5.000e-01 isPeriodic=1 t=1.00e-04.
+--BM-- smooth v: corrector, numberOfSmooths=1 (4th order filter), omega=5.000e-01 isPeriodic=1 t=1.00e-04.
+-- BM -- tbm: Error t=1.000e-04 Ne=40: uErr=(1.89e-06,2.71e-05)=(max,max/uNorm), vErr=(2.84e-08,2.61e-05)=(max,max/vNorm) (steps=2)
+--BM-- smooth u: corrector, numberOfSmooths=1 (4th order filter), omega=5.000e-01 isPeriodic=1 t=2.00e-04.
+--BM-- smooth v: corrector, numberOfSmooths=1 (4th order filter), omega=5.000e-01 isPeriodic=1 t=2.00e-04.
+-- BM -- tbm: Error t=2.000e-04 Ne=40: uErr=(3.79e-06,5.43e-05)=(max,max/uNorm), vErr=(1.01e-07,4.64e-05)=(max,max/vNorm) (steps=3)
+-- BM -- tbm: Error t=3.000e-04 Ne=40: uErr=(5.68e-06,8.14e-05)=(max,max/uNorm), vErr=(2.33e-07,7.13e-05)=(max,max/vNorm) (steps=4)
+-- BM -- tbm: Error t=4.000e-04 Ne=40: uErr=(7.58e-06,1.09e-04)=(max,max/uNorm), vErr=(4.24e-07,9.73e-05)=(max,max/vNorm) (steps=5)
+-- BM -- tbm: Error t=5.000e-04 Ne=40: uErr=(9.47e-06,1.36e-04)=(max,max/uNorm), vErr=(6.74e-07,1.24e-04)=(max,max/vNorm) (steps=6)
+
+PERIODIC - NO SMOOTHS
+tbm tzbeam.cmd -nElem=40 -tz=sw -bc=per -Em=1. -tension=0. -tf=1. -tp=.0001 -smooth=0 -numberOfSmooths=1 -go=halt
+-- BM -- tbm: Error t=1.000e-04 Ne=40: uErr=(4.53e-14,6.48e-13)=(max,max/uNorm), vErr=(1.11e-09,1.02e-06)=(max,max/vNorm) (steps=2)
+-- BM -- tbm: Error t=2.000e-04 Ne=40: uErr=(1.82e-13,2.60e-12)=(max,max/uNorm), vErr=(2.23e-09,1.03e-06)=(max,max/vNorm) (steps=3)
+-- BM -- tbm: Error t=3.000e-04 Ne=40: uErr=(4.10e-13,5.88e-12)=(max,max/uNorm), vErr=(3.35e-09,1.03e-06)=(max,max/vNorm) (steps=4)
+-- BM -- tbm: Error t=4.000e-04 Ne=40: uErr=(7.30e-13,1.04e-11)=(max,max/uNorm), vErr=(4.45e-09,1.02e-06)=(max,max/vNorm) (steps=5)
+-- BM -- tbm: Error t=5.000e-04 Ne=40: uErr=(1.14e-12,1.63e-11)=(max,max/uNorm), vErr=(5.57e-09,1.02e-06)=(max,max/vNorm) (steps=6)
+
+
+
+**** 2015/06/12,13  TEST BEAM SMOOTHER
+
+tbm tzbeam.cmd -nElem=40 -tz=sw -bc=p -Em=1. -tension=0. -tf=1. -tp=.001 -smooth=1 -numberOfSmooths=1 -go=halt
+
+
+
+SMOOTH:
+tbm tzbeam.cmd -nElem=40 -tz=sw -bc=p -Em=1. -tension=0. -tf=1. -tp=.1 -smooth=1 -numberOfSmooths=1 -go=halt
+
+
+tbm tzbeam.cmd -nElem=40 -tz=sw -bc=p -Em=1. -tension=0. -tf=1. -tp=.1 -go=halt
+
+Error Ne=40, t=1.000e-01, dt=2.47e-04, numSteps=405 : max=4.37e-08, l2=3.05e-08, l2-rel=1.38e-06
+Error Ne=40, t=2.000e-01, dt=2.47e-04, numSteps=810 : max=5.54e-08, l2=3.87e-08, l2-rel=6.93e-07
+Error Ne=40, t=3.000e-01, dt=2.47e-04, numSteps=1215 : max=7.85e-08, l2=5.48e-08, l2-rel=9.54e-07
+Error Ne=40, t=4.000e-01, dt=2.47e-04, numSteps=1620 : max=1.77e-07, l2=1.24e-07, l2-rel=6.38e-06
+Error Ne=40, t=5.000e-01, dt=2.47e-04, numSteps=2025 : max=9.47e-09, l2=6.62e-09, l2-rel=9.48e-08
+Error Ne=40, t=6.000e-01, dt=2.47e-04, numSteps=2430 : max=2.59e-07, l2=1.81e-07, l2-rel=7.27e-06
+Error Ne=40, t=7.000e-01, dt=2.47e-04, numSteps=2835 : max=2.04e-07, l2=1.43e-07, l2-rel=2.64e-06
+Error Ne=40, t=8.000e-01, dt=2.47e-04, numSteps=3240 : max=1.97e-07, l2=1.37e-07, l2-rel=2.33e-06
+Error Ne=40, t=9.000e-01, dt=2.47e-04, numSteps=3645 : max=4.03e-07, l2=2.82e-07, l2-rel=1.69e-05
+Error Ne=40, t=1.000e+00, dt=2.47e-04, numSteps=4050 : max=3.79e-08, l2=2.64e-08, l2-rel=3.80e-07
+
+
+
 **** 2015/02/26
 
 tbm -noplot beamComputeForce -E=1. -tension=1. -orderOfProjection=4 -option=internalForce -thickness=1.e-7 -numElem=10 -degreeX=2 -degreeT=1

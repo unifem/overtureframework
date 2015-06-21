@@ -1,15 +1,17 @@
 #  
 #  Cgmx files
-#  
+#   Use:  setenv COMPILE [dbg/opt/optdbg]
 
 
 # C++ source files:
 SRC_FILES += Maxwell.C userDefinedInitialConditions.C userDefinedForcing.C  \
-     advance.C setup.C solve.C plot.C advanceUnstructured.C \
+     advance.C setup.C setupGridFunctions.C solve.C plot.C advanceUnstructured.C \
      advanceStructured.C assignBoundaryConditions.C  \
      updateShowFile.C saveShow.C variableDissipation.C  assignInterfaceBoundaryConditions.C \
      DSICoeff.C checkGridFunction.C getEnergy.C InterfaceInfo.C project.C   \
-     advanceFDTD.C defineRegionsAndBodies.C outputHeader.C advanceSOSUP.C
+     advanceFDTD.C defineRegionsAndBodies.C outputHeader.C advanceSOSUP.C \
+     userDefinedKnownSolution.C assignUserDefinedKnownSolutionInitialConditions.C \
+     printTimeStepInfo.C
 
 # Include Kyle's dbase functions with cgmx
 # SRC_FILES += dbAccess.C dbFunctions.f kk_ptr.cc
@@ -94,6 +96,8 @@ src/assignBoundaryConditions.C : src/assignBoundaryConditions.bC forcing.h plane
 src/assignInterfaceBoundaryConditions.C : src/assignInterfaceBoundaryConditions.bC; $(BPP) -quiet -clean -I$(Overture)/include $<
 
 src/getErrors.C : src/getErrors.bC forcing.h annulusEigenFunction.h planeMaterialInterface.h; $(BPP) -quiet -clean $<
+
+src/divergence.C : src/divergence.bC; $(BPP) -quiet -clean $<
 
 # we need to add these explicitly since the implicit rule for %.bf doesn't work for some reason (?)
 # we need to do it this way so that all the files created with bpp are put in the src directory: 

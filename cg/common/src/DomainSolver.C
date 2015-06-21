@@ -300,23 +300,29 @@ outputHeader()
       fPrintF(file," pressure equation solver: solver=%s, \n",(const char*)pressureSolverParameters.getSolverName());
       if(  poisson->isSolverIterative() )
       {
-	real tolerance;
+	real rtol,atol;
 	int maximumNumberOfIterations;
 	if( poisson->parameters.getSolverType()!=OgesParameters::multigrid )
 	{
-	  pressureSolverParameters.get(OgesParameters::THErelativeTolerance,tolerance);
+	  pressureSolverParameters.get(OgesParameters::THErelativeTolerance,rtol);
+	  pressureSolverParameters.get(OgesParameters::THEabsoluteTolerance,atol);
 	  pressureSolverParameters.get(OgesParameters::THEmaximumNumberOfIterations,maximumNumberOfIterations);
 	}
 	else
 	{
 	  OgmgParameters* ogmgPar = poisson->parameters.getOgmgParameters();
 	  assert( ogmgPar!=NULL );
-	  ogmgPar->get(OgmgParameters::THEresidualTolerance,tolerance);
+	  ogmgPar->get(OgmgParameters::THEresidualTolerance,rtol);  // note: residual
+	  ogmgPar->get(OgmgParameters::THEabsoluteTolerance,atol);
 	  ogmgPar->get(OgmgParameters::THEmaximumNumberOfIterations,maximumNumberOfIterations);
 	}
+	fPrintF(file,"                         : rel-tol=%8.2e, abs-tol=%8.2e, max iterations=%i (0=choose default)\n",
+		rtol,atol,maximumNumberOfIterations);
+	if( poisson->parameters.getSolverType()==OgesParameters::multigrid )
+	{ // Here is the MG convergence criteria: 
+          fPrintF(file,"                         : convergence: max-defect < (rel-tol)*L2NormRHS + abs-tol.\n");
+	}
 	
-	fPrintF(file,"                         : tolerance=%8.2e, max number of iterations=%i (0=choose default)\n",
-		tolerance,maximumNumberOfIterations);
       }
     }
   
@@ -383,7 +389,7 @@ outputHeader()
     else
       fPrintF(parameters.dbase.get<FILE* >("checkFile"),"polynomial TZ}");
   }
-  fPrintF(parameters.dbase.get<FILE* >("checkFile"),"\n");
+  fPrintF(parameters.dbase.get<FILE* >("checkFile"),"}\n");
 
 }
 
@@ -1254,26 +1260,33 @@ writeParameterSummary( FILE * file )
     fPrintF(file,"   implicit factor = %4.2f, (.5=Crank-Nicolson, 1.=Backward Euler)\n",parameters.dbase.get<real >("implicitFactor"));
     if( implicitTimeStepSolverParameters.getSolverName()!="yale" )
     {
-      real tolerance;
+      real rtol,atol;
       int maximumNumberOfIterations;
 	
       if( implicitTimeStepSolverParameters.getSolverType()!=OgesParameters::multigrid )
       {
-	implicitTimeStepSolverParameters.get(OgesParameters::THEtolerance,tolerance);
+	implicitTimeStepSolverParameters.get(OgesParameters::THErelativeTolerance,rtol);
+	implicitTimeStepSolverParameters.get(OgesParameters::THEabsoluteTolerance,atol);
 	implicitTimeStepSolverParameters.get(OgesParameters::THEmaximumNumberOfIterations,maximumNumberOfIterations);
       }
       else
       {
 	OgmgParameters* ogmgPar = implicitTimeStepSolverParameters.getOgmgParameters();
 	assert( ogmgPar!=NULL );
-	ogmgPar->get(OgmgParameters::THEresidualTolerance,tolerance);
+	ogmgPar->get(OgmgParameters::THEresidualTolerance,rtol);
+	ogmgPar->get(OgmgParameters::THEabsoluteTolerance,atol);
 	ogmgPar->get(OgmgParameters::THEmaximumNumberOfIterations,maximumNumberOfIterations);
       }
 
-      fPrintF(file,"   Implicit solver =%s, tolerance=%e, max number of iterations=%s \n",
-	      (const char*)implicitTimeStepSolverParameters.getSolverName(),tolerance,
+      fPrintF(file,"   Implicit solver =%s, rel-tol=%8.2e, abs-tol=%8.2,e max iterations=%s \n",
+	      (const char*)implicitTimeStepSolverParameters.getSolverName(),rtol,atol,
 	      maximumNumberOfIterations==0 ? "default" : 
 	      sPrintF(buff,"%i",maximumNumberOfIterations));
+	if( implicitTimeStepSolverParameters.getSolverType()==OgesParameters::multigrid )
+	{ // Here is the MG convergence criteria: 
+          fPrintF(file,"                         : convergence: max-defect < (rel-tol)*L2NormRHS + abs-tol.\n");
+	}
+
     }
     else  
       fPrintF(file,"   implicit solver: %s\n",(const char *)implicitTimeStepSolverParameters.getSolverName());
@@ -1353,7 +1366,9 @@ writeParameterSummary( FILE * file )
     fPrintF(file,"  Frequency for full grid generation update for moving grids = %i. \n",
             parameters.dbase.get<int >("frequencyToUseFullUpdateForMovingGridGeneration"));
      
-    fPrintF(file,"  Detect collisions is %s.\n",(parameters.dbase.get<bool>("detectCollisions") ? "on" : "off"));
+    fPrintF(file,"  Detect collisions is %s. Collision distance=%g grid-lines.\n",
+          (parameters.dbase.get<bool>("detectCollisions") ? "on" : "off"),
+           parameters.dbase.get<real >("collisionDistance")  );
   }
   
   Parameters::ReferenceFrameEnum & referenceFrame = 

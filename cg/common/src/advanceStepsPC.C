@@ -564,22 +564,21 @@ initializeTimeSteppingPC( real & t0, real & dt0 )
         else
         {
       // *new* way to initialize past time solution  // *wdh* 2014/06/28 
-            if( false )
+            if( numberOfPastTimes==1 )
             {
                 gf[mOld].t=t0-dt0;
-                int numberOfPast=1;
                 int previous[1]={mOld};  // 
-                getPastTimeSolutions( mCur, numberOfPast, previous  ); 
+                getPastTimeSolutions( mCur, numberOfPastTimes, previous  ); 
             }
             else
             {
-        // For BDF schemes we need more past solutions
+        // For BDF schemes we need more past solutions (NOTE: this does not work for PC since previous[0]!=mOld)
                 int *previous = new int[numberOfPastTimes];
                 for( int kgf=1; kgf<=numberOfPastTimes; kgf++ )
                 {
           	const int mgf = (mCur - kgf + numberOfGridFunctions) % numberOfGridFunctions;
                     gf[mgf].t=t0-dt0*kgf;
-          	previous[kgf]=mgf;
+          	previous[kgf-1]=mgf;
                 }
                 getPastTimeSolutions( mCur, numberOfPastTimes, previous  );
                 delete [] previous;
@@ -2092,8 +2091,15 @@ takeTimeStepPC( real & t0, real & dt0, int correction, AdvanceOptions & advanceO
       // Correct for forces on moving bodies if we have more corrections.
             bool movingGridCorrectionsHaveConverged = false;
             real delta =0.; // holds relative correction when we are sub-cycling 
-            if( movingGridProblem() && (correction+1)<numberOfCorrections)
+            if( movingGridProblem() && numberOfCorrections==1 ) // *wdh* 2015/05/24 -- this case was missing in new version
             {
+                correctMovingGrids( t0,t0+dt0,gf[mCur],gf[mNew] ); 
+            }
+    // else if( movingGridProblem() && (correction+1)<numberOfCorrections)
+            else if( movingGridProblem() )
+            {
+        // --- we may be iterating on the moving body motion (e.g.for light bodies) ---
+        //     After correcting for the motion, check for convergence
                 correctMovingGrids( t0,t0+dt0,gf[mCur],gf[mNew] ); 
         // Check if the correction step has converged
                 bool isConverged = getMovingGridCorrectionHasConverged();
@@ -2109,14 +2115,14 @@ takeTimeStepPC( real & t0, real & dt0, int correction, AdvanceOptions & advanceO
                      	       correction+1,delta);
           // break;  // we have converged -- break from correction steps
                 }
+                if( (correction+1)>=numberOfCorrections )
+                {
+                    printF("PC:ERROR: moving grid corrections have not converged! numberOfCorrections=%i, rel-err =%8.2e\n",
+                   	     correction+1,delta);
+                }
             }
-            else
+            else 
             {
-            }
-            if( movingGridProblem() && delta>0. && (correction+1)==numberOfCorrections && !movingGridCorrectionsHaveConverged )
-            {
-                printF("PC:ERROR: moving grid corrections have not converged! numberOfCorrections=%i, rel-err =%8.2e\n",
-                 	   correction+1,delta);
             }
         advanceOptions.correctionIterationsHaveConverged=movingGridCorrectionsHaveConverged;  // we have converged 
 

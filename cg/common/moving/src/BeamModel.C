@@ -166,6 +166,7 @@ BeamModel::BeamModel()
 
   // save probe file results every this many time-steps:
   dbase.put<int>("probeFileSaveFrequency")=5;
+  dbase.put<real>("probePosition")=1.; // probe position in [0,1], 1=end point at x=L
 
   useExactSolution=false;
 
@@ -193,6 +194,8 @@ BeamModel::BeamModel()
   // We can optionally smooth the solution with a fourth-order filter
   dbase.put<bool>("smoothSolution")=false;
   dbase.put<int>("numberOfSmooths")=2;
+  dbase.put<int>("smoothOrder")=6;  // sixth-order filter by default
+  dbase.put<real>("smoothOmega")=1.;  // parameter in filter, normaLLY <= 1
 
   // For initial conditions: 
   dbase.put<real>("amplitude")=0.1;
@@ -360,6 +363,8 @@ writeParameterSummary( FILE *file /* = stdout */ )
   const bool & useAitkenAcceleration = dbase.get<bool>("useAitkenAcceleration");
   const bool & smoothSolution = dbase.get<bool>("smoothSolution");
   const int & numberOfSmooths = dbase.get<int>("numberOfSmooths");
+  const int & smoothOrder     = dbase.get<int>("smoothOrder");
+  const real & smoothOmega = dbase.get<real>("smoothOmega");
   
 
   fPrintF(file," --------------------------------------------------------------------------------\n");
@@ -376,7 +381,7 @@ writeParameterSummary( FILE *file /* = stdout */ )
                " useSmallDeformationApproximation = %i (adjust surface accelerations assuming small deformations)\n"
                " relaxCorrectionSteps=%i, relaxForce=%i, use-Aitken-acceleration=%i\n"
                " relaxation factor=%g, sub-iteration tol=%8.2e, absolute-tol=%8.2e\n"
-               " smooth solution=%i, number of smooths=%i (4th-order filter)\n"
+               " smooth solution=%i, number of smooths=%i (%ith-order filter), omega=%5.3f\n"
                " fluidOnTwoSides=%i, orderOfGalerkinProjection=%i, useNewTridiagonalSolver=%i\n"
 	  , elasticModulus,areaMomentOfInertia,T,dbase.get<real>("K0"),dbase.get<real>("Kt"),dbase.get<real>("Kxxt"),
           dbase.get<real>("ADxxt"),
@@ -389,7 +394,7 @@ writeParameterSummary( FILE *file /* = stdout */ )
           (int)relaxCorrectionSteps,(int)relaxForce,(int)useAitkenAcceleration,
           addedMassRelaxationFactor,subIterationConvergenceTolerance,
           subIterationAbsoluteTolerance,
-          (int)smoothSolution,numberOfSmooths,
+          (int)smoothSolution,numberOfSmooths,smoothOrder,smoothOmega,
           (int)dbase.get<bool>("fluidOnTwoSides"), 
           dbase.get<int>("orderOfGalerkinProjection"),
           (int)useNewTridiagonalSolver);
@@ -400,6 +405,7 @@ writeParameterSummary( FILE *file /* = stdout */ )
     BoundaryCondition bc = side==0 ? bcLeft : bcRight;
     bcName = (bc==pinned ? "pinned" : 
               bc==clamped ? "clamped" :
+              bc==slideBC ? "slide" :
               bc==periodic ? "periodic" : 
               bc==freeBC ? "free" : "unknown");
     
@@ -986,7 +992,7 @@ computeProjectedForce(real p1, real p2,
 void BeamModel::
 computeGalerkinProjection(real fa, real fap, real fb, real fbp, 
 			  real a, real b,
-			  realArray &  f ) 
+			  RealArray &  f ) 
 {
   real g1,g2,g3,g4;
   real le = L / numElem;    // length of an element 
@@ -1060,7 +1066,7 @@ inverse2x2(const RealArray& A, RealArray& inv)
 /// \param Ae (input) : "element" matrix for A 
 /// \param alpha (input) coefficient of Ke in A (used in adjusting the matrix for boundary terms)
 /// \param alphaB (input) coefficient of Be in A (used in adjusting the matrix for boundary terms)
-/// \param tridiagonalSolverName (input) : name of the tridiagonal solver in the base
+/// \param tridiagonalSolverName (input) : name of the tridiagonal solver
 //
 //     Ae = Me + alphaB*Be + alpha*Ke 
 //     Me = element mass matrix 
@@ -1226,7 +1232,7 @@ solveBlockTridiagonal(const RealArray& Ae, const RealArray& f, RealArray& u,
 	    else
 	      at(D,D,ia,0)=0.;
 	  }
-	  if( bc == pinned ) 
+	  else if( bc == pinned ) 
 	  {
 	    // replace first equation in first 2x2 block by the identity
 	    if( side==0 )
@@ -1236,7 +1242,17 @@ solveBlockTridiagonal(const RealArray& Ae, const RealArray& f, RealArray& u,
 	    
 	    bt(0,0,ia,0)=1.; bt(0,1,ia,0)=0.; 
 	  }
-	  if( bc == freeBC )
+	  else if( bc == slideBC ) 
+	  {
+	    // replace second equation in first 2x2 block by the identity
+	    if( side==0 )
+	      ct(1,D,ia,0)=0.; 
+	    else
+	      at(1,D,ia,0)=0.;
+	    
+	    bt(1,0,ia,0)=0.; bt(1,1,ia,0)=1.; 
+	  }
+	  else if( bc == freeBC )
 	  {
 	    // --- correct the stiffnes matrix for a free BC
             // The boundary term T*v*w_x is only non-zero for v=N_1, and w_x = Np_1_x
@@ -1346,7 +1362,7 @@ solveBlockTridiagonal(const RealArray& Ae, const RealArray& f, RealArray& u,
       BoundaryCondition bc = bcLeft;
       if( bc==clamped && EI==0. ) bc=pinned;
 
-      if (bc == BeamModel::clamped )
+      if( bc == BeamModel::clamped )
       {
 	diagonal[0](0,0) = diagonal[0](1,1) = 1.0;
 	diagonal[0](0,1) = diagonal[0](1,0) = 0.0;
@@ -1354,7 +1370,7 @@ solveBlockTridiagonal(const RealArray& Ae, const RealArray& f, RealArray& u,
 	superdiagonal[0](1,1) = superdiagonal[0](1,0) = 0.0;
 
       }
-      if (bc == BeamModel::pinned ) 
+      else if ( bc == BeamModel::pinned ) 
       {
 	// replace first equation in first 2x2 block by the identity
 	diagonal[0](0,0) = 1.0;
@@ -1753,15 +1769,27 @@ computeAcceleration(const real t,
       else if( bc==pinned )
       {
 	rhs(ia)=gtt(0,side)*accelerationScaleFactor;   // w_tt is given
+
+	if( bc == pinned && EI != 0.) 
+	{
+	  // Boundary term is of the form:  -EI* v_x*w_xx
+	  // -- correct for natural BC:  E*I*w_xx = +/- g(2,side)
+	  if( debug & 1 )	printF("-- BM -- set rhs for pinned BC wxx = g(2,side)=%8.2e, EI=%g\n",g(2,side),EI);
+	  rhs(ia+1) += -(is)*EI*g(2,side);   // add : -E*I*wxx(0,t) * Np_x(0)
+	}
       }
-      if( bc == pinned && EI != 0.) 
+      else if( bc==slideBC )
       {
-	// Boundary term is of the form:  -EI* v_x*w_xx
-	// -- correct for natural BC:  E*I*w_xx = +/- g(2,side)
-        if( debug & 1 )	printF("-- BM -- set rhs for pinned BC wxx = g(2,side)=%8.2e, EI=%g\n",g(2,side),EI);
-	rhs(ia+1) += -(is)*EI*g(2,side);   // add : -E*I*wxx(0,t) * Np_x(0)
+        // ---- slide BC ---
+        // Equation 2 in matrix:    wx_tt = given 
+        rhs(ia+1)=gtt(1,side)*accelerationScaleFactor;   // wxtt is given 
+
+        // Equation 1 is adjusted:
+        rhs(ia  ) +=  (is)*EI*g(3,side);                 // add : -E*I*wxxx(0,t) * N(0)
+        rhs(ia  ) += -(is)*T *g(1,side);                 // add :  T wx(0,t)*N(0) 
+        rhs(ia  ) += -(is)*Kxxt*g(2,side);               // add :  Kxxt*wxt(0,t)
       }
-      if( bc==freeBC )
+      else if( bc==freeBC )
       {
 	// Boundary terms are of the form:  T*v*w_x  -EI* v*w_xxx - EI* v_x*w_xx
 	// Free BC: wxx=EI* g(2,side), w_xxx= EI*g(3,side)
@@ -1772,12 +1800,12 @@ computeAcceleration(const real t,
 	rhs(ia+1) += -(is)*EI*g(2,side);   // add : -E*I*wxx(0,t) * Np_x(0)
 
 	// The boundary term T*v*w_x is only non-zero for v=N_1, and w_x = Np_1_x
-	rhs(ia  ) += -(is)*T*u(ia+1);      // add : T*N1(0)*Np_1_x(0)*w'_1
-	rhs(ia  ) += -(is)*Kxxt*v(ia+1);      // add : T*N1(0)*Np_1_x(0)*w'_1
+        // ***CHECK ME*** IS THIS RIGHT?
+	rhs(ia  ) += -(is)*T*u(ia+1);         // add : T*N1(0)*Np_1_x(0)*w'_1
+	rhs(ia  ) += -(is)*Kxxt*v(ia+1);      // add : T*N1(0)*Np_1_x(0)*wxt_1
 
       }
-      
-      if( bc==internalForceBC )
+      else if( bc==internalForceBC )
       { // BC used when computing the "internal force"  F = L(u,v) + f , given (u,v)
 	rhs(ia  ) += -(is)*T*u(ia+1);      // add : T*N1(0)*Np_1_x(0)*w'_1
 	rhs(ia  ) += -(is)*Kxxt*v(ia+1);      // add : T*N1(0)*Np_1_x(0)*w'_1
@@ -1786,7 +1814,7 @@ computeAcceleration(const real t,
 	const real beamLength=L;
 	const real dx = beamLength/numElem;  
 	real wxxx, wxx;
-	if( false )
+	if( FALSE )  
 	{
 	  const real dxidx = 2./dx;  // d(xi)/dx
 	  // find the 2nd and third derivatives of the basis functions at the ends
@@ -1798,24 +1826,46 @@ computeAcceleration(const real t,
 	  wxx  = (u(ia)- u(ib))*phijxx  + (is)*( u(ia+1) +.5*u(ib+1) )*psijxx;
 	  wxxx = (is)*(u(ia)- u(ib) )*phijxxx + (u(ia+1)+u(ib+1))*psijxxx;
 
-	  printF(" side=%i: phijxx=%9.3e, phijxxx=%9.3e  dx=%8.2e, 1/dx=%8.2e\n",side,phijxx,phijxxx,dx,1/dx);
-	  printF(" side=%i: psijxx=%9.3e, psijxxx=%9.3e\n",side,psijxx,psijxxx);
-	  printF(" side=%i: (u,u')(ia)=(%e,%e) (u,u')(ib)=%e,%e)\n",u(ia),u(ia+1),u(ib),u(ib+1));
-	  printF(" side=%i: wxx=%9.3e, wxxx=%9.3e\n",side,wxx,wxxx);
+	  if( false )
+	  {
+	    printF(" side=%i: phijxx=%9.3e, phijxxx=%9.3e  dx=%8.2e, 1/dx=%8.2e\n",side,phijxx,phijxxx,dx,1/dx);
+	    printF(" side=%i: psijxx=%9.3e, psijxxx=%9.3e\n",side,psijxx,psijxxx);
+	    printF(" side=%i: (u,u')(ia)=(%e,%e) (u,u')(ib)=%e,%e)\n",u(ia),u(ia+1),u(ib),u(ib+1));
+	    printF(" side=%i: wxx=%9.3e, wxxx=%9.3e\n",side,wxx,wxxx);
+	  }
+	}
+	else
+	{
+          // **NEW** 
+	  // From cgDoc/moving/codes/beam/interp.maple
+	  // 4-order in upp, 2nd-order in uppp: 
+	  const int ic = ib+2*is; // 2nd point inside
+	  real h = is*dx, h2=h*h, h3=h2*h;
+	  real u0=u(ia),     u1=u(ib),    u2=u(ic);
+	  real up0=u(ia+1), up1=u(ib+1), up2=u(ic+1);
+	  // wxx =-1/50.*(244*h*up0+176*h*up1-6*h*up2+407*u0-400*u1-7*u2)/h2;
+	  // wxxx=3/50.*(189*h*up0+256*h*up1-11*h*up2+417*u0-400*u1-17*u2)/h3;
+	  wxx =-1/2.*(12*h*up0+16*h*up1+2*h*up2+23*u0-16*u1-7*u2)/h2;
+	  wxxx=3/2.*(13*h*up0+32*h*up1+5*h*up2+33*u0-16*u1-17*u2)/h3;
+	
+	  if( FALSE ) 
+	  {
+	    // *** THIS DOES NOT WORK: WHY???
+	    printF("--BM-- internalForceBC:  side=%i: OLD: wxx=%9.2e, wxxx=%9.2e",side,wxx,wxxx);	
+            // these formulas assume u=ux=0 and uxxxx=uxxxxx=0 
+            // wxx = -1./2.*(7.*u0-8.*u1+u2)/h2;
+	    // wxxx = 3./2.*(3.*u0-4.*u1+u2)/h3;
+
+	    wxx = -1./194*(704*h*up1+34*h*up2+1491*u0-1344*u1-147*u2)/h2;
+	    wxxx = 3./194*(832*h*up1+49*h*up2+1233*u0-1024*u1-209*u2)/h3;
+	    
+
+	    printF(", new: wxx=%9.2e, wxxx=%9.2e (u0=%8.2e, up0=%8.2e)\n",wxx,wxxx,u0,up0);	
+
+	    // wxx=0.; wxxx=0.;
+	  }
 	}
 	
-        // From cgDoc/moving/codes/beam/interp.maple
-        // 4-order in upp, 2nd-order in uppp: 
-        const int ic = ib+2*is; // 2nd point inside
-        real h = is*dx, h2=h*h, h3=h2*h;
-	real u0=u(ia),     u1=u(ib),    u2=u(ic);
-	real up0=u(ia+1), up1=u(ib+1), up2=u(ic+1);
-	// wxx =-1/50.*(244*h*up0+176*h*up1-6*h*up2+407*u0-400*u1-7*u2)/h2;
-        // wxxx=3/50.*(189*h*up0+256*h*up1-11*h*up2+417*u0-400*u1-17*u2)/h3;
-        wxx =-1/2.*(12*h*up0+16*h*up1+2*h*up2+23*u0-16*u1-7*u2)/h2;
-        wxxx=3/2.*(13*h*up0+32*h*up1+5*h*up2+33*u0-16*u1-17*u2)/h3;
-	
-	// printF(" side=%i: wxx=%9.3e, wxxx=%9.3e\n",side,wxx,wxxx);	
 
 	rhs(ia  ) +=  (is)*EI*wxxx;   // add : -E*I*wxxx(0,t) * N(0)
 	rhs(ia+1) += -(is)*EI*wxx;    // add : -E*I*wxx(0,t) * Np_x(0)
@@ -2016,21 +2066,51 @@ getSurface( const real t, const RealArray & x0,  const RealArray & xs,
 
   if( adjustEnds )
   {
+
     // **FIX ME if beam has overlapping grids on a single side ***
-    if( bcLeft == pinned || bcLeft == clamped ) 
+    int boundaryCondition[2] = { bcLeft, bcRight}; // 
+    for( int side=0; side<=1; side++ )
     {
-      // -- force the end points of the beam surface to remain fixed -- **COULD DO BETTER**
-      int i1=Ib1.getBase(), i2=Ib2.getBase(), i3=Ib3.getBase();
-      xs(i1,i2,i3,0)=x0(i1,i2,i3,0); // set ends equal to initial position
-      xs(i1,i2,i3,1)=x0(i1,i2,i3,1);
+      const int bc = boundaryCondition[side];
+      const int i1= side==0 ? Ib1.getBase() : Ib1.getBound();
+      const int i2= side==0 ? Ib2.getBase() : Ib2.getBound();
+      const int i3= side==0 ? Ib3.getBase() : Ib3.getBound();
+      
+      if( bc == pinned || bc == clamped )
+      {
+	// -- force the end points of the beam surface to remain fixed -- **COULD DO BETTER**
+	xs(i1,i2,i3,0)=x0(i1,i2,i3,0); // set ends equal to initial position
+	xs(i1,i2,i3,1)=x0(i1,i2,i3,1);
+      }
+      else if( bc==slideBC )
+      {
+        // t.x = t.x0  on ends
+        real tDotX = (initialBeamTangent[0]*(xs(i1,i2,i3,0)-x0(i1,i2,i3,0)) +
+		      initialBeamTangent[1]*(xs(i1,i2,i3,1)-x0(i1,i2,i3,1)) );
+                       
+        xs(i1,i2,i3,0) -= tDotX*initialBeamTangent[0];
+        xs(i1,i2,i3,1) -= tDotX*initialBeamTangent[1];
+	
+      }
+      
     }
-    if( bcRight == pinned || bcRight == clamped ) 
-    {
-      // -- force the end points of the beam surface to remain fixed -- **COULD DO BETTER**
-      int i1=Ib1.getBound(), i2=Ib2.getBound(), i3=Ib3.getBound();
-      xs(i1,i2,i3,0)=x0(i1,i2,i3,0);
-      xs(i1,i2,i3,1)=x0(i1,i2,i3,1);
-    }
+
+    // *OLD* 2015/06/18
+    // // **FIX ME if beam has overlapping grids on a single side ***
+    // if( bcLeft == pinned || bcLeft == clamped ) 
+    // {
+    //   // -- force the end points of the beam surface to remain fixed -- **COULD DO BETTER**
+    //   int i1=Ib1.getBase(), i2=Ib2.getBase(), i3=Ib3.getBase();
+    //   xs(i1,i2,i3,0)=x0(i1,i2,i3,0); // set ends equal to initial position
+    //   xs(i1,i2,i3,1)=x0(i1,i2,i3,1);
+    // }
+    // if( bcRight == pinned || bcRight == clamped ) 
+    // {
+    //   // -- force the end points of the beam surface to remain fixed -- **COULD DO BETTER**
+    //   int i1=Ib1.getBound(), i2=Ib2.getBound(), i3=Ib3.getBound();
+    //   xs(i1,i2,i3,0)=x0(i1,i2,i3,0);
+    //   xs(i1,i2,i3,1)=x0(i1,i2,i3,1);
+    // }
     
   }
   
@@ -2442,20 +2522,44 @@ getSurfaceAcceleration( const real t, const RealArray & x0, RealArray & as, cons
   if( adjustEnds )
   {
     // **FIX ME if beam has overlapping grids on a single side ***
-    if( bcLeft == pinned || bcLeft == clamped ) 
+    int boundaryCondition[2] = { bcLeft, bcRight}; // 
+    for( int side=0; side<=1; side++ )
     {
-      // -- force the end points of the beam surface to remain fixed -- **COULD DO BETTER**
-      int i1=Ib1.getBase(), i2=Ib2.getBase(), i3=Ib3.getBase();
-      as(i1,i2,i3,0)=0.;
-      as(i1,i2,i3,1)=0.;
+      const int bc = boundaryCondition[side];
+      const int i1= side==0 ? Ib1.getBase() : Ib1.getBound();
+      const int i2= side==0 ? Ib2.getBase() : Ib2.getBound();
+      const int i3= side==0 ? Ib3.getBase() : Ib3.getBound();
+      
+      if( bc == pinned || bc == clamped )
+      {
+	// -- force the end points of the beam surface to remain fixed -- **COULD DO BETTER**
+        as(i1,i2,i3,0)=0.;
+        as(i1,i2,i3,1)=0.;
+      }
+      else if( bc==slideBC )
+      {
+        // t.a = t.a  on ends
+        real tDotA = (initialBeamTangent[0]*as(i1,i2,i3,0)+
+		      initialBeamTangent[1]*as(i1,i2,i3,1));
+        as(i1,i2,i3,0) -= tDotA*initialBeamTangent[0];
+        as(i1,i2,i3,1) -= tDotA*initialBeamTangent[1];
+      }
     }
-    if( bcRight == pinned || bcRight == clamped ) 
-    {
-      // -- force the end points of the beam surface to remain fixed -- **COULD DO BETTER**
-      int i1=Ib1.getBound(), i2=Ib2.getBound(), i3=Ib3.getBound();
-      as(i1,i2,i3,0)=0.;
-      as(i1,i2,i3,1)=0.;
-    }
+
+    // if( bcLeft == pinned || bcLeft == clamped ) 
+    // {
+    //   // -- force the end points of the beam surface to remain fixed -- **COULD DO BETTER**
+    //   int i1=Ib1.getBase(), i2=Ib2.getBase(), i3=Ib3.getBase();
+    //   as(i1,i2,i3,0)=0.;
+    //   as(i1,i2,i3,1)=0.;
+    // }
+    // if( bcRight == pinned || bcRight == clamped ) 
+    // {
+    //   // -- force the end points of the beam surface to remain fixed -- **COULD DO BETTER**
+    //   int i1=Ib1.getBound(), i2=Ib2.getBound(), i3=Ib3.getBound();
+    //   as(i1,i2,i3,0)=0.;
+    //   as(i1,i2,i3,1)=0.;
+    // }
     
   }
 
@@ -2487,20 +2591,46 @@ getSurfaceVelocity( const real t, const RealArray & x0,  const RealArray & vs,
   if( adjustEnds )
   {
     // **FIX ME if beam has overlapping grids on a single side ***
-    if( bcLeft == pinned || bcLeft == clamped ) 
+    int boundaryCondition[2] = { bcLeft, bcRight}; // 
+    for( int side=0; side<=1; side++ )
     {
-      // -- force the end points of the beam surface to remain fixed -- **COULD DO BETTER**
-      int i1=Ib1.getBase(), i2=Ib2.getBase(), i3=Ib3.getBase();
-      vs(i1,i2,i3,0)=0.;
-      vs(i1,i2,i3,1)=0.;
+      const int bc = boundaryCondition[side];
+      const int i1= side==0 ? Ib1.getBase() : Ib1.getBound();
+      const int i2= side==0 ? Ib2.getBase() : Ib2.getBound();
+      const int i3= side==0 ? Ib3.getBase() : Ib3.getBound();
+      
+      if( bc == pinned || bc == clamped )
+      {
+	// -- force the end points of the beam surface to remain fixed -- **COULD DO BETTER**
+	vs(i1,i2,i3,0)=0.;
+	vs(i1,i2,i3,1)=0.;
+      }
+      else if( bc==slideBC )
+      {
+        // t.v = 0 on ends
+        real tDotV = initialBeamTangent[0]*vs(i1,i2,i3,0)+initialBeamTangent[1]*vs(i1,i2,i3,1);
+        vs(i1,i2,i3,0) -= tDotV*initialBeamTangent[0];
+        vs(i1,i2,i3,1) -= tDotV*initialBeamTangent[1];
+	
+      }
+      
     }
-    if( bcRight == pinned || bcRight == clamped ) 
-    {
-      // -- force the end points of the beam surface to remain fixed -- **COULD DO BETTER**
-      int i1=Ib1.getBound(), i2=Ib2.getBound(), i3=Ib3.getBound();
-      vs(i1,i2,i3,0)=0.;
-      vs(i1,i2,i3,1)=0.;
-    }
+    
+    // *OLD* 2015/06/18
+    // if( bcLeft == pinned || bcLeft == clamped ) 
+    // {
+    //   // -- force the end points of the beam surface to remain fixed -- **COULD DO BETTER**
+    //   int i1=Ib1.getBase(), i2=Ib2.getBase(), i3=Ib3.getBase();
+    //   vs(i1,i2,i3,0)=0.;
+    //   vs(i1,i2,i3,1)=0.;
+    // }
+    // if( bcRight == pinned || bcRight == clamped ) 
+    // {
+    //   // -- force the end points of the beam surface to remain fixed -- **COULD DO BETTER**
+    //   int i1=Ib1.getBound(), i2=Ib2.getBound(), i3=Ib3.getBound();
+    //   vs(i1,i2,i3,0)=0.;
+    //   vs(i1,i2,i3,1)=0.;
+    // }
     
   }
 }
@@ -2517,7 +2647,7 @@ getSurfaceVelocity( const real t, const RealArray & x0,  const RealArray & vs,
 ///
 // ====================================================================================
 void BeamModel::
-getSurfaceInternalForce( const real t, const RealArray & x0, RealArray & fs, 
+getSurfaceInternalForce( const real t0, const RealArray & x0, RealArray & fs, 
                          const RealArray & normal, 
 			 const Index & Ib1, const Index & Ib2,  const Index & Ib3,
                          const bool addExternalForcing )
@@ -2530,6 +2660,22 @@ getSurfaceInternalForce( const real t, const RealArray & x0, RealArray & fs,
   std::vector<RealArray> & v = dbase.get<std::vector<RealArray> >("v"); // velocity
   std::vector<RealArray> & a = dbase.get<std::vector<RealArray> >("a"); // acceleration
   std::vector<RealArray> & f = dbase.get<std::vector<RealArray> >("f"); // force
+
+  // When initializing the solution we may evaluate at t0<0 
+  // In this case evaluate the internal force at t=0. 
+  // Is this right??? *wdh* 2015/06/08 -- 
+  real t= t0;
+  if( t<0. )
+  {
+    const int & numberOfTimeLevels = dbase.get<int>("numberOfTimeLevels");
+    const int prev = ( current -1 + numberOfTimeLevels) % numberOfTimeLevels;
+    printF("--BM-- BeamModel::getSurfaceInternalForce:WARNING: t=%10.3e < 0. : evaluate at t=0.\n"
+           " time(current)=%10.3e, time(prev)=%10.3e\n",t,time(current),time(prev));
+    t=0.;
+  }
+  
+
+
 
   RealArray & xc = u[current];
   RealArray & vc = v[current];
@@ -2624,10 +2770,28 @@ getSurfaceInternalForce( const real t, const RealArray & x0, RealArray & fs,
   if( false )
     ::display(internalForce,sPrintF("--BM-- getSurfaceInternalForce: internalForce at t=%8.2e",t),"%8.2e ");  
 
+
+
   // refactor=true;          
 
   bcLeft =bcLeftSave;   // reset 
   bcRight=bcRightSave; 
+
+  if( FALSE && !addExternalForcing ) 
+  {
+    if( t<100*dt)
+      printF("--BM-- Smooth the internalForce at t=%8.2e\n",t); 
+    bool & smoothSolution = dbase.get<bool>("smoothSolution");
+    bool smoothSolutionSave = smoothSolution;
+    smoothSolution=true;
+    int & numberOfSmooths= dbase.get<int>("numberOfSmooths");
+    int numberOfSmoothsSave=numberOfSmooths;
+    numberOfSmooths=5;
+    
+    smooth( t,internalForce, "Smooth the internalForce" );
+    smoothSolution=smoothSolutionSave;
+    numberOfSmooths=numberOfSmoothsSave;
+  }
 
   int i1,i2,i3;
   FOR_3D(i1,i2,i3,Ib1,Ib2,Ib3)
@@ -2672,7 +2836,7 @@ getSurfaceInternalForce( const real t, const RealArray & x0, RealArray & fs,
   
 
   // -- Adjust the surface force to match the surface normals ---
-  // -- THE AMP scheme want a beam force Fs that satisfies
+  // -- THE AMP scheme wants a beam force Fs that satisfies
   //      nv.Fs = +/- nbv.fs
   //      tv.Fs = +/- tbv.fs  
   //  where nv = fluid normal, tv = fluid tangent
@@ -3856,14 +4020,79 @@ setSurfaceVelocity(const real & t, const RealArray & x0, const RealArray & vSurf
 {
   // *new way* 2015/01/13
 
-  RealArray & surfaceVelocity = dbase.get<RealArray>("surfaceVelocity");
-
+  // Transfer the normal component of the velocity, stored here:
   RealArray vDotN(Ib1,Ib2,Ib3);
 
-  // we transfer the normal component of the velocity -- here we use the initial beam normal vector *IS THIS RIGHT ?? **
-  vDotN(Ib1,Ib2,Ib3)= (vSurface(Ib1,Ib2,Ib3,0)*initialBeamNormal[0] +
-		       vSurface(Ib1,Ib2,Ib3,1)*initialBeamNormal[1] );
+  const bool correctForSurfaceRotation=false;  // *CHECK ME* 2015/06/02 
+  if( correctForSurfaceRotation )
+  {
+    // ---  Remove the surface rotation term "W" before projecting the velocity onto the beam reference line ----
+    // Added: 2015/05/17 *wdh*
 
+    const int & current = dbase.get<int>("current"); 
+    std::vector<RealArray> & u = dbase.get<std::vector<RealArray> >("u"); // displacement DOF 
+    std::vector<RealArray> & v = dbase.get<std::vector<RealArray> >("v"); // velocity DOF
+    RealArray & uc = u[current];  // current displacement DOF
+    RealArray & vc = v[current];  // current velocity DOF
+
+    const RealArray & time = dbase.get<RealArray>("time");
+    if( fabs(time(current)-t) > 1.e-10*(1.+t) )
+    {
+      printF("--BM-- BeamModel::setSurfaceVelocity:ERROR: t=%10.3e is not equal to time(current)=%10.3e, current=%i\n",
+	     t,time(current),current);
+      OV_ABORT("ERROR");
+    }
+
+    const int rangeDimension=2; // fix me 
+    RealArray vBeam(Ib1,Ib2,Ib3,rangeDimension); // vBeam = vSurface - w 
+
+    int i1,i2,i3;
+    FOR_3D(i1,i2,i3,Ib1,Ib2,Ib3)
+    {
+      // (xb0,yb0) :  initial position of the point on the beam surface. 
+      real xb0 = x0(i1,i2,i3,0);
+      real yb0 = x0(i1,i2,i3,1);
+
+      // --- compute "w" using the current reference line values for u, u_x, v, v_x ---
+      int elemNum;
+      real eta, halfThickness;
+      projectPoint(xb0,yb0, elemNum, eta,halfThickness);  // halfThickness (includes sign) will be computed here
+      real displacement, slope;
+      interpolateSolution(uc, elemNum, eta, displacement, slope);       // displacement=u, slope = u_x 
+      real Ddisplacement, Dslope;
+      interpolateSolution(vc, elemNum, eta, Ddisplacement, Dslope);     //  Ddisplacement = v, Dslope=v_x 
+
+      real omag = 1./sqrt(slope*slope+1.0);
+      real omag3 = omag*omag*omag;
+      real normald[2] = {-Dslope*omag3,-slope*Dslope*omag3};
+
+      if( !allowsFreeMotion ) 
+      { // -- subtract off "w"
+	for( int axis=0; axis<rangeDimension; axis++ )
+	  vBeam(i1,i2,i3,axis) = vSurface(i1,i2,i3,axis) - normald[axis]*halfThickness;
+      }
+      else
+      {
+        OV_ABORT("finish me");
+      }
+      
+    }
+    // Transfer the normal component of the velocity: (this needs to be fixed when beam supports motion
+    //   in two directions)
+    vDotN(Ib1,Ib2,Ib3)= (vBeam(Ib1,Ib2,Ib3,0)*initialBeamNormal[0] +
+			 vBeam(Ib1,Ib2,Ib3,1)*initialBeamNormal[1] );
+
+  }
+  else
+  {
+    // -- no correction for surface rotation
+
+    // we transfer the normal component of the velocity -- here we use the initial beam normal vector *IS THIS RIGHT ?? **
+    vDotN(Ib1,Ib2,Ib3)= (vSurface(Ib1,Ib2,Ib3,0)*initialBeamNormal[0] +
+			 vSurface(Ib1,Ib2,Ib3,1)*initialBeamNormal[1] );
+  }
+  
+  RealArray & surfaceVelocity = dbase.get<RealArray>("surfaceVelocity");
   addToElementIntegral( t,x0,vDotN,normal,Ib1,Ib2,Ib3,surfaceVelocity );
 
   return;
@@ -4262,6 +4491,11 @@ projectSurfaceVelocityOntoBeam( const real t )
   // Replace the current velocity DOF's 
   v[current]=surfaceVelocity;
 
+  if( true )
+  {
+    // -- smooth the projected velocity ---
+    smooth( t,v[current], "v: projectSurfaceVelocityOntoBeam" );
+  }
 }
 
 
@@ -4349,6 +4583,22 @@ getBoundaryValues( const real t, RealArray & g, const int ntd /* = 0 */   )
 	}
       }
 
+      else if( bc==slideBC ) 
+      {
+	// --- slide BC ---
+	if( twilightZone )
+	{
+	  g(1,side) = exact.gd(ntd  ,1,0,0, x,y,z,wc,t);    // Give w.x 
+	  g(2,side) = exact.gd(ntd+1,1,0,0, x,y,z,wc,t);    // Give w.xt
+	  g(3,side) = exact.gd(ntd  ,3,0,0, x,y,z,wc,t);    // Give EI*w_xxx
+	}
+	else
+	{
+	  g(1,side)=0.;
+	  g(3,side)=0.;
+	}
+      }
+
       else if( bc==freeBC ) 
       {
 	// --- free BC ---
@@ -4363,6 +4613,7 @@ getBoundaryValues( const real t, RealArray & g, const int ntd /* = 0 */   )
 	  g(3,side)=0.;
 	}
       }
+
 
       else if( bc==periodic || bc==unknownBC || bc==internalForceBC )
       {
@@ -4423,15 +4674,13 @@ assignBoundaryConditions( real t, RealArray & u, RealArray & v, RealArray & a )
 	v(ia) = v0;
 	a(ia) = a0;
       }
-      if( bc==clamped )
+      if( bc==clamped || bc==slideBC )
       {
 	// Set u_x=h
 	u(ia+1) = ux0;
 	v(ia+1) = vx0;
 	a(ia+1) = ax0;
       }
-
-
 
     }
   }
@@ -4457,7 +4706,7 @@ assignBoundaryConditions( real t, RealArray & u, RealArray & v, RealArray & a )
 	v(ia  ) = exact.t(x,y,z,wc,t);            // w.t 
 	a(ia  ) = exact.gd(2,0,0,0, x,y,z,wc,t);  // w.tt
       }
-      if( bc == clamped ) 
+      if( bc == clamped  || bc==slideBC ) 
       {
 	u(ia+1) = exact.x(x,y,z,wc,t);
 	v(ia+1) = exact.gd(1,1,0,0, x,y,z,wc,t);  // w.tx
@@ -4722,7 +4971,7 @@ predictor(real tnp1, real dt )
     ::display(f2(Range(1,2*numElem+1,2)),"BeamModel::predictor: RHS force f2(1:2:) BEFORE addInternalForces","%8.2e ");
   }
 
-  if( true )
+  if( false )
   {
     smooth( t-dt,x2, "u: predictor" );
     smooth( t-dt,v2, "v: predictor" );
@@ -5273,25 +5522,33 @@ corrector(real tnp1, real dt )
     // --- Here is the convergence test ---
     // if (correction < initialResidual*subIterationConvergenceTolerance || correction < 1e-8)
     //   correctionHasConverged = true;
-    maximumRelativeCorrection=correction/max(initialResidual,1.e-5);  // save current value
-    if( true && (debug & 2) )
-    {
-      printF("--BM-- TP-iteration: omega=%6.3f, correction=%i, rel-correction=%8.2e, tol=%8.2e\n",
-	     omega,numCorrectorIterations,maximumRelativeCorrection, subIterationConvergenceTolerance);
-    }
+    // maximumRelativeCorrection=correction/max(initialResidual,1.e-5);  // save current value
+    const real eps=1.e-10; // WHAT SHOULD THIS BE ? 
+    maximumRelativeCorrection=correction/max(initialResidual,eps);  // save current value
 
     if( maximumRelativeCorrection < subIterationConvergenceTolerance || 
         correction < subIterationAbsoluteTolerance )
+    {
       correctionHasConverged = true;
-
+    }
+    if( true && (debug & 2) )
+    {
+      printF("--BM-- TP-iteration: omega=%6.3f, iter=%i, corr=%8.2e rel-corr=%8.2e, rtol=%8.2e, atol=%8.2e converged=%i\n",
+	     omega,numCorrectorIterations,correction,maximumRelativeCorrection, subIterationConvergenceTolerance,
+	     subIterationAbsoluteTolerance, (int)correctionHasConverged );
+    }
+    
   }
 
   assignBoundaryConditions( t,x3,v3,a3 );
 
   // optionally smooth the solution:
-  //  smooth( t,x3, "u: corrector" );
-  //  smooth( t,v3, "v: corrector" );
-
+  if( true )
+  {
+    smooth( t,x3, "u: corrector" );
+    smooth( t,v3, "v: corrector" );
+  }
+  
   if( relaxForce )
   {
     // *** THIS DOES NOT WORK YET ***
@@ -5329,28 +5586,6 @@ corrector(real tnp1, real dt )
     }
   }
   
-  // --- Output to the probe file ---
-  //  Only output the last correction step if we iterate
-  if( !relaxCorrectionSteps || correctionHasConverged ) 
-  {
-    const int & probeFileSaveFrequency = dbase.get<int>("probeFileSaveFrequency");
-    if( dbase.get<bool>("saveProbeFile") && 
-	((numberOfTimeSteps-1) % probeFileSaveFrequency)==0 )
-    {
-      FILE *probeFile = dbase.get<FILE*>("probeFile");
-      assert( probeFile!=NULL );
-
-      const real beamLength=L;
-      const real dx=beamLength/numElem;
-      int i1=numElem; // save tip for now
-      real xb = i1*dx; 
-      real yb = 0.;
-    
-      fPrintF(probeFile,"%16.10e %16.10e %16.10e %16.10e\n", t, x3(2*i1), v3(2*i1),a3(2*i1));
-      // output << t << " " <<  x3(numElem*2) << " " << v3(numElem*2) << " " <<  a3(numElem*2) << std::endl;
-    }
-  }
-  
 
   if( debug & 2 )
   {
@@ -5359,9 +5594,314 @@ corrector(real tnp1, real dt )
   }
 
 }
+// ====================================================================================
+/// \brief Output probe info.
+/// \param t (input) : current time
+/// \param stepNumber (input) : global time step number 
+// ====================================================================================
+int BeamModel::
+outputProbes( real t, int stepNumber )
+{
+
+  // --- Output to the probe file ---
+  const int & probeFileSaveFrequency = dbase.get<int>("probeFileSaveFrequency");
+  if( dbase.get<bool>("saveProbeFile") && 
+      (stepNumber % probeFileSaveFrequency)==0 )
+  {
+    FILE *probeFile = dbase.get<FILE*>("probeFile");
+    assert( probeFile!=NULL );
+
+    // const int & numberOfTimeLevels = dbase.get<int>("numberOfTimeLevels");
+    const int & current = dbase.get<int>("current"); 
+
+    RealArray & time = dbase.get<RealArray>("time");
+    std::vector<RealArray> & u = dbase.get<std::vector<RealArray> >("u"); // displacement 
+    std::vector<RealArray> & v = dbase.get<std::vector<RealArray> >("v"); // velocity
+    std::vector<RealArray> & a = dbase.get<std::vector<RealArray> >("a"); // acceleration
+
+    RealArray & x3 = u[current];
+    RealArray & v3 = v[current];
+    RealArray & a3 = a[current];
+
+    if( fabs(time(current)-t) > 1.e-10*(1.+t) )
+    {
+      printF("BeamModel::outputProbes:ERROR: t=%10.3e is not equal to time(current)=%10.3e, current=%i\n",
+	     t,time(current),current);
+      OV_ABORT("ERROR");
+    }
+
+    // *new* 2015/06/04
+    const real & probePosition =  dbase.get<real>("probePosition");
+    const real ss = probePosition*L;
+    const real xp0 = beamX0 + ss*initialBeamTangent[0];
+    const real yp0 = beamY0 + ss*initialBeamTangent[1];
+    int elemNum;
+    real eta, halfThickness;
+    projectPoint(xp0,yp0, elemNum, eta,halfThickness);  // halfThickness (includes sign) will be computed here
+    real up, upx, vp,vpx, ap,apx;
+    interpolateSolution(x3, elemNum,eta, up, upx);
+    interpolateSolution(v3, elemNum,eta, vp, vpx);
+    interpolateSolution(a3, elemNum,eta, ap, apx);
+
+    if( debug & 2 )
+      printf("--BM-- save probe: t=%9.3e (xp0,yp0)=(%9.3e,%9.3e) (up,vp,ap)=(%9.3e,%9.3e,%9.3e) elemNum=%i eta=%9.3e\n",
+	     t,xp0,yp0,up,vp,ap,elemNum,eta);
+      
+    fPrintF(probeFile,"%16.10e %16.10e %16.10e %16.10e\n", t, up, vp, ap);
+
+    // *old way* 
+    // const real beamLength=L;
+    // const real dx=beamLength/numElem;
+    // int i1=numElem; // save tip for now
+    // real xb = i1*dx; 
+    // real yb = 0.;
+    
+    // fPrintF(probeFile,"%16.10e %16.10e %16.10e %16.10e\n", t, x3(2*i1), v3(2*i1),a3(2*i1));
+    // output << t << " " <<  x3(numElem*2) << " " << v3(numElem*2) << " " <<  a3(numElem*2) << std::endl;
+  }
+
+
+  return 0;
+}
+  
+// ====================================================================================
+/// \brief Apply boundary conditions for the smooth function.
+// ====================================================================================
+int BeamModel::
+smoothBoundaryConditions( RealArray & w1, int base, int bound,
+                          int numberOfGhost, int orderOfExtrapolation )
+{
+    
+  // -- boundary conditions -- 
+  const int bc[2]={bcLeft,bcRight};  
+  const bool isPeriodic = bcLeft==periodic;
+  Range R2(0,1);
+
+  if( isPeriodic )
+  {
+    w1(bound,R2)=w1(base,R2);
+    for( int g=1; g<=numberOfGhost; g++ )
+    {
+      w1(base -g,R2)=w1(bound-g,R2);
+      w1(bound+g,R2)=w1(base +g,R2);
+    }
+  }
+  else
+  {
+    // --- Assign Ghost ---
+    for( int side=0; side<=1; side++ )
+    {
+      int ib  = side==0 ? base : bound; // boundary point
+      int is = side==0 ? 1 : -1;
+      if( bc[side]==freeBC )
+      {
+        // results from cgDoc/moving/codes/beam/beambc.maple
+
+	// expansion for u when uxx=uxxx=0  u^(6)=0 u^(7)=0 
+        //   u := x -> u0 + x*ux + x^4/(4!)*ux4 + x^5/(5!)*ux5;
+
+	assert( numberOfGhost==2 || numberOfGhost==3 );
+
+	real u0  = w1(ib     ,0);
+	real up1 = w1(ib+  is,0);
+	real up2 = w1(ib+2*is,0);
+	real up3 = w1(ib+3*is,0);
+	real up4 = w1(ib+4*is,0);
+	  
+        // N.B. : set boundary value too:
+	w1(ib     ,0)=368./145*up1-318./145*up2+112./145*up3-17./145*up4;
+	w1(ib-  is,0)=122./29*up1-136./29*up2+51./29*up3-8./29*up4;
+	w1(ib-2*is,0)=208./29*up1-297./29*up2+144./29*up3-26./29*up4;
+        if( numberOfGhost>=3 )
+	  w1(ib-3*is,0)=455./29*up1-840./29*up2+518./29*up3-104./29*up4;
+	
+	// w1(ib-  is,0)=40./17.*u0-30./17.*up1+8./17.*up2-1./17.*up3;
+	// w1(ib-2*is,0)=130./17.*u0-208./17.*up1+111./17.*up2-16./17.*up3;
+	// if( numberOfGhost>=3 )
+	//   w1(ib-3*is,0)=520./17.*u0-1053./17.*up1+648./17.*up2-98./17.*up3;
+	
+        // // w1(ib-  is,0)=2.*u0-up1;
+        // w1(ib-  is,0)=3.*u0-3.*up1+up2;
+        // w1(ib-2*is,0)=2.*u0-up2;
+	
+	// w=ux: 
+        // expansion for w=ux when wx=0 wxx=0 w^(5)=0 w^(6)=0 
+        //  w := x -> w0 + x^3/(3!)*wx3 + x^4/(4!)*wx4 + x^7/(7!)*wx7;
+	real w0  = w1(ib     ,1);
+	real wp1 = w1(ib+  is,1);
+	real wp2 = w1(ib+2*is,1);
+	real wp3 = w1(ib+3*is,1);
+	real wp4 = w1(ib+4*is,1);
+
+        // set boundary value too:
+	w1(ib     ,1)=6336./4795*wp1-1944./4795*wp2+64./685*wp3-9./959*wp4;
+	w1(ib-  is,1)=1898./959*wp1-1258./959*wp2+51./137*wp3-38./959*wp4;
+	w1(ib-2*is,1)=7696./959*wp1-9423./959*wp2+432./137*wp3-338./959*wp4;
+        if( numberOfGhost>=3 )
+  	  w1(ib-3*is,1)=4095./137*wp1-5670./137*wp2+1946./137*wp3-234./137*wp4;
+
+	// w1(ib-  is,1)=38./9.*w0-18./5.*wp1+2./5.*wp2-1./45.*wp3;
+	// w1(ib-2*is,1)=338./9.*w0-208./5.*wp1+27./5.*wp2-16./45.*wp3;
+	// if( numberOfGhost>=3 )
+	//   w1(ib-3*is,1)=182.*w0-1053./5.*wp1+162./5.*wp2-14./5.*wp3;
+	
+	// // TEST: 
+        // // w1(ib-  is,1)=wp1;
+        // // w1(ib-2*is,1)=2.*w0-wp2;
+        // w1(ib-  is,1)=2.*w0-wp1;
+        // w1(ib-2*is,1)=2.*w0-wp2;
+
+	// // Free BC: w_xx = 0    -> D_+^2 w_{-1} =0  IS THIS ACCURATE ENOUGH ??
+	// //          w_xxx = 0   -> D_+^3 w_{-2} =0 
+	// assert( numberOfGhost==2 );
+	
+	// int ig = ib - is; // 1st ghost point 
+	// w1(ig,0) = 2.*w1(ig+is,0) -w1(ig+2*is,0);
+	// w1(ig,1) = 3.*w1(ig+is,1) - 3.*w1(ig+2*is,1) + w1(ig+3*is,1);
+	// ig = ib - 2*is;  // 2nd ghost point 
+	// w1(ig,0) = 3.*w1(ig+is,0) - 3.*w1(ig+2*is,0) + w1(ig+3*is,0);
+	// w1(ig,1) = 4.*w1(ig+is,1) -6.*w1(ig+2*is,1) + 4.*w1(ig+3*is,1) - w1(ig+4*is,1);  
+      }
+      else if( bc[side]==pinned )
+      {
+        //  Pinned: u=u_xx=0  -> u_xxxx=u_xxxxxx = 0  etc.
+        //  u is an odd function 
+        //  u_x is an even function 
+	for( int g=1; g<=numberOfGhost; g++ )
+	{
+	  int ig = ib - g*is; // ghost point 
+   	  w1(ig,0)=2.*w1(ib,0) - w1(ib+g*is,0);  // u (or v) is odd
+   	  w1(ig,1)=   w1(ib+g*is,1);             // u_x or v_x is even
+	}
+
+      }
+      else if( bc[side]==slideBC )
+      {
+        //  Slide: u_x=u_xxx=0  -> all odd derivatives are zero
+        //  u is an even function 
+        //  u_x is an odd function 
+	for( int g=1; g<=numberOfGhost; g++ )
+	{
+	  int ig = ib - g*is; // ghost point 
+   	  w1(ig,0)= w1(ib+g*is,0) ;               // u (or v) is even
+   	  w1(ig,1)=2.*w1(ib,1) - w1(ib+g*is,1);   // u_x or v_x is odd
+	}
+
+      }
+      else if( bc[side]==clamped )
+      {
+        //  Clamped: u=u_x=0   --> u_xxxx=0, u_xxxxx=0, ...
+
+        // results from cgDoc/moving/codes/beam/beambc.maple
+
+	// expansion for u when u=0, ux=0, uxxxx=0, uxxxxx=0, ...
+        // u := x -> u0 + x^2/2*uxx + x^3/6*uxxx + x^6/(6!)*ux6 + x^7/(7!)*ux7 
+        
+	assert( numberOfGhost==2 || numberOfGhost==3 );
+
+	real u0  = w1(ib     ,0);
+	real up1 = w1(ib+  is,0);
+	real up2 = w1(ib+2*is,0);
+	real up3 = w1(ib+3*is,0);
+	real up4 = w1(ib+4*is,0);
+	  
+        w1(ib     ,0)=0.;
+	w1(ib-  is,0)=-385./174.*u0+122./29.*up1-34./29.*up2+17./87.*up3-1./58.*up4;
+	w1(ib-2*is,0)=-1127./58.*u0+832./29.*up1-297./29.*up2+64./29.*up3-13./58.*up4;
+	if( numberOfGhost>=3 )
+    	  w1(ib-3*is,0)=-5271./58.*u0+4095./29.*up1-1890./29.*up2+518./29.*up3-117./58.*up4;
+	  
+	// w=ux: 
+        //  expansion for w=ux when wxxx=0 wxxxx=0 w^(7)=0 w^(8)=0 
+        // w := x -> w0 + x*wx + x^2/2*wxx + x^5/(5!)*wx5 + x^6/(6!)*wx6;
+
+	real w0  = w1(ib     ,1);
+	real wp1 = w1(ib+  is,1);
+	real wp2 = w1(ib+2*is,1);
+	real wp3 = w1(ib+3*is,1);
+	real wp4 = w1(ib+4*is,1);
+
+        w1(ib     ,1)=0.;
+	w1(ib-  is,1)=98./29.*w0-122./29.*wp1+68./29.*wp2-17./29.*wp3+2./29.*wp4;
+	w1(ib-2*is,1)=231./29.*w0-416./29.*wp1+297./29.*wp2-96./29.*wp3+13./29.*wp4;
+	if( numberOfGhost>=3 )
+  	  w1(ib-3*is,1)=574./29.*w0-1365./29.*wp1+1260./29.*wp2-518./29.*wp3+78./29.*wp4;
+
+
+        // 4th-order filter: Obtain 2 ghost from
+        //   u: 
+        //        u_x = 0  
+        //        u_xxxx = 0 
+        //   w=u_x:
+        //        w_xxx = 0 
+        //        w_xxxx = 0 
+        //
+        // 6th-order filter: obtain 3 ghost from
+        //   u:  (do not smooth boundary) 
+        //       u_x = 0
+        //       u_xxxx = 0
+        //       u_xxxxx = 0 
+        //   w=u_x: (do not smooth boundary) 
+        //        w_xxx = 0 
+        //        w_xxxx = 0 
+        //        D_x^7 u = 0    Dz (D+D-)^3 
+
+        // results from cgDoc/moving/codes/beam/beambc.maple
+        // if( numberOfGhost==2 )
+	// {
+        //   // // Clamped: u:
+        //   // // u(i-2) = 16*u(i+1)-3*u(i+2)-12*u(i)
+        //   // // u(i-1) = 3*u(i+1)-1/2*u(i+2)-3/2*u(i)
+	//   // w1(ib-2*is,0) = 16.*w1(ib+is,0)-3.*w1(ib+2*is,0)-12.*w1(ib,0);
+	//   // w1(ib-  is,0) =  3.*w1(ib+is,0)-.5*w1(ib+2*is,0)-1.5*w1(ib,0);
+
+        //   // // Clamped: u_x:
+        //   // // u(i-2) = -8*u(i+1)+3*u(i+2)+6*u(i)
+        //   // // u(i-1) = -3*u(i+1)+u(i+2)+3*u(i)
+	//   // w1(ib-2*is,1) = -8.*w1(ib+is,1)+3.*w1(ib+2*is,1)+6.*w1(ib,1);
+        //   // w1(ib-1*is,1) = -3.*w1(ib+is,1)+   w1(ib+2*is,1)+3.*w1(ib,1);
+
+	//   OV_ABORT("finish me");
+	// }
+	// // for( int g=1; g<=numberOfGhost; g++ )
+	// {
+	//   int ig = ib - g*is; // ghost point 
+   	//   w1(ig,0)=2.*w1(ib,0) - w1(ib+g*is,0);  // u (or v) is odd
+   	//   w1(ig,1)=   w1(ib+g*is,1);             // u_x or v_x is even
+	// }
+
+      }
+      else
+      {
+	// -- just extrapolate for now *FIX ME*
+	for( int g=1; g<=numberOfGhost; g++ )
+	{
+	  int ig = ib - g*is; // ghost point 
+	  if( orderOfExtrapolation==5 )
+	    w1(ig,R2) = 5.*w1(ig+is,R2) -10.*w1(ig+2*is,R2) + 10.*w1(ig+3*is,R2) - 5.*w1(ig+4*is,R2) + w1(ig+5*is,R2);  
+	  else if( orderOfExtrapolation==4 )
+	    w1(ig,R2) = 4.*w1(ig+is,R2) -6.*w1(ig+2*is,R2) + 4.*w1(ig+3*is,R2) - w1(ig+4*is,R2);  
+	  else if( orderOfExtrapolation==3 )
+	    w1(ig,R2) = 3.*w1(ig+is,R2) - 3.*w1(ig+2*is,R2) + w1(ig+3*is,R2);
+	  else if( orderOfExtrapolation==2 )
+	    w1(ig,R2) = 2.*w1(ig+is,R2) -w1(ig+2*is,R2);
+	  else
+	  {
+	    OV_ABORT("error: finish me");
+	  }
+	    
+	}
+      }
+	
+    }
+  }
+}
+
+
 
 // ====================================================================================
 /// \brief Smooth the Hermite solution with a fourth-order filter.
+///   *** NOTE: THIS IS NOT REALLY WORKING YET****
 /// \param t (input) : current time
 /// \param w (input/output) : Hermite solution to smooth (u or v)
 /// \param label (input) : label for debug output.
@@ -5375,16 +5915,15 @@ smooth( const real t, RealArray & w, const aString & label )
     return;
   
   const int & numberOfSmooths = dbase.get<int>("numberOfSmooths");
+  const int & smoothOrder     = dbase.get<int>("smoothOrder");
 
   // const int & current = dbase.get<int>("current"); 
   // std::vector<RealArray> & u = dbase.get<std::vector<RealArray> >("u"); // displacement DOF 
   // std::vector<RealArray> & v = dbase.get<std::vector<RealArray> >("v"); // velocity DOF
 
-  // we need at least 3 elements to apply filter BC's 
-  assert( numElem >= 3 );
 
-  // add 2 ghost points so we add apply filter up to boundary if needed
-  int numberOfGhost = 2;  
+  // add ghost points so we add apply filter up to boundary if needed
+  int numberOfGhost = smoothOrder/2;    // 2 for 4th-order, 3 for 6th order filter
   int base =0, bound = numElem;
   RealArray w1(Range(base-numberOfGhost,bound+numberOfGhost),2);  // compute filtered solution here 
 
@@ -5397,57 +5936,75 @@ smooth( const real t, RealArray & w, const aString & label )
   
   const bool isPeriodic = bcLeft==periodic;
   
-  const real omega=.5; // smoothing parameter 
+  const int orderOfExtrapolation=smoothOrder+1; 
+
+  // we need at least this many elements to apply the smoother:
+  assert( numElem >= orderOfExtrapolation );
+
   const real & dt = dbase.get<real>("dt"); 
+  const real omega= dbase.get<real>("smoothOmega");  // parameter in smoother (=1 : kill plus minus mode)
   if( t < 3.*dt )
   {
-    printF("--BM-- smooth %s, numberOfSmooths=%i (4th order filter), omega=%9.3e isPeriodic=%i.\n",
-	   (const char*)label,numberOfSmooths,omega,(int)isPeriodic );
+    printF("--BM-- smooth %s, numberOfSmooths=%i (%ith order filter), omega=%9.3e isPeriodic=%i t=%8.2e.\n",
+	   (const char*)label,numberOfSmooths,smoothOrder,omega,(int)isPeriodic,t );
 	  
   }
 
-  // I : smooth these points. Keep the boundary points fixed, except for periodic
-  const int i1a= isPeriodic ? base  : base+1;
-  const int i1b= isPeriodic ? bound : bound-1;
-  Range I(i1a,i1b); 
-  Range R2(0,1);
+
+//  omega *=dt ;  /// **TRY THIS **
+
+  const int bc[2]={bcLeft,bcRight};  // 
+
+  // I : smooth these points for u or v . Keep the boundary points fixed, except for
+  //  periodic 
+  //  slide 
+  // int freeEnd = freeBC;
+  int freeEnd = -10; // turn off smooth on the boundary pts for a free end
+
+  const int i1a= (isPeriodic || bc[0]==freeEnd || bc[0]==slideBC ) ? base  : base+1;
+  const int i1b= (isPeriodic || bc[1]==freeEnd || bc[1]==slideBC ) ? bound : bound-1;
+
+  // J : smooth these points of u_x or v_x . Keep the boundary points fixed, except for 
+  //  periodic
+  //  freeBC
+  //  pinned: u_xx=0 : smooth u_x on the boundary
+  //  slide
+  const int j1a= (isPeriodic || bc[0]==pinned || bc[0]==freeEnd || bc[0]==slideBC ) ? base  : base+1;
+  const int j1b= (isPeriodic || bc[1]==pinned || bc[1]==freeEnd || bc[1]==slideBC  ) ? bound : bound-1;
+
+  Range I(i1a,i1b), J(j1a,j1b);
+
+  smoothBoundaryConditions( w1, base, bound, numberOfGhost,orderOfExtrapolation );
 
   for( int smooth=0; smooth<numberOfSmooths; smooth++ )
   {
-    // -- boundary conditions --
-    if( isPeriodic )
+    // smooth interior pts (and boundary pts sometimes): 
+
+    if( smoothOrder==4 )
     {
-      for( int g=1; g<=numberOfGhost; g++ )
-      {
-	w1(base -g,R2)=w1(bound-g,R2);
-	w1(bound+g,R2)=w1(base +g,R2);
-      }
+      // 4th order filter: 
+      w1(I,0)= w1(I,0) + (omega/16.)*(-w1(I-2,0) + 4.*w1(I-1,0) -6.*w1(I,0) + 4.*w1(I+1,0) -w1(I+2,0) );
+      w1(J,1)= w1(J,1) + (omega/16.)*(-w1(J-2,1) + 4.*w1(J-1,1) -6.*w1(J,1) + 4.*w1(J+1,1) -w1(J+2,1) );
+    }
+    else if( smoothOrder==6 )
+    {
+      // 6th order filter: 
+      // 1 4 6 4 1 
+      // 1 5 10 10 5 1
+      // 1 6 15 20 15 6 1 
+      w1(I,0)= w1(I,0) + (omega/64.)*(w1(I-3,0) - 6.*w1(I-2,0) +15.*w1(I-1,0) -20.*w1(I,0)
+				      + 15.*w1(I+1,0) -6.*w1(I+2,0) + w1(I+3,0) );
+      w1(J,1)= w1(J,1) + (omega/64.)*(w1(J-3,1) - 6.*w1(J-2,1) +15.*w1(J-1,1) -20.*w1(J,1)
+				      + 15.*w1(J+1,1) -6.*w1(J+2,1) + w1(J+3,1) );
     }
     else
     {
-      // Assign Ghost -- just extrapolate for now
-      for( int side=0; side<=1; side++ )
-      {
-	int ib  = side==0 ? base : bound; // boundary point
-	int is = side==0 ? 1 : -1;
-	for( int g=1; g<=numberOfGhost; g++ )
-	{
-          int ig = ib - g*is; // ghost point 
-          // w1(ig,R2) = 4.*w1(ig+is,R2) -6.*w1(ig+2*is,R2) + 4.*w1(ig+3*is,R2) - w1(ig+4*is,R2);  
-          w1(ig,R2) = 3.*w1(ig+is,R2) - 3.*w1(ig+2*is,R2) + w1(ig+3*is,R2);
-          // w1(ig,R2) = 2.*w1(ig+is,R2) -w1(ig+2*is,R2);
-	}
-      }
+      printF("BeamModel::smooth:ERROR: not implemented for smoothOrder=%i.\n",smoothOrder);
+      OV_ABORT("error");
     }
-	    
-    // smooth interior: 
-    w1(I,R2)= w1(I,R2) + (omega/16.)*(-w1(I-2,R2) + 4.*w1(I-1,R2) -6.*w1(I,R2) + 4.*w1(I+1,R2) -w1(I+2,R2) );
-	      
-    if( isPeriodic )
-    {
-      w1(bound,R2)=w1(base,R2);
-    }
-	    
+    
+    smoothBoundaryConditions( w1, base, bound, numberOfGhost,orderOfExtrapolation );
+
   } // end smooths
 
 
@@ -5526,11 +6083,41 @@ void BeamModel::setSubIterationConvergenceTolerance(double tol)
 }
 
 // =================================================================================================
-/// \brief  Compute errors in the solution (when the solution is known).
+/// \brief  Compute errors in the CURRENT solution (when the solution is known).
+/// \param label (input) : label for output.
+/// \param file (input) : write output to this file.
+/// \param uvErr[2] (output) :  maximum errors
+/// \param uvNorm[2] (output) : norm of the solution
 // =================================================================================================
 int BeamModel::
-getErrors( const real t, const RealArray & u, const RealArray & v, const RealArray & a,const aString & label,
-           FILE *file /* = stdout */ )
+getErrors( const aString & label,
+           FILE *file /* = stdout */,
+           real *uvErr /* = NULL */, real *uvNorm /* = NULL */ )
+{
+  const int & current = dbase.get<int>("current"); 
+  RealArray & time = dbase.get<RealArray>("time");
+  std::vector<RealArray> & u = dbase.get<std::vector<RealArray> >("u"); // displacement 
+  std::vector<RealArray> & v = dbase.get<std::vector<RealArray> >("v"); // velocity
+  std::vector<RealArray> & a = dbase.get<std::vector<RealArray> >("a"); // acceleration
+
+  return getErrors( time(current), u[current], v[current], a[current] ,label, file, uvErr, uvNorm );
+
+}
+
+
+
+// =================================================================================================
+/// \brief  Compute errors in the solution (when the solution is known).
+/// \param label (input) : label for output.
+/// \param file (input) : write output to this file.
+/// \param uvErr[2] (output) :  maximum errors
+/// \param uvNorm[2] (output) : norm of the solution
+// =================================================================================================
+int BeamModel::
+getErrors( const real t, const RealArray & u, const RealArray & v, const RealArray & a,
+           const aString & label,
+           FILE *file /* = stdout */,
+           real *uvErr /* = NULL */, real *uvNorm /* = NULL */ )
 {
 
   const real beamLength = L;
@@ -5538,7 +6125,7 @@ getErrors( const real t, const RealArray & u, const RealArray & v, const RealArr
   RealArray ue, ve, ae;
   getExactSolution( t, ue, ve, ae );
 
-  if( debug & 2 )
+  if( file !=NULL && debug & 2 )
     fPrintF(file,"-- BM -- %s: Errors at t=%9.3e:\n",(const char*)label,t);
   real uErr=0., ul2err=0., uNorm=0.;
   real vErr=0., vNorm;
@@ -5565,28 +6152,79 @@ getErrors( const real t, const RealArray & u, const RealArray & v, const RealArr
   ul2err=sqrt(ul2err/(numElem+1));
   uNorm=sqrt(uNorm/(numElem+1));
   vNorm=sqrt(vNorm/(numElem+1));
-
-  fPrintF(file,"-- BM -- %s: Error t=%9.3e : uErr=(%8.2e,%8.2e)=(max,max/uNorm),"
-          " vErr=(%8.2e,%8.2e)=(max,max/vNorm) (steps=%i)\n",(const char*)label,t,
-          uErr,uErr/max(1.e-12,uNorm),
-          // ul2err,ul2err/max(1.e-12,uNorm),
-          vErr,vErr/(max(1.e-12,vNorm)),
-          numberOfTimeSteps);
-
-  FILE *checkFile = dbase.get<FILE*>("checkFile");
-  const int myid=max(0,Communication_Manager::My_Process_Number);
-  if( checkFile!=NULL && myid==0 )
+  if( file !=NULL )
   {
-    const int numberOfComponentsToOutput=2;
-    fPrintF(checkFile,"%9.2e %i  ",t,numberOfComponentsToOutput);
-    fPrintF(checkFile,"%i %9.2e %10.3e  ",0,uErr,uNorm);
-    fPrintF(checkFile,"%i %9.2e %10.3e  ",1,vErr,vNorm);
-    fPrintF(checkFile,"\n");
+    fPrintF(file,"-- BM -- %s: Error t=%9.3e Ne=%i: uErr=(%8.2e,%8.2e)=(max,max/uNorm),"
+	    " vErr=(%8.2e,%8.2e)=(max,max/vNorm) (steps=%i)\n",(const char*)label,t,numElem,
+	    uErr,uErr/max(1.e-12,uNorm),
+	    // ul2err,ul2err/max(1.e-12,uNorm),
+	    vErr,vErr/(max(1.e-12,vNorm)),
+	    numberOfTimeSteps);
   }
+  
+  if( uvErr!=NULL )
+  {
+    uvErr[0]=uErr;
+    uvErr[1]=vErr;
+  }
+  if( uvNorm!=NULL )
+  {
+    uvNorm[0]=uNorm;
+    uvNorm[1]=vNorm;
+  }
+  
+  // -- THIS SHOULD BE MOVED : check file is called too many times --
+  if( file !=NULL )
+  {
+    FILE *checkFile = dbase.get<FILE*>("checkFile");
+    writeCheckFile( checkFile );
+  }
+
+  // const int myid=max(0,Communication_Manager::My_Process_Number);
+  // if( checkFile!=NULL && myid==0 )
+  // {
+  //   const int numberOfComponentsToOutput=2;
+  //   fPrintF(checkFile,"%9.2e %i  ",t,numberOfComponentsToOutput);
+  //   fPrintF(checkFile,"%i %9.2e %10.3e  ",0,uErr,uNorm);
+  //   fPrintF(checkFile,"%i %9.2e %10.3e  ",1,vErr,vNorm);
+  //   fPrintF(checkFile,"\n");
+  // }
   
 
   return 0;
 }
+
+//=================================================================================
+/// \brief  Write information to the `check file' (used for regression tests)
+//=================================================================================
+int BeamModel::
+writeCheckFile( FILE *file )
+{
+  const int myid=max(0,Communication_Manager::My_Process_Number);
+  if( file!=NULL && myid==0 )
+  {
+    const int & numberOfTimeLevels = dbase.get<int>("numberOfTimeLevels");
+    const int & current = dbase.get<int>("current"); 
+
+    RealArray & time = dbase.get<RealArray>("time");
+    std::vector<RealArray> & u = dbase.get<std::vector<RealArray> >("u"); // displacement 
+    std::vector<RealArray> & v = dbase.get<std::vector<RealArray> >("v"); // velocity
+    std::vector<RealArray> & a = dbase.get<std::vector<RealArray> >("a"); // acceleration
+
+    aString label=name;
+    real uvErr[2], uvNorm[2];
+    getErrors( time(current), u[current], v[current], a[current] ,label, NULL, uvErr, uvNorm );
+
+    const int numberOfComponentsToOutput=2;
+    fPrintF(file,"%9.2e %i  ",t,numberOfComponentsToOutput);
+    fPrintF(file,"%i %9.2e %10.3e  ",0,uvErr[0],uvNorm[0]);
+    fPrintF(file,"%i %9.2e %10.3e  ",1,uvErr[1],uvNorm[1]);
+    fPrintF(file,"\n");
+  }
+
+  return 0;
+}
+
 
 void BeamModel::
 printTimeStepInfo( FILE *file /*= stdout */ )
@@ -5611,6 +6249,123 @@ printTimeStepInfo( FILE *file /*= stdout */ )
   
 }
 
+// ========================================================================================
+/// \brief plot the beam solution and errors.
+///
+/// \param t (input) : time to plot
+///
+// ========================================================================================
+int BeamModel::
+plot( real t, GenericGraphicsInterface & gi, GraphicsParameters & psp , const aString & label )
+{
+
+  const int & numberOfTimeLevels = dbase.get<int>("numberOfTimeLevels");
+  const int & current = dbase.get<int>("current"); 
+
+  RealArray & time = dbase.get<RealArray>("time");
+  std::vector<RealArray> & u = dbase.get<std::vector<RealArray> >("u"); // displacement 
+  std::vector<RealArray> & v = dbase.get<std::vector<RealArray> >("v"); // velocity
+  std::vector<RealArray> & a = dbase.get<std::vector<RealArray> >("a"); // acceleration
+
+  if( fabs(time(current)-t) > 1.e-10*(1.+t) )
+  {
+    printF("BeamModel::plot:ERROR: t=%10.3e is not equal to time(current)=%10.3e, current=%i\n",
+	   t,time(current),current);
+    OV_ABORT("ERROR");
+  }
+
+  RealArray & uc = u[current];
+  RealArray & vc = v[current];
+  RealArray & ac = a[current];
+
+  int numNodes=numElem+1;
+  
+  realArray x(1,numNodes);
+  for( int i=0; i<=numElem; i++ ) 
+    x(0,i)=((real)i /numElem) *  L;       // position along neutral axis 
+      
+  DataPointMapping line;
+  line.setDataPoints(x,0,1);  // 0=position of coordinates, 1=domain dimension
+  MappedGrid c(line);   // a grid
+  c.update(MappedGrid::THEvertex | MappedGrid::THEmask);
+
+  bool plotErrors=exactSolutionOption!="none";
+
+  // number of components: 
+  int nv=3 + 3;    // [u,v,a] + [ux,vx,ax] 
+  if( plotErrors )
+    nv+= 6;        // plot errors 
+  
+  Range all;
+  realMappedGridFunction w(c,all,all,all,nv); // holds things to plot 
+  w=0.;
+
+  Range I=numNodes;
+  
+  Range J = Range(0,2*numElem,2);  // [0,2,4,...,2*numElem]
+  w(I,0,0, 0)= uc(J);   // u at nodes
+  w(I,0,0, 1)= vc(J);
+  w(I,0,0, 2)= ac(J);
+    
+  w(I,0,0, 3)= uc(J+1);  // ux at nodes 
+  w(I,0,0, 4)= vc(J+1);  // vx at nodes 
+  w(I,0,0, 5)= ac(J+1);
+  
+  if( plotErrors )
+  {
+    RealArray ue, ve, ae;
+    getExactSolution( t, ue, ve, ae );
+
+    w(I,0,0, 6)= uc(J)-ue(J);   // u-error at nodes
+    w(I,0,0, 7)= vc(J)-ve(J);
+    w(I,0,0, 8)= ac(J)-ae(J);
+
+    w(I,0,0, 9)= uc(J+1)-ue(J+1);   // ux-error at nodes
+    w(I,0,0,10)= vc(J+1)-ve(J+1);
+    w(I,0,0,11)= ac(J+1)-ae(J+1);
+  }
+  
+
+  // ** TODO ** we could eval the Hermite interpolant on a finer grid **
+
+  w.setName("w");
+  w.setName("u",0);
+  w.setName("v",1);
+  w.setName("a",2);
+  w.setName("ux",3);
+  w.setName("vx",4);
+  w.setName("ax",5);
+  if( plotErrors )
+  {
+    w.setName("uErr",6);
+    w.setName("vErr",7);
+    w.setName("aErr",8);
+    w.setName("uxErr",9);
+    w.setName("vxErr",10);
+    w.setName("axErr",11);
+  }
+  
+  // bool colourLineContours=psp.colourLineContours;
+  // real lineWidthSave=1.;
+  // psp.get(GraphicsParameters::lineWidth,lineWidthSave);
+  // psp.set(GraphicsParameters::lineWidth,2.);
+  psp.set(GI_COLOUR_LINE_CONTOURS,true);
+  
+  psp.set(GI_TOP_LABEL,sPrintF("beam model t=%9.3e",t)); 
+
+  PlotIt::contour(gi,w,psp);
+
+  // reset
+  // psp.set(GraphicsParameters::lineWidth,lineWidthSave);
+  // psp.set(GI_COLOUR_LINE_CONTOURS,colourLineContours);
+
+
+
+  return 0;
+  
+}
+
+
 // =================================================================================================
 /// \brief  Define the BeamModel parameters interactively.
 // =================================================================================================
@@ -5633,6 +6388,8 @@ update(CompositeGrid & cg, GenericGraphicsInterface & gi )
 
   bool & smoothSolution = dbase.get<bool>("smoothSolution");
   int & numberOfSmooths = dbase.get<int>("numberOfSmooths");
+  int & smoothOrder     = dbase.get<int>("smoothOrder");
+  real & smoothOmega    = dbase.get<real>("smoothOmega");
   
   real & signForNormal = dbase.get<real>("signForNormal");  // flip sign of normal using this parameter
 
@@ -5650,6 +6407,7 @@ update(CompositeGrid & cg, GenericGraphicsInterface & gi )
   real & displacementScaleFactorForPlotting =  dbase.get<real>("displacementScaleFactorForPlotting");
   aString & probeFileName = dbase.get<aString>("probeFileName");
   int & probeFileSaveFrequency = dbase.get<int>("probeFileSaveFrequency");
+  real & probePosition =  dbase.get<real>("probePosition");
   
   GUIState gui;
   gui.setWindowTitle("Beam Model");
@@ -5673,18 +6431,12 @@ update(CompositeGrid & cg, GenericGraphicsInterface & gi )
     const int maxCommands=40;
     aString cmd[maxCommands];
 
-    aString pbLabels[] = {"initial conditions...",
-                          "exact solution...",
-                          "show parameters",
-    			  "help",
-    			  ""};
+    const int numColumns=2;
 
-    int numRows=4;
-    dialog.setPushButtons( pbLabels, pbLabels, numRows ); 
-
-    dialog.setOptionMenuColumns(1);
-    aString bcOptions[] = { "clamped",
-			    "pinned",
+    dialog.setOptionMenuColumns(numColumns);
+    aString bcOptions[] = { "pinned",
+                            "clamped",
+                            "slide",
 			    "free",
                             "periodic",
 			    "" };
@@ -5711,6 +6463,16 @@ update(CompositeGrid & cg, GenericGraphicsInterface & gi )
     // dialog.addOptionMenu("Exact solution:",cmd,cmd,(exactSolutionOption=="none" ? 0 : 
     //                       exactSolutionOption=="standingWave" ? 1 : 2) );
 
+    aString pbLabels[] = {"initial conditions...",
+                          "exact solution...",
+                          "show parameters",
+                          "plot",
+    			  "help",
+    			  ""};
+    int numEntries=5;
+    int numRows=numEntries/numColumns;
+    dialog.setPushButtons( pbLabels, pbLabels, numRows ); 
+
 
     aString tbCommands[] = {"use exact solution",
                             "save profile file",
@@ -5722,10 +6484,11 @@ update(CompositeGrid & cg, GenericGraphicsInterface & gi )
                             "fluid on two sides",
                             "use small deformation approximation",
                             "relax correction steps",
+                            "relax force",
                             "use Aitken acceleration",
                             "smooth solution",
     			    ""};
-    int tbState[13];
+    int tbState[15];
     tbState[0] = useExactSolution;
     tbState[1] = dbase.get<bool>("saveProfileFile");
     tbState[2] = dbase.get<bool>("saveProbeFile");
@@ -5740,7 +6503,6 @@ update(CompositeGrid & cg, GenericGraphicsInterface & gi )
     tbState[11] = useAitkenAcceleration;
     tbState[12] = smoothSolution;
     
-    int numColumns=1;
     dialog.setToggleButtons(tbCommands, tbCommands, tbState, numColumns); 
 
 
@@ -5787,7 +6549,10 @@ update(CompositeGrid & cg, GenericGraphicsInterface & gi )
     textLabels[nt] = "probe file save frequency:"; sPrintF(textStrings[nt], "%i",probeFileSaveFrequency);  nt++; 
 
     textLabels[nt] = "number of smooths:"; sPrintF(textStrings[nt], "%i",numberOfSmooths);  nt++; 
+    textLabels[nt] = "smooth order:"; sPrintF(textStrings[nt], "%i",smoothOrder);  nt++; 
+    textLabels[nt] = "smooth omega:"; sPrintF(textStrings[nt], "%e",smoothOmega);  nt++; 
     textLabels[nt] = "debug:"; sPrintF(textStrings[nt], "%i",debug);  nt++; 
+    textLabels[nt] = "probe position:"; sPrintF(textStrings[nt], "%g (in [0,1])",probePosition);  nt++; 
 
 
     // null strings terminal list
@@ -5836,8 +6601,19 @@ update(CompositeGrid & cg, GenericGraphicsInterface & gi )
     {
       chooseInitialConditions( cg,gi );
     }
+    else if( answer=="plot" )
+    {
+      GraphicsParameters psp;
+      // aString label="BeamModel";
+      plot( t,gi, psp , "BeamModel" );
+    }
+    
     else if( dialog.getTextValue(answer,"debug:","%i",debug) ){} //
     else if( dialog.getTextValue(answer,"name:","%s",name) ){} //
+    else if( dialog.getTextValue(answer,"probe position:","%g",probePosition) )
+    {
+      printF("Setting the location of the probe to %g (normalized beam coordinates [0,1]\n",probePosition);
+    }
     else if( dialog.getTextValue(answer,"probe file name:","%s",probeFileName) ){} //
     else if( dialog.getTextValue(answer,"probe file save frequency:","%i",probeFileSaveFrequency) ){} //
 
@@ -5893,8 +6669,8 @@ update(CompositeGrid & cg, GenericGraphicsInterface & gi )
 
     else if( dialog.getTextValue(answer,"added mass tol:","%g",subIterationConvergenceTolerance) )
     {
-      printF("The (relative) convergence tolerance for the fixed point iteration\n"
-	     " tol: convergence tolerance (default is 1.0e-3)\n");
+      printF("The (relative) convergence tolerance for the fixed point iteration is %9.3e\n",
+	     subIterationConvergenceTolerance);
     }
 
     else if( dialog.getTextValue(answer,"initial declination:","%g",beamInitialAngle) )
@@ -5904,9 +6680,10 @@ update(CompositeGrid & cg, GenericGraphicsInterface & gi )
       dialog.setTextLabel("initial declination:",sPrintF(buff,"%g, (degrees)",beamInitialAngle*180./Pi));
     } 
 
-    else if( dialog.getTextValue(answer,"number of smooths:","%i",numberOfSmooths) )
-    {  
-    } 
+    else if( dialog.getTextValue(answer,"number of smooths:","%i",numberOfSmooths) ){} //
+
+    else if( dialog.getTextValue(answer,"smooth order:","%i",smoothOrder) ){} // 
+    else if( dialog.getTextValue(answer,"smooth omega:","%e",smoothOmega) ){} // 
 
     else if( (len=answer.matches("position:")) )
     {
@@ -5936,6 +6713,7 @@ update(CompositeGrid & cg, GenericGraphicsInterface & gi )
       bcValue= (bcOption=="clamped"  ? clamped :
                 bcOption=="cantilever"  ? clamped : // for backward compatibility
                 bcOption=="pinned"   ? pinned :
+                bcOption=="slide"    ? slideBC :
                 bcOption=="free"     ? freeBC : 
                 bcOption=="periodic" ? periodic : unknownBC );
 
@@ -5968,6 +6746,7 @@ update(CompositeGrid & cg, GenericGraphicsInterface & gi )
 	     " surface 'internal force' assuming small deformations\n");
     }
     else if( dialog.getToggleValue(answer,"save profile file",dbase.get<bool>("saveProfileFile")) ){} // 
+
     else if( dialog.getToggleValue(answer,"save probe file",dbase.get<bool>("saveProbeFile")) )
     {
       if( dbase.get<bool>("saveProbeFile") )
@@ -5988,8 +6767,13 @@ update(CompositeGrid & cg, GenericGraphicsInterface & gi )
 	// tm *ptm=localtime(tp);
 	const char *dateString = ctime(tp);
 
+        const real ss = probePosition*L;
+	const real xp0 = beamX0 + ss*initialBeamTangent[0];
+	const real yp0 = beamY0 + ss*initialBeamTangent[1];
+
         fPrintF(probeFile,"%% Probe file written from the BeamModel class: %s"
-	      	"%%       t       displacement       velocity      acceleration\n",dateString);
+                "%% Probe location = (%12.5e,%12.5e)  (normalized coordinates: %12.5e in [0,1])\n"
+	      	"%%       t       displacement       velocity      acceleration\n",xp0,yp0,probePosition,dateString);
 	
 	delete tp;
       }

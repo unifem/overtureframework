@@ -1,0 +1,18 @@
+*****************************************
+************** cg/mp ********************
+*****************************************
+
+--------- Things to do: -----------
+
+0801 : implicit INS and implicit AD
+
+0801 : check on so many sub-show files when running with cgmp
+
+0712 : implicit interface equations: 
+       - add under-relaxed iteration
+       - add mixed BC interface condition
+       - solve domains from largest to smallest kappa
+       - extrapolate in time the RHS to the jump conditions 
+
+--------- Things done: ---------------
+

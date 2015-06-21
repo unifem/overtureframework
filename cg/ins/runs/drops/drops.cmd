@@ -46,6 +46,7 @@ $nu = .005; $dtMax=.05; $newts=0; $movingWall=0;
 $inflowVelocity=.9;
 $tFinal=10.; $tPlot=.1; $cfl=.9; $debug=0; $go="halt"; $project=0; $refactorFrequency=100;
 $sep=5.; $forceLimit=30.; $cdv=.1; $flush=5; $ad21=2.; $ad22=2.; 
+$d=.2; # inflow parabolic width 
 $restart=""; 
 # 
 $freqFullUpdate=10; # frequency for using full ogen update in moving grids 
@@ -76,10 +77,10 @@ $filter=0; $filterFrequency=1; $filterOrder=6; $filterStages=2;
 GetOptions( "g=s"=>\$grid,"tf=f"=>\$tFinal,"model=s"=>\$model,"inflowVelocity=f"=>\$inflowVelocity,\
  "tp=f"=>\$tPlot,"solver=s"=>\$solver,"psolver=s"=>\$psolver,"show=s"=>\$show,"debug=i"=>\$debug, \
  "ts=s"=>\$ts,"nu=f"=>\$nu,"cfl=f"=>\$cfl,"go=s"=>\$go,"numDrops=i"=> \$numDrops,"newts=i"=> \$newts,\
- "noplot=s"=>\$noplot,"project=i"=>\$project,"rf=i"=> \$refactorFrequency,\
+ "noplot=s"=>\$noplot,"project=i"=>\$project,"rf=i"=> \$refactorFrequency,"iluLevels=i"=>\$iluLevels,\
  "dtMax=f"=>\$dtMax,"freqFullUpdate=i"=>\$freqFullUpdate,"mass=f"=>\$mass,"movingWall=i"=>\$movingWall,\
  "rtol=f"=>\$rtol,"atol=f"=>\$atol,"rtolp=f"=>\$rtolp,"atolp=f"=>\$atolp,"restart=s"=>\$restart,\
- "forceLimit=f"=>\$forceLimit,"sep=f"=>\$sep,"flush=i"=>\$flush,"gravity=f"=>\$gravity,\
+ "forceLimit=f"=>\$forceLimit,"sep=f"=>\$sep,"flush=i"=>\$flush,"gravity=f"=>\$gravity,"d=f"=>\$d,\
  "ad2=i"=>\$ad2,"ad21=f"=>\$ad21,"ad22=f"=>\$ad22,"ad4=i"=>\$ad4,"ad41=f"=>\$ad41,"ad42=f"=>\$ad42 );
 # -------------------------------------------------------------------------------------------------
 if( $solver eq "best" ){ $solver="choose best iterative solver"; }
@@ -137,10 +138,9 @@ $project
   minimum separation for collisions $sep
 #************************
   specify grids to move
-    debug 
-      $debug
+    # debug  $debug
 #    ---------------------
-      improve quality of interpolation
+      # improve quality of interpolation
       limit forces
         $forceLimit $forceLimit
 #    ---------------------
@@ -202,7 +202,7 @@ sub defineBody\
   boundary conditions
     if( $movingWall eq 0 ){ $cmd = "all=noSlipWall"; }else{ $cmd = "all=noSlipWall, uniform(v=$inflowVelocity)"; }
     $cmd
-    channel(0,1)=inflowWithVelocityGiven,  parabolic(d=.2,p=1,v=$inflowVelocity)
+    channel(0,1)=inflowWithVelocityGiven,  parabolic(d=$d,p=1,v=$inflowVelocity)
     channel(1,1)=outflow , pressure(1.*p+0.0*p.n=0.)
     done
 #**********************************************

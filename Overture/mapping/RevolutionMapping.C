@@ -20,6 +20,7 @@ RevolutionMapping() : Mapping(3,3,parameterSpace,cartesianSpace)
   RevolutionMapping::className="RevolutionMapping";
   setName( Mapping::mappingName,"revolutionMapping");
   setBasicInverseOption(canInvert);  // basicInverse is available. Not available if we rotate a 3D mapping.
+  inverseIsDistributed=false; // *wdh* 2015/05/25 
 
   revAxis1=0;
   revAxis2=1;

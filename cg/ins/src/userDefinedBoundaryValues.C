@@ -1792,7 +1792,8 @@ userDefinedBoundaryValues(const real & t,
 	{ // *check me*
 	  RealArray values(numberOfComponents);
 	  parameters.getUserBoundaryConditionParameters(side,axis,grid,values);
-	  bd(Ib1,Ib2,Ib3,C)= factor*values(C);
+	  for( int c=C.getBase(); c<=C.getBound(); c++ )
+	    bd(Ib1,Ib2,Ib3,c)= factor*values(c);
 	}
 	
       }

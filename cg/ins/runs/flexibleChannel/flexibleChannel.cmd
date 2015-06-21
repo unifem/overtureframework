@@ -31,7 +31,7 @@ $ampProjectVelocity=0;
 $projectNormalComponent=0; # 1 = project only the normal component of the velocity
 $projectVelocityOnBeamEnds=1;
 $smoothInterfaceVelocity=1; $numberOfInterfaceVelocitySmooths=2;
-$projectBeamVelocity=1;
+$projectBeamVelocity=1; $smoothBeam=0; $numberOfBeamSmooths=4;
 #
 $useTP=0; # set to 1 to iterate with TP scheme
 $addedMassRelaxation=1.; # "omega" for sub-iterations 
@@ -74,7 +74,7 @@ GetOptions( "g=s"=>\$grid,"tf=f"=>\$tFinal,"implicitFactor=f"=>\$implicitFactor,
   "slowStartSteps=i"=>\$slowStartSteps,"slowStartRecomputeDt=i"=>\$slowStartRecomputeDt,\
   "projectNormalComponent=i"=>\$projectNormalComponent,"useApproximateAMPcondition=i"=>\$useApproximateAMPcondition,\
   "projectVelocityOnBeamEnds=i"=>\$projectVelocityOnBeamEnds,"projectBeamVelocity=i"=>\$projectBeamVelocity,\
-  "numberOfCorrections=i"=>\$numberOfCorrections,\
+  "numberOfCorrections=i"=>\$numberOfCorrections,"smoothBeam=i"=>\$smoothBeam,\
   "useTP=i"=>\$useTP,"addedMassRelaxation=f"=>\$addedMassRelaxation,"addedMassTol=f"=>\$addedMassTol,\
   "useAitken=i"=>\$useAitken,"R0=f"=>\$R0,"U0=f"=>\$U0,"L0=f"=>\$L0 );
 # -------------------------------------------------------------------------------------------------
@@ -194,6 +194,9 @@ $grid
             use Aitken acceleration $useAitken
             added mass relaxation: $addedMassRelaxation
             added mass tol: $addedMassTol
+            #
+            smooth solution $smoothBeam
+            number of smooths: $numberOfBeamSmooths
             #
             use implicit predictor 1
             #

@@ -12,7 +12,14 @@
 # 
 # -- beam under pressure - steady quartic solution:
 #  plotStuff plotPartitioned -show=fp_BUP_AMP_RHOS1_E0p2.show -name=Beam
-# 
+#
+#  plotStuff plotPartitioned -show=bp.show
+#  plotStuff plotPartitioned -show=pba.show
+#  plotStuff plotPartitioned -show=pbf.show
+#  plotStuff plotPartitioned -show=bp2pbf.show 
+# -- movie:
+#   plotStuff plotPartitioned -show=beamUnderPressure_EI0p2_Rhos10p0_AMP.show 
+#
 $show="fp2.show"; $name="fp2";
 GetOptions( "show=s"=>\$show,"vorMin=f"=>\$vorMin,"vorMax=f"=>\$vorMax,"name=s"=>\$name );
 # -- perl subroutine for hardcopies ---
@@ -38,6 +45,7 @@ exit
 forcing regions
   # body force grid lines 1
 exit
+
 pause
 #  --------------------
 #  -- plot the grid ---
@@ -57,6 +65,7 @@ grid
   # plot interpolation points 1
   exit this menu
 solution: 1
+#
 $plotName = "flexiblePartition2" . $name . "Gridt00.ps";
 hardcopy file name:0 $plotName
 # hardcopy file name:0 flexiblePartition2Gridt00.ps

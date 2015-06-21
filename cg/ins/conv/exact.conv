@@ -99,11 +99,11 @@ $tz="trig"; $bcn = "d"; $bcn="#"; $bc1="#"; $bc2="#"; $bc3="#"; $bc4="#"; $bc5="
 $en="max"; $ngStart=1; $ng=4; $tf=.5;  $tp=.1; $degreeX=2; $degreeT=2; $fx=1.; $order=2; $nd=2; $cfl=.9; 
 $numberOfParallelGhost=2; $amr=0; $nu=.05; $debug=0; $insDebug=3; $aftol=1.e-10; $axialAxis=2; 
 $cdv=1.; $solver="yale";  $rtol=1.e-4; $atol=1.e-6; $psolver="yale"; $rtolp=1.e-10; $atolp=1.e-10; 
-$useNewImp=0; $iv="viscous"; 
+$useNewImp=0; $iv="viscous"; $nis=4; $cfls=1.; 
 $CGBUILDPREFIX=$ENV{CGBUILDPREFIX};
 $cginsCmd = "$CGBUILDPREFIX/ins/bin/cgins";  # command for cgins 
 $cmdDir="$ENV{CG}/ins/cmd"; 
-$cmdFile="exact.cmd" $extraOptions=""; 
+$cmdFile="exact.cmd"; $extraOptions=""; 
 $cg = "square"; $alwaysCompute=1; $ts="pc"; 
 $showAllComponents=1;  # set to 1 to include all components in the table.
 $saveVectorErrors=0; # if 1 then save "vector" errors only
@@ -114,13 +114,13 @@ GetOptions( "option=s"=>\$option,"model=s"=>\$model,"cg=s"=>\$cg,"en=s"=>\$en,"m
             "bcn=s"=>\$bcn,"ts=s"=>\$ts,"tf=f"=>\$tf,"tp=f"=>\$tp,"nu=f"=>\$nu,"tz=s"=>\$tz,"fx=f"=>\$fx,\
             "order=i"=>\$order,"alwaysCompute=i"=>\$alwaysCompute,"useNewImp=i"=>\$useNewImp,\
             "showAllComponents=i"=>\$showAllComponents,"solver=s"=>\$solver,"psolver=s"=>\$psolver,"iv=s"=>\$iv,\
-            "cfl=f"=>\$cfl,"cdv=f"=>\$cdv,"degreeX=f"=>\$degreeX,"degreeT=f"=>\$degreeT,"debug=i"=>\$debug,\
+            "cfl=f"=>\$cfl,"cfls=f"=>\$cfls,"cdv=f"=>\$cdv,"degreeX=f"=>\$degreeX,"degreeT=f"=>\$degreeT,"debug=i"=>\$debug,\
             "rtol=f"=>\$rtol,"atol=f"=>\$atol,"rtolp=f"=>\$rtolp,"atolp=f"=>\$atolp,"dtMax=f"=>\$dtMax,\
             "bc1=s"=>\$bc1,"bc2=s"=>\$bc2,"bc3=s"=>\$bc3,"bc4=s"=>\$bc4,"bc5=s"=>\$bc5,"bc6=s"=>\$bc6,\
             "cginsCmd=s"=>\$cginsCmd,"numberOfParallelGhost=i"=>\$numberOfParallelGhost,"ngStart=i"=>\$ngStart,\
             "aftol=f"=>\$aftol,"move=s"=>\$move,"saveVectorErrors=i"=>\$saveVectorErrors,\
             "axialAxis=i"=>\$axialAxis,"kp=f"=>\$kp,"rhoBeam=f"=>\$rhoBeam,"E=f"=>\$E,"tension=f"=>\$tension,\
-            "Kt=f"=>\$Kt,"cmdFile=s"=>\$cmdFile );
+            "Kt=f"=>\$Kt,"cmdFile=s"=>\$cmdFile,"nis=i"=>\$nis );
 # 
 # Name of the check file created by cgins:
 $check="ins.check";
@@ -130,12 +130,12 @@ if( $cg eq "cylinder" || $cg eq "cylinderp"  || $cg eq "pipe" || $cg eq "boxp" )
 if( $option eq "beamPiston" ){ \
   $cmdFile = "../runs/flexibleChannel/flexiblePartition.cmd";\
   $extraName = "Rhos$rhoBeam";  $extraName =~ s/\./p/g; \
-  $extraOptions ="-rhoBeam=$rhoBeam -E=$E -tension=$tension -thickness=.1 -K0=10 -p0=1 -addedMass=1 -fluidOnTwoSides=1  -ampProjectVelocity=1 -option=beamPiston -sideBC=slipWall";\
+  $extraOptions ="-rhoBeam=$rhoBeam -E=$E -tension=$tension -thickness=.1 -K0=10 -p0=1 -addedMass=1 -fluidOnTwoSides=1  -ampProjectVelocity=1 -projectNormalComponent=1 -nis=$nis -option=beamPiston -sideBC=slipWall -cfls=$cfls";\
  }
 if( $option eq "steadyBeam" ){ \
   $cmdFile = "../runs/flexibleChannel/flexiblePartition.cmd";\ 
   $extraName = "Rhos$rhoBeam"; $extraName =~ s/\./p/g; \
-  $extraOptions ="-rhoBeam=$rhoBeam -E=$E -tension=$tension -thickness=.1 -Kt=$Kt -p0=1 -addedMass=1 -fluidOnTwoSides=1  -ampProjectVelocity=1 -sideBC=slipWall";\
+  $extraOptions ="-rhoBeam=$rhoBeam -E=$E -tension=$tension -thickness=.1 -Kt=$Kt -p0=1 -addedMass=1 -fluidOnTwoSides=1  -ampProjectVelocity=1 -projectNormalComponent=1 -nis=$nis -sideBC=slipWall -cfls=$cfls";\
  }
 #
 $caseName="exact.$option$extraName.$ts.$cg.$model.order$order"; 
@@ -165,6 +165,31 @@ if( $saveVectorErrors eq 0 ){\
    @componentName = ( "p", "uv", "div" );\
  }\
 }
+#  ----- For the beam-piston we also compute convergence rates for the Beam variables, eta and eta_t ----
+if( $option eq "beamPiston" ){ \
+  $numberOfDomains=2; \
+  $numberOfComponents=$numberOfComponents+2; \
+if( $saveVectorErrors eq 0 ){\
+  if( $nd eq 2 ){\
+    $title ="grid  \& N \& \$p\$ \&  \$v_1\$ \& \$v_2\$ \& \$\\uv\$ \& \$\\grad\\cdot\\uv\$ \& \$\\eta\$ \& \$\\eta_t\$ ";\
+    @componentName = ( "p", "u", "v", "uv" , "div", "eta", "etat"  );\
+  }else{\
+    $title ="grid  \& N \&  \$p\$ \&  \$v_1\$ \& \$v_2\$ \& \$v_3\$ \& \$\\uv\$ \& \$\\grad\\cdot\\uv\$ \& \$\\eta\$ \& \$\\eta_t\$ ";\
+    @componentName = ( "p", "u", "v", "w" , "uv", "div", "eta", "etat"  );\
+  }\
+}else{\
+ if( $nd eq 2 ){\
+   $title ="grid \&     N \&    \$p\$   \& \$\\vv\$ \& \$\\grad\\cdot\\uv\$ \&      \$\\eta\$ \&    \$\\eta_t\$ ";\
+   $ignoreComponent[1]=1; $ignoreComponent[2]=1;\
+   @componentName = ( "p", "uv" , "div" , "eta", "etat" );\
+ }else{\
+   $title ="grid  \& N \&  \$p\$ \& \$\\vv\$ \& \$\\grad\\cdot\\uv\$ \& \$\\eta\$  \& \$\\eta_t\$ ";\
+   $ignoreComponent[1]=1; $ignoreComponent[2]=1;  $ignoreComponent[3]=1; \
+   @componentName = ( "p", "uv", "div", "eta", "etat"  );\
+ }\
+}\
+}
+
 #----------- OLD: 
 #- # NOTE: in $nd component $nd+1 is the norm of the velocity components |\uv| 
 #- if( $model eq "ins" )\

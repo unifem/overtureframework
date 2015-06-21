@@ -21,6 +21,12 @@ predictTimeIndependentVariables( const int numberOfTimeLevels, const int *gfInde
   const bool & predictedPressureNeeded = parameters.dbase.get<bool>("predictedPressureNeeded");
 
   const bool predictPressure = predictedPressureNeeded || (poisson!=NULL && poisson->isSolverIterative() && orderOfAccuracy!=4);
+
+  if( false )
+    printF("--DS-- predictTimeIndependentVariables: predictPressure=%i (t=%8.2e)\n",
+	   (int)predictPressure,gf[gfIndex[0]].t);
+  
+
   if( !predictPressure )
     return 0;
 
@@ -57,6 +63,7 @@ predictTimeIndependentVariables( const int numberOfTimeLevels, const int *gfInde
    const real dt4=dtp[(ndt0+4)%5];
 
    // coefficients for 2nd order extrap:
+   assert( dt0>0. && dtb>0. );
    const real cex2a=1.+dt0/dtb;       // -> 2.
    const real cex2b=-dt0/dtb;         // -> -1.
 
@@ -95,6 +102,14 @@ predictTimeIndependentVariables( const int numberOfTimeLevels, const int *gfInde
 
     uNew(I1,I2,I3,pc)=cex2a*uCur(I1,I2,I3,pc)+cex2b*uOld(I1,I2,I3,pc);
 
+    // if( true || (debug() & 4) )
+    // {
+    //   ::display(uCur(I1,I2,I3,pc),sPrintF("--PTIV-- predictTimeIndependentVariables: p-current"
+    // 							   " t=%9.4e grid=%i\n",gf[mNew].t,grid),debugFile,"%10.7f ");
+    //   ::display(uOld(I1,I2,I3,pc),sPrintF("--PTIV-- predictTimeIndependentVariables: p-old"
+    // 							   " t=%9.4e grid=%i\n",gf[mNew].t,grid),debugFile,"%10.7f ");
+    // }
+    
     if( debug() & 4 )
     {
       Range all;

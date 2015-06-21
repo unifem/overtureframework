@@ -3,13 +3,13 @@
      & nd3b,ndf1a,ndf1b,ndf2a,ndf2b,ndf3a,ndf3b,gridIndexRange,
      & dimension,u,f,mask,rsxy, xy,bc, boundaryCondition, ipar, rpar, 
      & ierr )
-c ===================================================================================
-c  Optimised Boundary conditions for Maxwell's Equations. '
-c
-c  gridType : 0=rectangular, 1=curvilinear
-c  useForcing : 1=use f for RHS to BC
-c  side,axis : 0:1 and 0:2
-c ===================================================================================
+       ! ===================================================================================
+       !  Optimised Boundary conditions for Maxwell's Equations. '
+       !
+       !  gridType : 0=rectangular, 1=curvilinear
+       !  useForcing : 1=use f for RHS to BC
+       !  side,axis : 0:1 and 0:2
+       ! ===================================================================================
         implicit none
         integer nd, nd1a,nd1b,nd2a,nd2b,nd3a,nd3b, ndf1a,ndf1b,ndf2a,
      & ndf2b,ndf3a,ndf3b,n1a,n1b,n2a,n2b,n3a,n3b, ndc, bc,ierr
@@ -21,7 +21,7 @@ c ==============================================================================
         integer gridIndexRange(0:1,0:2),dimension(0:1,0:2)
         integer ipar(0:*),boundaryCondition(0:1,0:2)
          real rpar(0:*),pwc(0:5)
-c     --- local variables ----
+       !     --- local variables ----
         integer md1a,md1b,md2a,md2b,md3a,md3b
         integer indexRange(0:1,0:2),isPeriodic(0:2) ! used in call to periodic update
         real ep ! holds the pointer to the TZ function
@@ -41,7 +41,8 @@ c     --- local variables ----
         real jac3di(-2:2,-2:2,-2:2)
         integer orderOfExtrapolation
         logical setCornersToExact
-         ! boundary conditions parameters
+        logical extrapInterpGhost   ! extrapolate ghost points next to boundary interpolation points
+        ! boundary conditions parameters
 ! define BC parameters for fortran routines
 ! boundary conditions
       integer dirichlet,perfectElectricalConductor,
@@ -171,7 +172,7 @@ c     --- local variables ----
         real udds,vdds,wdds,uddt,vddt,wddt
         real maxDivc,maxTauDotLapu,maxExtrap,maxDr3aDotU,dr3aDotU,
      & a1Doturss
-c real uxxx22r,uyyy22r,uxxx42r,uyyy42r,uxxxx22r,uyyyy22r, urrrr2,ussss2
+       ! real uxxx22r,uyyy22r,uxxx42r,uyyy42r,uxxxx22r,uyyyy22r, urrrr2,ussss2
         real urrrr2,ussss2
         real urrs4,urrt4,usst4,urss4,ustt4,urtt4
         real urrs2,urrt2,usst2,urss2,ustt2,urtt2
@@ -190,11 +191,11 @@ c real uxxx22r,uyyy22r,uxxx42r,uyyy42r,uxxxx22r,uyyyy22r, urrrr2,ussss2
       real rsxyxr23,rsxyxs23,rsxyxt23
       real rsxyyr23,rsxyys23,rsxyyt23
       real rsxyzr23,rsxyzs23,rsxyzt23
-c     --- start statement function ----
+       !     --- start statement function ----
         integer kd,m,n
         real rx,ry,rz,sx,sy,sz,tx,ty,tz
-c old: include 'declareDiffOrder2f.h'
-c old: include 'declareDiffOrder4f.h'
+       ! old: include 'declareDiffOrder2f.h'
+       ! old: include 'declareDiffOrder4f.h'
          real d12
          real d22
          real h12
@@ -541,7 +542,7 @@ c old: include 'declareDiffOrder4f.h'
          real uyz42r
          real ulaplacian42r
          real ulaplacian43r
-c.......statement functions for jacobian
+       !.......statement functions for jacobian
         rx(i1,i2,i3)=rsxy(i1,i2,i3,0,0)
         ry(i1,i2,i3)=rsxy(i1,i2,i3,0,1)
         rz(i1,i2,i3)=rsxy(i1,i2,i3,0,2)
@@ -551,7 +552,7 @@ c.......statement functions for jacobian
         tx(i1,i2,i3)=rsxy(i1,i2,i3,2,0)
         ty(i1,i2,i3)=rsxy(i1,i2,i3,2,1)
         tz(i1,i2,i3)=rsxy(i1,i2,i3,2,2)
-c     The next macro call will define the difference approximation statement functions
+       !     The next macro call will define the difference approximation statement functions
         d12(kd) = 1./(2.*dr(kd))
         d22(kd) = 1./(dr(kd)**2)
         ur2(i1,i2,i3,kd)=(u(i1+1,i2,i3,kd)-u(i1-1,i2,i3,kd))*d12(0)
@@ -1282,7 +1283,7 @@ c===============================================================================
      & kd)
         ulaplacian43r(i1,i2,i3,kd)=uxx43r(i1,i2,i3,kd)+uyy43r(i1,i2,i3,
      & kd)+uzz43r(i1,i2,i3,kd)
-c define derivatives of rsxy
+       ! define derivatives of rsxy
       rsxyr2(i1,i2,i3,m,n)=(rsxy(i1+1,i2,i3,m,n)-rsxy(i1-1,i2,i3,m,n))*
      & d12(0)
       rsxys2(i1,i2,i3,m,n)=(rsxy(i1,i2+1,i3,m,n)-rsxy(i1,i2-1,i3,m,n))*
@@ -1502,10 +1503,10 @@ c define derivatives of rsxy
      & rsxyt4(i1,i2,i3,2,2)*rsxyt4(i1,i2,i3,m,n) + tz(i1,i2,i3)*
      & rsxytt4(i1,i2,i3,m,n)
 
-c uxxx22r(i1,i2,i3,kd)=(-2.*(u(i1+1,i2,i3,kd)-u(i1-1,i2,i3,kd))+(u(i1+2,i2,i3,kd)-u(i1-2,i2,i3,kd)) )*h22(0)*h12(0)
-c uyyy22r(i1,i2,i3,kd)=(-2.*(u(i1,i2+1,i3,kd)-u(i1,i2-1,i3,kd))+(u(i1,i2+2,i3,kd)-u(i1,i2-2,i3,kd)) )*h22(1)*h12(1)
-c uxxxx22r(i1,i2,i3,kd)=(6.*u(i1,i2,i3,kd)-4.*(u(i1+1,i2,i3,kd)+u(i1-1,i2,i3,kd))c                         +(u(i1+2,i2,i3,kd)+u(i1-2,i2,i3,kd)) )/(dx(0)**4)
-c uyyyy22r(i1,i2,i3,kd)=(6.*u(i1,i2,i3,kd)-4.*(u(i1,i2+1,i3,kd)+u(i1,i2-1,i3,kd))c                         +(u(i1,i2+2,i3,kd)+u(i1,i2-2,i3,kd)) )/(dx(1)**4)
+       ! uxxx22r(i1,i2,i3,kd)=(-2.*(u(i1+1,i2,i3,kd)-u(i1-1,i2,i3,kd))+(u(i1+2,i2,i3,kd)-u(i1-2,i2,i3,kd)) )*h22(0)*h12(0)
+       ! uyyy22r(i1,i2,i3,kd)=(-2.*(u(i1,i2+1,i3,kd)-u(i1,i2-1,i3,kd))+(u(i1,i2+2,i3,kd)-u(i1,i2-2,i3,kd)) )*h22(1)*h12(1)
+       ! uxxxx22r(i1,i2,i3,kd)=(6.*u(i1,i2,i3,kd)-4.*(u(i1+1,i2,i3,kd)+u(i1-1,i2,i3,kd))!                         +(u(i1+2,i2,i3,kd)+u(i1-2,i2,i3,kd)) )/(dx(0)**4)
+       ! uyyyy22r(i1,i2,i3,kd)=(6.*u(i1,i2,i3,kd)-4.*(u(i1,i2+1,i3,kd)+u(i1,i2-1,i3,kd))!                         +(u(i1,i2+2,i3,kd)+u(i1,i2-2,i3,kd)) )/(dx(1)**4)
         urrrr2(i1,i2,i3,kd)=(6.*u(i1,i2,i3,kd)-4.*(u(i1+1,i2,i3,kd)+u(
      & i1-1,i2,i3,kd))+(u(i1+2,i2,i3,kd)+u(i1-2,i2,i3,kd)) )/(dr(0)**
      & 4)
@@ -1574,7 +1575,7 @@ c uyyyy22r(i1,i2,i3,kd)=(6.*u(i1,i2,i3,kd)-4.*(u(i1,i2+1,i3,kd)+u(i1,i2-1,i3,kd)
      & kd)+128*u(i1+1,i2,i3-1,kd)-128*u(i1-1,i2,i3-1,kd)-16*u(i1+2,i2,
      & i3-1,kd)+16*u(i1-2,i2,i3-1,kd)-30*u(i1-2,i2,i3,kd)+30*u(i1+2,
      & i2,i3,kd))/(144.*dr(2)**2*dr(0))
-c     --- end statement functions ----
+       !     --- end statement functions ----
         ierr=0
         side                 =ipar(0)
         axis                 =ipar(1)
@@ -1676,8 +1677,11 @@ c write(*,'("initializeBoundaryForcing slowStartInterval=",e10.2)') slowStartInt
         ! ****
         ! write(*,'(" bcOpt: t=",e10.2," fieldOption=",i2," ex,ey,hz=",3i3)') t,fieldOption,ex,ey,hz
         !  write(*,'(" ***bcOpt: slowStartInterval,t=",2f10.4," ssf,ssft,ssftt,sfttt=",4f9.4)') slowStartInterval,t,ssf,ssft,ssftt,ssfttt
-c     **************************************************************************
-        extra=-1  ! no need to do corners -- these are already done -- (otherwise causes problems for 4th-order (?))
+        !  --- NOT: extra determines "extra points" in the tangential directions  ----
+        !  extra=-1 by default (if adjacent BC>0) no need to do corners -- these are already done
+        !  extra=numberOfGhostPoints, if bc==0, (set in begin loop over sides)
+        !  extra=0 if bc<0  (set in begin loop over sides)
+        extra=-1
         numberOfGhostPoints=orderOfAccuracy/2
         if( gridType.eq.curvilinear )then
          ! the 4th-order 3d BCs require two steps -- the first step gives initial values at all ghost points
@@ -1881,12 +1885,12 @@ c     **************************************************************************
                  u(i1-is1,i2-is2,i3-is3,en1)=u(i1-is1,i2-is2,i3-is3,
      & en1) - 2.*dx(axis)*(1-2*side)*f(i1,i2,i3,0)/eps
                 end if
-                     call ogf2d(ep,xy(i1-is1,i2-is2,i3,0),xy(i1-is1,i2-
-     & is2,i3,1),t,uvm(0),uvm(1),uvm(2))
-                     call ogf2d(ep,xy(i1,i2,i3,0),xy(i1,i2,i3,1),t,uv0(
-     & 0),uv0(1),uv0(2))
-                     call ogf2d(ep,xy(i1+is1,i2+is2,i3,0),xy(i1+is1,i2+
-     & is2,i3,1),t,uvp(0),uvp(1),uvp(2))
+                     call ogf2dfo(ep,fieldOption,xy(i1-is1,i2-is2,i3,0)
+     & ,xy(i1-is1,i2-is2,i3,1),t,uvm(ex),uvm(ey),uvm(hz))
+                     call ogf2dfo(ep,fieldOption,xy(i1,i2,i3,0),xy(i1,
+     & i2,i3,1),t,uv0(ex),uv0(ey),uv0(hz))
+                     call ogf2dfo(ep,fieldOption,xy(i1+is1,i2+is2,i3,0)
+     & ,xy(i1+is1,i2+is2,i3,1),t,uvp(ex),uvp(ey),uvp(hz))
              ! write(*,'("..bcRectangular: side,axis=",2i3," i1,i2,i3=",3i3," en1,uvm(en1),uvp(en1)=",3e12.4)')!            side,axis,i1,i2,i3,u(i1-is1,i2-is2,i3,en1),uvm(en1),uvp(en1)
                     u(i1-is1,i2-is2,i3,en1)=u(i1-is1,i2-is2,i3,en1) + 
      & uvm(en1) - uvp(en1)
@@ -1900,12 +1904,12 @@ c     **************************************************************************
      & u(i1+2*is1,i2+2*is2,i3+2*is3,et1)
                     u(i1-2*is1,i2-2*is2,i3-2*is3,hz)=u(i1+2*is1,i2+2*
      & is2,i3+2*is3,hz)
-                     call ogf2d(ep,xy(i1-2*is1,i2-2*is2,i3,0),xy(i1-2*
-     & is1,i2-2*is2,i3,1),t,uvm(0),uvm(1),uvm(2))
-                     call ogf2d(ep,xy(i1,i2,i3,0),xy(i1,i2,i3,1),t,uv0(
-     & 0),uv0(1),uv0(2))
-                     call ogf2d(ep,xy(i1+2*is1,i2+2*is2,i3,0),xy(i1+2*
-     & is1,i2+2*is2,i3,1),t,uvp(0),uvp(1),uvp(2))
+                     call ogf2dfo(ep,fieldOption,xy(i1-2*is1,i2-2*is2,
+     & i3,0),xy(i1-2*is1,i2-2*is2,i3,1),t,uvm(ex),uvm(ey),uvm(hz))
+                     call ogf2dfo(ep,fieldOption,xy(i1,i2,i3,0),xy(i1,
+     & i2,i3,1),t,uv0(ex),uv0(ey),uv0(hz))
+                     call ogf2dfo(ep,fieldOption,xy(i1+2*is1,i2+2*is2,
+     & i3,0),xy(i1+2*is1,i2+2*is2,i3,1),t,uvp(ex),uvp(ey),uvp(hz))
                     u(i1-2*is1,i2-2*is2,i3,en1)=u(i1-2*is1,i2-2*is2,i3,
      & en1) + uvm(en1) - uvp(en1)
                     u(i1-2*is1,i2-2*is2,i3,et1)=u(i1-2*is1,i2-2*is2,i3,
@@ -2656,8 +2660,8 @@ c     **************************************************************************
                     ! c1s =   (C1Order2(i1+js1,i2+js2,i3)- C1Order2(i1-js1,i2-js2,i3))/(2.*dsa) 
                     ! c2s =   (C2Order2(i1+js1,i2+js2,i3)- C2Order2(i1-js1,i2-js2,i3))/(2.*dsa) 
                     ! fourth-order:
-c$$$   c11s = (8.*(C11(i1+  js1,i2+  js2,i3)-C11(i1-  js1,i2-  js2,i3))   c$$$             -(C11(i1+2*js1,i2+2*js2,i3)-C11(i1-2*js1,i2-2*js2,i3))   )/(12.*dsa)
-c$$$   c22s = (8.*(C22(i1+  js1,i2+  js2,i3)-C22(i1-  js1,i2-  js2,i3))   c$$$             -(C22(i1+2*js1,i2+2*js2,i3)-C22(i1-2*js1,i2-2*js2,i3))   )/(12.*dsa)
+                 !$$$   c11s = (8.*(C11(i1+  js1,i2+  js2,i3)-C11(i1-  js1,i2-  js2,i3))   !$$$             -(C11(i1+2*js1,i2+2*js2,i3)-C11(i1-2*js1,i2-2*js2,i3))   )/(12.*dsa)
+                 !$$$   c22s = (8.*(C22(i1+  js1,i2+  js2,i3)-C22(i1-  js1,i2-  js2,i3))   !$$$             -(C22(i1+2*js1,i2+2*js2,i3)-C22(i1-2*js1,i2-2*js2,i3))   )/(12.*dsa)
                     c11r = (8.*((rsxy(i1+is1,i2+is2,i3,axis,0)**2+rsxy(
      & i1+is1,i2+is2,i3,axis,1)**2)-(rsxy(i1-is1,i2-is2,i3,axis,0)**2+
      & rsxy(i1-is1,i2-is2,i3,axis,1)**2))   -((rsxy(i1+2*is1,i2+2*is2,
@@ -2990,7 +2994,7 @@ c$$$   c22s = (8.*(C22(i1+  js1,i2+  js2,i3)-C22(i1-  js1,i2-  js2,i3))   c$$$  
      & 0)+rsxy(i1,i2,i3,axis,1)*rsxy(i1,i2,i3,axisp1,1))*ws-rsxy(i1,
      & i2,i3,axis,0)*vt0+rsxy(i1,i2,i3,axis,1)*ut0)/(rsxy(i1,i2,i3,
      & axis,0)**2+rsxy(i1,i2,i3,axis,1)**2)
-c$$$   fw1=( -(rsxy(i1,i2,i3,axis,0)*rsxy(i1,i2,i3,axisp1,0)+rsxy(i1,i2,i3,axis,1)*rsxy(i1,i2,i3,axisp1,1))*ws c$$$        - rsxy(i1,i2,i3,axis,0)*vt0 + rsxy(i1,i2,i3,axis,1)*ut0 c$$$       )/(rsxy(i1,i2,i3,axis,0)**2+rsxy(i1,i2,i3,axis,1)**2)
+                 !$$$   fw1=( -(rsxy(i1,i2,i3,axis,0)*rsxy(i1,i2,i3,axisp1,0)+rsxy(i1,i2,i3,axis,1)*rsxy(i1,i2,i3,axisp1,1))*ws !$$$        - rsxy(i1,i2,i3,axis,0)*vt0 + rsxy(i1,i2,i3,axis,1)*ut0 !$$$       )/(rsxy(i1,i2,i3,axis,0)**2+rsxy(i1,i2,i3,axis,1)**2)
                     ! fw2 = fw1.tt -[ c22*wrss + c2 wrs ]
                     ! where
                     !     w.r = fw1 = (-rx*vt + ry*ut - (rx*sx+ry*sy)*ws )/(rx**2+ry**2) 
@@ -3014,9 +3018,9 @@ c$$$   fw1=( -(rsxy(i1,i2,i3,axis,0)*rsxy(i1,i2,i3,axisp1,0)+rsxy(i1,i2,i3,axis,
      & i3,axis,1)*uttt0 )/(rsxy(i1,i2,i3,axis,0)**2+rsxy(i1,i2,i3,
      & axis,1)**2)- c22*( fw1p1-2.*fw1+fw1m1 )/(dsa**2) -c2*(fw1p1-
      & fw1m1 )/(2.*dsa)
-c   fw2 = (-rsxy(i1,i2,i3,axis,0)*vttt0 + rsxy(i1,i2,i3,axis,1)*uttt0 )/c                               (rsxy(i1,i2,i3,axis,0)**2+rsxy(i1,i2,i3,axis,1)**2)c         - c22*( (-rsxy(i1+js1,i2+js2,i3,axis,0)*vtp1 + rsxy(i1+js1,i2+js2,i3,axis,1)*utp1)c             -2.*(-rsxy(i1    ,i2    ,i3,axis,0)*vt0  + rsxy(i1    ,i2    ,i3,axis,1)*ut0 ) c                +(-rsxy(i1-js1,i2-js2,i3,axis,0)*vtm1 + rsxy(i1-js1,i2-js2,i3,axis,1)*utm1) )/(dsa**2) c         -  c2*( (-rsxy(i1+js1,i2+js2,i3,axis,0)*vtp1 + rsxy(i1+js1,i2+js2,i3,axis,1)*utp1)c                -(-rsxy(i1-js1,i2-js2,i3,axis,0)*vtm1 + rsxy(i1-js1,i2-js2,i3,axis,1)*utm1) )/(2.*dsa)
+                 !   fw2 = (-rsxy(i1,i2,i3,axis,0)*vttt0 + rsxy(i1,i2,i3,axis,1)*uttt0 )/!                               (rsxy(i1,i2,i3,axis,0)**2+rsxy(i1,i2,i3,axis,1)**2)!         - c22*( (-rsxy(i1+js1,i2+js2,i3,axis,0)*vtp1 + rsxy(i1+js1,i2+js2,i3,axis,1)*utp1)!             -2.*(-rsxy(i1    ,i2    ,i3,axis,0)*vt0  + rsxy(i1    ,i2    ,i3,axis,1)*ut0 ) !                +(-rsxy(i1-js1,i2-js2,i3,axis,0)*vtm1 + rsxy(i1-js1,i2-js2,i3,axis,1)*utm1) )/(dsa**2) !         -  c2*( (-rsxy(i1+js1,i2+js2,i3,axis,0)*vtp1 + rsxy(i1+js1,i2+js2,i3,axis,1)*utp1)!                -(-rsxy(i1-js1,i2-js2,i3,axis,0)*vtm1 + rsxy(i1-js1,i2-js2,i3,axis,1)*utm1) )/(2.*dsa)
                   end if
-c Now assign ex and ey at the ghost points:
+                 ! Now assign ex and ey at the ghost points:
 
 
 ! ************ Answer *******************
@@ -3100,11 +3104,11 @@ c Now assign ex and ey at the ghost points:
 
 
  ! *********** done *********************
-c extrapolate normal component:
-c #Include "bc4eMaxwell.h"
-c Now assign Hz at the ghost points
-c u(i1-  is1,i2-  is2,i3-  is3,hz) = u(i1+  is1,i2+  is2,i3+  is3,hz)
-c u(i1-2*is1,i2-2*is2,i3-2*is3,hz) = u(i1+2*is1,i2+2*is2,i3+2*is3,hz)
+                 ! extrapolate normal component:
+                 ! #Include "bc4eMaxwell.h"
+                 ! Now assign Hz at the ghost points
+                 ! u(i1-  is1,i2-  is2,i3-  is3,hz) = u(i1+  is1,i2+  is2,i3+  is3,hz)
+                 ! u(i1-2*is1,i2-2*is2,i3-2*is3,hz) = u(i1+2*is1,i2+2*is2,i3+2*is3,hz)
 
 
 ! ************ Hz Answer *******************
@@ -3316,7 +3320,7 @@ c u(i1-2*is1,i2-2*is2,i3-2*is3,hz) = u(i1+2*is1,i2+2*is2,i3+2*is3,hz)
                  ! *    vss=0.
                  ! *    wss=0.
                  ! *  end if
-c *********************** NEW ************************
+                 ! *********************** NEW ************************
                   ! ***************************************************************************************
                   ! Use one sided approximations as needed for expressions needing tangential derivatives
                   ! ***************************************************************************************
@@ -3475,9 +3479,9 @@ c *********************** NEW ************************
      & js1a,i2-2*js2a,i3,axisp1,1)/(rx(i1-2*js1a,i2-2*js2a,i3)*sy(i1-
      & 2*js1a,i2-2*js2a,i3)-ry(i1-2*js1a,i2-2*js2a,i3)*sx(i1-2*js1a,
      & i2-2*js2a,i3))))/(2.*dsb)
-c if( debug.gt.0 )then
-c   write(*,'(" ghost-interp:left-shift i=",3i3," js1a,js2a=",2i3," c2r,c2s2(-1),c2s2(-2)=",10e10.2)')c      i1,i2,i3,js1a,js2a,c2r,C2s2(i1-js1a,i2-js2a,i3),C2s2(i1-2*js1a,i2-2*js2a,i3)
-c end if
+                 ! if( debug.gt.0 )then
+                 !   write(*,'(" ghost-interp:left-shift i=",3i3," js1a,js2a=",2i3," c2r,c2s2(-1),c2s2(-2)=",10e10.2)')!      i1,i2,i3,js1a,js2a,c2r,C2s2(i1-js1a,i2-js2a,i3),C2s2(i1-2*js1a,i2-2*js2a,i3)
+                 ! end if
                   else if( (i1+3*js1a).le.md1b .and. (i2+3*js2a)
      & .le.md2b )then
                    ! one sided  2nd-order:
@@ -3502,9 +3506,9 @@ c end if
      & rsxyys22(i1+js1a,i2+js2a,i3,axisp1,1))-(rsxyxs22(i1+2*js1a,i2+
      & 2*js2a,i3,axisp1,0)+rsxyys22(i1+2*js1a,i2+2*js2a,i3,axisp1,1))
                    end if
-c if( debug.gt.0 )then
-c   write(*,'(" ghost-interp:right-shift i=",3i3," js1a,js2a=",2i3," c2r,c2s2(+1),c2s2(+2)=",10e10.2)')c      i1,i2,i3,js1a,js2a,c2r,C2s2(i1+js1a,i2+js2a,i3),C2s2(i1+2*js1a,i2+2*js2a,i3)
-c end if
+                 ! if( debug.gt.0 )then
+                 !   write(*,'(" ghost-interp:right-shift i=",3i3," js1a,js2a=",2i3," c2r,c2s2(+1),c2s2(+2)=",10e10.2)')!      i1,i2,i3,js1a,js2a,c2r,C2s2(i1+js1a,i2+js2a,i3),C2s2(i1+2*js1a,i2+2*js2a,i3)
+                 ! end if
                    a11s = (-3.*(rsxy(i1,i2,i3,axis,0)/(rx(i1,i2,i3)*sy(
      & i1,i2,i3)-ry(i1,i2,i3)*sx(i1,i2,i3)))+4.*(rsxy(i1+js1a,i2+js2a,
      & i3,axis,0)/(rx(i1+js1a,i2+js2a,i3)*sy(i1+js1a,i2+js2a,i3)-ry(
@@ -3601,7 +3605,7 @@ c end if
                     vss=0.
                     wss=0.
                   end if
-c ******************************* end NEW ************************
+                 ! ******************************* end NEW ************************
                   tau1=rsxy(i1,i2,i3,axisp1,0)
                   tau2=rsxy(i1,i2,i3,axisp1,1)
                   uex=u(i1,i2,i3,ex)
@@ -3613,7 +3617,7 @@ c ******************************* end NEW ************************
                   ! for Hz (w)
                   fw1=0.
                   fw2=0.
-c assign values using extrapolation of the normal component:
+                 ! assign values using extrapolation of the normal component:
 
 
 ! ************ Answer *******************
@@ -3750,7 +3754,7 @@ c assign values using extrapolation of the normal component:
 
 
  ! *********** done *********************
-c Now assign Hz at the ghost points
+                 ! Now assign Hz at the ghost points
 
 
 ! ************ Hz Answer *******************
@@ -3800,47 +3804,39 @@ c Now assign Hz at the ghost points
      & uvm2(1),u(i1-is1,i2-is2,i3-is3,hz)-uvm(2),u(i1-2*is1,i2-2*is2,
      & i3-2*is3,hz)-uvm2(2)
                   end if
-c$$$ ! **** do this for now *** fix ***
-c$$$
-c$$$  a11 =A11(i1,i2,i3) 
-c$$$  a12 =A12(i1,i2,i3)
-c$$$
-c$$$  a11r = DR4($A11)
-c$$$  a12r = DR4($A12)
-c$$$
-c$$$  tau11=rsxy(i1,i2,i3,axisp1,0)
-c$$$  tau12=rsxy(i1,i2,i3,axisp1,1)
-c$$$
-c$$$  detnt=a11*tau12-a12*tau11
-c$$$
-c$$$  do m=1,2
-c$$$    m1=i1-m*is1
-c$$$    m2=i2-m*is2
-c$$$    m3=i3
-c$$$    ! use a1.(u.r) + a1r.u =0 for now:
-c$$$    !    tau.urr=0
-c$$$
-c$$$    ! here is a second-order approximation:
-c$$$    a1DotU= a11*u(i1+m*is1,i2+m*is2,i3,ex)c$$$           +a12*u(i1+m*is1,i2+m*is2,i3,ey)c$$$        +( a11r*u(i1+m*is1,i2+m*is2,i3,ex)c$$$          +a12r*u(i1+m*is1,i2+m*is2,i3,ey) )*(2.*m*dra)
-c$$$
-c$$$    tau1DotU=tau11*( 2.*u(i1,i2,i3,ex)-u(i1+m*is1,i2+m*is2,i3,ex))c$$$            +tau12*( 2.*u(i1,i2,i3,ey)-u(i1+m*is1,i2+m*is2,i3,ey))
-c$$$  
-c$$$    #If "none" == "twilightZone"
-c$$$      OGF2D(i1,i2,i3,t, uv0(0),uv0(1),uv0(2))
-c$$$      OGF2D(i1-m*is1,i2-m*is2,i3,t, uvm(0),uvm(1),uvm(2))
-c$$$      OGF2D(i1+m*is1,i2+m*is2,i3,t, uvp(0),uvp(1),uvp(2))
-c$$$      
-c$$$      a1DotU=a1DotU + a11*( uvm(0)-uvp(0) ) + a12*( uvm(1)-uvp(1) ) 
-c$$$      tau1DotU=tau1DotU + tau11*( uvm(0)-2.*uv0(0)+uvp(0) ) + tau12*( uvm(1)-2.*uv0(1)+uvp(1) ) 
-c$$$    #End
-c$$$
-c$$$    u(m1,m2,m3,ex)=(a1DotU*tau12-a12*tau1DotU)/detnt
-c$$$    u(m1,m2,m3,ey)=(a11*tau1DotU-a1DotU*tau11)/detnt
-c$$$    u(m1,m2,m3,hz)=u(i1+m*is1,i2+m*is2,i3,hz)
-c$$$
-c$$$!    write(*,'(" ghost-interp: i=",3i4,", is=",2i2,"  errors=",3e10.2)') i1,i2,i3,is1,is2,u(m1,m2,m3,ex)-uvm(0),c$$$!            u(m1,m2,m3,ey)-uvm(1),u(m1,m2,m3,hz)-uvm(2)
-c$$$
-c$$$ end do
+                  ! ** NO NEED TO DO ALL THE ABOVE IF WE DO THIS:
+                  extrapInterpGhost=.true.
+                  if( extrapInterpGhost )then
+                    ! extrapolate ghost points next to boundary interpolation points  *wdh* 2015/05/30 
+                    write(*,'(" extrap ghost next to interp")')
+                    u(i1-is1,i2-is2,i3-is3,ex) = (5.*u(i1,i2,i3,ex)-
+     & 10.*u(i1+is1,i2+is2,i3+is3,ex)+10.*u(i1+2*is1,i2+2*is2,i3+2*
+     & is3,ex)-5.*u(i1+3*is1,i2+3*is2,i3+3*is3,ex)+u(i1+4*is1,i2+4*
+     & is2,i3+4*is3,ex))
+                    u(i1-is1,i2-is2,i3-is3,ey) = (5.*u(i1,i2,i3,ey)-
+     & 10.*u(i1+is1,i2+is2,i3+is3,ey)+10.*u(i1+2*is1,i2+2*is2,i3+2*
+     & is3,ey)-5.*u(i1+3*is1,i2+3*is2,i3+3*is3,ey)+u(i1+4*is1,i2+4*
+     & is2,i3+4*is3,ey))
+                    u(i1-is1,i2-is2,i3-is3,hz) = (5.*u(i1,i2,i3,hz)-
+     & 10.*u(i1+is1,i2+is2,i3+is3,hz)+10.*u(i1+2*is1,i2+2*is2,i3+2*
+     & is3,hz)-5.*u(i1+3*is1,i2+3*is2,i3+3*is3,hz)+u(i1+4*is1,i2+4*
+     & is2,i3+4*is3,hz))
+                    u(i1-2*is1,i2-2*is2,i3-2*is3,ex) = (5.*u(i1-is1,i2-
+     & is2,i3-is3,ex)-10.*u(i1-is1+is1,i2-is2+is2,i3-is3+is3,ex)+10.*
+     & u(i1-is1+2*is1,i2-is2+2*is2,i3-is3+2*is3,ex)-5.*u(i1-is1+3*is1,
+     & i2-is2+3*is2,i3-is3+3*is3,ex)+u(i1-is1+4*is1,i2-is2+4*is2,i3-
+     & is3+4*is3,ex))
+                    u(i1-2*is1,i2-2*is2,i3-2*is3,ey) = (5.*u(i1-is1,i2-
+     & is2,i3-is3,ey)-10.*u(i1-is1+is1,i2-is2+is2,i3-is3+is3,ey)+10.*
+     & u(i1-is1+2*is1,i2-is2+2*is2,i3-is3+2*is3,ey)-5.*u(i1-is1+3*is1,
+     & i2-is2+3*is2,i3-is3+3*is3,ey)+u(i1-is1+4*is1,i2-is2+4*is2,i3-
+     & is3+4*is3,ey))
+                    u(i1-2*is1,i2-2*is2,i3-2*is3,hz) = (5.*u(i1-is1,i2-
+     & is2,i3-is3,hz)-10.*u(i1-is1+is1,i2-is2+is2,i3-is3+is3,hz)+10.*
+     & u(i1-is1+2*is1,i2-is2+2*is2,i3-is3+2*is3,hz)-5.*u(i1-is1+3*is1,
+     & i2-is2+3*is2,i3-is3+3*is3,hz)+u(i1-is1+4*is1,i2-is2+4*is2,i3-
+     & is3+4*is3,hz))
+                  end if
                  end if ! mask>0
                  end do
                  end do
@@ -4583,8 +4579,8 @@ c$$$ end do
                     ! c1s =   (C1Order2(i1+js1,i2+js2,i3)- C1Order2(i1-js1,i2-js2,i3))/(2.*dsa) 
                     ! c2s =   (C2Order2(i1+js1,i2+js2,i3)- C2Order2(i1-js1,i2-js2,i3))/(2.*dsa) 
                     ! fourth-order:
-c$$$   c11s = (8.*(C11(i1+  js1,i2+  js2,i3)-C11(i1-  js1,i2-  js2,i3))   c$$$             -(C11(i1+2*js1,i2+2*js2,i3)-C11(i1-2*js1,i2-2*js2,i3))   )/(12.*dsa)
-c$$$   c22s = (8.*(C22(i1+  js1,i2+  js2,i3)-C22(i1-  js1,i2-  js2,i3))   c$$$             -(C22(i1+2*js1,i2+2*js2,i3)-C22(i1-2*js1,i2-2*js2,i3))   )/(12.*dsa)
+                 !$$$   c11s = (8.*(C11(i1+  js1,i2+  js2,i3)-C11(i1-  js1,i2-  js2,i3))   !$$$             -(C11(i1+2*js1,i2+2*js2,i3)-C11(i1-2*js1,i2-2*js2,i3))   )/(12.*dsa)
+                 !$$$   c22s = (8.*(C22(i1+  js1,i2+  js2,i3)-C22(i1-  js1,i2-  js2,i3))   !$$$             -(C22(i1+2*js1,i2+2*js2,i3)-C22(i1-2*js1,i2-2*js2,i3))   )/(12.*dsa)
                     c11r = (8.*((rsxy(i1+is1,i2+is2,i3,axis,0)**2+rsxy(
      & i1+is1,i2+is2,i3,axis,1)**2)-(rsxy(i1-is1,i2-is2,i3,axis,0)**2+
      & rsxy(i1-is1,i2-is2,i3,axis,1)**2))   -((rsxy(i1+2*is1,i2+2*is2,
@@ -4917,7 +4913,7 @@ c$$$   c22s = (8.*(C22(i1+  js1,i2+  js2,i3)-C22(i1-  js1,i2-  js2,i3))   c$$$  
      & 0)+rsxy(i1,i2,i3,axis,1)*rsxy(i1,i2,i3,axisp1,1))*ws-rsxy(i1,
      & i2,i3,axis,0)*vt0+rsxy(i1,i2,i3,axis,1)*ut0)/(rsxy(i1,i2,i3,
      & axis,0)**2+rsxy(i1,i2,i3,axis,1)**2)
-c$$$   fw1=( -(rsxy(i1,i2,i3,axis,0)*rsxy(i1,i2,i3,axisp1,0)+rsxy(i1,i2,i3,axis,1)*rsxy(i1,i2,i3,axisp1,1))*ws c$$$        - rsxy(i1,i2,i3,axis,0)*vt0 + rsxy(i1,i2,i3,axis,1)*ut0 c$$$       )/(rsxy(i1,i2,i3,axis,0)**2+rsxy(i1,i2,i3,axis,1)**2)
+                 !$$$   fw1=( -(rsxy(i1,i2,i3,axis,0)*rsxy(i1,i2,i3,axisp1,0)+rsxy(i1,i2,i3,axis,1)*rsxy(i1,i2,i3,axisp1,1))*ws !$$$        - rsxy(i1,i2,i3,axis,0)*vt0 + rsxy(i1,i2,i3,axis,1)*ut0 !$$$       )/(rsxy(i1,i2,i3,axis,0)**2+rsxy(i1,i2,i3,axis,1)**2)
                     ! fw2 = fw1.tt -[ c22*wrss + c2 wrs ]
                     ! where
                     !     w.r = fw1 = (-rx*vt + ry*ut - (rx*sx+ry*sy)*ws )/(rx**2+ry**2) 
@@ -4941,7 +4937,7 @@ c$$$   fw1=( -(rsxy(i1,i2,i3,axis,0)*rsxy(i1,i2,i3,axisp1,0)+rsxy(i1,i2,i3,axis,
      & i3,axis,1)*uttt0 )/(rsxy(i1,i2,i3,axis,0)**2+rsxy(i1,i2,i3,
      & axis,1)**2)- c22*( fw1p1-2.*fw1+fw1m1 )/(dsa**2) -c2*(fw1p1-
      & fw1m1 )/(2.*dsa)
-c   fw2 = (-rsxy(i1,i2,i3,axis,0)*vttt0 + rsxy(i1,i2,i3,axis,1)*uttt0 )/c                               (rsxy(i1,i2,i3,axis,0)**2+rsxy(i1,i2,i3,axis,1)**2)c         - c22*( (-rsxy(i1+js1,i2+js2,i3,axis,0)*vtp1 + rsxy(i1+js1,i2+js2,i3,axis,1)*utp1)c             -2.*(-rsxy(i1    ,i2    ,i3,axis,0)*vt0  + rsxy(i1    ,i2    ,i3,axis,1)*ut0 ) c                +(-rsxy(i1-js1,i2-js2,i3,axis,0)*vtm1 + rsxy(i1-js1,i2-js2,i3,axis,1)*utm1) )/(dsa**2) c         -  c2*( (-rsxy(i1+js1,i2+js2,i3,axis,0)*vtp1 + rsxy(i1+js1,i2+js2,i3,axis,1)*utp1)c                -(-rsxy(i1-js1,i2-js2,i3,axis,0)*vtm1 + rsxy(i1-js1,i2-js2,i3,axis,1)*utm1) )/(2.*dsa)
+                 !   fw2 = (-rsxy(i1,i2,i3,axis,0)*vttt0 + rsxy(i1,i2,i3,axis,1)*uttt0 )/!                               (rsxy(i1,i2,i3,axis,0)**2+rsxy(i1,i2,i3,axis,1)**2)!         - c22*( (-rsxy(i1+js1,i2+js2,i3,axis,0)*vtp1 + rsxy(i1+js1,i2+js2,i3,axis,1)*utp1)!             -2.*(-rsxy(i1    ,i2    ,i3,axis,0)*vt0  + rsxy(i1    ,i2    ,i3,axis,1)*ut0 ) !                +(-rsxy(i1-js1,i2-js2,i3,axis,0)*vtm1 + rsxy(i1-js1,i2-js2,i3,axis,1)*utm1) )/(dsa**2) !         -  c2*( (-rsxy(i1+js1,i2+js2,i3,axis,0)*vtp1 + rsxy(i1+js1,i2+js2,i3,axis,1)*utp1)!                -(-rsxy(i1-js1,i2-js2,i3,axis,0)*vtm1 + rsxy(i1-js1,i2-js2,i3,axis,1)*utm1) )/(2.*dsa)
                   end if
                    ! ********** For now do this: should work for quadratics *******************
                    cgI=0.
@@ -5012,16 +5008,16 @@ c   fw2 = (-rsxy(i1,i2,i3,axis,0)*vttt0 + rsxy(i1,i2,i3,axis,1)*uttt0 )/c       
      & a11m1*uvm(0)+a12m1*uvm(1)) )- ( (a11p2*uvp2(0)+a12p2*uvp2(1)) -
      &  (a11m2*uvm2(0)+a12m2*uvm2(1)) ) )/(12.*dra)
                    ! For testing: *************************************************************
-c$$$  urrr=(uvp2(0)-2.*(uvp(0)-uvm(0))-uvm2(0))/(2.*dra**3)
-c$$$  vrrr=(uvp2(1)-2.*(uvp(1)-uvm(1))-uvm2(1))/(2.*dra**3)
-c$$$
-c$$$  urr=(-30.*uv0(0)+16.*(uvp(0)+uvm(0))-(uvp2(0)+uvm2(0)) )/(12.*dra**2)
-c$$$  vrr=(-30.*uv0(1)+16.*(uvp(1)+uvm(1))-(uvp2(1)+uvm2(1)) )/(12.*dra**2)
-c$$$
-c$$$  ur=(8.*(uvp(0)-uvm(0))-(uvp2(0)-uvm2(0)))/(12.*dra)
-c$$$  vr=(8.*(uvp(1)-uvm(1))-(uvp2(1)-uvm2(1)))/(12.*dra)
-c$$$
-c$$$  bf = -( b3u*urrr+b3v*vrrr+b2u*urr+b2v*vrr+b1u*ur+b1v*vr )
+                 !$$$  urrr=(uvp2(0)-2.*(uvp(0)-uvm(0))-uvm2(0))/(2.*dra**3)
+                 !$$$  vrrr=(uvp2(1)-2.*(uvp(1)-uvm(1))-uvm2(1))/(2.*dra**3)
+                 !$$$
+                 !$$$  urr=(-30.*uv0(0)+16.*(uvp(0)+uvm(0))-(uvp2(0)+uvm2(0)) )/(12.*dra**2)
+                 !$$$  vrr=(-30.*uv0(1)+16.*(uvp(1)+uvm(1))-(uvp2(1)+uvm2(1)) )/(12.*dra**2)
+                 !$$$
+                 !$$$  ur=(8.*(uvp(0)-uvm(0))-(uvp2(0)-uvm2(0)))/(12.*dra)
+                 !$$$  vr=(8.*(uvp(1)-uvm(1))-(uvp2(1)-uvm2(1)))/(12.*dra)
+                 !$$$
+                 !$$$  bf = -( b3u*urrr+b3v*vrrr+b2u*urr+b2v*vrr+b1u*ur+b1v*vr )
                    ! *************************************************************************
                   ! for now remove the error in the extrapolation ************
                   ! gIVf = tau1*( uvm2(0)-4.*uvm(0)+6.*uv0(0)-4.*uvp(0)+uvp2(0)) +!        tau2*( uvm2(1)-4.*uvm(1)+6.*uv0(1)-4.*uvp(1)+uvp2(1))
@@ -5084,7 +5080,7 @@ c$$$  bf = -( b3u*urrr+b3v*vrrr+b2u*urr+b2v*vrr+b1u*ur+b1v*vr )
                   fw2=fw2 + c22r*(-30.*uv0(2)+16.*(uvp(2)+uvm(2))-(
      & uvp2(2)+uvm2(2)) )/(12.*dsa**2)+ c2r*(8.*(uvp(2)-uvm(2))-(uvp2(
      & 2)-uvm2(2)))/(12.*dsa)
-c Now assign ex and ey at the ghost points:
+                 ! Now assign ex and ey at the ghost points:
 
 
 ! ************ Answer *******************
@@ -5168,11 +5164,11 @@ c Now assign ex and ey at the ghost points:
 
 
  ! *********** done *********************
-c extrapolate normal component:
-c #Include "bc4eMaxwell.h"
-c Now assign Hz at the ghost points
-c u(i1-  is1,i2-  is2,i3-  is3,hz) = u(i1+  is1,i2+  is2,i3+  is3,hz)
-c u(i1-2*is1,i2-2*is2,i3-2*is3,hz) = u(i1+2*is1,i2+2*is2,i3+2*is3,hz)
+                 ! extrapolate normal component:
+                 ! #Include "bc4eMaxwell.h"
+                 ! Now assign Hz at the ghost points
+                 ! u(i1-  is1,i2-  is2,i3-  is3,hz) = u(i1+  is1,i2+  is2,i3+  is3,hz)
+                 ! u(i1-2*is1,i2-2*is2,i3-2*is3,hz) = u(i1+2*is1,i2+2*is2,i3+2*is3,hz)
 
 
 ! ************ Hz Answer *******************
@@ -5384,7 +5380,7 @@ c u(i1-2*is1,i2-2*is2,i3-2*is3,hz) = u(i1+2*is1,i2+2*is2,i3+2*is3,hz)
                  ! *    vss=0.
                  ! *    wss=0.
                  ! *  end if
-c *********************** NEW ************************
+                 ! *********************** NEW ************************
                   ! ***************************************************************************************
                   ! Use one sided approximations as needed for expressions needing tangential derivatives
                   ! ***************************************************************************************
@@ -5543,9 +5539,9 @@ c *********************** NEW ************************
      & js1a,i2-2*js2a,i3,axisp1,1)/(rx(i1-2*js1a,i2-2*js2a,i3)*sy(i1-
      & 2*js1a,i2-2*js2a,i3)-ry(i1-2*js1a,i2-2*js2a,i3)*sx(i1-2*js1a,
      & i2-2*js2a,i3))))/(2.*dsb)
-c if( debug.gt.0 )then
-c   write(*,'(" ghost-interp:left-shift i=",3i3," js1a,js2a=",2i3," c2r,c2s2(-1),c2s2(-2)=",10e10.2)')c      i1,i2,i3,js1a,js2a,c2r,C2s2(i1-js1a,i2-js2a,i3),C2s2(i1-2*js1a,i2-2*js2a,i3)
-c end if
+                 ! if( debug.gt.0 )then
+                 !   write(*,'(" ghost-interp:left-shift i=",3i3," js1a,js2a=",2i3," c2r,c2s2(-1),c2s2(-2)=",10e10.2)')!      i1,i2,i3,js1a,js2a,c2r,C2s2(i1-js1a,i2-js2a,i3),C2s2(i1-2*js1a,i2-2*js2a,i3)
+                 ! end if
                   else if( (i1+3*js1a).le.md1b .and. (i2+3*js2a)
      & .le.md2b )then
                    ! one sided  2nd-order:
@@ -5570,9 +5566,9 @@ c end if
      & rsxyys22(i1+js1a,i2+js2a,i3,axisp1,1))-(rsxyxs22(i1+2*js1a,i2+
      & 2*js2a,i3,axisp1,0)+rsxyys22(i1+2*js1a,i2+2*js2a,i3,axisp1,1))
                    end if
-c if( debug.gt.0 )then
-c   write(*,'(" ghost-interp:right-shift i=",3i3," js1a,js2a=",2i3," c2r,c2s2(+1),c2s2(+2)=",10e10.2)')c      i1,i2,i3,js1a,js2a,c2r,C2s2(i1+js1a,i2+js2a,i3),C2s2(i1+2*js1a,i2+2*js2a,i3)
-c end if
+                 ! if( debug.gt.0 )then
+                 !   write(*,'(" ghost-interp:right-shift i=",3i3," js1a,js2a=",2i3," c2r,c2s2(+1),c2s2(+2)=",10e10.2)')!      i1,i2,i3,js1a,js2a,c2r,C2s2(i1+js1a,i2+js2a,i3),C2s2(i1+2*js1a,i2+2*js2a,i3)
+                 ! end if
                    a11s = (-3.*(rsxy(i1,i2,i3,axis,0)/(rx(i1,i2,i3)*sy(
      & i1,i2,i3)-ry(i1,i2,i3)*sx(i1,i2,i3)))+4.*(rsxy(i1+js1a,i2+js2a,
      & i3,axis,0)/(rx(i1+js1a,i2+js2a,i3)*sy(i1+js1a,i2+js2a,i3)-ry(
@@ -5669,7 +5665,7 @@ c end if
                     vss=0.
                     wss=0.
                   end if
-c ******************************* end NEW ************************
+                 ! ******************************* end NEW ************************
                   tau1=rsxy(i1,i2,i3,axisp1,0)
                   tau2=rsxy(i1,i2,i3,axisp1,1)
                   uex=u(i1,i2,i3,ex)
@@ -5747,7 +5743,7 @@ c ******************************* end NEW ************************
                   fw2=fw2 + c22r*(-30.*uv0(2)+16.*(uvp(2)+uvm(2))-(
      & uvp2(2)+uvm2(2)) )/(12.*dsa**2)+ c2r*(8.*(uvp(2)-uvm(2))-(uvp2(
      & 2)-uvm2(2)))/(12.*dsa)
-c assign values using extrapolation of the normal component:
+                 ! assign values using extrapolation of the normal component:
 
 
 ! ************ Answer *******************
@@ -5884,7 +5880,7 @@ c assign values using extrapolation of the normal component:
 
 
  ! *********** done *********************
-c Now assign Hz at the ghost points
+                 ! Now assign Hz at the ghost points
 
 
 ! ************ Hz Answer *******************
@@ -5934,47 +5930,39 @@ c Now assign Hz at the ghost points
      & uvm2(1),u(i1-is1,i2-is2,i3-is3,hz)-uvm(2),u(i1-2*is1,i2-2*is2,
      & i3-2*is3,hz)-uvm2(2)
                   end if
-c$$$ ! **** do this for now *** fix ***
-c$$$
-c$$$  a11 =A11(i1,i2,i3) 
-c$$$  a12 =A12(i1,i2,i3)
-c$$$
-c$$$  a11r = DR4($A11)
-c$$$  a12r = DR4($A12)
-c$$$
-c$$$  tau11=rsxy(i1,i2,i3,axisp1,0)
-c$$$  tau12=rsxy(i1,i2,i3,axisp1,1)
-c$$$
-c$$$  detnt=a11*tau12-a12*tau11
-c$$$
-c$$$  do m=1,2
-c$$$    m1=i1-m*is1
-c$$$    m2=i2-m*is2
-c$$$    m3=i3
-c$$$    ! use a1.(u.r) + a1r.u =0 for now:
-c$$$    !    tau.urr=0
-c$$$
-c$$$    ! here is a second-order approximation:
-c$$$    a1DotU= a11*u(i1+m*is1,i2+m*is2,i3,ex)c$$$           +a12*u(i1+m*is1,i2+m*is2,i3,ey)c$$$        +( a11r*u(i1+m*is1,i2+m*is2,i3,ex)c$$$          +a12r*u(i1+m*is1,i2+m*is2,i3,ey) )*(2.*m*dra)
-c$$$
-c$$$    tau1DotU=tau11*( 2.*u(i1,i2,i3,ex)-u(i1+m*is1,i2+m*is2,i3,ex))c$$$            +tau12*( 2.*u(i1,i2,i3,ey)-u(i1+m*is1,i2+m*is2,i3,ey))
-c$$$  
-c$$$    #If "twilightZone" == "twilightZone"
-c$$$      OGF2D(i1,i2,i3,t, uv0(0),uv0(1),uv0(2))
-c$$$      OGF2D(i1-m*is1,i2-m*is2,i3,t, uvm(0),uvm(1),uvm(2))
-c$$$      OGF2D(i1+m*is1,i2+m*is2,i3,t, uvp(0),uvp(1),uvp(2))
-c$$$      
-c$$$      a1DotU=a1DotU + a11*( uvm(0)-uvp(0) ) + a12*( uvm(1)-uvp(1) ) 
-c$$$      tau1DotU=tau1DotU + tau11*( uvm(0)-2.*uv0(0)+uvp(0) ) + tau12*( uvm(1)-2.*uv0(1)+uvp(1) ) 
-c$$$    #End
-c$$$
-c$$$    u(m1,m2,m3,ex)=(a1DotU*tau12-a12*tau1DotU)/detnt
-c$$$    u(m1,m2,m3,ey)=(a11*tau1DotU-a1DotU*tau11)/detnt
-c$$$    u(m1,m2,m3,hz)=u(i1+m*is1,i2+m*is2,i3,hz)
-c$$$
-c$$$!    write(*,'(" ghost-interp: i=",3i4,", is=",2i2,"  errors=",3e10.2)') i1,i2,i3,is1,is2,u(m1,m2,m3,ex)-uvm(0),c$$$!            u(m1,m2,m3,ey)-uvm(1),u(m1,m2,m3,hz)-uvm(2)
-c$$$
-c$$$ end do
+                  ! ** NO NEED TO DO ALL THE ABOVE IF WE DO THIS:
+                  extrapInterpGhost=.true.
+                  if( extrapInterpGhost )then
+                    ! extrapolate ghost points next to boundary interpolation points  *wdh* 2015/05/30 
+                    write(*,'(" extrap ghost next to interp")')
+                    u(i1-is1,i2-is2,i3-is3,ex) = (5.*u(i1,i2,i3,ex)-
+     & 10.*u(i1+is1,i2+is2,i3+is3,ex)+10.*u(i1+2*is1,i2+2*is2,i3+2*
+     & is3,ex)-5.*u(i1+3*is1,i2+3*is2,i3+3*is3,ex)+u(i1+4*is1,i2+4*
+     & is2,i3+4*is3,ex))
+                    u(i1-is1,i2-is2,i3-is3,ey) = (5.*u(i1,i2,i3,ey)-
+     & 10.*u(i1+is1,i2+is2,i3+is3,ey)+10.*u(i1+2*is1,i2+2*is2,i3+2*
+     & is3,ey)-5.*u(i1+3*is1,i2+3*is2,i3+3*is3,ey)+u(i1+4*is1,i2+4*
+     & is2,i3+4*is3,ey))
+                    u(i1-is1,i2-is2,i3-is3,hz) = (5.*u(i1,i2,i3,hz)-
+     & 10.*u(i1+is1,i2+is2,i3+is3,hz)+10.*u(i1+2*is1,i2+2*is2,i3+2*
+     & is3,hz)-5.*u(i1+3*is1,i2+3*is2,i3+3*is3,hz)+u(i1+4*is1,i2+4*
+     & is2,i3+4*is3,hz))
+                    u(i1-2*is1,i2-2*is2,i3-2*is3,ex) = (5.*u(i1-is1,i2-
+     & is2,i3-is3,ex)-10.*u(i1-is1+is1,i2-is2+is2,i3-is3+is3,ex)+10.*
+     & u(i1-is1+2*is1,i2-is2+2*is2,i3-is3+2*is3,ex)-5.*u(i1-is1+3*is1,
+     & i2-is2+3*is2,i3-is3+3*is3,ex)+u(i1-is1+4*is1,i2-is2+4*is2,i3-
+     & is3+4*is3,ex))
+                    u(i1-2*is1,i2-2*is2,i3-2*is3,ey) = (5.*u(i1-is1,i2-
+     & is2,i3-is3,ey)-10.*u(i1-is1+is1,i2-is2+is2,i3-is3+is3,ey)+10.*
+     & u(i1-is1+2*is1,i2-is2+2*is2,i3-is3+2*is3,ey)-5.*u(i1-is1+3*is1,
+     & i2-is2+3*is2,i3-is3+3*is3,ey)+u(i1-is1+4*is1,i2-is2+4*is2,i3-
+     & is3+4*is3,ey))
+                    u(i1-2*is1,i2-2*is2,i3-2*is3,hz) = (5.*u(i1-is1,i2-
+     & is2,i3-is3,hz)-10.*u(i1-is1+is1,i2-is2+is2,i3-is3+is3,hz)+10.*
+     & u(i1-is1+2*is1,i2-is2+2*is2,i3-is3+2*is3,hz)-5.*u(i1-is1+3*is1,
+     & i2-is2+3*is2,i3-is3+3*is3,hz)+u(i1-is1+4*is1,i2-is2+4*is2,i3-
+     & is3+4*is3,hz))
+                  end if
                  end if ! mask>0
                  end do
                  end do
@@ -7564,6 +7552,6 @@ c$$$ end do
            end if
          end do
          end do
-c     **************************************************************************
+       !     **************************************************************************
         return
         end

@@ -445,6 +445,36 @@ initializePlaneMaterialInterface()
   return 0;
 }
 
+// ============================================================================
+// Macro to compute the (x,y) coordinates - optimized for rectangular grids
+// ============================================================================
+#beginMacro getCoordinates2d(i1,i2,i3,x,y,xe,ye)
+ if( isRectangular )
+ {
+   x = X0(i1,i2,i3);
+   y = X1(i1,i2,i3);
+ }
+ else
+ {
+   x = xe(i1,i2,i3);
+   y = ye(i1,i2,i3);
+ }
+#endMacro
+#beginMacro getCoordinates3d(i1,i2,i3,x,y,z,XX)
+ if( isRectangular )
+ {
+   x = X0(i1,i2,i3);
+   y = X1(i1,i2,i3);
+   z = X2(i1,i2,i3);
+ }
+ else
+ {
+   x = XX(i1,i2,i3,0);
+   y = XX(i1,i2,i3,1);
+   z = XX(i1,i2,i3,2);
+ }
+#endMacro
+
 //! Assign initial conditions
 //   (Ex).t = (1/eps)*[  (Hz).y ]
 //   (Ey).t = (1/eps)*[ -(Hz).x ]
@@ -456,6 +486,10 @@ assignInitialConditions(int current, real t, real dt )
 {
   real time0=getCPU();
   
+  if( true )
+    printF("**************\n"
+           " --MX-- assignInitialConditions: t=%9.3e initialConditionOption=%i\n",t,(int)initialConditionOption);
+
   assert( cgp!=NULL );
   CompositeGrid & cg = *cgp;
   const int numberOfDimensions=cg.numberOfDimensions();
@@ -509,16 +543,17 @@ assignInitialConditions(int current, real t, real dt )
 
   const int numberOfComponentGrids = cg.numberOfComponentGrids();
 
-  if( (method==nfdtd  || method==sosup ) && orderOfAccuracyInTime>=4 )
-  {
-    // ** functions only needed for curvilinear grids **** fix ****
-    numberOfFunctions=1; //  orderOfAccuracyInTime-1;
+  // -- moved to setup grid functions --
+  // if( (method==nfdtd  || method==sosup ) && orderOfAccuracyInTime>=4 )
+  // {
+  //   // ** functions only needed for curvilinear grids **** fix ****
+  //   numberOfFunctions=1; //  orderOfAccuracyInTime-1;
 
-    if( true || cg.numberOfDimensions()==3 ) numberOfFunctions=3;  // *********************** fix *************** how many are needed?
+  //   if( true || cg.numberOfDimensions()==3 ) numberOfFunctions=3;  // *********************** fix *************** how many are needed?
 
-    delete [] fn;
-    fn = new realArray [numberOfFunctions*numberOfComponentGrids];
-  }
+  //   delete [] fn;
+  //   fn = new realArray [numberOfFunctions*numberOfComponentGrids];
+  // }
 
 
   if( initialConditionOption==planeWaveScatteredFieldInitialCondition && knownSolution==NULL )
@@ -539,10 +574,14 @@ assignInitialConditions(int current, real t, real dt )
     userDefinedInitialConditions( current, t, dt );
 
   }
+  else if( initialConditionOption==userDefinedKnownSolutionInitialCondition )
+  {
+    assignUserDefinedKnownSolutionInitialConditions( current, t, dt );
+
+  }
   else
   {
 
-// rectangular grid coordinates
 #define X0(i0,i1,i2) (xa+dx0*(i0-i0a))
 #define X1(i0,i1,i2) (ya+dy0*(i1-i1a))
 #define X2(i0,i1,i2) (za+dz0*(i2-i2a))
@@ -657,23 +696,24 @@ assignInitialConditions(int current, real t, real dt )
       uh = umh = 0;
       ue = ume = 0;
 
+      #define FN(m) fn[m+numberOfFunctions*(grid)]
+
       if( true /*numberOfComponents==3 || method==nfdtd*/ )
       {
-	if( saveExtraForcingLevels || 
-	    !isRectangular )  // ********************** fix this -- FN used in advanceStructured *****************
-	{
-	  // we need to save the "RHS" at some previous times.
-	  Index D1,D2,D3;
-	  getIndex(mg.dimension(),D1,D2,D3);
-	  Range C(ex,hz);
-	  for( int m=0; m<numberOfFunctions; m++ )
-	  {
-#define FN(m) fn[m+numberOfFunctions*(grid)]
-	    FN(m).partition(mg.getPartition());
-	    FN(m).redim(D1,D2,D3,C);
-	  }
-	  currentFn=0; 
-	}
+// 	if( saveExtraForcingLevels || 
+// 	    !isRectangular )  // ********************** fix this -- FN used in advanceStructured *****************
+// 	{
+// 	  // we need to save the "RHS" at some previous times.
+// 	  Index D1,D2,D3;
+// 	  getIndex(mg.dimension(),D1,D2,D3);
+// 	  Range C(ex,hz);
+// 	  for( int m=0; m<numberOfFunctions; m++ )
+// 	  {
+// 	    FN(m).partition(mg.getPartition());
+// 	    FN(m).redim(D1,D2,D3,C);
+// 	  }
+// 	  currentFn=0; 
+// 	}
 
 	Range C(ex,hz);
 
@@ -681,6 +721,10 @@ assignInitialConditions(int current, real t, real dt )
 
 	if( forcingOption==twilightZoneForcing )
 	{
+          // ==================================================
+	  // ================== TZ FORCING ====================
+          // ==================================================
+
 	  assert( tz!=NULL );
 	  OGFunction & e = *tz;
 	    
@@ -862,10 +906,9 @@ assignInitialConditions(int current, real t, real dt )
 		{
 		  //real x = XEP(i1,i2,i3,0);
 		  //real y = XEP(i1,i2,i3,1);
-
-		  real x = xe(i1,i2,i3);
-		  real y = ye(i1,i2,i3);
-
+		  real x,y;
+		  getCoordinates2d(i1,i2,i3,x,y,xe,ye);
+		  
 		  UMEX(i1,i2,i3)=exTrue(x,y,tE-dt);
 		  UMEY(i1,i2,i3)=eyTrue(x,y,tE-dt);
 		  UMHZ(i1,i2,i3)=hzTrue(x,y,tH-dt);
@@ -881,8 +924,8 @@ assignInitialConditions(int current, real t, real dt )
                 // assign both the field and it's time derivative
 		FOR_3D(i1,i2,i3,J1,J2,J3)
 		{
-		  real x = xe(i1,i2,i3);
-		  real y = ye(i1,i2,i3);
+		  real x,y;
+		  getCoordinates2d(i1,i2,i3,x,y,xe,ye);
 
                   // FOR NOW set old time: 
 		  UMEX(i1,i2,i3)=exTrue(x,y,tE-dt);
@@ -931,7 +974,8 @@ assignInitialConditions(int current, real t, real dt )
 		real y0 = ky>=0 ? initialConditionBoundingBox(1,1) : initialConditionBoundingBox(0,1);  
 		FOR_3D(i1,i2,i3,Ie1,Ie2,Ie3)
 		{
-		  real x=xe(i1,i2,i3), y=ye(i1,i2,i3);
+		  real x,y;
+		  getCoordinates2d(i1,i2,i3,x,y,xe,ye);
 
 #define AMP2D(x,y,t) (.5*(1.-tanh(beta*twoPi*(kx*((x)-x0)+ky*((y)-y0)-cc*(t)))))
 
@@ -958,7 +1002,9 @@ assignInitialConditions(int current, real t, real dt )
 		// old way: clip to a box 
 		FOR_3D(i1,i2,i3,Ie1,Ie2,Ie3)
 		{
-		  real x=xe(i1,i2,i3), y=ye(i1,i2,i3);
+		  real x,y;
+		  getCoordinates2d(i1,i2,i3,x,y,xe,ye);
+
 		  if( x>=initialConditionBoundingBox(0,0) && x<=initialConditionBoundingBox(1,0) &&
 		      y>=initialConditionBoundingBox(0,1) && y<=initialConditionBoundingBox(1,1) )
 		  {
@@ -989,9 +1035,12 @@ assignInitialConditions(int current, real t, real dt )
 		  // new way 
 		  FOR_3D(i1,i2,i3,J1,J2,J3)
 		  {
-		    real x = XEP(i1,i2,i3,0);
-		    real y = XEP(i1,i2,i3,1);
-		    real z = XEP(i1,i2,i3,2);
+		    // real x = XEP(i1,i2,i3,0);
+		    // real y = XEP(i1,i2,i3,1);
+		    // real z = XEP(i1,i2,i3,2);
+		    real x,y,z;
+		    getCoordinates3d(i1,i2,i3,x,y,z,XEP);
+
 		    UMEX(i1,i2,i3)=exTrue3d(x,y,z,tE-dt);
 		    UMEY(i1,i2,i3)=eyTrue3d(x,y,z,tE-dt);
 		    UMEZ(i1,i2,i3)=ezTrue3d(x,y,z,tE-dt);
@@ -1005,9 +1054,11 @@ assignInitialConditions(int current, real t, real dt )
 		{
 		  FOR_3D(i1,i2,i3,J1,J2,J3)
 		  {
-		    real x = XEP(i1,i2,i3,0);
-		    real y = XEP(i1,i2,i3,1);
-		    real z = XEP(i1,i2,i3,2);
+		    // real x = XEP(i1,i2,i3,0);
+		    // real y = XEP(i1,i2,i3,1);
+		    // real z = XEP(i1,i2,i3,2);
+		    real x,y,z;
+		    getCoordinates3d(i1,i2,i3,x,y,z,XEP);
 
 		    // FOR NOW set old time: 
 		    UMEX(i1,i2,i3)=exTrue3d(x,y,z,tE-dt);
@@ -1046,7 +1097,10 @@ assignInitialConditions(int current, real t, real dt )
 		int i1,i2,i3;
 		FOR_3D(i1,i2,i3,Ie1,Ie2,Ie3)
 		{
-		  real x=xe(i1,i2,i3), y=ye(i1,i2,i3), z=ze(i1,i2,i3);
+		  // real x=xe(i1,i2,i3), y=ye(i1,i2,i3), z=ze(i1,i2,i3);
+		  real x,y,z;
+		  getCoordinates3d(i1,i2,i3,x,y,z,XEP);
+
 		  if( x>=initialConditionBoundingBox(0,0) && x<=initialConditionBoundingBox(1,0) &&
 		      y>=initialConditionBoundingBox(0,1) && y<=initialConditionBoundingBox(1,1) &&
 		      z>=initialConditionBoundingBox(0,2) && z<=initialConditionBoundingBox(1,2) )
@@ -1760,6 +1814,57 @@ assignInitialConditions(int current, real t, real dt )
     }  // end for grid
   } 
 
+
+  const bool & useNewForcingMethod= dbase.get<bool>("useNewForcingMethod");
+  if( useNewForcingMethod )
+  {
+    // --- Assign time history of the external forcing arrays (if needed) ---
+
+    // numberOfForcingFunctions : assigned in setupGridFunctions
+
+    // numberOfForcingFunctions : number of elements in forcingArray
+    const int & numberOfForcingFunctions= dbase.get<int>("numberOfForcingFunctions"); 
+    const int & fCurrent = dbase.get<int>("fCurrent");         // forcingArray[fCurrent] : current forcing
+    realArray *& forcingArray = dbase.get<realArray*>("forcingArray");  
+
+    if( numberOfForcingFunctions>0 && method==nfdtd && timeSteppingMethod==modifiedEquationTimeStepping )
+    {
+      assert( forcingIsOn() );
+    
+      // --- Evaluate past time forcing ---
+      printF("--MX-- INFO: evaluate external forcing at past time levels...\n");
+
+      for( int grid=0; grid<numberOfComponentGrids; grid++ )
+      {
+	MappedGrid & mg = cg[grid];
+	Index I1,I2,I3;
+	getIndex(mg.dimension(),I1,I2,I3);
+	Range C(ex,hz);
+	
+	realArray & fa = forcingArray[grid];
+	
+	realArray fb;  // *************** FIX ME **************
+	fb.partition(mg.getPartition());
+	fb.redim(I1,I2,I3,C);  // could use some other array for work space ??
+
+        OV_GET_SERIAL_ARRAY(real,fa,faLocal);
+	OV_GET_SERIAL_ARRAY(real,fb,fbLocal);
+	int includeGhost=1;
+	bool ok = ParallelUtility::getLocalArrayBounds(fb,fbLocal,I1,I2,I3,includeGhost);
+
+	for( int m=0; m<numberOfForcingFunctions; m++ ) 
+	{
+          int fIndex = (fCurrent - m + numberOfForcingFunctions) % numberOfForcingFunctions;
+          const int option=1;  // do not append forcing to the "f" array 
+          getForcing( current, grid,fb,t-m*dt,dt,option );
+
+	  if( ok )
+            faLocal(I1,I2,I3,C,fIndex)=fbLocal(I1,I2,I3,C);  // save in fa array
+	}
+
+      }
+    }
+  }
 
 
   if( projectInitialConditions )

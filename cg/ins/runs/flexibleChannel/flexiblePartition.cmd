@@ -40,7 +40,7 @@ $projectVelocityOnBeamEnds=1;
 $smoothInterfaceVelocity=1; $numberOfInterfaceVelocitySmooths=2; 
 $projectBeamVelocity=1; 
 #
-$smoothBeam=0; $numnberOfBeamSmooths=2; 
+$smoothBeam=0; $numberOfBeamSmooths=2; 
 #
 $useTP=0; # set to 1 to iterate with TP scheme
 $addedMassRelaxation=1.; # 1=no-relaxation
@@ -56,6 +56,7 @@ $numElem = 21; # number of elements in the beam
 $fluidOnTwoSides=1;  # beam has fluid on two sides
 $orderOfProjection=4; # order of accuracy for beam element integrals
 $beamProbeFileName="beamTip.text"; 
+$probePosition=1.; # probe location in [0,1]
 # 
 $pMax=1; $tMax=.5;  
 #
@@ -79,7 +80,7 @@ GetOptions( "g=s"=>\$grid,"tf=f"=>\$tFinal,"implicitFactor=f"=>\$implicitFactor,
   "useApproximateAMPcondition=i"=>\$useApproximateAMPcondition,"orientation=s"=>\$orientation,\
   "projectBeamVelocity=i"=>\$projectBeamVelocity,"numberOfCorrections=i"=>\$numberOfCorrections,\
   "useTP=i"=>\$useTP,"addedMassRelaxation=f"=>\$addedMassRelaxation,"addedMassTol=f"=>\$addedMassTol,\
-  "smoothBeam=i"=>\$smoothBeam,"numberOfBeamSmooths=i"=>\$numberOfBeamSmooths );
+  "smoothBeam=i"=>\$smoothBeam,"numberOfBeamSmooths=i"=>\$numberOfBeamSmooths,"probePosition=f"=>\$probePosition );
 # -------------------------------------------------------------------------------------------------
 if( $solver eq "best" ){ $solver="choose best iterative solver"; }
 if( $solver eq "mg" ){ $solver="multigrid"; }
@@ -172,7 +173,8 @@ $grid
             position: $x0, $y0, 0 (x0,y0,z0)
             # Use pinned BC for EI=0 
             if( $E == 0. ){ $beamBC="pinned"; }else{ $beamBC="clamped"; }
-            if( $sideBC eq "slipWall" ){ $beamBC="free"; }
+            # *OLD* if( $sideBC eq "slipWall" ){ $beamBC="free"; }
+            if( $sideBC eq "slipWall" ){ $beamBC="slide"; }
             bc left:$beamBC
             bc right:$beamBC
             #
@@ -195,7 +197,10 @@ $grid
             smooth solution $smoothBeam
             number of smooths: $numberOfBeamSmooths
             #
+            # probe location in [0,1]
+            probe position: $probePosition
             probe file name: $beamProbeFileName
+            probe file save frequency: 10
             save probe file 1
             #
             # "Enter ya,yb,pa,pb,rhos,hs,fluidHeight,K0,Kt")
@@ -300,13 +305,30 @@ $cmd
  cfl $cfl
 # 
   boundary conditions
-    all=$sideBC
+    # all=$sideBC
+    bcNumber1=$sideBC
+    bcNumber2=$sideBC
+    bcNumber100=noSlipWall
 #     bcNumber3=inflowWithPressureAndTangentialVelocityGiven, userDefinedBoundaryData
 #       pressure pulse
 #         $pMax $tMax
 #       done
+    # Set pressure at bottom to p=p0, and on top to p=0
     if( $orientation eq "horizontal" ){ $cmd="bcNumber3=outflow, pressure(1.*p+0.*p.n=$p0)\n bcNumber4=outflow, pressure(1.*p+0.*p.n=0.)"; }
+    # set pressure on left to p=p0 and on right to p=0.
     if( $orientation eq "vertical" ){ $cmd="bcNumber1=outflow, pressure(1.*p+0.*p.n=$p0\n bcNumber2=outflow, pressure(1.*p+0.*p.n=0.)"; }
+    $cmd
+    #
+    # **** ramp the pressure on the bottom ****
+    $cmd="bcNumber3=outflow, pressure(1.*p+0.*p.n=$p0), userDefinedBoundaryData\n" . \
+    " time function option\n" . \
+    "   ramp function\n" .\
+    "   ramp end values: 0,1 (start,end)\n" .\
+    "   ramp times: 0,1 (start,end)\n" .\
+    "   ramp order: 3\n" .\
+    " exit \n" .\
+    "done";
+    if( $option ne "beamUnderPressure" ){ $cmd = "#"; }
     $cmd
     #
     # the oscillating inflow has the form: a0 + a1*cos((t-t0)*(2*pi*omega))*( uniform/parabolic)

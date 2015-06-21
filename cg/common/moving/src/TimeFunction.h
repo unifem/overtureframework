@@ -48,6 +48,11 @@ int eval( const real t, real & f, real & ft );
 int evalDerivative( const real t, real & fp, int derivative, bool computeComposed=true );
 
 int setLinearFunction( const real a0, const real a1 );
+
+int setRampFunction( const real rampStart, const real rampEnd,
+		     const real rampStartTime, const real rampEndTime,
+		     const int rampOrder );
+
 int setSinusoidFunction( const real b0, const real f0, const real t0 );
 
 // interactively update parameters:

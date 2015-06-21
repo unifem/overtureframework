@@ -408,6 +408,10 @@ outputProbes( GridFunction & gf0, int stepNumber, std::vector<real> *regionProbe
 // ============================================================================================================
 {
 
+  // -- output any moving grid probes --
+  if( parameters.isMovingGridProblem() )
+    parameters.dbase.get<MovingGrids >("movingGrids").outputProbes( gf0, stepNumber );
+
   if(!parameters.dbase.has_key("probeList") ) return 0;
 
   // printP("outputProbes: step=%i t=%8.2e\n",stepNumber,gf0.t);

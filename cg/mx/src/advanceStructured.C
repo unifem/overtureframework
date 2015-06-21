@@ -14,7 +14,7 @@ extern "C"
       const int&nd1a,const int&nd1b,const int&nd2a,const int&nd2b,const int&nd3a,const int&nd3b,
       const int&nd4a,const int&nd4b,
       const int&mask,const real&rx,  
-      const real&um, const real&u, real&un, const real&f,
+      const real&um, const real&u, real&un, const real&f, const real&fa,
       const real&ut1,const real&ut2,const real&ut3, const real&ut4,const real&ut5,const real&ut6,const real&ut7,
       const int&bc, const real &dis, const real &varDis, const int&ipar, const real&rpar, int&ierr );
 
@@ -78,6 +78,11 @@ advanceNFDTD(  int numberOfStepsTaken, int current, real t, real dt )
     addFilter( current,t,dt );
   }
   
+  // --- arrays holding external forcings : 
+  const bool & useNewForcingMethod= dbase.get<bool>("useNewForcingMethod");
+  const int & numberOfForcingFunctions= dbase.get<int>("numberOfForcingFunctions"); 
+  int & fCurrent = dbase.get<int>("fCurrent");         // forcingArray[fCurrent] : current forcing
+  realArray *& forcingArray = dbase.get<realArray*>("forcingArray");  
 
   sizeOfLocalArraysForAdvance=0.;
   int grid;
@@ -135,7 +140,6 @@ advanceNFDTD(  int numberOfStepsTaken, int current, real t, real dt )
     // *NO* const real adc=artificialDissipation*SQR(cMax); // scale dissipation by c^2 *wdh* 041103
     real adc = isRectangular ? c*artificialDissipation : c*artificialDissipationCurvilinear;  // Do this *wdh* 090602 
 
-    bool useOpt=true; // true;
     if( !isRectangular )
     {
       real timea=getCPU();
@@ -150,10 +154,10 @@ advanceNFDTD(  int numberOfStepsTaken, int current, real t, real dt )
 	mg.update( MappedGrid::THEinverseVertexDerivative | 
                    MappedGrid::THEinverseCenterDerivative );
       }
-     timea=getCPU()-timea;
-     timing(timeForInitialize)+=timea;
+      timea=getCPU()-timea;
+      timing(timeForInitialize)+=timea;
 
-     time0+=timea;  // do not include with time for curvilinear
+      time0+=timea;  // do not include with time for curvilinear
     }
 
     //  ::display(lap,"lap","%8.1e ");
@@ -165,23 +169,65 @@ advanceNFDTD(  int numberOfStepsTaken, int current, real t, real dt )
 
     
 
-    realArray f;
     const bool addForcing = forcingOption!=noForcing && forcingOption!=planeWaveBoundaryForcing;
 
     bool useCurvilinearOpt=true && !isRectangular;   // use advOpt to advance curvilinear grids given the RHS
 
-    // useCurvilinearOptNew: if true, use adopt to advance full equations in curvilinear case
+    // useCurvilinearOptNew: if true, use advOpt to advance full equations in curvilinear case
     //                       if false, evaluate RHS for curvilinear below and then use advOpt to update solution
     // bool useCurvilinearOptNew = !isRectangular && !useConservative && numberOfDimensions==2 ;
     bool useCurvilinearOptNew = !isRectangular && !useConservative && 
                                 (orderOfAccuracyInSpace==4 || orderOfAccuracyInSpace==6);
 
-    if( addForcing || !useCurvilinearOptNew )
+    realArray f; // *** SAVE FORCING HERE ***
+    if( addForcing || !useCurvilinearOptNew || (useNewForcingMethod && addForcing) )
     {
+      // --- allocate temp space for the forcing ---
       Index D1,D2,D3;
       getIndex(mg.dimension(),D1,D2,D3);
       f.partition(mg.getPartition());
       f.redim(D1,D2,D3,C);  // could use some other array for work space ??
+
+    }
+    
+    if( useNewForcingMethod && addForcing )
+    { // *new way* 2015/05/18 
+      real timef = getCPU();
+      assert( forcingArray !=NULL );
+      
+      const int fNext = (fCurrent+1) % numberOfForcingFunctions;
+      printF("--MX-ADVS-- evaluate external forcing: t=%9.3e, fCurrent=%i, fNext=%i, (%i)\n",t,
+	     fCurrent,fNext,numberOfForcingFunctions);
+
+      realArray & fa = forcingArray[grid];
+
+      // realArray fb;  // *************** FIX ME **************
+      // Index I1,I2,I3;
+      // getIndex(mg.dimension(),I1,I2,I3);
+      // fb.partition(mg.getPartition());
+      // fb.redim(I1,I2,I3,C);  // could use some other array for work space ??
+
+      realArray & fb = f;  // we re-use f here for work-space 
+      
+      OV_GET_SERIAL_ARRAY(real,fa,faLocal);
+      OV_GET_SERIAL_ARRAY(real,fb,fbLocal);
+      int includeGhost=1;
+      bool ok = ParallelUtility::getLocalArrayBounds(fb,fbLocal,I1,I2,I3,includeGhost);
+
+      const int option=1;  // do not append forcing to the "f" array 
+      getForcing( next, grid,fb,t+dt,dt,option );  // **NOTE: get forcing at t+dt 
+
+      if( ok )
+	faLocal(I1,I2,I3,C,fNext)=fbLocal(I1,I2,I3,C);  // save in fa array
+
+      // faLocal(I1,I2,I3,C,fCurrent)=f;  // *** TEST
+      // printF("--MX-ADVR-- max( faLocal(fCurrent)-f)=%8.2e\n",max(fabs(faLocal(I1,I2,I3,C,fCurrent)-f(I1,I2,I3,C))));
+       
+      timing(timeForForcing) += getCPU()-timef;
+    }
+
+    if( addForcing || !useCurvilinearOptNew )
+    {
 
       int option=1;  
       if( !isRectangular && !useCurvilinearOptNew )
@@ -229,13 +275,13 @@ advanceNFDTD(  int numberOfStepsTaken, int current, real t, real dt )
 
 	//f = csq*f + (csq*cdt*cdt/12.)*lapSq;  // put all into f
 
-        option=0;  // append any forcing below
+        option=0;  // append any forcing below to the "f" array
       }
       else
       {
-        option=1;
+        option=1;  // do not append forcing to the "f" array 
       }
-      if( addForcing )
+      if( !useNewForcingMethod && addForcing )
       {
 	//kkc getForcing is called from advance but is also called from assignIC and getErrors.
 	//    we have to add the timing in external to getForcing to avoid double counting the time
@@ -245,6 +291,9 @@ advanceNFDTD(  int numberOfStepsTaken, int current, real t, real dt )
 	timing(timeForForcing) += getCPU()-timef;
       }
     }
+
+
+
 
 #ifdef USE_PPP
       realSerialArray umLocal;  getLocalArrayWithGhostBoundaries(um,umLocal);
@@ -264,340 +313,218 @@ advanceNFDTD(  int numberOfStepsTaken, int current, real t, real dt )
     bool ok = ParallelUtility::getLocalArrayBounds(u,uLocal,I1,I2,I3);
 
 
-    if( useOpt ) 
-    {
-      // --- We always call advOpt ---
-      real timeAdv=getCPU();
+    // --- We always call advOpt ---
+    real timeAdv=getCPU();
       
-      // In some cases we combine the artificial dissipation loop with the main loop
-      int combineDissipationWithAdvance = adc>0. && isRectangular && 
-                                          !useVariableDissipation &&
-                                          timeSteppingMethod==modifiedEquationTimeStepping &&
-                                          orderOfAccuracyInSpace==4 && orderOfAccuracyInTime==4;
+    // In some cases we combine the artificial dissipation loop with the main loop
+    int combineDissipationWithAdvance = adc>0. && isRectangular && 
+      !useVariableDissipation &&
+      timeSteppingMethod==modifiedEquationTimeStepping &&
+      orderOfAccuracyInSpace==4 && orderOfAccuracyInTime==4;
 
-      // combineDissipationWithAdvance=0;
+    // combineDissipationWithAdvance=0;
 
-      const int useWhereMask = numberOfComponentGrids>1;
+    const int useWhereMask = numberOfComponentGrids>1;
       
-      int gridType = isRectangular? 0 : 1;
-      int option=(isRectangular || useCurvilinearOpt) ? 0 : 1;   // 0=Maxwell+AD, 1=AD
-      int ipar[]={option,
-                  gridType,
-		  orderOfAccuracyInSpace,
-		  orderOfAccuracyInTime,
-                  (int)addForcing,
-                  orderOfArtificialDissipation,
-		  ex,ey,ez,hx,hy,hz,
-                  int(solveForElectricField),
-                  int(solveForMagneticField),
-                  useWhereMask,
-                  (int)timeSteppingMethod,
-                  (int)useVariableDissipation,
-                  (int)useCurvilinearOptNew,
-                  (int)useConservative,
-                  combineDissipationWithAdvance,
-                  (int)useDivergenceCleaning};  //
+    int gridType = isRectangular? 0 : 1;
+    int option=(isRectangular || useCurvilinearOpt) ? 0 : 1;   // 0=Maxwell+AD, 1=AD
+    int ipar[]={option,
+		gridType,
+		orderOfAccuracyInSpace,
+		orderOfAccuracyInTime,
+		(int)addForcing,
+		orderOfArtificialDissipation,
+		ex,ey,ez,hx,hy,hz,
+		int(solveForElectricField),
+		int(solveForMagneticField),
+		useWhereMask,
+		(int)timeSteppingMethod,
+		(int)useVariableDissipation,
+		(int)useCurvilinearOptNew,
+		(int)useConservative,
+		combineDissipationWithAdvance,
+		(int)useDivergenceCleaning, 
+                (int)useNewForcingMethod,
+                numberOfForcingFunctions,
+                fCurrent };  //
 
-      real dx[3]={1.,1.,1.};
-      if( isRectangular )
-	mg.getDeltaX(dx);
+    real dx[3]={1.,1.,1.};
+    if( isRectangular )
+      mg.getDeltaX(dx);
 	  
-      real rpar[30];
-      rpar[ 0]=c;
-      rpar[ 1]=dt;
-      rpar[ 2]=dx[0];
-      rpar[ 3]=dx[1];
-      rpar[ 4]=dx[2];
-      rpar[ 5]=adc;
-      rpar[ 6]=divergenceDamping;
-      rpar[ 7]=mg.gridSpacing(0);
-      rpar[ 8]=mg.gridSpacing(1);
-      rpar[ 9]=mg.gridSpacing(2);
-      rpar[10]=eps;
-      rpar[11]=mu;
-      rpar[12]=kx; // for plane wave scattering
-      rpar[13]=ky;
-      rpar[14]=kz;
-      rpar[15]=sigmaEGrid(grid);
-      rpar[16]=sigmaHGrid(grid);
-      rpar[17]=divergenceCleaningCoefficient;
-      rpar[18]=t;
+    real rpar[30];
+    rpar[ 0]=c;
+    rpar[ 1]=dt;
+    rpar[ 2]=dx[0];
+    rpar[ 3]=dx[1];
+    rpar[ 4]=dx[2];
+    rpar[ 5]=adc;
+    rpar[ 6]=divergenceDamping;
+    rpar[ 7]=mg.gridSpacing(0);
+    rpar[ 8]=mg.gridSpacing(1);
+    rpar[ 9]=mg.gridSpacing(2);
+    rpar[10]=eps;
+    rpar[11]=mu;
+    rpar[12]=kx; // for plane wave scattering
+    rpar[13]=ky;
+    rpar[14]=kz;
+    rpar[15]=sigmaEGrid(grid);
+    rpar[16]=sigmaHGrid(grid);
+    rpar[17]=divergenceCleaningCoefficient;
+    rpar[18]=t;
 
-      rpar[20]=0.;  // return cpu for dissipation
+    rpar[20]=0.;  // return cpu for dissipation
 
-      int ierr=0;
+    int ierr=0;
 
 
-      real *umptr=umLocal.getDataPointer();
-      real *uptr =uLocal.getDataPointer();
-      real *unptr=unLocal.getDataPointer();
+    real *umptr=umLocal.getDataPointer();
+    real *uptr =uLocal.getDataPointer();
+    real *unptr=unLocal.getDataPointer();
       
-      real *ut1ptr = uptr; 
-      real *ut2ptr = uptr; 
-      real *ut3ptr = uptr; 
-      real *ut4ptr = uptr; 
-      real *ut5ptr = uptr; 
-      real *ut6ptr = uptr; 
-      real *ut7ptr = uptr; 
-      real *fptr   = (addForcing || useCurvilinearOpt) ? fLocal.getDataPointer() : uptr;
+    real *ut1ptr = uptr; 
+    real *ut2ptr = uptr; 
+    real *ut3ptr = uptr; 
+    real *ut4ptr = uptr; 
+    real *ut5ptr = uptr; 
+    real *ut6ptr = uptr; 
+    real *ut7ptr = uptr; 
+    real *fptr   = (addForcing || useCurvilinearOpt) ? fLocal.getDataPointer() : uptr;
 
-      assert( !useVariableDissipation || variableDissipation!=NULL );
-      real *pVarDis = useVariableDissipation ? varDis.getDataPointer() : uptr;
+    // external forcings at different time levels are stored here: 
+    real *faptr = fptr;
+    if( useNewForcingMethod && addForcing )
+    {
+      OV_GET_SERIAL_ARRAY(real,forcingArray[grid],faLocal);
+      faptr   = faLocal.getDataPointer();
+    }
+
+    assert( !useVariableDissipation || variableDissipation!=NULL );
+    real *pVarDis = useVariableDissipation ? varDis.getDataPointer() : uptr;
       
-      if( true || method!=nfdtd )
+    if( timeSteppingMethod==modifiedEquationTimeStepping )
+    {
+      // --- WORK-SPACE FOR Modified Equation Time Stepping ---
+      if( useConservative )
       {
-        if( orderOfAccuracyInTime>=4 )
-        {
-  	  assert( numberOfFunctions>=3 && fn!=NULL );
-  	  const int m0=currentFn, m1=(m0+1)%numberOfFunctions, m2=(m1+1)%numberOfFunctions;
+        // one work space array needed
+	assert( numberOfFunctions>=1 && fn!=NULL );
+	const int m0=currentFn;
+        OV_GET_SERIAL_ARRAY(real,FN(m0),f0Local); ut1ptr=f0Local.getDataPointer();
+      }
+      else
+      {
+        // one work space array needed
+	assert( numberOfFunctions>=1 && fn!=NULL );
+	const int m0=currentFn;
+        OV_GET_SERIAL_ARRAY(real,FN(m0),f0Local); ut1ptr=f0Local.getDataPointer();
+      }
+      
+    }
+    else  // MOL time-stepping : Stoermer 
+    {
+      if( orderOfAccuracyInTime>=4 )
+      {
+	assert( numberOfFunctions>=3 && fn!=NULL );
+	const int m0=currentFn, m1=(m0+1)%numberOfFunctions, m2=(m1+1)%numberOfFunctions;
   
-          #ifdef USE_PPP
-    	  realSerialArray f0; getLocalArrayWithGhostBoundaries(FN(m0),f0); ut1ptr=f0.getDataPointer();
-    	  realSerialArray f1; getLocalArrayWithGhostBoundaries(FN(m1),f1); ut2ptr=f1.getDataPointer();
-    	  realSerialArray f2; getLocalArrayWithGhostBoundaries(FN(m2),f2); ut3ptr=f2.getDataPointer();
-          #else
-    	  ut1ptr=FN(m0).getDataPointer();
-  	  ut2ptr=FN(m1).getDataPointer();
-  	  ut3ptr=FN(m2).getDataPointer();
-          #endif
+        OV_GET_SERIAL_ARRAY(real,FN(m0),f0Local); ut1ptr=f0Local.getDataPointer();
+        OV_GET_SERIAL_ARRAY(real,FN(m1),f1Local); ut2ptr=f1Local.getDataPointer();
+        OV_GET_SERIAL_ARRAY(real,FN(m2),f2Local); ut3ptr=f2Local.getDataPointer();
   
   	if( orderOfAccuracyInTime>=6 && timeSteppingMethod==stoermerTimeStepping )
   	{
   	  assert( numberOfFunctions>=5 );
   	  const int m3=(m2+1)%numberOfFunctions, m4=(m3+1)%numberOfFunctions;
-            #ifdef USE_PPP
-    	    realSerialArray f3; getLocalArrayWithGhostBoundaries(FN(m3),f3); ut4ptr=f3.getDataPointer();
-    	    realSerialArray f4; getLocalArrayWithGhostBoundaries(FN(m4),f4); ut5ptr=f4.getDataPointer();
-            #else
-    	    ut4ptr=FN(m3).getDataPointer();
-  	    ut5ptr=FN(m4).getDataPointer();
-            #endif
-  
+
+          OV_GET_SERIAL_ARRAY(real,FN(m3),f3Local); ut4ptr=f3Local.getDataPointer();
+          OV_GET_SERIAL_ARRAY(real,FN(m4),f4Local); ut5ptr=f4Local.getDataPointer();
+
   	  if( orderOfAccuracyInTime>=8 && timeSteppingMethod==stoermerTimeStepping )
   	  {
   	    assert( numberOfFunctions>=7 );
   	    const int m5=(m4+1)%numberOfFunctions, m6=(m5+1)%numberOfFunctions;
-              #ifdef USE_PPP
-    	      realSerialArray f5; getLocalArrayWithGhostBoundaries(FN(m5),f5); ut6ptr=f5.getDataPointer();
-    	      realSerialArray f6; getLocalArrayWithGhostBoundaries(FN(m6),f6); ut7ptr=f6.getDataPointer();
-              #else
-    	      ut6ptr=FN(m5).getDataPointer();
-  	      ut7ptr=FN(m6).getDataPointer();
-              #endif
+
+            OV_GET_SERIAL_ARRAY(real,FN(m5),f5Local); ut6ptr=f5Local.getDataPointer();
+            OV_GET_SERIAL_ARRAY(real,FN(m6),f6Local); ut7ptr=f6Local.getDataPointer();
   	  }
   	}
-        }
       }
+    }
 
-      const intArray & mask = mg.mask();
-      #ifdef USE_PPP
-        intSerialArray maskLocal;  getLocalArrayWithGhostBoundaries(mask,maskLocal);
-      #else
-        const intSerialArray & maskLocal = mask; 
-      #endif
+    intArray & mask = mg.mask();
+    OV_GET_SERIAL_ARRAY(int,mask,maskLocal);
 
-      real *rxptr;
-      if( isRectangular )
+    real *rxptr;
+    if( isRectangular )
+    {
+      rxptr=uptr;
+    }
+    else
+    {
+#ifdef USE_PPP
+      realSerialArray rxLocal; getLocalArrayWithGhostBoundaries(mg.inverseVertexDerivative(),rxLocal);
+#else
+      const realSerialArray & rxLocal=mg.inverseVertexDerivative();
+#endif  
+      rxptr = rxLocal.getDataPointer();
+    }
+      
+    int *maskptr = useWhereMask ? maskLocal.getDataPointer() : ipar;
+
+    realSerialArray *dis = NULL;
+    real *pdis=uptr;
+    if( adc>0. && !combineDissipationWithAdvance && ok )
+    {
+      // create a temp array to hold the artificial dissipation
+      dis = new realSerialArray(uLocal.dimension(0),uLocal.dimension(1),uLocal.dimension(2),uLocal.dimension(3));
+      pdis = dis->getDataPointer();
+      assert( pdis!=NULL );
+
+      sizeOfLocalArraysForAdvance=max(sizeOfLocalArraysForAdvance,(double)(dis->elementCount()*sizeof(real)));
+    }
+
+    if( ok )
+    {
+      if( combineDissipationWithAdvance )
       {
-	rxptr=uptr;
-      }
-      else
-      {
-        #ifdef USE_PPP
-          realSerialArray rxLocal; getLocalArrayWithGhostBoundaries(mg.inverseVertexDerivative(),rxLocal);
-        #else
-          const realSerialArray & rxLocal=mg.inverseVertexDerivative();
-        #endif  
-	rxptr = rxLocal.getDataPointer();
+	assert( umptr!=unptr );
       }
       
-      int *maskptr = useWhereMask ? maskLocal.getDataPointer() : ipar;
-
-      realSerialArray *dis = NULL;
-      real *pdis=uptr;
-      if( adc>0. && !combineDissipationWithAdvance && ok )
-      {
-        // create a temp array to hold the artificial dissipation
-	dis = new realSerialArray(uLocal.dimension(0),uLocal.dimension(1),uLocal.dimension(2),uLocal.dimension(3));
-        pdis = dis->getDataPointer();
-        assert( pdis!=NULL );
-
-        sizeOfLocalArraysForAdvance=max(sizeOfLocalArraysForAdvance,(double)(dis->elementCount()*sizeof(real)));
-      }
-
-      if( ok )
-      {
-	if( combineDissipationWithAdvance )
-	{
-	  assert( umptr!=unptr );
-	}
+      advMaxwell(mg.numberOfDimensions(),
+		 I1.getBase(),I1.getBound(),I2.getBase(),I2.getBound(),I3.getBase(),I3.getBound(),
+		 uLocal.getBase(0),uLocal.getBound(0),uLocal.getBase(1),uLocal.getBound(1),
+		 uLocal.getBase(2),uLocal.getBound(2),
+		 uLocal.getBase(3),uLocal.getBound(3),
+		 *maskptr,*rxptr,  
+		 *umptr,*uptr,*unptr, *fptr,
+		 *faptr,  // forcing at multiple time levels 
+		 *ut1ptr,*ut2ptr,*ut3ptr,*ut4ptr,*ut5ptr,*ut6ptr,*ut7ptr,   
+		 mg.boundaryCondition(0,0), *pdis, *pVarDis, ipar[0], rpar[0], ierr );
+    }
       
-	advMaxwell(mg.numberOfDimensions(),
-		   I1.getBase(),I1.getBound(),I2.getBase(),I2.getBound(),I3.getBase(),I3.getBound(),
-		   uLocal.getBase(0),uLocal.getBound(0),uLocal.getBase(1),uLocal.getBound(1),
-		   uLocal.getBase(2),uLocal.getBound(2),
-		   uLocal.getBase(3),uLocal.getBound(3),
-		   *maskptr,*rxptr,  
-		   *umptr,*uptr,*unptr, *fptr, *ut1ptr,*ut2ptr,*ut3ptr,*ut4ptr,*ut5ptr,*ut6ptr,*ut7ptr,   
-		   mg.boundaryCondition(0,0), *pdis, *pVarDis, ipar[0], rpar[0], ierr );
-      }
+    timeAdv=getCPU()-timeAdv;
+    timing(timeForAdvOpt)+=timeAdv;
       
-      timeAdv=getCPU()-timeAdv;
-      timing(timeForAdvOpt)+=timeAdv;
-      
-      if( debug & 8 )
-      {
-        display(unLocal,sPrintF("unLocal after advMaxwell, processor=%i before BC's t=%8.2e",
-                         Communication_Manager::My_Process_Number,t),pDebugFile,"%8.2e ");
+    if( debug & 8 )
+    {
+      display(unLocal,sPrintF("unLocal after advMaxwell, processor=%i before BC's t=%8.2e",
+			      Communication_Manager::My_Process_Number,t),pDebugFile,"%8.2e ");
 
-        display(un,sPrintF("un after advMaxwell, before BC's t=%8.2e",t),debugFile,"%8.2e ");
-      }
+      display(un,sPrintF("un after advMaxwell, before BC's t=%8.2e",t),debugFile,"%8.2e ");
+    }
 
 //        printF(" p=%i time for advMaxwell=%e I1,I2,I3=[%i,%i][%i,%i][%i,%i]\n",Communication_Manager::My_Process_Number,timeAdv,
 //                   I1.getBase(),I1.getBound(),I2.getBase(),I2.getBound(),I3.getBase(),I3.getBound());
       
-      if( dis!=NULL )
-      {
-        delete dis;
-      }
+    if( dis!=NULL )
+    {
+      delete dis;
+    }
       
-      timing(timeForDissipation)+=rpar[20];
-    } // end if( use Opt )
-    
+    timing(timeForDissipation)+=rpar[20];
 
 
-//     if( !useOpt ) 
-//     {
-//       // *** old way ***
-
-//       // take a time step
-
-//       if( orderOfAccuracyInTime==2 )
-//       {
-
-// 	realArray lap(I1,I2,I3,C);  // ** fix this **
-// 	mgop.derivative(MappedGridOperators::laplacianOperator,u,lap,I1,I2,I3);
-
-//         if( addForcing )
-//   	  un(I1,I2,I3,C)=2.*u(I1,I2,I3,C)-un(I1,I2,I3,C)+cdtsq*lap(I1,I2,I3,C)+dtsq*f(I1,I2,I3,C);
-//         else
-//   	  un(I1,I2,I3,C)=2.*u(I1,I2,I3,C)-un(I1,I2,I3,C)+cdtsq*lap(I1,I2,I3,C);
-//       }
-//       else if( orderOfAccuracyInTime==4 )
-//       {
-// 	// 4th order Stoermer method
-
-// 	const real c0=(7./6.)*dtsq, c1=(-5./12.)*dtsq, c2=(1./3.)*dtsq, c3=(-1./12.)*dtsq;
-
-// 	assert( numberOfFunctions>=3 && fn!=NULL );
-
-// 	const int m0=currentFn, m1=(m0+1)%numberOfFunctions, m2=(m1+1)%numberOfFunctions;
-// 	// printF("4th order Stoermer method: t=%8.2e, m0,m1,m2=%i,%i,%i\n",t,m0,m1,m2);
-
-// 	un(I1,I2,I3,C)=2.*u(I1,I2,I3,C)-un(I1,I2,I3,C)+
-// 	  ( c1*FN(m0)(I1,I2,I3,C)+c2*FN(m1)(I1,I2,I3,C)+c3*FN(m2)(I1,I2,I3,C) );
-
-// 	// over-write FN(m2) with F(t)
-// 	mgop.derivative(MappedGridOperators::laplacianOperator,u,FN(m2),I1,I2,I3);
-
-// 	// add body forcing (and TZ forcing)
-// 	if( addForcing )
-// 	  FN(m2)= FN(m2)*csq+f(I1,I2,I3,C);
-// 	else
-// 	  FN(m2)*=csq;
-
-// 	un(I1,I2,I3,C)+=c0*FN(m2)(I1,I2,I3,C);
-//       }
-//       else if( orderOfAccuracyInTime==6 )
-//       {
-// 	// 6th order Stoermer method
-
-//         const real c60=( 317./240.)*dtsq;    // from stoermer.maple
-//         const real c61=(-266./240.)*dtsq;
-//         const real c62=( 374./240.)*dtsq;
-//         const real c63=(-276./240.)*dtsq;
-//         const real c64=( 109./240.)*dtsq;
-//         const real c65=( -18./240.)*dtsq;
-
-// 	assert( numberOfFunctions>=5 && fn!=NULL );
-
-// 	const int m0=currentFn, m1=(m0+1)%numberOfFunctions, m2=(m1+1)%numberOfFunctions,
-// 	          m3=(m2+1)%numberOfFunctions, m4=(m3+1)%numberOfFunctions;
-// 	const int mm=m4; // Here is the last work space where we will store the current RHS below
-	
-// 	un(I1,I2,I3,C)=2.*u(I1,I2,I3,C)-un(I1,I2,I3,C)+
-// 	  ( c61*FN(m0)(I1,I2,I3,C)+c62*FN(m1)(I1,I2,I3,C)+c63*FN(m2)(I1,I2,I3,C)
-//            +c64*FN(m3)(I1,I2,I3,C)+c65*FN(m4)(I1,I2,I3,C) );
-
-// 	// over-write FN(m2) with F(t)
-// 	mgop.derivative(MappedGridOperators::laplacianOperator,u,FN(mm),I1,I2,I3);
-
-// 	// add body forcing (and TZ forcing)
-// 	if( addForcing )
-// 	  FN(mm)= FN(mm)*csq+f(I1,I2,I3,C);
-// 	else
-// 	  FN(mm)*=csq;
-
-// 	un(I1,I2,I3,C)+=c60*FN(mm)(I1,I2,I3,C);
-//       }
-//       else if( orderOfAccuracyInTime==8 )
-//       {
-// 	// 8th order Stoermer method
-
-//         const real c80=(  88324./60480.)*dtsq; // from stoermer.maple
-//         const real c81=(-121797./60480.)*dtsq;
-//         const real c82=( 245598./60480.)*dtsq;
-//         const real c83=(-300227./60480.)*dtsq;
-//         const real c84=( 236568./60480.)*dtsq;
-//         const real c85=(-117051./60480.)*dtsq;
-//         const real c86=(  33190./60480.)*dtsq;
-//         const real c87=(  -4125./60480.)*dtsq;
-
-// 	assert( numberOfFunctions>=7 && fn!=NULL );
-
-// 	const int m0=currentFn, m1=(m0+1)%numberOfFunctions, m2=(m1+1)%numberOfFunctions,
-// 	          m3=(m2+1)%numberOfFunctions, m4=(m3+1)%numberOfFunctions,
-// 	          m5=(m4+1)%numberOfFunctions, m6=(m5+1)%numberOfFunctions;
-// 	const int mm=m6; // Here is the last work space where we will store the current RHS below
-	
-// 	un(I1,I2,I3,C)=2.*u(I1,I2,I3,C)-un(I1,I2,I3,C)+
-// 	  ( c81*FN(m0)(I1,I2,I3,C)+c82*FN(m1)(I1,I2,I3,C)+c83*FN(m2)(I1,I2,I3,C)
-//            +c84*FN(m3)(I1,I2,I3,C)+c85*FN(m4)(I1,I2,I3,C) 
-//            +c86*FN(m5)(I1,I2,I3,C)+c87*FN(m6)(I1,I2,I3,C) );
-
-// 	// over-write FN(m2) with F(t)
-// 	mgop.derivative(MappedGridOperators::laplacianOperator,u,FN(mm),I1,I2,I3);
-
-// 	// add body forcing (and TZ forcing)
-// 	if( addForcing )
-// 	  FN(mm)= FN(mm)*csq+f(I1,I2,I3,C);
-// 	else
-// 	  FN(mm)*=csq;
-
-// 	un(I1,I2,I3,C)+=c80*FN(mm)(I1,I2,I3,C);
-//       }
-//       else
-//       {
-// 	printf("advanceNFDTD:ERROR: orderOfAccuracyInTime=%i is not implemented=%i\n",orderOfAccuracyInTime);
-//       }
-
-//     }  // end -- not use opt
-    
-//     if( useComputeArtificialDissipation )
-//     {
-//       // *** add higher order dissipation that requires interpolation
-//       real timed=getCPU();
-//       assert( cgdissipation!=NULL );
-//       #ifdef USE_PPP
-//         realSerialArray dLocal; getLocalArrayWithGhostBoundaries((*cgdissipation)[grid],dLocal);
-//       #else
-//         const realSerialArray & dLocal = (*cgdissipation)[grid];
-//       #endif      
-
-//       unLocal(I1,I2,I3,C)+=dLocal(I1,I2,I3,C); 
-
-//       timing(timeForDissipation)+=getCPU()-timed;
-//     }
     
 
     if( isRectangular )   
@@ -606,26 +533,26 @@ advanceNFDTD(  int numberOfStepsTaken, int current, real t, real dt )
       timing(timeForAdvanceCurvilinearGrids)+=getCPU()-time0;
 
     // Is this the right place?
-    #ifdef USE_PPP
-      real timea=getCPU();
+#ifdef USE_PPP
+    real timea=getCPU();
 
-      if( debug & 8 )
-      {
-	Communication_Manager::Sync();
-	display(unLocal,sPrintF(" Before updateGhostBoundaries: t=%e",t),pDebugFile,"%8.2e ");
-      }
+    if( debug & 8 )
+    {
+      Communication_Manager::Sync();
+      display(unLocal,sPrintF(" Before updateGhostBoundaries: t=%e",t),pDebugFile,"%8.2e ");
+    }
       
-      // **** at this point we really only need to update interior-ghost points needed for
-      //      interpolation or boundary conditions
-      un.updateGhostBoundaries();
+    // **** at this point we really only need to update interior-ghost points needed for
+    //      interpolation or boundary conditions
+    un.updateGhostBoundaries();
 
-      if( debug & 8 )
-      {
-	display(unLocal,sPrintF(" After updateGhostBoundaries: t=%e",t),pDebugFile,"%8.2e ");
-      }
+    if( debug & 8 )
+    {
+      display(unLocal,sPrintF(" After updateGhostBoundaries: t=%e",t),pDebugFile,"%8.2e ");
+    }
       
-      timing(timeForUpdateGhostBoundaries)+=getCPU()-timea;
-    #endif
+    timing(timeForUpdateGhostBoundaries)+=getCPU()-timea;
+#endif
 
     if( debug & 8 )
     {
@@ -637,7 +564,7 @@ advanceNFDTD(  int numberOfStepsTaken, int current, real t, real dt )
     {
       if( addForcing ) 
         ::display(f,sPrintF("  *** advanceStructured: Here is the forcing f grid=%i t=%9.3e ********\n",grid,t),
-                    pDebugFile,"%7.4f ");
+		  pDebugFile,"%7.4f ");
       fprintf(pDebugFile," *** advanceStructured: After advance, before BC, grid=%i t=%9.3e ********\n",grid,t);
       getErrors( next,t+dt,dt );
     }
@@ -883,6 +810,11 @@ advanceNFDTD(  int numberOfStepsTaken, int current, real t, real dt )
     }    
 
   }
+
+
+  if( useNewForcingMethod && numberOfForcingFunctions>0 )
+    fCurrent = (fCurrent +1) % numberOfForcingFunctions;  // increment current forcing index
+
 
   if( debug & 16 )
   {

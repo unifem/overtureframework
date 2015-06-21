@@ -481,7 +481,7 @@ applyBoundaryConditionCoefficients(realMappedGridFunction & uCoeff,
         opX=0.;
         if( !rectangular || axis==axis1 )
 	{
-          // in the rectangular case we only need to evaluate on derivative from x, y or z
+          // in the rectangular case we only need to evaluate one derivative from x, y or z
 	  assignCoefficients(xDerivative,opX,I1,I2,I3,0,0);
 	}
 //         display(opX,"opX ***new***");

@@ -55,20 +55,18 @@ endif
 # ==============================================================
 
 # ===================  Options for linking to Ogmg =======================
-ifeq ($(useOgmg),on)
-  ifeq ($(usePETSc),on)
-    OGMG_FILES :=  
-  else
-    OGMG_FILES :=  buildEquationSolvers.o \
-   	           MultigridEquationSolver.o
-  endif 
-  OGMG_LIB = Ogmg
-  OGMG_LIBS = -Wl,-rpath,$(Overture)/lib -L$(Overture)/lib -l$(OGMG_LIB)
-  ifneq ($(OV_RPATH),)
+ifeq ($(usePETSc),on)
+  OGMG_FILES :=  
+else
+  OGMG_FILES :=  buildEquationSolvers.o \
+ 	           MultigridEquationSolver.o
+endif 
+OGMG_LIB = Ogmg
+OGMG_LIBS = -Wl,-rpath,$(Overture)/lib -L$(Overture)/lib -l$(OGMG_LIB)
+ifneq ($(OV_RPATH),)
   OGMG_LIBS = $(OV_RPATH)$(Overture)/lib -L$(Overture)/lib -l$(OGMG_LIB)
-  else
+else
   OGMG_LIBS =  -L$(Overture)/lib -l$(OGMG_LIB)
-  endif
 endif
 
 # Force the loader to include all files from the static lib's

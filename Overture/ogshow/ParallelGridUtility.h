@@ -54,8 +54,13 @@ static void getLocalIndexBoundsAndBoundaryConditions( const realMappedGridFuncti
 						      IntegerArray & bcLocal,
 						      int internalGhostBC = -1); // 101102 kkc added internalGhostBC
 
+static void getLocalBoundaryConditions( const MappedGrid & mg,
+					IntegerArray & bcLocal,
+					int internalGhostBC = -1 );
+
 static void getLocalBoundaryConditions( const realMappedGridFunction & a, 
-					IntegerArray & bcLocal );
+					IntegerArray & bcLocal,
+					int internalGhostBC = -1 );
 
 static int 
 getLocalInterpolationData( CompositeGrid & cg, InterpolationData *&interpData );

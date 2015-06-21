@@ -24,20 +24,25 @@ c To include derivatives of rx use OPTION=RX
 
 ! Include macros that are common to different orders of accuracy
 
-c Macros that are common to different orders of accuracy
+!         -*- mode: F90 -*-
+! Macros that are common to different orders of accuracy
+
+
+
+! This version can optionally eval time-derivative:
+
+! This version can optionally eval time-derivative:
+
+
+
+
+! use the mask 
 
 
 
 
 
-
-c use the mask 
-
-
-
-
-
-c Tangent vectors (un-normalized)
+! Tangent vectors (un-normalized)
         
 
 
@@ -62,7 +67,7 @@ c Tangent vectors (un-normalized)
 
 
 
-c Here are versions that use a precomputed jacobian
+! Here are versions that use a precomputed jacobian
                                               
            
 
@@ -143,26 +148,26 @@ c Here are versions that use a precomputed jacobian
 
 
 
-c=====================================================================================
-c Boundary conditions for a rectangular grid:
-c   Normal component of E is even symmetry
-c   Tangential components of E are odd symmetry
-c In 2d: normal component of Hz is even symmetry (Neumann BC)
-c
-c DIM: 2,3
-c ORDER: 2,4,6,8
-c FORCING: none,twilightZone
-c=====================================================================================
+!=====================================================================================
+! Boundary conditions for a rectangular grid:
+!   Normal component of E is even symmetry
+!   Tangential components of E are odd symmetry
+! In 2d: normal component of Hz is even symmetry (Neumann BC)
+!
+! DIM: 2,3
+! ORDER: 2,4,6,8
+! FORCING: none,twilightZone
+!=====================================================================================
 
 
-c ************************************************************************************************
-c  This macro is used for looping over the faces of a grid to assign booundary conditions
-c
-c extra: extra points to assign
-c          Case 1: extra=numberOfGhostPoints -- for assigning extended boundaries
-c          Case 2: extra=-1 -- for assigning ghost points but not including extended boundaries
-c numberOfGhostPoints : number of ghost points (1 for 2nd order, 2 for fourth-order ...)
-c ***********************************************************************************************
+! ************************************************************************************************
+!  This macro is used for looping over the faces of a grid to assign boundary conditions
+!
+! extra: extra points to assign
+!          Case 1: extra=numberOfGhostPoints -- for assigning extended boundaries
+!          Case 2: extra=-1 -- for assigning ghost points but not including extended boundaries
+! numberOfGhostPoints : number of ghost points (1 for 2nd order, 2 for fourth-order ...)
+! ***********************************************************************************************
 
 
 

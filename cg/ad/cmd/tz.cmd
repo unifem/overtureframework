@@ -63,13 +63,14 @@ GetOptions( "g=s"=>\$grid,"tf=f"=>\$tFinal,"degreex=i"=>\$degreex, "degreet=i"=>
  "tp=f"=>\$tPlot, "solver=s"=>\$solver, "tz=s"=>\$tz, "show=s"=>\$show,"order=i"=>\$order,"amr=i"=>\$amr, \
  "ts=s"=>\$ts, "noplot=s"=>\$noplot, "go=s"=>\$go,"debug=i"=>\$debug,"a=f"=>\$a,"b=f"=>\$b,"c=f"=>\$c,\
  "bc=s"=>\$bc, "amrTol=f"=>\$amrTol, "useNewStep=i"=>\$useNewStep,"levels=i"=>\$levels,"varCoeff=s"=>\$varCoeff,\
- "bdfOrder=i"=>\$bdfOrder,"implicitAdvection=i"=>\$implicitAdvection );
+ "bdfOrder=i"=>\$bdfOrder,"implicitAdvection=i"=>\$implicitAdvection,"fx=f"=>\$fx,"fy=f"=>\$fy,"fz=f"=>\$fz,\
+ "ft=f"=>\$ft );
 # -------------------------------------------------------------------------------------------------
 if( $solver eq "best" ){ $solver="choose best iterative solver"; }
 if( $tz eq "poly" ){ $tz="turn on polynomial"; }elsif( $tz eq "trig" ){ $tz="turn on trigonometric"; }\
                else{ $tz="OBTZ:pulse"; }
 if( $order eq "2" ){ $order = "second order accurate"; }else{ $order = "fourth order accurate"; }
-if( $ts eq "adams2" ){ $ts = "adams PC"; }
+if( $ts eq "adams2" || $ts eq "pc2" ){ $ts = "adams PC"; }
 if( $ts eq "euler" ){ $ts = "forward Euler"; }
 if( $ts eq "bdf" ){ $ts = "BDF"; $useNewStep=1; }
 if( $ts eq "midPoint" ){ $ts = "midpoint"; }

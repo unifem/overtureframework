@@ -293,7 +293,7 @@ end if
 #endMacro
 
 
-c Optionally add add the dissipation and or forcing terms
+c Optionally add the dissipation and or forcing terms
 c Optionally solve for E or H or both
 #beginMacro loopsF3DD(fe1,fe2,fe3,e1,e2,e3,e4,e5,e6,e7,e8,e9,fh1,fh2,fh3,h1,h2,h3,h4,h5,h6,h7,h8,h9)
 if( addForcing.eq.0 .and. .not.addDissipation )then
@@ -350,7 +350,7 @@ c****    loopse9(h1+fh1+dis(i1,i2,i3,hx),h2+fh2+dis(i1,i2,i3,hy),h3+fh3+dis(i1,i
 end if
 #endMacro
 
-c The next macro is used for curvilinear girds where the Laplacian term is precomputed.
+! The next macro is used for curvilinear girds where the Laplacian term is precomputed.
 #beginMacro loopsFC(e1,e2,e3,e4,e5,e6,h1,h2,h3,h4,h5,h6)
 
 if( nd.eq.2 )then
@@ -370,8 +370,10 @@ else
 end if
 #endMacro
 
-c The next macro is used for curvilinear girds where the Laplacian term is precomputed.
-c Optionally add dissipation too
+! -------------------------------------------------------------------------------------------
+! The next macro is used for curvilinear girds where the Laplacian term is precomputed.
+! Optionally add dissipation too
+! -------------------------------------------------------------------------------------------
 #beginMacro loopsFCD(e1,e2,e3,e4,e5,e6,h1,h2,h3,h4,h5,h6)
 
 if( .not.addDissipation )then
@@ -402,6 +404,48 @@ else ! add dissipation too
  end if
 end if
 #endMacro
+
+
+! -------------------------------------------------------------------------------------------
+! The next macro is used for curvilinear girds where the Laplacian term is precomputed.
+! Optionally add dissipation too
+! -------------------------------------------------------------------------------------------
+#beginMacro loopsFCD2DF(e1,e2,h3)
+if( .not.addDissipation )then
+  ! This next line assumes we solve for ex,ey and hz
+  loopse9(e1,e2,h3,,,,,,)
+else ! add dissipation too
+  ! This next line assumes we solve for ex,ey and hz
+  loopse9(e1+dis(i1,i2,i3,ex),e2+dis(i1,i2,i3,ey),h3+dis(i1,i2,i3,hz),,,,,,)
+end if
+#endMacro
+
+! -------------------------------------------------------------------------------------------
+! The next macro is used for curvilinear girds where the Laplacian term is precomputed.
+! Optionally add dissipation too
+! -------------------------------------------------------------------------------------------
+#beginMacro loopsFCD3DF(e1,e2,e3,e4,e5,e6,h1,h2,h3,h4,h5,h6)
+
+if( .not.addDissipation )then
+  if( solveForE.ne.0 .and. solveForH.ne.0 )then
+    loopse18(e1,e2,e3,e4,e5,e6,h1,h2,h3,h4,h5,h6,,,,,,)
+  else if( solveForE.ne.0 ) then
+    loopse9(e1,e2,e3,e4,e5,e6,,,)
+  else
+    loopse9(h1,h2,h3,h4,h5,h6,,,)
+  end if
+else ! add dissipation too
+  if( solveForE.ne.0 .and. solveForH.ne.0 )then
+    loopse18(e1+dis(i1,i2,i3,ex),e2+dis(i1,i2,i3,ey),e3+dis(i1,i2,i3,ez),e4,e5,e6,h1+dis(i1,i2,i3,hx),h2+dis(i1,i2,i3,hy),h3+dis(i1,i2,i3,hz),h4,h5,h6,,,,,,)
+  else if( solveForE.ne.0 ) then
+    loopse9(e1+dis(i1,i2,i3,ex),e2+dis(i1,i2,i3,ey),e3+dis(i1,i2,i3,ez),e4,e5,e6,,,)
+  else
+    loopse9(h1+dis(i1,i2,i3,hx),h2+dis(i1,i2,i3,hy),h3+dis(i1,i2,i3,hz),h4,h5,h6,,,)
+  end if
+end if
+#endMacro
+
+
 
 #defineMacro LAP2D2(U,i1,i2,i3,c) \
                        (U(i1+1,i2,i3,c)-2.*U(i1,i2,i3,c)+U(i1-1,i2,i3,c))*dxsqi\
@@ -554,15 +598,16 @@ c  add forcing and dissipation
 end if
 #endMacro
 
-c **********************************************************************************
-c NAME: name of the subroutine
-c DIM : 2 or 3
-c ORDER : 2 ,4, 6 or 8
-c GRIDTYPE : rectangular, curvilinear
-c **********************************************************************************
+! **********************************************************************************
+! Macro ADV_MAXWELL:
+!  NAME: name of the subroutine
+!  DIM : 2 or 3
+!  ORDER : 2 ,4, 6 or 8
+!  GRIDTYPE : rectangular, curvilinear
+! **********************************************************************************
 #beginMacro ADV_MAXWELL(NAME,DIM,ORDER,GRIDTYPE)
  subroutine NAME(nd,n1a,n1b,n2a,n2b,n3a,n3b,nd1a,nd1b,nd2a,nd2b,nd3a,nd3b,nd4a,nd4b,\
-                 mask,rsxy,  um,u,un,f, v,vvt2,ut3,vvt4,ut5,ut6,ut7, bc, dis, varDis, ipar, rpar, ierr )
+                 mask,rsxy,  um,u,un,f,fa, v,vvt2,ut3,vvt4,ut5,ut6,ut7, bc, dis, varDis, ipar, rpar, ierr )
 c======================================================================
 c   Advance a time step for Maxwells equations
 c     OPTIMIZED version for rectangular grids.
@@ -581,6 +626,7 @@ c======================================================================
  real u(nd1a:nd1b,nd2a:nd2b,nd3a:nd3b,nd4a:nd4b)
  real un(nd1a:nd1b,nd2a:nd2b,nd3a:nd3b,nd4a:nd4b)
  real f(nd1a:nd1b,nd2a:nd2b,nd3a:nd3b,nd4a:nd4b)
+ real fa(nd1a:nd1b,nd2a:nd2b,nd3a:nd3b,nd4a:nd4b,0:*)  ! forcings at different times
  real v(nd1a:nd1b,nd2a:nd2b,nd3a:nd3b,nd4a:nd4b)
  real vvt2(nd1a:nd1b,nd2a:nd2b,nd3a:nd3b,nd4a:nd4b)
  real ut3(nd1a:nd1b,nd2a:nd2b,nd3a:nd3b,nd4a:nd4b)
@@ -603,6 +649,7 @@ c     ---- local variables -----
  integer addForcing,orderOfDissipation,option
  integer useWhereMask,useWhereMaskSave,solveForE,solveForH,grid,useVariableDissipation
  integer useCurvilinearOpt,useConservative,combineDissipationWithAdvance,useDivergenceCleaning
+ integer useNewForcingMethod,numberOfForcingFunctions,fcur,fnext,fprev
  integer ex,ey,ez, hx,hy,hz
  real t,cc,dt,dy,dz,cdt,cdtdx,cdtdy,cdtdz,adc,adcdt,add,adddt
  real dt4by12
@@ -619,7 +666,7 @@ c     ---- local variables -----
  real uLap(-1:1,-1:1,0:5),uLapSq(0:5)
  real uLaprr2,uLapss2,uLaprs2,uLapr2,uLaps2
 
- real c0,c1,csq,dtsq,cdtsq,cdtsq12,lap(0:20)
+ real c0,c1,csq,dtsq,cdtsq,cdtsq12,lap(0:20),cdtSqBy12
  real c40,c41,c42,c43
  real c60,c61,c62,c63,c64,c65
  real c80,c81,c82,c83,c84,c85,c86,c87
@@ -652,6 +699,7 @@ c...........start statement function
  declareDifferenceOrder2(un,none)
  declareDifferenceOrder2(v,none)
  declareDifferenceOrder2(um,none)
+ declareDifferenceOrder2(ff,none)
 
  declareDifferenceOrder4(u,RX)
  declareDifferenceOrder4(un,none)
@@ -678,6 +726,9 @@ c real vr2,vs2,vrr2,vss2,vrs2,vLaplacian22
       lap2d2Pow4,lap3d2Pow4,lap2d4Pow2,lap3d4Pow2,lap2d4Pow3,lap3d4Pow3,lap2d6Pow2,lap3d6Pow2
  real lap2d2m,lap3d2m
  real du,fd22d,fd23d,fd42d,fd43d,fd62d,fd63d,fd82d,fd83d
+
+ ! forcing correction functions: 
+ real lap2d2f,f2drme44, lap3d2f, f3drme44, f2dcme44, f3dcme44, ff
 
  ! div cleaning: 
  real dc,dcp,cdc0,cdc1,cdcxx,cdcyy,cdczz,cdcEdx,cdcEdy,cdcEdz,cdcHdx,cdcHdy,cdcHdz,cdcf
@@ -708,6 +759,8 @@ c     The next macro will define the difference approximation statement function
  defineDifferenceOrder4Components1(v,none)
 
  defineDifferenceOrder2Components1(um,none)
+
+ defineDifferenceOrder2Components1(ff,none)
 
  ! 2nd-order in space and time
  maxwell2dr(i1,i2,i3,n)=2.*u(i1,i2,i3,n)-um(i1,i2,i3,n)+\
@@ -849,7 +902,7 @@ c     The next macro will define the difference approximation statement function
     c84*vvt4(I1,I2,I3,n)+c85*ut5(I1,I2,I3,n)+c86*ut6(I1,I2,I3,n)+c87*ut7(I1,I2,I3,n)
 
 
-c    *** 2nd order ***
+ !    *** 2nd order ***
  lap2d2(i1,i2,i3,c)=(u(i1+1,i2,i3,c)-2.*u(i1,i2,i3,c)+u(i1-1,i2,i3,c))*dxsqi\
                    +(u(i1,i2+1,i3,c)-2.*u(i1,i2,i3,c)+u(i1,i2-1,i3,c))*dysqi
 
@@ -863,6 +916,14 @@ c    *** 2nd order ***
  lap3d2m(i1,i2,i3,c)=(um(i1+1,i2,i3,c)-2.*um(i1,i2,i3,c)+um(i1-1,i2,i3,c))*dxsqi\
                     +(um(i1,i2+1,i3,c)-2.*um(i1,i2,i3,c)+um(i1,i2-1,i3,c))*dysqi\
                     +(um(i1,i2,i3+1,c)-2.*um(i1,i2,i3,c)+um(i1,i2,i3-1,c))*dzsqi
+
+ lap2d2f(i1,i2,i3,c,m)=(fa(i1+1,i2,i3,c,m)-2.*fa(i1,i2,i3,c,m)+fa(i1-1,i2,i3,c,m))*dxsqi\
+                      +(fa(i1,i2+1,i3,c,m)-2.*fa(i1,i2,i3,c,m)+fa(i1,i2-1,i3,c,m))*dysqi
+
+ lap3d2f(i1,i2,i3,c,m)=(fa(i1+1,i2,i3,c,m)-2.*fa(i1,i2,i3,c,m)+fa(i1-1,i2,i3,c,m))*dxsqi\
+                      +(fa(i1,i2+1,i3,c,m)-2.*fa(i1,i2,i3,c,m)+fa(i1,i2-1,i3,c,m))*dysqi\
+                      +(fa(i1,i2,i3+1,c,m)-2.*fa(i1,i2,i3,c,m)+fa(i1,i2,i3-1,c,m))*dzsqi
+
 
  ! 2D laplacian squared = u.xxxx + 2 u.xxyy + u.yyyy
  lap2d2Pow2(i1,i2,i3,c)= ( 6.*u(i1,i2,i3,c)   \
@@ -1027,7 +1088,7 @@ c
  -210.*du(i1,i2,i3,c) )
 
 
-c     **** Modified equation method: ****
+!     **** Modified equation method: ****
 
  maxwell2dr44me(i1,i2,i3,n)=2.*u(i1,i2,i3,n)-um(i1,i2,i3,n)+cdtsq*lap2d4(i1,i2,i3,n)\
                             +cdtsq12*lap2d2Pow2(i1,i2,i3,n)
@@ -1047,6 +1108,27 @@ c     **** Modified equation method: ****
  maxwell3dr88me(i1,i2,i3,n)=2.*u(i1,i2,i3,n)-um(i1,i2,i3,n)+cdtsq*lap3d8(i1,i2,i3,n)\
                             +cdtsq12*lap3d6Pow2(i1,i2,i3,n)\
                             +cdt4by360*lap3d4Pow3(i1,i2,i3,n)+cdt6by20160*lap3d2Pow4(i1,i2,i3,n)
+
+!    -- forcing correction for modified equation method ---
+!        RHS = f + (dt^2/12)*( c^2 * Delta f + f_tt )
+!  Approximate the term in brackets to 2nd-order
+! ---- Cartesian grids:
+! f2drme44(i1,i2,i3,n) = fa(i1,i2,i3,n,fcur)
+! f2drme44(i1,i2,i3,n) = f(i1,i2,i3,n)
+f2drme44(i1,i2,i3,n) = fa(i1,i2,i3,n,fcur)+cdtSqBy12*lap2d2f(i1,i2,i3,n,fcur) \
+                       +(fa(i1,i2,i3,n,fnext)-2.*fa(i1,i2,i3,n,fcur)+fa(i1,i2,i3,n,fprev))/(12.)
+
+f3drme44(i1,i2,i3,n) = fa(i1,i2,i3,n,fcur)+cdtSqBy12*lap3d2f(i1,i2,i3,n,fcur) \
+                       +(fa(i1,i2,i3,n,fnext)-2.*fa(i1,i2,i3,n,fcur)+fa(i1,i2,i3,n,fprev))/(12.)
+
+! ---- Curvilinear grids
+ff(i1,i2,i3,n) = fa(i1,i2,i3,n,fcur)
+f2dcme44(i1,i2,i3,n) = fa(i1,i2,i3,n,fcur)+cdtSqBy12*ffLaplacian22(i1,i2,i3,n) \
+                       +(fa(i1,i2,i3,n,fnext)-2.*fa(i1,i2,i3,n,fcur)+fa(i1,i2,i3,n,fprev))/(12.)
+
+f3dcme44(i1,i2,i3,n) = fa(i1,i2,i3,n,fcur)+cdtSqBy12*ffLaplacian23(i1,i2,i3,n) \
+                       +(fa(i1,i2,i3,n,fnext)-2.*fa(i1,i2,i3,n,fcur)+fa(i1,i2,i3,n,fprev))/(12.)
+
 
  ! f  = csq*Lap4(u)+f,  v= (csq*Lap2)**2
  maxwellc44me(i1,i2,i3,n)=2.*u(i1,i2,i3,n)-um(i1,i2,i3,n)+dtsq*f(i1,i2,i3,n)+dt4by12*v(I1,I2,I3,n)
@@ -1226,11 +1308,18 @@ c...........end   statement functions
  solveForH          =ipar(13)
  useWhereMask       =ipar(14)
  timeSteppingMethod =ipar(15)
- useVariableDissipation=ipar(16)
- useCurvilinearOpt  =ipar(17)
- useConservative    =ipar(18)   
- combineDissipationWithAdvance = ipar(19)
- useDivergenceCleaning=ipar(20)
+ useVariableDissipation        =ipar(16)
+ useCurvilinearOpt             =ipar(17)
+ useConservative               =ipar(18)   
+ combineDissipationWithAdvance =ipar(19)
+ useDivergenceCleaning         =ipar(20)
+ useNewForcingMethod           =ipar(21)
+ numberOfForcingFunctions      =ipar(22)
+ fcur                          =ipar(23) 
+
+ fprev = mod(fcur-1+numberOfForcingFunctions,max(1,numberOfForcingFunctions))
+ fnext = mod(fcur+1                         ,max(1,numberOfForcingFunctions))
+ 
 
  ! addDissipation=.true. if we add the dissipation in the dis(i1,i2,i3,c) array
  !  if combineDissipationWithAdvance.ne.0 we compute the dissipation on the fly in the time step
@@ -1244,9 +1333,11 @@ c...........end   statement functions
  cdt=cc*dt
 
  cdtsq=(cc**2)*(dt**2)
- cdtsq12=cdtsq*cdtsq/12.
+ cdtsq12=cdtsq*cdtsq/12.  ! c^4 dt^4 /14 
  cdt4by360=(cdt)**4/360.
  cdt6by20160=cdt**6/(8.*7.*6.*5.*4.*3.)
+
+ cdtSqBy12= cdtsq/12.   ! c^2*dt*2/12
 
  dt4by12=dtsq*dtsq/12.
 
@@ -1416,251 +1507,25 @@ c     + 33190 fv[6] - 4125 fv[7] - 300227 fv[3] - 117051 fv[5])
   !            if: (adc.gt.0. .and. combineDissipationWithAdvance.eq.0
   !   (2) add the divergence damping
   !         if( add.gt.0. )
- if( .true. )then
-   if( nd.eq.2 .and. orderOfAccuracy.eq.2 )then
-     call advMxDiss2dOrder2(nd,n1a,n1b,n2a,n2b,n3a,n3b,nd1a,\
-       nd1b,nd2a,nd2b,nd3a,nd3b,nd4a,nd4b,mask,rsxy,  um,u,un,f, v,\
-       vvt2,ut3,vvt4,ut5,ut6,ut7, bc, dis, varDis, ipar, rpar, ierr )
-   else if(  nd.eq.2 .and. orderOfAccuracy.eq.4 )then
-     call advMxDiss2dOrder4(nd,n1a,n1b,n2a,n2b,n3a,n3b,nd1a,\
-       nd1b,nd2a,nd2b,nd3a,nd3b,nd4a,nd4b,mask,rsxy,  um,u,un,f, v,\
-       vvt2,ut3,vvt4,ut5,ut6,ut7, bc, dis, varDis, ipar, rpar, ierr )
-   else if( nd.eq.3 .and. orderOfAccuracy.eq.2 )then
-     call advMxDiss3dOrder2(nd,n1a,n1b,n2a,n2b,n3a,n3b,nd1a,\
-       nd1b,nd2a,nd2b,nd3a,nd3b,nd4a,nd4b,mask,rsxy,  um,u,un,f, v,\
-       vvt2,ut3,vvt4,ut5,ut6,ut7, bc, dis, varDis, ipar, rpar, ierr )
-   else if(  nd.eq.3 .and. orderOfAccuracy.eq.4 )then
-     call advMxDiss3dOrder4(nd,n1a,n1b,n2a,n2b,n3a,n3b,nd1a,\
-       nd1b,nd2a,nd2b,nd3a,nd3b,nd4a,nd4b,mask,rsxy,  um,u,un,f, v,\
-       vvt2,ut3,vvt4,ut5,ut6,ut7, bc, dis, varDis, ipar, rpar, ierr )
-   else
-     stop 1116
-   end if
- else 
-   ! old way 
-
-   stop 1991
-
-  ! ++++++++++++ The above routine replaces this next section :  ++++++++++++++++++
-!!$ if( adc.gt.0. .and. combineDissipationWithAdvance.eq.0 )then
-!!$   ! ********************************************************************************************************
-!!$   ! ********************* Compute the dissipation and fill in the dis(i1,i2,i3,c) array ********************
-!!$   ! ********************************************************************************************************
-!!$
-!!$   call ovtime( time0 )
-!!$
-!!$  ! Here we assume that a (2m)th order method will only use dissipation of (2m) or (2m+2)
-!!$  if( orderOfDissipation.eq.4 )then
-!!$  #If #ORDER eq "2" || #ORDER eq "4"
-!!$
-!!$     write(*,*) 'advMaxwell: add dissipation separately... orderOfDissipation=4'
-!!$
-!!$     adcdt=adc*dt
-!!$     #If #DIM eq "2"
-!!$      if( useVariableDissipation.eq.0 )then
-!!$       loopse9(dis(i1,i2,i3,ex)=adcdt*fd42d(i1,i2,i3,ex),\
-!!$               dis(i1,i2,i3,ey)=adcdt*fd42d(i1,i2,i3,ey),\
-!!$               dis(i1,i2,i3,hz)=adcdt*fd42d(i1,i2,i3,hz),,,,,,)
-!!$      else
-!!$       ! write(*,'(" advOpt: apply 4th-order variable dissipation...")') 
-!!$       loopse6VarDis(dis(i1,i2,i3,ex)=adcdt*varDis(i1,i2,i3)*fd42d(i1,i2,i3,ex),\
-!!$                     dis(i1,i2,i3,ey)=adcdt*varDis(i1,i2,i3)*fd42d(i1,i2,i3,ey),\
-!!$                     dis(i1,i2,i3,hz)=adcdt*varDis(i1,i2,i3)*fd42d(i1,i2,i3,hz),\
-!!$                     dis(i1,i2,i3,ex)=0.,dis(i1,i2,i3,ey)=0.,dis(i1,i2,i3,hz)=0.)
-!!$      end if
-!!$     #Else
-!!$      if( useVariableDissipation.eq.0 )then
-!!$       loopsF3D(0,0,0,\
-!!$                dis(i1,i2,i3,ex)=adcdt*fd43d(i1,i2,i3,ex),\
-!!$                dis(i1,i2,i3,ey)=adcdt*fd43d(i1,i2,i3,ey),\
-!!$                dis(i1,i2,i3,ez)=adcdt*fd43d(i1,i2,i3,ez),,,,,,,\
-!!$                0,0,0,\
-!!$                dis(i1,i2,i3,hx)=adcdt*fd43d(i1,i2,i3,hx),\
-!!$                dis(i1,i2,i3,hy)=adcdt*fd43d(i1,i2,i3,hy),\
-!!$                dis(i1,i2,i3,hz)=adcdt*fd43d(i1,i2,i3,hz),,,,,,)
-!!$      else
-!!$       loopsVarDis3D(\
-!!$                dis(i1,i2,i3,ex)=adcdt*varDis(i1,i2,i3)*fd43d(i1,i2,i3,ex),\
-!!$                dis(i1,i2,i3,ey)=adcdt*varDis(i1,i2,i3)*fd43d(i1,i2,i3,ey),\
-!!$                dis(i1,i2,i3,ez)=adcdt*varDis(i1,i2,i3)*fd43d(i1,i2,i3,ez),\
-!!$                dis(i1,i2,i3,ex)=0.,dis(i1,i2,i3,ey)=0.,dis(i1,i2,i3,ez)=0.,\
-!!$                dis(i1,i2,i3,hx)=adcdt*varDis(i1,i2,i3)*fd43d(i1,i2,i3,hx),\
-!!$                dis(i1,i2,i3,hy)=adcdt*varDis(i1,i2,i3)*fd43d(i1,i2,i3,hy),\
-!!$                dis(i1,i2,i3,hz)=adcdt*varDis(i1,i2,i3)*fd43d(i1,i2,i3,hz),\
-!!$                dis(i1,i2,i3,hx)=0.,dis(i1,i2,i3,hy)=0.,dis(i1,i2,i3,hz)=0.)
-!!$      end if
-!!$     #End  
-!!$  #End
-!!$  #If #ORDER eq "4" || #ORDER eq "6"
-!!$   else if( orderOfDissipation.eq.6 )then
-!!$     adcdt=adc*dt
-!!$     #If #DIM eq "2"
-!!$       loopse9(dis(i1,i2,i3,ex)=adcdt*fd62d(i1,i2,i3,ex),\
-!!$               dis(i1,i2,i3,ey)=adcdt*fd62d(i1,i2,i3,ey),\
-!!$               dis(i1,i2,i3,hz)=adcdt*fd62d(i1,i2,i3,hz),,,,,,)
-!!$     #Else
-!!$       loopsF3D(0,0,0,\
-!!$                dis(i1,i2,i3,ex)=adcdt*fd63d(i1,i2,i3,ex),\
-!!$                dis(i1,i2,i3,ey)=adcdt*fd63d(i1,i2,i3,ey),\
-!!$                dis(i1,i2,i3,ez)=adcdt*fd63d(i1,i2,i3,ez),,,,,,,\
-!!$                0,0,0,\
-!!$                dis(i1,i2,i3,hx)=adcdt*fd63d(i1,i2,i3,hx),\
-!!$                dis(i1,i2,i3,hy)=adcdt*fd63d(i1,i2,i3,hy),\
-!!$                dis(i1,i2,i3,hz)=adcdt*fd63d(i1,i2,i3,hz),,,,,,)
-!!$     #End
-!!$  #End
-!!$  #If #ORDER eq "6" || #ORDER eq "8"
-!!$   else if( orderOfDissipation.eq.8 )then
-!!$     adcdt=adc*dt
-!!$     #If #DIM eq "2"
-!!$       loopse9(dis(i1,i2,i3,ex)=adcdt*fd82d(i1,i2,i3,ex),\
-!!$               dis(i1,i2,i3,ey)=adcdt*fd82d(i1,i2,i3,ey),\
-!!$               dis(i1,i2,i3,hz)=adcdt*fd82d(i1,i2,i3,hz),,,,,,)
-!!$     #Else
-!!$       loopsF3D(0,0,0,\
-!!$                dis(i1,i2,i3,ex)=adcdt*fd83d(i1,i2,i3,ex),\
-!!$                dis(i1,i2,i3,ey)=adcdt*fd83d(i1,i2,i3,ey),\
-!!$                dis(i1,i2,i3,ez)=adcdt*fd83d(i1,i2,i3,ez),,,,,,,\
-!!$                0,0,0,\
-!!$                dis(i1,i2,i3,hx)=adcdt*fd83d(i1,i2,i3,hx),\
-!!$                dis(i1,i2,i3,hy)=adcdt*fd83d(i1,i2,i3,hy),\
-!!$                dis(i1,i2,i3,hz)=adcdt*fd83d(i1,i2,i3,hz),,,,,,)
-!!$     #End
-!!$  #End
-!!$  #If #ORDER eq "2" 
-!!$   else if( orderOfDissipation.eq.2 )then
-!!$     adcdt=adc*dt
-!!$     #If #DIM eq "2"
-!!$      if( useVariableDissipation.eq.0 )then
-!!$       loopse9(dis(i1,i2,i3,ex)=adcdt*fd22d(i1,i2,i3,ex),\
-!!$               dis(i1,i2,i3,ey)=adcdt*fd22d(i1,i2,i3,ey),\
-!!$               dis(i1,i2,i3,hz)=adcdt*fd22d(i1,i2,i3,hz),,,,,,)
-!!$      else
-!!$        stop 33333
-!!$      end if
-!!$    #Else
-!!$      if( useVariableDissipation.eq.0 )then
-!!$       loopsF3D(0,0,0,\
-!!$                dis(i1,i2,i3,ex)=adcdt*fd23d(i1,i2,i3,ex),\
-!!$                dis(i1,i2,i3,ey)=adcdt*fd23d(i1,i2,i3,ey),\
-!!$                dis(i1,i2,i3,ez)=adcdt*fd23d(i1,i2,i3,ez),,,,,,,\
-!!$                0,0,0,\
-!!$                dis(i1,i2,i3,hx)=adcdt*fd23d(i1,i2,i3,hx),\
-!!$                dis(i1,i2,i3,hy)=adcdt*fd23d(i1,i2,i3,hy),\
-!!$                dis(i1,i2,i3,hz)=adcdt*fd23d(i1,i2,i3,hz),,,,,,)
-!!$      else
-!!$        stop 22855
-!!$      end if
-!!$     #End
-!!$  #End
-!!$   else if( orderOfAccuracy.eq.4 .and. orderOfDissipation.ge.6 )then
-!!$    ! this case is done elsewhere
-!!$   else
-!!$     write(*,*) 'advMaxwell:ERROR orderOfDissipation=',orderOfDissipation
-!!$     write(*,*) 'advMaxwell:orderOfAccuracy=',orderOfAccuracy
-!!$     stop 5
-!!$   end if
-!!$   call ovtime( time1 )
-!!$   rpar(20)=time1-time0
-!!$ end if
-!!$
-!!$c *****************************************
-!!$
-!!$ if( add.gt.0. )then
-!!$c         Here we add the divergence damping 
-!!$   call ovtime( time0 )
-!!$
-!!$  if( adc.le.0. )then
-!!$    write(*,'(" ERROR: art. dissipation should be on if div. damping is on -- this could be fixed")')
-!!$      ! '
-!!$    stop 12345
-!!$  end if
-!!$
-!!$  ! write(*,*) 'Inside advMaxwell: divergence damping add=',add
-!!$
-!!$  adddt=add*dt  ! we should probably scale by c here as well ??
-!!$  #If #ORDER eq "2" 
-!!$   #If #DIM eq "2"
-!!$     if( gridType.eq.rectangular )then
-!!$       loopse9(dis(i1,i2,i3,ex)=dis(i1,i2,i3,ex)+adddt*(( uxx22r(i1,i2,i3,ex)+ uxy22r(i1,i2,i3,ey))\
-!!$                                                       -(unxx22r(i1,i2,i3,ex)+unxy22r(i1,i2,i3,ey))),\
-!!$               dis(i1,i2,i3,ey)=dis(i1,i2,i3,ey)+adddt*(( uxy22r(i1,i2,i3,ex)+ uyy22r(i1,i2,i3,ey))\
-!!$                                                       -(unxy22r(i1,i2,i3,ex)+unyy22r(i1,i2,i3,ey))),\
-!!$               ,,,,,,)
-!!$     else
-!!$       loopse9(dis(i1,i2,i3,ex)=dis(i1,i2,i3,ex)+adddt*(( uxx22(i1,i2,i3,ex)+ uxy22(i1,i2,i3,ey))\
-!!$                                                       -(unxx22(i1,i2,i3,ex)+unxy22(i1,i2,i3,ey))),\
-!!$               dis(i1,i2,i3,ey)=dis(i1,i2,i3,ey)+adddt*(( uxy22(i1,i2,i3,ex)+ uyy22(i1,i2,i3,ey))\
-!!$                                                       -(unxy22(i1,i2,i3,ex)+unyy22(i1,i2,i3,ey))),\
-!!$               ,,,,,,)
-!!$     end if
-!!$   #Else
-!!$     if( gridType.eq.rectangular )then
-!!$       loopse9(dis(i1,i2,i3,ex)=dis(i1,i2,i3,ex)+adddt*(( uxx23r(i1,i2,i3,ex)+ uxy23r(i1,i2,i3,ey)+ uxz23r(i1,i2,i3,ez))\
-!!$                                                       -(unxx23r(i1,i2,i3,ex)+unxy23r(i1,i2,i3,ey)+unxz23r(i1,i2,i3,ez))),\
-!!$               dis(i1,i2,i3,ey)=dis(i1,i2,i3,ey)+adddt*(( uxy23r(i1,i2,i3,ex)+ uyy23r(i1,i2,i3,ey)+ uyz23r(i1,i2,i3,ez))\
-!!$                                                       -(unxy23r(i1,i2,i3,ex)+unyy23r(i1,i2,i3,ey)+unyz23r(i1,i2,i3,ez))),\
-!!$               dis(i1,i2,i3,ez)=dis(i1,i2,i3,ez)+adddt*(( uxz23r(i1,i2,i3,ex)+ uyz23r(i1,i2,i3,ey)+ uzz23r(i1,i2,i3,ez))\
-!!$                                                       -(unxz23r(i1,i2,i3,ex)+unyz23r(i1,i2,i3,ey)+unzz23r(i1,i2,i3,ez))),\
-!!$               ,,,,,)
-!!$     else
-!!$       loopse9(dis(i1,i2,i3,ex)=dis(i1,i2,i3,ex)+adddt*(( uxx23(i1,i2,i3,ex)+ uxy23(i1,i2,i3,ey)+ uxz23(i1,i2,i3,ez))\
-!!$                                                       -(unxx23(i1,i2,i3,ex)+unxy23(i1,i2,i3,ey)+unxz23(i1,i2,i3,ez))),\
-!!$               dis(i1,i2,i3,ey)=dis(i1,i2,i3,ey)+adddt*(( uxy23(i1,i2,i3,ex)+ uyy23(i1,i2,i3,ey)+ uyz23(i1,i2,i3,ez))\
-!!$                                                       -(unxy23(i1,i2,i3,ex)+unyy23(i1,i2,i3,ey)+unyz23(i1,i2,i3,ez))),\
-!!$               dis(i1,i2,i3,ez)=dis(i1,i2,i3,ez)+adddt*(( uxz23(i1,i2,i3,ex)+ uyz23(i1,i2,i3,ey)+ uzz23(i1,i2,i3,ez))\
-!!$                                                       -(unxz23(i1,i2,i3,ex)+unyz23(i1,i2,i3,ey)+unzz23(i1,i2,i3,ez))),\
-!!$               ,,,,,)
-!!$     end if
-!!$   #End
-!!$  #Elif #ORDER eq "4"
-!!$
-!!$   #If #DIM eq "2"
-!!$     if( gridType.eq.rectangular )then
-!!$       loopse9(dis(i1,i2,i3,ex)=dis(i1,i2,i3,ex)+adddt*(( uxx42r(i1,i2,i3,ex)+ uxy42r(i1,i2,i3,ey))\
-!!$                                                       -(unxx42r(i1,i2,i3,ex)+unxy42r(i1,i2,i3,ey))),\
-!!$               dis(i1,i2,i3,ey)=dis(i1,i2,i3,ey)+adddt*(( uxy42r(i1,i2,i3,ex)+ uyy42r(i1,i2,i3,ey))\
-!!$                                                       -(unxy42r(i1,i2,i3,ex)+unyy42r(i1,i2,i3,ey))),\
-!!$               ,,,,,,)
-!!$     else
-!!$       loopse9(dis(i1,i2,i3,ex)=dis(i1,i2,i3,ex)+adddt*(( uxx42(i1,i2,i3,ex)+ uxy42(i1,i2,i3,ey))\
-!!$                                                       -(unxx42(i1,i2,i3,ex)+unxy42(i1,i2,i3,ey))),\
-!!$               dis(i1,i2,i3,ey)=dis(i1,i2,i3,ey)+adddt*(( uxy42(i1,i2,i3,ex)+ uyy42(i1,i2,i3,ey))\
-!!$                                                       -(unxy42(i1,i2,i3,ex)+unyy42(i1,i2,i3,ey))),\
-!!$               ,,,,,,)
-!!$     end if
-!!$   #Else
-!!$     if( gridType.eq.rectangular )then
-!!$       loopse9(dis(i1,i2,i3,ex)=dis(i1,i2,i3,ex)+adddt*(( uxx43r(i1,i2,i3,ex)+ uxy43r(i1,i2,i3,ey)+ uxz43r(i1,i2,i3,ez))\
-!!$                                                       -(unxx43r(i1,i2,i3,ex)+unxy43r(i1,i2,i3,ey)+unxz43r(i1,i2,i3,ez))),\
-!!$               dis(i1,i2,i3,ey)=dis(i1,i2,i3,ey)+adddt*(( uxy43r(i1,i2,i3,ex)+ uyy43r(i1,i2,i3,ey)+ uyz43r(i1,i2,i3,ez))\
-!!$                                                       -(unxy43r(i1,i2,i3,ex)+unyy43r(i1,i2,i3,ey)+unyz43r(i1,i2,i3,ez))),\
-!!$               dis(i1,i2,i3,ez)=dis(i1,i2,i3,ez)+adddt*(( uxz43r(i1,i2,i3,ex)+ uyz43r(i1,i2,i3,ey)+ uzz43r(i1,i2,i3,ez))\
-!!$                                                       -(unxz43r(i1,i2,i3,ex)+unyz43r(i1,i2,i3,ey)+unzz43r(i1,i2,i3,ez))),\
-!!$               ,,,,,)
-!!$     else
-!!$       loopse9(dis(i1,i2,i3,ex)=dis(i1,i2,i3,ex)+adddt*(( uxx43(i1,i2,i3,ex)+ uxy43(i1,i2,i3,ey)+ uxz43(i1,i2,i3,ez))\
-!!$                                                       -(unxx43(i1,i2,i3,ex)+unxy43(i1,i2,i3,ey)+unxz43(i1,i2,i3,ez))),\
-!!$               dis(i1,i2,i3,ey)=dis(i1,i2,i3,ey)+adddt*(( uxy43(i1,i2,i3,ex)+ uyy43(i1,i2,i3,ey)+ uyz43(i1,i2,i3,ez))\
-!!$                                                       -(unxy43(i1,i2,i3,ex)+unyy43(i1,i2,i3,ey)+unyz43(i1,i2,i3,ez))),\
-!!$               dis(i1,i2,i3,ez)=dis(i1,i2,i3,ez)+adddt*(( uxz43(i1,i2,i3,ex)+ uyz43(i1,i2,i3,ey)+ uzz43(i1,i2,i3,ez))\
-!!$                                                       -(unxz43(i1,i2,i3,ex)+unyz43(i1,i2,i3,ey)+unzz43(i1,i2,i3,ez))),\
-!!$               ,,,,,)
-!!$     end if
-!!$   #End
-!!$
-!!$  #Else
-!!$    write(*,*) 'advMaxwell:ERROR order = ORDER'
-!!$    stop 5
-!!$  #End
-!!$
-!!$   call ovtime( time1 )
-!!$   ! ** rpar(10)=time1-time0
-!!$ end if
-
-
-end if ! end if old way
-c +++++++++++++++++++++++++ end of old dissipation section +++++++++++++++
+ if( nd.eq.2 .and. orderOfAccuracy.eq.2 )then
+   call advMxDiss2dOrder2(nd,n1a,n1b,n2a,n2b,n3a,n3b,nd1a,\
+     nd1b,nd2a,nd2b,nd3a,nd3b,nd4a,nd4b,mask,rsxy,  um,u,un,f, v,\
+     vvt2,ut3,vvt4,ut5,ut6,ut7, bc, dis, varDis, ipar, rpar, ierr )
+ else if(  nd.eq.2 .and. orderOfAccuracy.eq.4 )then
+   call advMxDiss2dOrder4(nd,n1a,n1b,n2a,n2b,n3a,n3b,nd1a,\
+     nd1b,nd2a,nd2b,nd3a,nd3b,nd4a,nd4b,mask,rsxy,  um,u,un,f, v,\
+     vvt2,ut3,vvt4,ut5,ut6,ut7, bc, dis, varDis, ipar, rpar, ierr )
+ else if( nd.eq.3 .and. orderOfAccuracy.eq.2 )then
+   call advMxDiss3dOrder2(nd,n1a,n1b,n2a,n2b,n3a,n3b,nd1a,\
+     nd1b,nd2a,nd2b,nd3a,nd3b,nd4a,nd4b,mask,rsxy,  um,u,un,f, v,\
+     vvt2,ut3,vvt4,ut5,ut6,ut7, bc, dis, varDis, ipar, rpar, ierr )
+ else if(  nd.eq.3 .and. orderOfAccuracy.eq.4 )then
+   call advMxDiss3dOrder4(nd,n1a,n1b,n2a,n2b,n3a,n3b,nd1a,\
+     nd1b,nd2a,nd2b,nd3a,nd3b,nd4a,nd4b,mask,rsxy,  um,u,un,f, v,\
+     vvt2,ut3,vvt4,ut5,ut6,ut7, bc, dis, varDis, ipar, rpar, ierr )
+ else
+   stop 1116
+ end if
 
 
  if( option.eq.1 ) then
@@ -1726,19 +1591,40 @@ c       **********************************************
 
  #Elif #ORDER eq "4" 
 
-   ! *** if( orderOfAccuracy.eq.4 .and. orderInTime.eq.4 )then  *** what about this ??
-   
-   ! 4th order in space and 4th order in time:
-
+   ! ======================================================================================
+   ! ==================   4th order in space and 4th order in time: =======================
+   ! ======================================================================================
    ! write(*,*) 'Inside advMaxwell order=4...'
 
    if( timeSteppingMethod.eq.modifiedEquationTimeStepping )then
 
      #If #DIM eq "2"
-       ! 4th order modified equation 
+
+      ! ------------------------------------------------------------------------------
+      !    2D : 4th order modified equation (rectangular)
+      ! ------------------------------------------------------------------------------
 
       if( useDivergenceCleaning.eq.0 )then
-       if( combineDissipationWithAdvance.eq.0 )then
+
+       if( useNewForcingMethod.eq.1 ) then
+         ! fix forcing for ME scheme to be 4th-order
+         if( combineDissipationWithAdvance.eq.0 )then
+          write(*,*) 'advOpt: 2d, rect, 4th-order fix-force modified equation'
+          loopsF2DD(dtsq*f2drme44(i1,i2,i3,ex),dtsq*f2drme44(i1,i2,i3,ey),dtsq*f2drme44(i1,i2,i3,hz),\
+                 un(i1,i2,i3,ex)=maxwell2dr44me(i1,i2,i3,ex),\
+                 un(i1,i2,i3,ey)=maxwell2dr44me(i1,i2,i3,ey),\
+                 un(i1,i2,i3,hz)=maxwell2dr44me(i1,i2,i3,hz),,,,,,) 
+
+         else
+          ! modified equation and dissipation in one loop
+          write(*,*) 'advOpt: 2d, rect, 4th-order, diss, fix-force modified equation'
+          loopsF2D(dtsq*f2drme44(i1,i2,i3,ex),dtsq*f2drme44(i1,i2,i3,ey),dtsq*f2drme44(i1,i2,i3,hz),\
+                   un(i1,i2,i3,ex)=maxwell2dr44me(i1,i2,i3,ex)+adcdt*fd42d(i1,i2,i3,ex),\
+                   un(i1,i2,i3,ey)=maxwell2dr44me(i1,i2,i3,ey)+adcdt*fd42d(i1,i2,i3,ey),\
+                   un(i1,i2,i3,hz)=maxwell2dr44me(i1,i2,i3,hz)+adcdt*fd42d(i1,i2,i3,hz),,,,,,)
+         end if
+
+       else if( combineDissipationWithAdvance.eq.0 )then
         ! write(*,*) 'advOpt: 2d, rect, modified equation'
         loopsF2DD(dtsq*f(i1,i2,i3,ex),dtsq*f(i1,i2,i3,ey),dtsq*f(i1,i2,i3,hz),\
                un(i1,i2,i3,ex)=maxwell2dr44me(i1,i2,i3,ex),\
@@ -1756,6 +1642,12 @@ c       **********************************************
        ! 2D, 4th-order, div cleaning:
        !    D+tD-t( E ) + alpha*( D0t E ) = c^2 Delta(E) + alpha*( (1/eps) Curl ( H ) )
        write(*,'("advMaxwell: advance 2D, 4th-order, rect, div cleaning... t=",e10.2,", adcdt=",e10.2 )') t,adcdt
+
+       if( useNewForcingMethod.eq.1 ) then
+         write(*,'(" advOpt: FINISH ME")')
+         stop 10123
+       end if
+
        if( combineDissipationWithAdvance.eq.0 )then
          loopsF2DD(dtsq*f(i1,i2,i3,ex),dtsq*f(i1,i2,i3,ey),dtsq*f(i1,i2,i3,hz),\
                 un(i1,i2,i3,ex)=mxdc2d4Ex(i1,i2,i3),\
@@ -1771,31 +1663,72 @@ c       **********************************************
       end if
 
      #Else
+
+      ! ------------------------------------------------------------------------------
+      !    3D : 4th order modified equation (rectangular)
+      ! ------------------------------------------------------------------------------
+
+
        if( useDivergenceCleaning.eq.0 )then
-        if( combineDissipationWithAdvance.eq.0 )then
-         ! 4th order modified equation 
-         loopsF3DD(dtsq*f(i1,i2,i3,ex),dtsq*f(i1,i2,i3,ey),dtsq*f(i1,i2,i3,ez),\
-               un(i1,i2,i3,ex)=maxwell3dr44me(i1,i2,i3,ex),\
-               un(i1,i2,i3,ey)=maxwell3dr44me(i1,i2,i3,ey),\
-               un(i1,i2,i3,ez)=maxwell3dr44me(i1,i2,i3,ez),,,,,,,\
-               dtsq*f(i1,i2,i3,hx),dtsq*f(i1,i2,i3,hy),dtsq*f(i1,i2,i3,hz),\
-               un(i1,i2,i3,hx)=maxwell3dr44me(i1,i2,i3,hx),\
-               un(i1,i2,i3,hy)=maxwell3dr44me(i1,i2,i3,hy),\
-               un(i1,i2,i3,hz)=maxwell3dr44me(i1,i2,i3,hz),,,,,,)
-         else
-c         ! 4th order modified equation and dissipation in one loop
-          loopsF3D(dtsq*f(i1,i2,i3,ex),dtsq*f(i1,i2,i3,ey),dtsq*f(i1,i2,i3,ez),\
-               un(i1,i2,i3,ex)=maxwell3dr44me(i1,i2,i3,ex)+adcdt*fd43d(i1,i2,i3,ex),\
-               un(i1,i2,i3,ey)=maxwell3dr44me(i1,i2,i3,ey)+adcdt*fd43d(i1,i2,i3,ey),\
-               un(i1,i2,i3,ez)=maxwell3dr44me(i1,i2,i3,ez)+adcdt*fd43d(i1,i2,i3,ez),,,,,,,\
-               dtsq*f(i1,i2,i3,hx),dtsq*f(i1,i2,i3,hy),dtsq*f(i1,i2,i3,hz),\
-               un(i1,i2,i3,hx)=maxwell3dr44me(i1,i2,i3,hx)+adcdt*fd43d(i1,i2,i3,hx),\
-               un(i1,i2,i3,hy)=maxwell3dr44me(i1,i2,i3,hy)+adcdt*fd43d(i1,i2,i3,hy),\
-               un(i1,i2,i3,hz)=maxwell3dr44me(i1,i2,i3,hz)+adcdt*fd43d(i1,i2,i3,hz),,,,,,)
-         end if
-       else
+
+        if( useNewForcingMethod.eq.1 ) then
+
+         if( combineDissipationWithAdvance.eq.0 )then
+          ! 4th order modified equation 
+          loopsF3DD(dtsq*f3drme44(i1,i2,i3,ex),dtsq*f3drme44(i1,i2,i3,ey),dtsq*f3drme44(i1,i2,i3,ez),\
+                un(i1,i2,i3,ex)=maxwell3dr44me(i1,i2,i3,ex),\
+                un(i1,i2,i3,ey)=maxwell3dr44me(i1,i2,i3,ey),\
+                un(i1,i2,i3,ez)=maxwell3dr44me(i1,i2,i3,ez),,,,,,,\
+                dtsq*f(i1,i2,i3,hx),dtsq*f(i1,i2,i3,hy),dtsq*f(i1,i2,i3,hz),\
+                un(i1,i2,i3,hx)=maxwell3dr44me(i1,i2,i3,hx),\
+                un(i1,i2,i3,hy)=maxwell3dr44me(i1,i2,i3,hy),\
+                un(i1,i2,i3,hz)=maxwell3dr44me(i1,i2,i3,hz),,,,,,)
+          else
+           ! 4th order modified equation and dissipation in one loop
+           loopsF3D(dtsq*f3drme44(i1,i2,i3,ex),dtsq*f3drme44(i1,i2,i3,ey),dtsq*f3drme44(i1,i2,i3,ez),\
+                un(i1,i2,i3,ex)=maxwell3dr44me(i1,i2,i3,ex)+adcdt*fd43d(i1,i2,i3,ex),\
+                un(i1,i2,i3,ey)=maxwell3dr44me(i1,i2,i3,ey)+adcdt*fd43d(i1,i2,i3,ey),\
+                un(i1,i2,i3,ez)=maxwell3dr44me(i1,i2,i3,ez)+adcdt*fd43d(i1,i2,i3,ez),,,,,,,\
+                dtsq*f(i1,i2,i3,hx),dtsq*f(i1,i2,i3,hy),dtsq*f(i1,i2,i3,hz),\
+                un(i1,i2,i3,hx)=maxwell3dr44me(i1,i2,i3,hx)+adcdt*fd43d(i1,i2,i3,hx),\
+                un(i1,i2,i3,hy)=maxwell3dr44me(i1,i2,i3,hy)+adcdt*fd43d(i1,i2,i3,hy),\
+                un(i1,i2,i3,hz)=maxwell3dr44me(i1,i2,i3,hz)+adcdt*fd43d(i1,i2,i3,hz),,,,,,)
+          end if
+
+        else
+
+         if( combineDissipationWithAdvance.eq.0 )then
+          ! 4th order modified equation 
+          loopsF3DD(dtsq*f(i1,i2,i3,ex),dtsq*f(i1,i2,i3,ey),dtsq*f(i1,i2,i3,ez),\
+                un(i1,i2,i3,ex)=maxwell3dr44me(i1,i2,i3,ex),\
+                un(i1,i2,i3,ey)=maxwell3dr44me(i1,i2,i3,ey),\
+                un(i1,i2,i3,ez)=maxwell3dr44me(i1,i2,i3,ez),,,,,,,\
+                dtsq*f(i1,i2,i3,hx),dtsq*f(i1,i2,i3,hy),dtsq*f(i1,i2,i3,hz),\
+                un(i1,i2,i3,hx)=maxwell3dr44me(i1,i2,i3,hx),\
+                un(i1,i2,i3,hy)=maxwell3dr44me(i1,i2,i3,hy),\
+                un(i1,i2,i3,hz)=maxwell3dr44me(i1,i2,i3,hz),,,,,,)
+          else
+           ! 4th order modified equation and dissipation in one loop
+           loopsF3D(dtsq*f(i1,i2,i3,ex),dtsq*f(i1,i2,i3,ey),dtsq*f(i1,i2,i3,ez),\
+                un(i1,i2,i3,ex)=maxwell3dr44me(i1,i2,i3,ex)+adcdt*fd43d(i1,i2,i3,ex),\
+                un(i1,i2,i3,ey)=maxwell3dr44me(i1,i2,i3,ey)+adcdt*fd43d(i1,i2,i3,ey),\
+                un(i1,i2,i3,ez)=maxwell3dr44me(i1,i2,i3,ez)+adcdt*fd43d(i1,i2,i3,ez),,,,,,,\
+                dtsq*f(i1,i2,i3,hx),dtsq*f(i1,i2,i3,hy),dtsq*f(i1,i2,i3,hz),\
+                un(i1,i2,i3,hx)=maxwell3dr44me(i1,i2,i3,hx)+adcdt*fd43d(i1,i2,i3,hx),\
+                un(i1,i2,i3,hy)=maxwell3dr44me(i1,i2,i3,hy)+adcdt*fd43d(i1,i2,i3,hy),\
+                un(i1,i2,i3,hz)=maxwell3dr44me(i1,i2,i3,hz)+adcdt*fd43d(i1,i2,i3,hz),,,,,,)
+          end if
+         end if 
+
+      else
          ! -- div clean
         write(*,'("advMaxwell: advance 3D, 4th-order, rect, div cleaning... t=",e10.2,", adcdt=",e10.2 )') t,adcdt
+
+        if( useNewForcingMethod.eq.1 ) then
+          write(*,'(" advOpt: FINISH ME")')
+          stop 10124
+        end if
+
         if( combineDissipationWithAdvance.eq.0 )then
          ! 4th order modified equation 
          loopsF3DD(dtsq*f(i1,i2,i3,ex),dtsq*f(i1,i2,i3,ey),dtsq*f(i1,i2,i3,ez),\
@@ -2019,7 +1952,9 @@ c       **********************************************
 
    if( useCurvilinearOpt.eq.1 .and. useConservative.eq.0 )then
 
-    ! *************** non-conservative *****************    
+    ! **************************************************
+    ! *************** NON-CONSERVATIVE *****************    
+    ! **************************************************
 
     #If #ORDER eq "2" 
 
@@ -2037,7 +1972,12 @@ c$$$              ,,)
    #Elif #ORDER eq "4"
      
      if( timeSteppingMethod.eq.modifiedEquationTimeStepping )then
-       ! 4th order in space and 4th order in time:
+
+       ! ----------------------------------------------------------
+       ! ----- 4th order in space and 4th order in time ------------
+       ! ---- Modified equation, NON-CONSERVATIVE difference ----
+       ! ----------------------------------------------------------
+
 
        !   cdtsq*uLaplacian42(i1,i2,i3,n)+cdtsq12*uLapSq(n)
        ! write(*,*) 'advOpt: 2d, curv, FULL modified equation'
@@ -2086,11 +2026,23 @@ c$$$             un(i1,i2,i3,hz)=max2dc44me(i1,i2,i3,hz))
        useWhereMask=useWhereMaskSave
        
        if( useDivergenceCleaning.eq.0 )then
-        loopsF2DD(dtsq*f(i1,i2,i3,ex),dtsq*f(i1,i2,i3,ey),dtsq*f(i1,i2,i3,hz),\
-              un(i1,i2,i3,ex)=max2dc44me2(i1,i2,i3,ex),\
-              un(i1,i2,i3,ey)=max2dc44me2(i1,i2,i3,ey),\
-              un(i1,i2,i3,hz)=max2dc44me2(i1,i2,i3,hz),,,,,,)
+        if( useNewForcingMethod.eq.1 ) then
+          ! fix forcing for ME scheme to be 4th-order
+          loopsF2DD(dtsq*f2dcme44(i1,i2,i3,ex),dtsq*f2dcme44(i1,i2,i3,ey),dtsq*f2dcme44(i1,i2,i3,hz),\
+                un(i1,i2,i3,ex)=max2dc44me2(i1,i2,i3,ex),\
+                un(i1,i2,i3,ey)=max2dc44me2(i1,i2,i3,ey),\
+                un(i1,i2,i3,hz)=max2dc44me2(i1,i2,i3,hz),,,,,,)
+        else
+          loopsF2DD(dtsq*f(i1,i2,i3,ex),dtsq*f(i1,i2,i3,ey),dtsq*f(i1,i2,i3,hz),\
+                un(i1,i2,i3,ex)=max2dc44me2(i1,i2,i3,ex),\
+                un(i1,i2,i3,ey)=max2dc44me2(i1,i2,i3,ey),\
+                un(i1,i2,i3,hz)=max2dc44me2(i1,i2,i3,hz),,,,,,)
+        end if
        else
+        if( useNewForcingMethod.eq.1 ) then
+          write(*,'(" advOpt: FINISH ME")')
+          stop 10134
+        end if
         loopsF2DD(dtsq*f(i1,i2,i3,ex),dtsq*f(i1,i2,i3,ey),dtsq*f(i1,i2,i3,hz),\
               un(i1,i2,i3,ex)=mxdc2d4cEx(i1,i2,i3),\
               un(i1,i2,i3,ey)=mxdc2d4cEy(i1,i2,i3),\
@@ -2177,6 +2129,9 @@ c$$$                v(i1,i2,i3,hz)=uLaplacian23(i1,i2,i3,hz),,,,,,)
      ! ****************Old way******************************
      ! *****************************************************
 
+     ! **************** CONSERVATIVE DIFFERENCE *****************
+     !  The Lapacian and Laplacian squared have already been computed by the calling program 
+
    ! In these cases we are given the Laplacian on input
 
 
@@ -2222,20 +2177,56 @@ c$$$                v(i1,i2,i3,hz)=uLaplacian23(i1,i2,i3,hz),,,,,,)
    #Elif #ORDER eq "4"
      
      if( timeSteppingMethod.eq.modifiedEquationTimeStepping )then
-       ! 4th order in space and 4th order in time:
+
+       ! ******* 4th order in space and 4th order in time ********
+       ! **************** CURVILINEAR *****************************
+       ! **************** CONSERVATIVE DIFFERENCE *****************
   
        ! write(*,*) 'advOpt: 2d, curv, modified equation'
 
        if( useDivergenceCleaning.eq.0 )then
-        loopsFCD(un(i1,i2,i3,ex)=maxwellc44me(i1,i2,i3,ex),\
-                 un(i1,i2,i3,ey)=maxwellc44me(i1,i2,i3,ey),\
-                 un(i1,i2,i3,ez)=maxwellc44me(i1,i2,i3,ez),,,,\
-                 un(i1,i2,i3,hx)=maxwellc44me(i1,i2,i3,hx),\
-                 un(i1,i2,i3,hy)=maxwellc44me(i1,i2,i3,hy),\
-                 un(i1,i2,i3,hz)=maxwellc44me(i1,i2,i3,hz),,,)
+        if( useNewForcingMethod.eq.1 ) then
+
+         if( addForcing.eq.0 )then
+          ! NOTE: in 2D the ez,hx and hy entries are ignored
+          loopsFCD(un(i1,i2,i3,ex)=maxwellc44me(i1,i2,i3,ex),\
+                   un(i1,i2,i3,ey)=maxwellc44me(i1,i2,i3,ey),\
+                   un(i1,i2,i3,ez)=maxwellc44me(i1,i2,i3,ez),,,,\
+                   un(i1,i2,i3,hx)=maxwellc44me(i1,i2,i3,hx),\
+                   un(i1,i2,i3,hy)=maxwellc44me(i1,i2,i3,hy),\
+                   un(i1,i2,i3,hz)=maxwellc44me(i1,i2,i3,hz),,,)
+         else
+          ! Add forcing to ME scheme 
+          if( nd.eq.2 )then
+           loopsFCD2DF(un(i1,i2,i3,ex)=maxwellc44me(i1,i2,i3,ex)+dtsq*f2dcme44(i1,i2,i3,ex),\
+                       un(i1,i2,i3,ey)=maxwellc44me(i1,i2,i3,ey)+dtsq*f2dcme44(i1,i2,i3,ey),\
+                       un(i1,i2,i3,hz)=maxwellc44me(i1,i2,i3,hz)+dtsq*f2dcme44(i1,i2,i3,hz))
+          else
+           loopsFCD3DF(un(i1,i2,i3,ex)=maxwellc44me(i1,i2,i3,ex)+dtsq*f3dcme44(i1,i2,i3,ex),\
+                       un(i1,i2,i3,ey)=maxwellc44me(i1,i2,i3,ey)+dtsq*f3dcme44(i1,i2,i3,ey),\
+                       un(i1,i2,i3,ez)=maxwellc44me(i1,i2,i3,ez)+dtsq*f3dcme44(i1,i2,i3,ez),,,,\
+                       un(i1,i2,i3,hx)=maxwellc44me(i1,i2,i3,hx)+dtsq*f3dcme44(i1,i2,i3,hx),\
+                       un(i1,i2,i3,hy)=maxwellc44me(i1,i2,i3,hy)+dtsq*f3dcme44(i1,i2,i3,hy),\
+                       un(i1,i2,i3,hz)=maxwellc44me(i1,i2,i3,hz)+dtsq*f3dcme44(i1,i2,i3,hz),,,)
+          end if
+         
+         end if
+        else
+         loopsFCD(un(i1,i2,i3,ex)=maxwellc44me(i1,i2,i3,ex),\
+                  un(i1,i2,i3,ey)=maxwellc44me(i1,i2,i3,ey),\
+                  un(i1,i2,i3,ez)=maxwellc44me(i1,i2,i3,ez),,,,\
+                  un(i1,i2,i3,hx)=maxwellc44me(i1,i2,i3,hx),\
+                  un(i1,i2,i3,hy)=maxwellc44me(i1,i2,i3,hy),\
+                  un(i1,i2,i3,hz)=maxwellc44me(i1,i2,i3,hz),,,)
+        end if       
        else
         ! 2D, 4th-order, curvilinear, div cleaning:
         write(*,'("advMaxwell: 2D, 4th-order, curv, cons, div cleaning... t=",e10.2 )') t
+
+        if( useNewForcingMethod.eq.1 ) then
+          write(*,'(" advOpt: FINISH ME")')
+          stop 10138
+        end if
 
         #If #DIM eq "2"
          loopsFCD(un(i1,i2,i3,ex)=mxdc2d4cConsEx(i1,i2,i3),\
@@ -2394,7 +2385,7 @@ c$$$                v(i1,i2,i3,hz)=uLaplacian23(i1,i2,i3,hz),,,,,,)
 c build an empty version of high order files so we do not have to compile the full version
 #beginMacro ADV_MAXWELL_NULL(NAME,DIM,ORDER,GRIDTYPE)
  subroutine NAME(nd,n1a,n1b,n2a,n2b,n3a,n3b,nd1a,nd1b,nd2a,nd2b,nd3a,nd3b,nd4a,nd4b,\
-                 mask,rsxy,  um,u,un,f, v,vvt2,ut3,vvt4,ut5,ut6,ut7, bc, dis, varDis, ipar, rpar, ierr )
+                 mask,rsxy,  um,u,un,f,fa, v,vvt2,ut3,vvt4,ut5,ut6,ut7, bc, dis, varDis, ipar, rpar, ierr )
 c======================================================================
 c   Advance a time step for Maxwells eqution
 c     OPTIMIZED version for rectangular grids.
@@ -2432,7 +2423,7 @@ c======================================================================
 
 
       subroutine advMaxwell(nd,n1a,n1b,n2a,n2b,n3a,n3b,nd1a,nd1b,nd2a,nd2b,nd3a,nd3b,nd4a,nd4b,\
-                            mask,rx,  um,u,un,f, v,vvt2,ut3,vvt4,ut5,ut6,ut7, bc, dis, varDis, ipar, rpar, ierr )
+                            mask,rx,  um,u,un,f,fa, v,vvt2,ut3,vvt4,ut5,ut6,ut7, bc, dis, varDis, ipar, rpar, ierr )
 c======================================================================
 c   Advance a time step for Maxwells eqution
 c     OPTIMIZED version for rectangular grids.
@@ -2449,6 +2440,7 @@ c======================================================================
       real u(nd1a:nd1b,nd2a:nd2b,nd3a:nd3b,nd4a:nd4b)
       real un(nd1a:nd1b,nd2a:nd2b,nd3a:nd3b,nd4a:nd4b)
       real f(nd1a:nd1b,nd2a:nd2b,nd3a:nd3b,nd4a:nd4b)
+      real fa(nd1a:nd1b,nd2a:nd2b,nd3a:nd3b,nd4a:nd4b,0:*)  ! forcings at different times
       real v(nd1a:nd1b,nd2a:nd2b,nd3a:nd3b,nd4a:nd4b)
       real vvt2(nd1a:nd1b,nd2a:nd2b,nd3a:nd3b,nd4a:nd4b)
       real ut3(nd1a:nd1b,nd2a:nd2b,nd3a:nd3b,nd4a:nd4b)
@@ -2486,16 +2478,16 @@ c...........end   statement functions
 
         if( nd.eq.2 .and. gridType.eq.rectangular ) then
           call advMx2dOrder2r(nd,n1a,n1b,n2a,n2b,n3a,n3b,nd1a,nd1b,nd2a,nd2b,nd3a,nd3b,nd4a,nd4b,\
-                              mask,rx, um,u,un,f, v,vvt2,ut3,vvt4,ut5,ut6,ut7,bc, dis,varDis, ipar, rpar, ierr )
+                              mask,rx, um,u,un,f,fa, v,vvt2,ut3,vvt4,ut5,ut6,ut7,bc, dis,varDis, ipar, rpar, ierr )
         else if( nd.eq.2 .and. gridType.eq.curvilinear ) then
           call advMx2dOrder2c(nd,n1a,n1b,n2a,n2b,n3a,n3b,nd1a,nd1b,nd2a,nd2b,nd3a,nd3b,nd4a,nd4b,\
-                              mask,rx, um,u,un,f, v,vvt2,ut3,vvt4,ut5,ut6,ut7,bc, dis,varDis, ipar, rpar, ierr )
+                              mask,rx, um,u,un,f,fa, v,vvt2,ut3,vvt4,ut5,ut6,ut7,bc, dis,varDis, ipar, rpar, ierr )
         else if( nd.eq.3 .and. gridType.eq.rectangular ) then
           call advMx3dOrder2r(nd,n1a,n1b,n2a,n2b,n3a,n3b,nd1a,nd1b,nd2a,nd2b,nd3a,nd3b,nd4a,nd4b,\
-                             mask,rx, um,u,un,f, v,vvt2,ut3,vvt4,ut5,ut6,ut7,bc, dis,varDis, ipar, rpar, ierr )
+                             mask,rx, um,u,un,f,fa, v,vvt2,ut3,vvt4,ut5,ut6,ut7,bc, dis,varDis, ipar, rpar, ierr )
         else if( nd.eq.3 .and. gridType.eq.curvilinear ) then
           call advMx3dOrder2c(nd,n1a,n1b,n2a,n2b,n3a,n3b,nd1a,nd1b,nd2a,nd2b,nd3a,nd3b,nd4a,nd4b,\
-                             mask,rx, um,u,un,f, v,vvt2,ut3,vvt4,ut5,ut6,ut7,bc, dis,varDis, ipar, rpar, ierr )
+                             mask,rx, um,u,un,f,fa, v,vvt2,ut3,vvt4,ut5,ut6,ut7,bc, dis,varDis, ipar, rpar, ierr )
         else
           stop 2271
         end if
@@ -2503,16 +2495,16 @@ c...........end   statement functions
       else if( orderOfAccuracy.eq.4 ) then
         if( nd.eq.2 .and. gridType.eq.rectangular )then
           call advMx2dOrder4r(nd,n1a,n1b,n2a,n2b,n3a,n3b,nd1a,nd1b,nd2a,nd2b,nd3a,nd3b,nd4a,nd4b,\
-                              mask,rx, um,u,un,f, v,vvt2,ut3,vvt4,ut5,ut6,ut7,bc, dis,varDis, ipar, rpar, ierr )
+                              mask,rx, um,u,un,f,fa, v,vvt2,ut3,vvt4,ut5,ut6,ut7,bc, dis,varDis, ipar, rpar, ierr )
         else if(nd.eq.2 .and. gridType.eq.curvilinear )then
           call advMx2dOrder4c(nd,n1a,n1b,n2a,n2b,n3a,n3b,nd1a,nd1b,nd2a,nd2b,nd3a,nd3b,nd4a,nd4b,\
-                              mask,rx, um,u,un,f, v,vvt2,ut3,vvt4,ut5,ut6,ut7,bc, dis,varDis, ipar, rpar, ierr )
+                              mask,rx, um,u,un,f,fa, v,vvt2,ut3,vvt4,ut5,ut6,ut7,bc, dis,varDis, ipar, rpar, ierr )
         else if(  nd.eq.3 .and. gridType.eq.rectangular )then
           call advMx3dOrder4r(nd,n1a,n1b,n2a,n2b,n3a,n3b,nd1a,nd1b,nd2a,nd2b,nd3a,nd3b,nd4a,nd4b,\
-                              mask,rx, um,u,un,f, v,vvt2,ut3,vvt4,ut5,ut6,ut7,bc, dis,varDis, ipar, rpar, ierr )
+                              mask,rx, um,u,un,f,fa, v,vvt2,ut3,vvt4,ut5,ut6,ut7,bc, dis,varDis, ipar, rpar, ierr )
         else if(  nd.eq.3 .and. gridType.eq.curvilinear )then
           call advMx3dOrder4c(nd,n1a,n1b,n2a,n2b,n3a,n3b,nd1a,nd1b,nd2a,nd2b,nd3a,nd3b,nd4a,nd4b,\
-                              mask,rx, um,u,un,f, v,vvt2,ut3,vvt4,ut5,ut6,ut7,bc, dis,varDis, ipar, rpar, ierr )
+                              mask,rx, um,u,un,f,fa, v,vvt2,ut3,vvt4,ut5,ut6,ut7,bc, dis,varDis, ipar, rpar, ierr )
        else
          stop 8843
        end if
@@ -2521,16 +2513,16 @@ c
       else if( orderOfAccuracy.eq.6 ) then
         if( nd.eq.2 .and. gridType.eq.rectangular )then
           call advMx2dOrder6r(nd,n1a,n1b,n2a,n2b,n3a,n3b,nd1a,nd1b,nd2a,nd2b,nd3a,nd3b,nd4a,nd4b,\
-                              mask,rx, um,u,un,f, v,vvt2,ut3,vvt4,ut5,ut6,ut7,bc, dis,varDis, ipar, rpar, ierr )
+                              mask,rx, um,u,un,f,fa, v,vvt2,ut3,vvt4,ut5,ut6,ut7,bc, dis,varDis, ipar, rpar, ierr )
         else if(nd.eq.2 .and. gridType.eq.curvilinear )then
           call advMx2dOrder6c(nd,n1a,n1b,n2a,n2b,n3a,n3b,nd1a,nd1b,nd2a,nd2b,nd3a,nd3b,nd4a,nd4b,\
-                              mask,rx, um,u,un,f, v,vvt2,ut3,vvt4,ut5,ut6,ut7,bc, dis,varDis, ipar, rpar, ierr )
+                              mask,rx, um,u,un,f,fa, v,vvt2,ut3,vvt4,ut5,ut6,ut7,bc, dis,varDis, ipar, rpar, ierr )
         else if(  nd.eq.3 .and. gridType.eq.rectangular )then
           call advMx3dOrder6r(nd,n1a,n1b,n2a,n2b,n3a,n3b,nd1a,nd1b,nd2a,nd2b,nd3a,nd3b,nd4a,nd4b,\
-                              mask,rx, um,u,un,f, v,vvt2,ut3,vvt4,ut5,ut6,ut7,bc, dis,varDis, ipar, rpar, ierr )
+                              mask,rx, um,u,un,f,fa, v,vvt2,ut3,vvt4,ut5,ut6,ut7,bc, dis,varDis, ipar, rpar, ierr )
         else if(  nd.eq.3 .and. gridType.eq.curvilinear )then
           call advMx3dOrder6c(nd,n1a,n1b,n2a,n2b,n3a,n3b,nd1a,nd1b,nd2a,nd2b,nd3a,nd3b,nd4a,nd4b,\
-                              mask,rx, um,u,un,f, v,vvt2,ut3,vvt4,ut5,ut6,ut7,bc, dis,varDis, ipar, rpar, ierr )
+                              mask,rx, um,u,un,f,fa, v,vvt2,ut3,vvt4,ut5,ut6,ut7,bc, dis,varDis, ipar, rpar, ierr )
        else
          stop 8843
        end if
@@ -2539,16 +2531,16 @@ c
 
         if( nd.eq.2 .and. gridType.eq.rectangular )then
           call advMx2dOrder8r(nd,n1a,n1b,n2a,n2b,n3a,n3b,nd1a,nd1b,nd2a,nd2b,nd3a,nd3b,nd4a,nd4b,\
-                              mask,rx, um,u,un,f, v,vvt2,ut3,vvt4,ut5,ut6,ut7,bc, dis,varDis, ipar, rpar, ierr )
+                              mask,rx, um,u,un,f,fa, v,vvt2,ut3,vvt4,ut5,ut6,ut7,bc, dis,varDis, ipar, rpar, ierr )
         else if(nd.eq.2 .and. gridType.eq.curvilinear )then
           call advMx2dOrder8c(nd,n1a,n1b,n2a,n2b,n3a,n3b,nd1a,nd1b,nd2a,nd2b,nd3a,nd3b,nd4a,nd4b,\
-                              mask,rx, um,u,un,f, v,vvt2,ut3,vvt4,ut5,ut6,ut7,bc, dis,varDis, ipar, rpar, ierr )
+                              mask,rx, um,u,un,f,fa, v,vvt2,ut3,vvt4,ut5,ut6,ut7,bc, dis,varDis, ipar, rpar, ierr )
         else if(  nd.eq.3 .and. gridType.eq.rectangular )then
           call advMx3dOrder8r(nd,n1a,n1b,n2a,n2b,n3a,n3b,nd1a,nd1b,nd2a,nd2b,nd3a,nd3b,nd4a,nd4b,\
-                              mask,rx, um,u,un,f, v,vvt2,ut3,vvt4,ut5,ut6,ut7,bc, dis,varDis, ipar, rpar, ierr )
+                              mask,rx, um,u,un,f,fa, v,vvt2,ut3,vvt4,ut5,ut6,ut7,bc, dis,varDis, ipar, rpar, ierr )
         else if(  nd.eq.3 .and. gridType.eq.curvilinear )then
           call advMx3dOrder8c(nd,n1a,n1b,n2a,n2b,n3a,n3b,nd1a,nd1b,nd2a,nd2b,nd3a,nd3b,nd4a,nd4b,\
-                              mask,rx, um,u,un,f, v,vvt2,ut3,vvt4,ut5,ut6,ut7,bc, dis,varDis, ipar, rpar, ierr )
+                              mask,rx, um,u,un,f,fa, v,vvt2,ut3,vvt4,ut5,ut6,ut7,bc, dis,varDis, ipar, rpar, ierr )
        else
          stop 8843
        end if

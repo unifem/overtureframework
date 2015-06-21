@@ -13,6 +13,7 @@ Cgad.C:
   - updateToMatchGrid(CompositeGrid & cg)
   - updateGeometryArrays(GridFunction & cgf)
   - saveShowFileComments( Ogshow &show )
+  - writeParameterSummary( FILE * file )   : output header 
 
 getTimeSteppingEigenvalue.C:
   - getTimeSteppingEigenvalue(MappedGrid & mg, realMappedGridFunction & u0, ... )

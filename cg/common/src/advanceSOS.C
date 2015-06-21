@@ -554,22 +554,21 @@ advanceSecondOrderSystem( real & t0, real & dt0, int & numberOfSubSteps, int & i
             else
             {
         // *new* way to initialize past time solution  // *wdh* 2014/06/28 
-                if( false )
+                if( numberOfPastTimes==1 )
                 {
                     gf[mOld].t=t0-dt0;
-                    int numberOfPast=1;
                     int previous[1]={mOld};  // 
-                    getPastTimeSolutions( mCur, numberOfPast, previous  ); 
+                    getPastTimeSolutions( mCur, numberOfPastTimes, previous  ); 
                 }
                 else
                 {
-          // For BDF schemes we need more past solutions
+          // For BDF schemes we need more past solutions (NOTE: this does not work for PC since previous[0]!=mOld)
                     int *previous = new int[numberOfPastTimes];
                     for( int kgf=1; kgf<=numberOfPastTimes; kgf++ )
                     {
               	const int mgf = (mCur - kgf + numberOfGridFunctions) % numberOfGridFunctions;
                         gf[mgf].t=t0-dt0*kgf;
-              	previous[kgf]=mgf;
+              	previous[kgf-1]=mgf;
                     }
                     getPastTimeSolutions( mCur, numberOfPastTimes, previous  );
                     delete [] previous;

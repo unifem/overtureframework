@@ -1,6 +1,9 @@
 #include "DetectCollisions.h"
 #include "StretchTransform.h"
 #include "ParallelUtility.h"
+#include "ParallelGridUtility.h"
+#include "SquareMapping.h"
+#include "BoxMapping.h"
 
 // ====================================================================================
 ///  \function detectCollisions
@@ -35,24 +38,37 @@ detectCollisions( real t,
   int returnValue=0;
   const int numberOfDimensions=gc.numberOfDimensions();
   Range Rx=numberOfDimensions;
+  const int myid=max(0,Communication_Manager::My_Process_Number);
   
+  // ----- rigid body info ------
+  // xCM(.,b) : center of mass of body b
+  // vCM(.,b) : velocity of the center of mass of body b
+
+  // radius(b) : radius of the body (assumed circular)
+  // spacing(b) : distance between the boundary and grid line number "separationLine" 
+
   Index Ib1,Ib2,Ib3,Ip1,Ip2,Ip3;
   RealArray xCM(3,numberOfRigidBodies); xCM=0.;
   RealArray vCM(3,numberOfRigidBodies); vCM=0.;
   RealArray x0(3), radius(numberOfRigidBodies), spacing(numberOfRigidBodies);
 
-  const int closestLine = int(minimumSeparation+REAL_EPSILON*10.);
-  // const real deltaSeparation=minimumSeparation-closestLine;
+  // separationLine : closest line less than or equal to a distance of "minimumSeparation"
+  const int separationLine = int(minimumSeparation+REAL_EPSILON*10.);
+  // const real deltaSeparation=minimumSeparation-separationLine;
 
+  // *********************************************************
+  // **** Compute radius and spacing for each rigid body *****
+  // *********************************************************
   Range all;
-  int b;
-  for( b=0; b<numberOfRigidBodies; b++ )
+  for( int b=0; b<numberOfRigidBodies; b++ )
   {
     const RealArray & xCMb0 = xCM(all,b);  RealArray & xCMb = (RealArray&) xCMb0;
     const RealArray & vCMb0 = vCM(all,b);  RealArray & vCMb = (RealArray&) vCMb0;
 
     body[b]->getPosition(t,xCMb);
     body[b]->getVelocity(t,vCMb);
+
+    // x0 : holds xCM for this body 
     x0=xCM(all,b);
     
     // for each body, get the grid(s) that form the body
@@ -75,7 +91,7 @@ detectCollisions( real t,
       const int num=Ib1.getLength()*Ib2.getLength()*Ib3.getLength();
 
       // ** compute the spacing to a line offset from the surface ***
-      getGhostIndex(c.indexRange(),side,axis,Ip1,Ip2,Ip3,-closestLine);
+      getGhostIndex(c.indexRange(),side,axis,Ip1,Ip2,Ip3,-separationLine);
 
       // const realArray & x = c.vertex();
       bool ok=true;
@@ -135,7 +151,7 @@ detectCollisions( real t,
 
 
 	// ** compute the spacing to a line offset from the surface ***
-	getGhostIndex(c.indexRange(),side,axis,Ip1,Ip2,Ip3,-closestLine);
+	getGhostIndex(c.indexRange(),side,axis,Ip1,Ip2,Ip3,-separationLine);
 	if( numberOfDimensions==2 )   
 	  spacing(b)=SQRT(sum(SQR(x(Ip1,Ip2,Ip3,0)-x(Ib1,Ib2,Ib3,0))+
 			      SQR(x(Ip1,Ip2,Ip3,1)-x(Ib1,Ib2,Ib3,1)))/num);
@@ -149,21 +165,25 @@ detectCollisions( real t,
       break;
     }
     
-    // printF(" body %i : radius=%e, spacing to line %i = %e. (\n",b,radius(b),closestLine,spacing(b));
+    // printF(" body %i : radius=%e, spacing to line %i = %e. (\n",b,radius(b),separationLine,spacing(b));
 
   }
   
-  // *********************************
-  // **** Loop over rigid bodies *****
-  // *********************************
-  for( b=0; b<numberOfRigidBodies; b++ ) 
+  // ***********************************************************************
+  // **** Check for collisions with domain boundaries and other bodies *****
+  // ***********************************************************************
+  for( int b=0; b<numberOfRigidBodies; b++ ) 
   {
+
+    // *********************************************************************
     // *** check for a collision with any rectangular "background" grids ***
+    // *********************************************************************
+
     for( int grid=0; grid<gc.numberOfBaseGrids(); grid++ )
     {
       MappedGrid & mg = gc[grid];
 
-      // dx[side][axis] : set equal to the distance to the "closestLine" from the boundary
+      // dx[side][axis] : set equal to the distance to the "separationLine" from the boundary
       real dx[2][3],xab[2][3];
 
       bool checkThisGrid=false;
@@ -176,7 +196,7 @@ detectCollisions( real t,
         // dx[side][axis] should be the distance to the closest line
         for( int side=0; side<=1; side++ )
 	  for(int axis=0; axis<mg.numberOfDimensions(); axis++ )
-	    dx[side][axis]=dxr[axis]*closestLine;
+	    dx[side][axis]=dxr[axis]*separationLine;
 	
       }
       else if( mg.mapping().getClassName()=="StretchTransform" )
@@ -186,36 +206,96 @@ detectCollisions( real t,
 	StretchTransform & stretch = (StretchTransform&)(mg.mapping().getMapping());
 	if( stretch.map2.getClassName()=="SquareMapping" )
 	{
+	  // ------ this is a stretched square mapping ---------
+
           // printF(">>>detect collisions: grid %i is a StretchTransform of a SquareMapping \n",grid);
 
-	  // this is a stretched square mapping
           checkThisGrid=true;
 	  
-          const realArray & vertex = mg.vertex();
-	  for( int side=0; side<=1; side++ )
+	  if( true )
 	  {
+	    // *new* way for parallel  *wdh* 2015/05/25 
+            SquareMapping & squareMap = (SquareMapping&)(stretch.map2.getMapping());
+	  
+	    squareMap.getVertices( xab[0][0],xab[1][0], xab[0][1],xab[1][1] );
+	    xab[0][2]=0.; xab[1][2]=1.;
+            RealArray r(1,3),x(1,3);
 	    for(int axis=0; axis<mg.numberOfDimensions(); axis++ )
 	    {
-              // here we assume that the grid is rectangular (but not Cartesian)
-	      getBoundaryIndex(mg.gridIndexRange(),side,axis,Ib1,Ib2,Ib3);
-	      xab[side][axis]=vertex(Ib1.getBase(),Ib2.getBase(),Ib3.getBase(),axis);
-	      
-	      getGhostIndex(mg.gridIndexRange(),side,axis,Ip1,Ip2,Ip3,-closestLine);
-	      dx[side][axis]=fabs(vertex(Ip1.getBase(),Ip2.getBase(),Ip3.getBase(),axis)-
-				  vertex(Ib1.getBase(),Ib2.getBase(),Ib3.getBase(),axis));
-
-              // printF(" grid=%i (side,axis)=(%i,%i) xab=%8.2e, dx=%8.2e\n",grid,side,axis,
-              //       xab[side][axis],dx[side][axis]);
-	      
+	      // -- evaluate the stretched square on the "separationLine" --
+	      const real drc = mg.gridSpacing(axis)*separationLine;
+	      r=.5;
+	      for( int side=0; side<=1; side++ )
+	      {
+		r(0,axis) = side==0 ? drc : 1.-drc;
+		stretch.mapS(r,x);
+		dx[side][axis]= fabs(x(0,axis)-xab[side][axis]);
+	      }
+	    
 	    }
 	  }
+	  else
+	  {
+	    // --old way --
+	    OV_GET_SERIAL_ARRAY(real,mg.vertex(),xLocal);
+	  
+	    for( int side=0; side<=1; side++ )
+	    {
+	      for(int axis=0; axis<mg.numberOfDimensions(); axis++ )
+	      {
+		// here we assume that the grid is rectangular (but not Cartesian)
+		getBoundaryIndex(mg.gridIndexRange(),side,axis,Ib1,Ib2,Ib3);
 
-	}
+		// -- point on the boundary 
+		xab[side][axis]=xLocal(Ib1.getBase(),Ib2.getBase(),Ib3.getBase(),axis);
+	      
+		// -- distance to grid line "separationLine" inside the domain:
+		getGhostIndex(mg.gridIndexRange(),side,axis,Ip1,Ip2,Ip3,-separationLine);
+		dx[side][axis]=fabs(xLocal(Ip1.getBase(),Ip2.getBase(),Ip3.getBase(),axis)-
+				    xLocal(Ib1.getBase(),Ib2.getBase(),Ib3.getBase(),axis));
+		// printF(" grid=%i (side,axis)=(%i,%i) xab=%8.2e, dx=%8.2e\n",grid,side,axis,
+		//       xab[side][axis],dx[side][axis]);
+	      
+	      }
+	    }
+	  } // end -old way-
+	  
+
+	} // end if stretch.map2 == square 
+	else if( stretch.map2.getClassName()=="BoxMapping" )
+	{
+	  // ------ this is a stretched BoxMapping ---------
+
+          // printF(">>>detect collisions: grid %i is a StretchTransform of a BoxMapping \n",grid);
+
+          checkThisGrid=true;
+	  // *wdh* 2015/05/25 
+	  BoxMapping & boxMap = (BoxMapping&)(stretch.map2.getMapping());
+	  
+	  boxMap.getVertices( xab[0][0],xab[1][0], xab[0][1],xab[1][1], xab[0][2],xab[1][2] );
+	  RealArray r(1,3),x(1,3);
+	  for(int axis=0; axis<mg.numberOfDimensions(); axis++ )
+	  {
+	    // -- evaluate the stretched box on the "separationLine" --
+	    const real drc = mg.gridSpacing(axis)*separationLine;
+	    r=.5;
+	    for( int side=0; side<=1; side++ )
+	    {
+	      r(0,axis) = side==0 ? drc : 1.-drc;
+	      stretch.mapS(r,x);
+	      dx[side][axis]= fabs(x(0,axis)-xab[side][axis]);
+	    }
+	  }
+	} // end if stretch.map2 == BoxMapping
+	
       }
       
       if( checkThisGrid )
       {
-	
+	// IntegerArray bcLocal; 
+	// ParallelGridUtility::getLocalBoundaryConditions(mg,bcLocal);
+
+        int collisionDetected[2][3] ={0,0, 0,0, 0,0};// 
 	for( int side=0; side<=1; side++ )
 	{
 	  for(int axis=0; axis<mg.numberOfDimensions(); axis++ )
@@ -225,7 +305,7 @@ detectCollisions( real t,
               // This is a wall (could be inflow or outflow -- but ignore this possibility)
 
               real separationDistance = fabs(xCM(axis,b)-xab[side][axis])-radius(b);
-              real minDist=max(dx[side][axis],spacing(b))/closestLine*(minimumSeparation);
+              real minDist=max(dx[side][axis],spacing(b))/separationLine*(minimumSeparation);
 
               if( debug & 2 )
 		printF(" check for collision with walls: grid=%i, (side,axis)=(%i,%i) sepDist=%8.2e, minDist=%8.2e\n",
@@ -233,65 +313,100 @@ detectCollisions( real t,
 	      
               if( separationDistance< minDist )
 	      {
-		
-		printF("\n ....................possible collision with a wall.................................\n");
-
-                // For the collision -- build a virtual "image" body on the opposite side of the wall that
-                // is moving toward the actual body. For now the image body generates an elastic collision.
-                RealArray xCM2(3),vCM2(3);  // here is the image body
-                x0=0.; xCM2=0.; vCM2=0.;
-
-		xCM2(Rx)=xCM(Rx,b);
-		xCM2(axis)=2.*xab[side][axis] - xCM(axis,b);
-                vCM2(Rx)=vCM(Rx,b);
-		vCM2(axis)=-vCM(axis,b);
-		
-                // x0 : vector from xCM(b) to xCM2
-		
-		x0(Rx)=xCM2(Rx)-xCM(Rx,b);   
-		real dist = SQRT(sum(SQR(x0(Rx))));
-		if( dist!=0. )
-		  x0/=dist;
-
-		real m1 = body[b]->getMass();
-                real m2 = m1;
-		
-		// compute u1 = relative velocity of body b  along the line x0
-		// compute u2 = relative velocity of body b2 along the line x0
-		real u1=vCM(0,b )*x0(0)+vCM(1,b )*x0(1)+vCM(2,b )*x0(2);
-                real u2=vCM2(0  )*x0(0)+vCM2(1  )*x0(1)+vCM2(2  )*x0(2);  // should equal -u1
-
-                if( u1>u2 ) // only transfer momentum if body b is moving towards the wall
-		{
-		  real uCM=(m1*u1+m2*u2)/(m1+m2);  // should equal zero
-		  // u1p=-u1+2.*uCM;
-		  // u2p=-u2+2.*uCM;
-		  RealArray v1(3); v1=0.;
-		  v1(Rx)=vCM(Rx,b )+(-2.*u1+2.*uCM)*x0(Rx);
-		  body[b]->momentumTransfer( t,v1 );
-		
-  		  printF("\n ********************collision with a wall***************************\n"
-                         " Collision of body %i with a wall: grid %s (%i) (side,axis)=(%i,%i) wall-x[%i]=%9.3e\n"
-                         "    body %i :  xCM=(%8.2e,%8.2e,%8.2e) vCM=(%8.2e,%8.2e,%8.2e) \n"
-                         "    separation-distance = %9.3e,  \n"
-		         "...collision: u1=%9.3e, u2=%9.3e, uCM=%9.3e, v1=(%8.2e,%8.2e,%8.2e) (new velocity)\n"
-                         " ********************end collision with a wall***************************\n",
-		       b,(const char*)mg.getName(),grid,side,axis,axis,xab[side][axis], 
-                       b,xCM(0,b),xCM(1,b),xCM(2,b),vCM(0,b),vCM(1,b),vCM(2,b),
-			 separationDistance, u1,u2,uCM,v1(0),v1(1),v1(2));
-		  
-		}
-		
-
+                collisionDetected[side][axis]=true;
 	      }
 	    }
+	  }
+	}
+        // All processors should agree there is a collision: 
+	int collisionDetectedAnywhere[2][3];
+	ParallelUtility::getMaxValues( &(collisionDetected[0][0]), &(collisionDetectedAnywhere[0][0]),6 );
+
+	for( int side=0; side<=1; side++ )
+	{
+	  for(int axis=0; axis<mg.numberOfDimensions(); axis++ )
+	  {
+	    if( collisionDetectedAnywhere[side][axis]!=collisionDetected[side][axis] )
+	    {
+	      printf("detectCollisions: ERROR: myid=%i : collision detection NOT consistent amongs processors!\n",
+		     myid);
+	      OV_ABORT("ERROR");
+	    }
+	    if( collisionDetectedAnywhere[side][axis] )
+	    {
+	      
+              real separationDistance = fabs(xCM(axis,b)-xab[side][axis])-radius(b);
+              real minDist=max(dx[side][axis],spacing(b))/separationLine*(minimumSeparation);	
+		
+	      printF("\n ....................possible collision with a wall.................................\n");
+
+	      // For the collision -- build a virtual "image" body on the opposite side of the wall that
+	      // is moving toward the actual body. For now the image body generates an elastic collision.
+	      RealArray xCM2(3),vCM2(3);  // here is the image body
+	      x0=0.; xCM2=0.; vCM2=0.;
+
+	      xCM2(Rx)=xCM(Rx,b);
+	      xCM2(axis)=2.*xab[side][axis] - xCM(axis,b);
+	      vCM2(Rx)=vCM(Rx,b);
+	      vCM2(axis)=-vCM(axis,b);
+		
+	      // x0 : vector from xCM(b) to xCM2
+		
+	      x0(Rx)=xCM2(Rx)-xCM(Rx,b);   
+	      real dist = SQRT(sum(SQR(x0(Rx))));
+	      if( dist!=0. )
+		x0/=dist;
+
+	      real m1 = body[b]->getMass();
+	      real m2 = m1;
+		
+	      // compute u1 = relative velocity of body b  along the line x0
+	      // compute u2 = relative velocity of body b2 along the line x0
+	      real u1=vCM(0,b )*x0(0)+vCM(1,b )*x0(1)+vCM(2,b )*x0(2);
+	      real u2=vCM2(0  )*x0(0)+vCM2(1  )*x0(1)+vCM2(2  )*x0(2);  // should equal -u1
+
+              // All processors should again agree on the collision
+              int haveCollided = u1>u2; // only transfer momentum if body b is moving towards the wall
+	      int someHaveCollided=ParallelUtility::getMaxValue(haveCollided);
+	      if( someHaveCollided !=haveCollided )
+	      {
+                printf("detectCollisions: ERROR: myid=%i :haveCollided != someHaveCollided!\n",
+                   myid);
+		OV_ABORT("ERROR");
+	      }
+
+	      if( someHaveCollided ) 
+	      {
+		real uCM=(m1*u1+m2*u2)/(m1+m2);  // should equal zero
+		// u1p=-u1+2.*uCM;
+		// u2p=-u2+2.*uCM;
+		RealArray v1(3); v1=0.;
+		v1(Rx)=vCM(Rx,b )+(-2.*u1+2.*uCM)*x0(Rx);
+		body[b]->momentumTransfer( t,v1 );
+		
+		printF("\n ********************collision with a wall***************************\n"
+		       " Collision of body %i with a wall: grid %s (%i) (side,axis)=(%i,%i) wall: x[%i]=%9.3e\n"
+		       "    body %i :  xCM=(%8.2e,%8.2e,%8.2e) vCM=(%8.2e,%8.2e,%8.2e) \n"
+		       "    separation-distance = %9.3e, (collison distance=%g lines)  \n"
+		       "...collision: u1=%9.3e, u2=%9.3e, uCM=%9.3e, v1=(%8.2e,%8.2e,%8.2e) (new velocity)\n"
+		       " ********************end collision with a wall***************************\n",
+		       b,(const char*)mg.getName(),grid,side,axis,axis,xab[side][axis], 
+                       b,xCM(0,b),xCM(1,b),xCM(2,b),vCM(0,b),vCM(1,b),vCM(2,b),
+		       separationDistance, minimumSeparation, u1,u2,uCM,v1(0),v1(1),v1(2));
+		  
+	      } // end someHaveCollided
+
+	    } // end if collisonDetectedAnywhere
 	  } // end for axis
 	} // end for side
       }
     } // end for grid
     
 
-    // **** For each rigid body: check for collisions with other (higher-numbered) rigid bodies *****
+    // ----------------------------------------------------------------------------------------------
+    // ---- For each rigid body: check for collisions with other (higher-numbered) rigid bodies -----
+    // ----------------------------------------------------------------------------------------------
+
     x0=0.;
     for( int b2=b+1; b2<numberOfRigidBodies; b2++ )
     {
@@ -302,16 +417,16 @@ detectCollisions( real t,
 
       // only allow the bodies to approach by a distance d
       // -> we want to be able to interpolate a point on the second ghost line
-      real d = radius(b)+radius(b2)+max(spacing(b),spacing(b2))*(minimumSeparation/closestLine);
+      real d = radius(b)+radius(b2)+max(spacing(b),spacing(b2))*(minimumSeparation/separationLine);
 
       real separationDistance=dist-radius(b)-radius(b2);
       
       if( debug & 1 || dist<d )
 	printF("---detectCollisions: dist between body %i (r=%8.2e,dr=%8.2e) and body %i (r=%8.2e,dr=%8.2e) is %8.2e \n"
 	       "                     separation dist=%8.2e approx grid lines=%5.2f, %5.2f \n",
-	       b,radius(b),spacing(b)/closestLine, b2,radius(b2),spacing(b2)/closestLine,
-	       dist,separationDistance,separationDistance/(spacing(b)/closestLine),
-	       separationDistance/(spacing(b2)/closestLine));
+	       b,radius(b),spacing(b)/separationLine, b2,radius(b2),spacing(b2)/separationLine,
+	       dist,separationDistance,separationDistance/(spacing(b)/separationLine),
+	       separationDistance/(spacing(b2)/separationLine));
 
       if( dist!=0. )
         x0/=dist;
@@ -324,7 +439,17 @@ detectCollisions( real t,
       if( debug & 2 ) printF("----- u1=%8.2e, u2=%8.2e, rel. velocity=%8.2e\n",u1,u2,u1-u2);
 
 
-      if( dist<d && u1>u2 )
+      // All processors should agree on the collision
+      int haveCollided = dist<d && u1>u2; // only transfer momentum if body b is moving towards the wall
+      int someHaveCollided=ParallelUtility::getMaxValue(haveCollided);
+      if( someHaveCollided !=haveCollided )
+      {
+	printf("detectCollisions: ERROR: myid=%i :haveCollided != someHaveCollided for two bodies!\n",
+	       myid);
+	OV_ABORT("ERROR");
+      }
+
+      if( someHaveCollided )
       {
 	printF(" =================================================================================\n"
                "  detectCollisions: collision detected at t=%9.3e : dist=%e < d=%e***\n"

@@ -178,7 +178,7 @@ plot(real t, GenericGraphicsInterface & gi, GraphicsParameters & psp )
   if( beamModelType==linearBeamModel )
   {
     beam.getCenterLine(xc);
-
+       
     // ::display(xc,"beam center line","%8.2e ");
     
     NurbsMapping map; 
@@ -211,7 +211,7 @@ plot(real t, GenericGraphicsInterface & gi, GraphicsParameters & psp )
 
     PlotIt::plot(gi, map,psp);      
     psp.set(GraphicsParameters::lineWidth,1);  // reset
-
+    
   }
   else if( beamModelType==nonlinearBeamModel )
   {
@@ -242,36 +242,49 @@ getErrors( real t )
   int numNodes=0;
   if( beamModelType==linearBeamModel )
   {
-    beam.getCenterLine(xc);
-
-    int nElem=beam.getNumberOfElements();
-    numNodes=nElem+1;
-
-    RealArray ue(2*nElem+2), ve(2*nElem+2), ae;
-
-
-    beam.getExactSolution( t, ue, ve, ae );
-
-    // ::display(xc,"getErrors: beam center line","%8.2e ");
-
-    for (int i = 0; i <= nElem; ++i)
+    if( true )
     {
-      real xl = ( (real)i /nElem) *  beamLength;
-      // real we = W(xl,t);
-      real we = ue(i*2);
-
-      real err = fabs( xc(i,1)- we );
-
-      if( beam.debug & 2 )
-	printF("t=%9.3e i=%3i x=%9.3e w=%9.3e we=%9.3e err=%9.2e\n",t,i,xl,xc(i,1),we,err);
+      real uvErr[2], uvNorm[2];
+      beam.getErrors( "tbm",  stdout, uvErr,uvNorm  );
+      errMax=uvErr[0];
+      yNorm=uvNorm[0];
       
-      errMax=max(errMax,err);
-      l2Err += SQR(err);
-      yNorm=yNorm+SQR(we);
-
     }
-    l2Err=sqrt(l2Err/(nElem+1));
-    yNorm=sqrt(yNorm/(nElem+1));
+    else
+    {
+      // ** OLD WAY**
+      beam.getCenterLine(xc);
+
+      int nElem=beam.getNumberOfElements();
+      numNodes=nElem+1;
+
+      RealArray ue(2*nElem+2), ve(2*nElem+2), ae;
+
+
+      beam.getExactSolution( t, ue, ve, ae );
+
+      // ::display(xc,"getErrors: beam center line","%8.2e ");
+
+      for (int i = 0; i <= nElem; ++i)
+      {
+	real xl = ( (real)i /nElem) *  beamLength;
+	// real we = W(xl,t);
+	real we = ue(i*2);
+
+	real err = fabs( xc(i,1)- we );
+
+	if( beam.debug & 2 )
+	  printF("t=%9.3e i=%3i x=%9.3e w=%9.3e we=%9.3e err=%9.2e\n",t,i,xl,xc(i,1),we,err);
+      
+	errMax=max(errMax,err);
+	l2Err += SQR(err);
+	yNorm=yNorm+SQR(we);
+
+      }
+      l2Err=sqrt(l2Err/(nElem+1));
+      yNorm=sqrt(yNorm/(nElem+1));
+    }
+    
   }
   else if( beamModelType==nonlinearBeamModel )
   {
@@ -301,15 +314,17 @@ getErrors( real t )
     yNorm=sqrt(yNorm/numNodes);
     printF("\n");
     
+    printF("Error Ne=%i, t=%9.3e, dt=%8.2e, numSteps=%i : max=%8.2e, l2=%8.2e, l2-rel=%8.2e\n",numNodes-1,t,dt,globalStepNumber,errMax,l2Err,l2Err/max(1.e-12,yNorm));
+
+
   }
   else
   {
     OV_ABORT("ERROR: unknown beam model");
   }
 
-  printF("Error Ne=%i, t=%9.3e, dt=%8.2e, numSteps=%i : max=%8.2e, l2=%8.2e, l2-rel=%8.2e\n",numNodes-1,t,dt,globalStepNumber,errMax,l2Err,l2Err/max(1.e-12,yNorm));
-
   const int numberOfComponentsToOutput=1;
+
   fPrintF(checkFile,"%9.2e %i  ",t,numberOfComponentsToOutput);
   fPrintF(checkFile,"%i %9.2e %10.3e  ",0,errMax,yNorm);
   fPrintF(checkFile,"\n");
@@ -422,12 +437,21 @@ solve(GenericGraphicsInterface & gi, GraphicsParameters & psp )
   int numRows=(numberOfPushButtons+1)/2;
   dialog.setPushButtons( cmds, cmds, numRows ); 
 
+  bool plotBeam=true;   // plot beam, or plot beam variables 
+  aString tbCommands[] = {"plot beam",
+                          ""};
+  int tbState[10];
+  tbState[0] = plotBeam;
+  int numColumns=1;
+  dialog.setToggleButtons(tbCommands, tbCommands, tbState, numColumns);
+
    const int numberOfTextStrings=15;  // max number allowed
    aString textLabels[numberOfTextStrings];
    aString textStrings[numberOfTextStrings];
 
    int nt=0;
    textLabels[nt] = "tFinal:";  sPrintF(textStrings[nt],"%g",tFinal);  nt++; 
+   textLabels[nt] = "tPlot:";  sPrintF(textStrings[nt],"%g",tPlot);  nt++; 
    textLabels[nt] = "debug:";  sPrintF(textStrings[nt],"%i",debug);  nt++; 
 
    // null strings terminal list
@@ -455,7 +479,23 @@ solve(GenericGraphicsInterface & gi, GraphicsParameters & psp )
       getErrors( t );
       
       // plot solution
-      plot(t, gi,psp);
+      if( plotBeam )
+      {
+	// plot beam center line
+        plot(t, gi,psp);
+      }
+      else
+      {
+        // plot beam variables, errors, etc. 
+	gi.erase();
+	psp.set(GI_USE_PLOT_BOUNDS,false);
+	aString label="tbm";
+	if( beamModelType==linearBeamModel )
+	  beam.plot( t, gi,psp,label );
+
+	gi.redraw(true);
+      }
+      
 
       // -- output results to the check file.
       // fprintf(checkFile,"%9.2e %i  ",t,numberOfComponentsToOutput+2); // print |\uv| and divergence too.
@@ -497,18 +537,30 @@ solve(GenericGraphicsInterface & gi, GraphicsParameters & psp )
 	}
 	else if( answer=="contour" )
 	{
-	  // gi.erase();
-	  // psp.set(GI_PLOT_THE_OBJECT_AND_EXIT,false);
-	  // PlotIt::contour(gi,uPlot,psp);
-	  // psp.set(GI_PLOT_THE_OBJECT_AND_EXIT,true);
+	  gi.erase();
+	  psp.set(GI_PLOT_THE_OBJECT_AND_EXIT,false);
+          psp.set(GI_USE_PLOT_BOUNDS,false);
+
+          // plot the solution, errors, etc.
+	  aString label="tbm";
+          if( beamModelType==linearBeamModel )
+             beam.plot( t, gi,psp,label );
+
+	  psp.set(GI_PLOT_THE_OBJECT_AND_EXIT,true);
 
           // plot( t, ua[mCur],gi,psp ); // replot all
 	}
+        else if( dialog.getToggleValue(answer,"plot beam",plotBeam) ){}//
 	else if( dialog.getTextValue(answer,"tFinal:","%g",tFinal) )
 	{
 	  // for now we keep dt the same
 	  maximumNumberOfSteps=tFinal/dt+10;
 	  finished=t>tFinal-.5*dt;
+	}
+	else if( dialog.getTextValue(answer,"tPlot:","%g",tPlot) )
+	{
+	  // for now we keep dt the same
+          nPlot = max(1,int( tPlot/dt+.5 ));
 	}
 	else if( dialog.getTextValue(answer,"debug:","%i",debug) ){} //
 	else

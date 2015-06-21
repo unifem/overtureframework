@@ -34,6 +34,7 @@ AnnulusMapping(const real innerRadius_ /* =.5 */,
 {
   AnnulusMapping::className="AnnulusMapping";
   setBasicInverseOption(canInvert);  // basicInverse is available
+  inverseIsDistributed=false; // *wdh* 2015/05/25 
 
   setName( Mapping::mappingName,"Annulus");
   setName(Mapping::domainAxis1Name,"theta");

@@ -1107,31 +1107,14 @@ buildParametersDialog(DialogData & dialog )
 }
 
 
-
-int Maxwell::
-plot(int current, real t, real dt )
 // ========================================================================================
-// /Description:
-//  plotOptions :  0 = no plotting
-//            1 - plot and wait
-//            2 - do not wait for response after plotting
-// /Return values: 0=normal exit. 1=user has requested "finish".
+/// \brief Construct the label that defines the time-stepping method and used in the
+///    title for plots
 // ========================================================================================
+void Maxwell::
+getTimeSteppingLabel( real dt, aString & label ) const
 {
-    if( plotOptions==0 )
-        return 0;
-
-    real cpu0=getCPU();
-    int returnValue=0;
-
-    assert( cgp!=NULL );
-    CompositeGrid & cg = *cgp;
-
-    GenericGraphicsInterface & ps = *gip;
-
-    char buff[100];
-    psp.set(GI_TOP_LABEL,sPrintF(buff,"Maxwell %s: t=%6.2e ",(const char *)methodName,t));
-    aString label;
+    aString buff;
     label=sPrintF(buff,"dt=%4.1e",dt);
 
     if( timeSteppingMethod==modifiedEquationTimeStepping )
@@ -1163,6 +1146,67 @@ plot(int current, real t, real dt )
             label+=sPrintF(buff," dd=%5.3f",divergenceDamping);
     }
     
+}
+
+
+
+int Maxwell::
+plot(int current, real t, real dt )
+// ========================================================================================
+// /Description:
+//  plotOptions :  0 = no plotting
+//            1 - plot and wait
+//            2 - do not wait for response after plotting
+// /Return values: 0=normal exit. 1=user has requested "finish".
+// ========================================================================================
+{
+    if( plotOptions==0 )
+        return 0;
+
+    real cpu0=getCPU();
+    int returnValue=0;
+
+    assert( cgp!=NULL );
+    CompositeGrid & cg = *cgp;
+
+    GenericGraphicsInterface & ps = *gip;
+
+    char buff[100];
+    psp.set(GI_TOP_LABEL,sPrintF(buff,"Maxwell %s: t=%6.2e ",(const char *)methodName,t));
+    aString label;
+    getTimeSteppingLabel( dt,label );
+    
+  // label=sPrintF(buff,"dt=%4.1e",dt);
+
+  // if( timeSteppingMethod==modifiedEquationTimeStepping )
+  //   label+=" TS=ME";
+  // else if( timeSteppingMethod==stoermerTimeStepping )
+  //   label+=" TS=ST";
+  // else if( timeSteppingMethod==rungeKuttaFourthOrder )
+  //   label+=" TS=RK";
+  // else if( timeSteppingMethod==defaultTimeStepping )
+  //   label+=" TS=default ";
+  // else
+  //   label+="TS=??, ";
+
+  // if( twilightZoneOption==polynomialTwilightZone )
+  //   label+=sPrintF(buff," order(X,T)=(%i,%i)",
+  // 		   orderOfAccuracyInSpace,orderOfAccuracyInTime);
+  // if( method==nfdtd )
+  // {
+  //   if( artificialDissipation!=0. && artificialDissipation==artificialDissipationCurvilinear )
+  //     label+=sPrintF(buff," ad%i=%4.2f",orderOfArtificialDissipation,artificialDissipation);
+  //   else if( artificialDissipationCurvilinear!=0. )
+  //     label+=sPrintF(buff," adr%i=%4.2f,adc%i=%4.2f",orderOfArtificialDissipation,artificialDissipation,
+  //                    orderOfArtificialDissipation,artificialDissipationCurvilinear);
+            
+  //   if( applyFilter )
+  //     label+=sPrintF(buff,", filter%i",orderOfFilter);
+
+  //   if( divergenceDamping>0. )
+  //     label+=sPrintF(buff," dd=%5.3f",divergenceDamping);
+  // }
+    
     if( plotScatteredField )
         label+="(scattered field)";
         
@@ -1178,34 +1222,34 @@ plot(int current, real t, real dt )
   //            myid);
   // fflush(stdout);
 
-  // set to true for debugging:   **WARNING: this will break the check files: output called twice:
-    bool getDiv=false; // true; 
-    if(  getDiv || (!graphicsIsOn && readingCommandFile && (method==nfdtd || method==sosup) ) )
-    {
-    // printF(" **** call getMaxDivergence t=%e, processor=%i\n",t, myid);
-    // fflush(stdout);
+  // // set to true for debugging:   **WARNING: this will break the check files: output called twice:
+  // bool getDiv=false; // true; 
+  // if(  getDiv || (!graphicsIsOn && readingCommandFile && (method==nfdtd || method==sosup) ) )
+  // {
+  //   // printF(" **** call getMaxDivergence t=%e, processor=%i\n",t, myid);
+  //   // fflush(stdout);
     
 
-    // no plotting and reading from a command file
-    // *** get divEMax and uMin, uMax
-        if ( method==nfdtd || method==sosup )
-            getMaxDivergence( current,t );
+  //   // no plotting and reading from a command file
+  //   // *** get divEMax and uMin, uMax
+  //   if ( method==nfdtd || method==sosup )
+  //     getMaxDivergence( current,t );
 
-        printF(">>> Cgmx:%s: t=%6.2e, %s |div(E)|=%8.2e, |div(E)|/|grad(E)|=%8.2e, |grad(E)|=%8.2e (%i steps)\n",
-         	   (const char *)methodName,t,(const char*)label,
-         	   divEMax,divEMax/max(REAL_MIN*100.,gradEMax),gradEMax,numberOfStepsTaken);
-        if( solveForMagneticField && cg.numberOfDimensions()==3 )
-        {
-            printF("                                                              "
-                          "|div(H)|=%8.2e, |div(H)|/|grad(H)|=%8.2e, |grad(H)|=%8.2e (%i steps)\n",
-           	     divHMax,divHMax/max(REAL_MIN*100.,gradHMax),gradHMax,numberOfStepsTaken);
-        }
+  //   printF(">>> Cgmx:%s: t=%6.2e, %s |div(E)|=%8.2e, |div(E)|/|grad(E)|=%8.2e, |grad(E)|=%8.2e (%i steps)\n",
+  // 	   (const char *)methodName,t,(const char*)label,
+  // 	   divEMax,divEMax/max(REAL_MIN*100.,gradEMax),gradEMax,numberOfStepsTaken);
+  //   if( solveForMagneticField && cg.numberOfDimensions()==3 )
+  //   {
+  //     printF("                                                              "
+  //            "|div(H)|=%8.2e, |div(H)|/|grad(H)|=%8.2e, |grad(H)|=%8.2e (%i steps)\n",
+  // 	     divHMax,divHMax/max(REAL_MIN*100.,gradHMax),gradHMax,numberOfStepsTaken);
+  //   }
         
-        outputResults(current,t,dt);
+  //   outputResults(current,t,dt);
         
-        timing(timeForPlotting)+=getCPU()-cpu0;
-        if( !getDiv ) return returnValue;
-    }
+  //   timing(timeForPlotting)+=getCPU()-cpu0;
+  //   if( !getDiv ) return returnValue;
+  // }
     
 
     if( runTimeDialog==NULL )
@@ -1258,16 +1302,16 @@ plot(int current, real t, real dt )
     if( plotOptions & 1 )
     {
 
-        printF(">>> Cgmx:%s: t=%6.2e, %s |div(E)|=%8.2e, |div(E)|/|grad(E)|=%8.2e, |grad(E)|=%8.2e (%i steps)\n",
-         	   (const char *)methodName,t,(const char*)label,
-         	   divEMax,divEMax/max(REAL_MIN*100.,gradEMax),gradEMax,numberOfStepsTaken);
-        if( solveForMagneticField && cg.numberOfDimensions()==3 )
-        {
-            printF("                                                              "
-                          "|div(H)|=%8.2e, |div(H)|/|grad(H)|=%8.2e, |grad(H)|=%8.2e (%i steps)\n",
-           	     divHMax,divHMax/max(REAL_MIN*100.,gradHMax),gradHMax,numberOfStepsTaken);
-        }
-        outputResults(current,t,dt);
+    // printF(">>> Cgmx:%s: t=%6.2e, %s |div(E)|=%8.2e, |div(E)|/|grad(E)|=%8.2e, |grad(E)|=%8.2e (%i steps)\n",
+    // 	   (const char *)methodName,t,(const char*)label,
+    // 	   divEMax,divEMax/max(REAL_MIN*100.,gradEMax),gradEMax,numberOfStepsTaken);
+    // if( solveForMagneticField && cg.numberOfDimensions()==3 )
+    // {
+    //   printF("                                                              "
+    //          "|div(H)|=%8.2e, |div(H)|/|grad(H)|=%8.2e, |grad(H)|=%8.2e (%i steps)\n",
+    // 	     divHMax,divHMax/max(REAL_MIN*100.,gradHMax),gradHMax,numberOfStepsTaken);
+    // }
+    // outputResults(current,t,dt);
         
 
     // Plot all the the things that the user has previously plotted

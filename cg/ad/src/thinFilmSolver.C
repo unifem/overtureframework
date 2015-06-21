@@ -42,8 +42,8 @@ thinFilmSolver(  real & t0, real & dt0, int correction, AdvanceOptions & advance
 
   assert( parameters.dbase.get<int >("orderOfPredictorCorrector")==2 );  // for now we just have 2nd-order in time
 
-  assert( parameters.dbase.get<DataBase >("modelData").has_key("AdamsImplicitData") );
-  AdamsPCData & adamsData = parameters.dbase.get<DataBase >("modelData").get<AdamsPCData>("AdamsImplicitData");
+  assert( parameters.dbase.get<DataBase >("modelData").has_key("AdamsPCData") );
+  AdamsPCData & adamsData = parameters.dbase.get<DataBase >("modelData").get<AdamsPCData>("AdamsPCData");
   
   real & dtb=adamsData.dtb;
   int &mab0 =adamsData.mab0, &mab1=adamsData.mab1, &mab2=adamsData.mab2;
@@ -172,15 +172,15 @@ thinFilmSolver(  real & t0, real & dt0, int correction, AdvanceOptions & advance
 
     // -- evaluate RHS to BDF scheme ---
     if( orderOfBDF==1 )
-      rhs(I1,I2,I3,N) = u0Local(I1,I2,I3,N) + dt*rhs(I1,I2,I3,N);
+      rhsLocal(I1,I2,I3,N) = u0Local(I1,I2,I3,N) + dt*rhsLocal(I1,I2,I3,N);
     else if( orderOfBDF==2 )    
-      rhs(I1,I2,I3,N) = (4./3.)*u0Local(I1,I2,I3,N) -(1./3.)*u1Local(I1,I2,I3,N) + (dt*2./3.)*rhs(I1,I2,I3,N);
+      rhsLocal(I1,I2,I3,N) = (4./3.)*u0Local(I1,I2,I3,N) -(1./3.)*u1Local(I1,I2,I3,N) + (dt*2./3.)*rhsLocal(I1,I2,I3,N);
     else if( orderOfBDF==3 )    
-      rhs(I1,I2,I3,N) = (18./11.)*u0Local(I1,I2,I3,N) -(9./11.)*u1Local(I1,I2,I3,N)
-                        +(2./11.)*u2Local(I1,I2,I3,N) + (dt*6./11.)*rhs(I1,I2,I3,N);
+      rhsLocal(I1,I2,I3,N) = (18./11.)*u0Local(I1,I2,I3,N) -(9./11.)*u1Local(I1,I2,I3,N)
+                        +(2./11.)*u2Local(I1,I2,I3,N) + (dt*6./11.)*rhsLocal(I1,I2,I3,N);
     else if( orderOfBDF==4 )    
-      rhs(I1,I2,I3,N) = (48./25.)*u0Local(I1,I2,I3,N) -(36./25.)*u1Local(I1,I2,I3,N)
-                       +(16./25.)*u2Local(I1,I2,I3,N) -( 3./25.)*u3Local(I1,I2,I3,N) + (dt*12./25.)*rhs(I1,I2,I3,N);
+      rhsLocal(I1,I2,I3,N) = (48./25.)*u0Local(I1,I2,I3,N) -(36./25.)*u1Local(I1,I2,I3,N)
+                       +(16./25.)*u2Local(I1,I2,I3,N) -( 3./25.)*u3Local(I1,I2,I3,N) + (dt*12./25.)*rhsLocal(I1,I2,I3,N);
     else
     {
       OV_ABORT("orderOfBDF>4 not implemented");

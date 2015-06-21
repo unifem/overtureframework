@@ -14,13 +14,13 @@
 # Examples:
 # 
 # dirichlet BC: 
-#  cgmx noplot tz -g=square10.hdf -degreex=2 -degreet=2 -diss=0. -tf=.5 -go=go         [exact]
-#  cgmx noplot tz -g=square16.order4 -degreex=4 -degreet=4 -diss=0. -tf=.5 -go=go      [exact]
-#  cgmx noplot tz -g=nonSquare10.hdf -degreex=2 -degreet=2 -diss=0. -tf=.5 -go=go      [exact]
-#  cgmx noplot tz -g=rotatedSquare10.hdf -degreex=2 -degreet=2 -diss=0. -tf=.5 -go=go  [exact]
-#  cgmx noplot tz -g=nonSquare10.hdf -degreex=2 -degreet=2 -diss=0. -tf=.5 -go=go      [exact]
-#  cgmx noplot tz -g=sise2.order2.hdf -degreex=2 -degreet=2 -diss=0. -tf=.5 -go=go     [exact]
-#  cgmx noplot tz -g=rsis2.hdf -degreex=2 -degreet=2 -diss=0. -tf=.5 -go=go            [exact]
+#  cgmx -noplot tz -g=square10.hdf -degreex=2 -degreet=2 -diss=0. -tf=.5 -go=go         [exact]
+#  cgmx -noplot tz -g=square16.order4 -degreex=4 -degreet=4 -diss=0. -tf=.5 -go=go      [exact]
+#  cgmx -noplot tz -g=nonSquare10.hdf -degreex=2 -degreet=2 -diss=0. -tf=.5 -go=go      [exact]
+#  cgmx -noplot tz -g=rotatedSquare10.hdf -degreex=2 -degreet=2 -diss=0. -tf=.5 -go=go  [exact]
+#  cgmx -noplot tz -g=nonSquare10.hdf -degreex=2 -degreet=2 -diss=0. -tf=.5 -go=go      [exact]
+#  cgmx -noplot tz -g=sise2.order2.hdf -degreex=2 -degreet=2 -diss=0. -tf=.5 -go=go     [exact]
+#  cgmx -noplot tz -g=rsis2.hdf -degreex=2 -degreet=2 -diss=0. -tf=.5 -go=go            [exact]
 # 
 #  cgmx tz -g=cice1.order2.hdf -degreex=2 -degreet=2 -diss=0. -tf=.5 -go=halt
 #  cgmx tz noplot -g=cice1.order2.hdf -degreex=2 -degreet=2 -diss=0.1 -tf=.5 -tz=trig -go=go
@@ -33,29 +33,29 @@
 #  cgmx tz noplot -g=rbibe2.order2.hdf -degreex=2 -degreet=2 -diss=0. -tf=1. -go=go    [exact]
 # 
 # -- Yee scheme
-#  cgmx noplot tz -g=square10 -degreex=2 -degreet=2 -method=Yee -tf=.5 -tp=.1 -bc=d -go=go [exact]
-#  cgmx noplot tz -g=box5 -degreex=2 -degreet=2 -method=Yee -tf=.5 -tp=.1 -bc=d -go=go [exact]
+#  cgmx -noplot tz -g=square10 -degreex=2 -degreet=2 -method=Yee -tf=.5 -tp=.1 -bc=d -go=go [exact]
+#  cgmx -noplot tz -g=box5 -degreex=2 -degreet=2 -method=Yee -tf=.5 -tp=.1 -bc=d -go=go [exact]
 #  mpirun -np 1 $cgmxp tz -g=square10 -degreex=2 -degreet=2 -method=Yee -tf=.5 -tp=.1 -bc=d -go=halt
 #  mpirun -np 1 $cgmxp tz -g=box10 -degreex=2 -degreet=2 -method=Yee -tf=.5 -tp=.1 -bc=d -go=halt
 #  -- TZ material variable coeff
-#   cgmx noplot tz -g=square5 -degreex=1 -degreet=2 -method=Yee -tf=.5 -tp=.1 -bc=d -useTZmaterials=1 -go=og  [exact]
-#   cgmx noplot tz -g=box5 -degreex=1 -degreet=2 -method=Yee -tf=.5 -tp=.1 -bc=d -useTZmaterials=1 -go=og  [exact]
+#   cgmx -noplot tz -g=square5 -degreex=1 -degreet=2 -method=Yee -tf=.5 -tp=.1 -bc=d -useTZmaterials=1 -go=og  [exact]
+#   cgmx -noplot tz -g=box5 -degreex=1 -degreet=2 -method=Yee -tf=.5 -tp=.1 -bc=d -useTZmaterials=1 -go=og  [exact]
 # 
 # -- sosup
-#  cgmx noplot tz -g=square20 -degreex=1 -degreet=1 -method=sosup -tf=.5 -tp=.1 -bc=d -go=go [exact]
-#  cgmx noplot tz -g=square20.order4.ng3 -degreex=3 -degreet=3 -method=sosup -tf=.5 -tp=.1 -bc=d -go=go [exact]
-#  cgmx noplot tz -g=square40.order6.ng4 -degreex=5 -degreet=5 -method=sosup -tf=.5 -tp=.1 -bc=d -go=go [almost exact 
+#  cgmx -noplot tz -g=square20 -degreex=1 -degreet=1 -method=sosup -tf=.5 -tp=.1 -bc=d -go=go [exact]
+#  cgmx -noplot tz -g=square20.order4.ng3 -degreex=3 -degreet=3 -method=sosup -tf=.5 -tp=.1 -bc=d -go=go [exact]
+#  cgmx -noplot tz -g=square40.order6.ng4 -degreex=5 -degreet=5 -method=sosup -tf=.5 -tp=.1 -bc=d -go=go [almost exact 
 #
 # -- symmetry bc
-#  cgmx noplot tz -g=square10        -degreex=2 -degreet=2 -diss=0. -tf=.5 -bcn=s -go=go    [exact]
-#  cgmx noplot tz -g=nonSquare10     -degreex=2 -degreet=2 -diss=0. -tf=.5 -bcn=s -go=go    [exact]  
-#  cgmx noplot tz -g=rotatedSquare10 -degreex=2 -degreet=2 -diss=0. -tf=.5 -bcn=s -go=go    [exact]
-#  cgmx noplot tz -g=square16.order4 -degreex=4 -degreet=4 -diss=0. -tf=.5 -bcn=s -go=go    [exact]
-#  cgmx noplot tz -g=rotatedSquare8.order4 -degreex=4 -degreet=4 -diss=0. -tf=.5 -bcn=s -go=go    [exact]
+#  cgmx -noplot tz -g=square10        -degreex=2 -degreet=2 -diss=0. -tf=.5 -bcn=s -go=go    [exact]
+#  cgmx -noplot tz -g=nonSquare10     -degreex=2 -degreet=2 -diss=0. -tf=.5 -bcn=s -go=go    [exact]  
+#  cgmx -noplot tz -g=rotatedSquare10 -degreex=2 -degreet=2 -diss=0. -tf=.5 -bcn=s -go=go    [exact]
+#  cgmx -noplot tz -g=square16.order4 -degreex=4 -degreet=4 -diss=0. -tf=.5 -bcn=s -go=go    [exact]
+#  cgmx -noplot tz -g=rotatedSquare8.order4 -degreex=4 -degreet=4 -diss=0. -tf=.5 -bcn=s -go=go    [exact]
 #
-#  cgmx tz noplot -g=box10.hdf -degreex=2 -degreet=2 -diss=0. -tf=.5 -bcn=s -go=go             [exact]
-#  cgmx tz noplot -g=rotatedBox10 -degreex=2 -degreet=2 -diss=0. -tf=.5 -bcn=s -go=go          [exact]
-#  cgmx tz noplot -g=rotatedBox16.order4 -degreex=4 -degreet=4 -diss=0. -tf=.5 -bcn=s -go=go   [exact]
+#  cgmx -noplot tz -g=box10.hdf -degreex=2 -degreet=2 -diss=0. -tf=.5 -bcn=s -go=go             [exact]
+#  cgmx -noplot tz -g=rotatedBox10 -degreex=2 -degreet=2 -diss=0. -tf=.5 -bcn=s -go=go          [exact]
+#  cgmx -noplot tz -g=rotatedBox16.order4 -degreex=4 -degreet=4 -diss=0. -tf=.5 -bcn=s -go=go   [exact]
 # 
 # parallel: 
 #  mpirun -np 1 $cgmxp noplot tz.cmd -g=square10.hdf -degreex=2 -degreet=2 -diss=0. -tf=.5 -go=go

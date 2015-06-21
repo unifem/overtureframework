@@ -13,7 +13,6 @@ ifeq ($(usePETSc),)
 usePETSc   := off
 endif
 useSuperLU := off
-useOgmg    := off
 
 # to use Chemkin:
 Chemkin  := off

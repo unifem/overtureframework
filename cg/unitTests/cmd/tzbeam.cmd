@@ -1,20 +1,24 @@
 #
 # cmd file for tbm : test beam models
-#         tbm -cmd=tzbeam.cmd -bc=[p|c|per|cf] -tz=[poly|trig|sw|twfsi] -standingFSI=[0|1]
+#         tbm -cmd=tzbeam.cmd -bc=[p|c|s|per|cf] -tz=[poly|trig|sw|twfsi|eigenmode] -standingFSI=[0|1] -smooth=[0|1] ...
+#               -eigenmode=[1|2|3]
 #
 #  -tz=sw : standing wave
 #  -tz=twfsi : traveling wave FSI-INS
 #  -standingFSI =1 : use standing traveling wave FSI-INS solution
+#  -tz=eigenmode : solve for an eigenmode
 # 
 $nElem=11; $tf=.5; $tp=.05; $cfl=.5; $Em=1.; $tension=0.; $K0=0.; $Kt=0.;  $Kxxt=0.; 
 $degreex=2; $degreet=2; $bc="c"; $tz="poly"; $useNewTri=1;
 $fx=2.; $ft=2; $debug=0; $orderOfProjection=2; 
-$rhos=100.; $hs=.1; $mu=.001; $standingFSI=0; 
+$rhos=100.; $hs=.1; $mu=.001; $standingFSI=0; $eigenmode=1; 
+$smooth=0; $numberOfSmooths=4; $smoothOrder=6; $smoothOmega=1.; 
 $go="halt";
 GetOptions( "nElem=i"=>\$nElem,"cfl=f"=>\$cfl,"Em=f"=>\$Em,"tension=f"=>\$tension,"degreet=i"=>\$degreet,\
             "degreex=i"=>\$degreex, "bc=s"=>\$bc, "tz=s"=>\$tz, "useNewTri=i"=>\$useNewTri,"standingFSI=i"=>\$standingFSI,\
             "tf=f"=>\$tf,"tp=f"=>\$tp,"fx=f"=>\$fx,"ft=f"=>\$ft,"rhos=f"=>\$rhos,"hs=f"=>\$hs,"debug=i"=>\$debug,\
-            "K0=f"=>\$K0,"Kt=f"=>\$Kt,"Kxxt=f"=>\$Kxxt,"orderOfProjection=i"=>\$orderOfProjection,"go=s"=>\$go );
+            "K0=f"=>\$K0,"Kt=f"=>\$Kt,"Kxxt=f"=>\$Kxxt,"orderOfProjection=i"=>\$orderOfProjection,"smooth=i"=>\$smooth,\
+            "numberOfSmooths=i"=>\$numberOfSmooths,"smoothOrder=i"=>\$smoothOrder,"eigenmode=i"=>\$eigenmode, "go=s"=>\$go );
 # 
 if( $go eq "halt" ){ $go = "#"; }
 if( $go eq "og" ){ $go = "open graphics"; }
@@ -31,8 +35,10 @@ change beam parameters
 #
 if( $bc eq "p" ){ $cmd = "bc left:pinned\n bc right:pinned"; }
 if( $bc eq "c" ){ $cmd = "bc left:clamped\n bc right:clamped"; }
+if( $bc eq "s" ){ $cmd = "bc left:slide\n bc right:slide"; }
 if( $bc eq "f" ){ $cmd = "bc left:free\n bc right:free"; }
 if( $bc eq "cf" ){ $cmd = "bc left:clamped\n bc right:free"; }
+if( $bc eq "cs" ){ $cmd = "bc left:clamped\n bc right:slide"; }
 if( $bc eq "per" ){ $cmd = "bc left:periodic\n bc right:periodic"; }
 $cmd
 #
@@ -54,6 +60,11 @@ use new tridiagonal solver $useNewTri
 #
 order of Galerkin projection: $orderOfProjection
 #
+smooth solution $smooth
+number of smooths: $numberOfSmooths
+smooth order: $smoothOrder
+smooth omega: $smoothOmega
+#
 degree in space: $degreex
 degree in time: $degreet
 trig frequencies: $ft, $fx, $fx, $fx (ft,fx,fy,fz)
@@ -71,18 +82,34 @@ exact solution...
   if( $tzToggle eq 1 ){ $cmd="Exact solution:twilight zone"; }
   if( $tz eq "twfsi" ){ $cmd="Exact solution:traveling wave FSI"; }
   if( $tz eq "sw" ){ $cmd="Exact solution:standing wave\n  amplitude: 0.1\n wave number: 1"; }
+  if( $tz eq "eigenmode" ){ $cmd="Exact solution:eigenmode\n  $eigenmode"; }
   if( $tz eq "twfsi" ){ $cmd="Exact solution:traveling wave FSI-INS\n  height: 1\n  length: 1\n kx: 1\n  amp, x0, t0: 0.1, 0, 0\n elastic shell density: $rhosHs\n  elastic shell tension: $Ts\n fluid density: 1\n fluid viscosity: $mu\n normal motion only 1\n standing wave solution $standingFSI\n# pause\n exit"; }
   $cmd
 exit
 #
 initial conditions...
-  if( $tz eq "poly" || $tz eq "trig" || $tz eq "sw" || $tz eq "twfsi" ){ $cmd="Initial conditions:exact solution"; }else{  $cmd="#"; }
+  if( $tz eq "poly" || $tz eq "trig" || $tz eq "sw" || $tz eq "twfsi" || $tz eq "eigenmode" ){ $cmd="Initial conditions:exact solution"; }else{  $cmd="#"; }
   $cmd 
 #
   exit
 #
 exit
 solve
+#
+plot beam 0 
+contour
+  uErr
+  add vErr
+  add uxErr
+  add vxErr
+#  add aErr
+  #  u 
+  # add v
+  # add a
+  # add ux
+  # add vx
+  #  add ax
+exit
 $go
 
 

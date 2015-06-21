@@ -14,6 +14,8 @@ ogen -noplot eyeGrid2d -interp=e -factor=16
 
 2015/04/17 -- start on thin-film equations
 
+
+
 cgad deformingSurface -g=eyeGrid2de8.order2 -motion=deformingEye -kappa=.005 -tf=1. -tp=.01 -tz=none -ic=pulse -alphaPulse=80. -x0=.0 -y0=0 -bc=n -ts=bdf -a=0 -b=0 -ampb=-.4 -implicitAdvection=1 -evalGridAsNurbs=1 -pde=thinFilm -go=halt
 
 

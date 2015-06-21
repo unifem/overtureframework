@@ -30,28 +30,31 @@
 #
 # -periodic
 #  ogen noplot nonSquare -n=16 -order=4 -periodic=pn
-* 
-* 
+# 
+# 
 $order=2; $n=10; $periodic=""; # default values
 $orderOfAccuracy = "second order"; $ng=2;
-* 
-* get command line arguments
-GetOptions( "order=i"=>\$order,"n=i"=> \$n,"periodic=s"=>\$periodic);
+$numGhost=-1;  # if this value is set, then use this number of ghost points
+# 
+# get command line arguments
+GetOptions( "order=i"=>\$order,"n=i"=> \$n,"periodic=s"=>\$periodic,"numGhost=i"=> \$numGhost );
 $nx=$n+1;
-* 
+# 
 if( $order eq 4 ){ $orderOfAccuracy="fourth order"; $ng=2; }\
 elsif( $order eq 6 ){ $orderOfAccuracy="sixth order"; $ng=4; }\
 elsif( $order eq 8 ){ $orderOfAccuracy="eighth order"; $ng=6; }
-* 
+# 
 $lines = $nx;
 suffix= "";
 if( $periodic eq "p" ){ $suffix = "p"; }
 if( $periodic eq "np" ){ $suffix = "np"; }
 if( $periodic eq "pn" ){ $suffix = "pn"; }
 $suffix .= ".order$order"; 
+if( $numGhost ne -1 ){ $ng = $numGhost; } # overide number of ghost
+if( $numGhost ne -1 ){ $suffix .= ".ng$numGhost"; } 
 $name = "nonSquare" . "$n" . $suffix;
-*
-* 
+#
+# 
 create mappings
   rectangle
     mappingName
@@ -73,7 +76,7 @@ create mappings
     square
     exit
 exit
-*
+#
 generate an overlapping grid
   square
   done
@@ -87,8 +90,8 @@ generate an overlapping grid
   exit
   compute overlap
 exit
-*
-* save an overlapping grid
+#
+# save an overlapping grid
 save a grid (compressed)
   $name.hdf
   nonSquare

@@ -53,6 +53,7 @@ CrossSectionMapping(
   crossSectionType=ellipse;
   sAxis=axis2;  // axial direction for ellipse
   setBasicInverseOption(canInvert);  // only the ellipse is invertible
+  inverseIsDistributed=false; // *wdh* 2015/05/25 
 
   setGridDimensions( tAxis,21 );  
   setGridDimensions( sAxis,11); 

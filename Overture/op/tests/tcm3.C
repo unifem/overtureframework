@@ -63,6 +63,7 @@ plotResults( PlotStuff & ps, Oges & solver, realCompositeGridFunction & u, realC
     "solution",
     "error",
     "grid",
+    "erase",
     "exit",
     ""
   };
@@ -89,6 +90,10 @@ plotResults( PlotStuff & ps, Oges & solver, realCompositeGridFunction & u, realC
       psp.set(GI_TOP_LABEL,"grid"); 
       PlotIt::plot(ps,*u.getCompositeGrid(),psp);
     }
+    else if( answer=="erase" )
+    {
+      ps.erase();
+    }
       
   }
 
@@ -96,12 +101,13 @@ plotResults( PlotStuff & ps, Oges & solver, realCompositeGridFunction & u, realC
 
 
 int 
-assignForcing(int option, CompositeGrid & cg, realCompositeGridFunction & f, OGFunction & exact )
+assignForcing(int option, CompositeGrid & cg, realCompositeGridFunction & f, OGFunction & exact,
+              RealArray *varCoeff=NULL )
 // ================================================================================================
 //
-//  Assign the right-hand-side. 
-//
-// /option (input) : 0 = dirichlet, 1=neumann
+/// \brief  Assign the right-hand-side. 
+///
+/// \param option (input) : 0 = dirichlet, 1=neumann, 2=mixed (variable coefficients)
 // 
 // ================================================================================================
 {
@@ -171,7 +177,7 @@ assignForcing(int option, CompositeGrid & cg, realCompositeGridFunction & f, OGF
 	}
 	else
 	{
-          // Neumann BC's : assign the value of f on the ghost line: 
+          // Neumann or mixed BC's : assign the value of f on the ghost line: 
 
 	  getGhostIndex(mg.gridIndexRange(),side,axis,Ig1,Ig2,Ig3);
 	  bool ok = ParallelUtility::getLocalArrayBounds(f[grid],fLocal,Ig1,Ig2,Ig3,includeGhost);
@@ -187,7 +193,14 @@ assignForcing(int option, CompositeGrid & cg, realCompositeGridFunction & f, OGF
 	    exact.gd( uex,xLocal,numberOfDimensions,rectangularForTZ,0,0,0,1,Ib1,Ib2,Ib3,0,0.);  // uex = T.z
 	    fLocal(Ig1,Ig2,Ig3) +=normal(Ib1,Ib2,Ib3,2)*uex;
 	  }
-
+	  if( option==2 )
+	  { // -- Mixed BC's ---
+	    RealArray ue(Ib1,Ib2,Ib3);
+	    exact.gd( ue,xLocal,mg.numberOfDimensions(),rectangularForTZ,0,0,0,0,Ib1,Ib2,Ib3,0,0.);
+	    fLocal(Ig1,Ig2,Ig3) = (  varCoeff[grid](Ib1,Ib2,Ib3,0)*ue(Ib1,Ib2,Ib3)
+				    +varCoeff[grid](Ib1,Ib2,Ib3,1)*fLocal(Ig1,Ig2,Ig3) );
+	  }
+	  
 	}
 	
       }
@@ -206,7 +219,7 @@ computeTheError( int option, CompositeGrid & cg, realCompositeGridFunction & u,
 //
 //  Compute the error in the solution.
 //
-// /option (input) : 0 = dirichlet, 1=neumann
+// /option (input) : 0 = dirichlet, 1=neumann, 2=mixed
 // 
 // ================================================================================================
 {
@@ -281,8 +294,10 @@ computeTheError( int option, CompositeGrid & cg, realCompositeGridFunction & u,
   }
   if( option==0 )
     printF("Maximum relative error with dirichlet bc's= %e (%e with ghost)\n",error,errorWithGhostPoints);  
-  else
+  else if(option==1 )
     printF("Maximum relative error with neumann bc's= %e\n",error);  
+  else if(option==1 )
+    printF("Maximum relative error with mixed bc's= %e\n",error);  
 
   return 0;
 }
@@ -295,7 +310,7 @@ main(int argc, char *argv[])
 
   printF("Usage: tcm3 [<gridName>] [-solver=[yale][harwell][slap][petsc][mg]] [-debug=<value>][-outputMatrix]\n" 
                      "[-noTiming] [-check] [-trig] [-tol=<value>] [-order=<value>] [-plot] [-ilu=] [-gmres] \n"
-                     "[-freq=<value>] [-dirichlet] [-neumann]\n");
+                     "[-freq=<value>] [-dirichlet] [-neumann] [-mixed] \n");
 
   const int maxNumberOfGridsToTest=3;
   int numberOfGridsToTest=maxNumberOfGridsToTest;
@@ -368,6 +383,10 @@ main(int argc, char *argv[])
       {
 	problemsToSolve=2; // just solve neumann problem
       }
+      else if( (len=arg.matches("-mixed")) )
+      {
+	problemsToSolve=4; // just solve with mixed BC's (variable coeff)
+      }
       else if( (len=arg.matches("-order=")) )
       {
 	sScanF(arg(len,arg.length()-1),"%i",&orderOfAccuracy);
@@ -433,13 +452,26 @@ main(int argc, char *argv[])
     checkFileName="tcm3.sp.check.new";
   Checker checker(checkFileName);  // for saving a check file.
 
+  printF("=================================================================================\n"
+         " --- tcm3 --- test coefficient matrices: scalar problem on an overlapping grid   \n"
+         " \n"
+         "  Equation: Poisson.\n");
+  if( twilightZoneOption==0 )
+    printF(" TwilightZone: polynomial, degree=%i.\n",orderOfAccuracy);
+  else
+    printF(" TwilightZone: trigonometric, fx=fy=fz=%e.\n",fx);
+    
+  printF("=================================================================================\n");
+
   PlotStuff ps(false,"tcm3");
 
   // make some shorter names for readability
-  BCTypes::BCNames dirichlet             = BCTypes::dirichlet,
-    neumann               = BCTypes::neumann,
-    extrapolate           = BCTypes::extrapolate,
-    allBoundaries         = BCTypes::allBoundaries; 
+  BCTypes::BCNames
+    dirichlet           = BCTypes::dirichlet,
+    neumann             = BCTypes::neumann,
+    mixed               = BCTypes::mixed,
+    extrapolate         = BCTypes::extrapolate,
+    allBoundaries       = BCTypes::allBoundaries; 
 
   int numberOfSolvers = check ? 2 : 1;
   real worstError=0.;
@@ -686,11 +718,16 @@ main(int argc, char *argv[])
       }
 
 
-      // ---------------------------------
-      // --------- Neumann BC's ----------
-      // ---------------------------------
-      if( (problemsToSolve/2) % 2 ==1 )
+      // ------------------------------------------
+      // --------- Neumann or Mixed BC's ----------
+      // ------------------------------------------
+      if( (problemsToSolve/2) % 2 ==1 ||
+          (problemsToSolve/4) % 2 ==1 )
       {
+        bool neumannBCs =(problemsToSolve/2) % 2 ==1;
+        bool mixedBCs   =(problemsToSolve/4) % 2 ==1;
+	aString optionName = neumannBCs ? "neumann" : "mixed";
+
 	coeff=0.;
 	for( int grid=0; grid<cg.numberOfComponentGrids(); grid++ )
 	{
@@ -699,33 +736,84 @@ main(int argc, char *argv[])
 	}
 
 	// fill in the coefficients for the boundary conditions
-	coeff.applyBoundaryConditionCoefficients(0,0,neumann,allBoundaries);
+        RealArray *varCoeff=NULL;  // holds variable coefficients
+	if( neumannBCs )
+	{
+  	  coeff.applyBoundaryConditionCoefficients(0,0,neumann,allBoundaries);
+	}
+	else
+	{
+          // -- mixed BC's with variable coefficients --
+
+	  bcParams.setVariableCoefficientOption(  BoundaryConditionParameters::spatiallyVaryingCoefficients );
+	  varCoeff = new RealArray [cg.numberOfComponentGrids()];
+	  for( int grid=0; grid<cg.numberOfComponentGrids(); grid++ )
+	  {
+	    MappedGrid & mg = cg[grid];
+            int numGhost=1;
+	    getIndex(mg.gridIndexRange(),I1,I2,I3,numGhost);
+            realArray & vertex = mg.vertex();
+	    OV_GET_SERIAL_ARRAY_CONST(real,vertex,x);
+	    int includeGhost=1;
+	    bool ok = ParallelUtility::getLocalArrayBounds(vertex,x,I1,I2,I3,includeGhost);
+	    if( ok ) 
+	    {
+	      // varCoeff only needs to be allocated on the boundary allocate on entire grid 
+              // so we can assign all boundaries in one call (below)
+	      RealArray & vc = varCoeff[grid];
+	      vc.redim(I1,I2,I3,2);  // holds variable coefficients
+	      bcParams.setVariableCoefficientsArray( &vc );        
+
+	      // coeff of u 
+	      vc(I1,I2,I3,0)=1.+ .025*SQR(x(I1,I2,I3,0)) + .03*SQR(x(I1,I2,I3,1));   
+	      // coeff of u.n : (this value must not be zero)
+	      vc(I1,I2,I3,1)=2. + .1*SQR(x(I1,I2,I3,0)) + .05*SQR(x(I1,I2,I3,1)); 
+	    }
+	    
+	    coeff[grid].applyBoundaryConditionCoefficients(0,0,mixed,allBoundaries,bcParams);
+
+	    // reset:
+	    bcParams.setVariableCoefficientsArray( NULL ); 
+	  }
+          // reset: 
+          bcParams.setVariableCoefficientOption( BoundaryConditionParameters::spatiallyConstantCoefficients );
+	  
+	}
+	
 	if( orderOfAccuracy==4 )
 	  coeff.applyBoundaryConditionCoefficients(0,0,extrapolate,allBoundaries,bcParams); // extrap 2nd ghost line
 
 	coeff.finishBoundaryConditions();
+	if( false )
+	{
+	  for( int grid=0; grid<cg.numberOfComponentGrids(); grid++ )
+	    ::displayCoeff(coeff[grid],sPrintF("coeff on grid=%i",grid));
+	}
+	
 
         solver.setCoefficientArray( coeff );   // supply coefficients
 
-	bool singularProblem=true;  
-	for( int grid=0; grid<cg.numberOfComponentGrids(); grid++ )
-	{ // this loop does nothing for now 
-	  MappedGrid & mg = cg[grid];
-	  ForBoundary(side,axis)
-	  {
-	    if( mg.boundaryCondition(side,axis) > 0  )
-	    { 
-	    }
-	    else if( mg.boundaryCondition(side,axis) ==inflow ||  mg.boundaryCondition(side,axis) ==outflow )
-	    {
-	      singularProblem=false;
-	    }
-	  }
-	}
+	bool singularProblem=neumannBCs; 
+	// for( int grid=0; grid<cg.numberOfComponentGrids(); grid++ )
+	// { // this loop does nothing for now 
+	//   MappedGrid & mg = cg[grid];
+	//   ForBoundary(side,axis)
+	//   {
+	//     if( mg.boundaryCondition(side,axis) > 0  )
+	//     { 
+	//     }
+	//     else if( mg.boundaryCondition(side,axis) ==inflow ||  mg.boundaryCondition(side,axis) ==outflow )
+	//     {
+	//       singularProblem=false;
+	//     }
+	//   }
+	// }
 
 	// Assign the right-hand-side f  
-	assignForcing( 1,cg,f,exact );
+	const int option = neumannBCs ? 1 : 2;
+	assignForcing( option,cg,f,exact,varCoeff );
 
+        delete [] varCoeff;
 
 	// if the problem is singular Oges will add an extra constraint equation to make the system nonsingular
 	if( singularProblem )
@@ -752,8 +840,8 @@ main(int argc, char *argv[])
 	real time0=CPU();
 	solver.solve( u,f );   // solve the equations
 	real time=CPU()-time0;
-	printF("residual=%8.2e, time for 1st solve of the Neumann problem = %8.2e (iterations=%i)\n",
-	       solver.getMaximumResidual(),time,solver.getNumberOfIterations());
+	printF("residual=%8.2e, time for 1st solve of the %s problem = %8.2e (iterations=%i)\n",
+	       solver.getMaximumResidual(),(const char*)optionName,time,solver.getNumberOfIterations());
 
 	// turn off refactor for the 2nd solve
 	solver.setRefactor(FALSE);
@@ -762,19 +850,26 @@ main(int argc, char *argv[])
 	time0=CPU();
 	solver.solve( u,f );   // solve the equations
 	time=CPU()-time0;
-	printF("residual=%8.2e, time for 2nd solve of the Neumann problem = %8.2e (iterations=%i)\n",
-	       solver.getMaximumResidual(),time,solver.getNumberOfIterations());
+	printF("residual=%8.2e, time for 2nd solve of the %s problem = %8.2e (iterations=%i)\n",
+	       solver.getMaximumResidual(),(const char*)optionName, time,solver.getNumberOfIterations());
 
-	computeTheError( 1,cg,u,err,exact, error );
+	computeTheError( option,cg,u,err,exact, error );
 
 	worstError=max(worstError,error);
       
-	checker.setCutOff(errorBound[it][precision][1]); checker.printMessage("neumann: error",error,time);
+	checker.setCutOff(errorBound[it][precision][1]);
+	aString buff;
+	checker.printMessage(sPrintF(buff,"%s: error",(const char*)optionName),error,time);
       
       }
       
       if( plot )
+      {
+	if( !( problemsToSolve % 2 ==1 ))
+	  ps.createWindow("tcm3");
 	plotResults( ps,solver,u,err );
+      }
+
 	
       delete exactPointer; exactPointer=0;// kkc 090902, this was a memory leak making new OGFunction's for each grid w/o releasing the previous one
 

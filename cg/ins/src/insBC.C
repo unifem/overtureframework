@@ -41,7 +41,7 @@
 // *****************************************************
 // ==========================================================================
 
-
+static int numberOfOutflowPointsAtInflowMessages=0;
 
 //\begin{>>MappedGridSolverInclude.tex}{\subsection{applyBoundaryConditionsINS}} 
 int Cgins::
@@ -2186,8 +2186,16 @@ applyBoundaryConditions(const real & t, realMappedGridFunction & u,
 	  // printF("---> insBC: number of outflow points that are inflow = %i\n",count);
         	  if( count>0 )
         	  {
-          	    if( debug()& 2 || debug() & 4 )
-            	      printF("****insBC: number of outflow points that are inflow = %i\n",count);
+          	    if( numberOfOutflowPointsAtInflowMessages<=50 &&
+            		(debug()& 2 || debug() & 4) )
+          	    {
+            	      numberOfOutflowPointsAtInflowMessages++;
+            	      printF("--INSBC-- number of outflow points that are inflow = %i\n",count);
+            	      if( numberOfOutflowPointsAtInflowMessages==50 )
+            		printF("--INSBC--WARNING: too many 'number of outflow points that are inflow' messages."
+                                              " I will not print anymore.\n");
+          	    }
+          	    
           	    bcParams.setUseMask(TRUE);
 
                         if( false )  // add this as an option 

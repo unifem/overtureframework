@@ -35,6 +35,11 @@ for(i3=I3Base; i3<=I3Bound; i3++) \
 for(i2=I2Base; i2<=I2Bound; i2++) \
 for(i1=I1Base; i1<=I1Bound; i1++)
 
+// -- limit the number of times certain warnings are printed:
+static const int maxExceedsWarnings=20;
+static int numberOfExceedsForceWarnings=0;
+static int numberOfExceedsTorqueWarnings=0;
+
 int MovingGrids::debug0=0;
 
 // =======================================================================================
@@ -205,6 +210,18 @@ MovingGrids::
 
 }
 
+//=================================================================================
+/// \brief  Write information to the `check file' (used for regression tests)
+//=================================================================================
+int MovingGrids::
+writeCheckFile( FILE *file )
+{
+  for( int b=0; b<numberOfDeformingBodies; b++ )
+    deformingBodyList[b]->writeCheckFile(file);
+
+  return 0;
+}
+
 // =================================================================================
 /// \brief Write information about the moving grids.
 // =================================================================================
@@ -220,6 +237,26 @@ writeParameterSummary( FILE *file /* =stdout */ )
   for( int b=0; b<numberOfDeformingBodies; b++ )
     deformingBodyList[b]->writeParameterSummary(file);
 
+}
+
+// =================================================================================
+/// \brief Output probe info.
+// =================================================================================
+int MovingGrids::
+outputProbes( GridFunction & gf0, int stepNumber )
+{
+  // const real t = gf0.t;
+
+  // -- finish me:
+  // for( int b=0; b<numberOfMatrixMotionBodies; b++ )
+  //   matrixMotionBody[b]->outputProbes( gf0,stepNUmber );
+
+  // -- finish me: This is where we should output rigid body info: 
+  // for( int b=0; b<numberOfRigidBodies; b++ )
+  //   body[b]->outputProbes( gf0,stepNUmber );
+
+  for( int b=0; b<numberOfDeformingBodies; b++ )
+    deformingBodyList[b]->outputProbes( gf0,stepNumber );
 }
 
 
@@ -2132,13 +2169,17 @@ gridAccelerationBC(const int grid, const int side, const int axis,
     //    a =    aCM + R'' R^{-1} (x-xCM)
     body[b]->getPointTransformationMatrix( t0,Overture::nullRealArray(),rttri ); 
 
-    if( true || debug() & 2 ) // *** TEMP ***
+    if( parameters.dbase.get<bool>("printMovingBodyInfo") || debug() & 2 )
     {
       RealArray vCM(3),w(3);
       body[b]->getVelocity( t0,vCM  );
       body[b]->getAngularVelocities( t0,w );
-      printF("MovingGrids::gridAccelBC: t0=%9.3e, vCM=(%6.2e,%6.2e,%6.2e), aCM=(%6.2e,%6.2e,%6.2e), wCM=(%6.2e,%6.2e,%6.2e) \n",
-             t0,vCM(0),vCM(1),vCM(2),aCM(0),aCM(1),aCM(2),w(0),w(1),w(2));
+      if( c.numberOfDimensions()==2 )
+	printF("MovingGrids::gridAccelBC: t0=%9.2e, vCM=(%9.2e,%9.2e), aCM=(%9.2e,%9.2e), wCM=(0,0,%9.2e) \n",
+	       t0,vCM(0),vCM(1),aCM(0),aCM(1),w(2));
+      else
+	printF("MovingGrids::gridAccelBC: t0=%9.2e, vCM=(%9.2e,%9.2e,%9.2e), aCM=(%9.2e,%9.2e,%9.2e), wCM=(%9.2e,%9.2e,%9.2e) \n",
+	       t0,vCM(0),vCM(1),vCM(2),aCM(0),aCM(1),aCM(2),w(0),w(1),w(2));
     }
         
     if( c.numberOfDimensions()==2 )
@@ -3127,6 +3168,8 @@ rigidBodyMotion(const real & t1,
     }
     
 
+    static int numberOfExceedsForceWarnings=0;
+    static int numberOfExceedsTorqueWarnings=0;
 
     if( limitForces ) 
     {
@@ -3140,9 +3183,19 @@ rigidBodyMotion(const real & t1,
       {
 	body[b]->getPosition( cgf2.t,x );
 	
-	printF(" +++++ WARNING: body=%i, xCM=(%8.2e,%8.2e,%8.2e) |f| = %9.2e exceeds maxValue=%8.2e, "
-                     "limiting force! ++++ \n",
-                         b,x(0),x(1),x(2), fNorm,maximumAllowableForce);
+	if( numberOfExceedsForceWarnings < maxExceedsWarnings )
+	{
+	  numberOfExceedsForceWarnings++;
+	  printF(" +++++ WARNING: body=%i, xCM=(%8.2e,%8.2e,%8.2e) |f| = %9.2e exceeds maxValue=%8.2e, "
+		 "limiting force! ++++ \n",
+		 b,x(0),x(1),x(2), fNorm,maximumAllowableForce);
+	}
+	else if( numberOfExceedsForceWarnings == maxExceedsWarnings )
+	{
+         numberOfExceedsForceWarnings++;
+	  printF("  +++++ Too many exceeds limiting force warnings. I am not printing any more.  +++++\n");
+	}
+	
 	for( int n=0; n<cg.numberOfDimensions(); n++ )
 	  f(n) *= maximumAllowableForce/fNorm; 
 
@@ -3150,8 +3203,18 @@ rigidBodyMotion(const real & t1,
       real gNorm = sqrt(g(0)*g(0)+g(1)*g(1)+g(2)*g(2));
       if( gNorm > maximumAllowableTorque )
       {
-	printF(" +++++ WARNING: body=%i, |g| = %9.2e exceeds maxValue=%8.2e, limiting torque! ++++ \n",
-                         b,gNorm,maximumAllowableTorque);
+	if( numberOfExceedsTorqueWarnings < maxExceedsWarnings )
+	{
+	  numberOfExceedsTorqueWarnings++;
+	  printF(" +++++ WARNING: body=%i, |g| = %9.2e exceeds maxValue=%8.2e, limiting torque! ++++ \n",
+		 b,gNorm,maximumAllowableTorque);
+	}
+	else if( numberOfExceedsTorqueWarnings == maxExceedsWarnings )
+	{
+	  numberOfExceedsTorqueWarnings++;
+	  printF("  +++++ Too many exceeds limiting torque warnings. I am not printing any more.  +++++\n");
+	}
+
 	for( int n=0; n<cg.numberOfDimensions(); n++ )
 	  g(n) *= maximumAllowableTorque/gNorm; 
 
@@ -3971,7 +4034,9 @@ update( CompositeGrid & cg, GenericGraphicsInterface & gi )
   bool & improveQualityOfInterpolation = parameters.dbase.get<bool >("improveQualityOfInterpolation");
   real & interpolationQualityBound = parameters.dbase.get<real >("interpolationQualityBound");
   real & maximumAngleDifferenceForNormalsOnSharedBoundaries = parameters.dbase.get<real >("maximumAngleDifferenceForNormalsOnSharedBoundaries");;
+
   MovingGridOption movingGridOption=notMoving;
+  bool & printMovingBodyInfo = parameters.dbase.get<bool>("printMovingBodyInfo");
   
   GUIState gui;
   gui.setWindowTitle("Moving Grids");
@@ -4015,11 +4080,13 @@ update( CompositeGrid & cg, GenericGraphicsInterface & gi )
 
     aString tbCommands[] = {"use hybrid grid for surface integrals",
                             "improve quality of interpolation",
+                            "print moving body info",
 			    // "limit forces",
     			    ""};
     int tbState[10];
     tbState[0] = useHybridGridsForSurfaceIntegrals;
     tbState[1] = improveQualityOfInterpolation;
+    tbState[2] = printMovingBodyInfo;
     
     int numColumns=1;
     dialog.setToggleButtons(tbCommands, tbCommands, tbState, numColumns); 
@@ -4355,6 +4422,10 @@ update( CompositeGrid & cg, GenericGraphicsInterface & gi )
     {
        gi.inputString(answer2,"Enter the tangent of the line of translation");
        continue;   // skip choosing a grid below
+    }
+    else if( dialog.getToggleValue(answer2,"print moving body info",printMovingBodyInfo)  )
+    {
+      continue;   // skip choosing a grid below
     }
     else if( answer2=="use hybrid grid for surface integrals" ||
              answer2=="do not use hybrid grid for surface integrals" )
@@ -4870,11 +4941,16 @@ update( CompositeGrid & cg, GenericGraphicsInterface & gi )
 	  
             int extra=1;  // do we need extra for periodic ? 
 	    getBoundaryIndex(c.gridIndexRange(),side,axis,Ib1,Ib2,Ib3,extra); // NB to use gridIndexRange, not indexRange
-
-	    const realArray & x = c.vertex();
-
-  	    f[grid](Ib1,Ib2,Ib3)=x(Ib1,Ib2,Ib3,dir);
-
+	    realArray & x = c.vertex();
+            OV_GET_SERIAL_ARRAY(real,x,xLocal);
+            OV_GET_SERIAL_ARRAY(real,f[grid],fLocal);
+	    
+  	    // f[grid](Ib1,Ib2,Ib3)=x(Ib1,Ib2,Ib3,dir);
+	    int includeGhost=1;
+	    bool ok = ParallelUtility::getLocalArrayBounds(f[grid],fLocal,Ib1,Ib2,Ib3,includeGhost);
+	    if( ok )
+	      fLocal(Ib1,Ib2,Ib3)=xLocal(Ib1,Ib2,Ib3,dir);
+	  
 	  }
           x0(dir)=integrate->surfaceIntegral(f,bodyNumber)/surfaceArea;
 	}

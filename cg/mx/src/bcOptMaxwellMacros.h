@@ -1,4 +1,5 @@
-c Macros that are common to different orders of accuracy
+!         -*- mode: F90 -*-
+! Macros that are common to different orders of accuracy
 
 #beginMacro OGF3D(i1,i2,i3,t,u0,v0,w0)
  call ogf3d(ep,xy(i1,i2,i3,0),xy(i1,i2,i3,1),xy(i1,i2,i3,2),t,u0,v0,w0)
@@ -6,6 +7,16 @@ c Macros that are common to different orders of accuracy
 
 #beginMacro OGF2D(i1,i2,i3,t,u0,v0,w0)
  call ogf2d(ep,xy(i1,i2,i3,0),xy(i1,i2,i3,1),t,u0,v0,w0)
+#endMacro
+
+! This version can optionally eval time-derivative:
+#beginMacro OGF3DFO(i1,i2,i3,t,u0,v0,w0)
+  call ogf3dfo(ep,fieldOption,xy(i1,i2,i3,0),xy(i1,i2,i3,1),xy(i1,i2,i3,2),t,u0,v0,w0)
+#endMacro
+
+! This version can optionally eval time-derivative:
+#beginMacro OGF2DFO(i1,i2,i3,t,u0,v0,w0)
+ call ogf2dfo(ep,fieldOption,xy(i1,i2,i3,0),xy(i1,i2,i3,1),t,u0,v0,w0)
 #endMacro
 
 #beginMacro OGDERIV3D(ntd,nxd,nyd,nzd,i1,i2,i3,t,ux,vx,wx)
@@ -33,7 +44,7 @@ end do
 end do
 #endMacro
 
-c use the mask 
+! use the mask 
 #beginMacro loopsMaskGT(expression)
 do i3=n3a,n3b
 do i2=n2a,n2b
@@ -72,7 +83,7 @@ end do
 end do
 #endMacro
 
-c Tangent vectors (un-normalized)
+! Tangent vectors (un-normalized)
 #defineMacro TAU11(i1,i2,i3) rsxy(i1,i2,i3,axisp1,0)
 #defineMacro TAU12(i1,i2,i3) rsxy(i1,i2,i3,axisp1,1)
 #defineMacro TAU13(i1,i2,i3) rsxy(i1,i2,i3,axisp1,2)
@@ -136,7 +147,7 @@ c Tangent vectors (un-normalized)
 #defineMacro A32D3(i1,i2,i3) (rsxy(i1,i2,i3,axisp2,1)/RXDET3D(i1,i2,i3))
 #defineMacro A33D3(i1,i2,i3) (rsxy(i1,i2,i3,axisp2,2)/RXDET3D(i1,i2,i3))
 
-c Here are versions that use a precomputed jacobian
+! Here are versions that use a precomputed jacobian
 #defineMacro A11D3J(i1,i2,i3) (rsxy(i1,i2,i3,axis  ,0)*jac3di(i1-i10,i2-i20,i3-i30))
 #defineMacro A12D3J(i1,i2,i3) (rsxy(i1,i2,i3,axis  ,1)*jac3di(i1-i10,i2-i20,i3-i30))
 #defineMacro A13D3J(i1,i2,i3) (rsxy(i1,i2,i3,axis  ,2)*jac3di(i1-i10,i2-i20,i3-i30))
@@ -453,16 +464,16 @@ c Here are versions that use a precomputed jacobian
 
 
 
-c=====================================================================================
-c Boundary conditions for a rectangular grid:
-c   Normal component of E is even symmetry
-c   Tangential components of E are odd symmetry
-c In 2d: normal component of Hz is even symmetry (Neumann BC)
-c
-c DIM: 2,3
-c ORDER: 2,4,6,8
-c FORCING: none,twilightZone
-c=====================================================================================
+!=====================================================================================
+! Boundary conditions for a rectangular grid:
+!   Normal component of E is even symmetry
+!   Tangential components of E are odd symmetry
+! In 2d: normal component of Hz is even symmetry (Neumann BC)
+!
+! DIM: 2,3
+! ORDER: 2,4,6,8
+! FORCING: none,twilightZone
+!=====================================================================================
 #beginMacro bcRectangular(DIM,ORDER,FORCING)
  if( debug.gt.1 )then
    write(*,'(" bc4r: **START** grid=",i4," side,axis=",2i2)') grid,side,axis
@@ -487,9 +498,9 @@ c===============================================================================
 
    #If #FORCING == "twilightZone" 
      #If #DIM == "2"
-       OGF2D(i1-is1,i2-is2,i3,t, uvm(0),uvm(1),uvm(2))
-       OGF2D(i1    ,i2    ,i3,t, uv0(0),uv0(1),uv0(2))
-       OGF2D(i1+is1,i2+is2,i3,t, uvp(0),uvp(1),uvp(2))
+       OGF2DFO(i1-is1,i2-is2,i3,t, uvm(ex),uvm(ey),uvm(hz))
+       OGF2DFO(i1    ,i2    ,i3,t, uv0(ex),uv0(ey),uv0(hz))
+       OGF2DFO(i1+is1,i2+is2,i3,t, uvp(ex),uvp(ey),uvp(hz))
 
 ! write(*,'("..bcRectangular: side,axis=",2i3," i1,i2,i3=",3i3," en1,uvm(en1),uvp(en1)=",3e12.4)')\
 !            side,axis,i1,i2,i3,u(i1-is1,i2-is2,i3,en1),uvm(en1),uvp(en1)
@@ -499,9 +510,9 @@ c===============================================================================
        u(i1-is1,i2-is2,i3,et1)=u(i1-is1,i2-is2,i3,et1) + uvm(et1) -2.*uv0(et1) + uvp(et1)
        u(i1-is1,i2-is2,i3,hz )=u(i1-is1,i2-is2,i3,hz ) + uvm(hz)-uvp(hz)
      #Else
-       OGF3D(i1-is1,i2-is2,i3-is3,t,uvm(0),uvm(1),uvm(2)) 
-       OGF3D(i1    ,i2    ,i3    ,t,uv0(0),uv0(1),uv0(2))
-       OGF3D(i1+is1,i2+is2,i3+is3,t,uvp(0),uvp(1),uvp(2))
+       OGF3DFO(i1-is1,i2-is2,i3-is3,t,uvm(ex),uvm(ey),uvm(ez)) 
+       OGF3DFO(i1    ,i2    ,i3    ,t,uv0(ex),uv0(ey),uv0(ez))
+       OGF3DFO(i1+is1,i2+is2,i3+is3,t,uvp(ex),uvp(ey),uvp(ez))
 
        u(i1-is1,i2-is2,i3-is3,en1)=u(i1-is1,i2-is2,i3-is3,en1) + uvm(en1) - uvp(en1)
        u(i1-is1,i2-is2,i3-is3,et1)=u(i1-is1,i2-is2,i3-is3,et1) + uvm(et1) -2.*uv0(et1) + uvp(et1)
@@ -523,25 +534,25 @@ c===============================================================================
      #End
      #If #FORCING == "twilightZone" 
       #If #DIM == "2"
-       OGF2D(i1-2*is1,i2-2*is2,i3,t, uvm(0),uvm(1),uvm(2))
-       OGF2D(i1      ,i2      ,i3,t, uv0(0),uv0(1),uv0(2))
-       OGF2D(i1+2*is1,i2+2*is2,i3,t, uvp(0),uvp(1),uvp(2))
+       OGF2DFO(i1-2*is1,i2-2*is2,i3,t, uvm(ex),uvm(ey),uvm(hz))
+       OGF2DFO(i1      ,i2      ,i3,t, uv0(ex),uv0(ey),uv0(hz))
+       OGF2DFO(i1+2*is1,i2+2*is2,i3,t, uvp(ex),uvp(ey),uvp(hz))
 
        u(i1-2*is1,i2-2*is2,i3,en1)=u(i1-2*is1,i2-2*is2,i3,en1) + uvm(en1) - uvp(en1)
        u(i1-2*is1,i2-2*is2,i3,et1)=u(i1-2*is1,i2-2*is2,i3,et1) + uvm(et1) -2.*uv0(et1) + uvp(et1)
        u(i1-2*is1,i2-2*is2,i3,hz )=u(i1-2*is1,i2-2*is2,i3,hz ) + uvm(hz)-uvp(hz)
       #Else
-       OGF3D(i1-2*is1,i2-2*is2,i3-2*is3,t,uvm(0),uvm(1),uvm(2)) 
-       OGF3D(i1      ,i2      ,i3      ,t,uv0(0),uv0(1),uv0(2))
-       OGF3D(i1+2*is1,i2+2*is2,i3+2*is3,t,uvp(0),uvp(1),uvp(2))
+       OGF3DFO(i1-2*is1,i2-2*is2,i3-2*is3,t,uvm(ex),uvm(ey),uvm(ez)) 
+       OGF3DFO(i1      ,i2      ,i3      ,t,uv0(ex),uv0(ey),uv0(ez))
+       OGF3DFO(i1+2*is1,i2+2*is2,i3+2*is3,t,uvp(ex),uvp(ey),uvp(ez))
 
        u(i1-2*is1,i2-2*is2,i3-2*is3,en1)=u(i1-2*is1,i2-2*is2,i3-2*is3,en1) + uvm(en1) - uvp(en1)
        u(i1-2*is1,i2-2*is2,i3-2*is3,et1)=u(i1-2*is1,i2-2*is2,i3-2*is3,et1) + uvm(et1) -2.*uv0(et1) + uvp(et1)
        u(i1-2*is1,i2-2*is2,i3-2*is3,et2)=u(i1-2*is1,i2-2*is2,i3-2*is3,et2) + uvm(et2) -2.*uv0(et2) + uvp(et2)
-       if( debug.gt.1 )then
-        write(*,'(" bc4r: i=",3i4," err(-2)=",3e10.2)') i1,i2,i3,u(i1-2*is1,i2-2*is2,i3-2*is3,ex)-uvm(0),\
-             u(i1-2*is1,i2-2*is2,i3-2*is3,ey)-uvm(1), u(i1-2*is1,i2-2*is2,i3-2*is3,ez)-uvm(2)
-       end if
+       ! if( debug.gt.1 )then
+       !  write(*,'(" bc4r: i=",3i4," err(-2)=",3e10.2)') i1,i2,i3,u(i1-2*is1,i2-2*is2,i3-2*is3,ex)-uvm(ex),\
+       !       u(i1-2*is1,i2-2*is2,i3-2*is3,ey)-uvm(ey), u(i1-2*is1,i2-2*is2,i3-2*is3,ez)-uvm(ez)
+       ! end if
       #End
      #End
 
@@ -557,17 +568,17 @@ c===============================================================================
      #End
      #If #FORCING == "twilightZone" 
       #If #DIM == "2"
-       OGF2D(i1-3*is1,i2-3*is2,i3,t, uvm(0),uvm(1),uvm(2))
-       OGF2D(i1      ,i2      ,i3,t, uv0(0),uv0(1),uv0(2))
-       OGF2D(i1+3*is1,i2+3*is2,i3,t, uvp(0),uvp(1),uvp(2))
+       OGF2DFO(i1-3*is1,i2-3*is2,i3,t, uvm(ex),uvm(ey),uvm(hz))
+       OGF2DFO(i1      ,i2      ,i3,t, uv0(ex),uv0(ey),uv0(hz))
+       OGF2DFO(i1+3*is1,i2+3*is2,i3,t, uvp(ex),uvp(ey),uvp(hz))
 
        u(i1-3*is1,i2-3*is2,i3,en1)=u(i1-3*is1,i2-3*is2,i3,en1) + uvm(en1) - uvp(en1)
        u(i1-3*is1,i2-3*is2,i3,et1)=u(i1-3*is1,i2-3*is2,i3,et1) + uvm(et1) -2.*uv0(et1) + uvp(et1)
        u(i1-3*is1,i2-3*is2,i3,hz )=u(i1-3*is1,i2-3*is2,i3,hz ) + uvm(hz)-uvp(hz)
       #Else
-       OGF3D(i1-3*is1,i2-3*is2,i3-3*is3,t,uvm(0),uvm(1),uvm(2)) 
-       OGF3D(i1      ,i2      ,i3      ,t,uv0(0),uv0(1),uv0(2))
-       OGF3D(i1+3*is1,i2+3*is2,i3+3*is3,t,uvp(0),uvp(1),uvp(2))
+       OGF3DFO(i1-3*is1,i2-3*is2,i3-3*is3,t,uvm(ex),uvm(ey),uvm(ez)) 
+       OGF3DFO(i1      ,i2      ,i3      ,t,uv0(ex),uv0(ey),uv0(ez))
+       OGF3DFO(i1+3*is1,i2+3*is2,i3+3*is3,t,uvp(ex),uvp(ey),uvp(ez))
 
        u(i1-3*is1,i2-3*is2,i3-3*is3,en1)=u(i1-3*is1,i2-3*is2,i3-3*is3,en1) + uvm(en1) - uvp(en1)
        u(i1-3*is1,i2-3*is2,i3-3*is3,et1)=u(i1-3*is1,i2-3*is2,i3-3*is3,et1) + uvm(et1) -2.*uv0(et1) + uvp(et1)
@@ -587,17 +598,17 @@ c===============================================================================
      #End
      #If #FORCING == "twilightZone" 
       #If #DIM == "2"
-       OGF2D(i1-4*is1,i2-4*is2,i3,t, uvm(0),uvm(1),uvm(2))
-       OGF2D(i1      ,i2      ,i3,t, uv0(0),uv0(1),uv0(2))
-       OGF2D(i1+4*is1,i2+4*is2,i3,t, uvp(0),uvp(1),uvp(2))
+       OGF2DFO(i1-4*is1,i2-4*is2,i3,t, uvm(ex),uvm(ey),uvm(hz))
+       OGF2DFO(i1      ,i2      ,i3,t, uv0(ex),uv0(ey),uv0(hz))
+       OGF2DFO(i1+4*is1,i2+4*is2,i3,t, uvp(ex),uvp(ey),uvp(hz))
 
        u(i1-4*is1,i2-4*is2,i3,en1)=u(i1-4*is1,i2-4*is2,i3,en1) + uvm(en1) - uvp(en1)
        u(i1-4*is1,i2-4*is2,i3,et1)=u(i1-4*is1,i2-4*is2,i3,et1) + uvm(et1) -2.*uv0(et1) + uvp(et1)
        u(i1-4*is1,i2-4*is2,i3,hz )=u(i1-4*is1,i2-4*is2,i3,hz ) + uvm(hz)-uvp(hz)
       #Else
-       OGF3D(i1-4*is1,i2-4*is2,i3-4*is3,t,uvm(0),uvm(1),uvm(2)) 
-       OGF3D(i1      ,i2      ,i3      ,t,uv0(0),uv0(1),uv0(2))
-       OGF3D(i1+4*is1,i2+4*is2,i3+4*is3,t,uvp(0),uvp(1),uvp(2))
+       OGF3DFO(i1-4*is1,i2-4*is2,i3-4*is3,t,uvm(ex),uvm(ey),uvm(ez)) 
+       OGF3DFO(i1      ,i2      ,i3      ,t,uv0(ex),uv0(ey),uv0(ez))
+       OGF3DFO(i1+4*is1,i2+4*is2,i3+4*is3,t,uvp(ex),uvp(ey),uvp(ez))
 
        u(i1-4*is1,i2-4*is2,i3-4*is3,en1)=u(i1-4*is1,i2-4*is2,i3-4*is3,en1) + uvm(en1) - uvp(en1)
        u(i1-4*is1,i2-4*is2,i3-4*is3,et1)=u(i1-4*is1,i2-4*is2,i3-4*is3,et1) + uvm(et1) -2.*uv0(et1) + uvp(et1)
@@ -610,14 +621,14 @@ c===============================================================================
 #endMacro
 
 
-c ************************************************************************************************
-c  This macro is used for looping over the faces of a grid to assign booundary conditions
-c
-c extra: extra points to assign
-c          Case 1: extra=numberOfGhostPoints -- for assigning extended boundaries
-c          Case 2: extra=-1 -- for assigning ghost points but not including extended boundaries
-c numberOfGhostPoints : number of ghost points (1 for 2nd order, 2 for fourth-order ...)
-c ***********************************************************************************************
+! ************************************************************************************************
+!  This macro is used for looping over the faces of a grid to assign boundary conditions
+!
+! extra: extra points to assign
+!          Case 1: extra=numberOfGhostPoints -- for assigning extended boundaries
+!          Case 2: extra=-1 -- for assigning ghost points but not including extended boundaries
+! numberOfGhostPoints : number of ghost points (1 for 2nd order, 2 for fourth-order ...)
+! ***********************************************************************************************
 #beginMacro beginLoopOverSides(extra,numberOfGhostPoints)
  extra1a=extra
  extra1b=extra
@@ -765,13 +776,13 @@ c ******************************************************************************
                   ndf1a,ndf1b,ndf2a,ndf2b,ndf3a,ndf3b,\
                   gridIndexRange,dimension,u,f,mask,rsxy, xy,\
                   bc, boundaryCondition, ipar, rpar, ierr )
-c ===================================================================================
-c  Optimised Boundary conditions for Maxwell's Equations. '
-c
-c  gridType : 0=rectangular, 1=curvilinear
-c  useForcing : 1=use f for RHS to BC
-c  side,axis : 0:1 and 0:2
-c ===================================================================================
+! ===================================================================================
+!  Optimised Boundary conditions for Maxwell's Equations. '
+!
+!  gridType : 0=rectangular, 1=curvilinear
+!  useForcing : 1=use f for RHS to BC
+!  side,axis : 0:1 and 0:2
+! ===================================================================================
 
  implicit none
 
@@ -788,7 +799,7 @@ c ==============================================================================
  integer ipar(0:*),boundaryCondition(0:1,0:2)
   real rpar(0:*),pwc(0:5)
 
-c     --- local variables ----
+!     --- local variables ----
       
  integer md1a,md1b,md2a,md2b,md3a,md3b
  integer indexRange(0:1,0:2),isPeriodic(0:2) ! used in call to periodic update
@@ -811,8 +822,9 @@ c     --- local variables ----
 
  integer orderOfExtrapolation
  logical setCornersToExact
+ logical extrapInterpGhost   ! extrapolate ghost points next to boundary interpolation points 
 
-  ! boundary conditions parameters
+ ! boundary conditions parameters
  #Include "bcDefineFortranInclude.h"
 
  integer rectangular,curvilinear
@@ -939,22 +951,22 @@ c     --- local variables ----
  real maxDivc,maxTauDotLapu,maxExtrap,maxDr3aDotU,dr3aDotU,a1Doturss
 
 
-c real uxxx22r,uyyy22r,uxxx42r,uyyy42r,uxxxx22r,uyyyy22r, urrrr2,ussss2
+! real uxxx22r,uyyy22r,uxxx42r,uyyy42r,uxxxx22r,uyyyy22r, urrrr2,ussss2
  real urrrr2,ussss2
  real urrs4,urrt4,usst4,urss4,ustt4,urtt4
  real urrs2,urrt2,usst2,urss2,ustt2,urtt2
 
 #Include "declareJacobianDerivatives.h"
 
-c     --- start statement function ----
+!     --- start statement function ----
  integer kd,m,n
  real rx,ry,rz,sx,sy,sz,tx,ty,tz
-c old: include 'declareDiffOrder2f.h'
-c old: include 'declareDiffOrder4f.h'
+! old: include 'declareDiffOrder2f.h'
+! old: include 'declareDiffOrder4f.h'
  declareDifferenceOrder2(u,RX)
  declareDifferenceOrder4(u,RX)
 
-c.......statement functions for jacobian
+!.......statement functions for jacobian
  rx(i1,i2,i3)=rsxy(i1,i2,i3,0,0)
  ry(i1,i2,i3)=rsxy(i1,i2,i3,0,1)
  rz(i1,i2,i3)=rsxy(i1,i2,i3,0,2)
@@ -966,21 +978,21 @@ c.......statement functions for jacobian
  tz(i1,i2,i3)=rsxy(i1,i2,i3,2,2)
 
 
-c     The next macro call will define the difference approximation statement functions
+!     The next macro call will define the difference approximation statement functions
  defineDifferenceOrder2Components1(u,RX)
  defineDifferenceOrder4Components1(u,RX)
 
-c define derivatives of rsxy
+! define derivatives of rsxy
 #Include "jacobianDerivatives.h"
 
-c uxxx22r(i1,i2,i3,kd)=(-2.*(u(i1+1,i2,i3,kd)-u(i1-1,i2,i3,kd))+(u(i1+2,i2,i3,kd)-u(i1-2,i2,i3,kd)) )*h22(0)*h12(0)
-c uyyy22r(i1,i2,i3,kd)=(-2.*(u(i1,i2+1,i3,kd)-u(i1,i2-1,i3,kd))+(u(i1,i2+2,i3,kd)-u(i1,i2-2,i3,kd)) )*h22(1)*h12(1)
+! uxxx22r(i1,i2,i3,kd)=(-2.*(u(i1+1,i2,i3,kd)-u(i1-1,i2,i3,kd))+(u(i1+2,i2,i3,kd)-u(i1-2,i2,i3,kd)) )*h22(0)*h12(0)
+! uyyy22r(i1,i2,i3,kd)=(-2.*(u(i1,i2+1,i3,kd)-u(i1,i2-1,i3,kd))+(u(i1,i2+2,i3,kd)-u(i1,i2-2,i3,kd)) )*h22(1)*h12(1)
 
-c uxxxx22r(i1,i2,i3,kd)=(6.*u(i1,i2,i3,kd)-4.*(u(i1+1,i2,i3,kd)+u(i1-1,i2,i3,kd))\
-c                         +(u(i1+2,i2,i3,kd)+u(i1-2,i2,i3,kd)) )/(dx(0)**4)
+! uxxxx22r(i1,i2,i3,kd)=(6.*u(i1,i2,i3,kd)-4.*(u(i1+1,i2,i3,kd)+u(i1-1,i2,i3,kd))\
+!                         +(u(i1+2,i2,i3,kd)+u(i1-2,i2,i3,kd)) )/(dx(0)**4)
 
-c uyyyy22r(i1,i2,i3,kd)=(6.*u(i1,i2,i3,kd)-4.*(u(i1,i2+1,i3,kd)+u(i1,i2-1,i3,kd))\
-c                         +(u(i1,i2+2,i3,kd)+u(i1,i2-2,i3,kd)) )/(dx(1)**4)
+! uyyyy22r(i1,i2,i3,kd)=(6.*u(i1,i2,i3,kd)-4.*(u(i1,i2+1,i3,kd)+u(i1,i2-1,i3,kd))\
+!                         +(u(i1,i2+2,i3,kd)+u(i1,i2-2,i3,kd)) )/(dx(1)**4)
 
  urrrr2(i1,i2,i3,kd)=(6.*u(i1,i2,i3,kd)-4.*(u(i1+1,i2,i3,kd)+u(i1-1,i2,i3,kd))\
                          +(u(i1+2,i2,i3,kd)+u(i1-2,i2,i3,kd)) )/(dr(0)**4)
@@ -1012,7 +1024,7 @@ c                         +(u(i1,i2+2,i3,kd)+u(i1,i2-2,i3,kd)) )/(dx(1)**4)
 
  urtt4(i1,i2,i3,kd) = (-240*u(i1+1,i2,i3,kd)+240*u(i1-1,i2,i3,kd)+8*u(i1-1,i2,i3+2,kd)+u(i1+2,i2,i3+2,kd)-8*u(i1+1,i2,i3+2,kd)-8*u(i1+1,i2,i3-2,kd)-u(i1-2,i2,i3+2,kd)+u(i1+2,i2,i3-2,kd)-u(i1-2,i2,i3-2,kd)+8*u(i1-1,i2,i3-2,kd)+128*u(i1+1,i2,i3+1,kd)-128*u(i1-1,i2,i3+1,kd)-16*u(i1+2,i2,i3+1,kd)+16*u(i1-2,i2,i3+1,kd)+128*u(i1+1,i2,i3-1,kd)-128*u(i1-1,i2,i3-1,kd)-16*u(i1+2,i2,i3-1,kd)+16*u(i1-2,i2,i3-1,kd)-30*u(i1-2,i2,i3,kd)+30*u(i1+2,i2,i3,kd))/(144.*dr(2)**2*dr(0))
 
-c     --- end statement functions ----
+!     --- end statement functions ----
 
  ierr=0
 
@@ -1095,8 +1107,11 @@ c     --- end statement functions ----
 
  !  write(*,'(" ***bcOpt: slowStartInterval,t=",2f10.4," ssf,ssft,ssftt,sfttt=",4f9.4)') slowStartInterval,t,ssf,ssft,ssftt,ssfttt
 
-c     **************************************************************************
- extra=-1  ! no need to do corners -- these are already done -- (otherwise causes problems for 4th-order (?))
+ !  --- NOT: extra determines "extra points" in the tangential directions  ----
+ !  extra=-1 by default (if adjacent BC>0) no need to do corners -- these are already done
+ !  extra=numberOfGhostPoints, if bc==0, (set in begin loop over sides)
+ !  extra=0 if bc<0  (set in begin loop over sides)
+ extra=-1  
  numberOfGhostPoints=orderOfAccuracy/2
 
 
@@ -1219,7 +1234,7 @@ c     **************************************************************************
   end if
 
  endLoopOverSides()
-c     **************************************************************************
+!     **************************************************************************
 
  return
  end

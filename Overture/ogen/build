@@ -50,7 +50,7 @@ cp {generate.p,GridDescriptions}                                                
 
 cp {square,square5,square5CC,square10,square20,square40,cic,cic2,cicCC,cic.4,cicmg,cilc,cilcArg}.cmd   $sampleGrids
 cp {valve,valveCC,obstacle,inletOutlet,inletOutletCC,edgeRefinement,naca0012}.cmd                      $sampleGrids
-cp {mismatch,mismatchAnnulus,end,filletThree,stir,stirSplit,twoBump}.cmd                               $sampleGrids
+cp {mismatch,mismatchAnnulus,end,filletThree,stir,stirSplit,stir3d,twoBump}.cmd                        $sampleGrids
 cp {sic,stretchedAnnulus,stretchedCube,box5,box10,box20,box40,line20}.cmd                              $sampleGrids
 cp {valve3d,valve3dCC,sphereInATube,tse,valvePort,bib,sis,sub,revolve}.cmd                             $sampleGrids
 cp {revolveCC,pipes,pipesCC,sib,sibCC,ellipsoid,ellipsoid1,ellipsoid2,ellipsoidCC}.cmd                 $sampleGrids
@@ -90,7 +90,7 @@ cp {buildingsGrid.cmd,buildTower.h,buildRoundedCylinder.h,site300SurfaceGrid.h} 
 cp {splitAnnulusGrid,splitCylinderGrid,valvee,box32,sib.bbmg,ellipsoid.bbmg}.cmd                       $sampleGrids
 
 cp {turbineAndTower.cmd,towerWithCap.h,cylWithCaps.h,tower.h,turbineBlade.h}                           $sampleGrids
-cp {freeSurfaceGrid2d.cmd,freeSurfaceGrid2dy.cmd}                           $sampleGrids
+cp {freeSurfaceGrid2d,freeSurfaceGrid2dy,twoBoxes,twoNonBoxes}.cmd                           $sampleGrids
 
 cp slac2.distribute.cmd                                                                                $sampleGrids/slac2.cmd
 

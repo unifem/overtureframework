@@ -84,8 +84,8 @@ implicitTimeStep(  real & t0, real & dt0, int correction, AdvanceOptions & advan
 
   assert( parameters.dbase.get<int >("orderOfPredictorCorrector")==2 );  // for now we just have 2nd-order in time
 
-  assert( parameters.dbase.get<DataBase >("modelData").has_key("AdamsImplicitData") );
-  AdamsPCData & adamsData = parameters.dbase.get<DataBase >("modelData").get<AdamsPCData>("AdamsImplicitData");
+  assert( parameters.dbase.get<DataBase >("modelData").has_key("AdamsPCData") );
+  AdamsPCData & adamsData = parameters.dbase.get<DataBase >("modelData").get<AdamsPCData>("AdamsPCData");
   
   real & dtb=adamsData.dtb;
   int &mab0 =adamsData.mab0, &mab1=adamsData.mab1, &mab2=adamsData.mab2;
@@ -214,15 +214,19 @@ implicitTimeStep(  real & t0, real & dt0, int correction, AdvanceOptions & advan
 
     // -- evaluate RHS to BDF scheme ---
     if( orderOfBDF==1 )
-      rhs(I1,I2,I3,N) = u0Local(I1,I2,I3,N) + dt*rhs(I1,I2,I3,N);
+      rhsLocal(I1,I2,I3,N) = u0Local(I1,I2,I3,N) + dt*rhsLocal(I1,I2,I3,N);
     else if( orderOfBDF==2 )    
-      rhs(I1,I2,I3,N) = (4./3.)*u0Local(I1,I2,I3,N) -(1./3.)*u1Local(I1,I2,I3,N) + (dt*2./3.)*rhs(I1,I2,I3,N);
+      rhsLocal(I1,I2,I3,N) =  (4./3.)*u0Local(I1,I2,I3,N)
+                             -(1./3.)*u1Local(I1,I2,I3,N) + (dt*2./3.)*rhsLocal(I1,I2,I3,N);
     else if( orderOfBDF==3 )    
-      rhs(I1,I2,I3,N) = (18./11.)*u0Local(I1,I2,I3,N) -(9./11.)*u1Local(I1,I2,I3,N)
-                        +(2./11.)*u2Local(I1,I2,I3,N) + (dt*6./11.)*rhs(I1,I2,I3,N);
+      rhsLocal(I1,I2,I3,N) = (18./11.)*u0Local(I1,I2,I3,N) 
+                             -(9./11.)*u1Local(I1,I2,I3,N)
+                             +(2./11.)*u2Local(I1,I2,I3,N) + (dt*6./11.)*rhsLocal(I1,I2,I3,N);
     else if( orderOfBDF==4 )    
-      rhs(I1,I2,I3,N) = (48./25.)*u0Local(I1,I2,I3,N) -(36./25.)*u1Local(I1,I2,I3,N)
-                       +(16./25.)*u2Local(I1,I2,I3,N) -( 3./25.)*u3Local(I1,I2,I3,N) + (dt*12./25.)*rhs(I1,I2,I3,N);
+      rhsLocal(I1,I2,I3,N) = (48./25.)*u0Local(I1,I2,I3,N)
+                            -(36./25.)*u1Local(I1,I2,I3,N)
+                            +(16./25.)*u2Local(I1,I2,I3,N)
+                            -( 3./25.)*u3Local(I1,I2,I3,N) + (dt*12./25.)*rhsLocal(I1,I2,I3,N);
     else
     {
       OV_ABORT("orderOfBDF>4 not implemented");
@@ -340,13 +344,13 @@ initializeTimeSteppingBDF( real & t0, real & dt0 )
 
   assert( parameters.dbase.get<int >("orderOfPredictorCorrector")==2 );  // for now we just have 2nd-order in time
 
-  if( !parameters.dbase.get<DataBase >("modelData").has_key("AdamsImplicitData") )
+  if( !parameters.dbase.get<DataBase >("modelData").has_key("AdamsPCData") )
   {
     // this must be the initial call to this routine
-    parameters.dbase.get<DataBase >("modelData").put<AdamsPCData>("AdamsImplicitData");
+    parameters.dbase.get<DataBase >("modelData").put<AdamsPCData>("AdamsPCData");
   }
 
-  AdamsPCData & adamsData = parameters.dbase.get<DataBase >("modelData").get<AdamsPCData>("AdamsImplicitData");
+  AdamsPCData & adamsData = parameters.dbase.get<DataBase >("modelData").get<AdamsPCData>("AdamsPCData");
   
   real & dtb=adamsData.dtb;
   int &mab0 =adamsData.mab0, &mab1=adamsData.mab1, &mab2=adamsData.mab2;
@@ -441,8 +445,8 @@ startTimeStepBDF( real & t0, real & dt0, int & currentGF, int & nextGF, AdvanceO
     parameters.dbase.get<int >("globalStepNumber")=0;
   parameters.dbase.get<int >("globalStepNumber")++;
 
-  assert( parameters.dbase.get<DataBase >("modelData").has_key("AdamsImplicitData") );
-  AdamsPCData & adamsData = parameters.dbase.get<DataBase >("modelData").get<AdamsPCData>("AdamsImplicitData");
+  assert( parameters.dbase.get<DataBase >("modelData").has_key("AdamsPCData") );
+  AdamsPCData & adamsData = parameters.dbase.get<DataBase >("modelData").get<AdamsPCData>("AdamsPCData");
   int &mab0 =adamsData.mab0, &mab1=adamsData.mab1, &mab2=adamsData.mab2;
 
   const int & orderOfBDF = parameters.dbase.get<int>("orderOfBDF");
@@ -495,8 +499,8 @@ takeTimeStepBDF( real & t0, real & dt0, int correction, AdvanceOptions & advance
 
   assert( parameters.dbase.get<int >("orderOfPredictorCorrector")==2 );  // for now we just have 2nd-order in time
 
-  assert( parameters.dbase.get<DataBase >("modelData").has_key("AdamsImplicitData") );
-  AdamsPCData & adamsData = parameters.dbase.get<DataBase >("modelData").get<AdamsPCData>("AdamsImplicitData");
+  assert( parameters.dbase.get<DataBase >("modelData").has_key("AdamsPCData") );
+  AdamsPCData & adamsData = parameters.dbase.get<DataBase >("modelData").get<AdamsPCData>("AdamsPCData");
   
   real & dtb=adamsData.dtb;
   int &mab0 =adamsData.mab0, &mab1=adamsData.mab1, &mab2=adamsData.mab2;
@@ -642,9 +646,9 @@ endTimeStepBDF( real & t0, real & dt0, AdvanceOptions & advanceOptions )
   assert( parameters.dbase.get<Parameters::TimeSteppingMethod >("timeSteppingMethod")==Parameters::implicit );
   assert( parameters.dbase.get<int >("orderOfPredictorCorrector")==2 );  // for now we just have 2nd-order in time
 
-  assert( parameters.dbase.get<DataBase >("modelData").has_key("AdamsImplicitData") );
+  assert( parameters.dbase.get<DataBase >("modelData").has_key("AdamsPCData") );
 
-  AdamsPCData & adamsData = parameters.dbase.get<DataBase >("modelData").get<AdamsPCData>("AdamsImplicitData");
+  AdamsPCData & adamsData = parameters.dbase.get<DataBase >("modelData").get<AdamsPCData>("AdamsPCData");
   
   real & dtb=adamsData.dtb;
   int &mab0 =adamsData.mab0, &mab1=adamsData.mab1, &mab2=adamsData.mab2;

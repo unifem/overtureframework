@@ -59,7 +59,7 @@ LoftedSurfaceMapping( )
   setGridDimensions( axis2,61 );  // angular 
 
 
-  setBasicInverseOption(canDoNothing);  // we do nor provide an inverse
+  setBasicInverseOption(canDoNothing);  // we do not provide an inverse
 
   mappingHasChanged();
 

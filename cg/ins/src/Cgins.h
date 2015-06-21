@@ -229,6 +229,9 @@ getLineSolverBoundaryConditions(const int grid, const int direction,
 				int & numberOfDifferentLineSolverBoundaryConditions );
 
 
+virtual int
+projectInitialConditionsForMovingGrids(int gfIndex);
+
 // Project the velocity on FSI interfaces
 int projectInterfaceVelocity(const real & t, realMappedGridFunction & u, 
 			     realMappedGridFunction & gridVelocity,

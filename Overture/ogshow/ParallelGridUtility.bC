@@ -176,16 +176,18 @@ REDISTRIBUTE(CompositeGrid,realCompositeGridFunction)
 
 
 // =============================================================================================================
-// /Description:
-//    Compute a new indexRange, dimension
-//             and boundaryCondition array that will be valid for the local grid on a processor.
-// 
-//    Set the indexRange to match the ends of the local array (does NOT include parallel ghost).
-//    Set the bc(side,axis) to -1 for internal boundaries between processors
-//
-// NOTES: In parallel we cannot assume the rsxy array is defined on all ghost points -- it will not
-// be set on the extra ghost points put at the far ends of the array. -- i.e. internal boundary ghost 
-// points will be set but not external
+/// \brief Compute a new indexRange, dimension and boundaryCondition array that will be valid for 
+///        the local grid on a processor.
+/// 
+/// \param indexRangeLocal(0:1,0:2) (output) : Set indexRangeLocal to match the ends of the 
+///           local array (does NOT include parallel ghost).
+/// \param dimensionLocal(0:1,0:2) (output) : local "dimension" array.
+/// \param bcLocal (output):   Set bcLocal(side,axis)=internalGhostBC for internal boundaries between processors
+///  \param internalGhostBC (input) : Set the bcLocal(side,axis) to internalGhostBC
+///
+/// NOTES: In parallel we cannot assume the rsxy array is defined on all ghost points -- it will not
+/// be set on the extra ghost points put at the far ends of the array. -- i.e. internal boundary ghost 
+/// points will be set but not external
 // =============================================================================================================
 void ParallelGridUtility::
 getLocalIndexBoundsAndBoundaryConditions( const realMappedGridFunction & a, 
@@ -247,17 +249,63 @@ getLocalIndexBoundsAndBoundaryConditions( const realMappedGridFunction & a,
 
 void ParallelGridUtility::
 getLocalBoundaryConditions( const realMappedGridFunction & a, 
-			    IntegerArray & bcLocal )
+			    IntegerArray & bcLocal,
+			    int internalGhostBC /* = -1 */ )
 // ======================================================================================================
-// /Description:
-//    Compute a boundaryCondition array that will be valid for the local grid on a processor.
-// 
-//    Set the bc(side,axis) to -1 for internal boundaries between processors
+/// \brief Compute a boundaryCondition array that will be valid for the local grid on a processor.
+/// 
+/// 
+///  \param a (input) : grid function belonging to the grid in question 
+///  \param bcLocal(0:1,0:2) (output) : boundary condition array for the current processor. 
+///  \param internalGhostBC (input) : Set the bcLocal(side,axis) to internalGhostBC
+///      for internal boundaries between processors
 // ======================================================================================================
 {
 
   MappedGrid & mg = *a.getMappedGrid();
   
+  const IntegerArray & bc = mg.boundaryCondition();
+  bcLocal = bc;
+  
+  for( int axis=0; axis<mg.numberOfDimensions(); axis++ )
+  {
+    if( a.getLocalBase(axis) == a.getBase(axis) ) 
+    {
+    }
+    else
+    {
+      // for internal ghost mark as periodic since these behave in the same was as periodic
+      bcLocal(0,axis) = -1; // bc(0,axis)>=0 ? 0 : -1;
+    }
+    
+    if( a.getLocalBound(axis) == a.getBound(axis) ) 
+    {
+    }
+    else
+    {
+      // for internal ghost mark as periodic since these behave in the same was as periodic
+      bcLocal(1,axis) = -1; // bc(1,axis)>=0 ? 0 : -1;
+    }
+    
+  }
+}
+
+
+void ParallelGridUtility::
+getLocalBoundaryConditions( const MappedGrid & mg,
+			    IntegerArray & bcLocal,
+			    int internalGhostBC /* = -1 */ )
+// ======================================================================================================
+/// \brief Compute a boundaryCondition array that will be valid for the local grid on a processor.
+/// 
+///  \param mg (input) : determine BC's for ths grid.
+///  \param bcLocal(0:1,0:2) (output) : boundary condition array for the current processor. 
+///  \param internalGhostBC (input) : Set the bcLocal(side,axis) to internalGhostBC
+///      for internal boundaries between processors
+// ======================================================================================================
+{
+
+  const intArray & a =  mg.mask();
   const IntegerArray & bc = mg.boundaryCondition();
   bcLocal = bc;
   

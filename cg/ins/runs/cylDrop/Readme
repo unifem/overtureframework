@@ -1,0 +1,16 @@
+Cgins: Falling cylinder (2D) in a channel
+
+Generate grids using 
+
+   ogen -noplot cylDropGrid.cmd -interp=e -factor=2 
+   ogen -noplot cylDropGrid.cmd -interp=e -factor=4
+   ogen -noplot cylDropGrid.cmd -interp=e -factor=4 -ml=2
+   ogen -noplot cylDropGrid.cmd -interp=e -factor=8 -ml=3
+
+Run cgins using: 
+
+--- serial
+  $cgins cylDrop -g=cylDropGride4.order2.s3.ml2.hdf -tf=1. -tp=.01 -nu=.1 -density=1.25 -dtMax=1.e-3 -project=0 -ts=im -psolver=mg -solver=mg -bcOption=inflowOutflow -freqFullUpdate=1 -go=halt
+
+--parallel: 
+  mpirun -np 2 $cginsp cylDrop -g=cylDropGride4.order2.s3.ml2.hdf -tf=1. -tp=.01 -nu=.1 -density=1.25 -dtMax=1.e-3 -project=0 -ts=im -psolver=mg -solver=mg -bcOption=inflowOutflow -freqFullUpdate=1 -go=halt

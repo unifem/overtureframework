@@ -4,6 +4,7 @@
 #include "DomainSolver.h"
 #include "AdParameters.h"
 #include "ParallelUtility.h"
+#include "EyeCurves.h"
 
 #define  FOR_3(i1,i2,i3,I1,I2,I3)\
   I1Base=I1.getBase(); I2Base=I2.getBase(); I3Base=I3.getBase();\
@@ -264,9 +265,9 @@ userDefinedDeformingSurface( DeformingBodyMotion & deformingBody,
 
     else if( userDefinedDeformingSurfaceOption=="deformingEye" )
     {
-      // ----------------------------------------
-      // -------- Deforming eye motion ----------
-      // ----------------------------------------
+      // -----------------------------------------------
+      // -------- Deforming eye motion (fake) ----------
+      // -----------------------------------------------
       RealArray & par = deformingBodyDataBase.get<RealArray>("userDefinedDeformingSurfaceParams");
       real freqt=par(0), b0=par(1), ampb=par(2);
       int option  = par(3)+.5;
@@ -327,7 +328,32 @@ userDefinedDeformingSurface( DeformingBodyMotion & deformingBody,
       }
       
     }
+    else if( userDefinedDeformingSurfaceOption=="realDeformingEye" )
+    {
+      // -----------------------------------------------
+      // --------------real deforming eye --------------
+      // -----------------------------------------------
+      
+      EyeCurves & eyeCurves = deformingBodyDataBase.get<EyeCurves>("eyeCurves");
+      RealArray curve;
+      real time=t3;  // check me
+      int numPoints=Ib1.getLength()*Ib2.getLength()*Ib3.getLength();
+      numPoints -= numGhost*2;  // no ghost points
+      printF("--DBMS-- evaluate eye curve at t=%8.2, numPoints=%i\n",t3,numPoints);
+      
+      eyeCurves.getEyeCurve( curve,time,numPoints );  // evaluate eye coordinates
 
+      int j=0;
+      FOR_3D(i1,i2,i3,Ib1,Ib2,Ib3)
+      {
+        int k = (j-numGhost + numPoints ) % numPoints;    // periodic wrap 
+	x2(i1,i2,i3,0) = curve(k,0);
+	x2(i1,i2,i3,1) = curve(k,1);
+        j++;
+      }
+      
+    }
+    
     else
     {
       OV_ABORT("ERROR: unknown user defined deforming surface option");
@@ -405,6 +431,7 @@ userDefinedDeformingSurfaceSetup( DeformingBodyMotion & deformingBody )
     // "advection", // this does not work yet
     "concentration motion",
     "deforming eye",
+    "real deforming eye",
     "exit",
     ""
   };
@@ -510,6 +537,19 @@ userDefinedDeformingSurfaceSetup( DeformingBodyMotion & deformingBody )
       printf("Setting freqt=%g, b0=%g, ampb=%g, option=%g\n",par(0),par(1),par(2),par(3));
 
       
+    }
+    else if( answer=="real deforming eye" )
+    {
+      // Deform the eye using the motion defined in the EyeCurves class
+
+      printF("--DBM-- INFO: Deform the eye using the motion defined in the EyeCurves class\n");
+      
+      userDefinedDeformingSurfaceOption="realDeformingEye";
+
+      if( !deformingBodyDataBase.has_key("eyeCurves") )
+      {
+        deformingBodyDataBase.put<EyeCurves>("eyeCurves");
+      }
     }
     else 
     {

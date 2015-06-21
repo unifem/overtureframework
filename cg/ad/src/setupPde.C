@@ -216,14 +216,15 @@ setupPde(aString & reactionName,bool restartChosen, IntegerArray & originalBound
     else if( answer=="advection diffusion" || answer=="convection diffusion" )
     {
       pdeChosen=true;
-      //      parameters.dbase.get<Parameters::PDE >("pde")=Parameters::convectionDiffusion;
       pdeName=answer;
+      parameters.pdeName=pdeName;
     }
     else if( answer=="thin film equations"  )
     {
       pdeChosen=true;
-      //      parameters.dbase.get<Parameters::PDE >("pde")=Parameters::convectionDiffusion;
       pdeName="thinFilmEquations";
+      parameters.pdeName=pdeName;
+      printF("Setting pdeName=[%s]\n",(const char*)pdeName);
     }
     else if( answer=="fixed reference frame" ||
              answer=="rigid body reference frame" ||

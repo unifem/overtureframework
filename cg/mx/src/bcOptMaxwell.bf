@@ -21,11 +21,23 @@
 ! Here are macros that define the planeWave solution
 #Include "planeWave.h"
 
+! -------------------------------------------------------------------------------------------------------
+! Macro: third-order extrapolation:
+! -------------------------------------------------------------------------------------------------------
+#defineMacro extrap3(ec,j1,j2,j3,is1,is2,is3)\
+      ( 3.*u(j1      ,j2      ,j3      ,ec)-3.*u(j1+  is1,j2+  is2,j3+  is3,ec)+u(j1+2*is1,j2+2*is2,j3+2*is3,ec) )
+
+! -------------------------------------------------------------------------------------------------------
+! Macro: fifth-order extrapolation:
+! -------------------------------------------------------------------------------------------------------
+#defineMacro extrap5(ec,j1,j2,j3,is1,is2,is3)\
+      ( 5.*u(j1      ,j2      ,j3      ,ec)-10.*u(j1+  is1,j2+  is2,j3+  is3,ec)+10.*u(j1+2*is1,j2+2*is2,j3+2*is3,ec)\
+       -5.*u(j1+3*is1,j2+3*is2,j3+3*is3,ec)+    u(j1+4*is1,j2+4*is2,j3+4*is3,ec) ) 
 !========================================================================================
 !  Boundary conditions for a curvilinear grid
 !
 !      D0r( a1.uv ) + D0s( a2.uv) = 0
-!      D+^2( tau.uv ) = 0
+!      D+^4( tau.uv ) = 0                 (use an even derivative)
 !      
 !  FORCING: none, twilightZone
 !========================================================================================
@@ -33,6 +45,9 @@
  dra = dr(axis)*(1-2*side)
  dsa = dr(axisp1)*(1-2*side)
  beginLoops()
+
+  if( mask(i1,i2,i3).gt.0 )then ! check for mask added 2015/06/01 *wdh*
+   ! ---- Boundary point is a physical point ---
 
    jac=1./(rx(i1-is1,i2-is2,i3-is3)*sy(i1-is1,i2-is2,i3-is3)-ry(i1-is1,i2-is2,i3-is3)*sx(i1-is1,i2-is2,i3-is3))  
 
@@ -110,23 +125,28 @@
 
    #If #FORCING == "twilightZone"
 
-     g1a= a11p1*u(i1+is1,i2+is2,i3,ex)+ a12p1*u(i1+is1,i2+is2,i3,ey)
+     ! Since div(E)=0 for the TZ solutions, we do not need to adjust the BC's
+     ! *wdh* 2015/05/31 
 
-     call ogf2d(ep,xy(i1-is1,i2-is2,i3,0),xy(i1-is1,i2-is2,i3,1),t, um,vm,wm)
-     call ogf2d(ep,xy(i1    ,i2    ,i3,0),xy(i1    ,i2    ,i3,1),t, u0,v0,w0)
-     call ogf2d(ep,xy(i1+is1,i2+is2,i3,0),xy(i1+is1,i2+is2,i3,1),t, up,vp,wp)
+     !* g1a= a11p1*u(i1+is1,i2+is2,i3,ex)+ a12p1*u(i1+is1,i2+is2,i3,ey)
 
-     g1a=g1a+ (  a11*um+  a12*vm ) - (a11p1*up+a12p1*vp)
-     gx2=gx2- (tau1*(2.*u0-up -um) \
-              +tau2*(2.*v0-vp -vm) )
+     ! Evaluate true solution (fieldOption==0) or its time derivative (fieldOption==1)
+     !* call ogf2dfo(ep,fieldOption,xy(i1-is1,i2-is2,i3,0),xy(i1-is1,i2-is2,i3,1),t, um,vm,wm)
+     !* call ogf2dfo(ep,fieldOption,xy(i1    ,i2    ,i3,0),xy(i1    ,i2    ,i3,1),t, u0,v0,w0)
+     !* call ogf2dfo(ep,fieldOption,xy(i1+is1,i2+is2,i3,0),xy(i1+is1,i2+is2,i3,1),t, up,vp,wp)
+
+     !* g1a=g1a+ (  a11*um+  a12*vm ) - (a11p1*up+a12p1*vp)
+     !* gx2=gx2- (tau1*(2.*u0-up -um) \
+     !*          +tau2*(2.*v0-vp -vm) )
 
      ! old: g2a=g2a+ wm-wp
 
-     ! this is new (040116): check this 
-     call ogf2d(ep,xy(i1-js1,i2-js2,i3,0),xy(i1-js1,i2-js2,i3,1),t, uzm,vzm,wzm)
-     call ogf2d(ep,xy(i1+js1,i2+js2,i3,0),xy(i1+js1,i2+js2,i3,1),t, uzp,vzp,wzp)
+     call ogf2dfo(ep,fieldOption,xy(i1-is1,i2-is2,i3,0),xy(i1-is1,i2-is2,i3,1),t, um,vm,wm)
+     call ogf2dfo(ep,fieldOption,xy(i1+is1,i2+is2,i3,0),xy(i1+is1,i2+is2,i3,1),t, up,vp,wp)
+     call ogf2dfo(ep,fieldOption,xy(i1-js1,i2-js2,i3,0),xy(i1-js1,i2-js2,i3,1),t, uzm,vzm,wzm)
+     call ogf2dfo(ep,fieldOption,xy(i1+js1,i2+js2,i3,0),xy(i1+js1,i2+js2,i3,1),t, uzp,vzp,wzp)
      ws = (wzp-wzm)/(2.*dsa)  
-     wr = (wp-wm)/(2.*dra)
+     wr = (wp - wm)/(2.*dra)
      wx = rsxy(i1,i2,i3,axis,0)*wr + rsxy(i1,i2,i3,axisp1,0)*ws
      wy = rsxy(i1,i2,i3,axis,1)*wr + rsxy(i1,i2,i3,axisp1,1)*ws
      g2a=g2a -  (2.*dra)*( rsxy(i1,i2,i3,axis,0)*wx + rsxy(i1,i2,i3,axis,1)*wy )/(rsxy(i1,i2,i3,axis,0)**2+rsxy(i1,i2,i3,axis,1)**2)
@@ -152,6 +172,19 @@
    u(i1-is1,i2-is2,i3-is3,ey) = ( tau1*g1a -a11*gx2)/det
 
    u(i1-is1,i2-is2,i3-is3,hz)=u(i1+is1,i2+is2,i3+is3,hz) + g2a
+
+  else if( mask(i1,i2,i3).lt.0 )then
+   ! ---- Boundary point is an interpolation point ---
+   ! extrapolate ghost points:
+    u(i1-is1,i2-is2,i3-is3,ex)=extrap3(ex,i1,i2,i3,is1,is2,is3)
+    u(i1-is1,i2-is2,i3-is3,ey)=extrap3(ey,i1,i2,i3,is1,is2,is3)
+    u(i1-is1,i2-is2,i3-is3,hz)=extrap3(hz,i1,i2,i3,is1,is2,is3)
+  else
+    ! boundary point is unused -- extrap for now ??
+    u(i1-is1,i2-is2,i3-is3,ex)=extrap3(ex,i1,i2,i3,is1,is2,is3)
+    u(i1-is1,i2-is2,i3-is3,ey)=extrap3(ey,i1,i2,i3,is1,is2,is3)
+    u(i1-is1,i2-is2,i3-is3,hz)=extrap3(hz,i1,i2,i3,is1,is2,is3)
+  end if
 
  endLoops()
  if( .false. )then
@@ -190,6 +223,9 @@
  dta = dr(axisp2)*(1-2*side)
 
  beginLoops()
+
+  if( mask(i1,i2,i3).gt.0 )then ! check for mask added 2015/06/01 *wdh*
+   ! ---- Boundary point is a physical point ---
 
    jac=1./RXDET(i1-is1,i2-is2,i3-is3)
 
@@ -246,7 +282,8 @@
                                                                 -u(i1+3*is1,i2+3*is2,i3+3*is3,ez))
 
    ! g1 = RHS for divergence equation  a1.u(-1) = g1
-   if( forcingOption.eq.planeWaveBoundaryForcing )then
+   ! Use this next option always (needed for TZ too) *wdh* 2015/05/31
+   if( .true. .or. forcingOption.eq.planeWaveBoundaryForcing )then
     ! include a2,a3 terms in case tangential components are non-zero:
     a21zp1=A21D3(i1+js1,i2+js2,i3+js3)
     a22zp1=A22D3(i1+js1,i2+js2,i3+js3)
@@ -274,20 +311,23 @@
    end if
    #If #FORCING == "twilightZone"
 
-     OGF3D(i1-is1,i2-is2,i3-is3,t,uvm(0),uvm(1),uvm(2)) 
-     OGF3D(i1    ,i2    ,i3    ,t,uv0(0),uv0(1),uv0(2))
-     OGF3D(i1+is1,i2+is2,i3+is3,t,uvp(0),uvp(1),uvp(2))
+     ! Since div(E)=0 for the TZ solutions, we do not need to adjust the BC's
+     ! *wdh* 2015/05/31 
 
-     gx1=gx1-(tau11*(2.*uv0(0)-uvp(0)-uvm(0))\
-             +tau12*(2.*uv0(1)-uvp(1)-uvm(1))\
-             +tau13*(2.*uv0(2)-uvp(2)-uvm(2)) )
+     !* OGF3DFO(i1-is1,i2-is2,i3-is3,t,uvm(0),uvm(1),uvm(2)) 
+     !* OGF3DFO(i1    ,i2    ,i3    ,t,uv0(0),uv0(1),uv0(2))
+     !* OGF3DFO(i1+is1,i2+is2,i3+is3,t,uvp(0),uvp(1),uvp(2))
 
-     gx2=gx2-(tau21*(2.*uv0(0)-uvp(0)-uvm(0))\
-             +tau22*(2.*uv0(1)-uvp(1)-uvm(1))\
-             +tau23*(2.*uv0(2)-uvp(2)-uvm(2)) )
+     !* gx1=gx1-(tau11*(2.*uv0(0)-uvp(0)-uvm(0))\
+     !*         +tau12*(2.*uv0(1)-uvp(1)-uvm(1))\
+     !*         +tau13*(2.*uv0(2)-uvp(2)-uvm(2)) )
 
-     g1=g1+ (a11m*uvm(0)+a12m*uvm(1)+a13m*uvm(2)) \
-         - ( a11p*uvp(0)+a12p*uvp(1)+a13p*uvp(2) )
+     !* gx2=gx2-(tau21*(2.*uv0(0)-uvp(0)-uvm(0))\
+     !*         +tau22*(2.*uv0(1)-uvp(1)-uvm(1))\
+     !*         +tau23*(2.*uv0(2)-uvp(2)-uvm(2)) )
+
+     !* g1=g1+ (a11m*uvm(0)+a12m*uvm(1)+a13m*uvm(2)) \
+     !*     - ( a11p*uvp(0)+a12p*uvp(1)+a13p*uvp(2) )
 
    #Elif #FORCING == "none"
    #Else
@@ -307,24 +347,37 @@
   u(i1-is1,i2-is2,i3-is3,ey) = (tau21*g1*tau13-a11m*gx2*tau13+a11m*tau23*gx1+gx2*tau11*a13m-tau23*tau11*g1-tau21*a13m*gx1)/det
 
 
- if( debug.gt.31 )then
-  write(*,'(" bc2: i=",3i4," u(-1)=",3e11.3,", err=",3e10.2)') i1,i2,i3,\
-    u(i1-is1,i2-is2,i3-is3,ex),u(i1-is1,i2-is2,i3-is3,ey),u(i1-is1,i2-is2,i3-is3,ez),\
-    u(i1-is1,i2-is2,i3-is3,ex)-uvm(0),u(i1-is1,i2-is2,i3-is3,ey)-uvm(1),u(i1-is1,i2-is2,i3-is3,ez)-uvm(2)
-  
-  write(*,'(" d0(a1.u)=",e10.2," tau1.d+d-(u)=",e10.2," tau2.d+d-(u)=",e10.2)') \
-    (a11p*(u(i1+is1,i2+is2,i3+is3,ex)-uvp(0))\
-    +a12p*(u(i1+is1,i2+is2,i3+is3,ey)-uvp(1))+a13p*(u(i1+is1,i2+is2,i3+is3,ez)-uvp(2)))\
-   -(a11m*(u(i1-is1,i2-is2,i3-is3,ex)-uvm(0))+a12m*(u(i1-is1,i2-is2,i3-is3,ey)-uvm(1))\
-    +a13m*(u(i1-is1,i2-is2,i3-is3,ez)-uvm(2))),\
-    tau11*((u(i1-is1,i2-is2,i3-is3,ex)-uvm(0))-2.*(u(i1,i2,i3,ex)-uv0(0))+(u(i1+is1,i2+is2,i3+is3,ex)-uvp(0)))\
-   +tau12*((u(i1-is1,i2-is2,i3-is3,ey)-uvm(1))-2.*(u(i1,i2,i3,ey)-uv0(1))+(u(i1+is1,i2+is2,i3+is3,ey)-uvp(1)))\
-   +tau13*((u(i1-is1,i2-is2,i3-is3,ez)-uvm(2))-2.*(u(i1,i2,i3,ez)-uv0(2))+(u(i1+is1,i2+is2,i3+is3,ez)-uvp(2))),\
-    tau21*((u(i1-is1,i2-is2,i3-is3,ex)-uvm(0))-2.*(u(i1,i2,i3,ex)-uv0(0))+(u(i1+is1,i2+is2,i3+is3,ex)-uvp(0)))\
-   +tau22*((u(i1-is1,i2-is2,i3-is3,ey)-uvm(1))-2.*(u(i1,i2,i3,ey)-uv0(1))+(u(i1+is1,i2+is2,i3+is3,ey)-uvp(1)))\
-   +tau23*((u(i1-is1,i2-is2,i3-is3,ez)-uvm(2))-2.*(u(i1,i2,i3,ez)-uv0(2))+(u(i1+is1,i2+is2,i3+is3,ez)-uvp(2)))
-   ! "'
- end if
+  ! if( debug.gt.31 )then
+  !  write(*,'(" bc2: i=",3i4," u(-1)=",3e11.3,", err=",3e10.2)') i1,i2,i3,\
+  !    u(i1-is1,i2-is2,i3-is3,ex),u(i1-is1,i2-is2,i3-is3,ey),u(i1-is1,i2-is2,i3-is3,ez),\
+  !    u(i1-is1,i2-is2,i3-is3,ex)-uvm(0),u(i1-is1,i2-is2,i3-is3,ey)-uvm(1),u(i1-is1,i2-is2,i3-is3,ez)-uvm(2)
+  !  
+  !  write(*,'(" d0(a1.u)=",e10.2," tau1.d+d-(u)=",e10.2," tau2.d+d-(u)=",e10.2)') \
+  !    (a11p*(u(i1+is1,i2+is2,i3+is3,ex)-uvp(0))\
+  !    +a12p*(u(i1+is1,i2+is2,i3+is3,ey)-uvp(1))+a13p*(u(i1+is1,i2+is2,i3+is3,ez)-uvp(2)))\
+  !   -(a11m*(u(i1-is1,i2-is2,i3-is3,ex)-uvm(0))+a12m*(u(i1-is1,i2-is2,i3-is3,ey)-uvm(1))\
+  !    +a13m*(u(i1-is1,i2-is2,i3-is3,ez)-uvm(2))),\
+  !    tau11*((u(i1-is1,i2-is2,i3-is3,ex)-uvm(0))-2.*(u(i1,i2,i3,ex)-uv0(0))+(u(i1+is1,i2+is2,i3+is3,ex)-uvp(0)))\
+  !   +tau12*((u(i1-is1,i2-is2,i3-is3,ey)-uvm(1))-2.*(u(i1,i2,i3,ey)-uv0(1))+(u(i1+is1,i2+is2,i3+is3,ey)-uvp(1)))\
+  !   +tau13*((u(i1-is1,i2-is2,i3-is3,ez)-uvm(2))-2.*(u(i1,i2,i3,ez)-uv0(2))+(u(i1+is1,i2+is2,i3+is3,ez)-uvp(2))),\
+  !    tau21*((u(i1-is1,i2-is2,i3-is3,ex)-uvm(0))-2.*(u(i1,i2,i3,ex)-uv0(0))+(u(i1+is1,i2+is2,i3+is3,ex)-uvp(0)))\
+  !   +tau22*((u(i1-is1,i2-is2,i3-is3,ey)-uvm(1))-2.*(u(i1,i2,i3,ey)-uv0(1))+(u(i1+is1,i2+is2,i3+is3,ey)-uvp(1)))\
+  !   +tau23*((u(i1-is1,i2-is2,i3-is3,ez)-uvm(2))-2.*(u(i1,i2,i3,ez)-uv0(2))+(u(i1+is1,i2+is2,i3+is3,ez)-uvp(2)))
+  !   ! "'
+  ! end if
+
+  else if( mask(i1,i2,i3).lt.0 )then
+   ! ---- Boundary point is an interpolation point ---
+   ! extrapolate ghost points:
+    u(i1-is1,i2-is2,i3-is3,ex)=extrap3(ex,i1,i2,i3,is1,is2,is3)
+    u(i1-is1,i2-is2,i3-is3,ey)=extrap3(ey,i1,i2,i3,is1,is2,is3)
+    u(i1-is1,i2-is2,i3-is3,ez)=extrap3(ez,i1,i2,i3,is1,is2,is3)
+  else
+    ! boundary point is unused -- extrap for now ??
+    u(i1-is1,i2-is2,i3-is3,ex)=extrap3(ex,i1,i2,i3,is1,is2,is3)
+    u(i1-is1,i2-is2,i3-is3,ey)=extrap3(ey,i1,i2,i3,is1,is2,is3)
+    u(i1-is1,i2-is2,i3-is3,ez)=extrap3(ez,i1,i2,i3,is1,is2,is3)
+  end if
 
  endLoops()
  if( .false. .and. forcingOption.eq.planeWaveBoundaryForcing )then
@@ -454,7 +507,8 @@
 
       orderOfAccuracy      =ipar(9)
 
-      ! assign corners and edges (3d)
+      ! -------- ASSIGN PEC BOUNDARY VALUES HERE ------
+      !          ASSIGN corners and edges (3d)
       if( orderOfAccuracy.eq.2 )then
         call cornersMxOrder2(nd, nd1a,nd1b,nd2a,nd2b,nd3a,nd3b,\
                               ndf1a,ndf1b,ndf2a,ndf2b,ndf3a,ndf3b,\

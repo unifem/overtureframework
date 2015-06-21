@@ -73,7 +73,7 @@ PETScSolver.o : $(Oges)/PETScSolver.C
 #    
 tcm3p = tcm3.o $(PETSC) 
 tcm3p: $(tcm3p)
-	$(CC) $(CCFLAGS) -o tcm3p $(tcm3p) $(CLIBS) $(PETSC_LIBS) $(FLIBS) $(GLIBS)
+	$(CC) $(CCFLAGS) -o tcm3p $(tcm3p) $(CLIBS) $(FLIBS) $(GLIBS) $(PETSC_LIBS)
 
 
 # test David's Interpolate class
@@ -84,25 +84,26 @@ ti:     $(ti); $(CC) $(CCFLAGS) -o $@ $(ti) $(CLIBS) $(FLIBS) $(GLIBS)
 tifc=   testInterpolateFineToCoarse.o InterpolateHelpfulFunctions.o testUtils.o
 tifc:     $(tifc); $(CC) $(CCFLAGS) -o $@ $(tifc) $(CLIBS) $(FLIBS) $(GLIBS)
 
+# -- NOTE: lapack, in PETSC_LIB,S needs to go after OpenGL if lapack is in /usr/lib64
 tderivatives = tderivatives.o 
 tderivatives: $(tderivatives)
-	$(CC) $(CCFLAGS) -o tderivatives $(tderivatives) $(CLIBS) $(PETSC_LIBS) $(FLIBS) $(GLIBS)
+	$(CC) $(CCFLAGS) -o tderivatives $(tderivatives) $(CLIBS) $(FLIBS) $(GLIBS) $(PETSC_LIBS)
 
 tbc = tbc.o 
 tbc: $(tbc)
-	$(CC) $(CCFLAGS) -o tbc $(tbc) $(CLIBS) $(PETSC_LIBS) $(FLIBS) $(GLIBS)
+	$(CC) $(CCFLAGS) -o tbc $(tbc) $(CLIBS) $(FLIBS) $(GLIBS) $(PETSC_LIBS)
 
 tbcc = tbcc.o 
 tbcc: $(tbcc)
-	$(CC) $(CCFLAGS) -o tbcc $(tbcc) $(CLIBS) $(PETSC_LIBS) $(FLIBS) $(GLIBS)
+	$(CC) $(CCFLAGS) -o tbcc $(tbcc) $(CLIBS) $(FLIBS) $(GLIBS) $(PETSC_LIBS)
 
 tcm3 = tcm3.o 
 tcm3: $(tcm3)
-	$(CC) $(CCFLAGS) -o tcm3 $(tcm3) $(CLIBS) $(PETSC_LIBS) $(FLIBS) $(GLIBS)
+	$(CC) $(CCFLAGS) -o tcm3 $(tcm3) $(CLIBS) $(FLIBS) $(GLIBS) $(PETSC_LIBS)
 
 tcm4 = tcm4.o 
 tcm4: $(tcm4)
-	$(CC) $(CCFLAGS) -o tcm4 $(tcm4) $(CLIBS) $(PETSC_LIBS) $(FLIBS) $(GLIBS)
+	$(CC) $(CCFLAGS) -o tcm4 $(tcm4) $(CLIBS) $(FLIBS) $(GLIBS) $(PETSC_LIBS)
 
 
 clean:  

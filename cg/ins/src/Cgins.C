@@ -346,7 +346,8 @@ writeParameterSummary( FILE * file )
   }
 
 
-  if( pdeModel==InsParameters::BoussinesqModel || 
+  if( true ||  // gravity is used with rigid bodies for all models
+      pdeModel==InsParameters::BoussinesqModel || 
       pdeModel==InsParameters::twoPhaseFlowModel || 
       pdeModel==InsParameters::viscoPlasticModel )
   {

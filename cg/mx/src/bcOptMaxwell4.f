@@ -1,9 +1,9 @@
 ! This file automatically generated from bcOptMaxwell4.bf with bpp.
-c *** Fourth order boundary conditions for Maxwell ****
+! *** Fourth order boundary conditions for Maxwell ****
 
 
-c These next include files will define the macros that will define the difference approximations
-c The actual macro is called below
+! These next include files will define the macros that will define the difference approximations
+! The actual macro is called below
 c Use this next macro to declare the statement functions that are defined below
 c To include derivatives of rx use OPTION=RX
 
@@ -22,24 +22,29 @@ c Define statement functions for difference approximations of order 4
 c To include derivatives of rx use OPTION=RX
 c To include derivatives of rx use OPTION=RX
 
-c**************************************************************************
+!**************************************************************************
 
-c Include macros that are common to different orders of accuracy
+! Include macros that are common to different orders of accuracy
 
-c Macros that are common to different orders of accuracy
-
-
-
+!         -*- mode: F90 -*-
+! Macros that are common to different orders of accuracy
 
 
 
-c use the mask 
+! This version can optionally eval time-derivative:
+
+! This version can optionally eval time-derivative:
+
+
+
+
+! use the mask 
 
 
 
 
 
-c Tangent vectors (un-normalized)
+! Tangent vectors (un-normalized)
         
 
 
@@ -64,7 +69,7 @@ c Tangent vectors (un-normalized)
 
 
 
-c Here are versions that use a precomputed jacobian
+! Here are versions that use a precomputed jacobian
                                               
            
 
@@ -145,36 +150,36 @@ c Here are versions that use a precomputed jacobian
 
 
 
-c=====================================================================================
-c Boundary conditions for a rectangular grid:
-c   Normal component of E is even symmetry
-c   Tangential components of E are odd symmetry
-c In 2d: normal component of Hz is even symmetry (Neumann BC)
-c
-c DIM: 2,3
-c ORDER: 2,4,6,8
-c FORCING: none,twilightZone
-c=====================================================================================
+!=====================================================================================
+! Boundary conditions for a rectangular grid:
+!   Normal component of E is even symmetry
+!   Tangential components of E are odd symmetry
+! In 2d: normal component of Hz is even symmetry (Neumann BC)
+!
+! DIM: 2,3
+! ORDER: 2,4,6,8
+! FORCING: none,twilightZone
+!=====================================================================================
 
 
-c ************************************************************************************************
-c  This macro is used for looping over the faces of a grid to assign booundary conditions
-c
-c extra: extra points to assign
-c          Case 1: extra=numberOfGhostPoints -- for assigning extended boundaries
-c          Case 2: extra=-1 -- for assigning ghost points but not including extended boundaries
-c numberOfGhostPoints : number of ghost points (1 for 2nd order, 2 for fourth-order ...)
-c ***********************************************************************************************
-
-
-
+! ************************************************************************************************
+!  This macro is used for looping over the faces of a grid to assign boundary conditions
+!
+! extra: extra points to assign
+!          Case 1: extra=numberOfGhostPoints -- for assigning extended boundaries
+!          Case 2: extra=-1 -- for assigning ghost points but not including extended boundaries
+! numberOfGhostPoints : number of ghost points (1 for 2nd order, 2 for fourth-order ...)
+! ***********************************************************************************************
 
 
 
 
-c**************************************************************************
 
-c Here are macros that define the planeWave solution
+
+
+!**************************************************************************
+
+! Here are macros that define the planeWave solution
 c **************************************************
 c Here are macros that define the:
 c      planeWave solution 
@@ -274,95 +279,100 @@ c Helper function: Return minus the second time derivative
 
 
 
-c===================================================================================
-c  Put the inner loop for the 4th-order BC here so we can repeat it for testing 
-c==================================================================================
-c #beginMacro bcCurv2dOrder4InnerLoop()
-c #endMacro
+!===================================================================================
+!  Put the inner loop for the 4th-order BC here so we can repeat it for testing 
+!==================================================================================
+! #beginMacro bcCurv2dOrder4InnerLoop()
+! #endMacro
 
-c This macro is for the BC on Hz in 2D
+! This macro is for the BC on Hz in 2D
 
-c ===================================================================================
-c  BCs for curvilinear grids in 2D
-c
-c  FORCING: none, twilightZone
-c ===================================================================================
+! -------------------------------------------------------------------------------------------------------
+! Macro: fifth-order extrapolation:
+! -------------------------------------------------------------------------------------------------------
 
 
-
-c ==========================================================================
-c  Define some metric (and equation coefficients) terms and their derivatives
-c
-c  DAr4, DArr4, ... normal derivative
-c ==========================================================================
-
-c ==========================================================================
-c  Define some metric (and equation coefficients) terms and their derivatives
-c
-c Here are the derivatives we can compute directly based on (is1,is2,i3) (js1,js2,js3) (ks1,ks2,k3)
-c ==========================================================================
-
-c ==========================================================================
-c  Define some metric (and equation coefficients) terms and their derivatives
-c
-c Here are the derivatives that we need to use difference code for each values of axis
-c ==========================================================================
+! ===================================================================================
+!  BCs for curvilinear grids in 2D
+!
+!  FORCING: none, twilightZone
+! ===================================================================================
 
 
 
-c================================================================================
-c Compute tangential derivatives
-c================================================================================
+! ==========================================================================
+!  Define some metric (and equation coefficients) terms and their derivatives
+!
+!  DAr4, DArr4, ... normal derivative
+! ==========================================================================
 
-c================================================================================
-c Compute tangential derivatives
-c
-c Here are the derivatives we can compute directly based on (is1,is2,i3) (js1,js2,js3) (ks1,ks2,k3)
-c================================================================================
+! ==========================================================================
+!  Define some metric (and equation coefficients) terms and their derivatives
+!
+! Here are the derivatives we can compute directly based on (is1,is2,i3) (js1,js2,js3) (ks1,ks2,k3)
+! ==========================================================================
 
-c ======================================================================================
-c Here are the derivatives that we need to use difference code for each values of axis
-c ======================================================================================
+! ==========================================================================
+!  Define some metric (and equation coefficients) terms and their derivatives
+!
+! Here are the derivatives that we need to use difference code for each values of axis
+! ==========================================================================
 
 
-c ==========================================================================
-c  Define some metric (and equation coefficients) terms and their derivatives
-c  **** for the extrapolation case ***
-c Here are the derivatives we can compute directly based on (is1,is2,i3) (js1,js2,js3) (ks1,ks2,k3)
-c ==========================================================================
 
-c================================================================================
-c Compute tangential derivatives for extrapolation case
-c
-c Here are the derivatives we can compute directly based on (is1,is2,i3) (js1,js2,js3) (ks1,ks2,k3)
-c================================================================================
+!================================================================================
+! Compute tangential derivatives
+!================================================================================
+
+!================================================================================
+! Compute tangential derivatives
+!
+! Here are the derivatives we can compute directly based on (is1,is2,i3) (js1,js2,js3) (ks1,ks2,k3)
+!================================================================================
+
+! ======================================================================================
+! Here are the derivatives that we need to use difference code for each values of axis
+! ======================================================================================
+
+
+! ==========================================================================
+!  Define some metric (and equation coefficients) terms and their derivatives
+!  **** for the extrapolation case ***
+! Here are the derivatives we can compute directly based on (is1,is2,i3) (js1,js2,js3) (ks1,ks2,k3)
+! ==========================================================================
+
+!================================================================================
+! Compute tangential derivatives for extrapolation case
+!
+! Here are the derivatives we can compute directly based on (is1,is2,i3) (js1,js2,js3) (ks1,ks2,k3)
+!================================================================================
 
 ! 2nd-order One-sided approximations:
 
 
-c=============================================================================================
-c  BCs for curvilinear grids in 3D
-c
-c Note:
-c   The equations are generated assuming that r is the normal direction.
-c   We need to permute the (r,s,t) derivatives according to the value of axis.
-c      axis=0: (r,s,t)
-c      axis=1: (s,t,r)
-c      axis=2: (t,r,s)
-c
-c  FORCING: none, twilightZone
-c=============================================================================================
+!=============================================================================================
+!  BCs for curvilinear grids in 3D
+!
+! Note:
+!   The equations are generated assuming that r is the normal direction.
+!   We need to permute the (r,s,t) derivatives according to the value of axis.
+!      axis=0: (r,s,t)
+!      axis=1: (s,t,r)
+!      axis=2: (t,r,s)
+!
+!  FORCING: none, twilightZone
+!=============================================================================================
 
-c ***** Step 1 : assign values using extrapolation of the normal component ***
-
-
+! ***** Step 1 : assign values using extrapolation of the normal component ***
 
 
 
 
-c **************************************************************
-c *****************   Correction Step **************************
-c **************************************************************
+
+
+! **************************************************************
+! *****************   Correction Step **************************
+! **************************************************************
 
 
 

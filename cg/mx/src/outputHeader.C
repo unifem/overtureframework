@@ -11,6 +11,19 @@ outputHeader()
   assert( cgp!=NULL );
   CompositeGrid & cg= *cgp;
 
+  int numberOfComponents=0;
+  if( cg.numberOfDimensions()==2 )
+  {
+    numberOfComponents= method==yee || method==nfdtd || method==sosup ? 
+      (int)numberOfComponentsRectangularGrid : 
+      (int)numberOfComponentsCurvilinearGrid; 
+	    
+  }
+  else
+  {
+    numberOfComponents=(int(solveForElectricField)+int(solveForMagneticField))*3;
+  }
+
   for( int fileio=0; fileio<2; fileio++ )
   {
     FILE *file = fileio==0 ? logFile : stdout; 
@@ -33,10 +46,18 @@ outputHeader()
                      orderOfFilter,filterFrequency,numberOfFilterIterations,filterCoefficient);
     else
       fPrintF(file," do not apply the high order filter\n");
-    fPrintF(file," numberOfFunctions=%i numberOfTimeLevels=%i\n",numberOfFunctions,numberOfTimeLevels);
     fPrintF(file," divergence damping coefficient=%8.2e\n",divergenceDamping);
             
     fPrintF(file," divergence cleaning is %s. coefficient=%g\n",(useDivergenceCleaning ? "on" : "off"),divergenceCleaningCoefficient);
+
+    const bool & useNewForcingMethod= dbase.get<bool>("useNewForcingMethod");
+    const int & numberOfForcingFunctions= dbase.get<int>("numberOfForcingFunctions"); 
+    fPrintF(file," Work-space:\n");
+    fPrintF(file,"   Solution arrays: numberOfTimeLevels=%i (%i components)\n",numberOfTimeLevels,numberOfComponents);
+    fPrintF(file,"   RHS : numberOfFunctions=%i  (%i components).\n",numberOfFunctions,numberOfComponents);
+    fPrintF(file,"   External forcing: useNewForcingMethod=%i, numberOfForcingFunctions=%i (%i components).\n",
+            (int)useNewForcingMethod,numberOfForcingFunctions,numberOfComponents);
+    
 
     fPrintF(file," plane wave solution: (kx,ky,kz)=(%8.2e,%8.2e,%8.2e), omega=%8.2e \n"
                  "     E: a=(%8.2e,%8.2e,%8.2e), H: b=(%8.2e,%8.2e,%8.2e)\n",
@@ -51,7 +72,7 @@ outputHeader()
     if( method==nfdtd )
     {
       MappedGridOperators & mgop = mgp!=NULL ? *op : (*cgop)[0];
-      fPrintF(file," curvilinear grid operators use %s difference approximation\n",
+      fPrintF(file," curvilinear grid operators use %s difference approximations.\n",
 	      mgop.usingConservativeApproximations() ? "conservative" : "non-conservative" );
       
     }
@@ -112,7 +133,8 @@ outputHeader()
       "planeMaterialInterfaceInitialCondition",
       "gaussianIntegralInitialCondition",   
       "twilightZoneInitialCondition",
-      "userDefinedInitialConditionsOption"
+      "userDefinedInitialConditionsOption",
+      "userDefinedKnownSolutionInitialCondition"
     };
 
     if( initialConditionOption>=0 && initialConditionOption<numberOfInitialConditionNames )
@@ -135,7 +157,9 @@ outputHeader()
     fPrintF(file," forcingOption = %i\n",(const int)forcingOption);
 
 
-    fPrintF(file," knownSolutionOption = %i\n",(const int)knownSolutionOption);
+    const aString & knownSolutionName=dbase.get<aString>("knownSolutionName");
+    fPrintF(file," knownSolutionOption = %s\n",(const char*)knownSolutionName);
+    // fPrintF(file," knownSolutionOption = %i\n",(const int)knownSolutionOption);
     
     fPrintF(file," materialInterfaceOption=%i (1=extrap ghost as initial guess)\n",materialInterfaceOption);
     fPrintF(file," interfaceEquationsOption=%i (0=use extrap for 2nd ghost, 1=use equations for 3D order 4)\n",

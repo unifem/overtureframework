@@ -1,39 +1,47 @@
-c *** Fourth order boundary conditions for Maxwell ****
+! *** Fourth order boundary conditions for Maxwell ****
 
 
-c These next include files will define the macros that will define the difference approximations
-c The actual macro is called below
+! These next include files will define the macros that will define the difference approximations
+! The actual macro is called below
 #Include "defineDiffOrder2f.h"
 #Include "defineDiffOrder4f.h"
 
-c**************************************************************************
+!**************************************************************************
 
-c Include macros that are common to different orders of accuracy
+! Include macros that are common to different orders of accuracy
 
 #Include "bcOptMaxwellMacros.h"
 
-c**************************************************************************
+!**************************************************************************
 
-c Here are macros that define the planeWave solution
+! Here are macros that define the planeWave solution
 #Include "planeWave.h"
 
-c===================================================================================
-c  Put the inner loop for the 4th-order BC here so we can repeat it for testing 
-c==================================================================================
-c #beginMacro bcCurv2dOrder4InnerLoop()
-c #endMacro
+!===================================================================================
+!  Put the inner loop for the 4th-order BC here so we can repeat it for testing 
+!==================================================================================
+! #beginMacro bcCurv2dOrder4InnerLoop()
+! #endMacro
 
-c This macro is for the BC on Hz in 2D
+! This macro is for the BC on Hz in 2D
 #defineMacro FW12D(i1,i2,i3,ws,ut0,vt0) \
         ( -(rsxy(i1,i2,i3,axis,0)*rsxy(i1,i2,i3,axisp1,0)+rsxy(i1,i2,i3,axis,1)*rsxy(i1,i2,i3,axisp1,1))*ws \
         - rsxy(i1,i2,i3,axis,0)*vt0 + rsxy(i1,i2,i3,axis,1)*ut0 \
        )/(rsxy(i1,i2,i3,axis,0)**2+rsxy(i1,i2,i3,axis,1)**2)
 
-c ===================================================================================
-c  BCs for curvilinear grids in 2D
-c
-c  FORCING: none, twilightZone
-c ===================================================================================
+! -------------------------------------------------------------------------------------------------------
+! Macro: fifth-order extrapolation:
+! -------------------------------------------------------------------------------------------------------
+#defineMacro extrap5(ec,j1,j2,j3,is1,is2,is3)\
+      ( 5.*u(j1      ,j2      ,j3      ,ec)-10.*u(j1+  is1,j2+  is2,j3+  is3,ec)+10.*u(j1+2*is1,j2+2*is2,j3+2*is3,ec)\
+       -5.*u(j1+3*is1,j2+3*is2,j3+3*is3,ec)+    u(j1+4*is1,j2+4*is2,j3+4*is3,ec) ) 
+                                        
+
+! ===================================================================================
+!  BCs for curvilinear grids in 2D
+!
+!  FORCING: none, twilightZone
+! ===================================================================================
 #beginMacro bcCurvilinear2dOrder4(FORCING)
 
  ! Since is1 is +1 or -1 we need to flip the sign of dr in the derivative approximations
@@ -138,10 +146,10 @@ c ==============================================================================
    ! c2s =   (C2Order2(i1+js1,i2+js2,i3)- C2Order2(i1-js1,i2-js2,i3))/(2.*dsa) 
 
    ! fourth-order:
-c$$$   c11s = (8.*(C11(i1+  js1,i2+  js2,i3)-C11(i1-  js1,i2-  js2,i3))   \
-c$$$             -(C11(i1+2*js1,i2+2*js2,i3)-C11(i1-2*js1,i2-2*js2,i3))   )/(12.*dsa)
-c$$$   c22s = (8.*(C22(i1+  js1,i2+  js2,i3)-C22(i1-  js1,i2-  js2,i3))   \
-c$$$             -(C22(i1+2*js1,i2+2*js2,i3)-C22(i1-2*js1,i2-2*js2,i3))   )/(12.*dsa)
+!$$$   c11s = (8.*(C11(i1+  js1,i2+  js2,i3)-C11(i1-  js1,i2-  js2,i3))   \
+!$$$             -(C11(i1+2*js1,i2+2*js2,i3)-C11(i1-2*js1,i2-2*js2,i3))   )/(12.*dsa)
+!$$$   c22s = (8.*(C22(i1+  js1,i2+  js2,i3)-C22(i1-  js1,i2-  js2,i3))   \
+!$$$             -(C22(i1+2*js1,i2+2*js2,i3)-C22(i1-2*js1,i2-2*js2,i3))   )/(12.*dsa)
 
    c11r = (8.*(C11(i1+  is1,i2+  is2,i3)-C11(i1-  is1,i2-  is2,i3))   \
              -(C11(i1+2*is1,i2+2*is2,i3)-C11(i1-2*is1,i2-2*is2,i3))   )/(12.*dra)
@@ -306,9 +314,9 @@ c$$$             -(C22(i1+2*js1,i2+2*js2,i3)-C22(i1-2*js1,i2-2*js2,i3))   )/(12.
 
 
     fw1=FW12D(i1,i2,i3,ws,ut0,vt0)
-c$$$   fw1=( -(rsxy(i1,i2,i3,axis,0)*rsxy(i1,i2,i3,axisp1,0)+rsxy(i1,i2,i3,axis,1)*rsxy(i1,i2,i3,axisp1,1))*ws \
-c$$$        - rsxy(i1,i2,i3,axis,0)*vt0 + rsxy(i1,i2,i3,axis,1)*ut0 \
-c$$$       )/(rsxy(i1,i2,i3,axis,0)**2+rsxy(i1,i2,i3,axis,1)**2)
+!$$$   fw1=( -(rsxy(i1,i2,i3,axis,0)*rsxy(i1,i2,i3,axisp1,0)+rsxy(i1,i2,i3,axis,1)*rsxy(i1,i2,i3,axisp1,1))*ws \
+!$$$        - rsxy(i1,i2,i3,axis,0)*vt0 + rsxy(i1,i2,i3,axis,1)*ut0 \
+!$$$       )/(rsxy(i1,i2,i3,axis,0)**2+rsxy(i1,i2,i3,axis,1)**2)
 
    ! fw2 = fw1.tt -[ c22*wrss + c2 wrs ]
    ! where
@@ -326,13 +334,13 @@ c$$$       )/(rsxy(i1,i2,i3,axis,0)**2+rsxy(i1,i2,i3,axis,1)**2)
                                (rsxy(i1,i2,i3,axis,0)**2+rsxy(i1,i2,i3,axis,1)**2)\
          - c22*( fw1p1-2.*fw1+fw1m1 )/(dsa**2) -c2*(fw1p1-fw1m1 )/(2.*dsa)
 
-c   fw2 = (-rsxy(i1,i2,i3,axis,0)*vttt0 + rsxy(i1,i2,i3,axis,1)*uttt0 )/\
-c                               (rsxy(i1,i2,i3,axis,0)**2+rsxy(i1,i2,i3,axis,1)**2)\
-c         - c22*( (-rsxy(i1+js1,i2+js2,i3,axis,0)*vtp1 + rsxy(i1+js1,i2+js2,i3,axis,1)*utp1)\
-c             -2.*(-rsxy(i1    ,i2    ,i3,axis,0)*vt0  + rsxy(i1    ,i2    ,i3,axis,1)*ut0 ) \
-c                +(-rsxy(i1-js1,i2-js2,i3,axis,0)*vtm1 + rsxy(i1-js1,i2-js2,i3,axis,1)*utm1) )/(dsa**2) \
-c         -  c2*( (-rsxy(i1+js1,i2+js2,i3,axis,0)*vtp1 + rsxy(i1+js1,i2+js2,i3,axis,1)*utp1)\
-c                -(-rsxy(i1-js1,i2-js2,i3,axis,0)*vtm1 + rsxy(i1-js1,i2-js2,i3,axis,1)*utm1) )/(2.*dsa)
+!   fw2 = (-rsxy(i1,i2,i3,axis,0)*vttt0 + rsxy(i1,i2,i3,axis,1)*uttt0 )/\
+!                               (rsxy(i1,i2,i3,axis,0)**2+rsxy(i1,i2,i3,axis,1)**2)\
+!         - c22*( (-rsxy(i1+js1,i2+js2,i3,axis,0)*vtp1 + rsxy(i1+js1,i2+js2,i3,axis,1)*utp1)\
+!             -2.*(-rsxy(i1    ,i2    ,i3,axis,0)*vt0  + rsxy(i1    ,i2    ,i3,axis,1)*ut0 ) \
+!                +(-rsxy(i1-js1,i2-js2,i3,axis,0)*vtm1 + rsxy(i1-js1,i2-js2,i3,axis,1)*utm1) )/(dsa**2) \
+!         -  c2*( (-rsxy(i1+js1,i2+js2,i3,axis,0)*vtp1 + rsxy(i1+js1,i2+js2,i3,axis,1)*utp1)\
+!                -(-rsxy(i1-js1,i2-js2,i3,axis,0)*vtm1 + rsxy(i1-js1,i2-js2,i3,axis,1)*utm1) )/(2.*dsa)
  end if
 
  #If #FORCING == "twilightZone"
@@ -391,16 +399,16 @@ c                -(-rsxy(i1-js1,i2-js2,i3,axis,0)*vtm1 + rsxy(i1-js1,i2-js2,i3,a
 
 
   ! For testing: *************************************************************
-c$$$  urrr=(uvp2(0)-2.*(uvp(0)-uvm(0))-uvm2(0))/(2.*dra**3)
-c$$$  vrrr=(uvp2(1)-2.*(uvp(1)-uvm(1))-uvm2(1))/(2.*dra**3)
-c$$$
-c$$$  urr=(-30.*uv0(0)+16.*(uvp(0)+uvm(0))-(uvp2(0)+uvm2(0)) )/(12.*dra**2)
-c$$$  vrr=(-30.*uv0(1)+16.*(uvp(1)+uvm(1))-(uvp2(1)+uvm2(1)) )/(12.*dra**2)
-c$$$
-c$$$  ur=(8.*(uvp(0)-uvm(0))-(uvp2(0)-uvm2(0)))/(12.*dra)
-c$$$  vr=(8.*(uvp(1)-uvm(1))-(uvp2(1)-uvm2(1)))/(12.*dra)
-c$$$
-c$$$  bf = -( b3u*urrr+b3v*vrrr+b2u*urr+b2v*vrr+b1u*ur+b1v*vr )
+!$$$  urrr=(uvp2(0)-2.*(uvp(0)-uvm(0))-uvm2(0))/(2.*dra**3)
+!$$$  vrrr=(uvp2(1)-2.*(uvp(1)-uvm(1))-uvm2(1))/(2.*dra**3)
+!$$$
+!$$$  urr=(-30.*uv0(0)+16.*(uvp(0)+uvm(0))-(uvp2(0)+uvm2(0)) )/(12.*dra**2)
+!$$$  vrr=(-30.*uv0(1)+16.*(uvp(1)+uvm(1))-(uvp2(1)+uvm2(1)) )/(12.*dra**2)
+!$$$
+!$$$  ur=(8.*(uvp(0)-uvm(0))-(uvp2(0)-uvm2(0)))/(12.*dra)
+!$$$  vr=(8.*(uvp(1)-uvm(1))-(uvp2(1)-uvm2(1)))/(12.*dra)
+!$$$
+!$$$  bf = -( b3u*urrr+b3v*vrrr+b2u*urr+b2v*vrr+b1u*ur+b1v*vr )
   ! *************************************************************************
 
  ! for now remove the error in the extrapolation ************
@@ -460,17 +468,17 @@ c$$$  bf = -( b3u*urrr+b3v*vrrr+b2u*urr+b2v*vrr+b1u*ur+b1v*vr )
  #End
 
 
-c Now assign ex and ey at the ghost points:
+! Now assign ex and ey at the ghost points:
 #Include "bc4Maxwell.h"
 
-c extrapolate normal component:
-c #Include "bc4eMaxwell.h"
+! extrapolate normal component:
+! #Include "bc4eMaxwell.h"
 
 
-c Now assign Hz at the ghost points
+! Now assign Hz at the ghost points
 
-c u(i1-  is1,i2-  is2,i3-  is3,hz) = u(i1+  is1,i2+  is2,i3+  is3,hz)
-c u(i1-2*is1,i2-2*is2,i3-2*is3,hz) = u(i1+2*is1,i2+2*is2,i3+2*is3,hz)
+! u(i1-  is1,i2-  is2,i3-  is3,hz) = u(i1+  is1,i2+  is2,i3+  is3,hz)
+! u(i1-2*is1,i2-2*is2,i3-2*is3,hz) = u(i1+2*is1,i2+2*is2,i3+2*is3,hz)
 
 #Include "bc4HzMaxwell.h"
 
@@ -636,10 +644,11 @@ else if( mask(i1,i2,i3).lt.0 )then
 ! *  end if
 
 
-c *********************** NEW ************************
+! *********************** NEW ************************
  ! ***************************************************************************************
  ! Use one sided approximations as needed for expressions needing tangential derivatives
  ! ***************************************************************************************
+
 
  js1a=abs(js1)
  js2a=abs(js2)
@@ -648,6 +657,7 @@ c *********************** NEW ************************
  if( (i1-2*js1a).ge.md1a .and. (i1+2*js1a).le.md1b .and. \
      (i2-2*js2a).ge.md2a .and. (i2+2*js2a).le.md2b )then
   ! centered approximation is ok
+
   c1 = C1Order4(i1,i2,i3)
   c2 = C2Order4(i1,i2,i3)
   if( axis.eq.0 )then
@@ -695,10 +705,10 @@ c *********************** NEW ************************
   a12s =-(-3.*A12(i1,i2,i3)+4.*A12(i1-js1a,i2-js2a,i3)-A12(i1-2*js1a,i2-2*js2a,i3))/(2.*dsb)
   a21s =-(-3.*A21(i1,i2,i3)+4.*A21(i1-js1a,i2-js2a,i3)-A21(i1-2*js1a,i2-2*js2a,i3))/(2.*dsb)
   a22s =-(-3.*A22(i1,i2,i3)+4.*A22(i1-js1a,i2-js2a,i3)-A22(i1-2*js1a,i2-2*js2a,i3))/(2.*dsb)
-c if( debug.gt.0 )then
-c   write(*,'(" ghost-interp:left-shift i=",3i3," js1a,js2a=",2i3," c2r,c2s2(-1),c2s2(-2)=",10e10.2)')\
-c      i1,i2,i3,js1a,js2a,c2r,C2s2(i1-js1a,i2-js2a,i3),C2s2(i1-2*js1a,i2-2*js2a,i3)
-c end if
+! if( debug.gt.0 )then
+!   write(*,'(" ghost-interp:left-shift i=",3i3," js1a,js2a=",2i3," c2r,c2s2(-1),c2s2(-2)=",10e10.2)')\
+!      i1,i2,i3,js1a,js2a,c2r,C2s2(i1-js1a,i2-js2a,i3),C2s2(i1-2*js1a,i2-2*js2a,i3)
+! end if
  else if( (i1+3*js1a).le.md1b .and. \
           (i2+3*js2a).le.md2b )then
   ! one sided  2nd-order:
@@ -711,10 +721,10 @@ c end if
     c1r = 2.*C1s2(i1+js1a,i2+js2a,i3)-C1s2(i1+2*js1a,i2+2*js2a,i3)
     c2r = 2.*C2s2(i1+js1a,i2+js2a,i3)-C2s2(i1+2*js1a,i2+2*js2a,i3)
   end if
-c if( debug.gt.0 )then
-c   write(*,'(" ghost-interp:right-shift i=",3i3," js1a,js2a=",2i3," c2r,c2s2(+1),c2s2(+2)=",10e10.2)')\
-c      i1,i2,i3,js1a,js2a,c2r,C2s2(i1+js1a,i2+js2a,i3),C2s2(i1+2*js1a,i2+2*js2a,i3)
-c end if
+! if( debug.gt.0 )then
+!   write(*,'(" ghost-interp:right-shift i=",3i3," js1a,js2a=",2i3," c2r,c2s2(+1),c2s2(+2)=",10e10.2)')\
+!      i1,i2,i3,js1a,js2a,c2r,C2s2(i1+js1a,i2+js2a,i3),C2s2(i1+2*js1a,i2+2*js2a,i3)
+! end if
   a11s = (-3.*A11(i1,i2,i3)+4.*A11(i1+js1a,i2+js2a,i3)-A11(i1+2*js1a,i2+2*js2a,i3))/(2.*dsb)
   a12s = (-3.*A12(i1,i2,i3)+4.*A12(i1+js1a,i2+js2a,i3)-A12(i1+2*js1a,i2+2*js2a,i3))/(2.*dsb)
   a21s = (-3.*A21(i1,i2,i3)+4.*A21(i1+js1a,i2+js2a,i3)-A21(i1+2*js1a,i2+2*js2a,i3))/(2.*dsb)
@@ -774,7 +784,7 @@ c end if
  end if
 
 
-c ******************************* end NEW ************************
+! ******************************* end NEW ************************
 
  tau1=rsxy(i1,i2,i3,axisp1,0)
  tau2=rsxy(i1,i2,i3,axisp1,1)
@@ -869,10 +879,10 @@ c ******************************* end NEW ************************
  #End
 
 
-c assign values using extrapolation of the normal component:
+! assign values using extrapolation of the normal component:
 #Include "bc4eMaxwell.h"
 
-c Now assign Hz at the ghost points
+! Now assign Hz at the ghost points
 
 #Include "bc4HzMaxwell.h"
 
@@ -900,53 +910,21 @@ c Now assign Hz at the ghost points
 
  end if
 
+ ! ** NO NEED TO DO ALL THE ABOVE IF WE DO THIS:
+ extrapInterpGhost=.true. 
+ if( extrapInterpGhost )then
+   ! extrapolate ghost points next to boundary interpolation points  *wdh* 2015/05/30 
+   write(*,'(" extrap ghost next to interp")')
+   u(i1-is1,i2-is2,i3-is3,ex) = extrap5(ex,i1,i2,i3,is1,is2,is3)
+   u(i1-is1,i2-is2,i3-is3,ey) = extrap5(ey,i1,i2,i3,is1,is2,is3)
+   u(i1-is1,i2-is2,i3-is3,hz) = extrap5(hz,i1,i2,i3,is1,is2,is3)
 
-c$$$ ! **** do this for now *** fix ***
-c$$$
-c$$$  a11 =A11(i1,i2,i3) 
-c$$$  a12 =A12(i1,i2,i3)
-c$$$
-c$$$  a11r = DR4($A11)
-c$$$  a12r = DR4($A12)
-c$$$
-c$$$  tau11=rsxy(i1,i2,i3,axisp1,0)
-c$$$  tau12=rsxy(i1,i2,i3,axisp1,1)
-c$$$
-c$$$  detnt=a11*tau12-a12*tau11
-c$$$
-c$$$  do m=1,2
-c$$$    m1=i1-m*is1
-c$$$    m2=i2-m*is2
-c$$$    m3=i3
-c$$$    ! use a1.(u.r) + a1r.u =0 for now:
-c$$$    !    tau.urr=0
-c$$$
-c$$$    ! here is a second-order approximation:
-c$$$    a1DotU= a11*u(i1+m*is1,i2+m*is2,i3,ex)\
-c$$$           +a12*u(i1+m*is1,i2+m*is2,i3,ey)\
-c$$$        +( a11r*u(i1+m*is1,i2+m*is2,i3,ex)\
-c$$$          +a12r*u(i1+m*is1,i2+m*is2,i3,ey) )*(2.*m*dra)
-c$$$
-c$$$    tau1DotU=tau11*( 2.*u(i1,i2,i3,ex)-u(i1+m*is1,i2+m*is2,i3,ex))\
-c$$$            +tau12*( 2.*u(i1,i2,i3,ey)-u(i1+m*is1,i2+m*is2,i3,ey))
-c$$$  
-c$$$    #If #FORCING == "twilightZone"
-c$$$      OGF2D(i1,i2,i3,t, uv0(0),uv0(1),uv0(2))
-c$$$      OGF2D(i1-m*is1,i2-m*is2,i3,t, uvm(0),uvm(1),uvm(2))
-c$$$      OGF2D(i1+m*is1,i2+m*is2,i3,t, uvp(0),uvp(1),uvp(2))
-c$$$      
-c$$$      a1DotU=a1DotU + a11*( uvm(0)-uvp(0) ) + a12*( uvm(1)-uvp(1) ) 
-c$$$      tau1DotU=tau1DotU + tau11*( uvm(0)-2.*uv0(0)+uvp(0) ) + tau12*( uvm(1)-2.*uv0(1)+uvp(1) ) 
-c$$$    #End
-c$$$
-c$$$    u(m1,m2,m3,ex)=(a1DotU*tau12-a12*tau1DotU)/detnt
-c$$$    u(m1,m2,m3,ey)=(a11*tau1DotU-a1DotU*tau11)/detnt
-c$$$    u(m1,m2,m3,hz)=u(i1+m*is1,i2+m*is2,i3,hz)
-c$$$
-c$$$!    write(*,'(" ghost-interp: i=",3i4,", is=",2i2,"  errors=",3e10.2)') i1,i2,i3,is1,is2,u(m1,m2,m3,ex)-uvm(0),\
-c$$$!            u(m1,m2,m3,ey)-uvm(1),u(m1,m2,m3,hz)-uvm(2)
-c$$$
-c$$$ end do
+   u(i1-2*is1,i2-2*is2,i3-2*is3,ex) = extrap5(ex,i1-is1,i2-is2,i3-is3,is1,is2,is3)
+   u(i1-2*is1,i2-2*is2,i3-2*is3,ey) = extrap5(ey,i1-is1,i2-is2,i3-is3,is1,is2,is3)
+   u(i1-2*is1,i2-2*is2,i3-2*is3,hz) = extrap5(hz,i1-is1,i2-is2,i3-is3,is1,is2,is3)
+
+ end if
+
 
 end if ! mask>0
 endLoops()
@@ -1513,11 +1491,11 @@ end if
 
 
 
-c ==========================================================================
-c  Define some metric (and equation coefficients) terms and their derivatives
-c
-c  DAr4, DArr4, ... normal derivative
-c ==========================================================================
+! ==========================================================================
+!  Define some metric (and equation coefficients) terms and their derivatives
+!
+!  DAr4, DArr4, ... normal derivative
+! ==========================================================================
 #beginMacro defineMetricDerivatives(DAr4,DAs4,DAt4,DArr4,DAss4,DAtt4,DArs4,DArt4,DAst4,DAsss2,DAttt2,DArss4,DArtt4,DAsst4,DAstt4)
 
  ! precompute the inverse of the jacobian, used in macros AmnD3J
@@ -1776,11 +1754,11 @@ c ==========================================================================
 
 #endMacro
 
-c ==========================================================================
-c  Define some metric (and equation coefficients) terms and their derivatives
-c
-c Here are the derivatives we can compute directly based on (is1,is2,i3) (js1,js2,js3) (ks1,ks2,k3)
-c ==========================================================================
+! ==========================================================================
+!  Define some metric (and equation coefficients) terms and their derivatives
+!
+! Here are the derivatives we can compute directly based on (is1,is2,i3) (js1,js2,js3) (ks1,ks2,k3)
+! ==========================================================================
 #beginMacro defineMetricDerivatives1()
 
  ! precompute the inverse of the jacobian, used in macros AmnD3J
@@ -1953,11 +1931,11 @@ c ==========================================================================
 
 #endMacro
 
-c ==========================================================================
-c  Define some metric (and equation coefficients) terms and their derivatives
-c
-c Here are the derivatives that we need to use difference code for each values of axis
-c ==========================================================================
+! ==========================================================================
+!  Define some metric (and equation coefficients) terms and their derivatives
+!
+! Here are the derivatives that we need to use difference code for each values of axis
+! ==========================================================================
 #beginMacro defineMetricDerivatives2(DArs4,DArt4,DAst4, DArss4,DArtt4,DAsst4,DAstt4) 
 
  a11rs = D ## DArs4($A11D3J)
@@ -2048,9 +2026,9 @@ c ==========================================================================
 
 
 
-c================================================================================
-c Compute tangential derivatives
-c================================================================================
+!================================================================================
+! Compute tangential derivatives
+!================================================================================
 #beginMacro getTangentialDerivatives(VS,VSS,VSSS,VT,VTT,VTTT, VST,VSST,VSTT)
  us=VS(i1,i2,i3,ex)
  uss=VSS(i1,i2,i3,ex)
@@ -2090,11 +2068,11 @@ c===============================================================================
 
 #endMacro
 
-c================================================================================
-c Compute tangential derivatives
-c
-c Here are the derivatives we can compute directly based on (is1,is2,i3) (js1,js2,js3) (ks1,ks2,k3)
-c================================================================================
+!================================================================================
+! Compute tangential derivatives
+!
+! Here are the derivatives we can compute directly based on (is1,is2,i3) (js1,js2,js3) (ks1,ks2,k3)
+!================================================================================
 #beginMacro getTangentialDerivatives1()
 
  us=US4(ex)
@@ -2123,9 +2101,9 @@ c===============================================================================
 
 #endMacro
 
-c ======================================================================================
-c Here are the derivatives that we need to use difference code for each values of axis
-c ======================================================================================
+! ======================================================================================
+! Here are the derivatives that we need to use difference code for each values of axis
+! ======================================================================================
 #beginMacro getTangentialDerivatives2(VST,VSST,VSTT)
 
  ust=VST(i1,i2,i3,ex)
@@ -2143,11 +2121,11 @@ c ==============================================================================
 #endMacro
 
 
-c ==========================================================================
-c  Define some metric (and equation coefficients) terms and their derivatives
-c  **** for the extrapolation case ***
-c Here are the derivatives we can compute directly based on (is1,is2,i3) (js1,js2,js3) (ks1,ks2,k3)
-c ==========================================================================
+! ==========================================================================
+!  Define some metric (and equation coefficients) terms and their derivatives
+!  **** for the extrapolation case ***
+! Here are the derivatives we can compute directly based on (is1,is2,i3) (js1,js2,js3) (ks1,ks2,k3)
+! ==========================================================================
 #beginMacro defineMetricDerivativesExtrap()
 
  ! precompute the inverse of the jacobian, used in macros AmnD3J
@@ -2202,11 +2180,11 @@ c ==========================================================================
 
 #endMacro
 
-c================================================================================
-c Compute tangential derivatives for extrapolation case
-c
-c Here are the derivatives we can compute directly based on (is1,is2,i3) (js1,js2,js3) (ks1,ks2,k3)
-c================================================================================
+!================================================================================
+! Compute tangential derivatives for extrapolation case
+!
+! Here are the derivatives we can compute directly based on (is1,is2,i3) (js1,js2,js3) (ks1,ks2,k3)
+!================================================================================
 #beginMacro getTangentialDerivativesExtrap()
 
  us=US4(ex)
@@ -2242,20 +2220,20 @@ c===============================================================================
          ((2.*u(i1,i2,i3,cc)-5.*u(i1+n1,i2+n2,i3+n3,cc)+4.*u(i1+2*n1,i2+2*n2,i3+2*n3,cc)\
              -u(i1+3*n1,i2+3*n2,i3+3*n3,cc))/(drr**2) )
 
-c=============================================================================================
-c  BCs for curvilinear grids in 3D
-c
-c Note:
-c   The equations are generated assuming that r is the normal direction.
-c   We need to permute the (r,s,t) derivatives according to the value of axis.
-c      axis=0: (r,s,t)
-c      axis=1: (s,t,r)
-c      axis=2: (t,r,s)
-c
-c  FORCING: none, twilightZone
-c=============================================================================================
+!=============================================================================================
+!  BCs for curvilinear grids in 3D
+!
+! Note:
+!   The equations are generated assuming that r is the normal direction.
+!   We need to permute the (r,s,t) derivatives according to the value of axis.
+!      axis=0: (r,s,t)
+!      axis=1: (s,t,r)
+!      axis=2: (t,r,s)
+!
+!  FORCING: none, twilightZone
+!=============================================================================================
 
-c ***** Step 1 : assign values using extrapolation of the normal component ***
+! ***** Step 1 : assign values using extrapolation of the normal component ***
 #beginMacro bcCurvilinear3dOrder4Step1(FORCING)
  ! Since is1 is +1 or -1 we need to flip the sign of dr in the derivative approximations
  dra = dr(axis  )*(1-2*side)
@@ -2418,15 +2396,15 @@ c ***** Step 1 : assign values using extrapolation of the normal component ***
  #End
 
 
-c Now assign E at the ghost points:
+! Now assign E at the ghost points:
 #Include "bc4Maxwell3dExtrap.h"
 
-c  if( debug.gt.0 )then
-c
-c   write(*,'(" bc4:extrap: i1,i2,i3=",3i3," u(-1)=",3f8.2," u(-2)=",3f8.2)') i1,i2,i3,\
-c          u(i1-is1,i2-is2,i3-is3,ex),u(i1-is1,i2-is2,i3-is3,ey),u(i1-is1,i2-is2,i3-is3,ez),\
-c          u(i1-2*is1,i2-2*is2,i3-2*is3,ex),u(i1-2*is1,i2-2*is2,i3-2*is3,ey),u(i1-2*is1,i2-2*is2,i3-2*is3,ez)
-c  end if
+!  if( debug.gt.0 )then
+!
+!   write(*,'(" bc4:extrap: i1,i2,i3=",3i3," u(-1)=",3f8.2," u(-2)=",3f8.2)') i1,i2,i3,\
+!          u(i1-is1,i2-is2,i3-is3,ex),u(i1-is1,i2-is2,i3-is3,ey),u(i1-is1,i2-is2,i3-is3,ez),\
+!          u(i1-2*is1,i2-2*is2,i3-2*is3,ex),u(i1-2*is1,i2-2*is2,i3-2*is3,ey),u(i1-2*is1,i2-2*is2,i3-2*is3,ez)
+!  end if
 
   ! set to exact for testing
   ! OGF3D(i1-is1,i2-is2,i3-is3,t, uvm(0),uvm(1),uvm(2))
@@ -2837,7 +2815,7 @@ else if( mask(i1,i2,i3).lt.0 )then
  #End
 
 
-c Now assign E at the ghost points:
+! Now assign E at the ghost points:
 #Include "bc4Maxwell3dExtrap.h"
 
   if( debug.gt.0 )then
@@ -2897,9 +2875,9 @@ endLoops()
 
 
 
-c **************************************************************
-c *****************   Correction Step **************************
-c **************************************************************
+! **************************************************************
+! *****************   Correction Step **************************
+! **************************************************************
 
 #beginMacro bcCurvilinear3dOrder4(FORCING)
  ! Since is1 is +1 or -1 we need to flip the sign of dr in the derivative approximations
@@ -3202,14 +3180,14 @@ if( .true. )then
  #End
 
 
-c Now assign E at the ghost points:
+! Now assign E at the ghost points:
 #Include "bc4Maxwell3d.h"
 
-c  if( .true. .or. debug.gt.0 )then
-c   write(*,'(" bc4:corr:   i1,i2,i3=",3i3," u(-1)=",3f8.2," u(-2)=",3f8.2)') i1,i2,i3,\
-c          u(i1-is1,i2-is2,i3-is3,ex),u(i1-is1,i2-is2,i3-is3,ey),u(i1-is1,i2-is2,i3-is3,ez),\
-c          u(i1-2*is1,i2-2*is2,i3-2*is3,ex),u(i1-2*is1,i2-2*is2,i3-2*is3,ey),u(i1-2*is1,i2-2*is2,i3-2*is3,ez)
-c  end if
+!  if( .true. .or. debug.gt.0 )then
+!   write(*,'(" bc4:corr:   i1,i2,i3=",3i3," u(-1)=",3f8.2," u(-2)=",3f8.2)') i1,i2,i3,\
+!          u(i1-is1,i2-is2,i3-is3,ex),u(i1-is1,i2-is2,i3-is3,ey),u(i1-is1,i2-is2,i3-is3,ez),\
+!          u(i1-2*is1,i2-2*is2,i3-2*is3,ex),u(i1-2*is1,i2-2*is2,i3-2*is3,ey),u(i1-2*is1,i2-2*is2,i3-2*is3,ez)
+!  end if
 
   if( debug.gt.0 )then
    OGF3D(i1-is1,i2-is2,i3-is3,t, uvm(0),uvm(1),uvm(2))

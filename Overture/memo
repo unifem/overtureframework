@@ -65,6 +65,10 @@ Changes:
                   when mapping was a side of an existing grid.
    o 2015/03/27 - the userDefinedBoundaryValue routines have been changed a bit. There are now separate versions for
                   each of the CG solvers -- Cgins, Cgcns, Cgad, etc.
+   o 2015/05/19 - Cgmx: added user defined known solution; fixed external forcing with modified equation 
+                  time-stepping to be fourth-order accurate.
+   o 2015/05    - Cgmx is now compiled by default when typing "make" in the main cg directory.
+   o 2015/05    - Cg solvers now always link to the Ogmg multigrid solver (no need to set useOgmg := on). 
 
 ==============================================================================================
 Overture.v25 - released  November 21, 2012

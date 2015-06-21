@@ -444,6 +444,13 @@ adjustBoundsForPML( MappedGrid & mg, Index Iv[3], int extra /* =0 */ )
 //         OPTION==timeDerivatives : apply BCs to the time-derivatives of the field (for SOSUP) 
 // =============================================================================================
 
+// ============================================================================
+// Macro to compute the (x,y) coordinates - optimized for rectangular grids
+// ============================================================================
+
+// ============================================================================
+// Macro to compute the (x,y,z) coordinates - optimized for rectangular grids
+// ============================================================================
 
 
 // ================================================================================================================
@@ -478,17 +485,20 @@ assignBoundaryConditions( int option, int grid, real t, real dt, realMappedGridF
     
     const int numberOfDimensions = mg.numberOfDimensions();
     
-  // Do we need the grid points: 
     const int useForcing = forcingOption==twilightZoneForcing;
-    const bool centerNeeded=(useForcing || forcingOption==planeWaveBoundaryForcing ||  // **************** fix this 
-                                                      initialConditionOption==gaussianPlaneWave || 
-                                                      initialConditionOption==planeWaveInitialCondition ||  // for ABC + incident field fix 
-                                                      initialConditionOption==planeMaterialInterfaceInitialCondition ||
-                                                      initialConditionOption==annulusEigenfunctionInitialCondition  ||
-                                                      method==yee || 
-                                                      method==dsi );
+
+  // Do we need the grid points: 
+  // const bool centerNeeded=(useForcing || forcingOption==planeWaveBoundaryForcing ||  // **************** fix this 
+  //                          initialConditionOption==gaussianPlaneWave || 
+  //                          initialConditionOption==planeWaveInitialCondition ||  // for ABC + incident field fix 
+  //                          initialConditionOption==planeMaterialInterfaceInitialCondition ||
+  //                          initialConditionOption==annulusEigenfunctionInitialCondition  ||
+  //                          method==yee || 
+  //                          method==dsi );
+    bool centerNeeded = vertexArrayIsNeeded( grid );
     if( centerNeeded )
     {
+        if( debug & 1 ) printF("\n --MX-BC--  CREATE VERTEX grid=%i ---\n\n",grid);
         mg.update(MappedGrid::THEcenter | MappedGrid::THEvertex );
     }
 
@@ -501,17 +511,45 @@ assignBoundaryConditions( int option, int grid, real t, real dt, realMappedGridF
     const bool isRectangular = mg.isRectangular();
     real dx[3]={0.,0.,0.}; //
 
+    real dvx[3]={1.,1.,1.}, xab[2][3]={{0.,0.,0.},{0.,0.,0.}};
+    int iv0[3]={0,0,0}; //
+    int iv[3], &i1=iv[0], &i2=iv[1], &i3=iv[2];  // NOTE: iv[0]==i1, iv[1]==i2, iv[2]==i3
+    real xv[3]={0.,0.,0.};
     if( isRectangular )
-        mg.getDeltaX(dx);
-        
+    {
+        mg.getRectangularGridParameters( dvx, xab );
+        for( int dir=0; dir<mg.numberOfDimensions(); dir++ )
+        {
+            dx[dir]=dvx[dir];
+            iv0[dir]=mg.gridIndexRange(0,dir);
+            if( mg.isAllCellCentered() )
+      	xab[0][dir]+=.5*dvx[dir];  // offset for cell centered
+        }
+    }
+  // This macro defines the grid points for rectangular (Cartesian) grids:
+    #undef XC
+    #define XC(iv,axis) (xab[0][axis]+dvx[axis]*(iv[axis]-iv0[axis]))
+
+#define XC0(i0,i1,i2) (xab[0][0]+dvx[0]*(i0-iv0[0]))
+#define XC1(i0,i1,i2) (xab[0][1]+dvx[1]*(i1-iv0[1]))
+#define XC2(i0,i1,i2) (xab[0][2]+dvx[2]*(i2-iv0[2]))
+
     Range C(ex,hz);
 
+    bool debugGhost=false; // ***TEMP*** June 1, 2016 -- debugging SOSUP
+    
     if( mg.getGridType()==MappedGrid::structuredGrid )
     {
     // ***********************
     // *** structured grid ***
     // ***********************
 
+        if( debugGhost && grid==1 )
+        {
+            fprintf(debugFile,"\n --DBG--- setting u[1](-1,-1,0,ey)=-999.\n");
+            u(-1,-1,0,ey)=-999.;
+        }
+        
         if( debug & 4 )
         {
             ::display(u,sPrintF("u at Start of assignBC, grid=%i t=%e",grid,t),debugFile,"%8.1e ");
@@ -522,7 +560,7 @@ assignBoundaryConditions( int option, int grid, real t, real dt, realMappedGridF
           realSerialArray xLocal; if( centerNeeded ) getLocalArrayWithGhostBoundaries(x,xLocal);
         #else
           const realSerialArray & uLocal = u;
-          const realSerialArray & xLocal = x;
+          const realSerialArray & xLocal = centerNeeded ? x : uLocal;
         #endif
     
         const IntegerArray & bcg = mg.boundaryCondition();
@@ -552,32 +590,7 @@ assignBoundaryConditions( int option, int grid, real t, real dt, realMappedGridF
 
     // do this for now for corners:  **** fix ****  Is this needed any more ?
         Range C(ex,hz);
-//     if( false ) // *wdh* these are needed by orthoSphere ???? ---> fixed 
-//     {
-//       mgop.applyBoundaryCondition(u,C,BCTypes::extrapolate,perfectElectricalConductor,0.,t);
-//       if( orderOfAccuracyInSpace>=4 )
-//       {
-// 	BoundaryConditionParameters extrapParams;
-// 	extrapParams.orderOfExtrapolation=4; // what should this be ?
-// 	extrapParams.ghostLineToAssign=2;
-// 	mgop.applyBoundaryCondition(u,C,BCTypes::extrapolate,perfectElectricalConductor,0.,t,extrapParams);
-//       }
 
-//       if( false )
-//       { 
-//         // *** WARNING -- we should not over-write interpolation points ***** fix this
-//         // Here we put bogus values at all ghost points to make sure that the boundary conditions
-//         // do not use any values that have not been assigned.
-
-// 	getIndex(mg.gridIndexRange(),I1,I2,I3);
-// 	realArray uu(I1,I2,I3,C);
-// 	uu(I1,I2,I3,C)=u(I1,I2,I3,C);
-//         const real bogusValue=123456789.;
-// 	u=bogusValue;
-// 	u(I1,I2,I3,C)=uu(I1,I2,I3,C);
-//       }
-
-//     }
 
         bool useOpt=true; //  && bcOption!=Maxwell::useAllDirichletBoundaryConditions;  // don't do parallel for now
 
@@ -610,8 +623,6 @@ assignBoundaryConditions( int option, int grid, real t, real dt, realMappedGridF
 
         	  if( mg.boundaryCondition(side,axis)==dirichlet ||
                             mg.boundaryCondition(side,axis)==planeWaveBoundaryCondition ) 
-	  //    (true && mg.boundaryCondition(side,axis)==interfaceBoundaryCondition &&
-          //   orderOfAccuracyInSpace>4 )  // ** for testing -- set material interface values
         	  {
 	    // this is a fake BC where we give all variables equal to the true solution
 	    // assign all variables, vertex centred
@@ -654,7 +665,8 @@ assignBoundaryConditions( int option, int grid, real t, real dt, realMappedGridF
                                 mg.boundaryCondition(side,axis)==planeWaveBoundaryCondition ||
                                 initialConditionOption==planeMaterialInterfaceInitialCondition ||
                                 initialConditionOption==gaussianIntegralInitialCondition ||
-                                initialConditionOption==annulusEigenfunctionInitialCondition  )
+                                initialConditionOption==annulusEigenfunctionInitialCondition ||
+                                knownSolutionOption==userDefinedKnownSolution )
           	    {
             	      if( debug & 16 )
             	      {
@@ -907,6 +919,13 @@ assignBoundaryConditions( int option, int grid, real t, real dt, realMappedGridF
                             }
                           }
             	      }
+            	      else if( knownSolutionOption==userDefinedKnownSolution )
+            	      {
+                                int numberOfTimeDerivatives=0;
+                                CompositeGrid & cg = *(cgfields[next].getCompositeGrid());
+            		getUserDefinedKnownSolution( t, cg,grid, u,I1,I2,I3,numberOfTimeDerivatives);
+  
+            	      }
             	      else
             	      { //planeWaveInitialCondition or planeWaveBoundaryCondition
               		  
@@ -916,18 +935,38 @@ assignBoundaryConditions( int option, int grid, real t, real dt, realMappedGridF
     
               		  FOR_3D(i1,i2,i3,I1,I2,I3)
               		  {
-                		    U(i1,i2,i3,ex)=exTrue(X(i1,i2,i3,0),X(i1,i2,i3,1) ,t);
-                		    U(i1,i2,i3,ey)=eyTrue(X(i1,i2,i3,0),X(i1,i2,i3,1) ,t);
-                		    U(i1,i2,i3,hz)=hzTrue(X(i1,i2,i3,0),X(i1,i2,i3,1) ,t);
+                                        real x0,y0;
+                                          if( isRectangular )
+                                          {
+                                              x0 = XC0(i1,i2,i3);
+                                              y0 = XC1(i1,i2,i3);
+                                          }
+                                          else
+                                          {
+                                              x0 = X(i1,i2,i3,0);
+                                              y0 = X(i1,i2,i3,1);
+                                          }
+
+                		    U(i1,i2,i3,ex)=exTrue(x0,y0,t); 
+                		    U(i1,i2,i3,ey)=eyTrue(x0,y0,t);
+                		    U(i1,i2,i3,hz)=hzTrue(x0,y0,t);
 		    // printF("new:BC: i=%i,%i,%i x=(%6.3f,%6.3f) u=(%8.2e,%8.2e,%8.2e)\n",i1,i2,i3,X(i1,i2,i3,0),X(i1,i2,i3,1),U(i1,i2,i3,ex),U(i1,i2,i3,ey),U(i1,i2,i3,hz));
               		  }
               		  if( method==sosup )
               		  {
                 		    FOR_3D(i1,i2,i3,I1,I2,I3)
                 		    {
-                  		      real x0 = X(i1,i2,i3,0);
-                  		      real y0 = X(i1,i2,i3,1);
-                  		      real z0 = X(i1,i2,i3,2);
+                                            real x0,y0;
+                                              if( isRectangular )
+                                              {
+                                                  x0 = XC0(i1,i2,i3);
+                                                  y0 = XC1(i1,i2,i3);
+                                              }
+                                              else
+                                              {
+                                                  x0 = X(i1,i2,i3,0);
+                                                  y0 = X(i1,i2,i3,1);
+                                              }
                   		      U(i1,i2,i3,ext) =extTrue(x0,y0,t);
                   		      U(i1,i2,i3,eyt) =eytTrue(x0,y0,t);
                   		      U(i1,i2,i3,hzt) =hztTrue(x0,y0,t);
@@ -940,17 +979,42 @@ assignBoundaryConditions( int option, int grid, real t, real dt, realMappedGridF
               		  {
                 		    FOR_3D(i1,i2,i3,I1,I2,I3)
                 		    {
-                  		      U(i1,i2,i3,ex)=exTrue3d(X(i1,i2,i3,0),X(i1,i2,i3,1),X(i1,i2,i3,2) ,t);
-                  		      U(i1,i2,i3,ey)=eyTrue3d(X(i1,i2,i3,0),X(i1,i2,i3,1),X(i1,i2,i3,2) ,t);
-                  		      U(i1,i2,i3,ez)=ezTrue3d(X(i1,i2,i3,0),X(i1,i2,i3,1),X(i1,i2,i3,2) ,t);
+                  		      real x0,y0,z0;
+                                      if( isRectangular )
+                                      {
+                                          x0 = XC0(i1,i2,i3);
+                                          y0 = XC1(i1,i2,i3);
+                                          z0 = XC2(i1,i2,i3);
+                                      }
+                                      else
+                                      {
+                                          x0 = X(i1,i2,i3,0);
+                                          y0 = X(i1,i2,i3,1);
+                                          z0 = X(i1,i2,i3,2);
+                                      }
+
+                  		      U(i1,i2,i3,ex)=exTrue3d(x0,y0,z0,t);
+                  		      U(i1,i2,i3,ey)=eyTrue3d(x0,y0,z0,t);
+                  		      U(i1,i2,i3,ez)=ezTrue3d(x0,y0,z0,t);
                 		    }
                 		    if( method==sosup )
                 		    {
                   		      FOR_3D(i1,i2,i3,I1,I2,I3)
                   		      {
-                  			real x0 = X(i1,i2,i3,0);
-                  			real y0 = X(i1,i2,i3,1);
-                  			real z0 = X(i1,i2,i3,2);
+                    		        real x0,y0,z0;
+                                          if( isRectangular )
+                                          {
+                                              x0 = XC0(i1,i2,i3);
+                                              y0 = XC1(i1,i2,i3);
+                                              z0 = XC2(i1,i2,i3);
+                                          }
+                                          else
+                                          {
+                                              x0 = X(i1,i2,i3,0);
+                                              y0 = X(i1,i2,i3,1);
+                                              z0 = X(i1,i2,i3,2);
+                                          }
+
                   			U(i1,i2,i3,ext) =extTrue3d(x0,y0,z0,t);
                   			U(i1,i2,i3,eyt) =eytTrue3d(x0,y0,z0,t);
                   			U(i1,i2,i3,ezt) =eztTrue3d(x0,y0,z0,t);
@@ -963,9 +1027,23 @@ assignBoundaryConditions( int option, int grid, real t, real dt, realMappedGridF
               		  {
                 		    FOR_3D(i1,i2,i3,I1,I2,I3)
                 		    {
-                  		      U(i1,i2,i3,hx)=hxTrue3d(X(i1,i2,i3,0),X(i1,i2,i3,1),X(i1,i2,i3,2) ,t);
-                  		      U(i1,i2,i3,hy)=hyTrue3d(X(i1,i2,i3,0),X(i1,i2,i3,1),X(i1,i2,i3,2) ,t);
-                  		      U(i1,i2,i3,hz)=hzTrue3d(X(i1,i2,i3,0),X(i1,i2,i3,1),X(i1,i2,i3,2) ,t);
+                  		      real x0,y0,z0;
+                                      if( isRectangular )
+                                      {
+                                          x0 = XC0(i1,i2,i3);
+                                          y0 = XC1(i1,i2,i3);
+                                          z0 = XC2(i1,i2,i3);
+                                      }
+                                      else
+                                      {
+                                          x0 = X(i1,i2,i3,0);
+                                          y0 = X(i1,i2,i3,1);
+                                          z0 = X(i1,i2,i3,2);
+                                      }
+
+                  		      U(i1,i2,i3,hx)=hxTrue3d(x0,y0,z0,t);
+                  		      U(i1,i2,i3,hy)=hyTrue3d(x0,y0,z0,t);
+                  		      U(i1,i2,i3,hz)=hzTrue3d(x0,y0,z0,t);
                 		    }
                 		    
               		  }
@@ -977,8 +1055,8 @@ assignBoundaryConditions( int option, int grid, real t, real dt, realMappedGridF
 
               // display(u(I1,I2,I3,C),"u(I1,I2,I3,C) after BC new:");
 
-            	      
-          	    } // end planeWaveBoundaryCondition
+          	    
+          	    } // end if( initialConditionOption==planeWaveInitialCondition || ...
           	    else if( forcingOption==twilightZoneForcing )
           	    {
             	      assert( tz!=NULL );
@@ -1145,6 +1223,7 @@ assignBoundaryConditions( int option, int grid, real t, real dt, realMappedGridF
 
               // u(Ig1,Ig2,Ig3,C)=2.*( ug(I1,I2,I3,C)*sint+ug(I1,I2,I3,C+3)*cost )
               //                       -u(Ig1+2*is1,Ig2+2*is2,Ig3,C);
+          	    
           	    }
                         else if( true )
           	    {
@@ -1152,10 +1231,11 @@ assignBoundaryConditions( int option, int grid, real t, real dt, realMappedGridF
           	    }
           	    else
           	    {
-            	      Overture::abort("Maxwell::assignBoundaryConditions:dirichlet unknown forcing option");
+            	      OV_ABORT("Maxwell::assignBoundaryConditions:dirichlet unknown forcing option");
           	    }
 
-        	  }
+        	  } // end if( bc(side,axis)==dirichlet || bc(side,axis)==planeWaveBoundaryCondition ) 
+        	  
         	  else if( mg.boundaryCondition(side,axis)==perfectElectricalConductor )
         	  {
                         assert( useOpt );
@@ -1207,7 +1287,7 @@ assignBoundaryConditions( int option, int grid, real t, real dt, realMappedGridF
         	  {
           	    printF("assignBoundaryConditions:ERROR: unknown boundaryCondition(%i,%i)=%i\n",
                		   side,axis,mg.boundaryCondition(side,axis));
-          	    Overture::abort("assignBoundaryConditions:ERROR");
+          	    OV_ABORT("assignBoundaryConditions:ERROR");
         	  }
       	}
       	else if( method==yee )
@@ -1280,8 +1360,9 @@ assignBoundaryConditions( int option, int grid, real t, real dt, realMappedGridF
             	      
                         }
         	  }
-        	  else if( mg.boundaryCondition(side,axis)==perfectElectricalConductor )
+        	  else if( mg.boundaryCondition(side,axis)==perfectElectricalConductor ) 
         	  {
+            // --- YEE ---
 	    // (1) tangential components of E are zero
 	    // (2) normal derivative of the normal component of E is zero ??
 	    // (3) normal component of magnetic field is zero
@@ -1342,7 +1423,8 @@ assignBoundaryConditions( int option, int grid, real t, real dt, realMappedGridF
                		   side,axis,mg.boundaryCondition(side,axis));
           	    Overture::abort("applyBoundaryConditions:ERROR");
         	  }
-                }
+      	}  // *********************** END YEE ************************
+      	
       	else if( method==dsi )
       	{
           // *****************************************************************
@@ -1416,7 +1498,7 @@ assignBoundaryConditions( int option, int grid, real t, real dt, realMappedGridF
         	  }
         	  else if( mg.boundaryCondition(side,axis)==perfectElectricalConductor )
         	  {
-	    // ***** Perfect Electrical Conductor *****
+	    // ***** DSI : Perfect Electrical Conductor *****
 
                         getBoundaryIndex(mg.gridIndexRange(),side,axis,I1,I2,I3);
                         getGhostIndex(mg.gridIndexRange(),side,axis,Ig1,Ig2,Ig3,1); // ghost line
@@ -1520,7 +1602,8 @@ assignBoundaryConditions( int option, int grid, real t, real dt, realMappedGridF
           	    printF("applyBoundaryConditions:ERROR: unknown boundaryCondition(%i,%i)=%i\n",
                		   side,axis,mg.boundaryCondition(side,axis));
         	  }
-      	}
+      	} // ************************** END DSI ************************************
+      	
       	else
       	{
         	  printF("applyBoundaryConditions:ERROR: unknown boundaryCondition(%i,%i)=%i\n",
@@ -1541,6 +1624,10 @@ assignBoundaryConditions( int option, int grid, real t, real dt, realMappedGridF
 
 
     // *wdh* 041127 -- apply opt BC's after above dirichlet BC's ----
+
+        if( debugGhost && grid==1 )
+            fprintf(debugFile,"\n --DBG--- Before optBC: u[1](-1,-1,0,ey)=%8.2e\n",uLocal(-1,-1,0,ey));
+
         if( initialConditionOption!=planeMaterialInterfaceInitialCondition ) // *wdh* 080922
         {
       // *wdh* 2011/12/02 -- this next line was wrong -- side and axis are not correct here.
@@ -1702,8 +1789,7 @@ assignBoundaryConditions( int option, int grid, real t, real dt, realMappedGridF
                 {
                     ::display(uu,sPrintF("uu before bcOptMaxwell, grid=%i, t=%e",grid,t),pDebugFile,"%8.1e ");
                 }
-        // if( !isRectangular && debug & 64  ) 
-        //   ::display(rx,sPrintF("rx before bcOptMaxwell, t=%e",t),debugFile,"%9.2e ");
+        // ***** NOTE: PEC boundary values are set in cornersMx routines *******
                 bcOptMaxwell( mg.numberOfDimensions(), 
                         		uu.getBase(0),uu.getBound(0),
                         		uu.getBase(1),uu.getBound(1),
@@ -2184,8 +2270,7 @@ assignBoundaryConditions( int option, int grid, real t, real dt, realMappedGridF
                     {
                         ::display(uu,sPrintF("uu before bcOptMaxwell, grid=%i, t=%e",grid,t),pDebugFile,"%8.1e ");
                     }
-          // if( !isRectangular && debug & 64  ) 
-          //   ::display(rx,sPrintF("rx before bcOptMaxwell, t=%e",t),debugFile,"%9.2e ");
+          // ***** NOTE: PEC boundary values are set in cornersMx routines *******
                     bcOptMaxwell( mg.numberOfDimensions(), 
                             		uu.getBase(0),uu.getBound(0),
                             		uu.getBase(1),uu.getBound(1),
@@ -2511,6 +2596,9 @@ assignBoundaryConditions( int option, int grid, real t, real dt, realMappedGridF
                     }
                 } // end ok 
             }
+            
+            if( debugGhost && grid==1 )
+        	  fprintf(debugFile,"\n --DBG--- AFter optBC: u[1](-1,-1,0,ey)=%8.2e\n",uLocal(-1,-1,0,ey));
             
         }
     }

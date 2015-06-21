@@ -338,6 +338,16 @@ Maxwell()
     dbase.put<int>("orderOfExtrapolationForInterpolationNeighbours"); 
   dbase.get<int>("orderOfExtrapolationForInterpolationNeighbours")=-1; // -1 : use default
 
+  dbase.put<aString>("knownSolutionName")="noKnownSolution";
+  dbase.put<bool>("knownSolutionIsTimeDependent")=true;
+
+  // Time history of the forcing is stored here (when needed)
+  //    forcingArray[numberOfForcingFunctions] 
+  //    forcingArray[fCurrent]  : current forcing
+  dbase.put<bool>("useNewForcingMethod")=false;  // set to true to use new way for forcing
+  dbase.put<realArray*>("forcingArray")=NULL;
+  dbase.put<int>("numberOfForcingFunctions")=0;  // number of elements in forcingArray
+  dbase.put<int>("fCurrent")=0;                  // forcingArray[fCurrent] : current forcing
 
   timing.redim(maximumNumberOfTimings);
   timing=0.;
@@ -391,13 +401,22 @@ Maxwell::
   }
   delete show;
   delete referenceShowFileReader;
+
+  // assert( cgp!=NULL );
+  // CompositeGrid & cg= *cgp;
+  // const int numberOfComponentGrids=cg.numberOfComponentGrids();
+  // for( int m=0; m<numberOfFunctions*numberOfComponentGrids; m++ )
+  // {
+  //   printF(" Workspace: fn[%i] elementCount=%i\n",m,fn[m].elementCount());
+  // }
   
+  delete [] fn;  
+
   if ( mgp!=NULL )
   {
     delete [] fields;
     delete dissipation;
     delete [] errp;
-    delete [] fn;  
   }
   else
   {
@@ -435,6 +454,8 @@ Maxwell::
   delete pIntensity; // 110609
   delete pHarmonicElectricField;
 
+  delete [] dbase.get<realArray*>("forcingArray");  // 2015/05/18
+
   userDefinedForcingCleanup();
   userDefinedInitialConditionsCleanup();
   
@@ -447,6 +468,71 @@ Maxwell::
   if( probeFile!=NULL )
     fclose(probeFile);
 }
+
+// =====================================================================================
+/// \brief Return true if the equations are forced (external forcing)
+// =====================================================================================
+bool Maxwell::
+forcingIsOn() const
+{
+  if( forcingOption==twilightZoneForcing || 
+      forcingOption==gaussianSource ||
+      forcingOption==magneticSinusoidalPointSource ||
+      forcingOption==gaussianChargeSource||
+      forcingOption==userDefinedForcingOption )
+  {
+    return true;
+  }
+  else
+  {
+    return false;
+  }
+  
+}
+
+// =====================================================================================
+/// \brief Return true if we should construct the array of grid vertices (THEvertex)
+/// \param grid (input) : check this grid.
+// =====================================================================================
+bool Maxwell::
+vertexArrayIsNeeded( int grid ) const
+{
+
+  // from assignBC: 
+  const int useForcing = forcingOption==twilightZoneForcing;
+  const bool centerNeeded=(useForcing || 
+                           forcingOption==planeWaveBoundaryForcing ||  // **************** fix this 
+                           initialConditionOption==gaussianPlaneWave || 
+                           (initialConditionOption==planeWaveInitialCondition 
+			    && method!=nfdtd  && method!=sosup  ) ||  // for ABC + incident field fix 
+                           initialConditionOption==planeMaterialInterfaceInitialCondition ||
+                           initialConditionOption==annulusEigenfunctionInitialCondition  ||
+                           method==yee || 
+                           method==dsi );
+  if( centerNeeded )
+    return true;
+
+  // -- now check for cases that depend on whether the grid is rectangular (i.e. Cartesian)
+  assert( cgp!=NULL );
+  CompositeGrid & cg = *cgp;
+  const bool isRectangular = cg[grid].isRectangular();
+
+  // from forcing: 
+  const bool buildCenter = !( isRectangular &&
+			      ( initialConditionOption==squareEigenfunctionInitialCondition ||
+				initialConditionOption==gaussianPulseInitialCondition ||
+				(forcingOption==gaussianChargeSource && initialConditionOption==defaultInitialCondition)
+				|| initialConditionOption==userDefinedKnownSolutionInitialCondition 
+				|| initialConditionOption==userDefinedInitialConditionsOption
+                                || initialConditionOption==planeWaveInitialCondition 
+				// || initialConditionOption==planeMaterialInterfaceInitialCondition
+				// ||  initialConditionOption==annulusEigenfunctionInitialCondition
+				) 
+    ); // fix this 
+
+  return centerNeeded || buildCenter;
+}
+
 
 // ===================================================================================
 // /Description:
@@ -610,13 +696,13 @@ printMemoryUsage(FILE *file /* = stdout */)
   
   if( cgfields!=NULL )
   {
-    for( i=0; i<numberOfTimeLevels; i++ )
+    for( int i=0; i<numberOfTimeLevels; i++ )
       memory[memoryForGridFunctions]+=cgfields[i].sizeOf();
     cgfieldsSize=memory[memoryForGridFunctions];
   }
   else if ( dsi_cgfieldsH !=NULL && dsi_cgfieldsE0!= NULL )
   {
-    for( i=0; i<numberOfTimeLevels; i++ )
+    for( int i=0; i<numberOfTimeLevels; i++ )
     {
       memory[memoryForGridFunctions]+=dsi_cgfieldsH[i].sizeOf();
       memory[memoryForGridFunctions]+=dsi_cgfieldsE0[i].sizeOf();
@@ -625,16 +711,28 @@ printMemoryUsage(FILE *file /* = stdout */)
   }
   else
   {
-    for( i=0; i<numberOfTimeLevels; i++ )
+    for( int i=0; i<numberOfTimeLevels; i++ )
       memory[memoryForGridFunctions]+=fields[i].sizeOf();
 
     if ( Ecoeff.size() )
-      for( i=0; i<numberOfTimeLevels; i++ )
+      for( int i=0; i<numberOfTimeLevels; i++ )
 	memory[memoryForGridFunctions]+=fields[i+1].sizeOf();
       
     fieldsSize=memory[memoryForGridFunctions];
   }
   
+  int & numberOfForcingFunctions= dbase.get<int>("numberOfForcingFunctions"); // number of elements in forcingArray
+  if( numberOfForcingFunctions>0 )
+  {
+    const int & fCurrent = dbase.get<int>("fCurrent");          // forcingArray[fCurrent] : current forcing
+    realArray *& forcingArray = dbase.get<realArray*>("forcingArray");
+    for( int grid=0; grid<cg.numberOfComponentGrids(); grid++ )
+    {
+      memory[memoryForGridFunctions]+= forcingArray[grid].elementCount()*sizeof(real);
+    }
+  }
+  
+
   if ( Ecoeff.size() )
   {
     memory[memoryForDSIArrays] += sizeof(real)*( Ecoeff.size() + Hcoeff.size() +
@@ -834,7 +932,7 @@ printStatistics(FILE *file /* = stdout */)
 
   int i;
   for( i=0; i<maximumNumberOfTimings; i++ )
-    timing(i) =getMaxValue(timing(i),0);  // get max over processors -- results only for processor=0
+    timing(i) =getMaxValue(timing(i),0);  // get max over processors -- results only go to processor=0
 
   // adjust times for waiting
   real timeWaiting=timing(timeForWaiting);
@@ -860,6 +958,8 @@ printStatistics(FILE *file /* = stdout */)
   real totalMem=ParallelUtility::getSum(mem);  // min over all processors
   real aveMem=totalMem/np;
   real maxMemRecorded=ParallelUtility::getMaxValue(Overture::getMaximumMemoryUsage());
+
+  const real realsPerGridPoint = (totalMem*1024.*1024.)/numberOfGridPoints/sizeof(real);
 
   // Get the current date
   time_t *tp= new time_t;
@@ -896,6 +996,10 @@ printStatistics(FILE *file /* = stdout */)
 		100.*aveTiming(i)/aveTiming(0),maxTiming(i),minTiming(i));
       
     }
+
+    fPrintF(output,"-----------------------------------------------------------------------------------------\n");
+    fPrintF(output," Memory usage: reals/grid-point = %6.2f.\n",realsPerGridPoint);
+    fPrintF(output,"-----------------------------------------------------------------------------------------\n");
 
     cg.displayDistribution("Maxwell",output);
 
@@ -1034,6 +1138,7 @@ buildTimeSteppingOptionsDialog(DialogData & dialog )
                           "apply filter",
                           "use divergence cleaning",
                           "project interpolation points",
+                          "use new forcing method",
  			  ""};
   int tbState[15];
   tbState[0] = useConservative;
@@ -1048,7 +1153,7 @@ buildTimeSteppingOptionsDialog(DialogData & dialog )
   tbState[9] = applyFilter;
   tbState[10]= useDivergenceCleaning;
   tbState[11]= projectInterpolation;
-  
+  tbState[12]= dbase.get<bool>("useNewForcingMethod");
 
   int numColumns=2;
   dialog.setToggleButtons(tbCommands, tbCommands, tbState, numColumns); 
@@ -1171,7 +1276,9 @@ buildForcingOptionsDialog(DialogData & dialog )
                                               "planeWaveScatteredFieldInitialCondition",
                                               "planeMaterialInterfaceInitialCondition",
                                               "gaussianIntegralInitialCondition",
+                                              "twilightZoneInitialCondition",
                                               "userDefinedInitialConditions",
+                                              "userDefinedKnownSolutionInitialCondition",
 					      "" };
 
   dialog.addOptionMenu("initial conditions:", initialConditionOptionCommands, initialConditionOptionCommands, 
@@ -1211,6 +1318,7 @@ buildForcingOptionsDialog(DialogData & dialog )
 					   "annulusEigenfunctionKnownSolution",
 					   "eigenfunctionsOfACylinderKnownSolution",
 					   "eigenfunctionsOfASphereKnownSolution ",   // not implemented yet 
+                                           "user defined known solution",
 					   "" };
 
   dialog.addOptionMenu("known solution:", knownSolutionOptionCommands, knownSolutionOptionCommands, 
@@ -1732,7 +1840,9 @@ interactiveUpdate(GL_GraphicsInterface &gi )
              answer=="planeWaveScatteredFieldInitialCondition" ||
              answer=="planeMaterialInterfaceInitialCondition" ||
              answer=="gaussianIntegralInitialCondition" ||
-             answer=="userDefinedInitialConditions" )
+             answer=="twilightZoneInitialCondition" ||
+             answer=="userDefinedInitialConditions" ||
+             answer=="userDefinedKnownSolutionInitialCondition" )
     {
       initialConditionOption=
 	(answer=="planeWaveInitialCondition" ? planeWaveInitialCondition :
@@ -1744,7 +1854,9 @@ interactiveUpdate(GL_GraphicsInterface &gi )
 	 answer=="zeroInitialCondition" ?  zeroInitialCondition :
          answer=="planeMaterialInterfaceInitialCondition" ? planeMaterialInterfaceInitialCondition :
          answer=="gaussianIntegralInitialCondition" ? gaussianIntegralInitialCondition :
+         answer=="twilightZoneInitialCondition" ? twilightZoneInitialCondition :
          answer=="userDefinedInitialConditions" ? userDefinedInitialConditionsOption :
+         answer=="userDefinedKnownSolutionInitialCondition" ? userDefinedKnownSolutionInitialCondition :
 	 defaultInitialCondition);
 
       if( initialConditionOption==userDefinedInitialConditionsOption )
@@ -1805,7 +1917,11 @@ interactiveUpdate(GL_GraphicsInterface &gi )
 	
 	forcingOption=noForcing;
       }
-
+      else if( initialConditionOption==userDefinedKnownSolutionInitialCondition )
+      {
+	// knownSolutionOption=userDefinedKnownSolution;
+      }
+      
       
       forcingOptionsDialog.getOptionMenu("known solution:").setCurrentChoice((int)knownSolutionOption);
       forcingOptionsDialog.getOptionMenu("initial conditions:").setCurrentChoice((int)initialConditionOption);
@@ -1859,7 +1975,8 @@ interactiveUpdate(GL_GraphicsInterface &gi )
 	     answer=="scatteringFromADielectricSphereKnownSolution" ||
 	     answer=="squareEigenfunctionKnownSolution" ||
 	     answer=="annulusEigenfunctionKnownSolution" ||
-	     answer=="eigenfunctionsOfASphereKnownSolution "  )
+	     answer=="eigenfunctionsOfASphereKnownSolution " ||
+             answer=="user defined known solution" )
     {
       knownSolutionOption = 
 	(answer=="noKnownSolution" ? noKnownSolution :
@@ -1874,9 +1991,21 @@ interactiveUpdate(GL_GraphicsInterface &gi )
 	 answer=="scatteringFromADielectricSphereKnownSolution" ? scatteringFromADielectricSphereKnownSolution :
 	 answer=="squareEigenfunctionKnownSolution" ? squareEigenfunctionKnownSolution :
 	 answer=="annulusEigenfunctionKnownSolution" ? annulusEigenfunctionKnownSolution :
-	 answer=="eigenfunctionsOfASphereKnownSolution " ? eigenfunctionsOfASphereKnownSolution : noKnownSolution );
+	 answer=="eigenfunctionsOfASphereKnownSolution " ? eigenfunctionsOfASphereKnownSolution : 
+         answer=="user defined known solution" ? userDefinedKnownSolution : 
+	 noKnownSolution );
 
+      aString & knownSolutionName=dbase.get<aString>("knownSolutionName");
+      knownSolutionName=answer;
+      
       forcingOptionsDialog.getOptionMenu("known solution:").setCurrentChoice((int)knownSolutionOption);
+
+      if( knownSolutionOption==userDefinedKnownSolution )
+      {
+        // -- choose the user defined known solution ---
+	updateUserDefinedKnownSolution(gi,cg);
+      }
+      
 
     }
     else if( answer=="defaultTimeStepping" ||
@@ -2068,6 +2197,11 @@ interactiveUpdate(GL_GraphicsInterface &gi )
 
     else if( timeSteppingOptionsDialog.getToggleValue(answer,"use conservative divergence",
 						      useConservativeDivergence) ){}//
+
+    else if( timeSteppingOptionsDialog.getToggleValue(answer,"use new forcing method",
+						      dbase.get<bool>("useNewForcingMethod")) ){}//
+
+
     else if( timeSteppingOptionsDialog.getTextValue(answer,"order of dissipation","%i",orderOfArtificialDissipation) )
     {
       if( orderOfArtificialDissipation<0 ) orderOfArtificialDissipation=orderOfAccuracyInSpace;

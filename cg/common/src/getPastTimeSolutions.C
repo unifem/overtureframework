@@ -53,10 +53,12 @@ getPastTimeSolutions( int current, int numberOfPast, int *previous  )
 
     }
 
-    // Assign the "initial" conditions 
-
+    // -- Assign the "initial" conditions --
     assignInitialConditions(prev);
-
+    
+    // -- compute the pressure on moving grids when the pressure and body accelerations are coupled --
+    // *wdh* 2015/06/08 
+    projectInitialConditionsForMovingGrids(prev);
 
     if( (false || debug() & 16)  && parameters.dbase.get<GUIState* >("runTimeDialog")!=NULL  )
     {

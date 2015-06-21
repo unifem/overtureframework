@@ -3,13 +3,13 @@
      & nd3b,ndf1a,ndf1b,ndf2a,ndf2b,ndf3a,ndf3b,gridIndexRange,
      & dimension,u,f,mask,rsxy, xy,bc, boundaryCondition, ipar, rpar, 
      & ierr )
-c ===================================================================================
-c  Optimised Boundary conditions for Maxwell's Equations. '
-c
-c  gridType : 0=rectangular, 1=curvilinear
-c  useForcing : 1=use f for RHS to BC
-c  side,axis : 0:1 and 0:2
-c ===================================================================================
+       ! ===================================================================================
+       !  Optimised Boundary conditions for Maxwell's Equations. '
+       !
+       !  gridType : 0=rectangular, 1=curvilinear
+       !  useForcing : 1=use f for RHS to BC
+       !  side,axis : 0:1 and 0:2
+       ! ===================================================================================
         implicit none
         integer nd, nd1a,nd1b,nd2a,nd2b,nd3a,nd3b, ndf1a,ndf1b,ndf2a,
      & ndf2b,ndf3a,ndf3b,n1a,n1b,n2a,n2b,n3a,n3b, ndc, bc,ierr
@@ -21,7 +21,7 @@ c ==============================================================================
         integer gridIndexRange(0:1,0:2),dimension(0:1,0:2)
         integer ipar(0:*),boundaryCondition(0:1,0:2)
          real rpar(0:*),pwc(0:5)
-c     --- local variables ----
+       !     --- local variables ----
         integer md1a,md1b,md2a,md2b,md3a,md3b
         integer indexRange(0:1,0:2),isPeriodic(0:2) ! used in call to periodic update
         real ep ! holds the pointer to the TZ function
@@ -41,7 +41,8 @@ c     --- local variables ----
         real jac3di(-2:2,-2:2,-2:2)
         integer orderOfExtrapolation
         logical setCornersToExact
-         ! boundary conditions parameters
+        logical extrapInterpGhost   ! extrapolate ghost points next to boundary interpolation points
+        ! boundary conditions parameters
 ! define BC parameters for fortran routines
 ! boundary conditions
       integer dirichlet,perfectElectricalConductor,
@@ -171,7 +172,7 @@ c     --- local variables ----
         real udds,vdds,wdds,uddt,vddt,wddt
         real maxDivc,maxTauDotLapu,maxExtrap,maxDr3aDotU,dr3aDotU,
      & a1Doturss
-c real uxxx22r,uyyy22r,uxxx42r,uyyy42r,uxxxx22r,uyyyy22r, urrrr2,ussss2
+       ! real uxxx22r,uyyy22r,uxxx42r,uyyy42r,uxxxx22r,uyyyy22r, urrrr2,ussss2
         real urrrr2,ussss2
         real urrs4,urrt4,usst4,urss4,ustt4,urtt4
         real urrs2,urrt2,usst2,urss2,ustt2,urtt2
@@ -190,11 +191,11 @@ c real uxxx22r,uyyy22r,uxxx42r,uyyy42r,uxxxx22r,uyyyy22r, urrrr2,ussss2
       real rsxyxr23,rsxyxs23,rsxyxt23
       real rsxyyr23,rsxyys23,rsxyyt23
       real rsxyzr23,rsxyzs23,rsxyzt23
-c     --- start statement function ----
+       !     --- start statement function ----
         integer kd,m,n
         real rx,ry,rz,sx,sy,sz,tx,ty,tz
-c old: include 'declareDiffOrder2f.h'
-c old: include 'declareDiffOrder4f.h'
+       ! old: include 'declareDiffOrder2f.h'
+       ! old: include 'declareDiffOrder4f.h'
          real d12
          real d22
          real h12
@@ -541,7 +542,7 @@ c old: include 'declareDiffOrder4f.h'
          real uyz42r
          real ulaplacian42r
          real ulaplacian43r
-c.......statement functions for jacobian
+       !.......statement functions for jacobian
         rx(i1,i2,i3)=rsxy(i1,i2,i3,0,0)
         ry(i1,i2,i3)=rsxy(i1,i2,i3,0,1)
         rz(i1,i2,i3)=rsxy(i1,i2,i3,0,2)
@@ -551,7 +552,7 @@ c.......statement functions for jacobian
         tx(i1,i2,i3)=rsxy(i1,i2,i3,2,0)
         ty(i1,i2,i3)=rsxy(i1,i2,i3,2,1)
         tz(i1,i2,i3)=rsxy(i1,i2,i3,2,2)
-c     The next macro call will define the difference approximation statement functions
+       !     The next macro call will define the difference approximation statement functions
         d12(kd) = 1./(2.*dr(kd))
         d22(kd) = 1./(dr(kd)**2)
         ur2(i1,i2,i3,kd)=(u(i1+1,i2,i3,kd)-u(i1-1,i2,i3,kd))*d12(0)
@@ -1282,7 +1283,7 @@ c===============================================================================
      & kd)
         ulaplacian43r(i1,i2,i3,kd)=uxx43r(i1,i2,i3,kd)+uyy43r(i1,i2,i3,
      & kd)+uzz43r(i1,i2,i3,kd)
-c define derivatives of rsxy
+       ! define derivatives of rsxy
       rsxyr2(i1,i2,i3,m,n)=(rsxy(i1+1,i2,i3,m,n)-rsxy(i1-1,i2,i3,m,n))*
      & d12(0)
       rsxys2(i1,i2,i3,m,n)=(rsxy(i1,i2+1,i3,m,n)-rsxy(i1,i2-1,i3,m,n))*
@@ -1502,10 +1503,10 @@ c define derivatives of rsxy
      & rsxyt4(i1,i2,i3,2,2)*rsxyt4(i1,i2,i3,m,n) + tz(i1,i2,i3)*
      & rsxytt4(i1,i2,i3,m,n)
 
-c uxxx22r(i1,i2,i3,kd)=(-2.*(u(i1+1,i2,i3,kd)-u(i1-1,i2,i3,kd))+(u(i1+2,i2,i3,kd)-u(i1-2,i2,i3,kd)) )*h22(0)*h12(0)
-c uyyy22r(i1,i2,i3,kd)=(-2.*(u(i1,i2+1,i3,kd)-u(i1,i2-1,i3,kd))+(u(i1,i2+2,i3,kd)-u(i1,i2-2,i3,kd)) )*h22(1)*h12(1)
-c uxxxx22r(i1,i2,i3,kd)=(6.*u(i1,i2,i3,kd)-4.*(u(i1+1,i2,i3,kd)+u(i1-1,i2,i3,kd))c                         +(u(i1+2,i2,i3,kd)+u(i1-2,i2,i3,kd)) )/(dx(0)**4)
-c uyyyy22r(i1,i2,i3,kd)=(6.*u(i1,i2,i3,kd)-4.*(u(i1,i2+1,i3,kd)+u(i1,i2-1,i3,kd))c                         +(u(i1,i2+2,i3,kd)+u(i1,i2-2,i3,kd)) )/(dx(1)**4)
+       ! uxxx22r(i1,i2,i3,kd)=(-2.*(u(i1+1,i2,i3,kd)-u(i1-1,i2,i3,kd))+(u(i1+2,i2,i3,kd)-u(i1-2,i2,i3,kd)) )*h22(0)*h12(0)
+       ! uyyy22r(i1,i2,i3,kd)=(-2.*(u(i1,i2+1,i3,kd)-u(i1,i2-1,i3,kd))+(u(i1,i2+2,i3,kd)-u(i1,i2-2,i3,kd)) )*h22(1)*h12(1)
+       ! uxxxx22r(i1,i2,i3,kd)=(6.*u(i1,i2,i3,kd)-4.*(u(i1+1,i2,i3,kd)+u(i1-1,i2,i3,kd))!                         +(u(i1+2,i2,i3,kd)+u(i1-2,i2,i3,kd)) )/(dx(0)**4)
+       ! uyyyy22r(i1,i2,i3,kd)=(6.*u(i1,i2,i3,kd)-4.*(u(i1,i2+1,i3,kd)+u(i1,i2-1,i3,kd))!                         +(u(i1,i2+2,i3,kd)+u(i1,i2-2,i3,kd)) )/(dx(1)**4)
         urrrr2(i1,i2,i3,kd)=(6.*u(i1,i2,i3,kd)-4.*(u(i1+1,i2,i3,kd)+u(
      & i1-1,i2,i3,kd))+(u(i1+2,i2,i3,kd)+u(i1-2,i2,i3,kd)) )/(dr(0)**
      & 4)
@@ -1574,7 +1575,7 @@ c uyyyy22r(i1,i2,i3,kd)=(6.*u(i1,i2,i3,kd)-4.*(u(i1,i2+1,i3,kd)+u(i1,i2-1,i3,kd)
      & kd)+128*u(i1+1,i2,i3-1,kd)-128*u(i1-1,i2,i3-1,kd)-16*u(i1+2,i2,
      & i3-1,kd)+16*u(i1-2,i2,i3-1,kd)-30*u(i1-2,i2,i3,kd)+30*u(i1+2,
      & i2,i3,kd))/(144.*dr(2)**2*dr(0))
-c     --- end statement functions ----
+       !     --- end statement functions ----
         ierr=0
         side                 =ipar(0)
         axis                 =ipar(1)
@@ -1676,8 +1677,11 @@ c write(*,'("initializeBoundaryForcing slowStartInterval=",e10.2)') slowStartInt
         ! ****
         ! write(*,'(" bcOpt: t=",e10.2," fieldOption=",i2," ex,ey,hz=",3i3)') t,fieldOption,ex,ey,hz
         !  write(*,'(" ***bcOpt: slowStartInterval,t=",2f10.4," ssf,ssft,ssftt,sfttt=",4f9.4)') slowStartInterval,t,ssf,ssft,ssftt,ssfttt
-c     **************************************************************************
-        extra=-1  ! no need to do corners -- these are already done -- (otherwise causes problems for 4th-order (?))
+        !  --- NOT: extra determines "extra points" in the tangential directions  ----
+        !  extra=-1 by default (if adjacent BC>0) no need to do corners -- these are already done
+        !  extra=numberOfGhostPoints, if bc==0, (set in begin loop over sides)
+        !  extra=0 if bc<0  (set in begin loop over sides)
+        extra=-1
         numberOfGhostPoints=orderOfAccuracy/2
         if( gridType.eq.curvilinear )then
          ! the 4th-order 3d BCs require two steps -- the first step gives initial values at all ghost points
@@ -2021,7 +2025,7 @@ c     **************************************************************************
                 tau1DotUtt = tau11*udd+tau12*vdd+tau13*wdd
                 tau2DotUtt = tau21*udd+tau22*vdd+tau23*wdd
               end if
-c Now assign E at the ghost points:
+             ! Now assign E at the ghost points:
 
 
 ! ************ Results from bc43d.maple *******************
@@ -2678,10 +2682,10 @@ c Now assign E at the ghost points:
 
 
  ! *********** done *********************
-c  if( debug.gt.0 )then
-c
-c   write(*,'(" bc4:extrap: i1,i2,i3=",3i3," u(-1)=",3f8.2," u(-2)=",3f8.2)') i1,i2,i3,c          u(i1-is1,i2-is2,i3-is3,ex),u(i1-is1,i2-is2,i3-is3,ey),u(i1-is1,i2-is2,i3-is3,ez),c          u(i1-2*is1,i2-2*is2,i3-2*is3,ex),u(i1-2*is1,i2-2*is2,i3-2*is3,ey),u(i1-2*is1,i2-2*is2,i3-2*is3,ez)
-c  end if
+             !  if( debug.gt.0 )then
+             !
+             !   write(*,'(" bc4:extrap: i1,i2,i3=",3i3," u(-1)=",3f8.2," u(-2)=",3f8.2)') i1,i2,i3,!          u(i1-is1,i2-is2,i3-is3,ex),u(i1-is1,i2-is2,i3-is3,ey),u(i1-is1,i2-is2,i3-is3,ez),!          u(i1-2*is1,i2-2*is2,i3-2*is3,ex),u(i1-2*is1,i2-2*is2,i3-2*is3,ey),u(i1-2*is1,i2-2*is2,i3-2*is3,ez)
+             !  end if
                ! set to exact for testing
                ! OGF3D(i1-is1,i2-is2,i3-is3,t, uvm(0),uvm(1),uvm(2))
                ! OGF3D(i1-2*is1,i2-2*is2,i3-2*is3,t, uvm2(0),uvm2(1),uvm2(2))
@@ -3435,7 +3439,7 @@ c  end if
                 tau1DotUtt = tau11*udd+tau12*vdd+tau13*wdd
                 tau2DotUtt = tau21*udd+tau22*vdd+tau23*wdd
               end if
-c Now assign E at the ghost points:
+             ! Now assign E at the ghost points:
 
 
 ! ************ Results from bc43d.maple *******************
@@ -4458,7 +4462,7 @@ c Now assign E at the ghost points:
      & i2+2*ks2,i3+2*ks3,ez)-a33zm2*u(i1-2*ks1,i2-2*ks2,i3-2*ks3,ez)) 
      & )/(12.*dta)  )
               end if
-c Now assign E at the ghost points:
+             ! Now assign E at the ghost points:
 
 
 ! ************ Results from bc43d.maple *******************
@@ -5115,10 +5119,10 @@ c Now assign E at the ghost points:
 
 
  ! *********** done *********************
-c  if( debug.gt.0 )then
-c
-c   write(*,'(" bc4:extrap: i1,i2,i3=",3i3," u(-1)=",3f8.2," u(-2)=",3f8.2)') i1,i2,i3,c          u(i1-is1,i2-is2,i3-is3,ex),u(i1-is1,i2-is2,i3-is3,ey),u(i1-is1,i2-is2,i3-is3,ez),c          u(i1-2*is1,i2-2*is2,i3-2*is3,ex),u(i1-2*is1,i2-2*is2,i3-2*is3,ey),u(i1-2*is1,i2-2*is2,i3-2*is3,ez)
-c  end if
+             !  if( debug.gt.0 )then
+             !
+             !   write(*,'(" bc4:extrap: i1,i2,i3=",3i3," u(-1)=",3f8.2," u(-2)=",3f8.2)') i1,i2,i3,!          u(i1-is1,i2-is2,i3-is3,ex),u(i1-is1,i2-is2,i3-is3,ey),u(i1-is1,i2-is2,i3-is3,ez),!          u(i1-2*is1,i2-2*is2,i3-2*is3,ex),u(i1-2*is1,i2-2*is2,i3-2*is3,ey),u(i1-2*is1,i2-2*is2,i3-2*is3,ez)
+             !  end if
                ! set to exact for testing
                ! OGF3D(i1-is1,i2-is2,i3-is3,t, uvm(0),uvm(1),uvm(2))
                ! OGF3D(i1-2*is1,i2-2*is2,i3-2*is3,t, uvm2(0),uvm2(1),uvm2(2))
@@ -5905,7 +5909,7 @@ c  end if
      & uez )
              !  Da1DotU = -(  !       (a21zp1*u(i1+js1,i2+js2,i3+js3,ex)-a21zm1*u(i1-js1,i2-js2,i3-js3,ex))/(2.*dsa)!      +(a22zp1*u(i1+js1,i2+js2,i3+js3,ey)-a22zm1*u(i1-js1,i2-js2,i3-js3,ey))/(2.*dsa) !      +(a23zp1*u(i1+js1,i2+js2,i3+js3,ez)-a23zm1*u(i1-js1,i2-js2,i3-js3,ez))/(2.*dsa) ) !             -(  !       (a31zp1*u(i1+ks1,i2+ks2,i3+ks3,ex)-a31zm1*u(i1-ks1,i2-ks2,i3-ks3,ex))/(2.*dta) !      +(a32zp1*u(i1+ks1,i2+ks2,i3+ks3,ey)-a32zm1*u(i1-ks1,i2-ks2,i3-ks3,ey))/(2.*dta) !      +(a33zp1*u(i1+ks1,i2+ks2,i3+ks3,ez)-a33zm1*u(i1-ks1,i2-ks2,i3-ks3,ez))/(2.*dta) )
               end if
-c Now assign E at the ghost points:
+             ! Now assign E at the ghost points:
 
 
 ! ************ Results from bc43d.maple *******************
@@ -6826,14 +6830,14 @@ c Now assign E at the ghost points:
                  u(i1-is1,i2-is2,i3-is3,en1)=u(i1-is1,i2-is2,i3-is3,
      & en1) - 2.*dx(axis)*(1-2*side)*f(i1,i2,i3,0)/eps
                 end if
-                     call ogf3d(ep,xy(i1-is1,i2-is2,i3-is3,0),xy(i1-
-     & is1,i2-is2,i3-is3,1),xy(i1-is1,i2-is2,i3-is3,2),t,uvm(0),uvm(1)
-     & ,uvm(2))
-                     call ogf3d(ep,xy(i1,i2,i3,0),xy(i1,i2,i3,1),xy(i1,
-     & i2,i3,2),t,uv0(0),uv0(1),uv0(2))
-                     call ogf3d(ep,xy(i1+is1,i2+is2,i3+is3,0),xy(i1+
-     & is1,i2+is2,i3+is3,1),xy(i1+is1,i2+is2,i3+is3,2),t,uvp(0),uvp(1)
-     & ,uvp(2))
+                      call ogf3dfo(ep,fieldOption,xy(i1-is1,i2-is2,i3-
+     & is3,0),xy(i1-is1,i2-is2,i3-is3,1),xy(i1-is1,i2-is2,i3-is3,2),t,
+     & uvm(ex),uvm(ey),uvm(ez))
+                      call ogf3dfo(ep,fieldOption,xy(i1,i2,i3,0),xy(i1,
+     & i2,i3,1),xy(i1,i2,i3,2),t,uv0(ex),uv0(ey),uv0(ez))
+                      call ogf3dfo(ep,fieldOption,xy(i1+is1,i2+is2,i3+
+     & is3,0),xy(i1+is1,i2+is2,i3+is3,1),xy(i1+is1,i2+is2,i3+is3,2),t,
+     & uvp(ex),uvp(ey),uvp(ez))
                     u(i1-is1,i2-is2,i3-is3,en1)=u(i1-is1,i2-is2,i3-is3,
      & en1) + uvm(en1) - uvp(en1)
                     u(i1-is1,i2-is2,i3-is3,et1)=u(i1-is1,i2-is2,i3-is3,
@@ -6846,26 +6850,23 @@ c Now assign E at the ghost points:
      & u(i1+2*is1,i2+2*is2,i3+2*is3,et1)
                     u(i1-2*is1,i2-2*is2,i3-2*is3,et2)=2.*u(i1,i2,i3,
      & et2)-u(i1+2*is1,i2+2*is2,i3+2*is3,et2)
-                     call ogf3d(ep,xy(i1-2*is1,i2-2*is2,i3-2*is3,0),xy(
-     & i1-2*is1,i2-2*is2,i3-2*is3,1),xy(i1-2*is1,i2-2*is2,i3-2*is3,2),
-     & t,uvm(0),uvm(1),uvm(2))
-                     call ogf3d(ep,xy(i1,i2,i3,0),xy(i1,i2,i3,1),xy(i1,
-     & i2,i3,2),t,uv0(0),uv0(1),uv0(2))
-                     call ogf3d(ep,xy(i1+2*is1,i2+2*is2,i3+2*is3,0),xy(
-     & i1+2*is1,i2+2*is2,i3+2*is3,1),xy(i1+2*is1,i2+2*is2,i3+2*is3,2),
-     & t,uvp(0),uvp(1),uvp(2))
+                      call ogf3dfo(ep,fieldOption,xy(i1-2*is1,i2-2*is2,
+     & i3-2*is3,0),xy(i1-2*is1,i2-2*is2,i3-2*is3,1),xy(i1-2*is1,i2-2*
+     & is2,i3-2*is3,2),t,uvm(ex),uvm(ey),uvm(ez))
+                      call ogf3dfo(ep,fieldOption,xy(i1,i2,i3,0),xy(i1,
+     & i2,i3,1),xy(i1,i2,i3,2),t,uv0(ex),uv0(ey),uv0(ez))
+                      call ogf3dfo(ep,fieldOption,xy(i1+2*is1,i2+2*is2,
+     & i3+2*is3,0),xy(i1+2*is1,i2+2*is2,i3+2*is3,1),xy(i1+2*is1,i2+2*
+     & is2,i3+2*is3,2),t,uvp(ex),uvp(ey),uvp(ez))
                     u(i1-2*is1,i2-2*is2,i3-2*is3,en1)=u(i1-2*is1,i2-2*
      & is2,i3-2*is3,en1) + uvm(en1) - uvp(en1)
                     u(i1-2*is1,i2-2*is2,i3-2*is3,et1)=u(i1-2*is1,i2-2*
      & is2,i3-2*is3,et1) + uvm(et1) -2.*uv0(et1) + uvp(et1)
                     u(i1-2*is1,i2-2*is2,i3-2*is3,et2)=u(i1-2*is1,i2-2*
      & is2,i3-2*is3,et2) + uvm(et2) -2.*uv0(et2) + uvp(et2)
-                    if( debug.gt.1 )then
-                     write(*,'(" bc4r: i=",3i4," err(-2)=",3e10.2)') 
-     & i1,i2,i3,u(i1-2*is1,i2-2*is2,i3-2*is3,ex)-uvm(0),u(i1-2*is1,i2-
-     & 2*is2,i3-2*is3,ey)-uvm(1), u(i1-2*is1,i2-2*is2,i3-2*is3,ez)-
-     & uvm(2)
-                    end if
+                    ! if( debug.gt.1 )then
+                    !  write(*,'(" bc4r: i=",3i4," err(-2)=",3e10.2)') i1,i2,i3,u(i1-2*is1,i2-2*is2,i3-2*is3,ex)-uvm(ex),!       u(i1-2*is1,i2-2*is2,i3-2*is3,ey)-uvm(ey), u(i1-2*is1,i2-2*is2,i3-2*is3,ez)-uvm(ez)
+                    ! end if
                end if ! mask
               end do
               end do
@@ -7391,7 +7392,7 @@ c Now assign E at the ghost points:
      & a22*vdds+ a23*wdds + a31t*udd+a32t*vdd+a33t*wdd + a31*uddt + 
      & a32*vddt+ a33*wddt
                   end if
-c Now assign E at the ghost points:
+                 ! Now assign E at the ghost points:
 
 
 ! ************ Results from bc43d.maple *******************
@@ -8007,9 +8008,9 @@ c Now assign E at the ghost points:
 
 
  ! *********** done *********************
-c  if( .true. .or. debug.gt.0 )then
-c   write(*,'(" bc4:corr:   i1,i2,i3=",3i3," u(-1)=",3f8.2," u(-2)=",3f8.2)') i1,i2,i3,c          u(i1-is1,i2-is2,i3-is3,ex),u(i1-is1,i2-is2,i3-is3,ey),u(i1-is1,i2-is2,i3-is3,ez),c          u(i1-2*is1,i2-2*is2,i3-2*is3,ex),u(i1-2*is1,i2-2*is2,i3-2*is3,ey),u(i1-2*is1,i2-2*is2,i3-2*is3,ez)
-c  end if
+                 !  if( .true. .or. debug.gt.0 )then
+                 !   write(*,'(" bc4:corr:   i1,i2,i3=",3i3," u(-1)=",3f8.2," u(-2)=",3f8.2)') i1,i2,i3,!          u(i1-is1,i2-is2,i3-is3,ex),u(i1-is1,i2-is2,i3-is3,ey),u(i1-is1,i2-is2,i3-is3,ez),!          u(i1-2*is1,i2-2*is2,i3-2*is3,ex),u(i1-2*is1,i2-2*is2,i3-2*is3,ey),u(i1-2*is1,i2-2*is2,i3-2*is3,ez)
+                 !  end if
                    if( debug.gt.0 )then
                      call ogf3d(ep,xy(i1-is1,i2-is2,i3-is3,0),xy(i1-
      & is1,i2-is2,i3-is3,1),xy(i1-is1,i2-is2,i3-is3,2),t,uvm(0),uvm(1)
@@ -8693,7 +8694,7 @@ c  end if
      & 2*ks1,i2+2*ks2,i3+2*ks3,ez)-a33zm2*u(i1-2*ks1,i2-2*ks2,i3-2*
      & ks3,ez)) )/(12.*dta)  )
                   end if
-c Now assign E at the ghost points:
+                 ! Now assign E at the ghost points:
 
 
 ! ************ Results from bc43d.maple *******************
@@ -9309,9 +9310,9 @@ c Now assign E at the ghost points:
 
 
  ! *********** done *********************
-c  if( .true. .or. debug.gt.0 )then
-c   write(*,'(" bc4:corr:   i1,i2,i3=",3i3," u(-1)=",3f8.2," u(-2)=",3f8.2)') i1,i2,i3,c          u(i1-is1,i2-is2,i3-is3,ex),u(i1-is1,i2-is2,i3-is3,ey),u(i1-is1,i2-is2,i3-is3,ez),c          u(i1-2*is1,i2-2*is2,i3-2*is3,ex),u(i1-2*is1,i2-2*is2,i3-2*is3,ey),u(i1-2*is1,i2-2*is2,i3-2*is3,ez)
-c  end if
+                 !  if( .true. .or. debug.gt.0 )then
+                 !   write(*,'(" bc4:corr:   i1,i2,i3=",3i3," u(-1)=",3f8.2," u(-2)=",3f8.2)') i1,i2,i3,!          u(i1-is1,i2-is2,i3-is3,ex),u(i1-is1,i2-is2,i3-is3,ey),u(i1-is1,i2-is2,i3-is3,ez),!          u(i1-2*is1,i2-2*is2,i3-2*is3,ex),u(i1-2*is1,i2-2*is2,i3-2*is3,ey),u(i1-2*is1,i2-2*is2,i3-2*is3,ez)
+                 !  end if
                    if( debug.gt.0 )then
                      call ogf3d(ep,xy(i1-is1,i2-is2,i3-is3,0),xy(i1-
      & is1,i2-is2,i3-is3,1),xy(i1-is1,i2-is2,i3-is3,2),t,uvm(0),uvm(1)
@@ -14378,6 +14379,6 @@ c  end if
            end if
          end do
          end do
-c     **************************************************************************
+       !     **************************************************************************
         return
         end

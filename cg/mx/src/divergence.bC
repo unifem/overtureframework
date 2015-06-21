@@ -122,8 +122,8 @@ for(i1=I1Base; i1<=I1Bound; i1++)
    if( (debug & 4) && useConservativeDivergence )
      printF("getMaxDivergence: get conservative divergence t=%9.3e, useConservative=%i\n",t,useConservative);
    mgop.derivative(MappedGridOperators::divergence,uLocal,divLocal,I1,I2,I3,E);
-   
  }
+
  mgop.useConservativeApproximations(useConservative);  // reset
  
  #If #E eq "E"

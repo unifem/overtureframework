@@ -750,8 +750,10 @@ display( const aString & label ) const
   
 //  printF("className = " << className << endl;
 
-  printF("basicInverseOption = %s \n",basicInverseOption==canDoNothing ? "canDoNothing" : 
+  printF("basicInverseOption = %s, ",basicInverseOption==canDoNothing ? "canDoNothing" : 
 	 basicInverseOption==canInvert ? "canInvert" : "canDetermineOutside");
+
+  printF("inverseIsDistributed=%s \n",inverseIsDistributed ? "true" : "false");
 
   for( int i=0; i<numberOfMappingItemNames; i++ )
     printF("%s = %s\n",(const char*)mappingItemString[i],(const char*)getName(mappingItemName(i)));

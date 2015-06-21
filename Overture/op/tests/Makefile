@@ -337,7 +337,7 @@ tcm2: $(tcm2)
 # solve a scalar equation on a CompositeGrid
 tcm3 = tcm3.o Checker.o $(PETSC) formMatrix.o
 tcm3 = tcm3.o Checker.o $(PETSC)  ../../grid/MappedGridGeometry2.o
-tcm3 = tcm3.o Checker.o $(PETSC)
+tcm3 = tcm3.o Checker.o $(PETSC) ../src/applyBCC.o
 tcm3: $(tcm3)
 	$(CC) $(CCFLAGS) -o tcm3 $(tcm3) \
          $(CLIBS) $(PETSC_LIBS) $(FLIBS) $(GLIBS)

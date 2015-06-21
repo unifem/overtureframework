@@ -146,12 +146,14 @@ addGrid( const realArray & x, real t )
         
         numberOfTimeLevels=min(numberOfTimeLevels+1,maximumNumberOfTimeLevels);
 
-	if( true || debug & 4 )
+	if( debug & 4 )
+	{
 	  printF("GridEvolution::addGrid:INFO: adding a grid for t<0 in the list at position=%i, t=%9.3e, "
                  "(current=%i, t=%9.3e, numberOfTimeLevels=%i)\n", prev0,t,
 		 current,time(current),numberOfTimeLevels);
 	
-	::display(time,"---GE-- times","%8.2e ");
+	  ::display(time,"---GE-- times","%8.2e ");
+	}
 	
         return 1;
       }

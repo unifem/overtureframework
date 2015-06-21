@@ -545,6 +545,8 @@ Parameters(const int & numberOfDimensions0) : pdeName("unknown"), numberOfBCName
   // Apply a projection to the rigid body interface values
   if (!dbase.has_key("projectRigidBodyInterface")) dbase.put<bool>("projectRigidBodyInterface",false);
 
+  if( !dbase.has_key("printMovingBodyInfo") ) dbase.put<bool>("printMovingBodyInfo")=false;
+
   // simulateGridMotionOnly : 
   //            0 = normal solve and move 
   //            1 = move grids and generate overlapping grids

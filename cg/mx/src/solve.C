@@ -554,12 +554,21 @@ solve(GL_GraphicsInterface &gi )
 
     if( t+.5*dt>nextTimeToPlot )  // plot solution 
     {
-      // compute errors
-      getErrors( current,t,dt );
+      const real cpuTime=getCPU()-time0;
 
       if( frequencyToSaveInShowFile>0 && (iPrint % frequencyToSaveInShowFile == 0) )
         saveShow( current,t,dt );  // save the current solution in the show file
       
+      // --- print time step info ---
+      printTimeStepInfo( current, numberOfStepsTaken,t,dt,cpuTime );
+
+      // compute errors
+      getErrors( current,t,dt );
+
+      // save results to check file etc.
+      outputResults(current,t,dt);
+
+
       int finished = plot(current, t, dt );
       if( finished ) break;
       if( t >tFinal-.5*dt )

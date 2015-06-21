@@ -36,6 +36,7 @@ class BeamModel
     unknownBC=-1, 
     pinned = 1 , 
     clamped = 2, 
+    slideBC = 3,
     freeBC = 4 , 
     internalForceBC = 5, // used when computing the "internal force"  F = L(u,v) + f , given (u,v) 
     periodic = 8 
@@ -66,16 +67,16 @@ class BeamModel
 		const real& x0_2, const real& y0_2,
 		real p2, real p2x, const real& nx_2,const real& ny_2);
 
-// add to the element integral for a function f
-void addToElementIntegral(const real & tf, const RealArray & x0, const RealArray & f, const RealArray & normal,  
-                     const Index & Ib1, const Index & Ib2,  const Index & Ib3, RealArray & fe, 
-                     bool addToForce= false );
+  // add to the element integral for a function f
+  void addToElementIntegral(const real & tf, const RealArray & x0, const RealArray & f, const RealArray & normal,  
+                            const Index & Ib1, const Index & Ib2,  const Index & Ib3, RealArray & fe, 
+                            bool addToForce= false );
 
-// add to the element integral for a function f
-void addToElementIntegral( const real & tf,
-			   const real *x1, const real f1, const real f1x, const real *nv1, 
-			   const real *x2, const real f2, const real f2x, const real *nv2,
-			   RealArray & fe, bool addToForce = false );
+  // add to the element integral for a function f
+  void addToElementIntegral( const real & tf,
+			     const real *x1, const real f1, const real f1x, const real *nv1, 
+		  	     const real *x2, const real f2, const real f2x, const real *nv2,
+			     RealArray & fe, bool addToForce = false );
 
   // assign boundary conditions
   int assignBoundaryConditions( real t, RealArray & x, RealArray & v, RealArray & a );
@@ -117,6 +118,9 @@ void addToElementIntegral( const real & tf,
   // Return the beam ID (a unique ID for this beam)
   int getBeamID() const{ return beamID; } // 
 
+  // compute an exact eigenmode solution
+  int getBeamEigenmode( real t, RealArray & u, RealArray & v, RealArray & a ) const;
+
   // compute the beam-piston exact solution
   int getBeamPiston( real t, RealArray & u, RealArray & v, RealArray & a ) const;
 
@@ -136,7 +140,12 @@ void addToElementIntegral( const real & tf,
 
   // Compute errors in the solution (when the solution is known)
   int getErrors( const real t, const RealArray & u, const RealArray & v, const RealArray & a,
-                 const aString & label, FILE *file = stdout );
+                 const aString & label, FILE *file = stdout, real *uvErr=NULL, real *uvNorm=NULL );
+
+  // Compute errors in the current solution.
+  int getErrors( const aString & label,
+		 FILE *file=stdout,
+		 real *uvErr= NULL, real *uvNorm= NULL );
 
   // Return the exact solution (if any)
   int getExactSolution( real t, RealArray & u, RealArray & v, RealArray & a ) const;
@@ -213,6 +222,12 @@ void addToElementIntegral( const real & tf,
 
   // Does the beam on fluid on both sides.
   bool hasFluidOnTwoSides() const;
+
+  // output probe info
+  int outputProbes( real t, int stepNumber );
+
+  // plot the solution and errors
+  int plot( real t, GenericGraphicsInterface & gi, GraphicsParameters & psp , const aString & label );
 
   // print time step info
   void printTimeStepInfo( FILE *file=stdout );
@@ -318,6 +333,9 @@ void addToElementIntegral( const real & tf,
   // Return the current velocity DOF's of the structure.
   const RealArray& velocity() const;
 
+  // Write information to the `check file' 
+  int writeCheckFile( FILE *file );
+
   // Write information about the beam
   void writeParameterSummary( FILE *file= stdout );
 
@@ -405,6 +423,9 @@ void addToElementIntegral( const real & tf,
 
   // smooth the solution
   void smooth( const real t, RealArray & w, const aString & label );
+
+  // assign boundary conditions for the smooth function
+  int smoothBoundaryConditions( RealArray & w1, int base, int bound, int numberOfGhost, int orderOfExtrapolation );
 
   //  Solve A*u = f 
   void solveBlockTridiagonal(const RealArray& Ae, const RealArray& f, RealArray& u, 

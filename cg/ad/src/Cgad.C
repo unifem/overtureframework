@@ -90,8 +90,10 @@ updateGeometryArrays(GridFunction & cgf)
 
   return DomainSolver::updateGeometryArrays(cgf);
 }
-
-
+// ===================================================================================================================
+/// \brief provide titles for show file output
+///
+// ===================================================================================================================
 void Cgad::
 saveShowFileComments( Ogshow &show )
 {
@@ -108,11 +110,19 @@ saveShowFileComments( Ogshow &show )
   std::vector<real> & c = parameters.dbase.get<std::vector<real> >("c");   
   
   aString showFileTitle[5];
-  if( parameters.dbase.get<int>("numberOfDimensions")==2 )
-    showFileTitle[0]=sPrintF(buffer,"Convection Diffusion, a=%g, b=%g, kappa=%g",a[0],b[0],kappa[0]);
+  if( pdeName =="thinFilmEquations" )
+  {
+     showFileTitle[0]=sPrintF(buffer,"Thin-Film");
+  }
   else
-    showFileTitle[0]=sPrintF(buffer,"Convection Diffusion, a=%g, b=%g, c=%g, kappa=%g",
-                             a[0],b[0],c[0],kappa[0]);
+  {
+    if( parameters.dbase.get<int>("numberOfDimensions")==2 )
+      showFileTitle[0]=sPrintF(buffer,"Convection Diffusion, a=%g, b=%g, kappa=%g",a[0],b[0],kappa[0]);
+    else
+      showFileTitle[0]=sPrintF(buffer,"Convection Diffusion, a=%g, b=%g, c=%g, kappa=%g",
+			       a[0],b[0],c[0],kappa[0]);
+  }
+  
   showFileTitle[1]=timeLine;
   showFileTitle[2]="";  // marks end of titles
   
@@ -140,56 +150,77 @@ writeParameterSummary( FILE * file )
 
   if ( file==parameters.dbase.get<FILE* >("checkFile") )
   {
-    fPrintF(file,"\\caption{advection-diffusion, gridName, $\\kappa=%3.2g$, $t=%2.1f$, ",
- 	    kappa[0],parameters.dbase.get<real >("tFinal"));
-
+    // -- check file header ---
+    if( pdeName=="advection diffusion" || pdeName=="convection diffusion" )
+    {
+      fPrintF(file,"\\caption{advection-diffusion, gridName, $\\kappa=%3.2g$, $t=%2.1f$, ",
+	      kappa[0],parameters.dbase.get<real >("tFinal"));
+    }
+    else
+    {
+      fPrintF(file,"\\caption{%s, gridName, $t=%2.1f$, ",(const char*)pdeName,parameters.dbase.get<real >("tFinal"));
+    }
+    
      return;
   }
 
 
   real & thermalConductivity = parameters.dbase.get<real>("thermalConductivity");
 
-  if( parameters.dbase.get<bool >("variableDiffusivity") )
-  {
-    fPrintF(file," The coefficients of diffusivity are variable.\n");
-  }
-  else
-  {
-    fPrintF(file," The coefficients of diffusivity are constant:\n  ");
-    aString name = "kappa";
-    for( int m=0; m<numberOfComponents; m++ )
-    {
-      if( numberOfComponents==1 )
-	fPrintF(file," %s=%g",(const char*)name,kappa[m]);
-      else
-	fPrintF(file," %s[%i]=%g,",(const char*)name,m,kappa[m]);
-    }
-    fPrintF(file,"\n");
+  fPrintF(file," numberOfComponents=%i:\n",numberOfComponents);
+  aString *componentName = parameters.dbase.get<aString* >("componentName");
+  for( int m=0; m<numberOfComponents; m++ )
+    fPrintF(file,"   component %i: %s\n",m,(const char*)componentName[m]);
 
-    
-  }
-  if( parameters.dbase.get<bool >("variableAdvection") )
+  if( pdeName=="advection diffusion" || pdeName=="convection diffusion" )
   {
-    fPrintF(file," The advection coefficients are variable.\n");
-  }
-  else
-  {
-    fPrintF(file," The advection coefficients are constant:\n");
-    for( int n=1; n<4; n++ )
+    if( parameters.dbase.get<bool >("variableDiffusivity") )
     {
-      std::vector<real> & par = n==1 ? a : n==2 ? b : c;
-      aString name = n==1 ? "a" : n==2 ? "b" : "c";
+      fPrintF(file," The coefficients of diffusivity are variable.\n");
+    }
+    else
+    {
+      fPrintF(file," The coefficients of diffusivity are constant:\n  ");
+      aString name = "kappa";
       for( int m=0; m<numberOfComponents; m++ )
       {
 	if( numberOfComponents==1 )
-	  fPrintF(file,"   %s=%g",(const char*)name,par[m]);
+	  fPrintF(file," %s=%g",(const char*)name,kappa[m]);
 	else
-	  fPrintF(file,"   %s[%i]=%g,",(const char*)name,m,par[m]);
+	  fPrintF(file," %s[%i]=%g,",(const char*)name,m,kappa[m]);
       }
       fPrintF(file,"\n");
-    }
+
     
+    }
+    if( parameters.dbase.get<bool >("variableAdvection") )
+    {
+      fPrintF(file," The advection coefficients are variable.\n");
+    }
+    else
+    {
+      fPrintF(file," The advection coefficients are constant:\n");
+      for( int n=1; n<4; n++ )
+      {
+	std::vector<real> & par = n==1 ? a : n==2 ? b : c;
+	aString name = n==1 ? "a" : n==2 ? "b" : "c";
+	for( int m=0; m<numberOfComponents; m++ )
+	{
+	  if( numberOfComponents==1 )
+	    fPrintF(file,"   %s=%g",(const char*)name,par[m]);
+	  else
+	    fPrintF(file,"   %s[%i]=%g,",(const char*)name,m,par[m]);
+	}
+	fPrintF(file,"\n");
+      }
+    
+    }
   }
+  else if( pdeName=="thinFilmEquations" )
+  {
+    fPrintF(file," thin film parameters: *finish me*\n");
+  }
+  
   const bool & implicitAdvection = parameters.dbase.get<bool >("implicitAdvection");
   if( implicitAdvection )
     fPrintF(file," Treat advection terms implicitly (when using implicit time-stepping).\n");

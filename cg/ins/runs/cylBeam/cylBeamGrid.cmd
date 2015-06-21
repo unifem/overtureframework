@@ -229,6 +229,9 @@ create mappings
       7 7 8 0 
     share 
       1,1, 100,0
+    # make sure the ghost line in the marching direction
+    # matches the boundary:
+    boundary offset 0, 0, 0, 1 (l r b t)
     # open graphics
     generate 
     name beam

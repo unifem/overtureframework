@@ -25,10 +25,10 @@ TimeFunction()
   f0=1.;
   t0=0.;
 
-  rampStart=0.;
-  rampEnd=1.;
-  rampStartTime=0.;
-  rampEndTime=1.;
+  rampStart=0.;     // value of ramp for t< rampStartTime
+  rampEnd=1.;       // value of ramp for t > rampEndTime
+  rampStartTime=0.; // ramp turns on at this time
+  rampEndTime=1.;   
   rampOrder=3;      // how many derivatives are zero at the ends of the ramp
   
   // put user defined parameters here 
@@ -131,6 +131,41 @@ setLinearFunction( const real a0_, const real a1_ )
   functionType=linearFunction; 
   a0=a0_;
   a1=a1_;
+
+  return 0;
+}
+
+// ============================================================================
+/// \brief Set the coefficients of the ramp function.
+/// \param rampStart (input) : value of ramp function for t<rampStartTime
+/// \param rampEnd (input) : value o ramp function for t>rampEndTime
+/// \param rampStartTime, rampEndTime (input): ramp time interval
+/// \ramp rampOrder (input) : indicates how smoothly the ramp turns on and off and is equal to the number of
+///        derivatives that are zero at the start and end of the ramp.
+///
+/// \details:
+/// The ramp function transitions from one one value (rampStart) to a second value (rampEnd)
+///       as t varies between rampTimeStart and rampTimeEnd: 
+///           ramp(t)  =  rampStart for t<rampTimeStart
+///           ramp(t)  =  smoothly varies between rampStart and rampEnd, for rampStartTime < t < rampEndTime,
+///           ramp(t)  =  rampStart for t>rampTimeEnd.
+///        The rampOrder indicates how smoothly the ramp turns on and off and is equal to the number of
+///        derivatives that are zero at the start and end of the ramp.
+/// 
+// ===========================================================================
+int TimeFunction::
+setRampFunction( const real rampStart_, const real rampEnd_,
+		 const real rampStartTime_, const real rampEndTime_,
+		 const int rampOrder_ )
+{
+  functionType =rampFunction; 
+  rampStart    =rampStart_;
+  rampEnd      =rampEnd_;
+  rampStartTime=rampStartTime_;
+  rampEndTime  =rampEndTime_;
+  rampOrder    =rampOrder_;
+
+  return 0;
 }
 
 // ============================================================================
@@ -145,6 +180,8 @@ setSinusoidFunction( const real b0_, const real f0_, const real t0_ )
   b0=b0_;
   f0=f0_;
   t0=t0_;
+
+  return 0;
 }
 
 // ===========================================================================
@@ -326,7 +363,13 @@ evalDerivative( const real t, real & fp, int derivative, bool computeComposed /*
   }
   else if( functionType==rampFunction )
   {
-    // Cubic ramp: from MovingGrids: 
+    // ---- Ramp function ----
+    //
+    //                ----------------
+    //               /                
+    //              /                 
+    //  ------------                  
+    // 
     const real rampInterval=rampEndTime-rampStartTime;
     if( t<rampStartTime )
     { // ramp is off

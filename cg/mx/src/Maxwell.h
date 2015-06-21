@@ -98,6 +98,7 @@ class Maxwell
     gaussianIntegralInitialCondition,   // from Tom Hagstrom
     twilightZoneInitialCondition,
     userDefinedInitialConditionsOption,
+    userDefinedKnownSolutionInitialCondition, 
     numberOfInitialConditionNames
   };
 
@@ -137,7 +138,8 @@ class Maxwell
     scatteringFromADielectricSphereKnownSolution,
     squareEigenfunctionKnownSolution,
     annulusEigenfunctionKnownSolution,
-    eigenfunctionsOfASphereKnownSolution    // not implemented yet 
+    eigenfunctionsOfASphereKnownSolution,    // not implemented yet 
+    userDefinedKnownSolution
   } knownSolutionOption;
 
 
@@ -214,6 +216,7 @@ class Maxwell
   
   void assignInterfaceBoundaryConditions( int current, real t, real dt );
 
+  int assignUserDefinedKnownSolutionInitialConditions(int current, real t, real dt );
 
   int buildRunTimeDialog();
 
@@ -239,6 +242,9 @@ class Maxwell
   int defineRegionsAndBodies();
 
   void displayBoundaryConditions(FILE *file = stdout);
+
+  // return true if the equations are forced (external forcing)
+  bool forcingIsOn() const;
 
   realCompositeGridFunction& getAugmentedSolution(int current, realCompositeGridFunction & v, const real t);
 
@@ -267,6 +273,11 @@ class Maxwell
   static real getMinValue(real value, int processor=-1);  // get min over all processors
   static int getMinValue(int value, int processor=-1);
 
+  void getTimeSteppingLabel( real dt, aString & label ) const;
+
+  int getUserDefinedKnownSolution(real t, CompositeGrid & cg, int grid, realArray & ua, 
+				  const Index & I1, const Index &I2, const Index &I3, int numberOfTimeDerivatives = 0 );
+
   int getValuesFDTD(int option, int *iparam, int current, real t, real dt, realCompositeGridFunction *v= NULL );
 
   void initializeKnownSolution();
@@ -290,6 +301,8 @@ class Maxwell
   int printMemoryUsage(FILE *file = stdout );
 
   int printStatistics(FILE *file  = stdout);
+
+  void printTimeStepInfo( const int current, const int & step, const real & t, const real & dt, const real & cpuTime );
 
   // project the fields to satisfy div( eps E ) = rho
   int project( int numberOfStepsTaken, int current, real t, real dt );
@@ -316,6 +329,8 @@ class Maxwell
   
   int updateProjectionEquation();
 
+  int updateUserDefinedKnownSolution(GenericGraphicsInterface & gi, CompositeGrid & cg);
+
   bool usingPMLBoundaryConditions() const;
 
   int updateShowFile(const aString & command= nullString, DialogData *interface =NULL );
@@ -328,6 +343,9 @@ class Maxwell
   int userDefinedInitialConditions(int current, real t, real dt );
 
   void userDefinedInitialConditionsCleanup();
+
+  bool vertexArrayIsNeeded( int grid ) const;
+
 
 protected:
   int buildTimeSteppingOptionsDialog(DialogData & dialog );
@@ -638,8 +656,8 @@ public: //  should be protected:
     timeForRaditionKernel,
     timeForInterpolate,
     timeForUpdateGhostBoundaries,
-    timeForGetError,
     timeForForcing,
+    timeForGetError,
     timeForProject,
     timeForIntensity,
     timeForComputingDeltaT,

@@ -612,6 +612,9 @@ printTimeStepInfo( const int & step, const real & t, const real & cpuTime );
 virtual int
 project(GridFunction & cgf);
 
+virtual int
+projectInitialConditionsForMovingGrids(int gfIndex);
+
 virtual int 
 readRestartFile(realCompositeGridFunction & v,   // this version came from CgSolver
 		real & t,

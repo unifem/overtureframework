@@ -277,27 +277,24 @@ setupGridFunctions()
   return 0;
 }
 
-//\begin{>>CompositeGridSolverInclude.tex}{\subsection{updateWorkSpace}} 
 int DomainSolver::
 updateWorkSpace(GridFunction & gf0)
 //=========================================================================================
-// /Description:
-//    Update the workSpace.
-//
-//   Each grid has a work space. Work spaces may be shared between grids.
-// Work spaces consist of a number of arrays, a(I1,I2,I3). For two grids to share a work space
-// the lengths of I1,I2,I3 must be bigger than or equal to the grid dimensions along
-// each axis. We will increase any of I1,I2,I3 to permit sharing, but only if the result
-// is smaller than having two separate work spaces.
-// 
-// Examples:
-//  a) grid 1 : (10,3), grid 2 : (3,10) --> do not share since merged size of 10x10 > 10x3 + 3x10  
-//  b) grid 1 : (10,3), grid 2 : (9,4) --> do share since  since merged size of 10x4 < 10x3 + 9x4
-// 
-//   pWorkSpace[i] = pointer to work space i (may be NULL)
-//   workSpaceIndex(grid) : index into pWorkSpace[]
-//   pWorkSpace[workSpaceIndex(grid)] = work space to use for grid.
-//\end{CompositeGridSolverInclude.tex}  
+/// \brief Update the workSpace.
+///
+///   Each grid has a work space. Work spaces may be shared between grids.
+/// Work spaces consist of a number of arrays, a(I1,I2,I3). For two grids to share a work space
+/// the lengths of I1,I2,I3 must be bigger than or equal to the grid dimensions along
+/// each axis. We will increase any of I1,I2,I3 to permit sharing, but only if the result
+/// is smaller than having two separate work spaces.
+/// 
+/// Examples:
+///  a) grid 1 : (10,3), grid 2 : (3,10) --> do not share since merged size of 10x10 > 10x3 + 3x10  
+///  b) grid 1 : (10,3), grid 2 : (9,4) --> do share since  since merged size of 10x4 < 10x3 + 9x4
+/// 
+///   pWorkSpace[i] = pointer to work space i (may be NULL)
+///   workSpaceIndex(grid) : index into pWorkSpace[]
+///   pWorkSpace[workSpaceIndex(grid)] = work space to use for grid.
 //=========================================================================================
 {
   CompositeGrid & cg = *gf0.u.getCompositeGrid();
@@ -308,16 +305,12 @@ updateWorkSpace(GridFunction & gf0)
 }
 
 
-//\begin{>>CompositeGridSolverInclude.tex}{\subsection{initializeSolution}} 
+//=========================================================================================
+/// \brief Initialize the solution, project velocity if required.
+///  The initial conditions should have already been assigned in setParameters.
+//=========================================================================================
 int DomainSolver::
 initializeSolution()
-//=========================================================================================
-// /Description:
-//    Initialize the solution, project velocity if required.
-//  The initial conditions should have already been assigned in setParameters.
-//
-//\end{CompositeGridSolverInclude.tex}  
-//=========================================================================================
 {
   if( false )
   {
@@ -371,7 +364,7 @@ initializeSolution()
 
   
   // --- Evaluate variable material properties --- *wdh* 2011/10/26 -- is this the right place
-  printF("**** DomainSolver::initializeSolution setVariableMaterialProperties****\n");
+  // printF("**** DomainSolver::initializeSolution setVariableMaterialProperties****\n");
   setVariableMaterialProperties( gf[current], gf[current].t );
 
   if( parameters.isMovingGridProblem() )

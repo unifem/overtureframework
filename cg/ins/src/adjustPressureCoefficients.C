@@ -114,7 +114,7 @@ adjustPressureCoefficients(CompositeGrid & cg0, GridFunction & cgf  )
 
   realCompositeGridFunction & coeff = poisson->coeff;
 
-  if( true )
+  if( true ) 
   {
     if( cgf.t<3.*dt )
       printF("--INS-- *NEW WAY* adjustPressureCoefficients for two-sided beams (if any), t=%9.3e\n",cgf.t);
@@ -155,8 +155,8 @@ adjustPressureCoefficients(CompositeGrid & cg0, GridFunction & cgf  )
 	const int stencilSize0 = sparse0.stencilSize;
 	const int stencilDim0=stencilSize0*numberOfComponentsForCoefficients0; // number of coefficients per equation
 
-	IntegerArray & equationNumber0 = sparse0.equationNumber;
-	IntegerArray & classify0 = sparse0.classify;
+	intArray & equationNumber0 = sparse0.equationNumber;
+	intArray & classify0 = sparse0.classify;
 
 	MappedGrid & mg0 = cg0[grid0];
 	const IntegerArray & gid0 = mg0.gridIndexRange();
@@ -181,8 +181,8 @@ adjustPressureCoefficients(CompositeGrid & cg0, GridFunction & cgf  )
 	  assert( coeff1.sparse!=NULL );
 	  SparseRepForMGF & sparse1 = *coeff1.sparse;
 	  const int equationOffset1=sparse1.equationOffset;
-	  IntegerArray & equationNumber1 = sparse1.equationNumber;
-	  IntegerArray & classify1 = sparse1.classify;
+	  intArray & equationNumber1 = sparse1.equationNumber;
+	  intArray & classify1 = sparse1.classify;
 
 	  MappedGrid & mg1 = cg0[grid1];
 
@@ -302,8 +302,8 @@ adjustPressureCoefficients(CompositeGrid & cg0, GridFunction & cgf  )
       const int stencilSize0 = sparse0.stencilSize;
       const int stencilDim0=stencilSize0*numberOfComponentsForCoefficients0; // number of coefficients per equation
 
-      IntegerArray & equationNumber0 = sparse0.equationNumber;
-      IntegerArray & classify0 = sparse0.classify;
+      intArray & equationNumber0 = sparse0.equationNumber;
+      intArray & classify0 = sparse0.classify;
     
       MappedGrid & mg0 = cg0[grid0];
       OV_GET_SERIAL_ARRAY_CONST(real,mg0.center(),xy0Local);
@@ -312,8 +312,8 @@ adjustPressureCoefficients(CompositeGrid & cg0, GridFunction & cgf  )
       assert( coeff1.sparse!=NULL );
       SparseRepForMGF & sparse1 = *coeff1.sparse;
       const int equationOffset1=sparse1.equationOffset;
-      IntegerArray & equationNumber1 = sparse1.equationNumber;
-      IntegerArray & classify1 = sparse1.classify;
+      intArray & equationNumber1 = sparse1.equationNumber;
+      intArray & classify1 = sparse1.classify;
 
       MappedGrid & mg1 = cg0[grid1];
       OV_GET_SERIAL_ARRAY_CONST(real,mg1.center(),xy1Local);

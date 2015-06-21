@@ -5,12 +5,12 @@
 # setenv CGBUILDPREFIX /some/other/dir will put the obj/lib/bin in /some/other/dir/{common,cgad...}/{lib,obj,dep,bin}
 #
 
-all : libCommon cgad cgcns cgins cgasf cgsm cgmp unitTests message
+all : libCommon cgad cgcns cgins cgasf cgsm cgmp unitTests cgmx message
 
-everything: all cgmx 
+everything: all 
 
-message : cgad cgcns cgins cgasf cgsm cgmp
-	@echo "CG:INFO: type \"make check-quiet\" or \"make check\" to run regression tests"	
+message : cgad cgcns cgins cgasf cgsm cgmp unitTests cgmx
+	@echo "CG:INFO: type \"make check-quiet\" or \"make -j8 check-quiet\" or\"make check\" to run regression tests"	
 
 libCommon:
 	@cd common; $(MAKE) 
@@ -56,17 +56,35 @@ check:
 	-@cd cns/check; $(MAKE)  check
 	-@cd ins/check; $(MAKE)  check
 	-@cd sm/check;  $(MAKE)  check
+	-@cd mx/check;  $(MAKE)  check
 	-@cd mp/check;  $(MAKE)  check
 
-# run regression tests with minimal output:
-check-quiet:
+check-unitTests-quiet:
 	-@cd unitTests/check;  $(MAKE) -s  check-quiet
+check-ad-quiet:
 	-@cd ad/check;  $(MAKE) -s check-quiet
+check-asf-quiet:
 	-@cd asf/check; $(MAKE) -s  check-quiet
+check-cns-quiet:
 	-@cd cns/check; $(MAKE) -s  check-quiet
+check-ins-quiet:
 	-@cd ins/check; $(MAKE) -s  check-quiet
+check-sm-quiet:
 	-@cd sm/check;  $(MAKE) -s  check-quiet
+check-mx-quiet:
+	-@cd mx/check;  $(MAKE) -s  check-quiet
+check-mp-quiet:
 	-@cd mp/check;  $(MAKE) -s  check-quiet
+
+# run regression tests with minimal output:  [ make -j8 check-quiet ]
+check-quiet: check-unitTests-quiet \
+             check-ad-quiet \
+             check-asf-quiet \
+             check-cns-quiet\
+             check-ins-quiet \
+             check-sm-quiet \
+             check-mx-quiet \
+             check-mp-quiet
 
 # clean out obj and bin directories and temporary files.
 clean:

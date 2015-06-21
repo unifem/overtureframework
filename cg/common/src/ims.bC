@@ -203,11 +203,11 @@ advanceImplicitMultiStep( real & t0, real & dt0, int & numberOfSubSteps, int & i
   assert( parameters.dbase.get<int >("orderOfPredictorCorrector")==2 );  // for now we just have 2nd-order in time
 
 //  bool init=false;
-  if( !parameters.dbase.get<DataBase >("modelData").has_key("AdamsImplicitData") )
+  if( !parameters.dbase.get<DataBase >("modelData").has_key("AdamsPCData") )
   {
     // this must be the initial call to this routine
 //    init=true;
-    parameters.dbase.get<DataBase >("modelData").put<AdamsPCData>("AdamsImplicitData");
+    parameters.dbase.get<DataBase >("modelData").put<AdamsPCData>("AdamsPCData");
   }
 //  if( init!=init_ )
 //  {
@@ -216,7 +216,7 @@ advanceImplicitMultiStep( real & t0, real & dt0, int & numberOfSubSteps, int & i
 //  }
   
 
-  AdamsPCData & adamsData = parameters.dbase.get<DataBase >("modelData").get<AdamsPCData>("AdamsImplicitData");
+  AdamsPCData & adamsData = parameters.dbase.get<DataBase >("modelData").get<AdamsPCData>("AdamsPCData");
   
   real & dtb=adamsData.dtb;
   int &mab0 =adamsData.mab0, &mab1=adamsData.mab1, &mab2=adamsData.mab2;

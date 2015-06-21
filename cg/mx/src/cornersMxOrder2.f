@@ -1704,6 +1704,7 @@ c===============================================================================
         twoPi=8.*atan2(1.,1.)
         cc= c*sqrt( kx*kx+ky*ky+kz*kz )
         ! write(*,'(" ***assign corners: forcingOption=",i4," twoPi=",f18.14," cc=",f10.7)') forcingOption,twoPi,cc
+        ! initialize parameters used in slow starts (e.g. for plane waves)
 c write(*,'("initializeBoundaryForcing slowStartInterval=",e10.2)') slowStartInterval
         if( t.le.0 .and. slowStartInterval.gt.0. )then
           ssf = 0.
@@ -1908,16 +1909,16 @@ c write(*,'("initializeBoundaryForcing slowStartInterval=",e10.2)') slowStartInt
                      x0=xy(i1,i2,i3,0)
                      y0=xy(i1,i2,i3,1)
                      if( fieldOption.eq.0 )then
-                       uv(0)=(ssf*sin(twoPi*(kx*(x0)+ky*(y0)-cc*(t)))*
+                       uv(ex)=(ssf*sin(twoPi*(kx*(x0)+ky*(y0)-cc*(t)))*
      & pwc(0))
-                       uv(1)=(ssf*sin(twoPi*(kx*(x0)+ky*(y0)-cc*(t)))*
+                       uv(ey)=(ssf*sin(twoPi*(kx*(x0)+ky*(y0)-cc*(t)))*
      & pwc(1))
                      else
                       ! we are assigning time derivatives (sosup)
-                       uv(0)=(ssf*(-twoPi*cc)*cos(twoPi*(kx*(x0)+ky*(
+                       uv(ex)=(ssf*(-twoPi*cc)*cos(twoPi*(kx*(x0)+ky*(
      & y0)-cc*(t)))*pwc(0)+ssft*sin(twoPi*(kx*(x0)+ky*(y0)-cc*(t)))*
      & pwc(0))
-                       uv(1)=(ssf*(-twoPi*cc)*cos(twoPi*(kx*(x0)+ky*(
+                       uv(ey)=(ssf*(-twoPi*cc)*cos(twoPi*(kx*(x0)+ky*(
      & y0)-cc*(t)))*pwc(1)+ssft*sin(twoPi*(kx*(x0)+ky*(y0)-cc*(t)))*
      & pwc(1))
                      end if
@@ -1975,8 +1976,8 @@ c write(*,'("initializeBoundaryForcing slowStartInterval=",e10.2)') slowStartInt
                    tau2=rsxy(i1,i2,i3,axisp1,1)
                    tau1DotU=(tau1*u(i1,i2,i3,ex)+tau2*u(i1,i2,i3,ey))/(
      & tau1**2+tau2**2)
-                     call ogf2d(ep,xy(i1    ,i2    ,i3,0),xy(i1    ,i2 
-     &    ,i3,1),t, u0,v0,w0)
+                     call ogf2dfo(ep,fieldOption,xy(i1    ,i2    ,i3,0)
+     & ,xy(i1    ,i2    ,i3,1),t, u0,v0,w0)
                      tau1DotU = tau1DotU - ( tau1*u0 + tau2*v0 )/(tau1*
      & *2+tau2**2)
                    u(i1,i2,i3,ex)=u(i1,i2,i3,ex)-tau1DotU*tau1
@@ -2003,10 +2004,10 @@ c write(*,'("initializeBoundaryForcing slowStartInterval=",e10.2)') slowStartInt
                  do i3=n3a,n3b
                  do i2=n2a,n2b
                  do i1=n1a,n1b
-                     call ogf2d(ep,xy(i1    ,i2    ,i3,0),xy(i1    ,i2 
-     &    ,i3,1),t, u0,v0,w0)
-                     uv(0)=u0
-                     uv(1)=v0
+                     call ogf2dfo(ep,fieldOption,xy(i1    ,i2    ,i3,0)
+     & ,xy(i1    ,i2    ,i3,1),t, u0,v0,w0)
+                     uv(ex)=u0
+                     uv(ey)=v0
                      u(i1,i2,i3,et1)=uv(et1)
                  end do
                  end do
@@ -2086,21 +2087,21 @@ c write(*,'("initializeBoundaryForcing slowStartInterval=",e10.2)') slowStartInt
                      y0=xy(i1,i2,i3,1)
                      z0=xy(i1,i2,i3,2)
                      if( fieldOption.eq.0 )then
-                       uv(0)=-(ssf*sin(twoPi*(kx*(x0)+ky*(y0)+kz*(z0)-
+                       uv(ex)=-(ssf*sin(twoPi*(kx*(x0)+ky*(y0)+kz*(z0)-
      & cc*(t)))*pwc(0))
-                       uv(1)=-(ssf*sin(twoPi*(kx*(x0)+ky*(y0)+kz*(z0)-
+                       uv(ey)=-(ssf*sin(twoPi*(kx*(x0)+ky*(y0)+kz*(z0)-
      & cc*(t)))*pwc(1))
-                       uv(2)=-(ssf*sin(twoPi*(kx*(x0)+ky*(y0)+kz*(z0)-
+                       uv(ez)=-(ssf*sin(twoPi*(kx*(x0)+ky*(y0)+kz*(z0)-
      & cc*(t)))*pwc(2))
                      else
                       ! we are assigning time derivatives (sosup)
-                       uv(0)=-(ssf*(-twoPi*cc)*cos(twoPi*(kx*(x0)+ky*(
+                       uv(ex)=-(ssf*(-twoPi*cc)*cos(twoPi*(kx*(x0)+ky*(
      & y0)+kz*(z0)-cc*(t)))*pwc(0)+ssft*sin(twoPi*(kx*(x0)+ky*(y0)+kz*
      & (z0)-cc*(t)))*pwc(0))
-                       uv(1)=-(ssf*(-twoPi*cc)*cos(twoPi*(kx*(x0)+ky*(
+                       uv(ey)=-(ssf*(-twoPi*cc)*cos(twoPi*(kx*(x0)+ky*(
      & y0)+kz*(z0)-cc*(t)))*pwc(1)+ssft*sin(twoPi*(kx*(x0)+ky*(y0)+kz*
      & (z0)-cc*(t)))*pwc(1))
-                       uv(2)=-(ssf*(-twoPi*cc)*cos(twoPi*(kx*(x0)+ky*(
+                       uv(ez)=-(ssf*(-twoPi*cc)*cos(twoPi*(kx*(x0)+ky*(
      & y0)+kz*(z0)-cc*(t)))*pwc(2)+ssft*sin(twoPi*(kx*(x0)+ky*(y0)+kz*
      & (z0)-cc*(t)))*pwc(2))
                      end if
@@ -2173,8 +2174,8 @@ c write(*,'("initializeBoundaryForcing slowStartInterval=",e10.2)') slowStartInt
                    tau23=rsxy(i1,i2,i3,axisp2,2)
                    tau2DotU=(tau21*u(i1,i2,i3,ex)+tau22*u(i1,i2,i3,ey)+
      & tau23*u(i1,i2,i3,ez))/(tau21**2+tau22**2+tau23**2)
-                     call ogf3d(ep,xy(i1,i2,i3,0),xy(i1,i2,i3,1),xy(i1,
-     & i2,i3,2),t, u0,v0,w0)
+                     call ogf3dfo(ep,fieldOption,xy(i1,i2,i3,0),xy(i1,
+     & i2,i3,1),xy(i1,i2,i3,2),t, u0,v0,w0)
                      tau1DotU = tau1DotU - ( tau11*u0 + tau12*v0 + 
      & tau13*w0 )/(tau11**2+tau12**2+tau13**2)
                      tau2DotU = tau2DotU - ( tau21*u0 + tau22*v0 + 
@@ -2204,11 +2205,11 @@ c write(*,'("initializeBoundaryForcing slowStartInterval=",e10.2)') slowStartInt
                  do i3=n3a,n3b
                  do i2=n2a,n2b
                  do i1=n1a,n1b
-                     call ogf3d(ep,xy(i1,i2,i3,0),xy(i1,i2,i3,1),xy(i1,
-     & i2,i3,2),t, u0,v0,w0)
-                     uv(0)=u0
-                     uv(1)=v0
-                     uv(2)=w0
+                     call ogf3dfo(ep,fieldOption,xy(i1,i2,i3,0),xy(i1,
+     & i2,i3,1),xy(i1,i2,i3,2),t, u0,v0,w0)
+                     uv(ex)=u0
+                     uv(ey)=v0
+                     uv(ez)=w0
                      u(i1,i2,i3,et1)=uv(et1)
                      u(i1,i2,i3,et2)=uv(et2)
                  end do
@@ -2302,12 +2303,12 @@ c write(*,'("initializeBoundaryForcing slowStartInterval=",e10.2)') slowStartInt
                   do m=1,numberOfGhostPoints
                     js1=is1*m  ! shift to ghost point "m"
                     js2=is2*m
-                       call ogf2d(ep,xy(i1,i2,i3,0),xy(i1,i2,i3,1),t, 
-     & u0,v0,w0)
-                       call ogf2d(ep,xy(i1,i2-js2,i3,0),xy(i1,i2-js2,
-     & i3,1),t, um,vm,wm)
-                       call ogf2d(ep,xy(i1,i2+js2,i3,0),xy(i1,i2+js2,
-     & i3,1),t, up,vp,wp)
+                       call ogf2dfo(ep,fieldOption,xy(i1,i2,i3,0),xy(
+     & i1,i2,i3,1),t, u0,v0,w0)
+                       call ogf2dfo(ep,fieldOption,xy(i1,i2-js2,i3,0),
+     & xy(i1,i2-js2,i3,1),t, um,vm,wm)
+                       call ogf2dfo(ep,fieldOption,xy(i1,i2+js2,i3,0),
+     & xy(i1,i2+js2,i3,1),t, up,vp,wp)
                        g1=um-2.*u0+up
                        g2=vm-vp
                        g3=wm-wp
@@ -2315,10 +2316,10 @@ c write(*,'("initializeBoundaryForcing slowStartInterval=",e10.2)') slowStartInt
      & js2,i3,ex) +g1
                        u(i1,i2-js2,i3,ey)=u(i1,i2+js2,i3,ey)+g2
                        u(i1,i2-js2,i3,hz)=u(i1,i2+js2,i3,hz)+g3
-                       call ogf2d(ep,xy(i1-js1,i2,i3,0),xy(i1-js1,i2,
-     & i3,1),t, um,vm,wm)
-                       call ogf2d(ep,xy(i1+js1,i2,i3,0),xy(i1+js1,i2,
-     & i3,1),t, up,vp,wp)
+                       call ogf2dfo(ep,fieldOption,xy(i1-js1,i2,i3,0),
+     & xy(i1-js1,i2,i3,1),t, um,vm,wm)
+                       call ogf2dfo(ep,fieldOption,xy(i1+js1,i2,i3,0),
+     & xy(i1+js1,i2,i3,1),t, up,vp,wp)
                        g1=um-up
                        g2=vm-2.*v0+vp
                        g3=wm-wp
@@ -2584,10 +2585,10 @@ c write(*,'("initializeBoundaryForcing slowStartInterval=",e10.2)') slowStartInt
      & ey))
                      aDotUp=(a11*u(i1,i2+js2,i3,ex)+a12*u(i1,i2+js2,i3,
      & ey))
-                       call ogf2d(ep,xy(i1,i2-js2,i3,0),xy(i1,i2-js2,
-     & i3,1),t, um,vm,wm)
-                       call ogf2d(ep,xy(i1,i2+js2,i3,0),xy(i1,i2+js2,
-     & i3,1),t, up,vp,wp)
+                       call ogf2dfo(ep,fieldOption,xy(i1,i2-js2,i3,0),
+     & xy(i1,i2-js2,i3,1),t, um,vm,wm)
+                       call ogf2dfo(ep,fieldOption,xy(i1,i2+js2,i3,0),
+     & xy(i1,i2+js2,i3,1),t, up,vp,wp)
                        aDotUp=aDotUp - ( a11*up + a12*vp )
                        aDotUm=aDotUm - ( a11*um + a12*vm )
                        g2a=wm-wp
@@ -2609,10 +2610,10 @@ c write(*,'("initializeBoundaryForcing slowStartInterval=",e10.2)') slowStartInt
      & ey))
                      aDotUp=(a11*u(i1+js1,i2,i3,ex)+a12*u(i1+js1,i2,i3,
      & ey))
-                       call ogf2d(ep,xy(i1-js1,i2,i3,0),xy(i1-js1,i2,
-     & i3,1),t, um,vm,wm)
-                       call ogf2d(ep,xy(i1+js1,i2,i3,0),xy(i1+js1,i2,
-     & i3,1),t, up,vp,wp)
+                       call ogf2dfo(ep,fieldOption,xy(i1-js1,i2,i3,0),
+     & xy(i1-js1,i2,i3,1),t, um,vm,wm)
+                       call ogf2dfo(ep,fieldOption,xy(i1+js1,i2,i3,0),
+     & xy(i1+js1,i2,i3,1),t, up,vp,wp)
                        aDotUp=aDotUp - ( a11*up + a12*vp )
                        aDotUm=aDotUm - ( a11*um + a12*vm )
                        g2a=wm-wp
@@ -2879,7 +2880,7 @@ c write(*,'("initializeBoundaryForcing slowStartInterval=",e10.2)') slowStartInt
                 ! *
                 ! *      if( edgeDirection.ne.0 )then
                 ! *        #If "none" == "twilightZone"
-                ! *          OGF3D(i1-js1,i2,i3,t,g1,g2,g3)
+                ! *          OGF3DFO(i1-js1,i2,i3,t,g1,g2,g3)
                 ! *        #End
                 ! *        u(i1-js1,i2,i3,ex)=g1
                 ! *        u(i1-js1,i2,i3,ey)=g2
@@ -2888,7 +2889,7 @@ c write(*,'("initializeBoundaryForcing slowStartInterval=",e10.2)') slowStartInt
                 ! *
                 ! *      if( edgeDirection.ne.1 )then
                 ! *        #If "none" == "twilightZone"
-                ! *          OGF3D(i1,i2-js2,i3,t,g1,g2,g3)
+                ! *          OGF3DFO(i1,i2-js2,i3,t,g1,g2,g3)
                 ! *        #End
                 ! *        u(i1,i2-js2,i3,ex)=g1
                 ! *        u(i1,i2-js2,i3,ey)=g2
@@ -2897,7 +2898,7 @@ c write(*,'("initializeBoundaryForcing slowStartInterval=",e10.2)') slowStartInt
                 ! *
                 ! *      if( edgeDirection.ne.2 )then
                 ! *        #If "none" == "twilightZone"
-                ! *          OGF3D(i1,i2,i3-js3,t,g1,g2,g3)
+                ! *          OGF3DFO(i1,i2,i3-js3,t,g1,g2,g3)
                 ! *        #End
                 ! *        u(i1,i2,i3-js3,ex)=g1
                 ! *        u(i1,i2,i3-js3,ey)=g2
@@ -3022,7 +3023,7 @@ c write(*,'("initializeBoundaryForcing slowStartInterval=",e10.2)') slowStartInt
                  ! *     do i1=n1a,n1b
                  ! * 
                  ! *      #If "none" == "twilightZone"
-                 ! *        OGF3D(i1-js1,i2-js2,i3-js3,t, g1,g2,g3)
+                 ! *        OGF3DFO(i1-js1,i2-js2,i3-js3,t, g1,g2,g3)
                  ! *      #End
                  ! *      u(i1-js1,i2-js2,i3-js3,ex)=g1
                  ! *      u(i1-js1,i2-js2,i3-js3,ey)=g2
@@ -3099,7 +3100,7 @@ c write(*,'("initializeBoundaryForcing slowStartInterval=",e10.2)') slowStartInt
               ! *      js3=is3*m3
               ! *
               ! *      #If "none" == "twilightZone" 
-              ! *        OGF3D(i1-js1,i2-js2,i3-js3,t, g1,g2,g3)
+              ! *        OGF3DFO(i1-js1,i2-js2,i3-js3,t, g1,g2,g3)
               ! *      #End
               ! *      u(i1-js1,i2-js2,i3-js3,ex)=g1
               ! *      u(i1-js1,i2-js2,i3-js3,ey)=g2
@@ -3204,13 +3205,13 @@ c write(*,'("initializeBoundaryForcing slowStartInterval=",e10.2)') slowStartInt
                      do i3=n3a,n3b
                      do i2=n2a,n2b
                      do i1=n1a,n1b
-                         call ogf3d(ep,xy(i1,i2,i3,0),xy(i1,i2,i3,1),
-     & xy(i1,i2,i3,2),t,u0,v0,w0)
+                          call ogf3dfo(ep,fieldOption,xy(i1,i2,i3,0),
+     & xy(i1,i2,i3,1),xy(i1,i2,i3,2),t,u0,v0,w0)
                       if( edgeDirection.ne.0 )then
-                           call ogf3d(ep,xy(i1-js1,i2,i3,0),xy(i1-js1,
-     & i2,i3,1),xy(i1-js1,i2,i3,2),t,um,vm,wm)
-                           call ogf3d(ep,xy(i1+js1,i2,i3,0),xy(i1+js1,
-     & i2,i3,1),xy(i1+js1,i2,i3,2),t,up,vp,wp)
+                            call ogf3dfo(ep,fieldOption,xy(i1-js1,i2,
+     & i3,0),xy(i1-js1,i2,i3,1),xy(i1-js1,i2,i3,2),t,um,vm,wm)
+                            call ogf3dfo(ep,fieldOption,xy(i1+js1,i2,
+     & i3,0),xy(i1+js1,i2,i3,1),xy(i1+js1,i2,i3,2),t,up,vp,wp)
                           g1=um-up
                           g2=vm-2.*v0+vp
                           g3=wm-2.*w0+wp
@@ -3222,10 +3223,10 @@ c write(*,'("initializeBoundaryForcing slowStartInterval=",e10.2)') slowStartInt
      & i2,i3,ez) +g3
                       end if
                       if( edgeDirection.ne.1 )then
-                           call ogf3d(ep,xy(i1,i2-js2,i3,0),xy(i1,i2-
-     & js2,i3,1),xy(i1,i2-js2,i3,2),t,um,vm,wm)
-                           call ogf3d(ep,xy(i1,i2+js2,i3,0),xy(i1,i2+
-     & js2,i3,1),xy(i1,i2+js2,i3,2),t,up,vp,wp)
+                            call ogf3dfo(ep,fieldOption,xy(i1,i2-js2,
+     & i3,0),xy(i1,i2-js2,i3,1),xy(i1,i2-js2,i3,2),t,um,vm,wm)
+                            call ogf3dfo(ep,fieldOption,xy(i1,i2+js2,
+     & i3,0),xy(i1,i2+js2,i3,1),xy(i1,i2+js2,i3,2),t,up,vp,wp)
                           g1=um-2.*u0+up
                           g2=vm-vp
                           g3=wm-2.*w0+wp
@@ -3237,10 +3238,10 @@ c write(*,'("initializeBoundaryForcing slowStartInterval=",e10.2)') slowStartInt
      & js2,i3,ez) +g3
                       end if
                       if( edgeDirection.ne.2 )then
-                           call ogf3d(ep,xy(i1,i2,i3-js3,0),xy(i1,i2,
-     & i3-js3,1),xy(i1,i2,i3-js3,2),t,um,vm,wm)
-                           call ogf3d(ep,xy(i1,i2,i3+js3,0),xy(i1,i2,
-     & i3+js3,1),xy(i1,i2,i3+js3,2),t,up,vp,wp)
+                            call ogf3dfo(ep,fieldOption,xy(i1,i2,i3-
+     & js3,0),xy(i1,i2,i3-js3,1),xy(i1,i2,i3-js3,2),t,um,vm,wm)
+                            call ogf3dfo(ep,fieldOption,xy(i1,i2,i3+
+     & js3,0),xy(i1,i2,i3+js3,1),xy(i1,i2,i3+js3,2),t,up,vp,wp)
                           g1=um-2.*u0+up
                           g2=vm-2.*v0+vp
                           g3=wm-wp
@@ -3263,7 +3264,7 @@ c write(*,'("initializeBoundaryForcing slowStartInterval=",e10.2)') slowStartInt
                 ! *
                 ! *      if( edgeDirection.ne.0 )then
                 ! *        #If "twilightZone" == "twilightZone"
-                ! *          OGF3D(i1-js1,i2,i3,t,g1,g2,g3)
+                ! *          OGF3DFO(i1-js1,i2,i3,t,g1,g2,g3)
                 ! *        #End
                 ! *        u(i1-js1,i2,i3,ex)=g1
                 ! *        u(i1-js1,i2,i3,ey)=g2
@@ -3272,7 +3273,7 @@ c write(*,'("initializeBoundaryForcing slowStartInterval=",e10.2)') slowStartInt
                 ! *
                 ! *      if( edgeDirection.ne.1 )then
                 ! *        #If "twilightZone" == "twilightZone"
-                ! *          OGF3D(i1,i2-js2,i3,t,g1,g2,g3)
+                ! *          OGF3DFO(i1,i2-js2,i3,t,g1,g2,g3)
                 ! *        #End
                 ! *        u(i1,i2-js2,i3,ex)=g1
                 ! *        u(i1,i2-js2,i3,ey)=g2
@@ -3281,7 +3282,7 @@ c write(*,'("initializeBoundaryForcing slowStartInterval=",e10.2)') slowStartInt
                 ! *
                 ! *      if( edgeDirection.ne.2 )then
                 ! *        #If "twilightZone" == "twilightZone"
-                ! *          OGF3D(i1,i2,i3-js3,t,g1,g2,g3)
+                ! *          OGF3DFO(i1,i2,i3-js3,t,g1,g2,g3)
                 ! *        #End
                 ! *        u(i1,i2,i3-js3,ex)=g1
                 ! *        u(i1,i2,i3-js3,ey)=g2
@@ -3388,12 +3389,14 @@ c write(*,'("initializeBoundaryForcing slowStartInterval=",e10.2)') slowStartInt
                      do i3=n3a,n3b
                      do i2=n2a,n2b
                      do i1=n1a,n1b
-                         call ogf3d(ep,xy(i1,i2,i3,0),xy(i1,i2,i3,1),
-     & xy(i1,i2,i3,2),t,u0,v0,w0)
-                         call ogf3d(ep,xy(i1-js1,i2-js2,i3-js3,0),xy(
-     & i1-js1,i2-js2,i3-js3,1),xy(i1-js1,i2-js2,i3-js3,2),t,um,vm,wm)
-                         call ogf3d(ep,xy(i1+js1,i2+js2,i3+js3,0),xy(
-     & i1+js1,i2+js2,i3+js3,1),xy(i1+js1,i2+js2,i3+js3,2),t,up,vp,wp)
+                          call ogf3dfo(ep,fieldOption,xy(i1,i2,i3,0),
+     & xy(i1,i2,i3,1),xy(i1,i2,i3,2),t,u0,v0,w0)
+                          call ogf3dfo(ep,fieldOption,xy(i1-js1,i2-js2,
+     & i3-js3,0),xy(i1-js1,i2-js2,i3-js3,1),xy(i1-js1,i2-js2,i3-js3,2)
+     & ,t,um,vm,wm)
+                          call ogf3dfo(ep,fieldOption,xy(i1+js1,i2+js2,
+     & i3+js3,0),xy(i1+js1,i2+js2,i3+js3,1),xy(i1+js1,i2+js2,i3+js3,2)
+     & ,t,up,vp,wp)
                         g1=um-2.*u0+up
                         g2=vm-2.*v0+vp
                         g3=wm-2.*w0+wp
@@ -3415,7 +3418,7 @@ c write(*,'("initializeBoundaryForcing slowStartInterval=",e10.2)') slowStartInt
                  ! *     do i1=n1a,n1b
                  ! * 
                  ! *      #If "twilightZone" == "twilightZone"
-                 ! *        OGF3D(i1-js1,i2-js2,i3-js3,t, g1,g2,g3)
+                 ! *        OGF3DFO(i1-js1,i2-js2,i3-js3,t, g1,g2,g3)
                  ! *      #End
                  ! *      u(i1-js1,i2-js2,i3-js3,ex)=g1
                  ! *      u(i1-js1,i2-js2,i3-js3,ey)=g2
@@ -3470,12 +3473,14 @@ c write(*,'("initializeBoundaryForcing slowStartInterval=",e10.2)') slowStartInt
                     dra=dr(0)*js1
                     dsa=dr(1)*js2
                     dta=dr(2)*js3
-                       call ogf3d(ep,xy(i1,i2,i3,0),xy(i1,i2,i3,1),xy(
-     & i1,i2,i3,2),t,u0,v0,w0)
-                       call ogf3d(ep,xy(i1-js1,i2-js2,i3-js3,0),xy(i1-
-     & js1,i2-js2,i3-js3,1),xy(i1-js1,i2-js2,i3-js3,2),t,um,vm,wm)
-                       call ogf3d(ep,xy(i1+js1,i2+js2,i3+js3,0),xy(i1+
-     & js1,i2+js2,i3+js3,1),xy(i1+js1,i2+js2,i3+js3,2),t,up,vp,wp)
+                        call ogf3dfo(ep,fieldOption,xy(i1,i2,i3,0),xy(
+     & i1,i2,i3,1),xy(i1,i2,i3,2),t,u0,v0,w0)
+                        call ogf3dfo(ep,fieldOption,xy(i1-js1,i2-js2,
+     & i3-js3,0),xy(i1-js1,i2-js2,i3-js3,1),xy(i1-js1,i2-js2,i3-js3,2)
+     & ,t,um,vm,wm)
+                        call ogf3dfo(ep,fieldOption,xy(i1+js1,i2+js2,
+     & i3+js3,0),xy(i1+js1,i2+js2,i3+js3,1),xy(i1+js1,i2+js2,i3+js3,2)
+     & ,t,up,vp,wp)
                       g1=um-2.*u0+up
                       g2=vm-2.*v0+vp
                       g3=wm-2.*w0+wp
@@ -3501,7 +3506,7 @@ c write(*,'("initializeBoundaryForcing slowStartInterval=",e10.2)') slowStartInt
               ! *      js3=is3*m3
               ! *
               ! *      #If "twilightZone" == "twilightZone" 
-              ! *        OGF3D(i1-js1,i2-js2,i3-js3,t, g1,g2,g3)
+              ! *        OGF3DFO(i1-js1,i2-js2,i3-js3,t, g1,g2,g3)
               ! *      #End
               ! *      u(i1-js1,i2-js2,i3-js3,ex)=g1
               ! *      u(i1-js1,i2-js2,i3-js3,ey)=g2
@@ -3743,7 +3748,7 @@ c write(*,'("initializeBoundaryForcing slowStartInterval=",e10.2)') slowStartInt
                 ! * 
                 ! *       if( edgeDirection.ne.0 )then
                 ! *         #If "none" == "twilightZone"
-                ! *           OGF3D(i1-js1,i2,i3,t,g1,g2,g3)
+                ! *           OGF3DFO(i1-js1,i2,i3,t,g1,g2,g3)
                 ! *         #End
                 ! *         u(i1-js1,i2,i3,ex)=g1
                 ! *         u(i1-js1,i2,i3,ey)=g2
@@ -3752,7 +3757,7 @@ c write(*,'("initializeBoundaryForcing slowStartInterval=",e10.2)') slowStartInt
                 ! * 
                 ! *       if( edgeDirection.ne.1 )then
                 ! *         #If "none" == "twilightZone"
-                ! *           OGF3D(i1,i2-js2,i3,t,g1,g2,g3)
+                ! *           OGF3DFO(i1,i2-js2,i3,t,g1,g2,g3)
                 ! *         #End
                 ! *         u(i1,i2-js2,i3,ex)=g1
                 ! *         u(i1,i2-js2,i3,ey)=g2
@@ -3761,7 +3766,7 @@ c write(*,'("initializeBoundaryForcing slowStartInterval=",e10.2)') slowStartInt
                 ! * 
                 ! *       if( edgeDirection.ne.2 )then
                 ! *         #If "none" == "twilightZone"
-                ! *           OGF3D(i1,i2,i3-js3,t,g1,g2,g3)
+                ! *           OGF3DFO(i1,i2,i3-js3,t,g1,g2,g3)
                 ! *         #End
                 ! *         u(i1,i2,i3-js3,ex)=g1
                 ! *         u(i1,i2,i3-js3,ey)=g2
@@ -4856,7 +4861,7 @@ c write(*,'("initializeBoundaryForcing slowStartInterval=",e10.2)') slowStartInt
                  ! *     do i1=n1a,n1b
                  ! *   
                  ! *       #If "none" == "twilightZone"
-                 ! *         OGF3D(i1-js1,i2-js2,i3-js3,t, g1,g2,g3)
+                 ! *         OGF3DFO(i1-js1,i2-js2,i3-js3,t, g1,g2,g3)
                  ! *       #End
                  ! *       u(i1-js1,i2-js2,i3-js3,ex)=g1
                  ! *       u(i1-js1,i2-js2,i3-js3,ey)=g2
@@ -4934,7 +4939,7 @@ c write(*,'("initializeBoundaryForcing slowStartInterval=",e10.2)') slowStartInt
               ! *      js3=is3*m3
               ! *
               ! *      #If "none" == "twilightZone" 
-              ! *        OGF3D(i1-js1,i2-js2,i3-js3,t, g1,g2,g3)
+              ! *        OGF3DFO(i1-js1,i2-js2,i3-js3,t, g1,g2,g3)
               ! *      #End
               ! *      u(i1-js1,i2-js2,i3-js3,ex)=g1
               ! *      u(i1-js1,i2-js2,i3-js3,ey)=g2
@@ -5138,14 +5143,14 @@ c write(*,'("initializeBoundaryForcing slowStartInterval=",e10.2)') slowStartInt
      & ey)+a23*u(i1,i2,i3,ez) )-( a21*u(i1+is1,i2+is2,i3+is3,ex)+a22*
      & u(i1+is1,i2+is2,i3+is3,ey)+a23*u(i1+is1,i2+is2,i3+is3,ez))
                        a3DotU=0.
-                          call ogf3d(ep,xy(i1,i2,i3,0),xy(i1,i2,i3,1),
-     & xy(i1,i2,i3,2),t,uv0(0),uv0(1),uv0(2))
-                          call ogf3d(ep,xy(i1-is1,i2-is2,i3-is3,0),xy(
-     & i1-is1,i2-is2,i3-is3,1),xy(i1-is1,i2-is2,i3-is3,2),t,uvm(0),
-     & uvm(1),uvm(2))
-                          call ogf3d(ep,xy(i1+is1,i2+is2,i3+is3,0),xy(
-     & i1+is1,i2+is2,i3+is3,1),xy(i1+is1,i2+is2,i3+is3,2),t,uvp(0),
-     & uvp(1),uvp(2))
+                           call ogf3dfo(ep,fieldOption,xy(i1,i2,i3,0),
+     & xy(i1,i2,i3,1),xy(i1,i2,i3,2),t,uv0(0),uv0(1),uv0(2))
+                           call ogf3dfo(ep,fieldOption,xy(i1-is1,i2-
+     & is2,i3-is3,0),xy(i1-is1,i2-is2,i3-is3,1),xy(i1-is1,i2-is2,i3-
+     & is3,2),t,uvm(0),uvm(1),uvm(2))
+                           call ogf3dfo(ep,fieldOption,xy(i1+is1,i2+
+     & is2,i3+is3,0),xy(i1+is1,i2+is2,i3+is3,1),xy(i1+is1,i2+is2,i3+
+     & is3,2),t,uvp(0),uvp(1),uvp(2))
                          a1DotU=a11*uvm(0)+a12*uvm(1)+a13*uvm(2)
                          a3DotU=a31*uvm(0)+a32*uvm(1)+a33*uvm(2)
                          a2DotU=a2DotU + 2.*( a21*(uvm(0)-uv0(0))+a22*(
@@ -5166,12 +5171,12 @@ c write(*,'("initializeBoundaryForcing slowStartInterval=",e10.2)') slowStartInt
      & u(i1+js1,i2+js2,i3+js3,ey)+a13*u(i1+js1,i2+js2,i3+js3,ez))
                        a2DotU=0.
                        a3DotU=0.
-                          call ogf3d(ep,xy(i1-js1,i2-js2,i3-js3,0),xy(
-     & i1-js1,i2-js2,i3-js3,1),xy(i1-js1,i2-js2,i3-js3,2),t,uvm(0),
-     & uvm(1),uvm(2))
-                          call ogf3d(ep,xy(i1+js1,i2+js2,i3+js3,0),xy(
-     & i1+js1,i2+js2,i3+js3,1),xy(i1+js1,i2+js2,i3+js3,2),t,uvp(0),
-     & uvp(1),uvp(2))
+                           call ogf3dfo(ep,fieldOption,xy(i1-js1,i2-
+     & js2,i3-js3,0),xy(i1-js1,i2-js2,i3-js3,1),xy(i1-js1,i2-js2,i3-
+     & js3,2),t,uvm(0),uvm(1),uvm(2))
+                           call ogf3dfo(ep,fieldOption,xy(i1+js1,i2+
+     & js2,i3+js3,0),xy(i1+js1,i2+js2,i3+js3,1),xy(i1+js1,i2+js2,i3+
+     & js3,2),t,uvp(0),uvp(1),uvp(2))
                          a2DotU=a21*uvm(0)+a22*uvm(1)+a23*uvm(2)
                          a3DotU=a31*uvm(0)+a32*uvm(1)+a33*uvm(2)
                          a1DotU=a1DotU + 2.*( a11*(uvm(0)-uv0(0))+a12*(
@@ -5190,14 +5195,14 @@ c write(*,'("initializeBoundaryForcing slowStartInterval=",e10.2)') slowStartInt
                          write(*,'(/," bce2: extended:(i1,i2,i3)=",3i5,
      & " is=",3i2," js=",3i2)') i1,i2,i3,is1,is2,is3,js1,js2,js3
                          ! '
-                          call ogf3d(ep,xy(i1,i2,i3,0),xy(i1,i2,i3,1),
-     & xy(i1,i2,i3,2),t,uv0(0),uv0(1),uv0(2))
-                          call ogf3d(ep,xy(i1-is1,i2-is2,i3-is3,0),xy(
-     & i1-is1,i2-is2,i3-is3,1),xy(i1-is1,i2-is2,i3-is3,2),t,uvm(0),
-     & uvm(1),uvm(2))
-                          call ogf3d(ep,xy(i1+is1,i2+is2,i3+is3,0),xy(
-     & i1+is1,i2+is2,i3+is3,1),xy(i1+is1,i2+is2,i3+is3,2),t,uvp(0),
-     & uvp(1),uvp(2))
+                           call ogf3dfo(ep,fieldOption,xy(i1,i2,i3,0),
+     & xy(i1,i2,i3,1),xy(i1,i2,i3,2),t,uv0(0),uv0(1),uv0(2))
+                           call ogf3dfo(ep,fieldOption,xy(i1-is1,i2-
+     & is2,i3-is3,0),xy(i1-is1,i2-is2,i3-is3,1),xy(i1-is1,i2-is2,i3-
+     & is3,2),t,uvm(0),uvm(1),uvm(2))
+                           call ogf3dfo(ep,fieldOption,xy(i1+is1,i2+
+     & is2,i3+is3,0),xy(i1+is1,i2+is2,i3+is3,1),xy(i1+is1,i2+is2,i3+
+     & is3,2),t,uvp(0),uvp(1),uvp(2))
                          write(*,'(" bce2: extended: (i1,i2,i3)=",3i4,
      & " err(-1,0)",6e9.1)') i1,i2,i3,u(i1-  is1,i2-  is2,i3-  is3,ex)
      & -uvm(0),u(i1-  is1,i2-  is2,i3-  is3,ey)-uvm(1),u(i1-  is1,i2- 
@@ -5208,12 +5213,12 @@ c write(*,'("initializeBoundaryForcing slowStartInterval=",e10.2)') slowStartInt
      & ex),u(i1-  is1,i2-  is2,i3-  is3,ey),u(i1-  is1,i2-  is2,i3-  
      & is3,ez)
                          ! '
-                          call ogf3d(ep,xy(i1-js1,i2-js2,i3-js3,0),xy(
-     & i1-js1,i2-js2,i3-js3,1),xy(i1-js1,i2-js2,i3-js3,2),t,uvm(0),
-     & uvm(1),uvm(2))
-                          call ogf3d(ep,xy(i1+js1,i2+js2,i3+js3,0),xy(
-     & i1+js1,i2+js2,i3+js3,1),xy(i1+js1,i2+js2,i3+js3,2),t,uvp(0),
-     & uvp(1),uvp(2))
+                           call ogf3dfo(ep,fieldOption,xy(i1-js1,i2-
+     & js2,i3-js3,0),xy(i1-js1,i2-js2,i3-js3,1),xy(i1-js1,i2-js2,i3-
+     & js3,2),t,uvm(0),uvm(1),uvm(2))
+                           call ogf3dfo(ep,fieldOption,xy(i1+js1,i2+
+     & js2,i3+js3,0),xy(i1+js1,i2+js2,i3+js3,1),xy(i1+js1,i2+js2,i3+
+     & js3,2),t,uvp(0),uvp(1),uvp(2))
                          write(*,'(" bce2: extended: (i1,i2,i3)=",3i4,
      & " err(0,-1)",6e9.1)') i1,i2,i3,u(i1-  js1,i2-  js2,i3-  js3,ex)
      & -uvm(0),u(i1-  js1,i2-  js2,i3-  js3,ey)-uvm(1),u(i1-  js1,i2- 
@@ -5225,16 +5230,16 @@ c write(*,'("initializeBoundaryForcing slowStartInterval=",e10.2)') slowStartInt
      & js3,ez)
                         end if
                          ! *** for now -- set solution to be exact ---
-                         !  OGF3D(i1-is1,i2-is2,i3-is3,t, uvm(0),uvm(1),uvm(2))
-                         !  OGF3D(i1-2*is1,i2-2*is2,i3-2*is3,t, uvm2(0),uvm2(1),uvm2(2))
+                         !  OGF3DFO(i1-is1,i2-is2,i3-is3,t, uvm(0),uvm(1),uvm(2))
+                         !  OGF3DFO(i1-2*is1,i2-2*is2,i3-2*is3,t, uvm2(0),uvm2(1),uvm2(2))
                          !  u(i1-  is1,i2-  is2,i3-  is3,ex)=uvm(0)
                          !  u(i1-  is1,i2-  is2,i3-  is3,ey)=uvm(1)
                          !  u(i1-  is1,i2-  is2,i3-  is3,ez)=uvm(2)
                          !  u(i1-2*is1,i2-2*is2,i3-2*is3,ex)=uvm2(0)
                          !  u(i1-2*is1,i2-2*is2,i3-2*is3,ey)=uvm2(1)
                          !  u(i1-2*is1,i2-2*is2,i3-2*is3,ez)=uvm2(2)
-                         !  OGF3D(i1-js1,i2-js2,i3-js3,t, uvm(0),uvm(1),uvm(2))
-                         !  OGF3D(i1-2*js1,i2-2*js2,i3-2*js3,t, uvm2(0),uvm2(1),uvm2(2))
+                         !  OGF3DFO(i1-js1,i2-js2,i3-js3,t, uvm(0),uvm(1),uvm(2))
+                         !  OGF3DFO(i1-2*js1,i2-2*js2,i3-2*js3,t, uvm2(0),uvm2(1),uvm2(2))
                          !  u(i1-  js1,i2-  js2,i3-  js3,ex)=uvm(0)
                          !  u(i1-  js1,i2-  js2,i3-  js3,ey)=uvm(1)
                          !  u(i1-  js1,i2-  js2,i3-  js3,ez)=uvm(2)
@@ -5253,7 +5258,7 @@ c write(*,'("initializeBoundaryForcing slowStartInterval=",e10.2)') slowStartInt
                 ! * 
                 ! *       if( edgeDirection.ne.0 )then
                 ! *         #If "twilightZone" == "twilightZone"
-                ! *           OGF3D(i1-js1,i2,i3,t,g1,g2,g3)
+                ! *           OGF3DFO(i1-js1,i2,i3,t,g1,g2,g3)
                 ! *         #End
                 ! *         u(i1-js1,i2,i3,ex)=g1
                 ! *         u(i1-js1,i2,i3,ey)=g2
@@ -5262,7 +5267,7 @@ c write(*,'("initializeBoundaryForcing slowStartInterval=",e10.2)') slowStartInt
                 ! * 
                 ! *       if( edgeDirection.ne.1 )then
                 ! *         #If "twilightZone" == "twilightZone"
-                ! *           OGF3D(i1,i2-js2,i3,t,g1,g2,g3)
+                ! *           OGF3DFO(i1,i2-js2,i3,t,g1,g2,g3)
                 ! *         #End
                 ! *         u(i1,i2-js2,i3,ex)=g1
                 ! *         u(i1,i2-js2,i3,ey)=g2
@@ -5271,7 +5276,7 @@ c write(*,'("initializeBoundaryForcing slowStartInterval=",e10.2)') slowStartInt
                 ! * 
                 ! *       if( edgeDirection.ne.2 )then
                 ! *         #If "twilightZone" == "twilightZone"
-                ! *           OGF3D(i1,i2,i3-js3,t,g1,g2,g3)
+                ! *           OGF3DFO(i1,i2,i3-js3,t,g1,g2,g3)
                 ! *         #End
                 ! *         u(i1,i2,i3-js3,ex)=g1
                 ! *         u(i1,i2,i3-js3,ey)=g2
@@ -6420,9 +6425,9 @@ c write(*,'("initializeBoundaryForcing slowStartInterval=",e10.2)') slowStartInt
      & a32*a2DotU-a12*a21*a3DotU+a12*a2DotU*a31-a1DotU*a31*a22+a1DotU*
      & a32*a21)/detnt
                       if( .true. .or. debug.gt.0 )then
-                         call ogf3d(ep,xy(i1-ms1,i2-ms2,i3-ms3,0),xy(
-     & i1-ms1,i2-ms2,i3-ms3,1),xy(i1-ms1,i2-ms2,i3-ms3,2),t,uvm(0),
-     & uvm(1),uvm(2))
+                          call ogf3dfo(ep,fieldOption,xy(i1-ms1,i2-ms2,
+     & i3-ms3,0),xy(i1-ms1,i2-ms2,i3-ms3,1),xy(i1-ms1,i2-ms2,i3-ms3,2)
+     & ,t,uvm(0),uvm(1),uvm(2))
                         if( debug.gt.0 )then
                           write(*,'(" corner-edge-2: ghost-pt=",3i4," 
      & ls=",3i3," error=",3e9.1)') i1-ms1,i2-ms2,i3-ms3,ls1,ls2,ls3,u(
@@ -6442,32 +6447,36 @@ c write(*,'("initializeBoundaryForcing slowStartInterval=",e10.2)') slowStartInt
                         write(*,'("  a3Dotu,true=",2e11.3," err=",
      & e10.2)') a3Dotu,(a31*uvm(0)+a32*uvm(1)+a33*uvm(2)),a3Dotu-(a31*
      & uvm(0)+a32*uvm(1)+a33*uvm(2))
-                        call ogf3d(ep,xy(i1-is1-js1,i2-is2-js2,i3-is3-
-     & js3,0),xy(i1-is1-js1,i2-is2-js2,i3-is3-js3,1),xy(i1-is1-js1,i2-
-     & is2-js2,i3-is3-js3,2),t,uvmm(0),uvmm(1),uvmm(2))
-                        call ogf3d(ep,xy(i1-js1,i2-js2,i3-js3,0),xy(i1-
-     & js1,i2-js2,i3-js3,1),xy(i1-js1,i2-js2,i3-js3,2),t,uvzm(0),uvzm(
-     & 1),uvzm(2))
-                        call ogf3d(ep,xy(i1+is1-js1,i2+is2-js2,i3+is3-
-     & js3,0),xy(i1+is1-js1,i2+is2-js2,i3+is3-js3,1),xy(i1+is1-js1,i2+
-     & is2-js2,i3+is3-js3,2),t,uvpm(0),uvpm(1),uvpm(2))
-                        call ogf3d(ep,xy(i1-is1,i2-is2,i3-is3,0),xy(i1-
-     & is1,i2-is2,i3-is3,1),xy(i1-is1,i2-is2,i3-is3,2),t,uvmz(0),uvmz(
-     & 1),uvmz(2))
-                        call ogf3d(ep,xy(i1,i2,i3,0),xy(i1,i2,i3,1),xy(
-     & i1,i2,i3,2),t,uvzz(0),uvzz(1),uvzz(2))
-                        call ogf3d(ep,xy(i1+is1,i2+is2,i3+is3,0),xy(i1+
-     & is1,i2+is2,i3+is3,1),xy(i1+is1,i2+is2,i3+is3,2),t,uvpz(0),uvpz(
-     & 1),uvpz(2))
-                        call ogf3d(ep,xy(i1-is1+js1,i2-is2+js2,i3-is3+
-     & js3,0),xy(i1-is1+js1,i2-is2+js2,i3-is3+js3,1),xy(i1-is1+js1,i2-
-     & is2+js2,i3-is3+js3,2),t,uvmp(0),uvmp(1),uvmp(2))
-                        call ogf3d(ep,xy(i1+js1,i2+js2,i3+js3,0),xy(i1+
-     & js1,i2+js2,i3+js3,1),xy(i1+js1,i2+js2,i3+js3,2),t,uvzp(0),uvzp(
-     & 1),uvzp(2))
-                        call ogf3d(ep,xy(i1+is1+js1,i2+is2+js2,i3+is3+
-     & js3,0),xy(i1+is1+js1,i2+is2+js2,i3+is3+js3,1),xy(i1+is1+js1,i2+
-     & is2+js2,i3+is3+js3,2),t,uvpp(0),uvpp(1),uvpp(2))
+                         call ogf3dfo(ep,fieldOption,xy(i1-is1-js1,i2-
+     & is2-js2,i3-is3-js3,0),xy(i1-is1-js1,i2-is2-js2,i3-is3-js3,1),
+     & xy(i1-is1-js1,i2-is2-js2,i3-is3-js3,2),t,uvmm(0),uvmm(1),uvmm(
+     & 2))
+                         call ogf3dfo(ep,fieldOption,xy(i1-js1,i2-js2,
+     & i3-js3,0),xy(i1-js1,i2-js2,i3-js3,1),xy(i1-js1,i2-js2,i3-js3,2)
+     & ,t,uvzm(0),uvzm(1),uvzm(2))
+                         call ogf3dfo(ep,fieldOption,xy(i1+is1-js1,i2+
+     & is2-js2,i3+is3-js3,0),xy(i1+is1-js1,i2+is2-js2,i3+is3-js3,1),
+     & xy(i1+is1-js1,i2+is2-js2,i3+is3-js3,2),t,uvpm(0),uvpm(1),uvpm(
+     & 2))
+                         call ogf3dfo(ep,fieldOption,xy(i1-is1,i2-is2,
+     & i3-is3,0),xy(i1-is1,i2-is2,i3-is3,1),xy(i1-is1,i2-is2,i3-is3,2)
+     & ,t,uvmz(0),uvmz(1),uvmz(2))
+                         call ogf3dfo(ep,fieldOption,xy(i1,i2,i3,0),xy(
+     & i1,i2,i3,1),xy(i1,i2,i3,2),t,uvzz(0),uvzz(1),uvzz(2))
+                         call ogf3dfo(ep,fieldOption,xy(i1+is1,i2+is2,
+     & i3+is3,0),xy(i1+is1,i2+is2,i3+is3,1),xy(i1+is1,i2+is2,i3+is3,2)
+     & ,t,uvpz(0),uvpz(1),uvpz(2))
+                         call ogf3dfo(ep,fieldOption,xy(i1-is1+js1,i2-
+     & is2+js2,i3-is3+js3,0),xy(i1-is1+js1,i2-is2+js2,i3-is3+js3,1),
+     & xy(i1-is1+js1,i2-is2+js2,i3-is3+js3,2),t,uvmp(0),uvmp(1),uvmp(
+     & 2))
+                         call ogf3dfo(ep,fieldOption,xy(i1+js1,i2+js2,
+     & i3+js3,0),xy(i1+js1,i2+js2,i3+js3,1),xy(i1+js1,i2+js2,i3+js3,2)
+     & ,t,uvzp(0),uvzp(1),uvzp(2))
+                         call ogf3dfo(ep,fieldOption,xy(i1+is1+js1,i2+
+     & is2+js2,i3+is3+js3,0),xy(i1+is1+js1,i2+is2+js2,i3+is3+js3,1),
+     & xy(i1+is1+js1,i2+is2+js2,i3+is3+js3,2),t,uvpp(0),uvpp(1),uvpp(
+     & 2))
                        ur0= ( uvpz(0)-uvmz(0) )/(2.*dra)
                        us0= ( uvzp(0)-uvzm(0) )/(2.*dsa)
                        urr0= ( uvpz(0)-2.*uvzz(0)+uvmz(0) )/(dra**2)
@@ -6553,7 +6562,7 @@ c write(*,'("initializeBoundaryForcing slowStartInterval=",e10.2)') slowStartInt
                  ! *     do i1=n1a,n1b
                  ! *   
                  ! *       #If "twilightZone" == "twilightZone"
-                 ! *         OGF3D(i1-js1,i2-js2,i3-js3,t, g1,g2,g3)
+                 ! *         OGF3DFO(i1-js1,i2-js2,i3-js3,t, g1,g2,g3)
                  ! *       #End
                  ! *       u(i1-js1,i2-js2,i3-js3,ex)=g1
                  ! *       u(i1-js1,i2-js2,i3-js3,ey)=g2
@@ -6609,12 +6618,14 @@ c write(*,'("initializeBoundaryForcing slowStartInterval=",e10.2)') slowStartInt
                     dra=dr(0)*js1
                     dsa=dr(1)*js2
                     dta=dr(2)*js3
-                       call ogf3d(ep,xy(i1,i2,i3,0),xy(i1,i2,i3,1),xy(
-     & i1,i2,i3,2),t,u0,v0,w0)
-                       call ogf3d(ep,xy(i1-js1,i2-js2,i3-js3,0),xy(i1-
-     & js1,i2-js2,i3-js3,1),xy(i1-js1,i2-js2,i3-js3,2),t,um,vm,wm)
-                       call ogf3d(ep,xy(i1+js1,i2+js2,i3+js3,0),xy(i1+
-     & js1,i2+js2,i3+js3,1),xy(i1+js1,i2+js2,i3+js3,2),t,up,vp,wp)
+                        call ogf3dfo(ep,fieldOption,xy(i1,i2,i3,0),xy(
+     & i1,i2,i3,1),xy(i1,i2,i3,2),t,u0,v0,w0)
+                        call ogf3dfo(ep,fieldOption,xy(i1-js1,i2-js2,
+     & i3-js3,0),xy(i1-js1,i2-js2,i3-js3,1),xy(i1-js1,i2-js2,i3-js3,2)
+     & ,t,um,vm,wm)
+                        call ogf3dfo(ep,fieldOption,xy(i1+js1,i2+js2,
+     & i3+js3,0),xy(i1+js1,i2+js2,i3+js3,1),xy(i1+js1,i2+js2,i3+js3,2)
+     & ,t,up,vp,wp)
                       g1=um-2.*u0+up
                       g2=vm-2.*v0+vp
                       g3=wm-2.*w0+wp
@@ -6640,7 +6651,7 @@ c write(*,'("initializeBoundaryForcing slowStartInterval=",e10.2)') slowStartInt
               ! *      js3=is3*m3
               ! *
               ! *      #If "twilightZone" == "twilightZone" 
-              ! *        OGF3D(i1-js1,i2-js2,i3-js3,t, g1,g2,g3)
+              ! *        OGF3DFO(i1-js1,i2-js2,i3-js3,t, g1,g2,g3)
               ! *      #End
               ! *      u(i1-js1,i2-js2,i3-js3,ex)=g1
               ! *      u(i1-js1,i2-js2,i3-js3,ey)=g2

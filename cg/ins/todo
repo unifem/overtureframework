@@ -1,0 +1,20 @@
+*****************************************
+************** cg/ins *******************
+*****************************************
+
+--------- Things to do: -----------
+
+2013/01/12 - fix advect passive scalar 
+
+2012/11/26 - ins/src/addForcing.C -- line 1004 : fix TZ forcing for parallel (AFS)
+
+0801 : addForcing.bC, pressureEquation.C : useOpt version for TZ forcing for all cases, remove old way
+
+0801: Finish moving grids and visco-plastic model.
+
+0801: cgins : get parallel s.s. line solver working
+
+--------- Things done: ----------------
+
+0801 : pressureEquation.C : add axisymmetric case to assignPressureRHSOpt
+

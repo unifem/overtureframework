@@ -35,6 +35,10 @@ getExactSolution( real t, RealArray & u, RealArray & v, RealArray & a ) const
   {
     return getStandingWave( t,u,v,a );
   }
+  else if( exactSolutionOption=="eigenmode" )
+  {
+    getBeamEigenmode( t,u,v,a  );
+  }
   else if( exactSolutionOption=="beamPiston" )
   {
     getBeamPiston( t,u,v,a  );
@@ -160,6 +164,142 @@ getStandingWave( real t, RealArray & u, RealArray & v, RealArray & a ) const
   }
   return 0;
 }
+
+// =====================================================================================
+/// \brief Evaluate the eigemode solution.
+/// \param t (input) : assign values at this time.
+/// \param u,v (output) : displacement and velocity
+// =====================================================================================
+int BeamModel::
+getBeamEigenmode( real t, RealArray & u, RealArray & v, RealArray & a ) const
+{
+  if( u.getLength(0)==0 )
+    u.redim(2*numElem+2);
+  if( v.getLength(0)==0 )
+    v.redim(2*numElem+2);
+  if( a.getLength(0)==0 )
+    a.redim(2*numElem+2);
+
+  const int & eigenMode = dbase.get<int>("eigenMode");
+
+  const real & amplitude=dbase.get<real>("amplitude");
+  const real & waveNumber=dbase.get<real>("waveNumber");
+
+  const real & tension=dbase.get<real>("tension");
+
+  real beamLength=L;
+
+  // --- eigenvalues computed with cgDoc/moving/codes/beam/beamModes.maple ---
+
+  // --- here are the cases we know so far --
+  //
+  real lambda;
+  real c1,c2;
+  if( bcLeft==clamped && bcRight==clamped )
+  {
+    // BC: clamped + clamped:
+    //     cosh(lambda*L)*cos(lambda*L)=1 
+    if( eigenMode==1 )
+      lambda = 4.7300407448627040;
+    else if( eigenMode==2 )
+      lambda=7.8532046240958376;
+    else if( eigenMode==3 )
+      lambda = 1.0995607838001671e+01;
+    else
+    {
+      OV_ABORT("finish me");
+    }
+  
+    c1 = -sinh(lambda)+sin(lambda);
+    c2 =  cosh(lambda)-cos(lambda);
+  }
+  else if( bcLeft==clamped && bcRight==freeBC )
+  {
+    // BC: clamped + free:
+    //     cosh(lambda*L)*cos(lambda*L)=-1 
+
+    if( eigenMode==1 )
+      lambda = 1.8751040687119612;
+    else if( eigenMode==2 )
+      lambda=4.6940911329741746;
+    else if( eigenMode==3 )
+      lambda = 7.8547574382376126;
+    else
+    {
+      OV_ABORT("finish me");
+    }
+  
+    c1 = -sinh(lambda)-sin(lambda);
+    c2 =  cosh(lambda)+cos(lambda);
+  }
+  else if( bcLeft==clamped && bcRight==slideBC )
+  {
+    // BC: clamped + slide
+    //     sinh(lambda*L)*cos(lambda*L) + cosh()*sin() = 0
+
+    if( eigenMode==1 )
+      lambda = 2.3650203724313520;
+    else if( eigenMode==2 )
+      lambda=5.4978039190008355;
+    else if( eigenMode==3 )
+      lambda =8.6393798286997407;
+    else
+    {
+      OV_ABORT("finish me");
+    }
+  
+    c1 = -cosh(lambda)+cos(lambda);
+    c2 =  sinh(lambda)+sin(lambda);
+  }
+  else
+  {
+    OV_ABORT("finish me");
+  }
+
+  real cNorm = sqrt(c1*c1+c2*c2);
+  const real amp=.2;  // approximate amplitude
+  c1 *= amp/cNorm;
+  c2 *= amp/cNorm;
+
+  lambda = lambda/beamLength;  // scale by the beam length
+
+
+#define WE(x) ( c1*( cosh(lambda*x) - cos(lambda*x) ) + c2*( sinh(lambda*x) -sin(lambda*x) ) )
+#define WEx(x) ( lambda*( c1*( sinh(lambda*x) +sin(lambda*x) ) + c2*( cosh(lambda*x) -cos(lambda*x) ) ) )
+
+  const real rhosAs= density*thickness*breadth;
+  const real EI = elasticModulus*areaMomentOfInertia;
+  const real & T = dbase.get<real>("tension");
+  const real & K0 = dbase.get<real>("K0");
+  const real & Kt = dbase.get<real>("Kt");
+  const real & Kxxt = dbase.get<real>("Kxxt");
+
+  assert( EI>0. && T==0. && K0==0. && Kt==0. && Kxxt==0. );
+  
+  real w =  SQR(lambda)*sqrt( EI/rhosAs );
+
+  real cost = cos(w*t), sint=sin(w*t);
+
+  for (int i = 0; i <= numElem; ++i)
+  {
+    real xl = ( (real)i /numElem) *  beamLength;
+    real we = WE(xl);
+    real wex = WEx(xl);
+    
+    u(i*2)   = we*cost;     // w 
+    u(i*2+1) = wex*cost;    // w_x
+    
+    v(i*2)   = we*(-w*sint);    // w_t 
+    v(i*2+1) = wex*(-w*sint);   // w_tx 
+
+    a(i*2)   = we*(-w*w*cost);    // w_tt 
+    a(i*2+1) = wex*(-w*w*cost);   // w_ttx
+
+  }
+  return 0;
+}
+
+
 
 // =====================================================================================
 /// \brief Evaluate the FSi traveling wave solution
@@ -463,6 +603,7 @@ chooseExactSolution(CompositeGrid & cg, GenericGraphicsInterface & gi )
 				    "old traveling wave FSI-INS",
 				    "beam piston",
                                     "beam under pressure",
+                                    "eigenmode",
 				    ""};
   GUIState::addPrefix(exactSolutionOptions,"Exact solution:",cmd,maxCommands);
   int option  =(exactSolutionOption=="none"                ? 0 : 
@@ -472,6 +613,7 @@ chooseExactSolution(CompositeGrid & cg, GenericGraphicsInterface & gi )
                 exactSolutionOption=="oldTravelingWaveFsi" ? 4 :
                 exactSolutionOption=="beamPiston"          ? 5 : 
                 exactSolutionOption=="beamUnderPressure"   ? 6 : 
+                exactSolutionOption=="eigenmode"           ? 7 : 
                 0 );
   dialog.addOptionMenu("Exact solution:",cmd,exactSolutionOptions,option );
 
@@ -534,6 +676,19 @@ chooseExactSolution(CompositeGrid & cg, GenericGraphicsInterface & gi )
       {
 	exactSolutionOption="standingWave"; 
 	printF("Setting exactSolutionOption=[%s]\n",(const char*)exactSolutionOption);
+      }
+      else if( option=="eigenmode" )
+      {
+	exactSolutionOption="eigenmode";
+
+	if( !dbase.has_key("eigenMode") )
+	  dbase.put<int>("eigenMode")=1;
+
+	int & eigenMode = dbase.get<int>("eigenMode");
+	gi.inputString(answer,sPrintF("Enter the eigemode: 1,2,3,..."));
+	sScanF(answer,"%i",&eigenMode);
+	printF("Setting eigenMode=%i\n",eigenMode);
+
       }
       else if( option=="old traveling wave FSI-INS" )
       {

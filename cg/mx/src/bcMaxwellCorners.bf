@@ -28,7 +28,7 @@
      tau1DotU=(tau1*u(i1,i2,i3,ex)+tau2*u(i1,i2,i3,ey))/(tau1**2+tau2**2)
 
      #If #FORCING == "twilightZone"
-       call ogf2d(ep,xy(i1    ,i2    ,i3,0),xy(i1    ,i2    ,i3,1),t, u0,v0,w0)
+       call ogf2dfo(ep,fieldOption,xy(i1    ,i2    ,i3,0),xy(i1    ,i2    ,i3,1),t, u0,v0,w0)
        tau1DotU = tau1DotU - ( tau1*u0 + tau2*v0 )/(tau1**2+tau2**2)
      #Elif #FORCING == "none"
      #Elif #FORCING == "planeWaveBoundaryForcing"
@@ -71,9 +71,9 @@
 
    beginLoops()
      #If #FORCING == "twilightZone"
-       call ogf2d(ep,xy(i1    ,i2    ,i3,0),xy(i1    ,i2    ,i3,1),t, u0,v0,w0)
-       uv(0)=u0
-       uv(1)=v0
+       call ogf2dfo(ep,fieldOption,xy(i1    ,i2    ,i3,0),xy(i1    ,i2    ,i3,1),t, u0,v0,w0)
+       uv(ex)=u0
+       uv(ey)=v0
        u(i1,i2,i3,et1)=uv(et1)
      #Elif #FORCING == "none"
        u(i1,i2,i3,et1)=0.
@@ -81,12 +81,12 @@
        x0=xy(i1,i2,i3,0)
        y0=xy(i1,i2,i3,1)
        if( fieldOption.eq.0 )then
-         uv(0)=planeWave2Dex(x0,y0,t)
-         uv(1)=planeWave2Dey(x0,y0,t)
+         uv(ex)=planeWave2Dex(x0,y0,t)
+         uv(ey)=planeWave2Dey(x0,y0,t)
        else
         ! we are assigning time derivatives (sosup)
-         uv(0)=planeWave2Dext(x0,y0,t)
-         uv(1)=planeWave2Deyt(x0,y0,t)
+         uv(ex)=planeWave2Dext(x0,y0,t)
+         uv(ey)=planeWave2Deyt(x0,y0,t)
        end if
        u(i1,i2,i3,et1)=uv(et1)
      #Else
@@ -118,7 +118,7 @@
      tau2DotU=(tau21*u(i1,i2,i3,ex)+tau22*u(i1,i2,i3,ey)+tau23*u(i1,i2,i3,ez))/(tau21**2+tau22**2+tau23**2)
 
      #If #FORCING == "twilightZone"
-       call ogf3d(ep,xy(i1,i2,i3,0),xy(i1,i2,i3,1),xy(i1,i2,i3,2),t, u0,v0,w0)
+       call ogf3dfo(ep,fieldOption,xy(i1,i2,i3,0),xy(i1,i2,i3,1),xy(i1,i2,i3,2),t, u0,v0,w0)
        tau1DotU = tau1DotU - ( tau11*u0 + tau12*v0 + tau13*w0 )/(tau11**2+tau12**2+tau13**2)
        tau2DotU = tau2DotU - ( tau21*u0 + tau22*v0 + tau23*w0 )/(tau21**2+tau22**2+tau23**2)
      #Elif #FORCING == "none"
@@ -167,10 +167,10 @@
 
    beginLoops()
      #If #FORCING == "twilightZone"
-       call ogf3d(ep,xy(i1,i2,i3,0),xy(i1,i2,i3,1),xy(i1,i2,i3,2),t, u0,v0,w0)
-       uv(0)=u0
-       uv(1)=v0
-       uv(2)=w0
+       call ogf3dfo(ep,fieldOption,xy(i1,i2,i3,0),xy(i1,i2,i3,1),xy(i1,i2,i3,2),t, u0,v0,w0)
+       uv(ex)=u0
+       uv(ey)=v0
+       uv(ez)=w0
        u(i1,i2,i3,et1)=uv(et1)
        u(i1,i2,i3,et2)=uv(et2)
      #Elif #FORCING == "none"
@@ -181,14 +181,14 @@
        y0=xy(i1,i2,i3,1)
        z0=xy(i1,i2,i3,2)
        if( fieldOption.eq.0 )then
-         uv(0)=-planeWave3Dex(x0,y0,z0,t)
-         uv(1)=-planeWave3Dey(x0,y0,z0,t)
-         uv(2)=-planeWave3Dez(x0,y0,z0,t)
+         uv(ex)=-planeWave3Dex(x0,y0,z0,t)
+         uv(ey)=-planeWave3Dey(x0,y0,z0,t)
+         uv(ez)=-planeWave3Dez(x0,y0,z0,t)
        else
         ! we are assigning time derivatives (sosup)
-         uv(0)=-planeWave3Dext(x0,y0,z0,t)
-         uv(1)=-planeWave3Deyt(x0,y0,z0,t)
-         uv(2)=-planeWave3Dezt(x0,y0,z0,t)
+         uv(ex)=-planeWave3Dext(x0,y0,z0,t)
+         uv(ey)=-planeWave3Deyt(x0,y0,z0,t)
+         uv(ez)=-planeWave3Dezt(x0,y0,z0,t)
        end if
        u(i1,i2,i3,et1)=uv(et1)
        u(i1,i2,i3,et2)=uv(et2)
@@ -384,7 +384,7 @@
 
     ! check errors
     #If #FORCING == "twilightZone"
-      OGF2D(i1-is1,i2-is2,i3,t, uv0(0),uv0(1),uv0(2))
+      OGF2DFO(i1-is1,i2-is2,i3,t, uv0(0),uv0(1),uv0(2))
       if( debug.gt.0 ) write(*,'(" ghostValuesOutsideCorners2d: i1-is1,i2-is2=",2i4," ex,err,ey,err=",4e10.2)') i1-is1,i2-is2,\
                  u(i1-is1,i2-is2,i3,ex),u(i1-is1,i2-is2,i3,ex)-uv0(0),u(i1-is1,i2-is2,i3,ey),u(i1-is1,i2-is2,i3,ey)-uv0(1)    
       ! '
@@ -393,7 +393,7 @@
         u(i1-is1,i2-is2,i3,ey)=uv0(1)
       end if
 
-      OGF2D(i1-2*is1,i2-is2,i3,t, uv0(0),uv0(1),uv0(2))
+      OGF2DFO(i1-2*is1,i2-is2,i3,t, uv0(0),uv0(1),uv0(2))
       if( debug.gt.0 ) write(*,'(" ghostValuesOutsideCorners2d: i1-2*is1,i2-is2=",2i4," ex,err,ey,err=",4e10.2)') i1-2*is1,i2-is2,\
                  u(i1-2*is1,i2-is2,i3,ex),u(i1-2*is1,i2-is2,i3,ex)-uv0(0),u(i1-2*is1,i2-is2,i3,ey),u(i1-2*is1,i2-is2,i3,ey)-uv0(1)    
       ! '
@@ -402,7 +402,7 @@
         u(i1-2*is1,i2-is2,i3,ey)=uv0(1)
       end if
 
-      OGF2D(i1-is1,i2-2*is2,i3,t, uv0(0),uv0(1),uv0(2))
+      OGF2DFO(i1-is1,i2-2*is2,i3,t, uv0(0),uv0(1),uv0(2))
       if( debug.gt.0 ) write(*,'(" ghostValuesOutsideCorners2d: i1-is1,i2-2*is2=",2i4," ex,err,ey,err=",4e10.2)') i1-is1,i2-2*is2,\
                  u(i1-is1,i2-2*is2,i3,ex),u(i1-is1,i2-2*is2,i3,ex)-uv0(0),u(i1-is1,i2-2*is2,i3,ey),u(i1-is1,i2-2*is2,i3,ey)-uv0(1)    
       ! '
@@ -411,7 +411,7 @@
         u(i1-is1,i2-2*is2,i3,ey)=uv0(1)
       end if
 
-      OGF2D(i1-2*is1,i2-2*is2,i3,t, uv0(0),uv0(1),uv0(2))
+      OGF2DFO(i1-2*is1,i2-2*is2,i3,t, uv0(0),uv0(1),uv0(2))
       if( debug.gt.0 ) write(*,'(" ghostValuesOutsideCorners2d: i1-2*is1,i2-2*is2=",2i4," ex,err,ey,err=",4e10.2)') i1-2*is1,i2-2*is2,\
           u(i1-2*is1,i2-2*is2,i3,ex),u(i1-2*is1,i2-2*is2,i3,ex)-uv0(0),u(i1-2*is1,i2-2*is2,i3,ey),u(i1-2*is1,i2-2*is2,i3,ey)-uv0(1)    
       ! '
@@ -435,17 +435,17 @@
     urss=0. !  (from ur(0,s)=0 and us(r,0)=0)
 
     #If #FORCING == "twilightZone"
-      OGF2D(i1-1,i2-1,i3,t, uvmm(0),uvmm(1),uvmm(2))
-      OGF2D(i1  ,i2-1,i3,t, uvzm(0),uvzm(1),uvzm(2))
-      OGF2D(i1+1,i2-1,i3,t, uvpm(0),uvpm(1),uvpm(2))
+      OGF2DFO(i1-1,i2-1,i3,t, uvmm(0),uvmm(1),uvmm(2))
+      OGF2DFO(i1  ,i2-1,i3,t, uvzm(0),uvzm(1),uvzm(2))
+      OGF2DFO(i1+1,i2-1,i3,t, uvpm(0),uvpm(1),uvpm(2))
 
-      OGF2D(i1-1,i2    ,i3,t, uvmz(0),uvmz(1),uvmz(2))
-      OGF2D(i1  ,i2    ,i3,t, uvzz(0),uvzz(1),uvzz(2))
-      OGF2D(i1+1,i2    ,i3,t, uvpz(0),uvpz(1),uvpz(2))
+      OGF2DFO(i1-1,i2    ,i3,t, uvmz(0),uvmz(1),uvmz(2))
+      OGF2DFO(i1  ,i2    ,i3,t, uvzz(0),uvzz(1),uvzz(2))
+      OGF2DFO(i1+1,i2    ,i3,t, uvpz(0),uvpz(1),uvpz(2))
 
-      OGF2D(i1-1,i2+1,i3,t, uvmp(0),uvmp(1),uvmp(2))
-      OGF2D(i1  ,i2+1,i3,t, uvzp(0),uvzp(1),uvzp(2))
-      OGF2D(i1+1,i2+1,i3,t, uvpp(0),uvpp(1),uvpp(2))
+      OGF2DFO(i1-1,i2+1,i3,t, uvmp(0),uvmp(1),uvmp(2))
+      OGF2DFO(i1  ,i2+1,i3,t, uvzp(0),uvzp(1),uvzp(2))
+      OGF2DFO(i1+1,i2+1,i3,t, uvpp(0),uvpp(1),uvpp(2))
 
       urrs=( (uvpp(2)-2.*uvzp(2)+uvmp(2))-(uvpm(2)-2.*uvzm(2)+uvmm(2)) )/(2.*dr(1)*dra**2)
       urss=( (uvpp(2)-2.*uvpz(2)+uvpm(2))-(uvmp(2)-2.*uvmz(2)+uvmm(2)) )/(2.*dr(0)*dsa**2)
@@ -466,19 +466,19 @@
     #If #FORCING == "twilightZone"
 !      setCornersToExact=.true.
 !      if( setCornersToExact )then
-!        OGF2D(i1-is1,i2-is2,i3,t, uv0(0),uv0(1),uv0(2))
+!        OGF2DFO(i1-is1,i2-is2,i3,t, uv0(0),uv0(1),uv0(2))
 !        write(*,'(" ghostValuesOutsideCorners2d: i1-is1,i2-is2=",2i4," hz,err=",4e10.2)') i1-is1,i2-is2,\
 !                 u(i1-is1,i2-is2,i3,hz),u(i1-is1,i2-is2,i3,hz)-uv0(2)
 !        u(i1-is1,i2-is2,i3,hz)=uv0(2)
-!        OGF2D(i1-2*is1,i2-is2,i3,t, uv0(0),uv0(1),uv0(2))
+!        OGF2DFO(i1-2*is1,i2-is2,i3,t, uv0(0),uv0(1),uv0(2))
 !        u(i1-2*is1,i2-is2,i3,hz)=uv0(2)
 !        write(*,'(" ghostValuesOutsideCorners2d: i1-2*is1,i2-is2=",2i4," hz,err=",4e10.2)') i1-2*is1,i2-is2,\
 !                 u(i1-2*is1,i2-is2,i3,hz),u(i1-2*is1,i2-is2,i3,hz)-uv0(2)
-!        OGF2D(i1-is1,i2-2*is2,i3,t, uv0(0),uv0(1),uv0(2))
+!        OGF2DFO(i1-is1,i2-2*is2,i3,t, uv0(0),uv0(1),uv0(2))
 !        write(*,'(" ghostValuesOutsideCorners2d: i1-is1,i2-2*is2=",2i4," hz,err=",4e10.2)') i1-is1,i2-2*is2,\
 !                 u(i1-is1,i2-2*is2,i3,hz),u(i1-is1,i2-2*is2,i3,hz)-uv0(2)
 !        u(i1-is1,i2-2*is2,i3,hz)=uv0(2)
-!        OGF2D(i1-2*is1,i2-2*is2,i3,t, uv0(0),uv0(1),uv0(2))
+!        OGF2DFO(i1-2*is1,i2-2*is2,i3,t, uv0(0),uv0(1),uv0(2))
 !        write(*,'(" ghostValuesOutsideCorners2d: i1-2*is1,i2-2*is2=",2i4," hz,err=",4e10.2)') i1-2*is1,i2-2*is2,\
 !                 u(i1-2*is1,i2-2*is2,i3,hz),u(i1-2*is1,i2-2*is2,i3,hz)-uv0(2)
 !        u(i1-2*is1,i2-2*is2,i3,hz)=uv0(2)
@@ -635,14 +635,14 @@
 
  #If #FORCING == "twilightZone"
 
-   OGF2D(i1-is1,i2    ,i3,t, uv0(0),uv0(1),uv0(2))
+   OGF2DFO(i1-is1,i2    ,i3,t, uv0(0),uv0(1),uv0(2))
    tdu10=a11m1*uv0(0)+a12m1*uv0(1)
-   OGF2D(i1    ,i2-is2,i3,t, uv0(0),uv0(1),uv0(2))
+   OGF2DFO(i1    ,i2-is2,i3,t, uv0(0),uv0(1),uv0(2))
    tdu01=a21zm1*uv0(0)+a22zm1*uv0(1)
 
-   OGF2D(i1-2*is1,i2    ,i3,t, uv0(0),uv0(1),uv0(2))
+   OGF2DFO(i1-2*is1,i2    ,i3,t, uv0(0),uv0(1),uv0(2))
    tdu20=a11m2*uv0(0)+a12m2*uv0(1)
-   OGF2D(i1    ,i2-2*is2,i3,t, uv0(0),uv0(1),uv0(2))
+   OGF2DFO(i1    ,i2-2*is2,i3,t, uv0(0),uv0(1),uv0(2))
    tdu02=a21zm2*uv0(0)+a22zm2*uv0(1)
 
    ! For TZ: utt0 = utt - ett + Lap(e)
@@ -655,22 +655,22 @@
    vtt00=vrr+vss
   
    ! Now compute forcing for Hz
-   OGF2D(i1      ,i2,i3,t, uv0(0),uv0(1),uv0(2))
-   OGF2D(i1-  is1,i2,i3,t, uvm(0),uvm(1),uvm(2))
-   OGF2D(i1+  is1,i2,i3,t, uvp(0),uvp(1),uvp(2))
-   OGF2D(i1-2*is1,i2,i3,t, uvm2(0),uvm2(1),uvm2(2))
-   OGF2D(i1+2*is1,i2,i3,t, uvp2(0),uvp2(1),uvp2(2))
+   OGF2DFO(i1      ,i2,i3,t, uv0(0),uv0(1),uv0(2))
+   OGF2DFO(i1-  is1,i2,i3,t, uvm(0),uvm(1),uvm(2))
+   OGF2DFO(i1+  is1,i2,i3,t, uvp(0),uvp(1),uvp(2))
+   OGF2DFO(i1-2*is1,i2,i3,t, uvm2(0),uvm2(1),uvm2(2))
+   OGF2DFO(i1+2*is1,i2,i3,t, uvp2(0),uvp2(1),uvp2(2))
 
    wr = (8.*(uvp(2)-uvm(2))-(uvp2(2)-uvm2(2)))/(12.*dra) 
    wrr=(uvp(2)-2.*uv0(2)+uvm(2))/(dra**2) 
    wrrr=(uvp2(2)-2.*(uvp(2)-uvm(2))-uvm2(2))/(2.*dra**3)
  
 
-   OGF2D(i1,i2      ,i3,t, uv0(0),uv0(1),uv0(2))
-   OGF2D(i1,i2-  is2,i3,t, uvm(0),uvm(1),uvm(2))
-   OGF2D(i1,i2+  is2,i3,t, uvp(0),uvp(1),uvp(2))
-   OGF2D(i1,i2-2*is2,i3,t, uvm2(0),uvm2(1),uvm2(2))
-   OGF2D(i1,i2+2*is2,i3,t, uvp2(0),uvp2(1),uvp2(2))
+   OGF2DFO(i1,i2      ,i3,t, uv0(0),uv0(1),uv0(2))
+   OGF2DFO(i1,i2-  is2,i3,t, uvm(0),uvm(1),uvm(2))
+   OGF2DFO(i1,i2+  is2,i3,t, uvp(0),uvp(1),uvp(2))
+   OGF2DFO(i1,i2-2*is2,i3,t, uvm2(0),uvm2(1),uvm2(2))
+   OGF2DFO(i1,i2+2*is2,i3,t, uvp2(0),uvp2(1),uvp2(2))
 
    ws = (8.*(uvp(2)-uvm(2))-(uvp2(2)-uvm2(2)))/(12.*dsa) 
    wss=(uvp(2)-2.*uv0(2)+uvm(2))/(dsa**2) 
@@ -719,19 +719,19 @@
   ! write(*,'("   cv20,cv02,cv10,cv01=",6e18.10)') cv20,cv02,cv10,cv01
   ! write(*,'("   gLu,gLv,uLaplacian42(ex,ey)=",6e16.8)') gLu,gLv,uLaplacian42(i1,i2,i3,ex),uLaplacian42(i1,i2,i3,ey)
 
-  OGF2D(i1-is1,i2    ,i3,t, uv0(0),uv0(1),uv0(2))
+  OGF2DFO(i1-is1,i2    ,i3,t, uv0(0),uv0(1),uv0(2))
   write(*,'(" bcOpt: extended4 i1-is1,i2=",2i4," ex,err,ey,err=",4e10.2)') i1-is1,i2,\
                u(i1-is1,i2,i3,ex),u(i1-is1,i2,i3,ex)-uv0(0),u(i1-is1,i2,i3,ey),u(i1-is1,i2,i3,ey)-uv0(1)
 
-  OGF2D(i1,i2-is2    ,i3,t, uv0(0),uv0(1),uv0(2))
+  OGF2DFO(i1,i2-is2    ,i3,t, uv0(0),uv0(1),uv0(2))
   write(*,'(" bcOpt: extended4 i1,i2-is2=",2i4," ex,err,ey,err=",4e10.2)') i1,i2-is2,\
                u(i1,i2-is2,i3,ex),u(i1,i2-is2,i3,ex)-uv0(0),u(i1,i2-is2,i3,ey),u(i1,i2-is2,i3,ey)-uv0(1)
 
-  OGF2D(i1-2*is1,i2    ,i3,t, uv0(0),uv0(1),uv0(2))
+  OGF2DFO(i1-2*is1,i2    ,i3,t, uv0(0),uv0(1),uv0(2))
   write(*,'(" bcOpt: extended4 i1-2*is1,i2=",2i4," ex,err,ey,err=",4e10.2)') i1-2*is1,i2,\
                u(i1-2*is1,i2,i3,ex),u(i1-2*is1,i2,i3,ex)-uv0(0),u(i1-2*is1,i2,i3,ey),u(i1-2*is1,i2,i3,ey)-uv0(1)
 
-  OGF2D(i1,i2-2*is2    ,i3,t, uv0(0),uv0(1),uv0(2))
+  OGF2DFO(i1,i2-2*is2    ,i3,t, uv0(0),uv0(1),uv0(2))
   write(*,'(" bcOpt: extended4 i1,i2-2*is2=",2i4," ex,err,ey,err=",4e10.2)') i1,i2-2*is2,\
                u(i1,i2-2*is2,i3,ex),u(i1,i2-2*is2,i3,ex)-uv0(0),u(i1,i2-2*is2,i3,ey),u(i1,i2-2*is2,i3,ey)-uv0(1)
   write(*,'("-------------",/)') 
@@ -1256,9 +1256,9 @@
     do i1=n1a,n1b
 
      #If #FORCING == "twilightZone"
-       OGF3D(i1,i2,i3,t,u0,v0,w0)
-       OGF3D(i1-js1,i2-js2,i3-js3,t, um,vm,wm)
-       OGF3D(i1+js1,i2+js2,i3+js3,t, up,vp,wp)
+       OGF3DFO(i1,i2,i3,t,u0,v0,w0)
+       OGF3DFO(i1-js1,i2-js2,i3-js3,t, um,vm,wm)
+       OGF3DFO(i1+js1,i2+js2,i3+js3,t, up,vp,wp)
        g1=um-2.*u0+up
        g2=vm-2.*v0+vp
        g3=wm-2.*w0+wp
@@ -1280,7 +1280,7 @@
 ! *     do i1=n1a,n1b
 ! * 
 ! *      #If #FORCING == "twilightZone"
-! *        OGF3D(i1-js1,i2-js2,i3-js3,t, g1,g2,g3)
+! *        OGF3DFO(i1-js1,i2-js2,i3-js3,t, g1,g2,g3)
 ! *      #End
 ! *      u(i1-js1,i2-js2,i3-js3,ex)=g1
 ! *      u(i1-js1,i2-js2,i3-js3,ey)=g2
@@ -1638,7 +1638,7 @@
 
      #If #FORCING == "twilightZone"
      if( .true. .or. debug.gt.0 )then
-       OGF3D(i1-ms1,i2-ms2,i3-ms3,t, uvm(0),uvm(1),uvm(2))
+       OGF3DFO(i1-ms1,i2-ms2,i3-ms3,t, uvm(0),uvm(1),uvm(2))
        if( debug.gt.0 )then
          write(*,'(" corner-edge-ORDER: ghost-pt=",3i4," ls=",3i3," error=",3e9.1)') \
             i1-ms1,i2-ms2,i3-ms3,ls1,ls2,ls3,\
@@ -1662,17 +1662,17 @@
        write(*,'("  a3Dotu,true=",2e11.3," err=",e10.2)') a3Dotu,(a31*uvm(0)+a32*uvm(1)+a33*uvm(2)),\
              a3Dotu-(a31*uvm(0)+a32*uvm(1)+a33*uvm(2))
 
-      OGF3D(i1-is1-js1,i2-is2-js2,i3-is3-js3,t, uvmm(0),uvmm(1),uvmm(2))
-      OGF3D(i1    -js1,i2    -js2,i3    -js3,t, uvzm(0),uvzm(1),uvzm(2))
-      OGF3D(i1+is1-js1,i2+is2-js2,i3+is3-js3,t, uvpm(0),uvpm(1),uvpm(2))
+      OGF3DFO(i1-is1-js1,i2-is2-js2,i3-is3-js3,t, uvmm(0),uvmm(1),uvmm(2))
+      OGF3DFO(i1    -js1,i2    -js2,i3    -js3,t, uvzm(0),uvzm(1),uvzm(2))
+      OGF3DFO(i1+is1-js1,i2+is2-js2,i3+is3-js3,t, uvpm(0),uvpm(1),uvpm(2))
                                             
-      OGF3D(i1-is1    ,i2-is2    ,i3-is3    ,t, uvmz(0),uvmz(1),uvmz(2))
-      OGF3D(i1        ,i2        ,i3        ,t, uvzz(0),uvzz(1),uvzz(2))
-      OGF3D(i1+is1    ,i2+is2    ,i3+is3    ,t, uvpz(0),uvpz(1),uvpz(2))
+      OGF3DFO(i1-is1    ,i2-is2    ,i3-is3    ,t, uvmz(0),uvmz(1),uvmz(2))
+      OGF3DFO(i1        ,i2        ,i3        ,t, uvzz(0),uvzz(1),uvzz(2))
+      OGF3DFO(i1+is1    ,i2+is2    ,i3+is3    ,t, uvpz(0),uvpz(1),uvpz(2))
 
-      OGF3D(i1-is1+js1,i2-is2+js2,i3-is3+js3,t, uvmp(0),uvmp(1),uvmp(2))
-      OGF3D(i1    +js1,i2    +js2,i3    +js3,t, uvzp(0),uvzp(1),uvzp(2))
-      OGF3D(i1+is1+js1,i2+is2+js2,i3+is3+js3,t, uvpp(0),uvpp(1),uvpp(2))
+      OGF3DFO(i1-is1+js1,i2-is2+js2,i3-is3+js3,t, uvmp(0),uvmp(1),uvmp(2))
+      OGF3DFO(i1    +js1,i2    +js2,i3    +js3,t, uvzp(0),uvzp(1),uvzp(2))
+      OGF3DFO(i1+is1+js1,i2+is2+js2,i3+is3+js3,t, uvpp(0),uvpp(1),uvpp(2))
 
 
       ur0= ( uvpz(0)-uvmz(0) )/(2.*dra)
@@ -1773,7 +1773,7 @@
 ! *     do i1=n1a,n1b
 ! *   
 ! *       #If #FORCING == "twilightZone"
-! *         OGF3D(i1-js1,i2-js2,i3-js3,t, g1,g2,g3)
+! *         OGF3DFO(i1-js1,i2-js2,i3-js3,t, g1,g2,g3)
 ! *       #End
 ! *       u(i1-js1,i2-js2,i3-js3,ex)=g1
 ! *       u(i1-js1,i2-js2,i3-js3,ey)=g2
@@ -1912,12 +1912,12 @@
      do i1=n1a,n1b
 
       #If #FORCING == "twilightZone"
-        OGF3D(i1,i2,i3,t,u0,v0,w0)
+        OGF3DFO(i1,i2,i3,t,u0,v0,w0)
       #End
       if( edgeDirection.ne.0 )then
         #If #FORCING == "twilightZone"
-          OGF3D(i1-js1,i2,i3,t, um,vm,wm)
-          OGF3D(i1+js1,i2,i3,t, up,vp,wp)
+          OGF3DFO(i1-js1,i2,i3,t, um,vm,wm)
+          OGF3DFO(i1+js1,i2,i3,t, up,vp,wp)
           g1=um-up
           g2=vm-2.*v0+vp
           g3=wm-2.*w0+wp
@@ -1929,8 +1929,8 @@
 
       if( edgeDirection.ne.1 )then
        #If #FORCING == "twilightZone" 
-          OGF3D(i1,i2-js2,i3,t, um,vm,wm)
-          OGF3D(i1,i2+js2,i3,t, up,vp,wp)
+          OGF3DFO(i1,i2-js2,i3,t, um,vm,wm)
+          OGF3DFO(i1,i2+js2,i3,t, up,vp,wp)
           g1=um-2.*u0+up
           g2=vm-vp
           g3=wm-2.*w0+wp
@@ -1942,8 +1942,8 @@
 
       if( edgeDirection.ne.2 )then
         #If #FORCING == "twilightZone" 
-          OGF3D(i1,i2,i3-js3,t, um,vm,wm)
-          OGF3D(i1,i2,i3+js3,t, up,vp,wp)
+          OGF3DFO(i1,i2,i3-js3,t, um,vm,wm)
+          OGF3DFO(i1,i2,i3+js3,t, up,vp,wp)
           g1=um-2.*u0+up
           g2=vm-2.*v0+vp
           g3=wm-wp
@@ -1966,7 +1966,7 @@
 ! *
 ! *      if( edgeDirection.ne.0 )then
 ! *        #If #FORCING == "twilightZone"
-! *          OGF3D(i1-js1,i2,i3,t,g1,g2,g3)
+! *          OGF3DFO(i1-js1,i2,i3,t,g1,g2,g3)
 ! *        #End
 ! *        u(i1-js1,i2,i3,ex)=g1
 ! *        u(i1-js1,i2,i3,ey)=g2
@@ -1975,7 +1975,7 @@
 ! *
 ! *      if( edgeDirection.ne.1 )then
 ! *        #If #FORCING == "twilightZone"
-! *          OGF3D(i1,i2-js2,i3,t,g1,g2,g3)
+! *          OGF3DFO(i1,i2-js2,i3,t,g1,g2,g3)
 ! *        #End
 ! *        u(i1,i2-js2,i3,ex)=g1
 ! *        u(i1,i2-js2,i3,ey)=g2
@@ -1984,7 +1984,7 @@
 ! *
 ! *      if( edgeDirection.ne.2 )then
 ! *        #If #FORCING == "twilightZone"
-! *          OGF3D(i1,i2,i3-js3,t,g1,g2,g3)
+! *          OGF3DFO(i1,i2,i3-js3,t,g1,g2,g3)
 ! *        #End
 ! *        u(i1,i2,i3-js3,ex)=g1
 ! *        u(i1,i2,i3-js3,ey)=g2
@@ -2149,12 +2149,12 @@
         deltaFw=wxx+wyy+wzz
 
         ! for now remove the error in the extrapolation ************
-        OGF3D(i1,i2,i3,t, uv0(0),uv0(1),uv0(2))
+        OGF3DFO(i1,i2,i3,t, uv0(0),uv0(1),uv0(2))
 
-        OGF3D(i1-js1,i2-js2,i3-js3,t, uvm(0),uvm(1),uvm(2))
-        OGF3D(i1+js1,i2+js2,i3+js3,t, uvp(0),uvp(1),uvp(2))
-        OGF3D(i1-2*js1,i2-2*js2,i3-2*js3,t, uvm2(0),uvm2(1),uvm2(2))
-        OGF3D(i1+2*js1,i2+2*js2,i3+2*js3,t, uvp2(0),uvp2(1),uvp2(2))
+        OGF3DFO(i1-js1,i2-js2,i3-js3,t, uvm(0),uvm(1),uvm(2))
+        OGF3DFO(i1+js1,i2+js2,i3+js3,t, uvp(0),uvp(1),uvp(2))
+        OGF3DFO(i1-2*js1,i2-2*js2,i3-2*js3,t, uvm2(0),uvm2(1),uvm2(2))
+        OGF3DFO(i1+2*js1,i2+2*js2,i3+2*js3,t, uvp2(0),uvp2(1),uvp2(2))
 
         m1=i1-2*js1
         m2=i2-2*js2
@@ -2163,10 +2163,10 @@
                 A12D3(m1,m2,m3)*( uvm2(1)-4.*uvm(1)+6.*uv0(1)-4.*uvp(1)+uvp2(1)) +\
                 A13D3(m1,m2,m3)*( uvm2(2)-4.*uvm(2)+6.*uv0(2)-4.*uvp(2)+uvp2(2))
 
-        OGF3D(i1-is1,i2-is2,i3-is3,t, uvm(0),uvm(1),uvm(2))
-        OGF3D(i1+is1,i2+is2,i3+is3,t, uvp(0),uvp(1),uvp(2))
-        OGF3D(i1-2*is1,i2-2*is2,i3-2*is3,t, uvm2(0),uvm2(1),uvm2(2))
-        OGF3D(i1+2*is1,i2+2*is2,i3+2*is3,t, uvp2(0),uvp2(1),uvp2(2))
+        OGF3DFO(i1-is1,i2-is2,i3-is3,t, uvm(0),uvm(1),uvm(2))
+        OGF3DFO(i1+is1,i2+is2,i3+is3,t, uvp(0),uvp(1),uvp(2))
+        OGF3DFO(i1-2*is1,i2-2*is2,i3-2*is3,t, uvm2(0),uvm2(1),uvm2(2))
+        OGF3DFO(i1+2*is1,i2+2*is2,i3+2*is3,t, uvp2(0),uvp2(1),uvp2(2))
 
         m1=i1-2*is1
         m2=i2-2*is2
@@ -2187,8 +2187,8 @@
          write(*,'(" bce4: c11,c22,c33,c1,c2,c3, DeltaU,DeltaV,DeltaW=",9f6.2)') c11,c22,c33,c1,c2,c3, DeltaU,DeltaV,DeltaW
         end if
         if( debug.gt.0 )then
-         OGF3D(i1-is1,i2-is2,i3-is3,t, uvm(0),uvm(1),uvm(2))
-         OGF3D(i1-2*is1,i2-2*is2,i3-2*is3,t, uvm2(0),uvm2(1),uvm2(2))
+         OGF3DFO(i1-is1,i2-is2,i3-is3,t, uvm(0),uvm(1),uvm(2))
+         OGF3DFO(i1-2*is1,i2-2*is2,i3-2*is3,t, uvm2(0),uvm2(1),uvm2(2))
          write(*,'(" bce4: extended: (i1,i2,i3)=",3i4," err(-1,0),(-2,0)=",6e9.1)') i1,i2,i3,\
            u(i1-  is1,i2-  is2,i3-  is3,ex)-uvm(0),\
            u(i1-  is1,i2-  is2,i3-  is3,ey)-uvm(1),\
@@ -2209,8 +2209,8 @@
            u(i1-2*is1,i2-2*is2,i3-2*is3,ez)
         end if
         if( debug.gt.0 )then
-         OGF3D(i1-js1,i2-js2,i3-js3,t, uvm(0),uvm(1),uvm(2))
-         OGF3D(i1-2*js1,i2-2*js2,i3-2*js3,t, uvm2(0),uvm2(1),uvm2(2))
+         OGF3DFO(i1-js1,i2-js2,i3-js3,t, uvm(0),uvm(1),uvm(2))
+         OGF3DFO(i1-2*js1,i2-2*js2,i3-2*js3,t, uvm2(0),uvm2(1),uvm2(2))
          write(*,'(" bce4: extended: (i1,i2,i3)=",3i4," err(0,-1),(0,-2)=",6e9.1)') i1,i2,i3,\
            u(i1-  js1,i2-  js2,i3-  js3,ex)-uvm(0),\
            u(i1-  js1,i2-  js2,i3-  js3,ey)-uvm(1),\
@@ -2235,7 +2235,7 @@
          m1=i1-is1
          m2=i2-is2
          m3=i3-is3
-         OGF3D(m1,m2,m3,t, uvm(0),uvm(1),uvm(2))
+         OGF3DFO(m1,m2,m3,t, uvm(0),uvm(1),uvm(2))
          write(*,'(" bce4:tan-comp: err(a1.u1,a3.u1)=",2e10.2)') \
               A11D3(m1,m2,m3)*(u(m1,m2,m3,ex)-uvm(0))+\
               A12D3(m1,m2,m3)*(u(m1,m2,m3,ey)-uvm(1))+\
@@ -2267,7 +2267,7 @@
          m1=i1-2*is1
          m2=i2-2*is2
          m3=i3-2*is3
-         OGF3D(m1,m2,m3,t, uvm(0),uvm(1),uvm(2))
+         OGF3DFO(m1,m2,m3,t, uvm(0),uvm(1),uvm(2))
          write(*,'(" bce4:tan-comp: err(a1.u2,a3.u2)=",2e10.2)') \
               A11D3(m1,m2,m3)*(u(m1,m2,m3,ex)-uvm(0))+\
               A12D3(m1,m2,m3)*(u(m1,m2,m3,ey)-uvm(1))+\
@@ -2325,7 +2325,7 @@
                       a3Dotu3-(a31c*g31+a32c*g32+a33c*g33)
          ! '
 
-         OGF3D(m1,m2,m3,t, uvm(0),uvm(1),uvm(2))
+         OGF3DFO(m1,m2,m3,t, uvm(0),uvm(1),uvm(2))
          write(*,'(" bce4:tan-comp: err(a2.u3,a3.u3)=",2e10.2)') \
               A21D3(m1,m2,m3)*(u(m1,m2,m3,ex)-uvm(0))+\
               A22D3(m1,m2,m3)*(u(m1,m2,m3,ey)-uvm(1))+\
@@ -2355,7 +2355,7 @@
 
          ! '
 
-         OGF3D(m1,m2,m3,t, uvm(0),uvm(1),uvm(2))
+         OGF3DFO(m1,m2,m3,t, uvm(0),uvm(1),uvm(2))
          write(*,'(" bce4:tan-comp: err(a2.u4,a3.u4)=",2e10.2)') \
               A21D3(m1,m2,m3)*(u(m1,m2,m3,ex)-uvm(0))+\
               A22D3(m1,m2,m3)*(u(m1,m2,m3,ey)-uvm(1))+\
@@ -2416,8 +2416,8 @@
 
          ! *** for now -- set solution to be exact ---
          
-         ! OGF3D(i1-is1,i2-is2,i3-is3,t, uvm(0),uvm(1),uvm(2))
-         ! OGF3D(i1-2*is1,i2-2*is2,i3-2*is3,t, uvm2(0),uvm2(1),uvm2(2))
+         ! OGF3DFO(i1-is1,i2-is2,i3-is3,t, uvm(0),uvm(1),uvm(2))
+         ! OGF3DFO(i1-2*is1,i2-2*is2,i3-2*is3,t, uvm2(0),uvm2(1),uvm2(2))
          ! u(i1-  is1,i2-  is2,i3-  is3,ex)=uvm(0)
          ! u(i1-  is1,i2-  is2,i3-  is3,ey)=uvm(1)
          ! u(i1-  is1,i2-  is2,i3-  is3,ez)=uvm(2)
@@ -2425,8 +2425,8 @@
          ! u(i1-2*is1,i2-2*is2,i3-2*is3,ey)=uvm2(1)
          ! u(i1-2*is1,i2-2*is2,i3-2*is3,ez)=uvm2(2)
          
-         ! OGF3D(i1-js1,i2-js2,i3-js3,t, uvm(0),uvm(1),uvm(2))
-         ! OGF3D(i1-2*js1,i2-2*js2,i3-2*js3,t, uvm2(0),uvm2(1),uvm2(2))
+         ! OGF3DFO(i1-js1,i2-js2,i3-js3,t, uvm(0),uvm(1),uvm(2))
+         ! OGF3DFO(i1-2*js1,i2-2*js2,i3-2*js3,t, uvm2(0),uvm2(1),uvm2(2))
          ! u(i1-  js1,i2-  js2,i3-  js3,ex)=uvm(0)
          ! u(i1-  js1,i2-  js2,i3-  js3,ey)=uvm(1)
          ! u(i1-  js1,i2-  js2,i3-  js3,ez)=uvm(2)
@@ -2451,7 +2451,7 @@
 ! * 
 ! *       if( edgeDirection.ne.0 )then
 ! *         #If #FORCING == "twilightZone"
-! *           OGF3D(i1-js1,i2,i3,t,g1,g2,g3)
+! *           OGF3DFO(i1-js1,i2,i3,t,g1,g2,g3)
 ! *         #End
 ! *         u(i1-js1,i2,i3,ex)=g1
 ! *         u(i1-js1,i2,i3,ey)=g2
@@ -2460,7 +2460,7 @@
 ! * 
 ! *       if( edgeDirection.ne.1 )then
 ! *         #If #FORCING == "twilightZone"
-! *           OGF3D(i1,i2-js2,i3,t,g1,g2,g3)
+! *           OGF3DFO(i1,i2-js2,i3,t,g1,g2,g3)
 ! *         #End
 ! *         u(i1,i2-js2,i3,ex)=g1
 ! *         u(i1,i2-js2,i3,ey)=g2
@@ -2469,7 +2469,7 @@
 ! * 
 ! *       if( edgeDirection.ne.2 )then
 ! *         #If #FORCING == "twilightZone"
-! *           OGF3D(i1,i2,i3-js3,t,g1,g2,g3)
+! *           OGF3DFO(i1,i2,i3-js3,t,g1,g2,g3)
 ! *         #End
 ! *         u(i1,i2,i3-js3,ex)=g1
 ! *         u(i1,i2,i3-js3,ey)=g2
@@ -2539,9 +2539,9 @@
                 -( a21*u(i1+is1,i2+is2,i3+is3,ex)+a22*u(i1+is1,i2+is2,i3+is3,ey)+a23*u(i1+is1,i2+is2,i3+is3,ez))
        a3DotU=0.
        #If #FORCING == "twilightZone"
-         OGF3D(i1,i2,i3,t, uv0(0),uv0(1),uv0(2))
-         OGF3D(i1-is1,i2-is2,i3-is3,t, uvm(0),uvm(1),uvm(2))
-         OGF3D(i1+is1,i2+is2,i3+is3,t, uvp(0),uvp(1),uvp(2))
+         OGF3DFO(i1,i2,i3,t, uv0(0),uv0(1),uv0(2))
+         OGF3DFO(i1-is1,i2-is2,i3-is3,t, uvm(0),uvm(1),uvm(2))
+         OGF3DFO(i1+is1,i2+is2,i3+is3,t, uvp(0),uvp(1),uvp(2))
 
          a1DotU=a11*uvm(0)+a12*uvm(1)+a13*uvm(2)
          a3DotU=a31*uvm(0)+a32*uvm(1)+a33*uvm(2)
@@ -2564,8 +2564,8 @@
        a2DotU=0.
        a3DotU=0.
        #If #FORCING == "twilightZone"
-         OGF3D(i1-js1,i2-js2,i3-js3,t, uvm(0),uvm(1),uvm(2))
-         OGF3D(i1+js1,i2+js2,i3+js3,t, uvp(0),uvp(1),uvp(2))
+         OGF3DFO(i1-js1,i2-js2,i3-js3,t, uvm(0),uvm(1),uvm(2))
+         OGF3DFO(i1+js1,i2+js2,i3+js3,t, uvp(0),uvp(1),uvp(2))
 
          a2DotU=a21*uvm(0)+a22*uvm(1)+a23*uvm(2)
          a3DotU=a31*uvm(0)+a32*uvm(1)+a33*uvm(2)
@@ -2588,9 +2588,9 @@
                js1,js2,js3
          ! '
 
-         OGF3D(i1,i2,i3,t, uv0(0),uv0(1),uv0(2))
-         OGF3D(i1-is1,i2-is2,i3-is3,t, uvm(0),uvm(1),uvm(2))
-         OGF3D(i1+is1,i2+is2,i3+is3,t, uvp(0),uvp(1),uvp(2))
+         OGF3DFO(i1,i2,i3,t, uv0(0),uv0(1),uv0(2))
+         OGF3DFO(i1-is1,i2-is2,i3-is3,t, uvm(0),uvm(1),uvm(2))
+         OGF3DFO(i1+is1,i2+is2,i3+is3,t, uvp(0),uvp(1),uvp(2))
 
          write(*,'(" bce2: extended: (i1,i2,i3)=",3i4," err(-1,0)",6e9.1)') i1,i2,i3,\
            u(i1-  is1,i2-  is2,i3-  is3,ex)-uvm(0),\
@@ -2603,8 +2603,8 @@
            u(i1-  is1,i2-  is2,i3-  is3,ez)
          ! '
 
-         OGF3D(i1-js1,i2-js2,i3-js3,t, uvm(0),uvm(1),uvm(2))
-         OGF3D(i1+js1,i2+js2,i3+js3,t, uvp(0),uvp(1),uvp(2))
+         OGF3DFO(i1-js1,i2-js2,i3-js3,t, uvm(0),uvm(1),uvm(2))
+         OGF3DFO(i1+js1,i2+js2,i3+js3,t, uvp(0),uvp(1),uvp(2))
 
          write(*,'(" bce2: extended: (i1,i2,i3)=",3i4," err(0,-1)",6e9.1)') i1,i2,i3,\
            u(i1-  js1,i2-  js2,i3-  js3,ex)-uvm(0),\
@@ -2619,8 +2619,8 @@
 
          ! *** for now -- set solution to be exact ---
          
-         !  OGF3D(i1-is1,i2-is2,i3-is3,t, uvm(0),uvm(1),uvm(2))
-         !  OGF3D(i1-2*is1,i2-2*is2,i3-2*is3,t, uvm2(0),uvm2(1),uvm2(2))
+         !  OGF3DFO(i1-is1,i2-is2,i3-is3,t, uvm(0),uvm(1),uvm(2))
+         !  OGF3DFO(i1-2*is1,i2-2*is2,i3-2*is3,t, uvm2(0),uvm2(1),uvm2(2))
          !  u(i1-  is1,i2-  is2,i3-  is3,ex)=uvm(0)
          !  u(i1-  is1,i2-  is2,i3-  is3,ey)=uvm(1)
          !  u(i1-  is1,i2-  is2,i3-  is3,ez)=uvm(2)
@@ -2628,8 +2628,8 @@
          !  u(i1-2*is1,i2-2*is2,i3-2*is3,ey)=uvm2(1)
          !  u(i1-2*is1,i2-2*is2,i3-2*is3,ez)=uvm2(2)
  
-         !  OGF3D(i1-js1,i2-js2,i3-js3,t, uvm(0),uvm(1),uvm(2))
-         !  OGF3D(i1-2*js1,i2-2*js2,i3-2*js3,t, uvm2(0),uvm2(1),uvm2(2))
+         !  OGF3DFO(i1-js1,i2-js2,i3-js3,t, uvm(0),uvm(1),uvm(2))
+         !  OGF3DFO(i1-2*js1,i2-2*js2,i3-2*js3,t, uvm2(0),uvm2(1),uvm2(2))
          !  u(i1-  js1,i2-  js2,i3-  js3,ex)=uvm(0)
          !  u(i1-  js1,i2-  js2,i3-  js3,ey)=uvm(1)
          !  u(i1-  js1,i2-  js2,i3-  js3,ez)=uvm(2)
@@ -2654,7 +2654,7 @@
 ! * 
 ! *       if( edgeDirection.ne.0 )then
 ! *         #If #FORCING == "twilightZone"
-! *           OGF3D(i1-js1,i2,i3,t,g1,g2,g3)
+! *           OGF3DFO(i1-js1,i2,i3,t,g1,g2,g3)
 ! *         #End
 ! *         u(i1-js1,i2,i3,ex)=g1
 ! *         u(i1-js1,i2,i3,ey)=g2
@@ -2663,7 +2663,7 @@
 ! * 
 ! *       if( edgeDirection.ne.1 )then
 ! *         #If #FORCING == "twilightZone"
-! *           OGF3D(i1,i2-js2,i3,t,g1,g2,g3)
+! *           OGF3DFO(i1,i2-js2,i3,t,g1,g2,g3)
 ! *         #End
 ! *         u(i1,i2-js2,i3,ex)=g1
 ! *         u(i1,i2-js2,i3,ey)=g2
@@ -2672,7 +2672,7 @@
 ! * 
 ! *       if( edgeDirection.ne.2 )then
 ! *         #If #FORCING == "twilightZone"
-! *           OGF3D(i1,i2,i3-js3,t,g1,g2,g3)
+! *           OGF3DFO(i1,i2,i3-js3,t,g1,g2,g3)
 ! *         #End
 ! *         u(i1,i2,i3-js3,ex)=g1
 ! *         u(i1,i2,i3-js3,ey)=g2
@@ -2822,9 +2822,9 @@
       dta=dr(2)*js3
 
       #If #FORCING == "twilightZone" 
-        OGF3D(i1    ,i2    ,i3    ,t, u0,v0,w0)
-        OGF3D(i1-js1,i2-js2,i3-js3,t, um,vm,wm)
-        OGF3D(i1+js1,i2+js2,i3+js3,t, up,vp,wp)
+        OGF3DFO(i1    ,i2    ,i3    ,t, u0,v0,w0)
+        OGF3DFO(i1-js1,i2-js2,i3-js3,t, um,vm,wm)
+        OGF3DFO(i1+js1,i2+js2,i3+js3,t, up,vp,wp)
         g1=um-2.*u0+up
         g2=vm-2.*v0+vp
         g3=wm-2.*w0+wp
@@ -2863,7 +2863,7 @@
        end if
        #If #FORCING == "twilightZone"
          ! Set the solution to exact for now
-         ! OGF3D(i1-js1,i2-js2,i3-js3,t, um,vm,wm)
+         ! OGF3DFO(i1-js1,i2-js2,i3-js3,t, um,vm,wm)
          ! u(i1-js1,i2-js2,i3-js3,ex)=um
          ! u(i1-js1,i2-js2,i3-js3,ey)=vm
          ! u(i1-js1,i2-js2,i3-js3,ez)=wm
@@ -2888,7 +2888,7 @@
 ! *      js3=is3*m3
 ! *
 ! *      #If #FORCING == "twilightZone" 
-! *        OGF3D(i1-js1,i2-js2,i3-js3,t, g1,g2,g3)
+! *        OGF3DFO(i1-js1,i2-js2,i3-js3,t, g1,g2,g3)
 ! *      #End
 ! *      u(i1-js1,i2-js2,i3-js3,ex)=g1
 ! *      u(i1-js1,i2-js2,i3-js3,ey)=g2
@@ -2989,8 +2989,8 @@
        aDotUp=(a11*u(i1,i2+js2,i3,ex)+a12*u(i1,i2+js2,i3,ey))
 
        #If #FORCING == "twilightZone"
-         call ogf2d(ep,xy(i1,i2-js2,i3,0),xy(i1,i2-js2,i3,1),t, um,vm,wm)
-         call ogf2d(ep,xy(i1,i2+js2,i3,0),xy(i1,i2+js2,i3,1),t, up,vp,wp)
+         call ogf2dfo(ep,fieldOption,xy(i1,i2-js2,i3,0),xy(i1,i2-js2,i3,1),t, um,vm,wm)
+         call ogf2dfo(ep,fieldOption,xy(i1,i2+js2,i3,0),xy(i1,i2+js2,i3,1),t, up,vp,wp)
          aDotUp=aDotUp - ( a11*up + a12*vp ) 
          aDotUm=aDotUm - ( a11*um + a12*vm ) 
          g2a=wm-wp
@@ -3020,8 +3020,8 @@
        aDotUp=(a11*u(i1+js1,i2,i3,ex)+a12*u(i1+js1,i2,i3,ey))
 
        #If #FORCING == "twilightZone"
-         call ogf2d(ep,xy(i1-js1,i2,i3,0),xy(i1-js1,i2,i3,1),t, um,vm,wm)
-         call ogf2d(ep,xy(i1+js1,i2,i3,0),xy(i1+js1,i2,i3,1),t, up,vp,wp)
+         call ogf2dfo(ep,fieldOption,xy(i1-js1,i2,i3,0),xy(i1-js1,i2,i3,1),t, um,vm,wm)
+         call ogf2dfo(ep,fieldOption,xy(i1+js1,i2,i3,0),xy(i1+js1,i2,i3,1),t, up,vp,wp)
          aDotUp=aDotUp - ( a11*up + a12*vp ) 
          aDotUm=aDotUm - ( a11*um + a12*vm ) 
          g2a=wm-wp
@@ -3039,10 +3039,10 @@
       #Elif #GRIDTYPE == "rectangular"
 
        #If #FORCING == "twilightZone"
-         call ogf2d(ep,xy(i1,i2,i3,0),xy(i1,i2,i3,1),t, u0,v0,w0)
+         call ogf2dfo(ep,fieldOption,xy(i1,i2,i3,0),xy(i1,i2,i3,1),t, u0,v0,w0)
 
-         call ogf2d(ep,xy(i1,i2-js2,i3,0),xy(i1,i2-js2,i3,1),t, um,vm,wm)
-         call ogf2d(ep,xy(i1,i2+js2,i3,0),xy(i1,i2+js2,i3,1),t, up,vp,wp)
+         call ogf2dfo(ep,fieldOption,xy(i1,i2-js2,i3,0),xy(i1,i2-js2,i3,1),t, um,vm,wm)
+         call ogf2dfo(ep,fieldOption,xy(i1,i2+js2,i3,0),xy(i1,i2+js2,i3,1),t, up,vp,wp)
          g1=um-2.*u0+up
          g2=vm-vp
          g3=wm-wp
@@ -3052,8 +3052,8 @@
          u(i1,i2-js2,i3,hz)=u(i1,i2+js2,i3,hz)+g3
 
 
-         call ogf2d(ep,xy(i1-js1,i2,i3,0),xy(i1-js1,i2,i3,1),t, um,vm,wm)
-         call ogf2d(ep,xy(i1+js1,i2,i3,0),xy(i1+js1,i2,i3,1),t, up,vp,wp)
+         call ogf2dfo(ep,fieldOption,xy(i1-js1,i2,i3,0),xy(i1-js1,i2,i3,1),t, um,vm,wm)
+         call ogf2dfo(ep,fieldOption,xy(i1+js1,i2,i3,0),xy(i1+js1,i2,i3,1),t, up,vp,wp)
          g1=um-up
          g2=vm-2.*v0+vp
          g3=wm-wp
@@ -3562,6 +3562,7 @@
  cc= c*sqrt( kx*kx+ky*ky+kz*kz )
  ! write(*,'(" ***assign corners: forcingOption=",i4," twoPi=",f18.14," cc=",f10.7)') forcingOption,twoPi,cc
 
+ ! initialize parameters used in slow starts (e.g. for plane waves)
  initializeBoundaryForcing(t,slowStartInterval)
 
  numberOfGhostPoints=orderOfAccuracy/2

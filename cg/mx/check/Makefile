@@ -27,9 +27,17 @@ innerOuter4.order4.hdf:
 twoBoxesInterfacee111.order4.hdf:
 	$(Overture)/bin/ogen noplot $(Overture)/sampleGrids/twoBoxesInterface -order=4 -interp=e -factor=1
 
+# nore ghost points for sosup: 
+square20.order4.ng3.hdf:
+	$(Overture)/bin/ogen -noplot  $(Overture)/sampleGrids/squareArg -order=4 -nx=20 -numGhost=3
+
+square20.order6.ng4.hdf:
+	$(Overture)/bin/ogen -noplot  $(Overture)/sampleGrids/squareArg -order=6 -nx=20 -numGhost=4
+
+
 # build grids that are used by the regression tests (and not already in Overture/sampleGrids)
 buildGrids: tube1.order4.hdf square16.order4.hdf cici1.order4.hdf box16.order4.hdf innerOuter4.order4.hdf \
-            twoBoxesInterfacee111.order4.hdf
+            twoBoxesInterfacee111.order4.hdf square20.order4.ng3.hdf square20.order6.ng4.hdf
 	touch buildGrids
 
 

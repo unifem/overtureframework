@@ -12,8 +12,6 @@ NODEP := $(strip $(filter usage doc clean cleano cleanc cleandep,$(MAKECMDGOALS)
 # sparse solver packages:
 usePETSc   := on
 useSuperLU := off
-useOgmg    := on
-
 
 # turbulence models: (these don't work yet)
 BaldwinLomax   := on

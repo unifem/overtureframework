@@ -168,6 +168,9 @@ int integrate( real t1, real t2, real t3,
 	       GridFunction & cgf1,GridFunction & cgf2,GridFunction & cgf3,
 	       realCompositeGridFunction & stress );
 
+// output probe info
+int outputProbes( GridFunction & gf0, int stepNumber );
+
 // --- plot things related to moving grids (e.g. the center lines of beams or shells)
 int plot(GenericGraphicsInterface & gi, GridFunction & cgf, GraphicsParameters & psp );
 
@@ -208,6 +211,9 @@ bool hasCorrectionConverged() const;
 int get( const GenericDataBase & dir, const aString & name);
 
 int put( GenericDataBase & dir, const aString & name) const;
+
+// Write information to the `check file' 
+int writeCheckFile( FILE *file );
 
 // Write information about the moving grids
 void writeParameterSummary( FILE *file= stdout );

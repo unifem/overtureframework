@@ -614,7 +614,7 @@ buildGeneralOptionsDialog(DialogData & dialog )
 
 
   // ----- Text strings ------
-  const int numberOfTextStrings=5;
+  const int numberOfTextStrings=10;
   aString textCommands[numberOfTextStrings];
   aString textLabels[numberOfTextStrings];
   aString textStrings[numberOfTextStrings];
@@ -1000,7 +1000,7 @@ buildMovingGridOptionsDialog(DialogData & dialog )
 
 
   // ----- Text strings ------
-  const int numberOfTextStrings=6;
+  const int numberOfTextStrings=10;
   aString textCommands[numberOfTextStrings];
   aString textLabels[numberOfTextStrings];
   aString textStrings[numberOfTextStrings];

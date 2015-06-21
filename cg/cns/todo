@@ -1,0 +1,13 @@
+*****************************************
+************** cg/cns *******************
+*****************************************
+
+--------- Things to do: -----------
+
+2012/11/23 -- cicShockMove.cmd, sibShockMove.cmd : fix for parallel -- CnsParameters.C : getNormalForce
+              (see version in InsParameters.C)
+
+--------- Things done: ----------------
+
+
+

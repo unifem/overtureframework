@@ -186,10 +186,10 @@ gridAccelerationBC(const int & grid,
 	    deformingBodyNumber[side][axis]>=0 &&   // -- this is an interface --
 	    mixedCoeff(pc,side,axis,grid)==1. )
 	{
-	  if( debug() & 4 && t0 <= dt )
+	  if( (true || debug() & 4) && t0 <= dt )
 	    printF("--INS-- gridAccelerationBC: t=%8.2e, ADD p to grid acceleration RHS: grid=%i, (side,axis)=(%i,%i)\n",
 		   t0,grid,side,axis);
-	  if(  debug() & 4 && t0 <= dt )
+	  if( (false ||  debug() & 4) && t0 <= dt )
 	  {
 	    ::display(u(I1,I2,I3,pc),sPrintF("--INS-- gridAccelerationBC: pressure p at t=%g (grid,side,axis)=(%i,%i,%i)",t0,grid,side,axis),"%9.2e ");
 	    ::display(f(I1g,I2g,I3g),sPrintF("--INS-- gridAccelerationBC: f=gDot at t=%g (grid,side,axis)=(%i,%i,%i)",t0,grid,side,axis),"%9.2e "); 
@@ -198,7 +198,7 @@ gridAccelerationBC(const int & grid,
 	  f(I1g,I2g,I3g) += u(I1,I2,I3,pc) ; 
 
 	  // For two sided beams we need to adjust the opposite side 
-	  if( true )
+	  if( true ) 
 	  {
 	    // *NEW WAY*
 

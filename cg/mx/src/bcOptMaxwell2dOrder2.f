@@ -3,13 +3,13 @@
      & nd3b,ndf1a,ndf1b,ndf2a,ndf2b,ndf3a,ndf3b,gridIndexRange,
      & dimension,u,f,mask,rsxy, xy,bc, boundaryCondition, ipar, rpar, 
      & ierr )
-c ===================================================================================
-c  Optimised Boundary conditions for Maxwell's Equations. '
-c
-c  gridType : 0=rectangular, 1=curvilinear
-c  useForcing : 1=use f for RHS to BC
-c  side,axis : 0:1 and 0:2
-c ===================================================================================
+       ! ===================================================================================
+       !  Optimised Boundary conditions for Maxwell's Equations. '
+       !
+       !  gridType : 0=rectangular, 1=curvilinear
+       !  useForcing : 1=use f for RHS to BC
+       !  side,axis : 0:1 and 0:2
+       ! ===================================================================================
         implicit none
         integer nd, nd1a,nd1b,nd2a,nd2b,nd3a,nd3b, ndf1a,ndf1b,ndf2a,
      & ndf2b,ndf3a,ndf3b,n1a,n1b,n2a,n2b,n3a,n3b, ndc, bc,ierr
@@ -21,7 +21,7 @@ c ==============================================================================
         integer gridIndexRange(0:1,0:2),dimension(0:1,0:2)
         integer ipar(0:*),boundaryCondition(0:1,0:2)
          real rpar(0:*),pwc(0:5)
-c     --- local variables ----
+       !     --- local variables ----
         integer md1a,md1b,md2a,md2b,md3a,md3b
         integer indexRange(0:1,0:2),isPeriodic(0:2) ! used in call to periodic update
         real ep ! holds the pointer to the TZ function
@@ -41,7 +41,8 @@ c     --- local variables ----
         real jac3di(-2:2,-2:2,-2:2)
         integer orderOfExtrapolation
         logical setCornersToExact
-         ! boundary conditions parameters
+        logical extrapInterpGhost   ! extrapolate ghost points next to boundary interpolation points
+        ! boundary conditions parameters
 ! define BC parameters for fortran routines
 ! boundary conditions
       integer dirichlet,perfectElectricalConductor,
@@ -171,7 +172,7 @@ c     --- local variables ----
         real udds,vdds,wdds,uddt,vddt,wddt
         real maxDivc,maxTauDotLapu,maxExtrap,maxDr3aDotU,dr3aDotU,
      & a1Doturss
-c real uxxx22r,uyyy22r,uxxx42r,uyyy42r,uxxxx22r,uyyyy22r, urrrr2,ussss2
+       ! real uxxx22r,uyyy22r,uxxx42r,uyyy42r,uxxxx22r,uyyyy22r, urrrr2,ussss2
         real urrrr2,ussss2
         real urrs4,urrt4,usst4,urss4,ustt4,urtt4
         real urrs2,urrt2,usst2,urss2,ustt2,urtt2
@@ -190,11 +191,11 @@ c real uxxx22r,uyyy22r,uxxx42r,uyyy42r,uxxxx22r,uyyyy22r, urrrr2,ussss2
       real rsxyxr23,rsxyxs23,rsxyxt23
       real rsxyyr23,rsxyys23,rsxyyt23
       real rsxyzr23,rsxyzs23,rsxyzt23
-c     --- start statement function ----
+       !     --- start statement function ----
         integer kd,m,n
         real rx,ry,rz,sx,sy,sz,tx,ty,tz
-c old: include 'declareDiffOrder2f.h'
-c old: include 'declareDiffOrder4f.h'
+       ! old: include 'declareDiffOrder2f.h'
+       ! old: include 'declareDiffOrder4f.h'
          real d12
          real d22
          real h12
@@ -541,7 +542,7 @@ c old: include 'declareDiffOrder4f.h'
          real uyz42r
          real ulaplacian42r
          real ulaplacian43r
-c.......statement functions for jacobian
+       !.......statement functions for jacobian
         rx(i1,i2,i3)=rsxy(i1,i2,i3,0,0)
         ry(i1,i2,i3)=rsxy(i1,i2,i3,0,1)
         rz(i1,i2,i3)=rsxy(i1,i2,i3,0,2)
@@ -551,7 +552,7 @@ c.......statement functions for jacobian
         tx(i1,i2,i3)=rsxy(i1,i2,i3,2,0)
         ty(i1,i2,i3)=rsxy(i1,i2,i3,2,1)
         tz(i1,i2,i3)=rsxy(i1,i2,i3,2,2)
-c     The next macro call will define the difference approximation statement functions
+       !     The next macro call will define the difference approximation statement functions
         d12(kd) = 1./(2.*dr(kd))
         d22(kd) = 1./(dr(kd)**2)
         ur2(i1,i2,i3,kd)=(u(i1+1,i2,i3,kd)-u(i1-1,i2,i3,kd))*d12(0)
@@ -1282,7 +1283,7 @@ c===============================================================================
      & kd)
         ulaplacian43r(i1,i2,i3,kd)=uxx43r(i1,i2,i3,kd)+uyy43r(i1,i2,i3,
      & kd)+uzz43r(i1,i2,i3,kd)
-c define derivatives of rsxy
+       ! define derivatives of rsxy
       rsxyr2(i1,i2,i3,m,n)=(rsxy(i1+1,i2,i3,m,n)-rsxy(i1-1,i2,i3,m,n))*
      & d12(0)
       rsxys2(i1,i2,i3,m,n)=(rsxy(i1,i2+1,i3,m,n)-rsxy(i1,i2-1,i3,m,n))*
@@ -1502,10 +1503,10 @@ c define derivatives of rsxy
      & rsxyt4(i1,i2,i3,2,2)*rsxyt4(i1,i2,i3,m,n) + tz(i1,i2,i3)*
      & rsxytt4(i1,i2,i3,m,n)
 
-c uxxx22r(i1,i2,i3,kd)=(-2.*(u(i1+1,i2,i3,kd)-u(i1-1,i2,i3,kd))+(u(i1+2,i2,i3,kd)-u(i1-2,i2,i3,kd)) )*h22(0)*h12(0)
-c uyyy22r(i1,i2,i3,kd)=(-2.*(u(i1,i2+1,i3,kd)-u(i1,i2-1,i3,kd))+(u(i1,i2+2,i3,kd)-u(i1,i2-2,i3,kd)) )*h22(1)*h12(1)
-c uxxxx22r(i1,i2,i3,kd)=(6.*u(i1,i2,i3,kd)-4.*(u(i1+1,i2,i3,kd)+u(i1-1,i2,i3,kd))c                         +(u(i1+2,i2,i3,kd)+u(i1-2,i2,i3,kd)) )/(dx(0)**4)
-c uyyyy22r(i1,i2,i3,kd)=(6.*u(i1,i2,i3,kd)-4.*(u(i1,i2+1,i3,kd)+u(i1,i2-1,i3,kd))c                         +(u(i1,i2+2,i3,kd)+u(i1,i2-2,i3,kd)) )/(dx(1)**4)
+       ! uxxx22r(i1,i2,i3,kd)=(-2.*(u(i1+1,i2,i3,kd)-u(i1-1,i2,i3,kd))+(u(i1+2,i2,i3,kd)-u(i1-2,i2,i3,kd)) )*h22(0)*h12(0)
+       ! uyyy22r(i1,i2,i3,kd)=(-2.*(u(i1,i2+1,i3,kd)-u(i1,i2-1,i3,kd))+(u(i1,i2+2,i3,kd)-u(i1,i2-2,i3,kd)) )*h22(1)*h12(1)
+       ! uxxxx22r(i1,i2,i3,kd)=(6.*u(i1,i2,i3,kd)-4.*(u(i1+1,i2,i3,kd)+u(i1-1,i2,i3,kd))!                         +(u(i1+2,i2,i3,kd)+u(i1-2,i2,i3,kd)) )/(dx(0)**4)
+       ! uyyyy22r(i1,i2,i3,kd)=(6.*u(i1,i2,i3,kd)-4.*(u(i1,i2+1,i3,kd)+u(i1,i2-1,i3,kd))!                         +(u(i1,i2+2,i3,kd)+u(i1,i2-2,i3,kd)) )/(dx(1)**4)
         urrrr2(i1,i2,i3,kd)=(6.*u(i1,i2,i3,kd)-4.*(u(i1+1,i2,i3,kd)+u(
      & i1-1,i2,i3,kd))+(u(i1+2,i2,i3,kd)+u(i1-2,i2,i3,kd)) )/(dr(0)**
      & 4)
@@ -1574,7 +1575,7 @@ c uyyyy22r(i1,i2,i3,kd)=(6.*u(i1,i2,i3,kd)-4.*(u(i1,i2+1,i3,kd)+u(i1,i2-1,i3,kd)
      & kd)+128*u(i1+1,i2,i3-1,kd)-128*u(i1-1,i2,i3-1,kd)-16*u(i1+2,i2,
      & i3-1,kd)+16*u(i1-2,i2,i3-1,kd)-30*u(i1-2,i2,i3,kd)+30*u(i1+2,
      & i2,i3,kd))/(144.*dr(2)**2*dr(0))
-c     --- end statement functions ----
+       !     --- end statement functions ----
         ierr=0
         side                 =ipar(0)
         axis                 =ipar(1)
@@ -1676,8 +1677,11 @@ c write(*,'("initializeBoundaryForcing slowStartInterval=",e10.2)') slowStartInt
         ! ****
         ! write(*,'(" bcOpt: t=",e10.2," fieldOption=",i2," ex,ey,hz=",3i3)') t,fieldOption,ex,ey,hz
         !  write(*,'(" ***bcOpt: slowStartInterval,t=",2f10.4," ssf,ssft,ssftt,sfttt=",4f9.4)') slowStartInterval,t,ssf,ssft,ssftt,ssfttt
-c     **************************************************************************
-        extra=-1  ! no need to do corners -- these are already done -- (otherwise causes problems for 4th-order (?))
+        !  --- NOT: extra determines "extra points" in the tangential directions  ----
+        !  extra=-1 by default (if adjacent BC>0) no need to do corners -- these are already done
+        !  extra=numberOfGhostPoints, if bc==0, (set in begin loop over sides)
+        !  extra=0 if bc<0  (set in begin loop over sides)
+        extra=-1
         numberOfGhostPoints=orderOfAccuracy/2
         if( gridType.eq.curvilinear )then
          ! the 4th-order 3d BCs require two steps -- the first step gives initial values at all ghost points
@@ -1875,12 +1879,12 @@ c     **************************************************************************
                  u(i1-is1,i2-is2,i3-is3,en1)=u(i1-is1,i2-is2,i3-is3,
      & en1) - 2.*dx(axis)*(1-2*side)*f(i1,i2,i3,0)/eps
                 end if
-                     call ogf2d(ep,xy(i1-is1,i2-is2,i3,0),xy(i1-is1,i2-
-     & is2,i3,1),t,uvm(0),uvm(1),uvm(2))
-                     call ogf2d(ep,xy(i1,i2,i3,0),xy(i1,i2,i3,1),t,uv0(
-     & 0),uv0(1),uv0(2))
-                     call ogf2d(ep,xy(i1+is1,i2+is2,i3,0),xy(i1+is1,i2+
-     & is2,i3,1),t,uvp(0),uvp(1),uvp(2))
+                     call ogf2dfo(ep,fieldOption,xy(i1-is1,i2-is2,i3,0)
+     & ,xy(i1-is1,i2-is2,i3,1),t,uvm(ex),uvm(ey),uvm(hz))
+                     call ogf2dfo(ep,fieldOption,xy(i1,i2,i3,0),xy(i1,
+     & i2,i3,1),t,uv0(ex),uv0(ey),uv0(hz))
+                     call ogf2dfo(ep,fieldOption,xy(i1+is1,i2+is2,i3,0)
+     & ,xy(i1+is1,i2+is2,i3,1),t,uvp(ex),uvp(ey),uvp(hz))
              ! write(*,'("..bcRectangular: side,axis=",2i3," i1,i2,i3=",3i3," en1,uvm(en1),uvp(en1)=",3e12.4)')!            side,axis,i1,i2,i3,u(i1-is1,i2-is2,i3,en1),uvm(en1),uvp(en1)
                     u(i1-is1,i2-is2,i3,en1)=u(i1-is1,i2-is2,i3,en1) + 
      & uvm(en1) - uvp(en1)
@@ -1904,6 +1908,8 @@ c     **************************************************************************
                   do i3=n3a,n3b
                   do i2=n2a,n2b
                   do i1=n1a,n1b
+                   if( mask(i1,i2,i3).gt.0 )then ! check for mask added 2015/06/01 *wdh*
+                    ! ---- Boundary point is a physical point ---
                     jac=1./(rx(i1-is1,i2-is2,i3-is3)*sy(i1-is1,i2-is2,
      & i3-is3)-ry(i1-is1,i2-is2,i3-is3)*sx(i1-is1,i2-is2,i3-is3))
                     a11 =rsxy(i1-is1,i2-is2,i3-is3,axis  ,0)*jac
@@ -1994,6 +2000,24 @@ c     **************************************************************************
      & /det
                     u(i1-is1,i2-is2,i3-is3,hz)=u(i1+is1,i2+is2,i3+is3,
      & hz) + g2a
+                   else if( mask(i1,i2,i3).lt.0 )then
+                    ! ---- Boundary point is an interpolation point ---
+                    ! extrapolate ghost points:
+                     u(i1-is1,i2-is2,i3-is3,ex)=(3.*u(i1,i2,i3,ex)-3.*
+     & u(i1+is1,i2+is2,i3+is3,ex)+u(i1+2*is1,i2+2*is2,i3+2*is3,ex))
+                     u(i1-is1,i2-is2,i3-is3,ey)=(3.*u(i1,i2,i3,ey)-3.*
+     & u(i1+is1,i2+is2,i3+is3,ey)+u(i1+2*is1,i2+2*is2,i3+2*is3,ey))
+                     u(i1-is1,i2-is2,i3-is3,hz)=(3.*u(i1,i2,i3,hz)-3.*
+     & u(i1+is1,i2+is2,i3+is3,hz)+u(i1+2*is1,i2+2*is2,i3+2*is3,hz))
+                   else
+                     ! boundary point is unused -- extrap for now ??
+                     u(i1-is1,i2-is2,i3-is3,ex)=(3.*u(i1,i2,i3,ex)-3.*
+     & u(i1+is1,i2+is2,i3+is3,ex)+u(i1+2*is1,i2+2*is2,i3+2*is3,ex))
+                     u(i1-is1,i2-is2,i3-is3,ey)=(3.*u(i1,i2,i3,ey)-3.*
+     & u(i1+is1,i2+is2,i3+is3,ey)+u(i1+2*is1,i2+2*is2,i3+2*is3,ey))
+                     u(i1-is1,i2-is2,i3-is3,hz)=(3.*u(i1,i2,i3,hz)-3.*
+     & u(i1+is1,i2+is2,i3+is3,hz)+u(i1+2*is1,i2+2*is2,i3+2*is3,hz))
+                   end if
                   end do
                   end do
                   end do
@@ -2046,6 +2070,8 @@ c     **************************************************************************
                   do i3=n3a,n3b
                   do i2=n2a,n2b
                   do i1=n1a,n1b
+                   if( mask(i1,i2,i3).gt.0 )then ! check for mask added 2015/06/01 *wdh*
+                    ! ---- Boundary point is a physical point ---
                     jac=1./(rx(i1-is1,i2-is2,i3-is3)*sy(i1-is1,i2-is2,
      & i3-is3)-ry(i1-is1,i2-is2,i3-is3)*sx(i1-is1,i2-is2,i3-is3))
                     a11 =rsxy(i1-is1,i2-is2,i3-is3,axis  ,0)*jac
@@ -2124,26 +2150,26 @@ c     **************************************************************************
      & u(i1+js1,i2+js2,i3,hz)-u(i1-js1,i2-js2,i3,hz))/(2.*dsa) )/(
      & rsxy(i1,i2,i3,axis,0)**2+rsxy(i1,i2,i3,axis,1)**2)
                     end if
-                      g1a= a11p1*u(i1+is1,i2+is2,i3,ex)+ a12p1*u(i1+
-     & is1,i2+is2,i3,ey)
-                      call ogf2d(ep,xy(i1-is1,i2-is2,i3,0),xy(i1-is1,
-     & i2-is2,i3,1),t, um,vm,wm)
-                      call ogf2d(ep,xy(i1    ,i2    ,i3,0),xy(i1    ,
-     & i2    ,i3,1),t, u0,v0,w0)
-                      call ogf2d(ep,xy(i1+is1,i2+is2,i3,0),xy(i1+is1,
-     & i2+is2,i3,1),t, up,vp,wp)
-                      g1a=g1a+ (  a11*um+  a12*vm ) - (a11p1*up+a12p1*
-     & vp)
-                      gx2=gx2- (tau1*(2.*u0-up -um) +tau2*(2.*v0-vp -
-     & vm) )
+                      ! Since div(E)=0 for the TZ solutions, we do not need to adjust the BC's
+                      ! *wdh* 2015/05/31 
+                      !* g1a= a11p1*u(i1+is1,i2+is2,i3,ex)+ a12p1*u(i1+is1,i2+is2,i3,ey)
+                      ! Evaluate true solution (fieldOption==0) or its time derivative (fieldOption==1)
+                      !* call ogf2dfo(ep,fieldOption,xy(i1-is1,i2-is2,i3,0),xy(i1-is1,i2-is2,i3,1),t, um,vm,wm)
+                      !* call ogf2dfo(ep,fieldOption,xy(i1    ,i2    ,i3,0),xy(i1    ,i2    ,i3,1),t, u0,v0,w0)
+                      !* call ogf2dfo(ep,fieldOption,xy(i1+is1,i2+is2,i3,0),xy(i1+is1,i2+is2,i3,1),t, up,vp,wp)
+                      !* g1a=g1a+ (  a11*um+  a12*vm ) - (a11p1*up+a12p1*vp)
+                      !* gx2=gx2- (tau1*(2.*u0-up -um) !*          +tau2*(2.*v0-vp -vm) )
                       ! old: g2a=g2a+ wm-wp
-                      ! this is new (040116): check this 
-                      call ogf2d(ep,xy(i1-js1,i2-js2,i3,0),xy(i1-js1,
-     & i2-js2,i3,1),t, uzm,vzm,wzm)
-                      call ogf2d(ep,xy(i1+js1,i2+js2,i3,0),xy(i1+js1,
-     & i2+js2,i3,1),t, uzp,vzp,wzp)
+                      call ogf2dfo(ep,fieldOption,xy(i1-is1,i2-is2,i3,
+     & 0),xy(i1-is1,i2-is2,i3,1),t, um,vm,wm)
+                      call ogf2dfo(ep,fieldOption,xy(i1+is1,i2+is2,i3,
+     & 0),xy(i1+is1,i2+is2,i3,1),t, up,vp,wp)
+                      call ogf2dfo(ep,fieldOption,xy(i1-js1,i2-js2,i3,
+     & 0),xy(i1-js1,i2-js2,i3,1),t, uzm,vzm,wzm)
+                      call ogf2dfo(ep,fieldOption,xy(i1+js1,i2+js2,i3,
+     & 0),xy(i1+js1,i2+js2,i3,1),t, uzp,vzp,wzp)
                       ws = (wzp-wzm)/(2.*dsa)
-                      wr = (wp-wm)/(2.*dra)
+                      wr = (wp - wm)/(2.*dra)
                       wx = rsxy(i1,i2,i3,axis,0)*wr + rsxy(i1,i2,i3,
      & axisp1,0)*ws
                       wy = rsxy(i1,i2,i3,axis,1)*wr + rsxy(i1,i2,i3,
@@ -2164,6 +2190,24 @@ c     **************************************************************************
      & /det
                     u(i1-is1,i2-is2,i3-is3,hz)=u(i1+is1,i2+is2,i3+is3,
      & hz) + g2a
+                   else if( mask(i1,i2,i3).lt.0 )then
+                    ! ---- Boundary point is an interpolation point ---
+                    ! extrapolate ghost points:
+                     u(i1-is1,i2-is2,i3-is3,ex)=(3.*u(i1,i2,i3,ex)-3.*
+     & u(i1+is1,i2+is2,i3+is3,ex)+u(i1+2*is1,i2+2*is2,i3+2*is3,ex))
+                     u(i1-is1,i2-is2,i3-is3,ey)=(3.*u(i1,i2,i3,ey)-3.*
+     & u(i1+is1,i2+is2,i3+is3,ey)+u(i1+2*is1,i2+2*is2,i3+2*is3,ey))
+                     u(i1-is1,i2-is2,i3-is3,hz)=(3.*u(i1,i2,i3,hz)-3.*
+     & u(i1+is1,i2+is2,i3+is3,hz)+u(i1+2*is1,i2+2*is2,i3+2*is3,hz))
+                   else
+                     ! boundary point is unused -- extrap for now ??
+                     u(i1-is1,i2-is2,i3-is3,ex)=(3.*u(i1,i2,i3,ex)-3.*
+     & u(i1+is1,i2+is2,i3+is3,ex)+u(i1+2*is1,i2+2*is2,i3+2*is3,ex))
+                     u(i1-is1,i2-is2,i3-is3,ey)=(3.*u(i1,i2,i3,ey)-3.*
+     & u(i1+is1,i2+is2,i3+is3,ey)+u(i1+2*is1,i2+2*is2,i3+2*is3,ey))
+                     u(i1-is1,i2-is2,i3-is3,hz)=(3.*u(i1,i2,i3,hz)-3.*
+     & u(i1+is1,i2+is2,i3+is3,hz)+u(i1+2*is1,i2+2*is2,i3+2*is3,hz))
+                   end if
                   end do
                   end do
                   end do
@@ -2225,6 +2269,6 @@ c     **************************************************************************
            end if
          end do
          end do
-c     **************************************************************************
+       !     **************************************************************************
         return
         end

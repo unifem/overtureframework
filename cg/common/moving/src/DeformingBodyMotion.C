@@ -205,6 +205,37 @@ DeformingBodyMotion::
 //
 
 // =================================================================================
+/// \brief Output probe info.
+// =================================================================================
+int DeformingBodyMotion::
+outputProbes( GridFunction & gf0, int stepNumber )
+{
+  const real t = gf0.t;
+
+  if( pBeamModel!=NULL )
+  {
+    pBeamModel->outputProbes(t,stepNumber );
+  }
+
+  // **finish me for other deforming body types **
+
+}
+
+//=================================================================================
+/// \brief  Write information to the `check file' (used for regression tests)
+//=================================================================================
+int DeformingBodyMotion::
+writeCheckFile( FILE *file )
+{
+  if( pBeamModel!=NULL )
+  {
+    pBeamModel->writeCheckFile(file);
+  }
+  return 0;
+}
+
+
+// =================================================================================
 /// \brief Write information about the deforming body
 // =================================================================================
 void DeformingBodyMotion::
@@ -1334,7 +1365,7 @@ initialize( CompositeGrid & cg, real t /* = 0. */ )
 	  // Here is the undeformed state
 	  x0=vertex(Ib1,Ib2,Ib3,Rx);
 
-	  ::display(x0,"--DBM-- initialize: x0 (initial state)","%8.2e ");
+	  // ::display(x0,"--DBM-- initialize: x0 (initial state)","%8.2e ");
 
 	  // --- Check for periodic boundary conditions --
 	  MappedGrid & mg = cg[gridToMove];
@@ -1425,7 +1456,7 @@ initialize( CompositeGrid & cg, real t /* = 0. */ )
 	// Here is the undeformed state
         x0=vertex(Ib1,Ib2,Ib3,Rx);
 
-	::display(x0,"--DBM-- initialize: x0 (initial state)","%8.2e ");
+	// ::display(x0,"--DBM-- initialize: x0 (initial state)","%8.2e ");
 
         // Set x1 and x2 equal to the initial state
         x1.redim(Ib1,Ib2,Ib3,Rx); x2.redim(Ib1,Ib2,Ib3,Rx);
@@ -1473,7 +1504,7 @@ initialize( CompositeGrid & cg, real t /* = 0. */ )
 	// Here is the undeformed state
         x0=vertex(Ib1,Ib2,Ib3,Rx);
 
-	if( debug & 1 )
+	if( debug & 3 )
 	  ::display(x0,"--DBM-- initialize: elasticBeam: x0 (initial state)","%8.2e ");
 
 
@@ -1915,7 +1946,7 @@ initializePast( real time00, real dt00, CompositeGrid & cg)
 
           // const RealArray & xBeam = pBeamModel->position(); // current degree's of freedom **FIX ME**
 
-  	  ::display(x0,"--DBM-- initializePast: x0 (initial state)","%9.3e ");
+  	  // ::display(x0,"--DBM-- initializePast: x0 (initial state)","%9.3e ");
 
 	  RealArray xPast;
 	  xPast.redim(x0);
@@ -1926,7 +1957,7 @@ initializePast( real time00, real dt00, CompositeGrid & cg)
             real t0=0.;
 	    pBeamModel->getPastTimeState( pastTime, xPast,  t0, x0 );
 
-            ::display(xPast,sPrintF("--DBM-- initializePast: xPast from BeamModel at t=%9.3e",pastTime),"%9.3e ");
+            // ::display(xPast,sPrintF("--DBM-- initializePast: xPast from BeamModel at t=%9.3e",pastTime),"%9.3e ");
 
 
 	  }
@@ -1977,7 +2008,7 @@ initializePast( real time00, real dt00, CompositeGrid & cg)
 		  for( int dir=0; dir<numberOfDimensions; dir++ )
 		    xPast(Ib1,Ib2,Ib3,dir) += x0(Ib1,Ib2,dir);
 		}
-                ::display(xPast,sPrintF("--DBM-- initializePast: xPast from travelingWaveFsi at t=%9.3e",pastTime),"%9.3e ");
+                // ::display(xPast,sPrintF("--DBM-- initializePast: xPast from travelingWaveFsi at t=%9.3e",pastTime),"%9.3e ");
 
 		// OV_ABORT("TRAVELING WAVE - FINISH ME");
 

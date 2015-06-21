@@ -75,20 +75,40 @@ userDefinedForcing( realArray & f, int iparam[], real rparam[] )
 
   assert( grid>=0 && grid<numberOfComponentGrids );
   MappedGrid & mg = cg[grid];
-  mg.update(MappedGrid::THEvertex | MappedGrid::THEcenter );  // make sure the vertex array has been created
-  const realArray & x = mg.vertex();
 
   // Here is the current solution: 
   realCompositeGridFunction & ucg = cgfields[current];
   realMappedGridFunction & u = ucg[grid];
   
-
   // Access the local arrays on this processor:
-  OV_GET_SERIAL_ARRAY_CONST(real,x,xLocal);
   OV_GET_SERIAL_ARRAY(real,u,uLocal);
   OV_GET_SERIAL_ARRAY(real,f,fLocal);
 
-  int i1,i2,i3;
+  // -- we optimize for Cartesian grids (we can avoid creating the vertex array)
+  const bool isRectangular=mg.isRectangular();
+  if( !isRectangular )
+    mg.update(MappedGrid::THEvertex | MappedGrid::THEcenter);
+  OV_GET_SERIAL_ARRAY(real,mg.center(),xLocal);
+
+  real dvx[3]={1.,1.,1.}, xab[2][3]={{0.,0.,0.},{0.,0.,0.}};
+  int iv0[3]={0,0,0}; //
+  int iv[3], &i1=iv[0], &i2=iv[1], &i3=iv[2];  // NOTE: iv[0]==i1, iv[1]==i2, iv[2]==i3
+  real xv[3]={0.,0.,0.};
+  if( isRectangular )
+  {
+    mg.getRectangularGridParameters( dvx, xab );
+    for( int dir=0; dir<mg.numberOfDimensions(); dir++ )
+    {
+      iv0[dir]=mg.gridIndexRange(0,dir);
+      if( mg.isAllCellCentered() )
+	xab[0][dir]+=.5*dvx[dir];  // offset for cell centered
+    }
+  }
+  // This macro defines the grid points for rectangular grids:
+  #undef XC
+  #define XC(iv,axis) (xab[0][axis]+dvx[axis]*(iv[axis]-iv0[axis]))
+
+
   Index I1,I2,I3;
   getIndex( mg.dimension(),I1,I2,I3 );          // all points including ghost points.
   // getIndex( mg.gridIndexRange(),I1,I2,I3 );  // boundary plus interior points.
@@ -219,6 +239,93 @@ userDefinedForcing( realArray & f, int iparam[], real rparam[] )
       }
     }
   }
+  else if( option=="manufacturedPulse" )
+  {
+    // Manufactured pulse:
+    //   A pulse like solution that requires a forcing function to make it a solution
+    //   Used to test the forcing terms in the equations.
+
+    if( true )
+      printF("--MX-- getUserDefinedForcing: -- eval RHS for manufacturedPulse at t=%9.3e\n",t);
+
+    // --- NOTE: We use the same parameters as for the userDefinedKnownSolution -----
+    if( ! dbase.has_key("userDefinedKnownSolutionData") )
+    {
+      printF("--MX-- getUserDefinedForcing:ERROR: sub-directory `userDefinedKnownSolutionData' not found!\n");
+      OV_ABORT("error");
+    }
+    DataBase & db =  dbase.get<DataBase>("userDefinedKnownSolutionData");
+
+    const aString & userKnownSolution = db.get<aString>("userKnownSolution");
+    assert( userKnownSolution=="manufacturedPulse" );
+
+    real *rpar = db.get<real[20]>("rpar");
+    int *ipar = db.get<int[20]>("ipar");
+
+    const real amp = rpar[0];
+    const real beta= rpar[1];
+    const real x0  = rpar[2];
+    const real y0  = rpar[3];
+    const real z0  = rpar[4];
+    const real cx  = rpar[5];
+    const real cy  = rpar[6];
+    const real cz  = rpar[7];
+
+    const real cSq=c*c;
+
+    real x,y,z;
+    if( numberOfDimensions==2 )
+    {
+      FOR_3D(i1,i2,i3,I1,I2,I3)
+      {
+	if( !isRectangular )
+	{
+	  x= xLocal(i1,i2,i3,0);
+	  y= xLocal(i1,i2,i3,1);
+	}
+	else
+	{
+	  x=XC(iv,0);
+	  y=XC(iv,1);
+	}
+
+        // The forcing function is determined in mx/codes/manufacturedPulse.maple 
+        #include "../codes/manufacturedPulseForcing2d.h"
+
+	fLocal(i1,i2,i3,ex) += FEX;
+	fLocal(i1,i2,i3,ey) += FEY;
+	fLocal(i1,i2,i3,hz) += FHZ;
+
+      }
+    }
+    else
+    {
+      FOR_3D(i1,i2,i3,I1,I2,I3)
+      {
+	if( !isRectangular )
+	{
+	  x= xLocal(i1,i2,i3,0);
+	  y= xLocal(i1,i2,i3,1);
+	  z= xLocal(i1,i2,i3,2);
+	}
+	else
+	{
+	  x=XC(iv,0);
+	  y=XC(iv,1);
+	  z=XC(iv,2);
+	}
+
+        // The forcing function is determined in mx/codes/manufacturedPulse.maple 
+        #include "../codes/manufacturedPulseForcing3d.h"
+
+	fLocal(i1,i2,i3,ex) += FEX;
+	fLocal(i1,i2,i3,ey) += FEY;
+	fLocal(i1,i2,i3,hz) += FEZ;
+
+      }
+    }
+    
+  }
   else
   {
     printF("Maxwell::userDefinedForcing:ERROR: unknown option =[%s]\n",(const char*)option);
@@ -250,6 +357,7 @@ setupUserDefinedForcing()
     "no forcing",
     "gaussian sources",
     "my source",
+    "manufactured pulse",
     "exit",
     ""
   };
@@ -358,6 +466,12 @@ setupUserDefinedForcing()
         gaussianParameters(7,m)=t0;
       }
 
+    }
+    else if( answer=="manufactured pulse" )
+    {
+      option="manufacturedPulse";
+      printF("--MX-- Setting user defined forcing = manufacturedPulse\n");
+      printF("--MX-- You should choose the user defined know solution to also be 'manufactured pulse'\n");
     }
     else 
     {

@@ -76,9 +76,8 @@ AdParameters::
 int AdParameters::
 setParameters(const int & numberOfDimensions0 /* =2 */,const aString & reactionName )
 // ==================================================================================================
-//  /reactionName (input) : optional name of a reaction oe a reaction 
-//     file that defines the chemical reactions, such as
-//      a Chemkin binary file. 
+//  /reactionName (input) : optional name of a reaction or a reaction 
+//     file that defines the chemical reactions, such as a Chemkin binary file. 
 // ==================================================================================================
 {
   int & numberOfComponents     = dbase.get<int>("numberOfComponents");
@@ -102,32 +101,60 @@ setParameters(const int & numberOfDimensions0 /* =2 */,const aString & reactionN
   int s, i;
   //...set component index'es, showVariables, etc. that are equation-specific
 
-  dbase.get<Range >("Rt")= numberOfComponents;
-
-  if( numberOfExtraVariables>0 )
-    numberOfComponents+=numberOfExtraVariables;
-
-  tc=0;    
-  dbase.get<Range >("Rt")=Range( tc,tc);              // time dependent components
-
-  addShowVariable( "T",tc );
-
-
-  delete  componentName;
-  componentName= new aString [ numberOfComponents];
-
-  if( tc>=0 )  componentName[tc]="T";
-
-  if( numberOfExtraVariables>0 )
+  printF("--AD-- AdParameters::setParameters: pdeName=[%s]\n",(const char*)pdeName);
+  if( pdeName=="thinFilmEquations" )
   {
-    aString buff;
-    for( int e=0; e< numberOfExtraVariables; e++ )
-    {
-      int n= numberOfComponents- numberOfExtraVariables+e;
-      componentName[n]=sPrintF(buff,"Var%i",e);
-      addShowVariable(  componentName[n],n );
-    }
+    // --- thin film equations ---
+    //  Unknowns are
+    //        h : height
+    //        q : flux
+    //        s : flourenscence concentration (optional)
+    dbase.get<Range >("Rt")= numberOfComponents;  // "time dependent" components 
+    delete  componentName;
+    componentName= new aString [numberOfComponents];
+    tc=0;
+    componentName[tc  ]="h";
+    if( numberOfComponents>=2 )
+      componentName[tc+1]="p";
+    if( numberOfComponents>=3 )
+      componentName[tc+2]="s";
 
+    addShowVariable( "h",tc );
+    if( numberOfComponents>=2 )
+      addShowVariable( "p",tc+1 );
+    if( numberOfComponents>=3 )
+      addShowVariable( "s",tc+2 );
+  }
+  else
+  {
+    // --- advection diffusion ---
+    dbase.get<Range >("Rt")= numberOfComponents;
+
+    if( numberOfExtraVariables>0 )
+      numberOfComponents+=numberOfExtraVariables;
+
+    tc=0;    
+    dbase.get<Range >("Rt")=Range( tc,tc);              // time dependent components
+
+    addShowVariable( "T",tc );
+
+
+    delete  componentName;
+    componentName= new aString [numberOfComponents];
+
+    if( tc>=0 )  componentName[tc]="T";
+
+    if( numberOfExtraVariables>0 )
+    {
+      aString buff;
+      for( int e=0; e< numberOfExtraVariables; e++ )
+      {
+	int n= numberOfComponents- numberOfExtraVariables+e;
+	componentName[n]=sPrintF(buff,"Var%i",e);
+	addShowVariable(  componentName[n],n );
+      }
+
+    }
   }
   
   std::vector<real> & kappa = dbase.get<std::vector<real> >("kappa");

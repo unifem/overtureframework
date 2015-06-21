@@ -45,13 +45,28 @@ c Optionally solve for E or H or both
 c Optionally add the dissipation and or forcing terms
 
 
-c Optionally add add the dissipation and or forcing terms
+c Optionally add the dissipation and or forcing terms
 c Optionally solve for E or H or both
 
-c The next macro is used for curvilinear girds where the Laplacian term is precomputed.
+! The next macro is used for curvilinear girds where the Laplacian term is precomputed.
 
-c The next macro is used for curvilinear girds where the Laplacian term is precomputed.
-c Optionally add dissipation too
+! -------------------------------------------------------------------------------------------
+! The next macro is used for curvilinear girds where the Laplacian term is precomputed.
+! Optionally add dissipation too
+! -------------------------------------------------------------------------------------------
+
+
+! -------------------------------------------------------------------------------------------
+! The next macro is used for curvilinear girds where the Laplacian term is precomputed.
+! Optionally add dissipation too
+! -------------------------------------------------------------------------------------------
+
+! -------------------------------------------------------------------------------------------
+! The next macro is used for curvilinear girds where the Laplacian term is precomputed.
+! Optionally add dissipation too
+! -------------------------------------------------------------------------------------------
+
+
 
 
 
@@ -74,12 +89,13 @@ c Optionally add the dissipation and or forcing terms
 c ==== loops for curvilinear, with forcing, dissipation in 2D
 c Optionally add the dissipation and or forcing terms
 
-c **********************************************************************************
-c NAME: name of the subroutine
-c DIM : 2 or 3
-c ORDER : 2 ,4, 6 or 8
-c GRIDTYPE : rectangular, curvilinear
-c **********************************************************************************
+! **********************************************************************************
+! Macro ADV_MAXWELL:
+!  NAME: name of the subroutine
+!  DIM : 2 or 3
+!  ORDER : 2 ,4, 6 or 8
+!  GRIDTYPE : rectangular, curvilinear
+! **********************************************************************************
 
 
 
@@ -109,8 +125,8 @@ c build an empty version of high order files so we do not have to compile the fu
 
 
       subroutine advMaxwell(nd,n1a,n1b,n2a,n2b,n3a,n3b,nd1a,nd1b,nd2a,
-     & nd2b,nd3a,nd3b,nd4a,nd4b,mask,rx,  um,u,un,f, v,vvt2,ut3,vvt4,
-     & ut5,ut6,ut7, bc, dis, varDis, ipar, rpar, ierr )
+     & nd2b,nd3a,nd3b,nd4a,nd4b,mask,rx,  um,u,un,f,fa, v,vvt2,ut3,
+     & vvt4,ut5,ut6,ut7, bc, dis, varDis, ipar, rpar, ierr )
 c======================================================================
 c   Advance a time step for Maxwells eqution
 c     OPTIMIZED version for rectangular grids.
@@ -127,6 +143,7 @@ c======================================================================
       real u(nd1a:nd1b,nd2a:nd2b,nd3a:nd3b,nd4a:nd4b)
       real un(nd1a:nd1b,nd2a:nd2b,nd3a:nd3b,nd4a:nd4b)
       real f(nd1a:nd1b,nd2a:nd2b,nd3a:nd3b,nd4a:nd4b)
+      real fa(nd1a:nd1b,nd2a:nd2b,nd3a:nd3b,nd4a:nd4b,0:*)  ! forcings at different times
       real v(nd1a:nd1b,nd2a:nd2b,nd3a:nd3b,nd4a:nd4b)
       real vvt2(nd1a:nd1b,nd2a:nd2b,nd3a:nd3b,nd4a:nd4b)
       real ut3(nd1a:nd1b,nd2a:nd2b,nd3a:nd3b,nd4a:nd4b)
@@ -164,20 +181,20 @@ c...........end   statement functions
 
         if( nd.eq.2 .and. gridType.eq.rectangular ) then
           call advMx2dOrder2r(nd,n1a,n1b,n2a,n2b,n3a,n3b,nd1a,nd1b,
-     & nd2a,nd2b,nd3a,nd3b,nd4a,nd4b,mask,rx, um,u,un,f, v,vvt2,ut3,
-     & vvt4,ut5,ut6,ut7,bc, dis,varDis, ipar, rpar, ierr )
+     & nd2a,nd2b,nd3a,nd3b,nd4a,nd4b,mask,rx, um,u,un,f,fa, v,vvt2,
+     & ut3,vvt4,ut5,ut6,ut7,bc, dis,varDis, ipar, rpar, ierr )
         else if( nd.eq.2 .and. gridType.eq.curvilinear ) then
           call advMx2dOrder2c(nd,n1a,n1b,n2a,n2b,n3a,n3b,nd1a,nd1b,
-     & nd2a,nd2b,nd3a,nd3b,nd4a,nd4b,mask,rx, um,u,un,f, v,vvt2,ut3,
-     & vvt4,ut5,ut6,ut7,bc, dis,varDis, ipar, rpar, ierr )
+     & nd2a,nd2b,nd3a,nd3b,nd4a,nd4b,mask,rx, um,u,un,f,fa, v,vvt2,
+     & ut3,vvt4,ut5,ut6,ut7,bc, dis,varDis, ipar, rpar, ierr )
         else if( nd.eq.3 .and. gridType.eq.rectangular ) then
           call advMx3dOrder2r(nd,n1a,n1b,n2a,n2b,n3a,n3b,nd1a,nd1b,
-     & nd2a,nd2b,nd3a,nd3b,nd4a,nd4b,mask,rx, um,u,un,f, v,vvt2,ut3,
-     & vvt4,ut5,ut6,ut7,bc, dis,varDis, ipar, rpar, ierr )
+     & nd2a,nd2b,nd3a,nd3b,nd4a,nd4b,mask,rx, um,u,un,f,fa, v,vvt2,
+     & ut3,vvt4,ut5,ut6,ut7,bc, dis,varDis, ipar, rpar, ierr )
         else if( nd.eq.3 .and. gridType.eq.curvilinear ) then
           call advMx3dOrder2c(nd,n1a,n1b,n2a,n2b,n3a,n3b,nd1a,nd1b,
-     & nd2a,nd2b,nd3a,nd3b,nd4a,nd4b,mask,rx, um,u,un,f, v,vvt2,ut3,
-     & vvt4,ut5,ut6,ut7,bc, dis,varDis, ipar, rpar, ierr )
+     & nd2a,nd2b,nd3a,nd3b,nd4a,nd4b,mask,rx, um,u,un,f,fa, v,vvt2,
+     & ut3,vvt4,ut5,ut6,ut7,bc, dis,varDis, ipar, rpar, ierr )
         else
           stop 2271
         end if
@@ -185,20 +202,20 @@ c...........end   statement functions
       else if( orderOfAccuracy.eq.4 ) then
         if( nd.eq.2 .and. gridType.eq.rectangular )then
           call advMx2dOrder4r(nd,n1a,n1b,n2a,n2b,n3a,n3b,nd1a,nd1b,
-     & nd2a,nd2b,nd3a,nd3b,nd4a,nd4b,mask,rx, um,u,un,f, v,vvt2,ut3,
-     & vvt4,ut5,ut6,ut7,bc, dis,varDis, ipar, rpar, ierr )
+     & nd2a,nd2b,nd3a,nd3b,nd4a,nd4b,mask,rx, um,u,un,f,fa, v,vvt2,
+     & ut3,vvt4,ut5,ut6,ut7,bc, dis,varDis, ipar, rpar, ierr )
         else if(nd.eq.2 .and. gridType.eq.curvilinear )then
           call advMx2dOrder4c(nd,n1a,n1b,n2a,n2b,n3a,n3b,nd1a,nd1b,
-     & nd2a,nd2b,nd3a,nd3b,nd4a,nd4b,mask,rx, um,u,un,f, v,vvt2,ut3,
-     & vvt4,ut5,ut6,ut7,bc, dis,varDis, ipar, rpar, ierr )
+     & nd2a,nd2b,nd3a,nd3b,nd4a,nd4b,mask,rx, um,u,un,f,fa, v,vvt2,
+     & ut3,vvt4,ut5,ut6,ut7,bc, dis,varDis, ipar, rpar, ierr )
         else if(  nd.eq.3 .and. gridType.eq.rectangular )then
           call advMx3dOrder4r(nd,n1a,n1b,n2a,n2b,n3a,n3b,nd1a,nd1b,
-     & nd2a,nd2b,nd3a,nd3b,nd4a,nd4b,mask,rx, um,u,un,f, v,vvt2,ut3,
-     & vvt4,ut5,ut6,ut7,bc, dis,varDis, ipar, rpar, ierr )
+     & nd2a,nd2b,nd3a,nd3b,nd4a,nd4b,mask,rx, um,u,un,f,fa, v,vvt2,
+     & ut3,vvt4,ut5,ut6,ut7,bc, dis,varDis, ipar, rpar, ierr )
         else if(  nd.eq.3 .and. gridType.eq.curvilinear )then
           call advMx3dOrder4c(nd,n1a,n1b,n2a,n2b,n3a,n3b,nd1a,nd1b,
-     & nd2a,nd2b,nd3a,nd3b,nd4a,nd4b,mask,rx, um,u,un,f, v,vvt2,ut3,
-     & vvt4,ut5,ut6,ut7,bc, dis,varDis, ipar, rpar, ierr )
+     & nd2a,nd2b,nd3a,nd3b,nd4a,nd4b,mask,rx, um,u,un,f,fa, v,vvt2,
+     & ut3,vvt4,ut5,ut6,ut7,bc, dis,varDis, ipar, rpar, ierr )
        else
          stop 8843
        end if
@@ -207,20 +224,20 @@ c
       else if( orderOfAccuracy.eq.6 ) then
         if( nd.eq.2 .and. gridType.eq.rectangular )then
           call advMx2dOrder6r(nd,n1a,n1b,n2a,n2b,n3a,n3b,nd1a,nd1b,
-     & nd2a,nd2b,nd3a,nd3b,nd4a,nd4b,mask,rx, um,u,un,f, v,vvt2,ut3,
-     & vvt4,ut5,ut6,ut7,bc, dis,varDis, ipar, rpar, ierr )
+     & nd2a,nd2b,nd3a,nd3b,nd4a,nd4b,mask,rx, um,u,un,f,fa, v,vvt2,
+     & ut3,vvt4,ut5,ut6,ut7,bc, dis,varDis, ipar, rpar, ierr )
         else if(nd.eq.2 .and. gridType.eq.curvilinear )then
           call advMx2dOrder6c(nd,n1a,n1b,n2a,n2b,n3a,n3b,nd1a,nd1b,
-     & nd2a,nd2b,nd3a,nd3b,nd4a,nd4b,mask,rx, um,u,un,f, v,vvt2,ut3,
-     & vvt4,ut5,ut6,ut7,bc, dis,varDis, ipar, rpar, ierr )
+     & nd2a,nd2b,nd3a,nd3b,nd4a,nd4b,mask,rx, um,u,un,f,fa, v,vvt2,
+     & ut3,vvt4,ut5,ut6,ut7,bc, dis,varDis, ipar, rpar, ierr )
         else if(  nd.eq.3 .and. gridType.eq.rectangular )then
           call advMx3dOrder6r(nd,n1a,n1b,n2a,n2b,n3a,n3b,nd1a,nd1b,
-     & nd2a,nd2b,nd3a,nd3b,nd4a,nd4b,mask,rx, um,u,un,f, v,vvt2,ut3,
-     & vvt4,ut5,ut6,ut7,bc, dis,varDis, ipar, rpar, ierr )
+     & nd2a,nd2b,nd3a,nd3b,nd4a,nd4b,mask,rx, um,u,un,f,fa, v,vvt2,
+     & ut3,vvt4,ut5,ut6,ut7,bc, dis,varDis, ipar, rpar, ierr )
         else if(  nd.eq.3 .and. gridType.eq.curvilinear )then
           call advMx3dOrder6c(nd,n1a,n1b,n2a,n2b,n3a,n3b,nd1a,nd1b,
-     & nd2a,nd2b,nd3a,nd3b,nd4a,nd4b,mask,rx, um,u,un,f, v,vvt2,ut3,
-     & vvt4,ut5,ut6,ut7,bc, dis,varDis, ipar, rpar, ierr )
+     & nd2a,nd2b,nd3a,nd3b,nd4a,nd4b,mask,rx, um,u,un,f,fa, v,vvt2,
+     & ut3,vvt4,ut5,ut6,ut7,bc, dis,varDis, ipar, rpar, ierr )
        else
          stop 8843
        end if
@@ -229,20 +246,20 @@ c
 
         if( nd.eq.2 .and. gridType.eq.rectangular )then
           call advMx2dOrder8r(nd,n1a,n1b,n2a,n2b,n3a,n3b,nd1a,nd1b,
-     & nd2a,nd2b,nd3a,nd3b,nd4a,nd4b,mask,rx, um,u,un,f, v,vvt2,ut3,
-     & vvt4,ut5,ut6,ut7,bc, dis,varDis, ipar, rpar, ierr )
+     & nd2a,nd2b,nd3a,nd3b,nd4a,nd4b,mask,rx, um,u,un,f,fa, v,vvt2,
+     & ut3,vvt4,ut5,ut6,ut7,bc, dis,varDis, ipar, rpar, ierr )
         else if(nd.eq.2 .and. gridType.eq.curvilinear )then
           call advMx2dOrder8c(nd,n1a,n1b,n2a,n2b,n3a,n3b,nd1a,nd1b,
-     & nd2a,nd2b,nd3a,nd3b,nd4a,nd4b,mask,rx, um,u,un,f, v,vvt2,ut3,
-     & vvt4,ut5,ut6,ut7,bc, dis,varDis, ipar, rpar, ierr )
+     & nd2a,nd2b,nd3a,nd3b,nd4a,nd4b,mask,rx, um,u,un,f,fa, v,vvt2,
+     & ut3,vvt4,ut5,ut6,ut7,bc, dis,varDis, ipar, rpar, ierr )
         else if(  nd.eq.3 .and. gridType.eq.rectangular )then
           call advMx3dOrder8r(nd,n1a,n1b,n2a,n2b,n3a,n3b,nd1a,nd1b,
-     & nd2a,nd2b,nd3a,nd3b,nd4a,nd4b,mask,rx, um,u,un,f, v,vvt2,ut3,
-     & vvt4,ut5,ut6,ut7,bc, dis,varDis, ipar, rpar, ierr )
+     & nd2a,nd2b,nd3a,nd3b,nd4a,nd4b,mask,rx, um,u,un,f,fa, v,vvt2,
+     & ut3,vvt4,ut5,ut6,ut7,bc, dis,varDis, ipar, rpar, ierr )
         else if(  nd.eq.3 .and. gridType.eq.curvilinear )then
           call advMx3dOrder8c(nd,n1a,n1b,n2a,n2b,n3a,n3b,nd1a,nd1b,
-     & nd2a,nd2b,nd3a,nd3b,nd4a,nd4b,mask,rx, um,u,un,f, v,vvt2,ut3,
-     & vvt4,ut5,ut6,ut7,bc, dis,varDis, ipar, rpar, ierr )
+     & nd2a,nd2b,nd3a,nd3b,nd4a,nd4b,mask,rx, um,u,un,f,fa, v,vvt2,
+     & ut3,vvt4,ut5,ut6,ut7,bc, dis,varDis, ipar, rpar, ierr )
        else
          stop 8843
        end if

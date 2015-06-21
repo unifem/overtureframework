@@ -2567,7 +2567,7 @@ contour1d(GenericGraphicsInterface &gi, const realGridCollectionFunction & uGCF,
 //    }
 
   const int numberOfLineColours=6, numberOfLineMarkers=16;
-  aString lineColour[numberOfLineColours] = {"blue","red","green","yellow","violetred","orange"};
+  aString lineColour[numberOfLineColours] = {"blue","red","green","cyan","violetred","orange"};
   aString lineMarker[numberOfLineMarkers] = {"A","B","C","D","E","F","G","H","I","J","K","L","M","N","O","P"};
 
   if( componentsToPlot.getLength(0)==0 )

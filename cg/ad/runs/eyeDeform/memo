@@ -1,0 +1,85 @@
+==================================================================================
+Grids:
+  ogen -noplot realEyeGrid -order=2 -interp=e -factor=1 
+  ogen -noplot realEyeGrid -order=2 -interp=e -factor=2 
+
+==================================================================================
+
+****************
+***** June 21, 2015
+
+--- test TZ
+cgad -noplot eyeDeform -g=realEyeGride2.order2.hdf -motion=realDeformingEye -kappa=.002 -tf=10. -tp=.05 -tz=trig -ic=pulse -alphaPulse=40. -x0=-.5 -y0=-.05 -bc=n -ts=bdf -a=0.1 -b=0.0 -ampb=-.4 -implicitAdvection=1 -evalGridAsNurbs=1 -pde=thinFilm  -go=og
+
+
+NOTE: trig looks second order with NO geometric stretching on hype grid
+
+--- TRIG TZ: implicit
+cgad tz -g=realEyeGride1.order2.hdf -tz=trig -fx=2. -fy=1. =ft=1. -kappa=.1 -ts=implicit -tp=.1 -tf=1. -bdfOrder=2 -bc=d -a=1. -b=1 -go=og
+
+G4: -- no geometric stretching
+    t    err(T)    uMax     dt       cpu    mem (Mb) (89 steps)
+   0.100 2.03e-05 9.51e-01 1.11e-03 8.03e+01        0
+
+G2: -- no geometric strteching:
+     t    err(T)    uMax     dt       cpu    mem (Mb) (48 steps)
+   0.100 8.16e-05 9.51e-01 2.04e-03 5.45e+00        0
+G1-- no geometric strteching:
+     t    err(T)    uMax     dt       cpu    mem (Mb) (40 steps)
+   0.100 6.46e-04 9.51e-01 2.44e-03 4.72e+00        0
+
+
+G4:
+     t    err(T)    uMax     dt       cpu    mem (Mb) (5 steps)
+   0.010 3.38e-04 1.00e+00 1.67e-03 4.01e+00        0
+   0.100 3.84e-04 9.51e-01 1.67e-03 7.94e+01        0
+
+G2
+     t    err(T)    uMax     dt       cpu    mem (Mb) (4 steps)
+   0.010 1.03e-03 1.00e+00 2.00e-03 1.74e+01        0
+
+
+--- TRIG TZ:
+cgad tz -g=realEyeGride2.order2.hdf -tz=trig -fx=2. -fy=1. =ft=1. -kappa=.1 -ts=pc2 -tp=.01 -tf=.05 -bdfOrder=2 -bc=d -a=1. -b=1 -go=og
+cgad tz -g=realEyeGride1.order2.hdf -tz=trig -fx=2. -fy=1. =ft=1. -kappa=.1 -ts=pc2 -tp=.01 -tf=.05 -bdfOrder=2 -bc=d -a=1. -b=1 -go=og
+
+G4: nurbs: 
+     t    err(T)    uMax     dt       cpu    mem (Mb) (1841 steps)
+   0.010 1.47e-04 1.00e+00 5.40e-06 2.38e+02        0
+G2: nurbs: 
+     t    err(T)    uMax     dt       cpu    mem (Mb) (462 steps)
+   0.010 3.57e-04 1.00e+00 2.16e-05 2.37e+01        0
+G1: nurbs:
+     t    err(T)    uMax     dt       cpu    mem (Mb) (366 steps)
+   0.010 1.02e-03 1.00e+00 2.72e-05 9.64e+00   
+
+G2:
+     t    err(T)    uMax     dt       cpu    mem (Mb) (454 steps)
+   0.010 9.83e-04 1.00e+00 2.18e-05 2.47e+01        0
+G1:
+     t    err(T)    uMax     dt       cpu    mem (Mb) (365 steps)
+   0.010 3.08e-03 1.00e+00 2.72e-05 1.49e+01        0
+
+
+
+
+-- POLY TZ
+cgad tz -g=realEyeGride2.order2.hdf -degreex=2 -degreet=2 -kappa=.1 -ts=pc2 -tp=.01 -tf=.05 -bdfOrder=2 -bc=d -a=1. -b=1 -go=og
+cgad tz -g=realEyeGride1.order2.hdf -degreex=2 -degreet=2 -kappa=.1 -ts=pc2 -tp=.01 -tf=.05 -bdfOrder=2 -bc=d -a=1. -b=1 -go=og
+
+G2: 
+     t    err(T)    uMax     dt       cpu    mem (Mb) (454 steps)
+   0.010 7.66e-04 3.67e+00 2.18e-05 7.19e+00 
+G1:
+     t    err(T)    uMax     dt       cpu    mem (Mb) (365 steps)
+   0.010 2.76e-03 3.67e+00 2.72e-05 5.49e+00 
+
+****************
+***** May 12, 2015 -- Test EyeCurves class that defines real eye motion
+
+-- show file: 
+cgad eyeDeform -g=realEyeGride2.order2.hdf -motion=realDeformingEye -kappa=.002 -tf=10. -tp=.05 -tz=none -ic=pulse -alphaPulse=40. -x0=-.5 -y0=-.05 -bc=n -ts=bdf -a=0.1 -b=0.0 -ampb=-.4 -implicitAdvection=1 -evalGridAsNurbs=1 -pde=thinFilm -show="realEye.show" -go=halt
+
+
+cgad eyeDeform -g=realEyeGride2.order2.hdf -motion=realDeformingEye -kappa=.005 -tf=10. -tp=.1 -tz=none -ic=pulse -alphaPulse=80. -x0=.0 -y0=0 -bc=n -ts=bdf -a=0 -b=0 -ampb=-.4 -implicitAdvection=1 -evalGridAsNurbs=1 -pde=thinFilm -go=halt
+

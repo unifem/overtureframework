@@ -21,6 +21,12 @@
 
 --------- Things to do: -----------
 
+2015 : fix Block PARTI function datamove.c -- no need to send messages in blocks of processors.
+       c.f. study by Jeff B. for Loki
+
+
+2015 : fix menu of contour plotter 1D : used dialogs
+
 0801 : fix plotting of stream line arrows for "do not keep aspect ratio"
      : fix problem with "clear" -> "plot" : stream-lines do not appear
 

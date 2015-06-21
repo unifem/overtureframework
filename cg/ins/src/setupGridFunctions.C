@@ -87,20 +87,36 @@ setupGridFunctions()
   return DomainSolver::setupGridFunctions();
 }
 
-//\begin{>>CompositeGridSolverInclude.tex}{\subsection{initializeSolution}} 
+//=========================================================================================
+/// \brief Initialize the solution, project velocity if required.
+///  The initial conditions should have already been assigned in setParameters.
+//=========================================================================================
 int Cgins::
 initializeSolution()
-//=========================================================================================
-// /Description:
-//    Initialize the solution, project velocity if required.
-//  The initial conditions should have already been assigned in setParameters.
-//
-//\end{CompositeGridSolverInclude.tex}  
-//=========================================================================================
 {
 
   DomainSolver::initializeSolution();
 
+  // -- compute the pressure on moving grids when the pressure and body accelerations are coupled --
+  projectInitialConditionsForMovingGrids(current);
+  
+  dt= getTimeStep( gf[current] ); 
+  parameters.dbase.get<real >("dt")=dt;
+
+  return 0;
+}
+
+
+
+// ===================================================================================================================
+/// \brief project initial conditions for moving AND non-moving grids.
+/// \details For some problems the initial conditions need to be adjusted for moving grids, e.g. the
+///    initial pressure for the INS may be coupled to the initial acceleration of moving modies. 
+/// \gfIndex (input) : assign gf[gfIndex] at time gf[gfIndex].t 
+// ===================================================================================================================
+int Cgins::
+projectInitialConditionsForMovingGrids(int gfIndex)
+{
   const bool & twilightZoneFlow = parameters.dbase.get<bool >("twilightZoneFlow");
   if( !twilightZoneFlow )
   {
@@ -114,50 +130,48 @@ initializeSolution()
     if( movingGridProblem() && useMovingGridSubIterations  )
       numberOfCorrections= parameters.dbase.get<int>("numberOfPCcorrections"); 
 
-    printF("--INS--::initializeSolution:useMovingGridSubIterations=%i numberOfCorrections=%i\n",(int)useMovingGridSubIterations,
+    printF("--INS--::projectInitialConditionsForMovingGrids: useMovingGridSubIterations=%i numberOfCorrections=%i\n",(int)useMovingGridSubIterations,
 	   numberOfCorrections);
 
     for( int correction=0; correction<numberOfCorrections; correction++ )
     {
       // define initial forces on moving bodies -- we really should iterate here since the 
       // forces depend on the pressure and the pressure depends on the forces.
-      if( movingGridProblem() && gf[current].t==0. )
-	correctMovingGrids( gf[current].t, gf[current].t,gf[current],gf[current] ); 
+      if( movingGridProblem() && gf[gfIndex].t==0. )
+	correctMovingGrids( gf[gfIndex].t, gf[gfIndex].t,gf[gfIndex],gf[gfIndex] ); 
       
       // -- compute any body forcing since the pressure may depend on this ---
-      const real tForce = gf[current].t; // evaluate the body force at this time
-      computeBodyForcing( gf[current], tForce );
+      const real tForce = gf[gfIndex].t; // evaluate the body force at this time
+      computeBodyForcing( gf[gfIndex], tForce );
 
       if( !parameters.dbase.get<bool >("projectInitialConditions") ) // TEMP fix for Joel's bug
-	updateDivergenceDamping( gf[current].cg,true );
+	updateDivergenceDamping( gf[gfIndex].cg,true );
     
       // Evaluate the initial pressure field:
-      printF("--INS--::initializeSolution:Solve for the initial pressure field, dt=%9.3e (correction=%i) \n",
-	     parameters.dbase.get<real >("dt"),correction);
-      solveForTimeIndependentVariables( gf[current] );     
+      if( correction==0 )
+	printF("--INS--::initializeSolution:Solve for the initial pressure field, dt=%9.3e (correction=%i) \n",
+	       parameters.dbase.get<real >("dt"),correction);
+      solveForTimeIndependentVariables( gf[gfIndex] );     
 
+      bool isConverged = getMovingGridCorrectionHasConverged();
       if( movingGridProblem() && useMovingGridSubIterations )
       {
 	if( true || debug() & 2 )
 	{
-	  bool isConverged = getMovingGridCorrectionHasConverged();
+	  if( correction==0 ) isConverged=false;  // Make at least 2 correction steps *wdh* 2015/06/07
+
 	  real delta = getMovingGridMaximumRelativeCorrection();
-	  printF("--INS--: moving grid correction step : delta =%8.2e (correction=%i, isConverged=%i)\n",
+	  printF("--INS--:projectInitialConditionsForMovingGrids: moving grid correction step : delta =%8.2e (correction=%i, isConverged=%i)\n",
 		 delta,correction,(int)isConverged);
 	}
       }
       
 
-      bool isConverged = getMovingGridCorrectionHasConverged();
       if( isConverged )
 	break;
     }
     
   }
-  
-  dt= getTimeStep( gf[current] ); 
-  parameters.dbase.get<real >("dt")=dt;
 
   return 0;
 }
-

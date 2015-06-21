@@ -11,7 +11,6 @@ NODEP := $(strip $(filter usage doc clean cleano cleanc cleandep,$(MAKECMDGOALS)
 # sparse solver packages:
 usePETSc   := on
 useSuperLU := off
-useOgmg    := on
 
 include configFile
 include $(CONFIGDIR)/make.dirs
