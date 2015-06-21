@@ -60,3 +60,11 @@ the master versions).
 
 (2.8) Checkout:
       git checkout fileName
+
+(2.9) Aliases: here are aliases I use: 
+
+alias gita 'git add -u -v .'
+alias gitc 'git commit -m"wdh"'
+alias gits 'git status --untracked-files=no'
+alias gitpush 'git push origin master'
+alias gitpull 'git pull --rebase'

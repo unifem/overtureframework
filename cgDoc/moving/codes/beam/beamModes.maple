@@ -1,0 +1,28 @@
+# currentdir("/Users/henshaw/overtureFramework/cgDoc/moving/codes/beam");
+# restart; read "beamModes.maple";
+#
+#  Compute eigenvalues of the Euler-Bernoulli beam
+# 
+
+Digits:=32;
+
+# Beam on [0,L]
+
+# BC's : clamped-clamped
+
+# Secular equation:
+#      cosh(x)*cos(x)=1   ,   x=lambda*L
+
+
+f := cosh(x)*cos(x)-1;
+
+plot(f,x=3..12);
+
+
+lambda1 := fsolve( f=0, x=4.7 );
+printf(" C-C : lambda1=%22.16e\n",lambda1);
+lambda2 := fsolve( f=0, x=7.8 );
+printf(" C-C : lambda2=%22.16e\n",lambda2);
+lambda3 := fsolve( f=0, x=11. );
+printf(" C-C : lambda3=%22.16e\n",lambda3);
+

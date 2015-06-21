@@ -1,0 +1,8 @@
+# currentdir("/Users/henshaw/overtureFramework/cgDoc/moving/codes/beam");
+# restart; read "beambc.maple";
+#
+#  Compute boundary condition approximations for the BeamModel class SMOOTHER
+# 
+
+
+

@@ -296,8 +296,8 @@ with $\chi_i=\phi_i$ or $\chi_i=\psi_i$, $i=1,2,\ldots,\Nn$. Written out,
 \end{align}
 where 
 \begin{align}
-  M_{ij} &= \left( \chi_i,  \rhos \As \frac{\partial^2 \phi_j}{\partial t^2} \right)_B , \\
-  \Mt_{ij} &= \left( \chi_i,  \rhos \As \frac{\partial^2 \psi_j}{\partial t^2} \right)_B , \\
+  M_{ij} &= \left( \chi_i,  \rhos \As \phi_j \right)_B , \\
+  \Mt_{ij} &= \left( \chi_i,  \rhos \As \psi_j \right)_B , \\
 % 
   K_{ij} &= 
              \left( \chi_i , K_0 \phi_j \right)_B
@@ -307,13 +307,13 @@ where
                 + \left( \frac{\partial \chi_i}{\partial x} , T \frac{\partial \psi_j}{\partial x} \right)_B
                 + \left(\frac{\partial^2 \chi_i}{\partial x^2}, E I \frac{\partial^2 \psi_j}{\partial x^2}\right)_B, \\
 % 
-  B_{ij} &=  K_t \left( \chi_i , \dot\phi_j \right)_B
-            + K_{xxt} \left( \frac{\partial \chi_i}{\partial x} , \frac{\partial \dot\phi_j}{\partial x} \right)_B 
-            + K_{xxxxt} \left(\frac{\partial^2 \chi_i}{\partial x^2}, \frac{\partial^2 \dot\phi_j}{\partial x^2}\right)_B, \\
+  B_{ij} &=  K_t \left( \chi_i , \phi_j \right)_B
+            + K_{xxt} \left( \frac{\partial \chi_i}{\partial x} , \frac{\partial \phi_j}{\partial x} \right)_B 
+            + K_{xxxxt} \left(\frac{\partial^2 \chi_i}{\partial x^2}, \frac{\partial^2 \phi_j}{\partial x^2}\right)_B, \\
 % 
-  \Bt_{ij} &=  K_t \left( \chi_i , \dot\psi_j \right)_B
-            + K_{xxt} \left( \frac{\partial \chi_i}{\partial x} , \frac{\partial \dot\psi_j}{\partial x} \right)_B
-            + K_{xxxxt} \left(\frac{\partial^2 \chi_i}{\partial x^2}, \frac{\partial^2 \dot\psi_j}{\partial x^2}\right)_B ,  
+  \Bt_{ij} &=  K_t \left( \chi_i , \psi_j \right)_B
+            + K_{xxt} \left( \frac{\partial \chi_i}{\partial x} , \frac{\partial \psi_j}{\partial x} \right)_B
+            + K_{xxxxt} \left(\frac{\partial^2 \chi_i}{\partial x^2}, \frac{\partial^2 \psi_j}{\partial x^2}\right)_B ,  
 \end{align}
 with $\chi_i=\phi_i$ or $\chi_i=\psi_i$, $i=1,2,\ldots,\Nn$.
 This can be written as the matrix differential equation
@@ -593,7 +593,7 @@ these.
 
 
 % --------------------------------------------------------------------------------------------------------------------
-\subsection{Time-stepping}
+\subsection{Newmark-beta time-stepping}
 The Newmark-beta scheme for the matrix ODE 
 \begin{align*}
    M \ddot\uv = -B \dot\uv - K \uv + \fv ,
@@ -607,14 +607,33 @@ is an implicit scheme defined by
 where $\uv^n$ is the displacement, $\vv^n$ the velocity and $\av^n$ the acceleration at time $t^n$. 
 Each time step requires the solution of the implicit system
 \begin{align}
- &  \Big[ M + \gamma\dt B + \beta\dt^2 K \Big] \av^{n+1} =
+  \Big[ M + \gamma\dt B + \beta\dt^2 K \Big] \av^{n+1} &=
       \fv^{n+1} 
-      - B \Big[ \vv^n + (1-\gamma) \dt \av^n \Big] 
-      - K\Big[ \uv^n + \dt\vv^n + \frac{\dt^2}{2} (1-2\beta) \av^n \Big] 
+      - B \Big[ \vv^n + (1-\gamma) \dt \av^n \Big] \nonumber \\
+    &  - K\Big[ \uv^n + \dt\vv^n + \frac{\dt^2}{2} (1-2\beta) \av^n \Big] 
    \label{eq:NewmarkMatrix}
 \end{align}
 to determine the acceleration $\av^{n+1}$. 
 The scheme is second-order accurate and unconditionally stable for $2\beta=\half$ and $\gamma=\half$. 
+
+The Newmark-beta scheme is applied in a predictor-corrector mode for FSI problems when the forcing 
+may not be known at the new time during the predictor stage.
+The first-order predictor is
+\begin{align*}
+ &  \uv^{p} = \uv^n + \dt\vv^n + \frac{\dt^2}{2}\Big[ (1-2\beta) \av^n  \Big],  \\
+ &  \vv^{p} = \vv^n + \dt\Big[  (1-\gamma) \av^n \Big]    .
+\end{align*}
+The second-order predictor is
+\begin{align*}
+ &  \uv^{p} = \uv^n + \dt\vv^n + \frac{\dt^2}{2}\Big[ (1-2\beta) \av^n + 2\beta \av^{p} \Big],  \\
+ &  \vv^{p} = \vv^n + \dt\Big[  (1-\gamma) \av^n + \gamma \av^{p} \Big], \\
+ &  M \av^{p} = -B \vv^{p} -K \uv^{p} + \fv^{p} .  
+\end{align*}
+where the predicted acceleration $\av^{p}$ is computed using a predicted value for the forcing,
+\begin{align*}
+ &  \fv^{p} = 2 \fv^{n} - \fv^{n-1} .
+\end{align*}
+The corrector uses the full Newmark-beta scheme with the updated value for the forcing.
 
 % --------------------------------------------------------------------------------------------------------------------
 \newcommand{\uHat}{\hat{u}}
@@ -682,6 +701,7 @@ then we arrive at the time-step restriction
    \dt \le \frac{C_\text{cfl}}{\sqrt{ \left(\frac{\Re\lambdaHat}{\alpha}\right)^2  + \left(\frac{\Im\lambdaHat}{\beta}\right)^2}}. 
 \end{align*}
 where $C_\text{cfl}$ is the CFL number. In practice we might choose $C_\text{cfl}=0.9$. 
+
 % --------------------------------------------------------------------------------------------------------------------
 \subsection{Implementing the boundary conditions} \label{eq:BeamModel_FEM_BC}
 
@@ -770,6 +790,190 @@ is a special case since the order of the PDE in space goes from four to two. In 
 case there is only one BC applied at each end -- currently only the Dirichlet case
 is implemented usng the {\em pinned} BC. 
 
+
+% --------------------------------------------------------------------------------------------------------------------
+\subsection{Smoothing: high-order filter} \label{eq:BeamModel_FEM_SMOOTHER}
+
+High-frequency oscillations in the numerical solution can be reduced using a 
+high-order filter.
+A fourth-order filter is 
+\begin{align}
+   W_i^{n+1}    = W_i^n - \frac{\omega}{16} ~ h^4 (D_+D_-)^2 W_i^n .
+\end{align}
+A sixth-order filter is 
+\begin{align}
+W_i^{n+1}    = W_i^n + \frac{\omega}{64} ~ h^6 (D_+D_-)^3 W_i^n .
+\end{align}
+The filter is used on the nodal values  $w_j$ and $w_j'$. 
+One or more steps of the filter can be used. The parameter $\omega$ is normally less than or equal to one.
+A value of $\omega=1$ will eliminate the plus-minus mode after one application of the filter.
+The fourth-order filter will result in overall second-order accuracy if the filter is applied at every
+time step and $\dt \propto \dx^2$. The sixth-order filter would give fourth-order accuracy overall when $\dt \propto \dx^2$.
+
+Boundary conditions are needed to apply the filter near the boundary points.
+Ghost points are introduced for this purpose.
+
+Let us first consider the case of a simple beam model,
+\begin{align}
+  \rhos \As \frac{\partial^2 w}{\partial t^2} = 
+                   - \frac{\partial^2}{\partial x^2}\left( E I \frac{\partial^2 w}{\partial x^2}\right) . \label{eq:simpleBeam}
+\end{align}
+when only the fourth-order spatial derivative appears.
+
+% -----------------------------------
+\paragraph{Pinned boundary conditions}
+For pinned boundary conditions at $x=0$ we have $w(0,t)=w''(0,t)=0$. 
+By taking time-derivatives of these boundary conditions and using the equation~\eqref{eq:simpleBeam}
+gives the result that all even derivatives are zero on the boundary, $\partial_x^{2m} w(0,t)=0$, $m=0,1,2,3,\ldots$.
+This implies that $w$ is an even function about $x=0$ while $w'$ is an odd function.
+The ghost points can thus be assigned by odd-symmetry for $w$ and even symmetry for $w'$:
+\begin{align}
+  W_{-g} &= 2 W_0 - W_{-g}, \qquad g=1,2,\ldots, \\
+  W'_{-g} &= W'_{-g}, \qquad g=1,2,\ldots
+\end{align}
+
+
+% -----------------------------------
+\paragraph{Clamped boundary conditions}
+
+Clamped boundary conditions at $x=0$ are $w(0,t)=w'(0,t)=0$. 
+By taking time-derivatives of these boundary conditions and using the equation~\eqref{eq:simpleBeam}
+implies
+\begin{align}
+     \partial_x^{4m}w(0,t) = \partial_x^{4m+1}w(0,t)=0, \qquad m=0,1,2,\ldots.
+\end{align}
+To evaluate values of $w$ at the ghost points we form a Taylor series about $x=0$. 
+\begin{align}
+     w_{TS}(x) =  \frac{x^2}{2!} A_2 + \frac{x^3}{3!} A_3 + \frac{x^6}{6!} A_6 + \frac{x^7}{7!} A_7 .
+\end{align}
+where we have set the appropriate terms to zero.
+We could probably use a lower order approximation but this seems to work.
+To determine the four unknowns $A_2$, $A_3$, $A_6$ and $A_7$ in terms of the interior values $w_m$
+we impose the conditions
+\begin{align}
+     w_{TS}(m h) =  w_{m} , \quad m=1,2,3,4.
+\end{align}
+After solving for $A_2$, $A_3$, $A_6$ and $A_7$ we then assign the ghost values by evaluating the
+Taylor series, 
+\begin{align}
+   w_{-g} =  w_{TS}(-g h) , \quad g=1,2,\ldots
+\end{align}
+%
+The ghost values for $w'$ are obtained in a similar fashion except using the Taylor series
+\begin{align}
+     w'_{TS}(x) =  \frac{x}{1!} B_1 + \frac{x^2}{2!} B_2 + \frac{x^5}{5!} B_5 + \frac{x^6}{6!} B_7 ,
+\end{align}
+and determining the unknowns $B_m$ using the known values of $w'_m$ at interior points.
+See the maple code {\tt cgDoc/moving/codes/beam/beambc.maple} for further details and results.
+
+% -----------------------------------
+\paragraph{Free boundary conditions}
+
+Free boundary conditions at $x=0$ are $w''(0,t)=w'''(0,t)=0$.
+By taking time-derivatives of these boundary conditions and using the equation~\eqref{eq:simpleBeam}
+implies
+\begin{align}
+     \partial_x^{4m+2}w(0,t) = \partial_x^{4m+3}w(0,t)=0, \qquad m=0,1,2,\ldots.
+\end{align}
+We proceed as for the clamped boundary conditions and form a Taylor series of
+the form
+% u := x -> u0 + x*ux + x^4/(4!)*ux4 + x^5/(5!)*ux5;
+\begin{align}
+     w_{TS}(x) =  A_0 + \frac{x}{1!} A_1  + \frac{x^4}{4!} A_4 + \frac{x^5}{5!} A_5 .
+\end{align}
+The unknowns  $A_m$ are determined in terms of known interior values $w_m$, $m=1,2,3,4$. 
+For a free BC we assign the ghost points {\em and the boundary point} (this is important), 
+\begin{align}
+   w_{-g} =  w_{TS}(-g h) , \quad g=0,1,2,\ldots
+\end{align}
+The boundary and ghost values for $w'$ are obtained in a similar fashion.
+
+
+% --------------------------------------------------------------------------------------------------------------------
+% --------------------------------------------------------------------------------------------------------------------
+\clearpage
+\subsection{Eigenmodes of a beam} \label{eq:BeamModel_Eigenmodes}
+
+The eigemodes of a beam can be used for testing the numerical implementation.
+
+Consider the simple EB beam model 
+\begin{align*}
+    w_{tt} + c^2 w_{xxxx} = 0
+\end{align*}
+where $c^2= E I/(\rhos\As)$. 
+Applying separation of variables, $w(x,t) = T(t) Y(x)$, leads to the solution
+\begin{align*}
+    Y(x) &= c_1 \cosh(\lambda x) + c_2\sinh(\lambda x) + c_3 \cos(\lambda x) + c_4 \sin(\lambda x), \\
+    T(t) &= e^{\pm i \omega t},
+\end{align*}
+where $\lambda$ and $\omega$ are related by
+\begin{align*}
+    \lambda^4 &= \frac{\omega^2}{c^2}, \quad\text{or}\quad \omega = (\lambda L)^2\sqrt{ \frac{E I}{\rhos\As L^4}}. 
+\end{align*}
+
+The eigenvalues and eigenmodes will depend on the boundary conditions.
+\subsubsection{Clamped-clamped boundary conditions} 
+
+The form of the solution when the beam is clamped at $x=0$, with $Y(0)=Y'(0)$, is 
+\begin{align*}
+    Y(x) &= c_1 \big(\cosh(\lambda x) -\cos(\lambda x) \big) + c_2 \big(\sinh(\lambda x) - \sin(\lambda x)\big),
+\end{align*}
+
+If the beam is also clamped at $x=L$, $Y(L)=Y'(L)=0$, 
+then
+\begin{align*}
+  &  c_1 \big(\cosh(\lambda L) -\cos(\lambda L) \big) + c_2 \big(\sinh(\lambda L) - \sin(\lambda L)\big) = 0 , \\
+  &  c_1 \big(\sinh(\lambda L) +\sin(\lambda L) \big) + c_2 \big(\cosh(\lambda L) - \cos(\lambda L)\big) = 0 . 
+\end{align*}
+This implies a matrix system for $c_1$ and $c_2$ and for 
+for nontrivial solutions we require the determinant to vanish, 
+\begin{align*}
+   \big(\cosh(\lambda L) -\cos(\lambda L) \big)^2 - \big( \sinh^2(\lambda L) - \sin^2(\lambda l) \big)=0
+\end{align*}
+which simplifies to
+\begin{align*}
+   \cosh(\lambda L)\cos(\lambda L) = 1 .
+\end{align*}
+The first three roots are (computed from {\tt cgDoc/moving/codes/beam/beamModes.maple}),
+\begin{align*}
+   \lambda_1 &=4.7300407448627040  \\
+   \lambda_2 &=7.8532046240958376  \\
+   \lambda_3 &=10.995607838001671
+\end{align*}
+
+
+% --------------------------------------------------------------------------------
+\subsubsection{Clamped-free boundary conditions} 
+
+The form of the solution when the beam is clamped at $x=0$, with $Y(0)=Y'(0)$, is 
+\begin{align*}
+    Y(x) &= c_1 \big(\cosh(\lambda x) -\cos(\lambda x) \big) + c_2 \big(\sinh(\lambda x) - \sin(\lambda x)\big),
+\end{align*}
+
+If the beam is free at $x=L$, then $Y''(L)=Y'''(L)=0$, 
+then
+\begin{align*}
+  &  c_1 \big(\cosh(\lambda L) +\cos(\lambda L) \big) + c_2 \big(\sinh(\lambda L) + \sin(\lambda L)\big) = 0 , \\
+  &  c_1 \big(\sinh(\lambda L) -\sin(\lambda L) \big) + c_2 \big(\cosh(\lambda L) + \cos(\lambda L)\big) = 0 . 
+\end{align*}
+This implies a matrix system for $c_1$ and $c_2$ and for 
+for nontrivial solutions we require the determinant to vanish, 
+\begin{align*}
+   \big(\cosh(\lambda L) +\cos(\lambda L) \big)^2 - \big( \sinh^2(\lambda L) - \sin^2(\lambda l) \big)=0
+\end{align*}
+which simplifies to
+\begin{align*}
+   \cosh(\lambda L)\cos(\lambda L) = -1 .
+\end{align*}
+The first three roots are (computed from {\tt cgDoc/moving/codes/beam/beamModes.maple}),
+%  C-F : lambda1=1.8751040687119612e+00
+%  C-F : lambda2=4.6940911329741746e+00
+%  C-F : lambda3=7.8547574382376126e+00
+\begin{align*}
+   \lambda_1 &=1.8751040687119612  \\
+   \lambda_2 &=4.6940911329741746  \\
+   \lambda_3 &=7.8547574382376126
+\end{align*}
 
 
 % --------------------------------------------------------------------------------------------------------------------
