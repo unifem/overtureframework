@@ -1,0 +1,675 @@
+#
+# **** EXTENDED BOUNDARIES in 3D ****
+#
+# Derive 4th-order PEC boundary conditions for Maxwell's equations.
+#   (see the file ogmg/neumann.maple)
+#
+# restart; read "bcExtended3d4.maple";
+clear;
+
+with(StringTools):
+
+Dzr := proc(f)
+  local x,y,z;
+  option operator;
+  unapply( simplify( (f(x+1,y,z)-f(x-1,y,z))/2 ), x,y,z);
+end:
+Dpr := proc(f)
+  local x,y,z;
+  option operator;
+  unapply( simplify( f(x+1,y,z)-f(x,y,z) ), x,y,z );
+end:
+Dmr := proc(f)
+  local x,y,z;
+  option operator;
+  unapply( simplify( f(x,y,z)-f(x-1,y,z)), x,y,z);
+end:
+Dzs := proc(f)
+  local x,y,z;
+  option operator;
+  unapply( simplify( (f(x,y+1,z)-f(x,y-1,z))/2 ), x,y,z);
+end:
+Dps := proc(f)
+  local x,y,z;
+  option operator;
+  unapply( simplify( f(x,y+1,z)-f(x,y,z) ), x,y,z);
+end:
+Dms := proc(f)
+  local x,y,z;
+  option operator;
+  unapply( simplify( f(x,y,z)-f(x,y-1,z)), x,y,z);
+end:
+
+Dzt := proc(f)
+  local x,y,z;
+  option operator;
+  unapply( simplify( (f(x,y,z+1)-f(x,y,z-1))/2 ), x,y,z);
+end:
+Dpt := proc(f)
+  local x,y,z;
+  option operator;
+  unapply( simplify( f(x,y,z+1)-f(x,y,z) ), x,y,z);
+end:
+Dmt := proc(f)
+  local x,y,z;
+  option operator;
+  unapply( simplify( f(x,y,z)-f(x,y,z-1)), x,y,z);
+end:
+
+# --------------------------------------------------------
+substituteValues :=proc( uu )
+ local bc,bcs;
+
+  bc:=uu;
+
+  bc:=subs(a11(i1-1,i2,i3)=a11m1,a12(i1-1,i2,i3)=a12m1,a11(i1+1,i2,i3)=a11p1,a12(i1+1,i2,i3)=a12p1,bc):
+  bc:=subs(a11(i1-2,i2,i3)=a11m2,a12(i1-2,i2,i3)=a12m2,a11(i1+2,i2,i3)=a11p2,a12(i1+2,i2,i3)=a12p2,bc):
+
+  bc:=subs(a21(i1-1,i2,i3)=a21m1,a22(i1-1,i2,i3)=a22m1,a21(i1+1,i2,i3)=a21p1,a22(i1+1,i2,i3)=a22p1,bc):
+  bc:=subs(a21(i1-2,i2,i3)=a21m2,a22(i1-2,i2,i3)=a22m2,a21(i1+2,i2,i3)=a21p2,a22(i1+2,i2,i3)=a22p2,bc):
+
+  bc:=subs(a11(i1,i2-1,i3)=a11zm1,a12(i1,i2-1,i3)=a12zm1,a11(i1,i2+1,i3)=a11zp1,a12(i1,i2+1,i3)=a12zp1,bc):
+  bc:=subs(a21(i1,i2-1,i3)=a21zm1,a22(i1,i2-1,i3)=a22zm1,a21(i1,i2+1,i3)=a21zp1,a22(i1,i2+1,i3)=a22zp1,bc):
+
+  bc:=subs(a11(i1,i2-2,i3)=a11zm2,a12(i1,i2-2,i3)=a12zm2,a11(i1,i2+2,i3)=a11zp2,a12(i1,i2+2,i3)=a12zp2,bc):
+  bc:=subs(a21(i1,i2-2,i3)=a21zm2,a22(i1,i2-2,i3)=a22zm2,a21(i1,i2+2,i3)=a21zp2,a22(i1,i2+2,i3)=a22zp2,bc):
+
+  bc := subs(u(i1,i2,i3)=u(i1,i2,i3,ex),bc):
+  bc := subs(v(i1,i2,i3)=u(i1,i2,i3,ey),bc):
+  bc := subs(w(i1,i2,i3)=u(i1,i2,i3,ez),bc):
+
+  bc := subs(u(i1+1,i2,i3)=u(i1+is1,i2,i3,ex),bc):
+  bc := subs(v(i1+1,i2,i3)=u(i1+is1,i2,i3,ey),bc):
+  bc := subs(w(i1+1,i2,i3)=u(i1+is1,i2,i3,ez),bc):
+				      
+  bc := subs(u(i1-1,i2,i3)=u(i1-is1,i2,i3,ex),bc):
+  bc := subs(v(i1-1,i2,i3)=u(i1-is1,i2,i3,ey),bc):
+  bc := subs(w(i1-1,i2,i3)=u(i1-is1,i2,i3,ez),bc):
+
+
+  bc := subs(u(i1,i2+1,i3)=u(i1,i2+is2,i3,ex),bc):
+  bc := subs(v(i1,i2+1,i3)=u(i1,i2+is2,i3,ey),bc):
+  bc := subs(w(i1,i2+1,i3)=u(i1,i2+is2,i3,ez),bc):
+		      	       
+  bc := subs(u(i1,i2-1,i3)=u(i1,i2-is2,i3,ex),bc):
+  bc := subs(v(i1,i2-1,i3)=u(i1,i2-is2,i3,ey),bc):
+  bc := subs(w(i1,i2-1,i3)=u(i1,i2-is2,i3,ez),bc):
+
+
+  bc := subs(u(i1+2,i2,i3)=u(i1+2*is1,i2,i3,ex),bc):
+  bc := subs(v(i1+2,i2,i3)=u(i1+2*is1,i2,i3,ey),bc):
+  bc := subs(w(i1+2,i2,i3)=u(i1+2*is1,i2,i3,ez),bc):
+
+  bc := subs(u(i1-2,i2,i3)=u(i1-2*is1,i2,i3,ex),bc):
+  bc := subs(v(i1-2,i2,i3)=u(i1-2*is1,i2,i3,ey),bc):
+  bc := subs(w(i1-2,i2,i3)=u(i1-2*is1,i2,i3,ez),bc):
+
+  bc := subs(u(i1,i2+2,i3)=u(i1,i2+2*is2,i3,ex),bc):
+  bc := subs(v(i1,i2+2,i3)=u(i1,i2+2*is2,i3,ey),bc):
+  bc := subs(w(i1,i2+2,i3)=u(i1,i2+2*is2,i3,ez),bc):
+		      	       	        
+  bc := subs(u(i1,i2-2,i3)=u(i1,i2-2*is2,i3,ex),bc):
+  bc := subs(v(i1,i2-2,i3)=u(i1,i2-2*is2,i3,ey),bc):
+  bc := subs(w(i1,i2-2,i3)=u(i1,i2-2*is2,i3,ez),bc):
+
+  bc := subs(u(i1+is1,i2,i3)=u(i1+is1,i2+is2,i3+is3,ex),bc):
+  bc := subs(v(i1+is1,i2,i3)=u(i1+is1,i2+is2,i3+is3,ey),bc):
+  bc := subs(w(i1+is1,i2,i3)=u(i1+is1,i2+is2,i3+is3,ez),bc):
+
+  bc := subs(u(i1+2*is1,i2,i3)=u(i1+2*is1,i2+2*is2,i3+2*is3,ex),bc):
+  bc := subs(v(i1+2*is1,i2,i3)=u(i1+2*is1,i2+2*is2,i3+2*is3,ey),bc):
+  bc := subs(w(i1+2*is1,i2,i3)=u(i1+2*is1,i2+2*is2,i3+2*is3,ez),bc):
+
+  bc := subs(u(i1,i2+js2,i3)=u(i1+js1,i2+js2,i3+js3,ex),bc):
+  bc := subs(v(i1,i2+js2,i3)=u(i1+js1,i2+js2,i3+js3,ey),bc):
+  bc := subs(w(i1,i2+js2,i3)=u(i1+js1,i2+js2,i3+js3,ez),bc):
+
+  bc := subs(u(i1,i2+2*js2,i3)=u(i1+2*js1,i2+2*js2,i3+2*js3,ex),bc):
+  bc := subs(v(i1,i2+2*js2,i3)=u(i1+2*js1,i2+2*js2,i3+2*js3,ey),bc):
+  bc := subs(w(i1,i2+2*js2,i3)=u(i1+2*js1,i2+2*js2,i3+2*js3,ez),bc):
+
+
+  bc :=subs(a1[1]=a11c,a2[1]=a21c,a3[1]=a31c,bc):
+  bc :=subs(a1[2]=a12c,a2[2]=a22c,a3[2]=a32c,bc):
+  bc :=subs(a1[3]=a13c,a2[3]=a23c,a3[3]=a33c,bc):
+
+
+  bcs:=convert(bc,string):
+  bcs:= SubstituteAll(bcs,"^2","**2"):
+  bcs:= SubstituteAll(bcs,"^3","**3"):
+  bcs:= SubstituteAll(bcs,"^4","**4"):
+  bcs:= SubstituteAll(bcs,"^5","**5"):
+  bcs:= SubstituteAll(bcs,"^6","**6"):
+  bcs:= SubstituteAll(bcs,"^7","**7"):
+  bcs:= SubstituteAll(bcs,"^8","**8"):
+  bcs:= SubstituteAll(bcs,"^9","**9"):
+  bcs:= SubstituteAll(bcs,"/2*","/2.*"):
+  bcs:= SubstituteAll(bcs,"/3*","/3.*"):
+  bcs:= SubstituteAll(bcs,"/4*","/4.*"):
+  bcs:= SubstituteAll(bcs,"/5*","/5.*"):
+  bcs:= SubstituteAll(bcs,"/6*","/6.*"):
+  bcs:= SubstituteAll(bcs,"/7*","/7.*"):
+  bcs:= SubstituteAll(bcs,"/8*","/8.*"):
+  bcs:= SubstituteAll(bcs,"/9*","/9.*"):
+  bcs:= SubstituteAll(bcs,"/10*","/10.*"):
+  bcs:= SubstituteAll(bcs,"/11*","/11.*"):
+  bcs:= SubstituteAll(bcs,"/12*","/12.*"):
+
+  RETURN(bcs):
+
+end:
+# ----------------------------------------------------------
+
+
+# ******************** START ***************************
+
+
+a1 := array(1..3):
+a2 := array(1..3):
+a3 := array(1..3):
+
+u1 := array(1..3):
+
+# Decompose u1=u(i1-1,i2,i3) as u1 = A*v1  where A = [ a1 a2 a3 ]
+#     u1 := u(i1-1,i2,i3)
+#     u2 := u(i1-2,i2,i3)
+#     u3 := u(i1,i2-1,i3)
+#     u4 := u(i1,i2-2,i3)
+for k from 1 to 3 do
+ u1[k]:= a1[k]*v11+a2[k]*v12+a3[k]*v13:
+ u2[k]:= a1[k]*v21+a2[k]*v22+a3[k]*v23:
+ u3[k]:= a1[k]*v31+a2[k]*v32+a3[k]*v33:
+ u4[k]:= a1[k]*v41+a2[k]*v42+a3[k]*v43:
+end do:
+
+# restart; read "bce.maple";
+
+# Impose the two equations:
+#     a1.u1 = a1Dotu1
+#     a3.u1 = a3Dotu1
+# and solve for [v11,v13] in terms of v12
+#
+# a1a1 = a1.a1, a1a3 = a1.a3, etc
+#
+#    
+eq1 := a1a1*v11+a1a2*v12+a1a3*v13 - a1Dotu1:
+eq2 := a1a3*v11+a2a3*v12+a3a3*v13 - a3Dotu1:
+V := solve({eq1=0,eq2=0},{v11,v13}): assign(V):
+
+# --- similar for u2
+eq1 := a1a1*v21+a1a2*v22+a1a3*v23 - a1Dotu2:
+eq2 := a1a3*v21+a2a3*v22+a3a3*v23 - a3Dotu2:
+V := solve({eq1=0,eq2=0},{v21,v23}): assign(V):
+
+# Impose:
+#   a2.u3 = a2Dotu3
+#   a3.u3 = a3Dotu3
+eq1 := a1a2*v31+a2a2*v32+a2a3*v33 - a2Dotu3:
+eq2 := a1a3*v31+a2a3*v32+a3a3*v33 - a3Dotu3:
+V := solve({eq1=0,eq2=0},{v32,v33}): assign(V):
+
+# --- similar for u4
+eq1 := a1a2*v41+a2a2*v42+a2a3*v43 - a2Dotu4:
+eq2 := a1a3*v41+a2a3*v42+a3a3*v43 - a3Dotu4:
+V := solve({eq1=0,eq2=0},{v42,v43}): assign(V):
+
+#
+# Now u1[k] = b1[k]*v12 + g1[k]
+# Now u2[k] = b2[k]*v22 + g2[k]
+# Now u3[k] = b3[k]*v31 + g3[k]
+# Now u4[k] = b4[k]*v41 + g4[k]
+#
+b11a := coeff(u1[1],v12): g11a:=simplify(subs(v12=0,u1[1])):
+b12a := coeff(u1[2],v12): g12a:=simplify(subs(v12=0,u1[2])):
+b13a := coeff(u1[3],v12): g13a:=simplify(subs(v12=0,u1[3])):
+
+b21a := coeff(u2[1],v22): g21a:=simplify(subs(v22=0,u2[1])):
+b22a := coeff(u2[2],v22): g22a:=simplify(subs(v22=0,u2[2])):
+b23a := coeff(u2[3],v22): g23a:=simplify(subs(v22=0,u2[3])):
+
+b31a := coeff(u3[1],v31): g31a:=simplify(subs(v31=0,u3[1])):
+b32a := coeff(u3[2],v31): g32a:=simplify(subs(v31=0,u3[2])):
+b33a := coeff(u3[3],v31): g33a:=simplify(subs(v31=0,u3[3])):
+
+b41a := coeff(u4[1],v41): g41a:=simplify(subs(v41=0,u4[1])):
+b42a := coeff(u4[2],v41): g42a:=simplify(subs(v41=0,u4[2])):
+b43a := coeff(u4[3],v41): g43a:=simplify(subs(v41=0,u4[3])):
+
+
+
+u(i1-1,i2,i3) := b11*x1+ g11:   # x1 = v12
+v(i1-1,i2,i3) := b12*x1+ g12:
+w(i1-1,i2,i3) := b13*x1+ g13:
+
+u(i1-2,i2,i3) := b21*x2+ g21:   # x2 = v22
+v(i1-2,i2,i3) := b22*x2+ g22:
+w(i1-2,i2,i3) := b23*x2+ g23:
+
+u(i1,i2-1,i3) := b31*x3+ g31:   # x3 = v31
+v(i1,i2-1,i3) := b32*x3+ g32:
+w(i1,i2-1,i3) := b33*x3+ g33:
+         
+u(i1,i2-2,i3) := b41*x4+ g41:   # x4 = v41
+v(i1,i2-2,i3) := b42*x4+ g42:
+w(i1,i2-2,i3) := b43*x4+ g43:
+
+# equations:
+#  a1.Lu = 0
+#  La1u := a1.Lu
+La1u := c11*( Dpr(Dmr(a1u))(i1,i2,i3) -(1/12)*Dpr(Dmr(Dpr(Dmr(a1u))))(i1,i2,i3) )/dra^2 
+         + c1*( Dzr(a1u)(i1,i2,i3)  -(1/6)*Dzr(Dpr(Dmr(a1u)))(i1,i2,i3) )/dra 
+      + c22*( Dps(Dms(a1u))(i1,i2,i3) -(1/12)*Dps(Dms(Dps(Dms(a1u))))(i1,i2,i3) )/dsa^2 
+         + c2*( Dzs(a1u)(i1,i2,i3)  -(1/6)*Dzs(Dps(Dms(a1u)))(i1,i2,i3) )/dsa 
+      + c33*a1utt + c3*a1ut:
+
+#  La2u := a2.Lu
+La2u := c11*( Dpr(Dmr(a2u))(i1,i2,i3) -(1/12)*Dpr(Dmr(Dpr(Dmr(a2u))))(i1,i2,i3) )/dra^2 
+         + c1*( Dzr(a2u)(i1,i2,i3)  -(1/6)*Dzr(Dpr(Dmr(a2u)))(i1,i2,i3) )/dra 
+      + c22*( Dps(Dms(a2u))(i1,i2,i3) -(1/12)*Dps(Dms(Dps(Dms(a2u))))(i1,i2,i3) )/dsa^2 
+         + c2*( Dzs(a2u)(i1,i2,i3)  -(1/6)*Dzs(Dps(Dms(a2u)))(i1,i2,i3) )/dsa 
+      + c33*a2utt + c3*a2ut:
+
+# simplify by getting the coefficients of the 4 unknowns
+ca1u02 := coeff(La1u,a1u(i1,i2-2,i3)):
+ca1u01 := coeff(La1u,a1u(i1,i2-1,i3)):
+ca1u20 := coeff(La1u,a1u(i1-2,i2,i3)):
+ca1u10 := coeff(La1u,a1u(i1-1,i2,i3)):
+
+ca2u02 := coeff(La2u,a2u(i1,i2-2,i3)):
+ca2u01 := coeff(La2u,a2u(i1,i2-1,i3)):
+ca2u20 := coeff(La2u,a2u(i1-2,i2,i3)):
+ca2u10 := coeff(La2u,a2u(i1-1,i2,i3)):
+
+
+cc11aa := ca1u20*a11:
+cc12aa := ca1u20*a12:
+cc13aa := ca1u20*a13:
+
+cc14aa := ca1u10*a11:
+cc15aa := ca1u10*a12:
+cc16aa := ca1u10*a13:
+
+cc11ba := ca1u02*a11:
+cc12ba := ca1u02*a12:
+cc13ba := ca1u02*a13:
+
+cc14ba := ca1u01*a11:
+cc15ba := ca1u01*a12:
+cc16ba := ca1u01*a13:
+
+
+cc21aa := ca2u20*a21:
+cc22aa := ca2u20*a22:
+cc23aa := ca2u20*a23:
+
+cc24aa := ca2u10*a21:
+cc25aa := ca2u10*a22:
+cc26aa := ca2u10*a23:
+
+cc21ba := ca2u02*a21:
+cc22ba := ca2u02*a22:
+cc23ba := ca2u02*a23:
+
+cc24ba := ca2u01*a21:
+cc25ba := ca2u01*a22:
+cc26ba := ca2u01*a23:
+
+
+#  a1.Lu = 0 : 
+e1 := cc11a*u(i1-2,i2,i3)+cc12a*v(i1-2,i2,i3)+cc13a*w(i1-2,i2,i3)
+    + cc14a*u(i1-1,i2,i3)+cc15a*v(i1-1,i2,i3)+cc16a*w(i1-1,i2,i3) 
+    + cc11b*u(i1,i2-2,i3)+cc12b*v(i1,i2-2,i3)+cc13b*w(i1,i2-2,i3) 
+    + cc14b*u(i1,i2-1,i3)+cc15b*v(i1,i2-1,i3)+cc16b*w(i1,i2-1,i3) + f1:  # + f1 is correct
+
+# no f1a := simplify(a1DotLu - (e1-f1)): # <- evaluate a1DotLu, then subtract away the incorrect part
+f1a := a1DotLu - ( 
+      cc11a*u(i1-2*is1,i2-2*is2,i3-2*is3,ex)
+     +cc12a*u(i1-2*is1,i2-2*is2,i3-2*is3,ey)
+     +cc13a*u(i1-2*is1,i2-2*is2,i3-2*is3,ez)
+     +cc14a*u(i1-  is1,i2-  is2,i3-  is3,ex)
+     +cc15a*u(i1-  is1,i2-  is2,i3-  is3,ey)
+     +cc16a*u(i1-  is1,i2-  is2,i3-  is3,ez)
+     +cc11b*u(i1-2*js1,i2-2*js2,i3-2*js3,ex)
+     +cc12b*u(i1-2*js1,i2-2*js2,i3-2*js3,ey)
+     +cc13b*u(i1-2*js1,i2-2*js2,i3-2*js3,ez) 
+     +cc14b*u(i1-  js1,i2-  js2,i3-  js3,ex)
+     +cc15b*u(i1-  js1,i2-  js2,i3-  js3,ey)
+     +cc16b*u(i1-  js1,i2-  js2,i3-  js3,ez) ):
+
+# f1a := subs(u(i1-2,i2,i3)=u(i1-2*is1,i2-2*is2,i3-2*is3,ex),
+#             v(i1-2,i2,i3)=u(i1-2*is1,i2-2*is2,i3-2*is3,ey),
+#             w(i1-2,i2,i3)=u(i1-2*is1,i2-2*is2,i3-2*is3,ez),
+#             u(i1-1,i2,i3)=u(i1-  is1,i2-  is2,i3-  is3,ex),
+#             v(i1-1,i2,i3)=u(i1-  is1,i2-  is2,i3-  is3,ey),
+#             w(i1-1,i2,i3)=u(i1-  is1,i2-  is2,i3-  is3,ez),
+#             u(i1,i2-2,i3)=u(i1-2*js1,i2-2*js2,i3-2*js3,ex),
+#             v(i1,i2-2,i3)=u(i1-2*js1,i2-2*js2,i3-2*js3,ey),
+#             w(i1,i2-2,i3)=u(i1-2*js1,i2-2*js2,i3-2*js3,ez),
+#             u(i1,i2-1,i3)=u(i1-  js1,i2-  js2,i3-  js3,ex),
+#             v(i1,i2-1,i3)=u(i1-  js1,i2-  js2,i3-  js3,ey),
+#             w(i1,i2-1,i3)=u(i1-  js1,i2-  js2,i3-  js3,ez),f1a);
+
+# a2.Lu = 0 :
+e2 := cc21a*u(i1-2,i2,i3)+cc22a*v(i1-2,i2,i3)+cc23a*w(i1-2,i2,i3)
+    + cc24a*u(i1-1,i2,i3)+cc25a*v(i1-1,i2,i3)+cc26a*w(i1-1,i2,i3) 
+    + cc21b*u(i1,i2-2,i3)+cc22b*v(i1,i2-2,i3)+cc23b*w(i1,i2-2,i3) 
+    + cc24b*u(i1,i2-1,i3)+cc25b*v(i1,i2-1,i3)+cc26b*w(i1,i2-1,i3) + f2:
+
+# no: f2a := simplify(a2DotLu - (e2-f2)):  # <- evaluate a2DotLu, then subtract away the incorrect part
+f2a := a2DotLu - ( 
+      cc21a*u(i1-2*is1,i2-2*is2,i3-2*is3,ex)
+     +cc22a*u(i1-2*is1,i2-2*is2,i3-2*is3,ey)
+     +cc23a*u(i1-2*is1,i2-2*is2,i3-2*is3,ez)
+    + cc24a*u(i1-  is1,i2-  is2,i3-  is3,ex)
+     +cc25a*u(i1-  is1,i2-  is2,i3-  is3,ey)
+     +cc26a*u(i1-  is1,i2-  is2,i3-  is3,ez)
+    + cc21b*u(i1-2*js1,i2-2*js2,i3-2*js3,ex)
+     +cc22b*u(i1-2*js1,i2-2*js2,i3-2*js3,ey)
+     +cc23b*u(i1-2*js1,i2-2*js2,i3-2*js3,ez) 
+    + cc24b*u(i1-  js1,i2-  js2,i3-  js3,ex)
+     +cc25b*u(i1-  js1,i2-  js2,i3-  js3,ey)
+     +cc26b*u(i1-  js1,i2-  js2,i3-  js3,ez) ):
+
+
+# extrapolation
+e3  := (a21*u(i1-2,i2,i3)+a22*v(i1-2,i2,i3)+a23*w(i1-2,i2,i3))
+    -4*(a21*u(i1-1,i2,i3)+a22*v(i1-1,i2,i3)+a23*w(i1-1,i2,i3)) + f3:
+
+f3a:= +6*(a21*u(i1      ,i2,i3)+a22*v(i1      ,i2,i3)+a23*w(i1      ,i2,i3))
+      -4*(a21*u(i1+  is1,i2,i3)+a22*v(i1+  is1,i2,i3)+a23*w(i1+  is1,i2,i3))
+        +(a21*u(i1+2*is1,i2,i3)+a22*v(i1+2*is1,i2,i3)+a23*w(i1+2*is1,i2,i3)) - g2f:
+
+e4  := (a11*u(i1,i2-2,i3)+a12*v(i1,i2-2,i3)+a13*w(i1,i2-2,i3))
+    -4*(a11*u(i1,i2-1,i3)+a12*v(i1,i2-1,i3)+a13*w(i1,i2-1,i3)) + f4:
+
+f4a:= +6*(a11*u(i1,i2      ,i3)+a12*v(i1,i2      ,i3)+a13*w(i1,i2      ,i3))
+      -4*(a11*u(i1,i2+  js2,i3)+a12*v(i1,i2+  js2,i3)+a13*w(i1,i2+  js2,i3))
+        +(a11*u(i1,i2+2*js2,i3)+a12*v(i1,i2+2*js2,i3)+a13*w(i1,i2+2*js2,i3)) - g1f:
+
+# Simplify equations
+
+dd11a := coeff(e1,x1): dd12a := coeff(e1,x2): dd13a := coeff(e1,x3): dd14a := coeff(e1,x4): 
+dd21a := coeff(e2,x1): dd22a := coeff(e2,x2): dd23a := coeff(e2,x3): dd24a := coeff(e2,x4): 
+dd31a := coeff(e3,x1): dd32a := coeff(e3,x2): dd33a := coeff(e3,x3): dd34a := coeff(e3,x4): 
+dd41a := coeff(e4,x1): dd42a := coeff(e4,x2): dd43a := coeff(e4,x3): dd44a := coeff(e4,x4): 
+
+if (dd33a=0 )then
+ dd33:=dd33a:
+end if:
+if (dd34a=0 )then
+ dd34:=dd34a:
+end if:
+if (dd41a=0 )then
+ dd41:=dd41a:
+end if:
+if (dd42a=0 )then
+ dd42:=dd42a:
+end if:
+
+f1xa := simplify(subs(x1=0,x2=0,x3=0,x4=0,e1)):
+f2xa := simplify(subs(x1=0,x2=0,x3=0,x4=0,e2)):
+f3xa := simplify(subs(x1=0,x2=0,x3=0,x4=0,e3)):
+f4xa := simplify(subs(x1=0,x2=0,x3=0,x4=0,e4)):
+
+e1x := dd11*x1+dd12*x2+dd13*x3+dd14*x4 + f1x:
+e2x := dd21*x1+dd22*x2+dd23*x3+dd24*x4 + f2x:
+e3x := dd31*x1+dd32*x2+dd33*x3+dd34*x4 + f3x:
+e4x := dd41*x1+dd42*x2+dd43*x3+dd44*x4 + f4x:
+
+
+X := solve({e1x=0,e2x=0,e3x=0,e4x=0},{x1,x2,x3,x4}):
+X := subs(x1=x1a,x2=x2a,x3=x3a,x4=x4a,X):
+assign(X):
+
+deta := (-dd11*dd22*dd43*dd34+dd11*dd43*dd32*dd24+dd11*dd42*dd23*dd34-dd11*dd42*dd24*dd33+dd44*dd31*dd23*dd12+dd22*dd41*dd13*dd34
+         -dd22*dd41*dd14*dd33+dd44*dd21*dd32*dd13+dd11*dd22*dd44*dd33-dd22*dd44*dd31*dd13+dd41*dd14*dd32*dd23+dd21*dd43*dd12*dd34
+         -dd11*dd44*dd32*dd23-dd21*dd42*dd13*dd34-dd41*dd13*dd32*dd24-dd42*dd23*dd31*dd14-dd43*dd21*dd32*dd14-dd43*dd31*dd24*dd12
+         -dd41*dd23*dd12*dd34+dd21*dd42*dd14*dd33+dd41*dd24*dd12*dd33+dd22*dd43*dd31*dd14+dd42*dd24*dd31*dd13-dd21*dd44*dd12*dd33):
+
+x1a := simplify(x1a*deta)/det:
+x2a := simplify(x2a*deta)/det:
+x3a := simplify(x3a*deta)/det:
+x4a := simplify(x4a*deta)/det:
+
+# restart; read "bce.maple";
+
+# *************************** START FILE *****************************************
+file := fopen( "bcExtended3d4.h",WRITE ):
+
+printf(" Start: Write file bcExtended3d4.h\n"):
+
+fprintf(file," ! results from bce.maple\n"):
+fprintf(file," ! Assign values on the extended boundary next to two PEC boundaries\n"):
+fprintf(file," !                                                                  \n"):
+fprintf(file," ! Here we assume the following are defined                               \n"):
+fprintf(file," !    c11,c22,c33,c1,c2,c3                                          \n"):
+fprintf(file," !    urr,uss,utt,ur,us,ut (also for v and w)                       \n"):
+fprintf(file," !    deltaFu,deltaFv,deltaFw = RHS for Delta(u,v,w)                \n"):
+# fprintf(file," !  a1Dotu1 = a1.u(i1-1) a3Dotu1=a3.u(i1-1)                         \n"):
+# fprintf(file," !  a1Dotu2 = a1.u(i1-2) a3Dotu2=a3.u(i1-2)                         \n"):
+# fprintf(file," !  a2Dotu3 = a2.u(i2-1) a3Dotu3=a3.u(i2-1)                         \n"):
+# fprintf(file," !  a2Dotu4 = a2.u(i2-2) a3Dotu4=a3.u(i2-2)                         \n"):
+fprintf(file," !    g1f,g2f = RHS for extrapolation, a1.D+2^4u(i1,i2-2)=g1f, a2.D+2^4u(i1-2,i2)=g2f,    \n"):
+fprintf(file," !                                                                  \n"):
+
+fprintf(file,"      DeltaU = c11*urr+c22*uss+c33*utt+c1*ur+c2*us+c3*ut - deltaFu\n"):
+fprintf(file,"      DeltaV = c11*vrr+c22*vss+c33*vtt+c1*vr+c2*vs+c3*vt - deltaFv\n"):
+fprintf(file,"      DeltaW = c11*wrr+c22*wss+c33*wtt+c1*wr+c2*ws+c3*wt - deltaFw\n\n"):
+
+for m from 1 to 4 do 
+
+  if ( m=1 ) then
+    ivs := "i1-is1,i2-is2,i3-is3":
+    b1a := b11a:
+    b2a := b12a:
+    b3a := b13a:
+    g1a := g11a:
+    g2a := g12a:
+    g3a := g13a:
+
+  elif ( m=2 ) then
+    ivs := "i1-2*is1,i2-2*is2,i3-2*is3":
+    b1a := b21a: 
+    b2a := b22a:
+    b3a := b23a:
+    g1a := g21a:
+    g2a := g22a:
+    g3a := g23a:
+  elif ( m=3 ) then
+    ivs := "i1-js1,i2-js2,i3-js3":
+    b1a := b31a:
+    b2a := b32a:
+    b3a := b33a:
+    g1a := g31a:
+    g2a := g32a:
+    g3a := g33a:
+  else
+    ivs := "i1-2*js1,i2-2*js2,i3-2*js3":
+    b1a := b41a:
+    b2a := b42a:
+    b3a := b43a:
+    g1a := g41a:
+    g2a := g42a:
+    g3a := g43a:
+  end if:
+
+  fprintf(file,"! ** decompose point u(%s) into components along a1,a2,a3 **\n",ivs):
+  fprintf(file,"      a11c=A11D3(%s)\n",ivs):
+  fprintf(file,"      a12c=A12D3(%s)\n",ivs):
+  fprintf(file,"      a13c=A13D3(%s)\n",ivs):
+
+  fprintf(file,"      a21c=A21D3(%s)\n",ivs):
+  fprintf(file,"      a22c=A22D3(%s)\n",ivs):
+  fprintf(file,"      a23c=A23D3(%s)\n",ivs):
+
+  fprintf(file,"      a31c=A31D3(%s)\n",ivs):
+  fprintf(file,"      a32c=A32D3(%s)\n",ivs):
+  fprintf(file,"      a33c=A33D3(%s)\n",ivs):
+  fprintf(file,"\n"):
+
+  if ( m<3 ) then
+    fprintf(file,"      a1a1=a11c*a11c+a12c*a12c+a13c*a13c\n"):
+  else
+    fprintf(file,"      a2a2=a21c*a21c+a22c*a22c+a23c*a23c\n"):
+  end if:
+  fprintf(file,"      a1a2=a11c*a21c+a12c*a22c+a13c*a23c\n"):
+  fprintf(file,"      a1a3=a11c*a31c+a12c*a32c+a13c*a33c\n"):
+  fprintf(file,"      a2a3=a21c*a31c+a22c*a32c+a23c*a33c\n"):
+  fprintf(file,"      a3a3=a31c*a31c+a32c*a32c+a33c*a33c\n"):
+
+  fprintf(file,"! The tangential component is assumed valid:\n"):
+  if ( m<3 ) then
+    fprintf(file,"      a1Dotu%d=a11c*u(%s,ex)+a12c*u(%s,ey)+a13c*u(%s,ez)\n",m,ivs,ivs,ivs):
+  else
+    fprintf(file,"      a2Dotu%d=a21c*u(%s,ex)+a22c*u(%s,ey)+a23c*u(%s,ez)\n",m,ivs,ivs,ivs):
+  end if:
+  fprintf(file,"      a3Dotu%d=a31c*u(%s,ex)+a32c*u(%s,ey)+a33c*u(%s,ez)\n",m,ivs,ivs,ivs):
+
+  fprintf(file," ! u(%s,k) = b%d[k]*x%d +g%d[k]\n",ivs,m,m,m):
+  fprintf(file,"      b%d1 =%s\n",m,substituteValues(b1a)):
+  fprintf(file,"      b%d2 =%s\n",m,substituteValues(b2a)):
+  fprintf(file,"      b%d3 =%s\n",m,substituteValues(b3a)):
+
+  fprintf(file,"      g%d1 =%s\n",m,substituteValues(g1a)):
+  fprintf(file,"      g%d2 =%s\n",m,substituteValues(g2a)):
+  fprintf(file,"      g%d3 =%s\n",m,substituteValues(g3a)):
+
+  fprintf(file,"\n"):
+
+end do:
+
+ fprintf(file," ! Evaluate a1, a2 and a3 at the corner\n"):
+ ivs:="i1,i2,i3":
+ fprintf(file,"      a11=A11D3(%s)\n",ivs):
+ fprintf(file,"      a12=A12D3(%s)\n",ivs):
+ fprintf(file,"      a13=A13D3(%s)\n",ivs):
+
+ fprintf(file,"      a21=A21D3(%s)\n",ivs):
+ fprintf(file,"      a22=A22D3(%s)\n",ivs):
+ fprintf(file,"      a23=A23D3(%s)\n",ivs):
+
+ fprintf(file,"      a31=A31D3(%s)\n",ivs):
+ fprintf(file,"      a32=A32D3(%s)\n",ivs):
+ fprintf(file,"      a33=A33D3(%s)\n",ivs):
+ fprintf(file,"\n"):
+
+ fprintf(file,"      a1DotLu=a11*DeltaU+a12*DeltaV+a13*DeltaW\n"):
+ fprintf(file,"      a2DotLu=a21*DeltaU+a22*DeltaV+a23*DeltaW\n"):
+ fprintf(file,"\n"):
+
+
+ fprintf(file,"!   a1.Lu = 0 \n"):
+ fprintf(file,"! e1 := cc11a*u(i1-2,i2,i3)+cc12a*v(i1-2,i2,i3)+cc13a*w(i1-2,i2,i3)\n"):
+ fprintf(file,"!     + cc14a*u(i1-1,i2,i3)+cc15a*v(i1-1,i2,i3)+cc16a*w(i1-1,i2,i3) \n"):
+ fprintf(file,"!     + cc11b*u(i1,i2-2,i3)+cc12b*v(i1,i2-2,i3)+cc13b*w(i1,i2-2,i3)\n"): 
+ fprintf(file,"!     + cc14b*u(i1,i2-1,i3)+cc15b*v(i1,i2-1,i3)+cc16b*w(i1,i2-1,i3) - f1:\n"):
+
+ fprintf(file,"!  a2.Lu = 0 :\n"):
+ fprintf(file,"! e2 := cc21a*u(i1-2,i2,i3)+cc22a*v(i1-2,i2,i3)+cc23a*w(i1-2,i2,i3)\n"):
+ fprintf(file,"!     + cc24a*u(i1-1,i2,i3)+cc25a*v(i1-1,i2,i3)+cc26a*w(i1-1,i2,i3) \n"):
+ fprintf(file,"!     + cc21b*u(i1,i2-2,i3)+cc22b*v(i1,i2-2,i3)+cc23b*w(i1,i2-2,i3) \n"):
+ fprintf(file,"!     + cc24b*u(i1,i2-1,i3)+cc25b*v(i1,i2-1,i3)+cc26b*w(i1,i2-1,i3) - f2:\n"):
+
+
+ fprintf(file,"      cc11a=%s\n",substituteValues(cc11aa)):
+ fprintf(file,"      cc12a=%s\n",substituteValues(cc12aa)):
+ fprintf(file,"      cc13a=%s\n",substituteValues(cc13aa)):
+    					          
+ fprintf(file,"      cc14a=%s\n",substituteValues(cc14aa)):
+ fprintf(file,"      cc15a=%s\n",substituteValues(cc15aa)):
+ fprintf(file,"      cc16a=%s\n",substituteValues(cc16aa)):
+    					          
+ fprintf(file,"      cc11b=%s\n",substituteValues(cc11ba)):
+ fprintf(file,"      cc12b=%s\n",substituteValues(cc12ba)):
+ fprintf(file,"      cc13b=%s\n",substituteValues(cc13ba)):
+    					          
+ fprintf(file,"      cc14b=%s\n",substituteValues(cc14ba)):
+ fprintf(file,"      cc15b=%s\n",substituteValues(cc15ba)):
+ fprintf(file,"      cc16b=%s\n",substituteValues(cc16ba)):
+    					          
+ fprintf(file,"      cc21a=%s\n",substituteValues(cc21aa)):
+ fprintf(file,"      cc22a=%s\n",substituteValues(cc22aa)):
+ fprintf(file,"      cc23a=%s\n",substituteValues(cc23aa)):
+    					          
+ fprintf(file,"      cc24a=%s\n",substituteValues(cc24aa)):
+ fprintf(file,"      cc25a=%s\n",substituteValues(cc25aa)):
+ fprintf(file,"      cc26a=%s\n",substituteValues(cc26aa)):
+    					          
+ fprintf(file,"      cc21b=%s\n",substituteValues(cc21ba)):
+ fprintf(file,"      cc22b=%s\n",substituteValues(cc22ba)):
+ fprintf(file,"      cc23b=%s\n",substituteValues(cc23ba)):
+    					          
+ fprintf(file,"      cc24b=%s\n",substituteValues(cc24ba)):
+ fprintf(file,"      cc25b=%s\n",substituteValues(cc25ba)):
+ fprintf(file,"      cc26b=%s\n",substituteValues(cc26ba)):
+
+ fprintf(file,"\n"):
+ fprintf(file,"      f1=%s\n",substituteValues(f1a)):
+ fprintf(file,"      f2=%s\n",substituteValues(f2a)):
+ fprintf(file,"      f3=%s\n",substituteValues(f3a)):
+ fprintf(file,"      f4=%s\n",substituteValues(f4a)):
+
+ fprintf(file,"\n"):
+ fprintf(file," ! Simplfied forms for the 4 equations a1.Lu, a2.Lu, a2.D+r4 u = g2f  a1.D+s4 u = g1f\n"):
+ fprintf(file," ! e1x := dd11*x1+dd12*x2+dd13*x3+dd14*x4+ f1x\n"):
+ fprintf(file," ! e2x := dd21*x1+dd22*x2+dd23*x3+dd24*x4+ f2x\n"):
+ fprintf(file," ! e3x := dd31*x1+dd32*x2+dd33*x3+dd34*x4+ f3x\n"):
+ fprintf(file," ! e4x := dd41*x1+dd42*x2+dd43*x3+dd44*x4+ f4x\n"):
+ fprintf(file,"      dd11=%s\n",substituteValues(dd11a)):
+ fprintf(file,"      dd12=%s\n",substituteValues(dd12a)):
+ fprintf(file,"      dd13=%s\n",substituteValues(dd13a)):
+ fprintf(file,"      dd14=%s\n",substituteValues(dd14a)):
+
+ fprintf(file,"      dd21=%s\n",substituteValues(dd21a)):
+ fprintf(file,"      dd22=%s\n",substituteValues(dd22a)):
+ fprintf(file,"      dd23=%s\n",substituteValues(dd23a)):
+ fprintf(file,"      dd24=%s\n",substituteValues(dd24a)):
+
+ fprintf(file,"      dd31=%s\n",substituteValues(dd31a)):
+ fprintf(file,"      dd32=%s\n",substituteValues(dd32a)):
+ fprintf(file,"      dd33=%s\n",substituteValues(dd33a)):
+ fprintf(file,"      dd34=%s\n",substituteValues(dd34a)):
+
+ fprintf(file,"      dd41=%s\n",substituteValues(dd41a)):
+ fprintf(file,"      dd42=%s\n",substituteValues(dd42a)):
+ fprintf(file,"      dd43=%s\n",substituteValues(dd43a)):
+ fprintf(file,"      dd44=%s\n",substituteValues(dd44a)):
+
+ fprintf(file,"\n"):
+ fprintf(file,"      f1x=%s\n",substituteValues(f1xa)):
+ fprintf(file,"      f2x=%s\n",substituteValues(f2xa)):
+ fprintf(file,"      f3x=%s\n",substituteValues(f3xa)):
+ fprintf(file,"      f4x=%s\n",substituteValues(f4xa)):
+
+ fprintf(file,"\n"):
+ fprintf(file,"!  solution x1,x2,x3,x4: \n"):
+ fprintf(file,"      det=%s\n",substituteValues(deta)):
+ fprintf(file,"      x1=%s\n",substituteValues(x1a)):
+ fprintf(file,"      x2=%s\n",substituteValues(x2a)):
+ fprintf(file,"      x3=%s\n",substituteValues(x3a)):
+ fprintf(file,"      x4=%s\n",substituteValues(x4a)):
+
+ 
+ fprintf(file,"\n"):
+ fprintf(file,"! **** Now assign the extended boundary points **** \n"):
+ fprintf(file,"      u(i1-  is1,i2-  is2,i3-  is3,ex) = b11*x1+ g11\n"):
+ fprintf(file,"      u(i1-  is1,i2-  is2,i3-  is3,ey) = b12*x1+ g12\n"):
+ fprintf(file,"      u(i1-  is1,i2-  is2,i3-  is3,ez) = b13*x1+ g13\n"):
+
+ fprintf(file,"      u(i1-2*is1,i2-2*is2,i3-2*is3,ex) = b21*x2+ g21\n"):
+ fprintf(file,"      u(i1-2*is1,i2-2*is2,i3-2*is3,ey) = b22*x2+ g22\n"):
+ fprintf(file,"      u(i1-2*is1,i2-2*is2,i3-2*is3,ez) = b23*x2+ g23\n"):
+
+ fprintf(file,"      u(i1-  js1,i2-  js2,i3-  js3,ex) = b31*x3+ g31\n"):
+ fprintf(file,"      u(i1-  js1,i2-  js2,i3-  js3,ey) = b32*x3+ g32\n"):
+ fprintf(file,"      u(i1-  js1,i2-  js2,i3-  js3,ez) = b33*x3+ g33\n"):
+         
+ fprintf(file,"      u(i1-2*js1,i2-2*js2,i3-2*js3,ex) = b41*x4+ g41\n"):
+ fprintf(file,"      u(i1-2*js1,i2-2*js2,i3-2*js3,ey) = b42*x4+ g42\n"):
+ fprintf(file,"      u(i1-2*js1,i2-2*js2,i3-2*js3,ez) = b43*x4+ g43\n"):
+
+
+fclose(file):
+
+
+# restart; read "bce.maple";

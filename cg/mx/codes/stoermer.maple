@@ -1,0 +1,71 @@
+# Determine the coefficients for the Stoemer method
+# for 
+#      u.tt = f(u,t)
+# from the identity
+#    u(a)-2*u(0)+u(-a) = int( (a-x)*f(x), x=0..a) + int( (a+x)*f(x), x=-a..0 );
+#
+# To use: read "stoermer.maple";
+#
+restart;
+
+# f := fopen( "stoermer.out" );
+
+r := int( (a-x)*f(x), x=0..a) + int( (a+x)*f(x), x=-a..0 );
+
+maxOrder:=8;  # maximum order
+
+#fv[0]:=f0;
+#fv[1]:=f1;
+#fv[2]:=f2;
+#fv[3]:=f3;
+#fv[4]:=f4;
+#fv[5]:=f5;
+
+for m from 2 to maxOrder do
+#  m:=2;
+  n:=m-1;
+
+  # Build lagrange polynomials
+  for i from 0 to n do
+   xa[i]:=-i*a;
+  od;
+
+  for i from 0 to n do
+    L[i]:=product((x-xa[j])/(xa[i]-xa[j]),j=0..i-1)*product((x-xa[k])/(xa[i]-xa[k]),k=i+1..n);
+  od;
+
+
+
+   printf(" ***** order =%d \n",m);
+   g:= simplify( subs(f(x)=sum(fv[j]*L[j],j=0..n),r) );
+
+#   if m=2 then
+#     g:= simplify( subs(f(x)=f0*L[0]+f1*L[1],r) );
+#     g:=  simplify( subs(f(x)=sum(fv[j]*L[j],j=0..n),r) );
+#    elif m=3 then
+#      g:=simplify( subs(f(x)=fv[0]*L[0]+fv[1]*L[1]+fv[2]*L[2],r) );
+#    else
+#    g:= simplify( subs(f(x)=fv[0]*L[0]+fv[1]*L[1]+fv[2]*L[2]+fv[3]*L[3],r) );
+#    fi;
+#  g:= simplify( subs(f(x)=product(fv[j]*L[j],j=0..n),r) );
+#   g;
+
+od;
+  
+#
+#
+#simplify( subs(f(x)=f0,r) );
+#
+#simplify( subs(f(x)=f0*(x+a)/(0+a) + f1*(x-0)/(-a-0),r) );
+#
+## 3rd order method
+#simplify( subs(f(x)=f0*L[0]+f1*L[1]+f2*(x-0)*(x+a)/((-2*a-0)*(-2*a+a)),r) );
+#
+## 4th order method
+#simplify( subs(f(x)=f0*(x+a)*(x+2*a)*(x+3*a)/((a)*(2*a)*(3*a)) + f1*(x-0)*(x+2*a)*(x+3*a)/((-a-0)*(-a+2*a)*(-a+3*a)) + f2*(x-0)*(x+a)*(x+3*a)/((-2*a-0)*(-2*a+a)*(-2*a+3*a))+f3*(x-0)*(x+a)*(x+2*a)/((-3*a-0)*(-3*a+a)*(-3*a+2*a)),r) );
+#
+#
+#
+## 5th order
+#simplify( subs(f(x)=f0*(x+a)*(x+2*a)*(x+3*a)/((a)*(2*a)*(3*a)) + f1*(x-0)*(x+2*a)*(x+3*a)/((-a-0)*(-a+2*a)*(-a+3*a)) + f2*(x-0)*(x+a)*(x+3*a)/((-2*a-0)*(-2*a+a)*(-2*a+3*a))+f3*(x-0)*(x+a)*(x+2*a)/((-3*a-0)*(-3*a+a)*(-3*a+2*a)),r) );
+#

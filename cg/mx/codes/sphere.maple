@@ -1,0 +1,38 @@
+# Eigenvalues of a sphere
+#
+# restart; read "sphere.maple";
+#
+
+f0 := BesselJ(n+1/2,x);
+f1 := BesselJ(n+1+1/2,x);
+f2 := BesselJ(n+2+1/2,x);
+f := BesselJ(n+1+1/2,x) - (n+1)*BesselJ(n+1/2,x)/x:
+
+z1:= .1:
+z2:= 5.:
+
+xp := fsolve(subs(n=1,f),x=.27,z1..z2);
+
+z2:= 8.:
+xp := fsolve(subs(n=1,f),x=6.,z1..z2);
+
+
+z2:= 10.:
+xp := fsolve(subs(n=1,f),x=9.5,z1..z2);
+
+# plot([subs(n=1,f),subs(n=1,f1)],x=0..20);
+# plot([subs(n=2,f),subs(n=2,f1)],x=0..20);
+# plot([subs(n=10,f),subs(n=10,f1)],x=0..20);
+
+# plot([subs(n=2,f),subs(n=2,f2)],x=0..20);
+# plot([subs(n=2,f),subs(n=2,f0)],x=0..20);
+
+xp := fsolve(subs(n=2,f),x=4.,3..5);
+xp := fsolve(subs(n=2,f),x=7.8,6..9);
+
+
+# The first zero of f(n,x) seems to lie
+#  between [n,f1z] where f1z is the first zero of f
+#  The next zeros lie close to the zeros of f1
+
+# The zeros of f seem to lie between the zeros of f0

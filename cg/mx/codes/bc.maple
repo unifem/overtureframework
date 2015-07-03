@@ -1,0 +1,164 @@
+#
+# Derive PEC boundary conditions for Maxwell's equations.
+#   (see the file ogmg/neumann.maple)
+#
+# restart; read "bc.maple";
+
+clear;
+Dzr := proc(f)
+  local x,y,z;
+  option operator;
+  unapply( simplify( (f(x+1,y,z)-f(x-1,y,z))/2 ), x,y,z);
+end:
+Dpr := proc(f)
+  local x,y,z;
+  option operator;
+  unapply( simplify( f(x+1,y,z)-f(x,y,z) ), x,y,z );
+end:
+Dmr := proc(f)
+  local x,y,z;
+  option operator;
+  unapply( simplify( f(x,y,z)-f(x-1,y,z)), x,y,z);
+end:
+Dzs := proc(f)
+  local x,y,z;
+  option operator;
+  unapply( simplify( (f(x,y+1,z)-f(x,y-1,z))/2 ), x,y,z);
+end:
+Dps := proc(f)
+  local x,y,z;
+  option operator;
+  unapply( simplify( f(x,y+1,z)-f(x,y,z) ), x,y,z);
+end:
+Dms := proc(f)
+  local x,y,z;
+  option operator;
+  unapply( simplify( f(x,y,z)-f(x,y-1,z)), x,y,z);
+end:
+
+Dzt := proc(f)
+  local x,y,z;
+  option operator;
+  unapply( simplify( (f(x,y,z+1)-f(x,y,z-1))/2 ), x,y,z);
+end:
+Dpt := proc(f)
+  local x,y,z;
+  option operator;
+  unapply( simplify( f(x,y,z+1)-f(x,y,z) ), x,y,z);
+end:
+Dmt := proc(f)
+  local x,y,z;
+  option operator;
+  unapply( simplify( f(x,y,z)-f(x,y,z-1)), x,y,z);
+end:
+
+
+# *************** second order 2D ****************
+
+div := Dzr(a11*u+a12*v)(i1,i2,i3):
+
+tanbc := tau1*u(i1,i2,i3)+tau2*v(i1,i2,i3);
+
+
+# extrapTan := tau1*Dpr(Dpr(Dpr(u)))(i1-1,i2,i3)+tau2*Dpr(Dpr(Dpr(v)))(i1-1,i2,i3);
+extrapTan := tau1*u(i1-1,i2,i3)+tau2*v(i1-1,i2,i3) -gx2 ;
+
+bc2:= solve({div=0,extrapTan=0},{u(i1-1,i2,i3),v(i1-1,i2,i3)}):
+
+lprint(bc2[1]);
+lprint(bc2[2]);
+printf("\n\n ****** 3D ******\n\n");
+
+# restart; read "bc.maple";
+
+# *************** second order 3D ****************
+
+
+# div3d := Dzr(a11*u+a12*v+a13*w)(i1,i2,i3):
+div3d := (a11*u+a12*v+a13*w)(i1-1,i2,i3)-g1:
+
+g1a:= (a11*u+a12*v+a13*w)(i1+1,i2,i3):
+
+extrapTan3d1 := tau11*u(i1-1,i2,i3)+tau12*v(i1-1,i2,i3)+tau13*w(i1-1,i2,i3) -gx1 :
+extrapTan3d2 := tau21*u(i1-1,i2,i3)+tau22*v(i1-1,i2,i3)+tau23*w(i1-1,i2,i3) -gx2 :
+
+bc3:= solve({div3d=0,extrapTan3d1=0,extrapTan3d2=0},{u(i1-1,i2,i3),v(i1-1,i2,i3),w(i1-1,i2,i3)}):
+
+deta:=tau11*a13m*tau22-a11m*tau13*tau22-a13m*tau21*tau12+a12m*tau21*tau13-tau11*a12m*tau23+a11m*tau12*tau23:
+
+g1a := subs(a11(i1+1,i2,i3)=a11p,a12(i1+1,i2,i3)=a12p,a13(i1+1,i2,i3)=a13p,g1a):
+g1a := subs(u(i1+1,i2,i3)=u(i1+is1,i2+is2,i3+is3,ex),g1a):
+g1a := subs(v(i1+1,i2,i3)=u(i1+is1,i2+is2,i3+is3,ey),g1a):
+g1a := subs(w(i1+1,i2,i3)=u(i1+is1,i2+is2,i3+is3,ez),g1a):
+
+printf("      g1=%s\n",convert(g1a,string)):
+printf("      det=%s\n",convert(deta,string)):
+
+for i from 1 to 3 do
+  bc := bc3[i]:
+  bc := subs(a11(i1-1,i2,i3)=a11m,a12(i1-1,i2,i3)=a12m,a13(i1-1,i2,i3)=a13m,bc):
+  bc := subs(a21(i1-1,i2,i3)=a21m,a22(i1-1,i2,i3)=a22m,a23(i1-1,i2,i3)=a23m,bc):
+  bc := subs(a31(i1-1,i2,i3)=a31m,a32(i1-1,i2,i3)=a32m,a33(i1-1,i2,i3)=a33m,bc):
+
+  bc := subs(a11(i1+1,i2,i3)=a11p,a12(i1+1,i2,i3)=a12p,a13(i1+1,i2,i3)=a13p,bc):
+
+  bc := subs(u(i1+1,i2,i3)=u(i1+is1,i2+is2,i3+is3,ex),bc):
+  bc := subs(v(i1+1,i2,i3)=u(i1+is1,i2+is2,i3+is3,ey),bc):
+  bc := subs(w(i1+1,i2,i3)=u(i1+is1,i2+is2,i3+is3,ez),bc):
+
+  bc := subs(u(i1-1,i2,i3)=u(i1-is1,i2-is2,i3-is3,ex),bc):
+  bc := subs(v(i1-1,i2,i3)=u(i1-is1,i2-is2,i3-is3,ey),bc):
+  bc := subs(w(i1-1,i2,i3)=u(i1-is1,i2-is2,i3-is3,ez),bc):
+
+  bc := algsubs(tau11*a13m*tau22-a11m*tau13*tau22-a13m*tau21*tau12+a12m*tau21*tau13-tau11*a12m*tau23+a11m*tau12*tau23=det,bc):
+
+  printf(">> i=%d : \n",i);
+  lprint(bc);
+
+od:
+
+
+# restart; read "bc.maple";
+
+
+# *************** fourth order ****************
+
+# Lap2 := proc(f)
+#   local x,y,z;
+#   option operator;
+#   unapply( crr*Dpr(Dmr(f))(x,y,z) + css*Dps(Dms(f))(x,y,z) + cr*Dzr(f)(x,y,z) + cs*Dzs(f)(x,y,z) , x,y,z);
+# end:
+# 
+# Lap2b:= proc(f)
+#   local x,y,z;
+#   option operator;
+#   unapply( crr*Dpr(Dmr(f))(x,y,z) + css*Dss(f)(x,y,z) + cr*Dzr(f)(x,y,z) + cs*Ds(f)(x,y,z) , x,y,z);
+# end:
+# 
+# 
+# div4 := Dzr(a11*u+a12*v)(i1,i2,i3)-(1/6)*Dzr(Dpr(Dmr(a11*u+a12*v)))(i1,i2,i3);
+# 
+# 
+# divLap :=  Dzr(a11*Lap2(u)+a12*Lap2(v))(i1,i2,i3):
+# 
+# tauLap := tau1*Lap2(u)(i1,i2,i3)+tau2*Lap2(v)(i1,i2,i3);
+# 
+# extrapTan4 := tau1*u(i1-2,i2,i3)+tau2*v(i1-2,i2,i3)-4*(tau1*u(i1-1,i2,i3)+tau2*v(i1-1,i2,i3)) -gx4 ;
+# 
+# 
+# bc4:= solve({div4=0,extrapTan4=0,divLap=0,tauLap=0},{u(i1-2,i2,i3),v(i1-2,i2,i3),u(i1-1,i2,i3),v(i1-1,i2,i3)});
+# 
+# lprint(bc4[1]);
+# lprint(bc4[2]);
+# lprint(bc4[3]);
+# lprint(bc4[4]);
+
+# subs(a11=1,a12=0,tau1=0,tau2=1,crr=1,css=1,);
+
+
+
+# restart; read "bc.maple";
+
+
+
+

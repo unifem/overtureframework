@@ -1,0 +1,98 @@
+# restart; read "bessel.maple";
+
+clear;
+
+Digits:=15: # ****** increase this for larger values of nd ****************
+
+file := fopen( "besselPrimeZeros.h",WRITE ):
+
+nd:= 10:  # number of Bessel functions
+md:= 10:  # number of zeros of Jn'
+
+fprintf(file," const int ndbpz=%d, mdbpz=%d;\n",nd,md):
+fprintf(file," real besselPrimeZeros[ndbpz][mdbpz]={\n"):
+ 
+assume(n::integer):
+additionally(n>=0):
+
+for n from 0 to nd-1 do
+
+  fprintf(file," { // n=%d\n",n):
+
+  jnp := diff(BesselJ(n,x),x):
+  # taylor(jnp,x=0);
+  t:=taylor(jnp,x=0):
+  lprint(t);
+
+  ma := max(0,1-n):
+  for m from ma to md-1+ma do
+
+    z1 := BesselJZeros(n, m):
+    z2 := BesselJZeros(n, m+1):
+    if( m=0 )then
+      z1:=n;     #  -- start at n since Jn(z) is very flat near zero for n large
+    end if;
+    # j'(n,m) : m'th positive zero of Jn'
+    # j'(n,1) = n + ...   n -> inf
+    # j'(n,m) = (m+n/2-3/4)*pi + ...    m>>n     
+    xp := fsolve(jnp=0,x,z1..z2):  # Jn'(xp) = 0 
+
+    printf(" Jn_x(xp)=0 : n=%d m=%d xp =%19.14e \n",n,m,xp):
+    
+    fprintf(file,"    %19.14e",xp):
+    if m<md-1+ma then
+      fprintf(file,",\n"):
+    else
+      fprintf(file,"}, // end n=%d\n",n):
+    fi:
+
+  od:
+od:
+
+fprintf(file,"                               };\n"):
+fclose(file):
+printf(" *** output written to file besselPrimeZeros.h\n"):
+
+file := fopen( "besselZeros.h",WRITE ):
+
+fprintf(file,"/* Zeros of the Bessel Function Jn(z) */\n\n"):
+fprintf(file," const int ndbz=%d, mdbz=%d;\n",nd,md):
+fprintf(file," real besselZeros[ndbz][mdbz]={\n"):
+ 
+# assume(n::integer):
+# additionally(n>=0):
+
+for n from 0 to nd-1 do
+
+  fprintf(file," { // n=%d\n",n):
+
+  for m from 1 to md do
+
+    z1 := BesselJZeros(n, m):
+
+    printf(" Jn(%e)=%e : n=%d m=%d xp =%19.14e \n",z1,BesselJ(n,z1),n,m,z1):
+    
+    fprintf(file,"    %19.14e",z1):
+    if m<md then
+      fprintf(file,",\n"):
+    else
+      fprintf(file,"}, // end n=%d\n",n):
+    fi:
+
+  od:
+od:
+
+fprintf(file,"                               };\n"):
+fclose(file):
+printf(" *** output written to file besselZeros.h\n"):
+
+
+#    real besselPrimeZeros[md][nd]={ {z11,z12,...}, {z21,z22,...} };
+#    real besselPrimeZeros[10][10]={
+
+# plot(BesselJ(n,x),x=0..10);
+
+# plot(jnp,x=0..10);
+
+
+# restart; read "bessel.maple";

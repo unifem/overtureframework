@@ -1,0 +1,209 @@
+#
+# Derive 4th-order PEC boundary conditions for Maxwell's equations.
+#
+# Determine the coefficients b3u,b3v,... in :
+#    Dr( a1.Delta\uv ) = (b3u,b3v).uvrrr + (b2u,b2v).uvrr + (b1u,b1v).uv + bf = 0 
+#
+#   (see the file ogmg/neumann.maple)
+#
+# restart; read "bcdiv.maple";
+clear;
+
+with(StringTools):
+
+Dzr := proc(f)
+  local x,y,z;
+  option operator;
+  unapply( simplify( (f(x+1,y,z)-f(x-1,y,z))/2 ), x,y,z);
+end:
+Dpr := proc(f)
+  local x,y,z;
+  option operator;
+  unapply( simplify( f(x+1,y,z)-f(x,y,z) ), x,y,z );
+end:
+Dmr := proc(f)
+  local x,y,z;
+  option operator;
+  unapply( simplify( f(x,y,z)-f(x-1,y,z)), x,y,z);
+end:
+Dzs := proc(f)
+  local x,y,z;
+  option operator;
+  unapply( simplify( (f(x,y+1,z)-f(x,y-1,z))/2 ), x,y,z);
+end:
+Dps := proc(f)
+  local x,y,z;
+  option operator;
+  unapply( simplify( f(x,y+1,z)-f(x,y,z) ), x,y,z);
+end:
+Dms := proc(f)
+  local x,y,z;
+  option operator;
+  unapply( simplify( f(x,y,z)-f(x,y-1,z)), x,y,z);
+end:
+
+Dzt := proc(f)
+  local x,y,z;
+  option operator;
+  unapply( simplify( (f(x,y,z+1)-f(x,y,z-1))/2 ), x,y,z);
+end:
+Dpt := proc(f)
+  local x,y,z;
+  option operator;
+  unapply( simplify( f(x,y,z+1)-f(x,y,z) ), x,y,z);
+end:
+Dmt := proc(f)
+  local x,y,z;
+  option operator;
+  unapply( simplify( f(x,y,z)-f(x,y,z-1)), x,y,z);
+end:
+
+
+
+div:= D[1](a11*u+a12*v)+D[2](a21*u+a22*v):
+
+Lu := c11*urra + c22*D[2,2](u) + c1*D[1](u) + c2*D[2](u) - utt:
+Lv := c11*vrra + c22*D[2,2](v) + c1*D[1](v) + c2*D[2](v) - vtt:
+
+mxEqn := solve({Lu=0,Lv=0},{urra,vrra}):
+assign(mxEqn):
+
+# a2DotUrr := a21*urr + a22*vrr:
+
+
+urrb := subs(D[2,2](u)=uss,D[2,2](v)=vss,D[2](u)=us,D[2](v)=vs,D[1](u)=ur,D[1](v)=vr,urra):
+vrrb := subs(D[2,2](u)=uss,D[2,2](v)=vss,D[2](u)=us,D[2](v)=vs,D[1](u)=ur,D[1](v)=vr,vrra):
+
+# urrb := subs(D[2,2](u)=uss,D[2,2](v)=vss,D[2](u)=us,D[2](v)=vs,urrb):
+# vrrb := subs(D[2,2](u)=uss,D[2,2](v)=vss,D[2](u)=us,D[2](v)=vs,vrrb):
+
+divr := subs(D[1,2](u)=ursa,D[1,2](v)=vrsa,D[1](div)):
+divs := subs(D[1,2](u)=ursa,D[1,2](v)=vrsa,D[2](div)):
+
+mixed := solve({divr=0, divs=0},{ursa,vrsa}):
+assign(mixed):
+
+# urrsa := subs(D[1,2](u)=urs,D[1,2](v)=vrs,D[2,2](u)=uss,D[2,2](v)=vss,D[2](u)=us,D[2](v)=vs,D[2](urra)):
+# vrrsa := subs(D[1,2](u)=urs,D[1,2](v)=vrs,D[2,2](u)=uss,D[2,2](v)=vss,D[2](u)=us,D[2](v)=vs,D[2](vrra)):
+
+
+Lue := c11*D[1,1](u) + c22*D[2,2](u) + c1*D[1](u) + c2*D[2](u) - utt:
+Lve := c11*D[1,1](v) + c22*D[2,2](v) + c1*D[1](v) + c2*D[2](v) - vtt:
+
+
+
+# ----
+substitutePartials :=proc( uu )
+ local vv:
+ vv := uu:
+ vv := subs(D[1,2](u)=urs,D[1,2](v)=vrs,D[2,2](u)=uss,D[2,2](v)=vss,D[2](u)=us,D[2](v)=vs,vv):
+
+ vv := subs(D[1,1](u)=urr,D[1,1](v)=vrr,D[1,1,1](u)=urrr,D[1,1,1](v)=vrrr,vv):
+
+ vv := subs(D[1,2,2](u)=urss,D[1,2,2](v)=vrss,D[1](u)=ur,D[1](v)=vr,vv):
+
+ vv := subs(D[2,2,2](u)=usss,D[2,2,2](v)=vsss,vv):
+
+ vv := subs(D[1,1,2](a11)=a11rrs,D[1,2](a11)=a11rs,D[1,1](a11)=a11rr,D[1](a11)=a11r,D[2](a11)=a11s,vv):
+ vv := subs(D[1,1,2](a12)=a12rrs,D[1,2](a12)=a12rs,D[1,1](a12)=a12rr,D[1](a12)=a12r,D[2](a12)=a12s,vv):
+ vv := subs(D[1,1,2](a21)=a21rrs,D[1,2](a21)=a21rs,D[1,1](a21)=a21rr,D[1](a21)=a21r,D[2](a21)=a21s,vv):
+ vv := subs(D[1,1,2](a22)=a22rrs,D[1,2](a22)=a22rs,D[1,1](a22)=a22rr,D[1](a22)=a22r,D[2](a22)=a22s,vv):
+
+ vv := subs(D[1](c11)=c11r,D[1](c22)=c22r,D[1](c1)=c1r,D[1](c2)=c2r,vv):
+ vv := subs(D[2](c11)=c11s,D[2](c22)=c22s,D[2](c1)=c1s,D[2](c2)=c2s,vv):
+
+ vv := subs(D[2,2](a22)=a22ss,D[2,2](a21)=a21ss,D[1,2,2](a12)=a12rss,D[1,2,2](a22)=a22rss,vv):
+ vv := subs(D[2,2](a11)=a11ss,D[2,2](a12)=a12ss,D[2,2,2](a11)=a11sss,D[2,2,2](a12)=a12sss,vv):
+
+ vv := subs(D[2,2,2](a21)=a21sss,D[2,2,2](a22)=a22sss,D[1,2,2](a11)=a11rss,vv):
+
+ vv := subs(D[1](utt)=uttr,D[1](vtt)=vttr,D[2](utt)=utts,D[2](vtt)=vtts,vv):
+
+ vv := subs(u=uex,v=uey,vv):
+
+ RETURN(vv):
+end:
+
+# we get a1.urss from 
+divss := D[2,2](div):
+
+divss := substitutePartials(divss):
+divss := simplify(subs(a11*urss=a1Doturss-a12*vrss,divss)):
+a1Doturss :=solve(divss=0,a1Doturss):
+
+
+
+# Here is the BC
+divtt := D[1]( a11*Lue + a12*Lve ):
+
+
+divtt :=substitutePartials(divtt):
+
+# lprint(divtt);
+
+ursa := substitutePartials(ursa):
+vrsa := substitutePartials(vrsa):
+
+# urrsa := substitutePartials(urrsa):
+# vrrsa := substitutePartials(vrrsa):
+
+divtt := subs(urss=(a1Doturss-a12*vrss)/a11,divtt): # NOTE: a1Doturss contains urs so do first
+divtt := subs(urs=ursa,vrs=vrsa,divtt):
+
+# *** (a11*utt+a12*vtt).r = 0 
+#   a11*uttr+a12*vttr + a11r*utt+a12r*vtt
+#    uttr = -( a12*vttr + a11r*utt+a12r*vtt )/a11
+
+divtt := subs(uttr = -( a12*vttr + a11r*utt+a12r*vtt )/a11,divtt ):
+
+divtt := simplify(divtt):
+
+printf(" divtt="): lprint(divtt):
+
+b3u := simplify(coeff(divtt,urrr)):
+b3v := simplify(coeff(divtt,vrrr)):
+
+b2u := simplify(coeff(divtt,urr)):
+b2v := simplify(coeff(divtt,vrr)):
+
+b1u := simplify(coeff(divtt,ur)):
+b1v := simplify(coeff(divtt,vr)):
+
+bf := simplify(subs(urrr=0,vrrr=0,urr=0,vrr=0,ur=0,vr=0,divtt)):
+
+SubstituteAll(tu2s,"^","**"):
+
+file := fopen( "bcdivMaxwell.h",WRITE ):
+
+fprintf(file,"      b3u=%s\n",SubstituteAll(convert(b3u,string),"^","**")):
+fprintf(file,"      b3v=%s\n",SubstituteAll(convert(b3v,string),"^","**")):
+fprintf(file,"      b2u=%s\n",SubstituteAll(convert(b2u,string),"^","**")):
+fprintf(file,"      b2v=%s\n",SubstituteAll(convert(b2v,string),"^","**")):
+fprintf(file,"      b1u=%s\n",SubstituteAll(convert(b1u,string),"^","**")):
+fprintf(file,"      b1v=%s\n",SubstituteAll(convert(b1v,string),"^","**")):
+fprintf(file,"      bf =%s\n",SubstituteAll(convert(bf ,string),"^","**")):
+
+printf("\n"):
+fprintf(file,"\n! -- Here are the approximations for urs, vrs from the divergence\n"):
+fprintf(file,"!  ursm =%s\n",SubstituteAll(convert(ursa,string),"^","**")):
+fprintf(file,"!  vrsm =%s\n",SubstituteAll(convert(vrsa,string),"^","**")):
+
+printf("  a1Doturss =%s\n",SubstituteAll(convert(a1Doturss,string),"^","**")):
+
+# For TZ: gDivtt := Dr( a1.Delta uv )
+
+Divtt := ( b3u*Dzr(Dpr(Dmr(u)))(i1,i2,i3) + b3v*Dzr(Dpr(Dmr(v)))(i1,i2,i3) )/dra^3 
+         + b2u*Dpr(Dmr(u))(i1,i2,i3)/dra^2 + b2v*Dpr(Dmr(v))(i1,i2,i3)/dra^2
+          + b1u*Dzr(u)(i1,i2,i3)/dra + b1v*Dzr(v)(i1,i2,i3)/dra + bf - gDivtt:
+
+fclose(file):
+printf("\n**** Results writtem to file bcdivMaxwell.h ****\n"):
+
+# Divtt := simplify(Divtt):
+
+# restart; read "bcdiv.maple";
+
+
+
+
+

@@ -1,0 +1,618 @@
+#
+# Derive 4th-order PEC boundary conditions for Maxwell's equations.
+#
+# Determine the coefficients b3u,b3v,... in :
+#    Dr( a1.Delta\uv ) = (b3u,b3v,b3w).uvrrr + (b2u,b2v,b2w).uvrr + (b1u,b1v,b1w).uv + bf = 0 
+#
+#   (see the file ogmg/neumann.maple)
+#
+# restart; read "bcdiv3d.maple";
+clear;
+
+with(StringTools):
+
+Dzr := proc(f)
+  local x,y,z;
+  option operator;
+  unapply( simplify( (f(x+1,y,z)-f(x-1,y,z))/2 ), x,y,z);
+end:
+Dpr := proc(f)
+  local x,y,z;
+  option operator;
+  unapply( simplify( f(x+1,y,z)-f(x,y,z) ), x,y,z );
+end:
+Dmr := proc(f)
+  local x,y,z;
+  option operator;
+  unapply( simplify( f(x,y,z)-f(x-1,y,z)), x,y,z);
+end:
+Dzs := proc(f)
+  local x,y,z;
+  option operator;
+  unapply( simplify( (f(x,y+1,z)-f(x,y-1,z))/2 ), x,y,z);
+end:
+Dps := proc(f)
+  local x,y,z;
+  option operator;
+  unapply( simplify( f(x,y+1,z)-f(x,y,z) ), x,y,z);
+end:
+Dms := proc(f)
+  local x,y,z;
+  option operator;
+  unapply( simplify( f(x,y,z)-f(x,y-1,z)), x,y,z);
+end:
+
+Dzt := proc(f)
+  local x,y,z;
+  option operator;
+  unapply( simplify( (f(x,y,z+1)-f(x,y,z-1))/2 ), x,y,z);
+end:
+Dpt := proc(f)
+  local x,y,z;
+  option operator;
+  unapply( simplify( f(x,y,z+1)-f(x,y,z) ), x,y,z);
+end:
+Dmt := proc(f)
+  local x,y,z;
+  option operator;
+  unapply( simplify( f(x,y,z)-f(x,y,z-1)), x,y,z);
+end:
+
+substitutePartials :=proc( uu )
+ local vv:
+ vv := uu:
+ vv := subs(D[1](u)=ur,D[2](u)=us,D[3](u)=ut,D[1,1](u)=urr,D[1,2](u)=urs,D[2,2](u)=uss,
+            D[1,3](u)=urt,D[2,3](u)=ust,D[3,3](u)=utt,D[1,1,1](u)=urrr,
+            D[1,2,2](u)=urss,D[1,3,3](u)=urtt,D[2,2,2](u)=usss,D[2,2,3](u)=usst,D[3,3,3](u)=uttt,
+            D[2,3,3](u)=ustt,vv):
+
+ vv := subs(D[1](v)=vr,D[2](v)=vs,D[3](v)=vt,D[1,1](v)=vrr,D[1,2](v)=vrs,D[2,2](v)=vss,
+            D[1,3](v)=vrt,D[2,3](v)=vst,D[3,3](v)=vtt,D[1,1,1](v)=vrrr,
+            D[1,2,2](v)=vrss,D[1,3,3](v)=vrtt,D[2,2,2](v)=vsss,D[2,2,3](v)=vsst,D[3,3,3](v)=vttt,
+            D[2,3,3](v)=vstt,vv):
+
+ vv := subs(D[1](w)=wr,D[2](w)=ws,D[3](w)=wt,D[1,1](w)=wrr,D[1,2](w)=wrs,D[2,2](w)=wss,
+            D[1,3](w)=wrt,D[2,3](w)=wst,D[3,3](w)=wtt,D[1,1,1](w)=wrrr,
+            D[1,2,2](w)=wrss,D[1,3,3](w)=wrtt,D[2,2,2](w)=wsss,D[2,2,3](w)=wsst,D[3,3,3](w)=wttt,
+            D[2,3,3](w)=wstt,vv):
+
+
+
+ vv := subs(D[1](a11)=a11r,D[2](a11)=a11s,D[3](a11)=a11t,D[1,1](a11)=a11rr,D[1,2](a11)=a11rs,D[2,2](a11)=a11ss,
+            D[1,3](a11)=a11rt,D[2,3](a11)=a11st,D[3,3](a11)=a11tt,D[1,1,1](a11)=a11rrr,
+            D[1,2,2](a11)=a11rss,D[1,3,3](a11)=a11rtt,D[2,2,2](a11)=a11sss,D[2,2,3](a11)=a11sst,D[3,3,3](a11)=a11ttt,
+            D[2,3,3](a11)=a11stt,vv):
+ vv := subs(D[1](a12)=a12r,D[2](a12)=a12s,D[3](a12)=a12t,D[1,1](a12)=a12rr,D[1,2](a12)=a12rs,D[2,2](a12)=a12ss,
+            D[1,3](a12)=a12rt,D[2,3](a12)=a12st,D[3,3](a12)=a12tt,D[1,1,1](a12)=a12rrr,
+            D[1,2,2](a12)=a12rss,D[1,3,3](a12)=a12rtt,D[2,2,2](a12)=a12sss,D[2,2,3](a12)=a12sst,D[3,3,3](a12)=a12ttt,
+            D[2,3,3](a12)=a12stt,vv):
+ vv := subs(D[1](a13)=a13r,D[2](a13)=a13s,D[3](a13)=a13t,D[1,1](a13)=a13rr,D[1,2](a13)=a13rs,D[2,2](a13)=a13ss,
+            D[1,3](a13)=a13rt,D[2,3](a13)=a13st,D[3,3](a13)=a13tt,D[1,1,1](a13)=a13rrr,
+            D[1,2,2](a13)=a13rss,D[1,3,3](a13)=a13rtt,D[2,2,2](a13)=a13sss,D[2,2,3](a13)=a13sst,D[3,3,3](a13)=a13ttt,
+            D[2,3,3](a13)=a13stt,vv):
+
+
+ vv := subs(D[1](a21)=a21r,D[2](a21)=a21s,D[3](a21)=a21t,D[1,1](a21)=a21rr,D[1,2](a21)=a21rs,D[2,2](a21)=a21ss,
+            D[1,3](a21)=a21rt,D[2,3](a21)=a21st,D[3,3](a21)=a21tt,D[1,1,1](a21)=a21rrr,
+            D[1,2,2](a21)=a21rss,D[1,3,3](a21)=a21rtt,D[2,2,2](a21)=a21sss,D[2,2,3](a21)=a21sst,D[3,3,3](a21)=a21ttt,
+            D[2,3,3](a21)=a21stt,vv):
+ vv := subs(D[1](a22)=a22r,D[2](a22)=a22s,D[3](a22)=a22t,D[1,1](a22)=a22rr,D[1,2](a22)=a22rs,D[2,2](a22)=a22ss,
+            D[1,3](a22)=a22rt,D[2,3](a22)=a22st,D[3,3](a22)=a22tt,D[1,1,1](a22)=a22rrr,
+            D[1,2,2](a22)=a22rss,D[1,3,3](a22)=a22rtt,D[2,2,2](a22)=a22sss,D[2,2,3](a22)=a22sst,D[3,3,3](a22)=a22ttt,
+            D[2,3,3](a22)=a22stt,vv):
+ vv := subs(D[1](a23)=a23r,D[2](a23)=a23s,D[3](a23)=a23t,D[1,1](a23)=a23rr,D[1,2](a23)=a23rs,D[2,2](a23)=a23ss,
+            D[1,3](a23)=a23rt,D[2,3](a23)=a23st,D[3,3](a23)=a23tt,D[1,1,1](a23)=a23rrr,
+            D[1,2,2](a23)=a23rss,D[1,3,3](a23)=a23rtt,D[2,2,2](a23)=a23sss,D[2,2,3](a23)=a23sst,D[3,3,3](a23)=a23ttt,
+            D[2,3,3](a23)=a23stt,vv):
+
+
+ vv := subs(D[1](a31)=a31r,D[2](a31)=a31s,D[3](a31)=a31t,D[1,1](a31)=a31rr,D[1,2](a31)=a31rs,D[2,2](a31)=a31ss,
+            D[1,3](a31)=a31rt,D[2,3](a31)=a31st,D[3,3](a31)=a31tt,D[1,1,1](a31)=a31rrr,
+            D[1,2,2](a31)=a31rss,D[1,3,3](a31)=a31rtt,D[2,2,2](a31)=a31sss,D[2,2,3](a31)=a31sst,D[3,3,3](a31)=a31ttt,
+            D[2,3,3](a31)=a31stt,vv):
+ vv := subs(D[1](a32)=a32r,D[2](a32)=a32s,D[3](a32)=a32t,D[1,1](a32)=a32rr,D[1,2](a32)=a32rs,D[2,2](a32)=a32ss,
+            D[1,3](a32)=a32rt,D[2,3](a32)=a32st,D[3,3](a32)=a32tt,D[1,1,1](a32)=a32rrr,
+            D[1,2,2](a32)=a32rss,D[1,3,3](a32)=a32rtt,D[2,2,2](a32)=a32sss,D[2,2,3](a32)=a32sst,D[3,3,3](a32)=a32ttt,
+            D[2,3,3](a32)=a32stt,vv):
+ vv := subs(D[1](a33)=a33r,D[2](a33)=a33s,D[3](a33)=a33t,D[1,1](a33)=a33rr,D[1,2](a33)=a33rs,D[2,2](a33)=a33ss,
+            D[1,3](a33)=a33rt,D[2,3](a33)=a33st,D[3,3](a33)=a33tt,D[1,1,1](a33)=a33rrr,
+            D[1,2,2](a33)=a33rss,D[1,3,3](a33)=a33rtt,D[2,2,2](a33)=a33sss,D[2,2,3](a33)=a33sst,D[3,3,3](a33)=a33ttt,
+            D[2,3,3](a33)=a33stt,vv):
+
+
+ vv := subs(D[1](c11)=c11r,D[2](c11)=c11s,D[3](c11)=c11t,D[1,1](c11)=c11rr,D[1,2](c11)=c11rs,D[2,2](c11)=c11ss,
+            D[1,3](c11)=c11rt,D[2,3](c11)=c11st,D[3,3](c11)=c11tt,D[1,1,1](c11)=c11rrr,
+            D[1,2,2](c11)=c11rss,D[1,3,3](c11)=c11rtt,D[2,2,2](c11)=c11sss,D[2,2,3](c11)=c11sst,D[3,3,3](c11)=c11ttt,
+            D[2,3,3](c11)=c11stt,vv):
+
+ vv := subs(D[1](c22)=c22r,D[2](c22)=c22s,D[3](c22)=c22t,D[1,1](c22)=c22rr,D[1,2](c22)=c22rs,D[2,2](c22)=c22ss,
+            D[1,3](c22)=c22rt,D[2,3](c22)=c22st,D[3,3](c22)=c22tt,D[1,1,1](c22)=c22rrr,
+            D[1,2,2](c22)=c22rss,D[1,3,3](c22)=c22rtt,D[2,2,2](c22)=c22sss,D[2,2,3](c22)=c22sst,D[3,3,3](c22)=c22ttt,
+            D[2,3,3](c22)=c22stt,vv):
+
+ vv := subs(D[1](c33)=c33r,D[2](c33)=c33s,D[3](c33)=c33t,D[1,1](c33)=c33rr,D[1,2](c33)=c33rs,D[2,2](c33)=c33ss,
+            D[1,3](c33)=c33rt,D[2,3](c33)=c33st,D[3,3](c33)=c33tt,D[1,1,1](c33)=c33rrr,
+            D[1,2,2](c33)=c33rss,D[1,3,3](c33)=c33rtt,D[2,2,2](c33)=c33sss,D[2,2,3](c33)=c33sst,D[3,3,3](c33)=c33ttt,
+            D[2,3,3](c33)=c33stt,vv):
+
+ vv := subs(D[1](c1)=c1r,D[2](c1)=c1s,D[3](c1)=c1t,D[1,1](c1)=c1rr,D[1,2](c1)=c1rs,D[2,2](c1)=c1ss,
+            D[1,3](c1)=c1rt,D[2,3](c1)=c1st,D[3,3](c1)=c1tt,D[1,1,1](c1)=c1rrr,
+            D[1,2,2](c1)=c1rss,D[1,3,3](c1)=c1rtt,D[2,2,2](c1)=c1sss,D[2,2,3](c1)=c1sst,D[3,3,3](c1)=c1ttt,
+            D[2,3,3](c1)=c1stt,vv):
+
+ vv := subs(D[1](c2)=c2r,D[2](c2)=c2s,D[3](c2)=c2t,D[1,1](c2)=c2rr,D[1,2](c2)=c2rs,D[2,2](c2)=c2ss,
+            D[1,3](c2)=c2rt,D[2,3](c2)=c2st,D[3,3](c2)=c2tt,D[1,1,1](c2)=c2rrr,
+            D[1,2,2](c2)=c2rss,D[1,3,3](c2)=c2rtt,D[2,2,2](c2)=c2sss,D[2,2,3](c2)=c2sst,D[3,3,3](c2)=c2ttt,
+            D[2,3,3](c2)=c2stt,vv):
+
+ vv := subs(D[1](c3)=c3r,D[2](c3)=c3s,D[3](c3)=c3t,D[1,1](c3)=c3rr,D[1,2](c3)=c3rs,D[2,2](c3)=c3ss,
+            D[1,3](c3)=c3rt,D[2,3](c3)=c3st,D[3,3](c3)=c3tt,D[1,1,1](c3)=c3rrr,
+            D[1,2,2](c3)=c3rss,D[1,3,3](c3)=c3rtt,D[2,2,2](c3)=c3sss,D[2,2,3](c3)=c3sst,D[3,3,3](c3)=c3ttt,
+            D[2,3,3](c3)=c3stt,vv):
+
+
+ vv := subs(D[1](uTmTm)=uTmTmr,D[2](uTmTm)=uTmTms,D[3](uTmTm)=uTmTmt,vv):
+ vv := subs(D[1](vTmTm)=vTmTmr,D[2](vTmTm)=vTmTms,D[3](vTmTm)=vTmTmt,vv):
+ vv := subs(D[1](wTmTm)=wTmTmr,D[2](wTmTm)=wTmTms,D[3](wTmTm)=wTmTmt,vv):
+
+ vv := subs(u=uex,v=uey,w=uez,vv):
+
+ RETURN(vv):
+end:
+
+# restart; read "bcdiv3d.maple";
+
+div:= D[1](a11*u+a12*v+a13*w)+D[2](a21*u+a22*v+a23*w)+D[3](a31*u+a32*v+a33*w):
+
+# ************************************************************************************************
+# We can solve for uv_rs from the three equations
+#     a1.uv_rs = 
+#     tau1.uv_rs = 
+#     tau2.uv_rs = 
+#    
+# From div=0 => a1.uvr = -( a1.r u + .. )
+a1DotUvr := -( D[1](a11)*u+D[1](a12)*v+D[1](a13)*w + D[2](a21*u+a22*v+a23*w)+D[3](a31*u+a32*v+a33*w) ):
+
+
+# ************************************************************************************************************
+
+# tau1.uv_rs = -( tau1_s . uv_r ) + (tau1.\uv_r).s 
+# tau2.uv_rs = ...
+#     We determine the last term, (tau1.\uv_r).s from the tangential components
+
+# Solve for uv_rs = av.uv_r + ...
+#
+#   a1.uv_rs = -( a11s*ur + a12s*vr + a13s*wr ) + Ds( a1DotUvr )
+#            = -( a11s*ur + a12s*vr + a13s*wr ) + a1DotUvrsRHS
+#
+a1DotUvrs := -( D[2](a11)*D[1](u) + D[2](a12)*D[1](v) + D[2](a13)*D[1](w) ) + D[2]( a1DotUvr ):
+tau1DotUvrs := - (tau11s*D[1](u) + tau12s*D[1](v) + tau13s*D[1](w)) + DsTau1DotUvr:
+tau2DotUvrs := - (tau21s*D[1](u) + tau22s*D[1](v) + tau23s*D[1](w)) + DsTau2DotUvr:
+
+eq1 := a11*urs+a12*vrs+a13*wrs + ( a11s*ur + a12s*vr + a13s*wr ) - a1DotUvrsRHS:
+eq2 := tau11*urs+tau12*vrs+tau13*wrs - tau1DotUvrs:
+eq3 := tau21*urs+tau22*vrs+tau23*wrs - tau2DotUvrs:
+
+a1DotUvrsRHSa := D[2]( a1DotUvr ):
+a1DotUvrtRHSa := D[3]( a1DotUvr ):
+
+a1DotUvrsRHSa:=simplify(substitutePartials(a1DotUvrsRHSa)):
+a1DotUvrtRHSa:=simplify(substitutePartials(a1DotUvrtRHSa)):
+
+URS:=solve({eq1=0,eq2=0,eq3=0},{urs,vrs,wrs}):
+assign(subs(urs=ursb,vrs=vrsb,wrs=wrsb,URS)):
+ursb:=substitutePartials(ursb):
+vrsb:=substitutePartials(vrsb):
+wrsb:=substitutePartials(wrsb):
+
+# Use the det(a1,tau1,tau2) to simplify things later:
+detnta:= a11*tau23*tau12-tau23*tau11*a12-tau21*a13*tau12+tau21*a12*tau13+tau22*tau11*a13-a11*tau22*tau13:
+
+# detnta:=simplify(detnt-a11*tau23*tau12):
+# ursb=simplify(subs(a11*tau23*tau12=detrs-detnta,ursb)):
+ursb:=simplify(ursb*detnta)/detnt:
+vrsb:=simplify(vrsb*detnta)/detnt:
+wrsb:=simplify(wrsb*detnta)/detnt:
+
+# We write uv_rs as a combination of uv_r derivatives and tangential derivatives
+#  urs = cursu*ur + cursv*vr + cursw*wr + furs
+#  vrs = cvrsu*ur + cvrsv*vr + cvrsw*wr + fvrs
+#  wrs = cwrsu*ur + cwrsv*vr + cwrsw*wr + fwrs
+
+# Here are the actual coefficients
+cursua := coeff(ursb,ur):
+cursva := coeff(ursb,vr):
+curswa := coeff(ursb,wr):
+
+cvrsua := coeff(vrsb,ur):
+cvrsva := coeff(vrsb,vr):
+cvrswa := coeff(vrsb,wr):
+
+cwrsua := coeff(wrsb,ur):
+cwrsva := coeff(wrsb,vr):
+cwrswa := coeff(wrsb,wr):
+
+# Actual values for furs, fvrs, fwrs:
+fursa := simplify(subs(ur=0,vr=0,wr=0,ursb)):
+fvrsa := simplify(subs(ur=0,vr=0,wr=0,vrsb)):
+fwrsa := simplify(subs(ur=0,vr=0,wr=0,wrsb)):
+
+# restart; read "bcdiv3d.maple";
+
+ursa := cursu*ur+cursv*vr+cursw*wr +furs:
+vrsa := cvrsu*ur+cvrsv*vr+cvrsw*wr +fvrs:
+wrsa := cwrsu*ur+cwrsv*vr+cwrsw*wr +fwrs:
+
+
+# ************************************************************************************************************
+# Solve for uv_rt
+
+# Check this for D[1](u):
+a1DotUvrt := -( D[3](a11)*D[1](u) + D[3](a12)*D[1](v) + D[3](a13)*D[1](w) ) + D[3]( a1DotUvr ):
+tau1DotUvrt := - (tau11t*D[1](u) + tau12t*D[1](v) + tau13t*D[1](w)) + DtTau1DotUvr:
+tau2DotUvrt := - (tau21t*D[1](u) + tau22t*D[1](v) + tau23t*D[1](w)) + DtTau2DotUvr:
+
+eq1 := a11*urt+a12*vrt+a13*wrt + ( a11t*ur + a12t*vr + a13t*wr ) - a1DotUvrtRHS:
+eq2 := tau11*urt+tau12*vrt+tau13*wrt - tau1DotUvrt:
+eq3 := tau21*urt+tau22*vrt+tau23*wrt - tau2DotUvrt:
+
+URT:=solve({eq1=0,eq2=0,eq3=0},{urt,vrt,wrt}):
+assign(subs(urt=urtb,vrt=vrtb,wrt=wrtb,URT)):
+urtb:=substitutePartials(urtb):
+vrtb:=substitutePartials(vrtb):
+wrtb:=substitutePartials(wrtb):
+
+# Use the det(a1,tau1,tau2) to simplify things later:
+detnta:= a11*tau23*tau12-tau23*tau11*a12-tau21*a13*tau12+tau21*a12*tau13+tau22*tau11*a13-a11*tau22*tau13:
+
+# detnta:=simplify(detnt-a11*tau23*tau12):
+urtb:=simplify(urtb*detnta)/detnt:
+vrtb:=simplify(vrtb*detnta)/detnt:
+wrtb:=simplify(wrtb*detnta)/detnt:
+
+curtua := coeff(urtb,ur):
+curtva := coeff(urtb,vr):
+curtwa := coeff(urtb,wr):
+
+cvrtua := coeff(vrtb,ur):
+cvrtva := coeff(vrtb,vr):
+cvrtwa := coeff(vrtb,wr):
+
+cwrtua := coeff(wrtb,ur):
+cwrtva := coeff(wrtb,vr):
+cwrtwa := coeff(wrtb,wr):
+
+# Actual values for furt, fvrt, fwrt:
+furta := simplify(subs(ur=0,vr=0,wr=0,urtb)):
+fvrta := simplify(subs(ur=0,vr=0,wr=0,vrtb)):
+fwrta := simplify(subs(ur=0,vr=0,wr=0,wrtb)):
+
+# restart; read "bcdiv3d.maple";
+
+# We write uv_rt as a combination of uv_r derivatives and tangential derivatives
+# urt = curt.uv_r + furt
+# vrt = cvrt.uv_r + fvrt
+# wrt = cwrt.uv_r + fwrt
+urta := curtu*ur+curtv*vr+curtw*wr +furt:
+vrta := cvrtu*ur+cvrtv*vr+cvrtw*wr +fvrt:
+wrta := cwrtu*ur+cwrtv*vr+cwrtw*wr +fwrt:
+
+
+# ************************************************************************************************
+
+# We need a1DotUvrss =
+#         a1DotUvrtt =
+
+# a1DotUvrss := -( D[2](a11)*D[1,2](u) + D[2](a12)*D[1,2](v) + D[2](a13)*D[1,2](w) ) + D[2]( a1DotUvrs ):
+
+a1DotUvrssRHSa := D[2,2]( a1DotUvr ):
+a1DotUvrttRHSa := D[3,3]( a1DotUvr ):
+a1DotUvrssRHSa:=simplify(substitutePartials(a1DotUvrssRHSa)):
+a1DotUvrttRHSa:=simplify(substitutePartials(a1DotUvrttRHSa)):
+
+
+# ************************************************************************************************
+#  *******************   Here is the real BC *******************************
+# ************************************************************************************************
+# restart; read "bcdiv3d.maple";
+
+Lu := c11*D[1,1](u) + c22*D[2,2](u) + c33*D[3,3](u) + c1*D[1](u) + c2*D[2](u) + c3*D[3](u) - uTmTm:
+Lv := c11*D[1,1](v) + c22*D[2,2](v) + c33*D[3,3](v) + c1*D[1](v) + c2*D[2](v) + c3*D[3](v) - vTmTm:
+Lw := c11*D[1,1](w) + c22*D[2,2](w) + c33*D[3,3](w) + c1*D[1](w) + c2*D[2](w) + c3*D[3](w) - wTmTm:
+
+divtt := D[1]( a11*Lu + a12*Lv + a13*Lw ):
+
+# divtt :=simplify(algsubs(a11*urs+a12*vrs+a13*wrs=a1DotUvrs,divtt));
+
+
+divtt :=simplify(substitutePartials(divtt)):
+
+# Set a11*urs+a12*vrs+a13*wrs= -(a11s*ur+a12s*vr+a13s*wr) + a1DotUvrs:
+divtt :=simplify(subs(a11*c2*urs=c2*(a1DotUvrsRHS- (a12*vrs+a13*wrs + a11s*ur+a12s*vr+a13s*wr) ),divtt)):
+
+# Set a11*urt+a12*vrt+a13*wrt=a1DotUvrt:
+divtt :=simplify(subs(a11*c3*urt=c3*(a1DotUvrtRHS- (a12*vrt+a13*wrt + a11t*ur+a12t*vr+a13t*wr)),divtt)):
+
+# Set a11*urss = -2( a11s*urs + ... ) - ( a11ss*ur+a12ss*vr+a13ss*wr )+ Ds( ...   )
+divtt :=simplify(subs(a11*c22*urss=c22*( -2*(a11s*urs+a12s*vrs+a13s*wrs) - ( a11ss*ur+a12ss*vr+a13ss*wr )
+                      -(a12*vrss+a13*wrss) + a1DotUvrssRHS),divtt)):
+# Set a11*urtt = -2( a11t*urt + ... ) + Dt( ...   )
+divtt :=simplify(subs(a11*c33*urtt=c33*( -2*(a11t*urt+a12t*vrt+a13t*wrt) - ( a11tt*ur+a12tt*vr+a13tt*wr )
+                      -(a12*vrtt+a13*wrtt) + a1DotUvrttRHS),divtt)):
+
+divtt:=simplify(subs(urs=ursa,vrs=vrsa,wrs=wrsa,urt=urta,vrt=vrta,wrt=wrta,divtt)):
+
+lprint(divtt);
+
+b3u:= coeff(divtt,urrr):
+b3v:= coeff(divtt,vrrr):
+b3w:= coeff(divtt,wrrr):
+
+b2u:= coeff(divtt,urr):
+b2v:= coeff(divtt,vrr):
+b2w:= coeff(divtt,wrr):
+
+b1u:= coeff(divtt,ur):
+b1v:= coeff(divtt,vr):
+b1w:= coeff(divtt,wr):
+
+# divtt = (b3u,b3v,b3w).uvrrr + (b2u,b2v,b2w).uvrr + (b1u,b1v,b1w).uv + bf = 0
+bf := simplify(subs(urrr=0,vrrr=0,wrrr=0,urr=0,vrr=0,wrr=0,ur=0,vr=0,wr=0,divtt)):
+
+# restart; read "bcdiv3d.maple";
+
+# ==================================================================================
+file := fopen( "bcdiv3dMaxwell.h",WRITE ):
+
+
+fprintf(file,"! These should already be computed from the tangential components:\n"):
+fprintf(file,"! DsTau1DotUvr = ( tau11*ur+tau12*vr+tau13*wr).s \n"):
+fprintf(file,"! DsTau2DotUvr = ( tau21*ur+tau22*vr+tau23*wr).s \n"):
+fprintf(file,"\n"):
+
+fprintf(file,"      detnt=%s\n",SubstituteAll(convert(detnta,string),"^","**")):
+
+fprintf(file,"      a1DotUvrsRHS=%s\n",SubstituteAll(convert(a1DotUvrsRHSa,string),"^","**")):
+fprintf(file,"      a1DotUvrtRHS=%s\n",SubstituteAll(convert(a1DotUvrtRHSa,string),"^","**")):
+fprintf(file,"      a1DotUvrssRHS=%s\n",SubstituteAll(convert(a1DotUvrssRHSa,string),"^","**")):
+fprintf(file,"      a1DotUvrttRHS=%s\n",SubstituteAll(convert(a1DotUvrttRHSa,string),"^","**")):
+fprintf(file,"\n"):
+
+fprintf(file,"! urs = cursu*ur + cursv*vr + cursw*wr + furs\n"):
+fprintf(file,"! vrs = cvrsu*ur + cvrsv*vr + cvrsw*wr + fvrs\n"):
+fprintf(file,"! wrs = cwrsu*ur + cwrsv*vr + cwrsw*wr + fwrs\n"):
+fprintf(file,"      cursu=%s\n",SubstituteAll(convert(cursua,string),"^","**")):
+fprintf(file,"      cursv=%s\n",SubstituteAll(convert(cursva,string),"^","**")):
+fprintf(file,"      cursw=%s\n",SubstituteAll(convert(curswa,string),"^","**")):
+fprintf(file,"\n"):
+fprintf(file,"      cvrsu=%s\n",SubstituteAll(convert(cvrsua,string),"^","**")):
+fprintf(file,"      cvrsv=%s\n",SubstituteAll(convert(cvrsva,string),"^","**")):
+fprintf(file,"      cvrsw=%s\n",SubstituteAll(convert(cvrswa,string),"^","**")):
+fprintf(file,"\n"):
+fprintf(file,"      cwrsu=%s\n",SubstituteAll(convert(cwrsua,string),"^","**")):
+fprintf(file,"      cwrsv=%s\n",SubstituteAll(convert(cwrsva,string),"^","**")):
+fprintf(file,"      cwrsw=%s\n",SubstituteAll(convert(cwrswa,string),"^","**")):
+fprintf(file,"\n"):
+
+fprintf(file,"! urt = curtu*ur + curtv*vr + curtw*wr + furt\n"):
+fprintf(file,"! vrt = cvrtu*ur + cvrtv*vr + cvrtw*wr + fvrt\n"):
+fprintf(file,"! wrt = cwrtu*ur + cwrtv*vr + cwrtw*wr + fwrt\n"):
+fprintf(file,"      curtu=%s\n",SubstituteAll(convert(curtua,string),"^","**")):
+fprintf(file,"      curtv=%s\n",SubstituteAll(convert(curtva,string),"^","**")):
+fprintf(file,"      curtw=%s\n",SubstituteAll(convert(curtwa,string),"^","**")):
+fprintf(file,"\n"):
+fprintf(file,"      cvrtu=%s\n",SubstituteAll(convert(cvrtua,string),"^","**")):
+fprintf(file,"      cvrtv=%s\n",SubstituteAll(convert(cvrtva,string),"^","**")):
+fprintf(file,"      cvrtw=%s\n",SubstituteAll(convert(cvrtwa,string),"^","**")):
+fprintf(file,"\n"):
+fprintf(file,"      cwrtu=%s\n",SubstituteAll(convert(cwrtua,string),"^","**")):
+fprintf(file,"      cwrtv=%s\n",SubstituteAll(convert(cwrtva,string),"^","**")):
+fprintf(file,"      cwrtw=%s\n",SubstituteAll(convert(cwrtwa,string),"^","**")):
+fprintf(file,"\n"):
+
+fprintf(file,"      furs=%s\n",SubstituteAll(convert(fursa,string),"^","**")):
+fprintf(file,"      fvrs=%s\n",SubstituteAll(convert(fvrsa,string),"^","**")):
+fprintf(file,"      fwrs=%s\n",SubstituteAll(convert(fwrsa,string),"^","**")):
+fprintf(file,"\n"):
+fprintf(file,"      furt=%s\n",SubstituteAll(convert(furta,string),"^","**")):
+fprintf(file,"      fvrt=%s\n",SubstituteAll(convert(fvrta,string),"^","**")):
+fprintf(file,"      fwrt=%s\n",SubstituteAll(convert(fwrta,string),"^","**")):
+fprintf(file,"\n"):
+
+fprintf(file,"! These may not be needed:\n"):
+fprintf(file,"!       urs =%s\n",SubstituteAll(convert(ursa,string),"^","**")):
+fprintf(file,"!       vrs =%s\n",SubstituteAll(convert(vrsa,string),"^","**")):
+fprintf(file,"!       wrs =%s\n",SubstituteAll(convert(wrsa,string),"^","**")):
+fprintf(file,"\n"):
+
+fprintf(file,"!       urt =%s\n",SubstituteAll(convert(urta,string),"^","**")):
+fprintf(file,"!       vrt =%s\n",SubstituteAll(convert(vrta,string),"^","**")):
+fprintf(file,"!       wrt =%s\n",SubstituteAll(convert(wrta,string),"^","**")):
+fprintf(file,"\n"):
+
+fprintf(file,"      b3u=%s\n",SubstituteAll(convert(b3u,string),"^","**")):
+fprintf(file,"      b3v=%s\n",SubstituteAll(convert(b3v,string),"^","**")):
+fprintf(file,"      b3w=%s\n",SubstituteAll(convert(b3w,string),"^","**")):
+
+fprintf(file,"      b2u=%s\n",SubstituteAll(convert(b2u,string),"^","**")):
+fprintf(file,"      b2v=%s\n",SubstituteAll(convert(b2v,string),"^","**")):
+fprintf(file,"      b2w=%s\n",SubstituteAll(convert(b2w,string),"^","**")):
+
+fprintf(file,"      b1u=%s\n",SubstituteAll(convert(b1u,string),"^","**")):
+fprintf(file,"      b1v=%s\n",SubstituteAll(convert(b1v,string),"^","**")):
+fprintf(file,"      b1w=%s\n",SubstituteAll(convert(b1w,string),"^","**")):
+
+fprintf(file,"      bf =%s\n",SubstituteAll(convert(bf ,string),"^","**")):
+
+printf("\n"):
+
+
+# printf("  a1Doturss =%s\n",SubstituteAll(convert(a1Doturss,string),"^","**")):
+
+fclose(file):
+printf("\n**** Results writtem to file bcdiv3dMaxwell.h ****\n"):
+
+# restart; read "bcdiv3d.maple";
+# *********************************************************************************************
+
+
+
+#**
+#**ursa := substitutePartials(ursa):
+#**vrsa := substitutePartials(vrsa):
+#**
+#**# urrsa := substitutePartials(urrsa):
+#**# vrrsa := substitutePartials(vrrsa):
+#**
+#**divtt := subs(urss=(a1Doturss-a12*vrss)/a11,divtt): # NOTE: a1Doturss contains urs so do first
+#**divtt := subs(urs=ursa,vrs=vrsa,divtt):
+#**
+#**# *** (a11*utt+a12*vtt).r = 0 
+#**#   a11*uttr+a12*vttr + a11r*utt+a12r*vtt
+#**#    uttr = -( a12*vttr + a11r*utt+a12r*vtt )/a11
+#**
+#**divtt := subs(uttr = -( a12*vttr + a11r*utt+a12r*vtt )/a11,divtt ):
+#**
+#**divtt := simplify(divtt):
+#**
+#**printf(" divtt="): lprint(divtt):
+#**
+#**b3u := simplify(coeff(divtt,urrr)):
+#**b3v := simplify(coeff(divtt,vrrr)):
+#**
+#**b2u := simplify(coeff(divtt,urr)):
+#**b2v := simplify(coeff(divtt,vrr)):
+#**
+#**b1u := simplify(coeff(divtt,ur)):
+#**b1v := simplify(coeff(divtt,vr)):
+#**
+#**bf := simplify(subs(urrr=0,vrrr=0,urr=0,vrr=0,ur=0,vr=0,divtt)):
+#**
+
+# ************************************************************************************************
+# restart; read "bcdiv3d.maple";
+
+
+#**Lu := c11*urra + c22*D[2,2](u) + c1*D[1](u) + c2*D[2](u) - utt:
+#**Lv := c11*vrra + c22*D[2,2](v) + c1*D[1](v) + c2*D[2](v) - vtt:
+#**
+#**mxEqn := solve({Lu=0,Lv=0},{urra,vrra}):
+#**assign(mxEqn):
+#**
+#**# a2DotUrr := a21*urr + a22*vrr:
+#**
+#**
+#**urrb := subs(D[2,2](u)=uss,D[2,2](v)=vss,D[2](u)=us,D[2](v)=vs,D[1](u)=ur,D[1](v)=vr,urra):
+#**vrrb := subs(D[2,2](u)=uss,D[2,2](v)=vss,D[2](u)=us,D[2](v)=vs,D[1](u)=ur,D[1](v)=vr,vrra):
+#**
+#**# urrb := subs(D[2,2](u)=uss,D[2,2](v)=vss,D[2](u)=us,D[2](v)=vs,urrb):
+#**# vrrb := subs(D[2,2](u)=uss,D[2,2](v)=vss,D[2](u)=us,D[2](v)=vs,vrrb):
+#**
+#**divr := subs(D[1,2](u)=ursa,D[1,2](v)=vrsa,D[1](div)):
+#**divs := subs(D[1,2](u)=ursa,D[1,2](v)=vrsa,D[2](div)):
+#**
+#**mixed := solve({divr=0, divs=0},{ursa,vrsa}):
+#**assign(mixed):
+#**
+#**# urrsa := subs(D[1,2](u)=urs,D[1,2](v)=vrs,D[2,2](u)=uss,D[2,2](v)=vss,D[2](u)=us,D[2](v)=vs,D[2](urra)):
+#**# vrrsa := subs(D[1,2](u)=urs,D[1,2](v)=vrs,D[2,2](u)=uss,D[2,2](v)=vss,D[2](u)=us,D[2](v)=vs,D[2](vrra)):
+#**
+#**
+#**Lue := c11*D[1,1](u) + c22*D[2,2](u) + c33*D[3,3](u) + c1*D[1](u) + c2*D[2](u) + c3*D[3](u) - utt:
+#**Lve := c11*D[1,1](v) + c22*D[2,2](v) + c33*D[3,3](v) + c1*D[1](v) + c2*D[2](v) + c3*D[3](v) - vtt:
+#**Lwe := c11*D[1,1](w) + c22*D[2,2](w) + c33*D[3,3](w) + c1*D[1](w) + c2*D[2](w) + c3*D[3](w) - wtt:
+#**
+#**
+#**
+#**# ----
+#**substitutePartials :=proc( uu )
+#** local vv:
+#** vv := uu:
+#** vv := subs(D[1,2](u)=urs,D[1,2](v)=vrs,D[2,2](u)=uss,D[2,2](v)=vss,D[2](u)=us,D[2](v)=vs,vv):
+#**
+#** vv := subs(D[1,1](u)=urr,D[1,1](v)=vrr,D[1,1,1](u)=urrr,D[1,1,1](v)=vrrr,vv):
+#**
+#** vv := subs(D[1,2,2](u)=urss,D[1,2,2](v)=vrss,D[1](u)=ur,D[1](v)=vr,vv):
+#**
+#** vv := subs(D[2,2,2](u)=usss,D[2,2,2](v)=vsss,vv):
+#**
+#** vv := subs(D[1,1,2](a11)=a11rrs,D[1,2](a11)=a11rs,D[1,1](a11)=a11rr,D[1](a11)=a11r,D[2](a11)=a11s,vv):
+#** vv := subs(D[1,1,2](a12)=a12rrs,D[1,2](a12)=a12rs,D[1,1](a12)=a12rr,D[1](a12)=a12r,D[2](a12)=a12s,vv):
+#** vv := subs(D[1,1,2](a21)=a21rrs,D[1,2](a21)=a21rs,D[1,1](a21)=a21rr,D[1](a21)=a21r,D[2](a21)=a21s,vv):
+#** vv := subs(D[1,1,2](a22)=a22rrs,D[1,2](a22)=a22rs,D[1,1](a22)=a22rr,D[1](a22)=a22r,D[2](a22)=a22s,vv):
+#**
+#** vv := subs(D[1](c11)=c11r,D[1](c22)=c22r,D[1](c1)=c1r,D[1](c2)=c2r,vv):
+#** vv := subs(D[2](c11)=c11s,D[2](c22)=c22s,D[2](c1)=c1s,D[2](c2)=c2s,vv):
+#**
+#** vv := subs(D[2,2](a22)=a22ss,D[2,2](a21)=a21ss,D[1, 2, 2](a12)=a12rss,D[1, 2, 2](a22)=a22rss,vv):
+#**
+#** vv := subs(D[2, 2](a11)=a11ss,D[2, 2](a12)=a12ss,D[2, 2, 2](a11)=a11sss,D[2, 2, 2](a12)=a12sss,vv):
+#**
+#** vv := subs(D[2, 2, 2](a21)=a21sss,D[2, 2, 2](a22)=a22sss,D[1, 2, 2](a11)=a11rss,vv):
+#**
+#** vv := subs(D[1](utt)=uttr,D[1](vtt)=vttr,D[2](utt)=utts,D[2](vtt)=vtts,vv):
+#**
+#** vv := subs(u=uex,v=uey,vv):
+#**
+#** RETURN(vv):
+#**end:
+#**
+#**# we get a1.urss from 
+#**divss := D[2,2](div):
+#**
+#**divss := substitutePartials(divss):
+#**divss := simplify(subs(a11*urss=a1Doturss-a12*vrss,divss)):
+#**a1Doturss :=solve(divss=0,a1Doturss):
+#**
+#**
+#**
+#**# Here is the BC
+#**divtt := D[1]( a11*Lue + a12*Lve + a13*Lwe ):
+#**
+#**
+#**divtt :=substitutePartials(divtt):
+#**
+#**# lprint(divtt);
+#**
+#**ursa := substitutePartials(ursa):
+#**vrsa := substitutePartials(vrsa):
+#**
+#**# urrsa := substitutePartials(urrsa):
+#**# vrrsa := substitutePartials(vrrsa):
+#**
+#**divtt := subs(urss=(a1Doturss-a12*vrss)/a11,divtt): # NOTE: a1Doturss contains urs so do first
+#**divtt := subs(urs=ursa,vrs=vrsa,divtt):
+#**
+#**# *** (a11*utt+a12*vtt).r = 0 
+#**#   a11*uttr+a12*vttr + a11r*utt+a12r*vtt
+#**#    uttr = -( a12*vttr + a11r*utt+a12r*vtt )/a11
+#**
+#**divtt := subs(uttr = -( a12*vttr + a11r*utt+a12r*vtt )/a11,divtt ):
+#**
+#**divtt := simplify(divtt):
+#**
+#**printf(" divtt="): lprint(divtt):
+#**
+#**b3u := simplify(coeff(divtt,urrr)):
+#**b3v := simplify(coeff(divtt,vrrr)):
+#**
+#**b2u := simplify(coeff(divtt,urr)):
+#**b2v := simplify(coeff(divtt,vrr)):
+#**
+#**b1u := simplify(coeff(divtt,ur)):
+#**b1v := simplify(coeff(divtt,vr)):
+#**
+#**bf := simplify(subs(urrr=0,vrrr=0,urr=0,vrr=0,ur=0,vr=0,divtt)):
+#**
+#**SubstituteAll(tu2s,"^","**"):
+#**
+
+#**
+#**# Divtt := simplify(Divtt):
+#**
+#**# restart; read "bcdiv3d.maple";
+#**
+
+
+
+

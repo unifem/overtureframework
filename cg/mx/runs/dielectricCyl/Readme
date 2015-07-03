@@ -1,0 +1,33 @@
+Scattering from a dielectric cylinder (2D) or sphere (3D)
+
+
+(1) Generate some grids
+
+	$(ogen) -noplot io -order=2 -interp=e -factor=2
+	$(ogen) -noplot io -order=2 -interp=e -factor=4
+	$(ogen) -noplot io -order=2 -interp=e -factor=8
+	$(ogen) -noplot io -order=2 -interp=e -factor=16
+	$(ogen) -noplot io -order=4 -interp=e -factor=2
+	$(ogen) -noplot io -order=4 -interp=e -factor=4
+	$(ogen) -noplot io -order=4 -interp=e -factor=8
+	$(ogen) -noplot io -order=4 -interp=e -factor=16
+
+For SOSUP scheme:
+	$(ogen) -noplot io -order=4 -interp=e -numGhost=3 -factor=2
+	$(ogen) -noplot io -order=4 -interp=e -numGhost=3 -factor=4
+	$(ogen) -noplot io -order=4 -interp=e -numGhost=3 -factor=8
+	$(ogen) -noplot io -order=4 -interp=e -numGhost=3 -factor=16
+	$(ogen) -noplot io -order=6 -interp=e -numGhost=4 -factor=2
+	$(ogen) -noplot io -order=6 -interp=e -numGhost=4 -factor=4
+	$(ogen) -noplot io -order=6 -interp=e -numGhost=4 -factor=8
+	$(ogen) -noplot io -order=6 -interp=e -numGhost=4 -factor=16
+
+(2) Run cgmx
+
+
+
+SOSUP44:
+cgmx dielectricCyl -g=innerOutere4.order4.ng3.hdf -kx=2 -eps1=.25 -eps2=1. -method=sosup -go=halt
+
+FD22: 
+cgmx dielectricCyl -g=innerOutere4.order4.hdf -kx=2 -eps1=.25 -eps2=1. -go=halt

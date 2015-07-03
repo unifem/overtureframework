@@ -1,0 +1,364 @@
+#
+# **** CORNERS ****
+#
+# Derive 4th-order PEC boundary conditions for Maxwell's equations.
+#   (see the file ogmg/neumann.maple)
+#
+# restart; read "bc4c.maple";
+clear;
+
+with(StringTools):
+
+Dzr := proc(f)
+  local x,y,z;
+  option operator;
+  unapply( simplify( (f(x+1,y,z)-f(x-1,y,z))/2 ), x,y,z);
+end:
+Dpr := proc(f)
+  local x,y,z;
+  option operator;
+  unapply( simplify( f(x+1,y,z)-f(x,y,z) ), x,y,z );
+end:
+Dmr := proc(f)
+  local x,y,z;
+  option operator;
+  unapply( simplify( f(x,y,z)-f(x-1,y,z)), x,y,z);
+end:
+Dzs := proc(f)
+  local x,y,z;
+  option operator;
+  unapply( simplify( (f(x,y+1,z)-f(x,y-1,z))/2 ), x,y,z);
+end:
+Dps := proc(f)
+  local x,y,z;
+  option operator;
+  unapply( simplify( f(x,y+1,z)-f(x,y,z) ), x,y,z);
+end:
+Dms := proc(f)
+  local x,y,z;
+  option operator;
+  unapply( simplify( f(x,y,z)-f(x,y-1,z)), x,y,z);
+end:
+
+Dzt := proc(f)
+  local x,y,z;
+  option operator;
+  unapply( simplify( (f(x,y,z+1)-f(x,y,z-1))/2 ), x,y,z);
+end:
+Dpt := proc(f)
+  local x,y,z;
+  option operator;
+  unapply( simplify( f(x,y,z+1)-f(x,y,z) ), x,y,z);
+end:
+Dmt := proc(f)
+  local x,y,z;
+  option operator;
+  unapply( simplify( f(x,y,z)-f(x,y,z-1)), x,y,z);
+end:
+
+# --------------------------------------------------------
+substituteValues :=proc( uu )
+ local bc;
+
+  bc:=uu;
+
+  bc:=subs(a11(i1-1,i2,i3)=a11m1,a12(i1-1,i2,i3)=a12m1,a11(i1+1,i2,i3)=a11p1,a12(i1+1,i2,i3)=a12p1,bc):
+  bc:=subs(a11(i1-2,i2,i3)=a11m2,a12(i1-2,i2,i3)=a12m2,a11(i1+2,i2,i3)=a11p2,a12(i1+2,i2,i3)=a12p2,bc):
+
+  bc:=subs(a21(i1-1,i2,i3)=a21m1,a22(i1-1,i2,i3)=a22m1,a21(i1+1,i2,i3)=a21p1,a22(i1+1,i2,i3)=a22p1,bc):
+  bc:=subs(a21(i1-2,i2,i3)=a21m2,a22(i1-2,i2,i3)=a22m2,a21(i1+2,i2,i3)=a21p2,a22(i1+2,i2,i3)=a22p2,bc):
+
+  bc:=subs(a11(i1,i2-1,i3)=a11zm1,a12(i1,i2-1,i3)=a12zm1,a11(i1,i2+1,i3)=a11zp1,a12(i1,i2+1,i3)=a12zp1,bc):
+  bc:=subs(a21(i1,i2-1,i3)=a21zm1,a22(i1,i2-1,i3)=a22zm1,a21(i1,i2+1,i3)=a21zp1,a22(i1,i2+1,i3)=a22zp1,bc):
+
+  bc:=subs(a11(i1,i2-2,i3)=a11zm2,a12(i1,i2-2,i3)=a12zm2,a11(i1,i2+2,i3)=a11zp2,a12(i1,i2+2,i3)=a12zp2,bc):
+  bc:=subs(a21(i1,i2-2,i3)=a21zm2,a22(i1,i2-2,i3)=a22zm2,a21(i1,i2+2,i3)=a21zp2,a22(i1,i2+2,i3)=a22zp2,bc):
+
+  bc := subs(u(i1,i2,i3)=u(i1,i2,i3,ex),bc):
+  bc := subs(v(i1,i2,i3)=u(i1,i2,i3,ey),bc):
+  bc := subs(w(i1,i2,i3)=u(i1,i2,i3,hz),bc):
+
+  bc := subs(u(i1+1,i2,i3)=u(i1+is1,i2,i3,ex),bc):
+  bc := subs(v(i1+1,i2,i3)=u(i1+is1,i2,i3,ey),bc):
+  bc := subs(w(i1+1,i2,i3)=u(i1+is1,i2,i3,hz),bc):
+				      
+  bc := subs(u(i1-1,i2,i3)=u(i1-is1,i2,i3,ex),bc):
+  bc := subs(v(i1-1,i2,i3)=u(i1-is1,i2,i3,ey),bc):
+  bc := subs(w(i1-1,i2,i3)=u(i1-is1,i2,i3,hz),bc):
+
+
+  bc := subs(u(i1,i2+1,i3)=u(i1,i2+is2,i3,ex),bc):
+  bc := subs(v(i1,i2+1,i3)=u(i1,i2+is2,i3,ey),bc):
+  bc := subs(w(i1,i2+1,i3)=u(i1,i2+is2,i3,hz),bc):
+		      	       
+  bc := subs(u(i1,i2-1,i3)=u(i1,i2-is2,i3,ex),bc):
+  bc := subs(v(i1,i2-1,i3)=u(i1,i2-is2,i3,ey),bc):
+  bc := subs(w(i1,i2-1,i3)=u(i1,i2-is2,i3,hz),bc):
+
+
+  bc := subs(u(i1+2,i2,i3)=u(i1+2*is1,i2,i3,ex),bc):
+  bc := subs(v(i1+2,i2,i3)=u(i1+2*is1,i2,i3,ey),bc):
+  bc := subs(w(i1+2,i2,i3)=u(i1+2*is1,i2,i3,hz),bc):
+
+  bc := subs(u(i1-2,i2,i3)=u(i1-2*is1,i2,i3,ex),bc):
+  bc := subs(v(i1-2,i2,i3)=u(i1-2*is1,i2,i3,ey),bc):
+  bc := subs(w(i1-2,i2,i3)=u(i1-2*is1,i2,i3,hz),bc):
+
+  bc := subs(u(i1,i2+2,i3)=u(i1,i2+2*is2,i3,ex),bc):
+  bc := subs(v(i1,i2+2,i3)=u(i1,i2+2*is2,i3,ey),bc):
+  bc := subs(w(i1,i2+2,i3)=u(i1,i2+2*is2,i3,hz),bc):
+		      	       	        
+  bc := subs(u(i1,i2-2,i3)=u(i1,i2-2*is2,i3,ex),bc):
+  bc := subs(v(i1,i2-2,i3)=u(i1,i2-2*is2,i3,ey),bc):
+  bc := subs(w(i1,i2-2,i3)=u(i1,i2-2*is2,i3,hz),bc):
+
+  bcs:=convert(bc,string):
+  bcs:= SubstituteAll(bcs,"^2","**2"):
+  bcs:= SubstituteAll(bcs,"^3","**3"):
+  bcs:= SubstituteAll(bcs,"^4","**4"):
+  bcs:= SubstituteAll(bcs,"^5","**5"):
+  bcs:= SubstituteAll(bcs,"^6","**6"):
+  bcs:= SubstituteAll(bcs,"^7","**7"):
+  bcs:= SubstituteAll(bcs,"^8","**8"):
+  bcs:= SubstituteAll(bcs,"^9","**9"):
+  bcs:= SubstituteAll(bcs,"/2*","/2.*"):
+  bcs:= SubstituteAll(bcs,"/3*","/3.*"):
+  bcs:= SubstituteAll(bcs,"/4*","/4.*"):
+  bcs:= SubstituteAll(bcs,"/5*","/5.*"):
+  bcs:= SubstituteAll(bcs,"/6*","/6.*"):
+  bcs:= SubstituteAll(bcs,"/7*","/7.*"):
+  bcs:= SubstituteAll(bcs,"/8*","/8.*"):
+  bcs:= SubstituteAll(bcs,"/9*","/9.*"):
+  bcs:= SubstituteAll(bcs,"/10*","/10.*"):
+  bcs:= SubstituteAll(bcs,"/11*","/11.*"):
+  bcs:= SubstituteAll(bcs,"/12*","/12.*"):
+
+  RETURN(bcs):
+
+end:
+# ----------------------------------------------------------
+
+
+# ******************** START ***************************
+
+
+Lu := c11*Dpr(Dmr(u))(i1,i2,i3)/dra^2 + c22*Dps(Dms(u))(i1,i2,i3)/dsa^2 
+            + c1*Dzr(u)(i1,i2,i3)/dra + c2*Dzs(u)(i1,i2,i3)/dsa:
+Lv := c11*Dpr(Dmr(v))(i1,i2,i3)/dra^2 + c22*Dps(Dms(v))(i1,i2,i3)/dsa^2 
+            + c1*Dzr(v)(i1,i2,i3)/dra + c2*Dzs(v)(i1,i2,i3)/dsa:
+
+e1 := (a11*u+a12*v)(i1-1,i2,i3):
+e2 := (a21*u+a22*v)(i1,i2-1,i3):
+
+soln := solve({Lu=0,Lv=0,e1=0,e2=0},{u(i1-1,i2,i3),v(i1-1,i2,i3),u(i1,i2-1,i3),v(i1,i2-1,i3)}):
+
+# restart; read "bc4c.maple";
+
+
+printf("\n\n ****************** Second-order ********************\n"):
+
+for i from 1 to 4 do
+
+  bc:=simplify(soln[i]):
+
+  bcs := substituteValues( bc ):
+
+  # lprint(bc):
+  printf("      %s\n\n",bcs):
+
+od:
+
+
+# ****************** fourth order ********************
+
+
+Lu := c11*( Dpr(Dmr(u))(i1,i2,i3) -(1/12)*Dpr(Dmr(Dpr(Dmr(u))))(i1,i2,i3) )/dra^2 
+    + c22*( Dps(Dms(u))(i1,i2,i3) -(1/12)*Dps(Dms(Dps(Dms(u))))(i1,i2,i3) )/dsa^2 
+         + c1*( Dzr(u)(i1,i2,i3)  -(1/6)*Dzr(Dpr(Dmr(u)))(i1,i2,i3) )/dra 
+         + c2*( Dzs(u)(i1,i2,i3)  -(1/6)*Dzs(Dps(Dms(u)))(i1,i2,i3) )/dsa:
+Lv := c11*( Dpr(Dmr(v))(i1,i2,i3) -(1/12)*Dpr(Dmr(Dpr(Dmr(v))))(i1,i2,i3) )/dra^2 
+    + c22*( Dps(Dms(v))(i1,i2,i3) -(1/12)*Dps(Dms(Dps(Dms(v))))(i1,i2,i3) )/dsa^2 
+         + c1*( Dzr(v)(i1,i2,i3)  -(1/6)*Dzr(Dpr(Dmr(v)))(i1,i2,i3) )/dra 
+         + c2*( Dzs(v)(i1,i2,i3)  -(1/6)*Dzs(Dps(Dms(v)))(i1,i2,i3) )/dsa:
+
+# simplify to
+cu20a := coeff(Lu,u(i1-2,i2,i3)):
+cu10a := coeff(Lu,u(i1-1,i2,i3)):
+cu02a := coeff(Lu,u(i1,i2-2,i3)):
+cu01a := coeff(Lu,u(i1,i2-1,i3)):
+
+cv20a := coeff(Lv,v(i1-2,i2,i3)):
+cv10a := coeff(Lv,v(i1-1,i2,i3)):
+cv02a := coeff(Lv,v(i1,i2-2,i3)):
+cv01a := coeff(Lv,v(i1,i2-1,i3)):
+
+# FIX --- no v's in u equation
+Lua := cu20*u(i1-2,i2,i3) + cu10*u(i1-1,i2,i3) + cu02*u(i1,i2-2,i3) + cu01*u(i1,i2-1,i3) + gLu:
+
+Lva := cv20*v(i1-2,i2,i3) + cv10*v(i1-1,i2,i3) + cv02*v(i1,i2-2,i3) + cv01*v(i1,i2-1,i3) + gLv:
+
+
+# tau.uv = 0 
+e1 := (a11*u+a12*v)(i1-1,i2,i3) - tdu10:
+e2 := (a21*u+a22*v)(i1,i2-1,i3) - tdu01:
+
+e3 := (a11*u+a12*v)(i1-2,i2,i3) - tdu20:
+e4 := (a21*u+a22*v)(i1,i2-2,i3) - tdu02:
+
+g1:=  a21*(                              6*u(i1,i2,i3)-4*u(i1+1,i2,i3)+u(i1+2,i2,i3))
+     +a22*(                              6*v(i1,i2,i3)-4*v(i1+1,i2,i3)+v(i1+2,i2,i3)):
+
+f1 := a21*(u(i1-2,i2,i3)-4*u(i1-1,i2,i3)                                            )
+     +a22*(v(i1-2,i2,i3)-4*v(i1-1,i2,i3)                                            ):
+
+g2 := a11*(                              6*u(i1,i2,i3)-4*u(i1,i2+1,i3)+u(i1,i2+2,i3))
+     +a12*(                              6*v(i1,i2,i3)-4*v(i1,i2+1,i3)+v(i1,i2+2,i3)):
+
+f2 := a11*(u(i1,i2-2,i3)-4*u(i1,i2-1,i3)                                            )
+     +a12*(v(i1,i2-2,i3)-4*v(i1,i2-1,i3)                                            ):
+
+varsa:= [ "u(i1-is1,i2,i3,ex)","u(i1-is1,i2,i3,ey)","u(i1,i2-is2,i3,ex)","u(i1,i2-is2,i3,ey)",
+         "u(i1-2*is1,i2,i3,ex)","u(i1-2*is1,i2,i3,ey)","u(i1,i2-2*is2,i3,ex)","u(i1,i2-2*is2,i3,ey)" ]:
+
+vars:= [u(i1-1,i2,i3),v(i1-1,i2,i3),u(i1,i2-1,i3),v(i1,i2-1,i3),
+        u(i1-2,i2,i3),v(i1-2,i2,i3),u(i1,i2-2,i3),v(i1,i2-2,i3)]:
+
+soln := solve({Lua=0,Lva=0,e1=0,e2=0,e3=0,e4=0,f1=-g1a,f2=-g2a},
+  {u(i1-1,i2,i3),v(i1-1,i2,i3),u(i1,i2-1,i3),v(i1,i2-1,i3),
+   u(i1-2,i2,i3),v(i1-2,i2,i3),u(i1,i2-2,i3),v(i1,i2-2,i3)}):
+assign(soln):
+
+# restart; read "bc4c.maple";
+
+file := fopen( "bcExtended4Maxwell.h",WRITE ):
+
+
+det := -4*a12(i1-1,i2,i3)*a21*a22(i1,i2-1,i3)*cv20*a11(i1-2,i2,i3)*cu01*a22(i1,i2-2,i3)*a11+4*a22*a11(
+i1-1,i2,i3)*a22(i1,i2-1,i3)*cv20*a11(i1-2,i2,i3)*cu01*a22(i1,i2-2,i3)*a11+4*a22*a11(i1-2,i2,i3)*cu02*a22(i1,i2-2,i3)*a22(i1,
+i2-1,i3)*a11*cv10*a11(i1-1,i2,i3)+16*a22*a11(i1-1,i2,i3)*a22(i1,i2-1,i3)*a22(i1,i2-2,i3)*cv20*a11(i1-2,i2,i3)*cu02*a11-16*a22
+*a11(i1-1,i2,i3)*a22(i1,i2-2,i3)*cv20*a11(i1-2,i2,i3)*cu02*a12*a21(i1,i2-1,i3)-4*a22*a11(i1-2,i2,i3)*cu02*a22(i1,i2-2,i3)*a12
+*a21(i1,i2-1,i3)*cv10*a11(i1-1,i2,i3)-16*a12(i1-1,i2,i3)*a21*a22(i1,i2-1,i3)*a22(i1,i2-2,i3)*cv20*a11(i1-2,i2,i3)*cu02*a11+
+a22*a11(i1-2,i2,i3)*cu01*a22(i1,i2-2,i3)*a22(i1,i2-1,i3)*a11*cv10*a11(i1-1,i2,i3)+16*a12(i1-1,i2,i3)*a21*a22(i1,i2-2,i3)*cv20
+*a11(i1-2,i2,i3)*cu02*a12*a21(i1,i2-1,i3)-a12(i1-1,i2,i3)*a22*a11(i1-2,i2,i3)*cu10*cv01*a21(i1,i2-1,i3)*a22(i1,i2-2,i3)*a11+
+a12(i1-1,i2,i3)*a22*a11(i1-2,i2,i3)*cu10*cv01*a21(i1,i2-1,i3)*a12*a21(i1,i2-2,i3)-4*a12(i1-1,i2,i3)*a22*a11(i1-2,i2,i3)*cu10*
+a22(i1,i2-1,i3)*cv02*a21(i1,i2-2,i3)*a11-a11(i1-1,i2,i3)*cv10*a21(i1,i2-2,i3)*a12*a22(i1,i2-1,i3)*cu01*a11(i1-2,i2,i3)*a22-4*
+a21(i1,i2-2,i3)*a12*cu01*a11(i1-2,i2,i3)*cv20*a22(i1,i2-1,i3)*a11(i1-1,i2,i3)*a22+4*a12(i1-1,i2,i3)*a21*a22(i1,i2-1,i3)*cv20*
+a11(i1-2,i2,i3)*cu01*a12*a21(i1,i2-2,i3)+4*a12(i1-1,i2,i3)*a22*a11(i1-2,i2,i3)*cu10*cv02*a21(i1,i2-2,i3)*a12*a21(i1,i2-1,i3)-\
+4*a12(i1-2,i2,i3)*a21*cu02*a22(i1,i2-2,i3)*a22(i1,i2-1,i3)*a11*cv10*a11(i1-1,i2,i3)-4*cu20*a12(i1-2,i2,i3)*a22*a11(i1-1,i2,i3
+)*cv01*a21(i1,i2-1,i3)*a22(i1,i2-2,i3)*a11-a12(i1-2,i2,i3)*a21*cu01*a22(i1,i2-2,i3)*a22(i1,i2-1,i3)*a11*cv10*a11(i1-1,i2,i3)+
+4*a12(i1-2,i2,i3)*a21*cu02*a22(i1,i2-2,i3)*a12*a21(i1,i2-1,i3)*cv10*a11(i1-1,i2,i3)+4*cu20*a12(i1-1,i2,i3)*a12(i1-2,i2,i3)*
+a21*cv01*a21(i1,i2-1,i3)*a22(i1,i2-2,i3)*a11+a12(i1-1,i2,i3)*a12(i1-2,i2,i3)*a21*cu10*cv01*a21(i1,i2-1,i3)*a22(i1,i2-2,i3)*
+a11-a12(i1-1,i2,i3)*a12(i1-2,i2,i3)*a21*cu10*cv01*a21(i1,i2-1,i3)*a12*a21(i1,i2-2,i3)-4*a12(i1-1,i2,i3)*a12(i1-2,i2,i3)*a21*
+cu10*cv02*a21(i1,i2-2,i3)*a12*a21(i1,i2-1,i3)+4*a12(i1-1,i2,i3)*a12(i1-2,i2,i3)*a21*cu10*a22(i1,i2-1,i3)*cv02*a21(i1,i2-2,i3)
+*a11+16*cu20*a12(i1-1,i2,i3)*a12(i1-2,i2,i3)*a21*a22(i1,i2-1,i3)*cv02*a21(i1,i2-2,i3)*a11+a12(i1-2,i2,i3)*a21*cu01*a22(i1,i2-\
+1,i3)*a12*a21(i1,i2-2,i3)*cv10*a11(i1-1,i2,i3)-16*cu20*a12(i1-2,i2,i3)*a22*a11(i1-1,i2,i3)*a22(i1,i2-1,i3)*cv02*a21(i1,i2-2,
+i3)*a11+16*cu20*a12(i1-2,i2,i3)*a22*a11(i1-1,i2,i3)*cv02*a21(i1,i2-2,i3)*a12*a21(i1,i2-1,i3)+4*cu20*a12(i1-2,i2,i3)*a22*a11(
+i1-1,i2,i3)*cv01*a21(i1,i2-1,i3)*a12*a21(i1,i2-2,i3)-4*cu20*a12(i1-1,i2,i3)*a12(i1-2,i2,i3)*a21*cv01*a21(i1,i2-1,i3)*a12*a21(
+i1,i2-2,i3)-16*cu20*a12(i1-1,i2,i3)*a12(i1-2,i2,i3)*a21*cv02*a21(i1,i2-2,i3)*a12*a21(i1,i2-1,i3):
+
+
+printf("\n\n ****************** Fourth-order ********************\n"):
+fprintf(file,"\n\n! ****************** Fourth-order ********************\n"):
+
+g1s:=substituteValues( g1 ):
+g2s:=substituteValues( g2 ):
+
+fprintf(file,"      g1a = %s\n\n",g1s):
+fprintf(file,"      g2a = %s\n\n",g2s):
+
+cu20a:=substituteValues( cu20a ): fprintf(file,"      cu20=%s\n\n",cu20a):
+cu02a:=substituteValues( cu02a ): fprintf(file,"      cu02=%s\n\n",cu02a):
+cu10a:=substituteValues( cu10a ): fprintf(file,"      cu10=%s\n\n",cu10a):
+cu01a:=substituteValues( cu01a ): fprintf(file,"      cu01=%s\n\n",cu01a):
+
+cv20a:=substituteValues( cv20a ): fprintf(file,"      cv20=%s\n\n",cv20a):
+cv02a:=substituteValues( cv02a ): fprintf(file,"      cv02=%s\n\n",cv02a):
+cv10a:=substituteValues( cv10a ): fprintf(file,"      cv10=%s\n\n",cv10a):
+cv01a:=substituteValues( cv01a ): fprintf(file,"      cv01=%s\n\n",cv01a):
+
+fprintf(file,"      gLu= uLap-(cu20*u(i1-2*is1,i2,i3,ex) + cu10*u(i1-is1,i2,i3,ex) + cu02*u(i1,i2-2*is2,i3,ex) + cu01*u(i1,i2-is2,i3,ex)) -utt00 \n\n"):
+
+fprintf(file,"      gLv= vLap-(cv20*u(i1-2*is1,i2,i3,ey) + cv10*u(i1-is1,i2,i3,ey) + cv02*u(i1,i2-2*is2,i3,ey) + cv01*u(i1,i2-is2,i3,ey)) -vtt00 \n\n"):
+
+
+dets := substituteValues( det ):
+fprintf(file,"      det=%s\n\n",dets):
+for i from 1 to 8 do
+
+  # bc:=simplify(soln[i]):
+  bc:=simplify(vars[i]*det):
+
+  bcs := substituteValues( bc ):
+
+  
+
+  # lprint(bc):
+  us := varsa[i]:
+
+#  us := SubstituteAll(us,"ua","u"):
+#  us := SubstituteAll(us,"va","v"):
+#  us := substituteValues( us ):
+  fprintf(file,"      %s=(%s)/det\n\n",us,bcs):
+
+od:
+
+fprintf(file,"\n\n! ****************** done fourth-order ********************\n"):
+
+fclose(file):
+printf("Results written to file bcExtended4Maxwell.h\n"):
+
+# restart; read "bc4c.maple";
+
+
+
+
+# ******************** START Hz fourth order ***************************
+
+
+Lw := c11*Dpr(Dmr(w))(i1,i2,i3)/dra^2 + c22*Dps(Dms(w))(i1,i2,i3)/dsa^2 
+            + c1*Dzr(w)(i1,i2,i3)/dra + c2*Dzs(w)(i1,i2,i3)/dsa:
+
+# Lwr := Dzr( c11*Dpr(Dmr(w))/dra^2 + c22*Dps(Dms(w))/dsa^2+ c2*Dzs(w)/dsa )(i1,i2,i3)
+#             + c1*Dpr(Dmr(w))(i1,i2,i3)/dra + (Dzr(c1)*Dzr(w))(i1,i2,i3)/dra:
+# simplify using wr=0 wrs=0, wrss=0 ws=0 wrrs=0
+
+
+Lwr :=  c11*Dzr(Dpr(Dmr(w)))(i1,i2,i3)/dra^3 + (c1+c11r)*Dpr(Dmr(w))(i1,i2,i3)/dra^2 
+                                             + c22r*Dps(Dms(w))(i1,i2,i3)/dsa^2 - fw3:
+Lws :=  c22*Dzs(Dps(Dms(w)))(i1,i2,i3)/dsa^3 + (c2+c22s)*Dps(Dms(w))(i1,i2,i3)/dsa^2 
+                                             + c11s*Dpr(Dmr(w))(i1,i2,i3)/dra^2 - fw4:
+
+f1 := ( Dzr(w)(i1,i2,i3) -(1/6)*( Dzr(Dpr(Dmr(w)))(i1,i2,i3) ) )/dra - fw1:
+f2 := ( Dzs(w)(i1,i2,i3) -(1/6)*( Dzs(Dps(Dms(w)))(i1,i2,i3) ) )/dsa - fw2:
+
+
+soln := solve({f1=0,f2=0,Lwr=0,Lws=0},{w(i1-2,i2,i3),w(i1-1,i2,i3),w(i1,i2-2,i3),w(i1,i2-1,i3)}):
+
+# restart; read "bc4c.maple";
+
+file := fopen( "bcHzExtended4Maxwell.h",WRITE ):
+
+printf("\n\n ****************** Start Hz extended fourth-order ********************\n"):
+fprintf(file,"! ****************** Start Hz extended fourth-order ********************\n"):
+fprintf(file,"!  Solve:  wr=fw1  \n"):
+fprintf(file,"!          ws=fw2  \n"):
+fprintf(file,"!          c11*wrrr+(c1+c11r)*wrr + c22r*wss=fw3, (i.e. (Lw).r=0 )\n"):
+fprintf(file,"!          c22*wsss+(c2+c22s)*wss + c11s*wrr=fw4, (i.e. (Lw).s=0 )\n\n"):
+
+for i from 1 to 4 do
+
+  bc:=simplify(soln[i]):
+
+  bcs := substituteValues( bc ):
+
+  # lprint(bc):
+  fprintf(file,"      %s\n\n",bcs):
+
+od:
+fprintf(file,"\n\n! ****************** done Hz extended fourth-order ********************\n"):
+
+fclose(file):
+printf("Results written to file bcHzExtended4Maxwell.h\n"):
+
+
+# restart; read "bc4c.maple";

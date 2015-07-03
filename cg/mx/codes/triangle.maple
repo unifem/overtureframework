@@ -1,0 +1,228 @@
+clear;
+
+# *** triangles ***
+
+nt:=15;   # number of triangles
+# nn:=4;   # number of nodes
+# nf:=5;   # number of faces;
+x1:=array(1..nt);
+x2:=array(1..nt);
+x3:=array(1..nt);
+
+# solution values at cell centres
+w:=array(1..nt);
+
+# lap at cell centre
+lap:=array(1..nt);
+
+cc:=array(1..nt);  # center of triangle
+
+# face centres
+f12:=array(1..nt);
+f23:=array(1..nt);
+f31:=array(1..nt);
+
+# vector along the edge
+p12:=array(1..nt);
+p23:=array(1..nt);
+p31:=array(1..nt);
+
+# normal to face
+n12:=array(1..nt);
+n23:=array(1..nt);
+n31:=array(1..nt);
+
+# gradient at midpoint face
+g12:=array(1..nt);
+g23:=array(1..nt);
+g31:=array(1..nt);
+
+
+# fill in triangle info
+
+for i from 1 to nt do
+  # vertices
+  x1[i]:=array(1..2);
+  x2[i]:=array(1..2);
+  x3[i]:=array(1..2);
+
+  cc[i]:=array(1..2);
+  f12[i]:=array(1..2);
+  f23[i]:=array(1..2);
+  f31[i]:=array(1..2);
+
+  p12[i]:=array(1..2);
+  p23[i]:=array(1..2);
+  p31[i]:=array(1..2);
+
+  n12[i]:=array(1..2);
+  n23[i]:=array(1..2);
+  n31[i]:=array(1..2);
+  
+  for n from 1 to 2 do
+    cc[i][n]:=(x1[i][n]+x2[i][n]+x3[i][n])/3;
+
+    f12[i][n]:=(x1[i][n]+x2[i][n])/2;
+    f23[i][n]:=(x2[i][n]+x3[i][n])/2;
+    f31[i][n]:=(x3[i][n]+x1[i][n])/2;
+
+
+    p12[i][n]:=x2[i][n]-x1[i][n];
+    p23[i][n]:=x3[i][n]-x2[i][n];
+    p31[i][n]:=x1[i][n]-x3[i][n];
+ 
+  od;
+
+  n12[i]:=array([p12[i][2],-p12[i][1]]);
+  n23[i]:=array([p23[i][2],-p23[i][1]]);
+  n31[i]:=array([p31[i][2],-p31[i][1]]);
+
+  g12[i]:=array(1..2);
+  g23[i]:=array(1..2);
+  g31[i]:=array(1..2);
+
+  lap[i]:= dotprod(n12[i],g12[i],orthogonal)+dotprod(n23[i],g23[i],orthogonal)+dotprod(n31[i],g31[i],orthogonal);
+od;
+
+
+# vector from cell centre to cell center
+s := array(1..nt,1..nt);
+duds := array(1..nt,1..nt);
+for i from 1 to nt do
+  for j from 1 to nt do
+    s[i,j]:=array(1..2);
+    for n from 1 to 2 do
+      s[i,j][n]:=cc[i][n]-cc[j][n];
+    od;
+    duds[i,j]:=w[i]-w[j];
+    # print(s[i,j]);
+  od;
+od;
+
+
+#
+# Case I: regular triangulation
+
+#           +--------+--------+--------+--------+
+#           |\       |\       |\       |\       |
+#           |  \     |  \     |  \     |  \     |
+#           |    \   |    \   |    \   |    \   |
+#           |      \ |T10   \ | T8   \ |      \ |
+#           +--------+--------3--------+--------+
+#           |\       |\       |\       |\       |
+#           |  \     |  \ T4  |  \ T2  |  \     |
+#           |    \   |    \   |    \   |    \   |
+#           |      \ | T6   \ | T1   \ | T7   \ |
+#           +--------+--------1--------2--------+
+#           |\       |\       |\       |\       |
+#           |  \     |  \     |  \ T3  |  \     |
+#           |    \   |    \   |    \   |    \   |
+#           |      \ |      \ | T5   \ | T9   \ |
+#           +--------+--------+--------+--------+
+#           |\       |\       |\       |\       |
+#           |  \     |  \     |  \     |  \     |
+#           |    \   |    \   |    \   |    \   |
+#           |      \ |      \ |      \ |      \ |
+#           +--------+--------+--------+--------+
+#           
+
+
+
+x1[1]:=array([0,0]);
+x2[1]:=array([1,0]);
+x3[1]:=array([0,1]);
+
+x1[2]:=array([1,1]);
+x2[2]:=x3[1];
+x3[2]:=x2[1];
+
+x1[3]:=x2[1];
+x2[3]:=x1[1];
+x3[3]:=array([1,-1]);
+
+x1[4]:=x3[1];
+x2[4]:=array([-1,1]);
+x3[4]:=x1[1];
+
+x1[5]:=array([0,-1]);
+x2[5]:=x3[3];
+x3[5]:=x1[1];
+
+x1[6]:=array([-1,0]);
+x2[6]:=x1[1];
+x3[6]:=x2[4];
+
+x1[7]:=x2[1];
+x2[7]:=array([2,0]);
+x3[7]:=x1[2];
+
+x1[8]:=x3[1];
+x2[8]:=x1[2];
+x3[8]:=array([0,2]);
+
+x1[9]:=x3[3];
+x2[9]:=array([2,-1]);
+x3[9]:=x2[1];
+
+x1[10]:=x2[4];
+x2[10]:=x1[4];
+x3[10]:=array([-1,2]);
+
+x1[11]:=array([ 2,1]);
+x2[11]:=array([ 1,1]);
+x3[11]:=array([ 2,0]);
+
+x1[12]:=array([ 1,2]);
+x2[12]:=array([ 0,2]);
+x3[12]:=array([ 1,1]);
+
+x1[13]:=array([ 2,0]);
+x2[13]:=array([ 1,0]);
+x3[13]:=array([ 2,-1]);
+
+x1[14]:=array([ 2,-1]);
+x2[14]:=array([ 1,-1]);
+x3[14]:=array([ 2,-2]);
+
+x1[15]:=array([ 1,-2]);
+x2[15]:=array([ 2,-2]);
+x3[15]:=array([ 1,-1]);
+
+
+
+# g12[1]:=array([1,1]);
+# g23[1]:=array([1,1]);
+# g31[1]:=array([1,1]);
+
+print(lap[1]);
+
+# gradients on triangle 1
+for n from 1 to 2 do
+ g12[1][n]:= duds[3,1]*(s[3,1][n]) + (1/4)*duds[6,4]*s[6,4][n] + (3/4)*duds[5,3]*s[5,3][n];
+ g23[1][n]:= duds[2,1]*(s[2,1][n]);
+ g31[1][n]:= duds[4,1]*(s[4,1][n]) + (1/4)*duds[5,3]*s[5,3][n] + (3/4)*duds[6,4]*s[6,4][n];
+od;
+
+#gradients on triangle 2
+for n from 1 to 2 do
+ g12[2][n]:= duds[8,2]*(s[8,2][n]) + (1/4)*duds[11,7]*s[11,7][n] + (3/4)*duds[12,8]*s[12,8][n];
+ g23[2][n]:= duds[1,2]*(s[1,2][n]);
+ g31[2][n]:= duds[7,2]*(s[7,2][n]) + (1/4)*duds[12,8]*s[12,8][n] + (3/4)*duds[11,7]*s[11,7][n];
+od;
+
+#gradients on triangle 3 *** these are wrong ****
+for n from 1 to 2 do
+ g12[3][n]:= g12[1][n];
+ g23[3][n]:= duds[5,3]*(s[5,3][n]);
+ g31[3][n]:= duds[9,3]*(s[9,3][n]) + (1/4)*duds[15,14]*s[15,14][n] + (3/4)*duds[5,3]*s[5,3][n];
+# g12[3][n]:= duds[1,3]*(s[1,3][n]) + (1/4)*duds[13,9]*s[13,9][n] + (3/4)*duds[2,1]*s[2,1][n];
+# g23[3][n]:= duds[5,3]*(s[5,3][n]);
+# g31[3][n]:= duds[9,3]*(s[9,3][n]) + (1/4)*duds[2,1]*s[2,1][n] + (3/4)*duds[13,9]*s[13,9][n];
+od;
+
+printf("lap[1]=%a\n",lap[1]);
+printf("lap[2]=%a\n",lap[2]);
+printf("lap[3]=%a\n",lap[3]);
+
+
+

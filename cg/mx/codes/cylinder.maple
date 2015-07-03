@@ -1,0 +1,128 @@
+# restart; read "cylinder.maple";
+
+# Here is Jn(x) as n->infinity
+assume(x>0):
+assume(n>0):
+additionally(n::integer):
+assume(e>0):
+
+
+Jn := (1/(2*Pi*n))^(1/2)*( e*x/(2*n) )^n:
+Jnp := simplify(diff( Jn,x)):
+
+
+Yn := -(2/(Pi*n))^(1/2)*( e*x/(2*n) )^(-n):
+Ynp := simplify(diff( Yn,x)):
+
+Hn := Jn - I*Yn:
+Hnp := Jnp - I*Ynp:
+
+d := m*subs(x=ka,Hnp)*subs(x=m*ka,Jn) - subs(x=ka,Hn)*subs(x=m*ka,Jnp):
+d := simplify(d);
+
+dLim :=  simplify(coeff(d,I));
+
+bn := simplify(m*(-2/(Pi*ka))/dLim);
+
+
+# scattering by a homogeneous cylinder
+
+# **assume(n>0):
+# **additionally(n::integer):
+# **assume(ka::realcons):
+# **assume(m::realcons):
+# **assume(mka::realcons):
+# **assume(x::realcons):
+# **assume(t::realcons):
+# **assume(wt::realcons):
+# **assume(arg::realcons):
+# **assume(cosa::realcons):
+# **assume(sina::realcons):
+# **
+# **Jn := x-> BesselJ(n, x):
+# **Jnp := x-> diff(BesselJ(n, x),x):
+# **
+# **Yn:= x-> BesselY(n, x):
+# **Ynp:= x-> diff(BesselY(n, x),x):
+# **
+# **Hn := Jn - I*Yn:
+# **Hnp := x-> diff(Hn,x):
+# **
+# **d := Jn*Ynp - Jnp*Yn:
+# **
+# **series(d(x),x=infinity,5);
+# **
+# **series(BesselJ(1, x),x=infinity,5);
+
+
+# **a := (Jnp(mka)*Jn(ka) - m*Jn(mka)*Jnp(ka) )/( Jnp(mka)*Hn(ka) - m*Jn(mka)*Hnp(ka) ):
+# **
+# **assume(Jna::realcons):
+# **assume(Yna::realcons):
+# **assume(Jnpa::realcons):
+# **assume(Ynpa::realcons):
+# **
+# **assume(Jnm::realcons):
+# **assume(Ynm::realcons):
+# **assume(Jnpm::realcons):
+# **assume(Ynpm::realcons):
+# **
+# **Hna := Jna-I*Yna:
+# **Hnpa:= Jnpa-I*Ynpa:
+# **
+# **Hna := Jna-I*Yna:
+# **Hnpa:= Jnpa-I*Ynpa:
+# **
+# **assume(Jnr::realcons):
+# **assume(Ynr::realcons):
+# **assume(Hnr::realcons):
+# **Hnr := Jnr-I*Ynr:
+# **
+# **aa := (Jnpm*Jna - m*Jnm*Jnpa )/( Jnpm*Hna - m*Jnm*Hnpa ):
+# **
+# **# bb := (m*Jnpm*Jna - Jnm*Jnpa )/( m*Jnpm*Hna - Jnm*Hnpa ):
+# **
+# **
+# **Fn := (cosa+I*sina)*(-1)^n:
+# **
+# **tn := Fn*( Jnr - aa*Hnr ):
+# **
+# **
+# **rtn := simplify(Re(tn));
+
+# *********************************** OLD **********************8
+# * # series(BesselJ(n,x),x=0,5);
+# * 
+# * # series(BesselJ(1,x),x=infinity,5);
+# * 
+# * 
+# * # Here is Jn(x) as n->infinity
+# * assume(x>0):
+# * assume(n>0):
+# * additionally(n::integer):
+# * assume(e>0):
+# * 
+# * 
+# * JnLim := (1/(2*Pi*n))^{1/2}*( e*x/(2*n) )^n:
+# * JnpLim := simplify(diff( JnLim,x)):
+# * 
+# * 
+# * YnLim := -(2/(Pi*n))^{1/2}*( e*x/(2*n) )^(-n):
+# * YnpLim := simplify(diff( YnLim,x)):
+# * 
+# * 
+# * # HnLim := JnLim + I*YnLim:
+# * 
+# * 
+# * HpNorm2 :=  JnpLim*JnpLim+YnpLim*YnpLim:
+# * 
+# * term1:= (JnLim*JnpLim+YnLim*YnpLim)/HpNorm2:
+# * term1:= simplify(term1);
+# * 
+# * term2:= (-JnLim*YnpLim+YnLim*JnpLim)/HpNorm2:
+# * term2:=simplify(term2);
+# * 
+# * # x := 'x':
+# * # e := 'e':
+# * # n := 'n':
+# * series(subs(x=1,e=2.71828,term1),n=infinity);

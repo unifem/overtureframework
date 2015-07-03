@@ -1,0 +1,71 @@
+#
+# ****   Stability of the non-orthogonal structured grid scheme presented in Taflove.
+#
+# restart; read "stability.maple";
+clear;
+
+with(StringTools):
+
+Dzr := proc(f)
+  local x,y,z;
+  option operator;
+  unapply( simplify( (f(x+1,y,z)-f(x-1,y,z))/2 ), x,y,z);
+end:
+Dpr := proc(f)
+  local x,y,z;
+  option operator;
+  unapply( simplify( f(x+1,y,z)-f(x,y,z) ), x,y,z );
+end:
+Dmr := proc(f)
+  local x,y,z;
+  option operator;
+  unapply( simplify( f(x,y,z)-f(x-1,y,z)), x,y,z);
+end:
+Dzs := proc(f)
+  local x,y,z;
+  option operator;
+  unapply( simplify( (f(x,y+1,z)-f(x,y-1,z))/2 ), x,y,z);
+end:
+Dps := proc(f)
+  local x,y,z;
+  option operator;
+  unapply( simplify( f(x,y+1,z)-f(x,y,z) ), x,y,z);
+end:
+Dms := proc(f)
+  local x,y,z;
+  option operator;
+  unapply( simplify( f(x,y,z)-f(x,y-1,z)), x,y,z);
+end:
+
+Dzt := proc(f)
+  local x,y,z;
+  option operator;
+  unapply( simplify( (f(x,y,z+1)-f(x,y,z-1))/2 ), x,y,z);
+end:
+Dpt := proc(f)
+  local x,y,z;
+  option operator;
+  unapply( simplify( f(x,y,z+1)-f(x,y,z) ), x,y,z);
+end:
+Dmt := proc(f)
+  local x,y,z;
+  option operator;
+  unapply( simplify( f(x,y,z)-f(x,y,z-1)), x,y,z);
+end:
+
+
+# ******************** START ***************************
+
+
+Hxnph := (i1,i2,i3)-> Hxnmh(i1,i2,i3)-dt/J(i1,i2,i3)*( (Ez(i1,i2+1,i3)-Ez(i1,i2,i3)) - (Ey(i1,i2,i3+1)-Ey(i1,i2,i3)) );
+Hynph := (i1,i2,i3)-> Hynmh(i1,i2,i3)-dt/J(i1,i2,i3)*( (Ex(i1,i2+1,i3)-Ex(i1,i2,i3)) - (Ez(i1,i2,i3+1)-Ez(i1,i2,i3)) );
+Hznph := (i1,i2,i3)-> Hznmh(i1,i2,i3)-dt/J(i1,i2,i3)*( (Ey(i1,i2+1,i3)-Ey(i1,i2,i3)) - (Ex(i1,i2,i3+1)-Ex(i1,i2,i3)) );
+
+Exnp1 := (i1,i2,i3)-> Exn(i1,i2,i3)+dt/J(i1,i2,i3)*( (Hz(i1,i2+1,i3)-Hz(i1,i2,i3)) - (Hy(i1,i2,i3+1)-Hy(i1,i2,i3)) );
+Eynp1 := (i1,i2,i3)-> Eyn(i1,i2,i3)+dt/J(i1,i2,i3)*( (Hx(i1,i2+1,i3)-Hx(i1,i2,i3)) - (Hz(i1,i2,i3+1)-Hz(i1,i2,i3)) );
+Eznp1 := (i1,i2,i3)-> Ezn(i1,i2,i3)+dt/J(i1,i2,i3)*( (Hy(i1,i2+1,i3)-Hy(i1,i2,i3)) - (Hx(i1,i2,i3+1)-Hx(i1,i2,i3)) );
+
+
+
+
+# restart; read "stability.maple";

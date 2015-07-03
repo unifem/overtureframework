@@ -1,0 +1,27 @@
+discrete := proc(n)
+# here is a maple function
+
+local i, Dp, Dm;
+
+# writeto(`matrix.out`);
+
+Dp := array(sparse,1..n,1..n);
+for i from 1 to n-1 do
+  Dp[i,i]:=1; 
+  Dp[i,i+1]:=-1; 
+od;
+
+Dm := array(sparse,1..n,1..n);
+for i from 2 to n do
+  Dm[i,i]:=1; 
+  Dm[i,i-1]:=-1; 
+od;
+
+# lprint(`====================== n=`,n,`============================== `);
+# lprint(` `);
+# print();
+print(Dp);
+print(Dm);
+
+
+end;

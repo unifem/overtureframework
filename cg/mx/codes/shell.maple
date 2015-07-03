@@ -1,0 +1,53 @@
+clear:
+interface(quiet=true,echo=0):
+Digits:=15;
+j:=diff(BesselJ(m,rr),rr):
+y:=diff(BesselY(m,rr),rr):
+f:=subs(rr=wri,y)*subs(rr=wri*a,j)-subs(rr=a*wri,y)*subs(rr=wri,j):
+nr:=5: # first nr roots of f
+nm:=5: # first nm bessel functions 
+w:=array(1..nm,1..nr):
+Am:=1: # this is arbitrary
+Bmcoeff:=array(1..nm,1..nr):
+a:=2:
+for n from 0 by 1 to nm-1 do
+    lastr:=0:
+    toavoid:={}:
+    for r from 1 by 1 to nr do
+        w[n+1,r] := fsolve(subs(m=n,f)=0,wri,avoid=toavoid,lastr..max(5,2*lastr)):
+	toavoid:= toavoid union {wri=w[n+1,r]}:
+	lastr := w[n+1,r]:
+	#print(toavoid):
+	#print(w[n+1,r]):
+	Bmcoeff[n+1,r] := -Am*evalf(subs(m=n,rr=w[n+1,r],j)/subs(m=n,rr=w[n+1,r],y)):
+    end do:
+end do:
+#print(w):
+#print(Bmcoeff):
+Ri:=1:
+for n from 0 by 1 to nm-1 do
+    pl:=[Am*BesselJ(n,w[n+1,rt]*R)+Bmcoeff[n+1,rt]*BesselY(n,w[n+1,rt]*R) $rt=1..nr]:
+    plot(pl,R=Ri..a*Ri);
+end do;
+
+file:=fopen("shell_eigenfunctions.h", WRITE):
+fprintf(file," const int nfunc_shell=%d, nzeros_shell=%d, ndata_shell=2;\n",nm,nr):
+fprintf(file," // u(r) = A_m J_m(w r/c) + B_m Y_m(w r/c)\n"):
+fprintf(file," // rOuter/rInner = %d\n",a);
+fprintf(file," // shellEigenvalues[nfunc_shell][nzeros_shell][0] : the eigenvalue w*rInner/c\n"):
+fprintf(file," // shellEigenvalues[nfunc_shell][nzeros_shell][1] : B_m (scaled so A_m=1)\n"):
+fprintf(file," real shellEigenvalues[nfunc_shell][nzeros_shell][ndata_shell]={\n"):
+
+for n from 0 by 1 to nm-1 do
+    fprintf(file," { // n=%d\n",n):
+    for r from 1 by 1 to nr do
+	fprintf(file,"    {    %19.14e,    %19.14e  }",w[n+1,r],Bmcoeff[n+1,r]):
+	if r<nr then
+	   fprintf(file,",\n"):
+	else
+	   fprintf(file,"}, \n"):
+	fi:
+    od:
+od:
+fprintf(file,"};\n"):
+fclose(file):

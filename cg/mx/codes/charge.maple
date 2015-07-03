@@ -1,0 +1,48 @@
+# restart; read "charge.maple";
+clear;
+
+
+#   f := a*exp( - b^p z^(p/2) )
+#   z := r^2; 
+#   r^2 :=  (x0-v0*t)^2 + (x1-v1*t)^2; 
+
+f := a*exp(-b*z^q );
+
+f1 := simplify(diff(f,z));
+
+f2 := simplify(diff(f1,z));
+
+
+# f3:= simplify(diff(f2,z));
+f3:= simplify(diff(f,z,z,z));
+
+g:= f3/f;
+
+
+
+# # f := a1*x + a3*x^3 + a5*x^5 + a7*x^7;
+# f := a1*x + a3*x^3 + a5*x^5 + a7*x^7 + a9*x^9;
+# 
+# eqn1:= subs(x=1,f);
+# eqn2:= subs(x=1,diff(f,x));
+# eqn3:= subs(x=1,diff(f,x,x));
+# eqn4:= subs(x=1,diff(f,x,x,x));
+# eqn5:= subs(x=1,diff(f,x,x,x,x));
+# 
+# # s := solve({eqn1=1,eqn2=0,eqn3=0,eqn4=0},{a1,a3,a5,a7});
+# s := solve({eqn1=1,eqn2=0,eqn3=0,eqn4=0,eqn5=0},{a1,a3,a5,a7,a9});
+# 
+# assign(s);
+# 
+# r := (f + 1)/2:
+# r := simplify(subs(x=2*t-1,r)):
+# 
+# rt:= diff(r,t):
+# rtt:= diff(r,t,t):
+# rttt:= diff(r,t,t,t):
+# 
+# 
+# printf("r=%s\n",convert(r,string));
+# printf("rt=%s\n",convert(rt,string));
+# printf("rtt=%s\n",convert(rtt,string));
+# printf("rttt=%s\n",convert(rttt,string));

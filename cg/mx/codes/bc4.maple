@@ -1,0 +1,475 @@
+#
+# Derive 4th-order PEC boundary conditions for Maxwell's equations.
+#   (see the file ogmg/neumann.maple)
+#
+# restart; read "bc4.maple";
+clear;
+
+with(StringTools):
+
+Dzr := proc(f)
+  local x,y,z;
+  option operator;
+  unapply( simplify( (f(x+1,y,z)-f(x-1,y,z))/2 ), x,y,z);
+end:
+Dpr := proc(f)
+  local x,y,z;
+  option operator;
+  unapply( simplify( f(x+1,y,z)-f(x,y,z) ), x,y,z );
+end:
+Dmr := proc(f)
+  local x,y,z;
+  option operator;
+  unapply( simplify( f(x,y,z)-f(x-1,y,z)), x,y,z);
+end:
+Dzs := proc(f)
+  local x,y,z;
+  option operator;
+  unapply( simplify( (f(x,y+1,z)-f(x,y-1,z))/2 ), x,y,z);
+end:
+Dps := proc(f)
+  local x,y,z;
+  option operator;
+  unapply( simplify( f(x,y+1,z)-f(x,y,z) ), x,y,z);
+end:
+Dms := proc(f)
+  local x,y,z;
+  option operator;
+  unapply( simplify( f(x,y,z)-f(x,y-1,z)), x,y,z);
+end:
+
+Dzt := proc(f)
+  local x,y,z;
+  option operator;
+  unapply( simplify( (f(x,y,z+1)-f(x,y,z-1))/2 ), x,y,z);
+end:
+Dpt := proc(f)
+  local x,y,z;
+  option operator;
+  unapply( simplify( f(x,y,z+1)-f(x,y,z) ), x,y,z);
+end:
+Dmt := proc(f)
+  local x,y,z;
+  option operator;
+  unapply( simplify( f(x,y,z)-f(x,y,z-1)), x,y,z);
+end:
+
+
+
+div:= D[1](a11*u+a12*v)+D[2](a21*u+a22*v):
+
+# Dr^2( div) = 0 ==> Dr^3(a1.uv) = - Dr^2*Ds( a2.uv) = D3a1DotU
+
+D3a1DotU := -D[1](D[1](D[2](a21*u+a22*v))):
+
+# h:= subs(D[1,2](u)=urs,D3a1DotU):
+
+Lu := c11*urra + c22*D[2,2](u) + c1*D[1](u) + c2*D[2](u) - utt:
+Lv := c11*vrra + c22*D[2,2](v) + c1*D[1](v) + c2*D[2](v) - vtt:
+
+mxEqn := solve({Lu=0,Lv=0},{urra,vrra}):
+assign(mxEqn):
+
+# a2DotUrr := a21*urr + a22*vrr:
+
+
+urrb := subs(D[2,2](u)=uss,D[2,2](v)=vss,D[2](u)=us,D[2](v)=vs,D[1](u)=ur,D[1](v)=vr,urra):
+vrrb := subs(D[2,2](u)=uss,D[2,2](v)=vss,D[2](u)=us,D[2](v)=vs,D[1](u)=ur,D[1](v)=vr,vrra):
+
+# urrb := subs(D[2,2](u)=uss,D[2,2](v)=vss,D[2](u)=us,D[2](v)=vs,urrb):
+# vrrb := subs(D[2,2](u)=uss,D[2,2](v)=vss,D[2](u)=us,D[2](v)=vs,vrrb):
+
+divr := subs(D[1,2](u)=ursa,D[1,2](v)=vrsa,D[1](div)):
+divs := subs(D[1,2](u)=ursa,D[1,2](v)=vrsa,D[2](div)):
+
+mixed := solve({divr=0, divs=0},{ursa,vrsa}):
+assign(mixed):
+
+ursa := subs(D[1,2](u)=urs,D[1,2](v)=vrs,D[2,2](u)=uss,D[2,2](v)=vss,D[2](u)=us,D[2](v)=vs,D[1,1](u)=urr,D[1,1](v)=vrr,ursa):
+vrsa := subs(D[1,2](u)=urs,D[1,2](v)=vrs,D[2,2](u)=uss,D[2,2](v)=vss,D[2](u)=us,D[2](v)=vs,D[1,1](u)=urr,D[1,1](v)=vrr,vrsa):
+
+
+urrsa := subs(D[1,2](u)=urs,D[1,2](v)=vrs,D[2,2](u)=uss,D[2,2](v)=vss,D[2](u)=us,D[2](v)=vs,D[2](urra)):
+vrrsa := subs(D[1,2](u)=urs,D[1,2](v)=vrs,D[2,2](u)=uss,D[2,2](v)=vss,D[2](u)=us,D[2](v)=vs,D[2](vrra)):
+
+
+D3a1DotU:= subs(D[1,1,2](u)=urrs,D[1,1,2](v)=vrrs,D[1,1](u)=urr,D[1,1](v)=vrr,D[1](u)=ur,D[1](v)=vr,D3a1DotU):
+D3a1DotU:= subs(D[1,2](u)=urs,D[1,2](v)=vrs,D[2,2](u)=uss,D[2,2](v)=vss,D[2](u)=us,D[2](v)=vs,D[1,1](u)=urr,D[1,1](v)=vrr,D3a1DotU):
+D3a1DotU:= subs(D[1,1,2](a21)=a21rrs,D[1,2](a21)=a21rs,D[1,1](a21)=a21rr,D[1](a21)=a21r,D[2](a21)=a21s,D3a1DotU):
+D3a1DotU:= subs(D[1,1,2](a22)=a22rrs,D[1,2](a22)=a22rs,D[1,1](a22)=a22rr,D[1](a22)=a22r,D[2](a22)=a22s,D3a1DotU):
+
+
+# -----------
+substitutePartials :=proc( uu )
+ local vv:
+ vv := subs(D[1,1,2](a11)=a11rrs,D[1,2](a11)=a11rs,D[1,1](a11)=a11rr,D[1](a11)=a11r,D[2](a11)=a11s,uu):
+ vv := subs(D[1,1,2](a12)=a12rrs,D[1,2](a12)=a12rs,D[1,1](a12)=a12rr,D[1](a12)=a12r,D[2](a12)=a12s,vv):
+ vv := subs(D[1,1,2](a21)=a21rrs,D[1,2](a21)=a21rs,D[1,1](a21)=a21rr,D[1](a21)=a21r,D[2](a21)=a21s,vv):
+ vv := subs(D[1,1,2](a22)=a22rrs,D[1,2](a22)=a22rs,D[1,1](a22)=a22rr,D[1](a22)=a22r,D[2](a22)=a22s,vv):
+ vv := subs(D[2,2](a22)=a22ss,D[2,2](a21)=a21ss,D[1](u)=ur,D[1](v)=vr,vv):
+ RETURN(vv):
+end:
+# -------------
+
+ursa := substitutePartials(ursa):
+vrsa := substitutePartials(vrsa):
+
+urrsa:=subs(D[2,2,2](u)=usss,D[2,2,2](v)=vsss,D[2](c22)=c22s,D[2](c11)=c11s,D[2](c1)=c1s,D[2](c2)=c2s,D[1](u)=ur,D[1](v)=vr,urrsa):
+
+vrrsa:=subs(D[2,2,2](u)=usss,D[2,2,2](v)=vsss,D[2](c22)=c22s,D[2](c11)=c11s,D[2](c1)=c1s,D[2](c2)=c2s,D[1](u)=ur,D[1](v)=vr,vrrsa):
+
+# printf("\n\n *************************************************\n");
+# printf("D3a1DotU="); lprint(D3a1DotU);
+# printf("\n");
+# 
+# printf("urrs="); lprint(urrsa);
+# printf("vrrs="); lprint(vrrsa);
+# printf("\n\n");
+# 
+# printf("urs="); lprint(ursa);
+# printf("\n");
+# printf("vrs="); lprint(vrsa);
+# printf("\n\n");
+# 
+# printf("urr="); lprint(urrb);
+# printf("vrr="); lprint(vrrb);
+# printf("******************************************************\n\n");
+
+# ur:= Dzr(u)(i1,i2,i3)/dr:
+# vr:= Dzr(u)(i1,i2,i3)/dr:
+
+
+# ****************** these next substituiotns will change D3a1DotU ****************************
+urr:=urrb:
+vrr:=vrrb:
+urs:=ursa:
+vrs:=vrsa:
+urrs:=urrsa:
+vrrs:=vrrsa:
+
+D3a1DotU:=simplify(D3a1DotU):
+
+cura := simplify(coeff(D3a1DotU,ur)):
+cvra := simplify(coeff(D3a1DotU,vr)):
+
+gIa := simplify(D3a1DotU - cura*ur - cvra*vr ):
+gIa := subs(u=uex,v=uey,gIa):
+
+# printf("\n\n ======= D3a1DotU = cur*ur + cvr*vr + gI =====\n");
+# printf("cur="); lprint(cura);  printf("\n");
+# printf("cvr="); lprint(cvra);  printf("\n");
+# printf("gI="); lprint(gIa);
+# printf("\n ===========================\n\n");
+
+# gIa := simplify(subs(D[2](vtt)=0,D[2](utt)=0,utt=0,vtt=0,gIa)):
+gIa := simplify(subs(D[2](utt)=Lutts,D[2](vtt)=Lvtts,gIa)):
+gIa := simplify(subs(utt=Lutt,vtt=Lvtt,gIa)):
+
+uttc := simplify(coeff(gIa,Lutt)):
+vttc := simplify(coeff(gIa,Lvtt)):
+printf("coeff(gIa,Lutt)=%s\n",convert(uttc,string));
+printf("coeff(gIa,Lvtt)=%s\n",convert(vttc,string));
+
+uttsc := simplify(coeff(gIa,Lutts)):
+vttsc := simplify(coeff(gIa,Lvtts)):
+printf("coeff(gIa,Lutts)=%s\n",convert(uttsc,string));
+printf("coeff(gIa,Lvtts)=%s\n",convert(vttsc,string));
+
+utc := uttc*utt+vttc*vtt:
+utc := simplify(subs(vtt=-a21*utt/a22,utc)):
+# utc := simplify(algsubs(a21*utt+a22*vtt=0,utc));
+
+# f1 := Dzr(Dpr(Dmr( a11*u + a12*v )))(i1,i2,i3)/dra^3 - cur*Dzr(u)(i1,i2,i3)/dra - cvr*Dzr(v)(i1,i2,i3)/dra - gI:
+# fourth-order for f1:
+# f1 := Dzr(Dpr(Dmr( a11*u + a12*v )))(i1,i2,i3)/dra^3 
+#                     - cur*( Dzr(u)(i1,i2,i3) -(1/6)*( Dzr(Dpr(Dmr(u)))(i1,i2,i3) ) )/dra 
+#                     - cvr*( Dzr(v)(i1,i2,i3) -(1/6)*( Dzr(Dpr(Dmr(v)))(i1,i2,i3) ) )/dra - gI:
+
+#
+# Here is Dr( a1.Delta\uv )
+# For TZ: gDivtt := Dr( a1.Delta uv )
+# See bcdiv.maple
+f1 := ( b3u*Dzr(Dpr(Dmr(u)))(i1,i2,i3) + b3v*Dzr(Dpr(Dmr(v)))(i1,i2,i3) )/dra^3 
+         + b2u*( Dpr(Dmr(u))(i1,i2,i3) -(1/12)*(Dpr(Dmr(Dpr(Dmr( u )) ))(i1,i2,i3)) )/dra^2 
+         + b2v*( Dpr(Dmr(v))(i1,i2,i3) -(1/12)*(Dpr(Dmr(Dpr(Dmr( v )) ))(i1,i2,i3)) )/dra^2
+         + b1u*( Dzr(u)(i1,i2,i3) -(1/6)*( Dzr(Dpr(Dmr(u)))(i1,i2,i3) ) )/dra 
+         + b1v*( Dzr(v)(i1,i2,i3) -(1/6)*( Dzr(Dpr(Dmr(v)))(i1,i2,i3) ) )/dra + bf:
+
+f2:= Dzr(a11*u+a12*v)(i1,i2,i3)-(1/6)*Dzr(Dpr(Dmr(a11*u+a12*v)))(i1,i2,i3) - Da1DotU*dra:
+
+f1um2a := coeff(f1,u(i1-2,i2,i3)):
+f1um1a := coeff(f1,u(i1-1,i2,i3)):
+f1vm2a := coeff(f1,v(i1-2,i2,i3)):
+f1vm1a := coeff(f1,v(i1-1,i2,i3)):
+f1fa := simplify(f1-(f1um2a*u(i1-2,i2,i3)+f1um1a*u(i1-1,i2,i3)+f1vm2a*v(i1-2,i2,i3)+f1vm1a*v(i1-1,i2,i3))):
+
+f1a := f1um2*u(i1-2,i2,i3)+f1um1*u(i1-1,i2,i3)+f1vm2*v(i1-2,i2,i3)+f1vm1*v(i1-1,i2,i3) + f1f:
+
+f2um2a := coeff(f2,u(i1-2,i2,i3)):
+f2um1a := coeff(f2,u(i1-1,i2,i3)):
+f2vm2a := coeff(f2,v(i1-2,i2,i3)):
+f2vm1a := coeff(f2,v(i1-1,i2,i3)):
+f2fa := simplify(f2-(f2um2a*u(i1-2,i2,i3)+f2um1a*u(i1-1,i2,i3)+f2vm2a*v(i1-2,i2,i3)+f2vm1a*v(i1-1,i2,i3))):
+
+f2a := f2um2*u(i1-2,i2,i3)+f2um1*u(i1-1,i2,i3)+f2vm2*v(i1-2,i2,i3)+f2vm1*v(i1-1,i2,i3) + f2f:
+
+
+
+# tu := tau.u
+
+# f3:=  Dpr(Dmr( tu ))(i1,i2,i3)/dra^2 + (c1/c11)*Dzr( tu )(i1,i2,i3)/dra - gIII- tau1DotUtt:
+
+# ** Fourth-order for tau.Delta\uv=0
+f3:= c11*( Dpr(Dmr( tu ))(i1,i2,i3) -ctlrr*(1/12)*(Dpr(Dmr(Dpr(Dmr( tu )) ))(i1,i2,i3)) )/dra^2 
+      + c1*( Dzr( tu )(i1,i2,i3) -ctlr*(1/6)*( Dzr(Dpr(Dmr( tu )))(i1,i2,i3) ) )/dra - gIII - tau1DotUtt:
+
+# restart; read "bc4.maple";
+
+
+
+gIIIa := -( tau1*( c22*uss + c2*us ) + tau2*( c22*vss + c2*vs ) ):
+
+f4:= tu(i1-2,i2,i3)-4*tu(i1-1,i2,i3) - gIV:
+gIVa := -6*tu(i1,i2,i3)+4*tu(i1+1,i2,i3)-tu(i1+2,i2,i3):
+
+# Higher order extrapolation
+# f4:= tu(i1-2,i2,i3)-5*tu(i1-1,i2,i3) - gIV:
+# gIVa := -10*tu(i1,i2,i3)+10*tu(i1+1,i2,i3)-5*tu(i1+2,i2,i3)+tu(i1+3,i2,i3):
+
+
+tauTimesU := solve({f3=0,f4=0},{tu(i1-2,i2,i3),tu(i1-1,i2,i3)}):
+
+tauTimesU := subs(tu(i1-1,i2,i3)=tu1,tu(i1-2,i2,i3)=tu2,tu(i1,i2,i3)=tauU,tu(i1+1,i2,i3)=tauUp1,tu(i1+2,i2,i3)=tauUp2,tu(i1+3,i2,i3)=tauUp3,tauTimesU):
+assign(tauTimesU): # ************* do not assign *****
+
+
+# tu1 := tu(i1-1,i2,i3);
+# tu2 := tu(i1-2,i2,i3);
+
+f3a:= tau1*u(i1-1,i2,i3)+tau2*v(i1-1,i2,i3) - ttu1:
+f4a:= tau1*u(i1-2,i2,i3)+tau2*v(i1-2,i2,i3) - ttu2:
+
+
+# Z:= solve({f1=0,f2=0,f3a=0,f4a=0},{u(i1-2,i2,i3),u(i1-1,i2,i3),v(i1-2,i2,i3),v(i1-1,i2,i3)}):
+Z:= solve({f1a=0,f2a=0,f3a=0,f4a=0},{u(i1-2,i2,i3),u(i1-1,i2,i3),v(i1-2,i2,i3),v(i1-1,i2,i3)}):
+
+
+
+file := fopen( "bc4Maxwell.h",WRITE ):
+
+printf("\n\n! ************ Answer *******************\n"):
+fprintf(file,"\n\n! ************ Answer *******************\n"):
+
+# fprintf(file,"      uex=u(i1,i2,i3,ex)\n"):
+# fprintf(file,"      uey=u(i1,i2,i3,ey)\n\n"):
+
+# p:=SubstituteAll(convert(cura,string),"^2","**2"):  fprintf(file,"      cur=%s\n\n",p):
+# p:=SubstituteAll(convert(cvra,string),"^2","**2"):  fprintf(file,"      cvr=%s\n\n",p):
+# p:=SubstituteAll(convert(gIa,string),"^2","**2"):   fprintf(file,"      gIa=%s\n\n",p):
+#                                                     fprintf(file,"      gI=cgI*(gIa)+gIf\n\n",p):
+p:=SubstituteAll(convert(gIIIa,string),"^2","**2"): fprintf(file,"      gIII=%s\n\n",p):
+
+fprintf(file,"      tauU=tau1*u(i1,i2,i3,ex)+tau2*u(i1,i2,i3,ey)\n\n"):
+fprintf(file,"      tauUp1=tau1*u(i1+is1,i2+is2,i3+is3,ex)+tau2*u(i1+is1,i2+is2,i3+is3,ey)\n\n"):
+fprintf(file,"      tauUp2=tau1*u(i1+2*is1,i2+2*is2,i3+2*is3,ex)+tau2*u(i1+2*is1,i2+2*is2,i3+2*is3,ey)\n\n"):
+fprintf(file,"      tauUp3=tau1*u(i1+3*is1,i2+3*is2,i3+3*is3,ex)+tau2*u(i1+3*is1,i2+3*is2,i3+3*is3,ey)\n\n"):
+
+
+gIVa:=simplify(subs(tu(i1,i2,i3)=tauU,tu(i1+1,i2,i3)=tauUp1,tu(i1+2,i2,i3)=tauUp2,tu(i1+3,i2,i3)=tauUp3,gIVa)):
+fprintf(file,"      gIV=%s +gIVf\n\n",convert(gIVa,string)):
+
+tu1s := convert(simplify(tu1),string):
+tu1s := SubstituteAll(tu1s,"^","**"):
+# ************ NOTE: we need to avoid integer division !!
+tu1s := SubstituteAll(tu1s,"/2*","/2.*"):
+tu1s := SubstituteAll(tu1s,"/3*","/3.*"):
+tu1s := SubstituteAll(tu1s,"/4*","/4.*"):
+tu1s := SubstituteAll(tu1s,"/5*","/5.*"):
+tu1s := SubstituteAll(tu1s,"/6*","/6.*"):
+tu1s := SubstituteAll(tu1s,"/7*","/7.*"):
+tu1s := SubstituteAll(tu1s,"/8*","/8.*"):
+tu1s := SubstituteAll(tu1s,"/9*","/9.*"):
+#tu1s := SubstituteAll(tu1s,"2*","2.*"):
+#tu1s := SubstituteAll(tu1s,"3*","3.*"):
+#tu1s := SubstituteAll(tu1s,"4*","4.*"):
+#tu1s := SubstituteAll(tu1s,"5*","5.*"):
+#tu1s := SubstituteAll(tu1s,"6*","6.*"):
+#tu1s := SubstituteAll(tu1s,"7*","7.*"):
+#tu1s := SubstituteAll(tu1s,"8*","8.*"):
+#tu1s := SubstituteAll(tu1s,"9*","9.*"):
+
+fprintf(file,"      ttu1=%s\n",tu1s):
+
+tu2s := convert(simplify(tu2),string):
+tu2s := SubstituteAll(tu2s,"^","**"):
+fprintf(file,"      ttu2=%s\n\n",tu2s):
+
+
+# -----------
+substituteValues :=proc( uu )
+ local vv:
+  vv:=subs(a11(i1-1,i2,i3)=a11m1,a12(i1-1,i2,i3)=a12m1,a11(i1+1,i2,i3)=a11p1,a12(i1+1,i2,i3)=a12p1,uu):
+  vv:=subs(a11(i1-2,i2,i3)=a11m2,a12(i1-2,i2,i3)=a12m2,a11(i1+2,i2,i3)=a11p2,a12(i1+2,i2,i3)=a12p2,vv):
+
+  vv := subs(u(i1,i2,i3)=u(i1,i2,i3,ex),vv):
+  vv := subs(v(i1,i2,i3)=u(i1,i2,i3,ey),vv):
+  vv := subs(w(i1,i2,i3)=u(i1,i2,i3,hz),vv):
+
+  vv := subs(u(i1+1,i2,i3)=u(i1+is1,i2+is2,i3,ex),vv):
+  vv := subs(v(i1+1,i2,i3)=u(i1+is1,i2+is2,i3,ey),vv):
+  vv := subs(w(i1+1,i2,i3)=u(i1+is1,i2+is2,i3,hz),vv):
+
+  vv := subs(u(i1-1,i2,i3)=u(i1-is1,i2-is2,i3,ex),vv):
+  vv := subs(v(i1-1,i2,i3)=u(i1-is1,i2-is2,i3,ey),vv):
+  vv := subs(w(i1-1,i2,i3)=u(i1-is1,i2-is2,i3,hz),vv):
+
+  vv := subs(u(i1+2,i2,i3)=u(i1+2*is1,i2+2*is2,i3,ex),vv):
+  vv := subs(v(i1+2,i2,i3)=u(i1+2*is1,i2+2*is2,i3,ey),vv):
+  vv := subs(w(i1+2,i2,i3)=u(i1+2*is1,i2+2*is2,i3,hz),vv):
+
+  vv := subs(u(i1-2,i2,i3)=u(i1-2*is1,i2-2*is2,i3,ex),vv):
+  vv := subs(v(i1-2,i2,i3)=u(i1-2*is1,i2-2*is2,i3,ey),vv):
+  vv := subs(w(i1-2,i2,i3)=u(i1-2*is1,i2-2*is2,i3,hz),vv):
+
+  vv:=convert(vv,string):
+  vv:= SubstituteAll(vv,"^2","**2"):
+  vv:= SubstituteAll(vv,"^3","**3"):
+  vv:= SubstituteAll(vv,"^4","**4"):
+
+  vv := SubstituteAll(vv,"/1*","/1.*"):
+  vv := SubstituteAll(vv,"/2*","/2.*"):
+  vv := SubstituteAll(vv,"/3*","/3.*"):
+  vv := SubstituteAll(vv,"/4*","/4.*"):
+  vv := SubstituteAll(vv,"/5*","/5.*"):
+  vv := SubstituteAll(vv,"/6*","/6.*"):
+  vv := SubstituteAll(vv,"/7*","/7.*"):
+  vv := SubstituteAll(vv,"/8*","/8.*"):
+  vv := SubstituteAll(vv,"/9*","/9.*"):
+  vv := SubstituteAll(vv,"/10*","/10.*"):
+  vv := SubstituteAll(vv,"/11*","/11.*"):
+  vv := SubstituteAll(vv,"/12*","/12.*"):
+
+ RETURN(vv):
+end:
+# -------------
+
+fprintf(file,"      f1um2=%s\n",substituteValues(f1um2a)):
+fprintf(file,"      f1um1=%s\n",substituteValues(f1um1a)):
+fprintf(file,"      f1vm2=%s\n",substituteValues(f1vm2a)):
+fprintf(file,"      f1vm1=%s\n",substituteValues(f1vm1a)):
+fprintf(file,"      f1f  =%s\n\n",substituteValues(f1fa)):
+
+fprintf(file,"      f2um2=%s\n",substituteValues(f2um2a)):
+fprintf(file,"      f2um1=%s\n",substituteValues(f2um1a)):
+fprintf(file,"      f2vm2=%s\n",substituteValues(f2vm2a)):
+fprintf(file,"      f2vm1=%s\n",substituteValues(f2vm1a)):
+fprintf(file,"      f2f  =%s\n\n",substituteValues(f2fa)):
+
+# restart; read "bc4.maple";
+
+for i from 1 to 4 do
+
+  bc:=simplify(Z[i]):
+
+  bcs := substituteValues( bc ):
+
+  # lprint(bc):
+  fprintf(file,"      %s\n\n",bcs):
+
+od:
+fprintf(file,"\n ! *********** done *********************\n"):
+printf("\n ! *********** done *********************\n"):
+fclose(file):
+
+printf("Results writtem to file bc4Maxwell.h\n"):
+
+
+
+# Neumann BC's for Hz in 2D
+
+# (w).r = fw1                              (w.n = 0 **** if the grid is orthogonal***)
+# (c11*w.rr + c22*w.ss + ... ).r = fw2     ( (Delta w).n = 0 )
+
+
+f1 := ( Dzr(w)(i1,i2,i3) -(1/6)*( Dzr(Dpr(Dmr(w)))(i1,i2,i3) ) )/dra - fw1:
+
+# f2 := c11*Dzr(Dpr(Dmr(w)))(i1,i2,i3)/dra^3 + cw2*Dpr(Dmr(w))(i1,i2,i3)/dra^2 + cw1*Dzr(w)(i1,i2,i3)/dra + bfw2:
+
+# here we use fourth order for the lower derivatives
+f2 := c11*Dzr(Dpr(Dmr(w)))(i1,i2,i3)/dra^3 
+    + cw2*( Dpr(Dmr(w))(i1,i2,i3) -(1/12)*(Dpr(Dmr(Dpr(Dmr( w )) ))(i1,i2,i3)) )/dra^2 
+    + cw1*( Dzr(w)(i1,i2,i3) -(1/6)*( Dzr(Dpr(Dmr(w)))(i1,i2,i3) ) )/dra + bfw2:
+
+bfw2a := c22r*wss + c2r*ws -fw2:
+
+cw2a := c1 + c11r:
+cw1a := c1r:
+
+W:= solve({f1=0,f2=0},{w(i1-2,i2,i3),w(i1-1,i2,i3)}):
+
+file := fopen( "bc4HzMaxwell.h",WRITE ):
+
+printf("\n\n! ************ Hz Answer *******************\n"):
+fprintf(file,"\n\n! ************ Hz Answer *******************\n"):
+
+fprintf(file,"      cw2=%s\n",substituteValues(cw2a)):
+fprintf(file,"      cw1=%s\n",substituteValues(cw1a)):
+fprintf(file,"      bfw2=%s\n\n",substituteValues(bfw2a)):
+
+for i from 1 to 2 do
+
+  bc:=simplify(W[i]):
+
+  bcs := substituteValues( bc ):
+
+  # lprint(bc):
+  fprintf(file,"      %s\n\n",bcs):
+
+od:
+fprintf(file,"\n ! *********** Hz done *********************\n"):
+printf("\n ! *********** Hz done *********************\n"):
+fclose(file):
+
+printf("Results written to file bc4HzMaxwell.h\n"):
+
+
+# restart; read "bc4.maple";
+
+
+# urrsm :=simplify(subs(utt=0,vtt=0,u=uex,v=uey,urrsa)):
+# urrsm :=convert(urrsm,string):
+# urrsm :=SubstituteAll(urrsm,"^2","**2"):
+# fprintf(file,"\n      urrsm=%s\n",urrsm):
+# 
+# ursm :=simplify(subs(utt=0,vtt=0,u=uex,v=uey,ursa)):
+# ursm :=convert(ursm,string):
+# ursm :=SubstituteAll(ursm,"^2","**2"):
+# fprintf(file,"\n      ursm=%s\n",ursm):
+# 
+# vrrsm :=simplify(subs(utt=0,vtt=0,u=uex,v=uey,vrrsa)):
+# vrrsm :=convert(vrrsm,string):
+# vrrsm :=SubstituteAll(vrrsm,"^2","**2"):
+# fprintf(file,"\n      vrrsm=%s\n",vrrsm):
+# 
+# vrsm :=simplify(subs(utt=0,vtt=0,u=uex,v=uey,vrsa)):
+# vrsm :=convert(vrsm,string):
+# vrsm :=SubstituteAll(vrsm,"^2","**2"):
+# fprintf(file,"\n      vrsm=%s\n",vrsm):
+# 
+# urrm :=simplify(subs(utt=0,vtt=0,u=uex,v=uey,urrb)):
+# urrm :=convert(urrm,string):
+# urrm :=SubstituteAll(urrm,"^2","**2"):
+# fprintf(file,"\n      urrm=%s\n",urrm):
+# 
+# vrrm :=simplify(subs(utt=0,vtt=0,u=uex,v=uey,vrrb)):
+# vrrm :=convert(vrrm,string):
+# vrrm :=SubstituteAll(vrrm,"^2","**2"):
+# fprintf(file,"\n      vrrm=%s\n",vrrm):
+
+
+# restart; read "bc4.maple";
+
+
+
+
+

@@ -1,0 +1,42 @@
+# Determine the coefficients for radiation BC
+#
+#
+#
+# To use: restart; read "rad.maple";
+#
+# restart;
+
+
+#
+#  u(x,t) := a00 + a10*x + a01*t + a20*x^2 + a11*x*t + a02*t^2;
+#   
+u := a00 + a10*x + a01*t + a20*x^2 + a11*x*t + a02*t^2;
+
+# impose:
+#      (u_t - u_x)(0,0) = g0
+#      (u_t - u_x)(0,k) = g1
+#
+#      u(x,t) : given for (0,0), (h,0), (0,-k), (h,-k)
+
+
+ux := diff(u,x);
+ut := diff(u,t); 
+
+eq1:= subs(x=0,t=0,ut-ux=g0); 
+eq2:= subs(x=0,t=k,ut-ux=g1);
+
+eq3:= subs(x=0,t=0,u=u00);
+eq4:= subs(x=h,t=0,u=u10);
+eq5:= subs(x=0,t=k,u=u01);
+eq6:= subs(x=h,t=k,u=u11);
+
+
+# Then evaluate u(-h,0) = a00 + a10*(-h) + a20*(-h)^2 
+
+eqns := {eq1,eq2,eq3,eq4,eq4,eq5,eq6};
+vars := {a00,a10,a01,a20,a11,a02}; 
+
+sol := solve( eqns,vars);
+assign(sol);
+
+um1 := simplify( a00+a10*(-h)+a20*(-h^2) );
