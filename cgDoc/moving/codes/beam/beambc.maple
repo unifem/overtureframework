@@ -4,5 +4,113 @@
 #  Compute boundary condition approximations for the BeamModel class SMOOTHER
 # 
 
+with(CodeGeneration):
+Digits := 20;
+
+# clamped BC:
+#    u=0, ux=0 --> u_xxxx=0, u_xxxxx=0 
+
+# 2 ghost:
+#  u: 
+#      Dz( 1- h^2/6 D+D-) U_0 = 0 
+#      (D+D-)^2 U_0 = 0 
+#     
+
+if 0=1 then
+  Dx4 := (8*(u(i+1)-u(i-1))-(u(i+2)-u(i-2)))/(12*h);
+  DpDmSq := (-(u(i-2)+u(i+2)) +4*(u(i-1)+u(i+1)) -6*u(i))/(h^2);
+  
+  r := solve( {Dx4=0,DpDmSq=0}, {u(i-2),u(i-1)} );
+  
+  printf("Clamped: u:\n");
+  printf("%s\n",convert(r[1],string));
+  printf("%s\n",convert(r[2],string));
+  
+  
+  # 2 ghost:
+  #  w=u_x : 
+  #      Dz(D+D-) U_0 = 0 
+  #      (D+D-)^2 U_0 = 0 
+  #     
+  
+  Dxxx2 := (-2*(u(i+1)-u(i-1))+(u(i+2)-u(i-2)))/(2*h^3);
+  DpDmSq := (-(u(i-2)+u(i+2)) +4*(u(i-1)+u(i+1)) -6*u(i))/(h^2);
+  
+  r := solve( {Dxxx2=0,DpDmSq=0}, {u(i-2),u(i-1)} );
+  
+  printf("Clamped: u_x:\n");
+  printf("%s\n",convert(r[1],string));
+  printf("%s\n",convert(r[2],string));
+
+end if;
+
+# --- another way
+
+if 0=1 then
+
+  u := x -> u0 + x^2/2*uxx + x^3/6*uxxx;
+
+  r := solve( {u(h)=up1, u(2*h)=up2}, {uxx,uxxx} );
+  assign( r );
 
 
+end if;
+
+# Higher order
+if 1=1 then
+  # expansion for u when u=0, ux=0, uxxxx=0, uxxxxx=0, ...
+  u := x -> u0 + x^2/2*uxx + x^3/6*uxxx + x^6/(6!)*ux6 + x^7/(7!)*ux7 ;
+
+  r := solve( {u(h)=up1, u(2*h)=up2, u(3*h)=up3, u(4*h)=up4}, {uxx,uxxx,ux6,ux7} );
+  assign( r );
+
+  printf("w1(ib-  is,0)=%s\n",convert(u(-h),string));
+  printf("w1(ib-2*is,0)=%s\n",convert(u(-2*h),string));
+  printf("w1(ib-3*is,0)=%s\n",convert(u(-3*h),string));
+
+
+  # expansion for w=ux when wxxx=0 wxxxx=0 w^(7)=0 w^(8)=0 
+  w := x -> w0 + x*wx + x^2/2*wxx + x^5/(5!)*wx5 + x^6/(6!)*wx6;
+
+  wr := solve( {w(h)=wp1, w(2*h)=wp2, w(3*h)=wp3, w(4*h)=wp4}, {wx,wxx,wx5,wx6} );
+  assign( wr );
+
+  printf("w1(ib-  is,1)=%s\n",convert(w(-h),string));
+  printf("w1(ib-2*is,1)=%s\n",convert(w(-2*h),string));
+  printf("w1(ib-3*is,1)=%s\n",convert(w(-3*h),string));
+
+end if;
+
+# FREE BC:
+#   uxx=uxxx=0
+if 0=1 then
+  # *NEW* Solve for boundary value too
+  # expansion for u when uxx=uxxx=0  u^(6)=0 u^(7)=0 
+  u := x -> u0 + x*ux + x^4/(4!)*ux4 + x^5/(5!)*ux5;
+
+  r := solve( {u(h)=up1, u(2*h)=up2, u(3*h)=up3, u(4*h)=up4}, {u0,ux,ux4,ux5} );
+  assign( r );
+
+  printf("w1(ib     ,0)=%s\n",convert(u0,string));
+  printf("w1(ib-  is,0)=%s\n",convert(u(-h),string));
+  printf("w1(ib-2*is,0)=%s\n",convert(u(-2*h),string));
+  printf("w1(ib-3*is,0)=%s\n",convert(u(-3*h),string));
+
+
+  # expansion for w=ux when wx=0 wxx=0 w^(5)=0 w^(6)=0 
+  w := x -> w0 + x^3/(3!)*wx3 + x^4/(4!)*wx4 + x^7/(7!)*wx7;
+
+  wr := solve( {w(h)=wp1, w(2*h)=wp2, w(3*h)=wp3, w(4*h)=wp4}, {w0,wx3,wx4,wx7} );
+  assign( wr );
+
+  printf("w1(ib     ,1)=%s\n",convert(w0   ,string));
+  printf("w1(ib-  is,1)=%s\n",convert(w(-h),string));
+  printf("w1(ib-2*is,1)=%s\n",convert(w(-2*h),string));
+  printf("w1(ib-3*is,1)=%s\n",convert(w(-3*h),string));
+
+  # mycode := C([g1 = r[1], g2 = r[2], g3 = r[3]], defaulttype = float, deducetypes = false,output=string);
+
+end if;
+
+
+  

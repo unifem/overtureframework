@@ -2,8 +2,9 @@ Overture/cg git cheat-sheet:
 ----------------------------
 
 (0) You need an account on sourceforge.net and then I can give you 
-   access to the repos.
+   access to the repo's.
 
+------------------------------------------------------------------------------------------------
 (1) To checkout (clone) the Overture and cg repos from sourceforge.net : 
 
    git clone ssh://wdhenshaw@git.code.sf.net/p/overtureframework/code overtureFramework
@@ -17,6 +18,7 @@ the git repo (in the overtureFramework/.git directory) and all the
 checked out files in overtureFramework/Overture and
 overtureFramework/cg (called the working tree).
 
+------------------------------------------------------------------------------------------------
 (2) After adding or changing a file:
 
 (2.1) To store changes in the "staging area" use
@@ -68,3 +70,31 @@ alias gitc 'git commit -m"wdh"'
 alias gits 'git status --untracked-files=no'
 alias gitpush 'git push origin master'
 alias gitpull 'git pull --rebase'
+
+
+------------------------------------------------------------------------------------------------
+(3) To build a version of Overture from the git repo:
+
+  (3.1) Set the name of the directory where Overture will be built. For example,
+      I use the following (.g stands for debug version)
+
+      setenv OvertureBuild $HOME/Overture.g 
+
+  (3.2) Create the distribution:
+      cd overtureFramework/Overture
+      buildOverture
+
+     This will make a copy of the Overture distribution in the directory $OvertureBuild.
+
+  (3.3) Set your Overture environmental variables and then compile Overture:
+
+      cd $OvertureBuild
+      configure
+      make -j4 
+
+  (3.4) To build cg, set the CG and CGBUILDPREFIX env variables then:
+
+         cd overtureFramework/cg
+         make -j4
+
+         This will compile the CG files in the directory $CGBUILDPREFIX

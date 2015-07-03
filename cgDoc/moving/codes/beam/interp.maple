@@ -9,35 +9,51 @@ with(CodeGeneration):
 
 kernelopts(printbytes=false): # turn off memory used messages
 
+if( 1=1 ) then
+  f1 := -u1 + u0 + h*up0 + (h^2/2)*upp0 + (h^3/6)*uppp0 + (h^4/24)*upppp0+ (h^5/120)*uppppp0;
+  
+  f2 := -u2 + u0 + (2*h)*up0 + ((2*h)^2/2)*upp0 + ((2*h)^3/6)*uppp0 + ((2*h)^4/24)*upppp0 + ((2*h)^5/120)*uppppp0;
+  
+  # u3 := u0 + (3*h)*up0 + ((3*h)^2/2)*upp0 + ((3*h)^3/6)*uppp0 + ((3*h)^4/24)*upppp0;
+  
+  f3 := -up1 + up0 + h*upp0 + (h^2/2)*uppp0 + (h^3/6)*upppp0 + (h^4/24)*uppppp0;
+  f4 := -up2 + up0 + (2*h)*upp0 + ((2*h)^2/2)*uppp0 + ((2*h)^3/6)*upppp0+ ((2*h)^4/24)*uppppp0;
+  
+  # up3 := up0 + (3*h)*upp0 + ((3*h)^2/2)*uppp0 + ((3*h)^3/6)*upppp0;
+  
+  # solve for upp0, uppp0, upppp0,  in terms of (u0,u1,u2) (up0,up1,up2)
+  
+  
+  
+  s1 := solve( {f1=0, f2=0, f3=0,f4=0},{upp0, uppp0, upppp0,uppppp0});
+  
+  # 4-order in upp, 2nd-order in uppp
+  uppa := eval(upp0,s1);
+  upppa := eval(uppp0,s1);
+  printf("upp=%s\n",convert(uppa,string));
+  printf("uppp=%s\n",convert(upppa,string));
+  
+  # upp=-1/2*(12*h*up0+16*h*up1+2*h*up2+23*u0-16*u1-7*u2)/h^2
+  # uppp=3/2*(13*h*up0+32*h*up1+5*h*up2+33*u0-16*u1-17*u2)/h^3
+  
+  
+  #  2nd-order in upp, first order in upppa?
+  upppp0 :=0;
+  uppppp0 := 0;
+  s2 := solve( {f1=0, f3=0},{upp0, uppp0});
 
-f1 := -u1 + u0 + h*up0 + (h^2/2)*upp0 + (h^3/6)*uppp0 + (h^4/24)*upppp0+ (h^5/120)*uppppp0;
+else
 
-f2 := -u2 + u0 + (2*h)*up0 + ((2*h)^2/2)*upp0 + ((2*h)^3/6)*uppp0 + ((2*h)^4/24)*upppp0 + ((2*h)^5/120)*uppppp0;
+ # Here we use u(0)=ux(0)=0 and uxxxx=uxxxxx=0 
 
-# u3 := u0 + (3*h)*up0 + ((3*h)^2/2)*upp0 + ((3*h)^3/6)*uppp0 + ((3*h)^4/24)*upppp0;
+ f := x -> u0 + x^2/2*uxx + x^3/6*uxxx + x^6/(6!)*ux6 + x^7/(7!)*ux7;
+ fx := diff(f(x),x);
 
-f3 := -up1 + up0 + h*upp0 + (h^2/2)*uppp0 + (h^3/6)*upppp0 + (h^4/24)*uppppp0;
-f4 := -up2 + up0 + (2*h)*upp0 + ((2*h)^2/2)*uppp0 + ((2*h)^3/6)*upppp0+ ((2*h)^4/24)*uppppp0;
+ r := solve( {f(h)=u1, f(2*h)=u2, subs(x=h,fx)=up1, subs(x=2*h,fx)=up2},{uxx, uxxx,ux6,ux7});
 
-# up3 := up0 + (3*h)*upp0 + ((3*h)^2/2)*uppp0 + ((3*h)^3/6)*upppp0;
-
-# solve for upp0, uppp0, upppp0,  in terms of (u0,u1,u2) (up0,up1,up2)
-
+ printf("%s\n",convert(r[3],string));
+ printf("%s\n",convert(r[4],string));
 
 
-s1 := solve( {f1=0, f2=0, f3=0,f4=0},{upp0, uppp0, upppp0,uppppp0});
 
-# 4-order in upp, 2nd-order in uppp
-uppa := eval(upp0,s1);
-upppa := eval(uppp0,s1);
-printf("upp=%s\n",convert(uppa,string));
-printf("uppp=%s\n",convert(upppa,string));
-
-# upp=-1/2*(12*h*up0+16*h*up1+2*h*up2+23*u0-16*u1-7*u2)/h^2
-# uppp=3/2*(13*h*up0+32*h*up1+5*h*up2+33*u0-16*u1-17*u2)/h^3
-
-
-#  2nd-order in upp, first order in upppa?
-upppp0 :=0;
-uppppp0 := 0;
-s2 := solve( {f1=0, f3=0},{upp0, uppp0});
+end if;

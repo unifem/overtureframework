@@ -26,3 +26,30 @@ printf(" C-C : lambda2=%22.16e\n",lambda2);
 lambda3 := fsolve( f=0, x=11. );
 printf(" C-C : lambda3=%22.16e\n",lambda3);
 
+
+#  Clamped-Free
+g := cosh(x)*cos(x)+1;
+
+plot(g,x=1..8);
+
+
+lambda1 := fsolve( g=0, x=1.875 );
+lambda2 := fsolve( g=0, x=4.69 );
+lambda3 := fsolve( g=0, x=7.85 );
+printf(" C-F : lambda1=%22.16e\n",lambda1);
+printf(" C-F : lambda2=%22.16e\n",lambda2);
+printf(" C-F : lambda3=%22.16e\n",lambda3);
+
+#  Clamped-Slide
+g := sinh(x)*cos(x)+ cosh(x)*sin(x);
+
+plot(g,x=1..8);
+
+
+lambda1 := fsolve( g=0, x=2.36 );
+lambda2 := fsolve( g=0, x=5.49 );
+lambda3 := fsolve( g=0, x=8.64 );
+printf(" C-S : lambda1=%22.16e\n",lambda1);
+printf(" C-S : lambda2=%22.16e\n",lambda2);
+printf(" C-S : lambda3=%22.16e\n",lambda3);
+

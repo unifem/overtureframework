@@ -218,15 +218,16 @@ For example, the following three options are common boundary conditions (BC's),
 \begin{align}
    \text{clamped BC:}\quad & \quad w(x_m,t)=g_m(t),\quad  w_x(x_m,t)=h_m(t),  \\
    \text{pinned BC:} \quad & \quad w(x_m,t)=g_m(t), \quad E I w_{xx}(x_m,t)=M(t), \\
-   \text{free BC:}   \quad & \quad  E I w_{xx}(x_m,t)=M(t), \quad \partial_x( E I w_{xx})(x_m,t)=S(t),
+   \text{free BC:}   \quad & \quad  E I w_{xx}(x_m,t)=M(t), \quad \partial_x( E I w_{xx})(x_m,t)=S(t), \\
+   \text{sliding BC:}   \quad & \quad  w_x(x_m,t)=h_m(t), \quad \partial_x( E I w_{xx})(x_m,t)=S(t),
 \end{align}
 where $x_0=0$ and $x_1=\Ls$ for $m=0,1$, and 
 where $M(t)$ is the imposed moment and $S(t)$ the imposed shear force. 
-We also see there is a possible fourth choice (not so common ?) which we call a {\em slope} BC, since
-the end slope and shear are specified, 
-\begin{align}
-   \text{slope BC:}\quad & \quad w_x(x_m,t)=g_m(t),\quad  \partial_x( E I w_{xx})(x_m,t)=S(t). 
-\end{align}
+% We also see there is a possible fourth choice (not so common ?) which we call a {\em slope} BC, since
+% the end slope and shear are specified, 
+% \begin{align}
+%    \text{slope BC:}\quad & \quad w_x(x_m,t)=g_m(t),\quad  \partial_x( E I w_{xx})(x_m,t)=S(t). 
+% \end{align}
 
 
 % --------------------------------------------------------------------------------------------------------------------
@@ -708,6 +709,7 @@ where $C_\text{cfl}$ is the CFL number. In practice we might choose $C_\text{cfl
 We describe some of the details involved in implementing the BC's. We consider the 
 boundary at $x=0$, the case of $x=L$ is similar. 
 
+% ----------------------------------
 \paragraph{Clamped boundary condition.} For clamped BC's at $x=0$ we set the two degrees of
 freedom at $j=1$ to be given
 \begin{align}
@@ -723,6 +725,7 @@ The boundary terms in~\eqref{eq:beamFEM_II} at $x=0$ will vanish for equations $
 since $\chi_i(0)=0$ and $\partial_x\chi_i(0)=0$
 for $i\ne 1$.
 
+% ----------------------------------
 \paragraph{Pinned boundary condition.} For pinned BC's at $x=0$ we set one degree of
 freedom at $j=1$ to be given
 \begin{align}
@@ -753,6 +756,7 @@ The boundary term will contribute to the second equation,
 \end{align}
 since $\psi_1(0)=0$, and $\partial_x\psi_1(0)=1$. 
 
+% ----------------------------------
 \paragraph{Free boundary condition.} For a free BC we impose
 \begin{align}
 &    E I w_{xx}(0,t)=M(t), \\
@@ -785,6 +789,28 @@ The second equation in our system will have the contribution
 \end{align}
 since $\psi_1(0)=0$, $\partial_x\psi_1(0)=1$.
 
+% ----------------------------------
+\paragraph{Sliding boundary condition.} For a sliding BC we impose
+\begin{align}
+&    w_{x}(0,t)=h(t),   \label{eq:slideBCa} \\
+&   \partial_x( E I w_{xx})(0,t)=S(t) .\label{eq:slideBCb}
+\end{align}
+The second time-derivative of the essential BC~\eqref{eq:slideBCa} replaces the second equation in~\eqref{eq:beamODE},
+$\partial_t^2 w_{x}(0,t)=\partial_t^2 h(t)$.
+The natural boundary condition~\eqref{eq:slideBCb} will contribute to the boundary terms in~\eqref{eq:beamFEM_II}
+with $\xi_i=\phi_1$, 
+\begin{align}
+   \Bc(\phi_1) &= -\left[ \phi_1 T \frac{\partial w^h}{\partial x} 
+                      ~ + \phi_1 K_{xxt} \frac{\partial \dot w^h}{\partial x}  
+                      ~ - \phi_1 \frac{\partial}{\partial x}\Big( E I \frac{\partial^2 w^h}{\partial x^2}\Big) 
+                      ~ + \frac{\partial \phi_1}{\partial x}E I \frac{\partial^2 w^h}{\partial x^2}\Big)  
+                      \right]_0  \\
+     &=  -T \, h(t) - K_{xxt}\, \dot h(t) + S(t) . \label{eq:beam:pinned}
+\end{align}
+since $\phi_1(0)=1$, $\partial_x\phi_1(0)=0$.
+
+
+\vskip2\baselineskip
 {\bf Note:} The case of $E I= 0$ (i.e. the wave equation for a {\em string}) 
 is a special case since the order of the PDE in space goes from four to two. In this
 case there is only one BC applied at each end -- currently only the Dirichlet case
@@ -887,6 +913,20 @@ For a free BC we assign the ghost points {\em and the boundary point} (this is i
    w_{-g} =  w_{TS}(-g h) , \quad g=0,1,2,\ldots
 \end{align}
 The boundary and ghost values for $w'$ are obtained in a similar fashion.
+
+
+% -----------------------------------
+\paragraph{Sliding boundary conditions}
+For sliding boundary conditions at $x=0$ we have $w'(0,t)=w'''(0,t)=0$. 
+By taking time-derivatives of these boundary conditions and using the equation~\eqref{eq:simpleBeam}
+gives the result that all odd derivatives are zero on the boundary, $\partial_x^{2m+1} w(0,t)=0$, $m=0,1,2,3,\ldots$.
+This implies that $w$ is an odd function about $x=0$ while $w'$ is an even function.
+The ghost points can thus be assigned by even-symmetry for $w$ and odd symmetry for $w'$:
+\begin{align}
+  W_{-g} &= W_{-g}, \qquad g=1,2,\ldots , \\
+  W'_{-g} &= 2 W_0' - W'_{-g}, \qquad g=1,2,\ldots \,.
+\end{align}
+
 
 
 % --------------------------------------------------------------------------------------------------------------------
