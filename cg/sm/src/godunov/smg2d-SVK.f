@@ -21,6 +21,20 @@ c
       common / smrlxn / relaxAlpha,relaxDelta,irelax
       common / smgprmn / method,iorder,ilimit,iupwind,icart,itype,ifrc
       common / tzflow / eptz,itz
+
+
+
+c      write(33,332)t
+c  332 format(' time =',1pe15.8)
+c      do ic=1,8
+cc        write(33,334)ic
+cc  334   format(' ic =',i2)
+c        do j2=n2b+2,n2b-2,-1
+c          write(33,333)(u(j1,j2,ic),j1=n1a-2,n1a+2)
+c  333     format(5(1x,1pe22.15))
+c        end do
+c      end do
+
 c
 c itype=0 => linear elasicity
 c itype=1 => SVK with linear reduction
@@ -34,6 +48,20 @@ c        write(6,*)i,ad(i)
 c      end do
 c      pause
 c      end if
+
+c      do j1=n1a,n1b,n1b-n1a
+c      do j2=n2a,n2b,n2b-n2a
+c        write(6,231)j1,j2,(u(j1,j2,i),i=3,6)
+c  231   format(2(1x,i3),4(1x,1pe9.2))
+c      end do
+c      end do
+c      do j1=n1a,n1b,n1b-n1a
+c      do j2=n2a,n2b,n2b-n2a
+c        write(6,232)j1,j2,(u(j1,j2,i),i=1,2)
+c  232   format(2(1x,i3),2(1x,1pe9.2))
+c      end do
+c      end do
+c      pause
 c
 c..set error flag
       ier=0

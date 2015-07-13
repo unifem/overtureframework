@@ -1335,6 +1335,17 @@ c ==============================================================================
   !        stress fix is needed for the SVK case if any bc is a traction bc.  DWS, 2/28/12
   ! 
   !  Update: the above is not true.  DWS, 3/28/12.  :)
+  !
+  !  Additional changes:  DWS, 7/8/15
+  !    The mixed displacement-traction corner cases for the nonlinear (SVK) cases now
+  !    set the tangent components of the stress in the corner and set ghost points
+  !    for displacement and velocity.  The basic configuration is this.  If the North
+  !    face is traction while the East face is displacement, then ghost points for
+  !    displacement and velocity would be set in the first ghost line to the east of
+  !    of the corner.  The displacement and velocity in the first ghost line to the
+  !    north of the corner are known already because of the displacement bcs.  So,
+  !    by setting the east ghost points, centered differences of displacement lead
+  !    to compatible stress components in the corner. 
 
   i3=gridIndexRange(0,2)
   if (gridType.eq.rectangular) then
@@ -1437,7 +1448,7 @@ c ==============================================================================
                 dalpha21=(1.0+u1x)/alpha2
                 dalpha22=u2x/alpha2
 
-                !  solve the 4x4 system
+                !  set up the 4x4 system
                 bb(1)=p(1,1)-f11
                 bb(2)=p(1,2)-f21
                 bb(3)=p(2,1)-f12
@@ -1516,6 +1527,116 @@ c ==============================================================================
               !  write(6,*)boundaryCondition(0,0),boundaryCondition(1,0),boundaryCondition(0,1),boundaryCondition(1,1)
               !  pause
 
+            else                                                                      ! nonlinear case
+
+              if (.true.) then   ! true/false switch here is for testing Cartesian grids
+
+              !  initialize
+              is1=1-2*side1
+              is2=1-2*side2
+              u1y0=is2*(u(i1,i2+is2,i3,uc)-u(i1,i2,i3,uc))/dx(1)
+              u2y0=is2*(u(i1,i2+is2,i3,vc)-u(i1,i2,i3,vc))/dx(1)
+
+              u1y=u1y0
+              u2y=u2y0
+
+              ! Newton iteration for u1y,u2y
+              ier=0
+              iter=1
+              istop=0
+              bmax=10.*toler
+              do while (bmax.gt.toler)
+
+               !  compute stress and the deriv based on current deformation gradient
+               !   ideriv=1
+               !   call smbcsdp (u1x,u1y,u2x,u2y,lambda,mu,p,dpdf,ideriv)
+                du(1,1)=u1x
+                du(1,2)=u1y
+                du(2,1)=u2x
+                du(2,2)=u2y
+                ideriv=1
+                call smgetdp (du,p,dpdf,cpar,ideriv,itype)
+
+                alpha1=sqrt(u1y**2+(1.0+u2y)**2)
+                ! given traction forces (adjust here for sign of normal)
+                f11=-is1*bcf(side1,axis1,i1,i2,i3,uc)*alpha1         
+                f21=-is1*bcf(side1,axis1,i1,i2,i3,vc)*alpha1
+                dalpha11=u1y/alpha1
+                dalpha12=(1.0+u2y)/alpha1
+
+                !  set up the 2x2 system
+                bb(1)=p(1,1)-f11
+                bb(2)=p(1,2)-f21
+                aa(1,1)=dpdf(1,2)+is1*bcf(side1,axis1,i1,i2,i3,uc)*dalpha11
+                aa(1,2)=dpdf(1,4)+is1*bcf(side1,axis1,i1,i2,i3,uc)*dalpha12
+                aa(2,1)=dpdf(2,2)+is1*bcf(side1,axis1,i1,i2,i3,vc)*dalpha11
+                aa(2,2)=dpdf(2,4)+is1*bcf(side1,axis1,i1,i2,i3,vc)*dalpha12
+
+                !  solve the 2x2 system
+                determ=aa(1,1)*aa(2,2)-aa(1,2)*aa(2,1)
+                du1y=(bb(1)*aa(2,2)-bb(2)*aa(1,2))/determ
+                du2y=(aa(1,1)*bb(2)-aa(2,1)*bb(1))/determ
+                bmax=max(abs(bb(1)),abs(bb(2)))/lambda
+
+                if (istop.ne.0) then
+                  write(6,'(1x,i2,3(1x,1pe15.8))')iter,bb(1),bb(2),bmax
+                end if
+
+                !  update
+                u1y=u1y-du1y
+                u2y=u2y-du2y
+                iter=iter+1
+
+                !  check for convergence
+                if (iter.gt.itmax) then
+                  write(6,*)'Error (bcOptSmFOS) : Newton failed to converge'
+                  if (istop.eq.0) then
+                    ier=0
+                    iter=1
+                    istop=1
+                    u1y=u1y0
+                    u2y=u2y0
+                  else
+                    stop 7881
+                  end if
+                end if
+
+              end do
+
+              !  set displacement in the ghost point and the tangent components of stress
+              u(i1,i2-is2,i3,uc)=u(i1,i2+is2,i3,uc)-2.*is2*dx(1)*u1y
+              u(i1,i2-is2,i3,vc)=u(i1,i2+is2,i3,vc)-2.*is2*dx(1)*u2y
+              u(i1,i2,i3,s21c)=p(2,1)
+              u(i1,i2,i3,s22c)=p(2,2)
+
+              !  compute v1y and v2y
+              v1x=(u(i1+1,i2,i3,v1c)-u(i1-1,i2,i3,v1c))/(2.*dx(0))
+              v2x=(u(i1+1,i2,i3,v2c)-u(i1-1,i2,i3,v2c))/(2.*dx(0))
+              bb(1)=-dpdf(1,1)*v1x-dpdf(1,3)*v2x-is1*bcf(side1,axis1,i1,i2,i3,v1c)*alpha1
+              bb(2)=-dpdf(2,1)*v1x-dpdf(2,3)*v2x-is1*bcf(side1,axis1,i1,i2,i3,v2c)*alpha1
+              v1y=(bb(1)*aa(2,2)-bb(2)*aa(1,2))/determ
+              v2y=(aa(1,1)*bb(2)-aa(2,1)*bb(1))/determ
+
+              !  set velocity in the ghost point
+              u(i1,i2-is2,i3,v1c)=u(i1,i2+is2,i3,v1c)-2.*is2*dx(1)*v1y
+              u(i1,i2-is2,i3,v2c)=u(i1,i2+is2,i3,v2c)-2.*is2*dx(1)*v2y
+
+              else    ! else true/false testing
+
+              is2=1-2*side2
+              u1y=0.
+              u2y=0.
+              u(i1,i2-is2,i3,uc)=u(i1,i2+is2,i3,uc)-2.*is2*dx(1)*u1y
+              u(i1,i2-is2,i3,vc)=u(i1,i2+is2,i3,vc)-2.*is2*dx(1)*u2y
+              u(i1,i2-is2,i3,v1c)=u(i1,i2+is2,i3,v1c)
+              u(i1,i2-is2,i3,v2c)=u(i1,i2+is2,i3,v2c)
+              u(i1,i2,i3,s11c)=0.
+              u(i1,i2,i3,s12c)=0.
+              u(i1,i2,i3,s21c)=0.
+              u(i1,i2,i3,s22c)=0.
+
+              end if   ! end true/false testing
+
             end if
 
           elseif (boundaryCondition(side1,axis1).eq.displacementBC.and.boundaryCondition(side2,axis2).eq.tractionBC) then
@@ -1532,6 +1653,127 @@ c ==============================================================================
 
               !  write(6,*)'here (2), side1,side2=',side1,side2
               !  pause
+
+            else                                                                      ! nonlinear case
+
+              if (.true.) then   ! true/false switch here is for testing Cartesian grids
+
+              !  initialize
+              is1=1-2*side1
+              is2=1-2*side2
+              u1x0=is1*(u(i1+is1,i2,i3,uc)-u(i1,i2,i3,uc))/dx(0)
+              u2x0=is1*(u(i1+is1,i2,i3,vc)-u(i1,i2,i3,vc))/dx(0)
+
+              u1x=u1x0
+              u2x=u2x0
+
+              ! Newton iteration for u1x,u2x
+              ier=0
+              iter=1
+              istop=0
+              bmax=10.*toler
+              do while (bmax.gt.toler)
+
+               !  compute stress and the deriv based on current deformation gradient
+               !   ideriv=1
+               !   call smbcsdp (u1x,u1y,u2x,u2y,lambda,mu,p,dpdf,ideriv)
+                du(1,1)=u1x
+                du(1,2)=u1y
+                du(2,1)=u2x
+                du(2,2)=u2y
+                ideriv=1
+                call smgetdp (du,p,dpdf,cpar,ideriv,itype)
+
+                alpha2=sqrt((1.0+u1x)**2+u2x**2)
+                ! given traction forces (adjust here for sign of normal)
+                f12=-is2*bcf(side2,axis2,i1,i2,i3,uc)*alpha2         
+                f22=-is2*bcf(side2,axis2,i1,i2,i3,vc)*alpha2
+                dalpha21=(1.0+u1x)/alpha2
+                dalpha22=u2x/alpha2
+
+                !  set up the 2x2 system
+                bb(1)=p(2,1)-f12
+                bb(2)=p(2,2)-f22
+                aa(1,1)=dpdf(3,1)+is2*bcf(side2,axis2,i1,i2,i3,uc)*dalpha21
+                aa(1,2)=dpdf(3,3)+is2*bcf(side2,axis2,i1,i2,i3,uc)*dalpha22
+                aa(2,1)=dpdf(4,1)+is2*bcf(side2,axis2,i1,i2,i3,vc)*dalpha21
+                aa(2,2)=dpdf(4,3)+is2*bcf(side2,axis2,i1,i2,i3,vc)*dalpha22
+
+                !  solve the 2x2 system
+                determ=aa(1,1)*aa(2,2)-aa(1,2)*aa(2,1)
+                du1x=(bb(1)*aa(2,2)-bb(2)*aa(1,2))/determ
+                du2x=(aa(1,1)*bb(2)-aa(2,1)*bb(1))/determ
+                bmax=max(abs(bb(1)),abs(bb(2)))/lambda
+
+                if (istop.ne.0) then
+                  write(6,'(1x,i2,3(1x,1pe15.8))')iter,bb(1),bb(2),bmax
+                end if
+
+                !  update
+                u1x=u1x-du1x
+                u2x=u2x-du2x
+                iter=iter+1
+
+                !  check for convergence
+                if (iter.gt.itmax) then
+                  write(6,*)'Error (bcOptSmFOS) : Newton failed to converge'
+                  if (istop.eq.0) then
+                    ier=0
+                    iter=1
+                    istop=1
+                    u1x=u1x0
+                    u2x=u2x0
+                  else
+                    stop 7882
+                  end if
+                end if
+
+              end do
+
+              !  set displacement in the ghost point and the tangent components of stress
+              u(i1-is1,i2,i3,uc)=u(i1+is1,i2,i3,uc)-2.*is1*dx(0)*u1x
+              u(i1-is1,i2,i3,vc)=u(i1+is1,i2,i3,vc)-2.*is1*dx(0)*u2x
+              u(i1,i2,i3,s11c)=p(1,1)
+              u(i1,i2,i3,s12c)=p(1,2)
+
+              !  compute v1x and v2x
+              v1y=(u(i1,i2+1,i3,v1c)-u(i1,i2-1,i3,v1c))/(2.*dx(1))
+              v2y=(u(i1,i2+1,i3,v2c)-u(i1,i2-1,i3,v2c))/(2.*dx(1))
+              bb(1)=-dpdf(3,2)*v1y-dpdf(3,4)*v2y-is2*bcf(side2,axis2,i1,i2,i3,v1c)*alpha2
+              bb(2)=-dpdf(4,2)*v1y-dpdf(4,4)*v2y-is2*bcf(side2,axis2,i1,i2,i3,v2c)*alpha2
+              v1x=(bb(1)*aa(2,2)-bb(2)*aa(1,2))/determ
+              v2x=(aa(1,1)*bb(2)-aa(2,1)*bb(1))/determ
+
+              !  set velocity in the ghost point
+              u(i1-is1,i2,i3,v1c)=u(i1+is1,i2,i3,v1c)-2.*is1*dx(0)*v1x
+              u(i1-is1,i2,i3,v2c)=u(i1+is1,i2,i3,v2c)-2.*is1*dx(0)*v2x
+
+c              u1x=0.
+c              u2x=0.
+c              u(i1-is1,i2,i3,uc)=u(i1+is1,i2,i3,uc)-2.*is1*dx(0)*u1x
+c              u(i1-is1,i2,i3,vc)=u(i1+is1,i2,i3,vc)-2.*is1*dx(0)*u2x
+c              u(i1-is1,i2,i3,v1c)=u(i1+is1,i2,i3,v1c)
+c              u(i1-is1,i2,i3,v2c)=u(i1+is1,i2,i3,v2c)
+c              u(i1,i2,i3,s11c)=0.
+c              u(i1,i2,i3,s12c)=0.
+c              u(i1,i2,i3,s21c)=0.
+c              u(i1,i2,i3,s22c)=0.
+
+              else   ! else true/false testing
+
+              is1=1-2*side1
+              u1x=0.
+              u2x=0.
+              u(i1-is1,i2,i3,uc)=u(i1+is1,i2,i3,uc)-2.*is1*dx(0)*u1x
+              u(i1-is1,i2,i3,vc)=u(i1+is1,i2,i3,vc)-2.*is1*dx(0)*u2x
+              u(i1-is1,i2,i3,v1c)=u(i1+is1,i2,i3,v1c)
+              u(i1-is1,i2,i3,v2c)=u(i1+is1,i2,i3,v2c)
+              u(i1,i2,i3,s11c)=0.
+              u(i1,i2,i3,s12c)=0.
+              u(i1,i2,i3,s21c)=0.
+              u(i1,i2,i3,s22c)=0.
+
+              end if   ! end true/false testing
 
             end if
 
@@ -1832,6 +2074,147 @@ c ==============================================================================
               u(i1,i2,i3,s12c)=u(i1,i2,i3,s21c)
               u(i1,i2,i3,s22c)=(lambda+2.0*mu)*u2y+lambda*u1x
 
+            else
+
+              ! initialize
+              is1=1-2*side1
+              is2=1-2*side2
+
+              if (.true.) then   ! true/false switch here is for testing Cartesian grids
+
+c              aNormi1=1./max(epsx,sqrt(rx(i1,i2,i3,axis1,0)**2+rx(i1,i2,i3,axis1,1)**2))
+c              an11=-is1*rx(i1,i2,i3,axis1,0)*aNormi1          ! normals for axis1,side1
+c              an21=-is1*rx(i1,i2,i3,axis1,1)*aNormi1
+              aNormi1=aNormi
+              an11=an1
+              an21=an2
+
+              u1s0=is2*(u(i1,i2+is2,i3,uc)-u(i1,i2,i3,uc))/dr(1)
+              u2s0=is2*(u(i1,i2+is2,i3,vc)-u(i1,i2,i3,vc))/dr(1)
+
+              u1s=u1s0
+              u2s=u2s0
+
+              ! Newton iteration for u1s,u2s
+              ier=0
+              iter=1
+              istop=0
+              bmax=10.*toler
+              do while (bmax.gt.toler)
+
+                u1x=rx(i1,i2,i3,0,0)*u1r+rx(i1,i2,i3,1,0)*u1s
+                u1y=rx(i1,i2,i3,0,1)*u1r+rx(i1,i2,i3,1,1)*u1s
+                u2x=rx(i1,i2,i3,0,0)*u2r+rx(i1,i2,i3,1,0)*u2s
+                u2y=rx(i1,i2,i3,0,1)*u2r+rx(i1,i2,i3,1,1)*u2s
+
+                ! compute stress and the deriv based on current deformation gradient
+                !                      ideriv=1
+                !                      call smbcsdp (u1x,u1y,u2x,u2y,lambda,mu,p,dpdf,ideriv)
+                du(1,1)=u1x
+                du(1,2)=u1y
+                du(2,1)=u2x
+                du(2,2)=u2y
+                ideriv=1
+                call smgetdp (du,p,dpdf,cpar,ideriv,itype)
+
+                coef11=rx(i1,i2,i3,0,1)-u1s/det(i1,i2,i3)
+                coef21=rx(i1,i2,i3,0,0)+u2s/det(i1,i2,i3)
+                alpha1=sqrt(coef11**2+coef21**2)*aNormi1
+                f11=bcf(side1,axis1,i1,i2,i3,uc)*alpha1        ! given traction forces
+                f21=bcf(side1,axis1,i1,i2,i3,vc)*alpha1
+                fact=aNormi1/(det(i1,i2,i3)*sqrt(coef11**2+coef21**2))
+                dalpha11=-coef11*fact
+                dalpha12= coef21*fact
+
+                ! construct linear system
+                bb(1)=an11*p(1,1)+an21*p(2,1)-f11
+                bb(2)=an11*p(1,2)+an21*p(2,2)-f21
+                aa(1,1)= an11*(dpdf(1,1)*rx(i1,i2,i3,1,0)+dpdf(1,2)*rx(i1,i2,i3,1,1)) \
+                        +an21*(dpdf(3,1)*rx(i1,i2,i3,1,0)+dpdf(3,2)*rx(i1,i2,i3,1,1)) \
+                        -bcf(side1,axis1,i1,i2,i3,uc)*dalpha11
+                aa(1,2)= an11*(dpdf(1,3)*rx(i1,i2,i3,1,0)+dpdf(1,4)*rx(i1,i2,i3,1,1)) \
+                        +an21*(dpdf(3,3)*rx(i1,i2,i3,1,0)+dpdf(3,4)*rx(i1,i2,i3,1,1)) \
+                        -bcf(side1,axis1,i1,i2,i3,uc)*dalpha12
+                aa(2,1)= an11*(dpdf(2,1)*rx(i1,i2,i3,1,0)+dpdf(2,2)*rx(i1,i2,i3,1,1)) \
+                        +an21*(dpdf(4,1)*rx(i1,i2,i3,1,0)+dpdf(4,2)*rx(i1,i2,i3,1,1)) \
+                        -bcf(side1,axis1,i1,i2,i3,vc)*dalpha11
+                aa(2,2)= an11*(dpdf(2,3)*rx(i1,i2,i3,1,0)+dpdf(2,4)*rx(i1,i2,i3,1,1)) \
+                        +an21*(dpdf(4,3)*rx(i1,i2,i3,1,0)+dpdf(4,4)*rx(i1,i2,i3,1,1)) \
+                        -bcf(side1,axis1,i1,i2,i3,vc)*dalpha12
+
+                ! solve the 2x2 system
+                determ=aa(1,1)*aa(2,2)-aa(1,2)*aa(2,1)
+                du1s=(bb(1)*aa(2,2)-bb(2)*aa(1,2))/determ
+                du2s=(aa(1,1)*bb(2)-aa(2,1)*bb(1))/determ
+                bmax=max(abs(bb(1)),abs(bb(2)))/lambda
+
+                if (istop.ne.0) then
+                  write(6,'(1x,i2,3(1x,1pe15.8))')iter,bb(1),bb(2),bmax
+                end if
+
+                ! update
+                u1s=u1s-du1s
+                u2s=u2s-du2s
+                iter=iter+1
+
+                ! check for convergence
+                if (iter.gt.itmax) then
+                  write(6,*)'Error (bcOptSmFOS) : Newton failed to converge'
+                  if (istop.eq.0) then
+                    ier=0
+                    iter=1
+                    istop=1
+                    u1s=u1s0
+                    u2s=u2s0
+                  else
+                    stop 7782
+                  end if
+                end if
+
+              end do
+
+              ! set displacement in the ghost point and set stress in the corner
+              u(i1,i2-is2,i3,uc)=u(i1,i2+is2,i3,uc)-2.*is2*dr(1)*u1s
+              u(i1,i2-is2,i3,vc)=u(i1,i2+is2,i3,vc)-2.*is2*dr(1)*u2s
+              u(i1,i2,i3,s11c)=p(1,1)
+              u(i1,i2,i3,s12c)=p(1,2)
+              u(i1,i2,i3,s21c)=p(2,1)
+              u(i1,i2,i3,s22c)=p(2,2)
+
+              !  compute v1s and v2s
+              v1r=(u(i1+1,i2,i3,v1c)-u(i1-1,i2,i3,v1c))/(2.0*dr(0))
+              v2r=(u(i1+1,i2,i3,v2c)-u(i1-1,i2,i3,v2c))/(2.0*dr(0))
+              aa(1,3)= an11*(dpdf(1,1)*rx(i1,i2,i3,0,0)+dpdf(1,2)*rx(i1,i2,i3,0,1)) \
+                      +an21*(dpdf(3,1)*rx(i1,i2,i3,0,0)+dpdf(3,2)*rx(i1,i2,i3,0,1))
+              aa(1,4)= an11*(dpdf(1,3)*rx(i1,i2,i3,0,0)+dpdf(1,4)*rx(i1,i2,i3,0,1)) \
+                      +an21*(dpdf(3,3)*rx(i1,i2,i3,0,0)+dpdf(3,4)*rx(i1,i2,i3,0,1))
+              bb(1)=bcf(side1,axis1,i1,i2,i3,v1c)*alpha1-aa(1,3)*v1r-aa(1,4)*v2r
+              aa(2,3)= an11*(dpdf(2,1)*rx(i1,i2,i3,0,0)+dpdf(2,2)*rx(i1,i2,i3,0,1)) \
+                      +an21*(dpdf(4,1)*rx(i1,i2,i3,0,0)+dpdf(4,2)*rx(i1,i2,i3,0,1))
+              aa(2,4)= an11*(dpdf(2,3)*rx(i1,i2,i3,0,0)+dpdf(2,4)*rx(i1,i2,i3,0,1)) \
+                      +an21*(dpdf(4,3)*rx(i1,i2,i3,0,0)+dpdf(4,4)*rx(i1,i2,i3,0,1))
+              bb(2)=bcf(side1,axis1,i1,i2,i3,v2c)*alpha1-aa(2,3)*v1r-aa(2,4)*v2r
+              v1s=(bb(1)*aa(2,2)-bb(2)*aa(1,2))/determ
+              v2s=(aa(1,1)*bb(2)-aa(2,1)*bb(1))/determ
+
+              !  set velocity in the ghost point
+              u(i1,i2-is2,i3,v1c)=u(i1,i2+is2,i3,v1c)-2.*is2*dr(1)*v1s
+              u(i1,i2-is2,i3,v2c)=u(i1,i2+is2,i3,v2c)-2.*is2*dr(1)*v2s
+
+              else   ! else true/false testing
+
+              u1s=0.
+              u2s=0.
+              u(i1,i2-is2,i3,uc)=u(i1,i2+is2,i3,uc)-2.*is2*dr(1)*u1s
+              u(i1,i2-is2,i3,vc)=u(i1,i2+is2,i3,vc)-2.*is2*dr(1)*u2s
+              u(i1,i2-is2,i3,v1c)=u(i1,i2+is2,i3,v1c)
+              u(i1,i2-is2,i3,v2c)=u(i1,i2+is2,i3,v2c)
+              u(i1,i2,i3,s11c)=0.
+              u(i1,i2,i3,s12c)=0.
+              u(i1,i2,i3,s21c)=0.
+              u(i1,i2,i3,s22c)=0.
+
+              end if   ! end true/false testing
 
             end if
 
@@ -1869,6 +2252,147 @@ c ==============================================================================
               u(i1,i2,i3,s12c)=u(i1,i2,i3,s21c)
               u(i1,i2,i3,s22c)=(lambda+2.0*mu)*u2y+lambda*u1x
 
+            else
+
+              ! initialize
+              is1=1-2*side1
+              is2=1-2*side2
+
+              if (.true.) then   ! true/false switch here is for testing Cartesian grids
+
+c              aNormi2=1./max(epsx,sqrt(rx(i1,i2,i3,axis2,0)**2+rx(i1,i2,i3,axis2,1)**2))
+c              an12=-is2*rx(i1,i2,i3,axis2,0)*aNormi2          ! normals for axis2,side2
+c              an22=-is2*rx(i1,i2,i3,axis2,1)*aNormi2
+              aNormi2=aNormi
+              an12=an1
+              an22=an2
+
+              u1r0=is1*(u(i1+is1,i2,i3,uc)-u(i1,i2,i3,uc))/dr(0)
+              u2r0=is1*(u(i1+is1,i2,i3,vc)-u(i1,i2,i3,vc))/dr(0)
+
+              u1r=u1r0
+              u2r=u2r0
+
+              ! Newton iteration for u1r,u2r
+              ier=0
+              iter=1
+              istop=0
+              bmax=10.*toler
+              do while (bmax.gt.toler)
+
+                u1x=rx(i1,i2,i3,0,0)*u1r+rx(i1,i2,i3,1,0)*u1s
+                u1y=rx(i1,i2,i3,0,1)*u1r+rx(i1,i2,i3,1,1)*u1s
+                u2x=rx(i1,i2,i3,0,0)*u2r+rx(i1,i2,i3,1,0)*u2s
+                u2y=rx(i1,i2,i3,0,1)*u2r+rx(i1,i2,i3,1,1)*u2s
+
+                ! compute stress and the deriv based on current deformation gradient
+                !                      ideriv=1
+                !                      call smbcsdp (u1x,u1y,u2x,u2y,lambda,mu,p,dpdf,ideriv)
+                du(1,1)=u1x
+                du(1,2)=u1y
+                du(2,1)=u2x
+                du(2,2)=u2y
+                ideriv=1
+                call smgetdp (du,p,dpdf,cpar,ideriv,itype)
+
+                coef12=rx(i1,i2,i3,1,1)+u1r/det(i1,i2,i3)
+                coef22=rx(i1,i2,i3,1,0)-u2r/det(i1,i2,i3)
+                alpha2=sqrt(coef12**2+coef22**2)*aNormi2
+                f12=bcf(side2,axis2,i1,i2,i3,uc)*alpha2         ! given traction forces
+                f22=bcf(side2,axis2,i1,i2,i3,vc)*alpha2
+                fact=aNormi2/(det(i1,i2,i3)*sqrt(coef12**2+coef22**2))
+                dalpha21= coef12*fact
+                dalpha22=-coef22*fact
+
+                ! construct linear system
+                bb(1)=an12*p(1,1)+an22*p(2,1)-f12
+                bb(2)=an12*p(1,2)+an22*p(2,2)-f22
+                aa(1,1)= an12*(dpdf(1,1)*rx(i1,i2,i3,0,0)+dpdf(1,2)*rx(i1,i2,i3,0,1)) \
+                        +an22*(dpdf(3,1)*rx(i1,i2,i3,0,0)+dpdf(3,2)*rx(i1,i2,i3,0,1)) \
+                        -bcf(side2,axis2,i1,i2,i3,uc)*dalpha21
+                aa(1,2)= an12*(dpdf(1,3)*rx(i1,i2,i3,0,0)+dpdf(1,4)*rx(i1,i2,i3,0,1)) \
+                        +an22*(dpdf(3,3)*rx(i1,i2,i3,0,0)+dpdf(3,4)*rx(i1,i2,i3,0,1)) \
+                        -bcf(side2,axis2,i1,i2,i3,uc)*dalpha22
+                aa(2,1)= an12*(dpdf(2,1)*rx(i1,i2,i3,0,0)+dpdf(2,2)*rx(i1,i2,i3,0,1)) \
+                        +an22*(dpdf(4,1)*rx(i1,i2,i3,0,0)+dpdf(4,2)*rx(i1,i2,i3,0,1)) \
+                        -bcf(side2,axis2,i1,i2,i3,vc)*dalpha21
+                aa(2,2)= an12*(dpdf(2,3)*rx(i1,i2,i3,0,0)+dpdf(2,4)*rx(i1,i2,i3,0,1)) \
+                        +an22*(dpdf(4,3)*rx(i1,i2,i3,0,0)+dpdf(4,4)*rx(i1,i2,i3,0,1)) \
+                        -bcf(side2,axis2,i1,i2,i3,vc)*dalpha22
+
+                ! solve the 2x2 system
+                determ=aa(1,1)*aa(2,2)-aa(1,2)*aa(2,1)
+                du1r=(bb(1)*aa(2,2)-bb(2)*aa(1,2))/determ
+                du2r=(aa(1,1)*bb(2)-aa(2,1)*bb(1))/determ
+                bmax=max(abs(bb(1)),abs(bb(2)))/lambda
+
+                if (istop.ne.0) then
+                  write(6,'(1x,i2,3(1x,1pe15.8))')iter,bb(1),bb(2),bmax
+                end if
+
+                ! update
+                u1r=u1r-du1r
+                u2r=u2r-du2r
+                iter=iter+1
+
+                ! check for convergence
+                if (iter.gt.itmax) then
+                  write(6,*)'Error (bcOptSmFOS) : Newton failed to converge'
+                  if (istop.eq.0) then
+                    ier=0
+                    iter=1
+                    istop=1
+                    u1r=u1r0
+                    u2r=u2r0
+                  else
+                    stop 7783
+                  end if
+                end if
+
+              end do
+
+              ! set displacement in the ghost point and stress in the corner
+              u(i1-is1,i2,i3,uc)=u(i1+is1,i2,i3,uc)-2.*is1*dr(0)*u1r
+              u(i1-is1,i2,i3,vc)=u(i1+is1,i2,i3,vc)-2.*is1*dr(0)*u2r
+              u(i1,i2,i3,s11c)=p(1,1)
+              u(i1,i2,i3,s12c)=p(1,2)
+              u(i1,i2,i3,s21c)=p(2,1)
+              u(i1,i2,i3,s22c)=p(2,2)
+
+              !  compute v1r and v2r
+              v1s=(u(i1,i2+1,i3,v1c)-u(i1,i2-1,i3,v1c))/(2.0*dr(1))
+              v2s=(u(i1,i2+1,i3,v2c)-u(i1,i2-1,i3,v2c))/(2.0*dr(1))
+              aa(1,3)= an12*(dpdf(1,1)*rx(i1,i2,i3,1,0)+dpdf(1,2)*rx(i1,i2,i3,1,1)) \
+                      +an22*(dpdf(3,1)*rx(i1,i2,i3,1,0)+dpdf(3,2)*rx(i1,i2,i3,1,1))
+              aa(1,4)= an12*(dpdf(1,3)*rx(i1,i2,i3,1,0)+dpdf(1,4)*rx(i1,i2,i3,1,1)) \
+                      +an22*(dpdf(3,3)*rx(i1,i2,i3,1,0)+dpdf(3,4)*rx(i1,i2,i3,1,1))
+              bb(1)=bcf(side2,axis2,i1,i2,i3,v1c)*alpha2-aa(1,3)*v1s-aa(1,4)*v2s
+              aa(2,3)= an12*(dpdf(2,1)*rx(i1,i2,i3,1,0)+dpdf(2,2)*rx(i1,i2,i3,1,1)) \
+                      +an22*(dpdf(4,1)*rx(i1,i2,i3,1,0)+dpdf(4,2)*rx(i1,i2,i3,1,1))
+              aa(2,4)= an12*(dpdf(2,3)*rx(i1,i2,i3,1,0)+dpdf(2,4)*rx(i1,i2,i3,1,1)) \
+                      +an22*(dpdf(4,3)*rx(i1,i2,i3,1,0)+dpdf(4,4)*rx(i1,i2,i3,1,1))
+              bb(2)=bcf(side2,axis2,i1,i2,i3,v2c)*alpha2-aa(2,3)*v1s-aa(2,4)*v2s
+              v1r=(bb(1)*aa(2,2)-bb(2)*aa(1,2))/determ
+              v2r=(aa(1,1)*bb(2)-aa(2,1)*bb(1))/determ
+
+              !  set velocity in the ghost point
+              u(i1-is1,i2,i3,v1c)=u(i1+is1,i2,i3,v1c)-2.*is1*dr(0)*v1r
+              u(i1-is1,i2,i3,v2c)=u(i1+is1,i2,i3,v2c)-2.*is1*dr(0)*v2r
+
+              else   ! else true/false testing
+
+              u1r=0.
+              u2r=0.
+              u(i1-is1,i2,i3,uc)=u(i1+is1,i2,i3,uc)-2.*is1*dr(0)*u1r
+              u(i1-is1,i2,i3,vc)=u(i1+is1,i2,i3,vc)-2.*is1*dr(0)*u2r
+              u(i1-is1,i2,i3,v1c)=u(i1+is1,i2,i3,v1c)
+              u(i1-is1,i2,i3,v2c)=u(i1+is1,i2,i3,v2c)
+              u(i1,i2,i3,s11c)=0.
+              u(i1,i2,i3,s12c)=0.
+              u(i1,i2,i3,s21c)=0.
+              u(i1,i2,i3,s22c)=0.
+
+              end if   ! end true/false testing
 
             end if
 
@@ -3172,8 +3696,8 @@ c ==============================================================================
               du(2,2)=u2y
               ideriv=0
               call smgetdp (du,p,dpdf,cpar,ideriv,itype)
-              ! u(i1,i2,i3,s21c)=p(2,1)
-              ! u(i1,i2,i3,s22c)=p(2,2)
+              u(i1,i2,i3,s21c)=p(2,1)
+              u(i1,i2,i3,s22c)=p(2,2)
            endLoopsMask2d()
           else
            beginLoopsMask2d()
@@ -3189,8 +3713,8 @@ c ==============================================================================
               du(2,2)=u2y
               ideriv=0
               call smgetdp (du,p,dpdf,cpar,ideriv,itype)
-              ! u(i1,i2,i3,s11c)=p(1,1)
-              ! u(i1,i2,i3,s12c)=p(1,2)
+              u(i1,i2,i3,s11c)=p(1,1)
+              u(i1,i2,i3,s12c)=p(1,2)
            endLoopsMask2d()
           end if
         end if
@@ -3337,8 +3861,8 @@ c ==============================================================================
                du(2,2)=u2ye
                ideriv=0
                call smgetdp (du,p,dpdf,cpar,ideriv,itype)
-               ! u(i1,i2,i3,s21c)=u(i1,i2,i3,s21c)+s21e-p(2,1)
-               ! u(i1,i2,i3,s22c)=u(i1,i2,i3,s22c)+s22e-p(2,2)
+               u(i1,i2,i3,s21c)=u(i1,i2,i3,s21c)+s21e-p(2,1)
+               u(i1,i2,i3,s22c)=u(i1,i2,i3,s22c)+s22e-p(2,2)
              endLoopsMask2d()
             else
              beginLoopsMask2d()
@@ -3356,8 +3880,8 @@ c ==============================================================================
                du(2,2)=u2ye
                ideriv=0
                call smgetdp (du,p,dpdf,cpar,ideriv,itype)
-               ! u(i1,i2,i3,s11c)=u(i1,i2,i3,s11c)+s11e-p(1,1)
-               ! u(i1,i2,i3,s12c)=u(i1,i2,i3,s12c)+s12e-p(1,2)
+               u(i1,i2,i3,s11c)=u(i1,i2,i3,s11c)+s11e-p(1,1)
+               u(i1,i2,i3,s12c)=u(i1,i2,i3,s12c)+s12e-p(1,2)
              endLoopsMask2d()
             end if
           end if
@@ -4522,6 +5046,9 @@ c     --- local variables ----
       logical setCornersWithTZ
 c      logical newBCs     this flag is not needed anymore
 
+      ! this flag determines whether the secondary tangent stress assignment is done (default should be .false. ??)
+      logical assignTangentStress
+
       ! boundary conditions parameters
       #Include "bcDefineFortranInclude.h"
 
@@ -4892,6 +5419,61 @@ c      ! '
         fixupCornerStressMacro()
 
 
+c       !*******
+c       !******* re-extrapolate the stress to first ghost line near corners ********
+c       !         (1) Extrapolate points A and B (below) on displacement sides
+c       !         (2) Extrapolate corner point C on all physical sides 
+c       !*******
+c
+c       !               |
+c       !               |
+c       !            A--+---+---+
+c       !               |
+c       !            C  B
+c
+c       i3=gridIndexRange(0,2)
+c       do side1=0,1
+c         i1=gridIndexRange(side1,axis1)
+c         is1=1-2*side1
+c         do side2=0,1
+c           i2=gridIndexRange(side2,axis2)
+c           is2=1-2*side2
+c
+c           ! extrapolate in the i1 direction
+c           !*wdh       if (boundaryCondition(side1,axis1).eq.tractionBC) then
+c           if (boundaryCondition(side1,axis1).eq.tractionBC.and.boundaryCondition(side2,axis2).gt.0) then
+c             if (mask(i1,i2,i3).ne.0) then
+cc               do n=0,numberOfComponents-1
+c               do n=2,5
+c                 u(i1-is1,i2,i3,n)=extrap3(u,i1,i2,i3,n,is1,0,0)
+c               end do
+c             end if
+c           end if
+c
+c           ! extrapolate in the i2 direction
+c           !*wdh       if (boundaryCondition(side2,axis2).eq.tractionBC) then
+c           if (boundaryCondition(side2,axis2).eq.tractionBC.and.boundaryCondition(side1,axis1).gt.0) then
+c             if (mask(i1,i2,i3).ne.0) then
+cc               do n=0,numberOfComponents-1
+c               do n=2,5
+c                 u(i1,i2-is2,i3,n)=extrap3(u,i1,i2,i3,n,0,is2,0)
+c               end do
+c             end if
+c           end if
+c
+c           ! extrapolate in the diagonal direction
+c           if (boundaryCondition(side1,axis1).gt.0.and.boundaryCondition(side2,axis2).gt.0) then
+c             if (mask(i1,i2,i3).ne.0) then
+cc               do n=0,numberOfComponents-1
+c               do n=2,5
+c                 u(i1-is1,i2-is2,i3,n)=extrap3(u,i1,i2,i3,n,is1,is2,0)
+c               end do
+c             end if
+c           end if
+c         end do
+c       end do
+
+
         ! return after corner stress fix-up for debugging
         if (.false.) return
 
@@ -4924,8 +5506,10 @@ c      ! '
         !*******
         !******* Secondary Dirichlet conditions for the tangential components of stress (tractionBC only) ********
         !*******
-
-       assignSecondaryDirichletBoundaryConditionsTangentialStress()
+     
+       if (assignTangentStress) then
+         assignSecondaryDirichletBoundaryConditionsTangentialStress()
+       end if
 
        ! return after applying bcs for tangential components of stress for debugging
        if (.false.) return
