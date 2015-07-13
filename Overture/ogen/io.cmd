@@ -84,8 +84,9 @@ create mappings
   rectangle 
     mappingName
       innerSquare
-    $xa=-$innerRadius-$ds;  $xb=$innerRadius+$ds; 
-    $ya=-$innerRadius-$ds;  $yb=$innerRadius+$ds; 
+    $delta = $ds + ($order-2)*$ds;
+    $xa=-$innerRadius-$delta;  $xb=$innerRadius+$delta; 
+    $ya=-$innerRadius-$delta;  $yb=$innerRadius+$delta; 
     set corners
      $xa $xb $ya $yb 
     lines

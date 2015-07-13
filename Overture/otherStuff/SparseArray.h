@@ -103,7 +103,7 @@ template<class T> SparseArray<T>::
 SparseArray(int n0 /* =0 */, int n1 /* =1 */, int n2 /* =1 */, int n3 /* =1 */, int n4 /* =1 */, int n5 /* =1 */)
 // ===============================================================================================
 //  /Description:
-//    Create a sparse array with dimensions (n0,n1,...) ande default value of zero.
+//    Create a sparse array with dimensions (n0,n1,...) and default value of zero.
 // 
 // /n0,n1,... (input) : dimensions 
 // ===============================================================================================

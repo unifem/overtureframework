@@ -1,84 +1,99 @@
-*==================================================================
-*  Compute eigenfunctions of a 3d cylinder (check errors) 
-* 
-* run this with 
-*
-*    cgmx cyleigen
-*    mpirun -np 2 $cgmxp cyleigen
-*
-*==================================================================
-$tFinal=1.; $tPlot=.1; $cfl=.95; $diss=.5; $show=" ";
+#==================================================================
+#  Compute eigenfunctions of a 3d cylinder (check errors) 
+# 
+# run this with 
+#
+#    cgmx [-noplot] cyleigen -g=<gridName> -tf=<> -tp=<> 
+#    mpirun -np 2 $cgmxp cyleigen
+#
+#==================================================================
+$tFinal=1.; $tPlot=.1; $cfl=.95; $diss=.5; $show=" "; $method="NFDTD";
 $n=1; $m=1; $k=1;   # n=Jn, m=m*theta, k=k*Pi*z
-* 
-* 2nd-order:
-* tube4.hdf
-* $grid="tube1.hdf"; $tPlot=.01; 
-* $grid="tube2.hdf"; $tPlot=.01; 
-*
-* tube3e.hdf
-* $grid="tube1.order4.hdf"; $tPlot=.1; 
-$grid="tube2.order4.hdf"; $tPlot=.1; 
-* tube2.order4
-* tube3.order4
-* tube4.order4
-* --- longer cylinder ---
-* $grid="tube1a.order4.hdf"; $n=2; $m=3; $k=3; 
-* $grid="tube2a.order4.hdf"; $n=2; $m=3; $k=3;
-* $grid="tube3a.order4.hdf"; $n=2; $m=3; $k=3;
-* $grid="tube4a.order4.hdf"; $n=2; $m=3; $k=3; $tPlot=.5; $show="cylEigen44a.show"; 
-*
+$grid="tube1.order4.hdf"; $tPlot=.1; 
+#
+# ----------------------------- get command line arguments ---------------------------------------
+GetOptions( "g=s"=>\$grid,"tf=f"=>\$tFinal,"diss=f"=>\$diss,"tp=f"=>\$tPlot,"show=s"=>\$show,"debug=i"=>\$debug, \
+ "cfl=f"=>\$cfl,"go=s"=>\$go,"noplot=s"=>\$noplot,"dtMax=f"=>\$dtMax,"n=i"=>\$n,"m=i"=>\$m,"method=s"=>\$method );
+# -------------------------------------------------------------------------------------------------
+if( $go eq "halt" ){ $go = "break"; }
+if( $go eq "og" ){ $go = "open graphics"; }
+if( $go eq "run" || $go eq "go" ){ $go = "movie mode\n finish"; }
+if( $method eq "sosup" ){ $diss=0.; }
+# 
+# 2nd-order:
+# tube4.hdf
+# $grid="tube1.hdf"; $tPlot=.01; 
+# $grid="tube2.hdf"; $tPlot=.01; 
+#
+# tube3e.hdf
+# $grid="tube1.order4.hdf"; $tPlot=.1; 
+# $grid="tube2.order4.hdf"; $tPlot=.1; 
+# tube2.order4
+# tube3.order4
+# tube4.order4
+# --- longer cylinder ---
+# $grid="tube1a.order4.hdf"; $n=2; $m=3; $k=3; 
+# $grid="tube2a.order4.hdf"; $n=2; $m=3; $k=3;
+# $grid="tube3a.order4.hdf"; $n=2; $m=3; $k=3;
+# $grid="tube4a.order4.hdf"; $n=2; $m=3; $k=3; $tPlot=.5; $show="cylEigen44a.show"; 
+#
 $grid
-*
+#
 modifiedEquationTimeStepping
-*
-NFDTD
-***
+#
+$method
+#**
 solve for magnetic field 0
-***
-*twilightZone
-*trigonometric 
-*TZ omega: 1. 1. 1. 1.
-*
-****
+#**
+#twilightZone
+#trigonometric 
+#TZ omega: 1. 1. 1. 1.
+#
+#***
 bc: all=perfectElectricalConductor
-*bc: box(0,2)=dirichlet
-*bc: box(1,2)=dirichlet
-*bc: cylinder(0,1)=dirichlet
-*bc: cylinder(1,1)=dirichlet
-***
-*****
+#bc: box(0,2)=dirichlet
+#bc: box(1,2)=dirichlet
+#bc: cylinder(0,1)=dirichlet
+#bc: cylinder(1,1)=dirichlet
+#**
+#****
 annulusEigenfunctionInitialCondition
  $n $m $k    * n=Jn, m=m*theta, k=k*Pi*z
 annulusEigenfunctionKnownSolution
-***
-* 
+#**
+# 
 use conservative divergence 1
-*
-*
+#
+#
 tFinal $tFinal
 tPlot  $tPlot
 dissipation $diss
-* accuracy in space 4
-* accuracy in time 4
-* order of dissipation 4
+# accuracy in space 4
+# accuracy in time 4
+# order of dissipation 4
 cfl $cfl
-****
-*
+#***
+#
 debug 0
-**********************************
+#*********************************
 show file options...
 MXSF:compressed
 MXSF:open
   $show
-* MXSF:frequency to save 1
+# MXSF:frequency to save 1
 MXSF:frequency to flush 10
 exit
-***********************************
-*
+#**********************************
+plot errors 1
+check errors 1
+#
 continue
-*
+#
+$go
+
+
 continue
-* ----------------------------------------------
+# ----------------------------------------------
 
 
 contour

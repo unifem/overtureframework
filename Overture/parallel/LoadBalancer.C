@@ -366,13 +366,14 @@ determineLoadBalance(GridDistributionList & gridDistributionList,
   else if( loadBalancerActual==allToAll )
   {
     // All grids are assigned to all processors
-    const int np = max(1,Communication_Manager::numberOfProcessors());
+    // *wdh* 2015/06/30 const int np = max(1,Communication_Manager::numberOfProcessors());
     for( int grid=0; grid<gridDistributionList.size(); grid++ )
     {
       const int mgLevel=gridDistributionList[grid].getMultigridLevel();
       if( gridDistributionList[grid].getRefinementLevel()>=refinementLevel && mgLevel>=mgStart && mgLevel<=mgEnd )
       {
-	int pStart= 0; int pEnd=np-1;
+	// int pStart= 0; int pEnd=np-1;
+        int pStart=processorID[0], pEnd=processorID[np-1]; // *wdh* 2015/07/01
 	gridDistributionList[grid].setProcessors(pStart,pEnd);
       }
     }

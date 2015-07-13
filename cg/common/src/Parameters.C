@@ -518,7 +518,7 @@ Parameters(const int & numberOfDimensions0) : pdeName("unknown"), numberOfBCName
   if (!dbase.has_key("multiDomainProblem")) dbase.put<int>("multiDomainProblem");
   dbase.get<int>("multiDomainProblem")=0; 
 
-  // multiDomainSolver - pointer to the multiDomainSolver Cgmp (for multi-domain solvers
+  // multiDomainSolver - pointer to the multiDomainSolver Cgmp (for multi-domain solvers)
   if (!dbase.has_key("multiDomainSolver")){ dbase.put<DomainSolver*>("multiDomainSolver")=NULL; } // 
 
   if (!dbase.has_key("referenceFrame")) dbase.put<ReferenceFrameEnum>("referenceFrame");

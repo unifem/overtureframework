@@ -337,7 +337,7 @@ tcm2: $(tcm2)
 # solve a scalar equation on a CompositeGrid
 tcm3 = tcm3.o Checker.o $(PETSC) formMatrix.o
 tcm3 = tcm3.o Checker.o $(PETSC)  ../../grid/MappedGridGeometry2.o
-tcm3 = tcm3.o Checker.o $(PETSC) ../src/applyBCC.o
+tcm3 = tcm3.o Checker.o $(PETSC) LoadBalancer.o
 tcm3: $(tcm3)
 	$(CC) $(CCFLAGS) -o tcm3 $(tcm3) \
          $(CLIBS) $(PETSC_LIBS) $(FLIBS) $(GLIBS)
@@ -358,7 +358,19 @@ tcm3n: $(tcm3n)
 tcm3m = tcm3m.o $(PETSC) 
 tcm3m: $(tcm3m)
 	$(CC) $(CCFLAGS) -o tcm3m $(tcm3m) \
-        $(PETSC_LIBS) $(PETSC_LIBS) $(CLIBS) $(FLIBS) $(GLIBS)
+        $(PETSC_LIBS) $(CLIBS) $(FLIBS) $(GLIBS)
+
+# PETSc examples
+ex4 = ex4.o $(PETSC) 
+ex4: $(ex4)
+	$(CC) $(CCFLAGS) -o ex4 $(ex4) \
+         $(CLIBS) $(PETSC_LIBS) $(FLIBS) $(GLIBS)
+
+ex2 = ex2.o $(PETSC) 
+ex2: $(ex2)
+	$(CC) $(CCFLAGS) -o ex2 $(ex2) \
+         $(CLIBS) $(PETSC_LIBS) $(FLIBS) $(GLIBS)
+
 
 testSolve = testSolve.o GenericMappedGridOperators.o
 testSolve: $(testSolve)

@@ -150,6 +150,10 @@ enum CopyType { DEEP, SHALLOW, NOCOPY };
   #define throw exit(1); cout << 
 #endif
 
+#ifndef USE_PPP
+  typedef int MPI_Comm;
+#endif
+
 
 #endif
 

@@ -17,6 +17,8 @@
 #include <stdarg.h>
 #include "OgmgParameters.h"
 
+#include "Interface.h"
+
 //  --------------------------------------------------------------------------
 //     Base class functions for the DomainSolver
 //  --------------------------------------------------------------------------
@@ -601,6 +603,66 @@ setup(const real & time /* = 0. */ )
 
   // ::display(timing,"timing after setup");
 
+  // **** Look for INFO from a multi-domain problem ---
+  for( int grid=0; grid<cg.numberOfComponentGrids(); grid++ )
+  {
+    if( TRUE || parameters.gridIsMoving(grid) )  // **DEBUGGING**
+    {
+      DomainSolver *pCgmp = parameters.dbase.get<DomainSolver*>("multiDomainSolver");
+      if( pCgmp!=NULL )
+      {
+	DomainSolver & cgmp = *pCgmp;
+	
+	int numberOfDomains = cgmp.domainSolver.size();
+	
+	printP("--SETUP-- This is a multi-domain problem: multiDomainSolver!=NULL, numberOfDomains=%i \n",numberOfDomains);
+        // InterfaceList & interfaceList = pCgmp->parameters.dbase.get<InterfaceList>("interfaceList");
+
+	BoundaryData::BoundaryDataArray & pBoundaryData = parameters.getBoundaryData(grid); // this will create the BDA if it is not there
+	std::vector<BoundaryData> & boundaryDataArray = parameters.dbase.get<std::vector<BoundaryData> >("boundaryData");
+	BoundaryData & bd = boundaryDataArray[grid];
+
+
+        IntegerArray & interfaceType = parameters.dbase.get<IntegerArray >("interfaceType");	
+	for( int side=0; side<=1; side++ )
+	{
+	  for( int axis=0; axis<cg.numberOfDimensions(); axis++ )
+	  {
+	    if( interfaceType(side,axis,grid)==Parameters::tractionInterface ) 
+	    {
+	      printP("--SETUP-- (grid,side,axis)=(%i,%i,%i) is a tractionInterface\n",grid,side,axis);
+	    }
+	  }
+	}
+	if( bd.dbase.has_key("interfaceDescriptorArray") )
+	{
+	  typedef InterfaceDescriptor* (InterfaceDescriptorType)[2][3];
+	  InterfaceDescriptorType & interfaceDescriptorArray = bd.dbase.get<InterfaceDescriptorType>("interfaceDescriptorArray");
+	  for( int side=0; side<=1; side++ )
+	  {
+	    for( int axis=0; axis<cg.numberOfDimensions(); axis++ )
+	    {
+	      if( interfaceDescriptorArray[side][axis] !=NULL )
+	      {
+		InterfaceDescriptor & interfaceDescriptor = *interfaceDescriptorArray[side][axis];
+		const int domain1=interfaceDescriptor.domain1, domain2=interfaceDescriptor.domain2;
+		printP("--SETUP-- (grid,side,axis)=(%i,%i,%i) has an interfaceDescriptor: domain1=%i, domain2=%i\n",grid,side,axis,domain1,domain2);
+		printP("--SETUP-- domain1 : %s, domain2 : %s\n",(const char*)cgmp.domainSolver[domain1]->className, 
+                                                                (const char*)cgmp.domainSolver[domain2]->className);
+
+
+	      }
+	    
+	    }
+
+	  }
+	}
+	
+      }
+      
+    }
+  }
+  
 
   if( false )
   {
@@ -1390,29 +1452,6 @@ writeParameterSummary( FILE * file )
     fPrintF(file," Order of adaptive grid interpolation=%i \n",
             parameters.dbase.get<int >("orderOfAdaptiveGridInterpolation"));
   }
-
-  // *** ALL these parameters should be in the DeformingBody ****
-  const bool & useAddedMassAlgorithm = parameters.dbase.get<bool>("useAddedMassAlgorithm");
-  const bool & useApproximateAMPcondition = parameters.dbase.get<bool>("useApproximateAMPcondition");
-  const bool & projectAddedMassVelocity = parameters.dbase.get<bool>("projectAddedMassVelocity");
-  const bool & projectNormalComponentOfAddedMassVelocity =
-               parameters.dbase.get<bool>("projectNormalComponentOfAddedMassVelocity");
-  const bool & projectVelocityOnBeamEnds = parameters.dbase.get<bool>("projectVelocityOnBeamEnds");  
-  const bool & projectBeamVelocity = parameters.dbase.get<bool>("projectBeamVelocity");
-  const bool & smoothInterfaceVelocity = parameters.dbase.get<bool>("smoothInterfaceVelocity");
-  const int & numberOfInterfaceVelocitySmooths = parameters.dbase.get<int>("numberOfInterfaceVelocitySmooths");
-  const real & fluidAddedMassLengthScale =  parameters.dbase.get<real>("fluidAddedMassLengthScale");  
-
-  fPrintF(file," useAddedMassAlgorithm=%i, useApproximateAMPcondition=%i,\n"
-          " projectAddedMassVelocity=%i, projectNormalComponentOfAddedMassVelocity=%i,\n"
-          " projectVelocityOnBeamEnds=%i, projectBeamVelocity=%i, predicted pressure needed=%i,\n" 
-	  " smoothInterfaceVelocity=%i, numberOfInterfaceVelocitySmooths=%i, fluidAddedMassLengthScale=%9.3e.\n",
-          (int)useAddedMassAlgorithm,(int)useApproximateAMPcondition,(int)projectAddedMassVelocity,
-	  (int)projectNormalComponentOfAddedMassVelocity,(int)projectVelocityOnBeamEnds,(int)projectBeamVelocity,
-          (int)parameters.dbase.get<bool>("predictedPressureNeeded"),
-          (int)smoothInterfaceVelocity, numberOfInterfaceVelocitySmooths,
-	  fluidAddedMassLengthScale
-          );
 
   const bool & useMovingGridSubIterations = parameters.dbase.get<bool>("useMovingGridSubIterations");
   if( useMovingGridSubIterations )

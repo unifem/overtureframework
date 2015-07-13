@@ -626,9 +626,19 @@ getErrors( int current, real t, real dt )
 
 	  if( method==sosup )
 	  {
-	    OV_ABORT("finish me");
+            // Compute errors in the time derivative
+	    realSerialArray errLocal; getLocalArrayWithGhostBoundaries((*cgerrp)[grid],errLocal);
+	    FOR_3(i1,i2,i3,J1,J2,J3)
+	    {
+	      xd=X0(i1,i2,i3)-x0;
+	      yd=X1(i1,i2,i3)-y0;
+	      zd=X2(i1,i2,i3)-z0;
+	      // time derivatives: 
+	      errLocal(i1,i2,i3,ext) = uLocal(i1,i2,i3,ext) - (-omega*a1/fx)*cos(fx*xd)*sin(fy*yd)*sin(fz*zd)*sin(omega*tE);
+	      errLocal(i1,i2,i3,eyt) = uLocal(i1,i2,i3,eyt) - (-omega*a2/fy)*sin(fx*xd)*cos(fy*yd)*sin(fz*zd)*sin(omega*tE);
+	      errLocal(i1,i2,i3,ezt) = uLocal(i1,i2,i3,ezt) - (-omega*a3/fz)*sin(fx*xd)*sin(fy*yd)*cos(fz*zd)*sin(omega*tE);
+	    }
 	  }
-	  
 	}
       }
       else // curvilinear 
@@ -677,11 +687,6 @@ getErrors( int current, real t, real dt )
 	} 
 	else // 3D
 	{
-	  if( method==sosup )
-	  {
-	    OV_ABORT("finish me");
-	  }
-
 	  Index J1 = Range(max(Ie1.getBase(),uel.getBase(0)),min(Ie1.getBound(),uel.getBound(0)));
 	  Index J2 = Range(max(Ie2.getBase(),uel.getBase(1)),min(Ie2.getBound(),uel.getBound(1)));
 	  Index J3 = Range(max(Ie3.getBase(),uel.getBase(2)),min(Ie3.getBound(),uel.getBound(2)));
@@ -696,6 +701,24 @@ getErrors( int current, real t, real dt )
 	    ERREY(i1,i2,i3)=UEY(i1,i2,i3) -  (a2/fy)*sin(fx*xd)*cos(fy*yd)*sin(fz*zd)*cos(omega*tE);  // 
 	    ERREZ(i1,i2,i3)=UEZ(i1,i2,i3) -  (a3/fz)*sin(fx*xd)*sin(fy*yd)*cos(fz*zd)*cos(omega*tE);  // 
 	  }
+
+	  if( method==sosup )
+	  {
+            // Compute errors in the time derivative
+	    realSerialArray errLocal; getLocalArrayWithGhostBoundaries((*cgerrp)[grid],errLocal);
+
+	    FOR_3D(i1,i2,i3,J1,J2,J3)
+	    {
+	      xd=XEP(i1,i2,i3,0)-x0;
+	      yd=XEP(i1,i2,i3,1)-y0;
+	      zd=XEP(i1,i2,i3,2)-z0;
+
+	      errLocal(i1,i2,i3,ext) = uLocal(i1,i2,i3,ext) - (-omega*a1/fx)*cos(fx*xd)*sin(fy*yd)*sin(fz*zd)*sin(omega*tE);
+	      errLocal(i1,i2,i3,eyt) = uLocal(i1,i2,i3,eyt) - (-omega*a2/fy)*sin(fx*xd)*cos(fy*yd)*sin(fz*zd)*sin(omega*tE);
+	      errLocal(i1,i2,i3,ezt) = uLocal(i1,i2,i3,ezt) - (-omega*a3/fz)*sin(fx*xd)*sin(fy*yd)*cos(fz*zd)*sin(omega*tE);
+	    }
+	  }
+
 	}
 
       }
@@ -715,14 +738,22 @@ getErrors( int current, real t, real dt )
     }
     else if( knownSolutionOption==planeMaterialInterfaceKnownSolution )
     {
-      if( method==nfdtd )
+      if( method==nfdtd || method==sosup )
       { 
+        realSerialArray errLocal; getLocalArrayWithGhostBoundaries((*cgerrp)[grid],errLocal);
+
 	// adjust array dimensions for local arrays
 	Index J1 = Range(max(I1.getBase(),uel.getBase(0)),min(I1.getBound(),uel.getBound(0)));
 	Index J2 = Range(max(I2.getBase(),uel.getBase(1)),min(I2.getBound(),uel.getBound(1)));
 	Index J3 = Range(max(I3.getBase(),uel.getBase(2)),min(I3.getBound(),uel.getBound(2)));
 
 	setPlaneMaterialInterfaceMacro(error,J1,J2,J3);
+      }
+      else
+      {
+	printF("MX:getErrors: ERROR: initialConditionOption==planeMaterialInterfaceInitialCondition but method=%i\n",
+	       (int)method);
+	OV_ABORT("ERROR");
       }
     }
     else if( knownSolutionOption==gaussianIntegralKnownSolution )
@@ -1191,9 +1222,9 @@ getErrors( int current, real t, real dt )
       
       aString normName;
       if( pNorm<1000 )
-	sPrintF(normName,"l%i-norm",pNorm);
+	sPrintF(normName,"l%i",pNorm);
       else
-	normName="maxNorm";
+	normName="max";
 
       for( int fileio=0; fileio<2; fileio++ )
       {
@@ -1203,10 +1234,11 @@ getErrors( int current, real t, real dt )
 	  fPrintF(output,"                t=%8.2e dt=%7.1e %s errors(r=%3.2f):[",
                    t,dt,radiusForCheckingErrors,(const char*)normName);
 	else
-	  fPrintF(output,"                t=%8.2e dt=%7.1e %s errors:[",t,dt,(const char*)normName);
+	  fPrintF(output,">>> t=%8.2e dt=%7.1e %s errors:[",t,dt,(const char*)normName);
 
 	for( int c=C.getBase(); c<=C.getBound(); c++ )
-	  fPrintF(output,"%10.4e,",maximumError(c));
+	  fPrintF(output,"%8.2e,",maximumError(c));
+	// fPrintF(output,"%10.4e,",maximumError(c));
 
 	fPrintF(output,"], %s (u):[",(const char*)normName);
 

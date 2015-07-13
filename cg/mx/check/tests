@@ -10,7 +10,7 @@ cic.planeWaveBC
 boxtz
 cyleigen
 curvedInterface     # two materials - dielectric cylinder
-twoBoxInterface.check ../cmd/interface.cmd -g=twoBoxesInterfacee111.order4 -eps2=.25 -tf=.2 -tp=.1 -ic=tz -bc=d -diss=0. -left=leftBox -right=rightBox -debug=1 -degreex=4 -degreet=4 -go=go
+twoBoxInterface.check ../runs/interface/interface.cmd -g=twoBoxesInterfacee111.order4 -eps2=.25 -tf=.2 -tp=.1 -ic=tz -bc=d -diss=0. -left=leftBox -right=rightBox -debug=1 -degreex=4 -degreet=4 -go=go
 #
 # sosup tests: 
 #

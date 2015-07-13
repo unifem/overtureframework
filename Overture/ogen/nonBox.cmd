@@ -40,9 +40,10 @@
 # 
 $order=2; $nx=10; # default values
 $orderOfAccuracy = "second order"; $ng=2; $bc="d"; 
+$numGhost=-1;  # if this value is set, then use this number of ghost points
 # 
 # get command line arguments
-GetOptions( "order=i"=>\$order,"nx=i"=> \$nx,"bc=s"=> \$bc);
+GetOptions( "order=i"=>\$order,"nx=i"=> \$nx,"bc=s"=> \$bc,"numGhost=i"=>\$numGhost);
 $nx=$nx+1; 
 # 
 if( $order eq 4 ){ $orderOfAccuracy="fourth order"; $ng=2; }\
@@ -50,12 +51,14 @@ elsif( $order eq 6 ){ $orderOfAccuracy="sixth order"; $ng=4; }\
 elsif( $order eq 8 ){ $orderOfAccuracy="eighth order"; $ng=6; }
 # 
 $lines = $nx;
+$nge = $ng+1;
 $suffix = ".order$order"; 
+if( $numGhost ne -1 ){ $suffix .= ".ng$numGhost"; } 
+if( $numGhost ne -1 ){ $ng = $numGhost; $nge=$ng; } # overide number of ghost
 if( $bc ne "d" ){ $suffix .= $bc; } # periodic
 # 
 $cells = $lines -1;
 $name = "nonBox" . "$cells" . $suffix;
-$nge = $ng+1;
 #
 create mappings
   Box

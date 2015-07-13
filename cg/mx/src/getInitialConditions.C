@@ -238,6 +238,10 @@ void exmax(double&Ez,double&Bx,double&By,const int &nsources,const double&xs,con
 
 // Macros for the plane material interface:
 
+ // -- incident wave ---
+ //  --- time derivative of incident ---
+ // -- transmitted wave ---
+ //  --- time derivative of transmitted wave ---
 
 
 //==================================================================================================
@@ -390,16 +394,19 @@ initializePlaneMaterialInterface()
         OV_ABORT("error");
     }
             
+    const int gridLeft = 0;
+    const int gridRight=cg.numberOfComponentGrids()-1;
+
     real c1,c2,eps1,eps2,mu1,mu2;
     if( method==yee )
     {
-        eps1=epsv(0); mu1=muv(0);    // incident 
-        eps2=epsv(1); mu2=muv(1);   // transmitted
+        eps1=epsv(gridLeft);  mu1=muv(gridLeft);    // incident 
+        eps2=epsv(gridRight); mu2=muv(gridRight);   // transmitted
     }
     else
     {
-        eps1=epsGrid(0); mu1=muGrid(0); // incident
-        eps2=epsGrid(1); mu2=muGrid(1); // transmitted
+        eps1=epsGrid(gridLeft);  mu1=muGrid(gridLeft); // incident
+        eps2=epsGrid(gridRight); mu2=muGrid(gridRight); // transmitted
 
     }
     c1=1./sqrt(eps1*mu1);  // incident 
@@ -2316,11 +2323,6 @@ assignInitialConditions(int current, real t, real dt )
           	    J2 = Range(max(Ie2.getBase(),uel.getBase(1)),min(Ie2.getBound(),uel.getBound(1)));
           	    J3 = Range(max(Ie3.getBase(),uel.getBase(2)),min(Ie3.getBound(),uel.getBound(2)));
 
-          	    if( method==sosup )
-          	    {
-            	      printF("BBBBBBBBBBBBB assign TZ initial conditions for sosup BBBBBBBBBBBBBBBBBB\n");
-          	    }
-          	    
 
           	    FOR_3D(i1,i2,i3,J1,J2,J3)
           	    {
@@ -3112,6 +3114,10 @@ assignInitialConditions(int current, real t, real dt )
       	}
       	else if( initialConditionOption==squareEigenfunctionInitialCondition )
       	{
+          // --------------------------------------------------
+          // --------- Square or Box Eigenfunction ------------
+          // --------------------------------------------------
+
         	  real fx=Pi*initialConditionParameters[0];
         	  real fy=Pi*initialConditionParameters[1];
         	  real fz=Pi*initialConditionParameters[2];
@@ -3128,6 +3134,8 @@ assignInitialConditions(int current, real t, real dt )
         	  else
         	  {
           	    omega=c*sqrt(fx*fx+fy*fy+fz*fz);
+          	    printF(" box eigenfunction initial condition: fx=%g Pi, fy=%g Pi fz=%g Pi omega=%g Pi.\n",
+               		   fx/Pi, fy/Pi, fz/Pi, omega/Pi);
         	  }
           	    
         	  Index J1 = Range(max(Ie1.getBase(),uel.getBase(0)),min(Ie1.getBound(),uel.getBound(0)));
@@ -3215,7 +3223,17 @@ assignInitialConditions(int current, real t, real dt )
             	      }
             	      if( method==sosup )
             	      {
-            		OV_ABORT("finish me");
+            		FOR_3D(i1,i2,i3,J1,J2,J3)
+            		{
+              		  real xde=X0(i1,i2,i3)-x0;
+              		  real yde=X1(i1,i2,i3)-y0;
+              		  real zde=X2(i1,i2,i3)-z0;
+
+                  // time derivatives: 
+              		  uLocal(i1,i2,i3,ext) =  (-omega*a1/fx)*cos(fx*xde)*sin(fy*yde)*sin(fz*zde)*sin(omega*t);  
+              		  uLocal(i1,i2,i3,eyt) =  (-omega*a2/fy)*sin(fx*xde)*cos(fy*yde)*sin(fz*zde)*sin(omega*t);  
+              		  uLocal(i1,i2,i3,ezt) =  (-omega*a3/fz)*sin(fx*xde)*sin(fy*yde)*cos(fz*zde)*sin(omega*t);  
+            		}
             	      }
 
 
@@ -3297,14 +3315,19 @@ assignInitialConditions(int current, real t, real dt )
             		UEY(i1,i2,i3) =  (a2/fy)*sin(fx*xd)*cos(fy*yd)*sin(fz*zd)*cos(omega*t);  // 
             		UEZ(i1,i2,i3) =  (a3/fz)*sin(fx*xd)*sin(fy*yd)*cos(fz*zd)*cos(omega*t);  // 
 
-            		if ( method==nfdtd )
+            		if( method==nfdtd )
             		{
               		  UMEX(i1,i2,i3) =  (a1/fx)*cos(fx*xd)*sin(fy*yd)*sin(fz*zd)*cos(omega*(t-dt));  // 
               		  UMEY(i1,i2,i3) =  (a2/fy)*sin(fx*xd)*cos(fy*yd)*sin(fz*zd)*cos(omega*(t-dt));  // 
               		  UMEZ(i1,i2,i3) =  (a3/fz)*sin(fx*xd)*sin(fy*yd)*cos(fz*zd)*cos(omega*(t-dt));  // 
             		}
-            		else
-              		  OV_ABORT("not implemented for staggered grids");
+            		else if( method==sosup )
+            		{
+		  // time derivatives: 
+              		  uLocal(i1,i2,i3,ext) =  (-omega*a1/fx)*cos(fx*xd)*sin(fy*yd)*sin(fz*zd)*sin(omega*t);  
+              		  uLocal(i1,i2,i3,eyt) =  (-omega*a2/fy)*sin(fx*xd)*cos(fy*yd)*sin(fz*zd)*sin(omega*t);  
+              		  uLocal(i1,i2,i3,ezt) =  (-omega*a3/fz)*sin(fx*xd)*sin(fy*yd)*cos(fz*zd)*sin(omega*t);  
+            		}
             	      }
           	    }
             	      
@@ -3460,6 +3483,13 @@ assignInitialConditions(int current, real t, real dt )
                               UMEX(i1,i2,i3) = uex*sinkz*cost;
                               UMEY(i1,i2,i3) = uey*sinkz*cost;
                               UMEZ(i1,i2,i3) = bj*cosn*coskz*cost;
+                              if( method==sosup )
+                              {
+                                  sint=sin(omega*t); 
+                                  uLocal(i1,i2,i3,ext) = -omega*uex*sinkz*sint;
+                                  uLocal(i1,i2,i3,eyt) = -omega*uey*sinkz*sint;
+                                  uLocal(i1,i2,i3,ezt) = -omega*bj*cosn*coskz*sint;
+                              }
                     }
                   }
           	    
@@ -3629,7 +3659,7 @@ assignInitialConditions(int current, real t, real dt )
       	}
       	else if( initialConditionOption==planeMaterialInterfaceInitialCondition )
       	{
-        	  if( method==nfdtd )
+        	  if( method==nfdtd || method==sosup )
         	  { 
 	    // adjust array dimensions for local arrays
           	    Index J1 = Range(max(I1.getBase(),uel.getBase(0)),min(I1.getBound(),uel.getBound(0)));
@@ -3641,10 +3671,11 @@ assignInitialConditions(int current, real t, real dt )
           // -----------------------------------------------------------------------------
                         int i1,i2,i3;
                         real tm=t-dt,x,y,z;
+                        const real pmct=pmc[18]*twoPi; // for time derivative of exact solution
                         if( numberOfDimensions==2 )
                         {
                           z=0.;
-                          if( grid==0 )
+                          if( grid < numberOfComponentGrids/2 )
                           { // incident plus reflected wave.
                             FOR_3D(i1,i2,i3,J1,J2,J3)
                             {
@@ -3656,9 +3687,18 @@ assignInitialConditions(int current, real t, real dt )
                                   UEX(i1,i2,i3)= u1;
                                   UEY(i1,i2,i3)= u2;
                                   UHZ(i1,i2,i3)= u3;
-                                  UMEX(i1,i2,i3)= (pmc[0]*cos(twoPi*(pmc[19]*(x-pmc[28])+pmc[20]*(y-pmc[29])+pmc[21]*(z-pmc[30])-pmc[18]*(tm)))+pmc[1]*cos(twoPi*(pmc[22]*(x-pmc[28])+pmc[23]*(y-pmc[29])+pmc[24]*(z-pmc[30])-pmc[18]*(tm))));
-                                  UMEY(i1,i2,i3)= (pmc[2]*cos(twoPi*(pmc[19]*(x-pmc[28])+pmc[20]*(y-pmc[29])+pmc[21]*(z-pmc[30])-pmc[18]*(tm)))+pmc[3]*cos(twoPi*(pmc[22]*(x-pmc[28])+pmc[23]*(y-pmc[29])+pmc[24]*(z-pmc[30])-pmc[18]*(tm))));
-                                  UMHZ(i1,i2,i3)= (pmc[10]*cos(twoPi*(pmc[19]*(x-pmc[28])+pmc[20]*(y-pmc[29])+pmc[21]*(z-pmc[30])-pmc[18]*(tm)))+pmc[11]*cos(twoPi*(pmc[22]*(x-pmc[28])+pmc[23]*(y-pmc[29])+pmc[24]*(z-pmc[30])-pmc[18]*(tm))));
+                                  if( method==nfdtd )
+                                  {
+                                      UMEX(i1,i2,i3)= (pmc[0]*cos(twoPi*(pmc[19]*(x-pmc[28])+pmc[20]*(y-pmc[29])+pmc[21]*(z-pmc[30])-pmc[18]*(tm)))+pmc[1]*cos(twoPi*(pmc[22]*(x-pmc[28])+pmc[23]*(y-pmc[29])+pmc[24]*(z-pmc[30])-pmc[18]*(tm))));
+                                      UMEY(i1,i2,i3)= (pmc[2]*cos(twoPi*(pmc[19]*(x-pmc[28])+pmc[20]*(y-pmc[29])+pmc[21]*(z-pmc[30])-pmc[18]*(tm)))+pmc[3]*cos(twoPi*(pmc[22]*(x-pmc[28])+pmc[23]*(y-pmc[29])+pmc[24]*(z-pmc[30])-pmc[18]*(tm))));
+                                      UMHZ(i1,i2,i3)= (pmc[10]*cos(twoPi*(pmc[19]*(x-pmc[28])+pmc[20]*(y-pmc[29])+pmc[21]*(z-pmc[30])-pmc[18]*(tm)))+pmc[11]*cos(twoPi*(pmc[22]*(x-pmc[28])+pmc[23]*(y-pmc[29])+pmc[24]*(z-pmc[30])-pmc[18]*(tm))));
+                                  }
+                                  else if( method==sosup )
+                                  {
+                           	 uLocal(i1,i2,i3,ext) = pmct*(pmc[0]*sin(twoPi*(pmc[19]*(x-pmc[28])+pmc[20]*(y-pmc[29])+pmc[21]*(z-pmc[30])-pmc[18]*(t)))+pmc[1]*sin(twoPi*(pmc[22]*(x-pmc[28])+pmc[23]*(y-pmc[29])+pmc[24]*(z-pmc[30])-pmc[18]*(t))));
+                           	 uLocal(i1,i2,i3,eyt) = pmct*(pmc[2]*sin(twoPi*(pmc[19]*(x-pmc[28])+pmc[20]*(y-pmc[29])+pmc[21]*(z-pmc[30])-pmc[18]*(t)))+pmc[3]*sin(twoPi*(pmc[22]*(x-pmc[28])+pmc[23]*(y-pmc[29])+pmc[24]*(z-pmc[30])-pmc[18]*(t))));
+                           	 uLocal(i1,i2,i3,hzt) = pmct*(pmc[10]*sin(twoPi*(pmc[19]*(x-pmc[28])+pmc[20]*(y-pmc[29])+pmc[21]*(z-pmc[30])-pmc[18]*(t)))+pmc[11]*sin(twoPi*(pmc[22]*(x-pmc[28])+pmc[23]*(y-pmc[29])+pmc[24]*(z-pmc[30])-pmc[18]*(t))));
+                                  }
                             }
                           }
                           else
@@ -3674,15 +3714,24 @@ assignInitialConditions(int current, real t, real dt )
                                   UEX(i1,i2,i3)= u1;
                                   UEY(i1,i2,i3)= u2;
                                   UHZ(i1,i2,i3)= u3;
-                                  UMEX(i1,i2,i3)= (pmc[12]*cos(twoPi*(pmc[25]*(x-pmc[28])+pmc[26]*(y-pmc[29])+pmc[27]*(z-pmc[30])-pmc[18]*(tm))));
-                                  UMEY(i1,i2,i3)= (pmc[13]*cos(twoPi*(pmc[25]*(x-pmc[28])+pmc[26]*(y-pmc[29])+pmc[27]*(z-pmc[30])-pmc[18]*(tm))));
-                                  UMHZ(i1,i2,i3)= (pmc[17]*cos(twoPi*(pmc[25]*(x-pmc[28])+pmc[26]*(y-pmc[29])+pmc[27]*(z-pmc[30])-pmc[18]*(tm))));
+                                  if( method==nfdtd )
+                                  {
+                           	 UMEX(i1,i2,i3)= (pmc[12]*cos(twoPi*(pmc[25]*(x-pmc[28])+pmc[26]*(y-pmc[29])+pmc[27]*(z-pmc[30])-pmc[18]*(tm))));
+                           	 UMEY(i1,i2,i3)= (pmc[13]*cos(twoPi*(pmc[25]*(x-pmc[28])+pmc[26]*(y-pmc[29])+pmc[27]*(z-pmc[30])-pmc[18]*(tm))));
+                           	 UMHZ(i1,i2,i3)= (pmc[17]*cos(twoPi*(pmc[25]*(x-pmc[28])+pmc[26]*(y-pmc[29])+pmc[27]*(z-pmc[30])-pmc[18]*(tm))));
+                                  }
+                                  else if( method==sosup )
+                                  {
+                           	 uLocal(i1,i2,i3,ext) = (pmct*pmc[12]*sin(twoPi*(pmc[25]*(x-pmc[28])+pmc[26]*(y-pmc[29])+pmc[27]*(z-pmc[30])-pmc[18]*(t))));
+                           	 uLocal(i1,i2,i3,eyt) = (pmct*pmc[13]*sin(twoPi*(pmc[25]*(x-pmc[28])+pmc[26]*(y-pmc[29])+pmc[27]*(z-pmc[30])-pmc[18]*(t))));
+                           	 uLocal(i1,i2,i3,hzt) = (pmct*pmc[17]*sin(twoPi*(pmc[25]*(x-pmc[28])+pmc[26]*(y-pmc[29])+pmc[27]*(z-pmc[30])-pmc[18]*(t))));
+                                  }
                             }
                           }
                         }
                         else // --- 3D -- 
                         {
-                          if( grid==0 )
+                          if( grid < numberOfComponentGrids/2 )
                           { // incident plus reflected wave.
                             FOR_3D(i1,i2,i3,J1,J2,J3)
                             {
@@ -3695,9 +3744,18 @@ assignInitialConditions(int current, real t, real dt )
                                   UEX(i1,i2,i3)= u1;
                                   UEY(i1,i2,i3)= u2;
                                   UEZ(i1,i2,i3)= u3;
-                                  UMEX(i1,i2,i3)= (pmc[0]*cos(twoPi*(pmc[19]*(x-pmc[28])+pmc[20]*(y-pmc[29])+pmc[21]*(z-pmc[30])-pmc[18]*(tm)))+pmc[1]*cos(twoPi*(pmc[22]*(x-pmc[28])+pmc[23]*(y-pmc[29])+pmc[24]*(z-pmc[30])-pmc[18]*(tm))));
-                                  UMEY(i1,i2,i3)= (pmc[2]*cos(twoPi*(pmc[19]*(x-pmc[28])+pmc[20]*(y-pmc[29])+pmc[21]*(z-pmc[30])-pmc[18]*(tm)))+pmc[3]*cos(twoPi*(pmc[22]*(x-pmc[28])+pmc[23]*(y-pmc[29])+pmc[24]*(z-pmc[30])-pmc[18]*(tm))));
-                                  UMEZ(i1,i2,i3)= (pmc[4]*cos(twoPi*(pmc[19]*(x-pmc[28])+pmc[20]*(y-pmc[29])+pmc[21]*(z-pmc[30])-pmc[18]*(tm)))+pmc[5]*cos(twoPi*(pmc[22]*(x-pmc[28])+pmc[23]*(y-pmc[29])+pmc[24]*(z-pmc[30])-pmc[18]*(tm))));
+                                  if( method==nfdtd )
+                                  {
+                           	 UMEX(i1,i2,i3)= (pmc[0]*cos(twoPi*(pmc[19]*(x-pmc[28])+pmc[20]*(y-pmc[29])+pmc[21]*(z-pmc[30])-pmc[18]*(tm)))+pmc[1]*cos(twoPi*(pmc[22]*(x-pmc[28])+pmc[23]*(y-pmc[29])+pmc[24]*(z-pmc[30])-pmc[18]*(tm))));
+                           	 UMEY(i1,i2,i3)= (pmc[2]*cos(twoPi*(pmc[19]*(x-pmc[28])+pmc[20]*(y-pmc[29])+pmc[21]*(z-pmc[30])-pmc[18]*(tm)))+pmc[3]*cos(twoPi*(pmc[22]*(x-pmc[28])+pmc[23]*(y-pmc[29])+pmc[24]*(z-pmc[30])-pmc[18]*(tm))));
+                           	 UMEZ(i1,i2,i3)= (pmc[4]*cos(twoPi*(pmc[19]*(x-pmc[28])+pmc[20]*(y-pmc[29])+pmc[21]*(z-pmc[30])-pmc[18]*(tm)))+pmc[5]*cos(twoPi*(pmc[22]*(x-pmc[28])+pmc[23]*(y-pmc[29])+pmc[24]*(z-pmc[30])-pmc[18]*(tm))));
+                                  }
+                                  else if( method==sosup )
+                                  {
+                           	 uLocal(i1,i2,i3,ext) = pmct*(pmc[0]*sin(twoPi*(pmc[19]*(x-pmc[28])+pmc[20]*(y-pmc[29])+pmc[21]*(z-pmc[30])-pmc[18]*(t)))+pmc[1]*sin(twoPi*(pmc[22]*(x-pmc[28])+pmc[23]*(y-pmc[29])+pmc[24]*(z-pmc[30])-pmc[18]*(t))));
+                           	 uLocal(i1,i2,i3,eyt) = pmct*(pmc[2]*sin(twoPi*(pmc[19]*(x-pmc[28])+pmc[20]*(y-pmc[29])+pmc[21]*(z-pmc[30])-pmc[18]*(t)))+pmc[3]*sin(twoPi*(pmc[22]*(x-pmc[28])+pmc[23]*(y-pmc[29])+pmc[24]*(z-pmc[30])-pmc[18]*(t))));
+                           	 uLocal(i1,i2,i3,ezt) = pmct*(pmc[4]*sin(twoPi*(pmc[19]*(x-pmc[28])+pmc[20]*(y-pmc[29])+pmc[21]*(z-pmc[30])-pmc[18]*(t)))+pmc[5]*sin(twoPi*(pmc[22]*(x-pmc[28])+pmc[23]*(y-pmc[29])+pmc[24]*(z-pmc[30])-pmc[18]*(t))));
+                                  }
                             }
                           }
                           else
@@ -3714,13 +3772,29 @@ assignInitialConditions(int current, real t, real dt )
                                   UEX(i1,i2,i3)= u1;
                                   UEY(i1,i2,i3)= u2;
                                   UEZ(i1,i2,i3)= u3;
-                                  UMEX(i1,i2,i3)= (pmc[12]*cos(twoPi*(pmc[25]*(x-pmc[28])+pmc[26]*(y-pmc[29])+pmc[27]*(z-pmc[30])-pmc[18]*(tm))));
-                                  UMEY(i1,i2,i3)= (pmc[13]*cos(twoPi*(pmc[25]*(x-pmc[28])+pmc[26]*(y-pmc[29])+pmc[27]*(z-pmc[30])-pmc[18]*(tm))));
-                                  UMEZ(i1,i2,i3)= (pmc[14]*cos(twoPi*(pmc[25]*(x-pmc[28])+pmc[26]*(y-pmc[29])+pmc[27]*(z-pmc[30])-pmc[18]*(tm))));
+                                  if( method==nfdtd )
+                                  {
+                           	 UMEX(i1,i2,i3)= (pmc[12]*cos(twoPi*(pmc[25]*(x-pmc[28])+pmc[26]*(y-pmc[29])+pmc[27]*(z-pmc[30])-pmc[18]*(tm))));
+                           	 UMEY(i1,i2,i3)= (pmc[13]*cos(twoPi*(pmc[25]*(x-pmc[28])+pmc[26]*(y-pmc[29])+pmc[27]*(z-pmc[30])-pmc[18]*(tm))));
+                           	 UMEZ(i1,i2,i3)= (pmc[14]*cos(twoPi*(pmc[25]*(x-pmc[28])+pmc[26]*(y-pmc[29])+pmc[27]*(z-pmc[30])-pmc[18]*(tm))));
+                                  }
+                                  else if( method==sosup )
+                                  {
+                           	 uLocal(i1,i2,i3,ext) = (pmct*pmc[12]*sin(twoPi*(pmc[25]*(x-pmc[28])+pmc[26]*(y-pmc[29])+pmc[27]*(z-pmc[30])-pmc[18]*(t))));
+                           	 uLocal(i1,i2,i3,eyt) = (pmct*pmc[13]*sin(twoPi*(pmc[25]*(x-pmc[28])+pmc[26]*(y-pmc[29])+pmc[27]*(z-pmc[30])-pmc[18]*(t))));
+                           	 uLocal(i1,i2,i3,ezt) = (pmct*pmc[14]*sin(twoPi*(pmc[25]*(x-pmc[28])+pmc[26]*(y-pmc[29])+pmc[27]*(z-pmc[30])-pmc[18]*(t))));
+                                  }
                             }
                           }
                         }
         	  }
+        	  else
+        	  {
+          	    printF("ERROR: initialConditionOption==planeMaterialInterfaceInitialCondition but method=%i\n",
+               		   (int)method);
+          	    OV_ABORT("ERROR");
+        	  }
+        	  
       	}
 
       	else if( initialConditionOption==gaussianIntegralInitialCondition )
@@ -4089,7 +4163,8 @@ initializeKnownSolution()
 //      return;
 //    }
 
-    const real a=.5;  // radius of the cylinder or sphere
+  // const real a=.5;  // radius of the cylinder or sphere
+    const real a = dbase.get<real>("scatteringRadius"); // radius of the cylinder or sphere *wdh* 2015/07/03
     real cr = 1.;  // c1/c2 (c2=inside)
     int computeIncident=0;  // set to 1 to compute incident wave too 
     real rpar[] = {twoPi*kx,a,cr}; //

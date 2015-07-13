@@ -16,6 +16,25 @@ Cgsm.C
   - writeParameterSummary
 
 
+advance.bC
+  - advance(  int current, real t, real dt )
+  - computeDissipation( int current, real t, real dt )
+  - addDissipation( int current, real t, real dt, realMappedGridFunction *field, const Range & C )
+
+advanceFOS.bC
+  - getUtFOS(GridFunction & cgf, const real & t, RealCompositeGridFunction & ut, real tForce )
+  - advanceFOS(  int current, real t, real dt, RealCompositeGridFunction *ut , real tForce )
+
+getTimeStep.bC
+  - getTimeStep( GridFunction & gf )
+
+plot.bC
+  - getAugmentedSolution(int current, realCompositeGridFunction & v, const real t)
+  - buildRunTimeDialog()
+  - buildParametersDialog(DialogData & dialog )
+  - getMethodName( aString & methodName )
+  - plot(int current, real t, real dt )
+
 setup.C:
   - setup(const real & time /* = 0. */ )
   - updateForNewTimeStep(GridFunction & cgf, real & dt )

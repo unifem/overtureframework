@@ -203,6 +203,10 @@ extern "C"
 
 // Macros for the plane material interface:
 
+ // -- incident wave ---
+ //  --- time derivative of incident ---
+ // -- transmitted wave ---
+ //  --- time derivative of transmitted wave ---
 
 //! local function to compute errors for the staggered grid DSI schemes
 void
@@ -1313,9 +1317,19 @@ getErrors( int current, real t, real dt )
 
         	  if( method==sosup )
         	  {
-          	    OV_ABORT("finish me");
+            // Compute errors in the time derivative
+          	    realSerialArray errLocal; getLocalArrayWithGhostBoundaries((*cgerrp)[grid],errLocal);
+          	    FOR_3(i1,i2,i3,J1,J2,J3)
+          	    {
+            	      xd=X0(i1,i2,i3)-x0;
+            	      yd=X1(i1,i2,i3)-y0;
+            	      zd=X2(i1,i2,i3)-z0;
+	      // time derivatives: 
+            	      errLocal(i1,i2,i3,ext) = uLocal(i1,i2,i3,ext) - (-omega*a1/fx)*cos(fx*xd)*sin(fy*yd)*sin(fz*zd)*sin(omega*tE);
+            	      errLocal(i1,i2,i3,eyt) = uLocal(i1,i2,i3,eyt) - (-omega*a2/fy)*sin(fx*xd)*cos(fy*yd)*sin(fz*zd)*sin(omega*tE);
+            	      errLocal(i1,i2,i3,ezt) = uLocal(i1,i2,i3,ezt) - (-omega*a3/fz)*sin(fx*xd)*sin(fy*yd)*cos(fz*zd)*sin(omega*tE);
+          	    }
         	  }
-        	  
       	}
             }
             else // curvilinear 
@@ -1364,11 +1378,6 @@ getErrors( int current, real t, real dt )
       	} 
       	else // 3D
       	{
-        	  if( method==sosup )
-        	  {
-          	    OV_ABORT("finish me");
-        	  }
-
         	  Index J1 = Range(max(Ie1.getBase(),uel.getBase(0)),min(Ie1.getBound(),uel.getBound(0)));
         	  Index J2 = Range(max(Ie2.getBase(),uel.getBase(1)),min(Ie2.getBound(),uel.getBound(1)));
         	  Index J3 = Range(max(Ie3.getBase(),uel.getBase(2)),min(Ie3.getBound(),uel.getBound(2)));
@@ -1383,6 +1392,24 @@ getErrors( int current, real t, real dt )
           	    ERREY(i1,i2,i3)=UEY(i1,i2,i3) -  (a2/fy)*sin(fx*xd)*cos(fy*yd)*sin(fz*zd)*cos(omega*tE);  // 
           	    ERREZ(i1,i2,i3)=UEZ(i1,i2,i3) -  (a3/fz)*sin(fx*xd)*sin(fy*yd)*cos(fz*zd)*cos(omega*tE);  // 
         	  }
+
+        	  if( method==sosup )
+        	  {
+            // Compute errors in the time derivative
+          	    realSerialArray errLocal; getLocalArrayWithGhostBoundaries((*cgerrp)[grid],errLocal);
+
+          	    FOR_3D(i1,i2,i3,J1,J2,J3)
+          	    {
+            	      xd=XEP(i1,i2,i3,0)-x0;
+            	      yd=XEP(i1,i2,i3,1)-y0;
+            	      zd=XEP(i1,i2,i3,2)-z0;
+
+            	      errLocal(i1,i2,i3,ext) = uLocal(i1,i2,i3,ext) - (-omega*a1/fx)*cos(fx*xd)*sin(fy*yd)*sin(fz*zd)*sin(omega*tE);
+            	      errLocal(i1,i2,i3,eyt) = uLocal(i1,i2,i3,eyt) - (-omega*a2/fy)*sin(fx*xd)*cos(fy*yd)*sin(fz*zd)*sin(omega*tE);
+            	      errLocal(i1,i2,i3,ezt) = uLocal(i1,i2,i3,ezt) - (-omega*a3/fz)*sin(fx*xd)*sin(fy*yd)*cos(fz*zd)*sin(omega*tE);
+          	    }
+        	  }
+
       	}
 
             }
@@ -1524,14 +1551,23 @@ getErrors( int current, real t, real dt )
                           ERREX(i1,i2,i3) = UEX(i1,i2,i3) - uex*sinkz*cost;
                           ERREY(i1,i2,i3) = UEY(i1,i2,i3) - uey*sinkz*cost;
                           ERREZ(i1,i2,i3) = UEZ(i1,i2,i3) - bj*cosn*coskz*cost;
+                          if( method==sosup )
+                          {
+                              sint=sin(omega*t); 
+                              errLocal(i1,i2,i3,ext) = uLocal(i1,i2,i3,ext) + omega*uex*sinkz*sint;
+                              errLocal(i1,i2,i3,eyt) = uLocal(i1,i2,i3,eyt) + omega*uey*sinkz*sint;
+                              errLocal(i1,i2,i3,ezt) = uLocal(i1,i2,i3,ezt) + omega*bj*cosn*coskz*sint;
+                          }
                 }
               }
                         
         }
         else if( knownSolutionOption==planeMaterialInterfaceKnownSolution )
         {
-            if( method==nfdtd )
+            if( method==nfdtd || method==sosup )
             { 
+                realSerialArray errLocal; getLocalArrayWithGhostBoundaries((*cgerrp)[grid],errLocal);
+
 	// adjust array dimensions for local arrays
       	Index J1 = Range(max(I1.getBase(),uel.getBase(0)),min(I1.getBound(),uel.getBound(0)));
       	Index J2 = Range(max(I2.getBase(),uel.getBase(1)),min(I2.getBound(),uel.getBound(1)));
@@ -1542,10 +1578,11 @@ getErrors( int current, real t, real dt )
       // -----------------------------------------------------------------------------
                 int i1,i2,i3;
                 real tm=t-dt,x,y,z;
+                const real pmct=pmc[18]*twoPi; // for time derivative of exact solution
                 if( numberOfDimensions==2 )
                 {
                   z=0.;
-                  if( grid==0 )
+                  if( grid < numberOfComponentGrids/2 )
                   { // incident plus reflected wave.
                     FOR_3D(i1,i2,i3,J1,J2,J3)
                     {
@@ -1557,6 +1594,12 @@ getErrors( int current, real t, real dt )
                           ERREX(i1,i2,i3)=UEX(i1,i2,i3)-u1;
                           ERREY(i1,i2,i3)=UEY(i1,i2,i3)-u2;
                           ERRHZ(i1,i2,i3)=UHZ(i1,i2,i3)-u3;
+                          if( method==sosup )
+                          {
+                   	 errLocal(i1,i2,i3,ext) = uLocal(i1,i2,i3,ext)-pmct*(pmc[0]*sin(twoPi*(pmc[19]*(x-pmc[28])+pmc[20]*(y-pmc[29])+pmc[21]*(z-pmc[30])-pmc[18]*(t)))+pmc[1]*sin(twoPi*(pmc[22]*(x-pmc[28])+pmc[23]*(y-pmc[29])+pmc[24]*(z-pmc[30])-pmc[18]*(t))));
+                   	 errLocal(i1,i2,i3,eyt) = uLocal(i1,i2,i3,eyt)-pmct*(pmc[2]*sin(twoPi*(pmc[19]*(x-pmc[28])+pmc[20]*(y-pmc[29])+pmc[21]*(z-pmc[30])-pmc[18]*(t)))+pmc[3]*sin(twoPi*(pmc[22]*(x-pmc[28])+pmc[23]*(y-pmc[29])+pmc[24]*(z-pmc[30])-pmc[18]*(t))));
+                   	 errLocal(i1,i2,i3,hzt) = uLocal(i1,i2,i3,hzt)-pmct*(pmc[10]*sin(twoPi*(pmc[19]*(x-pmc[28])+pmc[20]*(y-pmc[29])+pmc[21]*(z-pmc[30])-pmc[18]*(t)))+pmc[11]*sin(twoPi*(pmc[22]*(x-pmc[28])+pmc[23]*(y-pmc[29])+pmc[24]*(z-pmc[30])-pmc[18]*(t))));
+                          } 
                     }
                   }
                   else
@@ -1572,12 +1615,18 @@ getErrors( int current, real t, real dt )
                           ERREX(i1,i2,i3)=UEX(i1,i2,i3)-u1;
                           ERREY(i1,i2,i3)=UEY(i1,i2,i3)-u2;
                           ERRHZ(i1,i2,i3)=UHZ(i1,i2,i3)-u3;
+                          if( method==sosup )
+                          {
+                   	 errLocal(i1,i2,i3,ext) = uLocal(i1,i2,i3,ext)-(pmct*pmc[12]*sin(twoPi*(pmc[25]*(x-pmc[28])+pmc[26]*(y-pmc[29])+pmc[27]*(z-pmc[30])-pmc[18]*(t))));
+                   	 errLocal(i1,i2,i3,eyt) = uLocal(i1,i2,i3,eyt)-(pmct*pmc[13]*sin(twoPi*(pmc[25]*(x-pmc[28])+pmc[26]*(y-pmc[29])+pmc[27]*(z-pmc[30])-pmc[18]*(t))));
+                   	 errLocal(i1,i2,i3,hzt) = uLocal(i1,i2,i3,hzt)-(pmct*pmc[17]*sin(twoPi*(pmc[25]*(x-pmc[28])+pmc[26]*(y-pmc[29])+pmc[27]*(z-pmc[30])-pmc[18]*(t))));
+                          }       
                     }
                   }
                 }
                 else // --- 3D -- 
                 {
-                  if( grid==0 )
+                  if( grid < numberOfComponentGrids/2 )
                   { // incident plus reflected wave.
                     FOR_3D(i1,i2,i3,J1,J2,J3)
                     {
@@ -1590,6 +1639,12 @@ getErrors( int current, real t, real dt )
                           ERREX(i1,i2,i3)=UEX(i1,i2,i3)-u1;
                           ERREY(i1,i2,i3)=UEY(i1,i2,i3)-u2;
                           ERREZ(i1,i2,i3)=UEZ(i1,i2,i3)-u3;
+                          if( method==sosup )
+                          {
+                   	 errLocal(i1,i2,i3,ext) = uLocal(i1,i2,i3,ext)-pmct*(pmc[0]*sin(twoPi*(pmc[19]*(x-pmc[28])+pmc[20]*(y-pmc[29])+pmc[21]*(z-pmc[30])-pmc[18]*(t)))+pmc[1]*sin(twoPi*(pmc[22]*(x-pmc[28])+pmc[23]*(y-pmc[29])+pmc[24]*(z-pmc[30])-pmc[18]*(t))));
+                   	 errLocal(i1,i2,i3,eyt) = uLocal(i1,i2,i3,eyt)-pmct*(pmc[2]*sin(twoPi*(pmc[19]*(x-pmc[28])+pmc[20]*(y-pmc[29])+pmc[21]*(z-pmc[30])-pmc[18]*(t)))+pmc[3]*sin(twoPi*(pmc[22]*(x-pmc[28])+pmc[23]*(y-pmc[29])+pmc[24]*(z-pmc[30])-pmc[18]*(t))));
+                   	 errLocal(i1,i2,i3,ezt) = uLocal(i1,i2,i3,ezt)-pmct*(pmc[4]*sin(twoPi*(pmc[19]*(x-pmc[28])+pmc[20]*(y-pmc[29])+pmc[21]*(z-pmc[30])-pmc[18]*(t)))+pmc[5]*sin(twoPi*(pmc[22]*(x-pmc[28])+pmc[23]*(y-pmc[29])+pmc[24]*(z-pmc[30])-pmc[18]*(t))));
+                          } 
                     }
                   }
                   else
@@ -1606,9 +1661,21 @@ getErrors( int current, real t, real dt )
                           ERREX(i1,i2,i3)=UEX(i1,i2,i3)-u1;
                           ERREY(i1,i2,i3)=UEY(i1,i2,i3)-u2;
                           ERREZ(i1,i2,i3)=UEZ(i1,i2,i3)-u3;
+                          if( method==sosup )
+                          {
+                   	 errLocal(i1,i2,i3,ext) = uLocal(i1,i2,i3,ext)-(pmct*pmc[12]*sin(twoPi*(pmc[25]*(x-pmc[28])+pmc[26]*(y-pmc[29])+pmc[27]*(z-pmc[30])-pmc[18]*(t))));
+                   	 errLocal(i1,i2,i3,eyt) = uLocal(i1,i2,i3,eyt)-(pmct*pmc[13]*sin(twoPi*(pmc[25]*(x-pmc[28])+pmc[26]*(y-pmc[29])+pmc[27]*(z-pmc[30])-pmc[18]*(t))));
+                   	 errLocal(i1,i2,i3,ezt) = uLocal(i1,i2,i3,ezt)-(pmct*pmc[14]*sin(twoPi*(pmc[25]*(x-pmc[28])+pmc[26]*(y-pmc[29])+pmc[27]*(z-pmc[30])-pmc[18]*(t))));
+                          } 
                     }
                   }
                 }
+            }
+            else
+            {
+      	printF("MX:getErrors: ERROR: initialConditionOption==planeMaterialInterfaceInitialCondition but method=%i\n",
+             	       (int)method);
+      	OV_ABORT("ERROR");
             }
         }
         else if( knownSolutionOption==gaussianIntegralKnownSolution )
@@ -2128,9 +2195,9 @@ getErrors( int current, real t, real dt )
             
             aString normName;
             if( pNorm<1000 )
-      	sPrintF(normName,"l%i-norm",pNorm);
+      	sPrintF(normName,"l%i",pNorm);
             else
-      	normName="maxNorm";
+      	normName="max";
 
             for( int fileio=0; fileio<2; fileio++ )
             {
@@ -2140,10 +2207,11 @@ getErrors( int current, real t, real dt )
         	  fPrintF(output,"                t=%8.2e dt=%7.1e %s errors(r=%3.2f):[",
                                       t,dt,radiusForCheckingErrors,(const char*)normName);
       	else
-        	  fPrintF(output,"                t=%8.2e dt=%7.1e %s errors:[",t,dt,(const char*)normName);
+        	  fPrintF(output,">>> t=%8.2e dt=%7.1e %s errors:[",t,dt,(const char*)normName);
 
       	for( int c=C.getBase(); c<=C.getBound(); c++ )
-        	  fPrintF(output,"%10.4e,",maximumError(c));
+        	  fPrintF(output,"%8.2e,",maximumError(c));
+	// fPrintF(output,"%10.4e,",maximumError(c));
 
       	fPrintF(output,"], %s (u):[",(const char*)normName);
 

@@ -785,7 +785,7 @@ setupGridFunctions()
   }
   else if( method==nfdtd )
   {
-    methodName="NFDTD";
+    methodName="FD";
   }
   else if( method==dsiNew )
   {

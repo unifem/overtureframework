@@ -86,7 +86,7 @@ InterfaceDescriptor();
 ~InterfaceDescriptor();
 
 int domain1, domain2;                    // domain identifiers for side1 and side2 of the interface
-GridList gridListSide1, gridListSide2; 
+GridList gridListSide1, gridListSide2;   // lists of GridFaceDescriptor for the two sides
 InterfaceTransfer *interfaceTransfer;    // This object knows how to transfer info across an interface
 
 real interfaceTolerance;                 // tolerance for satisfying the interface equations

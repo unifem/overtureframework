@@ -525,6 +525,26 @@ initializeInterfaces(std::vector<int> & gfIndex)
         fPrintF(interfaceFile,"    face=%i : domain=%i (side,axis,grid)=(%i,%i,%i) share=%i bc=%i orig-bc=%i\n",
 		face,d,side,dir,grid,cg[grid].sharedBoundaryFlag(side,dir),cg[grid].boundaryCondition(side,dir),
                 originalBoundaryCondition(side,dir,baseGrid) );
+
+
+        // --- Save info in the domain solvers so that they know about the InterfaceDescriptor ----
+    
+        // **************** FINISH ME  *********************
+
+ 	BoundaryData::BoundaryDataArray & pBoundaryData = domainSolver[domain]->parameters.getBoundaryData(grid); // this will create the BDA if it is not there
+	std::vector<BoundaryData> & boundaryDataArray =domainSolver[domain]->parameters.dbase.get<std::vector<BoundaryData> >("boundaryData");
+	BoundaryData & bd = boundaryDataArray[grid];
+
+        typedef InterfaceDescriptor* (InterfaceDescriptorType)[2][3];
+	if( !bd.dbase.has_key("interfaceDescriptorArray") )
+	{
+	  bd.dbase.put<InterfaceDescriptorType>("interfaceDescriptorArray");
+          InterfaceDescriptorType & interfaceDescriptorArray = bd.dbase.get<InterfaceDescriptorType>("interfaceDescriptorArray");
+	  for( int s=0; s<=1; s++ )for( int a=0; a<3; a++ ){ interfaceDescriptorArray[s][a]=NULL;}  // 
+	}
+	InterfaceDescriptorType & interfaceDescriptorArray = bd.dbase.get<InterfaceDescriptorType>("interfaceDescriptorArray");
+	interfaceDescriptorArray[side][dir]=&interfaceDescriptor;
+
       }
       
     }

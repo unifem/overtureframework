@@ -1657,7 +1657,7 @@ setPdeParameters(CompositeGrid & cg, const aString & command /* = nullString */,
   int & fluxMethod = dbase.get<int>("fluxMethodForGodunovMethod");
   int & slopeLimiting = dbase.get<int>("slopeLimitingForGodunovMethod");
   int & slopeUpwinding = dbase.get<int>("slopeUpwindingForGodunovMethod");
-  int & smgPDEType = dbase.get<int>("pdeTypeForGodunovMethod");
+  int & pdeTypeForGodunovMethod = dbase.get<int>("pdeTypeForGodunovMethod");
 
   real & tangentialStressDissipation = dbase.get<real>("tangentialStressDissipation");
   real & tangentialStressDissipation1 = dbase.get<real>("tangentialStressDissipation1");
@@ -1824,22 +1824,22 @@ setPdeParameters(CompositeGrid & cg, const aString & command /* = nullString */,
     else if( dialog.getTextValue(answer,"flux method for Godunov","%i",fluxMethod) ){}//
     else if( dialog.getTextValue(answer,"slope limiting for Godunov","%i",slopeLimiting) ){}//
     else if( dialog.getTextValue(answer,"slope upwinding for Godunov","%i",slopeUpwinding) ){}//
-    else if( dialog.getTextValue(answer,"PDE type for Godunov","%i",smgPDEType) )
+    else if( dialog.getTextValue(answer,"PDE type for Godunov","%i",pdeTypeForGodunovMethod) )
     {
       printF("Setting `PDE type for Godunov' to %i.\n"
              "  0 = linear elasticity. \n"
              "  1 = Nonlinear model in linear mode \n"
              "  2 = Saint-Venant Kirkoff model.\n"
-             "  3 = Saint-Venant Kirkoff model with rotated linear stress-strain.\n",smgPDEType);
+             "  3 = Saint-Venant Kirkoff model with rotated linear stress-strain.\n",pdeTypeForGodunovMethod);
 
       if( !dbase.has_key("pdeNameModifier") )
         dbase.put<aString>("pdeNameModifier");
       aString & pdeNameModifier = dbase.get<aString>("pdeNameModifier");
-      if( smgPDEType==0 )
+      if( pdeTypeForGodunovMethod==0 )
         pdeNameModifier="linear-elasticity";
-      else if( smgPDEType==1 )
+      else if( pdeTypeForGodunovMethod==1 )
         pdeNameModifier="nonlinear model in linear mode";
-      else if( smgPDEType>1 )
+      else if( pdeTypeForGodunovMethod>1 )
         pdeNameModifier="nonlinear model"; 
     }
     else if( len=answer.matches("tangential stress dissipation") )

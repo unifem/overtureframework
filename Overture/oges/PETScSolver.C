@@ -16,7 +16,12 @@ static void
 finalizePETSc()
 {
   #ifdef OVERTURE_USE_PETSC
-  int ierr = PetscFinalize(); 
+  if( Oges::OGES_COMM_WORLD!=MPI_COMM_NULL )
+  {
+    // const int myid=max(0,Communication_Manager::My_Process_Number);
+    // printf("--PETScSolver:  call finalizePETSc, myid=%i\n",myid);
+    int ierr = PetscFinalize(); 
+  }
   #endif
 }
 
@@ -100,6 +105,8 @@ PETScSolver(Oges & oges_) : EquationSolver(oges_)
   // old: useDiagonalScaling=false; // true;
   adjustPeriodicCoefficients=true;
   
+  processorIsActive=true;       // set to true if this processor is in PETSc communicator
+  allProcessorsAreActive=true;  // allProcessorsAreActive==true if all processors are in MPI_COMM_WORLD   
 }
 
 PETScSolver::
@@ -118,6 +125,10 @@ PETScSolver::
 int PETScSolver::
 destroy()
 {
+
+  if( !processorIsActive )
+    return 0;
+
   int ierr;
   /*
     Free work space.  All PETSc objects should be destroyed when they
@@ -165,6 +176,8 @@ initializePETSc()
     // We are another instance of PETSc, increment the global counter:
     instancesOfPETSc++;
   
+    const int myid=max(0,Communication_Manager::My_Process_Number);
+
     if( !PetscInitializeCalled ) 
     {
       int ierr;
@@ -175,15 +188,68 @@ initializePETSc()
        
       // tell petsc to use the communicator we have already initialized:
       // 2.2.1 PetscSetCommWorld(MPI_COMM_WORLD); 
-      PETSC_COMM_WORLD = MPI_COMM_WORLD;
 
-      PetscInitialize(&oges.argc,&oges.argv,(char *)0,_p_ov_help);
-      if( turnOnPETScMemoryTracing )
+      // ----- Use the OGES_WORLD_COMM parallel communicator -----  *wdh* 2015/06/30  
+      // PETSC_COMM_WORLD = MPI_COMM_WORLD;
+
+      PETSC_COMM_WORLD = Oges::OGES_COMM_WORLD;   // Here is the PETSC WORLD 
+
+      MPI_Comm & OGES_COMM = parameters.getCommunicator(); // Here is the sub-communicator for this instance of OGES
+
+      if( OGES_COMM != MPI_COMM_NULL )    
       {
-	// Activate logging of PETSC's malloc call
-	// 2.2.1 ierr = PetscTrLog();CHKERRQ( ierr );
-        ierr = PetscMallocDumpLog(stdout); CHKERRQ( ierr );
+	processorIsActive=true;  // this process IS in the PETSc sub-communicator
+	if( PETSC_COMM_WORLD == MPI_COMM_NULL )
+	{
+	  printf("--PETScSolver-- initializePETSc:ERROR: myid=%i is in OGES_COMM but not in OGES_COMM_WORLD\n",
+		 myid);
+	  OV_ABORT("ERROR");
+	}
+	
+	if( true && Oges::debug & 4 )
+	{
+	  int size=-1, rank=-1; 
+	  MPI_Comm_size(OGES_COMM,&size);
+	  MPI_Comm_rank(OGES_COMM,&rank);
+      
+	  printf(" --PETScSolver-- initializePETSc: OGES_COMM: myid=%i size=%i, rank=%i, processorIsActive=%i.\n",myid,size,rank,(int)processorIsActive);
+	}
       }
+      else
+      {
+	processorIsActive=false; // this process is NOT in the PETSc sub-communicator
+	if( true && Oges::debug & 4 )
+	{
+      	  printf(" --PETScSolver--initializePETSc:  PETSC_COMM_WORLD==NULL, myid=%i, processorIsActive=%i.\n",myid,(int)processorIsActive);
+	}
+      }
+      
+
+      if( PETSC_COMM_WORLD!=MPI_COMM_NULL )
+      {
+        // -- Initialize PETSc on any processor that lives in PETSC_COMM_WORLD --
+	if( true && Oges::debug & 4 )
+	{
+	  int size=-1, rank=-1; 
+	  MPI_Comm_size(PETSC_COMM_WORLD,&size);
+	  MPI_Comm_rank(PETSC_COMM_WORLD,&rank);
+      
+	  printf(" --PETScSolver-- initializePETSc: PETSC_COMM_WORLD: myid=%i size=%i, rank=%i.\n",myid,size,rank);
+	}
+	
+	PetscInitialize(&oges.argc,&oges.argv,(char *)0,_p_ov_help);
+
+	if( turnOnPETScMemoryTracing )
+	{
+	  // Activate logging of PETSC's malloc call
+	  // 2.2.1 ierr = PetscTrLog();CHKERRQ( ierr );
+	  ierr = PetscMallocDumpLog(stdout); CHKERRQ( ierr );
+	}
+      }
+      
+      // allProcessorsAreActive==true if PETSC_COMM_WORLD == MPI_COMM_WORLD
+      allProcessorsAreActive = ParallelUtility::getMinValue( (int)processorIsActive );
+      
     }
   }
   
@@ -292,16 +358,43 @@ getGlobalIndex( int n, int *iv, int grid, realArray & ug ) const
 	  iv[2]-nab(0,axis3,p,grid))) + noffset(p,grid) ); 
 }
 
-
+// =====================================================================================
+// \brief Return the maximum residual.
+// =====================================================================================
 real PETScSolver::
 getMaximumResidual()
 {
   // This is not the max norm!
-  double rnorm;
-  KSPGetResidualNorm(ksp,&rnorm);
+  double rnorm=0.;
+  if( processorIsActive )
+    KSPGetResidualNorm(ksp,&rnorm);
 
+  // all processors need to know the residual: 
+  if( !allProcessorsAreActive )
+    rnorm = ParallelUtility::getMaxValue(rnorm);
+  
   return rnorm;
 }
+
+// =====================================================================================
+// \brief Return the number of iterations used in the last solve.
+// =====================================================================================
+int PETScSolver::
+getNumberOfIterations() const
+{
+  if( !allProcessorsAreActive )
+  {
+    // If not all processors are active we need to make sure that we return the correct
+    // answer on non-active processors.
+    oges.numberOfIterations=ParallelUtility::getMaxValue(oges.numberOfIterations);
+  }
+  return oges.numberOfIterations;
+  
+} 
+
+
+
+
 
 int PETScSolver::
 buildGlobalIndexing(CompositeGrid & cg, realCompositeGridFunction & uu )
@@ -311,6 +404,9 @@ buildGlobalIndexing(CompositeGrid & cg, realCompositeGridFunction & uu )
 //   nab(side,axis,p,grid) : bounds of grid on processor p.
 // ============================================================================
 {
+ if( !processorIsActive )
+    return 0;
+
   const int myid=max(0,Communication_Manager::My_Process_Number);
 
   int iv[3], &i1=iv[0], &i2=iv[1], &i3=iv[2]; 
@@ -386,8 +482,12 @@ buildMatrix( realCompositeGridFunction & coeff, realCompositeGridFunction & uu )
 // 
 // ==========================================================================================
 {
+  if( !processorIsActive )
+    return 0;
+
   debug=Oges::debug;
   
+  MPI_Comm & OGES_COMM = parameters.getCommunicator();
 
   CompositeGrid & cg = *coeff.getCompositeGrid();
   const int myid=Communication_Manager::My_Process_Number;
@@ -468,13 +568,13 @@ buildMatrix( realCompositeGridFunction & coeff, realCompositeGridFunction & uu )
          MatCreateMPIBAIJ() - parallel block AIJ
      See the matrix chapter of the users manual for details.
   */
-  //  ierr = MatCreate(PETSC_COMM_WORLD,PETSC_DECIDE,PETSC_DECIDE,numberOfUnknowns,numberOfUnknowns,&A);CHKERRQ(ierr);
+  //  ierr = MatCreate(OGES_COMM,PETSC_DECIDE,PETSC_DECIDE,numberOfUnknowns,numberOfUnknowns,&A);CHKERRQ(ierr);
   if( parameters.externalSolver!=OgesParameters::defaultExternalSolver )
   {
     // Is this needed???
-    // 2.2.1 ierr = MatCreate(PETSC_COMM_WORLD,numberOfUnknownsThisProcessor,numberOfUnknownsThisProcessor,
+    // 2.2.1 ierr = MatCreate(OGES_COMM,numberOfUnknownsThisProcessor,numberOfUnknownsThisProcessor,
     //                  numberOfUnknowns,numberOfUnknowns,&A);CHKERRQ(ierr);
-    ierr = MatCreate(PETSC_COMM_WORLD,&A);CHKERRQ(ierr);
+    ierr = MatCreate(OGES_COMM,&A);CHKERRQ(ierr);
   }
   else
   {
@@ -507,7 +607,7 @@ buildMatrix( realCompositeGridFunction & coeff, realCompositeGridFunction & uu )
 // 	numberOfMats++;
 // 	printF("MatCreateMPIAIJ: create object %i.\n",numberOfMats);
 
-	ierr = MatCreateMPIAIJ(PETSC_COMM_WORLD,numberOfUnknownsThisProcessor,numberOfUnknownsThisProcessor,
+	ierr = MatCreateMPIAIJ(OGES_COMM,numberOfUnknownsThisProcessor,numberOfUnknownsThisProcessor,
 			       numberOfUnknowns,numberOfUnknowns,
 			       d_nz,d_nnz,o_nz,o_nnz,
 			       &A); CHKERRQ(ierr);
@@ -515,7 +615,7 @@ buildMatrix( realCompositeGridFunction & coeff, realCompositeGridFunction & uu )
       else
       {
 	// PETSc documentation recommends doing this instead **FINISH ME**
-        ierr = MatCreate(PETSC_COMM_WORLD,&A);  CHKERRQ(ierr);
+        ierr = MatCreate(OGES_COMM,&A);  CHKERRQ(ierr);
         ierr = MatSetType(A,MATMPIAIJ);  CHKERRQ(ierr);
         ierr = MatMPIAIJSetPreallocation(A,d_nz,d_nnz,o_nz,o_nnz);  CHKERRQ(ierr);
       }
@@ -843,7 +943,7 @@ buildMatrix( realCompositeGridFunction & coeff, realCompositeGridFunction & uu )
   { // save the matrix in a file that can me read in matlab by typing 'petscMatrix'
     printF("Saving matrix in matlab format file=`petscMatrix.m'\n");
     PetscViewer viewer;
-    PetscViewerASCIIOpen(PETSC_COMM_WORLD,"petscMatrix.m",&viewer);
+    PetscViewerASCIIOpen(OGES_COMM,"petscMatrix.m",&viewer);
     PetscViewerSetFormat(viewer,PETSC_VIEWER_ASCII_MATLAB);
     ierr = MatView(A,viewer);CHKERRQ(ierr);
 
@@ -868,7 +968,7 @@ buildMatrix( realCompositeGridFunction & coeff, realCompositeGridFunction & uu )
 //   numberOfVects++;
 //   printF("VecCreate b, vect object %i.\n",numberOfVects);
 
-  ierr = VecCreate(PETSC_COMM_WORLD,&b); CHKERRQ(ierr);
+  ierr = VecCreate(OGES_COMM,&b); CHKERRQ(ierr);
   //  ierr = VecSetSizes(b,PETSC_DECIDE,numberOfUnknowns);CHKERRQ(ierr);
   ierr = VecSetSizes(b,numberOfUnknownsThisProcessor,numberOfUnknowns); CHKERRQ(ierr);
   ierr = VecSetFromOptions(b); CHKERRQ(ierr);
@@ -1000,7 +1100,7 @@ buildMatrix( realCompositeGridFunction & coeff, realCompositeGridFunction & uu )
 
   if( Oges::debug & 2 )
   {
-    time=ParallelUtility::getMaxValue(getCPU()-time);
+    time=ParallelUtility::getMaxValue(getCPU()-time,-1,OGES_COMM);
     printF("PETScSolver:: ... done build matrix, cpu=%8.2e\n",time);
   }
   
@@ -1009,10 +1109,17 @@ buildMatrix( realCompositeGridFunction & coeff, realCompositeGridFunction & uu )
 }
 
 
+//==============================================================================================
+/// \brief Add options to PETSc's list of options
+//==============================================================================================
 int PETScSolver::
 buildSolver()
 {
-  // Add options to PETSc's list of options
+
+  if( !processorIsActive )
+    return 0;
+
+  MPI_Comm & OGES_COMM = parameters.getCommunicator();
 
   ListOfShowFileParameters & petscOptions = oges.parameters.petscOptions; 
   std::list<ShowFileParameter>::iterator iter; 
@@ -1057,7 +1164,7 @@ buildSolver()
   // numberOfKsp++;
   // printF("KSPCreate object %i.\n",numberOfKsp);
   
-  ierr = KSPCreate(PETSC_COMM_WORLD,&ksp);CHKERRQ(ierr);
+  ierr = KSPCreate(OGES_COMM,&ksp);CHKERRQ(ierr);
 
   /* 
      Set operators. Here the matrix that defines the linear system
@@ -1155,11 +1262,11 @@ buildSolver()
      if( problemIsSingular==specifyNullVector )
      {
        int numberOfNullVectors=1;
-       MatNullSpaceCreate (MPI_COMM_WORLD,PETSC_FALSE,numberOfNullVectors,nullVector,&nsp); 
+       MatNullSpaceCreate (OGES_COMM,PETSC_FALSE,numberOfNullVectors,nullVector,&nsp); 
      }
      else if( problemIsSingular==specifyConstantNullVector )
      {
-       MatNullSpaceCreate (MPI_COMM_WORLD,PETSC_TRUE,0,NULL,&nsp); 
+       MatNullSpaceCreate (OGES_COMM,PETSC_TRUE,0,NULL,&nsp); 
      }
      
      KSPSetNullSpace(ksp,nsp); 
@@ -1669,6 +1776,9 @@ setPetscParameters()
 int PETScSolver::
 setPetscRunTimeParameters() 
 {
+  if( !processorIsActive )
+    return 0;
+
   const int myid=Communication_Manager::My_Process_Number;
 
   bool parametersHaveChanged=false;  // set to true if any parameters have changed
@@ -1741,8 +1851,6 @@ sizeOf( FILE *file /* =NULL */  )
   PetscLogDouble mem=0;
   if( initialized )
   {
-    MatInfo matInfo;
-    ierr=MatGetInfo(A,MAT_GLOBAL_SUM,&matInfo); CHKERRQ(ierr);
 
     // 2.2.1  PetscLogDouble space=0, fragments=0, maximumBytes=0, mem=0;
     if( turnOnPETScMemoryTracing )
@@ -1755,7 +1863,13 @@ sizeOf( FILE *file /* =NULL */  )
     }
     else
     {
-      size=matInfo.memory;
+      if( processorIsActive )
+      {
+	MatInfo matInfo;
+	ierr=MatGetInfo(A,MAT_GLOBAL_SUM,&matInfo); CHKERRQ(ierr);
+	size=matInfo.memory;
+      }
+      
     }
   }
   
@@ -1786,82 +1900,71 @@ solve( realCompositeGridFunction & uu, realCompositeGridFunction & f )
 // 
 // ===================================================================================================
 {
-
+  
   CompositeGrid & cg = *uu.getCompositeGrid();
   const int myid=Communication_Manager::My_Process_Number;
 
 
 
-  if( false )
-  { // -- old way --
+  // new way 090707 -- we need to fix this so tcm3 works when solving first a dirichlet then a neumann problem
+  bool shouldUpdateMatrix=oges.refactor || !oges.initialized || oges.shouldBeInitialized; // *wdh* added 090706 
+  if( initialized && shouldUpdateMatrix )
+  {
+    // -- rebuild the matrix after it has already been built ---
+    // do this for now: 
+    if( debug & 2 )
+      printF("PETScSolver::solve: rebuilding an existing matrix...\n");
+
+    // We probably don't need to destroy everything -- could keep vectors ??
+    destroy(); // *wdh* 091128 
+
+    // ierr = MatZeroEntries(A);CHKERRQ(ierr);
+      
+    // *wdh* 091128 -- these must be reset ---
+    solverMethod=-1;
+    preconditioner=-1;
+    matrixOrdering=-1;
+    numberOfIncompleteLULevels=-1;
+    gmresRestartLength=-1;
+
+
+  }
+
+  if( !initialized || reInitialize )
+  {
+    initializePETSc();
+
+    initialized=true;  // This should remain true from now on (for PETSc instances)
+    reInitialize=false;
+    shouldUpdateMatrix=true;
+  }
+
+  // printf(" --PETSCsSolver: solve: myid=%i, processorIsActive=%i \n",myid,(int)processorIsActive);
+  
+
+  if( !processorIsActive )
+  { // --- return here if this processor is not involved ---
+    return 0;
+  }
+
+  MPI_Comm & OGES_COMM = parameters.getCommunicator();
+
+  if( shouldUpdateMatrix )  
+  {
+
+    buildMatrix(oges.coeff,uu);
 
     if( debug & 2 )
-      printF("PETScSolver::solve: initialized=%i, reInitialize=%i...\n",initialized,reInitialize);
+      printF("PETScSolver::solve: done buildMatrix.\n");
 
-    if( !initialized || reInitialize )
-    {
-      initializePETSc();
-    
-      buildMatrix(oges.coeff,uu);
+    buildSolver(); 
 
-      buildSolver(); 
-      initialized=true;  // This should remain true from now on (for PETSc instances)
-      reInitialize=false;
-      oges.shouldBeInitialized=false;
-    }
-  }
-  else
-  {
-    // new way 090707 -- we need to fix this so tcm3 works when solving first a dirichlet then a neumann problem
-    bool shouldUpdateMatrix=oges.refactor || !oges.initialized || oges.shouldBeInitialized; // *wdh* added 090706 
-    if( initialized && shouldUpdateMatrix )
-    {
-      // -- rebuild the matrix after it has already been built ---
-      // do this for now: 
-      if( debug & 2 )
-	printF("PETScSolver::solve: rebuilding an existing matrix...\n");
+    if( debug & 2 )
+      printF("PETScSolver::solve: done buildSolver.\n");
 
-      // We probably don't need to destroy everything -- could keep vectors ??
-      destroy(); // *wdh* 091128 
-
-      // ierr = MatZeroEntries(A);CHKERRQ(ierr);
-      
-      // *wdh* 091128 -- these must be reset ---
-      solverMethod=-1;
-      preconditioner=-1;
-      matrixOrdering=-1;
-      numberOfIncompleteLULevels=-1;
-      gmresRestartLength=-1;
-
-
-    }
-
-    if( !initialized || reInitialize )
-    {
-      initializePETSc();
-
-      initialized=true;  // This should remain true from now on (for PETSc instances)
-      reInitialize=false;
-      shouldUpdateMatrix=true;
-    }
-    if( shouldUpdateMatrix )  
-    {
-
-      buildMatrix(oges.coeff,uu);
-
-      if( debug & 2 )
-	printF("PETScSolver::solve: done buildMatrix.\n");
-
-      buildSolver(); 
-
-      if( debug & 2 )
-	printF("PETScSolver::solve: done buildSolver.\n");
-
-      oges.refactor=false;
-      oges.initialized=true;
-      oges.shouldBeInitialized=false;
-    }
-
+    oges.refactor=false;
+    oges.initialized=true;
+    oges.shouldBeInitialized=false;
   }
   
 
@@ -2034,7 +2137,7 @@ solve( realCompositeGridFunction & uu, realCompositeGridFunction & f )
     printF("PETScSolver::solve: after KSPSolve...\n");
 
   time=getCPU()-time;
-  time=ParallelUtility::getMaxValue(time);
+  time=ParallelUtility::getMaxValue(time,-1,OGES_COMM);
 
   KSPConvergedReason reason;
   ierr = KSPGetConvergedReason(ksp,&reason);
@@ -2607,8 +2710,11 @@ evaluateExtraEquation( const realCompositeGridFunction & u, real & value, real &
     }
     // printf("PETScSolver::evaluateExtraEquation: myid=%i value=%g\n",myid,value);
 
+    // note: get sum over all processors since all processors are assumed to have a need to know 
     value=ParallelUtility::getSum(value);
     sumOfExtraEquationCoefficients=ParallelUtility::getSum(sumOfExtraEquationCoefficients);
+    
+
     // printF("PETScSolver::evaluateExtraEquation: total-value=%14.9g\n",value);
   }
   else

@@ -1,5 +1,118 @@
+***************************************************************************************************
+**** 2015/07/02 -- tests scattering from SPHERE + SOSUP
+
+
+FD44
+cgmx -noplot sib.planeWaveBC -g=sibe8.order4.ng3.hdf -tp=.05 -go=og
+cgmx -noplot sib.planeWaveBC -g=sibe4.order4.ng3.hdf -tp=.05 -go=og
+>>> Cgmx:FD: t=5.00e-02 dt=4.5e-03 TS=ME ad4=0.10 |div(E)|/|grad(E)|=4.19e-04 (=4.06e-03/9.69e+00) 11 steps mem=1.16e+03(Mb) cpu=3.28e+01(s)
+>>> t=5.00e-02 dt=4.5e-03 max errors:[4.52e-05,5.07e-05,3.84e-05,], max (u):[1.18e+00,1.28e+00,7.36e-01,] (11 steps)
+>>> Cgmx:FD: t=1.00e-01 dt=4.5e-03 TS=ME ad4=0.10 |div(E)|/|grad(E)|=4.28e-04 (=3.53e-03/8.25e+00) 22 steps mem=1.17e+03(Mb) cpu=7.59e+01(s)
+>>> t=1.00e-01 dt=4.5e-03 max errors:[9.46e-05,1.02e-04,7.44e-05,], max (u):[7.75e-01,1.17e+00,7.65e-01,] (22 steps)
+
+G4
+>>> Cgmx:FD: t=5.00e-02 dt=7.1e-03 TS=ME ad4=0.10 |div(E)|/|grad(E)|=3.37e-03 (=3.25e-02/9.64e+00) 7 steps mem=234(Mb) cpu=8.06e+00(s)
+>>> t=5.00e-02 dt=7.1e-03 max errors:[5.20e-04,5.75e-04,4.30e-04,], max (u):[1.18e+00,1.28e+00,7.36e-01,] (7 steps)
+>>> Cgmx:FD: t=1.00e-01 dt=7.1e-03 TS=ME ad4=0.10 |div(E)|/|grad(E)|=3.58e-03 (=2.95e-02/8.24e+00) 14 steps mem=242(Mb) cpu=1.27e+01(s)
+>>> t=1.00e-01 dt=7.1e-03 max errors:[1.15e-03,1.18e-03,7.82e-04,], max (u):[7.74e-01,1.17e+00,7.60e-01,] (14 steps)
+
+
+***************************************************************************************************
+**** 2015/06/29 -- tests scattering from SPHERE + SOSUP
+
+
+G8: SOSUP44: NOT BAD -- Exy, Eyt not great
+cgmx sib.planeWaveBC -g=sibe8.order4.ng3.hdf -method=sosup -tp=.05
+>>> Cgmx:SOSUP: t=1.00e-01 dt=5.0e-03 TS=ME |div(E)|/|grad(E)|=3.69e-04 (=3.04e-03/8.25e+00) 20 steps mem=1.93e+03(Mb) cpu=4.07e+02(s)
+>>> t=1.00e-01 dt=5.0e-03 max errors:[6.30e-05,6.81e-05,5.60e-05,1.67e-03,1.65e-03,5.28e-04,], max (u):[7.75e-01,1.17e+00,7.65e-01,1.01e+01,6.77e+00,5.92e+00,] (20 steps)
+
+
+G4: SOSUP44:
+cgmx sib.planeWaveBC -g=sibe4.order4.ng3.hdf -method=sosup -tp=.05
+>>> Cgmx:SOSUP: t=1.00e-01 dt=1.0e-02 TS=ME |div(E)|/|grad(E)|=3.46e-03 (=2.85e-02/8.24e+00) 10 steps mem=378(Mb) cpu=4.95e+01(s)
+>>> t=1.00e-01 dt=1.0e-02 max errors:[7.95e-04,8.15e-04,6.12e-04,1.26e-02,1.15e-02,5.65e-03,], max (u):[7.75e-01,1.17e+00,7.60e-01,1.00e+01,6.75e+00,5.90e+00,] (10 steps)
+
+
+
+G2: SOSUP44 - **trouble**
+cgmx sib.planeWaveBC -g=sibe2.order4.ng3.hdf -method=sosup -tp=.1 
+
+
+G8: SOSUP22: **LOOKS 2ND ORDER ***
+cgmx sib.planeWaveBC -g=sibe8.order2.hdf -method=sosup -tf=.5 
+>>> Cgmx:SOSUP: t=1.00e-01 dt=2.4e-03 TS=ME |div(E)|/|grad(E)|=7.53e-03 (=6.20e-02/8.24e+00) 41 steps mem=1.75e+03(Mb) cpu=2.18e+02(s)
+>>> t=1.00e-01 dt=2.4e-03 max errors:[2.05e-03,1.98e-03,9.63e-04,1.58e-02,1.55e-02,1.10e-02,], max (u):[7.74e-01,1.17e+00,7.64e-01,1.01e+01,6.76e+00,5.91e+00,] (41 steps)
+
+G4: SOSUP22:
+cgmx sib.planeWaveBC -g=sibe4.order2.hdf -method=sosup -tf=.5 
+>>> Cgmx:SOSUP: t=1.00e-01 dt=4.3e-03 TS=ME |div(E)|/|grad(E)|=2.77e-02 (=2.28e-01/8.20e+00) 23 steps mem=300(Mb) cpu=2.78e+01(s)
+>>> t=1.00e-01 dt=4.3e-03 max errors:[9.74e-03,9.11e-03,3.81e-03,6.38e-02,6.39e-02,4.31e-02,], max (u):[7.64e-01,1.17e+00,7.57e-01,1.01e+01,6.74e+00,5.86e+00,] (23 steps)
+
+
+
+***************************************************************************************************
+**** 2015/06/25 -- test sosup and scattering from a sphere
+
+
+------------------------------ SOSUP22 ------------------------
+
+G8: SOSUP:
+cgmx sib.planeWaveBC -g=sibe8.order2.hdf -method=sosup -tf=.5 
+>>> Cgmx:SOSUP: t=5.00e-01 dt=2.4e-03 TS=ME order(X,T)=(2,2) |div(E)|=7.03e-02, |div(E)|/|grad(E)|=6.20e-03, |grad(E)|=1.13e+01, 205 steps max-mem=1821.8 (Mb) cpu=7.88e+02(s)
+                t=5.00e-01 dt=2.4e-03 maxNorm errors:[4.9975e-03,3.9859e-03,1.7477e-03,2.0013e-02,1.8873e-02,1.3432e-02,], maxNorm (u):[1.49e+00,1.33e+00,8.13e-01,6.83e+00,6.85e+00,5.53e+00,] (205 steps)
+
+G4: SOSUP:
+cgmx sib.planeWaveBC -g=sibe4.order2.hdf -method=sosup -tf=.5 
+>>> Cgmx:SOSUP: t=5.00e-01 dt=4.3e-03 TS=ME order(X,T)=(2,2) |div(E)|=2.54e-01, |div(E)|/|grad(E)|=2.28e-02, |grad(E)|=1.11e+01, 115 steps max-mem=320.934 (Mb) cpu=7.47e+01(s)
+                t=5.00e-01 dt=4.3e-03 maxNorm errors:[1.8925e-02,1.6626e-02,6.9596e-03,4.5092e-02,8.5847e-02,6.4373e-02,], maxNorm (u):[1.47e+00,1.32e+00,8.11e-01,6.82e+00,6.81e+00,5.50e+00,] (115 steps)
 
 
 
 
-sib.planeWaveBC.cmd : (now in cgmx/runs/sphere) scattering of a plane wave by a 3d sphere (check errors).
+G2: SOSUP:
+cgmx sib.planeWaveBC -g=sibe2.order2.hdf -method=sosup
+>>> Cgmx:SOSUP: t=5.00e-01 dt=6.7e-03 TS=ME order(X,T)=(2,2) |div(E)|=8.80e-01, |div(E)|/|grad(E)|=8.38e-02, |grad(E)|=1.05e+01, 75 steps max-mem=84 (Mb) cpu=1.16e+01(s)
+                t=5.00e-01 dt=6.7e-03 maxNorm errors:[8.1361e-02,6.7957e-02,2.9240e-02,2.0125e-01,2.6090e-01,1.9197e-01,], maxNorm (u):[1.40e+00,1.28e+00,7.61e-01,6.83e+00,6.76e+00,5.36e+00,] (75 steps)
+
+
+---------------------- ME44 scheme ------------------------
+
+G8:
+cgmx sib.planeWaveBC -g=sibe8.order4.hdf -tf=.5
+>>> Cgmx:NFDTD: t=5.00e-01 dt=4.8e-03 TS=ME order(X,T)=(4,4) ad4=0.10 |div(E)|=3.79e-03, |div(E)|/|grad(E)|=3.33e-04, |grad(E)|=1.14e+01, 105 steps max-mem=1242.92 (Mb) cpu=1.21e+02(s)
+                t=5.00e-01 dt=4.8e-03 maxNorm errors:[2.8126e-04,2.4695e-04,1.7237e-04,], maxNorm (u):[1.49e+00,1.33e+00,8.18e-01,] (105 steps)
+
+G4:
+cgmx sib.planeWaveBC -g=sibe4.order4.hdf -tf=.5
+>>> Cgmx:NFDTD: t=5.00e-01 dt=7.7e-03 TS=ME order(X,T)=(4,4) ad4=0.10 |div(E)|=3.41e-02, |div(E)|/|grad(E)|=3.02e-03, |grad(E)|=1.13e+01, 65 steps max-mem=245.348 (Mb) cpu=1.84e+01(s)
+                t=5.00e-01 dt=7.7e-03 maxNorm errors:[3.5663e-03,3.0276e-03,1.9716e-03,], maxNorm (u):[1.49e+00,1.33e+00,8.15e-01,] (65 steps)
+
+
+
+
+G2: TROUBLE -- ghost cells?  -- Generate grid with point points in radial
+cgmx sib.planeWaveBC -g=sibe2.order4.hdf -tf=.5
+>> Cgmx:NFDTD: t=5.00e-01 dt=1.0e-02 TS=ME order(X,T)=(4,4) ad4=0.10 |div(E)|=8.67e-02, |div(E)|/|grad(E)|=7.77e-03, |grad(E)|=1.12e+01, 50 steps max-mem=84.7539 (Mb) cpu=7.32e+00(s)
+                t=5.00e-01 dt=1.0e-02 maxNorm errors:[1.2000e-02,1.0123e-02,8.3044e-03,], maxNorm (u):[1.48e+00,1.31e+00,8.01e-01,] (50 steps)
+
+---------------------- ME22 scheme ------------------------
+G8: ME22
+cgmx sib.planeWaveBC -g=sibe8.order2.hdf -tf=.5
+>>> Cgmx:NFDTD: t=5.00e-01 dt=5.0e-03 TS=ME order(X,T)=(2,2) ad4=0.10 |div(E)|=9.05e-02, |div(E)|/|grad(E)|=7.95e-03, |grad(E)|=1.14e+01, 100 steps max-mem=1206.06 (Mb) cpu=5.64e+01(s)
+                t=5.00e-01 dt=5.0e-03 maxNorm errors:[2.8137e-03,1.7016e-03,8.9295e-04,], maxNorm (u):[1.50e+00,1.33e+00,8.15e-01,] (100 steps)
+
+TEST ME22 scheme: 
+cgmx sib.planeWaveBC -g=sibe4.order2.hdf -tf=.5
+>>> Cgmx:NFDTD: t=5.00e-01 dt=8.3e-03 TS=ME order(X,T)=(2,2) ad4=0.10 |div(E)|=2.51e-01, |div(E)|/|grad(E)|=2.23e-02, |grad(E)|=1.13e+01, 60 steps max-mem=221.555 (Mb) cpu=8.78e+00(s)
+                t=5.00e-01 dt=8.3e-03 maxNorm errors:[5.5632e-03,6.7634e-03,4.0035e-03,], maxNorm (u):[1.49e+00,1.33e+00,8.16e-01,] (60 steps)
+
+
+cgmx sib.planeWaveBC -g=sibe2.order2.hdf -tf=.5
+>>> Cgmx:NFDTD: t=5.00e-01 dt=1.3e-02 TS=ME order(X,T)=(2,2) ad4=0.10 |div(E)|=8.73e-01, |div(E)|/|grad(E)|=7.91e-02, |grad(E)|=1.10e+01, 40 steps max-mem=66.9531 (Mb) cpu=2.56e+00(s)
+                t=5.00e-01 dt=1.3e-02 maxNorm errors:[1.6007e-02,2.5747e-02,1.2857e-02,], maxNorm (u):[1.47e+00,1.32e+00,7.84e-01,] (40 steps)
+
+
+
+cgmx sib.planeWaveBC -g=sibe1.order2.hdf
+
+

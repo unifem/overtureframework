@@ -73,6 +73,9 @@ computeNumberOfStepsAndAdjustTheTimeStep(const real & t,
   real & tPlot = parameters.dbase.get<real>("tPrint");
   int & debug = parameters.dbase.get<int >("debug");
 
+  // printF("--SM-- computeNumberOfStepsAndAdjustTheTimeStep: t=%9.3e nextTimeToPlot=%9.3e dt=%9.3e dtNew=%9.3e"
+  //        " adjustTimeStep=%i\n", t,nextTimeToPlot,dt,dtNew,(int)adjustTimeStep);
+
   if ( dtNew<=REAL_MIN && tFinal<=REAL_MIN )
   { // kkc I use dt=0 to test the interpolation in the dsi scheme
     if ( adjustTimeStep ) dtNew=0.;
@@ -82,7 +85,7 @@ computeNumberOfStepsAndAdjustTheTimeStep(const real & t,
   {
     printF("\n\ncomputeNumberOfStepsAndAdjustTheTimeStep:ERROR: dtNew<=0., dtNew=%e\n",dtNew);
     printF(" t=%e, tFinal=%e, nextTimeToPlot=%e, tPlot=%e \n",t,tFinal,nextTimeToPlot,tPlot);
-    Overture::abort("error");
+    OV_ABORT("error");
   }
   
   real timeInterval=min(tFinal,nextTimeToPlot)-t;
@@ -95,24 +98,32 @@ computeNumberOfStepsAndAdjustTheTimeStep(const real & t,
     printF("computeNumberOfStepsAndAdjustTheTimeStep:ERROR: time step too small? dtNew=%e, timeInterval=%e \n",dtNew,
            timeInterval);
     printF(" t=%e, tFinal=%e, nextTimeToPlot=%e, tPrint=%e \n",t,tFinal,nextTimeToPlot,tPlot);
-    Overture::abort("error");
+    OV_ABORT("error");
   }
   
   numberOfSubSteps=max(1,int(timeInterval/dtNew+.9999));   // used to be +.5 or +1.
 
-  const int maximumStepsBetweenComputingDt=INT_MAX;
+  if( adjustTimeStep )
+  {
+    //   const int maximumStepsBetweenComputingDt=INT_MAX;
+    int & maximumStepsBetweenComputingDt= parameters.dbase.get<int>("maximumStepsBetweenComputingDt");
     
-  if( numberOfSubSteps > maximumStepsBetweenComputingDt )
-  {
-    // no need to adjust dt in this case since we will recompute dt anyway
-    numberOfSubSteps=maximumStepsBetweenComputingDt;
-  }
-  else if( adjustTimeStep )
-  {
-    dtNew=timeInterval/numberOfSubSteps;
-    if( true || debug & 2 )
-      printF(" ---- adjust time step: timeInterval=%e, numberOfSubSteps=%i, dtNew=%e\n",
-	     timeInterval,numberOfSubSteps,dtNew);
+    if( numberOfSubSteps > maximumStepsBetweenComputingDt )
+    {
+      // no need to adjust dt in this case since we will recompute dt anyway
+      numberOfSubSteps=maximumStepsBetweenComputingDt;
+    }
+    else 
+    {
+      dtNew=timeInterval/numberOfSubSteps;
+      if( debug & 2 )
+	printF("--SM-- computeNum... adjust time step: timeInterval=%e, numberOfSubSteps=%i, dtNew=%e\n",
+	       timeInterval,numberOfSubSteps,dtNew);
+    }
+  
+    if( debug & 4 )
+      printF("--SM-- compute..Step: numberOfSubSteps=%i maximumStepsBetweenComputingDt=%i dtNew=%9.3e\n",
+	     numberOfSubSteps,maximumStepsBetweenComputingDt,dtNew);
   }
 
   if( dtNew<0. )
@@ -121,7 +132,7 @@ computeNumberOfStepsAndAdjustTheTimeStep(const real & t,
            numberOfSubSteps);
     printF(" t=%e, tFinal=%e, nextTimeToPlot=%e, tPrint=%e timeInterval=%e\n",t,tFinal,nextTimeToPlot,
             tPlot,timeInterval);
-    Overture::abort("error");
+    OV_ABORT("error");
   }
 
 }
@@ -389,6 +400,7 @@ solve()
   SmParameters::TimeSteppingMethodSm & timeSteppingMethod = 
                 parameters.dbase.get< SmParameters::TimeSteppingMethodSm>("timeSteppingMethodSm");
   RealArray & timing = parameters.dbase.get<RealArray >("timing");
+  const int pdeTypeForGodunovMethod = parameters.dbase.get<int>("pdeTypeForGodunovMethod");   // 0=linear, 2=SVK ? 
 
   const int & numberOfComponents = parameters.dbase.get<int >("numberOfComponents");
   const int & uc =  parameters.dbase.get<int >("uc");
@@ -427,32 +439,38 @@ solve()
   current=0;
 
   int next=1;
-
-  // ******************** fix this **************
-  real dx[3];
-  cg[0].getDeltaX(dx);
-
-  // get the time step 
-  getTimeStep( gf[current] );
-
-  // adjust the time step so we reach tPlot exactly
-  //   dt=deltaT is computed in computeTimeStep in setup
-
+  real nextTimeToPlot=0.;
   if ( tPlot<=0 ) 
     tPlot = tFinal;
 
+  // get the initial time step 
+  getTimeStep( gf[current] );
 
-  // We want dt*numStepsToPlot = tPlot
-  const real dt0=dt;
-  int numStepsToPlot = int(std::ceil( tPlot/dt ));// kkc is this what you mean?int(tPlot/dt+.999999);
-  // we choose the number of steps so that we exactly reach times that are multiples of tPlot
-  int numSteps= int(ceil(tFinal/tPlot))*numStepsToPlot; 
+  // *new* way *wdh* 2015/07/11
+  bool adjustTimeStep=true;
+  nextTimeToPlot=min(int(t/tPlot+.5)*tPlot+tPlot,tFinal);   //  ...new time to print:
+  dtNew=dt;
+  computeNumberOfStepsAndAdjustTheTimeStep(t,tFinal,nextTimeToPlot,numberOfSubSteps,dtNew,adjustTimeStep );
+  dt=dtNew;
+  adjustTimeStep=false;
+    
+  nextTimeToPlot=0.; // reset so we plot at t=0
+    
+    // // *old way*
+    // // adjust the time step so we reach tPlot exactly
+    // //   dt=deltaT is computed in computeTimeStep in setup
 
-  dt= numSteps ? tFinal/numSteps : 0 ;
-  assert( dt<= dt0 );
-  
-  printF("--- tPlot=%f, tPlot/dt=%f numStepsToPlot=%i numSteps=%i \n",tPlot,tPlot/dt,numStepsToPlot,numSteps);
-  
+    // // We want dt*numStepsToPlot = tPlot
+    // const real dt0=dt;
+    // int numStepsToPlot = int(std::ceil( tPlot/dt ));// kkc is this what you mean?int(tPlot/dt+.999999);
+    // // we choose the number of steps so that we exactly reach times that are multiples of tPlot
+    // int numSteps= int(ceil(tFinal/tPlot))*numStepsToPlot; 
+
+    // dt= numSteps ? tFinal/numSteps : 0 ;
+    // assert( dt<= dt0 );
+    // printF("--solve-- dt=%9.3e, tPlot=%f, tPlot/dt=%f numStepsToPlot=%i numSteps=%i \n",dt,
+    // 	   tPlot,tPlot/dt,numStepsToPlot,numSteps);
+
 
   // For linear-elasticity this next method will compute the solution at t-dt
   updateForNewTimeStep( gf[current],dt );
@@ -478,8 +496,6 @@ solve()
   }
 
 
-  real nextTimeToPlot=0.;
-   
   plotOptions=1;
   if( !gi.graphicsIsOn() && !gi.readingFromCommandFile() )
     plotOptions=0;
@@ -524,30 +540,48 @@ solve()
 	  break;
 	}
       }
+
+      nextTimeToPlot=min(int(t/tPlot+.5)*tPlot+tPlot,tFinal);   //  ...new time to print:
+
       iPrint++;
     }
 
-    // adjustTimeStep is set to true if the cfl number is changed:
+    // NOTE: adjustTimeStep is set to true if the cfl number or tPlot  is changed in plot()
     bool & adjustTimeStep= parameters.dbase.get<bool>("adjustTimeStep");
-    if( stepNumber>0  && pdeVariation==SmParameters::hemp ) adjustTimeStep=true;
-    if( parameters.isAdaptiveGridProblem() ) adjustTimeStep=true;
+    if( parameters.isAdaptiveGridProblem() )
+       adjustTimeStep=true;
+    else if( stepNumber>0  && pdeVariation==SmParameters::hemp ) 
+       adjustTimeStep=true;
+    else if( stepNumber>0  && pdeVariation==SmParameters::godunov && pdeTypeForGodunovMethod>0  ) 
+       adjustTimeStep=true;
+    
+    
     const real dtOld = dt;
     if( adjustTimeStep )
     {
+      parameters.dbase.get<bool>("recomputeDt")=true;  // why is this needed?
+
       getTimeStep( gf[current] );
       dtNew = dt;
       dt = dtOld;  // we only change dt below if it differs enough from dtNew
+    
+      computeNumberOfStepsAndAdjustTheTimeStep(t,tFinal,nextTimeToPlot,numberOfSubSteps,dtNew,adjustTimeStep );
+
+      if( fabs( dtOld - dtNew) > dtOld*REAL_EPSILON*100. )
+      {
+	if( debug & 1 )
+	  printF(" *new* time step: step=%i, dt=%9.3e (old=%9.3e) numberOfSubSteps=%i, dt*numberOfSubSteps=%9.3e\n",
+		 globalStepNumber,dtNew,dtOld, numberOfSubSteps,numberOfSubSteps*dtNew );
+
+	dt=dtNew;  
+      }
+      else
+      {
+	printF("--SOLVE-- adjustTimeStep: dt has NOT changed: dtOld=%9.3e dtNew=%9.3e\n",dt,dtOld,dtNew);
+      }
     }
     
-    nextTimeToPlot=min(int(t/tPlot+.5)*tPlot+tPlot,tFinal);   //  ...new time to print:
-    computeNumberOfStepsAndAdjustTheTimeStep(t,tFinal,nextTimeToPlot,numberOfSubSteps,dtNew,adjustTimeStep );
-
-    if( adjustTimeStep && fabs( dtOld - dtNew) > dtOld*REAL_EPSILON*100. )
-    {
-      printF(" *new* time step: dt=%9.3e (old=%9.3e) numberOfSubSteps=%i, dt*numberOfSubSteps=%9.3e\n",dtNew,dtOld,
-                     numberOfSubSteps,numberOfSubSteps*dtNew );
-      dt=dtNew;  
-    }
+    
     adjustTimeStep=false;
     
 
@@ -566,7 +600,7 @@ solve()
 	}
 	else
 	{
-	  Overture::abort("Cgsm::solve:ERROR: unknown pdeModel");
+	  OV_ABORT("Cgsm::solve:ERROR: unknown pdeModel");
 	}
 	t+=dt;
 	current = next;

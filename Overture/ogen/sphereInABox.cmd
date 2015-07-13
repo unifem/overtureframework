@@ -76,12 +76,13 @@ $orderOfAccuracy = "second order"; $ng=2; $interpType = "implicit for all grids"
 $stretchFactor=4.; # stretch grid lines by this factor at the sphere boundary
 $deltaRadius0=.25; # do not make larger than .3 or troubles with cgmx
 $suffix=""; 
+$numGhost=-1;  # if this value is set, then use this number of ghost points
 # 
 # get command line arguments
 GetOptions( "order=i"=>\$order,"factor=i"=> \$factor,"nrExtra=i"=>\$nrExtra,"nrMin=i"=>\$nrMin,\
             "interp=s"=> \$interp,"rgd=s"=> \$rgd,"deltaRadius0=f"=>\$deltaRadius0,"name=s"=>\$name,\
             "xa=f"=>\$xa,"xb=f"=>\$xb,"ya=f"=>\$ya,"yb=f"=>\$yb,"za=f"=>\$za,"zb=f"=>\$zb,"ml=i"=>\$ml,\
-            "stretchFactor=f"=>\$stretchFactor,"box=f"=>\$box,"suffix=s"=>\$suffix );
+            "stretchFactor=f"=>\$stretchFactor,"box=f"=>\$box,"suffix=s"=>\$suffix,"numGhost=i"=>\$numGhost );
 # 
 if( $box ne 0 ){ $xa=-$box; $xb=$box; $ya=-$box; $yb=$box; $za=-$box; $zb=$box; }
 if( $order eq 4 ){ $orderOfAccuracy="fourth order"; $ng=2; }\
@@ -92,6 +93,8 @@ if( $interp eq "e" ){ $interpType = "explicit for all grids"; $dse=1.; }
 $prefix="sphereInABox";
 if( $rgd eq "fixed" ){ $prefix = $prefix . "Fixed"; $sphereWidth=$deltaRadius0; }else{ $sphereWidth=-1.; }
 $suffix .= ".order$order"; 
+if( $numGhost ne -1 ){ $ng = $numGhost; } # overide number of ghost
+if( $numGhost ne -1 ){ $suffix .= ".ng$numGhost"; } 
 if( $ml ne 0 ){ $suffix .= ".ml$ml"; }
 if( $name eq "" ){ $name = $prefix . "$interp$factor" . $suffix . ".hdf";}
 # 

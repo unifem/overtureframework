@@ -38,6 +38,13 @@
 #  -- add more ghost points for sosup
 #   ogen -noplot boxArg -numGhost=3 -order=4 -factor=2 
 #
+# **new** way for nonBox:
+#   ogen -noplot boxArg -order=2 -prefix=nonBox -factor=1  
+#   ogen -noplot boxArg -order=2 -prefix=nonBox -factor=2 
+#   ogen -noplot boxArg -order=4 -prefix=nonBox -factor=1  
+#   ogen -noplot boxArg -order=4 -prefix=nonBox -factor=2 
+#
+$prefix="box";
 $xa=0.; $xb=1.; $ya=0.; $yb=1.; $za=0.; $zb=1.; $name=""; 
 $order=2; $factor=1; $ml=0; # default values
 $orderOfAccuracy = "second order"; $ng=2; $periodic="";
@@ -45,13 +52,13 @@ $numGhost=-1;  # if this value is set, then use this number of ghost points
 # 
 # get command line arguments
 GetOptions( "order=i"=>\$order,"factor=i"=> \$factor,"name=s"=>\$name,"ml=i"=>\$ml,"numGhost=i"=>\$numGhost,\
-            "xa=f"=>\$xa,"xb=f"=>\$xb,"ya=f"=>\$ya,"yb=f"=>\$yb,"za=f"=>\$za,"zb=f"=>\$zb,"periodic=s"=>\$periodic );
+            "xa=f"=>\$xa,"xb=f"=>\$xb,"ya=f"=>\$ya,"yb=f"=>\$yb,"za=f"=>\$za,"zb=f"=>\$zb,"periodic=s"=>\$periodic,\
+            "prefix=s"=>\$prefix );
 # 
 if( $order eq 4 ){ $orderOfAccuracy="fourth order"; $ng=2; }\
 elsif( $order eq 6 ){ $orderOfAccuracy="sixth order"; $ng=4; }\
 elsif( $order eq 8 ){ $orderOfAccuracy="eighth order"; $ng=6; }
 # 
-$prefix="box";
 if( $periodic eq "p" ){ $suffix = "p"; }
 if( $periodic eq "npp" ){ $suffix = "npp"; }
 if( $periodic eq "pnp" ){ $suffix = "pnp"; }
@@ -92,8 +99,14 @@ Box
     if( $periodic eq "nnp" ){ $bc ="1 2 3 4 -1 -1"; }
     $bc
   mappingName
-    box
+    $gridName = $prefix;
+    $gridName
   exit
+#
+#  -- optionnally create a "nonBox"
+  if( $prefix eq "nonBox" ){ $cmd ="rotate/scale/shift\n mappingName\n box\n exit\n"; }else{ $cmd="#"; }
+  $cmd
+# 
 #**********************************
 exit
 #

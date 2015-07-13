@@ -4,6 +4,7 @@
 
 
 
+
 ! These next include files will define the macros that will define the difference approximations
 ! The actual macro is called below
 #Include "defineDiffOrder2f.h"
@@ -507,8 +508,8 @@
 
       orderOfAccuracy      =ipar(9)
 
-      ! -------- ASSIGN PEC BOUNDARY VALUES HERE ------
-      !          ASSIGN corners and edges (3d)
+      ! -------- ASSIGN boundary values, corners and edges (3d) -----
+      !      (assign PEC boundary values here)
       if( orderOfAccuracy.eq.2 )then
         call cornersMxOrder2(nd, nd1a,nd1b,nd2a,nd2b,nd3a,nd3b,\
                               ndf1a,ndf1b,ndf2a,ndf2b,ndf3a,ndf3b,\

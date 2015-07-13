@@ -154,10 +154,7 @@ advance(real &tFinal);
 virtual int
 solve();
 
-// virtual int
-// solve2();
-
-std::vector<DomainSolver*> domainSolver;  // holds PDE solvers for each domain
+// std::vector<DomainSolver*> domainSolver;  // holds PDE solvers for each domain : now in base class
 
 Interpolant *interpolant;
 

@@ -1,21 +1,39 @@
 #
-#  plotStuff plotDielectricCyl.cmd -show=dc4.show -name=dc4
+#  plotStuff plotDielectricCyl.cmd -show=dc4.show -name=dieCyl4Sosup
 # 
 #
 $show="dc4.show"; $name="dc4";
 GetOptions( "show=s"=>\$show,"vorMin=f"=>\$vorMin,"vorMax=f"=>\$vorMax,"name=s"=>\$name );
 # 
 # -- perl subroutine for hardcopies ---
-sub hardcopy{ local($name,$time)=@_; \
-    $cmd ="plot:p \n hardcopy file name:0 $name\_p_$time.ps\n hardcopy save:0\n";\
-    $cmd.="plot:u \n hardcopy file name:0 $name\_u_$time.ps\n hardcopy save:0\n";\
-    $cmd.="plot:v \n hardcopy file name:0 $name\_v_$time.ps\n hardcopy save:0";\
+sub hardcopy{ local($var,$name,$t)=@_; \
+    $varName=$var; $varName =~ s/ //g; \
+    $cmd .="plot:$var \n hardcopy file name:0 $name\_$t\_$varName.ps\n hardcopy save:0\n";\
     }
 #
 $show
 #
 previous
+DISPLAY AXES:0 0
+x-:0
+# 
 contour
+  $time="1p0";
+  $cmd=""; 
+  hardcopy(Ex,$name,$time); 
+  hardcopy(Ey,$name,$time); 
+  hardcopy(Hz,$name,$time); 
+  hardcopy(Ext,$name,$time); 
+  hardcopy(Eyt,$name,$time); 
+  hardcopy(Hzt,$name,$time); 
+  hardcopy("Ex error",$name,$time); 
+  hardcopy("Ey error",$name,$time); 
+  hardcopy("Hz error",$name,$time); 
+  hardcopy("Ext error",$name,$time); 
+  hardcopy("Eyt error",$name,$time); 
+  hardcopy("Hzt error",$name,$time); 
+  $cmd
+
 
 
 

@@ -75,9 +75,9 @@
 #  cgmx interface -g=twoBoxesInterfaceRotated1.order2.hdf -eps2=.25 -tp=.1 -ic=tz -bc=d -diss=0. -left=leftBox -right=rightBox -debug=1 -degreex=2 -degreet=2   [exact]
 #  
 # -- set default values for parameters ---
-$kx=2; $ky=0; $kz=0; $left="leftSquare"; $right="rightSquare"; $degreex=2; $degreet=2; $method="NFDTD"; $tz="poly";
+$kx=2; $ky=0; $kz=0; $left="leftSquare*"; $right="rightSquare*"; $degreex=2; $degreet=2; $method="NFDTD"; $tz="poly";
 $tFinal=5.; $tPlot=.2; $cfl=.9; $show=" "; $interfaceIts=30; $debug=0; $diss=.1; $dissOrder=-1;
-$useNewInterface=0; $errorNorm=0; $interfaceEquationOption=1; $interfaceOmega=1.;
+$useNewInterface=1; $errorNorm=0; $interfaceEquationOption=1; $interfaceOmega=1.;
 $eps1=1.; $mu1=1.;
 $eps2=1.; $mu2=1.;
 $ax=0.; $ay=0.; $az=0.; # plane wave coeffs. all zero -> use default
@@ -108,6 +108,7 @@ if( $ic eq "tz" ){ $ic="twilightZone"; }
 if( $bc eq "d" ){ $bc="all=dirichlet"; }
 if( $tz eq "poly" ){ $tz="polynomial"; }
 if( $tz eq "trig" ){ $tz="trigonometric"; }
+if( $method eq "sosup" ){ $diss=0.; }
 # 
 #
 # **** sixth order ***

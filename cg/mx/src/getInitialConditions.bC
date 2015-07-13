@@ -214,16 +214,19 @@ initializePlaneMaterialInterface()
     OV_ABORT("error");
   }
       
+  const int gridLeft = 0;
+  const int gridRight=cg.numberOfComponentGrids()-1;
+
   real c1,c2,eps1,eps2,mu1,mu2;
   if( method==yee )
   {
-    eps1=epsv(0); mu1=muv(0);    // incident 
-    eps2=epsv(1); mu2=muv(1);   // transmitted
+    eps1=epsv(gridLeft);  mu1=muv(gridLeft);    // incident 
+    eps2=epsv(gridRight); mu2=muv(gridRight);   // transmitted
   }
   else
   {
-    eps1=epsGrid(0); mu1=muGrid(0); // incident
-    eps2=epsGrid(1); mu2=muGrid(1); // transmitted
+    eps1=epsGrid(gridLeft);  mu1=muGrid(gridLeft); // incident
+    eps2=epsGrid(gridRight); mu2=muGrid(gridRight); // transmitted
 
   }
   c1=1./sqrt(eps1*mu1);  // incident 
@@ -736,11 +739,6 @@ assignInitialConditions(int current, real t, real dt )
 	    J2 = Range(max(Ie2.getBase(),uel.getBase(1)),min(Ie2.getBound(),uel.getBound(1)));
 	    J3 = Range(max(Ie3.getBase(),uel.getBase(2)),min(Ie3.getBound(),uel.getBound(2)));
 
-	    if( method==sosup )
-	    {
-	      printF("BBBBBBBBBBBBB assign TZ initial conditions for sosup BBBBBBBBBBBBBBBBBB\n");
-	    }
-	    
 
 	    FOR_3D(i1,i2,i3,J1,J2,J3)
 	    {
@@ -1314,6 +1312,10 @@ assignInitialConditions(int current, real t, real dt )
 	}
 	else if( initialConditionOption==squareEigenfunctionInitialCondition )
 	{
+          // --------------------------------------------------
+          // --------- Square or Box Eigenfunction ------------
+          // --------------------------------------------------
+
 	  real fx=Pi*initialConditionParameters[0];
 	  real fy=Pi*initialConditionParameters[1];
 	  real fz=Pi*initialConditionParameters[2];
@@ -1330,6 +1332,8 @@ assignInitialConditions(int current, real t, real dt )
 	  else
 	  {
 	    omega=c*sqrt(fx*fx+fy*fy+fz*fz);
+	    printF(" box eigenfunction initial condition: fx=%g Pi, fy=%g Pi fz=%g Pi omega=%g Pi.\n",
+		   fx/Pi, fy/Pi, fz/Pi, omega/Pi);
 	  }
 	    
 	  Index J1 = Range(max(Ie1.getBase(),uel.getBase(0)),min(Ie1.getBound(),uel.getBound(0)));
@@ -1417,7 +1421,17 @@ assignInitialConditions(int current, real t, real dt )
 	      }
 	      if( method==sosup )
 	      {
-		OV_ABORT("finish me");
+		FOR_3D(i1,i2,i3,J1,J2,J3)
+		{
+		  real xde=X0(i1,i2,i3)-x0;
+		  real yde=X1(i1,i2,i3)-y0;
+		  real zde=X2(i1,i2,i3)-z0;
+
+                  // time derivatives: 
+		  uLocal(i1,i2,i3,ext) =  (-omega*a1/fx)*cos(fx*xde)*sin(fy*yde)*sin(fz*zde)*sin(omega*t);  
+		  uLocal(i1,i2,i3,eyt) =  (-omega*a2/fy)*sin(fx*xde)*cos(fy*yde)*sin(fz*zde)*sin(omega*t);  
+		  uLocal(i1,i2,i3,ezt) =  (-omega*a3/fz)*sin(fx*xde)*sin(fy*yde)*cos(fz*zde)*sin(omega*t);  
+		}
 	      }
 
 
@@ -1499,14 +1513,19 @@ assignInitialConditions(int current, real t, real dt )
 		UEY(i1,i2,i3) =  (a2/fy)*sin(fx*xd)*cos(fy*yd)*sin(fz*zd)*cos(omega*t);  // 
 		UEZ(i1,i2,i3) =  (a3/fz)*sin(fx*xd)*sin(fy*yd)*cos(fz*zd)*cos(omega*t);  // 
 
-		if ( method==nfdtd )
+		if( method==nfdtd )
 		{
 		  UMEX(i1,i2,i3) =  (a1/fx)*cos(fx*xd)*sin(fy*yd)*sin(fz*zd)*cos(omega*(t-dt));  // 
 		  UMEY(i1,i2,i3) =  (a2/fy)*sin(fx*xd)*cos(fy*yd)*sin(fz*zd)*cos(omega*(t-dt));  // 
 		  UMEZ(i1,i2,i3) =  (a3/fz)*sin(fx*xd)*sin(fy*yd)*cos(fz*zd)*cos(omega*(t-dt));  // 
 		}
-		else
-		  OV_ABORT("not implemented for staggered grids");
+		else if( method==sosup )
+		{
+		  // time derivatives: 
+		  uLocal(i1,i2,i3,ext) =  (-omega*a1/fx)*cos(fx*xd)*sin(fy*yd)*sin(fz*zd)*sin(omega*t);  
+		  uLocal(i1,i2,i3,eyt) =  (-omega*a2/fy)*sin(fx*xd)*cos(fy*yd)*sin(fz*zd)*sin(omega*t);  
+		  uLocal(i1,i2,i3,ezt) =  (-omega*a3/fz)*sin(fx*xd)*sin(fy*yd)*cos(fz*zd)*sin(omega*t);  
+		}
 	      }
 	    }
 	      
@@ -1693,7 +1712,7 @@ assignInitialConditions(int current, real t, real dt )
 	}
 	else if( initialConditionOption==planeMaterialInterfaceInitialCondition )
 	{
-	  if( method==nfdtd )
+	  if( method==nfdtd || method==sosup )
 	  { 
 	    // adjust array dimensions for local arrays
 	    Index J1 = Range(max(I1.getBase(),uel.getBase(0)),min(I1.getBound(),uel.getBound(0)));
@@ -1702,6 +1721,13 @@ assignInitialConditions(int current, real t, real dt )
 
 	    setPlaneMaterialInterfaceMacro(initialCondition,J1,J2,J3);
 	  }
+	  else
+	  {
+	    printF("ERROR: initialConditionOption==planeMaterialInterfaceInitialCondition but method=%i\n",
+		   (int)method);
+	    OV_ABORT("ERROR");
+	  }
+	  
 	}
 
 	else if( initialConditionOption==gaussianIntegralInitialCondition )
@@ -1942,7 +1968,8 @@ initializeKnownSolution()
 //      return;
 //    }
 
-  const real a=.5;  // radius of the cylinder or sphere
+  // const real a=.5;  // radius of the cylinder or sphere
+  const real a = dbase.get<real>("scatteringRadius"); // radius of the cylinder or sphere *wdh* 2015/07/03
   real cr = 1.;  // c1/c2 (c2=inside)
   int computeIncident=0;  // set to 1 to compute incident wave too 
   real rpar[] = {twoPi*kx,a,cr}; //

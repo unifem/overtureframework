@@ -71,7 +71,7 @@ Maxwell()
   knownSolutionOption=noKnownSolution;
   
   gridHasMaterialInterfaces=false;
-  useNewInterfaceRoutines=false;
+  useNewInterfaceRoutines=true; // if true: 2D AND 3D interface routines found in interface3d.bd. old=interface.bf
   
   frequency=5.;
   checkErrors=true;
@@ -219,6 +219,8 @@ Maxwell()
 
   cylinderRadius=1.;
   cylinderAxisStart=0.; cylinderAxisEnd=1.; // for eigenfunctions of the cylinder
+
+  dbase.put<real>("scatteringRadius")=.5; // radius od cylinder or sphere for scattering solution
 
   orderOfAccuracyInSpace=2;
   orderOfAccuracyInTime=2;
@@ -1416,6 +1418,9 @@ buildForcingOptionsDialog(DialogData & dialog )
   textCommands[nt] = "adjust boundaries for incident field";
   textLabels[nt]=textCommands[nt]; sPrintF(textStrings[nt], "[0|1] [gridName|all]"); nt++; 
 
+  textCommands[nt] = "scattering radius";  textLabels[nt]=textCommands[nt]; sPrintF(textStrings[nt], "%g",
+           dbase.get<real>("scatteringRadius")); nt++; 
+
   // null strings terminal list
   assert( nt<numberOfTextStrings );
   textCommands[nt]="";   textLabels[nt]="";   textStrings[nt]="";  
@@ -2165,6 +2170,9 @@ interactiveUpdate(GL_GraphicsInterface &gi )
 
     else if( forcingOptionsDialog.getTextValue(answer,"slow start interval","%f",slowStartInterval) ){}//
     else if( forcingOptionsDialog.getTextValue(answer,"bounding box decay exponent","%f",boundingBoxDecayExponent) ){}//
+
+    else if( forcingOptionsDialog.getTextValue(answer,"scattering radius","%f",dbase.get<real>("scatteringRadius")) ){}//
+
     else if( forcingOptionsDialog.getToggleValue(answer,"use twilightZone materials",useTwilightZoneMaterials) ){}//
 
     else if( plotOptionsDialog.getTextValue(answer,"radius for checking errors","%f",radiusForCheckingErrors) ){}//

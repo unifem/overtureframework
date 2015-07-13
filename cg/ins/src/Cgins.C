@@ -454,6 +454,40 @@ writeParameterSummary( FILE * file )
     
   }
 
+  // *** ALL these parameters should be in the DeformingBody ****
+  if( parameters.isMovingGridProblem() )
+  {
+    const bool & useAddedMassAlgorithm = parameters.dbase.get<bool>("useAddedMassAlgorithm");
+    if( useAddedMassAlgorithm )
+    {
+      const bool & useApproximateAMPcondition = parameters.dbase.get<bool>("useApproximateAMPcondition");
+      const bool & projectAddedMassVelocity = parameters.dbase.get<bool>("projectAddedMassVelocity");
+      const bool & projectNormalComponentOfAddedMassVelocity =
+	parameters.dbase.get<bool>("projectNormalComponentOfAddedMassVelocity");
+      const bool & projectVelocityOnBeamEnds = parameters.dbase.get<bool>("projectVelocityOnBeamEnds");  
+      const bool & projectBeamVelocity = parameters.dbase.get<bool>("projectBeamVelocity");
+      const bool & smoothInterfaceVelocity = parameters.dbase.get<bool>("smoothInterfaceVelocity");
+      const int & numberOfInterfaceVelocitySmooths = parameters.dbase.get<int>("numberOfInterfaceVelocitySmooths");
+      const real & fluidAddedMassLengthScale =  parameters.dbase.get<real>("fluidAddedMassLengthScale");  
+
+      fPrintF(file," useAddedMassAlgorithm=%i, useApproximateAMPcondition=%i,\n"
+	      " projectAddedMassVelocity=%i, projectNormalComponentOfAddedMassVelocity=%i,\n"
+	      " projectVelocityOnBeamEnds=%i, projectBeamVelocity=%i, predicted pressure needed=%i,\n" 
+	      " smoothInterfaceVelocity=%i, numberOfInterfaceVelocitySmooths=%i, fluidAddedMassLengthScale=%9.3e.\n",
+	      (int)useAddedMassAlgorithm,(int)useApproximateAMPcondition,(int)projectAddedMassVelocity,
+	      (int)projectNormalComponentOfAddedMassVelocity,(int)projectVelocityOnBeamEnds,(int)projectBeamVelocity,
+	      (int)parameters.dbase.get<bool>("predictedPressureNeeded"),
+	      (int)smoothInterfaceVelocity, numberOfInterfaceVelocitySmooths,
+	      fluidAddedMassLengthScale
+	);
+    }
+    else
+    {
+      fPrintF(file," Added-mass algorithm is off: useAddedMassAlgorithm=%i.\n",useAddedMassAlgorithm);
+    }
+    
+  }
+
 }
 
 

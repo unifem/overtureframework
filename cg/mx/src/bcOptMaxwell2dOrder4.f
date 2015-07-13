@@ -1677,7 +1677,7 @@ c write(*,'("initializeBoundaryForcing slowStartInterval=",e10.2)') slowStartInt
         ! ****
         ! write(*,'(" bcOpt: t=",e10.2," fieldOption=",i2," ex,ey,hz=",3i3)') t,fieldOption,ex,ey,hz
         !  write(*,'(" ***bcOpt: slowStartInterval,t=",2f10.4," ssf,ssft,ssftt,sfttt=",4f9.4)') slowStartInterval,t,ssf,ssft,ssftt,ssfttt
-        !  --- NOT: extra determines "extra points" in the tangential directions  ----
+        !  --- NOTE: extra determines "extra points" in the tangential directions  ----
         !  extra=-1 by default (if adjacent BC>0) no need to do corners -- these are already done
         !  extra=numberOfGhostPoints, if bc==0, (set in begin loop over sides)
         !  extra=0 if bc<0  (set in begin loop over sides)
@@ -3021,10 +3021,10 @@ c write(*,'("initializeBoundaryForcing slowStartInterval=",e10.2)') slowStartInt
                  !   fw2 = (-rsxy(i1,i2,i3,axis,0)*vttt0 + rsxy(i1,i2,i3,axis,1)*uttt0 )/!                               (rsxy(i1,i2,i3,axis,0)**2+rsxy(i1,i2,i3,axis,1)**2)!         - c22*( (-rsxy(i1+js1,i2+js2,i3,axis,0)*vtp1 + rsxy(i1+js1,i2+js2,i3,axis,1)*utp1)!             -2.*(-rsxy(i1    ,i2    ,i3,axis,0)*vt0  + rsxy(i1    ,i2    ,i3,axis,1)*ut0 ) !                +(-rsxy(i1-js1,i2-js2,i3,axis,0)*vtm1 + rsxy(i1-js1,i2-js2,i3,axis,1)*utm1) )/(dsa**2) !         -  c2*( (-rsxy(i1+js1,i2+js2,i3,axis,0)*vtp1 + rsxy(i1+js1,i2+js2,i3,axis,1)*utp1)!                -(-rsxy(i1-js1,i2-js2,i3,axis,0)*vtm1 + rsxy(i1-js1,i2-js2,i3,axis,1)*utm1) )/(2.*dsa)
                   end if
                  ! Now assign ex and ey at the ghost points:
-
-
-! ************ Answer *******************
-      gIII=-tau1*(c22*uss+c2*us)-tau2*(c22*vss+c2*vs)
+                 ! #Include "bc4Maxwell.h"
+                 ! Use 5th-order extrap: 8wdh* 2015/07/03
+! ************ Results from mx/codes/bc4.maple *******************
+      gIII=-tau1*(c2*us+c22*uss)-tau2*(c2*vs+c22*vss)
 
       tauU=tau1*u(i1,i2,i3,ex)+tau2*u(i1,i2,i3,ey)
 
@@ -3037,30 +3037,31 @@ c write(*,'("initializeBoundaryForcing slowStartInterval=",e10.2)') slowStartInt
       tauUp3=tau1*u(i1+3*is1,i2+3*is2,i3+3*is3,ex)+tau2*u(i1+3*is1,i2+
      & 3*is2,i3+3*is3,ey)
 
-      gIV=-6*tauU+4*tauUp1-tauUp2 +gIVf
+      gIV=-10*tauU+10*tauUp1-5*tauUp2+tauUp3 +gIVf
 
-      ttu1=-1/2.*(12*c11*tauUp1-24*c11*tauU-c11*ctlrr*tauUp2+4*c11*
-     & ctlrr*tauUp1-6*c11*ctlrr*tauU-c11*ctlrr*gIV+6*c1*dra*tauUp1-c1*
-     & dra*ctlr*tauUp2+2*c1*dra*ctlr*tauUp1+c1*dra*ctlr*gIV-12*gIII*
-     & dra**2-12*tau1DotUtt*dra**2)/(6*c11-3*c1*dra+c1*dra*ctlr)
-      ttu2=-(24*c11*tauUp1-48*c11*tauU-2*c11*ctlrr*tauUp2+8*c11*ctlrr*
-     & tauUp1-12*c11*ctlrr*tauU-2*c11*ctlrr*gIV+12*c1*dra*tauUp1-2*c1*
-     & dra*ctlr*tauUp2+4*c1*dra*ctlr*tauUp1+c1*dra*ctlr*gIV-24*gIII*
-     & dra**2-24*tau1DotUtt*dra**2-6*gIV*c11+3*gIV*c1*dra)/(6*c11-3*
-     & c1*dra+c1*dra*ctlr)
+      ttu1=-1/(3*c1*ctlr*dra-6*c1*dra-c11*ctlrr+12*c11)*(c1*ctlr*dra*
+     & gIV+2*c1*ctlr*dra*tauUp1-c1*ctlr*dra*tauUp2+6*c1*dra*tauUp1-
+     & c11*ctlrr*gIV-6*c11*ctlrr*tauU+4*c11*ctlrr*tauUp1-c11*ctlrr*
+     & tauUp2-12*dra**2*gIII-12*dra**2*tau1DotUtt-24*c11*tauU+12*c11*
+     & tauUp1)
+      ttu2=-(2*c1*ctlr*dra*gIV+10*c1*ctlr*dra*tauUp1-5*c1*ctlr*dra*
+     & tauUp2+6*c1*dra*gIV+30*c1*dra*tauUp1-4*c11*ctlrr*gIV-30*c11*
+     & ctlrr*tauU+20*c11*ctlrr*tauUp1-5*c11*ctlrr*tauUp2-60*dra**2*
+     & gIII-60*dra**2*tau1DotUtt-12*c11*gIV-120*c11*tauU+60*c11*
+     & tauUp1)/(3*c1*ctlr*dra-6*c1*dra-c11*ctlrr+12*c11)
 
       f1um2=-1/2.*b3u/dra**3-1/12.*b2u/dra**2+1/12.*b1u/dra
       f1um1=b3u/dra**3+4/3.*b2u/dra**2-2/3.*b1u/dra
       f1vm2=-1/2.*b3v/dra**3-1/12.*b2v/dra**2+1/12.*b1v/dra
       f1vm1=b3v/dra**3+4/3.*b2v/dra**2-2/3.*b1v/dra
-      f1f  =-1/12.*(b1v*dra**2*u(i1+2*is1,i2+2*is2,i3,ey)-8*b1v*dra**2*
-     & u(i1+is1,i2+is2,i3,ey)+b1u*dra**2*u(i1+2*is1,i2+2*is2,i3,ex)-8*
-     & b1u*dra**2*u(i1+is1,i2+is2,i3,ex)+b2v*dra*u(i1+2*is1,i2+2*is2,
-     & i3,ey)+30*b2v*dra*u(i1,i2,i3,ey)-16*b2v*dra*u(i1+is1,i2+is2,i3,
-     & ey)+b2u*dra*u(i1+2*is1,i2+2*is2,i3,ex)+30*b2u*dra*u(i1,i2,i3,
-     & ex)-16*b2u*dra*u(i1+is1,i2+is2,i3,ex)+12*b3v*u(i1+is1,i2+is2,
-     & i3,ey)-6*b3u*u(i1+2*is1,i2+2*is2,i3,ex)+12*b3u*u(i1+is1,i2+is2,
-     & i3,ex)-6*b3v*u(i1+2*is1,i2+2*is2,i3,ey)-12*bf*dra**3)/dra**3
+      f1f  =-1/12.*(b1u*dra**2*u(i1+2*is1,i2+2*is2,i3,ex)-8*b1u*dra**2*
+     & u(i1+is1,i2+is2,i3,ex)+b1v*dra**2*u(i1+2*is1,i2+2*is2,i3,ey)-8*
+     & b1v*dra**2*u(i1+is1,i2+is2,i3,ey)-12*bf*dra**3+b2u*dra*u(i1+2*
+     & is1,i2+2*is2,i3,ex)-16*b2u*dra*u(i1+is1,i2+is2,i3,ex)+b2v*dra*
+     & u(i1+2*is1,i2+2*is2,i3,ey)-16*b2v*dra*u(i1+is1,i2+is2,i3,ey)+
+     & 30*b2u*dra*u(i1,i2,i3,ex)+30*b2v*dra*u(i1,i2,i3,ey)-6*b3u*u(i1+
+     & 2*is1,i2+2*is2,i3,ex)+12*b3u*u(i1+is1,i2+is2,i3,ex)-6*b3v*u(i1+
+     & 2*is1,i2+2*is2,i3,ey)+12*b3v*u(i1+is1,i2+is2,i3,ey))/dra**3
 
       f2um2=1/12.*a11m2
       f2um1=-2/3.*a11m1
@@ -3070,37 +3071,37 @@ c write(*,'("initializeBoundaryForcing slowStartInterval=",e10.2)') slowStartInt
      & is2,i3,ey)-1/12.*a11p2*u(i1+2*is1,i2+2*is2,i3,ex)-1/12.*a12p2*
      & u(i1+2*is1,i2+2*is2,i3,ey)-Da1DotU*dra
 
-      u(i1-is1,i2-is2,i3,ey) = -1/(tau2**2*f1um2*f2um1-tau2**2*f1um1*
-     & f2um2+tau2*tau1*f1vm1*f2um2+tau2*f1um1*tau1*f2vm2-tau2*f1um2*
-     & tau1*f2vm1-tau1*f1vm2*tau2*f2um1-tau1**2*f1vm1*f2vm2+tau1**2*
-     & f1vm2*f2vm1)*(-tau1**2*f1f*f2vm2-f1um1*ttu1*tau1*f2vm2+tau2*
-     & f1um1*ttu1*f2um2-tau2*f1um2*f2um1*ttu1+tau1*f1vm2*f2um1*ttu1-
-     & tau2*f1um2*tau1*f2f+tau1*f1vm2*ttu2*f2um2-f1um2*tau1*f2vm2*
-     & ttu2+tau1**2*f1vm2*f2f+tau2*tau1*f1f*f2um2)
+      u(i1-2*is1,i2-2*is2,i3,ex) = (f1f*f2um1*tau2**2-f1f*f2vm1*tau1*
+     & tau2-f1um1*f2f*tau2**2-f1um1*f2vm1*tau2*ttu1-f1um1*f2vm2*tau2*
+     & ttu2+f1vm1*f2f*tau1*tau2+f1vm1*f2um1*tau2*ttu1+f1vm1*f2vm2*
+     & tau1*ttu2+f1vm2*f2um1*tau2*ttu2-f1vm2*f2vm1*tau1*ttu2)/(f1um1*
+     & f2um2*tau2**2-f1um1*f2vm2*tau1*tau2-f1um2*f2um1*tau2**2+f1um2*
+     & f2vm1*tau1*tau2-f1vm1*f2um2*tau1*tau2+f1vm1*f2vm2*tau1**2+
+     & f1vm2*f2um1*tau1*tau2-f1vm2*f2vm1*tau1**2)
 
-      u(i1-2*is1,i2-2*is2,i3,ey) = (tau1**2*f2f*f1vm1-tau1**2*f2vm1*
-     & f1f+tau1*f2um1*ttu1*f1vm1-tau1*f2vm1*f1um1*ttu1+tau1*tau2*
-     & f2um1*f1f-tau1*tau2*f2f*f1um1+ttu2*tau2*f1um2*f2um1-ttu2*tau2*
-     & f1um1*f2um2+ttu2*tau1*f1vm1*f2um2-ttu2*f1um2*tau1*f2vm1)/(tau2*
-     & *2*f1um2*f2um1-tau2**2*f1um1*f2um2+tau2*tau1*f1vm1*f2um2+tau2*
-     & f1um1*tau1*f2vm2-tau2*f1um2*tau1*f2vm1-tau1*f1vm2*tau2*f2um1-
-     & tau1**2*f1vm1*f2vm2+tau1**2*f1vm2*f2vm1)
+      u(i1-is1,i2-is2,i3,ex) = -(f1f*f2um2*tau2**2-f1f*f2vm2*tau1*tau2-
+     & f1um2*f2f*tau2**2-f1um2*f2vm1*tau2*ttu1-f1um2*f2vm2*tau2*ttu2+
+     & f1vm1*f2um2*tau2*ttu1-f1vm1*f2vm2*tau1*ttu1+f1vm2*f2f*tau1*
+     & tau2+f1vm2*f2um2*tau2*ttu2+f1vm2*f2vm1*tau1*ttu1)/(f1um1*f2um2*
+     & tau2**2-f1um1*f2vm2*tau1*tau2-f1um2*f2um1*tau2**2+f1um2*f2vm1*
+     & tau1*tau2-f1vm1*f2um2*tau1*tau2+f1vm1*f2vm2*tau1**2+f1vm2*
+     & f2um1*tau1*tau2-f1vm2*f2vm1*tau1**2)
 
-      u(i1-is1,i2-is2,i3,ex) = (-tau1*tau2*f1f*f2vm2-tau2**2*f1um2*f2f+
-     & f1vm2*ttu2*tau2*f2um2-tau2*f1um2*f2vm2*ttu2+tau1*f1vm2*tau2*
-     & f2f+tau2**2*f1f*f2um2+ttu1*tau2*f1vm1*f2um2-ttu1*tau2*f1um2*
-     & f2vm1-ttu1*tau1*f1vm1*f2vm2+ttu1*tau1*f1vm2*f2vm1)/(tau2**2*
-     & f1um2*f2um1-tau2**2*f1um1*f2um2+tau2*tau1*f1vm1*f2um2+tau2*
-     & f1um1*tau1*f2vm2-tau2*f1um2*tau1*f2vm1-tau1*f1vm2*tau2*f2um1-
-     & tau1**2*f1vm1*f2vm2+tau1**2*f1vm2*f2vm1)
+      u(i1-2*is1,i2-2*is2,i3,ey) = -(f1f*f2um1*tau1*tau2-f1f*f2vm1*
+     & tau1**2-f1um1*f2f*tau1*tau2-f1um1*f2um2*tau2*ttu2-f1um1*f2vm1*
+     & tau1*ttu1+f1um2*f2um1*tau2*ttu2-f1um2*f2vm1*tau1*ttu2+f1vm1*
+     & f2f*tau1**2+f1vm1*f2um1*tau1*ttu1+f1vm1*f2um2*tau1*ttu2)/(
+     & f1um1*f2um2*tau2**2-f1um1*f2vm2*tau1*tau2-f1um2*f2um1*tau2**2+
+     & f1um2*f2vm1*tau1*tau2-f1vm1*f2um2*tau1*tau2+f1vm1*f2vm2*tau1**
+     & 2+f1vm2*f2um1*tau1*tau2-f1vm2*f2vm1*tau1**2)
 
-      u(i1-2*is1,i2-2*is2,i3,ex) = (-f2vm2*ttu2*f1vm1*tau1+f2vm2*ttu2*
-     & tau2*f1um1-tau1*tau2*f2f*f1vm1+tau1*ttu2*f1vm2*f2vm1+tau1*tau2*
-     & f2vm1*f1f-tau2*f2um1*ttu1*f1vm1-ttu2*f1vm2*tau2*f2um1+tau2*
-     & f2vm1*f1um1*ttu1-tau2**2*f2um1*f1f+tau2**2*f2f*f1um1)/(tau2**2*
-     & f1um2*f2um1-tau2**2*f1um1*f2um2+tau2*tau1*f1vm1*f2um2+tau2*
-     & f1um1*tau1*f2vm2-tau2*f1um2*tau1*f2vm1-tau1*f1vm2*tau2*f2um1-
-     & tau1**2*f1vm1*f2vm2+tau1**2*f1vm2*f2vm1)
+      u(i1-is1,i2-is2,i3,ey) = (f1f*f2um2*tau1*tau2-f1f*f2vm2*tau1**2+
+     & f1um1*f2um2*tau2*ttu1-f1um1*f2vm2*tau1*ttu1-f1um2*f2f*tau1*
+     & tau2-f1um2*f2um1*tau2*ttu1-f1um2*f2vm2*tau1*ttu2+f1vm2*f2f*
+     & tau1**2+f1vm2*f2um1*tau1*ttu1+f1vm2*f2um2*tau1*ttu2)/(f1um1*
+     & f2um2*tau2**2-f1um1*f2vm2*tau1*tau2-f1um2*f2um1*tau2**2+f1um2*
+     & f2vm1*tau1*tau2-f1vm1*f2um2*tau1*tau2+f1vm1*f2vm2*tau1**2+
+     & f1vm2*f2um1*tau1*tau2-f1vm2*f2vm1*tau1**2)
 
 
  ! *********** done *********************
@@ -5081,10 +5082,10 @@ c write(*,'("initializeBoundaryForcing slowStartInterval=",e10.2)') slowStartInt
      & uvp2(2)+uvm2(2)) )/(12.*dsa**2)+ c2r*(8.*(uvp(2)-uvm(2))-(uvp2(
      & 2)-uvm2(2)))/(12.*dsa)
                  ! Now assign ex and ey at the ghost points:
-
-
-! ************ Answer *******************
-      gIII=-tau1*(c22*uss+c2*us)-tau2*(c22*vss+c2*vs)
+                 ! #Include "bc4Maxwell.h"
+                 ! Use 5th-order extrap: 8wdh* 2015/07/03
+! ************ Results from mx/codes/bc4.maple *******************
+      gIII=-tau1*(c2*us+c22*uss)-tau2*(c2*vs+c22*vss)
 
       tauU=tau1*u(i1,i2,i3,ex)+tau2*u(i1,i2,i3,ey)
 
@@ -5097,30 +5098,31 @@ c write(*,'("initializeBoundaryForcing slowStartInterval=",e10.2)') slowStartInt
       tauUp3=tau1*u(i1+3*is1,i2+3*is2,i3+3*is3,ex)+tau2*u(i1+3*is1,i2+
      & 3*is2,i3+3*is3,ey)
 
-      gIV=-6*tauU+4*tauUp1-tauUp2 +gIVf
+      gIV=-10*tauU+10*tauUp1-5*tauUp2+tauUp3 +gIVf
 
-      ttu1=-1/2.*(12*c11*tauUp1-24*c11*tauU-c11*ctlrr*tauUp2+4*c11*
-     & ctlrr*tauUp1-6*c11*ctlrr*tauU-c11*ctlrr*gIV+6*c1*dra*tauUp1-c1*
-     & dra*ctlr*tauUp2+2*c1*dra*ctlr*tauUp1+c1*dra*ctlr*gIV-12*gIII*
-     & dra**2-12*tau1DotUtt*dra**2)/(6*c11-3*c1*dra+c1*dra*ctlr)
-      ttu2=-(24*c11*tauUp1-48*c11*tauU-2*c11*ctlrr*tauUp2+8*c11*ctlrr*
-     & tauUp1-12*c11*ctlrr*tauU-2*c11*ctlrr*gIV+12*c1*dra*tauUp1-2*c1*
-     & dra*ctlr*tauUp2+4*c1*dra*ctlr*tauUp1+c1*dra*ctlr*gIV-24*gIII*
-     & dra**2-24*tau1DotUtt*dra**2-6*gIV*c11+3*gIV*c1*dra)/(6*c11-3*
-     & c1*dra+c1*dra*ctlr)
+      ttu1=-1/(3*c1*ctlr*dra-6*c1*dra-c11*ctlrr+12*c11)*(c1*ctlr*dra*
+     & gIV+2*c1*ctlr*dra*tauUp1-c1*ctlr*dra*tauUp2+6*c1*dra*tauUp1-
+     & c11*ctlrr*gIV-6*c11*ctlrr*tauU+4*c11*ctlrr*tauUp1-c11*ctlrr*
+     & tauUp2-12*dra**2*gIII-12*dra**2*tau1DotUtt-24*c11*tauU+12*c11*
+     & tauUp1)
+      ttu2=-(2*c1*ctlr*dra*gIV+10*c1*ctlr*dra*tauUp1-5*c1*ctlr*dra*
+     & tauUp2+6*c1*dra*gIV+30*c1*dra*tauUp1-4*c11*ctlrr*gIV-30*c11*
+     & ctlrr*tauU+20*c11*ctlrr*tauUp1-5*c11*ctlrr*tauUp2-60*dra**2*
+     & gIII-60*dra**2*tau1DotUtt-12*c11*gIV-120*c11*tauU+60*c11*
+     & tauUp1)/(3*c1*ctlr*dra-6*c1*dra-c11*ctlrr+12*c11)
 
       f1um2=-1/2.*b3u/dra**3-1/12.*b2u/dra**2+1/12.*b1u/dra
       f1um1=b3u/dra**3+4/3.*b2u/dra**2-2/3.*b1u/dra
       f1vm2=-1/2.*b3v/dra**3-1/12.*b2v/dra**2+1/12.*b1v/dra
       f1vm1=b3v/dra**3+4/3.*b2v/dra**2-2/3.*b1v/dra
-      f1f  =-1/12.*(b1v*dra**2*u(i1+2*is1,i2+2*is2,i3,ey)-8*b1v*dra**2*
-     & u(i1+is1,i2+is2,i3,ey)+b1u*dra**2*u(i1+2*is1,i2+2*is2,i3,ex)-8*
-     & b1u*dra**2*u(i1+is1,i2+is2,i3,ex)+b2v*dra*u(i1+2*is1,i2+2*is2,
-     & i3,ey)+30*b2v*dra*u(i1,i2,i3,ey)-16*b2v*dra*u(i1+is1,i2+is2,i3,
-     & ey)+b2u*dra*u(i1+2*is1,i2+2*is2,i3,ex)+30*b2u*dra*u(i1,i2,i3,
-     & ex)-16*b2u*dra*u(i1+is1,i2+is2,i3,ex)+12*b3v*u(i1+is1,i2+is2,
-     & i3,ey)-6*b3u*u(i1+2*is1,i2+2*is2,i3,ex)+12*b3u*u(i1+is1,i2+is2,
-     & i3,ex)-6*b3v*u(i1+2*is1,i2+2*is2,i3,ey)-12*bf*dra**3)/dra**3
+      f1f  =-1/12.*(b1u*dra**2*u(i1+2*is1,i2+2*is2,i3,ex)-8*b1u*dra**2*
+     & u(i1+is1,i2+is2,i3,ex)+b1v*dra**2*u(i1+2*is1,i2+2*is2,i3,ey)-8*
+     & b1v*dra**2*u(i1+is1,i2+is2,i3,ey)-12*bf*dra**3+b2u*dra*u(i1+2*
+     & is1,i2+2*is2,i3,ex)-16*b2u*dra*u(i1+is1,i2+is2,i3,ex)+b2v*dra*
+     & u(i1+2*is1,i2+2*is2,i3,ey)-16*b2v*dra*u(i1+is1,i2+is2,i3,ey)+
+     & 30*b2u*dra*u(i1,i2,i3,ex)+30*b2v*dra*u(i1,i2,i3,ey)-6*b3u*u(i1+
+     & 2*is1,i2+2*is2,i3,ex)+12*b3u*u(i1+is1,i2+is2,i3,ex)-6*b3v*u(i1+
+     & 2*is1,i2+2*is2,i3,ey)+12*b3v*u(i1+is1,i2+is2,i3,ey))/dra**3
 
       f2um2=1/12.*a11m2
       f2um1=-2/3.*a11m1
@@ -5130,37 +5132,37 @@ c write(*,'("initializeBoundaryForcing slowStartInterval=",e10.2)') slowStartInt
      & is2,i3,ey)-1/12.*a11p2*u(i1+2*is1,i2+2*is2,i3,ex)-1/12.*a12p2*
      & u(i1+2*is1,i2+2*is2,i3,ey)-Da1DotU*dra
 
-      u(i1-is1,i2-is2,i3,ey) = -1/(tau2**2*f1um2*f2um1-tau2**2*f1um1*
-     & f2um2+tau2*tau1*f1vm1*f2um2+tau2*f1um1*tau1*f2vm2-tau2*f1um2*
-     & tau1*f2vm1-tau1*f1vm2*tau2*f2um1-tau1**2*f1vm1*f2vm2+tau1**2*
-     & f1vm2*f2vm1)*(-tau1**2*f1f*f2vm2-f1um1*ttu1*tau1*f2vm2+tau2*
-     & f1um1*ttu1*f2um2-tau2*f1um2*f2um1*ttu1+tau1*f1vm2*f2um1*ttu1-
-     & tau2*f1um2*tau1*f2f+tau1*f1vm2*ttu2*f2um2-f1um2*tau1*f2vm2*
-     & ttu2+tau1**2*f1vm2*f2f+tau2*tau1*f1f*f2um2)
+      u(i1-2*is1,i2-2*is2,i3,ex) = (f1f*f2um1*tau2**2-f1f*f2vm1*tau1*
+     & tau2-f1um1*f2f*tau2**2-f1um1*f2vm1*tau2*ttu1-f1um1*f2vm2*tau2*
+     & ttu2+f1vm1*f2f*tau1*tau2+f1vm1*f2um1*tau2*ttu1+f1vm1*f2vm2*
+     & tau1*ttu2+f1vm2*f2um1*tau2*ttu2-f1vm2*f2vm1*tau1*ttu2)/(f1um1*
+     & f2um2*tau2**2-f1um1*f2vm2*tau1*tau2-f1um2*f2um1*tau2**2+f1um2*
+     & f2vm1*tau1*tau2-f1vm1*f2um2*tau1*tau2+f1vm1*f2vm2*tau1**2+
+     & f1vm2*f2um1*tau1*tau2-f1vm2*f2vm1*tau1**2)
 
-      u(i1-2*is1,i2-2*is2,i3,ey) = (tau1**2*f2f*f1vm1-tau1**2*f2vm1*
-     & f1f+tau1*f2um1*ttu1*f1vm1-tau1*f2vm1*f1um1*ttu1+tau1*tau2*
-     & f2um1*f1f-tau1*tau2*f2f*f1um1+ttu2*tau2*f1um2*f2um1-ttu2*tau2*
-     & f1um1*f2um2+ttu2*tau1*f1vm1*f2um2-ttu2*f1um2*tau1*f2vm1)/(tau2*
-     & *2*f1um2*f2um1-tau2**2*f1um1*f2um2+tau2*tau1*f1vm1*f2um2+tau2*
-     & f1um1*tau1*f2vm2-tau2*f1um2*tau1*f2vm1-tau1*f1vm2*tau2*f2um1-
-     & tau1**2*f1vm1*f2vm2+tau1**2*f1vm2*f2vm1)
+      u(i1-is1,i2-is2,i3,ex) = -(f1f*f2um2*tau2**2-f1f*f2vm2*tau1*tau2-
+     & f1um2*f2f*tau2**2-f1um2*f2vm1*tau2*ttu1-f1um2*f2vm2*tau2*ttu2+
+     & f1vm1*f2um2*tau2*ttu1-f1vm1*f2vm2*tau1*ttu1+f1vm2*f2f*tau1*
+     & tau2+f1vm2*f2um2*tau2*ttu2+f1vm2*f2vm1*tau1*ttu1)/(f1um1*f2um2*
+     & tau2**2-f1um1*f2vm2*tau1*tau2-f1um2*f2um1*tau2**2+f1um2*f2vm1*
+     & tau1*tau2-f1vm1*f2um2*tau1*tau2+f1vm1*f2vm2*tau1**2+f1vm2*
+     & f2um1*tau1*tau2-f1vm2*f2vm1*tau1**2)
 
-      u(i1-is1,i2-is2,i3,ex) = (-tau1*tau2*f1f*f2vm2-tau2**2*f1um2*f2f+
-     & f1vm2*ttu2*tau2*f2um2-tau2*f1um2*f2vm2*ttu2+tau1*f1vm2*tau2*
-     & f2f+tau2**2*f1f*f2um2+ttu1*tau2*f1vm1*f2um2-ttu1*tau2*f1um2*
-     & f2vm1-ttu1*tau1*f1vm1*f2vm2+ttu1*tau1*f1vm2*f2vm1)/(tau2**2*
-     & f1um2*f2um1-tau2**2*f1um1*f2um2+tau2*tau1*f1vm1*f2um2+tau2*
-     & f1um1*tau1*f2vm2-tau2*f1um2*tau1*f2vm1-tau1*f1vm2*tau2*f2um1-
-     & tau1**2*f1vm1*f2vm2+tau1**2*f1vm2*f2vm1)
+      u(i1-2*is1,i2-2*is2,i3,ey) = -(f1f*f2um1*tau1*tau2-f1f*f2vm1*
+     & tau1**2-f1um1*f2f*tau1*tau2-f1um1*f2um2*tau2*ttu2-f1um1*f2vm1*
+     & tau1*ttu1+f1um2*f2um1*tau2*ttu2-f1um2*f2vm1*tau1*ttu2+f1vm1*
+     & f2f*tau1**2+f1vm1*f2um1*tau1*ttu1+f1vm1*f2um2*tau1*ttu2)/(
+     & f1um1*f2um2*tau2**2-f1um1*f2vm2*tau1*tau2-f1um2*f2um1*tau2**2+
+     & f1um2*f2vm1*tau1*tau2-f1vm1*f2um2*tau1*tau2+f1vm1*f2vm2*tau1**
+     & 2+f1vm2*f2um1*tau1*tau2-f1vm2*f2vm1*tau1**2)
 
-      u(i1-2*is1,i2-2*is2,i3,ex) = (-f2vm2*ttu2*f1vm1*tau1+f2vm2*ttu2*
-     & tau2*f1um1-tau1*tau2*f2f*f1vm1+tau1*ttu2*f1vm2*f2vm1+tau1*tau2*
-     & f2vm1*f1f-tau2*f2um1*ttu1*f1vm1-ttu2*f1vm2*tau2*f2um1+tau2*
-     & f2vm1*f1um1*ttu1-tau2**2*f2um1*f1f+tau2**2*f2f*f1um1)/(tau2**2*
-     & f1um2*f2um1-tau2**2*f1um1*f2um2+tau2*tau1*f1vm1*f2um2+tau2*
-     & f1um1*tau1*f2vm2-tau2*f1um2*tau1*f2vm1-tau1*f1vm2*tau2*f2um1-
-     & tau1**2*f1vm1*f2vm2+tau1**2*f1vm2*f2vm1)
+      u(i1-is1,i2-is2,i3,ey) = (f1f*f2um2*tau1*tau2-f1f*f2vm2*tau1**2+
+     & f1um1*f2um2*tau2*ttu1-f1um1*f2vm2*tau1*ttu1-f1um2*f2f*tau1*
+     & tau2-f1um2*f2um1*tau2*ttu1-f1um2*f2vm2*tau1*ttu2+f1vm2*f2f*
+     & tau1**2+f1vm2*f2um1*tau1*ttu1+f1vm2*f2um2*tau1*ttu2)/(f1um1*
+     & f2um2*tau2**2-f1um1*f2vm2*tau1*tau2-f1um2*f2um1*tau2**2+f1um2*
+     & f2vm1*tau1*tau2-f1vm1*f2um2*tau1*tau2+f1vm1*f2vm2*tau1**2+
+     & f1vm2*f2um1*tau1*tau2-f1vm2*f2vm1*tau1**2)
 
 
  ! *********** done *********************

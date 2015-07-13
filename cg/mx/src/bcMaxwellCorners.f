@@ -277,6 +277,27 @@ c Helper function: Return minus the second time derivative
 
 
 
+! -------------------------------------------------------------------------------------------------------
+! Macro: third-order extrapolation:
+!    (j1,j2,j3)    : point to extrapolate
+!    (is1,is2,is3) : direction to extrapolate
+! -------------------------------------------------------------------------------------------------------
+
+! -------------------------------------------------------------------------------------------------------
+! Macro: fifth-order extrapolation:
+!    (j1,j2,j3)    : point to extrapolate
+!    (is1,is2,is3) : direction to extrapolate
+! -------------------------------------------------------------------------------------------------------
+
+! -------------------------------------------------------------------------------------------------------
+!  Macro: 3rd-order extrapolation
+! -------------------------------------------------------------------------------------------------------
+
+! -------------------------------------------------------------------------------------------------------
+!  Macro: 5th-order extrapolation
+! -------------------------------------------------------------------------------------------------------
+
+
 ! ===============================================================================
 !  Set the tangential component to zero on the boundary in 2D
 ! ===============================================================================
@@ -347,12 +368,12 @@ c Helper function: Return minus the second time derivative
 
 
 
-! ***************************************************************************
-! ****************Assign Points Outside of Edges*****************************
+! *********************************************************************************
+! ****************Assign Ghost Points Outside of Edges*****************************
 !
 !   GRIDTYPE: rectangular, curvilinear
 !   ORDER: 2, 4, 6, ..
-! ***************************************************************************
+! *********************************************************************************
 
 
 
@@ -364,7 +385,7 @@ c Helper function: Return minus the second time derivative
 !   Assign edges and corner points next to edges in 3D
 !
 !  Set the normal component of the solution on the extended boundaries (points N in figure)
-!  Set the corner points "C" and points outside vertices
+!      Note: the corner ghost points "C" are set in assignEdgeCorners, called below
 !              |
 !              X
 !              |

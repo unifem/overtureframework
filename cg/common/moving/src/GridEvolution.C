@@ -101,7 +101,8 @@ addGrid( const realArray & x, real t )
   
   if( numberOfTimeLevels!=0 )
   {
-    if( t <= time(current) )
+    // if( t <= time(current) && t<=0. ) // *wdh* aded t<=0 2015/07/04
+    if( t <= time(current) ) 
     {
       // -- This could be a grid with t<0 for starting a simulation. --
       //    Add it to the start of the list
@@ -109,14 +110,17 @@ addGrid( const realArray & x, real t )
       // NOTE: We should generalize this to  adding any number of previous grids
       // NOTE: What happens if we want to replace a grid with an improved one ??
          
-      if( numberOfTimeLevels==maximumNumberOfTimeLevels )
+      if( t <time(current) && time(current)==0. ) //  && numberOfTimeLevels==1 && current==0 )
       {
-	printF("--GE-- addGrid:ERROR: attempting to add past a time grid at t=%8.2e but numberOfTimeLevels==maximumNumberOfTimeLevels=%i\n",
-	       t,numberOfTimeLevels);
-        return 1;
-      }
-      else if( t <time(current) && time(current)==0. ) //  && numberOfTimeLevels==1 && current==0 )
-      {
+
+	if( numberOfTimeLevels==maximumNumberOfTimeLevels )
+	{
+	  printF("--GE-- addGrid:ERROR: attempting to add a past time grid at t=%12.6e (time(current)=%12.6e)"
+                 " but numberOfTimeLevels==maximumNumberOfTimeLevels=%i\n",
+		 t, time(current), numberOfTimeLevels);
+	  return 1;
+	}
+
         // find where to put the next past time level 
         // we will insert the past time level at position=prev
         int prev=current;    //  start here and check backwards..
@@ -129,7 +133,7 @@ addGrid( const realArray & x, real t )
 	    break;
 	}
 	
-	printF("--GE-- addGrid: add past time grid at t=%8.2e to position prev=%i\n",t,prev);
+	printF("--GE-- addGrid: add a past time grid at t=%8.2e to position prev=%i\n",t,prev);
         gridList.addElement(x,prev); // insert into the list here 
 
         // Shift the times:

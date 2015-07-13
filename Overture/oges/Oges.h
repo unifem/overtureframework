@@ -129,6 +129,9 @@ class Oges
   // return solution values from the extra equations
   int getExtraEquationValues( const realCompositeGridFunction & u, real *value );
 
+  int setCommunicator( MPI_Comm & comm );
+  MPI_Comm & getCommunicator();
+
   // evaluate the dot product of an extra equation times u 
   int evaluateExtraEquation( const realCompositeGridFunction & u, real & value, int extraEquation=0 );
 
@@ -282,6 +285,8 @@ class Oges
   // Here is where we keep the objects that interface to various solvers: yale, harwell, slap, petsc..
   EquationSolver *equationSolver[maximumNumberOfEquationSolvers];
   
+  static MPI_Comm OGES_COMM_WORLD;  
+
   // Here is the new place to store parameters:
   DataBase dbase;
 

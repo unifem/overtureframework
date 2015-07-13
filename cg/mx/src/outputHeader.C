@@ -164,8 +164,8 @@ outputHeader()
     fPrintF(file," materialInterfaceOption=%i (1=extrap ghost as initial guess)\n",materialInterfaceOption);
     fPrintF(file," interfaceEquationsOption=%i (0=use extrap for 2nd ghost, 1=use equations for 3D order 4)\n",
             interfaceEquationsOption);
-    fPrintF(file," number of interface interations=%i, omega=%5.2f \n",numberOfIterationsForInterfaceBC,
-                   omegaForInterfaceIteration);
+    fPrintF(file," number of interface interations=%i, omega=%5.2f, use new interface routines=%i \n",numberOfIterationsForInterfaceBC,
+	    omegaForInterfaceIteration,(int)useNewInterfaceRoutines);
 
     if( numberOfMaterialRegions>1 )
     {

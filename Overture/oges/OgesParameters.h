@@ -218,6 +218,9 @@ class OgesParameters
   int set( OptionEnum option, float value );
   int set( OptionEnum option, double value );
 	   		      
+  int setCommunicator( MPI_Comm & comm );
+  MPI_Comm & getCommunicator();
+
   // set a PETSc option 
   int setPetscOption( const aString & name, const aString & value );
   bool getPetscOption( const aString & name, aString & value ) const;
@@ -302,6 +305,9 @@ class OgesParameters
   bool keepSparseMatrix;            // keep ia,ja,a sparse matrix even it not needed by the solver
   bool removeSolutionAndRHSVector;    // de-allocate sol and rhs vector after every solve
   bool removeSparseMatrixFactorization; // de-allocate sparse matrix factorization after solving.
+
+  // Parallel communicator used by an Oges solver (different solvers may have different communicators)
+  MPI_Comm OGES_COMM;  
 
   OgmgParameters *ogmgParameters;
 

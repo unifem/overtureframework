@@ -15,6 +15,44 @@
 ! Here are macros that define the planeWave solution
 #Include "planeWave.h"
 
+! -------------------------------------------------------------------------------------------------------
+! Macro: third-order extrapolation:
+!    (j1,j2,j3)    : point to extrapolate
+!    (is1,is2,is3) : direction to extrapolate
+! -------------------------------------------------------------------------------------------------------
+#defineMacro extrapolate3(ec,j1,j2,j3,is1,is2,is3)\
+      ( 3.*u(j1+  is1,j2+  is2,j3+  is3,ec)\
+       -3.*u(j1+2*is1,j2+2*is2,j3+2*is3,ec) \
+       +   u(j1+3*is1,j2+3*is2,j3+3*is3,ec) )
+
+! -------------------------------------------------------------------------------------------------------
+! Macro: fifth-order extrapolation:
+!    (j1,j2,j3)    : point to extrapolate
+!    (is1,is2,is3) : direction to extrapolate
+! -------------------------------------------------------------------------------------------------------
+#defineMacro extrapolate5(ec,j1,j2,j3,is1,is2,is3)\
+      ( 5.*u(j1+  is1,j2+  is2,j3+  is3,ec)\
+      -10.*u(j1+2*is1,j2+2*is2,j3+2*is3,ec)\
+      +10.*u(j1+3*is1,j2+3*is2,j3+3*is3,ec)\
+       -5.*u(j1+4*is1,j2+4*is2,j3+4*is3,ec)\
+      +    u(j1+5*is1,j2+5*is2,j3+5*is3,ec) ) 
+
+! -------------------------------------------------------------------------------------------------------
+!  Macro: 3rd-order extrapolation
+! -------------------------------------------------------------------------------------------------------
+#defineMacro extrap3(uu,k1,k2,k3,kc,ks1,ks2,ks3) \
+            (3.*uu(k1,k2,k3,kc)-3.*uu(k1+ks1,k2+ks2,k3+ks3,kc)\
+            +   uu(k1+2*ks1,k2+2*ks2,k3+2*ks3,kc))
+
+! -------------------------------------------------------------------------------------------------------
+!  Macro: 5th-order extrapolation
+! -------------------------------------------------------------------------------------------------------
+#defineMacro extrap5(uu,k1,k2,k3,kc,ks1,ks2,ks3) \
+            (5.*uu(k1,k2,k3,kc)-10.*uu(k1+ks1,k2+ks2,k3+ks3,kc)\
+            +10.*uu(k1+2*ks1,k2+2*ks2,k3+2*ks3,kc)-5.*uu(k1+3*ks1,k2+3*ks2,k3+3*ks3,kc)\
+            +uu(k1+4*ks1,k2+4*ks2,k3+4*ks3,kc))
+
+
 ! ===============================================================================
 !  Set the tangential component to zero on the boundary in 2D
 ! ===============================================================================
@@ -1158,12 +1196,12 @@
 
 
 
-! ***************************************************************************
-! ****************Assign Points Outside of Edges*****************************
+! *********************************************************************************
+! ****************Assign Ghost Points Outside of Edges*****************************
 !
 !   GRIDTYPE: rectangular, curvilinear
 !   ORDER: 2, 4, 6, ..
-! ***************************************************************************
+! *********************************************************************************
 #beginMacro assignEdgeCorners(ORDER,GRIDTYPE,FORCING)
 
  do edgeDirection=0,2 ! direction parallel to the edge
@@ -1184,6 +1222,8 @@
     side3=0
   end if
 
+ extra=numberOfGhostPoints  ! assign the extended boundary *wdh* 2015/06/23
+
  is1=1-2*(side1)
  is2=1-2*(side2)
  is3=1-2*(side3)
@@ -1193,24 +1233,24 @@
   n1b=gridIndexRange(side1,0)
   n2a=gridIndexRange(side2,1)
   n2b=gridIndexRange(side2,1)
-  n3a=gridIndexRange(0,2)
-  n3b=gridIndexRange(1,2)
+  n3a=gridIndexRange(0,2)-extra
+  n3b=gridIndexRange(1,2)+extra
   bc1=boundaryCondition(side1,0)
   bc2=boundaryCondition(side2,1)
  else if( edgeDirection.eq.1 )then
   is2=0
   n1a=gridIndexRange(side1,0)
   n1b=gridIndexRange(side1,0)
-  n2a=gridIndexRange(    0,1)
-  n2b=gridIndexRange(    1,1)
+  n2a=gridIndexRange(    0,1)-extra
+  n2b=gridIndexRange(    1,1)+extra
   n3a=gridIndexRange(side3,2)
   n3b=gridIndexRange(side3,2)
   bc1=boundaryCondition(side1,0)
   bc2=boundaryCondition(side3,2)
  else 
   is1=0  
-  n1a=gridIndexRange(    0,0)
-  n1b=gridIndexRange(    1,0)
+  n1a=gridIndexRange(    0,0)-extra
+  n1b=gridIndexRange(    1,0)+extra
   n2a=gridIndexRange(side2,1)
   n2b=gridIndexRange(side2,1)
   n3a=gridIndexRange(side3,2)
@@ -1223,7 +1263,8 @@
  #If #GRIDTYPE == "rectangular"
 
  ! *********************************************************
- ! ************* rectangular *******************************
+ ! ************* Assign Ghost near two faces ***************
+ ! *************       CARTESIAN              **************
  ! *********************************************************
 
  do m1=1,numberOfGhostPoints
@@ -1244,32 +1285,111 @@
     js3=is3*m2
   end if 
 
-  if( bc1.eq.perfectElectricalConductor .and.\
+  if( bc1.eq.perfectElectricalConductor .and. \
       bc2.eq.perfectElectricalConductor )then
 
    ! *********************************************************
-   ! ************* PEC EDGE BC********************************
+   ! ************* PEC EDGE BC (CARTESIAN) *******************
    ! *********************************************************
 
+   ! bug fixed *wdh* 2015/07/12 -- one component is even along an edge
+
+   if( edgeDirection.eq.0 )then
+    ! --- edge parallel to the x-axis ----
+    !  Ey and Ez are odd, Ex is even 
     do i3=n3a,n3b
     do i2=n2a,n2b
     do i1=n1a,n1b
-
+      ! We could check the mask ***
      #If #FORCING == "twilightZone"
        OGF3DFO(i1,i2,i3,t,u0,v0,w0)
        OGF3DFO(i1-js1,i2-js2,i3-js3,t, um,vm,wm)
        OGF3DFO(i1+js1,i2+js2,i3+js3,t, up,vp,wp)
-       g1=um-2.*u0+up
+       g1=um      -up
        g2=vm-2.*v0+vp
        g3=wm-2.*w0+wp
      #End
-     u(i1-js1,i2-js2,i3-js3,ex)=2.*u(i1,i2,i3,ex)-u(i1+js1,i2+js2,i3+js3,ex) +g1
+     u(i1-js1,i2-js2,i3-js3,ex)=                  u(i1+js1,i2+js2,i3+js3,ex) +g1
      u(i1-js1,i2-js2,i3-js3,ey)=2.*u(i1,i2,i3,ey)-u(i1+js1,i2+js2,i3+js3,ey) +g2
      u(i1-js1,i2-js2,i3-js3,ez)=2.*u(i1,i2,i3,ez)-u(i1+js1,i2+js2,i3+js3,ez) +g3
 
     end do ! end do i1
     end do ! end do i2
     end do ! end do i3
+   else if( edgeDirection.eq.1 )then
+    ! --- edge parallel to the y-axis ----
+    !  Ex and Ez are odd, Ey is even 
+    do i3=n3a,n3b
+    do i2=n2a,n2b
+    do i1=n1a,n1b
+      ! We could check the mask ***
+     #If #FORCING == "twilightZone"
+       OGF3DFO(i1,i2,i3,t,u0,v0,w0)
+       OGF3DFO(i1-js1,i2-js2,i3-js3,t, um,vm,wm)
+       OGF3DFO(i1+js1,i2+js2,i3+js3,t, up,vp,wp)
+       g1=um-2.*u0+up
+       g2=vm      -vp
+       g3=wm-2.*w0+wp
+     #End
+     u(i1-js1,i2-js2,i3-js3,ex)=2.*u(i1,i2,i3,ex)-u(i1+js1,i2+js2,i3+js3,ex) +g1
+     u(i1-js1,i2-js2,i3-js3,ey)=                  u(i1+js1,i2+js2,i3+js3,ey) +g2
+     u(i1-js1,i2-js2,i3-js3,ez)=2.*u(i1,i2,i3,ez)-u(i1+js1,i2+js2,i3+js3,ez) +g3
+
+    end do ! end do i1
+    end do ! end do i2
+    end do ! end do i3
+   else
+    ! --- edge parallel to the z-axis ----
+    !  Ex and Ey are odd, Ez is even 
+    do i3=n3a,n3b
+    do i2=n2a,n2b
+    do i1=n1a,n1b
+      ! We could check the mask ***
+     #If #FORCING == "twilightZone"
+       OGF3DFO(i1,i2,i3,t,u0,v0,w0)
+       OGF3DFO(i1-js1,i2-js2,i3-js3,t, um,vm,wm)
+       OGF3DFO(i1+js1,i2+js2,i3+js3,t, up,vp,wp)
+       g1=um-2.*u0+up
+       g2=vm-2.*v0+vp
+       g3=wm      -wp
+     #End
+     u(i1-js1,i2-js2,i3-js3,ex)=2.*u(i1,i2,i3,ex)-u(i1+js1,i2+js2,i3+js3,ex) +g1
+     u(i1-js1,i2-js2,i3-js3,ey)=2.*u(i1,i2,i3,ey)-u(i1+js1,i2+js2,i3+js3,ey) +g2
+     u(i1-js1,i2-js2,i3-js3,ez)=                  u(i1+js1,i2+js2,i3+js3,ez) +g3
+
+    end do ! end do i1
+    end do ! end do i2
+    end do ! end do i3
+   end if
+
+  else if( bc1.eq.perfectElectricalConductor .or. \
+           bc2.eq.perfectElectricalConductor )then
+
+   ! *********************************************************************
+   ! ******* PEC FACE ADJACENT to NON-PEC FACE (CARTESIAN) ***************
+   ! *********************************************************************
+    
+   ! -- assign edge ghost where a PEC face meets an interp face (e.g. twoBox)
+   !     *wdh* 2015/07/11 
+    do i3=n3a,n3b
+    do i2=n2a,n2b
+    do i1=n1a,n1b
+      ! We could check the mask ***
+     #If #ORDER == "2"
+       u(i1-js1,i2-js2,i3-js3,ex)=extrap3(u,i1,i2,i3,ex,js1,js2,js3)
+       u(i1-js1,i2-js2,i3-js3,ey)=extrap3(u,i1,i2,i3,ey,js1,js2,js3)
+       u(i1-js1,i2-js2,i3-js3,ez)=extrap3(u,i1,i2,i3,ez,js1,js2,js3)
+     #Elif #ORDER == "4" 
+       u(i1-js1,i2-js2,i3-js3,ex)=extrap5(u,i1,i2,i3,ex,js1,js2,js3)
+       u(i1-js1,i2-js2,i3-js3,ey)=extrap5(u,i1,i2,i3,ey,js1,js2,js3)
+       u(i1-js1,i2-js2,i3-js3,ez)=extrap5(u,i1,i2,i3,ez,js1,js2,js3)
+     #Else
+       stop 8827
+     #End
+    end do ! end do i1
+    end do ! end do i2
+    end do ! end do i3
+
 
   else if( bc1.eq.dirichlet .or. bc2.eq.dirichlet )then
 
@@ -1310,9 +1430,11 @@
  end do ! end do m2
 
  #Elif #GRIDTYPE == "curvilinear"
- ! ********************************************************
- ! ********** curvilinear *********************************
- ! ********************************************************
+
+ ! *********************************************************
+ ! ************* Assign Ghost near two faces ***************
+ ! *************       CURVILINEAR            **************
+ ! *********************************************************
 
   ls1=is1  ! save for extrapolation
   ls2=is2
@@ -1371,11 +1493,11 @@
   dsa=dr(axisp1)*(1-2*sideb) 
   dta=dr(axisp2)
 
-  if( bc1.eq.perfectElectricalConductor .and.\
+  if( bc1.eq.perfectElectricalConductor .and. \
       bc2.eq.perfectElectricalConductor )then
 
    ! *********************************************************
-   ! ************* PEC EDGE BC********************************
+   ! ************* PEC EDGE BC (CURVILINEAR) *****************
    ! *********************************************************
 
     if( debug.gt.0 )then
@@ -1387,6 +1509,10 @@
     do i3=n3a,n3b
     do i2=n2a,n2b
     do i1=n1a,n1b
+    ! Check the mask:  *wdh* 2015/06/24
+    if( mask(i1,i2,i3).gt.0 .and. i1.ge.gridIndexRange(0,0) .and. i1.le.gridIndexRange(1,0) \
+                            .and. i2.ge.gridIndexRange(0,1) .and. i2.le.gridIndexRange(1,1) \
+                            .and. i3.ge.gridIndexRange(0,2) .and. i3.le.gridIndexRange(1,2) )then
 
      defineCornerEdgeMetricDerivatives1(ORDER)
      getCornerEdgeDerivatives1(ORDER)
@@ -1742,9 +1868,113 @@
      end do
      end do ! m1
 
+    else 
+      ! ---------------- fill in ghost by extrapolation  --------------
+      !  *wdh* 2016/06/24 
+      ! loop over different ghost points here -- could make a single loop, 1...4 and use arrays of ms1(m) 
+     do m1=1,numberOfGhostPoints
+     do m2=1,numberOfGhostPoints
+
+      if( edgeDirection.eq.0 )then 
+        ns1=0
+        ns2=(1-2*side2)
+        ns3=(1-2*side3)
+        ms1=0
+        ms2=(1-2*side2)*m1
+        ms3=(1-2*side3)*m2
+      else if( edgeDirection.eq.1 )then 
+        ns2=0
+        ns3=(1-2*side3)
+        ns1=(1-2*side1)
+        ms2=0
+        ms3=(1-2*side3)*m1
+        ms1=(1-2*side1)*m2
+      else 
+        ns3=0
+        ns1=(1-2*side1)
+        ns2=(1-2*side2)
+        ms3=0
+        ms1=(1-2*side1)*m1
+        ms2=(1-2*side2)*m2
+      end if 
+      #If #ORDER == "4"
+       u(i1-ms1,i2-ms2,i3-ms3,ex)=extrapolate5(ex,i1-ms1,i2-ms2,i3-ms3,ns1,ns2,ns3)
+       u(i1-ms1,i2-ms2,i3-ms3,ey)=extrapolate5(ey,i1-ms1,i2-ms2,i3-ms3,ns1,ns2,ns3)
+       u(i1-ms1,i2-ms2,i3-ms3,ez)=extrapolate5(ez,i1-ms1,i2-ms2,i3-ms3,ns1,ns2,ns3)
+      #Elif #ORDER == "2"
+       u(i1-ms1,i2-ms2,i3-ms3,ex)=extrapolate3(ex,i1-ms1,i2-ms2,i3-ms3,ns1,ns2,ns3)
+       u(i1-ms1,i2-ms2,i3-ms3,ey)=extrapolate3(ey,i1-ms1,i2-ms2,i3-ms3,ns1,ns2,ns3)
+       u(i1-ms1,i2-ms2,i3-ms3,ez)=extrapolate3(ez,i1-ms1,i2-ms2,i3-ms3,ns1,ns2,ns3)
+      #Else
+        stop 88267
+      #End
+
+     end do ! m2
+     end do ! m1
+
+    end if  ! end if mask
     end do ! end do i1
     end do ! end do i2
     end do ! end do i3
+
+  else if( bc1.eq.perfectElectricalConductor .or. \
+           bc2.eq.perfectElectricalConductor )then
+
+   ! ***************************************************************************
+   ! ************* PEC FACE ON ONE ADJACENT FACE (CURVILINEAR) *****************
+   ! ***************************************************************************
+
+    ! *new* *wdh*  2015/07/12 
+    do i3=n3a,n3b
+    do i2=n2a,n2b
+    do i1=n1a,n1b
+    if( mask(i1,i2,i3).ne.0 )then
+     ! ---------------- fill in ghost by extrapolation  --------------
+     do m1=1,numberOfGhostPoints
+     do m2=1,numberOfGhostPoints
+
+      if( edgeDirection.eq.0 )then 
+        ns1=0
+        ns2=(1-2*side2)
+        ns3=(1-2*side3)
+        ms1=0
+        ms2=(1-2*side2)*m1
+        ms3=(1-2*side3)*m2
+      else if( edgeDirection.eq.1 )then 
+        ns2=0
+        ns3=(1-2*side3)
+        ns1=(1-2*side1)
+        ms2=0
+        ms3=(1-2*side3)*m1
+        ms1=(1-2*side1)*m2
+      else 
+        ns3=0
+        ns1=(1-2*side1)
+        ns2=(1-2*side2)
+        ms3=0
+        ms1=(1-2*side1)*m1
+        ms2=(1-2*side2)*m2
+      end if 
+      #If #ORDER == "4"
+       u(i1-ms1,i2-ms2,i3-ms3,ex)=extrapolate5(ex,i1-ms1,i2-ms2,i3-ms3,ns1,ns2,ns3)
+       u(i1-ms1,i2-ms2,i3-ms3,ey)=extrapolate5(ey,i1-ms1,i2-ms2,i3-ms3,ns1,ns2,ns3)
+       u(i1-ms1,i2-ms2,i3-ms3,ez)=extrapolate5(ez,i1-ms1,i2-ms2,i3-ms3,ns1,ns2,ns3)
+      #Elif #ORDER == "2"
+       u(i1-ms1,i2-ms2,i3-ms3,ex)=extrapolate3(ex,i1-ms1,i2-ms2,i3-ms3,ns1,ns2,ns3)
+       u(i1-ms1,i2-ms2,i3-ms3,ey)=extrapolate3(ey,i1-ms1,i2-ms2,i3-ms3,ns1,ns2,ns3)
+       u(i1-ms1,i2-ms2,i3-ms3,ez)=extrapolate3(ez,i1-ms1,i2-ms2,i3-ms3,ns1,ns2,ns3)
+      #Else
+        stop 88267
+      #End
+
+     end do ! m2
+     end do ! m1
+
+    end if  ! end if mask
+    end do ! end do i1
+    end do ! end do i2
+    end do ! end do i3
+
 
   else if( bc1.eq.dirichlet .or. bc2.eq.dirichlet )then
 
@@ -1824,7 +2054,7 @@
 !   Assign edges and corner points next to edges in 3D
 !
 !  Set the normal component of the solution on the extended boundaries (points N in figure)
-!  Set the corner points "C" and points outside vertices
+!      Note: the corner ghost points "C" are set in assignEdgeCorners, called below
 !              |
 !              X
 !              |
@@ -1896,9 +2126,12 @@
 
  ! ********************************************************************
  ! ***************Assign Extended boundary points**********************
+ ! ************** on an edge between two faces   ********************** 
  ! ********************************************************************
 
  #If #GRIDTYPE == "rectangular" 
+
+  ! ************** CARTESIAN -- EXTENDED NEAR TWO FACES ************
   do m=1,numberOfGhostPoints
 
    js1=is1*m  ! shift to ghost point "m"
@@ -2014,6 +2247,8 @@
    
  #Elif #GRIDTYPE == "curvilinear"
 
+  ! ************** CURVILINEAR -- EXTENDED NEAR TWO FACES ************
+
   is1=0
   is2=0
   is3=0
@@ -2065,12 +2300,15 @@
 ! if( orderOfAccuracy.eq.4 )then
   #If #ORDER == "4"
 
+  ! ************** CURVILINEAR -- EXTENDED NEAR TWO FACES ************
+  ! **************              ORDER 4                   ************
    if( bc1.eq.perfectElectricalConductor .and.\
        bc2.eq.perfectElectricalConductor )then
 
      do i3=n3a,n3b
      do i2=n2a,n2b
      do i1=n1a,n1b
+     if( mask(i1,i2,i3).gt.0 )then ! *wdh* 2015/06/24
 
        c11 = C11D3(i1,i2,i3)
        c22 = C22D3(i1,i2,i3)
@@ -2181,238 +2419,238 @@
 #Include "bcExtended3d4.h"
 
        #If #FORCING == "twilightZone"
-        if( debug.gt.1 )then
-         write(*,'(/," bce4: extended:(i1,i2,i3)=",3i5," is=",3i2," js=",3i2," ks=",3i2)') i1,i2,i3,is1,is2,is3,\
-               js1,js2,js3,ks1,ks2,ks3
-         write(*,'(" bce4: c11,c22,c33,c1,c2,c3, DeltaU,DeltaV,DeltaW=",9f6.2)') c11,c22,c33,c1,c2,c3, DeltaU,DeltaV,DeltaW
-        end if
-        if( debug.gt.0 )then
-         OGF3DFO(i1-is1,i2-is2,i3-is3,t, uvm(0),uvm(1),uvm(2))
-         OGF3DFO(i1-2*is1,i2-2*is2,i3-2*is3,t, uvm2(0),uvm2(1),uvm2(2))
-         write(*,'(" bce4: extended: (i1,i2,i3)=",3i4," err(-1,0),(-2,0)=",6e9.1)') i1,i2,i3,\
-           u(i1-  is1,i2-  is2,i3-  is3,ex)-uvm(0),\
-           u(i1-  is1,i2-  is2,i3-  is3,ey)-uvm(1),\
-           u(i1-  is1,i2-  is2,i3-  is3,ez)-uvm(2),\
-           u(i1-2*is1,i2-2*is2,i3-2*is3,ex)-uvm2(0),\
-           u(i1-2*is1,i2-2*is2,i3-2*is3,ey)-uvm2(1),\
-           u(i1-2*is1,i2-2*is2,i3-2*is3,ez)-uvm2(2)
-         ! '
-        end if
-        if( debug.gt.1 )then
-         write(*,'(" bce4: true(-1,0),(-2,0)    =",6f7.2)') uvm(0),uvm(1),uvm(2),uvm2(0),uvm2(1), uvm2(2)
-         write(*,'(" bce4: computed(-1,0),(-2,0)=",6f7.2)') \
-           u(i1-  is1,i2-  is2,i3-  is3,ex),\
-           u(i1-  is1,i2-  is2,i3-  is3,ey),\
-           u(i1-  is1,i2-  is2,i3-  is3,ez),\
-           u(i1-2*is1,i2-2*is2,i3-2*is3,ex),\
-           u(i1-2*is1,i2-2*is2,i3-2*is3,ey),\
-           u(i1-2*is1,i2-2*is2,i3-2*is3,ez)
-        end if
-        if( debug.gt.0 )then
-         OGF3DFO(i1-js1,i2-js2,i3-js3,t, uvm(0),uvm(1),uvm(2))
-         OGF3DFO(i1-2*js1,i2-2*js2,i3-2*js3,t, uvm2(0),uvm2(1),uvm2(2))
-         write(*,'(" bce4: extended: (i1,i2,i3)=",3i4," err(0,-1),(0,-2)=",6e9.1)') i1,i2,i3,\
-           u(i1-  js1,i2-  js2,i3-  js3,ex)-uvm(0),\
-           u(i1-  js1,i2-  js2,i3-  js3,ey)-uvm(1),\
-           u(i1-  js1,i2-  js2,i3-  js3,ez)-uvm(2),\
-           u(i1-2*js1,i2-2*js2,i3-2*js3,ex)-uvm2(0),\
-           u(i1-2*js1,i2-2*js2,i3-2*js3,ey)-uvm2(1),\
-           u(i1-2*js1,i2-2*js2,i3-2*js3,ez)-uvm2(2)
-         ! '
-        end if
-        if( debug.gt.1 )then
-         write(*,'(" bce4: true(0,-1),(0,-2)    =",6f7.2)') uvm(0),uvm(1),uvm(2),uvm2(0),uvm2(1), uvm2(2)
-         write(*,'(" bce4: computed(0,-1),(0,-2)=",6f7.2)') \
-           u(i1-  js1,i2-  js2,i3-  js3,ex),\
-           u(i1-  js1,i2-  js2,i3-  js3,ey),\
-           u(i1-  js1,i2-  js2,i3-  js3,ez),\
-           u(i1-2*js1,i2-2*js2,i3-2*js3,ex),\
-           u(i1-2*js1,i2-2*js2,i3-2*js3,ey),\
-           u(i1-2*js1,i2-2*js2,i3-2*js3,ez)
-        end if
-
-        if( debug.gt.1 )then
-         m1=i1-is1
-         m2=i2-is2
-         m3=i3-is3
-         OGF3DFO(m1,m2,m3,t, uvm(0),uvm(1),uvm(2))
-         write(*,'(" bce4:tan-comp: err(a1.u1,a3.u1)=",2e10.2)') \
-              A11D3(m1,m2,m3)*(u(m1,m2,m3,ex)-uvm(0))+\
-              A12D3(m1,m2,m3)*(u(m1,m2,m3,ey)-uvm(1))+\
-              A13D3(m1,m2,m3)*(u(m1,m2,m3,ez)-uvm(2)), \
-              A31D3(m1,m2,m3)*(u(m1,m2,m3,ex)-uvm(0))+\
-              A32D3(m1,m2,m3)*(u(m1,m2,m3,ey)-uvm(1))+\
-              A33D3(m1,m2,m3)*(u(m1,m2,m3,ez)-uvm(2))
-
-         
-         write(*,'(" bce4:tan: u1[k] = b1[k] + g1[k]")')
-         a11c=A11D3(m1,m2,m3)
-         a12c=A12D3(m1,m2,m3)
-         a13c=A13D3(m1,m2,m3)
-         a21c=A21D3(m1,m2,m3)
-         a22c=A22D3(m1,m2,m3)
-         a23c=A23D3(m1,m2,m3)
-         a31c=A31D3(m1,m2,m3)
-         a32c=A32D3(m1,m2,m3)
-         a33c=A33D3(m1,m2,m3)
-         write(*,'(" bce4:tan: (a11,a12,a13)=(",3e10.2,")")') a11c,a12c,a13c
-         write(*,'(" bce4:tan: (a21,a22,a23)=(",3e10.2,")")') a21c,a22c,a23c
-         write(*,'(" bce4:tan: (a31,a32,a33)=(",3e10.2,")")') a31c,a32c,a33c
-         write(*,'(" bce4:tan: (b11,b12,b13)=(",3e10.2,") (g11,g12,g12)=(",3e10.2,")")') b11,b12,b13,g11,g12,g13
-         ! '
-         write(*,'(" bce4:tan: a1Dotu1-a1.g1 =",e10.2,", a3Dotu1-a3.g1 =",e10.2)') \
-                      a1Dotu1-(a11c*g11+a12c*g12+a13c*g13),\
-                      a3Dotu1-(a31c*g11+a32c*g12+a33c*g13)
-         ! '
-         m1=i1-2*is1
-         m2=i2-2*is2
-         m3=i3-2*is3
-         OGF3DFO(m1,m2,m3,t, uvm(0),uvm(1),uvm(2))
-         write(*,'(" bce4:tan-comp: err(a1.u2,a3.u2)=",2e10.2)') \
-              A11D3(m1,m2,m3)*(u(m1,m2,m3,ex)-uvm(0))+\
-              A12D3(m1,m2,m3)*(u(m1,m2,m3,ey)-uvm(1))+\
-              A13D3(m1,m2,m3)*(u(m1,m2,m3,ez)-uvm(2)), \
-              A31D3(m1,m2,m3)*(u(m1,m2,m3,ex)-uvm(0))+\
-              A32D3(m1,m2,m3)*(u(m1,m2,m3,ey)-uvm(1))+\
-              A33D3(m1,m2,m3)*(u(m1,m2,m3,ez)-uvm(2))
-
-         write(*,'(" bce4:tan: u2[k] = b2[k] + g2[k]")')
-         a11c=A11D3(m1,m2,m3)
-         a12c=A12D3(m1,m2,m3)
-         a13c=A13D3(m1,m2,m3)
-         a21c=A21D3(m1,m2,m3)
-         a22c=A22D3(m1,m2,m3)
-         a23c=A23D3(m1,m2,m3)
-         a31c=A31D3(m1,m2,m3)
-         a32c=A32D3(m1,m2,m3)
-         a33c=A33D3(m1,m2,m3)
-         write(*,'(" bce4:tan: (a11,a12,a13)=(",3e10.2,")")') a11c,a12c,a13c
-         write(*,'(" bce4:tan: (b21,b22,b23)=(",3e10.2,") (g21,g22,g22)=(",3e10.2,")")') b21,b22,b23,g21,g22,g23
-         ! '
-         write(*,'(" bce4:tan: a1Dotu2-a1.g2 =",e10.2,", a3Dotu2-a3.g2 =",e10.2)') \
-                      a1Dotu2-(a11c*g21+a12c*g22+a13c*g23),\
-                      a3Dotu2-(a31c*g21+a32c*g22+a33c*g23)
-         ! '
-
-         ! error in extrap : a2.D+ u(i1-2) - g2f
-         write(*,'(" bce4:extrap: err(a2.D+ u(i1-2)-g2f)=",e10.2," g2f=",e10.2)')\
-              a21c*(u(i1-2*is1,i2-2*is2,i3-2*is3,ex)-4.*u(i1-is1,i2-is2,i3-is3,ex)\
-                +6.*u(i1,i2,i3,ex)-4.*u(i1+is1,i2+is2,i3+is3,ex)+u(i1+2*is1,i2+2*is2,i3+2*is3,ex)) \
-            + a22c*(u(i1-2*is1,i2-2*is2,i3-2*is3,ey)-4.*u(i1-is1,i2-is2,i3-is3,ey)\
-                +6.*u(i1,i2,i3,ey)-4.*u(i1+is1,i2+is2,i3+is3,ey)+u(i1+2*is1,i2+2*is2,i3+2*is3,ey)) \
-            + a23c*(u(i1-2*is1,i2-2*is2,i3-2*is3,ez)-4.*u(i1-is1,i2-is2,i3-is3,ez)\
-                +6.*u(i1,i2,i3,ez)-4.*u(i1+is1,i2+is2,i3+is3,ez)+u(i1+2*is1,i2+2*is2,i3+2*is3,ez)) -g2f,g2f
-         ! '
-
-         m1=i1-js1
-         m2=i2-js2
-         m3=i3-js3
-         write(*,'(" bce4:tan: u3[k] = b3[k] + g3[k]")')
-         a11c=A11D3(m1,m2,m3)
-         a12c=A12D3(m1,m2,m3)
-         a13c=A13D3(m1,m2,m3)
-         a21c=A21D3(m1,m2,m3)
-         a22c=A22D3(m1,m2,m3)
-         a23c=A23D3(m1,m2,m3)
-         a31c=A31D3(m1,m2,m3)
-         a32c=A32D3(m1,m2,m3)
-         a33c=A33D3(m1,m2,m3)
-         write(*,'(" bce4:tan: (a11,a12,a13)=(",3e10.2,")")') a11c,a12c,a13c
-         write(*,'(" bce4:tan: (b31,b32,b33)=(",3e10.2,") (g31,g32,g32)=(",3e10.2,")")') b31,b32,b33,g31,g32,g33
-         ! '
-         write(*,'(" bce4:tan: a2Dotu3-a2.g3 =",e10.2,", a3Dotu3-a3.g3 =",e10.2)') \
-                      a2Dotu3-(a21c*g31+a22c*g32+a23c*g33),\
-                      a3Dotu3-(a31c*g31+a32c*g32+a33c*g33)
-         ! '
-
-         OGF3DFO(m1,m2,m3,t, uvm(0),uvm(1),uvm(2))
-         write(*,'(" bce4:tan-comp: err(a2.u3,a3.u3)=",2e10.2)') \
-              A21D3(m1,m2,m3)*(u(m1,m2,m3,ex)-uvm(0))+\
-              A22D3(m1,m2,m3)*(u(m1,m2,m3,ey)-uvm(1))+\
-              A23D3(m1,m2,m3)*(u(m1,m2,m3,ez)-uvm(2)), \
-              A31D3(m1,m2,m3)*(u(m1,m2,m3,ex)-uvm(0))+\
-              A32D3(m1,m2,m3)*(u(m1,m2,m3,ey)-uvm(1))+\
-              A33D3(m1,m2,m3)*(u(m1,m2,m3,ez)-uvm(2))
-
-         m1=i1-2*js1
-         m2=i2-2*js2
-         m3=i3-2*js3
-         a11c=A11D3(m1,m2,m3)
-         a12c=A12D3(m1,m2,m3)
-         a13c=A13D3(m1,m2,m3)
-         a21c=A21D3(m1,m2,m3)
-         a22c=A22D3(m1,m2,m3)
-         a23c=A23D3(m1,m2,m3)
-         a31c=A31D3(m1,m2,m3)
-         a32c=A32D3(m1,m2,m3)
-         a33c=A33D3(m1,m2,m3)
-         write(*,'(" bce4:tan: (a11,a12,a13)=(",3e10.2,")")') a11c,a12c,a13c
-         write(*,'(" bce4:tan: (b41,b42,b43)=(",3e10.2,") (g41,g42,g42)=(",3e10.2,")")') b41,b42,b43,g41,g42,g43
-         ! '
-         write(*,'(" bce4:tan: a2Dotu4-a2.g4 =",e10.2,", a3Dotu4-a3.g4 =",e10.2)') \
-                      a2Dotu4-(a21c*g41+a22c*g42+a23c*g43),\
-                      a3Dotu4-(a31c*g41+a32c*g42+a33c*g43)
-
-         ! '
-
-         OGF3DFO(m1,m2,m3,t, uvm(0),uvm(1),uvm(2))
-         write(*,'(" bce4:tan-comp: err(a2.u4,a3.u4)=",2e10.2)') \
-              A21D3(m1,m2,m3)*(u(m1,m2,m3,ex)-uvm(0))+\
-              A22D3(m1,m2,m3)*(u(m1,m2,m3,ey)-uvm(1))+\
-              A23D3(m1,m2,m3)*(u(m1,m2,m3,ez)-uvm(2)), \
-              A31D3(m1,m2,m3)*(u(m1,m2,m3,ex)-uvm(0))+\
-              A32D3(m1,m2,m3)*(u(m1,m2,m3,ey)-uvm(1))+\
-              A33D3(m1,m2,m3)*(u(m1,m2,m3,ez)-uvm(2))
-
-         a11c=A11D3(m1,m2,m3)
-         a12c=A12D3(m1,m2,m3)
-         a13c=A13D3(m1,m2,m3)
-         a21c=A21D3(m1,m2,m3)
-         a22c=A22D3(m1,m2,m3)
-         a23c=A23D3(m1,m2,m3)
-         a31c=A31D3(m1,m2,m3)
-         a32c=A32D3(m1,m2,m3)
-         a33c=A33D3(m1,m2,m3)
-
-         ! error in extrap : a1.D+ u(i2-2) - g1f
-         write(*,'(" bce4:extrap: err(a1.D+ u(i2-2)-g1f)=",e10.2," g1f=",e10.2)')\
-              a11c*(u(i1-2*js1,i2-2*js2,i3-2*js3,ex)-4.*u(i1-js1,i2-js2,i3-js3,ex)\
-                +6.*u(i1,i2,i3,ex)-4.*u(i1+js1,i2+js2,i3+js3,ex)+u(i1+2*js1,i2+2*js2,i3+2*js3,ex)) \
-            + a12c*(u(i1-2*js1,i2-2*js2,i3-2*js3,ey)-4.*u(i1-js1,i2-js2,i3-js3,ey)\
-                +6.*u(i1,i2,i3,ey)-4.*u(i1+js1,i2+js2,i3+js3,ey)+u(i1+2*js1,i2+2*js2,i3+2*js3,ey)) \
-            + a13c*(u(i1-2*js1,i2-2*js2,i3-2*js3,ez)-4.*u(i1-js1,i2-js2,i3-js3,ez)\
-                +6.*u(i1,i2,i3,ez)-4.*u(i1+js1,i2+js2,i3+js3,ez)+u(i1+2*js1,i2+2*js2,i3+2*js3,ez)) -g1f,g1f
-         ! '
-
-         uLap=ulaplacian43(i1,i2,i3,ex)
-         vLap=ulaplacian43(i1,i2,i3,ey)
-         wLap=ulaplacian43(i1,i2,i3,ez)
-
-         write(*,'(" bce4: err(a1.Delta u)=",e10.2," err(a2.Delta u)=",e10.2)')\
-           A11D3(i1,i2,i3)*(uLap-deltaFu)+A12D3(i1,i2,i3)*(vLap-deltaFv)+A13D3(i1,i2,i3)*(wLap-deltaFw),\
-           A21D3(i1,i2,i3)*(uLap-deltaFu)+A22D3(i1,i2,i3)*(vLap-deltaFv)+A23D3(i1,i2,i3)*(wLap-deltaFw)
-         ! '
-        end if ! end debug
-        if( debug.gt.2 )then
-         write(*,'(" bce4: a1DotLu,a2DotLu=",2e10.2,", deltaFu,deltaFv,deltaFw=",3e10.2)') \
-                a1DotLu,a2DotLu,deltaFu,deltaFv,deltaFw
-         ! '
-         
-         write(*,'(" bce4: cc1ka : uv(0,-2) uv(0,-1) cc1kb: uv(2,0) uv(1,0)")')
-         write(*,'(" bce4: 12.*(cc11a,cc12a,cc13a,cc14a,cc15a,cc16a)*dr^2=",6f6.2)')\
-               12.*cc11a*dra**2,12.*cc12a*dra**2,12.*cc13a*dsa**2,12.*cc14a*dsa**2,12.*cc15a*dsa**2,12.*cc16a*dsa**2
-         write(*,'(" bce4: 12.*(cc11b,cc12b,cc13b,cc14b,cc15b,cc16b)*dr^2=",6f6.2)')\
-               12.*cc11b*dra**2,12.*cc12b*dra**2,12.*cc13b*dsa**2,12.*cc14b*dsa**2,12.*cc15b*dsa**2,12.*cc16b*dsa**2
-         write(*,'(" bce4: 12.*(cc21a,cc22a,cc23a,cc24a,cc25a,cc26a)*dr^2=",6f6.2)')\
-               12.*cc21a*dra**2,12.*cc22a*dra**2,12.*cc23a*dsa**2,12.*cc24a*dsa**2,12.*cc25a*dsa**2,12.*cc26a*dsa**2
-         write(*,'(" bce4: 12.*(cc21b,cc22b,cc23b,cc24b,cc25b,cc26b)*dr^2=",6f6.2)')\
-               12.*cc21b*dra**2,12.*cc22b*dra**2,12.*cc23b*dsa**2,12.*cc24b*dsa**2,12.*cc25b*dsa**2,12.*cc26b*dsa**2
-         write(*,'(" bce4: 12.*(d11,d12,d13,d14)*dr^2=",4f6.2,", 12.*f1*dr^2,12.*f1x*dr^2=",2f7.2)')\
-                12.*dd11*dra**2,12.*dd12*dra**2,12.*dd13*dsa**2,12.*dd14*dsa**2,12.*f1*dra**2,12.*f1x*dra**2
-         write(*,'(" bce4: 12.*(d21,d22,d23,d24)*dr^2=",4f6.2,", 12.*f2,12.*f2x*dr^2=",2f7.2)')\
-                12.*dd21*dra**2,12.*dd22*dra**2,12.*dd23*dsa**2,12.*dd24*dsa**2,12.*f2*dra**2,12.*f2x*dra**2
-         ! '
-        end if ! end debug
+!        if( debug.gt.1 )then
+!         write(*,'(/," bce4: extended:(i1,i2,i3)=",3i5," is=",3i2," js=",3i2," ks=",3i2)') i1,i2,i3,is1,is2,is3,\
+!               js1,js2,js3,ks1,ks2,ks3
+!         write(*,'(" bce4: c11,c22,c33,c1,c2,c3, DeltaU,DeltaV,DeltaW=",9f6.2)') c11,c22,c33,c1,c2,c3, DeltaU,DeltaV,DeltaW
+!        end if
+!        if( debug.gt.0 )then
+!         OGF3DFO(i1-is1,i2-is2,i3-is3,t, uvm(0),uvm(1),uvm(2))
+!         OGF3DFO(i1-2*is1,i2-2*is2,i3-2*is3,t, uvm2(0),uvm2(1),uvm2(2))
+!         write(*,'(" bce4: extended: (i1,i2,i3)=",3i4," err(-1,0),(-2,0)=",6e9.1)') i1,i2,i3,\
+!           u(i1-  is1,i2-  is2,i3-  is3,ex)-uvm(0),\
+!           u(i1-  is1,i2-  is2,i3-  is3,ey)-uvm(1),\
+!           u(i1-  is1,i2-  is2,i3-  is3,ez)-uvm(2),\
+!           u(i1-2*is1,i2-2*is2,i3-2*is3,ex)-uvm2(0),\
+!           u(i1-2*is1,i2-2*is2,i3-2*is3,ey)-uvm2(1),\
+!           u(i1-2*is1,i2-2*is2,i3-2*is3,ez)-uvm2(2)
+!         ! '
+!        end if
+!        if( debug.gt.1 )then
+!         write(*,'(" bce4: true(-1,0),(-2,0)    =",6f7.2)') uvm(0),uvm(1),uvm(2),uvm2(0),uvm2(1), uvm2(2)
+!         write(*,'(" bce4: computed(-1,0),(-2,0)=",6f7.2)') \
+!           u(i1-  is1,i2-  is2,i3-  is3,ex),\
+!           u(i1-  is1,i2-  is2,i3-  is3,ey),\
+!           u(i1-  is1,i2-  is2,i3-  is3,ez),\
+!           u(i1-2*is1,i2-2*is2,i3-2*is3,ex),\
+!           u(i1-2*is1,i2-2*is2,i3-2*is3,ey),\
+!           u(i1-2*is1,i2-2*is2,i3-2*is3,ez)
+!        end if
+!        if( debug.gt.0 )then
+!         OGF3DFO(i1-js1,i2-js2,i3-js3,t, uvm(0),uvm(1),uvm(2))
+!         OGF3DFO(i1-2*js1,i2-2*js2,i3-2*js3,t, uvm2(0),uvm2(1),uvm2(2))
+!         write(*,'(" bce4: extended: (i1,i2,i3)=",3i4," err(0,-1),(0,-2)=",6e9.1)') i1,i2,i3,\
+!           u(i1-  js1,i2-  js2,i3-  js3,ex)-uvm(0),\
+!           u(i1-  js1,i2-  js2,i3-  js3,ey)-uvm(1),\
+!           u(i1-  js1,i2-  js2,i3-  js3,ez)-uvm(2),\
+!           u(i1-2*js1,i2-2*js2,i3-2*js3,ex)-uvm2(0),\
+!           u(i1-2*js1,i2-2*js2,i3-2*js3,ey)-uvm2(1),\
+!           u(i1-2*js1,i2-2*js2,i3-2*js3,ez)-uvm2(2)
+!         ! '
+!        end if
+!        if( debug.gt.1 )then
+!         write(*,'(" bce4: true(0,-1),(0,-2)    =",6f7.2)') uvm(0),uvm(1),uvm(2),uvm2(0),uvm2(1), uvm2(2)
+!         write(*,'(" bce4: computed(0,-1),(0,-2)=",6f7.2)') \
+!           u(i1-  js1,i2-  js2,i3-  js3,ex),\
+!           u(i1-  js1,i2-  js2,i3-  js3,ey),\
+!           u(i1-  js1,i2-  js2,i3-  js3,ez),\
+!           u(i1-2*js1,i2-2*js2,i3-2*js3,ex),\
+!           u(i1-2*js1,i2-2*js2,i3-2*js3,ey),\
+!           u(i1-2*js1,i2-2*js2,i3-2*js3,ez)
+!        end if
+!
+!        if( debug.gt.1 )then
+!         m1=i1-is1
+!         m2=i2-is2
+!         m3=i3-is3
+!         OGF3DFO(m1,m2,m3,t, uvm(0),uvm(1),uvm(2))
+!         write(*,'(" bce4:tan-comp: err(a1.u1,a3.u1)=",2e10.2)') \
+!              A11D3(m1,m2,m3)*(u(m1,m2,m3,ex)-uvm(0))+\
+!              A12D3(m1,m2,m3)*(u(m1,m2,m3,ey)-uvm(1))+\
+!              A13D3(m1,m2,m3)*(u(m1,m2,m3,ez)-uvm(2)), \
+!              A31D3(m1,m2,m3)*(u(m1,m2,m3,ex)-uvm(0))+\
+!              A32D3(m1,m2,m3)*(u(m1,m2,m3,ey)-uvm(1))+\
+!              A33D3(m1,m2,m3)*(u(m1,m2,m3,ez)-uvm(2))
+!
+!         
+!         write(*,'(" bce4:tan: u1[k] = b1[k] + g1[k]")')
+!         a11c=A11D3(m1,m2,m3)
+!         a12c=A12D3(m1,m2,m3)
+!         a13c=A13D3(m1,m2,m3)
+!         a21c=A21D3(m1,m2,m3)
+!         a22c=A22D3(m1,m2,m3)
+!         a23c=A23D3(m1,m2,m3)
+!         a31c=A31D3(m1,m2,m3)
+!         a32c=A32D3(m1,m2,m3)
+!         a33c=A33D3(m1,m2,m3)
+!         write(*,'(" bce4:tan: (a11,a12,a13)=(",3e10.2,")")') a11c,a12c,a13c
+!         write(*,'(" bce4:tan: (a21,a22,a23)=(",3e10.2,")")') a21c,a22c,a23c
+!         write(*,'(" bce4:tan: (a31,a32,a33)=(",3e10.2,")")') a31c,a32c,a33c
+!         write(*,'(" bce4:tan: (b11,b12,b13)=(",3e10.2,") (g11,g12,g12)=(",3e10.2,")")') b11,b12,b13,g11,g12,g13
+!         ! '
+!         write(*,'(" bce4:tan: a1Dotu1-a1.g1 =",e10.2,", a3Dotu1-a3.g1 =",e10.2)') \
+!                      a1Dotu1-(a11c*g11+a12c*g12+a13c*g13),\
+!                      a3Dotu1-(a31c*g11+a32c*g12+a33c*g13)
+!         ! '
+!         m1=i1-2*is1
+!         m2=i2-2*is2
+!         m3=i3-2*is3
+!         OGF3DFO(m1,m2,m3,t, uvm(0),uvm(1),uvm(2))
+!         write(*,'(" bce4:tan-comp: err(a1.u2,a3.u2)=",2e10.2)') \
+!              A11D3(m1,m2,m3)*(u(m1,m2,m3,ex)-uvm(0))+\
+!              A12D3(m1,m2,m3)*(u(m1,m2,m3,ey)-uvm(1))+\
+!              A13D3(m1,m2,m3)*(u(m1,m2,m3,ez)-uvm(2)), \
+!              A31D3(m1,m2,m3)*(u(m1,m2,m3,ex)-uvm(0))+\
+!              A32D3(m1,m2,m3)*(u(m1,m2,m3,ey)-uvm(1))+\
+!              A33D3(m1,m2,m3)*(u(m1,m2,m3,ez)-uvm(2))
+!
+!         write(*,'(" bce4:tan: u2[k] = b2[k] + g2[k]")')
+!         a11c=A11D3(m1,m2,m3)
+!         a12c=A12D3(m1,m2,m3)
+!         a13c=A13D3(m1,m2,m3)
+!         a21c=A21D3(m1,m2,m3)
+!         a22c=A22D3(m1,m2,m3)
+!         a23c=A23D3(m1,m2,m3)
+!         a31c=A31D3(m1,m2,m3)
+!         a32c=A32D3(m1,m2,m3)
+!         a33c=A33D3(m1,m2,m3)
+!         write(*,'(" bce4:tan: (a11,a12,a13)=(",3e10.2,")")') a11c,a12c,a13c
+!         write(*,'(" bce4:tan: (b21,b22,b23)=(",3e10.2,") (g21,g22,g22)=(",3e10.2,")")') b21,b22,b23,g21,g22,g23
+!         ! '
+!         write(*,'(" bce4:tan: a1Dotu2-a1.g2 =",e10.2,", a3Dotu2-a3.g2 =",e10.2)') \
+!                      a1Dotu2-(a11c*g21+a12c*g22+a13c*g23),\
+!                      a3Dotu2-(a31c*g21+a32c*g22+a33c*g23)
+!         ! '
+!
+!         ! error in extrap : a2.D+ u(i1-2) - g2f
+!         write(*,'(" bce4:extrap: err(a2.D+ u(i1-2)-g2f)=",e10.2," g2f=",e10.2)')\
+!              a21c*(u(i1-2*is1,i2-2*is2,i3-2*is3,ex)-4.*u(i1-is1,i2-is2,i3-is3,ex)\
+!                +6.*u(i1,i2,i3,ex)-4.*u(i1+is1,i2+is2,i3+is3,ex)+u(i1+2*is1,i2+2*is2,i3+2*is3,ex)) \
+!            + a22c*(u(i1-2*is1,i2-2*is2,i3-2*is3,ey)-4.*u(i1-is1,i2-is2,i3-is3,ey)\
+!                +6.*u(i1,i2,i3,ey)-4.*u(i1+is1,i2+is2,i3+is3,ey)+u(i1+2*is1,i2+2*is2,i3+2*is3,ey)) \
+!            + a23c*(u(i1-2*is1,i2-2*is2,i3-2*is3,ez)-4.*u(i1-is1,i2-is2,i3-is3,ez)\
+!                +6.*u(i1,i2,i3,ez)-4.*u(i1+is1,i2+is2,i3+is3,ez)+u(i1+2*is1,i2+2*is2,i3+2*is3,ez)) -g2f,g2f
+!         ! '
+!
+!         m1=i1-js1
+!         m2=i2-js2
+!         m3=i3-js3
+!         write(*,'(" bce4:tan: u3[k] = b3[k] + g3[k]")')
+!         a11c=A11D3(m1,m2,m3)
+!         a12c=A12D3(m1,m2,m3)
+!         a13c=A13D3(m1,m2,m3)
+!         a21c=A21D3(m1,m2,m3)
+!         a22c=A22D3(m1,m2,m3)
+!         a23c=A23D3(m1,m2,m3)
+!         a31c=A31D3(m1,m2,m3)
+!         a32c=A32D3(m1,m2,m3)
+!         a33c=A33D3(m1,m2,m3)
+!         write(*,'(" bce4:tan: (a11,a12,a13)=(",3e10.2,")")') a11c,a12c,a13c
+!         write(*,'(" bce4:tan: (b31,b32,b33)=(",3e10.2,") (g31,g32,g32)=(",3e10.2,")")') b31,b32,b33,g31,g32,g33
+!         ! '
+!         write(*,'(" bce4:tan: a2Dotu3-a2.g3 =",e10.2,", a3Dotu3-a3.g3 =",e10.2)') \
+!                      a2Dotu3-(a21c*g31+a22c*g32+a23c*g33),\
+!                      a3Dotu3-(a31c*g31+a32c*g32+a33c*g33)
+!         ! '
+!
+!         OGF3DFO(m1,m2,m3,t, uvm(0),uvm(1),uvm(2))
+!         write(*,'(" bce4:tan-comp: err(a2.u3,a3.u3)=",2e10.2)') \
+!              A21D3(m1,m2,m3)*(u(m1,m2,m3,ex)-uvm(0))+\
+!              A22D3(m1,m2,m3)*(u(m1,m2,m3,ey)-uvm(1))+\
+!              A23D3(m1,m2,m3)*(u(m1,m2,m3,ez)-uvm(2)), \
+!              A31D3(m1,m2,m3)*(u(m1,m2,m3,ex)-uvm(0))+\
+!              A32D3(m1,m2,m3)*(u(m1,m2,m3,ey)-uvm(1))+\
+!              A33D3(m1,m2,m3)*(u(m1,m2,m3,ez)-uvm(2))
+!
+!         m1=i1-2*js1
+!         m2=i2-2*js2
+!         m3=i3-2*js3
+!         a11c=A11D3(m1,m2,m3)
+!         a12c=A12D3(m1,m2,m3)
+!         a13c=A13D3(m1,m2,m3)
+!         a21c=A21D3(m1,m2,m3)
+!         a22c=A22D3(m1,m2,m3)
+!         a23c=A23D3(m1,m2,m3)
+!         a31c=A31D3(m1,m2,m3)
+!         a32c=A32D3(m1,m2,m3)
+!         a33c=A33D3(m1,m2,m3)
+!         write(*,'(" bce4:tan: (a11,a12,a13)=(",3e10.2,")")') a11c,a12c,a13c
+!         write(*,'(" bce4:tan: (b41,b42,b43)=(",3e10.2,") (g41,g42,g42)=(",3e10.2,")")') b41,b42,b43,g41,g42,g43
+!         ! '
+!         write(*,'(" bce4:tan: a2Dotu4-a2.g4 =",e10.2,", a3Dotu4-a3.g4 =",e10.2)') \
+!                      a2Dotu4-(a21c*g41+a22c*g42+a23c*g43),\
+!                      a3Dotu4-(a31c*g41+a32c*g42+a33c*g43)
+!
+!         ! '
+!
+!         OGF3DFO(m1,m2,m3,t, uvm(0),uvm(1),uvm(2))
+!         write(*,'(" bce4:tan-comp: err(a2.u4,a3.u4)=",2e10.2)') \
+!              A21D3(m1,m2,m3)*(u(m1,m2,m3,ex)-uvm(0))+\
+!              A22D3(m1,m2,m3)*(u(m1,m2,m3,ey)-uvm(1))+\
+!              A23D3(m1,m2,m3)*(u(m1,m2,m3,ez)-uvm(2)), \
+!              A31D3(m1,m2,m3)*(u(m1,m2,m3,ex)-uvm(0))+\
+!              A32D3(m1,m2,m3)*(u(m1,m2,m3,ey)-uvm(1))+\
+!              A33D3(m1,m2,m3)*(u(m1,m2,m3,ez)-uvm(2))
+!
+!         a11c=A11D3(m1,m2,m3)
+!         a12c=A12D3(m1,m2,m3)
+!         a13c=A13D3(m1,m2,m3)
+!         a21c=A21D3(m1,m2,m3)
+!         a22c=A22D3(m1,m2,m3)
+!         a23c=A23D3(m1,m2,m3)
+!         a31c=A31D3(m1,m2,m3)
+!         a32c=A32D3(m1,m2,m3)
+!         a33c=A33D3(m1,m2,m3)
+!
+!         ! error in extrap : a1.D+ u(i2-2) - g1f
+!         write(*,'(" bce4:extrap: err(a1.D+ u(i2-2)-g1f)=",e10.2," g1f=",e10.2)')\
+!              a11c*(u(i1-2*js1,i2-2*js2,i3-2*js3,ex)-4.*u(i1-js1,i2-js2,i3-js3,ex)\
+!                +6.*u(i1,i2,i3,ex)-4.*u(i1+js1,i2+js2,i3+js3,ex)+u(i1+2*js1,i2+2*js2,i3+2*js3,ex)) \
+!            + a12c*(u(i1-2*js1,i2-2*js2,i3-2*js3,ey)-4.*u(i1-js1,i2-js2,i3-js3,ey)\
+!                +6.*u(i1,i2,i3,ey)-4.*u(i1+js1,i2+js2,i3+js3,ey)+u(i1+2*js1,i2+2*js2,i3+2*js3,ey)) \
+!            + a13c*(u(i1-2*js1,i2-2*js2,i3-2*js3,ez)-4.*u(i1-js1,i2-js2,i3-js3,ez)\
+!                +6.*u(i1,i2,i3,ez)-4.*u(i1+js1,i2+js2,i3+js3,ez)+u(i1+2*js1,i2+2*js2,i3+2*js3,ez)) -g1f,g1f
+!         ! '
+!
+!         uLap=ulaplacian43(i1,i2,i3,ex)
+!         vLap=ulaplacian43(i1,i2,i3,ey)
+!         wLap=ulaplacian43(i1,i2,i3,ez)
+!
+!         write(*,'(" bce4: err(a1.Delta u)=",e10.2," err(a2.Delta u)=",e10.2)')\
+!           A11D3(i1,i2,i3)*(uLap-deltaFu)+A12D3(i1,i2,i3)*(vLap-deltaFv)+A13D3(i1,i2,i3)*(wLap-deltaFw),\
+!           A21D3(i1,i2,i3)*(uLap-deltaFu)+A22D3(i1,i2,i3)*(vLap-deltaFv)+A23D3(i1,i2,i3)*(wLap-deltaFw)
+!         ! '
+!        end if ! end debug
+!        if( debug.gt.2 )then
+!         write(*,'(" bce4: a1DotLu,a2DotLu=",2e10.2,", deltaFu,deltaFv,deltaFw=",3e10.2)') \
+!                a1DotLu,a2DotLu,deltaFu,deltaFv,deltaFw
+!         ! '
+!         
+!         write(*,'(" bce4: cc1ka : uv(0,-2) uv(0,-1) cc1kb: uv(2,0) uv(1,0)")')
+!         write(*,'(" bce4: 12.*(cc11a,cc12a,cc13a,cc14a,cc15a,cc16a)*dr^2=",6f6.2)')\
+!               12.*cc11a*dra**2,12.*cc12a*dra**2,12.*cc13a*dsa**2,12.*cc14a*dsa**2,12.*cc15a*dsa**2,12.*cc16a*dsa**2
+!         write(*,'(" bce4: 12.*(cc11b,cc12b,cc13b,cc14b,cc15b,cc16b)*dr^2=",6f6.2)')\
+!               12.*cc11b*dra**2,12.*cc12b*dra**2,12.*cc13b*dsa**2,12.*cc14b*dsa**2,12.*cc15b*dsa**2,12.*cc16b*dsa**2
+!         write(*,'(" bce4: 12.*(cc21a,cc22a,cc23a,cc24a,cc25a,cc26a)*dr^2=",6f6.2)')\
+!               12.*cc21a*dra**2,12.*cc22a*dra**2,12.*cc23a*dsa**2,12.*cc24a*dsa**2,12.*cc25a*dsa**2,12.*cc26a*dsa**2
+!         write(*,'(" bce4: 12.*(cc21b,cc22b,cc23b,cc24b,cc25b,cc26b)*dr^2=",6f6.2)')\
+!               12.*cc21b*dra**2,12.*cc22b*dra**2,12.*cc23b*dsa**2,12.*cc24b*dsa**2,12.*cc25b*dsa**2,12.*cc26b*dsa**2
+!         write(*,'(" bce4: 12.*(d11,d12,d13,d14)*dr^2=",4f6.2,", 12.*f1*dr^2,12.*f1x*dr^2=",2f7.2)')\
+!                12.*dd11*dra**2,12.*dd12*dra**2,12.*dd13*dsa**2,12.*dd14*dsa**2,12.*f1*dra**2,12.*f1x*dra**2
+!         write(*,'(" bce4: 12.*(d21,d22,d23,d24)*dr^2=",4f6.2,", 12.*f2,12.*f2x*dr^2=",2f7.2)')\
+!                12.*dd21*dra**2,12.*dd22*dra**2,12.*dd23*dsa**2,12.*dd24*dsa**2,12.*f2*dra**2,12.*f2x*dra**2
+!         ! '
+!        end if ! end debug
 
          ! *** for now -- set solution to be exact ---
          
@@ -2437,6 +2675,55 @@
 
 
        #End
+
+     else 
+       ! -----------------------------------------------------------------------------
+       ! --------------- fill in extended face values by extrapolation ---------------
+       ! ---------------         curvilinear, order 4                  ---------------
+       ! -----------------------------------------------------------------------------
+
+       ! *wdh* 2015/06/24 **WRONG**
+       ! -- for fourth-order scheme:
+       ! u(i1-js1,i2-js2,i3-js3,ex)=extrapolate5(ex,i1-js1,i2-js2,i3-js3,is1,is2,is3)
+       ! u(i1-js1,i2-js2,i3-js3,ey)=extrapolate5(ey,i1-js1,i2-js2,i3-js3,is1,is2,is3)
+       ! u(i1-js1,i2-js2,i3-js3,ez)=extrapolate5(ez,i1-js1,i2-js2,i3-js3,is1,is2,is3)
+
+      ! *wdh* 2015/07/13  
+
+      u(i1-  is1,i2-  is2,i3-  is3,ex) = extrapolate5(ex,i1-is1,i2-is2,i3-is3,is1,is2,is3)
+      u(i1-  is1,i2-  is2,i3-  is3,ey) = extrapolate5(ey,i1-is1,i2-is2,i3-is3,is1,is2,is3)
+      u(i1-  is1,i2-  is2,i3-  is3,ez) = extrapolate5(ez,i1-is1,i2-is2,i3-is3,is1,is2,is3)
+      u(i1-2*is1,i2-2*is2,i3-2*is3,ex) = extrapolate5(ex,i1-2*is1,i2-2*is2,i3-2*is3,is1,is2,is3)
+      u(i1-2*is1,i2-2*is2,i3-2*is3,ey) = extrapolate5(ey,i1-2*is1,i2-2*is2,i3-2*is3,is1,is2,is3)
+      u(i1-2*is1,i2-2*is2,i3-2*is3,ez) = extrapolate5(ez,i1-2*is1,i2-2*is2,i3-2*is3,is1,is2,is3)
+
+      u(i1-  js1,i2-  js2,i3-  js3,ex) = extrapolate5(ex,i1-js1,i2-js2,i3-js3,js1,js2,js3)      
+      u(i1-  js1,i2-  js2,i3-  js3,ey) = extrapolate5(ey,i1-js1,i2-js2,i3-js3,js1,js2,js3)      
+      u(i1-  js1,i2-  js2,i3-  js3,ez) = extrapolate5(ez,i1-js1,i2-js2,i3-js3,js1,js2,js3)      
+      u(i1-2*js1,i2-2*js2,i3-2*js3,ex) = extrapolate5(ex,i1-2*js1,i2-2*js2,i3-2*js3,js1,js2,js3)
+      u(i1-2*js1,i2-2*js2,i3-2*js3,ey) = extrapolate5(ey,i1-2*js1,i2-2*js2,i3-2*js3,js1,js2,js3)
+      u(i1-2*js1,i2-2*js2,i3-2*js3,ez) = extrapolate5(ez,i1-2*js1,i2-2*js2,i3-2*js3,js1,js2,js3)
+
+
+!       ! Face 1:  (note: only one of (is1,is2,is3) is non-zero)
+!       u(i1-  is1,i2-  is2,i3-  is3,ex) = extrap5(u,i1,i2,i3,ex,is1,is2,is3)
+!       u(i1-  is1,i2-  is2,i3-  is3,ey) = extrap5(u,i1,i2,i3,ey,is1,is2,is3)
+!       u(i1-  is1,i2-  is2,i3-  is3,ez) = extrap5(u,i1,i2,i3,ez,is1,is2,is3)
+! 
+!       u(i1-2*is1,i2-2*is2,i3-2*is3,ex) = extrap5(u,i1-is1,i2-is2,i3-is3,ex,is1,is2,is3)
+!       u(i1-2*is1,i2-2*is2,i3-2*is3,ey) = extrap5(u,i1-is1,i2-is2,i3-is3,ey,is1,is2,is3)
+!       u(i1-2*is1,i2-2*is2,i3-2*is3,ez) = extrap5(u,i1-is1,i2-is2,i3-is3,ez,is1,is2,is3)
+! 
+!       ! Face 2 : (note: only one of (js1,js2,js3) is non-zero)
+!       u(i1-  js1,i2-  js2,i3-  js3,ex) = extrap5(u,i1,i2,i3,ex,js1,js2,js3)            
+!       u(i1-  js1,i2-  js2,i3-  js3,ey) = extrap5(u,i1,i2,i3,ey,js1,js2,js3)            
+!       u(i1-  js1,i2-  js2,i3-  js3,ez) = extrap5(u,i1,i2,i3,ez,js1,js2,js3)            
+!                                                                                      
+!       u(i1-2*js1,i2-2*js2,i3-2*js3,ex) = extrap5(u,i1-js1,i2-js2,i3-js3,ex,js1,js2,js3)
+!       u(i1-2*js1,i2-2*js2,i3-2*js3,ey) = extrap5(u,i1-js1,i2-js2,i3-js3,ey,js1,js2,js3)
+!       u(i1-2*js1,i2-2*js2,i3-2*js3,ez) = extrap5(u,i1-js1,i2-js2,i3-js3,ez,js1,js2,js3)
+
+     end if
 
      end do ! end do i1
      end do ! end do i2
@@ -2499,6 +2786,9 @@
  ! end orderOfAccuracy==4 
  #Elif #ORDER == "2"
 
+  ! ************** CURVILINEAR -- EXTENDED NEAR TWO FACES ************
+  ! **************              ORDER 2                   ************
+
    ! write(*,'(" assignEdges3d: unimplemented orderOfAccuracy =",i4)') orderOfAccuracy
    ! stop 12345
 
@@ -2508,6 +2798,7 @@
      do i3=n3a,n3b
      do i2=n2a,n2b
      do i1=n1a,n1b
+     if( mask(i1,i2,i3).ne.0 )then ! *wdh* 2015/06/24
 
        !           |
        ! extrap(a2.u)
@@ -2641,6 +2932,16 @@
 
        #End
 
+     else 
+       ! --------------- fill in extended values by extrapolation ---------------
+       ! *wdh* 2015/06/24
+       ! -- for second-order scheme:
+       u(i1-js1,i2-js2,i3-js3,ex)=extrapolate3(ex,i1-js1,i2-js2,i3-js3,is1,is2,is3)
+       u(i1-js1,i2-js2,i3-js3,ey)=extrapolate3(ey,i1-js1,i2-js2,i3-js3,is1,is2,is3)
+       u(i1-js1,i2-js2,i3-js3,ez)=extrapolate3(ez,i1-js1,i2-js2,i3-js3,is1,is2,is3)
+
+     end if
+
      end do ! end do i1
      end do ! end do i2
      end do ! end do i3
@@ -2722,8 +3023,11 @@
  end do ! edge direction
 
 
- ! ************ assign corner points outside edges ***********************
+ ! *****************************************************************************
+ ! ************ assign corner GHOST points outside edges ***********************
+ ! ****************************************************************************
  assignEdgeCorners(ORDER,GRIDTYPE,FORCING)
+
 
     
 #endMacro
@@ -2786,6 +3090,9 @@
        boundaryCondition(side2,1).eq.perfectElectricalConductor .and.\
        boundaryCondition(side3,2).eq.perfectElectricalConductor )then
 
+     ! ------------------------------------------------------------
+     ! -------------- VERTEX adjacent to 3 PEC faces --------------
+     ! ------------------------------------------------------------
 
     #If #GRIDTYPE == "curvilinear" && #ORDER == "4"
       urr = urr2(i1,i2,i3,ex)
@@ -2821,38 +3128,55 @@
       dsa=dr(1)*js2
       dta=dr(2)*js3
 
-      #If #FORCING == "twilightZone" 
-        OGF3DFO(i1    ,i2    ,i3    ,t, u0,v0,w0)
-        OGF3DFO(i1-js1,i2-js2,i3-js3,t, um,vm,wm)
-        OGF3DFO(i1+js1,i2+js2,i3+js3,t, up,vp,wp)
-        g1=um-2.*u0+up
-        g2=vm-2.*v0+vp
-        g3=wm-2.*w0+wp
-      #End
 
       #If #GRIDTYPE == "rectangular" || #ORDER == "2"
-       u(i1-js1,i2-js2,i3-js3,ex)=2.*u(i1,i2,i3,ex)-u(i1+js1,i2+js2,i3+js3,ex)+g1
-       u(i1-js1,i2-js2,i3-js3,ey)=2.*u(i1,i2,i3,ey)-u(i1+js1,i2+js2,i3+js3,ey)+g2
-       u(i1-js1,i2-js2,i3-js3,ez)=2.*u(i1,i2,i3,ez)-u(i1+js1,i2+js2,i3+js3,ez)+g3
+       ! *wdh* 2015/07/12 -- I think this is wrong: *fix me*
+       !   For  PEC corner:  E(-dx,-dy,-dz) = E(dx,dy,dz) 
+ 
+       #If #FORCING == "twilightZone" 
+         OGF3DFO(i1    ,i2    ,i3    ,t, u0,v0,w0)
+         OGF3DFO(i1-js1,i2-js2,i3-js3,t, um,vm,wm)
+         OGF3DFO(i1+js1,i2+js2,i3+js3,t, up,vp,wp)
+         g1=um-up
+         g2=vm-vp
+         g3=wm-wp
+       #End
+
+
+       u(i1-js1,i2-js2,i3-js3,ex)=u(i1+js1,i2+js2,i3+js3,ex)+g1
+       u(i1-js1,i2-js2,i3-js3,ey)=u(i1+js1,i2+js2,i3+js3,ey)+g2
+       u(i1-js1,i2-js2,i3-js3,ez)=u(i1+js1,i2+js2,i3+js3,ez)+g3
+
+       ! u(i1-js1,i2-js2,i3-js3,ex)=2.*u(i1,i2,i3,ex)-u(i1+js1,i2+js2,i3+js3,ex)+g1
+       ! u(i1-js1,i2-js2,i3-js3,ey)=2.*u(i1,i2,i3,ey)-u(i1+js1,i2+js2,i3+js3,ey)+g2
+       ! u(i1-js1,i2-js2,i3-js3,ez)=2.*u(i1,i2,i3,ez)-u(i1+js1,i2+js2,i3+js3,ez)+g3
+
       #Else
        
-       ! Use a taylor series -- only exact for polynomials up to degree=3 -- is this good enough?
-       u(i1-js1,i2-js2,i3-js3,ex)=taylorOdd3dOrder4(ex,js1,js2,js3,dra,dsa,dta,urr,uss,utt,urs,urt,ust)
-       u(i1-js1,i2-js2,i3-js3,ey)=taylorOdd3dOrder4(ey,js1,js2,js3,dra,dsa,dta,vrr,vss,vtt,vrs,vrt,vst)
-       u(i1-js1,i2-js2,i3-js3,ez)=taylorOdd3dOrder4(ez,js1,js2,js3,dra,dsa,dta,wrr,wss,wtt,wrs,wrt,wst)
-        
-     #If #ORDER == "4"
-      ! *** extrap for now ****
-      ! j1=i1-js1
-      ! j2=i2-js2
-      ! j3=i3-js3
-      ! u(j1,j2,j3,ex)=5.*u(j1+is1,j2+is2,j3+is3,ex)-10.*u(j1+2*is1,j2+2*is2,j3+2*is3,ex)+10.*u(j1+3*is1,j2+3*is2,j3+3*is3,ex)\
-      !               -5.*u(j1+4*is1,j2+4*is2,j3+4*is3,ex)+u(j1+5*is1,j2+5*is2,j3+5*is3,ex)
-      ! u(j1,j2,j3,ey)=5.*u(j1+is1,j2+is2,j3+is3,ey)-10.*u(j1+2*is1,j2+2*is2,j3+2*is3,ey)+10.*u(j1+3*is1,j2+3*is2,j3+3*is3,ey)\
-      !               -5.*u(j1+4*is1,j2+4*is2,j3+4*is3,ey)+u(j1+5*is1,j2+5*is2,j3+5*is3,ey)
-      ! u(j1,j2,j3,ez)=5.*u(j1+is1,j2+is2,j3+is3,ez)-10.*u(j1+2*is1,j2+2*is2,j3+2*is3,ez)+10.*u(j1+3*is1,j2+3*is2,j3+3*is3,ez)\
-      !               -5.*u(j1+4*is1,j2+4*is2,j3+4*is3,ez)+u(j1+5*is1,j2+5*is2,j3+5*is3,ez)
-     #End
+       #If #ORDER == "2"
+
+        ! Use a taylor series -- only exact for polynomials up to degree=3 -- is this good enough?
+        u(i1-js1,i2-js2,i3-js3,ex)=taylorOdd3dOrder4(ex,js1,js2,js3,dra,dsa,dta,urr,uss,utt,urs,urt,ust)
+        u(i1-js1,i2-js2,i3-js3,ey)=taylorOdd3dOrder4(ey,js1,js2,js3,dra,dsa,dta,vrr,vss,vtt,vrs,vrt,vst)
+        u(i1-js1,i2-js2,i3-js3,ez)=taylorOdd3dOrder4(ez,js1,js2,js3,dra,dsa,dta,wrr,wss,wtt,wrs,wrt,wst)
+         
+        if( debug.gt.2 )then
+          write(*,'("Corner point from taylor: ghost-pt=",3i4," errors=",3e10.2)') i1-js1,i2-js2,i3-js3,\
+              u(i1-js1,i2-js2,i3-js3,ex)-um,u(i1-js1,i2-js2,i3-js3,ey)-vm,u(i1-js1,i2-js2,i3-js3,ez)-wm
+          ! write(*,'(" corner: dra,dsa,dta=",3f6.3," urr,uss,utt,urs,urt,ust=",6f8.3)') dra,dsa,dta,\
+          !    urr,uss,utt,urs,urt,ust
+          ! "
+        end if
+
+       #Elif #ORDER == "4" 
+         ! *new* 2015/07/12 
+         u(i1-js1,i2-js2,i3-js3,ex)=extrap5(u,i1,i2,i3,ex,js1,js2,js3)
+         u(i1-js1,i2-js2,i3-js3,ey)=extrap5(u,i1,i2,i3,ey,js1,js2,js3)
+         u(i1-js1,i2-js2,i3-js3,ez)=extrap5(u,i1,i2,i3,ez,js1,js2,js3)
+       #Else
+         stop 8867
+       #End
+  
 
        if( debug.gt.2 )then
          write(*,'("Corner point from taylor: ghost-pt=",3i4," errors=",3e10.2)') i1-js1,i2-js2,i3-js3,\
@@ -2873,6 +3197,40 @@
     end do
     end do
     end do
+
+   else if( .true. .and. \
+            (boundaryCondition(side1,0).eq.perfectElectricalConductor .or.\
+             boundaryCondition(side2,1).eq.perfectElectricalConductor .or.\
+             boundaryCondition(side3,2).eq.perfectElectricalConductor) )then
+
+     ! *new* *wdh* 2015/07/12 
+
+     ! -----------------------------------------------------------------
+     ! -------------- VERTEX adjacent to 1 or 2 PEC faces --------------
+     ! -----------------------------------------------------------------
+
+    do m3=1,numberOfGhostPoints
+    do m2=1,numberOfGhostPoints
+    do m1=1,numberOfGhostPoints
+
+      js1=is1*m1  ! shift to ghost point "m"
+      js2=is2*m2
+      js3=is3*m3  
+     #If #ORDER == "2"
+       u(i1-js1,i2-js2,i3-js3,ex)=extrap3(u,i1,i2,i3,ex,js1,js2,js3)
+       u(i1-js1,i2-js2,i3-js3,ey)=extrap3(u,i1,i2,i3,ey,js1,js2,js3)
+       u(i1-js1,i2-js2,i3-js3,ez)=extrap3(u,i1,i2,i3,ez,js1,js2,js3)
+     #Elif #ORDER == "4" 
+       u(i1-js1,i2-js2,i3-js3,ex)=extrap5(u,i1,i2,i3,ex,js1,js2,js3)
+       u(i1-js1,i2-js2,i3-js3,ey)=extrap5(u,i1,i2,i3,ey,js1,js2,js3)
+       u(i1-js1,i2-js2,i3-js3,ez)=extrap5(u,i1,i2,i3,ez,js1,js2,js3)
+     #Else
+       stop 8867
+     #End
+
+    end do ! end do m1 
+    end do ! end do m2
+    end do ! end do m3 
 
    else if( boundaryCondition(side1,0).eq.dirichlet .or.\
             boundaryCondition(side2,1).eq.dirichlet .or.\
@@ -3329,7 +3687,7 @@
  real a1DotLu,a2DotLu
  real f1,f2,f3,f4, x1,x2,x3,x4
 
- integer edgeDirection,sidea,sideb,ms1,ms2,ms3
+ integer edgeDirection,sidea,sideb,ms1,ms2,ms3,ns1,ns2,ns3
  real a1Dotu0,a2Dotu0,a1Doturr,a1Dotuss,a2Doturr,a2Dotuss,a3Doturrr,a3Dotusss,a3Doturss,a3Doturrs
  real a1Doturs,a2Doturs,a3Doturs, a2Dotu, a3Dotu, a3Dotur, a3Dotus
  real uLapr,vLapr,wLapr,uLaps,vLaps,wLaps
@@ -3566,6 +3924,7 @@
  initializeBoundaryForcing(t,slowStartInterval)
 
  numberOfGhostPoints=orderOfAccuracy/2
+
  extra=orderOfAccuracy/2  ! assign the extended boundary
  beginLoopOverSides(extra,numberOfGhostPoints)
    if( nd.eq.2 )then   

@@ -8,16 +8,6 @@
 #
 # 
 # Examples:
-#        ogen -noplot twoSquaresSplitInterface -factor=.25 -yFactor=.25 -interp=e -name="twoSquaresSplitInterface0.hdf"
-#        ogen -noplot twoSquaresSplitInterface -factor=1 -yFactor=.5 -interp=e
-#        ogen -noplot twoSquaresSplitInterface -factor=2 -yFactor=.5 -interp=e
-#        ogen -noplot twoSquaresSplitInterface -factor=2 -yFactor=2 -interp=e
-# 
-#        ogen -noplot twoSquaresSplitInterface -factor=4 -yFactor=4 -interp=e
-#        ogen -noplot twoSquaresSplitInterface -factor=16 -yFactor=16 -interp=e
-#        ogen -noplot twoSquaresSplitInterface -factor=32 -yFactor=32 -interp=e
-#        ogen -noplot twoSquaresSplitInterface -factor=64 -yFactor=64 -interp=e
-# 
 #        ogen -noplot twoSquaresSplitInterface -interp=e -order=2 -factor=1 
 #        ogen -noplot twoSquaresSplitInterface -interp=e -order=2 -factor=2 
 #        ogen -noplot twoSquaresSplitInterface -interp=e -order=2 -factor=4 
@@ -29,6 +19,16 @@
 #        ogen -noplot twoSquaresSplitInterface -interp=e -order=4 -factor=4 
 #        ogen -noplot twoSquaresSplitInterface -interp=e -order=4 -factor=8 
 #        ogen -noplot twoSquaresSplitInterface -interp=e -order=4 -factor=16
+# 
+#        ogen -noplot twoSquaresSplitInterface -factor=.25 -yFactor=.25 -interp=e -name="twoSquaresSplitInterface0.hdf"
+#        ogen -noplot twoSquaresSplitInterface -factor=1 -yFactor=.5 -interp=e
+#        ogen -noplot twoSquaresSplitInterface -factor=2 -yFactor=.5 -interp=e
+#        ogen -noplot twoSquaresSplitInterface -factor=2 -yFactor=2 -interp=e
+# 
+#        ogen -noplot twoSquaresSplitInterface -factor=4 -yFactor=4 -interp=e
+#        ogen -noplot twoSquaresSplitInterface -factor=16 -yFactor=16 -interp=e
+#        ogen -noplot twoSquaresSplitInterface -factor=32 -yFactor=32 -interp=e
+#        ogen -noplot twoSquaresSplitInterface -factor=64 -yFactor=64 -interp=e
 # 
 #        ogen -noplot twoSquaresSplitInterface -factor=.5 -yFactor=.5 -interp=e -name="twoSquaresSplitInterfacee0.order2"
 # 
@@ -55,7 +55,7 @@ $ml=0;  # to-do: add MG levels
 $numGhost=-1; # if >0 use this many ghost 
 $orderOfAccuracy = "second order"; $ng=2; $interpType = "implicit for all grids";
 $angle=0.;
-$factor=1; $yFactor=1; 
+$factor=1; $yFactor=-1; 
 $xFactorRight=1;  # additional grid resolution factor for the right domain (for non-matching grid lines)
 $yFactorRight=1;  # additional grid resolution factor for the right domain (for non-matching grid lines)
 $refineLeft=0; $refineRight=0; 
@@ -66,6 +66,7 @@ GetOptions("order=i"=>\$order,"factor=f"=> \$factor,"yFactor=f"=> \$yFactor,"int
            "name=s"=>\$name,"xFactorRight=f"=> \$xFactorRight,"yFactorRight=f"=> \$yFactorRight,\
            "refineLeft=i"=>\$refineLeft,"refineRight=i"=>\$refineRight,"numGhost=i"=>\$numGhost,"ml=i"=>\$ml );
 # 
+if( $yFactor eq -1 ){ $yFactor=$factor; }
 if( $order eq 4 ){ $orderOfAccuracy="fourth order"; $ng=2; }\
 elsif( $order eq 6 ){ $orderOfAccuracy="sixth order"; $ng=4; }\
 elsif( $order eq 8 ){ $orderOfAccuracy="eighth order"; $ng=6; }
@@ -84,74 +85,25 @@ $bcRight= "100 1  1  1";
 # 
 if( $bc eq "p" ){ $bcLeft ="1 100 -1 -1"; $bcRight="100 1 -1 -1"; }
 #
-$order4 = "fourth order";
-$order6 = "sixth order";
-#
-#
-#
-# scale number of grid points in each direction by $factor
-# $factor=.5; $name = "twoSquaresSplitInterface0.hdf";
-# $factor=.5; $interp="e"; $name = "twoSquaresSplitInterface0e.hdf"; 
-# $factor=1; $name = "twoSquaresSplitInterface1p.hdf"; $bcLeft=$bclp; $bcRight=$bcrp;
-# $factor=1; $name = "twoSquaresSplitInterface1.hdf"; 
-# $factor=1; $interp="e"; $name = "twoSquaresSplitInterface1e.hdf"; $bc = "1 2 1 1";
-# $factor=2; $name = "twoSquaresSplitInterface2.hdf"; 
-# $factor=4; $name = "twoSquaresSplitInterface4.hdf"; $bc = "1 2 1 1";
-# $factor=8; $name = "twoSquaresSplitInterface8.hdf"; 
-# $factor=16; $name = "twoSquaresSplitInterface16.hdf"; 
-#
-# -- fourth-order accurate ---
-# $factor=.5; $name = "twoSquaresSplitInterface0.order4.hdf";  $orderOfAccuracy = $order4; $bc = "1 2 1 1";
-# $factor=1; $name = "twoSquaresSplitInterface1.order4.hdf";  $orderOfAccuracy = $order4;
-# $factor=2; $name = "twoSquaresSplitInterface2.order4.hdf";  $orderOfAccuracy = $order4;
-# $factor=4; $name = "twoSquaresSplitInterface4.order4.hdf";  $orderOfAccuracy = $order4;
-# $factor=8; $name = "twoSquaresSplitInterface8.order4.hdf";  $orderOfAccuracy = $order4;
-# $factor=16; $name = "twoSquaresSplitInterface16.order4.hdf";  $orderOfAccuracy = $order4;
-# 
-# -- sixth-order accurate ---
-# $factor=.5; $name = "twoSquaresSplitInterface0.order6.hdf";  $orderOfAccuracy = $order6; $bc = "1 2 1 1";
-# $factor=1.; $name = "twoSquaresSplitInterface1.order6.hdf";  $orderOfAccuracy = $order6; $bc = "1 2 1 1";
-# $factor=2.; $name = "twoSquaresSplitInterface2.order6.hdf";  $orderOfAccuracy = $order6; $bc = "1 2 1 1";
-# $factor=4.; $name = "twoSquaresSplitInterface4.order6.hdf";  $orderOfAccuracy = $order6; $bc = "1 2 1 1";
-#
-# square aspect ratio
-# $factor=4; $yFactor=$factor; $name = "twoSquaresSplitInterface4s.hdf"; $bc = "1 2 1 1";
-# $factor=8; $yFactor=$factor; $name = "twoSquaresSplitInterface8s.hdf"; $bc = "1 2 1 1";
-# $factor=16; $yFactor=$factor; $name = "twoSquaresSplitInterface16s.hdf"; $bc = "1 2 1 1";
-#
-# $factor=2; $yFactor=$factor; $name = "twoSquaresSplitInterface2s.order4.hdf";  $orderOfAccuracy = $order4; $bc = "1 2 1 1";
-# $factor=4; $yFactor=$factor; $name = "twoSquaresSplitInterface4s.order4.hdf";  $orderOfAccuracy = $order4; $bc = "1 2 1 1";
-# $factor=8; $yFactor=$factor; $name = "twoSquaresSplitInterface8s.order4.hdf";  $orderOfAccuracy = $order4; $bc = "1 2 1 1";
-# $factor=8; $yFactor=$factor; $name = "twoSquaresSplitInterface8sp.order4.hdf";  $orderOfAccuracy = $order4; $bc = "1 2 -1 -1";
-# $factor=16; $yFactor=$factor; $name = "twoSquaresSplitInterface16s.order4.hdf";  $orderOfAccuracy = $order4; $bc = "1 2 1 1";
-#  -- sixth:
-# $factor=2.; $yFactor=$factor; $name = "twoSquaresSplitInterface2s.order6.hdf";  $orderOfAccuracy = $order6; $bc = "1 2 1 1";
-# $factor=4.; $yFactor=$factor; $name = "twoSquaresSplitInterface4s.order6.hdf";  $orderOfAccuracy = $order6; $bc = "1 2 1 1";
-# $factor=8.; $yFactor=$factor; $name = "twoSquaresSplitInterface8s.order6.hdf";  $orderOfAccuracy = $order6; $bc = "1 2 1 1";
-#
-# -- rotated
-# $factor=4; $yFactor=$factor; $name = "twoSquaresSplitInterface4s45.order4.hdf";  $angle=45.; $orderOfAccuracy = $order4; $bc = "1 2 1 1";
-#   periodic in tranverse direction
-# $factor=4; $yFactor=$factor; $name = "twoSquaresSplitInterface4s45p.order4.hdf";  $angle=45.; $orderOfAccuracy = $order4; $bc = "1 2 -1 -1";
-# $factor=8; $yFactor=$factor; $name = "twoSquaresSplitInterface8s45p.order4.hdf";  $angle=45.; $orderOfAccuracy = $order4; $bc = "1 2 -1 -1";
-# $factor=4; $yFactor=$factor; $name = "twoSquaresSplitInterface4s90.order4.hdf";  $angle=90.; $orderOfAccuracy = $order4; $bc = "1 2 1 1";
-#
-#
-# 
 #**************************************************************************
 #
 #
 # domain parameters:  
-$dsx = .1/$factor; # target grid spacing in the x direction
-$dsy= .1/$yFactor;          # target grid spacing in the y direction
+$dsx = .1/$factor;  # target grid spacing in the x direction
+$dsy = .1/$yFactor; # target grid spacing in the y direction
 #
+# ----- By default use these grids: -----
+$leftGrids = "leftSquareBottom\n leftSquareTop";
+$rightGrids = "rightSquareBottom\n rightSquareTop";
+# 
 create mappings
 #
-#  here is the left grid
+#  Here are the left grids
 #
+  $yDelta = .5*($order-2+.5)*$dsy; # adjust two grids NOT to match
   rectangle
     $xa=-1.0;  $xb=0.0; 
-    $ya= 0.;   $yb=1.; 
+    $ya= 0.;   $yb=.5 + $yDelta; 
     set corners
      $xa $xb $ya $yb 
     lines
@@ -159,19 +111,36 @@ create mappings
       $ny=int( ($yb-$ya)/$dsy+1.5 );
       $nx $ny
     boundary conditions
-      $bcLeft
+      1 100 3 0 
     share
- # for now interfaces are marked with share>=100 
-      0 100 0 0
+      # for now interfaces are marked with share>=100 
+      1 100 0 0
     mappingName
-      leftSquare0
-#*      leftSquare
+     leftSquareBottom
+  exit
+# 
+  rectangle
+    $xa=-1.0;  $xb=0.0; 
+    $ya= .5-$yDelta;   $yb=1.;
+    set corners
+     $xa $xb $ya $yb 
+    lines
+      $nx=int( ($xb-$xa)/$dsx+1.5 );
+      $ny=int( ($yb-$ya)/$dsy+1.5 );
+      $nx $ny
+    boundary conditions
+      1 100 0 4 
+    share
+      # for now interfaces are marked with share>=100 
+      1 101 0 0
+    mappingName
+     leftSquareTop
   exit
 #
 #
   rectangle
     $xa= 0.0;  $xb=1.0; 
-    $ya= 0.;   $yb=1.; 
+    $ya= 0.;   $yb=.5 + $yDelta; 
     set corners
      $xa $xb $ya $yb 
     lines
@@ -181,69 +150,89 @@ create mappings
       $ny=int( ($yb-$ya)/$dsy+1.5 );
       $nx $ny
     boundary conditions
-      $bcRight
+      100 2 3 0 
     share
- # for now interfaces are marked with share>=100 
-      100 0 0 0
+      # interfaces are marked with share>=100 
+      100 2 0 0
     mappingName
-      rightSquare0
-#*      rightSquare
+      rightSquareBottom
   exit
 #
-  rotate/scale/shift
-    transform which mapping?
-      leftSquare0
-    rotate
-     $angle
-    0. .5 0.
-    mappingName
-      leftSquare
-    exit
-#
-  rotate/scale/shift
-    transform which mapping?
-      rightSquare0
-    rotate
-     $angle
-    0. .5 0.
-    mappingName
-      rightSquare
-    exit
-#
-  reparameterize
-    transform which mapping?
-      leftSquare0
+  rectangle
+    $xa= 0.0;  $xb=1.0; 
+    $ya= .5-$yDelta;   $yb=1.;
     set corners
-      .5 1. .25 .75
+     $xa $xb $ya $yb 
     lines
-      $nxr = $nx;  $nyr=$ny; 
-      $nxr $nyr
+      $dsx = $dsx/$xFactorRight;
+      $dsy = $dsy/$yFactorRight;
+      $nx=int( ($xb-$xa)/$dsx+1.5 );
+      $ny=int( ($yb-$ya)/$dsy+1.5 );
+      $nx $ny
     boundary conditions
-     0 100 0 0 
+      100 2 0 4 
+    share
+      # interfaces are marked with share>=100 
+      101 2 0 0
     mappingName
-      refinedLeftSquare
-    exit
-# 
-    $leftGrids="leftSquare"; 
-    if( $refineLeft eq 1 ){ $leftGrids .="\n refinedLeftSquare"; }
-# 
-#
-  reparameterize
-    transform which mapping?
-      rightSquare0
-    set corners
-      .0 .5 .1 .6
-    lines
-      $nxr = $nx;  $nyr=$ny; 
-      $nxr $nyr
-    boundary conditions
-     100 0 0 0 
-    mappingName
-      refinedRightSquare
-    exit
-# 
-    $rightGrids="rightSquare"; 
-    if( $refineRight eq 1 ){ $rightGrids .="\n refinedRightSquare"; }
+      rightSquareTop
+  exit
+# -- turn these off for now --
+#- #
+#-   rotate/scale/shift
+#-     transform which mapping?
+#-       leftSquare0
+#-     rotate
+#-      $angle
+#-     0. .5 0.
+#-     mappingName
+#-       leftSquare
+#-     exit
+#- #
+#-   rotate/scale/shift
+#-     transform which mapping?
+#-       rightSquare0
+#-     rotate
+#-      $angle
+#-     0. .5 0.
+#-     mappingName
+#-       rightSquare
+#-     exit
+#- #
+#-   reparameterize
+#-     transform which mapping?
+#-       leftSquare0
+#-     set corners
+#-       .5 1. .25 .75
+#-     lines
+#-       $nxr = $nx;  $nyr=$ny; 
+#-       $nxr $nyr
+#-     boundary conditions
+#-      0 100 0 0 
+#-     mappingName
+#-       refinedLeftSquare
+#-     exit
+#- # 
+#-     $leftGrids="leftSquare"; 
+#-     if( $refineLeft eq 1 ){ $leftGrids .="\n refinedLeftSquare"; }
+#- # 
+#- #
+#-   reparameterize
+#-     transform which mapping?
+#-       rightSquare0
+#-     set corners
+#-       .0 .5 .1 .6
+#-     lines
+#-       $nxr = $nx;  $nyr=$ny; 
+#-       $nxr $nyr
+#-     boundary conditions
+#-      100 0 0 0 
+#-     mappingName
+#-       refinedRightSquare
+#-     exit
+#- # 
+#-     $rightGrids="rightSquare"; 
+#-     if( $refineRight eq 1 ){ $rightGrids .="\n refinedRightSquare"; }
 # 
   exit this menu
 #
@@ -277,6 +266,7 @@ generate an overlapping grid
 # 
 #    display intermediate results
 # pause
+  # open graphics
   compute overlap
 # pause
   exit
@@ -288,31 +278,3 @@ exit
 
 
 
-
-
-# ------------ old way --------------
-
-generate an overlapping grid
-  leftSquare
-  rightSquare
-  done 
-  change parameters
-    prevent interpolation
-      all
-      all
-    done
-    order of accuracy
-     $orderOfAccuracy
-    ghost points
-      all
-      3 3 3 3 3 3 
-  exit
-# pause
-  compute overlap
-# pause
-  exit
-#
-save an overlapping grid
-  $name
-  twoSquaresSplitInterface
-exit

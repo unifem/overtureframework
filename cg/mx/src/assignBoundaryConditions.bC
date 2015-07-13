@@ -981,7 +981,8 @@ assignBoundaryConditions( int option, int grid, real t, real dt, realMappedGridF
   bool centerNeeded = vertexArrayIsNeeded( grid );
   if( centerNeeded )
   {
-    if( debug & 1 ) printF("\n --MX-BC--  CREATE VERTEX grid=%i ---\n\n",grid);
+    if( debug & 1 && t<2.*dt ) 
+      printF("\n --MX-BC--  CREATE VERTEX grid=%i ---\n\n",grid);
     mg.update(MappedGrid::THEcenter | MappedGrid::THEvertex );
   }
 
@@ -1021,6 +1022,9 @@ assignBoundaryConditions( int option, int grid, real t, real dt, realMappedGridF
 
   bool debugGhost=false; // ***TEMP*** June 1, 2016 -- debugging SOSUP
   
+  CompositeGrid & cg = *(cgfields[next].getCompositeGrid());
+  const int numberOfComponentGrids = cg.numberOfComponentGrids();
+
   if( mg.getGridType()==MappedGrid::structuredGrid )
   {
     // ***********************

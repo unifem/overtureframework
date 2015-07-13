@@ -257,7 +257,7 @@ computeTheError( int option, CompositeGrid & cg, realCompositeGridFunction & u,
       exact.gd( ue,xLocal,mg.numberOfDimensions(),rectangularForTZ,0,0,0,0,I1,I2,I3,0,0.);
       ueMax=max(fabs(ue));
     }
-    ParallelUtility::getMaxValue(ueMax); // max value over all procs
+    ueMax=ParallelUtility::getMaxValue(ueMax); // max value over all procs
 
     real gridErrWithGhost=0., gridErr=0.;
     if( ok )
@@ -276,8 +276,8 @@ computeTheError( int option, CompositeGrid & cg, realCompositeGridFunction & u,
 
       gridErr=max(errLocal(I1,I2,I3))/ueMax;
     }
-    ParallelUtility::getMaxValue(gridErr); // max value over all procs
-    ParallelUtility::getMaxValue(gridErrWithGhost); // max value over all procs
+    gridErr         =ParallelUtility::getMaxValue(gridErr); // max value over all procs
+    gridErrWithGhost=ParallelUtility::getMaxValue(gridErrWithGhost); // max value over all procs
 
     error=max(error, gridErr );
     errorWithGhostPoints=max(errorWithGhostPoints, gridErrWithGhost);
@@ -308,9 +308,12 @@ main(int argc, char *argv[])
 {
   Overture::start(argc,argv);  // initialize Overture
 
+   // This macro will initialize the PETSc solver if OVERTURE_USE_PETSC is defined.
+  INIT_PETSC_SOLVER();
+
   printF("Usage: tcm3 [<gridName>] [-solver=[yale][harwell][slap][petsc][mg]] [-debug=<value>][-outputMatrix]\n" 
                      "[-noTiming] [-check] [-trig] [-tol=<value>] [-order=<value>] [-plot] [-ilu=] [-gmres] \n"
-                     "[-freq=<value>] [-dirichlet] [-neumann] [-mixed] \n");
+                     "[-freq=<value>] [-dirichlet] [-neumann] [-mixed] [-testCommunicator\n");
 
   const int maxNumberOfGridsToTest=3;
   int numberOfGridsToTest=maxNumberOfGridsToTest;
@@ -335,6 +338,7 @@ main(int argc, char *argv[])
   int iluLevels=-1; // -1 : use default
   int problemsToSolve=1+2;  // solve dirichlet=1 and neumann=2
   bool outputMatrix=false;
+  bool testCommunicator=false;  // set to true to test PETSc when using only a subset of the processors.
   
   real fx=2., fy=2., fz=2.; // frequencies for trig TZ
   
@@ -371,6 +375,11 @@ main(int argc, char *argv[])
       {
 	iterativeSolverType="gmres";
       }
+      else if( (len=arg.matches("-testCommunicator")) )
+      {
+	testCommunicator=true;
+	printF("Test the parallel PETSc solver using a subset of the processors\n");
+      }
       else if( (len=arg.matches("-outputMatrix")) )
       {
 	outputMatrix=true;
@@ -406,7 +415,10 @@ main(int argc, char *argv[])
 	  solverType=OgesParameters::harwell;
 	else if( solverName=="petsc" || solverName=="PETSc" )
 #ifdef USE_PPP 
+	{
 	  solverType=OgesParameters::PETScNew;
+	  // printF("tcm3: Setting solverType=PETScNew = %i\n",(int)solverType);
+	}
 #else
 	solverType=OgesParameters::PETSc;
 #endif
@@ -473,6 +485,58 @@ main(int argc, char *argv[])
     extrapolate         = BCTypes::extrapolate,
     allBoundaries       = BCTypes::allBoundaries; 
 
+  MPI_Comm myComm=MPI_COMM_WORLD, myCommWorld=MPI_COMM_WORLD;  // Have PETSc use these communicators
+  bool communicatorWasNewed=false;
+  int pStart=-1, pEnd=-1;  // Use to distribute the grids in the CompositeGrid when we define a communicator
+  if( testCommunicator && solverType==OgesParameters::PETScNew )
+  {
+    // Here we test the PETSc solver when only some processors are involved in the parallel solve.
+    // We build an MPI communicator that only includes some processors.
+    communicatorWasNewed=true;
+
+    const int np=max(1,Communication_Manager::Number_Of_Processors);
+    const int myid=max(0,Communication_Manager::My_Process_Number);
+
+    MPI_Group worldGroup, myGroup;
+    MPI_Comm_group( MPI_COMM_WORLD,&worldGroup ); //get world group
+
+    const int numRanks=min(2,np);
+    int ranks[4]={1,2,3,4};  // include these ranks in myGroup
+    printF("--TCM3-- Active processors = [%i",ranks[0]);
+    for( int r=1; r<numRanks; r++ ){ printF(",%i",ranks[r]); }  // 
+    printF("]\n");
+
+    MPI_Group_incl(worldGroup, numRanks, ranks, &myGroup );   // myGgroup includes some ranks 
+    MPI_Comm_create( MPI_COMM_WORLD, myGroup, &myComm ); // construct myComm
+    MPI_Comm_create( MPI_COMM_WORLD, myGroup, &myCommWorld ); // construct myCommWorld
+    MPI_Group_free(&worldGroup);
+    MPI_Group_free(&myGroup);
+
+    pStart=ranks[0]; pEnd=ranks[numRanks-1];
+
+    // int colour = myid==(np-1);  // communicator includes this processor
+    // // int colour = myid==(np-1);  // communicator includes this processor
+    // // int colour = 1; 
+    // int key=0;
+    // MPI_Comm_split(MPI_COMM_WORLD,colour,key,&myComm );
+
+    // if( myComm!=MPI_COMM_NULL )
+    // {
+    //   int size=-1; 
+    //   MPI_Comm_size(myComm,&size);
+    //   printf(" --TCM3-- myComm: myid=%i size=%i.\n",myid,size);
+    // }
+    // else
+    // {
+    //   printf(" --TCM3-- myComm: myid=%i myComm==NULL.\n",myid);
+    // }
+  }
+  else
+  {
+
+  }
+  
+
   int numberOfSolvers = check ? 2 : 1;
   real worstError=0.;
   for( int sparseSolver=0; sparseSolver<numberOfSolvers; sparseSolver++ )
@@ -493,6 +557,7 @@ main(int argc, char *argv[])
 
     checker.setLabel(solverName,0);
 
+
     for( int it=0; it<numberOfGridsToTest; it++ )
     {
       aString nameOfOGFile=gridName[it];
@@ -503,10 +568,15 @@ main(int argc, char *argv[])
               " *****************************************************************\n\n",(const char*)nameOfOGFile);
 
       CompositeGrid cg;
-      if( false )
+      if( pStart>=0  )
       {
 	LoadBalancer loadBalancer;
-	loadBalancer.setLoadBalancer(LoadBalancer::allToAll);
+        loadBalancer.setLoadBalancer(LoadBalancer::allToAll);
+	printF("loadBalancer: pStart=%i, pEnd=%i\n",pStart,pEnd);
+	
+        loadBalancer.setProcessors(pStart, pEnd);
+
+	// loadBalancer.setLoadBalancer(LoadBalancer::allToAll);
 	getFromADataBase(cg,nameOfOGFile,loadBalancer);
       }
       else
@@ -618,8 +688,16 @@ main(int argc, char *argv[])
     
 
       Oges solver( cg );                     // create a solver
+      
+      if( solverType==OgesParameters::PETScNew )
+      {
+        Oges::OGES_COMM_WORLD=myCommWorld;
+	solver.setCommunicator( myComm );
+      }
+      
       solver.set(OgesParameters::THEsolverType,solverType); 
 
+      
       if( outputMatrix )
 	solver.set(OgesParameters::THEkeepSparseMatrix,true);
       
@@ -671,8 +749,8 @@ main(int argc, char *argv[])
 	u=0.;  // initial guess for iterative solvers
 	real time0=CPU();
 	solver.solve( u,f );   // solve the equations
-	real time=CPU()-time0;
-	printF("\n*** max residual=%8.2e, time for 1st solve of the Dirichlet problem = %8.2e (iterations=%i) ***\n\n",
+	real time= ParallelUtility::getMaxValue(CPU()-time0);
+	printF("\n*** max residual=%8.2e, time for 1st solve of the Dirichlet problem = %8.2e (iterations=%i) ***\n",
 	       solver.getMaximumResidual(),time,solver.getNumberOfIterations());
 
 	// solve again
@@ -681,7 +759,7 @@ main(int argc, char *argv[])
 	  // u=0.;
 	  time0=CPU();
 	  solver.solve( u,f );   // solve the equations
-	  time=CPU()-time0;
+	  time= ParallelUtility::getMaxValue(CPU()-time0);
 	  printF("\n*** max residual=%8.2e, time for 2nd solve of the Dirichlet problem = %8.2e (iterations=%i) ***\n\n",
 		 solver.getMaximumResidual(),time,solver.getNumberOfIterations());
 	}
@@ -700,7 +778,7 @@ main(int argc, char *argv[])
 
 	const int numberOfGridsPoints=max(1,cg.numberOfGridPoints());
 	const real solverSize=solver.sizeOf();
-	printF("\n.....solver: size = %8.2e (bytes), grid-pts=%i, reals/grid-pt=%5.2f \n",
+	printF(".....solver: size = %8.2e (bytes), grid-pts=%i, reals/grid-pt=%5.2f \n",
 	       solverSize,numberOfGridsPoints,solverSize/(numberOfGridsPoints*sizeof(real)));
 
 	// u.display("Here is the solution to Laplacian(u)=f");
@@ -839,8 +917,8 @@ main(int argc, char *argv[])
 	u=0.;  // initial guess for iterative solvers
 	real time0=CPU();
 	solver.solve( u,f );   // solve the equations
-	real time=CPU()-time0;
-	printF("residual=%8.2e, time for 1st solve of the %s problem = %8.2e (iterations=%i)\n",
+	real time= ParallelUtility::getMaxValue(CPU()-time0);
+	printF("\n*** residual=%8.2e, time for 1st solve of the %s problem = %8.2e (iterations=%i)\n",
 	       solver.getMaximumResidual(),(const char*)optionName,time,solver.getNumberOfIterations());
 
 	// turn off refactor for the 2nd solve
@@ -849,8 +927,8 @@ main(int argc, char *argv[])
 	// u=0.;  // initial guess for iterative solvers
 	time0=CPU();
 	solver.solve( u,f );   // solve the equations
-	time=CPU()-time0;
-	printF("residual=%8.2e, time for 2nd solve of the %s problem = %8.2e (iterations=%i)\n",
+	time= ParallelUtility::getMaxValue(CPU()-time0);
+	printF("\n*** residual=%8.2e, time for 2nd solve of the %s problem = %8.2e (iterations=%i)\n\n",
 	       solver.getMaximumResidual(),(const char*)optionName, time,solver.getNumberOfIterations());
 
 	computeTheError( option,cg,u,err,exact, error );
@@ -878,6 +956,13 @@ main(int argc, char *argv[])
 
   }  // end sparseSolver
 
+  if( communicatorWasNewed )
+  {
+    if( myComm !=MPI_COMM_NULL )
+      MPI_Comm_free(&myComm);
+    if( myCommWorld !=MPI_COMM_NULL )
+      MPI_Comm_free(&myCommWorld);
+  }
   
   fflush(0);
   printF("\n\n ************************************************************************************************\n");

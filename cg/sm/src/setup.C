@@ -46,6 +46,23 @@ setup(const real & time /* = 0. */ )
   if( imaginaryPartOfEigenvalue.size() != cg.numberOfComponentGrids() )
     imaginaryPartOfEigenvalue.resize(cg.numberOfComponentGrids(),-1.);
 
+  // ---- For nonlinear solvers we need to adjust the time step ----
+  SmParameters::PDEVariation & pdeVariation = parameters.dbase.get<SmParameters::PDEVariation>("pdeVariation");
+  int & maximumStepsBetweenComputingDt= parameters.dbase.get<int>("maximumStepsBetweenComputingDt");
+  if( pdeVariation==SmParameters::godunov )
+  {
+    const int pdeTypeForGodunovMethod = parameters.dbase.get<int >("pdeTypeForGodunovMethod");
+    if( pdeTypeForGodunovMethod!=0 )
+    {
+      // nonlinear models we recompute dt every this many steps 
+      maximumStepsBetweenComputingDt=2;
+    }
+  }
+  else
+  {
+    maximumStepsBetweenComputingDt=INT_MAX;
+  }
+  
 
   // **** now build grid functions *****
   setupGridFunctions();

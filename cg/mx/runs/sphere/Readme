@@ -1,8 +1,13 @@
 
-Generate a grid:
+Generate some grids:
 
+ogen -noplot sibArg -order=2 -interp=e -factor=2 
+ogen -noplot sibArg -order=2 -interp=e -factor=4
 
+ogen -noplot sibArg -order=4 -interp=e -factor=4
 
 
 Run:
 
+Order=2: 
+cgmx sib.planeWaveBC -g=sibe2.order2.hdf

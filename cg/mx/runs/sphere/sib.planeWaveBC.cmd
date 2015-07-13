@@ -15,6 +15,9 @@
 # -- sosup
 #   cgmx sib.planeWaveBC -g=sibe4.order4.ng3.hdf -method=sosup
 #
+# -- sphere with 3 patches:
+#   cgmx sib.planeWaveBC -g=sphereInABoxe1.order2 -bg=backGround -radius=1.
+#   cgmx sib.planeWaveBC -g=sphereInABoxe2.order2 -bg=backGround -radius=1.
 #
 # parallel: 
 #   mpirun -np 2 $cgmxp sib.planeWaveBC -g=sib2.order4.hdf
@@ -28,12 +31,14 @@
 #================================================================================================
 # 
 $tFinal=10.; $tPlot=.1; $diss=.1; $dissOrder=4; $cfl=.9; $method="NFDTD";
-$grid="sib1.order4.hdf";
+$grid="sib1.order4.hdf"; $bg="box"; 
+$radius=.5; 
 $cons=0; $go="halt"; 
 # ----------------------------- get command line arguments ---------------------------------------
 GetOptions( "g=s"=>\$grid,"tf=f"=>\$tFinal,"diss=f"=>\$diss,"tp=f"=>\$tPlot,"show=s"=>\$show,"debug=i"=>\$debug, \
- "cfl=f"=>\$cfl, "bg=s"=>\$backGround,"bcn=s"=>\$bcn,"go=s"=>\$go,"noplot=s"=>\$noplot,\
-  "dtMax=f"=>\$dtMax, "cons=i"=>\$cons,"method=s"=>\$method,"diss=f"=>\$diss,"dissOrder=i"=>\$dissOrder );
+ "cfl=f"=>\$cfl, "bg=s"=>\$backGround,"bcn=s"=>\$bcn,"go=s"=>\$go,"noplot=s"=>\$noplot,"bg=s"=>\$bg,\
+  "dtMax=f"=>\$dtMax, "cons=i"=>\$cons,"method=s"=>\$method,"diss=f"=>\$diss,"dissOrder=i"=>\$dissOrder,\
+  "radius=f"=>\$radius );
 # -------------------------------------------------------------------------------------------------
 if( $method eq "sosup" ){ $diss=0.; }
 if( $go eq "halt" ){ $go = "break"; }
@@ -59,12 +64,14 @@ planeWaveScatteredFieldInitialCondition
 scatteringFromASphereKnownSolution
 #
 kx,ky,kz 1 0 0
+#
+scattering radius $radius
 # 
 # Gaussian plane wave: 100. -1.5 0. 0.
 # bc: box=abcEM2
 bc: all=perfectElectricalConductor
 #****
-bc: box=dirichlet
+bc: $bg=dirichlet
 # bc: box=abcEM2
 # bc: box=abcPML
 # pml width,strength,power 5 30. 4

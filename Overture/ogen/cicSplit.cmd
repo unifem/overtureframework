@@ -118,11 +118,12 @@ $name=""; $xa=-2.; $xb=2.; $ya=-2.; $yb=2.;
 $cx=0.; $cy=0.;  # center for the annulus
 $blf=1;  # this means no stretching
 $deltaRadius0=.3; # radius for rgd fixed
+$numGhost=-1;  # if this value is set, then use this number of ghost points
 # 
 # get command line arguments
 GetOptions( "order=i"=>\$order,"factor=f"=> \$factor,"xa=f"=>\$xa,"xb=f"=>\$xb,"ya=f"=>\$ya,"yb=f"=>\$yb,\
             "interp=s"=> \$interp,"name=s"=> \$name,"ml=i"=>\$ml,"blf=f"=> \$blf, "prefix=s"=> \$prefix,\
-            "cx=f"=>\$cx,"cy=f"=>\$cy,"rgd=s"=> \$rgd );
+            "cx=f"=>\$cx,"cy=f"=>\$cy,"rgd=s"=> \$rgd,"numGhost=i"=>\$numGhost );
 # 
 if( $order eq 4 ){ $orderOfAccuracy="fourth order"; $ng=2; }\
 elsif( $order eq 6 ){ $orderOfAccuracy="sixth order"; $ng=4; }\
@@ -131,6 +132,8 @@ if( $interp eq "e" ){ $interpType = "explicit for all grids"; }
 # 
 if( $rgd eq "fixed" ){ $prefix = $prefix . "Fixed"; }
 $suffix = ".order$order"; 
+if( $numGhost ne -1 ){ $ng = $numGhost; } # overide number of ghost
+if( $numGhost ne -1 ){ $suffix .= ".ng$numGhost"; } 
 if( $blf ne 1 ){ $suffix .= ".s$blf"; }
 if( $ml ne 0 ){ $suffix .= ".ml$ml"; }
 if( $name eq "" ){$name = $prefix . "$interp$factor" . $suffix . ".hdf";}
@@ -238,82 +241,4 @@ $name
 cicSplit
 exit
 
-
-
-
-
-
-
-*
-* check an annulus on a fine grid -- for hole cutting
-*
-create mappings
-*
-rectangle
-  set corners
-    -2. 2. -2. 2.
-  lines
-    25 25 
-  boundary conditions
-    1 1 1 1
-  mappingName
-  square
-exit
-*
-Annulus
-  start and end angles
-    -.05 .55
-  lines
-    17 9
-  boundary conditions
-    0 0  1 0
-  share
-     0 0 1 0
-  mappingName
-   left
-exit
-*
-Annulus
-  start and end angles
-    .5 1.
-  lines
-    17 9
-  boundary conditions
-    0 0  1 0
-  share
-     0 0 1 0
-  mappingName
-   right
-exit
-*
-exit
-generate an overlapping grid
-    square
-    left
-    right
-  done
-  change parameters
-    * choose implicit or explicit interpolation
-    * interpolation type
-    *   implicit for all grids
-    ghost points
-      all
-      2 2 2 2 2 2
-  exit
-*  display intermediate results
-  compute overlap
-  exit
-*
-save an overlapping grid
-cicSplit.hdf
-cic
-exit
-
-
-
-  display intermediate results
-*  debug 
-*    7
-  compute overlap
-  continue
 

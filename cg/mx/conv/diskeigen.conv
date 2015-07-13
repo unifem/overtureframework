@@ -1,4 +1,4 @@
-# Measure convergence rates eigenfunctions of a 2D disk 
+# Measure convergence rates eigenfunctions of a 2D disk OR a 3D  box
 #
 # -- second order
 #   conv.p diskeigen.conv -tf=.5 -tp=.5 -order=2 -dissOrder=2 -diss=1. -ng=3
@@ -14,6 +14,9 @@
 # -- sosup sixth-order
 #   conv.p diskeigen.conv -tf=.5 -tp=.5 -order=6 -method=sosup -ng=4
 #
+#  Eigenfunctions of a BOX:
+#   conv.p diskeigen.conv -tf=.7 -tp=.7 -mx=3 -my=3 -mz=3 -order=4 -name=boxEigen -cg=box -ng=3
+#
 $check="mx.check";
 # --------options: 
 #   -order : 2 or 4 
@@ -22,16 +25,25 @@ $check="mx.check";
 #   -errorNorm:  set to 1 or 2 to show L1 and L2 norm errors
 # 
 # Set default parameters: 
-$name="diskeigen";
-$tf=.5; $tp=.1; $order = "2"; $ng=3; $m=2; $n=2; $interp="i"; $cfl=.9; 
+$name="diskeigen";  $cg="sice";
+$cmdFile="diskeigen"; 
+$CGBUILDPREFIX=$ENV{CGBUILDPREFIX};
+$cgmx = "$CGBUILDPREFIX/mx/bin/cgmx";  # command for cgmx
+$cmdDir="$ENV{CG}/mx/cmd"; 
+#
+$tf=.5; $tp=.1; $order = "2"; $ng=3; $m=2; $n=2; $mk=1; $interp="e"; $cfl=.9; 
+$mx=1; $my=1; $mz=1; # for boxEigen
 $diss=.0; $dissOrder=-1; 
 $errorNorm=0; $method="NFDTD"; 
 $alwaysCompute=1;
 #
 GetOptions( "name=s"=>\$name,"order=s"=>\$order,"ng=i"=>\$ng,"tf=f"=>\$tf,"interp=s"=>\$interp,"diss=f"=>\$diss,\
             "fixed=s"=>\$fixed,"cfl=f"=>\$cfl,"alwaysCompute=i"=>\$alwaysCompute,"method=s"=>\$method,"tp=f"=>\$tp,\
-            "errorNorm=i"=>\$errorNorm,"m=f"=>\$m,"n=f"=>\$n,"dissOrder=i"=>\$dissOrder );
-# ------------------------ planeWave ------------------------------------------
+            "errorNorm=i"=>\$errorNorm,"m=f"=>\$m,"n=f"=>\$n,"mk=f"=>\$mk,"dissOrder=i"=>\$dissOrder,"cg=s"=>\$cg,\
+            "mx=f"=>\$mx,"my=f"=>\$my,"mz=f"=>\$mz );
+# ------------------------ ------------------------------------------
+if( $cg =~ /box*/ || $cg =~ /nonBox*/ || $cg =~ /unitBox*/ || $cg =~ /unitNonBox*/ ){ $cmdFile = "../runs/boxEigen/boxEigen"; }
+if( $cg =~ /tube*/ ){ $cmdFile = "../cmd/cyleigen"; }
 $caseName="$name$method\Order$order"; 
 if( $errorNorm eq 0 ){ $normName = "max"; }elsif( $errorNorm eq 1 ){ $normName = "L1";}\
    elsif( $errorNorm eq 2 ){ $normName = "L2"; }else{ $normName="UnknownNorm"; }
@@ -46,25 +58,30 @@ if( $numberOfComponents eq 7 )\
 # 
 $labelMethod=$method;
 if( $method eq "NFDTD" ){ $labelMethod="CGFD$order"; }
-$caption= "\\caption\{Cgmx, $name, method=$labelMethod, $normName norm, order=\$$order\$, \$t=$tf\$, m=$m,  n=$n, cfl=\$$cfl\$, diss=\$$diss\$, dissOrder=\$$dissOrder\$, $date}\\label\{table:$name" . $method . "Order$order$normName}"; 
+$caption= "\\caption\{Cgmx, $name, CG=$cg, method=$labelMethod, $normName norm, order=\$$order\$, \$t=$tf\$, m=$m,  n=$n, mk=$mk, mx=$mx, my=$my, mz=$mz, cfl=\$$cfl\$, diss=\$$diss\$, dissOrder=\$$dissOrder\$, $date}\\label\{table:$name" . $method . "Order$order$normName}"; 
 $outputFile="$name$method" . "Order$order" . $normName . "NormConvTable.tex"; 
 # 
-$options = "-m=$m -n=$n -diss=$diss  -dissOrder=$dissOrder -cfl=$cfl -method=$method -errorNorm=$errorNorm -tf=$tf -tp=$tp -go=go";
+$options = "-m=$m -n=$n -k=$mk -mx=$mx -my=$my -mz=$mz -diss=$diss  -dissOrder=$dissOrder -cfl=$cfl -method=$method -errorNorm=$errorNorm -tf=$tf -tp=$tp -go=go";
 #
 $suffix="";
 if( ($method eq "sosup") && ($order eq 4) ){ $suffix=".ng3"; }
 if( ($method eq "sosup") && ($order eq 6) ){ $suffix=".ng4"; }
-$grid1="sic2";   $gName1 = "sice2.order$order$suffix"; 
-$grid2="sic4";   $gName2 = "sice4.order$order$suffix"; 
-$grid3="sic8";   $gName3 = "sice8.order$order$suffix"; 
-$grid4="sic16";  $gName4 = "sice16.order$order$suffix"; 
-$grid5="sic32";  $gName5 = "sice32.order$order$suffix"; 
+$gStart=2; # start at this grid factor 
+if( $cg =~ /tube*/ ){ $gStart=1; }
+$g=$gStart; 
+$grid1=$cg . "$g";  $gName1 = $cg . "$g.order$order$suffix"; $g=$g*2; 
+$grid2=$cg . "$g";  $gName2 = $cg . "$g.order$order$suffix"; $g=$g*2;  
+$grid3=$cg . "$g";  $gName3 = $cg . "$g.order$order$suffix"; $g=$g*2;  
+$grid4=$cg . "$g";  $gName4 = $cg . "$g.order$order$suffix"; $g=$g*2;  
+$grid5=$cg . "$g";  $gName5 = $cg . "$g.order$order$suffix"; $g=$g*2;  
+$grid6=$cg . "$g";  $gName6 = $cg . "$g.order$order$suffix"; $g=$g*2;  
 # 
-if( $ng > 0 ){ $grid=$grid1; $res=1; $cmd="../bin/cgmx noplot ../cmd/diskeigen -g=$gName1 $options";  }
-if( $ng > 1 ){ $grid=$grid2; $res=2; $cmd="../bin/cgmx noplot ../cmd/diskeigen -g=$gName2 $options";}
-if( $ng > 2 ){ $grid=$grid3; $res=4; $cmd="../bin/cgmx noplot ../cmd/diskeigen -g=$gName3 $options";}
-if( $ng > 3 ){ $grid=$grid4; $res=8; $cmd="../bin/cgmx noplot ../cmd/diskeigen -g=$gName4 $options";}
-if( $ng > 4 ){ $grid=$grid5; $res=16; $cmd="../bin/cgmx noplot ../cmd/diskeigen -g=$gName5 $options";}
+if( $ng > 0 ){ $grid=$grid1; $res=1;  $cmd="$cgmx -noplot $cmdDir/$cmdFile -g=$gName1 $options";  }
+if( $ng > 1 ){ $grid=$grid2; $res=2;  $cmd="$cgmx -noplot $cmdDir/$cmdFile -g=$gName2 $options";}
+if( $ng > 2 ){ $grid=$grid3; $res=4;  $cmd="$cgmx -noplot $cmdDir/$cmdFile -g=$gName3 $options";}
+if( $ng > 3 ){ $grid=$grid4; $res=8;  $cmd="$cgmx -noplot $cmdDir/$cmdFile -g=$gName4 $options";}
+if( $ng > 4 ){ $grid=$grid5; $res=16; $cmd="$cgmx -noplot $cmdDir/$cmdFile -g=$gName5 $options";}
+if( $ng > 5 ){ $grid=$grid6; $res=32; $cmd="$cgmx -noplot $cmdDir/$cmdFile -g=$gName6 $options";}
 $closeFile="true";
 # -------------------------------------------------------------------------------
 exit

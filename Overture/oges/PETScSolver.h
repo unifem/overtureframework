@@ -50,6 +50,8 @@ int getGlobalIndex( int n, int *iv, int grid, realArray & ug ) const;
 
 real getMaximumResidual();
 
+int getNumberOfIterations() const; 
+
 int buildMatrix( realCompositeGridFunction & coeff, realCompositeGridFunction & u );
 
 virtual int printStatistics( FILE *file = stdout ) const;   // output any relevant statistics 
@@ -117,6 +119,9 @@ bool reInitialize;
 
 bool useDiagonalScaling;
 bool adjustPeriodicCoefficients;
+
+bool processorIsActive;       // set to true if this processor is in PETSc communicator
+bool allProcessorsAreActive;  // allProcessorsAreActive==true if all processors are in PETSC_COMM_WORLD 
 
 };
 

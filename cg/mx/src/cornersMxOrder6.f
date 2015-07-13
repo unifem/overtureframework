@@ -194,7 +194,7 @@
         real deltaU,deltaV,deltaW
         real a1DotLu,a2DotLu
         real f1,f2,f3,f4, x1,x2,x3,x4
-        integer edgeDirection,sidea,sideb,ms1,ms2,ms3
+        integer edgeDirection,sidea,sideb,ms1,ms2,ms3,ns1,ns2,ns3
         real a1Dotu0,a2Dotu0,a1Doturr,a1Dotuss,a2Doturr,a2Dotuss,
      & a3Doturrr,a3Dotusss,a3Doturss,a3Doturrs
         real a1Doturs,a2Doturs,a3Doturs, a2Dotu, a3Dotu, a3Dotur, 
@@ -2485,7 +2485,9 @@ c write(*,'("initializeBoundaryForcing slowStartInterval=",e10.2)') slowStartInt
                  g3=0.
                  ! ********************************************************************
                  ! ***************Assign Extended boundary points**********************
+                 ! ************** on an edge between two faces   ********************** 
                  ! ********************************************************************
+                  ! ************** CARTESIAN -- EXTENDED NEAR TWO FACES ************
                   do m=1,numberOfGhostPoints
                    js1=is1*m  ! shift to ghost point "m"
                    js2=is2*m
@@ -2577,7 +2579,9 @@ c write(*,'("initializeBoundaryForcing slowStartInterval=",e10.2)') slowStartInt
                  end do
                  end do
                  end do ! edge direction
-                 ! ************ assign corner points outside edges ***********************
+                 ! *****************************************************************************
+                 ! ************ assign corner GHOST points outside edges ***********************
+                 ! ****************************************************************************
                   do edgeDirection=0,2 ! direction parallel to the edge
                  ! do edgeDirection=2,2 ! direction parallel to the edge
                   do sidea=0,1
@@ -2595,6 +2599,7 @@ c write(*,'("initializeBoundaryForcing slowStartInterval=",e10.2)') slowStartInt
                      side2=sideb
                      side3=0
                    end if
+                  extra=numberOfGhostPoints  ! assign the extended boundary *wdh* 2015/06/23
                   is1=1-2*(side1)
                   is2=1-2*(side2)
                   is3=1-2*(side3)
@@ -2604,24 +2609,24 @@ c write(*,'("initializeBoundaryForcing slowStartInterval=",e10.2)') slowStartInt
                    n1b=gridIndexRange(side1,0)
                    n2a=gridIndexRange(side2,1)
                    n2b=gridIndexRange(side2,1)
-                   n3a=gridIndexRange(0,2)
-                   n3b=gridIndexRange(1,2)
+                   n3a=gridIndexRange(0,2)-extra
+                   n3b=gridIndexRange(1,2)+extra
                    bc1=boundaryCondition(side1,0)
                    bc2=boundaryCondition(side2,1)
                   else if( edgeDirection.eq.1 )then
                    is2=0
                    n1a=gridIndexRange(side1,0)
                    n1b=gridIndexRange(side1,0)
-                   n2a=gridIndexRange(    0,1)
-                   n2b=gridIndexRange(    1,1)
+                   n2a=gridIndexRange(    0,1)-extra
+                   n2b=gridIndexRange(    1,1)+extra
                    n3a=gridIndexRange(side3,2)
                    n3b=gridIndexRange(side3,2)
                    bc1=boundaryCondition(side1,0)
                    bc2=boundaryCondition(side3,2)
                   else
                    is1=0
-                   n1a=gridIndexRange(    0,0)
-                   n1b=gridIndexRange(    1,0)
+                   n1a=gridIndexRange(    0,0)-extra
+                   n1b=gridIndexRange(    1,0)+extra
                    n2a=gridIndexRange(side2,1)
                    n2b=gridIndexRange(side2,1)
                    n3a=gridIndexRange(side3,2)
@@ -2630,7 +2635,8 @@ c write(*,'("initializeBoundaryForcing slowStartInterval=",e10.2)') slowStartInt
                    bc2=boundaryCondition(side3,2)
                   end if
                   ! *********************************************************
-                  ! ************* rectangular *******************************
+                  ! ************* Assign Ghost near two faces ***************
+                  ! *************       CARTESIAN              **************
                   ! *********************************************************
                   do m1=1,numberOfGhostPoints
                   do m2=1,numberOfGhostPoints
@@ -2648,20 +2654,73 @@ c write(*,'("initializeBoundaryForcing slowStartInterval=",e10.2)') slowStartInt
                      js2=is2*m1
                      js3=is3*m2
                    end if
-                   if( bc1.eq.perfectElectricalConductor 
-     & .and.bc2.eq.perfectElectricalConductor )then
+                   if( bc1.eq.perfectElectricalConductor .and. 
+     & bc2.eq.perfectElectricalConductor )then
                     ! *********************************************************
-                    ! ************* PEC EDGE BC********************************
+                    ! ************* PEC EDGE BC (CARTESIAN) *******************
                     ! *********************************************************
+                    ! bug fixed *wdh* 2015/07/12 -- one component is even along an edge
+                    if( edgeDirection.eq.0 )then
+                     ! --- edge parallel to the x-axis ----
+                     !  Ey and Ez are odd, Ex is even 
                      do i3=n3a,n3b
                      do i2=n2a,n2b
                      do i1=n1a,n1b
-                      u(i1-js1,i2-js2,i3-js3,ex)=2.*u(i1,i2,i3,ex)-u(
+                       ! We could check the mask ***
+                      u(i1-js1,i2-js2,i3-js3,ex)=                  u(
      & i1+js1,i2+js2,i3+js3,ex) +g1
                       u(i1-js1,i2-js2,i3-js3,ey)=2.*u(i1,i2,i3,ey)-u(
      & i1+js1,i2+js2,i3+js3,ey) +g2
                       u(i1-js1,i2-js2,i3-js3,ez)=2.*u(i1,i2,i3,ez)-u(
      & i1+js1,i2+js2,i3+js3,ez) +g3
+                     end do ! end do i1
+                     end do ! end do i2
+                     end do ! end do i3
+                    else if( edgeDirection.eq.1 )then
+                     ! --- edge parallel to the y-axis ----
+                     !  Ex and Ez are odd, Ey is even 
+                     do i3=n3a,n3b
+                     do i2=n2a,n2b
+                     do i1=n1a,n1b
+                       ! We could check the mask ***
+                      u(i1-js1,i2-js2,i3-js3,ex)=2.*u(i1,i2,i3,ex)-u(
+     & i1+js1,i2+js2,i3+js3,ex) +g1
+                      u(i1-js1,i2-js2,i3-js3,ey)=                  u(
+     & i1+js1,i2+js2,i3+js3,ey) +g2
+                      u(i1-js1,i2-js2,i3-js3,ez)=2.*u(i1,i2,i3,ez)-u(
+     & i1+js1,i2+js2,i3+js3,ez) +g3
+                     end do ! end do i1
+                     end do ! end do i2
+                     end do ! end do i3
+                    else
+                     ! --- edge parallel to the z-axis ----
+                     !  Ex and Ey are odd, Ez is even 
+                     do i3=n3a,n3b
+                     do i2=n2a,n2b
+                     do i1=n1a,n1b
+                       ! We could check the mask ***
+                      u(i1-js1,i2-js2,i3-js3,ex)=2.*u(i1,i2,i3,ex)-u(
+     & i1+js1,i2+js2,i3+js3,ex) +g1
+                      u(i1-js1,i2-js2,i3-js3,ey)=2.*u(i1,i2,i3,ey)-u(
+     & i1+js1,i2+js2,i3+js3,ey) +g2
+                      u(i1-js1,i2-js2,i3-js3,ez)=                  u(
+     & i1+js1,i2+js2,i3+js3,ez) +g3
+                     end do ! end do i1
+                     end do ! end do i2
+                     end do ! end do i3
+                    end if
+                   else if( bc1.eq.perfectElectricalConductor .or. 
+     & bc2.eq.perfectElectricalConductor )then
+                    ! *********************************************************************
+                    ! ******* PEC FACE ADJACENT to NON-PEC FACE (CARTESIAN) ***************
+                    ! *********************************************************************
+                    ! -- assign edge ghost where a PEC face meets an interp face (e.g. twoBox)
+                    !     *wdh* 2015/07/11 
+                     do i3=n3a,n3b
+                     do i2=n2a,n2b
+                     do i1=n1a,n1b
+                       ! We could check the mask ***
+                        stop 8827
                      end do ! end do i1
                      end do ! end do i2
                      end do ! end do i3
@@ -2720,6 +2779,9 @@ c write(*,'("initializeBoundaryForcing slowStartInterval=",e10.2)') slowStartInt
      & .eq.perfectElectricalConductor .and.boundaryCondition(side2,1)
      & .eq.perfectElectricalConductor .and.boundaryCondition(side3,2)
      & .eq.perfectElectricalConductor )then
+                   ! ------------------------------------------------------------
+                   ! -------------- VERTEX adjacent to 3 PEC faces --------------
+                   ! ------------------------------------------------------------
                   do m3=1,numberOfGhostPoints
                   do m2=1,numberOfGhostPoints
                   do m1=1,numberOfGhostPoints
@@ -2729,15 +2791,38 @@ c write(*,'("initializeBoundaryForcing slowStartInterval=",e10.2)') slowStartInt
                     dra=dr(0)*js1
                     dsa=dr(1)*js2
                     dta=dr(2)*js3
-                     u(i1-js1,i2-js2,i3-js3,ex)=2.*u(i1,i2,i3,ex)-u(i1+
-     & js1,i2+js2,i3+js3,ex)+g1
-                     u(i1-js1,i2-js2,i3-js3,ey)=2.*u(i1,i2,i3,ey)-u(i1+
-     & js1,i2+js2,i3+js3,ey)+g2
-                     u(i1-js1,i2-js2,i3-js3,ez)=2.*u(i1,i2,i3,ez)-u(i1+
-     & js1,i2+js2,i3+js3,ez)+g3
+                     ! *wdh* 2015/07/12 -- I think this is wrong: *fix me*
+                     !   For  PEC corner:  E(-dx,-dy,-dz) = E(dx,dy,dz) 
+                     u(i1-js1,i2-js2,i3-js3,ex)=u(i1+js1,i2+js2,i3+js3,
+     & ex)+g1
+                     u(i1-js1,i2-js2,i3-js3,ey)=u(i1+js1,i2+js2,i3+js3,
+     & ey)+g2
+                     u(i1-js1,i2-js2,i3-js3,ez)=u(i1+js1,i2+js2,i3+js3,
+     & ez)+g3
+                     ! u(i1-js1,i2-js2,i3-js3,ex)=2.*u(i1,i2,i3,ex)-u(i1+js1,i2+js2,i3+js3,ex)+g1
+                     ! u(i1-js1,i2-js2,i3-js3,ey)=2.*u(i1,i2,i3,ey)-u(i1+js1,i2+js2,i3+js3,ey)+g2
+                     ! u(i1-js1,i2-js2,i3-js3,ez)=2.*u(i1,i2,i3,ez)-u(i1+js1,i2+js2,i3+js3,ez)+g3
                   end do
                   end do
                   end do
+                 else if( .true. .and. (boundaryCondition(side1,0)
+     & .eq.perfectElectricalConductor .or.boundaryCondition(side2,1)
+     & .eq.perfectElectricalConductor .or.boundaryCondition(side3,2)
+     & .eq.perfectElectricalConductor) )then
+                   ! *new* *wdh* 2015/07/12 
+                   ! -----------------------------------------------------------------
+                   ! -------------- VERTEX adjacent to 1 or 2 PEC faces --------------
+                   ! -----------------------------------------------------------------
+                  do m3=1,numberOfGhostPoints
+                  do m2=1,numberOfGhostPoints
+                  do m1=1,numberOfGhostPoints
+                    js1=is1*m1  ! shift to ghost point "m"
+                    js2=is2*m2
+                    js3=is3*m3
+                     stop 8867
+                  end do ! end do m1
+                  end do ! end do m2
+                  end do ! end do m3
                  else if( boundaryCondition(side1,0).eq.dirichlet 
      & .or.boundaryCondition(side2,1).eq.dirichlet 
      & .or.boundaryCondition(side3,2).eq.dirichlet )then
@@ -2846,7 +2931,9 @@ c write(*,'("initializeBoundaryForcing slowStartInterval=",e10.2)') slowStartInt
                  g3=0.
                  ! ********************************************************************
                  ! ***************Assign Extended boundary points**********************
+                 ! ************** on an edge between two faces   ********************** 
                  ! ********************************************************************
+                  ! ************** CARTESIAN -- EXTENDED NEAR TWO FACES ************
                   do m=1,numberOfGhostPoints
                    js1=is1*m  ! shift to ghost point "m"
                    js2=is2*m
@@ -2961,7 +3048,9 @@ c write(*,'("initializeBoundaryForcing slowStartInterval=",e10.2)') slowStartInt
                  end do
                  end do
                  end do ! edge direction
-                 ! ************ assign corner points outside edges ***********************
+                 ! *****************************************************************************
+                 ! ************ assign corner GHOST points outside edges ***********************
+                 ! ****************************************************************************
                   do edgeDirection=0,2 ! direction parallel to the edge
                  ! do edgeDirection=2,2 ! direction parallel to the edge
                   do sidea=0,1
@@ -2979,6 +3068,7 @@ c write(*,'("initializeBoundaryForcing slowStartInterval=",e10.2)') slowStartInt
                      side2=sideb
                      side3=0
                    end if
+                  extra=numberOfGhostPoints  ! assign the extended boundary *wdh* 2015/06/23
                   is1=1-2*(side1)
                   is2=1-2*(side2)
                   is3=1-2*(side3)
@@ -2988,24 +3078,24 @@ c write(*,'("initializeBoundaryForcing slowStartInterval=",e10.2)') slowStartInt
                    n1b=gridIndexRange(side1,0)
                    n2a=gridIndexRange(side2,1)
                    n2b=gridIndexRange(side2,1)
-                   n3a=gridIndexRange(0,2)
-                   n3b=gridIndexRange(1,2)
+                   n3a=gridIndexRange(0,2)-extra
+                   n3b=gridIndexRange(1,2)+extra
                    bc1=boundaryCondition(side1,0)
                    bc2=boundaryCondition(side2,1)
                   else if( edgeDirection.eq.1 )then
                    is2=0
                    n1a=gridIndexRange(side1,0)
                    n1b=gridIndexRange(side1,0)
-                   n2a=gridIndexRange(    0,1)
-                   n2b=gridIndexRange(    1,1)
+                   n2a=gridIndexRange(    0,1)-extra
+                   n2b=gridIndexRange(    1,1)+extra
                    n3a=gridIndexRange(side3,2)
                    n3b=gridIndexRange(side3,2)
                    bc1=boundaryCondition(side1,0)
                    bc2=boundaryCondition(side3,2)
                   else
                    is1=0
-                   n1a=gridIndexRange(    0,0)
-                   n1b=gridIndexRange(    1,0)
+                   n1a=gridIndexRange(    0,0)-extra
+                   n1b=gridIndexRange(    1,0)+extra
                    n2a=gridIndexRange(side2,1)
                    n2b=gridIndexRange(side2,1)
                    n3a=gridIndexRange(side3,2)
@@ -3014,7 +3104,8 @@ c write(*,'("initializeBoundaryForcing slowStartInterval=",e10.2)') slowStartInt
                    bc2=boundaryCondition(side3,2)
                   end if
                   ! *********************************************************
-                  ! ************* rectangular *******************************
+                  ! ************* Assign Ghost near two faces ***************
+                  ! *************       CARTESIAN              **************
                   ! *********************************************************
                   do m1=1,numberOfGhostPoints
                   do m2=1,numberOfGhostPoints
@@ -3032,14 +3123,73 @@ c write(*,'("initializeBoundaryForcing slowStartInterval=",e10.2)') slowStartInt
                      js2=is2*m1
                      js3=is3*m2
                    end if
-                   if( bc1.eq.perfectElectricalConductor 
-     & .and.bc2.eq.perfectElectricalConductor )then
+                   if( bc1.eq.perfectElectricalConductor .and. 
+     & bc2.eq.perfectElectricalConductor )then
                     ! *********************************************************
-                    ! ************* PEC EDGE BC********************************
+                    ! ************* PEC EDGE BC (CARTESIAN) *******************
                     ! *********************************************************
+                    ! bug fixed *wdh* 2015/07/12 -- one component is even along an edge
+                    if( edgeDirection.eq.0 )then
+                     ! --- edge parallel to the x-axis ----
+                     !  Ey and Ez are odd, Ex is even 
                      do i3=n3a,n3b
                      do i2=n2a,n2b
                      do i1=n1a,n1b
+                       ! We could check the mask ***
+                          call ogf3dfo(ep,fieldOption,xy(i1,i2,i3,0),
+     & xy(i1,i2,i3,1),xy(i1,i2,i3,2),t,u0,v0,w0)
+                          call ogf3dfo(ep,fieldOption,xy(i1-js1,i2-js2,
+     & i3-js3,0),xy(i1-js1,i2-js2,i3-js3,1),xy(i1-js1,i2-js2,i3-js3,2)
+     & ,t,um,vm,wm)
+                          call ogf3dfo(ep,fieldOption,xy(i1+js1,i2+js2,
+     & i3+js3,0),xy(i1+js1,i2+js2,i3+js3,1),xy(i1+js1,i2+js2,i3+js3,2)
+     & ,t,up,vp,wp)
+                        g1=um      -up
+                        g2=vm-2.*v0+vp
+                        g3=wm-2.*w0+wp
+                      u(i1-js1,i2-js2,i3-js3,ex)=                  u(
+     & i1+js1,i2+js2,i3+js3,ex) +g1
+                      u(i1-js1,i2-js2,i3-js3,ey)=2.*u(i1,i2,i3,ey)-u(
+     & i1+js1,i2+js2,i3+js3,ey) +g2
+                      u(i1-js1,i2-js2,i3-js3,ez)=2.*u(i1,i2,i3,ez)-u(
+     & i1+js1,i2+js2,i3+js3,ez) +g3
+                     end do ! end do i1
+                     end do ! end do i2
+                     end do ! end do i3
+                    else if( edgeDirection.eq.1 )then
+                     ! --- edge parallel to the y-axis ----
+                     !  Ex and Ez are odd, Ey is even 
+                     do i3=n3a,n3b
+                     do i2=n2a,n2b
+                     do i1=n1a,n1b
+                       ! We could check the mask ***
+                          call ogf3dfo(ep,fieldOption,xy(i1,i2,i3,0),
+     & xy(i1,i2,i3,1),xy(i1,i2,i3,2),t,u0,v0,w0)
+                          call ogf3dfo(ep,fieldOption,xy(i1-js1,i2-js2,
+     & i3-js3,0),xy(i1-js1,i2-js2,i3-js3,1),xy(i1-js1,i2-js2,i3-js3,2)
+     & ,t,um,vm,wm)
+                          call ogf3dfo(ep,fieldOption,xy(i1+js1,i2+js2,
+     & i3+js3,0),xy(i1+js1,i2+js2,i3+js3,1),xy(i1+js1,i2+js2,i3+js3,2)
+     & ,t,up,vp,wp)
+                        g1=um-2.*u0+up
+                        g2=vm      -vp
+                        g3=wm-2.*w0+wp
+                      u(i1-js1,i2-js2,i3-js3,ex)=2.*u(i1,i2,i3,ex)-u(
+     & i1+js1,i2+js2,i3+js3,ex) +g1
+                      u(i1-js1,i2-js2,i3-js3,ey)=                  u(
+     & i1+js1,i2+js2,i3+js3,ey) +g2
+                      u(i1-js1,i2-js2,i3-js3,ez)=2.*u(i1,i2,i3,ez)-u(
+     & i1+js1,i2+js2,i3+js3,ez) +g3
+                     end do ! end do i1
+                     end do ! end do i2
+                     end do ! end do i3
+                    else
+                     ! --- edge parallel to the z-axis ----
+                     !  Ex and Ey are odd, Ez is even 
+                     do i3=n3a,n3b
+                     do i2=n2a,n2b
+                     do i1=n1a,n1b
+                       ! We could check the mask ***
                           call ogf3dfo(ep,fieldOption,xy(i1,i2,i3,0),
      & xy(i1,i2,i3,1),xy(i1,i2,i3,2),t,u0,v0,w0)
                           call ogf3dfo(ep,fieldOption,xy(i1-js1,i2-js2,
@@ -3050,13 +3200,29 @@ c write(*,'("initializeBoundaryForcing slowStartInterval=",e10.2)') slowStartInt
      & ,t,up,vp,wp)
                         g1=um-2.*u0+up
                         g2=vm-2.*v0+vp
-                        g3=wm-2.*w0+wp
+                        g3=wm      -wp
                       u(i1-js1,i2-js2,i3-js3,ex)=2.*u(i1,i2,i3,ex)-u(
      & i1+js1,i2+js2,i3+js3,ex) +g1
                       u(i1-js1,i2-js2,i3-js3,ey)=2.*u(i1,i2,i3,ey)-u(
      & i1+js1,i2+js2,i3+js3,ey) +g2
-                      u(i1-js1,i2-js2,i3-js3,ez)=2.*u(i1,i2,i3,ez)-u(
+                      u(i1-js1,i2-js2,i3-js3,ez)=                  u(
      & i1+js1,i2+js2,i3+js3,ez) +g3
+                     end do ! end do i1
+                     end do ! end do i2
+                     end do ! end do i3
+                    end if
+                   else if( bc1.eq.perfectElectricalConductor .or. 
+     & bc2.eq.perfectElectricalConductor )then
+                    ! *********************************************************************
+                    ! ******* PEC FACE ADJACENT to NON-PEC FACE (CARTESIAN) ***************
+                    ! *********************************************************************
+                    ! -- assign edge ghost where a PEC face meets an interp face (e.g. twoBox)
+                    !     *wdh* 2015/07/11 
+                     do i3=n3a,n3b
+                     do i2=n2a,n2b
+                     do i1=n1a,n1b
+                       ! We could check the mask ***
+                        stop 8827
                      end do ! end do i1
                      end do ! end do i2
                      end do ! end do i3
@@ -3115,6 +3281,9 @@ c write(*,'("initializeBoundaryForcing slowStartInterval=",e10.2)') slowStartInt
      & .eq.perfectElectricalConductor .and.boundaryCondition(side2,1)
      & .eq.perfectElectricalConductor .and.boundaryCondition(side3,2)
      & .eq.perfectElectricalConductor )then
+                   ! ------------------------------------------------------------
+                   ! -------------- VERTEX adjacent to 3 PEC faces --------------
+                   ! ------------------------------------------------------------
                   do m3=1,numberOfGhostPoints
                   do m2=1,numberOfGhostPoints
                   do m1=1,numberOfGhostPoints
@@ -3124,26 +3293,49 @@ c write(*,'("initializeBoundaryForcing slowStartInterval=",e10.2)') slowStartInt
                     dra=dr(0)*js1
                     dsa=dr(1)*js2
                     dta=dr(2)*js3
-                        call ogf3dfo(ep,fieldOption,xy(i1,i2,i3,0),xy(
+                     ! *wdh* 2015/07/12 -- I think this is wrong: *fix me*
+                     !   For  PEC corner:  E(-dx,-dy,-dz) = E(dx,dy,dz) 
+                         call ogf3dfo(ep,fieldOption,xy(i1,i2,i3,0),xy(
      & i1,i2,i3,1),xy(i1,i2,i3,2),t,u0,v0,w0)
-                        call ogf3dfo(ep,fieldOption,xy(i1-js1,i2-js2,
+                         call ogf3dfo(ep,fieldOption,xy(i1-js1,i2-js2,
      & i3-js3,0),xy(i1-js1,i2-js2,i3-js3,1),xy(i1-js1,i2-js2,i3-js3,2)
      & ,t,um,vm,wm)
-                        call ogf3dfo(ep,fieldOption,xy(i1+js1,i2+js2,
+                         call ogf3dfo(ep,fieldOption,xy(i1+js1,i2+js2,
      & i3+js3,0),xy(i1+js1,i2+js2,i3+js3,1),xy(i1+js1,i2+js2,i3+js3,2)
      & ,t,up,vp,wp)
-                      g1=um-2.*u0+up
-                      g2=vm-2.*v0+vp
-                      g3=wm-2.*w0+wp
-                     u(i1-js1,i2-js2,i3-js3,ex)=2.*u(i1,i2,i3,ex)-u(i1+
-     & js1,i2+js2,i3+js3,ex)+g1
-                     u(i1-js1,i2-js2,i3-js3,ey)=2.*u(i1,i2,i3,ey)-u(i1+
-     & js1,i2+js2,i3+js3,ey)+g2
-                     u(i1-js1,i2-js2,i3-js3,ez)=2.*u(i1,i2,i3,ez)-u(i1+
-     & js1,i2+js2,i3+js3,ez)+g3
+                       g1=um-up
+                       g2=vm-vp
+                       g3=wm-wp
+                     u(i1-js1,i2-js2,i3-js3,ex)=u(i1+js1,i2+js2,i3+js3,
+     & ex)+g1
+                     u(i1-js1,i2-js2,i3-js3,ey)=u(i1+js1,i2+js2,i3+js3,
+     & ey)+g2
+                     u(i1-js1,i2-js2,i3-js3,ez)=u(i1+js1,i2+js2,i3+js3,
+     & ez)+g3
+                     ! u(i1-js1,i2-js2,i3-js3,ex)=2.*u(i1,i2,i3,ex)-u(i1+js1,i2+js2,i3+js3,ex)+g1
+                     ! u(i1-js1,i2-js2,i3-js3,ey)=2.*u(i1,i2,i3,ey)-u(i1+js1,i2+js2,i3+js3,ey)+g2
+                     ! u(i1-js1,i2-js2,i3-js3,ez)=2.*u(i1,i2,i3,ez)-u(i1+js1,i2+js2,i3+js3,ez)+g3
                   end do
                   end do
                   end do
+                 else if( .true. .and. (boundaryCondition(side1,0)
+     & .eq.perfectElectricalConductor .or.boundaryCondition(side2,1)
+     & .eq.perfectElectricalConductor .or.boundaryCondition(side3,2)
+     & .eq.perfectElectricalConductor) )then
+                   ! *new* *wdh* 2015/07/12 
+                   ! -----------------------------------------------------------------
+                   ! -------------- VERTEX adjacent to 1 or 2 PEC faces --------------
+                   ! -----------------------------------------------------------------
+                  do m3=1,numberOfGhostPoints
+                  do m2=1,numberOfGhostPoints
+                  do m1=1,numberOfGhostPoints
+                    js1=is1*m1  ! shift to ghost point "m"
+                    js2=is2*m2
+                    js3=is3*m3
+                     stop 8867
+                  end do ! end do m1
+                  end do ! end do m2
+                  end do ! end do m3
                  else if( boundaryCondition(side1,0).eq.dirichlet 
      & .or.boundaryCondition(side2,1).eq.dirichlet 
      & .or.boundaryCondition(side3,2).eq.dirichlet )then
@@ -3254,7 +3446,9 @@ c write(*,'("initializeBoundaryForcing slowStartInterval=",e10.2)') slowStartInt
                  g3=0.
                  ! ********************************************************************
                  ! ***************Assign Extended boundary points**********************
+                 ! ************** on an edge between two faces   ********************** 
                  ! ********************************************************************
+                  ! ************** CURVILINEAR -- EXTENDED NEAR TWO FACES ************
                   is1=0
                   is2=0
                   is3=0
@@ -3313,7 +3507,9 @@ c write(*,'("initializeBoundaryForcing slowStartInterval=",e10.2)') slowStartInt
                  end do
                  end do
                  end do ! edge direction
-                 ! ************ assign corner points outside edges ***********************
+                 ! *****************************************************************************
+                 ! ************ assign corner GHOST points outside edges ***********************
+                 ! ****************************************************************************
                   do edgeDirection=0,2 ! direction parallel to the edge
                  ! do edgeDirection=2,2 ! direction parallel to the edge
                   do sidea=0,1
@@ -3331,6 +3527,7 @@ c write(*,'("initializeBoundaryForcing slowStartInterval=",e10.2)') slowStartInt
                      side2=sideb
                      side3=0
                    end if
+                  extra=numberOfGhostPoints  ! assign the extended boundary *wdh* 2015/06/23
                   is1=1-2*(side1)
                   is2=1-2*(side2)
                   is3=1-2*(side3)
@@ -3340,24 +3537,24 @@ c write(*,'("initializeBoundaryForcing slowStartInterval=",e10.2)') slowStartInt
                    n1b=gridIndexRange(side1,0)
                    n2a=gridIndexRange(side2,1)
                    n2b=gridIndexRange(side2,1)
-                   n3a=gridIndexRange(0,2)
-                   n3b=gridIndexRange(1,2)
+                   n3a=gridIndexRange(0,2)-extra
+                   n3b=gridIndexRange(1,2)+extra
                    bc1=boundaryCondition(side1,0)
                    bc2=boundaryCondition(side2,1)
                   else if( edgeDirection.eq.1 )then
                    is2=0
                    n1a=gridIndexRange(side1,0)
                    n1b=gridIndexRange(side1,0)
-                   n2a=gridIndexRange(    0,1)
-                   n2b=gridIndexRange(    1,1)
+                   n2a=gridIndexRange(    0,1)-extra
+                   n2b=gridIndexRange(    1,1)+extra
                    n3a=gridIndexRange(side3,2)
                    n3b=gridIndexRange(side3,2)
                    bc1=boundaryCondition(side1,0)
                    bc2=boundaryCondition(side3,2)
                   else
                    is1=0
-                   n1a=gridIndexRange(    0,0)
-                   n1b=gridIndexRange(    1,0)
+                   n1a=gridIndexRange(    0,0)-extra
+                   n1b=gridIndexRange(    1,0)+extra
                    n2a=gridIndexRange(side2,1)
                    n2b=gridIndexRange(side2,1)
                    n3a=gridIndexRange(side3,2)
@@ -3365,9 +3562,10 @@ c write(*,'("initializeBoundaryForcing slowStartInterval=",e10.2)') slowStartInt
                    bc1=boundaryCondition(side2,1)
                    bc2=boundaryCondition(side3,2)
                   end if
-                  ! ********************************************************
-                  ! ********** curvilinear *********************************
-                  ! ********************************************************
+                  ! *********************************************************
+                  ! ************* Assign Ghost near two faces ***************
+                  ! *************       CURVILINEAR            **************
+                  ! *********************************************************
                    ls1=is1  ! save for extrapolation
                    ls2=is2
                    ls3=is3
@@ -3414,10 +3612,10 @@ c write(*,'("initializeBoundaryForcing slowStartInterval=",e10.2)') slowStartInt
                    dra=dr(axis  )*(1-2*sidea)
                    dsa=dr(axisp1)*(1-2*sideb)
                    dta=dr(axisp2)
-                   if( bc1.eq.perfectElectricalConductor 
-     & .and.bc2.eq.perfectElectricalConductor )then
+                   if( bc1.eq.perfectElectricalConductor .and. 
+     & bc2.eq.perfectElectricalConductor )then
                     ! *********************************************************
-                    ! ************* PEC EDGE BC********************************
+                    ! ************* PEC EDGE BC (CURVILINEAR) *****************
                     ! *********************************************************
                      if( debug.gt.0 )then
                        write(*,'(/," corner-edge-6:Start edge=",i1," 
@@ -3430,6 +3628,12 @@ c write(*,'("initializeBoundaryForcing slowStartInterval=",e10.2)') slowStartInt
                      do i3=n3a,n3b
                      do i2=n2a,n2b
                      do i1=n1a,n1b
+                     ! Check the mask:  *wdh* 2015/06/24
+                     if( mask(i1,i2,i3).gt.0 .and. 
+     & i1.ge.gridIndexRange(0,0) .and. i1.le.gridIndexRange(1,0) 
+     & .and. i2.ge.gridIndexRange(0,1) .and. i2.le.gridIndexRange(1,1)
+     &  .and. i3.ge.gridIndexRange(0,2) .and. i3.le.gridIndexRange(1,
+     & 2) )then
                        ! precompute the inverse of the jacobian, used in macros AmnD3J
                        i10=i1  ! used by jac3di in macros
                        i20=i2
@@ -3568,6 +3772,80 @@ c write(*,'("initializeBoundaryForcing slowStartInterval=",e10.2)') slowStartInt
      & a32*a21)/detnt
                       end do
                       end do ! m1
+                     else
+                       ! ---------------- fill in ghost by extrapolation  --------------
+                       !  *wdh* 2016/06/24 
+                       ! loop over different ghost points here -- could make a single loop, 1...4 and use arrays of ms1(m) 
+                      do m1=1,numberOfGhostPoints
+                      do m2=1,numberOfGhostPoints
+                       if( edgeDirection.eq.0 )then
+                         ns1=0
+                         ns2=(1-2*side2)
+                         ns3=(1-2*side3)
+                         ms1=0
+                         ms2=(1-2*side2)*m1
+                         ms3=(1-2*side3)*m2
+                       else if( edgeDirection.eq.1 )then
+                         ns2=0
+                         ns3=(1-2*side3)
+                         ns1=(1-2*side1)
+                         ms2=0
+                         ms3=(1-2*side3)*m1
+                         ms1=(1-2*side1)*m2
+                       else
+                         ns3=0
+                         ns1=(1-2*side1)
+                         ns2=(1-2*side2)
+                         ms3=0
+                         ms1=(1-2*side1)*m1
+                         ms2=(1-2*side2)*m2
+                       end if
+                         stop 88267
+                      end do ! m2
+                      end do ! m1
+                     end if  ! end if mask
+                     end do ! end do i1
+                     end do ! end do i2
+                     end do ! end do i3
+                   else if( bc1.eq.perfectElectricalConductor .or. 
+     & bc2.eq.perfectElectricalConductor )then
+                    ! ***************************************************************************
+                    ! ************* PEC FACE ON ONE ADJACENT FACE (CURVILINEAR) *****************
+                    ! ***************************************************************************
+                     ! *new* *wdh*  2015/07/12 
+                     do i3=n3a,n3b
+                     do i2=n2a,n2b
+                     do i1=n1a,n1b
+                     if( mask(i1,i2,i3).ne.0 )then
+                      ! ---------------- fill in ghost by extrapolation  --------------
+                      do m1=1,numberOfGhostPoints
+                      do m2=1,numberOfGhostPoints
+                       if( edgeDirection.eq.0 )then
+                         ns1=0
+                         ns2=(1-2*side2)
+                         ns3=(1-2*side3)
+                         ms1=0
+                         ms2=(1-2*side2)*m1
+                         ms3=(1-2*side3)*m2
+                       else if( edgeDirection.eq.1 )then
+                         ns2=0
+                         ns3=(1-2*side3)
+                         ns1=(1-2*side1)
+                         ms2=0
+                         ms3=(1-2*side3)*m1
+                         ms1=(1-2*side1)*m2
+                       else
+                         ns3=0
+                         ns1=(1-2*side1)
+                         ns2=(1-2*side2)
+                         ms3=0
+                         ms1=(1-2*side1)*m1
+                         ms2=(1-2*side2)*m2
+                       end if
+                         stop 88267
+                      end do ! m2
+                      end do ! m1
+                     end if  ! end if mask
                      end do ! end do i1
                      end do ! end do i2
                      end do ! end do i3
@@ -3645,6 +3923,9 @@ c write(*,'("initializeBoundaryForcing slowStartInterval=",e10.2)') slowStartInt
      & .eq.perfectElectricalConductor .and.boundaryCondition(side2,1)
      & .eq.perfectElectricalConductor .and.boundaryCondition(side3,2)
      & .eq.perfectElectricalConductor )then
+                   ! ------------------------------------------------------------
+                   ! -------------- VERTEX adjacent to 3 PEC faces --------------
+                   ! ------------------------------------------------------------
                   do m3=1,numberOfGhostPoints
                   do m2=1,numberOfGhostPoints
                   do m1=1,numberOfGhostPoints
@@ -3654,16 +3935,7 @@ c write(*,'("initializeBoundaryForcing slowStartInterval=",e10.2)') slowStartInt
                     dra=dr(0)*js1
                     dsa=dr(1)*js2
                     dta=dr(2)*js3
-                     ! Use a taylor series -- only exact for polynomials up to degree=3 -- is this good enough?
-                     u(i1-js1,i2-js2,i3-js3,ex)=2.*u(i1,i2,i3,ex)-u(i1+
-     & js1,i2+js2,i3+js3,ex)+((dra)**2*urr+(dsa)**2*uss+(dta)**2*utt+
-     & 2.*(dra)*(dsa)*urs+2.*(dra)*(dta)*urt+2.*(dsa)*(dta)*ust)
-                     u(i1-js1,i2-js2,i3-js3,ey)=2.*u(i1,i2,i3,ey)-u(i1+
-     & js1,i2+js2,i3+js3,ey)+((dra)**2*vrr+(dsa)**2*vss+(dta)**2*vtt+
-     & 2.*(dra)*(dsa)*vrs+2.*(dra)*(dta)*vrt+2.*(dsa)*(dta)*vst)
-                     u(i1-js1,i2-js2,i3-js3,ez)=2.*u(i1,i2,i3,ez)-u(i1+
-     & js1,i2+js2,i3+js3,ez)+((dra)**2*wrr+(dsa)**2*wss+(dta)**2*wtt+
-     & 2.*(dra)*(dsa)*wrs+2.*(dra)*(dta)*wrt+2.*(dsa)*(dta)*wst)
+                       stop 8867
                      if( debug.gt.2 )then
                        write(*,'("Corner point from taylor: ghost-pt=",
      & 3i4," errors=",3e10.2)') i1-js1,i2-js2,i3-js3,u(i1-js1,i2-js2,
@@ -3675,6 +3947,24 @@ c write(*,'("initializeBoundaryForcing slowStartInterval=",e10.2)') slowStartInt
                   end do
                   end do
                   end do
+                 else if( .true. .and. (boundaryCondition(side1,0)
+     & .eq.perfectElectricalConductor .or.boundaryCondition(side2,1)
+     & .eq.perfectElectricalConductor .or.boundaryCondition(side3,2)
+     & .eq.perfectElectricalConductor) )then
+                   ! *new* *wdh* 2015/07/12 
+                   ! -----------------------------------------------------------------
+                   ! -------------- VERTEX adjacent to 1 or 2 PEC faces --------------
+                   ! -----------------------------------------------------------------
+                  do m3=1,numberOfGhostPoints
+                  do m2=1,numberOfGhostPoints
+                  do m1=1,numberOfGhostPoints
+                    js1=is1*m1  ! shift to ghost point "m"
+                    js2=is2*m2
+                    js3=is3*m3
+                     stop 8867
+                  end do ! end do m1
+                  end do ! end do m2
+                  end do ! end do m3
                  else if( boundaryCondition(side1,0).eq.dirichlet 
      & .or.boundaryCondition(side2,1).eq.dirichlet 
      & .or.boundaryCondition(side3,2).eq.dirichlet )then
@@ -3783,7 +4073,9 @@ c write(*,'("initializeBoundaryForcing slowStartInterval=",e10.2)') slowStartInt
                  g3=0.
                  ! ********************************************************************
                  ! ***************Assign Extended boundary points**********************
+                 ! ************** on an edge between two faces   ********************** 
                  ! ********************************************************************
+                  ! ************** CURVILINEAR -- EXTENDED NEAR TWO FACES ************
                   is1=0
                   is2=0
                   is3=0
@@ -3842,7 +4134,9 @@ c write(*,'("initializeBoundaryForcing slowStartInterval=",e10.2)') slowStartInt
                  end do
                  end do
                  end do ! edge direction
-                 ! ************ assign corner points outside edges ***********************
+                 ! *****************************************************************************
+                 ! ************ assign corner GHOST points outside edges ***********************
+                 ! ****************************************************************************
                   do edgeDirection=0,2 ! direction parallel to the edge
                  ! do edgeDirection=2,2 ! direction parallel to the edge
                   do sidea=0,1
@@ -3860,6 +4154,7 @@ c write(*,'("initializeBoundaryForcing slowStartInterval=",e10.2)') slowStartInt
                      side2=sideb
                      side3=0
                    end if
+                  extra=numberOfGhostPoints  ! assign the extended boundary *wdh* 2015/06/23
                   is1=1-2*(side1)
                   is2=1-2*(side2)
                   is3=1-2*(side3)
@@ -3869,24 +4164,24 @@ c write(*,'("initializeBoundaryForcing slowStartInterval=",e10.2)') slowStartInt
                    n1b=gridIndexRange(side1,0)
                    n2a=gridIndexRange(side2,1)
                    n2b=gridIndexRange(side2,1)
-                   n3a=gridIndexRange(0,2)
-                   n3b=gridIndexRange(1,2)
+                   n3a=gridIndexRange(0,2)-extra
+                   n3b=gridIndexRange(1,2)+extra
                    bc1=boundaryCondition(side1,0)
                    bc2=boundaryCondition(side2,1)
                   else if( edgeDirection.eq.1 )then
                    is2=0
                    n1a=gridIndexRange(side1,0)
                    n1b=gridIndexRange(side1,0)
-                   n2a=gridIndexRange(    0,1)
-                   n2b=gridIndexRange(    1,1)
+                   n2a=gridIndexRange(    0,1)-extra
+                   n2b=gridIndexRange(    1,1)+extra
                    n3a=gridIndexRange(side3,2)
                    n3b=gridIndexRange(side3,2)
                    bc1=boundaryCondition(side1,0)
                    bc2=boundaryCondition(side3,2)
                   else
                    is1=0
-                   n1a=gridIndexRange(    0,0)
-                   n1b=gridIndexRange(    1,0)
+                   n1a=gridIndexRange(    0,0)-extra
+                   n1b=gridIndexRange(    1,0)+extra
                    n2a=gridIndexRange(side2,1)
                    n2b=gridIndexRange(side2,1)
                    n3a=gridIndexRange(side3,2)
@@ -3894,9 +4189,10 @@ c write(*,'("initializeBoundaryForcing slowStartInterval=",e10.2)') slowStartInt
                    bc1=boundaryCondition(side2,1)
                    bc2=boundaryCondition(side3,2)
                   end if
-                  ! ********************************************************
-                  ! ********** curvilinear *********************************
-                  ! ********************************************************
+                  ! *********************************************************
+                  ! ************* Assign Ghost near two faces ***************
+                  ! *************       CURVILINEAR            **************
+                  ! *********************************************************
                    ls1=is1  ! save for extrapolation
                    ls2=is2
                    ls3=is3
@@ -3943,10 +4239,10 @@ c write(*,'("initializeBoundaryForcing slowStartInterval=",e10.2)') slowStartInt
                    dra=dr(axis  )*(1-2*sidea)
                    dsa=dr(axisp1)*(1-2*sideb)
                    dta=dr(axisp2)
-                   if( bc1.eq.perfectElectricalConductor 
-     & .and.bc2.eq.perfectElectricalConductor )then
+                   if( bc1.eq.perfectElectricalConductor .and. 
+     & bc2.eq.perfectElectricalConductor )then
                     ! *********************************************************
-                    ! ************* PEC EDGE BC********************************
+                    ! ************* PEC EDGE BC (CURVILINEAR) *****************
                     ! *********************************************************
                      if( debug.gt.0 )then
                        write(*,'(/," corner-edge-6:Start edge=",i1," 
@@ -3959,6 +4255,12 @@ c write(*,'("initializeBoundaryForcing slowStartInterval=",e10.2)') slowStartInt
                      do i3=n3a,n3b
                      do i2=n2a,n2b
                      do i1=n1a,n1b
+                     ! Check the mask:  *wdh* 2015/06/24
+                     if( mask(i1,i2,i3).gt.0 .and. 
+     & i1.ge.gridIndexRange(0,0) .and. i1.le.gridIndexRange(1,0) 
+     & .and. i2.ge.gridIndexRange(0,1) .and. i2.le.gridIndexRange(1,1)
+     &  .and. i3.ge.gridIndexRange(0,2) .and. i3.le.gridIndexRange(1,
+     & 2) )then
                        ! precompute the inverse of the jacobian, used in macros AmnD3J
                        i10=i1  ! used by jac3di in macros
                        i20=i2
@@ -4288,6 +4590,80 @@ c write(*,'("initializeBoundaryForcing slowStartInterval=",e10.2)') slowStartInt
                       end if
                       end do
                       end do ! m1
+                     else
+                       ! ---------------- fill in ghost by extrapolation  --------------
+                       !  *wdh* 2016/06/24 
+                       ! loop over different ghost points here -- could make a single loop, 1...4 and use arrays of ms1(m) 
+                      do m1=1,numberOfGhostPoints
+                      do m2=1,numberOfGhostPoints
+                       if( edgeDirection.eq.0 )then
+                         ns1=0
+                         ns2=(1-2*side2)
+                         ns3=(1-2*side3)
+                         ms1=0
+                         ms2=(1-2*side2)*m1
+                         ms3=(1-2*side3)*m2
+                       else if( edgeDirection.eq.1 )then
+                         ns2=0
+                         ns3=(1-2*side3)
+                         ns1=(1-2*side1)
+                         ms2=0
+                         ms3=(1-2*side3)*m1
+                         ms1=(1-2*side1)*m2
+                       else
+                         ns3=0
+                         ns1=(1-2*side1)
+                         ns2=(1-2*side2)
+                         ms3=0
+                         ms1=(1-2*side1)*m1
+                         ms2=(1-2*side2)*m2
+                       end if
+                         stop 88267
+                      end do ! m2
+                      end do ! m1
+                     end if  ! end if mask
+                     end do ! end do i1
+                     end do ! end do i2
+                     end do ! end do i3
+                   else if( bc1.eq.perfectElectricalConductor .or. 
+     & bc2.eq.perfectElectricalConductor )then
+                    ! ***************************************************************************
+                    ! ************* PEC FACE ON ONE ADJACENT FACE (CURVILINEAR) *****************
+                    ! ***************************************************************************
+                     ! *new* *wdh*  2015/07/12 
+                     do i3=n3a,n3b
+                     do i2=n2a,n2b
+                     do i1=n1a,n1b
+                     if( mask(i1,i2,i3).ne.0 )then
+                      ! ---------------- fill in ghost by extrapolation  --------------
+                      do m1=1,numberOfGhostPoints
+                      do m2=1,numberOfGhostPoints
+                       if( edgeDirection.eq.0 )then
+                         ns1=0
+                         ns2=(1-2*side2)
+                         ns3=(1-2*side3)
+                         ms1=0
+                         ms2=(1-2*side2)*m1
+                         ms3=(1-2*side3)*m2
+                       else if( edgeDirection.eq.1 )then
+                         ns2=0
+                         ns3=(1-2*side3)
+                         ns1=(1-2*side1)
+                         ms2=0
+                         ms3=(1-2*side3)*m1
+                         ms1=(1-2*side1)*m2
+                       else
+                         ns3=0
+                         ns1=(1-2*side1)
+                         ns2=(1-2*side2)
+                         ms3=0
+                         ms1=(1-2*side1)*m1
+                         ms2=(1-2*side2)*m2
+                       end if
+                         stop 88267
+                      end do ! m2
+                      end do ! m1
+                     end if  ! end if mask
                      end do ! end do i1
                      end do ! end do i2
                      end do ! end do i3
@@ -4365,6 +4741,9 @@ c write(*,'("initializeBoundaryForcing slowStartInterval=",e10.2)') slowStartInt
      & .eq.perfectElectricalConductor .and.boundaryCondition(side2,1)
      & .eq.perfectElectricalConductor .and.boundaryCondition(side3,2)
      & .eq.perfectElectricalConductor )then
+                   ! ------------------------------------------------------------
+                   ! -------------- VERTEX adjacent to 3 PEC faces --------------
+                   ! ------------------------------------------------------------
                   do m3=1,numberOfGhostPoints
                   do m2=1,numberOfGhostPoints
                   do m1=1,numberOfGhostPoints
@@ -4374,27 +4753,7 @@ c write(*,'("initializeBoundaryForcing slowStartInterval=",e10.2)') slowStartInt
                     dra=dr(0)*js1
                     dsa=dr(1)*js2
                     dta=dr(2)*js3
-                        call ogf3dfo(ep,fieldOption,xy(i1,i2,i3,0),xy(
-     & i1,i2,i3,1),xy(i1,i2,i3,2),t,u0,v0,w0)
-                        call ogf3dfo(ep,fieldOption,xy(i1-js1,i2-js2,
-     & i3-js3,0),xy(i1-js1,i2-js2,i3-js3,1),xy(i1-js1,i2-js2,i3-js3,2)
-     & ,t,um,vm,wm)
-                        call ogf3dfo(ep,fieldOption,xy(i1+js1,i2+js2,
-     & i3+js3,0),xy(i1+js1,i2+js2,i3+js3,1),xy(i1+js1,i2+js2,i3+js3,2)
-     & ,t,up,vp,wp)
-                      g1=um-2.*u0+up
-                      g2=vm-2.*v0+vp
-                      g3=wm-2.*w0+wp
-                     ! Use a taylor series -- only exact for polynomials up to degree=3 -- is this good enough?
-                     u(i1-js1,i2-js2,i3-js3,ex)=2.*u(i1,i2,i3,ex)-u(i1+
-     & js1,i2+js2,i3+js3,ex)+((dra)**2*urr+(dsa)**2*uss+(dta)**2*utt+
-     & 2.*(dra)*(dsa)*urs+2.*(dra)*(dta)*urt+2.*(dsa)*(dta)*ust)
-                     u(i1-js1,i2-js2,i3-js3,ey)=2.*u(i1,i2,i3,ey)-u(i1+
-     & js1,i2+js2,i3+js3,ey)+((dra)**2*vrr+(dsa)**2*vss+(dta)**2*vtt+
-     & 2.*(dra)*(dsa)*vrs+2.*(dra)*(dta)*vrt+2.*(dsa)*(dta)*vst)
-                     u(i1-js1,i2-js2,i3-js3,ez)=2.*u(i1,i2,i3,ez)-u(i1+
-     & js1,i2+js2,i3+js3,ez)+((dra)**2*wrr+(dsa)**2*wss+(dta)**2*wtt+
-     & 2.*(dra)*(dsa)*wrs+2.*(dra)*(dta)*wrt+2.*(dsa)*(dta)*wst)
+                       stop 8867
                      if( debug.gt.2 )then
                        write(*,'("Corner point from taylor: ghost-pt=",
      & 3i4," errors=",3e10.2)') i1-js1,i2-js2,i3-js3,u(i1-js1,i2-js2,
@@ -4411,6 +4770,24 @@ c write(*,'("initializeBoundaryForcing slowStartInterval=",e10.2)') slowStartInt
                   end do
                   end do
                   end do
+                 else if( .true. .and. (boundaryCondition(side1,0)
+     & .eq.perfectElectricalConductor .or.boundaryCondition(side2,1)
+     & .eq.perfectElectricalConductor .or.boundaryCondition(side3,2)
+     & .eq.perfectElectricalConductor) )then
+                   ! *new* *wdh* 2015/07/12 
+                   ! -----------------------------------------------------------------
+                   ! -------------- VERTEX adjacent to 1 or 2 PEC faces --------------
+                   ! -----------------------------------------------------------------
+                  do m3=1,numberOfGhostPoints
+                  do m2=1,numberOfGhostPoints
+                  do m1=1,numberOfGhostPoints
+                    js1=is1*m1  ! shift to ghost point "m"
+                    js2=is2*m2
+                    js3=is3*m3
+                     stop 8867
+                  end do ! end do m1
+                  end do ! end do m2
+                  end do ! end do m3
                  else if( boundaryCondition(side1,0).eq.dirichlet 
      & .or.boundaryCondition(side2,1).eq.dirichlet 
      & .or.boundaryCondition(side3,2).eq.dirichlet )then

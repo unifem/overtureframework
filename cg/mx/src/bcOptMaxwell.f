@@ -5,6 +5,7 @@
 
 
 
+
 ! These next include files will define the macros that will define the difference approximations
 ! The actual macro is called below
 c Use this next macro to declare the statement functions that are defined below
@@ -354,8 +355,8 @@ c Helper function: Return minus the second time derivative
 
       orderOfAccuracy      =ipar(9)
 
-      ! -------- ASSIGN PEC BOUNDARY VALUES HERE ------
-      !          ASSIGN corners and edges (3d)
+      ! -------- ASSIGN boundary values, corners and edges (3d) -----
+      !      (assign PEC boundary values here)
       if( orderOfAccuracy.eq.2 )then
         call cornersMxOrder2(nd, nd1a,nd1b,nd2a,nd2b,nd3a,nd3b,ndf1a,
      & ndf1b,ndf2a,ndf2b,ndf3a,ndf3b,gridIndexRange,dimension,u,f,

@@ -1,71 +1,93 @@
-*
-* 3D cylindrical tube 
-*
-*
-* usage: ogen [noplot] tubeArg -factor=<num> -order=[2/4/6/8] -interp=[e/i] -name= -xa= -xb= -outerRad=
-* 
-*  factor : grid resolution factor 
-* 
-* examples:
-*     ogen noplot tubeArg -factor=2 -order=2 -interp=e ( creates tubee2.order2.hdf)
-*     ogen noplot tubeArg -factor=4 -order=2 -interp=e ( creates tubee4.order2.hdf)
-*     ogen noplot tubeArg -factor=4 -order=2 -interp=e -xa=-1. -xb=1. 
-* 
-* -- set default parameter values:
+#
+# 3D cylindrical tube 
+#
+#
+# usage: ogen [noplot] tubeArg -factor=<num> -order=[2/4/6/8] -interp=[e/i] -name= -sa= -sb= -outerRad=<f> -prefix=<s> -orient=[x|y|z]
+# 
+#  factor : grid resolution factor 
+# 
+# examples:
+#     ogen -noplot tubeArg -factor=2 -order=2 -interp=e ( creates tubee2.order2.hdf)
+#     ogen -noplot tubeArg -factor=4 -order=2 -interp=e ( creates tubee4.order2.hdf)
+#     ogen -noplot tubeArg -factor=4 -order=2 -interp=e -sa=-1. -sb=1. 
+# 
+# -- tube parallel to z-axis for cgmx eigenmodes
+#     ogen -noplot tubeArg -interp=e -prefix=tubeGrid -outerRad=1. -orient=z -order=2 -factor=2 
+#     
+# -- set default parameter values:
 $outerRad=.5; 
-$xa=-.5; $xb=.5;
+$sa=-.5; $sb=.5;
 $order=2; $factor=1; $interp="i"; $name="";
 $orderOfAccuracy = "second order"; $ng=2; $interpType = "implicit for all grids";
-* 
-* get command line arguments
-GetOptions("order=i"=>\$order,"factor=i"=> \$factor,"interp=s"=> \$interp,"outerRad=f"=> \$outerRad,"xa=f"=> \$xa,"xb=f"=> \$xb,"name=s"=>\$name);
-* 
+$prefix="tube"; $orient="x"; 
+$numGhost=-1;  # if this value is set, then use this number of ghost points
+# 
+# get command line arguments
+GetOptions("order=i"=>\$order,"factor=i"=> \$factor,"interp=s"=> \$interp,"outerRad=f"=> \$outerRad,"sa=f"=> \$sa,"sb=f"=> \$sb,\
+           "name=s"=>\$name,"prefix=s"=>\$prefix,"orient=s"=>\$orient,"numGhost=i"=>\$numGhost);
+# 
 if( $order eq 4 ){ $orderOfAccuracy="fourth order"; $ng=2; }\
 elsif( $order eq 6 ){ $orderOfAccuracy="sixth order"; $ng=4; }\
 elsif( $order eq 8 ){ $orderOfAccuracy="eighth order"; $ng=6; }
 if( $interp eq "e" ){ $interpType = "explicit for all grids"; }
-* 
+# 
 $suffix = ".order$order"; 
-if( $name eq "" ){ $name = "tube" . "$interp$factor" . $suffix . ".hdf"; }
-* 
+if( $numGhost ne -1 ){ $suffix .= ".ng$numGhost"; } 
+if( $numGhost ne -1 ){ $ng = $numGhost; } # overide number of ghost
+if( $name eq "" ){ $name = $prefix . "$interp$factor" . $suffix . ".hdf"; }
+# parallel ghost lines: for ogen we need at least:
+#       .5*( iw -1 )   : implicit interpolation 
+#       .5*( iw+dw-2 ) : explicit interpolation
+$dw = $order+1; $iw=$order+1; 
+$parallelGhost=($iw-1)/2;
+if( $interp eq "e" ){  $parallelGhost=($iw+$dw-2)/2; }
+if( $parallelGhost<1 ){ $parallelGhost=1; } 
+minimum number of distributed ghost lines
+  $parallelGhost
+# 
 $ds=.05/$factor;
-*
-*
-* Make a cylinder in a box
-*
+$pi = 4.*atan2(1.,1.); 
+#
+#
+# Make a cylinder in a box
+#
 create mappings
-*
+#
   Cylinder
     mappingName
       cylinder
     bounds on the radial variable
-      * cylinder is a fixed number of lines in the radial direction: 
+ # cylinder is a fixed number of lines in the radial direction: 
       $nr=6; 
       $deltaRad=($nr-1)*$ds; 
       $innerRad = $outerRad - $deltaRad; 
       $innerRad $outerRad
     bounds on the axial variable
-      $xa $xb
+      $sa $sb
     orientation
-     * make the x-axis the axial direction
-      1 2 0 
+      # choose axial direction to be the the x, y or z direction.
+      if( $orient eq "x" ){ $cmd = "1 2 0"; }elsif( $orient eq "y" ){ $cmd="2 0 1"; }else{ $cmd="0 1 2"; }
+      $cmd
+      # 1 2 0 
     lines
-      $nt = int( 2.*3.1415*($innerRad+$outerRad)*.5/$ds + 1.5 );
-      $nx = int( ($xb-$xa)/$ds + 1.5 );
-      $nt $nx $nr 
+      $nt = int( 2.*$pi*($innerRad+$outerRad)*.5/$ds + 1.5 );
+      $ns = int( ($sb-$sa)/$ds + 1.5 );
+      $nt $ns $nr 
     boundary conditions
-     * theta axial radial
+ # theta axial radial
      -1 -1   2 3   0 1 
     share
       0 0 2 3 0 0 
   exit
-* 
+# 
   Box
     mappingName
       box
   set corners
   lines
-    $ya=-$innerRad-($ng-1)*$ds; $yb=-$ya; $za=$ya; $zb=$yb;
+    if( $orient eq "x" ){ $xa=$sa; $xb=$sb; $ya=-$innerRad-($ng-1)*$ds; $yb=-$ya; $za=$ya; $zb=$yb; }
+    if( $orient eq "y" ){ $ya=$sa; $yb=$sb; $za=-$innerRad-($ng-1)*$ds; $zb=-$za; $xa=$za; $xb=$zb; }
+    if( $orient eq "z" ){ $za=$sa; $zb=$sb; $xa=-$innerRad-($ng-1)*$ds; $xb=-$xa; $ya=$xa; $yb=$xb; }
     set corners
       $xa $xb $ya $yb $za $zb
     lines
@@ -73,33 +95,36 @@ create mappings
       $ny = int( ($yb-$ya)/$ds + 1.5 );
       $nz = int( ($zb-$za)/$ds + 1.5 );
       $nx $ny $nz
+    if( $orient eq "x" ){ $cmd="2 3 0 0 0 0"; }
+    if( $orient eq "y" ){ $cmd="0 0 2 3 0 0"; }
+    if( $orient eq "z" ){ $cmd="0 0 0 0 2 3"; }
     boundary conditions
-      2 3 0 0 0 0 
+      $cmd
     share
-      2 3 0 0 0 0 
+      $cmd
   exit
 exit
-*
-*
+#
+#
 generate an overlapping grid
     box
     cylinder
   done
   change parameters
-    ghost points
-      all
-      $ng $ng $ng $ng $ng $ng 
     order of accuracy
       $orderOfAccuracy
     interpolation type
       $interpType
+    ghost points
+      all
+      $ng $ng $ng $ng $ng $ng 
   exit
-*  display intermediate results
-* pause
-* 
+#  display intermediate results
+# pause
+# 
   compute overlap
   exit
-*
+#
 save an overlapping grid
 $name
 tube

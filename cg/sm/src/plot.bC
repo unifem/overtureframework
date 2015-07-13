@@ -76,7 +76,7 @@ getAugmentedSolution(int current, realCompositeGridFunction & v, const real t)
   // For the SVK model we compute the Cauchy stress
   const bool svkStressStrain = parameters.dbase.get<int >("pdeTypeForGodunovMethod")==2;
 
-  printF("*********** Cgsm:getAugmentedSolution t=%9.3e svkStressStrain=%i\n",t,svkStressStrain);
+  // printF("*********** Cgsm:getAugmentedSolution t=%9.3e svkStressStrain=%i\n",t,svkStressStrain);
 
   // Determine the number of components to plot and the component numbers for the errors, etc.
   //    nErr : component where the error is stored
@@ -559,15 +559,18 @@ getMethodName( aString & methodName )
     // Do this for now:
     // pdeTypeForGodunovMethod==2 : SVK 
     const int pdeTypeForGodunovMethod = parameters.dbase.get<int >("pdeTypeForGodunovMethod");
-    if( pdeTypeForGodunovMethod==2 )
-    {
-      methodName="SVK";
-    }
+    if( pdeTypeForGodunovMethod==0 )
+      methodName="GDLE";     // fPrintF(file," Material model: linear elasticity.\n");
+    else if( pdeTypeForGodunovMethod==1 )
+      methodName="GDSVKLE";  // fPrintF(file," Material model: SVK in LINEAR ELASTIC MODE.\n");
+    else if( pdeTypeForGodunovMethod==2 )
+      methodName="GDSVK";    //  fPrintF(file," Material model: SVK (St.-Venant Kirchoff).\n");
+    else if( pdeTypeForGodunovMethod==3 )
+      methodName="GDRL";     // fPrintF(file," Material model: rotated-linear.\n");
+    else if( pdeTypeForGodunovMethod==4 )
+      methodName="GDNEO";    // fPrintF(file," Material model: neo-Hookean model.\n");
     else
-    {
       methodName="GD";
-    }
-    
   }
   else if( pdeVariation==SmParameters::hemp )
   {
@@ -1079,7 +1082,13 @@ plot(int current, real t, real dt )
           parameters.dbase.get<bool>("recomputeDt")=true;
         }
 	else if( dialog.getTextValue(answer,"final time","%g",tFinal) ){}//
-	else if( dialog.getTextValue(answer,"times to plot","%g",tPlot) ){}//
+	else if( dialog.getTextValue(answer,"times to plot","%g",tPlot) )
+        {
+          // this will cause dt to be recomputed in solve: 
+          parameters.dbase.get<bool>("adjustTimeStep")=true; 
+          parameters.dbase.get<bool>("recomputeDt")=true;
+        }
+
         else if( dialog.getTextValue(answer,"debug","%i",debug) ){}//
         else if( dialog.getTextValue(answer,"radius for checking errors","%f",radiusForCheckingErrors) )
         {

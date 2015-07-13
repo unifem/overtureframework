@@ -1,0 +1,72 @@
+*******************************
+**** July 13, 2015
+
+TEST FIXES TO EDGES AND CORNERS
+
+NON split-box sosup44:
+cgmx -noplot boxEigen -g=unitNonBoxSplite4.order4 -mx=3 -my=3 -mz=3 -diss=0 -dissOrder=-1 -cfl=0.9 -method=sosup -tf=1. -tp=.01 -go=og
+
+split-box sosup44:
+cgmx -noplot boxEigen -g=unitBoxSplite4.order4 -mx=3 -my=3 -mz=3 -diss=0 -dissOrder=-1 -cfl=0.9 -method=sosup -tf=1. -tp=.01 -go=og
+
+
+*******************************
+**** July 11, 2015
+
+
+TEST SPLIT-BOX
+
+cgmx -noplot boxEigen -g=unitBoxSplite4.order4 -mx=3 -my=3 -mz=3 -diss=0 -dissOrder=-1 -cfl=0.9 -method=sosup -tf=1. -tp=.01 -go=og 
+
+
+*******************************
+**** July 6, 2015
+
+TEST SPLIT-BOX
+
+cgmx -noplot boxEigen -g=unitBoxSplite4.order4 -mx=3 -my=3 -mz=3 -diss=0 -dissOrder=-1 -cfl=0.9 -method=sosup -tf=1. -tp=.01 -go=og 
+
+
+
+
+*******************************
+**** July 5, 2015 -- revisit box eigenfunctions and test SOSUP
+
+TROUBLE: SEG-FAULT
+cgmx -noplot boxEigen -g=nonBox32.order4 -m=2 -n=2 -mx=3 -my=3 -mz=3 -diss=0 -dissOrder=-1 -cfl=0.9 -method=NFDTD -errorNorm=0 -tf=.15 -tp=.15 -go=go
+
+CHECK TIME DERIVATIVES
+
+cgmx -noplot boxEigen -g=box8.order4.ng3.hdf -mx=3 -my=3 -mz=3 -method=sosup -tp=.1 -go=og
+
+
+
+*******************************
+**** July 4, 2015 -- revisit box eigenfunctions and test SOSUP
+
+
+G4: SOSUP44:
+cgmx -noplot boxEigen -g=box8.order4.ng3.hdf -mx=3 -my=3 -mz=3 -method=sosup -go=og
+>>> Cgmx:SOSUP: t=1.00e-01 dt=8.3e-03 TS=ME |div(E)|/|grad(E)|=2.37e-06 (=2.92e-07/1.23e-01) 12 steps mem=225(Mb) cpu=2.09e+01(s)
+>>> t=1.00e-01 dt=8.3e-03 max errors:[1.00e-06,2.01e-06,1.00e-06,1.03e-05,2.06e-05,1.03e-05,], max (u):[6.53e-03,1.31e-02,6.53e-03,1.73e+00,3.46e+00,1.73e+00,] (12 steps)
+
+G4: SOSUP44:
+cgmx -noplot boxEigen -g=box4.order4.ng3.hdf -mx=3 -my=3 -mz=3 -method=sosup -go=og
+>>> Cgmx:SOSUP: t=1.00e-01 dt=1.7e-02 TS=ME |div(E)|/|grad(E)|=6.90e-05 (=8.48e-06/1.23e-01) 6 steps mem=51.7(Mb) cpu=1.12e+01(s)
+>>> t=1.00e-01 dt=1.7e-02 max errors:[1.64e-05,3.28e-05,1.64e-05,1.79e-04,3.57e-04,1.79e-04,], max (u):[6.52e-03,1.30e-02,6.52e-03,1.73e+00,3.46e+00,1.73e+00,] (6 steps)
+
+
+G8
+cgmx -noplot boxEigen -g=box8.order4.hdf -mx=3 -my=3 -mz=3 -go=og
+>>> Cgmx:FD: t=1.00e-01 dt=6.7e-03 TS=ME |div(E)|/|grad(E)|=1.70e-13 (=2.09e-14/1.23e-01) 15 steps mem=132(Mb) cpu=1.16e+01(s)
+>>> t=1.00e-01 dt=6.7e-03 max errors:[2.28e-08,4.56e-08,2.28e-08,], max (u):[6.53e-03,1.31e-02,6.53e-03,] (15 steps)
+
+G4: note div(E)=0 
+cgmx -noplot boxEigen -g=box4.order4.hdf -mx=3 -my=3 -mz=3 -go=og
+>>> Cgmx:FD: t=1.00e-01 dt=1.3e-02 TS=ME |div(E)|/|grad(E)|=5.92e-14 (=7.29e-15/1.23e-01) 8 steps mem=35.8(Mb) cpu=2.70e+01(s)
+>>> t=1.00e-01 dt=1.3e-02 max errors:[6.77e-07,1.35e-06,6.77e-07,], max (u):[6.53e-03,1.31e-02,6.53e-03,] (8 steps)
+
+
+
+G32: 34 Million points
+cgmx -noplot boxEigen -g=box32.order4.hdf -mx=3 -my=3 -mz=3 -go=og

@@ -1,10 +1,12 @@
 #
 # Sphere in a Box (taking arguments)
 #
-# usage: ogen [noplot] sibArg -factor=<num> -order=[2/4/6/8] -interp=[e/i] -nrExtra=<> -ml=<> -numGhost=<i>
+# usage: ogen [noplot] sibArg -factor=<num> -order=[2/4/6/8] -interp=[e/i] -nrExtra=<> -ml=<> ...
+#                             -numGhost=<i> -rgd=[fixed|var] -prefix=<string>
 #
 #  -nrExtra: extra lines to add in the radial direction on the sphere grids 
 #  -ml = number of (extra) multigrid levels to support
+#  -rgd : var=variable : decrease radial grid distance as grids are refined. fixed=fix radial grid distance
 # 
 # examples:
 #     ogen -noplot sibArg -factor=1 -order=2
@@ -33,6 +35,10 @@
 #  -- more ghost for sosup
 #     ogen -noplot sibArg -order=4 -interp=e -numGhost=3 -factor=2
 # 
+# -- Fixed radius grids
+#     ogen -noplot sibArg -order=2 -interp=e -rgd=fixed -prefix=sibFixed -factor=2
+#     ogen -noplot sibArg -order=2 -interp=e -rgd=fixed -prefix=sibFixed -factor=4
+#
 # parallel: 
 # srun -N 1 -n 2 -ppdebug $ogenp -noplot sibArg -order=2 -interp=e -factor=4
 # srun -N 1 -n 2 -ppdebug $ogenp -noplot sibArg -order=2 -interp=e -factor=16  (33M)
@@ -43,10 +49,13 @@ $xa=-2.; $xb=2.; $ya=-2.; $yb=2.; $za=-2.; $zb=2.; $nrExtra=2; $loadBalance=0; $
 $order=2; $factor=1; $interp="i"; # default values
 $orderOfAccuracy = "second order"; $ng=2; $interpType = "implicit for all grids"; $dse=0.; 
 $numGhost=-1;  # if this value is set, then use this number of ghost points
+$rgd="var"; $deltaRadius=.4; 
+$prefix="sib";
 # 
 # get command line arguments
 GetOptions( "order=i"=>\$order,"factor=i"=> \$factor,"nrExtra=i"=> \$nrExtra,"interp=s"=> \$interp,\
-            "loadBalance=i"=>\$loadBalance,"ml=i"=>\$ml,"numGhost=i"=>\$numGhost);
+            "loadBalance=i"=>\$loadBalance,"ml=i"=>\$ml,"numGhost=i"=>\$numGhost,\
+            "prefix=s"=> \$prefix,"rgd=s"=> \$rgd,"deltaRadius=f"=>\$deltaRadius );
 # 
 if( $order eq 4 ){ $orderOfAccuracy="fourth order"; $ng=2; }\
 elsif( $order eq 6 ){ $orderOfAccuracy="sixth order"; $ng=4; }\
@@ -57,7 +66,7 @@ $suffix = ".order$order";
 if( $numGhost ne -1 ){ $ng = $numGhost; } # overide number of ghost
 if( $numGhost ne -1 ){ $suffix .= ".ng$numGhost"; } 
 if( $ml ne 0 ){ $suffix .= ".ml$ml"; }
-$name = "sib" . "$interp$factor" . $suffix . ".hdf";
+$name = $prefix . "$interp$factor" . $suffix . ".hdf";
 # -- convert a number so that it is a power of 2 plus 1 --
 #    ml = number of multigrid levels 
 $ml2 = 2**$ml; 
@@ -78,6 +87,8 @@ Sphere
   $nr=3+$order; if( $interp eq "e" ){ $nr=$nr+$order; } 
   $innerRad=.5; $outerRad=$innerRad+($nr-1)*$ds;
   $nr=intmg($nr + $nrExtra); 
+  # check for fixed radius 
+  if( $rgd eq "fixed" ){ $outerRad = $innerRad + $deltaRadius; $nr=intmg( $deltaRadius/$ds + 1.5 + $nrExtra ); }
   inner and outer radii
     $innerRad $outerRad
 exit
@@ -155,25 +166,7 @@ generate an overlapping grid
       $ng $ng $ng $ng $ng $ng 
   exit
  compute overlap
-#  debug 
-#    15
-#   compute overlap
-#   continue
-#   continue
-#   continue
-#   continue
-#   continue
-#   continue
-#   continue
-#   continue
-#   continue
-#   continue
-#   continue
-#   continue
-#   continue
-#   continue
-#   continue
-#   continue
+#
 exit
 # save an overlapping grid
 save a grid (compressed)

@@ -2124,9 +2124,6 @@ writeParameterSummary( FILE * file )
     
   }
   
-
-  
-
   SmParameters::PDEModel & pdeModel = parameters.dbase.get<SmParameters::PDEModel>("pdeModel");
   real & cfl = parameters.dbase.get<real>("cfl");
   real & tFinal = parameters.dbase.get<real>("tFinal");
@@ -2207,7 +2204,15 @@ writeParameterSummary( FILE * file )
                   (const char*) parameters.dbase.get<aString* >("componentName")[m]);
       }
     }
-    
+
+    const int pdeTypeForGodunovMethod = parameters.dbase.get<int >("pdeTypeForGodunovMethod");
+    if( pdeTypeForGodunovMethod!=0 )
+    {
+      const int & maximumStepsBetweenComputingDt= parameters.dbase.get<int>("maximumStepsBetweenComputingDt");
+      fPrintF(file," maximum number of steps between computing dt is %i.\n",
+	      maximumStepsBetweenComputingDt);
+    }
+
   }
 
 

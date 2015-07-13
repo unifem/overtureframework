@@ -466,7 +466,7 @@ assignInterfaceBoundaryConditions(GridFunction & cgf,
 	      is1=is2=is3=0;
 	      const int axisp1 = (axis+1) % numberOfDimensions;
 	      isv[axisp1]=1;
-	      realArray & gv = uLocal;
+	      RealArray & gv = uLocal;
 	      for( int smooth=0; smooth<numberOfInterfaceVelocitySmooths; smooth++ )
 	      {
 		// ADJACENT boundary conditions **FINISH ME**

@@ -1,9 +1,9 @@
-c *******************************************************************************
-c   Interface boundary conditions
-c *******************************************************************************
+! *******************************************************************************
+!   Interface boundary conditions
+! *******************************************************************************
 
-c These next include files will define the macros that will define the difference approximations
-c The actual macro is called below
+! These next include files will define the macros that will define the difference approximations
+! The actual macro is called below
 #Include "defineDiffNewerOrder2f.h"
 #Include "defineDiffNewerOrder4f.h"
 
@@ -70,9 +70,11 @@ end do
             +20.*uu(k1+2*ks1,k2+2*ks2,k3+2*ks3,kc)-15.*uu(k1+3*ks1,k2+3*ks2,k3+3*ks3,kc)\
             +6.*uu(k1+4*ks1,k2+4*ks2,k3+4*ks3,kc)-uu(k1+5*ks1,k2+5*ks2,k3+5*ks3,kc))
 
-c This macro will assign the jump conditions on the boundary
-c DIM (input): number of dimensions (2 or 3)
-c GRIDTYPE (input) : curvilinear or rectangular
+! ====================================================================================
+! This macro will assign the jump conditions on the boundary
+! DIM (input): number of dimensions (2 or 3)
+! GRIDTYPE (input) : curvilinear or rectangular
+! ====================================================================================
 #beginMacro boundaryJumpConditions(DIM,GRIDTYPE)
  #If #DIM eq "2"
   if( eps1.lt.eps2 )then
@@ -134,9 +136,9 @@ c GRIDTYPE (input) : curvilinear or rectangular
  #End
 #endMacro
 
-c ** Precompute the derivatives of rsxy ***
-c assign rvx(m) = (rx,sy)
-c        rvxx(m) = (rxx,sxx)
+! ** Precompute the derivatives of rsxy ***
+! assign rvx(m) = (rx,sy)
+!        rvxx(m) = (rxx,sxx)
 #beginMacro computeRxDerivatives(rv,rsxy,i1,i2,i3)
 do m=0,nd-1
  rv ## x(m)   =rsxy(i1,i2,i3,m,0)
@@ -157,7 +159,7 @@ do m=0,nd-1
 end do
 #endMacro
 
-c assign some temporary variables that are used in the evaluation of the operators
+! assign some temporary variables that are used in the evaluation of the operators
 #beginMacro setJacobian(rv,axis1,axisp1)
  rx   =rv ## x(axis1)   
  ry   =rv ## y(axis1)   

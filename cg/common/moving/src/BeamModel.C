@@ -7,6 +7,7 @@
 #include "OGPolyFunction.h"
 #include "OGTrigFunction.h"
 #include "TridiagonalSolver.h"
+#include "ParallelUtility.h"
 
 #include <sstream>
 
@@ -6297,32 +6298,35 @@ plot( real t, GenericGraphicsInterface & gi, GraphicsParameters & psp , const aS
     nv+= 6;        // plot errors 
   
   Range all;
+  // *fix me for parallel* : 
   realMappedGridFunction w(c,all,all,all,nv); // holds things to plot 
-  w=0.;
+
+  OV_GET_SERIAL_ARRAY(real,w,wLocal);
+  wLocal=0.;
 
   Range I=numNodes;
   
   Range J = Range(0,2*numElem,2);  // [0,2,4,...,2*numElem]
-  w(I,0,0, 0)= uc(J);   // u at nodes
-  w(I,0,0, 1)= vc(J);
-  w(I,0,0, 2)= ac(J);
+  wLocal(I,0,0, 0)= uc(J);   // u at nodes
+  wLocal(I,0,0, 1)= vc(J);
+  wLocal(I,0,0, 2)= ac(J);
     
-  w(I,0,0, 3)= uc(J+1);  // ux at nodes 
-  w(I,0,0, 4)= vc(J+1);  // vx at nodes 
-  w(I,0,0, 5)= ac(J+1);
+  wLocal(I,0,0, 3)= uc(J+1);  // ux at nodes 
+  wLocal(I,0,0, 4)= vc(J+1);  // vx at nodes 
+  wLocal(I,0,0, 5)= ac(J+1);
   
   if( plotErrors )
   {
     RealArray ue, ve, ae;
     getExactSolution( t, ue, ve, ae );
 
-    w(I,0,0, 6)= uc(J)-ue(J);   // u-error at nodes
-    w(I,0,0, 7)= vc(J)-ve(J);
-    w(I,0,0, 8)= ac(J)-ae(J);
+    wLocal(I,0,0, 6)= uc(J)-ue(J);   // u-error at nodes
+    wLocal(I,0,0, 7)= vc(J)-ve(J);
+    wLocal(I,0,0, 8)= ac(J)-ae(J);
 
-    w(I,0,0, 9)= uc(J+1)-ue(J+1);   // ux-error at nodes
-    w(I,0,0,10)= vc(J+1)-ve(J+1);
-    w(I,0,0,11)= ac(J+1)-ae(J+1);
+    wLocal(I,0,0, 9)= uc(J+1)-ue(J+1);   // ux-error at nodes
+    wLocal(I,0,0,10)= vc(J+1)-ve(J+1);
+    wLocal(I,0,0,11)= ac(J+1)-ae(J+1);
   }
   
 

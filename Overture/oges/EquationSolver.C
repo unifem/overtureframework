@@ -19,16 +19,26 @@ EquationSolver::
 }
 
 
+// =====================================================================================
+// \brief Return the maximum residual.
+// =====================================================================================
 real EquationSolver::
 getMaximumResidual()
-// =====================================================================================
-// /Return the maximum residual.
-// =====================================================================================
 {
   return maximumResidual;
 } 
 
-  
+// =====================================================================================
+// \brief Return the number of iterations used in the last solve.
+// =====================================================================================
+int EquationSolver::
+getNumberOfIterations() const
+{
+  // By default return this value:
+  return oges.numberOfIterations;
+} 
+
+
 const aString & EquationSolver::
 getName() const
 {

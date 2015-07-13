@@ -1,4 +1,93 @@
 
-**** June 28, 2015 -- changes to interface routines to account for overlapping
-      grids on the interface
+**** June 28-29, 2015 -- start making changes to interface routines to account for overlapping
+      grids on the interface 
 
+**** NOTE : USE -useNewInterface=1 BY DEFAULT NOW -- has TZ implemented ******
+
+BUG FIXED -- interface3d.bf -- extrap ghost next to interp too, aND to order=5
+
+
+SPLIT GRIDS SOSUP44: TZ - exact (3,3)
+cgmx interface -g=twoSquaresSplitInterfacee2.order4.ng3 -eps2=.25 -kx=4 -tp=.001 -ic=tz -degreex=3 -degreet=3 -diss=0. -bc=d -method=sosup -go=halt
+
+SPLIT GRIDS SOSUP22: TZ - exact (2,1)
+cgmx interface -g=twoSquaresSplitInterfacee2.order2 -eps2=.25 -kx=4 -tp=.001 -ic=tz -degreex=2 -degreet=1 -diss=0. -bc=d -method=sosup -go=halt
+
+
+SPLIT GRIDS FD44: TZ : EXACT (when -diss=0) 
+cgmx interface -g=twoSquaresSplitInterfacee2.order4 -eps2=.25 -kx=4 -tp=.001 -ic=tz -degreex=4 -degreet=4 -diss=0. -bc=d -go=halt
+
+
+SPLIT GRIDS FD22: TZ : EXACT (when -diss=0) 
+cgmx -noplot interface -g=twoSquaresSplitInterfacee4.order2 -eps2=.25 -kx=4 -tp=.1 -ic=tz -degreex=2 -degreet=2 -diss=0. -bc=d -go=og
+>>> Cgmx:FD: t=1.00e-01 dt=7.7e-03 TS=ME |div(E)|/|grad(E)|=1.62e-14 (=6.84e-14/4.21e+00) 13 steps mem=31(Mb) cpu=7.78e+00(s)
+>>> t=1.00e-01 dt=7.7e-03 max errors:[4.88e-15,3.77e-15,2.44e-15,], max (u):[4.21e+00,2.11e+00,1.58e+00,] (13 steps)
+
+
+FD44 EXACT 
+cgmx -noplot interface -g=twoSquaresInterfacee2.order4 -eps2=.25 -tf=.2 -tp=.05 -ic=tz -bc=d -diss=0. -debug=1 -degreex=4 -degreet=4 -go=og
+
+
+FD22: TZ: EXACT (when -diss=0)
+cgmx -noplot interface -g=twoSquaresInterfacee4.order2 -eps2=.25 -kx=4 -tp=.1 -ic=tz -bc=d -degreex=2 -degreet=2  -diss=0. -tp=.01 -go=og
+>>> Cgmx:FD: t=1.00e-01 dt=5.0e-03 TS=ME ad2=0.10 |div(E)|/|grad(E)|=2.81e-06 (=1.18e-05/4.21e+00) 20 steps mem=30.7(Mb) cpu=5.11e+01(s)
+>>> t=1.00e-01 dt=5.0e-03 max errors:[1.71e-06,1.88e-07,1.36e-06,], max (u):[4.21e+00,2.11e+00,1.58e+00,] (20 steps)
+
+
+
+REDO: 
+SOSUP44: G16
+cgmx -noplot interface -g=twoSquaresInterfacee16.order4.ng3 -eps2=.25 -kx=4 -tp=.1 -ic=pmic -bc=d -method=sosup -go=og
+>>> Cgmx:SOSUP: t=1.00e-01 dt=2.5e-03 TS=ME |div(E)|/|grad(E)|=1.32e-05 (=7.64e-04/5.77e+01) 40 steps mem=47.4(Mb) cpu=3.56e+01(s)
+>>> t=1.00e-01 dt=2.5e-03 max errors:[8.09e-06,4.55e-05,5.58e-05,5.45e-04,1.36e-03,1.13e-03,], max (u):[8.09e-06,2.67e+00,1.90e+00,5.45e-04,6.70e+01,5.77e+01,] (40 steps)
+
+FD22:  grids now have dx=dy 
+cgmx -noplot interface -g=twoSquaresInterfacee16.order2 -eps2=.25 -kx=4 -tp=.1 -ic=pmic -bc=d -go=og
+>>> Cgmx:FD: t=1.00e-01 dt=2.0e-03 TS=ME ad2=0.10 |div(E)|/|grad(E)|=1.24e-03 (=7.13e-02/5.74e+01) 51 steps mem=41.1(Mb) cpu=1.13e+01(s)
+>>> t=1.00e-01 dt=2.0e-03 max errors:[0.00e+00,7.08e-03,6.59e-03,], max (u):[0.00e+00,2.67e+00,1.91e+00,] (51 steps)
+
+
+=========================================================================
+==== NOTE: grids below were coarse (yFactor=1) in the y-direction =======
+=========================================================================
+
+
+SOSUP44:  **CHECK** Ex errors 
+G32
+cgmx -noplot interface -g=twoSquaresInterfacee32.order4.ng3 -eps2=.25 -kx=4 -tp=.1 -ic=pmic -bc=d -method=sosup -go=og
+>>> Cgmx:SOSUP: t=1.00e-01 dt=2.0e-03 TS=ME |div(E)|/|grad(E)|=1.05e-05 (=6.08e-04/5.77e+01) 51 steps mem=32.9(Mb) cpu=1.13e+01(s)
+>>> t=1.00e-01 dt=2.0e-03 max errors:[2.18e-05,3.16e-06,4.28e-06,1.73e-03,1.23e-04,8.29e-05,], max (u):[2.18e-05,2.67e+00,1.90e+00,1.73e-03,6.70e+01,5.77e+01,] (51 steps)
+
+CFL=.5
+>>> t=1.00e-01 dt=1.1e-03 max errors:[8.73e-08,2.63e-06,3.42e-06,6.46e-06,6.01e-05,5.93e-05,], max (u):[8.73e-08,2.67e+00,1.90e+00,6.46e-06,6.70e+01,5.77e+01,] (92 steps)
+
+SOSUP44: G16
+cgmx -noplot interface -g=twoSquaresInterfacee16.order4.ng3 -eps2=.25 -kx=4 -tp=.1 -ic=pmic -bc=d -method=sosup -go=og
+>>> Cgmx:SOSUP: t=1.00e-01 dt=3.8e-03 TS=ME |div(E)|/|grad(E)|=4.74e-05 (=2.74e-03/5.77e+01) 26 steps mem=31.2(Mb) cpu=6.50e+00(s)
+>>> t=1.00e-01 dt=3.8e-03 max errors:[1.14e-04,5.21e-05,6.61e-05,7.45e-03,1.39e-03,1.33e-03,], max (u):[1.14e-04,2.67e+00,1.90e+00,7.45e-03,6.70e+01,5.77e+01,] (26 steps)
+
+CFL=.5: 
+>>> t=1.00e-01 dt=2.1e-03 max errors:[6.31e-07,4.34e-05,5.28e-05,1.12e-04,9.16e-04,9.60e-04,], max (u):[6.31e-07,2.67e+00,1.90e+00,1.12e-04,6.70e+01,5.77e+01,] (47 steps)
+
+
+SOSUP22: G32
+cgmx -noplot interface -g=twoSquaresInterfacee32.order2 -eps2=.25 -kx=4 -tp=.1 -ic=pmic -bc=d -method=sosup -go=og
+>>> Cgmx:SOSUP: t=1.00e-01 dt=8.4e-04 TS=ME |div(E)|/|grad(E)|=2.15e-04 (=1.24e-02/5.76e+01) 119 steps mem=30.7(Mb) cpu=8.18e+00(s)
+>>> t=1.00e-01 dt=8.4e-04 max errors:[0.00e+00,2.48e-03,3.13e-03,0.00e+00,5.75e-02,5.29e-02,], max (u):[0.00e+00,2.67e+00,1.90e+00,0.00e+00,6.70e+01,5.77e+01,] (119 steps)
+
+SOSUP22: G16
+cgmx -noplot interface -g=twoSquaresInterfacee16.order2 -eps2=.25 -kx=4 -tp=.1 -ic=pmic -bc=d -method=sosup -go=og
+>>> Cgmx:SOSUP: t=1.00e-01 dt=1.7e-03 TS=ME |div(E)|/|grad(E)|=9.09e-04 (=5.22e-02/5.74e+01) 60 steps mem=29.9(Mb) cpu=1.27e+01(s)
+>>> t=1.00e-01 dt=1.7e-03 max errors:[0.00e+00,1.05e-02,1.21e-02,0.00e+00,2.21e-01,2.19e-01,], max (u):[0.00e+00,2.67e+00,1.91e+00,0.00e+00,6.70e+01,5.77e+01,] (60 steps)
+
+FD44:
+cgmx interface -g=twoSquaresInterfacee16.order4 -eps2=.25 -kx=4 -tp=.1 -ic=pmic -bc=d
+>>> Cgmx:FD: t=1.00e-01 dt=2.8e-03 TS=ME ad4=0.10 |div(E)|/|grad(E)|=2.48e-06 (=1.43e-04/5.77e+01) 36 steps max-mem=28.1 (Mb) cpu=5.41e+00(s)
+>>> t=1.00e-01 dt=2.8e-03 max errors:[1.52e-06,2.48e-05,1.90e-05,], max (u):[1.52e-06,2.67e+00,1.90e+00,] (36 steps)
+
+
+FD22:
+cgmx -noplot interface -g=twoSquaresInterfacee16.order2 -eps2=.25 -kx=4 -tp=.1 -ic=pmic -bc=d -go=og
+
+>>> Cgmx:FD: t=1.00e-01 dt=2.8e-03 TS=ME ad2=0.10 |div(E)|=3.18e-02, |div(E)|/|grad(E)|=5.54e-04, |grad(E)|=5.74e+01, 36 steps max-mem=31.1289 (Mb) cpu=5.25e+01(s)
+                t=1.00e-01 dt=2.8e-03 maxNorm errors:[0.0000e+00,6.4801e-03,5.8529e-03,], maxNorm (u):[0.00e+00,2.67e+00,1.91e+00,] (36 steps)

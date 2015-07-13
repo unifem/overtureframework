@@ -1,21 +1,21 @@
-c *******************************************************************************
-c   Interface boundary conditions - Fourth Order and 3D
-c      See also interface3d.bf 
-c *******************************************************************************
+! *******************************************************************************
+!   Interface boundary conditions - Fourth Order and 3D
+!      See also interface3d.bf 
+! *******************************************************************************
 
-c These next include files will define the macros that will define the difference approximations
-c The actual macro is called below
-c* #Include "defineDiffNewerOrder2f.h"
-c* #Include "defineDiffNewerOrder4f.h"
+! These next include files will define the macros that will define the difference approximations
+! The actual macro is called below
+!* #Include "defineDiffNewerOrder2f.h"
+!* #Include "defineDiffNewerOrder4f.h"
 
-c These next include file will define the macros that will define the difference approximations (in op/src)
-c Defines getDuDx2(u,aj,ff), getDuDxx2(u,aj,ff), getDuDx3(u,aj,ff), ...  etc. 
+! These next include file will define the macros that will define the difference approximations (in op/src)
+! Defines getDuDx2(u,aj,ff), getDuDxx2(u,aj,ff), getDuDx3(u,aj,ff), ...  etc. 
 #Include "derivMacroDefinitions.h"
 
-c Define 
-c    defineParametricDerivativeMacros(u,dr,dx,DIM,ORDER,COMPONENTS,MAXDERIV)
-c       defines -> ur2, us2, ux2, uy2, ...            (2D)
-c                  ur3, us3, ut3, ux3, uy3, uz3, ...  (3D)
+! Define 
+!    defineParametricDerivativeMacros(u,dr,dx,DIM,ORDER,COMPONENTS,MAXDERIV)
+!       defines -> ur2, us2, ux2, uy2, ...            (2D)
+!                  ur3, us3, ut3, ux3, uy3, uz3, ...  (3D)
 #Include "defineParametricDerivMacros.h"
 
 ! defineParametricDerivativeMacros(u,dr,dx,DIM,ORDER,COMPONENTS,MAXDERIV)
@@ -243,9 +243,9 @@ end do
             +10.*uu(k1+2*ks1,k2+2*ks2,k3+2*ks3,kc)-5.*uu(k1+3*ks1,k2+3*ks2,k3+3*ks3,kc)\
             +uu(k1+4*ks1,k2+4*ks2,k3+4*ks3,kc))
 
-c This macro will assign the jump conditions on the boundary
-c DIM (input): number of dimensions (2 or 3)
-c GRIDTYPE (input) : curvilinear or rectangular
+! This macro will assign the jump conditions on the boundary
+! DIM (input): number of dimensions (2 or 3)
+! GRIDTYPE (input) : curvilinear or rectangular
 #beginMacro boundaryJumpConditions(DIM,GRIDTYPE)
  #If #DIM eq "2"
   if( eps1.lt.eps2 )then
@@ -1241,17 +1241,17 @@ end if
                                ipar, rpar, \
                                aa2,aa4,aa8, ipvt2,ipvt4,ipvt8, \
                                ierr )
-c ===================================================================================
-c  Interface boundary conditions for Maxwells Equations in 3D and order 4.
-c
-c  gridType : 0=rectangular, 1=curvilinear
-c
-c  u1: solution on the "left" of the interface
-c  u2: solution on the "right" of the interface
-c
-c  aa2,aa4,aa8 : real work space arrays that must be saved from call to call
-c  ipvt2,ipvt4,ipvt8: integer work space arrays that must be saved from call to call
-c ===================================================================================
+! ===================================================================================
+!  Interface boundary conditions for Maxwells Equations in 3D and order 4.
+!
+!  gridType : 0=rectangular, 1=curvilinear
+!
+!  u1: solution on the "left" of the interface
+!  u2: solution on the "right" of the interface
+!
+!  aa2,aa4,aa8 : real work space arrays that must be saved from call to call
+!  ipvt2,ipvt4,ipvt8: integer work space arrays that must be saved from call to call
+! ===================================================================================
 
       implicit none
 
@@ -1281,13 +1281,13 @@ c ==============================================================================
       real aa2(0:1,0:1,0:1,0:*),aa4(0:3,0:3,0:1,0:*),aa8(0:7,0:7,0:1,0:*)
       integer ipvt2(0:1,0:*), ipvt4(0:3,0:*), ipvt8(0:7,0:*)
 
-c     --- local variables ----
+!     --- local variables ----
       
       integer side1,axis1,grid1,side2,axis2,grid2,gridType,orderOfAccuracy,orderOfExtrapolation,useForcing,\
         ex,ey,ez,hx,hy,hz,useWhereMask,debug,solveForE,solveForH,axis1p1,axis1p2,axis2p1,axis2p2,nn,n1,n2,\
         twilightZone
       real dx1(0:2),dr1(0:2),dx2(0:2),dr2(0:2)
-c      real dx(0:2),dr(0:2)
+!      real dx(0:2),dr(0:2)
       real t,ep,dt,eps1,mu1,c1,eps2,mu2,c2,epsmu1,epsmu2,omega
       integer axisp1,axisp2,i1,i2,i3,is1,is2,is3,j1,j2,j3,js1,js2,js3,ks1,ks2,ks3,is,js,it,nit,k1,k2,k3
       integer interfaceOption,interfaceEquationsOption,initialized,forcingOption
@@ -1405,7 +1405,7 @@ c      real dx(0:2),dr(0:2)
         curvilinear=1)
 
 
-c     --- start statement function ----
+!     --- start statement function ----
       integer kd,m,n
 
       declareTemporaryVariables(2,2)
@@ -1418,7 +1418,7 @@ c     --- start statement function ----
       declareJacobianDerivativeVariables(aj1,3)     ! declareJacobianDerivativeVariables(aj,DIM)
       declareJacobianDerivativeVariables(aj2,3)     ! declareJacobianDerivativeVariables(aj,DIM)
 
-c............... end statement functions
+!............... end statement functions
 
       ierr=0
 
@@ -1495,73 +1495,73 @@ c............... end statement functions
       twilightZone=useForcing
 
       debugFile=10
-c*      if( initialized.eq.0 .and. debug.gt.0 )then
-c*        ! open debug files
-c*        ! open (debugFile,file=filen,status='unknown',form='formatted')
-c*        if( myid.lt.10 )then
-c*          write(debugFileName,'("mxi",i1,".fdebug")') myid
-c*        else
-c*          write(debugFileName,'("mxi",i2,".fdebug")') myid
-c*        end if
-c*        write(*,*) 'interface3d: myid=',myid,' open debug file:',debugFileName
-c*        open (debugFile,file=debugFileName,status='unknown',form='formatted')
-c*        ! '
-c*        ! INQUIRE(FILE=filen, EXIST=filex)
-c*      end if
-c*
-c*      if( t.lt.dt )then
-c*        write(debugFile,'(" +++++++++cgmx interface3d t=",e9.2," ++++++++")') t
-c*           ! '
-c*        write(debugFile,'(" interface3d new: nd=",i2," gridType=",i2)') nd,gridType
-c*      end if
-c*
-c*      if( abs(c1*c1-1./(mu1*eps1)).gt. 1.e-10 )then
-c*        write(debugFile,'(" interface3d:ERROR: c1,eps1,mu1=",3e10.2," not consistent")') c1,eps1,mu1
-c*           ! '
-c*        stop 11
-c*      end if
-c*      if( abs(c2*c2-1./(mu2*eps2)).gt. 1.e-10 )then
-c*        write(debugFile,'(" interface3d:ERROR: c2,eps2,mu2=",3e10.2," not consistent")') c2,eps2,mu2
-c*           ! '
-c*        stop 11
-c*      end if
-c*
-c*      if( .false. )then
-c*        write(debugFile,'(" interface3d: eps1,eps2=",2f10.5," c1,c2=",2f10.5)') eps1,eps2,c1,c2
-c*           ! '
-c*      end if
-c*
-c*      if( nit.lt.0 .or. nit.gt.100 )then
-c*        write(debugFile,'(" interfaceBC: ERROR: nit=",i9)') nit
-c*        nit=max(1,min(100,nit))
-c*      end if
-c*
-c*      if( debug.gt.1 )then
-c*        write(debugFile,'("********************************************************************** ")')
-c*        write(debugFile,'(" interface3d: **START** t=",e10.2)') t
-c*        write(debugFile,'(" interface3d: **START** grid1=",i4," side1,axis1=",2i2," bc=",6i3)') grid1,side1,axis1,\
-c*           boundaryCondition1(0,0),boundaryCondition1(1,0),boundaryCondition1(0,1),boundaryCondition1(1,1),boundaryCondition1(0,2),boundaryCondition1(1,2)
-c*           ! '
-c*        write(debugFile,'(" interface3d: **START** grid2=",i4," side2,axis2=",2i2," bc=",6i3)') grid2,side2,axis2,\
-c*           boundaryCondition2(0,0),boundaryCondition2(1,0),boundaryCondition2(0,1),boundaryCondition2(1,1),boundaryCondition2(0,2),boundaryCondition2(1,2)
-c*           ! '
-c*        write(debugFile,'("n1a,n1b,...=",6i5)') n1a,n1b,n2a,n2b,n3a,n3b
-c*        write(debugFile,'("m1a,m1b,...=",6i5)') m1a,m1b,m2a,m2b,m3a,m3b
-c*
-c*      end if
-c*      if( debug.gt.4 )then
-c*       write(debugFile,'("start u1=",(3i4,1x,3e11.2))') (((i1,i2,i3,(u1(i1,i2,i3,m),m=0,2),i1=nd1a,nd1b),i2=nd2a,nd2b),i3=nd3a,nd3b)
-c*       write(debugFile,'("start u2=",(3i4,1x,3e11.2))') (((i1,i2,i3,(u2(i1,i2,i3,m),m=0,2),i1=md1a,md1b),i2=md2a,md2b),i3=md3a,md3b)
-c*      end if
-c*     
-c*      ! *** do this for now --- assume grids have equal spacing
-c*c      dx(0)=dx1(0)
-c*c      dx(1)=dx1(1)
-c*c      dx(2)=dx1(2)
-c*
-c*c      dr(0)=dr1(0)
-c*c      dr(1)=dr1(1)
-c*c      dr(2)=dr1(2)
+!*      if( initialized.eq.0 .and. debug.gt.0 )then
+!*        ! open debug files
+!*        ! open (debugFile,file=filen,status='unknown',form='formatted')
+!*        if( myid.lt.10 )then
+!*          write(debugFileName,'("mxi",i1,".fdebug")') myid
+!*        else
+!*          write(debugFileName,'("mxi",i2,".fdebug")') myid
+!*        end if
+!*        write(*,*) 'interface3d: myid=',myid,' open debug file:',debugFileName
+!*        open (debugFile,file=debugFileName,status='unknown',form='formatted')
+!*        ! '
+!*        ! INQUIRE(FILE=filen, EXIST=filex)
+!*      end if
+!*
+!*      if( t.lt.dt )then
+!*        write(debugFile,'(" +++++++++cgmx interface3d t=",e9.2," ++++++++")') t
+!*           ! '
+!*        write(debugFile,'(" interface3d new: nd=",i2," gridType=",i2)') nd,gridType
+!*      end if
+!*
+!*      if( abs(c1*c1-1./(mu1*eps1)).gt. 1.e-10 )then
+!*        write(debugFile,'(" interface3d:ERROR: c1,eps1,mu1=",3e10.2," not consistent")') c1,eps1,mu1
+!*           ! '
+!*        stop 11
+!*      end if
+!*      if( abs(c2*c2-1./(mu2*eps2)).gt. 1.e-10 )then
+!*        write(debugFile,'(" interface3d:ERROR: c2,eps2,mu2=",3e10.2," not consistent")') c2,eps2,mu2
+!*           ! '
+!*        stop 11
+!*      end if
+!*
+!*      if( .false. )then
+!*        write(debugFile,'(" interface3d: eps1,eps2=",2f10.5," c1,c2=",2f10.5)') eps1,eps2,c1,c2
+!*           ! '
+!*      end if
+!*
+!*      if( nit.lt.0 .or. nit.gt.100 )then
+!*        write(debugFile,'(" interfaceBC: ERROR: nit=",i9)') nit
+!*        nit=max(1,min(100,nit))
+!*      end if
+!*
+!*      if( debug.gt.1 )then
+!*        write(debugFile,'("********************************************************************** ")')
+!*        write(debugFile,'(" interface3d: **START** t=",e10.2)') t
+!*        write(debugFile,'(" interface3d: **START** grid1=",i4," side1,axis1=",2i2," bc=",6i3)') grid1,side1,axis1,\
+!*           boundaryCondition1(0,0),boundaryCondition1(1,0),boundaryCondition1(0,1),boundaryCondition1(1,1),boundaryCondition1(0,2),boundaryCondition1(1,2)
+!*           ! '
+!*        write(debugFile,'(" interface3d: **START** grid2=",i4," side2,axis2=",2i2," bc=",6i3)') grid2,side2,axis2,\
+!*           boundaryCondition2(0,0),boundaryCondition2(1,0),boundaryCondition2(0,1),boundaryCondition2(1,1),boundaryCondition2(0,2),boundaryCondition2(1,2)
+!*           ! '
+!*        write(debugFile,'("n1a,n1b,...=",6i5)') n1a,n1b,n2a,n2b,n3a,n3b
+!*        write(debugFile,'("m1a,m1b,...=",6i5)') m1a,m1b,m2a,m2b,m3a,m3b
+!*
+!*      end if
+!*      if( debug.gt.4 )then
+!*       write(debugFile,'("start u1=",(3i4,1x,3e11.2))') (((i1,i2,i3,(u1(i1,i2,i3,m),m=0,2),i1=nd1a,nd1b),i2=nd2a,nd2b),i3=nd3a,nd3b)
+!*       write(debugFile,'("start u2=",(3i4,1x,3e11.2))') (((i1,i2,i3,(u2(i1,i2,i3,m),m=0,2),i1=md1a,md1b),i2=md2a,md2b),i3=md3a,md3b)
+!*      end if
+!*     
+!*      ! *** do this for now --- assume grids have equal spacing
+!*c      dx(0)=dx1(0)
+!*c      dx(1)=dx1(1)
+!*c      dx(2)=dx1(2)
+!*
+!*c      dr(0)=dr1(0)
+!*c      dr(1)=dr1(1)
+!*c      dr(2)=dr1(2)
 
       epsx=1.e-20  ! fix this 
 
@@ -1731,27 +1731,27 @@ c*c      dr(2)=dr1(2)
       is=1-2*side1
       js=1-2*side2
 
-c$$$      rx1=0.
-c$$$      ry1=0.
-c$$$      rz1=0.
-c$$$      if( axis1.eq.0 )then
-c$$$        rx1=1.
-c$$$      else if( axis1.eq.1 )then
-c$$$        ry1=1.
-c$$$      else 
-c$$$        rz1=1.
-c$$$      endif
-c$$$
-c$$$      rx2=0.
-c$$$      ry2=0.
-c$$$      rz2=0.
-c$$$      if( axis2.eq.0 )then
-c$$$        rx2=1.
-c$$$      else if( axis2.eq.1 )then
-c$$$        ry2=1.
-c$$$      else 
-c$$$        rz2=1.
-c$$$      endif
+!$$$      rx1=0.
+!$$$      ry1=0.
+!$$$      rz1=0.
+!$$$      if( axis1.eq.0 )then
+!$$$        rx1=1.
+!$$$      else if( axis1.eq.1 )then
+!$$$        ry1=1.
+!$$$      else 
+!$$$        rz1=1.
+!$$$      endif
+!$$$
+!$$$      rx2=0.
+!$$$      ry2=0.
+!$$$      rz2=0.
+!$$$      if( axis2.eq.0 )then
+!$$$        rx2=1.
+!$$$      else if( axis2.eq.1 )then
+!$$$        ry2=1.
+!$$$      else 
+!$$$        rz2=1.
+!$$$      endif
 
       if( debug.gt.3 )then
         write(debugFile,'("nn1a,nn1b,...=",6i5)') nn1a,nn1b,nn2a,nn2b,nn3a,nn3b
@@ -2006,9 +2006,9 @@ c$$$      endif
            ! clap1m1 : coeff of u(-1) from lap1 = u1.xx + u1.yy + u1.zz
            ! clap1m2 : coeff of u(-2) from lap1 = u1.xx + u1.yy + u1.zz
 
-c here are the macros from deriv.maple (file=derivMacros.h)
-c defineMacro lapCoeff4a(is,dr,ds) ( (-2/3.*rxx*is-2/3.*ryy*is)/dr+(4/3.*rx**2+4/3.*ry**2)/dr**2 )
-c defineMacro lapCoeff4b(is,dr,ds) ( (1/12.*rxx*is+1/12.*ryy*is)/dr+(-1/12.*rx**2-1/12.*ry**2)/dr**2 )
+! here are the macros from deriv.maple (file=derivMacros.h)
+! defineMacro lapCoeff4a(is,dr,ds) ( (-2/3.*rxx*is-2/3.*ryy*is)/dr+(4/3.*rx**2+4/3.*ry**2)/dr**2 )
+! defineMacro lapCoeff4b(is,dr,ds) ( (1/12.*rxx*is+1/12.*ryy*is)/dr+(-1/12.*rx**2-1/12.*ry**2)/dr**2 )
            
            clap1m1=4./3.*(rsxy1(i1,i2,i3,axis1,0)**2+rsxy1(i1,i2,i3,axis1,1)**2+rsxy1(i1,i2,i3,axis1,2)**2)/(dr1(axis1)**2) \
                      -is*2./3.*(rxx1(axis1,0,0)+rxx1(axis1,1,1)+rxx1(axis1,2,2))/(2.*dr1(axis1))
@@ -2401,9 +2401,9 @@ c defineMacro lapCoeff4b(is,dr,ds) ( (1/12.*rxx*is+1/12.*ryy*is)/dr+(-1/12.*rx**
            ! clap1m1 : coeff of u(-1) from lap1 = u1.xx + u1.yy + u1.zz
            ! clap1m2 : coeff of u(-2) from lap1 = u1.xx + u1.yy + u1.zz
 
-c here are the macros from deriv.maple (file=derivMacros.h)
-c defineMacro lapCoeff4a(is,dr,ds) ( (-2/3.*rxx*is-2/3.*ryy*is)/dr+(4/3.*rx**2+4/3.*ry**2)/dr**2 )
-c defineMacro lapCoeff4b(is,dr,ds) ( (1/12.*rxx*is+1/12.*ryy*is)/dr+(-1/12.*rx**2-1/12.*ry**2)/dr**2 )
+! here are the macros from deriv.maple (file=derivMacros.h)
+! defineMacro lapCoeff4a(is,dr,ds) ( (-2/3.*rxx*is-2/3.*ryy*is)/dr+(4/3.*rx**2+4/3.*ry**2)/dr**2 )
+! defineMacro lapCoeff4b(is,dr,ds) ( (1/12.*rxx*is+1/12.*ryy*is)/dr+(-1/12.*rx**2-1/12.*ry**2)/dr**2 )
            
            clap1m1=4./3.*(rsxy1(i1,i2,i3,axis1,0)**2+rsxy1(i1,i2,i3,axis1,1)**2+rsxy1(i1,i2,i3,axis1,2)**2)/(dr1(axis1)**2) \
                      -is*2./3.*(rxx1(axis1,0,0)+rxx1(axis1,1,1)+rxx1(axis1,2,2))/(2.*dr1(axis1))

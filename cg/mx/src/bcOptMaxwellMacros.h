@@ -1107,7 +1107,7 @@ end do
 
  !  write(*,'(" ***bcOpt: slowStartInterval,t=",2f10.4," ssf,ssft,ssftt,sfttt=",4f9.4)') slowStartInterval,t,ssf,ssft,ssftt,ssfttt
 
- !  --- NOT: extra determines "extra points" in the tangential directions  ----
+ !  --- NOTE: extra determines "extra points" in the tangential directions  ----
  !  extra=-1 by default (if adjacent BC>0) no need to do corners -- these are already done
  !  extra=numberOfGhostPoints, if bc==0, (set in begin loop over sides)
  !  extra=0 if bc<0  (set in begin loop over sides)

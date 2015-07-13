@@ -1,0 +1,45 @@
+Compute eigenfunctions of a box for Maxwell's equations
+-------------------------------------------------------
+
+
+(1) Grids:
+
+# Box grids:
+box:
+	$(ogen) -noplot boxArg -order=2 -factor=1
+	$(ogen) -noplot boxArg -order=2 -factor=2
+	$(ogen) -noplot boxArg -order=2 -factor=4
+	$(ogen) -noplot boxArg -order=2 -factor=8
+	$(ogen) -noplot boxArg -order=2 -factor=16
+	$(ogen) -noplot boxArg -order=2 -factor=32
+	$(ogen) -noplot boxArg -order=4 -factor=1
+	$(ogen) -noplot boxArg -order=4 -factor=2
+	$(ogen) -noplot boxArg -order=4 -factor=4
+	$(ogen) -noplot boxArg -order=4 -factor=8
+	$(ogen) -noplot boxArg -order=4 -factor=16
+	$(ogen) -noplot boxArg -order=4 -factor=32
+	$(ogen) -noplot boxArg -order=4 -numGhost=3 -factor=1
+	$(ogen) -noplot boxArg -order=4 -numGhost=3 -factor=2
+	$(ogen) -noplot boxArg -order=4 -numGhost=3 -factor=4
+	$(ogen) -noplot boxArg -order=4 -numGhost=3 -factor=8
+	$(ogen) -noplot boxArg -order=4 -numGhost=3 -factor=16
+	$(ogen) -noplot boxArg -order=4 -numGhost=3 -factor=32
+
+nonBox:
+	$(ogen) -noplot nonBox -order=2 -nx=8
+	$(ogen) -noplot nonBox -order=2 -nx=16
+	$(ogen) -noplot nonBox -order=2 -nx=32
+	$(ogen) -noplot nonBox -order=2 -nx=64
+	$(ogen) -noplot nonBox -order=4 -nx=8
+	$(ogen) -noplot nonBox -order=4 -nx=16
+	$(ogen) -noplot nonBox -order=4 -nx=32
+	$(ogen) -noplot nonBox -order=4 -nx=64
+
+
+(2) Run:
+
+G4: 
+   cgmx boxEigen -g=box4.order4.hdf -mx=3 -my=3 -mz=3 -go=halt
+
+G32: 34 Million points:
+   cgmx boxEigen -g=box32.order4.hdf -mx=3 -my=3 -mz=3 -go=halt

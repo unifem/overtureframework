@@ -81,7 +81,7 @@ buildModel( const aString & modelName,
   else
   {
     printF("Cgmp:buildModel:ERROR: unknown modelName=[%s]\n",(const char*)modelName);
-    Overture::abort("Cgmp:buildModel:ERROR: unknown modelName");
+    OV_ABORT("Cgmp:buildModel:ERROR: unknown modelName");
   }
 
   // Tell the domain solver that this is a multi-domain problem.

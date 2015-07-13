@@ -19,11 +19,11 @@ cic.planeWaveBC.cmd : scattering of a plane wave by a 2d cylinder (check errors)
 
 cyleigen.cmd : compute eigenfunctions of a 3d cylinder (check errors).
 
-dielectricCyl.cmd : scattering from a 2d dielectric cylinder or 3d sphere (and compare to the exact solution).
+dielectricCyl.cmd : (now in cgmx/runs/dielectric)  scattering from a 2d dielectric cylinder or 3d sphere (and compare to the exact solution).
 
 diskeigen.cmd : compute eigenfunctions of a 2d disk. 
 
-interface.cmd : test for material interfaces.
+interface.cmd : (now located in cg/mx/runs/interface) test for material interfaces.
 
 knifeEdge : plane wave past a knife edge slit.
 
@@ -37,7 +37,7 @@ rbc.cmd : more tests of the absorbing/non-reflecting/radiation boundary conditio
 
 scat.cmd : scattering of a plane wave from different bodies.
 
-sib.planeWaveBC.cmd : scattering of a plane wave by a 3d sphere (check errors).
+sib.planeWaveBC.cmd : (now in cgmx/runs/sphere) scattering of a plane wave by a 3d sphere (check errors).
 
 tz.cmd : test the twilight-zone.
 

@@ -87,7 +87,7 @@ $cyl=1;   # set to 0 for a sphere
 $kx=2; $ky=0; $kz=0;
 $eps1=.25; $mu1=1.; # inner
 $eps2=1.;  $mu2=1.; # outer 
-$show=" "; $backGround="backGround"; $useNewInterface=0; 
+$show=" "; $backGround="backGround"; $useNewInterface=1; 
 $interfaceIterations=3;
 $grid="innerOuter4.order4.hdf";
 $cons=0; $go="halt";  $errorNorm=0;

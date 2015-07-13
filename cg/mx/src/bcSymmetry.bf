@@ -1,6 +1,6 @@
-c *******************************************************************************
-c       Symmetry Boundary Conditions for Maxwell
-c *******************************************************************************
+! *******************************************************************************
+!       Symmetry Boundary Conditions for Maxwell
+! *******************************************************************************
 
 #beginMacro beginLoops()
 do i3=n3a,n3b
@@ -14,14 +14,14 @@ end do
 end do
 #endMacro
 
-c ************************************************************************************************
-c  This macro is used for looping over the faces of a grid to assign booundary conditions
-c
-c extra: extra points to assign
-c          Case 1: extra=numberOfGhostPoints -- for assigning extended boundaries
-c          Case 2: extra=-1 -- for assigning ghost points but not including extended boundaries
-c numberOfGhostPoints : number of ghost points (1 for 2nd order, 2 for fourth-order ...)
-c ***********************************************************************************************
+! ************************************************************************************************
+!  This macro is used for looping over the faces of a grid to assign booundary conditions
+!
+! extra: extra points to assign
+!          Case 1: extra=numberOfGhostPoints -- for assigning extended boundaries
+!          Case 2: extra=-1 -- for assigning ghost points but not including extended boundaries
+! numberOfGhostPoints : number of ghost points (1 for 2nd order, 2 for fourth-order ...)
+! ***********************************************************************************************
 #beginMacro beginLoopOverSides(extra,numberOfGhostPoints)
  extra1a=extra
  extra1b=extra
@@ -605,7 +605,7 @@ end do ! edgeDirection
       integer ipar(0:*),boundaryCondition(0:1,0:2)
       real rpar(0:*)
 
-c     --- local variables ----
+!     --- local variables ----
       
       integer side,axis,gridType,orderOfAccuracy,orderOfExtrapolation,useForcing,\
         ex,ey,ez,hx,hy,hz,useWhereMask,grid,debug,side1,side2,side3,forcingOption
@@ -695,7 +695,7 @@ c     --- local variables ----
 
       numberOfGhostPoints=orderOfAccuracy/2
 
-      if( t.le.dt .and. myid.eq.0 )then
+      if( debug.gt.1 .and. t.le.dt .and. myid.eq.0 )then
         write(*,'("NAME: orderOfAccuracy,numberOfGhostPoints=",2i3," t="e9.2)') orderOfAccuracy,numberOfGhostPoints,t
         ! '
       end if

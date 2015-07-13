@@ -8411,6 +8411,439 @@ c       end do
          end if
   ! TEMP TEMP TEMP TEMP
              extra1a=numGhost
+         if( .true. )then ! ********** TESTING *wdh* June 27, 2015
+          !*******
+          !******* RE-ASSIGN Primary Dirichlet boundary conditions ***********
+          !*******
+          ! -- Dirichlet values on ghost may not be correct : fix them
+             extra1a=numGhost
+             extra1b=numGhost
+             extra2a=numGhost
+             extra2b=numGhost
+             if( nd.eq.3 )then
+               extra3a=numGhost
+               extra3b=numGhost
+             else
+               extra3a=0
+               extra3b=0
+             end if
+             if( boundaryCondition(0,0).lt.0 )then
+               extra1a=max(0,extra1a) ! over-ride numGhost=-1 : assign ends in periodic directions (or internal parallel boundaries)
+             else if( boundaryCondition(0,0).eq.0 )then
+               extra1a=numGhost  ! include interpolation points since we assign ghost points outside these
+             end if
+             ! **NOTE** the bc on the right may be negative even it is not on the left (for parallel)
+             if( boundaryCondition(1,0).lt.0 )then
+               extra1b=max(0,extra1b) ! over-ride numGhost=-1 : assign ends in periodic directions
+             else if( boundaryCondition(1,0).eq.0 )then
+               extra1b=numGhost
+             end if
+             if( boundaryCondition(0,1).lt.0 )then
+               extra2a=max(0,extra2a) ! over-ride numGhost=-1 : assign ends in periodic directions (or internal parallel boundaries)
+             else if( boundaryCondition(0,1).eq.0 )then
+               extra2a=numGhost  ! include interpolation points since we assign ghost points outside these
+             end if
+             ! **NOTE** the bc on the right may be negative even it is not on the left (for parallel)
+             if( boundaryCondition(1,1).lt.0 )then
+               extra2b=max(0,extra2b) ! over-ride numGhost=-1 : assign ends in periodic directions
+             else if( boundaryCondition(1,1).eq.0 )then
+               extra2b=numGhost
+             end if
+             if(  nd.eq.3 )then
+              if( boundaryCondition(0,2).lt.0 )then
+                extra3a=max(0,extra3a) ! over-ride numGhost=-1 : assign ends in periodic directions (or internal parallel boundaries)
+              else if( boundaryCondition(0,2).eq.0 )then
+                extra3a=numGhost  ! include interpolation points since we assign ghost points outside these
+              end if
+              ! **NOTE** the bc on the right may be negative even it is not on the left (for parallel)
+              if( boundaryCondition(1,2).lt.0 )then
+                extra3b=max(0,extra3b) ! over-ride numGhost=-1 : assign ends in periodic directions
+              else if( boundaryCondition(1,2).eq.0 )then
+                extra3b=numGhost
+              end if
+             end if
+             do axis=0,nd-1
+             do side=0,1
+               if( boundaryCondition(side,axis).gt.0 )then
+                 ! write(*,'(" bcOpt: side,axis,bc=",3i2)') side,axis,boundaryCondition(side,axis)
+                 n1a=gridIndexRange(0,0)
+                 n1b=gridIndexRange(1,0)
+                 n2a=gridIndexRange(0,1)
+                 n2b=gridIndexRange(1,1)
+                 n3a=gridIndexRange(0,2)
+                 n3b=gridIndexRange(1,2)
+                 if( axis.eq.0 )then
+                   n1a=gridIndexRange(side,axis)
+                   n1b=gridIndexRange(side,axis)
+                 else if( axis.eq.1 )then
+                   n2a=gridIndexRange(side,axis)
+                   n2b=gridIndexRange(side,axis)
+                 else
+                   n3a=gridIndexRange(side,axis)
+                   n3b=gridIndexRange(side,axis)
+                 end if
+                 nn1a=gridIndexRange(0,0)-extra1a
+                 nn1b=gridIndexRange(1,0)+extra1b
+                 nn2a=gridIndexRange(0,1)-extra2a
+                 nn2b=gridIndexRange(1,1)+extra2b
+                 nn3a=gridIndexRange(0,2)-extra3a
+                 nn3b=gridIndexRange(1,2)+extra3b
+                 if( axis.eq.0 )then
+                   nn1a=gridIndexRange(side,axis)
+                   nn1b=gridIndexRange(side,axis)
+                 else if( axis.eq.1 )then
+                   nn2a=gridIndexRange(side,axis)
+                   nn2b=gridIndexRange(side,axis)
+                 else
+                   nn3a=gridIndexRange(side,axis)
+                   nn3b=gridIndexRange(side,axis)
+                 end if
+                 is=1-2*side
+                 is1=0
+                 is2=0
+                 is3=0
+                 if( axis.eq.0 )then
+                   is1=1-2*side
+                 else if( axis.eq.1 )then
+                   is2=1-2*side
+                 else if( axis.eq.2 )then
+                   is3=1-2*side
+                 else
+                   stop 5
+                 end if
+                 axisp1=mod(axis+1,nd)
+                 axisp2=mod(axis+2,nd)
+                 i3=n3a
+            !*      ! (js1,js2,js3) used to compute tangential derivatives
+            !*      js1=0
+            !*      js2=0
+            !*      js3=0
+            !*      if( axisp1.eq.0 )then
+            !*        js1=1-2*side
+            !*      else if( axisp1.eq.1 )then
+            !*        js2=1-2*side
+            !*      else if( axisp1.eq.2 )then
+            !*        js3=1-2*side
+            !*      else
+            !*        stop 5
+            !*      end if
+            !* 
+            !*      ! (ks1,ks2,ks3) used to compute second tangential derivative
+            !*      ks1=0
+            !*      ks2=0
+            !*      ks3=0
+            !*      if( axisp2.eq.0 )then
+            !*        ks1=1-2*side
+            !*      else if( axisp2.eq.1 )then
+            !*        ks2=1-2*side
+            !*      else if( axisp2.eq.2 )then
+            !*        ks3=1-2*side
+            !*      else
+            !*        stop 5
+            !*      end if
+                 if( debug.gt.7 )then
+                   write(*,'(" bcOpt: grid,side,axis=",3i3,", loop 
+     & bounds: n1a,n1b,n2a,n2b,n3a,n3b=",6i3)') grid,side,axis,n1a,
+     & n1b,n2a,n2b,n3a,n3b
+                 end if
+               end if ! if bc>0
+             if( boundaryCondition(side,axis).eq.displacementBC )then
+              ! *************** Displacement BC *****************
+              ! ..step 0: Dirichlet bcs for displacement and velocity
+               i3=n3a
+               do i2=nn2a,nn2b
+               do i1=nn1a,nn1b
+               if (mask(i1,i2,i3).ne.0) then
+                u(i1,i2,i3,uc) =bcf(side,axis,i1,i2,i3,uc)    ! given displacements
+                u(i1,i2,i3,vc) =bcf(side,axis,i1,i2,i3,vc)
+                u(i1,i2,i3,v1c)=bcf(side,axis,i1,i2,i3,v1c)   ! given velocities
+                u(i1,i2,i3,v2c)=bcf(side,axis,i1,i2,i3,v2c)
+                !call ogDeriv(ep,0,0,0,0,xy(i1,i2,i3,0),xy(i1,i2,i3,1),0.,t,uc,ue)
+                !write(*,'(" i1,i2=",2i3," u,ue=",2e10.2)') i1,i2,u(i1,i2,i3,uc),ue
+               end if
+               end do
+               end do
+             else if( boundaryCondition(side,axis).eq.tractionBC )then
+              if( applyInterfaceBoundaryConditions.eq.0 .and. 
+     & interfaceType(side,axis,grid).eq.tractionInterface )then
+               write(*,'("SMBC: skip traction BC on an interface, (
+     & side,axis,grid)=(",3i3,")")') side,axis,grid
+              else
+               ! ********* Traction BC ********
+               ! put "dirichlet parts of the traction BC here
+              if( debug.gt.3. .and. interfaceType(side,axis,grid)
+     & .eq.tractionInterface )then
+               write(*,'("SMBC:INFO: assignPrimaryDirichletBC for an 
+     & interface, (side,axis,grid)=(",3i3,")")') side,axis,grid
+              end if
+              if( gridType.eq.rectangular )then
+                if (bctype.eq.linearBoundaryCondition) then      ! linear
+                  ! new
+                  if( axis.eq.0 )then
+                    i3=n3a
+                    do i2=nn2a,nn2b
+                    do i1=nn1a,nn1b
+                    if (mask(i1,i2,i3).ne.0) then
+                     ! set normal components of the stress, n=(-is,0)
+                      f1=bcf(side,axis,i1,i2,i3,s11c)              ! given traction forces
+                      f2=bcf(side,axis,i1,i2,i3,s12c)
+                      f1=f1+is*u(i1,i2,i3,s11c)
+                      f2=f2+is*u(i1,i2,i3,s12c)
+                      u(i1,i2,i3,s11c)=u(i1,i2,i3,s11c)-is*f1
+                      u(i1,i2,i3,s12c)=u(i1,i2,i3,s12c)-is*f2
+                      u(i1,i2,i3,s21c)=u(i1,i2,i3,s21c)-is*f2
+                      ! call ogDeriv(ep,0,0,0,0,xy(i1,i2,i3,0),xy(i1,i2,i3,1),0.,t,s11c,tau11)
+                      ! call ogDeriv(ep,0,0,0,0,xy(i1,i2,i3,0),xy(i1,i2,i3,1),0.,t,s21c,tau21)
+                      ! call ogDeriv(ep,0,0,0,0,xy(i1,i2,i3,0),xy(i1,i2,i3,1),0.,t,s12c,tau12)
+                      ! if (abs(tau11-u(i1,i2,i3,s11c)).gt.1.e-14) then
+                      !   write(6,*)i1,i2,i3,t,s11c,abs(tau11-u(i1,i2,i3,s11c))
+                      !   pause
+                      ! end if
+                      ! call ogDeriv(ep,0,0,0,0,xy(i1,i2,i3,0),xy(i1,i2,i3,1),0.,t,s22c,tau22)
+                      !  write(6,'(2(1x,i2),4(1x,f8.4),/,6x,4(1x,f8.4))')i1,i2,u(i1,i2,i3,s11c),u(i1,i2,i3,s12c),u(i1,i2,i3,s21c),u(i1,i2,i3,s22c),tau11,tau12,tau21,tau22
+                      !  333            format(2(1x,i2),4(1x,f8.4),/,6x,4(1x,f8.4))
+                    end if
+                    end do
+                    end do
+                  else
+                    i3=n3a
+                    do i2=nn2a,nn2b
+                    do i1=nn1a,nn1b
+                    if (mask(i1,i2,i3).ne.0) then
+                     ! set normal components of the stress, n=(0,-is)
+                      f1=bcf(side,axis,i1,i2,i3,s11c)              ! given traction forces
+                      f2=bcf(side,axis,i1,i2,i3,s12c)
+                      f1=f1+is*u(i1,i2,i3,s21c)
+                      f2=f2+is*u(i1,i2,i3,s22c)
+                      !   u(i1,i2,i3,s11c)=u(i1,i2,i3,s11c)
+                      u(i1,i2,i3,s12c)=u(i1,i2,i3,s12c)-is*f1
+                      u(i1,i2,i3,s21c)=u(i1,i2,i3,s21c)-is*f1
+                      u(i1,i2,i3,s22c)=u(i1,i2,i3,s22c)-is*f2
+                      ! call ogDeriv(ep,0,0,0,0,xy(i1,i2,i3,0),xy(i1,i2,i3,1),0.,t,s11c,tau11)
+                      ! call ogDeriv(ep,0,0,0,0,xy(i1,i2,i3,0),xy(i1,i2,i3,1),0.,t,s21c,tau21)
+                      ! call ogDeriv(ep,0,0,0,0,xy(i1,i2,i3,0),xy(i1,i2,i3,1),0.,t,s12c,tau12)
+                      ! call ogDeriv(ep,0,0,0,0,xy(i1,i2,i3,0),xy(i1,i2,i3,1),0.,t,s22c,tau22)
+                      ! write(6,'(2(1x,i2),4(1x,f8.4),/,6x,4(1x,f8.4))')i1,i2,u(i1,i2,i3,s11c),u(i1,i2,i3,s12c),u(i1,i2,i3,s21c),u(i1,i2,i3,s22c),tau11,tau12,tau21,tau22
+                    end if
+                    end do
+                    end do
+                  end if
+                else    ! SVK
+                  if( axis.eq.0 )then
+                    i3=n3a
+                    do i2=nn2a,nn2b
+                    do i1=nn1a,nn1b
+                    if (mask(i1,i2,i3).ne.0) then
+                     ! set normal components of the stress, n=(-is,0)
+                     u1y=(u(i1,i2+1,i3,uc)-u(i1,i2-1,i3,uc))/(2.0*dx(1)
+     & )
+                     u2y=(u(i1,i2+1,i3,vc)-u(i1,i2-1,i3,vc))/(2.0*dx(1)
+     & )
+                     alpha=sqrt(u1y**2+(1.0+u2y)**2)
+                     u(i1,i2,i3,s11c) =-is*bcf(side,axis,i1,i2,i3,s11c)
+     & *alpha
+                     u(i1,i2,i3,s12c) =-is*bcf(side,axis,i1,i2,i3,s12c)
+     & *alpha
+                    end if
+                    end do
+                    end do
+                  else
+                    i3=n3a
+                    do i2=nn2a,nn2b
+                    do i1=nn1a,nn1b
+                    if (mask(i1,i2,i3).ne.0) then
+                     ! set normal components of the stress, n=(0,-is)
+                     u1x=(u(i1+1,i2,i3,uc)-u(i1-1,i2,i3,uc))/(2.0*dx(0)
+     & )
+                     u2x=(u(i1+1,i2,i3,vc)-u(i1-1,i2,i3,vc))/(2.0*dx(0)
+     & )
+                     alpha=sqrt((1.0+u1x)**2+u2x**2)
+                     u(i1,i2,i3,s21c) =-is*bcf(side,axis,i1,i2,i3,s11c)
+     & *alpha
+                     u(i1,i2,i3,s22c) =-is*bcf(side,axis,i1,i2,i3,s12c)
+     & *alpha
+                    end if
+                    end do
+                    end do
+                  end if
+                end if
+              else  ! curvilinear
+                if (bctype.eq.linearBoundaryCondition) then   ! linear
+                  ! new
+                   i3=n3a
+                   do i2=nn2a,nn2b
+                   do i1=nn1a,nn1b
+                   if (mask(i1,i2,i3).ne.0) then
+                    f1=bcf(side,axis,i1,i2,i3,s11c)              ! given traction forces
+                    f2=bcf(side,axis,i1,i2,i3,s12c)
+                    ! (an1,an2) = outward normal 
+                    aNormi=1./max(epsx,sqrt(rx(i1,i2,i3,axis,0)**2+rx(
+     & i1,i2,i3,axis,1)**2))
+                    an1=-is*rx(i1,i2,i3,axis,0)*aNormi
+                    an2=-is*rx(i1,i2,i3,axis,1)*aNormi
+                    f1=f1-(an1*u(i1,i2,i3,s11c)+an2*u(i1,i2,i3,s21c))
+                    f2=f2-(an1*u(i1,i2,i3,s12c)+an2*u(i1,i2,i3,s22c))
+                    b1=((1.0+an2**2)*f1-an1*an2*f2)/2.0
+                    b2=((1.0+an1**2)*f2-an1*an2*f1)/2.0
+                    u(i1,i2,i3,s11c)=u(i1,i2,i3,s11c)+2.0*b1*an1
+                    u(i1,i2,i3,s12c)=u(i1,i2,i3,s12c)+b2*an1+b1*an2
+                    u(i1,i2,i3,s21c)=u(i1,i2,i3,s21c)+b2*an1+b1*an2
+                    u(i1,i2,i3,s22c)=u(i1,i2,i3,s22c)+2.0*b2*an2
+                   end if
+                   end do
+                   end do
+                else     ! SVK
+                  if (axis.eq.0) then
+                     i3=n3a
+                     do i2=nn2a,nn2b
+                     do i1=nn1a,nn1b
+                      if (mask(i1,i2,i3).ne.0) then
+                        ! (an1,an2) = outward normal 
+                        aNormi=1./max(epsx,sqrt(rx(i1,i2,i3,axis,0)**2+
+     & rx(i1,i2,i3,axis,1)**2))
+                        an1=-is*rx(i1,i2,i3,axis,0)*aNormi
+                        an2=-is*rx(i1,i2,i3,axis,1)*aNormi
+                        u1s=(u(i1,i2+1,i3,uc)-u(i1,i2-1,i3,uc))/(2.0*
+     & dr(1))
+                        u2s=(u(i1,i2+1,i3,vc)-u(i1,i2-1,i3,vc))/(2.0*
+     & dr(1))
+                        alpha=sqrt((rx(i1,i2,i3,0,1)-u1s/det(i1,i2,i3))
+     & **2+(rx(i1,i2,i3,0,0)+u2s/det(i1,i2,i3))**2)*aNormi
+                        f1=bcf(side,axis,i1,i2,i3,s11c)              ! given traction forces
+                        f2=bcf(side,axis,i1,i2,i3,s12c)
+                        b1=f1*alpha-(an1*u(i1,i2,i3,s11c)+an2*u(i1,i2,
+     & i3,s21c))
+                        b2=f2*alpha-(an1*u(i1,i2,i3,s12c)+an2*u(i1,i2,
+     & i3,s22c))
+                        u(i1,i2,i3,s11c)=u(i1,i2,i3,s11c)+an1*b1
+                        u(i1,i2,i3,s12c)=u(i1,i2,i3,s12c)+an1*b2
+                        u(i1,i2,i3,s21c)=u(i1,i2,i3,s21c)+an2*b1
+                        u(i1,i2,i3,s22c)=u(i1,i2,i3,s22c)+an2*b2
+                      end if
+                     end do
+                     end do
+                  else
+                     i3=n3a
+                     do i2=nn2a,nn2b
+                     do i1=nn1a,nn1b
+                      if (mask(i1,i2,i3).ne.0) then
+                        ! (an1,an2) = outward normal 
+                        aNormi=1./max(epsx,sqrt(rx(i1,i2,i3,axis,0)**2+
+     & rx(i1,i2,i3,axis,1)**2))
+                        an1=-is*rx(i1,i2,i3,axis,0)*aNormi
+                        an2=-is*rx(i1,i2,i3,axis,1)*aNormi
+                        u1r=(u(i1+1,i2,i3,uc)-u(i1-1,i2,i3,uc))/(2.0*
+     & dr(0))
+                        u2r=(u(i1+1,i2,i3,vc)-u(i1-1,i2,i3,vc))/(2.0*
+     & dr(0))
+                        alpha=sqrt((rx(i1,i2,i3,1,1)+u1r/det(i1,i2,i3))
+     & **2+(rx(i1,i2,i3,1,0)-u2r/det(i1,i2,i3))**2)*aNormi
+                        f1=bcf(side,axis,i1,i2,i3,s11c)              ! given traction forces
+                        f2=bcf(side,axis,i1,i2,i3,s12c)
+                        b1=f1*alpha-(an1*u(i1,i2,i3,s11c)+an2*u(i1,i2,
+     & i3,s21c))
+                        b2=f2*alpha-(an1*u(i1,i2,i3,s12c)+an2*u(i1,i2,
+     & i3,s22c))
+                        u(i1,i2,i3,s11c)=u(i1,i2,i3,s11c)+an1*b1
+                        u(i1,i2,i3,s12c)=u(i1,i2,i3,s12c)+an1*b2
+                        u(i1,i2,i3,s21c)=u(i1,i2,i3,s21c)+an2*b1
+                        u(i1,i2,i3,s22c)=u(i1,i2,i3,s22c)+an2*b2
+                      end if
+                     end do
+                     end do
+                  end if
+                end if
+              end if  ! end gridType
+              end if ! not interface
+             else if( boundaryCondition(side,axis).eq.slipWall )then
+               ! ********* SlipWall BC ********
+               ! put "dirichlet parts of the slipwall BC here
+              if( gridType.eq.rectangular )then
+                ! new
+                if( axis.eq.0 )then
+                  i3=n3a
+                  do i2=nn2a,nn2b
+                  do i1=nn1a,nn1b
+                  if (mask(i1,i2,i3).ne.0) then
+                   ! set n.tau.t and the normal component of displacement, n=(-is,0), t=(0,-is)
+                   u(i1,i2,i3,s12c) = bcf(side,axis,i1,i2,i3,s11c)
+                   u(i1,i2,i3,s21c) = bcf(side,axis,i1,i2,i3,s11c)
+                   u(i1,i2,i3,uc) = -is*bcf(side,axis,i1,i2,i3,uc)
+                   u(i1,i2,i3,v1c) = -is*bcf(side,axis,i1,i2,i3,v1c)
+                  end if
+                  end do
+                  end do
+                else
+                  i3=n3a
+                  do i2=nn2a,nn2b
+                  do i1=nn1a,nn1b
+                  if (mask(i1,i2,i3).ne.0) then
+                   ! set n.tau.t and the normal component of displacement, n=(0,-is), t=(+is,0)
+                   u(i1,i2,i3,s12c) = -bcf(side,axis,i1,i2,i3,s11c)
+                   u(i1,i2,i3,s21c) = -bcf(side,axis,i1,i2,i3,s11c)
+                   u(i1,i2,i3,vc) = -is*bcf(side,axis,i1,i2,i3,uc)
+                   u(i1,i2,i3,v2c) = -is*bcf(side,axis,i1,i2,i3,v1c)
+                  end if
+                  end do
+                  end do
+                end if
+              else  ! curvilinear
+                ! new
+                 i3=n3a
+                 do i2=nn2a,nn2b
+                 do i1=nn1a,nn1b
+                 if (mask(i1,i2,i3).ne.0) then
+                  f1=bcf(side,axis,i1,i2,i3,s11c)              ! given tangential traction force
+                  f2=bcf(side,axis,i1,i2,i3,uc)                ! given normal displacement
+                  f3=bcf(side,axis,i1,i2,i3,v1c)               ! given normal velocity
+                  ! (an1,an2) = outward normal and (-an2,an1) = unit tangent
+                  aNormi=1./max(epsx,sqrt(rx(i1,i2,i3,axis,0)**2+rx(i1,
+     & i2,i3,axis,1)**2))
+                  an1=-is*rx(i1,i2,i3,axis,0)*aNormi
+                  an2=-is*rx(i1,i2,i3,axis,1)*aNormi
+                  b1=f1-an1*(-u(i1,i2,i3,s11c)*an2+u(i1,i2,i3,s12c)*
+     & an1)-an2*(-u(i1,i2,i3,s21c)*an2+u(i1,i2,i3,s22c)*an1)
+                  b2=f2-an1*u(i1,i2,i3,uc)-an2*u(i1,i2,i3,vc)
+                  b3=f3-an1*u(i1,i2,i3,v1c)-an2*u(i1,i2,i3,v2c)
+                  u(i1,i2,i3,s11c)=u(i1,i2,i3,s11c)-2.0*b1*an1*an2
+                  u(i1,i2,i3,s12c)=u(i1,i2,i3,s12c)+b1*(an1**2-an2**2)
+                  u(i1,i2,i3,s21c)=u(i1,i2,i3,s21c)+b1*(an1**2-an2**2)
+                  u(i1,i2,i3,s22c)=u(i1,i2,i3,s22c)+2.0*b1*an1*an2
+                  u(i1,i2,i3,uc)=u(i1,i2,i3,uc)+an1*b2
+                  u(i1,i2,i3,vc)=u(i1,i2,i3,vc)+an2*b2
+                  u(i1,i2,i3,v1c)=u(i1,i2,i3,v1c)+an1*b3
+                  u(i1,i2,i3,v2c)=u(i1,i2,i3,v2c)+an2*b3
+                 end if
+                 end do
+                 end do
+              end if  ! end gridType
+             end if ! bc
+             end do ! end side
+             end do ! end axis
+         end if
+         !*******
+         !******* Extrapolation to the second ghost line ********
+         !*******
+           extra1a=numGhost
+           extra1b=numGhost
+           extra2a=numGhost
+           extra2b=numGhost
+           if( nd.eq.3 )then
+             extra3a=numGhost
+             extra3b=numGhost
+           else
+             extra3a=0
+             extra3b=0
+           end if
+           if( boundaryCondition(0,0).lt.0 )then
+             extra1a=max(0,extra1a) ! over-ride numGhost=-1 : assign ends in periodic directions (or internal parallel boundaries)
+           else if( boundaryCondition(0,0).eq.0 )then
+             extra1a=numGhost  ! include interpolation points since we assign ghost points outside these
+           end if
+           ! **NOTE** the bc on the right may be negative even it is not on the left (for parallel)
+           if( boundaryCondition(1,0).lt.0 )then
+             extra1b=max(0,extra1b) ! over-ride numGhost=-1 : assign ends in periodic directions
+           else if( boundaryCondition(1,0).eq.0 )then
              extra1b=numGhost
              extra2a=numGhost
              extra2b=numGhost

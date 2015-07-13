@@ -34,6 +34,12 @@ extern "C"
 int Oges::petscIsAvailable=false;        // set to true if PETSc is available
 Oges::newPETScFunction Oges::createPETSc=NULL;  // pointer to a function that can "new" a PETSc instance
 
+#ifdef USE_PPP
+  MPI_Comm Oges::OGES_COMM_WORLD=MPI_COMM_WORLD;
+#else
+  MPI_Comm Oges::OGES_COMM_WORLD=0;
+#endif
+
 //\begin{>OgesInclude.tex}{\subsection{default constructor}} 
 Oges::
 Oges()
@@ -758,10 +764,17 @@ setEquationAndBoundaryConditions( OgesParameters::EquationEnum equation,
 }
 
 
-
+//===============================================================================
+/// \brief return the number of iterations used in the last solve.
+//===============================================================================
 int Oges::
 getNumberOfIterations()
 {
+  if( equationSolver[parameters.solver]!=NULL )
+  {
+    numberOfIterations = equationSolver[parameters.solver]->getNumberOfIterations();
+  }
+
   return numberOfIterations;
 }
 
@@ -1730,6 +1743,25 @@ setOgesParameters( const OgesParameters & par )
   
   return 0;
 }
+
+// ===============================================================================
+/// \brief Set the MPI communicator used by Oges solvers (e..g. PETSc)
+// ===============================================================================
+int Oges::
+setCommunicator( MPI_Comm & comm )
+{
+  return parameters.setCommunicator(comm);
+}
+
+// ===============================================================================
+/// \brief Get the MPI communicator used by Oges solvers (e..g. PETSc)
+// ===============================================================================
+MPI_Comm& Oges::
+getCommunicator()
+{
+  return parameters.getCommunicator();
+}
+
 
 //\begin{>>OgesInclude.tex}{\subsection{sizeOf}} 
 real Oges:: 

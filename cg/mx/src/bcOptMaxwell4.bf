@@ -469,7 +469,9 @@
 
 
 ! Now assign ex and ey at the ghost points:
-#Include "bc4Maxwell.h"
+! #Include "bc4Maxwell.h"
+! Use 5th-order extrap: 8wdh* 2015/07/03
+#Include "bc4MaxwellExtrap5.h"
 
 ! extrapolate normal component:
 ! #Include "bc4eMaxwell.h"

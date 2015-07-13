@@ -41,6 +41,8 @@ class EquationSolver
 
   virtual real getMaximumResidual(); 
 
+  virtual int getNumberOfIterations() const; 
+
   virtual int printStatistics( FILE *file = stdout ) const;   // output any relevant statistics 
 
   // assign values to rhs for the the extra equations 

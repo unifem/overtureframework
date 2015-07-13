@@ -236,6 +236,13 @@
        UMEY(i1,i2,i3) = uey*sinkz*cost;
        UMEZ(i1,i2,i3) = bj*cosn*coskz*cost;
      
+       if( method==sosup )
+       {
+         sint=sin(omega*t); 
+         uLocal(i1,i2,i3,ext) = -omega*uex*sinkz*sint;
+         uLocal(i1,i2,i3,eyt) = -omega*uey*sinkz*sint;
+         uLocal(i1,i2,i3,ezt) = -omega*bj*cosn*coskz*sint;
+       }
 
      #Elif #OPTION == "boundaryCondition"
 
@@ -246,10 +253,10 @@
      
        if( method==sosup )
        {
-         sint=sin(omega*(t-dt)); 
-         uLocal(i1,i2,i3,hzt) = -omega*uex*sinkz*sint;
-         uLocal(i1,i2,i3,ext) = -omega*uey*sinkz*sint;
-         uLocal(i1,i2,i3,eyt) = -omega*bj*cosn*coskz*sint;
+         sint=sin(omega*t); 
+         uLocal(i1,i2,i3,ext) = -omega*uex*sinkz*sint;
+         uLocal(i1,i2,i3,eyt) = -omega*uey*sinkz*sint;
+         uLocal(i1,i2,i3,ezt) = -omega*bj*cosn*coskz*sint;
        }
 
      #Elif #OPTION == "error"
@@ -259,6 +266,13 @@
        ERREY(i1,i2,i3) = UEY(i1,i2,i3) - uey*sinkz*cost;
        ERREZ(i1,i2,i3) = UEZ(i1,i2,i3) - bj*cosn*coskz*cost;
 
+       if( method==sosup )
+       {
+         sint=sin(omega*t); 
+         errLocal(i1,i2,i3,ext) = uLocal(i1,i2,i3,ext) + omega*uex*sinkz*sint;
+         errLocal(i1,i2,i3,eyt) = uLocal(i1,i2,i3,eyt) + omega*uey*sinkz*sint;
+         errLocal(i1,i2,i3,ezt) = uLocal(i1,i2,i3,ezt) + omega*bj*cosn*coskz*sint;
+       }
      #Else
        Overture::abort("error");
      #End

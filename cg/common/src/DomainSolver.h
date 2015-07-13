@@ -950,6 +950,8 @@ int numberSavedToShowFile; // counts number of solutions saved to the show file
 
 CG_ApproximateFactorization::FactorList factors; // if there was an "Advance" class it would go there...
 
+std::vector<DomainSolver*> domainSolver;  // For Cgmp: holds PDE solvers for each domain 
+
 protected:
 
 aString name;       // a name given to this object (e.g. "fluid" or "gas")

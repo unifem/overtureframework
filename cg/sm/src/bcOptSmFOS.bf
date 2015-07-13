@@ -5694,6 +5694,15 @@ c       end do
 ! TEMP TEMP TEMP TEMP
 
 
+       if( .true. )then ! ********** TESTING *wdh* June 27, 2015
+        !*******
+        !******* RE-ASSIGN Primary Dirichlet boundary conditions ***********
+        !*******
+        ! -- Dirichlet values on ghost may not be correct : fix them
+
+        assignPrimaryDirichletTypeBoundaryConditionsMacro()
+       end if
+
        !*******
        !******* Extrapolation to the second ghost line ********
        !*******

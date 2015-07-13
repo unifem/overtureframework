@@ -108,6 +108,7 @@ updatePressureEquation(CompositeGrid & cg0, GridFunction & cgf )
       pde = equationDomain.getPDE();
     }
 
+
     real beamMassPerUnitLength[2][3]={-1.,-1.,-1.,-1.,-1.,-1.};  // For beam models
     if( useAddedMassAlgorithm && parameters.gridIsMoving(grid) )
     {

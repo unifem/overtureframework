@@ -9,5 +9,8 @@ conv.p interface.conv
 
 conv.p planeWave.conv
 
+-- scattering of a plnae wave of a PEC cylinder:
+conv.p scat.conv
+
 
 

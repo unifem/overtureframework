@@ -1128,9 +1128,10 @@ getTimeSteppingLabel( real dt, aString & label ) const
     else
         label+="TS=??, ";
 
-    if( twilightZoneOption==polynomialTwilightZone )
-        label+=sPrintF(buff," order(X,T)=(%i,%i)",
-               		   orderOfAccuracyInSpace,orderOfAccuracyInTime);
+  // if( twilightZoneOption==polynomialTwilightZone )
+  //   label+=sPrintF(buff," order(X,T)=(%i,%i)",
+  // 		   orderOfAccuracyInSpace,orderOfAccuracyInTime);
+
     if( method==nfdtd )
     {
         if( artificialDissipation!=0. && artificialDissipation==artificialDissipationCurvilinear )
@@ -1172,7 +1173,8 @@ plot(int current, real t, real dt )
     GenericGraphicsInterface & ps = *gip;
 
     char buff[100];
-    psp.set(GI_TOP_LABEL,sPrintF(buff,"Maxwell %s: t=%6.2e ",(const char *)methodName,t));
+    psp.set(GI_TOP_LABEL,sPrintF(buff,"Maxwell %s%i%i: t=%6.2e ",(const char *)methodName,
+                    orderOfAccuracyInSpace,orderOfAccuracyInTime,t));
     aString label;
     getTimeSteppingLabel( dt,label );
     

@@ -1,6 +1,102 @@
+******************************************************************************************
+***** July 3, 2015 
+
+
+
+cgmx -noplot dielectricCyl -g=innerOutere8.order4.ng3.hdf -kx=2 -eps1=.25 -eps2=1. -method=sosup -tp=.01 -go=og
+
+
+
+
+******************************************************************************************
+***** June 29, 2015 -- REVISIT interfaces + SPLIT GRIDS 
+
+***** sosup44: SPLIT -- looks OKa
+cgmx dielectricCyl -g=innerOuterSplitGride4.order4.ng3 -kx=2 -eps1=.25 -eps2=1. -method=sosup -tp=.001 -go=halt
+
+G8: 
+>>> Cgmx:SOSUP: t=1.00e-01 dt=1.9e-03 TS=ME |div(E)|/|grad(E)|=1.02e-06 (=1.78e-05/1.75e+01) 52 steps mem=94.2(Mb) cpu=7.82e+00(s)
+>>> t=1.00e-01 dt=1.9e-03 max errors:[7.09e-07,8.62e-07,7.88e-07,1.30e-05,1.72e-05,1.40e-05,], max (u):[1.13e+00,1.65e+00,1.66e+00,1.24e+01,2.03e+01,2.10e+01,] (52 steps)
+
+G4
+>>> Cgmx:SOSUP: t=1.00e-01 dt=3.6e-03 TS=ME |div(E)|/|grad(E)|=1.15e-05 (=2.02e-04/1.75e+01) 28 steps mem=49.8(Mb) cpu=3.10e+00(s)
+>>> t=1.00e-01 dt=3.6e-03 max errors:[1.21e-05,1.86e-05,1.25e-05,1.77e-04,2.20e-04,2.68e-04,], max (u):[1.13e+00,1.64e+00,1.65e+00,1.23e+01,2.03e+01,2.10e+01,] (28 steps)
+
+
+***** sosup22: SPLIT -- looks OKa
+cgmx dielectricCyl -g=innerOuterSplitGride4.order2 -kx=2 -eps1=.25 -eps2=1. -method=sosup -tp=.001 -go=halt
+
+
+
+***** FFD44 -- bug fixed
+cgmx dielectricCyl -g=innerOuterSplitGride4.order4 -kx=2 -eps1=.25 -eps2=1. -go=halta
+
+G8: 
+>>> Cgmx:FD: t=1.00e-01 dt=1.5e-03 TS=ME ad4=0.50 |div(E)|/|grad(E)|=1.64e-06 (=2.87e-05/1.75e+01) 68 steps mem=74.4(Mb) cpu=3.83e+00(s)
+>>> t=1.00e-01 dt=1.5e-03 max errors:[1.14e-06,1.28e-06,1.43e-06,], max (u):[1.13e+00,1.65e+00,1.66e+00,] (68 steps)
+
+G4:
+>>> Cgmx:FD: t=1.00e-01 dt=2.6e-03 TS=ME ad4=0.50 |div(E)|/|grad(E)|=2.10e-05 (=3.68e-04/1.75e+01) 38 steps mem=43.8(Mb) cpu=1.07e+01(s)
+>>> t=1.00e-01 dt=2.6e-03 max errors:[1.80e-05,2.07e-05,2.25e-05,], max (u):[1.13e+00,1.64e+00,1.65e+00,] (38 steps)
+
+
+
+******************************************************************************************
 ***** June 26, 2015 -- REVISIT sosup + interfaces
 
-************************************** CYLINDER ********************************************************8
+***** CGMX -- ORDER=4  STILL TROUBLE at split boundary 
+cgmx dielectricCyl -g=innerOuterSplitGride4.order4 -kx=2 -eps1=.25 -eps2=1. -go=halt
+>>> Cgmx:FD: t=1.00e-01 dt=2.6e-03 TS=ME ad4=0.50 |div(E)|=2.91e-01, |div(E)|/|grad(E)|=1.66e-02, |grad(E)|=1.75e+01, 38 steps max-mem=45.2148 (Mb) cpu=5.17e+00(s)
+                t=1.00e-01 dt=2.6e-03 maxNorm errors:[1.0963e-02,9.3146e-03,1.9612e-03,], maxNorm (u):[1.13e+00,1.64e+00,1.65e+00,] (38 steps)
+
+
+
+********************************************************************************************************
+************************************SPHERE *************************************************************
+********************************************************************************************************
+
+**** G4: SOSUP44  *TROUBLE STILL*
+cgmx dielectricCyl -cyl=0 -g=solidSphereInABoxe4.order4.ng3 -kx=1 -eps1=.25 -eps2=1. -method=sosup -go=halt
+
+>>> Cgmx:SOSUP: t=1.00e-01 dt=5.9e-03 TS=ME |div(E)|=1.91e-02, |div(E)|/|grad(E)|=2.32e-03, |grad(E)|=8.26e+00, 17 steps max-mem=1995.7 (Mb) cpu=3.09e+02(s)
+                t=1.00e-01 dt=5.9e-03 maxNorm errors:[5.4589e-04,5.4302e-04,5.2731e-04,1.1503e-02,1.2549e-02,1.0682e-02,], maxNorm (u):[9.51e-01,1.52e+00,4.45e-01,5.12e+00,9.62e+00,2.99e+00,] (17 steps)
+
+
+*OLD*
+-->t=1.0000e-01 dt=3.6e-03 maxNorm errors:[5.7992e-04,5.7240e-04,5.4981e-04,1.1582e-02,1.2762e-02,1.0550e-02,], maxNorm (u):[9.51e-01,1.52e+00,4.45e-01,5.12e+00,9.62e+00,2.99e+00,]
+>>> Cgmx:SOSUP: t=1.00e-01, dt=3.6e-03 TS=ME order(X,T)=(4,4) |div(E)|=1.92e-02, |div(E)|/|grad(E)|=2.33e-03, |grad(E)|=8.26e+00 (28 steps)
+
+
+G2: SOSUP44
+cgmx dielectricCyl -cyl=0 -g=solidSphereInABoxe2.order4.ng3 -kx=1 -eps1=.25 -eps2=1. -method=sosup -go=halt
+
+*NEW* 
+>>> Cgmx:SOSUP: t=1.00e-01 dt=8.3e-03 TS=ME |div(E)|=7.65e-02, |div(E)|/|grad(E)|=9.27e-03, |grad(E)|=8.26e+00, 12 steps max-mem=342.383 (Mb) cpu=6.11e+01(s)
+                t=1.00e-01 dt=8.3e-03 maxNorm errors:[1.6585e-03,6.9766e-03,6.8537e-04,2.0412e-02,5.3209e-02,1.0883e-02,], maxNorm (u):[9.47e-01,1.52e+00,4.41e-01,5.10e+00,9.60e+00,2.99e+00,] (12 steps)
+
+
+*OLD*
+-->t=1.0000e-01 dt=5.0e-03 maxNorm errors:[1.6899e-03,6.9731e-03,7.0010e-04,2.1308e-02,5.2281e-02,9.9366e-03,], maxNorm (u):[9.47e-01,1.52e+00,4.41e-01,5.10e+00,9.60e+00,2.99e+00,]
+>>> Cgmx:SOSUP: t=1.00e-01, dt=5.0e-03 TS=ME order(X,T)=(4,4) |div(E)|=7.61e-02, |div(E)|/|grad(E)|=9.22e-03, |grad(E)|=8.26e+00 (20 steps)
+
+
+===== G4: SOSUP22  **TROUBLE***
+cgmx dielectricCyl -cyl=0 -g=solidSphereInABoxe4.order2 -kx=1 -eps1=.25 -eps2=1. -method=sosup -go=halt
+
+>>> Cgmx:SOSUP: t=1.00e-01 dt=2.5e-03 TS=ME |div(E)|=3.52e+00, |div(E)|/|grad(E)|=4.28e-01, |grad(E)|=8.23e+00, 40 steps max-mem=1896.56 (Mb) cpu=2.74e+02(s)
+                t=1.00e-01 dt=2.5e-03 maxNorm errors:[5.6510e-02,1.2323e-01,7.5410e-02,7.6689e-01,1.2458e+00,5.5583e-01,], maxNorm (u):[9.49e-01,1.52e+00,4.45e-01,5.08e+00,9.62e+00,2.98e+00,] (40 steps)
+
+
+===== G2: SOSUP22
+cgmx dielectricCyl -cyl=0 -g=solidSphereInABoxe2.order2 -kx=1 -eps1=.25 -eps2=1. -method=sosup -go=halt
+
+>>> Cgmx:SOSUP: t=1.00e-01 dt=4.3e-03 TS=ME |div(E)|=1.85e+00, |div(E)|/|grad(E)|=2.27e-01, |grad(E)|=8.15e+00, 23 steps max-mem=308.09 (Mb) cpu=1.57e+01(s)
+                t=1.00e-01 dt=4.3e-03 maxNorm errors:[7.0833e-02,1.3899e-01,8.9151e-02,8.4875e-01,1.0111e+00,8.3521e-01,], maxNorm (u):[9.43e-01,1.52e+00,4.41e-01,4.93e+00,9.58e+00,2.96e+00,] (23 steps)
+
+
+********************************************************************************************************
+************************************** CYLINDER ********************************************************
+********************************************************************************************************
 
 ******* SOSUP ORDER=6
 G8:
@@ -111,6 +207,13 @@ cgmx dielectricCyl -cyl=0 -g=solidSphereInABoxe2.order2 -kx=1 -eps1=.25 -eps2=1.
 
 
 ************************************** CYLINDER ********************************************************8
+
+HARD-COPIES:
+
+cgmx dielectricCyl -g=innerOutere4.order4.ng3.hdf -kx=2 -eps1=.25 -eps2=1. -tf=1. -method=sosup -show=dc4Sosup.show -go=halt
+
+
+
 
 ******* SOSUP ORDER=6
 cgmx dielectricCyl -g=innerOutere4.order6.ng4.hdf -kx=2 -eps1=.25 -eps2=1. -method=sosup -go=halt

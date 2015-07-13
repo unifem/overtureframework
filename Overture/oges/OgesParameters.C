@@ -3,6 +3,7 @@
 #include "OgmgParameters.h"
 #include "Oges.h"
 
+
 //\begin{>OgesParametersInclude.tex}{\subsection{constructor}} 
 OgesParameters::
 OgesParameters()
@@ -88,6 +89,8 @@ OgesParameters()
   orderOfExtrapolation=-1;  // for predefined equations (-1: use default)
   
   isAxisymmetric=0;   // is this problem axisymmetric (for predefined equations)
+
+  OGES_COMM = MPI_COMM_WORLD;  // default parallel communicator
 }
 
 OgesParameters::
@@ -185,6 +188,8 @@ operator=(const OgesParameters& x)
   incompleteLUSparseFCoefficient =x.incompleteLUSparseFCoefficient;
   incompleteLUTypeInDH           =x.incompleteLUTypeInDH;
   
+  OGES_COMM = x.OGES_COMM;
+
   return *this;
 }
 
@@ -928,6 +933,34 @@ set( MatrixOrderingEnum option )
   matrixOrdering=option;
   return 0;
 }
+
+// ===============================================================================
+/// \brief Set the MPI communicator used by this Oges solver (e..g. PETSc)
+/// \details
+///    Different solvers may have different "sub-communicators". Note that
+///    the communicator Oges::OGES_COMM_WORLD must contain all the individual
+///    sub-communicators. 
+// ===============================================================================
+int OgesParameters::
+setCommunicator( MPI_Comm & comm )
+{
+  OGES_COMM = comm;
+  return 0;
+}
+
+// ===============================================================================
+/// \brief Get the MPI communicator used by this Oges solver (e..g. PETSc)
+/// \details
+///    Different solvers may have different "sub-communicators". Note that
+///    the communicator Oges::OGES_COMM_WORLD must contain all the individual
+///    sub-communicators. 
+// ===============================================================================
+MPI_Comm& OgesParameters::
+getCommunicator() 
+{
+  return OGES_COMM;
+}
+
 
 
 //\begin{>>OgesParametersInclude.tex}{\subsection{setPetscOption}}

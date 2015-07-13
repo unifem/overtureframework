@@ -300,6 +300,10 @@ updateghostandperiodic(realMappedGridFunction *&pu )
 
 // Macros for the plane material interface:
 
+ // -- incident wave ---
+ //  --- time derivative of incident ---
+ // -- transmitted wave ---
+ //  --- time derivative of transmitted wave ---
 
 // =============================================================================================================
 // /Description:
@@ -498,7 +502,8 @@ assignBoundaryConditions( int option, int grid, real t, real dt, realMappedGridF
     bool centerNeeded = vertexArrayIsNeeded( grid );
     if( centerNeeded )
     {
-        if( debug & 1 ) printF("\n --MX-BC--  CREATE VERTEX grid=%i ---\n\n",grid);
+        if( debug & 1 && t<2.*dt ) 
+            printF("\n --MX-BC--  CREATE VERTEX grid=%i ---\n\n",grid);
         mg.update(MappedGrid::THEcenter | MappedGrid::THEvertex );
     }
 
@@ -538,6 +543,9 @@ assignBoundaryConditions( int option, int grid, real t, real dt, realMappedGridF
 
     bool debugGhost=false; // ***TEMP*** June 1, 2016 -- debugging SOSUP
     
+    CompositeGrid & cg = *(cgfields[next].getCompositeGrid());
+    const int numberOfComponentGrids = cg.numberOfComponentGrids();
+
     if( mg.getGridType()==MappedGrid::structuredGrid )
     {
     // ***********************
@@ -680,10 +688,11 @@ assignBoundaryConditions( int option, int grid, real t, real dt, realMappedGridF
             // -----------------------------------------------------------------------------
                             int i1,i2,i3;
                             real tm=t-dt,x,y,z;
+                            const real pmct=pmc[18]*twoPi; // for time derivative of exact solution
                             if( numberOfDimensions==2 )
                             {
                               z=0.;
-                              if( grid==0 )
+                              if( grid < numberOfComponentGrids/2 )
                               { // incident plus reflected wave.
                                 FOR_3D(i1,i2,i3,I1,I2,I3)
                                 {
@@ -695,6 +704,12 @@ assignBoundaryConditions( int option, int grid, real t, real dt, realMappedGridF
                                       U(i1,i2,i3,ex)= u1;
                                       U(i1,i2,i3,ey)= u2;
                                       U(i1,i2,i3,hz)= u3;
+                                      if( method==sosup )
+                                      {
+                               	 uLocal(i1,i2,i3,ext) = pmct*(pmc[0]*sin(twoPi*(pmc[19]*(x-pmc[28])+pmc[20]*(y-pmc[29])+pmc[21]*(z-pmc[30])-pmc[18]*(t)))+pmc[1]*sin(twoPi*(pmc[22]*(x-pmc[28])+pmc[23]*(y-pmc[29])+pmc[24]*(z-pmc[30])-pmc[18]*(t))));
+                               	 uLocal(i1,i2,i3,eyt) = pmct*(pmc[2]*sin(twoPi*(pmc[19]*(x-pmc[28])+pmc[20]*(y-pmc[29])+pmc[21]*(z-pmc[30])-pmc[18]*(t)))+pmc[3]*sin(twoPi*(pmc[22]*(x-pmc[28])+pmc[23]*(y-pmc[29])+pmc[24]*(z-pmc[30])-pmc[18]*(t))));
+                               	 uLocal(i1,i2,i3,hzt) = pmct*(pmc[10]*sin(twoPi*(pmc[19]*(x-pmc[28])+pmc[20]*(y-pmc[29])+pmc[21]*(z-pmc[30])-pmc[18]*(t)))+pmc[11]*sin(twoPi*(pmc[22]*(x-pmc[28])+pmc[23]*(y-pmc[29])+pmc[24]*(z-pmc[30])-pmc[18]*(t))));
+                                      }
                                 }
                               }
                               else
@@ -710,12 +725,18 @@ assignBoundaryConditions( int option, int grid, real t, real dt, realMappedGridF
                                       U(i1,i2,i3,ex)= u1;
                                       U(i1,i2,i3,ey)= u2;
                                       U(i1,i2,i3,hz)= u3;
+                                      if( method==sosup )
+                                      {
+                               	 uLocal(i1,i2,i3,ext) = (pmct*pmc[12]*sin(twoPi*(pmc[25]*(x-pmc[28])+pmc[26]*(y-pmc[29])+pmc[27]*(z-pmc[30])-pmc[18]*(t))));
+                               	 uLocal(i1,i2,i3,eyt) = (pmct*pmc[13]*sin(twoPi*(pmc[25]*(x-pmc[28])+pmc[26]*(y-pmc[29])+pmc[27]*(z-pmc[30])-pmc[18]*(t))));
+                               	 uLocal(i1,i2,i3,hzt) = (pmct*pmc[17]*sin(twoPi*(pmc[25]*(x-pmc[28])+pmc[26]*(y-pmc[29])+pmc[27]*(z-pmc[30])-pmc[18]*(t))));
+                                      }
                                 }
                               }
                             }
                             else // --- 3D -- 
                             {
-                              if( grid==0 )
+                              if( grid < numberOfComponentGrids/2 )
                               { // incident plus reflected wave.
                                 FOR_3D(i1,i2,i3,I1,I2,I3)
                                 {
@@ -728,6 +749,12 @@ assignBoundaryConditions( int option, int grid, real t, real dt, realMappedGridF
                                       U(i1,i2,i3,ex)= u1;
                                       U(i1,i2,i3,ey)= u2;
                                       U(i1,i2,i3,ez)= u3;
+                                      if( method==sosup )
+                                      {
+                               	 uLocal(i1,i2,i3,ext) = pmct*(pmc[0]*sin(twoPi*(pmc[19]*(x-pmc[28])+pmc[20]*(y-pmc[29])+pmc[21]*(z-pmc[30])-pmc[18]*(t)))+pmc[1]*sin(twoPi*(pmc[22]*(x-pmc[28])+pmc[23]*(y-pmc[29])+pmc[24]*(z-pmc[30])-pmc[18]*(t))));
+                               	 uLocal(i1,i2,i3,eyt) = pmct*(pmc[2]*sin(twoPi*(pmc[19]*(x-pmc[28])+pmc[20]*(y-pmc[29])+pmc[21]*(z-pmc[30])-pmc[18]*(t)))+pmc[3]*sin(twoPi*(pmc[22]*(x-pmc[28])+pmc[23]*(y-pmc[29])+pmc[24]*(z-pmc[30])-pmc[18]*(t))));
+                               	 uLocal(i1,i2,i3,ezt) = pmct*(pmc[4]*sin(twoPi*(pmc[19]*(x-pmc[28])+pmc[20]*(y-pmc[29])+pmc[21]*(z-pmc[30])-pmc[18]*(t)))+pmc[5]*sin(twoPi*(pmc[22]*(x-pmc[28])+pmc[23]*(y-pmc[29])+pmc[24]*(z-pmc[30])-pmc[18]*(t))));
+                                      }
                                 }
                               }
                               else
@@ -744,6 +771,12 @@ assignBoundaryConditions( int option, int grid, real t, real dt, realMappedGridF
                                       U(i1,i2,i3,ex)= u1;
                                       U(i1,i2,i3,ey)= u2;
                                       U(i1,i2,i3,ez)= u3;
+                                      if( method==sosup )
+                                      {
+                               	 uLocal(i1,i2,i3,ext) = (pmct*pmc[12]*sin(twoPi*(pmc[25]*(x-pmc[28])+pmc[26]*(y-pmc[29])+pmc[27]*(z-pmc[30])-pmc[18]*(t))));
+                               	 uLocal(i1,i2,i3,eyt) = (pmct*pmc[13]*sin(twoPi*(pmc[25]*(x-pmc[28])+pmc[26]*(y-pmc[29])+pmc[27]*(z-pmc[30])-pmc[18]*(t))));
+                               	 uLocal(i1,i2,i3,ezt) = (pmct*pmc[14]*sin(twoPi*(pmc[25]*(x-pmc[28])+pmc[26]*(y-pmc[29])+pmc[27]*(z-pmc[30])-pmc[18]*(t))));
+                                      }
                                 }
                               }
                             }
