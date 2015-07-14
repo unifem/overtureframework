@@ -122,6 +122,39 @@ end do
             +10.*uu(k1+2*ks1,k2+2*ks2,k3+2*ks3,kc)-5.*uu(k1+3*ks1,k2+3*ks2,k3+3*ks3,kc)\
             +uu(k1+4*ks1,k2+4*ks2,k3+4*ks3,kc))
 
+#beginMacro limitedExtrapolation(u,j1,j2,j3,m,is1,is2,is3)
+  ! here du2=2nd-order approximation, du3=third order
+  ! Blend the 2nd and 3rd order based on the difference 
+  !   (which equals the second difference: uNew(-1)-2*u(0)+u(1))
+  du1 = u(j1,j2,j3,m)
+  du2 = 2.*u(j1,j2,j3,m)-u(j1+is1,j2+is2,j3,m) 
+  du3 = 3.*u(j1,j2,j3,m)-3.*u(j1+is1,j2+is2,j3,m)+u(j1+2*is1,j2+2*is2,j3,m)
+  !   alpha = cdl*(abs(du3-u(j1+is1,j2+is2,j3,m))+abs(du3-du2))/(uEps+abs(u(j1+is1,j2+is2,j3,m))+abs(u(j1+2*is1,j2+2*is2,j3,m)))
+  ! alpha = cdl*(abs(du3-du2))/(.1+abs(u(j1+is1,j2+is2,j3,m))+abs(u(j1+2*is1,j2+2*is2,j3,m)))
+
+  uNorm= uEps+ abs(du3) + abs(u(j1,j2,j3,m))+abs(u(j1+is1,j2+is2,j3,m))
+! **  du = abs(du3-u(j1+is1,j2+is2,j3,m))/uNorm  ! changed 050711
+! **  alpha = cdl*( du**2 + abs(du3-du2)/uNorm )
+  alpha = cdl*( abs(du3-du2)/uNorm )
+
+!   alpha = cdl*( abs(du3-du2)/uNorm )
+  alpha =min(1.,alpha)
+  ! if( mm.eq.1 )then
+
+!  if (alpha.gt.0.9) then
+!    write(6,*)'limiting, m,du1,du3=',m,du1,du3
+!    write(6,*)'j1,j2,j3=',j1,j2,j3
+!    write(6,*)'is1,is2,is3=',is1,is2,is3
+!  end if
+
+  !   u(j1,j2,j3,m)=(1.-alpha)*du3+alpha*du2
+    u(j1-is1,j2-is2,j3,m)=(1.-alpha)*du3+alpha*du1
+
+  ! else
+  !   u(j1,j2,j3,m)=(1.-alpha)*du2+alpha*du1
+  ! end if
+#endMacro
+
 #beginMacro beginEdgeMacro()
       do edgeDirection = 0,2 ! direction parallel to the edge
         do sidea = 0,1
@@ -4706,7 +4739,8 @@ c              an22=-is2*rx(i1,i2,i3,axis2,1)*aNormi2
    beginGhostLoops2d()
     if (mask(i1,i2,i3).ne.0) then
      do n=0,numberOfComponents-1
-       u(i1-2*is1,i2-2*is2,i3,n)=extrap3(u,i1-is1,i2-is2,i3,n,is1,is2,is3)
+ !      u(i1-2*is1,i2-2*is2,i3,n)=extrap3(u,i1-is1,i2-is2,i3,n,is1,is2,is3)
+        limitedExtrapolation(u,i1-is1,i2-is2,i3,n,is1,is2,is3)
      end do
     end if
    endGhostLoops2d()
@@ -4751,7 +4785,8 @@ c              an22=-is2*rx(i1,i2,i3,axis2,1)*aNormi2
      if (boundaryCondition(side1,axis1).gt.0) then
        if (mask(i1,i2,i3).ne.0) then
          do n=0,numberOfComponents-1
-           u(i1-2*is1,i2-is2,i3,n)=extrap3(u,i1-is1,i2-is2,i3,n,is1,0,0)
+          ! u(i1-2*is1,i2-is2,i3,n)=extrap3(u,i1-is1,i2-is2,i3,n,is1,0,0)
+           limitedExtrapolation(u,i1-is1,i2-is2,i3,n,is1,0,0)
          end do
        end if
      end if
@@ -4760,7 +4795,8 @@ c              an22=-is2*rx(i1,i2,i3,axis2,1)*aNormi2
      if (boundaryCondition(side2,axis2).gt.0) then
        if (mask(i1,i2,i3).ne.0) then
          do n=0,numberOfComponents-1
-           u(i1-is1,i2-2*is2,i3,n)=extrap3(u,i1-is1,i2-is2,i3,n,0,is2,0)
+          ! u(i1-is1,i2-2*is2,i3,n)=extrap3(u,i1-is1,i2-is2,i3,n,0,is2,0)
+           limitedExtrapolation(u,i1-is1,i2-is2,i3,n,0,is2,0)
          end do
        end if
      end if
@@ -4769,7 +4805,8 @@ c              an22=-is2*rx(i1,i2,i3,axis2,1)*aNormi2
      if (boundaryCondition(side1,axis1).gt.0.and.boundaryCondition(side2,axis2).gt.0) then
        if (mask(i1,i2,i3).ne.0) then
          do n=0,numberOfComponents-1
-           u(i1-2*is1,i2-2*is2,i3,n)=extrap3(u,i1-is1,i2-is2,i3,n,is1,is2,0)
+          ! u(i1-2*is1,i2-2*is2,i3,n)=extrap3(u,i1-is1,i2-is2,i3,n,is1,is2,0)
+           limitedExtrapolation(u,i1-is1,i2-is2,i3,n,is1,is2,0)
          end do
        end if
      end if
@@ -5013,6 +5050,8 @@ c     --- local variables ----
       real p(2,2),pe(2,2),dpdf(4,4),determ,du1y,du2y,du1x,du2x,du1s,du2s,du1r,du2r
       real v1r,v1s,v2r,v2s,du(2,2),cpar(10)
 
+      real du1,du2,du3,cdl,uEps,uNorm
+
       real err
 
       integer axis1,axis2,axis3
@@ -5174,6 +5213,16 @@ c       write(6,*)'bcs'
 c       pause
       ! debug = 15 ! *** turn on temporarily ***
 
+
+c*************** Setting parameters for limited extrapolation ****************
+
+      cdl=2.
+      if (twilightZone.ne.0) then
+        cdl=0.
+      end if
+      uEps=1.e-4
+
+c****************************************************************************
 
       axis1=0  ! *wdh* 
       axis2=1
@@ -5506,7 +5555,8 @@ c       end do
         !*******
         !******* Secondary Dirichlet conditions for the tangential components of stress (tractionBC only) ********
         !*******
-     
+
+       assignTangentStress=.false.
        if (assignTangentStress) then
          assignSecondaryDirichletBoundaryConditionsTangentialStress()
        end if
@@ -5637,6 +5687,11 @@ c       end do
        if ( .false. ) then
          setExactSolutionInCornersMacro()
        end if
+
+! TEMP TEMP TEMP TEMP
+        assignPrimaryDirichletTypeBoundaryConditionsMacro()
+        fixupCornerStressMacro()
+! TEMP TEMP TEMP TEMP
 
 
        !*******

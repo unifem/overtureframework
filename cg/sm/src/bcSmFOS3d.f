@@ -125,6 +125,7 @@ c     --- local variables ----
         real p(2,2),pe(2,2),dpdf(4,4),determ,du1y,du2y,du1x,du2x,du1s,
      & du2s,du1r,du2r
         real v1r,v1s,v2r,v2s,du(2,2),cpar(10)
+        real du1,du2,du3,cdl,uEps,uNorm
         real err
         integer axis1,axis2,axis3
         real v1x,v2x,v3x,v1y,v2y,v3y,v1z,v2z,v3z
@@ -153,6 +154,8 @@ c     --- local variables ----
         real alpha,dalpha,coef1,coef2
         logical setCornersWithTZ
 c      logical newBCs     this flag is not needed anymore
+        ! this flag determines whether the secondary tangent stress assignment is done (default should be .false. ??)
+        logical assignTangentStress
         ! boundary conditions parameters
 ! define BC parameters for fortran routines
 ! boundary conditions
@@ -274,6 +277,13 @@ c New constitutive parameters array for smgetdp
 c       write(6,*)'bcs'
 c       pause
         ! debug = 15 ! *** turn on temporarily ***
+c*************** Setting parameters for limited extrapolation ****************
+        cdl=2.
+        if (twilightZone.ne.0) then
+          cdl=0.
+        end if
+        uEps=1.e-4
+c****************************************************************************
         axis1=0  ! *wdh*
         axis2=1
         axis3=2
