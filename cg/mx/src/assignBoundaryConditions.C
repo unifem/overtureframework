@@ -944,10 +944,10 @@ assignBoundaryConditions( int option, int grid, real t, real dt, realMappedGridF
                                       uLocal(i1,i2,i3,ez) = bj*cosn*coskz*cost;
                                       if( method==sosup )
                                       {
-                                          sint=sin(omega*(t-dt)); 
-                                          uLocal(i1,i2,i3,hzt) = -omega*uex*sinkz*sint;
-                                          uLocal(i1,i2,i3,ext) = -omega*uey*sinkz*sint;
-                                          uLocal(i1,i2,i3,eyt) = -omega*bj*cosn*coskz*sint;
+                                          sint=sin(omega*t); 
+                                          uLocal(i1,i2,i3,ext) = -omega*uex*sinkz*sint;
+                                          uLocal(i1,i2,i3,eyt) = -omega*uey*sinkz*sint;
+                                          uLocal(i1,i2,i3,ezt) = -omega*bj*cosn*coskz*sint;
                                       }
                             }
                           }

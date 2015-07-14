@@ -1,13 +1,110 @@
 *******************************
+**** July 14, 2015
+
+CYLINDER EIGENMODES:
+
+
+TO-DO *** INCREASE FINAL TIME -- -tf=.05 not enough steps *****
+
+
+--- SPLIT-CYL SOSUP44
+conv.p diskeigen.conv -tf=.25 -tp=.25 -m=2 -n=2 -k=1 -order=4 -method=sosup -name=cyl3dSplit -cg=splitTubee -ng=3
+               grid  & N &  $E_x$ & r &  $E_y$ & r & $H_z$ & r &  $Ex_t$ & r &  $Ey_t$ & r & $Hz_t$ & r & $\grad\cdot\Ev/\grad\Ev$& r
+         splitTubee1 &     1 & 4.22e-05 &      & 4.23e-05 &      & 1.99e-04 &      & 2.69e-03 &      & 2.69e-03 &      & 8.42e-03 &      & 3.71e-03 &
+         splitTubee2 &     2 & 4.08e-06 & 10.3 & 4.08e-06 & 10.4 & 1.34e-05 & 14.9 & 1.28e-04 & 21.0 & 1.28e-04 & 21.0 & 5.36e-04 & 15.7 & 2.40e-04 & 15.5
+         splitTubee4 &     4 & 2.45e-07 & 16.7 & 2.45e-07 & 16.7 & 8.89e-07 & 15.1 & 8.19e-06 & 15.6 & 8.19e-06 & 15.6 & 3.46e-05 & 15.5 & 1.51e-05 & 15.9
+Convergence rates: c0=3.71 c1=3.72 c2=3.90 c3=4.18 c4=4.18 c5=3.96 c6=3.97
+
+ ****Output written to ./cyl3dSplitsosupOrder4maxNormConvTable.tex *****
+
+
+--- SPLIT-CYL SOSUP22
+conv.p diskeigen.conv -tf=.25 -tp=.25 -m=2 -n=2 -k=1 -order=2 -method=sosup -name=cyl3dSplit -cg=splitTubee -ng=3
+               grid  & N &  $E_x$ & r &  $E_y$ & r & $H_z$ & r &  $Ex_t$ & r &  $Ey_t$ & r & $Hz_t$ & r & $\grad\cdot\Ev/\grad\Ev$& r
+         splitTubee1 &     1 & 6.45e-04 &      & 6.45e-04 &      & 3.47e-03 &      & 2.48e-02 &      & 2.48e-02 &      & 1.33e-01 &      & 5.62e-02 &
+         splitTubee2 &     2 & 1.69e-04 &  3.8 & 1.69e-04 &  3.8 & 8.95e-04 &  3.9 & 6.30e-03 &  3.9 & 6.30e-03 &  3.9 & 3.33e-02 &  4.0 & 1.42e-02 &  4.0
+         splitTubee4 &     4 & 4.27e-05 &  4.0 & 4.27e-05 &  4.0 & 2.27e-04 &  3.9 & 1.56e-03 &  4.0 & 1.56e-03 &  4.0 & 8.29e-03 &  4.0 & 3.56e-03 &  4.0
+Convergence rates: c0=1.96 c1=1.96 c2=1.97 c3=2.00 c4=2.00 c5=2.00 c6=1.99
+
+ ****Output written to ./cyl3dSplitsosupOrder2maxNormConvTable.tex *****
+
+
+--- SPLIT-CYL FD44
+conv.p diskeigen.conv -tf=.25 -tp=.25 -m=2 -n=2 -k=1 -order=4 -method=nfdtd -name=cyl3dSplit -cg=splitTubee -ng=3
+                grid  & N &  $E_x$ & r &  $E_y$ & r & $H_z$ & r & $\grad\cdot\Ev/\grad\Ev$& r
+         splitTubee1 &     1 & 5.29e-05 &      & 5.30e-05 &      & 1.13e-04 &      & 1.14e-03 &
+         splitTubee2 &     2 & 3.58e-06 & 14.8 & 3.58e-06 & 14.8 & 4.62e-06 & 24.5 & 7.20e-05 & 15.8
+         splitTubee4 &     4 & 2.25e-07 & 17.5 & 2.25e-07 & 17.5 & 2.32e-07 & 19.9 & 4.55e-06 & 15.8
+Convergence rates: c0=4.01 c1=4.01 c2=4.46 c3=3.98
+
+
+--- SPLIT-CYL FD22
+conv.p diskeigen.conv -tf=.25 -tp=.25 -m=2 -n=2 -k=1 -order=2 -method=nfdtd -name=cyl3dSplit -cg=splitTubee -ng=3
+
+               grid  & N &  $E_x$ & r &  $E_y$ & r & $H_z$ & r & $\grad\cdot\Ev/\grad\Ev$& r
+         splitTubee1 &     1 & 5.74e-04 &      & 5.75e-04 &      & 2.16e-03 &      & 1.79e-02 &
+         splitTubee2 &     2 & 9.94e-05 &  5.8 & 9.94e-05 &  5.8 & 4.03e-04 &  5.4 & 4.29e-03 &  4.2
+         splitTubee4 &     4 & 2.26e-05 &  4.4 & 2.26e-05 &  4.4 & 9.10e-05 &  4.4 & 1.07e-03 &  4.0
+Convergence rates: c0=2.33 c1=2.33 c2=2.28 c3=2.03
+
+
+SOSUP44:
+conv.p diskeigen.conv -tf=.25 -tp=.25 -m=2 -n=2 -mk=1 -order=4 -method=sosup -name=cyl3d -cg=tubeGride -ng=3
+
+
+--- SOSUP22
+conv.p diskeigen.conv -tf=.25 -tp=.25 -m=2 -n=2 -mk=1 -order=2 -method=sosup -name=cyl3d -cg=tubeGride -ng=3
+
+--- FD44
+conv.p diskeigen.conv -tf=.25 -tp=.25 -m=2 -n=2 -k=1 -order=4 -method=nfdtd -name=cyl3d -cg=tubeGride -ng=3
+
+
+
+
+
+
+*** FD44 -- 3 PATCH SPHERE - sphereInABox  **TROUBLE**
+conv.p scat.conv -tf=.1 -tp=.1 -order=4 -radius=1. -diss=.1 -bg=backGround -method=nfdtd -cg=sphereInABox -ng=3
+               grid  & N &  $E_x$ & r &  $E_y$ & r & $H_z$ & r & $\grad\cdot\Ev/\grad\Ev$& r 
+       sphereInABox1 &     1 & 8.26e-03 &      & 1.77e-02 &      & 5.08e-03 &      & 1.25e-02 &      
+       sphereInABox2 &     2 & 6.59e-04 & 12.5 & 1.41e-03 & 12.6 & 3.84e-04 & 13.2 & 1.85e-03 &  6.8 
+       sphereInABox4 &     4 & 3.56e-04 &  1.9 & 4.13e-04 &  3.4 & 1.59e-04 &  2.4 & 2.08e-03 &  0.9 
+Convergence rates: c0=2.27 c1=2.71 c2=2.50 c3=1.29 
+
+ ****Output written to ./scatnfdtdsphereInABoxOrder4maxNormConvTable.tex *****
+
+
+*** FD22 -- 3 PATCH SPHERE - sphereInABox  *TROUBLE STILL
+conv.p scat.conv -tf=.1 -tp=.1 -order=2 -radius=1. -diss=.1 -bg=backGround -method=nfdtd -cg=sphereInABoxFixed -ng=3
+                grid  & N &  $E_x$ & r &  $E_y$ & r & $H_z$ & r & $\grad\cdot\Ev/\grad\Ev$& r 
+  sphereInABoxFixed1 &     1 & 4.52e-02 &      & 6.93e-02 &      & 2.27e-02 &      & 5.75e-02 &      
+  sphereInABoxFixed2 &     2 & 1.94e-02 &  2.3 & 1.83e-02 &  3.8 & 9.47e-03 &  2.4 & 2.85e-02 &  2.0 
+  sphereInABoxFixed4 &     4 & 7.35e-03 &  2.6 & 6.78e-03 &  2.7 & 3.31e-03 &  2.9 & 1.78e-02 &  1.6 
+Convergence rates: c0=1.31 c1=1.68 c2=1.39 c3=0.85 
+
+
+*******************************
 **** July 13, 2015
 
-== eigen modes of a 3D cylinder: TOOD
+== eigen modes of a 3D cylinder:
 
 SOSUP44:
 conv.p diskeigen.conv -tf=.05 -tp=.05 -m=2 -n=2 -mk=1 -order=4 -method=sosup -name=cyl3d -cg=tubeGride -ng=3
+                grid  & N &  $E_x$ & r &  $E_y$ & r & $H_z$ & r &  $Ex_t$ & r &  $Ey_t$ & r & $Hz_t$ & r & $\grad\cdot\Ev/\grad\Ev$& r
+          tubeGride1 &     1 & 4.55e-05 &      & 4.55e-05 &      & 1.99e-04 &      & 1.97e-03 &      & 1.97e-03 &      & 8.42e-03 &      & 3.71e-03 &
+          tubeGride2 &     2 & 3.80e-06 & 12.0 & 3.80e-06 & 12.0 & 1.34e-05 & 14.9 & 1.25e-04 & 15.8 & 1.24e-04 & 15.9 & 5.36e-04 & 15.7 & 2.40e-04 & 15.5
+          tubeGride4 &     4 & 2.44e-07 & 15.6 & 2.44e-07 & 15.6 & 8.89e-07 & 15.1 & 7.11e-06 & 17.6 & 7.07e-06 & 17.5 & 3.46e-05 & 15.5 & 1.51e-05 & 15.9
+Convergence rates: c0=3.77 c1=3.77 c2=3.90 c3=4.06 c4=4.06 c5=3.96 c6=3.97
 
 --- SOSUP22
 conv.p diskeigen.conv -tf=.05 -tp=.05 -m=2 -n=2 -mk=1 -order=2 -method=sosup -name=cyl3d -cg=tubeGride -ng=3
+                grid  & N &  $E_x$ & r &  $E_y$ & r & $H_z$ & r &  $Ex_t$ & r &  $Ey_t$ & r & $Hz_t$ & r & $\grad\cdot\Ev/\grad\Ev$& r
+          tubeGride1 &     1 & 6.61e-04 &      & 6.60e-04 &      & 3.47e-03 &      & 2.48e-02 &      & 2.48e-02 &      & 1.33e-01 &      & 5.62e-02 &
+          tubeGride2 &     2 & 1.69e-04 &  3.9 & 1.69e-04 &  3.9 & 8.95e-04 &  3.9 & 6.30e-03 &  3.9 & 6.30e-03 &  3.9 & 3.33e-02 &  4.0 & 1.42e-02 &  4.0
+          tubeGride4 &     4 & 4.27e-05 &  4.0 & 4.27e-05 &  4.0 & 2.27e-04 &  3.9 & 1.56e-03 &  4.0 & 1.56e-03 &  4.0 & 8.29e-03 &  4.0 & 3.56e-03 &  4.0
+Convergence rates: c0=1.98 c1=1.98 c2=1.97 c3=2.00 c4=2.00 c5=2.00 c6=1.99
+
+ ****Output written to ./cyl3dsosupOrder2maxNormConvTable.tex *****
 
 
 

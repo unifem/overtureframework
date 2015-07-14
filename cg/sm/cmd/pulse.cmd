@@ -79,7 +79,8 @@ $tz = "poly"; $degreex=2; $degreet=2; $fx=.5; $fy=$fx; $fz=$fx; $ft=$fx;
 $ad2=0.; # second-order art. diss for Godunov
 $ad4=1.;$ad4dt=0.;  # fourth-order art. diss for Godunov
 $order = 2; $go="halt"; $show=" "; $model="linear";
-$stressRelaxation=2;  $godunovType=0;
+$stressRelaxation=4;  $godunovType=0;
+$relaxAlpha=.5; $relaxDelta=.5; 
 $tangentialStressDissipation=1.;
 #
 # ----------------------------- get command line arguments ---------------------------------------
@@ -174,6 +175,8 @@ SMPDE:fourth-order artificial diffusion $ad4 $ad4 $ad4 $ad4 $ad4 $ad4 $ad4 $ad4 
 SMPDE:fourth-order dt dissipation $ad4dt $ad4dt $ad4dt $ad4dt $ad4dt $ad4dt $ad4dt $ad4dt $ad4dt $ad4dt $ad4dt $ad4dt $ad4dt $ad4dt $ad4dt
 SMPDE:stressRelaxation $stressRelaxation
 SMPDE:tangential stress dissipation $tsdiss $tsdissdt
+SMPDE:relaxAlpha $relaxAlpha
+SMPDE:relaxDelta $relaxDelta
 # SMPDE:displacement dissipation $tsdiss
 # 
 cfl $cfl

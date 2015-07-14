@@ -14,7 +14,11 @@ c #Include "defineDiffNewerOrder4f.h"
 
 
 
-! loop on the boundary but include ghost points in tangential directions
+! loop on the boundary but include extra points in tangential directions
+
+
+! loop on the boundary but include extra points in tangential directions
+! *wdh* added 2015/07/14
 
 
 
@@ -39,7 +43,7 @@ c #Include "defineDiffNewerOrder4f.h"
 c ************************************************************************************************
 c  This macro is used for looping over the faces of a grid to assign booundary conditions
 c
-c extra: extra points to assign
+c extra: extra points in the tangential directions to assign
 c          Case 1: extra=numberOfGhostPoints -- for assigning extended boundaries
 c          Case 2: extra=-1 -- for assigning ghost points but not including extended boundaries
 c numberOfGhostPoints : number of ghost points (1 for 2nd order, 2 for fourth-order ...)
@@ -247,7 +251,7 @@ c local variables
       real f(2,2),s(2,2),trace
 
       write(6,*)'Error (smbcsdp) : no longer used'
-      pause
+      ! *wdh* pause
 
       f(1,1)=1.0+ux
       f(1,2)=    uy

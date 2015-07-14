@@ -46,7 +46,7 @@ end do
  end do
 #endMacro
 
-! loop on the boundary but include ghost points in tangential directions
+! loop on the boundary but include extra points in tangential directions
 #beginMacro beginGhostLoops2d()
  i3=n3a
  do i2=nn2a,nn2b
@@ -54,6 +54,21 @@ end do
 #endMacro
 
 #beginMacro endGhostLoops2d()
+ end do
+ end do
+#endMacro
+
+! loop on the boundary but include extra points in tangential directions
+! *wdh* added 2015/07/14
+#beginMacro beginGhostLoopsMask2d()
+ i3=n3a
+ do i2=nn2a,nn2b
+ do i1=nn1a,nn1b
+ if( mask(i1,i2,i3).gt.0 )then
+#endMacro
+
+#beginMacro endGhostLoopsMask2d()
+ end if
  end do
  end do
 #endMacro
@@ -331,7 +346,7 @@ c
 c ************************************************************************************************
 c  This macro is used for looping over the faces of a grid to assign booundary conditions
 c
-c extra: extra points to assign
+c extra: extra points in the tangential directions to assign
 c          Case 1: extra=numberOfGhostPoints -- for assigning extended boundaries
 c          Case 2: extra=-1 -- for assigning ghost points but not including extended boundaries
 c numberOfGhostPoints : number of ghost points (1 for 2nd order, 2 for fourth-order ...)
@@ -5188,6 +5203,8 @@ c      end if
       numToPin             =ipar(14)
       materialFormat       =ipar(15)
 
+      assignTangentStress  =.false.  ! new option *dws* added 2015/07/13
+
       dx(0)                =rpar(0)
       dx(1)                =rpar(1)
       dx(2)                =rpar(2)
@@ -5694,7 +5711,7 @@ c       end do
 ! TEMP TEMP TEMP TEMP
 
 
-       if( .true. )then ! ********** TESTING *wdh* June 27, 2015
+       if( .false. )then ! ********** TESTING *wdh* June 27, 2015
         !*******
         !******* RE-ASSIGN Primary Dirichlet boundary conditions ***********
         !*******
@@ -5761,7 +5778,7 @@ c local variables
       real f(2,2),s(2,2),trace
 
       write(6,*)'Error (smbcsdp) : no longer used'
-      pause
+      ! *wdh* pause
 
       f(1,1)=1.0+ux
       f(1,2)=    uy

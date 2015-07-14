@@ -256,6 +256,7 @@ c      end if
         projectInterface     =ipar(13)
         numToPin             =ipar(14)
         materialFormat       =ipar(15)
+        assignTangentStress  =.false.  ! new option *dws* added 2015/07/13
         dx(0)                =rpar(0)
         dx(1)                =rpar(1)
         dx(2)                =rpar(2)

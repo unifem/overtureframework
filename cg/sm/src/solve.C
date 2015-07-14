@@ -280,17 +280,17 @@ outputResults( int current, real t, real dt )
     //   2. max error in all velocities (FOS)
     //   3. max error in all stresses   (FOS)
     err = (numberOfDimensions == 2 ? max(maximumError(uc),maximumError(vc)) : 
-                                      max(maximumError(uc),maximumError(vc),maximumError(wc)) );
+	   max(maximumError(uc),maximumError(vc),maximumError(wc)) );
     uNorm= (numberOfDimensions == 2 ? max(solutionNorm(uc),solutionNorm(vc)) : 
-                                      max(solutionNorm(uc),solutionNorm(vc),solutionNorm(wc)) );
+	    max(solutionNorm(uc),solutionNorm(vc),solutionNorm(wc)) );
 
     fPrintF(checkFile,"%i %9.2e %10.3e  ",cc,err,uNorm); cc++;
     if( saveVelocities )
     {
       err = (numberOfDimensions == 2 ? max(maximumError(v1c),maximumError(v2c)) : 
-	                                max(maximumError(v1c),maximumError(v2c),maximumError(v3c)) );
+	     max(maximumError(v1c),maximumError(v2c),maximumError(v3c)) );
       uNorm= (numberOfDimensions == 2 ? max(solutionNorm(v1c),solutionNorm(v2c)) : 
-	                                max(solutionNorm(v1c),solutionNorm(v2c),solutionNorm(v3c)) );
+	      max(solutionNorm(v1c),solutionNorm(v2c),solutionNorm(v3c)) );
       fPrintF(checkFile,"%i %9.2e %10.3e  ",cc,err,uNorm); cc++;
     }
     if( saveStress )
@@ -398,7 +398,7 @@ solve()
   SmParameters::PDEModel & pdeModel = parameters.dbase.get<SmParameters::PDEModel>("pdeModel");
   SmParameters::PDEVariation & pdeVariation = parameters.dbase.get<SmParameters::PDEVariation>("pdeVariation");
   SmParameters::TimeSteppingMethodSm & timeSteppingMethod = 
-                parameters.dbase.get< SmParameters::TimeSteppingMethodSm>("timeSteppingMethodSm");
+    parameters.dbase.get< SmParameters::TimeSteppingMethodSm>("timeSteppingMethodSm");
   RealArray & timing = parameters.dbase.get<RealArray >("timing");
   const int pdeTypeForGodunovMethod = parameters.dbase.get<int>("pdeTypeForGodunovMethod");   // 0=linear, 2=SVK ? 
 
@@ -456,20 +456,20 @@ solve()
     
   nextTimeToPlot=0.; // reset so we plot at t=0
     
-    // // *old way*
-    // // adjust the time step so we reach tPlot exactly
-    // //   dt=deltaT is computed in computeTimeStep in setup
+  // // *old way*
+  // // adjust the time step so we reach tPlot exactly
+  // //   dt=deltaT is computed in computeTimeStep in setup
 
-    // // We want dt*numStepsToPlot = tPlot
-    // const real dt0=dt;
-    // int numStepsToPlot = int(std::ceil( tPlot/dt ));// kkc is this what you mean?int(tPlot/dt+.999999);
-    // // we choose the number of steps so that we exactly reach times that are multiples of tPlot
-    // int numSteps= int(ceil(tFinal/tPlot))*numStepsToPlot; 
+  // // We want dt*numStepsToPlot = tPlot
+  // const real dt0=dt;
+  // int numStepsToPlot = int(std::ceil( tPlot/dt ));// kkc is this what you mean?int(tPlot/dt+.999999);
+  // // we choose the number of steps so that we exactly reach times that are multiples of tPlot
+  // int numSteps= int(ceil(tFinal/tPlot))*numStepsToPlot; 
 
-    // dt= numSteps ? tFinal/numSteps : 0 ;
-    // assert( dt<= dt0 );
-    // printF("--solve-- dt=%9.3e, tPlot=%f, tPlot/dt=%f numStepsToPlot=%i numSteps=%i \n",dt,
-    // 	   tPlot,tPlot/dt,numStepsToPlot,numSteps);
+  // dt= numSteps ? tFinal/numSteps : 0 ;
+  // assert( dt<= dt0 );
+  // printF("--solve-- dt=%9.3e, tPlot=%f, tPlot/dt=%f numStepsToPlot=%i numSteps=%i \n",dt,
+  // 	   tPlot,tPlot/dt,numStepsToPlot,numSteps);
 
 
   // For linear-elasticity this next method will compute the solution at t-dt
@@ -530,15 +530,15 @@ solve()
       {
 	// we are done (unless tFinal is increased in the next call to plot). plot solution at final time
 	//	if( plotOptions & 1 )
-	{
-	  plotOptions=1;  // plot and wait 
-	  plot(current, t, dt );
-	}
-        if( t >tFinal-.5*dt ) // tFinal may have been increased, so check again
-	{ 
-	  finished=true;
-	  break;
-	}
+      {
+	plotOptions=1;  // plot and wait 
+	plot(current, t, dt );
+      }
+      if( t >tFinal-.5*dt ) // tFinal may have been increased, so check again
+      { 
+	finished=true;
+	break;
+      }
       }
 
       nextTimeToPlot=min(int(t/tPlot+.5)*tPlot+tPlot,tFinal);   //  ...new time to print:
@@ -549,11 +549,11 @@ solve()
     // NOTE: adjustTimeStep is set to true if the cfl number or tPlot  is changed in plot()
     bool & adjustTimeStep= parameters.dbase.get<bool>("adjustTimeStep");
     if( parameters.isAdaptiveGridProblem() )
-       adjustTimeStep=true;
+      adjustTimeStep=true;
     else if( stepNumber>0  && pdeVariation==SmParameters::hemp ) 
-       adjustTimeStep=true;
-    else if( stepNumber>0  && pdeVariation==SmParameters::godunov && pdeTypeForGodunovMethod>0  ) 
-       adjustTimeStep=true;
+      adjustTimeStep=true;
+    else if( (stepNumber>0  && pdeVariation==SmParameters::godunov && pdeTypeForGodunovMethod>0 ) ) 
+      adjustTimeStep=true;
     
     
     const real dtOld = dt;
@@ -566,6 +566,14 @@ solve()
       dt = dtOld;  // we only change dt below if it differs enough from dtNew
     
       computeNumberOfStepsAndAdjustTheTimeStep(t,tFinal,nextTimeToPlot,numberOfSubSteps,dtNew,adjustTimeStep );
+
+      if( false ) // for testing do not adjust dt 
+      {
+	printf(" dtOld=%9.3e dtNew=%9.3e\n",dtOld,dtNew);
+	dt=dtOld;
+	dtNew=dtOld;
+      }
+      
 
       if( fabs( dtOld - dtNew) > dtOld*REAL_EPSILON*100. )
       {

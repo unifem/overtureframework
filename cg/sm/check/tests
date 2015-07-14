@@ -23,3 +23,7 @@ tzSibg.check ../cmd/tz.cmd -pv=g -g=sib -degreex=2 -degreet=2 -tf=.05 -tp=.05 -g
 tzSibSFg.check ../cmd/tz.cmd -pv=g -g=sib -degreex=2 -degreet=2 -tf=.05 -tp=.05 -bcn=sf -go=go
 # check boundary forcing and symmetry wall. Soln should remain exactly 1D.
 ## sqBFsym.check ../cmd/boundaryForcing.cmd -g=square10.order2 -pv=g -tp=.01 -tf=.04 -force=traction -bca=symmetry -go=go
+#
+# Test FOS nonlinear models
+pulseNeo.check ../cmd/pulse.cmd -g=square16.order2 -model=nonlinear -pv=g -model=nonlinear -godunovType=4 -amp=.05 -dsf=1. -tp=.1 -tf=.5 -x0=.5 -y0=.5 -ad2=1 -ad4=0. -diss=.5 -bc=dsds -go=go
+

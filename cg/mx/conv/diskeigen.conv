@@ -43,7 +43,7 @@ GetOptions( "name=s"=>\$name,"order=s"=>\$order,"ng=i"=>\$ng,"tf=f"=>\$tf,"inter
             "mx=f"=>\$mx,"my=f"=>\$my,"mz=f"=>\$mz );
 # ------------------------ ------------------------------------------
 if( $cg =~ /box*/ || $cg =~ /nonBox*/ || $cg =~ /unitBox*/ || $cg =~ /unitNonBox*/ ){ $cmdFile = "../runs/boxEigen/boxEigen"; }
-if( $cg =~ /tube*/ ){ $cmdFile = "../cmd/cyleigen"; }
+if( $cg =~ /tube*/ || $cg =~ /splitTube*/  ){ $cmdFile = "../cmd/cyleigen"; }
 $caseName="$name$method\Order$order"; 
 if( $errorNorm eq 0 ){ $normName = "max"; }elsif( $errorNorm eq 1 ){ $normName = "L1";}\
    elsif( $errorNorm eq 2 ){ $normName = "L2"; }else{ $normName="UnknownNorm"; }
@@ -67,7 +67,7 @@ $suffix="";
 if( ($method eq "sosup") && ($order eq 4) ){ $suffix=".ng3"; }
 if( ($method eq "sosup") && ($order eq 6) ){ $suffix=".ng4"; }
 $gStart=2; # start at this grid factor 
-if( $cg =~ /tube*/ ){ $gStart=1; }
+if( $cg =~ /tube*/ || $cg =~ /splitTube*/ ){ $gStart=1; }
 $g=$gStart; 
 $grid1=$cg . "$g";  $gName1 = $cg . "$g.order$order$suffix"; $g=$g*2; 
 $grid2=$cg . "$g";  $gName2 = $cg . "$g.order$order$suffix"; $g=$g*2;  
