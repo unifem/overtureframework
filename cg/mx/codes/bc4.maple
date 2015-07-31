@@ -2,6 +2,7 @@
 # Derive 4th-order PEC boundary conditions for Maxwell's equations.
 #   (see the file ogmg/neumann.maple)
 #
+# currentdir("/Users/henshaw/overtureFramework/cg/mx/codes");
 # restart; read "bc4.maple";
 clear;
 
@@ -225,17 +226,21 @@ f3:= c11*( Dpr(Dmr( tu ))(i1,i2,i3) -ctlrr*(1/12)*(Dpr(Dmr(Dpr(Dmr( tu )) ))(i1,
 
 # restart; read "bc4.maple";
 
-
+orderOfExtrap:=5;  #  CHANGE ORDER OF EXTRAP HERE 
 
 gIIIa := -( tau1*( c22*uss + c2*us ) + tau2*( c22*vss + c2*vs ) ):
 
-f4:= tu(i1-2,i2,i3)-4*tu(i1-1,i2,i3) - gIV:
-gIVa := -6*tu(i1,i2,i3)+4*tu(i1+1,i2,i3)-tu(i1+2,i2,i3):
+if( orderOfExtrap=4 )then
+  f4:= tu(i1-2,i2,i3)-4*tu(i1-1,i2,i3) - gIV:
+  gIVa := -6*tu(i1,i2,i3)+4*tu(i1+1,i2,i3)-tu(i1+2,i2,i3):
 
-# Higher order extrapolation
-# f4:= tu(i1-2,i2,i3)-5*tu(i1-1,i2,i3) - gIV:
-# gIVa := -10*tu(i1,i2,i3)+10*tu(i1+1,i2,i3)-5*tu(i1+2,i2,i3)+tu(i1+3,i2,i3):
+else
 
+  # fifth-order extrapolation
+ f4:= tu(i1-2,i2,i3)-5*tu(i1-1,i2,i3) - gIV:
+ gIVa := -10*tu(i1,i2,i3)+10*tu(i1+1,i2,i3)-5*tu(i1+2,i2,i3)+tu(i1+3,i2,i3):
+
+end if;
 
 tauTimesU := solve({f3=0,f4=0},{tu(i1-2,i2,i3),tu(i1-1,i2,i3)}):
 
@@ -253,12 +258,15 @@ f4a:= tau1*u(i1-2,i2,i3)+tau2*v(i1-2,i2,i3) - ttu2:
 # Z:= solve({f1=0,f2=0,f3a=0,f4a=0},{u(i1-2,i2,i3),u(i1-1,i2,i3),v(i1-2,i2,i3),v(i1-1,i2,i3)}):
 Z:= solve({f1a=0,f2a=0,f3a=0,f4a=0},{u(i1-2,i2,i3),u(i1-1,i2,i3),v(i1-2,i2,i3),v(i1-1,i2,i3)}):
 
+if( orderOfExtrap=4 )then
+  fileName := "bc4Maxwell.h";
+else
+  fileName := "bc4MaxwellExtrap5.h";
+end if;
+file := fopen( fileName,WRITE ):
 
-
-file := fopen( "bc4Maxwell.h",WRITE ):
-
-printf("\n\n! ************ Answer *******************\n"):
-fprintf(file,"\n\n! ************ Answer *******************\n"):
+printf("\n\n! ************ Results from mx/codes/bc4.maple written to file %s *******************\n",fileName):
+fprintf(file,"! ************ Results from mx/codes/bc4.maple *******************\n"):
 
 # fprintf(file,"      uex=u(i1,i2,i3,ex)\n"):
 # fprintf(file,"      uey=u(i1,i2,i3,ey)\n\n"):
@@ -272,8 +280,9 @@ p:=SubstituteAll(convert(gIIIa,string),"^2","**2"): fprintf(file,"      gIII=%s\
 fprintf(file,"      tauU=tau1*u(i1,i2,i3,ex)+tau2*u(i1,i2,i3,ey)\n\n"):
 fprintf(file,"      tauUp1=tau1*u(i1+is1,i2+is2,i3+is3,ex)+tau2*u(i1+is1,i2+is2,i3+is3,ey)\n\n"):
 fprintf(file,"      tauUp2=tau1*u(i1+2*is1,i2+2*is2,i3+2*is3,ex)+tau2*u(i1+2*is1,i2+2*is2,i3+2*is3,ey)\n\n"):
-fprintf(file,"      tauUp3=tau1*u(i1+3*is1,i2+3*is2,i3+3*is3,ex)+tau2*u(i1+3*is1,i2+3*is2,i3+3*is3,ey)\n\n"):
-
+if( orderOfExtrap>4 )then
+  fprintf(file,"      tauUp3=tau1*u(i1+3*is1,i2+3*is2,i3+3*is3,ex)+tau2*u(i1+3*is1,i2+3*is2,i3+3*is3,ey)\n\n"):
+end if;
 
 gIVa:=simplify(subs(tu(i1,i2,i3)=tauU,tu(i1+1,i2,i3)=tauUp1,tu(i1+2,i2,i3)=tauUp2,tu(i1+3,i2,i3)=tauUp3,gIVa)):
 fprintf(file,"      gIV=%s +gIVf\n\n",convert(gIVa,string)):

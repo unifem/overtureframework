@@ -34,6 +34,9 @@ slac03.pdf: slac03.tex
 	ps2pdf slac03.ps
 
 maxwell: maxwell.tex 
+	pdflatex maxwell
+
+maxwellOld: maxwell.tex 
 	latex maxwell
 	dvips -P pdf -G0 -o maxwell.ps maxwell
 	ps2pdf maxwell.ps

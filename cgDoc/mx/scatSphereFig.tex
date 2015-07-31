@@ -9,22 +9,24 @@
 \newcommand{\clipfig}[2]{\clipFig{#1}{#2}{.0}{1.}{0.}{1.}}
 % 
 \begin{center}
-\begin{pspicture}(0,0)(13.,6.5)
-% \rput( 3.2,9.){\clipfig{dielectricCyl44-1p0-Ex.ps}{\figWidth}}
-% \rput( 9.5,9.){\clipfig{dielectricCyl44-1p0-Ey.ps}{\figWidth}}
-\rput( 3.2,3.){\clipfig{\homeHenshaw/papers/max/scatSibx2-Ex.ps}{\figWidth}}
-\rput( 9.5,3.){\clipfig{\homeHenshaw/papers/max/scatSibx2-Ey.ps}{\figWidth}}
-% 
-% \rput[l](.70,11.5){\psframebox*[fillstyle=solid,fillcolor=mediumgoldenrod]{$E_X$}}
-% \rput[l](7.0,11.5){\psframebox*[fillstyle=solid,fillcolor=mediumgoldenrod]{$E_y$}}
-\rput[l](.70,5.5){\psframebox*[fillstyle=solid,fillcolor=mediumgoldenrod]{$E_x$}}
-\rput[l](7.0,5.5){\psframebox*[fillstyle=solid,fillcolor=mediumgoldenrod]{$E_y$}}
-% 
-% \psline[linewidth=1.pt]{->}(7,-.8)(7.5,.9)
-% turn on the grid for placement
-% \psgrid[subgriddiv=2]
-%
-\end{pspicture}
+\includegraphics[width=\figWidth]{figures/scatSibx2-Ex}
+\includegraphics[width=\figWidth]{figures/scatSibx2-Ey}
+%- \begin{pspicture}(0,0)(13.,6.5)
+%- % \rput( 3.2,3.){\clipfig{\maxDir/scatSibx2-Ex.ps}{\figWidth}}
+%- % \rput( 9.5,3.){\clipfig{\maxDir/scatSibx2-Ey.ps}{\figWidth}}
+%- \rput( 3.2,3.){\clipfig{figures/scatSibx2-Ex}{\figWidth}}
+%- \rput( 9.5,3.){\clipfig{figures/scatSibx2-Ey}{\figWidth}}
+%- % 
+%- % \rput[l](.70,11.5){\psframebox*[fillstyle=solid,fillcolor=mediumgoldenrod]{$E_X$}}
+%- % \rput[l](7.0,11.5){\psframebox*[fillstyle=solid,fillcolor=mediumgoldenrod]{$E_y$}}
+%- \rput[l](.70,5.5){\psframebox*[fillstyle=solid,fillcolor=mediumgoldenrod]{$E_x$}}
+%- \rput[l](7.0,5.5){\psframebox*[fillstyle=solid,fillcolor=mediumgoldenrod]{$E_y$}}
+%- % 
+%- % \psline[linewidth=1.pt]{->}(7,-.8)(7.5,.9)
+%- % turn on the grid for placement
+%- % \psgrid[subgriddiv=2]
+%- %
+%- \end{pspicture}
 \end{center}
 \caption{Scattering of a plane wave by a perfectly conducting sphere. 
 The scattered fields for $E_x$ and $E_y$ are shown.}

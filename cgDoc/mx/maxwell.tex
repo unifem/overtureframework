@@ -4,9 +4,16 @@
 %
 %-----------------------------------------------------------------------
 \documentclass[10pt]{article}
+\usepackage[bookmarks=true,colorlinks=true,linkcolor=blue]{hyperref}
+
 % \usepackage{times}  % for embeddable fonts, Also use: dvips -P pdf -G0
 
-\input documentationPageSize.tex
+\input homeHenshaw
+
+\usepackage{calc}
+\usepackage[margin=1.in]{geometry}
+
+% \input documentationPageSize.tex
 
 % \voffset=-1.25truein
 % \hoffset=-1.truein
@@ -48,13 +55,13 @@
 \newtheorem{assumption}{Assumption}
 \newtheorem{definition}{Definition}
 
-\newcommand{\homeHenshaw}{/home/henshaw.0}
+% \newcommand{\homeHenshaw}{/home/henshaw.0}
 
 \newcommand{\Overture}{{\bf Overture\ }}
 \newcommand{\OverBlown}{{\bf OverBlown\ }}
 \newcommand{\overBlown}{{\bf overBlown\ }}
 \newcommand{\maxDoc}{\homeHenshaw/res/maxwell/doc}
-\newcommand{\maxDir}{\homeHenshaw/papers/max}
+\newcommand{\maxDir}{\homeHenshaw/papers_llnl/max.sisc}
 
 \newcommand{\figWidth}{\linewdith}
 
@@ -68,7 +75,7 @@
 \newcommand{\drb}{{\Delta r_2}}%
 \newcommand{\drc}{{\Delta r_3}}%
 
-\newcommand{\grad}{\nabla}
+% \newcommand{\grad}{\nabla}
 \newcommand{\ee}{{\rm e}}
 \newcommand{\maxNorm}[1]{\|#1\|_\infty} 
 
@@ -90,10 +97,15 @@
 \begin{flushleft}
 {\LARGE Solving Maxwell's Equations} \\
 \vspace{2\baselineskip}
-Bill Henshaw  \\
-% \vspace{\baselineskip}
-Centre for Applied Scientific Computing  \\
-Lawrence Livermore National Laboratory      \\
+William D. Henshaw,\\
+Department of Mathematical Sciences, \\
+Rensselaer Polytechnic Institute, \\
+Troy, NY, USA, 12180.
+% \vspace{2\baselineskip}
+% Bill Henshaw  \\
+% % \vspace{\baselineskip}
+% Centre for Applied Scientific Computing  \\
+% Lawrence Livermore National Laboratory      \\
 % Livermore, CA, 94551.  \\
 % henshaw@llnl.gov \\
 % http://www.llnl.gov/casc/people/henshaw \\
@@ -488,117 +500,129 @@ and thus $\delta_{ij} = D_{-x} (\En)_{i\ph,j}^{n\mh} + D_{-y} (\En)_{ij\ph}^{n\m
 
 % This is probably not zero if the grid is not orthogonal.
 
-\psset{xunit=.7cm,yunit=.7cm,runit=.7cm}
-\begin{figure}[htb]
+{
+\newcommand{\figWidthdsi}{16cm}
+\begin{figure}
 \begin{center}
-% \begin{minipage}{.3\linewidth}
-\begin{pspicture}(0,0)(20,18) % \psgrid[subgriddiv=1,gridlabels=9pt](0,0)(-1,-1)(9,9)
-\psline[linewidth=2.5pt]{-}(2,2)(10,3)
-\psline[linewidth=2.5pt]{-}(10,3)(16,2)
-\psline[linewidth=2.5pt]{-}(2,2)(4,7)
-\psline[linewidth=2.5pt]{-}(10,3)(9,9)
-\psline[linewidth=2.5pt]{-}(4,7)(9,9)
-\psline[linewidth=2.5pt]{-}(16,2)(15,7)
-\psline[linewidth=2.5pt]{-}(9,9)(15,7)
-\psline[linewidth=2.5pt]{-}(4,7)(5,16)
-\psline[linewidth=2.5pt]{-}(9,9)(11,14)
-\psline[linewidth=2.5pt]{-}(11,14)(17,14)
-\psline[linewidth=2.5pt]{-}(15,7)(17,14)
-\psline[linewidth=2.5pt]{-}(5,16)(11,14)
-
-% secondary grid
-{\psset{linecolor=blue}
-\psline[linewidth=1.5pt]{-}(6.5,4.5)(12.5,5)
-\psline[linewidth=1.5pt]{-}(6.5,4.5)(7,12)
-\psline[linewidth=1.5pt]{-}(7,12.)(13,11)
-\psline[linewidth=1.5pt]{-}(12.5,5)(13,11)
-}
-
-\psline[linewidth=1.pt]{->}(9.85,11.15)(10.65,16)
-\rput(10.8,16){\makebox(0,0)[l]{$\nv_{ij\ph}$\hfill}}
-
-\psline[linewidth=1.pt]{->}(12.7,7.8)(17,7.4)
-\rput(16.5,8){\makebox(0,0)[l]{$\nv_{i\ph,j}$\hfill}}
-
-
-{\psset{linecolor=green}
-\psline[linewidth=1.pt]{->}(12.3,5.1)(12.8,10.8)
-\psline[linewidth=1.pt]{->}(7.2,11.8)(12.9,10.8)
-}
-\rput(11,9){\makebox(0,0)[l]{{\green $\sv_{i\ph,j}$\hfill}}}
-\rput(10.5,10.5){\makebox(0,0)[l]{$\sv_{i,j\ph}$\hfill}}
-
-
-{\psset{linecolor=red}
-\psline[linewidth=1.pt]{->}(9.2,8.7)(14.8,6.8)
-\psline[linewidth=1.pt]{->}(8.8,9.1)(10.7,13.9)
-}
-\rput(10.5,7.5){\makebox(0,0)[l]{{\red $\pv_{i\ph,j}$\hfill}}}
-\rput(7.5,10){\makebox(0,0)[l]{\red $\pv_{i,j\ph}$\hfill}}
-
-
-{\blue
-\rput(13,11.5){\makebox(0,0)[l]{$H_{i\ph,j\ph}$\hfill}}
-\rput(7,12.5){\makebox(0,0)[l]{$H_{i\mh,j\ph}$\hfill}}
-\rput(12,4){\makebox(0,0)[l]{$H_{i\ph,j\mh}$\hfill}}
-\rput(6,4){\makebox(0,0)[l]{$H_{i\mh,j\mh}$\hfill}}
-}
-
-\rput(9.5,9.0){\makebox(0,0)[l]{$\xv_{ij}$\hfill}}
-\rput(15.5,6.5){\makebox(0,0)[l]{$\xv_{i+1j}$\hfill}}
-\rput(10,2.5){\makebox(0,0)[l]{$\xv_{ij-1}$\hfill}}
-\rput(11,14.5){\makebox(0,0)[l]{$\xv_{ij+1}$\hfill}}
-\rput(4.1,6.5){\makebox(0,0)[l]{$\xv_{i-1 j}$\hfill}}
-
-\rput(12.75,5){\makebox(0,0)[l]{$\xv_{i\ph,j\mh}$\hfill}}
-\rput(6.75,5){\makebox(0,0)[l]{$\xv_{i\mh,j\mh}$\hfill}}
-\rput(4.75,11.5){\makebox(0,0)[l]{$\xv_{i\mh,j\ph}$\hfill}}
-
-{\red
-\rput(13,8.25){\makebox(0,0)[l]{$\Ev_{i\ph,j}$\hfill}}
-\rput(10.5,12){\makebox(0,0)[l]{$\Ev_{ij\ph}$\hfill}}
-\rput(7.25,7.5){\makebox(0,0)[l]{$\Ev_{i\mh,j}$\hfill}}
-\rput(10.2,5.2){\makebox(0,0)[l]{$\Ev_{i,j\mh}$\hfill}}
-}
-
-% %
-% \psset{dotsize=.3 .3}
-% \psdots[dotstyle=*](3,2)(4,2)(5,2)(3,3)(5,3)(6,3)(3,4)(3,5)(3,6)(4,6)(5,6)(6,6)(7,6)(8,6)(7,3)(8,3)
-% %
-% \psdots[dotstyle=o](4,3)(4,4)(5,4)(4,5)(6,4)(7,4)(8,4)(9,4)(5,5)(6,5)(7,5)(8,5)(9,5)
-% %
-% \psset{dotsize=.2 .2}
-% {\psset{linecolor=blue}\psdots[dotstyle=square*](0,0)(1,0)(2,0)(3,0)(4,0)(5,0)(6,0)(7,0)(8,0)(0,1)(1,1)(2,1)(3,1)(4,1)(5,1)(6,1)(7,1)(8,1)(0,2)(1,2)(2,2)(6,2)(7,2)(8,2)(0,3)(1,3)(2,3)(0,4)(1,4)(0,5)(1,5)(2,5)(0,6)(1,6)(2,6)(0,7)(1,7)(2,7)(3,7)(4,7)(5,7)(6,7)(7,7)(8,7)(0,8)(1,8)(2,8)(3,8)(4,8)(5,8)(6,8)(7,8)(8,8)(2,4)}
-% %
-% {\psset{linecolor=green}
-% \psdots[dotstyle=triangle*](-1,-1)(-1,0)(-1,1)(-1,2)(-1,3)(-1,4)(-1,5)(-1,6)(-1,7)(-1,8)(-1,9)(9,-1)(9,0)(9,1)(9,2)(9,3)(9,6)(9,7)(9,8)(9,9)
-% \psdots[dotstyle=triangle*](0,-1)(1,-1)(2,-1)(3,-1)(4,-1)(5,-1)(6,-1)(7,-1)(8,-1)(9,-1)(0,9)(1,9)(2,9)(3,9)(4,9)(5,9)(6,9)(7,9)(8,9)(9,9)
-% }
-% %
-% {\psset{linecolor=blue}
-% \psdots[dotstyle=square*](10,8)}\rput(10.5,8){\makebox(0,0)[l]{discretization\hfill}}
-% {\psset{linecolor=green}
-% \psdots[dotstyle=triangle*](10,7)}\rput(10.5,7){\makebox(0,0)[l]{discretization (ghost point)\hfill}}
-% \psset{dotsize=.3 .3}
-% \psdots[dotstyle=*](10,6)\rput(10.5,6){\makebox(0,0)[l]{interpolation\hfill}}
-% \psdots[dotstyle=o](10,5)\rput(10.5,5){\makebox(0,0)[l]{unused\hfill}}
-% %
-% \rput[r](-2,3.5){\psframebox{bc(0,0)}}\psline[linewidth=1.5pt]{->}(-2,3.5)(0,3.5)
-% \rput[l](10,3.5){\psframebox{bc(1,0)}}\psline[linewidth=1.5pt]{->}(10,3.5)(8,3.5)
-% \rput[t](3.5,-1.5){\psframebox{bc(0,1)}}\psline[linewidth=1.5pt]{->}(3.5,-1.5)(3.5,0)
-% \rput[b](3.5,9.5){\psframebox{bc(1,1)}}\psline[linewidth=1.5pt]{->}(3.5,9.5)(3.5,8)
-% %
-% \rput[t](0,-1.5){\psframebox{$i_1$}}\psline[linewidth=1.5pt]{->}(.5,-1.8)(2,-1.8)
-% \rput[t](8,-1.5){\psframebox{$i_1=n_1$}}
-% \rput[r](-1.5,0){\psframebox{$i_2$}}\psline[linewidth=1.5pt]{->}(-1.8,.5)(-1.8,2)
-% \rput[r](-1.5,8){\psframebox{$i_2=n_2$}}
-\end{pspicture}
-% \end{minipage}
+\includegraphics[width=\figWidthdsi]{figures/DSIGrid}
 \end{center}
 \caption{The two dimensional DSI scheme. $H$ is centered in the middle of the primary cell
 and the $\Ev$ values are located on the faces of the primary cell. The secondary cell joins
 the cell centres. } \label{fig:DSI-2D}
 \end{figure}
+}
+
+%- \psset{xunit=.7cm,yunit=.7cm,runit=.7cm}
+%- \begin{figure}[htb]
+%- \begin{center}
+%- % \begin{minipage}{.3\linewidth}
+%- \begin{pspicture}(0,0)(20,18) % \psgrid[subgriddiv=1,gridlabels=9pt](0,0)(-1,-1)(9,9)
+%- \psline[linewidth=2.5pt]{-}(2,2)(10,3)
+%- \psline[linewidth=2.5pt]{-}(10,3)(16,2)
+%- \psline[linewidth=2.5pt]{-}(2,2)(4,7)
+%- \psline[linewidth=2.5pt]{-}(10,3)(9,9)
+%- \psline[linewidth=2.5pt]{-}(4,7)(9,9)
+%- \psline[linewidth=2.5pt]{-}(16,2)(15,7)
+%- \psline[linewidth=2.5pt]{-}(9,9)(15,7)
+%- \psline[linewidth=2.5pt]{-}(4,7)(5,16)
+%- \psline[linewidth=2.5pt]{-}(9,9)(11,14)
+%- \psline[linewidth=2.5pt]{-}(11,14)(17,14)
+%- \psline[linewidth=2.5pt]{-}(15,7)(17,14)
+%- \psline[linewidth=2.5pt]{-}(5,16)(11,14)
+%- 
+%- % secondary grid
+%- {\psset{linecolor=blue}
+%- \psline[linewidth=1.5pt]{-}(6.5,4.5)(12.5,5)
+%- \psline[linewidth=1.5pt]{-}(6.5,4.5)(7,12)
+%- \psline[linewidth=1.5pt]{-}(7,12.)(13,11)
+%- \psline[linewidth=1.5pt]{-}(12.5,5)(13,11)
+%- }
+%- 
+%- \psline[linewidth=1.pt]{->}(9.85,11.15)(10.65,16)
+%- \rput(10.8,16){\makebox(0,0)[l]{$\nv_{ij\ph}$\hfill}}
+%- 
+%- \psline[linewidth=1.pt]{->}(12.7,7.8)(17,7.4)
+%- \rput(16.5,8){\makebox(0,0)[l]{$\nv_{i\ph,j}$\hfill}}
+%- 
+%- 
+%- {\psset{linecolor=green}
+%- \psline[linewidth=1.pt]{->}(12.3,5.1)(12.8,10.8)
+%- \psline[linewidth=1.pt]{->}(7.2,11.8)(12.9,10.8)
+%- }
+%- \rput(11,9){\makebox(0,0)[l]{{\green $\sv_{i\ph,j}$\hfill}}}
+%- \rput(10.5,10.5){\makebox(0,0)[l]{$\sv_{i,j\ph}$\hfill}}
+%- 
+%- 
+%- {\psset{linecolor=red}
+%- \psline[linewidth=1.pt]{->}(9.2,8.7)(14.8,6.8)
+%- \psline[linewidth=1.pt]{->}(8.8,9.1)(10.7,13.9)
+%- }
+%- \rput(10.5,7.5){\makebox(0,0)[l]{{\red $\pv_{i\ph,j}$\hfill}}}
+%- \rput(7.5,10){\makebox(0,0)[l]{\red $\pv_{i,j\ph}$\hfill}}
+%- 
+%- 
+%- {\blue
+%- \rput(13,11.5){\makebox(0,0)[l]{$H_{i\ph,j\ph}$\hfill}}
+%- \rput(7,12.5){\makebox(0,0)[l]{$H_{i\mh,j\ph}$\hfill}}
+%- \rput(12,4){\makebox(0,0)[l]{$H_{i\ph,j\mh}$\hfill}}
+%- \rput(6,4){\makebox(0,0)[l]{$H_{i\mh,j\mh}$\hfill}}
+%- }
+%- 
+%- \rput(9.5,9.0){\makebox(0,0)[l]{$\xv_{ij}$\hfill}}
+%- \rput(15.5,6.5){\makebox(0,0)[l]{$\xv_{i+1j}$\hfill}}
+%- \rput(10,2.5){\makebox(0,0)[l]{$\xv_{ij-1}$\hfill}}
+%- \rput(11,14.5){\makebox(0,0)[l]{$\xv_{ij+1}$\hfill}}
+%- \rput(4.1,6.5){\makebox(0,0)[l]{$\xv_{i-1 j}$\hfill}}
+%- 
+%- \rput(12.75,5){\makebox(0,0)[l]{$\xv_{i\ph,j\mh}$\hfill}}
+%- \rput(6.75,5){\makebox(0,0)[l]{$\xv_{i\mh,j\mh}$\hfill}}
+%- \rput(4.75,11.5){\makebox(0,0)[l]{$\xv_{i\mh,j\ph}$\hfill}}
+%- 
+%- {\red
+%- \rput(13,8.25){\makebox(0,0)[l]{$\Ev_{i\ph,j}$\hfill}}
+%- \rput(10.5,12){\makebox(0,0)[l]{$\Ev_{ij\ph}$\hfill}}
+%- \rput(7.25,7.5){\makebox(0,0)[l]{$\Ev_{i\mh,j}$\hfill}}
+%- \rput(10.2,5.2){\makebox(0,0)[l]{$\Ev_{i,j\mh}$\hfill}}
+%- }
+%- 
+%- % %
+%- % \psset{dotsize=.3 .3}
+%- % \psdots[dotstyle=*](3,2)(4,2)(5,2)(3,3)(5,3)(6,3)(3,4)(3,5)(3,6)(4,6)(5,6)(6,6)(7,6)(8,6)(7,3)(8,3)
+%- % %
+%- % \psdots[dotstyle=o](4,3)(4,4)(5,4)(4,5)(6,4)(7,4)(8,4)(9,4)(5,5)(6,5)(7,5)(8,5)(9,5)
+%- % %
+%- % \psset{dotsize=.2 .2}
+%- % {\psset{linecolor=blue}\psdots[dotstyle=square*](0,0)(1,0)(2,0)(3,0)(4,0)(5,0)(6,0)(7,0)(8,0)(0,1)(1,1)(2,1)(3,1)(4,1)(5,1)(6,1)(7,1)(8,1)(0,2)(1,2)(2,2)(6,2)(7,2)(8,2)(0,3)(1,3)(2,3)(0,4)(1,4)(0,5)(1,5)(2,5)(0,6)(1,6)(2,6)(0,7)(1,7)(2,7)(3,7)(4,7)(5,7)(6,7)(7,7)(8,7)(0,8)(1,8)(2,8)(3,8)(4,8)(5,8)(6,8)(7,8)(8,8)(2,4)}
+%- % %
+%- % {\psset{linecolor=green}
+%- % \psdots[dotstyle=triangle*](-1,-1)(-1,0)(-1,1)(-1,2)(-1,3)(-1,4)(-1,5)(-1,6)(-1,7)(-1,8)(-1,9)(9,-1)(9,0)(9,1)(9,2)(9,3)(9,6)(9,7)(9,8)(9,9)
+%- % \psdots[dotstyle=triangle*](0,-1)(1,-1)(2,-1)(3,-1)(4,-1)(5,-1)(6,-1)(7,-1)(8,-1)(9,-1)(0,9)(1,9)(2,9)(3,9)(4,9)(5,9)(6,9)(7,9)(8,9)(9,9)
+%- % }
+%- % %
+%- % {\psset{linecolor=blue}
+%- % \psdots[dotstyle=square*](10,8)}\rput(10.5,8){\makebox(0,0)[l]{discretization\hfill}}
+%- % {\psset{linecolor=green}
+%- % \psdots[dotstyle=triangle*](10,7)}\rput(10.5,7){\makebox(0,0)[l]{discretization (ghost point)\hfill}}
+%- % \psset{dotsize=.3 .3}
+%- % \psdots[dotstyle=*](10,6)\rput(10.5,6){\makebox(0,0)[l]{interpolation\hfill}}
+%- % \psdots[dotstyle=o](10,5)\rput(10.5,5){\makebox(0,0)[l]{unused\hfill}}
+%- % %
+%- % \rput[r](-2,3.5){\psframebox{bc(0,0)}}\psline[linewidth=1.5pt]{->}(-2,3.5)(0,3.5)
+%- % \rput[l](10,3.5){\psframebox{bc(1,0)}}\psline[linewidth=1.5pt]{->}(10,3.5)(8,3.5)
+%- % \rput[t](3.5,-1.5){\psframebox{bc(0,1)}}\psline[linewidth=1.5pt]{->}(3.5,-1.5)(3.5,0)
+%- % \rput[b](3.5,9.5){\psframebox{bc(1,1)}}\psline[linewidth=1.5pt]{->}(3.5,9.5)(3.5,8)
+%- % %
+%- % \rput[t](0,-1.5){\psframebox{$i_1$}}\psline[linewidth=1.5pt]{->}(.5,-1.8)(2,-1.8)
+%- % \rput[t](8,-1.5){\psframebox{$i_1=n_1$}}
+%- % \rput[r](-1.5,0){\psframebox{$i_2$}}\psline[linewidth=1.5pt]{->}(-1.8,.5)(-1.8,2)
+%- % \rput[r](-1.5,8){\psframebox{$i_2=n_2$}}
+%- \end{pspicture}
+%- % \end{minipage}
+%- \end{center}
+%- \caption{The two dimensional DSI scheme. $H$ is centered in the middle of the primary cell
+%- and the $\Ev$ values are located on the faces of the primary cell. The secondary cell joins
+%- the cell centres. } \label{fig:DSI-2D}
+%- \end{figure}
 
 \subsection{Stability of the DSI scheme}
 
@@ -2327,91 +2351,102 @@ leads to methods of the form
 \clearpage
 \section{Symmetric approximations on triangular grids}
 
-% \psset{xunit=.7cm,yunit=.7cm,runit=.7cm}
-\psset{xunit=.5cm,yunit=.5cm,runit=.5cm}
-\begin{figure}[htb]
+{
+\newcommand{\figWidtha}{16cm}
+\begin{figure}
 \begin{center}
-% \begin{minipage}{.3\linewidth}
-\begin{pspicture}(-15,-8)(25,13) % \psgrid[subgriddiv=1,gridlabels=9pt](0,0)(-1,-1)(9,9)
-{\large
-% main triangle
-\rput(.5,.75){\makebox(0,0)[l]{$T_i$\hfill}}
-
-\psline[linewidth=2.5pt]{-}(0,0)(10,0)
-\psline[linewidth=2.5pt]{-}(0,0)(0,10)
-\psline[linewidth=2.5pt]{-}(10,0)(0,10)
-
-% neighbouring triangles
-{\psset{linecolor=blue}
-\psline[linewidth=1.5pt]{-}(10,0)(13,8)
-\psline[linewidth=1.5pt]{-}(0,10)(13,8)
-
-\psline[linewidth=1.5pt]{-}(0,0)(5,-9)
-\psline[linewidth=1.5pt]{-}(10,0)(5,-9)
-
-\psline[linewidth=1.5pt]{-}(0,0)(-9,11)
-\psline[linewidth=1.5pt]{-}(0,10)(-9,11)
-}
-
-{
-\qdisk(3.33,3.33){3pt}\rput(3.33,3.33){\makebox(0,0)[l]{$~~w_i$\hfill}}
-\qdisk(8.5,5.5){3pt}\rput(8.5,5.5){\makebox(0,0)[l]{$~~w_k$\hfill}}
-\qdisk(5,-3){3pt}\rput(5,-3){\makebox(0,0)[l]{$~~w_n$\hfill}}
-\qdisk(-3,7.5){3pt}\rput(-3,7.5){\makebox(0,0)[l]{$~~w_m$\hfill}}
-
-\qdisk(17,2){3pt}\rput(17,2){\makebox(0,0)[l]{$~~w_{k1}$\hfill}}
-\qdisk(7,14){3pt}\rput(7,14){\makebox(0,0)[l]{$~~w_{k2}$\hfill}}
-
-\qdisk(-4,14){3pt}\rput(-4,14){\makebox(0,0)[l]{$~~w_{m1}$\hfill}}
-\qdisk(-8,2){3pt}\rput(-8,2){\makebox(0,0)[l]{$~~w_{m2}$\hfill}}
-
-\qdisk(-2,-5){3pt}\rput(-2,-5){\makebox(0,0)[l]{$~~w_{n1}$\hfill}}
-\qdisk(12,-5){3pt}\rput(12,-5){\makebox(0,0)[l]{$~~w_{n2}$\hfill}}
-
-}
-
-{\psset{linecolor=blue}
-\psline[linewidth=1.0pt]{-}(3.33,3.33)(8.5,5.5)
-\psline[linewidth=1.0pt]{-}(3.33,3.33)(5,-3)
-\psline[linewidth=1.0pt]{-}(3.33,3.33)(-3,7.5)
-
-
-\psline[linewidth=1.0pt]{-}(8.5,5.5)(17,2)
-\psline[linewidth=1.0pt]{-}(8.5,5.5)(7,14)
-
-\psline[linewidth=1.0pt]{-}(-3,7.5)(-4,14)
-\psline[linewidth=1.0pt]{-}(-3,7.5)(-8,2)
-
-\psline[linewidth=1.0pt]{-}(5,-3)(-2,-5)
-\psline[linewidth=1.0pt]{-}(5,-3)(12,-5)
-}
-
-{ % \red
-\rput(-1,-1){\makebox(0,0)[l]{$\xv_1$\hfill}}
-\rput(11,0){\makebox(0,0)[l]{$\xv_2$\hfill}}
-\rput(0,11){\makebox(0,0)[l]{$\xv_3$\hfill}}
-}
-{
-\psset{linecolor=red}
-\psline[linewidth=1.pt]{->}(5,5)(7.5,7.5)
-\rput(5,7){\makebox(0,0)[l]{\red$\nv_{ik}$\hfill}}
-\rput(3.8,4.55){\makebox(0,0)[l]{\red$\uv_{ik}$\hfill}}
-
-\psline[linewidth=1.pt]{->}(0,5)(-4.75,5)
-\rput(-3.,5.75){\makebox(0,0)[l]{\red$\nv_{im}$\hfill}}
-\rput(-1.65,4.35){\makebox(0,0)[l]{\red$\uv_{im}$\hfill}}
-
-\psline[linewidth=1.pt]{->}(5,0)(5,-4.75)
-\rput(5.25,-1.){\makebox(0,0)[l]{\red$\nv_{in}$\hfill}}
-\rput(4.35,.45){\makebox(0,0)[l]{\red$\uv_{in}$\hfill}}
-}
-
-} % end large
-\end{pspicture}
-% \end{minipage}
+\includegraphics[width=\figWidtha]{figures/triangularGridDiscreteApproximation}
 \end{center}
 \caption{Discretization on a triangular grid.} \label{fig:tri}
 \end{figure}
+}
+
+%- 
+%- % \psset{xunit=.7cm,yunit=.7cm,runit=.7cm}
+%- \psset{xunit=.5cm,yunit=.5cm,runit=.5cm}
+%- \begin{figure}[htb]
+%- \begin{center}
+%- % \begin{minipage}{.3\linewidth}
+%- \begin{pspicture}(-15,-8)(25,13) % \psgrid[subgriddiv=1,gridlabels=9pt](0,0)(-1,-1)(9,9)
+%- {\large
+%- % main triangle
+%- \rput(.5,.75){\makebox(0,0)[l]{$T_i$\hfill}}
+%- 
+%- \psline[linewidth=2.5pt]{-}(0,0)(10,0)
+%- \psline[linewidth=2.5pt]{-}(0,0)(0,10)
+%- \psline[linewidth=2.5pt]{-}(10,0)(0,10)
+%- 
+%- % neighbouring triangles
+%- {\psset{linecolor=blue}
+%- \psline[linewidth=1.5pt]{-}(10,0)(13,8)
+%- \psline[linewidth=1.5pt]{-}(0,10)(13,8)
+%- 
+%- \psline[linewidth=1.5pt]{-}(0,0)(5,-9)
+%- \psline[linewidth=1.5pt]{-}(10,0)(5,-9)
+%- 
+%- \psline[linewidth=1.5pt]{-}(0,0)(-9,11)
+%- \psline[linewidth=1.5pt]{-}(0,10)(-9,11)
+%- }
+%- 
+%- {
+%- \qdisk(3.33,3.33){3pt}\rput(3.33,3.33){\makebox(0,0)[l]{$~~w_i$\hfill}}
+%- \qdisk(8.5,5.5){3pt}\rput(8.5,5.5){\makebox(0,0)[l]{$~~w_k$\hfill}}
+%- \qdisk(5,-3){3pt}\rput(5,-3){\makebox(0,0)[l]{$~~w_n$\hfill}}
+%- \qdisk(-3,7.5){3pt}\rput(-3,7.5){\makebox(0,0)[l]{$~~w_m$\hfill}}
+%- 
+%- \qdisk(17,2){3pt}\rput(17,2){\makebox(0,0)[l]{$~~w_{k1}$\hfill}}
+%- \qdisk(7,14){3pt}\rput(7,14){\makebox(0,0)[l]{$~~w_{k2}$\hfill}}
+%- 
+%- \qdisk(-4,14){3pt}\rput(-4,14){\makebox(0,0)[l]{$~~w_{m1}$\hfill}}
+%- \qdisk(-8,2){3pt}\rput(-8,2){\makebox(0,0)[l]{$~~w_{m2}$\hfill}}
+%- 
+%- \qdisk(-2,-5){3pt}\rput(-2,-5){\makebox(0,0)[l]{$~~w_{n1}$\hfill}}
+%- \qdisk(12,-5){3pt}\rput(12,-5){\makebox(0,0)[l]{$~~w_{n2}$\hfill}}
+%- 
+%- }
+%- 
+%- {\psset{linecolor=blue}
+%- \psline[linewidth=1.0pt]{-}(3.33,3.33)(8.5,5.5)
+%- \psline[linewidth=1.0pt]{-}(3.33,3.33)(5,-3)
+%- \psline[linewidth=1.0pt]{-}(3.33,3.33)(-3,7.5)
+%- 
+%- 
+%- \psline[linewidth=1.0pt]{-}(8.5,5.5)(17,2)
+%- \psline[linewidth=1.0pt]{-}(8.5,5.5)(7,14)
+%- 
+%- \psline[linewidth=1.0pt]{-}(-3,7.5)(-4,14)
+%- \psline[linewidth=1.0pt]{-}(-3,7.5)(-8,2)
+%- 
+%- \psline[linewidth=1.0pt]{-}(5,-3)(-2,-5)
+%- \psline[linewidth=1.0pt]{-}(5,-3)(12,-5)
+%- }
+%- 
+%- { % \red
+%- \rput(-1,-1){\makebox(0,0)[l]{$\xv_1$\hfill}}
+%- \rput(11,0){\makebox(0,0)[l]{$\xv_2$\hfill}}
+%- \rput(0,11){\makebox(0,0)[l]{$\xv_3$\hfill}}
+%- }
+%- {
+%- \psset{linecolor=red}
+%- \psline[linewidth=1.pt]{->}(5,5)(7.5,7.5)
+%- \rput(5,7){\makebox(0,0)[l]{\red$\nv_{ik}$\hfill}}
+%- \rput(3.8,4.55){\makebox(0,0)[l]{\red$\uv_{ik}$\hfill}}
+%- 
+%- \psline[linewidth=1.pt]{->}(0,5)(-4.75,5)
+%- \rput(-3.,5.75){\makebox(0,0)[l]{\red$\nv_{im}$\hfill}}
+%- \rput(-1.65,4.35){\makebox(0,0)[l]{\red$\uv_{im}$\hfill}}
+%- 
+%- \psline[linewidth=1.pt]{->}(5,0)(5,-4.75)
+%- \rput(5.25,-1.){\makebox(0,0)[l]{\red$\nv_{in}$\hfill}}
+%- \rput(4.35,.45){\makebox(0,0)[l]{\red$\uv_{in}$\hfill}}
+%- }
+%- 
+%- } % end large
+%- \end{pspicture}
+%- % \end{minipage}
+%- \end{center}
+%- \caption{Discretization on a triangular grid.} \label{fig:tri}
+%- \end{figure}
 
 Consider the wave equation written as a first order system,
 \begin{align*}
@@ -2702,14 +2737,18 @@ The schemes we have implemented are
  \label{tab:conv chevron} 
 \end{table}
 
+{
+\newcommand{\figWidtha}{6cm}
 \begin{figure}
 \begin{center}
-\epsfig{file=sineGrid.ps,width=.45\linewidth}  
-\epsfig{file=dsiSine41.t50.ps,width=.45\linewidth}  
+\includegraphics[width=\figWidtha]{figures/sineGrid}
+\includegraphics[width=\figWidtha]{figures/dsiSine41-t50}
+% \epsfig{file=\maxDoc/sineGrid.ps,width=.45\linewidth}  
+% \epsfig{file=\maxDoc/dsiSine41.t50.ps,width=.45\linewidth}  
 \end{center}
 \caption{Left: the Sine grid. Right: DSI solution at $t=50$ on a $41\times 41$ grid.}
 \end{figure}
-
+}
 
 \begin{table}[hbt]
 \begin{center}
@@ -2728,35 +2767,50 @@ The schemes we have implemented are
  \label{tab:sine chevron} 
 \end{table}
 
-
+{
+\newcommand{\figWidtha}{6cm}
 \begin{figure}
 \begin{center}
-\epsfig{file=sqtriGrid.ps,width=.45\linewidth}  
-\epsfig{file=dsiSqTri21.t10.ps,width=.45\linewidth}  
+\includegraphics[width=\figWidtha]{figures/sqtriGrid}
+\includegraphics[width=\figWidtha]{figures/dsiSqTri21-t10}
+% \epsfig{file=\maxDoc/sqtriGrid.ps,width=.45\linewidth}  
+% \epsfig{file=\maxDoc/dsiSqTri21.t10.ps,width=.45\linewidth}  
 \end{center}
 \caption{Left: Unstructured grid of triangles. Right: DSI solution at $t=10.$ on a $21\times 21$ grid.}
 \end{figure}
+}
 
+{
+\newcommand{\figWidtha}{6cm}
 \begin{figure}
 \begin{center}
-\epsfig{file=sqquadGrid.ps,width=.45\linewidth}  
+\includegraphics[width=\figWidtha]{figures/sqquadGrid}
+% \epsfig{file=\maxDoc/sqquadGrid.ps,width=.45\linewidth}  
 % \epsfig{file=dsiSqTri41.t50.ps,width=.45\linewidth}  
 \end{center}
 \caption{Left: Unstructured grid of quadrilaterals. Right: DSI solution at $t=1$ on a $41\times 41$ grid.}
 \end{figure}
+}
 
+{
+\newcommand{\figWidtha}{6cm}
 \begin{figure}
 \begin{center}
-\epsfig{file=chevronGrid.ps,width=.45\linewidth}  
-\epsfig{file=dsiChevronUnstable.ps,width=.45\linewidth}  
-
+\includegraphics[width=\figWidtha]{figures/chevronGrid}
+\includegraphics[width=\figWidtha]{figures/dsiChevronUnstable}
+% \epsfig{file=\maxDoc/chevronGrid.ps,width=.45\linewidth}  
+% \epsfig{file=\maxDoc/dsiChevronUnstable.ps,width=.45\linewidth}  
 \end{center}
 \caption{Left: the Chevron grid. Right: Unstable solution from the DSI scheme.}
 \end{figure}
+}
 
+{
+\newcommand{\figWidtha}{6cm}
 \begin{figure}
 \begin{center}
-\epsfig{file=nfdtdChevron41.20.ps,width=.45\linewidth} 
+\includegraphics[width=\figWidtha]{figures/nfdtdChevron41-20}
+%% \epsfig{file=\maxDoc/nfdtdChevron41.20.ps,width=.45\linewidth} 
 % \end{center}
 % \begin{center}
 % \vglue-2in
@@ -2776,7 +2830,7 @@ The schemes we have implemented are
 \caption{Top: Solution on the $41\times41$ Chevron grid with the NFDTD scheme. Bottom: 
   The discrete energy is conserved.}
 \end{figure}
-
+}
 
 \clearpage
 \section{Convergence results}

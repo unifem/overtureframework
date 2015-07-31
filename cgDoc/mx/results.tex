@@ -105,8 +105,10 @@ The tables show results for different eigen modes.
 \renewcommand{\figWidth}{.45\linewidth}
 \begin{figure}
 \begin{center}
-\epsfig{file=\maxDoc/diskEigenMode43Hz.ps,width=\figWidth}  
-\epsfig{file=\maxDoc/diskEigenMode43Ex.ps,width=\figWidth}  
+\includegraphics[width=\figWidth]{figures/diskEigenMode43Hz}
+\includegraphics[width=\figWidth]{figures/diskEigenMode43Ex}
+% \epsfig{file=\maxDoc/diskEigenMode43Hz.ps,width=\figWidth}  
+% \epsfig{file=\maxDoc/diskEigenMode43Ex.ps,width=\figWidth}  
 \end{center}
 \caption{Eigenmode $(4,3)$ of the circular disk.}
 \end{figure}
@@ -239,8 +241,10 @@ grid  & N &  $E_x$ &  $E_y$ & $E_z$ & $\grad\cdot\uv$\\ \hline
 \renewcommand{\figWidth}{.45\linewidth}
 \begin{figure}
 \begin{center}
-\epsfig{file=\maxDoc/cylEigen-tube3-4-mode233-Ex.ps,width=\figWidth}  
-\epsfig{file=\maxDoc/cylEigen-tube3-4-mode233-Ez.ps,width=\figWidth}  
+\includegraphics[width=\figWidth]{figures/cylEigen-tube3-4-mode233-Ex}
+\includegraphics[width=\figWidth]{figures/cylEigen-tube3-4-mode233-Ez}
+%\epsfig{file=\maxDoc/cylEigen-tube3-4-mode233-Ex.ps,width=\figWidth}  
+% \epsfig{file=\maxDoc/cylEigen-tube3-4-mode233-Ez.ps,width=\figWidth}  
 \end{center}
 \caption{Eigenmode $(2,3,3)$ of a cylinder, grid=tube3.order4.}
 \end{figure}
@@ -338,12 +342,19 @@ cic3.order4 &   481 &  $1.8e{ -6}$  &  $2.7e{ -6}$  &  $5.2e{ -7}$  &  $5.0e{ -6
 \renewcommand{\figWidth}{.32\linewidth}
 \begin{figure}
 \begin{center}
-\epsfig{file=\maxDoc/scatCyl.cibc2a.order4Ex.ps,width=\figWidth}  
-\epsfig{file=\maxDoc/scatCyl.cibc2a.order4Ey.ps,width=\figWidth}  
-\epsfig{file=\maxDoc/scatCyl.cibc2a.order4Hz.ps,width=\figWidth}  
-\epsfig{file=\maxDoc/scatCyl.cibc2a.order4.k5.Ex.ps,width=\figWidth}  
-\epsfig{file=\maxDoc/scatCyl.cibc2a.order4.k5.Ey.ps,width=\figWidth}  
-\epsfig{file=\maxDoc/scatCyl.cibc2a.order4.k5.Hz.ps,width=\figWidth}  
+\includegraphics[width=\figWidth]{figures/scatCyl-cibc2a-order4Ex}
+\includegraphics[width=\figWidth]{figures/scatCyl-cibc2a-order4Ey}
+\includegraphics[width=\figWidth]{figures/scatCyl-cibc2a-order4Hz}
+\includegraphics[width=\figWidth]{figures/scatCyl-cibc2a-order4-k5-Ex}
+\includegraphics[width=\figWidth]{figures/scatCyl-cibc2a-order4-k5-Ey}
+\includegraphics[width=\figWidth]{figures/scatCyl-cibc2a-order4-k5-Hz}
+% 
+%- \epsfig{file=\maxDoc/scatCyl.cibc2a.order4Ex.ps,width=\figWidth}  
+%- \epsfig{file=\maxDoc/scatCyl.cibc2a.order4Ey.ps,width=\figWidth}  
+%- \epsfig{file=\maxDoc/scatCyl.cibc2a.order4Hz.ps,width=\figWidth}  
+%- \epsfig{file=\maxDoc/scatCyl.cibc2a.order4.k5.Ex.ps,width=\figWidth}  
+%- \epsfig{file=\maxDoc/scatCyl.cibc2a.order4.k5.Ey.ps,width=\figWidth}  
+%- \epsfig{file=\maxDoc/scatCyl.cibc2a.order4.k5.Hz.ps,width=\figWidth}  
 \end{center}
 \caption{Scattering of a plane wave by a cylinder. Top: scattered field $E_x$, $E_y$ and $H_z$ for $k a = 1/2$.
            Bottom: scattered field $E_x$, $E_y$ and $H_z$ for $k a = 5/2$}
@@ -351,9 +362,12 @@ cic3.order4 &   481 &  $1.8e{ -6}$  &  $2.7e{ -6}$  &  $5.2e{ -7}$  &  $5.0e{ -6
 
 \begin{figure}
 \begin{center}
- \epsfig{file=\maxDoc/scatCyl.cibc2.order4.k4.ExTotal.ps,width=\figWidth}  
- \epsfig{file=\maxDoc/scatCyl.cibc2.order4.k4.EyTotal.ps,width=\figWidth}  
- \epsfig{file=\maxDoc/scatCyl.cibc2.order4.k4.HzTotal.ps,width=\figWidth}  
+\includegraphics[width=\figWidth]{figures/scatCyl-cibc2-order4-k4-ExTotal}
+\includegraphics[width=\figWidth]{figures/scatCyl-cibc2-order4-k4-EyTotal}
+\includegraphics[width=\figWidth]{figures/scatCyl-cibc2-order4-k4-HzTotal}
+%- \epsfig{file=\maxDoc/scatCyl.cibc2.order4.k4.ExTotal.ps,width=\figWidth}  
+%-  \epsfig{file=\maxDoc/scatCyl.cibc2.order4.k4.EyTotal.ps,width=\figWidth}  
+%-  \epsfig{file=\maxDoc/scatCyl.cibc2.order4.k4.HzTotal.ps,width=\figWidth}  
 % \epsfig{file=\maxDoc/scatCyl.cibc2a.order4.k5.ExTotal.ps,width=\figWidth}  
 % \epsfig{file=\maxDoc/scatCyl.cibc2a.order4.k5.EyTotal.ps,width=\figWidth}  
 % \epsfig{file=\maxDoc/scatCyl.cibc2a.order4.k5.HzTotal.ps,width=\figWidth}  
@@ -459,15 +473,18 @@ grid  & N &  $E_x$ &  $E_y$ & $E_z$ & $\grad\cdot\uv$\\ \hline
 \renewcommand{\figWidth}{.5\linewidth}
 \begin{figure}
 \begin{center}
-\epsfig{file=\maxDoc/lgrid2e.order4.grid.ps,width=\figWidth}
+\includegraphics[width=\figWidth]{figures/lgrid2e-order4-grid}
+% \epsfig{file=\maxDoc/lgrid2e.order4.grid.ps,width=\figWidth}
 \end{center}
 \caption{Grid for the L-shaped region.}
 \end{figure}
 \renewcommand{\figWidth}{.495\linewidth}
 \begin{figure}
 \begin{center}
-\epsfig{file=\maxDoc/psd-lgrid2e-4.eps,width=\figWidth}  
-\epsfig{file=\maxDoc/eigenValues-relErr-lgrid2e-4.eps,width=\figWidth}  
+\includegraphics[width=\figWidth]{figures/psd-lgrid2e-4}
+\includegraphics[width=\figWidth]{figures/eigenValues-relErr-lgrid2e-4}
+% \epsfig{file=\maxDoc/psd-lgrid2e-4.eps,width=\figWidth}  
+% \epsfig{file=\maxDoc/eigenValues-relErr-lgrid2e-4.eps,width=\figWidth}  
 \end{center}
 \caption{Left: Power-Spectral-Density for the L-shaped region, lgrid2e.order4. 
          Right: relative errors in the eigenvalues.}
@@ -480,8 +497,10 @@ grid  & N &  $E_x$ &  $E_y$ & $E_z$ & $\grad\cdot\uv$\\ \hline
 \renewcommand{\figWidth}{.495\linewidth}
 \begin{figure}
 \begin{center}
-\epsfig{file=\maxDoc/psd-tube3-4-Ez.eps,width=\figWidth}  
-\epsfig{file=\maxDoc/eigenValues-relErr-tube3-4-Ez.eps,width=\figWidth}  
+\includegraphics[width=\figWidth]{figures/psd-tube3-4-Ez}
+\includegraphics[width=\figWidth]{figures/eigenValues-relErr-tube3-4-Ez}
+% \epsfig{file=\maxDoc/psd-tube3-4-Ez.eps,width=\figWidth}  
+% \epsfig{file=\maxDoc/eigenValues-relErr-tube3-4-Ez.eps,width=\figWidth}  
 \end{center}
 \caption{Left: Power-Spectral-Density for a cylinder.
          Right: relative errors in the eigenvalues.}
@@ -494,7 +513,8 @@ grid  & N &  $E_x$ &  $E_y$ & $E_z$ & $\grad\cdot\uv$\\ \hline
 \renewcommand{\figWidth}{.495\linewidth}
 \begin{figure}
 \begin{center}
-\epsfig{file=\maxDir/pillBox.ps,width=\figWidth}  
+\includegraphics[width=\figWidth]{figures/pillBox2-order4-grid}
+% \epsfig{file=\maxDir/pillBox2.order4-grid.ps,width=\figWidth}  
 \end{center}
 \caption{Grid for a pill-box.}
 \end{figure}
@@ -529,8 +549,10 @@ some of the eigenvalues.
 \renewcommand{\figWidth}{.475\linewidth}
 \begin{figure}
 \begin{center}
-\epsfig{file=\maxDoc/psd-bis2e-4-T200.eps,width=\figWidth}  
-\epsfig{file=\maxDoc/eigenValues-relErr-bis2e-4-T200.eps,width=\figWidth}  
+\includegraphics[width=\figWidth]{figures/psd-bis2e-4-T200}
+\includegraphics[width=\figWidth]{figures/eigenValues-relErr-bis2e-4-T200}
+% \epsfig{file=\maxDoc/psd-bis2e-4-T200.eps,width=\figWidth}  
+% \epsfig{file=\maxDoc/eigenValues-relErr-bis2e-4-T200.eps,width=\figWidth}  
 \end{center}
 \caption{Left: Power-Spectral-Density for a sphere, bis2e.order4. Right: relative errors in the eigenvalues.}
 \label{tab:eigSphere}
