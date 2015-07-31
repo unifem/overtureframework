@@ -152,6 +152,7 @@
      & errLapex,errLapey,errLapez
         real aDot1,aDot2,aDotUm2,aDotUm1,aDotU,aDotUp1,aDotUp2,aDotUp3
         real xm,ym,x0,y0,z0,xp,yp,um,vm,wm,u0,v0,w0,up,vp,wp
+        real an(0:2), anNorm, nDotE, nDotE0, epsX
         real tdu10,tdu01,tdu20,tdu02,gLu,gLv,utt00,vtt00,wtt00
         real cu10,cu01,cu20,cu02,cv10,cv01,cv20,cv02
         real maxDivc,maxTauDotLapu,maxExtrap,maxDr3aDotU,dr3aDotU,
@@ -1699,6 +1700,7 @@ c===============================================================================
           ! sanity check
           stop 12345
         end if
+       epsX = 1.e-30  ! epsilon used to avoid division by zero in the normal computation -- should be REAL_MIN*100 ??
        !       We first assign the boundary values for the tangential
        !       components and then assign the corner values      
         twoPi=8.*atan2(1.,1.)
@@ -2019,6 +2021,63 @@ c write(*,'("initializeBoundaryForcing slowStartInterval=",e10.2)') slowStartInt
               ! write(*,'(" ***assign corners:planeWaveBoundaryForcing: twoPi=",f18.14," cc=",f10.7)') twoPi,cc
                ! Set the tangential components to zero
                if( gridType.eq.curvilinear )then
+                if( .true. )then ! *new way* *wdh* 2015/07/29
+                 do i3=n3a,n3b
+                 do i2=n2a,n2b
+                 do i1=n1a,n1b
+                   ! if( mask(i1,i2,i3).ne.0 )then
+                         ! get the outward normal for curvilinear grids
+                         an(0)=rsxy(i1,i2,i3,axis,0)
+                         an(1)=rsxy(i1,i2,i3,axis,1)
+                           an(2)=rsxy(i1,i2,i3,axis,2)
+                           anNorm = (2*side-1)/max( epsX, sqrt( an(0)**
+     & 2 + an(1)**2 + an(2)**2 ) )
+                           an(0)=an(0)*anNorm
+                           an(1)=an(1)*anNorm
+                           an(2)=an(2)*anNorm
+                     ! set tangential components to zero by eliminating all but the normal component
+                     !  E(new) = n.E(old) n 
+                     nDotE = an(0)*u(i1,i2,i3,ex) + an(1)*u(i1,i2,i3,
+     & ey) + an(2)*u(i1,i2,i3,ez)
+                     u(i1,i2,i3,ex) = nDotE*an(0)
+                     u(i1,i2,i3,ey) = nDotE*an(1)
+                     u(i1,i2,i3,ez) = nDotE*an(2)
+                     ! set tangential components to a non zero value: 
+                     x0=xy(i1,i2,i3,0)
+                     y0=xy(i1,i2,i3,1)
+                     z0=xy(i1,i2,i3,2)
+                     if( fieldOption.eq.0 )then
+                       u0=-(ssf*sin(twoPi*(kx*(x0)+ky*(y0)+kz*(z0)-cc*(
+     & t)))*pwc(0))
+                       v0=-(ssf*sin(twoPi*(kx*(x0)+ky*(y0)+kz*(z0)-cc*(
+     & t)))*pwc(1))
+                       w0=-(ssf*sin(twoPi*(kx*(x0)+ky*(y0)+kz*(z0)-cc*(
+     & t)))*pwc(2))
+                     else
+                      ! we are assigning time derivatives (sosup)
+                       u0=-(ssf*(-twoPi*cc)*cos(twoPi*(kx*(x0)+ky*(y0)+
+     & kz*(z0)-cc*(t)))*pwc(0)+ssft*sin(twoPi*(kx*(x0)+ky*(y0)+kz*(z0)
+     & -cc*(t)))*pwc(0))
+                       v0=-(ssf*(-twoPi*cc)*cos(twoPi*(kx*(x0)+ky*(y0)+
+     & kz*(z0)-cc*(t)))*pwc(1)+ssft*sin(twoPi*(kx*(x0)+ky*(y0)+kz*(z0)
+     & -cc*(t)))*pwc(1))
+                       w0=-(ssf*(-twoPi*cc)*cos(twoPi*(kx*(x0)+ky*(y0)+
+     & kz*(z0)-cc*(t)))*pwc(2)+ssft*sin(twoPi*(kx*(x0)+ky*(y0)+kz*(z0)
+     & -cc*(t)))*pwc(2))
+                     end if
+                     nDotE0 = an(0)*u0 + an(1)*v0 + an(2)*w0
+                     u(i1,i2,i3,ex) = u(i1,i2,i3,ex) + u0 - nDotE0*an(
+     & 0)
+                     u(i1,i2,i3,ey) = u(i1,i2,i3,ey) + v0 - nDotE0*an(
+     & 1)
+                     u(i1,i2,i3,ez) = u(i1,i2,i3,ez) + w0 - nDotE0*an(
+     & 2)
+                   ! end if
+                 end do
+                 end do
+                 end do
+                else
+                   ! ***** OLD WAY *****
                  do i3=n3a,n3b
                  do i2=n2a,n2b
                  do i1=n1a,n1b
@@ -2069,6 +2128,7 @@ c write(*,'("initializeBoundaryForcing slowStartInterval=",e10.2)') slowStartInt
                  end do
                  end do
                  end do
+                end if ! **** END OLD WAY
                else
                  if( axis.eq.0 )then
                    et1=ey
@@ -2114,6 +2174,33 @@ c write(*,'("initializeBoundaryForcing slowStartInterval=",e10.2)') slowStartInt
             else if( useForcing.eq.0 )then
                ! Set the tangential components to zero
                if( gridType.eq.curvilinear )then
+                if( .true. )then ! *new way* *wdh* 2015/07/29
+                 do i3=n3a,n3b
+                 do i2=n2a,n2b
+                 do i1=n1a,n1b
+                   ! if( mask(i1,i2,i3).ne.0 )then
+                         ! get the outward normal for curvilinear grids
+                         an(0)=rsxy(i1,i2,i3,axis,0)
+                         an(1)=rsxy(i1,i2,i3,axis,1)
+                           an(2)=rsxy(i1,i2,i3,axis,2)
+                           anNorm = (2*side-1)/max( epsX, sqrt( an(0)**
+     & 2 + an(1)**2 + an(2)**2 ) )
+                           an(0)=an(0)*anNorm
+                           an(1)=an(1)*anNorm
+                           an(2)=an(2)*anNorm
+                     ! set tangential components to zero by eliminating all but the normal component
+                     !  E(new) = n.E(old) n 
+                     nDotE = an(0)*u(i1,i2,i3,ex) + an(1)*u(i1,i2,i3,
+     & ey) + an(2)*u(i1,i2,i3,ez)
+                     u(i1,i2,i3,ex) = nDotE*an(0)
+                     u(i1,i2,i3,ey) = nDotE*an(1)
+                     u(i1,i2,i3,ez) = nDotE*an(2)
+                   ! end if
+                 end do
+                 end do
+                 end do
+                else
+                   ! ***** OLD WAY *****
                  do i3=n3a,n3b
                  do i2=n2a,n2b
                  do i1=n1a,n1b
@@ -2138,6 +2225,7 @@ c write(*,'("initializeBoundaryForcing slowStartInterval=",e10.2)') slowStartInt
                  end do
                  end do
                  end do
+                end if ! **** END OLD WAY
                else
                  if( axis.eq.0 )then
                    et1=ey
@@ -2161,6 +2249,47 @@ c write(*,'("initializeBoundaryForcing slowStartInterval=",e10.2)') slowStartInt
             else
                ! Set the tangential components to zero
                if( gridType.eq.curvilinear )then
+                if( .true. )then ! *new way* *wdh* 2015/07/29
+                 do i3=n3a,n3b
+                 do i2=n2a,n2b
+                 do i1=n1a,n1b
+                   ! if( mask(i1,i2,i3).ne.0 )then
+                         ! get the outward normal for curvilinear grids
+                         an(0)=rsxy(i1,i2,i3,axis,0)
+                         an(1)=rsxy(i1,i2,i3,axis,1)
+                           an(2)=rsxy(i1,i2,i3,axis,2)
+                           anNorm = (2*side-1)/max( epsX, sqrt( an(0)**
+     & 2 + an(1)**2 + an(2)**2 ) )
+                           an(0)=an(0)*anNorm
+                           an(1)=an(1)*anNorm
+                           an(2)=an(2)*anNorm
+                     ! set tangential components to zero by eliminating all but the normal component
+                     !  E(new) = n.E(old) n 
+                     nDotE = an(0)*u(i1,i2,i3,ex) + an(1)*u(i1,i2,i3,
+     & ey) + an(2)*u(i1,i2,i3,ez)
+                     u(i1,i2,i3,ex) = nDotE*an(0)
+                     u(i1,i2,i3,ey) = nDotE*an(1)
+                     u(i1,i2,i3,ez) = nDotE*an(2)
+                     ! set tangential components to a non zero value: 
+                     ! If we want   
+                     !       tn . E = tn . E0
+                     ! then set
+                     !     E(new) = E(old) + E0 - (n.E0) n 
+                     call ogf3dfo(ep,fieldOption,xy(i1,i2,i3,0),xy(i1,
+     & i2,i3,1),xy(i1,i2,i3,2),t, u0,v0,w0)
+                     nDotE0 = an(0)*u0 + an(1)*v0 + an(2)*w0
+                     u(i1,i2,i3,ex) = u(i1,i2,i3,ex) + u0 - nDotE0*an(
+     & 0)
+                     u(i1,i2,i3,ey) = u(i1,i2,i3,ey) + v0 - nDotE0*an(
+     & 1)
+                     u(i1,i2,i3,ez) = u(i1,i2,i3,ez) + w0 - nDotE0*an(
+     & 2)
+                   ! end if
+                 end do
+                 end do
+                 end do
+                else
+                   ! ***** OLD WAY *****
                  do i3=n3a,n3b
                  do i2=n2a,n2b
                  do i1=n1a,n1b
@@ -2191,6 +2320,7 @@ c write(*,'("initializeBoundaryForcing slowStartInterval=",e10.2)') slowStartInt
                  end do
                  end do
                  end do
+                end if ! **** END OLD WAY
                else
                  if( axis.eq.0 )then
                    et1=ey

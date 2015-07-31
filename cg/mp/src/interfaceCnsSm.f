@@ -343,7 +343,8 @@ c To include derivatives of rx use OPTION=RX
       integer iter,itmax,istop,k,itsm
       real bmax,toler
 
-      parameter(toler=1.e-12,itmax=10)
+      ! parameter(toler=1.e-12,itmax=10)
+      parameter(toler=1.e-12,itmax=20) ! *wdh* 2015/07/16 -- allow more it's for neo-Hookean
 
       real trace,discriminant,eval(2),evec(2,2),rad
       real coef1,coef2,det2,beta,sigma1,sigma2

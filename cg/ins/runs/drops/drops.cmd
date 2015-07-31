@@ -52,12 +52,15 @@ $restart="";
 $freqFullUpdate=10; # frequency for using full ogen update in moving grids 
 $cdv=1.; $ad2=1; $ad21=1; $ad22=1;  $ad4=0; $ad41=2.; $ad42=2.; 
 $psolver="best"; $solver="best"; 
+$ogmgAutoChoose=1;  $ogmgMaxIterations=30;    
+$ogmgIlucgFill=7; # for coarse grid solve
+# 
 $iluLevels=1; $ogesDebug=0; 
 $rtolp=1.e-3; $atolp=1.e-4;  # tolerances for the pressure solve
 $rtol=1.e-4; $atol=1.e-5;    # tolerances for the implicit solver
 # -- for Kyle's AF scheme:
 $afit = 20;  # max iterations for AFS
-$aftol=1e-2;
+$aftol=1e-3;
 $filter=0; $filterFrequency=1; $filterOrder=6; $filterStages=2; 
 # 
 # $gridName = "drops0.hdf"; $show="drops0.show"; $nu=.01; $inflowVelocity=.5;  $tolerance = "1.e-6";

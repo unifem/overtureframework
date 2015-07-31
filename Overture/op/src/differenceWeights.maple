@@ -1,0 +1,137 @@
+# **************************************************************************************
+#  This file contains maple procedures for computing the difference weights
+#  for approximations to derivatives
+# **************************************************************************************
+
+
+# This algorithm comes from Bengt Fornberg.
+# subroutine weights (z,x,n,nd,m,c) 
+# c--- 
+# c--- Input Parameters 
+# c--- z location where approximations are to be accurate, 
+# c--- x(0:nd) grid point locations, found in x(0:n) 
+# c--- n one less than total number of grid points; n must 
+# c--- not exceed the parameter nd below, 
+# c--- nd dimension of x- and c-arrays in calling program 
+# c--- x(0:nd) and c(0:nd,0:m), respectively, 
+# c--- m highest derivative for which weights are sought, 
+# c--- Output Parameter 
+# c--- c(0:nd,0:m) weights at grid locations x(0:n) for derivatives 
+# c--- of order 0:m, found in c(0:n,0:m) 
+# c--- 
+# implicit real*8 (a-h,o-z) 
+
+# -----------
+generalDifferenceWeights :=proc(z,x,n,m,c) 
+
+local c1,c2,c3,c4,c5,i,j,k,mn:
+
+printf("generalDifferenceWeights:INFO compute difference weights for %d points, highest derivative=%d\n",n+1,m):
+
+c1 := 1:
+c4 := x[0]-z: 
+
+c[0,0,n] := 1:
+for i from 1 to n do 
+  mn := min(i,m):
+  c2 := 1:
+  c5 := c4:
+
+  c4 := x[i]-z:
+  for j from 0 to i-1 do
+    c3 := x[i]-x[j]:
+    c2 := c2*c3:
+    if j = (i-1) then 
+      for k from mn by -1 to 1 do
+        c[i,k,n] := c1*(k*c[i-1,k-1,n]-c5*c[i-1,k,n])/c2 :
+      end do:
+      c[i,0,n] := -c1*c5*c[i-1,0,n]/c2:
+    end if:
+
+    for k from mn by -1 to 1 do
+      c[j,k,n] := (c4*c[j,k,n]-k*c[j,k-1,n])/c3:
+    end do:
+    c[j,0,n] := c4*c[j,0,n]/c3:
+  end do:
+  c1 := c2 
+end do:
+
+
+# RETURN(c):
+end:
+# -------------
+
+# -----------
+# Difference weights at equally spaced points
+differenceWeights :=proc(n,m,c) 
+local z,x,k:
+
+z:=n/2: # evaluate derivatives as the mid-point
+
+x := array(0..n): 
+for k from 0 to n do
+ x[k] := k:
+end do:
+
+generalDifferenceWeights(z,x,n,m,c)
+end:
+# -------------
+
+# -----------
+# Difference weights at equally spaced points
+computeDifferenceWeights :=proc(nd,md,c)
+local i,j,k,nMax,n,m,nx,orderOfAccuracy:
+
+c:=array(0..nd,0..md,0..nd):
+for i from 0 to nd do
+for k from 0 to md do
+for j from 0 to nd do
+  c[j,k,i] := 0:
+end do:
+end do:
+end do:
+
+nMax := nd+1:
+for nx from 3 by 2 to nMax do
+  
+  n:=nx-1:
+  m:=n:
+  
+  differenceWeights(n,m,c):
+  
+  if 0=1 then
+    printf(" *** Number of points = %d ***\n",n+1):
+    for k from 1 to m do
+     orderOfAccuracy := 2*floor((n+2-k)/2):
+     printf(" Derivative %d (order=%d): ",k,orderOfAccuracy);
+     for i from 0 to n do
+       printf("%s, ",convert(c[i,k,n],string));
+     end do:
+     printf("\n");
+    end do;
+    printf("\n");
+  end if:
+
+end do: # for nx (n) 
+end:
+# -----------
+
+# -----------
+# Return the weight of a stencil point in a difference approximation to a given derivative 
+# Return the weight of point i: i=0,+-1, +-2, ...
+getWeight :=proc( i,derivative,orderOfAccuracy )
+ local n,cw:
+ n:= orderOfAccuracy+ 2*floor((derivative-1)/2):
+ # printf("getWeight: i=%d, derivative=%d orderOfAccuracy=%d n=%d (i+n/2)=%d\n",i,derivative,orderOfAccuracy,n,i+n/2);
+ if derivative=0 then
+   if i=0 then cw:=1: else cw:=0: end if  # identity operator
+ else
+   if (i+n/2)>-1 then
+     cw:=c[i+n/2,derivative,n]:
+   else
+     cw:=0:  # requesting a stencil point that is not there
+   end if:
+ end if:
+RETURN(cw):
+end:
+# -----------

@@ -1,0 +1,10 @@
+mpiexec -n 3 ./ogen -noplot iceCircle
+
+mpiexec -n 3 xterm -e gdb --args ./ogen -noplot iceCircle
+
+
+# Open one xterm with gdb
+mpiexec -n 1 xterm -e gdb --args ./ogen -noplot iceCircle : -n 2 ./ogen -noplot iceCircle
+
+# Two xterms with gdb 
+mpiexec -n 2 xterm -e gdb --args ./ogen -noplot iceCircle : -n 1 ./ogen -noplot iceCircle

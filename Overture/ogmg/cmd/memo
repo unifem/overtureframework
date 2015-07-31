@@ -1,3 +1,26 @@
+
+****************
+*** July 27, 2015
+
+TROUBLE WITH MG: 
+
+alias ogmgt $ogmg/ogmgt
+
+
+Better:
+ogmgt tz -noplot -g=backStepRefineGride4.order4.ml1.hdf -autoChoose=1
+
+OK
+ogmgt tz -noplot -g=backStepRefineGride4.order4.ml1.hdf
+
+****************
+*** July 26, 2015 -- check coarse grid solover and ILU levels
+
+ogmgt tz -noplot -g=square64.order2 -ilucg=3
+
+
+
+
 ====== 2014/12/22 -- check singular problems again -- Kyle's trouble with periodic channel
 
 

@@ -1,0 +1,167 @@
+**********************
+******** July 30, 2015
+
+QUESTION -- SET DISS=0 :   unstable by time 5 or so
+cgmx scattering -g=cice4.order4.hdf  -bg=square -rbc=abcPML -boundaryForcing=1 -diss=0. -go=halt
+
+G8: kx=4
+mpirun -np 16 $cgmxp -noplot scattering -g=crvbl2e8.order4 -bg=backGround -rbc=abcPML -boundaryForcing=1 -kx=4 -tf=5. -tp=.5 -show=crv8.show -go=go >! crv8.out
+
+-kx=2
+mpirun -np 4 $cgmxp -noplot scattering -g=crvbl2e4.order4 -bg=backGround -rbc=abcPML -boundaryForcing=1 -kx=2 -tf=5. -tp=.5 -show=crv4.show -go=go >! crv4.out
+
+mpirun -np 4 $cgmxp -noplot scattering -g=crvbl2e2.order4 -bg=backGround -rbc=abcPML -boundaryForcing=1 -tf=5. -tp=.5 -show=crv2.show -go=go >! crv4.out
+
+
+mpirun -np 4 $cgmxp scattering -g=crvbl2e2.order4 -bg=backGround -rbc=abcPML -boundaryForcing=1 -tp=.1 -show=crv2.show -go=halt
+
+
+** FIX TO ADJUST INCIDENT -- remove need for vertex array
+
+cgmx scattering -g=cice4.order4.hdf  -bg=square -boundaryForcing=0 -go=halt
+
+cgmx scattering -g=cice4.order4.hdf  -bg=square -rbc=abcPML -boundaryForcing=1 -go=halt
+
+
+**FIX** TO PML ROUTINE
+
+G8: 27M 
+mpirun -np 16 $cgmxp -noplot scattering -g=crvbl2e8.order4  -bg=backGround -rbc=abcPML -boundaryForcing=1 -go=og
+
+
+mpirun -np 4 $cgmxp scattering -g=crvbl2e2.order4 -bg=backGround -tp=.1 -go=halt
+
+mpirun -np 4 $cgmxp -noplot scattering -g=crvbl2e2.order4  -bg=backGround -rbc=abcPML -boundaryForcing=1 -go=og
+
+
+mpirun -np 4 $cgmxp scattering -g=cice4.order4.hdf  -bg=square -rbc=abcPML -boundaryForcing=1 -go=halt
+
+cgmx scattering -g=cice4.order4.hdf  -bg=square -rbc=abcPML -boundaryForcing=1 -go=halt
+
+TROUBLE: 
+mpiexec -n 2 xterm -e /usr/bin/valgrind -q --db-attach=yes $cgmxp -noplot scattering -g=crvbl2e2.order4  -bg=backGround -rbc=abcPML -boundaryForcing=1 -go=go
+
+run -noplot scattering -g=crvbl2e2.order4  -bg=backGround -rbc=abcPML -boundaryForcing=1 -go=go
+
+mpiexec -n 2 xterm -e gdb --args $cgmxp -noplot scattering -g=crvbl2e2.order4  -bg=backGround -rbc=abcPML -boundaryForcing=1 -go=og 
+
+mpirun -np 4 $cgmxp -noplot scattering -g=crvbl2e2.order4  -bg=backGround -rbc=abcPML -boundaryForcing=1 -go=og
+
+
+mpirun -np -2 $cgmxp scattering -g=box4.order4  -bg=box -rbc=abcPML -pmlLines=3 -boundaryForcing=1 -go=halt
+
+cgmx scattering -g=box4.order4  -bg=box -rbc=abcPML -pmlLines=3 -boundaryForcing=1 -go=halt
+
+
+OK: 
+valgrindebug cgmx -noplot scattering -g=crvbl2e2.order4  -bg=backGround -rbc=abcPML -boundaryForcing=1 -go=go 
+
+TROUBLE: 
+mpiexec -n 2 xterm -e gdb --args $cgmxp -noplot scattering -g=crvbl2e2.order4  -bg=backGround -rbc=abcPML -boundaryForcing=1 -go=og 
+
+****TROUBLE: PML
+mpirun -np 4 $cgmxp -noplot scattering -g=crvbl2e2.order4  -bg=backGround -rbc=abcPML -boundaryForcing=1 -go=og
+
+OK: 
+mpirun -np 4 $cgmxp -noplot scattering -g=crvbl2e2.order4  -bg=backGround -rbc=abcEM2 -boundaryForcing=1 -go=og
+
+OK: 
+mpirun -np 2 $cgmxp -noplot scattering -g=cice4.order4.hdf  -bg=square -rbc=abcPML -boundaryForcing=1 -go=og
+
+
+DEBUG: with gdb: 
+mpiexec -n 2 xterm -e gdb --args $cgmxp -noplot scattering -g=cice4.order4.hdf  -bg=square -rbc=abcEM2 -boundaryForcing=1 -go=og 
+
+
+OK NOW: 
+mpirun -np 2 $cgmxp -noplot scattering -g=cice4.order4.hdf  -bg=square -rbc=abcEM2 -boundaryForcing=1 -go=og
+
+mpirun -np 4 $cgmxp -noplot scattering -g=cice4.order4.hdf  -bg=square -rbc=abcEM2 -boundaryForcing=0 -go=og
+
+OK: 
+mpirun -np 8 $cgmxp -noplot scattering -g=crvbl2e4.order4  -bg=backGround -rbc=abcEM2 -boundaryForcing=0 -go=og
+
+OK:  *TROUBLE* boundaryForcing=1
+mpirun -np 4 $cgmxp -noplot scattering -g=crvbl2e2.order4  -bg=backGround -rbc=abcEM2 -boundaryForcing=0 -go=og
+
+cgmx -noplot scattering -g=crvbl2e2.order4  -bg=backGround -rbc=abcPML -boundaryForcing=1 -go=og
+
+
+
+-- PML with boundaryForcing
+  cgmx -noplot scattering -g=cice4.order4.hdf  -bg=square -rbc=abcPML -boundaryForcing=1 -go=og
+
+
+**********************
+******** July 29, 2015
+
+cgmx scat -g=crvbl2e2.order4 -bg=backGround       
+
+cgmx scat -g=cice4.order4.hdf -diss=.5
+
+
+
+================================
+======= scattering.cmd : incident wave starts before the body
+
+
+-- knife-edge - OK: 
+cgmx scattering -g=knifeSlit2.order4 -bg=backGround -rbc=abcEM2 -diss=.5 -xb=-.5 -kx=8
+
+
+cgmx scattering -g=cice4.order4.hdf -rbc=abcPML -diss=.5
+
+
+G4 FD44 - 
+cgmx scattering -g=crvbl2e4.order4 -bg=backGround -tp=.1 -go=halt
+
+
+FD44 - less stretching OK
+cgmx -noplot scattering -g=crvbl2e2.order4 -bg=backGround -go=og
+->t=2.0000e+00 dt=1.00e-02 |div(E)|=2.16e+00 |div(E)|/|grad(E)|=1.51e-01, |grad(E)|=1.43e+01, max(u):[8.21e-01,1.75e+00,8.73e-01,]
+>>> Cgmx:FD: t=2.20e+00 dt=1.0e-02 TS=ME ad2=1.00 |div(E)|/|grad(E)|=6.39e-02 (=4.79e-01/7.50e+00) 220 steps mem=175(Mb) cpu=1.93e+01(s)
+
+
+FD44: LOOKS OK!
+cgmx -noplot scattering -g=crve2.order4.hdf -bg=backGround -go=og
+>>> Cgmx:FD: t=2.10e+00 dt=6.7e-03 TS=ME ad4=1.00 |div(E)|/|grad(E)|=8.78e-02 (=9.42e-01/1.07e+01) 315 steps mem=215(Mb) cpu=7.27e+02(s)
+-->t=2.1000e+00 dt=6.67e-03 |div(E)|=9.42e-01 |div(E)|/|grad(E)|=8.78e-02, |grad(E)|=1.07e+01, max(u):[8.11e-01,1.63e+00,6.33e-01,]
+
+
+FD22 - OK NOW
+cgmx -noplot scattering -g=crve2.order2.hdf -bg=backGround -go=og
+
+
+-- FIX assignBoundary3d
+SIB: OK: 
+cgmx scat -g=sibe2.order4.hdf -bg=box
+>>> Cgmx:FD: t=1.00e-01 dt=8.3e-03 TS=ME ad4=1.00 |div(E)|/|grad(E)|=1.11e-01 (=8.91e-01/8.01e+00) 12 steps mem=70.4(Mb) cpu=3.62e+00(s)
+-->t=1.0000e-01 dt=8.33e-03 |div(E)|=8.91e-01 |div(E)|/|grad(E)|=1.11e-01, |grad(E)|=8.01e+00, max(u):[6.43e-01,9.95e-01,6.46e-01,]
+
+
+
+
+cgmx -noplot scat2 -g=crve2.order2.hdf -bg=backGround -go=og
+
+
+cgmx -noplot scat -g=crve2.order2.hdf -bg=backGround -go=og
+
+
+**********************
+******** July 28, 2015
+
+
+SIB: OK: 
+cgmx scat -g=sibe2.order4.hdf -bg=box
+>>> Cgmx:FD: t=1.00e-01 dt=8.3e-03 TS=ME ad4=1.00 |div(E)|/|grad(E)|=1.11e-01 (=8.91e-01/8.01e+00) 12 steps mem=72.4(Mb) cpu=3.41e+00(s)
+-->t=1.0000e-01 dt=8.33e-03 |div(E)|=8.91e-01 |div(E)|/|grad(E)|=1.11e-01, |grad(E)|=8.01e+00, max(u):[6.43e-01,9.95e-01,6.46e-01,]
+
+
+*TROUBLE* 
+cgmx scat -g=crve4.order4.hdf -bg=backGround        
+
+
+*trouble near overlap on surface:
+cgmx scat -g=crve2.order4.hdf -bg=backGround        
+
+cgmx scat -g=crve2.order2.hdf -bg=backGround        

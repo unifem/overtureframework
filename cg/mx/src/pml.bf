@@ -30,9 +30,9 @@ c$$$	  vy2= vy1 + (dt)*sigma2*( 1.5*( -vy1 + u1.y() ) -.5*( -vy2 + u2.y() ) );
 c$$$
 c$$$	  u2=2.*u1-u2  + (dtSquared)*( u1.laplacian() - vx1.x() - wx1   - vy1.y() - wy1   );
 
-c ====================================================================================================
-c  Update a variable on a side
-c ====================================================================================================
+! ====================================================================================================
+!  Update a variable on a side
+! ====================================================================================================
 #beginMacro update(v,w,ex,LAPLACIAN,XD,XXD)
 
  un(i1,i2,i3,ex)=2.*u(i1,i2,i3,ex)-um(i1,i2,i3,ex) \
@@ -689,7 +689,7 @@ c$$$#endMacro
 
       subroutine pmlMaxwell( nd, nd1a,nd1b,nd2a,nd2b,nd3a,nd3b,\
                                ndf1a,ndf1b,ndf2a,ndf2b,ndf3a,ndf3b,\
-                               gridIndexRange, \
+                               gridIndexRange, gridDimension, \
                                um, u, un, \
                                ndra1a,ndra1b,ndra2a,ndra2b,ndra3a,ndra3b,\
                                vram, vra, vran, wram, wra, wran, \
@@ -804,7 +804,7 @@ c$$$#endMacro
       integer mask(nd1a:nd1b,nd2a:nd2b,nd3a:nd3b)
       real rsxy(nd1a:nd1b,nd2a:nd2b,nd3a:nd3b,0:nd-1,0:nd-1)
       real xy(nd1a:nd1b,nd2a:nd2b,nd3a:nd3b,0:nd-1)
-      integer gridIndexRange(0:1,0:2)
+      integer gridIndexRange(0:1,0:2), gridDimension(0:1,0:2)
 
       integer ipar(0:*),boundaryCondition(0:1,0:2)
       real rpar(0:*)
@@ -1062,12 +1062,22 @@ c$$$#endMacro
       numberOfGhostPoints=orderOfAccuracy/2
 
       ! We apply the PML equations out to these bounds: (make use of all ghost points - stencilWidth/2)
-      md1a=nd1a+numberOfGhostPoints
-      md2a=nd2a+numberOfGhostPoints
-      md3a=nd3a+numberOfGhostPoints
-      md1b=nd1b-numberOfGhostPoints
-      md2b=nd2b-numberOfGhostPoints
-      md3b=nd3b-numberOfGhostPoints
+      if( .true. )then
+        ! new way for parallel *wdh* 2015/07/30
+        md1a=gridDimension(0,0)+numberOfGhostPoints
+        md2a=gridDimension(0,1)+numberOfGhostPoints
+        md3a=gridDimension(0,2)+numberOfGhostPoints
+        md1b=gridDimension(1,0)-numberOfGhostPoints
+        md2b=gridDimension(1,1)-numberOfGhostPoints
+        md3b=gridDimension(1,2)-numberOfGhostPoints
+      else
+        md1a=nd1a+numberOfGhostPoints
+        md2a=nd2a+numberOfGhostPoints
+        md3a=nd3a+numberOfGhostPoints
+        md1b=nd1b-numberOfGhostPoints
+        md2b=nd2b-numberOfGhostPoints
+        md3b=nd3b-numberOfGhostPoints
+      end if
 
       if( nd.eq.2 )then
         md3a=nd3a

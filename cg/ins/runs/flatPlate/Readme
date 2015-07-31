@@ -1,0 +1,29 @@
+*** Compute flow past a flat plate and compare to the boundary layer solution ***
+
+(1) Generate grids
+
+  
+  ogen -noplot flatPlate -order=2 -factor=4 -dsMin=.01 -ml=2
+
+  ogen -noplot flatPlate -order=4 -factor=4 -dsMin=.01 -ml=2
+
+
+(2) Run:
+
+Order=4 (time-stepping=IM24)
+cgins flatPlate -g=flatPlate4.order4.dy.01.ml2.hdf -nu=1.e-3 -debug=1 -tp=.5 -tf=5. -ts=im -solver=mg -psolver=mg -ad2=0 -ad4=1 -ad41=.1 -ad42=.1 -dtMax=.05 -xOffset=5 -outflowOption=extrapolate -useNew=0 -go=halt
+
+ORDER=2: (time-stepping=IM22)
+cgins flatPlate -g=flatPlate4.order2.dy.01.ml2.hdf -nu=1.e-3 -debug=1 -tp=.5 -tf=5. -ts=im -solver=mg -psolver=mg -ad2=1 -ad21=.1 -ad22=.1 -dtMax=.05 -xOffset=5 -outflowOption=extrapolate -useNew=0 -go=halt
+
+
+(3) Run and save show files:
+
+  cgins -noplot flatPlate -g=flatPlate4.order4.dy.01.ml2.hdf -nu=1.e-3 -debug=1 -tp=.5 -tf=5. -ts=im -solver=mg -psolver=mg -ad2=0 -ad4=1 -ad41=.1 -ad42=.1 -dtMax=.05 -xOffset=5 -outflowOption=extrapolate -useNew=0 -show=flatPlateOrder4Res4.show -go=go >! flatPlateOrder4Res4.out
+
+  cgins -noplot flatPlate -g=flatPlate4.order2.dy.01.ml2.hdf -nu=1.e-3 -debug=1 -tp=.5 -tf=5. -ts=im -solver=mg -psolver=mg -ad2=1 -ad21=.1 -ad22=.1 -dtMax=.05 -xOffset=5 -outflowOption=extrapolate -useNew=0 -show=flatPlateOrder2Res4.show -go=go >! flatPlateOrder2Res4.out
+
+
+(4) Plot results from show file
+
+    plotStuff plotFlatPlate.cmd -show=flatPlateOrder4Res4.show -name=flatPlateOrder4Res4

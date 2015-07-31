@@ -689,12 +689,19 @@ assignBoundaryConditionCoefficients( realMappedGridFunction & coeff, int grid, i
 	  if( orderOfAccuracy==4 )
 	  {
 	    bool useEquationOnGhost = useEquationOnGhostLineForNeumannBC(mg,level);
-	    if( useEquationOnGhost )
+	    if( useEquationOnGhost && numberOfUseEquationOnGhostWarnings<5 )
 	    {
 	      // *** fix this *** use mixedToSecondOrder instead of the neumann condition above and the symmetry below
-
+              numberOfUseEquationOnGhostWarnings++;
 	      printF(" ******assignBoundaryConditionCoefficients: WARNING: not using eqn on ghost for mixed BC"
 		     " at level =%i ******\n",level);
+	    }
+	    else if( numberOfUseEquationOnGhostWarnings==5 )
+	    {
+	      printF(" ***Ogmg:: Too many of the following warnings. I will print any more:\n"
+                     " ******assignBoundaryConditionCoefficients: WARNING: not using eqn on ghost for mixed BC"
+		     " at level =%i ******\n",level);
+	      numberOfUseEquationOnGhostWarnings++;
 	    }
 
 	    extrapParams.ghostLineToAssign=2;

@@ -3891,14 +3891,12 @@ getNormalForce( realCompositeGridFunction & u, realSerialArray & normalForce, in
     Overture::abort("ERROR: finish me for parallel");
   #endif
       
-  Index Ib1,Ib2,Ib3;
+  Index Ibv[3], &Ib1 =Ibv[0], &Ib2=Ibv[1], &Ib3=Ibv[2];
   getBoundaryIndex(mg.gridIndexRange(),side,axis,Ib1,Ib2,Ib3);
 
-  // *********** finish this for viscous stresses ******************
  
   const real Rg=dbase.get<real >("Rg");
   const real gamma = dbase.get<real >("gamma");
-	
 
   
   realArray p(Ib1,Ib2,Ib3);  // ********* fix me for parallel ****************
@@ -4077,6 +4075,44 @@ getNormalForce( realCompositeGridFunction & u, realSerialArray & normalForce, in
     }
   }
   
+  // ----------------------------------------------------------------------
+  // -------- fill in ghost values on this face by extrapolation ----------
+  // --These are needed for FSI problems as cgsm wants ghost values too ---
+  // ----------------------------------------------------------------------
+  // *wdh* added 2015/07/15 
+
+  if( false )
+  {
+    const int numberOfDimensions=mg.numberOfDimensions();
+    Range Rx=numberOfDimensions;
+
+    const IntegerArray & gid =mg.gridIndexRange();
+    int numGhost=1;
+    int isv[3], &is1=isv[0], &is2=isv[1], &is3=isv[2];
+
+    // --- face = (side,axis) has 2 adjacent faces in 2D and 4 adjacent faces in 3D 
+    for( int dir=1; dir<numberOfDimensions; dir++ )  // loop over other axes
+    {
+      const int axisp = (axis+dir) % numberOfDimensions;  
+    
+      is1=is2=is3=0;
+      for( int s1=0; s1<=1; s1++ ) // two sides in direction axisp
+      {
+	getBoundaryIndex(gid,side,axis,Ib1,Ib2,Ib3,numGhost); // include ghost so that corners get done in 3D after two steps
+
+	Ibv[axisp] = gid(s1,axisp);  // defines the adjacent face 
+	isv[axisp]= 1-2*s1;
+
+	for( int ghost=0; ghost<numGhost; ghost++ )
+	{
+	  Index Jb1=Ib1-ghost*is1, Jb2=Ib2-ghost*is2, Jb3=Ib3-ghost*is3;
+	  fn(Jb1-is1,Jb2-is2,Jb3-is3,Rx)=3.*fn(Jb1,Jb2,Jb3,Rx)-3.*fn(Jb1+is1,Jb2+is2,Jb3+is3,Rx)+fn(Jb1+2*is1,Jb2+2*is2,Jb3+2*is3,Rx);
+	}
+      }
+    }
+  }
+  
+
   return 0;
 }
 

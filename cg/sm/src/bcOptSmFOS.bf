@@ -137,6 +137,10 @@ end do
             +10.*uu(k1+2*ks1,k2+2*ks2,k3+2*ks3,kc)-5.*uu(k1+3*ks1,k2+3*ks2,k3+3*ks3,kc)\
             +uu(k1+4*ks1,k2+4*ks2,k3+4*ks3,kc))
 
+! ------------------------------------------------------------------------------------------------------------
+! Macro: limited extrapolation
+!   Set u(j1-is1,j2-is2,j3-is3) = limited extrapolation value using u(j1,j2,j3), u(j1+is1,j2+is2,j3+is3) , ...
+! ------------------------------------------------------------------------------------------------------------
 #beginMacro limitedExtrapolation(u,j1,j2,j3,m,is1,is2,is3)
   ! here du2=2nd-order approximation, du3=third order
   ! Blend the 2nd and 3rd order based on the difference 
@@ -148,11 +152,10 @@ end do
   ! alpha = cdl*(abs(du3-du2))/(.1+abs(u(j1+is1,j2+is2,j3,m))+abs(u(j1+2*is1,j2+2*is2,j3,m)))
 
   uNorm= uEps+ abs(du3) + abs(u(j1,j2,j3,m))+abs(u(j1+is1,j2+is2,j3,m))
-! **  du = abs(du3-u(j1+is1,j2+is2,j3,m))/uNorm  ! changed 050711
-! **  alpha = cdl*( du**2 + abs(du3-du2)/uNorm )
+  ! **  du = abs(du3-u(j1+is1,j2+is2,j3,m))/uNorm  ! changed 050711
+  ! **  alpha = cdl*( du**2 + abs(du3-du2)/uNorm )
   alpha = cdl*( abs(du3-du2)/uNorm )
 
-!   alpha = cdl*( abs(du3-du2)/uNorm )
   alpha =min(1.,alpha)
   ! if( mm.eq.1 )then
 
@@ -163,11 +166,8 @@ end do
 !  end if
 
   !   u(j1,j2,j3,m)=(1.-alpha)*du3+alpha*du2
-    u(j1-is1,j2-is2,j3,m)=(1.-alpha)*du3+alpha*du1
+  u(j1-is1,j2-is2,j3,m)=(1.-alpha)*du3+alpha*du1
 
-  ! else
-  !   u(j1,j2,j3,m)=(1.-alpha)*du2+alpha*du1
-  ! end if
 #endMacro
 
 #beginMacro beginEdgeMacro()
@@ -1028,6 +1028,47 @@ c ==============================================================================
     end if
 
    end if ! bc 
+
+   ! -- extrapolate ghost values for boundary data ---
+   !    These values are now needed  *wdh* 2015/07/15 
+   ! adjacent
+   if( boundaryCondition(side,axis).gt.0 .and. addBoundaryForcing(side,axis).ne.0 )then
+
+     i3=n3a
+     do sidea=0,1 ! loop over adjacent sides
+      if( sidea.eq.0 )then
+        i1=n1a
+        i2=n2a
+      else
+        i1=n1b
+        i2=n2b
+      end if 
+      ! (js1,js2,js3) used to compute tangential derivatives
+      js1=0
+      js2=0
+      js3=0
+      if( axisp1.eq.0 )then
+        js1=1-2*sidea
+      else if( axisp1.eq.1 )then
+        js2=1-2*sidea
+      else
+        stop 516
+      end if
+
+      !! write(*,'(" extrap bc data array: side,axis,sidea,i1,i2,js1,js2=",7i5)') side,axis,sidea,i1,i2,js1,js2
+      do n=0,numberOfComponents-1
+         bcfa(side,axis,i1-js1,i2-js2,i3-js3,n)=3.*bcfa(side,axis,i1      ,i2      ,i3      ,n)\
+                                               -3.*bcfa(side,axis,i1+  js1,i2+  js2,i3+  js3,n)\
+                                                  +bcfa(side,axis,i1+2*js1,i2+2*js2,i3+2*js3,n)
+
+        !! write(*,'(" n, j1,j2,j3, bc-value",i4,3i4,e16.8)') n,i1-js1,i2-js2,i3-js3,bcfa(side,axis,i1-js1,i2-js2,i3-js3,n)
+      end do  
+
+     end do ! end do sidea 
+
+
+   end if
+
   endLoopOverSides()
 #endMacro
 
@@ -1127,6 +1168,11 @@ c ==============================================================================
            alpha=sqrt(u1y**2+(1.0+u2y)**2)
            u(i1,i2,i3,s11c) =-is*bcf(side,axis,i1,i2,i3,s11c)*alpha
            u(i1,i2,i3,s12c) =-is*bcf(side,axis,i1,i2,i3,s12c)*alpha
+
+!!      write(*,'(" primary: set i1,i2,i3 alpha, bc, s11=",3i4,3e16.8)')  i1,i2,i3,alpha,bcf(side,axis,i1,i2,i3,s11c),u(i1,i2,i3,s11c)        
+!!      write(*,'(" primary: u,v=",4e16.8)') u(i1,i2+1,i3,uc),u(i1,i2-1,i3,uc),u(i1,i2+1,i3,vc),u(i1,i2-1,i3,vc)
+
+
           end if
          endGhostLoops2d()
         else
@@ -1296,7 +1342,9 @@ c ==============================================================================
    beginGhostLoops2d()  ! *wdh* 090928 include ghost pts in tangential direction
     if (mask(i1,i2,i3).ne.0) then  ! note: extrap outside interp pts too
      do n=0,numberOfComponents-1
-       u(i1-is1,i2-is2,i3,n)=extrap3(u,i1,i2,i3,n,is1,is2,is3)
+       ! *wdh* use limited extrapolation for the first ghost line 2015/07/15
+       ! u(i1-is1,i2-is2,i3,n)=extrap3(u,i1,i2,i3,n,is1,is2,is3)
+       limitedExtrapolation(u,i1,i2,i3,n,is1,is2,is3)
      end do
     end if
    endGhostLoops2d()
@@ -1397,6 +1445,10 @@ c ==============================================================================
 
   i3=gridIndexRange(0,2)
   if (gridType.eq.rectangular) then
+    ! -----------------------------------------------------------------------
+    ! --------------------- CARTESIAN FIXUP CORNER STRESS -------------------
+    ! -----------------------------------------------------------------------
+
     do side1=0,1
       i1=gridIndexRange(side1,axis1)
       do side2=0,1
@@ -1559,7 +1611,8 @@ c ==============================================================================
 
             end if   ! end bctype
 
-          elseif (boundaryCondition(side1,axis1).eq.tractionBC.and.boundaryCondition(side2,axis2).eq.displacementBC) then
+          elseif (boundaryCondition(side1,axis1).eq.tractionBC.and.boundaryCondition(side2,axis2).eq.displacementBC \
+                  .and. fixupTractionDisplacementCorners ) then
 
             !  Cartesian grid, mix bcs, case 1
             u1x=(u(i1+1,i2,i3,uc)-u(i1-1,i2,i3,uc))/(2.0*dx(0))
@@ -1687,7 +1740,8 @@ c ==============================================================================
 
             end if
 
-          elseif (boundaryCondition(side1,axis1).eq.displacementBC.and.boundaryCondition(side2,axis2).eq.tractionBC) then
+          elseif (boundaryCondition(side1,axis1).eq.displacementBC.and.boundaryCondition(side2,axis2).eq.tractionBC \
+                  .and. fixupTractionDisplacementCorners ) then
 
             ! Cartesian grid, mix bcs, case 2
             u1y=(u(i1,i2+1,i3,uc)-u(i1,i2-1,i3,uc))/(2.0*dx(1))
@@ -1831,6 +1885,10 @@ c              u(i1,i2,i3,s22c)=0.
     end do
 
   else    ! non-Cartesian cases
+
+    ! -----------------------------------------------------------------------
+    ! ------------------- CURVILINEAR FIXUP CORNER STRESS -------------------
+    ! -----------------------------------------------------------------------
 
     do side1=0,1
       i1=gridIndexRange(side1,axis1)
@@ -2088,7 +2146,8 @@ c              u(i1,i2,i3,s22c)=0.
 
             end if
 
-          elseif (boundaryCondition(side1,axis1).eq.tractionBC.and.boundaryCondition(side2,axis2).eq.displacementBC) then
+          elseif (boundaryCondition(side1,axis1).eq.tractionBC.and.boundaryCondition(side2,axis2).eq.displacementBC \
+                  .and. fixupTractionDisplacementCorners ) then
 
             ! non-Cartesian grid, mix bcs, case 1  (Should be okay for both new and old bcs)
             is=1-2*side1
@@ -2224,6 +2283,7 @@ c              an21=-is1*rx(i1,i2,i3,axis1,1)*aNormi1
               ! set displacement in the ghost point and set stress in the corner
               u(i1,i2-is2,i3,uc)=u(i1,i2+is2,i3,uc)-2.*is2*dr(1)*u1s
               u(i1,i2-is2,i3,vc)=u(i1,i2+is2,i3,vc)-2.*is2*dr(1)*u2s
+
               u(i1,i2,i3,s11c)=p(1,1)
               u(i1,i2,i3,s12c)=p(1,2)
               u(i1,i2,i3,s21c)=p(2,1)
@@ -2266,7 +2326,8 @@ c              an21=-is1*rx(i1,i2,i3,axis1,1)*aNormi1
 
             end if
 
-          elseif (boundaryCondition(side1,axis1).eq.displacementBC.and.boundaryCondition(side2,axis2).eq.tractionBC) then
+          elseif (boundaryCondition(side1,axis1).eq.displacementBC.and.boundaryCondition(side2,axis2).eq.tractionBC \
+                  .and. fixupTractionDisplacementCorners ) then
 
             ! non-Cartesian grid, mix bcs, case 2  (Should be okay for both new and old bcs)
             is=1-2*side2
@@ -2642,11 +2703,13 @@ c              an22=-is2*rx(i1,i2,i3,axis2,1)*aNormi2
 
   beginLoopOverSides(numGhost,numGhost)
 
-   if( boundaryCondition(side,axis).eq.displacementBC )then
+   if( boundaryCondition(side,axis).eq.displacementBC .and. computeTractionOnDisplacementBoundaries )then
 
     if( gridType.eq.rectangular )then
 
-     ! ********* DISPLACEMENT : Cartesian Grid **********
+     ! ****************************************************************
+     ! ********* DISPLACEMENT COMPATIBILITY : Cartesian Grid **********
+     ! ****************************************************************
 
      !      u(j1,j2,3:6)=stress (S11,S12,S21,S22)
      ! Use:
@@ -2742,11 +2805,15 @@ c              an22=-is2*rx(i1,i2,i3,axis2,1)*aNormi2
         endLoopsMask2d()
        end if
      end if
+
+
     else
+     ! ******************************************************************
+     ! ********* DISPLACEMENT COMPATIBILITY : Curvilinear Grid **********
+     ! ******************************************************************
 
      if( .false. ) then ! choice
 
-     ! *********** DISPLACEMENT : Curvilinear Grid ****************
 
      ! To compute (s11,s21) use: 
      !    (1)   D_r[ J*(rx,ry).(s11,s21)] + D_s[J*(sx,sy).(s11,s21)] = J * rho * u_tt  (normal component from momentum eqn)
@@ -5101,7 +5168,7 @@ c     --- local variables ----
 c      logical newBCs     this flag is not needed anymore
 
       ! this flag determines whether the secondary tangent stress assignment is done (default should be .false. ??)
-      logical assignTangentStress
+      logical assignTangentStress,fixupTractionDisplacementCorners,computeTractionOnDisplacementBoundaries
 
       ! boundary conditions parameters
       #Include "bcDefineFortranInclude.h"
@@ -5203,7 +5270,22 @@ c      end if
       numToPin             =ipar(14)
       materialFormat       =ipar(15)
 
+      ! ================================================================================
       assignTangentStress  =.false.  ! new option *dws* added 2015/07/13
+      ! assignTangentStress  =.true. ! 
+
+      ! Traction-displacement corners can have singularities in the traction.
+      ! By default we now turn off the corner compatibility for non-linear solids
+      fixupTractionDisplacementCorners = .true. ! *new* option *wdh* 2015/07/16 
+      if( bctype .eq. nonLinearBoundaryCondition )then
+        fixupTractionDisplacementCorners = .false. 
+      end if
+      ! Optionally compute the traction on ghost points next to displacement boundaries
+      computeTractionOnDisplacementBoundaries=.true.
+      if( bctype .eq. nonLinearBoundaryCondition )then
+        computeTractionOnDisplacementBoundaries = .true. !   .false. is worse than true
+      end if
+      ! ==================================================================================
 
       dx(0)                =rpar(0)
       dx(1)                =rpar(1)
@@ -5404,8 +5486,11 @@ c      ! '
                boundaryCondition(side,axis).ne.symmetry )then
             beginGhostLoops2d()  ! *wdh* 090928 include ghost pts in tangential direction
              if (mask(i1,i2,i3).ne.0) then  ! note: extrap outside interp pts too
-               u(i1-is1,i2-is2,i3,uc)=extrap3(u,i1,i2,i3,uc,is1,is2,is3)
-               u(i1-is1,i2-is2,i3,vc)=extrap3(u,i1,i2,i3,vc,is1,is2,is3)
+               ! u(i1-is1,i2-is2,i3,uc)=extrap3(u,i1,i2,i3,uc,is1,is2,is3)
+               ! u(i1-is1,i2-is2,i3,vc)=extrap3(u,i1,i2,i3,vc,is1,is2,is3)
+               ! *wdh* 2015/07/15 
+               limitedExtrapolation(u,i1,i2,i3,uc,is1,is2,is3)
+               limitedExtrapolation(u,i1,i2,i3,vc,is1,is2,is3)
              end if
             endGhostLoops2d()
 
@@ -5416,6 +5501,7 @@ c      ! '
               if (mask(i1,i2,i3).ne.0) then  
                 u(i1-is1,i2-is2,i3,uc)=u(i1+is1,i2+is2,i3,uc)
                 u(i1-is1,i2-is2,i3,vc)=u(i1+is1,i2+is2,i3,vc)
+!      write(*,'("START symmetry: j1,j2, u=",2i4,2e14.6)') i1-is1,i2-is2, u(i1-is1,i2-is2,i3,uc),u(i1+is1,i2+is2,i3,uc)
               end if
              endGhostLoops2d()
             else
@@ -5438,6 +5524,15 @@ c      ! '
         end if
 
 
+        !*******
+        !******* Extrapolation to the second ghost line ********
+        !******* 
+
+        ! ***NEW** wdh 2015/0715 
+        !  We need to set the second ghost line for (u,v) for computing the
+        !  the traction on the extended boundary (first ghost point) for nonlinear models
+        !   -- this could be optiomized, no need to do all points ---
+        extrapolateSecondGhostLineMacro()
 
         !*******
         !*****   Fill-in the boundary forcing array if they are not provided:
@@ -5573,7 +5668,6 @@ c       end do
         !******* Secondary Dirichlet conditions for the tangential components of stress (tractionBC only) ********
         !*******
 
-       assignTangentStress=.false.
        if (assignTangentStress) then
          assignSecondaryDirichletBoundaryConditionsTangentialStress()
        end if
@@ -5610,10 +5704,16 @@ c       end do
          if( boundaryCondition(side,axis).eq.tractionBC .or. boundaryCondition(side,axis).eq.slipWall )then
            beginGhostLoops2d()
              if (mask(i1,i2,i3).ne.0) then
-               u(i1-is1,i2-is2,i3,s11c)=extrap3(u,i1,i2,i3,s11c,is1,is2,is3)
-               u(i1-is1,i2-is2,i3,s12c)=extrap3(u,i1,i2,i3,s12c,is1,is2,is3)
-               u(i1-is1,i2-is2,i3,s21c)=extrap3(u,i1,i2,i3,s21c,is1,is2,is3)
-               u(i1-is1,i2-is2,i3,s22c)=extrap3(u,i1,i2,i3,s22c,is1,is2,is3)
+               ! u(i1-is1,i2-is2,i3,s11c)=extrap3(u,i1,i2,i3,s11c,is1,is2,is3)
+               ! u(i1-is1,i2-is2,i3,s12c)=extrap3(u,i1,i2,i3,s12c,is1,is2,is3)
+               ! u(i1-is1,i2-is2,i3,s21c)=extrap3(u,i1,i2,i3,s21c,is1,is2,is3)
+               ! u(i1-is1,i2-is2,i3,s22c)=extrap3(u,i1,i2,i3,s22c,is1,is2,is3)
+
+               limitedExtrapolation(u,i1,i2,i3,s11c,is1,is2,is3)
+               limitedExtrapolation(u,i1,i2,i3,s12c,is1,is2,is3)
+               limitedExtrapolation(u,i1,i2,i3,s21c,is1,is2,is3)
+               limitedExtrapolation(u,i1,i2,i3,s22c,is1,is2,is3)
+
              end if
            endGhostLoops2d()
           end if ! bc 
@@ -5645,7 +5745,8 @@ c       end do
            if (boundaryCondition(side1,axis1).eq.displacementBC.and.boundaryCondition(side2,axis2).gt.0) then
              if (mask(i1,i2,i3).ne.0) then
                do n=0,numberOfComponents-1
-                 u(i1-is1,i2,i3,n)=extrap3(u,i1,i2,i3,n,is1,0,0)
+                 ! u(i1-is1,i2,i3,n)=extrap3(u,i1,i2,i3,n,is1,0,0)
+                 limitedExtrapolation(u,i1,i2,i3,n,is1,0,0)
                end do
              end if
            end if
@@ -5655,7 +5756,8 @@ c       end do
            if (boundaryCondition(side2,axis2).eq.displacementBC.and.boundaryCondition(side1,axis1).gt.0) then
              if (mask(i1,i2,i3).ne.0) then
                do n=0,numberOfComponents-1
-                 u(i1,i2-is2,i3,n)=extrap3(u,i1,i2,i3,n,0,is2,0)
+                 ! u(i1,i2-is2,i3,n)=extrap3(u,i1,i2,i3,n,0,is2,0)
+                 limitedExtrapolation(u,i1,i2,i3,n,0,is2,0)
                end do
              end if
            end if
@@ -5664,7 +5766,8 @@ c       end do
            if (boundaryCondition(side1,axis1).gt.0.and.boundaryCondition(side2,axis2).gt.0) then
              if (mask(i1,i2,i3).ne.0) then
                do n=0,numberOfComponents-1
-                 u(i1-is1,i2-is2,i3,n)=extrap3(u,i1,i2,i3,n,is1,is2,0)
+                 ! u(i1-is1,i2-is2,i3,n)=extrap3(u,i1,i2,i3,n,is1,is2,0)
+                 limitedExtrapolation(u,i1,i2,i3,n,is1,is2,0)
                end do
              end if
            end if
@@ -5707,6 +5810,7 @@ c       end do
 
 ! TEMP TEMP TEMP TEMP
         assignPrimaryDirichletTypeBoundaryConditionsMacro()
+
         fixupCornerStressMacro()
 ! TEMP TEMP TEMP TEMP
 

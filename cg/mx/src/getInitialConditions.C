@@ -641,6 +641,7 @@ assignInitialConditions(int current, real t, real dt )
 // ===========================================================================================
 // ===========================================================================================
 {
+
     real time0=getCPU();
     
     if( true )
@@ -2852,8 +2853,8 @@ assignInitialConditions(int current, real t, real dt )
 
         	  if ( method==nfdtd )
         	  {
-          	    umh(I1,I2,I3,all,all)=0.;
-          	    ume(I1,I2,I3,all,all)=0.;
+          	    umh(Ih1,Ih2,Ih3,all,all)=0.;
+          	    ume(Ie1,Ie2,Ie3,all,all)=0.;
         	  }
 	  //            um(I1,I2,I3,ey)=0.;
 

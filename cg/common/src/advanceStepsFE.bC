@@ -951,7 +951,7 @@ takeTimeStepFE( real & t0, real & dt0, int correction, AdvanceOptions & advanceO
 
       checkArrays(" eulerStep, before move grids"); 
 
-      if( debug() & 1 )
+      if( debug() & 2 )
       {
 	printF("===== eulerStep: Move the grids at globalStepNumber=%i)\n",globalStepNumber);
       }

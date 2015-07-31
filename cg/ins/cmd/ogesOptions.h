@@ -23,6 +23,7 @@
 # $ogmgRtolcg :  relative tolerance for multigrid Coarse Grid solve
 # $ogmgAtolcg :  absolute tolerance for multigrid Coarse Grid solve
 # $ogmgDebugcg : debug for coarse grid solvers
+# $ogmgIlucgLevels : number of levels for ILU preconditioner
 # $ogmgIlucgFill : expected fillin factor for the ILU preconditioner for the multigrid Coarse Grid solve
 # $ogmgAutoChoose : automatically choose MG parameters: ogmgAutoChoose : 0=OFF, 1=ON, 2=robust
 # $ogmgSaveGrid=<gridName> : optionally save the MG grid with coarser levels for use with a future run
@@ -109,14 +110,22 @@ if( $ogmgAutoChoose eq "" ){ $ogmgAutoChoose=1; } #
    do not use locally optimal line omega
    # -- "direct" solver on coarse grid -- over-ride any pars from above
    Oges parameters
-     # *wdh* 2013/09/15: 
-     $ogmgCoarseGridSolver
+     # Do not overide coarse grid solver if autoChoose!=0  *wdh* 2013/09/15: 
+     # NOTE: choosing "best" here will reset ILU levels etc from auto-choose
+     if( $ogmgAutoChoose eq 0 ){ $ogmgOverideCoarseGridSolver=$ogmgCoarseGridSolver; }else{ $ogmgOverideCoarseGridSolver="#"; }
+     $ogmgOverideCoarseGridSolver
+     #
      if( $ogmgCoarseGridMaxIterations ne "" ){ $cmd="maximum number of iterations\n $ogmgCoarseGridMaxIterations"; }else{ $cmd="#"; }
      $cmd
      # 
      maximum allowable increase in the residual
        $ogesDtol
+     # optionally over-ride number of ilu levels for coarse grid
+     if( $ogmgIlucgLevels eq "" ){ $ogmgIlucgLevelsCmd="#"; }else{ $ogmgIlucgLevelsCmd="number of incomplete LU levels\n$ogmgIlucgLevels"; }
+     $ogmgIlucgLevelsCmd
      # number of incomplete LU levels
+     # incomplete LU expected fill
+     #  $ogmgIlucgFill
      #   $ogmgILUcg=5;
      #   $ogmgILUcg
      debug

@@ -545,6 +545,7 @@ operator=(const OgmgParameters& x)
   // ****************************** this may not be up to date -- check ****************
   cgPointer=x.cgPointer;
   ogesParameters=x.ogesParameters;
+
   smootherName=NULL;
 
   // for now we do not copy the LoadBalancer. 

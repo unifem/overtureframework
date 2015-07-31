@@ -222,7 +222,7 @@ setupGridFunctions()
   
   for( int i=1; i<numberOfGridFunctionsToUse; i++ )
   {
-    gf[i].updateToMatchGrid(gf[i].cg);  
+    gf[i].updateToMatchGrid(gf[i].cg);  // ***** THIS IS PROBABLY NOT NEEDED -- DONE ABOVE ****** 2015/07/24 
   }
   
 

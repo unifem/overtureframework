@@ -1,0 +1,131 @@
+(1) process GIS terrain data:
+
+  readTerrain -file=site300 -name=site300 -plotOption=1 -smooth=1 -yCrossSection=725
+
+
+(2) Generate some 2D grids (note: do not make too many multigrid levels on coarser grids as this
+      can lead to multigrid coarse grids with negative cells which gives teh solver trouble).
+
+Fourth-order:
+  ogen -noplot terrainGrid2d -site=site300y71.dat -prefix=site3002d -interp=e -order=4 -factor=2 -ml=1
+  ogen -noplot terrainGrid2d -site=site300y71.dat -prefix=site3002d -interp=e -order=4 -factor=4 -ml=3
+  ogen -noplot terrainGrid2d -site=site300y71.dat -prefix=site3002d -interp=e -order=4 -factor=8 -ml=4
+  ogen -noplot terrainGrid2d -site=site300y71.dat -prefix=site3002d -interp=e -order=4 -factor=16 -ml=4
+
+Second-order:
+  ogen -noplot terrainGrid2d -site=site300y71.dat -prefix=site3002d -interp=e -order=2 -factor=4 -ml=3
+  ogen -noplot terrainGrid2d -site=site300y71.dat -prefix=site3002d -interp=e -order=2 -factor=8 -ml=4
+
+
+(3) Run 2D simulation
+
+Fourth-order:
+  nohup $ins/bin/cgins -noplot terrain2d -g=site3002de8.order4.ml4 -nu=.1 -ad2=0 -ad4=1 -ts=afs -cfl=5. -slowStartCFL=2. -slowStartSteps=100 -slowStartRecomputeDt=10 -recomputeDt=50 -tf=300. -tp=20. -ts=afs -psolver=mg -debug=1 -show=terrain2da.show -go=go >! terrain2dO4G8.out &
+
+
+(4) Generate some 3D grids:
+
+ogen -noplot terrainGrid -interp=e -site=site300.dat -prefix=site300 -factor=2 -ml=1
+ogen -noplot terrainGrid -interp=e -site=site300.dat -prefix=site300 -factor=2 -ml=4
+
+ogen -noplot terrainGrid -interp=e -site=site300.dat -prefix=site300 -order=4 -factor=2 -ml=1
+ogen -noplot terrainGrid -interp=e -site=site300.dat -prefix=site300 -order=4 -factor=4 -ml=2
+
+(5) Run 3D simulation
+
+
+ -  Fourth-order example:
+srun -N4 -n32 -ppbatch $cginsp -noplot terrain -g=site300Gride4.order4.ml2 -nu=1. -ad2=0 -ad4=1 -ts=afs  -tf=100. -tp=5. -solver=mg -psolver=mg -numberOfParallelGhost=4 -cfl=2.5 -slowStartCFL=.2 -slowStartSteps=50 -slowStartRecomputeDt=5 -recomputeDt=20 -debug=3 -show="site300g4o4d.show" -go=go
+
+  - Restart:
+srun -N4 -n32 -ppbatch $cginsp -noplot terrain -g=site300Gride4.order4.ml2 -nu=1. -ad2=0 -ad4=1 -ts=afs  -tf=200. -tp=5. -solver=mg -psolver=mg -numberOfParallelGhost=4 -rtolp=5.e-4 -cfl=3.0 -recomputeDt=20 -debug=3 -restartSolution=-1 -restart="site300g4o4d.show" -show="site300g4o4e.show" -project=0 -go=go
+
+
+===================================================================================================
+===================================================================================================
+===================================================================================================
+OLD NOTES:
+
+
+
+
+
+
+readTerrain -file=AltamontPass -name=AltamontPass -plotOption=1 -long0=-121.643519 -lat0=37.724444 -xWidth=3000 -yWidth=3000
+
+ogen -noplot terrainGrid -interp=e -site=AltamontPass.dat -prefix=AltamontPass -factor=1
+
+matlab>> readTerrain -file=site300 -name=site300 -plotOption=2 -smooth=1 -yCrossSection=725 -xCrossSection=600
+
+File: bounds: [-121.561481,-121.548148]x [37.639259,37.652593] degrees longitude x latitude
+      centre: [-121.554815,37.645926] = [121o 33m 17.333334s,  37o 38m 45.333330s] [long,lat] degrees
+
+
+
+==== 2012/11/23 : runs for documentation terrain.tex
+
+
+AFS22 : Second-order
+nohup $ins/bin/cgins -noplot terrain2d -g=site3002de8.order2.ml4 -nu=.1 -ad2=1 -ad4=0 -ts=afs -cfl=4. -slowStartCFL=2. -slowStartSteps=100 -slowStartRecomputeDt=10 -recomputeDt=50 -tf=300. -tp=20. -ts=afs -psolver=mg -debug=1 -show=terrain2dG8O2.show -go=go >! terrain2dG8O2.out &
+
+AFS22 : Second-order
+nohup $ins/bin/cgins -noplot terrain2d -g=site3002de4.order2.ml3 -nu=1. -ad2=1 -ad4=0 -ts=afs -cfl=4. -slowStartCFL=2. -slowStartSteps=100 -slowStartRecomputeDt=10 -recomputeDt=50 -tf=300. -tp=20. -ts=afs -psolver=mg -debug=1 -show=terrain2dG4O2.show -go=go >! terrain2dG4O2.out &
+
+
+AFS24: fourth-order, finer grid: (decrease nu) 
+  nohup $ins/bin/cgins -noplot terrain2d -g=site3002de8.order4.ml4 -nu=.1 -ad2=0 -ad4=1 -ts=afs -cfl=5. -slowStartCFL=2. -slowStartSteps=100 -slowStartRecomputeDt=10 -recomputeDt=50 -tf=300. -tp=20. -ts=afs -psolver=mg -debug=1 -show=terrain2da.show -go=go >! terrain2dO4G8.out &
+
+  ** AFS24: fourth-order, coarse grid
+  cgins -noplot terrain2d -g=site3002de4.order4.ml3 -nu=1. -ad2=0 -ad4=1 -ts=afs -cfl=5. -slowStartCFL=2. -slowStartSteps=100 -slowStartRecomputeDt=10 -recomputeDt=50 -tf=300. -tp=20. -ts=afs -psolver=mg -debug=1 -show=terrain2dO4G4.show -go=go >! terrain2dO4G4.out &
+
+
+Fourth-order:
+  ogen -noplot terrainGrid2d -site=site300y71.dat -prefix=site3002d -interp=e -order=4 -factor=2 -ml=1
+  ogen -noplot terrainGrid2d -site=site300y71.dat -prefix=site3002d -interp=e -order=4 -factor=4 -ml=3
+  ogen -noplot terrainGrid2d -site=site300y71.dat -prefix=site3002d -interp=e -order=4 -factor=8 -ml=4
+  ogen -noplot terrainGrid2d -site=site300y71.dat -prefix=site3002d -interp=e -order=4 -factor=16 -ml=4
+
+Second-order:
+  ogen -noplot terrainGrid2d -site=site300y71.dat -prefix=site3002d -interp=e -order=2 -factor=4 -ml=3
+  ogen -noplot terrainGrid2d -site=site300y71.dat -prefix=site3002d -interp=e -order=2 -factor=8 -ml=4
+
+
+
+
+
+
+----------------
+
+
+readTerrain -file=site300 -name=site300 -plotOption=1 -smooth=1 -yCrossSection=725
+
+cp $cgwind/runs/site300/35707821.hdr site300.hdr
+cp $cgwind/runs/site300/35707821.flt site300.flt
+
+
+ yCrossSection=1.000000e+03, Choosing grid line iy=98, y=9.998081e+02 (yPrev=9.895008e+02,yNext=1.010115e+03)
+ xCrossSection=1.200000e+03, Choosing grid line ix=148, x=1.199375e+03 (xPrev=1.191216e+03,xNext=1.207534e+03)
+Saving file AltamontPassy98.dat with the 2d profile (for creating a nurbs in terrainGrid2d.cmd)
+Saving file AltamontPassx148.dat with the 2d profile (for creating a nurbs in terrainGrid2d.cmd)
+Saving file AltamontPass.dat with the 3d profile (for creating a nurbs in site300Grid.cmd)
+
+
+
+-- yCrossSection
+readTerrain -file=AltamontPass -name=AltamontPass -plotOption=1 -smooth=1 -long0=-121.643519 -lat0=37.724444 -xWidth=2000 -yWidth=2000 -yCrossSection=1000 -xCrossSection=1200
+
+
+readTerrain -file=AltamontPass -name=AltamontPass -plotOption=1 -smooth=1 -long0=-121.643519 -lat0=37.724444 -xWidth=3000 -yWidth=3000 
+
+readTerrain -file=AltamontPass -name=AltamontPass -plotOption=1 -smooth=0 -long0=-121.643519 -lat0=37.724444 -xWidth=2000 -yWidth=2000
+
+
+ readTerrain -file=AltamontPass -name=AltamontPass -plotOption=1 -smooth=0
+
+File: bounds: [-121.701019,-121.586019]x [37.666944,37.781944] degrees longitude x latitude
+      centre: [-121.643519,37.724444] [long,lat] degrees
+----------------------------------------
+-------- Actual Box Dimensions: --------
+Longitude: [0.0000,11014.6678] m
+Latitude:  [0.0000,12801.6672] m
+----------------------------------------

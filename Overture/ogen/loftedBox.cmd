@@ -69,8 +69,8 @@ GetOptions( "order=i"=>\$order,"factor=f"=> \$factor,"blf=f"=>\$blf,"refinementB
             "xac=f"=>\$xac,"xbc=f"=>\$xbc,"yac=f"=>\$yac,"ybc=f"=>\$ybc,"zac=f"=>\$zac,"zbc=f"=>\$zbc );
 * 
 if( $order eq 4 ){ $orderOfAccuracy="fourth order"; $ng=2; }\
-elsif( $order eq 6 ){ $orderOfAccuracy="sixth order"; $ng=4; }\
-elsif( $order eq 8 ){ $orderOfAccuracy="eighth order"; $ng=6; }
+elsif( $order eq 6 ){ $orderOfAccuracy="sixth order"; $ng=3; }\
+elsif( $order eq 8 ){ $orderOfAccuracy="eighth order"; $ng=4; }
 if( $interp eq "e" ){ $interpType = "explicit for all grids"; }else{ $interpType = "implicit for all grids"; }
 * 
 $suffix = ".order$order"; 
@@ -471,6 +471,7 @@ sub convertToNurbs\
    "exit"; \
 }
 #
+$numGhost=$ng+1; # N.B. to avoid negative volumes in the ghost points interpolate ghost too in Nurbs.
 convertToNurbs(loftedBoxBody,loftedBoxBodyNurbs,$angle,$rotationAxis,$xShift,$yShift,$zShift);
 $cmds
 convertToNurbs(loftedBoxBack,loftedBoxBackNurbs,$angle,$rotationAxis,$xShift,$yShift,$zShift);
@@ -532,6 +533,7 @@ generate an overlapping grid
 #  loftedBoxBody
 #  loftedBoxBack
 #  loftedBoxFront
+# -- use nurbs versions
   loftedBoxBodyNurbs
   loftedBoxBackNurbs
   loftedBoxFrontNurbs

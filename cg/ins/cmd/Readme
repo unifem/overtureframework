@@ -8,6 +8,8 @@
 
 4. For parallel examples set the shell variable:  set cginsp = ${CGBUILDPREFIX}/mp/bin/cgins
 
+5. *NEW* more exmaples can be found in the cg/ins/runs directory
+
 ------------------------------------------------------------------------------------------
 
 backStep.cmd : flow over a backward facing step.
@@ -18,7 +20,7 @@ benard.cmd : 2D Rayleigh Benard problem (Boussinesq flow)
 
 benard3d.cmd : 3D Rayleigh Benard problem (Boussinesq flow)
 
-boxInAChannel.cmd : flow past a (moving) box in a channel
+boxInAChannel.cmd : flow past a (moving) box in a channel (*NOTE*: Now located in ../runs/box)
 
 bubble.cmd : two-phase flow example: light or heavy bubble in a gravitation field
 

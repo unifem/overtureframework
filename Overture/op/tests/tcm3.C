@@ -485,9 +485,10 @@ main(int argc, char *argv[])
     extrapolate         = BCTypes::extrapolate,
     allBoundaries       = BCTypes::allBoundaries; 
 
-  MPI_Comm myComm=MPI_COMM_WORLD, myCommWorld=MPI_COMM_WORLD;  // Have PETSc use these communicators
   bool communicatorWasNewed=false;
   int pStart=-1, pEnd=-1;  // Use to distribute the grids in the CompositeGrid when we define a communicator
+#ifdef USE_PPP
+  MPI_Comm myComm=MPI_COMM_WORLD, myCommWorld=MPI_COMM_WORLD;  // Have PETSc use these communicators
   if( testCommunicator && solverType==OgesParameters::PETScNew )
   {
     // Here we test the PETSc solver when only some processors are involved in the parallel solve.
@@ -535,7 +536,7 @@ main(int argc, char *argv[])
   {
 
   }
-  
+#endif
 
   int numberOfSolvers = check ? 2 : 1;
   real worstError=0.;
@@ -689,11 +690,13 @@ main(int argc, char *argv[])
 
       Oges solver( cg );                     // create a solver
       
+      #ifdef USE_PPP
       if( solverType==OgesParameters::PETScNew )
       {
         Oges::OGES_COMM_WORLD=myCommWorld;
 	solver.setCommunicator( myComm );
       }
+      #endif 
       
       solver.set(OgesParameters::THEsolverType,solverType); 
 
@@ -956,6 +959,7 @@ main(int argc, char *argv[])
 
   }  // end sparseSolver
 
+#ifdef USE_PPP
   if( communicatorWasNewed )
   {
     if( myComm !=MPI_COMM_NULL )
@@ -963,6 +967,7 @@ main(int argc, char *argv[])
     if( myCommWorld !=MPI_COMM_NULL )
       MPI_Comm_free(&myCommWorld);
   }
+#endif
   
   fflush(0);
   printF("\n\n ************************************************************************************************\n");

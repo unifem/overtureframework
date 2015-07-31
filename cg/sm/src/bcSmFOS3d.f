@@ -155,7 +155,8 @@ c     --- local variables ----
         logical setCornersWithTZ
 c      logical newBCs     this flag is not needed anymore
         ! this flag determines whether the secondary tangent stress assignment is done (default should be .false. ??)
-        logical assignTangentStress
+        logical assignTangentStress,fixupTractionDisplacementCorners,
+     & computeTractionOnDisplacementBoundaries
         ! boundary conditions parameters
 ! define BC parameters for fortran routines
 ! boundary conditions
@@ -256,7 +257,21 @@ c      end if
         projectInterface     =ipar(13)
         numToPin             =ipar(14)
         materialFormat       =ipar(15)
+        ! ================================================================================
         assignTangentStress  =.false.  ! new option *dws* added 2015/07/13
+        ! assignTangentStress  =.true. ! 
+        ! Traction-displacement corners can have singularities in the traction.
+        ! By default we now turn off the corner compatibility for non-linear solids
+        fixupTractionDisplacementCorners = .true. ! *new* option *wdh* 2015/07/16
+        if( bctype .eq. nonLinearBoundaryCondition )then
+          fixupTractionDisplacementCorners = .false.
+        end if
+        ! Optionally compute the traction on ghost points next to displacement boundaries
+        computeTractionOnDisplacementBoundaries=.true.
+        if( bctype .eq. nonLinearBoundaryCondition )then
+          computeTractionOnDisplacementBoundaries = .true. !   .false. is worse than true
+        end if
+        ! ==================================================================================
         dx(0)                =rpar(0)
         dx(1)                =rpar(1)
         dx(2)                =rpar(2)

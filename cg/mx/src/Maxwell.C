@@ -506,7 +506,7 @@ vertexArrayIsNeeded( int grid ) const
                            forcingOption==planeWaveBoundaryForcing ||  // **************** fix this 
                            initialConditionOption==gaussianPlaneWave || 
                            (initialConditionOption==planeWaveInitialCondition 
-			    && method!=nfdtd  && method!=sosup  ) ||  // for ABC + incident field fix 
+			      && method!=nfdtd  && method!=sosup  ) ||  // for ABC + incident field fix 
                            initialConditionOption==planeMaterialInterfaceInitialCondition ||
                            initialConditionOption==annulusEigenfunctionInitialCondition  ||
                            method==yee || 

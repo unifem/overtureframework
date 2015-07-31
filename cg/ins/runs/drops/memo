@@ -1,3 +1,26 @@
+**************************************
+****** July 25, 2015 -- test parallel for Ryo ---
+
+===================================================
+====== NOTE AFS : USE  -numberOfParallelGhost=4
+===================================================
+
+
+
+
+
+AFS22-MG   **TROUBLE**  at processor boundaries t=.03 --> USE PARALLEL GHOST=4 
+mpirun -np 2 $cginsp -noplot drops -g=dropsGride16.order2.hdf -nu=.005 -tp=.001 -tf=5. -inflowVelocity=.7 -forceLimit=100. -ts=afs -solver=mg -psolver=mg -freqFullUpdate=1 -d=.05 -show=drops16f.show -rtolp=1.e-16 -atolp=1.e-2 -debug=3 -cfl=2.  -numberOfParallelGhost=4 -go=og
+
+PARALLEL: -np=2 : OK, -np=4 OK,  -np=8 OK [for short times]
+mpirun -np 8 $cginsp -noplot drops -g=dropsGride16.order2.hdf -nu=.005 -tp=.001 -tf=5. -inflowVelocity=.7 -forceLimit=100. -solver=mg -psolver=mg -freqFullUpdate=1 -d=.05 -show=drops16f.show -rtolp=1.e-16 -atolp=1.e-2 -debug=3 -cfl=.75 -go=og
+
+
+
+cgins -noplot drops -g=dropsGride16.order2.hdf -nu=.005 -tp=.001 -tf=5. -inflowVelocity=.7 -forceLimit=100. -solver=mg -psolver=mg -freqFullUpdate=1 -d=.05 -show=drops16f.show -rtolp=1.e-16 -atolp=1.e-2 -debug=3 -cfl=.75 -go=og
+
+
+
 ==== 2015/05/31
 
 

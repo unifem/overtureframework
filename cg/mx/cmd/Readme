@@ -27,7 +27,7 @@ interface.cmd : (now located in cg/mx/runs/interface) test for material interfac
 
 knifeEdge : plane wave past a knife edge slit.
 
-lattice.cmd : plane wave hitting a lattice of 2d dielectric cylinders.
+lattice.cmd : (now in cgmx/runs/lattice) plane wave hitting a lattice of 2d dielectric cylinders.
 
 pml.cmd : test the perfectly matched layer boundary condition.
 

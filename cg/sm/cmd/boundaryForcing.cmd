@@ -62,8 +62,13 @@ $order = 2; $go="halt";
 $force="Gaussian"; 
 $tractionForce=-1.; 
 # 
-$godunovType=0;
-$stressRelaxation=4; $relaxAlpha=.1; $relaxDelta=.1; $tangentialStressDissipation=1.;
+$godunovType=0; $godunovOrder=2; 
+$ad2=0.; $ad2dt=0.; $ad4=0.; $ad4dt=0.;  
+$stressRelaxation=4; $relaxAlpha=.5; $relaxDelta=.5;
+$tangentialStressDissipation=.5; $tangentialStressDissipation1=.5; # new 
+#
+$slopeLimiter=0;  # slope limiter for Godunov method
+$characteristicUpwinding=0; 
 *
 * ----------------------------- get command line arguments ---------------------------------------
 GetOptions( "g=s"=>\$grid,"tf=f"=>\$tFinal,"degreex=i"=>\$degreex, "degreet=i"=>\$degreet,"diss=f"=>\$diss,\
@@ -72,8 +77,9 @@ GetOptions( "g=s"=>\$grid,"tf=f"=>\$tFinal,"degreex=i"=>\$degreex, "degreet=i"=>
   "mu=f"=>\$mu,"lambda=f"=>\$lambda,"dtMax=f"=>\$dtMax, "cons=i"=>\$cons,"dsf=f"=>\$dsf,"x0=f"=>\$x0,"y0=f"=>\$y0,\
   "ts=s"=>\$ts,"rho=f"=>\$rho,"force=s"=>\$force,"bca=s"=>\$bca,"godunovType=i"=>\$godunovType,\
    "stressRelaxation=f"=>\$stressRelaxation,"relaxAlpha=f"=>\$relaxAlpha,"relaxDelta=f"=>\$relaxDelta, \
-   "tangentialStressDissipation=f"=>\$tangentialStressDissipation,"tractionForce=f"=>\$tractionForce );
-   );
+   "tangentialStressDissipation=f"=>\$tangentialStressDissipation,"tractionForce=f"=>\$tractionForce,\
+   "slopeLimiter=i"=>\$slopeLimiter,"characteristicUpwinding=i"=>\$characteristicUpwinding,\
+   "ad4=f"=>\$ad4,"ad4dt=f"=>\$ad4dt,"ad2=f"=>\$ad2,"ad2dt=f"=>\$ad2dt,"godunovOrder=i"=>\$godunovOrder );
 * -------------------------------------------------------------------------------------------------
 if( $solver eq "best" ){ $solver="choose best iterative solver"; }
 if( $tz eq "poly" ){ $tz="polynomial"; }else{ $tz="trigonometric"; }
@@ -136,7 +142,16 @@ SMPDE:PDE type for Godunov $godunovType
 SMPDE:stressRelaxation $stressRelaxation
 SMPDE:relaxAlpha $relaxAlpha
 SMPDE:relaxDelta $relaxDelta
-SMPDE:tangential stress dissipation $tangentialStressDissipation
+SMPDE:tangential stress dissipation $tangentialStressDissipation  $tangentialStressDissipation1
+#
+SMPDE:Godunov order of accuracy $godunovOrder
+SMPDE:slope limiting for Godunov $slopeLimiter
+SMPDE:slope upwinding for Godunov $characteristicUpwinding
+#
+SMPDE:artificial diffusion $ad2 $ad2 $ad2 $ad2 $ad2 $ad2 $ad2 $ad2 $ad2 $ad2  $ad2 $ad2 $ad2
+SMPDE:second-order dt dissipation $ad2dt $ad2dt $ad2dt $ad2dt $ad2dt $ad2dt $ad2dt $ad2dt $ad2dt $ad2dt  $ad2dt $ad2dt $ad2dt
+SMPDE:fourth-order artificial diffusion $ad4 $ad4 $ad4 $ad4 $ad4 $ad4 $ad4 $ad4 $ad4 $ad4  $ad4 $ad4 $ad4 
+SMPDE:fourth-order dt dissipation $ad4dt $ad4dt $ad4dt $ad4dt $ad4dt $ad4dt $ad4dt $ad4dt $ad4dt $ad4dt  $ad4dt $ad4dt $ad4dt
 #
 # these next are for the hemp code:
 SMPDE:Rg $Rg
@@ -151,6 +166,7 @@ $bc
 $cmd="#"; 
 if( $bca eq "symmetry" ){ $cmd="bcNumber3=symmetry\n bcNumber4=symmetry\n"; }
 if( $bca eq "slipWall" ){ $cmd="bcNumber3=slipWall\n bcNumber4=slipWall\n"; }
+if( $bca eq "displacement" ){ $cmd="bcNumber1=tractionBC\n bcNumber3=displacementBC\n bcNumber4=displacementBC\n"; }
 $cmd
 * all=tractionBC
 * all=slipWall
@@ -161,6 +177,39 @@ $backGround(1,0)=tractionBC, userDefinedBoundaryData
  if( $force eq "traction" ){ $cmd="traction forcing\n $tractionForce 0. 0."; }
  if( $force eq "pressure" ){ $cmd="pressure force\n 1."; }
  $cmd
+ done
+done  
+*
+displacement scale factor $dsf
+dissipation $diss
+order of dissipation $dissOrder
+cfl $cfl
+use conservative difference $cons
+* 
+plot divergence 1
+plot vorticity 1
+initial conditions options...
+if( $pv eq "hemp" ){ $ic="hempInitialCondition\n OBIC:Hemp initial condition option: default\n"; }
+$ic 
+* gaussianPulseInitialCondition
+* Gaussian pulse: 10 2 $exponent $x0 $y0 $z0 (beta,scale,exponent,x0,y0,z0)
+close initial conditions options
+*
+#*********************************
+show file options...
+  OBPSF:compressed
+  OBPSF:open
+    $show
+ # OBPSF:frequency to save 
+  OBPSF:frequency to flush 100
+exit
+#**********************************
+debug $debug
+*
+continue
+* 
+$go
+
 #
 #-  Gaussian forcing
 #-     -1. 50. 1. .5 0. 1. 3.
@@ -195,38 +244,6 @@ $backGround(1,0)=tractionBC, userDefinedBoundaryData
 *     test deform
 *   done
 * --- 
-done  
-*
-displacement scale factor $dsf
-dissipation $diss
-order of dissipation $dissOrder
-cfl $cfl
-use conservative difference $cons
-* 
-plot divergence 1
-plot vorticity 1
-initial conditions options...
-if( $pv eq "hemp" ){ $ic="hempInitialCondition\n OBIC:Hemp initial condition option: default\n"; }
-$ic 
-* gaussianPulseInitialCondition
-* Gaussian pulse: 10 2 $exponent $x0 $y0 $z0 (beta,scale,exponent,x0,y0,z0)
-close initial conditions options
-*
-#*********************************
-show file options...
-  OBPSF:compressed
-  OBPSF:open
-    $show
- # OBPSF:frequency to save 
-  OBPSF:frequency to flush 100
-exit
-#**********************************
-debug $debug
-*
-continue
-* 
-$go
-
 
 
 erase

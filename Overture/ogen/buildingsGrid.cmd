@@ -420,8 +420,8 @@ generate an overlapping grid
 #  roundedCylinderTop3
 #  roundedCylinderGrid3
 #
-#-  polyBuilding1
-#-  polyTopBox1
+  polyBuilding1
+  polyTopBox1
 #-  polyBuilding2
 #-  polyTopBox2
 #-  polyBuilding3

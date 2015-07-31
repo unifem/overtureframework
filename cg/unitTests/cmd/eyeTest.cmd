@@ -1,0 +1,3 @@
+plot
+save file
+exit

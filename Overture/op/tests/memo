@@ -1,0 +1,110 @@
+****** July 1, 2015
+
+mpirun -np 4 tcm3 square32.order2.hdf -solver=petsc -testCommunicator
+
+
+
+
+mpirun -np 2 tcm3 square32.order2.hdf -solver=petsc
+
+PETSC TEST ROUTINE: 
+mpiexec -n 2  ex2
+
+ mpiexec -n 2 ex2
+Norm of error 0.000591671 iterations 118, m=101, n=101
+
+****** June 30, 2015  --  TEST PETSc communicator
+
+PETSC TEST ROUTINE: 
+mpiexec -n 4  ex4
+
+mpiexec -n 2 xterm -e gdb ./tcm3 
+run square32.order2.hdf -solver=petsc -testCommunicator
+
+
+mpirun -np 2 tcm3 square32.order2.hdf -solver=petsc
+mpirun -np 1 tcm3 square32.order2.hdf -solver=petsc
+
+
+
+
+*** 2015/05/16 -- more tests on variable coefficients
+
+CIC: 
+tcm3 cice2.order2 -mixed
+
+cice4
+grid=0 (square) max. rel. err=7.683513e-06 (7.683513e-06 with ghost)
+grid=1 (Annulus) max. rel. err=4.251094e-05 (4.251094e-05 with ghost)
+
+cice2:
+ grid=0 (square) max. rel. err=4.763309e-05 (4.763309e-05 with ghost)
+ grid=1 (Annulus) max. rel. err=2.225289e-04 (2.225289e-04 with ghost)
+
+
+tcm3 square20pn.order2 -mixed
+
+** square + MIXED BC: exact:
+tcm3 square8.order2 -mixed
+ grid=0 (square) max. rel. err=6.145234e-16 (9.217852e-16 with ghost)
+yale/square8.order2///mixed: error                                : err = 6.15e-16, cpu=1.7e-05(s)  
+
+
+
+
+tcm3 cice2.order2  
+
+*** tcm3 square20.order2
+
+
+.....solver: size = 2.38e+05 (bytes), grid-pts=625, reals/grid-pt=47.51 
+ grid=0 (square) max. rel. err=1.255672e-15 (1.255672e-15 with ghost)
+Maximum relative error with dirichlet bc's= 1.255672e-15 (1.255672e-15 with ghost)
+yale/square20.order2///dirichlet: error                                                     : err = 1.26e-15, cpu=2.9e-05(s)  
+Oges::allocateWorkSpace: numberOfNonzeros=3366 fillinRatio=2.000000e+01
+allocateWorkSpace: numberOfEquations=625, nsp = 67320, fillinRatio= 20, numberOfNonzeros = 3366
+residual=0.00e+00, time for 1st solve of the Neumann problem = 1.77e-03 (iterations=0)
+residual=0.00e+00, time for 2nd solve of the Neumann problem = 3.10e-05 (iterations=0)
+ grid=0 (square) max. rel. err=4.101861e-15 (4.185572e-15 with ghost)
+Maximum relative error with neumann bc's= 4.101861e-15
+yale/square20.order2///neumann: error                                                       : err = 4.10e-15, cpu=3.1e-05(s)  
+
+
+
+*** 2014/05/18 -- test variable coefficient BC's
+
+tbcc square16.order2 | grep mixed
+square5/square/order=2/std/mixed (var-coeff)          : err = 5.33e-15, cpu=1.5e-04(s)  
+cic/square/order=2/std/mixed (var-coeff)              : err = 1.24e-14, cpu=3.8e-04(s)  
+cic/Annulus/order=2/std/mixed (var-coeff)             : err = 6.22e-15, cpu=1.8e-04(s)  
+sib/box/order=2/std/mixed (var-coeff)                 : err = 1.42e-14, cpu=1.1e-02(s)  
+sib/north-pole/order=2/std/mixed (var-coeff)          : err = 4.44e-15, cpu=9.1e-04(s)  
+sib/south-pole/order=2/std/mixed (var-coeff)          : err = 4.22e-15, cpu=9.0e-04(s)  
+
+checkop.p tbcc
+Running: ./tbcc  > tbcc.out
+ compare files tbcc.dp.check.new and tbcc.dp.check 
+smartDiff: files tbcc.dp.check.new and tbcc.dp.check agree.
+      ...tbcc appears to be correct
+==================================================
+============ Test apparently successful ==========
+==================================================
+
+
+
+
+tbc square16.order2
+
+
+
+Regression test for tbc : 
+checkop.p tbc 
+
+running tbc...
+Running: ./tbc  > tbc.out
+ compare files tbc.dp.check.new and tbc.dp.check 
+smartDiff: files tbc.dp.check.new and tbc.dp.check agree.
+      ...tbc appears to be correct
+==================================================
+============ Test apparently successful ==========
+==================================================

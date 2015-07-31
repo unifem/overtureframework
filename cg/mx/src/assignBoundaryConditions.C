@@ -56,7 +56,7 @@ extern "C"
   void pmlMaxwell(const int&nd,
             const int&nd1a,const int&nd1b,const int&nd2a,const int&nd2b,const int&nd3a,const int&nd3b,
             const int&ndf1a,const int&ndf1b,const int&ndf2a,const int&ndf2b,const int&ndf3a,const int&ndf3b,
-            const int & gid,
+            const int & gid, const int & dim,
             const real&um, const real&u, const real&un, 
             const int&ndra1a,const int&ndra1b,const int&ndra2a,const int&ndra2b,const int&ndra3a,const int&ndra3b,
             const real&vram, const real&vra, const real&vran, const real&wram, const real&wra, const real&wran, 
@@ -500,6 +500,13 @@ assignBoundaryConditions( int option, int grid, real t, real dt, realMappedGridF
   //                          method==yee || 
   //                          method==dsi );
     bool centerNeeded = vertexArrayIsNeeded( grid );
+
+  // if( initialConditionOption==planeWaveInitialCondition && adjustFarFieldBoundariesForIncidentField(grid) )
+  // {
+  //   centerNeeded=true; // *FIX ME* 
+  // }
+    
+
     if( centerNeeded )
     {
         if( debug & 1 && t<2.*dt ) 
@@ -1672,7 +1679,7 @@ assignBoundaryConditions( int option, int grid, real t, real dt, realMappedGridF
             {
         // use optimised boundary conditions
                 int ipar[40];
-                real rpar[30];
+                real rpar[40];
                 int gridType = isRectangular ? 0 : 1;
                 int orderOfExtrapolation=orderOfAccuracyInSpace+1;  // not used
                 int useWhereMask=false;
@@ -1727,7 +1734,7 @@ assignBoundaryConditions( int option, int grid, real t, real dt, realMappedGridF
                 ipar[28]=myid;
           // apply BCs to field variables
                     ipar[29]=0;  // fieldOption
-                rpar[0]=dx[0];                
+                rpar[0]=dx[0];       // for Cartesian grids          
                 rpar[1]=dx[1];                
                 rpar[2]=dx[2];                
                 rpar[3]=mg.gridSpacing(0);
@@ -1752,6 +1759,9 @@ assignBoundaryConditions( int option, int grid, real t, real dt, realMappedGridF
                 rpar[23]=pwc[3];
                 rpar[24]=pwc[4];
                 rpar[25]=pwc[5];
+                rpar[26]=xab[0][0];   // for Cartesian grids     
+                rpar[27]=xab[0][1];
+                rpar[28]=xab[0][2];
         // fprintf(pDebugFile,"**** pu= %i, %i...\n",&u,pu);
             #ifdef USE_PPP 
                 realSerialArray uu;    getLocalArrayWithGhostBoundaries(u,uu);
@@ -2072,6 +2082,7 @@ assignBoundaryConditions( int option, int grid, real t, real dt, realMappedGridF
                                     		    ff.getBase(1),ff.getBound(1),
                                     		    ff.getBase(2),ff.getBound(2),
                                     		    *gid.getDataPointer(),
+                                    		    *dim.getDataPointer(),
                                     		    *umptr, *uuptr, *unptr, 
           		    // vra (left)
                                     		    vra.getBase(0),vra.getBound(0),vra.getBase(1),vra.getBound(1),vra.getBase(2),vra.getBound(2),
@@ -2160,7 +2171,7 @@ assignBoundaryConditions( int option, int grid, real t, real dt, realMappedGridF
                 {
           // use optimised boundary conditions
                     int ipar[40];
-                    real rpar[30];
+                    real rpar[40];
                     int gridType = isRectangular ? 0 : 1;
                     int orderOfExtrapolation=orderOfAccuracyInSpace+1;  // not used
                     int useWhereMask=false;
@@ -2208,7 +2219,7 @@ assignBoundaryConditions( int option, int grid, real t, real dt, realMappedGridF
                     ipar[28]=myid;
             // apply BCs to time-derivatives
                         ipar[29]=1;  // fieldOption
-                    rpar[0]=dx[0];                
+                    rpar[0]=dx[0];       // for Cartesian grids          
                     rpar[1]=dx[1];                
                     rpar[2]=dx[2];                
                     rpar[3]=mg.gridSpacing(0);
@@ -2233,6 +2244,9 @@ assignBoundaryConditions( int option, int grid, real t, real dt, realMappedGridF
                     rpar[23]=pwc[3];
                     rpar[24]=pwc[4];
                     rpar[25]=pwc[5];
+                    rpar[26]=xab[0][0];   // for Cartesian grids     
+                    rpar[27]=xab[0][1];
+                    rpar[28]=xab[0][2];
           // fprintf(pDebugFile,"**** pu= %i, %i...\n",&u,pu);
                 #ifdef USE_PPP 
                     realSerialArray uu;    getLocalArrayWithGhostBoundaries(u,uu);
@@ -2553,6 +2567,7 @@ assignBoundaryConditions( int option, int grid, real t, real dt, realMappedGridF
                                         		    ff.getBase(1),ff.getBound(1),
                                         		    ff.getBase(2),ff.getBound(2),
                                         		    *gid.getDataPointer(),
+                                        		    *dim.getDataPointer(),
                                         		    *umptr, *uuptr, *unptr, 
             		    // vra (left)
                                         		    vra.getBase(0),vra.getBound(0),vra.getBase(1),vra.getBound(1),vra.getBase(2),vra.getBound(2),

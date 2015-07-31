@@ -1318,7 +1318,7 @@ sizeOf( FILE *file /* =NULL */ ) const
 }
 
 //\begin{>>OgmgInclude.tex}{\subsection{setOgmgParameters}}
-int  Ogmg::
+int Ogmg::
 setOgmgParameters(OgmgParameters & parameters_ )
 //==================================================================================
 // /Description:
@@ -1330,6 +1330,7 @@ setOgmgParameters(OgmgParameters & parameters_ )
 //  assert( initialized );
 //  parameters_.initializeGridDependentParameters(cg);
   parameters=parameters_;
+
   return 0;
 }
 
@@ -1488,6 +1489,7 @@ solve( realCompositeGridFunction & u, realCompositeGridFunction & f)
   
   assert(parameters.gridDependentParametersInitialized);
 
+  
   directSolver.setOgesParameters(parameters.ogesParameters);  // why is this done here ? do only once?
 
   CompositeGrid & m = *u.getCompositeGrid();

@@ -1,0 +1,101 @@
+\subsubsection{Change Parameters descriptions}
+ 
+\newlength{\changeParametersIncludeArgIndent}
+ 
+ Choosing the ``{\tt change parameters}'' menu option from the main Ogen menu will 
+ allow one to make changes to the various parameters that affect the overlapping grid.
+ 
+ \begin{description}
+  \item[interpolation type] : There are two types of interpolation,
+     {\bf explicit} and {\bf implicit}.  {\bf Explicit} interpolation means
+     that a point that is interpolated will only use values on other grids
+     that are not interpolation points themselves.  This means that will
+     the default 3 point interpolation the amount of overlap must be at
+     least $1.5$ grid cells wide. With explicit interpolation the
+     interpolation equations can be solved explicitly (and this faster).
+     
+     With {\bf implicit} interpolation the points used in the interpolation
+     stencil may themselves be interpolation points. This means  
+     that will the default 3 point interpolation the amount of overlap must be at least
+     $.5$ grid cells wide. Thus {\bf implicit interpolation is more likely to give a valid grid} since
+     it requires less overlap. With implicit interpolation the interpolation equations are a coupled
+     system that must be solved. This is a bit slower but the Overture interpolation function handles
+     this automatically.
+  \item[ghost points] : You can increase the number of ghost points on each grid. Some solvers require
+      more ghost points. This will have no effect on the overlapping grid.
+  \item[cell centering] : The grid can be made {\bf cell centered} in which case cell centers are
+      interpolated from other cell centers. By default the grid is {\bf vertex centered} whereby vertices
+      are interpolated from vertices.
+  \item[maximize overlap] Maximize the overlap between grids. The default is to minimize the overlap.
+  \item[minimize overlap] : minimize the overlap between grids. This is the default.
+  \item[minimum overlap] : specify the minimum allowable overlap between grids. By default this is .5
+       times a grid spacing. 
+  \item[mixed boundary] : define a boundary that is partly a physical boundary and partly an interpolation
+     boundary. use this option to define a 'c-grid' or an 'h-grid'.
+  \item[interpolate ghost] : interpolate ghost points on interpolation boundaries.
+  \item[do not interpolate ghost] : interpolate points on the boundary of interpolation boundaries.
+  \item[prevent hole cutting] : By default, the overlapping grid
+      generator will use any physical boundary (a side of a grid with a
+      positive {\tt boundaryCondition} to try and cut holes in any other
+      grid that lies near the physical boundary. Thus in the ``cylinder in a
+      channel example'' section (\ref{sec:cylinderInAChannel}) the inner
+      boundary of the annulus cuts a hole in the rectangular grid.
+      Sometimes, as in the ``inlet outlet'' example, section
+      (\ref{sec:inletOutlet}), one does not want this to happen. In this
+      case it is necessary to explicitly specify which grids are allowed to
+      cut holes in which other grids. 
+  \item[allow hole cutting] : specify which grids can have holes cut by a given grid.
+  \item[manual hole cutting] : specify a block of points to be cut as a hole. Usually used with
+      phantom hole cutting as described next.
+  \item[phantom hole cutting] : a boundary can be specified to be a phantom hole cutter. Use this 
+    option together with manual hole cutting. A phantom hole cutting boundary will proceed as if cutting
+    a hole but it will only mark the interpolation points at the hole boundary and not cut any holes.
+  \item[prevent interpolation] : prevent interpolation between grids. By default all grids may interpolate
+      from all others. 
+  \item[allow interpolation] : allow interpolation between grids.  By default all grids may interpolate
+      from all others. 
+  \item[allow holes to be cut]: specify which grids cut holes in a given grid.
+ %\item[shared boundary tolerance] : The shared boundary flag (\ref{sec:share})
+ %      is used to indicate when two different component grids share a common boundary. This allows
+ %      a boundary point on one grid to interpolate from the boundary of the other grid
+ %      even if the point is slightly outside the other grid. The {\bf shared boundary tolerance}
+ %      is a relative measure of much outside the boundary a grid point is allowed to be.
+ %      By default the value is $.1$ (unit square cooridnates) 
+ %      which means that a point is allowed to deviate by $.1$ times
+ %      the width in the normal direction of the boundary grid.
+  \item[shared boundary tolerances] : Specify the tolerances which determine when points interpolate
+    on shared boundaries. 
+  \item[specify shared boundaries] : explicitly specify where a portion of one boundary should
+       share a boundary with the side of another grid.
+  \item[maximum distance for hole cutting]: specify the maximum distance from a given face on a given
+         grid  from which holes can be cut (ony applies to physical boundaries). By default this
+       distance is $\infty$. You may have to specify this value for thin objects such as the sail
+       example to prevent hole points from being cut too far from the sail surface.
+  \item[non-cutting boundary points] : specify parts of physical boundaries that should not cut holes.
+            This option should be rarely used.
+ %  \item[non-conforming] :
+  \item[order of accuracy] : Choose an order of accuracy, 2nd-order or fourth-order. This
+     option will then assign that {\tt interpolationWidth} and {\tt discretizationWidth}
+     to be $3$ for 2nd-order or $5$ for fourth-order. You can also explicitly change
+     the {\tt interpolationWidth} and {\tt discretizationWidth} instead of using this option.
+  \item[interpolation width] : By default the interpolation width is 3 which means that the
+     interpolation stencil is 3 points wide in each direction. The interpolation width may
+     be changed to any integer greater than or equal to 1.
+  \item[discretization width] : The discretization width is by default 3 and defines the width
+     of the expected discretization stencil used by a solver. The discretization width can
+     be an odd integer greater than or equal to 3. A fourth-order accurate solver may require
+     that the discretization width be incraeased to 5. In this case 2 lines of interpolation
+     points will be required.
+  \item[boundary discretization width] : The one-side discretization width used at a boundary
+      is by default 3. This means that a discretization point on the boundary will have 2 valid
+      interior points next to it in the normal direction.
+  \item[shared sides may cut holes] : cg.sharedSidesMayCutHoles(g1,g2)=false by default. 
+     Normally a physical boundary on grid g1 
+     with sharedBoundaryFlag=share1 will not cut holes in grid g2 if g2 has a sharedBoundaryFlag
+     equal to share1 (on any of it sides). In some cases (such as the end.cmd example) this
+     option should be set to true to allow a shared side to cut holes in places where the
+     boundaries are not the same.
+  \item[specify a domain] assign grids to a separate domain
+  \item[reset domains] assign all grids back to domain 0
+  \item[show parameter values] : The current parameter values will be printed.
+ \end{description}

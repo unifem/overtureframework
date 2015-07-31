@@ -1,0 +1,22 @@
+---- 2014/08/15 -- test eval as nurbs
+
+
+
+
+---- 2014/08/08 -- test parallel version
+
+mpiexec -n 1 $hypep b.cmd
+
+mpiexec -n 1 xterm -e gdb "$hypep b.cmd"
+
+mpiexec -n 1 $hypep line2d.cmd
+
+
+//
+// mpiexec -n 1 $hypep
+// mpiexec -n 1 xterm -e gdb $hypep
+// 
+// -- run with xterms in gdb but suppress some xterms:
+// mpiexec -n 1 xterm -e gdb $hypep : -n 3 $hypep
+// mpiexec -n 1 xterm -e gdb $hypep : -n 2 $hypep : -n 1 xterm -e gdb $hypep
+// mpiexec -n 1 $hypep : -n 1 xterm -e gdb $hypep : -n 1 $hypep : -n 1 $hypep

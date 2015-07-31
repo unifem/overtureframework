@@ -1170,7 +1170,11 @@ plot(int current, real t, real dt )
     assert( cgp!=NULL );
     CompositeGrid & cg = *cgp;
 
-    GenericGraphicsInterface & ps = *gip;
+  //  GenericGraphicsInterface & ps = *gip;
+    GenericGraphicsInterface *& pps = gip; 
+    if( pps==NULL )
+        return 0;
+    GenericGraphicsInterface & ps = *pps;
 
     char buff[100];
     psp.set(GI_TOP_LABEL,sPrintF(buff,"Maxwell %s%i%i: t=%6.2e ",(const char *)methodName,
@@ -1332,22 +1336,49 @@ plot(int current, real t, real dt )
 
 
         bool programHalted=false;
-        if( plotOptions & 2 )
+        int checkForBreak=false;
+        const int processorForGraphics = pps!=NULL ? pps->getProcessorForGraphics() : 0;
+        if( plotOptions & 2  && pps!=NULL && !(ps.readingFromCommandFile()) &&
+                myid==processorForGraphics && ps.isGraphicsWindowOpen() )
+        { // we are running interactively and we should check for a "break" command:
+            checkForBreak=true; 
+        }
+        broadCast(checkForBreak,processorForGraphics); // broadcast to all from the processor for graphics
+
+        if( checkForBreak )
         {
       // movie mode ** check here if the user has hit break ***
-            if( ps.isGraphicsWindowOpen() && 
-          !ps.readingFromCommandFile() )  // for now we cannot check if we are reading from a command file
-            {
-	// ps.outputString(sPrintF(buff,"Check for break at t=%e\n",t));
-      	answer="";
-      	int menuItem = ps.getAnswerNoBlock(answer,"monitor>");
-      	if( answer=="break" )
-      	{
-        	  programHalted=true;
-      	}
-            }
+      // ps.outputString(sPrintF(buff,"Check for break at t=%e\n",t));
+            answer="";
             
+            int menuItem = ps.getAnswerNoBlock(answer,"monitor>");
+      // printf("answer = [%s]\n",(const char*)answer);
+            
+            if( answer=="break" )
+            {
+      	programHalted=true;
+
+            }
         }
+
+
+    // bool programHalted=false;
+    // if( plotOptions & 2 )
+    // {
+    //   // movie mode ** check here if the user has hit break ***
+    //   if( ps.isGraphicsWindowOpen() && 
+    //       !ps.readingFromCommandFile() )  // for now we cannot check if we are reading from a command file
+    //   {
+    // 	// ps.outputString(sPrintF(buff,"Check for break at t=%e\n",t));
+    // 	answer="";
+    // 	int menuItem = ps.getAnswerNoBlock(answer,"monitor>");
+    // 	if( answer=="break" )
+    // 	{
+    // 	  programHalted=true;
+    // 	}
+    //   }
+            
+    // }
         
         if( ! (plotOptions & 2) || programHalted )
         {

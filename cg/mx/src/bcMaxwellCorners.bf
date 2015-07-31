@@ -53,6 +53,29 @@
             +uu(k1+4*ks1,k2+4*ks2,k3+4*ks3,kc))
 
 
+! ===============================================================================================
+!  Return the normal vector (an(0),an(1),an(2)) for a point (i1,i2,i3) on a face (side,axis)
+!  This macro does nothing on Cartesian grids. 
+! ===============================================================================================
+#beginMacro getNormalForCurvilinearGrid(side,axis,i1,i2,i3)
+  #If $GRIDTYPE == "curvilinear" 
+    ! get the outward normal for curvilinear grids
+    an(0)=rsxy(i1,i2,i3,axis,0)
+    an(1)=rsxy(i1,i2,i3,axis,1)
+    #If $DIM == 2
+      anNorm = (2*side-1)/max( epsX, sqrt( an(0)**2 + an(1)**2 ) )
+      an(0)=an(0)*anNorm
+      an(1)=an(1)*anNorm
+    #Else
+      an(2)=rsxy(i1,i2,i3,axis,2)
+      anNorm = (2*side-1)/max( epsX, sqrt( an(0)**2 + an(1)**2 + an(2)**2 ) )
+      an(0)=an(0)*anNorm
+      an(1)=an(1)*anNorm
+      an(2)=an(2)*anNorm
+    #End
+  #End
+#endMacro
+
 ! ===============================================================================
 !  Set the tangential component to zero on the boundary in 2D
 ! ===============================================================================
@@ -142,6 +165,60 @@
 
  ! Set the tangential components to zero
  if( gridType.eq.curvilinear )then
+
+  if( .true. )then ! *new way* *wdh* 2015/07/29
+   #perl $DIM=3; $GRIDTYPE="curvilinear";
+   beginLoops()
+     ! if( mask(i1,i2,i3).ne.0 )then
+       getNormalForCurvilinearGrid(side,axis,i1,i2,i3)
+       ! set tangential components to zero by eliminating all but the normal component
+       !  E(new) = n.E(old) n 
+       nDotE = an(0)*u(i1,i2,i3,ex) + an(1)*u(i1,i2,i3,ey) + an(2)*u(i1,i2,i3,ez)
+       u(i1,i2,i3,ex) = nDotE*an(0)
+       u(i1,i2,i3,ey) = nDotE*an(1)
+       u(i1,i2,i3,ez) = nDotE*an(2)
+     #If #FORCING == "twilightZone"       
+       ! set tangential components to a non zero value: 
+       ! If we want   
+       !       tn . E = tn . E0
+       ! then set
+       !     E(new) = E(old) + E0 - (n.E0) n 
+       call ogf3dfo(ep,fieldOption,xy(i1,i2,i3,0),xy(i1,i2,i3,1),xy(i1,i2,i3,2),t, u0,v0,w0)
+       nDotE0 = an(0)*u0 + an(1)*v0 + an(2)*w0
+       u(i1,i2,i3,ex) = u(i1,i2,i3,ex) + u0 - nDotE0*an(0)
+       u(i1,i2,i3,ey) = u(i1,i2,i3,ey) + v0 - nDotE0*an(1)
+       u(i1,i2,i3,ez) = u(i1,i2,i3,ez) + w0 - nDotE0*an(2)
+       
+     #Elif #FORCING == "none"
+     #Elif #FORCING == "planeWaveBoundaryForcing"
+       ! set tangential components to a non zero value: 
+       x0=xy(i1,i2,i3,0)
+       y0=xy(i1,i2,i3,1)
+       z0=xy(i1,i2,i3,2)
+       if( fieldOption.eq.0 )then
+         u0=-planeWave3Dex(x0,y0,z0,t)
+         v0=-planeWave3Dey(x0,y0,z0,t)
+         w0=-planeWave3Dez(x0,y0,z0,t)
+       else
+        ! we are assigning time derivatives (sosup)
+         u0=-planeWave3Dext(x0,y0,z0,t)
+         v0=-planeWave3Deyt(x0,y0,z0,t)
+         w0=-planeWave3Dezt(x0,y0,z0,t)
+       end if
+       nDotE0 = an(0)*u0 + an(1)*v0 + an(2)*w0
+       u(i1,i2,i3,ex) = u(i1,i2,i3,ex) + u0 - nDotE0*an(0)
+       u(i1,i2,i3,ey) = u(i1,i2,i3,ey) + v0 - nDotE0*an(1)
+       u(i1,i2,i3,ez) = u(i1,i2,i3,ez) + w0 - nDotE0*an(2)
+     #Else
+       stop 52784
+     #End
+
+     ! end if
+   endLoops()
+
+  else
+     ! ***** OLD WAY *****
+
    beginLoops()
      tau11=rsxy(i1,i2,i3,axisp1,0)
      tau12=rsxy(i1,i2,i3,axisp1,1)
@@ -191,6 +268,8 @@
    
 
    endLoops()
+  end if ! **** END OLD WAY
+
  else
    if( axis.eq.0 )then
      et1=ey
@@ -3658,6 +3737,7 @@
  real aDot1,aDot2,aDotUm2,aDotUm1,aDotU,aDotUp1,aDotUp2,aDotUp3
 
  real xm,ym,x0,y0,z0,xp,yp,um,vm,wm,u0,v0,w0,up,vp,wp
+ real an(0:2), anNorm, nDotE, nDotE0, epsX
 
  real tdu10,tdu01,tdu20,tdu02,gLu,gLv,utt00,vtt00,wtt00
  real cu10,cu01,cu20,cu02,cv10,cv01,cv20,cv02
@@ -3912,6 +3992,8 @@
    ! sanity check
    stop 12345
  end if
+
+epsX = 1.e-30  ! epsilon used to avoid division by zero in the normal computation -- should be REAL_MIN*100 ??
 
 !       We first assign the boundary values for the tangential
 !       components and then assign the corner values      

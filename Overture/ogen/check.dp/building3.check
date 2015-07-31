@@ -6,13 +6,13 @@
  the same answer after changes are made. Compare this file to a the 
  check file from previous version. 
 
-grid   0 points: discretization=  219749, interpolation=   7558, all=  251991, unused=   24684, name=backGround
-grid   1 points: discretization=     665, interpolation=    613, all=    1482, unused=     204, name=roundedBox1
-grid   2 points: discretization=    8466, interpolation=   2252, all=   14079, unused=    3361, name=roundedTop1
+grid   0 points: discretization=  219739, interpolation=   7558, all=  251991, unused=   24694, name=backGround
+grid   1 points: discretization=     623, interpolation=    623, all=    1482, unused=     236, name=roundedBox1
+grid   2 points: discretization=    9150, interpolation=   2308, all=   14820, unused=    3362, name=roundedTop1
 grid   3 points: discretization=   12852, interpolation=   2485, all=   15600, unused=     263, name=roundedGrid1
-grid   4 points: discretization=     665, interpolation=    613, all=    1482, unused=     204, name=roundedBox2
-grid   5 points: discretization=    8478, interpolation=   2248, all=   14079, unused=    3353, name=roundedTop2
+grid   4 points: discretization=     623, interpolation=    623, all=    1482, unused=     236, name=roundedBox2
+grid   5 points: discretization=    9162, interpolation=   2304, all=   14820, unused=    3354, name=roundedTop2
 grid   6 points: discretization=   13125, interpolation=   2442, all=   15600, unused=      33, name=roundedGrid2
 grid   7 points: discretization=   14799, interpolation=   2074, all=   17360, unused=     487, name=roundedCylinderGrid1
 grid   8 points: discretization=     567, interpolation=    401, all=     968, unused=       0, name=roundedCylinderTop1
-total    points: discretization=  279366, interpolation=  20686, all=  332641, unused=   32589
+total    points: discretization=  280640, interpolation=  20818, all=  334123, unused=   32665

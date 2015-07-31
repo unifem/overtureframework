@@ -20,6 +20,7 @@
 #   $stressRelaxation : 
 #   $relaxAlpha : parameter for stress relaxtion 
 #   $relaxDelta : parameter for stress relaxtion 
+#   $slopeLimiter
 #   $debug 
 #   $bcCommands : commands to specify boundary conditions
 #   $initialConditionCommands : commands to specify the initial conditions
@@ -45,6 +46,7 @@ if( $smCheckErrors eq "" ){ $smCheckErrors=0; }
 if( $smPlotStress eq "" ){ $smPlotStress=0; }
 if( $errorNorm eq "" ){ $errorNorm="*"; }
 if( $applyInterfaceConditions eq "" ){ $applyInterfaceConditions=1; }
+if( $slopeLimiter eq "" ){ $slopeLimiter=0; }
 if( $stressRelaxation eq "" ){ $stressRelaxation=1; }
 if( $tangentialStressDissipation eq "" ){ $tangentialStressDissipation=0.1; }
 if( $tangentialStressDissipation1 eq "" ){ $tangentialStressDissipation1=0.; }
@@ -90,6 +92,7 @@ SMPDE:lambda $lambda
 SMPDE:mu $mu 
 SMPDE:rho $rhoSolid 
 SMPDE:Godunov order of accuracy $godunovOrder
+SMPDE:slope limiting for Godunov $slopeLimiter
 SMPDE:artificial diffusion $diss $diss $diss $diss $diss $diss $diss $diss $diss $diss $diss $diss $diss $diss $diss 
 SMPDE:PDE type for Godunov $godunovType
 SMPDE:stressRelaxation $stressRelaxation

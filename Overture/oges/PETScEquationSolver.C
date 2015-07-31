@@ -547,8 +547,8 @@ setPetscParameters()
   if( parameters.numberOfIncompleteLULevels!=numberOfIncompleteLULevels &&
       parameters.preconditioner==OgesParameters::incompleteLUPreconditioner )
   {
-    if( Oges::debug & 2 ) 
-      printf(" ********** PETScEquationSolver: set ilu levels ***********\n");
+    if( Oges::debug & 2 )  
+      printf(" ********** PETScEquationSolver: set ilu levels =%i ***********\n",parameters.numberOfIncompleteLULevels);
 
     // 2.2.1 ierr = PCILUSetLevels(pc, parameters.numberOfIncompleteLULevels);  CHKERRQ(ierr);
     // 2.2.1 ierr = PCILUSetFill(pc,   parameters.incompleteLUExpectedFill);    CHKERRQ(ierr);
@@ -616,6 +616,16 @@ getMaximumResidual()
 
   return maximumResidual;  //  PetscFunctionReturn(maximumResidual);
 }
+
+// =====================================================================================
+// \brief Return the number of iterations used in the last solve.
+// =====================================================================================
+int PETScEquationSolver::
+getNumberOfIterations() const
+{
+  return oges.numberOfIterations;
+} 
+
 
 #undef __FUNC__
 #define __FUNC__ "PETScEquationSolver::solve"
@@ -736,7 +746,7 @@ solve(realCompositeGridFunction & u,
            "     KSP_DIVERGED_BREAKDOWN_BICG      = -6,\n"
            "     KSP_DIVERGED_NONSYMMETRIC        = -7,\n"
            "     KSP_DIVERGED_INDEFINITE_PC       = -8,\n"
-           "     SP_DIVERGED_NAN                  = -9,\n"
+           "     KSP_DIVERGED_NAN                  = -9,\n"
            "     KSP_DIVERGED_INDEFINITE_MAT      = -10\n");
     printF("NOTE 1: to see more information turn on the '-info' PETSc option (e.g. in your .petscrc)\n");
     printF("NOTE 2: to avoid the divergence error '-4' you can set the Oges option 'maximum allowable increase in the residual' \n");
@@ -745,9 +755,16 @@ solve(realCompositeGridFunction & u,
   }
   
 
+  PetscInt its;
+  ierr = KSPGetIterationNumber(ksp,&its);CHKERRQ(ierr);
+  // ierr = KSPGetIterationNumber(ksp,&oges.numberOfIterations);CHKERRQ(ierr);
+  oges.numberOfIterations=its;
 
-  ierr = KSPGetIterationNumber(ksp,&oges.numberOfIterations);CHKERRQ(ierr);
-//   printF(" PETScEquationSolver: numberOfIterations=%i (FIRST SOLVE)\n",oges.numberOfIterations);
+  if(Oges::debug & 4 )
+   printF(" PETScEquationSolver::solve numberOfIterations=%i\n",oges.numberOfIterations);
+  if( oges.numberOfIterations==0 )
+    printF(" PETScEquationSolver::solve:WARNING numberOfIterations=0! Could be trouble for MG, maybe decrease atol\n");
+
 //   ierr = KSPSolve(ksp,brhs,xsol);CHKERRQ(ierr);
 //   ierr = KSPGetIterationNumber(ksp,&oges.numberOfIterations);CHKERRQ(ierr);
 //   printF(" PETScEquationSolver: numberOfIterations=%i (SOLVE AGAIN)\n",oges.numberOfIterations);

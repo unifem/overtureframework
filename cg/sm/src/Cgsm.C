@@ -2101,7 +2101,10 @@ writeParameterSummary( FILE * file )
   SmParameters::PDEVariation & pdeVariation = parameters.dbase.get<SmParameters::PDEVariation>("pdeVariation");
   fPrintF(file," PDE Variation = %s\n",(const char*)SmParameters::PDEVariationName[pdeVariation]);
   if( pdeVariation== SmParameters::godunov )
-    fPrintF(file,"  Godunov: order of accuracy = %i\n",parameters.dbase.get<int>("orderOfAccuracyForGodunovMethod"));
+    fPrintF(file," method=Godunov: order of accuracy = %i, slope limiter is %s, characteristic upwinding is %s.\n",
+	    parameters.dbase.get<int>("orderOfAccuracyForGodunovMethod"),
+	    parameters.dbase.get<int >("slopeLimitingForGodunovMethod")==0 ? "off" : "on",
+            parameters.dbase.get<int >("slopeUpwindingForGodunovMethod")==0 ? "off" : "on");
   fPrintF(file,"\n");
 
   if( pdeVariation==SmParameters::godunov )
@@ -2161,7 +2164,7 @@ writeParameterSummary( FILE * file )
   fPrintF(file," Stress relaxation is %s, order=%i, alpha=%8.2e, delta=%8.2e\n",
 	  (parameters.dbase.get<int>( "stressRelaxation" )==0 ? "off" : "on" ),
 	  parameters.dbase.get<int>( "stressRelaxation" ), parameters.dbase.get<real>( "relaxAlpha" ),
-	  parameters.dbase.get<real>( "relaxAlpha" ));
+	  parameters.dbase.get<real>( "relaxDelta" ));
 
   if( parameters.dbase.get<bool >("applyFilter") )
   {

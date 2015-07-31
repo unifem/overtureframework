@@ -59,6 +59,8 @@ class PETScEquationSolver : public EquationSolver
 
   virtual real getMaximumResidual(); 
 
+  int getNumberOfIterations() const; 
+
   int allocateMatrix(int,int,int,int);
   int setMatrixElement(int,int,int,real);
   int displayMatrix();

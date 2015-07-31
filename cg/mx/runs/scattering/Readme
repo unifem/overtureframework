@@ -1,0 +1,37 @@
+Cgmx: scattering from various objects 
+--------------------------------------
+
+(1) generate the grids:  ( grid files in Overture/sampleGrids)
+
+  (a) cylinder:
+        ogen -noplot cicArg -order=4 -interp=e -factor=4 
+
+  (b) triangle:
+	ogen -noplot triangleArg  -interp=e -order=4 -factor=4
+
+  (c)  Space capsule: 
+     ogen -noplot crv -order=4 -blSpacingFactor=2 -prefix=crvbl2 -factor=4
+
+
+
+(2) Run the code:
+
+  (a) cylinder:
+     cgmx scattering -g=cice4.order4.hdf  -bg=square -go=halt 
+
+     mpirun -np 4 $cgmxp scattering -g=cice4.order4.hdf  -bg=square -go=halt 
+
+  (b) triangle:
+     cgmx scattering -g=trianglee4.order4.hdf -bg=backGround 
+
+  (c) Space capsule: 
+  
+   cgmx scattering -g=crvbl2e4.order4 -bg=backGround -tp=.1 -go=halt
+
+
+  # incident wave front hits the body: 
+  mpirun -np 4 $cgmxp scattering -g=crvbl2e4.order4 -bg=backGround -tp=.1 -go=halt
+
+
+  # solve for scattered field directly: (-boundaryForcing=1)
+  mpirun -np 4 $cgmxp scattering -g=crvbl2e4.order4 -bg=backGround -rbc=abcPML -boundaryForcing=1 -go=halt

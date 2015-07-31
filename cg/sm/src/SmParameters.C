@@ -2167,11 +2167,13 @@ saveParametersToShowFile()
 
   ListOfShowFileParameters & showFileParams = dbase.get<ListOfShowFileParameters>("showFileParams");
 
+  real & rho = dbase.get<real>("rho");
   real & mu = dbase.get<real>("mu");
   real & lambda = dbase.get<real>("lambda");
   RealArray & muGrid = dbase.get<RealArray>("muGrid");
   RealArray & lambdaGrid = dbase.get<RealArray>("lambdaGrid");
 
+  showFileParams.push_back(ShowFileParameter("rho",rho));
   showFileParams.push_back(ShowFileParameter("lambda",lambda));
   showFileParams.push_back(ShowFileParameter("mu",mu));
 

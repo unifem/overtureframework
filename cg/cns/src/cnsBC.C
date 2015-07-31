@@ -1632,6 +1632,9 @@ applyBoundaryConditions(const real & t,
 
     if( assignNoSlipWall )
     { // finish noSlipWall
+
+    // printF("cnsBC:assignNoSlipWall -- secondary\n");
+
         if( pde!=CnsParameters::compressibleMultiphase )
         {
       //u.applyBoundaryCondition(rc,extrapolate,   noSlipWall,0.,t,extrapParams);
@@ -2193,7 +2196,9 @@ applyBoundaryConditions(const real & t,
 // 	}
       	
 
-                bool assignRhoFromEOS = true;
+        // bool assignRhoFromEOS = true;
+                bool assignRhoFromEOS = false; // **** WDH**** 2015/07/24 -- turn this OFF for now
+	// printF("cnsBC: assignRhoFromEOS=%i\n",(int)assignRhoFromEOS);
                 if( assignRhoFromEOS )
       	{
 	  // Apply a BC on rho derived from the p=rho*Rg*T and p.n=...

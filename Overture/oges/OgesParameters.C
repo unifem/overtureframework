@@ -2,7 +2,7 @@
 #include "GenericGraphicsInterface.h"
 #include "OgmgParameters.h"
 #include "Oges.h"
-
+#include "ParallelUtility.h"
 
 //\begin{>OgesParametersInclude.tex}{\subsection{constructor}} 
 OgesParameters::

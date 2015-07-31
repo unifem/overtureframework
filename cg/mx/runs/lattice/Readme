@@ -1,0 +1,21 @@
+--- Plane wave scattering off a lattice of dielectric 2D cylinders ----
+
+
+
+(1) Generate some grids:
+
+ogen -noplot latticeGrid -order=2 -interp=e -nCylx=2 -nCyl=2 -factor=2 
+ogen -noplot latticeGrid -order=2 -interp=e -nCylx=2 -nCyl=2 -factor=4
+
+# -- fourth order
+  ogen -noplot latticeGrid -order=4 -interp=e -nCylx=2 -nCyly=2 -factor=2
+  ogen -noplot latticeGrid -order=4 -interp=e -nCylx=2 -nCyly=2 -factor=4
+ 
+# -- 3 x 3 lattice
+  ogen -noplot latticeGrid -order=4 -interp=e -nCylx=3 -nCyly=3 -factor=2
+  ogen -noplot latticeGrid -order=4 -interp=e -nCylx=3 -nCyly=3 -factor=4
+
+
+
+(2) Run:
+

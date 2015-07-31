@@ -1,0 +1,90 @@
+\subsubsection{Interactive updateOverlap}
+ 
+\newlength{\ogenUpdateIncludeArgIndent}
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\ogenUpdateIncludeArgIndent}{updateOverlap(}%
+updateOverlap( CompositeGrid \& cg, MappingInformation \& mapInfo )
+}\end{flushleft}
+  
+\begin{description}
+\item[{\bf Description:}] 
+   Use this function to interactively create a composite grid.
+
+\item[{\bf mapInfo (input) :}]  a MappingInformation object that contains a list of
+   Mappings that can be used to make the composite grid. NOTE: If mapInfo.graphXInterface==NULL
+   then it will be assumed that mapInfo is to be ignored and that 
+   the input CompositeGrid cg will already have a set of grids in it to use.
+
+
+ Here is a description of some of the commands that are available from the
+ {\tt updateOverlap} function of {\tt Ogen}. This function is called when you 
+ choose ``{\tt generate overlapping grid}'' from the {\tt ogen} program.
+ 
+ \begin{description}
+   \item[compute overlap] : this will compute the overlapping grid. As the grid is generated various
+     information messages are printed out. Some of these messages may only make sense to the 
+      joker who wrote this code.
+   \item[change parameters] : make changes to parameters. See the next section for details.
+   \item[display intermediate results] : this will toggle a debugging mode. When this mode
+     is on, and you choose {\tt compute overlap} to generate the grid, then the overlapping grid 
+     will be plotted at various stages in its algorithm. The algorithm is described in section
+     (\ref{algorithm}). The program will pause at the end of each stage of the algorithm and
+     allow you to either {\tt continue} or to {\tt change the plot} as described next.
+      Experienced users will be able to see when something goes wrong and hopefully detect the cause.
+   \item[change the plot] : this will cause the grid to be re-plotted. You will be in the grid plotter
+     menu and you can make changes to the style of the plot (toggle grids on and off, plot interpolation
+     points etc.). These changes will be retained when you exit back to the grid generator.
+ 
+ \end{description}
+
+\end{description}
+\subsubsection{Non-interactive updateOverlap}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\ogenUpdateIncludeArgIndent}{updateOverlap(}%
+updateOverlap( CompositeGrid \& cg )
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+ Build a composite grid non-interactively using the component grids found
+ in cg. This function might be called if one or more grids have changed.
+\item[{\bf Return value:}]  0=success, otherwise the number of errors encountered.
+ 
+\end{description}
+\subsubsection{Moving Grid updateOverlap}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\ogenUpdateIncludeArgIndent}{updateOverlap(}%
+updateOverlap(CompositeGrid \& cg, \\ 
+\hspace{\ogenUpdateIncludeArgIndent}CompositeGrid \& cgOld, \\ 
+\hspace{\ogenUpdateIncludeArgIndent}const LogicalArray \& hasMoved, \\ 
+\hspace{\ogenUpdateIncludeArgIndent}const MovingGridOption \& option  =useOptimalAlgorithm)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+    Determine an overlapping grid when one or more grids has moved.
+   {\bf NOTE:} If the number of grid points changes then you should use the 
+   {\tt useFullAlgorithm} option.
+ 
+\item[{\bf cg (input) :}]  grid to update
+\item[{\bf cgOld (input) :}]  for grids that have not moved, share data with this CompositeGrid.
+\item[{\bf hasMoved (input):}]  specify which grids have moved with hasMoved(grid)=TRUE
+\item[{\bf option (input) :}]  An option from one of:
+ {\footnotesize
+ \begin{verbatim}
+   enum MovingGridOption
+   {
+     useOptimalAlgorithm=0,
+     minimizeOverlap=1,
+     useFullAlgorithm
+   };
+ \end{verbatim}
+ }
+  The {\tt useOptimalAlgorithm} may result in the overlap increasing as the grid is moved.
+
+\item[{\bf Return value:}]  0=success, otherwise the number of errors encountered.
+ 
+\end{description}

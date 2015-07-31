@@ -2669,9 +2669,8 @@ getUt(const realMappedGridFunction & v,
       ipu=0;
       ipu( 0)=grid;
 
-      // kThermal : I think think is k/Rg , k=thermal-conductivity and Rg is the gas constant for the given gas
       rpu( 1)=mu;
-      rpu( 2)=kThermal; // ?? akappa;  
+      rpu( 2)=kThermal; // ?? akappa;
       rpu( 3)=gamma;
       rpu( 4)=av2*signForDet; // artificial diffusion should have opposite sign if det(J)<0
       rpu( 5)=aw2;

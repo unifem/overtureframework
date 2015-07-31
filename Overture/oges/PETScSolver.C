@@ -2171,7 +2171,7 @@ solve( realCompositeGridFunction & uu, realCompositeGridFunction & f )
            "     KSP_DIVERGED_BREAKDOWN_BICG      = -6,\n"
            "     KSP_DIVERGED_NONSYMMETRIC        = -7,\n"
            "     KSP_DIVERGED_INDEFINITE_PC       = -8,\n"
-           "     SP_DIVERGED_NAN                  = -9,\n"
+           "     KSP_DIVERGED_NAN                  = -9,\n"
            "     KSP_DIVERGED_INDEFINITE_MAT      = -10\n");
     printF("NOTE: to see more information turn on the '-info' PETSc option (e.g. in your .petscrc)\n");
     printF("NOTE 2: to avoid the divergence error '-4' you can set the Oges option 'maximum allowable increase in the residual' \n");

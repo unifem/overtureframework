@@ -1,0 +1,10 @@
+Scattering off a knife edge:
+
+
+(1) Generate grid:
+
+ogen -noplot knifeEdge -interp=e -factor=2 -order=4 -yTop=1.1 -name="knifeSlit2.order4.hdf"
+
+(2) Run:
+
+cgmx knifeEdge -g=knifeSlit2.order4 -kx=8 -tp=.05 -tf=2. -plotIntensity=1 -go=halt 

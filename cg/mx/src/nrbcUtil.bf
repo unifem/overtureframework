@@ -1,8 +1,8 @@
-c *******************************************************************************
-c   Non-reflecting Boundary Condition Utility functions
-c *******************************************************************************
+! *******************************************************************************
+!   Non-reflecting Boundary Condition Utility functions
+! *******************************************************************************
 
-c Here are macros that define the planeWave solution
+! Here are macros that define the planeWave solution
 #Include "planeWave.h"
 
 #beginMacro beginLoops()
@@ -114,8 +114,13 @@ end do
  beginLoopOverSidesForAdjustingIncidentField()
    if( nd.eq.2 )then
      beginLoops()
-       x=xy(i1,i2,i3,0)
-       y=xy(i1,i2,i3,1)
+       if( gridType.eq.rectangular )then
+         x = xa(0)+i1*dx(0)
+         y = xa(1)+i2*dx(1)
+       else
+         x=xy(i1,i2,i3,0)
+         y=xy(i1,i2,i3,1)
+       end if
        ! if( debug.gt.1 )then
        !  t0=planeWave2Dhz0(x,y,t-dt)
        !  write(*,'("nrbc: adjust OP: i=",2i3," Hz,true=",2e10.3)') i1,i2,u(i1,i2,i3,hz),t0
@@ -149,9 +154,15 @@ end do
      endLoops()
    else
      beginLoops()
-       x=xy(i1,i2,i3,0)
-       y=xy(i1,i2,i3,1)
-       z=xy(i1,i2,i3,2)
+       if( gridType.eq.rectangular )then
+         x = xa(0)+i1*dx(0)
+         y = xa(1)+i2*dx(1)
+         z = xa(2)+i3*dx(2)
+       else
+         x=xy(i1,i2,i3,0)
+         y=xy(i1,i2,i3,1)
+         z=xy(i1,i2,i3,2)
+       end if
 
        #If #ADJUST eq "YES"
        if( x.ge.icBoundingBox(0,0) .and. x.le.icBoundingBox(1,0) .and. \
@@ -184,20 +195,20 @@ end do
       subroutine adjustForIncident( nd, nd1a,nd1b,nd2a,nd2b,nd3a,nd3b,\
                                     gridIndexRange, um, u, un, mask,rsxy, xy,icBoundingBox,\
                                     bc, boundaryCondition, ipar, rpar, ierr )
-c ===================================================================================
-c  Non-reflecting BC utility routine: 
-c      Subtract/add an incident field near boundaries before/after a non-reflecting BC is applied.
-c
-c  gridType : 0=rectangular, 1=curvilinear
-c  useForcing : 1=use f for RHS to BC
-c  side,axis : 0:1 and 0:2
-c
-c  um : solution at time t-2*dt
-c  u : solution at time t-dt
-c  un : solution at time t
-c  icBoundingBox : i we are given an initial condition bounding box (with positive volume) then only adjust points in this box
-c
-c ===================================================================================
+! ===================================================================================
+!  Non-reflecting BC utility routine: 
+!      Subtract/add an incident field near boundaries before/after a non-reflecting BC is applied.
+!
+!  gridType : 0=rectangular, 1=curvilinear
+!  useForcing : 1=use f for RHS to BC
+!  side,axis : 0:1 and 0:2
+!
+!  um : solution at time t-2*dt
+!  u : solution at time t-dt
+!  un : solution at time t
+!  icBoundingBox : i we are given an initial condition bounding box (with positive volume) then only adjust points in this box
+!
+! ===================================================================================
 
       implicit none
 
@@ -216,11 +227,12 @@ c ==============================================================================
       integer ipar(0:*),boundaryCondition(0:1,0:2)
       real rpar(0:*),pwc(0:5)
 
-c     --- local variables ----
+!     --- local variables ----
       
       integer side,axis,gridType,orderOfAccuracy,orderOfExtrapolation,useForcing,\
         ex,ey,ez,hx,hy,hz,useWhereMask,grid,debug,side1,side2,side3
-      real dx(0:2),dr(0:2),t,ep,dt,c      
+      real dx(0:2),dr(0:2),xa(0:2)
+      real t,ep,dt,c      
       real dxa,dya,dza
       integer axisp1,axisp2,i1,i2,i3,is1,is2,is3,js1,js2,js3,ks1,ks2,ks3,is
       integer extra,extra1a,extra1b,extra2a,extra2b,extra3a,extra3b,numberOfGhostPoints
@@ -252,39 +264,39 @@ c     --- local variables ----
         curvilinear=1)
 
 
-c$$$c     --- start statement function ----
-c$$$      integer kd,m,n
-c$$$      real rx,ry,rz,sx,sy,sz,tx,ty,tz
-c$$$      ! include 'declareDiffOrder2f.h'
-c$$$      ! include 'declareDiffOrder4f.h'
-c$$$c*      declareDifferenceOrder2(u,RX)
-c$$$c*      declareDifferenceOrder4(u,RX)
-c$$$      declareDifferenceOrder2(u,RX)
-c$$$      declareDifferenceOrder2(un,none)
-c$$$
-c$$$      declareDifferenceOrder4(u,RX)
-c$$$#Include "declareJacobianDerivatives.h"
-c$$$
-c$$$c.......statement functions for jacobian
-c$$$      rx(i1,i2,i3)=rsxy(i1,i2,i3,0,0)
-c$$$      ry(i1,i2,i3)=rsxy(i1,i2,i3,0,1)
-c$$$      rz(i1,i2,i3)=rsxy(i1,i2,i3,0,2)
-c$$$      sx(i1,i2,i3)=rsxy(i1,i2,i3,1,0)
-c$$$      sy(i1,i2,i3)=rsxy(i1,i2,i3,1,1)
-c$$$      sz(i1,i2,i3)=rsxy(i1,i2,i3,1,2)
-c$$$      tx(i1,i2,i3)=rsxy(i1,i2,i3,2,0)
-c$$$      ty(i1,i2,i3)=rsxy(i1,i2,i3,2,1)
-c$$$      tz(i1,i2,i3)=rsxy(i1,i2,i3,2,2)
-c$$$
-c$$$
-c$$$c     The next macro call will define the difference approximation statement functions
-c$$$      defineDifferenceOrder2Components1(u,RX)
-c$$$      defineDifferenceOrder2Components1(un,none)
-c$$$      defineDifferenceOrder4Components1(u,RX)
-c$$$
-c$$$#Include "jacobianDerivatives.h"
+!$$$c     --- start statement function ----
+!$$$      integer kd,m,n
+!$$$      real rx,ry,rz,sx,sy,sz,tx,ty,tz
+!$$$      ! include 'declareDiffOrder2f.h'
+!$$$      ! include 'declareDiffOrder4f.h'
+!$$$c*      declareDifferenceOrder2(u,RX)
+!$$$c*      declareDifferenceOrder4(u,RX)
+!$$$      declareDifferenceOrder2(u,RX)
+!$$$      declareDifferenceOrder2(un,none)
+!$$$
+!$$$      declareDifferenceOrder4(u,RX)
+!$$$#Include "declareJacobianDerivatives.h"
+!$$$
+!$$$c.......statement functions for jacobian
+!$$$      rx(i1,i2,i3)=rsxy(i1,i2,i3,0,0)
+!$$$      ry(i1,i2,i3)=rsxy(i1,i2,i3,0,1)
+!$$$      rz(i1,i2,i3)=rsxy(i1,i2,i3,0,2)
+!$$$      sx(i1,i2,i3)=rsxy(i1,i2,i3,1,0)
+!$$$      sy(i1,i2,i3)=rsxy(i1,i2,i3,1,1)
+!$$$      sz(i1,i2,i3)=rsxy(i1,i2,i3,1,2)
+!$$$      tx(i1,i2,i3)=rsxy(i1,i2,i3,2,0)
+!$$$      ty(i1,i2,i3)=rsxy(i1,i2,i3,2,1)
+!$$$      tz(i1,i2,i3)=rsxy(i1,i2,i3,2,2)
+!$$$
+!$$$
+!$$$c     The next macro call will define the difference approximation statement functions
+!$$$      defineDifferenceOrder2Components1(u,RX)
+!$$$      defineDifferenceOrder2Components1(un,none)
+!$$$      defineDifferenceOrder4Components1(u,RX)
+!$$$
+!$$$#Include "jacobianDerivatives.h"
 
-c............... end statement functions
+!............... end statement functions
 
       ierr=0
 
@@ -339,6 +351,10 @@ c............... end statement functions
       pwc(4)               =rpar(24)
       pwc(5)               =rpar(25)
       
+      xa(0)                =rpar(26)  ! for rectangular grids
+      xa(1)                =rpar(27)
+      xa(2)                =rpar(28)
+
       if( abs(pwc(0))+abs(pwc(1))+abs(pwc(2)) .eq. 0. )then
         ! sanity check
         stop 12345

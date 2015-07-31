@@ -1340,7 +1340,7 @@ writeParameterSummary( FILE * file )
 	ogmgPar->get(OgmgParameters::THEmaximumNumberOfIterations,maximumNumberOfIterations);
       }
 
-      fPrintF(file,"   Implicit solver =%s, rel-tol=%8.2e, abs-tol=%8.2,e max iterations=%s \n",
+      fPrintF(file,"   Implicit solver =%s, rel-tol=%8.2e, abs-tol=%8.2e max iterations=%s \n",
 	      (const char*)implicitTimeStepSolverParameters.getSolverName(),rtol,atol,
 	      maximumNumberOfIterations==0 ? "default" : 
 	      sPrintF(buff,"%i",maximumNumberOfIterations));

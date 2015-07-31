@@ -1,52 +1,74 @@
-*
-* Create a grid for the appolo crew re-entry vehicle
-*
-* usage: ogen [noplot] crv -factor=<num> -interp=[e/i] -dw=<num> -iw=<> 
-*  -dw : discretization width : for 2 layers of interpolation points set the dw to 5 
-*  -iw : interpolation width 
-* examples:
-*     ogen noplot crv -factor=1 
-*     ogen noplot crv -factor=2 
-*     ogen noplot crv -factor=2 -dw=5 -iw=5 -interp=e -name="crve2.order4.hdf"
-*     ogen noplot crv -factor=3 -dw=5 -iw=5 -interp=e -name="crve3.order4.hdf"
-*     ogen noplot crv -factor=4 -dw=5 -iw=5 -interp=e -name="crve4.order4.hdf"
-*     ogen noplot crv -factor=2 -dw=7 -iw=5 -interp=e -name="crve2.dw7iw5.hdf"
-*
-*  srun -N8 -n32 -ppdebug $ogenp noplot crv -factor=16 -dw=5 -iw=5 -interp=e -name="crve16.order4.hdf"
-*
-* srun -N1 -n2 -ppdebug $ogenp noplot crv
-* 
+#
+# Create a grid for the space craft crew re-entry vehicle
+#
+# usage: ogen [noplot] crv -factor=<num> -interp=[e/i] -order=[2|4|6|8] -dw=<num> -iw=<> -shoulder=[0|1]
+# 
+#  -order : order of accuracy (over-ride with -dw and -iw) 
+#  -dw : discretization width : for 2 layers of interpolation points set the dw to 5 
+#  -iw : interpolation width 
+#  -shoulder=1 : add a "shoulder" grid 
+#
+# examples:
+#     ogen -noplot crv -factor=1 
+#     ogen -noplot crv -factor=2 
+# 
+#  -- less stretching:
+#     ogen -noplot crv -order=2 -blSpacingFactor=2 -prefix=crvbl2 -factor=2 
+#     ogen -noplot crv -order=2 -blSpacingFactor=2 -prefix=crvbl2 -factor=4
+#     ogen -noplot crv -order=4 -blSpacingFactor=2 -prefix=crvbl2 -factor=2 
+#     ogen -noplot crv -order=4 -blSpacingFactor=2 -prefix=crvbl2 -factor=4
+# 
+# -- old: 
+#     ogen -noplot crv -factor=2 -dw=5 -iw=5 -interp=e -name="crve2.order4.hdf"
+#     ogen -noplot crv -factor=3 -dw=5 -iw=5 -interp=e -name="crve3.order4.hdf"
+#     ogen -noplot crv -factor=4 -dw=5 -iw=5 -interp=e -name="crve4.order4.hdf"
+#     ogen -noplot crv -factor=2 -dw=7 -iw=5 -interp=e -name="crve2.dw7iw5.hdf"
+#
+#  srun -N8 -n32 -ppdebug $ogenp noplot crv -factor=16 -dw=5 -iw=5 -interp=e -name="crve16.order4.hdf"
+#
+# srun -N1 -n2 -ppdebug $ogenp noplot crv
+# 
+$prefix="crv"; 
 $order=2; $factor=1;  $interp="e"; $interpType = "explicit for all grids"; # default values
-$orderOfAccuracy = "second order"; $ng=2; $dw=3; $iw=3; 
+$orderOfAccuracy = "second order"; $ng=2; 
+$dw=3; $iw=3; 
 $name=""; 
 $xa=-2.; $xb=5.; $ya=-3.5; $yb=3.5; $za=-3.5; $zb=3.5; 
-$exponent=10.; $stretchFactor=1.5;
-* 
-* get command line arguments
+$exponent=10.; $stretchFactor=1.5; # OLD WAY
+$blSpacingFactor=10.; # spacing in the boundary layer is this many times finer than target spacing. 
+$bcWall=7; # was 1
+$shoulder=0; # shoulder grid is off by default 
+$useNurbs=1; # Use nurbs versions of grids 
+# 
+# get command line arguments
 GetOptions( "order=i"=>\$order,"factor=f"=> \$factor,"xa=f"=> \$xa,"xb=f"=> \$xb,"ya=f"=> \$ya,"yb=f"=> \$yb,\
-            "dw=i"=> \$dw,"iw=i"=> \$iw,"interp=s"=> \$interp,"name=s"=> \$name);
-* 
+            "dw=i"=> \$dw,"iw=i"=> \$iw,"interp=s"=> \$interp,"name=s"=> \$name,"prefix=s"=> \$prefix,\
+            "blSpacingFactor=f"=>\$blSpacingFactor,"shoulder=i"=> \$shoulder );
+# 
 if( $order eq 4 ){ $orderOfAccuracy="fourth order"; $ng=2; }\
 elsif( $order eq 6 ){ $orderOfAccuracy="sixth order"; $ng=4; }\
 elsif( $order eq 8 ){ $orderOfAccuracy="eighth order"; $ng=6; }
 if( $interp eq "e" ){ $interpType = "explicit for all grids"; }
 if( $interp eq "i" ){ $interpType = "implicit for all grids"; }
+#
+if( $dw eq -1 ){ $dw=2*$order+1; $iw=$dw; }
+#
 if( $dw eq 5 ){ $ng=2; }
 if( $dw eq 7 ){ $ng=4; }
 if( $dw eq 9 ){ $ng=5; }
-* 
+# 
 $suffix = ".order$order"; 
-if( $name eq "" ){$name = "crv" . "$interp$factor" . $suffix . ".hdf";}
-* 
+if( $name eq "" ){$name = $prefix . "$interp$factor" . $suffix . ".hdf";}
+# 
 $ds=.2/$factor;  # target grid spacing
 $pi = 4.*atan2(1.,1.);
-* 
+# 
 $parallelGhost=($dw+1)/2;
 if( $interp eq "e" ){ $parallelGhost=($dw+$iw-2)/2; }
 minimum number of distributed ghost lines
   $parallelGhost
 create mappings
-*
+#
   Box
     mappingName
       backGround
@@ -57,16 +79,16 @@ create mappings
       $ny = int( ($yb-$ya)/$ds + 1.5 );
       $nz = int( ($zb-$za)/$ds + 1.5 );
       $nx $ny $nz
-      * 112 32 36  98 28 32   84 24 27   71 21 24
-    * physical boundary conditions can be any positive number 
-    * left, right, bottom, top, front back 
+ # 112 32 36  98 28 32   84 24 27   71 21 24
+ # physical boundary conditions can be any positive number 
+ # left, right, bottom, top, front back 
     boundary conditions
       1 2 3 4 5 6 
     exit
-*
-* First create the outline of the hull.
-* Go all the away round so the shape is
-* symmetric at the back and front
+#
+# First create the outline of the hull.
+# Go all the away round so the shape is
+# symmetric at the back and front
   spline
     mappingName
     hull-profile
@@ -105,24 +127,24 @@ create mappings
    0.0000000000000000e+00   0.0000000000000000e+00
     lines
       51
-* pause
+# pause
     periodicity
       2
     exit
-*
-*  Take the top half of the curve hull
-*
+#
+#  Take the top half of the curve hull
+#
   reparameterize
     restrict parameter space
       specify corners
         0. .5
       exit
-*      pause
+#      pause
     mappingName
      reparameterized-hull-profile 
-* pause
+# pause
     exit
-* Stretch the grid lines
+# Stretch the grid lines
   stretch coordinates
     transform which mapping?
     reparameterized-hull-profile
@@ -136,21 +158,21 @@ create mappings
       exit
     mappingName
       stretched-reparameterized-hull-profile
-* pause
+# pause
     exit
-*
+#
   mapping from normals
     extend normals from which mapping?
     stretched-reparameterized-hull-profile
     normal distance
-     *  $nDist=1.1/$factor; 
+ #  $nDist=1.1/$factor; 
      $nr = 7 + $dw;
      $nDist=($nr-2)*$ds;
       -$nDist
-*   pause
+#   pause
     exit
-* 
-*  -- create a body of revolution ---
+# 
+#  -- create a body of revolution ---
   body of revolution
     mappingName
       hull-full
@@ -164,18 +186,18 @@ create mappings
       $nTheta = int( 2.*$pi*$radius/$ds + 1.5 );
       $nr = int( $stretchFactor*$nDist/$ds + 1.5 );
       $ns $nTheta $nr
-      * 65 31 11  51 31 11
+ # 65 31 11  51 31 11
     boundary conditions
-      0  0 -1 -1 1 0
+      0  0 -1 -1 $bcWall 0
     share
-      0 0 0 0 1 0
-*  pause
+      0 0 0 0 $bcWall 0
+#  pause
     exit
-*
+#
   reparameterize
     orthographic
       specify sa,sb
-        * sa and sb specify how big the orthographic patch is 
+ # sa and sb specify how big the orthographic patch is 
         $sa=.3; $sb=$sa; 
         $sa $sb
       exit
@@ -185,18 +207,18 @@ create mappings
       $ny = int( $width/$ds + 1.5 );
       $nz = int( $stretchFactor*$nDist/$ds + 1.5 );
       $nx $ny $nz 
-      * 11 11 11
+ # 11 11 11
     share
-      0 0 0 0 1 0
+      0 0 0 0 $bcWall 0
     mappingName
       hull-bow-cap-unstretched
-*   pause
+#   pause
     exit
-*
+#
   reparameterize
     orthographic
       specify sa,sb
-        * sa and sb specify how big the orthographic patch is 
+ # sa and sb specify how big the orthographic patch is 
         $sa=.25; $sb=$sa; 
         $sa $sb
       choose north or south pole
@@ -209,15 +231,15 @@ create mappings
       $ny = int( $width/$ds + 1.5 );
       $nz = int( $stretchFactor*$nDist/$ds + 1.5 );
       $nx $ny $nz 
-      * 11 11 11
+ # 11 11 11
     share
-      0 0 0 0 1
+      0 0 0 0 $bcWall
     mappingName
       hull-stern-cap-unstretched
-*   pause
+#   pause
     exit
-*
-* -- now remove the singular ends from the hull-full
+#
+# -- now remove the singular ends from the hull-full
   reparameterize
     transform which mapping?
     hull-full
@@ -226,54 +248,82 @@ create mappings
     mappingName
       hull-unstretched
   exit
-* stretch grid lines in normal
-  stretch coordinates
-    transform which mapping?
-      hull-unstretched
-    Stretch r3:itanh
-    STP:stretch r3 itanh: layer 0 1 $exponent 0 (id>=0,weight,exponent,position)
-    stretch grid
-    STRT:name hull
-    exit
-  stretch coordinates
-    transform which mapping?
-      hull-stern-cap-unstretched
-    Stretch r3:itanh
-    STP:stretch r3 itanh: layer 0 1 $exponent 0 (id>=0,weight,exponent,position)
-    stretch grid
-    STRT:name hull-stern-cap
-    exit
-  stretch coordinates
-    transform which mapping?
-      hull-bow-cap-unstretched
-    Stretch r3:itanh
-    STP:stretch r3 itanh: layer 0 1 $exponent 0 (id>=0,weight,exponent,position)
-    stretch grid
-    STRT:name hull-bow-cap
-    exit
-  * build finer grid near the "shoulder"
+#
+# stretch grid lines normal to the boundary
+#
+  $dsMin = $ds/$blSpacingFactor; # grid spacing in the normal direction 
+#
+# Define a subroutine to stretch grid lines
+#    stretchGrid(oldGrid,newGrid)
+sub stretchGrid\
+{ local($old,$new)=@_; \
+  $commands= \
+  "stretch coordinates\n" . \
+    "transform which mapping?\n" . \
+    " $old\n" . \
+    "Stretch r3:exp to linear\n" . \
+    "STP:stretch r3 expl: min dx, max dx $dsMin $ds\n" . \
+    "STRT:name $new\n" . \
+   "exit \n";\
+}
+#
+stretchGrid("hull-unstretched","hull");
+$commands
+stretchGrid("hull-stern-cap-unstretched","hull-stern-cap");
+$commands
+stretchGrid("hull-bow-cap-unstretched","hull-bow-cap");
+$commands
+#
+# -- OLD WAY
+#
+#-  stretch coordinates
+#-    transform which mapping?
+#-      hull-unstretched
+#-    Stretch r3:itanh
+#-    STP:stretch r3 itanh: layer 0 1 $exponent 0 (id>=0,weight,exponent,position)
+#-    stretch grid
+#-    STRT:name hull
+#-    exit
+#-  stretch coordinates
+#-    transform which mapping?
+#-      hull-stern-cap-unstretched
+#-    Stretch r3:itanh
+#-    STP:stretch r3 itanh: layer 0 1 $exponent 0 (id>=0,weight,exponent,position)
+#-    stretch grid
+#-    STRT:name hull-stern-cap
+#-    exit
+#-  stretch coordinates
+#-    transform which mapping?
+#-      hull-bow-cap-unstretched
+#-    Stretch r3:itanh
+#-    STP:stretch r3 itanh: layer 0 1 $exponent 0 (id>=0,weight,exponent,position)
+#-    stretch grid
+#-    STRT:name hull-bow-cap
+#-    exit
+# -----
+# build finer grid near the "shoulder"
   reparameterize
     transform which mapping?
     hull
-    * shoulder is this part of the hull 
+ # shoulder is this part of the hull 
      $sa=.225; $sb=.525; 
     set corners
       $sa $sb 0. 1. 0. 1.
     lines
-      * number of grid lines = 
-      *     $factor*( fraction of hull )*( grid points for full hull )
+ # number of grid lines = 
+ #     $factor*( fraction of hull )*( grid points for full hull )
       $factor=2.; # shoulder grid spacing is decreased
       $ns = int( $factor*($sb-$sa)*$arcLength*$factor/$ds + 1.5 );
       $nTheta = int( $factor*2.*$pi*$radius/$ds + 1.5 );
       $nr = int( $stretchFactor*$nDist/$ds + 1.5 );
       $ns $nTheta $nr
-    *   23 127 13
+ #   23 127 13
     mappingName
       shoulder
     exit
-*
-* 
-* Define a subroutine to convert a Mapping to a Nurbs Mapping
+#
+# 
+# Define a subroutine to convert a Mapping to a Nurbs Mapping
 sub convertToNurbs\
 { local($old,$new,$angle)=@_; \
   $commands = "nurbs (surface)\n" . \
@@ -281,8 +331,8 @@ sub convertToNurbs\
               "rotate\n" . "$angle 1\n" . "0 0 0\n" . \
               "mappingName\n" . "$new\n" . "exit\n"; \
 }
-*
-* -- it is faster to evaluate the Nurbs than the original cap patches --
+#
+# -- it is faster to evaluate the Nurbs than the original cap patches --
 convertToNurbs("hull-bow-cap","hull-bow-cap-nurbs",0.);
 $commands
 convertToNurbs("hull-stern-cap","hull-stern-cap-nurbs",0.);
@@ -290,31 +340,35 @@ $commands
 convertToNurbs("hull","hull-nurbs",0.);
 $commands
 exit
-*
+#
 generate an overlapping grid
   backGround
-*    hull
-*    hull-bow-cap
-*    hull-stern-cap
-  hull-nurbs
-  hull-bow-cap-nurbs
-  hull-stern-cap-nurbs
-  shoulder
+    # 
+    if( $useNurbs eq 1 ){ $grids="hull-nurbs\n hull-bow-cap-nurbs\n hull-stern-cap-nurbs"; }else{ $grids="hull\n hull-bow-cap\n hull-stern-cap"; }
+    $grids
+#    hull
+#    hull-bow-cap
+#    hull-stern-cap
+##  hull-nurbs
+##  hull-bow-cap-nurbs
+##  hull-stern-cap-nurbs
+    if( $shoulder eq 1 ){ $cmd="shoulder"; }else{ $cmd="#"; }
+    $cmd 
   done choosing mappings
-*   change the plot
-*     toggle grids on and off
-*     0 : backGround is (on)
-*     exit this menu
-*   exit this menu
-*
+#   change the plot
+#     toggle grids on and off
+#     0 : backGround is (on)
+#     exit this menu
+#   exit this menu
+#
     change parameters
       interpolation type
         $interpType
-*    -- for 2 layers of interpolation points set the dw to 5 
+#    -- for 2 layers of interpolation points set the dw to 5 
      discretization width
        all
        $dw $dw $dw
-*     -- iw=2 : linear interpolation 
+#     -- iw=2 : linear interpolation 
       interpolation width 
         all
         all
@@ -323,13 +377,13 @@ generate an overlapping grid
         all
        $ng $ng $ng $ng $ng $ng 
     exit
-  * pause
-*  display intermediate
-*
+ # pause
+#  display intermediate
+#
   compute overlap
-  * pause
+ # pause
 exit
-*
+#
 maximum number of parallel sub-files
   8
 save an overlapping grid

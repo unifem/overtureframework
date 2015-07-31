@@ -848,7 +848,7 @@ solveForAllSpeedPressure( real t, real deltaT, const real & dtRatio )
         	  cout << "solveForAllSpeedPressure: Unknown BC = " << c.boundaryCondition()(side,axis) << endl;
         	  printf("cg[grid=%i].boundaryCondition()(side=%i,axis=%i)=%i (%s)\n",grid,side,axis,
              		 cg[grid].boundaryCondition()(side,axis), 
-             		 (const char*)parameters.bcNames[cg[grid].boundaryCondition()(side,axis)]);
+             		 parameters.bcNames[cg[grid].boundaryCondition()(side,axis)]);
                 	  throw "error";
       	}
             }
@@ -1334,7 +1334,7 @@ solveForTimeIndependentVariables( GridFunction & cgf, bool updateSolutionDepende
           	    cout << "solveForTimeIndependentVariablesASF: Unknown BC = " << mg.boundaryCondition()(side,axis) << endl;
           	    printf("cg[grid=%i].boundaryCondition()(side=%i,axis=%i)=%i (%s)\n",grid,side,axis,
                		   cg[grid].boundaryCondition()(side,axis), 
-               		   (const char*)parameters.bcNames[cg[grid].boundaryCondition()(side,axis)]);
+               		   parameters.bcNames[cg[grid].boundaryCondition()(side,axis)]);
           	    throw "error";
         	  }
       	}
@@ -1514,7 +1514,7 @@ solveForTimeIndependentVariables( GridFunction & cgf, bool updateSolutionDepende
           	    cout << "solveForTimeIndependentVariablesASF: Unknown BC = " << c.boundaryCondition()(side,axis) << endl;
           	    printf("cg[grid=%i].boundaryCondition()(side=%i,axis=%i)=%i (%s)\n",grid,side,axis,
                		   cg[grid].boundaryCondition()(side,axis), 
-               		   (const char*)parameters.bcNames[cg[grid].boundaryCondition()(side,axis)]);
+               		   parameters.bcNames[cg[grid].boundaryCondition()(side,axis)]);
           	    throw "error";
         	  }
       	}

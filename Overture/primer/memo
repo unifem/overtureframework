@@ -1,0 +1,9 @@
+2014/08/13 -
+
+mpiexec -n 2 ./deform
+
+
+mpiexec -n 2 xterm -e gdb ./deform
+
+mpiexec -n 1 /usr/bin/valgrind --tool=memcheck --suppressions=/home/henshw/valgrind.supp --num-callers=20 --error-limit=no --db-attach=yes --max-stackframe=3146824 ./deform
+

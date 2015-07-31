@@ -1,0 +1,305 @@
+**************************
+*** July 31, 2015
+
+CHECK RECOVERY OF FILES
+
+G16 rhos=1 -godunovOrder=1 beamInAChannel5/ 
+nohup $cgmp -noplot solidBeamInAChannel -method=cns -cnsVariation=godunov -smVariation=g  -g=thinSolidBeamInAChannelGride16.order2 -scf=1. -tp=.1 -tf=20. -nc=1 -d1="fluidDomain" -d2="solidDomain" -fic=shock -pOffset=.71440 -rhoSolid=1. -lambdaSolid=10. -muSolid=10. -diss=4. -relaxAlpha=1. -relaxDelta=1. -tangentialDissipationSolid=1. -godunovOrder=1  -cnsGodunovOrder=2 -debug=1 -xShock=-50. -shockSpeed=1.1 -rampedInflow=1 -flushFrequency=4 -godunovType=4 -pi=1 -piGhostOption=3 -multiDomainAlgorithm=1  -cfl=.8 -show=sbicNeoThin16s1rampedNEW.show -go=go >! sbicNeoThin16s1rampedNEW.out &
+
+**************************
+*** July 20, 2015
+
+============== RAMPED VERSIONS
+
+G32: rhos=1 -godunovOrder=1 beamInAChannel6/ 
+nohup $cgmp -noplot solidBeamInAChannel -method=cns -cnsVariation=godunov -smVariation=g  -g=thinSolidBeamInAChannelGride32.order2 -scf=1. -tp=.1 -tf=20. -nc=1 -d1="fluidDomain" -d2="solidDomain" -fic=shock -pOffset=.71440 -rhoSolid=1. -lambdaSolid=10. -muSolid=10. -diss=4. -relaxAlpha=1. -relaxDelta=1. -tangentialDissipationSolid=1. -godunovOrder=1 -cnsGodunovOrder=2 -debug=1 -xShock=-50. -shockSpeed=1.1 -rampedInflow=1 -flushFrequency=4 -godunovType=4 -pi=1 -piGhostOption=3 -multiDomainAlgorithm=1  -cfl=.8 -show=sbicNeoThin32s1ramped.show -go=go >! sbicNeoThin32s1ramped.out &
+
+G16 rhos=1 -godunovOrder=1 beamInAChannel5/ 
+nohup $cgmp -noplot solidBeamInAChannel -method=cns -cnsVariation=godunov -smVariation=g  -g=thinSolidBeamInAChannelGride16.order2 -scf=1. -tp=.1 -tf=20. -nc=1 -d1="fluidDomain" -d2="solidDomain" -fic=shock -pOffset=.71440 -rhoSolid=1. -lambdaSolid=10. -muSolid=10. -diss=4. -relaxAlpha=1. -relaxDelta=1. -tangentialDissipationSolid=1. -godunovOrder=1  -cnsGodunovOrder=2 -debug=1 -xShock=-50. -shockSpeed=1.1 -rampedInflow=1 -flushFrequency=4 -godunovType=4 -pi=1 -piGhostOption=3 -multiDomainAlgorithm=1  -cfl=.8 -show=sbicNeoThin16s1ramped.show -go=go >! sbicNeoThin16s1ramped.out &
+
+
+G32: rhos=50 -godunovOrder=1 beamInAChannel4/ 
+nohup $cgmp -noplot solidBeamInAChannel -method=cns -cnsVariation=godunov -smVariation=g  -g=thinSolidBeamInAChannelGride32.order2 -scf=50. -tp=.1 -tf=20. -nc=1 -d1="fluidDomain" -d2="solidDomain" -fic=shock -pOffset=.71440 -lambdaSolid=1. -muSolid=1. -diss=4. -relaxAlpha=1. -relaxDelta=1. -tangentialDissipationSolid=1. -godunovOrder=1 -cnsGodunovOrder=2 -debug=1 -xShock=-50. -shockSpeed=1.1 -rampedInflow=1 -flushFrequency=4 -godunovType=4 -pi=1 -piGhostOption=3 -multiDomainAlgorithm=1  -cfl=.8 -show=sbicNeoThin32s50ramped.show -go=go >! sbicNeoThin32s50ramped.out &
+
+G16 rhos=50 -godunovOrder=1 beamInAChannel2/ 
+nohup $cgmp -noplot solidBeamInAChannel -method=cns -cnsVariation=godunov -smVariation=g  -g=thinSolidBeamInAChannelGride16.order2 -scf=50. -tp=.1 -tf=20. -nc=1 -d1="fluidDomain" -d2="solidDomain" -fic=shock -pOffset=.71440 -lambdaSolid=1. -muSolid=1.  -diss=4. -relaxAlpha=1. -relaxDelta=1. -tangentialDissipationSolid=1. -godunovOrder=1  -cnsGodunovOrder=2 -debug=1 -xShock=-50. -shockSpeed=1.1 -rampedInflow=1 -flushFrequency=4 -godunovType=4 -pi=1 -piGhostOption=3 -multiDomainAlgorithm=1  -cfl=.8 -show=sbicNeoThin16s50ramped.show -go=go >! sbicNeoThin16s50ramped.out &
+
+
+
+G32: rhos=10 -godunovOrder=1 beamInAChannel3/ -- MORE diss needed
+nohup $cgmp -noplot solidBeamInAChannel -method=cns -cnsVariation=godunov -smVariation=g  -g=thinSolidBeamInAChannelGride32.order2 -scf=10. -tp=.1 -tf=20. -nc=1 -d1="fluidDomain" -d2="solidDomain" -fic=shock -pOffset=.71440 -lambdaSolid=1. -muSolid=1. -diss=4. -relaxAlpha=1. -relaxDelta=1. -tangentialDissipationSolid=1. -godunovOrder=1 -cnsGodunovOrder=2 -debug=1 -xShock=-50. -shockSpeed=1.1 -rampedInflow=1 -flushFrequency=4 -godunovType=4 -pi=1 -piGhostOption=3 -multiDomainAlgorithm=1  -cfl=.8 -show=sbicNeoThin32s10ramped.show -go=go >! sbicNeoThin32s10ramped.out &
+
+G16 rhos=10 -godunovOrder=1 beamInAChannel/  Ok to t=10 then fails
+nohup $cgmp -noplot solidBeamInAChannel -method=cns -cnsVariation=godunov -smVariation=g  -g=thinSolidBeamInAChannelGride16.order2 -scf=10. -tp=.1 -tf=20. -nc=1 -d1="fluidDomain" -d2="solidDomain" -fic=shock -pOffset=.71440 -lambdaSolid=1. -muSolid=1.  -diss=4. -relaxAlpha=1. -relaxDelta=1. -tangentialDissipationSolid=1. -godunovOrder=1  -cnsGodunovOrder=2 -debug=1 -xShock=-50. -shockSpeed=1.1 -rampedInflow=1 -flushFrequency=4 -godunovType=4 -pi=1 -piGhostOption=3 -multiDomainAlgorithm=1  -cfl=.8 -show=sbicNeoThin16s10ramped.show -go=go >! sbicNeoThin16s10ramped.out &
+
+
+ -- scf=50 beamInAChannel4/  REDO
+nohup $cgmp -noplot solidBeamInAChannel -method=cns -cnsVariation=godunov -smVariation=g  -g=thinSolidBeamInAChannelGride32.order2 -scf=50. -tp=.1 -tf=20. -nc=1 -d1="fluidDomain" -d2="solidDomain" -fic=shock -pOffset=.71440 -lambdaSolid=1. -muSolid=1. -diss=2. -relaxAlpha=.5 -relaxDelta=.5 -godunovOrder=1 -cnsGodunovOrder=2 -debug=1 -xShock=-.5 -shockSpeed=1.1 -rampedInflow=0 -flushFrequency=4 -godunovType=4 -pi=1 -piGhostOption=3 -multiDomainAlgorithm=1  -cfl=.9 -show=sbicNeoThin32s50a.show -go=go >! sbicNeoThin32s50a.out &
+
+
+**************************
+*** July 19, 2015
+
+============== RAMPED VERSIONS
+
+G32: /beamInAChannel5: 
+nohup $cgmp -noplot solidBeamInAChannel -method=cns -cnsVariation=godunov -smVariation=g  -g=thinSolidBeamInAChannelGride32.order2 -scf=100. -tp=.1 -tf=20. -nc=1 -d1="fluidDomain" -d2="solidDomain" -fic=shock -pOffset=.71440 -lambdaSolid=1. -muSolid=1. -diss=2. -relaxAlpha=.5 -relaxDelta=.5 -godunovOrder=2 -cnsGodunovOrder=2 -debug=1 -xShock=-50. -shockSpeed=1.1 -rampedInflow=1 -flushFrequency=4 -godunovType=4 -pi=1 -piGhostOption=3 -multiDomainAlgorithm=1  -cfl=.9 -show=sbicNeoThin32s100ramped.show -go=go >! sbicNeoThin32s100ramped.out &
+
+G16
+nohup $cgmp -noplot solidBeamInAChannel -method=cns -cnsVariation=godunov -smVariation=g  -g=thinSolidBeamInAChannelGride16.order2 -scf=100. -tp=.1 -tf=20. -nc=1 -d1="fluidDomain" -d2="solidDomain" -fic=shock -pOffset=.71440 -lambdaSolid=1. -muSolid=1. -diss=2. -relaxAlpha=.5 -relaxDelta=.5 -godunovOrder=2 -cnsGodunovOrder=2 -debug=1 -xShock=-50. -shockSpeed=1.1 -rampedInflow=1 -flushFrequency=4 -godunovType=4 -pi=1 -piGhostOption=3 -multiDomainAlgorithm=1  -cfl=.9 -show=sbicNeoThin16s100ramped.show -go=go >! sbicNeoThin16s100ramped.out &
+
+
+==========================
+
+
+ -- scf=50 beamInAChannel4/   Ok to t=9 but then trouble. Add slope-limter? 
+nohup $cgmp -noplot solidBeamInAChannel -method=cns -cnsVariation=godunov -smVariation=g  -g=thinSolidBeamInAChannelGride32.order2 -scf=50. -tp=.1 -tf=20. -nc=1 -d1="fluidDomain" -d2="solidDomain" -fic=shock -pOffset=.71440 -lambdaSolid=1. -muSolid=1. -diss=2. -relaxAlpha=.5 -relaxDelta=.5 -godunovOrder=2 -cnsGodunovOrder=2 -debug=1 -xShock=-.5 -shockSpeed=1.1 -rampedInflow=0 -flushFrequency=4 -godunovType=4 -pi=1 -piGhostOption=3 -multiDomainAlgorithm=1  -cfl=.8 -show=sbicNeoThin32s50.show -go=go >! sbicNeoThin32s50.out &
+
+
+beamInAChannel3/ : lighter : rhos=2, lambdas=10 NO-PROJECTION
+nohup $cgmp -noplot solidBeamInAChannel -method=cns -cnsVariation=godunov -smVariation=g  -g=thinSolidBeamInAChannelGride16.order2 -scf=1. -tp=.1 -tf=20. -nc=1 -d1="fluidDomain" -d2="solidDomain" -fic=shock -pOffset=.71440 -rhos=2. -lambdaSolid=10. -muSolid=10. -diss=4. -relaxAlpha=1. -relaxDelta=1. -tangentialDissipationSolid=1. -godunovOrder=1 -cnsGodunovOrder=2 -debug=1 -xShock=-.5 -shockSpeed=1.1 -rampedInflow=0 -flushFrequency=4 -godunovType=4 -pi=0 -piGhostOption=3 -multiDomainAlgorithm=1  -cfl=.8 -probeFile=sbic16np -show=sbicNeoThin16np.show -go=go >! sbicNeoThin16np.out &
+
+
+
+G64: rhos=100 IN beamInAChanel2/
+nohup $cgmp -noplot solidBeamInAChannel -method=cns -cnsVariation=godunov -smVariation=g  -g=thinSolidBeamInAChannelGride64.order2 -scf=100. -tp=.1 -tf=20. -nc=1 -d1="fluidDomain" -d2="solidDomain" -fic=shock -pOffset=.71440 -lambdaSolid=1. -muSolid=1. -diss=2. -relaxAlpha=.5 -relaxDelta=.5 -godunovOrder=2 -cnsGodunovOrder=2 -debug=1 -xShock=-.5 -shockSpeed=1.1 -rampedInflow=0 -flushFrequency=4 -godunovType=4 -pi=1 -piGhostOption=3 -multiDomainAlgorithm=1  -cfl=.9 -show=sbicNeoThin64s100.show -go=go >! sbicNeoThin64s100.out &
+
+
+G16: rhos=100
+nohup $cgmp -noplot solidBeamInAChannel -method=cns -cnsVariation=godunov -smVariation=g  -g=thinSolidBeamInAChannelGride16.order2 -scf=100. -tp=.1 -tf=20. -nc=1 -d1="fluidDomain" -d2="solidDomain" -fic=shock -pOffset=.71440 -lambdaSolid=1. -muSolid=1. -diss=2. -relaxAlpha=.5 -relaxDelta=.5 -godunovOrder=2 -cnsGodunovOrder=2 -debug=1 -xShock=-.5 -shockSpeed=1.1 -rampedInflow=0 -flushFrequency=4 -godunovType=4 -pi=1 -piGhostOption=3 -multiDomainAlgorithm=1  -cfl=.9 -show=sbicNeoThin16s100.show -go=go >! sbicNeoThin16s100.out &
+
+
+**************************
+*** July 18, 2015
+
+
+
+Heavier stiffer beam: -- OK 
+nohup $cgmp -noplot solidBeamInAChannel -method=cns -cnsVariation=godunov -smVariation=g  -g=thinSolidBeamInAChannelGride32.order2 -scf=100. -tp=.1 -tf=20. -nc=1 -d1="fluidDomain" -d2="solidDomain" -fic=shock -pOffset=.71440 -lambdaSolid=1. -muSolid=1. -diss=2. -relaxAlpha=.5 -relaxDelta=.5 -tangentialDissipationSolid=1. -godunovOrder=2 -cnsGodunovOrder=2 -debug=1 -xShock=-.5 -shockSpeed=1.1 -rampedInflow=0 -flushFrequency=4 -godunovType=4 -pi=1 -piGhostOption=3 -multiDomainAlgorithm=1  -cfl=.8 -show=sbicNeoThin32s100.show -go=go >! sbicNeoThin32s100.out &
+
+
+SHOCK + -scf=10 -- finer grid -- REDO -- slope limiter ON  *FAILS* at t=1.1 corner
+nohup $cgmp -noplot solidBeamInAChannel -method=cns -cnsVariation=godunov -smVariation=g  -g=thinSolidBeamInAChannelGride32.order2 -scf=10. -tp=.1 -tf=20. -nc=1 -d1="fluidDomain" -d2="solidDomain" -fic=shock -pOffset=.71440 -lambdaSolid=1. -muSolid=1. -diss=2. -cnsGodunovOrder=2 -debug=1 -xShock=-.5 -shockSpeed=1.1 -rampedInflow=0 -flushFrequency=4 -godunovType=4 -pi=1 -piGhostOption=3 -multiDomainAlgorithm=1  -cfl=.8 -show=sbicNeoThin32d.show -go=go >! sbicNeoThin32d.out &
+
+
+
+beamInAChanel2/ : lighter : rhos=2, lambdas=10 **NOTE** really rhoSolid=1 !!!
+nohup $cgmp -noplot solidBeamInAChannel -method=cns -cnsVariation=godunov -smVariation=g  -g=thinSolidBeamInAChannelGride32.order2 -scf=1. -tp=.1 -tf=20. -nc=1 -d1="fluidDomain" -d2="solidDomain" -fic=shock -pOffset=.71440 -rhos=2. -lambdaSolid=10. -muSolid=10. -diss=4. -relaxAlpha=1. -relaxDelta=1. -tangentialDissipationSolid=1. -godunovOrder=1 -cnsGodunovOrder=2 -debug=1 -xShock=-.5 -shockSpeed=1.1 -rampedInflow=0 -flushFrequency=4 -godunovType=4 -pi=1 -piGhostOption=3 -multiDomainAlgorithm=1  -cfl=.8 -probeFile=sbic32c -show=sbicNeoThin32c.show -go=go >! sbicNeoThin32c.out &
+
+
+REDO: more diss, but  -godunovOrder=2 add probe file  --FAILED early on ? cfl=.8 --> cfl=.6
+nohup $cgmp -noplot solidBeamInAChannel -method=cns -cnsVariation=godunov -smVariation=g  -g=thinSolidBeamInAChannelGride32.order2 -scf=10. -tp=.1 -tf=20. -nc=1 -d1="fluidDomain" -d2="solidDomain" -fic=shock -pOffset=.71440 -lambdaSolid=1. -muSolid=1. -diss=4. -relaxAlpha=1. -relaxDelta=1. -tangentialDissipationSolid=1. -godunovOrder=2 -cnsGodunovOrder=2 -debug=1 -xShock=-.5 -shockSpeed=1.1 -rampedInflow=0 -flushFrequency=4 -godunovType=4 -pi=1 -piGhostOption=3 -multiDomainAlgorithm=1  -cfl=.6 -probeFile=sbic32 -show=sbicNeoThin32b.show -go=go >! sbicNeoThin32b.out &
+
+**************************
+*** July 17, 2015
+
+REDO: more dissipation + -godunovOrder=1 : OK to at least t=9
+nohup $cgmp -noplot solidBeamInAChannel -method=cns -cnsVariation=godunov -smVariation=g  -g=thinSolidBeamInAChannelGride32.order2 -scf=10. -tp=.1 -tf=20. -nc=1 -d1="fluidDomain" -d2="solidDomain" -fic=shock -pOffset=.71440 -lambdaSolid=1. -muSolid=1. -diss=4. -relaxAlpha=1. -relaxDelta=1. -tangentialDissipationSolid=1. -godunovOrder=1 -cnsGodunovOrder=2 -debug=1 -xShock=-.5 -shockSpeed=1.1 -rampedInflow=0 -flushFrequency=4 -godunovType=4 -pi=1 -piGhostOption=3 -multiDomainAlgorithm=1  -cfl=.8 -show=sbicNeoThin32a.show -go=go >! sbicNeoThin32a.out &
+
+
+SHOCK + -scf=10 -- finer grid -- trouble with stress in usual spot at t=1.3
+nohup $cgmp -noplot solidBeamInAChannel -method=cns -cnsVariation=godunov -smVariation=g  -g=thinSolidBeamInAChannelGride32.order2 -scf=10. -tp=.1 -tf=20. -nc=1 -d1="fluidDomain" -d2="solidDomain" -fic=shock -pOffset=.71440 -lambdaSolid=1. -muSolid=1. -diss=2. -cnsGodunovOrder=2 -debug=1 -xShock=-.5 -shockSpeed=1.1 -rampedInflow=0 -flushFrequency=4 -godunovType=4 -pi=1 -piGhostOption=3 -multiDomainAlgorithm=1  -cfl=.8 -show=sbicNeoThin32.show -go=go >! sbicNeoThin32.out &
+
+
+SHOCK + rhos=1. trouble at t=2.1 -- lower right corner of solid 
+nohup $cgmp -noplot solidBeamInAChannel -method=cns -cnsVariation=godunov -smVariation=g  -g=thinSolidBeamInAChannelGride16.order2 -scf=1. -tp=.1 -tf=20. -nc=1 -d1="fluidDomain" -d2="solidDomain" -fic=shock -pOffset=.71440 -rhoSolid=1. -lambdaSolid=10. -muSolid=10. -diss=2. -cnsGodunovOrder=2 -debug=1 -xShock=-.5 -shockSpeed=1.1 -rampedInflow=0 -flushFrequency=4 -godunovType=4 -pi=1 -piGhostOption=3 -multiDomainAlgorithm=1  -cfl=.8 -show=sbicNeoThin16n.show -go=go >! sbicNeoThin16n.out &
+
+
+
+
+REDO: Lighter beam: rhos=1, lambdas=10 mus=10  -- CHANGED bcOptSM: use extrap to get stress on displacement boundaries --> WORSE
+nohup $cgmp -noplot solidBeamInAChannel -method=cns -cnsVariation=godunov -smVariation=g  -g=thinSolidBeamInAChannelGride16.order2 -scf=1. -tp=.1 -tf=20. -nc=1 -d1="fluidDomain" -d2="solidDomain" -fic=shock -pOffset=.71440 -rhoSolid=1. -lambdaSolid=10. -muSolid=10. -diss=2. -cnsGodunovOrder=2 -debug=1 -xShock=-50. -shockSpeed=1.1 -rampedInflow=1 -flushFrequency=4 -godunovType=4 -pi=1 -piGhostOption=3 -multiDomainAlgorithm=1  -cfl=.8 -show=sbicNeoThin16m.show -go=go >! sbicNeoThin16m.out &
+
+
+
+REDO: Lighter beam: rhos=1, lambdas=10 mus=10  -- still problems at t=7.3 -- grid failed solid grid is developing wiggles in lower right corner
+nohup $cgmp -noplot solidBeamInAChannel -method=cns -cnsVariation=godunov -smVariation=g  -g=thinSolidBeamInAChannelGride16.order2 -scf=1. -tp=.1 -tf=20. -nc=1 -d1="fluidDomain" -d2="solidDomain" -fic=shock -pOffset=.71440 -rhoSolid=1. -lambdaSolid=10. -muSolid=10. -diss=2. -cnsGodunovOrder=2 -debug=1 -xShock=-50. -shockSpeed=1.1 -rampedInflow=1 -flushFrequency=4 -godunovType=4 -pi=1 -piGhostOption=3 -multiDomainAlgorithm=1  -cfl=.8 -show=sbicNeoThin16l.show -go=go >! sbicNeoThin16l.out &
+
+
+**************************
+*** July 16, 2015
+
+FIX made to grids: "applyBoundaryConditionsToStartCurve" in Hype to fix corner ghost!
+
+TURN OFF corner fixup for traction-displacement corners
+
+SHOCK + lighter
+nohup $cgmp -noplot solidBeamInAChannel -method=cns -cnsVariation=godunov -smVariation=g  -g=thinSolidBeamInAChannelGride16.order2 -scf=10. -tp=.1 -tf=20. -nc=1 -d1="fluidDomain" -d2="solidDomain" -fic=shock -pOffset=.71440 -lambdaSolid=1. -muSolid=1. -diss=2. -cnsGodunovOrder=2 -debug=1 -xShock=-.5 -shockSpeed=1.1 -rampedInflow=0 -flushFrequency=4 -godunovType=4 -pi=1 -piGhostOption=3 -multiDomainAlgorithm=1  -cfl=.8 -show=sbicNeoThin16k.show -go=go >! sbicNeoThin16k.out &
+
+
+TEST SHOCK -- looks OK
+nohup $cgmp -noplot solidBeamInAChannel -method=cns -cnsVariation=godunov -smVariation=g  -g=thinSolidBeamInAChannelGride16.order2 -scf=100. -tp=.1 -tf=20. -nc=1 -d1="fluidDomain" -d2="solidDomain" -fic=shock -pOffset=.71440 -lambdaSolid=1. -muSolid=1. -diss=2. -cnsGodunovOrder=2 -debug=1 -xShock=-.75 -shockSpeed=1.1 -rampedInflow=0 -flushFrequency=4 -godunovType=4 -pi=1 -piGhostOption=3 -multiDomainAlgorithm=1  -cfl=.8 -show=sbicNeoThin16j.show -go=go >! sbicNeoThin16j.out &
+
+
+----
+Lighter beam: rhos=1, lambdas=10 mus=10 OK to t=7.3 then Newton trouble
+nohup $cgmp -noplot solidBeamInAChannel -method=cns -cnsVariation=godunov -smVariation=g  -g=thinSolidBeamInAChannelGride16.order2 -scf=1. -tp=.1 -tf=20. -nc=1 -d1="fluidDomain" -d2="solidDomain" -fic=shock -pOffset=.71440 -rhoSolid=1. -lambdaSolid=10. -muSolid=10. -diss=2. -cnsGodunovOrder=2 -debug=1 -xShock=-50. -shockSpeed=1.1 -flushFrequency=4 -godunovType=4 -pi=1 -piGhostOption=3 -multiDomainAlgorithm=1  -cfl=.8 -show=sbicNeoThin16i.show -go=go >! sbicNeoThin16i.out &
+
+
+
+----
+Lighter beam: Ok to t=11.7 thne newton failed to converge in cgsm
+nohup $cgmp -noplot solidBeamInAChannel -method=cns -cnsVariation=godunov -smVariation=g  -g=thinSolidBeamInAChannelGride16.order2 -scf=10. -tp=.1 -tf=20. -nc=1 -d1="fluidDomain" -d2="solidDomain" -fic=shock -pOffset=.71440 -lambdaSolid=1. -muSolid=1. -diss=2. -cnsGodunovOrder=2 -debug=1 -xShock=-50. -shockSpeed=1.1 -flushFrequency=4 -godunovType=4 -pi=1 -piGhostOption=3 -multiDomainAlgorithm=1  -cfl=.8 -show=sbicNeoThin16h.show -go=go >! sbicNeoThin16h.out &
+
+OK to t=20!
+/beamInAChannel2: Rerun- cfl=.8 , godunovOrder=2 
+nohup $cgmp -noplot solidBeamInAChannel -method=cns -cnsVariation=godunov -smVariation=g  -g=thinSolidBeamInAChannelGride16.order2 -scf=100. -tp=.1 -tf=20. -nc=1 -d1="fluidDomain" -d2="solidDomain" -fic=shock -pOffset=.71440 -lambdaSolid=1. -muSolid=1. -diss=2. -cnsGodunovOrder=2 -debug=1 -xShock=-50. -shockSpeed=1.1 -flushFrequency=4 -godunovType=4 -pi=1 -piGhostOption=3 -multiDomainAlgorithm=1  -cfl=.8 -show=sbicNeoThin16g.show -go=go >! sbicNeoThin16g.out &
+
+
+OK to t=20!
+nohup $cgmp -noplot solidBeamInAChannel -method=cns -cnsVariation=godunov -smVariation=g  -g=thinSolidBeamInAChannelGride16.order2 -scf=100. -tp=.1 -tf=20. -nc=1 -d1="fluidDomain" -d2="solidDomain" -fic=shock -pOffset=.71440 -lambdaSolid=1. -muSolid=1. -diss=2. -cnsGodunovOrder=2 -debug=1 -xShock=-50. -shockSpeed=1.1 -flushFrequency=4 -godunovType=4 -pi=1 -piGhostOption=3 -multiDomainAlgorithm=1 -godunovOrder=1 -cfl=.5 -show=sbicNeoThin16f.show -go=go >! sbicNeoThin16f.out &
+
+
+
+**************************
+*** July 15, 2015
+
+More fixes to bcOptSmFOS.bf --
+nohup $cgmp -noplot solidBeamInAChannel -method=cns -cnsVariation=godunov -smVariation=g  -g=thinSolidBeamInAChannelGride16.order2 -scf=100. -tp=.1 -tf=20. -nc=1 -d1="fluidDomain" -d2="solidDomain" -fic=shock -pOffset=.71440 -lambdaSolid=1. -muSolid=1. -diss=2. -cnsGodunovOrder=2 -debug=1 -xShock=-50. -shockSpeed=1.1 -flushFrequency=4 -godunovType=4 -pi=1 -piGhostOption=3 -multiDomainAlgorithm=1 -godunovOrder=1 -cfl=.5 -show=sbicNeoThin16e.show -go=go >! sbicNeoThin16e.out &
+
+Use limited extrap on first line, variable-dt-cgsm -- OK to t=8.5 then dt gets small
+nohup $cgmp -noplot solidBeamInAChannel -method=cns -cnsVariation=godunov -smVariation=g  -g=thinSolidBeamInAChannelGride16.order2 -scf=100. -tp=.1 -tf=20. -nc=1 -d1="fluidDomain" -d2="solidDomain" -fic=shock -pOffset=.71440 -lambdaSolid=1. -muSolid=1. -diss=2. -cnsGodunovOrder=2 -debug=1 -xShock=-50. -shockSpeed=1.1 -flushFrequency=4 -godunovType=4 -pi=1 -piGhostOption=3 -multiDomainAlgorithm=1  -cfl=.5 -show=sbicNeoThin16d.show -go=go >! sbicNeoThin16d.out &
+
+
+REDO- FIX dt for cgsm, TURN ON relaxDelta in stress-strain relaxation -- OK to t=8.5 then dt gets small
+nohup $cgmp -noplot solidBeamInAChannel -method=cns -cnsVariation=godunov -smVariation=g  -g=thinSolidBeamInAChannelGride16.order2 -scf=100. -tp=.1 -tf=20. -nc=1 -d1="fluidDomain" -d2="solidDomain" -fic=shock -pOffset=.71440 -lambdaSolid=1. -muSolid=1. -diss=2. -cnsGodunovOrder=2 -debug=1 -xShock=-50. -shockSpeed=1.1 -flushFrequency=4 -godunovType=4 -pi=1 -piGhostOption=3 -multiDomainAlgorithm=1  -cfl=.5 -show=sbicNeoThin16c.show -go=go >! sbicNeoThin16c.out &
+
+
+
+****************************************************************
+*** June 29 2015   -- beam in a channel FLUNSI EXAMPLE
+    July 14, 2015
+
+Grids:
+
+ ogen -noplot solidBeamInAChannelGrid -interp=e -sharpness=20 -factor=4
+ ogen -noplot solidBeamInAChannelGrid -interp=e -sharpness=20 -factor=8
+ ogen -noplot solidBeamInAChannelGrid -interp=e -sharpness=20 -factor=16
+ ogen -noplot solidBeamInAChannelGrid -interp=e -sharpness=20 -factor=32
+
+
+#  Thinner beam: 
+ogen -noplot solidBeamInAChannelGrid -interp=e -sharpness=50 -tStretch=1.5 -beamThickness=.1 -prefix=thinSolidBeamInAChannelGrid -factor=16 
+ogen -noplot solidBeamInAChannelGrid -interp=e -sharpness=50 -tStretch=1.5 -beamThickness=.1 -prefix=thinSolidBeamInAChannelGrid -factor=32
+ogen -noplot solidBeamInAChannelGrid -interp=e -sharpness=50 -tStretch=1.5 -beamThickness=.1 -prefix=thinSolidBeamInAChannelGrid -factor=64
+
+
+TEST FIXES TO CGSM neo-Hookean
+
+
+RE-MAKE GRIDS: finer near base:
+
+THIN-BEAM:
+G16: NEO: -scf=1000  -- REDUCE CFL try first order godunov
+nohup $cgmp -noplot solidBeamInAChannel -method=cns -cnsVariation=godunov -smVariation=g  -g=thinSolidBeamInAChannelGride16.order2 -scf=1000. -tp=.1 -tf=20. -nc=1 -d1="fluidDomain" -d2="solidDomain" -fic=shock -pOffset=.71440 -lambdaSolid=1. -muSolid=1. -diss=5. -cnsGodunovOrder=2 -debug=1 -xShock=-50. -shockSpeed=1.1 -flushFrequency=4 -godunovType=4 -pi=1 -piGhostOption=3 -multiDomainAlgorithm=1  -cfl=.25 -godunovOrder=1 -show=sbicNeoThin16b.show -go=go >! sbicNeoThin16b.out &
+
+
+
+THIN-BEAM:
+G16: NEO: -scf=100  -- REDUCE CFL
+nohup $cgmp -noplot solidBeamInAChannel -method=cns -cnsVariation=godunov -smVariation=g  -g=thinSolidBeamInAChannelGride16.order2 -scf=100. -tp=.1 -tf=20. -nc=1 -d1="fluidDomain" -d2="solidDomain" -fic=shock -pOffset=.71440 -lambdaSolid=1. -muSolid=1. -diss=2. -cnsGodunovOrder=2 -debug=1 -xShock=-50. -shockSpeed=1.1 -flushFrequency=4 -godunovType=4 -pi=1 -piGhostOption=3 -multiDomainAlgorithm=1  -cfl=.5 -show=sbicNeoThin16a.show -go=go >! sbicNeoThin16a.out &
+
+
+THIN-BEAM:
+G16: NEO: -scf=100  -- OK to t=2.7 
+nohup $cgmp -noplot solidBeamInAChannel -method=cns -cnsVariation=godunov -smVariation=g  -g=thinSolidBeamInAChannelGride16.order2 -scf=100. -tp=.1 -tf=20. -nc=1 -d1="fluidDomain" -d2="solidDomain" -fic=shock -pOffset=.71440 -lambdaSolid=1. -muSolid=1. -diss=2. -cnsGodunovOrder=2 -debug=1 -xShock=-50. -shockSpeed=1.1 -flushFrequency=4 -godunovType=4 -pi=1 -piGhostOption=3 -multiDomainAlgorithm=1  -cfl=.9 -show=sbicNeoThin16.show -go=go >! sbicNeoThin16.out &
+
+
+
+G8: NEO :-scf=20 : TROUBLE
+$cgmp solidBeamInAChannel -method=cns -cnsVariation=godunov -smVariation=g  -g=solidBeamInAChannelGride8.order2 -scf=20. -tp=.05 -tf=20. -nc=1 -d1="fluidDomain" -d2="solidDomain" -fic=shock -pOffset=.71440 -lambdaSolid=1. -muSolid=1. -diss=2. -cnsGodunovOrder=2 -debug=1 -xShock=-50. -shockSpeed=1.1 -flushFrequency=4 -godunovType=4 -pi=1 -piGhostOption=3 -multiDomainAlgorithm=1  -cfl=.9 -go=halt
+
+
+G8: NEO :-scf=100 : 
+$cgmp solidBeamInAChannel -method=cns -cnsVariation=godunov -smVariation=g  -g=solidBeamInAChannelGride8.order2 -scf=100. -tp=.05 -tf=20. -nc=1 -d1="fluidDomain" -d2="solidDomain" -fic=shock -pOffset=.71440 -lambdaSolid=1. -muSolid=1. -diss=2. -cnsGodunovOrder=2 -debug=1 -xShock=-50. -shockSpeed=1.1 -flushFrequency=4 -godunovType=4 -pi=1 -piGhostOption=3 -multiDomainAlgorithm=1  -cfl=.9 -go=halt
+
+
+G8: NEO :-scf=100 : (LE OK to t=20)  
+nohup $cgmp -noplot solidBeamInAChannel -method=cns -cnsVariation=godunov -smVariation=g  -g=solidBeamInAChannelGride8.order2 -scf=100. -tp=.1 -tf=20. -nc=1 -d1="fluidDomain" -d2="solidDomain" -fic=shock -pOffset=.71440 -lambdaSolid=1. -muSolid=1. -diss=2. -cnsGodunovOrder=2 -debug=1 -xShock=-50. -shockSpeed=1.1 -flushFrequency=4 -godunovType=4 -pi=1 -piGhostOption=3 -multiDomainAlgorithm=1  -cfl=.9 -show=sbicNeo8.show -go=go >! sbicNeo8.out &
+
+
+
+****************************************************************
+*** July 3, 2015   -- beam in a channel INS-SM EXAMPLE
+
+CHECK THIS: 
+--GE-- addGrid:ERROR: attempting to add past a time grid at t=1.40e-02 but numberOfTimeLevels==maximumNumberOfTimeLevels=4
+
+G8: INS -- -scf=1.e4 : OK 
+$cgmp solidBeamInAChannel -method=ins -g=solidBeamInAChannelGride8.order2 -scf=1e4 -tp=.05 -tf=10. -nc=1 -d1="fluidDomain" -d2="solidDomain" -fic=shock -pOffset=0. -lambdaSolid=1. -muSolid=1. -diss=2. -nu=.01 -debug=1 -flushFrequency=4 -pi=1 -piGhostOption=3 -multiDomainAlgorithm=1  -cfl=.9 -go=halt
+
+
+NOTE: G4 grid is not very good quality
+
+G4: INS -- -scf=1.e4 : OK 
+$cgmp solidBeamInAChannel -method=ins -g=solidBeamInAChannelGride4.order2 -scf=1e4 -tp=.05 -tf=10. -nc=1 -d1="fluidDomain" -d2="solidDomain" -fic=shock -pOffset=0. -lambdaSolid=1. -muSolid=1. -diss=2. -nu=.01 -debug=1 -flushFrequency=4 -pi=1 -piGhostOption=3 -multiDomainAlgorithm=1  -cfl=.9 -go=halt
+
+
+****************************************************************
+*** June 29 2015   -- beam in a channel FLUNSI EXAMPLE
+
+TEST: 
+
+Higher flow speed: TROUBLE -- highly deformed
+nohup $cgmp -noplot solidBeamInAChannel -method=cns -cnsVariation=godunov -smVariation=g  -g=thinSolidBeamInAChannelGride16.order2 -scf=100. -tp=.1 -tf=30. -nc=1 -d1="fluidDomain" -d2="solidDomain" -fic=shock -pOffset=.71440 -lambdaSolid=1. -muSolid=1. -diss=2. -cnsGodunovOrder=2 -debug=1 -xShock=-50. -shockSpeed=1.2 -flushFrequency=4 -godunovType=0 -pi=1 -piGhostOption=3 -multiDomainAlgorithm=1  -cfl=.9 -show=sbicLEThin16a.show -go=go >! sbicLEThin16a.out &
+
+
+*** June 27-28 2015 -- solid beam in a channel example (for flunsi ?)
+
+Grids:
+
+ ogen -noplot solidBeamInAChannelGrid -interp=e -sharpness=20 -factor=4
+ ogen -noplot solidBeamInAChannelGrid -interp=e -sharpness=20 -factor=8
+ ogen -noplot solidBeamInAChannelGrid -interp=e -sharpness=20 -factor=16
+ ogen -noplot solidBeamInAChannelGrid -interp=e -sharpness=20 -factor=32
+
+
+#  Thinner beam: 
+ogen -noplot solidBeamInAChannelGrid -interp=e -sharpness=50 -tStretch=1.5 -beamThickness=.1 -prefix=thinSolidBeamInAChannelGrid -factor=16 
+
+++++++ RAMPED INFLOW REDUCE SHOCK SPEED, 
+
+THIN-BEAM:
+G16: LE : -scf=100   OK to t=20
+nohup $cgmp -noplot solidBeamInAChannel -method=cns -cnsVariation=godunov -smVariation=g  -g=thinSolidBeamInAChannelGride16.order2 -scf=100. -tp=.1 -tf=20. -nc=1 -d1="fluidDomain" -d2="solidDomain" -fic=shock -pOffset=.71440 -lambdaSolid=1. -muSolid=1. -diss=2. -cnsGodunovOrder=2 -debug=1 -xShock=-50. -shockSpeed=1.1 -flushFrequency=4 -godunovType=0 -pi=1 -piGhostOption=3 -multiDomainAlgorithm=1  -cfl=.9 -show=sbicLEThin16.show -go=go >! sbicLEThin16.out &
+
+THIN-BEAM: -- *trouble* solid corner lower right
+G16: NEO : -scf=100   (LE looks OK)
+nohup $cgmp -noplot solidBeamInAChannel -method=cns -cnsVariation=godunov -smVariation=g  -g=thinSolidBeamInAChannelGride16.order2 -scf=100. -tp=.1 -tf=20. -nc=1 -d1="fluidDomain" -d2="solidDomain" -fic=shock -pOffset=.71440 -lambdaSolid=1. -muSolid=1. -diss=2. -cnsGodunovOrder=2 -debug=1 -xShock=-50. -shockSpeed=1.1 -flushFrequency=4 -godunovType=4 -pi=1 -piGhostOption=3 -multiDomainAlgorithm=1  -cfl=.9 -show=sbicNeoThin16.show -go=go >! sbicNeoThin16.out &
+
+
+
+G8: NEO : LIGHTER: -scf=10 : *TROUBLE* lower right corner of solid is bad
+nohup $cgmp -noplot solidBeamInAChannel -method=cns -cnsVariation=godunov -smVariation=g  -g=solidBeamInAChannelGride8.order2 -scf=10. -tp=.1 -tf=20. -nc=1 -d1="fluidDomain" -d2="solidDomain" -fic=shock -pOffset=.71440 -lambdaSolid=1. -muSolid=1. -diss=2. -cnsGodunovOrder=2 -debug=1 -xShock=-50. -shockSpeed=1.1 -flushFrequency=4 -godunovType=4 -pi=1 -piGhostOption=3 -multiDomainAlgorithm=1  -cfl=.9 -show=sbicNeo8a.show -go=go >! sbicNeo8a.out &
+
+
+G8: NEO :-scf=100 : (LE OK to t=20)  
+nohup $cgmp -noplot solidBeamInAChannel -method=cns -cnsVariation=godunov -smVariation=g  -g=solidBeamInAChannelGride8.order2 -scf=100. -tp=.1 -tf=20. -nc=1 -d1="fluidDomain" -d2="solidDomain" -fic=shock -pOffset=.71440 -lambdaSolid=1. -muSolid=1. -diss=2. -cnsGodunovOrder=2 -debug=1 -xShock=-50. -shockSpeed=1.1 -flushFrequency=4 -godunovType=4 -pi=1 -piGhostOption=3 -multiDomainAlgorithm=1  -cfl=.9 -show=sbicNeo8.show -go=go >! sbicNeo8.out &
+
+G8: LE : -godunovType==0 -scf=100 
+nohup $cgmp -noplot solidBeamInAChannel -method=cns -cnsVariation=godunov -smVariation=g  -g=solidBeamInAChannelGride8.order2 -scf=100. -tp=.05 -tf=10. -nc=1 -d1="fluidDomain" -d2="solidDomain" -fic=shock -pOffset=.71440 -lambdaSolid=1. -muSolid=1. -diss=2. -cnsGodunovOrder=2 -debug=1 -xShock=-50. -shockSpeed=1.1 -flushFrequency=4 -godunovType=0 -pi=1 -piGhostOption=3 -multiDomainAlgorithm=1  -cfl=.9 -show=sbicLE8.show -go=go >! sbicLE8.out &
+
+
+
++++++++++++++++++ SHOCK:
+Neo-Hookean: -godunovType=4 -scf=1000 - OK to t=5
+$cgmp solidBeamInAChannel -method=cns -cnsVariation=godunov -smVariation=g  -g=solidBeamInAChannelGride8.order2 -scf=100. -tp=.05 -tf=10. -nc=1 -d1="fluidDomain" -d2="solidDomain" -fic=shock -pOffset=.71440 -lambdaSolid=1. -muSolid=1. -diss=2. -cnsGodunovOrder=2 -debug=1 -xShock=-.500001 -flushFrequency=4 -godunovType=4 -pi=1 -piGhostOption=3 -multiDomainAlgorithm=1  -cfl=.9 -go=halt
+
+G16 NEO : -godunovType==4 -scf=100 
+nohup $cgmp -noplot solidBeamInAChannel -method=cns -cnsVariation=godunov -smVariation=g  -g=solidBeamInAChannelGride16.order2 -scf=100. -tp=.05 -tf=10. -nc=1 -d1="fluidDomain" -d2="solidDomain" -fic=shock -pOffset=.71440 -lambdaSolid=1. -muSolid=1. -diss=2. -cnsGodunovOrder=2 -debug=1 -xShock=-.500001 -flushFrequency=4 -godunovType=4 -pi=1 -piGhostOption=3 -multiDomainAlgorithm=1  -cfl=.9 -show=sbicNeo16.show -go=go >! sbicNeo16.out &
+
+G8 NEO : -godunovType==4 -scf=100 -- diss=5 
+nohup $cgmp -noplot solidBeamInAChannel -method=cns -cnsVariation=godunov -smVariation=g  -g=solidBeamInAChannelGride8.order2 -scf=100. -tp=.05 -tf=10. -nc=1 -d1="fluidDomain" -d2="solidDomain" -fic=shock -pOffset=.71440 -lambdaSolid=1. -muSolid=1. -diss=5. -cnsGodunovOrder=2 -debug=1 -xShock=-.500001 -flushFrequency=4 -godunovType=4 -pi=1 -piGhostOption=3 -multiDomainAlgorithm=1  -cfl=.9 -show=sbicNeo8.show -go=go >! sbicNeo8.out &
+
+G8 NEO : -godunovType==4 -scf=100 *trouble at t=2.
+nohup $cgmp -noplot solidBeamInAChannel -method=cns -cnsVariation=godunov -smVariation=g  -g=solidBeamInAChannelGride8.order2 -scf=100. -tp=.05 -tf=10. -nc=1 -d1="fluidDomain" -d2="solidDomain" -fic=shock -pOffset=.71440 -lambdaSolid=1. -muSolid=1. -diss=2. -cnsGodunovOrder=2 -debug=1 -xShock=-.500001 -flushFrequency=4 -godunovType=4 -pi=1 -piGhostOption=3 -multiDomainAlgorithm=1  -cfl=.9 -show=sbicNeo8.show -go=go >! sbicNeo8.out &
+
+
+
+G16: LE : -godunovType==0 -scf=100 *trouble at t=3.95 
+nohup $cgmp -noplot solidBeamInAChannel -method=cns -cnsVariation=godunov -smVariation=g  -g=solidBeamInAChannelGride16.order2 -scf=100. -tp=.05 -tf=10. -nc=1 -d1="fluidDomain" -d2="solidDomain" -fic=shock -pOffset=.71440 -lambdaSolid=1. -muSolid=1. -diss=2. -cnsGodunovOrder=2 -debug=1 -xShock=-.500001 -flushFrequency=4 -godunovType=0 -pi=1 -piGhostOption=3 -multiDomainAlgorithm=1  -cfl=.9 -show=sbicLE16.show -go=go >! sbicLE16.out &
+
+G8: LE : -godunovType==0 -scf=100 *trouble at t=3.95 
+nohup $cgmp -noplot solidBeamInAChannel -method=cns -cnsVariation=godunov -smVariation=g  -g=solidBeamInAChannelGride8.order2 -scf=100. -tp=.05 -tf=10. -nc=1 -d1="fluidDomain" -d2="solidDomain" -fic=shock -pOffset=.71440 -lambdaSolid=1. -muSolid=1. -diss=2. -cnsGodunovOrder=2 -debug=1 -xShock=-.500001 -flushFrequency=4 -godunovType=0 -pi=1 -piGhostOption=3 -multiDomainAlgorithm=1  -cfl=.9 -show=sbicLE8.show -go=go >! sbicLE8.out &
+
+ -show="sbicNeo.show"

@@ -1,4 +1,18 @@
 *******************************
+**** July 30, 2015 REVIST
+
+
+*** FD22 -- 3 PATCH SPHERE - sphereInABox  *TROUBLE STILL
+conv.p scat.conv -tf=.2 -tp=.2 -order=2 -radius=1. -diss=.1 -bg=backGround -method=nfdtd -cg=sphereInABoxFixed -ng=3
+
+               grid  & N &  $E_x$ & r &  $E_y$ & r & $H_z$ & r & $\grad\cdot\Ev/\grad\Ev$& r
+  sphereInABoxFixed1 &     1 & 6.94e-02 &      & 7.19e-02 &      & 3.37e-02 &      & 8.45e-02 &
+  sphereInABoxFixed2 &     2 & 2.56e-02 &  2.7 & 2.93e-02 &  2.5 & 1.32e-02 &  2.6 & 3.71e-02 &  2.3
+  sphereInABoxFixed4 &     4 & 9.89e-03 &  2.6 & 1.10e-02 &  2.7 & 5.20e-03 &  2.5 & 1.93e-02 &  1.9
+Convergence rates: c0=1.41 c1=1.35 c2=1.35 c3=1.07
+
+
+*******************************
 **** July 14, 2015
 
 CYLINDER EIGENMODES:
