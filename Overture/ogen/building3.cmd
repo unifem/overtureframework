@@ -133,21 +133,20 @@ create mappings
   builder
     target grid spacing .05 .05
     create surface grid...
-      # Choose a starting curve for the surface grid near the top edge of the builing
-      choose boundary curve 2
-      # old way: 
-      # choose edge curve 4 7.239714e-01 2.351254e-01 0.000000e+00 
-      # choose edge curve 5 2.240427e-01 7.128884e-01 0.000000e+00 
+      choose edge curve 4 7.239714e-01 2.351254e-01 0.000000e+00 
+      choose edge curve 5 2.240427e-01 7.128884e-01 0.000000e+00 
       done
-      # edit initial curve
-      #  periodicity
-      #  2
-      #  exit
+* pause
+*
+      edit initial curve
+        periodicity
+        2
+        exit
       forward and backward
       target grid spacing 0.01, 0.015 (tang,normal, <0 : use default)
       lines to march 9 9 (forward,backward)  
       generate
-      #  pause
+*  pause
       name roundedTopSurface
       exit
 *
