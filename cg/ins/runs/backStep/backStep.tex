@@ -1,0 +1,414 @@
+%-----------------------------------------------------------------------
+% Flow past a backward facing step -- notes
+%-----------------------------------------------------------------------
+\documentclass[11pt]{article}
+% \usepackage[bookmarks=true]{hyperref}  % this changes the page location !
+\usepackage[bookmarks=true,colorlinks=true,linkcolor=blue]{hyperref}
+
+% \input documentationPageSize.tex
+\hbadness=10000 
+\sloppy \hfuzz=30pt
+
+% \voffset=-.25truein
+% \hoffset=-1.25truein
+% \setlength{\textwidth}{7in}      % page width
+% \setlength{\textheight}{9.5in}    % page height
+
+\usepackage{calc}
+\usepackage[lmargin=.75in,rmargin=.75in,tmargin=.75in,bmargin=.75in]{geometry}
+
+\input homeHenshaw
+
+% \input{pstricks}\input{pst-node}
+% \input{colours}
+\newcommand{\blue}{\color{blue}}
+\newcommand{\green}{\color{green}}
+\newcommand{\red}{\color{red}}
+\newcommand{\black}{\color{black}}
+
+
+\usepackage{amsmath}
+\usepackage{amssymb}
+
+\usepackage{verbatim}
+\usepackage{moreverb}
+
+\usepackage{graphics}    
+\usepackage{epsfig}    
+\usepackage{calc}
+\usepackage{ifthen}
+\usepackage{float}
+% the next one cause the table of contents to disappear!
+% * \usepackage{fancybox}
+
+\usepackage{makeidx} % index
+\makeindex
+\newcommand{\Index}[1]{#1\index{#1}}
+
+\usepackage{tikz}
+% \usepackage{pgfplots}
+\input trimFig.tex
+
+
+% ---- we have lemmas and theorems in this paper ----
+\newtheorem{assumption}{Assumption}
+\newtheorem{definition}{Definition}
+
+% \newcommand{\homeHenshaw}{/home/henshaw.0}
+
+\newcommand{\Overture}{{\bf Over\-ture\ }}
+\newcommand{\ogenDir}{\homeHenshaw/Overture/ogen}
+
+\newcommand{\cgDoc}{\homeHenshaw/cgDoc}
+\newcommand{\vpDir}{\homeHenshaw/cgDoc/ins/viscoPlastic}
+
+\newcommand{\ovFigures}{\homeHenshaw/OvertureFigures}
+\newcommand{\obFigures}{\homeHenshaw/res/OverBlown/docFigures}  % for figures
+\newcommand{\convDir}{\homeHenshaw/cgDoc/ins/tables}
+\newcommand{\insDocDir}{\homeHenshaw/cgDoc/ins}
+
+% *** See http://www.eng.cam.ac.uk/help/tpl/textprocessing/squeeze.html
+% By default, LaTeX doesn't like to fill more than 0.7 of a text page with tables and graphics, nor does it like too many figures per page. This behaviour can be changed by placing lines like the following before \begin{document}
+
+\renewcommand\floatpagefraction{.99}
+\renewcommand\topfraction{.99}
+\renewcommand\bottomfraction{.99}
+\renewcommand\textfraction{.01}   
+\setcounter{totalnumber}{50}
+\setcounter{topnumber}{50}
+\setcounter{bottomnumber}{50}
+
+\begin{document}
+
+\input wdhDefinitions.tex
+
+\def\comma  {~~~,~~}
+\newcommand{\uvd}{\mathbf{U}}
+\def\ud     {{    U}}
+\def\pd     {{    P}}
+\def\calo{{\cal O}}
+
+\newcommand{\mbar}{\bar{m}}
+\newcommand{\Rbar}{\bar{R}}
+\newcommand{\Ru}{R_u}         % universal gas constant
+% \newcommand{\Iv}{{\bf I}}
+% \newcommand{\qv}{{\bf q}}
+\newcommand{\Div}{\grad\cdot}
+\newcommand{\tauv}{\boldsymbol{\tau}}
+\newcommand{\thetav}{\boldsymbol{\theta}}
+% \newcommand{\omegav}{\mathbf{\omega}}
+% \newcommand{\Omegav}{\mathbf{\Omega}}
+
+\newcommand{\Omegav}{\boldsymbol{\Omega}}
+\newcommand{\omegav}{\boldsymbol{\omega}}
+\newcommand{\sigmav}{\boldsymbol{\sigma}}
+\newcommand{\cm}{{\rm cm}}
+
+\newcommand{\ds}{\Delta s}
+\newcommand{\dsbl}{\ds_{\rm bl}}
+
+
+\newcommand{\sumi}{\sum_{i=1}^n}
+% \newcommand{\half}{{1\over2}}
+\newcommand{\dt}{{\Delta t}}
+
+\def\ff {\tt} % font for fortran variables
+
+% define the clipFig commands:
+%% \input clipFig.tex
+
+\newcommand{\Bc}{{\mathcal B}}
+\newcommand{\Dc}{{\mathcal D}}
+\newcommand{\Ec}{{\mathcal E}}
+\newcommand{\Fc}{{\mathcal F}}
+\newcommand{\Gc}{{\mathcal G}}
+\newcommand{\Hc}{{\mathcal H}}
+\newcommand{\Ic}{{\mathcal I}}
+\newcommand{\Jc}{{\mathcal J}}
+\newcommand{\Lc}{{\mathcal L}}
+\newcommand{\Nc}{{\mathcal N}}
+\newcommand{\Pc}{{\mathcal P}}
+\newcommand{\Rc}{{\mathcal R}}
+\newcommand{\Sc}{{\mathcal S}}
+
+\newcommand{\bogus}[1]{}  % removes is argument completely
+
+\vspace{5\baselineskip}
+\begin{flushleft}
+{\LARGE
+Simulating Airflow Past a Backward Facing Step \\
+Using Overture's Cgins Solver\\
+}
+\vspace{2\baselineskip}
+Jeffrey W. Banks,  \\
+William D. Henshaw, \\
+Donald W. Schwendeman \\
+% 
+\vspace{2\baselineskip}
+% 
+Department of Mathematical Sciences, \\
+Rensselaer Polytechnic Institute (RPI), \\
+Troy, NY, USA, 12180. \\
+\vspace{\baselineskip}
+\today\\
+
+\vspace{4\baselineskip}
+
+\noindent{\bf\large Abstract:}
+
+This document describes results for simulating flow past a backward facing step.
+In some cases there are moving bodies situated in the wake.
+
+\end{flushleft}
+
+% \clearpage
+\tableofcontents
+% \listoffigures
+
+\clearpage
+
+
+\section{Introduction}
+
+Cgins is an incompressible flow solver built upon the Overture framework.
+Cgins solves the incompressible Navier-Stokes equations (with Boussinesq approimation
+for temperature dependent buoyant flows). See~\cite{CginsUserGuide} and~\cite{CginsReferenceManual} for further 
+details. See~\cite{ICNS}~\cite{splitStep2003} for further details of the basic numerical scheme. 
+
+The steps for simulating flow over some specified geometry are
+\begin{enumerate}
+  \item Use Ogen, the overlapping grid generator, to generate the intial grid using on of the provided command files (e.g. {\tt backStepGrid.cmd}).
+  \item Use one of the Cgins command files,  ({\tt e.g. backStep.cmd}) to simulate the flow using Cgins.
+\end{enumerate}
+% Note the relevant scripts  can be found in 
+% the directory {\tt cg/ins/runs/backStep} of the CG distribution. 
+
+The default Cgins scheme being used in these computations is 
+\begin{enumerate}
+  \item AFS24-MG : Approximate factored scheme, 2nd-order in time, 4th-order in space, multigrid solver for the pressure equation,
+    typcially run at a CFL number of $2-4$. 
+\end{enumerate}
+
+Notes:
+\begin{enumerate}
+  \item Cgins uses a non-linear dissipation to stabilize under-resolved flows. For the fourth-order accurate method this is
+    a non-linear fourth-order eddy viscosity known as SSLES4 (smallest-scale large eddy simulation model, order 4).
+  The effective dissipation term in the momentum equations is thus of the form
+  \begin{align*}
+     \Dc & =  \nu \Delta \uv  + \Big(\text{ad41} + \text{ad42} \vert \grad\uv\vert \Big) ~h^4~ \Delta^2 \uv , 
+  \end{align*}
+  where ad41 and ad42 are the coefficients of the SSLES viscosity (e.g. ad41=1, ad42=1) and $h$ is the approximate grid spacing.
+\end{enumerate}
+
+
+
+
+% =================================================================================================================================
+% =================================================================================================================================
+% =================================================================================================================================
+\section{Flow past a two-dimensional backward facing step}
+
+The geometry of the backward facing step is shown in~\ref{fig:backStepGrids}. 
+An inlet region starting at $x=x_a$ reaches the step at $x=0$. The step has height of $1$ and the bottom
+of the step is located at $x=0$, $y=0$. The outlet region extends to $x=x_b$. 
+
+The boundary conditions are chosen as inflow on the left at $x=x_a$. The inflow profile is a parabola
+over some small height and then uniform above this. An outflow condition is used on the right.
+The top wall is either a slip wall (symmetry) or an outflow or zero-traction condition $p=0$. 
+The lower wall is a no-slip wall.
+
+
+The overlapping grid is denoted by $\Gc^{(j)}$ where $j$ denotes the grid resolution factor: the grid spacing in the 
+grids in vicinity of the step have a a grid spacing of approximately $\Delta s = 1/(10 j)$. The grids are stretched
+in the direction normal to the boundary by a factor of about $5$ (?)
+
+Figure~\ref{fig:backStepGrids} shows a basic overlapping grid for the backward facing step.
+The step is rounded and represented with the SmoothedPolygon mapping.
+Two background Cartesian grids fill the inlet and outlet regions.
+
+Figure~\ref{fig:backStepRefineGrids} shows an {\em improved} versin of the grid including far-field grids
+to treat a larger domain and a stretched boundary layer grid on the bottom wall that follows the step.
+
+{
+\begin{figure}[hbt]
+\newcommand{\figWidth}{10cm}
+\newcommand{\trimfig}[2]{\trimFigb{#1}{#2}{0.025}{.5}{.375}{.375}}
+\newcommand{\figWidtha}{5.5cm}
+\newcommand{\trimfiga}[2]{\trimFigb{#1}{#2}{0.0}{.0}{.0}{.0}}
+\begin{center}\small
+% ------------------------------------------------------------------------------------------------
+\begin{tikzpicture}[scale=1]
+  \useasboundingbox (0,0.25) rectangle (16,5.5);  % set the bounding box (so we have less surrounding white space)
+  \draw ( 0, 0) node[anchor=south west,xshift=-4pt,yshift=-4pt] {\trimfig{fig/backStepGrid}{\figWidth}};
+  \draw (10.5, 0) node[anchor=south west,xshift=-4pt,yshift=-4pt] {\trimfiga{fig/backStepGridZoom}{\figWidtha}};
+%  \draw[step=1cm,gray] (0,0) grid (16,5);
+\end{tikzpicture}
+% ----------------------------------------------------------------------------------------
+\caption{
+Overlapping grid for the backward facing step. Grid $\Gc^{(4)}$ (resolution factor $j=4$, grid for fourth-order accuracy). Right: zoomed view near rounded step.
+Interpolation points (two layers) are marked as black squares.
+% Two-dimensional overlapping grid for a cross-section through the terrain. Grid $\Gc^{(4)}$ (second-order accuracy) is shown
+%    along with a magnified view of the grid near the surface.
+}
+\label{fig:backStepGrids}
+\end{center}
+\end{figure}
+}
+
+
+%- {
+%- \begin{figure}[hbt]
+%- \newcommand{\figWidth}{10cm}
+%- \newcommand{\trimfig}[2]{\trimFigb{#1}{#2}{0.025}{.5}{.375}{.375}}
+%- \newcommand{\figWidtha}{5.5cm}
+%- \newcommand{\trimfiga}[2]{\trimFigb{#1}{#2}{0.0}{.0}{.0}{.0}}
+%- \begin{center}\small
+%- % ------------------------------------------------------------------------------------------------
+%- \begin{tikzpicture}[scale=1]
+%-   \useasboundingbox (0,0.25) rectangle (16,5.5);  % set the bounding box (so we have less surrounding white space)
+%-   \draw ( 0, 0) node[anchor=south west,xshift=-4pt,yshift=-4pt] {\trimfig{fig/backStepRefineGrid}{\figWidth}};
+%-   \draw (10.5, 0) node[anchor=south west,xshift=-4pt,yshift=-4pt] {\trimfiga{fig/backStepRefineGridZoom}{\figWidtha}};
+%- %  \draw[step=1cm,gray] (0,0) grid (16,5);
+%- \end{tikzpicture}
+%- % ----------------------------------------------------------------------------------------
+%- \caption{
+%- Overlapping grid for the backward facing step with far-field grids. Grid $\Gc^{(4)}$ (fourth-order accuracy). Right: zoomed view near rounded step.
+%- Interpolation points (two layers) are marked as black squares.
+%- % Two-dimensional overlapping grid for a cross-section through the terrain. Grid $\Gc^{(4)}$ (second-order accuracy) is shown
+%- %    along with a magnified view of the grid near the surface.
+%- }
+%- \label{fig:backStepRefineGrids}
+%- \end{center}
+%- \end{figure}
+%- }
+
+
+{
+\begin{figure}[hbt]
+\newcommand{\figWidth}{16cm}
+\newcommand{\trimfig}[2]{\trimFigb{#1}{#2}{0.01}{.01}{.275}{.275}}
+\newcommand{\figWidtha}{5.5cm}
+\newcommand{\trimfiga}[2]{\trimFigb{#1}{#2}{0.0}{.0}{.0}{.0}}
+\begin{center}\small
+% ------------------------------------------------------------------------------------------------
+\begin{tikzpicture}[scale=1]
+  \useasboundingbox (0,0.25) rectangle (16,10.);  % set the bounding box (so we have less surrounding white space)
+  \draw ( 0, 5.6) node[anchor=south west,xshift=-4pt,yshift=-4pt] {\trimfig{fig/backStepRefineGrid}{\figWidth}};
+  \draw ( 5, 0.0) node[anchor=south west,xshift=-4pt,yshift=-4pt] {\trimfiga{fig/backStepRefineGridZoom}{\figWidtha}};
+%   \draw (10.5, 0) node[anchor=south west,xshift=-4pt,yshift=-4pt] {\trimfiga{fig/backStepRefineGrid2Zoom}{\figWidtha}};
+%% \draw[step=1cm,gray] (0,0) grid (16,10.);
+\end{tikzpicture}
+% ----------------------------------------------------------------------------------------
+\caption{
+Overlapping grid for the backward facing step with far-field grids. Grid $\Gc^{(4)}$ (fourth-order accuracy). Bottom: zoomed view near rounded step.
+Interpolation points (two layers) are marked as black squares.
+% Two-dimensional overlapping grid for a cross-section through the terrain. Grid $\Gc^{(4)}$ (second-order accuracy) is shown
+%    along with a magnified view of the grid near the surface.
+}
+\label{fig:backStepRefineGrids}
+\end{center}
+\end{figure}
+}
+
+Figure~\ref{fig:backStepResolutions} shows how the solution depends on the grid resolution.
+As the grid is refined, finer scale features of the flow can be resolved.
+The maximum vorticity also increases as the grid is refined. 
+In this case the true viscosity plays no role as the nonlinear SSLES model provides the dissipation.
+
+{
+\begin{figure}[hbt]
+\newcommand{\figWidth}{11cm}
+\newcommand{\trimfig}[2]{\trimFigb{#1}{#2}{0.0}{.0}{.33}{.33}}
+\begin{center}\small
+% ------------------------------------------------------------------------------------------------
+\begin{tikzpicture}[scale=1]
+  \useasboundingbox (0,0.25) rectangle (11,13.);  % set the bounding box (so we have less surrounding white space)
+  \draw ( 0,0.0) node[anchor=south west,xshift=-4pt,yshift=-4pt] {\trimfig{fig/backStepRefineG32Vort20}{\figWidth}};
+  \draw ( 0,4.5) node[anchor=south west,xshift=-4pt,yshift=-4pt] {\trimfig{fig/backStepRefineG16Vort20}{\figWidth}};
+  \draw ( 0,9.0) node[anchor=south west,xshift=-4pt,yshift=-4pt] {\trimfig{fig/backStepRefineG8Vort20}{\figWidth}};
+%   \draw (10.5, 0) node[anchor=south west,xshift=-4pt,yshift=-4pt] {\trimfiga{fig/backStepRefineGridZoom}{\figWidtha}};
+%  \draw[step=1cm,gray] (0,0) grid (11,13.);
+\end{tikzpicture}
+% ----------------------------------------------------------------------------------------
+\caption{
+Vorticity at time $t=20$ for grids of different resolutions using the SSLES4 turbulence model.
+Solution in the near wake region is shown. The max and min contours of the vorticity are limited to the range $[-20,20]$.
+Top: coarse grid $\Gc^{(8)}$. Middle: medium grid $\Gc^{(16)}$. Bottom: fine grid $\Gc^{(32)}$ (approx. $2.3M$ grid pts).  
+}
+\label{fig:backStepResolutions}
+\end{center}
+\end{figure}
+}
+
+
+\clearpage
+% =================================================================================================================================
+% =================================================================================================================================
+% =================================================================================================================================
+\section{Flow past a two-dimensional backward facing step with moving cylinder in the wake}
+
+Figure~\ref{fig:backStepAndBodyGrids} shows a basic overlapping grid for backward facing step
+with a cylinder in the wake. The cylinder oscillates up and down. 
+
+Figure~\ref{fig:backStepAndBodyMoveCylinder} shows the solution at two instants in time
+computed on grid $\Gc^{(16}$ (approx. $750,000$ grid points) using AFS24-MG. 
+{
+\begin{figure}[hbt]
+\newcommand{\figWidth}{15cm}
+\newcommand{\trimfig}[2]{\trimFigb{#1}{#2}{0.0}{.25}{.27}{.275}}
+\begin{center}\small
+% ------------------------------------------------------------------------------------------------
+\begin{tikzpicture}[scale=1]
+  \useasboundingbox (0,0.25) rectangle (16,6.5);  % set the bounding box (so we have less surrounding white space)
+  \draw ( 0, 0) node[anchor=south west,xshift=-4pt,yshift=-4pt] {\trimfig{fig/backStepAndBodyGrid}{\figWidth}};
+%   \draw (10.5, 0) node[anchor=south west,xshift=-4pt,yshift=-4pt] {\trimfiga{fig/backStepRefineGridZoom}{\figWidtha}};
+% \draw[step=1cm,gray] (0,0) grid (16,6);
+\end{tikzpicture}
+% ----------------------------------------------------------------------------------------
+\caption{
+Overlapping grid for the backward facing step with a cylinderical body in the wake, grid $\Gc^{(4)}$. 
+}
+\label{fig:backStepAndBodyGrids}
+\end{center}
+\end{figure}
+}
+
+{
+\begin{figure}[hbt]
+\newcommand{\figWidth}{11cm}
+\newcommand{\trimfig}[2]{\trimFigb{#1}{#2}{0.0}{.0}{.27}{.3}}
+\begin{center}\small
+% ------------------------------------------------------------------------------------------------
+\begin{tikzpicture}[scale=1]
+  \useasboundingbox (0,0.25) rectangle (11,10.25);  % set the bounding box (so we have less surrounding white space)
+  \draw ( 0, 0) node[anchor=south west,xshift=-4pt,yshift=-4pt] {\trimfig{fig/backStepAndBodyG16-Vor-t31}{\figWidth}};
+  \draw ( 0, 5) node[anchor=south west,xshift=-4pt,yshift=-4pt] {\trimfig{fig/backStepAndBodyG16-Vor-t33}{\figWidth}};
+%   \draw (10.5, 0) node[anchor=south west,xshift=-4pt,yshift=-4pt] {\trimfiga{fig/backStepRefineGridZoom}{\figWidtha}};
+% \draw[step=1cm,gray] (0,0) grid (11,10.25);
+\end{tikzpicture}
+% ----------------------------------------------------------------------------------------
+\caption{
+Vorticity at two times for flow past a backward facing step and a moving cylinder in the wake. 
+The cylinder oscillates up and down. 
+Solution computed with AFS24-MG on grid $\Gc^{(16)}$.
+}
+\label{fig:backStepAndBodyMoveCylinder}
+\end{center}
+\end{figure}
+}
+
+
+
+\vfill\eject
+\bibliography{\homeHenshaw/papers/common/henshaw,\homeHenshaw/papers/common/henshawPapers}
+\bibliographystyle{siam}
+
+
+
+\end{document}
+% *************************************************************************************************************************************
+% *************************************************************************************************************************************
+% *************************************************************************************************************************************
+% *************************************************************************************************************************************
+
+

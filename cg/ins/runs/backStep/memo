@@ -1,0 +1,398 @@
+==============================================================================
+GRIDS:
+    ogen -noplot backStepGrid -interp=e -factor=1
+    ogen -noplot backStepGrid -interp=e -factor=2
+    ogen -noplot backStepGrid -interp=e -factor=4
+    ogen -noplot backStepGrid -interp=e -factor=8
+
+
+    ogen -noplot backStepGrid -interp=e -order=4 -factor=4
+    ogen -noplot backStepGrid -interp=e -order=4 -factor=8
+
+    ogen -noplot backStepGrid -interp=e -order=4 -ml=1 -factor=4
+    ogen -noplot backStepGrid -interp=e -order=4 -ml=2 -factor=8
+    ogen -noplot backStepGrid -interp=e -order=4 -ml=3 -factor=16
+
+   -- refinement grid and farfield: 
+    ogen -noplot backStepRefineGrid -interp=e -order=4 -factor=2
+    ogen -noplot backStepRefineGrid -interp=e -order=4 -ml=1 -factor=4
+    ogen -noplot backStepRefineGrid -interp=e -order=4 -ml=2 -factor=8
+
+    ogen -noplot backStepRefineGrid -interp=e -order=4 -ml=2 -factor=16
+    ogen -noplot backStepRefineGrid -interp=e -order=4 -ml=3 -factor=32  [2.5M pts
+
+BODY:
+
+   ogen -noplot backStepAndBodyGrid -interp=e -factor=2
+   ogen -noplot backStepAndBodyGrid -interp=e -factor=4
+
+   ogen -noplot backStepAndBodyGrid -interp=e -order=4 -factor=4
+   ogen -noplot backStepAndBodyGrid -interp=e -order=4 -factor=8
+   ogen -noplot backStepAndBodyGrid -interp=e -order=4 -ml=1 -factor=8
+   ogen -noplot backStepAndBodyGrid -interp=e -order=4 -ml=2 -factor=16
+   ogen -noplot backStepAndBodyGrid -interp=e -order=4 -ml=3 -factor=32
+
+BODy + FARFIELD GRIDS
+
+   ogen -noplot backStepAndBodyRefineGrid -interp=e -order=4 -ml=1 -factor=4
+   ogen -noplot backStepAndBodyRefineGrid -interp=e -order=4 -ml=2 -factor=8
+
+   ogen -noplot backStepAndBodyRefineGrid -interp=e -order=4 -ml=2 -factor=16
+   ogen -noplot backStepAndBodyRefineGrid -interp=e -order=4 -ml=3 -factor=16
+
+   ***NOTE** MG can fail if outflow BC is p + b*p.n =0 and b is too small for a LONG channel
+
+
+==============================================================================
+
+**************************************
+************ Aug 1, 2015
+
+
+**************************************
+************ JULY 31 , 2015
+
+CHECK RECOVERY OF FILES
+
+G16 - MOVING AND PARALLEL -- LOOKS OK
+mpirun -np 4 $cginsp -noplot backStepAndBody -g=backStepAndBodyRefineGride16.order4.ml2 -nu=1e-5 -bcTop=slipWall -ad4=1 -ad41=2. -ad42=1. -ts=afs -psolver=mg -dtMax=.01 -tf=100. -tp=.1  -debug=3 -cfl=4. -move=oscillate -numberOfParallelGhost=4 -freqFullUpdate=1 -go=og
+
+
+G8 -- move: LOOKS OK 
+$cgins -noplot backStepAndBody -g=backStepAndBodyRefineGride8.order4.ml2 -nu=1.e-3 -bcTop=outflow -ad4=1  -ad41=2. -ad42=1. -cfl=4. -ts=afs -psolver=mg -dtMax=.01 -tf=50. -tp=.01 -debug=3 -move=oscillate -freq=.5 -go=og
+
+
+***********************************************
+***********July 26, 2015.
+
+-------------------------------------------------------------------------------------------------
+-------------------------------------------------------------------------------------------------
+WHY TROUBLE WITH MG?
+   ***NOTE** MG can fail if outflow BC is p + b*p.n =0 and b is too small for a LONG channel
+-------------------------------------------------------------------------------------------------
+-------------------------------------------------------------------------------------------------
+
+
+=== ADD BODY AND FAR-FIELD GRIDS 
+
+
+G16 - MOVING AND PARALLEL
+mpirun -np 4 $cginsp -noplot backStepAndBody -g=backStepAndBodyRefineGride16.order4.ml2 -nu=1e-5 -bcTop=slipWall -ad4=1 -ad41=2. -ad42=1. -ts=afs -psolver=mg -dtMax=.01 -tf=100. -tp=.1  -debug=3 -cfl=4. -move=oscillate -numberOfParallelGhost=4 -freqFullUpdate=1 -show=backStepAndBodyRefineMove16.show -go=go >! backStepAndBodyRefineMove16.out 
+
+
+G16 -- move: OK 
+$cgins -noplot backStepAndBody -g=backStepAndBodyRefineGride16.order4.ml2 -nu=1.e-4 -bcTop=outflow -ad4=1  -ad41=2. -ad42=1. -cfl=4. -ts=afs -psolver=mg -dtMax=.01 -tf=50. -tp=.01 -debug=3 -move=oscillate -freq=.5 -go=og
+
+
+G8 -- move: OK 
+$cgins -noplot backStepAndBody -g=backStepAndBodyRefineGride8.order4.ml2 -nu=1.e-3 -bcTop=outflow -ad4=1  -ad41=2. -ad42=1. -cfl=4. -ts=afs -psolver=mg -dtMax=.01 -tf=50. -tp=.01 -debug=3 -move=oscillate -freq=.5 -go=og
+
+
+
+G4 -- move: OK 
+$cgins -noplot backStepAndBody -g=backStepAndBodyRefineGride4.order4.ml1 -nu=1.e-2 -bcTop=outflow -ad4=1  -ad41=2. -ad42=1. -cfl=4. -ts=afs -psolver=mg -dtMax=.01 -tf=50. -tp=.01 -debug=3 -move=oscillate -freq=.5 -go=og
+
+G4 - NO MOTION -- OK
+$cgins -noplot backStepAndBody -g=backStepAndBodyRefineGride4.order4.ml1 -nu=1.e-2 -bcTop=outflow -ad4=1  -ad41=2. -ad42=1. -cfl=4. -ts=afs -psolver=mg -dtMax=.01 -tf=50. -tp=.01 -debug=3 -move=0 -go=og
+
+
+=== ADD TOP FARFIELD GRID:
+
+G8 -- longer run
+nohup $cgins -noplot backStep -g=backStepRefineGride8.order4.ml2 -nu=1.e-5 -bcTop=outflow -ad4=1  -ad41=2. -ad42=1. -cfl=4. -ts=afs -psolver=mg -dtMax=.01 -tf=100. -tp=.1 -debug=3 -show=backStepRefine8.show -go=go >! backStepRefine8.out &
+
+
+
+G32: parallel longer run 
+mpirun -np 16 $cginsp -noplot backStep -g=backStepRefineGride32.order4.ml3 -nu=1.e-6 -bcTop=outflow -ad4=1  -ad41=2. -ad42=1. -cfl=4. -ts=afs -psolver=mg -dtMax=.01 -tf=50. -tp=.1 -debug=3 -numberOfParallelGhost=4 -show=backStepRefine32.show -go=go >! backStepRefine32.out
+
+G32: parallel: 
+mpirun -np 4 $cginsp -noplot backStep -g=backStepRefineGride32.order4.ml3 -nu=1.e-6 -bcTop=outflow -ad4=1  -ad41=2. -ad42=1. -cfl=4. -ts=afs -psolver=mg -dtMax=.01 -tf=50. -tp=.01 -debug=3 -numberOfParallelGhost=4 -go=og
+
+
+G16 -- longer run
+nohup $cgins -noplot backStep -g=backStepRefineGride16.order4.ml2 -nu=1.e-5 -bcTop=outflow -ad4=1  -ad41=2. -ad42=1. -cfl=4. -ts=afs -psolver=mg -dtMax=.01 -tf=100. -tp=.1 -debug=3 -show=backStepRefine16.show -go=go >! backStepRefine16.out &
+
+
+G16-ml2 OK
+$cgins -noplot backStep -g=backStepRefineGride16.order4.ml2 -nu=1.e-5 -bcTop=outflow -ad4=1  -ad41=2. -ad42=1. -cfl=4. -ts=afs -psolver=mg -dtMax=.01 -tf=50. -tp=.01 -debug=3 -go=og
+
+G8-ml2 OK 
+$cgins -noplot backStep -g=backStepRefineGride8.order4.ml2 -nu=1.e-4 -bcTop=outflow -ad4=1  -ad41=2. -ad42=1. -cfl=4. -ts=afs -psolver=mg -dtMax=.01 -tf=50. -tp=.01 -debug=3 -go=og
+
+
+G4: 
+$cgins -noplot backStep -g=backStepRefineGride4.order4.ml1 -nu=1.e-2 -bcTop=outflow -ad4=1  -ad41=2. -ad42=1. -cfl=4. -ts=afs -psolver=mg -dtMax=.01 -tf=50. -tp=.01 -debug=3 -go=og
+
+=====
+
+
+ml=2 -- trouble nan's .. OK NOW increase $cpn
+$cgins -noplot backStep -g=backStepRefineGride16.order4.ml2 -nu=1.e-3 -bcTop=outflow -ad4=1  -ad41=2. -ad42=1. -cfl=4. -ts=afs -psolver=mg -dtMax=.01 -tf=50. -tp=.01 -debug=3 -go=og
+
+ml=2 -- top=slipWall
+$cgins -noplot backStep -g=backStepRefineGride16.order4.ml2 -nu=1.e-3 -bcTop=slipWall -ad4=1  -ad41=2. -ad42=1. -cfl=4. -ts=afs -psolver=mg -dtMax=.01 -tf=50. -tp=.01 -debug=3 -go=og
+
+OK: ml=1
+$cgins -noplot backStep -g=backStepRefineGride16.order4.ml1 -nu=1.e-3 -bcTop=outflow -ad4=1  -ad41=2. -ad42=1. -cfl=4. -ts=afs -psolver=mg -dtMax=.01 -tf=50. -tp=.01 -debug=3 -go=og
+
+
+
+***********************************************
+***********July 26, 2015.
+
+Test the new grid structure with coarse and refined grids 
+
+G8-AFS24 .. redo
+nohup $cgins -noplot backStep -g=backStepRefineGride8.order4.ml1 -nu=1.e-3 -bcTop=outflow -ad4=1  -ad41=2. -ad42=1. -cfl=4. -ts=afs -psolver=mg -dtMax=.01 -tf=50. -tp=.1 -debug=3 -show=backStepRefine8.show -go=go >! backStepRefine8.out &
+
+$cgins -noplot backStep -g=backStepRefineGride8.order4.ml1 -nu=1.e-3 -bcTop=outflow -ad4=1  -ad41=2. -ad42=1. -cfl=4. -ts=afs -psolver=mg -dtMax=.01 -tf=50. -tp=.1 -debug=3 -go=og
+
+G4 AFS24-Yale OK (MG trouble)
+cgins -noplot backStep -g=backStepRefineGride4.order4.ml1 -nu=1.e-3 -bcTop=outflow -ad4=1  -ad41=2. -ad42=1. -cfl=3. -ts=afs -psolver=yale -dtMax=.01 -tp=.01 -debug=3 -go=og
+
+
+***********************************************
+***********July 25, 2015.
+
+***************************************************
+*** USE GNU SCREEN INSTEAD OF NOHUP for mpirun ****
+***************************************************
+
+test -ts=im
+cgins -noplot backStep -g=backStepGride4.order4.ml1 -nu=1.e-2 -bcTop=outflow -ad4=1 -cfl=3. -ts=im -psolver=yale -dtMax=.01 -tp=.01 -debug=3 -go=og
+
+
+
+
+Check outflow BC on top 
+
+TEST G32 -- 3M pts  **TO-DO**
+G32 AFS24-MG MOVING: 
+mpirun -np 4 $cginsp -noplot backStepAndBody -g=backStepAndBodyGride32.order4.ml3 -nu=1e-6 -bcTop=slip -ad4=1 -ad41=2. -ad42=1. -ts=afs -psolver=mg -dtMax=.01 -tf=100. -tp=.1  -debug=3 -cfl=4. -move=oscillate -numberOfParallelGhost=4 -freqFullUpdate=1 -go=og
+
+
+G16 AFS24-MG MOVING: TOP-WALL SLIP -- OK to t=50 then inflow at outflow
+screen ...
+mpirun -np 4 $cginsp -noplot backStepAndBody -g=backStepAndBodyGride16.order4.ml2 -nu=1e-5 -bcTop=slipWall -ad4=1 -ad41=2. -ad42=1. -ts=afs -psolver=mg -dtMax=.01 -tf=100. -tp=.1  -debug=3 -cfl=4. -move=oscillate -numberOfParallelGhost=4 -freqFullUpdate=1 -show=backStepAndBodyMove16a.show -go=go >! backStepAndBodyMove16a.out 
+
+
+**Parallel
+OK till t=27 but then a strong inflow at top forms after strong vortex exits top pwd(still ok) but solution is funny
+G16 AFS24-MG MOVING: + outflow on top -- OK cfl=3 Ok, cfl=4 ?   
+nohup mpirun -np 4 $cginsp -noplot backStepAndBody -g=backStepAndBodyGride16.order4.ml2 -nu=1e-5 -bcTop=outflow -ad4=1 -ad41=2. -ad42=1. -ts=afs -psolver=mg -dtMax=.01 -tf=100. -tp=.1  -debug=3 -cfl=3. -move=oscillate -numberOfParallelGhost=4 -freqFullUpdate=1 -show=backStepAndBodyMove16.show -go=go >! backStepAndBodyMove16.out &
+
+
+        ---Cgins Summary : ins --- 
+            Sat Jul 25 08:03:59 2015
+            Grid file=[backStepAndBodyGride16.order4.ml2.hdf]
+  ==== numberOfStepsTaken =71, number of grids=4, number of gridpts =714229, Np=4 (procs) ==== 
+  ==== tFinal=1.500e-01, tInitial=0.000e+00, dt(ave)=2.11e-03 ====
+  ==== memory/proc: [min=114.68,ave=145.443,max=203.07]Mb, max-recorded=0 Mb, total=581.773 Mb, 106.8 reals/(grid-pt)
+   Timings:           (ave-sec/proc:) seconds   sec/step    TPSM     TTS       %    [max-s/proc] [min-s/proc]
+total time.......................... 1.52e+02   2.15e+00  1.2e+01  3.6e+01  100.000   1.54e+02     1.52e+02
+
+
+G16 AFS24-MG MOVING: + outflow on top -- OK cfl=3 Ok, cfl=4 ? 
+cgins -noplot backStepAndBody -g=backStepAndBodyGride16.order4.ml2 -nu=1e-5 -bcTop=outflow -ad4=1 -ad41=2. -ad42=1. -ts=afs -psolver=mg -dtMax=.01 -tf=50. -tp=.01  -debug=3 -cfl=3. -move=oscillate -numberOfParallelGhost=4 -freqFullUpdate=1 -go=og
+
+         ---Cgins Summary : ins --- 
+            Sat Jul 25 07:38:38 2015
+            Grid file=[backStepAndBodyGride16.order4.ml2.hdf]
+  ==== numberOfStepsTaken =164, number of grids=4, number of gridpts =729182, Np=1 (procs) ==== 
+  ==== tFinal=3.500e-01, tInitial=0.000e+00, dt(ave)=2.13e-03 ====
+  ==== memory/proc: [min=529.602,ave=529.602,max=529.602]Mb, max-recorded=0 Mb, total=529.602 Mb,  95.2 reals/(grid-pt)
+   Timings:           (ave-sec/proc:) seconds   sec/step    TPSM     TTS       %    [max-s/proc] [min-s/proc]
+total time.......................... 7.31e+02   4.46e+00  6.1e+00  1.8e+01  100.000   7.31e+02     7.31e+02
+
+
+
+
+G8 AFS24-MG MOVING: + outflow on top -- OK
+cgins -noplot backStepAndBody -g=backStepAndBodyGride8.order4.ml1 -nu=1e-4 -bcTop=outflow -ad4=1 -ad41=2. -ad42=1. -ts=afs -psolver=mg -dtMax=.01 -tf=50. -tp=.01  -debug=3 -cfl=2. -move=oscillate -numberOfParallelGhost=4 -freqFullUpdate=1 -go=og
+
+
+G8 AFS24-MG OK: 
+cgins -noplot backStep -g=backStepGride8.order4.ml2 -nu=1.e-3 -bcTop=outflow -ad4=1 -cfl=3. -ts=afs -psolver=mg -dtMax=.01 -tp=.01 -debug=3 -go=og
+
+MG sort of works -- trouble converging 
+cgins -noplot backStep -g=backStepGride4.order4.ml1 -nu=1.e-2 -bcTop=outflow -ad4=1 -cfl=3. -ts=afs -psolver=mg -dtMax=.01 -tp=.01 -debug=3 -go=og
+
+
+***********************************************
+***********July 24, 2015.
+
+Parallel moving grid 
+
+G16 AFS24-MG: -np=4  -- trouble with -np=8 
+mpirun -np 4 $cginsp -noplot backStepAndBody -g=backStepAndBodyGride16.order4.ml2 -nu=1e-5 -ad4=1 -ad41=2. -ad42=1. -ts=afs -psolver=mg -dtMax=.01 -tf=50. -tp=.01  -debug=3 -cfl=3. -freq=.5 -move=oscillate -numberOfParallelGhost=4 -freqFullUpdate=1 -go=og
+
+
+G8 AFS24-MG: -np=2 OK, -mp=4 OK
+mpirun -np 4 $cginsp -noplot backStepAndBody -g=backStepAndBodyGride8.order4.ml1 -nu=1e-4 -ad4=1 -ad41=2. -ad42=1. -ts=afs -psolver=mg -dtMax=.01 -tf=50. -tp=.01  -debug=3 -cfl=3. -freq=1. -move=oscillate -numberOfParallelGhost=4 -freqFullUpdate=1 -go=og
+
+
+G8 AFS24-MG:  OK 
+mpirun -np 1 $cginsp -noplot backStepAndBody -g=backStepAndBodyGride8.order4.ml1 -nu=1e-4 -ad4=1 -ad41=2. -ad42=1. -ts=afs -psolver=mg -dtMax=.01 -tf=50. -tp=.01  -debug=3 -cfl=2. -move=oscillate -numberOfParallelGhost=4 -freqFullUpdate=1 -go=og
+
+
+AFS24-MG:  trouble with MG on G4 ?
+mpirun -np 1 $cginsp -noplot backStepAndBody -g=backStepAndBodyGride4.order4.ml1 -nu=1e-4 -ad4=1 -ad41=2. -ad42=1. -ts=afs -psolver=mg -dtMax=.01 -tf=50. -tp=.01  -debug=3 -cfl=4. -move=oscillate -numberOfParallelGhost=4 -freqFullUpdate=1 -go=og
+
+
+AFS24-PETSC --OK
+mpirun -np 1 $cginsp -noplot backStepAndBody -g=backStepAndBodyGride4.order4.ml1 -nu=1e-4 -ad4=1 -ad41=2. -ad42=1. -ts=afs -psolver=best -dtMax=.01 -tf=50. -tp=.01  -debug=3 -cfl=4. -move=oscillate -numberOfParallelGhost=4 -freqFullUpdate=1 -go=og
+
+
+MOVING GRID
+
+G8 AFS24 - 
+nohup $cgins -noplot backStepAndBody -g=backStepAndBodyGride8.order4 -nu=1e-4 -ad4=1 -ad41=2. -ad42=1. -ts=afs -psolver=yale -dtMax=.01 -tf=50. -tp=.1  -debug=3 -cfl=4. -move=oscillate -show=backStepAndBodyMove8.show -go=go >! backStepAndBodyMove8.out &
+
+
+AFS24 - 
+nohup $cgins -noplot backStepAndBody -g=backStepAndBodyGride4.order4 -nu=1.e-3 -ad4=1 -ad41=2. -ad42=1. -ts=afs -psolver=yale -dtMax=.01 -tf=50. -tp=.1  -debug=3 -cfl=4. -move=oscillate -show=backStepAndBodyMove4a.show -go=go >! backStepAndBodyMove4a.out &
+
+AFS22 - 
+nohup $cgins -noplot backStepAndBody -g=backStepAndBodyGride4.order2 -nu=1.e-3 -ad2=1 -ts=afs -psolver=yale -dtMax=.01 -tf=50. -tp=.1  -debug=3 -cfl=4. -move=oscillate -show=backStepAndBodyMove4.show -go=go >! backStepAndBodyMove4.out &
+
+$cgins -noplot backStepAndBody -g=backStepAndBodyGride2.order2 -nu=1.e-3 -ad2=1 -ts=afs -psolver=yale -dtMax=.01 -tf=100. -tp=.1  -debug=3 -cfl=4. -move=oscillate -go=og
+
+
+G8 AFS24
+nohup $cgins -noplot backStep -g=backStepAndBodyGride8.order4 -nu=1.e-3 -ad4=1 -ad41=2. -ad42=1. -ts=afs -psolver=yale -dtMax=.01 -tf=100. -tp=.5  -debug=3 -cfl=4. -show=backStepAndBody8.show -go=go >! backStepAndBody8.out &
+
+AFS24
+nohup $cgins -noplot backStep -g=backStepAndBodyGride4.order4 -nu=1.e-3 -ad4=1 -ad41=2. -ad42=1. -ts=afs -psolver=yale -dtMax=.01 -tf=100. -tp=.5  -debug=3 -cfl=4. -show=backStepAndBody4a.show -go=go >! backStepAndBody4a.out &
+
+AFS22-
+nohup $cgins -noplot backStep -g=backStepAndBodyGride4.order2 -nu=1.e-3 -ad2=1 -ts=afs -psolver=yale -dtMax=.01 -tf=100. -tp=.5  -debug=3 -cfl=4. -show=backStepAndBody4.show -go=go >! gbackStepAndBody4.out &
+
+$cgins -noplot backStep -g=backStepAndBodyGride4.order2 -nu=1.e-3 -ad2=1 -ts=afs -psolver=yale -dtMax=.01 -tf=100. -tp=.1  -debug=3 -cfl=4. -show=backStepAndBody4.show -go=og
+
+
+***********************************************
+***********July 23, 2015.
+
+
+PARALLEL
+
+TROUBLE WITH MG and OUTFLOW AT TOP ??
+
+
+G16: 
+mpirun -np 8 $cginsp backStep -g=backStepGride16.order4.ml3 -nu=1.e-4 -ad4=1  -ad41=1. -ad42=1. -ts=afs -psolver=mg -dtMax=.01 -tf=100. -tp=.1  -numberOfParallelGhost=4 -debug=3 -cfl=3. -project=1 -go=halt
+
+OK: 
+mpirun -np 8 $cginsp backStep -g=backStepGride8.order4.ml2 -nu=1.e-3 -ad4=1  -ad41=1. -ad42=1. -ts=afs -psolver=mg -dtMax=.01 -tf=100. -tp=.1  -numberOfParallelGhost=4 -debug=3 -cfl=3. -project=1 -go=halt
+
+
+Slip wall -- OK :   PROJECT OK
+mpirun -np 4 $cginsp backStep -g=backStepGride8.order4.ml2 -nu=1.e-3 -ad4=1  -ad41=1. -ad42=1. -ts=afs -psolver=mg -dtMax=.01 -tf=100. -tp=.1  -numberOfParallelGhost=4 -debug=3 -cfl=3. -project=1 -go=halt
+
+*************  TROUBLE WITH MG and OUTFLOW AT TOP ?? ***********
+
+
+-np 4: cfls=4 too big? --> cfl=1 looks OK -- slow start?
+
+mpirun -np 4 $cginsp backStep -g=backStepGride8.order4.ml2 -nu=1.e-3 -ad4=1  -ad41=1. -ad42=1. -ts=afs -psolver=mg -dtMax=.01 -tf=100. -tp=.1  -numberOfParallelGhost=4 -debug=3 -cfl=1. -project=0 -go=halt
+
+AFS-MG : -project=0 : OK trouble with initial projection?
+mpirun -np 2 $cginsp -noplot backStep -g=backStepGride8.order4.ml2 -nu=1.e-3 -ad4=1  -ad41=1. -ad42=1. -ts=afs -psolver=mg -dtMax=.01 -tf=100. -tp=.1  -numberOfParallelGhost=4 -debug=3 -cfl=4. -project=0 -go=og
+
+AFS-PETSC -- OK 
+mpirun -np 2 $cginsp -noplot backStep -g=backStepGride8.order4.ml2 -nu=1.e-3 -ad4=1  -ad41=1. -ad42=1. -ts=afs -psolver=best -dtMax=.01 -tf=100. -tp=.1  -numberOfParallelGhost=4 -debug=3 -cfl=4. -go=og
+
+
+
+OUTFLOW on TOP:
+
+AFS-MG
+$nohup $cgins -noplot backStep -g=backStepGride8.order4.ml2 -nu=1.e-3 -ad4=1  -ad41=1. -ad42=1. -ts=afs -psolver=mg -dtMax=.01 -tf=100. -tp=.1  -debug=3 -cfl=4. -show=backStep8a.show -go=go >! backStep8a.out &
+
+
+PC-MG OK
+cgins -noplot backStep -g=backStepGride8.order4.ml2 -nu=1.e-2 -ad4=1 -cfl=.9 -debug=3 -ts=pc -psolver=mg -dtMax=.01 -tp=.01 -go=og
+
+
+
+OK
+cgins -noplot backStep -g=backStepGride4.order4.ml1 -nu=1.e-2 -ad4=1 -cfl=.9 -uDrag=0 -vDrag=0 -ts=pc -psolver=mg -dtMax=.01 -tp=.01 -go=og
+
+cgins -noplot backStep -g=backStepGride4.order4.ml1 -nu=1.e-2 -ad4=1 -cfl=.9 -uDrag=0 -vDrag=0 -ts=pc -dtMax=.01 -tp=.01 -go=og
+
+cgins -noplot backStep -g=backStepGride4.order4.hdf -nu=1.e-2 -ad4=1 -cfl=.9 -uDrag=0 -vDrag=0 -ts=pc -dtMax=.01 -tp=.01 -go=og
+
+
+Stretch grid-lines
+
++++ AFS-MG -- G16 -- 1M pts  
+nohup $cgins -noplot backStep -g=backStepGride16.order4.ml3 -nu=1.e-5 -ad4=1 -ad41=1. -ad42=1. -cfl=3 -ts=afs -psolver=mg -tf=100. -tp=.1 -debug=3 -show=backStep16a.show -flushFrequency=1 -go=go >! backStep16a.out &
+
+
+
+***********************************************
+***********July 22, 2015.
+
+back-step for preview of RNS 
+
+====== 4th-order =====
+
++++ AFS-MG -- G16 -- 1M pts  aftol=1.e-2 --> t=5. then trouble, aftol=1.3-3 : 
+nohup $cgins -noplot backStep -g=backStepGride16.order4.ml3 -nu=1.e-5 -ad4=1 -ad41=.75 -ad42=.75 -cfl=3 -ts=afs -psolver=mg -tf=100. -tp=.01 -debug=3 -show=backStep16.show -flushFrequency=1 -go=go >! backStep16.out &
+
++++ AFS-MG -- looks ok
+cgins -noplot backStep -g=backStepGride8.order4.ml2 -nu=1.e-4 -ad4=1 -ad41=.25 -ad42=.25 -ts=afs -psolver=mg -tf=100. -tp=.1 -debug=3 -cfl=5 -go=og
+
+MG: g16 : 1M pts
+cgins -noplot backStep -g=backStepGride16.order4.ml3 -nu=1.e-5 -ad4=1 -cfl=.9 -ts=pc -psolver=mg -tf=100. -tp=.1 -debug=3 -go=og
+
+MG:  -- looks OK  (trouble in G4)
+cgins -noplot backStep -g=backStepGride8.order4.ml2 -nu=1.e-4 -ad4=1 -cfl=.9 -ts=pc -psolver=mg -tf=100. -tp=.1 -debug=3 -go=og
+
+OK: 
+cgins -noplot backStep -g=backStepGride8.order4.hdf -nu=1.e-4 -ad4=1 -cfl=.9 -ts=pc -tf=100. -tp=.1 -show=backStep8.show -go=go >! backStep8.out &
+
+
+OK: 
+cgins -noplot backStep -g=backStepGride4.order4.hdf -nu=1.e-3 -ad4=1 -cfl=.9 -ts=pc -tf=100. -tp=.1 -show=backStep4.show -go=go >! backStep4.out &
+
+
+OK:  
+cgins backStep -g=backStepGride4.order4.hdf -nu=1.e-2 -ad4=1 -cfl=.9 -uDrag=0 -vDrag=0 -ts=im -dtMax=.01 -tp=.01 -go=halt
+
+
+OK: 
+cgins backStep -g=backStepGride4.order4.hdf -nu=1.e-2 -ad4=0 -uDrag=0 -vDrag=0 -ts=im -dtMax=.01 -tp=.1 -go=halt
+
+
+--- 2nd-order:
+
+cgins -noplot backStep -g=backStepGride8.order2.hdf -nu=1.e-4 -ad2=1 -uDrag=0 -vDrag=0 -ts=im -dtMax=.01 -tf=10. -tp=.1 -show=backStep2.show -go=go >! backStep2.out
+
+cgins backStep -g=backStepGride4.order2.hdf -nu=.005 -uDrag=0 -vDrag=0 -ts=im -dtMax=.01 -tp=.1 -go=halt
+
+
+
+***********************************************
+***********January 27, 2015. Initial runs for Ash's magnetic fluid
+
+
+
+RUNS:
+
+Finer: 
+cgins backStep -g=backStepGride4.order2.hdf -nu=.025 -uDrag=50. -vDrag=0. -ts=im -dtMax=.01 -tp=.1 -go=halt
+
+cgins backStep -g=backStepGride2.order2.hdf -nu=.025 -uDrag=50. -vDrag=0. -ts=im -dtMax=.01 -tp=.1 -go=halt
+
+cgins backStep -g=backStepGride1.order2.hdf -nu=.05 -uDrag=50. -vDrag=0. -ts=im -dtMax=.01 -go=halt
+
+
+
+
+cgins backStep -g=backStepGride1.order2.hdf -nu=.05 -uDrag=50. -vDrag=0. -ts=im -dtMax=.01 -go=halt
+
+
+
+

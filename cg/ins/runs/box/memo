@@ -1,0 +1,164 @@
+*******************************
+*********** Aug 1, 2015
+
+
+========== QUARTER BOX ====
+
+
+G16 (32M) , AF24-MG, reduce ad42
+mpirun -np 16 $cginsp -noplot boxInAChannel -g=loftedQuarterBoxGride16.order4.ml3 -bottomBC=noSlipWall -inflowBC=parabolic -topBC=outflow -sideBC=outflow  -nu=1.e-5 -tp=.1 -tf=10. -move=0 -cfl=3. -psolver=mg -ts=afs -ad2=0 -ad4=1 -ad41=1. -ad42=.5 -debug=3 -numberOfParallelGhost=4 -show="quarterBox16.show" -go=go >! quarterBox16.out
+
+
+LONGER RUN AFS24-MG G8 (5M) parallel: OK
+mpirun -np 4 $cginsp -noplot boxInAChannel -g=loftedQuarterBoxGride8.order4.ml2 -bottomBC=noSlipWall -inflowBC=parabolic -topBC=outflow -sideBC=outflow  -nu=1.e-4 -tp=.1 -tf=10. -move=0 -cfl=3. -psolver=mg -ts=afs -ad2=0 -ad4=1 -debug=3 -numberOfParallelGhost=4 -show="quarterBox8.show" -go=go >! quarterBox8.out
+
+AFS24-MG G8 (5M) parallel:
+mpirun -np 4 $cginsp -noplot boxInAChannel -g=loftedQuarterBoxGride8.order4.ml2 -bottomBC=noSlipWall -inflowBC=parabolic -topBC=outflow -sideBC=outflow  -nu=1.e-4 -tp=.1 -tf=10. -move=0 -cfl=3. -psolver=mg -ts=afs -ad2=0 -ad4=1 -debug=3 -numberOfParallelGhost=4 -go=og
+
+
+G4: Parallel
+mpirun -np 4 $cginsp -noplot boxInAChannel -g=loftedQuarterBoxGride4.order4.ml1 -bottomBC=noSlipWall -inflowBC=parabolic -topBC=outflow -sideBC=outflow  -nu=1.e-3 -tp=.1 -tf=10. -move=0 -cfl=3. -psolver=mg -ts=afs -ad2=0 -ad4=1 -debug=3 -numberOfParallelGhost=4 -go=og
+
+
+G4: AFS24  -- OK
+cgins -noplot boxInAChannel -g=loftedQuarterBoxGride4.order4.ml1 -bottomBC=noSlipWall -inflowBC=parabolic -topBC=outflow -sideBC=outflow  -nu=1.e-3 -tp=.1 -tf=10. -move=0 -cfl=3. -psolver=mg -ts=afs -ad2=0 -ad4=1 -debug=3 -go=og
+
+AFS24 -- funny ? too coarse ?
+cgins -noplot boxInAChannel -g=loftedQuarterBoxGride2.order4.ml1 -bottomBC=noSlipWall -inflowBC=parabolic -topBC=outflow -sideBC=outflow  -nu=1.e-3 -tp=.1 -tf=10. -move=0 -cfl=3. -psolver=mg -ts=afs -ad2=0 -ad4=1 -debug=3 -go=og
+
+
+
+AFS22
+cgins -noplot boxInAChannel -g=loftedQuarterBoxGride2.order2 -bottomBC=noSlipWall -inflowBC=parabolic -topBC=outflow -sideBC=outflow  -nu=1.e-3 -tp=.1 -tf=10. -move=0 -cfl=3. -psolver=best -ts=afs -ad2=1 -ad4=0 -debug=3 -go=og
+
+
+-- HALF-BOX  -- 
+
+TRY OUTFLOW ON SIDES and TOP -- OK 
+cgins -noplot boxInAChannel -g=loftedHalfBoxe2.order4.ml1 -bottomBC=noSlipWall -inflowBC=parabolic -topBC=outflow -sideBC=outflow  -nu=1.e-3 -tp=.1 -tf=10. -move=0 -cfl=3. -psolver=mg -ts=afs -ad2=0 -ad4=1 -debug=3 -go=og
+
+
+**BUG** FIX ME 
+
+AFS24-MG -- bottom wall no-slip, inflow parabolic **TROUBLE AT OUTFLOW/SLIP/NOSLIP CORNERS **
+cgins -noplot boxInAChannel -g=loftedHalfBoxe2.order4.ml1 -bottomBC=noSlipWall -inflowBC=parabolic -nu=1.e-3 -tp=.1 -tf=10. -move=0 -cfl=3. -psolver=mg -ts=afs -ad2=0 -ad4=1 -debug=3 -go=og
+
+AFS22-MG -- bottom wall no-slip, inflow parabolic -- OK
+cgins -noplot boxInAChannel -g=loftedHalfBoxe2.order2.ml1 -bottomBC=noSlipWall -inflowBC=parabolic -nu=1.e-3 -tp=.1 -tf=10. -move=0 -cfl=5. -psolver=mg -ts=afs -ad2=1 -ad4=0 -debug=3 -go=og
+
+-- BOX--
+AFS24-MG --OK
+cgins -noplot boxInAChannel -g=loftedBoxe3.order4.ml1 -nu=1.e-3 -tp=.1 -tf=10. -move=0 -cfl=5. -psolver=mg -ts=afs -ad2=0 -ad4=1 -debug=3 -go=og
+
+
+*******************************
+*********** July 28, 2015 REVISIT BOX IN A CHANNEL
+
+
+
+==== HALF-BOX
+
+
+***TEST CRV GRID crve2.order4.hdf
+cgins boxInAChannel -g=crve2.order4 -nu=1.e-3 -tp=.1 -tf=10. -move=0 -cfl=5. -psolver=best -ts=afs -ad2=0 -ad4=1 -debug=3 -go=halt
+
+
+AFS24-MG -- OK
+cgins boxInAChannel -g=loftedHalfBoxe2.order4.ml1 -nu=1.e-3 -tp=.1 -tf=10. -move=0 -cfl=5. -psolver=mg -ts=afs -ad2=0 -ad4=1 -debug=3 -go=halt
+
+AFS22-MG -- OK
+cgins boxInAChannel -g=loftedHalfBoxe2.order2.ml1 -nu=1.e-3 -tp=.1 -tf=10. -move=0 -cfl=5. -psolver=mg -ts=afs -ad2=1 -ad4=0 -debug=3 -go=halt 
+
+==== BOX IN A CHANNEL
+
+AFS24-MG --OK
+cgins -noplot boxInAChannel -g=loftedBoxe3.order4.ml1 -nu=1.e-3 -tp=.1 -tf=10. -move=0 -cfl=5. -psolver=mg -ts=afs -ad2=0 -ad4=1 -debug=3 -go=og
+
+AFS22-MG -- OK
+cgins boxInAChannel -g=loftedBoxe2.order2.ml1 -nu=1.e-3 -tp=.1 -tf=10. -move=0 -cfl=5. -psolver=mg -ts=afs -ad2=1 -ad4=0 -debug=3 -go=halt 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+======= 2012/05/09 -- rotating box
+
+
+
+REAL RUN - OK
+cgins -noplot boxInAChannel -g=loftedBoxe2.order2.ml1 -nu=1.e-3 -tp=.001 -tf=10. -move=1 -freqX=.25 -freqY=0.2 -freqZ=.3 -cfl=4. -psolver=mg -ts=afs -ad2=1 -ad4=0 -debug=3 -go=og
+
+loftedBoxe3.order4.ml1.hdf
+cgins -noplot boxInAChannel -g=loftedBoxe3.order4.ml1 -nu=1.e-3 -tp=.05 -tf=10. -move=1 -moveOnly=2 -freqX=.5 -freqY=0. -freqZ=.5 -cfl=4. -psolver=mg -ts=afs -ad2=0 -ad4=1 -debug=3 -go=og
+
+AFS: OK: moveOnly=1: 
+$ins/bin/cgins -noplot boxInAChannel -g=loftedBoxe2.order2.ml1 -nu=1.e-3 -tp=.05 -tf=.1 -move=1 -moveOnly=1 -freqX=.5 -freqY=0. -freqZ=.5 -cfl=4. -psolver=mg -ts=afs -ad2=1 -ad4=0 -debug=3 -go=go
+
+valgrindebug $ins/bin/cgins -noplot boxInAChannel -g=loftedBoxe2.order2.ml1 -nu=1.e-3 -tp=.05 -tf=.1 -move=1 -moveOnly=2 -freqX=.5 -freqY=0. -freqZ=.5 -cfl=4. -psolver=mg -ts=afs -ad2=1 -ad4=0 -debug=3 -go=go
+
+AFS: trouble: in ExposedPoints mask not valid on gf[old]?
+cgins -noplot boxInAChannel -g=loftedBoxe2.order2.ml1 -nu=1.e-3 -tp=.05 -tf=10. -move=1 -moveOnly=2 -freqX=.5 -freqY=0. -freqZ=.5 -cfl=4. -psolver=mg -ts=afs -ad2=1 -ad4=0 -debug=3 -go=og
+
+
+======= 2012/05/09 -- rotating box
+
+Test rotation
+
+Ogen:
+cgins -noplot boxInAChannel -g=loftedBoxe2.order2.ml1 -nu=1.e-3 -tp=.05 -tf=10. -move=1 -moveOnly=1 -freqX=.5 -freqY=0. -freqZ=.5 -cfl=4. -psolver=mg -ts=pc -ad2=1 -ad4=0 -$freqFullUpdate=1 -debug=3 -go=og
+
+Rotate X and Z:
+cgins -noplot boxInAChannel -g=loftedBoxe2.order2.ml1 -nu=1.e-3 -tp=.05 -tf=10. -move=1 -moveOnly=2 -freqX=.5 -freqY=0. -freqZ=.5 -cfl=4. -psolver=mg -ts=pc -ad2=1 -ad4=0 -debug=3 -go=og
+
+cgins -noplot boxInAChannel -g=loftedBoxe2.order2.ml1 -nu=1.e-3 -tp=.05 -tf=10. -move=1 -moveOnly=2 -freqX=0. -freqY=0. -freqZ=1. -cfl=4. -psolver=mg -ts=pc -ad2=1 -ad4=0 -debug=3 -go=og
+
+cgins -noplot boxInAChannel -g=loftedBoxe2.order2.ml1 -nu=1.e-3 -tp=.05 -tf=10. -move=1 -moveOnly=2 -freqX=0. -freqY=1. -freqZ=0. -cfl=4. -psolver=mg -ts=pc -ad2=1 -ad4=0 -debug=3 -go=og
+
+OK:
+cgins boxInAChannel -g=loftedBoxe2.order2.ml1 -nu=1.e-3 -tp=.05 -tf=10. -move=1 -moveOnly=2 -freqX=1. -freqY=0. -freqZ=0. -cfl=4. -psolver=mg -ts=pc -ad2=1 -ad4=0 -debug=3 -go=halt 
+
+cgins boxInAChannel -g=loftedBoxe2.order2.ml1 -nu=1.e-3 -tp=.1 -tf=10. -move=1 -moveOnly=2 -freqX=1. -freqY=0. -freqZ=0. -cfl=4. -psolver=mg -ts=afs -ad2=1 -ad4=0 -debug=3 -go=halt
+
+
+
+*** 2012/04/06
+
+=== fourth -order
+
+mpirun -np 2 $cginsp boxInAChannel -g=loftedBoxe3.order4.ml1 -nu=1.e-3 -tp=.1 -tf=10. -move=0 -cfl=5. -psolver=mg -ts=afs -ad2=0 -ad4=1 -debug=3 -go=halt 
+
+
+
+OK: (explicit interp)
+cgins boxInAChannel -g=loftedBoxe3.order4.ml1 -nu=1.e-3 -tp=.1 -tf=10. -move=0 -cfl=5. -psolver=mg -ts=afs -ad2=0 -ad4=1 -debug=3 -go=halt 
+
+
+TROUBLE with MG solver: IMPLICIT-INTERP ??
+cgins boxInAChannel -g=loftedBoxi2.order4.ml1 -nu=1.e-3 -tp=.1 -tf=10. -move=0 -cfl=5. -psolver=mg -ts=afs -ad2=0 -ad4=1 -debug=3 -go=halt 
+
+==== second-order
+
+
+OK 
+cgins boxInAChannel -g=loftedBoxe2.order2.ml1 -nu=1.e-3 -tp=.1 -tf=10. -move=0 -cfl=5. -psolver=mg -ts=afs -ad2=1 -ad4=0 -debug=3 -go=halt 
+
+ts=im : OK
+cgins boxInAChannel -g=loftedBoxe2.order2.ml1 -nu=1.e-3 -tp=.01 -tf=10. -move=0 -cfl=.9 -psolver=mg -ts=im -ad2=1 -ad4=0 -debug=3 -go=halt 
+
+ts=pc OK: 
+cgins boxInAChannel -g=loftedBoxe2.order2.ml1 -nu=1.e-3 -tp=.01 -tf=10. -move=0 -cfl=.9 -psolver=mg -ts=pc -ad2=1 -ad4=0 -debug=3 -go=halt 
+
+*** 110215
+
+cgins flowPastABox -g=loftedHalfBoxe2.order2.ml2 -ts=im -nu=1.e-2 -ad2=1 -tf=20. -tp=.1 -solver=mg -psolver=mg -ogesDebug=1 -debug=1

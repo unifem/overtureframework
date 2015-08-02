@@ -84,7 +84,7 @@ cp {backStepSmooth3d,shapesArg,joukowsky2d,sphereInABox,cylinderInAChannel}.cmd 
 cp {annulus,cylinder,rhombus,rhomboid,dropStick,twoDropArg,bibArg,nonBib,boxBesideBox}.cmd             $sampleGrids
 cp {flatPlate,flatPlateWingGrid,boxArg,oneDrop,drop3d,sphereInTube,ellipseArg}.cmd                     $sampleGrids
 cp {cylInBoxRefinedGrid,halfAnnulusRefinedGrid,windFarm,hypeCyl,benardGrid}.cmd                        $sampleGrids
-cp {wingj,loftedBox,loftedHalfBox,loftedJoukowskyFlatTip,flattenedTorusGrid}.cmd                       $sampleGrids
+cp {wingj,loftedBox,loftedHalfBox,loftedQuarterBoxGrid,loftedJoukowskyFlatTip,flattenedTorusGrid}.cmd  $sampleGrids
 cp {roundedBladeGrid,elasticPistonGrid,pump2dGrid,pillInABoxGrid,room2d,starFishGrid}.cmd              $sampleGrids
 cp {buildingsGrid.cmd,buildTower.h,buildRoundedCylinder.h,site300SurfaceGrid.h}                        $sampleGrids
 cp {splitAnnulusGrid,splitCylinderGrid,valvee,box32,sib.bbmg,ellipsoid.bbmg}.cmd                       $sampleGrids
