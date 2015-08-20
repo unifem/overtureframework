@@ -25,7 +25,7 @@ main(int argc, char *argv[])
          "  name= name of an old overlapping grid file, or `squareXXX' where XXX=number of grid points\n");
 //  aString nameOfOGFile="square256";
 //  aString nameOfOGFile="square4096";
-  aString nameOfOGFile="cice";
+  aString nameOfOGFile="cice2.order2";
 //  aString nameOfOGFile="cic3.order4";
 //  aString nameOfOGFile="cice2.order4";
 //  aString nameOfOGFile="cice2";
@@ -80,12 +80,10 @@ main(int argc, char *argv[])
   q.setName("v",1);                          // name of second component
   q.setName("Mach Number",2);                // name of third component
 
-  if( true )
-  {
-    printF("Interpolate the old grid function q...\n");
-    Interpolant interpolant(cg);
-    q.interpolate();
-  }
+  printF("Interpolate the old grid function q...\n");
+  Interpolant & interpolant = *new Interpolant(cg);
+  q.interpolate();
+
 
   char buffer[80];                           // buffer for sprintf
 //  show.setFlushFrequency(flushFrequency);
@@ -264,11 +262,11 @@ main(int argc, char *argv[])
       printF("Maximum diff after reading back in = %8.2e\n",maxDiff);
       
       if( true )
-	{
-	  printF("Interpolate on the new grid function u...\n");
-	  Interpolant interpolant(cg2);
-	  u.interpolate();
-	}
+      {
+	printF("Interpolate on the new grid function u...\n");
+	Interpolant & interpolant = *new Interpolant(cg2);
+	u.interpolate();
+      }
     }
   showFileReader.close();
       

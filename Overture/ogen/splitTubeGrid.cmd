@@ -12,7 +12,7 @@
 #     ogen -noplot splitTubeGrid -factor=4 -order=2 -interp=e -sa=-1. -sb=1. 
 # 
 # -- tube parallel to z-axis for cgmx eigenmodes
-#     ogen -noplot splitTubeGrid -interp=e -prefix=tubeGrid -outerRad=1. -orient=z -order=2 -factor=2 
+#     ogen -noplot splitTubeGrid -interp=e -prefix=refineTubeGrid -outerRad=1. -orient=z -order=2 -factor=2 
 #     
 # -- set default parameter values:
 $outerRad=.5; 

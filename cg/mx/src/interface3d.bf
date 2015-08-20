@@ -156,9 +156,12 @@ end do
   do i1=nn1a,nn1b
 #endMacro
 
-! loop over the boundary points that includes ghost points in the tangential direction.
-! Assign pts where both mask1 and mask2 are discretization pts.
-! If mask1>0 and mask2<0 then we just leave the extrapolated values in u1 and u2 .
+! ============================================================================================
+! Macro:
+!  loop over the boundary points that includes ghost points in the tangential direction.
+!  Assign pts where both mask1 and mask2 are discretization OR interpolation pts.
+!  If mask1>0 and mask2<0 then we just leave the extrapolated values in u1 and u2 .
+! ============================================================================================
 #beginMacro beginGhostLoopsMask2d()
  i3=n3a
  j3=m3a
@@ -166,7 +169,9 @@ end do
  do i2=nn2a,nn2b
   j1=mm1a
   do i1=nn1a,nn1b
-  if( mask1(i1,i2,i3).gt.0 .and. mask2(j1,j2,j3).gt.0 )then
+  ! if( mask1(i1,i2,i3).gt.0 .and. mask2(j1,j2,j3).gt.0 )then
+  ! *wdh* 2015/08/14 -- project interpolation points too
+  if( mask1(i1,i2,i3).ne.0 .and. mask2(j1,j2,j3).ne.0 )then
 #endMacro
 
 #beginMacro beginLoops3d()
@@ -216,6 +221,13 @@ end do
   do i1=nn1a,nn1b
 #endMacro
 
+
+! ============================================================================================
+! Macro:
+!  loop over the boundary points that includes ghost points in the tangential direction.
+!  Assign pts where both mask1 and mask2 are discretization OR interpolation pts.
+!  If mask1>0 and mask2<0 then we just leave the extrapolated values in u1 and u2 .
+! ============================================================================================
 #beginMacro beginGhostLoopsMask3d()
  j3=mm3a
  do i3=nn3a,nn3b
@@ -223,7 +235,9 @@ end do
  do i2=nn2a,nn2b
   j1=mm1a
   do i1=nn1a,nn1b
-  if( mask1(i1,i2,i3).gt.0 .and. mask2(j1,j2,j3).gt.0 )then
+  ! if( mask1(i1,i2,i3).gt.0 .and. mask2(j1,j2,j3).gt.0 )then
+  ! *wdh* 2015/08/14 -- project interpolation points too
+  if( mask1(i1,i2,i3).ne.0 .and. mask2(j1,j2,j3).ne.0 )then
 #endMacro
 
 #defineMacro extrap2(uu,k1,k2,k3,kc,ks1,ks2,ks3) \

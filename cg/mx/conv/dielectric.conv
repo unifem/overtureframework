@@ -68,7 +68,7 @@ $alwaysCompute=1;
 #
 GetOptions( "name=s"=>\$name,"order=s"=>\$order,"ng=i"=>\$ng,"tf=f"=>\$tFinal,"interp=s"=>\$interp,"diss=f"=>\$diss,\
             "fixed=s"=>\$fixed,"cfl=f"=>\$cfl,"alwaysCompute=i"=>\$alwaysCompute,"method=s"=>\$method,"interit=i"=>\$interit,\
-            "errorNorm=i"=>\$errorNorm,"tp=f"=>\$tp,"cyl=i"=>\$cyl,"dissOrder=i"=>\$dissOrder,"kx=f"=>\$kx,"eps1=f"=>\$eps1 );
+            "errorNorm=i"=>\$errorNorm,"tp=f"=>\$tp,"cyl=i"=>\$cyl,"dissOrder=i"=>\$dissOrder,"kx=f"=>\$kx,"eps1=f"=>\$eps1,"eps2=f"=>\$eps2 );
 # ------------------------ dielectric sphere ------------------------------------------
 $baseGridSpacing=.05; # grid spacing corresponding to factor=1
 if( $method eq "sosup" ){ $diss=0.; }
@@ -118,12 +118,13 @@ if( $method eq "Yee" && $cyl eq 1 ){\
  $grid4="square8"; $gName4 ="bigSquareSize1f16"; \
  $grid5="square16"; $gName5 ="bigSquareSize1f32"; }
 # 
-if( $order==2 && $cyl eq 0 ){ $grid=$grid1; $res=1; $cmd="$cgmx noplot $cmdDir/dielectricCyl -g=$gName1 $options";  }
-if( $ng > 1 ){ $grid=$grid2; $res=2; $cmd="$cgmx noplot $cmdDir/dielectricCyl -g=$gName2 $options";}
-if( $ng > 2 ){ $grid=$grid3; $res=4; $cmd="$cgmx noplot $cmdDir/dielectricCyl -g=$gName3 $options";}
-if( $ng > 3 ){ $grid=$grid4; $res=8; $cmd="$cgmx noplot $cmdDir/dielectricCyl -g=$gName4 $options";}
-if( $ng > 4 ){ $grid=$grid5; $res=16;$cmd="$cgmx noplot $cmdDir/dielectricCyl -g=$gName5 $options";}
-if( $ng > 5 ){ $grid=$grid6; $res=32;$cmd="$cgmx noplot $cmdDir/dielectricCyl -g=$gName6 $options";}
+# Do not use G1 -- fails with sosup
+# if( $order==2 && $cyl eq 0 ){ $grid=$grid1; $res=1; $cmd="$cgmx -noplot $cmdDir/dielectricCyl -g=$gName1 $options";  }
+if( $ng > 1 ){ $grid=$grid2; $res=2; $cmd="$cgmx -noplot $cmdDir/dielectricCyl -g=$gName2 $options";}
+if( $ng > 2 ){ $grid=$grid3; $res=4; $cmd="$cgmx -noplot $cmdDir/dielectricCyl -g=$gName3 $options";}
+if( $ng > 3 ){ $grid=$grid4; $res=8; $cmd="$cgmx -noplot $cmdDir/dielectricCyl -g=$gName4 $options";}
+if( $ng > 4 ){ $grid=$grid5; $res=16;$cmd="$cgmx -noplot $cmdDir/dielectricCyl -g=$gName5 $options";}
+if( $ng > 5 ){ $grid=$grid6; $res=32;$cmd="$cgmx -noplot $cmdDir/dielectricCyl -g=$gName6 $options";}
 $closeFile="true";
 # -------------------------------------------------------------------------------
 exit

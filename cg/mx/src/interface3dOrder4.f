@@ -2009,8 +2009,7 @@
 
       if( initialized.eq.0 )then
         ! first time through put bogus values in the following arrays to check for un-assigned values
-        bigValue=1.e99
-
+        !! bigValue=1.e99
         bigValue=0.
 
          u1x=bigValue

@@ -66,6 +66,7 @@ cp {multiCylRandomGrid,csPipe,csSmoothedPolygon,detChannel,cylDeform,sisArg}.cmd
 cp {quarterSphere,airfoil,innerOuter3d,diskArray,latticeCyl,rectangleArg}.cmd                          $sampleGrids
 cp {sibArg,twoBumpArg,cicArg,convOct,cylBoxArg,sinfoil,qcic,sicArg,cylArray}.cmd                       $sampleGrids
 cp {twoSquaresInterface,twoBoxesInterface,pipe,doubleAnnulusArg,tubeArg,splitTubeGrid}.cmd             $sampleGrids
+cp {twoSquaresSplitInterface,twoBoxesSplitInterfaceGrid}.cmd                                           $sampleGrids
 cp {squareObject,twoSquaresInterface,twoBoxesInterface,benard,benard3d,lgridArg}.cmd                   $sampleGrids
 cp {crv,crvNurbs,crvHype,squareArg,cylShell,multiDomain,io,hio,square16.order4,aia}.cmd                $sampleGrids
 cp {box16.order4,tube1.order4,tube2.order4,triangleArg,wiggley,wiggley3d}.cmd                          $sampleGrids

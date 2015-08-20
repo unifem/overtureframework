@@ -1,3 +1,18 @@
+***************************
+*** August 16, 2015 -- revisit dropping cylinders in parallel for Ryo's bug
+
+G8: OK -np 4 OK
+mpirun -np 4 $cginsp -noplot cylDrop -g=cylDropGride8.order2.s3.ml3.hdf -tf=1. -tp=.01 -nu=.01 -density=2 -dtMax=1.e-3 -project=0 -ts=im -psolver=mg -solver=mg -bcOption=inflowOutflow -freqFullUpdate=1 -go=og
+
+
+OK:
+mpirun -np 2 $cginsp -noplot cylDrop -g=cylDropGride4.order2.s3.ml2.hdf -tf=1. -tp=.01 -nu=.1 -density=2 -dtMax=1.e-3 -project=0 -ts=im -psolver=mg -solver=mg -bcOption=inflowOutflow -freqFullUpdate=1 -go=og
+
+
+OK: 
+cgins -noplot cylDrop -g=cylDropGride4.order2.s3.ml2.hdf -tf=1. -tp=.01 -nu=.1 -density=2 -dtMax=1.e-3 -project=0 -ts=im -psolver=mg -solver=mg -bcOption=inflowOutflow -freqFullUpdate=1 -go=og
+
+
 NOTE: I think density=1.25 is close to AMP limit so dt cannot be too large with ts=IM
 
 

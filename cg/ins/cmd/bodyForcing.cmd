@@ -143,7 +143,6 @@ $grid
 #*
   # -- add body forcing 
   forcing options... 
-
   body forcing... 
     # -- define a square region where there is a drag and heat source:
     $dragLinear=5.; $dragQuadratic=10.; 

@@ -319,7 +319,7 @@ if( $useGL )
     }
     else
     {
-      printf("ERROR: Unable to find OpenGL library libGL or libMesaGL in  $OpenGLibPath \n");
+      printf("ERROR: Unable to find OpenGL library libGL, libGLU or libMesaGL in  $OpenGLibPath \n");
       printf("Check the OpenGL environmental variable and try again\n");
       $numberOfErrors++;  
     }

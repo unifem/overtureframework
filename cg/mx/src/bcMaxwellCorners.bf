@@ -1351,17 +1351,33 @@
 
   ! shift to ghost point "(m1,m2)"
   if( edgeDirection.eq.2 )then 
+    ! ghost value to set:
     js1=is1*m1  
     js2=is2*m2
     js3=0
+    ! direction for extrapolation
+    ms1=is1
+    ms2=is2
+    ms3=0
+    ! point next to ghost 
   else if( edgeDirection.eq.1 )then 
+    ! ghost value to set:
     js1=is1*m1  
     js2=0
     js3=is3*m2
+    ! direction for extrapolation
+    ms1=is1
+    ms2=0
+    ms3=is3
   else 
+    ! ghost value to set:
     js1=0
     js2=is2*m1
     js3=is3*m2
+    ! direction for extrapolation
+    ms1=0
+    ms2=is2
+    ms3=is3
   end if 
 
   if( bc1.eq.perfectElectricalConductor .and. \
@@ -1454,14 +1470,25 @@
     do i2=n2a,n2b
     do i1=n1a,n1b
       ! We could check the mask ***
+
+     ! point next to ghost point being extrapolated
+     ii1=i1-js1+ms1
+     ii2=i2-js2+ms2
+     ii3=i3-js3+ms3
      #If #ORDER == "2"
-       u(i1-js1,i2-js2,i3-js3,ex)=extrap3(u,i1,i2,i3,ex,js1,js2,js3)
-       u(i1-js1,i2-js2,i3-js3,ey)=extrap3(u,i1,i2,i3,ey,js1,js2,js3)
-       u(i1-js1,i2-js2,i3-js3,ez)=extrap3(u,i1,i2,i3,ez,js1,js2,js3)
+       ! u(i1-js1,i2-js2,i3-js3,ex)=extrap3(u,i1,i2,i3,ex,js1,js2,js3)
+       ! u(i1-js1,i2-js2,i3-js3,ey)=extrap3(u,i1,i2,i3,ey,js1,js2,js3)
+       ! u(i1-js1,i2-js2,i3-js3,ez)=extrap3(u,i1,i2,i3,ez,js1,js2,js3)
+       u(i1-js1,i2-js2,i3-js3,ex)=extrap3(u,ii1,ii2,ii3,ex,ms1,ms2,ms3)
+       u(i1-js1,i2-js2,i3-js3,ey)=extrap3(u,ii1,ii2,ii3,ey,ms1,ms2,ms3)
+       u(i1-js1,i2-js2,i3-js3,ez)=extrap3(u,ii1,ii2,ii3,ez,ms1,ms2,ms3)
      #Elif #ORDER == "4" 
-       u(i1-js1,i2-js2,i3-js3,ex)=extrap5(u,i1,i2,i3,ex,js1,js2,js3)
-       u(i1-js1,i2-js2,i3-js3,ey)=extrap5(u,i1,i2,i3,ey,js1,js2,js3)
-       u(i1-js1,i2-js2,i3-js3,ez)=extrap5(u,i1,i2,i3,ez,js1,js2,js3)
+       ! u(i1-js1,i2-js2,i3-js3,ex)=extrap5(u,i1,i2,i3,ex,js1,js2,js3)
+       ! u(i1-js1,i2-js2,i3-js3,ey)=extrap5(u,i1,i2,i3,ey,js1,js2,js3)
+       ! u(i1-js1,i2-js2,i3-js3,ez)=extrap5(u,i1,i2,i3,ez,js1,js2,js3)
+       u(i1-js1,i2-js2,i3-js3,ex)=extrap5(u,ii1,ii2,ii3,ex,ms1,ms2,ms3)
+       u(i1-js1,i2-js2,i3-js3,ey)=extrap5(u,ii1,ii2,ii3,ey,ms1,ms2,ms3)
+       u(i1-js1,i2-js2,i3-js3,ez)=extrap5(u,ii1,ii2,ii3,ez,ms1,ms2,ms3)
      #Else
        stop 8827
      #End
@@ -3249,9 +3276,18 @@
 
        #Elif #ORDER == "4" 
          ! *new* 2015/07/12 
-         u(i1-js1,i2-js2,i3-js3,ex)=extrap5(u,i1,i2,i3,ex,js1,js2,js3)
-         u(i1-js1,i2-js2,i3-js3,ey)=extrap5(u,i1,i2,i3,ey,js1,js2,js3)
-         u(i1-js1,i2-js2,i3-js3,ez)=extrap5(u,i1,i2,i3,ez,js1,js2,js3)
+
+         ! u(i1-js1,i2-js2,i3-js3,ex)=extrap5(u,i1,i2,i3,ex,js1,js2,js3)
+         ! u(i1-js1,i2-js2,i3-js3,ey)=extrap5(u,i1,i2,i3,ey,js1,js2,js3)
+         ! u(i1-js1,i2-js2,i3-js3,ez)=extrap5(u,i1,i2,i3,ez,js1,js2,js3)
+
+         ! (ii1,ii2,ii3) : point adjacent to point being extrapolated
+         ii1=i1-js1+is1
+         ii2=i2-js2+is2
+         ii3=i3-js3+is3
+         u(i1-js1,i2-js2,i3-js3,ex)=extrap5(u,ii1,ii2,ii3,ex,is1,is2,is3)
+         u(i1-js1,i2-js2,i3-js3,ey)=extrap5(u,ii1,ii2,ii3,ey,is1,is2,is3)
+         u(i1-js1,i2-js2,i3-js3,ez)=extrap5(u,ii1,ii2,ii3,ez,is1,is2,is3)
        #Else
          stop 8867
        #End
@@ -3295,14 +3331,30 @@
       js1=is1*m1  ! shift to ghost point "m"
       js2=is2*m2
       js3=is3*m3  
+
+      ! (ii1,ii2,ii3) : point adjacent to point being extrapolated      
+      ii1=i1-js1+is1
+      ii2=i2-js2+is2
+      ii3=i3-js3+is3
+
      #If #ORDER == "2"
-       u(i1-js1,i2-js2,i3-js3,ex)=extrap3(u,i1,i2,i3,ex,js1,js2,js3)
-       u(i1-js1,i2-js2,i3-js3,ey)=extrap3(u,i1,i2,i3,ey,js1,js2,js3)
-       u(i1-js1,i2-js2,i3-js3,ez)=extrap3(u,i1,i2,i3,ez,js1,js2,js3)
+       ! u(i1-js1,i2-js2,i3-js3,ex)=extrap3(u,i1,i2,i3,ex,js1,js2,js3)
+       ! u(i1-js1,i2-js2,i3-js3,ey)=extrap3(u,i1,i2,i3,ey,js1,js2,js3)
+       ! u(i1-js1,i2-js2,i3-js3,ez)=extrap3(u,i1,i2,i3,ez,js1,js2,js3)
+
+       u(i1-js1,i2-js2,i3-js3,ex)=extrap3(u,ii1,ii2,ii3,ex,is1,is2,is3)
+       u(i1-js1,i2-js2,i3-js3,ey)=extrap3(u,ii1,ii2,ii3,ey,is1,is2,is3)
+       u(i1-js1,i2-js2,i3-js3,ez)=extrap3(u,ii1,ii2,ii3,ez,is1,is2,is3)
+
      #Elif #ORDER == "4" 
-       u(i1-js1,i2-js2,i3-js3,ex)=extrap5(u,i1,i2,i3,ex,js1,js2,js3)
-       u(i1-js1,i2-js2,i3-js3,ey)=extrap5(u,i1,i2,i3,ey,js1,js2,js3)
-       u(i1-js1,i2-js2,i3-js3,ez)=extrap5(u,i1,i2,i3,ez,js1,js2,js3)
+       ! u(i1-js1,i2-js2,i3-js3,ex)=extrap5(u,i1,i2,i3,ex,js1,js2,js3)
+       ! u(i1-js1,i2-js2,i3-js3,ey)=extrap5(u,i1,i2,i3,ey,js1,js2,js3)
+       ! u(i1-js1,i2-js2,i3-js3,ez)=extrap5(u,i1,i2,i3,ez,js1,js2,js3)
+
+       u(i1-js1,i2-js2,i3-js3,ex)=extrap5(u,ii1,ii2,ii3,ex,is1,is2,is3)
+       u(i1-js1,i2-js2,i3-js3,ey)=extrap5(u,ii1,ii2,ii3,ey,is1,is2,is3)
+       u(i1-js1,i2-js2,i3-js3,ez)=extrap5(u,ii1,ii2,ii3,ez,is1,is2,is3)
+
      #Else
        stop 8867
      #End
@@ -3639,6 +3691,7 @@
  #Include "forcingDefineFortranInclude.h"
 
  integer i1,i2,i3,j1,j2,j3,axisp1,axisp2,en1,et1,et2,hn1,ht1,ht2,numberOfGhostPoints
+ integer ii1,ii2,ii3
  integer extra,extra1a,extra1b,extra2a,extra2b,extra3a,extra3b
 
  real det,dra,dsa,dta,dxa,dya,dza

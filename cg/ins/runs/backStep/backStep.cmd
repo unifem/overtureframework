@@ -15,8 +15,8 @@ $grid="backStepGride1.order2.hdf"; $nu=.05; $uDrag=0.; $vDrag=0.;  $project=1; $
 $solver="yale";  $rtoli=1.e-5; $atoli=1.e-9; $idebug=0; 
 $psolver="yale"; $rtolp=1.e-5; $atolp=1.e-9; $pdebug=0; $dtolp=1.e20; 
 $ts="pc"; $show=" "; $go="halt"; 
-$ad2=0; $ad21=1.; $ad22=1.;
-$ad4=0; $ad41=.5; $ad42=.5;
+$ad2=0; $ad21=2.; $ad22=1.;
+$ad4=0; $ad41=2.; $ad42=1.;
 $cfl=.9; $dtMax=.01;  $newts=0; 
 # -- for Kyle's AF scheme:
 $afit = 20;  # max iterations for AFS
@@ -25,6 +25,8 @@ $filter=0; $filterFrequency=1; $filterOrder=6; $filterStages=2;
 $cdv=1;  $cDt=.25; $flushFrequency=5; 
 $ogmgAutoChoose=1; $ogmgMaxIterations=30; 
 $bcTop="slipWall"; 
+$parabolicWidth=.05; # width of parabolic inflow region
+$outputYplus=0; # set to 1 to output info about yPlus
 # 
 $slowStartSteps=-1; $slowStartCFL=.5; $slowStartRecomputeDt=100; $slowStartTime=-1.; $recomputeDt=10000;
 # 
@@ -40,10 +42,10 @@ GetOptions( "g=s"=>\$grid,"tf=f"=>\$tFinal,"implicitFactor=f"=>\$implicitFactor,
   "tMax=f"=>\$tMax,"pMax=f"=>\$pMax,"thick=f"=>\$thick,"length=f"=>\$length,"E0=f"=>\$E0,\
   "beamPlotScaleFactor=f"=>\$beamPlotScaleFactor,"numElem=i"=>\$numElem,"fluidOnTwoSides=i"=>\$fluidOnTwoSides,\
   "ad2=i"=>\$ad2,"ad21=f"=>\$ad21,"ad22=f"=>\$ad22, "ad4=i"=>\$ad4,"ad41=f"=>\$ad41,"ad42=f"=>\$ad42,\
-  "newts=i"=>\$newts,"project=i"=>\$project,"bcTop=s"=>\$bcTop,\
+  "newts=i"=>\$newts,"project=i"=>\$project,"bcTop=s"=>\$bcTop,"outputYplus=i"=>\$outputYplus,\
    "slowStartCFL=f"=>\$slowStartCFL, "slowStartTime=f"=>\$slowStartTime,"recomputeDt=i"=>\$recomputeDt,\
   "slowStartSteps=i"=>\$slowStartSteps,"slowStartRecomputeDt=i"=>\$slowStartRecomputeDt,\
-  "ogmgAutoChoose=i"=>\$ogmgAutoChoose, "flushFrequency=i"=>\$flushFrequency );
+  "ogmgAutoChoose=i"=>\$ogmgAutoChoose, "flushFrequency=i"=>\$flushFrequency, "parabolicWidth=f"=>\$parabolicWidth );
 # -------------------------------------------------------------------------------------------------
 if( $solver eq "best" ){ $solver="choose best iterative solver"; }
 if( $solver eq "mg" ){ $solver="multigrid"; }
@@ -126,11 +128,10 @@ $grid
 #
   boundary conditions
     all=noSlipWall
-    $parabolicWidth=.05; # width of parabolic inflow region
     bcNumber1=inflowWithVelocityGiven, parabolic(d=$parabolicWidth,p=1,u=1.)
-    bcNumber1=inflowWithVelocityGiven, parabolic(d=$parabolicWidth,p=1,u=1.)
+    if( $bcTop ne "outflow" ){ $cmd="bcNumber4=$bcTop; }else{ $cmd="#"; }
+    $cmd
     # bcNumber4=slipWall
-    bcNumber4=slipWall
     # Right boundary: outflow
     #     mainChannel(1,0)=outflow
     # NOTE: $cpn=.01; is BAD for long channel N.B. MG fails with nan's
@@ -169,6 +170,9 @@ $cmd
   exit
 if( $project eq "1" && $restart eq "" ){ $project = "project initial conditions"; }else{ $project = "do not project initial conditions"; }
   $project
+#
+  output yPlus $outputYplus
+#
   continue
 #
 $go

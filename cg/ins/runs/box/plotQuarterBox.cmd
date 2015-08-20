@@ -2,6 +2,9 @@
 #   Plot results from flow past a quarter box 
 #
 #   plotStuff plotQuarterBox.cmd -show=quarterBox8.show -vorMax=20.
+#   plotStuff plotQuarterBox.cmd -show=quarterBox16.show -vorMax=60.
+#   mpirun -np 4 $plotStuffx plotQuarterBox.cmd -show=quarterBox16a.show -vorMax=30.
+#   mpirun -np 4 $plotStuffx plotQuarterBox.cmd -show=quarterBox16b.show -vorMax=30.
 #
 #
 $show="quarterBox8.show"; $vorMax=20.; $cf=2; $dt=1.; $numTimes=5; $plotTerrain=1; $terrainOffset=0; 
@@ -17,6 +20,7 @@ previous
 derived types
   enstrophy
   speed
+  # divergence
 exit
 DISPLAY COLOUR BAR:0 0
 DISPLAY SQUARES:0 0
@@ -37,6 +41,8 @@ grid
 exit this menu
 contour
   plot:enstrophy
+#
+ # plot:divergence
   contour lines 0
   min max 0 $vorMax
   delete contour plane 2

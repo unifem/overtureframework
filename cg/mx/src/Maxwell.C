@@ -301,7 +301,8 @@ Maxwell()
   
   show=NULL;
   referenceShowFileReader=NULL;  // for comparing to a reference solution
-
+  dbase.put<bool >("saveSequencesEveryTime")=true;
+  
   sequenceCount=0; 
   numberOfSequences=0;
   
@@ -392,10 +393,8 @@ Maxwell()
 Maxwell::
 ~Maxwell()
 {
-  #ifndef USE_PPP
-  // fix me for parallel -- adding this causes the program to hang when closing the show file.
-    saveSequencesToShowFile();
-  #endif
+  // Make sure final version of sequences are save to the file
+  saveSequencesToShowFile();
 
   if( show!=NULL )
   { // 090201
@@ -1569,7 +1568,7 @@ buildInputOutputOptionsDialog(DialogData & dialog )
   textCommands[nt] = "grid file:";
   textLabels[nt]=textCommands[nt]; sPrintF(textStrings[nt], "%s","none"); nt++; 
 
-  textCommands[nt] = "error norm:";
+  textCommands[nt] = "error norm";
   textLabels[nt]=textCommands[nt]; sPrintF(textStrings[nt], "%i",errorNorm); nt++; 
 
   const int np = Communication_Manager::numberOfProcessors();

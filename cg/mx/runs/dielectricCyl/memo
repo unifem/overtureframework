@@ -1,3 +1,125 @@
+
+*************************************************************
+****** August 17, 2015 --   REVISIT INTERFACE CONDIIONS
+
+cgmx dielectricCyl -g=innerOuterSplitGride4.order4 -kx=2 -eps1=1. -eps2=.25 -diss=.5 -go=halt
+
+
+Oscillations appear by t=20 with -diss=.5
+cgmx dielectricCyl -g=innerOuterSplitGride4.order4 -kx=2 -eps1=.25 -eps2=1. -diss=.5 -go=halt
+
+
+*************************************************************
+****** August 14, 2015 -- 
+
+PROJECT INTERPOLATION POINTS TOO:
+
+
+FD22 G4 : 
+nohup $cgmx -noplot dielectricCyl -cyl=0 -g=solidSphereInABoxe4.order2 -kx=1 -eps1=.25 -eps2=1. -method=nfdtd -tp=.01 -tf=2. -cfl=.8 -diss=1. -show=sisb4f.show  -flushFrequency=2 -go=go >! sisb4f.out
+
+
+FD44 - FLIP eps1 <-> eps2  cfl=.9 OK
+nohup $cgmx -noplot dielectricCyl -cyl=0 -g=solidSphereInABoxe4.order4.ng3 -kx=1 -eps1=1. -eps2=.25 -method=nfdtd -tp=.01 -tf=1. -cfl=.9 -diss=1. -show=sphereInASolidBox4e.show  -flushFrequency=2 -go=go >! sphereInASolidBox4e.out &
+
+
+FD44:  FLIP eps1 <-> eps2 -- LOOKS OK!
+nohup $cgmx -noplot dielectricCyl -cyl=0 -g=solidSphereInABoxe4.order4.ng3 -kx=1 -eps1=1. -eps2=.25 -method=nfdtd -tp=.01 -tf=1. -cfl=.8 -diss=1. -show=sphereInASolidBox4d.show  -flushFrequency=2 -go=go >! sphereInASolidBox4d.out
+
+
+TEST FD22:
+
+
+FD22 FLIP eps1 <-> eps2 reduce CFL --> OK
+nohup $cgmx -noplot dielectricCyl -cyl=0 -g=solidSphereInABoxe4.order2 -kx=1 -eps1=1. -eps2=.25 -method=nfdtd -tp=.05 -tf=2. -cfl=.8 -diss=1. -show=sisb4a.show  -flushFrequency=2 -go=go >! sisb4a.out
+
+FD22 G4 : *TROUBLE* errors grow at t=1 
+nohup $cgmx -noplot dielectricCyl -cyl=0 -g=solidSphereInABoxe4.order2 -kx=1 -eps1=.25 -eps2=1. -method=nfdtd -tp=.05 -tf=2. -cfl=.9 -diss=1. -show=sisb4.show  -flushFrequency=2 -go=go >! sisb4.out
+
+*************************************************************
+****** August 13, 2015 -- 
+
+FD44:  *TROUBLE ***
+nohup $cgmx -noplot dielectricCyl -cyl=0 -g=solidSphereInABoxe4.order4.ng3 -kx=1 -eps1=.25 -eps2=1. -method=nfdtd -tp=.01 -tf=1. -cfl=.8 -diss=1. -show=sphereInASolidBox4c.show  -flushFrequency=2 -go=go >! sphereInASolidBox4c.out
+
+REDUCE CFL  -- LONGER -- still trouble
+nohup $cgmx -noplot dielectricCyl -cyl=0 -g=solidSphereInABoxe4.order4.ng3 -kx=1 -eps1=.25 -eps2=1. -method=sosup -tp=.01 -tf=.5 -cfl=.4 -show=sphereInASolidBox4b.show  -flushFrequency=2 -go=go >! sphereInASolidBox4b.out
+
+REDUCE CFL  -- OK 
+nohup $cgmx -noplot dielectricCyl -cyl=0 -g=solidSphereInABoxe4.order4.ng3 -kx=1 -eps1=.25 -eps2=1. -method=sosup -tp=.01 -tf=.25 -cfl=.4 -show=sphereInASolidBox4a.show  -flushFrequency=2 -go=go >! sphereInASolidBox4a.out
+
+
+G4 for longer time -- trouble too it looks like
+nohup $cgmx -noplot dielectricCyl -cyl=0 -g=solidSphereInABoxe4.order4.ng3 -kx=1 -eps1=.25 -eps2=1. -method=sosup -tp=.01 -tf=.25 -show=sphereInASolidBox4.show  -flushFrequency=2 -go=go >! sphereInASolidBox4.out
+
+
+Try parallel:  -- NEED TO FIX ---
+mpirun -n 4 $cgmxp  dielectricCyl -cyl=0 -g=solidSphereInABoxe2.order4.ng3 -kx=1 -eps1=.25 -eps2=1. -method=sosup -tp=.01 -tf=.25 -show=sphereInASolidBox2.show -go=halt
+
+G8 -- sosup : trouble past t=.2 errors grow --NOTE cfl=.8 by default
+nohup $cgmx -noplot dielectricCyl -cyl=0 -g=solidSphereInABoxe8.order4.ng3 -kx=1 -eps1=.25 -eps2=1. -method=sosup -tp=.01 -tf=.25 -show=sphereInASolidBox8.show  -flushFrequency=2 -go=go >! sphereInASolidBox8.out
+
+QUESTION: are errors saved in the show file? YES
+cgmx -noplot dielectricCyl -cyl=0 -g=solidSphereInABoxe2.order4.ng3 -kx=1 -eps1=.25 -eps2=1. -method=sosup -tp=.01 -tf=.25 -show=sphereInASolidBox2.show -go=og
+
+
+
+------- SOSUP44 trouble on G8
+cgmx dielectricCyl -cyl=0 -g=solidSphereInABoxe8.order4.ng3 -kx=1 -eps1=.25 -eps2=1. -method=sosup -tp=.01 -tf=.25 -go=og
+>>> Cgmx:SOSUP: t=1.00e-02 dt=2.5e-03 TS=ME |div(E)|/|grad(E)|=2.27e-05 (=1.88e-04/8.28e+00) 4 steps mem=1.42e+04(Mb) cpu=5.94e+02(s)
+>>> t=1.00e-02 dt=2.5e-03 max errors:[1.03e-06,1.72e-06,4.32e-07,1.94e-04,2.36e-04,8.28e-05,], max (u):[9.04e-01,1.53e+00,4.47e-01,5.78e+00,9.62e+00,3.01e+00,] (4 steps)
+
+>>> Cgmx:SOSUP: t=2.00e-02 dt=2.5e-03 TS=ME |div(E)|/|grad(E)|=1.91e-05 (=1.58e-04/8.28e+00) 8 steps mem=1.44e+04(Mb) cpu=1.29e+03(s)
+>>> t=2.00e-02 dt=2.5e-03 max errors:[2.10e-06,2.70e-06,8.83e-07,1.42e-04,2.10e-04,6.75e-05,], max (u):[9.12e-01,1.53e+00,4.44e-01,5.71e+00,9.62e+00,3.01e+00,] (8 steps)
+>>> Cgmx:SOSUP: t=3.00e-02 dt=2.5e-03 TS=ME |div(E)|/|grad(E)|=2.10e-05 (=1.74e-04/8.28e+00) 12 steps mem=1.44e+04(Mb) cpu=1.88e+03(s)
+>>> t=3.00e-02 dt=2.5e-03 max errors:[2.94e-06,4.45e-06,1.30e-06,1.45e-04,2.02e-04,8.03e-05,], max (u):[9.20e-01,1.53e+00,4.41e-01,5.67e+00,9.63e+00,3.01e+00,] (12 steps)
+
+********************************************************************************************************
+****** august 11, 2015 -- 
+
+REVIST dielectric sphere 
+
+****NOTE*** GRIDS DID NOT MATCH ON THE INTERFACE FOR G4 --> increase nrMin to fix
+
+cgmx -noplot dielectricCyl.cmd -g=solidSphereInABoxe1.order2 -cyl=0 -kx=1 -eps1=0.25 -eps2=1 -diss=0 -dissOrder=2 -interit=3 -cfl=.9 -method=sosup -errorNorm=0 -tf=.05 -tp=0.1 -go=og
+
+G1 SOSUP22 - TROUBLE NANS
+cgmx -noplot dielectricCyl -cyl=0 -g=solidSphereInABoxe1.order2 -kx=1 -eps1=.25 -eps2=1. -method=sosup -go=og 
+
+G2 SOSUP22 - OK
+cgmx -noplot dielectricCyl -cyl=0 -g=solidSphereInABoxe2.order2 -kx=1 -eps1=.25 -eps2=1. -method=sosup -go=og 
+
+
+
+**** G4 - (matching): SOSUP44  
+cgmx dielectricCyl -cyl=0 -g=solidSphereInABoxe4.order4.ng3 -kx=1 -eps1=.25 -eps2=1. -method=sosup -go=halt
+>>> Cgmx:SOSUP: t=1.00e-01 dt=5.3e-03 TS=ME |div(E)|/|grad(E)|=4.41e-04 (=3.64e-03/8.26e+00) 19 steps mem=1.99e+03(Mb) cpu=3.94e+02(s)
+>>> t=1.00e-01 dt=5.3e-03 max errors:[1.00e-04,2.04e-04,4.84e-05,1.51e-03,2.65e-03,1.20e-03,], max (u):[9.51e-01,1.52e+00,4.45e-01,5.12e+00,9.62e+00,2.99e+00,] (19 steps)
+
+
+**** G4: SOSUP44  
+cgmx dielectricCyl -cyl=0 -g=solidSphereInABoxe4.order4.ng3 -kx=1 -eps1=.25 -eps2=1. -method=sosup -go=halt
+
+*NEW* -- no change 
+>>> Cgmx:SOSUP: t=1.00e-01 dt=5.9e-03 TS=ME |div(E)|/|grad(E)|=2.32e-03 (=1.91e-02/8.26e+00) 17 steps mem=2e+03(Mb) cpu=3.17e+02(s)
+>>> t=1.00e-01 dt=5.9e-03 max errors:[5.46e-04,5.43e-04,5.27e-04,1.15e-02,1.25e-02,1.07e-02,], max (u):[9.51e-01,1.52e+00,4.45e-01,5.12e+00,9.62e+00,2.99e+00,] (17 steps)
+
+*OLD*
+>>> Cgmx:SOSUP: t=1.00e-01 dt=5.9e-03 TS=ME |div(E)|=1.91e-02, |div(E)|/|grad(E)|=2.32e-03, |grad(E)|=8.26e+00, 17 steps max-mem=1995.7 (Mb) cpu=3.09e+02(s)
+                t=1.00e-01 dt=5.9e-03 maxNorm errors:[5.4589e-04,5.4302e-04,5.2731e-04,1.1503e-02,1.2549e-02,1.0682e-02,], maxNorm (u):[9.51e-01,1.52e+00,4.45e-01,5.12e+00,9.62e+00,2.99e+00,] (17 steps)
+
+
+
+****  G2: SOSUP44
+cgmx dielectricCyl -cyl=0 -g=solidSphereInABoxe2.order4.ng3 -kx=1 -eps1=.25 -eps2=1. -method=sosup -go=halt
+*NEW*
+
+*OLD* 
+>>> Cgmx:SOSUP: t=1.00e-01 dt=8.3e-03 TS=ME |div(E)|=7.65e-02, |div(E)|/|grad(E)|=9.27e-03, |grad(E)|=8.26e+00, 12 steps max-mem=342.383 (Mb) cpu=6.11e+01(s)
+                t=1.00e-01 dt=8.3e-03 maxNorm errors:[1.6585e-03,6.9766e-03,6.8537e-04,2.0412e-02,5.3209e-02,1.0883e-02,], maxNorm (u):[9.47e-01,1.52e+00,4.41e-01,5.10e+00,9.60e+00,2.99e+00,] (12 steps)
+
+
+
 ******************************************************************************************
 ***** July 3, 2015 
 
@@ -29,7 +151,7 @@ cgmx dielectricCyl -g=innerOuterSplitGride4.order2 -kx=2 -eps1=.25 -eps2=1. -met
 
 
 ***** FFD44 -- bug fixed
-cgmx dielectricCyl -g=innerOuterSplitGride4.order4 -kx=2 -eps1=.25 -eps2=1. -go=halta
+cgmx dielectricCyl -g=innerOuterSplitGride4.order4 -kx=2 -eps1=.25 -eps2=1. -go=halt
 
 G8: 
 >>> Cgmx:FD: t=1.00e-01 dt=1.5e-03 TS=ME ad4=0.50 |div(E)|/|grad(E)|=1.64e-06 (=2.87e-05/1.75e+01) 68 steps mem=74.4(Mb) cpu=3.83e+00(s)

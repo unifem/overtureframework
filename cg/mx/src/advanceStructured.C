@@ -608,7 +608,7 @@ advanceNFDTD(  int numberOfStepsTaken, int current, real t, real dt )
 
   // ================= Project Fields =================================
 
-  // Here we project the field to satsify Gauss's Law  div(E)=0 or div(E) = stuff
+  // Here we project the field to satisfy Gauss's Law  div(E)=0 or div(E) = stuff
   // It seems important to project two steps in a row
 
   // We project fields here before the BC's -- to do this we use:

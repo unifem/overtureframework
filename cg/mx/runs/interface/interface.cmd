@@ -178,8 +178,8 @@ bc: $bc
 # 
 $cmd="#";
 if( $method ne "Yee" ){ $cmd = \
-  "coefficients $eps1 1. $left (eps,mu,grid-name)\n" . \
-  "coefficients $eps2 1. $right (eps,mu,grid-name)\n"; }
+  "coefficients $eps1 1. $left* (eps,mu,grid-name)\n" . \
+  "coefficients $eps2 1. $right* (eps,mu,grid-name)\n"; }
 $cmd 
 #
 # option: 1=extrapolate as initial guess for material interface ghost values

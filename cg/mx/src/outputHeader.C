@@ -161,6 +161,7 @@ outputHeader()
     fPrintF(file," knownSolutionOption = %s\n",(const char*)knownSolutionName);
     // fPrintF(file," knownSolutionOption = %i\n",(const int)knownSolutionOption);
     
+    fPrintF(file,"\n");
     fPrintF(file," materialInterfaceOption=%i (1=extrap ghost as initial guess)\n",materialInterfaceOption);
     fPrintF(file," interfaceEquationsOption=%i (0=use extrap for 2nd ghost, 1=use equations for 3D order 4)\n",
             interfaceEquationsOption);
@@ -195,6 +196,9 @@ outputHeader()
       }
     }
 
+    if( method==sosup )
+      fPrintF(file," sosup: orderOfExtrapolationForInterpolationNeighbours=%i (-1 means used orderOfAccuracy+1)\n",
+	      dbase.get<int>("orderOfExtrapolationForInterpolationNeighbours"));
 
     fPrintF(file," tFinal=%f, dt=%9.3e, tPlot=%9.3e cfl=%3.2f adr=%3.2f, adc=%3.2f  \n",
 	    tFinal,deltaT,tPlot,cfl,artificialDissipation,artificialDissipationCurvilinear );

@@ -17,6 +17,8 @@
 #     ogen -noplot crv -order=2 -blSpacingFactor=2 -prefix=crvbl2 -factor=4
 #     ogen -noplot crv -order=4 -blSpacingFactor=2 -prefix=crvbl2 -factor=2 
 #     ogen -noplot crv -order=4 -blSpacingFactor=2 -prefix=crvbl2 -factor=4
+#     ogen -noplot crv -order=4 -blSpacingFactor=2 -prefix=crvbl2 -factor=8  [ 27 M
+#     mpirun -np 4 $ogenx -noplot crv -order=4 -blSpacingFactor=2 -prefix=crvbl2 -factor=16
 # 
 # -- old: 
 #     ogen -noplot crv -factor=2 -dw=5 -iw=5 -interp=e -name="crve2.order4.hdf"
@@ -31,7 +33,7 @@
 $prefix="crv"; 
 $order=2; $factor=1;  $interp="e"; $interpType = "explicit for all grids"; # default values
 $orderOfAccuracy = "second order"; $ng=2; 
-$dw=3; $iw=3; 
+$dw=-1; $iw=-1; 
 $name=""; 
 $xa=-2.; $xb=5.; $ya=-3.5; $yb=3.5; $za=-3.5; $zb=3.5; 
 $exponent=10.; $stretchFactor=1.5; # OLD WAY
@@ -51,7 +53,7 @@ elsif( $order eq 8 ){ $orderOfAccuracy="eighth order"; $ng=6; }
 if( $interp eq "e" ){ $interpType = "explicit for all grids"; }
 if( $interp eq "i" ){ $interpType = "implicit for all grids"; }
 #
-if( $dw eq -1 ){ $dw=2*$order+1; $iw=$dw; }
+if( $dw eq -1 ){ $dw=$order+1; $iw=$dw; }
 #
 if( $dw eq 5 ){ $ng=2; }
 if( $dw eq 7 ){ $ng=4; }

@@ -21,8 +21,9 @@
 #===============================================================
 #
 $grid="joukowsky2de4.order2"; $show = " "; $tFinal=5.; $tPlot=.1; $nu=.1; $cfl=.9;
-$pGrad=0.; $wing="wing"; $newts=0; 
-$ad2=0; $ad21=1; $ad22=1;  $ad4=0; $ad41=1.; $ad42=1.; 
+$pGrad=0.; $wing="wing"; $newts=0; $frequencyToFlush=2; 
+# $ad2=0; $ad21=1; $ad22=1;  $ad4=0; $ad41=1.; $ad42=1.; 
+$ad2=0; $ad21=2; $ad22=1;  $ad4=0; $ad41=2.; $ad42=1.;   # more robust values
 #
 $inflowBC="uniform"; $bottomBC="slipWall"; $topBC="slipWall"; $sideBC="slipWall"; 
 # 
@@ -49,6 +50,7 @@ $pi=4.*atan2(1.,1.);
 $ogmgAutoChoose=1; $ogmgMaxIterations=30;   #  1=ON, 2=robust options
 $ogmgSsr=0;  # Show smoothing rates
 # 
+$parabolicWidth=.1; # width of parabolic inflow region
 #
 # ----------------------------- get command line arguments ---------------------------------------
 GetOptions( "g=s"=>\$grid,"tf=f"=>\$tFinal,"degreex=i"=>\$degreex, "degreet=i"=>\$degreet, "model=s"=>\$model,\
@@ -62,7 +64,7 @@ GetOptions( "g=s"=>\$grid,"tf=f"=>\$tFinal,"degreex=i"=>\$degreex, "degreet=i"=>
   "ad4=i"=>\$ad4,"ad41=f"=>\$ad41,"ad42=f"=>\$ad42,"amp=f"=>\$amp,"freqX=f"=>\$freqX,"freqY=f"=>\$freqY,\
   "freqZ=f"=>\$freqZ,"ogmgAutoChoose=s"=>\$ogmgAutoChoose, "ogmgSsr=s"=>\$ogmgSsr,"slowStartCFL=f"=>\$slowStartCFL,\
    "slowStartTime=f"=>\$slowStartTime,"inflowBC=s"=>\$inflowBC,"bottomBC=s"=>\$bottomBC,"topBC=s"=>\$topBC,\
-   "sideBC=s"=>\$sideBC );
+   "sideBC=s"=>\$sideBC,"frequencyToFlush=i"=>\$frequencyToFlush,"parabolicWidth=f"=>\$parabolicWidth );
 # -------------------------------------------------------------------------------------------------
 if( $solver eq "best" ){ $solver="choose best iterative solver"; }
 if( $solver eq "mg" ){ $solver="multigrid"; }
@@ -106,7 +108,7 @@ $grid
    open
      $show
     frequency to flush
-      2
+      $frequencyToFlush
   exit  
 #
   turn off twilight zone
@@ -232,7 +234,6 @@ $cmds
     #
     $cmd="\n"; 
     if( $inflowBC eq "uniform" ){ $cmd="bcNumber1=inflowWithVelocityGiven, uniform(u=1.)";} 
-    $parabolicWidth=.1; # width of parabolic inflow region
     if( $inflowBC eq "parabolic" ){ $cmd="bcNumber1=inflowWithVelocityGiven, parabolic(d=$parabolicWidth,p=1,u=1.)";} 
     $cmd
     #    box(0,0)=inflowWithPressureAndTangentialVelocityGiven, uniform(p=1.)

@@ -91,13 +91,14 @@ $show=" "; $backGround="backGround"; $useNewInterface=1;
 $interfaceIterations=3;
 $grid="innerOuter4.order4.hdf";
 $cons=0; $go="halt";  $errorNorm=0;
+$flushFrequency=10; 
 # 
 # ----------------------------- get command line arguments ---------------------------------------
 GetOptions( "g=s"=>\$grid,"tf=f"=>\$tFinal,"diss=f"=>\$diss,"dissc=f"=>\$dissc,"tp=f"=>\$tPlot,"show=s"=>\$show,"debug=i"=>\$debug, \
  "cfl=f"=>\$cfl, "bg=s"=>\$backGround,"bcn=s"=>\$bcn,"go=s"=>\$go,"noplot=s"=>\$noplot,"plotIntensity=i"=>\$plotIntensity,\
  "interit=i"=>\$interfaceIterations,"cyl=i"=>\$cyl,"useNewInterface=i"=>\$useNewInterface,"errorNorm=i"=>\$errorNorm,\
  "dtMax=f"=>\$dtMax,"kx=f"=>\$kx,"ky=f"=>\$ky,"kz=f"=>\$kz,"eps1=f"=>\$eps1,"eps2=f"=>\$eps2, "cons=i"=>\$cons,\
- "method=s"=>\$method,"dissOrder=i"=>\$dissOrder,"filter=i"=>\$filter );
+ "method=s"=>\$method,"dissOrder=i"=>\$dissOrder,"filter=i"=>\$filter,"flushFrequency=i"=>\$flushFrequency );
 # -------------------------------------------------------------------------------------------------
 if( $method eq "sosup" ){ $diss=0.; }
 if( $method eq "fd" ){ $method="nfdtd"; }
@@ -184,7 +185,7 @@ show file options...
   MXSF:compressed
   MXSF:open
     $show
-  MXSF:frequency to flush 10
+  MXSF:frequency to flush $flushFrequency
 exit
 #**********************************
 continue

@@ -247,6 +247,10 @@ checkSolution(realMappedGridFunction & u, const aString & title, bool printResul
 virtual void
 cleanupInitialConditions();
 
+virtual int 
+computeBodyForcing( GridFunction *gfa, int *gfIndex, real *times, int numberOfTimeLevels, const real & tForce );
+
+// *OLD WAY*
 virtual int
 computeBodyForcing( GridFunction & gf, const real & tForce );
 
@@ -795,7 +799,8 @@ userDefinedGrid( GridFunction & gfct,
                  IntegerArray & sharedBoundaryCondition );
 
 virtual int
-userDefinedForcing( realCompositeGridFunction & f, GridFunction & gf, const real & tForce );
+userDefinedForcing( realCompositeGridFunction & f, GridFunction *gfa, int *gfIndex, real *times, 
+                    int numberOfTimeLevels, const real & tForce );
 
 virtual void 
 userDefinedForcingCleanup();

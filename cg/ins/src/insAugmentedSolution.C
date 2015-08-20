@@ -61,6 +61,11 @@ getAugmentedSolution( GridFunction & gf0, realCompositeGridFunction & v )
     dc=2*numberOfComponents;
   }
   
+  if( parameters.dbase.get<bool >("plotBodyForce") )
+  {
+    // plot body force
+    extra+=numberOfComponents;
+  }
   
 
   if( parameters.dbase.get<bool >("twilightZoneFlow") )
@@ -191,6 +196,33 @@ getAugmentedSolution( GridFunction & gf0, realCompositeGridFunction & v )
       v.setName(u.getName(n),n);
   }
   
+  if( parameters.dbase.get<bool >("plotBodyForce") )
+  {
+    // -----------------------------
+    // --- plot the body force -----
+    // -----------------------------
+
+    // Here is where we save the body forcing:
+    assert( parameters.dbase.get<realCompositeGridFunction* >("bodyForce")!=NULL );
+    realCompositeGridFunction & f = *parameters.dbase.get<realCompositeGridFunction* >("bodyForce");
+
+    f.interpolate();   // interpolate to get decent value at interpolation points
+
+    const int bfc = dc+1;  // position in the array of the first component of the body force
+
+    Range N=numberOfComponents;
+    for( int grid=0; grid<cg.numberOfComponentGrids(); grid++ )
+    {
+      assign( v[grid],all,all,all,N+bfc, f[grid],all,all,all,N); 
+    }
+
+    for( int n=0; n<numberOfComponents; n++ )
+    {
+      v.setName(u.getName(n)+"bodyForce",bfc+n);
+    }
+    
+
+  }
   
   // ---------------------------
   // --- Plot the divergence ---

@@ -223,6 +223,17 @@ saveShow( int current, real t, real dt )
     }
   }
   
+  // Here we save time sequences to the show file
+  // Only save if this is the last frame in a subFile
+  if( dbase.get<bool >("saveSequencesEveryTime") && showFile.isLastFrameInSubFile() )
+  {  
+//    #ifndef USE_PPP
+      // fix me for parallel -- adding this causes the program to hang when closing the show file.
+      saveSequencesToShowFile();
+//    #endif
+  }
+  showFile.endFrame();  
+
   timing(timeForShowFile)+=getCPU()-cpu0;
 }
 
@@ -323,6 +334,12 @@ saveSequencesToShowFile()
   {
     numberOfComponents = 3;
   }
+  else if( method==sosup )
+  {
+    // 2D: ex,ey,hz, ext,eyt,hzt  
+    // 3D: ex,ey,ez, ext,eyt,ezt  
+    numberOfComponents = 6; 
+  }
   else if( method==yee )
   {
     numberOfComponents = numberOfDimensions==2 ? 3 : 6;
@@ -361,9 +378,13 @@ saveSequencesToShowFile()
   
   // display(sequence(I,N),"saveSequencesToShowFile: sequence(I,N)");
   
+  printf("saveSequencesToShowFile() myid=%i sequenceCount=%i\n",myid,sequenceCount);
+  fflush(0);
 
+
+  // NOTE: This function must be called by ALL processors in parallel
   show->saveSequence("errors",timeSequence(I),sequence(I,N),name);
-
+  
   delete [] name;
   
   return 0;

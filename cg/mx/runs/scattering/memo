@@ -1,4 +1,15 @@
 **********************
+******** Aug 7, 2015
+
+test new HDF -- looks OK
+
+
+mpirun -np 4 $cgmxp -noplot scattering -g=crvbl2e4.order4 -bg=backGround -rbc=abcPML -boundaryForcing=1 -kx=2 -tf=5. -tp=.5 -show=crv4.show -go=go >! crv4.out
+
+mpirun -np 4 $cgmxp -noplot scattering -g=crvbl2e2.order4 -bg=backGround -rbc=abcPML -boundaryForcing=1 -tf=5. -tp=.5 -show=crv2.show -go=og
+
+
+**********************
 ******** July 30, 2015
 
 QUESTION -- SET DISS=0 :   unstable by time 5 or so

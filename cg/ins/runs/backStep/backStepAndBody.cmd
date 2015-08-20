@@ -29,6 +29,9 @@ $filter=0; $filterFrequency=1; $filterOrder=6; $filterStages=2;
 $cdv=1;  $cDt=.25; $flushFrequency=5; 
 $ogmgAutoChoose=1;  $ogmgMaxIterations=30;
 $bcTop="slipWall"; 
+#
+$rns=0; # set to 1 to turn on RNS
+$tau=0.; 
 # 
 $slowStartSteps=-1; $slowStartCFL=.5; $slowStartRecomputeDt=100; $slowStartTime=-1.; $recomputeDt=10000;
 # 
@@ -45,7 +48,7 @@ GetOptions( "g=s"=>\$grid,"tf=f"=>\$tFinal,"implicitFactor=f"=>\$implicitFactor,
   "ad2=i"=>\$ad2,"ad21=f"=>\$ad21,"ad22=f"=>\$ad22, "ad4=i"=>\$ad4,"ad41=f"=>\$ad41,"ad42=f"=>\$ad42,\
   "newts=i"=>\$newts,"project=i"=>\$project,"freqFullUpdate=i"=>\$freqFullUpdate,"move=s"=>\$move,\
    "slowStartCFL=f"=>\$slowStartCFL, "slowStartTime=f"=>\$slowStartTime,"recomputeDt=i"=>\$recomputeDt,\
-  "slowStartSteps=i"=>\$slowStartSteps,"slowStartRecomputeDt=i"=>\$slowStartRecomputeDt,\
+  "slowStartSteps=i"=>\$slowStartSteps,"slowStartRecomputeDt=i"=>\$slowStartRecomputeDt,"rns=i"=>\$rns,"tau=f"=>\$tau,\
   "ogmgAutoChoose=i"=>\$ogmgAutoChoose, "flushFrequency=i"=>\$flushFrequency,"freq=f"=>\$freq,"bcTop=s"=>\$bcTop );
 # -------------------------------------------------------------------------------------------------
 if( $solver eq "best" ){ $solver="choose best iterative solver"; }
@@ -170,8 +173,9 @@ if( $move ne "0" ){ $cmd="turn on moving grids"; }else{ $cmd="#"; }
 #
   debug $debug
 #
-$userForcingCmds = "user defined forcing...\n drag forcing\n $uDrag $vDrag 0.\n  exit";
-if( $uDrag ne 0 || $vDrag ne 0 ){ $cmd = $userForcingCmds; }else{ $cmd="#"; }
+# -- turn on RNS terms ---
+$userForcingCmds = "user defined forcing...\n RNS forcing\n $tau\n  exit";
+if( $rns ne 0 ){ $cmd = $userForcingCmds; }else{ $cmd="#"; }
 $cmd
 #
   show file options
@@ -183,15 +187,17 @@ $cmd
       $flushFrequency
     exit
 #
+# initial conditions: uniform flow or restart from a solution in a show file 
+if( $restart eq "" ){ $cmds = "uniform flow\n u=1., v=0., p=0."; }\
+  else{ $cmds = "OBIC:show file name $restart\n OBIC:solution number -1 \n OBIC:assign solution from show file"; }
+# 
   initial conditions
-#      read from a show file
-#      cylinder.show
-#       9
-  uniform flow
-    p=0., u=1.
+    $cmds
   exit
 if( $project eq "1" && $restart eq "" ){ $project = "project initial conditions"; }else{ $project = "do not project initial conditions"; }
   $project
+  # plot the body force: (to show RNS terms)
+  plot body force $rns
   continue
 #
 $go

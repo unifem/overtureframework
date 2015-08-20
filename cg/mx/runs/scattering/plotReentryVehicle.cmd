@@ -2,6 +2,7 @@
 #  Plot results from Cgmx scattering from the crew reetnery vehichle
 #
 #    plotStuff plotReentryVehicle.cmd -show=crv2.show
+#    plotStuff plotReentryVehicle.cmd -show=crv4.show
 #    plotStuff plotReentryVehicle.cmd -show=crv8.show
 #
 $show="crv2.show"; 

@@ -31,6 +31,7 @@ $tf=.5; $tp=.1; $order = "2"; $ng=3; $m=2; $n=2; $interp="i"; $cfl=.9; $radius=.
 $diss=.0; $dissOrder=-1; 
 $errorNorm=0; $method="NFDTD"; 
 $alwaysCompute=1;
+$numberOfDimensions=2; 
 #
 GetOptions( "name=s"=>\$name,"order=s"=>\$order,"ng=i"=>\$ng,"tf=f"=>\$tf,"interp=s"=>\$interp,"diss=f"=>\$diss,\
             "fixed=s"=>\$fixed,"cfl=f"=>\$cfl,"alwaysCompute=i"=>\$alwaysCompute,"method=s"=>\$method,"tp=f"=>\$tp,\
@@ -38,7 +39,7 @@ GetOptions( "name=s"=>\$name,"order=s"=>\$order,"ng=i"=>\$ng,"tf=f"=>\$tf,"inter
             "radius=f"=>\$radius,"bg=s"=>\$bg );
 # ------------------------ planeWave ------------------------------------------
 # Scattering from a PEC sphere:
-if( $cg =~ /sib*/ || $cg =~ /sphere*/ ){ $cmdFile="../runs/sphere/sib.planeWaveBC.cmd"; }
+if( $cg =~ /sib*/ || $cg =~ /sphere*/ ){ $cmdFile="../runs/sphere/sib.planeWaveBC.cmd"; $numberOfDimensions=3; }
 #
 $caseName="$name$method$cg\Order$order"; 
 if( $errorNorm eq 0 ){ $normName = "max"; }elsif( $errorNorm eq 1 ){ $normName = "L1";}\
@@ -47,10 +48,14 @@ $caseName .= $normName . "Norm";
 $numberOfComponents=4;
 if( $method eq "sosup" ){ $numberOfComponents=7; }
 # define the table heading and caption
-if( $numberOfComponents eq 4 )\
+if( $numberOfComponents eq 4 && $numberOfDimensions eq 2 )\
   { $title= "grid  \& N \&  \$E_x\$ \&  \$E_y\$ \& \$H_z\$ \& \$\\grad\\cdot\\Ev\/\\grad\\Ev\$"; }
-if( $numberOfComponents eq 7 )\
+if( $numberOfComponents eq 7  && $numberOfDimensions eq 2 )\
   { $title= "grid  \& N \&  \$E_x\$ \&  \$E_y\$ \& \$H_z\$ \&  \$Ex_t\$ \&  \$Ey_t\$ \& \$Hz_t\$ \& \$\\grad\\cdot\\Ev\/\\grad\\Ev\$"; }
+if( $numberOfComponents eq 4 && $numberOfDimensions eq 3 )\
+  { $title= "grid  \& N \&  \$E_x\$ \&  \$E_y\$ \& \$E_z\$ \& \$\\grad\\cdot\\Ev\/\\grad\\Ev\$"; }
+if( $numberOfComponents eq 7  && $numberOfDimensions eq 3 )\
+  { $title= "grid  \& N \&  \$E_x\$ \&  \$E_y\$ \& \$E_z\$ \&  \$Ex_t\$ \&  \$Ey_t\$ \& \$Ez_t\$ \& \$\\grad\\cdot\\Ev\/\\grad\\Ev\$"; }
 # 
 $labelMethod=$method;
 if( $method eq "NFDTD" ){ $labelMethod="CGFD$order"; }

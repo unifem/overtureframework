@@ -62,6 +62,7 @@
      & userDefinedForcingOption      =6 )
         integer i1,i2,i3,j1,j2,j3,axisp1,axisp2,en1,et1,et2,hn1,ht1,
      & ht2,numberOfGhostPoints
+        integer ii1,ii2,ii3
         integer extra,extra1a,extra1b,extra2a,extra2b,extra3a,extra3b
         real det,dra,dsa,dta,dxa,dya,dza
         real tau1,tau2,tau11,tau12,tau13, tau21,tau22,tau23
@@ -3121,17 +3122,33 @@ c write(*,'("initializeBoundaryForcing slowStartInterval=",e10.2)') slowStartInt
                   do m2=1,numberOfGhostPoints
                    ! shift to ghost point "(m1,m2)"
                    if( edgeDirection.eq.2 )then
+                     ! ghost value to set:
                      js1=is1*m1
                      js2=is2*m2
                      js3=0
+                     ! direction for extrapolation
+                     ms1=is1
+                     ms2=is2
+                     ms3=0
+                     ! point next to ghost 
                    else if( edgeDirection.eq.1 )then
+                     ! ghost value to set:
                      js1=is1*m1
                      js2=0
                      js3=is3*m2
+                     ! direction for extrapolation
+                     ms1=is1
+                     ms2=0
+                     ms3=is3
                    else
+                     ! ghost value to set:
                      js1=0
                      js2=is2*m1
                      js3=is3*m2
+                     ! direction for extrapolation
+                     ms1=0
+                     ms2=is2
+                     ms3=is3
                    end if
                    if( bc1.eq.perfectElectricalConductor .and. 
      & bc2.eq.perfectElectricalConductor )then
@@ -3199,12 +3216,22 @@ c write(*,'("initializeBoundaryForcing slowStartInterval=",e10.2)') slowStartInt
                      do i2=n2a,n2b
                      do i1=n1a,n1b
                        ! We could check the mask ***
-                        u(i1-js1,i2-js2,i3-js3,ex)=(3.*u(i1,i2,i3,ex)-
-     & 3.*u(i1+js1,i2+js2,i3+js3,ex)+u(i1+2*js1,i2+2*js2,i3+2*js3,ex))
-                        u(i1-js1,i2-js2,i3-js3,ey)=(3.*u(i1,i2,i3,ey)-
-     & 3.*u(i1+js1,i2+js2,i3+js3,ey)+u(i1+2*js1,i2+2*js2,i3+2*js3,ey))
-                        u(i1-js1,i2-js2,i3-js3,ez)=(3.*u(i1,i2,i3,ez)-
-     & 3.*u(i1+js1,i2+js2,i3+js3,ez)+u(i1+2*js1,i2+2*js2,i3+2*js3,ez))
+                      ! point next to ghost point being extrapolated
+                      ii1=i1-js1+ms1
+                      ii2=i2-js2+ms2
+                      ii3=i3-js3+ms3
+                        ! u(i1-js1,i2-js2,i3-js3,ex)=extrap3(u,i1,i2,i3,ex,js1,js2,js3)
+                        ! u(i1-js1,i2-js2,i3-js3,ey)=extrap3(u,i1,i2,i3,ey,js1,js2,js3)
+                        ! u(i1-js1,i2-js2,i3-js3,ez)=extrap3(u,i1,i2,i3,ez,js1,js2,js3)
+                        u(i1-js1,i2-js2,i3-js3,ex)=(3.*u(ii1,ii2,ii3,
+     & ex)-3.*u(ii1+ms1,ii2+ms2,ii3+ms3,ex)+u(ii1+2*ms1,ii2+2*ms2,ii3+
+     & 2*ms3,ex))
+                        u(i1-js1,i2-js2,i3-js3,ey)=(3.*u(ii1,ii2,ii3,
+     & ey)-3.*u(ii1+ms1,ii2+ms2,ii3+ms3,ey)+u(ii1+2*ms1,ii2+2*ms2,ii3+
+     & 2*ms3,ey))
+                        u(i1-js1,i2-js2,i3-js3,ez)=(3.*u(ii1,ii2,ii3,
+     & ez)-3.*u(ii1+ms1,ii2+ms2,ii3+ms3,ez)+u(ii1+2*ms1,ii2+2*ms2,ii3+
+     & 2*ms3,ez))
                      end do ! end do i1
                      end do ! end do i2
                      end do ! end do i3
@@ -3303,12 +3330,22 @@ c write(*,'("initializeBoundaryForcing slowStartInterval=",e10.2)') slowStartInt
                     js1=is1*m1  ! shift to ghost point "m"
                     js2=is2*m2
                     js3=is3*m3
-                     u(i1-js1,i2-js2,i3-js3,ex)=(3.*u(i1,i2,i3,ex)-3.*
-     & u(i1+js1,i2+js2,i3+js3,ex)+u(i1+2*js1,i2+2*js2,i3+2*js3,ex))
-                     u(i1-js1,i2-js2,i3-js3,ey)=(3.*u(i1,i2,i3,ey)-3.*
-     & u(i1+js1,i2+js2,i3+js3,ey)+u(i1+2*js1,i2+2*js2,i3+2*js3,ey))
-                     u(i1-js1,i2-js2,i3-js3,ez)=(3.*u(i1,i2,i3,ez)-3.*
-     & u(i1+js1,i2+js2,i3+js3,ez)+u(i1+2*js1,i2+2*js2,i3+2*js3,ez))
+                    ! (ii1,ii2,ii3) : point adjacent to point being extrapolated      
+                    ii1=i1-js1+is1
+                    ii2=i2-js2+is2
+                    ii3=i3-js3+is3
+                     ! u(i1-js1,i2-js2,i3-js3,ex)=extrap3(u,i1,i2,i3,ex,js1,js2,js3)
+                     ! u(i1-js1,i2-js2,i3-js3,ey)=extrap3(u,i1,i2,i3,ey,js1,js2,js3)
+                     ! u(i1-js1,i2-js2,i3-js3,ez)=extrap3(u,i1,i2,i3,ez,js1,js2,js3)
+                     u(i1-js1,i2-js2,i3-js3,ex)=(3.*u(ii1,ii2,ii3,ex)-
+     & 3.*u(ii1+is1,ii2+is2,ii3+is3,ex)+u(ii1+2*is1,ii2+2*is2,ii3+2*
+     & is3,ex))
+                     u(i1-js1,i2-js2,i3-js3,ey)=(3.*u(ii1,ii2,ii3,ey)-
+     & 3.*u(ii1+is1,ii2+is2,ii3+is3,ey)+u(ii1+2*is1,ii2+2*is2,ii3+2*
+     & is3,ey))
+                     u(i1-js1,i2-js2,i3-js3,ez)=(3.*u(ii1,ii2,ii3,ez)-
+     & 3.*u(ii1+is1,ii2+is2,ii3+is3,ez)+u(ii1+2*is1,ii2+2*is2,ii3+2*
+     & is3,ez))
                   end do ! end do m1
                   end do ! end do m2
                   end do ! end do m3
@@ -3600,17 +3637,33 @@ c write(*,'("initializeBoundaryForcing slowStartInterval=",e10.2)') slowStartInt
                   do m2=1,numberOfGhostPoints
                    ! shift to ghost point "(m1,m2)"
                    if( edgeDirection.eq.2 )then
+                     ! ghost value to set:
                      js1=is1*m1
                      js2=is2*m2
                      js3=0
+                     ! direction for extrapolation
+                     ms1=is1
+                     ms2=is2
+                     ms3=0
+                     ! point next to ghost 
                    else if( edgeDirection.eq.1 )then
+                     ! ghost value to set:
                      js1=is1*m1
                      js2=0
                      js3=is3*m2
+                     ! direction for extrapolation
+                     ms1=is1
+                     ms2=0
+                     ms3=is3
                    else
+                     ! ghost value to set:
                      js1=0
                      js2=is2*m1
                      js3=is3*m2
+                     ! direction for extrapolation
+                     ms1=0
+                     ms2=is2
+                     ms3=is3
                    end if
                    if( bc1.eq.perfectElectricalConductor .and. 
      & bc2.eq.perfectElectricalConductor )then
@@ -3711,12 +3764,22 @@ c write(*,'("initializeBoundaryForcing slowStartInterval=",e10.2)') slowStartInt
                      do i2=n2a,n2b
                      do i1=n1a,n1b
                        ! We could check the mask ***
-                        u(i1-js1,i2-js2,i3-js3,ex)=(3.*u(i1,i2,i3,ex)-
-     & 3.*u(i1+js1,i2+js2,i3+js3,ex)+u(i1+2*js1,i2+2*js2,i3+2*js3,ex))
-                        u(i1-js1,i2-js2,i3-js3,ey)=(3.*u(i1,i2,i3,ey)-
-     & 3.*u(i1+js1,i2+js2,i3+js3,ey)+u(i1+2*js1,i2+2*js2,i3+2*js3,ey))
-                        u(i1-js1,i2-js2,i3-js3,ez)=(3.*u(i1,i2,i3,ez)-
-     & 3.*u(i1+js1,i2+js2,i3+js3,ez)+u(i1+2*js1,i2+2*js2,i3+2*js3,ez))
+                      ! point next to ghost point being extrapolated
+                      ii1=i1-js1+ms1
+                      ii2=i2-js2+ms2
+                      ii3=i3-js3+ms3
+                        ! u(i1-js1,i2-js2,i3-js3,ex)=extrap3(u,i1,i2,i3,ex,js1,js2,js3)
+                        ! u(i1-js1,i2-js2,i3-js3,ey)=extrap3(u,i1,i2,i3,ey,js1,js2,js3)
+                        ! u(i1-js1,i2-js2,i3-js3,ez)=extrap3(u,i1,i2,i3,ez,js1,js2,js3)
+                        u(i1-js1,i2-js2,i3-js3,ex)=(3.*u(ii1,ii2,ii3,
+     & ex)-3.*u(ii1+ms1,ii2+ms2,ii3+ms3,ex)+u(ii1+2*ms1,ii2+2*ms2,ii3+
+     & 2*ms3,ex))
+                        u(i1-js1,i2-js2,i3-js3,ey)=(3.*u(ii1,ii2,ii3,
+     & ey)-3.*u(ii1+ms1,ii2+ms2,ii3+ms3,ey)+u(ii1+2*ms1,ii2+2*ms2,ii3+
+     & 2*ms3,ey))
+                        u(i1-js1,i2-js2,i3-js3,ez)=(3.*u(ii1,ii2,ii3,
+     & ez)-3.*u(ii1+ms1,ii2+ms2,ii3+ms3,ez)+u(ii1+2*ms1,ii2+2*ms2,ii3+
+     & 2*ms3,ez))
                      end do ! end do i1
                      end do ! end do i2
                      end do ! end do i3
@@ -3826,12 +3889,22 @@ c write(*,'("initializeBoundaryForcing slowStartInterval=",e10.2)') slowStartInt
                     js1=is1*m1  ! shift to ghost point "m"
                     js2=is2*m2
                     js3=is3*m3
-                     u(i1-js1,i2-js2,i3-js3,ex)=(3.*u(i1,i2,i3,ex)-3.*
-     & u(i1+js1,i2+js2,i3+js3,ex)+u(i1+2*js1,i2+2*js2,i3+2*js3,ex))
-                     u(i1-js1,i2-js2,i3-js3,ey)=(3.*u(i1,i2,i3,ey)-3.*
-     & u(i1+js1,i2+js2,i3+js3,ey)+u(i1+2*js1,i2+2*js2,i3+2*js3,ey))
-                     u(i1-js1,i2-js2,i3-js3,ez)=(3.*u(i1,i2,i3,ez)-3.*
-     & u(i1+js1,i2+js2,i3+js3,ez)+u(i1+2*js1,i2+2*js2,i3+2*js3,ez))
+                    ! (ii1,ii2,ii3) : point adjacent to point being extrapolated      
+                    ii1=i1-js1+is1
+                    ii2=i2-js2+is2
+                    ii3=i3-js3+is3
+                     ! u(i1-js1,i2-js2,i3-js3,ex)=extrap3(u,i1,i2,i3,ex,js1,js2,js3)
+                     ! u(i1-js1,i2-js2,i3-js3,ey)=extrap3(u,i1,i2,i3,ey,js1,js2,js3)
+                     ! u(i1-js1,i2-js2,i3-js3,ez)=extrap3(u,i1,i2,i3,ez,js1,js2,js3)
+                     u(i1-js1,i2-js2,i3-js3,ex)=(3.*u(ii1,ii2,ii3,ex)-
+     & 3.*u(ii1+is1,ii2+is2,ii3+is3,ex)+u(ii1+2*is1,ii2+2*is2,ii3+2*
+     & is3,ex))
+                     u(i1-js1,i2-js2,i3-js3,ey)=(3.*u(ii1,ii2,ii3,ey)-
+     & 3.*u(ii1+is1,ii2+is2,ii3+is3,ey)+u(ii1+2*is1,ii2+2*is2,ii3+2*
+     & is3,ey))
+                     u(i1-js1,i2-js2,i3-js3,ez)=(3.*u(ii1,ii2,ii3,ez)-
+     & 3.*u(ii1+is1,ii2+is2,ii3+is3,ez)+u(ii1+2*is1,ii2+2*is2,ii3+2*
+     & is3,ez))
                   end do ! end do m1
                   end do ! end do m2
                   end do ! end do m3
@@ -5409,12 +5482,22 @@ c write(*,'("initializeBoundaryForcing slowStartInterval=",e10.2)') slowStartInt
                     js1=is1*m1  ! shift to ghost point "m"
                     js2=is2*m2
                     js3=is3*m3
-                     u(i1-js1,i2-js2,i3-js3,ex)=(3.*u(i1,i2,i3,ex)-3.*
-     & u(i1+js1,i2+js2,i3+js3,ex)+u(i1+2*js1,i2+2*js2,i3+2*js3,ex))
-                     u(i1-js1,i2-js2,i3-js3,ey)=(3.*u(i1,i2,i3,ey)-3.*
-     & u(i1+js1,i2+js2,i3+js3,ey)+u(i1+2*js1,i2+2*js2,i3+2*js3,ey))
-                     u(i1-js1,i2-js2,i3-js3,ez)=(3.*u(i1,i2,i3,ez)-3.*
-     & u(i1+js1,i2+js2,i3+js3,ez)+u(i1+2*js1,i2+2*js2,i3+2*js3,ez))
+                    ! (ii1,ii2,ii3) : point adjacent to point being extrapolated      
+                    ii1=i1-js1+is1
+                    ii2=i2-js2+is2
+                    ii3=i3-js3+is3
+                     ! u(i1-js1,i2-js2,i3-js3,ex)=extrap3(u,i1,i2,i3,ex,js1,js2,js3)
+                     ! u(i1-js1,i2-js2,i3-js3,ey)=extrap3(u,i1,i2,i3,ey,js1,js2,js3)
+                     ! u(i1-js1,i2-js2,i3-js3,ez)=extrap3(u,i1,i2,i3,ez,js1,js2,js3)
+                     u(i1-js1,i2-js2,i3-js3,ex)=(3.*u(ii1,ii2,ii3,ex)-
+     & 3.*u(ii1+is1,ii2+is2,ii3+is3,ex)+u(ii1+2*is1,ii2+2*is2,ii3+2*
+     & is3,ex))
+                     u(i1-js1,i2-js2,i3-js3,ey)=(3.*u(ii1,ii2,ii3,ey)-
+     & 3.*u(ii1+is1,ii2+is2,ii3+is3,ey)+u(ii1+2*is1,ii2+2*is2,ii3+2*
+     & is3,ey))
+                     u(i1-js1,i2-js2,i3-js3,ez)=(3.*u(ii1,ii2,ii3,ez)-
+     & 3.*u(ii1+is1,ii2+is2,ii3+is3,ez)+u(ii1+2*is1,ii2+2*is2,ii3+2*
+     & is3,ez))
                   end do ! end do m1
                   end do ! end do m2
                   end do ! end do m3
@@ -7271,12 +7354,22 @@ c write(*,'("initializeBoundaryForcing slowStartInterval=",e10.2)') slowStartInt
                     js1=is1*m1  ! shift to ghost point "m"
                     js2=is2*m2
                     js3=is3*m3
-                     u(i1-js1,i2-js2,i3-js3,ex)=(3.*u(i1,i2,i3,ex)-3.*
-     & u(i1+js1,i2+js2,i3+js3,ex)+u(i1+2*js1,i2+2*js2,i3+2*js3,ex))
-                     u(i1-js1,i2-js2,i3-js3,ey)=(3.*u(i1,i2,i3,ey)-3.*
-     & u(i1+js1,i2+js2,i3+js3,ey)+u(i1+2*js1,i2+2*js2,i3+2*js3,ey))
-                     u(i1-js1,i2-js2,i3-js3,ez)=(3.*u(i1,i2,i3,ez)-3.*
-     & u(i1+js1,i2+js2,i3+js3,ez)+u(i1+2*js1,i2+2*js2,i3+2*js3,ez))
+                    ! (ii1,ii2,ii3) : point adjacent to point being extrapolated      
+                    ii1=i1-js1+is1
+                    ii2=i2-js2+is2
+                    ii3=i3-js3+is3
+                     ! u(i1-js1,i2-js2,i3-js3,ex)=extrap3(u,i1,i2,i3,ex,js1,js2,js3)
+                     ! u(i1-js1,i2-js2,i3-js3,ey)=extrap3(u,i1,i2,i3,ey,js1,js2,js3)
+                     ! u(i1-js1,i2-js2,i3-js3,ez)=extrap3(u,i1,i2,i3,ez,js1,js2,js3)
+                     u(i1-js1,i2-js2,i3-js3,ex)=(3.*u(ii1,ii2,ii3,ex)-
+     & 3.*u(ii1+is1,ii2+is2,ii3+is3,ex)+u(ii1+2*is1,ii2+2*is2,ii3+2*
+     & is3,ex))
+                     u(i1-js1,i2-js2,i3-js3,ey)=(3.*u(ii1,ii2,ii3,ey)-
+     & 3.*u(ii1+is1,ii2+is2,ii3+is3,ey)+u(ii1+2*is1,ii2+2*is2,ii3+2*
+     & is3,ey))
+                     u(i1-js1,i2-js2,i3-js3,ez)=(3.*u(ii1,ii2,ii3,ez)-
+     & 3.*u(ii1+is1,ii2+is2,ii3+is3,ez)+u(ii1+2*is1,ii2+2*is2,ii3+2*
+     & is3,ez))
                   end do ! end do m1
                   end do ! end do m2
                   end do ! end do m3

@@ -23,6 +23,9 @@
 #
 #  plotStuff plotBackStep.cmd -show=backStepAndBodyRefineMove16.show -vorMin=-20. -vorMax=20.
 #
+# --- BACK-STEP IN A CHANNEL : compare to experiment ---
+#  plotStuff plotBackStep.cmd -show=backStepInChannel8.show -vorMin=-10. -vorMax=10.
+#
 $show="cylbeam2.show"; $plotName=""; $solution=-1; 
 $vorMin=-50; $vorMax=25.; $zoom=0; 
 # 

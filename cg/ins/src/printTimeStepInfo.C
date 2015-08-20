@@ -146,7 +146,8 @@ printTimeStepInfo( const int & step, const real & t, const real & cpuTime )
       
   }
   
-  if( turbulenceModel!=Parameters::noTurbulenceModel && !parameters.dbase.get<bool >("twilightZoneFlow") )
+  if( (turbulenceModel!=Parameters::noTurbulenceModel ||
+       parameters.dbase.get<bool >("outputYplus") ) && !parameters.dbase.get<bool >("twilightZoneFlow") )
   { // Output y+ of first grid line etc.
     computeTurbulenceQuantities(solution);
   }

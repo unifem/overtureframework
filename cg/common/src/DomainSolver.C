@@ -282,6 +282,9 @@ outputHeader()
     if( nameOfGridFile=="" ) nameOfGridFile="unknown";
     fPrintF(file,"\n The overlapping grid was read from the file=[%s].\n",(const char*)nameOfGridFile);
 
+    const int np= max(1,Communication_Manager::numberOfProcessors());
+    fPrintF(file,"Number of processors=%i.\n",np);
+
     writeParameterSummary(file);
 
     if( parameters.dbase.get<bool >("useSecondOrderArtificialDiffusion") && 

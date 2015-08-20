@@ -61,7 +61,7 @@ int createMappings( MappingInformation & mapInfo );
 
 //==============================================================================================
 //
-/// \brief Compute the body forcing such as drag models, wake models and heat sources.
+/// \brief *OLD WAY* Compute the body forcing such as drag models, wake models and heat sources.
 /// \details Compute the body forcings such as drag models, wake models and heat sources that are added to 
 ///   the right-hand side of the equations.
 ///   This function is called to actually evaluate the forcing.
@@ -75,6 +75,38 @@ int createMappings( MappingInformation & mapInfo );
 int DomainSolver:: 
 computeBodyForcing( GridFunction & gf, const real & tForce )
 {
+  // *TEMP* for backward compatibility
+    int numberOfTimeLevels=1;
+    int gfIndex[1] = {0}; // 
+    real times[1] =  {tForce};  // may not be correct
+
+    return  computeBodyForcing( &gf, gfIndex, times, numberOfTimeLevels, tForce );
+    
+}
+
+
+//==============================================================================================
+//
+/// \brief Compute the body forcing such as drag models, wake models and heat sources.
+/// \details Compute the body forcings such as drag models, wake models and heat sources that are added to 
+///   the right-hand side of the equations.
+///   This function is called to actually evaluate the forcing.
+///   The function setupBodyForcing is first called to assign the option and parameters.
+/// \Note The forcing is saved in the realCompositeGridFunction bodyForce found in the data-base.
+///
+/// \param gfa (input) : array of grid functions at different times.
+/// \param gfIndex[m] (input) : m=0 : current solution, m=1 past solution, etc.
+/// \param times[m] (input) " times[0] = current time, times[1]=past times etc.
+/// \param numberOfTimeLevels (input) : m=0,1,2,...,numberOfTimeLevels-1 : number of availabel time levels.
+/// \param tForce (input) : evaluate the forcing at this time.
+///
+//==============================================================================================
+int DomainSolver:: 
+computeBodyForcing( GridFunction *gfa, int *gfIndex, real *times, int numberOfTimeLevels, const real & tForce )
+{
+
+    assert( numberOfTimeLevels>0 && gfIndex[0]>=0 );
+    GridFunction & gf = gfa[gfIndex[0]];
 
     if( parameters.dbase.get<bool >("turnOnController") )
     {
@@ -109,7 +141,8 @@ computeBodyForcing( GridFunction & gf, const real & tForce )
     if( parameters.dbase.get<bool >("turnOnUserDefinedForcing") )
     {
     // compute any user defined forcing:  (we may add on further contributions to f below)
-        userDefinedForcing( f, gf, tForce );
+    // userDefinedForcing( f, gf, tForce );
+        userDefinedForcing( f, gfa, gfIndex, times, numberOfTimeLevels, tForce ); // *wdh* 2015/08/08 
     }
     else
     {

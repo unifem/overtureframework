@@ -99,6 +99,11 @@ plot errors 1
 check errors 1
 #
 continue
+# add contours on the surface of the sphere 
+contour
+  add coordinate surface 3 2 0 
+  add coordinate surface 1 2 1 
+exit
 $go 
 
 

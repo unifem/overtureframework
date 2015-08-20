@@ -108,7 +108,8 @@ pml width,strength,power $pmlWidth $pmlStrength $pmlPower
 #******
 #bc: square(0,0)=planeWaveBoundaryCondition
 #bc: square(1,0)=planeWaveBoundaryCondition
-if( $method eq "NFDTD" || $method eq "sosup" ){ $cmd="bc: Annulus=perfectElectricalConductor"; }else{ $cmd="#"; }
+if( $method eq "NFDTD" ||  $method eq "nfdtd" || $method eq "sosup" ){ $cmd="bc: Annulus=perfectElectricalConductor"; }else{ $cmd="#"; }
+$cmd
 if( $grid =~ /cicSplit/ ){ $cmd="bc: annulus1=perfectElectricalConductor\n bc: annulus2=perfectElectricalConductor"; }
 $cmd
 tFinal $tFinal

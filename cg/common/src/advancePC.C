@@ -1158,8 +1158,16 @@ advanceAdamsPredictorCorrector( real & t0, real & dt0, int & numberOfSubSteps, i
             gf[mCur].primitiveToConservative();
 
     // -- evaluate any body forcing (this is saved in realCompositeGridFunction bodyForce found in the data-base) ---
+    // -- provide solution at past time levels if available: 
+        const int numberOfBodyForceTimeLevels= numberOfGridFunctions>2 ? 2 : 1;
+        int gfIndexBodyForce[] = {mCur,mOld}; // 
+        real timesBodyForce[] =  {gf[mCur].t,gf[mOld].t};
         const real tForce = gf[mCur].t; // evaluate the body force at this time
-        computeBodyForcing( gf[mCur], tForce );
+        computeBodyForcing( gf, gfIndexBodyForce, timesBodyForce, numberOfBodyForceTimeLevels, tForce );
+
+    // *old way*
+    // const real tForce = gf[mCur].t; // evaluate the body force at this time
+    // computeBodyForcing( gf[mCur], tForce );
 
         for( grid=0; grid<gf[mCur].cg.numberOfComponentGrids(); grid++ )
         {
@@ -1526,8 +1534,15 @@ advanceAdamsPredictorCorrector( real & t0, real & dt0, int & numberOfSubSteps, i
             }
             
       // -- evaluate any body forcing (this is saved in realCompositeGridFunction bodyForce found in the data-base) ---
-            const real tForce = gf[mNew].t; // evaluate the body force at this time
-            computeBodyForcing( gf[mCur], tForce );
+      // -- provide solution at past time levels if available: 
+            const int numberOfBodyForceTimeLevels= 2;
+            int gfIndexBodyForce[] = {mNew,mCur}; // 
+            real timesBodyForce[] =  {gf[mNew].t,gf[mCur].t};
+            const real tForce =  gf[mNew].t; // evaluate the body force at this time
+            computeBodyForcing( gf, gfIndexBodyForce, timesBodyForce, numberOfBodyForceTimeLevels, tForce );
+
+      // const real tForce = gf[mNew].t; // evaluate the body force at this time
+      // computeBodyForcing( gf[mCur], tForce );  // *NOTE* *wdh* 2015/08/19 -- this should have used gf[mNew] I believe
 
             for( grid=0; grid<gf[mNew].cg.numberOfComponentGrids(); grid++ )
             {

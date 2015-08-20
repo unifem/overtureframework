@@ -162,11 +162,12 @@ SOFLAGS = -shared
 #xlc SOFLAGS = -qmkshrobj -qnostaticlink
 # the next line is changed by the configure script
 OpenGLibs=
-GLIBS=  $(OV_PERL_LIBRARIES) $(OV_RPATH)$(OPENGL_LIB) -L$(OPENGL_LIB) $(OpenGLibs) $(OV_MOTIF_LIBRARIES) $(OV_X_LIBRARIES) $(LAPACK_LIBRARIES) -lm
+# put App libs here since in parallel these may include mpi libs in /usr which conflicts with mesa
+GLIBS=  $(OV_PERL_LIBRARIES) $(OV_RPATH)$(OPENGL_LIB) -L$(OPENGL_LIB) $(OpenGLibs) $(OV_MOTIF_LIBRARIES) $(OV_X_LIBRARIES) $(AppLibraries) $(LAPACK_LIBRARIES) -lm
 
 # On Don's machine the pgi libraries need to follow the mpi libraries : 
 # FLIBS= $(OV_RPATH)$(Overture)/lib $(LDFLAGS)$(Overture)/lib $(LibOverture) $(HDF_LIBS) $(FORTRAN_LIBS) $(AppLibraries) 
-FLIBS= $(OV_RPATH)$(Overture)/lib $(LDFLAGS)$(Overture)/lib $(LibOverture) $(OV_COMPILER_LIBS) $(HDF_LIBS) $(AppLibraries) $(FORTRAN_LIBS)
+FLIBS= $(OV_RPATH)$(Overture)/lib $(LDFLAGS)$(Overture)/lib $(LibOverture) $(OV_COMPILER_LIBS) $(HDF_LIBS) $(FORTRAN_LIBS)
 
 # Ubuntu 13 needs this: when loading the dynamic library
 #ubuntu LIBLIBS = $(HDF_LIBS) $(FORTRAN_LIBS) $(AppLibraries)

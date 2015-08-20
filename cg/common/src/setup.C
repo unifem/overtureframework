@@ -299,14 +299,18 @@ buildPlotOptionsDialog(DialogData & dialog )
                           "plot grid velocity", 
                           "plot body force mask surface",
                           "plot structures",  // plot beams and shells
+                          "plot body force",
+                          "output yPlus",
 			  ""};
   int tbState[10];
   tbState[0] = plotMode==1;
-  tbState[1] = parameters.dbase.get<int >("showResiduals"); 
-  tbState[2] = parameters.dbase.get<int >("adjustGridForDisplacement"); 
-  tbState[3] = parameters.dbase.get<int >("plotGridVelocity"); 
-  tbState[4] = parameters.dbase.get<bool >("plotBodyForceMaskSurface");
-  tbState[5] = parameters.dbase.get<bool >("plotStructures");
+  tbState[1] = parameters.dbase.get<int>("showResiduals"); 
+  tbState[2] = parameters.dbase.get<int>("adjustGridForDisplacement"); 
+  tbState[3] = parameters.dbase.get<int>("plotGridVelocity"); 
+  tbState[4] = parameters.dbase.get<bool>("plotBodyForceMaskSurface");
+  tbState[5] = parameters.dbase.get<bool>("plotStructures");
+  tbState[6] = parameters.dbase.get<bool>("plotBodyForce");
+  tbState[7] = parameters.dbase.get<bool>("outputYplus");
   
 
   int numColumns=1;
@@ -415,9 +419,17 @@ getPlotOption(const aString & answer,
   else if( dialog.getToggleValue(answer,"plot structures",parameters.dbase.get<bool >("plotStructures")) )
   {
     if( parameters.dbase.get<bool >("plotStructures") )
-    {
-      printF("Plotting the center lines of any beams or shells\n");
-    }
+      printF("Plotting the center lines of any beams or shells.\n");
+  }
+  else if( dialog.getToggleValue(answer,"plot body force",parameters.dbase.get<bool >("plotBodyForce")) )
+  {
+    if( parameters.dbase.get<bool >("plotBodyForce") )
+      printF("Plotting the body force (if it is turned on).\n");
+  }
+  else if( dialog.getToggleValue(answer,"output yPlus",parameters.dbase.get<bool >("outputYplus")) )
+  {
+    if( parameters.dbase.get<bool >("outputYplus") )
+      printF("Output information on y+ (for turbulence computations).\n");
   }
   
 

@@ -269,7 +269,7 @@ outputResults( int current, real t, real dt )
       maximumError(numberOfComponents+1)=totalEnergy-initialTotalEnergy;
     }
     
-    saveSequenceInfo( t, maximumError );
+    // saveSequenceInfo( t, maximumError );
 
   }
   else if( solutionNorm.getLength(0)>= (numberToOutput-1) && myid<=0 )
@@ -291,6 +291,12 @@ outputResults( int current, real t, real dt )
 	  
     }
   }
+
+  if( maximumError.getLength(0)>= (numberToOutput-1) )
+  {
+    saveSequenceInfo( t, maximumError );
+  }
+  
 
   // compute the current energy (if computeEnergy==true)
   getEnergy( current, t, dt );

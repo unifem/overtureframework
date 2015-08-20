@@ -5,22 +5,23 @@
 #include "ParallelUtility.h"
 #include "BodyForce.h"
 
-namespace // make the following local to this file
-{
-// Here are the possible options for user defined forcings. Add new options to this enum.
-enum UserDefinedForcingOptions
-{
-  noForcing,
-  constantForcing,
-  gaussianForcing,
-  dragForcing,
-  dragForcingSpecial,
-  soapfilmForcing,  // for Alessandro
-  trigonometricForcing,  // for heat transfer test
-  polynomialForcing,     // for heat transfer test
-  blastWaveSource
-};
-}
+// *old way* use a string instead *wdh* 2015/08/09
+// namespace // make the following local to this file
+// {
+// // Here are the possible options for user defined forcings. Add new options to this enum.
+// enum UserDefinedForcingOptions
+// {
+//   noForcing,
+//   constantForcing,
+//   gaussianForcing,
+//   dragForcing,
+//   dragForcingSpecial,
+//   soapfilmForcing,  // for Alessandro
+//   trigonometricForcing,  // for heat transfer test
+//   polynomialForcing,     // for heat transfer test
+//   blastWaveSource
+// };
+// }
 
 #define FOR_3D(i1,i2,i3,I1,I2,I3) \
 int I1Base =I1.getBase(),   I2Base =I2.getBase(),  I3Base =I3.getBase();  \
@@ -45,17 +46,22 @@ for(i1=I1Base; i1<=I1Bound; i1++)
 ///   this function and to setupUserDefinedForcing to supply your own forcing option.
 ///
 /// /f (input/output) : add to this forcing function
-/// /gf (input) : current solution
-/// \param tForce : evaluate the forcing at this time.
-/// 
+/// \param gfa (input) : array of grid functions at different times.
+/// \param gfIndex[m] (input) : m=0 : current solution, m=1 past solution, etc.
+/// \param times[m] (input) " times[0] = current time, times[1]=past times etc.
+/// \param numberOfTimeLevels (input) : m=0,1,2,...,numberOfTimeLevels-1 : number of availabel time levels.
+/// \param tForce (input) : evaluate the forcing at this time.
 ///
 /// /Return values: 0=success, non-zero=failure.
 ///
 /// /NOTE: 2011/08/04 - in the *new* version we just set f rather than adding to it.
 //
 //==============================================================================================
-int DomainSolver:: 
-userDefinedForcing( realCompositeGridFunction & f, GridFunction & gf, const real & tForce )
+// int DomainSolver:: 
+// userDefinedForcing( realCompositeGridFunction & f, GridFunction & gf, const real & tForce )
+int DomainSolver::
+userDefinedForcing( realCompositeGridFunction & f, GridFunction *gfa, int *gfIndex, real *times, 
+                    int numberOfTimeLevels, const real & tForce )
 {
   // Look for the userDefinedForcing sub-directory in the data-base
   if( !parameters.dbase.get<DataBase >("modelData").has_key("userDefinedForcingData") )
@@ -65,7 +71,11 @@ userDefinedForcing( realCompositeGridFunction & f, GridFunction & gf, const real
   }
   DataBase & db = parameters.dbase.get<DataBase >("modelData").get<DataBase>("userDefinedForcingData");
 
-  UserDefinedForcingOptions & option= db.get<UserDefinedForcingOptions>("option");
+  assert( numberOfTimeLevels>0 && gfIndex[0]>=0 );
+  GridFunction & gf = gfa[gfIndex[0]];
+
+
+  aString & option= db.get<aString>("option");
   const bool & userDefinedForcingIsTimeDependent = parameters.dbase.get<bool >("userDefinedForcingIsTimeDependent");
 
   CompositeGrid & cg = gf.cg;
@@ -76,9 +86,9 @@ userDefinedForcing( realCompositeGridFunction & f, GridFunction & gf, const real
   // There is no forcing to compute if none was specified or if the forcing is not time dependent and t>0
   // For moving or AMR we always evaluate the forcing (for time independet forcing and AMR, we really 
   //    only to to re-eval when the grids change.) *wdh* 2013/08/31
-  if( option==noForcing || ( !userDefinedForcingIsTimeDependent && t0>0.
-			     && !parameters.isAdaptiveGridProblem()
-                             && !parameters.isMovingGridProblem()) ) 
+  if( option=="noForcing" || ( !userDefinedForcingIsTimeDependent && t0>0.
+			    && !parameters.isAdaptiveGridProblem()
+                            && !parameters.isMovingGridProblem()) ) 
     return 0;
 
   const int & numberOfComponents=parameters.dbase.get<int >("numberOfComponents");
@@ -135,7 +145,7 @@ userDefinedForcing( realCompositeGridFunction & f, GridFunction & gf, const real
     bool ok = ParallelUtility::getLocalArrayBounds(u[grid],uLocal,I1,I2,I3,1);   
     if( !ok ) return 0;  // no points on this processor
 
-    if( option==constantForcing )
+    if( option=="constantForcing" )
     {
       const RealArray & constantForcingParameters = db.get<RealArray>("constantForcingParameters");
       for( int n=0; n<numberOfComponents; n++ )
@@ -146,7 +156,7 @@ userDefinedForcing( realCompositeGridFunction & f, GridFunction & gf, const real
 	}
       }
     }
-    else if( option==gaussianForcing )
+    else if( option=="gaussianForcing" )
     {
       int & numberOfSources = db.get<int>("numberOfSources");
       RealArray & gaussianParameters = db.get<RealArray>("gaussianParameters");
@@ -199,7 +209,7 @@ userDefinedForcing( realCompositeGridFunction & f, GridFunction & gf, const real
 	}
       }
     }
-    else if( option==dragForcing )
+    else if( option=="dragForcing" )
     {
       RealArray & dragForcingParameters = db.get<RealArray>("dragForcingParameters");
 
@@ -224,7 +234,7 @@ userDefinedForcing( realCompositeGridFunction & f, GridFunction & gf, const real
 	  
       }    
     }
-    else if( option==dragForcingSpecial )
+    else if( option=="dragForcingSpecial" )
     {
       const real & dt = parameters.dbase.get<real >("dt");  // here is the current dt
 
@@ -294,7 +304,7 @@ userDefinedForcing( realCompositeGridFunction & f, GridFunction & gf, const real
 	  
       }    
     }
-    else if( option==soapfilmForcing)
+    else if( option=="soapfilmForcing" )
     {
 
     
@@ -321,7 +331,7 @@ userDefinedForcing( realCompositeGridFunction & f, GridFunction & gf, const real
       }
 
     }
-    else if( option==trigonometricForcing )
+    else if( option=="trigonometricForcing" )
     {
       // -- Add a trigonmetric source term --
 
@@ -369,7 +379,7 @@ userDefinedForcing( realCompositeGridFunction & f, GridFunction & gf, const real
 	}
       }
     }
-    else if( option==polynomialForcing )
+    else if( option=="polynomialForcing" )
     {
       // -- Add a polynomial source term --
       //  The source term is added to make the exact solution:
@@ -420,7 +430,7 @@ userDefinedForcing( realCompositeGridFunction & f, GridFunction & gf, const real
       }
     }
 
-    else if( option==blastWaveSource )
+    else if( option=="blastWaveSource" )
     {
 
       RealArray & blastWaveParameters = db.get<RealArray>("blastWaveParameters");
@@ -474,9 +484,241 @@ userDefinedForcing( realCompositeGridFunction & f, GridFunction & gf, const real
       }
     }
 
+    else if( option=="forcingRNS" )
+    {
+
+
+      // --- RNS: Regularized Navier-Stokes Model for the Incompressible Navier-Stokes ------
+
+      // Here is the term we add to the RHS of the momentum equation:
+      //      tau*[ 2*grad(p)_t + Delta( p*v ) + grad( div( p*v) ) ] 
+
+
+      // This example also shows the use of Overture operators to compute derivatives
+
+      RealArray & RNSParameters = db.get<RealArray>("RNSParameters");
+      const real&  tau = RNSParameters(0);
+
+      if( t0<3*dt )
+	printF("userDefinedForcing: assign RNS forcing, tau=%g, at t=%9.3e (numberOfTimeLevels=%i)\n",tau,t0,numberOfTimeLevels);
+      
+      
+     // ** NOTE ** We probably only need these RNS terms to second-order accuracy  -- FIX ME --
+
+      MappedGridOperators & op = *(u[grid].getOperators());  
+
+      Range V(uc,uc+numberOfDimensions-1); // velocity components
+      RealArray pv(I1,I2,I3,V), pvLap(I1,I2,I3,V);
+      
+      // compute p*v
+      for( int m=0; m<numberOfDimensions; m++ )
+        pv(I1,I2,I3,uc+m) = uLocal(I1,I2,I3,pc)*uLocal(I1,I2,I3,uc+m);
+      
+      // compute the Laplacian of p*v 
+      op.derivative(MappedGridOperators::laplacianOperator,pv,pvLap,I1,I2,I3,V);
+
+      // printF(" grid=%i: | Delta(pv) | = %8.2e\n",grid,max(fabs(pvLap)));
+
+      
+      fLocal(I1,I2,I3,V) = tau*pvLap;    // force = tau* Laplacian( p*v )
+
+
+      // -- add on K = grad( div( p v ) ) ---
+      //
+      //   K = grad[ grad(p).v + p div(v) ]
+      //     = grad[ grad(p).v ]              -- assume div(v)=0
+      //     = grad[ px*u + py*v + pz*w ]
+
+      //  for now do not worry about having so many work arrays *FIX ME*
+      RealArray gradDiv(I1,I2,I3,V), ux(I1,I2,I3,V), uy(I1,I2,I3,V);
+      op.derivative(MappedGridOperators::xDerivative,uLocal,ux,I1,I2,I3,V);
+      op.derivative(MappedGridOperators::yDerivative,uLocal,uy,I1,I2,I3,V);
+
+      RealArray px(I1,I2,I3), py(I1,I2,I3), pz;
+      op.derivative(MappedGridOperators::xDerivative,uLocal,px,I1,I2,I3,pc);
+      op.derivative(MappedGridOperators::yDerivative,uLocal,py,I1,I2,I3,pc);
+
+      RealArray pxx(I1,I2,I3), pxy(I1,I2,I3), pyy(I1,I2,I3);
+      op.derivative(MappedGridOperators::xxDerivative,uLocal,pxx,I1,I2,I3,pc);
+      op.derivative(MappedGridOperators::xyDerivative,uLocal,pxy,I1,I2,I3,pc);
+      op.derivative(MappedGridOperators::yyDerivative,uLocal,pyy,I1,I2,I3,pc);
+
+      if( numberOfDimensions==2 )
+      {
+        // for now save in gradDiv so we can check below
+        gradDiv(I1,I2,I3,uc)=( pxx*uLocal(I1,I2,I3,uc)  + pxy*uLocal(I1,I2,I3,vc) + 
+                                px*    ux(I1,I2,I3,uc)  + py*     ux(I1,I2,I3,vc) );
+
+        gradDiv(I1,I2,I3,vc)=( pxy*uLocal(I1,I2,I3,uc) + pyy*uLocal(I1,I2,I3,vc) + 
+                                     px*     uy(I1,I2,I3,uc) + py*     uy(I1,I2,I3,vc) );
+
+        fLocal(I1,I2,I3,V) += tau*gradDiv(I1,I2,I3,V);
+
+        // //   ( px*u + py*v )_x 
+        // fLocal(I1,I2,I3,uc) += tau*( pxx*uLocal(I1,I2,I3,uc)  + pxy*uLocal(I1,I2,I3,vc) + 
+        //                               px*    ux(I1,I2,I3,uc)  + py*     ux(I1,I2,I3,vc) );
+        // //   ( px*u + py*v )_y 
+        // fLocal(I1,I2,I3,vc) += tau*( pxy*uLocal(I1,I2,I3,uc) + pyy*uLocal(I1,I2,I3,vc) + 
+        //                              px*     uy(I1,I2,I3,uc) + py*     uy(I1,I2,I3,vc) );
+
+      }
+      else // -- 3D ---
+      {
+	RealArray uz(I1,I2,I3,V);  // we could re-use work space 
+	op.derivative(MappedGridOperators::zDerivative,uLocal,uz,I1,I2,I3,V);
+
+        pz.redim(I1,I2,I3);
+	op.derivative(MappedGridOperators::zDerivative,uLocal,pz,I1,I2,I3,pc);
+
+	RealArray pxz(I1,I2,I3), pyz(I1,I2,I3), pzz(I1,I2,I3);
+	op.derivative(MappedGridOperators::xzDerivative,uLocal,pxz,I1,I2,I3,pc);
+	op.derivative(MappedGridOperators::yzDerivative,uLocal,pyz,I1,I2,I3,pc);
+	op.derivative(MappedGridOperators::zzDerivative,uLocal,pzz,I1,I2,I3,pc);
+
+        gradDiv(I1,I2,I3,uc)=( pxx*uLocal(I1,I2,I3,uc) + pxy*uLocal(I1,I2,I3,vc) + pxz*uLocal(I1,I2,I3,wc) + 
+                               px*     ux(I1,I2,I3,uc) + py*     ux(I1,I2,I3,vc) + pz*     ux(I1,I2,I3,wc) );
+        gradDiv(I1,I2,I3,vc)=( pxy*uLocal(I1,I2,I3,uc) + pyy*uLocal(I1,I2,I3,vc) + pyz*uLocal(I1,I2,I3,wc) + 
+                               px*     uy(I1,I2,I3,uc) + py*     uy(I1,I2,I3,vc) + pz*     uy(I1,I2,I3,wc) );
+        gradDiv(I1,I2,I3,wc)=( pxz*uLocal(I1,I2,I3,uc) + pyz*uLocal(I1,I2,I3,vc) + pzz*uLocal(I1,I2,I3,wc) + 
+                               px*     uz(I1,I2,I3,uc) + py*     uz(I1,I2,I3,vc) + pz*     uz(I1,I2,I3,wc) );
+
+	fLocal(I1,I2,I3,V) += tau*gradDiv(I1,I2,I3,V);
+	
+        // //   ( px*u + py*v + pz*w )_x 
+        // fLocal(I1,I2,I3,uc) += tau*( pxx*uLocal(I1,I2,I3,uc) + pxy*uLocal(I1,I2,I3,vc) + pxz*uLocal(I1,I2,I3,wc) + 
+        //                              px*     ux(I1,I2,I3,uc) + py*     ux(I1,I2,I3,vc) + pz*     ux(I1,I2,I3,wc) );
+        // //   ( px*u + py*v + pz*w )_y 
+        // fLocal(I1,I2,I3,vc) += tau*( pxy*uLocal(I1,I2,I3,uc) + pyy*uLocal(I1,I2,I3,vc) + pyz*uLocal(I1,I2,I3,wc) + 
+        //                              px*     uy(I1,I2,I3,uc) + py*     uy(I1,I2,I3,vc) + pz*     uy(I1,I2,I3,wc) );
+        // //   ( px*u + py*v + pz*w )_z
+        // fLocal(I1,I2,I3,vc) += tau*( pxz*uLocal(I1,I2,I3,uc) + pyz*uLocal(I1,I2,I3,vc) + pzz*uLocal(I1,I2,I3,wc) + 
+        //                              px*     uz(I1,I2,I3,uc) + py*     uz(I1,I2,I3,vc) + pz*     uz(I1,I2,I3,wc) );
+
+      }
+
+
+      if( numberOfTimeLevels>1 )
+      {
+	// ----- add  2 * (\grad p)_t term:   ------
+
+        int mOld = gfIndex[1];
+        assert( mOld>=0 );
+        realCompositeGridFunction & uOld = gfa[mOld].u; // solution at previous time
+	
+        OV_GET_SERIAL_ARRAY_CONST(real,uOld[grid],uOldLocal);
+    
+        const real dt = times[0] - times[1];  // time step
+
+	if( t0<3*dt )
+	  printF("userDefinedForcing: assign RNS forcing, add 2*(grad p)_t at t=%9.3e, dt=%9.3e\n",t0,dt);
+
+	if( dt>0. )
+	{
+          // Compute p.t 
+          RealArray pt(I1,I2,I3);  // holds dt*p_t 
+	  pt =( uLocal(I1,I2,I3,pc) - uOldLocal(I1,I2,I3,pc));  // dt*p_t 
+          op.derivative(MappedGridOperators::xDerivative,pt,px,I1,I2,I3,0);  // re-use px to hold p_xt 
+          fLocal(I1,I2,I3,uc) += (2.*tau/dt)*px;   //  2*tau*p_xt 
+
+          op.derivative(MappedGridOperators::yDerivative,pt,py,I1,I2,I3,0);  // re-use py to hold p_yt 
+          fLocal(I1,I2,I3,vc) += (2.*tau/dt)*py;   //  2*tau*p_yt 
+	  if( numberOfDimensions>2 )
+	  {
+	    op.derivative(MappedGridOperators::zDerivative,pt,pz,I1,I2,I3,0);
+	    fLocal(I1,I2,I3,wc) += (2.*tau/dt)*pz;   //  2*tau*p_zt 
+	  }
+	}
+
+      }
+      
+      // ------------------------------------------------
+      // -- check errors for manufactured solutions -----
+      // ------------------------------------------------
+      if( parameters.dbase.get<bool >("twilightZoneFlow") )
+      {
+        const bool isRectangular = false;   // assume false for TZ
+        mg.update(MappedGrid::THEvertex | MappedGrid::THEcenter );  // make sure the vertex array has been created
+        OV_GET_SERIAL_ARRAY(real,mg.vertex(),xLocal);
+	OV_GET_SERIAL_ARRAY(int,mg.mask(),maskLocal);
+
+	Index J1,J2,J3;
+	getIndex( mg.gridIndexRange(),J1,J2,J3 );  // Check error at boundary plus interior points.
+
+        OGFunction & e = *(parameters.dbase.get<OGFunction* >("exactSolution"));        
+	realSerialArray u0(J1,J2,J3,V),u0x(J1,J2,J3,V),u0y(J1,J2,J3,V);
+        realSerialArray u0xx(J1,J2,J3,V),u0yy(J1,J2,J3,V);
+	realSerialArray p0(J1,J2,J3),p0x(J1,J2,J3),p0y(J1,J2,J3),p0xx(J1,J2,J3),p0xy(J1,J2,J3),p0yy(J1,J2,J3);
+
+	e.gd( u0  ,xLocal,numberOfDimensions,isRectangular,0,0,0,0,J1,J2,J3,V,t0);
+	e.gd( u0x ,xLocal,numberOfDimensions,isRectangular,0,1,0,0,J1,J2,J3,V,t0);
+	e.gd( u0y ,xLocal,numberOfDimensions,isRectangular,0,0,1,0,J1,J2,J3,V,t0);
+	e.gd( u0xx,xLocal,numberOfDimensions,isRectangular,0,2,0,0,J1,J2,J3,V,t0);
+	e.gd( u0yy,xLocal,numberOfDimensions,isRectangular,0,0,2,0,J1,J2,J3,V,t0);
+
+	e.gd( p0  ,xLocal,numberOfDimensions,isRectangular,0,0,0,0,J1,J2,J3,pc,t0);
+	e.gd( p0x ,xLocal,numberOfDimensions,isRectangular,0,1,0,0,J1,J2,J3,pc,t0);
+	e.gd( p0y ,xLocal,numberOfDimensions,isRectangular,0,0,1,0,J1,J2,J3,pc,t0);
+	e.gd( p0xx,xLocal,numberOfDimensions,isRectangular,0,2,0,0,J1,J2,J3,pc,t0);
+	e.gd( p0xy,xLocal,numberOfDimensions,isRectangular,0,1,1,0,J1,J2,J3,pc,t0);
+	e.gd( p0yy,xLocal,numberOfDimensions,isRectangular,0,0,2,0,J1,J2,J3,pc,t0);
+
+	RealArray pvLapErr(J1,J2,J3,V), gradDivErr(J1,J2,J3,V);
+	if( numberOfDimensions==2 )
+	{
+          // (p*u)_xx = p*u_xx + 2*p_x*u_x + p_xx*u 
+	  for( int m=0; m<numberOfDimensions; m++ )
+	  {
+	    int cc = uc+m;
+	    pvLapErr(J1,J2,J3,cc) = ( p0*( u0xx(J1,J2,J3,cc) + u0yy(J1,J2,J3,cc)  )
+				      + 2.*( p0x*u0x(J1,J2,J3,cc) + p0y*u0y(J1,J2,J3,cc) ) + u0(J1,J2,J3,cc)*( p0xx + p0yy )
+	      ) - pvLap(J1,J2,J3,cc);
+
+	  }
+            // 
+            //   ( px*u + py*v + pz*w )_x 
+            //   ( px*u + py*v + pz*w )_y 
+            //   ( px*u + py*v + pz*w )_z
+            gradDivErr(J1,J2,J3,uc) = ( p0xx*u0(J1,J2,J3,uc) + p0xy(J1,J2,J3)*u0(J1,J2,J3,vc) +
+				        p0x*u0x(J1,J2,J3,uc) + p0y(J1,J2,J3)*u0x(J1,J2,J3,vc) ) - gradDiv(J1,J2,J3,uc);
+	  
+            gradDivErr(J1,J2,J3,vc) = ( p0xy*u0(J1,J2,J3,uc) + p0yy(J1,J2,J3)*u0(J1,J2,J3,vc) +
+				        p0x*u0y(J1,J2,J3,uc) + p0y(J1,J2,J3)*u0y(J1,J2,J3,vc) ) - gradDiv(J1,J2,J3,vc);
+	  
+	}
+	else
+	{
+	  OV_ABORT("finish me");
+	}
+
+	if( false )
+	{
+	  ::display(pvLapErr(J1,J2,J3,V),"pvLapErr","%6.4f ");
+	}
+	
+
+        real errMax[3]={0.,0.,0.};
+        real errMax2[3]={0.,0.,0.};
+	where( maskLocal(J1,J2,J3) > 0 )
+	{
+          for( int m=0; m<numberOfDimensions; m++ )
+	  {
+	    int cc = uc+m;
+	    errMax[m] = max(fabs(pvLapErr(J1,J2,J3,cc)));
+	    errMax2[m] = max(fabs(gradDivErr(J1,J2,J3,cc)));
+	  }
+	}
+	printF("--RNS-- t=%9.3e grid=%i: max-err in Delta(p*v) = [%9.3e,%9.3e,%9.3e] gradDiv=[%9.3e,%9.3e,%9.3e]\n",t0,grid,
+	       errMax[0],errMax[1],errMax[2], errMax2[0],errMax2[1],errMax2[2]);
+
+
+      }
+
+
+    }
+
     else
     {
-      printF("userDefinedForcing:ERROR: Unknown option =%i\n",option);
+      printF("userDefinedForcing:ERROR: Unknown option = [%s]\n",(const char*)option);
     }
  
   }  // end for( grid )
@@ -528,6 +770,7 @@ setupUserDefinedForcing()
     "trigonmetric forcing",
     "polynomial forcing",
     "blast wave source",
+    "RNS forcing",
     "exit",
     ""
   };
@@ -543,13 +786,13 @@ setupUserDefinedForcing()
   // first time through allocate variables 
   if( !db.has_key("option") )
   {
-    UserDefinedForcingOptions & option= db.put<UserDefinedForcingOptions>("option",noForcing);
+    db.put<aString>("option")="noForcing";
 
     db.put<int>("numberOfSources");
     db.put<RealArray>("gaussianParameters");
   }
 
-  UserDefinedForcingOptions & option= db.get<UserDefinedForcingOptions>("option");
+  aString & option= db.get<aString>("option");
 
   int & numberOfSources = db.get<int>("numberOfSources");
 
@@ -564,12 +807,12 @@ setupUserDefinedForcing()
     }
     else if( answer=="no forcing" )
     {
-      option=noForcing;
+      option="noForcing";
     }
     else if( answer=="constant forcing" )
     {
       // define a constant forcing
-      option=constantForcing;
+      option="constantForcing";
       userDefinedForcingIsTimeDependent=false;  // this forcing is not time dependent
 
       if( !db.has_key("constantForcingParameters") )
@@ -608,7 +851,7 @@ setupUserDefinedForcing()
     else if( answer=="gaussian forcing" )
     {
       // define a Gaussian forcing
-      option=gaussianForcing;
+      option="gaussianForcing";
       userDefinedForcingIsTimeDependent=false;  // this forcing is not time dependent
 
       if( !db.has_key("gaussianParameters") )
@@ -672,7 +915,7 @@ setupUserDefinedForcing()
     else if( answer=="drag forcing" )
     {
       // define a drag forcing ... finish me ...
-      option=dragForcing;
+      option="dragForcing";
       userDefinedForcingIsTimeDependent=true;  // this forcing is time dependent
 
       if( !db.has_key("dragForcingParameters") )
@@ -692,13 +935,13 @@ setupUserDefinedForcing()
     else if( answer=="drag forcing special" )
     {
       // define a drag forcing ... finish me ...
-      option=dragForcingSpecial;
+      option="dragForcingSpecial";
       userDefinedForcingIsTimeDependent=true;  // this forcing is time dependent
 
     }
     else if( answer=="soapfilm forcing" )
     {
-      option=soapfilmForcing;
+      option="soapfilmForcing";
       userDefinedForcingIsTimeDependent=true;  // this forcing is time dependent *wdh* 
 
       if( !db.has_key("soapfilmParameters") )
@@ -750,7 +993,7 @@ setupUserDefinedForcing()
     else if( answer=="trigonmetric forcing" )
     {
       // define a trigonometric forcing
-      option=trigonometricForcing;
+      option="trigonometricForcing";
       userDefinedForcingIsTimeDependent=false;  // this forcing is not time dependent
 
       if( !db.has_key("trigonometricParameters") )
@@ -800,7 +1043,7 @@ setupUserDefinedForcing()
     else if( answer=="polynomial forcing" )
     {
       // define a polynomial forcing
-      option=polynomialForcing;
+      option="polynomialForcing";
       userDefinedForcingIsTimeDependent=false;  // this forcing is not time dependent
 
       if( !db.has_key("polynomialParameters") )
@@ -843,7 +1086,7 @@ setupUserDefinedForcing()
     {
       // define a source term for a Sedov-Taylor blast wave
 
-      option=blastWaveSource;
+      option="blastWaveSource";
       userDefinedForcingIsTimeDependent=true;  // this forcing IS time dependent
 
       if( !db.has_key("blastWaveParameters") )
@@ -869,6 +1112,28 @@ setupUserDefinedForcing()
       
     }
 
+    else if( answer=="RNS forcing" )
+    {
+      // Forcing to model the Regularized Navier-Stokes equations based on the 
+      // Generalized Hydrodynamic equations (c.f. Fedoseyev, Alexeev 2012)
+
+      option="forcingRNS";
+      userDefinedForcingIsTimeDependent=true;  // this forcing IS time dependent
+
+      if( !db.has_key("RNSParameters") )
+	db.put<RealArray>("RNSParameters");
+      RealArray & RNSParameters = db.get<RealArray>("RNSParameters");
+
+      real tau=.1;
+      gi.inputString(answer2,"Enter tau (coefficient of RNS model)");
+      sScanF(answer2,"%e",&tau);   
+      printF("Setting: tau=%g\n",tau);
+
+      RNSParameters.redim(10);
+      RNSParameters(0)=tau;
+      
+    }
+
     else 
     {
       printF("userDefinedForcing:Unknown option =%s\n",(const char*)answer);
@@ -879,7 +1144,7 @@ setupUserDefinedForcing()
   
 
   // Indicate whether user defined forcing has been turned on:
-  if( option!=noForcing )
+  if( option != "noForcing" )
     parameters.dbase.get<bool >("turnOnUserDefinedForcing")=true;
   else
     parameters.dbase.get<bool >("turnOnUserDefinedForcing")=false;

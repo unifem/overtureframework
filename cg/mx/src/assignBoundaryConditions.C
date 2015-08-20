@@ -1925,16 +1925,27 @@ assignBoundaryConditions( int option, int grid, real t, real dt, realMappedGridF
                         {
               // *** No need to allocate PML arrays for all grids !! ***
                             vpml= new RealArray [cg.numberOfComponentGrids()*3*2*numberOfTimeLevels*numberOfPMLFunctions];
-                            printF(" ****** assignBC: allocate vpml arrays numberOfTimeLevels=%i numberOfPMLFunctions=%i ***** \n",
-                                          numberOfTimeLevels,numberOfPMLFunctions);
+              // pmlWasIntitialized[grid] = true if the PML arrays were allocated for this grid
+                            int *& pmlWasIntitialized =  dbase.put<int*>("pmlWasInitialized");
+                            pmlWasIntitialized= new int[cg.numberOfComponentGrids()];   // who will delete this ?
+                            for( int g=0; g<cg.numberOfComponentGrids(); g++ )
+                                pmlWasIntitialized[g]=false;
+                        }
+            // pmlWasIntitialized[grid] = true if the PML arrays were allocated for this grid
+                        int *& pmlWasIntitialized =dbase.get<int*>("pmlWasInitialized");
+                        if( !pmlWasIntitialized[grid] )
+                        {
+                            pmlWasIntitialized[grid]=true;
+                            printF(" ****** assignBC: allocate vpml arrays grid=%i, numberOfTimeLevels=%i numberOfPMLFunctions=%i ***** \n",
+                           	 grid,numberOfTimeLevels,numberOfPMLFunctions);
                             const int numGhost = orderOfAccuracyInSpace/2;  // we need ghost values in the PML functions *wdh* 2011/12/02
                             for( int side=0; side<=1; side++ )
                             {
-                          	for( int axis=0; axis<mg.numberOfDimensions(); axis++ )
-                          	{
-                            	  if( mg.boundaryCondition(side,axis)==abcPML )
-                            	  {
-                              	    for( int m=0; m<numberOfPMLFunctions; m++ )  // ********* FIX ********
+                                for( int axis=0; axis<mg.numberOfDimensions(); axis++ )
+                                {
+                                    if( mg.boundaryCondition(side,axis)==abcPML )
+                                    {
+                            	  for( int m=0; m<numberOfPMLFunctions; m++ )  // ********* FIX ********
                               	    for( int n=0; n<numberOfTimeLevels; n++ )
                               	    {
                                 	      RealArray & vw = PML(n,m,side,axis,grid);
@@ -1961,10 +1972,10 @@ assignBoundaryConditions( int option, int grid, real t, real dt, realMappedGridF
                                       			Range(ndr[0][2],ndr[1][2]),numberOfComponentsPML);  // ********* FIX ********
                                 	      vw=0.;
                               	    }
-                            	  }
                           	}
+                                }
                             }
-                        }
+                        } // end if pmlWasInitialized
                       #ifdef USE_PPP
                         realSerialArray uum; getLocalArrayWithGhostBoundaries(um,uum);
                         realSerialArray uu;  getLocalArrayWithGhostBoundaries(uOld,uu);
@@ -2410,16 +2421,27 @@ assignBoundaryConditions( int option, int grid, real t, real dt, realMappedGridF
                             {
                 // *** No need to allocate PML arrays for all grids !! ***
                                 vpml= new RealArray [cg.numberOfComponentGrids()*3*2*numberOfTimeLevels*numberOfPMLFunctions];
-                                printF(" ****** assignBC: allocate vpml arrays numberOfTimeLevels=%i numberOfPMLFunctions=%i ***** \n",
-                                              numberOfTimeLevels,numberOfPMLFunctions);
+                // pmlWasIntitialized[grid] = true if the PML arrays were allocated for this grid
+                                int *& pmlWasIntitialized =  dbase.put<int*>("pmlWasInitialized");
+                                pmlWasIntitialized= new int[cg.numberOfComponentGrids()];   // who will delete this ?
+                                for( int g=0; g<cg.numberOfComponentGrids(); g++ )
+                                    pmlWasIntitialized[g]=false;
+                            }
+              // pmlWasIntitialized[grid] = true if the PML arrays were allocated for this grid
+                            int *& pmlWasIntitialized =dbase.get<int*>("pmlWasInitialized");
+                            if( !pmlWasIntitialized[grid] )
+                            {
+                                pmlWasIntitialized[grid]=true;
+                                printF(" ****** assignBC: allocate vpml arrays grid=%i, numberOfTimeLevels=%i numberOfPMLFunctions=%i ***** \n",
+                               	 grid,numberOfTimeLevels,numberOfPMLFunctions);
                                 const int numGhost = orderOfAccuracyInSpace/2;  // we need ghost values in the PML functions *wdh* 2011/12/02
                                 for( int side=0; side<=1; side++ )
                                 {
-                              	for( int axis=0; axis<mg.numberOfDimensions(); axis++ )
-                              	{
-                                	  if( mg.boundaryCondition(side,axis)==abcPML )
-                                	  {
-                                  	    for( int m=0; m<numberOfPMLFunctions; m++ )  // ********* FIX ********
+                                    for( int axis=0; axis<mg.numberOfDimensions(); axis++ )
+                                    {
+                                        if( mg.boundaryCondition(side,axis)==abcPML )
+                                        {
+                                	  for( int m=0; m<numberOfPMLFunctions; m++ )  // ********* FIX ********
                                   	    for( int n=0; n<numberOfTimeLevels; n++ )
                                   	    {
                                     	      RealArray & vw = PML(n,m,side,axis,grid);
@@ -2446,10 +2468,10 @@ assignBoundaryConditions( int option, int grid, real t, real dt, realMappedGridF
                                           			Range(ndr[0][2],ndr[1][2]),numberOfComponentsPML);  // ********* FIX ********
                                     	      vw=0.;
                                   	    }
-                                	  }
                               	}
+                                    }
                                 }
-                            }
+                            } // end if pmlWasInitialized
                           #ifdef USE_PPP
                             realSerialArray uum; getLocalArrayWithGhostBoundaries(um,uum);
                             realSerialArray uu;  getLocalArrayWithGhostBoundaries(uOld,uu);

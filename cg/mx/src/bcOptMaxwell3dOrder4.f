@@ -2696,6 +2696,41 @@ c write(*,'("initializeBoundaryForcing slowStartInterval=",e10.2)') slowStartInt
                ! u(i1-2*is1,i2-2*is2,i3-2*is3,ey)=uvm2(1)
                ! u(i1-2*is1,i2-2*is2,i3-2*is3,ez)=uvm2(2)
              else if( mask(i1,i2,i3).lt.0 )then
+              ! ** NEW WAY **  *wdh
+              ! extrapolate ghost points next to boundary interpolation points  *wdh* 2015/08/11
+              if( t.le.dt )then
+                write(*,'("--MX-- BC4 extrap ghost next to interp")')
+              end if
+               u(i1-is1,i2-is2,i3-is3,ex) = (5.*u(i1,i2,i3,ex)-10.*u(
+     & i1+is1,i2+is2,i3+is3,ex)+10.*u(i1+2*is1,i2+2*is2,i3+2*is3,ex)-
+     & 5.*u(i1+3*is1,i2+3*is2,i3+3*is3,ex)+u(i1+4*is1,i2+4*is2,i3+4*
+     & is3,ex))
+               u(i1-is1,i2-is2,i3-is3,ey) = (5.*u(i1,i2,i3,ey)-10.*u(
+     & i1+is1,i2+is2,i3+is3,ey)+10.*u(i1+2*is1,i2+2*is2,i3+2*is3,ey)-
+     & 5.*u(i1+3*is1,i2+3*is2,i3+3*is3,ey)+u(i1+4*is1,i2+4*is2,i3+4*
+     & is3,ey))
+               u(i1-is1,i2-is2,i3-is3,ez) = (5.*u(i1,i2,i3,ez)-10.*u(
+     & i1+is1,i2+is2,i3+is3,ez)+10.*u(i1+2*is1,i2+2*is2,i3+2*is3,ez)-
+     & 5.*u(i1+3*is1,i2+3*is2,i3+3*is3,ez)+u(i1+4*is1,i2+4*is2,i3+4*
+     & is3,ez))
+               u(i1-2*is1,i2-2*is2,i3-2*is3,ex) = (5.*u(i1-is1,i2-is2,
+     & i3-is3,ex)-10.*u(i1-is1+is1,i2-is2+is2,i3-is3+is3,ex)+10.*u(i1-
+     & is1+2*is1,i2-is2+2*is2,i3-is3+2*is3,ex)-5.*u(i1-is1+3*is1,i2-
+     & is2+3*is2,i3-is3+3*is3,ex)+u(i1-is1+4*is1,i2-is2+4*is2,i3-is3+
+     & 4*is3,ex))
+               u(i1-2*is1,i2-2*is2,i3-2*is3,ey) = (5.*u(i1-is1,i2-is2,
+     & i3-is3,ey)-10.*u(i1-is1+is1,i2-is2+is2,i3-is3+is3,ey)+10.*u(i1-
+     & is1+2*is1,i2-is2+2*is2,i3-is3+2*is3,ey)-5.*u(i1-is1+3*is1,i2-
+     & is2+3*is2,i3-is3+3*is3,ey)+u(i1-is1+4*is1,i2-is2+4*is2,i3-is3+
+     & 4*is3,ey))
+               u(i1-2*is1,i2-2*is2,i3-2*is3,ez) = (5.*u(i1-is1,i2-is2,
+     & i3-is3,ez)-10.*u(i1-is1+is1,i2-is2+is2,i3-is3+is3,ez)+10.*u(i1-
+     & is1+2*is1,i2-is2+2*is2,i3-is3+2*is3,ez)-5.*u(i1-is1+3*is1,i2-
+     & is2+3*is2,i3-is3+3*is3,ez)+u(i1-is1+4*is1,i2-is2+4*is2,i3-is3+
+     & 4*is3,ez))
+             else if( .FALSE. .and. mask(i1,i2,i3).lt.0 )then
+               ! **OLD WAY**
+              ! QUESTION: August 8, 2015 -- is this accurate enough ??
               ! we need to assign ghost points that lie outside of interpolation points
               if( debug.gt.0 )then
                 write(*,'(" **ghost-interp3d: grid,side,axis=",3i2,", 
@@ -5133,6 +5168,41 @@ c write(*,'("initializeBoundaryForcing slowStartInterval=",e10.2)') slowStartInt
                ! u(i1-2*is1,i2-2*is2,i3-2*is3,ey)=uvm2(1)
                ! u(i1-2*is1,i2-2*is2,i3-2*is3,ez)=uvm2(2)
              else if( mask(i1,i2,i3).lt.0 )then
+              ! ** NEW WAY **  *wdh
+              ! extrapolate ghost points next to boundary interpolation points  *wdh* 2015/08/11
+              if( t.le.dt )then
+                write(*,'("--MX-- BC4 extrap ghost next to interp")')
+              end if
+               u(i1-is1,i2-is2,i3-is3,ex) = (5.*u(i1,i2,i3,ex)-10.*u(
+     & i1+is1,i2+is2,i3+is3,ex)+10.*u(i1+2*is1,i2+2*is2,i3+2*is3,ex)-
+     & 5.*u(i1+3*is1,i2+3*is2,i3+3*is3,ex)+u(i1+4*is1,i2+4*is2,i3+4*
+     & is3,ex))
+               u(i1-is1,i2-is2,i3-is3,ey) = (5.*u(i1,i2,i3,ey)-10.*u(
+     & i1+is1,i2+is2,i3+is3,ey)+10.*u(i1+2*is1,i2+2*is2,i3+2*is3,ey)-
+     & 5.*u(i1+3*is1,i2+3*is2,i3+3*is3,ey)+u(i1+4*is1,i2+4*is2,i3+4*
+     & is3,ey))
+               u(i1-is1,i2-is2,i3-is3,ez) = (5.*u(i1,i2,i3,ez)-10.*u(
+     & i1+is1,i2+is2,i3+is3,ez)+10.*u(i1+2*is1,i2+2*is2,i3+2*is3,ez)-
+     & 5.*u(i1+3*is1,i2+3*is2,i3+3*is3,ez)+u(i1+4*is1,i2+4*is2,i3+4*
+     & is3,ez))
+               u(i1-2*is1,i2-2*is2,i3-2*is3,ex) = (5.*u(i1-is1,i2-is2,
+     & i3-is3,ex)-10.*u(i1-is1+is1,i2-is2+is2,i3-is3+is3,ex)+10.*u(i1-
+     & is1+2*is1,i2-is2+2*is2,i3-is3+2*is3,ex)-5.*u(i1-is1+3*is1,i2-
+     & is2+3*is2,i3-is3+3*is3,ex)+u(i1-is1+4*is1,i2-is2+4*is2,i3-is3+
+     & 4*is3,ex))
+               u(i1-2*is1,i2-2*is2,i3-2*is3,ey) = (5.*u(i1-is1,i2-is2,
+     & i3-is3,ey)-10.*u(i1-is1+is1,i2-is2+is2,i3-is3+is3,ey)+10.*u(i1-
+     & is1+2*is1,i2-is2+2*is2,i3-is3+2*is3,ey)-5.*u(i1-is1+3*is1,i2-
+     & is2+3*is2,i3-is3+3*is3,ey)+u(i1-is1+4*is1,i2-is2+4*is2,i3-is3+
+     & 4*is3,ey))
+               u(i1-2*is1,i2-2*is2,i3-2*is3,ez) = (5.*u(i1-is1,i2-is2,
+     & i3-is3,ez)-10.*u(i1-is1+is1,i2-is2+is2,i3-is3+is3,ez)+10.*u(i1-
+     & is1+2*is1,i2-is2+2*is2,i3-is3+2*is3,ez)-5.*u(i1-is1+3*is1,i2-
+     & is2+3*is2,i3-is3+3*is3,ez)+u(i1-is1+4*is1,i2-is2+4*is2,i3-is3+
+     & 4*is3,ez))
+             else if( .FALSE. .and. mask(i1,i2,i3).lt.0 )then
+               ! **OLD WAY**
+              ! QUESTION: August 8, 2015 -- is this accurate enough ??
               ! we need to assign ghost points that lie outside of interpolation points
               if( debug.gt.0 )then
                 write(*,'(" **ghost-interp3d: grid,side,axis=",3i2,", 

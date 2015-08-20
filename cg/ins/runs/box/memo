@@ -1,11 +1,50 @@
 *******************************
+*********** Aug 18, 2015
+
+
+G16 (41M) , AF24-MG
+mpirun -np 16 $cginsp -noplot boxInAChannel -g=quarterBoxGride16.order4.ml3 -bottomBC=noSlipWall -inflowBC=parabolic -topBC=outflow -sideBC=outflow  -nu=1.e-5  -parabolicWidth=.01 -tp=.1 -tf=10. -move=0 -cfl=3. -psolver=mg -ts=afs -ad2=0 -ad4=1 -debug=3 -numberOfParallelGhost=4 -show="qBox16.show" -go=go >! qBox16.out
+
+
+*******************************
+*********** Aug 18, 2015
+
+TEST NEW quarterbox grid
+
+
+
+
+AFS24-MG G8 (5M) parallel:
+mpirun -np 4 $cginsp -noplot boxInAChannel -g=quarterBoxGride8.order4.ml2 -bottomBC=noSlipWall -inflowBC=parabolic -topBC=outflow -sideBC=outflow  -nu=1.e-4 -parabolicWidth=.02 -tp=.1 -tf=10. -move=0 -cfl=3. -psolver=mg -ts=afs -ad2=0 -ad4=1 -debug=3 -numberOfParallelGhost=4 -go=og
+
+
+G4 (1M) : AFS24   --OK
+cgins -noplot boxInAChannel -g=quarterBoxGride4.order4.ml1 -bottomBC=noSlipWall -inflowBC=parabolic -topBC=outflow -sideBC=outflow  -nu=1.e-3 -parabolicWidth=.05 -tp=.1 -tf=10. -move=0 -cfl=3. -psolver=mg -ts=afs -ad2=0 -ad4=1 -debug=3 -go=og
+
+G2 : AFS24  
+cgins -noplot boxInAChannel -g=quarterBoxGride2.order4.ml1 -bottomBC=noSlipWall -inflowBC=parabolic -topBC=outflow -sideBC=outflow  -nu=1.e-3 -parabolicWidth=.1 -tp=.1 -tf=10. -move=0 -cfl=3. -psolver=mg -ts=afs -ad2=0 -ad4=1 -debug=3 -go=og
+
+
+** RESTART ** increase AD -- OK: 
+mpirun -np 16 $cginsp -noplot boxInAChannel -g=loftedQuarterBoxGride16.order4.ml3 -bottomBC=noSlipWall -inflowBC=parabolic -topBC=outflow -sideBC=outflow  -nu=1.e-5 -tp=.01 -tf=10. -move=0 -cfl=3. -psolver=mg -ts=afs -ad2=0 -ad4=1 -ad41=2. -ad42=1. -ad21=2. -ad22=1. -debug=3 -numberOfParallelGhost=4 -frequencyToFlush=1 -restart=quarterBox16.show -show=quarterBox16b.show -go=go >! quarterBox16b.out
+
+
+** RESTART **
+--> DIV grows near middle base of box 
+mpirun -np 16 $cginsp -noplot boxInAChannel -g=loftedQuarterBoxGride16.order4.ml3 -bottomBC=noSlipWall -inflowBC=parabolic -topBC=outflow -sideBC=outflow  -nu=1.e-5 -tp=.01 -tf=10. -move=0 -cfl=3. -psolver=mg -ts=afs -ad2=0 -ad4=1 -ad41=1. -ad42=.5 -debug=3 -numberOfParallelGhost=4 -frequencyToFlush=1 -restart=quarterBox16.show -show=quarterBox16a.show -go=go >! quarterBox16a.out
+
+
+
+*******************************
 *********** Aug 1, 2015
 
 
 ========== QUARTER BOX ====
 
+NOTE: check inflow parabolic width -- could be smaller for fine grids 
 
-G16 (32M) , AF24-MG, reduce ad42
+
+G16 (32M) , AF24-MG, reduce ad42  -- trouble at t>4.5 *CHECK ME*
 mpirun -np 16 $cginsp -noplot boxInAChannel -g=loftedQuarterBoxGride16.order4.ml3 -bottomBC=noSlipWall -inflowBC=parabolic -topBC=outflow -sideBC=outflow  -nu=1.e-5 -tp=.1 -tf=10. -move=0 -cfl=3. -psolver=mg -ts=afs -ad2=0 -ad4=1 -ad41=1. -ad42=.5 -debug=3 -numberOfParallelGhost=4 -show="quarterBox16.show" -go=go >! quarterBox16.out
 
 

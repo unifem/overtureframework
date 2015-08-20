@@ -170,10 +170,37 @@ initializeInterfaces()
 		  }
                   // add an interface to the list: 
                   interfaceFound=true;
-                  printF("Interface found: (grid1,side,dir1)=(%i,%i,%i) matches (grid2,side2,dir2)=(%i,%i,%i)"
+                  printF("--MX-- Interface found: (grid1,side,dir1)=(%i,%i,%i) matches (grid2,side2,dir2)=(%i,%i,%i)"
                          " share=%i\n",
 			 grid1,side1,dir1,grid2,side2,dir2,share1(side1,dir1));
                   interfaceInfo.push_back(InterfaceInfo(grid1,side1,dir1, grid2,side2,dir2));   
+		  
+                  // ***** Check that the valid points match on the interface ******
+                  //   *wdh* 2015/08/11
+                  const intArray & mask1 = mg1.mask();
+		  const intArray & mask2 = mg2.mask();
+		  OV_GET_SERIAL_ARRAY_CONST(int,mask1,mask1Local);
+		  OV_GET_SERIAL_ARRAY_CONST(int,mask2,mask2Local);
+		  getBoundaryIndex(mg1.dimension(),side1,dir1,I1,I2,I3);
+		  getBoundaryIndex(mg2.dimension(),side2,dir2,J1,J2,J3);
+                  int includeGhost=1;
+                  bool ok1 = ParallelUtility::getLocalArrayBounds(mask1,mask1Local,I1,I2,I3,includeGhost);
+                  bool ok2 = ParallelUtility::getLocalArrayBounds(mask2,mask2Local,J1,J2,J3,includeGhost);
+		  assert( ok1==ok2 );
+                  if( ok1 )
+		  {
+                    int maskDiff = max(abs(mask1Local(I1,I2,I3)-mask2Local(J1,J2,J3)));
+		    if( maskDiff > 0 )
+		    {
+		      printF("       ERROR: the mask arrays do not match on the interface. This is currently required.\n");
+		      printF("       Try re-generating the grid with more lines in the normal direction, this sometimes fixes this problem.\n");
+		      OV_ABORT("ERROR");
+		    }
+		    else
+		    {
+		      printF("       INFO: interface grid points match: mask arrays agree on the interface.\n");
+		    }
+		  }
 		  
 		}
 	      }

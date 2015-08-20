@@ -368,6 +368,7 @@ Parameters(const int & numberOfDimensions0) : pdeName("unknown"), numberOfBCName
   if (!dbase.has_key("removeFastPressureWaves")) dbase.put<int>("removeFastPressureWaves");
   if (!dbase.has_key("p0")) dbase.put<real>("p0");
   if (!dbase.has_key("turbulenceModel")) dbase.put<Parameters::TurbulenceModel>("turbulenceModel");
+  if (!dbase.has_key("outputYplus")) dbase.put<bool>("outputYplus",false);
   if (!dbase.has_key("rho0")) dbase.put<real>("rho0");
   if (!dbase.has_key("frequencyToUseFullUpdateForMovingGridGeneration")) dbase.put<int>("frequencyToUseFullUpdateForMovingGridGeneration");
   if (!dbase.has_key("ad42n")) dbase.put<real>("ad42n");
@@ -582,7 +583,10 @@ Parameters(const int & numberOfDimensions0) : pdeName("unknown"), numberOfBCName
   if( !dbase.has_key("bodyForce") ) dbase.put<realCompositeGridFunction* >("bodyForce");
   dbase.get<realCompositeGridFunction* >("bodyForce")=NULL;
 
-  if( !dbase.has_key("plotBodyForceMaskSurface") ) dbase.put<bool>("plotBodyForceMaskSurface",false);
+  if( !dbase.has_key("plotBodyForceMaskSurface") ) dbase.put<bool>("plotBodyForceMaskSurface",false);  
+
+  // plot the body force:
+  if( !dbase.has_key("plotBodyForce") ) dbase.put<bool>("plotBodyForce",false);
 
   // plot beams and shells
   if( !dbase.has_key("plotStructures") ) dbase.put<bool>("plotStructures",true);

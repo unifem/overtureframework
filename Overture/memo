@@ -3,7 +3,6 @@
          shared libraries should be default
          install in `pwd` should be default
 
-
 May 19, 2010:  
    wc -l */* */*/* */*/*/* 
 Overture.v23e : 1.4M
@@ -20,6 +19,13 @@ Doxygen source code documentation:
 
 http://www.overtureframework.org/doxygen/Overture/index.html
 http://www.overtureframework.org/doxygen/CG/index.html
+
+==============================================================================================
+Overture.v27 - released ??
+Changes:
+
+
+   o 2015/08/15 - fixed bug in saving sequences with Cgmx.
 
 ==============================================================================================
 Overture.v26 - released August 1, 2015

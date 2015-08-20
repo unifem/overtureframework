@@ -46,7 +46,44 @@ BODy + FARFIELD GRIDS
 ==============================================================================
 
 **************************************
-************ Aug 1, 2015
+************ Aug 19,20 2015
+
+==== BACK-STEP-IN_CHANNEL ===
+
+c.f. paper by Kim, Kline, Johnston
+REF case : nu = 2.25e-5
+
+
+G16 (1M) TO-DO 
+mpirun -np 4 $cginsp -noplot -numberOfParallelGhost=4 backStep -g=backStepInChannelGride16.order4.ml3 -nu=2.25e-5 -parabolicWidth=.0125 -bcTop=noSlipWall -ad4=1 -ad41=2. -ad42=1. -cfl=3. -ts=afs -psolver=mg -dtMax=.01 -tf=50. -tp=.1 -debug=3 -show=backStepInChannel16.show -go=go >! backStepInChannel16.out 
+
+TEST parallel: OK 
+mpirun -np 4 $cginsp -noplot -numberOfParallelGhost=4 backStep -g=backStepInChannelGride16.order4.ml3 -nu=2.25e-5 -parabolicWidth=.0125 -bcTop=noSlipWall -ad4=1 -ad41=2. -ad42=1. -cfl=3. -ts=afs -psolver=mg -dtMax=.01 -tf=50. -tp=.1 -debug=3 -go=og
+
+
+OUTPUT yplus:
+$cgins backStep -g=backStepInChannelGride8.order4.ml2 -nu=1.e-3 -parabolicWidth=.025 -bcTop=noSlipWall -ad4=1 -ad41=2. -ad42=1. -cfl=3. -ts=afs -psolver=mg -dtMax=.01 -tf=50. -tp=.1 -debug=3 -outputYplus=1 -go=halt
+
+
+G8 
+$cgins -noplot backStep -g=backStepInChannelGride8.order4.ml2 -nu=1.e-4 -parabolicWidth=.025 -bcTop=noSlipWall -ad4=1 -ad41=2. -ad42=1. -cfl=3. -ts=afs -psolver=mg -dtMax=.01 -tf=50. -tp=.1 -debug=3 -show=backStepInChannel8.show -go=go >! backStepInChannel8.out 
+
+G4: OK
+$cgins backStep -g=backStepInChannelGride4.order4.ml1 -nu=1.e-3 -parabolicWidth=.05 -bcTop=noSlipWall -ad4=1 -ad41=2. -ad42=1. -cfl=3. -ts=afs -psolver=mg -dtMax=.01 -tf=50. -tp=.01 -debug=3 -go=halt
+
+
+
+
+
+PLOT RNS terms for the backstep:
+RESTART AND PLOT RNS 
+$cgins backStepAndBody -g=backStepAndBodyRefineGride16.order4.ml2 -nu=1.e-5 -bcTop=outflow -ad4=1  -ad41=2. -ad42=1. -cfl=4. -ts=afs -psolver=mg -dtMax=.01 -tf=200. -tp=.01 -debug=3 -move=0 -freq=.5 -restart=backStepRefine16.show -rns=1 -tau=1.e-10 -go=halt
+
+
+RESTART AND PLOT RNS 
+$cgins backStepAndBody -g=backStepAndBodyRefineGride8.order4.ml2 -nu=1.e-3 -bcTop=outflow -ad4=1  -ad41=2. -ad42=1. -cfl=4. -ts=afs -psolver=mg -dtMax=.01 -tf=200. -tp=.01 -debug=3 -move=0 -freq=.5 -restart=backStepRefine8.show -rns=1 -tau=1.e-10 -go=halt
+
+
 
 
 **************************************

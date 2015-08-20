@@ -87,7 +87,6 @@ ShowFilePlotter::
     delete [] headerComment;
   }
   delete [] sequenceName;
-  delete [] dbaseArray;
 
   for( int fs=0; fs<numberOfFrameSeries; fs++ )
   {
@@ -109,6 +108,7 @@ ShowFilePlotter::
       }
     }
   }
+  delete [] dbaseArray;
   
 }
 

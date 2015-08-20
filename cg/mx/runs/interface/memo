@@ -1,6 +1,60 @@
+*******************************
+***** August 15, 2015
+
+
+
+
+-- TEST split-square interface
+
+cgmx -noplot interface -g=twoSquaresSplitInterfacee2.order4.ng3 -eps1=.25 -tf=100 -tp=.1 -ic=pmic -diss=0.5  -left=leftSquare -right=rightSquare -bc=d -go=og
+
+-- OK but Ex has error blip on interface
+cgmx -noplot interface -g=twoSquaresSplitInterfacee2.order4.ng3 -eps2=.25 -tf=100 -tp=.1 -ic=pmic -diss=0.5  -left=leftSquare -right=rightSquare -bc=d -go=og
+
+eps1=.25 OK
+cgmx interface -g=twoBoxesSplitInterfaceGride222.order4 -eps1=.25 -tp=.01 -ic=pmic -tf=20 -tp=.1 -bc=d -diss=.5 -left=leftBox -right=rightBox -interfaceEquationOption=0 -go=halt
+
+eps2=.25 OK -- but Ex has error blip on interface
+cgmx interface -g=twoBoxesSplitInterfaceGride222.order4 -eps2=.25 -tp=.01 -ic=pmic -tf=20 -tp=.1 -bc=d -diss=.5 -left=leftBox -right=rightBox -interfaceEquationOption=0 -go=halt
+
+eps1=2.25  OK with -diss=.5
+cgmx interface -g=twoBoxesSplitInterfaceGride222.order4 -eps1=2.25 -tp=.01 -ic=pmic -tf=20 -tp=.1 -bc=d -diss=.5 -left=leftBox -right=rightBox -interfaceEquationOption=0 -go=halt
+
+
+*******************************
+***** August 16, 2015
+
+
+=== RE-VISIT interface after trouble with di-electric sphere ====
+
+interfaceEquationOption : 0 = extrap ghost 2
+                          1 = apply eqn on 2nd ghost
+
+
+===== TWO SPLIT BOXES -- PLANE-MATERIAL INTERFACE =====
+
+eps1=2.25  ***TROUBLE*** -- but diss=0 ?
+cgmx interface -g=twoBoxesSplitInterfaceGride222.order4 -eps1=2.25 -tp=.01 -ic=pmic -tf=20 -tp=.1 -bc=d -diss=0. -left=leftBox -right=rightBox -interfaceEquationOption=0 -go=halt
+
+
+eps2=2.25 OK for long times:
+cgmx interface -g=twoBoxesSplitInterfaceGride222.order4 -eps2=2.25 -tp=.01 -ic=pmic -tf=20 -tp=.1 -bc=d -diss=0. -left=leftBox -right=rightBox -interfaceEquationOption=0 -go=halt
+
+TWO SPLIT BOXES  FD44 -- degree=(4,4) : EXACT 
+cgmx -noplot interface -g=twoBoxesSplitInterfaceGride222.order4 -eps2=2.25 -tp=.01 -ic=tz -degreex=4 -degreet=4 -tf=.5 -tp=.01 -bc=d -diss=0. -left=leftBox -right=rightBox -interfaceEquationOption=0 -go=og
+
+
+TWO BOXES: interfaceEquationOption=0 OK,  : degree=(4,4) EXACT 
+           interfaceEquationOption=1 *TROUBLE* TZ ? 
+cgmx -noplot interface -g=twoBoxesInterfacee222.order4 -eps2=2.25 -tp=.01 -ic=tz -degreex=4 -degreet=4 -tf=.5 -tp=.01 -bc=d -diss=0. -left=leftBox -right=rightBox -interfaceEquationOption=0 -go=og
+
+SPLIT GRIDS SOSUP44: TZ - exact (3,3)
+cgmx -noplot interface -g=twoSquaresSplitInterfacee2.order4.ng3 -eps2=.25 -kx=4 -tp=.01 -ic=tz -degreex=3 -degreet=3 -diss=0. -bc=d -method=sosup -go=og 
+
+
 
 **** June 28-29, 2015 -- start making changes to interface routines to account for overlapping
-      grids on the interface 
+      grids on the interface (for SOSUP)
 
 **** NOTE : USE -useNewInterface=1 BY DEFAULT NOW -- has TZ implemented ******
 

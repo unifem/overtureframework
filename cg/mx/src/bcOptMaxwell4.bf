@@ -2422,7 +2422,29 @@ end if
 
 else if( mask(i1,i2,i3).lt.0 )then
 
+ ! ** NEW WAY **  *wdh
+ ! extrapolate ghost points next to boundary interpolation points  *wdh* 2015/08/11
+ if( t.le.dt )then
+   write(*,'("--MX-- BC4 extrap ghost next to interp")')
+ end if
+
+  u(i1-is1,i2-is2,i3-is3,ex) = extrap5(ex,i1,i2,i3,is1,is2,is3)
+  u(i1-is1,i2-is2,i3-is3,ey) = extrap5(ey,i1,i2,i3,is1,is2,is3)
+  u(i1-is1,i2-is2,i3-is3,ez) = extrap5(ez,i1,i2,i3,is1,is2,is3)
+  u(i1-2*is1,i2-2*is2,i3-2*is3,ex) = extrap5(ex,i1-is1,i2-is2,i3-is3,is1,is2,is3)
+  u(i1-2*is1,i2-2*is2,i3-2*is3,ey) = extrap5(ey,i1-is1,i2-is2,i3-is3,is1,is2,is3)
+  u(i1-2*is1,i2-2*is2,i3-2*is3,ez) = extrap5(ez,i1-is1,i2-is2,i3-is3,is1,is2,is3)
+
+
+else if( .FALSE. .and. mask(i1,i2,i3).lt.0 )then
+
+  ! **OLD WAY**
+
+ ! QUESTION: August 8, 2015 -- is this accurate enough ??
+ 
+
  ! we need to assign ghost points that lie outside of interpolation points
+
 
  if( debug.gt.0 )then
    write(*,'(" **ghost-interp3d: grid,side,axis=",3i2,", i1,i2,i3=",3i4)') grid,side,axis,i1,i2,i3
@@ -2838,8 +2860,6 @@ else if( mask(i1,i2,i3).lt.0 )then
   ! u(i1-2*is1,i2-2*is2,i3-2*is3,ex)=uvm2(0)
   ! u(i1-2*is1,i2-2*is2,i3-2*is3,ey)=uvm2(1)
   ! u(i1-2*is1,i2-2*is2,i3-2*is3,ez)=uvm2(2)
-
-
 
 
 ! &&&&&&&&&&&&&&&&&&&&&&&

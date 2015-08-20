@@ -1807,8 +1807,7 @@ end if
 
       if( initialized.eq.0 )then
         ! first time through put bogus values in the following arrays to check for un-assigned values
-        bigValue=1.e99
-
+        !! bigValue=1.e99
         bigValue=0.
 
         setValues9(bigValue, u1x,u1y,u1z,u1xx,u1xy,u1yy,u1xz,u1yz,u1zz)
