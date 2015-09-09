@@ -70,6 +70,8 @@
  parameter(defaultTimeStepping=0,adamsSymmetricOrder3=1,\
            rungeKuttaFourthOrder=2,stoermerTimeStepping=3,modifiedEquationTimeStepping=4)
 
+integer useOld
+
 
 !...........start statement function
  integer kd,m
@@ -92,6 +94,7 @@
 
 !...........end   statement functions
 
+useOld = 0
 
  ! write(*,*) 'Inside advSOSUP...'
 
@@ -275,6 +278,36 @@
  #Elif #ORDER eq "4" 
 
     #If #DIM eq "2"
+      if( useOld.eq.1 ) then
+
+      call duWaveGen2d4rcOLD( nd1a,nd1b,nd2a,nd2b,\
+                           n1a,n1b,n2a,n2b,\
+                           ndf4a,ndf4b,ex,addForcing,\
+                           u(nd1a,nd2a,nd3a,ex),u(nd1a,nd2a,nd3a,ext),\
+                           un(nd1a,nd2a,nd3a,ex),un(nd1a,nd2a,nd3a,ext),\
+                           f0,\
+                           dx(0),dx(1),dt,cc,beta,\
+                           useWhereMask,mask )
+
+      call duWaveGen2d4rcOLD( nd1a,nd1b,nd2a,nd2b,\
+                           n1a,n1b,n2a,n2b,\
+                           ndf4a,ndf4b,ey,addForcing,\
+                           u(nd1a,nd2a,nd3a,ey),u(nd1a,nd2a,nd3a,eyt),\
+                           un(nd1a,nd2a,nd3a,ey),un(nd1a,nd2a,nd3a,eyt),\
+                           f0,\
+                           dx(0),dx(1),dt,cc,beta,\
+                           useWhereMask,mask )
+
+      call duWaveGen2d4rcOLD( nd1a,nd1b,nd2a,nd2b,\
+                           n1a,n1b,n2a,n2b,\
+                           ndf4a,ndf4b,hz,addForcing,\
+                           u(nd1a,nd2a,nd3a,hz),u(nd1a,nd2a,nd3a,hzt),\
+                           un(nd1a,nd2a,nd3a,hz),un(nd1a,nd2a,nd3a,hzt),\
+                           f0,\
+                           dx(0),dx(1),dt,cc,beta,\
+                           useWhereMask,mask )
+
+      else
 
       call duWaveGen2d4rc( nd1a,nd1b,nd2a,nd2b,\
                            n1a,n1b,n2a,n2b,\
@@ -302,6 +335,7 @@
                            f0,\
                            dx(0),dx(1),dt,cc,beta,\
                            useWhereMask,mask )
+      end if
 
    #Else
       ! 3D
@@ -488,6 +522,38 @@ c      stop
 
     #If #DIM eq "2"
 ! 2D, fourth-order, curvilinear
+
+      if( useOld.eq.1 ) then
+      call duWaveGen2d4ccOLD( nd1a,nd1b,nd2a,nd2b,\
+                           n1a,n1b,n2a,n2b,\
+                           ndf4a,ndf4b,ex,addForcing,\
+                           u(nd1a,nd2a,nd3a,ex),u(nd1a,nd2a,nd3a,ext),\
+                           un(nd1a,nd2a,nd3a,ex),un(nd1a,nd2a,nd3a,ext),\
+                           rsxy(nd1a,nd2a,nd3a,0,0), \
+                           f0,\
+                           dr(0),dr(1),dt,cc,beta,\
+                           useWhereMask,mask )
+      call duWaveGen2d4ccOLD( nd1a,nd1b,nd2a,nd2b,\
+                           n1a,n1b,n2a,n2b,\
+                           ndf4a,ndf4b,ey,addForcing,\
+                           u(nd1a,nd2a,nd3a,ey),u(nd1a,nd2a,nd3a,eyt),\
+                           un(nd1a,nd2a,nd3a,ey),un(nd1a,nd2a,nd3a,eyt),\
+                           rsxy(nd1a,nd2a,nd3a,0,0), \
+                           f0,\
+                           dr(0),dr(1),dt,cc,beta,\
+                           useWhereMask,mask )
+      call duWaveGen2d4ccOLD( nd1a,nd1b,nd2a,nd2b,\
+                           n1a,n1b,n2a,n2b,\
+                           ndf4a,ndf4b,hz,addForcing,\
+                           u(nd1a,nd2a,nd3a,hz),u(nd1a,nd2a,nd3a,hzt),\
+                           un(nd1a,nd2a,nd3a,hz),un(nd1a,nd2a,nd3a,hzt),\
+                           rsxy(nd1a,nd2a,nd3a,0,0), \
+                           f0,\
+                           dr(0),dr(1),dt,cc,beta,\
+                           useWhereMask,mask )
+
+      else
+
       call duWaveGen2d4cc( nd1a,nd1b,nd2a,nd2b,\
                            n1a,n1b,n2a,n2b,\
                            ndf4a,ndf4b,ex,addForcing,\
@@ -515,6 +581,8 @@ c      stop
                            f0,\
                            dr(0),dr(1),dt,cc,beta,\
                            useWhereMask,mask )
+      end if
+
     #Else
 ! 3D, fourth-order, curvilinear
       call duWaveGen3d4cc( nd1a,nd1b,nd2a,nd2b,nd3a,nd3b,\

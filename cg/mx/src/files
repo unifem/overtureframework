@@ -34,6 +34,8 @@ FSRCO += advSOSUP.f \
 	 advMxSOSUP3dOrder6r.f advMxSOSUP3dOrder6c.f \
   	 duWaveGen2d2rc.f duWaveGen2d2cc.f duStepWaveGen2d2rc_tz.f duStepWaveGen2d2cc_tz.f \
 	 duWaveGen2d4rc.f duStepWaveGen2d4rc.f duStepWaveGen2d4rc_tz.f \
+	 duWaveGen2d4ccOLD.f duStepWaveGen2d4ccOLD.f duStepWaveGen2d4cc_tzOLD.f \
+	 duWaveGen2d4rcOLD.f duStepWaveGen2d4rcOLD.f duStepWaveGen2d4rc_tzOLD.f \
 	 duWaveGen2d4cc.f duStepWaveGen2d4cc.f duStepWaveGen2d4cc_tz.f \
 	 duWaveGen2d6rc.f duStepWaveGen2d6rc.f duStepWaveGen2d6rc_tz.f \
  	 duWaveGen2d6cc.f duStepWaveGen2d6cc.f duStepWaveGen2d6cc_tz.f \
