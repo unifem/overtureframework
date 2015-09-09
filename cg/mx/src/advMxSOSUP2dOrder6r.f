@@ -55,6 +55,7 @@
         parameter(defaultTimeStepping=0,adamsSymmetricOrder3=1,
      & rungeKuttaFourthOrder=2,stoermerTimeStepping=3,
      & modifiedEquationTimeStepping=4)
+       integer useOld
        !...........start statement function
         integer kd,m
         real rx,ry,rz,sx,sy,sz,tx,ty,tz
@@ -72,6 +73,7 @@
         ty(i1,i2,i3)=rsxy(i1,i2,i3,2,1)
         tz(i1,i2,i3)=rsxy(i1,i2,i3,2,2)
        !...........end   statement functions
+       useOld = 0
         ! write(*,*) 'Inside advSOSUP...'
         cc    =rpar(0)  ! this is c
         dt    =rpar(1)
