@@ -89,6 +89,8 @@ init()
   
 
   averagingOption=averageCoarseGridEquations;
+  // For AMG we may not want to perform operator averaging on the most coarse grid
+  if( !dbase.has_key("averageEquationsOnCoarsestGrid") ){ dbase.put<bool>( "averageEquationsOnCoarsestGrid")=true; }// 
 
   // relaxation parameters: a value of -1 means use default
   omegaJacobi=-1.;                     // relaxation parameter for Jacobi smoother
@@ -1531,12 +1533,14 @@ buildOptionsDialog( DialogData & dialog )
                           "project right hand side for singular problems",
                           "set mean value for singular problems",
                           "adjust equations for singular problems",
+                          "average equations on the coarsest grid",
 			  ""};
   int tbState[10];
   tbState[0] = problemIsSingular; 
   tbState[1] = projectRightHandSideForSingularProblem; 
   tbState[2] = assignMeanValueForSingularProblem;
   tbState[3] = adjustEquationsForSingularProblem;
+  tbState[3] = dbase.get<bool>("averageEquationsOnCoarsestGrid");
   int numColumns=1;
   dialog.setToggleButtons(tbCommands, tbCommands, tbState, numColumns);
 
@@ -2513,6 +2517,22 @@ update( GenericGraphicsInterface & gi, CompositeGrid & cg )
     { 
       problemIsSingular=false;
     }//
+    else if( dialog.getToggleValue(answer,"average equations on the coarsest grid",
+				   dbase.get<bool>("averageEquationsOnCoarsestGrid")) )
+    {
+      if( !dbase.get<bool>("averageEquationsOnCoarsestGrid") )
+      {
+	printF("--OGMG-- INFO: Generate equations on the coarest level using operator averaging\n"
+               "               (if operator averaging is also turned on\n");
+      }
+      else
+      {
+	printF("--OGMG-- INFO: do NOT generate equations on the coarest level using operator averaging\n");
+      }
+      printF("    Note that the Hypre AMG solver may perform better if averageEquationsOnCoarsestGrid=false\n");
+    }
+
+
     else if( (len=answer.matches("null vector option:")) )
     {
       aString cmd = answer(len,answer.length()-1);

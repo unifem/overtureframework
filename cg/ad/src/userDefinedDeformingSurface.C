@@ -339,7 +339,7 @@ userDefinedDeformingSurface( DeformingBodyMotion & deformingBody,
       real time=t3;  // check me
       int numPoints=Ib1.getLength()*Ib2.getLength()*Ib3.getLength();
       numPoints -= numGhost*2;  // no ghost points
-      printF("--DBMS-- evaluate eye curve at t=%8.2, numPoints=%i\n",t3,numPoints);
+      printF("--DBMS-- evaluate eye curve at t=%8.2e, numPoints=%i\n",t3,numPoints);
       
       eyeCurves.getEyeCurve( curve,time,numPoints );  // evaluate eye coordinates
 

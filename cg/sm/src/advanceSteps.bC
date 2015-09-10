@@ -124,6 +124,9 @@ takeTimeStep( real & t0, real & dt0, int correction, AdvanceOptions & advanceOpt
   if( debug() & 2 ) 
     printP("Cgsm:takeTimeStep: t=%9.3e, dt=%9.3e, correction=%i, current=%i\n",t0,dt0,correction,current);
 
+  const SmParameters::TimeSteppingMethodSm & timeSteppingMethod = 
+    parameters.dbase.get< SmParameters::TimeSteppingMethodSm>("timeSteppingMethodSm");
+
   deltaT=dt0;
   
   const bool takeTimeStep =(advanceOptions.takeTimeStepOption==AdvanceOptions::takeStepAndApplyBoundaryConditions ||
@@ -131,25 +134,36 @@ takeTimeStep( real & t0, real & dt0, int correction, AdvanceOptions & advanceOpt
   const bool applyBC = ( advanceOptions.takeTimeStepOption==AdvanceOptions::takeStepAndApplyBoundaryConditions ||
 			 advanceOptions.takeTimeStepOption==AdvanceOptions::applyBoundaryConditionsOnly );
 
-  if( correction==0 && takeTimeStep )
+  if( timeSteppingMethod==SmParameters::defaultTimeStepping ||
+      timeSteppingMethod==SmParameters::modifiedEquationTimeStepping)
   {
-    advance(  current,t0,dt0 );
+    // --- Space-time schemes ---
+    if( correction==0 && takeTimeStep )
+    {
+      advance(  current,t0,dt0 );
+    }
+    if( !takeTimeStep && applyBC )
+    {
+      // -- re-apply the boundary conditions --
+      if( debug() & 2 ) 
+	printP("Cgsm:takeTimeStep:apply BC's ONLY: t=%9.3e, dt=%9.3e, correction=%i, current=%i\n",
+	       t0,dt0,correction,current);
+
+      const real dt=dt0;
+
+      // check these: 
+      const int prev = (current-1+numberOfTimeLevels) % numberOfTimeLevels;
+      const int next = (current+1) % numberOfTimeLevels;
+      int option=0; // not used.
+      applyBoundaryConditions( option, dt, next,current ); // apply BC to "next" (current=previous time step)
+    }
   }
-  if( !takeTimeStep && applyBC )
+  else
   {
-    // -- re-apply the boundary conditions ---
-    if( debug() & 2 ) 
-      printP("Cgsm:takeTimeStep:apply BC's ONLY: t=%9.3e, dt=%9.3e, correction=%i, current=%i\n",
-	     t0,dt0,correction,current);
-
-    const real dt=dt0;
-
-    // check these: 
-    const int prev = (current-1+numberOfTimeLevels) % numberOfTimeLevels;
-    const int next = (current+1) % numberOfTimeLevels;
-    int option=0; // not used.
-    applyBoundaryConditions( option, dt, next,current ); // apply BC to "next" (current=previous time step)
+    // -- method of lines schemes --
+    advanceMethodOfLines(  current,t0,dt0,correction,&advanceOptions );
   }
+
   
   RealArray & timing = parameters.dbase.get<RealArray >("timing");
   timing(parameters.dbase.get<int>("totalTime"))+=getCPU()-time0;

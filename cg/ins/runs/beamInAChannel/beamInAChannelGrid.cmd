@@ -23,6 +23,7 @@
 #  -- new larger channel
 #      ogen -noplot beamInAChannelGrid -interp=e -xa=-3. -xb=8. -yb=2. -prefix=beamInAChannelGridBigger -factor=1
 #      ogen -noplot beamInAChannelGrid -interp=e -xa=-3. -xb=8. -yb=2. -prefix=beamInAChannelGridBigger -factor=2
+#      ogen -noplot beamInAChannelGrid -interp=e -xa=-3. -xb=8. -yb=2. -prefix=beamInAChannelGridBigger -factor=4
 #
 $prefix = "beamInAChannelGrid"; 
 $beamLength=1.; $beamThickness=.2; 

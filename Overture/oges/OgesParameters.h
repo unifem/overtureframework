@@ -199,6 +199,9 @@ class OgesParameters
   ~OgesParameters();
   OgesParameters& operator=(const OgesParameters& x);
   
+  // -- print a description of the solver and options used
+  int printSolverDescription( const aString & label, FILE *file = stdout ) const; 
+
   aString getSolverName() const;                      // return the name (composite of solver, preconditioner,...)
   aString getSolverTypeName(SolverEnum solverType = defaultSolver) const;         
   aString getSolverMethodName(SolverMethodEnum solverMethod = defaultSolverMethod ) const;         

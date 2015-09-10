@@ -21,8 +21,9 @@ BodyForce::
 {
   aString & regionType = dbase.get<aString>("regionType");
 
-  printF("BodyForce: destructor called for bodyForcingName=[%s]\n",
-          (const char*)dbase.get<aString >("bodyForcingName"));
+  if( false )
+    printF("BodyForce: destructor called for bodyForcingName=[%s]\n",
+	   (const char*)dbase.get<aString >("bodyForcingName"));
 
   if( regionType=="mapping" )
   {
@@ -383,7 +384,8 @@ BodyForceRegionParameters::
     if( bodyForceMapping!=NULL )
     {
 
-      printF("plotBodyForcingRegions: plotMapping [%s]\n",
+      if( false )
+	printF("plotBodyForcingRegions: plotMapping [%s]\n",
                (const char*)bodyForceMapping->getName(Mapping::mappingName));
 
       Mapping & map = bodyForceMapping->getMapping();

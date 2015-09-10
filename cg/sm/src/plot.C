@@ -651,7 +651,9 @@ getMethodName( aString & methodName )
 {
     const int & orderOfAccuracyInSpace = parameters.dbase.get<int>("orderOfAccuracy");
     const int & orderOfAccuracyInTime  = parameters.dbase.get<int>("orderOfTimeAccuracy");
-    SmParameters::PDEVariation & pdeVariation = parameters.dbase.get<SmParameters::PDEVariation>("pdeVariation");
+    const SmParameters::PDEVariation & pdeVariation = parameters.dbase.get<SmParameters::PDEVariation>("pdeVariation");
+    const SmParameters::TimeSteppingMethodSm & timeSteppingMethod = 
+        parameters.dbase.get< SmParameters::TimeSteppingMethodSm>("timeSteppingMethodSm");
 
     aString buff;
 
@@ -684,6 +686,8 @@ getMethodName( aString & methodName )
             methodName="GDNEO";    // fPrintF(file," Material model: neo-Hookean model.\n");
         else
             methodName="GD";
+        if( timeSteppingMethod!=SmParameters::modifiedEquationTimeStepping )
+            methodName=methodName+"-PC";  // must be a MOL scheme
     }
     else if( pdeVariation==SmParameters::hemp )
     {
@@ -826,7 +830,8 @@ plot(int current, real t, real dt )
     // outputResults(current,t,dt);  // save check file
         
         timing(parameters.dbase.get<int>("timeForPlotting"))+=getCPU()-cpu0;
-        if( !getDiv ) return returnValue;
+
+    // if( !getDiv ) return returnValue;  // *wdh* 2015/08/22 -- 
     }
     
 

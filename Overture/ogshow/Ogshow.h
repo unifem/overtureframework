@@ -4,6 +4,8 @@
 #include "CompositeGrid.h"
 #include "CompositeGridFunction.h"
 #include "ShowFileParameter.h"
+#include "DBase.hh"
+using namespace DBase;
 
 #include OV_STD_INCLUDE(vector)
 
@@ -100,17 +102,25 @@ class Ogshow
   void setFlushFrequency( const int flushFrequency = 5  );
   int getFlushFrequency() const;
 
-  // return true if the current frame is the first frame in the current subFile
-  bool isFirstFrameInSubFile() const;
-  // return true if the current frame is the last frame in the current subFile
-  bool isLastFrameInSubFile() const;
+  // return true if the (current) frame is the first frame in the current subFile
+  bool isFirstFrameInSubFile( int frameNumber = -1 ) const;
+  // return true if the (current) frame is the last frame in the current subFile
+  bool isLastFrameInSubFile(int frameNumber = -1 ) const;
+
+  // return the sub-file number where a given frame is stored
+  int getSubFileNumberForFrame( int frameNumber = -1 ) const;
 
   // flush the data in the file  *** this does not work ***
   void flush();
 
+  /// Here is a database to hold parameters (new way)
+  mutable DataBase dbase; 
+
+  static int debug;
   
  protected:
   void initialize();
+  int setup();
   int cleanup();
   int createShowFile( const aString & nameOfShowFile, const aString & nameOfDirectory, ShowFileOpenOption openOption );
   int saveGeneralCommentsToFile();

@@ -1,3 +1,449 @@
+****************
+*** Sept 6, 2015
+
+RE-TEST HYPRE: 
+
+NOTE: TROUBLE WITH HYPRE -- n BC on cylinder ssem
+
+NOTE: OPAV-COARSE GRID  + PMIS coarsening works
+$ogmgp tz -noplot -numberOfParallelGhost=4 -g=cice16.order4.s2.ml4 -bc1=n -bc2=m -bc3=n -bc4=n -bc5=n -debug=3 -opav=1 -cgSolver=AMG -opavCoarseGrid=1 -maxit=4 -levels=3
+Coarse grid solver:
+   PETScNew, parallel=[generalized minimal residual iteration
+   + hypre], local=[+hypre + reverse Cuthill-McKee ordering]
+   relative tol.=1.00e-03, absolute tol.=1.00e-14, max number of iterations=0 (0=choose default)
+ Hypre: AMG (boomeramg) cycle=V, strong-threshold=.25, coarsen-type=PMIS 
+   average number of iterations per coarse grid solve =  26.8/cycle
+   coarse grid has 32474 grid points (6.7e+00 % of fine grid)
+   coarse grid averaging option: Galerkin averaging
+
+
+
+THRESHOLD=.25 -- better
+$ogmgp tz -noplot -numberOfParallelGhost=4 -g=cice16.order4.s2.ml4 -bc1=n -bc2=m -bc3=n -bc4=n -bc5=n -debug=3 -opav=1 -cgSolver=AMG -opavCoarseGrid=0 -levels=3 -maxit=4
+
+
+VERY BAD: 
+$ogmgp tz -noplot -numberOfParallelGhost=4 -g=cice16.order4.s2.ml4 -bc1=n -bc2=m -bc3=n -bc4=n -bc5=n -debug=3 -opav=1 -cgSolver=AMG -opavCoarseGrid=0 -levels=3 -maxit=4
+
+
+
+CYL=Dirichlet : OK
+$ogmgp tz -noplot -numberOfParallelGhost=4 -g=cice32.order4.s2.ml4 -bc1=n -bc2=m -bc3=n -bc4=n -bc5=d -debug=3 -opav=1 -cgSolver=AMG -opavCoarseGrid=0 -levels=3
+Iteration=1..10 : Total WU=4.57e+01, total res reduction=1.96e-10, ave CR=0.1069 ave ECR=0.613 np=1
+
+CYL=Neumann - trouble
+$ogmgp tz -noplot -numberOfParallelGhost=4 -g=cice32.order4.s2.ml4 -bc1=n -bc2=m -bc3=n -bc4=n -bc5=n -debug=3 -opav=1 -cgSolver=AMG -opavCoarseGrid=0 -levels=3
+Iteration=1..10 : Total WU=5.55e+01, total res reduction=5.59e+00, ave CR=1.1878 ave ECR=1.031 np=1
+
+TURN OFF OP-AV on COARSEST LEVEL: --OK 
+$ogmgp tz -noplot -numberOfParallelGhost=4 -g=cice32.order4.s2.ml4 -bc1=n -bc2=m -bc3=n -bc4=n -bc5=n -debug=3 -opav=1 -cgSolver=AMG -opavCoarseGrid=0
+Iteration=1..10 : Total WU=4.68e+01, total res reduction=2.05e-08, ave CR=0.1703 ave ECR=0.685 np=1
+
+
+
+OPAV=0 OK: 
+$ogmgp tz -noplot -numberOfParallelGhost=4 -g=cice32.order4.s2.ml4 -bc1=n -bc2=m -bc3=n -bc4=n -bc5=n -maxit=3 -levels=5 -debug=3 -opav=0 -cgSolver=AMG
+Iteration=1..3 : Total WU=1.41e+01, total res reduction=2.02e-02, ave CR=0.2725 ave ECR=0.759 np=1
+
+
+
+*BUG* FOUND -- zero OUT coeff matrix entries for the mixed BC
+
+$ogmgp tz -noplot -numberOfParallelGhost=4 -g=cice32.order4.s2.ml4 -bc1=n -bc2=m -bc3=n -bc4=n -bc5=n -maxit=3 -levels=5 -debug=3 -opav=0
+SERIAL:
+Iteration=1..3 : Total WU=1.41e+01, total res reduction=1.72e-02, ave CR=0.2581 ave ECR=0.750 np=1
+Iteration=1..3 : Total WU=1.41e+01, total res reduction=1.64e-02, ave CR=0.2540 ave ECR=0.747 np=1
+
+
+*NEW* 
+$ogmgp tz -noplot -numberOfParallelGhost=4 -g=square16.order4 -bc1=n -bc2=m -bc3=n -bc4=n -bc5=n -maxit=3 -levels=5 -debug=3 -opav=0
+SERIAL Iteration=1..3 : Total WU=1.40e+01, total res reduction=1.46e-03, ave CR=0.1133 ave ECR=0.627 np=1
+PARA   Iteration=1..3 : Total WU=1.40e+01, total res reduction=1.46e-03, ave CR=0.1133 ave ECR=0.627 np=1
+
+OPAV=0: SERIAL DOES NOT MATCH PARALLEL 
+
+
+
+==== nonSquare16.order4 : Differ, poor even for serial
+square16.order4: OK - match
+
+DIFFER: 1 Neumann BC:
+$ogmgp tz -noplot -numberOfParallelGhost=4 -g=nonSquare16.order4 -bc1=n -maxit=3 -levels=5 -debug=3 -opav=0
+SERIAL: Iteration=1..3 : Total WU=1.40e+01, total res reduction=8.48e-05, ave CR=0.0439 ave ECR=0.512 np=1
+PARA  : Iteration=1..3 : Total WU=1.40e+01, total res reduction=4.05e-04, ave CR=0.0740 ave ECR=0.573 np=1
+
+
+$ogmgp tz -noplot -numberOfParallelGhost=4 -g=nonSquare16.order4 -bc1=n -bc2=m -bc3=n -bc4=n -bc5=n -maxit=3 -levels=5 -debug=3 -opav=0
+SERIAL: Iteration=1..3 : Total WU=1.40e+01, total res reduction=7.64e-01, ave CR=0.9140 ave ECR=0.981 np=1
+
+$ogmgp tz -noplot -numberOfParallelGhost=4 -g=square16.order4 -bc1=n -bc2=m -bc3=n -bc4=n -bc5=n -maxit=3 -levels=5 -debug=3 -opav=0
+SERIAL: Iteration=1..3 : Total WU=1.40e+01, total res reduction=1.46e-03, ave CR=0.1133 ave ECR=0.627 np=1
+
+
+SQUARE ORDER 2 MATCH
+$ogmgp tz -noplot -numberOfParallelGhost=4 -g=nonSquare16.order2 -bc1=n -bc2=m -bc3=n -bc4=n -bc5=n -maxit=3 -levels=5 -debug=3 -opav=0
+
+
+
+G16=bad, G8=bad, G4=bad
+$ogmgp tz -noplot -numberOfParallelGhost=4 -g=cice4.order4.s2.ml3 -bc1=n -bc2=m -bc3=n -bc4=n -bc5=n -maxit=3 -levels=5 -debug=3 -opav=0
+
+
+INITIAL TEST:
+$ogmgp tz -noplot -numberOfParallelGhost=4 -g=cice32.order4.s2.ml4 -bc1=n -bc2=m -bc3=n -bc4=n -bc5=n -maxit=3 -levels=5 -debug=3 -opav=0
+SERIAL:
+Iteration=1..3 : Total WU=1.41e+01, total res reduction=1.72e-02, ave CR=0.2581 ave ECR=0.750 np=1
+PARA:
+Iteration=1..3 : Total WU=1.55e+01, total res reduction=3.52e+01, ave CR=3.2776 ave ECR=1.258 np=1
+
+
+****************
+*** Sept 4-5, 2015
+
+*NEW* VERSION OF HYPRE and PETSC
+
+---- HYPRE OPTIONS: use -ksp_view and -help for PETSc
+
+==================
+
+TURN OFF AVE on COARSEST LEVEL: --OK 
+$ogmgp tz -noplot -numberOfParallelGhost=4 -g=cice32.order4.s2.ml4 -bc1=n -bc2=m -bc3=n -bc4=n -bc5=n -maxit=5 -levels=5 -debug=3 -opav=1 -opavCoarseGrid=0
+Iteration=1..5 : Total WU=2.34e+01, total res reduction=2.80e-04, ave CR=0.1947 ave ECR=0.705 np=1
+
+**NOTE-NOTE**  OPAV=0 does converge in SERIAL
+$ogmgp tz -noplot -numberOfParallelGhost=4 -g=cice32.order4.s2.ml4 -bc1=n -bc2=m -bc3=n -bc4=n -bc5=n -maxit=5 -levels=5 -debug=3 -opav=0
+Iteration=1..5 : Total WU=2.30e+01, total res reduction=3.68e-04, ave CR=0.2057 ave ECR=0.709 np=1
+
+NOTE: OPAV=0 --> doesn't converge with BC=NMNN + N !
+mpirun -np 1 $ogmgp tz -noplot -numberOfParallelGhost=4 -g=cice32.order4.s2.ml4 -bc1=n -bc2=m -bc3=n -bc4=n -bc5=n -maxit=5 -levels=5 -debug=3 -opav=0
+
+
+OK: OPAV=0 
+mpirun -np 1 $ogmgp tz -noplot -numberOfParallelGhost=4 -g=cice32.order4.s2.ml4 -cgSolver=AMG -bc1=n -bc2=m -bc3=n -bc4=n -bc5=n -maxit=2 -levels=3 -opav=0
+
+-- opav=0 OK:
+
+default -opav=1: 
+**TROUBLE** WITH AMG: AMG thinks problem is nearly singular:
+  Ogmg::cycle:level=0, it=1, WU= 5.74, defect=5.11e+02, defect/defectOld=25.896,  ECR0=   1.763 ***
+   ->solve: (level=0) it=1, l2NormResidual=5.11e+02 <? 1.00e-10 = resTol*l2Norm(f) + aTol=(1.0e-14)*(9.7e+00) + 1.0e-10 
+  0 KSP Residual norm 2.767014260714e+113 
+  1 KSP Residual norm 2.827561939737e+99 
+
+
+=================
+
+
+mpirun -np 1 $ogmgp tz -noplot -numberOfParallelGhost=4 -g=cice16.order4.s2.ml4 -cgSolver=AMG -bc1=n -bc2=m -bc3=n -bc4=n -bc5=n -maxit=2
+
+Preconditioner (PC) options -------------------------------------------------
+  -pc_type <hypre>: Preconditioner (one of) none jacobi pbjacobi bjacobi sor lu shell mg
+      eisenstat ilu icc cholesky asm gasm ksp composite redundant nn mat fieldsplit galerkin exotic hmpi asa cp lsc redistribute svd gamg hypre pfmg syspfmg tfs (PCSetType)
+  -pc_use_amat: <FALSE> use Amat (instead of Pmat) to define preconditioner in nested inner solves (PCSetUseAmat)
+  HYPRE preconditioner options
+  -pc_hypre_type <boomeramg> (choose one of) pilut parasails boomeramg euclid (PCHYPRESetType)
+  HYPRE BoomerAMG Options
+  -pc_hypre_boomeramg_cycle_type <V> (choose one of) V W (None)
+  -pc_hypre_boomeramg_max_levels <25>: Number of levels (of grids) allowed (None)
+  -pc_hypre_boomeramg_max_iter <1>: Maximum iterations used PER hypre call (None)
+  -pc_hypre_boomeramg_tol <0>: Convergence tolerance PER hypre call (0.0 = use a fixed number of iterations) (None)
+  -pc_hypre_boomeramg_truncfactor <0>: Truncation factor for interpolation (0=no truncation) (None)
+  -pc_hypre_boomeramg_P_max <0>: Max elements per row for interpolation operator (0=unlimited) (None)
+  -pc_hypre_boomeramg_agg_nl <0>: Number of levels of aggressive coarsening (None)
+  -pc_hypre_boomeramg_agg_num_paths <1>: Number of paths for aggressive coarsening (None)
+  -pc_hypre_boomeramg_strong_threshold <0.25>: Threshold for being strongly connected (None)
+  -pc_hypre_boomeramg_max_row_sum <0.9>: Maximum row sum (None)
+  -pc_hypre_boomeramg_grid_sweeps_all <1>: Number of sweeps for the up and down grid levels (None)
+  -pc_hypre_boomeramg_grid_sweeps_down <1>: Number of sweeps for the down cycles (None)
+  -pc_hypre_boomeramg_grid_sweeps_up <1>: Number of sweeps for the up cycles (None)
+  -pc_hypre_boomeramg_grid_sweeps_coarse <1>: Number of sweeps for the coarse level (None)
+  -pc_hypre_boomeramg_relax_type_all <symmetric-SOR/Jacobi> (choose one of) Jacobi sequential-Gauss-Seidel seqboundary-Gauss-Seidel SOR/Jacobi backward-SOR/Jacobi  symmetric-SOR/Jacobi  l1scaled-SOR/Jacobi Gaussian-elimination      CG Chebyshev FCF-Jacobi l1scaled-Jacobi (None)
+  -pc_hypre_boomeramg_relax_type_down <symmetric-SOR/Jacobi> (choose one of) Jacobi sequential-Gauss-Seidel seqboundary-Gauss-Seidel SOR/Jacobi backward-SOR/Jacobi  symmetric-SOR/Jacobi  l1scaled-SOR/Jacobi Gaussian-elimination      CG Chebyshev FCF-Jacobi l1scaled-Jacobi (None)
+  -pc_hypre_boomeramg_relax_type_up <symmetric-SOR/Jacobi> (choose one of) Jacobi sequential-Gauss-Seidel seqboundary-Gauss-Seidel SOR/Jacobi backward-SOR/Jacobi  symmetric-SOR/Jacobi  l1scaled-SOR/Jacobi Gaussian-elimination      CG Chebyshev FCF-Jacobi l1scaled-Jacobi (None)
+  -pc_hypre_boomeramg_relax_type_coarse <Gaussian-elimination> (choose one of) Jacobi sequential-Gauss-Seidel seqboundary-Gauss-Seidel SOR/Jacobi backward-SOR/Jacobi  symmetric-SOR/Jacobi  l1scaled-SOR/Jacobi Gaussian-elimination      CG Chebyshev FCF-Jacobi l1scaled-Jacobi (None)
+  -pc_hypre_boomeramg_relax_weight_all <1>: Relaxation weight for all levels (0 = hypre estimates, -k = determined with k CG steps) (None)
+  -pc_hypre_boomeramg_relax_weight_level <1>: Set the relaxation weight for a particular level (weight,level) (None)
+  -pc_hypre_boomeramg_outer_relax_weight_all <1>: Outer relaxation weight for all levels (-k = determined with k CG steps) (None)
+  -pc_hypre_boomeramg_outer_relax_weight_level <1>: Set the outer relaxation weight for a particular level (weight,level) (None)
+  -pc_hypre_boomeramg_no_CF: <FALSE> Do not use CF-relaxation (None)
+  -pc_hypre_boomeramg_measure_type <local> (choose one of) local global (None)
+  -pc_hypre_boomeramg_coarsen_type <Falgout> (choose one of) CLJP Ruge-Stueben  modifiedRuge-Stueben   Falgout  PMIS  HMIS (None)
+  -pc_hypre_boomeramg_interp_type <classical> (choose one of) classical   direct multipass multipass-wts ext+i ext+i-cc standard standard-wts   FF FF1 (None)
+  -pc_hypre_boomeramg_print_statistics: Print statistics (None)
+  -pc_hypre_boomeramg_print_debug: Print debug information (None)
+  -pc_hypre_boomeramg_nodal_coarsen: <FALSE> HYPRE_BoomerAMGSetNodal() (None)
+  -pc_hypre_boomeramg_nodal_relaxation: <FALSE> Nodal relaxation via Schwarz (None)
+
+
+PC Object: 1 MPI processes
+  type: hypre
+    HYPRE BoomerAMG preconditioning
+    HYPRE BoomerAMG: Cycle type V
+    HYPRE BoomerAMG: Maximum number of levels 20
+    HYPRE BoomerAMG: Maximum number of iterations PER hypre call 1
+    HYPRE BoomerAMG: Convergence tolerance PER hypre call 0
+    HYPRE BoomerAMG: Threshold for strong coupling 0.5
+    HYPRE BoomerAMG: Interpolation truncation factor 0
+    HYPRE BoomerAMG: Interpolation: max elements per row 0
+    HYPRE BoomerAMG: Number of levels of aggressive coarsening 0
+    HYPRE BoomerAMG: Number of paths for aggressive coarsening 1
+    HYPRE BoomerAMG: Maximum row sums 0.9
+    HYPRE BoomerAMG: Sweeps down         1
+    HYPRE BoomerAMG: Sweeps up           1
+    HYPRE BoomerAMG: Sweeps on coarse    1
+    HYPRE BoomerAMG: Relax down          symmetric-SOR/Jacobi
+    HYPRE BoomerAMG: Relax up            symmetric-SOR/Jacobi
+    HYPRE BoomerAMG: Relax on coarse     Gaussian-elimination
+    HYPRE BoomerAMG: Relax weight  (all)      1
+    HYPRE BoomerAMG: Outer relax weight (all) 1
+    HYPRE BoomerAMG: Using CF-relaxation
+    HYPRE BoomerAMG: Measure type        local
+    HYPRE BoomerAMG: Coarsen type        Falgout
+    HYPRE BoomerAMG: Interpolation type  classical
+
+
+
+TEST Hypre coarse grid solver
+
+
+SET BC's to match CGINS: 
+
+G32 -OK 
+mpirun -np 1 $ogmgp tz -noplot -numberOfParallelGhost=4 -g=cice32.order4.s2.ml4 -cgSolver=AMG -bc1=n -bc2=m -bc3=n -bc4=n -bc5=n
+
+G16 : OK: 
+mpirun -np 1 $ogmgp tz -noplot -numberOfParallelGhost=4 -g=cice16.order4.s2.ml4 -cgSolver=AMG -bc1=n -bc2=m -bc3=n -bc4=n -bc5=n
+
+
+
+
+
+G32: BC=NNMN, OK: 
+mpirun -np 1 $ogmgp tz -noplot -numberOfParallelGhost=4 -g=cice32.order4.s2.ml4 -cgSolver=AMG -bc=nmnn 
+
+
+
+mpirun -np 1 $ogmgp tz -noplot -numberOfParallelGhost=4 -g=cice32.order4.s2.ml4 -cgSolver=AMG
+
+PARALLEL -- INTERPOLATION IS VERY SLOW, WHY? ---> REBOOT : OK
+mpirun -np 4 $ogmgp tz -noplot -numberOfParallelGhost=4 -g=cice16.order4.s2.ml4
+
+AFTER REBOOT: 
+   Ogmg, Statistics  /home/henshw/grids/cice16.order4.s2.ml4.hdf, grids=2, cycles=10, gridPoints=  487634, np=4
+    ----------------                  time (s)  time/cycle  percentage                                          
+ smooth..(includes bc's)...............1.21e+00  1.21e-01    62.04%                                             
+ defect.(excluding those in smooth)....3.89e-02  3.89e-03     2.00%                                             
+ fine to coarse........................3.85e-01  3.85e-02    19.72%                                             
+ coarse to fine........................2.76e-01  2.76e-02    14.14%                                             
+ direct solve on coarsest level........2.62e-02  2.62e-03     1.34%                                             
+ miscellaneous.........................3.38e-03  3.38e-04     0.17%                                             
+ sum of above..........................1.94e+00  1.94e-01    99.40%                     
+ Details:                                                                                                       
+    defect called from smooth..........0.00e+00  0.00e+00  (  0.00%) (already counted)                          
+    relaxation part of smooth..........9.89e-02  9.89e-03  (  5.07%) (already counted)                          
+    extra boundary smoothing...........0.00e+00  0.00e+00  (  0.00%) (already counted)                          
+    extra interpolation smoothing......0.00e+00  0.00e+00  (  0.00%) (already counted)                          
+    tridiagonal factor part of smooth..0.00e+00  0.00e+00  (  0.00%) (already counted)                          
+    tridiagonal solve part of smooth...0.00e+00  0.00e+00  (  0.00%) (already counted)                          
+    interpolation......................1.05e+00  1.05e-01  ( 53.93%) (already counted)                          
+    boundary conditions................5.34e-01  5.34e-02  ( 27.34%) (already counted)     
+
+BEFORE REBOOT: 
+   Ogmg, Statistics  /home/henshw/grids/cice16.order4.s2.ml4.hdf, grids=2, cycles=10, gridPoints=  487634, np=4
+    ----------------                  time (s)  time/cycle  percentage                                          
+ smooth..(includes bc's)...............4.12e+01  4.12e+00    55.04%                                             
+ defect.(excluding those in smooth)....4.28e-02  4.28e-03     0.06%                                             
+ fine to coarse........................2.09e+01  2.09e+00    27.94%                                             
+ coarse to fine........................1.15e+01  1.15e+00    15.33%                                             
+ direct solve on coarsest level........2.99e-01  2.99e-02     0.40%                                             
+ miscellaneous.........................3.33e-03  3.33e-04     0.00%                                             
+ sum of above..........................7.39e+01  7.39e+00    98.77%                                             
+ Details:                                                                                                       
+    defect called from smooth..........0.00e+00  0.00e+00  (  0.00%) (already counted)                          
+    relaxation part of smooth..........9.93e-02  9.93e-03  (  0.13%) (already counted)                          
+    extra boundary smoothing...........0.00e+00  0.00e+00  (  0.00%) (already counted)                          
+    extra interpolation smoothing......0.00e+00  0.00e+00  (  0.00%) (already counted)                          
+    tridiagonal factor part of smooth..0.00e+00  0.00e+00  (  0.00%) (already counted)                          
+    tridiagonal solve part of smooth...0.00e+00  0.00e+00  (  0.00%) (already counted)                          
+    interpolation......................4.45e+01  4.45e+00  ( 59.39%) (already counted)                          
+    boundary conditions................1.77e+01  1.77e+00  ( 23.61%) (already counted)                          
+      (bcOpt=0.00e+00 extrap=0.00e+00 setup=-1.41e+12 geom=-1.04e+12 finish=1.41e+12 total=1.77e+01)            
+    initial guess with FMG.............0.00e+00  0.00e+00  (  0.00%) (already counted)                          
+    fine to coarse BC's................1.44e-03  1.44e-04  (  0.00%) (already counted)                          
+    interp coarse from fine............3.59e+00  3.59e-01  (  4.80%) (already counted)                          
+    compute norms of defect............2.54e-02  2.54e-03  (  0.03%) (already counted)                          
+    ghost boundary update..............8.15e+00  8.15e-01  ( 10.89%) (already counted)                          
+
+ total.................................7.49e+01  7.49e+00   100.00% 
+
+
+
+
+
+G32: BC=NNMN, OK: 
+mpirun -np 1 $ogmgp tz -noplot -numberOfParallelGhost=4 -g=cice32.order4.s2.ml4 -cgSolver=AMG -bc=nmnn 
+   Ogmg, Statistics  /home/henshw/grids/cice32.order4.s2.ml4.hdf, grids=2, cycles=10, gridPoints= 1774546, np=1
+    ----------------                  time (s)  time/cycle  percentage                                          
+ smooth..(includes bc's)...............1.46e+00  1.46e-01    63.34%                                             
+ defect.(excluding those in smooth)....4.22e-01  4.22e-02    18.33%                                             
+ fine to coarse........................6.35e-02  6.35e-03     2.76%                                             
+ coarse to fine........................1.46e-01  1.46e-02     6.32%                                             
+ direct solve on coarsest level........1.33e-01  1.33e-02     5.77%                                             
+ miscellaneous.........................4.03e-02  4.03e-03     1.75%                                             
+ sum of above..........................2.26e+00  2.26e-01    98.28%   
+
+
+G16: BC=NNMN  THIS IS FINE:
+mpirun -np 1 $ogmgp tz -noplot -numberOfParallelGhost=4 -g=cice16.order4.s2.ml4 -cgSolver=AMG -bc=nmnn 
+
+
+
+PARTIAL MIXED BC's
+G16: 
+mpirun -np 1 $ogmgp tz -noplot -numberOfParallelGhost=4 -g=cice16.order4 -bc=nmnn -cgSolver=AMG
+   Ogmg, Statistics  /home/henshw/grids/cice16.order4.hdf, grids=2, cycles=10, gridPoints=  424110, np=1
+    ----------------                  time (s)  time/cycle  percentage                                   
+ smooth..(includes bc's)...............2.69e-01  2.69e-02     3.75%                                      
+ defect.(excluding those in smooth)....6.32e-02  6.32e-03     0.88%                                      
+ fine to coarse........................1.04e-02  1.04e-03     0.15%                                      
+ coarse to fine........................3.06e-02  3.06e-03     0.43%                                      
+ direct solve on coarsest level........6.78e+00  6.78e-01    94.54%                                      
+ miscellaneous.........................8.98e-03  8.98e-04     0.13%                                      
+ sum of above..........................7.16e+00  7.16e-01    99.87%  
+
+
+
+DIRICHLET:
+mpirun -np 1 $ogmgp tz -noplot -numberOfParallelGhost=4 -g=cice16.order4  -cgSolver=AMG
+
+------ G32 
+mpirun -np 1 $ogmgp tz -noplot -numberOfParallelGhost=4 -g=cice32.order4.s2.ml4 -cgSolver=AMG
+
+   Ogmg, Statistics  /home/henshw/grids/cice32.order4.s2.ml4.hdf, grids=2, cycles=10, gridPoints= 1774546, number of processors=1
+    ----------------                  time (s)  time/cycle  percentage                                                            
+ smooth..(includes bc's)...............1.25e+00  1.25e-01    63.48%                                                               
+ defect.(excluding those in smooth)....3.82e-01  3.82e-02    19.40%                                                               
+ fine to coarse........................5.49e-02  5.49e-03     2.79%                                                               
+ coarse to fine........................1.30e-01  1.30e-02     6.61%                                                               
+ direct solve on coarsest level........8.44e-02  8.44e-03     4.28%                                                               
+ miscellaneous.........................3.62e-02  3.62e-03     1.83%                                                               
+ sum of above..........................1.94e+00  1.94e-01    98.39%  
+
+
+****************
+*** August 31, 2015
+
+TEST Hypre coarse grid solver
+
+=============== CIC ORDER 4 ===============
+
+------ G32 
+mpirun -np 1 $ogmgp tz -noplot -numberOfParallelGhost=4 -g=cice32.order4.s2.ml4 -cgSolver=AMG
+
+---- AMG: 
+    Ogmg, Statistics  /home/henshw/grids/cice32.order4.s2.ml4.hdf, grids=2, cycles=10, gridPoints= 1774546, number of processors=1
+    ----------------                  time (s)  time/cycle  percentage
+ smooth..(includes bc's)...............1.22e+00  1.22e-01    58.77% 
+ defect.(excluding those in smooth)....3.73e-01  3.73e-02    17.95% 
+ fine to coarse........................5.31e-02  5.31e-03     2.56% 
+ coarse to fine........................1.27e-01  1.27e-02     6.10% 
+ direct solve on coarsest level........2.36e-01  2.36e-02    11.36% 
+ miscellaneous.........................3.55e-02  3.55e-03     1.71% 
+ sum of above..........................2.05e+00  2.05e-01    98.45%  
+
+--- BICGS
+    Ogmg, Statistics  /home/henshw/grids/cice32.order4.s2.ml4.hdf, grids=2, cycles=10, gridPoints= 1774546, number of processors=1
+    ----------------                  time (s)  time/cycle  percentage
+ smooth..(includes bc's)...............1.22e+00  1.22e-01    38.82% 
+ defect.(excluding those in smooth)....3.75e-01  3.75e-02    11.95% 
+ fine to coarse........................5.32e-02  5.32e-03     1.70% 
+ coarse to fine........................1.26e-01  1.26e-02     4.03% 
+ direct solve on coarsest level........1.29e+00  1.29e-01    41.31% 
+ miscellaneous.........................3.56e-02  3.56e-03     1.14% 
+ sum of above..........................3.10e+00  3.10e-01    98.95%  
+
+
+mpirun -np 1 $ogmgp tz -noplot -numberOfParallelGhost=4 -g=cice16.order4 -cgSolver=AMG
+    Ogmg, Statistics  /home/henshw/grids/cice16.order4.hdf, grids=2, cycles=10, gridPoints=  424110, number of processors=1
+    ----------------                  time (s)  time/cycle  percentage
+ smooth..(includes bc's)...............1.83e-01  1.83e-02     4.08% 
+ defect.(excluding those in smooth)....6.51e-02  6.51e-03     1.45% 
+ fine to coarse........................9.28e-03  9.28e-04     0.21% 
+ coarse to fine........................2.74e-02  2.74e-03     0.61% 
+ direct solve on coarsest level........4.18e+00  4.18e-01    93.26% 
+ miscellaneous.........................1.02e-02  1.02e-03     0.23% 
+ sum of above..........................4.47e+00  4.47e-01    99.84%  
+
+
+mpirun -np 1 $ogmgp tz -noplot -numberOfParallelGhost=4 -g=cice16.order4 
+
+    Ogmg, Statistics  /home/henshw/grids/cice16.order4.hdf, grids=2, cycles=10, gridPoints=  424110, number of processors=1
+    ----------------                  time (s)  time/cycle  percentage
+ smooth..(includes bc's)...............1.83e-01  1.83e-02     4.89% 
+ defect.(excluding those in smooth)....5.99e-02  5.99e-03     1.60% 
+ fine to coarse........................9.22e-03  9.22e-04     0.25% 
+ coarse to fine........................2.66e-02  2.66e-03     0.71% 
+ direct solve on coarsest level........3.45e+00  3.45e-01    92.16% 
+ miscellaneous.........................8.63e-03  8.63e-04     0.23% 
+ sum of above..........................3.74e+00  3.74e-01    99.83%  
+
+
+=============== CIC ORDER 2 ===============
+mpirun -np 1 $ogmgp tz -noplot -g=cice32.order2 -cgSolver=AMG
+
+AMG:
+    Ogmg, Statistics  /home/henshw/grids/cice32.order2.hdf, grids=2, cycles=10, gridPoints= 1662544, number of processors=1
+    ----------------                  time (s)  time/cycle  percentage
+ smooth..(includes bc's)...............3.12e-01  3.12e-02     4.61% 
+ defect.(excluding those in smooth)....1.75e-01  1.75e-02     2.58% 
+ fine to coarse........................3.17e-02  3.17e-03     0.47% 
+ coarse to fine........................8.94e-02  8.94e-03     1.32% 
+ direct solve on coarsest level........6.10e+00  6.10e-01    90.09% 
+ miscellaneous.........................3.56e-02  3.56e-03     0.53% 
+ sum of above..........................6.74e+00  6.74e-01    99.60% 
+
+---np=4 
+    Ogmg, Statistics  /home/henshw/grids/cice32.order2.hdf, grids=2, cycles=10, gridPoints= 1662544, number of processors=4
+    ----------------                  time (s)  time/cycle  percentage
+ smooth..(includes bc's)...............1.32e-01  1.32e-02     5.60% 
+ defect.(excluding those in smooth)....5.03e-02  5.03e-03     2.13% 
+ fine to coarse........................1.84e-02  1.84e-03     0.78% 
+ coarse to fine........................2.82e-02  2.82e-03     1.19% 
+ direct solve on coarsest level........2.11e+00  2.11e-01    89.44% 
+ miscellaneous.........................1.00e-02  1.00e-03     0.42% 
+ sum of above..........................2.35e+00  2.35e-01    99.57%
+
+
+mpirun -np 1 $ogmgp tz -noplot -g=cice32.order2 
+BICGS:  
+------- np=1
+   Ogmg, Statistics  /home/henshw/grids/cice32.order2.hdf, grids=2, cycles=10, gridPoints= 1662544, number of processors=1
+    ----------------                  time (s)  time/cycle  percentage
+ smooth..(includes bc's)...............3.12e-01  3.12e-02     1.49% 
+ defect.(excluding those in smooth)....1.75e-01  1.75e-02     0.84% 
+ fine to coarse........................3.24e-02  3.24e-03     0.15% 
+ coarse to fine........................8.95e-02  8.95e-03     0.43% 
+ direct solve on coarsest level........2.03e+01  2.03e+00    96.80% 
+ miscellaneous.........................3.58e-02  3.58e-03     0.17% 
+ sum of above..........................2.09e+01  2.09e+00    99.87%  
+---- np=4
+    Ogmg, Statistics  /home/henshw/grids/cice32.order2.hdf, grids=2, cycles=10, gridPoints= 1662544, number of processors=4
+    ----------------                  time (s)  time/cycle  percentage
+ smooth..(includes bc's)...............3.99e-01  3.99e-02     5.49% 
+ defect.(excluding those in smooth)....4.91e-02  4.91e-03     0.68% 
+ fine to coarse........................1.41e-01  1.41e-02     1.94% 
+ coarse to fine........................1.07e-01  1.07e-02     1.48% 
+ direct solve on coarsest level........6.55e+00  6.55e-01    90.11% 
+ miscellaneous.........................9.45e-03  9.45e-04     0.13% 
+ sum of above..........................7.26e+00  7.26e-01    99.82%  
+
+
+mpirun -np 1 $ogmgp tz -noplot -g=cice16.order2
+
+mpirun -np 1 $ogmgp tz -noplot -g=square512.order2 -levels=2 -cgSolver=AMG
+
+mpirun -np 1 $ogmgp tz -noplot -g=square512.order2 -levels=2
+
 
 ****************
 *** July 27, 2015

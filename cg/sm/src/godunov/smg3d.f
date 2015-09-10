@@ -1767,15 +1767,18 @@ c.. locals
 c
 c      mu         = rparam(3)
 c      lam        = rparam(4)
-      relaxAlpha = rparam(7)
-      relaxDelta = rparam(8)
 c      eptz       = rparam(6)
 
 c      icart      = iparam(2)
 c      itz        = iparam(3)
       iRelax     = iparam(9)
 c
-      beta = relaxAlpha+relaxDelta/dt
+      ! *wdh* 2015/08/23 -- we now pass in alpha+delta/dt (to support MOL schemes)
+      beta       = rparam(7)
+      ! relaxAlpha = rparam(7)
+      ! relaxDelta = rparam(8)
+      ! beta = relaxAlpha+relaxDelta/dt
+
       kappa = lam+2.0*mu
       if( icart.eq.1 ) then
         do i3 = n3a,n3b

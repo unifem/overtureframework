@@ -94,6 +94,11 @@ MpParameters(const int & numberOfDimensions0) : Parameters(numberOfDimensions0)
   if (!dbase.has_key("interfaceProjectionGhostOption")) dbase.put<int>("interfaceProjectionGhostOption");
   dbase.get<int>("interfaceProjectionGhostOption")=1;
 
+  if (!dbase.has_key("relaxCorrectionSteps")) dbase.put<bool>("relaxCorrectionSteps")=false;
+
+  // Here is where we save the maximum residual on each interface
+  if( !dbase.has_key("maxResidual") ) dbase.put<std::vector<real> >("maxResidual");
+
   // initialize the items that we time: 
   initializeTimings();
 }
@@ -146,7 +151,7 @@ setPdeParameters(CompositeGrid & cg, const aString & command /* = nullString */,
   bool useNonlinearInterfaceProjection=dbase.get<int >("interfaceProjectionOption")==5;
 
   int & interfaceProjectionGhostOption = dbase.get<int>("interfaceProjectionGhostOption");
-  
+  bool & relaxCorrectionSteps= dbase.get<bool>("relaxCorrectionSteps");
 
   GUIState gui;
   gui.setExitCommand("done", "continue");
@@ -191,6 +196,7 @@ setPdeParameters(CompositeGrid & cg, const aString & command /* = nullString */,
                           "use new interface transfer",
                           "project interface",
                           "use nonlinear interface projection",
+                          "relax correction steps",
 			    ""};
     int tbState[10];
     tbState[0] = dbase.get<bool>("solveCoupledInterfaceEquations");
@@ -199,6 +205,7 @@ setPdeParameters(CompositeGrid & cg, const aString & command /* = nullString */,
     tbState[3] = dbase.get<bool>("useNewInterfaceTransfer");
     tbState[4] = dbase.get<bool>("projectInterface");
     tbState[5] = useNonlinearInterfaceProjection;
+    tbState[6] = relaxCorrectionSteps;
     
     int numColumns=1;
     addPrefix(tbLabels,prefix,cmd,maxCommands);
@@ -328,6 +335,7 @@ setPdeParameters(CompositeGrid & cg, const aString & command /* = nullString */,
       if( useNonlinearInterfaceProjection )
 	dbase.get<int >("interfaceProjectionOption")=5;
     }
+    else if( dialog.getToggleValue(answer,"relax correction steps",relaxCorrectionSteps) ){} // 
     // else if( dialog.getTextValue(answer,"dtMax","%e",dbase.get<real >("dtMax")) ){} //
     else if( len=answer.matches("domain order") )
     {

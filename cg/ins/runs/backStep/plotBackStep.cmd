@@ -25,6 +25,8 @@
 #
 # --- BACK-STEP IN A CHANNEL : compare to experiment ---
 #  plotStuff plotBackStep.cmd -show=backStepInChannel8.show -vorMin=-10. -vorMax=10.
+#  plotStuff plotBackStep.cmd -show=backStepInChannel16.show -vorMin=-10. -vorMax=10. -plotName=backStepRefineG16Vort10t50
+#  plotStuff plotBackStep.cmd -show=backStepInChannel16a.show -vorMin=-10. -vorMax=10. -plotName=junk
 #
 $show="cylbeam2.show"; $plotName=""; $solution=-1; 
 $vorMin=-50; $vorMax=25.; $zoom=0; 
@@ -55,7 +57,7 @@ $zoomCmd="#";
 if( $zoom eq 1 ){ $zoomCmd="DISPLAY AXES:0 0\n DISPLAY COLOUR BAR:0 0\n set view:0 0.452398 0.14198 0 5.00825 1 0 0 0 1 0 0 0 1"; }
 $zoomCmd
 #
-if( $plotName ne "" ){ $cmd="hardcopy file name:0 $plotName.ps\n hardcopy save:0"; }else{ $cmd="#"; }
+if( $plotName ne "" ){ $cmd="DISPLAY AXES:0 0\n DISPLAY COLOUR BAR:0 0\n bigger\n hardcopy file name:0 $plotName.ps\n hardcopy save:0"; }else{ $cmd="#"; }
 $cmd
 
 

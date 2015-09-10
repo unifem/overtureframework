@@ -47,23 +47,32 @@ endif
 
 Oges = ../oges
 
-ifeq ($(strip $(usePPP)),)
-PETSC_INCLUDE = -DOVERTURE_USE_PETSC -I$(PETSC_DIR)/include  -I$(PETSC_DIR)/bmake/$(PETSC_ARCH) -I$(PETSC_DIR)/include/mpiuni
-# PETSC_LIBS = -L$(PETSC_LIB) -lpetscsles -lpetscdm -lpetscmat -lpetscvec -lpetsc -lmpiuni
-PETSC_LIBS = -Wl,-rpath,$(PETSC_LIB) -L$(PETSC_LIB) -lpetscksp -lpetscdm -lpetscmat -lpetscvec -lpetsc -lmpiuni
-OGES_PETSC = buildEquationSolvers.o PETScEquationSolver.o 
-else
- PETSC_INCLUDE := -I$(PETSC_DIR)/include  -I$(PETSC_DIR)/bmake/$(PETSC_ARCH) -DOVERTURE_USE_PETSC
- PETSC_LIBS := -Wl,-rpath,$(PETSC_LIB) -L$(PETSC_LIB) -lpetscksp -lpetscdm -lpetscmat -lpetscvec -lpetsc 
- PETSC_LIBS += $(HYPRE_LIBS)
- OGES_PETSC := buildEquationSolvers.o \
-               PETScEquationSolver.o  \
-               MultigridEquationSolver.o \
-	       PETScSolver.o
-endif
-# apple: no petsc for now
-# PETSC_LIBS =
-# OGES_PETSC =
+# useHypre := on
+# 
+# ifeq ($(strip $(usePPP)),)
+# PETSC_INCLUDE = -DOVERTURE_USE_PETSC -I$(PETSC_DIR)/include  -I$(PETSC_DIR)/bmake/$(PETSC_ARCH) -I$(PETSC_DIR)/include/mpiuni
+# # PETSC_LIBS = -L$(PETSC_LIB) -lpetscsles -lpetscdm -lpetscmat -lpetscvec -lpetsc -lmpiuni
+# PETSC_LIBS = -Wl,-rpath,$(PETSC_LIB) -L$(PETSC_LIB) -lpetscksp -lpetscdm -lpetscmat -lpetscvec -lpetsc -lmpiuni
+# OGES_PETSC = buildEquationSolvers.o PETScEquationSolver.o 
+# else
+#  PETSC_INCLUDE := -I$(PETSC_DIR)/include  -I$(PETSC_DIR)/bmake/$(PETSC_ARCH) -DOVERTURE_USE_PETSC
+#  PETSC_LIBS := -Wl,-rpath,$(PETSC_LIB) -L$(PETSC_LIB) -lpetscksp -lpetscdm -lpetscmat -lpetscvec -lpetsc 
+#  PETSC_LIBS += $(HYPRE_LIBS)
+# OGES_PETSC := buildEquationSolvers.o \
+#               PETScEquationSolver.o  \
+#               MultigridEquationSolver.o \
+# 	      PETScSolver.o
+#   ifeq ($(useHypre),on)
+#     HYPRE = $(PETSC_DIR)/externalpackages/hypre-1.11.1b/linux-gnu-opt
+#     HYPRE_LIBS = -Wl,-rpath,$(HYPRE)/lib -L$(HYPRE)/lib -lHYPRE_DistributedMatrix -lHYPRE_DistributedMatrixPilutSolver -lHYPRE_Euclid -lHYPRE_IJ_mv -lHYPRE_LSI -lHYPRE_MatrixMatrix -lHYPRE_ParaSails -lHYPRE_krylov -lHYPRE_parcsr_ls -lHYPRE_parcsr_mv -lHYPRE_seq_mv -lHYPRE_sstruct_ls -lHYPRE_sstruct_mv -lHYPRE_struct_ls -lHYPRE_struct_mv
+# 
+#     PETSC_LIBS += $(HYPRE_LIBS)
+#   endif
+# 
+# endif
+# # apple: no petsc for now
+# # PETSC_LIBS =
+# # OGES_PETSC =
 
 all = linkFiles ogmgt
 all: $(all);

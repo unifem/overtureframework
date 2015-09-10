@@ -70,7 +70,7 @@
 # 
 $tFinal=10.; $tPlot=.05; $backGround="square"; $cfl=.9; $bc="sf"; $pv="nc";
 $ic="gaussianPulse";  $amp=.05; $exponent=50.; $x0=.5; $y0=.5; $z0=.5; $specialOption="default"; 
-$noplot=""; $grid="rectangle80.ar10"; $mu=1.; $lambda=1.; $godunovOrder=2;
+$noplot=""; $grid="rectangle80.ar10"; $mu=1.; $lambda=1.; $godunovOrder=2; $ts="me"; 
 $debug = 0;  $tPlot=.1;  $bc="d"; $cons=1; $dsf=0.4; 
 $diss=0.; $dissOrder=2;  # for NC scheme
 $tsdiss=.5; $tsdissdt=.5; # Tangential stress dissipation for Godunov
@@ -85,14 +85,15 @@ $tangentialStressDissipation=1.;
 #
 # ----------------------------- get command line arguments ---------------------------------------
 GetOptions( "g=s"=>\$grid,"tf=f"=>\$tFinal,"degreex=i"=>\$degreex, "degreet=i"=>\$degreet,"diss=f"=>\$diss,\
-"tp=f"=>\$tPlot, "tz=s"=>\$tz, "show=s"=>\$show,"order=i"=>\$order,"debug=i"=>\$debug, \
+"tp=f"=>\$tPlot, "tz=s"=>\$tz, "show=s"=>\$show,"order=i"=>\$order,"debug=i"=>\$debug,"ts=s"=>\$ts, \
  "cfl=f"=>\$cfl, "bg=s"=>\$backGround,"bc=s"=>\$bc,"ic=s"=>\$ic,"go=s"=>\$go,"noplot=s"=>\$noplot,\
   "mu=f"=>\$mu,"lambda=f"=>\$lambda,"dtMax=f"=>\$dtMax, "cons=i"=>\$cons,"x0=f"=>\$x0,"y0=f"=>\$y0,"z0=f"=>\$z0,\
   "pv=s"=>\$pv,"exponent=f"=>\$exponent,"godunovOrder=f"=>\$godunovOrder,"specialOption=s"=>\$specialOption,\
   "dsf=f"=>\$dsf,"filter=i"=>\$filter,"filterFrequency=i"=>\$filterFrequency,"filterOrder=i"=>\$filterOrder,\
   "filterStages=i"=>\$filterStages,"ad2=f"=>\$ad2,"ad4=f"=>\$ad4,"ad4dt=f"=>\$ad4dt,"model=s"=>\$model,\
   "godunovType=i"=>\$godunovType,"amp=f"=>\$amp,"dsf=f"=>\$dsf,"tsdiss=f"=>\$tsdiss,"tsdissdt=f"=>\$tsdissdt,\
-  "stressRelaxation=f"=>\$stressRelaxation,"tangentialStressDissipation=f"=>\$tangentialStressDissipation );
+  "stressRelaxation=f"=>\$stressRelaxation,"tangentialStressDissipation=f"=>\$tangentialStressDissipation,\
+  "relaxAlpha=f"=>\$relaxAlpha,"relaxDelta=f"=>\$relaxDelta );
 # -------------------------------------------------------------------------------------------------
 if( $solver eq "best" ){ $solver="choose best iterative solver"; }
 if( $tz eq "poly" ){ $tz="polynomial"; }else{ $tz="trigonometric"; }
@@ -102,6 +103,11 @@ if( $pv eq "c" ){ $pv = "conservative"; $cons=1; }
 if( $pv eq "g" ){ $pv = "godunov"; }
 if( $pv eq "h" ){ $pv = "hemp"; }
 if( $model eq "linear" ){ $model="linear elasticity"; }else{ $model="non-linear mechanics"; }
+#
+if( $ts eq "me" ){ $ts = "modifiedEquationTimeStepping"; }
+if( $ts eq "fe" ){ $ts = "forwardEuler"; }
+if( $ts eq "ie" ){ $ts = "improvedEuler"; }
+if( $ts eq "ab" ){ $ts = "adamsBashforth2"; }
 # 
 if( $bc eq "d" ){ $bc = "all=displacementBC"; }
 if( $bc eq "sf" ){ $bc = "all=tractionBC"; }
@@ -114,7 +120,7 @@ if( $bc eq "dsds" ){ $bc = "bcNumber1=displacementBC\n bcNumber2=tractionBC\n bc
 if( $ic eq "gaussianPulse" ){ $ic="gaussianPulseInitialCondition\n Gaussian pulse: 10 2 $exponent $x0 $y0 $z0 \n"; }
 if( $ic eq "zero" ){ $ic = "zeroInitialCondition"; }; 
 if( $ic eq "special" ){ $ic = "specialInitialCondition"; $dsf=.1; }
-if( $go eq "halt" ){ $go = "break"; }
+if( $gmodifiedEquationTimeSteppingo eq "halt" ){ $go = "break"; }
 if( $go eq "og" ){ $go = "open graphics"; }
 if( $go eq "run" || $go eq "go" ){ $go = "movie mode\n finish"; }
 # 
@@ -130,9 +136,10 @@ $grid
 $model
 # linear elasticity
 $pv
- continue
+continue
 # 
-modifiedEquationTimeStepping
+$ts
+# modifiedEquationTimeStepping
 # ----- trig IC's ----
 # twilightZoneInitialCondition
 # trigonometric

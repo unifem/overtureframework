@@ -22,9 +22,19 @@ saveShow( GridFunction & gf0 )
   
   if( ogshow!=NULL )
   {
+    const int appendToOldShowFile = parameters.dbase.get<int >("appendToOldShowFile");
     if( numberSavedToShowFile==-1 )
     {
-      numberSavedToShowFile=0;
+
+      // numberOfInitialFramesInShowFile = number of frames in the old showfile (if appending)
+      const int & numberOfInitialFramesInShowFile= parameters.dbase.get<int>("numberOfInitialFramesInShowFile");
+
+      numberSavedToShowFile=numberOfInitialFramesInShowFile;
+
+      // -- if we are appending to an old show file then do not save first solution
+      //    This solution is already there.
+      if( appendToOldShowFile )
+        return;
 
       // first call -- save general parameters to the show file root: 
 

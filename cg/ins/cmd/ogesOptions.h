@@ -14,6 +14,7 @@
 #    -- multigrid: 
 # $ogmgCmd : define any extra Ogmg commands here 
 # $ogmgMaxIterations : max. number of iterations (default=20)
+# $ogmgMaxExtraLevels : max. number of extra levels taht will be used (default=10)
 # $ogmgCycle : multigrid cycle 1=V, 2=W, .. #
 # $ogmgDebug :  debug parameter for Ogmg
 # $ogmgOpav : operator averaging option: 0=none, 1=all, 2=Cartesian grids
@@ -53,8 +54,10 @@ if( $ogmgOpav eq "0" ){ $ogmgOpav = "do not average coarse grid equations"; }\
 if( $ogmgSsr eq 1 ){ $ogmgSsr="show smoothing rates"; }else{ $ogmgSsr="#"; }
 if( $ogmgCoarseGridSolver eq "" ){ $ogmgCoarseGridSolver="choose best iterative solver"; }
 if( $ogmgCoarseGridSolver eq "best" ){ $ogmgCoarseGridSolver="choose best iterative solver"; }
+if( $ogmgCoarseGridSolver eq "AMG" ){ $ogmgCoarseGridSolver="algebraic multigrid"; }
 if( $ogmgDebugcg eq "" ){ $ogmgDebugcg=0; } #
 if( $ogmgAutoChoose eq "" ){ $ogmgAutoChoose=1; } #
+if( $ogmgMaxExtraLevels eq "" ){ $ogmgMaxExtraLevels=10; } #
 #
   $ogesSolver
  # these tolerances are chosen for PETSc
@@ -114,6 +117,8 @@ if( $ogmgAutoChoose eq "" ){ $ogmgAutoChoose=1; } #
      # NOTE: choosing "best" here will reset ILU levels etc from auto-choose
      if( $ogmgAutoChoose eq 0 ){ $ogmgOverideCoarseGridSolver=$ogmgCoarseGridSolver; }else{ $ogmgOverideCoarseGridSolver="#"; }
      $ogmgOverideCoarseGridSolver
+     # TEST: 
+     # $ogmgCoarseGridSolver
      #
      if( $ogmgCoarseGridMaxIterations ne "" ){ $cmd="maximum number of iterations\n $ogmgCoarseGridMaxIterations"; }else{ $cmd="#"; }
      $cmd
@@ -134,6 +139,8 @@ if( $ogmgAutoChoose eq "" ){ $ogmgAutoChoose=1; } #
     exit
    maximum number of interpolation iterations
         3
+   maximum number of extra levels
+     $ogmgMaxExtraLevels
    #      maximum number of levels
    #        5 4 3 2
    #      maximum number of extra levels

@@ -52,7 +52,12 @@ real getMaximumResidual();
 
 int getNumberOfIterations() const; 
 
+aString getSolverName() const;
+
 int buildMatrix( realCompositeGridFunction & coeff, realCompositeGridFunction & u );
+
+// -- print a description of the solver and options used
+virtual int printSolverDescription( const aString & label, FILE *file = stdout ) const; 
 
 virtual int printStatistics( FILE *file = stdout ) const;   // output any relevant statistics 
 
@@ -99,7 +104,7 @@ static int instancesOfPETSc;  // keeps count of how many different applications 
 //  PetscReal      norm;     /* norm of solution error */
   PetscInt       i,j,I,J,Istart,Iend; 
   PetscErrorCode ierr;
-  PetscTruth     flg;
+  PetscBool      flg;
   PetscScalar    v; 
 
   bool turnOnPETScMemoryTracing;    // have PETSc keep track of allocated memory.

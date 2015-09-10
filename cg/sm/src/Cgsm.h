@@ -116,7 +116,7 @@ advanceFOS( int current, real t, real dt,
 
 // advance a time step using the method of lines
 void
-advanceMethodOfLines( int current, real t, real dt );
+advanceMethodOfLines( int current, real t, real dt, int correction=0, AdvanceOptions *pAdvanceOptions=NULL );
 
 // advance the solution as a second-order system
 void 

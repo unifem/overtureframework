@@ -111,14 +111,16 @@ operatorAveraging(RealMappedGridFunction & coeffFine,
   int ipar[5]={0,0,0,0,0};
 
   const bool isRectangular = mgCoarse.isRectangular();
+  // 
+  const bool isCoarsestLevel=(level+1)==mgcg.numberOfMultigridLevels()-1;  
   
   if( equationToSolve!=OgesParameters::userDefined && isRectangular )
   {
-    // **** Predefined Equation and a rectangular Grid *****
+    // **** PREDEFINED Equation and a RECTANGULAR Grid *****
      
-    if( (level+1)==mgcg.numberOfMultigridLevels()-1 && parameters.useDirectSolverOnCoarseGrid )
+    if( isCoarsestLevel && parameters.useDirectSolverOnCoarseGrid )
     {
-      // the equations on the coarse level are built in the routine above
+      // the equations on the coarse level are built in the calling routine above
     }
     else
     {
@@ -130,9 +132,16 @@ operatorAveraging(RealMappedGridFunction & coeffFine,
     
     return 0;
   }
+
+  // *wdh* 2015/09/05 -- added option NOT to average equations on the coarsest level (e.g. for Hypre AMG solver)
+  const bool & averageEquationsOnCoarsestGrid = parameters.dbase.get<bool>("averageEquationsOnCoarsestGrid");
+
   if( equationToSolve!=OgesParameters::userDefined && 
-      (parameters.averagingOption==OgmgParameters::doNotAverageCoarseGridEquations ||
-       parameters.averagingOption==OgmgParameters::doNotAverageCoarseCurvilinearGridEquations) )
+      (
+       parameters.averagingOption==OgmgParameters::doNotAverageCoarseGridEquations ||
+       parameters.averagingOption==OgmgParameters::doNotAverageCoarseCurvilinearGridEquations ||
+       ( !averageEquationsOnCoarsestGrid && isCoarsestLevel ) 
+	) )
   {
     if( Ogmg::debug & 2 )
       printF("\n**** operatorAveraging: do NOT average coeff's for grid=%i, level=%i *****\n",grid,level+1); 

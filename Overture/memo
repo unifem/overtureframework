@@ -26,6 +26,12 @@ Changes:
 
 
    o 2015/08/15 - fixed bug in saving sequences with Cgmx.
+   o 2015/08/25 - there is a new option in plotStuff to compute and plot time averages of 
+                  solutions in a show file.
+   o 2015/09/09 - it is now possible to append results to existing show files. For example,
+                  when restarting a run the new results can be appended to the previously
+                  created show file(s). Choose the "append" option when opening a show file.
+                
 
 ==============================================================================================
 Overture.v26 - released August 1, 2015

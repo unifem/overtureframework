@@ -71,8 +71,8 @@ c..parameters
       alam=rparam(4)
       rho0=rparam(5)
       eptz=rparam(6)
-      relaxAlpha=rparam(7)
-      relaxDelta=rparam(8)
+      relaxAlpha=rparam(7) ! *wdh* relaxAlpha now holds alpha+delta/dt 
+      ! *wdh* relaxDelta=rparam(8)
       tsdiss=rparam(9)
       tsdissdt=rparam(10)
 
@@ -3444,7 +3444,9 @@ c
 c      irelax=2
 c      relaxAlpha=1.d0
 c      relaxDelta=0.d0
-      beta = relaxAlpha+relaxDelta/dt
+      ! *wdh* beta = relaxAlpha+relaxDelta/dt
+      ! relaxAlpha now holds relaxAlpha+relaxDelta/dt *wdh* 2015/08/23
+      beta = relaxAlpha
 c
 c      e11max=0.d0
 c      e12max=0.d0

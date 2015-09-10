@@ -5,7 +5,7 @@
 #   cgins [-noplot] cic -g=<name> -tf=<> -tp=<> -nu=<> -ts=[pc|im|afs] -iv=[viscous|full] -tm=[les] ...
 #          -solver=[best|yale|mg] -project=[0|1] -model=[ins|boussinesq] ...
 #         -psolver=[best|yale|mg] -pc=[ilu|lu] -inflow=[uniform|parabolic|control|pressure|radial] -oscillate=[0|1] ...
-#         -wall=[noSlip|slip] -cyl=[noSlip|slip] -restart=<showFile>...
+#         -wall=[noSlip|slip] -cyl=[noSlip|slip] -restart=<showFile> -cgSolver=[best|hypre] ...
 #
 # Options:
 #  -project : 1=project initial conditions
@@ -102,6 +102,10 @@ $tm = "#"; # turbulence model
 $lesOption=0; $lesPar1=.01; 
 $inflow = "uniform"; $wall="noSlip"; $cyl="noSlip"; $oscillate=0; $uInflow=1.; 
 $Prandtl=.72; $thermalExpansivity=.1; $Tin=1.;
+#
+$append=0; # set to "1" to append to an existing show file 
+#
+$cgSolver="best"; # coarse grid solver for MG 
 # -- for Kyle's AF scheme:
 $afit = 10;  # max iterations for AFS
 $aftol=1e-2;
@@ -117,7 +121,7 @@ GetOptions( "g=s"=>\$grid,"tf=f"=>\$tFinal,"tp=f"=>\$tPlot,"nu=f"=>\$nu,"recompu
             "inflow=s"=>\$inflow,"wall=s"=>\$wall,"cyl=s"=>\$cyl,"outflowOption=s"=>\$outflowOption,\
             "iv=s"=>\$iv,"newts=i"=>\$newts,"cfl=f"=>\$cfl, "model=s"=>\$model,"oscillate=i"=>\$oscillate,\
             "restart=s"=>\$restart,"Kp=f"=>\$Kp,"Ki=f"=>\$Ki,"Kd=f"=>\$Kd,"uInflow=f"=>\$uInflow,\
-            "fullImplicitSystem=i"=>\$fullImplicitSystem,\
+            "fullImplicitSystem=i"=>\$fullImplicitSystem,"cgSolver=s"=>\$cgSolver,"append=i"=>\$append,\
             "slowStartCFL=f"=>\$slowStartCFL,"slowStartSteps=i"=>\$slowStartSteps,"slowStartRecomputeDt=i"=>\$slowStartRecomputeDt );
 #
 $kThermal=$nu/$Prandtl;
@@ -161,7 +165,9 @@ $order
 # Next specify the file to save the results in. 
 # This file can be viewed with Overture/bin/plotStuff.
   show file options
-     compressed
+    if( $append eq 0 ){ $cmd="OBPSF:create new show file"; }else{ $cmd="OBPSF:append to old show file"; }
+    $cmd
+    compressed
       open
        $show
     frequency to flush
@@ -268,6 +274,10 @@ $iv
 #
   pressure solver options
    $ogesSolver=$psolver; $ogesRtol=$rtolp; $ogesAtol=$atolp; $ogesPC=$pc; $ogesDebug=$pdebug;
+   # ******* TEMP: 
+   # NOTE: reduce the relative tol for AMG 
+   if( $cgSolver eq "hypre" ){ $ogmgCoarseGridSolver="algebraic multigrid"; $ogmgCoarseGridMaxIterations=100; $ogmgRtolcg=1.e-5; $ogmgAutoChoose=0; }
+   # ******* END TEMP 
    include $ENV{CG}/ins/cmd/ogesOptions.h
   exit
 # 

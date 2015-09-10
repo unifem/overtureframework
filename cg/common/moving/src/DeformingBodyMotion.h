@@ -82,6 +82,12 @@ DeformingBodyMotion(Parameters & params,
 
 ~DeformingBodyMotion();
 
+int advanceInterfaceDeform( real t1, real t2, real t3, 
+			    GridFunction & cgf1,
+			    GridFunction & cgf2,
+			    GridFunction & cgf3,
+			    int option  );
+
 int buildBeamFluidInterfaceData( CompositeGrid & cg );
 
 int buildElasticShellOptionsDialog(DialogData & dialog );

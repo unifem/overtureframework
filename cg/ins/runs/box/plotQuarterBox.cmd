@@ -5,6 +5,8 @@
 #   plotStuff plotQuarterBox.cmd -show=quarterBox16.show -vorMax=60.
 #   mpirun -np 4 $plotStuffx plotQuarterBox.cmd -show=quarterBox16a.show -vorMax=30.
 #   mpirun -np 4 $plotStuffx plotQuarterBox.cmd -show=quarterBox16b.show -vorMax=30.
+#   mpirun -np 4 $plotStuffx plotQuarterBox.cmd -show=qBox16.show -vorMax=30.
+#   $plotStuffx plotQuarterBox.cmd -show=qBox16.show -vorMax=30.
 #
 #
 $show="quarterBox8.show"; $vorMax=20.; $cf=2; $dt=1.; $numTimes=5; $plotTerrain=1; $terrainOffset=0; 
@@ -33,11 +35,13 @@ grid
   plot grid lines 0
   toggle boundary 0 0 1 0
   toggle boundary 0 0 2 0
-  grid colour 2 BRASS
+  toggle boundary 0 0 3 0
+  grid colour 0 BRASS
+  grid colour 1 BRASS
   grid colour 2 BRASS
   grid colour 3 BRASS
+  grid colour 4 BRASS
   close colour choices
-  grid colour 1 BRASS
 exit this menu
 contour
   plot:enstrophy

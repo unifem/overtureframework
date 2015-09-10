@@ -139,7 +139,10 @@ multiDomainAdvanceNew( real &t, real & tFinal )
 
   // initialResidual : holds the initial residual
   // oldResidual     : holds previous max residual on the interface
-  std::vector<real> maxResidual, oldResidual, initialResidual, firstResidual;
+  std::vector<real> & maxResidual = parameters.dbase.get<std::vector<real> >("maxResidual");
+
+  // std::vector<real> maxResidual, oldResidual, initialResidual, firstResidual;
+  std::vector<real> oldResidual, initialResidual, firstResidual;
   bool interfaceIterationsHaveConverged=false;
   std::vector<AdvanceOptions> advanceOptions(numberOfDomains);  
 

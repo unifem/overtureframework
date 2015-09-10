@@ -5,6 +5,24 @@ Grids:
 
 ==================================================================================
 
+***********
+**** Sept 9, 2015 
+
+Kara's seg-fault
+
+cgad eyeDeform -g=realEyeGride2.order2.hdf -motion=realDeformingEye -kappa=.002 -tf=10. -tp=.05 -tz=none -ic=pulse -alphaPulse=40. -x0=-.5 -y0=-.05 -bc=n -ts=bdf -a=0.1 -b=0.0 -ampb=-.4 -implicitAdvection=1 -evalGridAsNurbs=1 -pde=thinFilm -show="realEye.show" -go=halt
+
+
+
+****************
+***** Sept 2, 2015
+
+TEST for Kara
+
+cgad tz -g=realEyeGride1.order2.hdf -tz=trig -fx=2. -fy=1. -ft=1. -kappa=.1 -ts=implicit -tp=.1 -tf=1. -bdfOrder=2 -bc=d -a=1. -b=1 -go=halt
+
+
+
 ****************
 ***** June 21, 2015
 

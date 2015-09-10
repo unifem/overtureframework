@@ -111,14 +111,49 @@ LAPACK_LIBRARY = -Wl,-rpath,/usr/lib64 -L/usr/lib64 -llapack -lblas
 usePPP = $(USE_PPP_FLAG)
 ifneq ($(strip $(usePPP)),)
   # P++ version
- PETSC_INCLUDE = -DOVERTURE_USE_PETSC -I$(PETSC_DIR)/include -I$(PETSC_DIR)/bmake/$(PETSC_ARCH)
- PETSC_LIBS = -Wl,-rpath,$(PETSC_LIB) -L$(PETSC_LIB) -lpetscksp -lpetscdm -lpetscmat -lpetscvec -lpetsc $(HYPRE_LIBS)
+  ifneq ($(OV_USE_PETSC_3),)
+    # for PETSc v3 
+    PETSC_INCLUDE = -I$(PETSC_DIR)/include  -I$(PETSC_DIR)/$(PETSC_ARCH)/include -DOVERTURE_USE_PETSC -I$(PETSC_LIB)/include 
+    PETSC_LIBS = -Wl,-rpath,$(PETSC_LIB) -L$(PETSC_LIB) -lpetsc
+
+    # =========== HYPRE ======
+    ifneq ($(OV_USE_HYPRE),)
+     PETSC_LIBS += -lHYPRE
+   endif
+
+  else
+    # for PETSc v2 
+    PETSC_INCLUDE = -DOVERTURE_USE_PETSC -I$(PETSC_DIR)/include -I$(PETSC_DIR)/bmake/$(PETSC_ARCH)
+    PETSC_LIBS = -Wl,-rpath,$(PETSC_LIB) -L$(PETSC_LIB) -lpetscksp -lpetscdm -lpetscmat -lpetscvec -lpetsc $(HYPRE_LIBS)
+  endif
  PETSC =  buildEquationSolvers.o PETScEquationSolver.o PETScSolver.o
+
 else
- PETSC_INCLUDE = -DOVERTURE_USE_PETSC -I$(PETSC_DIR)/include -I$(PETSC_DIR)/bmake/$(PETSC_ARCH) -I$(PETSC_DIR)/include/mpiuni
- PETSC_LIBS = -Wl,-rpath,$(PETSC_LIB) -L$(PETSC_LIB) -lpetscksp -lpetscdm -lpetscmat -lpetscvec -lpetsc -lmpiuni
+ # Serial version
+ ifeq ($(OV_USE_PETSC_3),3.0)
+    # PETsc 3.0: 
+    PETSC_INCLUDE = -DOVERTURE_USE_PETSC -I$(PETSC_DIR)/include -I$(PETSC_DIR)/bmake/$(PETSC_ARCH) -I$(PETSC_DIR)/include/mpiuni  -I$(PETSC_DIR)/$(PETSC_ARCH)/include 
+    PETSC_LIBS = -Wl,-rpath,$(PETSC_LIB) -L$(PETSC_LIB)  -lpetscksp -lpetscdm -lpetscmat -lpetscvec -lpetsc -lmpiuni
+
+ else ifneq ($(OV_USE_PETSC_3),3.1)
+    # for PETSc v3 
+    PETSC_INCLUDE = -I$(PETSC_DIR)/include  -I$(PETSC_DIR)/$(PETSC_ARCH)/include -I$(PETSC_DIR)/include/petsc/mpiuni -DOVERTURE_USE_PETSC -I$(PETSC_LIB)/include -I$(PETSC_DIR)/include/mpiuni
+    PETSC_LIBS = -Wl,-rpath,$(PETSC_LIB) -L$(PETSC_LIB) -lpetsc
+
+ else ifneq ($(OV_USE_PETSC_3),)
+    # for PETSc v3 
+    PETSC_INCLUDE = -I$(PETSC_DIR)/include  -I$(PETSC_DIR)/$(PETSC_ARCH)/include -I$(PETSC_DIR)/include/petsc/mpiuni -DOVERTURE_USE_PETSC -I$(PETSC_LIB)/include -I$(PETSC_DIR)/include/mpiuni
+    PETSC_LIBS = -Wl,-rpath,$(PETSC_LIB) -L$(PETSC_LIB) -lpetsc
+
+ else
+    # for PETSc v2 
+   PETSC_INCLUDE = -DOVERTURE_USE_PETSC -I$(PETSC_DIR)/include -I$(PETSC_DIR)/bmake/$(PETSC_ARCH) -I$(PETSC_DIR)/include/mpiuni
+   PETSC_LIBS = -Wl,-rpath,$(PETSC_LIB) -L$(PETSC_LIB) -lpetscksp -lpetscdm -lpetscmat -lpetscvec -lpetsc -lmpiuni
+ endif
  PETSC =  buildEquationSolvers.o PETScEquationSolver.o 
 endif
+
+OGES_PETSC := $(PETSC)
 
 # The KCC compiler should be used to build the static library (for templates)
 AR = ar

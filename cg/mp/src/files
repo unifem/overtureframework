@@ -1,6 +1,6 @@
 SRC_FILES += Cgmp.C multiDomainAdvanceNew.C multiDomainAdvance.C solve.C saveShow.C printTimeStepInfo.C \
              plot.C getTimeStep.C assignInterfaceBoundaryConditions.C setParametersInteractively.C advance.C \
-             MpParameters.C timeSteppingDialog.C interfaceProjection.C
+             MpParameters.C timeSteppingDialog.C interfaceProjection.C assignInterfaceBoundaryConditionsOld.C
 
 # fortran files the we always compile optimized
 # FSRCO += interfaceCnsSm.f 

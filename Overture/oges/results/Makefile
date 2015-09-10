@@ -35,6 +35,11 @@ endif
 oges = ..
 VPATH = $(oges)
 
+linkFiles:
+	ln -sf $(oges)/PETScEquationSolver.C .
+	ln -sf $(oges)/PETScSolver.C .
+	ln -sf $(oges)/buildEquationSolvers.C .
+
 
 all = tos
 all: $(all);
@@ -54,12 +59,13 @@ SUPER_LU_DIST_LIB = /home/henshaw/software/SuperLU_DIST_2.0/superlulinux.a
 SUPER_LU_DIST_LIB = 
 
 # *********** test the parallel interface to PETSc from Overture *************
-tos = tos.o PETScSolver.o ../buildEquationSolvers.o ../PETScEquationSolver.o
+# tos = tos.o PETScSolver.o ../buildEquationSolvers.o ../PETScEquationSolver.o
+tos = tos.o PETScSolver.o buildEquationSolvers.o PETScEquationSolver.o
 tos: $(tos) 
 	$(CC) $(CCFLAGS) -o tos $(tos)  \
               $(PETSC_LIBS) \
 	      $(SUPER_LU_DIST_LIB) \
-	      $(CLIBS)  -L$(LAPACK) -llapack  $(FLIBS) -llapack $(GLIBS)
+	       $(GLIBS) $(CLIBS) -L$(LAPACK) -llapack  $(FLIBS)
 
 
 

@@ -9,6 +9,8 @@
 
 #include "Overture.h"
 #include "OgesParameters.h"
+#include "DBase.hh"
+using namespace DBase;
 
 // forward declarations:
 class Ogmg;  
@@ -182,6 +184,9 @@ class OgmgParameters
 
   int updateToMatchGrid( CompositeGrid & cg, int maxLevels=useLevelsInGrid );  
   int update( GenericGraphicsInterface & gi, CompositeGrid & cg ); // update parameters interactively
+
+  /// Here is a database to hold parameters (new way)
+  mutable DataBase dbase; 
 
  protected:
 

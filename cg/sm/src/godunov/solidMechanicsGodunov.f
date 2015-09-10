@@ -101,7 +101,7 @@ c      pause
       mu   = rpar(10)
       ep   = rpar(11) ! exact solution identifier for tzflow
       relaxAlpha = rpar(12)
-      relaxDelta = rpar(13)
+      relaxDelta = rpar(13) ! *wdh* NOTE: no-longer used as relaxAlpha is now the full coefficient
       tangentialStressDissipation = rpar(14)  ! tangential-stress diss coeff
       tsdissdt = rpar(15)                     ! tangential-stress dt diss coeff
 
@@ -135,7 +135,7 @@ c      write(*,'("smg: dr=",3e9.2)') dr(0),dr(1),dr(2)
         rparam(5) = rho
         rparam(6) = ep
         rparam(7) = relaxAlpha
-        rparam(8) = relaxDelta
+        rparam(8) = relaxDelta  ! *wdh* NOTE: no-longer used as relaxAlpha is now the full coefficient
         rparam(9) = tangentialStressDissipation
         rparam(10) = tsdissdt
 
@@ -200,7 +200,7 @@ c      write(*,'("smg: dr=",3e9.2)') dr(0),dr(1),dr(2)
         rparam(5)=rho
         rparam(6)=ep
         rparam(7) = relaxAlpha
-        rparam(8) = relaxDelta
+        rparam(8) = relaxDelta  ! *wdh* NOTE: no-longer used as relaxAlpha is now the full coefficient
         rparam(9)=tangentialStressDissipation
         rparam(10) = tsdissdt
 

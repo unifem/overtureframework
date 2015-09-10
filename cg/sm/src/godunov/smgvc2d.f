@@ -84,8 +84,8 @@ c..parameters
 
 c stress relaxation
       iRelax=iparam(9)
-      relaxAlpha=rparam(7)
-      relaxDelta=rparam(8)
+      relaxAlpha=rparam(7) ! *wdh* relaxAlpha now holds alpha+delta/dt 
+      ! *wdh* relaxDelta=rparam(8)
 
 c format for material properties
       mformat=iparam(11)
@@ -2990,7 +2990,10 @@ c
       common / smgvar / amu,alam,rho0,mformat
       common / tzflow / eptz,itz
 c
-      beta = relaxAlpha+relaxDelta/dt
+      ! *wdh* beta = relaxAlpha+relaxDelta/dt
+      ! relaxAlpha now holds relaxAlpha+relaxDelta/dt *wdh* 2015/08/23
+      beta = relaxAlpha
+
       akappa = alam+2.d0*amu
 c
       if( icart.eq.1 ) then

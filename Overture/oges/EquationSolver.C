@@ -46,6 +46,15 @@ getName() const
 }
 
 
+// ============================================================================
+/// \brief Print a description of the solver and options used.
+// ============================================================================
+int EquationSolver::
+printSolverDescription( const aString & label, FILE *file /* = stdout */ ) const
+{
+  return 0;
+}
+
 //\begin{>>EquationSolverInclude.tex}{\subsection{printStatistics}} 
 int EquationSolver::
 printStatistics(FILE *file /* = stdout */ ) const

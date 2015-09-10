@@ -364,12 +364,12 @@ checkInterfaceForConvergence( const int correct,
 	real resRatio=min(1000., maxResidual[inter]/max(REAL_MIN*100.,oldResidual[inter]));
 	oldResidual[inter]=maxResidual[inter];
 	    
-	printF("=== After takeTimeStep: interface %i: (correction=%i t=%9.3e) :  max-interface-residual=%8.2e, "
-	       "ratio=%7.4f\n",
-	       inter,correct,tNew,maxResidual[inter],resRatio);
+	printF("--MP-- After takeTimeStep: interface %i: (correction=%i t=%9.3e) :  max-interface-residual=%8.2e, "
+	       "ratio=%7.4f tol=%8.2e\n",
+	       inter,correct,tNew,maxResidual[inter],resRatio,interfaceList[inter].interfaceTolerance);
 	fPrintF(interfaceFile,
-		" interface %i : t=%9.3e correction=%i max-interface-residual=%8.2e ratio=%7.4f [%i]\n",
-		inter,tNew,correct,maxResidual[inter],resRatio,inter);
+		" interface %i : t=%9.3e correction=%i max-interface-residual=%8.2e ratio=%7.4f tol=%8.2e [%i]\n",
+		inter,tNew,correct,maxResidual[inter],resRatio,interfaceList[inter].interfaceTolerance,inter);
             
       }
     }

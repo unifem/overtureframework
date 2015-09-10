@@ -1641,6 +1641,11 @@ c
         call ogDeriv( eptz,0,0,0,0,x,y,z,t,k-1,u0(k) )
       end do
 c
+      if( .true. )then
+        ! *wdh* 2015/09/23 -- Something is wrong below as ux(13) etc. have not been set!
+        write(*,'("ERROR: smg3d-NL: FIX ME")') 
+        stop 31415
+      end if
       du(1,1) = ux(13)
       du(1,2) = uy(13)
       du(1,3) = uz(13)
@@ -1723,11 +1728,14 @@ c.. locals
       integer ideriv
       include 'smupNLcommons.h'
 c
-      relaxAlpha = rparam(7)
-      relaxDelta = rparam(8)
       iRelax     = iparam(9)
 c
-      beta = relaxAlpha+relaxDelta/dt
+      ! *wdh* 2015/08/23 -- we now pass in alpha+delta/dt (to support MOL schemes)
+      beta       = rparam(7)
+      ! *wdh*relaxAlpha = rparam(7)
+      ! *wdh*relaxDelta = rparam(8)
+      ! *wdh*beta = relaxAlpha+relaxDelta/dt
+
       if( icart.eq.1 ) then
         do i3 = n3a,n3b
         do i2 = n2a,n2b

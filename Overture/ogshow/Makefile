@@ -280,7 +280,7 @@ pl = pl.o ../gui/getAnswer.o ../gui/textGetMenu.o
 pl = pl.o contour.o contour3d.o contour3dOpt.o grid3d.o gridOpt.o
 pl = pl.o contour3d.o contour3dOpt.o grid.o gridOpt.o
 pl = pl.o contour.o contour3dNew.o contour3d.o contour3dOpt.o contour3dOptNew.o
-pl = pl.o plotMapping.o plotStructured.o
+pl = pl.o plotMapping.o plotStructured.o 
 pl: $(pl) 
 	$(CC) $(CCFLAGS) -o $@ $(pl) \
         $(CLIBS) $(FLIBS) $(GLIBS)   
@@ -431,6 +431,7 @@ plotStuff= plotStuffDriver.o plotStuffFunction.o ShowFilePlotter.o ../otherStuff
 plotStuff= plotStuffDriver.o plotStuffFunction.o ShowFilePlotter.o contour.o grid.o DerivedFunctions.o DataPointMapping.o
 plotStuff= plotStuffDriver.o plotStuffFunction.o ShowFilePlotter.o contourOpt.o
 plotStuff= plotStuffDriver.o plotStuffFunction.o ShowFilePlotter.o  ../otherStuff/BodyForce.o
+plotStuff= plotStuffDriver.o plotStuffFunction.o ShowFilePlotter.o ShowFileReader.o DerivedFunctions.o
 plotStuff: $(plotStuff) 
 	$(CC) $(CCFLAGS) -DADD_USER_MAPPINGS -o $@ $(plotStuff) \
         $(CLIBS) $(FLIBS) $(GLIBS)

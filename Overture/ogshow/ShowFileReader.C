@@ -37,6 +37,9 @@ ShowFileReader(const aString & showFileName /* = nullString */ )
   
   streamMode=false;
   
+  // nnumberOfValidFiles = total number of valid show files (i.e. initial show file + sub-files)
+  if( !dbase.has_key("numberOfValidFiles") ){ dbase.put<int>("numberOfValidFiles")=0; } // 
+
   // Since we may delete Grids that we read in, we need to turn off the linking of Mappings,
   // otherwise we may try to link to a Mapping that has been deleted.
   MappingRC::setDataBaseMode(MappingRC::doNotLinkMappings);
@@ -155,7 +158,7 @@ countNumberOfFramesAndSolutions( const int displayInfo /* =1 */ )
   // -- This next call set numberOfFrames: 
   setCurrentFrameSeries(0);
 
-  printF("countNumberOfFramesAndSolutions: numberOfFrames=%i\n",numberOfFrames);
+  // printF("countNumberOfFramesAndSolutions: numberOfFrames=%i\n",numberOfFrames);
   return numberOfFrames;
   
 }
@@ -647,9 +650,14 @@ getASolution(int & solutionNumber,
     
     if( !isAMovingGrid() && frameForGrid!=frameNumberForGrid )
     {
-      printF("****ShowFileReader: read in a new grid for solutionNumber=%i \n",solutionNumber);
+      printF("--SFR-- read in a new grid for solutionNumber=%i (frameForGrid=%i) \n",
+	     solutionNumber,frameForGrid);
+
       gridWasFound = getAGrid(cg,solutionNumber,frameForGrid);
-      printF("ShowFileReader:numberOfComponentGrids=%i\n",cg.numberOfComponentGrids());
+      if( gridWasFound )
+      {
+        printF("--SFR-- new grid found, numberOfComponentGrids=%i\n",cg.numberOfComponentGrids());
+      }
       
       if( !gridWasFound )
         printF(" ShowFileReader:ERROR: no grid found?! \n");
@@ -677,6 +685,41 @@ getASolution(int & solutionNumber,
     return notFound;
 
 }
+// =========================================================================================
+/// \brief This utility routine will find which frames are in which files and save the
+///  results in the array fileNumberForFrame
+///
+/// \notes fileNumberForFrame[frameNumber] = subFile where frame is found 
+// =========================================================================================
+int ShowFileReader::
+locateFramesInFiles()
+{
+  if( !dbase.has_key("fileNumberForFrame") )
+   dbase.put<vector<int> >("fileNumberForFrame");
+
+  std::vector<int> & fileNumberForFrame = dbase.get<vector<int> >("fileNumberForFrame");
+
+  fileNumberForFrame.resize(numberOfFrames);
+
+  printF("--SFR-- locateFramesInFiles: frames are not in standard order (restart?). Make a list:");
+  int frame=0;
+  for( int fileNumber=0; fileNumber<numberOfShowFiles; fileNumber++ )
+  {
+    if( showFile[fileNumber]==NULL || showFile[fileNumber]->isNull() )
+      openShowFile(fileNumber);
+
+    int numFrames=0;
+    showFile[fileNumber]->get(numFrames,"numberOfFrames");
+    // printF("--SFR-- file=%i, frames-so-far = %i\n",fileNumber,numFrames);
+    for( int f=frame; f<numFrames; f++ )
+    {
+      fileNumberForFrame[f]=fileNumber;
+      printF("        frame %i is in file %i\n",f,fileNumber);
+    }
+    frame=numFrames;
+  }
+}
+
 
 
 //\begin{>>ShowFileReaderInclude.tex}{\subsubsection{getFrame}} 
@@ -722,8 +765,20 @@ getFrame(int solutionNumber /* = -1 */)
       // fileNumber=(solutionNumber-1)*/numberOfFramesPerFile;
 
       const int numberOfFrameSeries=frameSeriesNames.size();
-      const int fileSolution = (solutionNumber-1)*numberOfFrameSeries+currentFrameSeries;
-      fileNumber=(fileSolution)/numberOfFramesPerFile;
+      if( dbase.has_key("fileNumberForFrame") )
+      {
+        // If the fileNumberForFrame list has been constructed then use it:
+        //   fileNumberForFrame[frameNumber] = subFile where frame is found 
+	std::vector<int> & fileNumberForFrame = dbase.get<vector<int> >("fileNumberForFrame");
+	fileNumber =fileNumberForFrame[solutionNumber-1];
+      }
+      else
+      {
+        // By default we can often compute the sub-file where the frame is found. 
+	const int fileSolution = (solutionNumber-1)*numberOfFrameSeries+currentFrameSeries;
+	fileNumber= min( (fileSolution)/numberOfFramesPerFile, numberOfShowFiles-1);
+      }
+      
       assert( fileNumber<numberOfShowFiles );
 
       if( showFile[fileNumber]==NULL || showFile[fileNumber]->isNull() )
@@ -731,24 +786,67 @@ getFrame(int solutionNumber /* = -1 */)
       if ( showFile[fileNumber]->locate(frameSeriesDB,frameSeriesNames[currentFrameSeries],"frameSeries")==0 )
 	found = frameSeriesDB.locate(currentFrame,frameName,"frame")==0;
 
-      printF("ShowFileReader::getFrame: Look for solution %i in fileNumber=%i : found=%i "
-             "(numberOfFramesPerFile=%i,numberOfFrameSeries=%i)\n",solutionNumber,fileNumber,(int)found,
-             numberOfFramesPerFile,numberOfFrameSeries);
+      if( false )
+	printF("ShowFileReader::getFrame: Look for solution %i in fileNumber=%i : found=%i "
+	       "(numberOfFramesPerFile=%i,numberOfFrameSeries=%i)\n",solutionNumber,fileNumber,(int)found,
+	       numberOfFramesPerFile,numberOfFrameSeries);
+
+      if( found )
+	printF("--SFR-- getFrame: solution %i found in file %i.\n",solutionNumber,fileNumber);
     }
 
     if( !found )
     {
-      fileNumber=0;
-      while ( fileNumber<numberOfShowFiles && !found )
-      {// kkc 061023 this will be less efficient when there are lots of show files,
-	//           but it also works if the number of frames per file is changed on the fly
+      // --- Search for a frame when showFiles have different numbers of frames per file ---
+
+      if( true )
+      {
+        // -- new way: *wdh* 2015/09/08
+        // construct a list of where frames are located
+
+	if( !dbase.has_key("fileNumberForFrame") )
+	{ 
+	  locateFramesInFiles();  // this call will build the list fileNumberForFrame
+	}
+        // fileNumberForFrame[frameNumber] = subFile where frame is found 
+	std::vector<int> & fileNumberForFrame = dbase.get<vector<int> >("fileNumberForFrame");
+	fileNumber =fileNumberForFrame[solutionNumber-1];
+
 	if( showFile[fileNumber]==NULL || showFile[fileNumber]->isNull() )
 	  openShowFile(fileNumber);
 
 	if ( showFile[fileNumber]->locate(frameSeriesDB,frameSeriesNames[currentFrameSeries],"frameSeries")==0 )
 	  found = frameSeriesDB.locate(currentFrame,frameName,"frame")==0;
-	fileNumber++;
+
+	if( found )
+	  printF("--SFR-- getFrame: solution %i found in file %i.\n",solutionNumber,fileNumber);
+        else
+	{
+	  printF("--SFR-- getFrame:ERROR solution %i NOT found in file %i (from list).\n",solutionNumber,fileNumber);
+	  OV_ABORT("ERROR -- this should not happen");
+	}
+	
       }
+      else
+      {
+	// *old way*
+	fileNumber=0;
+	while ( fileNumber<numberOfShowFiles && !found )
+	{// kkc 061023 this will be less efficient when there are lots of show files,
+	  //           but it also works if the number of frames per file is changed on the fly
+	  if( showFile[fileNumber]==NULL || showFile[fileNumber]->isNull() )
+	    openShowFile(fileNumber);
+
+	  if ( showFile[fileNumber]->locate(frameSeriesDB,frameSeriesNames[currentFrameSeries],"frameSeries")==0 )
+	    found = frameSeriesDB.locate(currentFrame,frameName,"frame")==0;
+
+	  if( found )
+	    printF("ShowFileReader::getFrame: solution %i found in file %i (after search).\n",solutionNumber,fileNumber);
+
+	  fileNumber++;
+	}
+      }
+      
     }
     
     if ( !found ) 
@@ -1059,10 +1157,13 @@ getGeneralParameter(const aString & name, ShowFileParameter::ParameterType type,
   }
   if( iter==generalParameters.end() )
   {
-    printF("ShowFileReader::getGeneralParameter:WARNING: name=%s was not found. currentFrameSeries=%i, "
-           "placeToSave=%s\n",
-                  (const char*)name,currentFrameSeries, (placeToSave==Ogshow::THECurrentFrameSeries ?
-                           "current frame series" : "root"));
+    if( false )
+    {
+      printF("ShowFileReader::getGeneralParameter:WARNING: name=%s was not found. currentFrameSeries=%i, "
+	     "placeToSave=%s\n",
+	     (const char*)name,currentFrameSeries, (placeToSave==Ogshow::THECurrentFrameSeries ?
+						    "current frame series" : "root"));
+    }
     return false;  // not found
   }
 
@@ -1330,7 +1431,8 @@ open(const aString & showFileName, const int displayInfo /* =1 */ )
 //     showFile[0]->get(multiFile,"multiFile"); 
 
     // This may be a multi-file showfile, so look for all sub-files
-    getNumberOfValidFiles(displayInfo);
+    int & numberOfValidFiles = dbase.get<int>("numberOfValidFiles");
+    numberOfValidFiles = getNumberOfValidFiles(displayInfo);
     // count the total number of frames in the show file(s)
     countNumberOfFramesAndSolutions(displayInfo);
 

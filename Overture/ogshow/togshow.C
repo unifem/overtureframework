@@ -17,8 +17,14 @@ main(int argc, char *argv[])
 
   aString nameOfOGFile="cic.hdf", nameOfShowFile="cic.show";
   
-  printF("Usage:togshow -g=gridName -show=showFileName -append\n");
+  printF("Usage:togshow -g=gridName -show=showFileName [-append] [-numberOfTimeSteps=<i>] [-flushFrequency=<i>]\n");
   Ogshow::ShowFileOpenOption showFileOpenOption = Ogshow::openNewFileForWriting;
+  bool append=false;
+  
+  int numberOfTimeSteps=3;
+  int flushFrequency=1; // 2;
+
+  Ogshow::debug=3; // set to 3 = 1+2 for debug info from Ogshow
 
   if( argc>1 )
   {
@@ -35,30 +41,24 @@ main(int argc, char *argv[])
       {
         nameOfShowFile=line(len,line.length()-1);
       }
+      else if( len=line.matches("-numberOfTimeSteps=") )
+      {
+        sScanF(line(len,line.length()-1),"%i",&numberOfTimeSteps);
+	printF("Setting numberOfTimeSteps=%i\n",numberOfTimeSteps);
+      }
+      else if( len=line.matches("-flushFrequency=") )
+      {
+        sScanF(line(len,line.length()-1),"%i",&flushFrequency);
+	printF("Setting flushFrequency=%i\n",flushFrequency);
+      }
       else if( line=="-append" )
       {
         showFileOpenOption=Ogshow::openOldFileForWriting;
+	append=true;
       }
     }
   }
 
-//   #ifndef USE_PPP
-//   if( argc>1 )
-//     nameOfOGFile=argv[1];
-//   if( argc>2 )
-//     nameOfShowFile=argv[2];
-//   #endif
-  
-//   if( nameOfOGFile=="" )
-//   {
-//     cout << "togshow>> Enter the name of the (old) overlapping grid file:" << endl;
-//     cin >> nameOfOGFile;
-//   }
-//   if( nameOfShowFile=="" )
-//   {
-//     cout << "togshow>> Enter the name of the (new) show file (blank for none):" << endl;
-//     cin >> nameOfShowFile;
-//   }
   
   CompositeGrid cg;
   getFromADataBase(cg,nameOfOGFile);          // read from a data base file
@@ -70,9 +70,10 @@ main(int argc, char *argv[])
 
   Ogshow show(nameOfShowFile,".",useStreamMode,showFileOpenOption);  // create a show file
   
+  // save general comments unless we are appending to an existing show file
   show.saveGeneralComment("Solution to the Navier-Stokes"); // save a general comment in the show file
   show.saveGeneralComment(" file written on April 1");      // save another general comment
-    
+
   Range all;
   realCompositeGridFunction q(cg,all,all,all,3); // create a grid function with 3 components
 //   realCompositeGridFunction u,v,machNumber;  // create grid functions for components
@@ -87,19 +88,25 @@ main(int argc, char *argv[])
   q.setName("T",2);                          // name of third component
 
   char buffer[80];                           // buffer for sprintf
-  int numberOfTimeSteps=3;
-  int flushFrequency=1; // 2;
 //  cout << "Enter number of steps and the flush frequency" << endl;
 //  cin >> numberOfTimeSteps >> flushFrequency;
 
   show.setFlushFrequency(flushFrequency);
   
+  real t0=0., dt=.1;
+  int solutionNumber=0;
+  if( append )
+  {
+    solutionNumber=show.getNumberOfFrames();
+    t0 = solutionNumber*dt;
+  }
+
   for( int i=1; i<=numberOfTimeSteps; i++ )  // Now save the grid functions at different time steps
   {
     show.startFrame();                       // start a new frame
-    real t=i*.1;
-    show.saveComment(0,sPrintF(buffer,"Here is solution %i",i));              // comment 0 (shown on plot)
-    show.saveComment(1,sPrintF(buffer,"  t=%e ",t));              // comment 1 (shown on plot)
+    real t= t0 + i*dt;
+    show.saveComment(0,sPrintF(buffer,"Here is solution %i",solutionNumber+i));  // comment 0 (shown on plot)
+    show.saveComment(1,sPrintF(buffer,"  t=%e ",t));                             // comment 1 (shown on plot)
     
     for( int grid=0; grid<cg.numberOfComponentGrids(); grid++ )
     {
@@ -121,12 +128,12 @@ main(int argc, char *argv[])
     
     show.getFrame()->put(t,"t");         // save some extra info using data base functions
     
-    printF("save solution %i\n",i);
+    printF("--togshow-- save solution %i\n",i);
 
     // if( ( (i % flushFrequency) ==0 ) || i==numberOfTimeSteps )
     if( show.isLastFrameInSubFile() )
     {
-      printf(" -- save seq info at step=%i --- \n",i);
+      printf("--togshow-- save seq info at step=%i --- \n",i);
       
       const int n=10*i;
       RealArray time(n);
@@ -141,7 +148,7 @@ main(int argc, char *argv[])
 
     if( true ) show.endFrame();
     
-    if( i==numberOfTimeSteps-3 ) Overture::abort("error");
+    // if( i==numberOfTimeSteps-3 ) Overture::abort("error");
 
   }
 

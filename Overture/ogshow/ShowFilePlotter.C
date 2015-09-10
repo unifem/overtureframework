@@ -214,6 +214,7 @@ buildPlotStuffDialog(DialogData & dialog, realCompositeGridFunction & u0, const 
                     "save ovText file",
                     "save plot3d file",
                     "forcing regions",
+                    "plot averages...",
                     // "user defined output",
                     // "file output",
 		    // "plot options...",
@@ -681,8 +682,9 @@ setFrameSeriesTitles(int cfs)
     {
       aString pname;
       sfp.get(pname,stringParameter,ivalue,rvalue,stringValue);
-      printF(" ShowFilePlotter::setFrameSeriesTitles: pname=[%s] stringValue=[%s]\n",
-             (const char*)pname,(const char*)stringValue);
+      if( false )
+	printF("--ShowFilePlotter::setFrameSeriesTitles: pname=[%s] stringValue=[%s]\n",
+	       (const char*)pname,(const char*)stringValue);
       
       if( pname=="title") 
         title[0]=stringValue;
@@ -894,7 +896,7 @@ plot()
   // this next class knows how to form derived quantities such as vorticity, derivatives etc.
   // DerivedFunctions derivedFunctions(showFileReader);
   // DerivedFunctions derivedFunctions[numberOfFrameSeries];
-  DerivedFunctions *derivedFunctions = new DerivedFunctions [numberOfFrameSeries];
+  derivedFunctions = new DerivedFunctions [numberOfFrameSeries];
   for( int fs=0; fs<numberOfFrameSeries; fs++ )
   {
     showFileReader.setCurrentFrameSeries(fs);
@@ -1675,6 +1677,10 @@ plot()
       DataFormats::writePlot3d(u[cfs],par); 
 
     }
+    else if( answer=="plot averages..." )
+    {
+      plotAverages( cfs );
+    }
     else
     {
       printF("unknown response, answer=[%s]\n",(const char*)answer);
@@ -1701,7 +1707,9 @@ plot()
       for( int frame=1; frame<=numberOfMovieFrames; frame+=frameStride )
       {
 	// movie mode ** check here if the user has hit break ***
-	if( ps.isGraphicsWindowOpen() && !ps.readingFromCommandFile() )  
+        // *wdh* fix for parallel - use isInteractiveGraphicsOn 2015/09/04:
+        // if( ps.isGraphicsWindowOpen() && !ps.readingFromCommandFile() )  
+	if( ps.isInteractiveGraphicsOn() && !ps.readingFromCommandFile() )  
 	{
 	  // ps.outputString(sPrintF(buff,"Check for break at t=%e\n",t));
 	  answer="";
@@ -1731,7 +1739,7 @@ plot()
 	// derivedFunctions.getASolution(solutionNumber[cfs],cg[cfs],u[cfs]);
 	for( int fs=0; fs<numberOfFrameSeries; fs++ )
 	{
-	  solutionNumber[fs] = (solutionNumber[fs]+numberOfSolutions[fs]+ frameStride-1) % numberOfSolutions[fs] +1;
+	  solutionNumber[fs] = ((solutionNumber[fs]+numberOfSolutions[fs]+ frameStride-1) % numberOfSolutions[fs]) +1;
 	  if( plotOptions[fs]!=0 )
 	  {
 	    showFileReader.setCurrentFrameSeries(fs);
@@ -1828,4 +1836,201 @@ plot()
   }
 
   return done;
+}
+
+
+
+///================================================================================================================
+/// \brief  Plot time averages of the solutions in a show file
+///
+/// \param cfs (input) : current frame series
+///================================================================================================================
+int ShowFilePlotter::
+plotAverages( int cfs )
+{
+  GenericGraphicsInterface & gi = ps;
+  
+  GUIState gui;
+  gui.setWindowTitle("Plot Averages");
+  gui.setExitCommand("exit", "continue");
+  DialogData & dialog = (DialogData &)gui;
+
+  aString prefix = ""; // prefix for commands to make them unique.
+
+  int startFrame=1, endFrame=-1, stride=1;
+  aString showFileName="uBar.show";
+  
+  bool buildDialog=true;
+  if( buildDialog )
+  {
+
+    const int maxCommands=40;
+    aString cmd[maxCommands];
+
+    const int numColumns=2;
+    dialog.setOptionMenuColumns(numColumns);
+
+    // aString twilightZoneOptions[] = {"polynomial",
+    // 				     "trigonometric",
+    // 				     ""};
+    // GUIState::addPrefix(twilightZoneOptions,"Twilight-zone: ",cmd,maxCommands);
+    // dialog.addOptionMenu( "Twilight-zone:", cmd, twilightZoneOptions, (int)twilightZoneOption );
+
+    aString pbLabels[] = {"compute average",
+                          "contour...",
+                          "stream lines...",
+                          "save solution",
+    			  "help",
+    			  ""};
+    int numEntries=5;
+    int numRows=numEntries/numColumns;
+    dialog.setPushButtons( pbLabels, pbLabels, numRows ); 
+
+
+    // aString tbCommands[] = {"use exact solution",
+    //                         "save profile file",
+    //                         "save probe file",
+    // 			    ""};
+    // int tbState[15];
+    // tbState[0] = useExactSolution;
+    // tbState[1] = dbase.get<bool>("saveProfileFile");
+    // tbState[2] = dbase.get<bool>("saveProbeFile");
+    // dialog.setToggleButtons(tbCommands, tbCommands, tbState, numColumns); 
+
+
+    const int numberOfTextStrings=40;
+    aString textLabels[numberOfTextStrings];
+    aString textStrings[numberOfTextStrings];
+
+    int nt=0;
+    
+    textLabels[nt] = "start frame:"; sPrintF(textStrings[nt], "%i",startFrame);  nt++; 
+    textLabels[nt] = "end frame:"; sPrintF(textStrings[nt], "%i (-1=use last)",endFrame);  nt++; 
+    textLabels[nt] = "stride:"; sPrintF(textStrings[nt], "%i",stride);  nt++; 
+    textLabels[nt] = "show file name:"; sPrintF(textStrings[nt], "%s",(const char*)showFileName);  nt++; 
+
+    // null strings terminal list
+    textLabels[nt]="";   textStrings[nt]="";  assert( nt<numberOfTextStrings );
+    // addPrefix(textLabels,prefix,cmd,maxCommands);
+    // dialog.setTextBoxes(cmd, textLabels, textStrings);
+    dialog.setTextBoxes(textLabels, textLabels, textStrings);
+
+
+  }
+  
+  CompositeGrid & cg0 = cg[cfs];
+
+  // ------------ Here is where we store the average --------------------
+  Range all, C=numberOfComponents[cfs];
+  realCompositeGridFunction uBar(cg0,all,all,all,C);
+
+  // Set component names
+  for( int c=0; c<numberOfComponents[cfs]; c++ )
+    uBar.setName(u[cfs].getName(c),c);
+
+
+  bool averageComputed=false;  // set to true when the average has been computed
+
+  aString answer,buff;
+
+  gi.pushGUI(gui);
+  gi.appendToTheDefaultPrompt("average>");
+  int len=0;
+  for( ;; ) 
+  {
+	    
+    gi.getAnswer(answer,"");
+  
+    // printF(answer,"answer=[answer]\n",(const char *)answer);
+
+    if( answer(0,prefix.length()-1)==prefix )
+      answer=answer(prefix.length(),answer.length()-1);
+
+
+    if( answer=="done" || answer=="exit" )
+    {
+      break;
+    }
+    else if( answer=="help" )
+    {
+      printF("Plot `time' averages of the solutions in the show file\n");
+    }
+    else if( answer=="contour..."  || answer=="stream lines..."  )
+    {
+      if( !averageComputed )
+      {
+	printF("INFO: You should compute the average before plotting the solution\n");
+	continue;
+      }
+
+      gi.erase();
+      const int lastFrame = endFrame==-1 ? numberOfSolutions[cfs] : endFrame;
+      psp[cfs].set(GI_TOP_LABEL_SUB_1,sPrintF("Average over frames [%i:%i:%i]",startFrame,stride,lastFrame));
+
+      if( answer=="contour..." )
+	PlotIt::contour( gi,uBar, psp[cfs] );
+      else
+	PlotIt::streamLines( gi,uBar, psp[cfs] );
+    }
+    
+    else if( dialog.getTextValue(answer,"start frame:","%i",startFrame) ){} //
+    else if( dialog.getTextValue(answer,"end frame:","%i (-1=use last)",endFrame) ){} //
+    else if( dialog.getTextValue(answer,"stride:","%i",stride) ){} //
+    else if( dialog.getTextValue(answer,"show file name:","%i",showFileName) ){} //
+    else if( answer=="compute average" )
+    {
+      
+      uBar=0.;  // average is stored here 
+
+      const int lastFrame = endFrame==-1 ? numberOfSolutions[cfs] : endFrame;
+      for( int frame=startFrame; frame<=lastFrame; frame+=stride )
+      {
+       
+	derivedFunctions[cfs].getASolution(frame,cg[cfs],u[cfs]);
+
+        uBar += u[cfs];
+      }
+      int numFrames = (lastFrame-startFrame+1);
+      uBar *= (1./numFrames);
+      
+      averageComputed=true;
+    }
+    else if( answer=="save solution" )
+    {
+      if( !averageComputed )
+      {
+	printF("INFO: You should compute the average before saving the solution\n");
+	continue;
+      }
+      
+      printF("Saving the averaged solution in the show file [%s]\n",(const char*)showFileName);
+      int useStreamMode=true; 
+      Ogshow show(showFileName,".",useStreamMode);  // create a show file
+
+      show.saveGeneralComment(sPrintF(buff,"Averaged solution saved from show file=%s",(const char*)nameOfShowFile)); // save a general comment in the show file
+
+      show.startFrame();                       // start a new frame
+      const int lastFrame = endFrame==-1 ? numberOfSolutions[cfs] : endFrame;
+      show.saveComment(0,sPrintF("Average over frames [%i:%i:%i]",startFrame,stride,lastFrame));
+      // show.saveComment(1,sPrintF(buffer,"  t=%e ",t));              // comment 1 (shown on plot)
+
+      show.saveSolution( uBar );              // save the current grid function
+
+      // show.getFrame()->put(t,"t");         // save some extra info using data base functions
+      show.endFrame();
+      show.close();
+
+    }
+    else
+    {
+      printF("plotAverages:ERROR:unknown response=[%s]\n",(const char*)answer);
+      gi.stopReadingCommandFile();
+    }
+  }
+    
+
+  gi.popGUI();
+  gi.unAppendTheDefaultPrompt();
+
+  return 0;
 }

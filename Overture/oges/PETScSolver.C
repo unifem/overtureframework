@@ -136,25 +136,26 @@ destroy()
   */
 //   printF("VectDestroy x, vect object %i.\n",numberOfVects);
 //   numberOfVects--;
-  ierr = VecDestroy(x);   CHKERRQ(ierr);
+  ierr = VecDestroy(&x);   CHKERRQ(ierr);
 
 //   printF("VectDestroy b, vect object %i.\n",numberOfVects);
 //   numberOfVects--;
-  ierr = VecDestroy(b);   CHKERRQ(ierr);  
+  ierr = VecDestroy(&b);   CHKERRQ(ierr);  
 
 //   printF("MatDestroy object %i.\n",numberOfMats);
 //   numberOfMats--;
-  ierr = MatDestroy(A);   CHKERRQ(ierr);
+  ierr = MatDestroy(&A);   CHKERRQ(ierr);
+  assert( A==NULL );
 
   // printF("KSPDestroy object %i.\n",numberOfKsp);
   // numberOfKsp--;
 
-  ierr = KSPDestroy(ksp); CHKERRQ(ierr);
+  ierr = KSPDestroy(&ksp); CHKERRQ(ierr);
   if( problemIsSingular!=notSingular && nullVector!=NULL )
   {
 //     printF("VectDestroy nullVector[0], vect object %i.\n",numberOfVects);
 //     numberOfVects--;
-    ierr = VecDestroy(nullVector[0]);  CHKERRQ(ierr);
+    ierr = VecDestroy(&nullVector[0]);  CHKERRQ(ierr);
   }
   delete diagonalScale; diagonalScale=NULL;
   
@@ -283,6 +284,63 @@ finalizePETSc()
     initialized=false;  // do this to prevent errors from multiple calls to this function
   }
   return 0;
+}
+
+// =======================================================================================
+/// \brief return the name of the PETSc solver (KSP method, PC type etc.) 
+// =======================================================================================
+aString PETScSolver::
+getSolverName() const
+{
+  // extract a name of the solver -- here we get the name from petsc:
+  aString name="";
+  const int maxLen=100;
+  char buff[maxLen+1];
+  PetscBool     flg;
+  PetscOptionsGetString(PETSC_NULL,"-ksp_type",buff,maxLen,&flg);
+  if( flg )
+    name = name + "ksp[" + buff + "]";
+  else
+    name = "ksp[unknown]";
+  
+  PetscOptionsGetString(PETSC_NULL,"-pc_type",buff,maxLen,&flg);
+  aString pcType=buff;
+  name = name + " pc[" + pcType;
+
+  if( pcType=="hypre" )
+  {
+    PetscOptionsGetString(PETSC_NULL,"-pc_hypre_type",buff,maxLen,&flg);
+    aString hypreType=buff;
+    // if( hypreType=="boomeramg" ) hypreType="AMG";
+    name = name + "-" + hypreType;
+  }
+  name = name + "]";
+  
+
+  if( pcType!="hypre" )
+  {
+    PetscOptionsGetString(PETSC_NULL,"-sub_ksp_type",buff,maxLen,&flg);
+    name = name + " sub-ksp[" + buff + "]";
+
+    PetscOptionsGetString(PETSC_NULL,"-sub_pc_type",buff,maxLen,&flg);
+    aString subPCType=buff;
+    if( subPCType=="ilu" )
+    {
+//        PetscOptionsGetString(PETSC_NULL,"-sub_pc_ilu_levels",buff,maxLen,&flg);
+      PetscOptionsGetString(PETSC_NULL,"-sub_pc_factor_levels",buff,maxLen,&flg);
+      if( flg )
+	name = name + "-" + subPCType + "(" + buff + ")";
+    }
+    else
+    {
+      name = name + " sub-pc[" + subPCType + "]";
+    }
+      
+  }
+
+  // printF("--PETSc-- solver: %s\n",(const char*)name);
+
+  return name;
 }
 
 
@@ -473,6 +531,75 @@ buildGlobalIndexing(CompositeGrid & cg, realCompositeGridFunction & uu )
 }
 
 
+// ============================================================================
+/// \brief Print a description of the solver and options used.
+/// \note: NOTE: the corresponding function in class Oges will first print some info,
+///    before this routine is called.
+// ============================================================================
+int PETScSolver::
+printSolverDescription( const aString & label, FILE *file /* = stdout */ ) const
+{
+  PetscBool flg;
+  aString name;
+  const int maxLen=100;
+  char buff[maxLen+1];
+  // PetscOptionsGetString(PETSC_NULL,"-ksp_type",buff,maxLen,&flg);
+  PetscOptionsGetString(PETSC_NULL,"-pc_type",buff,maxLen,&flg);
+  aString pcType=buff;
+  if( pcType=="hypre" )
+  {
+    PetscOptionsGetString(PETSC_NULL,"-pc_hypre_type",buff,maxLen,&flg);
+    name=buff;
+    if( name=="boomeramg" )
+    {
+      aString cycle="?",threshold="?",coarsenType="?";
+      PetscOptionsGetString(PETSC_NULL,"-pc_hypre_boomeramg_cycle_type",buff,maxLen,&flg); if( flg) cycle=buff;
+      PetscOptionsGetString(PETSC_NULL,"-pc_hypre_boomeramg_strong_threshold",buff,maxLen,&flg); if( flg) threshold=buff;
+      PetscOptionsGetString(PETSC_NULL,"-pc_hypre_boomeramg_coarsen_type",buff,maxLen,&flg); if( flg)coarsenType=buff;
+      
+      fPrintF(file," Hypre: AMG (boomeramg) cycle=%s, strong-threshold=%s, coarsen-type=%s \n",
+              (const char*)cycle,
+              (const char*)threshold,
+	      (const char*)coarsenType);
+    }
+
+  }
+  
+  // Results fron -help (.petscrc)
+  // HYPRE BoomerAMG Options
+  // -pc_hypre_boomeramg_cycle_type <V> (choose one of) V W (None)
+  // -pc_hypre_boomeramg_max_levels <25>: Number of levels (of grids) allowed (None)
+  // -pc_hypre_boomeramg_max_iter <1>: Maximum iterations used PER hypre call (None)
+  // -pc_hypre_boomeramg_tol <0>: Convergence tolerance PER hypre call (0.0 = use a fixed number of iterations) (None)
+  // -pc_hypre_boomeramg_truncfactor <0>: Truncation factor for interpolation (0=no truncation) (None)
+  // -pc_hypre_boomeramg_P_max <0>: Max elements per row for interpolation operator (0=unlimited) (None)
+  // -pc_hypre_boomeramg_agg_nl <0>: Number of levels of aggressive coarsening (None)
+  // -pc_hypre_boomeramg_agg_num_paths <1>: Number of paths for aggressive coarsening (None)
+  // -pc_hypre_boomeramg_strong_threshold <0.25>: Threshold for being strongly connected (None)
+  // -pc_hypre_boomeramg_max_row_sum <0.9>: Maximum row sum (None)
+  // -pc_hypre_boomeramg_grid_sweeps_all <1>: Number of sweeps for the up and down grid levels (None)
+  // -pc_hypre_boomeramg_grid_sweeps_down <1>: Number of sweeps for the down cycles (None)
+  // -pc_hypre_boomeramg_grid_sweeps_up <1>: Number of sweeps for the up cycles (None)
+  // -pc_hypre_boomeramg_grid_sweeps_coarse <1>: Number of sweeps for the coarse level (None)
+  // -pc_hypre_boomeramg_relax_type_all <symmetric-SOR/Jacobi> (choose one of) Jacobi sequential-Gauss-Seidel seqboundary-Gauss-Seidel SOR/Jacobi backward-SOR/Jacobi  symmetric-SOR/Jacobi  l1scaled-SOR/Jacobi Gaussian-elimination      CG Chebyshev FCF-Jacobi l1scaled-Jacobi (None)
+  // -pc_hypre_boomeramg_relax_type_down <symmetric-SOR/Jacobi> (choose one of) Jacobi sequential-Gauss-Seidel seqboundary-Gauss-Seidel SOR/Jacobi backward-SOR/Jacobi  symmetric-SOR/Jacobi  l1scaled-SOR/Jacobi Gaussian-elimination      CG Chebyshev FCF-Jacobi l1scaled-Jacobi (None)
+  // -pc_hypre_boomeramg_relax_type_up <symmetric-SOR/Jacobi> (choose one of) Jacobi sequential-Gauss-Seidel seqboundary-Gauss-Seidel SOR/Jacobi backward-SOR/Jacobi  symmetric-SOR/Jacobi  l1scaled-SOR/Jacobi Gaussian-elimination      CG Chebyshev FCF-Jacobi l1scaled-Jacobi (None)
+  // -pc_hypre_boomeramg_relax_type_coarse <Gaussian-elimination> (choose one of) Jacobi sequential-Gauss-Seidel seqboundary-Gauss-Seidel SOR/Jacobi backward-SOR/Jacobi  symmetric-SOR/Jacobi  l1scaled-SOR/Jacobi Gaussian-elimination      CG Chebyshev FCF-Jacobi l1scaled-Jacobi (None)
+  // -pc_hypre_boomeramg_relax_weight_all <1>: Relaxation weight for all levels (0 = hypre estimates, -k = determined with k CG steps) (None)
+  // -pc_hypre_boomeramg_relax_weight_level <1>: Set the relaxation weight for a particular level (weight,level) (None)
+  // -pc_hypre_boomeramg_outer_relax_weight_all <1>: Outer relaxation weight for all levels (-k = determined with k CG steps) (None)
+  // -pc_hypre_boomeramg_outer_relax_weight_level <1>: Set the outer relaxation weight for a particular level (weight,level) (None)
+  // -pc_hypre_boomeramg_no_CF: <FALSE> Do not use CF-relaxation (None)
+  // -pc_hypre_boomeramg_measure_type <local> (choose one of) local global (None)
+  // -pc_hypre_boomeramg_coarsen_type <Falgout> (choose one of) CLJP Ruge-Stueben  modifiedRuge-Stueben   Falgout  PMIS  HMIS (None)
+  // -pc_hypre_boomeramg_interp_type <classical> (choose one of) classical   direct multipass multipass-wts ext+i ext+i-cc standard standard-wts   FF FF1 (None)
+  // -pc_hypre_boomeramg_print_statistics: Print statistics (None)
+  // -pc_hypre_boomeramg_print_debug: Print debug information (None)
+  // -pc_hypre_boomeramg_nodal_coarsen: <FALSE> HYPRE_BoomerAMGSetNodal() (None)
+  // -pc_hypre_boomeramg_nodal_relaxation: <FALSE> Nodal relaxation via Schwarz (None)
+
+  return 0;
+}
 
 int PETScSolver::
 buildMatrix( realCompositeGridFunction & coeff, realCompositeGridFunction & uu )
@@ -579,7 +706,7 @@ buildMatrix( realCompositeGridFunction & coeff, realCompositeGridFunction & uu )
   else
   {
     PetscInt blockSize=parameters.blockSize;
-    PetscTruth optionWasSet;
+    PetscBool optionWasSet;
     PetscOptionsGetInt(PETSC_NULL,"-mat_block_size",&blockSize,&optionWasSet);
     if( optionWasSet )
     {
@@ -597,28 +724,44 @@ buildMatrix( realCompositeGridFunction & coeff, realCompositeGridFunction & uu )
     // ****** fix these:
     int d_nz = fullStencilDimension;  // expected number of non-zero entries on this processor ("diagonal block")
     int o_nz = 2;  // expected number of non-zero entries off processor
-    int *d_nnz=NULL;
-    int *o_nnz=NULL;
+    int *d_nnz=PETSC_NULL;
+    int *o_nnz=PETSC_NULL;
    
+    // --- We should first determine the actual number of non-zeros in each row to be more efficient ----
+
     if( blockSize==1 )
     {
+      // 	numberOfMats++;
+      // 	printF("MatCreateMPIAIJ: create object %i.\n",numberOfMats);
+
       if( true )
       {
-// 	numberOfMats++;
-// 	printF("MatCreateMPIAIJ: create object %i.\n",numberOfMats);
-
-	ierr = MatCreateMPIAIJ(OGES_COMM,numberOfUnknownsThisProcessor,numberOfUnknownsThisProcessor,
-			       numberOfUnknowns,numberOfUnknowns,
-			       d_nz,d_nnz,o_nz,o_nnz,
-			       &A); CHKERRQ(ierr);
+	// d_nz = fullStencilDimension;  // expected number of non-zero entries on this processor ("diagonal block")
+	// o_nz = fullStencilDimension;
+	ierr = MatCreateAIJ(OGES_COMM,numberOfUnknownsThisProcessor,numberOfUnknownsThisProcessor,
+			    numberOfUnknowns,numberOfUnknowns,
+			    d_nz,d_nnz,o_nz,o_nnz,
+			    &A); CHKERRQ(ierr);
+        // This next line is needed to avoid error when malloc'ing an additional entry that was more
+        // than the estimated number
+        MatSetOption(A,MAT_NEW_NONZERO_ALLOCATION_ERR,PETSC_FALSE);
       }
       else
       {
-	// PETSc documentation recommends doing this instead **FINISH ME**
-        ierr = MatCreate(OGES_COMM,&A);  CHKERRQ(ierr);
-        ierr = MatSetType(A,MATMPIAIJ);  CHKERRQ(ierr);
-        ierr = MatMPIAIJSetPreallocation(A,d_nz,d_nnz,o_nz,o_nnz);  CHKERRQ(ierr);
+	// v 2.3.2
+	// ierr = MatCreateMPIAIJ(OGES_COMM,numberOfUnknownsThisProcessor,numberOfUnknownsThisProcessor,
+	// 		       numberOfUnknowns,numberOfUnknowns,
+	// 		       d_nz,d_nnz,o_nz,o_nnz,
+	ierr = MatCreateAIJ(OGES_COMM,numberOfUnknownsThisProcessor,numberOfUnknownsThisProcessor,
+			    numberOfUnknowns,numberOfUnknowns,
+			    d_nz,d_nnz,o_nz,o_nnz,
+			    &A); CHKERRQ(ierr);
       }
+
+      // // PETSc documentation recommends doing this instead **FINISH ME**
+      // ierr = MatCreate(OGES_COMM,&A);  CHKERRQ(ierr);
+      // ierr = MatSetType(A,MATMPIAIJ);  CHKERRQ(ierr);
+      // ierr = MatMPIAIJSetPreallocation(A,d_nz,d_nnz,o_nz,o_nnz);  CHKERRQ(ierr);
       
     }
     else
@@ -630,8 +773,12 @@ buildMatrix( realCompositeGridFunction & coeff, realCompositeGridFunction & uu )
 
       printF("\n *** PETScSolver: build a block matrix BAIJ with blockSize=%i **** \n",blockSize);
 
-      ierr = MatCreateMPIBAIJ(PETSC_COMM_SELF,blockSize,numberOfUnknownsThisProcessor,numberOfUnknownsThisProcessor,
-			     numberOfUnknowns,numberOfUnknowns,d_nz,d_nnz,o_nz,o_nnz,&A); CHKERRQ(ierr);
+      // v 2.3.2
+      // ierr = MatCreateMPIBAIJ(PETSC_COMM_SELF,blockSize,numberOfUnknownsThisProcessor,numberOfUnknownsThisProcessor,
+      // 			     numberOfUnknowns,numberOfUnknowns,d_nz,d_nnz,o_nz,o_nnz,&A); CHKERRQ(ierr);
+
+      ierr = MatCreateBAIJ(PETSC_COMM_SELF,blockSize,numberOfUnknownsThisProcessor,numberOfUnknownsThisProcessor,
+			   numberOfUnknowns,numberOfUnknowns,d_nz,d_nnz,o_nz,o_nnz,&A); CHKERRQ(ierr);
 
     }
     
@@ -640,9 +787,10 @@ buildMatrix( realCompositeGridFunction & coeff, realCompositeGridFunction & uu )
   if( parameters.parallelExternalSolver==OgesParameters::superlu_dist ||
       (numberOfProcessors==1 && parameters.externalSolver==OgesParameters::superlu_dist) )
   {
-    ierr = MatSetType(A,MATSUPERLU_DIST);CHKERRQ(ierr);
+    // v2.3.2 ierr = MatSetType(A,MATSUPERLU_DIST);CHKERRQ(ierr);
   }
-  else if( parameters.parallelExternalSolver!=OgesParameters::defaultExternalSolver )
+  else if( parameters.parallelExternalSolver!=OgesParameters::defaultExternalSolver &&
+          parameters.parallelExternalSolver!=OgesParameters::hypre )
   {
     printf("*** PETScSolver:ERROR: un-expected externalSolver=%i ***\n",parameters.externalSolver);
   }
@@ -1104,6 +1252,7 @@ buildMatrix( realCompositeGridFunction & coeff, realCompositeGridFunction & uu )
     printF("PETScSolver:: ... done build matrix, cpu=%8.2e\n",time);
   }
   
+  
   return 0;
 
 }
@@ -1345,6 +1494,9 @@ static PCType getPetscPreconditioner( OgesParameters::PreconditionerEnum precond
   case OgesParameters::redundantPreconditioner:
     petscPreconditioner=PCREDUNDANT;
     break;
+  case OgesParameters::hyprePreconditioner:
+    petscPreconditioner=PCHYPRE;
+    break;
   default:
     printf("****WARNING**** Unknown preconditionner for PETSc\n");
     petscPreconditioner=PCILU;
@@ -1366,7 +1518,7 @@ static KSPType getPetscKrylovSpaceMethod( OgesParameters::SolverMethodEnum solve
     krylovSpaceMethod=KSPRICHARDSON;
     break;
   case OgesParameters::chebychev:
-    krylovSpaceMethod=KSPCHEBYCHEV;
+    krylovSpaceMethod=KSPCHEBYSHEV;
     break;
   case OgesParameters::conjugateGradient:
     krylovSpaceMethod=KSPCG;
@@ -1433,7 +1585,7 @@ setPetscParameters()
   const int myid=Communication_Manager::My_Process_Number;
 
   bool parametersHaveChanged=false;  // set to true if any parameters have changed
-  PetscTruth optionWasSet;
+  PetscBool optionWasSet;
 
   ierr = KSPGetPC(ksp, &pc);    CHKERRQ(ierr);
 
@@ -1503,14 +1655,13 @@ setPetscParameters()
         // #define PCSPAI            "spai"
         // #define PCNN              "nn"
         // #define PCCHOLESKY        "cholesky"
-        // #define PCSAMG            "samg"
+        // #define PCGAMG            "gamg"
         // #define PCPBJACOBI        "pbjacobi"
         // #define PCMAT             "mat"
         // #define PCHYPRE           "hypre"
         // #define PCFIELDSPLIT      "fieldsplit"
         // #define PCTFS             "tfs"
         // #define PCML              "ml"
-        // #define PCPROMETHEUS      "prometheus"
         // #define PCGALERKIN        "galerkin"
 
       petscPreconditioner=PCASM;
@@ -1532,14 +1683,13 @@ setPetscParameters()
       else if( pcType=="spai" ) petscPreconditioner=PCSPAI;
       else if( pcType=="nn" ) petscPreconditioner=PCNN;
       else if( pcType=="cholesky" ) petscPreconditioner=PCCHOLESKY;
-      else if( pcType=="samg" ) petscPreconditioner=PCSAMG;
+      else if( pcType=="gamg" ) petscPreconditioner=PCGAMG;
       else if( pcType=="pbjacobi" ) petscPreconditioner=PCPBJACOBI;
       else if( pcType=="mat" ) petscPreconditioner=PCMAT;
       else if( pcType=="hypre" ) petscPreconditioner=PCHYPRE;
       else if( pcType=="fieldsplit" ) petscPreconditioner=PCFIELDSPLIT;
       else if( pcType=="tfs" ) petscPreconditioner=PCTFS;
       else if( pcType=="ml" ) petscPreconditioner=PCML;
-      else if( pcType=="prometheus" ) petscPreconditioner=PCPROMETHEUS;
       else if( pcType=="galerkin" ) petscPreconditioner=PCGALERKIN;
       else
       {
@@ -1584,26 +1734,26 @@ setPetscParameters()
     switch( parameters.matrixOrdering )
     {
     case OgesParameters::naturalOrdering:
-      matOrdering=(char*)MATORDERING_NATURAL;
+      matOrdering=(char*)MATORDERINGNATURAL;
       break;
     case OgesParameters::nestedDisectionOrdering:
-      matOrdering=(char*)MATORDERING_ND;
+      matOrdering=(char*)MATORDERINGND;
       break;
     case OgesParameters::oneWayDisectionOrdering:
-      matOrdering=(char*)MATORDERING_1WD;
+      matOrdering=(char*)MATORDERING1WD;
       break;
     case OgesParameters::reverseCuthillMcKeeOrdering:
-      matOrdering=(char*)MATORDERING_RCM;
+      matOrdering=(char*)MATORDERINGRCM;
       break;
     case OgesParameters::quotientMinimumDegreeOrdering:
-      matOrdering=(char*)MATORDERING_QMD;
+      matOrdering=(char*)MATORDERINGQMD;
       break;
     case OgesParameters::rowlengthOrdering:
-      matOrdering=(char*)MATORDERING_ROWLENGTH;
+      matOrdering=(char*)MATORDERINGROWLENGTH;
       break;
     default:
       printf("****WARNING**** Unknown matrix ordering PETSc\n");
-      matOrdering=(char*)MATORDERING_NATURAL;
+      matOrdering=(char*)MATORDERINGNATURAL;
     }
     if( numberOfProcessors==1 )
     {
@@ -1664,13 +1814,15 @@ setPetscParameters()
     // we can set the block preconditioner:
 
     // This code comes from ex7.c and ex8.c (ASM)
-    PetscTruth isbjacobi=PETSC_FALSE, isasm=PETSC_FALSE;
-    ierr = PetscTypeCompare((PetscObject)pc,PCBJACOBI,&isbjacobi);CHKERRQ(ierr);
+    PetscBool isbjacobi=PETSC_FALSE, isasm=PETSC_FALSE;
+    // v2.3.2 ierr = PetscTypeCompare((PetscObject)pc,PCBJACOBI,&isbjacobi);CHKERRQ(ierr);
+    ierr = PetscObjectTypeCompare((PetscObject)pc,PCBJACOBI,&isbjacobi);CHKERRQ(ierr);
     if( Oges::debug & 1 && isbjacobi )
       printF(" PETScSolver::setPetscParameters:INFO: Using Block Jacobi\n");
     if( !isbjacobi ) 
     {
-      ierr = PetscTypeCompare((PetscObject)pc,PCASM,&isasm);CHKERRQ(ierr);
+      // ierr = PetscTypeCompare((PetscObject)pc,PCASM,&isasm);CHKERRQ(ierr);
+      ierr = PetscObjectTypeCompare((PetscObject)pc,PCASM,&isasm);CHKERRQ(ierr);
       if( Oges::debug & 1 && isasm )
         printF(" PETScSolver::setPetscParameters:INFO: Using the Additive Schwarz Method\n"); 
     }
@@ -1810,8 +1962,9 @@ setPetscRunTimeParameters()
 
     ierr = KSPGetPC(ksp, &pc);    CHKERRQ(ierr);
 
-    PetscTruth     isbjacobi;
-    ierr = PetscTypeCompare((PetscObject)pc,PCBJACOBI,&isbjacobi);CHKERRQ(ierr);
+    PetscBool isbjacobi;
+    // ierr = PetscTypeCompare((PetscObject)pc,PCBJACOBI,&isbjacobi);CHKERRQ(ierr);
+    ierr = PetscObjectTypeCompare((PetscObject)pc,PCBJACOBI,&isbjacobi);CHKERRQ(ierr);
 
     if( Oges::debug & 4 )
       printF(" PETScSolver::setPetscRunTimeParameters:INFO: isbjacobi=%i\n",isbjacobi); 
@@ -2294,7 +2447,7 @@ solve( realCompositeGridFunction & uu, realCompositeGridFunction & f )
     PetscReal maxNorm;
     VecNorm(res, NORM_INFINITY, &maxNorm);
 
-    ierr = VecDestroy(res);CHKERRQ(ierr);    
+    ierr = VecDestroy(&res);CHKERRQ(ierr);    
 
     printF(" ***PETScSolver:solve: max residual = %8.2e (relativeTol=%8.2e)\n",maxNorm,
               parameters.relativeTolerance);
@@ -2303,6 +2456,11 @@ solve( realCompositeGridFunction & uu, realCompositeGridFunction & f )
   
 
 
+  if( firstSolve && Oges::debug & 1  )
+  {
+    aString name = getSolverName();
+    printF("--PETSc-- solver: %s\n",(const char*)name);
+  }
 
 
   if( firstSolve && debug & 4 )

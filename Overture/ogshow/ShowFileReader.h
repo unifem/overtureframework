@@ -14,6 +14,8 @@
 #include "DataBaseAccessFunctions.h"
 #include "Ogshow.h"
 #include "ShowFileParameter.h"
+#include "DBase.hh"
+using namespace DBase;
 
 #include OV_STD_INCLUDE(vector)
 
@@ -110,7 +112,10 @@ class ShowFileReader
   // For very large files we may have to reduce the number of files that we allow to be open at any time
   void setMaximumNumberOfOpenShowFiles(const int maxNumber);
 
- private:
+  /// Here is a database to hold parameters (new way)
+  mutable DataBase dbase; 
+
+protected:
   bool showFileIsOpen;
   GenericDataBase **showFile;
   std::vector<aString> frameSeriesNames;
@@ -158,6 +163,10 @@ class ShowFileReader
   int countNumberOfFramesAndSolutions( const int displayInfo=1 );
   
   void checkSolutionNumber(const aString & routineName, int & solutionNumber );
+
+  int locateFramesInFiles();
+
+  friend class Ogshow;
 
 };
 

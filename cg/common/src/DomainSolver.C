@@ -1237,7 +1237,7 @@ writeParameterSummary( FILE * file )
     fPrintF(file," Backward differentiation formula scheme, order=%i (BDF%i).\n",
 	    parameters.dbase.get<int>("orderOfBDF"), parameters.dbase.get<int>("orderOfBDF"));
   else
-    fPrintF(file,".\n");
+    fPrintF(file,"\n");
   
 
   if( timeSteppingMethod==Parameters::adamsBashforth2 ||

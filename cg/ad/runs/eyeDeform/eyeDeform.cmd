@@ -161,13 +161,13 @@ $grid
        # For now we set the RHS to the Neumann BC to the following value: 
        0. 
     done  
-    if( tz ne "none" ){ $cmd = "bcNumber4=dirichletBoundaryCondition"; }else{ $cmd="#"; }
+    if( $tz ne "turn off twilight zone" ){ $cmd = "bcNumber4=dirichletBoundaryCondition"; }else{ $cmd="#"; }
     $cmd
   done
 # 
   initial conditions
    $cmd="#";
-   if( $ic eq "pulse" && tz eq "none" ){ $cmd ="OBIC:user defined...\n  pulse\n $x0 $y0 $z0 $ampPulse $alphaPulse\n exit"; }
+   if( $ic eq "pulse" && $tz eq "turn off twilight zone" ){ $cmd ="OBIC:user defined...\n  pulse\n $x0 $y0 $z0 $ampPulse $alphaPulse\n exit"; }
    $cmd
   continue
 # 

@@ -22,6 +22,7 @@ EXTRA_FFLAGS = -I../include
 
 
 
+
 Oges = ../../oges
 # PETSC_LIBS = -L$(PETSC_LIB) -lpetscksp -lpetscdm -lpetscmat -lpetscvec -lpetsc -lmpiuni
 OGES_PETSC = buildEquationSolvers.o PETScEquationSolver.o
@@ -46,6 +47,7 @@ linkFiles:
 	ln -sf $(Oges)/PETScEquationSolver.C .
 	ln -sf $(Oges)/PETScSolver.C .
 	ln -sf $(Oges)/buildEquationSolvers.C .
+
 
 
 derivFiles = xFDeriv.o yFDeriv.o zFDeriv.o xxFDeriv.o xyFDeriv.o xzFDeriv.o yyFDeriv.o yzFDeriv.o  zzFDeriv.o \
@@ -337,8 +339,10 @@ tcm2: $(tcm2)
 # solve a scalar equation on a CompositeGrid
 tcm3 = tcm3.o Checker.o $(PETSC) formMatrix.o
 tcm3 = tcm3.o Checker.o $(PETSC)  ../../grid/MappedGridGeometry2.o
-tcm3 = tcm3.o Checker.o $(PETSC) LoadBalancer.o
-tcm3: $(tcm3)
+tcm3 = tcm3.o Checker.o $(PETSC) LoadBalancer.o ../../oges/OgesParameters.o
+tcm3 = tcm3.o Checker.o $(PETSC) ../../oges/OgesParameters.o 
+tcm3 = tcm3.o Checker.o $(PETSC) 
+tcm3: $(tcm3) 
 	$(CC) $(CCFLAGS) -o tcm3 $(tcm3) \
          $(CLIBS) $(PETSC_LIBS) $(FLIBS) $(GLIBS)
 

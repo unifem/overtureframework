@@ -111,6 +111,9 @@ class Oges
   // output any relevant statistics 
   int printStatistics( FILE *file = stdout ) const;
 
+  // -- print a description of the solver and options used
+  int printSolverDescription( const aString & label, FILE *file = stdout ) const; 
+
   // ----------------Functions to set parameters -----------------------------
   int set( OgesParameters::SolverEnum option );
   int set( OgesParameters::SolverMethodEnum option );

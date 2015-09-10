@@ -1,8 +1,8 @@
 # -*- mode: text; -*-
 # file is included by other command files to define a Cgins domain
 #
-# The following parameters should be set before including this file: 
-#   $domainName : name of the domain to assign
+# Here are optional parameters that can be set before including this file: 
+#   $domainName [required] : name of the domain to assign
 #   $modelNameINS : "none", "Boussinesq"
 #   $solverName : name given to the domain (e.g. "fluid")
 #   $tz, $degreeSpace, $degreeTime : 
@@ -18,6 +18,7 @@
 #   $axisymmetric : if non-null turn on the axisymmetric flow option
 #   $implicitFactor : for implicit time-stepping: .5=CN, 1.=BE, 0.=FE
 #   $projectInitialConditions : 
+#   $numberOfTimeStepCorrections : numnber of correction steps for predictor-corrector time-stepping
 #   $extraCmds : extra commands
 # 
 # ------- start new domain ----------
@@ -70,6 +71,10 @@ setup $domainName
   OBTZ:frequencies (x,y,z,t) $fx, $fy, $fz, $ft
 # 
   $ts
+#
+  if( $numberOfTimeStepCorrections ne "" ){ $cmd="number of PC corrections $numberOfTimeStepCorrections"; }else{ $cmd="#"; }
+  $cmd
+#
 ##  useNewImplicitMethod
   $implicitVariation
   implicit factor $implicitFactor 

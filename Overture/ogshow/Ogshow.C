@@ -3,6 +3,8 @@
 #include "ParallelUtility.h"
 #include "ParallelGridUtility.h"
 
+#include "ShowFileReader.h"
+
 static const int showFileProcessor=0;  // only write a show file from this processor
 
 // Old way: In parallel with hdf4 we usually only perform operations on 1 processor
@@ -19,6 +21,9 @@ static const int showFileProcessor=0;  // only write a show file from this proce
 
 using namespace std;
 
+int Ogshow::debug=0; // set to 1 or 3=(1+2) to get debug info 
+
+
 //\begin{>OgshowInclude.tex}{\subsubsection{constructors}} 
 Ogshow::
 Ogshow()
@@ -30,6 +35,8 @@ Ogshow()
 //----------------------------------------------------------------------
 {
   if( NOT_ON_SHOW_FILE_PROCESSOR ) return;
+
+  setup();
 
   initialize();
 }
@@ -54,12 +61,35 @@ Ogshow(const aString & nameOfShowFile,
 {
   if( NOT_ON_SHOW_FILE_PROCESSOR ) return;
 
+  setup();
+
   initialize();
   defaultStreamMode=useStreamMode;
   createShowFile( nameOfShowFile,nameOfDirectory,openOption );
 }
 
 //----------------------------------------------------------------------------  
+/// \brief Perform setup operations for the class. 
+//----------------------------------------------------------------------------  
+int Ogshow::
+setup()
+{
+  // firstFrame: first frame in the current set of shows files (default=1)
+  //           : if we append to a previous show file then firstFrame equals the number 
+  //             of frames in the previous show file plus one. 
+  if( !dbase.has_key("firstFrame") ){ dbase.put<int>("firstFrame")=1; } // 
+
+  // firstSubFile: =0 if we are not appending. If we are appending then this is 
+  //                   the file number for the first show file in the new set of sub-files.
+  if( !dbase.has_key("firstSubFile") ){ dbase.put<int>("firstSubFile")=0; } // 
+
+  return 0;
+}
+
+
+
+//----------------------------------------------------------------------------  
+/// \brief Open the show file. 
 //----------------------------------------------------------------------------  
 int Ogshow::
 createShowFile( const aString & nameOfShowFile, const aString & nameOfDirectory, ShowFileOpenOption openOption )
@@ -74,6 +104,9 @@ createShowFile( const aString & nameOfShowFile, const aString & nameOfDirectory,
   showFileCreated=true;
   generalCommentsSaved=false;
   
+  int & firstFrame = dbase.get<int>("firstFrame");
+  int & firstSubFile = dbase.get<int>("firstSubFile");
+
   // save the names
   showFileName=nameOfShowFile;
   showFileDirectory=nameOfDirectory;
@@ -99,7 +132,12 @@ createShowFile( const aString & nameOfShowFile, const aString & nameOfDirectory,
       MappingRC::setDataBaseMode(MappingRC::doNotLinkMappings);
     }
 
-    printF("--- Ogshow: create a new showFile:%s\n",(const char*)nameOfShowFile);
+    if( debug & 2 )
+    {
+      printF("-OGSHOW-- create a new showFile:%s\n",(const char*)nameOfShowFile);
+      printF("-OGSHOW--defaultStreamMode=%i\n",defaultStreamMode);
+    }
+    
     // I=Initialize a database file
     // W=open old file for writing
     showFile->mount(nameOfShowFile,"I");  
@@ -119,19 +157,154 @@ createShowFile( const aString & nameOfShowFile, const aString & nameOfDirectory,
   }
   else if( openOption==openOldFileForWriting )
   {
+    // --------------------------------------------------------
+    // --------------- APPEND TO AN EXISTING FILE -------------
+    // --------------------------------------------------------
+
     // W=open old file for writing
-    printF("--- Ogshow: open an old showFile:%s (for appending to).\n",(const char*)nameOfShowFile);
+    if( debug & 1 )
+      printF("--OGSHOW-- createShowFile: open an old showFile:%s (for appending to).\n",(const char*)nameOfShowFile);
+
+
+    // ---- MOUNT THE OLD FILE FOR APPENDING ----
     int found = showFile->mount(nameOfShowFile,"W");  
+
     if( found!=0 )
     {
       printF("Ogshow:ERROR: unable to open an existing show file named [%s]\n",(const char*)nameOfShowFile);
       OV_ABORT("Ogshow:ERROR");
     }
 
+
     showFile->get(defaultStreamMode,"streamMode");
+    showFile->get(magicNumber,"magicNumber");
+    // printF(" magicNumber = %i\n",magicNumber);
+
+    if( debug & 2 )
+      printF("--OGSHOW--defaultStreamMode=%i\n",defaultStreamMode);
+
+    if( defaultStreamMode )
+    {
+      // printF("createShowFile: setMode(GenericDataBase::normalMode)\n");
+      showFile->setMode(GenericDataBase::normalMode);
+      showDir ->setMode(GenericDataBase::normalMode);
+      // kkc tmp frame   ->setMode(GenericDataBase::normalMode);
+
+      // Since we may delete Grids that we read in, we need to turn off the linking of Mappings,
+      // otherwise we may try to link to a Mapping that has been deleted.
+      MappingRC::setDataBaseMode(MappingRC::doNotLinkMappings);
+    }
+    else
+    {
+      showFile->setMode(GenericDataBase::noStreamMode);
+      showDir ->setMode(GenericDataBase::noStreamMode);
+    }
+    
+
+    // Look for the existing show file directory: 
+    showFile->find(*showDir,nameOfDirectory,"directory");
+    if( debug & 2 )
+      printF("--OGSHOW-- Open the show file with the ShowFileReader...\n");
+    ShowFileReader showFileReader(nameOfShowFile);
+
+    for ( int fs=0; fs<showFileReader.getNumberOfFrameSeries(); fs++ )
+    {
+      showFileReader.setCurrentFrameSeries(fs);
+      int numberOfFrames=showFileReader.getNumberOfFrames();
+      int numberOfSolutions = max(1,numberOfFrames);
+      if( debug & 2 )
+	printF(" frame-series=%s, numberOfFrames=%i, numberOfSolutions=%i\n",
+	       (const char*)showFileReader.getFrameSeriesName(fs), numberOfFrames,numberOfSolutions);
+    }
+
+    showFileReader.setCurrentFrameSeries(0);
+    setCurrentFrameSeries(0);
+    
+    // --- fill in info --
+    totalNumberOfFrames=showFileReader.getNumberOfFrames();
+    numberOfFramesPerFile = showDir->get(numberOfFramesPerFile,"numberOfFramesPerFile");
+    // numberOfFramesPerFile=1;
+
+    // firstFrame: first frame in the current set of shows files (default=1)
+    //           : if we append to a previous show file then firstFrame equals the number 
+    //             of frames in the previous show file plus one. 
+    firstFrame=totalNumberOfFrames+1;
+    firstSubFile=showFileReader.dbase.get<int>("numberOfValidFiles"); 
+
+    if( debug & 2 )
+      printF("--OGSHOW-- totalNumberOfFrames=%i, numberOfFramesPerFile=%i firstFrame=%i firstSubFile=%i \n",
+	     totalNumberOfFrames,numberOfFramesPerFile,firstFrame,firstSubFile);
+    
+    
+
+    int numberOfFrameSeries = showFileReader.getNumberOfFrameSeries();
+    frameSeriesList.resize(numberOfFrameSeries);
+
+    for ( int ifs=0; ifs<frameSeriesList.size(); ifs++ )
+    {
+       OgshowFrameSeries & fs = frameSeriesList[ifs];
+       fs.id= ifs;
+
+       fs.name = showFileReader.frameSeriesNames[fs.id]; // *fix* me 
+
+       fs.numberOfFrames=showFileReader.frameSeriesInfo(ifs,ShowFileReader::numFrames);
+       fs.sequenceNumber=showFileReader.frameSeriesInfo(ifs,ShowFileReader::numSequences);
+       fs.movingGridProblem=showFileReader.frameSeriesInfo(ifs,ShowFileReader::isMovingGrid);
+       fs.streamMode=showFileReader.frameSeriesInfo(ifs,ShowFileReader::streamModeOption);
+
+       fs.frameNumber=fs.numberOfFrames;
+       fs.globalFrameNumber = totalNumberOfFrames;
+
+       fs.totalNumberOfFramesWhenCreated=0; // totalNumberOfFrames; // **CHECK ME**
+
+       fs.showDir = new HDF_DataBase();
+       fs.frame = new HDF_DataBase();
+
+       // --- Each frameSeries has a sub-directory in the show file 
+       
+       if( showDir->find(*fs.showDir,fs.name,"frameSeries")!=0 ) 
+       {
+	 printF("Ogshow::ERROR could not find the directory for existing frame series : [%s]\n",(const char*)fs.name);
+         OV_ABORT("Ogshow:ERROR");
+       }
+       fs.streamMode = defaultStreamMode;
+       if ( defaultStreamMode )
+       {
+	 fs.showDir->setMode(GenericDataBase::normalMode);
+	 fs.frame->setMode(GenericDataBase::normalMode);
+       }
+       else
+       {
+	 fs.showDir->setMode(GenericDataBase::noStreamMode);
+	 fs.frame->setMode(GenericDataBase::noStreamMode);
+       }
+
+       
+       // fs.name = 
+       // fs.id=  FINISH ME
+
+
+    // 	fs->showDir->put(fs->numberOfFrames,"numberOfFrames");
+    // 	fs->showDir->put(fs->sequenceNumber,"numberOfSequences");
+    // 	fs->showDir->put(fs->movingGridProblem,"movingGridProblem");
+    // 	fs->showDir->put(fs->streamMode,"streamMode");
+    // 	fs->showDir->put(fs->id,"id");
+	
+    // 	fs->showDir->put(fs->totalNumberOfFramesWhenCreated,"totalNumberOfFramesWhenCreated");
+
+    }
+    
+    if( debug & 2 )
+      printF("--Ogshow-- close old show file using the ShowFileReader\n");
+    showFileReader.close();
+
+    // -- Now unmount the show file -- the next frame will be added to the next sub-file
+    showFile->unmount();
+
+    generalCommentsSaved=true; // we do not save the general comments in the subfile.
 
     // Need to open show files and count files etc. (see ShowFileReader)
-    OV_ABORT("Ogshow:openOldFileForWriting: finish me...");
+    // OV_ABORT("Ogshow:openOldFileForWriting: finish me...");
   }
   else
   {
@@ -205,6 +378,9 @@ cleanup()
   {
     if( !showFile->isNull() ) // added for hdf5, *wdh* 060829
     {
+      if( debug & 2 )
+	printF("--OGSHOW-- cleanup: totalNumberOfFrames=%i \n");
+
       showDir->put((int)frameSeriesList.size(),"numberOfFrameSeries");
       showDir->put(totalNumberOfFrames,"numberOfFrames");
       showFile->put(magicNumber,"magicNumber");
@@ -339,34 +515,36 @@ getFlushFrequency() const
   return numberOfFramesPerFile;
 }
 
-//\begin{>>OgshowInclude.tex}{\subsubsection{isFirstFrameInSubFile}} 
+// ====================================================================================
+/// \brief  Return true if the requested frame is the FIRST frame in the current subFile ( subfile's are
+///     named fileName.show, fileName.show1, fileName.show2, ...)
+/// \param frameNumber (input) : frame number to check, if -1 then use the current frame.
+// ====================================================================================
 bool Ogshow::
-isFirstFrameInSubFile() const
-// ====================================================================================
-//   /Description:
-//     Return true if the current frame is the first frame in the current subFile ( subfile's are
-// named fileName.show, fileName.show1, fileName.show2, ...)
-//   frame will go into a new sub-file. 
-//\end{OgshowInclude.tex}
-// ====================================================================================
+isFirstFrameInSubFile( int frameNumber  /* = -1 */ ) const
 {
    if( NOT_ON_SHOW_FILE_PROCESSOR ) return 0;
 
    // frameNumber starts at 1
-   return (frameSeriesList[currentFrameSeries].globalFrameNumber % numberOfFramesPerFile) == 1; 
+   //    return (frameSeriesList[currentFrameSeries].globalFrameNumber % numberOfFramesPerFile) == 1; 
+
+   if( frameNumber==-1 )
+     frameNumber= frameSeriesList[currentFrameSeries].globalFrameNumber;
+
+   const int & firstFrame = dbase.get<int>("firstFrame");
+   return ( (frameNumber -firstFrame) % numberOfFramesPerFile) == 0; 
 }
 
 
-//\begin{>>OgshowInclude.tex}{\subsubsection{isLastFrameInSubFile}} 
+
+
+// ====================================================================================
+/// \brief  Return true if the requested frame is the LAST frame in the current subFile ( subfile's are
+///     named fileName.show, fileName.show1, fileName.show2, ...)
+/// \param frameNumber (input) : frame number to check, if -1 then use the current frame.
+// ====================================================================================
 bool Ogshow::
-isLastFrameInSubFile() const
-// ====================================================================================
-//   /Description:
-//     Return true if the current frame is the last frame in the current subFile ( subfile's are
-// named fileName.show, fileName.show1, fileName.show2, ...)
-//   frame will go into a new sub-file. 
-//\end{OgshowInclude.tex}
-// ====================================================================================
+isLastFrameInSubFile( int frameNumber /* = -1 */ ) const
 {
    if( NOT_ON_SHOW_FILE_PROCESSOR ) return 0;
 
@@ -374,8 +552,42 @@ isLastFrameInSubFile() const
    if( numberOfFramesPerFile<=0 ) 
      return false;
    else
-     return (frameSeriesList[currentFrameSeries].globalFrameNumber % numberOfFramesPerFile) == 0 ; 
+   {
+     // return (frameSeriesList[currentFrameSeries].globalFrameNumber % numberOfFramesPerFile) == 0 ; 
+
+     if( frameNumber==-1 )
+       frameNumber= frameSeriesList[currentFrameSeries].globalFrameNumber;
+
+     const int & firstFrame = dbase.get<int>("firstFrame");
+     return ( (frameNumber + 1 -firstFrame) % numberOfFramesPerFile) == 0; 
+
+   }
+   
 }
+
+//=======================================================================================
+/// \brief Return the sub-file number where a given frame is stored. Return 0 for the
+///   initial show file. 
+///     
+/// \param frameNumber (input) : frame number to check, if -1 then use the current frame.
+//=======================================================================================
+int Ogshow::
+getSubFileNumberForFrame( int frameNumber /* = -1 */ ) const
+{
+  if( NOT_ON_SHOW_FILE_PROCESSOR ) return 0;
+
+  if( frameNumber==-1 )
+    frameNumber= frameSeriesList[currentFrameSeries].globalFrameNumber;
+
+  const int & firstFrame = dbase.get<int>("firstFrame");
+  const int & firstSubFile = dbase.get<int>("firstSubFile");
+
+  return firstSubFile + (frameNumber-firstFrame)/numberOfFramesPerFile;
+
+  // return (frameNumber-1)/numberOfFramesPerFile;
+}
+
+
 
 
 // int Ogshow::
@@ -521,6 +733,7 @@ getShowFileName() const
 }
 
 
+
 //\begin{>>OgshowInclude.tex}{\subsubsection{startFrame}} 
 int Ogshow::
 startFrame( const int frameNo /* = newFrame */ )
@@ -551,14 +764,21 @@ startFrame( const int frameNo /* = newFrame */ )
     frameSeries.numberOfFrames++;
     frameSeries.frameNumber=frameSeries.numberOfFrames;
     frameSeries.globalFrameNumber = totalNumberOfFrames;
-    if( numberOfFramesPerFile>0 && totalNumberOfFrames>1 && (totalNumberOfFrames-1) % numberOfFramesPerFile == 0 )
+    if( debug & 2 )
+      printF("--OGSHOW-- startFrame: totalNumberOfFrames=%i numberOfFramesPerFile=%i \n",totalNumberOfFrames,
+             numberOfFramesPerFile);
+
+    // *wdh*  2015/09/08
+    // *old* if( numberOfFramesPerFile>0 && totalNumberOfFrames>1 && (totalNumberOfFrames-1) % numberOfFramesPerFile == 0 )
+    if( numberOfFramesPerFile>0 && totalNumberOfFrames>1 && isFirstFrameInSubFile(totalNumberOfFrames) )
     {
        // close existing file and open a new file
 
       // The showFile may have been closed by endFrame in which case we do not have to close it.
       if( ! showFile->isNull() )
       {
-        printF("Ogshow:startFrame: close the show file (totalNumberOfFrames=%i numberOfFramesPerFile=%i)\n",
+	if( debug & 2 )
+	  printF("Ogshow:startFrame: close the show file (totalNumberOfFrames=%i numberOfFramesPerFile=%i)\n",
                  totalNumberOfFrames,numberOfFramesPerFile);
      
 	showFile->put(totalNumberOfFrames-1,"numberOfFrames");  // this is the total number of frames saved so far
@@ -581,8 +801,14 @@ startFrame( const int frameNo /* = newFrame */ )
 	showFile->unmount();
       }
       
-      aString name = showFileName + sPrintF(buff,"%i",(totalNumberOfFrames-1)/numberOfFramesPerFile);
-      // cout << "Open the new show subfile called: " << name << endl;
+      // aString name = showFileName + sPrintF(buff,"%i",(totalNumberOfFrames-1)/numberOfFramesPerFile);
+
+      const int subFileNumber = getSubFileNumberForFrame(totalNumberOfFrames);
+      aString name = showFileName + sPrintF(buff,"%i",subFileNumber);
+
+      if( debug & 2 )
+	printF("--OGSHOW-- startFrame: Open the new show subfile called [%s]\n",(const char*)name);
+
       showFile->mount(name,"I"); 
       showFile->create(*showDir,showFileDirectory,"directory");
       // recreate all the directories for the open frame series
@@ -605,8 +831,14 @@ startFrame( const int frameNo /* = newFrame */ )
   }
   
   // create a frame directory if it is not already there
+  if( debug & 2 )
+    printF("--OGSHOW-- startFrame: frameSeries.frameNumber=%i\n",frameSeries.frameNumber);
+  
   if( frameSeries.showDir->locate(*frameSeries.frame,sPrintF(buff,"frame%i",frameSeries.frameNumber),"frame") != 0  )
   {
+    if( debug & 2 )
+      printF("--OGSHOW-- startFrame: create frame directory=[%s]\n",sPrintF(buff,"frame%i",frameSeries.frameNumber));
+    
     frameSeries.showDir->create(*frameSeries.frame,sPrintF(buff,"frame%i",frameSeries.frameNumber),"frame");
     frameSeries.sequenceNumber=0;  // *wdh* 061025 -- reset the count to zero
   } 
@@ -643,10 +875,16 @@ endFrame()
   // frameNumber=numberOfFrames;
 
   // kkc 060914 added isNull check for showFile in case endFrame is called many times (e.g. OB_CompositeGridSolver::advance)
-  if( numberOfFramesPerFile>0 && totalNumberOfFrames>0 && totalNumberOfFrames % numberOfFramesPerFile == 0 && !showFile->isNull() )
+  // *wdh* 2015/09/08
+  // if( numberOfFramesPerFile>0 && totalNumberOfFrames>0 && totalNumberOfFrames % numberOfFramesPerFile == 0 && !showFile->isNull() )
+  if( numberOfFramesPerFile>0 && totalNumberOfFrames>0 && !showFile->isNull()  &&
+      isLastFrameInSubFile(totalNumberOfFrames) )
   {
     // close existing file 
-    // cout << "endFrame: close a showfile...\n";
+    if( debug & 2 )
+      printF("--OGSHOW-- endFrame close a showfile... (totalNumberOfFrames=%i,numberOfFramesPerFile=%i) \n",
+	     totalNumberOfFrames,numberOfFramesPerFile);
+
     showFile->put(totalNumberOfFrames,"numberOfFrames");  // this is the total number of frames saved so far
     showFile->put(numberOfFramesPerFile,"numberOfFramesPerFile");
 
@@ -656,15 +894,20 @@ endFrame()
     for ( vector<Ogshow::OgshowFrameSeries>::iterator fs = frameSeriesList.begin();
 	  fs!=frameSeriesList.end();
 	  fs++ )
-      {
-	fs->showDir->put(fs->numberOfFrames,"numberOfFrames");
-	fs->showDir->put(fs->sequenceNumber,"numberOfSequences");
-	fs->showDir->put(fs->movingGridProblem,"movingGridProblem");
-	fs->showDir->put(fs->streamMode,"streamMode");
-	fs->showDir->put(fs->id,"id");
+    {
+      fs->showDir->put(fs->numberOfFrames,"numberOfFrames");
+      fs->showDir->put(fs->sequenceNumber,"numberOfSequences");
+      fs->showDir->put(fs->movingGridProblem,"movingGridProblem");
+      fs->showDir->put(fs->streamMode,"streamMode");
+      fs->showDir->put(fs->id,"id");
 	
-	fs->showDir->put(fs->totalNumberOfFramesWhenCreated,"totalNumberOfFramesWhenCreated");
-      }
+      fs->showDir->put(fs->totalNumberOfFramesWhenCreated,"totalNumberOfFramesWhenCreated");
+
+      if( debug & 2 )
+	printF("--OGSHOW-- endFrame: frameSeries id=%i :  totalNumberOfFramesWhenCreated=%i\n",
+	       fs->id,fs->totalNumberOfFramesWhenCreated);
+
+    }
 
     showFile->unmount();
 
@@ -806,12 +1049,15 @@ saveGeneralCommentsToFile()
 
   if( generalCommentsSaved || generalComment.size()==0 ) return(0);
   if ( generalComment.size() )
-    {
-      aString *stmp = new aString[generalComment.size()];
-      for ( int s=0; s<generalComment.size(); s++ ) stmp[s] = generalComment[s];
-      showDir->put(stmp,"header",generalComment.size());
-      delete [] stmp; // *wdh* 061027
-    }
+  {
+    if( debug & 2 )
+      printF("--OGSHOW-- saveGeneralCommentsToFile... (number=%i)\n", generalComment.size());
+
+    aString *stmp = new aString[generalComment.size()];
+    for ( int s=0; s<generalComment.size(); s++ ) stmp[s] = generalComment[s];
+    showDir->put(stmp,"header",generalComment.size());
+    delete [] stmp; // *wdh* 061027
+  }
 
   generalCommentsSaved=true;
   return(0);
@@ -864,6 +1110,9 @@ saveCommentsToFile()
 
   if( frameSeries.commentsSaved || frameSeries.comment.size()==0 ) return(0);
 
+  if( debug & 2 )
+    printF("--OGSHOW-- saveCommentsToFile... (frameSeries.comment.size()=%i)\n",frameSeries.comment.size());
+
   aString *stmp = new aString[frameSeries.comment.size()];
   for ( int s=0; s<frameSeries.comment.size(); s++ ) stmp[s] = frameSeries.comment[s];
   frameSeries.frame->put(stmp,"header",frameSeries.comment.size());
@@ -893,6 +1142,9 @@ saveGeneralParameters( ListOfShowFileParameters & params, const PlaceToSaveGener
 
   if( !showFileCreated ) return(0);
 
+  // do not save general parameters if we are appending 
+  const int & firstFrame = dbase.get<int>("firstFrame");
+  if(  firstFrame>1 ) return 0;
 
   const int n = params.size();
   if( n<=0 ) return 0;
@@ -915,6 +1167,9 @@ saveGeneralParameters( ListOfShowFileParameters & params, const PlaceToSaveGener
   
   if ( !frameSeriesList.size() ) newFrameSeries("defaultFrameSeries");
   GenericDataBase * saveDir = placeToSave==THECurrentFrameSeries ? frameSeriesList[currentFrameSeries].showDir : showDir;
+  if( debug & 2 )
+    printF("--OGSHOW-- saveGeneralParameters to the file (numberOfGeneralParameters=%i)\n",n);
+
   saveDir->put(n,"numberOfGeneralParameters");
   saveDir->put(name,"generalParameterName",n);
   saveDir->put(type,"generalParameterType",n);
@@ -974,6 +1229,9 @@ saveParameters(const aString & nameOfDirectory, ListOfShowFileParameters & param
   // make a directory to save these parameters
   GenericDataBase & dir = *(saveDir->virtualConstructor());  // create a derived data-base object
   saveDir->create(dir,nameOfDirectory,"Parameters");                   // create a sub-directory 
+
+  if( debug & 2 )
+    printF("--OGSHOW-- saveGeneralParameters to the file (numberOfParameters=%i)\n",n);
 
   dir.put(n,"numberOfParameters");
   dir.put(name,"name",n);
@@ -1210,7 +1468,9 @@ saveSolution(realGridCollectionFunction & u_,
     printF("\n**** Ogshow:3 :Number of A++ arrays = %i \n\n",GET_NUMBER_OF_ARRAYS);
   }
 
-  // cout << "Ogshow: put a grid function in frame = " << frameNumber << endl;
+  if( debug & 2 )
+    printF("--OGSHOW-- put a grid function in frame = [%i]\n",frameNumber);
+
   u.put(*frame,name);
   
   if( checkArrays && GET_NUMBER_OF_ARRAYS > totalNumberOfArrays ) 
@@ -1356,7 +1616,8 @@ setFrameSeriesName(const FrameSeriesID frameSeries, const aString & name)
     printF("Ogshow::ERROR:setFrameSeriesName: frameSeries=%i does not exist\n",frameSeries);
     return 1;
   }
-  printF("Ogshow::INFO:setFrameSeriesName: frameSeries=%i name=%s\n",frameSeries,(const char*)name);
+  if( debug & 1 )
+    printF("Ogshow::INFO:setFrameSeriesName: frameSeries=%i name=%s\n",frameSeries,(const char*)name);
   frameSeriesList[frameSeries].name=name;
   return 0;
 }

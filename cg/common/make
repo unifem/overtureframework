@@ -19,19 +19,32 @@ ifeq ($(usePETSc),on)
   endif
 
   ifneq ($(OV_USE_PETSC_3),)
-  PETSC_INCLUDE := -I$(PETSC_DIR)/include  -I$(PETSC_DIR)/$(PETSC_ARCH)/include -DOVERTURE_USE_PETSC -I$(PETSC_LIB)/include
-  ifneq ($(OV_RPATH),)
-  PETSC_LIBS := $(OV_RPATH)$(PETSC_LIB) -L$(PETSC_LIB) $(OV_RPATH)$(PETSC_LIB)/lib -L$(PETSC_LIB)/lib -lpetsc
+    # for PETSc v3 
+     # from $(PETSC_DIR)/$(PETSC_ARCH)/lib/petsc/conf/petscvariables: 
+     PETSC_CC_INCLUDES = -I/home/henshw/software/petsc-3.6.1-serial/include -I/home/henshw/software/petsc-3.6.1-serial/linux-gnu-opt/include -I/home/henshw/software/petsc-3.6.1-serial/include/petsc/mpiuni
+
+    PETSC_INCLUDE := -I$(PETSC_DIR)/include  -I$(PETSC_DIR)/$(PETSC_ARCH)/include -I$(PETSC_DIR)/include/petsc/mpiuni -DOVERTURE_USE_PETSC -I$(PETSC_LIB)/include
+    ifneq ($(OV_RPATH),)
+      PETSC_LIBS := $(OV_RPATH)$(PETSC_LIB) -L$(PETSC_LIB) $(OV_RPATH)$(PETSC_LIB)/lib -L$(PETSC_LIB)/lib -lpetsc
+    else
+      PETSC_LIBS := -L$(PETSC_LIB) -L$(PETSC_LIB)/lib -lpetsc
+    endif
   else
-  PETSC_LIBS := -L$(PETSC_LIB) -L$(PETSC_LIB)/lib -lpetsc
-  endif
-  else
-  PETSC_INCLUDE := -I$(PETSC_DIR)/include  -I$(PETSC_DIR)/bmake/$(PETSC_ARCH) -DOVERTURE_USE_PETSC -I$(PETSC_LIB)/include
-  ifneq ($(OV_RPATH),)
-  PETSC_LIBS := $(OV_RPATH)$(PETSC_LIB) -L$(PETSC_LIB) $(OV_RPATH)$(PETSC_LIB)/lib -L$(PETSC_LIB)/lib -lpetscksp -lpetscdm -lpetscmat -lpetscvec -lpetsc 
-  else
-  PETSC_LIBS := -L$(PETSC_LIB) -L$(PETSC_LIB)/lib -lpetscksp -lpetscdm -lpetscmat -lpetscvec -lpetsc 
-  endif
+    # PETSc v2
+    PETSC_INCLUDE := -I$(PETSC_DIR)/include  -I$(PETSC_DIR)/bmake/$(PETSC_ARCH) -DOVERTURE_USE_PETSC -I$(PETSC_LIB)/include
+    ifneq ($(OV_RPATH),)
+      PETSC_LIBS := $(OV_RPATH)$(PETSC_LIB) -L$(PETSC_LIB) $(OV_RPATH)$(PETSC_LIB)/lib -L$(PETSC_LIB)/lib -lpetscksp -lpetscdm -lpetscmat -lpetscvec -lpetsc 
+    else
+      PETSC_LIBS := -L$(PETSC_LIB) -L$(PETSC_LIB)/lib -lpetscksp -lpetscdm -lpetscmat -lpetscvec -lpetsc 
+    endif
+
+    # Look for the Hypre library compiled with PETSc
+    ifeq ($(useHypre),on)
+      HYPRE = $(PETSC_DIR)/externalpackages/hypre-1.11.1b/linux-gnu-opt
+      HYPRE_LIBS = -Wl,-rpath,$(HYPRE)/lib -L$(HYPRE)/lib -lHYPRE_DistributedMatrix -lHYPRE_DistributedMatrixPilutSolver -lHYPRE_Euclid -lHYPRE_IJ_mv -lHYPRE_LSI -lHYPRE_MatrixMatrix -lHYPRE_ParaSails -lHYPRE_krylov -lHYPRE_parcsr_ls -lHYPRE_parcsr_mv -lHYPRE_seq_mv -lHYPRE_sstruct_ls -lHYPRE_sstruct_mv -lHYPRE_struct_ls -lHYPRE_struct_mv
+
+      PETSC_LIBS += $(HYPRE_LIBS)
+    endif
   endif
 
   PETSC_FILES := buildEquationSolvers.o \

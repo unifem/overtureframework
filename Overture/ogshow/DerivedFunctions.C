@@ -91,7 +91,7 @@ set( ShowFileReader & showFileReader_, GraphicsParameters *pgp /* =NULL */ )
    getVelocityComponents(v1c,v2c,v3c);
    int u1c,u2c,u3c;
    getDisplacementComponents(u1c,u2c,u3c);
-   printF("DerivedFunctions:: (v1c,v2c,v3c)=(%i,%i,%i) (u1c,u2c,u3c)=(%i,%i,%i)\n",v1c,v2c,v3c,u1c,u2c,u3c);
+   printF("DerivedFunctions::set: (v1c,v2c,v3c)=(%i,%i,%i) (u1c,u2c,u3c)=(%i,%i,%i)\n",v1c,v2c,v3c,u1c,u2c,u3c);
    if( pgp!=NULL )
    {
      pgp->set(GI_U_COMPONENT_FOR_STREAM_LINES,v1c);
@@ -168,7 +168,11 @@ getComponent( int & c, const aString & cName )
     {
       // old way
       HDF_DataBase & db = *showFileReader->getFrame();
+
+      db.turnOffWarnings();
       db.get(c,cName);
+      db.turnOnWarnings();
+
       if( c==-2 )
 	c=-1;
     }
@@ -227,10 +231,8 @@ getDisplacementComponents( int &u1c, int & u2c, int & u3c )
   {
     //  displacement components
     getComponent(displacementComponent[0],"u1Component");
-//  if( numberOfDimensions>1 )
-      getComponent(displacementComponent[1],"u2Component");
-//     if( numberOfDimensions>2 )
-      getComponent(displacementComponent[2],"u3Component");
+    getComponent(displacementComponent[1],"u2Component");
+    getComponent(displacementComponent[2],"u3Component");
     // old: 
     //  getComponent(uc,"uComponent");
     //  if( numberOfDimensions>1 )

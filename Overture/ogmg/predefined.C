@@ -747,6 +747,9 @@ initializeConstantCoefficients()
 // ==========================================================================================
 {
   CompositeGrid & mgcg = multigridCompositeGrid();
+
+
+
   if( equationToSolve==OgesParameters::laplaceEquation || equationToSolve==OgesParameters::heatEquationOperator )
   {
     // **new way ***
@@ -767,6 +770,17 @@ initializeConstantCoefficients()
     
     for( int level=0; level<mgcg.numberOfMultigridLevels(); level++ )
     {
+
+      // *wdh* 2015/09/05 -- added option NOT to average equations on the coarsest level (e.g. for Hypre AMG solver)
+      const bool & averageEquationsOnCoarsestGrid = parameters.dbase.get<bool>("averageEquationsOnCoarsestGrid");  
+      const bool isCoarsestLevel=level == mgcg.numberOfMultigridLevels()-1; 
+      const bool doNotAverageEquations =
+	(level==0 || 
+	 parameters.averagingOption==OgmgParameters::doNotAverageCoarseGridEquations ||
+	 ( isCoarsestLevel && !averageEquationsOnCoarsestGrid )
+	  );
+      
+
       for( int grid=0; grid<mgcg.multigridLevel[level].numberOfComponentGrids(); grid++ )
       {
 
@@ -810,8 +824,9 @@ initializeConstantCoefficients()
           
 	      real dxsqi=1./(dx[0]*dx[0]), dysqi=1./(dx[1]*dx[1]);
 	    
-	      if( level==0 || 
-                  (parameters.averagingOption==OgmgParameters::doNotAverageCoarseGridEquations ) )
+	      // if( level==0 || 
+              //     (parameters.averagingOption==OgmgParameters::doNotAverageCoarseGridEquations ) )
+	      if( doNotAverageEquations ) // *wdh* 2015/09/05
 	      {
 		// 5 point stencil
 		CC(m21)=   cLap*(            dysqi  );
@@ -923,7 +938,8 @@ initializeConstantCoefficients()
 	      real dysqi=1./(dx[1]*dx[1]);
 		
 
-	      if( level==0 || parameters.averagingOption==OgmgParameters::doNotAverageCoarseGridEquations )
+	      // if( level==0 || parameters.averagingOption==OgmgParameters::doNotAverageCoarseGridEquations )
+	      if( doNotAverageEquations ) // *wdh* 2015/09/05
 	      {
 		CC(m11)=0.;
 		CC(m21)=0.;
@@ -1118,7 +1134,8 @@ initializeConstantCoefficients()
 
 	      real dxsqi=1./(dx[0]*dx[0]), dysqi=1./(dx[1]*dx[1]), dzsqi=1./(dx[2]*dx[2]);
 	    
-	      if( level==0 || parameters.averagingOption==OgmgParameters::doNotAverageCoarseGridEquations )
+	      // if( level==0 || parameters.averagingOption==OgmgParameters::doNotAverageCoarseGridEquations )
+	      if( doNotAverageEquations ) // *wdh* 2015/09/05
 	      {
 		// 7 point stencil
 		CC(m221)=   cLap*( dzsqi );
@@ -1385,7 +1402,8 @@ initializeConstantCoefficients()
   	      const real dxi=1./(12.*dx[0]*dx[0]);
   	      const real dyi=1./(12.*dx[1]*dx[1]);
   	      const real dzi=1./(12.*dx[2]*dx[2]);
-	      if( level==0 || parameters.averagingOption==OgmgParameters::doNotAverageCoarseGridEquations )
+	      // if( level==0 || parameters.averagingOption==OgmgParameters::doNotAverageCoarseGridEquations )
+	      if( doNotAverageEquations ) // *wdh* 2015/09/05
 	      {
 		CC(m331)=   cLap*(     -dzi       );
 		CC(m332)=   cLap*(  16.*dzi       );

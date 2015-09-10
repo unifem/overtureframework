@@ -63,7 +63,7 @@ main(int argc, char **argv)
       	tz=0;
             else if( line.matches("-sp") )
       	useSinglePrecisionTolerance=true;
-            else if( (len=line.matches("-degree=")) )
+            else if( len=line.matches("-degree=") )
             {
                 sScanF(line(len,line.length()-1),"%i",&degreeSpace);
       	printf("Setting degreeSpace=%i for polynomial TZ\n",degreeSpace);
@@ -89,8 +89,7 @@ main(int argc, char **argv)
     cin >> debug;  
 --- */
 
-    // real cutOff = REAL_EPSILON == (DBL_EPSILON && !useSinglePrecisionTolerance ) ? 5.e-12 : 2.e-3;  // *wdh* 030112
-    real cutOff = 2.e-3;  // *wdh* 2014/08/22
+    real cutOff = REAL_EPSILON == (DBL_EPSILON && !useSinglePrecisionTolerance ) ? 5.e-12 : 2.e-3;  // *wdh* 030112
 
     printF(" **** setting cutOff tolerance = %8.2e\n",cutOff);
     

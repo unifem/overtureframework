@@ -24,14 +24,19 @@
 # -- periodic in x:
 #    ogen -noplot deformingChannelGrid -factor=4 -per=1
 #
+# --- reduced grid points in x:
+#     ogen -noplot deformingChannelGrid -dsx=.2 -prefix=deformingChannelGridX5 -factor=4 
+#
+$prefix="deformingChannelGrid";
 $order=2; $factor=1; $interp="e"; # default values
 $orderOfAccuracy = "second order"; $ng=2; $interpType = "implicit for all grids";
 $name=""; $t=0; $per=0; 
 $xa=0.; $xb=1.; $ya=0.; $yb=.5; $yc=.75; 
+$dsx=-1.;   # optionally set a different value for $ds in the x-direction
 # 
 # get command line arguments
 GetOptions( "order=i"=>\$order,"factor=f"=> \$factor,"xa=f"=> \$xa,"xb=f"=> \$xb,"ya=f"=> \$ya,"yb=f"=> \$yb,"yc=f"=> \$yc,\
-            "t=f"=> \$t,"interp=s"=> \$interp,"name=s"=> \$name,"per=i"=>\$per );
+            "t=f"=> \$t,"interp=s"=> \$interp,"name=s"=> \$name,"per=i"=>\$per,"dsx=f"=>\$dsx,"prefix=s"=>\$prefix );
 # 
 if( $order eq 4 ){ $orderOfAccuracy="fourth order"; $ng=2; }\
 elsif( $order eq 6 ){ $orderOfAccuracy="sixth order"; $ng=4; }\
@@ -40,16 +45,17 @@ if( $interp eq "e" ){ $interpType = "explicit for all grids"; }
 # 
 $suffix = ".order$order"; 
 if( $per eq 1 ){ $suffix .= "p"; }
-if( $name eq "" ){$name = "deformingChannelGrid" . "$factor" . $suffix . ".hdf";}
+if( $name eq "" ){$name = $prefix . "$factor" . $suffix . ".hdf";}
 # 
 $ds=.1/$factor;
+if( $dsx eq -1 ){ $dsx=$ds; }
 # 
 $dw = $order+1; $iw=$order+1; 
 #
 $bcInterface=100;  # bc for interfaces
 $shareInterface=100;        # share value for interfaces
 #
-$nx = int( ($xb-$xa)/$ds +1.5 ); 
+$nx = int( ($xb-$xa)/$dsx +1.5 ); 
 #
 $degree=3;
 $n=$nx;      # *** For now this much match the number of grid points
@@ -127,7 +133,7 @@ create mappings
   set corners
     $xa $xb $ya $yb
   lines
-    $nx = int( ($xb-$xa)/$ds +1.5 ); 
+    $nx = int( ($xb-$xa)/$dsx +1.5 ); 
     $ny = int( ($yb-$ya)/$ds +1.5 ); 
     $nx $ny
   boundary conditions

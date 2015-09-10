@@ -19,36 +19,46 @@ $method="ins"; $probeFile="probeFile"; $multiDomainAlgorithm=0;  $pi=0; $pOffset
 $tFinal=20.; $tPlot=.1;  $cfl=.9; $show="";  $pdebug=0; $debug=0; $go="halt"; 
 $muFluid=0.; $rhoFluid=1.4; $pFluid=1.; $TFluid=$pFluid/$rhoFluid; 
 $nu=.1; $rhoSolid=1.; $prandtl=.72; $cnsVariation="jameson"; $ktcFluid=-1.; $u0=0.; $xShock=-1.5; $uShock=1.25; 
+$p0=1.; 
 $cnsEOS="ideal"; 
 $cnsGammaStiff=1.4; $cnsPStiff=0.;   # for stiffened EOS -- by default make it look like an ideal gas
 $lambdaSolid=1.; $muSolid=1.;
-$stressRelaxation=1; $relaxAlpha=0.1; $relaxDelta=0.1; 
+## $stressRelaxation=1; $relaxAlpha=0.1; $relaxDelta=0.1; 
+$stressRelaxation=4; $relaxAlpha=.5; $relaxDelta=.5; 
 $scf=1.; # solidScaleFactor : scale rho,mu and lambda by this amount 
-$thermalExpansivity=1.; $T0=1.; $Twall=1.;  $kappa=.01; $ktcSolid=-1.; $diss=.1;  $smVariation = "non-conservative";
+$thermalExpansivity=1.; $T0=1.; $Twall=1.;  $kappa=.01; $ktcSolid=-1.; $diss=.1;  
+$smVariation = "g"; 
+$tsSM="modifiedEquationTimeStepping";
 $tz="none"; $degreeSpace=1; $degreeTime=1;
 $gravity = "0 0. 0."; $boundaryPressureOffset=0.; $cnsGodunovOrder=2; 
 $fic = "uniform";  # fluid initial condition
 $backGround="outerSquare"; $deformingGrid="interface"; 
-$ts="pc"; $numberOfCorrections=1;  # mp solver
+#
+$ts="pc";   # MP solver
+$numberOfCorrections=1;  # cgmp and cgins 
 $coupled=0; $iTol=1.e-3; $iOmega=1.; $flushFrequency=10; $useNewInterfaceTransfer=0; 
+$useTP=0; # 1=use traditional partitioned scheme
+#
+$sideBC="noSlipWall"; # = "slipWall"; 
 #
 $bcOption=0; 
 $orderOfExtrapForOutflow=2; $orderOfExtrapForGhost2=2; $orderOfExtrapForInterpNeighbours=2; 
-$projectInitialConditions="project initial conditions";
+$projectInitialConditions=1; # for INS
 # 
 $psolver="best"; 
 $solver="best"; 
 $ksp="bcgs"; $pc="bjacobi"; $subksp="preonly"; $subpc="ilu"; $iluLevels=3;
 # -- p-wave strength: don't make too big or else solid may become inverted in the deformed space
 $ap=.01; 
+$append=0; 
 #
 # ----------------------------- get command line arguments ---------------------------------------
 GetOptions( "g=s"=>\$grid,"tf=f"=>\$tFinal,"nu=f"=>\$nu,"muFluid=f"=>\$muFluid,"kappa=f"=>\$kappa, "bg=s"=>\$backGround,\
- "tp=f"=>\$tPlot, "solver=s"=>\$solver, "psolver=s"=>\$psolver, \
+ "tp=f"=>\$tPlot, "solver=s"=>\$solver, "psolver=s"=>\$psolver,"useTP=i"=> \$useTP,\
  "tz=s"=>\$tz,"degreex=i"=>\$degreex, "degreet=i"=>\$degreet,\
- "show=s"=>\$show,"method=s"=>\$method,"ts=s"=>\$ts,"noplot=s"=>\$noplot,"ktcFluid=f"=>\$ktcFluid,\
+ "show=s"=>\$show,"method=s"=>\$method,"ts=s"=>\$ts,"tsSM=s"=>\$tsSM,"noplot=s"=>\$noplot,"ktcFluid=f"=>\$ktcFluid,\
   "ktcSolid=f"=>\$ktcSolid,"muSolid=f"=>\$muSolid,"lambdaSolid=f"=>\$lambdaSolid, "T0=f"=>\$T0,"Twall=f"=>\$Twall,\
-  "nc=i"=> \$numberOfCorrections,"coupled=i"=>\$coupled,\
+  "nc=i"=> \$numberOfCorrections, "numberOfCorrections=i"=> \$numberOfCorrections,"coupled=i"=>\$coupled,\
   "d1=s"=>\$domain1,"d2=s"=>\$domain2,"dg=s"=>\$deformingGrid,"debug=i"=>\$debug,"kThermalFluid=f"=>\$kThermalFluid,\
   "cfl=f"=>\$cfl,"rhoSolid=f"=>\$rhoSolid,"cnsVariation=s"=>\$cnsVariation,"diss=f"=>\$diss,"fic=s"=>\$fic,"go=s"=>\$go,\
    "smVariation=s"=>\$smVariation,"scf=f"=>\$scf,"probeFile=s"=>\$probeFile,"pOffset=f"=>\$boundaryPressureOffset,\
@@ -56,7 +66,9 @@ GetOptions( "g=s"=>\$grid,"tf=f"=>\$tFinal,"nu=f"=>\$nu,"muFluid=f"=>\$muFluid,"
    "cnsEOS=s"=>\$cnsEOS,"cnsGammaStiff=f"=>\$cnsGammaStiff,"cnsPStiff=f"=>\$cnsPStiff,"u0=f"=>\$u0,\
    "useNewInterfaceTransfer=i"=>\$useNewInterfaceTransfer,"multiDomainAlgorithm=i"=>\$multiDomainAlgorithm,\
    "pi=i"=>\$pi,"xShock=f"=>\$xShock,"uShock=f"=>\$uShock,"ap=f"=>\$ap,"bcOption=i"=>\$bcOption,\
-   "stressRelaxation=f"=>\$stressRelaxation,"relaxAlpha=f"=>\$relaxAlpha,"relaxDelta=f"=>\$relaxDelta );
+   "stressRelaxation=f"=>\$stressRelaxation,"relaxAlpha=f"=>\$relaxAlpha,"relaxDelta=f"=>\$relaxDelta,\
+   "p0=f"=>\$p0,"sideBC=s"=>\$sideBC,"iOmega=f"=>\$iOmega,"iTol=f"=>\$iTol,\
+   "projectInitialConditions=f"=>\$projectInitialConditions,"restart=s"=>\$restart,"append=i"=>\$append );
 # -------------------------------------------------------------------------------------------------
 if( $solver eq "best" ){ $solver="choose best iterative solver"; }
 if( $psolver eq "best" ){ $psolver="choose best iterative solver"; }
@@ -71,6 +83,7 @@ if( $go eq "halt" ){ $go = "break"; }
 if( $go eq "og" ){ $go = "open graphics"; }
 if( $go eq "run" || $go eq "go" ){ $go = "movie mode\n finish"; }
 #
+if( $projectInitialConditions eq "1" ){ $projectInitialConditions = "project initial conditions"; }else{ $projectInitialConditions = "do not project initial conditions"; }
 # 
 if( $smVariation eq "nc" ){ $smVariation = "non-conservative"; }
 if( $smVariation eq "c" ){ $smVariation = "conservative"; $cons=1; }
@@ -113,7 +126,23 @@ $modelNameINS="none";
 $T0=0.; 
 ## $bc = "all=noSlipWall uniform(u=.0,T=$T0)\n bcNumber3=slipWall\n bcNumber4=slipWall\n bcNumber1=inflowWithVelocityGiven, uniform(u=$u0,T=0.)\n bcNumber2=outflow, pressure(1.*p+.1*p.n=0.)\n bcNumber100=tractionInterface";
 ## $bc = "all=noSlipWall uniform(u=.0,T=$T0)\n bcNumber3=slipWall\n bcNumber4=slipWall\n bcNumber1=inflowWithVelocityGiven, parabolic(d=.1,u=$u0,T=0.)\n bcNumber2=outflow, pressure(1.*p+.1*p.n=0.)\n bcNumber100=tractionInterface";
-$bc = "all=noSlipWall uniform(u=.0,T=$T0)\n bcNumber3=slipWall\n bcNumber4=slipWall\n bcNumber1=inflowWithPressureAndTangentialVelocityGiven uniform(p=1.,v=0.T=0.)\n bcNumber2=outflow, pressure(1.*p+0.*p.n=0.)\n bcNumber100=tractionInterface";
+### $bc = "all=noSlipWall uniform(u=.0,T=$T0)\n bcNumber3=slipWall\n bcNumber4=slipWall\n bcNumber1=inflowWithPressureAndTangentialVelocityGiven uniform(p=1.,v=0.T=0.)\n bcNumber2=outflow, pressure(1.*p+0.*p.n=0.)\n bcNumber100=tractionInterface";
+# -- beam under pressure: 
+$option="beamUnderPressure"; # FIX ME
+$bc = "all=$sideBC\n bcNumber100=noSlipWall uniform(u=.0,T=$T0)\n bcNumber100=tractionInterface";
+    #
+    # **** ramp the pressure on the bottom ****
+    $cmdRamp="bcNumber3=outflow, pressure(1.*p+0.*p.n=$p0), userDefinedBoundaryData\n" . \
+    " time function option\n" . \
+    "   ramp function\n" .\
+    "   ramp end values: 0,1 (start,end)\n" .\
+    "   ramp times: 0,1 (start,end)\n" .\
+    "   ramp order: 3\n" .\
+    " exit \n" .\
+    "done";
+if( $option ne "beamUnderPressure" ){ $cmdRamp = #""; }
+$bc = $bc . "\n" . $cmdRamp;
+#
 $ic="uniform flow\n" . "p=1., u=$u0, T=$T0";
 #
 include $ENV{CG}/mp/cmd/insDomain.h
@@ -124,8 +153,8 @@ $domainName=$domain2; $solverName="solid";
 # $bcCommands="all=displacementBC\n bcNumber100=tractionBC\n bcNumber100=tractionInterface"; 
 # $bcCommands="all=displacementBC\n bcNumber2=slipWall\n bcNumber100=tractionBC\n bcNumber100=tractionInterface"; 
 $bcCommands="all=tractionBC\n bcNumber1=displacementBC\n bcNumber2=displacementBC\n bcNumber100=tractionBC\n bcNumber100=tractionInterface"; 
-# -- trouble with slipWall:
-## $bcCommands="all=tractionBC\n bcNumber1=slipWall\n bcNumber2=slipWall\n bcNumber100=tractionBC\n bcNumber100=tractionInterface"; 
+# -- slipWall on sides and displacementon top:
+$bcCommands="all=displacementBC\n bcNumber1=slipWall\n bcNumber2=slipWall\n bcNumber100=tractionBC\n bcNumber100=tractionInterface"; 
 $exponent=10.; $x0=.5; $y0=.5; $z0=.5;  $rhoSolid=$rhoSolid*$scf; $lambda=$lambdaSolid*$scf; $mu=$muSolid*$scf; 
 # $initialConditionCommands="gaussianPulseInitialCondition\n Gaussian pulse: 10 2 $exponent $x0 $y0 $z0 (beta,scale,exponent,x0,y0,z0)";
 $initialConditionCommands="zeroInitialCondition";
@@ -146,6 +175,8 @@ continue
   OBPDE:interface omega $iOmega
   OBPDE:solve coupled interface equations $coupled
   OBPDE:use new interface transfer $useNewInterfaceTransfer
+  # relax correction steps for TP scheme: 
+  OBPDE:relax correction steps $useTP
  # -- for testing solve the domains in reverse order: 
  # OBPDE:domain order 1 0
   OBPDE:project interface $pi
@@ -154,6 +185,8 @@ continue
   $tz
   debug $debug
   show file options
+    if( $append eq 0 ){ $cmd="OBPSF:create new show file"; }else{ $cmd="OBPSF:append to old show file"; }
+    $cmd
     compressed
       open
        $show
@@ -175,6 +208,7 @@ continue
         contour
           adjust grid for displacement 1
         exit
+        plot:solid : v2
         plot all
 $go
 

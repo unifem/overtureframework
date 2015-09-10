@@ -43,6 +43,9 @@ class EquationSolver
 
   virtual int getNumberOfIterations() const; 
 
+  // -- print a description of the solver and options used
+  virtual int printSolverDescription( const aString & label, FILE *file = stdout ) const; 
+
   virtual int printStatistics( FILE *file = stdout ) const;   // output any relevant statistics 
 
   // assign values to rhs for the the extra equations 

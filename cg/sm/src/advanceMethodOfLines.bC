@@ -5,6 +5,7 @@
 #include "ParallelOverlappingGridInterpolator.h"
 #include "SmParameters.h"
 #include "Regrid.h"
+#include "AdvanceOptions.h"
 
 #Include "amrMacros.h"
 
@@ -15,16 +16,19 @@
 /// \param current (input) : index of the current solution 
 /// \param t (input) : current time.
 /// \param dt (input) : time step.
+/// \param correction (input) : indicates correction number when called by takeTimeStep
+/// \param pAdvanceOptions (input) : pointer to advance options when called by takeTimeStep
 // ===================================================================================================================
 void Cgsm::
-advanceMethodOfLines( int current, real t, real dt )
+advanceMethodOfLines( int current, real t, real dt, 
+                      int correction /* =0 */, AdvanceOptions *pAdvanceOptions /* =NULL */ )
 {
   checkArrays("advanceMethodOfLines:start");
   int & globalStepNumber = parameters.dbase.get<int >("globalStepNumber");
   globalStepNumber++;
 
-  if( debug() & 2 )
-    printF("advanceMethodOfLines: t=%e current=%i, numberOfFunctions=%i, numberOfTimeLevels=%i\n",t,
+  if( debug() & 2 || ( t<= dt)  )
+    printF("--SM-- advanceMethodOfLines: t=%e current=%i, numberOfFunctions=%i, numberOfTimeLevels=%i\n",t,
 	   current,numberOfFunctions,numberOfTimeLevels);
 
   FILE *& debugFile  =parameters.dbase.get<FILE* >("debugFile");
@@ -54,52 +58,92 @@ advanceMethodOfLines( int current, real t, real dt )
 
   const bool isSecondOrderSystem = ((SmParameters&)parameters).isSecondOrderSystem();
 
-  // ------ AMR -----
-  updateForAdaptiveGridsMacro();
+  // --- For FSI problems we may take a step and/or apply the BC's ----
+  bool takeTimeStep=true, applyBC=true;
+  if( pAdvanceOptions!=NULL )
+  {
+    AdvanceOptions & advanceOptions = *pAdvanceOptions;
+    takeTimeStep =(advanceOptions.takeTimeStepOption==AdvanceOptions::takeStepAndApplyBoundaryConditions ||
+		   advanceOptions.takeTimeStepOption==AdvanceOptions::takeStepButDoNotApplyBoundaryConditions);
+    applyBC = ( advanceOptions.takeTimeStepOption==AdvanceOptions::takeStepAndApplyBoundaryConditions ||
+		advanceOptions.takeTimeStepOption==AdvanceOptions::applyBoundaryConditionsOnly );
+  }
 
+  // ------ AMR -----
+  if( takeTimeStep && correction==0 )
+  {
+    updateForAdaptiveGridsMacro();
+  }
+  
   // ========== Forward-Euler or Improved Euler: =============
 
   if( timeSteppingMethodSm==SmParameters::forwardEuler ||
       timeSteppingMethodSm==SmParameters::improvedEuler )
   {
-    
-    // ---- predictor:  ----
-    getUt( gf[current], t, fn[0], t );
-
-    if( debug & 8 )
+    if( correction==0 )
     {
-      fn[0].display(sPrintF("MOL: predictor: u.t or u.tt at t=%9.3e, dt=%8.2e\n",t,dt),debugFile);
-    }
-  
-    if( isSecondOrderSystem )
-    { // fn[0] holds u.tt in this case 
-      gf[next].u = 2.*gf[current].u -gf[prev].u + (dt*dt)*fn[0];
-    }
-    else
-    {  // fn[0] holds u.t in this case 
-      gf[next].u = gf[current].u + (dt)*fn[0];
-    }
-    gf[next].t=t+dt;
-  
-
-    // ............. Boundary Conditions ..............
-    int option=0; // not used.
-    applyBoundaryConditions( option, dt, next,current ); // apply BC to "next" (current=previous time step)
-
-    // ---- corrector:  ----
-    if( timeSteppingMethodSm==SmParameters::improvedEuler && !isSecondOrderSystem )
-    {
-      getUt( gf[next], t+dt, fn[1],t+dt );
-
-      if( debug & 8 )
+      // ---- predictor:  ----
+      if( takeTimeStep )
       {
-	fn[1].display(sPrintF("MOL: corrector: u.t or u.tt at t=%9.3e\n",t),debugFile);
+	getUt( gf[current], t, fn[0], t );
+
+	if( debug & 8 )
+	{
+	  fn[0].display(sPrintF("MOL: predictor: u.t or u.tt at t=%9.3e, dt=%8.2e\n",t,dt),debugFile);
+	}
+  
+	if( isSecondOrderSystem )
+	{ // fn[0] holds u.tt in this case 
+	  gf[next].u = 2.*gf[current].u -gf[prev].u + (dt*dt)*fn[0];
+	}
+	else
+	{  // fn[0] holds u.t in this case 
+	  gf[next].u = gf[current].u + (dt)*fn[0];
+	}
+	gf[next].t=t+dt;
       }
-
-      gf[next].u = gf[current].u + (.5*dt)*(fn[0]+fn[1]);
-
-      applyBoundaryConditions( option, dt, next,current );
+      
+      // ............. Boundary Conditions ..............
+      if( applyBC )
+      {
+	int option=0; // not used.
+	applyBoundaryConditions( option, dt, next,current ); // apply BC to "next" (current=previous time step)
+      }
     }
+    
+    // ---- corrector ----
+    // (if pAdvanceOptions==NULL then we apply the predictor and corrector)
+    if( correction>0 || pAdvanceOptions==NULL )
+    {
+      if( timeSteppingMethodSm==SmParameters::improvedEuler && !isSecondOrderSystem )
+      {
+	const real tNext=gf[next].t;
+
+	if( true && pAdvanceOptions!=NULL )
+	{
+	  printP("--SM-- advanceMOL: apply corrector at t=%9.3e correction=%i\n",tNext,correction);
+	}
+	
+	if( takeTimeStep )
+	{
+	  getUt( gf[next], tNext, fn[1],tNext );
+
+	  if( debug & 8 )
+	  {
+	    fn[1].display(sPrintF("MOL: corrector: u.t or u.tt at tNext=%9.3e\n",tNext),debugFile);
+	  }
+
+	  gf[next].u = gf[current].u + (.5*dt)*(fn[0]+fn[1]);
+	}
+	if( applyBC )
+	{
+	  int option=0; // not used.
+	  applyBoundaryConditions( option, dt, next,current );
+	}
+      
+      }
+    }
+    
   }
   else
   {

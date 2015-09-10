@@ -399,6 +399,129 @@ Solution computed with AFS24-MG on grid $\Gc^{(16)}$.
 }
 
 
+% =================================================================================================================================
+% =================================================================================================================================
+% =================================================================================================================================
+\section{Flow past a two-dimensional backward facing step in a channel - comparison to experiment }
+
+The paper by Kim, Kline, and Johnston [1980] presents experiement results for flow past a
+backward facing step in a channel in a wind tunnel. 
+
+The {\em reference case} has parameters: $H=3.81 cm (1.5 in)$ (step height), $w_1 = 7.62cm (3 in)$ inlet height,
+reference speed $U=18.2 m/s$ , $\nu=1.56 e-5 m^2/s$ (air at 300k). This gives
+a Reynolds number based on the step height of
+\begin{align*}
+ &  Re(H=3.81 cm) = \frac{U H}{\nu} = \frac{18.2 \times .0381}{1.568 \times 10^{-5}} \approx  4.445 \times 10^4, \\
+ &  \frac{1}{Re} \approx 2.25 \times 10^{-5}. 
+\end{align*}
+
+The problem is non-dimensionalized using the length scale $L=H$ and reference speed $U$. 
+The grid for the geometry is shown in figure~\ref{fig:backStepInChannelGrid} where the non-dimensional
+step height is $1$ and inflow velocity is $1$ (with a small parbolic correction at the top and bottom
+no-slip walls of the inlet. The nondimensional kinematic viscosity is then $\nu= 1/Re = 2.25 \times 10^{-5}$. 
+
+{\bf Smallest scale:} We can estimate how fine the mesh must be to perform a resolved DNS.
+The smallest scale of the flow is~\cite{HKR1}
+\begin{align}
+    \lambda = \sqrt{\frac{\nu}{|\grad\uv|}}.  \label{eq:smallestScale}
+\end{align}
+If we guess that the non-dimensional vorticity is on the order of $Re^{1/2} \approx 200$ and use $|\grad\uv|=200$ in ~\eqref{eq:smallestScale}
+then we arrive at the estimate 
+\begin{align*}
+    \lambda \approx  \sqrt{\frac{2.25 \times 10^{-5}}{200}} \approx 3.4e-4
+\end{align*}
+Thus the grid spacing in the boundary layer (where the vorticity is largest) show be roughly $\ds\approx 3.4e-4$.
+
+
+Grid $\Gc^{(j)}$ has nominal spacing $\ds^{(j)}=1/(10 j)$ and boundary layer spacing of $\ds_{BL}=1/(50 j)$. 
+For $j=32$ this gives a spacing $\ds_{BL}^{(32)} = 6.25e-4$ while for $j=64$  we have $\ds_{BL}^{(32)} = 3.125e-4$
+{\bf We thus guess that $\Gc^{(16)}$ or $\Gc^{(32)}$ will be of sufficient resolution to perform an accurate DNS simulation.}
+
+\bigskip
+Figure Fig.~\ref{fig:backStepInChannelGrid} shows some results for grid $\Gc^{(16)}$. The flow is highly non-steady.
+
+Figure Fig.~\ref{fig:backStepInChannelTimeAverage} shows the time averaged solution.
+
+
+{
+\begin{figure}[hbt]
+\newcommand{\figWidth}{16cm}
+\newcommand{\trimfig}[2]{\trimFigb{#1}{#2}{0.01}{.01}{.275}{.275}}
+\newcommand{\figWidtha}{5.5cm}
+\newcommand{\trimfiga}[2]{\trimFigb{#1}{#2}{0.0}{.0}{.0}{.0}}
+\begin{center}\small
+% ------------------------------------------------------------------------------------------------
+\begin{tikzpicture}[scale=1]
+  \useasboundingbox (0,0.25) rectangle (16,10.);  % set the bounding box (so we have less surrounding white space)
+  \draw ( 0, 5.6) node[anchor=south west,xshift=-4pt,yshift=-4pt] {\trimfig{fig/backStepInChannelGrid}{\figWidth}};
+  \draw ( 5, 0.0) node[anchor=south west,xshift=-4pt,yshift=-4pt] {\trimfiga{fig/backStepInChannelGridZoom}{\figWidtha}};
+%   \draw (10.5, 0) node[anchor=south west,xshift=-4pt,yshift=-4pt] {\trimfiga{fig/backStepRefineGrid2Zoom}{\figWidtha}};
+%% \draw[step=1cm,gray] (0,0) grid (16,10.);
+\end{tikzpicture}
+% ----------------------------------------------------------------------------------------
+\caption{
+Overlapping grid for the backward facing step in a channel (upper wall is no-slip). Very coarse grid $\Gc^{(2)}$ (second accuracy). Bottom: zoomed view near rounded step.
+Interpolation points (two layers) are marked as black squares.
+% Two-dimensional overlapping grid for a cross-section through the terrain. Grid $\Gc^{(4)}$ (second-order accuracy) is shown
+%    along with a magnified view of the grid near the surface.
+}
+\label{fig:backStepInChannelGrid}
+\end{center}
+\end{figure}
+}
+
+{
+\begin{figure}[hbt]
+\newcommand{\figWidth}{17cm}
+\newcommand{\trimfig}[2]{\trimFigb{#1}{#2}{0.0}{.0}{.29}{.29}}
+\begin{center}\small
+% ------------------------------------------------------------------------------------------------
+\begin{tikzpicture}[scale=1]
+  \useasboundingbox (0,0.25) rectangle (16,6.);  % set the bounding box (so we have less surrounding white space)
+  \draw ( 0,3.0) node[anchor=south west,xshift=-4pt,yshift=-4pt] {\trimfig{fig/backStepRefineG16Vort10t50}{\figWidth}};
+  \draw ( 0,0.0) node[anchor=south west,xshift=-4pt,yshift=-4pt] {\trimfig{fig/backStepRefineG16SLt50}{\figWidth}};
+%   \draw (10.5, 0) node[anchor=south west,xshift=-4pt,yshift=-4pt] {\trimfiga{fig/backStepRefineGridZoom}{\figWidtha}};
+%  \draw[step=1cm,gray] (0,0) grid (11,13.);
+\end{tikzpicture}
+% ----------------------------------------------------------------------------------------
+\caption{
+Vorticity and streamlines at time $t=50$ for grid $\Gc^{(16)}$.
+% Solution in the near wake region is shown. The max and min contours of the vorticity are limited to the range $[-20,20]$.
+% Top: coarse grid $\Gc^{(8)}$. Middle: medium grid $\Gc^{(16)}$. Bottom: fine grid $\Gc^{(32)}$ (approx. $2.3M$ grid pts).  
+}
+\label{fig:backStepInChannel}
+\end{center}
+\end{figure}
+}
+
+
+
+{
+\begin{figure}[hbt]
+\newcommand{\figWidth}{17cm}
+\newcommand{\trimfig}[2]{\trimFigb{#1}{#2}{0.0}{.0}{.26}{.32}}
+\begin{center}\small
+% ------------------------------------------------------------------------------------------------
+\begin{tikzpicture}[scale=1]
+  \useasboundingbox (0,0.25) rectangle (16,9.8);  % set the bounding box (so we have less surrounding white space)
+  \draw ( 0,6.4) node[anchor=south west,xshift=-4pt,yshift=-4pt] {\trimfig{fig/backStepInChannelAve25to50SL}{\figWidth}};
+  \draw ( 0,3.2) node[anchor=south west,xshift=-4pt,yshift=-4pt] {\trimfig{fig/backStepInChannelAve25to50u}{\figWidth}};
+  \draw ( 0,0.0) node[anchor=south west,xshift=-4pt,yshift=-4pt] {\trimfig{fig/backStepInChannelAve25to50v}{\figWidth}};
+%   \draw (10.5, 0) node[anchor=south west,xshift=-4pt,yshift=-4pt] {\trimfiga{fig/backStepRefineGridZoom}{\figWidtha}};
+%  \draw[step=1cm,gray] (0,0) grid (11,13.);
+\end{tikzpicture}
+% ----------------------------------------------------------------------------------------
+\caption{
+Time averaged streamlines, $u$ and $v$ for grid $\Gc^{(16)}$.
+Averaged over $t\in[25,50]$.
+% Solution in the near wake region is shown. The max and min contours of the vorticity are limited to the range $[-20,20]$.
+% Top: coarse grid $\Gc^{(8)}$. Middle: medium grid $\Gc^{(16)}$. Bottom: fine grid $\Gc^{(32)}$ (approx. $2.3M$ grid pts).  
+}
+\label{fig:backStepInChannelTimeAverage}
+\end{center}
+\end{figure}
+}
+
 
 \vfill\eject
 \bibliography{\homeHenshaw/papers/common/henshaw,\homeHenshaw/papers/common/henshawPapers}

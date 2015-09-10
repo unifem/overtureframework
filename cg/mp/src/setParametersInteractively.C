@@ -527,16 +527,20 @@ setup(const real & time)
 
     fprintf(file,"\n"
 	    " cfl = %f, tFinal=%e, tPrint = %e \n"
-	    " Time stepping method: %s \n"
-	    " solveCoupledInterfaceEquations = %i\n"
-	    " Multi-domain algorithm = %s\n"
-            " project interface = %s. (interfaceProjectionOption=%i, interface-ghost=%s)\n"
+	    " Time stepping method: %s.\n"
+	    " Solve coupled interface equations = %i.\n"
+            " Use %s interface transfer.\n"
+            " Relax correction steps = %i.\n"
+	    " Multi-domain algorithm = %s.\n"
+            " Project interface = %s. (interfaceProjectionOption=%i, interface-ghost=%s)\n"
 	    ,
 	    parameters.dbase.get<real >("cfl"),
 	    parameters.dbase.get<real >("tFinal"),
 	    parameters.dbase.get<real >("tPrint"),
 	    (const char*)Parameters::timeSteppingName[timeSteppingMethod],
             (int)parameters.dbase.get<bool>("solveCoupledInterfaceEquations"),
+	    (parameters.dbase.get<bool>("useNewInterfaceTransfer") ? "new" : "old"),
+	    (int)parameters.dbase.get<bool>("relaxCorrectionSteps"),
             (multiDomainAlgorithm==MpParameters::defaultMultiDomainAlgorithm ? "default" :
              multiDomainAlgorithm== MpParameters::stepAllThenMatchMultiDomainAlgorithm ? "step all then match" : 
              "unknown"),

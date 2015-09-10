@@ -62,6 +62,9 @@ assignBoundaryConditionCoefficients( realMappedGridFunction & coeff, int grid, i
     BoundaryConditionParameters extrapParams;
     extrapParams.orderOfExtrapolation=orderOfExtrapolation; // orderOfAccuracy+1; 
 
+    const int stencilDim = coeff.getLength(0);
+    Index MD(0,stencilDim);
+
   // const IntegerArray & bc = mg.boundaryCondition();
     int isv[3], &is1=isv[0], &is2=isv[1], &is3=isv[2];
 
@@ -356,6 +359,8 @@ assignBoundaryConditionCoefficients( realMappedGridFunction & coeff, int grid, i
                             }
               // first ghost line
                             int ig1=i1-is1, ig2=i2-is2, ig3=i3-is3;
+              // zero out boundary equation *wdh* 2015/09/06 -- fixed a bug in parallel
+                            coeff(MD,ig1,ig2,ig3)=0.; 
                             coeffLocal(0,ig1,ig2,ig3)=-t0;
                             coeffLocal(1,ig1,ig2,ig3)= a0;
                             coeffLocal(2,ig1,ig2,ig3)= t0;
@@ -377,6 +382,8 @@ assignBoundaryConditionCoefficients( realMappedGridFunction & coeff, int grid, i
                             coeff.sparse->setClassify(SparseRepForMGF::ghost1,ig1,ig2,ig3,ee);
               // -- second ghost line: apply wide formula, dr -> 2*dr --
                             ig1=i1-2*is1, ig2=i2-2*is2, ig3=i3-2*is3;
+              // zero out boundary equation *wdh* 2015/09/06 -- fixed a bug in parallel
+                            coeff(MD,ig1,ig2,ig3)=0.; 
                             coeffLocal(0,ig1,ig2,ig3)=-t0*.5;
                             coeffLocal(1,ig1,ig2,ig3)= a0;
                             coeffLocal(2,ig1,ig2,ig3)= t0*.5;
@@ -394,7 +401,7 @@ assignBoundaryConditionCoefficients( realMappedGridFunction & coeff, int grid, i
                       	coeff.sparse->setCoefficientIndex(5, ee,ig1,ig2,ig3, ee,i1  ,i2  ,i3-2);
                       	coeff.sparse->setCoefficientIndex(6, ee,ig1,ig2,ig3, ee,i1  ,i2  ,i3+2);
                             }
-              // Indicate that the secpnd-ghost line has an equation in it: 
+              // Indicate that the second-ghost line has an equation in it: 
                             coeff.sparse->setClassify(SparseRepForMGF::ghost2,ig1,ig2,ig3,ee);
                         }
                     } // end for_3d
@@ -480,7 +487,7 @@ assignBoundaryConditionCoefficients( realMappedGridFunction & coeff, int grid, i
           	    }
           	    else if( numberOfUseEquationOnGhostWarnings==5 )
           	    {
-            	      printF(" ***Ogmg:: Too many of the following warnings. I will print any more:\n"
+            	      printF(" ***Ogmg:: Too many of the following warnings. I will not print any more:\n"
                                           " ***Ogmg::assignBoundaryConditionCoefficients: WARNING: not using eqn on 2nd ghost for neumann BC"
                                           " at level =%i (use even symmetry)******\n",level);
             	      numberOfUseEquationOnGhostWarnings++;
@@ -651,12 +658,19 @@ assignBoundaryConditionCoefficients( realMappedGridFunction & coeff, int grid, i
         	  if( orderOfAccuracy==4 )
         	  {
           	    bool useEquationOnGhost = useEquationOnGhostLineForNeumannBC(mg,level);
-          	    if( useEquationOnGhost )
+          	    if( useEquationOnGhost && numberOfUseEquationOnGhostWarnings<5 )
           	    {
 	      // *** fix this *** use mixedToSecondOrder instead of the neumann condition above and the symmetry below
-
+                            numberOfUseEquationOnGhostWarnings++;
             	      printF(" ******assignBoundaryConditionCoefficients: WARNING: not using eqn on ghost for mixed BC"
                  		     " at level =%i ******\n",level);
+          	    }
+          	    else if( numberOfUseEquationOnGhostWarnings==5 )
+          	    {
+            	      printF(" ***Ogmg:: Too many of the following warnings. I will print any more:\n"
+                                          " ******assignBoundaryConditionCoefficients: WARNING: not using eqn on ghost for mixed BC"
+                 		     " at level =%i ******\n",level);
+            	      numberOfUseEquationOnGhostWarnings++;
           	    }
 
           	    extrapParams.ghostLineToAssign=2;

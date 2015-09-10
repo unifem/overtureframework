@@ -4,6 +4,8 @@
 #
 #  plotStuff plotBackStepGrid.cmd -grid=backStepRefineGride2.order4.hdf -name=backStepRefineGrid2
 #  plotStuff plotBackStepGrid.cmd -grid=backStepRefineGride4.order4.ml1.hdf -name=backStepRefineGrid
+# 
+#  plotStuff plotBackStepGrid.cmd -grid=backStepInChannelGride2.order2.hdf -name=backStepInChannelGrid
 #
 $grid="backStepGride4.order4.ml1.hdf"; $name="bic2";
 # 
@@ -31,6 +33,8 @@ $zoom=" ";
 if( $name =~ /^backStepGrid/ ){ $zoom="set view:0 0.441786 0.101137 0 7.6833 1 0 0 0 1 0 0 0 1"; }
 if( $name =~ /^backStepRefineGrid/ ){ $zoom="set view:0 0.565907 0.0810701 0 7.2543 1 0 0 0 1 0 0 0 1"; }
 if( $name =~ /^backStepAndBody/ ){ $zoom="set view:0 0.565907 0.0810701 0 7.2543 1 0 0 0 1 0 0 0 1"; }
+if( $name =~ /^backStepInChannel/ ){ $zoom="set view:0 0.587949 -0.0160888 0 5.55696 1 0 0 0 1 0 0 0 1"; }
+#
 $zoom
 # 
 $plotName = $name . "Zoom.ps";

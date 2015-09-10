@@ -13,13 +13,21 @@
 #include "DBase.hh"
 using namespace DBase;
 
+// forward declarations
+class DerivedFunctions;
+
+
 class ShowFilePlotter
 {
 public:
 ShowFilePlotter(const aString & nameOfShowFile, GenericGraphicsInterface & ps );
 ~ShowFilePlotter();
 
+// main plot routine
 int plot();
+
+// plot time averages
+int plotAverages( int cfs );
 
 // static int 
 // buildMainMenu( aString *menu0,
@@ -86,7 +94,8 @@ aString **headerComment;
 CompositeGrid *cg;
 realCompositeGridFunction *u;
 PlotStuffParameters *psp;
-    
+DerivedFunctions *derivedFunctions;
+
 int *component; 
 int *solutionNumber;
 int *plotOptions;

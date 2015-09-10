@@ -1,0 +1,112 @@
+set tcm3x   = $OVHOME/Overture/op/tests/tcm3
+set tosx   = $OVHOME/Overture/oges/results/tos
+
+*****************
+***** Sept 2, 2015
+
+TEST new parallel PETSc
+
+--------------- HYPRE:
+
+MIXED BC's OK:
+
+
+TROUBLE : -neumann BC's 
+
+
+mpirun -np 1 $tcm3x square256.order2.hdf -solver=petsc -dirichlet -hypre
+
+NP=1
+*** max residual=1.75e-07, time for 1st solve of the Dirichlet problem = 3.15e-01 (iterations=6) ***
+OLD: 
+*** max residual=7.53e-06, time for 1st solve of the Dirichlet problem = 6.18e-01 (iterations=9) ***
+
+mpirun -np 1 $tcm3x square20.order2 -solver=petsc -neumann
+mpirun -np 1 $tcm3x square20.order2 -solver=petsc 
+
+
+*****************
+***** Sept 1, 2015
+
+TEST NEW PETSC 3.6 
+
+ $tcm3x square20.order2 -solver=petsc
+
+ $tcm3x cice4.order4.hdf -solver=petsc -dirichlet
+
+
+*****************
+***** August 29, 2015
+
+-ksp_type : 
+     gmres - OK (probably the default)
+     bcgs  - OK (half as many it's, same time)
+     richardson : fails to converge
+     
+TEST -hypre option 
+mpirun -np 1 $tcm3x cice8.order2.hdf -solver=petsc -dirichlet -hypre -ksp_monitor
+
+mpirun -np 1 $tcm3x cice8.order2.hdf -solver=petsc -dirichlet -ksp_type gmres -pc_type hypre -pc_hypre_type boomeramg -ksp_monitor
+*** max residual=1.41e-05, time for 1st solve of the Dirichlet problem = 6.57e-01 (iterations=13) ***
+
+mpirun -np 1 $tcm3x cice8.order2.hdf -solver=petsc -dirichlet -pc_type hypre -pc_hypre_type boomeramg -ksp_monitor
+
+mpirun -np 1 $tcm3x cice16.order4.hdf -solver=petsc -dirichlet -pc_type hypre -pc_hypre_type boomeramg -ksp_monitor 
+
+OK: 
+mpirun -np 1 $tcm3x cice4.order4.hdf -solver=petsc -dirichlet -pc_type hypre -pc_hypre_type boomeramg -ksp_monitor
+
+OK: 
+mpirun -np 1 $tcm3x cice8.order2.hdf -solver=petsc -dirichlet -pc_type hypre -pc_hypre_type boomeramg -ksp_monitor
+
+*****************
+***** August 29, 2015
+
+Test tos for hypre
+
+====== TOS -- FIX ME (this is an old parallel code)
+
+ mpirun -np 1 $tosx -ksp_monitor -log_summary
+
+======== TCM3: 
+
+---------------------------------------------
+------- HYPRE: ------
+
+
+
+mpirun -np 1 $tcm3x square256.order2.hdf -solver=petsc -dirichlet -pc_type hypre -pc_hypre_type boomeramg -ksp_monitor 
+
+NP=4
+*** max residual=2.55e-06, time for 1st solve of the Dirichlet problem = 3.85e-01 (iterations=10) ***
+
+NP=2
+*** max residual=2.63e-06, time for 1st solve of the Dirichlet problem = 5.03e-01 (iterations=10) ***
+
+NP=1
+*** max residual=7.53e-06, time for 1st solve of the Dirichlet problem = 6.18e-01 (iterations=9) ***
+
+
+mpirun -np 1 $tcm3x square32.order2.hdf -solver=petsc -dirichlet -pc_type hypre -pc_hypre_type boomeramg -ksp_monitor -log_summary
+
+
+NP=4: BEST
+mpirun -np 4 $tcm3x square256.order2.hdf -solver=petsc -dirichlet -ksp_monitor
+*** max residual=4.48e-06, time for 1st solve of the Dirichlet problem = 5.18e+00 (iterations=136) ***
+
+------------------------------------------------------
+
+
+mpirun -np 4 $tcm3x square32.order2.hdf -solver=petsc -dirichlet -ksp_monitor
+*** max residual=5.95e-07, time for 1st solve of the Dirichlet problem = 3.32e-01 (iterations=30) ***
+
+mpirun -np 2 $tcm3x square32.order2.hdf -solver=petsc -dirichlet -ksp_monitor
+*** max residual=6.61e-07, time for 1st solve of the Dirichlet problem = 3.33e-01 (iterations=28) ***
+
+mpirun -np 1 $tcm3x square32.order2.hdf -solver=petsc -dirichlet -ksp_monitor -log_summary
+
+mpirun -np 1 $tcm3x square32.order2.hdf -solver=petsc
+
+
+
+

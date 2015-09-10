@@ -21,6 +21,9 @@
 // krb do not use extern "C" if PETSc is linked using BOPT=g_c++
 extern "C"
 {
+// *wdh* 2015/09/31  To avoid having PETSc include complex.h do this: 
+#include "petscconf.h"
+#undef PETSC_HAVE_CXX_COMPLEX
 #include "petscksp.h"
 }
 

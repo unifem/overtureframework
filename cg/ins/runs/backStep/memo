@@ -46,6 +46,39 @@ BODy + FARFIELD GRIDS
 ==============================================================================
 
 **************************************
+************ Sept 8, 2015
+
+TEST RESTART AND APPEND
+
+RESTART AND APPEND
+$cgins -noplot backStep -g=backStepInChannelGride4.order4.ml1 -nu=1.e-3 -parabolicWidth=.05 -bcTop=noSlipWall -ad4=1 -ad41=2. -ad42=1. -cfl=3. -ts=afs -psolver=mg -dtMax=.01 -tf=.1 -tp=.01 -debug=3 -restart=bs.show -show=bs.show -go=go
+
+RUN:
+$cgins -noplot backStep -g=backStepInChannelGride4.order4.ml1 -nu=1.e-3 -parabolicWidth=.05 -bcTop=noSlipWall -ad4=1 -ad41=2. -ad42=1. -cfl=3. -ts=afs -psolver=mg -dtMax=.01 -tf=.05 -tp=.01 -debug=3 -show=bs.show -go=go
+
+
+**************************************
+************ Aug 30, 2015
+
+TEST HYPRE AMG solver:
+
+
+mpirun -np 1 $cginsx -noplot -numberOfParallelGhost=4 backStep -g=backStepInChannelGride8.order4.ml2 -nu=1.e-4 -parabolicWidth=.025 -bcTop=noSlipWall -ad4=1 -ad41=2. -ad42=1. -cfl=3. -ts=afs -psolver=mg -dtMax=.01 -tf=.01 -tp=.01 -debug=3 -go=go 
+
+
+**************************************
+************ Aug 21, 2015
+
+======= 3D Backstep:
+
+G4: z-width=1 (2.8M)
+$cgins backStep -g=backStepInChannel3dGride4.order4.ml1 -nu=1.e-3 -parabolicWidth=.05 -bcTop=noSlipWall -ad4=1 -ad41=2. -ad42=1. -cfl=3. -ts=afs -psolver=mg -dtMax=.01 -tf=50. -tp=.01 -debug=3 -go=halt
+
+G2: z-width=1 (.5M)
+mpirun -np 4 $cginsp -numberOfParallelGhost=4 backStep -g=backStepInChannel3dGride2.order4.ml1 -nu=1.e-3 -parabolicWidth=.05 -bcTop=noSlipWall -ad4=1 -ad41=2. -ad42=1. -cfl=3. -ts=afs -psolver=mg -dtMax=.01 -tf=50. -tp=.01 -debug=3 -go=halt
+
+
+**************************************
 ************ Aug 19,20 2015
 
 ==== BACK-STEP-IN_CHANNEL ===

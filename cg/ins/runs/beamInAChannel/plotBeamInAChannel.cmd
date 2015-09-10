@@ -23,7 +23,15 @@
 # -- plot streamlines:
 #  plotStuff plotBeamInAChannel.cmd -show=bicG4long.show -vorMin=-10 -vorMax=5 -option=sl -name=bicBig_E5_R1_G4
 #
-# Movie:
+# -- MOVIE:
+# G8: (light beam)
+#  plotStuff plotBeamInAChannel.cmd -show=twoBeamsInAChannelRhos1G8.show -vorMin=-100 -vorMax=60 -option=movie -name=twoBeamsInAChannelRhos1G8
+# G8: (light beam, E=20)
+#  plotStuff plotBeamInAChannel.cmd -show=twoBeamsInAChannelRhos1E20G8.show -vorMin=-100 -vorMax=60 -option=movie -name=twoBeamsInAChannelRhos1E20G8
+# G16 (light beam)
+#  plotStuff plotBeamInAChannel.cmd -show=twoBeamsInAChannelRhos1.show -vorMin=-100 -vorMax=60 -option=movie -name=twoBeamsInAChannelRhos1
+#
+# two-beams movie:
 #  plotStuff plotBeamInAChannel.cmd -show=multiBeam16m.show -vorMin=-100 -vorMax=60
 #
 #  plotStuff plotBeamInAChannel.cmd -show=multiBeam32.show -vorMin=-500 -vorMax=300
@@ -60,7 +68,12 @@ forcing regions
   # forcing region colour (bf,colour): 0 RED
 exit
 #
+# -- MOVIE: (commands end with a blank to STOP)
+if( $option eq "movie" ){ $cmd="DISPLAY COLOUR BAR:0 0\n DISPLAY AXES:0 0\n set view:0 -0.00504559 0.0647128 0 1.45693 1 0 0 0 1 0 0 0 1\n movie file name: $name\n solution: 1\n "; }else{ $cmd="#"; }
+$cmd
+#
 if( $option eq "sl" ){ $cmd="#"; }else{ $cmd=" "; }
+$cmd
 # -- STREAM-LINES
 DISPLAY AXES:0 0
 DISPLAY LABELS:0 1

@@ -46,6 +46,8 @@ The default compiler for Mavericks is {\em clang} which replaces gcc and g++. DO
        setenv OpenGL /opt/local
     \end{verbatim}
     as the locations for X11, Motif and OpenGL  (do NOT accidently link to /opt/X11).
+    \item You should add the Overture/lib directory to your dynamic library path:
+       {\tt setenv DYLD\_LIBRARY\_PATH \${DYLD\_LIBRARY\_PATH}:\${Overture}/lib}
 \end{enumerate}
 
 \clearpage

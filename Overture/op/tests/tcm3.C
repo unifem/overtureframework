@@ -313,7 +313,7 @@ main(int argc, char *argv[])
 
   printF("Usage: tcm3 [<gridName>] [-solver=[yale][harwell][slap][petsc][mg]] [-debug=<value>][-outputMatrix]\n" 
                      "[-noTiming] [-check] [-trig] [-tol=<value>] [-order=<value>] [-plot] [-ilu=] [-gmres] \n"
-                     "[-freq=<value>] [-dirichlet] [-neumann] [-mixed] [-testCommunicator\n");
+                     "[-freq=<value>] [-dirichlet] [-neumann] [-mixed] [-testCommunicator] [-hypre] \n");
 
   const int maxNumberOfGridsToTest=3;
   int numberOfGridsToTest=maxNumberOfGridsToTest;
@@ -374,6 +374,10 @@ main(int argc, char *argv[])
       else if( (len=arg.matches("-gmres")) )
       {
 	iterativeSolverType="gmres";
+      }
+      else if( (len=arg.matches("-hypre")) )
+      {
+	iterativeSolverType="hypre";
       }
       else if( (len=arg.matches("-testCommunicator")) )
       {
@@ -707,11 +711,30 @@ main(int argc, char *argv[])
       if( solver.isSolverIterative() ) 
       {
 	solver.setCommandLineArguments( argc,argv );
-	solver.set(OgesParameters::THEpreconditioner,OgesParameters::incompleteLUPreconditioner);
 
 	if( iterativeSolverType=="gmres" )
+	{
 	  solver.set(OgesParameters::THEsolverMethod,OgesParameters::generalizedMinimalResidual);
-	else
+	  solver.set(OgesParameters::THEpreconditioner,OgesParameters::incompleteLUPreconditioner);
+	}
+	else if( iterativeSolverType=="hypre" )
+	{
+          // NOTE: hypre is called through PETSc
+          // NOTE: Hypre AMG is a PC type within a Kyrlov solver such as gmres or bcgs, 
+          solver.set(OgesParameters::THEparallelSolverMethod,OgesParameters::gmres);
+	  solver.set(OgesParameters::THEparallelPreconditioner,OgesParameters::hyprePreconditioner);
+	  solver.set(OgesParameters::THEpreconditioner,OgesParameters::hyprePreconditioner);
+          solver.set(OgesParameters::THEparallelExternalSolver,OgesParameters::hypre);
+
+          solver.parameters.setPetscOption("-ksp_type","gmres");
+          solver.parameters.setPetscOption("-pc_type","hypre");
+          solver.parameters.setPetscOption("-pc_hypre_type","boomeramg");
+          solver.parameters.setPetscOption("-pc_hypre_boomeramg_strong_threshold",".5");
+          solver.parameters.setPetscOption("-pc_hypre_boomeramg_max_levels","20");
+          solver.parameters.setPetscOption("-pc_hypre_boomeramg_coarsen_type","Falgout");
+
+	}
+      	else
 	{
 	  if( solverType==OgesParameters::PETSc )
 	    solver.set(OgesParameters::THEsolverMethod,OgesParameters::biConjugateGradientStabilized);
@@ -737,6 +760,9 @@ main(int argc, char *argv[])
 
       printF("\n === Solver:\n %s\n =====\n",(const char*)solver.parameters.getSolverName());
 
+      if( false )
+	solver.parameters.display();
+      
 
       // ---------------------------------
       // --------- Dirichlet BC's --------
@@ -951,7 +977,6 @@ main(int argc, char *argv[])
 	plotResults( ps,solver,u,err );
       }
 
-	
       delete exactPointer; exactPointer=0;// kkc 090902, this was a memory leak making new OGFunction's for each grid w/o releasing the previous one
 
     }  // end it (number of grids)

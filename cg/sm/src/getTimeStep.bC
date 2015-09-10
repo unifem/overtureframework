@@ -244,13 +244,13 @@ getTimeStep( GridFunction & gf )
     // Worst case eigenvalue of the dissipation that has a coefficient proportional to 1/dt : 
     real & dtInverseDissipationEigenvalue = parameters.dbase.get<real>("dtInverseDissipationEigenvalue");
     
-
-    if( gf.t==0. )
+    const real & tInitial = parameters.dbase.get<real>("tInitial"); // *wdh* 2015/09/08
+    if( gf.t==tInitial )
     {
       // ---- compute time-step at t==0 ----
 
       // *** IS THIS STILL NEEDED ? ***
-      printF("--getDT---START:  t=%9.3e, reLambda=%8.2e, imLambda=%8.2e\n",gf.t,reLambda,imLambda);
+      printF("--SM-- getDT:START:  t=%9.3e, reLambda=%8.2e, imLambda=%8.2e\n",gf.t,reLambda,imLambda);
 
       // *note: some dissipations depend on dt 
       real dt =1.e-9;  // choose a small non-zero value 
@@ -272,8 +272,9 @@ getTimeStep( GridFunction & gf )
     if( timeSteppingMethodSm==SmParameters::improvedEuler )
     { // the stability region for the midpoint rule extends to -2 on the Re axis
       // and about sqrt(3) along the imaginary (NOT REALLY -- it does not touch the Im axis!!)
-      a=2.; b=sqrt(3.);
-      // deltaT =cfl/sqrt( SQR(reLambda/2.)+SQR(imLambda/sqrt(3.)) );
+      // *wdh* a=2.; b=sqrt(3.);
+      a=2.; b=1.; // b=1 seems to work for MOL schemes *wdh* 2015/08/23 
+
     }
     else
     {

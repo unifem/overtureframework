@@ -1,7 +1,8 @@
 #
 # Flow over a backward facing smoothed step.
 #  Usage:
-#       cgins [-noplot] backStep -tf=<f> -tp=<f> -g=[gridName] -uDrag=<f> -vDrag=<f> -nu=<f> -show=<> -go=[go|halt|og]
+#       cgins [-noplot] backStep -tf=<f> -tp=<f> -g=[gridName] -uDrag=<f> -vDrag=<f> -nu=<f> -show=<> ...
+#               -append=[0|1] -go=[go|halt|og]
 #
 # Examples:
 #   cgins backStep -g=backStepGride1.order2.hdf -nu=.05 -uDrag=50. -vDrag=0. -go=halt 
@@ -27,6 +28,7 @@ $ogmgAutoChoose=1; $ogmgMaxIterations=30;
 $bcTop="slipWall"; 
 $parabolicWidth=.05; # width of parabolic inflow region
 $outputYplus=0; # set to 1 to output info about yPlus
+$append=0; # set to "1" to append to an existing show file 
 # 
 $slowStartSteps=-1; $slowStartCFL=.5; $slowStartRecomputeDt=100; $slowStartTime=-1.; $recomputeDt=10000;
 # 
@@ -39,7 +41,7 @@ GetOptions( "g=s"=>\$grid,"tf=f"=>\$tFinal,"implicitFactor=f"=>\$implicitFactor,
  "debug=i"=>\$debug,"pdebug=i"=>\$pdebug,"idebug=i"=>\$idebug,"project=i"=>\$project,"cfl=f"=>\$cfl,\
  "restart=s"=>\$restart,"useNewImp=i"=>\$useNewImp,"p0=f"=>\$p0,"addedMass=i"=>\$addedMass,"delta=f"=>\$delta,\
  "bdebug=i"=>\$bdebug,"E=f"=>\$E,"ampProjectVelocity=i"=>\$ampProjectVelocity,"tension=f"=>\$tension,\
-  "tMax=f"=>\$tMax,"pMax=f"=>\$pMax,"thick=f"=>\$thick,"length=f"=>\$length,"E0=f"=>\$E0,\
+  "tMax=f"=>\$tMax,"pMax=f"=>\$pMax,"append=i"=>\$append,\
   "beamPlotScaleFactor=f"=>\$beamPlotScaleFactor,"numElem=i"=>\$numElem,"fluidOnTwoSides=i"=>\$fluidOnTwoSides,\
   "ad2=i"=>\$ad2,"ad21=f"=>\$ad21,"ad22=f"=>\$ad22, "ad4=i"=>\$ad4,"ad41=f"=>\$ad41,"ad42=f"=>\$ad42,\
   "newts=i"=>\$newts,"project=i"=>\$project,"bcTop=s"=>\$bcTop,"outputYplus=i"=>\$outputYplus,\
@@ -51,6 +53,7 @@ if( $solver eq "best" ){ $solver="choose best iterative solver"; }
 if( $solver eq "mg" ){ $solver="multigrid"; }
 if( $psolver eq "best" ){ $psolver="choose best iterative solver"; }
 if( $psolver eq "mg" ){ $psolver="multigrid"; }
+if( $psolver eq "AMG" ){ $psolver="algebraic multigrid"; }
 if( $pc eq "ilu" ){ $pc = "incomplete LU preconditioner"; }elsif( $pc eq "lu" ){ $pc = "lu preconditioner"; }else{ $pc="#"; }
 if( $order eq "2" ){ $order = "second order accurate"; }else{ $order = "fourth order accurate"; }
 if( $model eq "ins" ){ $model = "incompressible Navier Stokes"; }else\
@@ -63,6 +66,8 @@ if( $ts eq "afs"){ $ts="approximate factorization"; $newts=1;}
 if( $go eq "halt" ){ $go = "break"; }
 if( $go eq "og" ){ $go = "open graphics"; }
 if( $go eq "run" || $go eq "go" ){ $go = "movie mode\n finish"; }
+#
+if( $restart eq $show ){ $append=1; }  # append results to $show
 # 
 # specify the overlapping grid to use:
 $grid
@@ -116,6 +121,8 @@ $grid
   pressure solver options
    $ogesSolver=$psolver; $ogesRtol=$rtolp; $ogesAtol=$atolp; $ogesIluLevels=$iluLevels; $ogmgDebug=$ogesDebug; $ogmgCoarseGridSolver="best"; $ogmgRtolcg=$rtolp; $ogmgAtolcg=$atolp; $ogmgRtolcg=$rtolp; $ogmgAtolcg=$atolp;
    $ogmgIlucgLevels=5; # for coarse grid solve, over-ride auto parameters
+   # TEST Hypre AMG: 
+   # $ogmgCoarseGridSolver="AMG";
    include $ENV{CG}/ins/cmd/ogesOptions.h
   exit
 #
@@ -153,6 +160,8 @@ if( $uDrag ne 0 || $vDrag ne 0 ){ $cmd = $userForcingCmds; }else{ $cmd="#"; }
 $cmd
 #
   show file options
+    if( $append eq 0 ){ $cmd="OBPSF:create new show file"; }else{ $cmd="OBPSF:append to old show file"; }
+       $cmd
     compressed
      OBPSF:maximum number of parallel sub-files 8
       open
@@ -161,13 +170,14 @@ $cmd
       $flushFrequency
     exit
 #
+# initial conditions: uniform flow or restart from a solution in a show file 
+if( $restart eq "" ){ $cmds = "uniform flow\n u=1., v=0., p=1."; }\
+  else{ $cmds = "OBIC:show file name $restart\n OBIC:solution number -1 \n OBIC:assign solution from show file"; }
+# 
   initial conditions
-#      read from a show file
-#      cylinder.show
-#       9
-  uniform flow
-    p=1., u=1.
+    $cmds
   exit
+#
 if( $project eq "1" && $restart eq "" ){ $project = "project initial conditions"; }else{ $project = "do not project initial conditions"; }
   $project
 #

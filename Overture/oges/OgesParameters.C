@@ -193,6 +193,60 @@ operator=(const OgesParameters& x)
   return *this;
 }
 
+// ============================================================================
+/// \brief Print a description of the solver and options used.
+/// \note NOTE: you should call the version of this function in class Oges to get the 
+///     full description, including info from particular solvers such as PETSc.
+// ============================================================================
+int OgesParameters::
+printSolverDescription( const aString & label, FILE *file /* = stdout */ ) const
+{
+  aString coarseGridSolver=getSolverName();
+
+  // print user label:
+  fPrintF(file,"%s\n",(const char*)label);
+  
+  int length=coarseGridSolver.length();
+  if( length > 70 )
+  { // name is too long, split it.
+    aString a=coarseGridSolver,b;
+    int i;
+    for( i=50; i<length; i++ )
+    {
+      if( coarseGridSolver[i]==' ' )
+      {
+	a=coarseGridSolver(0,i-1); b=coarseGridSolver(i+1,length-1);
+	break;
+      }
+      else if( i==(length-1) )
+      { // no split point found at a blank, split at char 60:
+	int ii=60;
+	a=coarseGridSolver(0,ii-1)+"-"; b=coarseGridSolver(ii,length-1);
+      }
+    }
+    fPrintF(file,
+	    "   %s\n"
+	    "   %s\n",(const char*)a,(const char*)b);
+  }
+  else
+    fPrintF(file,"   %s \n",(const char*)coarseGridSolver);
+
+  real rtol,atol;
+  int maximumNumberOfIterations;
+  get(OgesParameters::THErelativeTolerance,rtol);
+  get(OgesParameters::THEabsoluteTolerance,atol);
+  get(OgesParameters::THEmaximumNumberOfIterations,maximumNumberOfIterations);
+  fPrintF(file,"   relative tol.=%8.2e, absolute tol.=%8.2e, max number of iterations=%i (0=choose default)\n",
+	  rtol,atol,maximumNumberOfIterations);
+
+  return 0;
+  
+}
+
+
+
+
+
 //\begin{>>OgesParametersInclude.tex}{\subsection{getSolverName}}
 aString OgesParameters::
 getSolverName() const                   
@@ -204,32 +258,38 @@ getSolverName() const
 {
   aString name;
   name=getSolverTypeName();
-  if( Communication_Manager::Number_Of_Processors > 0 )
-  {
+  #ifdef USE_PPP
     // here is the name of the outer parallel solver:
+    // printF("--OGESP-- parallelPreconditioner=%i name=%s\n",(int)parallelPreconditioner,(const char*)getPreconditionerName(parallelPreconditioner));
     if( parallelSolverMethod!=preonly )
-      name=name+", "+getSolverMethodName(parallelSolverMethod)+" (parallel)";
-  }
-  name=name+", "+getSolverMethodName();
+      name=name+", parallel=["+getSolverMethodName(parallelSolverMethod)+ " + " +getPreconditionerName(parallelPreconditioner) + "],";
+
+    if( getSolverMethodName() != "preonly iteration" )
+      name=name+ " local=["+getSolverMethodName() + " + ";
+    else
+      name=name+ " local=[";
+  #else
+    // serial name
+    name=name+", solver=["+getSolverMethodName() + " + ";;
+  #endif
+  
   char buff[80];
   if( solver==SLAP || solver==PETSc || solver==PETScNew )
   {
-    if( Communication_Manager::Number_Of_Processors > 0 )
-    {
-      name+", "+getPreconditionerName(parallelPreconditioner)+" (parallel)";
-    }
     if( (solver==PETSc || solver==PETScNew) && preconditioner==incompleteLUPreconditioner )
     {
-      name+=sPrintF(buff,", ILU(%i)",numberOfIncompleteLULevels);
+      name+=sPrintF(buff,"ILU(%i)",numberOfIncompleteLULevels);
     }
     else
     {
-      name=name+", "+getPreconditionerName();
+      name=name + "+" + getPreconditionerName();
     }
   }
   if( solver==PETSc || solver==PETScNew )
-    name=name+", "+getMatrixOrderingName();
-  
+    name=name+" + "+getMatrixOrderingName();
+
+ if( Communication_Manager::Number_Of_Processors > 0 ) 
+   name += "]";
 
   return name;
 }
@@ -433,6 +493,9 @@ getPreconditionerName(PreconditionerEnum preconditionerType /*  = defaultPrecond
       name="hypre";
 
     break;
+  case hyprePreconditioner:
+    name="hypre";
+    break;
   case shellPreconditioner:
     name="shell preconditioner";
     break;
@@ -472,7 +535,9 @@ getPreconditionerName(PreconditionerEnum preconditionerType /*  = defaultPrecond
     name="ssor preconditioner";
     break;
   default:
+    printF("getPreconditionerName: ERROR: unknown preconditionerType=%i\n",(int)preconditionerType);
     name="unknown preconditioner";
+    break;
   }
   return name;
   
@@ -1314,6 +1379,7 @@ update( GenericGraphicsInterface & gi, CompositeGrid & cGrid )
       "!Oges parameters",
       "choose best direct solver",
       "choose best iterative solver",
+      "algebraic multigrid",
       ">solver type",
         "yale",
         "harwell",
@@ -1460,6 +1526,7 @@ update( GenericGraphicsInterface & gi, CompositeGrid & cGrid )
     {
       "choose best direct solver : make a guess",
       "choose best iterative solver : make a guess",
+      "algebraic multigrid : choose the best AMG solver",
       "solver type",
       "  yale : direct sparse solver, no pivoting",
       "  harwell : direct sparse solver, partial pivoting",
@@ -1621,6 +1688,26 @@ update( GenericGraphicsInterface & gi, CompositeGrid & cGrid )
  	ogmgParameters = new OgmgParameters;
       ogmgParameters->update(gi,cGrid);
     }
+    else if( answer=="algebraic multigrid" )
+    {
+      printF("--OGESP-- INFO: the algebraic multigrid solver uses the Hypre package, \n"
+             "                which should be compiled and built with PETSc\n");
+      
+      // NOTE: hypre is called through PETSc
+      // NOTE: Hypre AMG is a PC type within a Kyrlov solver such as gmres or bcgs, 
+      set(OgesParameters::THEparallelSolverMethod,OgesParameters::gmres);
+      set(OgesParameters::THEparallelPreconditioner,OgesParameters::hyprePreconditioner);
+      set(OgesParameters::THEpreconditioner,OgesParameters::hyprePreconditioner);
+      set(OgesParameters::THEparallelExternalSolver,OgesParameters::hypre);
+
+      setPetscOption("-ksp_type","gmres");
+      setPetscOption("-pc_type","hypre");
+      setPetscOption("-pc_hypre_type","boomeramg");
+      // setPetscOption("-pc_hypre_boomeramg_strong_threshold",".5");
+      // setPetscOption("-pc_hypre_boomeramg_max_levels","20");
+      // setPetscOption("-pc_hypre_boomeramg_coarsen_type","Falgout");
+    }
+
     // --- "Yale parameters" ----
     else if( answer=="matrix cutoff" )
     {

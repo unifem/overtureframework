@@ -1,2 +1,41 @@
+*********************
+**** Sept 8, 2015
+
+FIX CASE when last show file is not full
+
+
+togshow -g=cic.hdf -show=cic.show -numberOfTimeSteps=5 -flushFrequency=4 -append
+togshow -g=cic.hdf -show=cic.show -numberOfTimeSteps=7 -flushFrequency=3 -append
+togshow -g=cic.hdf -show=cic.show -numberOfTimeSteps=3 -flushFrequency=2
+
+
+
+
+togshow -g=cic.hdf -show=cic.show -numberOfTimeSteps=3 -flushFrequency=2 -append
+
+togshow -g=cic.hdf -show=cic.show -numberOfTimeSteps=3 -flushFrequency=2
+
+
+*********************
+**** Sept 7, 2015
+
+Thinsk about adding an "append" option 
+
+togshow -g=cic.hdf -show=cic.show -append
+
+togshow -g=cic.hdf -show=cic.show
+
+
+******************************
+********* August 25 
+
+./plotStuff $ins/runs/backStep/plotBackStep.cmd -show=$runs/ins/backStep/backStepInChannel16 -vorMin=-10. -vorMax=10.
+
+./plotStuff $ins/runs/backStep/plotBackStep.cmd -show=$runs/ins/backStep/backStep8a -vorMin=-5. -vorMax=5.
+
+
+plotStuff $ins/runs/backStep/plotBackStep.cmd -show=$runs/ins/backStep/backStep8 -vorMin=-5. -vorMax=5.
+
+
 2014/04/20 -- need to fix line plots to account for displacement adjustments for solid-mechanics
 

@@ -1832,6 +1832,19 @@ sizeOf( FILE *file /* =NULL */ ) const
 }
 
 
+// ============================================================================
+/// \brief Print a description of the solver and options used.
+// ============================================================================
+int Oges::
+printSolverDescription( const aString & label, FILE *file /* = stdout */ ) const
+{
+  parameters.printSolverDescription(label,file);
+  equationSolver[parameters.solver]->printSolverDescription(label,file);
+
+  return 0;
+}
+
+
 //\begin{>>OgesInclude.tex}{\subsection{printStatistics}} 
 int Oges::
 printStatistics(FILE *file /* = stdout */ ) const

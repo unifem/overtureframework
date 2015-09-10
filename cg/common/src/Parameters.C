@@ -317,7 +317,13 @@ Parameters(const int & numberOfDimensions0) : pdeName("unknown"), numberOfBCName
   if (!dbase.has_key("nu")) dbase.put<real>("nu");
   if (!dbase.has_key("forcing")) dbase.put<bool>("forcing");
   if (!dbase.has_key("useSecondOrderArtificialDiffusion")) dbase.put<bool>("useSecondOrderArtificialDiffusion");
+
   if (!dbase.has_key("showFileFrameForGrid")) dbase.put<int>("showFileFrameForGrid");
+  // appendToOldShowFile=1 if we append results to an old showfile.
+  if (!dbase.has_key("appendToOldShowFile")) dbase.put<int>("appendToOldShowFile")=0;
+  // numberOfInitialFramesInShowFile = number of frames in the old showfile (if appending)
+  if (!dbase.has_key("numberOfInitialFramesInShowFile")) dbase.put<int>("numberOfInitialFramesInShowFile")=0;
+
   if (!dbase.has_key("omega")) dbase.put<ArraySimpleFixed<real,4,1,1,1> >("omega");
   if (!dbase.has_key("pulseData")) dbase.put<ArraySimpleFixed<real,9,1,1,1> >("pulseData");
   if (!dbase.has_key("dbase")) dbase.put<DataBase>("dbase");
@@ -2644,14 +2650,20 @@ updateShowFile(const aString & command /* = nullString */,
     const int maxCommands=40;
     aString cmd[maxCommands];
 
+    const int numColumns=1;
+    dialog.setOptionMenuColumns(numColumns);
+
+    aString label2[] = {"create new show file", "append to old show file","" }; //
+    addPrefix(label2,prefix,cmd,maxCommands);
+    dialog.addOptionMenu("creation mode", cmd, label2, ( dbase.get<int >("appendToOldShowFile")? 1 : 0));
+
     aString label[] = {"compressed", "uncompressed","" }; //
     addPrefix(label,prefix,cmd,maxCommands);
-    dialog.addOptionMenu("mode", cmd, label, ( dbase.get<int >("useStreamMode")? 0 : 1));
+    dialog.addOptionMenu("write mode", cmd, label, ( dbase.get<int >("useStreamMode")? 0 : 1));
 
     aString tbCommands[] = {"save augmented variables",""};
     int tbState[10];
     tbState[0] = dbase.get<bool>("saveAugmentedSolutionToShowFile");
-    int numColumns=1;
     dialog.setToggleButtons(tbCommands, tbCommands, tbState, numColumns); 
 
     aString pbLabels[] = {"open","close",""};
@@ -2747,11 +2759,18 @@ updateShowFile(const aString & command /* = nullString */,
           printF("INFO:closing the currently open show file\n");
 	   show->close();
 	}
-	printF("Opening the show file %s\n",(const char*)answer2);
-	 show = new Ogshow( answer2,".", dbase.get<int >("useStreamMode") );      
-
-	 // -- saveParametersToShowFile();
-
+        if( dbase.get<int >("appendToOldShowFile")==0 )
+	{
+	  printF("Opening the new show file %s.\n",(const char*)answer2);
+	  show = new Ogshow( answer2,".", dbase.get<int >("useStreamMode") );      
+	}
+	else
+	{
+	  printF("Appending results to the old show file %s.\n",(const char*)answer2);
+	  show = new Ogshow( answer2,".", dbase.get<int >("useStreamMode"),Ogshow::openOldFileForWriting );      
+          int & numberOfInitialFramesInShowFile= dbase.get<int>("numberOfInitialFramesInShowFile");
+	  numberOfInitialFramesInShowFile=show->getNumberOfFrames();
+	}
       }
     }
     else if( answer=="close" )
@@ -2892,6 +2911,14 @@ updateShowFile(const aString & command /* = nullString */,
          show->setFlushFrequency( flushFrequency );
       printF("flushFrequency=%i\n",flushFrequency); 
       dialog.setTextLabel("frequency to flush",sPrintF(answer2,"%i", flushFrequency));  
+    }
+    else if( answer=="create new show file" )
+    {
+      dbase.get<int >("appendToOldShowFile")=0;
+    }
+    else if( answer=="append to old show file" )
+    {
+      dbase.get<int >("appendToOldShowFile")=1;
     }
     else
     {

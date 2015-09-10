@@ -636,7 +636,7 @@ writePlot3d(realCompositeGridFunction & u,
    
     int len;
     if( dialog.getTextValue(answer,"grid file","%s",gridFileName) ){} // 
-    if( dialog.getTextValue(answer,"q file","%s",qFileName) ){} // 
+    else if( dialog.getTextValue(answer,"q file","%s",qFileName) ){} // 
     else if( dialog.getToggleValue(answer,"save iblank",writeIblank) ){}//
     else if( dialog.getToggleValue(answer,"convert to cell centered",convertToCellCentered) ){}//
     else if( answer=="formatted" || answer=="unformatted" )

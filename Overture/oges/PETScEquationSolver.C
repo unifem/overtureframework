@@ -79,7 +79,9 @@ PETScEquationSolver(Oges & oges_) : EquationSolver(oges_)
   name                    ="PETSc";
   petscInitialized        =FALSE;
   turnOnPETScMemoryTracing=false; // *wdh* 010318 TRUE;
-  comm                    = PETSC_COMM_WORLD;  
+
+  comm                    = max(1,PETSC_COMM_WORLD);  // PETSC_COMM_WORLD is only valid after PetscInitialize is called
+
   isMatrixAllocated       =FALSE;
   shouldUpdateMatrix      =FALSE;
 //  optionsChanged=FALSE;
@@ -140,9 +142,9 @@ PETScEquationSolver::
   if ( isMatrixAllocated )
   {
     int ierr;
-    ierr=MatDestroy( Amx );  // CHKERRQ( ierr );
-    ierr=VecDestroy( xsol ); // CCHKERRQ( ierr );
-    ierr=VecDestroy( brhs ); // CCHKERRQ( ierr );
+    ierr=MatDestroy( &Amx );  // CHKERRQ( ierr );
+    ierr=VecDestroy( &xsol ); // CCHKERRQ( ierr );
+    ierr=VecDestroy( &brhs ); // CCHKERRQ( ierr );
   }
 
 #ifdef USE_DH_PRECONDITIONER
@@ -267,6 +269,9 @@ initializePetscKSP()
     // int argc=0;
     // char **args=NULL;
     PetscInitialize(&oges.argc,&oges.argv,(char *)0,_p_ov_help);
+
+    comm=PETSC_COMM_WORLD;  // PETSC_COMM_WORLD is only valid after PetscInitialize is called
+
     if( turnOnPETScMemoryTracing )
     {
       // Activate logging of PETSC's malloc call
@@ -279,7 +284,7 @@ initializePetscKSP()
   ierr=  MPI_Comm_size(comm, &numProcs); CHKERRQ(ierr);
   if ( numProcs!=1 )
   {
-    SETERRQ(1,"This is a uniprocessor code ONLY!!");
+    SETERRQ(comm,1,"This is a uniprocessor code ONLY!!");
   }
   
   // Add options to PETSc's list of options
@@ -307,7 +312,8 @@ initializePetscKSP()
 //  isMatrixAllocated=FALSE;
 //  nzzAlloc=NULL;
 //  dscale=NULL;
-  ierr = KSPCreate(comm, &ksp); CHKERRQ(ierr);
+  
+  ierr = KSPCreate(comm , &ksp); CHKERRQ(ierr);
   ierr = KSPGetPC(ksp, &pc);    CHKERRQ(ierr);
 
   // *wdh* 061111 -- these next were moved here from solve
@@ -351,7 +357,7 @@ setPetscParameters()
       krylovSpaceMethod=KSPRICHARDSON;
       break;
     case OgesParameters::chebychev:
-      krylovSpaceMethod=KSPCHEBYCHEV;
+      krylovSpaceMethod=KSPCHEBYSHEV;
       break;
     case OgesParameters::conjugateGradient:
       krylovSpaceMethod=KSPCG;
@@ -477,26 +483,26 @@ setPetscParameters()
     switch( parameters.matrixOrdering )
     {
     case OgesParameters::naturalOrdering:
-      matOrdering=(char*)MATORDERING_NATURAL;
+      matOrdering=(char*)MATORDERINGNATURAL;
       break;
     case OgesParameters::nestedDisectionOrdering:
-      matOrdering=(char*)MATORDERING_ND;
+      matOrdering=(char*)MATORDERINGND;
       break;
     case OgesParameters::oneWayDisectionOrdering:
-      matOrdering=(char*)MATORDERING_1WD;
+      matOrdering=(char*)MATORDERING1WD;
       break;
     case OgesParameters::reverseCuthillMcKeeOrdering:
-      matOrdering=(char*)MATORDERING_RCM;
+      matOrdering=(char*)MATORDERINGRCM;
       break;
     case OgesParameters::quotientMinimumDegreeOrdering:
-      matOrdering=(char*)MATORDERING_QMD;
+      matOrdering=(char*)MATORDERINGQMD;
       break;
     case OgesParameters::rowlengthOrdering:
-      matOrdering=(char*)MATORDERING_ROWLENGTH;
+      matOrdering=(char*)MATORDERINGROWLENGTH;
       break;
     default:
       printf("****WARNING**** Unknown matrix ordering PETSc\n");
-      matOrdering=(char*)MATORDERING_NATURAL;
+      matOrdering=(char*)MATORDERINGNATURAL;
     }
     if( parameters.preconditioner==OgesParameters::incompleteLUPreconditioner ) // ******* fix other cases *****
     {
@@ -666,11 +672,24 @@ solve(realCompositeGridFunction & u,
     if( Oges::debug & 2 ) cout << "...Set operators\n";
     if ( oges.recomputePreconditioner )
     {
+      // *v3.4.5 
       ierr = KSPSetOperators(ksp,Amx,Amx,DIFFERENT_NONZERO_PATTERN);  CHKERRQ(ierr);
+      // *** FIX ME: 3.6.1 is not working yet
+      // *v3.6.1: 
+      // printF(" --PETSC-- KSPSetOperators ksp=%i\n",ksp);
+      // ierr = KSPSetReusePreconditioner(ksp,PETSC_FALSE);  CHKERRQ(ierr);
+      // ierr = KSPSetOperators(ksp,Amx,Amx);  CHKERRQ(ierr);
     }
     else
     {
+      // *wdh* v2.3.2 
       ierr = KSPSetOperators(ksp,Amx,Amx,SAME_PRECONDITIONER);  CHKERRQ(ierr);
+
+      // *** FIX ME: 3.6.1 is not working yet
+      // reuse the current preconditioner:
+      // ierr = KSPSetReusePreconditioner(ksp,PETSC_TRUE);  CHKERRQ(ierr);
+      // ierr = KSPSetOperators(ksp,Amx,Amx);  CHKERRQ(ierr);
+
     }
 
     if( parameters.rescaleRowNorms && matrixFormat==Oges::other ) 
@@ -692,7 +711,7 @@ solve(realCompositeGridFunction & u,
   buildRhsAndSolVector(u,f);
   timeBuild=getCPU()-timeBuild;
 
-  PetscTruth flg=PETSC_TRUE;  // the initial guess is non-zero
+  PetscBool flg=PETSC_TRUE;  // the initial guess is non-zero
   ierr = KSPSetInitialGuessNonzero(ksp,flg); CHKERRQ(ierr); 
 
   real time0=getCPU();
@@ -844,7 +863,7 @@ buildPetscMatrix()
   MPI_Comm_size(comm, &numProcs);
   if ( numProcs!=1 )
   {
-    SETERRQ(1,"This is a uniprocessor code ONLY!!");
+    SETERRQ(comm,1,"This is a uniprocessor code ONLY!!");
   }
 
 
@@ -896,9 +915,9 @@ buildPetscMatrix()
     // ..allocated wrong size for Matrix & vectors in Petsc
     if ( isMatrixAllocated )
     {
-      ierr=MatDestroy( Amx ); CHKERRQ( ierr );
-      ierr=VecDestroy( xsol ); CHKERRQ( ierr );
-      ierr=VecDestroy( brhs ); CHKERRQ( ierr );
+      ierr=MatDestroy( &Amx ); CHKERRQ( ierr );
+      ierr=VecDestroy( &xsol ); CHKERRQ( ierr );
+      ierr=VecDestroy( &brhs ); CHKERRQ( ierr );
       isMatrixAllocated=FALSE;
     }
     if (!isMatrixAllocated)
@@ -909,7 +928,7 @@ buildPetscMatrix()
       while ( numberOfEquations%parameters.blockSize != 0 ) parameters.blockSize--;
 
       PetscInt blockSize=parameters.blockSize;
-      PetscTruth optionWasSet;
+      PetscBool optionWasSet;
       PetscOptionsGetInt(PETSC_NULL,"-mat_block_size",&blockSize,&optionWasSet);
       if( optionWasSet )
       {
@@ -1180,12 +1199,13 @@ buildRhsAndSolVector(realCompositeGridFunction & u,
 #ifdef OV_USE_DOUBLE
     if( Oges::debug & 2 )
     {
-      printF("PETScEquationSolver::buildRhsAndSolVector: Create xsol and brhs using VecCreateSeqWithArray\n");
+      printF("***PETScEquationSolver::buildRhsAndSolVector: Create xsol and brhs using VecCreateSeqWithArray\n");
     }
 
     int n = oges.rhs.elementCount()-1;
-    ierr = VecCreateSeqWithArray(comm,n,ovRhs,&brhs);CHKERRQ(ierr);
-    ierr = VecCreateSeqWithArray(comm,n,ovSol,&xsol);CHKERRQ(ierr);
+    int blockSize=parameters.blockSize; // is this right?
+    ierr = VecCreateSeqWithArray(comm,blockSize,n,ovRhs,&brhs);CHKERRQ(ierr);
+    ierr = VecCreateSeqWithArray(comm,blockSize,n,ovSol,&xsol);CHKERRQ(ierr);
 #endif
   }
   
@@ -1207,9 +1227,9 @@ allocateMatrix(int ndia,int ndja,int nda,int N)
   
   if (isMatrixAllocated) 
   {
-    ierr = MatDestroy(Amx);CHKERRQ(ierr);
-    ierr = VecDestroy(xsol);CHKERRQ(ierr);
-    ierr = VecDestroy(brhs);CHKERRQ(ierr);
+    ierr = MatDestroy(&Amx);CHKERRQ(ierr);
+    ierr = VecDestroy(&xsol);CHKERRQ(ierr);
+    ierr = VecDestroy(&brhs);CHKERRQ(ierr);
     isMatrixAllocated = FALSE;
   }
   if (!isMatrixAllocated) 
@@ -1300,6 +1320,8 @@ saveBinaryMatrix(aString filename00,
     buildPetscMatrix();
     if( Oges::debug & 2 ) cout << "...Set operators\n";
     ierr = KSPSetOperators(ksp,Amx,Amx,DIFFERENT_NONZERO_PATTERN);
+    // *v3.6.1: 
+    // ierr = KSPSetOperators(ksp,Amx,Amx);
     CHKERRQ(ierr);
 
     oges.initialized=TRUE;
@@ -1316,7 +1338,7 @@ saveBinaryMatrix(aString filename00,
   CHKERRQ( ierr );
   ierr = MatView( Amx,  viewer);  CHKERRQ( ierr );
   ierr = VecView( brhs, viewer);  CHKERRQ( ierr );
-  ierr = PetscViewerDestroy( viewer ); CHKERRQ( ierr );
+  ierr = PetscViewerDestroy( &viewer ); CHKERRQ( ierr );
 
   return 0;
 }

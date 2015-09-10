@@ -22,6 +22,18 @@ saveShow( GridFunction & gf0 )
 
     real cpu0=getCPU();
 
+    const int appendToOldShowFile = parameters.dbase.get<int >("appendToOldShowFile");
+    if( numberSavedToShowFile==-1 && appendToOldShowFile )
+    {
+    // -- do not save first solution if we are appending to an existing show file.
+    // This solution is already there.
+        numberSavedToShowFile=0;
+    // There is no need to save the grid if we are appending:
+        parameters.dbase.get<int >("saveGridInShowFile")=false;
+        return;
+    }
+    
+
     if( numberSavedToShowFile==-1 )
     {
     // first call -- save general parameters

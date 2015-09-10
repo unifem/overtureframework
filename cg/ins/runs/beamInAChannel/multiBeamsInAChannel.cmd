@@ -24,7 +24,24 @@ $gravity = "0 0.0 0."; $cdv=1.; $cDt=.25; $project=1; $restart="";
 $solver="yale";  $rtoli=1.e-5; $atoli=1.e-6; $idebug=0; 
 $psolver="yale"; $rtolp=1.e-5; $atolp=1.e-6; $pdebug=0; $dtolp=1.e20; 
 $pc="ilu"; $refactorFrequency=500; 
-* 
+# 
+$rhoBeam=100.; $E=10.; 
+$numElem = 11; # number of elements in the beam
+$addedMass=0; $ampProjectVelocity=0; 
+$useApproximateAMPcondition=0;
+$projectNormalComponent=1; # 1 = project only the normal component of the velocity
+$projectBeamVelocity=1; 
+$projectVelocityOnBeamEnds=0; # do NOT project on ends if we only project normal component -- tangential velocity on ends may be funny
+$smoothInterfaceVelocity=1; $numberOfInterfaceVelocitySmooths=2; 
+$fluidOnTwoSides=1;  # beam has fluid on two sides
+$orderOfProjection=4; # order of accuracy for beam element integrals
+#
+$smoothBeam=0; $numnberOfBeamSmooths=2; 
+#
+$useTP=0; # set to 1 to iterate with TP scheme
+$addedMassRelaxation=1.; # 1=no-relaxation
+$addedMassTol=1.e-3;
+$numberOfCorrections=100; 
 *
 * ----------------------------- get command line arguments ---------------------------------------
 GetOptions( "g=s"=>\$grid,"tf=f"=>\$tFinal,"implicitFactor=f"=>\$implicitFactor, "model=s"=>\$model,\
@@ -33,7 +50,15 @@ GetOptions( "g=s"=>\$grid,"tf=f"=>\$tFinal,"implicitFactor=f"=>\$implicitFactor,
  "go=s"=>\$go,"dtMax=f"=>\$dtMax,"cDt=f"=>\$cDt,"iv=s"=>\$implicitVariation,"Tin=f"=>\$Tin,"ad2=i"=>\$ad2,\
  "solver=s"=>\$solver,"psolver=s"=>\$psolver,"pc=s"=>\$pc,"outflowOption=s"=>\$outflowOption,"ad4=i"=>\$ad4,\
  "debug=i"=>\$debug,"pdebug=i"=>\$pdebug,"idebug=i"=>\$idebug,"project=i"=>\$project,"cfl=f"=>\$cfl,\
- "restart=s"=>\$restart,"useNewImp=i"=>\$useNewImp,"p0=f"=>\$p0 );
+ "restart=s"=>\$restart,"useNewImp=i"=>\$useNewImp,"p0=f"=>\$p0,"rhoBeam=f"=>\$rhoBeam,\
+  "ampProjectVelocity=i"=>\$ampProjectVelocity,"addedMass=i"=>\$addedMass,\
+  "projectNormalComponent=i"=>\$projectNormalComponent,"smoothInterfaceVelocity=i"=>\$smoothInterfaceVelocity,\
+  "nis=i"=>\$numberOfInterfaceVelocitySmooths,"fluidOnTwoSides=i"=>\$fluidOnTwoSides,\
+  "orderOfProjection=i"=>\$orderOfProjection,"projectVelocityOnBeamEnds=i"=>\$projectVelocityOnBeamEnds,\
+  "projectBeamVelocity=i"=>\$projectBeamVelocity,"numberOfCorrections=i"=>\$numberOfCorrections,\
+  "useApproximateAMPcondition=i"=>\$useApproximateAMPcondition,"rampInflow=i"=>\$rampInflow,\
+  "useTP=i"=>\$useTP,"addedMassRelaxation=f"=>\$addedMassRelaxation,"addedMassTol=f"=>\$addedMassTol,\
+  "smoothBeam=i"=>\$smoothBeam,"numberOfBeamSmooths=i"=>\$numberOfBeamSmooths,"numElem=i"=>\$numElem,"E=f"=>\$E );
 * -------------------------------------------------------------------------------------------------
 if( $solver eq "best" ){ $solver="choose best iterative solver"; }
 if( $solver eq "mg" ){ $solver="multigrid"; }
@@ -78,6 +103,23 @@ $grid
 * 
 * choose time stepping method:
   $ts
+  number of PC corrections $numberOfCorrections
+# -- for added mass algorithm:
+  use added mass algorithm $addedMass
+  use approximate AMP condition $useApproximateAMPcondition
+  project added mass velocity $ampProjectVelocity
+  project normal component $projectNormalComponent
+  project velocity on beam ends $projectVelocityOnBeamEnds
+  project beam velocity $projectBeamVelocity
+  smooth interface velocity $smoothInterfaceVelocity
+  number of interface velocity smooths $numberOfInterfaceVelocitySmooths
+  # for now we let the solver know that the added mass algorithm needed predicted values for the pressure:
+  predicted pressure needed $addedMass
+  #
+  use moving grid sub-iterations $useTP
+  adjust dt for moving bodies 1
+  # For steady state do not recompute dt too often or else it changes to reach tprint
+  recompute dt every 1000 steps
 *   
   turn on moving grids
   specify grids to move
@@ -85,11 +127,11 @@ $grid
       deforming body
         user defined deforming body
           elastic beam
-          $I=1.; $E=10.; $rhoBeam=100.; $length=1.; $thick=.2; $pNorm=1.; 
+          $I=1.; $length=1.; $thick=.2; $pNorm=1.; 
           $angle=90.; # $Pi*.5; 
           elastic beam parameters...
             name: beam1
-            number of elements: 11
+            number of elements: $numElem
             area moment of inertia: $I
             elastic modulus: $E
             density: $rhoBeam
@@ -100,9 +142,21 @@ $grid
             position: 0, 0, 0 (x0,y0,z0)
             bc left:clamped
             bc right:free
-            initial conditions... 
-              zero initial conditions
+            initial conditions...
+              Initial conditions:zero
             exit
+            # 
+            order of Galerkin projection: $orderOfProjection
+            fluid on two sides $fluidOnTwoSides
+            #
+            use implicit predictor 1
+            # -- for TP scheme 
+            relax correction steps $useTP
+            added mass relaxation: $addedMassRelaxation
+            added mass tol: $addedMassTol
+            #
+            smooth solution $smoothBeam
+            number of smooths: $numberOfBeamSmooths
             debug: 0
           exit
           # ----
@@ -138,6 +192,7 @@ $grid
   dtMax $dtMax
   pde parameters
     nu  $nu
+    density 1.
     kThermal $kThermal
     gravity
       $gravity

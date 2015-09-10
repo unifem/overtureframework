@@ -4511,10 +4511,12 @@ c
 
       amu        = rparam(3)
       alam       = rparam(4)
-      relaxAlpha = rparam(7)
-      relaxDelta = rparam(8)
+      ! *wdh* 2015/08/23 -- we now pass in alpha+delta/dt (to support MOL schemes)
+      beta       = rparam(7)
+      ! relaxAlpha = rparam(7)
+      ! relaxDelta = rparam(8)
+      ! beta = relaxAlpha+relaxDelta/dt
 
-      beta = relaxAlpha+relaxDelta/dt
       akappa = alam+2.0*amu
       if( icart.eq.1 ) then
         do j2 = n2a,n2b

@@ -2792,8 +2792,8 @@ printStatistics(FILE *file_ /* =stdout */) const
 
     fPrintF(file," maximum number of iterations = %i\n",parameters.maximumNumberOfIterations);
     fPrintF(file," order of accuracy = %i\n",orderOfAccuracy);
-    fPrintF(file," number of levels = %i (%i extra levels).\n",mgcg.numberOfMultigridLevels(),
-                   mgcg.numberOfMultigridLevels()-1);
+    fPrintF(file," number of levels = %i (%i extra levels, max-extra-levels=%i).\n",mgcg.numberOfMultigridLevels(),
+	    mgcg.numberOfMultigridLevels()-1,parameters.maximumNumberOfExtraLevels);
     fPrintF(file," interpolate defect = %i\n",(int)parameters.interpolateTheDefect);
     if( parameters.cycleType==OgmgParameters::cycleTypeF )
     {
@@ -2830,7 +2830,8 @@ printStatistics(FILE *file_ /* =stdout */) const
 	    averagingOption==OgmgParameters::doNotAverageCoarseCurvilinearGridEquations ? 
 	    "average Cartesian grids, do not average curvilinear grids." : "unknown option.");
     
-
+    fPrintF(file," operator averaging is %s for the very coarsest level.\n",
+	    (parameters.dbase.get<bool>("averageEquationsOnCoarsestGrid") ? "ON" : "OFF"));
 
     const aString boundaryAveragingOptionName[] = 
       { "imposeDirichlet", 
@@ -2870,44 +2871,50 @@ printStatistics(FILE *file_ /* =stdout */) const
 
 
     fPrintF(file,"\n");
-    fPrintF(file," Coarse Grid:\n");
-    aString coarseGridSolver;
-    if( parameters.useDirectSolverOnCoarseGrid )
-      coarseGridSolver=directSolver.parameters.getSolverName();
-    else
-      coarseGridSolver="smoother";
-    int length=coarseGridSolver.length();
-    if( length > 70 )
-    { // name is too long, split it.
-      aString a=coarseGridSolver,b;
-      int i;
-      for( i=50; i<length; i++ )
-      {
-	if( coarseGridSolver[i]==' ' )
-	{
-          a=coarseGridSolver(0,i-1); b=coarseGridSolver(i+1,length-1);
-	  break;
-	}
-        else if( i==(length-1) )
-	{ // no split point found at a blank, split at char 60:
-          int ii=60;
-	  a=coarseGridSolver(0,ii-1)+"-"; b=coarseGridSolver(ii,length-1);
-	}
-      }
-      fPrintF(file,
-              "   coarse grid solver : %s\n"
-	      "                        %s\n",(const char*)a,(const char*)b);
-    }
-    else
-      fPrintF(file,"   coarse grid solver : %s \n",(const char*)coarseGridSolver);
 
-    real rtol,atol;
-    int maximumNumberOfIterations;
-    directSolver.get(OgesParameters::THErelativeTolerance,rtol);
-    directSolver.get(OgesParameters::THEabsoluteTolerance,atol);
-    directSolver.get(OgesParameters::THEmaximumNumberOfIterations,maximumNumberOfIterations);
-    fPrintF(file,"   relative tol.=%8.2e, absolute tol.=%8.2e, max number of iterations=%i (0=choose default)\n",
-            rtol,atol,maximumNumberOfIterations);
+    if( parameters.useDirectSolverOnCoarseGrid )
+      directSolver.printSolverDescription( "Coarse grid solver:",file);
+    else
+      fPrintF(file,"Coarse grid solver: smoother.\n");
+
+    // fPrintF(file," Coarse Grid:\n");
+    // aString coarseGridSolver;
+    // if( parameters.useDirectSolverOnCoarseGrid )
+    //   coarseGridSolver=directSolver.parameters.getSolverName();
+    // else
+    //   coarseGridSolver="smoother";
+    // int length=coarseGridSolver.length();
+    // if( length > 70 )
+    // { // name is too long, split it.
+    //   aString a=coarseGridSolver,b;
+    //   int i;
+    //   for( i=50; i<length; i++ )
+    //   {
+    // 	if( coarseGridSolver[i]==' ' )
+    // 	{
+    //       a=coarseGridSolver(0,i-1); b=coarseGridSolver(i+1,length-1);
+    // 	  break;
+    // 	}
+    //     else if( i==(length-1) )
+    // 	{ // no split point found at a blank, split at char 60:
+    //       int ii=60;
+    // 	  a=coarseGridSolver(0,ii-1)+"-"; b=coarseGridSolver(ii,length-1);
+    // 	}
+    //   }
+    //   fPrintF(file,
+    //           "   coarse grid solver : %s\n"
+    // 	      "                        %s\n",(const char*)a,(const char*)b);
+    // }
+    // else
+    //   fPrintF(file,"   coarse grid solver : %s \n",(const char*)coarseGridSolver);
+
+    // real rtol,atol;
+    // int maximumNumberOfIterations;
+    // directSolver.get(OgesParameters::THErelativeTolerance,rtol);
+    // directSolver.get(OgesParameters::THEabsoluteTolerance,atol);
+    // directSolver.get(OgesParameters::THEmaximumNumberOfIterations,maximumNumberOfIterations);
+    // fPrintF(file,"   relative tol.=%8.2e, absolute tol.=%8.2e, max number of iterations=%i (0=choose default)\n",
+    //         rtol,atol,maximumNumberOfIterations);
 
 
     fPrintF(file,"   average number of iterations per coarse grid solve = %5.1f/cycle\n",
@@ -3110,7 +3117,7 @@ printStatistics(FILE *file_ /* =stdout */) const
     }
 
     fPrintF(file,"\n"
-	    "    Ogmg, Statistics  %s, grids=%i, cycles=%i, gridPoints=%8i, number of processors=%i\n"
+	    "    Ogmg, Statistics  %s, grids=%i, cycles=%i, gridPoints=%8i, np=%i\n"
 	    "    ----------------                  time (s)  time/cycle  percentage\n"
 	    " smooth..(includes bc's)...............%6.2e  %6.2e   %6.2f%% \n"
 	    " defect.(excluding those in smooth)....%6.2e  %6.2e   %6.2f%% \n"
@@ -3416,7 +3423,7 @@ buildCoefficientArrays()
 	{
 	  
           printF("*****buildCoefficientArray:  cl.finishBoundaryConditions(); for coarsest level %i\n",level+1);
-          printF(" cornerBC: %i\n",bcParams.getCornerBC(0,0,0));
+          // printF(" cornerBC: %i\n",bcParams.getCornerBC(0,0,0));
 	}
 	
         // bcParams.orderOfExtrapolation=2;

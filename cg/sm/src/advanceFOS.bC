@@ -58,7 +58,6 @@ getUtFOS(GridFunction & cgf,
 	 RealCompositeGridFunction & ut, 
 	 real tForce )
 {
-  real & dt= deltaT;
 
   // --- do this for now ---
   int cur=-1;
@@ -71,6 +70,10 @@ getUtFOS(GridFunction & cgf,
     }
   }
   assert( cur>=0 );
+
+  // *wdh* 2015/08/22 real & dt= deltaT;
+
+  real dt=0.;  // for MOL we should set dt=0
   advanceFOS( cur,t,dt, &ut, tForce );
 }
 
@@ -417,8 +420,28 @@ advanceFOS(  int current, real t, real dt,
 	rpar[ 9]=lambda;
 	rpar[10]=mu;
         rpar[11]=(real &)parameters.dbase.get<OGFunction* >("exactSolution");  // twilight zone pointer, ep
-	rpar[12] = parameters.dbase.get<real>( "relaxAlpha" ); // jwb 11 Aug 2010 ... relaxation parameters
-	rpar[13] = parameters.dbase.get<real>( "relaxDelta" ); // (alpha+delta/dt)
+
+	// rpar[12] = parameters.dbase.get<real>( "relaxAlpha" ); // jwb 11 Aug 2010 ... relaxation parameters
+	// rpar[13] = parameters.dbase.get<real>( "relaxDelta" ); // (alpha+delta/dt)
+        // use deltaT here since for MOL schemes dt=0 
+        const real & relaxAlpha = parameters.dbase.get<real>( "relaxAlpha" );
+        const real & relaxDelta = parameters.dbase.get<real>( "relaxDelta" );
+	if( dt>0. )
+	{
+	  rpar[12] = relaxAlpha + relaxDelta/dt;  // just pass in relaxBeta *wdh* 2015/08/23 
+	}
+	else
+	{
+          // If dt==0 then this must be a method-of-lines scheme, use deltaT for the stress-strain relaxation.
+	  if( !( dt==deltaT || dt==0. ) )
+	  {
+	    printF("--SM-- advanceFOS Error: dt=%9.3e deltaT=%9.3e t=%9.3e\n",dt,deltaT,t);
+	    OV_ABORT("error");
+	  }
+	
+	  rpar[12] = relaxAlpha + relaxDelta/deltaT;  // just pass in relaxBeta *wdh* 2015/08/23 
+	}
+	
 	rpar[14] = parameters.dbase.get<real>("tangentialStressDissipation");
 	rpar[15] = parameters.dbase.get<real>("tangentialStressDissipation1");
 	

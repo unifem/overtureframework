@@ -49,7 +49,9 @@
 #
 # Set default parameters: 
 #
-$grid="cic.bbmg6.hdf"; $maxit=10; $debug=3; $sm="rb"; $fmg=0; $opav=1; $option="solve"; $cfw=2; $omega=-1.; $omegaz=-1.; $ic=0; 
+$grid="cic.bbmg6.hdf"; $maxit=10; $debug=3; $sm="rb"; $fmg=0; 
+$opav=1;  $opavCoarseGrid=1; 
+$option="solve"; $cfw=2; $omega=-1.; $omegaz=-1.; $ic=0; 
 $ibs=1;$nibs=2; $ils=0; $iml=1; $ins=2; 
 $bls=0; $bli=5; $bll=1; $save=""; $read=""; 
 $bsmooth="smoother(0)=rb"; $bsm=""; $autoSmooth=1; $conv="residual";  $rb="new";
@@ -73,7 +75,7 @@ GetOptions( "g=s"=>\$grid,"maxit=i"=>\$maxit,"debug=i"=>\$debug,"sm=s"=>\$sm,"bs
             "bc1=s"=>\$bc1,"bc2=s"=>\$bc2,"bc3=s"=>\$bc3,"bc4=s"=>\$bc4,"bc5=s"=>\$bc5,"bc6=s"=>\$bc6,\
             "bc7=s"=>\$bc7,"bc8=s"=>\$bc8,"rb=s"=>\$rb,"cgsi=i"=>\$cgsi,"projectSingular=i"=>\$projectSingular,\
             "adjustSingularEquations=i"=>\$adjustSingularEquations,"ilucg=i"=>\$ilucg,"iluFill=f"=>\$iluFill,\
-            "save=s"=>\$save, "read=s"=>\$read );
+            "save=s"=>\$save, "read=s"=>\$read,"opavCoarseGrid=i"=>\$opavCoarseGrid );
 # -------------------------------------------------------------------------------------------------
 $grid
 if( $eqn eq "lap" && $predefined eq 1 ){ $eqn = "laplace (predefined)"; }
@@ -84,6 +86,7 @@ if( $eqn eq "dsg" && $predefined eq 0 ){ $eqn = "divScalarGrad"; }
 if( $eqn eq "heat" && $predefined eq 0 ){ $eqn = "heat equation"; }
 #
 if( $cgSolver eq "best" ){ $cgSolver="choose best iterative solver"; }
+if( $cgSolver eq "AMG" ){ $cgSolver="algebraic multigrid"; }
 if( $ssr eq 1 ){ $ssr="show smoothing rates"; }else{ $ssr="#"; }
 if( $option eq "solve" ){ $option="solve"; }
 if( $option eq "sm" ){ $option="test smoother"; $bsmooth="#"; }
@@ -209,6 +212,8 @@ $conv
 #
 # operator averaging option: 
 $opav
+#   optionally do NOT average the coarsest level
+average equations on the coarsest grid $opavCoarseGrid
 #
 #* use new auto sub-smooth
 #*
@@ -244,6 +249,11 @@ $cmd
        $atolcg
      debug 
       $ogesDebug 
+     #
+     define petscOption -pc_hypre_boomeramg_cycle_type V
+     define petscOption -pc_hypre_boomeramg_strong_threshold .25
+     #  CLJP Ruge-Stueben  modifiedRuge-Stueben   Falgout  PMIS  HMIS
+     define petscOption -pc_hypre_boomeramg_coarsen_type PMIS
   exit
 # Solve the coarse grid equations using the smoother:
 if( $solveCoarseGridBySmoother == 1 ){ $cmd = "iterate on coarse grid"; }else{ $cmd="#"; }

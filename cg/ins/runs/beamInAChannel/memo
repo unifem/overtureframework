@@ -1,3 +1,56 @@
+***********************
+***** Sept 3-4, 2015 
+
+
+TEST TP- scheme  omega=.1 OK (.2 too big)  Average TP-IS's = 30-40 ? 
+nohup $cgins -noplot multiBeamsInAChannel -g=multiBeamsInAChannelGride16.order2.hdf -tf=.02 -tp=.01 -rhoBeam=1. -outflowOption=neumann -nu=5.e-4 -useTP=1 -addedMassRelaxation=.1 -addedMassTol=1.e-5 -numberOfCorrections=500 -addedMass=0 -ampProjectVelocity=0 -useApproximateAMPcondition= 1-show=twoBeamsInAChannelRhos1G16TP.show -go=go > ! twoBeamsInAChannelRhos1G16TP.out
+
+
+
+TEST TP- scheme  omega=.1 OK (.2 too big)   Average TP-IS's = 30-40 (max=100)
+nohup $cgins -noplot multiBeamsInAChannel -g=multiBeamsInAChannelGride8.order2.hdf -tf=.2 -tp=.01 -rhoBeam=1. -outflowOption=neumann -nu=1.e-3 -useTP=1 -addedMassRelaxation=.1 -addedMassTol=1.e-5 -numberOfCorrections=500 -addedMass=0 -ampProjectVelocity=0 -useApproximateAMPcondition= 1-show=twoBeamsInAChannelRhos1G8TP.show -go=go > ! twoBeamsInAChannelRhos1G8TP.out
+
+-----  MOVIE:
+
+We may want a stiffer beam and more elements
+
+G8: rhoBeam=1:  
+nohup $cgins -noplot multiBeamsInAChannel -g=multiBeamsInAChannelGride8.order2.hdf -tf=20. -tp=.01 -rhoBeam=1. -E=20 -numElem=21 -outflowOption=neumann -nu=1.e-3  -addedMass=1 -ampProjectVelocity=1 -useApproximateAMPcondition=1 -show=twoBeamsInAChannelRhos1E20G8.show -go=go > ! twoBeamsInAChannelRhos1E20G8.out 
+
+
+MULTI-BEAMS MOVIE: AMP 
+G16: rhoBeam=1: OK to t=4 
+cgins -noplot multiBeamsInAChannel -g=multiBeamsInAChannelGride16.order2.hdf -tf=20. -tp=.01 -rhoBeam=1. -outflowOption=neumann -nu=5.e-4  -addedMass=1 -ampProjectVelocity=1 -useApproximateAMPcondition=1 -show=twoBeamsInAChannelRhos1.show -go=go > ! twoBeamsInAChannelRhos1.out 
+
+G8: rhoBeam=1:  --> OK to t=8 but then beam deforms too much
+cgins -noplot multiBeamsInAChannel -g=multiBeamsInAChannelGride8.order2.hdf -tf=20. -tp=.01 -rhoBeam=1. -outflowOption=neumann -nu=1.e-3  -addedMass=1 -ampProjectVelocity=1 -useApproximateAMPcondition=1 -show=twoBeamsInAChannelRhos1G8.show -go=go > ! twoBeamsInAChannelRhos1G8.out 
+
+
+G8 AMP OK- rhoBeam=1
+cgins multiBeamsInAChannel -g=multiBeamsInAChannelGride8.order2.hdf -tf=10. -tp=.001 -rhoBeam=1. -outflowOption=neumann -nu=.001  -addedMass=1 -ampProjectVelocity=1 -useApproximateAMPcondition=1 -go=halt
+
+G4 AMP OK- rhoBeam=1
+cgins multiBeamsInAChannel -g=multiBeamsInAChannelGride4.order2.hdf -tf=10. -tp=.001 -rhoBeam=1. -outflowOption=neumann -nu=.005  -addedMass=1 -ampProjectVelocity=1 -useApproximateAMPcondition=1 -go=halt
+
+
+
+G4 AMP OK- rhoBeam=10
+cgins multiBeamsInAChannel -g=multiBeamsInAChannelGride4.order2.hdf -tf=10. -tp=.001 -rhoBeam=10. -outflowOption=neumann -nu=.005  -addedMass=1 -ampProjectVelocity=1 -useApproximateAMPcondition=1 -go=halt
+
+
+G4 TROUBLE rhoBeam=10 : TP
+cgins multiBeamsInAChannel -g=multiBeamsInAChannelGride4.order2.hdf -tf=10. -tp=.001 -rhoBeam=10. -show="multiBeamRsTen.show" -outflowOption=neumann -nu=.005 -go=halt
+
+
+REMAKE GRID: 
+ogen -noplot beamInAChannelGrid -interp=e -xa=-3. -xb=8. -yb=2. -prefix=beamInAChannelGridBigger -factor=4
+
+nohup $cgins -noplot beamInAChannel -g=beamInAChannelGridBiggere4.order2.hdf  -numElem=21 -tf=20. -tp=.01 -rhoBeam=1. -E=5. -Kt=0. -Kxxt=.0 -addedMass=1 -ampProjectVelocity=1 -useApproximateAMPcondition=1 -nu=.05 -ad2=1 -rampInflow=1 -cfls=5. -nis=4 -show="bicG4movie.show" -go=go >!  bicG4movie.out 
+
+$cgins beamInAChannel -g=beamInAChannelGridBiggere4.order2.hdf  -numElem=21 -tf=20. -tp=.01 -rhoBeam=1. -E=5. -Kt=0. -Kxxt=.0 -addedMass=1 -ampProjectVelocity=1 -useApproximateAMPcondition=1 -nu=.05 -ad2=1 -rampInflow=1 -cfls=5. -nis=4 -go=go
+
+
+
 ****** March 29, 2015
 
 We could compare rhos=.1,1,10

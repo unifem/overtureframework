@@ -151,6 +151,9 @@ interfaceRightHandSide( InterfaceOptionsEnum option,
   // return DomainSolver::interfaceRightHandSide(option,interfaceDataOptions,info,gfIndex,t);
   // *wdh* 081212 CompositeGrid & cg = gf[0].cg;
   // CompositeGrid & cg = gf[0].cg;
+  FILE *& debugFile =parameters.dbase.get<FILE* >("debugFile");
+  FILE *& pDebugFile =parameters.dbase.get<FILE* >("pDebugFile");
+
   CompositeGrid & cg = gf[gfIndex].cg;
   const int numberOfDimensions = cg.numberOfDimensions();
   
@@ -409,6 +412,12 @@ interfaceRightHandSide( InterfaceOptionsEnum option,
 	// old: f(I1,I2,I3,V)=traction(I1,I2,I3,D);
 	f(I1,I2,I3,Ct)=traction(I1,I2,I3,D);
 
+	if( true )
+	{
+	  fprintf(pDebugFile,"-- interfaceRHS: interface data at t=%8.2e --\n",t);
+	  ::display(f(I1,I2,I3,Ct),"traction f",pDebugFile,"%9.3e ");
+	}
+	
         numSaved+=numberOfDimensions;
       }
       
@@ -484,13 +493,20 @@ interfaceRightHandSide( InterfaceOptionsEnum option,
             // f(t) = (t-tp)/(t0-tp) *f(t0) + (t0-t)/(t0-tp) *f(tp)
             real cex1 = dt==0. ? 1. : (t-tp)/dt;
 	    real cex2 = dt==0. ? 0. : (t0-t)/dt;
-	    if( debug() & 2 )
-	      printP("Cgins::interfaceRHS: Extrapolate traction in time: t0=%9.3e, tp=%9.3e, cex1=%9.3e cex2=%9.3e\n",
-		     t0,tp,cex1,cex2);
+	    if( true || debug() & 2 )
+	      fprintf(pDebugFile,"Cgins::interfaceRHS: Extrapolate traction in time: t=%9.3e t0=%9.3e, tp=%9.3e, cex1=%9.3e cex2=%9.3e\n",
+		      t,t0,tp,cex1,cex2);
 	    
 	    if( !(parameters.dbase.get<bool >("twilightZoneFlow") && dt==0.) ) 
 	    {
-	      f(I1,I2,I3,Ct)= cex1*traction(I1,I2,I3,D)+cex2*f0(I1,I2,I3,Ct);
+	      if( true ) 
+		f(I1,I2,I3,Ct)= cex1*traction(I1,I2,I3,D)+cex2*f0(I1,I2,I3,Ct);
+	      else
+	      {
+		printF(" EXTRAP traction-rate to first-order : *TEMP*\n");
+		f(I1,I2,I3,Ct)= traction(I1,I2,I3,D);
+	      }
+	      
 	    }
 	    else
 	    {
@@ -563,6 +579,11 @@ interfaceRightHandSide( InterfaceOptionsEnum option,
 		       "gfIndex=%i gf[gfIndex].t=%9.3e, prev=%i, tp=%9.3e\n",t,gfIndex,gf[gfIndex].t,prev,tp);
 
 	      f(I1,I2,I3,Ctr)= (f(I1,I2,I3,Ct) - f1(I1,I2,I3,Ct))/dt;
+
+	      if( true )
+		::display(f(I1,I2,I3,Ctr),"traction-rate",pDebugFile,"%9.3e ");
+	      
+
 	    }
 	    else 
 	    {
@@ -598,13 +619,29 @@ interfaceRightHandSide( InterfaceOptionsEnum option,
       
               f(I1,I2,I3,Ctr)= l0t*f0(I1,I2,I3,Ct) +l1t*f1(I1,I2,I3,Ct) + l2t*f2(I1,I2,I3,Ct);
 
-	      if( debug() & 2 )
-		printP("Cgins::interfaceRHS: get d(traction)/dt (2nd order): t=%9.3e, (t0=%9.3e) "
-		       "gfIndex=%i gf[gfIndex].t=%9.3e, prev=%i, tp=%9.3e, im2=%i t2=%9.3e, "
-                       " l0t*dt0=%4.2f l1t*dt0=%4.2f l2t*dt0=%4.2f\n",
-                       t,t0,gfIndex,gf[gfIndex].t,prev,t1,im2,t2,l0t*dt0,l1t*dt0,l2t*dt0);              
-	      
+	      if( true || debug() & 2 )
+	      {
+		printF(" EXTRAP traction-rate to first-order : *TEMP*\n");
+                real l1 = (t-t2)/(t1-t2);
+		real l2 = (t-t1)/(t2-t1);
+                // f(I1,I2,I3,Ctr)= l1*f1(I1,I2,I3,Ctr) + l2*f2(I1,I2,I3,Ctr); // ******************** TEMP *************
+                f(I1,I2,I3,Ctr)= f1(I1,I2,I3,Ctr);
+
+		fprintf(pDebugFile,"Cgins::interfaceRHS: get d(traction)/dt (2nd order): t=%9.3e, t0=%9.3e, dt0=%9.3e "
+			"gfIndex=%i gf[gfIndex].t=%9.3e, prev=%i, t1=%9.3e, im2=%i t2=%9.3e, "
+			" l0t*dt0=%4.2f l1t*dt0=%4.2f l2t*dt0=%4.2f\n",
+			t,t0,dt0,gfIndex,gf[gfIndex].t,prev,t1,im2,t2,l0t*dt0,l1t*dt0,l2t*dt0);   
+    		::display(f(I1,I2,I3,Ctr),"traction-rate",pDebugFile,"%9.3e ");
+		::display(f0(I1,I2,I3,Ct),"f0 traction (t0)",pDebugFile,"%9.3e ");
+		::display(f1(I1,I2,I3,Ct),"f1 traction (tp)",pDebugFile,"%9.3e ");
+		::display(f2(I1,I2,I3,Ct),"f2 traction (t2)",pDebugFile,"%9.3e ");
+
+		::display(f1(I1,I2,I3,Ctr),sPrintF("f1 traction-rate (t1=%9.3e)",t1),pDebugFile,"%9.3e ");
+		::display(f2(I1,I2,I3,Ctr),sPrintF("f2 traction-rate (t2=%9.3e)",t2),pDebugFile,"%9.3e ");
+
+	      }
 	    }
+	    
 	    
 	    if( debug() & 8 )
 	    {

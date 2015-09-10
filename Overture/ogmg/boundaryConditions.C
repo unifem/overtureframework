@@ -558,9 +558,15 @@ applyInitialConditions()
             		is1=is2=is3=0;
             		is[axispd]=1-2*side2;
             		uLocal(I1m-is1,I2m-is2,I3m-is3)=
-              		  ( 5.*(uLocal(I1m,I2m,I3m)-uLocal(I1m+3*is1,I2m+3*is2,I3m+3*is3))
-                		    -10.*(uLocal(I1m+is1,I2m+is2,I3m+is3)-uLocal(I1m+2*is1,I2m+2*is2,I3m+2*is3))+
-                		    uLocal(I1m+4*is1,I2m+4*is2,I3m+4*is3) );
+              		  (   5.*(uLocal(I1m      ,I2m      ,I3m      )-uLocal(I1m+3*is1,I2m+3*is2,I3m+3*is3))
+                		    -10.*(uLocal(I1m+  is1,I2m+  is2,I3m  +is3)-uLocal(I1m+2*is1,I2m+2*is2,I3m+2*is3))+
+                      		          uLocal(I1m+4*is1,I2m+4*is2,I3m+4*is3) );
+
+                // *wdh* assign 2nd ghost too  2015/07/26
+            		uLocal(I1m-2*is1,I2m-2*is2,I3m-2*is3)=
+              		  (   5.*(uLocal(I1m-  is1,I2m-  is2,I3m-  is3)-uLocal(I1m+2*is1,I2m+2*is2,I3m+2*is3))
+                		    -10.*(uLocal(I1m      ,I2m      ,I3m      )-uLocal(I1m+  is1,I2m+  is2,I3m+  is3))+
+                      		          uLocal(I1m+3*is1,I2m+3*is2,I3m+3*is3) );
             		
             	      }
                         }

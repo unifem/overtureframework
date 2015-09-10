@@ -1,3 +1,95 @@
+**********************
+**** Sept 8-9, 2015
+
+TEST restart and APPENDING to the show file 
+
+RESTART AND APPEND: 
+$cgmpx -noplot deformingChannel -method=ins -g=deformingChannelGrid4.order2 -useTP=1 -iOmega=.1 -scf=1. -p0=10 -u0=0. -nu=.01 -tp=.01 -tf=.1 -nc=1 -pOffset=0. -tsSM=improvedEuler -numberOfCorrections=20 -rhoSolid=100. -lambdaSolid=10. -muSolid=10. -debug=3 -pi=0 -multiDomainAlgorithm=1 -uShock=0. -ap=.1 -flushFrequency=2 -bcOption=4 -debug=3 -sideBC=slipWall -projectInitialConditions=0 -restart=dc.show -show=dc.show -append=1 -go=go 
+
+$cgmpx deformingChannel -method=ins -g=deformingChannelGrid4.order2 -useTP=1 -iOmega=.1 -scf=1. -p0=10 -u0=0. -nu=.01 -tp=.01 -tf=.1 -nc=1 -pOffset=0. -tsSM=improvedEuler -numberOfCorrections=20 -rhoSolid=100. -lambdaSolid=10. -muSolid=10. -debug=3 -pi=0 -multiDomainAlgorithm=1 -uShock=0. -ap=.1 -flushFrequency=2 -bcOption=4 -debug=3 -sideBC=slipWall -projectInitialConditions=0 -restart=dc.show -go=halt
+
+
+rhoSolid=100 : OK
+$cgmpx -noplot deformingChannel -method=ins -g=deformingChannelGrid4.order2 -useTP=1 -iOmega=.1 -scf=1. -p0=10 -u0=0. -nu=.01 -tp=.01 -tf=.05 -nc=1 -pOffset=0. -tsSM=improvedEuler -numberOfCorrections=20 -rhoSolid=100. -lambdaSolid=10. -muSolid=10. -debug=3 -pi=0 -multiDomainAlgorithm=1 -uShock=0. -ap=.1 -flushFrequency=2 -bcOption=4 -debug=3 -sideBC=slipWall -projectInitialConditions=0 -show=dc.show -go=go 
+
+
+
+
+
+****************************
+*** Aug 26-27, 2015
+
+========== COARSER IN X
+
+rhos=10 TROUBLE: 
+$cgmpx deformingChannel -method=ins -g=deformingChannelGridX54.order2 -useTP=1 -iOmega=.05 -iTol=1.e-5 -scf=1. -p0=5 -u0=0. -nu=.01 -tp=.01 -tf=1 -nc=1 -pOffset=0. -tsSM=improvedEuler -numberOfCorrections=200 -rhoSolid=10. -lambdaSolid=10. -muSolid=10. -debug=3 -pi=0 -multiDomainAlgorithm=1 -uShock=0. -ap=.1 -flushFrequency=2 -bcOption=4 -debug=3 -sideBC=slipWall -projectInitialConditions=0 -go=halt
+
+rhos=50 : Change extrap for sigmaDot --> works
+$cgmpx deformingChannel -method=ins -g=deformingChannelGridX54.order2 -useTP=1 -iOmega=.1 -iTol=1.e-5 -scf=1. -p0=5 -u0=0. -nu=.01 -tp=.01 -tf=1 -nc=1 -pOffset=0. -tsSM=improvedEuler -numberOfCorrections=200 -rhoSolid=50. -lambdaSolid=10. -muSolid=10. -debug=3 -pi=0 -multiDomainAlgorithm=1 -uShock=0. -ap=.1 -flushFrequency=2 -bcOption=4 -debug=3 -sideBC=slipWall -projectInitialConditions=0 -go=halt
+
+
+$cgmpx deformingChannel -method=ins -g=deformingChannelGridX54.order2 -useTP=1 -iOmega=.1 -iTol=1.e-5 -scf=1. -p0=1 -u0=0. -nu=.01 -tp=.01 -tf=1 -nc=1 -pOffset=0. -tsSM=improvedEuler -numberOfCorrections=200 -rhoSolid=50. -lambdaSolid=10. -muSolid=10. -debug=3 -pi=0 -multiDomainAlgorithm=1 -uShock=0. -ap=.1 -flushFrequency=2 -bcOption=4 -debug=3 -sideBC=slipWall -projectInitialConditions=0 -go=halt
+
+
+TROUBLE near t=.59 -- traction rate is BAD
+$cgmpx deformingChannel -method=ins -g=deformingChannelGrid4.order2 -useTP=1 -iOmega=.1 -iTol=1.e-5 -scf=1. -p0=1 -u0=0. -nu=.01 -tp=.01 -tf=10 -nc=1 -pOffset=0. -tsSM=improvedEuler -numberOfCorrections=200 -rhoSolid=50. -lambdaSolid=10. -muSolid=10. -debug=3 -pi=0 -multiDomainAlgorithm=1 -uShock=0. -ap=.1 -flushFrequency=2 -bcOption=4 -debug=3 -sideBC=slipWall -projectInitialConditions=0 -go=halt
+
+
+G2: -- works for some reason
+$cgmpx deformingChannel -method=ins -g=deformingChannelGrid2.order2 -useTP=1 -iOmega=.1 -iTol=1.e-5 -scf=1. -p0=1 -u0=0. -nu=.01 -tp=.01 -tf=10 -nc=1 -pOffset=0. -tsSM=improvedEuler -numberOfCorrections=200 -rhoSolid=50. -lambdaSolid=10. -muSolid=10. -debug=3 -pi=0 -multiDomainAlgorithm=1 -uShock=0. -ap=.1 -flushFrequency=2 -bcOption=4 -debug=3 -sideBC=slipWall -projectInitialConditions=0 -go=halt
+
+
+****************************
+*** Aug 24-25, 2015
+
+TROUBLE : cfl=.25 -- interfaces pull aprt
+$cgmpx deformingChannel -method=ins -g=deformingChannelGrid4.order2 -useTP=1 -iOmega=.02 -iTol=1.e-5 -scf=1. -p0=1 -u0=0. -nu=.01 -tp=.01 -tf=10 -nc=1 -pOffset=0. -tsSM=improvedEuler -numberOfCorrections=200 -rhoSolid=50. -lambdaSolid=10. -muSolid=10. -debug=3 -pi=0 -multiDomainAlgorithm=1 -uShock=0. -ap=.1 -flushFrequency=2 -bcOption=4 -debug=3 -sideBC=slipWall -projectInitialConditions=0 -go=halt -cfl=.25
+
+
+rhoSolid=50 -- TROUBLE t=.7 omega=.1 
+$cgmpx deformingChannel -method=ins -g=deformingChannelGrid4.order2 -useTP=1 -iOmega=.02 -iTol=1.e-5 -scf=1. -p0=1 -u0=0. -nu=.01 -tp=.01 -tf=10 -nc=1 -pOffset=0. -tsSM=improvedEuler -numberOfCorrections=200 -rhoSolid=50. -lambdaSolid=10. -muSolid=10. -debug=3 -pi=0 -multiDomainAlgorithm=1 -uShock=0. -ap=.1 -flushFrequency=2 -bcOption=4 -debug=3 -sideBC=slipWall -projectInitialConditions=0 -go=halt
+
+rhoSolid=100 : OK
+$cgmpx deformingChannel -method=ins -g=deformingChannelGrid4.order2 -useTP=1 -iOmega=.1 -scf=1. -p0=10 -u0=0. -nu=.01 -tp=.01 -tf=10 -nc=1 -pOffset=0. -tsSM=improvedEuler -numberOfCorrections=20 -rhoSolid=100. -lambdaSolid=10. -muSolid=10. -debug=3 -pi=0 -multiDomainAlgorithm=1 -uShock=0. -ap=.1 -flushFrequency=2 -bcOption=4 -debug=3 -sideBC=slipWall -projectInitialConditions=0 -go=halt
+
+
+****************************
+*** Aug 22-23, 2015
+
+BEAM UNDER PRESSURE
+
+TP -- LIGHTER SOLID
+$cgmpx deformingChannel -method=ins -g=deformingChannelGrid4.order2 -useTP=1 -iOmega=.1 -scf=1. -p0=10 -u0=0. -nu=.01 -tp=.01 -tf=10 -nc=1 -pOffset=0. -tsSM=improvedEuler -numberOfCorrections=20 -rhoSolid=100. -lambdaSolid=10. -muSolid=10. -debug=3 -pi=0 -multiDomainAlgorithm=1 -uShock=0. -ap=.1 -flushFrequency=2 -bcOption=4 -debug=1 -sideBC=slipWall -projectInitialConditions=0 -go=halt
+
+TP scheme: 
+$cgmpx deformingChannel -method=ins -g=deformingChannelGrid4.order2 -useTP=1 -iOmega=.5 -scf=1. -p0=10 -u0=0. -nu=.01 -tp=.01 -tf=10 -nc=1 -pOffset=0. -tsSM=improvedEuler -numberOfCorrections=5 -rhoSolid=1000. -lambdaSolid=10. -muSolid=10. -debug=1 -pi=0 -multiDomainAlgorithm=1 -uShock=0. -ap=.1 -flushFrequency=2 -bcOption=4 -debug=3 -sideBC=slipWall -go=halt
+
+
+TEST - Godunov-PC scheme for solid: (IMPROVED-EULER)
+INCREASE numberOfCorrections -- no change
+$cgmpx deformingChannel -method=ins -g=deformingChannelGrid4.order2 -scf=1. -p0=10 -u0=0. -nu=.01 -tp=.01 -tf=10 -nc=1 -pOffset=0. -tsSM=improvedEuler -numberOfCorrections=5 -rhoSolid=1000. -lambdaSolid=10. -muSolid=10. -debug=1 -pi=0 -multiDomainAlgorithm=1 -uShock=0. -ap=.1 -flushFrequency=2 -bcOption=4 -debug=3 -sideBC=slipWall -go=halt
+
+
+--- side wall slip, top wall displacement  -> OK 
+$cgmpx deformingChannel -method=ins -g=deformingChannelGrid4.order2 -scf=1. -p0=10 -u0=0. -nu=.01 -tp=.01 -tf=10 -nc=1 -pOffset=0. -smVariation=g -rhoSolid=1000. -lambdaSolid=10. -muSolid=10. -debug=1 -pi=0 -multiDomainAlgorithm=1 -uShock=0. -ap=.1 -flushFrequency=2 -bcOption=4 -debug=3 -sideBC=slipWall -go=halt
+
+****************************
+*** Aug 22, 2015
+
+SETUP BEAM UNDER PRESSURE
+
+-p0=20 : OK -- slowly reaches a steady state. wiggles though 
+$cgmpx deformingChannel -method=ins -g=deformingChannelGrid4.order2 -scf=1000. -p0=20 -u0=0. -nu=.01 -tp=.01 -tf=10 -nc=1 -pOffset=0. -smVariation=g -lambdaSolid=1. -muSolid=1. -debug=1 -pi=0 -multiDomainAlgorithm=1 -uShock=0. -ap=.1 -flushFrequency=2 -bcOption=4 -debug=3 -go=halt
+
+
+-scf=100 : trouble
+-scf=500 : OK but a few wiggles. 
+$cgmpx deformingChannel -method=ins -g=deformingChannelGrid4.order2 -scf=500. -p0=100 -u0=0. -nu=.01 -tp=.01 -tf=10 -nc=1 -pOffset=0. -smVariation=g -lambdaSolid=1. -muSolid=1. -debug=1 -pi=0 -multiDomainAlgorithm=1 -uShock=0. -ap=.1 -flushFrequency=2 -bcOption=4 -debug=3 -go=halt
+
+OK: scf=1000.
+$cgmpx deformingChannel -method=ins -g=deformingChannelGrid4.order2 -scf=1000. -u0=0. -nu=.01 -tp=.01 -tf=10 -nc=1 -pOffset=0. -smVariation=g -lambdaSolid=1. -muSolid=1. -debug=1 -pi=0 -multiDomainAlgorithm=1 -uShock=0. -ap=.1 -flushFrequency=2 -bcOption=4 -debug=3 -go=halt
+
+
 --- 2014/06/12 -- RE-VISIT before AMP 
 
 $cgmpx deformingChannel -method=ins -g=deformingChannelGrid4.order2 -scf=1000. -u0=3. -nu=.01 -tp=.01 -tf=10 -nc=1 -pOffset=0. -smVariation=g -lambdaSolid=1. -muSolid=1. -debug=1 -pi=0 -multiDomainAlgorithm=1 -uShock=0. -ap=.1 -flushFrequency=2 -bcOption=4 -debug=3 -go=halt

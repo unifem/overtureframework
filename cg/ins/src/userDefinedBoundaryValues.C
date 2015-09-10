@@ -1731,7 +1731,7 @@ userDefinedBoundaryValues(const real & t,
 	  
 	}
 	
-	if( (debug() & 2 && t <= tMax) || t <= dt )
+	if( false && ( (debug() & 2 && t <= tMax) || t <= dt ) )
 	  printF("--UBV-- pressure pulse: t=%8.2e, assign (side,axis,grid)=(%i,%i,%i)  forceType=%i, "
 		 " pMax=%f, tMax=%f, p=%9.3e\n",t,side,axis,grid,(int)forcingType,pMax,tMax,factor);
 
@@ -1768,7 +1768,7 @@ userDefinedBoundaryValues(const real & t,
 	timeFunction.eval(t,f,ft);
         real factor = forcingType==computeForcing ? f : ft;
   
-	if( t <= 5.*dt )
+	if( false && t <= 5.*dt )
 	  printF("--UBV-- timeFunctionOption: t=%8.2e  assign (side,axis,grid)=(%i,%i,%i) f=%9.3e ft=%9.3e\n"
 		 ,t,side,axis,grid,f,ft);
 
