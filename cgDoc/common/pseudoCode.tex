@@ -343,7 +343,6 @@ Cgmp::\FUNC{multiDomainAdvanceNew}( real \&t, real \& tFinal ) \\
 \ib    \COM{Get current interface residual and save current interface values :} \\
 \ib    getInterfaceResiduals( t, dt, gfIndex, maxResidual, saveInterfaceTimeHistoryValues ); \\
 \ib \\
-\ib    \FOR( int correct=0; correct<=numberOfCorrectorSteps; correct++ ) \\
 \ic       \COM{Stage I: advance the solution but do not apply BC's:} \\
 \ic       ForDomain( d )  \\
 \id         assignInterfaceRightHandSide( d, t+dt, dt, correct, gfIndex ); \\
