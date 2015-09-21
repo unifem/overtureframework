@@ -24,7 +24,7 @@ $afit = 20;  # max iterations for AFS
 $aftol=1e-3;
 $filter=0; $filterFrequency=1; $filterOrder=6; $filterStages=2; 
 $cdv=1;  $cDt=.25; $flushFrequency=5; 
-$ogmgAutoChoose=1; $ogmgMaxIterations=30; 
+$ogmgAutoChoose=1; $ogmgMaxIterations=30; $ogmgCoarseGridSolver="best"; 
 $bcTop="slipWall"; 
 $parabolicWidth=.05; # width of parabolic inflow region
 $outputYplus=0; # set to 1 to output info about yPlus
@@ -47,7 +47,8 @@ GetOptions( "g=s"=>\$grid,"tf=f"=>\$tFinal,"implicitFactor=f"=>\$implicitFactor,
   "newts=i"=>\$newts,"project=i"=>\$project,"bcTop=s"=>\$bcTop,"outputYplus=i"=>\$outputYplus,\
    "slowStartCFL=f"=>\$slowStartCFL, "slowStartTime=f"=>\$slowStartTime,"recomputeDt=i"=>\$recomputeDt,\
   "slowStartSteps=i"=>\$slowStartSteps,"slowStartRecomputeDt=i"=>\$slowStartRecomputeDt,\
-  "ogmgAutoChoose=i"=>\$ogmgAutoChoose, "flushFrequency=i"=>\$flushFrequency, "parabolicWidth=f"=>\$parabolicWidth );
+  "ogmgAutoChoose=i"=>\$ogmgAutoChoose, "flushFrequency=i"=>\$flushFrequency, "parabolicWidth=f"=>\$parabolicWidth,\
+  "ogmgCoarseGridSolver=s"=>\$ogmgCoarseGridSolver,"rtolp=f"=>\$rtolp,"atolp=f"=>\$atolp );
 # -------------------------------------------------------------------------------------------------
 if( $solver eq "best" ){ $solver="choose best iterative solver"; }
 if( $solver eq "mg" ){ $solver="multigrid"; }
@@ -55,6 +56,7 @@ if( $psolver eq "best" ){ $psolver="choose best iterative solver"; }
 if( $psolver eq "mg" ){ $psolver="multigrid"; }
 if( $psolver eq "AMG" ){ $psolver="algebraic multigrid"; }
 if( $pc eq "ilu" ){ $pc = "incomplete LU preconditioner"; }elsif( $pc eq "lu" ){ $pc = "lu preconditioner"; }else{ $pc="#"; }
+if( $ogmgCoarseGridSolver eq "amg" ||  $ogmgCoarseGridSolver eq "AMG" ){ $ogmgCoarseGridSolver="algebraic multigrid"; }
 if( $order eq "2" ){ $order = "second order accurate"; }else{ $order = "fourth order accurate"; }
 if( $model eq "ins" ){ $model = "incompressible Navier Stokes"; }else\
                      { $model = "incompressible Navier Stokes\n Boussinesq model"; }
@@ -119,7 +121,8 @@ $grid
   done
 #
   pressure solver options
-   $ogesSolver=$psolver; $ogesRtol=$rtolp; $ogesAtol=$atolp; $ogesIluLevels=$iluLevels; $ogmgDebug=$ogesDebug; $ogmgCoarseGridSolver="best"; $ogmgRtolcg=$rtolp; $ogmgAtolcg=$atolp; $ogmgRtolcg=$rtolp; $ogmgAtolcg=$atolp;
+   $ogesSolver=$psolver; $ogesRtol=$rtolp; $ogesAtol=$atolp; $ogesIluLevels=$iluLevels; $ogmgDebug=$ogesDebug;
+   $ogmgRtolcg=$rtolp; $ogmgAtolcg=$atolp; $ogmgRtolcg=$rtolp; $ogmgAtolcg=$atolp;
    $ogmgIlucgLevels=5; # for coarse grid solve, over-ride auto parameters
    # TEST Hypre AMG: 
    # $ogmgCoarseGridSolver="AMG";

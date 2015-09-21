@@ -432,6 +432,7 @@ plotStuff= plotStuffDriver.o plotStuffFunction.o ShowFilePlotter.o contour.o gri
 plotStuff= plotStuffDriver.o plotStuffFunction.o ShowFilePlotter.o contourOpt.o
 plotStuff= plotStuffDriver.o plotStuffFunction.o ShowFilePlotter.o  ../otherStuff/BodyForce.o
 plotStuff= plotStuffDriver.o plotStuffFunction.o ShowFilePlotter.o ShowFileReader.o DerivedFunctions.o
+plotStuff= plotStuffDriver.o plotStuffFunction.o ShowFilePlotter.o ShowFileReader.o DerivedFunctions.o streamLines.o
 plotStuff: $(plotStuff) 
 	$(CC) $(CCFLAGS) -DADD_USER_MAPPINGS -o $@ $(plotStuff) \
         $(CLIBS) $(FLIBS) $(GLIBS)

@@ -109,13 +109,15 @@ if( $ogmgMaxExtraLevels eq "" ){ $ogmgMaxExtraLevels=10; } #
    absolute tolerance $ogesAtol
    error tolerance $ogesEtol
    $ogmgOpav
+   # TEST: 
+   # average equations on the coarsest grid 0
    # turn off using local omega for line solves and variable coefficients - trouble in parallel *fix me*
    do not use locally optimal line omega
    # -- "direct" solver on coarse grid -- over-ride any pars from above
    Oges parameters
      # Do not overide coarse grid solver if autoChoose!=0  *wdh* 2013/09/15: 
      # NOTE: choosing "best" here will reset ILU levels etc from auto-choose
-     if( $ogmgAutoChoose eq 0 ){ $ogmgOverideCoarseGridSolver=$ogmgCoarseGridSolver; }else{ $ogmgOverideCoarseGridSolver="#"; }
+	if( $ogmgAutoChoose eq 0 || $ogmgCoarseGridSolver eq "algebraic multigrid" ){ $ogmgOverideCoarseGridSolver=$ogmgCoarseGridSolver; }else{ $ogmgOverideCoarseGridSolver="#"; }
      $ogmgOverideCoarseGridSolver
      # TEST: 
      # $ogmgCoarseGridSolver

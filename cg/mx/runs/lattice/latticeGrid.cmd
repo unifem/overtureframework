@@ -42,7 +42,7 @@ if( $interp eq "e" ){ $interpType = "explicit for all grids"; }
 # 
 $suffix = ".order$order"; 
 if( $ml ne 0 ){ $suffix .= ".ml$ml"; }
-if( $name eq "" ){$name = $prefix . "$nCylx\x$nCyly\y" "$interp$factor" . $suffix . ".hdf";}
+if( $name eq "" ){$name = $prefix . "$nCylx\x$nCyly\y" . "$interp$factor" . $suffix . ".hdf";}
 #
 # -- back-ground grid:
 $rxa=-($nCylx/2.+1.); $rxb=-$rxa;

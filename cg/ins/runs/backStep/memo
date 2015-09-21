@@ -46,6 +46,58 @@ BODy + FARFIELD GRIDS
 ==============================================================================
 
 **************************************
+************ Sept 14, 2015
+
+mpirun -np 4 $cginsp -noplot -numberOfParallelGhost=4 backStep -g=backStepInChannelGride16.order4.ml3 -nu=2.25e-5 -parabolicWidth=.0125 -bcTop=noSlipWall -ad4=1 -ad41=2. -ad42=1. -cfl=3. -ts=afs -psolver=mg -rtolp=1.e-4 -atolp=1.e-4  -dtMax=.01 -tf=200. -tp=.1 -debug=3 -restart=backStepInChannel16a.show -show=backStepInChannel16a.show -go=go >! backStepInChannel16ab.out &
+
+
+**************************************
+************ Sept 13, 2015
+
+TEST RESTART AND APPEND
+-ogmgCoarseGridSolver=amg
+
+mpirun -np 4 $cginsp -noplot -numberOfParallelGhost=4 backStep -g=backStepInChannelGride16.order4.ml3 -nu=2.25e-5 -parabolicWidth=.0125 -bcTop=noSlipWall -ad4=1 -ad41=2. -ad42=1. -cfl=3. -ts=afs -psolver=mg -rtolp=1.e-4 -atolp=1.e-4  -dtMax=.01 -tf=200. -tp=.1 -debug=3 -restart=backStepInChannel16a.show -show=backStepInChannel16a.show -go=go >! backStepInChannel16aa.out &
+
+-- bug in new ogmg -- fixed 
+mpiexec -n 2 xterm -e gdb --args $cginsp -noplot -numberOfParallelGhost=4 backStep -g=backStepInChannelGride16.order4.ml3 -nu=2.25e-5 -parabolicWidth=.0125 -bcTop=noSlipWall -ad4=1 -ad41=2. -ad42=1. -cfl=3. -ts=afs -psolver=mg -rtolp=1.e-4 -atolp=1.e-4  -dtMax=.01 -tf=200. -tp=.001 -debug=3 -restart=backStepInChannel16a.show -go=og
+
+G16 - restart and append (last file from previous run was .show58)
+mpirun -np 4 $cginsp -noplot -numberOfParallelGhost=4 backStep -g=backStepInChannelGride16.order4.ml3 -nu=2.25e-5 -parabolicWidth=.0125 -bcTop=noSlipWall -ad4=1 -ad41=2. -ad42=1. -cfl=3. -ts=afs -psolver=mg -rtolp=1.e-4 -atolp=1.e-4  -dtMax=.01 -tf=200. -tp=.1 -debug=3 -restart=backStepInChannel16a.show -show=backStepInChannel16a.show -go=og
+
+mpirun -np 4 $cginsp -noplot -numberOfParallelGhost=4 backStep -g=backStepInChannelGride16.order4.ml3 -nu=2.25e-5 -parabolicWidth=.0125 -bcTop=noSlipWall -ad4=1 -ad41=2. -ad42=1. -cfl=3. -ts=afs -psolver=mg -rtolp=1.e-4 -atolp=1.e-4  -dtMax=.01 -tf=200. -tp=.1 -debug=3 -restart=backStepInChannel16a.show -show=bs.show -go=og
+
+
+
+
+**************************************
+************ Sept 8, 2015
+
+TEST RESTART AND APPEND
+-ogmgCoarseGridSolver=amg
+
+mpirun -np 4 $cginsp -noplot -numberOfParallelGhost=4 backStep -g=backStepInChannelGride16.order4.ml3 -nu=2.25e-5 -parabolicWidth=.0125 -bcTop=noSlipWall -ad4=1 -ad41=2. -ad42=1. -cfl=3. -ts=afs -psolver=mg -rtolp=1.e-4 -atolp=1.e-4  -dtMax=.01 -tf=200. -tp=.1 -debug=3 -restart=backStepInChannel16a.show -show=backStepInChannel16a.show -go=go >! backStepInChannel16aa.out &
+
+-- bug in new ogmg -- fixed 
+mpiexec -n 2 xterm -e gdb --args $cginsp -noplot -numberOfParallelGhost=4 backStep -g=backStepInChannelGride16.order4.ml3 -nu=2.25e-5 -parabolicWidth=.0125 -bcTop=noSlipWall -ad4=1 -ad41=2. -ad42=1. -cfl=3. -ts=afs -psolver=mg -rtolp=1.e-4 -atolp=1.e-4  -dtMax=.01 -tf=200. -tp=.001 -debug=3 -restart=backStepInChannel16a.show -go=og
+
+G16 - restart and append (last file from previous run was .show58)
+mpirun -np 4 $cginsp -noplot -numberOfParallelGhost=4 backStep -g=backStepInChannelGride16.order4.ml3 -nu=2.25e-5 -parabolicWidth=.0125 -bcTop=noSlipWall -ad4=1 -ad41=2. -ad42=1. -cfl=3. -ts=afs -psolver=mg -rtolp=1.e-4 -atolp=1.e-4  -dtMax=.01 -tf=200. -tp=.1 -debug=3 -restart=backStepInChannel16a.show -show=backStepInChannel16a.show -go=og
+
+mpirun -np 4 $cginsp -noplot -numberOfParallelGhost=4 backStep -g=backStepInChannelGride16.order4.ml3 -nu=2.25e-5 -parabolicWidth=.0125 -bcTop=noSlipWall -ad4=1 -ad41=2. -ad42=1. -cfl=3. -ts=afs -psolver=mg -rtolp=1.e-4 -atolp=1.e-4  -dtMax=.01 -tf=200. -tp=.1 -debug=3 -restart=backStepInChannel16a.show -show=bs.show -go=og
+
+
+go > backStepInChannel16aa.out 
+
+
+G16 - adjust rtolp atolp
+mpirun -np 4 $cginsp -noplot -numberOfParallelGhost=4 backStep -g=backStepInChannelGride16.order4.ml3 -nu=2.25e-5 -parabolicWidth=.0125 -bcTop=noSlipWall -ad4=1 -ad41=2. -ad42=1. -cfl=3. -ts=afs -psolver=mg -rtolp=1.e-4 -atolp=1.e-4  -dtMax=.01 -tf=200. -tp=.001 -debug=3 -restart=backStepInChannel16a.show -go=og
+
+G16 -- test AMG <- not converging too well 
+mpirun -np 4 $cginsp -noplot -numberOfParallelGhost=4 backStep -g=backStepInChannelGride16.order4.ml3 -nu=2.25e-5 -parabolicWidth=.0125 -bcTop=noSlipWall -ad4=1 -ad41=2. -ad42=1. -cfl=3. -ts=afs -psolver=mg -ogmgCoarseGridSolver=amg -rtolp=1.e-4 -atolp=1.e-4 -dtMax=.01 -tf=200. -tp=.001 -debug=3 -restart=backStepInChannel16a.show -go=og
+
+
+**************************************
 ************ Sept 8, 2015
 
 TEST RESTART AND APPEND

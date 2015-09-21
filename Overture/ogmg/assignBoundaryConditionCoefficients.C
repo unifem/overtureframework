@@ -360,7 +360,7 @@ assignBoundaryConditionCoefficients( realMappedGridFunction & coeff, int grid, i
               // first ghost line
                             int ig1=i1-is1, ig2=i2-is2, ig3=i3-is3;
               // zero out boundary equation *wdh* 2015/09/06 -- fixed a bug in parallel
-                            coeff(MD,ig1,ig2,ig3)=0.; 
+                            coeffLocal(MD,ig1,ig2,ig3)=0.; 
                             coeffLocal(0,ig1,ig2,ig3)=-t0;
                             coeffLocal(1,ig1,ig2,ig3)= a0;
                             coeffLocal(2,ig1,ig2,ig3)= t0;
@@ -383,7 +383,7 @@ assignBoundaryConditionCoefficients( realMappedGridFunction & coeff, int grid, i
               // -- second ghost line: apply wide formula, dr -> 2*dr --
                             ig1=i1-2*is1, ig2=i2-2*is2, ig3=i3-2*is3;
               // zero out boundary equation *wdh* 2015/09/06 -- fixed a bug in parallel
-                            coeff(MD,ig1,ig2,ig3)=0.; 
+                            coeffLocal(MD,ig1,ig2,ig3)=0.; 
                             coeffLocal(0,ig1,ig2,ig3)=-t0*.5;
                             coeffLocal(1,ig1,ig2,ig3)= a0;
                             coeffLocal(2,ig1,ig2,ig3)= t0*.5;

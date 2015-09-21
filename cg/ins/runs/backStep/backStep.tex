@@ -17,7 +17,9 @@
 \usepackage{calc}
 \usepackage[lmargin=.75in,rmargin=.75in,tmargin=.75in,bmargin=.75in]{geometry}
 
-\input homeHenshaw
+% \input homeHenshaw
+\newcommand{\grad}{\nabla}
+\newcommand{\citeCount}[1]{}% for citation counts papers
 
 % \input{pstricks}\input{pst-node}
 % \input{colours}
@@ -56,16 +58,16 @@
 
 % \newcommand{\homeHenshaw}{/home/henshaw.0}
 
-\newcommand{\Overture}{{\bf Over\-ture\ }}
-\newcommand{\ogenDir}{\homeHenshaw/Overture/ogen}
-
-\newcommand{\cgDoc}{\homeHenshaw/cgDoc}
-\newcommand{\vpDir}{\homeHenshaw/cgDoc/ins/viscoPlastic}
-
-\newcommand{\ovFigures}{\homeHenshaw/OvertureFigures}
-\newcommand{\obFigures}{\homeHenshaw/res/OverBlown/docFigures}  % for figures
-\newcommand{\convDir}{\homeHenshaw/cgDoc/ins/tables}
-\newcommand{\insDocDir}{\homeHenshaw/cgDoc/ins}
+% \newcommand{\Overture}{{\bf Over\-ture\ }}
+% \newcommand{\ogenDir}{\homeHenshaw/Overture/ogen}
+% 
+% \newcommand{\cgDoc}{\homeHenshaw/cgDoc}
+% \newcommand{\vpDir}{\homeHenshaw/cgDoc/ins/viscoPlastic}
+% 
+% \newcommand{\ovFigures}{\homeHenshaw/OvertureFigures}
+% \newcommand{\obFigures}{\homeHenshaw/res/OverBlown/docFigures}  % for figures
+% \newcommand{\convDir}{\homeHenshaw/cgDoc/ins/tables}
+% \newcommand{\insDocDir}{\homeHenshaw/cgDoc/ins}
 
 % *** See http://www.eng.cam.ac.uk/help/tpl/textprocessing/squeeze.html
 % By default, LaTeX doesn't like to fill more than 0.7 of a text page with tables and graphics, nor does it like too many figures per page. This behaviour can be changed by placing lines like the following before \begin{document}
@@ -524,7 +526,7 @@ Averaged over $t\in[25,50]$.
 
 
 \vfill\eject
-\bibliography{\homeHenshaw/papers/common/henshaw,\homeHenshaw/papers/common/henshawPapers}
+\bibliography{henshaw,henshawPapers}
 \bibliographystyle{siam}
 
 
