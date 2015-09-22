@@ -22,817 +22,936 @@ c.. generated code to follow
 c
         real t1
         real t10
-        real t1002
-        real t1005
+        real t100
+        real t1001
         real t1008
         real t1009
+        real t1010
         real t1011
+        real t1012
         real t1014
         real t1016
+        real t1018
         real t102
-        real t1020
-        real t1021
+        real t1024
+        real t1025
         real t103
-        real t1033
+        real t1032
+        real t1038
         real t1039
         real t104
-        integer t1047
+        real t1044
         real t1049
+        integer t1052
+        real t1054
         real t106
-        real t1061
-        real t1069
-        real t1070
-        real t1072
+        real t1066
+        real t107
+        real t1074
         real t1075
         real t1077
         real t108
-        real t1081
+        real t1080
         real t1082
-        real t1094
-        real t11
+        real t1086
+        real t1087
+        real t1099
+        integer t11
         real t110
-        real t1100
-        real t1109
-        real t111
+        real t1105
         real t1113
-        real t1117
-        real t1118
+        real t1114
+        real t1116
+        real t1119
         real t112
+        real t1121
         real t1125
         real t1126
-        real t1127
-        real t1129
-        real t1132
-        real t1134
+        real t113
         real t1138
-        real t1139
         real t114
-        real t115
+        real t1144
+        real t1153
+        real t1156
+        real t1157
         real t116
-        real t1165
-        real t1166
-        real t1168
-        real t1171
-        real t1173
+        real t1169
+        real t117
         real t1177
         real t1178
         real t118
+        real t1180
+        real t1183
+        real t1185
+        real t1189
+        real t1190
         real t12
         real t120
-        real t121
-        real t1211
+        real t1216
+        real t1217
+        real t1219
         real t122
-        real t1220
-        real t1223
-        real t1227
-        real t1233
-        real t1237
-        real t124
-        real t1243
-        real t1244
-        real t1247
+        real t1222
+        real t1224
+        real t1228
+        real t1229
+        real t123
         real t125
-        real t1255
-        real t126
-        real t1260
-        real t1264
-        real t1265
+        real t1256
+        real t1259
+        integer t126
+        real t1263
+        real t1268
         real t1269
-        real t1274
+        real t127
+        real t1273
         real t1278
         real t128
         real t1282
-        real t1283
-        real t1287
-        real t1292
+        real t1285
+        real t1293
+        real t1297
         real t1298
         real t13
         real t130
         real t1302
-        real t1310
-        real t1314
-        real t1318
+        real t1307
+        real t1311
+        real t1315
+        real t1316
         real t132
-        real t1326
-        real t1333
-        real t1336
+        real t1320
+        real t1325
+        real t133
+        real t1331
+        real t1335
         real t134
-        real t1340
-        real t1346
-        real t135
-        real t1350
+        real t1343
+        real t1347
+        real t1351
+        real t1359
         real t136
-        real t1360
-        real t1364
-        real t1367
-        real t1371
+        real t1366
+        real t1369
+        real t137
         real t1373
-        real t1375
-        real t1377
+        real t1379
         real t138
-        real t1389
-        real t139
-        real t1392
-        real t1394
-        integer t14
+        real t1383
+        real t1395
+        real t1399
         real t140
-        real t1400
-        real t1402
-        real t1412
+        real t1403
+        real t1405
+        real t1407
+        real t1409
+        real t1411
+        real t1413
         real t1415
+        real t1417
         real t1418
         real t142
-        real t1420
-        real t1421
-        real t1423
-        real t1425
-        real t1426
+        real t1422
+        real t1424
         real t1427
         real t1429
+        real t143
         real t1430
-        real t1431
-        real t1433
-        real t1435
-        real t1436
-        real t1438
+        real t1432
         real t144
-        real t1441
-        integer t1444
-        real t1446
-        real t145
-        real t1458
+        real t1442
+        real t1449
+        real t1455
+        real t1457
         real t146
-        real t1466
-        real t1467
-        real t1469
-        real t1472
+        real t1461
+        real t1463
+        real t1464
+        real t1465
+        real t147
         real t1474
-        real t1478
+        real t1476
         real t1479
         real t148
-        real t149
-        real t1491
+        real t1481
+        real t1482
+        integer t1491
+        real t1492
+        real t1493
         real t1497
+        real t1498
         real t15
         real t150
-        real t1506
-        real t1509
-        real t1511
+        real t1502
+        real t1510
+        real t1512
+        real t1513
+        real t1515
+        real t1517
+        real t1518
+        real t1519
         real t152
+        real t1521
+        real t1522
+        real t1523
+        real t1525
+        real t1527
+        real t1529
+        real t153
         real t1533
         real t1536
         real t1538
-        real t154
-        real t1542
-        real t1543
-        real t1544
+        real t1539
+        real t1547
+        real t1549
         real t155
-        real t1551
-        real t1552
+        real t1553
         real t1554
-        real t1557
-        real t1559
+        real t1558
         real t1563
-        real t157
-        real t1596
+        real t1567
+        real t1569
+        real t1571
+        real t1573
+        real t1575
+        real t1577
+        real t1579
+        real t158
+        real t1582
+        real t1584
+        real t1586
+        real t1588
+        real t1590
+        real t1592
+        real t1595
+        real t1597
+        real t1599
         real t16
         real t160
+        real t1602
         real t1604
-        real t1605
-        real t1607
         real t161
-        real t1610
-        real t1612
-        real t1616
-        real t1617
-        real t162
-        real t1644
-        real t1647
+        real t163
+        real t1640
+        real t1641
+        real t1643
+        real t1646
+        real t1648
         real t165
-        real t1656
-        real t166
-        real t1660
-        real t1666
-        real t1667
-        real t1668
-        integer t167
+        real t1652
+        real t1653
+        integer t166
+        real t1665
+        real t167
         real t1671
-        real t1679
-        real t169
-        real t1699
+        real t168
+        real t1680
+        real t1682
+        real t1683
+        real t1685
+        real t1688
+        real t1690
+        real t1694
         real t17
-        real t1700
-        real t1704
-        real t171
-        real t1715
-        real t1716
-        real t1720
-        real t1727
-        real t1730
-        real t1739
+        real t170
+        real t172
+        real t173
+        real t1735
+        real t1736
+        real t1738
         real t174
+        real t1741
         real t1743
-        real t1751
-        real t1754
-        real t1758
+        real t1747
+        real t1748
         real t176
-        real t1761
-        real t1762
-        real t1769
-        real t1770
-        real t1773
+        real t177
         real t1775
-        real t1781
+        real t1777
+        real t178
+        real t1780
         real t1782
-        real t1784
-        real t1785
-        real t1787
-        real t1789
-        real t1790
-        real t1791
-        real t1793
-        real t1794
-        real t1795
-        real t1797
-        real t1799
         real t180
-        real t1800
-        real t1801
+        real t1803
         real t1804
-        real t1806
         real t1808
-        real t1810
-        real t1811
-        real t1815
-        real t1817
         real t1819
         real t182
-        real t1821
+        real t1820
+        real t1824
         real t183
-        real t1834
-        real t1836
+        real t1831
+        real t1833
         real t1838
-        real t1839
-        real t1842
-        real t1844
         real t185
-        real t1850
         real t1852
+        real t1853
+        real t1855
+        real t1856
+        real t1858
+        real t186
         real t1860
-        real t1863
-        real t1867
+        real t1861
+        real t1862
+        real t1864
+        real t1865
+        real t1866
+        real t1868
         real t1870
-        integer t1873
-        real t1875
-        real t1887
-        real t1896
-        real t1899
+        real t1872
+        real t1874
+        real t1877
+        real t1879
+        real t188
+        real t1881
+        real t1883
+        real t1884
+        real t1886
+        real t189
+        real t1890
+        real t1891
+        real t1892
+        real t1894
+        real t1897
+        real t1898
         real t19
-        real t1901
+        real t1905
+        real t1907
+        real t1908
         real t191
-        real t1922
+        real t1910
+        real t1912
+        real t1914
+        real t1921
         real t1923
-        real t1925
+        real t1927
         real t1928
-        real t1930
-        real t1934
+        real t1929
+        real t193
+        real t1931
+        real t1933
         real t1935
-        real t194
-        real t1947
+        integer t194
+        real t1942
+        real t1948
+        real t1949
         real t195
-        real t1953
-        real t1962
-        real t1966
+        real t1955
+        real t1956
+        real t196
+        integer t1968
+        real t1969
         real t1970
-        real t1971
-        real t1978
+        real t1974
+        real t1975
         real t1979
-        real t1981
-        real t1984
-        real t1986
-        real t1990
+        real t198
+        real t1991
         real t2
-        integer t20
+        real t200
+        real t2001
+        real t2003
+        real t2007
+        real t2008
         real t201
-        real t2016
+        real t2012
         real t2017
-        real t2019
-        integer t202
-        real t2022
-        real t2024
-        real t2028
+        real t202
+        real t2021
+        real t2023
+        real t2027
         real t2029
-        real t203
+        real t2032
+        real t2034
+        real t2036
+        real t2039
         real t204
+        real t2041
+        real t205
         real t206
-        real t2062
-        real t2071
-        real t2082
-        real t2086
-        real t209
-        real t2092
-        real t2093
-        real t2096
+        real t2077
+        real t2078
+        real t208
+        real t2080
+        real t2083
+        real t2085
+        real t2089
+        real t2090
         real t21
-        real t2104
+        real t210
+        real t2102
+        real t2108
         real t211
-        real t2124
+        real t2117
+        real t2119
+        real t2120
+        real t2122
         real t2125
-        real t2129
-        real t2140
-        real t2141
-        real t2145
-        integer t215
-        real t2152
+        real t2127
+        real t213
+        real t2131
         real t216
-        real t2163
-        real t2167
-        real t217
-        real t2177
-        real t2181
+        real t2172
+        real t2173
+        real t2175
+        real t2178
+        real t218
+        real t2180
         real t2184
-        real t2188
-        real t2190
-        real t2192
-        real t2194
-        real t22
-        real t2206
-        real t2209
-        real t2211
-        real t2217
-        real t2219
-        real t2229
-        real t2232
-        real t2235
-        real t2237
-        real t2238
-        real t2240
+        real t2185
+        real t219
+        integer t22
+        real t221
+        real t2212
+        real t2214
+        real t2215
+        real t2218
+        real t2220
+        real t223
+        real t224
+        real t2241
         real t2242
-        real t2243
-        real t2245
         real t2246
-        real t2248
-        real t2250
-        real t2251
-        real t2253
-        real t2256
-        real t2260
-        real t2263
-        real t2265
-        real t2287
+        real t2257
+        real t2258
+        real t226
+        real t2262
+        real t2269
+        real t227
+        real t2271
+        real t2273
+        real t2275
         real t229
-        real t2290
+        real t2291
         real t2292
+        real t2293
+        real t2295
+        real t2299
         real t23
-        integer t2313
-        real t2315
-        real t2327
-        real t2336
-        real t2339
-        real t2341
-        real t2345
-        real t2346
-        real t2347
-        real t235
-        real t2354
-        real t2355
-        real t2357
-        real t2360
-        real t2362
-        real t2366
-        real t2392
-        real t2394
-        real t2397
-        real t2399
-        real t2403
-        real t243
+        real t2301
+        real t2305
+        real t2306
+        real t2308
+        real t231
+        real t2312
+        real t2319
+        integer t232
+        real t2325
+        real t233
+        real t2333
+        real t2334
+        real t234
+        real t2340
+        real t2348
+        real t2356
+        integer t2357
+        real t2359
+        real t236
+        real t2363
+        real t2367
+        real t2369
+        real t2371
+        real t2374
+        real t2377
+        real t2379
+        real t238
+        real t239
+        real t24
+        real t2402
+        real t2404
+        real t241
+        real t242
+        real t2421
+        real t2422
+        real t2426
+        real t2429
+        real t2431
+        real t2432
+        real t2434
         real t2436
-        integer t244
-        real t2445
-        real t2448
+        real t2437
+        real t2439
+        real t244
+        real t2440
+        real t2442
+        real t2444
+        real t2446
         real t245
-        real t246
+        real t2450
+        real t2453
+        real t2455
+        real t2456
+        real t2458
+        real t2460
+        real t2462
+        real t2463
         real t2465
-        real t2466
-        real t2467
+        real t2468
+        real t247
         real t2470
-        real t2478
-        real t248
-        real t25
-        real t2500
-        real t2503
-        real t251
-        real t2522
-        real t2525
-        real t2529
+        real t2472
+        real t2477
+        real t2481
+        real t2484
+        real t2486
+        real t249
+        real t250
+        real t2508
+        real t2511
+        real t2513
+        real t252
         real t253
-        real t2532
-        real t2533
-        real t2540
-        real t2541
-        real t2544
-        real t2546
-        real t2552
+        real t255
+        real t2550
         real t2553
         real t2555
-        real t2556
         real t2558
         real t2560
-        real t2561
-        real t2563
         real t2564
-        real t2566
-        real t2568
-        real t2569
-        integer t257
-        real t2570
-        real t2573
-        real t2575
-        real t2577
-        real t2579
-        real t258
-        real t2580
-        real t2584
-        real t2586
-        real t2588
+        real t257
+        integer t258
         real t259
         real t2590
+        real t2592
+        real t2595
+        real t2597
         real t26
-        real t2603
-        real t2605
-        real t2607
-        real t2608
-        real t2611
-        real t2613
-        real t2619
-        real t2621
-        real t2629
-        real t2632
-        real t2636
-        real t2639
+        real t260
+        real t2601
+        real t262
+        real t264
         real t2643
-        real t2646
-        real t2648
-        integer t2669
-        real t2671
-        real t2683
+        real t265
+        real t2654
+        real t2655
+        real t2657
+        real t2658
+        real t2660
+        real t2662
+        real t2663
+        real t2665
+        real t2666
+        real t2668
+        real t267
+        real t2670
+        real t2672
+        real t2674
+        real t2676
+        real t2677
+        real t2680
+        real t2681
+        real t2684
+        real t2686
+        real t2688
+        real t2690
         real t2692
-        real t2695
-        real t2697
+        real t2694
+        real t2696
+        real t2700
+        real t2702
+        real t2705
+        real t2707
+        real t2708
         real t271
-        real t2719
-        real t2723
-        real t2727
-        real t2728
-        real t2735
+        real t2710
+        real t2714
+        real t2715
+        real t2716
+        real t2718
+        real t2721
+        real t2722
+        real t2729
+        real t273
+        real t2731
+        real t2732
+        real t2734
         real t2736
         real t2738
-        real t2741
-        real t2743
-        real t2747
+        real t274
+        real t2745
+        real t2746
+        real t275
+        real t2752
+        real t2753
+        real t2754
+        real t2756
+        real t2758
+        real t276
+        real t2760
+        real t2767
+        real t2769
         real t277
+        real t2773
+        real t2775
+        real t2779
         real t2780
-        real t2788
-        real t2790
-        real t2793
+        real t2787
+        real t2789
+        real t279
+        real t2792
+        real t2794
         real t2795
-        real t2799
-        real t2826
-        real t2845
-        real t2846
-        real t2849
+        real t2798
+        real t28
+        real t280
+        real t2802
+        real t2805
+        real t2807
+        real t281
+        real t2829
+        real t283
+        real t2832
+        real t2834
+        real t285
+        integer t2855
         real t2857
         real t286
-        real t2879
+        real t2869
+        real t287
+        real t2878
+        real t2881
+        real t2883
+        real t2886
+        real t2888
         real t289
-        real t2902
-        real t2906
-        real t2909
+        real t2892
+        real t29
+        real t290
         real t291
-        real t2913
-        real t2915
-        real t2917
-        real t2919
-        real t2931
-        real t2934
-        real t2936
-        real t2942
-        real t2944
+        real t2918
+        real t2920
+        real t2923
+        real t2925
+        real t2929
+        real t293
         real t295
-        real t296
+        real t2955
+        real t2956
+        real t2968
         real t297
+        real t2977
+        real t298
+        real t2987
+        real t299
+        real t2995
+        real t2999
         real t30
-        real t304
+        real t3002
+        real t301
+        real t302
+        real t3027
+        real t303
+        real t3031
+        real t3036
+        real t3039
         real t305
-        real t306
+        real t3062
+        real t3066
         real t307
+        real t3070
+        real t3072
+        real t3076
+        real t3078
         real t308
-        real t310
+        real t3080
+        real t3082
+        real t3084
+        real t3086
+        real t3088
+        real t309
+        real t3090
+        real t3092
+        real t3094
+        real t3095
+        real t3097
+        real t3100
+        real t3102
+        real t3104
+        real t311
+        real t3112
+        real t3119
+        real t312
+        real t3123
+        real t3125
         real t313
+        real t3131
+        real t3132
+        real t3141
+        real t3142
+        real t3148
+        real t3149
         real t315
+        real t3157
+        real t3158
+        real t3164
+        real t3165
+        real t317
+        real t3173
+        real t3174
+        real t3180
+        real t3181
         real t319
         real t32
-        real t320
+        real t321
+        real t322
+        real t323
+        real t325
+        real t327
+        real t328
+        real t329
         real t33
+        real t331
+        real t332
+        real t333
+        real t335
+        real t337
+        real t338
+        real t339
         real t34
-        real t346
+        real t341
+        real t342
+        real t343
+        real t345
         real t347
         real t349
         real t35
-        real t352
+        real t351
         real t354
+        real t356
+        real t357
         real t358
-        real t359
         real t36
-        real t37
+        real t360
+        real t362
+        real t364
+        real t366
+        real t368
+        real t370
+        real t372
+        real t373
+        real t374
+        real t376
+        real t379
+        real t38
+        real t380
+        real t383
+        real t386
+        real t387
         real t388
+        integer t389
         real t39
-        real t394
-        real t397
+        real t391
+        real t393
+        real t396
+        real t398
         real t4
-        real t40
+        real t402
         real t404
+        real t405
         real t407
-        real t408
-        real t412
-        real t418
+        real t41
+        real t413
+        real t416
+        real t417
         real t42
-        real t422
-        real t428
-        real t429
+        real t423
+        real t424
+        real t425
+        real t427
         real t430
-        real t433
-        real t44
-        real t441
-        real t442
-        real t443
-        real t447
-        integer t45
-        real t450
-        real t453
+        real t432
+        real t436
+        real t437
+        real t449
         real t455
-        real t457
-        real t458
         real t46
-        real t462
+        real t463
+        real t464
+        real t465
         real t467
-        real t47
-        real t471
-        real t474
+        real t470
+        real t472
         real t476
-        real t478
-        real t479
-        real t483
-        real t488
-        real t49
-        real t494
-        real t497
-        real t499
+        real t477
+        real t48
+        real t489
+        real t495
         real t5
-        real t50
-        real t501
+        real t504
+        real t507
+        real t508
         real t509
-        integer t51
-        real t513
-        real t516
+        real t51
+        real t510
         real t518
         real t52
-        real t520
-        real t528
+        real t524
+        real t527
         real t53
-        real t535
-        real t538
+        real t533
+        real t534
+        real t536
         real t539
-        real t543
-        real t549
+        real t54
+        real t541
+        real t545
+        real t546
         real t55
-        real t553
-        real t561
-        real t564
-        real t568
+        real t56
         real t57
-        integer t571
         real t572
         real t573
-        real t574
-        real t576
-        real t577
-        real t579
-        integer t58
-        real t583
+        real t575
+        real t578
+        real t58
+        real t580
+        real t584
         real t585
-        real t586
-        real t587
         real t59
-        real t593
-        real t594
-        real t595
-        real t596
-        real t598
-        real t599
         real t6
         real t60
-        real t601
-        real t602
-        real t604
-        real t605
-        real t606
-        real t607
-        real t609
-        real t610
+        real t61
         real t612
-        real t616
-        real t618
+        real t615
         real t619
         real t62
-        real t620
-        real t622
         real t624
         real t625
-        real t626
+        real t629
         real t63
-        real t632
-        real t633
         real t634
-        real t635
-        real t637
         real t638
-        integer t64
-        real t640
         real t641
-        real t643
         real t644
-        real t645
-        real t646
-        real t648
-        real t649
         real t65
-        real t651
+        real t650
+        real t654
         real t655
-        real t657
-        real t658
         real t659
         real t66
-        real t661
-        real t663
         real t664
-        real t665
+        real t668
         real t672
         real t673
-        real t674
-        real t675
-        real t676
         real t677
-        real t679
         real t68
-        real t680
-        real t681
+        real t682
         real t688
-        real t689
-        real t690
-        real t691
         real t692
-        real t694
-        real t695
-        real t697
-        real t698
         real t7
         real t70
         real t700
-        real t701
-        real t702
-        real t703
-        real t705
-        real t706
+        real t704
         real t708
-        real t71
-        real t712
-        real t714
-        real t715
+        integer t71
         real t716
-        real t718
         real t72
-        real t720
-        real t721
-        real t722
-        real t729
-        real t733
-        real t735
+        real t723
+        real t726
+        real t73
+        real t730
         real t736
-        real t737
-        real t74
-        real t743
-        real t744
-        real t745
-        real t746
-        real t748
-        real t749
-        real t751
+        real t740
+        real t75
         real t752
-        real t754
-        real t755
         real t756
-        real t757
         real t759
         real t76
-        real t760
+        real t761
         real t762
-        real t766
+        real t764
+        real t767
         real t768
-        real t769
-        real t77
-        real t770
-        real t772
+        integer t77
         real t774
         real t775
-        real t776
+        real t777
+        real t778
         real t78
+        real t780
+        real t781
         real t783
-        real t785
+        real t784
         real t786
         real t787
         real t789
-        real t790
-        real t791
+        real t79
+        real t792
         real t793
+        real t794
         real t795
-        real t796
-        real t797
-        real t799
         real t8
-        real t80
-        real t800
         real t801
-        real t803
+        real t802
+        real t804
         real t805
-        real t806
         real t807
+        real t808
         real t81
         real t810
-        real t812
-        real t818
-        real t82
+        real t811
+        real t813
+        real t814
+        real t816
+        real t819
         real t820
-        real t823
-        real t825
-        real t827
-        real t828
+        real t821
+        real t822
         real t829
+        real t83
         real t831
         real t832
         real t833
         real t835
-        real t837
+        real t836
         real t838
-        real t84
-        real t840
+        integer t84
         real t841
-        real t843
-        real t845
-        real t846
-        real t847
+        real t842
+        real t848
         real t849
+        real t85
         real t850
         real t851
         real t853
-        real t855
+        real t854
         real t856
-        real t858
+        real t857
+        real t859
         real t86
+        real t860
         real t861
-        real t863
+        real t862
+        real t864
         real t865
-        real t866
-        real t868
-        real t869
-        real t87
+        real t867
         real t871
         real t873
         real t874
-        real t876
+        real t875
         real t877
         real t879
         real t88
+        real t880
         real t881
-        real t882
-        real t884
-        real t885
         real t887
+        real t888
         real t889
+        real t89
         real t890
         real t892
+        real t893
+        real t895
         real t896
         real t898
         real t899
         integer t9
-        real t90
+        integer t90
         real t900
-        real t902
+        real t901
         real t903
         real t904
         real t906
-        real t908
-        real t909
         real t91
         real t910
         real t912
@@ -843,1166 +962,1277 @@ c
         real t919
         real t92
         real t920
-        real t923
-        real t925
         real t927
         real t929
-        real t930
         real t932
-        real t935
+        real t934
         real t936
-        real t937
         real t938
-        real t939
         real t94
+        real t940
         real t941
-        real t942
         real t943
-        real t945
+        real t944
         real t946
         real t948
-        real t949
-        real t951
+        real t950
+        real t952
+        real t954
         real t956
+        real t958
         real t96
-        real t963
+        real t960
+        real t962
+        real t964
         real t965
         real t967
-        real t969
         real t97
         real t971
-        real t973
-        real t974
+        real t975
         real t977
-        real t979
+        real t978
+        real t98
+        real t980
+        real t982
+        real t984
         real t985
-        real t987
-        real t99
+        real t992
+        real t994
         real t995
-        real t998
+        real t997
+        real t999
         t1 = u(i,j,k,n)
         t2 = ut(i,j,k,n)
-        t4 = cc ** 2
-        t5 = sqrt(0.3E1)
-        t6 = t5 / 0.6E1
-        t7 = 0.1E1 / 0.2E1 + t6
-        t8 = t4 * t7
-        t9 = i + 1
+        t4 = sqrt(0.3E1)
+        t5 = t4 / 0.6E1
+        t6 = 0.1E1 / 0.2E1 - t5
+        t7 = t6 * dt
+        t8 = cc ** 2
+        t9 = i + 2
         t10 = ut(t9,j,k,n)
-        t11 = t10 - t2
-        t12 = 0.1E1 / dx
-        t13 = t11 * t12
-        t14 = i + 2
-        t15 = ut(t14,j,k,n)
-        t16 = t15 - t10
-        t17 = t16 * t12
-        t19 = (t17 - t13) * t12
-        t20 = i - 1
-        t21 = ut(t20,j,k,n)
-        t22 = t2 - t21
-        t23 = t22 * t12
-        t25 = (t13 - t23) * t12
-        t26 = t19 - t25
-        t30 = dt * (t13 - dx * t26 / 0.24E2)
-        t32 = t7 ** 2
-        t33 = t4 * t32
-        t34 = dt ** 2
-        t35 = u(t14,j,k,n)
-        t36 = u(t9,j,k,n)
-        t37 = t35 - t36
-        t39 = t4 * t37 * t12
-        t40 = t36 - t1
-        t42 = t4 * t40 * t12
-        t44 = (t39 - t42) * t12
-        t45 = j + 1
-        t46 = u(t9,t45,k,n)
-        t47 = t46 - t36
-        t49 = 0.1E1 / dy
-        t50 = t4 * t47 * t49
-        t51 = j - 1
-        t52 = u(t9,t51,k,n)
-        t53 = t36 - t52
-        t55 = t4 * t53 * t49
-        t57 = (t50 - t55) * t49
-        t58 = k + 1
-        t59 = u(t9,j,t58,n)
-        t60 = t59 - t36
-        t62 = 0.1E1 / dz
-        t63 = t4 * t60 * t62
-        t64 = k - 1
-        t65 = u(t9,j,t64,n)
-        t66 = t36 - t65
-        t68 = t4 * t66 * t62
-        t70 = (t63 - t68) * t62
-        t71 = u(t20,j,k,n)
-        t72 = t1 - t71
-        t74 = t4 * t72 * t12
-        t76 = (t42 - t74) * t12
-        t77 = u(i,t45,k,n)
-        t78 = t77 - t1
-        t80 = t4 * t78 * t49
-        t81 = u(i,t51,k,n)
-        t82 = t1 - t81
-        t84 = t4 * t82 * t49
-        t86 = (t80 - t84) * t49
-        t87 = u(i,j,t58,n)
-        t88 = t87 - t1
-        t90 = t4 * t88 * t62
-        t91 = u(i,j,t64,n)
-        t92 = t1 - t91
-        t94 = t4 * t92 * t62
-        t96 = (t90 - t94) * t62
-        t97 = t44 + t57 + t70 - t76 - t86 - t96
-        t99 = t34 * t97 * t12
-        t102 = t32 * t7
-        t103 = t4 * t102
-        t104 = t34 * dt
-        t106 = t4 * t16 * t12
-        t108 = t4 * t11 * t12
-        t110 = (t106 - t108) * t12
-        t111 = ut(t9,t45,k,n)
-        t112 = t111 - t10
-        t114 = t4 * t112 * t49
-        t115 = ut(t9,t51,k,n)
-        t116 = t10 - t115
-        t118 = t4 * t116 * t49
-        t120 = (t114 - t118) * t49
-        t121 = ut(t9,j,t58,n)
-        t122 = t121 - t10
-        t124 = t4 * t122 * t62
-        t125 = ut(t9,j,t64,n)
-        t126 = t10 - t125
-        t128 = t4 * t126 * t62
-        t130 = (t124 - t128) * t62
-        t132 = t4 * t22 * t12
-        t134 = (t108 - t132) * t12
-        t135 = ut(i,t45,k,n)
-        t136 = t135 - t2
-        t138 = t4 * t136 * t49
-        t139 = ut(i,t51,k,n)
-        t140 = t2 - t139
-        t142 = t4 * t140 * t49
-        t144 = (t138 - t142) * t49
-        t145 = ut(i,j,t58,n)
-        t146 = t145 - t2
-        t148 = t4 * t146 * t62
-        t149 = ut(i,j,t64,n)
-        t150 = t2 - t149
-        t152 = t4 * t150 * t62
-        t154 = (t148 - t152) * t62
-        t155 = t110 + t120 + t130 - t134 - t144 - t154
-        t157 = t104 * t155 * t12
-        t160 = t7 * dt
-        t161 = t110 - t134
-        t162 = dx * t161
-        t165 = beta * t7
-        t166 = dx ** 2
-        t167 = i + 3
-        t169 = u(t167,j,k,n) - t35
-        t171 = t37 * t12
-        t174 = t40 * t12
-        t176 = (t171 - t174) * t12
-        t180 = t72 * t12
-        t182 = (t174 - t180) * t12
-        t183 = t176 - t182
-        t185 = t4 * t183 * t12
-        t191 = (t4 * t169 * t12 - t39) * t12
-        t194 = t44 - t76
-        t195 = t194 * t12
-        t201 = dy ** 2
-        t202 = j + 2
-        t203 = u(t9,t202,k,n)
-        t204 = t203 - t46
-        t206 = t47 * t49
-        t209 = t53 * t49
-        t211 = (t206 - t209) * t49
-        t215 = j - 2
-        t216 = u(t9,t215,k,n)
-        t217 = t52 - t216
-        t229 = (t4 * t204 * t49 - t50) * t49
-        t235 = (t55 - t4 * t217 * t49) * t49
-        t243 = dz ** 2
-        t244 = k + 2
-        t245 = u(t9,j,t244,n)
-        t246 = t245 - t59
-        t248 = t60 * t62
-        t251 = t66 * t62
-        t253 = (t248 - t251) * t62
-        t257 = k - 2
-        t258 = u(t9,j,t257,n)
-        t259 = t65 - t258
-        t271 = (t4 * t246 * t62 - t63) * t62
-        t277 = (t68 - t4 * t259 * t62) * t62
-        t286 = dt * (-t166 * ((t4 * ((t169 * t12 - t171) * t12 - t176) *
-     # t12 - t185) * t12 + ((t191 - t44) * t12 - t195) * t12) / 0.24E2 +
-     # t70 + t57 - t201 * ((t4 * ((t204 * t49 - t206) * t49 - t211) * t4
-     #9 - t4 * (t211 - (t209 - t217 * t49) * t49) * t49) * t49 + ((t229 
-     #- t57) * t49 - (t57 - t235) * t49) * t49) / 0.24E2 - t243 * ((t4 *
-     # ((t246 * t62 - t248) * t62 - t253) * t62 - t4 * (t253 - (t251 - t
-     #259 * t62) * t62) * t62) * t62 + ((t271 - t70) * t62 - (t70 - t277
-     #) * t62) * t62) / 0.24E2 + t44)
-        t289 = t13 / 0.2E1
-        t291 = ut(t167,j,k,n) - t15
-        t295 = (t291 * t12 - t17) * t12 - t19
-        t296 = t295 * t12
-        t297 = t26 * t12
-        t304 = dx * (t17 / 0.2E1 + t289 - t166 * (t296 / 0.2E1 + t297 / 
-     #0.2E1) / 0.6E1) / 0.2E1
-        t305 = beta ** 2
-        t306 = t305 * t32
-        t307 = ut(t9,j,t244,n)
-        t308 = t307 - t121
-        t310 = t122 * t62
-        t313 = t126 * t62
-        t315 = (t310 - t313) * t62
-        t319 = ut(t9,j,t257,n)
-        t320 = t125 - t319
-        t346 = ut(t9,t202,k,n)
-        t347 = t346 - t111
-        t349 = t112 * t49
-        t352 = t116 * t49
-        t354 = (t349 - t352) * t49
-        t358 = ut(t9,t215,k,n)
-        t359 = t115 - t358
-        t388 = t4 * t26 * t12
-        t394 = (t4 * t291 * t12 - t106) * t12
-        t397 = t161 * t12
-        t404 = t34 * (t130 - t243 * ((t4 * ((t308 * t62 - t310) * t62 - 
-     #t315) * t62 - t4 * (t315 - (t313 - t320 * t62) * t62) * t62) * t62
-     # + (((t4 * t308 * t62 - t124) * t62 - t130) * t62 - (t130 - (t128 
-     #- t4 * t320 * t62) * t62) * t62) * t62) / 0.24E2 - t201 * ((t4 * (
-     #(t347 * t49 - t349) * t49 - t354) * t49 - t4 * (t354 - (t352 - t35
-     #9 * t49) * t49) * t49) * t49 + (((t4 * t347 * t49 - t114) * t49 - 
-     #t120) * t49 - (t120 - (t118 - t4 * t359 * t49) * t49) * t49) * t49
-     #) / 0.24E2 - t166 * ((t4 * t295 * t12 - t388) * t12 + ((t394 - t11
-     #0) * t12 - t397) * t12) / 0.24E2 + t120 + t110)
-        t407 = dt * dx
-        t408 = u(t14,t45,k,n)
-        t412 = u(t14,t51,k,n)
-        t418 = u(t14,j,t58,n)
-        t422 = u(t14,j,t64,n)
-        t428 = t191 + (t4 * (t408 - t35) * t49 - t4 * (t35 - t412) * t49
-     #) * t49 + (t4 * (t418 - t35) * t62 - t4 * (t35 - t422) * t62) * t6
-     #2 - t44 - t57 - t70
-        t429 = t428 * t12
-        t430 = t97 * t12
-        t433 = t407 * (t429 / 0.2E1 + t430 / 0.2E1)
-        t441 = t166 * (t19 - dx * (t296 - t297) / 0.12E2) / 0.12E2
-        t442 = t305 * beta
-        t443 = t442 * t102
-        t447 = t4 * t97 * t12
-        t450 = t408 - t46
-        t453 = t46 - t77
-        t455 = t4 * t453 * t12
-        t457 = (t4 * t450 * t12 - t455) * t12
-        t458 = u(t9,t45,t58,n)
-        t462 = u(t9,t45,t64,n)
-        t467 = (t4 * (t458 - t46) * t62 - t4 * (t46 - t462) * t62) * t62
-        t471 = t412 - t52
-        t474 = t52 - t81
-        t476 = t4 * t474 * t12
-        t478 = (t4 * t471 * t12 - t476) * t12
-        t479 = u(t9,t51,t58,n)
-        t483 = u(t9,t51,t64,n)
-        t488 = (t4 * (t479 - t52) * t62 - t4 * (t52 - t483) * t62) * t62
-        t494 = t418 - t59
-        t497 = t59 - t87
-        t499 = t4 * t497 * t12
-        t501 = (t4 * t494 * t12 - t499) * t12
-        t509 = (t4 * (t458 - t59) * t49 - t4 * (t59 - t479) * t49) * t49
-        t513 = t422 - t65
-        t516 = t65 - t91
-        t518 = t4 * t516 * t12
-        t520 = (t4 * t513 * t12 - t518) * t12
-        t528 = (t4 * (t462 - t65) * t49 - t4 * (t65 - t483) * t49) * t49
-        t535 = t104 * ((t4 * t428 * t12 - t447) * t12 + (t4 * (t457 + t2
-     #29 + t467 - t44 - t57 - t70) * t49 - t4 * (t44 + t57 + t70 - t478 
-     #- t235 - t488) * t49) * t49 + (t4 * (t501 + t509 + t271 - t44 - t5
-     #7 - t70) * t62 - t4 * (t44 + t57 + t70 - t520 - t528 - t277) * t62
-     #) * t62)
-        t538 = t34 * dx
-        t539 = ut(t14,t45,k,n)
-        t543 = ut(t14,t51,k,n)
-        t549 = ut(t14,j,t58,n)
-        t553 = ut(t14,j,t64,n)
-        t561 = t155 * t12
-        t564 = t538 * ((t394 + (t4 * (t539 - t15) * t49 - t4 * (t15 - t5
-     #43) * t49) * t49 + (t4 * (t549 - t15) * t62 - t4 * (t15 - t553) * 
-     #t62) * t62 - t110 - t120 - t130) * t12 / 0.2E1 + t561 / 0.2E1)
-        t568 = t407 * (t429 - t430)
-        t571 = i - 2
-        t572 = u(t571,j,k,n)
-        t573 = t71 - t572
-        t574 = t573 * t12
-        t576 = (t180 - t574) * t12
-        t577 = t182 - t576
-        t579 = t4 * t577 * t12
-        t583 = t4 * t573 * t12
-        t585 = (t74 - t583) * t12
-        t586 = t76 - t585
-        t587 = t586 * t12
-        t593 = u(i,t202,k,n)
-        t594 = t593 - t77
-        t595 = t594 * t49
-        t596 = t78 * t49
-        t598 = (t595 - t596) * t49
-        t599 = t82 * t49
-        t601 = (t596 - t599) * t49
-        t602 = t598 - t601
-        t604 = t4 * t602 * t49
-        t605 = u(i,t215,k,n)
-        t606 = t81 - t605
-        t607 = t606 * t49
-        t609 = (t599 - t607) * t49
-        t610 = t601 - t609
-        t612 = t4 * t610 * t49
-        t616 = t4 * t594 * t49
-        t618 = (t616 - t80) * t49
-        t619 = t618 - t86
-        t620 = t619 * t49
-        t622 = t4 * t606 * t49
-        t624 = (t84 - t622) * t49
-        t625 = t86 - t624
-        t626 = t625 * t49
-        t632 = u(i,j,t244,n)
-        t633 = t632 - t87
-        t634 = t633 * t62
-        t635 = t88 * t62
-        t637 = (t634 - t635) * t62
-        t638 = t92 * t62
-        t640 = (t635 - t638) * t62
-        t641 = t637 - t640
-        t643 = t4 * t641 * t62
-        t644 = u(i,j,t257,n)
-        t645 = t91 - t644
-        t646 = t645 * t62
-        t648 = (t638 - t646) * t62
-        t649 = t640 - t648
-        t651 = t4 * t649 * t62
-        t655 = t4 * t633 * t62
-        t657 = (t655 - t90) * t62
-        t658 = t657 - t96
-        t659 = t658 * t62
-        t661 = t4 * t645 * t62
-        t663 = (t94 - t661) * t62
-        t664 = t96 - t663
-        t665 = t664 * t62
-        t672 = dt * (t86 + t76 - t166 * ((t185 - t579) * t12 + (t195 - t
-     #587) * t12) / 0.24E2 - t201 * ((t604 - t612) * t49 + (t620 - t626)
-     # * t49) / 0.24E2 + t96 - t243 * ((t643 - t651) * t62 + (t659 - t66
-     #5) * t62) / 0.24E2)
-        t673 = t165 * t672
-        t674 = t23 / 0.2E1
-        t675 = ut(t571,j,k,n)
-        t676 = t21 - t675
-        t677 = t676 * t12
-        t679 = (t23 - t677) * t12
-        t680 = t25 - t679
-        t681 = t680 * t12
-        t688 = dx * (t289 + t674 - t166 * (t297 / 0.2E1 + t681 / 0.2E1) 
-     #/ 0.6E1) / 0.2E1
-        t689 = ut(i,t202,k,n)
-        t690 = t689 - t135
-        t691 = t690 * t49
-        t692 = t136 * t49
-        t694 = (t691 - t692) * t49
-        t695 = t140 * t49
-        t697 = (t692 - t695) * t49
-        t698 = t694 - t697
-        t700 = t4 * t698 * t49
-        t701 = ut(i,t215,k,n)
-        t702 = t139 - t701
-        t703 = t702 * t49
-        t705 = (t695 - t703) * t49
-        t706 = t697 - t705
-        t708 = t4 * t706 * t49
-        t712 = t4 * t690 * t49
-        t714 = (t712 - t138) * t49
-        t715 = t714 - t144
-        t716 = t715 * t49
-        t718 = t4 * t702 * t49
-        t720 = (t142 - t718) * t49
-        t721 = t144 - t720
-        t722 = t721 * t49
-        t729 = t4 * t680 * t12
-        t733 = t4 * t676 * t12
-        t735 = (t132 - t733) * t12
-        t736 = t134 - t735
-        t737 = t736 * t12
-        t743 = ut(i,j,t244,n)
-        t744 = t743 - t145
-        t745 = t744 * t62
-        t746 = t146 * t62
-        t748 = (t745 - t746) * t62
-        t749 = t150 * t62
-        t751 = (t746 - t749) * t62
-        t752 = t748 - t751
-        t754 = t4 * t752 * t62
-        t755 = ut(i,j,t257,n)
-        t756 = t149 - t755
-        t757 = t756 * t62
-        t759 = (t749 - t757) * t62
-        t760 = t751 - t759
-        t762 = t4 * t760 * t62
-        t766 = t4 * t744 * t62
-        t768 = (t766 - t148) * t62
-        t769 = t768 - t154
-        t770 = t769 * t62
-        t772 = t4 * t756 * t62
-        t774 = (t152 - t772) * t62
-        t775 = t154 - t774
-        t776 = t775 * t62
-        t783 = t34 * (-t201 * ((t700 - t708) * t49 + (t716 - t722) * t49
-     #) / 0.24E2 + t154 - t166 * ((t388 - t729) * t12 + (t397 - t737) * 
-     #t12) / 0.24E2 + t134 + t144 - t243 * ((t754 - t762) * t62 + (t770 
-     #- t776) * t62) / 0.24E2)
-        t785 = t306 * t783 / 0.2E1
-        t786 = u(t20,t45,k,n)
-        t787 = t786 - t71
-        t789 = t4 * t787 * t49
-        t790 = u(t20,t51,k,n)
-        t791 = t71 - t790
-        t793 = t4 * t791 * t49
-        t795 = (t789 - t793) * t49
-        t796 = u(t20,j,t58,n)
-        t797 = t796 - t71
-        t799 = t4 * t797 * t62
-        t800 = u(t20,j,t64,n)
-        t801 = t71 - t800
-        t803 = t4 * t801 * t62
-        t805 = (t799 - t803) * t62
-        t806 = t76 + t86 + t96 - t585 - t795 - t805
-        t807 = t806 * t12
-        t810 = t407 * (t430 / 0.2E1 + t807 / 0.2E1)
-        t812 = t165 * t810 / 0.2E1
-        t818 = t166 * (t25 - dx * (t297 - t681) / 0.12E2) / 0.12E2
-        t820 = t4 * t806 * t12
-        t823 = t77 - t786
-        t825 = t4 * t823 * t12
-        t827 = (t455 - t825) * t12
-        t828 = u(i,t45,t58,n)
-        t829 = t828 - t77
-        t831 = t4 * t829 * t62
-        t832 = u(i,t45,t64,n)
-        t833 = t77 - t832
-        t835 = t4 * t833 * t62
-        t837 = (t831 - t835) * t62
-        t838 = t827 + t618 + t837 - t76 - t86 - t96
-        t840 = t4 * t838 * t49
-        t841 = t81 - t790
-        t843 = t4 * t841 * t12
-        t845 = (t476 - t843) * t12
-        t846 = u(i,t51,t58,n)
-        t847 = t846 - t81
-        t849 = t4 * t847 * t62
-        t850 = u(i,t51,t64,n)
-        t851 = t81 - t850
-        t853 = t4 * t851 * t62
-        t855 = (t849 - t853) * t62
-        t856 = t76 + t86 + t96 - t845 - t624 - t855
-        t858 = t4 * t856 * t49
-        t861 = t87 - t796
-        t863 = t4 * t861 * t12
-        t865 = (t499 - t863) * t12
-        t866 = t828 - t87
-        t868 = t4 * t866 * t49
-        t869 = t87 - t846
-        t871 = t4 * t869 * t49
-        t873 = (t868 - t871) * t49
-        t874 = t865 + t873 + t657 - t76 - t86 - t96
-        t876 = t4 * t874 * t62
-        t877 = t91 - t800
-        t879 = t4 * t877 * t12
-        t881 = (t518 - t879) * t12
-        t882 = t832 - t91
-        t884 = t4 * t882 * t49
-        t885 = t91 - t850
-        t887 = t4 * t885 * t49
-        t889 = (t884 - t887) * t49
-        t890 = t76 + t86 + t96 - t881 - t889 - t663
-        t892 = t4 * t890 * t62
-        t896 = t104 * ((t447 - t820) * t12 + (t840 - t858) * t49 + (t876
-     # - t892) * t62)
-        t898 = t443 * t896 / 0.6E1
-        t899 = ut(t20,t45,k,n)
-        t900 = t899 - t21
-        t902 = t4 * t900 * t49
-        t903 = ut(t20,t51,k,n)
-        t904 = t21 - t903
-        t906 = t4 * t904 * t49
-        t908 = (t902 - t906) * t49
-        t909 = ut(t20,j,t58,n)
-        t910 = t909 - t21
-        t912 = t4 * t910 * t62
-        t913 = ut(t20,j,t64,n)
-        t914 = t21 - t913
-        t916 = t4 * t914 * t62
-        t918 = (t912 - t916) * t62
-        t919 = t134 + t144 + t154 - t735 - t908 - t918
-        t920 = t919 * t12
-        t923 = t538 * (t561 / 0.2E1 + t920 / 0.2E1)
-        t925 = t306 * t923 / 0.4E1
-        t927 = t407 * (t430 - t807)
-        t929 = t165 * t927 / 0.12E2
-        t930 = t10 + t165 * t286 - t304 + t306 * t404 / 0.2E1 - t165 * t
-     #433 / 0.2E1 + t441 + t443 * t535 / 0.6E1 - t306 * t564 / 0.4E1 + t
-     #165 * t568 / 0.12E2 - t2 - t673 - t688 - t785 - t812 - t818 - t898
-     # - t925 - t929
-        t932 = sqrt(0.16E2)
-        t935 = 0.1E1 / 0.2E1 - t6
-        t936 = t4 * t935
-        t937 = t936 * t30
-        t938 = t935 ** 2
-        t939 = t4 * t938
-        t941 = t939 * t99 / 0.2E1
-        t942 = t938 * t935
-        t943 = t4 * t942
-        t945 = t943 * t157 / 0.6E1
-        t946 = t935 * dt
-        t948 = t946 * t162 / 0.24E2
-        t949 = beta * t935
-        t951 = t305 * t938
-        t956 = t442 * t942
-        t963 = t949 * t672
-        t965 = t951 * t783 / 0.2E1
-        t967 = t949 * t810 / 0.2E1
-        t969 = t956 * t896 / 0.6E1
-        t971 = t951 * t923 / 0.4E1
-        t973 = t949 * t927 / 0.12E2
-        t974 = t10 + t949 * t286 - t304 + t951 * t404 / 0.2E1 - t949 * t
-     #433 / 0.2E1 + t441 + t956 * t535 / 0.6E1 - t951 * t564 / 0.4E1 + t
-     #949 * t568 / 0.12E2 - t2 - t963 - t688 - t965 - t967 - t818 - t969
-     # - t971 - t973
-        t977 = cc * t974 * t932 / 0.8E1
-        t979 = (t8 * t30 + t33 * t99 / 0.2E1 + t103 * t157 / 0.6E1 - t16
-     #0 * t162 / 0.24E2 + cc * t930 * t932 / 0.8E1 - t937 - t941 - t945 
-     #+ t948 - t977) * t5
-        t985 = t4 * (t174 - dx * t183 / 0.24E2)
-        t987 = dx * t194 / 0.24E2
-        t995 = dt * (t23 - dx * t680 / 0.24E2)
-        t998 = t34 * t806 * t12
-        t1002 = t104 * t919 * t12
-        t1005 = dx * t736
-        t1008 = u(t20,j,t244,n)
-        t1009 = t1008 - t796
-        t1011 = t797 * t62
-        t1014 = t801 * t62
-        t1016 = (t1011 - t1014) * t62
-        t1020 = u(t20,j,t257,n)
-        t1021 = t800 - t1020
-        t1033 = (t4 * t1009 * t62 - t799) * t62
-        t1039 = (t803 - t4 * t1021 * t62) * t62
-        t1047 = i - 3
-        t1049 = t572 - u(t1047,j,k,n)
-        t1061 = (t583 - t4 * t1049 * t12) * t12
-        t1069 = u(t20,t202,k,n)
-        t1070 = t1069 - t786
-        t1072 = t787 * t49
-        t1075 = t791 * t49
-        t1077 = (t1072 - t1075) * t49
-        t1081 = u(t20,t215,k,n)
-        t1082 = t790 - t1081
-        t1094 = (t4 * t1070 * t49 - t789) * t49
-        t1100 = (t793 - t4 * t1082 * t49) * t49
-        t1109 = dt * (-t243 * ((t4 * ((t1009 * t62 - t1011) * t62 - t101
-     #6) * t62 - t4 * (t1016 - (t1014 - t1021 * t62) * t62) * t62) * t62
-     # + ((t1033 - t805) * t62 - (t805 - t1039) * t62) * t62) / 0.24E2 +
-     # t585 - t166 * ((t579 - t4 * (t576 - (t574 - t1049 * t12) * t12) *
-     # t12) * t12 + (t587 - (t585 - t1061) * t12) * t12) / 0.24E2 + t805
-     # + t795 - t201 * ((t4 * ((t1070 * t49 - t1072) * t49 - t1077) * t4
-     #9 - t4 * (t1077 - (t1075 - t1082 * t49) * t49) * t49) * t49 + ((t1
-     #094 - t795) * t49 - (t795 - t1100) * t49) * t49) / 0.24E2)
-        t1113 = t675 - ut(t1047,j,k,n)
-        t1117 = t679 - (t677 - t1113 * t12) * t12
-        t1118 = t1117 * t12
-        t1125 = dx * (t674 + t677 / 0.2E1 - t166 * (t681 / 0.2E1 + t1118
-     # / 0.2E1) / 0.6E1) / 0.2E1
-        t1126 = ut(t20,t202,k,n)
-        t1127 = t1126 - t899
-        t1129 = t900 * t49
-        t1132 = t904 * t49
-        t1134 = (t1129 - t1132) * t49
-        t1138 = ut(t20,t215,k,n)
-        t1139 = t903 - t1138
-        t1165 = ut(t20,j,t244,n)
-        t1166 = t1165 - t909
-        t1168 = t910 * t62
-        t1171 = t914 * t62
-        t1173 = (t1168 - t1171) * t62
-        t1177 = ut(t20,j,t257,n)
-        t1178 = t913 - t1177
-        t1211 = (t733 - t4 * t1113 * t12) * t12
-        t1220 = t34 * (t735 + t918 + t908 - t201 * ((t4 * ((t1127 * t49 
-     #- t1129) * t49 - t1134) * t49 - t4 * (t1134 - (t1132 - t1139 * t49
-     #) * t49) * t49) * t49 + (((t4 * t1127 * t49 - t902) * t49 - t908) 
-     #* t49 - (t908 - (t906 - t4 * t1139 * t49) * t49) * t49) * t49) / 0
-     #.24E2 - t243 * ((t4 * ((t1166 * t62 - t1168) * t62 - t1173) * t62 
-     #- t4 * (t1173 - (t1171 - t1178 * t62) * t62) * t62) * t62 + (((t4 
-     #* t1166 * t62 - t912) * t62 - t918) * t62 - (t918 - (t916 - t4 * t
-     #1178 * t62) * t62) * t62) * t62) / 0.24E2 - t166 * ((t729 - t4 * t
-     #1117 * t12) * t12 + (t737 - (t735 - t1211) * t12) * t12) / 0.24E2)
-        t1223 = u(t571,t45,k,n)
-        t1227 = u(t571,t51,k,n)
-        t1233 = u(t571,j,t58,n)
-        t1237 = u(t571,j,t64,n)
-        t1243 = t585 + t795 + t805 - t1061 - (t4 * (t1223 - t572) * t49 
-     #- t4 * (t572 - t1227) * t49) * t49 - (t4 * (t1233 - t572) * t62 - 
-     #t4 * (t572 - t1237) * t62) * t62
-        t1244 = t1243 * t12
-        t1247 = t407 * (t807 / 0.2E1 + t1244 / 0.2E1)
-        t1255 = t166 * (t679 - dx * (t681 - t1118) / 0.12E2) / 0.12E2
-        t1260 = t786 - t1223
-        t1264 = (t825 - t4 * t1260 * t12) * t12
-        t1265 = u(t20,t45,t58,n)
-        t1269 = u(t20,t45,t64,n)
-        t1274 = (t4 * (t1265 - t786) * t62 - t4 * (t786 - t1269) * t62) 
-     #* t62
-        t1278 = t790 - t1227
-        t1282 = (t843 - t4 * t1278 * t12) * t12
-        t1283 = u(t20,t51,t58,n)
-        t1287 = u(t20,t51,t64,n)
-        t1292 = (t4 * (t1283 - t790) * t62 - t4 * (t790 - t1287) * t62) 
-     #* t62
-        t1298 = t796 - t1233
-        t1302 = (t863 - t4 * t1298 * t12) * t12
-        t1310 = (t4 * (t1265 - t796) * t49 - t4 * (t796 - t1283) * t49) 
-     #* t49
-        t1314 = t800 - t1237
-        t1318 = (t879 - t4 * t1314 * t12) * t12
-        t1326 = (t4 * (t1269 - t800) * t49 - t4 * (t800 - t1287) * t49) 
-     #* t49
-        t1333 = t104 * ((t820 - t4 * t1243 * t12) * t12 + (t4 * (t1264 +
-     # t1094 + t1274 - t585 - t795 - t805) * t49 - t4 * (t585 + t795 + t
-     #805 - t1282 - t1100 - t1292) * t49) * t49 + (t4 * (t1302 + t1310 +
-     # t1033 - t585 - t795 - t805) * t62 - t4 * (t585 + t795 + t805 - t1
-     #318 - t1326 - t1039) * t62) * t62)
-        t1336 = ut(t571,t45,k,n)
-        t1340 = ut(t571,t51,k,n)
-        t1346 = ut(t571,j,t58,n)
-        t1350 = ut(t571,j,t64,n)
-        t1360 = t538 * (t920 / 0.2E1 + (t735 + t908 + t918 - t1211 - (t4
-     # * (t1336 - t675) * t49 - t4 * (t675 - t1340) * t49) * t49 - (t4 *
-     # (t1346 - t675) * t62 - t4 * (t675 - t1350) * t62) * t62) * t12 / 
-     #0.2E1)
-        t1364 = t407 * (t807 - t1244)
-        t1367 = t2 + t673 - t688 + t785 - t812 + t818 + t898 - t925 + t9
-     #29 - t21 - t165 * t1109 - t1125 - t306 * t1220 / 0.2E1 - t165 * t1
-     #247 / 0.2E1 - t1255 - t443 * t1333 / 0.6E1 - t306 * t1360 / 0.4E1 
-     #- t165 * t1364 / 0.12E2
-        t1371 = t936 * t995
-        t1373 = t939 * t998 / 0.2E1
-        t1375 = t943 * t1002 / 0.6E1
-        t1377 = t946 * t1005 / 0.24E2
-        t1389 = t2 + t963 - t688 + t965 - t967 + t818 + t969 - t971 + t9
-     #73 - t21 - t949 * t1109 - t1125 - t951 * t1220 / 0.2E1 - t949 * t1
-     #247 / 0.2E1 - t1255 - t956 * t1333 / 0.6E1 - t951 * t1360 / 0.4E1 
-     #- t949 * t1364 / 0.12E2
-        t1392 = cc * t1389 * t932 / 0.8E1
-        t1394 = (t8 * t995 + t33 * t998 / 0.2E1 + t103 * t1002 / 0.6E1 -
-     # t160 * t1005 / 0.24E2 + cc * t1367 * t932 / 0.8E1 - t1371 - t1373
-     # - t1375 + t1377 - t1392) * t5
-        t1400 = t4 * (t180 - dx * t577 / 0.24E2)
-        t1402 = dx * t586 / 0.24E2
-        t1412 = dt * (t692 - dy * t698 / 0.24E2)
-        t1415 = t34 * t838 * t49
-        t1418 = t111 - t135
-        t1420 = t4 * t1418 * t12
-        t1421 = t135 - t899
-        t1423 = t4 * t1421 * t12
-        t1425 = (t1420 - t1423) * t12
-        t1426 = ut(i,t45,t58,n)
-        t1427 = t1426 - t135
-        t1429 = t4 * t1427 * t62
-        t1430 = ut(i,t45,t64,n)
-        t1431 = t135 - t1430
-        t1433 = t4 * t1431 * t62
-        t1435 = (t1429 - t1433) * t62
-        t1436 = t1425 + t714 + t1435 - t134 - t144 - t154
-        t1438 = t104 * t1436 * t49
-        t1441 = dy * t715
-        t1444 = j + 3
-        t1446 = u(i,t1444,k,n) - t593
-        t1458 = (t4 * t1446 * t49 - t616) * t49
-        t1466 = u(i,t45,t244,n)
-        t1467 = t1466 - t828
-        t1469 = t829 * t62
-        t1472 = t833 * t62
-        t1474 = (t1469 - t1472) * t62
-        t1478 = u(i,t45,t257,n)
-        t1479 = t832 - t1478
-        t1491 = (t4 * t1467 * t62 - t831) * t62
-        t1497 = (t835 - t4 * t1479 * t62) * t62
-        t1506 = t453 * t12
-        t1509 = t823 * t12
-        t1511 = (t1506 - t1509) * t12
-        t1533 = dt * (-t201 * ((t4 * ((t1446 * t49 - t595) * t49 - t598)
-     # * t49 - t604) * t49 + ((t1458 - t618) * t49 - t620) * t49) / 0.24
-     #E2 - t243 * ((t4 * ((t1467 * t62 - t1469) * t62 - t1474) * t62 - t
-     #4 * (t1474 - (t1472 - t1479 * t62) * t62) * t62) * t62 + ((t1491 -
-     # t837) * t62 - (t837 - t1497) * t62) * t62) / 0.24E2 - t166 * ((t4
-     # * ((t450 * t12 - t1506) * t12 - t1511) * t12 - t4 * (t1511 - (t15
-     #09 - t1260 * t12) * t12) * t12) * t12 + ((t457 - t827) * t12 - (t8
-     #27 - t1264) * t12) * t12) / 0.24E2 + t827 + t618 + t837)
-        t1536 = t692 / 0.2E1
-        t1538 = ut(i,t1444,k,n) - t689
-        t1542 = (t1538 * t49 - t691) * t49 - t694
-        t1543 = t1542 * t49
-        t1544 = t698 * t49
-        t1551 = dy * (t691 / 0.2E1 + t1536 - t201 * (t1543 / 0.2E1 + t15
-     #44 / 0.2E1) / 0.6E1) / 0.2E1
-        t1552 = t539 - t111
-        t1554 = t1418 * t12
-        t1557 = t1421 * t12
-        t1559 = (t1554 - t1557) * t12
-        t1563 = t899 - t1336
-        t1596 = (t4 * t1538 * t49 - t712) * t49
-        t1604 = ut(i,t45,t244,n)
-        t1605 = t1604 - t1426
-        t1607 = t1427 * t62
-        t1610 = t1431 * t62
-        t1612 = (t1607 - t1610) * t62
-        t1616 = ut(i,t45,t257,n)
-        t1617 = t1430 - t1616
-        t1644 = t34 * (t714 + t1425 - t166 * ((t4 * ((t1552 * t12 - t155
-     #4) * t12 - t1559) * t12 - t4 * (t1559 - (t1557 - t1563 * t12) * t1
-     #2) * t12) * t12 + (((t4 * t1552 * t12 - t1420) * t12 - t1425) * t1
-     #2 - (t1425 - (t1423 - t4 * t1563 * t12) * t12) * t12) * t12) / 0.2
-     #4E2 - t201 * ((t4 * t1542 * t49 - t700) * t49 + ((t1596 - t714) * 
-     #t49 - t716) * t49) / 0.24E2 + t1435 - t243 * ((t4 * ((t1605 * t62 
-     #- t1607) * t62 - t1612) * t62 - t4 * (t1612 - (t1610 - t1617 * t62
-     #) * t62) * t62) * t62 + (((t4 * t1605 * t62 - t1429) * t62 - t1435
-     #) * t62 - (t1435 - (t1433 - t4 * t1617 * t62) * t62) * t62) * t62)
-     # / 0.24E2)
-        t1647 = dt * dy
-        t1656 = u(i,t202,t58,n)
-        t1660 = u(i,t202,t64,n)
-        t1666 = (t4 * (t203 - t593) * t12 - t4 * (t593 - t1069) * t12) *
-     # t12 + t1458 + (t4 * (t1656 - t593) * t62 - t4 * (t593 - t1660) * 
-     #t62) * t62 - t827 - t618 - t837
-        t1667 = t1666 * t49
-        t1668 = t838 * t49
-        t1671 = t1647 * (t1667 / 0.2E1 + t1668 / 0.2E1)
-        t1679 = t201 * (t694 - dy * (t1543 - t1544) / 0.12E2) / 0.12E2
-        t1699 = (t4 * (t458 - t828) * t12 - t4 * (t828 - t1265) * t12) *
-     # t12
-        t1700 = t1656 - t828
-        t1704 = (t4 * t1700 * t49 - t868) * t49
-        t1715 = (t4 * (t462 - t832) * t12 - t4 * (t832 - t1269) * t12) *
-     # t12
-        t1716 = t1660 - t832
-        t1720 = (t4 * t1716 * t49 - t884) * t49
-        t1727 = t104 * ((t4 * (t457 + t229 + t467 - t827 - t618 - t837) 
-     #* t12 - t4 * (t827 + t618 + t837 - t1264 - t1094 - t1274) * t12) *
-     # t12 + (t4 * t1666 * t49 - t840) * t49 + (t4 * (t1699 + t1704 + t1
-     #491 - t827 - t618 - t837) * t62 - t4 * (t827 + t618 + t837 - t1715
-     # - t1720 - t1497) * t62) * t62)
-        t1730 = t34 * dy
-        t1739 = ut(i,t202,t58,n)
-        t1743 = ut(i,t202,t64,n)
-        t1751 = t1436 * t49
-        t1754 = t1730 * (((t4 * (t346 - t689) * t12 - t4 * (t689 - t1126
-     #) * t12) * t12 + t1596 + (t4 * (t1739 - t689) * t62 - t4 * (t689 -
-     # t1743) * t62) * t62 - t1425 - t714 - t1435) * t49 / 0.2E1 + t1751
-     # / 0.2E1)
-        t1758 = t1647 * (t1667 - t1668)
-        t1761 = t695 / 0.2E1
-        t1762 = t706 * t49
-        t1769 = dy * (t1536 + t1761 - t201 * (t1544 / 0.2E1 + t1762 / 0.
-     #2E1) / 0.6E1) / 0.2E1
-        t1770 = t856 * t49
-        t1773 = t1647 * (t1668 / 0.2E1 + t1770 / 0.2E1)
-        t1775 = t165 * t1773 / 0.2E1
-        t1781 = t201 * (t697 - dy * (t1544 - t1762) / 0.12E2) / 0.12E2
-        t1782 = t115 - t139
-        t1784 = t4 * t1782 * t12
-        t1785 = t139 - t903
-        t1787 = t4 * t1785 * t12
-        t1789 = (t1784 - t1787) * t12
-        t1790 = ut(i,t51,t58,n)
-        t1791 = t1790 - t139
-        t1793 = t4 * t1791 * t62
-        t1794 = ut(i,t51,t64,n)
-        t1795 = t139 - t1794
-        t1797 = t4 * t1795 * t62
-        t1799 = (t1793 - t1797) * t62
-        t1800 = t134 + t144 + t154 - t1789 - t720 - t1799
-        t1801 = t1800 * t49
-        t1804 = t1730 * (t1751 / 0.2E1 + t1801 / 0.2E1)
-        t1806 = t306 * t1804 / 0.4E1
-        t1808 = t1647 * (t1668 - t1770)
-        t1810 = t165 * t1808 / 0.12E2
-        t1811 = t135 + t165 * t1533 - t1551 + t306 * t1644 / 0.2E1 - t16
-     #5 * t1671 / 0.2E1 + t1679 + t443 * t1727 / 0.6E1 - t306 * t1754 / 
-     #0.4E1 + t165 * t1758 / 0.12E2 - t2 - t673 - t1769 - t785 - t1775 -
-     # t1781 - t898 - t1806 - t1810
-        t1815 = t936 * t1412
-        t1817 = t939 * t1415 / 0.2E1
-        t1819 = t943 * t1438 / 0.6E1
-        t1821 = t946 * t1441 / 0.24E2
-        t1834 = t949 * t1773 / 0.2E1
-        t1836 = t951 * t1804 / 0.4E1
-        t1838 = t949 * t1808 / 0.12E2
-        t1839 = t135 + t949 * t1533 - t1551 + t951 * t1644 / 0.2E1 - t94
-     #9 * t1671 / 0.2E1 + t1679 + t956 * t1727 / 0.6E1 - t951 * t1754 / 
-     #0.4E1 + t949 * t1758 / 0.12E2 - t2 - t963 - t1769 - t965 - t1834 -
-     # t1781 - t969 - t1836 - t1838
-        t1842 = cc * t1839 * t932 / 0.8E1
-        t1844 = (t8 * t1412 + t33 * t1415 / 0.2E1 + t103 * t1438 / 0.6E1
-     # - t160 * t1441 / 0.24E2 + cc * t1811 * t932 / 0.8E1 - t1815 - t18
-     #17 - t1819 + t1821 - t1842) * t5
-        t1850 = t4 * (t596 - dy * t602 / 0.24E2)
-        t1852 = dy * t619 / 0.24E2
-        t1860 = dt * (t695 - dy * t706 / 0.24E2)
-        t1863 = t34 * t856 * t49
-        t1867 = t104 * t1800 * t49
-        t1870 = dy * t721
-        t1873 = j - 3
-        t1875 = t605 - u(i,t1873,k,n)
-        t1887 = (t622 - t4 * t1875 * t49) * t49
-        t1896 = t474 * t12
-        t1899 = t841 * t12
-        t1901 = (t1896 - t1899) * t12
-        t1922 = u(i,t51,t244,n)
-        t1923 = t1922 - t846
-        t1925 = t847 * t62
-        t1928 = t851 * t62
-        t1930 = (t1925 - t1928) * t62
-        t1934 = u(i,t51,t257,n)
-        t1935 = t850 - t1934
-        t1947 = (t4 * t1923 * t62 - t849) * t62
-        t1953 = (t853 - t4 * t1935 * t62) * t62
-        t1962 = dt * (-t201 * ((t612 - t4 * (t609 - (t607 - t1875 * t49)
-     # * t49) * t49) * t49 + (t626 - (t624 - t1887) * t49) * t49) / 0.24
-     #E2 - t166 * ((t4 * ((t471 * t12 - t1896) * t12 - t1901) * t12 - t4
-     # * (t1901 - (t1899 - t1278 * t12) * t12) * t12) * t12 + ((t478 - t
-     #845) * t12 - (t845 - t1282) * t12) * t12) / 0.24E2 - t243 * ((t4 *
-     # ((t1923 * t62 - t1925) * t62 - t1930) * t62 - t4 * (t1930 - (t192
-     #8 - t1935 * t62) * t62) * t62) * t62 + ((t1947 - t855) * t62 - (t8
-     #55 - t1953) * t62) * t62) / 0.24E2 + t845 + t624 + t855)
-        t1966 = t701 - ut(i,t1873,k,n)
-        t1970 = t705 - (t703 - t1966 * t49) * t49
-        t1971 = t1970 * t49
-        t1978 = dy * (t1761 + t703 / 0.2E1 - t201 * (t1762 / 0.2E1 + t19
-     #71 / 0.2E1) / 0.6E1) / 0.2E1
-        t1979 = t543 - t115
-        t1981 = t1782 * t12
-        t1984 = t1785 * t12
-        t1986 = (t1981 - t1984) * t12
-        t1990 = t903 - t1340
-        t2016 = ut(i,t51,t244,n)
-        t2017 = t2016 - t1790
-        t2019 = t1791 * t62
-        t2022 = t1795 * t62
-        t2024 = (t2019 - t2022) * t62
-        t2028 = ut(i,t51,t257,n)
-        t2029 = t1794 - t2028
-        t2062 = (t718 - t4 * t1966 * t49) * t49
-        t2071 = t34 * (t1799 + t1789 - t166 * ((t4 * ((t1979 * t12 - t19
-     #81) * t12 - t1986) * t12 - t4 * (t1986 - (t1984 - t1990 * t12) * t
-     #12) * t12) * t12 + (((t4 * t1979 * t12 - t1784) * t12 - t1789) * t
-     #12 - (t1789 - (t1787 - t4 * t1990 * t12) * t12) * t12) * t12) / 0.
-     #24E2 - t243 * ((t4 * ((t2017 * t62 - t2019) * t62 - t2024) * t62 -
-     # t4 * (t2024 - (t2022 - t2029 * t62) * t62) * t62) * t62 + (((t4 *
-     # t2017 * t62 - t1793) * t62 - t1799) * t62 - (t1799 - (t1797 - t4 
-     #* t2029 * t62) * t62) * t62) * t62) / 0.24E2 + t720 - t201 * ((t70
-     #8 - t4 * t1970 * t49) * t49 + (t722 - (t720 - t2062) * t49) * t49)
-     # / 0.24E2)
-        t2082 = u(i,t215,t58,n)
-        t2086 = u(i,t215,t64,n)
-        t2092 = t845 + t624 + t855 - (t4 * (t216 - t605) * t12 - t4 * (t
-     #605 - t1081) * t12) * t12 - t1887 - (t4 * (t2082 - t605) * t62 - t
-     #4 * (t605 - t2086) * t62) * t62
-        t2093 = t2092 * t49
-        t2096 = t1647 * (t1770 / 0.2E1 + t2093 / 0.2E1)
-        t2104 = t201 * (t705 - dy * (t1762 - t1971) / 0.12E2) / 0.12E2
-        t2124 = (t4 * (t479 - t846) * t12 - t4 * (t846 - t1283) * t12) *
-     # t12
-        t2125 = t846 - t2082
-        t2129 = (t871 - t4 * t2125 * t49) * t49
-        t2140 = (t4 * (t483 - t850) * t12 - t4 * (t850 - t1287) * t12) *
-     # t12
-        t2141 = t850 - t2086
-        t2145 = (t887 - t4 * t2141 * t49) * t49
-        t2152 = t104 * ((t4 * (t478 + t235 + t488 - t845 - t624 - t855) 
-     #* t12 - t4 * (t845 + t624 + t855 - t1282 - t1100 - t1292) * t12) *
-     # t12 + (t858 - t4 * t2092 * t49) * t49 + (t4 * (t2124 + t2129 + t1
-     #947 - t845 - t624 - t855) * t62 - t4 * (t845 + t624 + t855 - t2140
-     # - t2145 - t1953) * t62) * t62)
-        t2163 = ut(i,t215,t58,n)
-        t2167 = ut(i,t215,t64,n)
-        t2177 = t1730 * (t1801 / 0.2E1 + (t1789 + t720 + t1799 - (t4 * (
-     #t358 - t701) * t12 - t4 * (t701 - t1138) * t12) * t12 - t2062 - (t
-     #4 * (t2163 - t701) * t62 - t4 * (t701 - t2167) * t62) * t62) * t49
-     # / 0.2E1)
-        t2181 = t1647 * (t1770 - t2093)
-        t2184 = t2 + t673 - t1769 + t785 - t1775 + t1781 + t898 - t1806 
-     #+ t1810 - t139 - t165 * t1962 - t1978 - t306 * t2071 / 0.2E1 - t16
-     #5 * t2096 / 0.2E1 - t2104 - t443 * t2152 / 0.6E1 - t306 * t2177 / 
-     #0.4E1 - t165 * t2181 / 0.12E2
-        t2188 = t936 * t1860
-        t2190 = t939 * t1863 / 0.2E1
-        t2192 = t943 * t1867 / 0.6E1
-        t2194 = t946 * t1870 / 0.24E2
-        t2206 = t2 + t963 - t1769 + t965 - t1834 + t1781 + t969 - t1836 
-     #+ t1838 - t139 - t949 * t1962 - t1978 - t951 * t2071 / 0.2E1 - t94
-     #9 * t2096 / 0.2E1 - t2104 - t956 * t2152 / 0.6E1 - t951 * t2177 / 
-     #0.4E1 - t949 * t2181 / 0.12E2
-        t2209 = cc * t2206 * t932 / 0.8E1
-        t2211 = (t8 * t1860 + t33 * t1863 / 0.2E1 + t103 * t1867 / 0.6E1
-     # - t160 * t1870 / 0.24E2 + cc * t2184 * t932 / 0.8E1 - t2188 - t21
-     #90 - t2192 + t2194 - t2209) * t5
-        t2217 = t4 * (t599 - dy * t610 / 0.24E2)
-        t2219 = dy * t625 / 0.24E2
-        t2229 = dt * (t746 - dz * t752 / 0.24E2)
-        t2232 = t34 * t874 * t62
-        t2235 = t121 - t145
-        t2237 = t4 * t2235 * t12
-        t2238 = t145 - t909
-        t2240 = t4 * t2238 * t12
-        t2242 = (t2237 - t2240) * t12
-        t2243 = t1426 - t145
-        t2245 = t4 * t2243 * t49
-        t2246 = t145 - t1790
-        t2248 = t4 * t2246 * t49
-        t2250 = (t2245 - t2248) * t49
-        t2251 = t2242 + t2250 + t768 - t134 - t144 - t154
-        t2253 = t104 * t2251 * t62
-        t2256 = dz * t769
-        t2260 = t497 * t12
-        t2263 = t861 * t12
-        t2265 = (t2260 - t2263) * t12
-        t2287 = t866 * t49
-        t2290 = t869 * t49
-        t2292 = (t2287 - t2290) * t49
-        t2313 = k + 3
-        t2315 = u(i,j,t2313,n) - t632
-        t2327 = (t4 * t2315 * t62 - t655) * t62
-        t2336 = dt * (-t166 * ((t4 * ((t494 * t12 - t2260) * t12 - t2265
-     #) * t12 - t4 * (t2265 - (t2263 - t1298 * t12) * t12) * t12) * t12 
-     #+ ((t501 - t865) * t12 - (t865 - t1302) * t12) * t12) / 0.24E2 - t
-     #201 * ((t4 * ((t1700 * t49 - t2287) * t49 - t2292) * t49 - t4 * (t
-     #2292 - (t2290 - t2125 * t49) * t49) * t49) * t49 + ((t1704 - t873)
-     # * t49 - (t873 - t2129) * t49) * t49) / 0.24E2 - t243 * ((t4 * ((t
-     #2315 * t62 - t634) * t62 - t637) * t62 - t643) * t62 + ((t2327 - t
-     #657) * t62 - t659) * t62) / 0.24E2 + t865 + t873 + t657)
-        t2339 = t746 / 0.2E1
-        t2341 = ut(i,j,t2313,n) - t743
-        t2345 = (t2341 * t62 - t745) * t62 - t748
-        t2346 = t2345 * t62
-        t2347 = t752 * t62
-        t2354 = dz * (t745 / 0.2E1 + t2339 - t243 * (t2346 / 0.2E1 + t23
-     #47 / 0.2E1) / 0.6E1) / 0.2E1
-        t2355 = t549 - t121
-        t2357 = t2235 * t12
-        t2360 = t2238 * t12
-        t2362 = (t2357 - t2360) * t12
-        t2366 = t909 - t1346
-        t2392 = t1739 - t1426
-        t2394 = t2243 * t49
-        t2397 = t2246 * t49
-        t2399 = (t2394 - t2397) * t49
-        t2403 = t1790 - t2163
-        t2436 = (t4 * t2341 * t62 - t766) * t62
-        t2445 = t34 * (t2242 - t166 * ((t4 * ((t2355 * t12 - t2357) * t1
-     #2 - t2362) * t12 - t4 * (t2362 - (t2360 - t2366 * t12) * t12) * t1
-     #2) * t12 + (((t4 * t2355 * t12 - t2237) * t12 - t2242) * t12 - (t2
-     #242 - (t2240 - t4 * t2366 * t12) * t12) * t12) * t12) / 0.24E2 + t
-     #2250 - t201 * ((t4 * ((t2392 * t49 - t2394) * t49 - t2399) * t49 -
-     # t4 * (t2399 - (t2397 - t2403 * t49) * t49) * t49) * t49 + (((t4 *
-     # t2392 * t49 - t2245) * t49 - t2250) * t49 - (t2250 - (t2248 - t4 
-     #* t2403 * t49) * t49) * t49) * t49) / 0.24E2 + t768 - t243 * ((t4 
-     #* t2345 * t62 - t754) * t62 + ((t2436 - t768) * t62 - t770) * t62)
-     # / 0.24E2)
-        t2448 = dt * dz
-        t2465 = (t4 * (t245 - t632) * t12 - t4 * (t632 - t1008) * t12) *
-     # t12 + (t4 * (t1466 - t632) * t49 - t4 * (t632 - t1922) * t49) * t
-     #49 + t2327 - t865 - t873 - t657
-        t2466 = t2465 * t62
-        t2467 = t874 * t62
-        t2470 = t2448 * (t2466 / 0.2E1 + t2467 / 0.2E1)
-        t2478 = t243 * (t748 - dz * (t2346 - t2347) / 0.12E2) / 0.12E2
-        t2500 = t104 * ((t4 * (t501 + t509 + t271 - t865 - t873 - t657) 
-     #* t12 - t4 * (t865 + t873 + t657 - t1302 - t1310 - t1033) * t12) *
-     # t12 + (t4 * (t1699 + t1704 + t1491 - t865 - t873 - t657) * t49 - 
-     #t4 * (t865 + t873 + t657 - t2124 - t2129 - t1947) * t49) * t49 + (
-     #t4 * t2465 * t62 - t876) * t62)
-        t2503 = t34 * dz
-        t2522 = t2251 * t62
-        t2525 = t2503 * (((t4 * (t307 - t743) * t12 - t4 * (t743 - t1165
-     #) * t12) * t12 + (t4 * (t1604 - t743) * t49 - t4 * (t743 - t2016) 
-     #* t49) * t49 + t2436 - t2242 - t2250 - t768) * t62 / 0.2E1 + t2522
-     # / 0.2E1)
-        t2529 = t2448 * (t2466 - t2467)
-        t2532 = t749 / 0.2E1
-        t2533 = t760 * t62
-        t2540 = dz * (t2339 + t2532 - t243 * (t2347 / 0.2E1 + t2533 / 0.
-     #2E1) / 0.6E1) / 0.2E1
-        t2541 = t890 * t62
-        t2544 = t2448 * (t2467 / 0.2E1 + t2541 / 0.2E1)
-        t2546 = t165 * t2544 / 0.2E1
-        t2552 = t243 * (t751 - dz * (t2347 - t2533) / 0.12E2) / 0.12E2
-        t2553 = t125 - t149
-        t2555 = t4 * t2553 * t12
-        t2556 = t149 - t913
-        t2558 = t4 * t2556 * t12
-        t2560 = (t2555 - t2558) * t12
-        t2561 = t1430 - t149
-        t2563 = t4 * t2561 * t49
-        t2564 = t149 - t1794
-        t2566 = t4 * t2564 * t49
-        t2568 = (t2563 - t2566) * t49
-        t2569 = t134 + t144 + t154 - t2560 - t2568 - t774
-        t2570 = t2569 * t62
-        t2573 = t2503 * (t2522 / 0.2E1 + t2570 / 0.2E1)
-        t2575 = t306 * t2573 / 0.4E1
-        t2577 = t2448 * (t2467 - t2541)
-        t2579 = t165 * t2577 / 0.12E2
-        t2580 = t145 + t165 * t2336 - t2354 + t306 * t2445 / 0.2E1 - t16
-     #5 * t2470 / 0.2E1 + t2478 + t443 * t2500 / 0.6E1 - t306 * t2525 / 
-     #0.4E1 + t165 * t2529 / 0.12E2 - t2 - t673 - t2540 - t785 - t2546 -
-     # t2552 - t898 - t2575 - t2579
-        t2584 = t936 * t2229
-        t2586 = t939 * t2232 / 0.2E1
-        t2588 = t943 * t2253 / 0.6E1
-        t2590 = t946 * t2256 / 0.24E2
-        t2603 = t949 * t2544 / 0.2E1
-        t2605 = t951 * t2573 / 0.4E1
-        t2607 = t949 * t2577 / 0.12E2
-        t2608 = t145 + t949 * t2336 - t2354 + t951 * t2445 / 0.2E1 - t94
-     #9 * t2470 / 0.2E1 + t2478 + t956 * t2500 / 0.6E1 - t951 * t2525 / 
-     #0.4E1 + t949 * t2529 / 0.12E2 - t2 - t963 - t2540 - t965 - t2603 -
-     # t2552 - t969 - t2605 - t2607
-        t2611 = cc * t2608 * t932 / 0.8E1
-        t2613 = (t8 * t2229 + t33 * t2232 / 0.2E1 + t103 * t2253 / 0.6E1
-     # - t160 * t2256 / 0.24E2 + cc * t2580 * t932 / 0.8E1 - t2584 - t25
-     #86 - t2588 + t2590 - t2611) * t5
-        t2619 = t4 * (t635 - dz * t641 / 0.24E2)
-        t2621 = dz * t658 / 0.24E2
-        t2629 = dt * (t749 - dz * t760 / 0.24E2)
-        t2632 = t34 * t890 * t62
-        t2636 = t104 * t2569 * t62
-        t2639 = dz * t775
-        t2643 = t516 * t12
-        t2646 = t877 * t12
-        t2648 = (t2643 - t2646) * t12
-        t2669 = k - 3
-        t2671 = t644 - u(i,j,t2669,n)
-        t2683 = (t661 - t4 * t2671 * t62) * t62
-        t2692 = t882 * t49
-        t2695 = t885 * t49
-        t2697 = (t2692 - t2695) * t49
-        t2719 = dt * (-t166 * ((t4 * ((t513 * t12 - t2643) * t12 - t2648
-     #) * t12 - t4 * (t2648 - (t2646 - t1314 * t12) * t12) * t12) * t12 
-     #+ ((t520 - t881) * t12 - (t881 - t1318) * t12) * t12) / 0.24E2 + t
-     #663 - t243 * ((t651 - t4 * (t648 - (t646 - t2671 * t62) * t62) * t
-     #62) * t62 + (t665 - (t663 - t2683) * t62) * t62) / 0.24E2 + t889 -
-     # t201 * ((t4 * ((t1716 * t49 - t2692) * t49 - t2697) * t49 - t4 * 
-     #(t2697 - (t2695 - t2141 * t49) * t49) * t49) * t49 + ((t1720 - t88
-     #9) * t49 - (t889 - t2145) * t49) * t49) / 0.24E2 + t881)
-        t2723 = t755 - ut(i,j,t2669,n)
-        t2727 = t759 - (t757 - t2723 * t62) * t62
-        t2728 = t2727 * t62
-        t2735 = dz * (t2532 + t757 / 0.2E1 - t243 * (t2533 / 0.2E1 + t27
-     #28 / 0.2E1) / 0.6E1) / 0.2E1
-        t2736 = t1743 - t1430
-        t2738 = t2561 * t49
-        t2741 = t2564 * t49
-        t2743 = (t2738 - t2741) * t49
-        t2747 = t1794 - t2167
-        t2780 = (t772 - t4 * t2723 * t62) * t62
-        t2788 = t553 - t125
-        t2790 = t2553 * t12
-        t2793 = t2556 * t12
-        t2795 = (t2790 - t2793) * t12
-        t2799 = t913 - t1350
-        t2826 = t34 * (-t201 * ((t4 * ((t2736 * t49 - t2738) * t49 - t27
-     #43) * t49 - t4 * (t2743 - (t2741 - t2747 * t49) * t49) * t49) * t4
-     #9 + (((t4 * t2736 * t49 - t2563) * t49 - t2568) * t49 - (t2568 - (
-     #t2566 - t4 * t2747 * t49) * t49) * t49) * t49) / 0.24E2 + t774 - t
-     #243 * ((t762 - t4 * t2727 * t62) * t62 + (t776 - (t774 - t2780) * 
-     #t62) * t62) / 0.24E2 + t2568 + t2560 - t166 * ((t4 * ((t2788 * t12
-     # - t2790) * t12 - t2795) * t12 - t4 * (t2795 - (t2793 - t2799 * t1
-     #2) * t12) * t12) * t12 + (((t4 * t2788 * t12 - t2555) * t12 - t256
-     #0) * t12 - (t2560 - (t2558 - t4 * t2799 * t12) * t12) * t12) * t12
-     #) / 0.24E2)
-        t2845 = t881 + t889 + t663 - (t4 * (t258 - t644) * t12 - t4 * (t
-     #644 - t1020) * t12) * t12 - (t4 * (t1478 - t644) * t49 - t4 * (t64
-     #4 - t1934) * t49) * t49 - t2683
-        t2846 = t2845 * t62
-        t2849 = t2448 * (t2541 / 0.2E1 + t2846 / 0.2E1)
-        t2857 = t243 * (t759 - dz * (t2533 - t2728) / 0.12E2) / 0.12E2
-        t2879 = t104 * ((t4 * (t520 + t528 + t277 - t881 - t889 - t663) 
-     #* t12 - t4 * (t881 + t889 + t663 - t1318 - t1326 - t1039) * t12) *
-     # t12 + (t4 * (t1715 + t1720 + t1497 - t881 - t889 - t663) * t49 - 
-     #t4 * (t881 + t889 + t663 - t2140 - t2145 - t1953) * t49) * t49 + (
-     #t892 - t4 * t2845 * t62) * t62)
-        t2902 = t2503 * (t2570 / 0.2E1 + (t2560 + t2568 + t774 - (t4 * (
-     #t319 - t755) * t12 - t4 * (t755 - t1177) * t12) * t12 - (t4 * (t16
-     #16 - t755) * t49 - t4 * (t755 - t2028) * t49) * t49 - t2780) * t62
-     # / 0.2E1)
-        t2906 = t2448 * (t2541 - t2846)
-        t2909 = t2 + t673 - t2540 + t785 - t2546 + t2552 + t898 - t2575 
-     #+ t2579 - t149 - t165 * t2719 - t2735 - t306 * t2826 / 0.2E1 - t16
-     #5 * t2849 / 0.2E1 - t2857 - t443 * t2879 / 0.6E1 - t306 * t2902 / 
-     #0.4E1 - t165 * t2906 / 0.12E2
-        t2913 = t936 * t2629
-        t2915 = t939 * t2632 / 0.2E1
-        t2917 = t943 * t2636 / 0.6E1
-        t2919 = t946 * t2639 / 0.24E2
-        t2931 = t2 + t963 - t2540 + t965 - t2603 + t2552 + t969 - t2605 
-     #+ t2607 - t149 - t949 * t2719 - t2735 - t951 * t2826 / 0.2E1 - t94
-     #9 * t2849 / 0.2E1 - t2857 - t956 * t2879 / 0.6E1 - t951 * t2902 / 
-     #0.4E1 - t949 * t2906 / 0.12E2
-        t2934 = cc * t2931 * t932 / 0.8E1
-        t2936 = (t8 * t2629 + t33 * t2632 / 0.2E1 + t103 * t2636 / 0.6E1
-     # - t160 * t2639 / 0.24E2 + cc * t2909 * t932 / 0.8E1 - t2913 - t29
-     #15 - t2917 + t2919 - t2934) * t5
-        t2942 = t4 * (t638 - dz * t649 / 0.24E2)
-        t2944 = dz * t664 / 0.24E2
+        t11 = i + 1
+        t12 = ut(t11,j,k,n)
+        t13 = t10 - t12
+        t15 = 0.1E1 / dx
+        t16 = t8 * t13 * t15
+        t17 = t12 - t2
+        t19 = t8 * t17 * t15
+        t21 = (t16 - t19) * t15
+        t22 = i - 1
+        t23 = ut(t22,j,k,n)
+        t24 = t2 - t23
+        t26 = t8 * t24 * t15
+        t28 = (t19 - t26) * t15
+        t29 = t21 - t28
+        t30 = dx * t29
+        t32 = t7 * t30 / 0.24E2
+        t33 = 0.1E1 / 0.2E1 + t5
+        t34 = t8 * t33
+        t35 = t17 * t15
+        t36 = t13 * t15
+        t38 = (t36 - t35) * t15
+        t39 = t24 * t15
+        t41 = (t35 - t39) * t15
+        t42 = t38 - t41
+        t46 = dt * (t35 - dx * t42 / 0.24E2)
+        t48 = t33 * dt
+        t51 = t8 * t6
+        t52 = t51 * t46
+        t53 = beta ** 2
+        t54 = t53 * beta
+        t55 = t6 ** 2
+        t56 = t55 * t6
+        t57 = t54 * t56
+        t58 = dt ** 2
+        t59 = t58 * dt
+        t60 = t59 * cc
+        t61 = u(t9,j,k,n)
+        t62 = u(t11,j,k,n)
+        t63 = t61 - t62
+        t65 = t8 * t63 * t15
+        t66 = t62 - t1
+        t68 = t8 * t66 * t15
+        t70 = (t65 - t68) * t15
+        t71 = j + 1
+        t72 = u(t11,t71,k,n)
+        t73 = t72 - t62
+        t75 = 0.1E1 / dy
+        t76 = t8 * t73 * t75
+        t77 = j - 1
+        t78 = u(t11,t77,k,n)
+        t79 = t62 - t78
+        t81 = t8 * t79 * t75
+        t83 = (t76 - t81) * t75
+        t84 = k + 1
+        t85 = u(t11,j,t84,n)
+        t86 = t85 - t62
+        t88 = 0.1E1 / dz
+        t89 = t8 * t86 * t88
+        t90 = k - 1
+        t91 = u(t11,j,t90,n)
+        t92 = t62 - t91
+        t94 = t8 * t92 * t88
+        t96 = (t89 - t94) * t88
+        t97 = u(t22,j,k,n)
+        t98 = t1 - t97
+        t100 = t8 * t98 * t15
+        t102 = (t68 - t100) * t15
+        t103 = u(i,t71,k,n)
+        t104 = t103 - t1
+        t106 = t8 * t104 * t75
+        t107 = u(i,t77,k,n)
+        t108 = t1 - t107
+        t110 = t8 * t108 * t75
+        t112 = (t106 - t110) * t75
+        t113 = u(i,j,t84,n)
+        t114 = t113 - t1
+        t116 = t8 * t114 * t88
+        t117 = u(i,j,t90,n)
+        t118 = t1 - t117
+        t120 = t8 * t118 * t88
+        t122 = (t116 - t120) * t88
+        t123 = t70 + t83 + t96 - t102 - t112 - t122
+        t125 = t8 * t123 * t15
+        t126 = i - 2
+        t127 = u(t126,j,k,n)
+        t128 = t97 - t127
+        t130 = t8 * t128 * t15
+        t132 = (t100 - t130) * t15
+        t133 = u(t22,t71,k,n)
+        t134 = t133 - t97
+        t136 = t8 * t134 * t75
+        t137 = u(t22,t77,k,n)
+        t138 = t97 - t137
+        t140 = t8 * t138 * t75
+        t142 = (t136 - t140) * t75
+        t143 = u(t22,j,t84,n)
+        t144 = t143 - t97
+        t146 = t8 * t144 * t88
+        t147 = u(t22,j,t90,n)
+        t148 = t97 - t147
+        t150 = t8 * t148 * t88
+        t152 = (t146 - t150) * t88
+        t153 = t102 + t112 + t122 - t132 - t142 - t152
+        t155 = t8 * t153 * t15
+        t158 = t72 - t103
+        t160 = t8 * t158 * t15
+        t161 = t103 - t133
+        t163 = t8 * t161 * t15
+        t165 = (t160 - t163) * t15
+        t166 = j + 2
+        t167 = u(i,t166,k,n)
+        t168 = t167 - t103
+        t170 = t8 * t168 * t75
+        t172 = (t170 - t106) * t75
+        t173 = u(i,t71,t84,n)
+        t174 = t173 - t103
+        t176 = t8 * t174 * t88
+        t177 = u(i,t71,t90,n)
+        t178 = t103 - t177
+        t180 = t8 * t178 * t88
+        t182 = (t176 - t180) * t88
+        t183 = t165 + t172 + t182 - t102 - t112 - t122
+        t185 = t8 * t183 * t75
+        t186 = t78 - t107
+        t188 = t8 * t186 * t15
+        t189 = t107 - t137
+        t191 = t8 * t189 * t15
+        t193 = (t188 - t191) * t15
+        t194 = j - 2
+        t195 = u(i,t194,k,n)
+        t196 = t107 - t195
+        t198 = t8 * t196 * t75
+        t200 = (t110 - t198) * t75
+        t201 = u(i,t77,t84,n)
+        t202 = t201 - t107
+        t204 = t8 * t202 * t88
+        t205 = u(i,t77,t90,n)
+        t206 = t107 - t205
+        t208 = t8 * t206 * t88
+        t210 = (t204 - t208) * t88
+        t211 = t102 + t112 + t122 - t193 - t200 - t210
+        t213 = t8 * t211 * t75
+        t216 = t85 - t113
+        t218 = t8 * t216 * t15
+        t219 = t113 - t143
+        t221 = t8 * t219 * t15
+        t223 = (t218 - t221) * t15
+        t224 = t173 - t113
+        t226 = t8 * t224 * t75
+        t227 = t113 - t201
+        t229 = t8 * t227 * t75
+        t231 = (t226 - t229) * t75
+        t232 = k + 2
+        t233 = u(i,j,t232,n)
+        t234 = t233 - t113
+        t236 = t8 * t234 * t88
+        t238 = (t236 - t116) * t88
+        t239 = t223 + t231 + t238 - t102 - t112 - t122
+        t241 = t8 * t239 * t88
+        t242 = t91 - t117
+        t244 = t8 * t242 * t15
+        t245 = t117 - t147
+        t247 = t8 * t245 * t15
+        t249 = (t244 - t247) * t15
+        t250 = t177 - t117
+        t252 = t8 * t250 * t75
+        t253 = t117 - t205
+        t255 = t8 * t253 * t75
+        t257 = (t252 - t255) * t75
+        t258 = k - 2
+        t259 = u(i,j,t258,n)
+        t260 = t117 - t259
+        t262 = t8 * t260 * t88
+        t264 = (t120 - t262) * t88
+        t265 = t102 + t112 + t122 - t249 - t257 - t264
+        t267 = t8 * t265 * t88
+        t271 = t60 * ((t125 - t155) * t15 + (t185 - t213) * t75 + (t241 
+     #- t267) * t88)
+        t273 = t57 * t271 / 0.12E2
+        t274 = t53 * t55
+        t275 = t58 * dx
+        t276 = ut(t11,t71,k,n)
+        t277 = t276 - t12
+        t279 = t8 * t277 * t75
+        t280 = ut(t11,t77,k,n)
+        t281 = t12 - t280
+        t283 = t8 * t281 * t75
+        t285 = (t279 - t283) * t75
+        t286 = ut(t11,j,t84,n)
+        t287 = t286 - t12
+        t289 = t8 * t287 * t88
+        t290 = ut(t11,j,t90,n)
+        t291 = t12 - t290
+        t293 = t8 * t291 * t88
+        t295 = (t289 - t293) * t88
+        t297 = cc * (t21 + t285 + t295)
+        t298 = ut(i,t71,k,n)
+        t299 = t298 - t2
+        t301 = t8 * t299 * t75
+        t302 = ut(i,t77,k,n)
+        t303 = t2 - t302
+        t305 = t8 * t303 * t75
+        t307 = (t301 - t305) * t75
+        t308 = ut(i,j,t84,n)
+        t309 = t308 - t2
+        t311 = t8 * t309 * t88
+        t312 = ut(i,j,t90,n)
+        t313 = t2 - t312
+        t315 = t8 * t313 * t88
+        t317 = (t311 - t315) * t88
+        t319 = cc * (t28 + t307 + t317)
+        t321 = (t297 - t319) * t15
+        t322 = ut(t126,j,k,n)
+        t323 = t23 - t322
+        t325 = t8 * t323 * t15
+        t327 = (t26 - t325) * t15
+        t328 = ut(t22,t71,k,n)
+        t329 = t328 - t23
+        t331 = t8 * t329 * t75
+        t332 = ut(t22,t77,k,n)
+        t333 = t23 - t332
+        t335 = t8 * t333 * t75
+        t337 = (t331 - t335) * t75
+        t338 = ut(t22,j,t84,n)
+        t339 = t338 - t23
+        t341 = t8 * t339 * t88
+        t342 = ut(t22,j,t90,n)
+        t343 = t23 - t342
+        t345 = t8 * t343 * t88
+        t347 = (t341 - t345) * t88
+        t349 = cc * (t327 + t337 + t347)
+        t351 = (t319 - t349) * t15
+        t354 = t275 * (t321 / 0.2E1 + t351 / 0.2E1)
+        t356 = t274 * t354 / 0.8E1
+        t357 = beta * t6
+        t358 = dt * dx
+        t360 = cc * (t70 + t83 + t96)
+        t362 = cc * (t102 + t112 + t122)
+        t364 = (t360 - t362) * t15
+        t366 = cc * (t132 + t142 + t152)
+        t368 = (t362 - t366) * t15
+        t370 = t358 * (t364 - t368)
+        t372 = t357 * t370 / 0.24E2
+        t373 = t33 ** 2
+        t374 = t8 * t373
+        t376 = t58 * t123 * t15
+        t379 = t373 * t33
+        t380 = t8 * t379
+        t383 = t59 * (t21 + t285 + t295 - t28 - t307 - t317) * t15
+        t386 = beta * t33
+        t387 = dt * cc
+        t388 = dx ** 2
+        t389 = i + 3
+        t391 = u(t389,j,k,n) - t61
+        t393 = t63 * t15
+        t396 = t66 * t15
+        t398 = (t393 - t396) * t15
+        t402 = t98 * t15
+        t404 = (t396 - t402) * t15
+        t405 = t398 - t404
+        t407 = t8 * t405 * t15
+        t413 = (t15 * t391 * t8 - t65) * t15
+        t416 = t70 - t102
+        t417 = t416 * t15
+        t423 = dy ** 2
+        t424 = u(t11,t166,k,n)
+        t425 = t424 - t72
+        t427 = t73 * t75
+        t430 = t79 * t75
+        t432 = (t427 - t430) * t75
+        t436 = u(t11,t194,k,n)
+        t437 = t78 - t436
+        t449 = (t425 * t75 * t8 - t76) * t75
+        t455 = (-t437 * t75 * t8 + t81) * t75
+        t463 = dz ** 2
+        t464 = u(t11,j,t232,n)
+        t465 = t464 - t85
+        t467 = t86 * t88
+        t470 = t92 * t88
+        t472 = (t467 - t470) * t88
+        t476 = u(t11,j,t258,n)
+        t477 = t91 - t476
+        t489 = (t465 * t8 * t88 - t89) * t88
+        t495 = (-t477 * t8 * t88 + t94) * t88
+        t504 = t387 * (-t388 * ((t8 * ((t15 * t391 - t393) * t15 - t398)
+     # * t15 - t407) * t15 + ((t413 - t70) * t15 - t417) * t15) / 0.24E2
+     # + t70 + t83 - t423 * ((t8 * ((t425 * t75 - t427) * t75 - t432) * 
+     #t75 - t8 * (t432 - (-t437 * t75 + t430) * t75) * t75) * t75 + ((t4
+     #49 - t83) * t75 - (t83 - t455) * t75) * t75) / 0.24E2 + t96 - t463
+     # * ((t8 * ((t465 * t88 - t467) * t88 - t472) * t88 - t8 * (t472 - 
+     #(-t477 * t88 + t470) * t88) * t88) * t88 + ((t489 - t96) * t88 - (
+     #t96 - t495) * t88) * t88) / 0.24E2)
+        t507 = t53 * t373
+        t508 = cc * t58
+        t509 = ut(t389,j,k,n)
+        t510 = t509 - t10
+        t518 = t8 * t42 * t15
+        t524 = (t15 * t510 * t8 - t16) * t15
+        t527 = t29 * t15
+        t533 = ut(t11,t166,k,n)
+        t534 = t533 - t276
+        t536 = t277 * t75
+        t539 = t281 * t75
+        t541 = (t536 - t539) * t75
+        t545 = ut(t11,t194,k,n)
+        t546 = t280 - t545
+        t572 = ut(t11,j,t232,n)
+        t573 = t572 - t286
+        t575 = t287 * t88
+        t578 = t291 * t88
+        t580 = (t575 - t578) * t88
+        t584 = ut(t11,j,t258,n)
+        t585 = t290 - t584
+        t612 = t508 * (-t388 * ((t8 * ((t15 * t510 - t36) * t15 - t38) *
+     # t15 - t518) * t15 + ((t524 - t21) * t15 - t527) * t15) / 0.24E2 +
+     # t21 + t285 - t423 * ((t8 * ((t534 * t75 - t536) * t75 - t541) * t
+     #75 - t8 * (t541 - (-t546 * t75 + t539) * t75) * t75) * t75 + (((t5
+     #34 * t75 * t8 - t279) * t75 - t285) * t75 - (t285 - (-t546 * t75 *
+     # t8 + t283) * t75) * t75) * t75) / 0.24E2 - t463 * ((t8 * ((t573 *
+     # t88 - t575) * t88 - t580) * t88 - t8 * (t580 - (-t585 * t88 + t57
+     #8) * t88) * t88) * t88 + (((t573 * t8 * t88 - t289) * t88 - t295) 
+     #* t88 - (t295 - (-t585 * t8 * t88 + t293) * t88) * t88) * t88) / 0
+     #.24E2 + t295)
+        t615 = u(t9,t71,k,n)
+        t619 = u(t9,t77,k,n)
+        t624 = (t8 * (t615 - t61) * t75 - t8 * (t61 - t619) * t75) * t75
+        t625 = u(t9,j,t84,n)
+        t629 = u(t9,j,t90,n)
+        t634 = (t8 * (t625 - t61) * t88 - t8 * (t61 - t629) * t88) * t88
+        t638 = (cc * (t413 + t624 + t634) - t360) * t15
+        t641 = t358 * (t638 / 0.2E1 + t364 / 0.2E1)
+        t644 = t54 * t379
+        t650 = t615 - t72
+        t654 = (t15 * t650 * t8 - t160) * t15
+        t655 = u(t11,t71,t84,n)
+        t659 = u(t11,t71,t90,n)
+        t664 = (t8 * (t655 - t72) * t88 - t8 * (t72 - t659) * t88) * t88
+        t668 = t619 - t78
+        t672 = (t15 * t668 * t8 - t188) * t15
+        t673 = u(t11,t77,t84,n)
+        t677 = u(t11,t77,t90,n)
+        t682 = (t8 * (t673 - t78) * t88 - t8 * (t78 - t677) * t88) * t88
+        t688 = t625 - t85
+        t692 = (t15 * t688 * t8 - t218) * t15
+        t700 = (t8 * (t655 - t85) * t75 - t8 * (t85 - t673) * t75) * t75
+        t704 = t629 - t91
+        t708 = (t15 * t704 * t8 - t244) * t15
+        t716 = (t8 * (t659 - t91) * t75 - t8 * (t91 - t677) * t75) * t75
+        t723 = t60 * ((t8 * (t413 + t624 + t634 - t70 - t83 - t96) * t15
+     # - t125) * t15 + (t8 * (t654 + t449 + t664 - t70 - t83 - t96) * t7
+     #5 - t8 * (t70 + t83 + t96 - t672 - t455 - t682) * t75) * t75 + (t8
+     # * (t692 + t700 + t489 - t70 - t83 - t96) * t88 - t8 * (t70 + t83 
+     #+ t96 - t708 - t716 - t495) * t88) * t88)
+        t726 = ut(t9,t71,k,n)
+        t730 = ut(t9,t77,k,n)
+        t736 = ut(t9,j,t84,n)
+        t740 = ut(t9,j,t90,n)
+        t752 = t275 * ((cc * (t524 + (t8 * (t726 - t10) * t75 - t8 * (t1
+     #0 - t730) * t75) * t75 + (t8 * (t736 - t10) * t88 - t8 * (t10 - t7
+     #40) * t88) * t88) - t297) * t15 / 0.2E1 + t321 / 0.2E1)
+        t756 = t358 * (t638 - t364)
+        t759 = t128 * t15
+        t761 = (t402 - t759) * t15
+        t762 = t404 - t761
+        t764 = t8 * t762 * t15
+        t767 = t102 - t132
+        t768 = t767 * t15
+        t774 = t168 * t75
+        t775 = t104 * t75
+        t777 = (t774 - t775) * t75
+        t778 = t108 * t75
+        t780 = (t775 - t778) * t75
+        t781 = t777 - t780
+        t783 = t8 * t781 * t75
+        t784 = t196 * t75
+        t786 = (t778 - t784) * t75
+        t787 = t780 - t786
+        t789 = t8 * t787 * t75
+        t792 = t172 - t112
+        t793 = t792 * t75
+        t794 = t112 - t200
+        t795 = t794 * t75
+        t801 = t234 * t88
+        t802 = t114 * t88
+        t804 = (t801 - t802) * t88
+        t805 = t118 * t88
+        t807 = (t802 - t805) * t88
+        t808 = t804 - t807
+        t810 = t8 * t808 * t88
+        t811 = t260 * t88
+        t813 = (t805 - t811) * t88
+        t814 = t807 - t813
+        t816 = t8 * t814 * t88
+        t819 = t238 - t122
+        t820 = t819 * t88
+        t821 = t122 - t264
+        t822 = t821 * t88
+        t829 = t387 * (-t388 * ((t407 - t764) * t15 + (t417 - t768) * t1
+     #5) / 0.24E2 + t102 - t423 * ((t783 - t789) * t75 + (t793 - t795) *
+     # t75) / 0.24E2 + t112 - t463 * ((t810 - t816) * t88 + (t820 - t822
+     #) * t88) / 0.24E2 + t122)
+        t831 = t386 * t829 / 0.2E1
+        t832 = t32 + t34 * t46 - t48 * t30 / 0.24E2 - t52 + t273 + t356 
+     #+ t372 + t374 * t376 / 0.2E1 + t380 * t383 / 0.6E1 + t386 * t504 /
+     # 0.2E1 + t507 * t612 / 0.4E1 - t386 * t641 / 0.4E1 + t644 * t723 /
+     # 0.12E2 - t507 * t752 / 0.8E1 + t386 * t756 / 0.24E2 - t831
+        t833 = t323 * t15
+        t835 = (t39 - t833) * t15
+        t836 = t41 - t835
+        t838 = t8 * t836 * t15
+        t841 = t28 - t327
+        t842 = t841 * t15
+        t848 = ut(i,t166,k,n)
+        t849 = t848 - t298
+        t850 = t849 * t75
+        t851 = t299 * t75
+        t853 = (t850 - t851) * t75
+        t854 = t303 * t75
+        t856 = (t851 - t854) * t75
+        t857 = t853 - t856
+        t859 = t8 * t857 * t75
+        t860 = ut(i,t194,k,n)
+        t861 = t302 - t860
+        t862 = t861 * t75
+        t864 = (t854 - t862) * t75
+        t865 = t856 - t864
+        t867 = t8 * t865 * t75
+        t871 = t8 * t849 * t75
+        t873 = (t871 - t301) * t75
+        t874 = t873 - t307
+        t875 = t874 * t75
+        t877 = t8 * t861 * t75
+        t879 = (t305 - t877) * t75
+        t880 = t307 - t879
+        t881 = t880 * t75
+        t887 = ut(i,j,t232,n)
+        t888 = t887 - t308
+        t889 = t888 * t88
+        t890 = t309 * t88
+        t892 = (t889 - t890) * t88
+        t893 = t313 * t88
+        t895 = (t890 - t893) * t88
+        t896 = t892 - t895
+        t898 = t8 * t896 * t88
+        t899 = ut(i,j,t258,n)
+        t900 = t312 - t899
+        t901 = t900 * t88
+        t903 = (t893 - t901) * t88
+        t904 = t895 - t903
+        t906 = t8 * t904 * t88
+        t910 = t8 * t888 * t88
+        t912 = (t910 - t311) * t88
+        t913 = t912 - t317
+        t914 = t913 * t88
+        t916 = t8 * t900 * t88
+        t918 = (t315 - t916) * t88
+        t919 = t317 - t918
+        t920 = t919 * t88
+        t927 = t508 * (-t388 * ((t518 - t838) * t15 + (t527 - t842) * t1
+     #5) / 0.24E2 + t28 - t423 * ((t859 - t867) * t75 + (t875 - t881) * 
+     #t75) / 0.24E2 + t307 - t463 * ((t898 - t906) * t88 + (t914 - t920)
+     # * t88) / 0.24E2 + t317)
+        t929 = t507 * t927 / 0.4E1
+        t932 = t358 * (t364 / 0.2E1 + t368 / 0.2E1)
+        t934 = t386 * t932 / 0.4E1
+        t936 = t644 * t271 / 0.12E2
+        t938 = t507 * t354 / 0.8E1
+        t940 = t386 * t370 / 0.24E2
+        t941 = t8 * t55
+        t943 = t941 * t376 / 0.2E1
+        t944 = t8 * t56
+        t946 = t944 * t383 / 0.6E1
+        t948 = t357 * t504 / 0.2E1
+        t950 = t274 * t612 / 0.4E1
+        t952 = t357 * t641 / 0.4E1
+        t954 = t57 * t723 / 0.12E2
+        t956 = t274 * t752 / 0.8E1
+        t958 = t357 * t756 / 0.24E2
+        t960 = t357 * t829 / 0.2E1
+        t962 = t274 * t927 / 0.4E1
+        t964 = t357 * t932 / 0.4E1
+        t965 = -t929 - t934 - t936 - t938 - t940 - t943 - t946 - t948 - 
+     #t950 + t952 - t954 + t956 - t958 + t960 + t962 + t964
+        t967 = (t832 + t965) * t4
+        t971 = dx * t416 / 0.24E2
+        t975 = t8 * (t396 - dx * t405 / 0.24E2)
+        t977 = cc * t12
+        t978 = cc * t10
+        t980 = (-t977 + t978) * t15
+        t982 = cc * t2
+        t984 = (-t982 + t977) * t15
+        t985 = t984 / 0.2E1
+        t992 = (t980 - t984) * t15
+        t994 = (((cc * t509 - t978) * t15 - t980) * t15 - t992) * t15
+        t995 = cc * t23
+        t997 = (t982 - t995) * t15
+        t999 = (t984 - t997) * t15
+        t1001 = (t992 - t999) * t15
+        t1008 = dx * (t980 / 0.2E1 + t985 - t388 * (t994 / 0.2E1 + t1001
+     # / 0.2E1) / 0.6E1) / 0.4E1
+        t1009 = -t6 * t967 - t1008 - t273 - t32 - t356 - t372 + t52 + t9
+     #43 + t946 + t948 - t971 + t975
+        t1010 = t982 / 0.2E1
+        t1011 = t977 / 0.2E1
+        t1012 = cc * t322
+        t1014 = (-t1012 + t995) * t15
+        t1016 = (t997 - t1014) * t15
+        t1018 = (t999 - t1016) * t15
+        t1024 = t388 * (t999 - dx * (t1001 - t1018) / 0.12E2) / 0.24E2
+        t1025 = t997 / 0.2E1
+        t1032 = dx * (t985 + t1025 - t388 * (t1001 / 0.2E1 + t1018 / 0.2
+     #E1) / 0.6E1) / 0.4E1
+        t1038 = t388 * (t992 - dx * (t994 - t1001) / 0.12E2) / 0.24E2
+        t1039 = t950 - t952 + t954 - t956 + t958 - t960 - t962 - t964 - 
+     #t1010 + t1011 - t1024 - t1032 + t1038
+        t1044 = t58 * t153 * t15
+        t1049 = t59 * (t28 + t307 + t317 - t327 - t337 - t347) * t15
+        t1052 = i - 3
+        t1054 = t127 - u(t1052,j,k,n)
+        t1066 = (-t1054 * t15 * t8 + t130) * t15
+        t1074 = u(t22,t166,k,n)
+        t1075 = t1074 - t133
+        t1077 = t134 * t75
+        t1080 = t138 * t75
+        t1082 = (t1077 - t1080) * t75
+        t1086 = u(t22,t194,k,n)
+        t1087 = t137 - t1086
+        t1099 = (t1075 * t75 * t8 - t136) * t75
+        t1105 = (-t1087 * t75 * t8 + t140) * t75
+        t1113 = u(t22,j,t232,n)
+        t1114 = t1113 - t143
+        t1116 = t144 * t88
+        t1119 = t148 * t88
+        t1121 = (t1116 - t1119) * t88
+        t1125 = u(t22,j,t258,n)
+        t1126 = t147 - t1125
+        t1138 = (t1114 * t8 * t88 - t146) * t88
+        t1144 = (-t1126 * t8 * t88 + t150) * t88
+        t1153 = t387 * (-t388 * ((t764 - t8 * (t761 - (-t1054 * t15 + t7
+     #59) * t15) * t15) * t15 + (t768 - (t132 - t1066) * t15) * t15) / 0
+     #.24E2 + t132 + t142 - t423 * ((t8 * ((t1075 * t75 - t1077) * t75 -
+     # t1082) * t75 - t8 * (t1082 - (-t1087 * t75 + t1080) * t75) * t75)
+     # * t75 + ((t1099 - t142) * t75 - (t142 - t1105) * t75) * t75) / 0.
+     #24E2 + t152 - t463 * ((t8 * ((t1114 * t88 - t1116) * t88 - t1121) 
+     #* t88 - t8 * (t1121 - (-t1126 * t88 + t1119) * t88) * t88) * t88 +
+     # ((t1138 - t152) * t88 - (t152 - t1144) * t88) * t88) / 0.24E2)
+        t1156 = ut(t1052,j,k,n)
+        t1157 = t322 - t1156
+        t1169 = (-t1157 * t15 * t8 + t325) * t15
+        t1177 = ut(t22,t166,k,n)
+        t1178 = t1177 - t328
+        t1180 = t329 * t75
+        t1183 = t333 * t75
+        t1185 = (t1180 - t1183) * t75
+        t1189 = ut(t22,t194,k,n)
+        t1190 = t332 - t1189
+        t1216 = ut(t22,j,t232,n)
+        t1217 = t1216 - t338
+        t1219 = t339 * t88
+        t1222 = t343 * t88
+        t1224 = (t1219 - t1222) * t88
+        t1228 = ut(t22,j,t258,n)
+        t1229 = t342 - t1228
+        t1256 = t508 * (-t388 * ((t838 - t8 * (t835 - (-t1157 * t15 + t8
+     #33) * t15) * t15) * t15 + (t842 - (t327 - t1169) * t15) * t15) / 0
+     #.24E2 + t327 - t423 * ((t8 * ((t1178 * t75 - t1180) * t75 - t1185)
+     # * t75 - t8 * (t1185 - (-t1190 * t75 + t1183) * t75) * t75) * t75 
+     #+ (((t1178 * t75 * t8 - t331) * t75 - t337) * t75 - (t337 - (-t119
+     #0 * t75 * t8 + t335) * t75) * t75) * t75) / 0.24E2 + t337 - t463 *
+     # ((t8 * ((t1217 * t88 - t1219) * t88 - t1224) * t88 - t8 * (t1224 
+     #- (-t1229 * t88 + t1222) * t88) * t88) * t88 + (((t1217 * t8 * t88
+     # - t341) * t88 - t347) * t88 - (t347 - (-t1229 * t8 * t88 + t345) 
+     #* t88) * t88) * t88) / 0.24E2 + t347)
+        t1259 = u(t126,t71,k,n)
+        t1263 = u(t126,t77,k,n)
+        t1268 = (t8 * (t1259 - t127) * t75 - t8 * (t127 - t1263) * t75) 
+     #* t75
+        t1269 = u(t126,j,t84,n)
+        t1273 = u(t126,j,t90,n)
+        t1278 = (t8 * (t1269 - t127) * t88 - t8 * (t127 - t1273) * t88) 
+     #* t88
+        t1282 = (t366 - cc * (t1066 + t1268 + t1278)) * t15
+        t1285 = t358 * (t368 / 0.2E1 + t1282 / 0.2E1)
+        t1293 = t133 - t1259
+        t1297 = (-t1293 * t15 * t8 + t163) * t15
+        t1298 = u(t22,t71,t84,n)
+        t1302 = u(t22,t71,t90,n)
+        t1307 = (t8 * (t1298 - t133) * t88 - t8 * (t133 - t1302) * t88) 
+     #* t88
+        t1311 = t137 - t1263
+        t1315 = (-t1311 * t15 * t8 + t191) * t15
+        t1316 = u(t22,t77,t84,n)
+        t1320 = u(t22,t77,t90,n)
+        t1325 = (t8 * (t1316 - t137) * t88 - t8 * (t137 - t1320) * t88) 
+     #* t88
+        t1331 = t143 - t1269
+        t1335 = (-t1331 * t15 * t8 + t221) * t15
+        t1343 = (t8 * (t1298 - t143) * t75 - t8 * (t143 - t1316) * t75) 
+     #* t75
+        t1347 = t147 - t1273
+        t1351 = (-t1347 * t15 * t8 + t247) * t15
+        t1359 = (t8 * (t1302 - t147) * t75 - t8 * (t147 - t1320) * t75) 
+     #* t75
+        t1366 = t60 * ((t155 - t8 * (t132 + t142 + t152 - t1066 - t1268 
+     #- t1278) * t15) * t15 + (t8 * (t1297 + t1099 + t1307 - t132 - t142
+     # - t152) * t75 - t8 * (t132 + t142 + t152 - t1315 - t1105 - t1325)
+     # * t75) * t75 + (t8 * (t1335 + t1343 + t1138 - t132 - t142 - t152)
+     # * t88 - t8 * (t132 + t142 + t152 - t1351 - t1359 - t1144) * t88) 
+     #* t88)
+        t1369 = ut(t126,t71,k,n)
+        t1373 = ut(t126,t77,k,n)
+        t1379 = ut(t126,j,t84,n)
+        t1383 = ut(t126,j,t90,n)
+        t1395 = t275 * (t351 / 0.2E1 + (t349 - cc * (t1169 + (t8 * (t136
+     #9 - t322) * t75 - t8 * (t322 - t1373) * t75) * t75 + (t8 * (t1379 
+     #- t322) * t88 - t8 * (t322 - t1383) * t88) * t88)) * t15 / 0.2E1)
+        t1399 = t358 * (t368 - t1282)
+        t1403 = t941 * t1044 / 0.2E1
+        t1405 = t944 * t1049 / 0.6E1
+        t1407 = t357 * t1153 / 0.2E1
+        t1409 = t274 * t1256 / 0.4E1
+        t1411 = t357 * t1285 / 0.4E1
+        t1413 = t57 * t1366 / 0.12E2
+        t1415 = t274 * t1395 / 0.8E1
+        t1417 = t357 * t1399 / 0.24E2
+        t1418 = t374 * t1044 / 0.2E1 + t380 * t1049 / 0.6E1 - t386 * t11
+     #53 / 0.2E1 - t507 * t1256 / 0.4E1 - t386 * t1285 / 0.4E1 - t644 * 
+     #t1366 / 0.12E2 - t507 * t1395 / 0.8E1 - t386 * t1399 / 0.24E2 - t1
+     #403 - t1405 + t1407 + t1409 + t1411 + t1413 + t1415 + t1417
+        t1422 = dt * (t39 - dx * t836 / 0.24E2)
+        t1424 = dx * t841
+        t1427 = t51 * t1422
+        t1429 = t7 * t1424 / 0.24E2
+        t1430 = -t273 + t356 - t372 + t831 + t929 - t934 + t936 - t938 +
+     # t940 - t960 - t962 + t964 + t34 * t1422 - t48 * t1424 / 0.24E2 - 
+     #t1427 + t1429
+        t1432 = (t1418 + t1430) * t4
+        t1442 = (t1016 - (t1014 - (-cc * t1156 + t1012) * t15) * t15) * 
+     #t15
+        t1449 = dx * (t1025 + t1014 / 0.2E1 - t388 * (t1018 / 0.2E1 + t1
+     #442 / 0.2E1) / 0.6E1) / 0.4E1
+        t1455 = t388 * (t1016 - dx * (t1018 - t1442) / 0.12E2) / 0.24E2
+        t1457 = dx * t767 / 0.24E2
+        t1461 = t8 * (t402 - dx * t762 / 0.24E2)
+        t1463 = -t1432 * t6 + t1403 + t1405 - t1407 - t1409 - t1411 - t1
+     #413 - t1415 - t1449 - t1455 - t1457 + t1461
+        t1464 = t995 / 0.2E1
+        t1465 = -t1417 + t273 - t356 + t372 + t960 + t962 - t964 + t1427
+     # - t1429 + t1010 - t1464 + t1024 - t1032
+        t1474 = dt * (t851 - dy * t857 / 0.24E2)
+        t1476 = dy * t874
+        t1479 = t51 * t1474
+        t1481 = t7 * t1476 / 0.24E2
+        t1482 = t58 * dy
+        t1491 = j + 3
+        t1492 = ut(i,t1491,k,n)
+        t1493 = t1492 - t848
+        t1497 = (t1493 * t75 * t8 - t871) * t75
+        t1498 = ut(i,t166,t84,n)
+        t1502 = ut(i,t166,t90,n)
+        t1510 = t276 - t298
+        t1512 = t8 * t1510 * t15
+        t1513 = t298 - t328
+        t1515 = t8 * t1513 * t15
+        t1517 = (t1512 - t1515) * t15
+        t1518 = ut(i,t71,t84,n)
+        t1519 = t1518 - t298
+        t1521 = t8 * t1519 * t88
+        t1522 = ut(i,t71,t90,n)
+        t1523 = t298 - t1522
+        t1525 = t8 * t1523 * t88
+        t1527 = (t1521 - t1525) * t88
+        t1529 = cc * (t1517 + t873 + t1527)
+        t1533 = (t1529 - t319) * t75
+        t1536 = t1482 * ((cc * ((t8 * (t533 - t848) * t15 - t8 * (t848 -
+     # t1177) * t15) * t15 + t1497 + (t8 * (t1498 - t848) * t88 - t8 * (
+     #t848 - t1502) * t88) * t88) - t1529) * t75 / 0.2E1 + t1533 / 0.2E1
+     #)
+        t1538 = t274 * t1536 / 0.8E1
+        t1539 = dt * dy
+        t1547 = (t8 * (t424 - t167) * t15 - t8 * (t167 - t1074) * t15) *
+     # t15
+        t1549 = u(i,t1491,k,n) - t167
+        t1553 = (t1549 * t75 * t8 - t170) * t75
+        t1554 = u(i,t166,t84,n)
+        t1558 = u(i,t166,t90,n)
+        t1563 = (t8 * (t1554 - t167) * t88 - t8 * (t167 - t1558) * t88) 
+     #* t88
+        t1567 = cc * (t165 + t172 + t182)
+        t1569 = (cc * (t1547 + t1553 + t1563) - t1567) * t75
+        t1571 = (t1567 - t362) * t75
+        t1573 = t1539 * (t1569 - t1571)
+        t1575 = t357 * t1573 / 0.24E2
+        t1577 = cc * (t193 + t200 + t210)
+        t1579 = (t362 - t1577) * t75
+        t1582 = t1539 * (t1571 / 0.2E1 + t1579 / 0.2E1)
+        t1584 = t357 * t1582 / 0.4E1
+        t1586 = t1539 * (t1571 - t1579)
+        t1588 = t386 * t1586 / 0.24E2
+        t1590 = t58 * t183 * t75
+        t1592 = t941 * t1590 / 0.2E1
+        t1595 = t59 * (t1517 + t873 + t1527 - t28 - t307 - t317) * t75
+        t1597 = t944 * t1595 / 0.6E1
+        t1599 = t158 * t15
+        t1602 = t161 * t15
+        t1604 = (t1599 - t1602) * t15
+        t1640 = u(i,t71,t232,n)
+        t1641 = t1640 - t173
+        t1643 = t174 * t88
+        t1646 = t178 * t88
+        t1648 = (t1643 - t1646) * t88
+        t1652 = u(i,t71,t258,n)
+        t1653 = t177 - t1652
+        t1665 = (t1641 * t8 * t88 - t176) * t88
+        t1671 = (-t1653 * t8 * t88 + t180) * t88
+        t1680 = t387 * (-t388 * ((t8 * ((t15 * t650 - t1599) * t15 - t16
+     #04) * t15 - t8 * (t1604 - (-t1293 * t15 + t1602) * t15) * t15) * t
+     #15 + ((t654 - t165) * t15 - (t165 - t1297) * t15) * t15) / 0.24E2 
+     #+ t165 - t423 * ((t8 * ((t1549 * t75 - t774) * t75 - t777) * t75 -
+     # t783) * t75 + ((t1553 - t172) * t75 - t793) * t75) / 0.24E2 + t17
+     #2 - t463 * ((t8 * ((t1641 * t88 - t1643) * t88 - t1648) * t88 - t8
+     # * (t1648 - (-t1653 * t88 + t1646) * t88) * t88) * t88 + ((t1665 -
+     # t182) * t88 - (t182 - t1671) * t88) * t88) / 0.24E2 + t182)
+        t1682 = t357 * t1680 / 0.2E1
+        t1683 = t726 - t276
+        t1685 = t1510 * t15
+        t1688 = t1513 * t15
+        t1690 = (t1685 - t1688) * t15
+        t1694 = t328 - t1369
+        t1735 = ut(i,t71,t232,n)
+        t1736 = t1735 - t1518
+        t1738 = t1519 * t88
+        t1741 = t1523 * t88
+        t1743 = (t1738 - t1741) * t88
+        t1747 = ut(i,t71,t258,n)
+        t1748 = t1522 - t1747
+        t1775 = t508 * (-t388 * ((t8 * ((t15 * t1683 - t1685) * t15 - t1
+     #690) * t15 - t8 * (t1690 - (-t15 * t1694 + t1688) * t15) * t15) * 
+     #t15 + (((t15 * t1683 * t8 - t1512) * t15 - t1517) * t15 - (t1517 -
+     # (-t15 * t1694 * t8 + t1515) * t15) * t15) * t15) / 0.24E2 + t1517
+     # + t873 - t423 * ((t8 * ((t1493 * t75 - t850) * t75 - t853) * t75 
+     #- t859) * t75 + ((t1497 - t873) * t75 - t875) * t75) / 0.24E2 - t4
+     #63 * ((t8 * ((t1736 * t88 - t1738) * t88 - t1743) * t88 - t8 * (t1
+     #743 - (-t1748 * t88 + t1741) * t88) * t88) * t88 + (((t1736 * t8 *
+     # t88 - t1521) * t88 - t1527) * t88 - (t1527 - (-t1748 * t8 * t88 +
+     # t1525) * t88) * t88) * t88) / 0.24E2 + t1527)
+        t1777 = t274 * t1775 / 0.4E1
+        t1780 = t1539 * (t1569 / 0.2E1 + t1571 / 0.2E1)
+        t1782 = t357 * t1780 / 0.4E1
+        t1803 = (t8 * (t655 - t173) * t15 - t8 * (t173 - t1298) * t15) *
+     # t15
+        t1804 = t1554 - t173
+        t1808 = (t1804 * t75 * t8 - t226) * t75
+        t1819 = (t8 * (t659 - t177) * t15 - t8 * (t177 - t1302) * t15) *
+     # t15
+        t1820 = t1558 - t177
+        t1824 = (t1820 * t75 * t8 - t252) * t75
+        t1831 = t60 * ((t8 * (t654 + t449 + t664 - t165 - t172 - t182) *
+     # t15 - t8 * (t165 + t172 + t182 - t1297 - t1099 - t1307) * t15) * 
+     #t15 + (t8 * (t1547 + t1553 + t1563 - t165 - t172 - t182) * t75 - t
+     #185) * t75 + (t8 * (t1803 + t1808 + t1665 - t165 - t172 - t182) * 
+     #t88 - t8 * (t165 + t172 + t182 - t1819 - t1824 - t1671) * t88) * t
+     #88)
+        t1833 = t57 * t1831 / 0.12E2
+        t1838 = t34 * t1474 - t48 * t1476 / 0.24E2 - t1479 + t1481 + t15
+     #38 - t1575 + t1584 - t1588 - t1592 - t1597 - t1682 - t1777 + t1782
+     # - t1833 + t374 * t1590 / 0.2E1 + t380 * t1595 / 0.6E1
+        t1852 = t386 * t1582 / 0.4E1
+        t1853 = t280 - t302
+        t1855 = t8 * t1853 * t15
+        t1856 = t302 - t332
+        t1858 = t8 * t1856 * t15
+        t1860 = (t1855 - t1858) * t15
+        t1861 = ut(i,t77,t84,n)
+        t1862 = t1861 - t302
+        t1864 = t8 * t1862 * t88
+        t1865 = ut(i,t77,t90,n)
+        t1866 = t302 - t1865
+        t1868 = t8 * t1866 * t88
+        t1870 = (t1864 - t1868) * t88
+        t1872 = cc * (t1860 + t879 + t1870)
+        t1874 = (t319 - t1872) * t75
+        t1877 = t1482 * (t1533 / 0.2E1 + t1874 / 0.2E1)
+        t1879 = t507 * t1877 / 0.8E1
+        t1881 = t274 * t1877 / 0.8E1
+        t1883 = t357 * t1586 / 0.24E2
+        t1884 = t386 * t1680 / 0.2E1 + t507 * t1775 / 0.4E1 - t386 * t17
+     #80 / 0.4E1 + t644 * t1831 / 0.12E2 - t507 * t1536 / 0.8E1 + t386 *
+     # t1573 / 0.24E2 - t1852 - t1879 + t273 - t831 - t929 - t936 + t960
+     # + t962 + t1881 + t1883
+        t1886 = (t1838 + t1884) * t4
+        t1890 = -t1886 * t6 + t1479 - t1481 - t1538 + t1575 - t1584 + t1
+     #592 + t1597 + t1682 + t1777 - t1782 + t1833
+        t1891 = cc * t298
+        t1892 = cc * t848
+        t1894 = (-t1891 + t1892) * t75
+        t1897 = (-t982 + t1891) * t75
+        t1898 = t1897 / 0.2E1
+        t1905 = (t1894 - t1897) * t75
+        t1907 = (((cc * t1492 - t1892) * t75 - t1894) * t75 - t1905) * t
+     #75
+        t1908 = cc * t302
+        t1910 = (t982 - t1908) * t75
+        t1912 = (t1897 - t1910) * t75
+        t1914 = (t1905 - t1912) * t75
+        t1921 = dy * (t1894 / 0.2E1 + t1898 - t423 * (t1907 / 0.2E1 + t1
+     #914 / 0.2E1) / 0.6E1) / 0.4E1
+        t1923 = dy * t792 / 0.24E2
+        t1927 = t8 * (t775 - dy * t781 / 0.24E2)
+        t1928 = t1910 / 0.2E1
+        t1929 = cc * t860
+        t1931 = (-t1929 + t1908) * t75
+        t1933 = (t1910 - t1931) * t75
+        t1935 = (t1912 - t1933) * t75
+        t1942 = dy * (t1898 + t1928 - t423 * (t1914 / 0.2E1 + t1935 / 0.
+     #2E1) / 0.6E1) / 0.4E1
+        t1948 = t423 * (t1905 - dy * (t1907 - t1914) / 0.12E2) / 0.24E2
+        t1949 = t1891 / 0.2E1
+        t1955 = t423 * (t1912 - dy * (t1914 - t1935) / 0.12E2) / 0.24E2
+        t1956 = -t273 - t1921 - t1923 + t1927 - t960 - t962 - t1942 + t1
+     #948 + t1949 - t1955 - t1881 - t1883 - t1010
+        t1968 = j - 3
+        t1969 = ut(i,t1968,k,n)
+        t1970 = t860 - t1969
+        t1974 = (-t1970 * t75 * t8 + t877) * t75
+        t1975 = ut(i,t194,t84,n)
+        t1979 = ut(i,t194,t90,n)
+        t1991 = t1482 * (t1874 / 0.2E1 + (t1872 - cc * ((t8 * (t545 - t8
+     #60) * t15 - t8 * (t860 - t1189) * t15) * t15 + t1974 + (t8 * (t197
+     #5 - t860) * t88 - t8 * (t860 - t1979) * t88) * t88)) * t75 / 0.2E1
+     #)
+        t2001 = (t8 * (t436 - t195) * t15 - t8 * (t195 - t1086) * t15) *
+     # t15
+        t2003 = t195 - u(i,t1968,k,n)
+        t2007 = (-t2003 * t75 * t8 + t198) * t75
+        t2008 = u(i,t194,t84,n)
+        t2012 = u(i,t194,t90,n)
+        t2017 = (t8 * (t2008 - t195) * t88 - t8 * (t195 - t2012) * t88) 
+     #* t88
+        t2021 = (t1577 - cc * (t2001 + t2007 + t2017)) * t75
+        t2023 = t1539 * (t1579 - t2021)
+        t2027 = t58 * t211 * t75
+        t2029 = t941 * t2027 / 0.2E1
+        t2032 = t59 * (t28 + t307 + t317 - t1860 - t879 - t1870) * t75
+        t2034 = t944 * t2032 / 0.6E1
+        t2036 = t186 * t15
+        t2039 = t189 * t15
+        t2041 = (t2036 - t2039) * t15
+        t2077 = u(i,t77,t232,n)
+        t2078 = t2077 - t201
+        t2080 = t202 * t88
+        t2083 = t206 * t88
+        t2085 = (t2080 - t2083) * t88
+        t2089 = u(i,t77,t258,n)
+        t2090 = t205 - t2089
+        t2102 = (t2078 * t8 * t88 - t204) * t88
+        t2108 = (-t2090 * t8 * t88 + t208) * t88
+        t2117 = t387 * (-t388 * ((t8 * ((t15 * t668 - t2036) * t15 - t20
+     #41) * t15 - t8 * (t2041 - (-t1311 * t15 + t2039) * t15) * t15) * t
+     #15 + ((t672 - t193) * t15 - (t193 - t1315) * t15) * t15) / 0.24E2 
+     #+ t193 + t200 - t423 * ((t789 - t8 * (t786 - (-t2003 * t75 + t784)
+     # * t75) * t75) * t75 + (t795 - (t200 - t2007) * t75) * t75) / 0.24
+     #E2 + t210 - t463 * ((t8 * ((t2078 * t88 - t2080) * t88 - t2085) * 
+     #t88 - t8 * (t2085 - (-t2090 * t88 + t2083) * t88) * t88) * t88 + (
+     #(t2102 - t210) * t88 - (t210 - t2108) * t88) * t88) / 0.24E2)
+        t2119 = t357 * t2117 / 0.2E1
+        t2120 = t730 - t280
+        t2122 = t1853 * t15
+        t2125 = t1856 * t15
+        t2127 = (t2122 - t2125) * t15
+        t2131 = t332 - t1373
+        t2172 = ut(i,t77,t232,n)
+        t2173 = t2172 - t1861
+        t2175 = t1862 * t88
+        t2178 = t1866 * t88
+        t2180 = (t2175 - t2178) * t88
+        t2184 = ut(i,t77,t258,n)
+        t2185 = t1865 - t2184
+        t2212 = t508 * (-t388 * ((t8 * ((t15 * t2120 - t2122) * t15 - t2
+     #127) * t15 - t8 * (t2127 - (-t15 * t2131 + t2125) * t15) * t15) * 
+     #t15 + (((t15 * t2120 * t8 - t1855) * t15 - t1860) * t15 - (t1860 -
+     # (-t15 * t2131 * t8 + t1858) * t15) * t15) * t15) / 0.24E2 + t1860
+     # + t879 - t423 * ((t867 - t8 * (t864 - (-t1970 * t75 + t862) * t75
+     #) * t75) * t75 + (t881 - (t879 - t1974) * t75) * t75) / 0.24E2 - t
+     #463 * ((t8 * ((t2173 * t88 - t2175) * t88 - t2180) * t88 - t8 * (t
+     #2180 - (-t2185 * t88 + t2178) * t88) * t88) * t88 + (((t2173 * t8 
+     #* t88 - t1864) * t88 - t1870) * t88 - (t1870 - (-t2185 * t8 * t88 
+     #+ t1868) * t88) * t88) * t88) / 0.24E2 + t1870)
+        t2214 = t274 * t2212 / 0.4E1
+        t2215 = t1584 + t1588 - t1852 - t1879 - t273 + t831 + t929 + t93
+     #6 - t960 - t962 - t507 * t1991 / 0.8E1 - t386 * t2023 / 0.24E2 - t
+     #2029 - t2034 + t2119 + t2214
+        t2218 = t1539 * (t1579 / 0.2E1 + t2021 / 0.2E1)
+        t2220 = t357 * t2218 / 0.4E1
+        t2241 = (t8 * (t673 - t201) * t15 - t8 * (t201 - t1316) * t15) *
+     # t15
+        t2242 = t201 - t2008
+        t2246 = (-t2242 * t75 * t8 + t229) * t75
+        t2257 = (t8 * (t677 - t205) * t15 - t8 * (t205 - t1320) * t15) *
+     # t15
+        t2258 = t205 - t2012
+        t2262 = (-t2258 * t75 * t8 + t255) * t75
+        t2269 = t60 * ((t8 * (t672 + t455 + t682 - t193 - t200 - t210) *
+     # t15 - t8 * (t193 + t200 + t210 - t1315 - t1105 - t1325) * t15) * 
+     #t15 + (t213 - t8 * (t193 + t200 + t210 - t2001 - t2007 - t2017) * 
+     #t75) * t75 + (t8 * (t2241 + t2246 + t2102 - t193 - t200 - t210) * 
+     #t88 - t8 * (t193 + t200 + t210 - t2257 - t2262 - t2108) * t88) * t
+     #88)
+        t2271 = t57 * t2269 / 0.12E2
+        t2273 = t274 * t1991 / 0.8E1
+        t2275 = t357 * t2023 / 0.24E2
+        t2291 = dt * (t854 - dy * t865 / 0.24E2)
+        t2292 = t51 * t2291
+        t2293 = dy * t880
+        t2295 = t7 * t2293 / 0.24E2
+        t2299 = t2220 + t2271 + t2273 + t2275 + t374 * t2027 / 0.2E1 + t
+     #380 * t2032 / 0.6E1 - t386 * t2117 / 0.2E1 - t507 * t2212 / 0.4E1 
+     #- t386 * t2218 / 0.4E1 - t644 * t2269 / 0.12E2 - t2292 + t2295 + t
+     #34 * t2291 - t48 * t2293 / 0.24E2 + t1881 - t1883
+        t2301 = (t2215 + t2299) * t4
+        t2305 = -t2301 * t6 - t1584 + t2029 + t2034 - t2119 - t2214 - t2
+     #220 - t2271 - t2273 + t273 + t960 + t962
+        t2306 = t1908 / 0.2E1
+        t2308 = dy * t794 / 0.24E2
+        t2312 = t8 * (t778 - dy * t787 / 0.24E2)
+        t2319 = (t1933 - (t1931 - (-cc * t1969 + t1929) * t75) * t75) * 
+     #t75
+        t2325 = t423 * (t1933 - dy * (t1935 - t2319) / 0.12E2) / 0.24E2
+        t2333 = dy * (t1928 + t1931 / 0.2E1 - t423 * (t1935 / 0.2E1 + t2
+     #319 / 0.2E1) / 0.6E1) / 0.4E1
+        t2334 = -t2275 - t1942 - t2306 + t1955 + t2292 - t2295 - t1881 +
+     # t1883 + t1010 - t2308 + t2312 - t2325 - t2333
+        t2340 = t386 * dt
+        t2348 = (t8 * (t464 - t233) * t15 - t8 * (t233 - t1113) * t15) *
+     # t15
+        t2356 = (t8 * (t1640 - t233) * t75 - t8 * (t233 - t2077) * t75) 
+     #* t75
+        t2357 = k + 3
+        t2359 = u(i,j,t2357,n) - t233
+        t2363 = (t2359 * t8 * t88 - t236) * t88
+        t2367 = cc * (t223 + t231 + t238)
+        t2369 = (cc * (t2348 + t2356 + t2363) - t2367) * t88
+        t2371 = (t2367 - t362) * t88
+        t2374 = t423 * (t2369 - t2371) * t88
+        t2377 = t357 * dt
+        t2379 = t2377 * t2374 / 0.24E2
+        t2402 = t60 * ((t8 * (t692 + t700 + t489 - t223 - t231 - t238) *
+     # t15 - t8 * (t223 + t231 + t238 - t1335 - t1343 - t1138) * t15) * 
+     #t15 + (t8 * (t1803 + t1808 + t1665 - t223 - t231 - t238) * t75 - t
+     #8 * (t223 + t231 + t238 - t2241 - t2246 - t2102) * t75) * t75 + (t
+     #8 * (t2348 + t2356 + t2363 - t223 - t231 - t238) * t88 - t241) * t
+     #88)
+        t2404 = t57 * t2402 / 0.12E2
+        t2421 = ut(i,j,t2357,n)
+        t2422 = t2421 - t887
+        t2426 = (t2422 * t8 * t88 - t910) * t88
+        t2429 = t286 - t308
+        t2431 = t8 * t2429 * t15
+        t2432 = t308 - t338
+        t2434 = t8 * t2432 * t15
+        t2436 = (t2431 - t2434) * t15
+        t2437 = t1518 - t308
+        t2439 = t8 * t2437 * t75
+        t2440 = t308 - t1861
+        t2442 = t8 * t2440 * t75
+        t2444 = (t2439 - t2442) * t75
+        t2446 = cc * (t2436 + t2444 + t912)
+        t2450 = (t2446 - t319) * t88
+        t2453 = t1482 * ((cc * ((t8 * (t572 - t887) * t15 - t8 * (t887 -
+     # t1216) * t15) * t15 + (t8 * (t1735 - t887) * t75 - t8 * (t887 - t
+     #2172) * t75) * t75 + t2426) - t2446) * t88 / 0.2E1 + t2450 / 0.2E1
+     #)
+        t2455 = t274 * t2453 / 0.8E1
+        t2456 = dt * dz
+        t2458 = cc * (t249 + t257 + t264)
+        t2460 = (t362 - t2458) * t88
+        t2462 = t2371 / 0.2E1 + t2460 / 0.2E1
+        t2463 = t2456 * t2462
+        t2465 = t357 * t2463 / 0.4E1
+        t2468 = t1539 * (t2369 / 0.2E1 + t2371 / 0.2E1)
+        t2470 = t357 * t2468 / 0.4E1
+        t2472 = t58 * t239 * t88
+        t2477 = t59 * (t2436 + t2444 + t912 - t28 - t307 - t317) * t88
+        t2481 = t216 * t15
+        t2484 = t219 * t15
+        t2486 = (t2481 - t2484) * t15
+        t2508 = t224 * t75
+        t2511 = t227 * t75
+        t2513 = (t2508 - t2511) * t75
+        t2550 = t387 * (-t388 * ((t8 * ((t15 * t688 - t2481) * t15 - t24
+     #86) * t15 - t8 * (t2486 - (-t1331 * t15 + t2484) * t15) * t15) * t
+     #15 + ((t692 - t223) * t15 - (t223 - t1335) * t15) * t15) / 0.24E2 
+     #+ t223 + t231 - t423 * ((t8 * ((t1804 * t75 - t2508) * t75 - t2513
+     #) * t75 - t8 * (t2513 - (-t2242 * t75 + t2511) * t75) * t75) * t75
+     # + ((t1808 - t231) * t75 - (t231 - t2246) * t75) * t75) / 0.24E2 +
+     # t238 - t463 * ((t8 * ((t2359 * t88 - t801) * t88 - t804) * t88 - 
+     #t810) * t88 + ((t2363 - t238) * t88 - t820) * t88) / 0.24E2)
+        t2553 = t736 - t286
+        t2555 = t2429 * t15
+        t2558 = t2432 * t15
+        t2560 = (t2555 - t2558) * t15
+        t2564 = t338 - t1379
+        t2590 = t1498 - t1518
+        t2592 = t2437 * t75
+        t2595 = t2440 * t75
+        t2597 = (t2592 - t2595) * t75
+        t2601 = t1861 - t1975
+        t2643 = t508 * (-t388 * ((t8 * ((t15 * t2553 - t2555) * t15 - t2
+     #560) * t15 - t8 * (t2560 - (-t15 * t2564 + t2558) * t15) * t15) * 
+     #t15 + (((t15 * t2553 * t8 - t2431) * t15 - t2436) * t15 - (t2436 -
+     # (-t15 * t2564 * t8 + t2434) * t15) * t15) * t15) / 0.24E2 + t2436
+     # + t2444 - t423 * ((t8 * ((t2590 * t75 - t2592) * t75 - t2597) * t
+     #75 - t8 * (t2597 - (-t2601 * t75 + t2595) * t75) * t75) * t75 + ((
+     #(t2590 * t75 * t8 - t2439) * t75 - t2444) * t75 - (t2444 - (-t2601
+     # * t75 * t8 + t2442) * t75) * t75) * t75) / 0.24E2 - t463 * ((t8 *
+     # ((t2422 * t88 - t889) * t88 - t892) * t88 - t898) * t88 + ((t2426
+     # - t912) * t88 - t914) * t88) / 0.24E2 + t912)
+        t2654 = t58 * dz
+        t2655 = t290 - t312
+        t2657 = t8 * t2655 * t15
+        t2658 = t312 - t342
+        t2660 = t8 * t2658 * t15
+        t2662 = (t2657 - t2660) * t15
+        t2663 = t1522 - t312
+        t2665 = t8 * t2663 * t75
+        t2666 = t312 - t1865
+        t2668 = t8 * t2666 * t75
+        t2670 = (t2665 - t2668) * t75
+        t2672 = cc * (t2662 + t2670 + t918)
+        t2674 = (t319 - t2672) * t88
+        t2676 = t2450 / 0.2E1 + t2674 / 0.2E1
+        t2677 = t2654 * t2676
+        t2680 = t2371 - t2460
+        t2681 = t2456 * t2680
+        t2684 = t2340 * t2374 / 0.24E2 - t2379 - t2404 + t2455 + t2465 +
+     # t2470 + t374 * t2472 / 0.2E1 + t380 * t2477 / 0.6E1 + t386 * t255
+     #0 / 0.2E1 + t507 * t2643 / 0.4E1 - t386 * t2468 / 0.4E1 + t644 * t
+     #2402 / 0.12E2 - t507 * t2453 / 0.8E1 - t386 * t2463 / 0.4E1 - t507
+     # * t2677 / 0.8E1 - t386 * t2681 / 0.24E2
+        t2686 = t941 * t2472 / 0.2E1
+        t2688 = t944 * t2477 / 0.6E1
+        t2690 = t357 * t2550 / 0.2E1
+        t2692 = t274 * t2643 / 0.4E1
+        t2694 = t274 * t2677 / 0.8E1
+        t2696 = t357 * t2681 / 0.24E2
+        t2700 = dt * (t890 - dz * t896 / 0.24E2)
+        t2702 = dz * t913
+        t2705 = t51 * t2700
+        t2707 = t7 * t2702 / 0.24E2
+        t2708 = -t2686 - t2688 - t2690 - t2692 + t2694 + t2696 + t273 - 
+     #t831 - t929 - t936 + t960 + t962 + t34 * t2700 - t48 * t2702 / 0.2
+     #4E2 - t2705 + t2707
+        t2710 = (t2684 + t2708) * t4
+        t2714 = cc * t308
+        t2715 = t2714 / 0.2E1
+        t2716 = cc * t887
+        t2718 = (-t2714 + t2716) * t88
+        t2721 = (-t982 + t2714) * t88
+        t2722 = t2721 / 0.2E1
+        t2729 = (t2718 - t2721) * t88
+        t2731 = (((cc * t2421 - t2716) * t88 - t2718) * t88 - t2729) * t
+     #88
+        t2732 = cc * t312
+        t2734 = (t982 - t2732) * t88
+        t2736 = (t2721 - t2734) * t88
+        t2738 = (t2729 - t2736) * t88
+        t2745 = dy * (t2718 / 0.2E1 + t2722 - t463 * (t2731 / 0.2E1 + t2
+     #738 / 0.2E1) / 0.6E1) / 0.4E1
+        t2746 = -t2710 * t6 + t2379 + t2404 - t2455 - t2465 - t2470 + t2
+     #686 + t2688 + t2690 + t2692 + t2715 - t2745
+        t2752 = t423 * (t2729 - dz * (t2731 - t2738) / 0.12E2) / 0.24E2
+        t2753 = t2734 / 0.2E1
+        t2754 = cc * t899
+        t2756 = (-t2754 + t2732) * t88
+        t2758 = (t2734 - t2756) * t88
+        t2760 = (t2736 - t2758) * t88
+        t2767 = dy * (t2722 + t2753 - t463 * (t2738 / 0.2E1 + t2760 / 0.
+     #2E1) / 0.6E1) / 0.4E1
+        t2769 = t819 * dz / 0.24E2
+        t2773 = t2736 - dz * (t2738 - t2760) / 0.12E2
+        t2775 = t463 * t2773 / 0.24E2
+        t2779 = t8 * (t802 - dz * t808 / 0.24E2)
+        t2780 = -t2694 - t2696 - t273 + t2752 - t960 - t962 - t2767 - t2
+     #769 + t2705 - t2707 - t1010 - t2775 + t2779
+        t2787 = dt * (t893 - dz * t904 / 0.24E2)
+        t2789 = dz * t919
+        t2792 = t51 * t2787
+        t2794 = t7 * t2789 / 0.24E2
+        t2795 = t1539 * t2462
+        t2798 = t1482 * t2676
+        t2802 = t242 * t15
+        t2805 = t245 * t15
+        t2807 = (t2802 - t2805) * t15
+        t2829 = t250 * t75
+        t2832 = t253 * t75
+        t2834 = (t2829 - t2832) * t75
+        t2855 = k - 3
+        t2857 = t259 - u(i,j,t2855,n)
+        t2869 = (-t2857 * t8 * t88 + t262) * t88
+        t2878 = t387 * (-t388 * ((t8 * ((t15 * t704 - t2802) * t15 - t28
+     #07) * t15 - t8 * (t2807 - (-t1347 * t15 + t2805) * t15) * t15) * t
+     #15 + ((t708 - t249) * t15 - (t249 - t1351) * t15) * t15) / 0.24E2 
+     #+ t249 + t257 - t423 * ((t8 * ((t1820 * t75 - t2829) * t75 - t2834
+     #) * t75 - t8 * (t2834 - (-t2258 * t75 + t2832) * t75) * t75) * t75
+     # + ((t1824 - t257) * t75 - (t257 - t2262) * t75) * t75) / 0.24E2 -
+     # t463 * ((t816 - t8 * (t813 - (-t2857 * t88 + t811) * t88) * t88) 
+     #* t88 + (t822 - (t264 - t2869) * t88) * t88) / 0.24E2 + t264)
+        t2881 = t740 - t290
+        t2883 = t2655 * t15
+        t2886 = t2658 * t15
+        t2888 = (t2883 - t2886) * t15
+        t2892 = t342 - t1383
+        t2918 = t1502 - t1522
+        t2920 = t2663 * t75
+        t2923 = t2666 * t75
+        t2925 = (t2920 - t2923) * t75
+        t2929 = t1865 - t1979
+        t2955 = ut(i,j,t2855,n)
+        t2956 = t899 - t2955
+        t2968 = (-t2956 * t8 * t88 + t916) * t88
+        t2977 = t508 * (-t388 * ((t8 * ((t15 * t2881 - t2883) * t15 - t2
+     #888) * t15 - t8 * (t2888 - (-t15 * t2892 + t2886) * t15) * t15) * 
+     #t15 + (((t15 * t2881 * t8 - t2657) * t15 - t2662) * t15 - (t2662 -
+     # (-t15 * t2892 * t8 + t2660) * t15) * t15) * t15) / 0.24E2 + t2662
+     # + t2670 - t423 * ((t8 * ((t2918 * t75 - t2920) * t75 - t2925) * t
+     #75 - t8 * (t2925 - (-t2929 * t75 + t2923) * t75) * t75) * t75 + ((
+     #(t2918 * t75 * t8 - t2665) * t75 - t2670) * t75 - (t2670 - (-t2929
+     # * t75 * t8 + t2668) * t75) * t75) * t75) / 0.24E2 - t463 * ((t906
+     # - t8 * (t903 - (-t2956 * t88 + t901) * t88) * t88) * t88 + (t920 
+     #- (t918 - t2968) * t88) * t88) / 0.24E2 + t918)
+        t2987 = (t8 * (t476 - t259) * t15 - t8 * (t259 - t1125) * t15) *
+     # t15
+        t2995 = (t8 * (t1652 - t259) * t75 - t8 * (t259 - t2089) * t75) 
+     #* t75
+        t2999 = (t2458 - cc * (t2987 + t2995 + t2869)) * t88
+        t3002 = t2456 * (t2460 / 0.2E1 + t2999 / 0.2E1)
+        t3027 = t60 * ((t8 * (t708 + t716 + t495 - t249 - t257 - t264) *
+     # t15 - t8 * (t249 + t257 + t264 - t1351 - t1359 - t1144) * t15) * 
+     #t15 + (t8 * (t1819 + t1824 + t1671 - t249 - t257 - t264) * t75 - t
+     #8 * (t249 + t257 + t264 - t2257 - t2262 - t2108) * t75) * t75 + (t
+     #267 - t8 * (t249 + t257 + t264 - t2987 - t2995 - t2869) * t88) * t
+     #88)
+        t3031 = t58 * t265 * t88
+        t3036 = t59 * (t28 + t307 + t317 - t2662 - t2670 - t918) * t88
+        t3039 = t34 * t2787 - t48 * t2789 / 0.24E2 - t2792 + t2794 - t27
+     #3 + t831 + t929 + t936 - t386 * t2795 / 0.4E1 - t507 * t2798 / 0.8
+     #E1 - t386 * t2878 / 0.2E1 - t507 * t2977 / 0.4E1 - t386 * t3002 / 
+     #0.4E1 - t644 * t3027 / 0.12E2 + t374 * t3031 / 0.2E1 + t380 * t303
+     #6 / 0.6E1
+        t3062 = t2654 * (t2674 / 0.2E1 + (t2672 - cc * ((t8 * (t584 - t8
+     #99) * t15 - t8 * (t899 - t1228) * t15) * t15 + (t8 * (t1747 - t899
+     #) * t75 - t8 * (t899 - t2184) * t75) * t75 + t2968)) * t88 / 0.2E1
+     #)
+        t3066 = t2456 * (t2460 - t2999)
+        t3070 = t941 * t3031 / 0.2E1
+        t3072 = t423 * t2680 * t88
+        t3076 = t2377 * t3072 / 0.24E2
+        t3078 = t944 * t3036 / 0.6E1
+        t3080 = t357 * t2795 / 0.4E1
+        t3082 = t274 * t2798 / 0.8E1
+        t3084 = t357 * t2878 / 0.2E1
+        t3086 = t274 * t2977 / 0.4E1
+        t3088 = t357 * t3002 / 0.4E1
+        t3090 = t57 * t3027 / 0.12E2
+        t3092 = t274 * t3062 / 0.8E1
+        t3094 = t357 * t3066 / 0.24E2
+        t3095 = -t507 * t3062 / 0.8E1 - t386 * t3066 / 0.24E2 - t3070 - 
+     #t960 - t962 + t2340 * t3072 / 0.24E2 - t3076 - t3078 + t3080 + t30
+     #82 + t3084 + t3086 + t3088 + t3090 + t3092 + t3094
+        t3097 = (t3039 + t3095) * t4
+        t3100 = t2732 / 0.2E1
+        t3102 = dz * t821 / 0.24E2
+        t3104 = t423 * t2773 / 0.24E2
+        t3112 = (t2758 - (t2756 - (-cc * t2955 + t2754) * t88) * t88) * 
+     #t88
+        t3119 = dy * (t2753 + t2756 / 0.2E1 - t463 * (t2760 / 0.2E1 + t3
+     #112 / 0.2E1) / 0.6E1) / 0.4E1
+        t3123 = t8 * (t805 - dz * t814 / 0.24E2)
+        t3125 = -t3097 * t6 + t273 + t2792 - t2794 + t3070 - t3100 - t31
+     #02 + t3104 - t3119 + t3123 + t960 + t962
+        t3131 = t463 * (t2758 - dz * (t2760 - t3112) / 0.12E2) / 0.24E2
+        t3132 = -t2767 + t3076 + t3078 - t3080 - t3082 - t3084 - t3086 -
+     # t3088 - t3090 - t3092 - t3094 + t1010 - t3131
+        t3141 = t975 + t52 + t943 - t971 + t946 - t32 + t1011 + t948 - t
+     #1008 + t950 - t952 + t1038
+        t3142 = t954 - t956 + t958 - t1010 - t960 - t1032 - t962 - t964 
+     #- t1024 - t273 - t356 - t372
+        t3148 = t1461 + t1427 + t1403 - t1457 + t1405 - t1429 + t1010 + 
+     #t960 - t1032 + t962 - t964 + t1024
+        t3149 = t273 - t356 + t372 - t1464 - t1407 - t1449 - t1409 - t14
+     #11 - t1455 - t1413 - t1415 - t1417
+        t3157 = t1927 + t1479 + t1592 - t1923 + t1597 - t1481 + t1949 + 
+     #t1682 - t1921 + t1777 - t1782 + t1948
+        t3158 = t1833 - t1538 + t1575 - t1010 - t960 - t1942 - t962 - t1
+     #584 - t1955 - t273 - t1881 - t1883
+        t3164 = t2312 + t2292 + t2029 - t2308 + t2034 - t2295 + t1010 + 
+     #t960 - t1942 + t962 - t1584 + t1955
+        t3165 = t273 - t1881 + t1883 - t2306 - t2119 - t2333 - t2214 - t
+     #2220 - t2325 - t2271 - t2273 - t2275
+        t3173 = t2779 + t2705 + t2686 - t2769 + t2688 - t2707 + t2715 + 
+     #t2690 - t2745 + t2692 - t2470 + t2752
+        t3174 = t2404 - t2455 + t2379 - t1010 - t960 - t2767 - t962 - t2
+     #465 - t2775 - t273 - t2694 - t2696
+        t3180 = t3123 + t2792 + t3070 - t3102 + t3078 - t2794 + t1010 + 
+     #t960 - t2767 + t962 - t3080 + t3104
+        t3181 = t273 - t3082 + t3076 - t3100 - t3084 - t3119 - t3086 - t
+     #3088 - t3131 - t3090 - t3092 - t3094
 
-        unew(i,j,k) = t1 + dt * t2 + (t979 * t34 / 0.6E1 + (t985 + t9
-     #37 + t941 - t987 + t945 - t948 + t977 - t979 * t935) * t34 / 0.2E1
-     # - t1394 * t34 / 0.6E1 - (t1400 + t1371 + t1373 - t1402 + t1375 - 
-     #t1377 + t1392 - t1394 * t935) * t34 / 0.2E1) * t12 + (t1844 * t34 
-     #/ 0.6E1 + (t1850 + t1815 + t1817 - t1852 + t1819 - t1821 + t1842 -
-     # t1844 * t935) * t34 / 0.2E1 - t2211 * t34 / 0.6E1 - (t2217 + t218
-     #8 + t2190 - t2219 + t2192 - t2194 + t2209 - t2211 * t935) * t34 / 
-     #0.2E1) * t49 + (t2613 * t34 / 0.6E1 + (t2619 + t2584 + t2586 - t26
-     #21 + t2588 - t2590 + t2611 - t2613 * t935) * t34 / 0.2E1 - t2936 *
-     # t34 / 0.6E1 - (t2942 + t2913 + t2915 - t2944 + t2917 - t2919 + t2
-     #934 - t2936 * t935) * t34 / 0.2E1) * t62
 
-        utnew(i,j,k) = t2 + (t979 * dt / 0.
-     #2E1 + (t985 + t937 + t941 - t987 + t945 - t948 + t977) * dt - t979
-     # * t946 - t1394 * dt / 0.2E1 - (t1400 + t1371 + t1373 - t1402 + t1
-     #375 - t1377 + t1392) * dt + t1394 * t946) * t12 + (t1844 * dt / 0.
-     #2E1 + (t1850 + t1815 + t1817 - t1852 + t1819 - t1821 + t1842) * dt
-     # - t1844 * t946 - t2211 * dt / 0.2E1 - (t2217 + t2188 + t2190 - t2
-     #219 + t2192 - t2194 + t2209) * dt + t2211 * t946) * t49 + (t2613 *
-     # dt / 0.2E1 + (t2619 + t2584 + t2586 - t2621 + t2588 - t2590 + t26
-     #11) * dt - t2613 * t946 - t2936 * dt / 0.2E1 - (t2942 + t2913 + t2
-     #915 - t2944 + t2917 - t2919 + t2934) * dt + t2936 * t946) * t62
+        unew(i,j,k) = t1 + dt * t2 + (t967 * t58 / 0.6E1 + (t1009 + t
+     #1039) * t58 / 0.2E1 - t1432 * t58 / 0.6E1 - (t1463 + t1465) * t58 
+     #/ 0.2E1) * t15 + (t1886 * t58 / 0.6E1 + (t1890 + t1956) * t58 / 0.
+     #2E1 - t2301 * t58 / 0.6E1 - (t2305 + t2334) * t58 / 0.2E1) * t75 +
+     # (t2710 * t58 / 0.6E1 + (t2746 + t2780) * t58 / 0.2E1 - t3097 * t5
+     #8 / 0.6E1 - (t3125 + t3132) * t58 / 0.2E1) * t88
 
-c        blah = array(int(t1 + dt * t2 + (t979 * t34 / 0.6E1 + (t985 + t9
-c     #37 + t941 - t987 + t945 - t948 + t977 - t979 * t935) * t34 / 0.2E1
-c     # - t1394 * t34 / 0.6E1 - (t1400 + t1371 + t1373 - t1402 + t1375 - 
-c     #t1377 + t1392 - t1394 * t935) * t34 / 0.2E1) * t12 + (t1844 * t34 
-c     #/ 0.6E1 + (t1850 + t1815 + t1817 - t1852 + t1819 - t1821 + t1842 -
-c     # t1844 * t935) * t34 / 0.2E1 - t2211 * t34 / 0.6E1 - (t2217 + t218
-c     #8 + t2190 - t2219 + t2192 - t2194 + t2209 - t2211 * t935) * t34 / 
-c     #0.2E1) * t49 + (t2613 * t34 / 0.6E1 + (t2619 + t2584 + t2586 - t26
-c     #21 + t2588 - t2590 + t2611 - t2613 * t935) * t34 / 0.2E1 - t2936 *
-c     # t34 / 0.6E1 - (t2942 + t2913 + t2915 - t2944 + t2917 - t2919 + t2
-c     #934 - t2936 * t935) * t34 / 0.2E1) * t62),int(t2 + (t979 * dt / 0.
-c     #2E1 + (t985 + t937 + t941 - t987 + t945 - t948 + t977) * dt - t979
-c     # * t946 - t1394 * dt / 0.2E1 - (t1400 + t1371 + t1373 - t1402 + t1
-c     #375 - t1377 + t1392) * dt + t1394 * t946) * t12 + (t1844 * dt / 0.
-c     #2E1 + (t1850 + t1815 + t1817 - t1852 + t1819 - t1821 + t1842) * dt
-c     # - t1844 * t946 - t2211 * dt / 0.2E1 - (t2217 + t2188 + t2190 - t2
-c     #219 + t2192 - t2194 + t2209) * dt + t2211 * t946) * t49 + (t2613 *
-c     # dt / 0.2E1 + (t2619 + t2584 + t2586 - t2621 + t2588 - t2590 + t26
-c     #11) * dt - t2613 * t946 - t2936 * dt / 0.2E1 - (t2942 + t2913 + t2
-c     #915 - t2944 + t2917 - t2919 + t2934) * dt + t2936 * t946) * t62))
+        utnew(i,j,k) = t2 + (t967 *
+     # dt / 0.2E1 + (t3141 + t3142) * dt - t967 * t7 - t1432 * dt / 0.2E
+     #1 - (t3148 + t3149) * dt + t1432 * t7) * t15 + (t1886 * dt / 0.2E1
+     # + (t3157 + t3158) * dt - t1886 * t7 - t2301 * dt / 0.2E1 - (t3164
+     # + t3165) * dt + t2301 * t7) * t75 + (t2710 * dt / 0.2E1 + (t3173 
+     #+ t3174) * dt - t2710 * t7 - t3097 * dt / 0.2E1 - (t3180 + t3181) 
+     #* dt + t3097 * t7) * t88
 
         return
       end

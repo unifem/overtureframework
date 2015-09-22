@@ -1,4 +1,4 @@
-      subroutine duWaveGen3d4cc( 
+      subroutine duWaveGen3d4ccOLD( 
      *   nd1a,nd1b,nd2a,nd2b,nd3a,nd3b,
      *   n1a,n1b,n2a,n2b,n3a,n3b,
      *   ndf4a,ndf4b,nComp,addForcing,
@@ -35,7 +35,7 @@ c
         stop
       end if
 
-      ! fourth order, curvilinear, 3D
+      ! fourth order, cartesian, 2D
       if( addForcing.eq.0 )then
 
         if( useWhereMask.ne.0 ) then
@@ -44,7 +44,7 @@ c
           do i = n1a,n1b
           if( mask(i,j,k).gt.0 ) then
 c
-            call duStepWaveGen3d4cc( 
+            call duStepWaveGen3d4ccOLD( 
      *         nd1a,nd1b,nd2a,nd2b,nd3a,nd3b,
      *         n1a,n1b,n2a,n2b,n3a,n3b,
      *         u,ut,unew,utnew,rx,
@@ -61,7 +61,7 @@ c
           do j = n2a,n2b
           do i = n1a,n1b
 c   
-            call duStepWaveGen3d4cc( 
+            call duStepWaveGen3d4ccOLD( 
      *         nd1a,nd1b,nd2a,nd2b,nd3a,nd3b,
      *         n1a,n1b,n2a,n2b,n3a,n3b,
      *         u,ut,unew,utnew,rx,
@@ -83,7 +83,7 @@ c
           do i = n1a,n1b
           if( mask(i,j,k).gt.0 ) then
 c
-            call duStepWaveGen3d4cc_tz( 
+            call duStepWaveGen3d4cc_tzOLD( 
      *         nd1a,nd1b,nd2a,nd2b,nd3a,nd3b,
      *         n1a,n1b,n2a,n2b,n3a,n3b,
      *         ndf4a,ndf4b,nComp,
@@ -102,7 +102,7 @@ c
           do j = n2a,n2b
           do i = n1a,n1b
 c   
-            call duStepWaveGen3d4cc_tz( 
+            call duStepWaveGen3d4cc_tzOLD( 
      *         nd1a,nd1b,nd2a,nd2b,nd3a,nd3b,
      *         n1a,n1b,n2a,n2b,n3a,n3b,
      *         ndf4a,ndf4b,nComp,

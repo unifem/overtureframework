@@ -2,9 +2,9 @@
      *   nd1a,nd1b,nd2a,nd2b,
      *   n1a,n1b,n2a,n2b,
      *   ndf4a,ndf4b,nComp,addForcing,
-     *   u,v,unew,vnew,
+     *   u,ut,unew,utnew,
      *   src,
-     *   dx,dy,dt,c,
+     *   dx,dy,dt,cc,
      *   useWhereMask,mask )
 c
       implicit none
@@ -16,153 +16,124 @@ c.. declarations of incoming variables
       integer useWhereMask
       integer mask(nd1a:nd1b,nd2a:nd2b)
 
-      real u   (nd1a:nd1b,nd2a:nd2b)
-      real v   (nd1a:nd1b,nd2a:nd2b)
+      real u(nd1a:nd1b,nd2a:nd2b)
+      real ut(nd1a:nd1b,nd2a:nd2b)
       real unew(nd1a:nd1b,nd2a:nd2b)
-      real vnew(nd1a:nd1b,nd2a:nd2b)
+      real utnew(nd1a:nd1b,nd2a:nd2b)
       real src (nd1a:nd1b,nd2a:nd2b,ndf4a:ndf4b,1:*)
-      real dx,dy,dt,c
+      real dx,dy,dt,cc
 c
 c.. declarations of local variables
-      integer i,j,n
-      real cx,cy
+      integer i,j,ix,jy,n
+
+      integer stencilOpt
 c
-      real t2,t3,t4,t6,t7,t8,t10,t11,t12,t14,t15,t16,t18,t19,t21
-      real t22,t23,t24,t25,t28,t29,t32,t38,t39,t41,t44,t45,t55,t69
-      real t73,t74,t82,t95,t98,t108,t122
+      real cuu(-2:2,-2:2)
+      real cuv(-2:2,-2:2)
+      real cvu(-2:2,-2:2)
+      real cvv(-2:2,-2:2)
 c
       n = 1
+      stencilOpt = 1
 c
-      cx = c
-      cy = c
-c
-        ! second order, cartesian, 2D
+      if( n1a-nd1a .lt. 2 ) then
+        write(6,*)'Grid not made with enough ghost cells'
+        write(6,*)nd1a,n1a
+        stop
+      end if
+
+      ! second order, cartesian, 2D
       if( addForcing.eq.0 )then
 
-        if( useWhereMask.ne.0 ) then
-          do j = n2a,n2b
-          do i = n1a,n1b
-          if( mask(i,j).gt.0 ) then
-
-          t2 = (cx ** 2)
-          t3 = 1.0 / (dx)
-          t4 = (t2) * (t3)
-          t12 = 2. * u(i + 1,j)
-          t15 = dx ** 2
-          t16 = 1.0 / (t15)
-          t18 = (cy ** 2)
-          t21 = dy ** 2
-          t22 = 1. / (t21)
-          t28 = 0.3D1 / 0.4D1 * v(i,j)
-          t29 = 2. * u(i,j)
-          t38 = (dt * (t2 * (u(i + 1,j) - t29 + u(i - 1,j)
-     #       ) * t16 + t18 * (u(i,j + 1) - t29 + u(i,j - 1)) * t2
-     #       2)) / 0.2D1
-          t41 = 0.1D1 / cx
-          t44 = ((u(i + 1,j) - u(i,j)) * t3) + (dt) * 
-     #       (v(i + 1,j) - v(i,j)) * (t3) / 0.2D1 + (0.3D1 / 
-     #       0.4D1 * v(i + 1,j) + (dt * (t2 * (u(i + 2,j) - t
-     #       12 + u(i,j)) * t16 + t18 * (u(i + 1,j + 1) - t12 + u
-     #       (i + 1,j - 1)) * t22)) / 0.2D1 - v(i + 2,j) / 0.4D1 
-     #       - t28 - t38 + v(i - 1,j) / 0.4D1) * t41 / 0.2D1
-          t45 = dt ** 2
-          t55 = 2 * u(i - 1,j)
-          t69 = ((u(i,j) - u(i - 1,j)) * t3) + (dt) * 
-     #       (v(i,j) - v(i - 1,j)) * (t3) / 0.2D1 + (t28 + t3
-     #       8 - v(i + 1,j) / 0.4D1 - 0.3D1 / 0.4D1 * v(i - 1,j) 
-     #       - (dt * (t2 * (u(i,j) - t55 + u(i - 2,j)) * t16 
-     #       + t18 * (u(i - 1,j + 1) - t55 + u(i - 1,j - 1)) * t2
-     #       2)) / 0.2D1 + v(i - 2,j) / 0.4D1) * t41 / 0.2D1
-          t73 = 1. / (dy)
-          t74 = t18 * t73
-          t82 = 2 * u(i,j + 1)
-          t95 = 0.1D1 / cy
-          t98 = ((u(i,j + 1) - u(i,j)) * t73) + (dt) *
-     #       (v(i,j + 1) - v(i,j)) * (t73) / 0.2D1 + (0.3D1 
-     #       / 0.4D1 * v(i,j + 1) + (dt * (t2 * (u(i + 1,j + 1)
-     #       - t82 + u(i - 1,j + 1)) * t16 + t18 * (u(i,j + 2)
-     #       - t82 + u(i,j)) * t22)) / 0.2D1 - v(i,j + 2) / 0.4D
-     #       1 - t28 - t38 + v(i,j - 1) / 0.4D1) * t95 / 0.2D1
-          t108 = 2 * u(i,j - 1)
-          t122 = ((u(i,j) - u(i,j - 1)) * t73) + (dt) 
-     #       * (v(i,j) - v(i,j - 1)) * (t73) / 0.2D1 + (t28 +
-     #       t38 - v(i,j + 1) / 0.4D1 - 0.3D1 / 0.4D1 * v(i,j - 1)
-     #       - (dt * (t2 * (u(i + 1,j - 1) - t108 + u(i - 1,j - 1))
-     #       * t16 + t18 * (u(i,j) - t108 + u(i,j - 2))
-     #       * t22)) / 0.2D1 + v(i,j - 2) / 0.4D1) * t95 / 0.2D1
-          unew(i,j) = (u(i,j)) + (dt) * v(i,j) + t4 * (t
-     #       44 * (t45) - t69 * (t45)) / 0.2D1 + (t74) * (t98 * 
-     #       (t45) - t122 * (t45)) / 0.2D1
-          vnew(i,j) = v(i,j) + t4 * (t44 * (dt) - t69 * (dt)) +
-     #       (t74) * (t98 * (dt) - t122 * (dt))
-c     
-          end if
-          end do
-          end do
-
-        else
-          ! no mask
-          do j = n2a,n2b
-          do i = n1a,n1b
-          t2 = (cx ** 2)
-          t3 = 1.0 / (dx)
-          t4 = (t2) * (t3)
-          t12 = 2. * u(i + 1,j)
-          t15 = dx ** 2
-          t16 = 1.0 / (t15)
-          t18 = (cy ** 2)
-          t21 = dy ** 2
-          t22 = 1. / (t21)
-          t28 = 0.3D1 / 0.4D1 * v(i,j)
-          t29 = 2. * u(i,j)
-          t38 = (dt * (t2 * (u(i + 1,j) - t29 + u(i - 1,j)
-     #       ) * t16 + t18 * (u(i,j + 1) - t29 + u(i,j - 1)) * t2
-     #       2)) / 0.2D1
-          t41 = 0.1D1 / cx
-          t44 = ((u(i + 1,j) - u(i,j)) * t3) + (dt) * 
-     #       (v(i + 1,j) - v(i,j)) * (t3) / 0.2D1 + (0.3D1 / 
-     #       0.4D1 * v(i + 1,j) + (dt * (t2 * (u(i + 2,j) - t
-     #       12 + u(i,j)) * t16 + t18 * (u(i + 1,j + 1) - t12 + u
-     #       (i + 1,j - 1)) * t22)) / 0.2D1 - v(i + 2,j) / 0.4D1 
-     #       - t28 - t38 + v(i - 1,j) / 0.4D1) * t41 / 0.2D1
-          t45 = dt ** 2
-          t55 = 2 * u(i - 1,j)
-          t69 = ((u(i,j) - u(i - 1,j)) * t3) + (dt) * 
-     #       (v(i,j) - v(i - 1,j)) * (t3) / 0.2D1 + (t28 + t3
-     #       8 - v(i + 1,j) / 0.4D1 - 0.3D1 / 0.4D1 * v(i - 1,j) 
-     #       - (dt * (t2 * (u(i,j) - t55 + u(i - 2,j)) * t16 
-     #       + t18 * (u(i - 1,j + 1) - t55 + u(i - 1,j - 1)) * t2
-     #       2)) / 0.2D1 + v(i - 2,j) / 0.4D1) * t41 / 0.2D1
-          t73 = 1. / (dy)
-          t74 = t18 * t73
-          t82 = 2 * u(i,j + 1)
-          t95 = 0.1D1 / cy
-          t98 = ((u(i,j + 1) - u(i,j)) * t73) + (dt) *
-     #       (v(i,j + 1) - v(i,j)) * (t73) / 0.2D1 + (0.3D1 
-     #       / 0.4D1 * v(i,j + 1) + (dt * (t2 * (u(i + 1,j + 1)
-     #       - t82 + u(i - 1,j + 1)) * t16 + t18 * (u(i,j + 2)
-     #       - t82 + u(i,j)) * t22)) / 0.2D1 - v(i,j + 2) / 0.4D
-     #       1 - t28 - t38 + v(i,j - 1) / 0.4D1) * t95 / 0.2D1
-          t108 = 2 * u(i,j - 1)
-          t122 = ((u(i,j) - u(i,j - 1)) * t73) + (dt) 
-     #       * (v(i,j) - v(i,j - 1)) * (t73) / 0.2D1 + (t28 +
-     #       t38 - v(i,j + 1) / 0.4D1 - 0.3D1 / 0.4D1 * v(i,j - 1)
-     #       - (dt * (t2 * (u(i + 1,j - 1) - t108 + u(i - 1,j - 1))
-     #       * t16 + t18 * (u(i,j) - t108 + u(i,j - 2))
-     #       * t22)) / 0.2D1 + v(i,j - 2) / 0.4D1) * t95 / 0.2D1
-          unew(i,j) = (u(i,j)) + (dt) * v(i,j) + t4 * (t
-     #       44 * (t45) - t69 * (t45)) / 0.2D1 + (t74) * (t98 * 
-     #       (t45) - t122 * (t45)) / 0.2D1
-          vnew(i,j) = v(i,j) + t4 * (t44 * (dt) - t69 * (dt)) +
-     #       (t74) * (t98 * (dt) - t122 * (dt))
-c     
-          end do
-          end do
-
-        end if
+        if( stencilOpt .eq. 0 ) then
+          if( useWhereMask.ne.0 ) then
+            do j = n2a,n2b
+            do i = n1a,n1b
+            if( mask(i,j).gt.0 ) then
 c
-      else 
-      ! add forcing flag is set to true
+              call duStepWaveGen2d2rc( 
+     *           nd1a,nd1b,nd2a,nd2b,
+     *           n1a,n1b,n2a,n2b,
+     *           u,ut,unew,utnew,
+     *           dx,dy,dt,cc,
+     *           i,j,n )
+c
+            end if
+            end do
+            end do
+          else
+            ! no mask
+            do j = n2a,n2b
+            do i = n1a,n1b
+c
+             call duStepWaveGen2d4rc( 
+     *           nd1a,nd1b,nd2a,nd2b,
+     *           n1a,n1b,n2a,n2b,
+     *           u,ut,unew,utnew,
+     *           dx,dy,dt,cc,
+     *           i,j,n )
+c     
+            end do
+            end do
+          end if
+        else
+
+          call getcuu_second( cc,dx,dy,dt,cuu(-3,-3) )
+          call getcuv_second( cc,dx,dy,dt,cuv(-3,-3) )
+          call getcvu_second( cc,dx,dy,dt,cvu(-3,-3) )
+          call getcvv_second( cc,dx,dy,dt,cvv(-3,-3) )
+
+          if( useWhereMask.ne.0 ) then
+            do j = n2a,n2b
+            do i = n1a,n1b
+            if( mask(i,j).gt.0 ) then
+c
+              unew(i,j) = 0.0
+              utnew(i,j) = 0.0
+c        
+              do jy = -2,2
+              do ix = -2+abs(jy),2-abs(jy)
+                unew(i,j) = unew(i,j)+
+     *             cuu(ix,jy)*u(i+ix,j+jy)+
+     *             cuv(ix,jy)*ut(i+ix,j+jy)
+c     
+                utnew(i,j) = utnew(i,j)+
+     *             cvu(ix,jy)*u(i+ix,j+jy)+
+     *             cvv(ix,jy)*ut(i+ix,j+jy)
+              end do
+              end do
+            
+            end if
+            end do
+            end do
+
+          else
+            ! no mask
+            do j = n2a,n2b
+            do i = n1a,n1b
+c   
+              unew(i,j) = 0.0
+              utnew(i,j) = 0.0
+c     
+              do jy = -2,2
+              do ix = -2+abs(jy),2-abs(jy)
+                unew(i,j) = unew(i,j)+
+     *             cuu(ix,jy)*u(i+ix,j+jy)+
+     *             cuv(ix,jy)*ut(i+ix,j+jy)
+c     
+                utnew(i,j) = utnew(i,j)+
+     *             cvu(ix,jy)*u(i+ix,j+jy)+
+     *             cvv(ix,jy)*ut(i+ix,j+jy)
+              end do
+              end do  
+
+            end do
+            end do
+          end if
+        end if
+
+      else
+        ! add forcing flag is set to true
 
         if( useWhereMask.ne.0 ) then
           do j = n2a,n2b
@@ -173,9 +144,9 @@ c
      *         nd1a,nd1b,nd2a,nd2b,
      *         n1a,n1b,n2a,n2b,
      *         ndf4a,ndf4b,nComp,
-     *         u,v,unew,vnew,
+     *         u,ut,unew,utnew,
      *         src,
-     *         dx,dy,dt,c,
+     *         dx,dy,dt,cc,
      *         i,j,n )
 c     
           end if
@@ -190,9 +161,9 @@ c
      *         nd1a,nd1b,nd2a,nd2b,
      *         n1a,n1b,n2a,n2b,
      *         ndf4a,ndf4b,nComp,
-     *         u,v,unew,vnew,
+     *         u,ut,unew,utnew,
      *         src,
-     *         dx,dy,dt,c,
+     *         dx,dy,dt,cc,
      *         i,j,n )
 c     
           end do
@@ -203,3 +174,150 @@ c
 c
       return
       end
+c
+c++++++++++++++++
+c
+      subroutine getcuu_second( 
+     *   cc,dx,dy,dt,cuu )
+c
+      implicit real (t)
+      real cuu(5,5)
+      real dx,dy,dt,cc
+c
+      cuu(1,3) = dt ** 3 * cc ** 3 / dx ** 3 / 0.8E1
+      cuu(2,2) = dt ** 3 * cc ** 3 * (dx + dy) / dy ** 2 / dx ** 2 / 0.8
+     #E1
+      cuu(2,3) = -dt ** 2 * cc ** 2 * (dt * cc * dx ** 2 + dt * cc * dx 
+     #* dy + 0.2E1 * cc * dt * dy ** 2 - 0.2E1 * dy ** 2 * dx) / dy ** 2
+     # / dx ** 3 / 0.4E1
+      cuu(2,4) = dt ** 3 * cc ** 3 * (dx + dy) / dy ** 2 / dx ** 2 / 0.8
+     #E1
+      cuu(3,1) = dt ** 3 * cc ** 3 / dy ** 3 / 0.8E1
+      cuu(3,2) = -dt ** 2 * cc ** 2 * (0.2E1 * dt * cc * dx ** 2 + dt * 
+     #cc * dx * dy + cc * dt * dy ** 2 - 0.2E1 * dx ** 2 * dy) / dy ** 3
+     # / dx ** 2 / 0.4E1
+      cuu(3,3) = (0.3E1 * cc ** 3 * dt ** 3 * dx ** 3 + 0.2E1 * cc ** 3 
+     #* dt ** 3 * dx ** 2 * dy + 0.2E1 * cc ** 3 * dt ** 3 * dx * dy ** 
+     #2 + 0.3E1 * cc ** 3 * dt ** 3 * dy ** 3 - 0.4E1 * cc ** 2 * dt ** 
+     #2 * dx ** 3 * dy - 0.4E1 * cc ** 2 * dt ** 2 * dx * dy ** 3 + 0.4E
+     #1 * dx ** 3 * dy ** 3) / dy ** 3 / dx ** 3 / 0.4E1
+      cuu(3,4) = -dt ** 2 * cc ** 2 * (0.2E1 * dt * cc * dx ** 2 + dt * 
+     #cc * dx * dy + cc * dt * dy ** 2 - 0.2E1 * dx ** 2 * dy) / dy ** 3
+     # / dx ** 2 / 0.4E1
+      cuu(3,5) = dt ** 3 * cc ** 3 / dy ** 3 / 0.8E1
+      cuu(4,2) = dt ** 3 * cc ** 3 * (dx + dy) / dy ** 2 / dx ** 2 / 0.8
+     #E1
+      cuu(4,3) = -dt ** 2 * cc ** 2 * (dt * cc * dx ** 2 + dt * cc * dx 
+     #* dy + 0.2E1 * cc * dt * dy ** 2 - 0.2E1 * dy ** 2 * dx) / dy ** 2
+     # / dx ** 3 / 0.4E1
+      cuu(4,4) = dt ** 3 * cc ** 3 * (dx + dy) / dy ** 2 / dx ** 2 / 0.8
+     #E1
+      cuu(5,3) = dt ** 3 * cc ** 3 / dx ** 3 / 0.8E1
+
+      return
+      end
+c
+c++++++++++++++++
+c
+      subroutine getcuv_second( 
+     *   cc,dx,dy,dt,cuv )
+c
+      implicit real (t)
+      real cuv(5,5)
+      real dx,dy,dt,cc
+c
+
+      cuv(1,3) = -cc * dt ** 2 / dx / 0.12E2
+      cuv(2,3) = cc * dt ** 2 * (0.24E2 * dt * cc + 0.23E2 * dx) / dx **
+     # 2 / 0.96E2
+      cuv(3,1) = -cc * dt ** 2 / dy / 0.12E2
+      cuv(3,2) = cc * dt ** 2 * (0.24E2 * dt * cc + 0.23E2 * dy) / dy **
+     # 2 / 0.96E2
+      cuv(3,3) = -dt * (0.3E1 * cc ** 2 * dt ** 2 * dx ** 2 + 0.3E1 * cc
+     # ** 2 * dt ** 2 * dy ** 2 + 0.2E1 * cc * dt * dx ** 2 * dy + 0.2E1
+     # * cc * dt * dx * dy ** 2 - 0.6E1 * dx ** 2 * dy ** 2) / dy ** 2 /
+     # dx ** 2 / 0.6E1
+      cuv(3,4) = cc * dt ** 2 * (0.24E2 * dt * cc + 0.23E2 * dy) / dy **
+     # 2 / 0.96E2
+      cuv(3,5) = -cc * dt ** 2 / dy / 0.12E2
+      cuv(4,3) = cc * dt ** 2 * (0.24E2 * dt * cc + 0.23E2 * dx) / dx **
+     # 2 / 0.96E2
+      cuv(5,3) = -cc * dt ** 2 / dx / 0.12E2
+
+      return
+      end
+c
+c++++++++++++++++
+c
+      subroutine getcvu_second( 
+     *   cc,dx,dy,dt,cvu )
+c
+      implicit real (t)
+      real cvu(5,5)
+      real dx,dy,dt,cc
+c
+      cvu(1,3) = dt ** 2 * cc ** 3 / dx ** 3 / 0.4E1
+      cvu(2,2) = dt ** 2 * cc ** 3 * (dx + dy) / dy ** 2 / dx ** 2 / 0.4
+     #E1
+      cvu(2,3) = -cc ** 2 * dt * (dt * cc * dx ** 2 + dt * cc * dx * dy 
+     #+ 0.2E1 * cc * dt * dy ** 2 - 0.2E1 * dy ** 2 * dx) / dy ** 2 / dx
+     # ** 3 / 0.2E1
+      cvu(2,4) = dt ** 2 * cc ** 3 * (dx + dy) / dy ** 2 / dx ** 2 / 0.4
+     #E1
+      cvu(3,1) = dt ** 2 * cc ** 3 / dy ** 3 / 0.4E1
+      cvu(3,2) = -cc ** 2 * dt * (0.2E1 * dt * cc * dx ** 2 + dt * cc * 
+     #dx * dy + cc * dt * dy ** 2 - 0.2E1 * dx ** 2 * dy) / dy ** 3 / dx
+     # ** 2 / 0.2E1
+      cvu(3,3) = cc ** 2 * dt * (0.3E1 * cc * dt * dx ** 3 + 0.2E1 * cc 
+     #* dt * dx ** 2 * dy + 0.2E1 * cc * dt * dx * dy ** 2 + 0.3E1 * cc 
+     #* dt * dy ** 3 - 0.4E1 * dx ** 3 * dy - 0.4E1 * dx * dy ** 3) / dy
+     # ** 3 / dx ** 3 / 0.2E1
+      cvu(3,4) = -cc ** 2 * dt * (0.2E1 * dt * cc * dx ** 2 + dt * cc * 
+     #dx * dy + cc * dt * dy ** 2 - 0.2E1 * dx ** 2 * dy) / dy ** 3 / dx
+     # ** 2 / 0.2E1
+      cvu(3,5) = dt ** 2 * cc ** 3 / dy ** 3 / 0.4E1
+      cvu(4,2) = dt ** 2 * cc ** 3 * (dx + dy) / dy ** 2 / dx ** 2 / 0.4
+     #E1
+      cvu(4,3) = -cc ** 2 * dt * (dt * cc * dx ** 2 + dt * cc * dx * dy 
+     #+ 0.2E1 * cc * dt * dy ** 2 - 0.2E1 * dy ** 2 * dx) / dy ** 2 / dx
+     # ** 3 / 0.2E1
+      cvu(4,4) = dt ** 2 * cc ** 3 * (dx + dy) / dy ** 2 / dx ** 2 / 0.4
+     #E1
+      cvu(5,3) = dt ** 2 * cc ** 3 / dx ** 3 / 0.4E1
+
+
+      return
+      end
+c
+c++++++++++++++++
+c
+      subroutine getcvv_second(  
+     *   cc,dx,dy,dt,cvv )
+c
+      implicit real (t)
+      real cvv(5,5)
+      real dx,dy,dt,cc
+c
+      cvv(1,3) = -dt * cc / dx / 0.6E1
+      cvv(2,3) = dt * cc * (0.24E2 * dt * cc + 0.23E2 * dx) / dx ** 2 / 
+     #0.48E2
+      cvv(3,1) = -dt * cc / dy / 0.6E1
+      cvv(3,2) = dt * cc * (0.24E2 * dt * cc + 0.23E2 * dy) / dy ** 2 / 
+     #0.48E2
+      cvv(3,3) = -(0.3E1 * cc ** 2 * dt ** 2 * dx ** 2 + 0.3E1 * cc ** 2
+     # * dt ** 2 * dy ** 2 + 0.2E1 * cc * dt * dx ** 2 * dy + 0.2E1 * cc
+     # * dt * dx * dy ** 2 - 0.3E1 * dx ** 2 * dy ** 2) / dy ** 2 / dx *
+     #* 2 / 0.3E1
+      cvv(3,4) = dt * cc * (0.24E2 * dt * cc + 0.23E2 * dy) / dy ** 2 / 
+     #0.48E2
+      cvv(3,5) = -dt * cc / dy / 0.6E1
+      cvv(4,3) = dt * cc * (0.24E2 * dt * cc + 0.23E2 * dx) / dx ** 2 / 
+     #0.48E2
+      cvv(5,3) = -dt * cc / dx / 0.6E1
+
+
+      return
+      end
+c
+c++++++++++++++++
+c

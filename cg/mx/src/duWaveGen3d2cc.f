@@ -35,7 +35,7 @@ c
         stop
       end if
 
-      ! fourth order, cartesian, 2D
+      ! second  order, curvilinear, 3D
       if( addForcing.eq.0 )then
 
         if( useWhereMask.ne.0 ) then

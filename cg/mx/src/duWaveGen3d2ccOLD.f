@@ -1,10 +1,10 @@
-      subroutine duWaveGen3d4cc( 
+      subroutine duWaveGen3d2ccOLD( 
      *   nd1a,nd1b,nd2a,nd2b,nd3a,nd3b,
      *   n1a,n1b,n2a,n2b,n3a,n3b,
      *   ndf4a,ndf4b,nComp,addForcing,
      *   u,ut,unew,utnew,
      *   rx,src,
-     *   dx,dy,dz,dt,cc,beta,
+     *   dx,dy,dz,dt,cc,
      *   useWhereMask,mask )
 c
       implicit none
@@ -22,20 +22,20 @@ c.. declarations of incoming variables
       real utnew(nd1a:nd1b,nd2a:nd2b,nd3a:nd3b)
       real rx   (nd1a:nd1b,nd2a:nd2b,nd3a:nd3b,0:2,0:2)
       real src  (nd1a:nd1b,nd2a:nd2b,nd3a:nd3b,ndf4a:ndf4b,0:*)
-      real dx,dy,dz,dt,cc,beta
+      real dx,dy,dz,dt,cc
 c
 c.. declarations of local variables
       integer i,j,k,n
 c
       n = 1
 c
-      if( n1a-nd1a .lt. 3 ) then
+      if( n1a-nd1a .lt. 2 ) then
         write(6,*)'Grid not made with enough ghost cells'
         write(6,*)nd1a,n1a
         stop
       end if
 
-      ! fourth order, curvilinear, 3D
+      ! fourth order, cartesian, 2D
       if( addForcing.eq.0 )then
 
         if( useWhereMask.ne.0 ) then
@@ -44,11 +44,11 @@ c
           do i = n1a,n1b
           if( mask(i,j,k).gt.0 ) then
 c
-            call duStepWaveGen3d4cc( 
+            call duStepWaveGen3d2ccOLD( 
      *         nd1a,nd1b,nd2a,nd2b,nd3a,nd3b,
      *         n1a,n1b,n2a,n2b,n3a,n3b,
      *         u,ut,unew,utnew,rx,
-     *         dx,dy,dz,dt,cc,beta,
+     *         dx,dy,dz,dt,cc,
      *         i,j,k,n )
 c
           end if
@@ -61,11 +61,11 @@ c
           do j = n2a,n2b
           do i = n1a,n1b
 c   
-            call duStepWaveGen3d4cc( 
+            call duStepWaveGen3d2ccOLD( 
      *         nd1a,nd1b,nd2a,nd2b,nd3a,nd3b,
      *         n1a,n1b,n2a,n2b,n3a,n3b,
      *         u,ut,unew,utnew,rx,
-     *         dx,dy,dz,dt,cc,beta,
+     *         dx,dy,dz,dt,cc,
      *         i,j,k,n )
 c
           end do
@@ -83,13 +83,13 @@ c
           do i = n1a,n1b
           if( mask(i,j,k).gt.0 ) then
 c
-            call duStepWaveGen3d4cc_tz( 
+            call duStepWaveGen3d2cc_tzOLD( 
      *         nd1a,nd1b,nd2a,nd2b,nd3a,nd3b,
      *         n1a,n1b,n2a,n2b,n3a,n3b,
      *         ndf4a,ndf4b,nComp,
      *         u,ut,unew,utnew,
      *         rx,src,
-     *         dx,dy,dz,dt,cc,beta,
+     *         dx,dy,dz,dt,cc,
      *         i,j,k,n )
 c
           end if
@@ -102,13 +102,13 @@ c
           do j = n2a,n2b
           do i = n1a,n1b
 c   
-            call duStepWaveGen3d4cc_tz( 
+            call duStepWaveGen3d2cc_tzOLD( 
      *         nd1a,nd1b,nd2a,nd2b,nd3a,nd3b,
      *         n1a,n1b,n2a,n2b,n3a,n3b,
      *         ndf4a,ndf4b,nComp,
      *         u,ut,unew,utnew,
      *         rx,src,
-     *         dx,dy,dz,dt,cc,beta,
+     *         dx,dy,dz,dt,cc,
      *         i,j,k,n )
 c
           end do

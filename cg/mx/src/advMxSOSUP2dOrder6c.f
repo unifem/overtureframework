@@ -172,6 +172,20 @@
        !       *************** curvilinear ******************
        !       **********************************************
        ! 2D, sixth-order, curvilinear
+             if( useOld.eq.1 ) then
+             call duWaveGen2d6ccOLD( nd1a,nd1b,nd2a,nd2b,n1a,n1b,n2a,
+     & n2b,ndf4a,ndf4b,ex,addForcing,u(nd1a,nd2a,nd3a,ex),u(nd1a,nd2a,
+     & nd3a,ext),un(nd1a,nd2a,nd3a,ex),un(nd1a,nd2a,nd3a,ext),rsxy(
+     & nd1a,nd2a,nd3a,0,0), f0,dr(0),dr(1),dt,cc,useWhereMask,mask )
+             call duWaveGen2d6ccOLD( nd1a,nd1b,nd2a,nd2b,n1a,n1b,n2a,
+     & n2b,ndf4a,ndf4b,ey,addForcing,u(nd1a,nd2a,nd3a,ey),u(nd1a,nd2a,
+     & nd3a,eyt),un(nd1a,nd2a,nd3a,ey),un(nd1a,nd2a,nd3a,eyt),rsxy(
+     & nd1a,nd2a,nd3a,0,0), f0,dr(0),dr(1),dt,cc,useWhereMask,mask )
+             call duWaveGen2d6ccOLD( nd1a,nd1b,nd2a,nd2b,n1a,n1b,n2a,
+     & n2b,ndf4a,ndf4b,hz,addForcing,u(nd1a,nd2a,nd3a,hz),u(nd1a,nd2a,
+     & nd3a,hzt),un(nd1a,nd2a,nd3a,hz),un(nd1a,nd2a,nd3a,hzt),rsxy(
+     & nd1a,nd2a,nd3a,0,0), f0,dr(0),dr(1),dt,cc,useWhereMask,mask )
+             else
              call duWaveGen2d6cc( nd1a,nd1b,nd2a,nd2b,n1a,n1b,n2a,n2b,
      & ndf4a,ndf4b,ex,addForcing,u(nd1a,nd2a,nd3a,ex),u(nd1a,nd2a,
      & nd3a,ext),un(nd1a,nd2a,nd3a,ex),un(nd1a,nd2a,nd3a,ext),rsxy(
@@ -184,6 +198,7 @@
      & ndf4a,ndf4b,hz,addForcing,u(nd1a,nd2a,nd3a,hz),u(nd1a,nd2a,
      & nd3a,hzt),un(nd1a,nd2a,nd3a,hz),un(nd1a,nd2a,nd3a,hzt),rsxy(
      & nd1a,nd2a,nd3a,0,0), f0,dr(0),dr(1),dt,cc,useWhereMask,mask )
+             end if
         end if
         return
         end

@@ -22,70 +22,78 @@ c.. generated code to follow
 c
         real t1
         real t10
-        real t102
-        real t103
-        integer t107
+        real t101
+        real t105
+        real t106
+        real t107
         real t11
-        real t114
-        real t118
+        integer t114
         real t12
-        real t124
-        real t128
-        real t14
-        real t148
-        real t153
-        real t155
-        integer t166
-        integer t17
-        real t173
-        real t177
-        real t193
-        real t195
-        real t199
+        real t121
+        real t125
+        real t131
+        real t135
+        real t152
+        real t157
+        real t162
+        real t17
+        integer t172
+        real t179
+        real t183
+        real t19
+        real t197
         real t2
-        real t204
-        integer t216
-        real t223
-        real t227
-        integer t24
-        real t247
-        real t25
-        real t252
-        real t254
-        integer t273
+        integer t20
+        real t202
+        real t203
+        real t205
+        real t209
+        real t210
+        integer t225
+        real t232
+        real t236
+        real t253
+        real t258
+        real t263
+        integer t27
         real t28
-        real t290
-        real t292
+        integer t281
         real t296
-        integer t30
         real t301
+        real t302
+        real t304
+        real t308
+        real t309
         real t31
-        integer t321
-        real t342
-        integer t37
-        real t38
+        integer t33
+        integer t332
+        real t34
+        real t350
         real t4
+        integer t40
         real t41
-        integer t43
         real t44
+        integer t46
+        real t47
         integer t5
         real t6
-        integer t60
-        real t61
-        real t64
+        real t60
+        real t62
         real t67
-        real t70
-        real t71
-        real t74
-        real t77
-        real t80
-        real t81
-        real t84
+        integer t68
+        real t69
+        real t72
+        real t75
+        real t78
+        real t79
+        real t82
+        real t85
+        real t88
         real t89
         real t9
-        real t90
         real t92
-        real t96
+        real t97
+        real t98
         real t99
         t1 = u(i,j,k,n)
         t2 = ut(i,j,k,n)
@@ -96,103 +104,110 @@ c
         t10 = t4 * (t6 - t1) * t9
         t11 = t4 * dt
         t12 = ut(t5,j,k,n)
-        t14 = (t12 - t2) * t9
-        t17 = i + 2
-        t24 = j + 1
-        t25 = u(t5,t24,k,n)
-        t28 = 0.1E1 / dy
-        t30 = j - 1
-        t31 = u(t5,t30,k,n)
-        t37 = k + 1
-        t38 = u(t5,j,t37,n)
-        t41 = 0.1E1 / dz
-        t43 = k - 1
-        t44 = u(t5,j,t43,n)
-        t60 = i - 1
-        t61 = u(t60,j,k,n)
-        t64 = t4 * (t1 - t61) * t9
-        t67 = u(i,t24,k,n)
-        t70 = t4 * (t67 - t1) * t28
-        t71 = u(i,t30,k,n)
-        t74 = t4 * (t1 - t71) * t28
-        t77 = u(i,j,t37,n)
-        t80 = t4 * (t77 - t1) * t41
-        t81 = u(i,j,t43,n)
-        t84 = t4 * (t1 - t81) * t41
-        t89 = dt * ((t10 - t64) * t9 + (t70 - t74) * t28 + (t80 - t84) *
-     # t41) / 0.2E1
-        t90 = ut(t60,j,k,n)
-        t92 = (t2 - t90) * t9
-        t96 = dx * (t14 / 0.2E1 + t92 / 0.2E1) / 0.2E1
-        t99 = sqrt(0.4E1)
-        t102 = t10 + t11 * t14 / 0.2E1 + cc * (t12 + dt * ((t4 * (u(t17,
-     #j,k,n) - t6) * t9 - t10) * t9 + (t4 * (t25 - t6) * t28 - t4 * (t6 
-     #- t31) * t28) * t28 + (t4 * (t38 - t6) * t41 - t4 * (t6 - t44) * t
-     #41) * t41) / 0.2E1 - dx * ((ut(t17,j,k,n) - t12) * t9 / 0.2E1 + t1
-     #4 / 0.2E1) / 0.2E1 - t2 - t89 - t96) * t99 / 0.4E1
-        t103 = dt ** 2
-        t107 = i - 2
-        t114 = u(t60,t24,k,n)
-        t118 = u(t60,t30,k,n)
-        t124 = u(t60,j,t37,n)
-        t128 = u(t60,j,t43,n)
-        t148 = t64 + t11 * t92 / 0.2E1 + cc * (t2 + t89 - t96 - t90 - dt
-     # * ((t64 - t4 * (t61 - u(t107,j,k,n)) * t9) * t9 + (t4 * (t114 - t
-     #61) * t28 - t4 * (t61 - t118) * t28) * t28 + (t4 * (t124 - t61) * 
-     #t41 - t4 * (t61 - t128) * t41) * t41) / 0.2E1 - dx * (t92 / 0.2E1 
-     #+ (t90 - ut(t107,j,k,n)) * t9 / 0.2E1) / 0.2E1) * t99 / 0.4E1
-        t153 = ut(i,t24,k,n)
-        t155 = (t153 - t2) * t28
-        t166 = j + 2
-        t173 = u(i,t24,t37,n)
-        t177 = u(i,t24,t43,n)
-        t193 = ut(i,t30,k,n)
-        t195 = (t2 - t193) * t28
-        t199 = dy * (t155 / 0.2E1 + t195 / 0.2E1) / 0.2E1
-        t204 = t70 + t11 * t155 / 0.2E1 + cc * (t153 + dt * ((t4 * (t25 
-     #- t67) * t9 - t4 * (t67 - t114) * t9) * t9 + (t4 * (u(i,t166,k,n) 
-     #- t67) * t28 - t70) * t28 + (t4 * (t173 - t67) * t41 - t4 * (t67 -
-     # t177) * t41) * t41) / 0.2E1 - dy * ((ut(i,t166,k,n) - t153) * t28
-     # / 0.2E1 + t155 / 0.2E1) / 0.2E1 - t2 - t89 - t199) * t99 / 0.4E1
-        t216 = j - 2
-        t223 = u(i,t30,t37,n)
-        t227 = u(i,t30,t43,n)
-        t247 = t74 + t11 * t195 / 0.2E1 + cc * (t2 + t89 - t199 - t193 -
-     # dt * ((t4 * (t31 - t71) * t9 - t4 * (t71 - t118) * t9) * t9 + (t7
-     #4 - t4 * (t71 - u(i,t216,k,n)) * t28) * t28 + (t4 * (t223 - t71) *
-     # t41 - t4 * (t71 - t227) * t41) * t41) / 0.2E1 - dy * (t195 / 0.2E
-     #1 + (t193 - ut(i,t216,k,n)) * t28 / 0.2E1) / 0.2E1) * t99 / 0.4E1
-        t252 = ut(i,j,t37,n)
-        t254 = (t252 - t2) * t41
-        t273 = k + 2
-        t290 = ut(i,j,t43,n)
-        t292 = (t2 - t290) * t41
-        t296 = dz * (t254 / 0.2E1 + t292 / 0.2E1) / 0.2E1
-        t301 = t80 + t11 * t254 / 0.2E1 + cc * (t252 + dt * ((t4 * (t38 
-     #- t77) * t9 - t4 * (t77 - t124) * t9) * t9 + (t4 * (t173 - t77) * 
-     #t28 - t4 * (t77 - t223) * t28) * t28 + (t4 * (u(i,j,t273,n) - t77)
-     # * t41 - t80) * t41) / 0.2E1 - dz * ((ut(i,j,t273,n) - t252) * t41
-     # / 0.2E1 + t254 / 0.2E1) / 0.2E1 - t2 - t89 - t296) * t99 / 0.4E1
-        t321 = k - 2
-        t342 = t84 + t11 * t292 / 0.2E1 + cc * (t2 + t89 - t296 - t290 -
-     # dt * ((t4 * (t44 - t81) * t9 - t4 * (t81 - t128) * t9) * t9 + (t4
-     # * (t177 - t81) * t28 - t4 * (t81 - t227) * t28) * t28 + (t84 - t4
-     # * (t81 - u(i,j,t321,n)) * t41) * t41) / 0.2E1 - dz * (t292 / 0.2E
-     #1 + (t290 - ut(i,j,t321,n)) * t41 / 0.2E1) / 0.2E1) * t99 / 0.4E1
+        t17 = cc * t12
+        t19 = dt * cc
+        t20 = i + 2
+        t27 = j + 1
+        t28 = u(t5,t27,k,n)
+        t31 = 0.1E1 / dy
+        t33 = j - 1
+        t34 = u(t5,t33,k,n)
+        t40 = k + 1
+        t41 = u(t5,j,t40,n)
+        t44 = 0.1E1 / dz
+        t46 = k - 1
+        t47 = u(t5,j,t46,n)
+        t60 = cc * t2
+        t62 = (-t60 + t17) * t9
+        t67 = t60 / 0.2E1
+        t68 = i - 1
+        t69 = u(t68,j,k,n)
+        t72 = t4 * (t1 - t69) * t9
+        t75 = u(i,t27,k,n)
+        t78 = t4 * (t75 - t1) * t31
+        t79 = u(i,t33,k,n)
+        t82 = t4 * (t1 - t79) * t31
+        t85 = u(i,j,t40,n)
+        t88 = t4 * (t85 - t1) * t44
+        t89 = u(i,j,t46,n)
+        t92 = t4 * (t1 - t89) * t44
+        t97 = t19 * ((t10 - t72) * t9 + (t78 - t82) * t31 + (t88 - t92) 
+     #* t44) / 0.4E1
+        t98 = ut(t68,j,k,n)
+        t99 = cc * t98
+        t101 = (t60 - t99) * t9
+        t105 = dx * (t62 / 0.2E1 + t101 / 0.2E1) / 0.4E1
+        t106 = t10 + t11 * (t12 - t2) * t9 / 0.2E1 + t17 / 0.2E1 + t19 *
+     # ((t4 * (u(t20,j,k,n) - t6) * t9 - t10) * t9 + (t4 * (t28 - t6) * 
+     #t31 - t4 * (t6 - t34) * t31) * t31 + (t4 * (t41 - t6) * t44 - t4 *
+     # (t6 - t47) * t44) * t44) / 0.4E1 - dx * ((cc * ut(t20,j,k,n) - t1
+     #7) * t9 / 0.2E1 + t62 / 0.2E1) / 0.4E1 - t67 - t97 - t105
+        t107 = dt ** 2
+        t114 = i - 2
+        t121 = u(t68,t27,k,n)
+        t125 = u(t68,t33,k,n)
+        t131 = u(t68,j,t40,n)
+        t135 = u(t68,j,t46,n)
+        t152 = t72 + t11 * (t2 - t98) * t9 / 0.2E1 + t67 + t97 - t105 - 
+     #t99 / 0.2E1 - t19 * ((t72 - t4 * (t69 - u(t114,j,k,n)) * t9) * t9 
+     #+ (t4 * (t121 - t69) * t31 - t4 * (t69 - t125) * t31) * t31 + (t4 
+     #* (t131 - t69) * t44 - t4 * (t69 - t135) * t44) * t44) / 0.4E1 - d
+     #x * (t101 / 0.2E1 + (-cc * ut(t114,j,k,n) + t99) * t9 / 0.2E1) / 0
+     #.4E1
+        t157 = ut(i,t27,k,n)
+        t162 = cc * t157
+        t172 = j + 2
+        t179 = u(i,t27,t40,n)
+        t183 = u(i,t27,t46,n)
+        t197 = (-t60 + t162) * t31
+        t202 = ut(i,t33,k,n)
+        t203 = cc * t202
+        t205 = (t60 - t203) * t31
+        t209 = dy * (t197 / 0.2E1 + t205 / 0.2E1) / 0.4E1
+        t210 = t78 + t11 * (t157 - t2) * t31 / 0.2E1 + t162 / 0.2E1 + t1
+     #9 * ((t4 * (t28 - t75) * t9 - t4 * (t75 - t121) * t9) * t9 + (t4 *
+     # (u(i,t172,k,n) - t75) * t31 - t78) * t31 + (t4 * (t179 - t75) * t
+     #44 - t4 * (t75 - t183) * t44) * t44) / 0.4E1 - dy * ((cc * ut(i,t1
+     #72,k,n) - t162) * t31 / 0.2E1 + t197 / 0.2E1) / 0.4E1 - t67 - t97 
+     #- t209
+        t225 = j - 2
+        t232 = u(i,t33,t40,n)
+        t236 = u(i,t33,t46,n)
+        t253 = t82 + t11 * (t2 - t202) * t31 / 0.2E1 + t67 + t97 - t209 
+     #- t203 / 0.2E1 - t19 * ((t4 * (t34 - t79) * t9 - t4 * (t79 - t125)
+     # * t9) * t9 + (t82 - t4 * (t79 - u(i,t225,k,n)) * t31) * t31 + (t4
+     # * (t232 - t79) * t44 - t4 * (t79 - t236) * t44) * t44) / 0.4E1 - 
+     #dy * (t205 / 0.2E1 + (-cc * ut(i,t225,k,n) + t203) * t31 / 0.2E1) 
+     #/ 0.4E1
+        t258 = ut(i,j,t40,n)
+        t263 = cc * t258
+        t281 = k + 2
+        t296 = (-t60 + t263) * t44
+        t301 = ut(i,j,t46,n)
+        t302 = cc * t301
+        t304 = (t60 - t302) * t44
+        t308 = dy * (t296 / 0.2E1 + t304 / 0.2E1) / 0.4E1
+        t309 = t88 + t11 * (t258 - t2) * t44 / 0.2E1 + t263 / 0.2E1 + t1
+     #9 * ((t4 * (t41 - t85) * t9 - t4 * (t85 - t131) * t9) * t9 + (t4 *
+     # (t179 - t85) * t31 - t4 * (t85 - t232) * t31) * t31 + (t4 * (u(i,
+     #j,t281,n) - t85) * t44 - t88) * t44) / 0.4E1 - dy * ((cc * ut(i,j,
+     #t281,n) - t263) * t44 / 0.2E1 + t296 / 0.2E1) / 0.4E1 - t67 - t97 
+     #- t308
+        t332 = k - 2
+        t350 = t92 + t11 * (t2 - t301) * t44 / 0.2E1 + t67 + t97 - t308 
+     #- t302 / 0.2E1 - t19 * ((t4 * (t47 - t89) * t9 - t4 * (t89 - t135)
+     # * t9) * t9 + (t4 * (t183 - t89) * t31 - t4 * (t89 - t236) * t31) 
+     #* t31 + (t92 - t4 * (t89 - u(i,j,t332,n)) * t44) * t44) / 0.4E1 - 
+     #dy * (t304 / 0.2E1 + (-cc * ut(i,j,t332,n) + t302) * t44 / 0.2E1) 
+     #/ 0.4E1
 
-        unew(i,j,k) = t1 + dt * t2 + (t102 * t103 / 0.2E1 - t148 * t1
-     #03 / 0.2E1) * t9 + (t204 * t103 / 0.2E1 - t247 * t103 / 0.2E1) * t
-     #28 + (t301 * t103 / 0.2E1 - t342 * t103 / 0.2E1) * t41
+        unew(i,j,k) = t1 + dt * t2 + (t106 * t107 / 0.2E1 - t152 * t1
+     #07 / 0.2E1) * t9 + (t210 * t107 / 0.2E1 - t253 * t107 / 0.2E1) * t
+     #31 + (t309 * t107 / 0.2E1 - t350 * t107 / 0.2E1) * t44
 
         utnew(i,j,k) = t2 + (
-     #t102 * dt - t148 * dt) * t9 + (t204 * dt - t247 * dt) * t28 + (t30
-     #1 * dt - t342 * dt) * t41
-        
-c        blah = array(int(t1 + dt * t2 + (t102 * t103 / 0.2E1 - t148 * t1
-c     #03 / 0.2E1) * t9 + (t204 * t103 / 0.2E1 - t247 * t103 / 0.2E1) * t
-c     #28 + (t301 * t103 / 0.2E1 - t342 * t103 / 0.2E1) * t41),int(t2 + (
-c     #t102 * dt - t148 * dt) * t9 + (t204 * dt - t247 * dt) * t28 + (t30
-c     #1 * dt - t342 * dt) * t41))
+     #dt * t106 - dt * t152) * t9 + (dt * t210 - dt * t253) * t31 + (dt 
+     #* t309 - dt * t350) * t44
 
         return
       end
