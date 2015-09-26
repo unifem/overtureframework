@@ -331,7 +331,9 @@ checkInterfaceForConvergence( const int correct,
   if( alwaysSetBoundaryData || !solveCoupledInterfaceEquations )
   {
     if( debug() & 2 )
-      fPrintF(interfaceFile,"=== After takeTimeStep for all domains: (correction=%i t=%9.3e)\n",correct,tNew);
+      fPrintF(interfaceFile,"--checkConvergence-- After takeTimeStep for all domains: (correction=%i t=%9.3e)\n",correct,tNew);
+
+    // NOTE: the history of interface iterates are saved here 
     getInterfaceResiduals( tNew, dt, gfIndex, maxResidual, saveInterfaceIterateValues );
 
     if( oldResidual.size()<maxResidual.size() )

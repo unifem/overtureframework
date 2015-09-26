@@ -1,3 +1,12 @@
+
+**********************
+******** Sept 24, 2015
+
+cgmx scattering-T_cmd -g=crvbl2e4.order4 -bg=backGround -rbc=abcPML -boundaryForcing=1 -kx=2 -tf=5. -tp=.5 -go=halt
+
+
+
+
 **********************
 ******** Aug 7, 2015
 

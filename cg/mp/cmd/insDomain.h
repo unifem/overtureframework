@@ -108,7 +108,7 @@ $setAxi="";
     maximum number of iterations for implicit interpolation
       10
   pressure solver options
-     $solver
+     $psolver
      # yale
      # these tolerances are chosen for PETSc
      relative tolerance

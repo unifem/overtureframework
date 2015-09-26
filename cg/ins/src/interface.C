@@ -561,7 +561,7 @@ interfaceRightHandSide( InterfaceOptionsEnum option,
       	if( true )
       	{
         	  fprintf(pDebugFile,"-- interfaceRHS: interface data at t=%8.2e --\n",t);
-        	  ::display(f(I1,I2,I3,Ct),"traction f",pDebugFile,"%9.3e ");
+        	  ::display(f(I1,I2,I3,Ct),"--INS-- traction f",pDebugFile,"%9.3e ");
       	}
       	
                 numSaved+=numberOfDimensions;

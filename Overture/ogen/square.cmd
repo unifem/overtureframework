@@ -11,7 +11,7 @@ $bc_l = $bc eq "periodic" ? "periodicity\n1 1\n" : "show parameters";
 $finish = "exit";
 $Ng = int($grid_order/2);
 $Nge= $Ng+1;
-if ( $saveGrid ) { $finish = "save an overlapping grid\n$name\nsquare\nexit";
+if ( $saveGrid ) { $finish = "save an overlapping grid\n$name\nsquare\nexit"; }
 *
 * make a simple square (periodic BCs) 
 * 

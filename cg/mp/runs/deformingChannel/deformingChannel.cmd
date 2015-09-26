@@ -39,6 +39,8 @@ $numberOfCorrections=1;  # cgmp and cgins
 $coupled=0; $iTol=1.e-3; $iOmega=1.; $flushFrequency=10; $useNewInterfaceTransfer=0; 
 $useTP=0; # 1=use traditional partitioned scheme
 #
+$option="beamUnderPressure"; # this currently means ramp the inflow
+#
 $sideBC="noSlipWall"; # = "slipWall"; 
 #
 $bcOption=0; 
@@ -65,7 +67,7 @@ GetOptions( "g=s"=>\$grid,"tf=f"=>\$tFinal,"nu=f"=>\$nu,"muFluid=f"=>\$muFluid,"
    "cnsGodunovOrder=f"=>\$cnsGodunovOrder,"flushFrequency=i"=>\$flushFrequency,\
    "cnsEOS=s"=>\$cnsEOS,"cnsGammaStiff=f"=>\$cnsGammaStiff,"cnsPStiff=f"=>\$cnsPStiff,"u0=f"=>\$u0,\
    "useNewInterfaceTransfer=i"=>\$useNewInterfaceTransfer,"multiDomainAlgorithm=i"=>\$multiDomainAlgorithm,\
-   "pi=i"=>\$pi,"xShock=f"=>\$xShock,"uShock=f"=>\$uShock,"ap=f"=>\$ap,"bcOption=i"=>\$bcOption,\
+   "pi=i"=>\$pi,"xShock=f"=>\$xShock,"uShock=f"=>\$uShock,"ap=f"=>\$ap,"bcOption=i"=>\$bcOption,"option=s"=>\$option,\
    "stressRelaxation=f"=>\$stressRelaxation,"relaxAlpha=f"=>\$relaxAlpha,"relaxDelta=f"=>\$relaxDelta,\
    "p0=f"=>\$p0,"sideBC=s"=>\$sideBC,"iOmega=f"=>\$iOmega,"iTol=f"=>\$iTol,\
    "projectInitialConditions=f"=>\$projectInitialConditions,"restart=s"=>\$restart,"append=i"=>\$append );
@@ -128,7 +130,6 @@ $T0=0.;
 ## $bc = "all=noSlipWall uniform(u=.0,T=$T0)\n bcNumber3=slipWall\n bcNumber4=slipWall\n bcNumber1=inflowWithVelocityGiven, parabolic(d=.1,u=$u0,T=0.)\n bcNumber2=outflow, pressure(1.*p+.1*p.n=0.)\n bcNumber100=tractionInterface";
 ### $bc = "all=noSlipWall uniform(u=.0,T=$T0)\n bcNumber3=slipWall\n bcNumber4=slipWall\n bcNumber1=inflowWithPressureAndTangentialVelocityGiven uniform(p=1.,v=0.T=0.)\n bcNumber2=outflow, pressure(1.*p+0.*p.n=0.)\n bcNumber100=tractionInterface";
 # -- beam under pressure: 
-$option="beamUnderPressure"; # FIX ME
 $bc = "all=$sideBC\n bcNumber100=noSlipWall uniform(u=.0,T=$T0)\n bcNumber100=tractionInterface";
     #
     # **** ramp the pressure on the bottom ****
@@ -140,7 +141,7 @@ $bc = "all=$sideBC\n bcNumber100=noSlipWall uniform(u=.0,T=$T0)\n bcNumber100=tr
     "   ramp order: 3\n" .\
     " exit \n" .\
     "done";
-if( $option ne "beamUnderPressure" ){ $cmdRamp = #""; }
+if( $option ne "beamUnderPressure" ){ $cmdRamp = "bcNumber3=outflow, pressure(1.*p+0.*p.n=$p0)"; }
 $bc = $bc . "\n" . $cmdRamp;
 #
 $ic="uniform flow\n" . "p=1., u=$u0, T=$T0";
@@ -202,7 +203,7 @@ continue
         contour
  # ghost lines 1
           plot:p
-          wire frame
+         ##  wire frame
           exit
         plot domain: solid
         contour
