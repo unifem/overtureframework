@@ -78,10 +78,10 @@ c
           end if
         else
 
-          call getcuu_second( cc,dx,dy,dt,cuu(-3,-3) )
-          call getcuv_second( cc,dx,dy,dt,cuv(-3,-3) )
-          call getcvu_second( cc,dx,dy,dt,cvu(-3,-3) )
-          call getcvv_second( cc,dx,dy,dt,cvv(-3,-3) )
+          call getcuu_second( cc,dx,dy,dt,cuu(-2,-2) )
+          call getcuv_second( cc,dx,dy,dt,cuv(-2,-2) )
+          call getcvu_second( cc,dx,dy,dt,cvu(-2,-2) )
+          call getcvv_second( cc,dx,dy,dt,cvv(-2,-2) )
 
           if( useWhereMask.ne.0 ) then
             do j = n2a,n2b
