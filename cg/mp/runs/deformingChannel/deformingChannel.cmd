@@ -38,6 +38,7 @@ $ts="pc";   # MP solver
 $numberOfCorrections=1;  # cgmp and cgins 
 $coupled=0; $iTol=1.e-3; $iOmega=1.; $flushFrequency=10; $useNewInterfaceTransfer=0; 
 $useTP=0; # 1=use traditional partitioned scheme
+$projectMultiDomainInitialConditions=1;
 #
 $option="beamUnderPressure"; # this currently means ramp the inflow
 #
@@ -70,7 +71,8 @@ GetOptions( "g=s"=>\$grid,"tf=f"=>\$tFinal,"nu=f"=>\$nu,"muFluid=f"=>\$muFluid,"
    "pi=i"=>\$pi,"xShock=f"=>\$xShock,"uShock=f"=>\$uShock,"ap=f"=>\$ap,"bcOption=i"=>\$bcOption,"option=s"=>\$option,\
    "stressRelaxation=f"=>\$stressRelaxation,"relaxAlpha=f"=>\$relaxAlpha,"relaxDelta=f"=>\$relaxDelta,\
    "p0=f"=>\$p0,"sideBC=s"=>\$sideBC,"iOmega=f"=>\$iOmega,"iTol=f"=>\$iTol,\
-   "projectInitialConditions=f"=>\$projectInitialConditions,"restart=s"=>\$restart,"append=i"=>\$append );
+   "projectInitialConditions=f"=>\$projectInitialConditions,"restart=s"=>\$restart,"append=i"=>\$append,\
+   "projectMultiDomainInitialConditions=f"=>\$projectMultiDomainInitialConditions );
 # -------------------------------------------------------------------------------------------------
 if( $solver eq "best" ){ $solver="choose best iterative solver"; }
 if( $psolver eq "best" ){ $psolver="choose best iterative solver"; }
@@ -175,6 +177,8 @@ continue
   OBPDE:interface tolerance $iTol
   OBPDE:interface omega $iOmega
   OBPDE:solve coupled interface equations $coupled
+  # project multi-domain initial condtions
+  OBPDE:project initial conditions $projectMultiDomainInitialConditions
   OBPDE:use new interface transfer $useNewInterfaceTransfer
   # relax correction steps for TP scheme: 
   OBPDE:relax correction steps $useTP

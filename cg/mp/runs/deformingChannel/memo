@@ -1,6 +1,18 @@
 *****************
 ***** Sept 25, 2015
 
+TAKE STEP BACK -- first implement a "projectInitialConditions" for INS + SM
+
+-projectMultiDomainInitialConditions=1 : 
+$cgmpx -noplot deformingChannel -method=ins -g=deformingChannelGridX54.order2 -useTP=1 -iOmega=.1 -iTol=1.e-3 -scf=1. -p0=1 -u0=0. -nu=.01 -tp=.01 -tf=1 -nc=1 -pOffset=0. -tsSM=improvedEuler -numberOfCorrections=200 -rhoSolid=10. -lambdaSolid=10. -muSolid=10. -debug=3 -pi=0 -multiDomainAlgorithm=1 -psolver=yale -uShock=0. -ap=.1 -flushFrequency=2 -bcOption=4 -debug=3 -sideBC=slipWall -projectInitialConditions=0 -option=none -projectMultiDomainInitialConditions=1 -go=go
+
+
+
+
+
+*****************
+***** Sept 25, 2015
+
 REVISIT TP-SI 
 
 DO NOT ramp inflow so we see problem right away (-option=none)

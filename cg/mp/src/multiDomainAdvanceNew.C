@@ -115,17 +115,29 @@ multiDomainAdvanceNew( real &t, real & tFinal )
     {
     //  Assign the RHS for the interface equations on domain at t=0 *wdh* 081105
     //  so that we can apply the boundary conditions at t=0 
-        ForDomainOrdered(d)
+        const bool & projectMultiDomainInitialConditions = parameters.dbase.get<bool>("projectMultiDomainInitialConditions");
+        
+        if( projectMultiDomainInitialConditions )
         {
-      // Assign the RHS for the interface equations on domain d 
-            if( alwaysSetBoundaryData || !solveCoupledInterfaceEquations )
+      // --- project initial conditions --- 
+      // Sometimes we need to iterate on the initial conditions to be self-consistent such as
+      // with the pressure for INS + SM). 
+            projectInitialConditions();
+        }
+        else
+        {
+            ForDomainOrdered(d)
             {
-                std::vector<int> gfIndex(numberOfDomains,current); // ** fix this ** get gfIndex from each domain solver
-                const int correct=0;
-      	assignInterfaceRightHandSide( d, t, dt, correct, gfIndex );
+	// Assign the RHS for the interface equations on domain d 
+      	if( alwaysSetBoundaryData || !solveCoupledInterfaceEquations )
+      	{
+        	  std::vector<int> gfIndex(numberOfDomains,current); // ** fix this ** get gfIndex from each domain solver
+        	  const int correct=0;
+        	  assignInterfaceRightHandSide( d, t, dt, correct, gfIndex );
+      	}
             }
         }
-            
+        
         ForDomainOrdered(d)
         {
             domainSolver[d]->initializeTimeStepping( t,dt );

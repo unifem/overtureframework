@@ -81,6 +81,23 @@ void interfaceCgCm( const int&nd,
 
 
 // ********************** OLD VERSION ****************
+//
+// ===============================================================================================
+/// \brief Assign interface right-hand-side(s) for domain d
+//
+// for( interface )
+//   for( face )
+// 
+//     Stage I:
+//          get data from source domain
+//     Stage II:
+//          transfer date from source domain to target domain 
+//     Stage III:
+//          set data on target domain 
+//  
+//   end (face)
+// end( interface )     
+// ===============================================================================================
 int Cgmp::
 assignInterfaceRightHandSideOld( int d, real t, real dt, int correct, std::vector<int> & gfIndex )
 {

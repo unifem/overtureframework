@@ -533,6 +533,7 @@ setup(const real & time)
             " Relax correction steps = %i.\n"
 	    " Multi-domain algorithm = %s.\n"
             " Project interface = %s. (interfaceProjectionOption=%i, interface-ghost=%s)\n"
+            " Project initial conditions = %i\n"
 	    ,
 	    parameters.dbase.get<real >("cfl"),
 	    parameters.dbase.get<real >("tFinal"),
@@ -548,7 +549,8 @@ setup(const real & time)
             parameters.dbase.get<int>("interfaceProjectionOption"),
             (parameters.dbase.get<int>("interfaceProjectionGhostOption")==0 ? "extrapolate" : 
              parameters.dbase.get<int>("interfaceProjectionGhostOption")==1 ? "compatibility" : 
-             parameters.dbase.get<int>("interfaceProjectionGhostOption")==2 ? "exact" : "domain BC" )
+             parameters.dbase.get<int>("interfaceProjectionGhostOption")==2 ? "exact" : "domain BC" ),
+             parameters.dbase.get<bool>("projectMultiDomainInitialConditions")
              );
 
 

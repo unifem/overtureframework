@@ -99,6 +99,10 @@ MpParameters(const int & numberOfDimensions0) : Parameters(numberOfDimensions0)
   // Here is where we save the maximum residual on each interface
   if( !dbase.has_key("maxResidual") ) dbase.put<std::vector<real> >("maxResidual");
 
+  // Sometimes we need to iterate on the initial conditions (e.g. INS + deforming solids)
+  if (!dbase.has_key("projectMultiDomainInitialConditions")) 
+      dbase.put<bool>("projectMultiDomainInitialConditions")=false;
+
   // initialize the items that we time: 
   initializeTimings();
 }
@@ -197,6 +201,7 @@ setPdeParameters(CompositeGrid & cg, const aString & command /* = nullString */,
                           "project interface",
                           "use nonlinear interface projection",
                           "relax correction steps",
+                          "project initial conditions",
 			    ""};
     int tbState[10];
     tbState[0] = dbase.get<bool>("solveCoupledInterfaceEquations");
@@ -206,6 +211,7 @@ setPdeParameters(CompositeGrid & cg, const aString & command /* = nullString */,
     tbState[4] = dbase.get<bool>("projectInterface");
     tbState[5] = useNonlinearInterfaceProjection;
     tbState[6] = relaxCorrectionSteps;
+    tbState[7] = dbase.get<bool>("projectMultiDomainInitialConditions");
     
     int numColumns=1;
     addPrefix(tbLabels,prefix,cmd,maxCommands);
@@ -337,6 +343,10 @@ setPdeParameters(CompositeGrid & cg, const aString & command /* = nullString */,
     }
     else if( dialog.getToggleValue(answer,"relax correction steps",relaxCorrectionSteps) ){} // 
     // else if( dialog.getTextValue(answer,"dtMax","%e",dbase.get<real >("dtMax")) ){} //
+
+    else if( dialog.getToggleValue(answer,"project initial conditions",
+        dbase.get<bool>("projectMultiDomainInitialConditions")) ){} // 
+
     else if( len=answer.matches("domain order") )
     {
       std::vector<int> & domainOrder = dbase.get<std::vector<int> >("domainOrder");
