@@ -118,8 +118,8 @@ useOld = 0
  divergenceCleaningCoefficient=rpar(17)
  t     =rpar(18)
 
- beta = 0.8
- !beta = 1.0
+ !beta = 0.8
+ beta = 1.0
 
  rpar(20)=0.  ! return the time used for adding dissipation
 
