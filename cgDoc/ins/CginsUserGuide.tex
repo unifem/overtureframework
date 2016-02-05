@@ -20,7 +20,7 @@
 \usepackage{calc}
 \usepackage[margin=1.in]{geometry}
 
-\input homeHenshaw
+%% \input homeHenshaw
 
 \usepackage{amsmath}
 \usepackage{amssymb}
@@ -42,7 +42,7 @@
 % define the clipFig commands:
 % \input clipFig.tex
 \usepackage{tikz}
-\input trimFig.tex
+\input ../common/trimFig.tex
 
 \newcommand{\bogus}[1]{}  % begin a section that will not be printed
 
@@ -55,13 +55,14 @@
 \newtheorem{assumption}{Assumption}
 \newtheorem{definition}{Definition}
 
-\newcommand{\ovFigures}{\homeHenshaw/OvertureFigures}
-\newcommand{\docFigures}{\homeHenshaw/OvertureFigures}
-\newcommand{\figures}{\homeHenshaw/res/OverBlown/docFigures}
-\newcommand{\obFigures}{\homeHenshaw/res/OverBlown/docFigures}  % note: local version for OverBlown
+% \newcommand{\ovFigures}{\homeHenshaw/OvertureFigures}
+% \newcommand{\docFigures}{\homeHenshaw/OvertureFigures}
+% \newcommand{\figures}{\homeHenshaw/res/OverBlown/docFigures}
+% \newcommand{\obFigures}{\homeHenshaw/res/OverBlown/docFigures}  % note: local version for OverBlown
 
 \newcommand{\Overture}{{\bf Overture\ }}
-\newcommand{\insDocDir}{\homeHenshaw/overtureFramework/cgDoc/ins}
+% \newcommand{\insDocDir}{\homeHenshaw/overtureFramework/cgDoc/ins}
+\newcommand{\insDocDir}{.}
 
 % -------------  -------------------
 \newcommand{\Solver}{Cgins}
@@ -87,7 +88,7 @@
 
 
 % -----definitions-----
-\input wdhDefinitions.tex
+\input ../common/wdhDefinitions.tex
 
 \def\ud     {{    U}}
 \def\pd     {{    P}}
@@ -1068,7 +1069,7 @@ To use PETSc you should
 
 %=================================================================================================
 \vfill\eject
-\bibliography{\homeHenshaw/papers/common/journalISI,\homeHenshaw/papers/common/henshaw,\homeHenshaw/papers/common/henshawPapers}
+\bibliography{../common/journalISI,../common/henshaw,../common/henshawPapers}
 \bibliographystyle{siam}
 
 \printindex

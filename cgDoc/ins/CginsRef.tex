@@ -18,7 +18,7 @@
 \usepackage{calc}
 \usepackage[lmargin=.75in,rmargin=.75in,tmargin=.75in,bmargin=.75in]{geometry}
 
-\input homeHenshaw
+% \input homeHenshaw
 
 % \input{pstricks}\input{pst-node}
 % \input{colours}
@@ -48,7 +48,7 @@
 
 \usepackage{tikz}
 \usepackage{pgfplots}
-\input trimFig.tex
+\input ../common/trimFig.tex
 
 
 % ---- we have lemmas and theorems in this paper ----
@@ -58,15 +58,18 @@
 % \newcommand{\homeHenshaw}{/home/henshaw.0}
 
 \newcommand{\Overture}{{\bf Over\-ture\ }}
-\newcommand{\ogenDir}{\homeHenshaw/Overture/ogen}
+% \newcommand{\ogenDir}{\homeHenshaw/Overture/ogen}
 
-\newcommand{\cgDoc}{\homeHenshaw/overtureFramework/cgDoc}
-\newcommand{\vpDir}{\homeHenshaw/overtureFramework/cgDoc/ins/viscoPlastic}
+\newcommand{\cgDoc}{../../cgDoc}
+\newcommand{\cgDir}{../../cg}
+% \newcommand{\vpDir}{\homeHenshaw/overtureFramework/cgDoc/ins/viscoPlastic}
 
-\newcommand{\ovFigures}{\homeHenshaw/OvertureFigures}
-\newcommand{\obFigures}{\homeHenshaw/res/OverBlown/docFigures}  % for figures
-\newcommand{\convDir}{\homeHenshaw/overtureFramework/cgDoc/ins/tables}
-\newcommand{\insDocDir}{\homeHenshaw/overtureFramework/cgDoc/ins}
+% \newcommand{\ovFigures}{\homeHenshaw/OvertureFigures}
+% \newcommand{\obFigures}{\homeHenshaw/res/OverBlown/docFigures}  % for figures
+% \newcommand{\convDir}{\homeHenshaw/overtureFramework/cgDoc/ins/tables}
+\newcommand{\convDir}{tables}
+% \newcommand{\insDocDir}{\homeHenshaw/overtureFramework/cgDoc/ins}
+\newcommand{\insDocDir}{.}
 
 % *** See http://www.eng.cam.ac.uk/help/tpl/textprocessing/squeeze.html
 % By default, LaTeX doesn't like to fill more than 0.7 of a text page with tables and graphics, nor does it like too many figures per page. This behaviour can be changed by placing lines like the following before \begin{document}
@@ -81,7 +84,7 @@
 
 \begin{document}
 
-\input wdhDefinitions.tex
+\input ../common/wdhDefinitions.tex
 
 \def\comma  {~~~,~~}
 \newcommand{\uvd}{\mathbf{U}}
@@ -1019,7 +1022,7 @@ grids.
 
 % -------------------------------------------------------------------------------------------------
 \vfill\eject
-\bibliography{\homeHenshaw/papers/common/journalISI,\homeHenshaw/papers/common/henshaw,\homeHenshaw/papers/common/henshawPapers}
+\bibliography{../common/journalISI,../common/henshaw,../common/henshawPapers}
 \bibliographystyle{siam}
 
 
