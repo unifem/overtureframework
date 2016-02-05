@@ -12,5 +12,5 @@ pseudoCodeOld : pseudoCode.tex
 
 
 getBib:
-	cp /Users/henshaw/papers/common/{henshaw.bib,henshawPapers.bib,fsi.bib} .
+	cp /Users/henshaw/papers/common/{journalISI.bib,henshaw.bib,henshawPapers.bib,fsi.bib} .
 	bibClean henshawPapers.bib
