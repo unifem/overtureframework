@@ -27,6 +27,7 @@
 # Default values for the parameters
 $prefix="latticeGrid"; 
 $orderOfAccuracy = "second order";
+$interp="i"; $factor=1; 
 $nCylx=2; $nCyly=2;   # number of cylinders in each direction
 $bc = "1 2 -1 -1";
 # 
@@ -38,11 +39,11 @@ GetOptions( "order=i"=>\$order,"factor=f"=> \$factor,"xa=f"=>\$xa,"xb=f"=>\$xb,"
 if( $order eq 4 ){ $orderOfAccuracy="fourth order"; $ng=2; }\
 elsif( $order eq 6 ){ $orderOfAccuracy="sixth order"; $ng=4; }\
 elsif( $order eq 8 ){ $orderOfAccuracy="eighth order"; $ng=6; }
-if( $interp eq "e" ){ $interpType = "explicit for all grids"; }
+if( $interp eq "e" ){ $interpType = "explicit for all grids"; }else{ $interpType = "implicit for all grids"; }
 # 
 $suffix = ".order$order"; 
 if( $ml ne 0 ){ $suffix .= ".ml$ml"; }
-if( $name eq "" ){$name = $prefix . "$nCylx\x$nCyly\y" . "$interp$factor" . $suffix . ".hdf";}
+if( $name eq "" ){$name = $prefix . "$nCylx" . "x" . "$nCyly" . "y" . "$interp$factor" . $suffix . ".hdf";}
 #
 # -- back-ground grid:
 $rxa=-($nCylx/2.+1.); $rxb=-$rxa;
@@ -190,6 +191,9 @@ generate an overlapping grid
   done 
 #
   change parameters 
+   # choose implicit or explicit interpolation
+    interpolation type
+      $interpType
 #   We must prevent hole cutting and interpolation between
 #   the inner and outer grids.  
     prevent hole cutting

@@ -432,6 +432,7 @@ mbuilder= mbuilder.o createMappings.o checkMapping.o StretchMapping.o
 mbuilder= mbuilder.o createMappings.o MappingBuilder.o LoftedSurfaceMapping.o
 mbuilder= mbuilder.o createMappings.o MappingBuilder.o NurbsMapping.o nurbsInterpolate.o
 mbuilder= mbuilder.o createMappings.o AnnulusMapping.o Mapping.o
+mbuilder= mbuilder.o createMappings.o NurbsMapping.o
 mbuilder: $(mbuilder) 
 	$(CC) $(CCFLAGS) -o $@ $(mbuilder) $(CLIBS) $(FLIBS) $(GLIBS) $(ChimeraLib)
 

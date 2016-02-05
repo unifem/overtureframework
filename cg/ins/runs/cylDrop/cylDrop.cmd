@@ -2,7 +2,7 @@
 # A dropping cylinder -- compare to the results frm Glowinski, Pan, et.al.dropping cylinders
 # Usage:
 #    cgins [-noplot] cylDrop -g=<name> -tp=<f> -tp=<f> -density=<f> -bcOption=[walls|inflowOutflow] ...
-#        -sep=<f> -vIn=<f> -forceLimit=<f> -go[halg|go|og]
+#        -sep=<f> -vIn=<f> -forceLimit=<f> -go[halt|go|og]
 #  
 #  -sep : separation distance for collisions
 #
