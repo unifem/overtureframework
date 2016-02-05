@@ -10,3 +10,7 @@ pseudoCodeOld : pseudoCode.tex
 	dvips -P pdf -G0 -o pseudoCode.ps pseudoCode.dvi
 	ps2pdf pseudoCode.ps
 
+
+getBib:
+	cp /Users/henshaw/papers/common/{henshaw.bib,henshawPapers.bib,fsi.bib} .
+	bibClean henshawPapers.bib

@@ -1,0 +1,1250 @@
+%% Fluid structure references -- started 090113
+                  
+
+%% url = {http://dx.doi.org/10.1002/fld.3937},
+@article {LakshminarayanFarhatMain2014,
+author = {Lakshminarayan, V. and Farhat, C. and Main, A.},
+title = {An embedded boundary framework for compressible turbulent flow and fluid–structure computations on structured and unstructured grids},
+journal = IJNMF,
+volume = {76},
+number = {6},
+issn = {1097-0363},
+doi = {10.1002/fld.3937},
+pages = {366--395},
+keywords = {embedded boundary method, distance to the wall, fluid–structure interaction, immersed boundary method, load computation, Riemann solver, turbulent flows, viscous flows},
+year = {2014},
+abstract = {The finite volume method with exact two-phase Riemann problems (FIVER) is a two-faceted computational method for compressible multi-material (fluid–fluid, fluid–structure, and multi-fluid–structure) problems characterized by large density jumps, and/or highly nonlinear structural motions and deformations. For compressible multi-phase flow problems, FIVER is a Godunov-type discretization scheme characterized by the construction and solution at the material interfaces of local, exact, two-phase Riemann problems. For compressible fluid–structure interaction (FSI) problems, it is an embedded boundary method for computational fluid dynamics (CFD) capable of handling large structural deformations and topological changes. Originally developed for inviscid multi-material computations on nonbody-fitted structured and unstructured grids, FIVER is extended in this paper to laminar and turbulent viscous flow and FSI problems. To this effect, it is equipped with carefully designed extrapolation schemes for populating the ghost fluid values needed for the construction, in the vicinity of the fluid–structure interface, of second-order spatial approximations of the viscous fluxes and source terms associated with Reynolds averaged Navier–Stokes (RANS)-based turbulence models and large eddy simulation (LES). Two support algorithms, which pertain to the application of any embedded boundary method for CFD to the robust, accurate, and fast solution of FSI problems, are also presented in this paper. The first one focuses on the fast computation of the time-dependent distance to the wall because it is required by many RANS-based turbulence models. The second algorithm addresses the robust and accurate computation of the flow-induced forces and moments on embedded discrete surfaces, and their finite element representations when these surfaces are flexible. Equipped with these two auxiliary algorithms, the extension of FIVER to viscous flow and FSI problems is first verified with the LES of a turbulent flow past an immobile prolate spheroid, and the computation of a series of unsteady laminar flows past two counter-rotating cylinders. Then, its potential for the solution of complex, turbulent, and flexible FSI problems is also demonstrated with the simulation, using the Spalart–Allmaras turbulence model, of the vertical tail buffeting of an F/A-18 aircraft configuration and the comparison of the obtained numerical results with flight test data. Copyright © 2014 John Wiley & Sons, Ltd.},
+}
+
+
+%% url = {http://dx.doi.org/10.1002/fld.3659},
+@article {WangGretarssonMainFarhat2012,
+author = {Wang, K. and Gr\'etarsson, J. and Main, A. and Farhat, C.},
+title = {Computational algorithms for tracking dynamic fluid–structure interfaces in embedded boundary methods},
+journal = {International Journal for Numerical Methods in Fluids},
+volume = {70},
+number = {4},
+issn = {1097-0363},
+doi = {10.1002/fld.3659},
+pages = {515--535},
+keywords = {embedded boundary method, immersed boundary method, fluid–structure interaction, interface tracking, Eulerian},
+year = {2012},
+}
+
+
+%% url = "http://www.sciencedirect.com/science/article/pii/S0021999112002823",
+@article{FarhatGerbeauRallu2012,
+title = "{FIVER}: A finite volume method based on exact two-phase {Riemann} problems and sparse grids for multi-material flows with large density jumps ",
+journal = JCP,
+volume = "231",
+number = "19",
+pages = "6360 - 6379",
+year = "2012",
+issn = "0021-9991",
+doi = "http://dx.doi.org/10.1016/j.jcp.2012.05.026",
+author = "Charbel Farhat and Jean-Fr\'ed\'eric Gerbeau and Arthur Rallu",
+keywords = "Arbitrary equation of state",
+keywords = "Compressible flow",
+keywords = "Finite volume method",
+keywords = "Large density jump",
+keywords = "Multi-material",
+keywords = "Multi-phase",
+keywords = "Two-phase Riemann solver",
+keywords = "Sparse grids ",
+abstract = "A robust finite volume method for the solution of high-speed compressible flows in multi-material domains involving arbitrary equations of state and large density jumps is presented. The global domain of interest can include a moving or deformable subdomain that furthermore may undergo topological changes due to, for example, crack propagation. The key components of the proposed method include: (a) the definition of a discrete surrogate material interface, (b) the computation of a reliable approximation of the fluid state vector on each side of a discrete material interface via the construction and solution of a local, exact, two-phase Riemann problem, (c) the algebraic solution of this auxiliary problem when the equation of state allows it, and (d) the solution of this two-phase Riemann problem using sparse grid tabulations otherwise. The proposed computational method is illustrated with the three-dimensional simulation of the dynamics of an underwater explosion bubble. "
+}
+
+
+% author = "M. Lukáčová-Medvid’ová and G. Rusnáková and A. Hundertmark-Zaušková",
+% url = "http://www.sciencedirect.com/science/article/pii/S0045782513001527",
+@article{LukacovaMedvidovaRusnakovaHundertmarkZauskova2013,
+title = "Kinematic splitting algorithm for fluid–structure interaction in hemodynamics ",
+journal = "Computer Methods in Applied Mechanics and Engineering ",
+volume = "265",
+pages = "83 - 106",
+year = "2013",
+issn = "0045-7825",
+doi = "http://dx.doi.org/10.1016/j.cma.2013.05.025",
+author = "M. Luk\'a\v{c}ov\'a-Medvid'ov\'a and G. Rusn\'akov\'a and A. Hundertmark-Zau\v{s}kov\'a",
+keywords = "Fluid–structure interaction",
+keywords = "Non-Newtonian fluids",
+keywords = "Stability",
+keywords = "Hemodynamic wall parameters",
+keywords = "Stenosis",
+keywords = "Bifurcation ",
+abstract = "Abstract In this paper we study a kinematic splitting algorithm for fluid–structure interaction problems. This algorithm belongs to the class of loosely-coupled fluid–structure interaction schemes. We will present stability analysis for a coupled problem of non-Newtonian shear-dependent fluids in moving domains with viscoelastic boundaries. Fluid flow is described by the conservation laws with nonlinearities in convective and diffusive terms. For simplicity of presentation the structure is modelled by the generalized string equation, but the results presented in the paper may be generalized to more complex structure models. The arbitrary Lagrangian–Eulerian approach is used in order to take into account moving computational domain. Numerical experiments including numerical error analysis and comparison of hemodynamic parameters for Newtonian and non-Newtonian fluids demonstrate reliability of the proposed scheme. "
+}
+
+
+
+% url = "http://www.sciencedirect.com/science/article/pii/S0021999114002836",
+@article{LiuJaimanGurugubelli2014,
+title = "A stable second-order scheme for fluid--structure interaction with strong added-mass effects ",
+journal = "Journal of Computational Physics ",
+volume = "270",
+pages = "687 - 710",
+year = "2014",
+issn = "0021-9991",
+doi = "http://dx.doi.org/10.1016/j.jcp.2014.04.020",
+author = "Jie Liu and Rajeev K. Jaiman and Pardha S. Gurugubelli",
+keywords = "fluid--structure interaction",
+keywords = "Low mass density ratio",
+keywords = "Combined field with explicit interface",
+keywords = "Second order",
+keywords = "Stability proof",
+keywords = "Flapping dynamics",
+keywords = "Strong added-mass ",
+abstract = "Abstract In this paper, we present a stable second-order time accurate scheme for solving fluid--structure interaction problems. The scheme uses so-called Combined Field with Explicit Interface (CFEI) advancing formulation based on the Arbitrary Lagrangian–Eulerian approach with finite element procedure. Although loosely-coupled partitioned schemes are often popular choices for simulating \{FSI\} problems, these schemes may suffer from inherent instability at low structure to fluid density ratios. We show that our second-order scheme is stable for any mass density ratio and hence is able to handle strong added-mass effects. Energy-based stability proof relies heavily on the connections among extrapolation formula, trapezoidal scheme for second-order equation, and backward difference method for first-order equation. Numerical accuracy and stability of the scheme is assessed with the aid of two-dimensional fluid--structure interaction problems of increasing complexity. We confirm second-order temporal accuracy by numerical experiments on an elastic semi-circular cylinder problem. We verify the accuracy of coupled solutions with respect to the benchmark solutions of a cylinder-elastic bar and the Navier–Stokes flow system. To study the stability of the proposed scheme for strong added-mass effects, we present new results using the combined field formulation for flexible flapping motion of a thin-membrane structure with low mass ratio and strong added-mass effects in a uniform axial flow. Using a systematic series of fluid--structure simulations, a detailed analysis of the coupled response as a function of mass ratio for the case of very low bending rigidity has been presented. "
+}
+
+
+
+%% url = "http://www.sciencedirect.com/science/article/pii/S0021999114002216",
+@article{FroehlePersson2014,
+title = "A high-order discontinuous {Galerkin} method for fluid--structure interaction with efficient implicit-explicit time stepping ",
+journal = JCP,
+volume = "272",
+pages = "455--470",
+year = "2014",
+issn = "0021-9991",
+doi = "http://dx.doi.org/10.1016/j.jcp.2014.03.034",
+author = "Bradley Froehle and Per-Olof Persson",
+keywords = "fluid--structure interaction",
+keywords = "Discontinuous Galerkin",
+keywords = "Implicit–explicit",
+keywords = "Runge–Kutta ",
+abstract = "Abstract We present a high-order accurate scheme for coupled fluid--structure interaction problems. The fluid is discretized using a discontinuous Galerkin method on unstructured tetrahedral meshes, and the structure uses a high-order volumetric continuous Galerkin finite element method. Standard radial basis functions are used for the mesh deformation. The time integration is performed using a partitioned approach based on implicit–explicit Runge–Kutta methods. The resulting scheme fully decouples the implicit solution procedures for the fluid and the solid parts, which we perform using two separate efficient parallel solvers. We demonstrate up to fifth order accuracy in time on a non-trivial test problem, on which we also show that additional subiterations are not required. We solve a benchmark problem of a cantilever beam in a shedding flow, and show good agreement with other results in the literature. Finally, we solve for the flow around a thin membrane at a high angle of attack in both 2D and 3D, and compare with the results obtained with a rigid plate. "
+}                 
+
+
+% url = "http://www.sciencedirect.com/science/article/pii/S0889974611000600",
+@article{Bearman2011,
+title = "Circular cylinder wakes and vortex-induced vibrations ",
+journal = journal-of-fluids-and-structures,
+volume = "27",
+number = "5--6",
+pages = "648--658",
+year = "2011",
+note = "{IUTAM} Symposium on Bluff Body Wakes and Vortex-Induced Vibrations (BBVIV-6) ",
+issn = "0889-9746",
+doi = "http://dx.doi.org/10.1016/j.jfluidstructs.2011.03.021",
+author = "P.W. Bearman",
+keywords = "Vortex-induced vibration",
+keywords = "Circular cylinder wakes",
+keywords = "Vortex shedding",
+keywords = "Tandem cylinders ",
+abstract = "This paper presents a selective review of recent research on vortex-induced vibrations of isolated circular cylinders and the flow and vibration of circular cylinders in a tandem arrangement; a common thread being that the topics raised are of particular interest to the author. The influence of Reynolds number on the response of isolated cylinders is presented and recent developments using forced vibration are discussed. The response of a cylinder free to respond in the in-line and transverse directions is contrasted with that of a cylinder responding in only one direction. The interference between two circular cylinders is discussed and prominence given to the case of cylinders in a tandem arrangement. The origin of the time–mean lift force on the downstream cylinder is considered together with the cause of the large amplitude transverse vibration experienced by the cylinder above vortex resonance. This wake-induced vibration is shown to be a form of vortex-induced vibration. "
+}
+
+% url = "http://www.sciencedirect.com/science/article/pii/S0889974603000069",
+@article{GluckBreuerDurstHalfmannRank2003,
+title = "Computation of wind-induced vibrations of flexible shells and membranous structures ",
+journal = journal-of-fluids-and-structures,
+volume = "17",
+number = "5",
+pages = "739--765",
+year = "2003",
+issn = "0889-9746",
+doi = "http://dx.doi.org/10.1016/S0889-9746(03)00006-9",
+author = "M {Gl\"uck} and M Breuer and F Durst and A Halfmann and E Rank",
+abstract = "A partitioned coupling approach for time-dependent fluid--structure interactions is applied to thin shells and membranous structures with large displacements. The frame algorithm connects a three-dimensional, finite volume-based multi-block flow solver for incompressible fluids with a finite element code for geometrically nonlinear structural problems using a commercial coupling interface. Thus a high modularity is achieved and the whole range of opportunities with these two powerful codes — each of them highly adapted to its specific field of application — can be used also for coupled simulations. Two completely different configurations were investigated. First, the coupling algorithm was applied to an academic test configuration consisting of one, two, and three flexible L-shaped plates being loaded by a steady far-field flow. Various investigations were carried out at different Reynolds numbers (Re=50,200, and 500) in order to study phenomena such as vortex shedding, resonance, influence of the interaction between several flexible plates, whereas the second and third plates were placed in the wake of the first. The second part of the paper shows that in principle the coupling procedure can also deal with real-life structures as they occur in civil engineering. A membranous roof of glass-fiber synthetics with a complex shape was exposed to a time-dependent wind gust from diagonally above which was superimposed on a constant basic wind flow parallel to the ground. The structural model contains the pre-stressed textile roof including the taut cables at its circumference which are fastened at the pylons. As a structural response, the wind gust led to a displacement of the textile roof which disappeared again when the gust subsided. With the coupled algorithm proposed in the paper it is possible to study dynamic interactions for engineering applications. "
+}
+
+%% url = "http://www.sciencedirect.com/science/article/pii/S0167610501001507",
+@article{GluckBreuerDurstHalfmannRank2001,
+title = "Computation of fluid--structure interaction on lightweight structures ",
+journal = journal-of-wind-engineering-and-industrial-aerodynamics,
+volume = "89",
+number = "14--15",
+pages = "1351--1368",
+year = "2001",
+issn = "0167-6105",
+doi = "http://dx.doi.org/10.1016/S0167-6105(01)00150-7",
+author = "M. {Gl\"uck} and M. Breuer and F. Durst and A. Halfmann and E. Rank",
+abstract = "In this paper a numerical approach of a time-dependent fluid--structure coupling for membrane and thin shell structures with large displacements is presented. The frame algorithm is partitioned, yet fully implicit because of a predictor-corrector scheme being applied to the structural displacements within each time step. In order to reach a high modularity, two powerful codes—one of them highly adapted to flow simulation and the other one to structural dynamics—run simultaneously and exchange fluid loads and displacements within each fluid--structure iteration. The finite volume based \{CFD\} code is able to compute three-dimensional, incompressible, turbulent flows. The structural simulations are performed using a finite element program including algorithms for geometrically and physically non-linear problems. In this paper the coupled algorithm will first be applied to some geometrically simple test cases to validate the interaction scheme. Then a real-life textile tent structure of glass-fibre synthetics with a complex shape is taken into account. This example was investigated under turbulent flow conditions at a high wind speed leading to a steady deformation state. "
+}
+
+
+
+
+%% url={http://dx.doi.org/10.1007/3-540-34596-5_15},
+@incollection{TurekHron2006,
+year={2006},
+isbn={978-3-540-34595-4},
+booktitle={Fluid--Structure Interaction},
+volume={53},
+series={Lecture Notes in Computational Science and Engineering},
+editor={Bungartz, Hans-Joachim and {Sch\"afer}, Michael},
+doi={10.1007/3-540-34596-5_15},
+title={Proposal for Numerical Benchmarking of Fluid--Structure Interaction between an Elastic Object and Laminar Incompressible Flow},
+publisher={Springer Berlin Heidelberg},
+author={Turek, Stefan and Hron, Jaroslav},
+pages={371-385},
+language={English}
+}                  
+
+@incollection{FormaggiaQuarteroniVeneziani2009,
+year={2009},
+booktitle={Cardiovascular Mathematics. Modeling and simulation of the circulatory system},
+volume={1},
+editor={Bungartz, Hans-Joachim and {Sch\"afer}, Michael},
+publisher={Springer Berlin Heidelberg},
+author={L. Formaggia and A. Quarteroni and A. Veneziani},
+}                  
+
+
+
+
+@article{FormaggiaGerbeauNobileQuarteroni2001,
+title = "On the coupling of {3D} and {1D} {Navier-Stokes} equations for flow problems in compliant vessels ",
+journal = CMAME,
+volume = "191",
+number = "6-7",
+pages = "561--582",
+year = "2001",
+author = "L. Formaggia and J.F. Gerbeau and F. Nobile and A. Quarteroni",
+keywords = "fluid--structure interaction",
+keywords = "Computational fluid dynamics",
+keywords = "Absorbing boundary conditions",
+keywords = "Multi-scale models",
+keywords = "Haemodynamics "
+}
+
+@inproceedings{RabackRuokolainenLyly2001,
+   author = {Raback, P. and Ruokolainen, J. and Lyly, M.},
+   booktitle = "ECCOMAS Computational Fluid Dynamics Conference 2001 Swansea, Wales, UK",
+   title = "Fluid--structure interaction boundary conditions by artificial compressibility",
+   year = 2001}
+
+@inproceedings{RiemslaghVierendeelsDick2000,
+  author       = {Riemslagh, Kristiaan and Vierendeels, Jan and Dick, Erik},
+  booktitle    = {Proceedings of the European Congress on Computational Methods in Applied Sciences and Engineering (ECCOMAS 2000), Barcelona},
+  isbn         = {84-89925-70-4, 13 pp},
+  language     = {eng},
+  title        = {An efficient coupling procedure for flexible wall fluid--structure interaction},
+  year         = {2000},
+}
+
+@article{Heil2004,
+title = "An efficient solver for the fully coupled solution of large-displacement fluid--structure interaction problems ",
+journal = CMAME,
+volume = "193",
+number = "1--2",
+pages = "1 -- 23",
+year = "2004",
+issn = "0045-7825",
+doi = "http://dx.doi.org/10.1016/j.cma.2003.09.006",
+author = "Matthias Heil",
+keywords = "fluid--structure interaction",
+keywords = "Fully coupled solution",
+keywords = "Finite elements",
+keywords = "Preconditioning",
+keywords = "Multigrid",
+keywords = "Stabilisation ",
+abstract = "This paper is concerned with the fully coupled (monolithic) solution of large-displacement fluid--structure interaction problems by Newton\u2019s method. We show that block-triangular approximations of the Jacobian matrix, obtained by neglecting selected fluid--structure interaction blocks, provide good preconditioners for the solution of the linear systems with GMRES. We present an efficient approximate implementation of the preconditioners, based on a Schur complement approximation for the Navier-Stokes block and the use of multigrid approximations for the solution of the computationally most expensive operations. The performance of the the preconditioners is examined in representative steady and unsteady simulations which show that the \{GMRES\} iteration counts only display a mild dependence on the Reynolds number and the mesh size. The final part of the paper demonstrates the importance of consistent stabilisation for the accurate simulation of fluid--structure interaction problems. "
+}
+
+@article{BatheLedezma2007,
+ author = {Bathe, Klaus-J\"{u}rgen and Ledezma, Gustavo A.},
+ title = {Benchmark problems for incompressible fluid flows with structural interactions},
+ journal = {Comput. Struct.},
+ issue_date = {June, 2007},
+ volume = {85},
+ number = {11-14},
+ month = jun,
+ year = {2007},
+ issn = {0045-7949},
+ pages = {628--644},
+ numpages = {17},
+ doi = {10.1016/j.compstruc.2007.01.025},
+ acmid = {1243743},
+ publisher = {Pergamon Press, Inc.},
+ address = {Elmsford, NY, USA},
+ keywords = {ADINA, Benchmark problems, fluid--structure interactions, Incompressible fluid flows, Navier-Stokes equations},
+} 
+
+
+
+@article{BatheZhang2004,
+title = "Finite element developments for general fluid flows with structural interactions",
+author = "Bathe, K.-J. and Zhang, H.",
+journal = IJNME,
+volume = "60",
+pages = "213--232",
+year = "2004"
+}
+
+@article{GeeKuttlerWall2011,
+title = "Truly monolithic algebraic multigrid for fluid--structure interaction",
+author = {Gee, M. W. and K\"uttler, U. and Wall, W. A.},
+journal = IJNME,
+volume = "85",
+pages = "987--1016",
+year = "2011"
+}
+
+
+@article{FigueroaVignonClementelJansenHughesTaylor2006,
+title = "A coupled momentum method for modeling blood flow in three-dimensional deformable arteries ",
+journal = CMAME,
+volume = "195",
+number = "41-43",
+pages = "5685--5706",
+year = "2006",
+issn = "0045-7825",
+doi = "http://dx.doi.org/10.1016/j.cma.2005.11.011",
+author = "C. Alberto Figueroa and Irene E. Vignon-Clementel and Kenneth E. Jansen and Thomas J.R. Hughes and Charles A. Taylor",
+keywords = "Finite element",
+keywords = "Fluid-solid interaction",
+keywords = "Three-dimensional",
+keywords = "Blood flow",
+keywords = "Wave propagation ",
+abstract = "Blood velocity and pressure fields in large arteries are greatly influenced by the deformability of the vessel. Moreover, wave propagation phenomena in the cardiovascular system can only be described considering wall deformability since blood is usually described as an incompressible fluid. However, computational methods for simulating blood flow in three-dimensional models of arteries have either considered a rigid wall assumption for the vessel or significantly simplified or reduced geometries. Computing blood flow in deformable domains using standard techniques like the \{ALE\} method remains a formidable problem for large, realistic anatomic and physiologic models of the cardiovascular system. We have developed a new method to simulate blood flow in three-dimensional deformable models of arteries. The method couples the equations of the deformation of the vessel wall at the variational level as a boundary condition for the fluid domain. We consider a strong coupling of the degrees-of-freedom of the fluid and the solid domains, and a linear membrane model (enhanced with transverse shear) for the vessel wall. The effect of the vessel wall boundary is therefore added in a monolithic way to the fluid equations, resulting in a remarkably robust scheme. We present here the mathematical formulation of the method and discuss issues related to the fluid-solid coupling, membrane formulation, time integration method, and boundary and initial conditions. Implementation is discussed and results with simple geometries as well as large subject-specific models are presented. "
+}
+
+
+@article{GretarssonKwatraFedkiw2011,
+title = "Numerically stable fluid--structure interactions between compressible flow and solid structures",
+journal = JCP,
+volume = "230",
+number = "8",
+pages = "3062--3084",
+year = "2011",
+issn = "0021-9991",
+doi = "DOI: 10.1016/j.jcp.2011.01.005",
+author = "J\'on T\'omas Gr\'etarsson and Nipun Kwatra and Ronald Fedkiw",
+keywords = "Compressible flow",
+keywords = "fluid--structure interactions",
+keywords = "Implicit methods",
+keywords = "Conservative schemes"
+}
+
+@article{CrosettoDeparisFouresteyQuarteroni2011,
+ author = {Crosetto, Paolo and Deparis, Simone and Fourestey, Gilles and Quarteroni, Alfio},
+ title = {Parallel Algorithms for Fluid--Structure Interaction Problems in Haemodynamics},
+ journal = {SIAM J. Sci. Comput.},
+ issue_date = {July 2011},
+ volume = {33},
+ number = {4},
+ month = jul,
+ year = {2011},
+ issn = {1064-8275},
+ pages = {1598--1622},
+ numpages = {25},
+ doi = {10.1137/090772836},
+ acmid = {2079050},
+ publisher = {Society for Industrial and Applied Mathematics},
+ address = {Philadelphia, PA, USA},
+ keywords = {blood-flow models, finite elements, fluid--structure interaction, parallel algorithms, preconditioners},
+} 
+
+
+@article {TezduyarTakizawaBrummerChen2011,
+author = {Tezduyar, Tayfun E. and Takizawa, Kenji and Brummer, Tyler and Chen, Peng R.},
+title = {Space-time fluid--structure interaction modeling of patient-specific cerebral aneurysms},
+journal = IJNMBE,
+volume = {27},
+number = {11},
+publisher = {John Wiley & Sons, Ltd.},
+issn = {2040-7947},
+doi = {10.1002/cnm.1433},
+pages = {1665--1710},
+keywords = {cardiovascular fluid mechanics, cerebral aneurysms, fluid--structure interactions, space-time methods, special techniques},
+year = {2011},
+}
+
+@article {TezduyarSathe2007,
+author = {Tezduyar, Tayfun E. and Sathe, Sunil},
+title = {Modelling of fluid--structure interactions with the space-time finite elements: Solution techniques},
+journal = IJNMF,
+volume = {54},
+number = {6-8},
+publisher = {John Wiley \& Sons, Ltd.},
+issn = {1097-0363},
+doi = {10.1002/fld.1430},
+pages = {855--900},
+keywords = {fluid--structure interactions, finite elements, space-time methods, segregated solution techniques},
+year = {2007},
+}
+
+
+@article{BaekKarniadakis2012,
+title = "A convergence study of a new partitioned fluid--structure interaction algorithm based on fictitious mass and damping ",
+journal = JCP,
+volume = "231",
+number = "2",
+pages = "629--652",
+year = "2012",
+issn = "0021-9991",
+doi = "http://dx.doi.org/10.1016/j.jcp.2011.09.025",
+author = "Hyoungsu Baek and George Em Karniadakis",
+keywords = "\{FSI\}",
+keywords = "Partitioned method",
+keywords = "\{VIV\}",
+keywords = "Flexible arteries",
+keywords = "Aneurysm ",
+abstract = "We develop, analyze and validate a new method for simulating fluid--structure interactions (FSIs), which is based on fictitious mass and fictitious damping in the structure equation. We employ a partitioned method for the fluid and structure motions in conjunction with sub-iteration and Aitken relaxation. In particular, the use of such fictitious parameters requires sub-iterations in order to reduce the induced error in addition to the local temporal truncation error. To this end, proper levels of tolerance for terminating the sub-iteration procedure have been obtained in order to recover the formal order of temporal accuracy. For the coupled \{FSI\} problem, these fictitious terms have a significant effect, leading to better convergence rate and hence substantially smaller number of sub-iterations. Through analysis we identify the proper range of these parameters, which we then verify by corresponding numerical tests. We implement the method in the context of spectral element discretization, which is more sensitive than low-order methods to numerical instabilities arising in the explicit \{FSI\} coupling. However, the method we present here is simple and general and hence applicable to \{FSI\} based on any other discretization. We demonstrate the effectiveness of the method in applications involving 2D vortex-induced vibrations (VIV) and in 3D flexible arteries with structural density close to blood density. We also present 3D results for a patient-specific aneurysmal flow under pulsatile flow conditions examining, in particular, the sensitivity of the results on different values of the fictitious parameters. "
+}
+
+
+@article{YuBaekKarniadakis2013,
+title = "Generalized fictitious methods for fluid--structure interactions: Analysis and simulations ",
+journal = JCP,
+volume = "245",
+pages = "317--346",
+year = "2013",
+issn = "0021-9991",
+doi = "http://dx.doi.org/10.1016/j.jcp.2013.03.025",
+author = "Yue Yu and Hyoungsu Baek and George Em Karniadakis"
+}
+
+
+
+@article{KirbyYosibashKarniadakis2007,
+ author = {Kirby, Robert M. and Yosibash, Zohar and Karniadakis, George Em},
+ title = {Towards stable coupling methods for high-order discretization of fluid--structure interaction: Algorithms and observations},
+ journal = {J. Comput. Phys.},
+ issue_date = {May, 2007},
+ volume = {223},
+ number = {2},
+ month = may,
+ year = {2007},
+ issn = {0021-9991},
+ pages = {489--518},
+ numpages = {30},
+ doi = {10.1016/j.jcp.2006.09.015},
+ acmid = {1233230},
+ publisher = {Academic Press Professional, Inc.},
+ address = {San Diego, CA, USA},
+ keywords = {Coupling algorithms, Data transfer, fluid--structure interaction, High-order methods, Spectral/hp elements},
+} 
+
+
+
+@article{ForsterWallRamm2007,
+title = "Artificial added mass instabilities in sequential staggered coupling of nonlinear structures and incompressible viscous flows ",
+journal = CMAME,
+volume = "196",
+number = "7",
+pages = "1278--1293",
+year = "2007",
+issn = "0045-7825",
+doi = "http://dx.doi.org/10.1016/j.cma.2006.09.002",
+author = {Christiane F\"orster and Wolfgang A. Wall and Ekkehard Ramm},
+keywords = "Artificial added mass",
+keywords = "fluid--structure interaction",
+keywords = "Partitioned procedure",
+keywords = "Stability "
+}
+
+@article{ForsterWallRamm2007b,
+   author = {C. F\"orster and W. A. Wall and E. Ramm},
+   title = "Artificial added mass instabilities in sequential staggered coupling of nonlinear structures and incompressible viscous flows",
+   journal = CMAME,
+   volume = 196,
+   pages = "1278--1293",
+   year = 2007}
+
+%%   url         = {http://dx.doi.org/10.1016/j.cma.2008.04.018},
+@Article{{BadiaQuainiQuarteroni2008a,
+   abstract    = {In this article we address the numerical simulation of
+                 fluid--structure interaction (FSI) problems featuring
+                 large added-mass effect. We analyze different
+                 preconditioners for the coupled system matrix obtained
+                 after space- time discretization and linearization of the
+                 FSI problem. The classical Dirichlet-Neumann
+                 preconditioner has the advantage of ``modularity''
+                 because it allows to reuse existing fluid and structure
+                 codes with minimum effort (simple interface
+                 communication). Unfortunately, its performance is very
+                 poor in case of large added-mass effects. Alternatively,
+                 we consider two non-modular approaches. The first one
+                 consists in preconditioning the coupled system with a
+                 suitable diagonal scaling combined with an ILUT
+                 preconditioner. The system is then solved by a Krylov
+                 method. The drawback of this procedure is that the
+                 combination of fluid and structure codes to solve the
+                 coupled system is not straightforward. The second
+                 non-modular approach we consider is a splitting technique
+                 based on an inexact block-LU factorization of the linear
+                 FSI system. The resulting algorithm computes the fluid
+                 velocity separately from the coupled pressure-structure
+                 system at each iteration, reducing the computational
+                 cost. Independently of the preconditioner, the efficiency
+                 of semi-implicit algorithms (i.e., those that treat
+                 geometric and fluid nonlinearities in an explicit way) is
+                 highlighted and their performance compared to the one of
+                 implicit algorithms. All the methods are tested on
+                 three-dimensional blood-vessel systems. The algorithm
+                 combining the non-modular ILUT preconditioner with Krylov
+                 methods proved to be the fastest.},
+   affiliation = {EPFL},
+   author      = {Badia, Santiago and Quaini, Annalisa and Quarteroni, Alfio},
+   details     = {http://infoscience.epfl.ch/record/121500},
+   doi         = {10.1016/j.cma.2008.04.018},
+   extra-id    = {13761; 000260764700012},
+   journal     = CMAME,
+   keywords    = {fluid--structure interaction; partitioned procedures;
+                 preconditioners; semi-implicit coupling; added-mass
+                 effect; hemodynamics},
+   note        = {Please cite as: EPFL-IACS report 04.2008},
+   number      = {49-50},
+   oai-id      = {oai:infoscience.epfl.ch:121500},
+   oai-set     = {driver},
+   pages       = {4216--4232},
+   review      = {REVIEWED},
+   status      = {PUBLISHED},
+   title       = {Modular vs. {n}on-modular preconditioners for
+                 fluid--structure systems with large added-mass effect},
+   unit        = {CMCS},
+   volume      = {197},
+   year        = 2008
+}
+
+
+@article{BadiaQuainiQuarteroni2008,
+ author = {Badia, Santiago and Quaini, Annalisa and Quarteroni, Alfio},
+ title = {Splitting Methods Based on Algebraic Factorization for Fluid--Structure Interaction},
+ journal = SISC,
+ issue_date = {April 2008},
+ volume = {30},
+ number = {4},
+ month = apr,
+ year = {2008},
+ issn = {1064-8275},
+ pages = {1778--1805},
+ numpages = {28},
+ doi = {10.1137/070680497},
+ acmid = {1405012},
+ publisher = {Society for Industrial and Applied Mathematics},
+ address = {Philadelphia, PA, USA},
+ keywords = {added-mass effect, algebraic splitting methods, blood flow, fluid--structure interaction, inexact factorization, semi-implicit coupling},
+} 
+
+
+%--------------------------------- FERNANDEZ ET AL ---------------------------------------------------                  
+
+
+%  URL = {https://hal.inria.fr/hal-00918498},
+@techreport{FernandezLanajuelaVidrascu2015,
+  TITLE = {{Fully decoupled time-marching schemes for incompressible fluid/thin-walled structure interaction}},
+  AUTHOR = {Fern{\'a}ndez, Miguel Angel and Landajuela, Mikel and Vidrascu, Marina},
+  TYPE = {Research Report},
+  NUMBER = {RR-8425},
+  INSTITUTION = {{Inria}},
+  YEAR = {2014},
+  MONTH = Dec,
+  KEYWORDS = {fluid--structure interaction ; incompressible fluid ; Reissner-Mindlin shell ; time-discretization ; projection method ; explicit coupling scheme},
+  PDF = {https://hal.inria.fr/hal-00918498/file/RR-8425.pdf},
+  HAL_ID = {hal-00918498},
+  HAL_VERSION = {v3},
+}                  
+
+
+@article{FernandezMullaertVidrascu2014,
+    title = {{Generalized Robin-Neumann explicit coupling schemes for incompressible fluid--structure interaction: stability analysis and numerics}},
+    author = {Fern{\'a}ndez, Miguel Angel and Mullaert, Jimmy and Vidrascu, Marina},
+    abstract = {{We introduce a new class of explicit coupling schemes for the numerical solution of fluid--structure interaction problems involving a viscous incompressible fluid and an elastic structure. These methods generalize the arguments reported in [13, 10] to the case of the coupling with thick-walled structures. The basic idea lies in the derivation of an intrinsic interface Robin consistency at the space semi-discrete level, using a lumped-mass approximation in the structure. The fluid-solid splitting is then performed through appropriate extrapolations of the solid velocity and stress on the interface. Based on these methods, a new, parameter-free, Robin-Neumann iterative procedure is also proposed for the partitioned solution of implicit coupling. A priori energy estimates, guaranteeing the (added-mass free) stability of the schemes and the convergence of the iterative procedure, are established. The accuracy and robustness of the methods are illustrated in several numerical examples.}},
+    publisher = {Wiley},
+    journal = IJNME,
+    issn = {1097-0207},
+    note = {~\url{http://dx.doi.org/10.1002/nme.4785}},
+    doi = {10.1002/nme.4785},
+    year = {2014},
+    month = Aug,
+}
+
+
+@article{FernandezMullaertVidrascu2013,
+    title = {{Explicit Robin-Neumann schemes for the coupling of incompressible fluids with thin-walled structures}},
+    author = {Fern{\'a}ndez, Miguel Angel and Mullaert, Jimmy and Vidrascu, Marina},
+    abstract = {{We introduce a class of explicit coupling schemes for the numerical solution of fluid--structure interaction problems involving a viscous incompressible fluid and a general thin-walled structure (e.g., including damping and non-linear behavior). The fundamental ingredient in these methods is the (parameter free) explicit Robin interface condition for the fluid, which enables the fluid-solid splitting through appropriate extrapolations of the solid velocity and fluid stress on the interface. The resulting solution procedures are genuinely partitioned. Stability and error estimates are provided for all the variants (depending on the extrapolations), using energy arguments within a representative linear setting. In particular, we show that one of them yields added-mass free unconditional stability and optimal (firs-order) time accuracy. A comprehensive numerical study, involving different examples from the literature, supports the theory.}},
+    publisher = {Elsevier},
+    pages = {566-593},
+    journal = CMAME,
+    volume = {267},
+    year = {2013},
+}
+
+
+
+@techreport{FernandezLandajuela2014,
+    title = {{Fully decoupled time-marching schemes for incompressible fluid/thin-walled structure interaction}},
+    author = {Fern{\'a}ndez, Miguel Angel and Landajuela, Mikel},
+    abstract = {{In this paper we introduce a class of fully decoupled time-marching schemes (velocity-pressure-displacement splitting) for the coupling of an incompressible fluid with a thin-walled viscoelastic structure. The time splitting combines a fractional-step time-marching in the fluid with a specific Robin-Neumann treatment of the interface coupling. A priori energy estimates guaranteeing unconditional stability are established for the variants without extrapolation and with first-order extrapolation. The accuracy and performance of the methods proposed are discussed in several numerical examples.}},
+    type = {Rapport de recherche},
+    institution = {INRIA},
+    number = {RR-8425},
+    year = {2014},
+    month = Jan,
+}
+
+
+
+% This is the short note for the above report                  
+@article{FernandezLandajuela2013Note,
+title = "A fully decoupled scheme for the interaction of a thin-walled structure with an incompressible fluid ",
+journal = "Comptes Rendus Mathematique ",
+volume = "351",
+number = "3–4",
+pages = "161--164",
+year = "2013",
+author = "M. A. Fern{\'a}ndez and Mikel Landajuela"
+}
+
+@article{Fernandez2012,
+    title = {{Incremental displacement-correction schemes for incompressible fluid--structure interaction: stability and convergence analysis}},
+    author = {Fern{\'a}ndez, Miguel Angel},
+    publisher = {Springer},
+    pages = {21-65},
+    journal = {Numerische Mathematik},
+    volume = {123},
+    number = {1 },
+    year = {2013},
+}
+
+
+
+@article{BurmanFernandez2013,
+    title = {{Explicit strategies for incompressible fluid--structure interaction problems: Nitsche type mortaring versus Robin-Robin coupling}},
+    author = {Burman, Erik and Fern{\'a}ndez, Miguel Angel},
+    publisher = {Wiley},
+    pages = {739--758},
+    journal = IJNME,
+    volume = {97},
+    number = {10 },
+    doi = {10.1002/nme.4607 },
+    year = {2014},
+}
+
+
+%% Review
+%% Review
+@article{FernandezReview2011,
+    title = {{Coupling schemes for incompressible fluid--structure interaction: implicit, semi-implicit and explicit}},
+    author = {Fern{\'a}ndez, Miguel Angel},
+    abstract = {{Over the last decade, the numerical simulation of incompressible fluid--structure interaction has been a very active research field and the subject of numerous works. This is due, in particular, to the increasing interest of the research community in the simulation of blood flows in large arteries. In this context, the fluid equations have to be solved in a moving domain and the incompressibility constraint makes the coupling sensitive to the added-mass effect. As a result, the solution procedure has to be designed carefully in order to guarantee efficiency without compromising numerical stability. In this paper, we review some of the coupling schemes recently proposed in the literature. Some numerical results that show the effectiveness of the novel approaches are also presented.}},
+    publisher = {Springer-Verlag},
+    pages = {59-108},
+    journal = {SeMa Journal},
+    volume = {55},
+    number = {1},
+    year = {2011},
+    month = Jun,
+}
+
+
+% Note: 
+@article{FernandezMullaert2011,
+    title = {{Displacement-velocity correction schemes for incompressible fluid--structure interaction}},
+    author = {Fern{\'a}ndez, Miguel Angel and Mullaert, Jimmy},
+    abstract = {{In this Note, we propose a new class of time-marching schemes for the explicit coupling of an incompressible fluid and an elastic solid (not necessarily thin). We state a general energy-based stability result and illustrate the accuracy of the different variants in a numerical benchmark.}},
+    publisher = {Elsevier},
+    pages = {1011-1015},
+    journal = {Comptes Rendus Math{\'e}matique},
+    volume = {349},
+    number = {17-18 },
+    year = {2011},
+    month = Oct,
+}
+
+
+% Note:
+@article{Fernandez2011,
+title = "Incremental displacement-correction schemes for the explicit coupling of a thin structure with an incompressible fluid ",
+author = "Miguel A. Fern{\'a}ndez",
+journal = "Comptes Rendus Mathematique ",
+volume = "349",
+number = "7–8",
+pages = "473--477",
+year = "2011",
+abstract = "In this Note we propose two incremental displacement-correction schemes for the explicit coupling of a thin structure with an incompressible fluid. The stability and the superior accuracy of these schemes (with respect to the original non-incremental variant) are theoretically analyzed and then numerically confirmed in a benchmark. "
+}                  
+
+
+@article{BurmanFernandez2009,
+title = "Stabilization of explicit coupling in fluid--structure interaction involving fluid incompressibility ",
+author = "Erik Burman and Miguel A. Fernández",
+journal = CMAME,
+volume = "198",
+number = "5–8",
+pages = "766--784",
+year = "2009",
+abstract = "In this work, we propose a stabilized explicit coupling scheme for fluid--structure interaction problems involving a viscous incompressible fluid. The coupled discrete formulation is based on Nitsche’s method with a time penalty term giving L 2 -control on the fluid pressure variations at the interface. For a linear model problem, we prove that the scheme is stable, in the energy norm, irrespectively of the so-called added-mass effect, namely, the fluid--structure density ratio and the geometry of the domain. Numerical experiments, in the linear and non-linear case, show that optimal time accuracy can be obtained by performing one defect-correction iteration. "
+}
+
+@article{AstorinoChoulyFernandez2009,
+ author = {Astorino, Matteo and Chouly, Franz and Fern\'{a}ndez, Miguel A.},
+ title = {{Robin} Based Semi-Implicit Coupling in Fluid--Structure Interaction: Stability Analysis and Numerics},
+ journal = {SIAM J. Sci. Comput.},
+ issue_date = {November 2009},
+ volume = {31},
+ number = {6},
+ month = nov,
+ year = {2009},
+ issn = {1064-8275},
+ pages = {4041--4065},
+ numpages = {25},
+ doi = {10.1137/090749694},
+ acmid = {1898388},
+ publisher = {Society for Industrial and Applied Mathematics},
+ address = {Philadelphia, PA, USA},
+ keywords = {Chorin-Temam projection scheme, Nitsche's method, {Robin} interface conditions, added-mass effect, fluid incompressibility, fluid--structure interaction, semi-implicit coupling, time discretization},
+} 
+@article {FernandezGerbeauGrandmont2007,
+author = {Fern\'{a}ndez, M. A. and Gerbeau, J.-F. and Grandmont, C.},
+title = {A projection semi-implicit scheme for the coupling of an elastic structure with an incompressible fluid},
+journal = IJNME,
+volume = {69},
+number = {4},
+publisher = {John Wiley & Sons, Ltd.},
+issn = {1097-0207},
+doi = {10.1002/nme.1792},
+pages = {794--821},
+keywords = {fluid--structure interaction, semi-implicit coupling, added-mass effect, projection scheme, blood flows},
+year = {2007},
+}
+
+
+                  
+
+
+@article {DegrooteSwillensBruggemanHaeltermanSegersVierendeels2010,
+author = {Degroote, Joris and Swillens, Abigail and Bruggeman, Peter and Haelterman, Robby and Segers, Patrick and Vierendeels, Jan},
+title = {Simulation of fluid--structure interaction with the interface artificial compressibility method},
+journal = IJNMBE,
+volume = {26},
+number = {3-4},
+publisher = {John Wiley & Sons, Ltd.},
+issn = {2040-7947},
+pages = {276--289},
+keywords = {fluid--structure interaction, interface artificial compressibility, interface block quasi-Newton, carotid bifurcation},
+year = {2010},
+}
+
+@article{Degroote2011,
+  author       = {Degroote, Joris},
+  issn         = {0021-9991},
+  journal      = JCP,
+  keyword      = {finite volume,PARTITIONED PROCEDURES,Dirichlet-Neumann,Interface Artificial Compressibility,Robin-Neumann,partitioned,fluid--structure interaction},
+  language     = {eng},
+  number       = {17},
+  pages        = {6399--6403},
+  title        = {On the similarity between {Dirichlet-Neumann} with interface artificial compressibility and {Robin-Neumann} schemes for the solution of fluid--structure interaction problems},
+  volume       = {230},
+  year         = {2011},
+}
+
+@article{DegrooteVierendeels2011,
+title = "Multi-solver algorithms for the partitioned simulation of fluid--structure interaction ",
+journal = CMAME,
+volume = "200",
+number = "25-28",
+pages = "2195--2210",
+year = "2011",
+issn = "0045-7825",
+doi = "http://dx.doi.org/10.1016/j.cma.2011.03.015",
+author = "Joris Degroote and Jan Vierendeels",
+keywords = "fluid--structure interaction",
+keywords = "Partitioned",
+keywords = "Coupling algorithm",
+keywords = "Quasi-Newton",
+keywords = "Tube",
+keywords = "Cluster ",
+abstract = "In partitioned fluid--structure interaction simulations, the flow equations and the structural equations are solved separately. As a result, a coupling algorithm is needed to enforce the equilibrium on the fluid--structure interface in cases with strong interaction. This coupling algorithm performs coupling iterations between the solver of the flow equations and the solver of the structural equations. Current coupling algorithms couple one flow solver with one structural solver. Here, a new class of multi-solver quasi-Newton coupling algorithms for unsteady fluid--structure interaction simulations is presented. More than one flow solver and more than one structural solver are used for a single simulation. The numerical experiments demonstrate that the duration of a simulation decreases as the number of solvers is increased. "
+}
+
+@article{DegrooteBatheVierendeels2009,
+title = "Performance of a new partitioned procedure versus a monolithic procedure in fluid--structure interaction",
+journal = "Computers \& Structures",
+volume = "87",
+number = "11-12",
+pages = "793--801",
+year = "2009",
+note = "{Fifth} MIT Conference on Computational Fluid and Solid Mechanics",
+issn = "0045-7949",
+doi = "DOI: 10.1016/j.compstruc.2008.11.013",
+author = "Joris Degroote and Klaus-Jürgen Bathe and Jan Vierendeels",
+keywords = "fluid--structure interaction",
+keywords = "Partitioned",
+keywords = "Quasi-Newton",
+keywords = "Monolithic",
+keywords = "Newton-Raphson"
+}
+
+
+@article{vanBrummelen2009,
+    abstract = {{The subiteration method, which forms the basic iterative procedure for solving fluid--structure-interaction problems, is based on a partitioning of the fluid--structure system into a fluidic part and a structural part. In fluid--structure interaction, on short time scales the fluid appears as an added mass to the structural operator, and the stability and convergence properties of the subiteration process depend significantly on the ratio of this apparent added mass to the actual structural mass. In the present paper, we establish that the added-mass effects corresponding to compressible and incompressible flows are fundamentally different. For a model problem, we show that on increasingly small time intervals, the added mass of a compressible flow is proportional to the length of the time interval, whereas the added mass of an incompressible flow approaches a constant. We then consider the implications of this difference in proportionality for the stability and convergence properties of the subiteration process, and for the stability and accuracy of loosely coupled staggered time-integration methods.}},
+    author = {van Brummelen, E. H.},
+    journal = journal-of-applied-mechanics,
+    keywords = {added-mass, cfd, fsi, stability, tetrapak},
+    number = {2},
+    publisher = {ASME},
+    title = {Added Mass Effects of Compressible and Incompressible Flows in Fluid--Structure Interaction},
+    pages = "021206--021212",
+    volume = {76},
+    year = "2009"
+}
+
+
+
+
+% Oñate
+@article {IdelsohnDelPinRossiOnate2012,
+author = {Idelsohn, S. R. and Del Pin, F. and Rossi, R. and O\~nate, E.},
+title = {fluid--structure interaction problems with strong added-mass effect},
+journal = IJNME,
+volume = {80},
+number = {10},
+publisher = {John Wiley \& Sons, Ltd.},
+issn = {1097-0207},
+doi = {10.1002/nme.2659},
+pages = {1261--1294},
+keywords = {added-mass effect, fluid--structure interactions, FSI, pressure segregation},
+year = {2009},
+}
+
+
+@article{GuidoboniGlowinskiCavalliniCanic2009,
+title = "Stable loosely-coupled-type algorithm for fluid--structure interaction in blood flow",
+journal = JCP,
+volume = "228",
+number = "18",
+pages = "6916--6937",
+year = "2009",
+issn = "0021-9991",
+doi = "http://dx.doi.org/10.1016/j.jcp.2009.06.007",
+author = "Giovanna Guidoboni and Roland Glowinski and Nicola Cavallini and Suncica \v{C}ani\'c",
+keywords = "fluid--structure interaction",
+keywords = "Operator splitting",
+keywords = "Added-mass effect",
+keywords = "Finite-elements methods "
+}
+
+
+@ARTICLE{CanicMuhaBukac2012,
+   author = {{\v{C}ani\'c}, S. and {Muha}, B. and {Buka\v{c}}, M.},
+    title = "{Stability of the kinematically coupled $\beta$-scheme for fluid--structure interaction problems in hemodynamics}",
+  journal = {ArXiv e-print 1205.6887},
+  archivePrefix = "arXiv",
+   eprint = {1205.6887},
+ primaryClass = "math.NA",
+ keywords = {Mathematics - Numerical Analysis},
+     year = 2012,
+    month = may,
+  adsnote = {Provided by the SAO/NASA Astrophysics Data System}
+}
+
+%% url = "http://www.sciencedirect.com/science/article/pii/S0021999112004901",
+@article{BukacCanicGlowinskiTambacaQuaini2013,
+title = "Fluid--structure interaction in blood flow capturing non-zero longitudinal structure displacement ",
+journal = JCP,
+volume = "235",
+pages = "515--541",
+year = "2013",
+issn = "0021-9991",
+doi = "http://dx.doi.org/10.1016/j.jcp.2012.08.033",
+author = "Martina Buka\v{c} and Sun\v{c}ica \v{C}ani\v{c} and Roland Glowinski and Josip Tamba\v{c}a and Annalisa Quaini",
+keywords = "fluid--structure interaction",
+keywords = "Loosely coupled scheme",
+keywords = "Blood flow ",
+abstract = "We present a new model and a novel loosely coupled partitioned numerical scheme modeling fluid--structure interaction (FSI) in blood flow allowing non-zero longitudinal displacement. Arterial walls are modeled by a linearly viscoelastic, cylindrical Koiter shell model capturing both radial and longitudinal displacement. Fluid flow is modeled by the Navier–Stokes equations for an incompressible, viscous fluid. The two are fully coupled via kinematic and dynamic coupling conditions. Our numerical scheme is based on a new modified Lie operator splitting that decouples the fluid and structure sub-problems in a way that leads to a loosely coupled scheme which is unconditionally stable. This was achieved by a clever use of the kinematic coupling condition at the fluid and structure sub-problems, leading to an implicit coupling between the fluid and structure velocities. The proposed scheme is a modification of the recently introduced “kinematically coupled scheme” for which the newly proposed modified Lie splitting significantly increases the accuracy. The performance and accuracy of the scheme were studied on a couple of instructive examples including a comparison with a monolithic scheme. It was shown that the accuracy of our scheme was comparable to that of the monolithic scheme, while our scheme retains all the main advantages of partitioned schemes, such as modularity, simple implementation, and low computational costs. "
+}
+
+@article{BukacCanicGlowinskiMuhaAuaini2014,
+title = "A modular, operator-splitting scheme for fluid--structure interaction problems with thick structures",
+journal = IJNMF,
+volume = "74",
+pages = "577--604",
+year = "2014",
+}
+
+% url = "http://www.sciencedirect.com/science/article/pii/S002199911400727X",
+@article{BukacCanicMuha2015,
+title = "A partitioned scheme for fluid--composite structure interaction problems ",
+journal = "Journal of Computational Physics ",
+volume = "281",
+pages = "493 - 517",
+year = "2015",
+issn = "0021-9991",
+doi = "http://dx.doi.org/10.1016/j.jcp.2014.10.045",
+author = "Martina Buka\v{c} and Sun\v{c}ica \v{C}ani\v{c} and B. Muha",
+keywords = "fluid--structure interaction",
+keywords = "Composite structure",
+keywords = "Partitioned scheme",
+keywords = "Blood flow ",
+abstract = "Abstract We present a benchmark problem and a loosely-coupled partitioned scheme for fluid--structure interaction with composite structures. The benchmark problem consists of an incompressible, viscous fluid interacting with a structure composed of two layers: a thin elastic layer with mass which is in contact with the fluid and modeled by the Koiter membrane/shell equations, and a thick elastic layer with mass modeled by the equations of linear elasticity. An efficient, modular, partitioned operator-splitting scheme is proposed to simulate solutions to the coupled, nonlinear \{FSI\} problem, without the need for sub-iterations at every time-step. An energy estimate associated with unconditional stability is derived for the fully nonlinear \{FSI\} problem defined on moving domains. Two instructive numerical benchmark problems are presented to test the performance of numerical \{FSI\} schemes involving composite structures. It is shown numerically that the proposed scheme is at least first-order accurate both in time and space. This work reveals a new physical property of \{FSI\} problems involving thin interfaces with mass: the inertia of the thin fluid--structure interface regularizes solutions to the full \{FSI\} problem. "
+}
+
+
+
+% url={http://dx.doi.org/10.1007/s11831-013-9085-5},
+@article{Degroote2013,
+year={2013},
+issn={1134-3060},
+journal={Archives of Computational Methods in Engineering},
+volume={20},
+number={3},
+doi={10.1007/s11831-013-9085-5},
+title={Partitioned Simulation of Fluid--Structure Interaction},
+publisher={Springer Netherlands},
+keywords={fluid--structure interaction; Partitioned simulation; Quasi-Newton; Coupling algorithm},
+author={Degroote, Joris},
+pages={185-238},
+language={English}
+}
+                 
+
+@article{DegrooteBruggemanHaeltermanVierendeels2008,
+title = "Stability of a coupling technique for partitioned solvers in {FSI} applications ",
+journal = "Computers \& Structures ",
+volume = "86",
+number = "23-24",
+pages = "2224--2234",
+year = "2008",
+issn = "0045-7949",
+doi = "http://dx.doi.org/10.1016/j.compstruc.2008.05.005",
+author = "Joris Degroote and Peter Bruggeman and Robby Haelterman and Jan Vierendeels",
+keywords = "Elastic tube",
+keywords = "Artery",
+keywords = "fluid--structure interaction",
+keywords = "Fourier error analysis",
+keywords = "Reduced-order model",
+keywords = "Black box "
+}
+
+
+@article{NobileVergara2008,
+ author = {Nobile, F. and Vergara, C.},
+ title = {An Effective Fluid--Structure Interaction Formulation for Vascular Dynamics by Generalized {Robin} Conditions},
+ journal = SISC,
+ issue_date = {March 2008},
+ volume = {30},
+ number = {2},
+ month = feb,
+ year = {2008},
+ issn = {1064-8275},
+ pages = {731--763},
+ numpages = {33},
+ doi = {10.1137/060678439},
+ acmid = {1350470},
+ publisher = {Society for Industrial and Applied Mathematics},
+ address = {Philadelphia, PA, USA},
+ keywords = {Navier-Stokes equations, Womersley profile, absorbing boundary conditions, finite elements, fluid--structure interaction, membrane model, time marching schemes},
+} 
+
+
+@article{Gerardo_GiordaNobileVergara2010,
+   author={Luca Gerardo-Giorda and Fabio Nobile and Christian Vergara},
+   title = "Analysis and Optimization of {Robin-Robin} Partitioned Procedures in Fluid--Structure Interaction Problems",
+   journal= siam-journal-on-numerical-analysis,
+   volume = 48,
+   number = "6",
+   pages = "2091--2116",
+   year = 2010}
+
+
+@article{BadiaNobileVergara2009,
+   author={Santiago Badia and Fabio Nobile and Christian Vergara},
+   title = "{Robin-Robin} preconditioned {Krylov} methods for fluid--structure interaction problems",
+   journal= "CMAME",
+   volume= "198",
+   number = "33--36",
+   pages = "2768--2784",
+   year = 2009}
+
+@article{BadiaNobileVergara2008,
+title = "Fluid--structure partitioned procedures based on {Robin} transmission conditions ",
+journal = JCP,
+volume = "227",
+number = "14",
+pages = "7027--7051",
+year = "2008",
+issn = "0021-9991",
+doi = "http://dx.doi.org/10.1016/j.jcp.2008.04.006",
+author = "Santiago Badia and Fabio Nobile and Christian Vergara",
+keywords = "fluid--structure interaction",
+keywords = "Partitioned procedures",
+keywords = "Transmission conditions",
+keywords = "Robin boundary conditions",
+keywords = "Added-mass effect",
+keywords = "Hemodynamics "
+}
+
+% url = "http://www.sciencedirect.com/science/article/pii/S0045793013003101",
+@article{NobilePozzoliVergara2013,
+title = "Time accurate partitioned algorithms for the solution of fluid--structure interaction problems in haemodynamics ",
+journal = "Computers \& Fluids ",
+volume = "86",
+number = "0",
+pages = "470 - 482",
+year = "2013",
+issn = "0045-7930",
+doi = "http://dx.doi.org/10.1016/j.compfluid.2013.07.031",
+author = "Fabio Nobile and Matteo Pozzoli and Christian Vergara",
+keywords = "fluid--structure interaction",
+keywords = "Blood flow",
+keywords = "\{BDF\} schemes",
+keywords = "Time accuracy",
+keywords = "Partitioned schemes ",
+abstract = "Abstract In this work we deal with the numerical solution of the fluid--structure interaction problem arising in the haemodynamic environment. In particular, we consider \{BDF\} and Newmark time discretization schemes, and we study different methods for the treatment of the fluid--structure interface position, focusing on partitioned algorithms for the prescription of the physical continuity conditions at the fluid--structure interface. We consider semi-implicit and implicit algorithms, and a new family of hybrid methods. We study numerically the performance and the accuracy of these schemes, highlighting the best solutions for haemodynamic applications. We also study numerically their convergence properties with respect to time discretization, by introducing an analytical test case. "
+}
+
+% url = "http://www.sciencedirect.com/science/article/pii/S0021999114003660",
+@article{NobilePozzoliVergara2014,
+title = "Inexact accurate partitioned algorithms for fluid--structure interaction problems with finite elasticity in haemodynamics ",
+journal = "Journal of Computational Physics ",
+volume = "273",
+number = "0",
+pages = "598 - 617",
+year = "2014",
+issn = "0021-9991",
+doi = "http://dx.doi.org/10.1016/j.jcp.2014.05.020",
+author = "Fabio Nobile and Matteo Pozzoli and Christian Vergara",
+keywords = "fluid--structure interaction",
+keywords = "Finite elasticity",
+keywords = "Robin transmission conditions",
+keywords = "\{BDF\} schemes",
+keywords = "Newton method",
+keywords = "Haemodynamics ",
+abstract = "Abstract In this paper we consider the numerical solution of the three-dimensional fluid--structure interaction problem in haemodynamics, in the case of real geometries, physiological data and finite elasticity vessel deformations. We study some new inexact schemes, obtained from semi-implicit approximations, which treat exactly the physical interface conditions while performing just one or few iterations for the management of the interface position and of the fluid and structure non-linearities. We show that such schemes allow to improve the efficiency while preserving the accuracy of the related exact (implicit) scheme. To do this we consider both a simple analytical test case and two real cases of clinical interest in haemodynamics. We also provide an error analysis for a simple differential model problem when a \{BDF\} method is considered for the time discretization and only few Newton iterations are performed at each temporal instant. "
+}
+
+@article{HouWangLayton2012,
+   author={G. Hou and Jin Wang and Anita Layton},
+   title = "Numerical Methods for Fluid--Structure Interaction - A Review",
+   journal= "Commun. Comput. Phys.",
+   volume = 12,
+   pages = "337--377",
+   year = 2012}
+
+
+
+@article{BorazjaniGeSotiropolous2008,
+   author={I. Borazjani and L. Ge and F. Sotiropolous},
+   title = "Curvilinear immersed boundary method for simulating fluid structure interaction with complex {3D} rigid bodies",
+   journal=JCP,
+   volume = 227,
+   pages = "7587--7620",
+   year = 2008}
+
+
+
+@article{AhnKallinderis2006,
+   author={H. T. Ahn and Y. Kallinderis},
+   title = "Strongly coupled flow/structure interactions with a geometrically conservative {ALE} scheme on
+            general hybrid meshes",
+   journal=JCP,
+   volume = 219,
+   pages = "671--696",
+   year = 2006}
+
+
+@inproceedings{SchaferHeckYigit2006,
+  author = {M. Sch\"afer and M. Heck and S. Yigit},
+  title = "An Implicit Partitioned Method for the Numerical Simulation of Fluid--Structure Interaction",
+  pages = "171--194",
+  booktitle ="Fluid--Structure Interaction",
+  editor = {Bungartz and Sch\"afer},
+  publisher= "Springer", 
+  year = 2006}
+
+@inproceedings{HronTurekMonolithic2006,
+  author = {J. Hron and S. Turek},
+  title = {A Monolithic {FEM}/Multigrid Solver for an {ALE} Formulation of Fluid--Structure Interaction with Applications in Biomechanics},
+  booktitle ="Fluid--Structure Interaction",
+  pages = "146--170",
+  editor = {Bungartz and Sch\"afer},
+  publisher= "Springer", 
+  year = 2006}
+
+
+@inproceedings{TurekHron2006b,
+  author = {S. Turek and J. Hron},
+  title = "Proposal for Numerical Benchmarking of Fluid--Structure Interaction between an Elastic Object and Laminar Incompressible Flow",
+  booktitle ="Fluid--Structure Interaction",
+  pages = "371--385",
+  editor = {Bungartz and Sch\"afer},
+  publisher= "Springer", 
+  year = 2006}
+
+@inproceedings{Vierendeels2006,
+  author = {J. Viendeels},
+  title = "Implicit Coupling of Partitioned Fluid--Structure Interaction Solvers using Reduced-Order Models",
+  booktitle ="Fluid--Structure Interaction",
+  pages = "1--18",
+  editor = {Bungartz and Sch\"afer},
+  publisher= "Springer", 
+  year = 2006}
+
+@inproceedings{Wall2006,
+  author = {W. A. Wall and A. Gerstenberger and P. Gamnitzer and C. F\"orster and E. Ramm},
+  title = "Large Deformation Fluid--Structure Interaction -- Advances in ALE Methods and New Fixed Grid Approaches",
+  booktitle ="Fluid--Structure Interaction",
+  pages = "195--232",
+  editor = {Bungartz and Sch\"afer},
+  publisher= "Springer", 
+  year = 2006}
+
+@article{NobileVergara2012,
+year={2012},
+issn={1424-9286},
+journal={Milan Journal of Mathematics},
+volume={80},
+number={2},
+doi={10.1007/s00032-012-0194-7},
+title={Partitioned Algorithms for Fluid--Structure Interaction Problems in Haemodynamics},
+publisher={SP Birkhäuser Verlag Basel},
+keywords={Primary 65N30; Secondary 76D07; fluid--structure interaction; incompressible fluids; finite elasticity; haemodynamics; partitioned algorithms; added mass effect},
+author={Nobile, Fabio and Vergara, Christian},
+pages={443-467},
+language={English}
+}
+
+@article{CausinGerbeauNobile2005,
+   author = "P. Causin and J. F. Gerbeau and F. Nobile",
+   title = "Added-mass effect in the design of partitioned algorithms for fluid--structure problems",
+   journal = CMAME,
+   volume = 194,
+   pages = "4506--4527",
+   year = 2005}
+
+
+@article{JaimanJiaoGeubellLoth2006,
+   author = "R. K. Jaiman and X. Jiao and P. H. Geubelle and E. Loth",
+   title = "Conservative load transfer along curved fluid-solid interface with non-matching meshes",
+   journal = JCP,
+   volume = 218,
+   pages = "372--397",
+   year = 2006}
+
+@article{JaimanJiaoGeubellLoth2005,
+   author = "R. K. Jaiman and X. Jiao and P. H. Geubelle and E. Loth",
+   title = "Assessment of conservative load transfer for fluid-solid interface with non-matching meshes",
+   journal = IJNME,
+   volume = 64,
+   pages = "2014--2038",
+   year = 2005}
+
+@article{JiaoHeath2004,
+   author = "X. Jiao and M. T. Heath",
+   title = "Common-refinement-based data transfer between non-matching meshes in multiphysics simulations",
+   journal = IJNME,
+   volume = 61,
+   pages = "2402--2427",
+   year = 2004}
+
+
+@article{KuhlHulshoffDeBorst2003,
+   author = "E. Kuhl and S. Hulshoff and R. de Borst",
+   title = "An {Arbitrary Lagrangian Eulerian} Finite-Element Approach for Fluid--Structure Interaction Phenomena",
+   journal = IJNME,
+   volume = 57,
+   pages = "117--142",
+   year = 2003}
+
+@article{Guruswamy2002,
+   author = "G. P. Guruswamy",
+   title = "A review of numerical fluids/structures interface methods for computations using high-fidelity equations",
+   journal = computers-and-structures,
+   volume = 80,
+   pages = "31--41",
+   year = 2002}
+
+
+@inproceedings{MokWallRamm2001,
+  author = {D. P. Mok and W. A. Wall and E. Ramm},
+  title = "Accelerated Iterative Substructuring Schemes for Instationary Fluid Structure Interaction",
+  booktitle ="Computational Fluid and Solid Mechanics",
+  editor = {K. Bathe},
+  publisher= "Elsevier", 
+  pages = "1325--1328",
+  year = 2001}
+
+
+@article{SchaferTeschauer2001,
+   author = {M. Sch\"afer and I. Teschauer},
+   title = "Numerical simulation of coupled fluid-solid problems",
+   journal = CMAME,
+   volume = 190,
+   pages = "3645--3667",
+   year = 2001}
+
+@article{LeTallecMani2000,
+   author={P. Le Tallec and S. Mani},
+   title = "Numerical Analysis of a linearised fluid--structure interation problem",
+   journal="Numerische Mathematik",
+   volume = 87,
+   pages = "317--354",
+   year = 2000}
+
+@article{PipernoFarhat2001,
+title = "Partitioned procedures for the transient solution of coupled aeroelastic problems - {Part II}: energy transfer analysis and three-dimensional applications ",
+journal = CMAME,
+volume = "190",
+number = "24-25",
+pages = "3147--3170",
+year = "2001",
+issn = "0045-7825",
+doi = "http://dx.doi.org/10.1016/S0045-7825(00)00386-8",
+author = "Serge Piperno and Charbel Farhat"
+}
+
+@article{Farhat2006,
+    abstract = {{A methodology for designing formally second-order time-accurate and yet loosely-coupled partitioned procedures for the solution of nonlinear fluid--structure interaction (FSI) problems on moving grids is presented. Its key components are a fluid time-integrator that is provably second-order time-accurate on moving grids, the midpoint rule for advancing in time the solution of the structural dynamics equations of motion, a second-order structure predictor for bypassing the inner-iterations encountered in strongly-coupled solution procedures, and a carefully designed algorithm for time-integrating the motion of the fluid-mesh. Following this methodology, two different loosely-coupled schemes are constructed for the solution of transient nonlinear FSI problems and proved to be second-order time-accurate. Three-dimensional numerical results pertaining to the simulation of the aeroelastic response to a gravity excitation of a complete F-16 configuration are also presented. In addition to confirming the theoretical results discussed in this paper, these numerical results highlight a very stable behavior of the designed loosely-coupled partitioned procedures.}},
+    author = {Farhat, Charbel and van der Zee, Kristoffer G. and Geuzaine, Philippe},
+    booktitle = {Fluid--Structure Interaction},
+    citeulike-article-id = {665201},
+    citeulike-linkout-0 = {http://dx.doi.org/10.1016/j.cma.2004.11.031},
+    citeulike-linkout-1 = {http://www.sciencedirect.com/science/article/B6V29-4GJVB11-7/2/99d205c3320041eb135b4fb634a0028f},
+    day = {15},
+    doi = {10.1016/j.cma.2004.11.031},
+    journal = CMAME,
+    keywords = {aeroelasticity, ale, fsi, nonlinear},
+    month = mar,
+    number = {17-18},
+    pages = {1973--2001},
+    posted-at = {2006-05-22 11:22:57},
+    priority = {2},
+    title = {{Provably second-order time-accurate loosely-coupled solution algorithms for transient nonlinear computational aeroelasticity}},
+    volume = {195},
+    year = {2006}
+}
+
+
+@article{FarhatLesoinneLeTallec1998,
+   author = "C. Farhat and M. Lesoinne and P. LeTallec",
+   title = "Load and motion transfer algorithms for fluid/structure interaction problems with non-matching discrete
+           interfaces: Momentum and energy conservation, optimal discretization and application to aeroelasticity",
+   journal = CMAME,
+   volume = 157,
+   pages = "95--114",
+   year = 1998}
+
+@article{CebralLohner1997,
+   author = {J. R. Cebral and R. L\"ohner},
+   title = "Conservative load projection and tracking for fluid--structure problems",
+   journal = AIAAJ,
+   volume = 35,
+   pages = "687--692",
+   year = 1997}
+
+@article{DoneaGiulianiHalleux1982,
+   author = "J. Donea and S. Giuliani and J. P. Halluex",
+   title = "An Arbitrary {Lagrangian-Eulerian} Finite Element Method for Transient Dynamic Fluid--Structure Interactions",
+   journal = CMAME,
+   volume = 33,
+   pages = "689--723",
+   year = 1982}
+
+@article{Conca1997,
+title = "Added mass and damping in fluid--structure interaction",
+journal = CMAME,
+volume = "146",
+number = "3-4",
+pages = "387--405",
+year = "1997",
+issn = "0045-7825",
+doi = "10.1016/S0045-7825(96)01246-7",
+author = "C. Conca and A. Osses and J. Planchard"
+}
