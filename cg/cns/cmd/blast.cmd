@@ -8,6 +8,7 @@
 #
 # Examples:
 #   cgcns blast.cmd -g=shapese2.order2.hdf -rad=.15 -x0=.2 -y0=.5 -amr=0 -tf=1. -tp=.05 
+#   cgcns blast.cmd -g=shapese2.order2.hdf -rad=.15 -x0=.2 -y0=.5 -amr=0 -tf=1. -tp=.05 -cnsVariation=jameson
 #   cgcns blast.cmd -g=shapese4.order2.hdf -rad=.15 -x0=.2 -y0=.5 -amr=1 -l=2 -r=2 -tf=1. -tp=.05 
 # 
 #   cgcns blast.cmd -g=building3.hdf -rad=.25 -x0=.0 -y0=1.75 -z0=1. -amr=0 -l=2 -r=2 -tf=1. -tp=.05 -show="blast.show"
@@ -117,6 +118,14 @@ $pdeVariation
     grid efficiency
       .7 .5 
   exit
+#  Add a probe
+  output options...
+  frequency to save probes 2
+  create a probe
+    file name probeFile.dat
+    nearest grid point to -1. 0. 0.
+    exit
+  close output options
 #
     initial conditions options...
     OBIC:user defined...

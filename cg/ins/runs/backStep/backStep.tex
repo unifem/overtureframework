@@ -206,6 +206,34 @@ Notes:
 
 
 % =================================================================================================================================
+% =======================Flow past a two-dimensional backward facing step =========================================================
+% =================================================================================================================================
+% mac \newcommand{\backStepDir}{/Users/henshaw/rns/backStep}
+\newcommand{\backStepDir}{.}
+\input backwardFacingStep
+
+
+
+
+\clearpage
+\bibliography{henshaw,henshawPapers}
+\bibliographystyle{siam}
+
+
+
+\end{document}
+% *************************************************************************************************************************************
+% *************************************************************************************************************************************
+% *************************************************************************************************************************************
+% *************************************************************************************************************************************
+
+
+
+
+
+
+
+% =================================================================================================================================
 % =================================================================================================================================
 % =================================================================================================================================
 \section{Flow past a two-dimensional backward facing step}
@@ -479,6 +507,33 @@ Interpolation points (two layers) are marked as black squares.
 \begin{center}\small
 % ------------------------------------------------------------------------------------------------
 \begin{tikzpicture}[scale=1]
+  \useasboundingbox (0,0.25) rectangle (16,9.);  % set the bounding box (so we have less surrounding white space)
+  \draw ( 0,6.0) node[anchor=south west,xshift=-4pt,yshift=-4pt] {\trimfig{fig/backStepRefineG16Vort10t50}{\figWidth}};
+  \draw ( 0,3.0) node[anchor=south west,xshift=-4pt,yshift=-4pt] {\trimfig{fig/backStepRefineG16Vort10t60}{\figWidth}};
+  \draw ( 0,0.0) node[anchor=south west,xshift=-4pt,yshift=-4pt] {\trimfig{fig/backStepRefineG16Vort10t70}{\figWidth}};
+%   \draw (10.5, 0) node[anchor=south west,xshift=-4pt,yshift=-4pt] {\trimfiga{fig/backStepRefineGridZoom}{\figWidtha}};
+%  \draw[step=1cm,gray] (0,0) grid (11,13.);
+\end{tikzpicture}
+% ----------------------------------------------------------------------------------------
+\caption{
+Vorticity at times $t=50$, $60$, $70$ (top to bottom) for grid $\Gc^{(16)}$.
+% Solution in the near wake region is shown. The max and min contours of the vorticity are limited to the range $[-20,20]$.
+% Top: coarse grid $\Gc^{(8)}$. Middle: medium grid $\Gc^{(16)}$. Bottom: fine grid $\Gc^{(32)}$ (approx. $2.3M$ grid pts).  
+}
+\label{fig:backStepInChannel}
+\end{center}
+\end{figure}
+}
+
+
+
+{
+\begin{figure}[hbt]
+\newcommand{\figWidth}{17cm}
+\newcommand{\trimfig}[2]{\trimFigb{#1}{#2}{0.0}{.0}{.29}{.29}}
+\begin{center}\small
+% ------------------------------------------------------------------------------------------------
+\begin{tikzpicture}[scale=1]
   \useasboundingbox (0,0.25) rectangle (16,6.);  % set the bounding box (so we have less surrounding white space)
   \draw ( 0,3.0) node[anchor=south west,xshift=-4pt,yshift=-4pt] {\trimfig{fig/backStepRefineG16Vort10t50}{\figWidth}};
   \draw ( 0,0.0) node[anchor=south west,xshift=-4pt,yshift=-4pt] {\trimfig{fig/backStepRefineG16SLt50}{\figWidth}};
@@ -497,7 +552,7 @@ Vorticity and streamlines at time $t=50$ for grid $\Gc^{(16)}$.
 }
 
 
-
+\clearpage
 {
 \begin{figure}[hbt]
 \newcommand{\figWidth}{17cm}
@@ -525,7 +580,34 @@ Averaged over $t\in[25,50]$.
 }
 
 
-\vfill\eject
+{
+\begin{figure}[hbt]
+\newcommand{\figWidth}{17cm}
+\newcommand{\trimfig}[2]{\trimFigb{#1}{#2}{0.0}{.0}{.26}{.32}}
+\begin{center}\small
+% ------------------------------------------------------------------------------------------------
+\begin{tikzpicture}[scale=1]
+  \useasboundingbox (0,0.25) rectangle (16,9.8);  % set the bounding box (so we have less surrounding white space)
+  \draw ( 0,6.4) node[anchor=south west,xshift=-4pt,yshift=-4pt] {\trimfig{fig/BackStepInChannel16Ave50to200SL}{\figWidth}};
+  \draw ( 0,3.2) node[anchor=south west,xshift=-4pt,yshift=-4pt] {\trimfig{fig/BackStepInChannel16Ave50to200u}{\figWidth}};
+  \draw ( 0,0.0) node[anchor=south west,xshift=-4pt,yshift=-4pt] {\trimfig{fig/BackStepInChannel16Ave50to200v}{\figWidth}};
+%   \draw (10.5, 0) node[anchor=south west,xshift=-4pt,yshift=-4pt] {\trimfiga{fig/backStepRefineGridZoom}{\figWidtha}};
+%  \draw[step=1cm,gray] (0,0) grid (11,13.);
+\end{tikzpicture}
+% ----------------------------------------------------------------------------------------
+\caption{
+Time averaged streamlines, $u$ and $v$ for grid $\Gc^{(16)}$.
+Averaged over $t\in[50,200]$.
+% Solution in the near wake region is shown. The max and min contours of the vorticity are limited to the range $[-20,20]$.
+% Top: coarse grid $\Gc^{(8)}$. Middle: medium grid $\Gc^{(16)}$. Bottom: fine grid $\Gc^{(32)}$ (approx. $2.3M$ grid pts).  
+}
+\label{fig:backStepInChannelTimeAverage}
+\end{center}
+\end{figure}
+}
+
+
+\clearpage
 \bibliography{henshaw,henshawPapers}
 \bibliographystyle{siam}
 

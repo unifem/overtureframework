@@ -5,15 +5,25 @@
 #   plotStuff plotQuarterBox.cmd -show=quarterBox16.show -vorMax=60.
 #   mpirun -np 4 $plotStuffx plotQuarterBox.cmd -show=quarterBox16a.show -vorMax=30.
 #   mpirun -np 4 $plotStuffx plotQuarterBox.cmd -show=quarterBox16b.show -vorMax=30.
+#
 #   mpirun -np 4 $plotStuffx plotQuarterBox.cmd -show=qBox16.show -vorMax=30.
-#   $plotStuffx plotQuarterBox.cmd -show=qBox16.show -vorMax=30.
+#
+#    -- plot u,v,w,p,vor
+#   mpirun -np 4 $plotStuffx plotQuarterBox.cmd -show=qBox16.show -vorMax=30. -uMin=-.6 -uMax=1.1 -vMin=-.7 -vMax=.4 -wMin=-.5 -wMax=.5  -pMin=-.2 -pMax=.15
 #
 #
-$show="quarterBox8.show"; $vorMax=20.; $cf=2; $dt=1.; $numTimes=5; $plotTerrain=1; $terrainOffset=0; 
+$show="quarterBox8.show";  $cf=2; $dt=1.; $numTimes=5; $plotTerrain=1; $terrainOffset=0; 
+$uMin=0.; $uMax=-1.; $vMin=0.; $vMax=-1.; $wMin=0.; $wMax=-1.; $pMin=0.; $pMax=-1.; $vorMin=0.; $vorMax=-1.;
 $name = "site300O4G4"; $offset=0; $numMovieFrames=-1; 
-GetOptions( "show=s"=>\$show, "cf=i"=>\$cf, "vorMax=f"=>\$vorMax,"name=s"=>\$name,"offset=i"=>\$offset,\
+$variable="enstrophy"; 
+GetOptions( "show=s"=>\$show, "cf=i"=>\$cf, "name=s"=>\$name,"offset=i"=>\$offset,\
+            "uMin=f"=>\$uMin,"uMax=f"=>\$uMax,\
+            "vMin=f"=>\$vMin,"vMax=f"=>\$vMax,\
+            "wMin=f"=>\$wMin,"wMax=f"=>\$wMax,\
+            "pMin=f"=>\$pMin,"pMax=f"=>\$pMax,\
+            "vorMin=f"=>\$vorMin,"vorMax=f"=>\$vorMax,\
             "dt=f"=>\$dt,"numTimes=i"=>\$numTimes, "plotTerrain=i"=>\$plotTerrain, \
-            "numMovieFrames=i"=>\$numMovieFrames,"terrainOffset=i"=>\$terrainOffset );
+            "numMovieFrames=i"=>\$numMovieFrames,"terrainOffset=i"=>\$terrainOffset,"variable=s"=>\$variable );
 #
 $show
 #
@@ -44,11 +54,19 @@ grid
   close colour choices
 exit this menu
 contour
-  plot:enstrophy
+  # Set min max for different variables if they have been provided
+  $cmd="#"; 
+  if( $uMax > $uMin ){ $cmd = $cmd . "\n plot:u\n min max $uMin $uMax"; }
+  if( $vMax > $vMin ){ $cmd = $cmd . "\n plot:v\n min max $vMin $vMax"; }
+  if( $wMax > $wMin ){ $cmd = $cmd . "\n plot:w\n min max $wMin $wMax"; }
+  if( $pMax > $pMin ){ $cmd = $cmd . "\n plot:p\n min max $pMin $pMax"; }
+  if( $vorMax > $vorMin ){ $cmd = $cmd . "\n plot:enstrophy\n min max $vorMin $vorMax"; }
+  $cmd
+#  plot:enstrophy
+#  min max $vorMin $vorMax
 #
  # plot:divergence
   contour lines 0
-  min max 0 $vorMax
   delete contour plane 2
   delete contour plane 1
   delete contour plane 0
@@ -68,152 +86,25 @@ set view:0 0.484141 0.102719 0 2.34175 0.939693 -0.116978 0.321394 0 0.939693 0.
 #
 set view:0 0.15452 0.0854513 0 1.46954 0.939693 0.17101 -0.296198 0 0.866025 0.5 0.34202 -0.469846 0.813798
 
-
-
-# Usage:
-#   plotStuff plotSite300.cmd -show=<> -name=<> -cf=[1|2|3..] -vorMax=<> -name=<> -plotTerrain=[0|1|2]
-# Options:
-#   -plotTerrain : 0=no terrain, 1=plot terrain, 2=only plot terrain
-#
-#
-# plotStuff plotSite300.cmd -show=site3003d2e2.show
-# plotStuff plotSite300.cmd -show=site300g4o2.show
-# 
-# Movie: 
-#  NOTE: first made a movie with a "brass" terrain -name=site300O4G4
-#        second movie with "green" terrain : -name=site300O4G4g
-#  1. plot terrain only for 25 frames:
-#   srun -N1 -n8 -ppdebug $plotStuffp plotSite300.cmd -show=site300g4o4.show -cf=2 -vorMax=1. -name=site300O4G4g -plotTerrain=2 -numMovieFrames=25 -numTimes=0
-#  2. plot terrain and vorticity
-# srun -N2 -n16 -ppdebug $plotStuffp plotSite300.cmd -show=site300g4o4.show -cf=2 -vorMax=1. -name=site300O4G4g -terrainOffset=25 -numTimes=3 [136 frames, last frame 160=136+25-1
-#
-# srun -N2 -n16 -ppdebug $plotStuffp plotSite300.cmd -show=site300g4o4a.show -cf=2 -vorMax=1. -name=site300O4G4g -terrainOffset=25 -offset=135 -numTimes=4 [166 frames - last frame 325
-#
-# srun -N2 -n16 -ppdebug $plotStuffp plotSite300.cmd -show=site300g4o4b.show -cf=2 -vorMax=1. -name=site300O4G4g -terrainOffset=25 -offset=300 -numTimes=5 [ last frame 526 300 ... 500, 202 frames  .. TIME LIMIT last frame 480
-# 
-# srun -N1 -n8 -ppdebug $plotStuffp plotSite300.cmd -show=site300g4o4a.show -cf=2 -vorMax=2. 
-# srun -N1 -n8 -ppdebug $plotStuffp plotSite300.cmd -show=site300g4o4b.show -cf=2 -vorMax=1. 
-# -- add buffer zones:
-# srun -N1 -n8 -ppdebug $plotStuffp plotSite300.cmd -show=site300g4o4d.show -cf=2 -vorMax=1. 
-# srun -N1 -n8 -ppdebug $plotStuffp plotSite300.cmd -show=site300g4o4e.show -cf=2 -vorMax=1. 
-# srun -N1 -n8 -ppdebug $plotStuffp plotSite300.cmd -show=site300g4o4f.show -cf=2 -vorMax=1. 
-#
-# FINER: 
-#   srun -N2 -n16 -ppdebug $plotStuffp plotSite300.cmd -show=site300g8o4.show -cf=4 -vorMax=2. 
-#  1. plot terrain only for 25 frames:
-#   srun -N2 -n16 -ppdebug $plotStuffp plotSite300.cmd -show=site300g8o4.show -cf=4 -vorMax=2. -name=site300O8G4g -plotTerrain=2 -numMovieFrames=25 -numTimes=0
-#  2. plot terrain and vorticity
-# srun -N4 -n32 -ppdebug $plotStuffp plotSite300.cmd -show=site300g8o4.show -cf=4 -vorMax=2. -name=site300O8G4g -terrainOffset=25 -numTimes=1 [ 32 frames, last frame 56=32+25-1
-# srun -N4 -n32 -ppdebug $plotStuffp plotSite300.cmd -show=site300g8o4a.show -cf=4 -vorMax=2. -name=site300O8G4g -terrainOffset=25 -offset=31 -numTimes=1 [ 34 frames last frame 089
-# srun -N4 -n32 -ppdebug $plotStuffp plotSite300.cmd -show=site300g8o4b.show -cf=4 -vorMax=2. -name=site300O8G4g -terrainOffset=25 -offset=64 -numTimes=1 [ 
-#
-# NOTE: offset: first solution is $offset*$dt 
-#
-$show="site3003d2e2.show"; $vorMax=2.; $cf=2; $dt=1.; $numTimes=5; $plotTerrain=1; $terrainOffset=0; 
-$name = "site300O4G4"; $offset=0; $numMovieFrames=-1; 
-GetOptions( "show=s"=>\$show, "cf=i"=>\$cf, "vorMax=f"=>\$vorMax,"name=s"=>\$name,"offset=i"=>\$offset,\
-            "dt=f"=>\$dt,"numTimes=i"=>\$numTimes, "plotTerrain=i"=>\$plotTerrain, \
-            "numMovieFrames=i"=>\$numMovieFrames,"terrainOffset=i"=>\$terrainOffset );
-#
-$show
-#
- x-r 90
-set home
-previous
-# 
-# set view:0 0.037014 0.0208637 0 1.17167 0.497521 0.308639 -0.810688 -0.866928 0.144424 -0.477051 -0.0301537 0.940151 0.339422
-# set view:0 0.0472508 -0.00241692 0 1.27701 0.5 0.296198 -0.813798 -0.866025 0.17101 -0.469846 5.30288e-17 0.939693 0.34202
-set view:0 0.00193353 0.0300665 0 1.60617 0.34202 0.321394 -0.883022 -0.939693 0.116978 -0.321394 5.75396e-17 0.939693 0.34202
-# view from south south west up 70 degrees approx.
-##set view:0 0.0378006 0.128 0 1.60617 0.984808 0.143961 -0.0971028 -0.173648 0.816443 -0.550698 1.06329e-17 0.559193 0.829038
-grid
-  plot block boundaries 0
-  coarsening factor $cf 
-  toggle grid 0 0
-  toggle grid 1 0
-   #              s a g 
-  toggle boundary 0 0 2 0
-  toggle boundary 0 1 2 0
-  toggle boundary 1 1 2 0
-  toggle boundary 1 0 2 0
-  toggle grid lines on boundary 0 0 2 0
-  toggle grid lines on boundary 0 1 2 0
-#
-#  plot grid lines 0
-#  grid colour 2 BRASS
-#  grid colour 2 GOLD
-#
-# pause
-exit this menu
-# 
-derived types
-  enstrophy
-  speed
-exit
-# plot:enstrophy
-# 
-  contour
-    plot:enstrophy
-    min max 0 $vorMax 
-    contour lines 0
-    #
-    # Optionally turn off plotting the contours on the backGround grid so
-    # that we can see more contour planes.
-    toggle grids on and off
-     0 : backGround is (on)
-    exit
-    #
-    delete contour plane 2
-    delete contour plane 1
-    delete contour plane 0
-    # y-planes (y goes from about 0 to 1400 
-    add contour plane  0.00000e+00  1.00000e+00  0.00000e+00  5.53351e+02  100.  4.67857e+02 
-    add contour plane  0.00000e+00  1.00000e+00  0.00000e+00  5.53351e+02  400.  4.67857e+02 
-    add contour plane  0.00000e+00  1.00000e+00  0.00000e+00  5.53351e+02  700.  4.67857e+02 
-    add contour plane  0.00000e+00  1.00000e+00  0.00000e+00  5.53351e+02 1000.  4.67857e+02 
-    add contour plane  0.00000e+00  1.00000e+00  0.00000e+00  5.53351e+02 1300.  4.67857e+02 
-  exit
-# 
-DISPLAY COLOUR BAR:0 0
-DISPLAY AXES:0 0
-DISPLAY SQUARES:0 0
-# 
-#
-pause
-#
-# ---------------------------
-# ----- hard copies ---------
-# ---------------------------
-# 
-DISPLAY AXES:0 0
-DISPLAY COLOUR BAR:0 0
-DISPLAY SQUARES:0 0
-$deltaTimes=50.;
-@times=( 0.,50.,100.,150.,200.,250.,300.,350.,400.,450.,500.,550.,600.,650.,700.,750.,800.,850.,900.,950.,1000. );
-$cmd="#"; 
-$t0 = $offset*$dt;    # time for first solution in the show file
-$i0 = int( $t0/$deltaTimes + .9999999  );  # index of first output time to look for 
-#
+# --- HARD-COPIES ----
+hardcopy file name:0 quarterBox16vorT10.ps
+hardcopy save:0
+plot:p
+hardcopy file name:0 quarterBox16pT10.ps
+hardcopy save:0
+plot:u
+hardcopy file name:0 quarterBox16uT10.ps
+hardcopy save:0
+plot:v
+hardcopy file name:0 quarterBox16vT10.ps
+hardcopy save:0
+plot:w
+hardcopy file name:0 quarterBox16wT10.ps
+hardcopy save:0
+hardcopy save:0
 plot:speed
-# pause
-for( $i=$i0; $i<$numTimes+$i0; $i++ ){ $t=$times[$i]; $j=int( ($t-$t0)/$dt + 1.5); $tn =$times[$i]; $tn =~ s/\./p/; $plotName=$name . "velT" . "$tn.ps"; $cmd .= "\n solution: $j \n hardcopy file name:0 $plotName\n hardcopy save:0"; }
-$cmd
-plot:enstrophy
-$cmd="#"; 
-for( $i=$i0; $i<$numTimes+$i0; $i++ ){ $t=$times[$i]; $j=int( ($t-$t0)/$dt + 1.5); $tn =$times[$i]; $tn =~ s/\./p/; $plotName=$name . "vorT" . "$tn.ps"; $cmd .= "\n solution: $j \n hardcopy file name:0 $plotName\n hardcopy save:0"; }
-$cmd
-#
-# ----------- movie: ----------------------------
-if( $plotTerrain eq 2 ){ $cmd="erase\n grid\n exit this menu\n"; }else{ $cmd="#"; }
-$cmd
-DISPLAY LABELS:0 0
-# 
-solution: 1
-movie file name offset
-$totalOffset= $terrainOffset + $offset;
-$totalOffset
-save movie files 1
-movie file name: $name
-if( $numMovieFrames > 0 ){ $cmd="movie frames: $numMovieFrames"; }else{ $cmd="#"; }
-$cmd
-show movie
+hardcopy file name:0 quarterBox16speedT10.ps
+hardcopy save:0
+
+
+

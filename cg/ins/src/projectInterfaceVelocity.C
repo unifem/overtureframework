@@ -395,11 +395,19 @@ assignInterfaceBoundaryConditions(GridFunction & cgf,
       && projectBeamVelocity 
       && cgf.t>0. )
   {
-    if( cgf.t <= 5*dt ) 
-      printF("--INS-- assignInterfaceBoundaryConditions: PROJECT-INTERFACE-VELOCITY at t=%8.2e\n",cgf.t);
 
     // --- project the velocity of the beam to match that from the fluid ---
     MovingGrids & movingGrids = parameters.dbase.get<MovingGrids >("movingGrids");
+    const int numberOfDeformingBodies= movingGrids.getNumberOfDeformingBodies();
+
+    // ----- We only project defomring body interfaces for now ----
+    if( numberOfDeformingBodies==0 )
+      return 0;
+
+
+    if( cgf.t <= 5*dt ) 
+      printF("--INS-- assignInterfaceBoundaryConditions: PROJECT-INTERFACE-VELOCITY at t=%8.2e\n",cgf.t);
+
     movingGrids.projectInterfaceVelocity( cgf );
 
     if( true  ) // this could be an option : reprojectFluidVelocity
@@ -413,7 +421,6 @@ assignInterfaceBoundaryConditions(GridFunction & cgf,
       const int uc = parameters.dbase.get<int >("uc");
       Range V = Range(uc,uc+numberOfDimensions-1);
 
-      const int numberOfDeformingBodies= movingGrids.getNumberOfDeformingBodies();
       for( int body=0; body<numberOfDeformingBodies; body++ )
       {
 	DeformingBodyMotion & deformingBody = movingGrids.getDeformingBody(body);

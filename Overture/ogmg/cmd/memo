@@ -1,4 +1,21 @@
 ****************
+*** Dec 31, 2015
+
+test HEAT equation for Jeff B.
+
+*** nuDt=.001
+$ogmgp tz -noplot -g=square128.order2 -predefined=1 -eqn=heat -nuDt=.001 -debug=3
+Iteration=1..8 : Total WU=3.40e+01, total res reduction=2.16e-12, ave CR=0.0348 ave ECR=0.453 np=1
+
+**** nuDT=.1: 
+$ogmgp tz -noplot -g=square128.order2 -predefined=1 -eqn=heat -nuDt=.1 -debug=3
+Iteration=1..9 : Total WU=3.79e+01, total res reduction=2.31e-14, ave CR=0.0305 ave ECR=0.437 np=1
+
+**** nuDT=100.: 
+$ogmgp tz -noplot -g=square128.order2 -predefined=1 -eqn=heat -nuDt=100. -debug=3
+Iteration=1..10 : Total WU=4.09e+01, total res reduction=1.34e-15, ave CR=0.0326 ave ECR=0.433 np=1
+
+****************
 *** Sept 6, 2015
 
 RE-TEST HYPRE: 

@@ -628,6 +628,11 @@ Parameters(const int & numberOfDimensions0) : pdeName("unknown"), numberOfBCName
   // *** ALL these parameters should be in the DeformingBody ****  FIX ME **
 
   if( !dbase.has_key("useAddedMassAlgorithm") ) dbase.put<bool>("useAddedMassAlgorithm")=false;
+
+  // addedDampingAlgorithm: corrections for viscous added damping terms: 
+  if( !dbase.has_key("useAddedDampingAlgorithm") ) dbase.put<bool>("useAddedDampingAlgorithm")=false;
+  if( !dbase.has_key("addedDampingCoefficient") ) dbase.put<real>("addedDampingCoefficient")=1.;
+
   if( !dbase.has_key("useApproximateAMPcondition") ) dbase.put<bool>("useApproximateAMPcondition")=false;
   if( !dbase.has_key("projectAddedMassVelocity") ) dbase.put<bool>("projectAddedMassVelocity")=true;
   if( !dbase.has_key("projectNormalComponentOfAddedMassVelocity") )
@@ -4594,9 +4599,11 @@ registerBCModifier(const aString &name, Parameters::CreateBCModifierFromName cre
 /// \param normalForce (output) : fill in the components of the normal force. 
 /// \param ipar (input) : integer parameters. The boundary is defined by grid=ipar[0], side=ipar[1], axis=ipar[2] 
 /// \param rpar (input) : real parameters. The current time is t=rpar[0]
+/// \param includeViscosity (input) : if true include viscous stress terms in the force.
 // ===================================================================================================================
 int Parameters::
-getNormalForce( realCompositeGridFunction & u, realSerialArray & normalForce, int *ipar, real *rpar )
+getNormalForce( realCompositeGridFunction & u, realSerialArray & normalForce, int *ipar, real *rpar,
+		bool includeViscosity /* = true */ )
 {
   printF("Parameters::getNormalForce:ERROR base class called!\n");
   Overture::abort("error");

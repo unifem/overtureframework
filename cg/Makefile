@@ -10,7 +10,7 @@ all : libCommon cgad cgcns cgins cgasf cgsm cgmp unitTests cgmx message
 everything: all 
 
 message : cgad cgcns cgins cgasf cgsm cgmp unitTests cgmx
-	@echo "CG:INFO: type \"make check-quiet\" or \"make -j8 check-quiet\" or\"make check\" to run regression tests"	
+	@echo "CG:INFO: type \"make check-quiet\" or \"make -j8 check-quiet\" or \"make check\" to run regression tests"	
 
 libCommon:
 	@cd common; $(MAKE) 

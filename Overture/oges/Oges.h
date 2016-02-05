@@ -126,6 +126,15 @@ class Oges
 	   		      
   int setOgesParameters( const OgesParameters & opar );
   
+  // return a list of the extra equation numbers 
+  const IntegerArray & getExtraEquationNumbers() const;
+
+  int getNumberOfExtraEquations() const;
+  int setNumberOfExtraEquations( int numExtra );
+
+  // Set extra equations and over-ride other equations (using compressed row format)
+  int setEquations( int neq, IntegerArray & eqn, IntegerArray & ia, IntegerArray & ja, RealArray & a );
+
   // assign values to rhs for the the extra equations
   int setExtraEquationValues( realCompositeGridFunction & f, real *value );
 
@@ -269,8 +278,11 @@ class Oges
   int preconditionBoundary;
   int preconditionRightHandSide;
 
-  // Convert an Equation Number to a point on a grid (Inverse of equationNo)
+  // Convert an Equation Number to a point on a grid (inverse of equationNo)
   void equationToIndex( const int eqnNo0, int & n, int & i1, int & i2, int & i3, int & grid );
+  
+  // Return the equation number for given indices (inverse of equationToIndex)
+  inline int equationNo( const int n, const int i1, const int i2, const int i3, const int grid );
   
 
   int numberOfIterations; // number of iterations used by iterative solvers
@@ -321,9 +333,6 @@ class Oges
   inline int arraySize(const int grid, const int axis );
   inline int arrayDims(const int grid, const int side, const int axis );
 
-  // Return the equation number for given indices
-  inline int equationNo( const int n, const int i1, const int i2, const int i3, const int grid );
-  
   IntegerDistributedArray equationNo(const int n, const Index & I1, const Index & I2, const Index & I3, 
 		      const int grid );
 

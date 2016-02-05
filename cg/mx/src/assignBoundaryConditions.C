@@ -1686,8 +1686,9 @@ assignBoundaryConditions( int option, int grid, real t, real dt, realMappedGridF
                 int bcOrderOfAccuracy=orderOfAccuracyInSpace;
                 if( method==sosup && orderOfAccuracyInSpace==6 )
                 {
-          // NOTE: for now apply 4th order BC's for sosup order 6
-                    bcOrderOfAccuracy=4;
+          // NOTE: for now apply 4th order BC's for sosup order 6 on curvilinear grids:
+                    if( !isRectangular )
+                        bcOrderOfAccuracy=4;
                 }
                 realArray f;
                     if( useChargeDensity )
@@ -2189,8 +2190,9 @@ assignBoundaryConditions( int option, int grid, real t, real dt, realMappedGridF
                     int bcOrderOfAccuracy=orderOfAccuracyInSpace;
                     if( method==sosup && orderOfAccuracyInSpace==6 )
                     {
-            // NOTE: for now apply 4th order BC's for sosup order 6
-                        bcOrderOfAccuracy=4;
+            // NOTE: for now apply 4th order BC's for sosup order 6 on curvilinear grids:
+                        if( !isRectangular )
+                            bcOrderOfAccuracy=4;
                     }
                     realArray f;
                     ipar[0] =0;

@@ -9,6 +9,8 @@
 # Implicit:
 #   cgins backStep -g=backStepGride1.order2.hdf -nu=.05 -uDrag=50. -vDrag=0. -ts=im -dtMax=.01 -tp=.1 -tf=10 -go=halt 
 #
+# --- 3D:
+# cgins backStep -g=backStepInChannel3dGride2.order4.ml1 -nu=.005 -parabolicWidth=.05 -bcTop=noSlipWall -bcSide=outflow -ad4=1 -ad41=2. -ad42=1. -cfl=3. -ts=afs -psolver=mg -rtolp=1.e-4 -atolp=1.e-4  -dtMax=.01 -tf=200. -tp=.1 -debug=3 -go=halt
 #
 $tFinal=10.; $tPlot=.5; 
 $grid="backStepGride1.order2.hdf"; $nu=.05; $uDrag=0.; $vDrag=0.;  $project=1; $outflowOption="neumann"; 
@@ -25,7 +27,8 @@ $aftol=1e-3;
 $filter=0; $filterFrequency=1; $filterOrder=6; $filterStages=2; 
 $cdv=1;  $cDt=.25; $flushFrequency=5; 
 $ogmgAutoChoose=1; $ogmgMaxIterations=30; $ogmgCoarseGridSolver="best"; 
-$bcTop="slipWall"; 
+$ogmgIlucgLevels=5; # for coarse grid solve, over-ride auto parameters
+$bcTop="slipWall"; $bcSide=""; 
 $parabolicWidth=.05; # width of parabolic inflow region
 $outputYplus=0; # set to 1 to output info about yPlus
 $append=0; # set to "1" to append to an existing show file 
@@ -48,7 +51,8 @@ GetOptions( "g=s"=>\$grid,"tf=f"=>\$tFinal,"implicitFactor=f"=>\$implicitFactor,
    "slowStartCFL=f"=>\$slowStartCFL, "slowStartTime=f"=>\$slowStartTime,"recomputeDt=i"=>\$recomputeDt,\
   "slowStartSteps=i"=>\$slowStartSteps,"slowStartRecomputeDt=i"=>\$slowStartRecomputeDt,\
   "ogmgAutoChoose=i"=>\$ogmgAutoChoose, "flushFrequency=i"=>\$flushFrequency, "parabolicWidth=f"=>\$parabolicWidth,\
-  "ogmgCoarseGridSolver=s"=>\$ogmgCoarseGridSolver,"rtolp=f"=>\$rtolp,"atolp=f"=>\$atolp );
+  "ogmgCoarseGridSolver=s"=>\$ogmgCoarseGridSolver,"rtolp=f"=>\$rtolp,"atolp=f"=>\$atolp,\
+  "cdv=f"=>\$cdv,"cDt=f"=>\$cDt,"bcSide=s"=>\$bcSide,"ogmgIlucgLevels=i"=>\$ogmgIlucgLevels );
 # -------------------------------------------------------------------------------------------------
 if( $solver eq "best" ){ $solver="choose best iterative solver"; }
 if( $solver eq "mg" ){ $solver="multigrid"; }
@@ -105,6 +109,9 @@ $grid
     if( $outflowOption eq "neumann" ){ $cmd = "use Neumann BC at outflow"; }else{ $cmd="use extrapolate BC at outflow"; }
     $cmd
     OBPDE:expect inflow at outflow
+    #
+    OBPDE:cDt div damping $cDt
+    OBPDE:divergence damping  $cdv
   done
 #
  cfl $cfl
@@ -123,7 +130,6 @@ $grid
   pressure solver options
    $ogesSolver=$psolver; $ogesRtol=$rtolp; $ogesAtol=$atolp; $ogesIluLevels=$iluLevels; $ogmgDebug=$ogesDebug;
    $ogmgRtolcg=$rtolp; $ogmgAtolcg=$atolp; $ogmgRtolcg=$rtolp; $ogmgAtolcg=$atolp;
-   $ogmgIlucgLevels=5; # for coarse grid solve, over-ride auto parameters
    # TEST Hypre AMG: 
    # $ogmgCoarseGridSolver="AMG";
    include $ENV{CG}/ins/cmd/ogesOptions.h
@@ -151,6 +157,10 @@ $grid
     # Top boundary: outflow
     if( $bcTop eq "outflow" ){ $cmd="bcNumber4=outflow, pressure(1.*p+0*p.n=0.)"; }else{ $cmd="#"; }
     $cmd 
+    if( $bcSide ne "outflow" ){ $cmd="bcNumber5=$bcSide\n bcNumber6=$bcSide"; }else{ $cmd="#"; }
+    $cmd
+    if( $bcSide eq "outflow" ){ $cmd="bcNumber5=outflow, pressure(1.*p+0*p.n=0.)\n bcNumber6=outflow, pressure(1.*p+0*p.n=0.)"; }else{ $cmd="#"; }
+    $cmd
 #
 #    inlet(1,1)=slipWall
 #    mainChannel(1,1)=slipWall

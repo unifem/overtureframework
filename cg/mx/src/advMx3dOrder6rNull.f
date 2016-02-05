@@ -13,5 +13,7 @@ c
 c  dis(i1,i2,i3) : temp space to hold artificial dissipation
 c  varDis(i1,i2,i3) : coefficient of the variable artificial dissipation
 c======================================================================
+         write(*,'("ERROR: null version of advMx3dOrder6r called")')
+         stop 9922
          return
          end

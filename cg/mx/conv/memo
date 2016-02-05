@@ -1,4 +1,62 @@
 ***********************************
+****** Jan 23, 2016
+
+----------------------------------- BOX EIGENFUNCTIONS ---------------------------------------
+
+
+TF=1
+conv.p diskeigen.conv -tp=1. -tf=1. -mx=2 -my=2 -mz=2 -order=6 -method=sosup -name=boxEigen -cg=box -ng=3
+                grid  & N &  $E_x$ & r &  $E_y$ & r & $H_z$ & r &  $Ex_t$ & r &  $Ey_t$ & r & $Hz_t$ & r & $\grad\cdot\Ev/\grad\Ev$& r 
+                box2 &     1 & 1.75e-05 &      & 3.50e-05 &      & 1.75e-05 &      & 9.34e-05 &      & 1.87e-04 &      & 9.34e-05 &      & 1.63e-06 &      
+                box4 &     2 & 2.87e-07 & 61.0 & 5.74e-07 & 61.0 & 2.87e-07 & 61.0 & 1.66e-06 & 56.3 & 3.32e-06 & 56.3 & 1.66e-06 & 56.3 & 2.03e-08 & 80.3 
+                box8 &     4 & 4.58e-09 & 62.7 & 9.16e-09 & 62.7 & 4.58e-09 & 62.7 & 3.66e-08 & 45.4 & 7.32e-08 & 45.4 & 3.66e-08 & 45.4 & 1.75e-10 &116.0 
+Convergence rates: c0=5.95 c1=5.95 c2=5.95 c3=5.66 c4=5.66 c5=5.66 c6=6.59 
+
+ ****Output written to ./boxEigensosupOrder6maxNormConvTable.tex *****
+
+TF=.1
+conv.p diskeigen.conv -tp=.1 -tf=.1 -mx=2 -my=2 -mz=2 -order=6 -method=sosup -name=boxEigen -cg=box -ng=3
+                grid  & N &  $E_x$ & r &  $E_y$ & r & $H_z$ & r &  $Ex_t$ & r &  $Ey_t$ & r & $Hz_t$ & r & $\grad\cdot\Ev/\grad\Ev$& r 
+                box2 &     1 & 1.52e-06 &      & 3.04e-06 &      & 1.52e-06 &      & 2.77e-05 &      & 5.55e-05 &      & 2.77e-05 &      & 1.67e-06 &      
+                box4 &     2 & 2.87e-08 & 53.0 & 5.75e-08 & 52.9 & 2.87e-08 & 53.0 & 5.15e-07 & 53.8 & 1.03e-06 & 53.9 & 5.15e-07 & 53.8 & 3.02e-08 & 55.3 
+                box8 &     4 & 4.91e-10 & 58.5 & 9.83e-10 & 58.5 & 4.91e-10 & 58.5 & 8.93e-09 & 57.7 & 1.79e-08 & 57.5 & 8.93e-09 & 57.7 & 2.96e-10 &102.0 
+Convergence rates: c0=5.80 c1=5.80 c2=5.80 c3=5.80 c4=5.80 c5=5.80 c6=6.23 
+
+ ****Output written to ./boxEigensosupOrder6maxNormConvTable.tex *****
+
+
+----------------------------------- SQUARE EIGENFUNCTIONS ---------------------------------------
+SOSUP66 runs: 
+
+TF=2.
+conv.p diskeigen.conv -tf=2. -tp=2 -mx=3 -my=3 -order=6 -method=sosup -name=boxEigen -cg=square -ng=5
+                grid  & N &  $E_x$ & r &  $E_y$ & r & $H_z$ & r &  $Ex_t$ & r &  $Ey_t$ & r & $Hz_t$ & r & $\grad\cdot\Ev/\grad\Ev$& r 
+            square16 &     1 & 1.04e-03 &      & 1.04e-03 &      & 4.05e-03 &      & 3.36e-02 &      & 3.36e-02 &      & 2.64e-02 &      & 9.18e-04 &      
+            square32 &     2 & 3.26e-05 & 31.9 & 3.26e-05 & 31.9 & 5.87e-05 & 69.0 & 4.83e-04 & 69.6 & 4.83e-04 & 69.6 & 6.87e-04 & 38.4 & 1.07e-05 & 85.8 
+            square64 &     4 & 1.06e-06 & 30.8 & 1.06e-06 & 30.8 & 8.89e-07 & 66.0 & 7.02e-06 & 68.8 & 7.02e-06 & 68.8 & 2.11e-05 & 32.6 & 8.57e-08 &124.9 
+           square128 &     8 & 3.36e-08 & 31.5 & 3.36e-08 & 31.5 & 1.36e-08 & 65.4 & 9.24e-08 & 76.0 & 9.24e-08 & 76.0 & 6.50e-07 & 32.5 & 6.87e-10 &124.7 
+           square256 &    16 & 1.06e-09 & 31.7 & 1.06e-09 & 31.7 & 2.08e-10 & 65.4 & 8.82e-10 &104.8 & 8.82e-10 &104.8 & 2.02e-08 & 32.2 & 5.69e-12 &120.7 
+Convergence rates: c0=4.97 c1=4.97 c2=6.05 c3=6.27 c4=6.27 c5=5.07 c6=6.85 
+
+
+conv.p diskeigen.conv -tf=2. -tp=2 -mx=2 -my=2 -order=6 -method=sosup -name=boxEigen -cg=square -ng=5
+                grid  & N &  $E_x$ & r &  $E_y$ & r & $H_z$ & r &  $Ex_t$ & r &  $Ey_t$ & r & $Hz_t$ & r & $\grad\cdot\Ev/\grad\Ev$& r 
+            square16 &     1 & 6.93e-06 &      & 6.93e-06 &      & 2.72e-04 &      & 1.44e-03 &      & 1.44e-03 &      & 1.73e-04 &      & 3.71e-05 &      
+            square32 &     2 & 1.38e-06 &  5.0 & 1.38e-06 &  5.0 & 5.18e-06 & 52.5 & 2.82e-05 & 51.1 & 2.82e-05 & 51.1 & 2.04e-05 &  8.5 & 3.69e-07 &100.5 
+            square64 &     4 & 6.36e-08 & 21.7 & 6.36e-08 & 21.7 & 1.16e-07 & 44.7 & 6.32e-07 & 44.6 & 6.32e-07 & 44.6 & 8.50e-07 & 24.0 & 2.97e-09 &124.2 
+           square128 &     8 & 2.30e-09 & 27.7 & 2.30e-09 & 27.7 & 2.91e-09 & 39.9 & 1.56e-08 & 40.5 & 1.56e-08 & 40.5 & 2.97e-08 & 28.6 & 2.25e-11 &132.0 
+           square256 &    16 & 7.57e-11 & 30.4 & 7.57e-11 & 30.4 & 8.39e-11 & 34.7 & 4.45e-10 & 35.1 & 4.45e-10 & 35.1 & 9.67e-10 & 30.7 & 6.43e-13 & 35.0 
+Convergence rates: c0=4.22 c1=4.22 c2=5.41 c3=5.41 c4=5.41 c5=4.43 c6=6.56 
+
+
+
+conv.p diskeigen.conv -tf=.15 -tp=.15 -mx=3 -my=3 -mz=3 -order=6 -method=sosup -name=boxEigen -cg=box -ng=3
+
+SQUARE
+conv.p diskeigen.conv -tf=1. -tp=1 -mx=2 -my=2 -order=6 -method=sosup -name=boxEigen -cg=square -ng=3
+
+
+***********************************
 ****** Aug 14, 2015
 
 FLIP materials in the sphere:

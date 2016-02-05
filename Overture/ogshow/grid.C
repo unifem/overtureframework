@@ -1459,6 +1459,8 @@ plotGrid(GenericGraphicsInterface &gi, GridCollection & gc,
   bool & plotEdges = psp.plotUnsEdges;
   bool & plotBoundaryEdges = psp.plotUnsBoundaryEdges;
 
+  bool plotNegativeVolumes = false;
+
 // AP: Not relevant anymore  axesOrigin[currentWindow] = psp.axesOrigin;
 
   bool plotGrid=TRUE;
@@ -1587,6 +1589,7 @@ plotGrid(GenericGraphicsInterface &gi, GridCollection & gc,
                    "<>query",
   		     "mark a point",
 		     "edit the mapping of a grid",
+		     "check for negative volumes",
                    "<>options",
 		     "keep aspect ratio",
                      "do not keep aspect ratio",
@@ -1818,7 +1821,7 @@ plotGrid(GenericGraphicsInterface &gi, GridCollection & gc,
 
 
     // *** specify toggle buttons ***
-    const int numberOfToggleButtons=19;
+    const int numberOfToggleButtons=20;
     aString tbCommands[numberOfToggleButtons], tbLabels[numberOfToggleButtons];
     int tbState[numberOfToggleButtons];
     
@@ -1890,6 +1893,10 @@ plotGrid(GenericGraphicsInterface &gi, GridCollection & gc,
     tbCommands[i] = "compute coarsening factor"; 
     tbLabels[i] = tbCommands[i]; 
     tbState[i]=psp.computeCoarseningFactor;  i++;
+
+    tbCommands[i] = "plot negative volumes"; 
+    tbLabels[i] = tbCommands[i]; 
+    tbState[i]= plotNegativeVolumes;  i++;
 
     tbCommands[i] = "";
     tbLabels[i] = "";
@@ -1964,10 +1971,10 @@ plotGrid(GenericGraphicsInterface &gi, GridCollection & gc,
 // setup a user defined menu and some user defined buttons
     aString buttonCommands[] = {"plot", "erase", "erase and exit","pick colour...",
                                 "refinement grid colours", "show all grids", "show all faces",
-                                "print grid statistics", "plot grid quality", ""};
+                                "print grid statistics", "grid quality", ""};
     aString buttonLabels[] = {"Plot", "Erase", "erase and exit", "pick colour...", 
                               "refinement grid colours", "show all grids", "show all faces", 
-                              "print grid statistics", "plot grid quality",""};
+                              "print grid statistics", "grid quality",""};
  
     int numberOfRows=3;
     dialog.setPushButtons(buttonCommands, buttonLabels, numberOfRows);
@@ -2086,6 +2093,7 @@ plotGrid(GenericGraphicsInterface &gi, GridCollection & gc,
     else if( dialog.getToggleValue(answer,"plot interpolation points (toggle)",plotInterpolationPoints) ){}
     else if( dialog.getToggleValue(answer,"colour interpolation points",psp.colourInterpolationPoints) ){}
     else if( dialog.getToggleValue(answer,"compute coarsening factor",psp.computeCoarseningFactor) ){} //
+    else if( dialog.getToggleValue(answer,"plot negative volumes",plotNegativeVolumes) ){} //
     else if( dialog.getToggleValue(answer,"plot block boundaries",psp.plotGridBlockBoundaries) )
     {
       for( grid=0; grid<numberOfGrids; grid++ )
@@ -3401,10 +3409,17 @@ plotGrid(GenericGraphicsInterface &gi, GridCollection & gc,
 	GridStatistics::printGridStatistics(gc);
       }
     }
-    else if( answer=="plot grid quality" )
+    else if( answer=="grid quality" ||
+             answer=="plot grid quality" ) // backward compatibility
     {
-      printF("plot the grid quality for grid=0 **** fix this ***");
+      // printF("plot the grid quality for grid=0 **** fix this ***");
       PlotIt::plotGridQuality(gi,gc);
+    }
+    else if( answer=="check for negative volumes" )
+    {
+      int numberOfGhost=psp.numberOfGhostLinesToPlot;
+      GridStatistics::checkForNegativeVolumes(gc,numberOfGhost);
+      printF("\n INFO: To check for negative volumes on ghost points, change the 'ghost lines' value\n");
     }
     else if( answer=="refinement grid colours" )
     {
@@ -3589,6 +3604,66 @@ plotGrid(GenericGraphicsInterface &gi, GridCollection & gc,
 	  if( plotOnThisProcessor ) glEndList(); 
 	} // end plot 1D or 2D
 	
+	if( plotNegativeVolumes )
+	{
+          // ---------------------------------
+	  // --- plot any negative volumes ---
+          // ---------------------------------
+	  psp.set(GI_PLOT_THE_OBJECT_AND_EXIT,true);
+	  
+	  psp.set(GI_USE_PLOT_BOUNDS,true);
+	  real pointSize;
+	  psp.get(GI_POINT_SIZE,pointSize);
+          real negativeVolumePointSize=psp.pointSize*1.66667;
+          psp.set(GI_POINT_SIZE,negativeVolumePointSize*gi.getLineWidthScaleFactor());      // point size in pixels
+	  psp.set(GI_POINT_COLOUR,"black"); 
+
+	  for( int grid=0; grid<gc.numberOfComponentGrids(); grid++ )
+	  {
+	    int numberOfNegativeVolumes;
+	    IntegerArray negativeVolumeList;
+	    bool checkActivePoints=true;
+            bool printNegativeVolumes=false;
+
+	    GridStatistics::getNegativeVolumes( gc[grid],numberOfNegativeVolumes,negativeVolumeList,
+                                                grid, psp.numberOfGhostLinesToPlot,checkActivePoints,
+                                                printNegativeVolumes );
+	    if( numberOfNegativeVolumes > 0 )
+	    {
+	      OV_GET_SERIAL_ARRAY(real,gc[grid].vertex(),xLocal);  // only curvilinear grids will have negative vols
+
+	      RealArray negativeVolumePoint(numberOfNegativeVolumes,numberOfDimensions);
+	      for( int i=0; i<numberOfNegativeVolumes; i++ )
+	      {
+		int i1=negativeVolumeList(0,i);
+		int i2=negativeVolumeList(1,i);
+		int i3=negativeVolumeList(2,i);
+		int grid = negativeVolumeList(3,i);
+		for( int axis=0; axis<numberOfDimensions; axis++ )
+		  negativeVolumePoint(i,axis)=xLocal(i1,i2,i3,axis); // this is lower left corner -- fix me
+	      }
+	    
+
+	      gi.plotPoints(negativeVolumePoint,psp); // plot points at negative volumes 
+	    }
+	    else
+	    {
+	      // gi.plotPoints(Overture::nullRealArray(),psp);
+	    }
+	    
+	  } // end for grid
+	  
+	  psp.set(GI_POINT_SIZE,(real)pointSize);      // reset
+
+	  // psp.set(GI_PLOT_THE_OBJECT_AND_EXIT,true);
+	  psp.set(GI_USE_PLOT_BOUNDS,false);
+
+	  psp.set(GI_PLOT_THE_OBJECT_AND_EXIT,false); // reset 
+
+	}
+	
+
+
       } // end if plotGrid...
 
       // plot labels on top and bottom

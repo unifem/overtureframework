@@ -760,7 +760,11 @@ assignInterfaceRightHandSideOld( int d, real t, real dt, int correct, std::vecto
 	}
 	
       }      
-
+      if( FALSE && underRelaxGuess && debug() & 1 )
+      {
+	::display(ua(I1,I2,I3,Range(1,3,2))," ua : Traction + traction-rate NEW",interfaceFile,"%9.3e ");
+      }
+      
 
       // *wdh* 080722 -- only relax for correct > 0 for conjugate-heat-transfer
       if( underRelaxGuess  && (relaxPredictor || correct>0) ) 

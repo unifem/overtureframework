@@ -200,9 +200,9 @@ main(int argc, char *argv[])
       FOR_3(i1,i2,i3,I1,I2,I3)
       {
 	if( numberOfDimensions==2 )
-	  fprintf(file,"%e ",vertexLocal(i1,i2,i3,0),vertexLocal(i1,i2,i3,1));
+	  fprintf(file,"%e %e",vertexLocal(i1,i2,i3,0),vertexLocal(i1,i2,i3,1));
 	else
-	  fprintf(file,"%e ",vertexLocal(i1,i2,i3,0),vertexLocal(i1,i2,i3,1),vertexLocal(i1,i2,i3,2));
+	  fprintf(file,"%e %e %e",vertexLocal(i1,i2,i3,0),vertexLocal(i1,i2,i3,1),vertexLocal(i1,i2,i3,2));
       }
       fprintf(file,"\n");
     }

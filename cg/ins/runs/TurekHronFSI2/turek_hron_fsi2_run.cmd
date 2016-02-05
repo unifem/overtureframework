@@ -107,6 +107,8 @@ $grid
   done
 *
   number of PC corrections 100
+  # added: Dec 20, 2015 *wdh*
+  use moving grid sub-iterations 1
   $implicitVariation
   implicit factor $implicitFactor 
   refactor frequency $refactorFrequency

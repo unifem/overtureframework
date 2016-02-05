@@ -161,9 +161,11 @@ findExtraEquations()
 void Oges::
 makeRightNullVector()
 {
-  // *wdh* 060621 
-  if( !parameters.userSuppliedCompatibilityConstraint )
+  if( parameters.compatibilityConstraint  && !parameters.userSuppliedCompatibilityConstraint )
   {
+    if( Oges::debug & 2 )
+      printF("--OGES-- makeRightNullVector...\n");
+
     rightNullVector.updateToMatchGrid(cg,nullRange,nullRange,nullRange,1);  // positionOfComponent=3
 
     Index I1,I2,I3;

@@ -588,7 +588,8 @@ setDataPoints(const realArray & xd,
   int xdBase3=xd.getBase(axis3+offset)+ngid(0,2);
   int xdBase[3] = { xdBase1,xdBase2,xdBase3 };
 
-  const int defaultNumberOfGhostLines=2;  // fix me 
+  const int defaultNumberOfGhostLines=2;  // fix me  *******************************
+  // const int defaultNumberOfGhostLines=3;  // fix me  *******************************
 
   IndexRangeType numberOfGhostLinesOld; // *wdh* 2012/03/21 -- increase ghost lines to match ngid
   numberOfGhostLinesOld=0;
@@ -2501,7 +2502,7 @@ update( MappingInformation & mapInfo )
       if( line!="" ) sScanF( line,"%i",&orderOfInterpolation );
       if( orderOfInterpolation!=2 && orderOfInterpolation!=4 )
       {
-	printf("Sorry, inavlid orderOfInterpolation=%i, only orders 2 or 4 are available.\n",orderOfInterpolation);
+	printf("Sorry, invalid orderOfInterpolation=%i, only orders 2 or 4 are available.\n",orderOfInterpolation);
 	orderOfInterpolation=2;
       }
       

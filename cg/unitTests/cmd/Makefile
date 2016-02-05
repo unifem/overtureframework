@@ -12,4 +12,9 @@ tblp:
 eyeTest:
 	@cd ..;      $(MAKE) -$(MAKEFLAGS) eyeTest
 
+# test RigidBodyMotion clas
+trb:
+	@cd ..;      $(MAKE) -$(MAKEFLAGS) trb
+
+
 # Here are targets to build grids for some of the examples. 

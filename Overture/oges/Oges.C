@@ -6,7 +6,7 @@
 #include "display.h"
 #include "ParallelUtility.h"
 #include "MultigridCompositeGrid.h"
-
+#include "OgesExtraEquations.h"
 #include "BoundaryData.h"
 
 #undef ForBoundary
@@ -139,6 +139,10 @@ setup()
   argv=new char *[argc];
   argv[0]= new char[5];
   strcpy(argv[0],"oges");
+
+  //  Here is where the user has defined extra equations of over-ridden existing equations:
+  if( !dbase.has_key("extraEquations") )
+    dbase.put<OgesExtraEquations>("extraEquations");
 
 }
 
@@ -930,7 +934,70 @@ put( GenericDataBase & dir, const aString & name) const
   return 0;
 }
 
-//\begin{>>OgesInclude.tex}{\subsection{setExtraEquationValues}} 
+//==================================================================================
+/// \brief Return the number of extra equations. 
+//==================================================================================
+int Oges::
+getNumberOfExtraEquations() const 
+{
+  return numberOfExtraEquations;
+}
+
+//==================================================================================
+/// \brief set the number of extra equations. 
+//==================================================================================
+int Oges::
+setNumberOfExtraEquations( int numExtra )
+{
+  numberOfExtraEquations=numExtra;
+  return 0;
+}
+
+//==================================================================================
+/// \brief return a list of the extra equation numbers 
+//==================================================================================
+const IntegerArray & Oges::
+getExtraEquationNumbers() const
+{
+  return extraEquationNumber;
+}
+
+
+//===========================================================================================
+/// \brief Set extra equations and over-ride other equations (using compressed row format)
+///
+/// \param neq (input): number of equatins defined.
+/// \param eqn(m), m=0,1,...,neq-1 : equation number (i.e. "i" in the matrix a(i,j)
+/// \param ia,ja,a : define "j" and a values
+///
+/// Equations are defined by: 
+///   for m=0,1,...,neq-1
+///      i=eqn(m)
+///      for k=ia(m),...ia(m+1)-1
+///        j=ja(k)
+///        a_ij=a(k) 
+///
+//===========================================================================================
+int Oges::
+setEquations( int neq, IntegerArray & eqn, IntegerArray & ia, IntegerArray & ja, RealArray & a )
+{
+  if( neq>0 )
+    parameters.userSuppliedEquations=true; 
+  else
+    parameters.userSuppliedEquations=false; 
+  
+  OgesExtraEquations & extraEquations=dbase.get<OgesExtraEquations>("extraEquations");
+
+  extraEquations.neq=neq;
+  extraEquations.eqn.reference(eqn);
+  extraEquations.ia.reference(ia);
+  extraEquations.ja.reference(ja);
+  extraEquations.a.reference(a);
+
+  return 0;
+}
+
+
 int Oges::
 setExtraEquationValues( realCompositeGridFunction & f, real *value )
 //==================================================================================

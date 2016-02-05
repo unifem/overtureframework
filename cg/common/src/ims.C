@@ -1360,8 +1360,16 @@ advanceImplicitMultiStep( real & t0, real & dt0, int & numberOfSubSteps, int & i
         // Correct for forces on moving bodies if we have more corrections.
                 bool movingGridCorrectionsHaveConverged = false;
                 real delta =0.; // holds relative correction when we are sub-cycling 
-                if( movingGridProblem() && numberOfCorrections==1 ) // *wdh* 2015/05/24 -- this case was missing in new version
+        // *wdh* 2015/12/16 -- explicitly check for useMovingGridSubIterations, otherwise we can do multiple
+        //                     corrections always if requested,
+                if( movingGridProblem() && (numberOfCorrections==1  // *wdh* 2015/05/24 -- this case was missing in new version
+                                    			      || !parameters.dbase.get<bool>("useMovingGridSubIterations"))  ) // *wdh* 2015/12/16 
                 {
+                    if( numberOfCorrections>10 )
+                    {
+                        printF("WARNING: movingGrid problem, useMovingGridSubIterations=false but numberOfCorrections>10\n");
+                        OV_ABORT("ERROR: this is an error for now");
+                    }
                     correctMovingGrids( t0,t0+dt0,gf[mCur],gf[mNew] ); 
                 }
       // else if( movingGridProblem() && (correction+1)<numberOfCorrections)

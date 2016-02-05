@@ -3,6 +3,8 @@
 #include "ParallelUtility.h"
 #include "DeformingBodyMotion.h"
 #include "BeamFluidInterfaceData.h"
+#include "Oges.h"
+#include "RigidBodyMotion.h"
 
 #define mixedRHS(component,side,axis,grid)         bcData(component+numberOfComponents*(0),side,axis,grid)
 #define mixedCoeff(component,side,axis,grid)       bcData(component+numberOfComponents*(1),side,axis,grid)
@@ -79,9 +81,15 @@ gridAccelerationBC(const int & grid,
     std::vector<BoundaryData> & boundaryDataArray =parameters.dbase.get<std::vector<BoundaryData> >("boundaryData");
     BoundaryData & bd = boundaryDataArray[grid];
 
+    MovingGrids & movingGrids = parameters.dbase.get<MovingGrids >("movingGrids");
+    const int numberOfDeformingBodies= movingGrids.getNumberOfDeformingBodies();
+    const int numberOfRigidBodies= movingGrids.getNumberOfRigidBodies();
+
     const bool & useAddedMassAlgorithm = parameters.dbase.get<bool>("useAddedMassAlgorithm");
-    if( useAddedMassAlgorithm )
+    if( useAddedMassAlgorithm && numberOfDeformingBodies>0 )
     {
+      // -------- DEFORMING BODY AMP STAGE I  --------------
+
       // For the added-mass (beam) pressure BC, we scaled by rhos*As/rho 
       const int (&deformingBodyNumber)[2][3] = bd.dbase.get<int[2][3]>("deformingBodyNumber");
 
@@ -96,17 +104,21 @@ gridAccelerationBC(const int & grid,
 		 t0,mixedNormalCoeff(pc,side,axis,grid),grid,side,axis, mixedCoeff(pc,side,axis,grid));
 	f(I1g,I2g,I3g) *= mixedNormalCoeff(pc,side,axis,grid);
       }
-      
+      // ----------- END DEFORMING BODY AMP STAGE I  ------------
     }
     
-    // -- Get the grid acceleration term:
-    MovingGrids & movingGrids = parameters.dbase.get<MovingGrids >("movingGrids");
+
+
+    // ----------------------------------------------
+    // ------ Get the grid acceleration term --------
+    // ----------------------------------------------
     movingGrids.gridAccelerationBC(grid,side,axis,t0,c,u,f,gridVelocity,normal,I1,I2,I3,I1g,I2g,I3g);
 
-    const int numberOfDeformingBodies= movingGrids.getNumberOfDeformingBodies();
+
+
     if( useAddedMassAlgorithm && numberOfDeformingBodies>0 )
     {
-
+      // -------- DEFORMING BODY AMP STAGE II ----------------
 
       const bool & useApproximateAMPcondition = parameters.dbase.get<bool>("useApproximateAMPcondition");
       if( useApproximateAMPcondition )
@@ -354,3 +366,433 @@ gridAccelerationBC(const int & grid,
   }
   
 }
+
+
+// ==========================================================================================================================
+/// \brief Set the values for the right-hand-sides of the constraint equations in the pressure equation.
+///    This function is called by assignPressureRHS before the pressure solve
+//
+// --- set the right-hand-side values of the constraint equations in the pressure equation ----
+//   (1) mean pressure (if the pressure equation is singular)
+//   (2) Rigid body added mass equations. 
+//
+// ==========================================================================================================================
+int Cgins::
+setPressureConstraintValues( GridFunction & gf0, realCompositeGridFunction & f )
+{
+
+  const bool twilightZoneFlow = parameters.dbase.get<bool >("twilightZoneFlow");
+  
+  FILE *&debugFile = parameters.dbase.get<FILE* >("debugFile");
+  FILE *&pDebugFile = parameters.dbase.get<FILE* >("pDebugFile");
+
+  real t0 = gf0.t;
+  CompositeGrid & cg = gf0.cg;
+
+  assert( poisson!=NULL );
+  Oges & pSolver = *poisson;
+
+  const int numberOfExtraEquations = pSolver.getNumberOfExtraEquations();
+
+  real pressureMeanValue=0.;  // holds RHS to the pressure global constraint
+  
+  if( poisson->getCompatibilityConstraint() )
+  { 
+     // ---- Evaluate the value of the compatibility equation for the pressure ---
+     //      (This value is passed to Oges below)
+
+    if( debug() & 4 ) 
+       printF("))) assignPressureRHS: set compatibility constraint for singular problem solver=%s (((\n",
+                (const char*)getName() );
+
+    const int & pc = parameters.dbase.get<int >("pc");
+
+    const Parameters::KnownSolutionsEnum & knownSolution = parameters.dbase.get<Parameters::KnownSolutionsEnum >("knownSolution");
+
+    if( twilightZoneFlow ||
+        knownSolution!=InsParameters::noKnownSolution )
+    {
+      // For TZ: the RHS for the constraint equation is the dot product of the constraint equation
+      //         with the exact solution
+      Range all;
+      realCompositeGridFunction ue(gf0.cg,all,all,all,Range(pc,pc));
+
+      if( twilightZoneFlow )
+      {
+        // --- evaluate the TZ solution for the pressure ---
+	parameters.dbase.get<OGFunction* >("exactSolution")->assignGridFunction(ue,t0);
+      }
+      else if( knownSolution!=InsParameters::noKnownSolution )
+      {
+        // --- evaluate the known solution so we can set the pressure constraint --- *wdh* 2013/09/28 
+        realCompositeGridFunction & uKnown = parameters.getKnownSolution(cg,t0);
+	for( int grid=0; grid<cg.numberOfComponentGrids(); grid++ )
+	{
+          OV_GET_SERIAL_ARRAY(real,ue[grid],ueLocal);
+          OV_GET_SERIAL_ARRAY_CONST(real,uKnown[grid],uKnownLocal);
+	  
+	  ueLocal(all,all,all,pc)=uKnownLocal(all,all,all,pc);
+	}
+      }
+      else
+      {
+	OV_ABORT("Unknown option");
+      }
+      
+      // real value2;
+      poisson->evaluateExtraEquation(ue,pressureMeanValue);
+      if( debug() & 4 ) printF("assignPressureRHS: compatibility constraint: exact value=%14.9g \n",pressureMeanValue);
+    }
+    
+  }
+
+  if( numberOfExtraEquations==1 && poisson->getCompatibilityConstraint() )
+  { 
+    // ---- Set the "mean" value of the pressure ----
+    //   (if there are no extra constraint equations)
+    poisson->setExtraEquationValues(f,&pressureMeanValue );
+  }
+  
+
+
+  // --- set the values at constraint equations for added-mass rigid body solve ---
+  const bool & useAddedMassAlgorithm = parameters.dbase.get<bool>("useAddedMassAlgorithm");
+  if( useAddedMassAlgorithm && numberOfExtraEquations>1 )
+  {
+    MovingGrids & movingGrids = parameters.dbase.get<MovingGrids >("movingGrids");    
+    const int numberOfRigidBodies = movingGrids.getNumberOfRigidBodies();
+
+    const bool & useAddedDampingAlgorithm = parameters.dbase.get<bool>("useAddedDampingAlgorithm");
+
+    if( numberOfRigidBodies>0 )
+    {
+      // ======================================================================
+      // =================== RIGID BODY AMP SCHEME ============================
+      // ======================================================================
+
+      // RBINS-AMP FINISH ME: 
+      // Compute rigid-body "internal force"  
+      //     mb*a = Fi   (a=linear accleration)
+      //     Mb*b = Ti   (b=angular acceleration)
+      // Compute inviscid force and torque (from pressure only)
+      // Set RHS to contraints:
+      //   mb a - INT ( p nv) ds      =  Fi - Fp
+      //   Mb b - INT ( r X p nv) ds  =  Ti - Tp
+
+      
+      // ----------- Compute pressure contributions to the force and torque on the rigid body ----------
+      //             using the current guess for the pressure.
+
+      RealArray bodyForceFromPressure, bodyTorqueFromPressure;
+      bool includeGravity = false, includeViscosity = false;
+      movingGrids.getForceOnRigidBodies( bodyForceFromPressure,bodyTorqueFromPressure, gf0,includeGravity,includeViscosity );
+
+      // ************* TESTING ***************
+      // Compute force on body due to viscous stress
+      RealArray bodyForceFromViscousStress, bodyTorqueFromViscousStress;
+      includeGravity = false; includeViscosity = true;
+      movingGrids.getForceOnRigidBodies( bodyForceFromViscousStress,bodyTorqueFromViscousStress, 
+                                         gf0,includeGravity,includeViscosity );
+      bodyForceFromViscousStress-=bodyForceFromPressure;
+      bodyTorqueFromViscousStress-=bodyTorqueFromPressure;
+
+      printF("--INS:setPressureConstraintValues: t=%9.3e bodyTorqueFromViscousStress=%9.3e\n",
+             gf0.t,bodyTorqueFromViscousStress(2,0));
+
+      // ***************************
+
+      // Extra equations:
+      //    For each rigid body:
+      //      2D    nd +1 : extra equation for RB linear and 1 angular acceleration 
+      //      3D:   2*nd  : extra equation for RB linear and angular acceleration 
+      const int numberOfDimensions=cg.numberOfDimensions();
+      int numberOfExtraEquationsPerBody;
+      if( numberOfDimensions==2 )
+      {
+	// In 2D we keep (a1,a2) and (b3)
+	numberOfExtraEquationsPerBody= numberOfDimensions + 1;
+      }
+      else
+      {
+	// int 3D we keep (a1,a2,a3) and (b1,b2,b3)
+	numberOfExtraEquationsPerBody = numberOfDimensions + numberOfDimensions;
+      }
+      // There may be one "dense" constraint equation setting the mean of the pressure: 
+      int numberOfDenseExtraEquations=0;
+      if( pSolver.getCompatibilityConstraint() )
+      {
+	numberOfDenseExtraEquations=1;// constraint setting mean-value of p
+      }
+
+      const int totalNumberOfExtraEquations=numberOfDenseExtraEquations+numberOfExtraEquations;
+
+      // ***FIX ME*** Use latest predicted pressure ***
+      printF("--INS--setPressureConstraintValues: t=%9.3e numberOfExtraEquations=%i numberOfDenseExtraEquations=%i numberOfRigidBodies=%i\n"
+             "       ******FIX ME: Use latest predicted pressure ***\n",t0,numberOfExtraEquations,numberOfDenseExtraEquations,numberOfRigidBodies);
+
+      real *value= new real[numberOfExtraEquations];
+      for( int i=0; i<numberOfExtraEquations; i++ ){ value[i]=0.; }  // NOTE constraintValues are in reverse order
+
+      RealArray mvDot,mOmegaDot; // Holds body force and torque 
+      RealArray addedDampingTensors(3,3,2,2);  // holds added damping Tensors - 4 3x3 matrices 
+      RealArray omegaDotPredicted(3);
+      
+      // --------------- LOOP OVER RIGID BODIES --------------------
+      for( int b=0; b<numberOfRigidBodies; b++ )
+      {
+	RigidBodyMotion & body = movingGrids.getRigidBody(b);
+	// return the "total force" on the body : pressure forces, viscous forces, gravity, etc.
+	body.getMassTimesAcceleration( t0,mvDot,mOmegaDot );
+
+	if( useAddedDampingAlgorithm )
+	{
+	  movingGrids.getRigidBodyAddedDampingTensors( b, addedDampingTensors, cg );
+
+          body.getAngularAcceleration( t0, omegaDotPredicted  ); // predicted value for omegaDot
+	}
+
+        // Extra equations:
+        //     Body   
+        //  0    0     a1
+        //  1    0    
+        //  2
+	for( int d=0; d<numberOfDimensions; d++ )
+	{
+          const int extraEqn = d + (b)*numberOfExtraEquationsPerBody; // current extra equation 
+          // int ival = totalNumberOfExtraEquations -extraEqn -1;        // equations are stored in reverse order
+          // CHECK ME: numberOfDenseExtraEquations: 
+          int ival = totalNumberOfExtraEquations -extraEqn -1 -numberOfDenseExtraEquations;        // equations are stored in reverse order
+	  assert( ival<numberOfExtraEquations );
+	  value[ival] = mvDot(d) - bodyForceFromPressure(d,b);  // *** "+"
+	  printF("--INS--setPressureConstraintValues: body=%i, d=%i, m*a=%9.2e, bodyForce: (pressure=%9.2e,viscous=%9.2e), value=%9.3e\n",
+                 b,d,mvDot(d),bodyForceFromPressure(d,b),bodyForceFromViscousStress(d,b),value[ival]);
+	  
+	}
+	const int numberOfAngularVelocities = numberOfDimensions==2 ? 1 : numberOfDimensions;
+	for( int d=0; d<numberOfAngularVelocities; d++ )
+	{
+          const int extraEqn = numberOfDimensions + d + (b)*numberOfExtraEquationsPerBody; // current extra equation 
+          int ival = totalNumberOfExtraEquations -extraEqn -1 -numberOfDenseExtraEquations;        // equations are stored in reverse order
+	  assert( ival<numberOfExtraEquations );
+          int dir = numberOfDimensions==2 ? 2 : d;                    // In 2D we use component 2 of the angular acceleration
+	  value[ival] = mOmegaDot(dir) - bodyTorqueFromPressure(dir,b);  
+
+	  if( useAddedDampingAlgorithm )
+	  {
+	    const real Dww = addedDampingTensors(2,2,1,1);  // coeff of the angular velocity in the omega_t eqn
+            const real & dt=parameters.dbase.get<real>("dt");
+            const real impFactor=.1;
+	    printF("--INS-SPC-- addedDamping coeff: Dww=%8.2e, dt=%8.2e, omegaDotPredicted=%8.2e\n",
+                   Dww,dt,omegaDotPredicted(2));
+	    value[ival] += impFactor*dt*Dww*omegaDotPredicted(2);
+	  }
+
+	  if( FALSE )// ***TEST****
+          {
+	    value[ival] = bodyTorqueFromViscousStress(dir,b);
+	  }
+	  
+	  printF("--INS--setPressureConstraintValues: body=%i, d=%i, A*w_t=%9.3e, bodyTorque (pressure=%9.3e,viscous=%9.3e), value=%9.3e\n",
+                 b,dir,mOmegaDot(dir),bodyTorqueFromPressure(dir,b),bodyTorqueFromViscousStress(dir,b),  value[ival]);
+	}
+      } // end for body b
+    
+      if( poisson->getCompatibilityConstraint() )
+      {
+	value[0]=pressureMeanValue;  // Assign the mean pressure constraint too
+      }
+
+      // --- Now assign the right-hand-side values for the RBINS AMP constraints on the acceleration ---
+      poisson->setExtraEquationValues( f,value );
+
+      delete [] value;
+
+    } // end if numberOfRigidBodies
+    
+  } //end if useAddedMass
+  
+
+
+}
+
+
+
+// ==========================================================================================================================
+/// \brief Check and adjust the values of the solutions to the constraint equations in the pressure equation.
+///    This function is called by solveForTimeIndependentVariables after the pressure solve.
+// ==========================================================================================================================
+int Cgins::
+checkPressureConstraintValues( GridFunction & cgf )
+{
+  real & t = cgf.t;
+  realCompositeGridFunction & u = cgf.u;
+  
+  const int & myid = parameters.dbase.get<int >("myid");
+  const int & pc = parameters.dbase.get<int >("pc");
+  FILE *&debugFile = parameters.dbase.get<FILE* >("debugFile");
+  FILE *&pDebugFile = parameters.dbase.get<FILE* >("pDebugFile");
+  
+  CompositeGrid & cg = cgf.cg;
+  Index I1,I2,I3;
+
+  if( debug() & 4 )
+  {
+    fPrintF(debugFile," After pressure solve: compatibilityConstraint=%i, numberOfExtraEquations = %i\n",
+	    poisson->getCompatibilityConstraint(),poisson->numberOfExtraEquations);
+    if( poisson->getCompatibilityConstraint() )
+    {
+      real value=0.;
+      poisson->getExtraEquationValues( p(),&value );
+
+//       int ne,i1e,i2e,i3e,gride;
+//       poisson->equationToIndex( poisson->extraEquationNumber(0),ne,i1e,i2e,i3e,gride);
+//       if( myid==0 )
+//         fprintf(debugFile," After pressure solve: value of constraint = %e\n",p()[gride](i1e,i2e,i3e));
+      fPrintF(debugFile," After pressure solve: value of constraint = %e\n",value);
+
+
+    }
+  }
+
+  // --- check values at constraint equations for added-mass rigid body solve
+  const bool & useAddedMassAlgorithm = parameters.dbase.get<bool>("useAddedMassAlgorithm");
+  if( useAddedMassAlgorithm )
+  {
+    const int numberOfExtraEquations = poisson->numberOfExtraEquations;
+    if( numberOfExtraEquations>1 ) // AMP scheme will have more than 1 extra equation
+    {
+      // ===== Get solutions to constraint equations =======
+      real *constraintValues = new real [numberOfExtraEquations];
+	
+      poisson->getExtraEquationValues( u, constraintValues );  
+      for( int i=0; i<numberOfExtraEquations; i++ )
+      { // NOTE constraintValues are in reverse order
+	printF("--INS-STI-- After pressure solve: extraEquation: i=%i : constraint value=%10.3e\n",i,
+               constraintValues[numberOfExtraEquations-i-1]);
+      }
+
+      // ====================================================================================
+      // ======== SET THE ACCELERATION OF THE RIGID BODY EQUAL TO THE CONSTRAINT VALUE ======
+      // ====================================================================================
+
+      MovingGrids & movingGrids = parameters.dbase.get<MovingGrids >("movingGrids");    
+      const int numberOfRigidBodies = movingGrids.getNumberOfRigidBodies();
+
+      if( numberOfRigidBodies>0 )
+      {
+	// ======================================================================
+	// =================== RIGID BODY AMP SCHEME ============================
+	// ======================================================================
+
+
+        RealArray vDot(3), omegaDot(3);
+	vDot=0.; omegaDot=0.;
+	const int numberOfDimensions=cg.numberOfDimensions();
+	int numberOfExtraEquationsPerBody;
+	if( numberOfDimensions==2 )
+	  numberOfExtraEquationsPerBody= numberOfDimensions + 1;
+        else
+	  numberOfExtraEquationsPerBody = numberOfDimensions + numberOfDimensions;
+	// There may be one "dense" constraint equation setting the mean of the pressure: 
+	int numberOfDenseExtraEquations=0;
+	if( poisson->getCompatibilityConstraint() )
+	{
+	  numberOfDenseExtraEquations=1;// constraint setting mean-value of p
+	}
+	const int totalNumberOfExtraEquations=numberOfDenseExtraEquations+numberOfExtraEquations;
+
+	// --------------- LOOP OVER RIGID BODIES --------------------
+	for( int b=0; b<numberOfRigidBodies; b++ )
+	{
+	  RigidBodyMotion & body = movingGrids.getRigidBody(b);
+	  // Fill in the acceleration of the body
+	  for( int d=0; d<numberOfDimensions; d++ )
+	  {
+	    const int extraEqn = d + (b)*numberOfExtraEquationsPerBody; // current extra equation 
+	    int ival = totalNumberOfExtraEquations -extraEqn -1 -numberOfDenseExtraEquations;        // equations are stored in reverse order
+	    assert( ival<numberOfExtraEquations );
+            vDot(d)=constraintValues[ival];
+	  }
+	  const int numberOfAngularVelocities = numberOfDimensions==2 ? 1 : numberOfDimensions;
+	  for( int d=0; d<numberOfAngularVelocities; d++ )
+	  {
+	    const int extraEqn = numberOfDimensions + d + (b)*numberOfExtraEquationsPerBody; // current extra equation 
+	    int ival = totalNumberOfExtraEquations -extraEqn -1- numberOfDenseExtraEquations;        // equations are stored in reverse order
+	    assert( ival<numberOfExtraEquations );
+	    int dir = numberOfDimensions==2 ? 2 : d;                    // In 2D we use component 2 of the angular acceleration
+	    omegaDot(dir) = constraintValues[ival];
+	  }
+	
+	  body.setAcceleration( t,vDot,omegaDot );
+
+	}
+      }
+
+      delete [] constraintValues;
+    }
+    
+
+  }
+  
+
+  // if( myid==0 ) printf(" ** after pressure solve 3\n"); 
+
+  if( poisson->getCompatibilityConstraint() )
+  {
+    // The solver may have trouble satisfying the compatability constraint (true for yale and ins/annulus.tz)
+    // so we explicitly enforce it here by just shifting the solution by a constant 
+    // *** note that we over-write the value of the constraint, p[gride](i1e,i2e,i3e)
+    if( true )
+    {
+      real nullVectorDotP=0., sumOfNullVector=0.;
+      poisson->evaluateExtraEquation(p(),nullVectorDotP,sumOfNullVector);    
+      //   "   ***not enforcing compatibility constraint for parallel *** FIX THIS *** \n",nullVectorDotP);
+
+      real constraintValue;
+      poisson->getExtraEquationValues(pressureRightHandSide, &constraintValue );
+
+      if( debug() & 4 )
+      {
+	printF("solveForTimeIndepVarsINS INFO: nullVectorDotP=%14.9g, "
+	       "constraintValue=%g, diff=%g,  sumOfNullVector=%g \n",
+	       nullVectorDotP,constraintValue,fabs(nullVectorDotP-constraintValue),sumOfNullVector);
+      }
+      
+      for( int grid=0; grid<cg.numberOfComponentGrids(); grid++ )
+      {
+	getIndex(cg[grid].dimension(),I1,I2,I3);
+	realSerialArray pLocal; getLocalArrayWithGhostBoundaries(p()[grid],pLocal);
+	bool ok = ParallelUtility::getLocalArrayBounds(p()[grid],pLocal,I1,I2,I3);
+	if( !ok ) continue;
+      
+	pLocal+=(constraintValue-nullVectorDotP)/(max(1.,sumOfNullVector));
+      }
+    }
+    else
+    {
+      // old way
+      real nullVectorDotP=0., sumOfNullVector=0.;
+      for( int grid=0; grid<cg.numberOfComponentGrids(); grid++ )
+      {
+	getIndex(cg[grid].dimension(),I1,I2,I3);
+	nullVectorDotP+=sum(poisson->rightNullVector[grid](I1,I2,I3)*p()[grid](I1,I2,I3));
+	sumOfNullVector+=sum(poisson->rightNullVector[grid](I1,I2,I3));
+      }
+      int ne,i1e,i2e,i3e,gride;
+      poisson->equationToIndex( poisson->extraEquationNumber(0),ne,i1e,i2e,i3e,gride);
+
+      if( debug() & 2 )
+      {
+	real diff=nullVectorDotP-pressureRightHandSide[gride](i1e,i2e,i3e);
+	if( myid==0 )
+	  fprintf(debugFile,"After solve: compatibility sum(null*p)= %14.10e,  nullVectorDotP-rhs=%e \n",
+		  nullVectorDotP,diff);
+      }
+    
+      p()+=(pressureRightHandSide[gride](i1e,i2e,i3e)-nullVectorDotP)/(max(1.,sumOfNullVector));
+    }
+
+  }
+
+}
+

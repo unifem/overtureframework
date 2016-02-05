@@ -283,7 +283,7 @@ outputHeader()
     fPrintF(file,"\n The overlapping grid was read from the file=[%s].\n",(const char*)nameOfGridFile);
 
     const int np= max(1,Communication_Manager::numberOfProcessors());
-    fPrintF(file,"Number of processors=%i.\n",np);
+    fPrintF(file," Number of processors=%i.\n",np);
 
     writeParameterSummary(file);
 
@@ -1401,6 +1401,7 @@ writeParameterSummary( FILE * file )
     }
     
   }
+
   if( parameters.dbase.get<bool >("readRestartFile") )
     fPrintF(file," Read a restart file, restartFileName=%s \n",(const char *)parameters.dbase.get<aString >("restartFileName"));
       
@@ -1434,6 +1435,8 @@ writeParameterSummary( FILE * file )
     fPrintF(file,"  Detect collisions is %s. Collision distance=%g grid-lines.\n",
           (parameters.dbase.get<bool>("detectCollisions") ? "on" : "off"),
            parameters.dbase.get<real >("collisionDistance")  );
+
+    fPrintF(file,"  Use moving grid sub-iterations = %i (e.g. for light solids).\n",(int)parameters.dbase.get<bool>("useMovingGridSubIterations"));
   }
   
   Parameters::ReferenceFrameEnum & referenceFrame = 

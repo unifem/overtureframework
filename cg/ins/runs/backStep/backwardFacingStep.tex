@@ -1,0 +1,439 @@
+\section{Flow past a two-dimensional backward facing step}
+
+The geometry of the backward facing step is shown in~\ref{fig:backStepGrids}. 
+An inlet region starting at $x=x_a$ reaches the step at $x=0$. The step has height of $1$ and the bottom
+of the step is located at $x=0$, $y=0$. The outlet region extends to $x=x_b$. 
+
+The boundary conditions are chosen as inflow on the left at $x=x_a$. The inflow profile is a parabola
+over some small height and then uniform above this. An outflow condition is used on the right.
+The top wall is either a slip wall (symmetry) or an outflow or zero-traction condition $p=0$. 
+The lower wall is a no-slip wall.
+
+
+The overlapping grid is denoted by $\Gc^{(j)}$ where $j$ denotes the grid resolution factor: the grid spacing in the 
+grids in vicinity of the step have a a grid spacing of approximately $\Delta s = 1/(10 j)$. The grids are stretched
+in the direction normal to the boundary by a factor of about $5$.
+
+Figure~\ref{fig:backStepGrids} shows a basic overlapping grid for the backward facing step.
+The step is rounded and represented with the SmoothedPolygon mapping.
+Two background Cartesian grids fill the inlet and outlet regions.
+
+Figure~\ref{fig:backStepRefineGrids} shows an {\em improved} version of the grid including far-field grids
+to treat a larger domain and a stretched boundary layer grid on the bottom wall that follows the step.
+
+{
+\begin{figure}[hbt]
+\newcommand{\figWidth}{10cm}
+\newcommand{\trimfig}[2]{\trimFigb{#1}{#2}{0.025}{.5}{.375}{.375}}
+\newcommand{\figWidtha}{5.5cm}
+\newcommand{\trimfiga}[2]{\trimFigb{#1}{#2}{0.0}{.0}{.0}{.0}}
+\begin{center}\small
+% ------------------------------------------------------------------------------------------------
+\begin{tikzpicture}[scale=1]
+  \useasboundingbox (0,0.25) rectangle (16,5.5);  % set the bounding box (so we have less surrounding white space)
+  \draw ( 0, 0) node[anchor=south west,xshift=-4pt,yshift=-4pt] {\trimfig{\backStepDir/fig/backStepGrid}{\figWidth}};
+  \draw (10.5, 0) node[anchor=south west,xshift=-4pt,yshift=-4pt] {\trimfiga{\backStepDir/fig/backStepGridZoom}{\figWidtha}};
+%  \draw[step=1cm,gray] (0,0) grid (16,5);
+\end{tikzpicture}
+% ----------------------------------------------------------------------------------------
+\caption{
+Overlapping grid (version 1) 
+for the backward facing step. Grid $\Gc^{(4)}$ (resolution factor $j=4$, grid for fourth-order accuracy). Right: zoomed view near rounded step.
+Interpolation points (two layers) are marked a.cmds black squares.
+% Two-dimensional overlapping grid for a cross-section through the terrain. Grid $\Gc^{(4)}$ (second-order accuracy) is shown
+%    along with a magnified view of the grid near the surface.
+}
+\label{fig:backStepGrids}
+\end{center}
+\end{figure}
+}
+
+
+%- {
+%- \begin{figure}[hbt]
+%- \newcommand{\figWidth}{10cm}
+%- \newcommand{\trimfig}[2]{\trimFigb{#1}{#2}{0.025}{.5}{.375}{.375}}
+%- \newcommand{\figWidtha}{5.5cm}
+%- \newcommand{\trimfiga}[2]{\trimFigb{#1}{#2}{0.0}{.0}{.0}{.0}}
+%- \begin{center}\small
+%- % ------------------------------------------------------------------------------------------------
+%- \begin{tikzpicture}[scale=1]
+%-   \useasboundingbox (0,0.25) rectangle (16,5.5);  % set the bounding box (so we have less surrounding white space)
+%-   \draw ( 0, 0) node[anchor=south west,xshift=-4pt,yshift=-4pt] {\trimfig{\backStepDir/fig/backStepRefineGrid}{\figWidth}};
+%-   \draw (10.5, 0) node[anchor=south west,xshift=-4pt,yshift=-4pt] {\trimfiga{\backStepDir/fig/backStepRefineGridZoom}{\figWidtha}};
+%- %  \draw[step=1cm,gray] (0,0) grid (16,5);
+%- \end{tikzpicture}
+%- % ----------------------------------------------------------------------------------------
+%- \caption{
+%- Overlapping grid for the backward facing step with far-field grids. Grid $\Gc^{(4)}$ (fourth-order accuracy). Right: zoomed view near rounded step.
+%- Interpolation points (two layers) are marked as black squares.
+%- % Two-dimensional overlapping grid for a cross-section through the terrain. Grid $\Gc^{(4)}$ (second-order accuracy) is shown
+%- %    along with a magnified view of the grid near the surface.
+%- }
+%- \label{fig:backStepRefineGrids}
+%- \end{center}
+%- \end{figure}
+%- }
+
+
+{
+\begin{figure}[hbt]
+\newcommand{\figWidth}{16cm}
+\newcommand{\trimfig}[2]{\trimFigb{#1}{#2}{0.01}{.01}{.275}{.275}}
+\newcommand{\figWidtha}{5.5cm}
+\newcommand{\trimfiga}[2]{\trimFigb{#1}{#2}{0.0}{.0}{.0}{.0}}
+\begin{center}\small
+% ------------------------------------------------------------------------------------------------
+\begin{tikzpicture}[scale=1]
+  \useasboundingbox (0,0.25) rectangle (16,10.);  % set the bounding box (so we have less surrounding white space)
+  \draw ( 0, 5.6) node[anchor=south west,xshift=-4pt,yshift=-4pt] {\trimfig{\backStepDir/fig/backStepRefineGrid}{\figWidth}};
+  \draw ( 5, 0.0) node[anchor=south west,xshift=-4pt,yshift=-4pt] {\trimfiga{\backStepDir/fig/backStepRefineGridZoom}{\figWidtha}};
+%   \draw (10.5, 0) node[anchor=south west,xshift=-4pt,yshift=-4pt] {\trimfiga{\backStepDir/fig/backStepRefineGrid2Zoom}{\figWidtha}};
+%% \draw[step=1cm,gray] (0,0) grid (16,10.);
+\end{tikzpicture}
+% ----------------------------------------------------------------------------------------
+\caption{
+Overlapping grid (version 2) for the backward facing step with far-field grids. Grid $\Gc^{(4)}$ (fourth-order accuracy). Bottom: zoomed view near rounded step.
+Interpolation points (two layers) are marked as black squares.
+% Two-dimensional overlapping grid for a cross-section through the terrain. Grid $\Gc^{(4)}$ (second-order accuracy) is shown
+%    along with a magnified view of the grid near the surface.
+}
+\label{fig:backStepRefineGrids}
+\end{center}
+\end{figure}
+}
+
+% ======================================================================
+\clearpage
+\subsection{Grid resolution study}
+
+Figure~\ref{fig:backStepResolutions} shows how the solution depends on the grid resolution.
+As the grid is refined, finer scale features of the flow can be resolved.
+{\bf Resolving these finer scale features may be important if one want to measure the
+pressure forces and buffeting of an object sitting in the wake.}
+The maximum vorticity also increases as the grid is refined. 
+In this case the true viscosity plays no major role (except in the boundary layer when the
+grid is finer) the nonlinear SSLES model provides most of the dissipation.
+
+
+{
+\begin{figure}[hbt]
+\newcommand{\figWidth}{11cm}
+\newcommand{\trimfig}[2]{\trimFigb{#1}{#2}{0.0}{.0}{.33}{.33}}
+\begin{center}\small
+% ------------------------------------------------------------------------------------------------
+\begin{tikzpicture}[scale=1]
+  \useasboundingbox (0,0.25) rectangle (11,13.);  % set the bounding box (so we have less surrounding white space)
+  \draw ( 0,0.0) node[anchor=south west,xshift=-4pt,yshift=-4pt] {\trimfig{\backStepDir/fig/backStepRefineG32Vort20}{\figWidth}};
+  \draw ( 0,4.5) node[anchor=south west,xshift=-4pt,yshift=-4pt] {\trimfig{\backStepDir/fig/backStepRefineG16Vort20}{\figWidth}};
+  \draw ( 0,9.0) node[anchor=south west,xshift=-4pt,yshift=-4pt] {\trimfig{\backStepDir/fig/backStepRefineG8Vort20}{\figWidth}};
+%   \draw (10.5, 0) node[anchor=south west,xshift=-4pt,yshift=-4pt] {\trimfiga{\backStepDir/fig/backStepRefineGridZoom}{\figWidtha}};
+%  \draw[step=1cm,gray] (0,0) grid (11,13.);
+\end{tikzpicture}
+% ----------------------------------------------------------------------------------------
+\caption{Grid resolution study.
+Vorticity at time $t=20$ for grids of different resolutions using the SSLES4 turbulence model.
+Solution in the near wake region is shown. The max and min contours of the vorticity are limited to the range $[-20,20]$.
+Top: coarse grid $\Gc^{(8)}$. Middle: medium grid $\Gc^{(16)}$. Bottom: fine grid $\Gc^{(32)}$ (approx. $2.3M$ grid pts).  
+}
+\label{fig:backStepResolutions}
+\end{center}
+\end{figure}
+}
+
+
+\clearpage
+% =================================================================================================================================
+% =================================================================================================================================
+% =================================================================================================================================
+\subsection{Flow past a two-dimensional backward facing step with moving cylinder in the wake}
+
+A moving cylinder is placed in the wake of the backward facing step using the 
+moving grid capabilities of the Cgins solver.
+
+Figure~\ref{fig:backStepAndBodyGrids} shows a basic overlapping grid for backward facing step
+with a cylinder in the wake. The cylinder oscillates up and down. 
+
+Figure~\ref{fig:backStepAndBodyMoveCylinder} shows the solution at two instants in time
+computed on grid $\Gc^{(16})$ (approx. $750,000$ grid points) using AFS24-MG. 
+{
+\begin{figure}[hbt]
+\newcommand{\figWidth}{15cm}
+\newcommand{\trimfig}[2]{\trimFigb{#1}{#2}{0.0}{.25}{.27}{.275}}
+\begin{center}\small
+% ------------------------------------------------------------------------------------------------
+\begin{tikzpicture}[scale=1]
+  \useasboundingbox (0,0.25) rectangle (16,6.5);  % set the bounding box (so we have less surrounding white space)
+  \draw ( 0, 0) node[anchor=south west,xshift=-4pt,yshift=-4pt] {\trimfig{\backStepDir/fig/backStepAndBodyGrid}{\figWidth}};
+%   \draw (10.5, 0) node[anchor=south west,xshift=-4pt,yshift=-4pt] {\trimfiga{\backStepDir/fig/backStepRefineGridZoom}{\figWidtha}};
+% \draw[step=1cm,gray] (0,0) grid (16,6);
+\end{tikzpicture}
+% ----------------------------------------------------------------------------------------
+\caption{
+Overlapping grid for the backward facing step with a cylindrical body in the wake, grid $\Gc^{(4)}$. 
+}
+\label{fig:backStepAndBodyGrids}
+\end{center}
+\end{figure}
+}
+
+{
+\begin{figure}[hbt]
+\newcommand{\figWidth}{11cm}
+\newcommand{\trimfig}[2]{\trimFigb{#1}{#2}{0.0}{.0}{.27}{.3}}
+\begin{center}\small
+% ------------------------------------------------------------------------------------------------
+\begin{tikzpicture}[scale=1]
+  \useasboundingbox (0,0.25) rectangle (11,10.25);  % set the bounding box (so we have less surrounding white space)
+  \draw ( 0, 0) node[anchor=south west,xshift=-4pt,yshift=-4pt] {\trimfig{\backStepDir/fig/backStepAndBodyG16-Vor-t31}{\figWidth}};
+  \draw ( 0, 5) node[anchor=south west,xshift=-4pt,yshift=-4pt] {\trimfig{\backStepDir/fig/backStepAndBodyG16-Vor-t33}{\figWidth}};
+%   \draw (10.5, 0) node[anchor=south west,xshift=-4pt,yshift=-4pt] {\trimfiga{\backStepDir/fig/backStepRefineGridZoom}{\figWidtha}};
+% \draw[step=1cm,gray] (0,0) grid (11,10.25);
+\end{tikzpicture}
+% ----------------------------------------------------------------------------------------
+\caption{
+Vorticity at two times for flow past a backward facing step and a moving cylinder in the wake. 
+The cylinder oscillates up and down. 
+Solution computed with AFS24-MG on grid $\Gc^{(16)}$.
+}
+\label{fig:backStepAndBodyMoveCylinder}
+\end{center}
+\end{figure}
+}
+
+
+% =================================================================================================================================
+% =================================================================================================================================
+% =================================================================================================================================
+\clearpage
+\subsection{Flow past a two-dimensional backward facing step in a channel - comparison to experiment }
+
+The paper by Kim, Kline, and Johnston [1980] presents experiement results for flow past a
+backward facing step in a channel in a wind tunnel. 
+
+The {\em reference case} has parameters: $H=3.81 cm (1.5 in)$ (step height), $w_1 = 7.62cm (3 in)$ inlet height,
+reference speed $U=18.2 m/s$ , $\nu=1.56 e-5 m^2/s$ (air at 300k). This gives
+a Reynolds number based on the step height of
+\begin{align*}
+ &  Re(H=3.81 cm) = \frac{U H}{\nu} = \frac{18.2 \times .0381}{1.568 \times 10^{-5}} \approx  4.445 \times 10^4, \\
+ &  \frac{1}{Re} \approx 2.25 \times 10^{-5}. 
+\end{align*}
+
+The problem is non-dimensionalized using the length scale $L=H$ and reference speed $U$. 
+The grid for the geometry is shown in figure~\ref{fig:backStepInChannelGrid} where the non-dimensional
+step height is $1$ and inflow velocity is $1$ (with a small parbolic correction at the top and bottom
+no-slip walls of the inlet. The nondimensional kinematic viscosity is then $\nu= 1/Re = 2.25 \times 10^{-5}$. 
+
+{\bf Smallest scale:} We can estimate how fine the mesh must be to perform a resolved DNS.
+The smallest scale of the flow is~\cite{HKR1}
+\begin{align}
+    \lambda = \sqrt{\frac{\nu}{|\grad\uv|}}.  \label{eq:smallestScale}
+\end{align}
+If we guess that the non-dimensional vorticity is on the order of $Re^{1/2} \approx 200$ and use $|\grad\uv|=200$ in ~\eqref{eq:smallestScale}
+then we arrive at the estimate 
+\begin{align*}
+    \lambda \approx  \sqrt{\frac{2.25 \times 10^{-5}}{200}} \approx 3.4e-4
+\end{align*}
+Thus the grid spacing in the boundary layer (where the vorticity is largest) show be roughly $\ds\approx 3.4e-4$.
+
+The overlapping grid for the geometry is shown in Figure~\ref{fig:backStepInChannelGrid} . 
+The grid $\Gc^{(j)}$ has nominal spacing $\ds^{(j)}=1/(10 j)$ and boundary layer spacing of $\ds_{BL}=1/(50 j)$. 
+For $j=32$ this gives a spacing $\ds_{BL}^{(32)} = 6.25e-4$ while for $j=64$  we have $\ds_{BL}^{(32)} = 3.125e-4$
+{\bf We thus guess that $\Gc^{(16)}$ or $\Gc^{(32)}$ will be of sufficient resolution to perform an accurate DNS simulation.}
+
+\bigskip
+Figures~\ref{fig:backStepInChannel} and ~\ref{fig:backStepInChannelII} show some results for grid $\Gc^{(16)}$ (approx. 1.1M grid points).
+Contours of the vorticity are shown at different times as well as instantaneous streamlines. 
+The flow is highly non-steady with a complex wake that contains vorticity that has been ejected 
+into the main part of the channel.
+
+Figure~\ref{fig:backStepInChannelTimeAverageI} shows the time-averaged solution when averaged over the time interval $t\in[25,50]$
+while Figure~\ref{fig:backStepInChannelTimeAverage} shows the time averaged solution averaged over the longer time 
+interval $t\in[50,200]$.
+Figure~\ref{fig:backStepInChannelTimeAverageStreamLinesZoom} shows a closeup of the streamlines near the back-step.
+The streamlines of the time-average solution shows a small recirculation buuble that re-attaches at approximately $x=2.1$. 
+However, the influence of the back-step extends far downstream. The time-averged flow is still showing variation
+in the horizontal direction at $x=25$ which is the end of the computational domain. 
+
+Figure~\ref{fig:backStepInChannelTimeAverageVelocityProfiles} plots profiles of the horizontal component of the
+velocity along vertical lines at various values of $x$ downstream of the back-step. 
+The profile at $x=1.33$ is in the re-circulation bubble and shows a strong backflow near the lower wall and
+a line boundary layer. 
+
+{
+\begin{figure}[hbt]
+\newcommand{\figWidth}{16cm}
+\newcommand{\trimfig}[2]{\trimFigb{#1}{#2}{0.01}{.01}{.275}{.275}}
+\newcommand{\figWidtha}{5.5cm}
+\newcommand{\trimfiga}[2]{\trimFigb{#1}{#2}{0.0}{.0}{.0}{.0}}
+\begin{center}\small
+% ------------------------------------------------------------------------------------------------
+\begin{tikzpicture}[scale=1]
+  \useasboundingbox (0,0.25) rectangle (16,10.);  % set the bounding box (so we have less surrounding white space)
+  \draw ( 0, 5.6) node[anchor=south west,xshift=-4pt,yshift=-4pt] {\trimfig{\backStepDir/fig/backStepInChannelGrid}{\figWidth}};
+  \draw ( 5, 0.0) node[anchor=south west,xshift=-4pt,yshift=-4pt] {\trimfiga{\backStepDir/fig/backStepInChannelGridZoom}{\figWidtha}};
+%   \draw (10.5, 0) node[anchor=south west,xshift=-4pt,yshift=-4pt] {\trimfiga{\backStepDir/fig/backStepRefineGrid2Zoom}{\figWidtha}};
+%% \draw[step=1cm,gray] (0,0) grid (16,10.);
+\end{tikzpicture}
+% ----------------------------------------------------------------------------------------
+\caption{
+Overlapping grid for the backward facing step in a channel (upper wall is no-slip). Very coarse grid $\Gc^{(2)}$ (second accuracy). Bottom: zoomed view near rounded step.
+Interpolation points (two layers) are marked as black squares.
+% Two-dimensional overlapping grid for a cross-section through the terrain. Grid $\Gc^{(4)}$ (second-order accuracy) is shown
+%    along with a magnified view of the grid near the surface.
+}
+\label{fig:backStepInChannelGrid}
+\end{center}
+\end{figure}
+}
+
+{
+\begin{figure}[hbt]
+\newcommand{\figWidth}{17cm}
+\newcommand{\trimfig}[2]{\trimFigb{#1}{#2}{0.0}{.0}{.29}{.29}}
+\begin{center}\small
+% ------------------------------------------------------------------------------------------------
+\begin{tikzpicture}[scale=1]
+  \useasboundingbox (0,0.25) rectangle (16,9.);  % set the bounding box (so we have less surrounding white space)
+  \draw ( 0,6.0) node[anchor=south west,xshift=-4pt,yshift=-4pt] {\trimfig{\backStepDir/fig/backStepRefineG16Vort10t50}{\figWidth}};
+  \draw ( 0,3.0) node[anchor=south west,xshift=-4pt,yshift=-4pt] {\trimfig{\backStepDir/fig/backStepRefineG16Vort10t60}{\figWidth}};
+  \draw ( 0,0.0) node[anchor=south west,xshift=-4pt,yshift=-4pt] {\trimfig{\backStepDir/fig/backStepRefineG16Vort10t70}{\figWidth}};
+%   \draw (10.5, 0) node[anchor=south west,xshift=-4pt,yshift=-4pt] {\trimfiga{\backStepDir/fig/backStepRefineGridZoom}{\figWidtha}};
+%  \draw[step=1cm,gray] (0,0) grid (11,13.);
+\end{tikzpicture}
+% ----------------------------------------------------------------------------------------
+\caption{
+Vorticity at times $t=50$, $60$, $70$ (top to bottom) for grid $\Gc^{(16)}$.
+% Solution in the near wake region is shown. The max and min contours of the vorticity are limited to the range $[-20,20]$.
+% Top: coarse grid $\Gc^{(8)}$. Middle: medium grid $\Gc^{(16)}$. Bottom: fine grid $\Gc^{(32)}$ (approx. $2.3M$ grid pts).  
+}
+\label{fig:backStepInChannel}
+\end{center}
+\end{figure}
+}
+
+
+
+{
+\begin{figure}[hbt]
+\newcommand{\figWidth}{17cm}
+\newcommand{\trimfig}[2]{\trimFigb{#1}{#2}{0.0}{.0}{.29}{.29}}
+\begin{center}\small
+% ------------------------------------------------------------------------------------------------
+\begin{tikzpicture}[scale=1]
+  \useasboundingbox (0,0.25) rectangle (16,6.);  % set the bounding box (so we have less surrounding white space)
+  \draw ( 0,3.0) node[anchor=south west,xshift=-4pt,yshift=-4pt] {\trimfig{\backStepDir/fig/backStepRefineG16Vort10t50}{\figWidth}};
+  \draw ( 0,0.0) node[anchor=south west,xshift=-4pt,yshift=-4pt] {\trimfig{\backStepDir/fig/backStepRefineG16SLt50}{\figWidth}};
+%   \draw (10.5, 0) node[anchor=south west,xshift=-4pt,yshift=-4pt] {\trimfiga{\backStepDir/fig/backStepRefineGridZoom}{\figWidtha}};
+%  \draw[step=1cm,gray] (0,0) grid (11,13.);
+\end{tikzpicture}
+% ----------------------------------------------------------------------------------------
+\caption{
+Vorticity and streamlines at time $t=50$ for grid $\Gc^{(16)}$.
+% Solution in the near wake region is shown. The max and min contours of the vorticity are limited to the range $[-20,20]$.
+% Top: coarse grid $\Gc^{(8)}$. Middle: medium grid $\Gc^{(16)}$. Bottom: fine grid $\Gc^{(32)}$ (approx. $2.3M$ grid pts).  
+}
+\label{fig:backStepInChannelII}
+\end{center}
+\end{figure}
+}
+
+
+{
+\begin{figure}[hbt]
+\newcommand{\figWidth}{17cm}
+\newcommand{\trimfig}[2]{\trimFigb{#1}{#2}{0.0}{.0}{.26}{.32}}
+\begin{center}\small
+% ------------------------------------------------------------------------------------------------
+\begin{tikzpicture}[scale=1]
+  \useasboundingbox (0,0.25) rectangle (16,9.8);  % set the bounding box (so we have less surrounding white space)
+  \draw ( 0,6.4) node[anchor=south west,xshift=-4pt,yshift=-4pt] {\trimfig{\backStepDir/fig/backStepInChannelAve25to50SL}{\figWidth}};
+  \draw ( 0,3.2) node[anchor=south west,xshift=-4pt,yshift=-4pt] {\trimfig{\backStepDir/fig/backStepInChannelAve25to50u}{\figWidth}};
+  \draw ( 0,0.0) node[anchor=south west,xshift=-4pt,yshift=-4pt] {\trimfig{\backStepDir/fig/backStepInChannelAve25to50v}{\figWidth}};
+%   \draw (10.5, 0) node[anchor=south west,xshift=-4pt,yshift=-4pt] {\trimfiga{\backStepDir/fig/backStepRefineGridZoom}{\figWidtha}};
+%  \draw[step=1cm,gray] (0,0) grid (11,13.);
+\end{tikzpicture}
+% ----------------------------------------------------------------------------------------
+\caption{
+Time averaged streamlines and contours of $u$ and $v$ for grid $\Gc^{(16)}$.
+Averaged over $t\in[25,50]$.
+% Solution in the near wake region is shown. The max and min contours of the vorticity are limited to the range $[-20,20]$.
+% Top: coarse grid $\Gc^{(8)}$. Middle: medium grid $\Gc^{(16)}$. Bottom: fine grid $\Gc^{(32)}$ (approx. $2.3M$ grid pts).  
+}
+\label{fig:backStepInChannelTimeAverageI}
+\end{center}
+\end{figure}
+}
+
+
+{
+\begin{figure}[hbt]
+\newcommand{\figWidth}{12cm}
+\newcommand{\trimfig}[2]{\trimFigb{#1}{#2}{0.125}{.15}{.378}{.35}}
+\begin{center}\small
+% ------------------------------------------------------------------------------------------------
+\begin{tikzpicture}[scale=1]
+  \useasboundingbox (0,0.25) rectangle (14,13);  % set the bounding box (so we have less surrounding white space)
+  \draw ( 0,9.6) node[anchor=south west,xshift=-4pt,yshift=-4pt] {\trimfig{\backStepDir/fig/backStepInChannel16Ave50to200sl}{\figWidth}};
+  \draw ( 0,6.4) node[anchor=south west,xshift=-4pt,yshift=-4pt] {\trimfig{\backStepDir/fig/backStepInChannel16Ave50to200u}{\figWidth}};
+  \draw ( 0,3.2) node[anchor=south west,xshift=-4pt,yshift=-4pt] {\trimfig{\backStepDir/fig/backStepInChannel16Ave50to200v}{\figWidth}};
+  \draw ( 0,0.0) node[anchor=south west,xshift=-4pt,yshift=-4pt] {\trimfig{\backStepDir/fig/backStepInChannel16Ave50to200p}{\figWidth}};
+%   \draw (10.5, 0) node[anchor=south west,xshift=-4pt,yshift=-4pt] {\trimfiga{\backStepDir/fig/backStepRefineGridZoom}{\figWidtha}};
+% \draw[step=1cm,gray] (0,0) grid (14,13.);
+\end{tikzpicture}
+% ----------------------------------------------------------------------------------------
+\caption{
+Time averaged streamlines and contours of $u$, $v$ and $p$ for grid $\Gc^{(16)}$.
+Averaged over $t\in[50,200]$.
+% Solution in the near wake region is shown. The max and min contours of the vorticity are limited to the range $[-20,20]$.
+% Top: coarse grid $\Gc^{(8)}$. Middle: medium grid $\Gc^{(16)}$. Bottom: fine grid $\Gc^{(32)}$ (approx. $2.3M$ grid pts).  
+}
+\label{fig:backStepInChannelTimeAverage}
+\end{center}
+\end{figure}
+}
+
+
+{
+\begin{figure}[hbt]
+\newcommand{\figWidth}{12cm}
+\newcommand{\trimfig}[2]{\trimFigb{#1}{#2}{0.0}{.0}{.2}{.2}}
+\begin{center}\small
+% ------------------------------------------------------------------------------------------------
+\begin{tikzpicture}[scale=1]
+  \useasboundingbox (0,0.25) rectangle (12,8.);  % set the bounding box (so we have less surrounding white space)
+  \draw ( 0, 0) node[anchor=south west,xshift=-4pt,yshift=-4pt] {\trimfig{\backStepDir/fig/backStepInChannelAve50to200Streamlines}{\figWidth}};
+%   \draw (10.5, 0) node[anchor=south west,xshift=-4pt,yshift=-4pt] {\trimfiga{\backStepDir/fig/backStepRefineGridZoom}{\figWidtha}};
+% \draw[step=1cm,gray] (0,0) grid (12,8);
+\end{tikzpicture}
+% ----------------------------------------------------------------------------------------
+\caption{
+Time averaged streamlines, $u$ and $v$ for grid $\Gc^{(16)}$.
+Averaged over $t\in[50,200]$.
+}
+\label{fig:backStepInChannelTimeAverageStreamLinesZoom}
+\end{center}
+\end{figure}
+}
+
+{
+\begin{figure}[hbt]
+\newcommand{\figWidth}{12cm}
+\newcommand{\trimfig}[2]{\trimFigb{#1}{#2}{0.0}{.0}{.0}{.0}}
+\begin{center}\small
+% ------------------------------------------------------------------------------------------------
+\begin{tikzpicture}[scale=1]
+  \useasboundingbox (0,0.25) rectangle (12,8.);  % set the bounding box (so we have less surrounding white space)
+  \draw ( 0, 0) node[anchor=south west,xshift=-4pt,yshift=-4pt] {\trimfig{\backStepDir/fig/backStepInChannel16Ave50to200Profiles}{\figWidth}};
+%   \draw (10.5, 0) node[anchor=south west,xshift=-4pt,yshift=-4pt] {\trimfiga{\backStepDir/fig/backStepRefineGridZoom}{\figWidtha}};
+% \draw[step=1cm,gray] (0,0) grid (12,8);
+\end{tikzpicture}
+% ----------------------------------------------------------------------------------------
+\caption{
+Horizontal velocity preofiles for the time averaged solution, 
+for grid $\Gc^{(16)}$ averaged over $t\in[50,200]$.
+}
+\label{fig:backStepInChannelTimeAverageVelocityProfiles}
+\end{center}
+\end{figure}
+}

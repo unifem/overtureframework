@@ -246,20 +246,28 @@ initialize( )
   if( parameters.solver!=OgesParameters::PETScNew )
   { // do not build a nullVector for the new PETSc interface -- at least for now
 
-    if (parameters.compatibilityConstraint) 
+    if( parameters.compatibilityConstraint ||
+        parameters.userSuppliedEquations   ||   // *wdh* 2015/10/11
+	numberOfExtraEquations>0 )              // *wdh* 2015/10/11
     {
-      if (Oges::debug & 2) 
-      {
-	printf("Oges::initialize ******* build null vector *******\n");
-      }
-      
       int userSuppliedConstraint = 0; // kkc 090903, check for a user defined constraints
       get(OgesParameters::THEuserSuppliedCompatibilityConstraint,userSuppliedConstraint);
 
       // kkc 090903 the following if statement checks to see if 
       //   a) the number of extra equations has been defined (if not, assume one extra equation), and
       //   b) if a user defined constraint has been set, if not one extra equation will be built
-      if ( !( numberOfExtraEquations && userSuppliedConstraint) )  numberOfExtraEquations = 1;
+      if( numberOfExtraEquations>0 && ( userSuppliedConstraint || parameters.userSuppliedEquations ) )
+      {
+      }
+      else
+      {
+         numberOfExtraEquations = 1;
+      }
+      
+      if (Oges::debug & 2) 
+	printF("--OGES--initialize: compatibilityConstraint=%i userSuppliedEquations=%i userSuppliedConstraint=%i numberOfExtraEquations=%i\n",
+	       (int)parameters.compatibilityConstraint,(int)parameters.userSuppliedEquations,userSuppliedConstraint,numberOfExtraEquations );
+      
 
       findExtraEquations();
       // *wdh* 060621 rightNullVector.updateToMatchGrid(cg,nullRange,nullRange,nullRange,1);  // positionOfComponent=3

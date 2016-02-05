@@ -1,7 +1,4 @@
 *
-*   mx cmd/cic4.planeWaveBC
-*   mx noplot cmd/cic4.planeWaveBC
-*
 *   Assign the plane wave forcing on the boundary
 *
 $tFinal=2.; $tPrint=.5; $diss=.1; 

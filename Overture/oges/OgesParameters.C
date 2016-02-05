@@ -47,7 +47,8 @@ OgesParameters()
   blockSize=1;  // block size for block matrices (e.g. for systems of equations)
 
   compatibilityConstraint=false;
-  userSuppliedCompatibilityConstraint=false;
+  userSuppliedCompatibilityConstraint=false; // if true, user has supplied the right-null vector
+  userSuppliedEquations=false;  // if true, the user has supplied extra or over-ridden equations
 
   gmresRestartLength=20;
   numberOfIncompleteLULevels=1;
@@ -133,6 +134,7 @@ operator=(const OgesParameters& x)
 
   compatibilityConstraint=x.compatibilityConstraint;
   userSuppliedCompatibilityConstraint=x.userSuppliedCompatibilityConstraint;
+  userSuppliedEquations=x.userSuppliedEquations;
   
   gmresRestartLength=x.gmresRestartLength;
   numberOfIncompleteLULevels=x.numberOfIncompleteLULevels;
@@ -630,6 +632,7 @@ set( OptionEnum option, int value /* = 0 */ )
 //     THEparallelSolverMethod,
 //     THEtolerance,
 //     THEuserSuppliedCompatibilityConstraint,
+//     THEuserSuppliedEquations,
 //     THEzeroRatio
 //   };
 // \end{verbatim}
@@ -795,6 +798,9 @@ set( OptionEnum option, int value, real rvalue )
     break;
   case THEuserSuppliedCompatibilityConstraint:
     userSuppliedCompatibilityConstraint=value;
+    break;
+  case THEuserSuppliedEquations:
+    userSuppliedEquations=value;
     break;
   case THEmaximumInterpolationWidth:
     maximumInterpolationWidth=value;
@@ -1183,6 +1189,9 @@ get( OptionEnum option, int & value, real & rvalue ) const
   case THEuserSuppliedCompatibilityConstraint:
     value=userSuppliedCompatibilityConstraint;
     break;
+  case THEuserSuppliedEquations:
+    value=userSuppliedEquations;
+    break;
   case THEmaximumInterpolationWidth:
     value=maximumInterpolationWidth;
     break;
@@ -1348,7 +1357,8 @@ display(FILE *file /* = stdout */ )
   fprintf(file,"iterativeImprovement = %i\n",iterativeImprovement);
   fprintf(file,"sorOmega = %8.2e\n",sorOmega);
 
-  fprintf(file,"userSuppliedCompatibilityConstraint = %i\n",userSuppliedCompatibilityConstraint);
+  fprintf(file,"userSuppliedCompatibilityConstraint = %i\n",(int)userSuppliedCompatibilityConstraint);
+  fprintf(file,"userSuppliedEquations = %i\n",(int)userSuppliedEquations);
 
 //   int preconditionBoundary;
 //   int preconditionRightHandSide;

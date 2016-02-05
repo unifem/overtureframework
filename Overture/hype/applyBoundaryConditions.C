@@ -554,12 +554,15 @@ applyBoundaryConditionMatchToMapping(const RealArray & x,
   return 0;
 }
 
-//! Project points onto a boundary curve (or boundary surface for a 3d volume grid) or interior matching curve and adjust normals.
-/*!
-
-  /param projectBoundary: if true we are projecting onto a boundary (as opposed to an interior line)
-  /param i1Shift: one of 1,0,-1. 1=left boundary (start), 0=interior curve, 1=right boundary
- */
+// ================================================================================================================
+/// \brief Project points onto a boundary curve (or boundary surface for a 3d volume grid) 
+///   or interior matching curve and adjust normals.
+///
+///
+///  /param projectBoundary: if true we are projecting onto a boundary (as opposed to an interior line)
+///  /param i1Shift: one of 1,0,-1. 1=left boundary (start), 0=interior curve, 1=right boundary
+///
+// ================================================================================================================
 int HyperbolicMapping::
 matchToCurve( bool projectBoundary,
 	      Index & I1, Index & I2,
@@ -598,8 +601,8 @@ matchToCurve( bool projectBoundary,
 
   // scale ortho by the blending factor
   if( debug & 2 )
-    fprintf(debugFile," >>>>matchToCurve: marchingDirection=%i, i1Shift=%i numberOfLinesForNormalBlend=%i %i %i %i "
-            "<<<< \n",marchingDirection,i1Shift,numberOfLinesForNormalBlend[0][0],
+    fprintf(debugFile," >>>>Entering matchToCurve: marchingDirection=%i, i1Shift=%i i2Shift=%i numberOfLinesForNormalBlend=%i %i %i %i "
+            "<<<< \n",marchingDirection,i1Shift,i2Shift,numberOfLinesForNormalBlend[0][0],
 	    numberOfLinesForNormalBlend[1][0],numberOfLinesForNormalBlend[0][1],numberOfLinesForNormalBlend[1][1]);
 
 //    const int side= i1Shift==1 ? 0 : 1;
@@ -804,10 +807,81 @@ matchToCurve( bool projectBoundary,
   }
   
 
+  
   if( debug & 2 )
   {
     n.reshape(I1,I2,1,xAxes);
     int i1=I1.getBase(), i2=I2.getBase();
+
+    if( initialStep )
+    {
+      ///  -----   ESTIMATE THE MARCHING DIRECTION (normal) ------
+      // --- The normal has not been yet set on the inital step ------
+      //
+
+      // ** TEST *** 2015/11/17 
+      //   ---  The marching-vector is not set at the initial step --
+      // printF("--HYP-- matchToCurve: TEMPORARY TEST Set marching direction to follow boundary *FIX ME*\n");
+      if( domainDimension==2 && rangeDimension==2 )
+      {
+        // In 2D n holds the tangent to the boundary condition curve I think
+        normal(I1,I2,0,xAxes)=n(I1,I2,0,xAxes);
+      }
+      else if( domainDimension==3 && rangeDimension==3 )
+      {
+        // In 3D n holds the normal to the boundary condition surface I think
+
+        // We need normal : an estimated vector in the marching direction 
+
+	if( debug & 2 )
+	{
+	  fprintf(debugFile," --HYP-- matchToCurve: I1=[%i,%i] I2=[%i,%i] i3p=%i\n",I1.getBase(),I1.getBound(),
+		  I2.getBase(),I2.getBound(),i3p);
+           fprintf(debugFile," --HYP-- matchToCurve: normal = marching-vector =(%7.1e,%7.1e,%7.1e)\n",
+            normal(i1,i2,0,0),normal(i1,i2,0,1),normal(i1,i2,0,2));
+	   // ::display(x," --HYP-- matchToCurve: x ",debugFile,"%10.4e ");
+	}
+        // ---------------------------------------------
+        // --- compute a normal to the start surface ---
+        //   The normal has not been set on the initial step 
+        //
+	const int i3=i3p;
+	for( int i2=I2.getBase(); i2<=I2.getBound(); i2++ )	
+	for( int i1=I1.getBase(); i1<=I1.getBound(); i1++ )	
+	{
+	  // compute a marching normal since this has not yet been determined (normal==0)
+          // eval normal at point (j1,j2,j3) 
+          const int j1 = min( i1, x.getBound(0)-1);
+          const int j2 = min( i2, x.getBound(1)-1);
+          const int j3=i3;
+	  
+	  real nv[3];
+	  nv[0] = ( (x(j1+1,j2,j3,1)-x(j1,j2,j3,1))*(x(j1,j2+1,j3,2)-x(j1,j2,j3,2))-
+		    (x(j1+1,j2,j3,2)-x(j1,j2,j3,2))*(x(j1,j2+1,j3,1)-x(j1,j2,j3,1)) );
+	  nv[1] = ( (x(j1+1,j2,j3,2)-x(j1,j2,j3,2))*(x(j1,j2+1,j3,0)-x(j1,j2,j3,0))-
+		    (x(j1+1,j2,j3,0)-x(j1,j2,j3,0))*(x(j1,j2+1,j3,2)-x(j1,j2,j3,2)) );
+	  nv[2] = ( (x(j1+1,j2,j3,0)-x(j1,j2,j3,0))*(x(j1,j2+1,j3,1)-x(j1,j2,j3,1))-
+		    (x(j1+1,j2,j3,1)-x(j1,j2,j3,1))*(x(j1,j2+1,j3,0)-x(j1,j2,j3,0)) );
+    
+	  real nNorm=marchingDirection/max(REAL_EPSILON*100.,sqrt( nv[0]*nv[0]+nv[1]*nv[1]+nv[2]*nv[2] ));
+	  nv[0]*=nNorm;
+	  nv[1]*=nNorm;
+	  nv[2]*=nNorm;
+	  for( int dir=0; dir<rangeDimension; dir++ )
+	    normal(i1,i2,i3,dir)=nv[dir];
+
+	  if( debug & 2 )
+	    fprintf(debugFile," --HYP-- matchToCurve: (i1,i2,i3)=(%i,%i,%i) normal=[%9.2e,%9.2e,%9.2e)\n",
+		    i1,i2,i3,nv[0],nv[1],nv[2]);
+	}
+	
+	// THIS IS REALLY A KLUDGE
+        // normal(I1,I2,0,0)= n(I1,I2,0,1);
+        // normal(I1,I2,0,1)=-n(I1,I2,0,0);
+      }
+      
+    }
+
     fprintf(debugFile,"    : marchingDirection=%i: tangent to BC Mapping=(%7.1e,%7.1e,%7.1e), "
                 "marching-vector =(%7.1e,%7.1e,%7.1e)\n",
 	    marchingDirection,n(i1,i2,0,0),n(i1,i2,0,1),n(i1,i2,0,2),
@@ -816,9 +890,31 @@ matchToCurve( bool projectBoundary,
 
   }
 
-  if( option==1 )
-    return 0;
-
+  // *wdh* 2015/11/17 : TRY THIS: apply BC's to start curve too --  DOESN'T WORK ??
+  // 
+  if( true )
+  {
+   bool adjustStartCurve = applyBoundaryConditionsToStartCurve && initialStep; // *wdh* 2015/11/17 
+   if( option==1 && !adjustStartCurve )
+   {
+     if( debug & 2 )
+       fprintf(debugFile," >>>>Leaving matchToCurve (option=1 && !adjustStartCurve : do not project)\n");
+     return 0;
+   }
+  }
+  else
+  {
+    // *OLD WAY*
+    // option=1: Do not change the point
+    if( option==1 )
+    {
+      if( debug & 2 )
+	fprintf(debugFile," >>>>Leaving matchToCurve (option=1 : do not project)\n");
+      return 0;
+    }
+    
+  }
+  
   x(I1,I2,i3p,xAxes)=xx(I1,I2,0,xAxes);
 
   // project the marching-normal to be parallel to the boundary
@@ -923,6 +1019,8 @@ matchToCurve( bool projectBoundary,
     
   }
   
+  if( debug & 2 )
+    fprintf(debugFile," >>>>Leaving matchToCurve (at end)\n");
 
   return 0;
 }

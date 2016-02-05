@@ -1,12 +1,12 @@
 *
 * Put a (deforming) plug in a channel for moving grid tests
 * 
-*    ogen noplot plugDeform -factor=1
-*    ogen noplot plugDeform -factor=2
-*    ogen noplot plugDeform -factor=4
-*    ogen noplot plugDeform -factor=8
-*    ogen noplot plugDeform -factor=16
-*    ogen noplot plugDeform -factor=32
+*    ogen -noplot plugDeform -factor=1
+*    ogen -noplot plugDeform -factor=2
+*    ogen -noplot plugDeform -factor=4
+*    ogen -noplot plugDeform -factor=8
+*    ogen -noplot plugDeform -factor=16
+*    ogen -noplot plugDeform -factor=32
 *
 *
 *

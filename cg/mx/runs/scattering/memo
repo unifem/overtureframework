@@ -1,3 +1,11 @@
+************************
+**** Nov 3, 2015
+
+cgmx scattering -g=cice4.order4.hdf  -bg=square -rbc=abcPML -boundaryForcing=1 -go=halt
+
+
+
+
 
 **********************
 ******** Sept 24, 2015

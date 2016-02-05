@@ -20,11 +20,12 @@ enum MaskOptionEnum
 
 
 static int
-checkForNegativeVolumes(GridCollection & gc, int numberOfGhost=0, FILE *file=stdout );
+checkForNegativeVolumes(GridCollection & gc, int numberOfGhost=0, FILE *file=stdout, 
+                        bool checkActivePoints=true, bool printNegativeVolumes=true );
 
 static int
-checkForNegativeVolumes(MappedGrid & mg, int numberOfGhost=0, FILE *file=stdout, int grid=0 );
-
+checkForNegativeVolumes(MappedGrid & mg, int numberOfGhost=0, FILE *file=stdout, int grid=0, 
+                        bool checkActivePoints=true, bool printNegativeVolumes=true );
 
 static void 
 getGridSpacing(MappedGrid & mg, real dsMin[3], real dsAve[3], real dsMax[3], MaskOptionEnum maskOption=ignoreMask );
@@ -32,6 +33,10 @@ getGridSpacing(MappedGrid & mg, real dsMin[3], real dsAve[3], real dsMax[3], Mas
 static void 
 getGridSpacingAndNumberOfPoints(MappedGrid & mg, real dsMin[3], real dsAve[3], real dsMax[3],
                                 int & numberOfPoints, MaskOptionEnum maskOption=ignoreMask );
+
+static void
+getNegativeVolumes( MappedGrid & mg, int & numberOfNegativeVolumes, IntegerArray & negativeVolumeList,
+                    int grid=0, int numberOfGhost=0, bool checkActivePoints=true, bool printNegativeVolumes=true );
 
 static void 
 getNumberOfPoints(GridCollection & gc, int & totalNumberOfGridPoints, MaskOptionEnum maskOption=ignoreMask );
@@ -49,6 +54,12 @@ static void
 printGridStatistics(MappedGrid & mg, FILE *file=stdout, int grid=0, int *ipar=NULL, real *rpar=NULL );
 
 private:
+
+// private routine that actually computes the negative volumes
+static int
+computeNegativeVolumes(MappedGrid & mg, int numberOfGhost, FILE *file, int grid, 
+		       bool checkActivePoints, bool printNegativeVolumes,
+		       int & negativeVolumeCount, IntegerArray *negativeVolumeList = NULL );
 
 // The constructor should never be called
 GridStatistics();

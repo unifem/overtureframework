@@ -121,6 +121,7 @@ CGINS_EXTRA_FILES = $(PETSC_FILES_OBJ) ../../Overture/otherStuff/BodyForce.o
 CGINS_EXTRA_FILES = $(PETSC_FILES_OBJ) ../../Overture/mapping/UnstructuredMapping.o
 CGINS_EXTRA_FILES = $(PETSC_FILES_OBJ) ../../Overture/mapping/stencilWalk.o
 CGINS_EXTRA_FILES = $(PETSC_FILES_OBJ) ../../Overture/hype/applyBoundaryConditions.o
+CGINS_EXTRA_FILES = $(PETSC_FILES_OBJ) ../../Overture/oges/generateMatrix.o
 CGINS_EXTRA_FILES = $(PETSC_FILES_OBJ) 
 # make cgins in the bin dir:
 $(BINDIR)cgins: lib_build $(OBJDIR)cginsMain.o $(CGINS_EXTRA_FILES) $(libCommon)

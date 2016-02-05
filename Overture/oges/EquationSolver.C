@@ -173,8 +173,8 @@ setExtraEquationValues( realCompositeGridFunction & f, real *value )
     f[gride](i1e,i2e,i3e,ne)=value[i];
 
     if( Oges::debug & 4 )
-      printF("EquationSolver::setExtraEquationValues: f[%i](%i,%i,%i,%i)= %14.10e \n",
-           gride,i1e,i2e,i3e,ne,f[gride](i1e,i2e,i3e,ne));
+      printF("EquationSolver::setExtraEquationValues: f[%i](%i,%i,%i,%i)= %14.10e (eqn-number=%i)\n",
+	     gride,i1e,i2e,i3e,ne,f[gride](i1e,i2e,i3e,ne),oges.extraEquationNumber(i));
 
     if( gride!=cg.numberOfComponentGrids()-1 )
     {

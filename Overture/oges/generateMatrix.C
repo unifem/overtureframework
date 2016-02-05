@@ -4,6 +4,7 @@
 #include "conversion.h"
 #include "EquationSolver.h"
 #include "display.h"
+#include "OgesExtraEquations.h"
 
 #define EQUATIONNUMBER(i,n,I1,I2,I3) \
   EQUATIONNUMBERX(i+stencilDim*(n),I1,I2,I3)
@@ -199,7 +200,21 @@ generateMatrix( int & errorNumber )
       }
     }
     
-    bool addDenseExtraEquations = (coefficientsOfDenseExtraEquations != NULL) && numberOfExtraEquations > 0 ;
+    // Here is where the user has defined extra equations of over-ridden existing equations:
+    const bool & userSuppliedEquations = parameters.userSuppliedEquations;
+    OgesExtraEquations & extraEquations = dbase.get<OgesExtraEquations>("extraEquations");
+    assert( (userSuppliedEquations && extraEquations.neq>0) || (!userSuppliedEquations && extraEquations.neq<=0 ) );
+    
+    const IntegerArray & eqnExtra =extraEquations.eqn;  // equation numbers for extra user eqn's (not dense)
+    // ::display(eqnExtra,"--OGES--GM-- eqnExtra");
+    const IntegerArray & iaExtra =extraEquations.ia;
+    const IntegerArray & jaExtra =extraEquations.ja;
+    const RealArray & aExtra =extraEquations.a;
+    int iExtraEquation=0; // counts extra equations
+
+    bool addDenseExtraEquations = (coefficientsOfDenseExtraEquations != NULL &&
+				   (*coefficientsOfDenseExtraEquations).numberOfComponentGrids()>0 ) 
+                                  && numberOfExtraEquations > 0 ;
 
     const int ndra=cg[grid].dimension(Start,axis1), ndrb=cg[grid].dimension(End,axis1);
     const int ndsa=cg[grid].dimension(Start,axis2), ndsb=cg[grid].dimension(End,axis2);
@@ -214,13 +229,25 @@ generateMatrix( int & errorNumber )
     int   ieqn0;
     int   extraEquationNumber0 = numberOfExtraEquations>0 ? extraEquationNumber(0) : -1;
     int currentExtraEquation = numberOfExtraEquations-1; // these things work backwards in index through the grid and components
+
+
+    // currently we only allow one dense equation with possibly multiple components.
+    int numberOfDenseExtraEquations=0;
     int currentExtraEquationCoeff = numberOfComponents-1;//currentExtraEquation;
-    int numberOfExtraEquationCoeffs = numberOfComponents;
-    if ( addDenseExtraEquations )
-      {
-	numberOfExtraEquationCoeffs = (*coefficientsOfDenseExtraEquations)[grid].getLength(3);
-	currentExtraEquationCoeff = min(currentExtraEquationCoeff, numberOfExtraEquationCoeffs-1);
-      }
+    int numberOfExtraEquationCoeffs = numberOfComponents;  // number of compopen
+    if( addDenseExtraEquations )
+    {
+      numberOfDenseExtraEquations=1;
+      numberOfExtraEquationCoeffs = (*coefficientsOfDenseExtraEquations)[grid].getLength(3);
+      if( true )
+	printF("--OGES--: addDenseExtraEquations=%i numberOfDenseExtraEquations=%i, numCoeff=%i \n",
+	       (int)addDenseExtraEquations,numberOfDenseExtraEquations,numberOfExtraEquationCoeffs);
+      
+      // *wdh* 2015/10/12 -- for case when there are dense + extra equations
+      if( userSuppliedEquations )
+	currentExtraEquation=numberOfExtraEquationCoeffs-1;
+      currentExtraEquationCoeff = min(currentExtraEquationCoeff, numberOfExtraEquationCoeffs-1);
+    }
 
     real  cpu1=getCPU();
     Range S(0,stencilDim-1);
@@ -267,7 +294,23 @@ generateMatrix( int & errorNumber )
 
             if( isparse==0 ) IA(ieqn)=ii+1;
 
-            if( CLASSIFYX(i1,i2,i3,n)==SparseRepForMGF::unused ) 
+            if( iExtraEquation<extraEquations.neq && eqnExtra(iExtraEquation)==ieqn )
+	    {
+              // --- user has defined this equation ---
+              // This is either an extra "constraint" equation or an over-riden equation
+	      printF("--OGES-- Add user extra equation %i: ieqn=%i (num-extra=%i)\n",
+                     iExtraEquation,ieqn,extraEquations.neq);
+	      
+              for( int kk=iaExtra(iExtraEquation); kk<=iaExtra(iExtraEquation+1)-1; kk++ )
+	      {
+		ii++;
+                if( isparse==1 ) IA(ii)=ieqn;
+		JA(ii)=jaExtra(kk);
+		A(ii)=aExtra(kk);
+	      }
+	      iExtraEquation++;
+	    }
+            else if( CLASSIFYX(i1,i2,i3,n)==SparseRepForMGF::unused ) 
             {
 	      // null equation, set to the identity
 	      ii++;
@@ -400,7 +443,11 @@ generateMatrix( int & errorNumber )
 		  //		  		  rightNullEqn<numberOfExtraEquations  // kkc 100308 added this last bit
 		  /*n<numberOfExtraEquations*/ /*kkc 090903 n==0*/  ) //!!! kkc 060731 shouldn't RIGHTNULL have "n" as a subscript!?
               {
-	        // add compatibility constraint as the last entry in the matrix for this row
+
+                // --------------------------------------------------------------------------------
+	        // -- add compatibility constraint as the last entry in the matrix for this row ---
+                // --------------------------------------------------------------------------------
+
                 real value = RIGHTNULL(i1,i2,i3,rightNullCoeff); // kkc 090903 RIGHTNULL now has the extra subscript
 		//		extraEquationNumber0 = extraEquationNumber(n); // and we need to get the correct extra equation number for this component
 		//                if( value != 0. ) 
@@ -433,9 +480,11 @@ generateMatrix( int & errorNumber )
 	  } // end for n
 	  
 	  
+          // ------------------------------------------------------------------------------
           // Add in "dense" extra equations such as those equations that define
           // an "integral" type constraint (e.g. setting the mean pressure to zero)
           // *** Fix this -- only works for one dense equation **** FIXED 090903
+          // ------------------------------------------------------------------------------
 
 	  //          if (ieqn0==extraEquationNumber0 && addDenseExtraEquations ) 
 	  // kkc 060801 !!!!! for coeff functions with more than one component, the extra equation
@@ -451,10 +500,14 @@ generateMatrix( int & errorNumber )
                                         //this part of the if statement should not be executed when addDenseExtraEquations==false
           if (addDenseExtraEquations && ieqn==extraEquationNumber(currentExtraEquation) )
           {
+            // NOTE: coefficientsOfDenseExtraEquations can point to the rightNullVector 
+
+
 	    extraEquationNumber0 = extraEquationNumber(currentExtraEquation);
             if( debug & 2 ) 
             {
-              cout << "generate: adding denseExtraEquations..." << endl;
+              printF("--OGES-- generate: adding denseExtraEquation currentExtraEquation=%i ieqn=%i ...\n",
+		     currentExtraEquation,ieqn);
             }
             real cdc;
             scale=parameters.matrixCutoff;  // *******
@@ -480,6 +533,12 @@ generateMatrix( int & errorNumber )
 		    
 		    //kkc 090903   for (int nc=c.getBase(axis3+1);nc<=c.getBound(axis3+1);nc++) 
 		    int nc = currentExtraEquationCoeff;
+		    // if( true )
+		    // {  // ********** TEMP **********
+		    //   Range all;
+		    //   ::display(c(all,all,all,nc),"extra","%6.2f ");
+		    // }
+		    
 		    {
 		      for(int i3c=c3a; i3c<=c3b; i3c++ ) 
 			{
@@ -491,6 +550,9 @@ generateMatrix( int & errorNumber )
 				  if( fabs(cdc)>scale ) 
 				    {
 				      jeqn = equationNo(nc-base4,i1c,i2c,i3c,gridc); 
+
+				      // printF("--OGES-- extra-eqn: nc=%i base4=%i ieqn=%i jeqn=%i cdc=%9.3e\n",nc,base4,ieqn,jeqn,cdc);
+				      
 				      if (jeqn<0 || jeqn>numberOfEquations) 
 					{
 					  cout << "generate:2 jeqn out of range, jeqn=" << jeqn << endl;

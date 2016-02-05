@@ -127,7 +127,7 @@ virtual void
 printTimeStepInfo( const int & step, const real & t, const real & cpuTime );
 
 int
-projectInitialConditions( std::vector<int> & gfIndex );
+projectInitialConditions( real t, real dt, std::vector<int> & gfIndex );
 
 virtual int
 setParametersInteractively(bool runSetupOnExit=true);

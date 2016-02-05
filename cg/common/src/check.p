@@ -8,6 +8,7 @@ if 0;
 # $fileName          = $ARGV[0];
 $checkFileDirectory = ".";
 $testName="all";
+$testsFile="tests"; # location of tests
 $replace="";
 $verbose=1; 
 $solver=""; 
@@ -36,6 +37,10 @@ foreach $arg ( @ARGV )
   {
     $verbose=$1;
   }
+  elsif( $arg =~ /-testsFile=(.*)/ )
+  {
+    $testsFile=$1;
+  }
   else
   {
     $testName=$arg;
@@ -47,10 +52,11 @@ printf("========================================================================
 printf("This perl script will run regression tests \n");
 printf("      (The lists of tests is in the file named 'tests') \n");
 printf("  Usage: \n");
-printf("    check.p [-test=testName] [-replace] [-check=<checkFileDirectory>] [-solver=name] [-verbose=<num>]\n");
-printf(" -test=testName : name of a particular test to run (by default do all) \n");
-printf(" -replace : replace check files with the new ones computed \n");
-printf(" -verbose : verbose=0 : print very little, verbose=1 print more \n");
+printf("    check.p -test=testName -replace -check=<checkFileDirectory> -solver=name -verbose=<num> -testsFile=<s>\n");
+printf(" -test=testName : name of a particular test to run (by default do all). \n");
+printf(" -replace : replace check files with the new ones computed. \n");
+printf(" -verbose : verbose=0 : print very little, verbose=1 print more. \n");
+printf(" -testsFile : file that holds list of tests. \n");
 printf("==============================================================================\n\n");
 }
 
@@ -74,7 +80,7 @@ close(FILE);
 
 $tol=1.e-5; # error tolerance for comparing files -- this could vary with each test
 
-# Read the file "tests" to get a list of the command files that we will run. 
+# Read the file $testsFile (default "tests") to get a list of the command files that we will run. 
 #   (if the command files exist in the check directory)
 #  Parallel tests are normally defined in the file "parallel_tests.pm"
 #
@@ -82,7 +88,8 @@ $program = "none";
 if( $parallel eq "" || !( -e "parallel_tests.pm") )
 {
   # serial regressions tests
-  $fileName = "tests";
+  # $fileName = "tests";
+  $fileName = $testsFile;
   open(FILE,"$fileName") || die print "unable to open $fileName\n";
   $n=-2;
   while( <FILE> )

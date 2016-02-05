@@ -113,7 +113,7 @@ create mappings
       geometric stretch factor 1.1
       lines to march 9, 9 
       generate
-*   pause
+   pause
       exit
 *
 * 4-edge volume grid around front
@@ -131,7 +131,7 @@ create mappings
       generate
       Share Value: back    1
       use robust inverse
-*  pause
+  pause
       exit
 *
 * 4-edge surface grid around back

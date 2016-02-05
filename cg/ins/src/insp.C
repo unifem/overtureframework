@@ -30,12 +30,11 @@
 #define mixedCoeff(component,side,axis,grid)       bcData(component+numberOfComponents*(1),side,axis,grid)
 #define mixedNormalCoeff(component,side,axis,grid) bcData(component+numberOfComponents*(2),side,axis,grid)
 
-//\begin{>>MappedGridSolverInclude.tex}{\subsection{assignPressureRHS}} 
 void Cgins::
 updatePressureEquation(CompositeGrid & cg0, GridFunction & cgf )
 //======================================================================
-// /Description:
-//\end{MappedGridSolverInclude.tex}  
+/// \brief Construct the discrete elliptic equation for the pressure.
+///    
 //======================================================================
 {
   if( parameters.dbase.get<int>("simulateGridMotion")>0 ) return;
@@ -275,26 +274,6 @@ updatePressureEquation(CompositeGrid & cg0, GridFunction & cgf )
 		 mixedCoeff(pc,side,axis,grid), mixedNormalCoeff(pc,side,axis,grid));
 	  
 	}
-//         singularPressureEquation=singularPressureEquation && 
-//                                  bcData(pc+parameters.dbase.get<int >("numberOfComponents")*1,side,axis,grid)==0. ;
-// 	neumannBoundaryConditions=neumannBoundaryConditions &&
-//                bcData(pc+parameters.dbase.get<int >("numberOfComponents")*1,side,axis,grid)==0. && 
-//                bcData(pc+parameters.dbase.get<int >("numberOfComponents")*2,side,axis,grid)==1.;
-
-//         if( bcData(pc+parameters.dbase.get<int >("numberOfComponents")*1,side,axis,grid)==0. && 
-//             bcData(pc+parameters.dbase.get<int >("numberOfComponents")*2,side,axis,grid)==1. )
-// 	{
-//           boundaryConditions(side,axis,grid)=OgesParameters::neumann;  
-//         }
-// 	else
-// 	{
-//           boundaryConditions(side,axis,grid)=OgesParameters::mixed;  
-//           boundaryConditionData(0,side,axis,grid)=bcData(pc+parameters.dbase.get<int >("numberOfComponents")*1,side,axis,grid);
-// 	  boundaryConditionData(1,side,axis,grid)=bcData(pc+parameters.dbase.get<int >("numberOfComponents")*2,side,axis,grid);
-//           //           printF("*****updatePressureEquation: mixed BC: %f*p+%f*p.n \n",
-//           //                 boundaryConditionData(0,side,axis,grid),boundaryConditionData(1,side,axis,grid));
-	  
-// 	}
 	
         break;
       default:
@@ -328,92 +307,6 @@ updatePressureEquation(CompositeGrid & cg0, GridFunction & cgf )
   else
   {
 
-// ***** *wdh* 2014/03/31 -- this check is no longer needed *****
-    // BoundaryConditionParameters bcParams;
-    // RealArray & a = bcParams.a;
-    // a.redim(2);
-//     for( int l=0; l<m.numberOfMultigridLevels(); l++ )
-//     {
-//       CompositeGrid & cg = m.numberOfMultigridLevels()==1 ? cg0 : m.multigridLevel[l];
-//       for( grid=0; grid<cg.numberOfComponentGrids(); grid++ )
-//       {
-// 	MappedGrid & c = cg[grid];
-// 	// For outflow etc. boundaries check whether the pressure BC a*p+b*p.n is neumann (b!=0) or dirichlet
-//         // *** for now we either apply a mixed or dirichlet BC at all outflow boundaries on a given component grid ****
-// 	for( int bcType=0; bcType<3; bcType++ )
-// 	{
-//           // we check the three BC's that specify a mixed condition on the pressure
-// 	  int bc = 
-// 	    bcType==0 ? InsParameters::outflow : 
-// 	    bcType==1 ? InsParameters::convectiveOutflow :
-// 	                InsParameters::tractionFree;
-
-//   	  int typeOfBoundaryCondition=-1;  // -1=no outflow boundaries, 0=dirichlet, 1=neumann
-// 	  ForBoundary( side,axis )
-// 	  {
-// 	    if( c.boundaryCondition(side,axis)==(int)bc )
-// 	    {
-// 	      if( mixedNormalCoeff(pc,side,axis,grid)!=0. )
-// 	      {
-// 		if( typeOfBoundaryCondition!=0 )
-// 		  typeOfBoundaryCondition=1;  // neumann
-// 		else
-// 		  typeOfBoundaryCondition=2;  // error
-// 		a(0)=mixedCoeff(pc,side,axis,grid);
-// 		a(1)=mixedNormalCoeff(pc,side,axis,grid);
-// 	      }
-// 	      else
-// 	      {
-// 		if( typeOfBoundaryCondition!=1 )
-// 		  typeOfBoundaryCondition=0;  // dirichlet
-// 		else
-// 		  typeOfBoundaryCondition=2;  // error
-// 		a(0)=mixedCoeff(pc,side,axis,grid);
-// 		a(1)=mixedNormalCoeff(pc,side,axis,grid);
-// 	      }
-// 	      if( typeOfBoundaryCondition==2 )
-// 	      {
-// 		printF("updatePressureEquation:ERROR: in assign boundary conditions for coeff. matrix \n"
-// 		       "there are two outflow/convectiveOutflow/tractionFree boundaries on a component grid "
-// 		       "with one a mixed and one a dirichlet BC\n");
-// 		printF(" Ask Bill to fix this! \n");
-// 		OV_ABORT("error");
-// 	      }
-// 	    }
-// 	  }
-// // 	  if( typeOfBoundaryCondition==1 )
-// // 	  {
-// // 	    // mixed or neumann BC
-// //             if( parameters.dbase.get<int >("debug") & 2 ) printF("Apply mixed BC on pressure for bc=%i\n",(int)bc);
-// // 	    poissonCoeff.applyBoundaryConditionCoefficients(0,0,BCTypes::mixed,bc,bcParams);
-// // 	  }
-// // 	  else if( typeOfBoundaryCondition==0 )
-// // 	  {
-// //             if( parameters.dbase.get<int >("debug") & 2 ) printF("Apply dirichlet BC on pressure for bc=%i\n",(int)bc);
-// // 	    poissonCoeff.applyBoundaryConditionCoefficients(0,0,BCTypes::dirichlet,bc);
-// // 	    poissonCoeff.applyBoundaryConditionCoefficients(0,0,BCTypes::extrapolate,bc);
-// // 	  }
-// 	}
-//       }
-//     }// end for( l )
-// ***********
-    
-    // *** poissonCoefficients.applyBoundaryConditionCoefficients(0,0,BCTypes::mixed,parameters.dbase.get< >("outflow"),bcParams);
-
-//     poissonCoefficients.finishBoundaryConditions();
-//     if( FALSE )
-//     {
-//       grid=0;
-//       display(poissonCoefficients[grid],"poissonCoefficients[0]",parameters.dbase.get<FILE* >("debugFile"));
-//       display(cg0.interpolationPoint[grid],"cg.interpolationPoint[grid]",parameters.dbase.get<FILE* >("debugFile"));
-//       display(cg0.interpoleeGrid[grid],"cg.interpoleeGrid[grid]",parameters.dbase.get<FILE* >("debugFile"));
-//       display(cg0.interpoleeLocation[grid],"cg.interpoleeLocation[grid]",parameters.dbase.get<FILE* >("debugFile"));
-//       display(cg0.interpolationCoordinates[grid],"cg.interpolationCoordinates[grid]",parameters.dbase.get<FILE* >("debugFile"));
-//       displayMask(cg0[grid].mask(),"mask",parameters.dbase.get<FILE* >("debugFile"));
-//     }
-    
-
-
     // ----Set parameters for Poisson Solver
     assert( poisson!=0 );
     if( poisson!=0 ) 
@@ -435,6 +328,9 @@ updatePressureEquation(CompositeGrid & cg0, GridFunction & cgf )
       const InsParameters::PDEModel & pdeModel = parameters.dbase.get<InsParameters::PDEModel >("pdeModel");
       const bool solveVariableDensityPoisson = pdeModel==InsParameters::twoPhaseFlowModel;
       
+      // -----------------------------------------------------------
+      // ------ Use the predefined equation in Oges ----------------
+      // -----------------------------------------------------------
       if( solveVariableDensityPoisson )
       {
         // Solve div( (1/rho) grad ) p = ...
@@ -473,14 +369,6 @@ updatePressureEquation(CompositeGrid & cg0, GridFunction & cgf )
 	poisson->setEquationAndBoundaryConditions(equation,cgop,boundaryConditions, boundaryConditionData );
       }
       
-      // for variable density use
-      // equation=divScalarGradOperator,              // div( s(x) grad )
-//       setEquationAndBoundaryConditions( OgesParameters::EquationEnum equation, 
-// 					CompositeGridOperators & op,
-// 					const IntegerArray & boundaryConditions_,
-// 					const RealArray & bcData_, 
-// 					RealArray & constantCoeff,
-// 					realCompositeGridFunction *varCoeff /* =NULL */ )
 
       if( useAddedMassAlgorithm )
       {
@@ -488,9 +376,6 @@ updatePressureEquation(CompositeGrid & cg0, GridFunction & cgf )
         adjustPressureCoefficients( cg0, cgf );
       }
       
-
-
-
       if( false )
       {
 	realCompositeGridFunction & coeff = poisson->coeff;

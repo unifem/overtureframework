@@ -24,6 +24,7 @@ enum TestProblemEnum
 {
   generalMotion=0,
   trigonometricMotion,  // trig TZ 
+  polynomialMotion,     // poly TZ
   freeRotation1,
   freeRotation2,
   freeRotation3,
@@ -64,6 +65,8 @@ getForce( real t, RealArray & f , RealArray & g,
           RealArray & A11, RealArray & A12, RealArray & A21, RealArray & A22,
           RealArray & xCM, RealArray & vCM );
 
+int getTimeStep( const real t, real & dt );
+
 int 
 initialConditions();
 
@@ -77,6 +80,8 @@ RigidBodyMotion::TimeSteppingMethodEnum method;
 
 real cfl, tFinal, tPlot, t, dt, dt0;
 int orderOfAccuracy;
+
+bool useVariableTimeStep;
 
 real mass;           // total mass
 RealArray mI;        // 3 moment of inertia
@@ -111,6 +116,10 @@ RigidBodyMotion body;
 
 aString testName;
 
+int polyDegree;  // degree of poly TZ
+
+FILE *checkFile;
+
 };
   
 
@@ -141,8 +150,14 @@ TestRigidBody()
   dt=.1;  // dt = cfl*dt0
   cfl=1.; tFinal=1.; tPlot=.1;
   orderOfAccuracy=2;
+
+  useVariableTimeStep=false;  // added *wdh* 2016/01/20
   
   debug=1;
+
+  // Here is the check file for regression tests:
+  checkFile = fopen("trb.check","w" );  
+  fPrintF(checkFile,"\\caption{trb: test RigidBodyMotion class.\n");
 
   plotOption=true;
   plotBody=true;
@@ -182,11 +197,14 @@ TestRigidBody()
   gravity=-1;   // gravity in -y direction
   dragCoeff=.25;
 
+  polyDegree=2;
+
 }
 
 TestRigidBody::
 ~TestRigidBody()
 {
+  fclose(checkFile);
 }
 
 
@@ -198,7 +216,8 @@ getForce( real t, RealArray & f , RealArray & g,
 
   A11=0.;  A12=0.; A21=0.; A22=0.;
 
-  if( testProblem==trigonometricMotion )
+  if( testProblem==trigonometricMotion ||
+      testProblem==polynomialMotion )
   {
     // twilightzone forcing is set in the RigidBody class
     f=0.;
@@ -354,6 +373,22 @@ initialConditions()
     
     // Turn on trig twilightzone
     body.setTwilightZone( true, RigidBodyMotion::trigonometricTwilightZone );
+
+
+    // Set initial conditions
+    body.getExactSolution( 0,t,xCM0,vCM0,w0 );
+
+    printF(" Initial conditions: x=(%8.2e,%8.2e,%8.2e) v=(%8.2e,%8.2e,%8.2e)\n",xCM0(0),xCM0(1),xCM0(2),
+	   vCM0(0),vCM0(1),vCM0(2));
+
+
+  }
+  else if( testProblem==polynomialMotion )
+  {
+    testName=sPrintF("PolyTZ%i",polyDegree);
+    
+    // Turn on poly twilightzone
+    body.setTwilightZone( true, RigidBodyMotion::polynomialTwilightZone, polyDegree );
 
 
     // Set initial conditions
@@ -548,6 +583,7 @@ output( TestProblemEnum testProblem, const int step )
 //   body.getAngularVelocities( t,w );
   
  if( testProblem==trigonometricMotion ||
+     testProblem==polynomialMotion ||
            testProblem==constantX0Acceleration || 
 	   testProblem==constantX1Acceleration || 
 	   testProblem==constantX2Acceleration ||
@@ -575,6 +611,13 @@ output( TestProblemEnum testProblem, const int step )
       printF(" v-err=(%8.2e,%8.2e,%8.2e) \n",vCM(0)-ve(0),vCM(1)-ve(1),vCM(2)-ve(2));
       
     }
+
+    const int numberOfComponentsToOutput=3;
+    real xNorm=max(fabs(xCM)), vNorm=max(fabs(vCM)), wNorm=max(fabs(w));
+    fPrintF(checkFile,"%9.2e %i  ",t,numberOfComponentsToOutput);
+    fPrintF(checkFile,"%i %9.2e %10.3e  %i %9.2e %10.3e  %i %9.2e %10.3e  ",
+            0,err(0),xNorm,1,err(1),vNorm, 2,err(2),wNorm);
+    fPrintF(checkFile,"\n");
 
   }
   else if( testProblem==freeRotation1 ||
@@ -605,6 +648,15 @@ output( TestProblemEnum testProblem, const int step )
 	   err(0),err(1),err(2));
 
     // printf("FreeRotation%i: w0=(%8.3e,%8.3e,%8.3e)\n",w0(0),w0(1),w0(2));
+
+    const int numberOfComponentsToOutput=3;
+    RealArray wNorm(3);
+    wNorm=fabs(wHat);
+    fPrintF(checkFile,"%9.2e %i  ",t,numberOfComponentsToOutput);
+    fPrintF(checkFile,"%i %9.2e %10.3e  %i %9.2e %10.3e  %i %9.2e %10.3e  ",
+            0,err(0),wNorm(0),1,err(1),wNorm(1), 2,err(2),wNorm(2));
+    fPrintF(checkFile,"\n");
+
 
 
   }
@@ -663,7 +715,8 @@ getExactSolution( const real t, RealArray & xe, RealArray & ve, RealArray & we )
 
   const real t0=0.;
 
-  if( testProblem==trigonometricMotion )
+  if( testProblem==trigonometricMotion ||
+     testProblem==polynomialMotion  )
   {
     body.getExactSolution( 0,t,xe,ve,we );
   }
@@ -846,6 +899,34 @@ getErrors( int & numErr, aString *& errorNames, RealArray & err )
 }
 
 
+// ====================================================================================
+/// \brief compute the time-step dt if useVariableTimeStep==true 
+// ====================================================================================
+int TestRigidBody::getTimeStep( const real t, real & dt )
+{
+  if( useVariableTimeStep )
+  {
+    const real dtOld=dt;
+    
+    RealArray vCM(3);
+    vCM=0.;
+    body.getVelocity( t,vCM );
+    real vMax = max(fabs(vCM));
+   
+    body.getAngularVelocities( t,vCM );
+    real wMax = max(fabs(vCM));
+
+    // Just make this up: 
+    // (vMax+wMax)*dt = .1*cfl
+    dt = .1*cfl/( vMax + wMax );
+    
+    printF("--TRB-- getTimeStep: t=%9.3e vMax=%8.2e wMax=%8.2e cfl=%8.2e dtOld=%9.3e -> dt=%9.3e\n",
+           t,vMax,wMax,cfl,dtOld,dt);
+    
+  }
+  
+  return 0;
+}
 
 // ======================================================================================================
 //  Solve the rigid body equations
@@ -853,7 +934,8 @@ getErrors( int & numErr, aString *& errorNames, RealArray & err )
 int TestRigidBody::
 solve(GenericGraphicsInterface & gi)
 {
-
+  printF("---TRB-- START solve: cfl=%8.2e useVariableTimeStep=%i ---\n",cfl,(int)useVariableTimeStep);
+  
   PlotStuffParameters psp;
   psp.set(GI_PLOT_THE_OBJECT_AND_EXIT,TRUE);
   psp.set(GI_TOP_LABEL,"time 0");  // set title
@@ -917,6 +999,19 @@ solve(GenericGraphicsInterface & gi)
 
   real nextTimeToPlot=tPlot;
 
+  getTimeStep( t,dt );
+  if( useVariableTimeStep )
+  {
+    // adjust time step so we reach nextTimeToPlot
+    int numSteps = int( (nextTimeToPlot-t)/dt + 1.5);
+    dt = (nextTimeToPlot-t)/numSteps;
+    printF("--TRB-- adjusted dt=%9.3e\n",dt);
+
+    numberOfSteps=INT_MAX;
+  }
+  
+
+
   const int numberOfComponents=18;
   RealArray solution;
   if( saveMatlabFile )
@@ -969,6 +1064,8 @@ solve(GenericGraphicsInterface & gi)
     if( t > tFinal -dt*.01 )
       break;
 
+    
+
     getForce( t,f,g, A11,A12,A21,A22, xCM,vCM );
 
     if( addedMass )
@@ -982,10 +1079,15 @@ solve(GenericGraphicsInterface & gi)
     {
       body.getVelocity( t+dt,vCM );
       getForce( t+dt,f,g, A11,A12,A21,A22, xNew,vCM );
-      if( addedMass )
-	body.correct( t+dt,f,g, A11,A12,A21,A22, xNew,r  );
-      else
-	body.correct( t+dt,f,g, xNew,r  );
+
+      if( true ) // corrector step
+      {
+	if( addedMass )
+	  body.correct( t+dt,f,g, A11,A12,A21,A22, xNew,r  );
+	else
+	  body.correct( t+dt,f,g, xNew,r  );
+      }
+      
     }
     
     body.getAngularVelocities( t+dt,w );
@@ -1023,7 +1125,15 @@ solve(GenericGraphicsInterface & gi)
       if( nextTimeToPlot > tFinal )
         nextTimeToPlot=tFinal;
 
-      // print errors:
+      getTimeStep( t,dt );
+      if( t<tFinal-dt*.5 &&  useVariableTimeStep )
+      {
+	// adjust time step so we reach nextTimeToPlot
+	int numSteps = int( (nextTimeToPlot-t)/dt + 1.5);
+	dt = (nextTimeToPlot-t)/numSteps;
+	printF("--TRB-- adjusted dt=%9.3e\n",dt);
+      }
+
       output( testProblem, step );
 	  
 
@@ -1141,7 +1251,9 @@ main(int argc, char *argv[])
   bool & addedMass= trb.addedMass;
   int & orderOfAccuracy= trb.orderOfAccuracy;
   int & plotBody= trb.plotBody;
-
+  bool & useVariableTimeStep = trb.useVariableTimeStep;
+  int & polyDegree = trb.polyDegree;  // degree of poly TZ 
+  
   RigidBodyMotion::TimeSteppingMethodEnum & method = trb.method;
   method=RigidBodyMotion::implicitRungeKutta;
 
@@ -1151,7 +1263,7 @@ main(int argc, char *argv[])
 
   int conv=0;
   int numResolutions=2;  // number of resolutions for convergence tests.
-
+  
   testProblem=constantX0Acceleration;
 
   aString commandFileName="";
@@ -1167,7 +1279,7 @@ main(int argc, char *argv[])
     for( int i=1; i<argc; i++ )
     {
       line=argv[i];
-      if( line=="-noplot" )
+      if( line=="-noplot" || line=="noplot" )
         plotOption=false;
       else if( len=line.matches("-cfl=") )
       {
@@ -1198,6 +1310,10 @@ main(int argc, char *argv[])
       else if( line==("-test=trig") )
       {
         testProblem=trigonometricMotion;
+      }
+      else if( line==("-test=poly") )
+      {
+        testProblem=polynomialMotion;
       }
       else if( line==("-test=free1") )
       {
@@ -1245,10 +1361,16 @@ main(int argc, char *argv[])
         commandFileName=line(len,line.length()-1);
         printF("trb: reading commands from file [%s]\n",(const char*)commandFileName);
       }
+      else if( commandFileName=="" )
+      {
+        commandFileName=line;  // By default the argument is the commad file *wdh* 2016/01/19
+      }
+      
     }
   }
 
-  PlotStuff gi(plotOption,"test rigid body");
+  // PlotStuff gi(plotOption,"test rigid body");
+  GenericGraphicsInterface & gi = *Overture::getGraphicsInterface("test rigid body",plotOption,argc,argv);
 
   // By default start saving the command file called "cgins.cmd"
   aString logFile="trb.cmd";
@@ -1272,6 +1394,7 @@ main(int argc, char *argv[])
 
   aString opCommand1[] = {"general motion",
                           "trigonometric motion",
+                          "polynomial motion",
                           "free rotation 1",
                           "free rotation 2",
                           "free rotation 3",
@@ -1311,10 +1434,12 @@ main(int argc, char *argv[])
 
   aString tbCommands[] = {"added mass",
                           "plot body",
+                          "use variable time step",
 			  ""};
   int tbState[10];
   tbState[0] = addedMass;
   tbState[1] = plotBody;
+  tbState[1] = useVariableTimeStep;
   int numColumns=1;
   dialog.setToggleButtons(tbCommands, tbCommands, tbState, numColumns); 
 
@@ -1353,6 +1478,9 @@ main(int argc, char *argv[])
   textLabels[nt] = "debug:"; 
   sPrintF(textStrings[nt],"%i",debug);  nt++; 
 
+  textLabels[nt] = "polyDegree:"; 
+  sPrintF(textStrings[nt],"%i",polyDegree);  nt++; 
+
   textLabels[nt] = "output file:"; 
   sPrintF(textStrings[nt],"%s",(const char*)outputFileName);  nt++; 
 
@@ -1377,6 +1505,7 @@ main(int argc, char *argv[])
     else if( dialog.getTextValue(answer,"dt0:","%e",dt0) ){} //
     else if( dialog.getTextValue(answer,"cfl:","%e",cfl) ){} //
     else if( dialog.getTextValue(answer,"debug:","%i",debug) ){ RigidBodyMotion::debug=debug; } //
+    else if( dialog.getTextValue(answer,"polyDegree:","%i",polyDegree) ){ } //
     else if( dialog.getTextValue(answer,"mass:","%e",trb.mass) ){} //
     else if( dialog.getTextValue(answer,"order of accuracy:","%i",orderOfAccuracy) ){} //
     else if( dialog.getTextValue(answer,"numResolutions:","%i",numResolutions) ){} //
@@ -1387,8 +1516,10 @@ main(int argc, char *argv[])
     }
     else if( dialog.getToggleValue(answer,"added mass",addedMass) ){} //
     else if( dialog.getToggleValue(answer,"plot body",plotBody) ){} //
+    else if( dialog.getToggleValue(answer,"use variable time step",useVariableTimeStep) ){} //
     else if( answer=="general motion"  ||
 	     answer=="trigonometric motion"  ||
+	     answer=="polynomial motion"  ||
 	     answer=="free rotation 1"  ||
 	     answer=="free rotation 2"  ||
 	     answer=="free rotation 3"  ||
@@ -1408,6 +1539,8 @@ main(int argc, char *argv[])
 	testProblem=generalMotion;
       else if( answer=="trigonometric motion" )
 	testProblem=trigonometricMotion;
+      else if( answer=="polynomial motion" )
+	testProblem=polynomialMotion;
       else if( answer=="free rotation 1" )
       {
 	testProblem=freeRotation1;

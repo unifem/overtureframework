@@ -35,7 +35,7 @@ coeff = $(current)/../coeff
 fortranDeriv = $(current)/../fortranDeriv
 fortranCoeff = $(current)/../fortranCoeff
 bc = $(current)/../bc
-VPATH = $(opsrc):$(deriv):$(coeff):$(fortranDeriv):$(fortranCoeff):$(bc)
+VPATH = $(opsrc):$(deriv):$(coeff):$(fortranDeriv):$(fortranCoeff):$(bc):$(Oges)
 
 bpp = ../../bpp/bpp
 
@@ -386,7 +386,7 @@ tcm4 = tcm4.o GenericGridCollectionOperators.o SparseRep.o BoundaryOperators.o \
        floatMappedGridFunction.o ../oges/oges.o
 tcm4 = tcm4.o CompositeGridOperators.o GenericCompositeGridOperators.o \
               GridCollectionOperators.o GenericGridCollectionOperators.o
-tcm4 = tcm4.o  $(PETSC) formMatrix.o
+tcm4 = tcm4.o  $(PETSC) formMatrix.o ogesFiles.o
 tcm4: $(tcm4)
 	$(CC) $(CCFLAGS) -o tcm4 $(tcm4) \
         $(PETSC_LIBS) $(CLIBS) $(FLIBS) $(GLIBS)
@@ -409,6 +409,12 @@ tcmge: $(tcmge)
 	$(CC) $(CCFLAGS) -o tcmge $(tcmge) \
         $(PETSC_LIBS) $(CLIBS) $(FLIBS) $(GLIBS)
 
+
+# Test coefficent matrices with user defined constraints 
+tcmConstraint = tcmConstraint.o Checker.o $(PETSC) Oges.o generateMatrix.o formMatrix.o OgesExtraEquations.o ogesFiles.o
+tcmConstraint: $(tcmConstraint) 
+	$(CC) $(CCFLAGS) -o tcmConstraint $(tcmConstraint) \
+         $(CLIBS) $(PETSC_LIBS) $(FLIBS) $(GLIBS)
 
 
 # linearized INS

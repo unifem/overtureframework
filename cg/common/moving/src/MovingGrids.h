@@ -67,6 +67,11 @@ virtual int getBoundaryAcceleration( MappedGrid & c, realSerialArray & gtt, int 
 
 bool getCorrectionHasConverged();
 
+// Return the integrated fluid force and torque on a rigid body
+int getForceOnRigidBodies( RealArray & force, RealArray & torque, GridFunction & gf0,
+			   bool includeGravity = true, 
+			   bool includeViscosity = true );
+
 virtual int getGridVelocity( GridFunction & gf0, const real & tGV );
 
 Integrate* getIntegrate() const;
@@ -90,6 +95,8 @@ int getNumberOfRigidBodies() const;
 int getPastTimeGrid( GridFunction & cgf );
 
 RigidBodyMotion & getRigidBody(const int bodyNumber);
+
+int getRigidBodyAddedDampingTensors( const int bodyNumber, RealArray & addedDampingTensors, CompositeGrid & cg );
 
 real getTimeStepForMovingBodies() const;
 

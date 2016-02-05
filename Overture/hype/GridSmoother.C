@@ -18,7 +18,7 @@ static bool useNewBoundaryConditions=true;
 
 extern "C"
 {
-  void ellipticSmooth(const int&md, const int&nd, 
+void ellipticSmooth(const int&md, const int&nd, const int &indexRange,
      const int&nd1a,const int&nd1b,const int&nd2a,const int&nd2b,const int&nd3a,const int&nd3b,
      const int&n1a,const int&n1b,const int&n1c,const int&n2a,const int&n2b,const int&n2c,
      const int&n3a,const int&n3b,const int&n3c, const real&omega, real &u, const real&source, 
@@ -88,6 +88,20 @@ GridSmoother(int domainDimension_, int rangeDimension_ )
 
   controlFunctionComputed=false;
   
+  // initialGridHasBeenSaved = true if the initial grid has been saved (used for resets)
+  dbase.put<bool>("initialGridHasBeenSaved")=false;
+
+  // resetGrid: is set to true if the grid should be reset
+  dbase.put<bool>("resetGrid")=false;
+
+  // We are testing out different options for computing ghost points
+  //  0 = old method -- pre November 2015
+  //  1 = new method
+  dbase.put<int>("ghostPointOption")=0;
+
+  // We smooth (at most) this many ghost points:
+  dbase.put<int>("numberOfGhostPointsToSmooth")=1;
+
 }
 
 GridSmoother::
@@ -95,19 +109,23 @@ GridSmoother::
 {
 }
 
+// ===================================================================================================
+/// \brief call this function when the initial grid has been recomputed and thus the
+///        control function will change
+// ===================================================================================================
 void GridSmoother::
 reset()
-// call this function when the initial grid has been recomputed and thus control function will change
 {
   controlFunctionComputed=false;
+  dbase.get<bool>("initialGridHasBeenSaved")=false; // initial grid is no-longer valid
 }
 
 
+// =======================================================================================
+/// \brief: Set weights for equidistribution.
+// =======================================================================================
 void GridSmoother::
 setWeights( real arclength, real curvature, real area )
-// =======================================================================================
-// /Description: Set weights for equidistribution.
-// =======================================================================================
 {
   arclengthWeight=arclength;
   curvatureWeight=curvature;
@@ -208,6 +226,7 @@ buildDialog(DialogData & dialog)
   }
 
   aString pbLabels[] = {"smooth grid",
+                        "reset grid",
                         "clear `do not project' regions",
                         "help grid smoother",
 			""};
@@ -254,6 +273,13 @@ buildDialog(DialogData & dialog)
 
   textLabels[nt] = "number of equidistribution iterations";
   sPrintF(textStrings[nt], "%i", numberOfEquidistributionIterations); nt++; 
+
+
+  textLabels[nt] = "number of ghost to smooth";
+  sPrintF(textStrings[nt], "%i", dbase.get<int>("numberOfGhostPointsToSmooth")); nt++; 
+
+  textLabels[nt] = "ghost point option";
+  sPrintF(textStrings[nt], "%i", dbase.get<int>("ghostPointOption")); nt++; 
 
   if( regionsNotToProject.getLength(0)==0 )
   {
@@ -407,6 +433,14 @@ updateOptions(aString & answer_, DialogData & dialog, MappingInformation & mapIn
                     "           during sub-smooths (since this is expensive) but other BC's are applied.\n"
                     " ---------------------------------------------------------------------------\n");
   }
+
+  else if( dialog.getTextValue(answer,"number of ghost to smooth","%i",dbase.get<int>("numberOfGhostPointsToSmooth")) )
+  {
+     // we need to recompute the control function since it's dimensions have changed
+    controlFunctionComputed=false; 
+  }
+  else if( dialog.getTextValue(answer,"ghost point option","%i",dbase.get<int>("ghostPointOption")) ){} //
+
   else if( (len=answer.matches("number of iterations")) )
   {
     sScanF(answer(len,answer.length()-1),"%i",&numberOfIterations);
@@ -562,6 +596,8 @@ updateOptions(aString & answer_, DialogData & dialog, MappingInformation & mapIn
   {
     sScanF(answer(len,answer.length()-1),"%i",&useInitialGridAsControlGrid);
     dialog.setToggleState("use initial grid as control grid",useInitialGridAsControlGrid);
+    
+    controlFunctionComputed=false;  // we need to recompute the control function 
   }
 
   else if( answer.matches("BC:") )
@@ -671,10 +707,17 @@ updateOptions(aString & answer_, DialogData & dialog, MappingInformation & mapIn
     }
     
   }
+  else if( answer=="reset grid" )
+  {
+    // grid will be reset on next call to smooth:
+    dbase.get<bool>("resetGrid")=true;
+  }
   else if( answer=="smooth grid" || answer=="smooth new grid" )
   {
-//  smoothGrid();
-//  plotObject=true; 
+    // handled by calling routine
+
+    //  smoothGrid();
+    //  plotObject=true; 
   }
   else
   {
@@ -770,16 +813,21 @@ applyBoundaryConditions(Mapping & map, DataPointMapping & dpm,
 
   // *wdh* 100210 try this:
   useNewBoundaryConditions=useNewBoundaryConditions && domainDimension==2 && rangeDimension==2;
-  
 
-  int side,axis;
+  // We are testing out different options for computing ghost points
+  //  0 = old method -- pre November 2015
+  //  1 = new method
+  const int & ghostPointOption = dbase.get<int>("ghostPointOption");
+
+
   if( smoothGridGhostPoints && 
+      ghostPointOption==0 && 
       !useNewBoundaryConditions )  // no need to do this will new method -- ghost points computed already
   {
     real omegab=1.;
-    for( side=0; side<=1; side++ )
+    for( int side=0; side<=1; side++ )
     {
-      for( axis=0; axis<domainDimension; axis++ )
+      for( int axis=0; axis<domainDimension; axis++ )
       {
 	if( bc(side,axis)!=(int)periodic && smoothingOffset[side][axis]==0 )
 	{
@@ -802,9 +850,9 @@ applyBoundaryConditions(Mapping & map, DataPointMapping & dpm,
   periodicUpdate(x,indexRange);
 
   // When should we project ??  what about ghost points, redo?
-  for( side=0; side<=1; side++ )
+  for( int side=0; side<=1; side++ )
   {
-    for( axis=0; axis<domainDimension; axis++ )
+    for( int axis=0; axis<domainDimension; axis++ )
     {
       // printf(" GridSmoother:applyBoundaryConditions: side,axis,bc,smoothingOffset: %i %i %i %i "
       //        "boundaryMapping=%i\n",side,axis,bc(side,axis),smoothingOffset[side][axis],
@@ -1092,12 +1140,37 @@ smooth(Mapping & map,
   assert( domainDimension == dpm.getDomainDimension() );
   assert( rangeDimension == dpm.getRangeDimension() );
 
+  // Here is the array of grid points
+  const realArray & xy = dpm.getDataPoints();  // grid points plus ghost points
+
+  // Save a copy of the initial so we can reset the grid
+  // (since this routine over-writes the DPM)
+  bool & initialGridHasBeenSaved= dbase.get<bool>("initialGridHasBeenSaved");
+  if( !initialGridHasBeenSaved )
+  {
+    // --- make a copy of the initial grid for resets ---
+
+    printF("--GSM-- save initial grid for resets.\n");
+
+    if( !dbase.has_key("xyInitial") )
+      dbase.put<realArray>("xyInitial");
+      
+    realArray & xyInitial = dbase.get<realArray>("xyInitial");
+    xyInitial.redim(xy);
+    xyInitial=xy;
+
+    initialGridHasBeenSaved=true;
+  }
+
+
   IntegerArray indexRange(2,3);
   indexRange=0;
-  int axis;
-  for( axis=0; axis<domainDimension; axis++ )
+  // maxGhost = maximum number of ghost points that we can smooth
+  int maxGhost=INT_MAX;
+  for( int axis=0; axis<domainDimension; axis++ )
   {
     indexRange(End,axis)=dpm.getGridDimensions(axis)-1;
+    maxGhost=min(maxGhost, indexRange(0,axis)-xy.getBase(axis),xy.getBound(axis)-indexRange(1,axis));
     if( dpm.getIsPeriodic(axis) )
     {
       bc(0,axis)=bc(1,axis)=(int)periodic;    // *****
@@ -1105,14 +1178,12 @@ smooth(Mapping & map,
     }
   }
   
-  // Here is the array of grid points
-  const realArray & xy = dpm.getDataPoints();  // grid points plus ghost points
 
   // *********** gids: smooth this sub-set of points ***************
   IntegerArray gids; 
   gids=indexRange;
   // adjust for the boundary offset
-  for( axis=0; axis<domainDimension; axis++ )
+  for( int axis=0; axis<domainDimension; axis++ )
   {
       
     gids(Start,axis)=max(xy.getBase(axis),min(xy.getBound(axis),indexRange(Start,axis)+smoothingOffset[Start][axis]));
@@ -1130,19 +1201,28 @@ smooth(Mapping & map,
   // gids(0,1)=max(1,gids(0,1));  
 
 
+  Range Rx=rangeDimension;
+
   // I1,I2,I3 : These are the points we smooth
   Index Iv[3], &I1=Iv[0], &I2=Iv[1], &I3=Iv[2];
   ::getIndex(gids,I1,I2,I3); 
 
   // J1,J2,J3 : include ghost points
   Index Jv[3], &J1=Jv[0], &J2=Jv[1], &J3=Jv[2];
-  int extra=1;
-  ::getIndex(indexRange,J1,J2,J3,extra);  
+
+  // smooth (at most) this many ghost points: 
+  const int & numberOfGhostPointsToSmooth = dbase.get<int>("numberOfGhostPointsToSmooth");
+  
+  // Actual number of ghost to smooth
+  int numGhostToSmooth = min( maxGhost,numberOfGhostPointsToSmooth);
+  
+  // (J1,J2,J3) : includes ghost to smooth
+  ::getIndex(indexRange,J1,J2,J3,numGhostToSmooth);  
 
   // K1,K2,K3 : set of points to project (include appropriate ghost points)
   Index Kv[3], &K1=Kv[0], &K2=Kv[1], &K3=Kv[2];
   K1=0; K2=0; K3=0;
-  for( axis=0; axis<domainDimension; axis++ )
+  for( int axis=0; axis<domainDimension; axis++ )
   {
     int ka=projectGhost[0][axis] ? (bc(0,axis)==pointsFixed ? 2 : 1) : 0;
     int kb=projectGhost[1][axis] ? (bc(1,axis)==pointsFixed ? 2 : 1) : 0;
@@ -1150,19 +1230,42 @@ smooth(Mapping & map,
     Kv[axis]=Range(gids(0,axis)-ka,gids(1,axis)+kb);
   }
   
-  printf("*** GridSmoother: gids= [%i,%i][%i,%i][%i,%i] indexRange=[%i,%i][%i,%i][%i,%i] x=[%i,%i][%i,%i]\n"
-         "                  smooth:I=[%i,%i][%i,%i] J=[%i,%i][%i,%i] project:K=[%i,%i][%i,%i]\n "
-         "                  projectGhost=[%i,%i][%i,%i]  bc=[%i,%i][%i,%i][%i,%i]\n",
-	 gids(0,0),gids(1,0),gids(0,1),gids(1,1),gids(0,2),gids(1,2),
+  bool & resetGrid = dbase.get<bool>("resetGrid");
+  if( resetGrid )
+  {
+    printF("--GSM-- reset the grid.\n");
+
+    assert( initialGridHasBeenSaved );
+
+    assert( dbase.has_key("xyInitial") );
+    realArray & xyInitial = dbase.get<realArray>("xyInitial");
+    dpm.setDataPoints(xyInitial(J1,J2,J3,Rx),3,domainDimension,0,indexRange); 
+    
+    resetGrid=false;
+    return 0;
+  }
+
+
+  printF("             ************ GridSmoother ******\n"
+         "  indexRange=[%i,%i][%i,%i][%i,%i] dim=[%i,%i][%i,%i][%i,%i] ghost=[%i,%i][%i,%i][%i,%i] (DataPointMapping bounds)\n"
+         "  I=[%i,%i][%i,%i][%i,%i], gids= [%i,%i][%i,%i][%i,%i] : points to smooth\n"
+         "  J=[%i,%i][%i,%i][%i,%i] : points to smooth including numGhostToSmooth=%i,\n"
+         "  K=[%i,%i][%i,%i][%i,%i] : points to project,\n"
+         "  projectGhost=[%i,%i][%i,%i][%i,%i],  bc=[%i,%i][%i,%i][%i,%i]\n",
 	 indexRange(0,0),indexRange(1,0),indexRange(0,1),indexRange(1,1),indexRange(0,2),indexRange(1,2),
-	 xy.getBase(0),xy.getBound(0),xy.getBase(1),xy.getBound(1),
-         I1.getBase(),I1.getBound(),I2.getBase(),I2.getBound(),
-         J1.getBase(),J1.getBound(),J2.getBase(),J2.getBound(),
-         K1.getBase(),K1.getBound(),K2.getBase(),K2.getBound(),
-         projectGhost[0][0],projectGhost[1][0],projectGhost[0][1],projectGhost[1][1],
+	 xy.getBase(0),xy.getBound(0),xy.getBase(1),xy.getBound(1),xy.getBase(2),xy.getBound(2),
+         indexRange(0,0)-xy.getBase(0),xy.getBound(0)-indexRange(1,0),
+         indexRange(0,1)-xy.getBase(1),xy.getBound(1)-indexRange(1,1),
+         indexRange(0,2)-xy.getBase(2),xy.getBound(2)-indexRange(1,2),
+         I1.getBase(),I1.getBound(),I2.getBase(),I2.getBound(),I3.getBase(),I3.getBound(),
+	 gids(0,0),gids(1,0),gids(0,1),gids(1,1),gids(0,2),gids(1,2),
+         J1.getBase(),J1.getBound(),J2.getBase(),J2.getBound(),J3.getBase(),J3.getBound(),numGhostToSmooth,
+         K1.getBase(),K1.getBound(),K2.getBase(),K2.getBound(),K3.getBase(),K3.getBound(),
+         projectGhost[0][0],projectGhost[1][0],
+         projectGhost[0][1],projectGhost[1][1],
+         projectGhost[0][2],projectGhost[1][2],
          bc(0,0),bc(1,0),bc(0,1),bc(1,1),bc(0,2),bc(1,2));
 
-  Range Rx=rangeDimension;
 
   realArray x(J1,J2,J3,rangeDimension);
   realArray rI(I1,I2,I3,domainDimension),xI(I1,I2,I3,rangeDimension);
@@ -1177,14 +1280,19 @@ smooth(Mapping & map,
 
   
   real dr[3]; 
-  for( axis=0; axis<3; axis++ )
+  for( int axis=0; axis<3; axis++ )
     dr[axis]=1./max(1,indexRange(1,axis)-indexRange(0,axis));
 
   const real eps = REAL_MIN*1000.;  // used to avoid dividing by a zero "diagonal coeff" in the elliptic equations.
   real alpha=1.;  // smoothing coefficient in BC for tangential component, alpha=0 --> orthogonal BC
 
+  // We are testing out different options for computing ghost points
+  //  0 = old method -- pre November 2015
+  //  1 = new method
+  const int & ghostPointOption = dbase.get<int>("ghostPointOption");
+  
   int option=0;
-  int iparam[] = {option,bc(0,0),bc(1,0),bc(0,1),bc(1,1),bc(0,2),bc(1,2)};  //
+  int iparam[] = {option,bc(0,0),bc(1,0),bc(0,1),bc(1,1),bc(0,2),bc(1,2), numGhostToSmooth, ghostPointOption};  //
   real rparam[] = { dr[0],dr[1],dr[2],eps,alpha }; //
 
   if( !useNewBoundaryConditions )
@@ -1202,7 +1310,9 @@ smooth(Mapping & map,
     source.redim(J1,J2,J3,domainDimension); 
     source=0.;
 
-    const realArray & xy = dpm.getDataPoints();  // includes ghost points
+    // const realArray & xy = dpm.getDataPoints();  // includes ghost points
+    // Here is the initial grid: 
+    const realArray & xy = dbase.get<realArray>("xyInitial");
     x(J1,J2,J3,Rx)=xy(J1,J2,J3,Rx);
 
     if( domainDimension==2 && rangeDimension==3 )
@@ -1216,10 +1326,11 @@ smooth(Mapping & map,
     if( useInitialGridAsControlGrid )
     {
       // **** determine the source so that the current grid would be the solution ****
+      //       compute control functions to match current solution
 
-      option=1;
+      option=1; // option=1 : compute control functions to match current solution
       iparam[0]=option;
-      ellipticSmooth( domainDimension, rangeDimension, 
+      ellipticSmooth( domainDimension, rangeDimension, *indexRange.getDataPointer(),
                       x.getBase(0),x.getBound(0),x.getBase(1),x.getBound(1),x.getBase(2),x.getBound(2),
 		      I1.getBase(),I1.getBound(),1,I2.getBase(),I2.getBound(),1,I3.getBase(),I3.getBound(),1,
 		      *omegav.getDataPointer(), *x.getDataPointer(), *source.getDataPointer(), 
@@ -1275,12 +1386,12 @@ smooth(Mapping & map,
     }
     else if( false )
     {
-    // Compute the control functions lines and points of attraction -- these are fixed
-    fixedControlFunctions( domainDimension, rangeDimension, 
-			   x.getBase(0),x.getBound(0),x.getBase(1),x.getBound(1),x.getBase(2),x.getBound(2),
-			   J1.getBase(),J1.getBound(),1,J2.getBase(),J2.getBound(),1,J3.getBase(),J3.getBound(),1,
-			   *source.getDataPointer(),dr[0],ipar.getLength(0),rpar.getLength(0),
-                           ipar.getLength(1),ipar(0,0),rpar(0,0) );
+      // Compute the control functions lines and points of attraction -- these are fixed
+      fixedControlFunctions( domainDimension, rangeDimension, 
+			     x.getBase(0),x.getBound(0),x.getBase(1),x.getBound(1),x.getBase(2),x.getBound(2),
+			     J1.getBase(),J1.getBound(),1,J2.getBase(),J2.getBound(),1,J3.getBase(),J3.getBound(),1,
+			     *source.getDataPointer(),dr[0],ipar.getLength(0),rpar.getLength(0),
+			     ipar.getLength(1),ipar(0,0),rpar(0,0) );
     }
     
   }
@@ -1297,7 +1408,7 @@ smooth(Mapping & map,
     // *********** We equidistribute one axis at a time *********
     for( int ite=0; ite<numberOfEquidistributionIterations; ite++ )
     {
-      for( axis=axis1; axis<domainDimension; axis++ )
+      for( int axis=axis1; axis<domainDimension; axis++ )
       {
 	// redistribute points in the direction axis:
 	// We smooth the points defined by indexRange (1 ghost line needed)
@@ -1338,6 +1449,13 @@ smooth(Mapping & map,
       // ::display(normal,"normal","%8.2e ");
     }
       
+    if( numberOfEllipticSmooths>0 )
+    {
+      assert( x.dimension(0)==source.dimension(0) && 
+              x.dimension(1)==source.dimension(1) &&
+              x.dimension(2)==source.dimension(2) );
+    }
+    
     // ************************************************************
     // ************** Elliptic Grid Generation ********************
     // ************************************************************
@@ -1349,7 +1467,7 @@ smooth(Mapping & map,
 
       option=0;
       iparam[0]=option;
-      ellipticSmooth( domainDimension, rangeDimension, 
+      ellipticSmooth( domainDimension, rangeDimension, *indexRange.getDataPointer(),
                       x.getBase(0),x.getBound(0),x.getBase(1),x.getBound(1),x.getBase(2),x.getBound(2),
 		      I1.getBase(),I1.getBound(),1,I2.getBase(),I2.getBound(),1,I3.getBase(),I3.getBound(),1,
 		      *omegav.getDataPointer(), *x.getDataPointer(), *source.getDataPointer(),

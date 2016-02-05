@@ -1,0 +1,61 @@
+********** Oct 23 2015 -- revisit drop-stick with TP-SI algorithm
+
+OK: 
+cgins dropStick -g=oneDrop1.hdf -tf=20. -tp=.01 -bodyDensity=.9 -nc=100 -relaxRigidBody=1 -inertia=.5 -alpha=.3 -vIn=.1 -go=halt
+
+OK: 
+cgins dropStick -g=oneDrop1.hdf -tf=20. -tp=.01 -bodyDensity=2. -nc=100 -relaxRigidBody=1 -inertia=.5 -alpha=.3 -vIn=.1 -go=halt
+
+TROUBLE: inertia=.00216667
+cgins dropStick -g=oneDrop1.hdf -tf=20. -tp=.01 -bodyDensity=2. -nc=10 -relaxRigidBody=1 -inertia=.00216667 -alpha=.3 -vIn=.1 -go=halt
+
+OK:
+cgins dropStick -g=dropSticki1.order2 -tf=20. -tp=.01 -bodyDensity=2. -nc=10 -relaxRigidBody=1 -inertia=.00216667 -alpha=.3 -vIn=.1 -go=halt
+
+
+
+
+
+--- 100916: movie:
+
+nohup $ins/bin/cgins -noplot -abortOnEnd dropStick -g=dropStick2c -tf=50. -tp=.05 -bodyDensity=2. -nc=10 -relaxRigidBody=1 -inertia=.00216667 -alpha=.3 -vIn=.28 -show="dropStick2c.show" -nu=.001 -go=go >! dropStick2c.out &
+
+
+-- trouble when grid fails -> program continues to read input and out stuff to *.out -> use -abortOnEnd
+
+cgins -noplot -abortOnEnd oneDrop -g=oneDrop1.hdf -tf=20. -tp=.5  -bodyDensity=2. -detectCollisions=0 -go=go >! oneDrop.out &
+
+
+--- 100916 :
+
+nohup $ins/bin/cgins -noplot dropStick -g=dropStick2b -tf=50. -tp=.25 -bodyDensity=2. -nc=10 -relaxRigidBody=1 -inertia=.00216667 -alpha=.3 -vIn=.28 -show="dropStick2b.show" -nu=.001 -go=go >! dropStick2b.out &
+
+-- flutters and turns over:
+nohup $ins/bin/cgins -noplot dropStick -g=dropStick2a -tf=50. -tp=.25 -bodyDensity=2. -nc=10 -relaxRigidBody=1 -inertia=.00216667 -alpha=.3 -vIn=.23 -show="dropStick2a.show" -nu=.001 -go=go >! dropStick2a.out & 
+
+
+-- Higher Re: 
+nohup $ins/bin/cgins -noplot dropStick -g=dropStick2a -tf=50. -tp=.25 -bodyDensity=2. -nc=10 -relaxRigidBody=1 -inertia=.00216667 -alpha=.3 -vIn=.17 -show="dropStick2a.show" -nu=.005 -go=go >! dropStick2a.out & 
+
+
+--- 100915
+
+--- bigger :
+
+cgins -noplot dropStick -g=dropStickBigDomain2 -tf=50. -tp=.5 -bodyDensity=2. -nc=10 -relaxRigidBody=1 -inertia=.00216667 -alpha=.3 -vIn=.15 -show="dropStickBigb.show" -nu=.0125 -go=go >! dropStickBigb.out & 
+
+cgins -noplot dropStick -g=dropStickBigDomain1 -tf=50. -tp=.5 -bodyDensity=2. -nc=10 -relaxRigidBody=1 -inertia=.00216667 -alpha=.3 -vIn=.125 -show="dropStickBig.show" -go=go >! dropStickBig.out & 
+
+
+-- dropstick stick with upward flow
+
+-- initial stick nearly vertical: 
+cgins -noplot dropStick -g=dropSticki1.order2 -tf=50. -tp=.5 -bodyDensity=2. -nc=10 -relaxRigidBody=1 -inertia=.00216667 -alpha=.3 -vIn=.125 -show="dropStickb.show" -go=go >! dropStick1b.out & 
+
+-- lighter stick
+cgins -noplot dropStick -g=dropSticki1.order2 -tf=50. -tp=.5 -bodyDensity=1.5 -nc=10 -relaxRigidBody=1 -inertia=.001625 -alpha=.2 -vIn=.1 -show="dropSticka.show" -go=go >! dropStick1a.out & 
+
+
+cgins -noplot dropStick -g=dropSticki1.order2 -tf=50. -tp=.5 -bodyDensity=2. -nc=10 -relaxRigidBody=1 -inertia=.00216667 -alpha=.3 -vIn=.125 -show="dropStick.show" -go=go >! dropStick1.out & 
+
+cgins -noplot dropStick -g=dropSticki1.order2 -tf=20. -tp=.1 -bodyDensity=2. -nc=10 -relaxRigidBody=1 -inertia=.00216667 -alpha=.3 -vIn=.1 -show="dropStick.show" -go=go >! dropStick1.out & 

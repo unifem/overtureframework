@@ -75,7 +75,7 @@ GetOptions( "g=s"=>\$grid,"maxit=i"=>\$maxit,"debug=i"=>\$debug,"sm=s"=>\$sm,"bs
             "bc1=s"=>\$bc1,"bc2=s"=>\$bc2,"bc3=s"=>\$bc3,"bc4=s"=>\$bc4,"bc5=s"=>\$bc5,"bc6=s"=>\$bc6,\
             "bc7=s"=>\$bc7,"bc8=s"=>\$bc8,"rb=s"=>\$rb,"cgsi=i"=>\$cgsi,"projectSingular=i"=>\$projectSingular,\
             "adjustSingularEquations=i"=>\$adjustSingularEquations,"ilucg=i"=>\$ilucg,"iluFill=f"=>\$iluFill,\
-            "save=s"=>\$save, "read=s"=>\$read,"opavCoarseGrid=i"=>\$opavCoarseGrid );
+            "save=s"=>\$save, "read=s"=>\$read,"opavCoarseGrid=i"=>\$opavCoarseGrid,"nuDt=f"=>\$nuDt );
 # -------------------------------------------------------------------------------------------------
 $grid
 if( $eqn eq "lap" && $predefined eq 1 ){ $eqn = "laplace (predefined)"; }
@@ -174,6 +174,8 @@ $option
 $eqn
 if( $adjustSingularEquations eq 1 ){ $cmd="adjust singular equations"; }else{ $cmd="#"; }
 $cmd
+# set coefficient in the heat equation operator : I - nuDt*Delta
+nuDt $nuDt
 #
 # turn off twilight zone
 # turn on trigonometric

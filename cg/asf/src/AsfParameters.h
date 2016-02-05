@@ -48,7 +48,8 @@ getDerivedFunction( const aString & name, const realMappedGridFunction & u,
 
 // compute the normal force on a boundary (for moving grid problems)
 virtual 
-int getNormalForce( realCompositeGridFunction & u, realSerialArray & normalForce, int *ipar, real *rpar );
+int getNormalForce( realCompositeGridFunction & u, realSerialArray & normalForce, int *ipar, real *rpar,
+                    bool includeViscosity = true );
 
 // virtual int 
 // primitiveToConservative(GridFunction & gf, int gridToConvert=-1, int fixupUnsedPoints=false);

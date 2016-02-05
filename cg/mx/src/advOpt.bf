@@ -1524,7 +1524,9 @@ c     + 33190 fv[6] - 4125 fv[7] - 300227 fv[3] - 117051 fv[5])
      nd1b,nd2a,nd2b,nd3a,nd3b,nd4a,nd4b,mask,rsxy,  um,u,un,f, v,\
      vvt2,ut3,vvt4,ut5,ut6,ut7, bc, dis, varDis, ipar, rpar, ierr )
  else
-   stop 1116
+   if( (adc.gt.0. .and. combineDissipationWithAdvance.eq.0) .or. add.gt.0. )then
+     stop 1116
+   end if
  end if
 
 
@@ -2112,6 +2114,7 @@ c$$$                v(i1,i2,i3,hz)=uLaplacian23(i1,i2,i3,hz),,,,,,)
      end if
 
    #Else
+     write(*,'("MX: advOpt: curv-grid order=ORDER not implemeted")')
      stop 11155
    #End
 
@@ -2266,6 +2269,7 @@ c$$$                v(i1,i2,i3,hz)=uLaplacian23(i1,i2,i3,hz),,,,,,)
      if( timeSteppingMethod.eq.modifiedEquationTimeStepping )then
 
        if( orderInTime.ne.2 )then
+          write(*,'("MX: advOpt:ERROR curv-grid conservative orderInTime.ne.2")')
           stop 77155
        end if
 
@@ -2397,6 +2401,8 @@ c
 c  dis(i1,i2,i3) : temp space to hold artificial dissipation
 c  varDis(i1,i2,i3) : coefficient of the variable artificial dissipation
 c======================================================================
+  write(*,'("ERROR: null version of NAME called")')
+  stop 9922
   return
   end
 #endMacro  

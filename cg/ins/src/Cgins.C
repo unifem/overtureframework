@@ -458,7 +458,8 @@ writeParameterSummary( FILE * file )
   if( parameters.isMovingGridProblem() )
   {
     const bool & useAddedMassAlgorithm = parameters.dbase.get<bool>("useAddedMassAlgorithm");
-    if( useAddedMassAlgorithm )
+    const bool & useAddedDampingAlgorithm = parameters.dbase.get<bool>("useAddedDampingAlgorithm");
+    if( useAddedMassAlgorithm || useAddedDampingAlgorithm )
     {
       const bool & useApproximateAMPcondition = parameters.dbase.get<bool>("useApproximateAMPcondition");
       const bool & projectAddedMassVelocity = parameters.dbase.get<bool>("projectAddedMassVelocity");
@@ -469,17 +470,25 @@ writeParameterSummary( FILE * file )
       const bool & smoothInterfaceVelocity = parameters.dbase.get<bool>("smoothInterfaceVelocity");
       const int & numberOfInterfaceVelocitySmooths = parameters.dbase.get<int>("numberOfInterfaceVelocitySmooths");
       const real & fluidAddedMassLengthScale =  parameters.dbase.get<real>("fluidAddedMassLengthScale");  
+      const real & addedDampingCoefficient = parameters.dbase.get<real>("addedDampingCoefficient");
+      
 
+      fPrintF(file,"\n");
       fPrintF(file," useAddedMassAlgorithm=%i, useApproximateAMPcondition=%i,\n"
 	      " projectAddedMassVelocity=%i, projectNormalComponentOfAddedMassVelocity=%i,\n"
 	      " projectVelocityOnBeamEnds=%i, projectBeamVelocity=%i, predicted pressure needed=%i,\n" 
-	      " smoothInterfaceVelocity=%i, numberOfInterfaceVelocitySmooths=%i, fluidAddedMassLengthScale=%9.3e.\n",
-	      (int)useAddedMassAlgorithm,(int)useApproximateAMPcondition,(int)projectAddedMassVelocity,
+	      " smoothInterfaceVelocity=%i, numberOfInterfaceVelocitySmooths=%i, fluidAddedMassLengthScale=%9.3e,\n"
+              " useAddedDampingAlgorithm=%i, addedDampingCoefficient=%8.2e.\n",
+	      (int)useAddedMassAlgorithm,
+              (int)useApproximateAMPcondition,
+              (int)projectAddedMassVelocity,
 	      (int)projectNormalComponentOfAddedMassVelocity,(int)projectVelocityOnBeamEnds,(int)projectBeamVelocity,
 	      (int)parameters.dbase.get<bool>("predictedPressureNeeded"),
 	      (int)smoothInterfaceVelocity, numberOfInterfaceVelocitySmooths,
-	      fluidAddedMassLengthScale
+	      fluidAddedMassLengthScale,
+              (int)useAddedDampingAlgorithm,addedDampingCoefficient
 	);
+      fPrintF(file,"\n");
     }
     else
     {

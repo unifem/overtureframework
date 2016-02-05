@@ -2514,21 +2514,19 @@ getDerivedFunction( const aString & name, const realMappedGridFunction & uIn,
 
 }
 
-//\begin{>>InsParametersInclude.tex}{\subsubsection{getNormalForce}}
+// ===================================================================================================================
+/// \brief Return the normal force on a boundary.
+/// \details This routine is called, for example, by MovingGrids::rigidBodyMotion to determine 
+///       the motion of a rigid body.
+/// \param u (input): solution to compute the force from.
+/// \param normalForce (output) : fill in the components of the normal force. 
+/// \param ipar (input) : integer parameters. The boundary is defined by grid=ipar[0], side=ipar[1], axis=ipar[2] 
+/// \param rpar (input) : real parameters. The current time is t=rpar[0]
+/// \param includeViscosity (input) : if true include viscous stress terms in the force.
+// ===================================================================================================================
 int InsParameters::
-getNormalForce( realCompositeGridFunction & u, realSerialArray & normalForce, int *ipar, real *rpar )
-//==================================================================================
-// /Description:
-//     Return the normal force (traction) on a boundary. This routine is called, for example,
-//  by MovingGrids::rigidBodyMotion to determine the motion of a rigid body.
-//
-// /u (input): solution to compute the force from.
-// /normalForce (output) : fill in the components of the normal force. 
-// /ipar (input) : integer parameters. The boundary is defined by 
-//           grid=ipar[0], side=ipar[1], axis=ipar[2]
-// /rpar (input) : real parameters. The current time is t=rpar[0]
-//\end{InsParametersInclude.tex} 
-//=================================================================================
+getNormalForce( realCompositeGridFunction & u, realSerialArray & normalForce, int *ipar, real *rpar,
+		bool includeViscosity /* = true */ )
 {
   int grid=ipar[0], side=ipar[1], axis=ipar[2];
   real time =rpar[0];
@@ -2572,52 +2570,65 @@ getNormalForce( realCompositeGridFunction & u, realSerialArray & normalForce, in
   CompositeGridOperators & cgop = *u.getOperators();
   MappedGridOperators & op = cgop[grid];
 	  
-  realSerialArray ux(Ib1,Ib2,Ib3,V), uy(Ib1,Ib2,Ib3,V), uz;
-  op.derivative(MappedGridOperators::xDerivative,uLocal,ux,Ib1,Ib2,Ib3,V);
-  op.derivative(MappedGridOperators::yDerivative,uLocal,uy,Ib1,Ib2,Ib3,V);
-  if( mg.numberOfDimensions()>=3 )
-  {
-    uz.redim(Ib1,Ib2,Ib3,V);
-    op.derivative(MappedGridOperators::zDerivative,uLocal,uz,Ib1,Ib2,Ib3,V);
-  }
-	  
   real fluidDensity = dbase.get<real>("fluidDensity")!=0. ? dbase.get<real>("fluidDensity") : 1.;
-
   // printF("InsParameters::getNormalForce: fluidDensity=%g --> %g \n",dbase.get<real>("fluidDensity"), fluidDensity);
 
   // ----------------------------------------------------------------------------------------------
   // -- NOTE: In the incompressible equations "p" is really p/rho so we need to multiply by rho ---
   // ----------------------------------------------------------------------------------------------
-
-  const real mu = nu*fluidDensity;  // *wdh* 2013/01/23 
-
-  if( cg.numberOfDimensions()==2 )
+  real mu = nu*fluidDensity;  // *wdh* 2013/01/23 
+  if( !includeViscosity )
   {
-    fn(Ib1,Ib2,Ib3,0)=( fluidDensity*uLocal(Ib1,Ib2,Ib3,pc)*normal(Ib1,Ib2,Ib3,0)
-			-(mu*((ux(Ib1,Ib2,Ib3,uc)+ux(Ib1,Ib2,Ib3,uc))*normal(Ib1,Ib2,Ib3,0)+
-			      (uy(Ib1,Ib2,Ib3,uc)+ux(Ib1,Ib2,Ib3,vc))*normal(Ib1,Ib2,Ib3,1)) ) );
-    fn(Ib1,Ib2,Ib3,1)=( fluidDensity*uLocal(Ib1,Ib2,Ib3,pc)*normal(Ib1,Ib2,Ib3,1)
-			-(mu*((ux(Ib1,Ib2,Ib3,vc)+uy(Ib1,Ib2,Ib3,uc))*normal(Ib1,Ib2,Ib3,0)+
-			      (uy(Ib1,Ib2,Ib3,vc)+uy(Ib1,Ib2,Ib3,vc))*normal(Ib1,Ib2,Ib3,1)) ) );
+    mu=0.;  // turn off the viscous terms
+  }
+
+  if( mu>0. )
+  {
+    // --- compute force including viscous stress terms ---
+
+    realSerialArray ux(Ib1,Ib2,Ib3,V), uy(Ib1,Ib2,Ib3,V), uz;
+    op.derivative(MappedGridOperators::xDerivative,uLocal,ux,Ib1,Ib2,Ib3,V);
+    op.derivative(MappedGridOperators::yDerivative,uLocal,uy,Ib1,Ib2,Ib3,V);
+    if( mg.numberOfDimensions()>=3 )
+    {
+      uz.redim(Ib1,Ib2,Ib3,V);
+      op.derivative(MappedGridOperators::zDerivative,uLocal,uz,Ib1,Ib2,Ib3,V);
+    }
+
+    if( cg.numberOfDimensions()==2 )
+    {
+      fn(Ib1,Ib2,Ib3,0)=( fluidDensity*uLocal(Ib1,Ib2,Ib3,pc)*normal(Ib1,Ib2,Ib3,0)
+			  -(mu*((ux(Ib1,Ib2,Ib3,uc)+ux(Ib1,Ib2,Ib3,uc))*normal(Ib1,Ib2,Ib3,0)+
+				(uy(Ib1,Ib2,Ib3,uc)+ux(Ib1,Ib2,Ib3,vc))*normal(Ib1,Ib2,Ib3,1)) ) );
+      fn(Ib1,Ib2,Ib3,1)=( fluidDensity*uLocal(Ib1,Ib2,Ib3,pc)*normal(Ib1,Ib2,Ib3,1)
+			  -(mu*((ux(Ib1,Ib2,Ib3,vc)+uy(Ib1,Ib2,Ib3,uc))*normal(Ib1,Ib2,Ib3,0)+
+				(uy(Ib1,Ib2,Ib3,vc)+uy(Ib1,Ib2,Ib3,vc))*normal(Ib1,Ib2,Ib3,1)) ) );
+    }
+    else
+    {
+      fn(Ib1,Ib2,Ib3,0)=( fluidDensity*uLocal(Ib1,Ib2,Ib3,pc)*normal(Ib1,Ib2,Ib3,0)
+			  -(mu*((ux(Ib1,Ib2,Ib3,uc)+ux(Ib1,Ib2,Ib3,uc))*normal(Ib1,Ib2,Ib3,0)+
+				(uy(Ib1,Ib2,Ib3,uc)+ux(Ib1,Ib2,Ib3,vc))*normal(Ib1,Ib2,Ib3,1)+ 
+				(uz(Ib1,Ib2,Ib3,uc)+ux(Ib1,Ib2,Ib3,wc))*normal(Ib1,Ib2,Ib3,2)) ) );
+
+      fn(Ib1,Ib2,Ib3,1)=( fluidDensity*uLocal(Ib1,Ib2,Ib3,pc)*normal(Ib1,Ib2,Ib3,1)
+			  -(mu*((ux(Ib1,Ib2,Ib3,vc)+uy(Ib1,Ib2,Ib3,uc))*normal(Ib1,Ib2,Ib3,0)+
+				(uy(Ib1,Ib2,Ib3,vc)+uy(Ib1,Ib2,Ib3,vc))*normal(Ib1,Ib2,Ib3,1)+ 
+				(uz(Ib1,Ib2,Ib3,vc)+uy(Ib1,Ib2,Ib3,wc))*normal(Ib1,Ib2,Ib3,2)) ) );
+
+      fn(Ib1,Ib2,Ib3,2)=( fluidDensity*uLocal(Ib1,Ib2,Ib3,pc)*normal(Ib1,Ib2,Ib3,2)
+			  -(mu*((ux(Ib1,Ib2,Ib3,wc)+uz(Ib1,Ib2,Ib3,uc))*normal(Ib1,Ib2,Ib3,0)+
+				(uy(Ib1,Ib2,Ib3,wc)+uz(Ib1,Ib2,Ib3,vc))*normal(Ib1,Ib2,Ib3,1)+ 
+				(uz(Ib1,Ib2,Ib3,wc)+uz(Ib1,Ib2,Ib3,wc))*normal(Ib1,Ib2,Ib3,2)) ) );
+    }
   }
   else
   {
-    fn(Ib1,Ib2,Ib3,0)=( fluidDensity*uLocal(Ib1,Ib2,Ib3,pc)*normal(Ib1,Ib2,Ib3,0)
-			-(mu*((ux(Ib1,Ib2,Ib3,uc)+ux(Ib1,Ib2,Ib3,uc))*normal(Ib1,Ib2,Ib3,0)+
-			      (uy(Ib1,Ib2,Ib3,uc)+ux(Ib1,Ib2,Ib3,vc))*normal(Ib1,Ib2,Ib3,1)+ 
-			      (uz(Ib1,Ib2,Ib3,uc)+ux(Ib1,Ib2,Ib3,wc))*normal(Ib1,Ib2,Ib3,2)) ) );
-
-    fn(Ib1,Ib2,Ib3,1)=( fluidDensity*uLocal(Ib1,Ib2,Ib3,pc)*normal(Ib1,Ib2,Ib3,1)
-			-(mu*((ux(Ib1,Ib2,Ib3,vc)+uy(Ib1,Ib2,Ib3,uc))*normal(Ib1,Ib2,Ib3,0)+
-			      (uy(Ib1,Ib2,Ib3,vc)+uy(Ib1,Ib2,Ib3,vc))*normal(Ib1,Ib2,Ib3,1)+ 
-			      (uz(Ib1,Ib2,Ib3,vc)+uy(Ib1,Ib2,Ib3,wc))*normal(Ib1,Ib2,Ib3,2)) ) );
-
-    fn(Ib1,Ib2,Ib3,2)=( fluidDensity*uLocal(Ib1,Ib2,Ib3,pc)*normal(Ib1,Ib2,Ib3,2)
-			-(mu*((ux(Ib1,Ib2,Ib3,wc)+uz(Ib1,Ib2,Ib3,uc))*normal(Ib1,Ib2,Ib3,0)+
-			      (uy(Ib1,Ib2,Ib3,wc)+uz(Ib1,Ib2,Ib3,vc))*normal(Ib1,Ib2,Ib3,1)+ 
-			      (uz(Ib1,Ib2,Ib3,wc)+uz(Ib1,Ib2,Ib3,wc))*normal(Ib1,Ib2,Ib3,2)) ) );
+    // --- compute pressure force ---
+    for( int d=0; d<cg.numberOfDimensions(); d++ )
+      fn(Ib1,Ib2,Ib3,d)=fluidDensity*uLocal(Ib1,Ib2,Ib3,pc)*normal(Ib1,Ib2,Ib3,d);
   }
-
+  
   return 0;
 }
 

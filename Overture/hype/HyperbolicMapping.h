@@ -459,6 +459,9 @@ plotDirectionArrows(GenericGraphicsInterface & gi, GraphicsParameters & params);
 int plotCellQuality(GenericGraphicsInterface & gi, 
 		    GraphicsParameters & parameters);
   
+int plotInvertedCells(GenericGraphicsInterface & gi, 
+		      GraphicsParameters & parameters);
+
 int printStatistics(FILE *file=stdout );
 
 // find boundary condition curves to match to

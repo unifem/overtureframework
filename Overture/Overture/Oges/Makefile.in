@@ -12,7 +12,7 @@ default:  depend_date Oges_date
 SourceCA= Oges.C determineErrors.C ogesFiles.C  buildEquationSolvers.C OgesParameters.C \
           EquationSolver.C YaleEquationSolver.C \
           SlapEquationSolver.C HarwellEquationSolver.C MultigridEquationSolver.C \
-          obsolete.C residual.C
+          obsolete.C residual.C OgesExtraEquations.C
 SourceC= $(SourceCA) 
 # *wdh* 2014/06/02 -- we always link to the MG solver now 
 # SourceC= $(SourceCA) nullOgmg.C OgmgParameters.C

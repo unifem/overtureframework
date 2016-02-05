@@ -555,6 +555,7 @@ buildPlotOptionsDialog(DialogData & plotOptionsDialog, GraphicsParameters & para
                           "plot boundary curves",
                           "plot grid points on start curve",
                           "plot ghost points",
+                          "plot bad cells",
 			  ""};
   int tbState[10];
   tbState[0] = plotReferenceSurface==true; 
@@ -565,6 +566,7 @@ buildPlotOptionsDialog(DialogData & plotOptionsDialog, GraphicsParameters & para
   tbState[5] = plotBoundaryCurves==true;
   tbState[6] = plotGridPointsOnStartCurve==true;
   tbState[7] = plotGhostPoints==true;
+  tbState[7] = dbase.get<bool>("plotBadCells");
   int numColumns=1;
   plotOptionsDialog.setToggleButtons(tbCommands, tbCommands, tbState, numColumns); 
 
@@ -627,6 +629,13 @@ updatePlotOptions(aString & answer, DialogData & plotOptionsDialog,
     sScanF( answer(len,answer.length()-1),"%i",&plotGhostPoints);
     plotOptionsDialog.setToggleState("plot ghost points",plotGhostPoints==true);
     plotObject=true;  // replot 
+  }
+  else if( plotOptionsDialog.getToggleValue( answer,"plot bad cells",
+  					     dbase.get<bool>("plotBadCells")) )
+  {
+    if( dbase.get<bool>("plotBadCells") )
+      printF(" plotBadCells: plot partially or totally inverted cells\n");
+     plotObject=true;  // replot 
   }
   else if( (len=answer.matches("plot triangulation")) )
   {
@@ -3419,7 +3428,7 @@ update( MappingInformation & mapInfo,
   
   // --- Build the sibling dialog for smooth dialog ---
   DialogData & smoothDialog = gui.getDialogSibling();
-  smoothDialog.setWindowTitle("Smoothing");
+  smoothDialog.setWindowTitle("Grid Smoother");
   smoothDialog.setExitCommand("close smoothing options", "close");
 
   GridSmoother gridSmoother(domainDimension,rangeDimension);
@@ -3768,8 +3777,14 @@ update( MappingInformation & mapInfo,
       printf("answer=%s was processed by the gridSmoother\n",(const char*)answer);
       
       if( answer.matches("GSM:smooth grid") ||
-          answer.matches("smooth grid") )
+          answer.matches("smooth grid") ||
+          answer.matches("GSM:reset grid") ||
+          answer.matches("reset grid") )
       {
+        // ------------------------------------------------------------
+        // --- call the GridSmoother to smooth (or reset) the grid ----
+        // ------------------------------------------------------------
+
 	assert( surface!=NULL );
 	assert( dpm!=NULL );
       
@@ -4505,7 +4520,8 @@ update( MappingInformation & mapInfo,
       }
       if( mapPointer!=NULL )
       {
-	mapPointer->interactiveUpdate(gi);
+	// mapPointer->interactiveUpdate(gi);
+	mapPointer->update(mapInfo);
       }
     }
     else if( pickingOption==pickToHideSubSurface && 

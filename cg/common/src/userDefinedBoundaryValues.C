@@ -670,7 +670,11 @@ chooseUserDefinedBoundaryValues(int side, int axis, int grid, CompositeGrid & cg
       RealArray values(numberOfComponents);
       RealArray & bcData = parameters.dbase.get<RealArray>("bcData");
       for( int n=0; n<numberOfComponents; n++ )
+      {
 	values(n)=bcData(n,side,axis,grid);
+	printF("--UBV-- TimeFunction will multiply : n=%i value=%9.3e\n",n,values(n));
+      }
+      
       // save the parameters to be used when evaluating the time dependent BC's:
       parameters.setUserBoundaryConditionParameters(side,axis,grid,values);
 

@@ -104,6 +104,8 @@ assignPressureRHS( const int grid, GridFunction & gf0, realCompositeGridFunction
 virtual int 
 buildTimeSteppingDialog(DialogData & dialog );
 
+int checkPressureConstraintValues( GridFunction & cgf );
+
 int computeAxisymmetricDivergence(realArray & divergence, 
 				  Index & I1, Index & I2, Index & I3, MappedGrid & c,
 				  const realArray & u0,
@@ -319,6 +321,9 @@ initializeSolution();
 
 virtual int
 setPlotTitle(const real &t, const real &dt);
+
+int 
+setPressureConstraintValues( GridFunction & gf0, realCompositeGridFunction & f );
 
 virtual void
 saveShowFileComments( Ogshow &show );

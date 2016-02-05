@@ -82,19 +82,13 @@ mappingUtil.o: mappingUtil.C
 ellipticSmooth.f : ellipticSmooth.bf; bpp ellipticSmooth.bf
 
 hype= hype.o generate.o update.o HyperbolicMapping.o util.o project.o applyBoundaryConditions.o startCurve.o \
-          plot.o stretch.o ../mapping/MappingBuilder.o GridSmoother.o  \
-           ellipticSmooth.o MatchingCurve.o GridStretcher.o
-hype= hype.o generate.o update.o HyperbolicMapping.o util.o project.o applyBoundaryConditions.o startCurve.o \
-          plot.o stretch.o GridSmoother.o GridStretcher.o Bound.o TrimmedMapping.o \
-          ../mapping/UnstructuredMapping.o ../mapping/compositeTopology.o ../ogshow/plotGridQuality.o
-hype= hype.o generate.o update.o HyperbolicMapping.o util.o project.o applyBoundaryConditions.o startCurve.o \
-          plot.o stretch.o GridSmoother.o GridStretcher.o Bound.o ../ogshow/plotGridQuality.o \
-          ellipticSmooth.o
-hype= hype.o generate.o update.o HyperbolicMapping.o util.o project.o applyBoundaryConditions.o startCurve.o \
           plot.o stretch.o GridSmoother.o GridStretcher.o MatchingCurve.o ../mapping/DataPointMapping.o
 hype= hype.o generate.o update.o HyperbolicMapping.o util.o project.o applyBoundaryConditions.o startCurve.o \
           plot.o stretch.o GridSmoother.o GridStretcher.o MatchingCurve.o generateParallel.o \
           DataPointMapping.o plotStructured.o dpmMap.o dpmScalar.o Mapping.o
+hype= hype.o generate.o update.o HyperbolicMapping.o util.o project.o applyBoundaryConditions.o startCurve.o \
+          plot.o stretch.o GridSmoother.o GridStretcher.o MatchingCurve.o generateParallel.o \
+          ellipticSmooth.o DataPointMapping.o
 hype: $(hype) 
 	$(CC) $(CCFLAGS) -o $@ $(hype) $(CLIBS) $(FLIBS) $(GLIBS)
 

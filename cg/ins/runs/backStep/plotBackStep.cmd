@@ -28,6 +28,8 @@
 #  plotStuff plotBackStep.cmd -show=backStepInChannel16.show -vorMin=-10. -vorMax=10. -plotName=backStepRefineG16Vort10t50
 #  plotStuff plotBackStep.cmd -show=backStepInChannel16a.show -vorMin=-10. -vorMax=10. -plotName=junk
 #
+#  plotStuff plotBackStep.cmd -show=backStepInChannel16Average50to300.show 
+#
 $show="cylbeam2.show"; $plotName=""; $solution=-1; 
 $vorMin=-50; $vorMax=25.; $zoom=0; 
 # 

@@ -368,6 +368,7 @@ main(int argc, char *argv[])
       "set exact initial conditions",
     "<debug",
     "adjust singular equations",
+    "nuDt",
 // too late    "order of accuracy",
     "exit",
     ""
@@ -381,9 +382,7 @@ main(int argc, char *argv[])
   OgesParameters::EquationEnum equationToSolve=OgesParameters::laplaceEquation; 
   RealArray equationCoefficients(2,cg.numberOfComponentGrids());
   Range G=cg.numberOfComponentGrids();
-  real nuDt=.1;
-  equationCoefficients(0,G)= 1.;  // for heat equation solve I - nuDt* Delta
-  equationCoefficients(1,G)=-nuDt;
+  real nuDt=.1;  // for heat equation solve I - nuDt* Delta
 
   bool initialConditionsExact=false;
   //  equationCoefficients(1,0)=0.;  // Grid 0 has the identity operator
@@ -566,6 +565,11 @@ main(int argc, char *argv[])
 //          mgSolver.setOrderOfAccuracy(orderOfAccuracy);
 //        }
 //      }
+    else if( (len=answer.matches("nuDt")) )
+    {
+      sScanF(answer(len,answer.length()-1),"%e",&nuDt);
+      printF("Setting nuDt=%9.2e for the heat equation option\n",nuDt);
+    }
     else
     {
       printF("unknown response: [%s]\n",(const char*)answer);
@@ -575,6 +579,9 @@ main(int argc, char *argv[])
   }
   
   printF("............... solvePredefined=%i\n",(int)solvePredefined);
+
+  equationCoefficients(0,G)= 1.;  
+  equationCoefficients(1,G)=-nuDt;
 
   // Now build the multigrid levels
   printF("\n >>>>> Build the multigrid levels ...\n");
@@ -1597,7 +1604,7 @@ main(int argc, char *argv[])
     }
     else if( equationToSolve==OgesParameters::heatEquationOperator )
     {
-      printF(" *************** ogmgt: Solve predefined Heat Equation *****************\n");
+      printF(" ****** ogmgt: Solve predefined Heat Equation I - nuDt*Delta (nuDt=%9.2e)********\n",nuDt);
     }
     else if( equationToSolve==OgesParameters::divScalarGradOperator )
     {

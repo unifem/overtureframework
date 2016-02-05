@@ -341,6 +341,12 @@
     - (1./3.)*((dr1)**3*urrr+3.*(dr1)**2*(dr2)*urrs+3.*(dr1)*(dr2)**2*urss+(dr2)**3*usss)
 #endMacro
 
+#beginMacro extrapCornerSymmetry2d(u,i1,i2,i3,ks1,ks2)
+  u(i1-ks1,i2-ks2,i3,ex)=2.*u(i1,i2,i3,ex) - u(i1+ks1,i2+ks2,i3,ex)
+  u(i1-ks1,i2-ks2,i3,ey)=2.*u(i1,i2,i3,ey) - u(i1+ks1,i2+ks2,i3,ey)
+  u(i1-ks1,i2-ks2,i3,hz)=                    u(i1+ks1,i2+ks2,i3,hz)
+#endMacro
+
 ! ===================================================================================
 ! Determine the values at ghost points outside corners
 !  
@@ -678,8 +684,27 @@
     extrapCornerHzOrder4(2*is1,2*is2,2.*is1*dxa,2.*is2*dya)
 
 
+  #Elif #ORDER == "6" 
+
+    ! rectangular grid: assign using symmetry conditions: *wdh* 2016/01/23 *check me*
+
+    ! assign 3 ghost in both directions
+    do m2=1,3
+    do m1=1,3
+      extrapCornerSymmetry2d(u,i1,i2,i3,m1*is1,m2*is2)
+      #If #FORCING == "twilightZone"
+       ! just set to exact for now 
+       j1=i1-m1*is1
+       j2=i2-m2*is2
+       j3=i3
+       OGF2DFO(j1,j2,j3,t,u(j1,j2,j3,ex),u(j1,j2,j3,ey),u(j1,j2,j3,hz))
+     #End
+     end do
+     end do
+
   #Else 
-    stop 3399
+    write(*,'("bcMaxwellCorners: order=ORDER not implemented")')
+    stop 3389
   #End 
 
  #Else
@@ -3590,6 +3615,16 @@
 
     #Else
       ! Now do corner (C) points
+          ! assign 3 ghost in both directions
+     if( .true. )then
+      ! *new way for general order* *wdh* 2016/01/23
+      do m2=1,numberOfGhostPoints
+      do m1=1,numberOfGhostPoints
+       extrapCornerSymmetry2d(u,i1,i2,i3,m1*is1,m2*is2)
+      end do
+      end do
+    else
+      ! old way
       u(i1-  is1,i2-  is2,i3,ex)=-u(i1+  is1,i2+  is2,i3,ex)
       u(i1-  is1,i2-  is2,i3,ey)=-u(i1+  is1,i2+  is2,i3,ey)
       u(i1-  is1,i2-  is2,i3,hz)= u(i1+  is1,i2+  is2,i3,hz)  ! Hz is even symmetry
@@ -3608,6 +3643,7 @@
         u(i1-  is1,i2-2*is2,i3,hz)= u(i1+  is1,i2+2*is2,i3,hz)
         u(i1-2*is1,i2-2*is2,i3,hz)= u(i1+2*is1,i2+2*is2,i3,hz)
       #End
+     end if
     #End
 
   else if( boundaryCondition(side1,0).ge.abcEM2 .and. boundaryCondition(side1,0).le.lastBC .and. \

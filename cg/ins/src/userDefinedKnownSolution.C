@@ -5,6 +5,7 @@
 #include "PistonMotion.h"
 #include "ParallelUtility.h"
 #include "DeformingBodyMotion.h"
+#include "RigidBodyMotion.h"
 
 #include "BeamModel.h"
 #include "BoundaryLayerProfile.h"
@@ -331,7 +332,7 @@ getUserDefinedKnownSolution(real t, CompositeGrid & cg, int grid, RealArray & ua
     // --- evaluate the solution ----
 
     // Note: When checking which side of the beam we are on do not use the y-location of
-    // ghost points since these may go to the opposiet side. Instead use the closest
+    // ghost points since these may go to the opposite side. Instead use the closest
     // boundary point (i1a,i2a) computed below.
     const IntegerArray & gid = cg[grid].gridIndexRange();
     int i1,i2,i3;
@@ -383,6 +384,89 @@ getUserDefinedKnownSolution(real t, CompositeGrid & cg, int grid, RealArray & ua
     }
     
   }
+
+  else if( userKnownSolution=="rigidBodyPiston" )
+  {
+    // ---- Rigid Body Piston Solution ---
+    // FSI solution for a rigid body next to a fluid channel.
+    // The pressure on the open boundary is chosen to give a specified body motion.
+    //    xBody(t) = amp*sin(freq*2*pi*t)  : body displacement from initial position.
+
+    // -- we could avoid building the vertex array on Cartesian grids ---
+    mg.update(MappedGrid::THEvertex | MappedGrid::THEcenter);
+    OV_GET_SERIAL_ARRAY_CONST(real,mg.vertex(),xLocal);
+
+
+    // ** NOTE this solution ALSO appears in userDefinedBoundaryValues.
+
+    const real & amp   = rpar[0];
+    const real & freq  = rpar[1];
+    const real & depth = rpar[2];
+    const real & bodyMass = rpar[3];
+
+    if( t <= dt )
+      printF("--UDKS-- Rigid Body Piston Solution at t=%9.3e, amp=%8.2e, freq=%8.2e, depth=%8.2e, bodyMass=%8.2e"
+             " numberOfTimeDerivatives=%i\n",
+	     t,amp,freq,depth,bodyMass,numberOfTimeDerivatives);
+
+    // --- evaluate the solution ----
+    real fluidDensity=1.;
+    real length = 1.5;   // initial length of fluid domain *FIX ME*
+
+    const real xBody =  amp*sin(freq*twoPi*t);                 // body offset 
+    const real vBody =  amp*freq*twoPi*cos(freq*twoPi*t);      // body velocity
+    const real aBody = -amp*SQR(freq*twoPi)*sin(freq*twoPi*t); // body acceleration
+
+    // pressure force at right-hand-side of the channel:
+    real addedMass =  fluidDensity*depth*(length - xBody);
+    real gravity=0.;  // *check me* 
+    const real pressureBC = (-1./depth)*( (bodyMass + addedMass )*aBody - gravity );
+
+    int i1,i2,i3;
+    if( numberOfTimeDerivatives==0 )
+    {
+      FOR_3D(i1,i2,i3,I1,I2,I3)
+      {
+	const real x = xLocal(i1,i2,i3,0);
+
+	ua(i1,i2,i3,uc)=vBody; // fluid velocity is constant in space
+	ua(i1,i2,i3,vc)=0.;
+
+        ua(i1,i2,i3,pc)= (-fluidDensity*aBody)*(x-length) + pressureBC; // pressure is a linear function
+
+	if( numberOfDimensions==3 ) ua(i1,i2,i3,wc)=0.;
+      }
+      
+    }
+    else if( numberOfTimeDerivatives==1 )
+    {
+      // return the time derivative of the solution
+
+      const real xBodyttt = -amp*pow(freq*twoPi,3)*cos(freq*twoPi*t); // 3 time derivatives of body motion
+      const real addedMasst = fluidDensity*depth*( -vBody);
+      const real pressureBCt = (-1./depth)*( (bodyMass + addedMass )*xBodyttt + addedMasst*aBody );
+
+      FOR_3D(i1,i2,i3,I1,I2,I3)
+      {
+
+	const real x = xLocal(i1,i2,i3,0);
+
+	ua(i1,i2,i3,uc)=aBody; // fluid velocity is constant in space
+	ua(i1,i2,i3,vc)=0.;
+
+        ua(i1,i2,i3,pc)= (-fluidDensity*xBodyttt)*(x-length) + pressureBCt;
+
+	if( numberOfDimensions==3 ) ua(i1,i2,i3,wc)=0.;
+
+      }
+    }
+    else
+    {
+      OV_ABORT("finish me");
+    }
+    
+  }
+
   else 
   {
     // look for a solution in the base class
@@ -441,6 +525,7 @@ updateUserDefinedKnownSolution(GenericGraphicsInterface & gi, CompositeGrid & cg
       "linear beam exact solution",
       "flat plate boundary layer",
       "beam piston", // FSI solution for a beam and one or two adjacent fluid domains.
+      "rigid body piston",  // FSI solution for a rigid-body next to a fluid channel
       "done",
       ""
     }; 
@@ -651,6 +736,36 @@ updateUserDefinedKnownSolution(GenericGraphicsInterface & gi, CompositeGrid & cg
 
     }
     
+    else if( answer=="rigid body piston" )
+    {
+      userKnownSolution="rigidBodyPiston";
+      dbase.get<bool>("knownSolutionIsTimeDependent")=true;  // known solution IS time dependent
+
+      real & amp      = rpar[0];
+      real & freq     = rpar[1];
+      real & depth    = rpar[2];
+      real & bodyMass = rpar[3];
+
+      printF("--- Rigid Body Piston Solution ---\n"
+             " FSI solution for a rigid body next to a fluid channel.\n"
+             " The pressure on the open boundary is chosen to give a specified body motion.\n"
+             "     xBody(t) = amp*sin(freq*2*pi*t)  : body displacement from initial position.\n"
+             );
+      gi.inputString(answer,"Enter amp, freq, and depth (height of fluid channel).");
+      sScanF(answer,"%e %e %e",&amp,&freq,&depth);
+
+      //-- get the mass of the rigid body
+      MovingGrids & movingGrids = dbase.get<MovingGrids >("movingGrids");
+      const int numberOfRigidBodies = movingGrids.getNumberOfRigidBodies();
+      assert( numberOfRigidBodies==1 );
+      const int b=0;
+      RigidBodyMotion & body = movingGrids.getRigidBody(b);
+      bodyMass = body.getMass();
+
+      printF("Rigid Body Piston: setting amp=%g, freq=%g, depth=%g, bodyMass=%g.\n",amp,freq,depth,bodyMass);
+
+    }
+
     else
     {
       printF("unknown response=[%s]\n",(const char*)answer);

@@ -1,3 +1,14 @@
+*************************
+**** Dec 17, 2015
+
+New Nurbs dialog
+
+./mbuilder nurbsTest.cmd
+
+
+
+
+
 2014/08/17 -- new Nurbs interpolate functions
 
 Compare old routine to new + banded solves

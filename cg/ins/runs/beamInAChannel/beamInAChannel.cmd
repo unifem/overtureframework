@@ -68,7 +68,7 @@ GetOptions( "g=s"=>\$grid,"tf=f"=>\$tFinal,"implicitFactor=f"=>\$implicitFactor,
   "useApproximateAMPcondition=i"=>\$useApproximateAMPcondition,"rampInflow=i"=>\$rampInflow,\
   "useTP=i"=>\$useTP,"addedMassRelaxation=f"=>\$addedMassRelaxation,"addedMassTol=f"=>\$addedMassTol,\
   "smoothBeam=i"=>\$smoothBeam,"numberOfBeamSmooths=i"=>\$numberOfBeamSmooths,"newmarkBeta=f"=>\$newmarkBeta,\
-  "newmarkGamma=f"=>\$newmarkGamma,"probeFileName=s"=>\$probeFileName );
+  "newmarkGamma=f"=>\$newmarkGamma,"probeFileName=s"=>\$probeFileName,"rtolp=f"=>\$rtolp,"atolp=f"=>\$atolp );
 # -------------------------------------------------------------------------------------------------
 if( $delta > 0. ){ $rhoBeam=$delta; }
 if( $solver eq "best" ){ $solver="choose best iterative solver"; }

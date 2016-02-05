@@ -1,0 +1,255 @@
+**********************
+********* Jan. 20-21, 2016
+ 
+Start to add variable time-step to trb
+
+VARIABLE DT -- USE AB2 in LeapFrog when dt changes:
+trb -noplot rigidBody.cmd -motion=poly -useVariableTimeStep=1 -cfl=.2 -polyDegree=3 -go=go
+PolyTZ3: t=1.00e+00 x=( 2.60e+00, 3.90e+00, 1.95e+00), v=( 2.30e+00, 3.45e+00, 1.73e+00), w=( 1.34e+00, 2.01e+00, 1.51e+00), xErr=1.35e-05, vErr=1.15e-05, wErr=3.64e-06
+
+TRIG: with VAR-DT fixed: -- omega is better but not v 
+trb -noplot rigidBody.cmd -motion=trig -useVariableTimeStep=1 -cfl=.2 -go=go
+
+cfl=.2 : LeapFrog predictor only: AB2
+TrigTZ: t=1.00e+00 x=( 1.27e-01,-2.27e-01, 1.13e-01), v=( 2.36e-04,-8.34e-01,-5.30e-01), w=(-7.39e-01, 6.60e-04,-6.93e-01), xErr=2.95e-04, vErr=6.49e-04, wErr=6.60e-04
+
+CFL=.2 LF-predictor, no AB2: 
+TrigTZ: t=1.00e+00 x=( 7.44e-01,-1.83e-02,-6.60e-02), v=(-1.12e-02,-8.35e-01,-5.16e-01), w=(-7.32e-01, 5.08e-03,-6.85e-01), xErr=6.16e-01, vErr=1.39e-02, wErr=8.18e-03
+
+
+
+cfl=.2 
+TrigTZ: t=1.00e+00 x=( 1.25e-01,-2.27e-01, 1.13e-01), v=(-2.45e-03,-8.33e-01,-5.30e-01), w=(-7.40e-01,-3.29e-04,-6.94e-01), xErr=2.22e-03, vErr=2.45e-03, wErr=4.51e-04
+
+cfl=.1: 
+TrigTZ: t=1.00e+00 x=( 1.27e-01,-2.27e-01, 1.13e-01), v=(-8.05e-04,-8.33e-01,-5.30e-01), w=(-7.39e-01,-1.06e-04,-6.94e-01), xErr=7.32e-04, vErr=8.05e-04, wErr=1.45e-04
+
+POLY: 
+trb -noplot rigidBody.cmd -motion=poly -useVariableTimeStep=1 -cfl=.2 -polyDegree=3 -go=go
+PolyTZ3: t=1.00e+00 x=( 2.60e+00, 3.90e+00, 1.95e+00), v=( 2.30e+00, 3.45e+00, 1.73e+00), w=( 1.34e+00, 2.01e+00, 1.51e+00), xErr=1.35e-05, vErr=1.15e-05, wErr=9.12e-06
+
+trb -noplot rigidBody.cmd -motion=poly -useVariableTimeStep=1 -cfl=.2 -polyDegree=2 -go=go
+PolyTZ2: t=1.00e+00 x=( 2.50e+00, 3.75e+00, 1.88e+00), v=( 2.00e+00, 3.00e+00, 1.50e+00), w=( 1.30e+00, 1.95e+00, 1.46e+00), xErr=2.22e-15, vErr=2.22e-15, wErr=8.13e-06
+
+TRIG: 
+trb -noplot rigidBody.cmd -motion=trig -useVariableTimeStep=1 -cfl=.2 -go=go
+
+**** VARIABLE time step: 
+cfl=.2
+TrigTZ: t=1.00e+00 x=( 1.25e-01,-2.27e-01, 1.13e-01), v=(-2.45e-03,-8.33e-01,-5.30e-01), w=(-7.40e-01,-5.95e-04,-6.94e-01), xErr=2.22e-03, vErr=2.45e-03, wErr=8.52e-04
+
+cfl=.1
+TrigTZ: t=1.00e+00 x=( 1.27e-01,-2.27e-01, 1.13e-01), v=(-8.05e-04,-8.33e-01,-5.30e-01), w=(-7.39e-01,-1.94e-04,-6.94e-01), xErr=7.32e-04, vErr=8.05e-04, wErr=2.80e-04
+
+**FIXED TIME STEP** --> 2nd order
+
+trb -noplot rigidBody.cmd -motion=trig -dt=.01 -go=go
+dt=.02:
+TrigTZ: t=1.00e+00 x=( 1.23e-01,-2.28e-01, 1.13e-01), v=(-4.09e-03,-8.33e-01,-5.29e-01), w=(-7.40e-01,-8.06e-04,-6.94e-01), xErr=4.49e-03, vErr=4.09e-03, wErr=1.16e-03
+dt=.01
+TrigTZ: t=1.00e+00 x=( 1.26e-01,-2.27e-01, 1.13e-01), v=(-1.03e-03,-8.33e-01,-5.30e-01), w=(-7.39e-01,-2.34e-04,-6.94e-01), xErr=1.14e-03, vErr=1.03e-03, wErr=2.71e-04
+
+
+
+trb -noplot rigidBody.cmd -motion=cxa -useVariableTimeStep=1 -cfl=.1 -dt=.01 -go=go
+
+trb -noplot rigidBody.cmd -motion=cxa -dt=.01 -go=go
+
+**********************
+********* Jan. 19, 2016
+ 
+trb -noplot rigidBody.cmd -motion=trig -dt=.01 -go=go 
+
+TRIG: 
+trb -noplot rigidBody.cmd -motion=trig -dt=.01 -go=go 
+dt=.01 
+rigTZ: t=1.00e+00 x=( 1.26e-01,-2.27e-01, 1.13e-01), v=(-1.03e-03,-8.33e-01,-5.30e-01), w=(-7.39e-01,-2.34e-04,-6.94e-01), xErr=1.14e-03, vErr=1.03e-03, wErr=2.71e-04
+dt=.005
+TrigTZ: t=1.00e+00 x=( 1.27e-01,-2.27e-01, 1.13e-01), v=(-2.57e-04,-8.33e-01,-5.30e-01), w=(-7.39e-01,-6.25e-05,-6.93e-01), xErr=2.88e-04, vErr=2.57e-04, wErr=6.47e-05
+
+
+trb -noplot rigidBody.cmd -motion=cwxa -go=go [ exact
+trb -noplot rigidBody.cmd -motion=cwya -go=go [ exact
+trb -noplot rigidBody.cmd -motion=cwza -go=go [ exact
+
+trb -noplot rigidBody.cmd -motion=fr3 -dt=.01 -go=go
+trb -noplot rigidBody.cmd -motion=fr2 -dt=.01 -go=go
+
+trb -noplot rigidBody.cmd -motion=fr1 -dt=.01 -go=go
+FreeRotation0: t=1.00e+00 steps=100 w=(3.003e+00,8.858e-01,2.048e+00), weHat=(3.000e+00,-1.272e+00,-1.839e+00), wHat=(3.001e+00,-1.274e+00,-1.836e+00),  wHat-err=(6.781e-04,1.297e-03,2.861e-03)
+
+
+trb -noplot rigidBody.cmd -motion=cxa -go=go [ exact
+trb -noplot rigidBody.cmd -motion=cya -go=go [ exact
+trb -noplot rigidBody.cmd -motion=cza -go=go [ exact
+
+
+
+**********************
+********* Jan. 18, 2016
+
+trb -tFinal=1.
+ConstX0Accel: t=1.00e-01 x=( 5.00e-03, 0.00e+00, 0.00e+00), v=( 1.00e-01, 0.00e+00, 0.00e+00), w=( 0.00e+00, 0.00e+00, 0.00e+00), xErr=0.00e+00, vErr=0.00e+00, wErr=0.00e+00
+ConstX0Accel: t=2.00e-01 x=( 2.00e-02, 0.00e+00, 0.00e+00), v=( 2.00e-01, 0.00e+00, 0.00e+00), w=( 0.00e+00, 0.00e+00, 0.00e+00), xErr=0.00e+00, vErr=2.78e-17, wErr=0.00e+00
+ConstX0Accel: t=3.00e-01 x=( 4.50e-02, 0.00e+00, 0.00e+00), v=( 3.00e-01, 0.00e+00, 0.00e+00), w=( 0.00e+00, 0.00e+00, 0.00e+00), xErr=6.94e-18, vErr=0.00e+00, wErr=0.00e+00
+ConstX0Accel: t=4.00e-01 x=( 8.00e-02, 0.00e+00, 0.00e+00), v=( 4.00e-01, 0.00e+00, 0.00e+00), w=( 0.00e+00, 0.00e+00, 0.00e+00), xErr=0.00e+00, vErr=0.00e+00, wErr=0.00e+00
+ConstX0Accel: t=5.00e-01 x=( 1.25e-01, 0.00e+00, 0.00e+00), v=( 5.00e-01, 0.00e+00, 0.00e+00), w=( 0.00e+00, 0.00e+00, 0.00e+00), xErr=0.00e+00, vErr=0.00e+00, wErr=0.00e+00
+ConstX0Accel: t=6.00e-01 x=( 1.80e-01, 0.00e+00, 0.00e+00), v=( 6.00e-01, 0.00e+00, 0.00e+00), w=( 0.00e+00, 0.00e+00, 0.00e+00), xErr=0.00e+00, vErr=1.11e-16, wErr=0.00e+00
+ConstX0Accel: t=7.00e-01 x=( 2.45e-01, 0.00e+00, 0.00e+00), v=( 7.00e-01, 0.00e+00, 0.00e+00), w=( 0.00e+00, 0.00e+00, 0.00e+00), xErr=2.78e-17, vErr=2.22e-16, wErr=0.00e+00
+ConstX0Accel: t=8.00e-01 x=( 3.20e-01, 0.00e+00, 0.00e+00), v=( 8.00e-01, 0.00e+00, 0.00e+00), w=( 0.00e+00, 0.00e+00, 0.00e+00), xErr=5.55e-17, vErr=3.33e-16, wErr=0.00e+00
+ConstX0Accel: t=9.00e-01 x=( 4.05e-01, 0.00e+00, 0.00e+00), v=( 9.00e-01, 0.00e+00, 0.00e+00), w=( 0.00e+00, 0.00e+00, 0.00e+00), xErr=1.11e-16, vErr=4.44e-16, wErr=0.00e+00
+ConstX0Accel: t=1.00e+00 x=( 5.00e-01, 0.00e+00, 0.00e+00), v=( 1.00e+00, 0.00e+00, 0.00e+00), w=( 0.00e+00, 0.00e+00, 0.00e+00), xErr=1.11e-16, vErr=5.55e-16, wErr=0.00e+00
+
+
+
+
+==== 2012/02/19 -- look for array leak in RigidBodyMotion
+
+../bin/trb -tFinal=1. -test=trig -addedMass=1 -plotBody=0 -orderOfAccuracy=4 -dt0=.05
+../bin/trb -tFinal=1. -test=trig -addedMass=0 -plotBody=0 -orderOfAccuracy=4 -dt0=.05
+
+
+***
+
+*** Create rigid body convergence tables: (rigidBodyConv.tex)
+../bin/trb -noplot -plotBody=0 -cmd=rigidBodyConv.cmd
+
+
+
+
+*** 2012/01/07 
+
+-- fixed leap-frog trap to use new equation for wDot
+
+-- verify different trb tests:
+
+../bin/trb -tFinal=1. -test=fallingSphere -addedMass=1 -plotBody=0 -orderOfAccuracy=4 -dt0=.02
+../bin/trb -tFinal=1. -test=fallingSphere -addedMass=0 -plotBody=0 -orderOfAccuracy=4 -dt0=.02
+
+../bin/trb -tFinal=.1 -test=trig -addedMass=0 -plotBody=0 -orderOfAccuracy=4 -dt0=.02
+
+../bin/trb -tFinal=1. -test=free1 -dt0=.01 -plotBody=0
+
+
+
+
+*** 2012/01/06
+
+../bin/trb -tFinal=1. -test=fallingSphere -addedMass=1 -plotBody=0 -dt0=.02
+
+\begin{figure}[hbt]\tableFont % you should set \tableFont to \footnotesize or other size
+\begin{center}
+\begin{tabular}{|l|c|c|c|c|} \hline
+\multicolumn{5}{|c|}{Rigid body, DIRK4, fallingSphere}     \\ \hline
+$\dt$    & x-err &   r   & v-err &   r   \\ \hline
+0.020000 &    5.52e-10     &       &    3.10e-10     &         \\ \hline
+0.010000 &    3.54e-11     & 15.6  &    2.05e-11     & 15.2    \\ \hline
+ rate    &    3.96         &       &    3.92         &          \\ \hline
+\end{tabular}
+\caption{Newton-Euler Equations: Scheme=DIRK4, test=fallingSphere, Max-norm errors at $t= 1.0$, mass=$1.00e+00$, AddedMass=1 }
+\label{tab:TestfallingSphere_SchemeDIRK4}
+\end{center}
+\end{figure}
+
+
+
+
+--- falling sphere -- works for small mass if added mass terms are included.
+../bin/trb -tFinal=1. -test=fallingSphere -addedMass=1 -plotBody=0 -dt0=.02
+
+
+../bin/trb -tFinal=1. -test=free1 -dt0=.01 -plotBody=0
+
+
+../bin/trb -tFinal=1. -test=free1 -dt0=.01 -plotBody=0
+
+
+
+*** 2012/01/05
+
+../bin/trb -tFinal=.1 -test=trig -addedMass=1 -dt0=.01
+
+
+RBM:DIRK2: 3 Newton iterations required.
+Trig: t=1.00e-01, steps=10, dt=1.00e-02, errors (x,v,w)=(4.196e-05,1.643e-04,1.829e-04)
+ xCM=( 9.00e-02,-2.00e-01,-1.51e-01) xe=( 9.00e-02,-2.00e-01,-1.51e-01)
+ vCM=( 7.07e-01, 1.02e+00,-2.32e-01) ve=( 7.07e-01, 1.02e+00,-2.32e-01)
+ w  =( 6.08e-01,-7.06e-01, 5.29e-01) we=( 6.08e-01,-7.05e-01, 5.29e-01)
+
+
+
+
+
+
+
+
+
+
+**** 2012/01/03
+
+--- test the rigid body class
+
+../bin/trb -tFinal=1.
+
+t=1.01e+00 xCM=(6.43e-01,2.39e-01,-2.35e-01) vCM=( 1.27, 0.00,-0.64) error(x)=(2.6e-05,3.9e-05,1.1e-05) error(v)=(1.3e-05,5.9e-05,6.5e-06)
+ ...estimated maximum dt =  8.34e-02 (dt= 5.00e-03, mass= 1.000)
+
+
+
+
+==== OLD results:
+
+
+../bin/trb 
+
+const x-accel
+
+t=5.01e+00 x=(1.255e+01,0.000e+00,0.000e+00) error(x)=1.776e-15 error(v)=0.000e+00
+ ...estimated maximum dt = -1.00e+00 (dt= 1.00e-02, mass= 1.000)
+
+general motion:
+
+t=1.01e+00 xCM=(6.43e-01,2.39e-01,-2.35e-01) vCM=( 1.27, 0.00,-0.64) error(x)=(2.6e-05,3.9e-05,1.1e-05) error(v)=(1.3e-05,5.9e-05,6.5e-06)
+ ...estimated maximum dt =  8.34e-02 (dt= 5.00e-03, mass= 1.000)
+
+t=5.00e+00 xCM=(3.19e+00,1.19e+00,-2.78e+00) vCM=( 1.27, 0.00,-0.64) error(x)=(1.3e-04,2.0e-04,3.7e-05) error(v)=(1.3e-05,5.9e-05,6.5e-06)
+ ...estimated maximum dt =  8.34e-02 (dt= 5.00e-03, mass= 1.000)
+
+
+
+smart exact solution:
+
+smart: t=5.00e-02 w=(5.000e-01,9.999e-01,-1.250e-02) error=(0.000e+00,1.017e-09,3.255e-07)
+RigidBodyMotion::getTimeStepEstimate:ERROR: numberOfSteps<2
+ ...estimated maximum dt = -1.00e+00 (dt= 5.00e-02, mass= 1.000)
+smart: t=5.50e-01 w=(5.000e-01,9.905e-01,-1.371e-01) error=(0.000e+00,3.860e-05,6.409e-06)
+ ...estimated maximum dt = -1.00e+00 (dt= 5.00e-02, mass= 1.000)
+smart: t=1.05e+00 w=(5.000e-01,9.657e-01,-2.595e-01) error=(0.000e+00,3.714e-05,1.276e-05)
+ ...estimated maximum dt = -1.00e+00 (dt= 5.00e-02, mass= 1.000)
+smart: t=1.55e+00 w=(5.000e-01,9.258e-01,-3.779e-01) error=(0.000e+00,3.470e-05,1.882e-05)
+ ...estimated maximum dt = -1.00e+00 (dt= 5.00e-02, mass= 1.000)
+smart: t=2.05e+00 w=(5.000e-01,8.715e-01,-4.903e-01) error=(0.000e+00,3.134e-05,2.445e-05)
+ ...estimated maximum dt = -1.00e+00 (dt= 5.00e-02, mass= 1.000)
+smart: t=2.55e+00 w=(5.000e-01,8.036e-01,-5.952e-01) error=(0.000e+00,2.713e-05,2.951e-05)
+ ...estimated maximum dt = -1.00e+00 (dt= 5.00e-02, mass= 1.000)
+smart: t=3.05e+00 w=(5.000e-01,7.231e-01,-6.907e-01) error=(0.000e+00,2.216e-05,3.388e-05)
+ ...estimated maximum dt = -1.00e+00 (dt= 5.00e-02, mass= 1.000)
+smart: t=3.55e+00 w=(5.000e-01,6.313e-01,-7.755e-01) error=(0.000e+00,1.654e-05,3.745e-05)
+ ...estimated maximum dt = -1.00e+00 (dt= 5.00e-02, mass= 1.000)
+smart: t=4.05e+00 w=(5.000e-01,5.297e-01,-8.481e-01) error=(0.000e+00,1.040e-05,4.013e-05)
+ ...estimated maximum dt = -1.00e+00 (dt= 5.00e-02, mass= 1.000)
+smart: t=4.55e+00 w=(5.000e-01,4.199e-01,-9.075e-01) error=(0.000e+00,3.862e-06,4.185e-05)
+ ...estimated maximum dt = -1.00e+00 (dt= 5.00e-02, mass= 1.000)
+smart: t=5.05e+00 w=(5.000e-01,3.034e-01,-9.528e-01) error=(0.000e+00,2.917e-06,4.256e-05)
+ ...estimated maximum dt = -1.00e+00 (dt= 5.00e-02, mass= 1.000)
+Saved file rigidBody.m for matlab
+
+
+x-sine-acceleration:
+
+t=5.01e+00 xCM=(-9.56e-01,0.00e+00,0.00e+00) vCM=( 0.29, 0.00, 0.00) error(x)=(6.7e-05,0.0e+00,0.0e+00) error(v)=(1.9e-05,0.0e+00,0.0e+00)
+ ...estimated maximum dt =  8.65e-01 (dt= 1.00e-02, mass= 1.000)
+
+
+constant y-omega accel.
+

@@ -2,6 +2,8 @@
 #  Cgmx files
 #   Use:  setenv COMPILE [dbg/opt/optdbg]
 
+# buildHigherOrder = off
+buildHigherOrder = on
 
 # C++ source files:
 SRC_FILES += Maxwell.C userDefinedInitialConditions.C userDefinedForcing.C  \
@@ -82,21 +84,19 @@ SRC_FILES += RadiationKernel.C RadiationBoundaryCondition.C
 FSRCO +=  bcperq21.f bcperq31.f amcof.f bccyl.f gaussianIntegral.f radEval.f
 
 
-# compile 6th and 8th order approximations
+# Optionally compile 6th and 8th order approximations (or null versions)
+# order 6 and 8 BC's are implemented for rectangular grids:
+FSRCO += bcOptMaxwell2dOrder6.f bcOptMaxwell3dOrder6.f cornersMxOrder6.f cornersMxOrder8.f
+FSRCO += bcOptMaxwell2dOrder8.f bcOptMaxwell3dOrder8.f
+FSRCO += advMx2dOrder6r.f advMx2dOrder8r.f advMx3dOrder6r.f advMx3dOrder8r.f
 ifeq ($(buildHigherOrder),on)
-  FSRCO += advMx2dOrder6r.f advMx2dOrder6c.f advMx3dOrder6r.f advMx3dOrder6c.f \
-               advMx2dOrder8r.f advMx2dOrder8c.f advMx3dOrder8r.f advMx3dOrder8c.f
-  FSRCO += bcOptMaxwell2dOrder6.f bcOptMaxwell2dOrder8.f \
-               bcOptMaxwell3dOrder6.f bcOptMaxwell3dOrder8.f \
-               cornersMxOrder6.f cornersMxOrder8.f
+  FSRCO += advMx2dOrder6c.f advMx3dOrder6c.f \
+           advMx2dOrder8c.f advMx3dOrder8c.f
 else
   # just build empty versions that compile faster
-  SRC_FILES += advMx2dOrder6rNull.f advMx2dOrder6cNull.f advMx3dOrder6rNull.f advMx3dOrder6cNull.f \
-               advMx2dOrder8rNull.f advMx2dOrder8cNull.f advMx3dOrder8rNull.f advMx3dOrder8cNull.f
-  SRC_FILES += bcOptMaxwell2dOrder6Null.f bcOptMaxwell2dOrder8Null.f \
-               bcOptMaxwell3dOrder6Null.f bcOptMaxwell3dOrder8Null.f \
-               cornersMxOrder6.f cornersMxOrder8.f
-#              cornersMxOrder6Null.f cornersMxOrder8Null.f
+  SRC_FILES += advMx2dOrder6cNull.f advMx3dOrder6cNull.f \
+               advMx2dOrder8cNull.f advMx3dOrder8cNull.f
+ # SRC_FILES += bcOptMaxwell2dOrder8Null.f bcOptMaxwell3dOrder8Null.f
 endif
 
 # files that depend on bpp include files

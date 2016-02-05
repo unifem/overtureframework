@@ -9,6 +9,7 @@
 #include "ArraySimple.h"
 #include "MappingsFromCAD.h"
 #include "ParallelUtility.h"
+#include "HDF_DataBase.h"
 
 #ifdef GETLENGTH
 #define GET_LENGTH dimension
@@ -3564,6 +3565,7 @@ removeKnot(const int & index,
       multiplicity++;
       i++;
     }
+    
   
     int fout = (2*index-multiplicity-p1)/2;  // first control point out
     int last = index-multiplicity;
@@ -3575,6 +3577,12 @@ removeKnot(const int & index,
       cout << " index = " << index << endl;
       numberRemoved=0;
       return 1;
+    }
+
+    if( Mapping::debug & 4 )
+    {
+      printF("--NRBS--removeKnot: index=%i numberOfTimesToRemove=%i multiplicity=%i p1=%i first=%i last=%i fout=%i.\n",
+	     index,numberOfTimesToRemove,multiplicity,p1,first,last,fout);
     }
 
     int ord = p1+1;
@@ -3596,6 +3604,7 @@ removeKnot(const int & index,
       int remFlag=0;
       while( j-i > t )
       {
+        // Compute new control points for one removal step 
 	alfi = (u-uKnot(i))/(uKnot(i+ord+t)-uKnot(i));
 	alfj = (u-uKnot(j-t))/(uKnot(j+ord)-uKnot(j-t));
 	temp(ii,Rw)=(cPoint(i,Rw)-(1.-alfi)*temp(ii-1,Rw))/alfi;
@@ -3607,6 +3616,8 @@ removeKnot(const int & index,
 	if( (dist4=distance4D(temp(ii-1,Rw),temp(jj+1,Rw))) <= tolerance )
 	{
 	  remFlag=1;
+          if( Mapping::debug & 4 )
+	    printF("   knot removed (A) : dist4=%9.3e <= tol=%9.3e\n",dist4,tolerance);
 	}
       }
       else
@@ -3615,6 +3626,8 @@ removeKnot(const int & index,
 	if( (dist4=distance4D(cPoint(i,Rw),alfi*temp(ii+t+1,Rw)+(1.-alfi)*temp(ii-1,Rw))) <= tolerance )
 	{
 	  remFlag=1;
+          if( Mapping::debug & 4 )
+	    printF("   knot removed (B) : dist4=%9.3e <= tol=%9.3e\n",dist4,tolerance);
 	}
       }
 
@@ -4237,6 +4250,9 @@ merge(NurbsMapping & nurbs, bool keepFailed /* = true */, real eps /*=-1*/, bool
     else
       tol = eps;
 
+    if( Mapping::debug & 4 )
+      printf("--NRBS--merge: eps=%9.3e, tol=%9.3e dist=%9.2e\n",eps,tol,max(fabs(x21-x20)+fabs(x11-x10)));
+
     real endDist=max(fabs(x20-x11));
     real startDist=max(fabs(x21-x10));
     real endDistRev   =sum(fabs(x21-x11)); // *kkc added curve reversal check to merge
@@ -4521,16 +4537,21 @@ merge(NurbsMapping & nurbs, bool keepFailed /* = true */, real eps /*=-1*/, bool
     // now try and remove duplicate knots	
     if( true )
     {
+      // *wdh* Reduce the tolerance for knot removeable since this was too big for the Wigley hull
+      // The knot removal tolerance can probably be quite tight.
+      // real toleranceForKnotRemoval= tol;  // *wdh* 2015/12/18
+      real toleranceForKnotRemoval= max(100.*FLT_EPSILON, tol*1.e-3); 
+
       int numberRemoved=0;
       if( addNurb==toEnd )
       {
-	removeKnot( m1Old,p1Old,numberRemoved, tol );            // only 1 should be removeable (?)
+	removeKnot( m1Old,p1Old,numberRemoved, toleranceForKnotRemoval );            // only 1 should be removeable (?)
         if( Mapping::debug & 4 )
 	  cout << "NurbsMapping::merge: number of common knots removed = " << numberRemoved << endl;
       }
       if( addNurb==toStart )
       {
-	removeKnot( nurbs.m1,nurbs.p1,numberRemoved,tol );       // only 1 should be removeable
+	removeKnot( nurbs.m1,nurbs.p1,numberRemoved,toleranceForKnotRemoval );       // only 1 should be removeable
         if( Mapping::debug & 4 )
   	  cout << "NurbsMapping::merge: number of common knots removed = " << numberRemoved << endl;
       }
@@ -6232,38 +6253,38 @@ joinSubCurves( int subCurve1, int subCurve2 )
 }
 
 
-void  NurbsMapping::
+void NurbsMapping::
 display( const aString & label /* =blankString */ ) const
 {
 
-  cout << "***************NurbsMapping*****************\n";
-  if( label!="" )
-    cout << "******** " << label << "*************\n";
+  printF("***************NurbsMapping*****************\n");
+  if( label!="" && label !=" " )
+    printF("******** %s *************\n",(const char*)label);
 
-  printf("axis1: number of knots = %i, number of control points =%i, order of B-spline =%i \n",
+  printF("axis1: number of knots = %i, number of control points =%i, order of B-spline =%i \n",
 	 m1+1,n1+1,p1);
   if( domainDimension==1 )
-    printf("number of sub curves = %i \n",numberOfSubCurves());
+    printF("number of sub curves = %i \n",numberOfSubCurves());
   
   // ::display(uKnot,"Here are the knots along axis1");
   int i=0;
   for( i=0; i<=m1; i++ )
-    printf(" uKnot i=%i : %e\n",i,uKnot(i));
+    printF(" uKnot i=%i : %e\n",i,uKnot(i));
   
   if( domainDimension>1 )
   {
-    printf("axis2: number of knots = %i, number of control points =%i, order of B-spline =%i \n",
+    printF("axis2: number of knots = %i, number of control points =%i, order of B-spline =%i \n",
 	   m2+1,n2+1,p2);
     // ::display(vKnot,"Here are the knots along axis2");
     for( i=0; i<=m2; i++ )
-      printf(" vKnot i=%i : %e\n",i,vKnot(i));
+      printF(" vKnot i=%i : %e\n",i,vKnot(i));
   }
   if( domainDimension>2 )
   {
-    printf("axis3: number of knots = %i, number of control points =%i, order of B-spline =%i \n",
+    printF("axis3: number of knots = %i, number of control points =%i, order of B-spline =%i \n",
 	   m3+1,n3+1,p3);
     for( i=0; i<=m3; i++ )
-      printf(" wKnot i=%i : %e\n",i,wKnot(i));
+      printF(" wKnot i=%i : %e\n",i,wKnot(i));
   }
   // ::display(cPoint,"Here are the control points (x*w,y*w,z*w,w), w=weight");
   if ( domainDimension==1 )
@@ -6272,7 +6293,7 @@ display( const aString & label /* =blankString */ ) const
     {
       // *wdh* 100208 real w = cPoint(i,rangeDimension)!=0. ? 1./cPoint(i,rangeDimension) : 1.;
       real w = cPoint(i,rangeDimension)!=0. ? cPoint(i,rangeDimension) : 1.;
-      printf(" control-point/weight i=%i : (%e,%e,%e)  weight=%e \n",i,cPoint(i,0)/w,cPoint(i,1)/w,
+      printF(" control-point/weight i=%i : (%e,%e,%e)  weight=%e \n",i,cPoint(i,0)/w,cPoint(i,1)/w,
 	     (rangeDimension==2 ? 0. : cPoint(i,2)/w),cPoint(i,rangeDimension));
     }
   }
@@ -6282,7 +6303,7 @@ display( const aString & label /* =blankString */ ) const
       for( i=0; i<=n1; i++ )
       {
 	real w = cPoint(i,j,rangeDimension)!=0. ? cPoint(i,j,rangeDimension) : 1.;
-	printf(" control-point/weight i,j=%i,%i : (%e,%e,%e) weight=%e \n",i,j,cPoint(i,j,0)/w,cPoint(i,j,1)/w,
+	printF(" control-point/weight i,j=%i,%i : (%e,%e,%e) weight=%e \n",i,j,cPoint(i,j,0)/w,cPoint(i,j,1)/w,
 	       (rangeDimension==2 ? 0. : cPoint(i,j,2)/w),cPoint(i,j,rangeDimension));
       }
   }
@@ -6293,7 +6314,7 @@ display( const aString & label /* =blankString */ ) const
       for( i=0; i<=n1; i++ )
       {
 	real w = cPoint(i,j,k,rangeDimension)!=0. ? cPoint(i,j,k,rangeDimension) : 1.;
-	printf(" control-point/weight i,j,k=%i,%i,%i : (%e,%e,%e) weight=%e \n",i,j,k,
+	printF(" control-point/weight i,j,k=%i,%i,%i : (%e,%e,%e) weight=%e \n",i,j,k,
                cPoint(i,j,k,0)/w,cPoint(i,j,k,1)/w,
 	       (rangeDimension==2 ? 0. : cPoint(i,j,k,2)/w),cPoint(i,j,k,rangeDimension));
       }
@@ -6537,40 +6558,115 @@ update( MappingInformation & mapInfo )
   assert(mapInfo.graphXInterface!=NULL);
   GenericGraphicsInterface & gi = *mapInfo.graphXInterface;
   
+  bool plotControlPoints=false;
+  bool plotCurve=true;
+  bool plotSubCurves=false;
+  bool plotPointsOnCurves=true;
+  bool useRobustInverse=false;
+  
+  ParameterizationTypeEnum parameterizationType=parameterizeByChordLength;
+
+  // ----------------------------
+  // ----- Nurbs Main Menu ------
+  // ----------------------------
+
+  GUIState dialog;
+  dialog.setWindowTitle("NurbsMapping");
+  dialog.setExitCommand("exit", "exit");
+
+  aString opCmd[] =   {"parameterize by chord length",
+		       "parameterize by index (uniform)",
+		       ""}; //
+  int parOption =  (parameterizationType==parameterizeByChordLength ? 0 : 
+		    parameterizationType==parameterizeByIndex ? 1 : 2);
+  dialog.addOptionMenu("Parameterization:", opCmd,opCmd,parOption);
+
+
+  aString cmds[] = {"enter points",
+                    "enter control points",
+		    "change control points",
+                    "interpolate from a mapping",
+                    "interpolate from mapping with options",
+                    "interpolate lofted surface",
+                    "restrict the domain",
+                    "reparameterize",
+                    "merge",
+                    "save to a data base file",
+                    "show parameters",
+		    "plot",
+                    "help",
+		    ""};
+
+  int numberOfPushButtons=13;  // number of entries in cmds
+  int numRows=(numberOfPushButtons+1)/2;
+  dialog.setPushButtons( cmds, cmds, numRows ); 
+
+  aString tbCommands[] = {"plot control points",
+                          "plot curve",
+                          "plot sub curves",
+                          "plot points on curves",
+                          "use robust inverse",
+			  ""};
+  int tbState[10];
+  tbState[0] = plotControlPoints;
+  tbState[1] = plotCurve;
+  tbState[2] = plotSubCurves;
+  tbState[3] = plotPointsOnCurves;
+  
+  int numColumns=3;
+  dialog.setToggleButtons(tbCommands, tbCommands, tbState, numColumns);
+
+  const int numberOfTextStrings=5;  // max number allowed
+  aString textLabels[numberOfTextStrings];
+  aString textStrings[numberOfTextStrings];
+
+  int nt=0;
+  textLabels[nt] = "domain dimension:";  sPrintF(textStrings[nt],"%i",domainDimension);  nt++; 
+  textLabels[nt] = "range dimension:";  sPrintF(textStrings[nt],"%i",rangeDimension);  nt++; 
+  textLabels[nt] = "debug:";  sPrintF(textStrings[nt],"%i",debug);  nt++; 
+
+  // null strings terminal list
+  textLabels[nt]="";   textStrings[nt]="";  assert( nt<numberOfTextStrings );
+  dialog.setTextBoxes(textLabels, textLabels, textStrings);
+
+  // *old* popup
+
+
   char buff[180];  // buffer for sprintf
   aString menu[] = 
     {
       "!NurbsMapping",
-      "enter control points",
-      "enter points",      
-      "change control points",
+      //    "enter control points",
+      // "enter points",      
+      // "change control points",
       ">shapes",
         "circle",
         "conic",
         "general cylinder",
-      "<set domain dimension",
-      "set range dimension",
-      "plot control points",
-      "plot sub curves",
-      "do not plot sub curves",
-      "plot points on curves",
-      "do not plot points on curves",      
-      "plot first derivatives", 
+      // "<set domain dimension",
+      // "set range dimension",
+      // "plot control points",
+      // "plot sub curves",
+      // "do not plot sub curves",
+      // "plot points on curves",
+      // "do not plot points on curves",      
+      "<plot first derivatives", 
       "plot second derivatives",
       "elevate the degree",
-      "restrict the domain",
-      "reparameterize",
+      // "restrict the domain",
+      // "reparameterize",
+      "add sub curves to mapping list",
       "reset reparameterization",
       "rotate",
       "scale",
       "shift",
-      "interpolate lofted surface",
-      "interpolate from a mapping",
-      "interpolate from mapping with options",
+      // "interpolate lofted surface",
+      //     "interpolate from a mapping",
+      // "interpolate from mapping with options",
       "project to 2d",
-      "merge",
-      "parameterize by chord length",
-      "parameterize by index (uniform)",
+      // "merge",
+      // "parameterize by chord length",
+      // "parameterize by index (uniform)",
       "use Eleven eval",
       "do not use Eleven eval",
 //      "do not normalize knots",
@@ -6584,8 +6680,8 @@ update( MappingInformation & mapInfo )
         "save points in matlab format",
       "<check inverse",
       "check",
-      "use robust inverse",
-      "do not use robust inverse",
+      // "use robust inverse",
+      // "do not use robust inverse",
 //    "make a coordinate curve",  // for debugging
       " ",
       "lines",
@@ -6593,7 +6689,7 @@ update( MappingInformation & mapInfo )
       "share",
       "mappingName",
       "periodicity",
-      "show parameters",
+      // "show parameters",
       "plot",
       "help",
       "exit", 
@@ -6640,6 +6736,13 @@ update( MappingInformation & mapInfo )
       "" 
     };
 
+  dialog.buildPopup(menu);
+
+  dialog.addInfoLabel("See popup menu for more options.");
+
+  gi.pushGUI(dialog);
+
+
   aString answer,line,answer2; 
 
   bool plotObject=true;
@@ -6648,17 +6751,17 @@ update( MappingInformation & mapInfo )
 
   gi.appendToTheDefaultPrompt("Nurbs>"); // set the default prompt
 
-  bool plotControlPoints=false;
-  bool plotSubCurves=false;
-  ParameterizationTypeEnum parameterizationType=parameterizeByChordLength;
 
   for( int it=0;; it++ )
   {
     if( it==0 && plotObject )
       answer="plotObject";
     else
-      gi.getMenuItem(menu,answer);
- 
+    {
+      // gi.getMenuItem(menu,answer);
+      gi.getAnswer(answer,"");
+    }
+    // printF("answer=[%s]\n",(const char*)answer);
 
     if( answer=="enter control points" )
     { 
@@ -7029,10 +7132,12 @@ update( MappingInformation & mapInfo )
     else if( answer=="parameterize by chord length" )
     {
       parameterizationType=parameterizeByChordLength;
+      printF("parameterize by chord length.\n");
     }
     else if( answer=="parameterize by index (uniform)" )
     {
       parameterizationType=parameterizeByIndex;
+      printF("parameterize by index (uniform).\n");
     }
     else if( answer=="plot points on curves"  || answer=="do not plot points on curves" )
     {
@@ -7880,7 +7985,74 @@ update( MappingInformation & mapInfo )
       }
       fclose(file);
       printF("Wrote file %s\n",(const char*)fileName);
+    } 
+
+    else if( dialog.getToggleValue(answer,"plot control points",plotControlPoints) )
+    {
+      plotObject=true;
     }
+    else if( dialog.getToggleValue(answer,"plot curve",plotCurve) )
+    {
+      plotObject=true;
+    }
+    else if( dialog.getToggleValue(answer,"plot sub curves",plotSubCurves) )
+    {
+      plotObject=true;
+    }
+    else if( dialog.getToggleValue(answer,"plot points on curves",plotPointsOnCurves) )
+    {
+      parameters.set(GI_PLOT_GRID_POINTS_ON_CURVES,plotPointsOnCurves);
+      plotObject=true;
+    }
+
+    else if( dialog.getToggleValue(answer,"use robust inverse",useRobustInverse) )
+    {
+      approximateGlobalInverse->useRobustInverse(useRobustInverse);
+    }
+
+    else if( dialog.getTextValue(answer,"domain dimension:","%i",domainDimension) )
+    {
+      if( domainDimension<1 || domainDimension>3 )
+      {
+	printF("ERROR: domainDimension=%i is invalid. Must be 1,2, or 3\n");
+	domainDimension=max(1,min(3,domainDimension));
+      }
+      initialized=false;
+      plotObject=false;
+    }
+    else if( dialog.getTextValue(answer,"range dimension:","%i",rangeDimension) ) 
+    {
+      if( rangeDimension<1 || rangeDimension>3 )
+      {
+	printF("ERROR: rangeDimension=%i is invalid. Must be 1,2, or 3\n");
+	rangeDimension=max(1,min(3,rangeDimension));
+      }
+      initialized=false;
+      plotObject=false;
+    }
+    else if( dialog.getTextValue(answer,"debug:","%i",Mapping::debug) ){}  //
+
+    else if( answer=="save to a data base file" )
+    {
+      aString fileName;
+      gi.inputString(fileName,"Enter the name of the data base file");
+      HDF_DataBase dbFile;
+      dbFile.mount(fileName,"I");  
+      int streamMode=1; // save in compressed form.
+      dbFile.put(streamMode,"streamMode");
+      if( !streamMode )
+        dbFile.setMode(GenericDataBase::noStreamMode); // this is now the default
+      else
+       dbFile.setMode(GenericDataBase::normalMode); // need to reset if in noStreamMode
+
+      MappingRC mapping(*this); // we save the NurbsMapping in a reference counted mapping
+      mapping.put(dbFile,getName(Mapping::mappingName)); // save the mapping to the data base file
+
+      dbFile.unmount();
+      printF("The NurbsMapping name=[%s] was saved to the data base file=[%s].\n",
+          (const char*)getName(Mapping::mappingName),(const char *)fileName);
+    }
+
     else if( answer=="plot" )
     {
       parameters.set(GI_PLOT_THE_OBJECT_AND_EXIT,false);
@@ -8033,6 +8205,27 @@ update( MappingInformation & mapInfo )
       }
       parameters.set(GI_PLOT_THE_OBJECT_AND_EXIT,true);
     }
+    else if( answer=="add sub curves to mapping list" )
+    {
+      if( numberOfSubCurves()<=1 )
+      {
+	printF("There is no sub-curves to add to the mapping list.\n");
+      }
+      else
+      {
+	for ( int sc=0; sc<numberOfSubCurves(); sc++ )
+	{
+          // -- rename sub-curves 
+          aString mapName = getName(Mapping::mappingName);
+          aString name = subCurve(sc).getName(Mapping::mappingName);
+	  name = mapName + sPrintF("%i",sc);
+	  printF("Adding sub-curve %i name=[%s] to the mapping list.\n",
+		 sc,(const char*)name);
+          subCurve(sc).setName(Mapping::mappingName,name);
+	  mapInfo.mappingList.addElement(subCurve(sc));
+	}
+      }
+    }
     else if( answer=="help" )
     {
       for( int i=0; help[i]!=""; i++ )
@@ -8107,7 +8300,7 @@ update( MappingInformation & mapInfo )
 	}
 	parameters.set(GI_MAPPING_COLOUR, originalColour);
       }
-      else
+      if( plotCurve )
       {
 	int plotAsSubCurves;
 	parameters.get(GI_PLOT_NURBS_CURVES_AS_SUBCURVES,plotAsSubCurves);
@@ -8121,6 +8314,9 @@ update( MappingInformation & mapInfo )
   }
   gi.erase();
   gi.unAppendTheDefaultPrompt();  // reset
+
+  gi.popGUI(); // restore the previous GUI
+
   return 0;
   
 }

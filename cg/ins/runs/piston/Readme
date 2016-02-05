@@ -1,0 +1,20 @@
+Rigid body "piston" next to a fluid channel.
+
+
+(1) Build some  grids:
+   ogen -noplot plug.cmd -factor=2
+   ogen -noplot plug.cmd -factor=4
+   ogen -noplot plug.cmd -factor=8
+   
+
+(2) Run interactively:
+
+cgins piston.cmd -g=plug4.hdf -tf=1. -tp=.01
+
+(3) Run in batch and save a show file
+
+
+
+(4) Plot results from the show file:
+
+

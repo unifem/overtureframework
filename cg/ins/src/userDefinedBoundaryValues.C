@@ -672,7 +672,10 @@ chooseUserDefinedBoundaryValues(int side, int axis, int grid, CompositeGrid & cg
       RealArray values(numberOfComponents);
       RealArray & bcData = parameters.dbase.get<RealArray>("bcData");
       for( int n=0; n<numberOfComponents; n++ )
+      {
 	values(n)=bcData(n,side,axis,grid);
+	printF("--UBV-- TimeFunction will multiply : n=%i value=%9.3e\n",n,values(n));
+      }
       // save the parameters to be used when evaluating the time dependent BC's:
       parameters.setUserBoundaryConditionParameters(side,axis,grid,values);
 
@@ -1774,6 +1777,8 @@ userDefinedBoundaryValues(const real & t,
 
         // printF(" ---UBV-- bcType =%i\n",(int)parameters.bcType(side,axis,grid));
 
+        Range C=numberOfComponents;
+
 	// The profile is saved in the ghost line of the "bd" array. (at least for parabolic -- *check me*)
 	if( parameters.bcType(side,axis,grid)==Parameters::parabolicInflowUserDefinedTimeDependence )
 	{
@@ -1783,7 +1788,6 @@ userDefinedBoundaryValues(const real & t,
 
 	  // ::display(bd(Ig1,Ig2,Ig3,uc)," parabolic profile","%8.2e ");
 
-	  Range C=numberOfComponents;
 	  // Give time dependence to the BC values
 	  if( true )
 	    bd(Ib1,Ib2,Ib3,C)= factor*bd(Ig1,Ig2,Ig3,C); // multiply fixed values stored in ghost points and save in boundary values
@@ -1792,6 +1796,9 @@ userDefinedBoundaryValues(const real & t,
 	{ // *check me*
 	  RealArray values(numberOfComponents);
 	  parameters.getUserBoundaryConditionParameters(side,axis,grid,values);
+	  if( false )
+	    printF("--UBV-- t=%9.3e timeFunction factor=%9.3e applied to values [%e,%e,%e]\n",
+		   t,factor,values(0),values(1),values(2));
 	  for( int c=C.getBase(); c<=C.getBound(); c++ )
 	    bd(Ib1,Ib2,Ib3,c)= factor*values(c);
 	}

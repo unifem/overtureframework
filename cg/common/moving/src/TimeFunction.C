@@ -86,6 +86,7 @@ operator =( const TimeFunction & tf)
   ipar=tf.ipar;
   rpar=tf.rpar;
   
+  preFunction=NULL;
   if( tf.preFunction!=NULL )
   {
     if( preFunction==NULL )
@@ -599,7 +600,35 @@ evalDerivative( const real t, real & fp, int derivative, bool computeComposed /*
 
 }
 
+// ===============================================================================
+/// \brief display the parameters.
+// ===============================================================================
+int TimeFunction::
+display( FILE *file /* = stdout */ )
+{
+  fPrintF(file," ----------------- TimeFunction Parameters -----------------\n");
+  fPrintF(file," Linear function    : f(t) = a0 + a1*t\n"
+	 " Sinusoid function: f(t) = b0*sin(2*Pi*f0*(t-t0))\n");
+  fPrintF(file," Function: %s\n",(functionType==linearFunction ? "linear function" :
+			   functionType==sinusoidalFunction ? "sinusoidal function" : 
+			   functionType==rampFunction ? "ramp function" : 
+			   functionType==mappingFunction ? "mapping function" : 
+			   functionType==userDefinedFunction ? "user defined function" : "unknown"));
+  fPrintF(file," Linear parameters: a0=%g, a1=%g\n",a0,a1);
+  fPrintF(file," Sinusoid parameters: b0=%g, f0=%g, t0=%g\n",b0,f0,t0);
+  fPrintF(file," ramp: varies from %g to %g over the time-interval=[%g,%g]. rampOrder=%i.\n",
+	 rampStart,rampEnd,rampStartTime,rampEndTime,rampOrder);
+  if( preFunction!=NULL )
+  {
+    fPrintF(file," This TimeFunction is composed (%s) with another one.\n",
+	   (composeType==composeWillMultiply ? "multiplies" : composeType==composeWillAdd ? "adds" : "unknown composition"));
+  }
+  else
+    fPrintF(file," This TimeFuncion is not currently composed with any other.\n");
+  fPrintF(file," -----------------------------------------------------------\n");
 
+  return 0;
+}
 
 
 // ===============================================================================
@@ -800,7 +829,7 @@ update(GenericGraphicsInterface & gi )
     {
       sScanF(answer(len,answer.length()-1),"%e %e",&a0,&a1);
       if( !gi.isGraphicsWindowOpen() )
-        dialog.setTextLabel("line parameters:",sPrintF(answer,"%g,%g (a0,a1)",a0,a1));
+        dialog.setTextLabel("linear parameters:",sPrintF(answer,"%g,%g (a0,a1)",a0,a1));
     }
     else if( len=answer.matches("sinusoid parameters:") )
     {
@@ -910,26 +939,7 @@ update(GenericGraphicsInterface & gi )
     }
     else if( answer=="show parameters" )
     {
-      printF(" ----------------- TimeFunction Parameters -----------------\n");
-      printF(" Line function    : f(t) = a0 + a1*t\n"
-             " Sinusoid function: f(t) = b0*sin(2*Pi*f0*(t-t0))\n");
-      printF("Function: %s\n",(functionType==linearFunction ? "linear function" :
-                               functionType==sinusoidalFunction ? "sinusoidal function" : 
-                               functionType==rampFunction ? "ramp function" : 
-                               functionType==mappingFunction ? "mapping function" : 
-                               functionType==userDefinedFunction ? "user defined function" : "unknown"));
-      printF("Line parameters: a0=%g, a1=%g\n",a0,a1);
-      printF("Sinusoid parameters: b0=%g, f0=%g, t0=%g\n",b0,f0,t0);
-      printF("ramp: varies from %g to %g over the time-interval=[%g,%g]. rampOrder=%i.\n",
-              rampStart,rampEnd,rampStartTime,rampEndTime,rampOrder);
-      if( preFunction!=NULL )
-      {
-	printF("This TimeFunction is composed (%s) with another one.\n",
-             (composeType==composeWillMultiply ? "multiplies" : composeType==composeWillAdd ? "adds" : "unknown composition"));
-      }
-      else
-        printF("This TimeFuncion is not currently composed with any other.\n");
-      printF(" -----------------------------------------------------------\n");
+      display();
     }
     else if( answer=="plot" )
     {

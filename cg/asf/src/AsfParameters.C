@@ -1900,21 +1900,19 @@ AsfParameters::isMixedBC(int bc)
     bc==AsfParameters::tractionFree;
 }
 
-
+// ===================================================================================================================
+/// \brief Return the normal force on a boundary.
+/// \details This routine is called, for example, by MovingGrids::rigidBodyMotion to determine 
+///       the motion of a rigid body.
+/// \param u (input): solution to compute the force from.
+/// \param normalForce (output) : fill in the components of the normal force. 
+/// \param ipar (input) : integer parameters. The boundary is defined by grid=ipar[0], side=ipar[1], axis=ipar[2] 
+/// \param rpar (input) : real parameters. The current time is t=rpar[0]
+/// \param includeViscosity (input) : if true include viscous stress terms in the force.
+// ===================================================================================================================
 int AsfParameters::
-getNormalForce( realCompositeGridFunction & u, realSerialArray & normalForce, int *ipar, real *rpar )
-//==================================================================================
-// /Description:
-//     Return the normal force on a boundary. This routine is called, for example,
-//  by MovingGrids::rigidBodyMotion to determine the motion of a rigid body.
-//
-// /u (input): solution to compute the force from.
-// /normalForce (output) : fill in the components of the normal force. 
-// /ipar (input) : integer parameters. The boundary is defined by 
-//           grid=ipar[0], side=ipar[1], axis=ipar[2]. 
-//       form=ipar[3] is for GridFunction::primitiveVariables or conservativeVariables
-// /rpar (input) : real parameters. The current time is t=rpar[0]
-//=================================================================================
+getNormalForce( realCompositeGridFunction & u, realSerialArray & normalForce, int *ipar, real *rpar,
+		bool includeViscosity /* = true */ )
 {
   int grid=ipar[0], side=ipar[1], axis=ipar[2];
   int form = ipar[3];
@@ -1936,7 +1934,7 @@ getNormalForce( realCompositeGridFunction & u, realSerialArray & normalForce, in
   const int wc=dbase.get<int >("wc");
   const int tc=dbase.get<int >("tc");
 
-  const real mu = dbase.get<real >("mu");
+  real mu = dbase.get<real >("mu");
   const Range V(uc,uc+cg.numberOfDimensions()-1);
 
 
@@ -1963,9 +1961,13 @@ getNormalForce( realCompositeGridFunction & u, realSerialArray & normalForce, in
   const real gamma = dbase.get<real >("gamma");
 	
   if( mu != 0. )
-    printF("CnsParameters::getNormalForce:ERROR: viscous stress terms missing on normal force\n");
+    printF("ASFParameters::getNormalForce:ERROR: viscous stress terms missing on normal force\n");
 	
-
+  if( !includeViscosity )
+  {
+    mu=0.;  // turn off the viscous terms *FIX ME* -- We can optimize the code below if mu=0 ************
+  }
+  
   realArray p(Ib1,Ib2,Ib3);
   
   if( form==GridFunction::primitiveVariables )

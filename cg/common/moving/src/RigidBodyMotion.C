@@ -130,7 +130,11 @@ RigidBodyMotion(int numberOfDimensions_ /* = 3 */)
   // Set the order of accuracy (currently only works with the the implicit RK methods)
   if( !dbase.has_key("orderOfAccuracy") ) dbase.put<int>("orderOfAccuracy",2);
 
-  if( !dbase.has_key("includeAddedMass") ) dbase.put<bool>("includeAddedMass",false);
+  // include added mass tensors for light bodies:
+  if( !dbase.has_key("includeAddedMass") ) dbase.put<bool>("includeAddedMass")=false;
+
+  // Use "direct-projection" added mass scheme for incompressible flows.
+  if( !dbase.has_key("directProjectionAddedMass") ) dbase.put<bool>("directProjectionAddedMass")=false;
 
   if( !dbase.has_key("toleranceNewton") ) dbase.put<real>("toleranceNewton");
   dbase.get<real>("toleranceNewton")=1.e-5;
@@ -140,16 +144,31 @@ RigidBodyMotion(int numberOfDimensions_ /* = 3 */)
 
   // For added mass cases we may want to extrapolate in time in the predictor instead of using the
   // equations of motion:
-  if( !dbase.has_key("useExtrapolationInPredictor") ) dbase.put<bool>("useExtrapolationInPredictor",false);
+  if( !dbase.has_key("useExtrapolationInPredictor") ) dbase.put<bool>("useExtrapolationInPredictor")=false;
   if( !dbase.has_key("orderOfExtrapolationPredictor") ) dbase.put<int>("orderOfExtrapolationPredictor");
   dbase.get<int>("orderOfExtrapolationPredictor")=-1;  // -1 means match to order of accuracy
   
   // For added mass cases we may want to return the acceleration (and angular acceleration) not computed
   // using the equations of motion but rather finite differences of the velocity (or angular velocity)
   if( !dbase.has_key("accelerationComputedByDifferencingVelocity") ) 
-    dbase.put<bool>("accelerationComputedByDifferencingVelocity",false);
+    dbase.put<bool>("accelerationComputedByDifferencingVelocity")=false;
 
 
+  if( !dbase.has_key("forcesInitialized") ) dbase.put<bool>("forcesInitialized")=false;
+
+  // For some AMP schemes we provide the acceleration
+  if( !dbase.has_key("accelerationProvided") ) dbase.put<bool>("accelerationProvided")=false;
+
+  // Counts number of accelerations provided:
+  if( !dbase.has_key("numberProvided") ) dbase.put<int>("numberProvided")=0;
+
+  // holds last stage for which accelerations have been provided:
+  if( !dbase.has_key("stageAccelerationProvided") ) dbase.put<int>("stageAccelerationProvided")=-1;
+
+  // useProvidedAcceleration : if true then use any provided acceleration
+  if( !dbase.has_key("useProvidedAcceleration") ) dbase.put<bool>("useProvidedAcceleration")=true;
+
+  
   logFile=NULL;
 
 }
@@ -167,15 +186,63 @@ RigidBodyMotion::
 void RigidBodyMotion::
 writeParameterSummary( FILE *file /* =stdout */ )
 {
+  const bool & useProvidedAcceleration = dbase.get<bool>("useProvidedAcceleration");
+
+  fPrintF(file,"--------------------------------------------------------------------\n");
   fPrintF(file,"------------------- Rigid body : %s -----------------------\n",(const char*)dbase.get<aString>("bodyName"));
-  fPrintF(file," mass=%9.3e, (I1,I2,I3)=(%8.2e,%8.2e,%8.2e)\n",mass,mI(0),mI(1),mI(2));
+  fPrintF(file," mass=%9.3e : mass of the body,\n"
+               " prinicpal moments of inertia: (I1,I2,I3)=(%8.2e,%8.2e,%8.2e)\n",mass,mI(0),mI(1),mI(2));
   if( density>=0 ) fPrintF(file," density=%9.3e\n",density);
-  fPrintF(file," includeAddedMass=%i, relaxCorrectionSteps=%i, \n"
-               " useExtrapolationInPredictor=%i, orderOfExtrapolationPredictor=%i\n",
+  fPrintF(file," includeAddedMass=%i : include added mass tensors from AMP scheme, \n"
+               " relaxCorrectionSteps=%i : under-relax correction steps: \n"
+               "   force : omega=%9.3e, tolerances: relative=%8.2e, absolute=%8.2e\n"
+               "   torque: omega=%9.3e, tolerances: relative=%8.2e, absolute=%8.2e\n"
+               " directProjectionAddedMass=%i, : use the direct-projection AMP scheme,\n"
+               " useProvidedAcceleration=%i  : use provided accelerations (e.g. from AMP scheme),\n"
+               " useExtrapolationInPredictor=%i, orderOfExtrapolationPredictor=%i\n"
+    	       " time-stepping= %s,\n"
+	       " order of accuracy= %i, twilight-zone=%i,\n"
+	       " number of past time values= %i\n",
 	  (int)dbase.get<bool>("includeAddedMass"),
 	  (int)relaxCorrectionSteps,
+	  correctionRelaxationParameterForce,correctionRelativeToleranceForce,correctionAbsoluteToleranceForce,
+          correctionRelaxationParameterTorque,correctionRelativeToleranceTorque,correctionAbsoluteToleranceTorque,
+          (int)dbase.get<bool>("directProjectionAddedMass"),(int)useProvidedAcceleration,
           (int)dbase.get<bool>("useExtrapolationInPredictor"),
-          dbase.get<int>("orderOfExtrapolationPredictor"));
+          dbase.get<int>("orderOfExtrapolationPredictor"),
+          (timeSteppingMethod==leapFrogTrapezoidal ? "Leap-frog predictor, Trapezodial corrector" :
+	   timeSteppingMethod==improvedEuler ? "Improved-Euler" :
+	   timeSteppingMethod==implicitRungeKutta ? "Implicit Runge-Kutta" : "unknown"),
+	  (int)twilightZone,
+          dbase.get<int>("orderOfAccuracy"),
+          dbase.get<int>("numberOfPastTimeValues")
+          );
+  if( bodyForceType==timePolynomialBodyForce )
+  {
+    if( max(abs(bodyForceCoeff))==0. )
+      fPrintF(file," No body force specified (gravity may be included by the fluid solver).\n");
+    else
+      fPrintF(file," Body force : time polynomial.\n");
+  }
+  else if( bodyForceType==timeFunctionBodyForce )
+  {
+    for( int n=0; n<6; n++ )
+    {
+      const char* timeFunctionName = ( n==0 ? "bodyForceX" : 
+                                       n==1 ? "bodyForceY" : 
+                                       n==2 ? "bodyForceZ" :
+                                       n==3 ? "bodyTorqueX" :
+                                       n==4 ? "bodyTorqueY" : 
+                                       n==5 ? "bodyTorqueZ" : "unknown" );
+      if( dbase.has_key(timeFunctionName) )
+      {
+        fPrintF(file," Body force : %s time function:\n",timeFunctionName);
+	TimeFunction & timeFunction = dbase.get<TimeFunction>(timeFunctionName);
+	timeFunction.display(file);  // print TimeFunction parameters
+	
+      }
+    }
+  } 
   fPrintF(file,"--------------------------------------------------------------------\n");
   
 }
@@ -692,6 +759,60 @@ setProperties(real totalMass,
   return 0;
 }
 
+// =================================================================================================
+/// \brief Get the added damping tensors. These should have be set using setAddedDampingTensors
+/// 
+/// \param addedDampingTensors(3,3,2,2) (output) : 4 3x3 tensors
+///    addedDampingTensors(0:2,0:2,0,0) : Dvv : coeff of linear velocity in linear velocity eqn.
+///    addedDampingTensors(0:2,0:2,0,1) : Dvw : coeff of angular velocity in linear velocity eqn.
+///    addedDampingTensors(0:2,0:2,1,0) : Dwv : coeff of linear velocity in angular velocity eqn.
+///    addedDampingTensors(0:2,0:2,1,1) : Dww : coeff of angular velocity in angular velocity eqn.
+///
+/// \return Returns 0 if tensors have been defined (normal return), otherwise returns 1;
+/// 
+/// \note The added damping tensors for viscous flow depend on the grid spacing near the body.
+///    Currently these added damping tensors are computed in the MovingGrids class which knows
+///    about the grids being used.
+// =================================================================================================
+int RigidBodyMotion::getAddedDampingTensors( RealArray & addedDampingTensors ) const
+{
+  if( !dbase.has_key("addedDampingTensors") ) 
+    return 1;  // tensors have not yet been defined
+  
+  addedDampingTensors = dbase.get<RealArray>("addedDampingTensors");
+
+  return 0;
+}
+
+// =================================================================================================
+/// \brief Set the added damping tensors.
+/// 
+/// \param addedDampingTensors(3,3,2,2) (input) : 4 3x3 tensors
+///    addedDampingTensors(0:2,0:2,0,0) : Dvv : coeff of linear velocity in linear velocity eqn.
+///    addedDampingTensors(0:2,0:2,0,1) : Dvw : coeff of angular velocity in linear velocity eqn.
+///    addedDampingTensors(0:2,0:2,1,0) : Dwv : coeff of linear velocity in angular velocity eqn.
+///    addedDampingTensors(0:2,0:2,1,1) : Dww : coeff of angular velocity in angular velocity eqn.
+/// 
+/// \note The added damping tensors for viscous flow depend on the grid spacing near the body.
+///    Currently these added damping tensors are computed in the MovingGrids class which knows
+///    about the grids being used.
+// =================================================================================================
+int RigidBodyMotion::setAddedDampingTensors( const RealArray & addedDampingTensors )
+{
+  if( !dbase.has_key("addedDampingTensors") ) 
+  {
+    RealArray & tensor = dbase.put<RealArray>("addedDampingTensors");
+    tensor.redim(3,3,2,2);
+  }
+  RealArray & tensor = dbase.get<RealArray>("addedDampingTensors");
+  tensor=addedDampingTensors;
+
+  return 0;
+}
+
+
+
+
 //\begin{>>RigidBodyMotionInclude.tex}{\subsection{centerOfMassHasBeenInitialized}}
 bool RigidBodyMotion::
 centerOfMassHasBeenInitialized() const 
@@ -803,6 +924,80 @@ setInitialConditions(real t0 /* = 0. */,
   
   return 0;
 }
+
+// =======================================================================================
+/// \brief Supply the acceleration to over-ride the default values (e.g. for AMP schemes).
+/// \param t0 (input) : time of the provided acceleration 
+/// \param vDot (input) : acceleration of the center of mass
+/// \param wDot (input) : acceleration of the angular velocity
+// =======================================================================================
+int RigidBodyMotion::
+setAcceleration( real t0, RealArray & vDot, RealArray & wDot )
+{
+  if( t0<0. )
+  {
+    printF("RigidBodyMotion::setAcceleration:WARNING: ignoring acceleration for t=%9.3e .\n",t0);
+    return 1;
+  }
+
+  if( numberOfSteps<0 )
+  {
+    printf("RigidBodyMotion::setAcceleration:ERROR:setInitialConditions should be called before setAcceleration.\n");
+    OV_ABORT("ERROR");
+  }
+  
+  const int next     = (current+1) % maximumNumberToSave;
+
+  // -- we set the acceleration at the current or next stage: 
+  int stageToSet=-1;
+  if( current==-1 )
+  { // this routine may be called before integrate
+    assert( t0==0. );
+    stageToSet=0;
+  }
+  else if( t0==time(current) )
+    stageToSet=current;
+  else if( t0==time(next) )
+    stageToSet=next;
+  else 
+  {
+    printf("RigidBodyMotion::setAcceleration:ERROR: t0=%6.2e != time(current)=%6.2e or time(next)=%6.2e ?\n",
+           t0,time(current),time(next));
+    OV_ABORT("error");
+  }
+  assert( stageToSet>=0 && stageToSet<maximumNumberToSave );
+  
+  bool & accelerationProvided = dbase.get<bool>("accelerationProvided");
+
+  // -- save the provided accelerations in the array accelerationProvided(0:5,next) 
+  if( !accelerationProvided && !dbase.has_key("timeProvided") )
+  {
+   RealArray & timeProvided = dbase.put<RealArray>("timeProvided");
+   RealArray & vDotProvided = dbase.put<RealArray>("vDotProvided");
+   timeProvided.redim(maximumNumberToSave);
+   timeProvided=-1.;
+   vDotProvided.redim(6,maximumNumberToSave); // save vDot and wDot here
+  }
+  accelerationProvided=true;  // this means that some accelerations have been set
+  int & numberProvided = dbase.get<int>("numberProvided");
+  numberProvided = min(numberProvided+1,maximumNumberToSave); // this is how many accelerations have been provided
+
+  RealArray & timeProvided = dbase.get<RealArray>("timeProvided");
+  RealArray & vDotProvided = dbase.get<RealArray>("vDotProvided");
+  int & stageAccelerationProvided = dbase.get<int>("stageAccelerationProvided"); // holds last stage provided
+  stageAccelerationProvided=stageToSet;
+  
+  timeProvided(stageToSet)=t0;
+  Range R3(0,2);
+  vDotProvided(R3  ,stageToSet) = vDot;
+  vDotProvided(R3+3,stageToSet) = wDot;
+
+  printF("--RBM-- setAcceleration: t0=%9.3e, vDot=(%9.2e,%9.2e,%9.2e) wDot=(%9.2e,%9.2e,%9.2e)\n",
+	 t0,vDot(0),vDot(1),vDot(2), wDot(0),wDot(1),wDot(2));
+  
+  return 0;
+}
+
 
 
 //\begin{>>RigidBodyMotionInclude.tex}{\subsection{momentumTransfer}} 
@@ -1768,7 +1963,11 @@ correct(real t,
   }
   else if( numberOfSteps==0 )
   {
-    // assign forces for t==0
+    // -------------------------------------------
+    // ---- assign forces for t==0 and RETURN ----
+    // -------------------------------------------
+    dbase.get<bool>("forcesInitialized")=true;
+    
     f(R,0)=force(R)+bodyForce(R);
     g(R,0)=torque(R)+bodyTorque(R);
     xCM(R)=x(R,0);
@@ -1783,7 +1982,9 @@ correct(real t,
     }
     
     applyConstraints( 0,applyConstraintsToForces );
+
     return 0;
+
   }
   
   assert( current>=0 );
@@ -1805,7 +2006,7 @@ correct(real t,
   }
   else
   {
-    // -- Leap-frog trapezoidal or Implicit RK --
+    // -- Corrector is Trapezoidal rule or Implicit RK --
  
     if( relaxCorrectionSteps )
     {
@@ -1815,11 +2016,11 @@ correct(real t,
       
 
       real fNorm = sqrt(sum(f(R,next)*f(R,next)));
-      real fDiff = max(fabs(force(R)-f(R,next)));
+      real fDiff = max(fabs(force(R)+bodyForce(R)-f(R,next)));
       real fDiffRelative = fDiff/max(1.e-5,fNorm);  // ****** note 1.e-5 -- FIX ME ---
 
       real gNorm = sqrt(sum(g(R,next)*g(R,next)));
-      real gDiff = max(fabs(torque(R)-g(R,next)));
+      real gDiff = max(fabs(torque(R)+bodyTorque(R)-g(R,next)));
       real gDiffRelative = gDiff/max(1.e-5,gNorm);  // ****** note 1.e-5 -- FIX ME ---
 
 
@@ -1839,7 +2040,7 @@ correct(real t,
 
       const real alpha=correctionRelaxationParameterForce; 
       const real beta =correctionRelaxationParameterTorque; 
-      if( debug & 2 )
+      if( true || debug & 2 )
       {
 	printF("RB:correct: relax force : t=%8.2e alpha=%8.2e: fDiff=%8.2e <? %8.2e or fDiff/fNorm=%8.2e <? %8.2e\n"
 	       "          : relax torque: t=%8.2e beta =%8.2e: gDiff=%8.2e <? %8.2e or gDiff/gNorm=%8.2e <? %8.2e\n"
@@ -2019,37 +2220,89 @@ takeStepLeapFrog( const real t0, const real dt )
   const int previous = (current-1+maximumNumberToSave) % maximumNumberToSave;
   const int next     = (current+1) % maximumNumberToSave;
 
-  RealArray A(R,R), Ai(R,R), Lambda(R,R), LambdaInverse(R,R), Omega(R,R), ea(R,R);
-  Lambda=0.;          // diagonal matrix that holds moment of inertial eigenvalues
-  LambdaInverse=0.;   // Inverse of Lambda
-  for( int j=0; j<3; j++ )
-  {
-    Lambda(j,j)=mI(j);
-    LambdaInverse(j,j)=1./mI(j);
-  }
+  const bool & accelerationProvided = dbase.get<bool>("accelerationProvided");
+  const bool & useProvidedAcceleration = dbase.get<bool>("useProvidedAcceleration");
+  const bool & overRideAcceleration = useProvidedAcceleration && accelerationProvided;
   
+  RealArray vDot(R), wDot(R);
+  if( overRideAcceleration )
+  {
+   // ============= ACCELERATION IS PROVIDED (e.g. from AMP scheme) =====
+    RealArray & timeProvided = dbase.get<RealArray>("timeProvided");
+    RealArray & vDotProvided = dbase.get<RealArray>("vDotProvided");
+
+    assert( timeProvided(current)==t0 );
+
+    printF("--RBM-LF-- t=%9.3e Provided: t0=%9.3e time=%9.3e, vDot=(%9.2e,%9.2e,%9.2e) wDot=(%9.2e,%9.2e,%9.2e)\n",
+	   t,t0,timeProvided(current),
+	   vDotProvided(0,current),vDotProvided(1,current),vDotProvided(2,current),
+	   vDotProvided(3,current),vDotProvided(4,current),vDotProvided(5,current));
+  
+    vDot(R)=vDotProvided(R,current);
+    Range Rw=R+3;
+    wDot(R)=vDotProvided(Rw,current);
+
+  }
+
+  RealArray A(R,R), Ai(R,R), Lambda(R,R), LambdaInverse(R,R), Omega(R,R), ea(R,R);
   RealArray fv(R), gv(R);
-  if( twilightZone )
+  if( !overRideAcceleration )
   {
-    ea = e(R,R,current);
-    A  = mult(ea,mult(Lambda,trans(ea)));
-    getForceInternal( t0,fv,gv,&A );
-  }
-  else
-  {
-    fv=f(R,current);
-    gv=g(R,current);
-  }
+    
+    Lambda=0.;          // diagonal matrix that holds moment of inertial eigenvalues
+    LambdaInverse=0.;   // Inverse of Lambda
+    for( int j=0; j<3; j++ )
+    {
+      Lambda(j,j)=mI(j);
+      LambdaInverse(j,j)=1./mI(j);
+    }
+  
+    if( twilightZone )
+    {
+      ea = e(R,R,current);
+      A  = mult(ea,mult(Lambda,trans(ea)));
+      getForceInternal( t0,fv,gv,&A );
+    }
+    else
+    {
+      fv=f(R,current);
+      gv=g(R,current);
+    }
       
 
-  RealArray vDot(R);
-  vDot(R)=fv/mass;
+    vDot(R)=fv/mass;
+  }
+  
+
+  // Check if the time-step has changed *wdh* 2016/01/16
+  const real dtOld = time(current)-time(previous);
+  bool variableTimeStep=false;
+  // when dt varies we use Adams-Bashforth
+  const real ab1= dt*(1.+dt/(2.*dtOld));  // becomes 1.5*dt  if dt==dtOld
+  const real ab2= -dt*dt/(2.*dtOld);      //         -.5*dt
+  if( numberOfSteps>1 && fabs(dt-dtOld) > 100.*REAL_EPSILON*dt )
+  {
+    variableTimeStep=true;
+    printF("--RBM--takeStepLeapFrog:INFO: time-step has changed! dt=%12.4e dtOld=%12.4e"
+	   " dt-dtOld=%8.2e ab1/dt=%4.2f ab2/dt=%4.2f \n",dt,dtOld,dt-dtOld,ab1/dt,ab2/dt);
+  }
+  // variableTimeStep=true; // ******* TEMP**** always use AB2 predictor
+  
+
+  
+  // For variable time-step we save old time values for the Leap-frog predictor
+  if( !dbase.has_key("vDotOld") ) dbase.put<RealArray>("vDotOld").redim(3);
+  if( !dbase.has_key("wDotOld") ) dbase.put<RealArray>("wDotOld").redim(3);
+  if( !dbase.has_key("eDotOld") ) dbase.put<RealArray>("eDotOld").redim(3,3);
+  RealArray & vDotOld = dbase.get<RealArray>("vDotOld");
+  RealArray & wDotOld = dbase.get<RealArray>("wDotOld");
+  RealArray & eDotOld = dbase.get<RealArray>("eDotOld");
 
   // NOTE: the v array is not used here in computing x, but is used in the corrector.
   if( numberOfSteps==2 )
   {
     // at t=dt we  recompute v(dt) = v(0)+ ( vDot(0)*dt + vDot(dt)*dt )*.5
-    v(R,current)=v(R,previous)+( v(R,current)-v(R,previous) + dt*vDot(R) )*.5;
+    v(R,current)=v(R,previous)+( v(R,current)-v(R,previous) + dtOld*vDot(R) )*.5; // note use dtOld *wdh* 2016/01/21
   }
   if( false )
   {
@@ -2057,6 +2310,13 @@ takeStepLeapFrog( const real t0, const real dt )
 	   v0(0),v0(1));
   }
   
+  if( true || debug & 1 )
+  {
+    printF("--RB-- LeapFrog: numberOfSteps=%i t=%9.2e x(cur)=[%9.3e,%9.3e] v(cur)=[%9.3e,%9.3e] \n",numberOfSteps,t0,
+	   x(0,current),x(1,current),v(0,current),v(1,current));
+  }
+  
+
   if( numberOfSteps==1 )
   {
     v(R,next)=v0(R)+dt*vDot(R); // this is only first order but is fixed at second step.
@@ -2066,7 +2326,17 @@ takeStepLeapFrog( const real t0, const real dt )
   {
     if( timeSteppingMethod==leapFrogTrapezoidal )
     {
-      v(R,next)=v(R,previous)+(2.*dt)*vDot(R);  // leap frog
+      if( !variableTimeStep )
+      {
+        v(R,next)=v(R,previous)+(2.*dt)*vDot(R);  // leap frog
+      }
+      else
+      { 
+        // when dt varies we use Adams-Bashforth
+        printF("--RB-- LeapFrog: USE AB2 at t=%9.3e\n",t);
+	v(R,next)=v(R,current) + ab1*vDot(R) + ab2*vDotOld(R);
+      }
+      
     }
     else if( timeSteppingMethod==improvedEuler )
     {
@@ -2076,8 +2346,17 @@ takeStepLeapFrog( const real t0, const real dt )
     {
       Overture::abort("error");
     }
-    // *wdh* 062306 -- add a damping factor      
-    x(R,next)=2.*x(R,current)-x(R,previous)+ (dt*dt)*( vDot(R) -damping*dt*(x(R,current)-x(R,previous)) );
+    // *wdh* 062306 -- add an optional damping factor      
+    if( !variableTimeStep )
+    {
+      x(R,next)=2.*x(R,current)-x(R,previous)+ (dt*dt)*( vDot(R) -damping*dt*(x(R,current)-x(R,previous)) );
+    }
+    else
+    { // variable dt: 
+      // we could also use: x = x + dt*v + .5*dt*dt*vDot 
+      x(R,next)=x(R,current) + .5*dt*( v(R,next) + v(R,current) );
+    }
+    
   }
   
   if( numberOfDimensions==2 )
@@ -2088,15 +2367,13 @@ takeStepLeapFrog( const real t0, const real dt )
 
   // xCM(R)=x(R,next);
 
-  RealArray wDot(R), eDot(R,R);
-  
+  RealArray eDot(R,R);
 
-  if( true )
+  if( !overRideAcceleration )
   {
-    // new way
+   
     //  h' = g, h =A*w,  A= E*Lambda*E^T, A^{-1} = E*Lambda^{-1}*E^T
     //  A * wDot = - Omega*A*w  + g 
-
     ea = e(R,R,current);
     A  = mult(ea,mult(Lambda,trans(ea)));
     Ai = mult(ea,mult(LambdaInverse,trans(ea)));  // A^{-1}
@@ -2104,24 +2381,11 @@ takeStepLeapFrog( const real t0, const real dt )
 
     wDot = mult( Ai, evaluate(- mult(Omega,mult(A,w(R,current))) + gv) );
   }
-  else
-  {
-    // old way
-    for( int axis=0; axis<3; axis++ )
-    {
-      const int axisp1=(axis+1) % 3;
-      const int axisp2=(axis+2) % 3;
-      wDot(axis)=( (mI(axisp1)-mI(axisp2))*w(axisp1,current)*w(axisp2,current) +
-		   gv(0)*e(0,axis,current)+
-		   gv(1)*e(1,axis,current)+
-		   gv(2)*e(2,axis,current) )/mI(axis);
-    }
-  }
-  
+ 
   if( numberOfSteps==2 )
   {
     // at t=dt we  recompute w(dt) = w(0)+ ( wDot(0)*dt + wDot(dt)*dt )*.5
-    w(R,current)=w(R,previous)+( w(R,current)-w(R,previous) + dt*wDot(R) )*.5;
+    w(R,current)=w(R,previous)+( w(R,current)-w(R,previous) + dtOld*wDot(R) )*.5; // note use dtOld *wdh* 2016/01/21
   }
 
   if( numberOfSteps==1 )
@@ -2130,9 +2394,42 @@ takeStepLeapFrog( const real t0, const real dt )
   }
   else
   {
-    w(R,next)=w(R,previous)+wDot(R)*(2.*dt); 
+    if( !variableTimeStep )
+    {
+      w(R,next)=w(R,previous)+wDot(R)*(2.*dt); // Leap frog 
+    }
+    else
+    {
+      // when dt varies we use Adams-Bashforth
+      w(R,next)=w(R,current) + ab1*wDot(R) + ab2*wDotOld(R);
+    }
+    
   }
   
+  if( accelerationProvided && !useProvidedAcceleration )
+  {
+    RealArray & timeProvided = dbase.get<RealArray>("timeProvided");
+    RealArray & vDotProvided = dbase.get<RealArray>("vDotProvided");
+
+    assert( timeProvided(current)==t0 );
+
+    printF("--RBM-LF-- torque=gv=(%8.2e,%8.2e,%8.2e), w=(%8.2e,%8.2e,%8.2e)\n",
+	   gv(0),gv(1),gv(2), w(0,current),w(1,current),w(2,current));
+    ::display(A,"A");
+    ::display(Ai,"Ai");
+    ::display(Omega,"Omega");
+    
+
+
+    printF("--RBM-LF-- vDot=(%8.2e,%8.2e,%8.2e), wDot=(%8.2e,%8.2e,%8.2e)  (t=%9.3e)\n"
+	   " provided: vDot=(%8.2e,%8.2e,%8.2e), wDot=(%8.2e,%8.2e,%8.2e) \n",        
+	   vDot(0),vDot(1),vDot(2),
+	   wDot(0),wDot(1),wDot(2), t,
+	   vDotProvided(0,current),vDotProvided(1,current),vDotProvided(2,current),
+	   vDotProvided(3,current),vDotProvided(4,current),vDotProvided(5,current));
+  }
+  
+
   // eDot =  w X e
   eDot(0,R)=w(1,current)*e(2,R,current)-w(2,current)*e(1,R,current);
   eDot(1,R)=w(2,current)*e(0,R,current)-w(0,current)*e(2,R,current);
@@ -2154,7 +2451,15 @@ takeStepLeapFrog( const real t0, const real dt )
   }
   else
   {
-    e(R,R,next)=e(R,R,previous)+eDot(R,R)*(2.*dt);
+    if( !variableTimeStep )
+    {
+      e(R,R,next)=e(R,R,previous)+eDot(R,R)*(2.*dt);  // Leap Frog 
+    }
+    else
+    {
+      e(R,R,next)=e(R,R,current)+ ab1*eDot(R,R) + ab2*eDotOld(R,R); // AB2 for variable dt
+    }
+    
   }
   
   if( numberOfDimensions==2 )
@@ -2188,6 +2493,14 @@ takeStepLeapFrog( const real t0, const real dt )
   applyConstraints( next,applyConstraintsToPosition );
 
 
+  // Save old values of vDot, wDot, eDot in case dt changes
+ 
+  vDotOld(R)=vDot(R);
+  wDotOld(R)=wDot(R);
+  eDotOld(R,R)=eDot(R,R);
+
+
+
   if( false )
   {
     printF("RigidBodyMotion:takeStepLeapFrog: t=%e, current=%i x(next)=(%6.2e,%6.2e,%6.2e), w(current)=(%6.2e,%6.2e,%6.2e)\n",
@@ -2219,81 +2532,134 @@ takeStepTrapezoid( const real t0, const real dt )
 
   const real t=t0+dt;
 
-  RealArray A(R,R), Ai(R,R), Lambda(R,R), LambdaInverse(R,R), Omega(R,R), ea(R,R);
-  Lambda=0.;          // diagonal matrix that holds moment of inertial eigenvalues
-  LambdaInverse=0.;   // Inverse of Lambda
-  for( int j=0; j<3; j++ )
+  RealArray eDot(R,R), eDotCurrent(R,R);
+
+  const bool & accelerationProvided = dbase.get<bool>("accelerationProvided");
+  const bool & useProvidedAcceleration = dbase.get<bool>("useProvidedAcceleration");
+  const bool & overRideAcceleration = useProvidedAcceleration && accelerationProvided;
+
+  RealArray vDot(R), wDot(R);
+
+  if( !overRideAcceleration )
   {
-    Lambda(j,j)=mI(j);
-    LambdaInverse(j,j)=1./mI(j);
-  }
+    // ---- COMPUTE FORCES IN THE USUAL WAY -----
 
-  RealArray fv(R), gv(R), fvn(R), gvn(R);
-  if( twilightZone )
-  { 
-    ea = e(R,R,current);
-    A  = mult(ea,mult(Lambda,trans(ea)));
-    getForceInternal( t0,fv,gv,&A );
-
-    ea = e(R,R,next);
-    A  = mult(ea,mult(Lambda,trans(ea)));
-    getForceInternal( t ,fvn,gvn,&A );
-  }
-  else
-  {
-    fv=f(R,current); gv=g(R,current);
-    fvn=f(R,next);   gvn=g(R,next);
-  }
-
-  v(R,next)=v(R,current) + .5*dt*( fv/mass + fvn/mass );
-
-  x(R,next)=x(R,current) + .5*dt*( v(R,next)+v(R,current) );
-  
-  RealArray wDot(R), wDotCurrent(R), eDot(R,R), eDotCurrent(R,R);
-  if( true )
-  {
-    // new way
-    //  h' = g, h =A*w,  A= E*Lambda*E^T, A^{-1} = E*Lambda^{-1}*E^T
-    //  A * wDot = - Omega*A*w  + g 
-
-    // -- first re-compute wDot for the current level
-    ea = e(R,R,current);
-    A  = mult(ea,mult(Lambda,trans(ea)));
-    Ai = mult(ea,mult(LambdaInverse,trans(ea)));  // A^{-1}
-    Omega = getCrossProductMatrix( w(R,current) );
-
-    wDotCurrent = mult( Ai, evaluate(- mult(Omega,mult(A,w(R,current))) + gv) );
-
-    // -- now compute wDot of for the next level
-    ea = e(R,R,next);
-    A  = mult(ea,mult(Lambda,trans(ea)));
-    Ai = mult(ea,mult(LambdaInverse,trans(ea)));  // A^{-1}
-    Omega = getCrossProductMatrix( w(R,next) );
-
-    wDot = mult( Ai, evaluate(- mult(Omega,mult(A,w(R,next))) + gvn) );
-
-  }
-  else
-  {
-    // *old way*
-
-    for( int axis=0; axis<3; axis++ )
+    RealArray A(R,R), Ai(R,R), Lambda(R,R), LambdaInverse(R,R), Omega(R,R), ea(R,R);
+    Lambda=0.;          // diagonal matrix that holds moment of inertial eigenvalues
+    LambdaInverse=0.;   // Inverse of Lambda
+    for( int j=0; j<3; j++ )
     {
-      const int axisp1=(axis+1) % 3;
-      const int axisp2=(axis+2) % 3;
-      wDot(axis)=( (mI(axisp1)-mI(axisp2))*w(axisp1,next)*w(axisp2,next) +
-		   gvn(0)*e(0,axis,next)+
-		   gvn(1)*e(1,axis,next)+
-		   gvn(2)*e(2,axis,next) )/mI(axis);
-    
-      wDotCurrent(axis)=( (mI(axisp1)-mI(axisp2))*w(axisp1,current)*w(axisp2,current)+
-			  gv(0)*e(0,axis,current)+
-			  gv(1)*e(1,axis,current)+ 
-			  gv(2)*e(2,axis,current) )/mI(axis);
+      Lambda(j,j)=mI(j);
+      LambdaInverse(j,j)=1./mI(j);
     }
-  }
+
+    RealArray fv(R), gv(R), fvn(R), gvn(R);
+    if( twilightZone )
+    { 
+      ea = e(R,R,current);
+      A  = mult(ea,mult(Lambda,trans(ea)));
+      getForceInternal( t0,fv,gv,&A );
+
+      ea = e(R,R,next);
+      A  = mult(ea,mult(Lambda,trans(ea)));
+      getForceInternal( t ,fvn,gvn,&A );
+    }
+    else
+    {
+      fv=f(R,current); gv=g(R,current);
+      fvn=f(R,next);   gvn=g(R,next);
+    }
+
+    vDot=fv/mass;
+
+    v(R,next)=v(R,current) + .5*dt*( fv/mass + fvn/mass );
+
+    x(R,next)=x(R,current) + .5*dt*( v(R,next)+v(R,current) );
   
-  w(R,next)=w(R,current)+.5*dt*( wDot(R)+wDotCurrent(R) );
+    RealArray wDotCurrent(R);
+    if( true )
+    {
+      // new way
+      //  h' = g, h =A*w,  A= E*Lambda*E^T, A^{-1} = E*Lambda^{-1}*E^T
+      //  A * wDot = - Omega*A*w  + g 
+
+      // -- first re-compute wDot for the current level
+      ea = e(R,R,current);
+      A  = mult(ea,mult(Lambda,trans(ea)));
+      Ai = mult(ea,mult(LambdaInverse,trans(ea)));  // A^{-1}
+      Omega = getCrossProductMatrix( w(R,current) );
+
+      wDotCurrent = mult( Ai, evaluate(- mult(Omega,mult(A,w(R,current))) + gv) );
+
+      // -- now compute wDot of for the next level
+      ea = e(R,R,next);
+      A  = mult(ea,mult(Lambda,trans(ea)));
+      Ai = mult(ea,mult(LambdaInverse,trans(ea)));  // A^{-1}
+      Omega = getCrossProductMatrix( w(R,next) );
+
+      wDot = mult( Ai, evaluate(- mult(Omega,mult(A,w(R,next))) + gvn) );
+
+    }
+    else
+    {
+      // *old way*
+
+      for( int axis=0; axis<3; axis++ )
+      {
+	const int axisp1=(axis+1) % 3;
+	const int axisp2=(axis+2) % 3;
+	wDot(axis)=( (mI(axisp1)-mI(axisp2))*w(axisp1,next)*w(axisp2,next) +
+		     gvn(0)*e(0,axis,next)+
+		     gvn(1)*e(1,axis,next)+
+		     gvn(2)*e(2,axis,next) )/mI(axis);
+    
+	wDotCurrent(axis)=( (mI(axisp1)-mI(axisp2))*w(axisp1,current)*w(axisp2,current)+
+			    gv(0)*e(0,axis,current)+
+			    gv(1)*e(1,axis,current)+ 
+			    gv(2)*e(2,axis,current) )/mI(axis);
+      }
+    }
+  
+    w(R,next)=w(R,current)+.5*dt*( wDot(R)+wDotCurrent(R) );
+
+  }
+  else
+  {
+    // ============= ACCELERATION IS PROVIDED (e.g. from AMP scheme) =====
+    RealArray & timeProvided = dbase.get<RealArray>("timeProvided");
+    RealArray & vDotProvided = dbase.get<RealArray>("vDotProvided");
+
+    assert( timeProvided(current)==t0 && timeProvided(next)==t );
+
+    printF("--RBM-TRAP-- Provided: t=%9.3e time=%9.3e, vDot=(%9.2e,%9.2e,%9.2e) wDot=(%9.2e,%9.2e,%9.2e)\n",
+	   t,timeProvided(next),
+	   vDotProvided(0,next),vDotProvided(1,next),vDotProvided(2,next),
+	   vDotProvided(3,next),vDotProvided(4,next),vDotProvided(5,next));
+  
+    v(R,next)=v(R,current) + .5*dt*( vDotProvided(R,current) + vDotProvided(R,next) );
+    x(R,next)=x(R,current) + .5*dt*( v(R,next)+v(R,current) );
+
+    Range Rw=R+3;
+    w(R,next)=w(R,current)+.5*dt*( vDotProvided(Rw,current) + vDotProvided(Rw,next) );
+  }
+
+  if( accelerationProvided && !useProvidedAcceleration )
+  {
+    RealArray & timeProvided = dbase.get<RealArray>("timeProvided");
+    RealArray & vDotProvided = dbase.get<RealArray>("vDotProvided");
+
+    assert( timeProvided(current)==t0 );
+
+     printF("--RBM-TP-- vDot=(%8.2e,%8.2e,%8.2e), wDot=(%8.2e,%8.2e,%8.2e)   (t=%9.3e)\n"
+            " provided: vDot=(%8.2e,%8.2e,%8.2e), wDot=(%8.2e,%8.2e,%8.2e) \n",        
+	    vDot(0),vDot(1),vDot(2),
+            wDot(0),wDot(1),wDot(2),  t,
+            vDotProvided(0,current),vDotProvided(1,current),vDotProvided(2,current),
+	    vDotProvided(3,current),vDotProvided(4,current),vDotProvided(5,current));
+  }
+
+
+
 
   // eDot =  w X e
   eDot(0,R)=w(1,next)*e(2,R,next)-w(2,next)*e(1,R,next);
@@ -2338,6 +2704,103 @@ takeStepTrapezoid( const real t0, const real dt )
   return 0;
 }
 
+// ============================================================================================
+/// \brief Return the "total force" (mass times acceleration) on the body 
+/// \param t (input) : time to evaluate the force
+/// \param mvDot (output) : mass*v_t 
+/// \param mOmegaDot (ouptut) : A*omega_t 
+// ============================================================================================
+int RigidBodyMotion::
+getMassTimesAcceleration( real t,
+			  RealArray & mvDot,
+			  RealArray & mOmegaDot )
+{
+  mvDot.redim(R);
+  mOmegaDot.redim(R);
+  if( current< 0 && t<=0. )
+  {
+    if( dbase.get<bool>("forcesInitialized") )
+    {
+      // -- The forces have been initialized by a call to correct at t=0 ---
+      if( t<0. )
+      {
+        printf("--RBM--getMassTimesAcceleration:WARNING: current<0 t=%9.3e : "
+               "setting mass*acceleration to t=0 value *FIX ME*\n",t);
+      }
+
+      mvDot = f(R,0);
+      mOmegaDot= g(R,0);// not correct if initial angular velocity is not zero : missing omega X (A omega) term ***
+    }
+    else
+    {
+      printf("--RBM--getMassTimesAcceleration:WARNING: current<0 t=%9.3e : setting mass*acceleration=0 *FIX ME*\n",t);
+      mvDot=0.; mOmegaDot=0.;
+      // mvDot(0) = (density-1.)*1.; // *FUDGE* GRAVITY TERM
+    }
+    
+
+    return 0;
+  }
+  
+  assert( current>=0 );
+  const int next     = (current+1) % maximumNumberToSave;
+
+  assert( current!=next );
+
+  // Linear interpolation in time:
+  real t1=time(next), t2=time(current);
+  real c1 = (t-t2)/(t1-t2);
+  real c2 = (t-t1)/(t2-t1);
+
+  RealArray A(R,R), Lambda(R,R), Omega(R,R), ea(R,R);
+  Lambda=0.;          // diagonal matrix that holds moment of inertial eigenvalues
+  for( int j=0; j<3; j++ )
+  {
+    Lambda(j,j)=mI(j);
+  }
+
+  RealArray fv(R), gv(R), fvn(R), gvn(R);
+  if( twilightZone )
+  { 
+    ea = e(R,R,current);
+    A  = mult(ea,mult(Lambda,trans(ea)));
+    getForceInternal( t2,fv,gv,&A );
+
+    ea = e(R,R,next);
+    A  = mult(ea,mult(Lambda,trans(ea)));
+    getForceInternal( t1,fvn,gvn,&A );
+  }
+  else
+  {
+    fv=f(R,current); gv=g(R,current);
+    fvn=f(R,next);   gvn=g(R,next);
+  }
+
+
+  mvDot= c1*fvn + c2*fv;
+
+  RealArray wDot(R), wDotCurrent(R);
+
+  //  h' = g, h =A*w,  A= E*Lambda*E^T, A^{-1} = E*Lambda^{-1}*E^T
+  //  A * wDot = - Omega*A*w  + g 
+
+  // -- first re-compute wDot for the current level
+  ea = e(R,R,current);
+  A  = mult(ea,mult(Lambda,trans(ea)));
+  Omega = getCrossProductMatrix( w(R,current) );
+  wDotCurrent = -mult(Omega,mult(A,w(R,current))) + gv;
+
+  // -- now compute wDot for the next level
+  ea = e(R,R,next);
+  A  = mult(ea,mult(Lambda,trans(ea)));
+  Omega = getCrossProductMatrix( w(R,next) );
+  wDot = -mult(Omega,mult(A,w(R,next))) + gvn;
+  
+
+  mOmegaDot = c1*wDot + c2*wDotCurrent;
+  
+  return 0;
+}
 
 
 // ============================================================================================
@@ -3057,9 +3520,12 @@ dirkImplicitSolve( const real dt, const real aii, const real tc, const RealArray
 /// \brief Turn on (or off) twilight-zone forcing.
 /// \param trueOrFalse (input) : turn on or off 
 /// \param type (input) : twilight-zone type
+/// \param degreeOfPoly (int) : degree of polynomial TZ solution
 // ============================================================================================
 int RigidBodyMotion::
-setTwilightZone( bool trueOrFalse, TwilightZoneTypeEnum type /*= trigonometricTwilightZone */   )
+setTwilightZone( bool trueOrFalse, 
+                 TwilightZoneTypeEnum type /*= trigonometricTwilightZone */, 
+                 int degreeOfPoly /* = 2 */   )
 {
   twilightZone=trueOrFalse;
   twilightZoneType=type;
@@ -3067,6 +3533,9 @@ setTwilightZone( bool trueOrFalse, TwilightZoneTypeEnum type /*= trigonometricTw
   if( !dbase.has_key("amp") ) dbase.put<RealArray>("amp");
   if( !dbase.has_key("freq") ) dbase.put<RealArray>("freq");
   if( !dbase.has_key("tOffset") ) dbase.put<RealArray>("tOffset");
+  if( !dbase.has_key("polyDegree") ) dbase.put<int>("polyDegree");
+
+  dbase.get<int>("polyDegree")=degreeOfPoly;
 
   RealArray & amp = dbase.get<RealArray>("amp");
   RealArray & freq = dbase.get<RealArray>("freq");
@@ -3103,8 +3572,41 @@ getExactSolution( const int deriv, const real t, RealArray & xe, RealArray & ve 
   {
     if( twilightZoneType ==polynomialTwilightZone )
     {
-      printF("getExactSolution:ERROR: polynomialTwilightZone -- finish me!\n");
-      OV_ABORT("ERROR");
+      const int polyDegree = dbase.get<int>("polyDegree");
+      assert( polyDegree<=3 ); // *fix me*
+      
+      const RealArray & amp = dbase.get<RealArray>("amp");
+
+      real c1=0, c2=0., c3=0.;
+      if( polyDegree>0 ) c1=1.;
+      if( polyDegree>1 ) c2=.5;
+      if( polyDegree>2 ) c3=.1;
+
+      if( deriv==0 )
+      {
+	for( int j=0; j<3; j++ )
+	{
+	  xe(j) = amp(j,0)*( 1. + c1*t + c2*t*t + c3*t*t*t );
+	  ve(j) = amp(j,0)*(      c1   +2.*c2*t + 3.*c3*t*t );
+	  we(j) = amp(j,1)*( 1. + .5*c1*t + .25*c2*t*t +.5*c3*t*t*t );
+	}
+	
+      }
+      else if( deriv==1 )
+      { // time derivative 
+	for( int j=0; j<3; j++ )
+	{
+	  xe(j) = amp(j,0)*( c1 + 2.*c2*t + 3.*c3*t*t );
+	  ve(j) = amp(j,0)*(      2.*c2   + 6.*c3*t );
+	  we(j) = amp(j,1)*( .5*c1 + .5*c2*t + 1.5*c3*t*t );
+	}
+      }
+      else
+      {
+	printF("getExactSolution:ERROR:polynomialTwilightZone: deriv=%d\n",deriv);
+	OV_ABORT("ERROR");
+      }
+
     }
     else if( twilightZoneType==trigonometricTwilightZone )
     {
@@ -3285,52 +3787,84 @@ setMass(const real totalMass )
 }
 
 
-//\begin{>>RigidBodyMotionInclude.tex}{\subsection{getMomentsOfInertia}} 
+// =======================================================================================
+// \brief Return the 3 principal moments of inertia.
+// 
+//=========================================================================================
 RealArray  RigidBodyMotion::
 getMomentsOfInertia() const
-// =======================================================================================
-// /Description:
-//    Return the 3 moments of inertia.
-// 
-//\end{RigidBodyMotionInclude.tex}  
-//=========================================================================================
 {
   return mI;
 }
 
-//\begin{>>RigidBodyMotionInclude.tex}{\subsection{getDensity}} 
+
 real RigidBodyMotion::
 getDensity() const
 // =======================================================================================
-// /Description:
-//    Return the density, if known. If not known return a negative value.
+/// \brief Return the density, if known. If not known return a negative value.
 // 
-//\end{RigidBodyMotionInclude.tex}  
 //=========================================================================================
 {
   return density;
 }
 
+//=========================================================================================
+/// \brief Return the value of the directProjectionAddedMass option 
+/// 
+/// directProjectionAddedMass : turn this on when using the direct projection scheme for
+/// coupling light-rigid bodies and incompressible flows.
+//=========================================================================================
+bool RigidBodyMotion::
+getDirectProjectionAddedMass() const
+{
+  return dbase.get<bool>("directProjectionAddedMass");
+}
 
 
-//\begin{>>RigidBodyMotionInclude.tex}{\subsection{getAxesOfInertia}} 
+// =======================================================================================
+/// \brief Return the axes of inertia at time t.
+/// /param t (input):
+/// /param axesOfInertia (output) : axes of inertia ("E" in notes) at time t.
+//=========================================================================================
 int RigidBodyMotion::
 getAxesOfInertia( real t, RealArray & axesOfInertia  ) const
-// =======================================================================================
-// /Description:
-//    Return the axes of inertia at time t.
-// /t (input):
-// /aCM (output) : axes of inertia at time t.
-// 
-//\end{RigidBodyMotionInclude.tex}  
-//=========================================================================================
 {
   if( axesOfInertia.getLength(0)<3 || axesOfInertia.getLength(1)<3 )
     axesOfInertia.redim(3,3);
 
-  return getCoordinates(t,Overture::nullRealArray(),Overture::nullRealArray(),Overture::nullRealArray(),Overture::nullRealArray(),Overture::nullRealArray(),Overture::nullRealArray(),
+  return getCoordinates(t,
+			Overture::nullRealArray(), // xCM
+			Overture::nullRealArray(), // vCM
+			Overture::nullRealArray(), // rotation
+			Overture::nullRealArray(), // omega
+			Overture::nullRealArray(), // omegaDot
+			Overture::nullRealArray(),// axesOfInertia
                         axesOfInertia); 
 }
+
+// =======================================================================================
+/// \brief Return the moment of inertia tensor at time t.
+/// /param t (input):
+/// /param momentOfInertiaTensor (output) : moment of inertia tensor ("A" in notes) at time t.
+//=========================================================================================
+int RigidBodyMotion::
+getMomentOfInertiaTensor( real t, RealArray & momentOfInertiaTensor  ) const
+{
+  if( momentOfInertiaTensor.getLength(0)<3 || momentOfInertiaTensor.getLength(1)<3 )
+    momentOfInertiaTensor.redim(3,3);
+
+  return getCoordinates(t,
+                        Overture::nullRealArray(), // xCM
+			Overture::nullRealArray(), // vCM
+			Overture::nullRealArray(), // rotation
+			Overture::nullRealArray(), // omega
+			Overture::nullRealArray(), // omegaDot
+			Overture::nullRealArray(), // aCM
+			Overture::nullRealArray(), // axesOfInertia
+                        momentOfInertiaTensor); 
+}
+
+
 
 //\begin{>>RigidBodyMotionInclude.tex}{\subsection{getAcceleration}} 
 int RigidBodyMotion::
@@ -3593,7 +4127,6 @@ getPointAcceleration( real t, const RealArray & p, RealArray & ap) const
 }
 
 
-//\begin{>>RigidBodyMotionInclude.tex}{\subsection{getCoordinates}}
 int RigidBodyMotion::
 getCoordinates( real t, 
 		RealArray & xCM      /* = Overture::nullRealArray() */, 
@@ -3602,35 +4135,35 @@ getCoordinates( real t,
 		RealArray & omega    /* = Overture::nullRealArray() */, 
 		RealArray & omegaDot /* = Overture::nullRealArray() */, 
 		RealArray & aCM      /* = Overture::nullRealArray() */,
-                RealArray & axesOfInertia /* = Overture::nullRealArray() */ ) const
+                RealArray & axesOfInertia /* = Overture::nullRealArray() */,
+                RealArray & momentOfInertiaTensor /* = Overture::nullRealArray() */ ) const
 // =======================================================================================
-// /Description:
-//     Return one or more 'coordinates' of the rigid body. This routine will interpolate (or extrapolate)
-//   existing values to obtain a value at time t.
+/// /brief Return one or more 'coordinates' of the rigid body. This routine will interpolate (or extrapolate)
+///   existing values to obtain a value at time t.
+///
+/// \param t (input) : return the coordinates at this time
+/// \param xCM (output) : if this array is dimensioned large enough then it will return the 
+///       position of the center of mass at time t.
+/// \param vCM (output) : if this array is dimensioned large enough then it will return the 
+///       position of the velocity of mass at time t.
+/// \param rotation (output) : (always 3x3) if this array is dimensioned then determine the
+///   rotation matrix for rotating the body from it's initial position.
+/// \param omega (output) : if this array is dimensioned large enough then it will return the 
+///       angular velocities. This array always
+///        has 3 components. For a 2d problem only omega(2) will be nonzero.
+/// \param omegaDot (output) : if this array is dimensioned large enough then it will return the 
+///       angular accelerations. This array always
+///        has 3 components. For a 2d problem only omega(2) will be nonzero.
+/// \param aCM (output) : acceleration of the centre of mass
+/// \param axesOfInertia (output) : axes of inertia "E"
+/// \param momentOfInertiaTensor (ouptut) : (always 3x3) moment of inertial tensor "A"
 //
-// /t (input) : return the coordinates at this time
-// /xCM (output) : if this array is dimensioned large enough then it will return the 
-//       position of the center of mass at time t.
-// /vCM (output) : if this array is dimensioned large enough then it will return the 
-//       position of the velocity of mass at time t.
-// /rotation (output) : (always 3x3) if this array is dimensioned then determine the
-//   rotation matrix for rotating the body from it's initial position.
-// /omega (output) : if this array is dimensioned large enough then it will return the 
-//       angular velocities. This array always
-//        has 3 components. For a 2d problem only omega(2) will be nonzero.
-// /omegaDot (output) : if this array is dimensioned large enough then it will return the 
-//       angular accelerations. This array always
-//        has 3 components. For a 2d problem only omega(2) will be nonzero.
-// /aCM (output) : acceleration of the centre of mass
-// /axesOfInertia (output) : axes of inertia
-// 
-//\end{RigidBodyMotionInclude.tex}  
 //=========================================================================================
 {
   if( numberSaved<0 )
   {
     printF("RigidBodyMotion::integrate:WARNING:setInitialConditions should be called first\n");
-    Overture::abort("error");
+    OV_ABORT("error");
   }
 
   // printf(" >>>RigidBodyMotion::getCoordinates: current=%i\n",current);
@@ -3690,8 +4223,19 @@ getCoordinates( real t,
   }
   
   if( xCM.getLength(0)>=3 )
+  { // center of mass:
     xCM(R)=(1.-alpha)*x(R,ip1)+alpha*x(R,i);
 
+    if( t<0. && numberSaved<1 ) // *wdh* 2015/11/28
+    {
+      // past-time values requested: (perhaps for a past time grid)
+      // estimate from the initial conditions
+      printF("RigidBodyMotion::getPosition:INFO xCM for past time t=%9.3e set using initial xCM and vCM.\n",t);
+      const real dt=t;
+      xCM(R)=x(R,i) + dt*v(R,i);
+    }
+  }
+  
   if( vCM.getLength(0)>=3 )
     vCM(R)=(1.-alpha)*v(R,ip1)+alpha*v(R,i);
 
@@ -3712,9 +4256,61 @@ getCoordinates( real t,
   if( omega.getLength(0)>=3 )
     omega(R)=(1.-alpha)*w(R,ip1)+alpha*w(R,i);
 
+  const bool & accelerationProvided = dbase.get<bool>("accelerationProvided");
+  const bool & useProvidedAcceleration = dbase.get<bool>("useProvidedAcceleration");
+  const bool & overRideAcceleration = useProvidedAcceleration && accelerationProvided;
+
   if( aCM.getLength(0)>=3 )
   {
-    if( !dbase.get<bool>("accelerationComputedByDifferencingVelocity") )
+    if( overRideAcceleration ) // *wdh* Dec 1, 2015.
+    {
+      // The acceleration has been provided:
+      const int & numberProvided = dbase.get<int>("numberProvided");
+      RealArray & timeProvided = dbase.get<RealArray>("timeProvided");
+      RealArray & vDotProvided = dbase.get<RealArray>("vDotProvided");
+
+      // -- here is the last stage that accelerations have been provided:
+      const int & stageAccelerationProvided = dbase.get<int>("stageAccelerationProvided"); 
+      assert( stageAccelerationProvided>=0 );
+
+      // Find smallest ipp1 such that  
+      //    t <= timeProvided(ipp1) 
+      // or 
+      //    timeProvided(ipp1) = closest value less than t 
+      int ipp1= stageAccelerationProvided; // start with the last value provided
+      for( int j=0; j<numberProvided-1; j++ )
+      {
+        int ipm1 = (ipp1-1 +maximumNumberToSave) % maximumNumberToSave; 
+	if( timeProvided(ipm1)>t )
+	  ipp1=ipm1;  // decrease ipp1
+	else
+	  break;
+      }
+      // ip = ipp1 -1 
+      int ip=numberProvided<=1 ? ipp1 : (ipp1-1 +maximumNumberToSave) % maximumNumberToSave;     
+
+      // linear interpolation or extrapolatin
+      const real beta  = ip==ipp1 ? 0. : (timeProvided(ipp1)-t)/max(REAL_MIN,timeProvided(ipp1)-timeProvided(ip));
+
+      aCM(R)= (1.-beta)*vDotProvided(R,ipp1)+beta*vDotProvided(R,ip);
+
+      if( logFile!=NULL )
+	fPrintF(logFile,"getAcceleration: t=%8.2e, mass=%8.2e, a-provided = (%6.2e,%6.2e,%6.2e), "
+		"ip=%i, ipp1=%i, beta=%7.1e times=[%9.3e,%9.3e] a1=[%9.3e,%9.3e] numberProvided=%i\n",
+                t,mass,aCM(0),aCM(1),aCM(2),ip,ipp1,beta,
+                timeProvided(ip),timeProvided(ipp1),vDotProvided(0,ip),vDotProvided(0,ipp1),numberProvided );
+
+      if( true )
+      {
+	printF("--RBM-- getAcceleration:  t=%8.2e, mass=%8.2e, a-provided = (%6.2e,%6.2e,%6.2e), "
+		"ip=%i, ipp1=%i, beta=%7.1e times=[%9.3e,%9.3e] a1=[%9.3e,%9.3e] numberProvided=%i \n",
+                t,mass,aCM(0),aCM(1),aCM(2),ip,ipp1,beta,
+	       timeProvided(ip),timeProvided(ipp1),vDotProvided(0,ip),vDotProvided(0,ipp1),numberProvided );
+
+      }
+      
+    }
+    else if( !dbase.get<bool>("accelerationComputedByDifferencingVelocity") )
     {
       // -- The acceleration is computed from the equations of motion --
       aCM(R)=((1.-alpha)*f(R,ip1)+alpha*f(R,i))/mass;
@@ -3782,122 +4378,162 @@ getCoordinates( real t,
     
   }
   
+  if( momentOfInertiaTensor.getLength(0)>=3 && momentOfInertiaTensor.getLength(1)>=3  )
+  {
+    // --- Moment of inertia tensor "A" ---
+
+    //  A= E*Lambda*E^T
+
+    RealArray ea(3,3), Lambda(3,3);
+    Lambda=0.;
+    Lambda(0,0)=mI(0); Lambda(1,1)=mI(1); Lambda(2,2)=mI(2);
+
+    // Get E at time t 
+    ea = (1.-alpha)*e(R,R,ip1)+alpha*e(R,R,i);          // *FIX ME* for higher order accuracy 
+	
+    momentOfInertiaTensor  = mult(ea,mult(Lambda,trans(ea)));
+  }
+      
+
   if( omegaDot.getLength(0)>=3 )
   {
-//      if( numberOfDimensions!=2 )
-//      {
-//        printf("RigidBodyMotion::getAngularAcceleration: not implemented yet in 3d\n");
-//        Overture::abort("error");
-//      }
-    
-    // angular-acceleration : 
+    // --- angular-acceleration ---
 
-    for( int axis=0; axis<3; axis++ )
+    if( overRideAcceleration ) // *wdh* Dec 1, 2015.
     {
-      const int axisp1=(axis+1) % 3;
-      const int axisp2=(axis+2) % 3;
-      if( true )
-      {
-	// *new way* 2012/01/16
+      // The acceleration has been provided:
+      RealArray & timeProvided = dbase.get<RealArray>("timeProvided");
+      RealArray & vDotProvided = dbase.get<RealArray>("vDotProvided");
+      const int & stageAccelerationProvided = dbase.get<int>("stageAccelerationProvided"); 
+      assert( stageAccelerationProvided>=0 );
+      int jp1=ip1;
+      if( jp1 !=  stageAccelerationProvided )   // fix me 
+        jp1=i;
 
-	//  h' = g, h =A*w,  A= E*Lambda*E^T, A^{-1} = E*Lambda^{-1}*E^T
-	//  A * wDot = - Omega*A*w  + g 
+      const real beta  = i==jp1 ? 0. : (timeProvided(jp1)-t)/max(REAL_MIN,timeProvided(jp1)-timeProvided(i));
 
-	RealArray ea(3,3), Lambda(3,3), A(3,3), Ai(3,3), Omega(3,3), wv(3), gv(3);
-	Lambda=0.;
-	Lambda(0,0)=mI(0); Lambda(1,1)=mI(1); Lambda(2,2)=mI(2);
+      Range Rw=R+3;
+      omegaDot(R)= (1.-beta)*vDotProvided(Rw,jp1)+beta*vDotProvided(Rw,i);
 
-        // Get E, w and g at time t 
-	ea = (1.-alpha)*e(R,R,ip1)+alpha*e(R,R,i);          // *FIX ME* for higher order accuracy 
-        wv = (1.-alpha)*w(R,  ip1)+alpha*w(R,  i);
-	gv = (1.-alpha)*g(R,  ip1)+alpha*g(R,  i);
-	
-	A  = mult(ea,mult(Lambda,trans(ea)));
-
-        Lambda(0,0)=1./mI(0); Lambda(1,1)=1./mI(1); Lambda(2,2)=1./mI(2); // LambdaInverse
-	Ai = mult(ea,mult(Lambda,trans(ea)));  // A^{-1}
-
-	Omega = getCrossProductMatrix( wv );
-
-	if( includeAddedMass )
-	{
-          // -- include added mass terms --
-	  RealArray A11(R,R), A12(R,R), A21(R,R), A22(R,R);
-	  getAddedMassMatrices( t, A11 , A12 , A21, A22 );
-
-          RealArray vv(3);
-          vv = (1.-alpha)*v(R,  ip1)+alpha*v(R,  i);
-          gv -= mult(A12,vv) + mult(A22,wv);
-	}
-	
-
-	omegaDot = mult( Ai, evaluate(- mult(Omega,mult(A,wv)) + gv) );
-
-      }
-      else
-      {
-	// *old way*
-	omegaDot(axis)=( 
-	  (1.-alpha)*( (mI(axisp1)-mI(axisp2))*w(axisp1,ip1)*w(axisp2,ip1)+
-		       g(0,ip1)*e(0,axis,ip1)+
-		       g(1,ip1)*e(1,axis,ip1)+
-		       g(2,ip1)*e(2,axis,ip1))
-	  +alpha *( (mI(axisp1)-mI(axisp2))*w(axisp1,i)*w(axisp2,i)+
-		    g(0,i)*e(0,axis,i)+
-		    g(1,i)*e(1,axis,i)+
-		    g(2,i)*e(2,axis,i))
-	  )/mI(axis);
-      }
-    }
-    if( dbase.get<bool>("accelerationComputedByDifferencingVelocity") )
-    {
-      // *NOTE* The torque, gv, is NOT correct in the added mass case since we are missing the z*vb term!
-
-      // Compute the angular acceleration from d(omega)/dt (since the moments of inertia may be zero)
-      RealArray dwdt(3);
-      real dt = time(ip1)-time(i);
-      if( dt > 0. )
-        dwdt=(w(R,ip1)-w(R,i))/dt;
-      else
-        dwdt=0.;
-      
-      if( false )
-      {
-	printF("RigidBodyMotion::getOmegaDot: t=%8.2e, mI=(%8.2e,%8.2e,%8.2e), wDot=(%6.2e,%6.2e,%6.2e)," 
-	       " dw/dt=(%6.2e,%6.2e,%6.2e)\n"
-	       " i=%i, ip1=%i, dt=%8.2e, current=%i, .. .USE dw/dt for addedMass case. \n",
-	       t,mI(0),mI(1),mI(2),omegaDot(0),omegaDot(1),omegaDot(2),dwdt(0),dwdt(1),dwdt(2),i,ip1,dt,current);
-      }
-      
       if( logFile!=NULL )
       {
 	fPrintF(logFile,
-                " getOmegaDot: t=%8.2e, wDot=(%6.2e,%6.2e,%6.2e), dw/dt=(%6.2e,%6.2e,%6.2e)\n"
-		"              mI=(%8.2e,%8.2e,%8.2e), i=%i, ip1=%i, dt=%8.2e, current=%i, .. .USE dw/dt for addedMass case. \n",
-		t,omegaDot(0),omegaDot(1),omegaDot(2),dwdt(0),dwdt(1),dwdt(2),mI(0),mI(1),mI(2),i,ip1,dt,current);
-      }
-      
-
-      real maxDwdt=max(fabs(dwdt));
-      real accelerationLimit=1.e6;  // *************************************** FIX ME ********************
-      if( maxDwdt>accelerationLimit )
-      {
-        dwdt=min(accelerationLimit,max(-accelerationLimit,dwdt));
-	printF("RigidBodyMotion::***** limiting the angular acceleration wDot to (%8.2e,%8.2e,%8.2e)\n",dwdt(0),dwdt(1),dwdt(2));
-      }
-
-      omegaDot=dwdt;  // ****************
-      
-    }
-    else
-    {
-      if( logFile!=NULL )
-      {
-	fPrintF(logFile,
-                " getOmegaDot: t=%8.2e, wDot=(%6.2e,%6.2e,%6.2e), mI=(%8.2e,%8.2e,%8.2e)\n",
+		" getOmegaDot: t=%8.2e, provided: wDot=(%6.2e,%6.2e,%6.2e), mI=(%8.2e,%8.2e,%8.2e)\n",
 		t,omegaDot(0),omegaDot(1),omegaDot(2),mI(0),mI(1),mI(2));
       }
+
     }
+    else 
+    {
+
+      for( int axis=0; axis<3; axis++ )
+      {
+	const int axisp1=(axis+1) % 3;
+	const int axisp2=(axis+2) % 3;
+	if( true )
+	{
+	  // *new way* 2012/01/16
+
+	  //  h' = g, h =A*w,  A= E*Lambda*E^T, A^{-1} = E*Lambda^{-1}*E^T
+	  //  A * wDot = - Omega*A*w  + g 
+
+	  RealArray ea(3,3), Lambda(3,3), A(3,3), Ai(3,3), Omega(3,3), wv(3), gv(3);
+	  Lambda=0.;
+	  Lambda(0,0)=mI(0); Lambda(1,1)=mI(1); Lambda(2,2)=mI(2);
+
+	  // Get E, w and g at time t 
+	  ea = (1.-alpha)*e(R,R,ip1)+alpha*e(R,R,i);          // *FIX ME* for higher order accuracy 
+	  wv = (1.-alpha)*w(R,  ip1)+alpha*w(R,  i);
+	  gv = (1.-alpha)*g(R,  ip1)+alpha*g(R,  i);
+	
+	  A  = mult(ea,mult(Lambda,trans(ea)));
+
+	  Lambda(0,0)=1./mI(0); Lambda(1,1)=1./mI(1); Lambda(2,2)=1./mI(2); // LambdaInverse
+	  Ai = mult(ea,mult(Lambda,trans(ea)));  // A^{-1}
+
+	  Omega = getCrossProductMatrix( wv );
+
+	  if( includeAddedMass )
+	  {
+	    // -- include added mass terms --
+	    RealArray A11(R,R), A12(R,R), A21(R,R), A22(R,R);
+	    getAddedMassMatrices( t, A11 , A12 , A21, A22 );
+
+	    RealArray vv(3);
+	    vv = (1.-alpha)*v(R,  ip1)+alpha*v(R,  i);
+	    gv -= mult(A12,vv) + mult(A22,wv);
+	  }
+	
+
+	  omegaDot = mult( Ai, evaluate(- mult(Omega,mult(A,wv)) + gv) );
+
+	}
+	else
+	{
+	  // *old way*
+	  omegaDot(axis)=( 
+	    (1.-alpha)*( (mI(axisp1)-mI(axisp2))*w(axisp1,ip1)*w(axisp2,ip1)+
+			 g(0,ip1)*e(0,axis,ip1)+
+			 g(1,ip1)*e(1,axis,ip1)+
+			 g(2,ip1)*e(2,axis,ip1))
+	    +alpha *( (mI(axisp1)-mI(axisp2))*w(axisp1,i)*w(axisp2,i)+
+		      g(0,i)*e(0,axis,i)+
+		      g(1,i)*e(1,axis,i)+
+		      g(2,i)*e(2,axis,i))
+	    )/mI(axis);
+	}
+      }
+      if( dbase.get<bool>("accelerationComputedByDifferencingVelocity") )
+      {
+	// *NOTE* The torque, gv, is NOT correct in the added mass case since we are missing the z*vb term!
+
+	// Compute the angular acceleration from d(omega)/dt (since the moments of inertia may be zero)
+	RealArray dwdt(3);
+	real dt = time(ip1)-time(i);
+	if( dt > 0. )
+	  dwdt=(w(R,ip1)-w(R,i))/dt;
+	else
+	  dwdt=0.;
+      
+	if( false )
+	{
+	  printF("RigidBodyMotion::getOmegaDot: t=%8.2e, mI=(%8.2e,%8.2e,%8.2e), wDot=(%6.2e,%6.2e,%6.2e)," 
+		 " dw/dt=(%6.2e,%6.2e,%6.2e)\n"
+		 " i=%i, ip1=%i, dt=%8.2e, current=%i, .. .USE dw/dt for addedMass case. \n",
+		 t,mI(0),mI(1),mI(2),omegaDot(0),omegaDot(1),omegaDot(2),dwdt(0),dwdt(1),dwdt(2),i,ip1,dt,current);
+	}
+      
+	if( logFile!=NULL )
+	{
+	  fPrintF(logFile,
+		  " getOmegaDot: t=%8.2e, wDot=(%6.2e,%6.2e,%6.2e), dw/dt=(%6.2e,%6.2e,%6.2e)\n"
+		  "              mI=(%8.2e,%8.2e,%8.2e), i=%i, ip1=%i, dt=%8.2e, current=%i, .. .USE dw/dt for addedMass case. \n",
+		  t,omegaDot(0),omegaDot(1),omegaDot(2),dwdt(0),dwdt(1),dwdt(2),mI(0),mI(1),mI(2),i,ip1,dt,current);
+	}
+      
+
+	real maxDwdt=max(fabs(dwdt));
+	real accelerationLimit=1.e6;  // *************************************** FIX ME ********************
+	if( maxDwdt>accelerationLimit )
+	{
+	  dwdt=min(accelerationLimit,max(-accelerationLimit,dwdt));
+	  printF("RigidBodyMotion::***** limiting the angular acceleration wDot to (%8.2e,%8.2e,%8.2e)\n",dwdt(0),dwdt(1),dwdt(2));
+	}
+
+	omegaDot=dwdt;  // ****************
+      
+      }
+      else
+      {
+	if( logFile!=NULL )
+	{
+	  fPrintF(logFile,
+		  " getOmegaDot: t=%8.2e, wDot=(%6.2e,%6.2e,%6.2e), mI=(%8.2e,%8.2e,%8.2e)\n",
+		  t,omegaDot(0),omegaDot(1),omegaDot(2),mI(0),mI(1),mI(2));
+	}
+      }
+
+    } // end angular acceleration
     
 
   }
@@ -4075,6 +4711,23 @@ get( const GenericDataBase & dir, const aString & name)
   subDir.get(temp,"timeSteppingMethod");   timeSteppingMethod=(TimeSteppingMethodEnum)temp;
   subDir.get( dbase.get<aString>("bodyName"),"bodyName");
   
+  // *new* Dec 8, 2015: include recently added variables *wdh*
+  subDir.get( dbase.get<bool>("forcesInitialized"),"forcesInitialized");
+  subDir.get( dbase.get<bool>("accelerationProvided"),"accelerationProvided");
+  subDir.get( dbase.get<int>("stageAccelerationProvided"),"stageAccelerationProvided");
+  subDir.get( dbase.get<bool>("useProvidedAcceleration"),"useProvidedAcceleration");
+  if( dbase.get<bool>("accelerationProvided") )
+  {
+    if( !dbase.has_key("timeProvided") )
+    {
+      RealArray & timeProvided = dbase.put<RealArray>("timeProvided");
+      RealArray & vDotProvided = dbase.put<RealArray>("vDotProvided");
+    }
+    subDir.get( dbase.get<RealArray>("timeProvided"),"timeProvided");
+    subDir.get( dbase.get<RealArray>("vDotProvided"),"vDotProvided");
+  }
+
+
   // printf(" >>>RigidBodyMotion::get: current=%i\n",current);
 
   delete &subDir;
@@ -4160,6 +4813,26 @@ put( GenericDataBase & dir, const aString & name) const
   subDir.put(timeSteppingMethod,"timeSteppingMethod"); 
 
   subDir.put( dbase.get<aString>("bodyName"),"bodyName");
+
+  // *new* Dec 8, 2015: include recently added variables *wdh*
+  subDir.put( dbase.get<bool>("forcesInitialized"),"forcesInitialized");
+  subDir.put( dbase.get<bool>("accelerationProvided"),"accelerationProvided");
+  subDir.put( dbase.get<int>("stageAccelerationProvided"),"stageAccelerationProvided");
+  subDir.put( dbase.get<bool>("useProvidedAcceleration"),"useProvidedAcceleration");
+  if( dbase.get<bool>("accelerationProvided") )
+  {
+    if( !dbase.has_key("timeProvided") )
+    {
+      RealArray & timeProvided = dbase.put<RealArray>("timeProvided");
+      RealArray & vDotProvided = dbase.put<RealArray>("vDotProvided");
+      timeProvided.redim(maximumNumberToSave);
+      timeProvided=-1.;
+      vDotProvided.redim(6,maximumNumberToSave); // save vDot and wDot here
+    }
+
+    subDir.put( dbase.get<RealArray>("timeProvided"),"timeProvided");
+    subDir.put( dbase.get<RealArray>("vDotProvided"),"vDotProvided");
+  }
 
   delete &subDir;
   return 0;  
@@ -4363,6 +5036,10 @@ update( GenericGraphicsInterface & gi )
   int & orderOfExtrapolationPredictor = dbase.get<int>("orderOfExtrapolationPredictor");
 
   bool & accelerationComputedByDifferencingVelocity = dbase.get<bool>("accelerationComputedByDifferencingVelocity");
+  bool & directProjectionAddedMass = dbase.get<bool>("directProjectionAddedMass");
+
+  // useProvidedAcceleration : if true then use any provided acceleration
+  bool & useProvidedAcceleration = dbase.get<bool>("useProvidedAcceleration");
   
   aString answer,answer2;
   char buff[80];
@@ -4423,6 +5100,8 @@ update( GenericGraphicsInterface & gi )
                           "added mass",
  			  "use extrapolation in predictor",
 			  "acceleration from differences",
+                          "direct projection added mass",
+                          "use provided acceleration",
 			  ""};
   int tbState[10];
 
@@ -4430,6 +5109,8 @@ update( GenericGraphicsInterface & gi )
   tbState[1] = dbase.get<bool>("includeAddedMass");
   tbState[2] = useExtrapolationInPredictor;
   tbState[3] = accelerationComputedByDifferencingVelocity;
+  tbState[4] = directProjectionAddedMass;
+  tbState[5] = useProvidedAcceleration;
   int numColumns=1;
   dialog.setToggleButtons(tbCommands, tbCommands, tbState, numColumns);
 
@@ -4794,6 +5475,16 @@ update( GenericGraphicsInterface & gi )
         dialog.setToggleState("acceleration from differences",accelerationComputedByDifferencingVelocity);
       }
       
+    }
+    else if( dialog.getToggleValue(answer,"direct projection added mass",directProjectionAddedMass) )
+    {
+      printF("directProjectionAddedMass=%i : turn this on when using the direct projection scheme for\n"
+	     " coupling light-rigid bodies and incompressible flows\n",(int)directProjectionAddedMass);
+    }
+    else if( dialog.getToggleValue(answer,"use provided acceleration",useProvidedAcceleration) )
+    {
+      printF("useProvidedAcceleration=%i : turn this on to use any provided accelerations (e.g. from AMP schemes)\n",
+	     (int)useProvidedAcceleration);
     }
     else if( dialog.getToggleValue(answer,"use extrapolation in predictor",useExtrapolationInPredictor) )
     {

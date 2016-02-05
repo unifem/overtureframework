@@ -31,7 +31,10 @@ Changes:
    o 2015/09/09 - it is now possible to append results to existing show files. For example,
                   when restarting a run the new results can be appended to the previously
                   created show file(s). Choose the "append" option when opening a show file.
-                
+   o 2015/11/15 - the grid plotter can now plot any negative volumes that may exist on grids.
+                  The 'grid quality' button can also be used to print a list of negative volumes.
+   o 2015/12/18 - fixed the tolerance used to merge NurbsMapping's -- was too big in general.
+                  New dialog GUI for the NurbsMapping with better plotting options.
 
 ==============================================================================================
 Overture.v26 - released August 1, 2015

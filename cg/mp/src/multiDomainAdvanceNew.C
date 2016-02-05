@@ -122,7 +122,8 @@ multiDomainAdvanceNew( real &t, real & tFinal )
       // --- project initial conditions --- 
       // Sometimes we need to iterate on the initial conditions to be self-consistent such as
       // with the pressure for INS + SM). 
-            projectInitialConditions();
+            std::vector<int> gfIndex(numberOfDomains,current); // ** fix this ** get gfIndex from each domain solver
+            projectInitialConditions(t,dt, gfIndex);
         }
         else
         {

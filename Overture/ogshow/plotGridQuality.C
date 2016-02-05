@@ -7,6 +7,8 @@
 #include "OGPolyFunction.h"
 #include "OGTrigFunction.h"
 #include "gridFunctionNorms.h"
+#include "GridStatistics.h"
+
 
 using namespace std;
 
@@ -131,13 +133,21 @@ plotGridQuality( GenericGraphicsInterface & gi,
   dialog.addOptionMenu("analytic solution:", opCmd2,opLabel2,(int)twilightZoneOption);
 
 
-//    aString pushButtonCommands[] = {"plot xr",
-//                                    "plot xrr",
-//                                    "plot skewness",
-//                                    "erase",
-//  				  ""};
-//    int numRows=4;
-//    dialog.setPushButtons(pushButtonCommands,  pushButtonCommands, numRows ); 
+  aString pushButtonCommands[] = {"check for negative volumes",
+  				  ""};
+  int numRows=1;
+  dialog.setPushButtons(pushButtonCommands,  pushButtonCommands, numRows ); 
+
+  bool checkActivePoints=true;
+  bool printNegativeVolumes=true;
+  aString tbCommands[] = {"check active grid points",
+                          "print negative volumes",
+			  ""};
+  int tbState[10];
+  tbState[0] = checkActivePoints;
+  tbState[1] = printNegativeVolumes;
+  int numColumns=1;
+  dialog.setToggleButtons(tbCommands, tbCommands, tbState, numColumns); 
 
 
   // ----- Text strings ------
@@ -214,6 +224,30 @@ plotGridQuality( GenericGraphicsInterface & gi,
       sScanF(answer(len,answer.length()-1),"%e %e %e",&fx,&fy,&fz);
       dialog.setTextLabel("fx, fy, fz",sPrintF("%f %f %f",fx,fy,fz));
     }
+
+    else if( dialog.getToggleValue(answer,"check active grid points",checkActivePoints) )
+    {
+      if( checkActivePoints )
+	printF("checkActivePoints=true : check for negative volumes only on active points, mask != 0\n");
+      else
+	printF("checkActivePoints=false : check for negative volumes at all points.\n");
+    }
+
+    else if( dialog.getToggleValue(answer,"print negative volumes",printNegativeVolumes) )
+    {
+      if( printNegativeVolumes )
+	printF("printNegativeVolumes=true : print negative volumes with option `check for negative volumes'.\n");
+      else
+	printF("printNegativeVolumes=false : do NOT print negative volumes with option  `check for negative volumes'\n");
+    }
+
+    else if( answer.matches("check for negative volumes") )
+    {
+      GridStatistics::checkForNegativeVolumes(gc,numberOfGhostPointsToCheck,stdout,checkActivePoints,
+                                              printNegativeVolumes );
+    }
+    
+
     else if( (len=answer.matches("plot quality for grid")) )
     {
       int gridToPlot=-1;

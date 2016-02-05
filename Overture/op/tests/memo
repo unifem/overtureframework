@@ -1,3 +1,20 @@
+****** Oct 11-12, 14 2015.
+
+--- Neumann:
+
+tcmConstraint square8.order2.hdf -neumann
+
+tcmConstraint square8.order2.hdf -neumann -debug=63 >! junk
+
+---- Dirichlet OK: 
+
+tcmConstraint square8.order2.hdf -dirichlet -debug=63 >! junk
+
+tcmConstraint square8.order2.hdf -dirichlet
+
+
+
+
 ****** July 1, 2015
 
 mpirun -np 4 tcm3 square32.order2.hdf -solver=petsc -testCommunicator

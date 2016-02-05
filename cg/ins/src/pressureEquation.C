@@ -313,83 +313,124 @@ solveForTimeIndependentVariables( GridFunction & cgf, bool updateSolutionDepende
 
   // if( myid==0 ) printf(" ** after pressure solve 2b\n"); 
 
-    if( debug() & 4 )
-    {
-        fPrintF(debugFile," After pressure solve: compatibilityConstraint=%i, numberOfExtraEquations = %i\n",
-          	    poisson->getCompatibilityConstraint(),poisson->numberOfExtraEquations);
-        if( poisson->getCompatibilityConstraint() )
-        {
-            real value=0.;
-            poisson->getExtraEquationValues( p(),&value );
 
-//       int ne,i1e,i2e,i3e,gride;
-//       poisson->equationToIndex( poisson->extraEquationNumber(0),ne,i1e,i2e,i3e,gride);
-//       if( myid==0 )
-//         fprintf(debugFile," After pressure solve: value of constraint = %e\n",p()[gride](i1e,i2e,i3e));
-            fPrintF(debugFile," After pressure solve: value of constraint = %e\n",value);
+  // --------------------------------------------------------------------------------------------
+  // --- check the solution to the constraint equations in the pressure equation ----
+  // --------------------------------------------------------------------------------------------
+  //   (1) mean pressure (if the pressure equation is singular)
+  //   (2) Rigid body added mass equations. 
 
-
-        }
-    }
-
-  // if( myid==0 ) printf(" ** after pressure solve 3\n"); 
-
-    if( poisson->getCompatibilityConstraint() )
-    {
-    // The solver may have trouble satisfying the compatability constraint (true for yale and ins/annulus.tz)
-    // so we explicitly enforce it here by just shifting the solution by a constant 
-    // *** note that we over-write the value of the constraint, p[gride](i1e,i2e,i3e)
-        if( true )
-        {
-            real nullVectorDotP=0., sumOfNullVector=0.;
-            poisson->evaluateExtraEquation(p(),nullVectorDotP,sumOfNullVector);    
-      //   "   ***not enforcing compatibility constraint for parallel *** FIX THIS *** \n",nullVectorDotP);
-
-            real constraintValue;
-            poisson->getExtraEquationValues(pressureRightHandSide, &constraintValue );
-
-            if( debug() & 4 )
-            {
-      	printF("solveForTimeIndepVarsINS INFO: nullVectorDotP=%14.9g, "
-             	       "constraintValue=%g, diff=%g,  sumOfNullVector=%g \n",
-             	       nullVectorDotP,constraintValue,fabs(nullVectorDotP-constraintValue),sumOfNullVector);
-            }
-            
-            for( int grid=0; grid<cg.numberOfComponentGrids(); grid++ )
-            {
-      	getIndex(cg[grid].dimension(),I1,I2,I3);
-      	realSerialArray pLocal; getLocalArrayWithGhostBoundaries(p()[grid],pLocal);
-      	bool ok = ParallelUtility::getLocalArrayBounds(p()[grid],pLocal,I1,I2,I3);
-      	if( !ok ) continue;
-            
-      	pLocal+=(constraintValue-nullVectorDotP)/(max(1.,sumOfNullVector));
-            }
-        }
-        else
-        {
-      // old way
-            real nullVectorDotP=0., sumOfNullVector=0.;
-            for( int grid=0; grid<cg.numberOfComponentGrids(); grid++ )
-            {
-      	getIndex(cg[grid].dimension(),I1,I2,I3);
-      	nullVectorDotP+=sum(poisson->rightNullVector[grid](I1,I2,I3)*p()[grid](I1,I2,I3));
-      	sumOfNullVector+=sum(poisson->rightNullVector[grid](I1,I2,I3));
-            }
-            int ne,i1e,i2e,i3e,gride;
-            poisson->equationToIndex( poisson->extraEquationNumber(0),ne,i1e,i2e,i3e,gride);
-
-            if( debug() & 2 )
-            {
-      	real diff=nullVectorDotP-pressureRightHandSide[gride](i1e,i2e,i3e);
-      	if( myid==0 )
-        	  fprintf(debugFile,"After solve: compatibility sum(null*p)= %14.10e,  nullVectorDotP-rhs=%e \n",
-              		  nullVectorDotP,diff);
-            }
+    checkPressureConstraintValues( cgf );
         
-            p()+=(pressureRightHandSide[gride](i1e,i2e,i3e)-nullVectorDotP)/(max(1.,sumOfNullVector));
-        }
+//   else
+//   {
+//     // *************** THIS CODE MOVED TO THE ABOVE ROUTINE **************
+//     //--START--
 
-    }
+//     if( debug() & 4 )
+//     {
+//       fPrintF(debugFile," After pressure solve: compatibilityConstraint=%i, numberOfExtraEquations = %i\n",
+// 	      poisson->getCompatibilityConstraint(),poisson->numberOfExtraEquations);
+//       if( poisson->getCompatibilityConstraint() )
+//       {
+// 	real value=0.;
+// 	poisson->getExtraEquationValues( p(),&value );
+
+// //       int ne,i1e,i2e,i3e,gride;
+// //       poisson->equationToIndex( poisson->extraEquationNumber(0),ne,i1e,i2e,i3e,gride);
+// //       if( myid==0 )
+// //         fprintf(debugFile," After pressure solve: value of constraint = %e\n",p()[gride](i1e,i2e,i3e));
+// 	fPrintF(debugFile," After pressure solve: value of constraint = %e\n",value);
+
+
+//       }
+//     }
+
+//     // --- check values at constraint equations for added-mass rigid body solve
+//     const bool & useAddedMassAlgorithm = parameters.dbase.get<bool>("useAddedMassAlgorithm");
+//     if( useAddedMassAlgorithm )
+//     {
+//       const int numberOfExtraEquations = poisson->numberOfExtraEquations;
+//       if( numberOfExtraEquations>1 ) // AMP scheme will have more than 1 extra equation
+//       {
+// 	// ===== Get solutions to constraint equations =======
+// 	real *constraintValues = new real [numberOfExtraEquations];
+      	
+// 	poisson->getExtraEquationValues( u, constraintValues );  
+// 	for( int i=0; i<numberOfExtraEquations; i++ )
+// 	{ // NOTE constraintValues are in reverse order
+// 	  printF("--INS-STI-- After pressure solve: extraEquation: i=%i : constraint value=%10.3e\n",i,constraintValues[numberOfExtraEquations-i-1]);
+// 	}
+
+// 	delete [] constraintValues;
+//       }
+        
+
+//     }
+    
+
+//     // if( myid==0 ) printf(" ** after pressure solve 3\n"); 
+
+//     if( poisson->getCompatibilityConstraint() )
+//     {
+//       // The solver may have trouble satisfying the compatability constraint (true for yale and ins/annulus.tz)
+//       // so we explicitly enforce it here by just shifting the solution by a constant 
+//       // *** note that we over-write the value of the constraint, p[gride](i1e,i2e,i3e)
+//       if( true )
+//       {
+// 	real nullVectorDotP=0., sumOfNullVector=0.;
+// 	poisson->evaluateExtraEquation(p(),nullVectorDotP,sumOfNullVector);    
+// 	//   "   ***not enforcing compatibility constraint for parallel *** FIX THIS *** \n",nullVectorDotP);
+
+// 	real constraintValue;
+// 	poisson->getExtraEquationValues(pressureRightHandSide, &constraintValue );
+
+// 	if( debug() & 4 )
+// 	{
+// 	  printF("solveForTimeIndepVarsINS INFO: nullVectorDotP=%14.9g, "
+// 		 "constraintValue=%g, diff=%g,  sumOfNullVector=%g \n",
+// 		 nullVectorDotP,constraintValue,fabs(nullVectorDotP-constraintValue),sumOfNullVector);
+// 	}
+            
+// 	for( int grid=0; grid<cg.numberOfComponentGrids(); grid++ )
+// 	{
+// 	  getIndex(cg[grid].dimension(),I1,I2,I3);
+// 	  realSerialArray pLocal; getLocalArrayWithGhostBoundaries(p()[grid],pLocal);
+// 	  bool ok = ParallelUtility::getLocalArrayBounds(p()[grid],pLocal,I1,I2,I3);
+// 	  if( !ok ) continue;
+            
+// 	  pLocal+=(constraintValue-nullVectorDotP)/(max(1.,sumOfNullVector));
+// 	}
+//       }
+//       else
+//       {
+// 	// old way
+// 	real nullVectorDotP=0., sumOfNullVector=0.;
+// 	for( int grid=0; grid<cg.numberOfComponentGrids(); grid++ )
+// 	{
+// 	  getIndex(cg[grid].dimension(),I1,I2,I3);
+// 	  nullVectorDotP+=sum(poisson->rightNullVector[grid](I1,I2,I3)*p()[grid](I1,I2,I3));
+// 	  sumOfNullVector+=sum(poisson->rightNullVector[grid](I1,I2,I3));
+// 	}
+// 	int ne,i1e,i2e,i3e,gride;
+// 	poisson->equationToIndex( poisson->extraEquationNumber(0),ne,i1e,i2e,i3e,gride);
+
+// 	if( debug() & 2 )
+// 	{
+// 	  real diff=nullVectorDotP-pressureRightHandSide[gride](i1e,i2e,i3e);
+// 	  if( myid==0 )
+// 	    fprintf(debugFile,"After solve: compatibility sum(null*p)= %14.10e,  nullVectorDotP-rhs=%e \n",
+// 		    nullVectorDotP,diff);
+// 	}
+        
+// 	p()+=(pressureRightHandSide[gride](i1e,i2e,i3e)-nullVectorDotP)/(max(1.,sumOfNullVector));
+//       }
+
+//     }
+
+//     // ----------- END
+//   }
+    
     if( debug() & 8 )
         p().display("After solve: here is the pressure",debugFile,"%10.7f "); // "%8.1e ");
     if( debug() & 4 )
@@ -485,66 +526,105 @@ assignPressureRHS( GridFunction & gf0, realCompositeGridFunction & f )
         assignPressureRHS( grid, gf0,f );
     }
 
-    if( poisson->getCompatibilityConstraint() )
-    { 
-     // ---- Set the value of the compatibility equation for the pressure ---
+  // --- set the right-hand-side values of the constraint equations in the pressure equation ----
+  //   (1) mean pressure (if the pressure equation is singular)
+  //   (2) Rigid body added mass equations. 
+    setPressureConstraintValues( gf0,f );
 
-        if( debug() & 4 ) 
-              printF("))) assignPressureRHS: set compatibility constraint for singular problem solver=%s (((\n",
-                                (const char*)getName() );
+  // {
+  //   // *************** THIS CODE MOVED TO THE ABOVE ROUTINE **************
+  //   // -----START
 
-        const int & pc = parameters.dbase.get<int >("pc");
+  //   // --- check values at constraint equations for added-mass rigid body solve
+  //   const bool & useAddedMassAlgorithm = parameters.dbase.get<bool>("useAddedMassAlgorithm");
+  //   if( useAddedMassAlgorithm )
+  //   {
+  //     const int numberOfExtraEquations = poisson->numberOfExtraEquations;
+  //     if( numberOfExtraEquations>1 ) // RBINS AMP scheme will have more than 1 extra equation
+  //     {
+  // 	real *value= new real[numberOfExtraEquations];
+  // 	for( int i=0; i<numberOfExtraEquations; i++ ){ value[i]=0.; }  // NOTE constraintValues are in reverse order
 
-        real value=0.; // default value
+  // 	// RBINS-AMP FINISH ME: 
+  // 	// Compute rigid-body "internal force"  
+  // 	//     mb*a = Fi   (a=linear accleration)
+  // 	//     Mb*b = Ti   (b=angular acceleration)
+  // 	// Compute inviscid force and torque (from pressure only)
+  // 	// Set RHS to contraints:
+  // 	//   mb a - INT ( p nv) ds      =  Fi - Fp
+  // 	//   Mb b - INT ( r X p nv) ds  =  Ti - Tp
 
-        const Parameters::KnownSolutionsEnum & knownSolution = 
-            parameters.dbase.get<Parameters::KnownSolutionsEnum >("knownSolution");
+
+  // 	poisson->setExtraEquationValues( f,value );
+
+  // 	delete [] value;
+  //     }
+  //   }
+    
+
+  //   if( poisson->getCompatibilityConstraint() )
+  //   { 
+  //     // ---- Set the value of the compatibility equation for the pressure ---
+
+  //     if( debug() & 4 ) 
+  // 	printF("))) assignPressureRHS: set compatibility constraint for singular problem solver=%s (((\n",
+  // 	       (const char*)getName() );
+
+  //     const int & pc = parameters.dbase.get<int >("pc");
+
+  //     real value=0.; // default value
+
+  //     const Parameters::KnownSolutionsEnum & knownSolution = 
+  // 	parameters.dbase.get<Parameters::KnownSolutionsEnum >("knownSolution");
 
 
-        if( twilightZoneFlow ||
-                knownSolution!=InsParameters::noKnownSolution )
-        {
-      // For TZ: the RHS for the constraint equation is the dot product of the constraint equation
-      //         with the exact solution
-            Range all;
-            realCompositeGridFunction ue(gf0.cg,all,all,all,Range(pc,pc));
+  //     if( twilightZoneFlow ||
+  // 	  knownSolution!=InsParameters::noKnownSolution )
+  //     {
+  // 	// For TZ: the RHS for the constraint equation is the dot product of the constraint equation
+  // 	//         with the exact solution
+  // 	Range all;
+  // 	realCompositeGridFunction ue(gf0.cg,all,all,all,Range(pc,pc));
 
-            if( twilightZoneFlow )
-            {
-        // --- evaluate the TZ solution for the pressure ---
-      	parameters.dbase.get<OGFunction* >("exactSolution")->assignGridFunction(ue,t0);
-            }
-            else if( knownSolution!=InsParameters::noKnownSolution )
-            {
-        // --- evaluate the known solution so we can set the pressure constraint --- *wdh* 2013/09/28 
-                realCompositeGridFunction & uKnown = parameters.getKnownSolution(cg,t0);
-      	for( int grid=0; grid<cg.numberOfComponentGrids(); grid++ )
-      	{
-                    OV_GET_SERIAL_ARRAY(real,ue[grid],ueLocal);
-                    OV_GET_SERIAL_ARRAY_CONST(real,uKnown[grid],uKnownLocal);
+  // 	if( twilightZoneFlow )
+  // 	{
+  // 	  // --- evaluate the TZ solution for the pressure ---
+  // 	  parameters.dbase.get<OGFunction* >("exactSolution")->assignGridFunction(ue,t0);
+  // 	}
+  // 	else if( knownSolution!=InsParameters::noKnownSolution )
+  // 	{
+  // 	  // --- evaluate the known solution so we can set the pressure constraint --- *wdh* 2013/09/28 
+  // 	  realCompositeGridFunction & uKnown = parameters.getKnownSolution(cg,t0);
+  // 	  for( int grid=0; grid<cg.numberOfComponentGrids(); grid++ )
+  // 	  {
+  // 	    OV_GET_SERIAL_ARRAY(real,ue[grid],ueLocal);
+  // 	    OV_GET_SERIAL_ARRAY_CONST(real,uKnown[grid],uKnownLocal);
         	  
-        	  ueLocal(all,all,all,pc)=uKnownLocal(all,all,all,pc);
-      	}
-            }
-            else
-            {
-      	OV_ABORT("Unknown option");
-            }
+  // 	    ueLocal(all,all,all,pc)=uKnownLocal(all,all,all,pc);
+  // 	  }
+  // 	}
+  // 	else
+  // 	{
+  // 	  OV_ABORT("Unknown option");
+  // 	}
             
-      // real value2;
-            poisson->evaluateExtraEquation(ue,value);
-      // printF("assignPressureRHS: compatibility constraint: value=%g value2=%g diff=%g\n",value,value2,fabs(value-value2));
-            if( debug() & 4 ) printF("assignPressureRHS: compatibility constraint: exact value=%14.9g \n",value);
-        }
+  // 	// real value2;
+  // 	poisson->evaluateExtraEquation(ue,value);
+  // 	// printF("assignPressureRHS: compatibility constraint: value=%g value2=%g diff=%g\n",value,value2,fabs(value-value2));
+  // 	if( debug() & 4 ) printF("assignPressureRHS: compatibility constraint: exact value=%14.9g \n",value);
+  //     }
         
-        poisson->setExtraEquationValues(f,&value );  // new way
+  //     poisson->setExtraEquationValues(f,&value );  // new way
 
-    //     if( debug() & 4 )
-    //       fprintf(debugFile,"compatibility rhs f[%i](%i,%i,%i)= %14.10e \n",
-    //            gride,i1e,i2e,i3e,f[gride](i1e,i2e,i3e));
+  //     //     if( debug() & 4 )
+  //     //       fprintf(debugFile,"compatibility rhs f[%i](%i,%i,%i)= %14.10e \n",
+  //     //            gride,i1e,i2e,i3e,f[gride](i1e,i2e,i3e));
 
-    }
+  //   }
 
+  //   // ---- END
+  // }
+    
 
   //    if( debug() & 32 )
   //      f.display("assignPressureRHS and solve : here is the rhs for the pressure equation",
@@ -657,13 +737,6 @@ void assignPressureRHSOpt(const int&nd,
 //\begin{>>MappedGridSolverInclude.tex}{\subsection{assignPressureRHS}} 
 void Cgins::
 assignPressureRHS( const int grid, GridFunction & gf0, realCompositeGridFunction & f0 )
-// void Cgins::
-// assignPressureRHS(const int & grid, 
-// 		  MappedGrid & c,
-// 		  realMappedGridFunction & u0, 
-// 		  realMappedGridFunction & f,
-// 		  realMappedGridFunction & gridVelocity, 
-// 		  const real & t0 ) 
 //======================================================================
 // /Description:
 //  Assign the right hand side for the pressure equation
@@ -1092,6 +1165,7 @@ assignPressureRHS( const int grid, GridFunction & gf0, realCompositeGridFunction
             {
       	switch (c.boundaryCondition(side,axis))
       	{
+          // do nothing in these cases:
       	case InsParameters::outflow:
       	case InsParameters::convectiveOutflow:
       	case InsParameters::tractionFree:
@@ -1101,6 +1175,7 @@ assignPressureRHS( const int grid, GridFunction & gf0, realCompositeGridFunction
       	case Parameters::axisymmetric:
       	case Parameters::freeSurfaceBoundaryCondition:
         	  break;
+
       	default:
       	{
 	  // add n.( -u.t) for moving grids or time dependent BC's

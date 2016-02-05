@@ -10,6 +10,8 @@ FSRCO += interfaceCnsSm.f
 
 src/multiDomainAdvanceNew.C : src/multiDomainAdvanceNew.bC; $(BPP) -quiet -clean $<
 
+src/projectInitialConditions.C : src/projectInitialConditions.bC; $(BPP) -quiet -clean $<
+
 
 # we need to add these explicitly since the implicit rule for %.bf doesn't work for some reason (?)
 src/interfaceCnsSm.f : src/interfaceCnsSm.bf; $(BPP) -quiet -clean -I$(Overture)/include $<

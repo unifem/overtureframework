@@ -80,96 +80,165 @@ createMappings( MappingInformation & mapInfo )
   assert(mapInfo.graphXInterface!=NULL);
   GenericGraphicsInterface & gi = *mapInfo.graphXInterface;
     
+  // --------------------------------------
+  // ----- Create Mappings Main Menu ------
+  // --------------------------------------
+
+  real triangleResolutionFactor=1.;
+
+  GUIState dialog;
+  dialog.setWindowTitle("Create Mappings");
+  dialog.setExitCommand("exit", "exit");
+
+  // aString opCmd[] =   {"parameterize by chord length",
+  //  		       "parameterize by index (uniform)",
+  //  		       ""}; //
+  // int parOption =  (parameterizationType==parameterizeByChordLength ? 0 : 
+  //  		    parameterizationType==parameterizeByIndex ? 1 : 2);
+  // dialog.addOptionMenu("1D Mappings:", opCmd,opCmd,parOption);
+
+
+  aString cmds[] = {"1D Mappings...",
+                    "2D Mappings...",
+                    "3D Mappings...",
+                    "transform Mappings...",
+                    "builder...",
+                    "view Mappings...",
+                    "read from a file...",
+                    "save to a file...",
+                    "edit a mapping...",
+                    "copy a mapping",
+                    "delete a mapping",
+                    "check mapping",
+                    "plot mapping quality",
+                    "help",
+		    ""};
+
+  int numberOfPushButtons=0;;  // number of entries in cmds
+  while( cmds[numberOfPushButtons] != "" ){ numberOfPushButtons++; } //  count number of commands
+  int numRows=(numberOfPushButtons+1)/2;
+  dialog.setPushButtons( cmds, cmds, numRows ); 
+
+  // aString tbCommands[] = {"plot control points",
+  //                         "plot curve",
+  //                         "plot sub curves",
+  //                         "plot points on curves",
+  //                         "use robust inverse",
+  // 			  ""};
+  // int tbState[10];
+  // tbState[0] = plotControlPoints;
+  // tbState[1] = plotCurve;
+  // tbState[2] = plotSubCurves;
+  // tbState[3] = plotPointsOnCurves;
+  
+  // int numColumns=3;
+  // dialog.setToggleButtons(tbCommands, tbCommands, tbState, numColumns);
+
+  const int numberOfTextStrings=5;  // max number allowed
+  aString textLabels[numberOfTextStrings];
+  aString textStrings[numberOfTextStrings];
+
+  int nt=0;
+  textLabels[nt] = "debug:";  sPrintF(textStrings[nt],"%i",Mapping::debug);  nt++; 
+  textLabels[nt] = "triangulation factor:";  sPrintF(textStrings[nt],"%g",triangleResolutionFactor);  nt++; 
+  // textLabels[nt] = "debug:";  sPrintF(textStrings[nt],"%i",debug);  nt++; 
+
+  // null strings terminal list
+  textLabels[nt]="";   textStrings[nt]="";  assert( nt<numberOfTextStrings );
+  dialog.setTextBoxes(textLabels, textLabels, textStrings);
+
+  // *old* popup
+
   aString answer,answer2;
   aString menu[] = {
                     "!create mappings",
                     "help",
-                    ">1D Mappings",
-                    "line",
-                    "stretching function",
-                    "spline (1D)",
-                    "<>2D Mappings",
-                    "airfoil",
-                    "annulus",
-                    "circle or ellipse",
-                    "dataPointMapping",
-                    "filamentMapping",
-                    "line (2D)",
-                    "nurbs (curve)",
-                    "quadratic (curve)",
-                    "rectangle",
-                    "rocket (2D)",
-                    "polynomial",
-                    "smoothedPolygon",
-                    "spline",
-                    "tfi",
-                    "unstructured",
-                    "<>3D Mappings",
-                    "box",
-                    "cylinder",
-                    "circle or ellipse (3D)",
-                    "composite surface",
-                    "crossSection",
-                    "dataPointMapping",
-                    "line (3D)",
-                    "lofted surface",
-                    "nurbs (surface)",
-                    "plane or rhombus",
-                    "quadratic (surface)",
-                    "rocket (3D)",
-                    "sphere",
-                    "spline (3D)",
-                    "tfi",
-                    "unstructured",
-                    "<>transform",
-                    "body of revolution",
-                    "build trimmed mapping",
-#ifndef OV_BUILD_MAPPING_LIBRARY
-                    "elliptic",
-#endif
-                    "fillet",
-                    "depth mapping",
-                    "hyperbolic",
-                    "intersection",
-                    "join",
-                    "mapping from normals",
-                    "offset shell",
-                    "reparameterize",
-                    "reduce domain dimension",
-                    "rotate/scale/shift",
-                    "stretch coordinates",
-                    "sweep",
-                    "trimmed mapping",
-                    "<builder",
+//                     ">1D Mappings",
+//                     "line",
+//                     "stretching function",
+//                     "spline (1D)",
+//                     "<>2D Mappings",
+//                     "airfoil",
+//                     "annulus",
+//                     "circle or ellipse",
+//                     "dataPointMapping",
+//                     "filamentMapping",
+//                     "line (2D)",
+//                     "nurbs (curve)",
+//                     "quadratic (curve)",
+//                     "rectangle",
+//                     "rocket (2D)",
+//                     "polynomial",
+//                     "smoothedPolygon",
+//                     "spline",
+//                     "tfi",
+//                     "unstructured",
+//                     "<>3D Mappings",
+//                     "box",
+//                     "cylinder",
+//                     "circle or ellipse (3D)",
+//                     "composite surface",
+//                     "crossSection",
+//                     "dataPointMapping",
+//                     "line (3D)",
+//                     "lofted surface",
+//                     "nurbs (surface)",
+//                     "plane or rhombus",
+//                     "quadratic (surface)",
+//                     "rocket (3D)",
+//                     "sphere",
+//                     "spline (3D)",
+//                     "tfi",
+//                     "unstructured",
+//                     "<>transform",
+//                     "body of revolution",
+//                     "build trimmed mapping",
+// #ifndef OV_BUILD_MAPPING_LIBRARY
+//                     "elliptic",
+// #endif
+//                     "fillet",
+//                     "depth mapping",
+//                     "hyperbolic",
+//                     "intersection",
+//                     "join",
+//                     "mapping from normals",
+//                     "offset shell",
+//                     "reparameterize",
+//                     "reduce domain dimension",
+//                     "rotate/scale/shift",
+//                     "stretch coordinates",
+//                     "sweep",
+//                     "trimmed mapping",
+//                    "<builder",
                     "user defined 1",
-                    ">change",
-                    "change a mapping",
-                    "copy a mapping",
-                    "delete a mapping",
-                    "<>data base",
+//                    ">change",
+		    //  "change a mapping",
+                    // "copy a mapping",
+                    // "delete a mapping",
+                    ">data base",
 		    "open a data-base",
 		    "get from the data-base",
 		    "get all mappings from the data-base",
 		    "put to the data-base",
 		    "close the data-base",
-                    "<>read from file",
-                      "read plot3d file",
-                      "read iges file",
-                      "read overlapping grid file",
-                      "read grids from a show file",
-		      "read ingrid style file",
-		      "read ply polygonal file",
-  		      "read stl file",
-		      "read rap model",
-                    "<>save to a file",
-                      "save plot3d file",
-		      "save ingrid file",
-                    "<view mappings",
-                    "check mapping",
-                    "plot mapping quality",
-                    ">parameters",
-		      "debug",
-  		      "resolution factor for triangulations",
+                    // "<>read from file",
+                    //   "read plot3d file",
+                    //   "read iges file",
+                    //   "read overlapping grid file",
+                    //   "read grids from a show file",
+		    //   "read ingrid style file",
+		    //   "read ply polygonal file",
+  		    //   "read stl file",
+		    //   "read rap model",
+                    // "<>save to a file",
+                    //   "save plot3d file",
+		    //   "save ingrid file",
+                    // "<view mappings",
+                    // "check mapping",
+                    // "plot mapping quality",
+                    // ">parameters",
+		    //   "debug",
+  		    //   "resolution factor for triangulations",
                     "<open graphics",
                     "get geometric properties",
 		    "erase",
@@ -235,6 +304,159 @@ createMappings( MappingInformation & mapInfo )
 		    "exit this menu",
                     "" };
 
+  dialog.buildPopup(menu);
+
+  dialog.addInfoLabel("See popup menu for more options.");
+
+  // --- Build the sibling dialog for 1D Mappings ---
+  DialogData & mappings1D = dialog.getDialogSibling();
+  mappings1D.setWindowTitle("1D Mappings");
+  mappings1D.setExitCommand("close 1D Mappings", "close");
+  if( true )
+  {
+    aString cmds[] = {"line",
+		      "stretching function",
+		      "spline (1D)",
+		      ""};
+
+    numberOfPushButtons=0;;  // number of entries in cmds
+    while( cmds[numberOfPushButtons] != "" ){ numberOfPushButtons++; } //  count number of commands
+    numRows=(numberOfPushButtons+1)/2;
+    mappings1D.setPushButtons( cmds, cmds, numRows );
+  }
+  
+  // --- Build the sibling dialog for 2D Mappings ---
+  DialogData & mappings2D = dialog.getDialogSibling();
+  mappings2D.setWindowTitle("2D Mappings");
+  mappings2D.setExitCommand("close 2D Mappings", "close");
+  if( true )
+  {
+    aString cmds[] = {"airfoil",
+		      "annulus",
+		      "circle or ellipse",
+		      "dataPointMapping",
+		      "filamentMapping",
+		      "line (2D)",
+		      "nurbs (curve)",
+		      "quadratic (curve)",
+		      "rectangle",
+		      "rocket (2D)",
+		      "polynomial",
+		      "smoothedPolygon",
+		      "spline",
+		      "tfi",
+		      "unstructured",
+		      ""};
+
+    numberOfPushButtons=0;;  // number of entries in cmds
+    while( cmds[numberOfPushButtons] != "" ){ numberOfPushButtons++; } //  count number of commands
+    numRows=(numberOfPushButtons+1)/2;
+    mappings2D.setPushButtons( cmds, cmds, numRows );
+  }
+  
+  // --- Build the sibling dialog for 3D Mappings ---
+  DialogData & mappings3D = dialog.getDialogSibling();
+  mappings3D.setWindowTitle("3D Mappings");
+  mappings3D.setExitCommand("close 3D Mappings", "close");
+  if( true )
+  {
+    aString cmds[] = {"box",
+		      "cylinder",
+		      "circle or ellipse (3D)",
+		      "composite surface",
+		      "crossSection",
+		      "dataPointMapping",
+		      "line (3D)",
+		      "lofted surface",
+		      "nurbs (surface)",
+		      "plane or rhombus",
+		      "quadratic (surface)",
+		      "rocket (3D)",
+		      "sphere",
+		      "spline (3D)",
+		      "tfi",
+		      "unstructured",
+		      ""};
+
+    numberOfPushButtons=0;;  // number of entries in cmds
+    while( cmds[numberOfPushButtons] != "" ){ numberOfPushButtons++; } //  count number of commands
+    numRows=(numberOfPushButtons+1)/2;
+    mappings3D.setPushButtons( cmds, cmds, numRows );
+  }
+  
+  // --- Build the sibling dialog for Transform Mappings ---
+  DialogData & mappingsTransform = dialog.getDialogSibling();
+  mappingsTransform.setWindowTitle("Transform Mappings");
+  mappingsTransform.setExitCommand("close Transform Mappings", "close");
+  if( true )
+  {
+    aString cmds[] = {"body of revolution",
+                    "build trimmed mapping",
+                    #ifndef OV_BUILD_MAPPING_LIBRARY
+                      "elliptic",
+                    #endif
+                    "fillet",
+                    "depth mapping",
+                    "hyperbolic",
+                    "intersection",
+                    "join",
+                    "mapping from normals",
+                    "offset shell",
+                    "reparameterize",
+                    "reduce domain dimension",
+                    "rotate/scale/shift",
+                    "stretch coordinates",
+                    "sweep",
+                    "trimmed mapping",
+		      ""};
+
+    numberOfPushButtons=0;;  // number of entries in cmds
+    while( cmds[numberOfPushButtons] != "" ){ numberOfPushButtons++; } //  count number of commands
+    numRows=(numberOfPushButtons+1)/2;
+    mappingsTransform.setPushButtons( cmds, cmds, numRows );
+  }
+
+  // --- Build the sibling dialog for read from a file commands ---
+  DialogData & readFromAFileDialog = dialog.getDialogSibling();
+  readFromAFileDialog.setWindowTitle("Read Mappings From a File");
+  readFromAFileDialog.setExitCommand("close Read Mappings From a File", "close");
+  if( true )
+  {
+    aString cmds[] = {"read plot3d file",
+                      "read iges file",
+                      "read overlapping grid file",
+                      "read grids from a show file",
+		      "read ingrid style file",
+		      "read ply polygonal file",
+  		      "read stl file",
+		      "read rap model",
+		      ""};
+
+    numberOfPushButtons=0;;  // number of entries in cmds
+    while( cmds[numberOfPushButtons] != "" ){ numberOfPushButtons++; } //  count number of commands
+    numRows=(numberOfPushButtons+1)/2;
+    readFromAFileDialog.setPushButtons( cmds, cmds, numRows );
+  }
+
+  // --- Build the sibling dialog for saving Mappings to a file ---
+  DialogData & saveToAFileDialog = dialog.getDialogSibling();
+  saveToAFileDialog.setWindowTitle("Save Mappings To a File");
+  saveToAFileDialog.setExitCommand("close Save Mappings To a File", "close");
+  if( true )
+  {
+    aString cmds[] = {"save plot3d file",
+		      "save ingrid file",
+		      ""};
+
+    numberOfPushButtons=0;;  // number of entries in cmds
+    while( cmds[numberOfPushButtons] != "" ){ numberOfPushButtons++; } //  count number of commands
+    numRows=(numberOfPushButtons+1)/2;
+    saveToAFileDialog.setPushButtons( cmds, cmds, numRows );
+  }
+
+  gi.pushGUI(dialog);
+
+
   HDF_DataBase root;
   bool dataBaseIsOpen=FALSE;
   // ** don't do this here ** 980218 initializeMappingList();
@@ -246,9 +468,45 @@ createMappings( MappingInformation & mapInfo )
 
   for(;;)
   {
-    gi.getMenuItem(menu,answer);
+  
+    gi.getAnswer(answer,"");
 
-    if( answer=="Airfoil" || answer=="airfoil" )
+    // gi.getMenuItem(menu,answer);
+
+    if( answer=="1D Mappings..." )
+      mappings1D.showSibling();
+    else if( answer=="close 1D Mappings" )
+      mappings1D.hideSibling();
+
+    else if( answer=="2D Mappings..." )
+      mappings2D.showSibling();
+    else if( answer=="close 2D Mappings" )
+      mappings2D.hideSibling();
+
+    else if( answer=="3D Mappings..." )
+      mappings3D.showSibling();
+    else if( answer=="close 3D Mappings" )
+      mappings3D.hideSibling();
+
+    else if( answer=="transform Mappings..." )
+      mappingsTransform.showSibling();
+    else if( answer=="close Transform Mappings" )
+      mappingsTransform.hideSibling();
+
+    else if( answer=="read from a file..." )
+      readFromAFileDialog.showSibling();
+    else if( answer=="close Read Mappings From a File" )
+      readFromAFileDialog.hideSibling();
+
+    else if( answer=="save to a file..." )
+      saveToAFileDialog.showSibling();
+    else if( answer=="close Save Mappings To a File" )
+      saveToAFileDialog.hideSibling();
+
+
+    else if( dialog.getTextValue(answer,"debug:","%i",Mapping::debug) ){}  //
+
+    else if( answer=="Airfoil" || answer=="airfoil" )
     {
       // we need to increment and decrement the reference count so that the Mappings are deleted
       // properly. Note that the mappingList is a list of MappingRC -- the MappingRC constructor that
@@ -528,7 +786,8 @@ createMappings( MappingInformation & mapInfo )
       mapPointer->update(mapInfo);
       mapInfo.mappingList.addElement(*mapPointer);  mapPointer->decrementReferenceCount();
     }
-    else if( answer=="builder" )
+    else if( answer=="builder..." ||
+             answer=="builder" )
     {
       // build multiple hyperbolic Mappings on a composite surface.
       MappingBuilder builder;
@@ -603,7 +862,8 @@ createMappings( MappingInformation & mapInfo )
         gi.outputString("Error, unknown mapping!");
 
     }
-    else if( answer.matches("change a mapping") )
+    else if( answer.matches("edit a mapping...") ||
+             answer.matches("change a mapping") )
     {
       int num=mapInfo.mappingList.getLength();
       if( num<=0 )
@@ -979,7 +1239,8 @@ createMappings( MappingInformation & mapInfo )
 	
       }
     }
-    else if( answer=="view mappings" )
+    else if( answer=="view Mappings..." || 
+             answer=="view mappings" )
     {
       viewMappings(mapInfo);
     }
@@ -1027,12 +1288,35 @@ createMappings( MappingInformation & mapInfo )
       if( answer2!="" )
         sScanF(answer2,"%i ",&Mapping::debug);
     }
-    else if( answer=="resolution factor for triangulations" )
+    else if( dialog.getTextValue(answer,"triangulation factor:","%e",triangleResolutionFactor) )
+    {
+      printF("Setting the resolution factor for triangulations of Trimmed Mappings to %9.2e (used when plotting)\n"
+             "   The resolution factor should be greater than zero and less than 100 \n"
+             "   1=use default, 2=use a coarser triangulation, .5= use a finer triangulation\n",
+             triangleResolutionFactor );
+
+      if( triangleResolutionFactor<0. || triangleResolutionFactor>100. )
+      {
+	printF("ERROR: triangleResolutionFactor=%e should be larger than zero and less than 100\n");
+      }
+      else
+      {
+        // adjust the minimum angle for triangulations -- the smaller this value the fewer triangles needed
+	TrimmedMapping::defaultMinAngleForTriangulation=min(20.,20./triangleResolutionFactor);
+        // adjust the elementDensityTolerance, num-grid pts is related to curvature/elementDensityTolerance
+	TrimmedMapping::defaultElementDensityToleranceForTriangulation= .05*triangleResolutionFactor;
+        printF(" *** Now using minAngleForTriangulation=%8.2e and elementDensityTolerance=%8.2e\n",
+	       TrimmedMapping::defaultMinAngleForTriangulation,
+               TrimmedMapping::defaultElementDensityToleranceForTriangulation);
+	
+      }
+    }
+
+    else if( answer=="resolution factor for triangulations" ) // old way 
     {
       printF("Enter the resolution factor for triangulations of Trimmed Mappings (used when plotting)\n"
              "   The resolution factor should be greater than zero and less than 100 \n"
              "   1=use default, 2=use a coarser triangulation, .5= use a finer triangulation\n");
-      real triangleResolutionFactor=1.;
       gi.inputString(answer2,sPrintF(buff,"Enter the triangle resolution factor (default=1.)",
                    triangleResolutionFactor));
 
@@ -1069,7 +1353,8 @@ createMappings( MappingInformation & mapInfo )
     {
       gi.erase();
     }
-    else if( answer=="exit this menu" )
+    else if( answer=="exit" ||
+             answer=="exit this menu" )
     {
       break;
     }
@@ -1087,7 +1372,10 @@ createMappings( MappingInformation & mapInfo )
   if( dataBaseIsOpen )
     root.unmount();
   
-  gi.unAppendTheDefaultPrompt();  // reset
+  gi.unAppendTheDefaultPrompt();  // reset prompt
+
+  gi.popGUI(); // restore the previous GUI
+
   return 0;
 }
 

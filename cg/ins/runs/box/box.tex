@@ -200,31 +200,177 @@ Notes:
   where ad41 and ad42 are the coefficients of the SSLES viscosity (e.g. ad41=1, ad42=1) and $h$ is the approximate grid spacing.
 \end{enumerate}
 
+% =================================================================================================================================
+% =================================================================================================================================
+% =================================================================================================================================
+\clearpage
+\newcommand{\boxDir}{.}
+\input quarterBox
+
+\clearpage
+\bibliography{\homeHenshaw/papers/common/henshaw,\homeHenshaw/papers/common/henshawPapers}
+\bibliographystyle{siam}
+
+
+
+\end{document}
+% *************************************************************************************************************************************
+% *************************************************************************************************************************************
+% *************************************************************************************************************************************
+% *************************************************************************************************************************************
+
+
+
+
+
+
+
+% *************   OLD
 
 
 
 % =================================================================================================================================
 % =================================================================================================================================
 % =================================================================================================================================
-\section{Flow past a three-dimensional backward facing step}
+% \section{Flow past a three-dimensional backward facing step}
+\section{Flow in the wake of a quarter-box attached to a wall}
 
-The geometry of the three-dimensional backward facing step is shown in~\ref{fig:backStepGrids}. 
-An inlet region starting at $x=x_a$ reaches the step at $x=0$. The step has height of $1$ and the bottom
-of the step is located at $x=0$, $y=0$. The outlet region extends to $x=x_b$. 
+We consider the turbulent flow in the wake of a rectangular box fixed to a wall.
+This LES simulations illustrate the complex separated flow that is found
+in the wake of a bluff body. These simulations also demonstrate the benefits of
+using an efficient fourth-order accurate scheme to better resolve the fine scale vortical structures in
+the flow. A second-order accurate scheme would require a much finer grid to obtain
+similiar results and would have a much larger computational expense.
 
-The boundary conditions are chosen as inflow on the left at $x=x_a$. The inflow profile is a parabola
-over some small height and then uniform above this. An outflow condition is used on the right.
-The top wall is either a slip wall (symmetry) or an outflow or zero-traction condition $p=0$. 
-The lower wall is a no-slip wall.
+The geometry of this {\em quarter-box} problem is shown in~\ref{fig:quarterBoxGrid}.
+A quarter of a box is attached to the lower wall at $y=0$ and lies adjacent to the inflow plane at $x=x_a$.
+The edges and corners of the box are rounded slightly so that a high-resolution
+grid can be generated near the edges and corners to better resolve the complex flow behaviour that
+can occur here.
+The grid for the quarter-box is constructured using a {\em lofted} mapping and there are two component grids
+covering the surface of the quarter-box.
+The overlapping grid for this geometry 
+is denoted by $\Gc^{(j)}$ where $j$ denotes the grid resolution factor: the nominal grid spacing in the 
+vicinity of the box is approximately $\Delta s = 1/(10 j)$. The grids are stretched
+in the direction normal to the boundary by a factor of about $5$.
+Stretched grids are also used along the the bottom wall (at $y=0$) in the near wake region to resolve the boundary
+layer on the bottom wall. 
+The grid is coarsened in the far wake.
 
 
-The overlapping grid is denoted by $\Gc^{(j)}$ where $j$ denotes the grid resolution factor: the grid spacing in the 
-grids in vicinity of the step have a a grid spacing of approximately $\Delta s = 1/(10 j)$. The grids are stretched
-in the direction normal to the boundary by a factor of about $5$ (?)
 
-Figure~\ref{fig:backStepGrids} shows a basic overlapping grid for the backward facing step.
-The step is rounded and represented with the SmoothedPolygon mapping.
-Two background Cartesian grids fill the inlet and outlet regions.
+The boundary conditions are chosen as inflow on the left face at $x=x_a$. 
+The inflow profile is uniform with velocity $(u,v,w)=(1,0,0)$ over most of the inflow face but has
+a parabolic profile near the surface of the box and the lower wall in order 
+to match to the no-slip wall boundary conditions.
+The surface of the box is a no-slip wall. 
+The top wall and side walls are either a slip wall (symmetry) or an outflow or zero-traction condition $p=0$. 
+Outflow boundary conditions are given on the far right, $x=x_b$. 
+
+Figure~\ref{fig:quarterBoxG16} shows contours of the enstrophy at various times, 
+plotted on selected planes through the computational domain.
+Figure~\ref{fig:quarterBoxG16Views} shows contours of the enstrophy from different views.
+The results clearly show the highly complex character of the flow in the wake of the box. 
+Vorticity generated in the boundary layer on the surface of the box is shed into the wake
+and evolves into complex structures. 
+
+This solution were computed with the approximate-factored scheme and multigrid pressure solver (AFS24-MG)
+on grid $\Gc^{(16)}$ which had
+approximately 54 million grid points. The SSLES4 turbulence model was used. 
+The results were computed on 16 cores on two nodes of a Linux desktop
+demonstrating the low memeory requirement and efficiency of the overlapping grid scheme.
+
+
+
+
+{
+\begin{figure}[hbt]
+\newcommand{\figWidth}{10cm}
+\newcommand{\trimfig}[2]{\trimFigb{#1}{#2}{0.025}{.0}{.05}{.3}}
+\newcommand{\figWidtha}{5.5cm}
+\newcommand{\trimfiga}[2]{\trimFigb{#1}{#2}{0.0}{.0}{.0}{.0}}
+\begin{center}\small
+% ------------------------------------------------------------------------------------------------
+\begin{tikzpicture}[scale=1]
+  \useasboundingbox (0,0.25) rectangle (10,8);  % set the bounding box (so we have less surrounding white space)
+  \draw ( 0, 0) node[anchor=south west,xshift=-4pt,yshift=-4pt] {\trimfig{fig/qBox16GridBlockBoundaries}{\figWidth}};
+%%  \draw (10.5, 0) node[anchor=south west,xshift=-4pt,yshift=-4pt] {\trimfiga{fig/backStepGridZoom}{\figWidtha}};
+%% \draw[step=1cm,gray] (0,0) grid (10,8);
+\end{tikzpicture}
+% ----------------------------------------------------------------------------------------
+\caption{
+Overlapping grid for the three-dimensional {\em quarter box} attached to a wall. The block boundaries
+of the component grids are shown for grid $\Gc^{(16)}$ ($54$ million grid points).
+}
+\label{fig:quarterBoxGrid}
+\end{center}
+\end{figure}
+}
+
+
+{
+\begin{figure}[hbt]
+\newcommand{\figWidth}{11cm}
+\newcommand{\trimfig}[2]{\trimFigb{#1}{#2}{0.0}{.0}{.1}{.4}}
+\begin{center}\small
+% ------------------------------------------------------------------------------------------------
+\begin{tikzpicture}[scale=1]
+  \useasboundingbox (0,0.25) rectangle (11,19.5);  % set the bounding box (so we have less surrounding white space)
+  \draw ( 0,13) node[anchor=south west,xshift=-4pt,yshift=-4pt] {\trimfig{fig/qBox16Vort_t8p0}{\figWidth}};
+  \draw ( 0,6.5) node[anchor=south west,xshift=-4pt,yshift=-4pt] {\trimfig{fig/qBox16Vort_t9p0}{\figWidth}};
+  \draw ( 0,0.0) node[anchor=south west,xshift=-4pt,yshift=-4pt] {\trimfig{fig/qBox16Vort_t10p0}{\figWidth}};
+%%  \draw ( 0,9.0) node[anchor=south west,xshift=-4pt,yshift=-4pt] {\trimfig{fig/backStepRefineG8Vort20}{\figWidth}};
+%   \draw (10.5, 0) node[anchor=south west,xshift=-4pt,yshift=-4pt] {\trimfiga{fig/backStepRefineGridZoom}{\figWidtha}};
+%  \draw[step=1cm,gray] (0,0) grid (11,13.);
+\end{tikzpicture}
+% ----------------------------------------------------------------------------------------
+\caption{
+Flow in the wake of a quarter-box attached to a wall.
+ Contours of the enstrophy at times $t=8$, $t=9$, $t=10$ (from top to bottom).
+Solution computed on grid $\Gc^{(16)}$ (54M pts).
+}
+\label{fig:quarterBoxG16}
+\end{center}
+\end{figure}
+}
+
+{
+\begin{figure}[hbt]
+\newcommand{\figWidth}{11cm}
+\newcommand{\trimfig}[2]{\trimFigb{#1}{#2}{0.0}{.0}{.1}{.4}}
+\begin{center}\small
+% ------------------------------------------------------------------------------------------------
+\begin{tikzpicture}[scale=1]
+  \useasboundingbox (0,0.25) rectangle (11,19.5);  % set the bounding box (so we have less surrounding white space)
+  \draw ( 0,13) node[anchor=south west,xshift=-4pt,yshift=-4pt] {\trimfig{fig/qBox16Vort_t10p0ViewB}{\figWidth}};
+  \draw ( 0,6.5) node[anchor=south west,xshift=-4pt,yshift=-4pt] {\trimfig{fig/qBox16Vort_t10p0ViewC}{\figWidth}};
+  \draw ( 0,0.0) node[anchor=south west,xshift=-4pt,yshift=-4pt] {\trimfig{fig/qBox16Vort_t10p0ViewD}{\figWidth}};
+%%  \draw ( 0,9.0) node[anchor=south west,xshift=-4pt,yshift=-4pt] {\trimfig{fig/backStepRefineG8Vort20}{\figWidth}};
+%   \draw (10.5, 0) node[anchor=south west,xshift=-4pt,yshift=-4pt] {\trimfiga{fig/backStepRefineGridZoom}{\figWidtha}};
+%  \draw[step=1cm,gray] (0,0) grid (11,13.);
+\end{tikzpicture}
+% ----------------------------------------------------------------------------------------
+\caption{
+Different views of the flow in the wake of a quarter-box attached to a wall.
+ Contours of the enstrophy at time $t=10$.
+Solution computed on grid $\Gc^{(16)}$ (54M pts).
+}
+\label{fig:quarterBoxG16Views}
+\end{center}
+\end{figure}
+}
+
+
+
+
+
+
+
+% =================================================================================================
+% =================================================================================================
+% =================================================================================================
+\clearpage
+\section{OLD STUFF: Flow in the wake of a quarter-box attached to a wall}
 
 % Figure~\ref{fig:backStepRefineGrids} shows an {\em improved} versin of the grid including far-field grids
 % to treat a larger domain and a stretched boundary layer grid on the bottom wall that follows the step.
@@ -245,8 +391,8 @@ Two background Cartesian grids fill the inlet and outlet regions.
 \end{tikzpicture}
 % ----------------------------------------------------------------------------------------
 \caption{
-Overlapping grid for the three-dimensional backward facing step. Grid $\Gc^{(4)}$ is shown with only every 2nd grid line plotted.
-The red and pink grids cover the step. The green grid covers the
+Overlapping grid for the three-dimensional {\em quarter box}. Grid $\Gc^{(4)}$ is shown with only every 2nd grid line plotted.
+The red and pink grids cover the box. The green grid covers the
 body and near wake. The blue background grid is coarsened by a factor of 2. 
 }
 \label{fig:backStepGrids}
@@ -339,12 +485,6 @@ Top: coarse grid $\Gc^{(8)}$. Bottom: fine grid $\Gc^{(16)}$ (32M pts).
 \end{center}
 \end{figure}
 }
-
-
-
-
-
-
 
 
 \clearpage

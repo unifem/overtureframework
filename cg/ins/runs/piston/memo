@@ -1,0 +1,283 @@
+*******************
+********* DEC 8, 2015 TEST RESTART
+
+
+RESTART: -- pressure at START is wrong --> initial acceleration?
+cgins piston -g=plug4.hdf -ts=im -dtMax=.01 -bodyDensity=1. -tf=.2 -tp=.1 -relaxRigidBody=0 -numberOfCorrections=1 -omega=.2 -rtolc=1.e-3 -psolver=yale -addedMass=1  -inertia=1. -nu=.01 -useProvidedAcceleration=1 -gravity=0. -option=rigidBodyPiston -restart=piston.show -show=restart.show -debug=1 -go=halt
+
+
+INITIAL RUN:
+cgins -noplot piston -g=plug4.hdf -ts=im -dtMax=.01 -bodyDensity=1. -tf=.1 -tp=.05 -relaxRigidBody=0 -numberOfCorrections=1 -omega=.2 -rtolc=1.e-3 -psolver=yale -addedMass=1  -inertia=1. -nu=.01 -useProvidedAcceleration=1 -gravity=0. -option=rigidBodyPiston -show=piston.show -go=go
+
+
+
+
+**************************
+*** DEC 5, 2015 -- fix RB-AMP when pressure equation is singular
+
+Simple problem:
+
+OPTION=CLOSED
+cgins -noplot piston -g=plug1.hdf -option=closed -bodyDensity=1. -tf=1. -tp=.01 -relaxRigidBody=0 -numberOfCorrections=1 -omega=.2 -rtolc=1.e-3 -psolver=yale -addedMass=1 -go=go -debug=63 >! junk
+
+OPTION=CLOSED
+cgins piston -g=plug2.hdf -option=closed -bodyDensity=1. -tf=1. -tp=.01 -relaxRigidBody=0 -numberOfCorrections=1 -omega=.2 -rtolc=1.e-3 -psolver=yale -addedMass=1 -go=halt
+
+
+******************************
+**** Dec 2, 2015 
+
+Runs for paper:
+
+AMP rho=0.001 -- trouble : grid moves in 2D 
+cgins -noplot piston -g=plug4.hdf -ts=im -dtMax=.01 -bodyDensity=.001 -tf=2. -tp=.05 -relaxRigidBody=0 -numberOfCorrections=1 -omega=.2 -rtolc=1.e-3 -psolver=yale -addedMass=1  -inertia=1. -nu=.01 -useProvidedAcceleration=1 -gravity=0. -option=rigidBodyPiston -show=piston4bd0p001.show -go=go >! piston4bd0p001.out
+
+AMP rho=0.01
+cgins -noplot piston -g=plug4.hdf -ts=im -dtMax=.01 -bodyDensity=.01 -tf=2. -tp=.05 -relaxRigidBody=0 -numberOfCorrections=1 -omega=.2 -rtolc=1.e-3 -psolver=yale -addedMass=1  -inertia=1. -nu=.01 -useProvidedAcceleration=1 -gravity=0. -option=rigidBodyPiston -show=piston4bd0p01.show -go=go >! piston4bd0p01.out
+
+
+AMP rho=0.1
+cgins -noplot piston -g=plug4.hdf -ts=im -dtMax=.01 -bodyDensity=.1 -tf=2. -tp=.05 -relaxRigidBody=0 -numberOfCorrections=1 -omega=.2 -rtolc=1.e-3 -psolver=yale -addedMass=1  -inertia=1. -nu=.01 -useProvidedAcceleration=1 -gravity=0. -option=rigidBodyPiston -show=piston4bd0p1.show -go=go >! piston4bd0p1.out
+
+AMP rho1=
+cgins -noplot piston -g=plug4.hdf -ts=im -dtMax=.01 -bodyDensity=1. -tf=2. -tp=.05 -relaxRigidBody=0 -numberOfCorrections=1 -omega=.2 -rtolc=1.e-3 -psolver=yale -addedMass=1  -inertia=1. -nu=.01 -useProvidedAcceleration=1 -gravity=0. -option=rigidBodyPiston -show=piston4bd1.show -go=go >! piston4bd1.out
+
+
+******************************
+**** Nov 29, 2015 -- revisit 
+
+
+Generate show files for grid plot
+cgins -noplot piston -g=plug2.hdf -ts=im -dtMax=.02 -bodyDensity=1. -tf=1. -tp=.1 -relaxRigidBody=0 -numberOfCorrections=1 -omega=.2 -rtolc=1.e-3 -psolver=yale -addedMass=1  -inertia=1. -nu=.01 -useProvidedAcceleration=1 -gravity=0. -option=rigidBodyPiston -show=plug2ForGrid.show -go=go > plug2ForGrid.out
+
+
+******************************
+**** Nov 27, 2015 -- revisit 
+
+TEST EXACT SOLUTION 
+
+GENERATE PAST TIME GRID:
+
+
+IMPLICIT TIME STEPPING -- touble with slipwall BC : Cartesian Grid -> transformed
+
+PLUG8-IM:
+cgins piston -g=plug8.hdf -ts=im -dtMax=.005 -bodyDensity=1. -tf=2. -tp=.05 -relaxRigidBody=0 -numberOfCorrections=1 -omega=.2 -rtolc=1.e-3 -psolver=yale -addedMass=1  -inertia=1. -nu=.01 -useProvidedAcceleration=1 -gravity=0. -option=rigidBodyPiston -go=halt
+     t    err(p)   err(u)   err(v)    div       uMax     dt       cpu    (50 steps)
+   0.250 9.23e-05 8.32e-05 3.09e-07 1.11e-04  2.22e+01 5.00e-03 3.34e+01 
+    t    err(p)   err(u)   err(v)    div       uMax     dt       cpu    (80 steps)
+   0.400 1.67e-06 2.14e-04 1.81e-07 6.03e-05  1.37e+01 5.00e-03 1.81e+01
+
+PLUG4-IM:
+cgins piston -g=plug4.hdf -ts=im -dtMax=.01 -bodyDensity=1. -tf=2. -tp=.05 -relaxRigidBody=0 -numberOfCorrections=1 -omega=.2 -rtolc=1.e-3 -psolver=yale -addedMass=1  -inertia=1. -nu=.01 -useProvidedAcceleration=1 -gravity=0. -option=rigidBodyPiston -go=halt
+     t    err(p)   err(u)   err(v)    div       uMax     dt       cpu    (25 steps)
+   0.250 1.52e-04 3.52e-04 1.23e-05 2.42e-03  2.22e+01 1.00e-02 1.16e+01 
+     t    err(p)   err(u)   err(v)    div       uMax     dt       cpu    (40 steps)
+   0.400 1.90e-04 8.59e-04 4.00e-06 4.39e-04  1.37e+01 1.00e-02 1.19e+01 
+
+
+PLUG2-IM:
+cgins piston -g=plug2.hdf -ts=im -dtMax=.02 -bodyDensity=1. -tf=2. -tp=.05 -relaxRigidBody=0 -numberOfCorrections=1 -omega=.2 -rtolc=1.e-3 -psolver=yale -addedMass=1  -inertia=1. -nu=.01 -useProvidedAcceleration=1 -gravity=0. -option=rigidBodyPiston -go=halt
+
+PLUG2-IM
+     t    err(p)   err(u)   err(v)    div       uMax     dt       cpu    (15 steps)
+   0.250 4.33e-03 1.80e-03 2.79e-04 2.33e-02  2.22e+01 1.67e-02 4.94e+01 
+
+
+
+PLUG2-IM *Trouble* dt to big at start?
+    t    err(p)   err(u)   err(v)    div       uMax     dt       cpu    (9 steps)
+   0.250 7.80e-02 2.26e-01 3.21e-03 2.33e+00  2.22e+01 5.00e-02 2.27e+01 
+     t    err(p)   err(u)   err(v)    div       uMax     dt       cpu    (13 steps)
+   0.400 1.50e-01 2.60e-02 2.13e-03 2.86e-01  1.37e+01 2.50e-02 4.35e+01 
+
+
+
+
+
+PLUG4:
+     t    err(p)   err(u)   err(v)    div       uMax     dt       cpu    (29 steps)
+   0.250 8.34e-03 8.71e-04 4.75e-05 2.48e-02  2.22e+01 1.00e-02 8.66e+00 
+     t    err(p)   err(u)   err(v)    div       uMax     dt       cpu    (44 steps)
+   0.400 9.58e-04 8.10e-04 2.03e-05 2.44e-03  1.37e+01 1.00e-02 7.53e+01 
+
+PLUG8:
+     t    err(p)   err(u)   err(v)    div       uMax     dt       cpu    (97 steps)
+   0.250 1.76e-05 2.65e-05 7.30e-08 4.65e-05  2.22e+01 2.63e-03 1.13e+01 
+     t    err(p)   err(u)   err(v)    div       uMax     dt       cpu    (154 steps)
+   0.400 1.39e-05 5.94e-05 4.39e-08 1.92e-05  1.37e+01 2.63e-03 4.67e+01
+
+
+
+Plug8:
+cgins piston -g=plug8.hdf -bodyDensity=1. -tf=2. -tp=.05 -relaxRigidBody=0 -numberOfCorrections=1 -omega=.2 -rtolc=1.e-3 -psolver=yale -addedMass=1 -inertia=1. -nu=.01 -useProvidedAcceleration=1 -gravity=0. -option=rigidBodyPiston -go=halt
+
+Plug4:
+cgins piston -g=plug4.hdf -bodyDensity=1. -tf=2. -tp=.05 -relaxRigidBody=0 -numberOfCorrections=1 -omega=.2 -rtolc=1.e-3 -psolver=yale -addedMass=1 -inertia=1. -nu=.01 -useProvidedAcceleration=1 -gravity=0. -option=rigidBodyPiston -go=halt
+
+cgins piston -g=plug2.hdf -bodyDensity=1. -tf=2. -tp=.05 -relaxRigidBody=0 -numberOfCorrections=1 -omega=.2 -rtolc=1.e-3 -psolver=yale -addedMass=1  -inertia=1. -nu=.01 -useProvidedAcceleration=1 -gravity=0. -option=rigidBodyPiston -go=halt
+
+-- PLUG2: 
+---cfl=.9: 
+     t    err(p)   err(u)   err(v)    div       uMax     dt       cpu    (10 steps)
+   0.250 7.21e-03 5.11e-03 4.59e-04 6.84e-02  2.22e+01 2.50e-02 9.34e+01 
+     t    err(p)   err(u)   err(v)    div       uMax     dt       cpu    (16 steps)
+   0.400 1.81e-03 4.14e-03 2.55e-04 2.77e-02  1.37e+01 2.50e-02 9.27e+00 
+
+--- cfl=.45
+     t    err(p)   err(u)   err(v)    div       uMax     dt       cpu    (22 steps)
+   0.250 1.21e-03 2.25e-04 3.63e-05 6.69e-04  2.22e+01 1.25e-02 8.73e+00 
+     t    err(p)   err(u)   err(v)    div       uMax     dt       cpu    (34 steps)
+   0.400 2.32e-04 1.04e-03 1.79e-05 4.20e-04  1.37e+01 1.25e-02 8.32e+00 
+
+--- cfl=.225 
+     t    err(p)   err(u)   err(v)    div       uMax     dt       cpu    (63 steps)
+   0.400 1.13e-03 4.02e-04 3.97e-05 2.01e-03  1.37e+01 6.25e-03 1.39e+01 
+
+PLUG4:
+     t    err(p)   err(u)   err(v)    div       uMax     dt       cpu    (29 steps)
+   0.250 8.69e-03 6.44e-04 4.67e-05 2.48e-02  2.22e+01 1.00e-02 4.63e+01 
+     t    err(p)   err(u)   err(v)    div       uMax     dt       cpu    (44 steps)
+   0.400 1.27e-03 5.75e-04 2.00e-05 2.46e-03  1.37e+01 1.00e-02 6.96e+01 
+
+PLUG8: -- but note dt 
+     t    err(p)   err(u)   err(v)    div       uMax     dt       cpu    (97 steps)
+   0.250 5.10e-05 1.88e-06 5.89e-08 4.65e-05  2.22e+01 2.63e-03 3.50e+01 
+     t    err(p)   err(u)   err(v)    div       uMax     dt       cpu    (154 steps)
+   0.400 1.78e-05 3.91e-05 4.34e-08 1.92e-05  1.37e+01 2.63e-03 6.10e+01 
+
+
+******************************
+**** Nov 27, 2015 -- revisit 
+
+NOTE: gravity=(1,0,0) pulls body to the right
+
+TEST EXACT SOLUTION -- STARTS TO WORK: 
+
+TP density=1 *TROUBLE*
+cgins piston -g=plug2.hdf -bodyDensity=1. -tf=2. -tp=.05 -relaxRigidBody=0 -numberOfCorrections=1 -omega=.2 -rtolc=1.e-3 -psolver=yale -addedMass=0  -inertia=1. -nu=.01 -useProvidedAcceleration=0 -gravity=0. -option=rigidBodyPiston -go=halt
+
+AMP density=1. -- OK
+cgins piston -g=plug2.hdf -bodyDensity=1. -tf=2. -tp=.05 -relaxRigidBody=0 -numberOfCorrections=1 -omega=.2 -rtolc=1.e-3 -psolver=yale -addedMass=1  -inertia=1. -nu=.01 -useProvidedAcceleration=1 -gravity=0. -option=rigidBodyPiston -go=halt
+
+OK: 
+cgins piston -g=plug2.hdf -bodyDensity=2. -tf=2. -tp=.05 -relaxRigidBody=0 -numberOfCorrections=1 -omega=.2 -rtolc=1.e-3 -psolver=yale -addedMass=1  -inertia=1. -nu=.01 -useProvidedAcceleration=1 -gravity=0. -option=rigidBodyPiston -go=halt
+
+
+
+cgins piston -g=plug2.hdf -bodyDensity=2. -tf=1. -tp=.01 -relaxRigidBody=0 -numberOfCorrections=1 -omega=.2 -rtolc=1.e-3 -psolver=yale -addedMass=1  -inertia=1. -nu=.01 -useProvidedAcceleration=0 -go=halt
+
+
+
+
+********************
+**** Nov 1, 2015:
+
+***** FIXED BUG: 
+
+
+DENSITY=.01 , INERTIA=.01 -- OK 
+cgins piston -g=plug2.hdf -bodyDensity=.01 -tf=1. -tp=.01 -relaxRigidBody=0 -numberOfCorrections=1 -omega=.2 -rtolc=1.e-3 -psolver=yale -addedMass=1  -inertia=.01 -nu=.01 -useProvidedAcceleration=0 -go=halt
+
+
+DENSITY=.01 : OK
+cgins piston -g=plug2.hdf -bodyDensity=.01 -tf=1. -tp=.01 -relaxRigidBody=0 -numberOfCorrections=1 -omega=.2 -rtolc=1.e-3 -psolver=yale -addedMass=1  -inertia=1. -nu=.01 -useProvidedAcceleration=0 -go=halt
+
+
+DENSITY=.1 : OK
+cgins piston -g=plug2.hdf -bodyDensity=.1 -tf=1. -tp=.01 -relaxRigidBody=0 -numberOfCorrections=1 -omega=.2 -rtolc=1.e-3 -psolver=yale -addedMass=1  -inertia=1. -nu=.01 -useProvidedAcceleration=0 -go=halt
+
+DENSITY=2: OK
+cgins piston -g=plug2.hdf -bodyDensity=2. -tf=1. -tp=.01 -relaxRigidBody=0 -numberOfCorrections=1 -omega=.2 -rtolc=1.e-3 -psolver=yale -addedMass=1  -inertia=1. -nu=.01 -useProvidedAcceleration=0 -go=halt
+
+
+
+
+********************
+**** October 29-30, 2015
+
+density=.01 : nu=.01 OK  (nu=.05 : TROUBLE with rotation)
+cgins piston -g=plug2.hdf -bodyDensity=.01 -tf=1. -tp=.01 -relaxRigidBody=0 -numberOfCorrections=1 -omega=.2 -rtolc=1.e-3 -psolver=yale -addedMass=1  -inertia=1. -nu=.01
+
+density=.02 : LIGHT -- inertial=1 OK 
+cgins piston -g=plug2.hdf -bodyDensity=.02 -tf=1. -tp=.01 -relaxRigidBody=0 -numberOfCorrections=1 -omega=.2 -rtolc=1.e-3 -psolver=yale -addedMass=1  -inertia=1.
+
+
+
+
+START TESTING -- setAcceleration
+
+VERY LIGHT -- Trouble with rotation
+cgins piston -g=plug2.hdf -bodyDensity=.01 -tf=1. -tp=.01 -relaxRigidBody=0 -numberOfCorrections=1 -omega=.2 -rtolc=1.e-3 -psolver=yale -addedMass=1  
+
+
+
+DENSITY=.1 -- OK
+cgins piston -g=plug1.hdf -bodyDensity=.1 -tf=1. -tp=.01 -relaxRigidBody=0 -numberOfCorrections=1 -omega=.2 -rtolc=1.e-3 -psolver=yale -addedMass=1
+
+
+********************
+**** October 21, 2015:
+
+VERY LIGHT OK with smaller CFL (dt too big for light body)
+cgins piston -g=plug2.hdf -bodyDensity=.01 -tf=1. -tp=.01 -relaxRigidBody=0 -numberOfCorrections=1 -omega=.2 -rtolc=1.e-3 -psolver=yale -addedMass=1 -cfl=.1
+
+DENSITY=.1 
+cgins piston -g=plug1.hdf -bodyDensity=.1 -tf=1. -tp=.01 -relaxRigidBody=0 -numberOfCorrections=1 -omega=.2 -rtolc=1.e-3 -psolver=yale -addedMass=1
+
+COARSE GRID:  OK: 
+cgins piston -g=plug1.hdf -bodyDensity=.5 -tf=1. -tp=.01 -relaxRigidBody=0 -numberOfCorrections=1 -omega=.2 -rtolc=1.e-3 -psolver=yale -addedMass=1
+
+COARSE GRID: 
+cgins piston -g=plug1.hdf -bodyDensity=.5 -tf=1. -tp=.01 -relaxRigidBody=0 -numberOfCorrections=1 -omega=.2 -rtolc=1.e-3 -psolver=yale -addedMass=1 -debug=63 >! junk
+
+Changes made to evaluate RBINS-AMP terms 
+  cgins piston -g=plug4.hdf -bodyDensity=.5 -tf=1. -tp=.01 -relaxRigidBody=0 -numberOfCorrections=1 -omega=.2 -rtolc=1.e-3 -psolver=yale -addedMass=1
+
+
+
+********************
+**** October 17-18, 2015:
+
+KLUGED version of AMP starts to work
+
+
+body=.1 -- OK
+cgins piston -g=plug4.hdf -bodyDensity=.1 -tf=1. -tp=.01 -relaxRigidBody=0 -numberOfCorrections=1 -omega=.2 -rtolc=1.e-3 -psolver=yale -addedMass=1
+
+body=.5 -- OK
+cgins piston -g=plug4.hdf -bodyDensity=.5 -tf=1. -tp=.01 -relaxRigidBody=0 -numberOfCorrections=1 -omega=.2 -rtolc=1.e-3 -psolver=yale -addedMass=1
+
+DP-AMP : body=1 -> no buoyancy
+cgins -noplot piston -g=plug2.hdf -bodyDensity=1. -tf=1. -tp=.01 -relaxRigidBody=0 -numberOfCorrections=1 -omega=.2 -rtolc=1.e-3 -psolver=yale -addedMass=1 -debug=63 >! junk
+
+cgins piston -g=plug4.hdf -bodyDensity=1. -tf=1. -tp=.01 -relaxRigidBody=0 -numberOfCorrections=1 -omega=.2 -rto
+lc=1.e-3 -psolver=yale -addedMass=1 
+
+
+********************
+**** October 16, 2015:
+
+========== More preliminary test runs for the INS-piston ================
+
+cgins -noplot piston -g=plug4.hdf -bodyDensity=.5 -tf=1. -tp=.01 -relaxRigidBody=1 -numberOfCorrections=100 -omega=.2 -rtolc=1.e-3 -addedMass=1
+
+
+********************
+**** October 14, 2015:
+
+========== Initial test runs for the INS-piston ================
+
+
+TURN-ON ADDED-MASS : NOT fully implemented yet
+
+cgins piston -g=plug4.hdf -bodyDensity=.5 -tf=1. -tp=.01 -relaxRigidBody=1 -numberOfCorrections=100 -omega=.2 -rtolc=1.e-3 -addedMass=1
+
+--- LIGHTER piston: TP-SI OK:  (omega=.1 too big)
+cgins piston -g=plug4.hdf -bodyDensity=.1 -tf=1. -tp=.01 -relaxRigidBody=1 -numberOfCorrections=100 -omega=.05 -rtolc=1.e-3 -useTP=1
+
+--- LIGHT piston: TP-SI OK: 
+cgins piston -g=plug4.hdf -bodyDensity=.5 -tf=1. -tp=.01 -relaxRigidBody=1 -numberOfCorrections=100 -omega=.2 -rtolc=1.e-3 -useTP=1
+
+--- Piston moves to the right under gravity
+cgins piston -g=plug4.hdf -bodyDensity=3. -tf=1. -tp=.01

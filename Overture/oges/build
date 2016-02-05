@@ -19,14 +19,14 @@ set OvertureOges    = $ovDir/Oges
 set OvertureInclude = $ovDir/include
 set OvertureTests   = $ovDir/tests
 
-cp {Oges.h,OgesParameters.h} $OvertureInclude
+cp {Oges.h,OgesParameters.h,OgesExtraEquations.h} $OvertureInclude
 
 cp {EquationSolver,PETScEquationSolver,PETScSolver,YaleEquationSolver,SlapEquationSolver,HarwellEquationSolver}.h $OvertureInclude
 cp {MultigridEquationSolver}.h $OvertureInclude
 
 cp {Oges,ogesFiles,OgesParameters,formMatrix,generateMatrix,buildEquationSolvers,determineErrors,obsolete}.C  $OvertureOges
 cp {EquationSolver,PETScEquationSolver,PETScSolver,YaleEquationSolver,SlapEquationSolver,HarwellEquationSolver}.C    $OvertureOges
-cp {MultigridEquationSolver,residual}.C   $OvertureOges
+cp {MultigridEquationSolver,residual,OgesExtraEquations}.C   $OvertureOges
 
 cp {cgesl1234,slapFiles}.F                                                            $OvertureOges
 

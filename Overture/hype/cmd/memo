@@ -1,3 +1,49 @@
+
+*******************
+****  Dec 8, 2015
+
+TEMP FIX FOR Mostafa
+
+../hype hypeLineMatchFix
+
+
+*******************
+**** November 25-26, 2015 --- ghost points in GridSmoother -- 3D
+
+../hype hypePlaneMatch 
+
+../hype hypeCurveMatch
+
+../hype hypeLineMatch
+
+
+
+
+*******************
+**** November 20, 2015  -- fix up GridSmoother ---
+
+../hype hypeLineMatch
+
+
+*******************
+**** November 15-17, 2015 --- NEGATIVE CELLS ON GHOST
+
+Another test: slanted start curve, FIX-X BC
+
+../hype hypeLineMatch2
+
+
+3D -- planes -- OK
+
+../hype hypePlaneMatch 
+
+
+NOTE: Corner ghost are better with FIX
+
+../hype hypeLineMatch 
+
+
+************************************************************************
 ---- 2014/08/15 -- test eval as nurbs
 
 

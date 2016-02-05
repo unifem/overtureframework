@@ -1,9 +1,9 @@
-c -- evaluate the radiation BC's
+! -- evaluate the radiation BC's
 #Include "derivMacroDefinitions.h"
 
 #Include "defineParametricDerivMacros.h"
 
-c defineParametricDerivativeMacros(u,dr,dx,DIM,ORDER,COMPONENTS,MAXDERIV)
+! defineParametricDerivativeMacros(u,dr,dx,DIM,ORDER,COMPONENTS,MAXDERIV)
 
 ! 2d, order=4, components=1, derivatives=2:
 defineParametricDerivativeMacros(u,dr,dx,2,4,1,2)
@@ -41,15 +41,15 @@ end do
                           md1a,md1b,md2a,md2b,huv, \
                           sd1a,sd1b,sd2a,sd2b,sd3a,sd3b,sd4a,sd4b,uSave,\
                           ipar, rpar, ierr )
-c ===================================================================================
-c  Radition boundary conditions for Maxwell's Equations.
-c      
-c     Apply the BC of the form  u.t + u.n + H(u) = 0
-c
-c
-c  huv(i,m,n) : Kernel and its derivatives, i=tangential index, m=derivative, n=component
-c
-c ===================================================================================
+! ===================================================================================
+!  Radition boundary conditions for Maxwell's Equations.
+!      
+!     Apply the BC of the form  u.t + u.n + H(u) = 0
+!
+!
+!  huv(i,m,n) : Kernel and its derivatives, i=tangential index, m=derivative, n=component
+!
+! ===================================================================================
 
       implicit none
 
@@ -71,7 +71,7 @@ c ==============================================================================
       integer gridIndexRange,boundaryCondition
       integer ipar(0:*)
       real rpar(0:*)
-c     --- local variables ----
+!     --- local variables ----
       
       real dx(0:2),dr(0:2)
       real t,dt,eps,mu,c
@@ -121,12 +121,12 @@ c     --- local variables ----
       declareJacobianDerivativeVariables(aj2,2)
 
       declareJacobianDerivativeVariables(aj4,2)
-c     declareJacobianDerivativeVariables(aj6,2)
+!     declareJacobianDerivativeVariables(aj6,2)
 
-c     --- start statement function ----
+!     --- start statement function ----
       integer kd,m,n
-c      declareDifferenceOrder2(u,RX)
-c      declareDifferenceOrder4(u,RX)
+!      declareDifferenceOrder2(u,RX)
+!      declareDifferenceOrder4(u,RX)
 
 
       hu(i,n)    = huv(i,0,n)
@@ -141,10 +141,10 @@ c      declareDifferenceOrder4(u,RX)
       huxxy(i,n) = huv(i,kxxy,n)
       huyyy(i,n) = huv(i,kyyy,n)
 
-c      defineDifferenceOrder2Components1(u,RX)
-c      defineDifferenceOrder4Components1(u,RX)
+!      defineDifferenceOrder2Components1(u,RX)
+!      defineDifferenceOrder4Components1(u,RX)
 
-c............... end statement functions
+!............... end statement functions
 
       ierr=0
 
@@ -185,7 +185,7 @@ c............... end statement functions
      
       z0=0.
 
-c     numGhost=orderOfAccuracy/2
+!     numGhost=orderOfAccuracy/2
 
       ! bounds for loops 
       nn1a=n1a
@@ -253,7 +253,7 @@ c     numGhost=orderOfAccuracy/2
 
          if( orderOfAccuracy.eq.2 )then
           beginLoops(nn1a,nn1b,nn2a,nn2b,nn3a,nn3b,na,nb)
-c     
+!     
            ux = ux2(i1,i2,i3,n)
            uxx =uxx2(i1,i2,i3,n)
            uyy =uyy2(i1,i2,i3,n)
@@ -285,7 +285,7 @@ c
 
 
           beginLoops(nn1a,nn1b,nn2a,nn2b,nn3a,nn3b,na,nb)
-c     
+!     
            ux = ux4(i1,i2,i3,n)
            uxx =uxx4(i1,i2,i3,n)
            uyy =uyy4(i1,i2,i3,n)
@@ -405,7 +405,7 @@ c
           end if
           do i2=nn2a,nn2b
           do i1=nn1a,nn1b
-c     
+!     
           !  evalJacobianDerivatives(u,v,DIM,ORDER,MAXDERIV)
           ! NOTE: jacobians need 1 less derivative  ****************** no need to repeat for all components!
           !evalJacobianDerivatives(rsxy,i1,i2,i3,aj4,2,4,1)
@@ -493,7 +493,7 @@ c
           end if
           do i2=nn2a,nn2b
           do i1=nn1a,nn1b
-c     
+!     
           !  evalJacobianDerivatives(u,v,DIM,ORDER,MAXDERIV)
           ! NOTE: jacobians need 1 less derivative  ****************** no need to repeat for all components!
            evalJacobianDerivatives(rsxy,i1,i2,i3,aj4,2,4,1)

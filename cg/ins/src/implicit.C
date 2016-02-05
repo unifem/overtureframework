@@ -137,7 +137,8 @@ buildImplicitSolvers(CompositeGrid & cg)
 	      if( bc==Parameters::slipWall ||
                   bc==InsParameters::inflowWithPressureAndTangentialVelocityGiven ) // *wdh* 090725
 	      {
-		if( cg[grid].isRectangular() )
+		if( cg[grid].isRectangular() && 
+                    !parameters.gridIsMoving(grid) ) // added check or moving grid *wdh* 2015/11/28
 		{
 		  // BC's are not the same but they are decoupled -- we can use multiple scalar solvers.
 		  numberOfImplicitSolversNeeded=cg.numberOfDimensions();

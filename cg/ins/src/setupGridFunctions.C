@@ -118,7 +118,9 @@ int Cgins::
 projectInitialConditionsForMovingGrids(int gfIndex)
 {
   const bool & twilightZoneFlow = parameters.dbase.get<bool >("twilightZoneFlow");
-  if( !twilightZoneFlow )
+  const real & tInitial = parameters.dbase.get<real >("tInitial");
+  
+  if( !twilightZoneFlow && tInitial==0. )
   {
     // -- For moving grid problems we iterate on the initial conditions since the 
     //    body forces depend on the pressure and the pressure depends on the forces.
@@ -172,6 +174,10 @@ projectInitialConditionsForMovingGrids(int gfIndex)
     }
     
   }
-
+  else if( tInitial>0. )
+  {
+    printF("--INS--projectInitialConditionsForMovingGrids: SKIP this step on restart, tInitial=%9.3e.\n",tInitial);
+  }
+  
   return 0;
 }

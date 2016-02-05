@@ -20,6 +20,11 @@
 #  plotStuff plotBeamInAChannel.cmd -show=bicG4.show -vorMin=-20 -vorMax=5
 #  plotStuff plotBeamInAChannel.cmd -show=bicG8.show -vorMin=-20 -vorMax=5
 #
+# -- performance runs
+#  plotStuff plotBeamInAChannel.cmd -show=bicG4TPa.show -vorMin=-20 -vorMax=5
+#  plotStuff plotBeamInAChannel.cmd -show=bicG4TPc.show -vorMin=-20 -vorMax=5
+#  plotStuff plotBeamInAChannel.cmd -show=bicG4a.show -vorMin=-20 -vorMax=5
+#
 # -- plot streamlines:
 #  plotStuff plotBeamInAChannel.cmd -show=bicG4long.show -vorMin=-10 -vorMax=5 -option=sl -name=bicBig_E5_R1_G4
 #

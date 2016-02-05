@@ -319,6 +319,7 @@ c Helper function: Return minus the second time derivative
 
 ! This formula is also Taylor series (for even functions)
 
+
 ! ===================================================================================
 ! Determine the values at ghost points outside corners
 !  

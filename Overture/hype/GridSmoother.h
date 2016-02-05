@@ -12,6 +12,11 @@ OV_USINGNAMESPACE(std);
 #include <vector.h>
 #endif
 
+#define KK_DEBUG
+#include "DBase.hh"
+using namespace DBase;
+
+
 class MatchingCurve;
 class DataPointMapping;
 class DialogData;
@@ -114,6 +119,9 @@ class GridSmoother
   vector<MatchingCurve> matchingCurves; // array of matching curves
 
   realArray source;  // holds control function
+
+  // This database contains parameters (new way)
+  DataBase dbase;
 
 };
 

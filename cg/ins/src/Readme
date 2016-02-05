@@ -7,6 +7,13 @@ Notes:
 addForcing.C:
   - addForcing(realMappedGridFunction & dvdt, ... )
 
+adjustPressureCoefficients.C:
+  - adjustPressureCoefficients(CompositeGrid & cg0, GridFunction & cgf  )
+
+boundaryConditions.C
+  - gridAccelerationBC(const int & grid, ... )
+  - setPressureConstraintValues( GridFunction & gf0, realCompositeGridFunction & f )
+
 Cgins.C : 
   - Cgins(CompositeGrid & cg_, ... )
   - updateToMatchGrid(CompositeGrid & cg)
@@ -54,6 +61,7 @@ ins.C:
 
 insp.C
   - updatePressureEquation(CompositeGrid & cg0, CompositeGridOperators & cgop)
+      Construct the discrete elliptic equation for the pressure.
   - updateDivergenceDamping( CompositeGrid & cg0, const int & geometryHasChanged )
   - 
 

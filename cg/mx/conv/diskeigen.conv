@@ -1,4 +1,4 @@
-# Measure convergence rates eigenfunctions of a 2D disk OR a 3D  box
+# Measure convergence rates eigenfunctions of a 2D disk OR a 3D  box or 2D square
 #
 # -- second order
 #   conv.p diskeigen.conv -tf=.5 -tp=.5 -order=2 -dissOrder=2 -diss=1. -ng=3
@@ -36,13 +36,19 @@ $mx=1; $my=1; $mz=1; # for boxEigen
 $diss=.0; $dissOrder=-1; 
 $errorNorm=0; $method="NFDTD"; 
 $alwaysCompute=1;
+$gStart=2; # start at this grid factor 
 #
 GetOptions( "name=s"=>\$name,"order=s"=>\$order,"ng=i"=>\$ng,"tf=f"=>\$tf,"interp=s"=>\$interp,"diss=f"=>\$diss,\
             "fixed=s"=>\$fixed,"cfl=f"=>\$cfl,"alwaysCompute=i"=>\$alwaysCompute,"method=s"=>\$method,"tp=f"=>\$tp,\
             "errorNorm=i"=>\$errorNorm,"m=f"=>\$m,"n=f"=>\$n,"mk=f"=>\$mk,"dissOrder=i"=>\$dissOrder,"cg=s"=>\$cg,\
             "mx=f"=>\$mx,"my=f"=>\$my,"mz=f"=>\$mz );
 # ------------------------ ------------------------------------------
+# eigenfunctions of a square:
+if( $cg =~ /square/ ){ $cmdFile = "../runs/boxEigen/boxEigen"; $gStart=16; $name="squareEigen"; }
+#
+# eigenfunctions of a box:
 if( $cg =~ /box*/ || $cg =~ /nonBox*/ || $cg =~ /unitBox*/ || $cg =~ /unitNonBox*/ || $cg =~ /refineBox*/ || $cg =~ /refineNonBox*/ ){ $cmdFile = "../runs/boxEigen/boxEigen"; }
+#
 if( $cg =~ /tube*/ || $cg =~ /splitTube*/  || $cg =~ /refineTube*/  ){ $cmdFile = "../cmd/cyleigen"; }
 $caseName="$name$method\Order$order"; 
 if( $errorNorm eq 0 ){ $normName = "max"; }elsif( $errorNorm eq 1 ){ $normName = "L1";}\
@@ -66,7 +72,6 @@ $options = "-m=$m -n=$n -k=$mk -mx=$mx -my=$my -mz=$mz -diss=$diss  -dissOrder=$
 $suffix="";
 if( ($method eq "sosup") && ($order eq 4) ){ $suffix=".ng3"; }
 if( ($method eq "sosup") && ($order eq 6) ){ $suffix=".ng4"; }
-$gStart=2; # start at this grid factor 
 if( $cg =~ /tube*/ || $cg =~ /splitTube*/ || $cg =~ /refineTube*/ ){ $gStart=1; }
 $g=$gStart; 
 $grid1=$cg . "$g";  $gName1 = $cg . "$g.order$order$suffix"; $g=$g*2; 

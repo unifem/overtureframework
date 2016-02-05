@@ -82,7 +82,10 @@ enum PositionConstraintEnum
   // get from a data base file
   int get( const GenericDataBase & dir, const aString & name);
 
-  int getAcceleration( real t, RealArray & vCM  ) const;
+  int getAcceleration( real t, RealArray & aCM  ) const;
+
+  // Get the added damping tensors: 
+  int getAddedDampingTensors( RealArray & addedDampingTensors ) const;
 
   // evaluate the added mass matrices at time t
   int getAddedMassMatrices( const real t, RealArray & A11 , RealArray & A12 , RealArray & A21, RealArray & A22 ) const;
@@ -105,9 +108,14 @@ enum PositionConstraintEnum
 		      RealArray & omega    = Overture::nullRealArray(), 
 		      RealArray & omegaDot = Overture::nullRealArray(), 
 		      RealArray & aCM      = Overture::nullRealArray(),
-                      RealArray & axesOfInertia = Overture::nullRealArray()  ) const;
+                      RealArray & axesOfInertia = Overture::nullRealArray(),
+                      RealArray & momentOfInertiaTensor = Overture::nullRealArray()
+                     ) const;
 
   real getDensity() const; // return the density, if known. If not known return a negative value.
+
+  // Return the value of the directProjectionAddedMass option 
+  bool getDirectProjectionAddedMass() const;
 
   // get exact solution (e.g. for twilightzone forcing)
   int getExactSolution( const int deriv, const real t, RealArray & xe, RealArray & ve , RealArray & we ) const;
@@ -124,7 +132,10 @@ enum PositionConstraintEnum
 
   real getMaximumRelativeCorrection();
 
+  // return principal axes of inertia:
   RealArray getMomentsOfInertia() const;
+
+  int getMomentOfInertiaTensor( real t, RealArray & momentOfInertiaTensor  ) const;
 
   int getPosition( real t, RealArray & xCM ) const;
 
@@ -150,6 +161,11 @@ enum PositionConstraintEnum
                         RealArray & rDot = Overture::nullRealArray(),
                         RealArray & rDotDot = Overture::nullRealArray() ) const;
   
+  // return the "total force" on the body 
+  int getMassTimesAcceleration( real t,
+       		                RealArray & mvDot,
+			        RealArray & mOmegaDot );
+
   // Indicate whether added mass matrices will be used (and provided by the user)
   int includeAddedMass( bool trueOrFalse = true );
 
@@ -183,6 +199,12 @@ enum PositionConstraintEnum
   // Reset the rigid body to it's initial state. (e.g. remove saved solutions etc.)
   int reset();
 
+  // Supply the acceleration to over-ride the default values (e.g. for AMP schemes)
+  int setAcceleration( real t, RealArray & vDot, RealArray & wDot );
+
+  // Specify the added damping tensors: 
+  int setAddedDampingTensors( const RealArray & addedDampingTensors );
+
   int setInitialCentreOfMass( const RealArray & x0 );
 
   int setInitialConditions( real t0=0., 
@@ -209,7 +231,8 @@ enum PositionConstraintEnum
 
   int setRotationConstraint( RotationConstraintEnum constraint, const RealArray & values );
 
-  int setTwilightZone( bool trueOrFalse, TwilightZoneTypeEnum type = trigonometricTwilightZone );
+  int setTwilightZone( bool trueOrFalse, TwilightZoneTypeEnum type = trigonometricTwilightZone, 
+                       int degreeOfPoly = 2 );
 
   // choose the time stepping method
   int setTimeSteppingMethod( const TimeSteppingMethodEnum method, int orderOfAccuracy=defaultOrderOfAccuracy );

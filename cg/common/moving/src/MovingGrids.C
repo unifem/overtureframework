@@ -137,7 +137,7 @@ initialize()
   const int numberOfDimensions = parameters.dbase.get<int >("numberOfDimensions");
   
   rigidBodyInfoCount=0;
-  numberOfRigidBodyInfoNames=numberOfDimensions==3 ? 18 : 11;
+  numberOfRigidBodyInfoNames=numberOfDimensions==3 ? 24 : 14;
 
   delete [] rigidBodyInfoName;
   rigidBodyInfoName = new aString [numberOfRigidBodyInfoNames];
@@ -158,6 +158,18 @@ initialize()
   if( numberOfDimensions==3 ){ rigidBodyInfoName[i]="g1"; i++; }
   if( numberOfDimensions==3 ){ rigidBodyInfoName[i]="g2"; i++; }
   rigidBodyInfoName[i]="g3"; i++;
+
+  // accelerations: (new Dec 2, 2015) *wdh*
+  for( int axis=0; axis<numberOfDimensions; axis++) { rigidBodyInfoName[i]=sPrintF("a%i",axis+1); i++; } // 
+  if( numberOfDimensions==2 )
+  {
+    rigidBodyInfoName[i]="wt3";  i++;  // only one angular acceleration in 2D
+  }
+  else
+  {
+    for( int axis=0; axis<numberOfDimensions; axis++) { rigidBodyInfoName[i]=sPrintF("wt%i",axis+1); i++; } // 
+  }
+  
   rigidBodyInfoName[i]="fMax"; i++;
   rigidBodyInfoName[i]="gMax"; i++;
   rigidBodyInfoName[i]="pMax"; i++;
@@ -523,6 +535,102 @@ getRigidBody(const int bodyNumber)
     OV_ABORT("Error");
   }
 }
+
+// =======================================================================================
+/// \brief Return the added damping tensors for a rigid body.
+/// \param bodyNumber (input) : number of the rigid body
+/// \param addedDampingTensors(3,3,2,2) (output) : 4 3x3 tensors
+///    addedDampingTensors(0:2,0:2,0,0) : Dvv : coeff of linear velocity in linear velocity eqn.
+///    addedDampingTensors(0:2,0:2,0,1) : Dvw : coeff of angular velocity in linear velocity eqn.
+///    addedDampingTensors(0:2,0:2,1,0) : Dwv : coeff of linear velocity in angular velocity eqn.
+///    addedDampingTensors(0:2,0:2,1,1) : Dww : coeff of angular velocity in angular velocity eqn.
+//=========================================================================================
+int MovingGrids::getRigidBodyAddedDampingTensors( const int bodyNumber, RealArray & addedDampingTensors,
+                                                  CompositeGrid & cg )
+{
+  // The viscous added damping tensors do not depend on the solution and thus
+  // can be computed once and saved -- save in the RigidBody object.
+  // Note: tensors will change if the grid spacing changes -- e.g. for AMR -- *fix me*
+
+  RigidBodyMotion & body = getRigidBody(bodyNumber);
+
+  // Added damping tensors may have already been computed and saved in the RigidBody: 
+  if( body.getAddedDampingTensors( addedDampingTensors ) == 0 )
+  {
+    return 0;
+  }
+  
+  // -------------------------------------------
+  // ---- Compute the added damping tensors ----
+  // -------------------------------------------
+  addedDampingTensors=0.;
+
+  // Added damping for a disk of radius 
+  const real nu = parameters.dbase.get<real >("nu");    
+  const real & fluidDensity = parameters.dbase.get<real >("fluidDensity");
+  assert( fluidDensity>0. );
+  const real mu = nu*fluidDensity;
+
+  const real & addedDampingCoefficient = parameters.dbase.get<real>("addedDampingCoefficient");
+
+  // We need to compute the average grid spacing in the normal direction
+  real dn =0.;
+
+  const int numberOfDimensions = cg.numberOfDimensions();
+
+  // Compute the min grid spacing at the body surface 
+  real minGridSpacing=REAL_MAX;  // holds min-grid-spacing
+  assert( integrate!=NULL );
+  const int numberOfFaces=integrate->numberOfFacesOnASurface(bodyNumber);
+  for( int face=0; face<numberOfFaces; face++ )
+  {
+    int side=-1,axis,grid;
+    integrate->getFace(bodyNumber,face,side,axis,grid);
+    assert( side>=0 && side<=1 && axis>=0 && axis<cg.numberOfDimensions());
+    assert( grid>=0 && grid<cg.numberOfComponentGrids());
+
+    MappedGrid & c = cg[grid];
+    OV_GET_SERIAL_ARRAY(real,c.vertex(),xLocal);
+    Index Ib1,Ib2,Ib3, Ip1,Ip2,Ip3;
+    getBoundaryIndex(c.gridIndexRange(),side,axis,Ib1,Ib2,Ib3); // boundary line 
+    getGhostIndex(c.gridIndexRange(),side,axis,Ip1,Ip2,Ip3,-1); // first line in 
+
+    // Assume grid is nearly orthogonal -- we could check using the mask 
+    real dist=minGridSpacing;
+    if( numberOfDimensions==2 )
+      dist = sqrt( min(SQR(xLocal(Ip1,Ip2,Ip3,0)-xLocal(Ib1,Ib2,Ib3,0))+
+		       SQR(xLocal(Ip1,Ip2,Ip3,1)-xLocal(Ib1,Ib2,Ib3,1))) );
+    else
+      dist = sqrt( min(SQR(xLocal(Ip1,Ip2,Ip3,0)-xLocal(Ib1,Ib2,Ib3,0))+
+		       SQR(xLocal(Ip1,Ip2,Ip3,1)-xLocal(Ib1,Ib2,Ib3,1))+
+		       SQR(xLocal(Ip1,Ip2,Ip3,2)-xLocal(Ib1,Ib2,Ib3,2))) );
+    minGridSpacing=min(minGridSpacing,dist);
+
+  }
+  minGridSpacing=ParallelUtility::getMinValue(minGridSpacing);
+  dn=minGridSpacing;
+  printF("--MVG--getRigidBodyAddedDampingTensors: body=%i min-grid-spacing at boundary=%8.2e -- setting dn=%8.2e\n",
+	 bodyNumber,minGridSpacing,dn);
+
+  // Given the grid spacing on the boundary we evaluate the integrals defining the added damping tensors 
+
+  
+  real radius=1.;  // ** fix me **
+  // real addedDampingCoefficient=4.;
+  const real Dww = addedDampingCoefficient*(mu/dn)*twoPi*pow(radius,3.);  // *check me*
+  addedDampingTensors(2,2,1,1)=Dww;
+
+  printF("--MVG--getRigidBodyAddedDampingTensors : body=%i, dn=%8.2e radius=%8.2e mu=%8.2e "
+         "addedDampingCoefficient=%4.2f Dww=%8.2e\n",
+	 bodyNumber,dn,radius,mu,addedDampingCoefficient, Dww);
+
+  // Save the added damping tensors with the RigidBody: 
+  body.setAddedDampingTensors( addedDampingTensors );
+
+  return 0;
+}
+
+
 
 // =======================================================================================
 /// \brief  Return the number of deforming bodies.
@@ -1457,6 +1565,190 @@ correctGrids(const real t1,
 }
 
 
+//=================================================================================
+/// \brief Return the integrated fluid force and torques on the rigid bodies.
+///
+/// \param force(0:2,b) (output) : integrated force on body b, b=0,1,..,numberOfRigidBodies-1
+/// \param torque(0:2,b) (output) : integrated torque on body b, b=0,1,..,numberOfRigidBodies-1
+///        Note that in 2D the only torque component is torque(2,b) . 
+/// \param gf0 (input) : holds fluid solution (for pressure and viscous stresses)
+/// \param includeGravity (input) : if true, include gravitation force (buoyancy)
+/// \param includeViscosity (input) : if true, include viscous tractions in force.
+//
+// Note: This code originally appeared in MovingGrids::rigidBodyMotion
+// 
+//=================================================================================
+int MovingGrids::
+getForceOnRigidBodies( RealArray & force, RealArray & torque, GridFunction & gf0,
+                       bool includeGravity /*= true */, 
+                       bool includeViscosity /* = true */ )
+{
+  if( numberOfRigidBodies<=0 )
+    return 1;
+
+  force.redim(3,numberOfRigidBodies);   force=0.;
+  torque.redim(3,numberOfRigidBodies);  torque=0.;
+  
+  RealCompositeGridFunction & u = gf0.u;
+  CompositeGrid & cg = gf0.cg;
+  const int numberOfDimensions = cg.numberOfDimensions();
+
+  // *wdh* 120113 -- save stress and torque in the same grid function!
+  Range all;
+  const int numberOfStressComponents=numberOfDimensions;
+  const int numberOfTorqueComponents= numberOfDimensions==2 ? 1 : 3;
+  const int numberOfForceAndTorqueComponents=numberOfStressComponents+numberOfTorqueComponents;
+  const int torquec =numberOfStressComponents; // first Torque component sits here 
+
+  RealCompositeGridFunction stress(cg,all,all,all,numberOfForceAndTorqueComponents); // **** fix this ****
+  stress=0.; // do we need this?
+
+  // const int rc=parameters.dbase.get<int >("rc");
+  // const int uc=parameters.dbase.get<int >("uc");
+  // const int vc=parameters.dbase.get<int >("vc");
+  // const int wc=parameters.dbase.get<int >("wc");
+  // const int pc=parameters.dbase.get<int >("pc");
+  // const int tc=parameters.dbase.get<int >("tc");
+  // const real nu = parameters.dbase.get<real >("nu");
+  // const Range V(parameters.dbase.get<int >("uc"),parameters.dbase.get<int >("uc")+cg.numberOfDimensions()-1);
+
+  Index Ib1,Ib2,Ib3; 
+  const int extraInTangential=2;  // *wdh* 2012/02/25 make sure we assign enough values for impedance
+
+  // --------- LOOP OVER RIGID BODIES ------------
+  for( int b=0; b<numberOfRigidBodies; b++ )
+  {
+    assert( integrate!=NULL );
+
+    // ------ BEGIN: compute stress*normal ---------
+    const int numberOfFaces=integrate->numberOfFacesOnASurface(b);
+    for( int face=0; face<numberOfFaces; face++ )
+    {
+      int side=-1,axis,grid;
+      integrate->getFace(b,face,side,axis,grid);
+      assert( side>=0 && side<=1 && axis>=0 && axis<cg.numberOfDimensions());
+      assert( grid>=0 && grid<cg.numberOfComponentGrids());
+
+      MappedGrid & c = cg[grid];
+      c.update(MappedGrid::THEvertexBoundaryNormal);  // fix this ********************
+      OV_GET_SERIAL_ARRAY(real,c.vertex(),vertexLocal);
+      OV_GET_SERIAL_ARRAY(real,stress[grid],stressLocal);
+      OV_GET_SERIAL_ARRAY(int,c.mask(),maskLocal);
+      #ifdef USE_PPP
+        realSerialArray & normalLocal = c.vertexBoundaryNormalArray(side,axis);
+      #else
+        realSerialArray & normalLocal = c.vertexBoundaryNormal(side,axis);
+      #endif
+
+      getBoundaryIndex(c.gridIndexRange(),side,axis,Ib1,Ib2,Ib3,extraInTangential);
+      int includeGhost=1;
+      bool ok = ParallelUtility::getLocalArrayBounds(c.mask(),maskLocal,Ib1,Ib2,Ib3,includeGhost);
+
+      int ipar[] = {grid,side,axis,gf0.form}; // 
+      real rpar[] = { gf0.t }; // 
+      parameters.getNormalForce( gf0.u,stressLocal,ipar,rpar, includeViscosity );
+
+      // torque:  (x-x0) X dF
+      RealArray xCM(3);
+      body[b]->getPosition(gf0.t,xCM);
+      if( ok )
+      {
+	if( cg.numberOfDimensions()==2 )
+	{
+	  stressLocal(Ib1,Ib2,Ib3,torquec) = ( (vertexLocal(Ib1,Ib2,Ib3,0)-xCM(0))*stressLocal(Ib1,Ib2,Ib3,1)-
+				  	       (vertexLocal(Ib1,Ib2,Ib3,1)-xCM(1))*stressLocal(Ib1,Ib2,Ib3,0) );
+	}
+	else
+	{
+	  stressLocal(Ib1,Ib2,Ib3,torquec  ) = ( (vertexLocal(Ib1,Ib2,Ib3,1)-xCM(1))*stressLocal(Ib1,Ib2,Ib3,2)-
+					         (vertexLocal(Ib1,Ib2,Ib3,2)-xCM(2))*stressLocal(Ib1,Ib2,Ib3,1) );
+
+	  stressLocal(Ib1,Ib2,Ib3,torquec+1) = ( (vertexLocal(Ib1,Ib2,Ib3,2)-xCM(2))*stressLocal(Ib1,Ib2,Ib3,0)-
+					         (vertexLocal(Ib1,Ib2,Ib3,0)-xCM(0))*stressLocal(Ib1,Ib2,Ib3,2) );
+
+	  stressLocal(Ib1,Ib2,Ib3,torquec+2) = ( (vertexLocal(Ib1,Ib2,Ib3,0)-xCM(0))*stressLocal(Ib1,Ib2,Ib3,1)-
+					         (vertexLocal(Ib1,Ib2,Ib3,1)-xCM(1))*stressLocal(Ib1,Ib2,Ib3,0) );
+	}
+      
+      } // end if OK
+    } // end for face; compute stress*normal on a face
+
+    // *wdh* 040920 : interpolate the stress to get values at the interpolation points needed for integration
+    // -- do we need to worry about interior values of the stress and torque?? -- could assign nearby values to
+    // equal those on the boundary
+    stress.setOperators(*u.getOperators()); // operators needed for amr interpolation
+    Interpolant & interpolant = *gf0.u.getInterpolant();
+
+    interpolant.interpolate(stress); // **OPTIMZE ME -- only need to interpolant on boundaries ***
+
+    //  ----- Integrate surface force & torque on rigid body --------
+    Range F=numberOfStressComponents;
+    Range T=numberOfTorqueComponents;
+    Range FT=numberOfForceAndTorqueComponents;
+    RealArray forceTorque(FT); // , x(3),r(3,3); 
+
+    forceTorque=0.;
+    integrate->surfaceIntegral( stress,FT,forceTorque,b );  // surface integral of forces and torques.
+
+    printF("--MVG:getForceRB: t=%9.3e torque=%9.3e\n",gf0.t,forceTorque(torquec));
+    
+    // --- save results in user supplied arrays ---
+    force(F,b)=forceTorque(F);
+    if( numberOfDimensions==2 )
+      torque(2,b)=forceTorque(torquec);  // in 2D there is only one component of the torque
+    else
+      torque(T,b) = forceTorque(T+torquec);
+    
+    // --- Add gravity buoyancy force ---
+    if( includeGravity )
+    {
+      ArraySimpleFixed<real,3,1,1,1> & gravity = parameters.dbase.get<ArraySimpleFixed<real,3,1,1,1> >("gravity");
+
+      // -- check if the gravity is non-zero --
+      real maxGravity=0.;
+      for( int d=0; d<cg.numberOfDimensions(); d++ )
+	maxGravity=max(maxGravity,fabs(gravity[d]));
+      
+      if( maxGravity>0. ) // gravity is on 
+      {
+	const real bodyMass = body[b]->getMass();
+	real fluidMass=0.;
+	const real fluidDensity = parameters.dbase.get<real >("fluidDensity");
+    
+	if( fluidDensity!=0. )
+	{
+	  const real bodyDensity =  body[b]->getDensity();
+	  if( bodyDensity>0. )
+	  {
+	    assert( bodyMass!=0. );
+	    real volume = bodyMass/bodyDensity;
+	    fluidMass = fluidDensity*volume; 
+
+	    if( debug() & 2 ) 
+	      printF("--MVG-- getForceOnRigidBodies: body b=%i: bodyMass=%8.2e, fluidMass=%8.2e, volume=%9.3e\n",
+		     b,bodyMass,fluidMass,volume);
+	  }
+	  else
+	  {
+	    printF("--MVG-- getForceOnRigidBodies::ERROR: The fluid density is not zero but the "
+                   "body density is unknown.\n"
+		   " Thus the volume of the body b=%i cannot be computed! \n",b);
+	  }
+	}
+
+	for( int d=0; d<cg.numberOfDimensions(); d++ )
+	  force(d,b) += gravity[d]*(bodyMass-fluidMass);  // add weight: mass*g 
+      }
+      
+    } // end include gravity 
+    
+  } // end for body 
+  
+
+  return 0;
+}
+
+
 int MovingGrids::
 getGridVelocity( GridFunction & gf0, const real & tGV )
 //=================================================================================
@@ -1906,13 +2198,13 @@ getGridVelocity( GridFunction & gf0, const real & tGV )
   return 0;
 }
 
-//=================================================================================
+//==========================================================================================
 /// \brief Add the grid acceleration in the normal direction, n.x_tt,  to the function f
 ///   f is normally the function that holds the rhs for the pressure eqn
 ///
-///   BC: is p.n = ... -u.t
-///              = ... -g(x,t).tt  where g is the postion of the moving grid  
-//=================================================================================
+///   BC: is p.n = ... - rho n^T( u.t )
+///              = ... -rho n^T( g(x,t).tt )  where g is the position of the moving grid  
+//===========================================================================================
 int MovingGrids::
 gridAccelerationBC(const int grid, const int side, const int axis,
                     const real t0,
@@ -2175,19 +2467,101 @@ gridAccelerationBC(const int grid, const int side, const int axis,
       body[b]->getVelocity( t0,vCM  );
       body[b]->getAngularVelocities( t0,w );
       if( c.numberOfDimensions()==2 )
-	printF("MovingGrids::gridAccelBC: t0=%9.2e, vCM=(%9.2e,%9.2e), aCM=(%9.2e,%9.2e), wCM=(0,0,%9.2e) \n",
-	       t0,vCM(0),vCM(1),aCM(0),aCM(1),w(2));
+	printF("--MVG--::gridAccelBC: t0=%9.2e, xCM=(%9.2e,%9.2e), vCM=(%9.2e,%9.2e), aCM=(%9.2e,%9.2e), "
+               "wCM=(0,0,%9.2e) \n",
+	       t0,xCM(0),xCM(1),vCM(0),vCM(1),aCM(0),aCM(1),w(2));
       else
-	printF("MovingGrids::gridAccelBC: t0=%9.2e, vCM=(%9.2e,%9.2e,%9.2e), aCM=(%9.2e,%9.2e,%9.2e), wCM=(%9.2e,%9.2e,%9.2e) \n",
+	printF("--MVG--::gridAccelBC: t0=%9.2e, vCM=(%9.2e,%9.2e,%9.2e), aCM=(%9.2e,%9.2e,%9.2e), wCM=(%9.2e,%9.2e,%9.2e) \n",
 	       t0,vCM(0),vCM(1),vCM(2),aCM(0),aCM(1),aCM(2),w(0),w(1),w(2));
     }
         
+    // directProjectionAddedMass: if true, we are using the direct projection scheme 
+    const bool directProjectionAddedMass = body[b]->getDirectProjectionAddedMass();
+    if( directProjectionAddedMass )
+    {
+      // Direct-projection AMP scheme: do NOT include the acceleration terms as these are 
+      // incorporated into the pressure BC
+
+      if( TRUE )
+      {
+	// TEMPORARY FUDGE
+	// RealArray bodyForce(3), bodyTorque(3);
+	// body[b]->getBodyForces( t0,bodyForce,bodyTorque );
+
+	real bodyMass = body[b]->getMass();
+
+	ArraySimpleFixed<real,3,1,1,1> & gravity = parameters.dbase.get<ArraySimpleFixed<real,3,1,1,1> >("gravity");
+
+	// printF("--INS: Accel-BC: directProjectionAddedMass: exclude RB acceleration terms, t=%9.2e\n"
+	//        "        bodyForce=(%9.2e,%9.2e,%9.2e), gravity=(%9.2e,%9.2e,%9.2e)\n",
+	//        t0,bodyForce(0),bodyForce(1),bodyForce(2),gravity[0],gravity[1],gravity[2]);
+
+	// for( int d=0; d<c.numberOfDimensions(); d++ )
+	// 	aCM(d)=(bodyForce(d)+gravity[d]*(bodyMass-fluidMass))/bodyMass;  // remove pressure term from acceleration 
+
+	real fluidMass=0.;
+	real fluidDensity =  parameters.dbase.get<real >("fluidDensity");
+	assert( fluidDensity!=0. );
+	if( body[b]->getDensity()>0. )
+	{
+	  assert( bodyMass!=0. );
+	  real volume = bodyMass/body[b]->getDensity();
+	  fluidMass = parameters.dbase.get<real >("fluidDensity")*volume; 
+
+	  if( debug() & 2 ) 
+	    printF(" --- body b=%i: bodyMass=%8.2e, fluidMass=%8.2e, volume=%9.3e\n",b,bodyMass,fluidMass,volume);
+
+	}
+	else
+	{
+	  printF("MovingGrids:ERROR: The fluid density is not zero but the body density is unknown.\n"
+		 " Thus the volume of the body b=%i cannot be computed! \n",b);
+	}
+
+	if( true )
+	{
+	  RealArray omegaDot(3);
+	  body[b]->getAngularAcceleration( t0, omegaDot  );
+	  printF("--MVG-- Accel-BC: directProjectionAddedMass: exclude RB acceleration terms, t=%9.2e\n",t0);
+	  printF("       BEFORE: body: aCM = (%9.2e,%9.2e,%9.2e) wDot = (%9.2e,%9.2e,%9.2e)\n", 
+		 aCM(0),aCM(1),aCM(2), omegaDot(0),omegaDot(1),omegaDot(2));
+
+	}
+	
+	for( int d=0; d<c.numberOfDimensions(); d++ )
+	  aCM(d) = gravity[d]*(bodyMass-fluidMass)/bodyMass; 
+
+	printF("        gravity=(%9.2e,%9.2e,%9.2e) fluidMass=%9.3e bodyMass=%9.3e Buoyancy=(%9.2e,%9.2e,%9.2e)\n",
+	       gravity[0],gravity[1],gravity[2],fluidMass,bodyMass, aCM(0),aCM(1),aCM(2));
+      
+	// **FIX ME** also zero out angular acceleration **
+      }
+      if( TRUE )
+      {
+        // --- do this for now --- (later: no need to evaluate RB values at all)
+	aCM=0.;
+	rttri=0.;
+      }
+      
+    }
+
     if( c.numberOfDimensions()==2 )
     {
       fLocal(I1g,I2g,I3g)-=(normal(I1,I2,I3,0)*(aCM(0) +(rttri(0,0)*(vertex(I1,I2,I3,0)-xCM(0))+
-			 			        rttri(0,1)*(vertex(I1,I2,I3,1)-xCM(1))))+
+			 			         rttri(0,1)*(vertex(I1,I2,I3,1)-xCM(1))))+
                             normal(I1,I2,I3,1)*(aCM(1) +(rttri(1,0)*(vertex(I1,I2,I3,0)-xCM(0))+
 						         rttri(1,1)*(vertex(I1,I2,I3,1)-xCM(1)))));
+      if( debug() & 8 )
+      {
+	RealArray abc(I1,I2,I3);
+	abc=(normal(I1,I2,I3,0)*(aCM(0) +(rttri(0,0)*(vertex(I1,I2,I3,0)-xCM(0))+
+			 			         rttri(0,1)*(vertex(I1,I2,I3,1)-xCM(1))))+
+                            normal(I1,I2,I3,1)*(aCM(1) +(rttri(1,0)*(vertex(I1,I2,I3,0)-xCM(0))+
+						         rttri(1,1)*(vertex(I1,I2,I3,1)-xCM(1)))));
+	::display(abc,"--MVG-- boundary accel from Rigid Body","%9.2e ");
+	::display(fLocal(I1g,I2g,I3g),"--MVG-- boundary accel total","%9.2e ");
+      }
+
     }
     else 
     {
@@ -3119,6 +3493,10 @@ rigidBodyMotion(const real & t1,
     }
     
     
+    const bool directProjectionAddedMass = body[b]->getDirectProjectionAddedMass();
+    if( directProjectionAddedMass || debug() & 1 )
+	printF("--MVG:RB-- body %i : t2=%6.2e fCM=(%6.2e,%6.2e,%6.2e)"
+		" torque=(%6.2e,%6.2e,%6.2e)\n",b,t2,f(0),f(1),f(2),g(0),g(1),g(2));
     // g=0.; 
     // integrate->surfaceIntegral(torque,T,g,b);
 
@@ -3537,6 +3915,14 @@ rigidBodyMotion(const real & t1,
       RealArray w(3);
       body[b]->getAngularVelocities(t2,w);
 
+      RealArray aCM(3);
+      body[b]->getAcceleration(t2,aCM);
+
+      RealArray wDot(3);
+      body[b]->getAngularAcceleration(t2,wDot);
+
+
+
       if( debug() & 1 ) 
       {
 
@@ -3547,11 +3933,11 @@ rigidBodyMotion(const real & t1,
       
 	//RealArray r(3,3);
 	//body[b]->getRotationMatrix(t2,r);
-//        fprintf(parameters.dbase.get<FILE* >("moveFile"),
-//  	      "     [ %8.6f  %8.6f %8.6f ]\n"
-//  	      " r = [ %8.6f  %8.6f %8.6f ]\n"
-//  	      "     [ %8.6f  %8.6f %8.6f ]\n"
-//  	      ,r(0,0),r(0,1),r(0,2),r(1,0),r(1,1),r(1,2),r(2,0),r(2,1),r(2,2));
+        //        fprintf(parameters.dbase.get<FILE* >("moveFile"),
+        //  	      "     [ %8.6f  %8.6f %8.6f ]\n"
+        //  	      " r = [ %8.6f  %8.6f %8.6f ]\n"
+        //  	      "     [ %8.6f  %8.6f %8.6f ]\n"
+        //  	      ,r(0,0),r(0,1),r(0,2),r(1,0),r(1,1),r(1,2),r(2,0),r(2,1),r(2,2));
       
       }
     
@@ -3601,6 +3987,17 @@ rigidBodyMotion(const real & t1,
 	if( numberOfDimensions==3 ){ rigidBodyInfo(i,j,b)=g(0); j++; }
 	if( numberOfDimensions==3 ){ rigidBodyInfo(i,j,b)=g(1); j++; }
 	rigidBodyInfo(i,j,b)=g(2); j++;
+
+        for( int axis=0; axis<numberOfDimensions; axis++ ) { rigidBodyInfo(i,j,b)=aCM(axis); j++; } // 
+	if( numberOfDimensions==2 )
+	{
+	  rigidBodyInfo(i,j,b)=wDot(2); j++;  // only one angular acceleration in 2D
+	}
+	else
+	{
+	  for( int axis=0; axis<numberOfDimensions; axis++ ) { rigidBodyInfo(i,j,b)=wDot(axis); j++; } // 
+	}
+	
 	rigidBodyInfo(i,j,b)=fMax; j++;
 	rigidBodyInfo(i,j,b)=gMax; j++;
 	rigidBodyInfo(i,j,b)=pMax; j++;

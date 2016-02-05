@@ -201,8 +201,10 @@ initializeInterfaces(std::vector<int> & gfIndex)
 
     CompositeGrid & cg = domainSolver[dm]->gf[gfIndex[dm]].cg;
     const int numberOfDimensions = cg.numberOfDimensions();
-    fPrintF(interfaceFile,"**** domain %i %s : *******\n"
-	   "   side axis grid interfaceType bc(orig) bc   share\n",dm,(const char*)domainSolver[dm]->getName());
+    fPrintF(interfaceFile,"**** domain %i %s (%s) : *******\n"
+	    "   side axis grid interfaceType bc(orig) bc   share\n",dm,
+            (const char*)domainSolver[dm]->getName(),
+            (const char*)domainSolver[dm]->getClassName());
     for( int g=0; g<cg.numberOfComponentGrids(); g++ )
     {
       MappedGrid & mg = cg[g];
@@ -503,9 +505,13 @@ initializeInterfaces(std::vector<int> & gfIndex)
   for( int inter=0; inter < interfaceList.size(); inter++ ) 
   {
     InterfaceDescriptor & interfaceDescriptor = interfaceList[inter]; 
-    fPrintF(interfaceFile," -- Interface %i is an interface between domain1=%i (%s) and domain2=%i (%s)--- \n",
-            inter,interfaceDescriptor.domain1,(const char*)domainSolver[interfaceDescriptor.domain1]->getName(),
-            interfaceDescriptor.domain2,(const char*)domainSolver[interfaceDescriptor.domain2]->getName());
+    fPrintF(interfaceFile," -- Interface %i is an interface between domain1=%i (%s,%s) and domain2=%i (%s,%s)--- \n",
+            inter,interfaceDescriptor.domain1,
+            (const char*)domainSolver[interfaceDescriptor.domain1]->getName(),
+            (const char*)domainSolver[interfaceDescriptor.domain1]->getClassName(),
+            interfaceDescriptor.domain2,
+            (const char*)domainSolver[interfaceDescriptor.domain2]->getClassName(),
+            (const char*)domainSolver[interfaceDescriptor.domain2]->getName());
     for( int interfaceSide=0; interfaceSide<=1; interfaceSide++ )
     {
       const int domain = interfaceSide==0 ? interfaceDescriptor.domain1 :  interfaceDescriptor.domain2;

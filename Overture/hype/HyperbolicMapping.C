@@ -171,6 +171,9 @@ initialize()
   correctProjectionOfInitialCurves=true; // if true correct the projection of the initial curve to match edges on the triangluation
   stopOnNegativeCells=true;
   
+  if( !dbase.has_key("plotBadCells") )
+    dbase.put<bool>("plotBadCells")=false; // set to true to plot poor quality cells or "bow-ties"
+
   useTriangulation=true;      // if true, use the triangulation of a CompositeSurface for marching.
   projectOntoReferenceSurface=true;  // if true, project points found using the triangulation onto the actual surface
   plotGhostPoints=true;

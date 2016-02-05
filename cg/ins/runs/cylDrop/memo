@@ -1,3 +1,330 @@
+*************************************
+**** Dec 6, 2015
+
+More RUNS for the paper
+
+BIGGER domain + increase pressure AMP
+  [-2,2] -> [-4,4] 
+cgins -noplot cylDrop -g=cicBige2.order2.hdf -tf=5. -tp=.05 -nu=.05 -ts=im -density=.001 -inertia=1. -radius=.5 -dropName=Annulus -channelName=square -bcOption=sinusoidalPressure -ampSinusoidalPressure=4. -gravity=0. -dtMax=.02 -project=0 -numberOfCorrections=100 -omega=.2 -addedMass=1  -useProvidedAcceleration=1 -useTP=0 -debug=3 -psolver=yale -show=cylDrop2b.show -go=go >! cylDrop2b.out
+
+
+AMP - DENSITY=.001 DECREASE nu 
+cgins -noplot cylDrop -g=cice2.order2.hdf -tf=5. -tp=.05 -nu=.025 -ts=im -density=.001 -inertia=1. -radius=.5 -dropName=Annulus -channelName=square -bcOption=sinusoidalPressure -ampSinusoidalPressure=2. -gravity=0. -dtMax=.02 -project=0 -numberOfCorrections=100 -omega=.2 -addedMass=1  -useProvidedAcceleration=1 -useTP=0 -debug=3 -psolver=yale -show=cylDrop2bd0p001a.show -go=go >! cylDrop2bd0p001a.out
+
+
+*************************************
+**** Dec 2-3, 2015
+
+RUNS for the paper
+
+
+***************************** DENSITY=10 ********************************
+
+TP DENSITY=10
+cgins -noplot cylDrop -g=cice2.order2.hdf -tf=5. -tp=.05 -nu=.05 -ts=im -density=10. -inertia=1. -radius=.5 -dropName=Annulus -channelName=square -bcOption=sinusoidalPressure -ampSinusoidalPressure=2. -gravity=0. -dtMax=.02 -project=0 -numberOfCorrections=1 -omega=1. -addedMass=0  -useProvidedAcceleration=0 -useTP=0 -debug=3 -psolver=yale -show=cylDrop2bd10p0TP.show -go=go >! cylDrop2bd10p0TP.out 
+
+DENSITY=10
+cgins -noplot cylDrop -g=cice2.order2.hdf -tf=5. -tp=.05 -nu=.05 -ts=im -density=10. -inertia=1. -radius=.5 -dropName=Annulus -channelName=square -bcOption=sinusoidalPressure -ampSinusoidalPressure=2. -gravity=0. -dtMax=.02 -project=0 -numberOfCorrections=100 -omega=.2 -addedMass=1  -useProvidedAcceleration=1 -useTP=0 -debug=3 -psolver=yale -show=cylDrop2bd10p0.show -go=go >! cylDrop2bd10p0.out
+
+************************** DENSITY = 0.001 ********************************
+
+TP-SI DENSITY=.001
+cgins -noplot cylDrop -g=cice2.order2.hdf -tf=5. -tp=.05 -nu=.05 -ts=im -density=.001 -inertia=1. -radius=.5 -dropName=Annulus -channelName=square -bcOption=sinusoidalPressure -ampSinusoidalPressure=2. -gravity=0. -dtMax=.02 -project=0 -numberOfCorrections=100 -omega=.001 -addedMass=0  -useProvidedAcceleration=0 -useTP=1 -debug=3 -psolver=yale -show=cylDrop2bd0p001TP.show -go=go >! cylDrop2bd0p001TP.out
+
+omega=.01 : OK, .02=NO
+cgins cylDrop -g=cice2.order2.hdf -tf=5. -tp=.001 -nu=.05 -ts=im -density=.001 -inertia=1. -radius=.5 -dropName=Annulus -channelName=square -bcOption=sinusoidalPressure -ampSinusoidalPressure=2. -gravity=0. -dtMax=.02 -project=0 -numberOfCorrections=100 -omega=.001 -addedMass=0  -useProvidedAcceleration=0 -useTP=1 -debug=3 -psolver=yale -show=cylDrop2bd0p001TP.show -go=halt
+
+AMP - DENSITY=.001
+cgins -noplot cylDrop -g=cice2.order2.hdf -tf=5. -tp=.05 -nu=.05 -ts=im -density=.001 -inertia=1. -radius=.5 -dropName=Annulus -channelName=square -bcOption=sinusoidalPressure -ampSinusoidalPressure=2. -gravity=0. -dtMax=.02 -project=0 -numberOfCorrections=100 -omega=.2 -addedMass=1  -useProvidedAcceleration=1 -useTP=0 -debug=3 -psolver=yale -show=cylDrop2bd0p001.show -go=go >! cylDrop2bd0p001.out
+
+************************** DENSITY = 0.01 ********************************
+AMP 
+DENSITY=.01
+cgins -noplot cylDrop -g=cice2.order2.hdf -tf=5. -tp=.05 -nu=.05 -ts=im -density=.01 -inertia=1. -radius=.5 -dropName=Annulus -channelName=square -bcOption=sinusoidalPressure -ampSinusoidalPressure=2. -gravity=0. -dtMax=.02 -project=0 -numberOfCorrections=100 -omega=.2 -addedMass=1  -useProvidedAcceleration=1 -useTP=0 -debug=3 -psolver=yale -show=cylDrop2bd0p01.show -go=go >! cylDrop2bd0p01.out
+
+
+TP-SI DENSITY=.01 omega=.01 (OK)   .02=NO 
+cgins -noplot cylDrop -g=cice2.order2.hdf -tf=5. -tp=.05 -nu=.05 -ts=im -density=.01 -inertia=1. -radius=.5 -dropName=Annulus -channelName=square -bcOption=sinusoidalPressure -ampSinusoidalPressure=2. -gravity=0. -dtMax=.02 -project=0 -numberOfCorrections=100 -omega=.01 -addedMass=0  -useProvidedAcceleration=0 -useTP=1 -debug=3 -psolver=yale -show=cylDrop2bd0p01TP.show -go=go >! cylDrop2bd0p01TP.out
+
+cgins cylDrop -g=cice2.order2.hdf -tf=5. -tp=.05 -nu=.05 -ts=im -density=.01 -inertia=1. -radius=.5 -dropName=Annulus -channelName=square -bcOption=sinusoidalPressure -ampSinusoidalPressure=2. -gravity=0. -dtMax=.02 -project=0 -numberOfCorrections=100 -omega=.01 -addedMass=0  -useProvidedAcceleration=0 -useTP=1 -debug=3 -psolver=yale -show=cylDrop2bd0p01TP.show -go=halt
+
+
+************************** DENSITY = 0.1 ********************************
+AMP 
+DENSITY=.1
+cgins -noplot cylDrop -g=cice2.order2.hdf -tf=5. -tp=.05 -nu=.05 -ts=im -density=.1 -inertia=1. -radius=.5 -dropName=Annulus -channelName=square -bcOption=sinusoidalPressure -ampSinusoidalPressure=2. -gravity=0. -dtMax=.02 -project=0 -numberOfCorrections=100 -omega=.2 -addedMass=1  -useProvidedAcceleration=1 -useTP=0 -debug=3 -psolver=yale -show=cylDrop2bd0p1.show -go=go >! cylDrop2bd0p1.out
+
+TP-SI DENSITY=.1 omega=.1 OK    (.25=NO) .. try decreasing rtolc
+cgins -noplot cylDrop -g=cice2.order2.hdf -tf=5. -tp=.05 -nu=.05 -ts=im -density=.1 -inertia=1. -radius=.5 -dropName=Annulus -channelName=square -bcOption=sinusoidalPressure -ampSinusoidalPressure=2. -gravity=0. -dtMax=.02 -project=0 -numberOfCorrections=100 -omega=.1 -rtolc=1.e-6 -addedMass=0  -useProvidedAcceleration=0 -useTP=1 -debug=3 -psolver=yale -show=cylDrop2bd0p1TPa.show -go=go >! cylDrop2bd0p1TPa.out 
+
+
+TP-SI DENSITY=.1 omega=.1 OK    (.25=NO)
+cgins -noplot cylDrop -g=cice2.order2.hdf -tf=5. -tp=.05 -nu=.05 -ts=im -density=.1 -inertia=1. -radius=.5 -dropName=Annulus -channelName=square -bcOption=sinusoidalPressure -ampSinusoidalPressure=2. -gravity=0. -dtMax=.02 -project=0 -numberOfCorrections=100 -omega=.1 -addedMass=0  -useProvidedAcceleration=0 -useTP=1 -debug=3 -psolver=yale -show=cylDrop2bd0p1TP.show -go=go >! cylDrop2bd0p1TP.out
+
+***************************** DENSITY=1 ********************************
+
+TP-SI DENSITY=1 omega=.75 : OK 
+cgins -noplot cylDrop -g=cice2.order2.hdf -tf=5. -tp=.05 -nu=.05 -ts=im -density=1. -inertia=1. -radius=.5 -dropName=Annulus -channelName=square -bcOption=sinusoidalPressure -ampSinusoidalPressure=2. -gravity=0. -dtMax=.02 -project=0 -numberOfCorrections=100 -omega=.75 -addedMass=0  -useProvidedAcceleration=0 -useTP=1 -debug=3 -psolver=yale -show=cylDrop2bd1p0TP.show -go=go >! cylDrop2bd1p0TP.out 
+
+DENSITY=1
+cgins -noplot cylDrop -g=cice2.order2.hdf -tf=5. -tp=.05 -nu=.05 -ts=im -density=1. -inertia=1. -radius=.5 -dropName=Annulus -channelName=square -bcOption=sinusoidalPressure -ampSinusoidalPressure=2. -gravity=0. -dtMax=.02 -project=0 -numberOfCorrections=100 -omega=.2 -addedMass=1  -useProvidedAcceleration=1 -useTP=0 -debug=3 -psolver=yale -show=cylDrop2bd1p0.show -go=go >! cylDrop2bd1p0.out
+
+*************************************
+**** Nov 30, 2015
+
+Bigger domain: 
+
+VERY SMALL DENSITY: 
+cgins -noplot cylDrop -g=cicBige2.order2.hdf -tf=5. -tp=.05 -nu=.05 -ts=im -density=.001 -inertia=1. -radius=.5 -dropName=Annulus -channelName=square -bcOption=sinusoidalPressure -ampSinusoidalPressure=2. -gravity=0. -dtMax=.02 -project=0 -numberOfCorrections=100 -omega=.2 -addedMass=1  -useProvidedAcceleration=1 -useTP=0 -debug=3 -psolver=yale -show=cylDrop2b.show -go=go >! cylDrop2b.out
+
+
+DENSITY1 
+cgins -noplot cylDrop -g=cicBige2.order2.hdf -tf=5. -tp=.05 -nu=.05 -ts=im -density=1. -inertia=1. -radius=.5 -dropName=Annulus -channelName=square -bcOption=sinusoidalPressure -ampSinusoidalPressure=10. -gravity=0. -dtMax=.02 -project=0 -numberOfCorrections=100 -omega=.2 -addedMass=1  -useProvidedAcceleration=1 -useTP=0 -debug=3 -psolver=yale -show=cylDrop2r1b.show -go=go >! cylDrop2r1b.out
+
+*************************************
+**** Nov 29, 2015
+
+*FIX ME* -ts=im
+
+TRY SLIP WALLS
+
+VERY SMALL DENSITY: 
+cgins -noplot cylDrop -g=cice2.order2.hdf -tf=5. -tp=.05 -nu=.05 -ts=im -density=.001 -inertia=1. -radius=.5 -dropName=Annulus -channelName=square -bcOption=sinusoidalPressure -ampSinusoidalPressure=2. -gravity=0. -dtMax=.02 -project=0 -numberOfCorrections=100 -omega=.2 -addedMass=1  -useProvidedAcceleration=1 -useTP=0 -debug=3 -psolver=yale -show=cylDrop2.show -go=go >! cylDrop2.out
+
+
+DISK: SINUSOIDAL PRESSURE, TS=IM, DENSITY=.01 AMP=2
+cgins cylDrop -g=cice2.order2.hdf -tf=5. -tp=.05 -nu=.05 -ts=im -density=.01 -inertia=1. -radius=.5 -dropName=Annulus -channelName=square -bcOption=sinusoidalPressure -ampSinusoidalPressure=2. -gravity=0. -dtMax=.02 -project=0 -numberOfCorrections=100 -omega=.2 -addedMass=1  -useProvidedAcceleration=1 -useTP=0 -debug=3 -psolver=yale -show=cic.show -go=halt
+
+
+
+DISK: SINUSOIDAL PRESSURE, TS=IM, AMP=10
+cgins cylDrop -g=cice2.order2.hdf -tf=5. -tp=.05 -nu=.05 -ts=im -density=2. -inertia=1. -radius=.5 -dropName=Annulus -channelName=square -bcOption=sinusoidalPressure -ampSinusoidalPressure=10. -gravity=0. -dtMax=.02 -project=0 -numberOfCorrections=100 -omega=.2 -addedMass=1  -useProvidedAcceleration=1 -useTP=0 -debug=3 -psolver=yale -show=cic.show -go=halt
+
+
+*************************************
+**** Nov 28, 2015
+
+---- REVISIT ----
+
+
+DISK: DENSITY=.1 : SINUSOIDAL PRESSURE *FIX ME* -ts=im
+cgins cylDrop -g=cice2.order2.hdf -tf=5. -tp=.05 -nu=.05 -ts=pc -density=.1 -inertia=1. -radius=.5 -dropName=Annulus -channelName=square -bcOption=sinusoidalPressure -gravity=0. -dtMax=.02 -project=0 -numberOfCorrections=100 -omega=.2 -addedMass=1  -useProvidedAcceleration=1 -useTP=0 -debug=3 -psolver=yale -show=cic.show -go=halt
+
+
+
+DISK: DENSITY=.1 : AMP=OK (with inertia=1)
+cgins cylDrop -g=cice2.order2.hdf -tf=5. -tp=.01 -nu=.05 -ts=im -density=.1 -inertia=1. -radius=.5 -dropName=Annulus -channelName=square -bcOption=inflowOutflow -gravity=-1. -dtMax=.02 -project=0 -numberOfCorrections=100 -omega=.2 -addedMass=1  -useProvidedAcceleration=1 -useTP=0 -debug=3 -psolver=yale -go=halt
+
+
+
+ELLIPSE: DENSITY=.1 : AMP=OK
+cgins cylDrop -g=ellipseAngle45e1.order2 -tf=5. -tp=.01 -nu=.05 -ts=im -density=.1 -radius=.5 -dropName=ellipse -channelName=square -bcOption=inflowOutflow -gravity=-1. -dtMax=.02 -project=0 -numberOfCorrections=100 -omega=.2 -addedMass=1  -useProvidedAcceleration=1 -useTP=0 -debug=3 -psolver=yale -go=halt
+
+
+*************************************
+**** Nov 1, 2015
+
+
+G2: FINER GRID : trouble dtMax=.02, OK: dtMax=.005  --> probably viscous AM effects
+cgins cylDrop -g=ellipseAngle45e2.order2 -tf=5. -tp=.01 -nu=.05 -ts=im -density=.01 -radius=.5 -dropName=ellipse -channelName=square -bcOption=inflowOutflow -gravity=-1. -dtMax=.02 -project=0 -numberOfCorrections=100 -omega=.2 -addedMass=1  -useProvidedAcceleration=1 -useTP=0 -debug=3 -psolver=yale -go=halt
+
+DENSITY=.01 -- OK
+cgins cylDrop -g=ellipseAngle45e1.order2 -tf=5. -tp=.01 -nu=.05 -ts=im -density=.01 -radius=.5 -dropName=ellipse -channelName=square -bcOption=inflowOutflow -gravity=-1. -dtMax=.02 -project=0 -numberOfCorrections=100 -omega=.2 -addedMass=1  -useProvidedAcceleration=1 -useTP=0 -debug=3 -psolver=yale -go=halt
+
+ mass=7.697e-03 : mass of the body,
+ prinicpal moments of inertia: (I1,I2,I3)=(1.00e+00,1.00e+00,9.82e-04)
+ density=1.000e-02
+
+
+
+density=.1: OK 
+cgins cylDrop -g=ellipseAngle45e1.order2 -tf=5. -tp=.01 -nu=.05 -ts=im -density=.1 -radius=.5 -dropName=ellipse -channelName=square -bcOption=inflowOutflow -gravity=-1. -dtMax=.02 -project=0 -numberOfCorrections=100 -omega=.2 -addedMass=1  -useProvidedAcceleration=1 -useTP=0 -debug=3 -psolver=yale -go=halt
+
+
+
+*************************************
+**** Oct 31
+
+
+TEST ROTATED ELLIPSE 
+
+
+BUG FIXED: USE "A" not "E"
+
+
+DENSITY=.1 : AMP=OK
+cgins cylDrop -g=ellipseAngle45e1.order2 -tf=5. -tp=.01 -nu=.05 -ts=im -density=.1 -radius=.5 -dropName=ellipse -channelName=square -bcOption=inflowOutflow -gravity=-1. -dtMax=.02 -project=0 -numberOfCorrections=100 -omega=.2 -addedMass=1  -useProvidedAcceleration=1 -useTP=0 -debug=3 -psolver=yale -go=halt
+
+DENSITY=.125 : TP-SI -- OK if dtMax=.001 
+cgins -noplot cylDrop -g=ellipseAngle45e1.order2 -tf=5. -tp=.01 -nu=.01 -ts=im -density=.125 -radius=.5 -dropName=ellipse -channelName=square -bcOption=inflowOutflow -gravity=-1. -dtMax=.001 -project=0 -numberOfCorrections=1000 -omega=.05 -addedMass=0 -useProvidedAcceleration=0 -useTP=1 -debug=3 -psolver=yale -go=og
+
+DENSITY=.1 : TP-SI -- TROUBLE
+cgins cylDrop -g=ellipseAngle45e1.order2 -tf=5. -tp=.01 -nu=.05 -ts=im -density=.1 -radius=.5 -dropName=ellipse -channelName=square -bcOption=inflowOutflow -gravity=-1. -dtMax=.02 -project=0 -numberOfCorrections=100 -omega=.2 -addedMass=0  -useProvidedAcceleration=0 -useTP=1 -debug=3 -psolver=yale -go=halt
+
+
+DENSITY=.1 : TROUBLE: useProvidedAcceleration=0 --OK if nu=.01
+cgins cylDrop -g=ellipseAngle45e1.order2 -tf=5. -tp=.01 -nu=.05 -ts=im -density=.1 -radius=.5 -dropName=ellipse -channelName=square -bcOption=inflowOutflow -gravity=-1. -dtMax=.02 -project=0 -numberOfCorrections=100 -omega=.2 -addedMass=1  -useProvidedAcceleration=0 -useTP=0 -debug=3 -psolver=yale -go=halt
+
+
+density=1.5 : OK:
+cgins cylDrop -g=ellipseAngle45e1.order2 -tf=5. -tp=.01 -nu=.05 -ts=im -density=.01 -radius=.5 -dropName=ellipse -channelName=square -bcOption=inflowOutflow -gravity=-1. -dtMax=.02 -project=0 -numberOfCorrections=100 -omega=.2 -addedMass=1  -useProvidedAcceleration=0 -useTP=0 -debug=3 -psolver=yale -go=halt
+
+
+VERY LIGHT: do NOT use AMP accelerations: TROUBLE:
+cgins cylDrop -g=ellipseAngle45e1.order2 -tf=5. -tp=.01 -nu=.05 -ts=im -density=.01 -radius=.5 -dropName=ellipse -channelName=square -bcOption=inflowOutflow -gravity=-1. -dtMax=.02 -project=0 -numberOfCorrections=100 -omega=.2 -addedMass=1  -useProvidedAcceleration=0 -useTP=0 -debug=3 -psolver=yale -go=halt
+
+LIGHT AMP
+cgins cylDrop -g=ellipseAngle45e1.order2 -tf=5. -tp=.05 -nu=.05 -ts=im -density=.1 -radius=.5 -dropName=ellipse -channelName=square -bcOption=inflowOutflow -gravity=-1. -dtMax=.02 -project=0 -numberOfCorrections=100 -omega=.2 -addedMass=1 -useTP=0 -debug=3 -psolver=yale -go=halt
+
+
+-----------------------------------------------------------------------------
+--------------------------COMPARE AMP VERSUS TP---------------------------------------------------
+AMP
+cgins cylDrop -g=ellipseAngle45e1.order2 -tf=5. -tp=.01 -nu=.05 -ts=im -density=10. -radius=.5 -dropName=ellipse -channelName=square -bcOption=inflowOutflow -gravity=-1. -dtMax=.02 -project=0 -numberOfCorrections=100 -omega=.2 -addedMass=1 -useTP=0 -debug=3 -psolver=yale -go=halt
+
+--INS--setPressureConstraintValues: body=0, d=0, m*a=-4.38e-01, bodyForce: (pressure=-4.38e-01,viscous= 5.06e-03), value=-1.892e-08
+--INS--setPressureConstraintValues: body=0, d=1, m*a=-6.13e+00, bodyForce: (pressure= 7.93e-01,viscous= 1.69e-02), value=-6.927e+00
+--INS--setPressureConstraintValues: body=0, d=2, A*w_t=-4.769e-04, bodyTorque (pressure=-4.769e-04,viscous=-3.250e-07), value=4.608e-18
+--INS-STI-- After pressure solve: extraEquation: i=0 : constraint value=-5.774e-02
+--INS-STI-- After pressure solve: extraEquation: i=1 : constraint value=-7.944e-01
+--INS-STI-- After pressure solve: extraEquation: i=2 : constraint value=-5.197e-04
+--RBM-- setAcceleration: t0=1.000e-02, vDot=(-5.77e-02,-7.94e-01, 0.00e+00) wDot=( 0.00e+00, 0.00e+00,-5.20e-04)
+
+MovingGrids::rigidBodyMotion: body 0 : face 0: (side,axis,grid)=(0,1,1)
+--MVG:RB-- body 0 : t2=1.00e-02 fCM=(-4.39e-01,8.30e-01,0.00e+00) torque=(0.00e+00,0.00e+00,-5.20e-04)
+ --- body b=0: bodyMass=7.70e+00, fluidMass=7.70e-01, volume=7.697e-01
+
+MovingGrids::rigidBodyMotion: correct solution at time t=1.000000e-02
+--RBM-TRAP-- Provided: t=1.000e-02 time=1.000e-02, vDot=(-5.77e-02,-7.94e-01, 0.00e+00) wDot=( 0.00e+00, 0.00e+00,-5.20e-04)
+
+-------------------------------------------------------------------------------------
+-------------------------------------------------------------------------------------
+TP-SI: 
+cgins cylDrop -g=ellipseAngle45e1.order2 -tf=5. -tp=.01 -nu=.05 -ts=im -density=10. -radius=.5 -dropName=ellipse -channelName=square -bcOption=inflowOutflow -gravity=-1. -dtMax=.02 -project=0 -numberOfCorrections=100 -omega=.2 -addedMass=0 -useTP=1 -debug=3 -psolver=yale -go=halt
+
+MovingGrids::gridAccelBC: t0= 1.00e-02, vCM=(-5.52e-04,-7.97e-03), aCM=(-5.71e-02,-7.92e-01), wCM=(0,0,-4.96e-06) 
+
+MovingGrids::rigidBodyMotion: body 0 : face 0: (side,axis,grid)=(0,1,1)
+--MVG:RB-- body 0 : t2=1.00e-02 fCM=(-4.39e-01,8.28e-01,0.00e+00) torque=(0.00e+00,0.00e+00,-5.19e-04)
+ --- body b=0: bodyMass=7.70e+00, fluidMass=7.70e-01, volume=7.697e-01
+
+------------------------------------------
+
+
+
+
+*************************************
+**** Oct 30
+
+*NEW* -- setAcceleration:
+
+TROUBLE: DO NOT USE AMP Accelerations -- TORQUE IS WRONG? 
+cgins cylDrop -g=cice2.order2.hdf -tf=5. -tp=.01 -nu=.05 -ts=im -density=.01 -radius=.5 -dropName=Annulus -channelName=square -bcOption=inflowOutflow -gravity=-1. -dtMax=.02 -project=0 -numberOfCorrections=1 -omega=.2 -addedMass=1 -useTP=0 -debug=3 -psolver=yale -useProvidedAcceleration=0 -go=halt
+
+
+
+DENSITY=.01 : OK!
+cgins cylDrop -g=cice2.order2.hdf -tf=5. -tp=.05 -nu=.05 -ts=im -density=.01 -radius=.5 -dropName=Annulus -channelName=square -bcOption=inflowOutflow -gravity=-1. -dtMax=.02 -project=0 -numberOfCorrections=1 -omega=.2 -addedMass=1 -useTP=0 -debug=3 -psolver=yale -useProvidedAcceleration=1 -go=halt
+
+
+DENSITY=.1 : OK!
+cgins cylDrop -g=cice2.order2.hdf -tf=5. -tp=.05 -nu=.05 -ts=im -density=.1 -radius=.5 -dropName=Annulus -channelName=square -bcOption=inflowOutflow -gravity=-1. -dtMax=.02 -project=0 -numberOfCorrections=1 -omega=.2 -addedMass=1 -useTP=0 -debug=3 -psolver=yale -go=halt
+
+
+
+*************************************
+**** Oct 27 
+BUG FOUND -- VISCOUS stresses not treated properly
+
+
+DENSITY=.1 -- dt=.001 OK 
+cgins cylDrop -g=cice2.order2.hdf -tf=5. -tp=.05 -nu=.05 -ts=im -density=.1 -radius=.5 -dropName=Annulus -channelName=square -bcOption=inflowOutflow -gravity=-1. -dtMax=.02 -project=0 -numberOfCorrections=1 -omega=.2 -addedMass=1 -useTP=0 -debug=3 -psolver=yale -go=halt
+
+
+DENSITY=.5   dt=.05 Too big , dt=.02 OK
+cgins cylDrop -g=cice2.order2.hdf -tf=5. -tp=.05 -nu=.05 -ts=im -density=.5 -radius=.5 -dropName=Annulus -channelName=square -bcOption=inflowOutflow -gravity=-1. -dtMax=.02 -project=0 -numberOfCorrections=1 -omega=.2 -addedMass=1 -useTP=0 -debug=3 -psolver=yale -go=halt
+
+
+
+Testing direct-projection
+
+AMP Gravity on x-direction: 
+cgins cylDrop -g=cice2.order2.hdf -tf=1. -tp=.05 -nu=.05 -ts=im -density=2. -radius=.5 -dropName=Annulus -channelName=square -bcOption=inflowOutflow -gravity=-1. -dtMax=.05 -project=0 -numberOfCorrections=1 -omega=.2 -addedMass=1 -useTP=0 -debug=3 -psolver=yale -option=horizontalDrop -go=halt
+
+
+
+AMP Gravity in y-direction:
+cgins cylDrop -g=cice2.order2.hdf -tf=1. -tp=.05 -nu=.05 -ts=im -density=2. -radius=.5 -dropName=Annulus -channelName=square -bcOption=inflowOutflow -gravity=-1. -dtMax=.05 -project=0 -numberOfCorrections=1 -omega=.2 -addedMass=1 -useTP=0 -debug=3 -psolver=yale -go=halt
+
+MovingGrids::gridAccelBC: t0= 1.00e-01, vCM=(-6.86e-10,-2.73e-02), aCM=(-3.09e-09,-2.63e-01), wCM=(0,0,-1.56e-09) 
+--MVG-- Accel-BC: directProjectionAddedMass: exclude RB acceleration terms, t= 1.00e-01
+       BEFORE: body: aCM = (-3.09e-09,-2.63e-01, 0.00e+00)
+        gravity=( 0.00e+00,-1.00e+00, 0.00e+00) fluidMass=7.854e-01 bodyMass=1.571e+00 Buoyancy=( 0.00e+00,-5.00e-01, 0.00e+00)
+--INS--setPressureConstraintValues: t=1.000e-01 numberOfExtraEquations=3 numberOfDenseExtraEquations=0 numberOfRigidBodies=1
+       ******FIX ME: Use latest predicted pressure ***
+--INS--setPressureConstraintValues: body=0, d=0, m*a=-4.85e-09, bodyForceFromPressure=-3.86e-09, value=-9.936e-10
+--INS--setPressureConstraintValues: body=0, d=1, m*a=-4.13e-01, bodyForceFromPressure= 3.71e-01, value=-7.841e-01
+--INS--setPressureConstraintValues: body=0, d=0, A*w_t=0.000e+00, bodyTorqueFromPressure=0.000e+00, value=-3.690e-10
+...Build RHS
+...Actually solving...
+++Yale TIMINGS :  build=3e-05, solve=0.000368.
+--INS-STI-- After pressure solve: extraEquation: i=0 : constraint value=-5.238e-09
+--INS-STI-- After pressure solve: extraEquation: i=1 : constraint value=-2.947e-01
+--INS-STI-- After pressure solve: extraEquation: i=2 : constraint value=-3.690e-10
+--MVG:RB-- body 0 : t2=1.00e-01 fCM=(-6.60e-09,3.84e-01,0.00e+00) torque=(0.00e+00,0.00e+00,-2.24e-09)
+ ************** ims.bC fixupUnusedPoints ************
+ >>> t =  1.000e-01, dt = 5.00e-02, cpu = 5.78e+00 seconds (2 steps)
+           p : (min,max)=(-1.240043e-01, 2.841154e-01) 
+           u : (min,max)=(-2.022779e-02, 2.022779e-02) 
+           v : (min,max)=(-2.669192e-02, 2.046601e-02) 
+ Divergence: divMax/vorMax = 2.76e-02 divl2Norm/vorMax=2.20e-03 vorMax=8.01e-01
+
+
+
+
+TP-SI  Gravity in y-direction:
+cgins cylDrop -g=cice2.order2.hdf -tf=1. -tp=.05 -nu=.05 -ts=im -density=2. -radius=.5 -dropName=Annulus -channelName=square -bcOption=inflowOutflow -gravity=-1. -dtMax=.05 -project=0 -numberOfCorrections=100 -omega=.2 -addedMass=0 -useTP=1 -debug=3 -psolver=yale -go=halt
+
+*************************************
+**** Oct 22-23, 2015 Revisit dropping cylinder for RBINS AMP scheme
+
+NOTE: Set radius for cic grid or else moment-of-inertia is too small
+
+AMP: density=.5 (reduce dtMax) -- OK 
+cgins cylDrop -g=cice2.order2.hdf -tf=5. -tp=.05 -nu=.05 -ts=im -density=.5 -radius=.5 -dropName=Annulus -channelName=square -bcOption=inflowOutflow -gravity=-1. -dtMax=.01 -project=0 -numberOfCorrections=1 -omega=.2 -addedMass=1 -useTP=0 -debug=3 -psolver=yale -go=halt
+
+TP-SI :
+cgins cylDrop -g=cice2.order2.hdf -tf=5. -tp=.05 -nu=.05 -ts=im -density=.5 -radius=.5 -dropName=Annulus -channelName=square -bcOption=inflowOutflow -gravity=-1. -dtMax=.01 -project=0 -numberOfCorrections=100 -omega=.2 -addedMass=0 -useTP=1 -debug=3 -psolver=yale -go=halt
+
+AMP: -- starts to work 
+cgins cylDrop -g=cice2.order2.hdf -tf=1. -tp=.05 -nu=.05 -ts=im -density=2. -radius=.5 -dropName=Annulus -channelName=square -bcOption=inflowOutflow -gravity=-1. -dtMax=.05 -project=0 -numberOfCorrections=1 -omega=.2 -addedMass=1 -useTP=0 -debug=3 -psolver=yale -go=halt
+
+
+TP-SI: DENSITY=.9 - OK 
+cgins cylDrop -g=cice2.order2.hdf -tf=1. -tp=.05 -nu=.05 -ts=im -density=.9 -radius=.5 -dropName=Annulus -channelName=square -bcOption=inflowOutflow -gravity=-1. -dtMax=.05 -project=0 -numberOfCorrections=100 -omega=.2 -useTP=1 -debug=3 -psolver=yale -go=halt
+
+
+
+TP-SI: OK
+cgins cylDrop -g=cice2.order2.hdf -tf=1. -tp=.005 -nu=.05 -density=2. -radius=.5 -dropName=Annulus -channelName=square -bcOption=inflowOutflow -gravity=-1. -dtMax=.75e-3 -project=0 -numberOfCorrections=100 -omega=.2 -useTP=1 -debug=3 -psolver=yale -go=halt
+
+		
+DENSITY=5 : OK (DENSITY=2 BAD)
+cgins cylDrop -g=cice2.order2.hdf -tf=1. -tp=.005 -nu=.05 -density=5.  -radius=.5 -dropName=Annulus -channelName=square -bcOption=inflowOutflow -gravity=-1. -dtMax=.75e-3 -project=0 -go=halt
+
+
+DENSITY=10 : OK 
+cgins cylDrop -g=cice2.order2.hdf -tf=1. -tp=.005 -nu=.05 -density=10.  -radius=.5 -dropName=Annulus -channelName=square -dtMax=.75e-3 -project=0 -go=halt
+
+
+
+OK:
+cgins cylDrop -g=cylDropGride2.order2.s3.hdf -tf=1. -tp=.05 -nu=.1 -density=1.25 -dtMax=.75e-3 -project=0 -go=halt
+
+
+
+
+
 ***************************
 *** August 16, 2015 -- revisit dropping cylinders in parallel for Ryo's bug
 

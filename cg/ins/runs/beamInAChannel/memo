@@ -1,4 +1,94 @@
 ***********************
+***** Nov 11, 2015
+
+beamins : RE-RUN for PERFORMANCE TESTS
+--------------------------------------
+
+  -- IMPULSIVE: G8 
+
+AMP G8-HEAVY
+nohup $cgins -noplot beamInAChannel -g=beamInAChannelGridBiggere8.order2.hdf  -numElem=41 -tf=.1 -tp=.1 -rhoBeam=100. -E=5. -Kt=0. -Kxxt=5e-3 -addedMass=1 -ampProjectVelocity=1  -useApproximateAMPcondition=1 -nu=.05 -ad2=1 -rampInflow=0 -cfls=3. -nis=6 -psolver=best -rtolp=1.e-6 -atolp=1.e-8 -show="bicG8Rhos100.show" -go=go >!  bicG8Rhos100.out
+
+AMP-G8:
+nohup $cgins -noplot beamInAChannel -g=beamInAChannelGridBiggere8.order2.hdf  -numElem=41 -tf=.1 -tp=.1 -rhoBeam=1. -E=5. -Kt=0. -Kxxt=5e-3 -addedMass=1 -ampProjectVelocity=1  -useApproximateAMPcondition=1 -nu=.05 -ad2=1 -rampInflow=0 -cfls=3. -nis=6 -psolver=best -rtolp=1.e-6 -atolp=1.e-8 -show="bicG8.show" -go=go >!  bicG8.out
+
+TP-G8: RHOS=100  
+nohup $cgins -noplot beamInAChannel -g=beamInAChannelGridBiggere8.order2.hdf  -numElem=41 -tf=.1 -tp=.1 -rhoBeam=100. -E=5. -Kt=0. -Kxxt=.0 -useTP=0 -addedMassRelaxation=1. -addedMassTol=1.e-6 -numberOfCorrections=1 -addedMass=0 -ampProjectVelocity=0  -useApproximateAMPcondition=1 -nu=.05 -ad2=1 -rampInflow=0 -cfls=3. -nis=6 -psolver=best -rtolp=1.e-6 -atolp=1.e-8 -show="bicG8TPRhos100.show" -go=go >!  bicG8TPRhos100.out
+
+
+TP-G8: omega=.1
+nohup $cgins -noplot beamInAChannel -g=beamInAChannelGridBiggere8.order2.hdf  -numElem=41 -tf=.1 -tp=.1 -rhoBeam=1. -E=5. -Kt=0. -Kxxt=.0 -useTP=1 -addedMassRelaxation=.1 -addedMassTol=1.e-6 -numberOfCorrections=500 -addedMass=0 -ampProjectVelocity=0  -useApproximateAMPcondition=1 -nu=.05 -ad2=1 -rampInflow=0 -cfls=3. -nis=6 -psolver=best -rtolp=1.e-6 -atolp=1.e-8 -show="bicG8TP.show" -go=go >!  bicG8TP.out
+
+
+
+
+  -- SLOW START -- LONGER RUN ---
+
+
+NOTE: Solution goes to steady state by t=2 so not a good test
+
+
+AMP FORGOT TO RAMP!!
+nohup $cgins -noplot beamInAChannel -g=beamInAChannelGridBiggere4.order2.hdf  -numElem=21 -tf=5. -tp=.1 -rhoBeam=1. -E=5. -Kt=0. -Kxxt=5e-3 -addedMass=1 -ampProjectVelocity=1  -useApproximateAMPcondition=1 -nu=.05 -ad2=1 -rampInflow=0 -cfls=3. -nis=6 -psolver=best -rtolp=1.e-6 -atolp=1.e-8 -show="bicG4c.show" -go=go >!  bicG4c.out
+
+
+TP-G4: omega=.1
+nohup $cgins -noplot beamInAChannel -g=beamInAChannelGridBiggere4.order2.hdf  -numElem=21 -tf=5. -tp=.1 -rhoBeam=1. -E=5. -Kt=0. -Kxxt=.0 -useTP=1 -addedMassRelaxation=.1 -addedMassTol=1.e-6 -numberOfCorrections=500 -addedMass=0 -ampProjectVelocity=0  -useApproximateAMPcondition=1 -nu=.05 -ad2=1 -rampInflow=1 -cfls=3. -nis=6 -psolver=best -rtolp=1.e-6 -atolp=1.e-8 -show="bicG4TPc.show" -go=go >!  bicG4TPc.out
+
+
+
+
+***********************
+***** Nov 11, 2015
+
+beamins : RE-RUN for PERFORMANCE TESTS
+--------------------------------------
+
+NOTE: DO NOT RAMP INFLOW
+
+
+MEDIUM: rhos=100. 
+
+AMP : RHOS=100 -- 
+nohup $cgins -noplot beamInAChannel -g=beamInAChannelGridBiggere4.order2.hdf  -numElem=21 -tf=.1 -tp=.1 -rhoBeam=100. -E=5. -Kt=0. -Kxxt=5e-3 -addedMass=1 -ampProjectVelocity=1  -useApproximateAMPcondition=1 -nu=.05 -ad2=1 -rampInflow=0 -cfls=3. -nis=6 -psolver=best -rtolp=1.e-6 -atolp=1.e-8 -show="bicG4Rhos100.show" -go=go >!  bicG4Rhos100.out
+
+
+TP-G4: RHOS=100  TP=OK 
+nohup $cgins -noplot beamInAChannel -g=beamInAChannelGridBiggere4.order2.hdf  -numElem=21 -tf=.1 -tp=.1 -rhoBeam=100. -E=5. -Kt=0. -Kxxt=.0 -useTP=0 -addedMassRelaxation=1. -addedMassTol=1.e-6 -numberOfCorrections=1 -addedMass=0 -ampProjectVelocity=0  -useApproximateAMPcondition=1 -nu=.05 -ad2=1 -rampInflow=0 -cfls=3. -nis=6 -psolver=best -rtolp=1.e-6 -atolp=1.e-8 -show="bicG4TPRhos100.show" -go=go >!  bicG4TPRhos100.out
+
+
+AMP: decrease rtolp
+nohup $cgins -noplot beamInAChannel -g=beamInAChannelGridBiggere4.order2.hdf  -numElem=21 -tf=.1 -tp=.1 -rhoBeam=1. -E=5. -Kt=0. -Kxxt=5e-3 -addedMass=1 -ampProjectVelocity=1  -useApproximateAMPcondition=1 -nu=.05 -ad2=1 -rampInflow=0 -cfls=3. -nis=6 -psolver=best -rtolp=1.e-6 -atolp=1.e-8 -show="bicG4b.show" -go=go >!  bicG4b.out
+
+
+TP-G4: omega=.1
+nohup $cgins -noplot beamInAChannel -g=beamInAChannelGridBiggere4.order2.hdf  -numElem=21 -tf=.1 -tp=.1 -rhoBeam=1. -E=5. -Kt=0. -Kxxt=.0 -useTP=1 -addedMassRelaxation=.1 -addedMassTol=1.e-6 -numberOfCorrections=500 -addedMass=0 -ampProjectVelocity=0  -useApproximateAMPcondition=1 -nu=.05 -ad2=1 -rampInflow=0 -cfls=3. -nis=6 -psolver=best -rtolp=1.e-6 -atolp=1.e-8 -show="bicG4TPb.show" -go=go >!  bicG4TPb.out
+
+TP-G4 -- omega=.15 -- omega=.2 *FAILS*
+nohup $cgins -noplot beamInAChannel -g=beamInAChannelGridBiggere4.order2.hdf  -numElem=21 -tf=.1 -tp=.1 -rhoBeam=1. -E=5. -Kt=0. -Kxxt=.0 -useTP=1 -addedMassRelaxation=.15 -addedMassTol=1.e-6 -numberOfCorrections=500 -addedMass=0 -ampProjectVelocity=0  -useApproximateAMPcondition=1 -nu=.05 -ad2=1 -rampInflow=0 -cfls=3. -nis=6 -psolver=best -rtolp=1.e-6 -atolp=1.e-8 -show="bicG4TPa.show" -go=go >!  bicG4TPa.out
+
+
+
+
+------ Ramped inflow
+
+
+AMP:
+nohup $cgins -noplot beamInAChannel -g=beamInAChannelGridBiggere4.order2.hdf  -numElem=21 -tf=.1 -tp=.1 -rhoBeam=1. -E=5. -Kt=0. -Kxxt=5e-3 -addedMass=1 -ampProjectVelocity=1  -useApproximateAMPcondition=1 -nu=.05 -ad2=1 -rampInflow=1 -cfls=3. -nis=6 -psolver=best -show="bicG4a.show" -go=go >!  bicG4a.out
+
+
+TP-G4: 
+nohup $cgins -noplot beamInAChannel -g=beamInAChannelGridBiggere4.order2.hdf  -numElem=21 -tf=.1 -tp=.1 -rhoBeam=1. -E=5. -Kt=0. -Kxxt=.0 -useTP=1 -addedMassRelaxation=.1 -addedMassTol=1.e-6 -numberOfCorrections=500 -addedMass=0 -ampProjectVelocity=0  -useApproximateAMPcondition=1 -nu=.05 -ad2=1 -rampInflow=1 -cfls=3. -nis=6 -psolver=best -show="bicG4TPa.show" -go=go >!  bicG4TPa.out
+
+
+
+
+
+
+
+
+
+***********************
 ***** Sept 3-4, 2015 
 
 

@@ -3715,7 +3715,10 @@ c     + 33190 fv[6] - 4125 fv[7] - 300227 fv[3] - 117051 fv[5])
      & nd2a,nd2b,nd3a,nd3b,nd4a,nd4b,mask,rsxy,  um,u,un,f, v,vvt2,
      & ut3,vvt4,ut5,ut6,ut7, bc, dis, varDis, ipar, rpar, ierr )
         else
-          stop 1116
+          if( (adc.gt.0. .and. combineDissipationWithAdvance.eq.0) 
+     & .or. add.gt.0. )then
+            stop 1116
+          end if
         end if
         if( option.eq.1 ) then
           return
@@ -3737,6 +3740,7 @@ c       **********************************************
            ! **************************************************
            ! *************** NON-CONSERVATIVE *****************    
            ! **************************************************
+            write(*,'("MX: advOpt: curv-grid order=8 not implemeted")')
             stop 11155
           else if( useCurvilinearOpt.eq.1 .and. useConservative.eq.1 )
      & then

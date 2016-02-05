@@ -29,8 +29,11 @@ create mappings
       $xa $xb $ya $yb 
     lines
       $nx = int( ($xb-$xa)/$ds + 1.5 );
-      $ny =5; 
+      $ny = int( ($yb-$ya)/$ds + 1.5 );
+     ## $ny =5; 
       $nx $ny
+    boundary conditions
+      0 2 3 4
     share
       0 0 2 3
     mappingName

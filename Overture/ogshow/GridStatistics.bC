@@ -48,25 +48,47 @@ hexVolume( real *v000, real *v100, real *v010, real *v110, real *v001, real *v10
 	  tetVolume6(v100,v010,v001, v111))/6.;
 }
 
+void GridStatistics::
+getNegativeVolumes( MappedGrid & mg, int & numberOfNegativeVolumes, IntegerArray & negativeVolumeList,
+                    int grid /*= 0 */, int numberOfGhost /* =0 */ , bool checkActivePoints /* =true */,
+                    bool printNegativeVolumes /* =true */ )
+// =========================================================================================================
+/// \brief Return a list of negative volumes.
+/// \param numberOfNegativeVolumes (output) : number of negative volumes. In parallel, this is the count per processor.
+/// \param negativeVolumeList (output) : return a list of the negative volumes:
+///          negativeVolumeList(0:3,i) : [i1,i2,i3,grid].  In parallel, this is a list per processor.
+/// \param numberOfGhost (input) : include this many ghost points.
+// =========================================================================================================
+{
+  computeNegativeVolumes(mg,numberOfGhost,stdout,grid,checkActivePoints,
+			 printNegativeVolumes,
+			 numberOfNegativeVolumes,
+			 &negativeVolumeList);
+}
 
 
 int GridStatistics::
-checkForNegativeVolumes(GridCollection & gc, int numberOfGhost /* =0 */, FILE *file /* =stdout */ )
+checkForNegativeVolumes(GridCollection & gc, int numberOfGhost /* =0 */, FILE *file /* =stdout */,
+			bool checkActivePoints /* =true */, bool printNegativeVolumes /* =true */ )
 // ================================================================================
 /// \brief Check a grid for negative volumes and return the number of negative volumes found
 /// \param numberOfGhost (input) : include this many ghost points.
 /// \param file (input) : output messages to this file if file!=NULL
+/// \param checkActivePoints (input) : if true, only check for negative volumes where mask!=0
+/// \param printNegativeVolumes (input) : if true, print the locations of negative volumes
 // ================================================================================
 {
   if( file!=NULL )
   {
-    fPrintF(file,"--- checkForNegativeVolumes ---\n");
+    fPrintF(file,"GridStatistics: --- checkForNegativeVolumes ---\n");
   }
 
   int numberOfNegativeVolumes=0;
+  int negativeVolumeCount=0;
   for( int grid=0; grid<gc.numberOfComponentGrids(); grid++ )
   {
-    numberOfNegativeVolumes += checkForNegativeVolumes(gc[grid],numberOfGhost,file,grid);
+    numberOfNegativeVolumes += computeNegativeVolumes(gc[grid],numberOfGhost,file,grid,checkActivePoints,
+						      printNegativeVolumes,negativeVolumeCount );
   }
 
   return numberOfNegativeVolumes;
@@ -74,13 +96,44 @@ checkForNegativeVolumes(GridCollection & gc, int numberOfGhost /* =0 */, FILE *f
 
 
 int GridStatistics::
-checkForNegativeVolumes(MappedGrid & mg, int numberOfGhost /* =0 */, FILE *file /* =stdout */, int grid /* =0 */ )
+checkForNegativeVolumes(MappedGrid & mg, int numberOfGhost /* =0 */, FILE *file /* =stdout */, int grid /* =0 */,
+			bool checkActivePoints /* =true */, bool printNegativeVolumes /* =true */ )
 // ================================================================================
 //
 /// \brief Check a grid for negative volumes and return the number of negative volumes found
 /// \param numberOfGhost (input) : include this many ghost points.
 /// \param file (input) : output messages to this file if file!=NULL
 /// \param grid (input) : grid number (if part of a GridCollection)
+/// \param checkActivePoints (input) : if true, only check for negative volumes where mask!=0
+/// \param printNegativeVolumes (input) : if true, print the locations of negative volumes
+/// \param negativeVolumeCount (input) : running total of negative volumes stored in negativeVolumeList.
+/// \param negativeVolumeList (input) : if not NULL then return a list of the negative volumes:
+///          negativeVolumeList(0:3,i) : [i1,i2,i3,grid]
+//
+// ================================================================================
+{
+  int negativeVolumeCount=0;
+  return computeNegativeVolumes(mg,numberOfGhost,file,grid,checkActivePoints,
+				printNegativeVolumes,negativeVolumeCount );
+}
+
+
+int GridStatistics::
+computeNegativeVolumes(MappedGrid & mg, int numberOfGhost, FILE *file, int grid,
+		       bool checkActivePoints, bool printNegativeVolumes,
+                       int & negativeVolumeCount, IntegerArray *negativeVolumeList /* = NULL */ )
+// ================================================================================
+/// \brief (private) Check a grid for negative volumes and return the number of negative volumes found. 
+///
+/// \param numberOfGhost (input) : include this many ghost points.
+/// \param file (input) : output messages to this file if file!=NULL
+/// \param grid (input) : grid number (if part of a GridCollection)
+/// \param checkActivePoints (input) : if true, only check for negative volumes where mask!=0
+/// \param printNegativeVolumes (input) : if true, print the locations of negative volumes
+/// \param negativeVolumeCount (input) : running total of negative volumes stored in negativeVolumeList.
+///     NOTE : in parallel, this count is per processor.
+/// \param negativeVolumeList (input) : if not NULL then return a list of the negative volumes:
+///          negativeVolumeList(0:3,i) : [i1,i2,i3,grid]. In parallel, this is a list per processor.
 //
 // ================================================================================
 {
@@ -97,6 +150,9 @@ checkForNegativeVolumes(MappedGrid & mg, int numberOfGhost /* =0 */, FILE *file 
   Index Iv[3], &I1=Iv[0], &I2=Iv[1], &I3=Iv[2];
   ::getIndex(gid,I1,I2,I3,numberOfGhost); 
 
+  bool saveNegativeVolumes=negativeVolumeList!=NULL;
+  negativeVolumeCount=0;
+  
   if( mg.getGridType()==GenericGrid::structuredGrid )
   {
     int axis;
@@ -106,8 +162,16 @@ checkForNegativeVolumes(MappedGrid & mg, int numberOfGhost /* =0 */, FILE *file 
     const real orientation = mapping.getSignForJacobian();
 
     const bool isRectangular=mg.isRectangular();
-    if( !isRectangular )
+    if( isRectangular )
     {
+      fPrintF(file," grid %i, name=%s. (Cartesian) has NO negative volumes.\n",grid,(const char*)mg.getName());
+    }
+    else
+    {
+      // -------------------------------
+      // ------ CURVILINEAR GRID -------
+      // -------------------------------
+
       mg.update(MappedGrid::THEvertex );
 
       bool ok=true;
@@ -117,6 +181,7 @@ checkForNegativeVolumes(MappedGrid & mg, int numberOfGhost /* =0 */, FILE *file 
       #else
         const realSerialArray & vertex = mg.vertex();
       #endif
+      OV_GET_SERIAL_ARRAY(int,mg.mask(),maskLocal);
 
       const real *vertexp = vertex.Array_Descriptor.Array_View_Pointer3;
       const int vertexDim0=vertex.getRawDataSize(0);
@@ -131,21 +196,50 @@ checkForNegativeVolumes(MappedGrid & mg, int numberOfGhost /* =0 */, FILE *file 
 	{
 	  FOR_3D(i1,i2,i3,I1,I2,I3)
 	  {
-	    // area of a polygon = (1/2) sum{ x_i y_{i+1} - x_{i+1} y_i
-	    real vol = ( x(i1  ,i2  ,i3,0)*x(i1+1,i2  ,i3,1)-x(i1+1,i2  ,i3,0)*x(i1  ,i2  ,i3,1) +  // (i1,i2)
-			 x(i1+1,i2  ,i3,0)*x(i1+1,i2+1,i3,1)-x(i1+1,i2+1,i3,0)*x(i1+1,i2  ,i3,1) + 
-			 x(i1+1,i2+1,i3,0)*x(i1  ,i2+1,i3,1)-x(i1  ,i2+1,i3,0)*x(i1+1,i2+1,i3,1) + 
-			 x(i1  ,i2+1,i3,0)*x(i1  ,i2  ,i3,1)-x(i1  ,i2  ,i3,0)*x(i1  ,i2+1,i3,1) );
+	    if( !checkActivePoints || maskLocal(i1,i2,i3)!=0 )
+	    {
+	      // area of a polygon = (1/2) sum{ x_i y_{i+1} - x_{i+1} y_i
+	      real vol = ( x(i1  ,i2  ,i3,0)*x(i1+1,i2  ,i3,1)-x(i1+1,i2  ,i3,0)*x(i1  ,i2  ,i3,1) +  // (i1,i2)
+			   x(i1+1,i2  ,i3,0)*x(i1+1,i2+1,i3,1)-x(i1+1,i2+1,i3,0)*x(i1+1,i2  ,i3,1) + 
+			   x(i1+1,i2+1,i3,0)*x(i1  ,i2+1,i3,1)-x(i1  ,i2+1,i3,0)*x(i1+1,i2+1,i3,1) + 
+			   x(i1  ,i2+1,i3,0)*x(i1  ,i2  ,i3,1)-x(i1  ,i2  ,i3,0)*x(i1  ,i2+1,i3,1) );
     
-	    vol*=.5*orientation;
-	    volMin=min(volMin,vol);
-	    volMax=max(volMax,vol);
-	    volAve+=vol;
-	    numberOfVolumes++;
+	      vol*=.5*orientation;
+	      volMin=min(volMin,vol);
+	      volMax=max(volMax,vol);
+	      volAve+=vol;
+	      numberOfVolumes++;
 
-	    numberOfGridPoints++;
-	    if( vol<=0. ) numberOfNegativeVolumes++;
-      
+	      numberOfGridPoints++;
+	      if( vol<=0. ) 
+	      {
+                numberOfNegativeVolumes++;
+		if( saveNegativeVolumes )
+		{
+                  IntegerArray & list = *negativeVolumeList;
+		  if( list.getLength(1)<=negativeVolumeCount )
+		  { // allocate more space to hold the negative volumes 
+		    list.resize(4,list.getLength(1)+1000);
+		  }
+		  list(0,negativeVolumeCount)=i1;
+		  list(1,negativeVolumeCount)=i2;
+		  list(2,negativeVolumeCount)=i3;
+		  list(3,negativeVolumeCount)=grid;
+		  
+		  negativeVolumeCount++;
+		}
+		
+		if( printNegativeVolumes )
+		{
+		  bool ghost = i1<gid(0,0) || i1>gid(1,0) || i2<gid(0,1) || i2>gid(1,1);
+		  fprintf(file," negative volume: grid=%i (i1,i2)=(%i,%i) mask=%i %sx=(%9.2e,%9.2e) vol=%9.2e.\n",
+			  grid,i1,i2,(maskLocal(i1,i2,i3)>0 ? 1: maskLocal(i1,i2,i3)<0 ? -1 : 0),
+                          (ghost ? "ghost " : " "),
+			  x(i1,i2,i3,0),x(i1,i2,i3,1),vol);
+		}
+	      }
+	      
+	    }
 	  }
 	}
 	volMin=ParallelUtility::getMinValue(volMin);
@@ -169,29 +263,60 @@ checkForNegativeVolumes(MappedGrid & mg, int numberOfGhost /* =0 */, FILE *file 
 	{
 	  FOR_3D(i1,i2,i3,I1,I2,I3)
 	  {
-	    for( int axis=0; axis<3; axis++ )
+	    if( !checkActivePoints || maskLocal(i1,i2,i3)!=0 )
 	    {
-	      v[0][0][0][axis]=x(i1  ,i2  ,i3  ,axis);
-	      v[1][0][0][axis]=x(i1+1,i2  ,i3  ,axis);
-	      v[0][1][0][axis]=x(i1  ,i2+1,i3  ,axis);
-	      v[1][1][0][axis]=x(i1+1,i2+1,i3  ,axis);
-	      v[0][0][1][axis]=x(i1  ,i2  ,i3+1,axis);
-	      v[1][0][1][axis]=x(i1+1,i2  ,i3+1,axis);
-	      v[0][1][1][axis]=x(i1  ,i2+1,i3+1,axis);
-	      v[1][1][1][axis]=x(i1+1,i2+1,i3+1,axis);
-	    }
+	      
+	      for( int axis=0; axis<3; axis++ )
+	      {
+		v[0][0][0][axis]=x(i1  ,i2  ,i3  ,axis);
+		v[1][0][0][axis]=x(i1+1,i2  ,i3  ,axis);
+		v[0][1][0][axis]=x(i1  ,i2+1,i3  ,axis);
+		v[1][1][0][axis]=x(i1+1,i2+1,i3  ,axis);
+		v[0][0][1][axis]=x(i1  ,i2  ,i3+1,axis);
+		v[1][0][1][axis]=x(i1+1,i2  ,i3+1,axis);
+		v[0][1][1][axis]=x(i1  ,i2+1,i3+1,axis);
+		v[1][1][1][axis]=x(i1+1,i2+1,i3+1,axis);
+	      }
 
-	    real vol=hexVolume(v[0][0][0],v[1][0][0],v[0][1][0],v[1][1][0],
-			       v[0][0][1],v[1][0][1],v[0][1][1],v[1][1][1])*orientation;
+	      real vol=hexVolume(v[0][0][0],v[1][0][0],v[0][1][0],v[1][1][0],
+				 v[0][0][1],v[1][0][1],v[0][1][1],v[1][1][1])*orientation;
       
-	    volMin=min(volMin,vol);
-	    volMax=max(volMax,vol);
-	    volAve+=vol;
-	    numberOfVolumes++;
+	      volMin=min(volMin,vol);
+	      volMax=max(volMax,vol);
+	      volAve+=vol;
+	      numberOfVolumes++;
 	  
-	    numberOfGridPoints++;
-	    if( vol<=0. ) numberOfNegativeVolumes++;
-      
+	      numberOfGridPoints++;
+	      if( vol<=0. )
+	      {
+		numberOfNegativeVolumes++;
+		if( saveNegativeVolumes )
+		{
+                  IntegerArray & list = *negativeVolumeList;
+		  if( list.getLength(1)<=negativeVolumeCount )
+		  { // allocate more space to hole the negative volumes 
+		    list.resize(4,list.getLength(1)+1000);
+		  }
+		  list(0,negativeVolumeCount)=i1;
+		  list(1,negativeVolumeCount)=i2;
+		  list(2,negativeVolumeCount)=i3;
+		  list(3,negativeVolumeCount)=grid;
+		  
+		  negativeVolumeCount++;
+		}
+		if( printNegativeVolumes )
+		{
+		  bool ghost = i1<gid(0,0) || i1>gid(1,0) || i2<gid(0,1) || i2>gid(1,1) || i3<gid(0,2) || i3>gid(1,2);
+
+		  fprintf(file," negative volume: grid=%i (i1,i2,i3)=(%i,%i,%i) mask=%i %sx=(%9.2e,%9.2e,%9.2e) vol=%9.2e.\n",
+			  grid,i1,i2,i3,(maskLocal(i1,i2,i3)>0 ? 1: maskLocal(i1,i2,i3)<0 ? -1 : 0),
+                          (ghost ? "ghost " : " "),
+			  x(i1,i2,i3,0),x(i1,i2,i3,1),x(i1,i2,i3,2),vol);
+		}
+	      }
+	      
+	      
+	    }
 	  }
 	}
 	
@@ -207,14 +332,18 @@ checkForNegativeVolumes(MappedGrid & mg, int numberOfGhost /* =0 */, FILE *file 
       {
 	// -- output some results --
 	if( numberOfNegativeVolumes==0 )
-	  fPrintF(file," grid %i, name=%s. (curvilinear) has NO negative volumes, %i grid-pts (including %i ghost points)\n"
-		  ,grid,(const char*)mg.getName(),numberOfGridPoints,numberOfGhost);
+	  fPrintF(file," grid %i, name=%s. (curvilinear) has NO negative volumes, %i grid-pts"
+               " (including %s, %i ghost pts)\n"
+		  ,grid,(const char*)mg.getName(),numberOfGridPoints,
+		  (checkActivePoints ? "active points only" : "all points"),numberOfGhost);
 	else
 	  fPrintF(file,
-		  "ERROR: grid %i, name=%s. (curvilinear) has %i negative volumes, %i grid-pts (including %i ghost points)\n"
+		  "ERROR: grid %i, name=%s. (curvilinear) has %i negative volumes, %i grid-pts"
+                  " (including %s, %i ghost pts)\n"
 		  "     : cell volumes: [%8.2e,%8.2e,%8.2e] [min,ave,max] \n"
 		  ,grid,(const char*)mg.getName(),numberOfNegativeVolumes,
-		  numberOfGridPoints,numberOfGhost,volMin,volAve,volMax);
+		  numberOfGridPoints,(checkActivePoints ? "active points only" : "all points"),numberOfGhost,
+                  volMin,volAve,volMax);
       }
     } // end if !rectangular
 
@@ -226,6 +355,16 @@ checkForNegativeVolumes(MappedGrid & mg, int numberOfGhost /* =0 */, FILE *file 
 
   }
 
+  if( saveNegativeVolumes && negativeVolumeCount>0 )
+  {
+    // --- resize list of negative volumes ---
+    IntegerArray & list = *negativeVolumeList;
+    if( list.getLength(1) != negativeVolumeCount )
+    { 
+      list.resize(4,negativeVolumeCount);
+    }
+  }
+  
   return numberOfNegativeVolumes;
 
 }

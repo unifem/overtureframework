@@ -42,6 +42,9 @@ TimeFunction & operator =( const TimeFunction & tf );
 
 int compose( TimeFunction *preFunc, const ComposeTypeEnum ct=composeWillMultiply );
 
+// print parameters:
+int display( FILE *file = stdout );
+
 int eval( const real t, real & f );
 int eval( const real t, real & f, real & ft );
 // int eval( const real t, real & f, real & ft , real & ftt );

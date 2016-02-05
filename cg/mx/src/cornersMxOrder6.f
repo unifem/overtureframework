@@ -2398,12 +2398,28 @@ c write(*,'("initializeBoundaryForcing slowStartInterval=",e10.2)') slowStartInt
                   end do
                   ! assign u(i1-is1,i2,i3,ev) and u(i1,i2-is2,i3,ev)
                     ! Now do corner (C) points
+                        ! assign 3 ghost in both directions
+                   if( .true. )then
+                    ! *new way for general order* *wdh* 2016/01/23
+                    do m2=1,numberOfGhostPoints
+                    do m1=1,numberOfGhostPoints
+                       u(i1-m1*is1,i2-m2*is2,i3,ex)=2.*u(i1,i2,i3,ex) -
+     &  u(i1+m1*is1,i2+m2*is2,i3,ex)
+                       u(i1-m1*is1,i2-m2*is2,i3,ey)=2.*u(i1,i2,i3,ey) -
+     &  u(i1+m1*is1,i2+m2*is2,i3,ey)
+                       u(i1-m1*is1,i2-m2*is2,i3,hz)=                   
+     &  u(i1+m1*is1,i2+m2*is2,i3,hz)
+                    end do
+                    end do
+                  else
+                    ! old way
                     u(i1-  is1,i2-  is2,i3,ex)=-u(i1+  is1,i2+  is2,i3,
      & ex)
                     u(i1-  is1,i2-  is2,i3,ey)=-u(i1+  is1,i2+  is2,i3,
      & ey)
                     u(i1-  is1,i2-  is2,i3,hz)= u(i1+  is1,i2+  is2,i3,
      & hz)  ! Hz is even symmetry
+                   end if
                 else if( boundaryCondition(side1,0).ge.abcEM2 .and. 
      & boundaryCondition(side1,0).le.lastBC .and. boundaryCondition(
      & side2,1).ge.abcEM2 .and. boundaryCondition(side2,1).le.lastBC )
@@ -2464,7 +2480,24 @@ c write(*,'("initializeBoundaryForcing slowStartInterval=",e10.2)') slowStartInt
                     ! dsa=dr(1)
                      axis=0
                      axisp1=1
-                        stop 3399
+                        ! rectangular grid: assign using symmetry conditions: *wdh* 2016/01/23 *check me*
+                        ! assign 3 ghost in both directions
+                        do m2=1,3
+                        do m1=1,3
+                            u(i1-m1*is1,i2-m2*is2,i3,ex)=2.*u(i1,i2,i3,
+     & ex) - u(i1+m1*is1,i2+m2*is2,i3,ex)
+                            u(i1-m1*is1,i2-m2*is2,i3,ey)=2.*u(i1,i2,i3,
+     & ey) - u(i1+m1*is1,i2+m2*is2,i3,ey)
+                            u(i1-m1*is1,i2-m2*is2,i3,hz)=              
+     &       u(i1+m1*is1,i2+m2*is2,i3,hz)
+                           ! just set to exact for now 
+                           j1=i1-m1*is1
+                           j2=i2-m2*is2
+                           j3=i3
+                            call ogf2dfo(ep,fieldOption,xy(j1,j2,j3,0),
+     & xy(j1,j2,j3,1),t,u(j1,j2,j3,ex),u(j1,j2,j3,ey),u(j1,j2,j3,hz))
+                         end do
+                         end do
                 else if( boundaryCondition(side1,0).ge.abcEM2 .and. 
      & boundaryCondition(side1,0).le.lastBC .and. boundaryCondition(
      & side2,1).ge.abcEM2 .and. boundaryCondition(side2,1).le.lastBC )

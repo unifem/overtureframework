@@ -87,6 +87,7 @@ class OgesParameters
     THEsolverType,
     THEtolerance,
     THEuserSuppliedCompatibilityConstraint,
+    THEuserSuppliedEquations,
     THEzeroRatio
   };
   
@@ -266,6 +267,7 @@ class OgesParameters
 
   bool compatibilityConstraint;
   bool userSuppliedCompatibilityConstraint;    // set to true if the user has supplied a right null vector
+  bool userSuppliedEquations;  // set to true if the user has supplied extra or over-ridden equations
 
   int gmresRestartLength;
   int numberOfIncompleteLULevels;

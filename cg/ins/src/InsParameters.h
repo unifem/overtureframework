@@ -61,7 +61,8 @@ displayPdeParameters(FILE *file = stdout );
 
 // compute the normal force on a boundary (for moving grid problems)
 virtual int 
-getNormalForce( realCompositeGridFunction & u, realSerialArray & normalForce, int *ipar, real *rpar );
+getNormalForce( realCompositeGridFunction & u, realSerialArray & normalForce, int *ipar, real *rpar,
+                bool includeViscosity = true ); 
 
 int 
 getModelVariables( const aString & name, const GridFunction & cgf, realCompositeGridFunction & r, 

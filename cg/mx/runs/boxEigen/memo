@@ -1,4 +1,99 @@
 *******************************
+****** Jan 22-23, 2016
+
+SOSUP66 3D
+
+box8: 80x80
+cgmx boxEigen -g=box8.order6.ng4 -mx=2 -my=2 -mz=2 -method=sosup -tf=1. -tp=.1 -go=halt
+>>> t=1.00e-01 dt=7.1e-03 max errors:[4.91e-10,9.83e-10,4.91e-10,8.93e-09,1.79e-08,8.93e-09,], max (u):[7.38e-02,1.48e-01,7.38e-02,1.53e+00,3.07e+00,1.53e+00,] (14 steps)
+
+cgmx -noplot boxEigen -g=box4.order6.ng4 -mx=2 -my=2 -mz=2 -method=sosup -tf=1. -tp=1. -go=go
+>>> t=1.00e+00 dt=1.5e-02 max errors:[3.02e-07,6.03e-07,3.02e-07,1.85e-06,3.71e-06,1.85e-06,], max (u):[1.79e-02,3.58e-02,1.79e-02,1.72e+00,3.44e+00,1.72e+00,] (66 steps)
+
+cgmx -noplot boxEigen -g=box2.order6.ng4 -mx=2 -my=2 -mz=2 -method=sosup -tf=1. -tp=1. -go=go
+>>> t=1.00e+00 dt=3.0e-02 max errors:[1.84e-05,3.68e-05,1.84e-05,1.02e-04,2.04e-04,1.02e-04,], max (u):[1.79e-02,3.59e-02,1.79e-02,1.72e+00,3.44e+00,1.72e+00,] (33 steps)
+
+FD66:  2nd-order in time?? cfl=.2 needed??
+
+cgmx -noplot boxEigen -g=square32.order6 -mx=3 -my=2 -tp=1.2 -tf=1.2 -cfl=.2 -go=go
+>>> t=1.20e+00 dt=4.4e-03 max errors:[1.49e-03,2.25e-03,5.14e-03,], max (u):[4.76e-01,7.14e-01,5.13e-01,] (272 steps)
+cgmx -noplot boxEigen -g=square16.order6 -mx=3 -my=2 -tp=1.2 -tf=1.2 -cfl=.2 -go=go
+>>> t=1.20e+00 dt=8.8e-03 max errors:[5.48e-03,8.22e-03,1.93e-02,], max (u):[4.80e-01,7.20e-01,4.99e-01,] (136 steps)
+
+cgmx -noplot boxEigen -g=square32.order6 -mx=3 -my=2 -tp=1. -tf=1. -cfl=.2 -go=go
+>>> t=1.00e+00 dt=4.4e-03 max errors:[1.12e-03,1.70e-03,4.73e-03,], max (u):[5.23e-01,7.85e-01,3.30e-01,] (227 steps)
+
+>>> t=1.00e+00 dt=8.8e-03 max errors:[4.23e-03,6.34e-03,1.74e-02,], max (u):[5.20e-01,7.80e-01,3.43e-01,] (114 steps)
+
+SOSUP66 -- set -tp large so dt is not adjusted too much
+cgmx boxEigen -g=square64.order6.ng4 -mx=3 -my=2 -method=sosup -go=halt -tp=1. -tf=1.
+cgmx boxEigen -g=square32.order6.ng4 -mx=3 -my=2 -method=sosup -go=halt -tp=1. -tf=1.
+cgmx boxEigen -g=square16.order6.ng4 -mx=3 -my=2 -method=sosup -go=halt -tp=1. -tf=1.
+G64
+>>> t=1.00e+00 dt=1.4e-02 max errors:[1.46e-07,2.26e-07,4.07e-07,2.11e-06,3.02e-06,3.55e-06,], max (u):[5.24e-01,7.87e-01,3.26e-01,2.05e+00,3.07e+00,1.07e+01,] (69 steps)
+G32
+>>> t=1.00e+00 dt=2.9e-02 max errors:[2.62e-06,4.68e-06,2.15e-05,1.18e-04,1.58e-04,9.12e-05,], max (u):[5.24e-01,7.87e-01,3.26e-01,2.05e+00,3.07e+00,1.07e+01,] (35 steps)
+G16:
+>>> t=1.00e+00 dt=5.6e-02 max errors:[2.16e-05,9.64e-05,1.29e-03,7.22e-03,9.08e-03,2.88e-03,], max (u):[5.24e-01,7.87e-01,3.24e-01,2.04e+00,3.06e+00,1.07e+01,] (18 steps)
+
+SOSUP66
+cgmx boxEigen -g=square64.order6.ng4 -mx=3 -my=2  -method=sosup -go=halt
+G64: dt=.014
+>>> t=1.00e+00 dt=1.4e-02 max errors:[1.36e-07,2.12e-07,4.09e-07,2.14e-06,3.06e-06,3.36e-06,], max (u):[5.24e-01,7.87e-01,3.26e-01,2.05e+00,3.07e+00,1.07e+01,] (70 steps)
+G64: dt=.01
+>>> t=1.00e+00 dt=1.0e-02 max errors:[5.11e-09,6.98e-09,4.18e-07,2.46e-06,3.53e-06,6.43e-07,], max (u):[5.24e-01,7.87e-01,3.26e-01,2.05e+00,3.07e+00,1.07e+01,] (100 steps)
+
+cgmx boxEigen -g=square32.order6.ng4 -mx=3 -my=2  -method=sosup -go=halt
+
+>>> t=1.00e+00 dt=2.5e-02 max errors:[4.92e-07,1.43e-06,2.39e-05,1.37e-04,1.86e-04,5.33e-05,], max (u):[5.24e-01,7.87e-01,3.26e-01,2.05e+00,3.07e+00,1.07e+01,] (40 steps)
+
+NEED to compile BC's for 6th order
+
+CHECK FD44 periodic
+cgmx boxEigen -g=square64p.order4 -mx=2 -my=2 -cfl=.9 -go=halt
+>>> t=1.00e-01 dt=9.1e-03 max errors:[2.10e-08,2.10e-08,1.04e-07,], max (u):[5.49e-01,5.49e-01,6.31e-01,] (11 steps)
+
+cgmx boxEigen -g=square32p.order4 -mx=2 -my=2 -cfl=.9 -go=halt
+>>> t=1.00e-01 dt=1.7e-02 max errors:[4.54e-07,4.54e-07,2.46e-06,], max (u):[5.49e-01,5.49e-01,6.31e-01,] (6 steps)
+
+PERIODIC -- use even mx, my -- 2nd-order in time??
+FD66: 
+cgmx boxEigen -g=square64p.order6 -mx=2 -my=2 -cfl=.125 -go=halt
+>>> t=1.00e-01 dt=1.4e-03 max errors:[2.47e-06,2.47e-06,1.13e-05,], max (u):[5.49e-01,5.49e-01,6.31e-01,] (73 steps)
+
+cgmx boxEigen -g=square32p.order6 -mx=2 -my=2 -cfl=.125 -go=halt
+>>> t=1.00e-01 dt=2.7e-03 max errors:[9.55e-06,9.55e-06,4.43e-05,], max (u):[5.49e-01,5.49e-01,6.30e-01,] (37 steps)
+
+cfl=.0625
+>>> t=1.00e-01 dt=1.4e-03 max errors:[2.45e-06,2.45e-06,1.12e-05,], max (u):[5.49e-01,5.49e-01,6.31e-01,] (73 steps)
+
+
+SOSUP66:  -- corners are broken
+cgmx boxEigen -g=square64.order6.ng4 -mx=3 -my=2  -method=sosup -go=halt
+>>> t=1.00e-01 dt=1.4e-02 max errors:[6.25e-05,1.40e-04,7.67e-03,7.71e-03,1.75e-02,1.09e+00,], max (u):[5.02e-01,7.53e-01,4.24e-01,2.67e+00,4.00e+00,1.04e+01,] (7 steps)
+
+cgmx boxEigen -g=square32.order6.ng4 -mx=3 -my=2  -method=sosup -go=halt
+
+>>> Cgmx:SOSUP: t=1.00e-01 dt=2.5e-02 TS=ME |div(E)|/|grad(E)|=7.37e-04 (=5.25e-03/7.13e+00) 4 steps mem=26.6(Mb) cpu=3.53e+00(s)
+>>> t=1.00e-01 dt=2.5e-02 max errors:[2.30e-04,5.17e-04,5.84e-03,5.99e-03,1.40e-02,1.72e-01,], max (u):[5.02e-01,7.53e-01,4.24e-01,2.67e+00,4.00e+00,1.04e+01,] (4 steps)
+
+
+FD66 -- not working
+cgmx boxEigen -g=square64.order6 -mx=3 -my=2  -go=halt
+
+
+
+SOSUP44:
+cgmx boxEigen -g=square64.order4.ng3 -mx=3 -my=2  -method=sosup -go=halt
+cgmx boxEigen -g=square32.order4.ng3 -mx=3 -my=2  -method=sosup -go=halt
+
+G64:
+>>> t=1.00e-01 dt=1.3e-02 max errors:[1.54e-06,2.31e-06,7.31e-06,4.11e-05,6.18e-05,1.20e-04,], max (u):[5.02e-01,7.53e-01,4.24e-01,2.67e+00,4.00e+00,1.03e+01,] (8 steps)
+
+G32:
+>>> t=1.00e-01 dt=2.5e-02 max errors:[1.94e-05,2.92e-05,1.17e-04,5.84e-04,8.81e-04,1.98e-03,], max (u):[5.02e-01,7.54e-01,4.24e-01,2.67e+00,4.00e+00,1.03e+01,] (4 steps)
+
+*******************************
 **** July 13, 2015
 
 TEST FIXES TO EDGES AND CORNERS

@@ -22,10 +22,11 @@
 int DomainSolver::
 buildTimeSteppingDialog(DialogData & dialog )
 {
+  const int numColumns=2;
   
   dialog.setWindowTitle("Time Stepping Parameters");
   dialog.setExitCommand("close time stepping", "close");
-  dialog.setOptionMenuColumns(1);
+  dialog.setOptionMenuColumns(numColumns);
 
   const int maxNumberOfTimeSteppingMethods=Parameters::numberOfTimeSteppingMethods+10;
   aString *cmd = new aString [maxNumberOfTimeSteppingMethods];
@@ -144,6 +145,10 @@ buildTimeSteppingDialog(DialogData & dialog )
   tbState[ntb]=parameters.dbase.get<bool>("useAddedMassAlgorithm");
   ntb++;
 
+  tbCommands[ntb]="use added damping algorithm";
+  tbState[ntb]=parameters.dbase.get<bool>("useAddedDampingAlgorithm");
+  ntb++;
+
   tbCommands[ntb]="use approximate AMP condition";
   tbState[ntb]=parameters.dbase.get<bool>("useApproximateAMPcondition");
   ntb++;
@@ -177,11 +182,14 @@ buildTimeSteppingDialog(DialogData & dialog )
   tbState[ntb]=parameters.dbase.get<bool>("useMovingGridSubIterations");
   ntb++;
 
+  tbCommands[ntb]="use vector implicit system";
+  tbState[ntb]=parameters.dbase.get<bool>("useFullSystemForImplicitTimeStepping");
+  ntb++;
+
   assert( ntb<maxNumberOfToggleButtons );
   tbCommands[ntb]="";  // null termination string
 
 
-  const int numColumns=1;
   dialog.setToggleButtons(tbCommands, tbCommands, tbState, numColumns);
 
   // ----- Text strings ------
@@ -255,6 +263,9 @@ buildTimeSteppingDialog(DialogData & dialog )
   textCommands[nt] = "BDF order"; textLabels[nt] =textCommands[nt];
   sPrintF(textStrings[nt],"%i",parameters.dbase.get<int>("orderOfBDF")); nt++;
 
+  textCommands[nt] = "added damping coefficient:"; textLabels[nt] =textCommands[nt];
+  sPrintF(textStrings[nt],"%e",parameters.dbase.get<real>("addedDampingCoefficient")); nt++;
+
   // null strings terminal list
   textCommands[nt]="";   textLabels[nt]="";   textStrings[nt]="";  assert( nt<numberOfTextStrings );
   dialog.setTextBoxes(textCommands, textLabels, textStrings);
@@ -283,6 +294,7 @@ getTimeSteppingOption(const aString & answer,
   GraphicsParameters & psp = parameters.dbase.get<GraphicsParameters >("psp");
 
   bool & useAddedMassAlgorithm = parameters.dbase.get<bool>("useAddedMassAlgorithm");
+  bool & useAddedDampingAlgorithm = parameters.dbase.get<bool>("useAddedDampingAlgorithm");
   bool & useApproximateAMPcondition = parameters.dbase.get<bool>("useApproximateAMPcondition");
   bool & projectAddedMassVelocity = parameters.dbase.get<bool>("projectAddedMassVelocity");
   bool & projectNormalComponentOfAddedMassVelocity = parameters.dbase.get<bool>("projectNormalComponentOfAddedMassVelocity");
@@ -290,7 +302,8 @@ getTimeSteppingOption(const aString & answer,
   bool & smoothInterfaceVelocity = parameters.dbase.get<bool>("smoothInterfaceVelocity");
   bool & projectVelocityOnBeamEnds = parameters.dbase.get<bool>("projectVelocityOnBeamEnds");
   bool & useMovingGridSubIterations = parameters.dbase.get<bool>("useMovingGridSubIterations");
-
+  bool & useFullSystemForImplicitTimeStepping = parameters.dbase.get<bool>("useFullSystemForImplicitTimeStepping");
+  
   int found=true; 
   char buff[180];
   aString answer2;
@@ -658,12 +671,27 @@ getTimeSteppingOption(const aString & answer,
       printF("Do NOT use multiple sub-iterations per time-step for moving grid problems with light bodies.\n");
   }
 
+  else if( dialog.getToggleValue(answer,"use vector implicit system",useFullSystemForImplicitTimeStepping) )
+  {
+    if( useFullSystemForImplicitTimeStepping )
+      printF("Use a single vector implicit system for the velocity components even if multiple scalar systems may be used.\n");
+    else
+      printF("Use multiple scalar implicit systems for the velocity components if possible.\n");
+  }
+
   else if( dialog.getToggleValue(answer,"use added mass algorithm",useAddedMassAlgorithm) )
   {
     if( useAddedMassAlgorithm )
       printF("Use the added mass algorithm.\n");
     else
       printF("Do NOT use the added mass algorithm.\n");
+  }
+  else if( dialog.getToggleValue(answer,"use added damping algorithm",useAddedDampingAlgorithm) )
+  {
+    if( useAddedDampingAlgorithm )
+      printF("Use the added damping algorithm.\n");
+    else
+      printF("Do NOT use the added damping algorithm.\n");
   }
   else if( dialog.getToggleValue(answer,"use approximate AMP condition",useApproximateAMPcondition) )
   {
@@ -714,6 +742,14 @@ getTimeSteppingOption(const aString & answer,
 
   else if ( dialog.getTextValue(answer,"BDF order", "%i", 
                                 parameters.dbase.get<int>("orderOfBDF"))){ }
+
+  else if ( dialog.getTextValue(answer,"added damping coefficient:", "%e", 
+                                parameters.dbase.get<real>("addedDampingCoefficient")) ) 
+  {
+    printF("Setting addedDampingCoefficient=%9.3e. This value scales the added damping term in the\n"
+           " rigid body equations when coupling to an incompressible flow.\n");
+  }
+  
 
   else if( dialog.getToggleValue(answer,"predicted pressure needed",parameters.dbase.get<bool>("predictedPressureNeeded")) ){}  // 
   

@@ -45,6 +45,32 @@ BODy + FARFIELD GRIDS
 
 ==============================================================================
 
+*******************
+****** Test 3D:
+
+Wider channel G4 (5.6M)
+$cginsx backStep -g=backStepInChannel3dWidth2Gride4.order4.ml1 -nu=1.e-3 -parabolicWidth=.05 -bcTop=noSlipWall -bcSide=slipWall -ad4=1 -ad41=2. -ad42=1. -cfl=3. -ts=afs -psolver=mg -ogmgIlucgLevels=1 -rtolp=1.e-4 -atolp=1.e-4  -dtMax=.01 -tf=100. -tp=.1 -debug=3 -show=backStep3d4.show -go=halt
+
+
+OK: -- trouble: bcSide=slipWall
+cgins backStep -g=backStepInChannel3dGride2.order4.ml1 -nu=.005 -parabolicWidth=.05 -bcTop=noSlipWall -bcSide=noSlipWall -ad4=1 -ad41=2. -ad42=1. -cfl=3. -ts=afs -psolver=mg -rtolp=1.e-4 -atolp=1.e-4  -dtMax=.01 -tf=200. -tp=.1 -debug=3 -go=halt
+
+
+***********************
+**** Nov 11, 2015
+
+Example for Alex -- FIX damping : cDt/dt by setting dtMax , cdv=0. cDt=.2
+
+Grid: 
+ogen -noplot backStepInChannelGrid -interp=e -order=4 -ml=1 -factor=4
+
+IM22:
+cgins backStep -g=backStepInChannelGride4.order4.ml1 -nu=1.e-3 -parabolicWidth=.05 -bcTop=noSlipWall -ad4=1 -ad41=2. -ad42=1. -cfl=2. -ts=im -solver=yale -psolver=yale -rtolp=1.e-4 -atolp=1.e-4  -dtMax=.001 -cdv=0. -cDt=.2 -tf=200. -tp=.1 -debug=3 -show=bsf4.show -go=halt
+
+
+cgins backStep -g=backStepInChannelGride4.order4.ml1 -nu=1.e-3 -parabolicWidth=.05 -bcTop=noSlipWall -ad4=1 -ad41=2. -ad42=1. -cfl=2. -ts=afs -psolver=mg -rtolp=1.e-4 -atolp=1.e-4  -dtMax=.005 -cdv=0. -cDt=.2 -tf=200. -tp=.1 -debug=3 -show=bsf4.show -go=halt
+
+
 **************************************
 ************ Sept 14, 2015
 
