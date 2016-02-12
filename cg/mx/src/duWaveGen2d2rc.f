@@ -183,32 +183,39 @@ c
       implicit real (t)
       real cuu(5,5)
       real dx,dy,dt,cc
+      integer i,j
 c
+      do j = 1,5
+      do i = 1,5
+        cuu(i,j) = 0.0
+      end do
+      end do
+
       cuu(1,3) = dt ** 3 * cc ** 3 / dx ** 3 / 0.8E1
       cuu(2,2) = dt ** 3 * cc ** 3 * (dx + dy) / dy ** 2 / dx ** 2 / 0.8
      #E1
-      cuu(2,3) = -dt ** 2 * cc ** 2 * (dt * cc * dx ** 2 + dt * cc * dx 
-     #* dy + 0.2E1 * cc * dt * dy ** 2 - 0.2E1 * dy ** 2 * dx) / dy ** 2
+      cuu(2,3) = -dt ** 2 * cc ** 2 * (cc * dt * dx ** 2 + dt * cc * dx 
+     #* dy + 0.2E1 * dt * cc * dy ** 2 - 0.2E1 * dx * dy ** 2) / dy ** 2
      # / dx ** 3 / 0.4E1
       cuu(2,4) = dt ** 3 * cc ** 3 * (dx + dy) / dy ** 2 / dx ** 2 / 0.8
      #E1
       cuu(3,1) = dt ** 3 * cc ** 3 / dy ** 3 / 0.8E1
-      cuu(3,2) = -dt ** 2 * cc ** 2 * (0.2E1 * dt * cc * dx ** 2 + dt * 
-     #cc * dx * dy + cc * dt * dy ** 2 - 0.2E1 * dx ** 2 * dy) / dy ** 3
+      cuu(3,2) = -dt ** 2 * cc ** 2 * (0.2E1 * cc * dt * dx ** 2 + dt * 
+     #cc * dx * dy + dt * cc * dy ** 2 - 0.2E1 * dx ** 2 * dy) / dy ** 3
      # / dx ** 2 / 0.4E1
       cuu(3,3) = (0.3E1 * cc ** 3 * dt ** 3 * dx ** 3 + 0.2E1 * cc ** 3 
      #* dt ** 3 * dx ** 2 * dy + 0.2E1 * cc ** 3 * dt ** 3 * dx * dy ** 
      #2 + 0.3E1 * cc ** 3 * dt ** 3 * dy ** 3 - 0.4E1 * cc ** 2 * dt ** 
      #2 * dx ** 3 * dy - 0.4E1 * cc ** 2 * dt ** 2 * dx * dy ** 3 + 0.4E
-     #1 * dx ** 3 * dy ** 3) / dy ** 3 / dx ** 3 / 0.4E1
-      cuu(3,4) = -dt ** 2 * cc ** 2 * (0.2E1 * dt * cc * dx ** 2 + dt * 
-     #cc * dx * dy + cc * dt * dy ** 2 - 0.2E1 * dx ** 2 * dy) / dy ** 3
+     #1 * dx ** 3 * dy ** 3) / dx ** 3 / dy ** 3 / 0.4E1
+      cuu(3,4) = -dt ** 2 * cc ** 2 * (0.2E1 * cc * dt * dx ** 2 + dt * 
+     #cc * dx * dy + dt * cc * dy ** 2 - 0.2E1 * dx ** 2 * dy) / dy ** 3
      # / dx ** 2 / 0.4E1
       cuu(3,5) = dt ** 3 * cc ** 3 / dy ** 3 / 0.8E1
       cuu(4,2) = dt ** 3 * cc ** 3 * (dx + dy) / dy ** 2 / dx ** 2 / 0.8
      #E1
-      cuu(4,3) = -dt ** 2 * cc ** 2 * (dt * cc * dx ** 2 + dt * cc * dx 
-     #* dy + 0.2E1 * cc * dt * dy ** 2 - 0.2E1 * dy ** 2 * dx) / dy ** 2
+      cuu(4,3) = -dt ** 2 * cc ** 2 * (cc * dt * dx ** 2 + dt * cc * dx 
+     #* dy + 0.2E1 * dt * cc * dy ** 2 - 0.2E1 * dx * dy ** 2) / dy ** 2
      # / dx ** 3 / 0.4E1
       cuu(4,4) = dt ** 3 * cc ** 3 * (dx + dy) / dy ** 2 / dx ** 2 / 0.8
      #E1
@@ -225,24 +232,26 @@ c
       implicit real (t)
       real cuv(5,5)
       real dx,dy,dt,cc
+      integer i,j
 c
+      do j = 1,5
+      do i = 1,5
+        cuv(i,j) = 0.0
+      end do
+      end do
 
-      cuv(1,3) = -cc * dt ** 2 / dx / 0.12E2
-      cuv(2,3) = cc * dt ** 2 * (0.24E2 * dt * cc + 0.23E2 * dx) / dx **
-     # 2 / 0.96E2
-      cuv(3,1) = -cc * dt ** 2 / dy / 0.12E2
-      cuv(3,2) = cc * dt ** 2 * (0.24E2 * dt * cc + 0.23E2 * dy) / dy **
-     # 2 / 0.96E2
-      cuv(3,3) = -dt * (0.3E1 * cc ** 2 * dt ** 2 * dx ** 2 + 0.3E1 * cc
-     # ** 2 * dt ** 2 * dy ** 2 + 0.2E1 * cc * dt * dx ** 2 * dy + 0.2E1
-     # * cc * dt * dx * dy ** 2 - 0.6E1 * dx ** 2 * dy ** 2) / dy ** 2 /
-     # dx ** 2 / 0.6E1
-      cuv(3,4) = cc * dt ** 2 * (0.24E2 * dt * cc + 0.23E2 * dy) / dy **
-     # 2 / 0.96E2
-      cuv(3,5) = -cc * dt ** 2 / dy / 0.12E2
-      cuv(4,3) = cc * dt ** 2 * (0.24E2 * dt * cc + 0.23E2 * dx) / dx **
-     # 2 / 0.96E2
-      cuv(5,3) = -cc * dt ** 2 / dx / 0.12E2
+      cuv(1,3) = -cc * dt ** 2 / dx / 0.16E2
+      cuv(2,3) = cc * dt ** 2 * (dt * cc + dx) / dx ** 2 / 0.4E1
+      cuv(3,1) = -cc * dt ** 2 / dy / 0.16E2
+      cuv(3,2) = cc * dt ** 2 * (dt * cc + dy) / dy ** 2 / 0.4E1
+      cuv(3,3) = -dt * (0.4E1 * cc ** 2 * dt ** 2 * dx ** 2 + 0.4E1 * cc
+     # ** 2 * dt ** 2 * dy ** 2 + 0.3E1 * cc * dt * dx ** 2 * dy + 0.3E1
+     # * cc * dt * dx * dy ** 2 - 0.8E1 * dx ** 2 * dy ** 2) / dx ** 2 /
+     # dy ** 2 / 0.8E1
+      cuv(3,4) = cc * dt ** 2 * (dt * cc + dy) / dy ** 2 / 0.4E1
+      cuv(3,5) = -cc * dt ** 2 / dy / 0.16E2
+      cuv(4,3) = cc * dt ** 2 * (dt * cc + dx) / dx ** 2 / 0.4E1
+      cuv(5,3) = -cc * dt ** 2 / dx / 0.16E2
 
       return
       end
@@ -255,36 +264,42 @@ c
       implicit real (t)
       real cvu(5,5)
       real dx,dy,dt,cc
+      integer i,j
 c
+      do j = 1,5
+      do i = 1,5
+        cvu(i,j) = 0.0
+      end do
+      end do
+ 
       cvu(1,3) = dt ** 2 * cc ** 3 / dx ** 3 / 0.4E1
       cvu(2,2) = dt ** 2 * cc ** 3 * (dx + dy) / dy ** 2 / dx ** 2 / 0.4
      #E1
-      cvu(2,3) = -cc ** 2 * dt * (dt * cc * dx ** 2 + dt * cc * dx * dy 
-     #+ 0.2E1 * cc * dt * dy ** 2 - 0.2E1 * dy ** 2 * dx) / dy ** 2 / dx
+      cvu(2,3) = -cc ** 2 * dt * (cc * dt * dx ** 2 + dt * cc * dx * dy 
+     #+ 0.2E1 * dt * cc * dy ** 2 - 0.2E1 * dx * dy ** 2) / dy ** 2 / dx
      # ** 3 / 0.2E1
       cvu(2,4) = dt ** 2 * cc ** 3 * (dx + dy) / dy ** 2 / dx ** 2 / 0.4
      #E1
       cvu(3,1) = dt ** 2 * cc ** 3 / dy ** 3 / 0.4E1
-      cvu(3,2) = -cc ** 2 * dt * (0.2E1 * dt * cc * dx ** 2 + dt * cc * 
-     #dx * dy + cc * dt * dy ** 2 - 0.2E1 * dx ** 2 * dy) / dy ** 3 / dx
+      cvu(3,2) = -cc ** 2 * dt * (0.2E1 * cc * dt * dx ** 2 + dt * cc * 
+     #dx * dy + dt * cc * dy ** 2 - 0.2E1 * dx ** 2 * dy) / dy ** 3 / dx
      # ** 2 / 0.2E1
       cvu(3,3) = cc ** 2 * dt * (0.3E1 * cc * dt * dx ** 3 + 0.2E1 * cc 
      #* dt * dx ** 2 * dy + 0.2E1 * cc * dt * dx * dy ** 2 + 0.3E1 * cc 
-     #* dt * dy ** 3 - 0.4E1 * dx ** 3 * dy - 0.4E1 * dx * dy ** 3) / dy
-     # ** 3 / dx ** 3 / 0.2E1
-      cvu(3,4) = -cc ** 2 * dt * (0.2E1 * dt * cc * dx ** 2 + dt * cc * 
-     #dx * dy + cc * dt * dy ** 2 - 0.2E1 * dx ** 2 * dy) / dy ** 3 / dx
+     #* dt * dy ** 3 - 0.4E1 * dx ** 3 * dy - 0.4E1 * dx * dy ** 3) / dx
+     # ** 3 / dy ** 3 / 0.2E1
+      cvu(3,4) = -cc ** 2 * dt * (0.2E1 * cc * dt * dx ** 2 + dt * cc * 
+     #dx * dy + dt * cc * dy ** 2 - 0.2E1 * dx ** 2 * dy) / dy ** 3 / dx
      # ** 2 / 0.2E1
       cvu(3,5) = dt ** 2 * cc ** 3 / dy ** 3 / 0.4E1
       cvu(4,2) = dt ** 2 * cc ** 3 * (dx + dy) / dy ** 2 / dx ** 2 / 0.4
      #E1
-      cvu(4,3) = -cc ** 2 * dt * (dt * cc * dx ** 2 + dt * cc * dx * dy 
-     #+ 0.2E1 * cc * dt * dy ** 2 - 0.2E1 * dy ** 2 * dx) / dy ** 2 / dx
+      cvu(4,3) = -cc ** 2 * dt * (cc * dt * dx ** 2 + dt * cc * dx * dy 
+     #+ 0.2E1 * dt * cc * dy ** 2 - 0.2E1 * dx * dy ** 2) / dy ** 2 / dx
      # ** 3 / 0.2E1
       cvu(4,4) = dt ** 2 * cc ** 3 * (dx + dy) / dy ** 2 / dx ** 2 / 0.4
      #E1
       cvu(5,3) = dt ** 2 * cc ** 3 / dx ** 3 / 0.4E1
-
 
       return
       end
@@ -297,24 +312,26 @@ c
       implicit real (t)
       real cvv(5,5)
       real dx,dy,dt,cc
+      integer i,j
 c
-      cvv(1,3) = -dt * cc / dx / 0.6E1
-      cvv(2,3) = dt * cc * (0.24E2 * dt * cc + 0.23E2 * dx) / dx ** 2 / 
-     #0.48E2
-      cvv(3,1) = -dt * cc / dy / 0.6E1
-      cvv(3,2) = dt * cc * (0.24E2 * dt * cc + 0.23E2 * dy) / dy ** 2 / 
-     #0.48E2
-      cvv(3,3) = -(0.3E1 * cc ** 2 * dt ** 2 * dx ** 2 + 0.3E1 * cc ** 2
-     # * dt ** 2 * dy ** 2 + 0.2E1 * cc * dt * dx ** 2 * dy + 0.2E1 * cc
-     # * dt * dx * dy ** 2 - 0.3E1 * dx ** 2 * dy ** 2) / dy ** 2 / dx *
-     #* 2 / 0.3E1
-      cvv(3,4) = dt * cc * (0.24E2 * dt * cc + 0.23E2 * dy) / dy ** 2 / 
-     #0.48E2
-      cvv(3,5) = -dt * cc / dy / 0.6E1
-      cvv(4,3) = dt * cc * (0.24E2 * dt * cc + 0.23E2 * dx) / dx ** 2 / 
-     #0.48E2
-      cvv(5,3) = -dt * cc / dx / 0.6E1
+      do j = 1,5
+      do i = 1,5
+        cvv(i,j) = 0.0
+      end do
+      end do
 
+      cvv(1,3) = -dt * cc / dx / 0.8E1
+      cvv(2,3) = dt * cc * (dt * cc + dx) / dx ** 2 / 0.2E1
+      cvv(3,1) = -dt * cc / dy / 0.8E1
+      cvv(3,2) = dt * cc * (dt * cc + dy) / dy ** 2 / 0.2E1
+      cvv(3,3) = -(0.4E1 * cc ** 2 * dt ** 2 * dx ** 2 + 0.4E1 * cc ** 2
+     # * dt ** 2 * dy ** 2 + 0.3E1 * cc * dt * dx ** 2 * dy + 0.3E1 * cc
+     # * dt * dx * dy ** 2 - 0.4E1 * dx ** 2 * dy ** 2) / dx ** 2 / dy *
+     #* 2 / 0.4E1
+      cvv(3,4) = dt * cc * (dt * cc + dy) / dy ** 2 / 0.2E1
+      cvv(3,5) = -dt * cc / dy / 0.8E1
+      cvv(4,3) = dt * cc * (dt * cc + dx) / dx ** 2 / 0.2E1
+      cvv(5,3) = -dt * cc / dx / 0.8E1
 
       return
       end

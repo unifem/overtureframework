@@ -182,7 +182,14 @@ c
       implicit real (t)
       real cuu(9,9)
       real dx,dy,dt,cc
+      integer i,j
 c
+      do j = 1,9
+      do i = 1,9
+        cuu(i,j) = 0.0
+      end do
+      end do
+
       cuu(1,5) = dt ** 3 * cc ** 3 * (0.29E2 * dt ** 4 * cc ** 4 - 0.400
      #E3 * cc ** 2 * dt ** 2 * dx ** 2 + 0.1400E4 * dx ** 4) / dx ** 7 /
      # 0.288000E6
@@ -549,7 +556,14 @@ c
       implicit real (t)
       real cuv(9,9)
       real dx,dy,dt,cc
+      integer i,j
 c
+      do j = 1,9
+      do i = 1,9
+        cuv(i,j) = 0.0
+      end do
+      end do
+
       cuv(1,5) = -cc * dt ** 2 * (0.6E1 * dt ** 4 * cc ** 4 - 0.53E2 * c
      #c ** 2 * dt ** 2 * dx ** 2 + 0.64E2 * dx ** 4) / dx ** 5 / 0.34560
      #E5
@@ -807,7 +821,14 @@ c
       implicit real (t)
       real cvu(9,9)
       real dx,dy,dt,cc
+      integer i,j
 c
+      do j = 1,9
+      do i = 1,9
+        cvu(i,j) = 0.0
+      end do
+      end do
+
       cvu(1,5) = dt ** 2 * cc ** 3 * (dt ** 4 * cc ** 4 - 0.10E2 * cc **
      # 2 * dt ** 2 * dx ** 2 + 0.21E2 * dx ** 4) / dx ** 7 / 0.1440E4
       cvu(2,4) = dt ** 2 * cc ** 3 * (dt ** 4 * cc ** 4 - 0.5E1 * cc ** 
@@ -1152,7 +1173,14 @@ c
       implicit real (t)
       real cvv(9,9)
       real dx,dy,dt,cc
+      integer i,j
 c
+      do j = 1,9
+      do i = 1,9
+        cvv(i,j) = 0.0
+      end do
+      end do
+
       cvv(1,5) = -cc * dt * (0.9E1 * dt ** 4 * cc ** 4 - 0.53E2 * cc ** 
      #2 * dt ** 2 * dx ** 2 + 0.32E2 * dx ** 4) / dx ** 5 / 0.8640E4
       cvv(2,4) = -dt ** 3 * cc ** 3 * (0.9E1 * dt ** 2 * cc ** 2 - 0.15E
