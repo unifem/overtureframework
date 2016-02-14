@@ -2565,6 +2565,11 @@ assignInitialConditions(int current, real t, real dt )
             	      {
 		// In this version we smoothly damp the plane wave along the direction of the front
 
+            		printF("--MX-- assignIC: initialConditionBoundingBox=[%9.2e,%9.2e][%9.2e,%9.2e][%9.2e,%9.2e]\n",
+                   		       initialConditionBoundingBox(0,0),initialConditionBoundingBox(1,0),
+                   		       initialConditionBoundingBox(0,1),initialConditionBoundingBox(1,1),
+                   		       initialConditionBoundingBox(0,2),initialConditionBoundingBox(1,2));
+
 		// Damp near the point (x0,y0) on the front
 		// do this for now : 
             		real kNorm = sqrt( kx*kx+ky*ky );

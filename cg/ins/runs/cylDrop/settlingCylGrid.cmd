@@ -1,9 +1,9 @@
 # ------------------------------------------------------------------------------------------------------
 #
-# Grid for a cylinder dropping in a channel
+# Grid for a cylinder settling to a wall
 #
 #  Usage:
-#     ogen [-noplot] cylDropGrid.cmd -factor=<i> -interp=[i|e] -ml=<i> -blf=<> -cx=<> -cy=<> -radius=<f>
+#     ogen [-noplot] settlingCylGrid.cmd -factor=<i> -interp=[i|e] -ml=<i> -blf=<> -cx=<> -cy=<> -radius=<f>
 #
 #  -radius : radius of the cylinder 
 #  -xa, -xb, -ya, -yb : bounds on the back ground grid
@@ -13,28 +13,20 @@
 #  -rgd : var=variable : decrease radial grid distance as grids are refined. fixed=fix radial grid distance
 #
 #  Examples:
-#    ogen -noplot cylDropGrid.cmd -interp=e -factor=2 
-#    ogen -noplot cylDropGrid.cmd -interp=e -factor=4
-#    ogen -noplot cylDropGrid.cmd -interp=e -factor=4 -ml=2
-#    ogen -noplot cylDropGrid.cmd -interp=e -factor=8 -ml=3
+#    ogen -noplot settlingCylGrid.cmd -interp=i -factor=2 
+#    ogen -noplot settlingCylGrid.cmd -interp=i -factor=4
 #
-# -- bigger cylinder, small domain for testing 
-#    ogen -noplot cylDropGrid.cmd -interp=e -radius=.25 -yb=2. -cx=1. -cy=1. -prefix=cylGridSmall -factor=2
-#    ogen -noplot cylDropGrid.cmd -interp=e -radius=.25 -yb=2. -cx=1. -cy=1. -prefix=cylGridSmall -factor=4
-#
-# -- bigger cylinder, small domain. stretch backGround
-#    ogen -noplot cylDropGrid.cmd -interp=e -radius=.25 -yb=2. -cx=1. -cy=1. -blfc=3. -prefix=cylGridSmallStretched -factor=2
-#    ogen -noplot cylDropGrid.cmd -interp=e -radius=.25 -yb=2. -cx=1. -cy=1. -blfc=3. -prefix=cylGridSmalllStretched -factor=4
+#    ogen -noplot settlingCylGrid.cmd -interp=e -factor=2 
 #
 # ------------------------------------------------------------------------------------------------------
-$prefix="cylDropGrid";  $rgd="var";
+$prefix="settlingCylGrid";  $rgd="var";
 $order=2; $factor=1; $interp="i"; $ml=0; # default values
 $orderOfAccuracy = "second order"; $ng=2; $interpType = "implicit for all grids";
-$name=""; $xa=0.; $xb=2.; $ya=0.; $yb=6.; 
-$radius=.125; # radius of the cylinder
-$cx=1.; $cy=4.;  # center for the cylinder 
-$blf=3;  # grid lines are this much finer near the boundary
-$blfc=1;  # grid lines on Channel-grid are this much finer near the boundary
+$name=""; $xa=-2.; $xb=2.; $ya=-1.; $yb=2.; 
+$radius=.5; # radius of the cylinder
+$cx=0.; $cy=0.;  # center for the cylinder 
+$height=.25; # height of stretch grid at bottom wall
+$blf=5;  # grid lines are this much finer near the boundary and bottom wall
 $deltaRadius0=.1; # radius for rgd fixed
 $numGhost=-1;  # if this value is set, then use this number of ghost points
 # 
@@ -78,20 +70,22 @@ sub max{ local($n,$m)=@_; if( $n>$m ){ return $n; }else{ return $m; } }
 #
 create mappings
 #
-# Optionally stretch the channel grid
-$channelBaseGrid="channel"; $channelStretched="channel-stretched";
-if( $blfc ne "1" ){ $channelBaseGrid="channel-unstretched"; $channelStretched="channel"; }
+# Background grid:
+#
 rectangle
   set corners
-    $xa $xb $ya $yb 
+    $yac=$ya+$height-$ng*$ds; 
+    $xa $xb $yac $yb 
   lines
-   $nx = intmg( ($xb-$xa)/$ds +1.5 ); 
-    $ny = intmg( ($yb-$ya)/$ds +1.5 ); 
+    $nx = intmg( ($xb-$xa)/$ds +1.5 ); 
+    $ny = intmg( ($yb-$yac)/$ds +1.5 ); 
     $nx $ny
   boundary conditions
-    1 2 3 4 
+    1 2 0 4 
+  share
+    1 2 0 0 
   mappingName
-   $channelBaseGrid
+   backGround
 exit
 #
 Annulus
@@ -112,15 +106,15 @@ Annulus
   share
      0  0 100 0
   mappingName
-   drop-unstretched
+   unstretchedDrop
 exit
 #
 #
-# optionally stretch the grid lines next to the cylinder
+# Stretch the grid lines next to the cylinder
 # 
  stretch coordinates 
   transform which mapping? 
-    drop-unstretched
+    unstretchedDrop
   multigrid levels $ml
   # add extra resolution in the stretching direction: 
   $stretchResolution = 1.2;
@@ -134,26 +128,44 @@ exit
  exit
 #
 #
-# optionally stretch the back-ground grid
+# Stretched grid near bottom wall:
+rectangle
+  set corners
+    $ybw=$ya+$height+$ng*$ds; 
+    $xa $xb $ya $ybw 
+  lines
+    $nx = intmg( ($xb-$xa)/$ds +1.5 ); 
+    $ny = intmg( ($ybw-$ya)/$ds +1.5 ); 
+    $nx $ny
+  boundary conditions
+    1 2 3 0 
+  share
+    1 2 0 0 
+  mappingName
+   unstretchedBottomWallGrid
+exit
+#
+# Stretch bottom wall grid
 # 
  stretch coordinates 
   transform which mapping? 
-    $channelBaseGrid
+    unstretchedBottomWallGrid
   multigrid levels $ml
   # add extra resolution in the stretching direction: 
   stretch resolution factor  $stretchResolution
   # exponential to linear stretching: 
    Stretch r2:exp to linear
    STP:stretch r2 expl: position 0
-   $dxMin = $ds/$blfc; 
+   $dxMin = $ds/$blf; 
    STP:stretch r2 expl: min dx, max dx $dxMin $ds
-  STRT:name $channelStretched
+  STRT:name bottomWallGrid
  exit
 #
 #
 exit
 generate an overlapping grid
-    channel
+    backGround
+    bottomWallGrid
     drop
   done
   change parameters

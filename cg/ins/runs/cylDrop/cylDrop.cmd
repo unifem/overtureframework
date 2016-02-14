@@ -29,6 +29,7 @@ $gravity = "-981.";   # cm/s^2   -9.81 acceleration due to gravity standard valu
 #
 $numberOfCorrections=1; 
 $addedMass=0; $useTP=0;  $useProvidedAcceleration=1; 
+$addedDamping=0;  $addedDampingCoeff=1.; 
 $omega=.5; $rtolc=1.e-4; $atolc=1.e-7; 
 # 
 $freqFullUpdate=10; # frequency for using full ogen update in moving grids 
@@ -44,7 +45,7 @@ $filter=0; $filterFrequency=1; $filterOrder=6; $filterStages=2;
 $vIn=.0;
 $bcOption="walls"; 
 $option=""; 
-$freqFullUpdate=10; 
+$freqFullUpdate=10; $flushFrequency=10; 
 #
 $ampSinusoidalPressure=1.; $freqSinusoidalPressure=1.; # for sinusoidal pressure option
 #
@@ -60,7 +61,9 @@ GetOptions( "g=s"=>\$grid,"tf=f"=>\$tFinal,"model=s"=>\$model,"inflowVelocity=f"
  "freqFullUpdate=i"=>\$freqFullUpdate,"radius=f"=>\$radius,"dropName=s"=>\$dropName,"channelName=s"=>\$channelName,\
  "numberOfCorrections=i"=>\$numberOfCorrections,"omega=f"=>\$omega,"addedMass=f"=>\$addedMass,"useTP=i"=>\$useTP,\
  "rtolc=f"=>\$rtolc,"atolc=f"=>\$atolc,"option=s"=>\$option,"useProvidedAcceleration=i"=>\$useProvidedAcceleration,\
- "inertia=f"=>\$inertia,"ampSinusoidalPressure=f"=>\$ampSinusoidalPressure,"freqSinusoidalPressure=f"=>\$freqSinusoidalPressure  );
+ "inertia=f"=>\$inertia,"ampSinusoidalPressure=f"=>\$ampSinusoidalPressure,\
+ "freqSinusoidalPressure=f"=>\$freqSinusoidalPressure, "flushFrequency=f"=>\$flushFrequency,\
+ "addedDamping=f"=>\$addedDamping,"addedDampingCoeff=f"=>\$addedDampingCoeff  );
 # -------------------------------------------------------------------------------------------------
 if( $solver eq "best" ){ $solver="choose best iterative solver"; }
 if( $solver eq "mg" ){ $solver="multigrid"; }
@@ -123,7 +126,7 @@ $grid
     open
      $show
     frequency to flush
-      1 2 1 2
+      $flushFrequency
   exit  
   turn off twilight zone
 #************************************
@@ -153,6 +156,9 @@ $grid
   use added mass algorithm $addedMass
   # for now we let the solver know that the added mass algorithm needed predicted values for the pressure:
   predicted pressure needed $addedMass
+  # for added damping algorithm: 
+  added damping coefficient: $addedDampingCoeff
+  use added damping algorithm $addedDamping
   # -- CHECK ME: 
   use moving grid sub-iterations $useTP
   # TEMP FIX: 

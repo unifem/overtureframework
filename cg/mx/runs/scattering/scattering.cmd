@@ -61,6 +61,7 @@ if( $boundaryForcing eq 0 ){ $cmd="initial condition bounding box $xa $xb $ya $y
 $cmd
 $beta=10.; # exponent in tanh function for smooth transition to zero outside the bounding box
 bounding box decay exponent $beta
+# 
 plane wave coefficients $ax $ay $az $eps $mu
 # ====
 #  Initial condition:

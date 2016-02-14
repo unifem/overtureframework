@@ -142,6 +142,19 @@ outputHeader()
     else
       fPrintF(file," initialConditionOption = %i\n",(const int)initialConditionOption);
 
+    const RealArray & icBox = initialConditionBoundingBox;
+    if( (icBox(0,0) <= icBox(1,0)) && ( icBox(0,1) <= icBox(1,1) ) )
+    {
+      fPrintF(file," initialConditionBoundingBox=[%9.2e,%9.2e][%9.2e,%9.2e][%9.2e,%9.2e]\n",
+	      icBox(0,0),icBox(1,0),
+	      icBox(0,1),icBox(1,1),
+	      icBox(0,2),icBox(1,2)); 
+    }
+    else
+    {
+      fPrintF(file,"initialConditionBoundingBox is OFF.\n");
+    }
+    
     aString forcingName[numberOfForcingNames]={
       "noForcing",
       "magneticSinusoidalPointSource",

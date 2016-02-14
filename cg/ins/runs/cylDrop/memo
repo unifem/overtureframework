@@ -1,4 +1,99 @@
 *************************************
+****Feb 09, 2016
+
+----- SETTLING PROBLEM -----
+
+
+*************************************
+****Feb 06-07, 2016
+
+----- SETTLING PROBLEM -----
+
+SETTLING CYL GRID: 
+  ogen -noplot settlingCylGrid.cmd -interp=i -factor=2 
+  ogen -noplot settlingCylGrid.cmd -interp=i -factor=4
+
+  ogen -noplot settlingCylGrid.cmd -interp=i -blf=10 -factor=2 
+
+
+
+============== AMP ================
+
+G2-S10 AMP DENSITY=4
+cgins -noplot cylDrop -g=settlingCylGridi2.order2.s10.hdf -tf=5. -tp=.05 -nu=.1 -ts=im -density=4. -inertia=100. -radius=.5 -dropName=drop -channelName=background -gravity=-1. -dtMax=.01 -project=0 -numberOfCorrections=1 -omega=1. -addedMass=1  -useProvidedAcceleration=1  -useTP=0 -debug=3 -psolver=yale -show=settlingCylG2S10Rs4amp.show -go=go >! settlingCylG2S10RS4amp.out
+
+G2 AMP DENSITY=4
+cgins -noplot cylDrop -g=settlingCylGridi2.order2.s5.hdf -tf=10. -tp=.05 -nu=.1 -ts=im -density=4. -inertia=100. -radius=.5 -dropName=drop -channelName=background -gravity=-1. -dtMax=.01 -project=0 -numberOfCorrections=1 -omega=1. -addedMass=1  -useProvidedAcceleration=1  -useTP=0 -debug=3 -psolver=yale -show=settlingCylG2Rs4amp.show -go=go >! settlingCylG2RS4amp.out
+
+
+G2 AMP DENSITY=2 nu=.1 *NEW* GRID *NOTE* Use implicit interp -- -dtMax=.01 -NC=2 **BETTER**
+cgins -noplot cylDrop -g=settlingCylGridi2.order2.s5.hdf -tf=10. -tp=.05 -nu=.1 -ts=im -density=2. -inertia=100. -radius=.5 -dropName=drop -channelName=background -gravity=-1. -dtMax=.01 -project=0 -numberOfCorrections=1 -omega=1. -addedMass=1  -useProvidedAcceleration=1  -useTP=0 -debug=3 -psolver=yale -show=settlingCylG2amp.show -go=go >! settlingCylG2amp.out
+
+
+============ TPSI =================
+
+G4 TP-SI dtMax=.005 DENSITY=2 nu=.1 -omega=.1, .2, .5
+cgins -noplot cylDrop -g=settlingCylGridi4.order2.s5.hdf -tf=10. -tp=.05 -nu=.1 -ts=im -density=2. -inertia=100. -radius=.5 -dropName=drop -channelName=background -gravity=-1. -dtMax=.005 -project=0 -numberOfCorrections=200 -addedMass=0  -useProvidedAcceleration=0 -useTP=1 -debug=3 -psolver=yale -show=settlingCylG4tpsi.show -omega=.5 -rtolc=1.e-4 -go=go >! settlingCylG4tpsi.out
+
+G4 TP-SI dtMax=.01 DENSITY=2 nu=.1 -omega=.1, .2, .5 REDUCE rtolc -- Still TROUBLE
+cgins -noplot cylDrop -g=settlingCylGridi4.order2.s5.hdf -tf=10. -tp=.05 -nu=.1 -ts=im -density=2. -inertia=100. -radius=.5 -dropName=drop -channelName=background -gravity=-1. -dtMax=.01 -project=0 -numberOfCorrections=200 -addedMass=0  -useProvidedAcceleration=0 -useTP=1 -debug=3 -psolver=yale -show=settlingCylG4tpsi.show -omega=.5 -rtolc=1.e-6 -go=go >! settlingCylG4tpsi.out
+
+G2 TP-SI dtMax=.01 DENSITY=2 nu=.1 -omega=.1, .2, .5=OK
+cgins -noplot cylDrop -g=settlingCylGridi2.order2.s5.hdf -tf=10. -tp=.05 -nu=.1 -ts=im -density=2. -inertia=100. -radius=.5 -dropName=drop -channelName=background -gravity=-1. -dtMax=.01 -project=0 -numberOfCorrections=200 -addedMass=0  -useProvidedAcceleration=0 -useTP=1 -debug=3 -psolver=yale -show=settlingCylG2tpsi.show -omega=.5 -go=go >! settlingCylG2tpsi.out
+
+
+
+G2 TP NC=2 dtMax=.01 DENSITY=2 nu=.1 **TROUBLE**
+cgins -noplot cylDrop -g=settlingCylGridi2.order2.s5.hdf -tf=10. -tp=.05 -nu=.1 -ts=im -density=2. -inertia=100. -radius=.5 -dropName=drop -channelName=background -gravity=-1. -dtMax=.01 -project=0 -numberOfCorrections=2 -omega=1. -addedMass=0  -useProvidedAcceleration=0 -useTP=0 -debug=3 -psolver=yale -show=settlingCylG2a.show -go=go >! settlingCylG2a.out
+
+
+
+
+
+
+G4 AMP DENSITY=2 nu=.1 *NEW* GRID *NOTE* Use implicit interp -- -dtMax=.005 -NC=2 **BETTER**
+cgins -noplot cylDrop -g=settlingCylGridi4.order2.s5.hdf -tf=10. -tp=.05 -nu=.1 -ts=im -density=2. -inertia=100. -radius=.5 -dropName=drop -channelName=background -gravity=-1. -dtMax=.005 -project=0 -numberOfCorrections=2 -omega=1. -addedMass=1  -useProvidedAcceleration=1  -useTP=0 -debug=3 -psolver=yale -show=settlingCylG4ampa.show -go=go >! settlingCylG4ampa.out
+
+G2 AMP DENSITY=2 nu=.1 *NEW* GRID *NOTE* Use implicit interp -- -dtMax=.01 -NC=2 **BETTER**
+cgins -noplot cylDrop -g=settlingCylGridi2.order2.s5.hdf -tf=10. -tp=.05 -nu=.1 -ts=im -density=2. -inertia=100. -radius=.5 -dropName=drop -channelName=background -gravity=-1. -dtMax=.01 -project=0 -numberOfCorrections=2 -omega=1. -addedMass=1  -useProvidedAcceleration=1  -useTP=0 -debug=3 -psolver=yale -show=settlingCylG2ampa.show -go=go >! settlingCylG2ampa.out
+
+
+G2 AMP DENSITY=2 nu=.1 *NEW* GRID *NOTE* Use implicit interp -- no collision detected-- increase inertia -- still wiggles
+cgins -noplot cylDrop -g=settlingCylGridi2.order2.s5.hdf -tf=10. -tp=.05 -nu=.1 -ts=im -density=2. -inertia=100. -radius=.5 -dropName=drop -channelName=background -gravity=-1. -dtMax=.02 -project=0 -numberOfCorrections=1 -omega=1. -addedMass=1  -useProvidedAcceleration=1  -useTP=0 -debug=3 -psolver=yale -show=settlingCylG2ampa.show -go=go >! settlingCylG2ampa.out
+
+
+
+G4 AMP DENSITY=2 nu=.1 *NEW* GRID *NOTE* Use implicit interp -- no collision detected
+cgins -noplot cylDrop -g=settlingCylGridi4.order2.s5.hdf -tf=10. -tp=.05 -nu=.1 -ts=im -density=2. -inertia=1. -radius=.5 -dropName=drop -channelName=background -gravity=-1. -dtMax=.02 -project=0 -numberOfCorrections=1 -omega=1. -addedMass=1  -useProvidedAcceleration=1  -useTP=0 -debug=3 -psolver=yale -show=settlingCylG4amp.show -go=go >! settlingCylG4amp.out
+
+
+G2 AMP+ADDED-DAMPING  DENSITY=2 nu=.1 *NEW* GRID *NOTE* Use implicit interp -- no collision detected
+cgins -noplot cylDrop -g=settlingCylGridi2.order2.s5.hdf -tf=10. -tp=.05 -nu=.1 -ts=im -density=2. -inertia=1. -radius=.5 -dropName=drop -channelName=background -gravity=-1. -dtMax=.02 -project=0 -numberOfCorrections=1 -omega=1. -addedMass=1  -useProvidedAcceleration=1  -addedDamping=1 -addedDampingCoeff=2. -useTP=0 -debug=3 -psolver=yale -show=settlingCylG2ampad.show -go=go >! settlingCylG2ampad.out
+
+G2 AMP DENSITY=2 nu=.1 *NEW* GRID *NOTE* Use implicit interp -- no collision detected
+cgins -noplot cylDrop -g=settlingCylGridi2.order2.s5.hdf -tf=10. -tp=.05 -nu=.1 -ts=im -density=2. -inertia=1. -radius=.5 -dropName=drop -channelName=background -gravity=-1. -dtMax=.02 -project=0 -numberOfCorrections=1 -omega=1. -addedMass=1  -useProvidedAcceleration=1  -useTP=0 -debug=3 -psolver=yale -show=settlingCylG2amp.show -go=go >! settlingCylG2amp.out
+
+
+
+G4 TP DENSITY=2 nu=.1 *NEW* GRID *NOTE* Use implicit interp -- no collision detected WIIGLES --> trouble
+cgins -noplot cylDrop -g=settlingCylGridi4.order2.s5.hdf -tf=10. -tp=.05 -nu=.1 -ts=im -density=2. -inertia=1. -radius=.5 -dropName=drop -channelName=background -gravity=-1. -dtMax=.02 -project=0 -numberOfCorrections=1 -omega=1. -addedMass=0  -useProvidedAcceleration=0 -useTP=0 -debug=3 -psolver=yale -show=settlingCylG4.show -go=go >! settlingCylG4.out
+
+G2 TP DENSITY=2 nu=.1 *NEW* GRID *NOTE* Use implicit interp -- no collision detected
+cgins -noplot cylDrop -g=settlingCylGridi2.order2.s5.hdf -tf=10. -tp=.05 -nu=.1 -ts=im -density=2. -inertia=1. -radius=.5 -dropName=drop -channelName=background -gravity=-1. -dtMax=.02 -project=0 -numberOfCorrections=1 -omega=1. -addedMass=0  -useProvidedAcceleration=0 -useTP=0 -debug=3 -psolver=yale -show=settlingCylG2.show -go=go >! settlingCylG2.out
+
+TP DENSITY=2 nu=.1 -- collides
+cgins -noplot cylDrop -g=cice2.order2.hdf -tf=10. -tp=.05 -nu=.1 -ts=im -density=2. -inertia=1. -radius=.5 -dropName=Annulus -channelName=square -gravity=-1. -dtMax=.02 -project=0 -numberOfCorrections=1 -omega=1. -addedMass=0  -useProvidedAcceleration=0 -useTP=0 -debug=3 -psolver=yale -show=settlingCylG2a.show -go=go >! settlingCylG2a.out
+
+
+G4: TP DENSITY=10 -- 
+cgins -noplot cylDrop -g=cice4.order2.hdf -tf=5. -tp=.05 -nu=.05 -ts=im -density=10. -inertia=1. -radius=.5 -dropName=Annulus -channelName=square -gravity=-1. -dtMax=.02 -project=0 -numberOfCorrections=1 -omega=1. -addedMass=0  -useProvidedAcceleration=0 -useTP=0 -debug=3 -psolver=yale -show=settlingCylG4.show -go=go >! settlingCylG4.out
+
+
+TP DENSITY=10 -- Collisons detected
+cgins -noplot cylDrop -g=cice2.order2.hdf -tf=5. -tp=.05 -nu=.05 -ts=im -density=10. -inertia=1. -radius=.5 -dropName=Annulus -channelName=square -gravity=-1. -dtMax=.02 -project=0 -numberOfCorrections=1 -omega=1. -addedMass=0  -useProvidedAcceleration=0 -useTP=0 -debug=3 -psolver=yale -show=settlingCylG2.show -go=go >! settlingCylG2.out
+
+
+*************************************
 **** Dec 6, 2015
 
 More RUNS for the paper

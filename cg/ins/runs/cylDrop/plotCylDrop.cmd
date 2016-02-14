@@ -16,16 +16,17 @@
 #  plotStuff plotCylDrop.cmd -show=cylDrop2bd0p001a.show -matlab=cylDrop2bd0p001a  -- decrease nu
 #
 # rhos=.01
-#  plotStuff plotCylDrop.cmd -show=cylDrop2bd0p1.show  -matlab cylDrop2bd0p1
-#  plotStuff plotCylDrop.cmd -show=cylDrop2bd0p1TP.show  -matlab cylDrop2bd0p1TP
-#  plotStuff plotCylDrop.cmd -show=cylDrop2bd0p1TPa.show  -matlab cylDrop2bd0p1TPa
+#  plotStuff plotCylDrop.cmd -show=cylDrop2bd0p1.show  -matlab=cylDrop2bd0p1
+#  plotStuff plotCylDrop.cmd -show=cylDrop2bd0p1TP.show  -matlab=cylDrop2bd0p1TP
+#  plotStuff plotCylDrop.cmd -show=cylDrop2bd0p1TPa.show  -matlab=cylDrop2bd0p1TPa
 # 
-#  plotStuff plotCylDrop.cmd -show=cylDrop2bd0p01.show  -matlab cylDrop2bd0p01
-#  plotStuff plotCylDrop.cmd -show=cylDrop2bd0p01TP.show  -matlab cylDrop2bd0p01TP
+#  plotStuff plotCylDrop.cmd -show=cylDrop2bd0p01.show  -matlab=cylDrop2bd0p01
+#  plotStuff plotCylDrop.cmd -show=cylDrop2bd0p01TP.show  -matlab=cylDrop2bd0p01TP
 #
 #-- bigger domain
 #  plotStuff plotCylDrop.cmd -show=cylDrop2b.show  
 #  plotStuff plotCylDrop.cmd -show=cylDrop2r1b.show    [ density=1
+#
 #
 $show="cic.show";
 $vorMin=-50; $vorMax=25.; $option=""; $name="bic"; 

@@ -13,6 +13,12 @@
 #  plotStuff plotRotatingDisk.cmd -show=did2rotatebd0p1ampTSpcc.show -matlab=did2rotatebd0p1ampTSpcc  [ G2, expl-TS beta=2 RigidBody: Use AB2 predictor
 #  plotStuff plotRotatingDisk.cmd -show=did2rotatebd0p1ampTSpcd.show -matlab=did2rotatebd0p1ampTSpcd  [ G2, expl-TS beta=2 RigidBody: Use AB2 predictor, CFL=.5 
 #
+#  plotStuff plotRotatingDisk.cmd -show=did2rotatebd0p1ampAD4.show 
+#  plotStuff plotRotatingDisk.cmd -show=did2rotatebd0p1ampAD8.show 
+#  plotStuff plotRotatingDisk.cmd -show=did2rotatebd0p1ampAD4nc.show 
+#
+#  plotStuff plotRotatingDisk.cmd -show=did2rotatebd0p1ampIMdt0p0001.show [ small dt
+#
 # rhos=1:
 #  plotStuff plotRotatingDisk.cmd -show=did2rotatebd1p0.show -matlab=did2rotatebd1p0  [ G2
 #
