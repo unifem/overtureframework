@@ -18,7 +18,7 @@
 \usepackage{calc}
 \usepackage[lmargin=.75in,rmargin=.75in,tmargin=.75in,bmargin=.75in]{geometry}
 
-\input homeHenshaw
+% \input homeHenshaw
 
 \usepackage{amsmath}
 \usepackage{amssymb}
@@ -45,7 +45,7 @@
 % \input{colours}
 
 % define the clipFig commands:
-\input trimFig.tex
+\input ../common/trimFig.tex
 
 % --------------------------------------------
 \usepackage[usenames]{color} % e.g. \color{red}
@@ -68,18 +68,18 @@
 
 % \newcommand{\homeHenshaw}{/home/henshaw.0}
 
-\newcommand{\primer}{/users/henshaw/res/primer}
-\newcommand{\GF}{/users/\-henshaw/\-res/\-gf}
-\newcommand{\gf}{/users/henshaw/res/gf}
-\newcommand{\mapping}{/users/henshaw/res/mapping}
+% \\newcommand{\primer}{/users/henshaw/res/primer}
+% \\newcommand{\GF}{/users/\-henshaw/\-res/\-gf}
+% \\newcommand{\gf}{/users/henshaw/res/gf}
+% \\newcommand{\mapping}{/users/henshaw/res/mapping}
 
-\newcommand{\docFigures}{\homeHenshaw/OvertureFigures}
-\newcommand{\figures}{\homeHenshaw/res/OverBlown/docFigures}
-\newcommand{\obFigures}{\homeHenshaw/res/OverBlown/docFigures}  % note: local version for OverBlown
-\newcommand{\maxDoc}{\homeHenshaw/res/maxwell/doc}
+% \newcommand{\docFigures}{\homeHenshaw/OvertureFigures}
+% \newcommand{\figures}{\homeHenshaw/res/OverBlown/docFigures}
+% \newcommand{\obFigures}{\homeHenshaw/res/OverBlown/docFigures}  % note: local version for OverBlown
+% \newcommand{\maxDoc}{\homeHenshaw/res/maxwell/doc}
 
-\newcommand{\OVERTUREOVERTURE}{/users/\-henshaw/\-Overture/\-Overture}
-\newcommand{\OvertureOverture}{/users/henshaw/Overture/Overture}
+% \\newcommand{\OVERTUREOVERTURE}{/users/\-henshaw/\-Overture/\-Overture}
+% \\newcommand{\OvertureOverture}{/users/henshaw/Overture/Overture}
 
 \newcommand{\Overture}{{\bf Overture\ }}
 \newcommand{\OverBlown}{{\bf OverBlown\ }}
@@ -102,7 +102,7 @@
 
 
 % -----definitions-----
-\input wdhDefinitions.tex
+\input ../common/wdhDefinitions.tex
 
 \def\ud     {{    U}}
 \def\pd     {{    P}}
@@ -1403,7 +1403,8 @@ popular Yee scheme~\cite{Yee66} for Cartesian grids.
 
 
 \vfill\eject
-\bibliography{\homeHenshaw/papers/common/henshaw,\homeHenshaw/papers/common/henshawPapers}
+% \bibliography{\homeHenshaw/papers/common/henshaw,\homeHenshaw/papers/common/henshawPapers}
+\bibliography{../common/henshaw,../common/henshawPapers}
 \bibliographystyle{siam}
 
 \printindex
