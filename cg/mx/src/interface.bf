@@ -1120,13 +1120,14 @@ end if
            u2(j1-js1,j2-js2,j3,hz)=extrap5(u2,j1,j2,j3,hz,js1,js2,js3)
 
            ! --- also extrap 2nd line for now
-           ! u1(i1-2*is1,i2-2*is2,i3,ex)=extrap4(u1,i1-is1,i2-is2,i3,ex,is1,is2,is3)
-           ! u1(i1-2*is1,i2-2*is2,i3,ey)=extrap4(u1,i1-is1,i2-is2,i3,ey,is1,is2,is3)
-           ! u1(i1-2*is1,i2-2*is2,i3,hz)=extrap4(u1,i1-is1,i2-is2,i3,hz,is1,is2,is3)
+           ! turn on for testing *wdh* Feb 15, 2016
+           u1(i1-2*is1,i2-2*is2,i3,ex)=extrap5(u1,i1-is1,i2-is2,i3,ex,is1,is2,is3)
+           u1(i1-2*is1,i2-2*is2,i3,ey)=extrap5(u1,i1-is1,i2-is2,i3,ey,is1,is2,is3)
+           u1(i1-2*is1,i2-2*is2,i3,hz)=extrap5(u1,i1-is1,i2-is2,i3,hz,is1,is2,is3)
 
-           ! u2(j1-2*js1,j2-2*js2,j3,ex)=extrap4(u2,j1-js1,j2-js2,j3,ex,js1,js2,js3)
-           ! u2(j1-2*js1,j2-2*js2,j3,ey)=extrap4(u2,j1-js1,j2-js2,j3,ey,js1,js2,js3)
-           ! u2(j1-2*js1,j2-2*js2,j3,hz)=extrap4(u2,j1-js1,j2-js2,j3,hz,js1,js2,js3)
+           u2(j1-2*js1,j2-2*js2,j3,ex)=extrap5(u2,j1-js1,j2-js2,j3,ex,js1,js2,js3)
+           u2(j1-2*js1,j2-2*js2,j3,ey)=extrap5(u2,j1-js1,j2-js2,j3,ey,js1,js2,js3)
+           u2(j1-2*js1,j2-2*js2,j3,hz)=extrap5(u2,j1-js1,j2-js2,j3,hz,js1,js2,js3)
          endLoops2d()
 
          beginLoops2d() ! =============== start loops =======================

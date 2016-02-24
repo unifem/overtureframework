@@ -4339,13 +4339,32 @@ c===============================================================================
      & hz))
 
            ! --- also extrap 2nd line for now
-           ! u1(i1-2*is1,i2-2*is2,i3,ex)=extrap4(u1,i1-is1,i2-is2,i3,ex,is1,is2,is3)
-           ! u1(i1-2*is1,i2-2*is2,i3,ey)=extrap4(u1,i1-is1,i2-is2,i3,ey,is1,is2,is3)
-           ! u1(i1-2*is1,i2-2*is2,i3,hz)=extrap4(u1,i1-is1,i2-is2,i3,hz,is1,is2,is3)
+           ! turn on for testing *wdh* Feb 15, 2016
+           u1(i1-2*is1,i2-2*is2,i3,ex)=(5.*u1(i1-is1,i2-is2,i3,ex)-10.*
+     & u1(i1-is1+is1,i2-is2+is2,i3+is3,ex)+10.*u1(i1-is1+2*is1,i2-is2+
+     & 2*is2,i3+2*is3,ex)-5.*u1(i1-is1+3*is1,i2-is2+3*is2,i3+3*is3,ex)
+     & +u1(i1-is1+4*is1,i2-is2+4*is2,i3+4*is3,ex))
+           u1(i1-2*is1,i2-2*is2,i3,ey)=(5.*u1(i1-is1,i2-is2,i3,ey)-10.*
+     & u1(i1-is1+is1,i2-is2+is2,i3+is3,ey)+10.*u1(i1-is1+2*is1,i2-is2+
+     & 2*is2,i3+2*is3,ey)-5.*u1(i1-is1+3*is1,i2-is2+3*is2,i3+3*is3,ey)
+     & +u1(i1-is1+4*is1,i2-is2+4*is2,i3+4*is3,ey))
+           u1(i1-2*is1,i2-2*is2,i3,hz)=(5.*u1(i1-is1,i2-is2,i3,hz)-10.*
+     & u1(i1-is1+is1,i2-is2+is2,i3+is3,hz)+10.*u1(i1-is1+2*is1,i2-is2+
+     & 2*is2,i3+2*is3,hz)-5.*u1(i1-is1+3*is1,i2-is2+3*is2,i3+3*is3,hz)
+     & +u1(i1-is1+4*is1,i2-is2+4*is2,i3+4*is3,hz))
 
-           ! u2(j1-2*js1,j2-2*js2,j3,ex)=extrap4(u2,j1-js1,j2-js2,j3,ex,js1,js2,js3)
-           ! u2(j1-2*js1,j2-2*js2,j3,ey)=extrap4(u2,j1-js1,j2-js2,j3,ey,js1,js2,js3)
-           ! u2(j1-2*js1,j2-2*js2,j3,hz)=extrap4(u2,j1-js1,j2-js2,j3,hz,js1,js2,js3)
+           u2(j1-2*js1,j2-2*js2,j3,ex)=(5.*u2(j1-js1,j2-js2,j3,ex)-10.*
+     & u2(j1-js1+js1,j2-js2+js2,j3+js3,ex)+10.*u2(j1-js1+2*js1,j2-js2+
+     & 2*js2,j3+2*js3,ex)-5.*u2(j1-js1+3*js1,j2-js2+3*js2,j3+3*js3,ex)
+     & +u2(j1-js1+4*js1,j2-js2+4*js2,j3+4*js3,ex))
+           u2(j1-2*js1,j2-2*js2,j3,ey)=(5.*u2(j1-js1,j2-js2,j3,ey)-10.*
+     & u2(j1-js1+js1,j2-js2+js2,j3+js3,ey)+10.*u2(j1-js1+2*js1,j2-js2+
+     & 2*js2,j3+2*js3,ey)-5.*u2(j1-js1+3*js1,j2-js2+3*js2,j3+3*js3,ey)
+     & +u2(j1-js1+4*js1,j2-js2+4*js2,j3+4*js3,ey))
+           u2(j1-2*js1,j2-2*js2,j3,hz)=(5.*u2(j1-js1,j2-js2,j3,hz)-10.*
+     & u2(j1-js1+js1,j2-js2+js2,j3+js3,hz)+10.*u2(j1-js1+2*js1,j2-js2+
+     & 2*js2,j3+2*js3,hz)-5.*u2(j1-js1+3*js1,j2-js2+3*js2,j3+3*js3,hz)
+     & +u2(j1-js1+4*js1,j2-js2+4*js2,j3+4*js3,hz))
             j1=j1+1
            end do
            j2=j2+1

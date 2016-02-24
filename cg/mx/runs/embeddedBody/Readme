@@ -1,0 +1,8 @@
+--- Plane wave scattering off a body embedded in a dielectric
+
+(1) Generate some grids:
+
+   make grids
+
+(2) Run:
+

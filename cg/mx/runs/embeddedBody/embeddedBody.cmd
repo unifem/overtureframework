@@ -1,0 +1,135 @@
+#================================================================================================
+#  cgmx example:  Scattering of a plane wave from an embedded body in a dielectric
+#
+# Usage:
+#   
+#  cgmx [-noplot] embeddedBody -g=<name> -tf=<tFinal> -tp=<tPlot>  -method=[nfdtd|Yee|sosup] 
+#                      -theta=<degrees> -diss=<> -rbc=[abcEM2|abcPML] -debug=<num> -cons=[0/1] ...
+#                      -plotIntensity=[0|1] -go=[run/halt/og]
+# Arguments:
+#  -angle : angle of incidence of plane wave from the vertical
+#      Incident wave is u(x,y,t) = F(2*pi*[ c*t - x*sin(theta) - y*cos(theta) ])
+# 
+# Examples: 
+#   cgmx embeddedBody -g=embeddedBodyGride2.order2 
+#
+#================================================================================================
+# 
+$tFinal=10.; $tPlot=.1; $diss=1.; $cfl=.9; $plotIntensity=0;  $method="NFDTD"; $sidebc="symmetry"; 
+$projectFields=0; $projectionFrequency=5;  $projectInterp=0;
+$theta=60; # angle of incidence of plane wave from the vertical
+$grid="embeddedBodyGride2.order2.hdf"; $backGround="square"; 
+$cons=0; $go="halt"; 
+$ax=0.; $ay=0.; $az=0.; # plane wave coeffs. all zero -> use default
+$epsUpper=1.; $muUpper=1.;
+$epsLower=6.; $muLower=1.;
+$useNewInterface=1; 
+$interfaceIterations=3;
+$xa=1.; $xb=100.; $ya=1.; $yb=100.; $za=-100.; $zb=100.;  # initial condition bounding box
+$rbc="abcEM2"; # radiation BC 
+$pmlLines=11; $pmlPower=6; $pmlStrength=50.; # pml parameters
+# ----------------------------- get command line arguments ---------------------------------------
+GetOptions( "g=s"=>\$grid,"tf=f"=>\$tFinal,"diss=f"=>\$diss,"tp=f"=>\$tPlot,"show=s"=>\$show,"debug=i"=>\$debug, \
+ "cfl=f"=>\$cfl, "bg=s"=>\$backGround,"bcn=s"=>\$bcn,"go=s"=>\$go,"noplot=s"=>\$noplot,"method=s"=>\$method,\
+  "dtMax=f"=>\$dtMax,"theta=f"=>\$theta,"plotIntensity=i"=>\$plotIntensity, "cons=i"=>\$cons,\
+  "rbc=s"=>\$rbc,"pmlLines=i"=>\$pmlLines,"pmlPower=i"=>\$pmlPower,"pmlStrength=f"=>\$pmlStrength,\
+  "xa=f"=>\$xa,"ya=f"=>\$ya,"projectFields=i"=>\$projectFields,"projectionFrequency=i"=>\$projectionFrequency,\
+  "projectInterp=i"=>\$projectInterp,"sidebc=s"=>\$sidebc  );
+# -------------------------------------------------------------------------------------------------
+if( $method eq "sosup" ){ $diss=0.; }
+if( $go eq "halt" ){ $go = "break"; }
+if( $go eq "og" ){ $go = "open graphics"; }
+if( $go eq "run" || $go eq "go" ){ $go = "movie mode\n finish"; }
+#
+$pi=4.*atan2(1.,1.);
+$kx = -sin($theta*$pi/180.); 
+$ky = -cos($theta*$pi/180.); 
+$kz=0.; 
+#
+$grid
+#
+$method
+#
+## planeWaveInitialCondition
+zeroInitialCondition
+#
+$kya= abs($ky);
+# $ya = $yb - int( ($yb-$ya)*$kya +.5 )/$kya;   # we need to clip the plane wave on a period
+initial condition bounding box $xa $xb $ya $yb $za $zb
+$beta=10.; # exponent in tanh function for smooth transition to zero outside the bounding box
+bounding box decay exponent $beta
+# 
+plane wave coefficients $ax $ay $az $epsUpper $muUpper
+#
+kx,ky,kz $kx $ky $kz 
+#
+# -- boundary conditions:
+#
+bc: all=$sidebc
+bc: upperHalfSpace(1,1)=planeWaveBoundaryCondition
+bc: upperHalfSpaceCoarse(1,1)=planeWaveBoundaryCondition
+## bc: upperHalfSpaceCoarse(1,0)=planeWaveBoundaryCondition
+bc: bodySquare=perfectElectricalConductor
+#
+#
+use new interface routines $useNewInterface
+# NOTE: material interfaces have share>=100
+# coefficients $epsUpper $muUpper upperHalfSpace* (eps,mu,grid-name)
+# coefficients $epsLower $muLower lowerHalfSpace* (eps,mu,grid-name)
+# coefficients $epsLower $muLower body* (eps,mu,grid-name)
+coefficients $epsUpper $muUpper upperDomain (eps,mu,grid-name)
+coefficients $epsLower $muLower lowerDomain (eps,mu,grid-name)
+#
+interface BC iterations $interfaceIterations
+#
+# -- pml parameters:
+pml width,strength,power $pmlLines $pmlStrength $pmlPower
+#
+tFinal $tFinal
+tPlot  $tPlot
+# 
+# -- we need to subtract out the incident field on the "inflow" boundary before
+#    applying the radiation boundary condition: 
+$adjustFields=0; 
+adjust boundaries for incident field 0 all
+adjust boundaries for incident field $adjustFields upperHalfSpace
+adjust boundaries for incident field $adjustFields upperHalfSpaceCoarse
+# 
+dissipation  $diss
+#
+# Optionall project the divergence
+project fields $projectFields
+projection frequency $projectionFrequency
+project interpolation points $projectInterp
+#***********************
+#* slow start interval 1.
+slow start interval -1.
+#***********************
+divergence damping $divDamping
+#***********************
+cfl $cfl
+#
+use conservative divergence $cons 
+# plot scattered field 1
+plot total field 0
+plot errors 0
+check errors 0
+plot intensity $plotIntensity
+#*********************************
+show file options...
+  MXSF:compressed
+  MXSF:open
+    $show
+  MXSF:frequency to flush 2
+exit
+#**********************************
+# $omega= sqrt( $kx*$kx + $ky*$ky + $kz*$kz );
+# time harmonic omega $omega (omega/(2pi), normally c*|k|^2
+#
+continue
+plot:Ex
+contour
+plot contour lines (toggle)
+exit
+$go 
+

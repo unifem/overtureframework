@@ -320,7 +320,7 @@ dia: $(dia)
 	$(CC) $(CCFLAGS) -o $@ $(dia) \
         $(CLIBS) $(FLIBS) $(GLIBS) 
 
-// example option menu:
+# example option menu:
 option = option.o
 option: $(option) 
 	$(CC) $(CCFLAGS) -o $@ $(option) \

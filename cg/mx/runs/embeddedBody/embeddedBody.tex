@@ -1,0 +1,142 @@
+%-----------------------------------------------------------------------
+% Notes on scattering off an embedded body
+%-----------------------------------------------------------------------
+\documentclass[11pt]{article}
+% \usepackage[bookmarks=true]{hyperref}  % this changes the page location !
+\usepackage[bookmarks=true,colorlinks=true,linkcolor=blue]{hyperref}
+
+\hbadness=10000 
+\sloppy \hfuzz=30pt
+
+\usepackage{calc}
+\usepackage[lmargin=.75in,rmargin=.75in,tmargin=.75in,bmargin=.75in]{geometry}
+
+\input homeHenshaw
+
+\newcommand{\blue}{\color{blue}}
+\newcommand{\green}{\color{green}}
+\newcommand{\red}{\color{red}}
+\newcommand{\black}{\color{black}}
+
+
+\usepackage{amsmath}
+\usepackage{amssymb}
+
+\usepackage{verbatim}
+\usepackage{moreverb}
+
+\usepackage{graphics}    
+\usepackage{epsfig}    
+\usepackage{calc}
+\usepackage{ifthen}
+\usepackage{float}
+% the next one cause the table of contents to disappear!
+% * \usepackage{fancybox}
+
+\usepackage{makeidx} % index
+\makeindex
+\newcommand{\Index}[1]{#1\index{#1}}
+
+\usepackage{tikz}
+\input trimFig.tex
+
+
+% ---- we have lemmas and theorems in this paper ----
+\newtheorem{assumption}{Assumption}
+\newtheorem{definition}{Definition}
+
+
+% *** See http://www.eng.cam.ac.uk/help/tpl/textprocessing/squeeze.html
+% By default, LaTeX doesn't like to fill more than 0.7 of a text page with tables and graphics, nor does it like too many figures per page. This behaviour can be changed by placing lines like the following before \begin{document}
+
+\renewcommand\floatpagefraction{.99}
+\renewcommand\topfraction{.99}
+\renewcommand\bottomfraction{.99}
+\renewcommand\textfraction{.01}   
+\setcounter{totalnumber}{50}
+\setcounter{topnumber}{50}
+\setcounter{bottomnumber}{50}
+
+\begin{document}
+
+\input wdhDefinitions.tex
+
+% \newcommand{\Bc}{{\mathcal B}}
+% \newcommand{\Dc}{{\mathcal D}}
+% \newcommand{\Ec}{{\mathcal E}}
+% \newcommand{\Fc}{{\mathcal F}}
+% \newcommand{\Gc}{{\mathcal G}}
+% \newcommand{\Hc}{{\mathcal H}}
+% \newcommand{\Ic}{{\mathcal I}}
+% \newcommand{\Jc}{{\mathcal J}}
+% \newcommand{\Lc}{{\mathcal L}}
+% \newcommand{\Nc}{{\mathcal N}}
+% \newcommand{\Pc}{{\mathcal P}}
+% \newcommand{\Rc}{{\mathcal R}}
+% \newcommand{\Sc}{{\mathcal S}}
+
+\newcommand{\bogus}[1]{}  % removes is argument completely
+
+\vspace{5\baselineskip}
+\begin{flushleft}
+{\LARGE
+Notes on Electromagnetic Scattering from an Embedded Body \\
+using Overture's Cgmx Solver\\
+}
+\vspace{2\baselineskip}
+Jordan Angel,  \\
+William D. Henshaw, \\
+% 
+\vspace{2\baselineskip}
+% 
+Department of Mathematical Sciences, \\
+Rensselaer Polytechnic Institute (RPI), \\
+Troy, NY, USA, 12180. \\
+\vspace{\baselineskip}
+\today\\
+
+\vspace{4\baselineskip}
+
+\noindent{\bf\large Abstract:}
+
+This document describes results from simulating an electromagetic wave scattering from a
+body embedded in a dielectric using Overture's {\tt Cgmx} time-domain solver for
+Maxwell's equations~\cite{CgmxUserGuide}. 
+
+\end{flushleft}
+
+% \clearpage
+\tableofcontents
+% \listoffigures
+
+\clearpage
+
+
+% ================================================================================================================
+\section{Problem specification}
+
+
+% ================================================================================================================
+\clearpage
+\section{Two dimensional results} \label{sec:twoDimensionalResults}
+
+
+% ================================================================================================================
+\clearpage
+\section{Three dimensional results} \label{sec:threeDimensionalResults}
+
+
+
+\clearpage
+\bibliography{\homeHenshaw/papers/common/henshaw,\homeHenshaw/papers/common/henshawPapers}
+\bibliographystyle{siam}
+
+
+
+\end{document}
+% **************************************************************************************************************
+% **************************************************************************************************************
+% **************************************************************************************************************
+% **************************************************************************************************************
+
+

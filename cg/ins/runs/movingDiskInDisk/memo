@@ -1,4 +1,26 @@
 *****************************
+******* Feb 23, 2016
+
+MASS "ZERO" : AD=5, AD=100 : OK  
+cgins movingDiskInDisk.cmd -g=diskInDiskGride2.order2.hdf -tf=10. -tp=.001 -nu=.1 -ts=im -density=1.e-10 -radius=1. -gravity=0. -amp=.1 -bodyForce=wzRamp -dtMax=.01 -project=0 -numberOfCorrections=1 -omega=.2 -addedMass=1 -addedDamping=1 -addedDampingCoeff=100 -useProvidedAcceleration=1 -useTP=0 -debug=3 -solver=yale -psolver=yale -ad2=0 -go=halt
+
+AD=5 : small mass
+cgins movingDiskInDisk.cmd -g=diskInDiskGride2.order2.hdf -tf=10. -tp=.001 -nu=.1 -ts=im -density=1.e-10 -radius=1. -gravity=0. -amp=.1 -bodyForce=wzRamp -dtMax=.01 -project=0 -numberOfCorrections=1 -omega=.2 -addedMass=1 -addedDamping=1 -addedDampingCoeff=5 -useProvidedAcceleration=1 -useTP=0 -debug=3 -solver=yale -psolver=yale -ad2=0 -go=halt
+
+
+AD=5 : dt=small
+cgins movingDiskInDisk.cmd -g=diskInDiskGride2.order2.hdf -tf=10. -tp=.001 -nu=.1 -ts=im -density=.00001 -radius=1. -gravity=0. -amp=.1 -bodyForce=wzRamp -dtMax=.00001 -project=0 -numberOfCorrections=1 -omega=.2 -addedMass=1 -addedDamping=1 -addedDampingCoeff=5 -useProvidedAcceleration=1 -useTP=0 -debug=3 -solver=yale -psolver=yale -ad2=0 -go=halt
+
+
+AD=5 : OK
+cgins movingDiskInDisk.cmd -g=diskInDiskGride2.order2.hdf -tf=10. -tp=.05 -nu=.1 -ts=im -density=.00001 -radius=1. -gravity=0. -amp=.1 -bodyForce=wzRamp -dtMax=.001 -project=0 -numberOfCorrections=1 -omega=.2 -addedMass=1 -addedDamping=1 -addedDampingCoeff=5 -useProvidedAcceleration=1 -useTP=0 -debug=3 -solver=yale -psolver=yale -show=did2rotatebd0p001ampAD2.show -ad2=0 -go=halt
+
+
+DEATH
+cgins movingDiskInDisk.cmd -g=diskInDiskGride2.order2.hdf -tf=10. -tp=.05 -nu=.1 -ts=im -density=.00001 -radius=1. -gravity=0. -amp=.1 -bodyForce=wzRamp -dtMax=.001 -project=0 -numberOfCorrections=1 -omega=.2 -addedMass=1 -addedDamping=1 -addedDampingCoeff=2 -useProvidedAcceleration=1 -useTP=0 -debug=3 -solver=yale -psolver=yale -show=did2rotatebd0p001ampAD2.show -ad2=0 -go=halt
+
+
+
 ******* Feb 11, 2016
 
 TEST ADDED-DAMPING 

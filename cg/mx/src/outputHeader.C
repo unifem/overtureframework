@@ -152,7 +152,7 @@ outputHeader()
     }
     else
     {
-      fPrintF(file,"initialConditionBoundingBox is OFF.\n");
+      fPrintF(file," initialConditionBoundingBox is OFF.\n");
     }
     
     aString forcingName[numberOfForcingNames]={

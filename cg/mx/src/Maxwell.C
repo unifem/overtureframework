@@ -2363,58 +2363,82 @@ interactiveUpdate(GL_GraphicsInterface &gi )
       // New: Allow for wild cards of the file name*
       
       std::vector<int> gridsToCheck;
-      if( gridName=="all" )
+      // -- check for the name of a domain -- *wdh* 2016/02/15 
+      bool found=false;
+      if( gridsToCheck.size()==0 )
       {
-	for( int grid=0; grid<cg.numberOfComponentGrids(); grid++ )
+	for( int domain=0; domain<cg.numberOfDomains(); domain++ )
 	{
-	  gridsToCheck.push_back(grid);
-	}
-      }
-      else if( gridName[gridName.length()-1]=='*' )
-      {
-	// wild card: final char is a '*'
-        printF(" INFO: looking for a wild card match since the final character is a '*' ...\n");
-        bool found=false;
-        gridName=gridName(0,gridName.length()-2); // remove trailing '*'
-	
-	for( int grid=0; grid<cg.numberOfComponentGrids(); grid++ )
-	{
-          // printF(" Check [%s] matches [%s] \n",(const char*)gridName,(const char*)cg[grid].getName());
-	  if( cg[grid].getName().matches(gridName) )
+	  if( cg.getDomainName(domain)==gridName )
 	  {
-	    gridsToCheck.push_back(grid);
-	    printF(" -- (wild card match) Set coefficients for grid=%i (%s) to eps=%8.2e mu=%8.2e\n",grid,
-		   (const char*)cg[grid].getName(),eps,mu);
-	    
-            found=true;
-	  }
-	}
-        if( !found )
-	{
-	  printF("WARNING: No match for the wildcard name [%s*]\n",(const char*)gridName);
-	  continue;
-	}
-      }
-      else
-      {
-        bool found=false;
-	for( int grid=0; grid<cg.numberOfComponentGrids(); grid++ )
-	{
-	  if( cg[grid].getName()==gridName )
-	  {
-	    gridsToCheck.push_back(grid);
-            found=true;
+	    printF("--MX-- setting material properties for domain=[%s].\n",(const char*)gridName);
+	    for( int grid=0; grid<cg.numberOfComponentGrids(); grid++ )
+	    {
+	      if( cg.domainNumber(grid)==domain )
+	      {
+		gridsToCheck.push_back(grid);  // this grid lies in the specified domain
+	      }
+	    }
+	    found=true;
 	    break;
 	  }
 	}
-        if( !found )
-	{
-	  printF("ERROR looking for the grid named [%s]\n",(const char*)gridName);
-	  gi.stopReadingCommandFile();
-	  continue;
-	}
       }
+
+      if( !found )
+      {
+	if( gridName=="all" )
+	{
+	  for( int grid=0; grid<cg.numberOfComponentGrids(); grid++ )
+	  {
+	    gridsToCheck.push_back(grid);
+	  }
+	}
+	else if( gridName[gridName.length()-1]=='*' )
+	{
+	  // wild card: final char is a '*'
+	  printF(" INFO: looking for a wild card match since the final character is a '*' ...\n");
+	  gridName=gridName(0,gridName.length()-2); // remove trailing '*'
+	
+	  for( int grid=0; grid<cg.numberOfComponentGrids(); grid++ )
+	  {
+	    // printF(" Check [%s] matches [%s] \n",(const char*)gridName,(const char*)cg[grid].getName());
+	    if( cg[grid].getName().matches(gridName) )
+	    {
+	      gridsToCheck.push_back(grid);
+	      printF(" -- (wild card match) Set coefficients for grid=%i (%s) to eps=%8.2e mu=%8.2e\n",grid,
+		     (const char*)cg[grid].getName(),eps,mu);
+	    
+	      found=true;
+	    }
+	  }
+	  if( !found )
+	  {
+	    printF("WARNING: No match for the wildcard name [%s*]\n",(const char*)gridName);
+	    continue;
+	  }
+	}
+	else
+	{
+	  for( int grid=0; grid<cg.numberOfComponentGrids(); grid++ )
+	  {
+	    if( cg[grid].getName()==gridName )
+	    {
+	      gridsToCheck.push_back(grid);
+	      found=true;
+	      break;
+	    }
+	  }
+	  if( !found )
+	  {
+	    printF("ERROR looking for the grid named [%s]\n",(const char*)gridName);
+	    gi.stopReadingCommandFile();
+	    continue;
+	  }
+	}
+      } // end if !found
       
+
       if( gridsToCheck.size()>=1 )
         gridHasMaterialInterfaces=true;
       printF(" **** setting gridHasMaterialInterfaces=true ****\n");

@@ -1,0 +1,6 @@
+*************
+**** Feb 14, 2016 
+
+Test charge source -- does this still work?
+
+cgmx charge -g=square128.order2.hdf -xp0=.25 -yp0=.5 -width=.025 -go=halt 
