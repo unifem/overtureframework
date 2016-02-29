@@ -2,6 +2,20 @@
 Body embedded in a dielectric
 
 *********************************************
+****** Feb 27, 2016
+
+
+Initial runs for the report
+
+TODO: 
+cgmx -noplot embeddedBody -g=embeddedBodyGride8.order4p60.hdf -diss=32. -theta=60 -tp=.5 -tf=20. -sidebc=abcEM2 -show=ebG8Order4Angle60.show -plotIntensity=1 -go=go >! ebG8Order4Angle60.out
+
+
+cgmx embeddedBody -g=embeddedBodyGride4.order4p60.hdf -diss=16. -theta=60 -tp=.5 -tf=20. -sidebc=abcEM2 -show=ebG4Order4Angle60.show -go=halt
+
+
+
+*********************************************
 ****** Feb 21, 2016
 
 *NEW* SPECIFY THETA -- angle of incidence from vertical

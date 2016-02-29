@@ -96,7 +96,8 @@ int getPastTimeGrid( GridFunction & cgf );
 
 RigidBodyMotion & getRigidBody(const int bodyNumber);
 
-int getRigidBodyAddedDampingTensors( const int bodyNumber, RealArray & addedDampingTensors, CompositeGrid & cg );
+int getRigidBodyAddedDampingTensors( const int bodyNumber, RealArray & addedDampingTensors, 
+                                     GridFunction & cgf, const real dt );
 
 real getTimeStepForMovingBodies() const;
 

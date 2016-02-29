@@ -1,8 +1,8 @@
 #
-# A moving 2D disk inside a large disk
+# A falling body in a channel
 #
 # Usage:
-#    cgins [-noplot] movingDiskInDisk -g=<name> -tp=<f> -tp=<f> -density=<f> ...
+#    cgins [-noplot] fallingBody -g=<name> -tp=<f> -tp=<f> -density=<f> ...
 #         -bcOption=[walls|inflowOutflow|pressure] ...
 #        -sep=<f> -vIn=<f> -forceLimit=<f> -bodyForce=[x|y|wz|none] -go[halt|go|og]
 #  
@@ -12,9 +12,6 @@
 #             inflowOutflow : inflow on bottom, outflow on top
 #             pressure : time dependent pressure on bottom
 #
-# Example: 
-#  cgins movingDiskInDisk.cmd -g=diskInDiskGride2.order2.hdf -tf=1. -tp=.05 -nu=.1 -density=1.25 -dtMax=.75e-3 -go=halt 
-# 
 #
 $model="ins"; $solver = "best"; $show=" "; $ts="pc"; $noplot=""; 
 $density=1.25; 
@@ -23,10 +20,10 @@ $nu = .1; $dtMax=.05; $newts=0; $movingWall=0;
 # for nu=.005 the terminal velocity of one drop is about .9 -- for low Re the velocity is prop. to Re
 $inflowVelocity=.9;
 $tFinal=10.; $tPlot=.1; $cfl=.9; $debug=0; $go="halt"; $project=0; $refactorFrequency=100;
-$sep=3.; $forceLimit=30.; $cdv=1.; $flush=5; $ad21=2.; $ad22=2.; 
+$detectCollisions=0; $sep=3.; $forceLimit=30.; $cdv=1.; $flush=5; $ad21=2.; $ad22=2.; 
 $restart=""; 
 #
-$radius=.125; $dropName="innerDisk";
+$radius=.125; $fallingBody="fallingBody";
 $gravity = -1.; # acceleration due to gravity
 $bodyForce="x"; 
 #
@@ -63,7 +60,7 @@ GetOptions( "g=s"=>\$grid,"tf=f"=>\$tFinal,"model=s"=>\$model,"inflowVelocity=f"
  "rtol=f"=>\$rtol,"atol=f"=>\$atol,"rtolp=f"=>\$rtolp,"atolp=f"=>\$atolp,"restart=s"=>\$restart,\
  "forceLimit=f"=>\$forceLimit,"sep=f"=>\$sep,"flush=i"=>\$flush,"gravity=f"=>\$gravity,"vIn=f"=>\$vIn,\
  "ad2=i"=>\$ad2,"ad21=f"=>\$ad21,"ad22=f"=>\$ad22,"ad4=i"=>\$ad4,"ad41=f"=>\$ad41,"ad42=f"=>\$ad42,\
- "freqFullUpdate=i"=>\$freqFullUpdate,"radius=f"=>\$radius,"dropName=s"=>\$dropName,"channelName=s"=>\$channelName,\
+ "freqFullUpdate=i"=>\$freqFullUpdate,"radius=f"=>\$radius,"fallingBody=s"=>\$fallingBody,"channelName=s"=>\$channelName,\
  "numberOfCorrections=i"=>\$numberOfCorrections,"omega=f"=>\$omega,"addedMass=f"=>\$addedMass,"useTP=i"=>\$useTP,\
  "rtolc=f"=>\$rtolc,"atolc=f"=>\$atolc,"option=s"=>\$option,"useProvidedAcceleration=i"=>\$useProvidedAcceleration,\
  "inertia=f"=>\$inertia,"amp=f"=>\$amp,"freq=f"=>\$freq,"addedDamping=f"=>\$addedDamping,\
@@ -160,12 +157,10 @@ $grid
    #   -- specify the fluid density
    fluid density
      1.
-   #  turn on gravity
+   # turn on gravity
    $gravityVector="0. $gravity 0.";
-   if( $option eq "horizontalDrop" ){ $gravityVector="$gravity 0. 0."; }
    gravity
      $gravityVector
-     # 0. $gravity 0.
    #  turn on 2nd-order AD here:
    OBPDE:second-order artificial diffusion $ad2
    OBPDE:ad21,ad22 $ad21, $ad22
@@ -179,7 +174,7 @@ $grid
 #*************************************
   turn on moving grids
 #*************************
-  detect collisions 1
+  detect collisions $detectCollisions
   minimum separation for collisions $sep
 #************************
   specify grids to move
@@ -198,22 +193,8 @@ $grid
      #   .25
      density
        $density
-     # rigid body force: 
-     #   f(t)=b0*sin(2.*Pi*f0*(t-t0));
-     if( $bodyForce eq "x" ){ $cmd="time function\n body force x time function...\n sinusoidal function\n sinusoid parameters: $amp, $freq,0 (b0,f0,t0)\n  exit"; }\
-                        else{ $cmd="#"; }
-     $cmd
-     # 
-     $a0=0.; $a1=1.; 
-     $a0=10.; $a1=0.; 
-     $cmd="#"; 
-     if( $bodyForce eq "wz" ){ $cmd="time function\n  body torque z time function...\n linear function\n linear parameters: $a0,$a1 (a0,a1)\n  exit"; }
-     if( $bodyForce eq "wzs" ){ $cmd="time function\n body torque z time function...\n sinusoidal function\n sinusoid parameters: $amp, $freq,0 (b0,f0,t0)\n  exit"; }
-     # ramp: 
-     if( $bodyForce eq "wzRamp" ){ $cmd="time function\n body torque z time function...\n ramp function\n ramp end values: 0,$amp (start,end)\n ramp times: 0,1 (start,end)\n  ramp order: 3\n exit"; }
      #
-     $cmd
-     #
+     # --- FIX ME ---
      moments of inertia
        $pi=4.*atan2(1.,1.); # 3.141592653; 
        $volume=$pi*$radius**2; $mass=$density*$volume;
@@ -235,7 +216,7 @@ $grid
       torque relative tol: $rtolc
       torque absolute tol: $atolc
      done
-      $dropName
+      $fallingBody
     done
    #
   done

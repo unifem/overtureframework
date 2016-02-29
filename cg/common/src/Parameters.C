@@ -632,6 +632,8 @@ Parameters(const int & numberOfDimensions0) : pdeName("unknown"), numberOfBCName
   // addedDampingAlgorithm: corrections for viscous added damping terms: 
   if( !dbase.has_key("useAddedDampingAlgorithm") ) dbase.put<bool>("useAddedDampingAlgorithm")=false;
   if( !dbase.has_key("addedDampingCoefficient") ) dbase.put<real>("addedDampingCoefficient")=1.;
+  if( !dbase.has_key("scaleAddedDampingWithDt") ) dbase.put<bool>("scaleAddedDampingWithDt")=false;
+  if( !dbase.has_key("addedDampingProjectVelocity") ) dbase.put<bool>("addedDampingProjectVelocity")=false;
 
   if( !dbase.has_key("useApproximateAMPcondition") ) dbase.put<bool>("useApproximateAMPcondition")=false;
   if( !dbase.has_key("projectAddedMassVelocity") ) dbase.put<bool>("projectAddedMassVelocity")=true;

@@ -149,6 +149,14 @@ buildTimeSteppingDialog(DialogData & dialog )
   tbState[ntb]=parameters.dbase.get<bool>("useAddedDampingAlgorithm");
   ntb++;
 
+  tbCommands[ntb]="scale added damping with dt";
+  tbState[ntb]=parameters.dbase.get<bool>("scaleAddedDampingWithDt");
+  ntb++;
+
+  tbCommands[ntb]= "added damping project velocity";
+  tbState[ntb]=parameters.dbase.get<bool>("addedDampingProjectVelocity");
+  ntb++;
+
   tbCommands[ntb]="use approximate AMP condition";
   tbState[ntb]=parameters.dbase.get<bool>("useApproximateAMPcondition");
   ntb++;
@@ -294,7 +302,11 @@ getTimeSteppingOption(const aString & answer,
   GraphicsParameters & psp = parameters.dbase.get<GraphicsParameters >("psp");
 
   bool & useAddedMassAlgorithm = parameters.dbase.get<bool>("useAddedMassAlgorithm");
+
   bool & useAddedDampingAlgorithm = parameters.dbase.get<bool>("useAddedDampingAlgorithm");
+  bool & scaleAddedDampingWithDt = parameters.dbase.get<bool>("scaleAddedDampingWithDt");
+  bool & addedDampingProjectVelocity = parameters.dbase.get<bool>("addedDampingProjectVelocity");
+
   bool & useApproximateAMPcondition = parameters.dbase.get<bool>("useApproximateAMPcondition");
   bool & projectAddedMassVelocity = parameters.dbase.get<bool>("projectAddedMassVelocity");
   bool & projectNormalComponentOfAddedMassVelocity = parameters.dbase.get<bool>("projectNormalComponentOfAddedMassVelocity");
@@ -692,6 +704,20 @@ getTimeSteppingOption(const aString & answer,
       printF("Use the added damping algorithm.\n");
     else
       printF("Do NOT use the added damping algorithm.\n");
+  }
+  else if( dialog.getToggleValue(answer,"scale added damping with dt",scaleAddedDampingWithDt) )
+  {
+    if( scaleAddedDampingWithDt )
+      printF("Scale dn for added damping as sqrt(nu*dt).\n");
+    else
+      printF("Scale dn for added damping with grid spacing in the normal direction.\n");
+  }
+  else if( dialog.getToggleValue(answer,"added damping project velocity",addedDampingProjectVelocity) )
+  {
+    if( addedDampingProjectVelocity )
+      printF("Include a final solve for the fluid velocity with the added damping algorithm.\n");
+    else
+      printF("Do not iInclude a final solve for the fluid velocity with the added damping algorithm.\n");
   }
   else if( dialog.getToggleValue(answer,"use approximate AMP condition",useApproximateAMPcondition) )
   {

@@ -1,42 +1,10 @@
 #
-#  plotStuff plotRotatingDisk.cmd -show=did2bd1.show
 #
-# rhos=0.01:
-#  plotStuff plotRotatingDisk.cmd -show=did2rotatebd0p01amp.show -matlab=did2rotatebd0p01amp  [ G2
-#  plotStuff plotRotatingDisk.cmd -show=didnudt.show
-#
-# rhos=0.1:
-#  plotStuff plotRotatingDisk.cmd -show=did2rotatebd0p1.show -matlab=did2rotatebd0p1  [ G2
-#  plotStuff plotRotatingDisk.cmd -show=did2rotatebd0p1amp.show -matlab=did2rotatebd0p1amp  [ G2
-#  plotStuff plotRotatingDisk.cmd -show=did2rotatebd0p1ampTSpc.show -matlab=did2rotatebd0p1ampTSpc  [ G2, explicit TS beta=4
-#  plotStuff plotRotatingDisk.cmd -show=did2rotatebd0p1ampTSpca.show -matlab=did2rotatebd0p1ampTSpca  [ G2, expl-TS beta=1.1
-#  plotStuff plotRotatingDisk.cmd -show=did2rotatebd0p1ampTSpcb.show -matlab=did2rotatebd0p1ampTSpcb  [ G2, expl-TS beta=2 dt=FIXED
-#  plotStuff plotRotatingDisk.cmd -show=did2rotatebd0p1ampTSpcc.show -matlab=did2rotatebd0p1ampTSpcc  [ G2, expl-TS beta=2 RigidBody: Use AB2 predictor
-#  plotStuff plotRotatingDisk.cmd -show=did2rotatebd0p1ampTSpcd.show -matlab=did2rotatebd0p1ampTSpcd  [ G2, expl-TS beta=2 RigidBody: Use AB2 predictor, CFL=.5 
-#
-#  plotStuff plotRotatingDisk.cmd -show=did2rotatebd0p1ampAD4.show 
-#  plotStuff plotRotatingDisk.cmd -show=did2rotatebd0p1ampAD8.show 
-#  plotStuff plotRotatingDisk.cmd -show=did2rotatebd0p1ampAD4nc.show 
-#
-#  plotStuff plotRotatingDisk.cmd -show=did2rotatebd0p1ampIMdt0p0001.show [ small dt
-#
-# rhos=1:
-#  plotStuff plotRotatingDisk.cmd -show=did2rotatebd1p0.show -matlab=did2rotatebd1p0  [ G2
-#
-# rhos=10:
-#  plotStuff plotRotatingDisk.cmd -show=did2rotatebd10p0.show -matlab=did2rotatebd10p0  [ G2
-#
-# rhos=100:
-#  plotStuff plotRotatingDisk.cmd -show=did2rotatebd100p0.show -matlab=did2rotatebd100p0  [ G2
-#  plotStuff plotRotatingDisk.cmd -show=did2rotatebd100p0pc.show [ G2, ts=pc
-#  plotStuff plotRotatingDisk.cmd -show=did2rotatebd100p0cdv.show [ G2, smaller cdv
+#  plotStuff plotFallingBody.cmd -show=fallingBody2.show
+#  plotStuff plotFallingBody.cmd -show=fallingBody4.show
 # 
-# rhos=1000
-#  plotStuff plotDisk.cmd -show=did2rotatebd1000p0.show [ G2 
-#  plotStuff plotDisk.cmd -show=did4rotatebd1000p0.show [ G4
-# 
-$show="cic.show";
-$vorMin=-50; $vorMax=25.; $option=""; $name="bic"; $matlab="did"; 
+$show="fallingBody2.show";
+$vorMin=-50; $vorMax=25.; $option=""; $name="fallingBody"; $matlab="fallingBody"; 
 # 
 * ----------------------------- get command line arguments ---------------------------------------
 GetOptions( "show=s"=>\$show, "name=s"=>\$name,"solution=i"=>\$solution,"vorMin=f"=>\$vorMin,"vorMax=f"=>\$vorMax,\
@@ -45,20 +13,22 @@ GetOptions( "show=s"=>\$show, "name=s"=>\$name,"solution=i"=>\$solution,"vorMin=
 $show
 # 
 plot sequence:rigid body 0
-  w3
+  x2
+  add v2
+  add a2  
+pause
+  add w3
   add wt3
   add g3
-pause
   add x1 
-  add x2
   add v1 
-  add v2
   add a1
-  add a2  
   if( $matlab ne "" ){ $cmd = "save results to a matlab file\n $matlab.m"; }else{ $cmd="#"; }
   $cmd
 exit
 # 
+
+
 derived types
 speed
 exit

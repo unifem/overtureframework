@@ -1,1 +1,33 @@
 Dropping stick in a box to test added mass and added damping
+
+
+************************************************
+**** Feb 28, 2016
+
+INITIAL RUNS
+
+MASS IS COMPUTED AUTOMATICALLY 
+CHECK Moments of inertia
+
+ADD STRETCH GRID AT BOTTOM
+
+
+DENSITY=0.1 *FAILS*
+cgins -noplot fallingBody.cmd -g=fallingBodyGride4.order2 -tf=2. -tp=.1 -nu=.1 -ts=im -density=.1 -radius=1. -gravity=-1. -amp=.1 -bodyForce=wzRamp -dtMax=.01 -project=0 -numberOfCorrections=1 -omega=.2 -addedMass=0 -addedDamping=0 -addedDampingCoeff=2. -scaleAddedDampingWithDt=1 -addedDampingProjectVelocity=0 -useProvidedAcceleration=1 -useTP=0 -debug=3 -solver=yale -psolver=yale -ad2=0 -show=fallingBodyG4d0p1.show -go=go >! fallingBodyG4d0p1.out
+
+DENSITY=1 *FAILS*
+cgins -noplot fallingBody.cmd -g=fallingBodyGride4.order2 -tf=2. -tp=.1 -nu=.1 -ts=im -density=1. -radius=1. -gravity=-1. -amp=.1 -bodyForce=wzRamp -dtMax=.01 -project=0 -numberOfCorrections=1 -omega=.2 -addedMass=0 -addedDamping=0 -addedDampingCoeff=2. -scaleAddedDampingWithDt=1 -addedDampingProjectVelocity=0 -useProvidedAcceleration=1 -useTP=0 -debug=3 -solver=yale -psolver=yale -ad2=0 -show=fallingBodyG4d1p0.show -go=go >! fallingBodyG4d1p0.out
+
+
+G4: DENSITY=5 -- OK
+cgins -noplot fallingBody.cmd -g=fallingBodyGride4.order2 -tf=10. -tp=.1 -nu=.1 -ts=im -density=5 -radius=1. -gravity=-1. -amp=.1 -bodyForce=wzRamp -dtMax=.01 -project=0 -numberOfCorrections=1 -omega=.2 -addedMass=0 -addedDamping=0 -addedDampingCoeff=2. -scaleAddedDampingWithDt=1 -addedDampingProjectVelocity=0 -useProvidedAcceleration=1 -useTP=0 -debug=3 -solver=yale -psolver=yale -ad2=0 -show=fallingBody4.show -go=go >! fallingBody4.out
+
+G4 
+cgins -noplot fallingBody.cmd -g=fallingBodyGride4.order2 -tf=5. -tp=.1 -nu=.1 -ts=im -density=5 -radius=1. -gravity=-1. -amp=.1 -bodyForce=wzRamp -dtMax=.01 -project=0 -numberOfCorrections=1 -omega=.2 -addedMass=0 -addedDamping=0 -addedDampingCoeff=2. -scaleAddedDampingWithDt=1 -addedDampingProjectVelocity=0 -useProvidedAcceleration=1 -useTP=0 -debug=3 -solver=yale -psolver=yale -ad2=0 -show=fallingBody4.show -go=go >! fallingBody4.out
+
+COLLISIONS ARE WRONG -- TURN OFF 
+
+cgins -noplot fallingBody.cmd -g=fallingBodyGride2.order2 -tf=5. -tp=.05 -nu=.1 -ts=im -density=100 -radius=1. -gravity=-1. -amp=.1 -bodyForce=wzRamp -dtMax=.01 -project=0 -numberOfCorrections=1 -omega=.2 -addedMass=0 -addedDamping=0 -addedDampingCoeff=2. -scaleAddedDampingWithDt=1 -addedDampingProjectVelocity=0 -useProvidedAcceleration=1 -useTP=0 -debug=3 -solver=yale -psolver=yale -ad2=0 -show=fallingBody2.show -go=go >! fallingBody2.out
+
+TP scheme:   (density=5 has some issues)
+cgins fallingBody.cmd -g=fallingBodyGride2.order2 -tf=10. -tp=.01 -nu=.1 -ts=im -density=100 -radius=1. -gravity=-1. -amp=.1 -bodyForce=wzRamp -dtMax=.01 -project=0 -numberOfCorrections=1 -omega=.2 -addedMass=0 -addedDamping=0 -addedDampingCoeff=2. -scaleAddedDampingWithDt=1 -addedDampingProjectVelocity=0 -useProvidedAcceleration=1 -useTP=0 -debug=3 -solver=yale -psolver=yale -ad2=0 -go=halt

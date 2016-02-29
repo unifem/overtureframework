@@ -32,7 +32,7 @@ $bodyForce="x";
 #
 $numberOfCorrections=1; 
 $addedMass=0; $useTP=0;  $useProvidedAcceleration=1; 
-$addedDamping=0;  $addedDampingCoeff=1.; 
+$addedDamping=0;  $addedDampingCoeff=1.; $scaleAddedDampingWithDt=0; $addedDampingProjectVelocity=0; 
 $omega=.5; $rtolc=1.e-4; $atolc=1.e-7; 
 # 
 $freqFullUpdate=10; # frequency for using full ogen update in moving grids 
@@ -68,7 +68,8 @@ GetOptions( "g=s"=>\$grid,"tf=f"=>\$tFinal,"model=s"=>\$model,"inflowVelocity=f"
  "rtolc=f"=>\$rtolc,"atolc=f"=>\$atolc,"option=s"=>\$option,"useProvidedAcceleration=i"=>\$useProvidedAcceleration,\
  "inertia=f"=>\$inertia,"amp=f"=>\$amp,"freq=f"=>\$freq,"addedDamping=f"=>\$addedDamping,\
  "ampSinusoidalPressure=f"=>\$ampSinusoidalPressure,"freqSinusoidalPressure=f"=>\$freqSinusoidalPressure,\
- "bodyForce=s"=>\$bodyForce,"cdv=f"=>\$cdv,"cDt=f"=>\$cDt,"addedDampingCoeff=f"=>\$addedDampingCoeff  );
+ "bodyForce=s"=>\$bodyForce,"cdv=f"=>\$cdv,"cDt=f"=>\$cDt,"addedDampingCoeff=f"=>\$addedDampingCoeff,\
+ "scaleAddedDampingWithDt=f"=>\$scaleAddedDampingWithDt,"addedDampingProjectVelocity=f"=>\$addedDampingProjectVelocity );
 # -------------------------------------------------------------------------------------------------
 if( $solver eq "best" ){ $solver="choose best iterative solver"; }
 if( $solver eq "mg" ){ $solver="multigrid"; }
@@ -137,6 +138,8 @@ $grid
   # for added damping algorithm: 
   added damping coefficient: $addedDampingCoeff
   use added damping algorithm $addedDamping
+  scale added damping with dt $scaleAddedDampingWithDt
+  added damping project velocity $addedDampingProjectVelocity
   # -- CHECK ME: 
   use moving grid sub-iterations $useTP
   # TEMP FIX: 

@@ -546,7 +546,7 @@ setPressureConstraintValues( GridFunction & gf0, realCompositeGridFunction & f )
 
 	if( useAddedDampingAlgorithm )
 	{
-	  movingGrids.getRigidBodyAddedDampingTensors( b, addedDampingTensors, cg );
+	  movingGrids.getRigidBodyAddedDampingTensors( b, addedDampingTensors, gf0,dt );
 
           body.getAngularAcceleration( t0, omegaDotPredicted  ); // predicted value for omegaDot
 	}

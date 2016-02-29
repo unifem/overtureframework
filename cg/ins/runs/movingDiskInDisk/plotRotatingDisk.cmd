@@ -3,6 +3,7 @@
 #
 # rhos=0.01:
 #  plotStuff plotRotatingDisk.cmd -show=did2rotatebd0p01amp.show -matlab=did2rotatebd0p01amp  [ G2
+#  plotStuff plotRotatingDisk.cmd -show=didnudt.show
 #
 # rhos=0.1:
 #  plotStuff plotRotatingDisk.cmd -show=did2rotatebd0p1.show -matlab=did2rotatebd0p1  [ G2

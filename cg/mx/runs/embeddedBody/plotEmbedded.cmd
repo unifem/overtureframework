@@ -1,5 +1,6 @@
 #
-# plotStuff plotEmbedded.cmd -show=ebG4Order4Angle60.show -name=ebG4Order4Angle60
+# plotStuff plotEmbedded.cmd -show=ebG4Order4Angle60.show -name=ebG4Order4Angle60  [ G4
+# plotStuff plotEmbedded.cmd -show=ebG8Order4Angle60.show -name=ebG8Order4Angle60  [ G8
 #
 #
 $show="ebG4Order4Angle60.hdf";
@@ -11,15 +12,30 @@ GetOptions( "show=s"=>\$show,"name=s"=>\$name );
 #
 $show
 # 
-  bigger:0
-  DISPLAY AXES:0 0
-  DISPLAY SQUARES:0 0
+x-:0
+previous
+contour
+  plot contour lines (toggle)
+  vertical scale factor 0.
 pause
-  $plotName = $name . ".ps"; 
-  hardcopy file name:0 $plotName
-  hardcopy save:0
+exit
 #
-  set view:0 -0.00362675 0.035195 0 8.01236 1 0 0 0 1 0 0 0 1
-  $plotName = $name . "Zoom.ps"; 
-  hardcopy file name:0 $plotName
-  hardcopy save:0
+solution: 21
+plot:Ex
+$plotName = $name . "Ext10p0.ps"; 
+hardcopy file name:0 $plotName
+hardcopy save:0
+plot:Ey
+$plotName = $name . "Eyt10p0.ps"; 
+hardcopy file name:0 $plotName
+hardcopy save:0
+#
+solution: 41
+plot:Ex
+$plotName = $name . "Ext20p0.ps"; 
+hardcopy file name:0 $plotName
+hardcopy save:0
+plot:Ey
+$plotName = $name . "Eyt20p0.ps"; 
+hardcopy file name:0 $plotName
+hardcopy save:0

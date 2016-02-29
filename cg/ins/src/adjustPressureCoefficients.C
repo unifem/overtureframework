@@ -98,13 +98,14 @@ adjustPressureCoefficients(CompositeGrid & cg0, GridFunction & cgf  )
   CompositeGridOperators & cgop = *cgf.u.getOperators();
 
   const int & pc = parameters.dbase.get<int >("pc");
-
-  const real & dt=parameters.dbase.get<real>("dt");
-  if( cgf.t<3.*dt )
-    printF("--INS-- adjustPressureCoefficients for two-sided beams (if any), t=%9.3e\n",cgf.t);
   
   MovingGrids & movingGrids = parameters.dbase.get<MovingGrids >("movingGrids");
   const int numberOfDeformingBodies= movingGrids.getNumberOfDeformingBodies();
+
+  const real & dt=parameters.dbase.get<real>("dt");
+  if( numberOfDeformingBodies>0 && cgf.t<3.*dt )
+    printF("--INS-- adjustPressureCoefficients for two-sided beams (if any), t=%9.3e\n",cgf.t);
+
 
   if( numberOfDeformingBodies>0 )
   {
@@ -532,7 +533,7 @@ adjustPressureCoefficients(CompositeGrid & cg0, GridFunction & cgf  )
       RealArray addedDampingTensors(3,3,2,2);  // holds added damping Tensors - 4 3x3 matrices 
       if( useAddedDampingAlgorithm )
       {
-	movingGrids.getRigidBodyAddedDampingTensors( b, addedDampingTensors, cg );
+	movingGrids.getRigidBodyAddedDampingTensors( b, addedDampingTensors, cgf, dt );
       }
       
 
@@ -598,7 +599,9 @@ adjustPressureCoefficients(CompositeGrid & cg0, GridFunction & cgf  )
 	      a(nnz)=inertiaTensor(2,2); 
 	      if( useAddedDampingAlgorithm )
 	      {
-                const real Dww = addedDampingTensors(2,2,1,1);  // coeff of the angular velocity in the omega_t eqn
+                const int vbc=0, wbc=1; // component numbers of v and omega in addedDampingTensors
+
+                const real Dww = addedDampingTensors(2,2,wbc,wbc);  // coeff of the angular velocity in the omega_t eqn
                 real impFactor=1.;
                 printF("--APC-- addedDamping coeff: Dww=%8.2e, dt=%8.2e, inertiaTensor(2,2)=%8.2e %3.1f*dt*Dww=%8.2e \n",
                        Dww,dt,inertiaTensor(2,2),impFactor,impFactor*dt*Dww  );

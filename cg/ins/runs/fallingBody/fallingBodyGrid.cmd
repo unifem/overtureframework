@@ -25,6 +25,9 @@ $xa =-1.; $xb=1.; $ya=-1.; $yb=1.; $angle=0.;
 $name=""; 
 $width=1.; $height=.5; 
 $cx=0.; $cy=0.;  # center for the body
+#
+$blf=4;  # grid lines are this much finer near the boundary and bottom wall
+$bottomHeight=.25; # height of stretch grid at bottom wall
 # 
 # get command line arguments
 GetOptions( "order=i"=>\$order,"factor=f"=> \$factor,"xa=f"=>\$xa,"xb=f"=>\$xb,"ya=f"=>\$ya,"yb=f"=>\$yb,\
@@ -53,16 +56,54 @@ create mappings
 #
 rectangle
   set corners
-    $xa $xb $ya $yb 
+    $yac=$ya+$bottomHeight-$ng*$ds; 
+    $xa $xb $yac $yb 
   lines
-    $nx = intmg( ($xb-$xa)/$ds+1.5);  
-    $ny = intmg( ($yb-$ya)/$ds+1.5);
+    $nx = intmg( ($xb-$xa )/$ds+1.5);  
+    $ny = intmg( ($yb-$yac)/$ds+1.5);
     $nx $ny 
   boundary conditions
-     1 2 3 4 
+     1 2 0 4 
+  share
+    1 2 0 0 
   mappingName
    channel
 exit
+#
+#
+# Stretched grid near bottom wall:
+rectangle
+  set corners
+    $ybw=$ya+$bottomHeight+$ng*$ds; 
+    $xa $xb $ya $ybw 
+  lines
+    $nx = intmg( ($xb-$xa)/$ds +1.5 ); 
+    $ny = intmg( ($ybw-$ya)/$ds +1.5 ); 
+    $nx $ny
+  boundary conditions
+    1 2 3 0 
+  share
+    1 2 0 0 
+  mappingName
+   unstretchedBottomWallGrid
+exit
+#
+# Stretch bottom wall grid
+# 
+ stretch coordinates 
+  transform which mapping? 
+    unstretchedBottomWallGrid
+  multigrid levels $ml
+  # add extra resolution in the stretching direction: 
+  stretch resolution factor  $stretchResolution
+  # exponential to linear stretching: 
+   Stretch r2:exp to linear
+   STP:stretch r2 expl: position 0
+   $dxMin = $ds/$blf; 
+   STP:stretch r2 expl: min dx, max dx $dxMin $ds
+  STRT:name bottomWallGrid
+ exit
+#
 #
 #  -- rectangular body ---
 #
@@ -82,7 +123,7 @@ SmoothedPolygon
     $xba   $yba
     $xbm   $yba
   n-stretch
-   $nStretch=4.; 
+   $nStretch=$blf; 
    1. $nStretch 0.
   n-dist
     fixed normal distance
@@ -131,6 +172,7 @@ SmoothedPolygon
 exit
 generate an overlapping grid
     channel
+    bottomWallGrid
     fallingBody
   done
   change parameters

@@ -8,20 +8,21 @@
 #         |                                     |
 #         |                                     |
 #         |                                     |
-#    y=ym  ---------------------------------------
+#    y=ym  -------------------------------------- -
 #         |                                     |
 #         |                                     |
-#         |      ybb  ------------              |
+#         |           ------------              | -- y=ym - depth
 #         |           |          |              |
-#         |           |          |              |
-#         |      yba  ------------              |
-#         |          xba        xbb             |
+#         |           |          |  height      |
+#         |           ------------              |
+#         |              width                  |
 #         |                                     |
 #     ya  ---------------------------------------
 #        xa                                    xb
 #
 #  Usage:
-#    ogen noplot embeddedBodyGrid -factor=[1|2...] -interp=[e,i] -order=[2,4,6,8] -per=[0|1] -theta=[]
+#    ogen -noplot embeddedBodyGrid -factor=[1|2...] -interp=[e,i] -order=[2,4,6,8] -per=[0|1] -theta=[] ..
+#          -width=<> -height=<> -depth=<>      
 # 
 #    -per = 1 : make grids periodic in the x-direction
 #    -theta (degrees) : when per=1, adjust [xa,xb] to be periodic for a wave with this angle of incidence from y axis.
@@ -48,11 +49,12 @@
 $prefix="embeddedBodyGrid"; 
 $xa=-3; $xb=3; $ya=-2; $yb=2; $ym=0;  # inner domain bounds
 $xca=-5; $xcb=5; $yca=-4; $ycb=4; $ycm=0;  # outer (coarse grid) domain bounds
-$xba=-.5; $xbb=.5; $yba=-.75; $ybb=-.25; # corners of embedded body
+$width=1.; $height=.5; 
+$depth=1./6.; # depth of the body 
 $per=0; # per=1 : periodic BC's 
 $theta=60; 
 #
-$sharp=20; $tStretch=5; 
+$sharp=20; $tStretch=5; # sharp = sharpnesst factor for corners
 # 
 $order=2; $factor=1; $interp="i"; $name=""; # default values
 $orderOfAccuracy = "second order"; $ng=2; $interpType = "implicit for all grids";
@@ -61,6 +63,8 @@ $numGhost=-1;  # if this value is set, then use this number of ghost points
 GetOptions( "order=i"=>\$order,"factor=f"=>\$factor,"xa=f"=> \$xa,"xb=f"=> \$xb,"ya=f"=> \$ya,"yb=f"=> \$yb,\
             "xba=f"=> \$xba,"xbb=f"=> \$xbb,"yba=f"=> \$yba,"ybb=f"=> \$ybb,"interp=s"=> \$interp,\
             "prefix=s"=> \$prefix,"name=s"=> \$name,"numGhost=i"=>\$numGhost,"per=i"=>\$per,"theta=i"=>\$theta );
+#
+$xba=-.5*$width; $xbb=$xba+$width; $ybb=-$depth; $yba=$ybb-$height; # corners of embedded body
 #
 $pi=4.*atan2(1.,1.);
 # Incident wave is u(x,y,t) = F(2*pi*[ -c*t + x*sin(theta) + y*cos(theta) ])
@@ -195,7 +199,8 @@ create mappings
       $nx $ny 
     exit 
 #
-#  -- square body ---
+#  -- rectangular body ---
+#
 $nr = 6+$order;
 # $nr = 12+$order;
 SmoothedPolygon
@@ -287,11 +292,11 @@ generate an overlapping grid
     interpolation type
       $interpType
     exit 
-#    display intermediate results
-   # open graphics
-# pause
+    #    display intermediate results
+    # open graphics
+    # pause
     compute overlap
-# pause
+    # pause
   exit
 save a grid
 $name

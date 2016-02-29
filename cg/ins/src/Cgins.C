@@ -470,7 +470,10 @@ writeParameterSummary( FILE * file )
       const bool & smoothInterfaceVelocity = parameters.dbase.get<bool>("smoothInterfaceVelocity");
       const int & numberOfInterfaceVelocitySmooths = parameters.dbase.get<int>("numberOfInterfaceVelocitySmooths");
       const real & fluidAddedMassLengthScale =  parameters.dbase.get<real>("fluidAddedMassLengthScale");  
+
       const real & addedDampingCoefficient = parameters.dbase.get<real>("addedDampingCoefficient");
+      const bool & scaleAddedDampingWithDt = parameters.dbase.get<bool>("scaleAddedDampingWithDt");
+      const bool & addedDampingProjectVelocity = parameters.dbase.get<bool>("addedDampingProjectVelocity");
       
 
       fPrintF(file,"\n");
@@ -478,7 +481,7 @@ writeParameterSummary( FILE * file )
 	      " projectAddedMassVelocity=%i, projectNormalComponentOfAddedMassVelocity=%i,\n"
 	      " projectVelocityOnBeamEnds=%i, projectBeamVelocity=%i, predicted pressure needed=%i,\n" 
 	      " smoothInterfaceVelocity=%i, numberOfInterfaceVelocitySmooths=%i, fluidAddedMassLengthScale=%9.3e,\n"
-              " useAddedDampingAlgorithm=%i, addedDampingCoefficient=%8.2e.\n",
+              " useAddedDampingAlgorithm=%i, addedDampingCoefficient=%8.2e, scaleAddedDampingWithDt=%i, addedDampingProjectVelocity=%i.\n",
 	      (int)useAddedMassAlgorithm,
               (int)useApproximateAMPcondition,
               (int)projectAddedMassVelocity,
@@ -486,7 +489,8 @@ writeParameterSummary( FILE * file )
 	      (int)parameters.dbase.get<bool>("predictedPressureNeeded"),
 	      (int)smoothInterfaceVelocity, numberOfInterfaceVelocitySmooths,
 	      fluidAddedMassLengthScale,
-              (int)useAddedDampingAlgorithm,addedDampingCoefficient
+              (int)useAddedDampingAlgorithm,addedDampingCoefficient,
+              (int)scaleAddedDampingWithDt,(int)addedDampingProjectVelocity
 	);
       fPrintF(file,"\n");
     }

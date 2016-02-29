@@ -544,19 +544,49 @@ getRigidBody(const int bodyNumber)
 ///    addedDampingTensors(0:2,0:2,0,1) : Dvw : coeff of angular velocity in linear velocity eqn.
 ///    addedDampingTensors(0:2,0:2,1,0) : Dwv : coeff of linear velocity in angular velocity eqn.
 ///    addedDampingTensors(0:2,0:2,1,1) : Dww : coeff of angular velocity in angular velocity eqn.
+///
+/// \param cgf (input) : current grid function (holds current grid and current time)
+/// \param dt : current time step
 //=========================================================================================
 int MovingGrids::getRigidBodyAddedDampingTensors( const int bodyNumber, RealArray & addedDampingTensors,
-                                                  CompositeGrid & cg )
+                                                  GridFunction & cgf, const real dt )
 {
   // The viscous added damping tensors do not depend on the solution and thus
   // can be computed once and saved -- save in the RigidBody object.
   // Note: tensors will change if the grid spacing changes -- e.g. for AMR -- *fix me*
 
+  const real t = cgf.t;
+  CompositeGrid & cg = cgf.cg;
+  const int numberOfDimensions = cg.numberOfDimensions();
+  
   RigidBodyMotion & body = getRigidBody(bodyNumber);
 
+  const real nu = parameters.dbase.get<real >("nu");    
+  const real & fluidDensity = parameters.dbase.get<real >("fluidDensity");
+  assert( fluidDensity>0. );
+  const real mu = nu*fluidDensity;
+
+  const real & addedDampingCoefficient = parameters.dbase.get<real>("addedDampingCoefficient");
+
+  // scaleAddedDampingWithDt:
+  //     0 : dn = average grid spacing in the normal direction
+  //     1 : dn = sqrt(nu*dt )
+  const bool & scaleAddedDampingWithDt = parameters.dbase.get<bool>("scaleAddedDampingWithDt");
+
   // Added damping tensors may have already been computed and saved in the RigidBody: 
-  if( body.getAddedDampingTensors( addedDampingTensors ) == 0 )
+  //   In the case scaleAddedDampingWithDt==1 : the added-damping tensors are stored without 
+  //     the factor of mu/dn , dn=sqrt(nu*dt)
+  if( (!scaleAddedDampingWithDt || dt>0. ) && 
+      (body.getAddedDampingTensors( addedDampingTensors ) == 0) )
   {
+    if( scaleAddedDampingWithDt )
+    {
+      const real dn = sqrt(nu*dt);
+      printF("--MVG--getRigidBodyAddedDampingTensors: SCALING stored added damping tensors by mu/sqrt(nu*dt)\n");
+      addedDampingTensors *= addedDampingCoefficient*(mu/dn);
+    }
+      
+
     return 0;
   }
   
@@ -565,67 +595,281 @@ int MovingGrids::getRigidBodyAddedDampingTensors( const int bodyNumber, RealArra
   // -------------------------------------------
   addedDampingTensors=0.;
 
-  // Added damping for a disk of radius 
-  const real nu = parameters.dbase.get<real >("nu");    
-  const real & fluidDensity = parameters.dbase.get<real >("fluidDensity");
-  assert( fluidDensity>0. );
-  const real mu = nu*fluidDensity;
 
-  const real & addedDampingCoefficient = parameters.dbase.get<real>("addedDampingCoefficient");
-
-  // We need to compute the average grid spacing in the normal direction
   real dn =0.;
-
-  const int numberOfDimensions = cg.numberOfDimensions();
-
-  // Compute the min grid spacing at the body surface 
-  real minGridSpacing=REAL_MAX;  // holds min-grid-spacing
-  assert( integrate!=NULL );
-  const int numberOfFaces=integrate->numberOfFacesOnASurface(bodyNumber);
-  for( int face=0; face<numberOfFaces; face++ )
+  if( scaleAddedDampingWithDt && dt<=0. )
   {
-    int side=-1,axis,grid;
-    integrate->getFace(bodyNumber,face,side,axis,grid);
-    assert( side>=0 && side<=1 && axis>=0 && axis<cg.numberOfDimensions());
-    assert( grid>=0 && grid<cg.numberOfComponentGrids());
+    printF("--MVG--getRigidBodyAddedDampingTensors:WARNING dt<=0 !! using dn from grid instead.\n");
+  }
+  
+  if( scaleAddedDampingWithDt && dt>0. )
+  {
+    // added damping uses dn = sqrt( nu*dt )
+    dn = sqrt( nu*dt );
 
-    MappedGrid & c = cg[grid];
-    OV_GET_SERIAL_ARRAY(real,c.vertex(),xLocal);
-    Index Ib1,Ib2,Ib3, Ip1,Ip2,Ip3;
-    getBoundaryIndex(c.gridIndexRange(),side,axis,Ib1,Ib2,Ib3); // boundary line 
-    getGhostIndex(c.gridIndexRange(),side,axis,Ip1,Ip2,Ip3,-1); // first line in 
-
-    // Assume grid is nearly orthogonal -- we could check using the mask 
-    real dist=minGridSpacing;
-    if( numberOfDimensions==2 )
-      dist = sqrt( min(SQR(xLocal(Ip1,Ip2,Ip3,0)-xLocal(Ib1,Ib2,Ib3,0))+
-		       SQR(xLocal(Ip1,Ip2,Ip3,1)-xLocal(Ib1,Ib2,Ib3,1))) );
-    else
-      dist = sqrt( min(SQR(xLocal(Ip1,Ip2,Ip3,0)-xLocal(Ib1,Ib2,Ib3,0))+
-		       SQR(xLocal(Ip1,Ip2,Ip3,1)-xLocal(Ib1,Ib2,Ib3,1))+
-		       SQR(xLocal(Ip1,Ip2,Ip3,2)-xLocal(Ib1,Ib2,Ib3,2))) );
-    minGridSpacing=min(minGridSpacing,dist);
+    printF("--MVG--getRigidBodyAddedDampingTensors: body=%i, dt=%9.2e, nu=%8.2e, -- setting dn=sqrt(nu*dt)=%8.2e\n",
+	   bodyNumber,dt,nu,dn);
 
   }
-  minGridSpacing=ParallelUtility::getMinValue(minGridSpacing);
-  dn=minGridSpacing;
-  printF("--MVG--getRigidBodyAddedDampingTensors: body=%i min-grid-spacing at boundary=%8.2e -- setting dn=%8.2e\n",
-	 bodyNumber,minGridSpacing,dn);
+  else
+  {
+    // Compute the minimum grid spacing in the normal direction
 
+    const int numberOfDimensions = cg.numberOfDimensions();
+
+    // Compute the min grid spacing at the body surface 
+    real minGridSpacing=REAL_MAX;  // holds min-grid-spacing
+    assert( integrate!=NULL );
+    const int numberOfFaces=integrate->numberOfFacesOnASurface(bodyNumber);
+    for( int face=0; face<numberOfFaces; face++ )
+    {
+      int side=-1,axis,grid;
+      integrate->getFace(bodyNumber,face,side,axis,grid);
+      assert( side>=0 && side<=1 && axis>=0 && axis<cg.numberOfDimensions());
+      assert( grid>=0 && grid<cg.numberOfComponentGrids());
+
+      MappedGrid & c = cg[grid];
+      OV_GET_SERIAL_ARRAY(real,c.vertex(),xLocal);
+      Index Ib1,Ib2,Ib3, Ip1,Ip2,Ip3;
+      getBoundaryIndex(c.gridIndexRange(),side,axis,Ib1,Ib2,Ib3); // boundary line 
+      getGhostIndex(c.gridIndexRange(),side,axis,Ip1,Ip2,Ip3,-1); // first line in 
+
+      // Assume grid is nearly orthogonal -- we could check using the mask 
+      real dist=minGridSpacing;
+      if( numberOfDimensions==2 )
+	dist = sqrt( min(SQR(xLocal(Ip1,Ip2,Ip3,0)-xLocal(Ib1,Ib2,Ib3,0))+
+			 SQR(xLocal(Ip1,Ip2,Ip3,1)-xLocal(Ib1,Ib2,Ib3,1))) );
+      else
+	dist = sqrt( min(SQR(xLocal(Ip1,Ip2,Ip3,0)-xLocal(Ib1,Ib2,Ib3,0))+
+			 SQR(xLocal(Ip1,Ip2,Ip3,1)-xLocal(Ib1,Ib2,Ib3,1))+
+			 SQR(xLocal(Ip1,Ip2,Ip3,2)-xLocal(Ib1,Ib2,Ib3,2))) );
+      minGridSpacing=min(minGridSpacing,dist);
+
+    }
+    minGridSpacing=ParallelUtility::getMinValue(minGridSpacing);
+    dn=minGridSpacing;
+    printF("--MVG--getRigidBodyAddedDampingTensors: body=%i min-grid-spacing at boundary=%8.2e -- setting dn=%8.2e\n",
+	   bodyNumber,minGridSpacing,dn);
+  }
+  
   // Given the grid spacing on the boundary we evaluate the integrals defining the added damping tensors 
 
+  // // -- Added damping for a disk --   KEEP FOR NOW FOR CHECKING 
+  real radius=1.;  
+  const real DwwDisk = addedDampingCoefficient*(mu/dn)*twoPi*pow(radius,3.);  // *check me*
+  // addedDampingTensors(2,2,1,1)=DwwDisk;
+
+  // printF("--MVG--getRigidBodyAddedDampingTensors : body=%i, dn=%8.2e radius=%8.2e mu=%8.2e "
+  //        "addedDampingCoefficient=%4.2f Dww=%8.2e\n",
+  // 	 bodyNumber,dn,radius,mu,addedDampingCoefficient, DwwDisk);
+
+
+
+  if( true )
+  {
+    // ====================================================================
+    // =============== Evaluate Added Damping Tensors =====================
+    // ===============  From Surface Integrals        =====================
+    // ====================================================================
+
+    // Save boundary data for added damping tensors here:
+    ListOfRealArray addedDampingMatrixList;  
+    // numberOfAddedDampingMatrixEntries : total number of entries we need to compute through surface integrals
+    const int numberOfAddedDampingMatrixEntries=numberOfDimensions==2 ? 6 : 12;
+
+    RealArray xCM(3);
+    body.getPosition( t,xCM );  // ** need time corresponding to the grid so integrals are correct
+
+    Index Ib1,Ib2,Ib3;
+
+    const int vbc=0, wbc=1; // component numbers of v and omega in addedDampingTensors
+
+
+    assert( integrate!=NULL );
+    const int numberOfFaces=integrate->numberOfFacesOnASurface(bodyNumber);
+    for( int face=0; face<numberOfFaces; face++ )
+    {
+      int side=-1,axis,grid;
+      integrate->getFace(bodyNumber,face,side,axis,grid);
+      assert( side>=0 && side<=1 && axis>=0 && axis<cg.numberOfDimensions());
+      assert( grid>=0 && grid<cg.numberOfComponentGrids());
+
+      MappedGrid & c = cg[grid];
+      OV_GET_SERIAL_ARRAY(real,c.vertex(),xLocal);
+      #ifdef USE_PPP
+        realSerialArray & normalLocal = c.vertexBoundaryNormalArray(side,axis);
+      #else
+        realSerialArray & normalLocal = c.vertexBoundaryNormal(side,axis);
+      #endif
+
+      getBoundaryIndex(c.gridIndexRange(),side,axis,Ib1,Ib2,Ib3); // boundary line 
+
+      // create space to save the added damping entries on the boundary
+      if( face >= addedDampingMatrixList.getLength() )
+	addedDampingMatrixList.addElement();
+      RealArray & adm = addedDampingMatrixList[face];
+      adm.redim(Ib1,Ib2,Ib3,numberOfAddedDampingMatrixEntries);
+
+      if( numberOfDimensions==2 )
+      {
+        
+        // normal = [n0 n1 0] 
+        // tangent = [-n1 n0 0] 
+	RealArray temp(Ib1,Ib2,Ib3);
+
+	// Compute (x-xb) X tv  = yv X tv = Rt  (only 1 nonzero entry in 3D)
+        //  tv = [ -n1, n0, 0]    :tangent vector in 2D for orthogonal!  *FIX ME*
+        //
+        //   [ i   j    k ]
+        //   [ y0  y1   0 ]
+        //   [-n1  n0   0 ]
+	RealArray yCrossT(Ib1,Ib2,Ib3);
+	yCrossT(Ib1,Ib2,Ib3) = ((xLocal(Ib1,Ib2,Ib3,0)-xCM(0))*normalLocal(Ib1,Ib2,Ib3,0) + 
+			        (xLocal(Ib1,Ib2,Ib3,1)-xCM(1))*normalLocal(Ib1,Ib2,Ib3,1) );
+
+	// -- save added mass matrix extries ( without mu/dn)  ---
+        // if dn varied in space we could include the effect here: (?)
+
+        //  Dvv =  Int (mu/dn)  tv tv^T ds 
+        //  Dvw =  Int (mu/dn) tv (Rt)^t ds
+        //  Dwv = Dvw^T 
+        //  Dww =  Int (mu/dn) Rt Rt^T ds 
+
+	adm(Ib1,Ib2,Ib3,0) =  normalLocal(Ib1,Ib2,Ib3,1)*normalLocal(Ib1,Ib2,Ib3,1);  // Dvv(0,0)
+	adm(Ib1,Ib2,Ib3,1) = -normalLocal(Ib1,Ib2,Ib3,1)*normalLocal(Ib1,Ib2,Ib3,0);  // Dvv(0,1)=Dvv(1,0)
+	adm(Ib1,Ib2,Ib3,2) =  normalLocal(Ib1,Ib2,Ib3,0)*normalLocal(Ib1,Ib2,Ib3,0);  // Dvv(1,1)
+
+        adm(Ib1,Ib2,Ib3,3) = -normalLocal(Ib1,Ib2,Ib3,1)*yCrossT(Ib1,Ib2,Ib3);        // Dvw(2,0)=Dwv(0,2)
+        adm(Ib1,Ib2,Ib3,4) =  normalLocal(Ib1,Ib2,Ib3,0)*yCrossT(Ib1,Ib2,Ib3);        // Dvw(2,1)=Dwv(1,2)
+
+	adm(Ib1,Ib2,Ib3,5) = yCrossT(Ib1,Ib2,Ib3)*yCrossT(Ib1,Ib2,Ib3);               // Dww(2,)
+
+      }
+      else
+      {
+	OV_ABORT("finish me for 3D");
+      }
+    } // end for face
+    
+    // Use this function for integrating the entries in the added damping tensors  **FIX ME**
+    Range all;
+    RealCompositeGridFunction addedDampingCoeff(cg,all,all,all);
+    addedDampingCoeff=0.;
+    
+    // ----------------------------------
+    // --- Evaluate surface integrals ---
+    // ----------------------------------
+    for( int ma=0; ma<numberOfAddedDampingMatrixEntries; ma++ )
+    {
+      // --- fill in the grid function addedDampingCoeff ----
+      for( int face=0; face<numberOfFaces; face++ )
+      {
+	int side=-1,axis,grid;
+	integrate->getFace(bodyNumber,face,side,axis,grid);
+	assert( side>=0 && side<=1 && axis>=0 && axis<cg.numberOfDimensions());
+	assert( grid>=0 && grid<cg.numberOfComponentGrids());
+
+        OV_GET_SERIAL_ARRAY(real,addedDampingCoeff[grid],addedDampingCoeffLocal);
+        RealArray & adm = addedDampingMatrixList[face];
+
+        getBoundaryIndex(cg[grid].gridIndexRange(),side,axis,Ib1,Ib2,Ib3); // boundary line 
+	addedDampingCoeffLocal(Ib1,Ib2,Ib3,0)=adm(Ib1,Ib2,Ib3,ma);
+      }
+      
+      // --- integrate the components of the added mass matrix -----
+      RealArray adc(1);  // answer goes here for added damping integral
+      Range R(0,0); // components to integrate
+      adc=0.;
+
+      Interpolant & interpolant = *(cgf.u.getInterpolant());
+      interpolant.interpolate(addedDampingCoeff,R);  // This may be needed.
+	
+      integrate->surfaceIntegral(addedDampingCoeff,R,adc,bodyNumber);
+      
+      if( ma==0 )
+        addedDampingTensors(0,0,vbc,vbc)=adc(0);                                 // Dvv(0,0)
+      else if( ma==1 )
+      {
+        addedDampingTensors(0,1,vbc,vbc)=addedDampingTensors(1,0,vbc,vbc)=adc(0);  // Dvv(0,1)=Dvv(1,0)
+      }
+      else if( ma==2 )
+        addedDampingTensors(1,1,vbc,vbc)=adc(0);                                 // Dvv(1,1)
+      else if( ma==3 )
+      {
+        addedDampingTensors(2,0,vbc,wbc)=addedDampingTensors(0,2,wbc,vbc)=adc(0);  // Dvw(2,0)=Dwv(0,2)
+      }
+      else if( ma==4 )
+      {
+        addedDampingTensors(2,1,vbc,wbc)=addedDampingTensors(1,2,wbc,vbc)=adc(0);  // Dvw(2,1)=Dwv(1,2)
+      }
+      else if( ma==5 )
+        addedDampingTensors(2,2,wbc,wbc)=adc(0);                                 // Dww(3,3)   
+      else
+      {
+	OV_ABORT("error");
+      }
+      
+
+    } // end for ma, loop over different added mass coefficients
+    
+    if( true )
+    {
+      printF("--MVG--getRigidBodyAddedDampingTensors : \n"
+             "             Added Damping Tensors (without factor of mu/dn) body=%i\n"
+             "             ----------------------------------------------------------\n"
+	     "       [ %12.4e %12.4e %12.4e ]        [ %12.4e %12.4e %12.4e ]\n"
+	     " Dvv = [ %12.4e %12.4e %12.4e ]  Dvw = [ %12.4e %12.4e %12.4e ]\n"
+	     "       [ %12.4e %12.4e %12.4e ]        [ %12.4e %12.4e %12.4e ]\n"
+	     " \n"
+	     "       [ %12.4e %12.4e %12.4e ]        [ %12.4e %12.4e %12.4e ]\n"
+	     " Dwv = [ %12.4e %12.4e %12.4e ]  Dww = [ %12.4e %12.4e %12.4e ]\n"
+	     "       [ %12.4e %12.4e %12.4e ]        [ %12.4e %12.4e %12.4e ]\n",
+             bodyNumber,
+	     addedDampingTensors(0,0,vbc,vbc),addedDampingTensors(1,0,vbc,vbc),addedDampingTensors(2,0,vbc,vbc),
+	     addedDampingTensors(0,0,vbc,wbc),addedDampingTensors(1,0,vbc,wbc),addedDampingTensors(2,0,vbc,wbc),
+
+	     addedDampingTensors(0,1,vbc,vbc),addedDampingTensors(1,1,vbc,vbc),addedDampingTensors(2,1,vbc,vbc),
+	     addedDampingTensors(0,1,vbc,wbc),addedDampingTensors(1,1,vbc,wbc),addedDampingTensors(2,1,vbc,wbc),
+
+	     addedDampingTensors(0,2,vbc,vbc),addedDampingTensors(1,2,vbc,vbc),addedDampingTensors(2,2,vbc,vbc),
+	     addedDampingTensors(0,2,vbc,wbc),addedDampingTensors(1,2,vbc,wbc),addedDampingTensors(2,2,vbc,wbc),
+
+	     addedDampingTensors(0,0,wbc,vbc),addedDampingTensors(1,0,wbc,vbc),addedDampingTensors(2,0,wbc,vbc),
+	     addedDampingTensors(0,0,wbc,wbc),addedDampingTensors(1,0,wbc,wbc),addedDampingTensors(2,0,wbc,wbc),
+
+	     addedDampingTensors(0,1,wbc,vbc),addedDampingTensors(1,1,wbc,vbc),addedDampingTensors(2,1,wbc,vbc),
+	     addedDampingTensors(0,1,wbc,wbc),addedDampingTensors(1,1,wbc,wbc),addedDampingTensors(2,1,wbc,wbc),
+
+	     addedDampingTensors(0,2,wbc,vbc),addedDampingTensors(1,2,wbc,vbc),addedDampingTensors(2,2,wbc,vbc),
+	     addedDampingTensors(0,2,wbc,wbc),addedDampingTensors(1,2,wbc,wbc),addedDampingTensors(2,2,wbc,wbc));
+    }
+    
+    if( true )
+    {
+      real adc = addedDampingTensors(2,2,wbc,wbc);
+
+      const real DwwFromIntegral = addedDampingCoefficient*(mu/dn)*adc; 
+      printF("--MVG--getRigidBodyAddedDampingTensors : body=%i, dn=%8.2e mu=%8.2e "
+	     "Dww=%12.5e (disk), adc=%12.5e adc/(2pi)=%12.5e DwwFromIntegral=%12.5e\n",
+	     bodyNumber,dn,mu, DwwDisk,adc,adc/twoPi,DwwFromIntegral);
+
+
+      // OV_ABORT("stop here for now");
+    }
+    
+
+  }
   
-  real radius=1.;  // ** fix me **
-  // real addedDampingCoefficient=4.;
-  const real Dww = addedDampingCoefficient*(mu/dn)*twoPi*pow(radius,3.);  // *check me*
-  addedDampingTensors(2,2,1,1)=Dww;
+  if( !scaleAddedDampingWithDt )
+    addedDampingTensors *= addedDampingCoefficient*(mu/dn);  // save true AD matrices if dn does not depend on dt
 
-  printF("--MVG--getRigidBodyAddedDampingTensors : body=%i, dn=%8.2e radius=%8.2e mu=%8.2e "
-         "addedDampingCoefficient=%4.2f Dww=%8.2e\n",
-	 bodyNumber,dn,radius,mu,addedDampingCoefficient, Dww);
-
-  // Save the added damping tensors with the RigidBody: 
+  // Save the (scaled or un-scaled ) added damping tensors with the RigidBody: 
   body.setAddedDampingTensors( addedDampingTensors );
+
+  // Scale the added damping tensors if dn depends on dt 
+  if( !scaleAddedDampingWithDt )
+    addedDampingTensors *= addedDampingCoefficient*(mu/dn);
+   
 
   return 0;
 }
