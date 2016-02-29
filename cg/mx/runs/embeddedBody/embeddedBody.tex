@@ -60,12 +60,14 @@
 \begin{document}
 
 \input wdhDefinitions.tex
+\newcommand{\eps}{\epsilon}
+\newcommand{\ds}{\Delta s}
 
 % \newcommand{\Bc}{{\mathcal B}}
 % \newcommand{\Dc}{{\mathcal D}}
 % \newcommand{\Ec}{{\mathcal E}}
 % \newcommand{\Fc}{{\mathcal F}}
-% \newcommand{\Gc}{{\mathcal G}}
+\newcommand{\Gc}{{\mathcal G}}
 % \newcommand{\Hc}{{\mathcal H}}
 % \newcommand{\Ic}{{\mathcal I}}
 % \newcommand{\Jc}{{\mathcal J}}
@@ -115,10 +117,120 @@ Maxwell's equations~\cite{CgmxUserGuide}.
 % ================================================================================================================
 \section{Problem specification}
 
+The following material is are based on some hand-written notes from Prof. Semyon Tsynkov. 
+
+We consider a {\em plane wave} in the form of a {\em linear chirp} that impinges upon
+a body embedded in a horizonal slab of a dielectric. 
+If the material surface of the dielectric is the plane $z=0$ and
+the angle of incidence from the $z$-axis is $\theta$ then 
+the incident field is of the form ({\bf *check me*})
+\begin{align*}
+  & \Ev_0(x,t) = \hat\av~ P( t + \frac{x}{c} \sin(\theta) + {\frac{z}c} \cos(\theta) ) = \av~P(t - \frac{\hat{\kv}}{c}\cdot\xv), \\
+  & \hat\av = [-\cos(\theta),~ 0, ~ \sin(\theta) ], \\
+  & \hat{\kv} = [-\sin(\theta),~ 0, ~ -\cos(\theta) ]
+\end{align*}
+where $c$ is the speed of light in a vacuum and note that $\hat\av \cdot \hat\kv=$ ($\grad\cdot\Ev_0=0$). .
+
+A linear {\em chirp} of unit amplitude and duration $\tau$ is the waveform
+\begin{align*}
+    & P(t) = \chi(t,\tau) e^{-i \phi(t) } , \\
+    & \phi(t) =\omega_0 t +  \alpha t^2, 
+\end{align*}
+where the {\em indicator} function $\chi(t,\tau)$ is 
+\begin{align*}
+    & \chi(t) = \begin{cases}
+                      1 & \text{ $t\in[-\tau/2,\tau/2$} \\
+                      0 & \text{otherwise $t\in[-\tau/2,\tau/2]$} \\
+                \end{cases}
+\end{align*}
+and where 
+\begin{alignat*}{3}
+&    \omega_0 && \text{: carrier frequency}, \\
+&    \alpha = \frac{B}{2\tau} \quad && \text{: chirp rate}, \\
+&    B        && \text{: band width}.
+\end{alignat*}
+The instantaneous frequency is
+\[
+  \phi'(t) = \omega_0 + 2\alpha t = \omega_0 + \frac{B}{\tau} t \qquad \text{ for $t\in[-\tau/2,\tau/2]$},
+\]
+and varies linearly along the chirp (hence a {em linear chirp}). 
+
+Many radars use a narrow band chirp, e.g. $B/2\pi = 10MHz$. We will consider the parameters
+ \begin{align*}
+    & \frac{\omega_0}{2\pi} = 500 MHz - 3 GHz, \\
+    &  \frac{B}{2\pi} = 10 MHz, \\
+    & \tau = 5 \times 10^{-5} s. 
+\end{align*}
+
+
 
 % ================================================================================================================
 \clearpage
 \section{Two dimensional results} \label{sec:twoDimensionalResults}
+
+
+In two space dimensions we consider a rectangular body of width $W=1$ and height $H=0.5$ with
+top surface a distance $D=1/3$ from the surface $y=0$ as shown in Fig.~\ref{fig:embeddedBodyGrid2d}. 
+
+A grid for this domain is shown in Figure~\ref{fig:embeddedBodyGrid2d}
+and was generated with Ogen using the command file {\tt embeddedBodyGrid.cmd}. 
+Finer grids are placed near the embedded body to more fully resolve the solution there while
+coarser grids are used in the far field to keep down artificial reflections from
+the far field boundaries. 
+
+Let $\Gc^{(j)}$ denote the grid with resolution factor $j$ which has a grid spacing of approximately $\ds=1/(10 j)$ near 
+the body. 
+
+{% ------ 2D GRID ------
+\newcommand{\figWidth}{7.5cm}
+\newcommand{\trimfig}[2]{\trimFig{#1}{#2}{.0}{.0}{.0}{.0}}
+\begin{figure}[htb]
+\begin{center}
+\begin{tikzpicture}[scale=1]
+  \useasboundingbox (0.0,.75) rectangle (16.,7.75);  % set the bounding box (so we have less surrounding white space)
+  \draw(0.0,0) node[anchor=south west,xshift=-4pt,yshift=+0pt] {\trimfig{fig/embeddedBodyGride4}{\figWidth}};
+  \draw(8.0,0) node[anchor=south west,xshift=-4pt,yshift=+0pt] {\trimfig{fig/embeddedBodyGride4Zoom}{\figWidth}};
+ % grid:
+ % \draw[step=1cm,gray] (0,0) grid (16,7.5);
+\end{tikzpicture}
+\end{center}
+  \caption{Composite $\Gc^{(4)}$ for the two-dimensional rectangular body embedded in a dielectric. The red and
+green grids cover the top material ($\eps=1$) while the other grids cover the bottom material $\eps=6$.}
+  \label{fig:embeddedBodyGrid2d}
+\end{figure}
+}
+
+Fig.~\ref{fig:embeddedBodyFields} shows preliminary results for a plane wave (no chirp). 
+The top material has $\eps=1$ (the speed of light is $1$) while the bottom
+dielectric was chosen to have $\eps=6$.  
+The domain was periodic in $x$ and the plane wave wave solution was specified as a time-dependent
+condition on the top boundary. The bottom bounday is an ABC. 
+
+
+
+{% ------ Fields   ------
+\newcommand{\figWidth}{7.75cm}
+\newcommand{\trimfig}[2]{\trimFigb{#1}{#2}{.0}{.0}{.2}{.05}}
+\begin{figure}[htb]
+\begin{center}
+\begin{tikzpicture}[scale=1]
+  \useasboundingbox (0.0,.75) rectangle (16.,14.5);  % set the bounding box (so we have less surrounding white space)
+  \draw(0.0, 7) node[anchor=south west,xshift=-4pt,yshift=+0pt] {\trimfig{fig/ebG8Order4Angle60Ext10p0}{\figWidth}};
+  \draw(8.0, 7) node[anchor=south west,xshift=-4pt,yshift=+0pt] {\trimfig{fig/ebG8Order4Angle60Eyt10p0}{\figWidth}};
+%  
+  \draw(0.0, 0) node[anchor=south west,xshift=-4pt,yshift=+0pt] {\trimfig{fig/ebG8Order4Angle60Ext20p0}{\figWidth}};
+  \draw(8.0, 0) node[anchor=south west,xshift=-4pt,yshift=+0pt] {\trimfig{fig/ebG8Order4Angle60Eyt20p0}{\figWidth}};
+%
+
+% grid:
+% \draw[step=1cm,gray] (0,0) grid (16,14.5);
+\end{tikzpicture}
+\end{center}
+  \caption{Preliminary results for a plane wave (no chirp). $E_x$ and $E_y$ fields at time $t=10$ (top)
+   and $t=20$ bottom. Results for $\Gc^{(8)}$ (periodic BC's in x). }
+  \label{fig:embeddedBodyFields}
+\end{figure}
+}
 
 
 % ================================================================================================================
