@@ -1,0 +1,25 @@
+# Regressions tests for the RigidBodyMotion class
+# -- This file is read by check.p
+# See the Readme file for instructions
+# Here is the executable:
+CGBUILDPREFIX/unitTests/bin/trb
+# here is the name of the check file
+trb.check
+# 
+# -- here are the regression tests
+trbcxa.check  ../cmd/rigidBody.cmd -noplot -motion=cxa -go=go
+trbcya.check  ../cmd/rigidBody.cmd -noplot -motion=cya -go=go
+trbcza.check  ../cmd/rigidBody.cmd -noplot -motion=cza -go=go
+# 
+trbcwxa.check  ../cmd/rigidBody.cmd -noplot -motion=cwxa -go=go
+trbcwya.check  ../cmd/rigidBody.cmd -noplot -motion=cwya -go=go
+trbcwza.check  ../cmd/rigidBody.cmd -noplot -motion=cwza -go=go
+#
+trbfr1.check  ../cmd/rigidBody.cmd -noplot -motion=fr1 -dt=.01 -go=go
+trbfr2.check  ../cmd/rigidBody.cmd -noplot -motion=fr2 -dt=.01 -go=go
+trbfr3.check  ../cmd/rigidBody.cmd -noplot -motion=fr3 -dt=.01 -go=go
+#
+trbtrig.check  ../cmd/rigidBody.cmd -noplot -motion=trig -dt=.01 -go=go
+#
+# variable time step:
+trbtrigvar.check ../cmd/rigidBody.cmd -motion=trig -useVariableTimeStep=1 -cfl=.2 -go=go
