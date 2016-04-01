@@ -6,7 +6,9 @@
 
 #include "Overture.h"
 #include "PlotStuff.h"
-#include "BeamModel.h"
+#include "FEMBeamModel.h"
+#include "FDBeamModel.h"
+
 #include "NonlinearBeamModel.h"
 #include "display.h"
 #include "NurbsMapping.h"
@@ -78,7 +80,11 @@ int addForcing( real t );
 
 // Check the forcing routines in the Beam Model
 int checkForce();
-
+  
+//Longfei 20160120:
+// Check if beam model is properly initialized
+bool checkBeamInitialization();
+  
 // Check the internal forcing routines in the Beam Model
 int checkInternalForce();
 
@@ -94,7 +100,8 @@ int solve(GenericGraphicsInterface & gi, GraphicsParameters & psp );
 
 
 
-BeamModel beam;
+  BeamModel* pbeam;   // Longfei 20160116: use pointer to handle polymorphism
+  //  BeamModel beam;     
 NonlinearBeamModel nlBeam;
 
 real t;
@@ -153,14 +160,41 @@ TestBeamModel()
 
   checkFile = fopen("tbm.check","w" );   // Here is the check file for regression tests
 
+  //Longfei 20160116: use pointer to handle polymorphism
+  pbeam = NULL;   // which BeamModel to use is determined at runtime
+
 }
 
 TestBeamModel::
 ~TestBeamModel()
 {
+  if(pbeam!=NULL)
+    delete pbeam;
+
   fclose(checkFile);
 }
-    
+
+//Longfei 20160120:
+// ========================================================================================
+/// \brief plot the beam solution.
+// ========================================================================================
+bool TestBeamModel::
+checkBeamInitialization()
+{
+  bool ok=true;
+  if(pbeam==NULL)
+    {
+      printF("Warning: beam model is NULL. Chose FEM or FD first\n");
+      ok=false;
+    }
+  else if(!pbeam->dbase.get<bool>("initialized"))
+    {
+      printF("Warning: beam model is not initialized. Choose: change beam parameters first\n");
+      ok=false;
+    }
+
+  return ok;
+}
 
 // ========================================================================================
 /// \brief plot the beam solution.
@@ -168,6 +202,9 @@ TestBeamModel::
 int TestBeamModel::
 plot(real t, GenericGraphicsInterface & gi, GraphicsParameters & psp )
 {
+  // Longfei 20160116: member beam is replaced by its pointer pbeam.
+  // Create a reference named beam to avoid code changes.
+  BeamModel &beam = *pbeam;
 
   psp.set(GI_PLOT_THE_OBJECT_AND_EXIT,true);     // set this to run in "movie" mode (after first plot)
   gi.erase();
@@ -232,6 +269,9 @@ plot(real t, GenericGraphicsInterface & gi, GraphicsParameters & psp )
 int TestBeamModel::
 getErrors( real t )
 {
+  // Longfei 20160116: member beam is replaced by its pointer pbeam.
+  // Create a reference named beam to avoid code changes.
+  BeamModel &beam = *pbeam;
   // RealArray x3,v3;
   // x3 = beam.position(); 
   // v3 = beam.velocity();
@@ -244,10 +284,13 @@ getErrors( real t )
   {
     if( true )
     {
-      real uvErr[2], uvNorm[2];
+      real uvErr[3], uvNorm[3]; //Longfei 20160301: changed size from 2 to 3 to hold errror for acceleeration as well
       beam.getErrors( "tbm",  stdout, uvErr,uvNorm  );
-      errMax=uvErr[0];
-      yNorm=uvNorm[0];
+      //Longfei 20160301: old way
+      // errMax=uvErr[0];
+      //yNorm=uvNorm[0];
+      // new way
+      beam.writeCheckFile(checkFile);
       
     }
     else
@@ -317,17 +360,21 @@ getErrors( real t )
     printF("Error Ne=%i, t=%9.3e, dt=%8.2e, numSteps=%i : max=%8.2e, l2=%8.2e, l2-rel=%8.2e\n",numNodes-1,t,dt,globalStepNumber,errMax,l2Err,l2Err/max(1.e-12,yNorm));
 
 
+    // Longfei 20160301: keep this for nonlinear beam. For linear beam we use beamModel.writeCheckfile(file)
+    const int numberOfComponentsToOutput=1;
+
+    fPrintF(checkFile,"%9.2e %i  ",t,numberOfComponentsToOutput);
+    fPrintF(checkFile,"%i %9.2e %10.3e  ",0,errMax,yNorm);
+    fPrintF(checkFile,"\n");
+    
+
   }
   else
   {
     OV_ABORT("ERROR: unknown beam model");
   }
 
-  const int numberOfComponentsToOutput=1;
 
-  fPrintF(checkFile,"%9.2e %i  ",t,numberOfComponentsToOutput);
-  fPrintF(checkFile,"%i %9.2e %10.3e  ",0,errMax,yNorm);
-  fPrintF(checkFile,"\n");
 
   return 0;
 }
@@ -349,63 +396,65 @@ addForcing( real t )
 int TestBeamModel::
 solve(GenericGraphicsInterface & gi, GraphicsParameters & psp )
 {
-
+  // Longfei 20160116: member beam is replaced by its pointer pbeam.
+  // Create a reference named beam to avoid code changes.
+  BeamModel &beam = *pbeam;
 
   BeamModel::BoundaryCondition bcLeft=BeamModel::pinned, bcRight=BeamModel::pinned;
   // BeamModel::BoundaryCondition bcLeft=BeamModel::Periodic, bcRight=BeamModel::Periodic;
   bool useExactSolution=false;
 
   if( beamModelType==linearBeamModel )
-  {
-    beam.setParameter("cfl",cfl);
+    {
+      beam.setParameter("cfl",cfl);
 
-    beam.writeParameterSummary();
-  }
+      //beam.writeParameterSummary();
+    }
   
 
   if( beamModelType==nonlinearBeamModel )
-  {
-    nlBeam.setParameter("cfl",cfl);
+    {
+      nlBeam.setParameter("cfl",cfl);
 
-    // aString beamFile = "mybeam.beam"; // *fix me* 
-    // nlBeam.readBeamFile((const char*)beamFile);
+      // aString beamFile = "mybeam.beam"; // *fix me* 
+      // nlBeam.readBeamFile((const char*)beamFile);
 
-    // real & omega = deformingBodyDataBase.get<real>("added mass relaxation factor");
-    real omega=.5;
-    nlBeam.setAddedMassRelaxation(omega);
+      // real & omega = deformingBodyDataBase.get<real>("added mass relaxation factor");
+      real omega=.5;
+      nlBeam.setAddedMassRelaxation(omega);
 
-    // real & tol = deformingBodyDataBase.get<real>("sub iteration convergence tolerance");
-    real tol=1.e-5;
-    nlBeam.setSubIterationConvergenceTolerance(tol);
+      // real & tol = deformingBodyDataBase.get<real>("sub iteration convergence tolerance");
+      real tol=1.e-5;
+      nlBeam.setSubIterationConvergenceTolerance(tol);
 
-    // do this for now:
-    RealArray xc;
-    nlBeam.getCenterLine(xc);
-    int nbl = xc.getLength(0);
+      // do this for now:
+      RealArray xc;
+      nlBeam.getCenterLine(xc);
+      int nbl = xc.getLength(0);
 
-    nlBeam.initializeProjectedPoints(nbl);
-    for (int i = 0; i<nbl; i++ )
-    nlBeam.projectInitialPoint(i, xc(i,0),xc(i,1) );
+      nlBeam.initializeProjectedPoints(nbl);
+      for (int i = 0; i<nbl; i++ )
+	nlBeam.projectInitialPoint(i, xc(i,0),xc(i,1) );
 
-  }
+    }
 
   // wave speed c= w/k ,   c*dt/dx = cfl 
   real dx=-1;
   dt=-1;
   if( beamModelType==linearBeamModel )
-  {
-    dt = beam.getExplicitTimeStep();
-    // dt=dt*cfl;
-  }
+    {
+      dt = beam.getExplicitTimeStep();
+      // dt=dt*cfl;
+    }
   else if( beamModelType==nonlinearBeamModel )
-  {
-    dt = nlBeam.getExplicitTimeStep();
-    // dt=dt*cfl;
-  }
+    {
+      dt = nlBeam.getExplicitTimeStep();
+      // dt=dt*cfl;
+    }
   else
-  {
-    OV_ABORT("error");
-  }
+    {
+      OV_ABORT("error");
+    }
   
   // output to check file
   fPrintF(checkFile,"\\caption{tbm: test beam model: %s}\n",(beamModelType==linearBeamModel ? "linear beam model" : "nonlinear beam model"));
@@ -445,18 +494,18 @@ solve(GenericGraphicsInterface & gi, GraphicsParameters & psp )
   int numColumns=1;
   dialog.setToggleButtons(tbCommands, tbCommands, tbState, numColumns);
 
-   const int numberOfTextStrings=15;  // max number allowed
-   aString textLabels[numberOfTextStrings];
-   aString textStrings[numberOfTextStrings];
+  const int numberOfTextStrings=15;  // max number allowed
+  aString textLabels[numberOfTextStrings];
+  aString textStrings[numberOfTextStrings];
 
-   int nt=0;
-   textLabels[nt] = "tFinal:";  sPrintF(textStrings[nt],"%g",tFinal);  nt++; 
-   textLabels[nt] = "tPlot:";  sPrintF(textStrings[nt],"%g",tPlot);  nt++; 
-   textLabels[nt] = "debug:";  sPrintF(textStrings[nt],"%i",debug);  nt++; 
+  int nt=0;
+  textLabels[nt] = "tFinal:";  sPrintF(textStrings[nt],"%g",tFinal);  nt++; 
+  textLabels[nt] = "tPlot:";  sPrintF(textStrings[nt],"%g",tPlot);  nt++; 
+  textLabels[nt] = "debug:";  sPrintF(textStrings[nt],"%i",debug);  nt++; 
 
-   // null strings terminal list
-   textLabels[nt]="";   textStrings[nt]="";  assert( nt<numberOfTextStrings );
-   dialog.setTextBoxes(textLabels, textLabels, textStrings);
+  // null strings terminal list
+  textLabels[nt]="";   textStrings[nt]="";  assert( nt<numberOfTextStrings );
+  dialog.setTextBoxes(textLabels, textLabels, textStrings);
 
 
   gi.pushGUI(dialog);
@@ -465,156 +514,156 @@ solve(GenericGraphicsInterface & gi, GraphicsParameters & psp )
   bool movieMode=false;
   aString answer;
   for( int step=0; step<maximumNumberOfSteps; step++ )
-  {
-    globalStepNumber=step;
+    {
+      globalStepNumber=step;
     
-    bool finished=t>tFinal-.5*dt;
-    int plotThisStep=(step % nPlot == 0) || finished;
-    if( plotThisStep )
-    {
-      if( finished )
-	movieMode=false;
-
-      // compute the max error:
-      getErrors( t );
-      
-      // plot solution
-      if( plotBeam )
-      {
-	// plot beam center line
-        plot(t, gi,psp);
-      }
-      else
-      {
-        // plot beam variables, errors, etc. 
-	gi.erase();
-	psp.set(GI_USE_PLOT_BOUNDS,false);
-	aString label="tbm";
-	if( beamModelType==linearBeamModel )
-	  beam.plot( t, gi,psp,label );
-
-	gi.redraw(true);
-      }
-      
-
-      // -- output results to the check file.
-      // fprintf(checkFile,"%9.2e %i  ",t,numberOfComponentsToOutput+2); // print |\uv| and divergence too.
-      // for( n=0; n<numberOfComponentsToOutput; n++ )
-      // {
-      //   real err = error(n) > checkFileCutoff(n) ? error(n) : 0.;
-      //   real uc = max(fabs(uMin(n)),fabs(uMax(n)));
-      //   if( uc<checkFileCutoff(n) ) uc=0.;
-      //   fprintf(checkFile,"%i %9.2e %10.3e  ",n,err,uc);
-      // }
-
-    }
-
-    if( !movieMode && plotThisStep )
-    {
-      for( ;; )
-      {
-	gi.getAnswer(answer,"");  
- 
-	if( answer=="continue" )
+      bool finished=t>tFinal-.5*dt;
+      int plotThisStep=(step % nPlot == 0) || finished;
+      if( plotThisStep )
 	{
 	  if( finished )
-	  {
-	    printF("-- tbm-- Final time has been reached. Increase tFinal to continue.\n");
-	    continue;
-	  }
-	  break;
+	    movieMode=false;
+
+	  // compute the max error:
+	  getErrors( t );
+      
+	  // plot solution
+	  if( plotBeam )
+	    {
+	      // plot beam center line
+	      plot(t, gi,psp);
+	    }
+	  else
+	    {
+	      // plot beam variables, errors, etc. 
+	      gi.erase();
+	      psp.set(GI_USE_PLOT_BOUNDS,false);
+	      aString label="laal";
+	      if( beamModelType==linearBeamModel )
+		beam.plot( t, gi,psp,label );
+
+	      gi.redraw(true);
+	    }
+      
+
+	  // -- output results to the check file.
+	  // fprintf(checkFile,"%9.2e %i  ",t,numberOfComponentsToOutput+2); // print |\uv| and divergence too.
+	  // for( n=0; n<numberOfComponentsToOutput; n++ )
+	  // {
+	  //   real err = error(n) > checkFileCutoff(n) ? error(n) : 0.;
+	  //   real uc = max(fabs(uMin(n)),fabs(uMax(n)));
+	  //   if( uc<checkFileCutoff(n) ) uc=0.;
+	  //   fprintf(checkFile,"%i %9.2e %10.3e  ",n,err,uc);
+	  // }
+
 	}
-	else if( answer=="exit" || answer=="done" )
+
+      if( !movieMode && plotThisStep )
 	{
-	  gi.unAppendTheDefaultPrompt();
-	  gi.popGUI(); // restore the previous GUI
-	  return 0;
+	  for( ;; )
+	    {
+	      gi.getAnswer(answer,"");  
+ 
+	      if( answer=="continue" )
+		{
+		  if( finished )
+		    {
+		      printF("-- tbm-- Final time has been reached. Increase tFinal to continue.\n");
+		      continue;
+		    }
+		  break;
+		}
+	      else if( answer=="exit" || answer=="done" )
+		{
+		  gi.unAppendTheDefaultPrompt();
+		  gi.popGUI(); // restore the previous GUI
+		  return 0;
+		}
+	      else if( answer=="movie mode" )
+		{
+		  movieMode=true;
+		  break;
+		}
+	      else if( answer=="contour" )
+		{
+		  gi.erase();
+		  psp.set(GI_PLOT_THE_OBJECT_AND_EXIT,false);
+		  psp.set(GI_USE_PLOT_BOUNDS,false);
+
+		  // plot the solution, errors, etc.
+		  aString label="tbm";
+		  if( beamModelType==linearBeamModel )
+		    beam.plot( t, gi,psp,label );
+
+		  psp.set(GI_PLOT_THE_OBJECT_AND_EXIT,true);
+
+		  // plot( t, ua[mCur],gi,psp ); // replot all
+		}
+	      else if( dialog.getToggleValue(answer,"plot beam",plotBeam) ){}//
+	      else if( dialog.getTextValue(answer,"tFinal:","%g",tFinal) )
+		{
+		  // for now we keep dt the same
+		  maximumNumberOfSteps=tFinal/dt+10;
+		  finished=t>tFinal-.5*dt;
+		}
+	      else if( dialog.getTextValue(answer,"tPlot:","%g",tPlot) )
+		{
+		  // for now we keep dt the same
+		  nPlot = max(1,int( tPlot/dt+.5 ));
+		}
+	      else if( dialog.getTextValue(answer,"debug:","%i",debug) ){} //
+	      else
+		{
+		  printF("Unknown response=[%s]\n",(const char*)answer);
+		}
+	    }
 	}
-	else if( answer=="movie mode" )
+
+
+      // --------------------------------
+      // ---- advance one time step -----
+      // --------------------------------
+
+
+      if( beamModelType==linearBeamModel )
 	{
-	  movieMode=true;
-	  break;
+	  beam.resetForce();
+	  addForcing( t );
+	  beam.predictor(t+dt, dt );
+
+	  beam.resetForce();
+	  addForcing( t+dt );
+	  beam.corrector(t+dt, dt );
 	}
-	else if( answer=="contour" )
+      else if( beamModelType==nonlinearBeamModel )
 	{
-	  gi.erase();
-	  psp.set(GI_PLOT_THE_OBJECT_AND_EXIT,false);
-          psp.set(GI_USE_PLOT_BOUNDS,false);
+	  nlBeam.predictor(dt);
 
-          // plot the solution, errors, etc.
-	  aString label="tbm";
-          if( beamModelType==linearBeamModel )
-             beam.plot( t, gi,psp,label );
+	  nlBeam.corrector(dt);
 
-	  psp.set(GI_PLOT_THE_OBJECT_AND_EXIT,true);
-
-          // plot( t, ua[mCur],gi,psp ); // replot all
 	}
-        else if( dialog.getToggleValue(answer,"plot beam",plotBeam) ){}//
-	else if( dialog.getTextValue(answer,"tFinal:","%g",tFinal) )
+      else
 	{
-	  // for now we keep dt the same
-	  maximumNumberOfSteps=tFinal/dt+10;
-	  finished=t>tFinal-.5*dt;
+	  OV_ABORT("ERROR: unknown beam model");
 	}
-	else if( dialog.getTextValue(answer,"tPlot:","%g",tPlot) )
-	{
-	  // for now we keep dt the same
-          nPlot = max(1,int( tPlot/dt+.5 ));
-	}
-	else if( dialog.getTextValue(answer,"debug:","%i",debug) ){} //
-	else
-	{
-	  printF("Unknown response=[%s]\n",(const char*)answer);
-	}
-      }
-    }
 
 
-    // --------------------------------
-    // ---- advance one time step -----
-    // --------------------------------
-
-
-    if( beamModelType==linearBeamModel )
-    {
-      beam.resetForce();
-      addForcing( t );
-      beam.predictor(t+dt, dt );
-
-      beam.resetForce();
-      addForcing( t+dt );
-      beam.corrector(t+dt, dt );
-    }
-    else if( beamModelType==nonlinearBeamModel )
-    {
-      nlBeam.predictor(dt);
-
-      nlBeam.corrector(dt);
-
-    }
-    else
-    {
-      OV_ABORT("ERROR: unknown beam model");
-    }
-
-
-    t = (step+1)*dt;
+      t = (step+1)*dt;
 	
-  }
+    }
       
   gi.unAppendTheDefaultPrompt();
   gi.popGUI(); // restore the previous GUI
 
 
   if( false )
-  {
-    const RealArray & xBeam = beam.position();  // (x1,x2) coordinates of the beam
-    const RealArray & vBeam = beam.velocity();  // (v1,v2) components of the velocity of the beam
+    {
+      const RealArray & xBeam = beam.displacement();  // (x1,x2) coordinates of the beam
+      const RealArray & vBeam = beam.velocity();  // (v1,v2) components of the velocity of the beam
       
-    ::display(xBeam,"xBeam","%5.2f ");
-    ::display(vBeam,"vBeam","%5.2f ");
-  }
+      ::display(xBeam,"xBeam","%5.2f ");
+      ::display(vBeam,"vBeam","%5.2f ");
+    }
       
 
   return 0;
@@ -626,7 +675,10 @@ solve(GenericGraphicsInterface & gi, GraphicsParameters & psp )
 int TestBeamModel::
 checkForce()
 {
-
+  // Longfei 20160116: member beam is replaced by its pointer pbeam.
+  // Create a reference named beam to avoid code changes.
+  BeamModel &beam = *pbeam;
+  
 
   const int numberOfDimensions=2;
   
@@ -742,8 +794,10 @@ checkForce()
 int TestBeamModel::
 checkInternalForce()
 {
+  // Longfei 20160116: member beam is replaced by its pointer pbeam.
+  // Create a reference named beam to avoid code changes.
+  BeamModel &beam = *pbeam;
 
-  
   // void getSurfaceInternalForce( const real t, const RealArray & x0,  const RealArray & fs, 
   //                               const Index & Ib1, const Index & Ib2,  const Index & Ib3,
   //                               const bool addExternalForcing );
@@ -759,11 +813,17 @@ checkInternalForce()
 
   if( beamModelType==linearBeamModel )
   {
+    // Longfei 20160120: new way of handling parameters
+    //const real EI = beam.elasticModulus*beam.areaMomentOfInertia;
+    const real & EI = beam.dbase.get<real>("EI");
+    //real density = beam.density;
+    const real & density = beam.dbase.get<real>("density");
+
+
     real tf=0.;  // time to apply force
     t=tf;
 
     real h=thickness*.5;
-    real density = beam.density;
 
     printF("---- checkInternalForce thickness=%8.2e -----\n",thickness);
     
@@ -823,7 +883,7 @@ checkInternalForce()
     
     // exact.gd( uxe,x,domainDimension,isRectangular,0,1,0,0,I1,I2,I3,wc,t );
 
-    assert( beam.exactSolutionOption=="twilightZone" ) ;
+    assert( beam.getExactSolutionOption()=="twilightZone" ) ;
     
     // ---- Compute the EXACT internal force on the beam reference line ----
 
@@ -854,7 +914,8 @@ checkInternalForce()
     exact.gd( uxxxxe,x,domainDimension,isRectangular,0,4,0,0,I1,I2,I3,wc,tf );
 
     RealArray beamOp(I1,I2,I3,1);
-    const real EI = beam.elasticModulus*beam.areaMomentOfInertia;
+
+      
     const real & T = beam.dbase.get<real>("tension");
     const real & K0 = beam.dbase.get<real>("K0");
     const real & Kt = beam.dbase.get<real>("Kt");
@@ -1011,6 +1072,9 @@ checkInternalForce()
 int TestBeamModel::
 checkVelocityProjection()
 {
+  // Longfei 20160116: member beam is replaced by its pointer pbeam.
+  // Create a reference named beam to avoid code changes.
+  BeamModel &beam = *pbeam;
 
   // Given a velocity defined on the beam surface(s) project these values
   // onto the beam neutral surface. 
@@ -1099,7 +1163,7 @@ checkVelocityProjection()
     // Project the surface velocity onto the beam and over-write beam velocity
     beam.projectSurfaceVelocityOntoBeam( t );
 
-    const RealArray & surfaceVelocity = beam.getSurfaceVelocity();
+    const RealArray & surfaceVelocity = beam.surfaceVelocity();
     const RealArray & vcNew =  beam.velocity();  // new beam velocity DOF's
 
     real maxDiff =max(fabs(vcNew-surfaceVelocity)); // this should be zero 
@@ -1266,8 +1330,17 @@ main(int argc, char *argv[])
 			  "standing wave",
 			  ""};
 
+  
   dialog.setOptionMenuColumns(1);
   dialog.addOptionMenu( "Type:", opCommand2, opCommand2, testProblem );
+  
+  //Longfei 20160116: add option for spatial discretization
+  aString opCommand3[] = {"Finite Element",
+			  "Finite Difference",
+			  ""};
+
+  dialog.setOptionMenuColumns(1);
+  dialog.addOptionMenu( "Type:", opCommand3, opCommand3, testProblem );
 
   aString cmds[] = {"solve",
                     "change beam parameters",
@@ -1349,12 +1422,31 @@ main(int argc, char *argv[])
     {
       beamModelType=nonlinearBeamModel;
     }
+    // Longfei 20160116: determine which beam model at run time
+    else if(answer=="Finite Element")
+      {
+	printF("testing FEMBeamModel\n");
+	tbm.pbeam = new FEMBeamModel;
+      }
+    else if(answer=="Finite Difference")
+      {
+	printF("testing FDBeamModel\n");
+	tbm.pbeam = new FDBeamModel;
+      }
     
     else if( answer=="change beam parameters" )
     {
+      if(tbm.pbeam==NULL)
+	{
+	  printF("Warning: beam model is NULL. Choose FEM or FD first");
+	  continue;
+	}
+      
+      
       if( beamModelType==linearBeamModel )
       {
-	tbm.beam.update(cg,gi);
+	printF("Change Beam Parameters and initialize the beam model\n");
+	tbm.pbeam->update(cg,gi);
       }
       else if(  beamModelType==nonlinearBeamModel )
       {
@@ -1368,9 +1460,13 @@ main(int argc, char *argv[])
     }
     else if( answer=="print beam parameters" )
     {
+      //Longfei 20160121: check if beam model is properly set up
+      if(! tbm.checkBeamInitialization())
+	continue;
+
       if( beamModelType==linearBeamModel )
       {
-	tbm.beam.writeParameterSummary();
+	tbm.pbeam->writeParameterSummary();
       }
       else if(  beamModelType==nonlinearBeamModel )
       {
@@ -1401,27 +1497,39 @@ main(int argc, char *argv[])
     }
     else if( answer=="check force" )
     {
+      //Longfei 20160121: check if beam model is properly set up
+      if(! tbm.checkBeamInitialization())
+	continue;
       tbm.checkForce();
     }
     else if( answer=="check internal force" )
     {
+      //Longfei 20160121: check if beam model is properly set up
+      if(! tbm.checkBeamInitialization())
+	continue;
+
       tbm.checkInternalForce();
     }
 
     else if( answer=="check velocity projection" )
     {
+      //Longfei 20160121: check if beam model is properly set up
+      if(! tbm.checkBeamInitialization())
+	continue;
+
       tbm.checkVelocityProjection();
     }
 
     else if( answer=="solve" )
     {
+      //Longfei 20160121: check if beam model is properly set up
+      if(! tbm.checkBeamInitialization())
+	continue;
+      
       // ------------ Solve for the beam motion ----------------
 
       // trb.solve(gi);
-
       tbm.solve(gi,psp); 
-
-
 
     }
     else

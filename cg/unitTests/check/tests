@@ -21,3 +21,18 @@ lbeamCheckVelocityProjection2.check ../cmd/beamProjectVelocity.cmd -thick=1.e-2 
 lbeamCheckVelocityProjection4.check ../cmd/beamProjectVelocity.cmd -thick=1.e-2 -degreex=3 -degreet=1 -orderOfprojection=4
 # check internal force evaluation (beam operator)
 lbeamCheckInternalForce.check ../cmd/beamComputeForce.cmd -E=1. -tension=1. -orderOfProjection=4 -option=internalForce -thickness=1.e-7 -numElem=10 -degreeX=3 -K0=1. -Kt=1. -Kxxt=1.
+# -- test Euler-Bernoulli beam with trig TZ and different BC's (FDBeamModel)
+# Longfei 20160306: new regresssion tests for FDBeamModel.
+# nElem=6 since at least 5 points are needed for pentadiagonal solve (For periodic case, nodof=nElem-1).
+# test implicit time-stepper: Newmark2Implicit + Newmark2Implicit
+FDlbeamClamped.check  ../cmd/tzbeam.cmd -BM=FD -nElem=6 -tz=trig -bc=c -Em=1 -tension=1 -fx=2 -ft=2 -tf=.1 -tp=0.1 -cfl=0.5 -go=go
+FDlbeamPinned.check   ../cmd/tzbeam.cmd -BM=FD -nElem=6 -tz=trig -bc=p -Em=1 -tension=1 -fx=2 -ft=2 -tf=.1 -tp=0.1 -cfl=0.5 -go=go
+FDlbeamFree.check     ../cmd/tzbeam.cmd -BM=FD -nElem=6 -tz=trig -bc=f -Em=1 -tension=1 -fx=2 -ft=2 -tf=.1 -tp=0.1 -cfl=0.5 -go=go
+FDlbeamPeriodic.check ../cmd/tzbeam.cmd -BM=FD -nElem=6 -tz=trig -bc=per -Em=1 -tension=1 -fx=2 -ft=2 -tf=.1 -tp=0.1 -cfl=0.5 -go=go
+FDlbeamTWFSI.check    ../cmd/tzbeam.cmd -BM=FD -nElem=6 -tz=twfsi -bc=per -Em=0. -tension=1. -tf=.1 -rhos=10. -standingFSI=1 -tp=.1 -go=go
+# test explicit time-stepper: leapFrog + adamsMoulton
+FDlbeamClampedEplicit.check  ../cmd/tzbeam.cmd -BM=FD -predictor=leapFrog -corrector=adamsMoulton -nElem=6 -tz=trig -bc=c -Em=1 -tension=1 -fx=2 -ft=2 -tf=.1 -tp=0.1 -cfl=0.5 -go=go
+FDlbeamPinnedEplicit.check   ../cmd/tzbeam.cmd -BM=FD -predictor=leapFrog -corrector=adamsMoulton  -nElem=6 -tz=trig -bc=p -Em=1 -tension=1 -fx=2 -ft=2 -tf=.1 -tp=0.1 -cfl=0.5 -go=go
+FDlbeamFreeEplicit.check     ../cmd/tzbeam.cmd -BM=FD -predictor=leapFrog -corrector=adamsMoulton  -nElem=6 -tz=trig -bc=f -Em=1 -tension=1 -fx=2 -ft=2 -tf=.1 -tp=0.1 -cfl=0.5 -go=go
+FDlbeamPeriodicEplicit.check ../cmd/tzbeam.cmd -BM=FD -predictor=leapFrog -corrector=adamsMoulton  -nElem=6 -tz=trig -bc=per -Em=1 -tension=1 -fx=2 -ft=2 -tf=.1 -tp=0.1 -cfl=0.5 -go=go
+FDlbeamTWFSIEplicit.check    ../cmd/tzbeam.cmd -BM=FD -predictor=leapFrog -corrector=adamsMoulton  -nElem=6 -tz=twfsi -bc=per -Em=0. -tension=1. -tf=.1 -rhos=10. -standingFSI=1 -tp=.1 -go=go

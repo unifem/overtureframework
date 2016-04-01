@@ -22,6 +22,8 @@ GetOptions( "g=s"=>\$grid,"tf=f"=>\$tFinal,"degreeX=i"=>\$degreeX, "degreeT=i"=>
 #
 force polynomial degree x: $forceDegreeX
 #
+#Longfei 20160116: new options added: FEM or FD:
+Finite Element
 change beam parameters
   #
   bc left:clamped
