@@ -5335,9 +5335,9 @@ getElasticShellOption(const aString & answer,
 }
 
 // ===================================================================================================================
-/// \brief Build the options dialog for the elastic beam parameters.
+/// \brief Build the options dialog for the elastic beam parameters. (Longfei: build dialog for derived beamModel  choices)
 /// \param dialog (input) : graphics dialog to use.
-///
+/// 
 // ==================================================================================================================
 int DeformingBodyMotion::
 buildElasticBeamOptionsDialog(DialogData & dialog )
@@ -5346,13 +5346,13 @@ buildElasticBeamOptionsDialog(DialogData & dialog )
   //Longfei 20160331: use this sibling window to specify derived beamModel class
   //new:
   dialog.setOptionMenuColumns(1);
- const aString derivedBeamModels[] = { "FEMBeamModel",
-  			      "FDBeamModel",
-  			      "" };  
+  const aString derivedBeamModels[] = { "FEMBeamModel",
+					"FDBeamModel",
+					"" };  
 
- const int numberOfDerivedBeamModels=2; //only FEM and FD beamModels for now....
- const int maxCommands=numberOfDerivedBeamModels+1;
- dialog.addOptionMenu("BeamModels:",derivedBeamModels,derivedBeamModels,0 );  // set default to be FEMBeamModel
+  const int numberOfDerivedBeamModels=2; //only FEM and FD beamModels for now....
+  const int maxCommands=numberOfDerivedBeamModels+1;
+  dialog.addOptionMenu("BeamModels:",derivedBeamModels,derivedBeamModels,0 );  // set default to be FEMBeamModel
  
   // Longfei 20160331: why gave beam parameters here?? commented out by me..... nothing wrong occurs
   //old:
@@ -5467,6 +5467,7 @@ buildElasticBeamOptionsDialog(DialogData & dialog )
 
 //================================================================================
 /// \brief: Look for an elastic beam option in the string "answer"
+/// (Longfei 20160405: a specific derived beamModel class is created in this function now )
 ///
 /// \param answer (input) : check this command 
 ///
@@ -5475,7 +5476,22 @@ buildElasticBeamOptionsDialog(DialogData & dialog )
 int DeformingBodyMotion::
 getElasticBeamOption(const aString & answer,
 		      DialogData & dialog )
-{return 0;}
+{
+  //Longfei 20160405: create a specific object for a derived beamModel class
+  bool found=true;
+  if(answer=="FEMBeamModel")
+    pBeamModel=new FEMBeamModel;
+  else if(answer=="FDBeamModel")
+    pBeamModel=new FDBeamModel;
+  else
+    found=false;
+  
+  return found;
+}
+//old:
+// int DeformingBodyMotion::
+// getElasticBeamOption(const aString & answer,
+// 		      DialogData & dialog )
 // {
 //   GenericGraphicsInterface & gi = *parameters.dbase.get<GenericGraphicsInterface* >("ps");
 //   GraphicsParameters & psp = parameters.dbase.get<GraphicsParameters >("psp");
@@ -6046,26 +6062,11 @@ update(CompositeGrid & cg, GenericGraphicsInterface & gi )
     {
       deformingBodyType=userDefinedDeformingBody; 
       userDefinedDeformingBodyMotionOption=elasticBeam;
-
-
+      
       if( pBeamModel==NULL )
 	{
-	  //???Longfei: ask Bill about buildElasticBeamOptionsDialog(), what are the parameters there. Commented out by me for now. Nothing seems to be wrong.
-	  //Longfei 20160331: use the sibling window to specify derived beamModel
+	  //Longfei 20160331: use the sibling window to specify derived beamModel class
 	  elasticBeamOptionsDialog.showSibling();
-	  for( ;; )
-	    {
-	      gi.getAnswer(answer,"");
-	      printF("answer= %s",answer.c_str());
-	      if( answer=="FEMBeamModel" )
-		pBeamModel = new FEMBeamModel;
-	      else if( answer=="FDBeamModel" )
-		pBeamModel = new FDBeamModel;
-	      else if(answer="close")
-		break;
-	      else
-		OV_ABORT("Error: unkown derived class of BeamModel");
-	    }
 	}
     }
     else if( answer=="nonlinear beam" )
@@ -6184,7 +6185,15 @@ update(CompositeGrid & cg, GenericGraphicsInterface & gi )
              answer=="elastic beam parameters..." )
     {
       // new way 
-      assert( pBeamModel!=NULL );
+      //assert( pBeamModel!=NULL );
+      
+      // Longfei 20160405: for backward compatibility, if no derived BeamModel class is specified,
+      // use FEMBeamModel by default.
+      if(pBeamModel==NULL)
+	{
+	  printF("Warning: no derived beamModel class is specified. I will use FEMBeamModel by default.\n");
+	  pBeamModel=new FEMBeamModel;
+	}
       pBeamModel->update(cg,gi);
       
     }
@@ -6438,7 +6447,7 @@ update(CompositeGrid & cg, GenericGraphicsInterface & gi )
     {
       printF("Answer=[%s] found in getElasticShellOption.\n",(const char*)answer);
     }
-
+    // Longfei 20160405:new way:  we specify which derived beamModel class to use here
     else if( getElasticBeamOption(answer,elasticBeamOptionsDialog ) )
     {
       printF("Answer=[%s] found in getElasticBeamOption.\n",(const char*)answer);
@@ -6516,16 +6525,15 @@ update(CompositeGrid & cg, GenericGraphicsInterface & gi )
     {
       elasticShellOptionsDialog.hideSibling(); 
     }
-
-    else if( answer=="elastic beam options..." )
-    {
-      elasticBeamOptionsDialog.showSibling();
-    }
+    // Longfei 20160331: this was replaced by a new way in the case "answer==elastic beam"
+    // else if( answer=="elastic beam options..." )
+    // {
+    //   elasticBeamOptionsDialog.showSibling();
+    // }
     else if( answer=="close elastic beam options" )
     {
       elasticBeamOptionsDialog.hideSibling(); 
     }
-
     else
     {
       printF("DeformingBodyMotion::update:ERROR:unknown response=[%s]\n",(const char*)answer);

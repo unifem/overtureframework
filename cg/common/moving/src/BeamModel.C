@@ -4658,52 +4658,12 @@ predictor(real tnp1, real dt )
     }
 
   
-  // -- here are the predicted u and v: 
-  if(predictorMethod==leapFrog) // use leapFrog predictor
-    {
-      if( debug & 2 )
-	printF("-- BM%i -- use leapFrog predictor tnp1=%8.2e\n",getBeamID(),tnp1);
-      //Longfei 20160204: note this is only first order predictor if dt!=dtOld
-      if( tnp1 >= 1.5*dt ) // 
-	{
-	  x3=x1+(dt+dtOld)*v2;
-	  v3=v1+(dt+dtOld)*a2;
-	}
-      else
-	{
-	  // -- we only have 1 old solutions
-	  // We know pastTimeSolution from exact solutions
-	  x3=x2+dt*v2;
-	  v3=v2+dt*a2;
-	}
+  // -- here are the predicted u and v:
 
-      a3=a2;  //Just make a prediction for a3, will be corrected in corrector
-	  
-    }
-  else if(predictorMethod==adamsBashforth2)
-    {
+  real linaccel[2],omegadd; // needed for computeAcceleration
 
-      if( debug & 2 )
-	printF("-- BM%i -- use adamsBashforth2 predictor tnp1=%8.2e\n",getBeamID(),tnp1);
-      real ab1,ab2;
-      if( tnp1 >= 1.5*dt ) 
-	{
-	  // 2nd -order predictor
-	  ab1= dt*(1.+dt/(2.*dtOld));  // becomes 1.5*dt0  if dt0==dtb
-	  ab2= -dt*dt/(2.*dtOld);      //         -.5*dt0
-	}
-      else
-	{
-	  // -- we only have 1 old solutions
-	  // first order predictor// fix me for tzTests. We know pastTimeSolution from exact solutions
-	  ab1=dt;
-	  ab2=0.;
-	}
-      x3=x2+ab1*v2+ab2*v1;
-      v3=v2+ab1*a2+ab2*a1;
-      a3=a2;  //Just make a prediction for a3, will be corrected in corrector
-    }
-  else if( predictorMethod==newmark2Implicit )
+  // -- implicit methods:
+  if( predictorMethod==newmark2Implicit )
     {
       // -- The implicit predictor makes a guess for the forcing at time tnp1 = t+dt  ---
 
@@ -4712,7 +4672,6 @@ predictor(real tnp1, real dt )
 
 
 
-      real linaccel[2],omegadd;
       // old:
       // compute acceleration at time t^{n+1}
       // const real alpha =newmarkBeta*dt*dt;  // coeff of K in A
@@ -4764,25 +4723,74 @@ predictor(real tnp1, real dt )
 	}
       
     }
-  else if( predictorMethod==newmark2Explicit)
-    {
-      // ???Longfei: is this second order?
-      //  x and v are second order.  Acceleration is corrected to 2nd order in corrector step
-      x3 = x2 + dt*v2+ (.5*dt*dt)*a2;
-      v3 = v2 + dt*a2;
-      a3 = a2;     // predicted acceleration
-    }
-  else if ( predictorMethod==newmark1)
-    { //  -- use first order predictor
-      x3 = dtilde;
-      v3 = vtilde;
-      a3 = a2;     // predicted acceleration
-    }
+  // --explicit methods:
   else
     {
-      OV_ABORT("Error: unsupported time-stepping method");
-    }
   
+      if(predictorMethod==leapFrog) // use leapFrog predictor
+	{
+	  if( debug & 2 )
+	    printF("-- BM%i -- use leapFrog predictor tnp1=%8.2e\n",getBeamID(),tnp1);
+	  //Longfei 20160204: note this is only first order predictor if dt!=dtOld
+	  if( tnp1 >= 1.5*dt ) // 
+	    {
+	      x3=x1+(dt+dtOld)*v2;
+	      v3=v1+(dt+dtOld)*a2;
+	    }
+	  else
+	    {
+	      // -- we only have 1 old solutions
+	      // We know pastTimeSolution from exact solutions
+	      x3=x2+dt*v2;
+	      v3=v2+dt*a2;
+	    }
+
+	  
+	}
+      else if(predictorMethod==adamsBashforth2)
+	{
+
+	  if( debug & 2 )
+	    printF("-- BM%i -- use adamsBashforth2 predictor tnp1=%8.2e\n",getBeamID(),tnp1);
+	  real ab1,ab2;
+	  if( tnp1 >= 1.5*dt ) 
+	    {
+	      // 2nd -order predictor
+	      ab1= dt*(1.+dt/(2.*dtOld));  // becomes 1.5*dt0  if dt0==dtb
+	      ab2= -dt*dt/(2.*dtOld);      //         -.5*dt0
+	    }
+	  else
+	    {
+	      // -- we only have 1 old solutions
+	      // first order predictor// fix me for tzTests. We know pastTimeSolution from exact solutions
+	      ab1=dt;
+	      ab2=0.;
+	    }
+	  x3=x2+ab1*v2+ab2*v1;
+	  v3=v2+ab1*a2+ab2*a1;
+	}
+ 
+      else if( predictorMethod==newmark2Explicit)
+	{
+	  // ???Longfei: is this second order?
+	  //  x and v are second order.  Acceleration is corrected to 2nd order in corrector step
+	  x3 = x2 + dt*v2+ (.5*dt*dt)*a2;
+	  v3 = v2 + dt*a2;
+	}
+      else if ( predictorMethod==newmark1)
+	{ //  -- use first order predictor
+	  x3 = dtilde;
+	  v3 = vtilde;
+	}
+      else
+	{
+	  OV_ABORT("Error: unsupported time-stepping method");
+	}
+
+      //predict acceleration for all explicit predictors:
+      computeAcceleration(tnp1, x3,v3,f3, a3,  linaccel,omegadd,dt,"explicitSolver" );
+      
+    }
   // *wdh* aold = 0.0;
   RealArray & fOld = dbase.get<RealArray>("fOld");
   RealArray & aold = dbase.get<RealArray>("aOld");
@@ -6240,8 +6248,7 @@ update(CompositeGrid & cg, GenericGraphicsInterface & gi )
 	    }
 	  else
 	    {
-	      printF("-- BM%i -- Warning: This is a FDBeamModel. orderOfGalerkinProjection is for FEMBeamModel only.\n",getBeamID());
-	      printF("                The specified value is ignored\n");
+	      printF("-- BM%i -- Warning: Option ignored. This is an FDBeamModel. orderOfGalerkinProjection is for FEMBeamModel only.\n",getBeamID());
 	    }
       
 	}
@@ -6313,19 +6320,19 @@ update(CompositeGrid & cg, GenericGraphicsInterface & gi )
 	}
       else if( len=answer.matches("use new tridiagonal solver") ) // Longfei 20160210: backward compatibility
 	{
-	  printF("-- BM%i  -- Warning: the toggle button \"use new tridiagonal solver\" is removed.\n",getBeamID());
-	  printF("                               use new tridiagonal solver\n");	  
+	  printF("-- BM%i  -- Warning: the toggle button \"use new tridiagonal solver\" is removed.",
+		 "We  always use the new tridiagonal solver now\n",getBeamID());	  
 	  
 	} //
       //Longfei 20160131: this option is replaced by optionMenu time stepping. This is kept here for backward compatibility
       else if( dialog.getToggleValue(answer,"use second order Newmark predictor",useSecondOrderNewmarkPredictor))
 	{
-	  printF("-- BM%i -- Warning: the toggle button \"use second order Newmark predictor\" is removed.\n",getBeamID());
-	  printF("                        : specify time steping using the \"predictor\" and \"corrector\" option menus\n in the future\n");
+	  printF("-- BM%i -- Warning: the toggle button \"use second order Newmark predictor\" is removed. ",
+		 "Please specify time stepings using the \"predictor\" and \"corrector\" option menus in the future\n",getBeamID());
 
 	  if(  useSecondOrderNewmarkPredictor )
 	    {
-	      printF("                         use SECOND order implicit Newmark predictor and Newmark corrector\n");
+	      printF("use SECOND order implicit Newmark predictor and Newmark corrector\n");
 
 	      //Longfei 20160131: new way for time stepping:
 	      predictorMethod = newmark2Implicit;
@@ -6333,7 +6340,7 @@ update(CompositeGrid & cg, GenericGraphicsInterface & gi )
 	    }
 	  else
 	    {
-	      printF("                       use FIRST order Newmark predictor and Newmark corrector\n");
+	      printF("use FIRST order Newmark predictor and Newmark corrector\n");
 	      //Longfei 20160131: new way for time stepping:
 	      predictorMethod = newmark1;
 	      correctorMethod = newmarkCorrector;
@@ -6391,8 +6398,8 @@ update(CompositeGrid & cg, GenericGraphicsInterface & gi )
       //else if( dialog.getToggleValue(answer,"use implicit predictor",useImplicitPredictor) ){}// removed. This is handled using new time stepping choices
       else if( len=answer.matches("use implicit predictor"))
 	{
-	  printF("-- BM%i -- Warning: The  \"use implicit predictor\" toggle button is removed. \n",getBeamID());
-	  printF("                    : specify time steping using the \"predictor\" and \"corrector\" option menus\n in the future");
+	  printF("-- BM%i -- Warning: Option ignored. The  \"use implicit predictor\" toggle button is removed. "
+		 "Please specify time steping using the \"predictor\" and \"corrector\" option menus in the future\n",getBeamID());
 	}
       else if( dialog.getToggleValue(answer,"relax force",relaxForce) )
 	{

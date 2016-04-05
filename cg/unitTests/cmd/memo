@@ -1,3 +1,13 @@
+
+
+**** 2016/03/07
+--implicit method:
+tbm tzbeam.cmd -nElem=80 -tz=trig -Em=1. -tension=0. -tf=1. -tp=.1 -numberOfSmooths=1 -smoothOrder=6 -fx=2.5 -BM=FD -smooth=0 -bc=c -useSameStencilSize=1
+
+--Explicit method:
+tbm tzbeam.cmd -nElem=80 -tz=trig -Em=1. -tension=0. -tf=1. -tp=.1 -numberOfSmooths=1 -smoothOrder=6 -fx=2.5 -BM=FD -smooth=0 -bc=c -useSameStencilSize=1 -predictor=leapFrog -corrector=adamsMoulton
+
+
 **** 2015/06/17 
 
 CLAMPED+SLIDE EIGENMODE

@@ -128,7 +128,6 @@ $grid
         user defined deforming body
           elastic beam
 	  FDBeamModel
-	  close
           $I=1.; $length=1.; $thick=.2; $pNorm=1.; 
           $angle=90.; # $Pi*.5; 
           elastic beam parameters...
@@ -176,7 +175,7 @@ $grid
           100
      done
 #
-    include $ENV{CG}/ins/runs/beamInAChannel/beam2.h
+    include beam2.h
 #
    done
 # 

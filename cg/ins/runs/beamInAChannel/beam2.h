@@ -3,7 +3,6 @@
          user defined deforming body
            elastic beam
            FDBeamModel
-           close
            $I=1.; $length=1.; $thick=.2; $pNorm=1.; 
            $x0=2.; 
            $angle=90.; # $Pi*.5; 
