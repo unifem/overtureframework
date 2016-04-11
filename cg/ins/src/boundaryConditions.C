@@ -91,6 +91,7 @@ gridAccelerationBC(const int & grid,
       // -------- DEFORMING BODY AMP STAGE I  --------------
 
       // For the added-mass (beam) pressure BC, we scaled by rhos*As/rho 
+      // This will case the RHS to the prssure equation (e.g. n^T( nu*Delta(v) )
       const int (&deformingBodyNumber)[2][3] = bd.dbase.get<int[2][3]>("deformingBodyNumber");
 
       // mixedNormalCoeff(pc,side,axis,grid)=beamMassPerUnitLength[side][axis]/fluidDensity;
@@ -535,7 +536,7 @@ setPressureConstraintValues( GridFunction & gf0, realCompositeGridFunction & f )
 
       RealArray mvDot,mOmegaDot; // Holds body force and torque 
       RealArray addedDampingTensors(3,3,2,2);  // holds added damping Tensors - 4 3x3 matrices 
-      RealArray omegaDotPredicted(3);
+      RealArray vDotPredicted(3), omegaDotPredicted(3);
       
       // --------------- LOOP OVER RIGID BODIES --------------------
       for( int b=0; b<numberOfRigidBodies; b++ )
@@ -548,6 +549,8 @@ setPressureConstraintValues( GridFunction & gf0, realCompositeGridFunction & f )
 	{
 	  movingGrids.getRigidBodyAddedDampingTensors( b, addedDampingTensors, gf0,dt );
 
+          body.getAcceleration( t0, vDotPredicted  ); // predicted value for vDot
+
           body.getAngularAcceleration( t0, omegaDotPredicted  ); // predicted value for omegaDot
 	}
 
@@ -556,6 +559,8 @@ setPressureConstraintValues( GridFunction & gf0, realCompositeGridFunction & f )
         //  0    0     a1
         //  1    0    
         //  2
+        const int vbc=0, wbc=1; // component numbers of v and omega in addedDampingTensors
+        const real & dt=parameters.dbase.get<real>("dt");
 	for( int d=0; d<numberOfDimensions; d++ )
 	{
           const int extraEqn = d + (b)*numberOfExtraEquationsPerBody; // current extra equation 
@@ -564,6 +569,16 @@ setPressureConstraintValues( GridFunction & gf0, realCompositeGridFunction & f )
           int ival = totalNumberOfExtraEquations -extraEqn -1 -numberOfDenseExtraEquations;        // equations are stored in reverse order
 	  assert( ival<numberOfExtraEquations );
 	  value[ival] = mvDot(d) - bodyForceFromPressure(d,b);  // *** "+"
+	  if( useAddedDampingAlgorithm )
+	  {
+	    for( int dir2=0; dir2<3; dir2++ ) // note 3 for dimensions since AD tensor is always 3x3
+	    {
+              value[ival] += dt*addedDampingTensors(d,dir2,vbc,vbc)*vDotPredicted(dir2);
+              value[ival] += dt*addedDampingTensors(d,dir2,vbc,wbc)*omegaDotPredicted(dir2);
+	    }
+	  }
+	  
+
 	  printF("--INS--setPressureConstraintValues: body=%i, d=%i, m*a=%9.2e, bodyForce: (pressure=%9.2e,viscous=%9.2e), value=%9.3e\n",
                  b,d,mvDot(d),bodyForceFromPressure(d,b),bodyForceFromViscousStress(d,b),value[ival]);
 	  
@@ -579,12 +594,20 @@ setPressureConstraintValues( GridFunction & gf0, realCompositeGridFunction & f )
 
 	  if( useAddedDampingAlgorithm )
 	  {
-	    const real Dww = addedDampingTensors(2,2,1,1);  // coeff of the angular velocity in the omega_t eqn
-            const real & dt=parameters.dbase.get<real>("dt");
-            const real impFactor=.1;
-	    printF("--INS-SPC-- addedDamping coeff: Dww=%8.2e, dt=%8.2e, omegaDotPredicted=%8.2e\n",
-                   Dww,dt,omegaDotPredicted(2));
-	    value[ival] += impFactor*dt*Dww*omegaDotPredicted(2);
+	    for( int dir2=0; dir2<3; dir2++ )  // note 3 for dimensions since AD tensor is always 3x3
+	    {
+	      value[ival] += dt*addedDampingTensors(dir,dir2,wbc,vbc)*vDotPredicted(dir2);
+	      value[ival] += dt*addedDampingTensors(dir,dir2,wbc,wbc)*omegaDotPredicted(dir2);
+	    }
+	    // const real Dww = addedDampingTensors(2,2,1,1);  // coeff of the angular velocity in the omega_t eqn
+
+            // // *wdh* 2016/03/03 const real impFactor=.1;  // **************** CHECK ME ************
+            // const real impFactor=1.;  // SHOULD MATCH VALUE IN ADJUSTPRESSURECOEFFICIENTS.C
+
+	    // printF("--INS-SPC-- addedDamping coeff: Dww=%8.2e, dt=%8.2e, omegaDotPredicted=%8.2e\n",
+            //        Dww,dt,omegaDotPredicted(2));
+	    // value[ival] += impFactor*dt*Dww*omegaDotPredicted(2);
+
 	  }
 
 	  if( FALSE )// ***TEST****

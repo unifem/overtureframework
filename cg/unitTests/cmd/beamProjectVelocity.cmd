@@ -13,6 +13,8 @@ GetOptions( "g=s"=>\$grid,"tf=f"=>\$tFinal,"degreex=i"=>\$degreex, "degreet=i"=>
  "restart=s"=>\$restart,"useNewImp=i"=>\$useNewImp,"p0=f"=>\$p0,"addedMass=i"=>\$addedMass,"rhoBeam=f"=>\$rhoBeam,\
  "bdebug=i"=>\$bdebug,"E=f"=>\$E,"ampProjectVelocity=i"=>\$ampProjectVelocity,"dsBeam=f"=>\$dsBeam );
 # -------------------------------------------------------------------------------------------------
+#Longfei 20160116: new options added: FEM or FD:
+Finite Element
 standing wave
 change beam parameters
   number of elements: $numElem

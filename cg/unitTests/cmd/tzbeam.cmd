@@ -14,17 +14,29 @@ $fx=2.; $ft=2; $debug=0; $orderOfProjection=2;
 $rhos=100.; $hs=.1; $mu=.001; $standingFSI=0; $eigenmode=1; 
 $smooth=0; $numberOfSmooths=4; $smoothOrder=6; $smoothOmega=1.; 
 $go="halt";
+#Longfei: new options
+$predictor="newmark2Implicit";
+$corrector="newmarkCorrector";
+$BM="Finite Element";
+$useSameStencilSize=1;
+#
+#
 GetOptions( "nElem=i"=>\$nElem,"cfl=f"=>\$cfl,"Em=f"=>\$Em,"tension=f"=>\$tension,"degreet=i"=>\$degreet,\
             "degreex=i"=>\$degreex, "bc=s"=>\$bc, "tz=s"=>\$tz, "useNewTri=i"=>\$useNewTri,"standingFSI=i"=>\$standingFSI,\
             "tf=f"=>\$tf,"tp=f"=>\$tp,"fx=f"=>\$fx,"ft=f"=>\$ft,"rhos=f"=>\$rhos,"hs=f"=>\$hs,"debug=i"=>\$debug,\
             "K0=f"=>\$K0,"Kt=f"=>\$Kt,"Kxxt=f"=>\$Kxxt,"orderOfProjection=i"=>\$orderOfProjection,"smooth=i"=>\$smooth,\
-            "numberOfSmooths=i"=>\$numberOfSmooths,"smoothOrder=i"=>\$smoothOrder,"eigenmode=i"=>\$eigenmode, "go=s"=>\$go );
+            "numberOfSmooths=i"=>\$numberOfSmooths,"smoothOrder=i"=>\$smoothOrder,"eigenmode=i"=>\$eigenmode, \
+	    "predictor=s"=>\$predictor, "corrector=s"=>\$corrector,"BM=s"=>\$BM,"useSameStencilSize=i"=>\$useSameStencilSize,"go=s"=>\$go );
 # 
 if( $go eq "halt" ){ $go = "#"; }
 if( $go eq "og" ){ $go = "open graphics"; }
 if( $go eq "run" || $go eq "go" ){ $go = "movie mode\n exit\n exit"; }
 #
 linear beam model
+#Longfei 20160116: new options added: FEM or FD:
+if($BM eq "FEM") {$BM = "Finite Element";}
+if($BM eq "FD"){$BM="Finite Difference";}
+$BM
 # 
 tFinal: $tf
 tPlot: $tp
@@ -32,6 +44,10 @@ cfl: $cfl
 # 
 change beam parameters
 #
+#Longfei 20160205: new options for predictor and corrector methods:
+predictor: $predictor
+corrector: $corrector
+use same stencil size for FD $useSameStencilSize
 #
 if( $bc eq "p" ){ $cmd = "bc left:pinned\n bc right:pinned"; }
 if( $bc eq "c" ){ $cmd = "bc left:clamped\n bc right:clamped"; }
@@ -98,17 +114,20 @@ solve
 #
 plot beam 0 
 contour
-  uErr
-  add vErr
-  add uxErr
-  add vxErr
+#plot grid points (toggle)
+#ghost lines
+#2
+#  uErr
+#  add vErr
+#  add uxErr
+#  add vxErr
 #  add aErr
-  #  u 
-  # add v
-  # add a
-  # add ux
-  # add vx
-  #  add ax
+    u 
+    add v
+    add a
+#  add ux
+#  add vx
+#  add ax
 exit
 $go
 

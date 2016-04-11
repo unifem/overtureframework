@@ -3,7 +3,9 @@
 # 
 $nElem=11; $cfl=.5; $Em=1.; $tension=0.; 
 GetOptions( "nElem=i"=>\$nElem,"cfl=f"=>\$cfl,"Em=f"=>\$Em,"tension=f"=>\$tension );
-# 
+#
+#Longfei 20160116: new options added: FEM or FD:
+Finite Element
 linear beam model
 # 
 tFinal: 0.5

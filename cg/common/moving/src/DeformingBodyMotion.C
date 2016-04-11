@@ -21,7 +21,8 @@
 #include "Parameters.h"
 #include "ParallelUtility.h"
 #include "Interpolate.h"
-#include "BeamModel.h"
+#include "FEMBeamModel.h"
+#include "FDBeamModel.h"
 #include "NonlinearBeamModel.h"
 #include "TravelingWaveFsi.h"
 #include "BodyForce.h"
@@ -5342,110 +5343,123 @@ int DeformingBodyMotion::
 buildElasticBeamOptionsDialog(DialogData & dialog )
 {
 
-  //BcArray & boundaryCondition = deformingBodyDataBase.get<BcArray>("boundaryCondition");
-
+  //Longfei 20160331: use this sibling window to specify derived beamModel class
+  //new:
   dialog.setOptionMenuColumns(1);
-  /*
-  const aString bcNames[] = { "periodic",
-			      "Dirichlet",
-			      "Neumann",
-                              "slide",
-			      "" };  
-  const int maxCommands=numberOfBoundaryConditions+1;
-  aString bcCmd[maxCommands];
+ const aString derivedBeamModels[] = { "FEMBeamModel",
+  			      "FDBeamModel",
+  			      "" };  
 
-  GUIState::addPrefix(bcNames,"BC left: ",bcCmd,maxCommands);
-  dialog.addOptionMenu("BC left:",bcCmd,bcNames,boundaryCondition(0,0) );
+ const int numberOfDerivedBeamModels=2; //only FEM and FD beamModels for now....
+ const int maxCommands=numberOfDerivedBeamModels+1;
+ dialog.addOptionMenu("BeamModels:",derivedBeamModels,derivedBeamModels,0 );  // set default to be FEMBeamModel
+ 
+  // Longfei 20160331: why gave beam parameters here?? commented out by me..... nothing wrong occurs
+  //old:
+  // //BcArray & boundaryCondition = deformingBodyDataBase.get<BcArray>("boundaryCondition");
 
-  GUIState::addPrefix(bcNames,"BC right: ",bcCmd,maxCommands);
-  dialog.addOptionMenu("BC right:",bcCmd,bcNames,boundaryCondition(1,0) );
+  // dialog.setOptionMenuColumns(1);
+  // /*
+  // const aString bcNames[] = { "periodic",
+  // 			      "Dirichlet",
+  // 			      "Neumann",
+  //                             "slide",
+  // 			      "" };  
+  // const int maxCommands=numberOfBoundaryConditions+1;
+  // aString bcCmd[maxCommands];
 
-  GUIState::addPrefix(bcNames,"BC bottom: ",bcCmd,maxCommands);
-  dialog.addOptionMenu("BC bottom:",bcCmd,bcNames,boundaryCondition(0,1) );
+  // GUIState::addPrefix(bcNames,"BC left: ",bcCmd,maxCommands);
+  // dialog.addOptionMenu("BC left:",bcCmd,bcNames,boundaryCondition(0,0) );
 
-  GUIState::addPrefix(bcNames,"BC top: ",bcCmd,maxCommands);
-  dialog.addOptionMenu("BC top:",bcCmd,bcNames,boundaryCondition(1,1) );
+  // GUIState::addPrefix(bcNames,"BC right: ",bcCmd,maxCommands);
+  // dialog.addOptionMenu("BC right:",bcCmd,bcNames,boundaryCondition(1,0) );
 
-  */
-  if( !deformingBodyDataBase.has_key("elasticBeamParameters") )
-  {
-    deformingBodyDataBase.put<real [10]>("elasticBeamParameters");
-    real *par = deformingBodyDataBase.get<real [10]>("elasticBeamParameters");
-    // -- set defaults ---
-    par[0]=0.02*0.02*0.02/12.0; // area moment of inertia
-    par[1]=1.4e6;  // elastic modulus
-    par[2]=1e4;  // density 
-    par[3]=0.35;  // length 
-    par[4]=0.02;  // thickness
-    par[5]=1000.0;  // pressure_norm
-    par[6]=0.0;
-    par[7] = 0.3;
-    par[8] = 0.0;
+  // GUIState::addPrefix(bcNames,"BC bottom: ",bcCmd,maxCommands);
+  // dialog.addOptionMenu("BC bottom:",bcCmd,bcNames,boundaryCondition(0,1) );
 
-    deformingBodyDataBase.put<int [10]>("elasticBeamIntegerParameters");
+  // GUIState::addPrefix(bcNames,"BC top: ",bcCmd,maxCommands);
+  // dialog.addOptionMenu("BC top:",bcCmd,bcNames,boundaryCondition(1,1) );
 
-    int *ipar = deformingBodyDataBase.get<int [10]>("elasticBeamIntegerParameters");
-    ipar[0] = 15;
-    ipar[1] = 0;
-    ipar[2] = 0;
-    ipar[3] = 0;
-    /*
-    deformingBodyDataBase.put<bool>("constantVolumeElasticShell",false);
-    deformingBodyDataBase.put<real>("integratedVolumeDiscrepancy",0.);  // holds int_t (1-V/V0) dt 
-    deformingBodyDataBase.put<real>("volumePenalty");
-    deformingBodyDataBase.get<real>("volumePenalty")=1.; // actual penalty is .5/dt */
-  }
+  // */
+  // if( !deformingBodyDataBase.has_key("elasticBeamParameters") )
+  // {
+  //   deformingBodyDataBase.put<real [10]>("elasticBeamParameters");
+  //   real *par = deformingBodyDataBase.get<real [10]>("elasticBeamParameters");
+  //   // -- set defaults ---
+  //   par[0]=0.02*0.02*0.02/12.0; // area moment of inertia
+  //   par[1]=1.4e6;  // elastic modulus
+  //   par[2]=1e4;  // density 
+  //   par[3]=0.35;  // length 
+  //   par[4]=0.02;  // thickness
+  //   par[5]=1000.0;  // pressure_norm
+  //   par[6]=0.0;
+  //   par[7] = 0.3;
+  //   par[8] = 0.0;
+
+  //   deformingBodyDataBase.put<int [10]>("elasticBeamIntegerParameters");
+
+  //   int *ipar = deformingBodyDataBase.get<int [10]>("elasticBeamIntegerParameters");
+  //   ipar[0] = 15;
+  //   ipar[1] = 0;
+  //   ipar[2] = 0;
+  //   ipar[3] = 0;
+  //   /*
+  //   deformingBodyDataBase.put<bool>("constantVolumeElasticShell",false);
+  //   deformingBodyDataBase.put<real>("integratedVolumeDiscrepancy",0.);  // holds int_t (1-V/V0) dt 
+  //   deformingBodyDataBase.put<real>("volumePenalty");
+  //   deformingBodyDataBase.get<real>("volumePenalty")=1.; // actual penalty is .5/dt */
+  // }
   
-  real *par = deformingBodyDataBase.get<real [10]>("elasticBeamParameters");
-  real & I = par[0];
-  real & Em   = par[1];
-  real & rho   = par[2];
-  real & L   = par[3];
-  real & thick =   par[4];
-  real & pnorm =   par[5];
-  real & x0 =   par[6];
-  real & y0 =   par[7];
-  real & dec =   par[8];
+  // real *par = deformingBodyDataBase.get<real [10]>("elasticBeamParameters");
+  // real & I = par[0];
+  // real & Em   = par[1];
+  // real & rho   = par[2];
+  // real & L   = par[3];
+  // real & thick =   par[4];
+  // real & pnorm =   par[5];
+  // real & x0 =   par[6];
+  // real & y0 =   par[7];
+  // real & dec =   par[8];
 
-  int *ipar = deformingBodyDataBase.get<int [10]>("elasticBeamIntegerParameters");
-  int& nelem = ipar[0];
-  int& bcl_ = ipar[1];
-  int& bcr_ = ipar[2];
-  int& exact = ipar[3];
+  // int *ipar = deformingBodyDataBase.get<int [10]>("elasticBeamIntegerParameters");
+  // int& nelem = ipar[0];
+  // int& bcl_ = ipar[1];
+  // int& bcr_ = ipar[2];
+  // int& exact = ipar[3];
 
 
-  /*
-  aString tbCommands[] = {"constant volume",
- 			  ""};
-  int tbState[10];
-  tbState[0] = constantVolumeElasticShell;
-  int numColumns=1;
-  dialog.setToggleButtons(tbCommands, tbCommands, tbState, numColumns); 
-  */
-  // ----- Text strings ------
-  const int numberOfTextStrings=20;
-  aString textLabels[numberOfTextStrings];
-  aString textStrings[numberOfTextStrings];
+  // /*
+  // aString tbCommands[] = {"constant volume",
+  // 			  ""};
+  // int tbState[10];
+  // tbState[0] = constantVolumeElasticShell;
+  // int numColumns=1;
+  // dialog.setToggleButtons(tbCommands, tbCommands, tbState, numColumns); 
+  // */
+  // // ----- Text strings ------
+  // const int numberOfTextStrings=20;
+  // aString textLabels[numberOfTextStrings];
+  // aString textStrings[numberOfTextStrings];
 
-  int nt=0;
-  textLabels[nt] = "elastic beam area moment of inertia:";  sPrintF(textStrings[nt],"%g",I); nt++;
-  textLabels[nt] = "elastic beam modulus:";  sPrintF(textStrings[nt],"%g",Em); nt++;
-  textLabels[nt] = "elastic beam density:";  sPrintF(textStrings[nt],"%g",rho); nt++;
-  textLabels[nt] = "elastic beam length:";  sPrintF(textStrings[nt],"%g",L); nt++;
-  textLabels[nt] = "elastic beam thickness:";  sPrintF(textStrings[nt],"%g",thick); nt++;
-  textLabels[nt] = "elastic beam pressure norm:";  sPrintF(textStrings[nt],"%g",pnorm); nt++;
-  textLabels[nt] = "elastic beam x0:";  sPrintF(textStrings[nt],"%g",x0); nt++;
-  textLabels[nt] = "elastic beam y0:";  sPrintF(textStrings[nt],"%g",y0); nt++;
-  textLabels[nt] = "elastic beam declination:";  sPrintF(textStrings[nt],"%g",dec); nt++;
+  // int nt=0;
+  // textLabels[nt] = "elastic beam area moment of inertia:";  sPrintF(textStrings[nt],"%g",I); nt++;
+  // textLabels[nt] = "elastic beam modulus:";  sPrintF(textStrings[nt],"%g",Em); nt++;
+  // textLabels[nt] = "elastic beam density:";  sPrintF(textStrings[nt],"%g",rho); nt++;
+  // textLabels[nt] = "elastic beam length:";  sPrintF(textStrings[nt],"%g",L); nt++;
+  // textLabels[nt] = "elastic beam thickness:";  sPrintF(textStrings[nt],"%g",thick); nt++;
+  // textLabels[nt] = "elastic beam pressure norm:";  sPrintF(textStrings[nt],"%g",pnorm); nt++;
+  // textLabels[nt] = "elastic beam x0:";  sPrintF(textStrings[nt],"%g",x0); nt++;
+  // textLabels[nt] = "elastic beam y0:";  sPrintF(textStrings[nt],"%g",y0); nt++;
+  // textLabels[nt] = "elastic beam declination:";  sPrintF(textStrings[nt],"%g",dec); nt++;
 
-  textLabels[nt] = "elastic beam number of elements:";  sPrintF(textStrings[nt],"%d",nelem); nt++;
-  textLabels[nt] = "elastic beam boundary condition (left):";  sPrintF(textStrings[nt],"%d",bcl_); nt++;
-  textLabels[nt] = "elastic beam boundary condition (right):";  sPrintF(textStrings[nt],"%d",bcr_); nt++;
-  textLabels[nt] = "elastic beam use exact solution:";  sPrintF(textStrings[nt],"%d",exact); nt++;
+  // textLabels[nt] = "elastic beam number of elements:";  sPrintF(textStrings[nt],"%d",nelem); nt++;
+  // textLabels[nt] = "elastic beam boundary condition (left):";  sPrintF(textStrings[nt],"%d",bcl_); nt++;
+  // textLabels[nt] = "elastic beam boundary condition (right):";  sPrintF(textStrings[nt],"%d",bcr_); nt++;
+  // textLabels[nt] = "elastic beam use exact solution:";  sPrintF(textStrings[nt],"%d",exact); nt++;
 
-  // null strings terminal list
-  textLabels[nt]="";   textStrings[nt]="";  assert( nt<numberOfTextStrings );
-  dialog.setTextBoxes(textLabels, textLabels, textStrings);
+  // // null strings terminal list
+  // textLabels[nt]="";   textStrings[nt]="";  assert( nt<numberOfTextStrings );
+  // dialog.setTextBoxes(textLabels, textLabels, textStrings);
 
   return 0;
 }
@@ -5461,54 +5475,55 @@ buildElasticBeamOptionsDialog(DialogData & dialog )
 int DeformingBodyMotion::
 getElasticBeamOption(const aString & answer,
 		      DialogData & dialog )
-{
-  GenericGraphicsInterface & gi = *parameters.dbase.get<GenericGraphicsInterface* >("ps");
-  GraphicsParameters & psp = parameters.dbase.get<GraphicsParameters >("psp");
+{return 0;}
+// {
+//   GenericGraphicsInterface & gi = *parameters.dbase.get<GenericGraphicsInterface* >("ps");
+//   GraphicsParameters & psp = parameters.dbase.get<GraphicsParameters >("psp");
 
-  int found=true; 
-  char buff[180];
-  aString answer2,line;
-  int len=0;
+//   int found=true; 
+//   char buff[180];
+//   aString answer2,line;
+//   int len=0;
 
-  real *par = deformingBodyDataBase.get<real [10]>("elasticBeamParameters");
-  real & I = par[0];
-  real & Em   = par[1];
-  real & rho   = par[2];
-  real & L   = par[3];
-  real & thick =   par[4];
-  real & pnorm =   par[5];
-  real & x0 =   par[6];
-  real & y0 =   par[7];
-  real & dec =   par[8];
+//   real *par = deformingBodyDataBase.get<real [10]>("elasticBeamParameters");
+//   real & I = par[0];
+//   real & Em   = par[1];
+//   real & rho   = par[2];
+//   real & L   = par[3];
+//   real & thick =   par[4];
+//   real & pnorm =   par[5];
+//   real & x0 =   par[6];
+//   real & y0 =   par[7];
+//   real & dec =   par[8];
 
-  int *ipar = deformingBodyDataBase.get<int [10]>("elasticBeamIntegerParameters");
-  int& nelem = ipar[0];
-  int& bcl_ = ipar[1];
-  int& bcr_ = ipar[2];
-  int& exact = ipar[3];
+//   int *ipar = deformingBodyDataBase.get<int [10]>("elasticBeamIntegerParameters");
+//   int& nelem = ipar[0];
+//   int& bcl_ = ipar[1];
+//   int& bcr_ = ipar[2];
+//   int& exact = ipar[3];
 
-  if(      dialog.getTextValue(answer,"elastic beam area moment of inertia:","%g",I) ){} // 
-  else if( dialog.getTextValue(answer,"elastic beam modulus:","%g",Em) ){}// 
-  else if( dialog.getTextValue(answer,"elastic beam density:","%g",rho) ){}// 
-  else if( dialog.getTextValue(answer,"elastic beam length:","%g",L) ){}// 
-  else if( dialog.getTextValue(answer,"elastic beam thickness:","%g",thick) ){}// 
-  else if( dialog.getTextValue(answer,"elastic beam pressure norm:","%g",pnorm) ){}// 
-  else if( dialog.getTextValue(answer,"elastic beam x0:","%g",x0) ){}// 
-  else if( dialog.getTextValue(answer,"elastic beam y0:","%g",y0) ){}// 
-  else if( dialog.getTextValue(answer,"elastic beam declination:","%g",dec) ){}// 
-  else if( dialog.getTextValue(answer,"elastic beam number of elements:","%d",nelem) ){}// 
-  else if( dialog.getTextValue(answer,"elastic beam boundary condition (left):","%d",bcl_) ){}// 
-  else if( dialog.getTextValue(answer,"elastic beam boundary condition (right):","%d",bcr_) ){}// 
-  else if( dialog.getTextValue(answer,"elastic beam boundary use exact solution:","%d",exact) ){}// 
+//   if(      dialog.getTextValue(answer,"elastic beam area moment of inertia:","%g",I) ){} // 
+//   else if( dialog.getTextValue(answer,"elastic beam modulus:","%g",Em) ){}// 
+//   else if( dialog.getTextValue(answer,"elastic beam density:","%g",rho) ){}// 
+//   else if( dialog.getTextValue(answer,"elastic beam length:","%g",L) ){}// 
+//   else if( dialog.getTextValue(answer,"elastic beam thickness:","%g",thick) ){}// 
+//   else if( dialog.getTextValue(answer,"elastic beam pressure norm:","%g",pnorm) ){}// 
+//   else if( dialog.getTextValue(answer,"elastic beam x0:","%g",x0) ){}// 
+//   else if( dialog.getTextValue(answer,"elastic beam y0:","%g",y0) ){}// 
+//   else if( dialog.getTextValue(answer,"elastic beam declination:","%g",dec) ){}// 
+//   else if( dialog.getTextValue(answer,"elastic beam number of elements:","%d",nelem) ){}// 
+//   else if( dialog.getTextValue(answer,"elastic beam boundary condition (left):","%d",bcl_) ){}// 
+//   else if( dialog.getTextValue(answer,"elastic beam boundary condition (right):","%d",bcr_) ){}// 
+//   else if( dialog.getTextValue(answer,"elastic beam boundary use exact solution:","%d",exact) ){}// 
 
-  else
-  {
-    found=false;
-  }
+//   else
+//   {
+//     found=false;
+//   }
   
 
-  return found;
-}
+//   return found;
+// }
 
 
 // ===================================================================================================================
@@ -6032,9 +6047,26 @@ update(CompositeGrid & cg, GenericGraphicsInterface & gi )
       deformingBodyType=userDefinedDeformingBody; 
       userDefinedDeformingBodyMotionOption=elasticBeam;
 
-      if( pBeamModel==NULL );
-        pBeamModel = new BeamModel;
 
+      if( pBeamModel==NULL )
+	{
+	  //???Longfei: ask Bill about buildElasticBeamOptionsDialog(), what are the parameters there. Commented out by me for now. Nothing seems to be wrong.
+	  //Longfei 20160331: use the sibling window to specify derived beamModel
+	  elasticBeamOptionsDialog.showSibling();
+	  for( ;; )
+	    {
+	      gi.getAnswer(answer,"");
+	      printF("answer= %s",answer.c_str());
+	      if( answer=="FEMBeamModel" )
+		pBeamModel = new FEMBeamModel;
+	      else if( answer=="FDBeamModel" )
+		pBeamModel = new FDBeamModel;
+	      else if(answer="close")
+		break;
+	      else
+		OV_ABORT("Error: unkown derived class of BeamModel");
+	    }
+	}
     }
     else if( answer=="nonlinear beam" )
     {
