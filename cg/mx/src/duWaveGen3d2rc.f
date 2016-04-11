@@ -197,7 +197,7 @@ c
      *   cc,dx,dy,dz,dt,cuu )
 c
       implicit real (t)
-      real cuu(0:*)
+      real cuu(1:*)
       real dx,dy,dz,dt,cc
       integer i
 c
@@ -275,7 +275,7 @@ c
      *   cc,dx,dy,dz,dt,cuv )
 c
       implicit real (t)
-      real cuv(0:*)
+      real cuv(1:*)
       real dx,dy,dz,dt,cc
       integer i
 c
@@ -321,7 +321,7 @@ c
      *   cc,dx,dy,dz,dt,cvu )
 c
       implicit real (t)
-      real cvu(0:*)
+      real cvu(1:*)
       real dx,dy,dz,dt,cc
       integer i
 c
@@ -398,7 +398,7 @@ c
      *   cc,dx,dy,dz,dt,cvv )
 c
       implicit real (t)
-      real cvv(0:*)
+      real cvv(1:*)
       real dx,dy,dz,dt,cc
       integer i
 c
