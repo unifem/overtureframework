@@ -1,3 +1,6 @@
+**** 2016/04/26  -- runs for the beamPaper
+conv.p tbm.conv -BM=FD -tz=trig -bcn=per -tf=1. -rhos=10. -cg=line -cfl=.9 -ng=4 -predictor=adamsBashforth  -corrector=adamsMoultonCorrector
+
 **** 2015/01/13 MORE TESTS -- new force computation
 
 TEST 4th-order projection

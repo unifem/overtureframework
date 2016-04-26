@@ -73,7 +73,6 @@ $caption= "\\caption\{tbm, $model, $name, bcn=$bcn, \$ t=$tf\$, \$ E=$Em\$, \$ r
 $outputFile="$name" . ".ConvTable.tex"; 
 # 
 $options = "-BM=$BM -predictor=$predictor  -corrector=$corrector  -tz=$tz -degreex=$degreeX -degreet=$degreeT -bc=$bcn -Em=$Em -tension=$T -rhos=$rhos -fx=$fx -ft=$ft -tf=$tf -tp=$tp -orderOfProjection=$orderOfProjection -cfl=$cfl -Kxxt=$Kxxt -smooth=$smooth  -smoothOrder=$smoothOrder  -numberOfSmooths=$numberOfSmooths  -go=go";
-#Longfei: start with Line10. Since Line5 doesn't have enough points for peridioc case (pentadiagonal needs 5 points at least)
 if( $cg eq "line" ){\
 $grid1="Line10"; $gName1 = "Line10";\
 $grid2="Line20"; $gName2 = "Line20";\
@@ -81,13 +80,14 @@ $grid3="Line40"; $gName3 = "Line40";\
 $grid4="Line80"; $gName4 = "Line80";\
 $grid5="Line160"; $gName5 = "Line160";\
 $grid6="Line320"; $gName6 = "Line320";}
-# 
-               $grid=$grid1; $res=10; $cmd="$tbmCmd -noplot -cmd=$cmdDir/tzbeam -nElem=$res $options";
-	       $grid=$grid2; $res=20; $cmd="$tbmCmd -noplot -cmd=$cmdDir/tzbeam -nElem=$res $options";
-if( $ng > 2 ){ $grid=$grid3; $res=40; $cmd="$tbmCmd -noplot -cmd=$cmdDir/tzbeam -nElem=$res $options";}
-if( $ng > 3 ){ $grid=$grid4; $res=80; $cmd="$tbmCmd -noplot -cmd=$cmdDir/tzbeam -nElem=$res $options";}
-if( $ng > 4 ){ $grid=$grid5; $res=160; $cmd="$tbmCmd -noplot -cmd=$cmdDir/tzbeam -nElem=$res $options";}
-if( $ng > 5 ){ $grid=$grid6; $res=320; $cmd="$tbmCmd -noplot -cmd=$cmdDir/tzbeam -nElem=$res $options";}
+#Longfei: make ngStart and ng work:
+$ngEnd=$ngStart+$ng;
+if($ngStart<=1 && 1 < $ngEnd){ $grid=$grid1; $res=10; $cmd="$tbmCmd -noplot -cmd=$cmdDir/tzbeam -nElem=$res $options";}	
+if($ngStart<=2 && 2 < $ngEnd){ $grid=$grid2; $res=20; $cmd="$tbmCmd -noplot -cmd=$cmdDir/tzbeam -nElem=$res $options";}
+if($ngStart<=3 && 3 < $ngEnd){ $grid=$grid3; $res=40; $cmd="$tbmCmd -noplot -cmd=$cmdDir/tzbeam -nElem=$res $options";}
+if($ngStart<=4 && 4 < $ngEnd){ $grid=$grid4; $res=80; $cmd="$tbmCmd -noplot -cmd=$cmdDir/tzbeam -nElem=$res $options";}
+if($ngStart<=5 && 5 < $ngEnd){ $grid=$grid5; $res=160; $cmd="$tbmCmd -noplot -cmd=$cmdDir/tzbeam -nElem=$res $options";}
+if($ngStart<=6 && 6 < $ngEnd){ $grid=$grid6; $res=320; $cmd="$tbmCmd -noplot -cmd=$cmdDir/tzbeam -nElem=$res $options";}
 $closeFile="true";
 # -------------------------------------------------------------------------------
 exit
