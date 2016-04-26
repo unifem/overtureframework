@@ -1427,8 +1427,8 @@ getExplicitTimeStep() const
     {
       // printF("BeamModel::getExplicitTimeStep: rho=%g, rho*A=%g, EI=%g, T=%g, K0=%g, Kt=%g, Kxxt=%g, dx=%8.2e, dt=%8.2e (dt-oldway=%8.2e) (cfl=%g).\n",
       // 	   density,density*thickness*breadth,EI,T,K0,Kt,Kxxt, dx,dt,dtOld,cfl);
-      printF("BeamModel::getExplicitTimeStep: rho=%g, rho*A=%g, EI=%g, T=%g, K0=%g, Kt=%g, Kxxt=%g, dx=%8.2e, dt=%8.2e (dt-oldway=%8.2e) (cfl=%g).\n",
-	     density,rhosAs,EI,T,K0,Kt,Kxxt, dx,dt,dtOld,cfl);
+      printF("-- BM%i -- BeamModel::getExplicitTimeStep: rho=%g, rho*A=%g, EI=%g, T=%g, K0=%g, Kt=%g, Kxxt=%g, dx=%8.2e, dt=%8.2e (dt-oldway=%8.2e) (cfl=%g).\n",
+	     getBeamID(),density,rhosAs,EI,T,K0,Kt,Kxxt, dx,dt,dtOld,cfl);
     }
   return dt;
 }
