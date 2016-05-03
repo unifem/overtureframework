@@ -1310,29 +1310,28 @@ initTwilightZone()
 // }
 
 
+  // Longfei 20160503: this function is removed.
+  // parameters can only be changed via update() function.
 // ======================================================================================================
 /// \brief Set a real beam parameter (that is in the class DataBase)
 /// \param name (input) : name of a parameter in the dbase 
 /// \param value (input) : value to assign
 /// \return value : 0=success, 1=name not found 
 // ======================================================================================================
-int BeamModel::
-setParameter( const aString & name, real & value ) 
-{
-  // Longfei 20160503: this function is disabled.
-  // parameters can only be changed via update() function.
- 
-  // if( dbase.has_key(name) )
-  //   dbase.get<real>(name)=value;
-  // else
-  //   {
-  //     printF("BeamModel::setParameter:ERROR: there is no real parameter named [%s]\n",(const char*)name);
-  //     return 1;
-  //   }
+// int BeamModel::
+// setParameter( const aString & name, real & value ) 
+// {
 
-  printF("BeamModel::setParameter:ERROR: this function is disabled. Change parameters using BeamModel::update() only\n");
-  return 0;
-}
+//   if( dbase.has_key(name) )
+//     dbase.get<real>(name)=value;
+//   else
+//     {
+//       printF("BeamModel::setParameter:ERROR: there is no real parameter named [%s]\n",(const char*)name);
+//       return 1;
+//     }
+
+//   return 0;
+// }
 
 
 // ======================================================================================================

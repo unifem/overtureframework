@@ -414,8 +414,10 @@ public:
   //
   void setAddedMassRelaxation(double omega);
 
+  // Longfei 20160503: this function is removed.
+  // parameters can only be changed via update() function.
   // Set a real beam parameter (in the dbase). 
-  int setParameter( const aString & name, real & value );
+  //int setParameter( const aString & name, real & value );
 
   // Longfei 20160330: new function that sets the surface force:
   // Set the surface force (used to project traction on beam surface to beam neutral line)
