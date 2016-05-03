@@ -176,7 +176,7 @@ TestBeamModel::
 
 //Longfei 20160120:
 // ========================================================================================
-/// \brief plot the beam solution.
+/// \brief check if beam is initialized
 // ========================================================================================
 bool TestBeamModel::
 checkBeamInitialization()
@@ -406,7 +406,7 @@ solve(GenericGraphicsInterface & gi, GraphicsParameters & psp )
 
   if( beamModelType==linearBeamModel )
     {
-      beam.setParameter("cfl",cfl);
+      // beam.setParameter("cfl",cfl);
 
       //beam.writeParameterSummary();
     }

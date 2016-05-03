@@ -10,7 +10,7 @@ linear beam model
 # 
 tFinal: 0.5
 tPlot: 0.05
-cfl: $cfl
+#cfl: $cfl
 # 
 change beam parameters
 #
@@ -29,6 +29,7 @@ density: 100.
 thickness: 0.1
 length: 1
 debug: 1
+cfl: $cfl
 #
 initial conditions...
   standing wave

@@ -1319,14 +1319,18 @@ initTwilightZone()
 int BeamModel::
 setParameter( const aString & name, real & value ) 
 {
-  if( dbase.has_key(name) )
-    dbase.get<real>(name)=value;
-  else
-    {
-      printF("BeamModel::setParameter:ERROR: there is no real parameter named [%s]\n",(const char*)name);
-      return 1;
-    }
-  
+  // Longfei 20160503: this function is disabled.
+  // parameters can only be changed via update() function.
+ 
+  // if( dbase.has_key(name) )
+  //   dbase.get<real>(name)=value;
+  // else
+  //   {
+  //     printF("BeamModel::setParameter:ERROR: there is no real parameter named [%s]\n",(const char*)name);
+  //     return 1;
+  //   }
+
+  printF("BeamModel::setParameter:ERROR: this function is disabled. Change parameters using BeamModel::update() only\n");
   return 0;
 }
 

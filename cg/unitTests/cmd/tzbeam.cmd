@@ -40,7 +40,7 @@ $BM
 # 
 tFinal: $tf
 tPlot: $tp
-cfl: $cfl
+#cfl: $cfl
 # 
 change beam parameters
 #
@@ -70,7 +70,8 @@ Kxxt: $Kxxt
 density: $rhos
 thickness: $hs
 length: 1
-debug: $debug 
+debug: $debug
+cfl:$cfl
 #
 use new tridiagonal solver $useNewTri
 #
