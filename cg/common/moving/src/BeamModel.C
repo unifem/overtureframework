@@ -1340,10 +1340,12 @@ initTwilightZone()
 real BeamModel::
 getTimeStep() const
 {
+  
   real dt = getExplicitTimeStep();
-
+   
   return dt;
 }
+
 
 
 // ==================================================================
@@ -1353,9 +1355,14 @@ getTimeStep() const
 real BeamModel::
 getExplicitTimeStep() const
 {
+  // ****************************************
+  // note that this time-step does not work for the FEMBeamModel using explicite methods.
+  // for FEMBeamModel, it works with cfl=0.1. I think this is due to the eigenvalue of mass matrix.
+  // ****************************************
+
+
   //Longfei 20160121: new way of handling paramters
   const real & density = dbase.get<real>("density");
-  
   
   // estimate the expliciit time step 
 
@@ -1376,9 +1383,12 @@ getExplicitTimeStep() const
   const real cfl = dbase.get<real>("cfl");
   //const real rhosAs= density*thickness*breadth;
   const real & rhosAs = dbase.get<real>("massPerUnitLength");
+
+
   
   real dt, dtOld;
-  if( true )
+  //Longfei 20150515: this dtOld is not used any more. Disabled
+  if( false )
     {
       // *OLD WAY*
       const real c4=1., c2=4.;
@@ -1392,6 +1402,12 @@ getExplicitTimeStep() const
   
     }
 
+  aString caseName="under-damped";
+  real delta=0.;
+  if(!dbase.get<bool>("isCubicHermiteFEM") && dbase.get<bool>("useSameStencilSize"))
+    {
+      delta=1.; // use the same five-point stencil for all the difference operators
+    }
   if( true )
     {
       // **NEW WAY**
@@ -1399,28 +1415,57 @@ getExplicitTimeStep() const
       // Compute the time stepping eigenvalue from the first order system
       //     u' = v 
       //   rhos*As*v' = - K0*u - Kt*v + T*uxx + Kxxt*vxxt - EI*uxxxx
-      // 
+      //
+      // Longfei 20160516:
+      // ** NEWER WAY**
+      // we approximate the stability region using a superellipse: abs(lambdaRe/a)^n +abs(lambdaIm/b)^n <=1
+      // the parameters used are:
+      //      if LP  +AM2, then a = 1.; b = 1.3; n = 1.5;
+      //      if AB2+AM2, then a = 1.75; b = 1.2; n = 1.5;
+      //      othwesie, a = 1.; b = 1.; n = 2.;
+     
       real dx2=dx*dx, dx4=dx2*dx2;
       real Bhat = ( Kt + Kxxt*(4./dx2) )/rhosAs;               // damping coefficient
-      real Ahat = ( K0 + T*(4./dx2) + EI*(16./dx4 ))/rhosAs;   // 
+      real Khat = ( K0 + T*(4./dx2+delta*4./(3.*dx2)) + EI*(16./dx4 ))/rhosAs;   // beam operator coefficient
 
-      // Guess: explicit stability region goes to -1 on the real axis and 1 on the imaginary
-      const real alpha=1., beta=1;   
-  
+      // Guess: explicit stability region goes to a on the real axis and b on the imaginary within a superellipse.
+      real a=1., b=1., n=2.;
+      if( dbase.get<TimeSteppingMethod>("correctorMethod")==adamsMoultonCorrector)
+	{
+	  if(dbase.get<TimeSteppingMethod>("predictorMethod")==leapFrog )
+	    {
+	      a = 1.; b = 1.3; n=1.5;
+	    }
+	  else if(dbase.get<TimeSteppingMethod>("predictorMethod")==adamsBashforth2 )
+	    {
+	      a = 1.; b = 1.3; n=1.5;
+	    }
+	}
+      
+
+      // Longfei 20160515:
+      real dtMax = 0.1; // max allowed dt.
       real lambdaReal=0, lambdaIm=0.;
-      if( Bhat < 2*sqrt(Ahat) )
+      if( Bhat < 2*sqrt(Khat) )
 	{
 	  lambdaReal = -Bhat*.5;
-	  lambdaIm   =  sqrt( Ahat - SQR(Bhat*.5) );
+	  lambdaIm   =  sqrt( Khat - SQR(Bhat*.5) );
 
-	  dt = cfl/sqrt( SQR(lambdaReal/alpha) + SQR(lambdaIm/beta) );
+	  // dt = cfl/sqrt( SQR(lambdaReal/a) + SQR(lambdaIm/b) ); // old way using ellipse to approximate the stability region
+	  dt = cfl/pow(pow(abs(lambdaReal/a),n)+pow(abs(lambdaIm/b),n),1./n); // new way using superellipse with power n  to approximate the stability region
 	}
       else
 	{
-	  lambdaReal = Bhat*.5 + sqrt( SQR(Bhat*.5) - Ahat );
-
-	  dt = cfl*alpha/lambdaReal;
+	  //Longfei: this  old lambdaReal was wrong...check the  beamPaper for over-damped case
+	  // lambdaReal = Bhat*.5 + sqrt( SQR(Bhat*.5) - Ahat );  // 
+	  // new:
+	  caseName="over-damped";
+	  lambdaReal = -Bhat;
+	  dt = cfl*a/abs(lambdaReal);
 	}
+
+      //Longfei 20160515: make sure dt not exceed dtMax
+      dt = min(dt,dtMax);
   
     }
   
@@ -1430,8 +1475,8 @@ getExplicitTimeStep() const
     {
       // printF("BeamModel::getExplicitTimeStep: rho=%g, rho*A=%g, EI=%g, T=%g, K0=%g, Kt=%g, Kxxt=%g, dx=%8.2e, dt=%8.2e (dt-oldway=%8.2e) (cfl=%g).\n",
       // 	   density,density*thickness*breadth,EI,T,K0,Kt,Kxxt, dx,dt,dtOld,cfl);
-      printF("-- BM%i -- BeamModel::getExplicitTimeStep: rho=%g, rho*A=%g, EI=%g, T=%g, K0=%g, Kt=%g, Kxxt=%g, dx=%8.2e, dt=%8.2e (dt-oldway=%8.2e) (cfl=%g).\n",
-	     getBeamID(),density,rhosAs,EI,T,K0,Kt,Kxxt, dx,dt,dtOld,cfl);
+      printF("-- BM%i -- BeamModel::getExplicitTimeStep (%s): rho=%g, rho*A=%g, EI=%g, T=%g, K0=%g, Kt=%g, Kxxt=%g, dx=%8.2e, dt=%8.2e  (cfl=%g).\n",
+	     getBeamID(),caseName.c_str(),density,rhosAs,EI,T,K0,Kt,Kxxt, dx,dt,cfl);
     }
   return dt;
 }
@@ -5168,6 +5213,7 @@ corrector(real tnp1, real dt )
       const real am2=0.5*dt;
       v3 = v2+am1*a3+am2*a2;
       x3 = x2+am1*v3+am2*v2;
+      computeAcceleration(tnp1, x3,v3,f3, a3,  linaccel,omegadd,dt,"explicitSolver" );	    	    
     }
   else if(correctorMethod==newmarkCorrector)
     {

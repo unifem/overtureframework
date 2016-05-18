@@ -443,7 +443,10 @@ solve(GenericGraphicsInterface & gi, GraphicsParameters & psp )
   dt=-1;
   if( beamModelType==linearBeamModel )
     {
-      dt = beam.getExplicitTimeStep();
+      // Longfei: old way
+      // dt = beam.getExplicitTimeStep();
+      // 20160518: new way
+       dt = beam.getTimeStep();
       // dt=dt*cfl;
     }
   else if( beamModelType==nonlinearBeamModel )
