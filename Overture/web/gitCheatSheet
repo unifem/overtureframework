@@ -71,6 +71,20 @@ alias gits 'git status --untracked-files=no'
 alias gitpush 'git push origin master'
 alias gitpull 'git pull --rebase'
 
+(2.10) Use git fetch to copy the files from the master repo to store locally in a copy
+    of the master (remote-tracking branch) but do NOT merge with your local branch. 
+    (git pull = git-fetch + git-merge). Do a ftech if you want to see differences
+    between your branch and the master version.
+
+
+    See discussion in 
+        https://www.atlassian.com/git/tutorials/syncing/git-remote
+
+    The git fetch command imports commits from a remote repository into your local repo. The
+    resulting commits are stored as remote branches instead of the normal local branches that we’ve
+    been working with. This gives you a chance to review changes before integrating them into your
+    copy of the project.
+
 
 ------------------------------------------------------------------------------------------------
 (3) To build a version of Overture from the git repo:

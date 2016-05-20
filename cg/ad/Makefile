@@ -9,7 +9,7 @@ NODEP := $(strip $(filter usage doc clean cleano cleanc cleandep,$(MAKECMDGOALS)
 # ==== optional capabilities: use on/off =================
 
 # sparse solver packages:
-usePETSc   := on
+usePETSc   := off
 useSuperLU := off
 
 include configFile
