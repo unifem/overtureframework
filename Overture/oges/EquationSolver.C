@@ -164,10 +164,23 @@ setExtraEquationValues( realCompositeGridFunction & f, real *value )
 //==================================================================================
 {
   // here is the default implementation 
+
+  if( ! oges.dbase.has_key("extraEquationRightHandSideValues") )
+  {
+    // save RHS values here too, in case the user wants to know them
+    oges.dbase.put<RealArray>("extraEquationRightHandSideValues");
+  }
+
+  RealArray & extraEquationRightHandSideValues = oges.dbase.get<RealArray>("extraEquationRightHandSideValues");
+  extraEquationRightHandSideValues.redim(oges.numberOfExtraEquations);
+  extraEquationRightHandSideValues=0.;
+
   CompositeGrid & cg = *f.getCompositeGrid();
   assert( oges.extraEquationNumber.getLength(0)>=oges.numberOfExtraEquations );
   for( int i=0; i<oges.numberOfExtraEquations; i++ )
   {
+    extraEquationRightHandSideValues(i)=value[i]; // save RHS values here too
+
     int ne,i1e,i2e,i3e,gride;
     oges.equationToIndex( oges.extraEquationNumber(i),ne,i1e,i2e,i3e,gride);
     f[gride](i1e,i2e,i3e,ne)=value[i];
@@ -191,32 +204,106 @@ setExtraEquationValues( realCompositeGridFunction & f, real *value )
 
 
 int EquationSolver::
-getExtraEquationValues( const realCompositeGridFunction & u, real *value )
+getExtraEquationValues( RealArray & values ) const
 //==================================================================================
-// /Description:
-//   Return solution values from the extra equations
+/// \brief Return solution values from the extra equations
+///
+/// \param values (output) : values for each extra equation, i=0,1,2,...,numberOfExtraEquations-1
 //
-// /u(input) : grid function holding the solution.
-// /value[i] (output) : values for each extra equation, i=0,1,2,...,
-// 
-// /Return values: 0=success
-// /Author: wdh
 //==================================================================================
 {
   // here is the default implementation 
-  const CompositeGrid & cg = *u.getCompositeGrid();
-  assert( oges.extraEquationNumber.getLength(0)>=oges.numberOfExtraEquations );
-  for( int i=0; i<oges.numberOfExtraEquations; i++ )
+  if( oges.numberOfExtraEquations <=0 )
+    return 0;
+  
+  if( ! oges.dbase.has_key("extraEquationValues") )
   {
-    int ne,i1e,i2e,i3e,gride;
-    oges.equationToIndex( oges.extraEquationNumber(i),ne,i1e,i2e,i3e,gride);
-    value[i]=u[gride](i1e,i2e,i3e,ne);
-
-    if( Oges::debug & 4 )
-      printF("EquationSolver::getExtraEquationValues: value[%i] = u[%i](%i,%i,%i,%i)= %14.10e \n",
-           i,gride,i1e,i2e,i3e,ne,u[gride](i1e,i2e,i3e,ne));
-
+    printF("Oges::EquationSolver:ERROR:getExtraEquationValues: extraEquationValues array has not be created!\n");
+    OV_ABORT("error");
   }
+
+  RealArray & extraEquationValues = oges.dbase.get<RealArray>("extraEquationValues");
+  values.redim(extraEquationValues.dimension(0));
+  
+  values = extraEquationValues;
+  
+  return 0;
+}
+
+int EquationSolver::
+getExtraEquationRightHandSideValues( RealArray & values ) const
+//==================================================================================
+/// \brief Return the currect values in the right-hand-side for the extra equations.
+///
+/// \param values (output) : values for each extra equation, i=0,1,2,...,numberOfExtraEquations-1
+//
+//==================================================================================
+{
+  // here is the default implementation 
+  if( oges.numberOfExtraEquations <=0 )
+    return 0;
+  
+  if( ! oges.dbase.has_key("extraEquationRightHandSideValues") )
+  {
+    printF("Oges::EquationSolver:ERROR:getExtraEquationRightHandSideValues: extraEquationRightHandSideValues array has not be created!\n");
+    OV_ABORT("error");
+  }
+
+  RealArray & extraEquationRightHandSideValues = oges.dbase.get<RealArray>("extraEquationRightHandSideValues");
+  values.redim(extraEquationRightHandSideValues.dimension(0));
+  
+  values = extraEquationRightHandSideValues;
+  
+  return 0;
+}
+
+int EquationSolver::
+getExtraEquationValues( const realCompositeGridFunction & u, real *value, const int maxNumberToReturn /* =1 */ )
+//==================================================================================
+/// \brief Return solution values from the extra equations *OLD WAY*
+///
+/// \param u (input) : grid function holding the solution.
+/// \param value[i] (output) : values for each extra equation, i=0,1,2,...,
+/// \param maxNumberToReturn (input) : max number of values to return.
+//
+//==================================================================================
+{
+  // *new* way *wdh*  May 8, 2016
+  if( ! oges.dbase.has_key("extraEquationValues") )
+  {
+    printF("Oges::EquationSolver:ERROR:getExtraEquationValues: extraEquationValues array has not be created!\n");
+    OV_ABORT("error");
+  }
+  RealArray & extraEquationValues = oges.dbase.get<RealArray>("extraEquationValues");
+  const int numExtra=min(maxNumberToReturn,oges.numberOfExtraEquations);
+
+  if( false )
+  {
+    for( int i=0; i<numExtra; i++ )
+      value[i]=extraEquationValues(i);
+  }
+  else
+  {
+    // *old way*
+    // here is the default implementation 
+    const CompositeGrid & cg = *u.getCompositeGrid();
+    assert( oges.extraEquationNumber.getLength(0)>=oges.numberOfExtraEquations );
+
+    // const int numExtra=min(maxNumberToReturn,oges.numberOfExtraEquations); // *wdh* May 7, 2016
+  
+    for( int i=0; i<numExtra; i++ )
+    {
+      int ne,i1e,i2e,i3e,gride;
+      oges.equationToIndex( oges.extraEquationNumber(i),ne,i1e,i2e,i3e,gride);
+      value[i]=u[gride](i1e,i2e,i3e,ne);
+
+      if( true || Oges::debug & 4 )
+	printF("--OGES--EQS::getExtraEquationValues: eqn=%i value[%i]=u[%i](%i,%i,%i,%i)= %14.10e (new=%14.10e)\n",
+	       oges.extraEquationNumber(i),i,gride,i1e,i2e,i3e,ne,u[gride](i1e,i2e,i3e,ne),extraEquationValues(i));
+
+    }
+  }
+    
   return 0;
 }
 

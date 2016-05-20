@@ -20,6 +20,10 @@
 #  plotStuff plotDisk.cmd -show=did4bd1p0d.show -matlab=did4bd1p0d  nu=.01
 #
 #  plotStuff plotDisk.cmd -show=did2bd1p0e.show -matlab=did2bd1p0e   nu=1
+#
+#  -- redo some cases:     
+#  plotStuff plotDisk.cmd -show=did2bd1p0new.show
+#
 # rhos=100
 #  plotStuff plotDisk.cmd -show=did2bd100p0a.show                   
 # 

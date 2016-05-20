@@ -843,9 +843,10 @@ assignPressureRHS( const int grid, GridFunction & gf0, realCompositeGridFunction
     real thermalExpansivity=1.;
     parameters.dbase.get<ListOfShowFileParameters >("pdeParameters").getParameter("thermalExpansivity",thermalExpansivity);
     parameters.dbase.get<ListOfShowFileParameters >("pdeParameters").getParameter("adcBoussinesq",adcBoussinesq);
-    const ArraySimpleFixed<real,3,1,1,1> &gravity=parameters.dbase.get<ArraySimpleFixed<real,3,1,1,1> >("gravity");
-  //  const real *gravity=parameters.dbase.get<ArraySimpleFixed<real,3,1,1,1> >("gravity");
-    
+    // const ArraySimpleFixed<real,3,1,1,1> &gravity=parameters.dbase.get<ArraySimpleFixed<real,3,1,1,1> >("gravity");
+    // get the gravity vector -- may be time dependent for a slow start
+    real gravity[3];
+    parameters.getGravityVector( gravity,gf0.t );
     
     real surfaceTension=0.;
     parameters.dbase.get<ListOfShowFileParameters >("pdeParameters").getParameter("surfaceTension",surfaceTension);

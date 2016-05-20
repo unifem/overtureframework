@@ -126,12 +126,19 @@ projectInitialConditionsForMovingGrids(int gfIndex)
     //    body forces depend on the pressure and the pressure depends on the forces.
 
     // useMovingGridSubIterations : use multiple sub-iterations per time-step for moving grid problems with light bodies
-    const bool & useMovingGridSubIterations = parameters.dbase.get<bool>("useMovingGridSubIterations");
+    bool & useMovingGridSubIterations = parameters.dbase.get<bool>("useMovingGridSubIterations");
 
-    int numberOfCorrections=1;
-    if( movingGridProblem() && useMovingGridSubIterations  )
-      numberOfCorrections= parameters.dbase.get<int>("numberOfPCcorrections"); 
+    int numberOfCorrections=1;  
 
+    if( movingGridProblem() )
+    {
+      // numberOfCorrections = 10; // Default number of corrections for moving grids : *FIX ME* 
+      // useMovingGridSubIterations=true;  // ****TEMP*** 
+
+      if( useMovingGridSubIterations  )
+	numberOfCorrections= max(numberOfCorrections,parameters.dbase.get<int>("numberOfPCcorrections")); 
+    }
+    
     printF("--INS--::projectInitialConditionsForMovingGrids: useMovingGridSubIterations=%i numberOfCorrections=%i\n",(int)useMovingGridSubIterations,
 	   numberOfCorrections);
 

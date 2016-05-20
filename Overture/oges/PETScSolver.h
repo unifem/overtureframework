@@ -72,7 +72,8 @@ int fillInterpolationCoefficients(realCompositeGridFunction & uu);
 virtual int setExtraEquationValues( realCompositeGridFunction & f, real *value );
 
 // return solution values from the extra equations
-virtual int getExtraEquationValues( const realCompositeGridFunction & u, real *value );
+// Old way:
+virtual int getExtraEquationValues( const realCompositeGridFunction & u, real *value, const int maxNumberToReturn=1 );
 
 // evaluate the dot product of an extra equation times u 
 virtual int evaluateExtraEquation( const realCompositeGridFunction & u, real & value, int extraEquation=0 );

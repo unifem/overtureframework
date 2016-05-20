@@ -1,5 +1,420 @@
-Dropping stick in a box to test added mass and added damping
+Falling body examples to test added mass and added damping
 
+
+*************************************
+****** May 14, 2016
+
+*NEW* ADDED OPTION FOR BACKWARD EULER COORECTOR IN RIGID BODY
+
+NOTE Backward-Euler works with NO added-damping, some wiggles in w3t
+Backward-Euler is OK for AD=4, AD=2, AD=1, AD=.1 OK 
+Backward-Euler for RB, GRAVITY=1, RHOS=.1 -- OK , AD=1: some wiggles in a2, w3 --> AD=4 : wiggles growing 
+cgins -noplot fallingBody.cmd -g=fallingBodyGride4.order2 -tf=10. -tp=.1 -nu=.01 -ts=im -density=.1 -radius=1. -gravity=1. -amp=.1 -dtMax=.04 -project=0 -numberOfCorrections=2 -omega=.2 -addedMass=1 -addedDamping=0 -addedDampingCoeff=.1 -scaleAddedDampingWithDt=0 -addedDampingProjectVelocity=1 -useProvidedAcceleration=1 -useTP=0 -implicitFactor=1. -debug=3 -solver=best -psolver=best -rtolp=1.e-4 -atolp=1.e-6 -rtol=1.e-4 -atol=1.e-5 -ad2=0 -show=fallingBodyG4d0p1ampBE.show -go=go >! fallingBodyG4d0p1BE.out
+
+*************************************
+****** May 14, 2016
+RAMP GRAVITY, rerun 
+
+
+LIGHT BODY, Reverse GRAVITY
+
+G8, GRAVITY=1, RHOS=.1 DT=.02  -- some very small plus-minus wiggles in a2 but likely CN disease
+cgins -noplot fallingBody.cmd -g=fallingBodyGride8.order2 -tf=10. -tp=.1 -nu=.01 -ts=im -density=.1 -radius=1. -gravity=1. -amp=.1 -dtMax=.02 -project=0 -numberOfCorrections=2 -omega=.2 -addedMass=1 -addedDamping=1 -addedDampingCoeff=8 -scaleAddedDampingWithDt=0 -addedDampingProjectVelocity=1 -useProvidedAcceleration=1 -useTP=0 -debug=3 -solver=best -psolver=best -rtolp=1.e-4 -atolp=1.e-6 -rtol=1.e-4 -atol=1.e-5 -ad2=0 -show=fallingBodyG8d0p1ampA.show -go=go >! fallingBodyG8d0p1A.out
+
+G8, GRAVITY=1, RHOS=.1 -- OK  AD=8 -- some wiggles in a2 but likely CN disease
+cgins -noplot fallingBody.cmd -g=fallingBodyGride8.order2 -tf=10. -tp=.1 -nu=.01 -ts=im -density=.1 -radius=1. -gravity=1. -amp=.1 -dtMax=.04 -project=0 -numberOfCorrections=2 -omega=.2 -addedMass=1 -addedDamping=1 -addedDampingCoeff=8 -scaleAddedDampingWithDt=0 -addedDampingProjectVelocity=1 -useProvidedAcceleration=1 -useTP=0 -debug=3 -solver=best -psolver=best -rtolp=1.e-4 -atolp=1.e-6 -rtol=1.e-4 -atol=1.e-5 -ad2=0 -show=fallingBodyG8d0p1amp.show -go=go >! fallingBodyG8d0p1.out
+
+GRAVITY=1, RHOS=.1 -- OK , AD=1: some wiggles in a2, w3 --> AD=4 : wiggles growing 
+cgins -noplot fallingBody.cmd -g=fallingBodyGride4.order2 -tf=10. -tp=.1 -nu=.01 -ts=im -density=.1 -radius=1. -gravity=1. -amp=.1 -dtMax=.04 -project=0 -numberOfCorrections=2 -omega=.2 -addedMass=1 -addedDamping=1 -addedDampingCoeff=4 -scaleAddedDampingWithDt=0 -addedDampingProjectVelocity=1 -useProvidedAcceleration=1 -useTP=0 -debug=3 -solver=best -psolver=best -rtolp=1.e-4 -atolp=1.e-6 -rtol=1.e-4 -atol=1.e-5 -ad2=0 -show=fallingBodyG4d0p1ampAD4.show -go=go >! fallingBodyG4d0p1AD4.out
+
+GRAVITY=1, RHOS=.5 -- OK
+cgins -noplot fallingBody.cmd -g=fallingBodyGride4.order2 -tf=5. -tp=.1 -nu=.01 -ts=im -density=.5 -radius=1. -gravity=1. -amp=.1 -dtMax=.04 -project=0 -numberOfCorrections=2 -omega=.2 -addedMass=1 -addedDamping=1 -addedDampingCoeff=1 -scaleAddedDampingWithDt=0 -addedDampingProjectVelocity=1 -useProvidedAcceleration=1 -useTP=0 -debug=3 -solver=best -psolver=best -rtolp=1.e-4 -atolp=1.e-6 -rtol=1.e-4 -atol=1.e-5 -ad2=0 -show=fallingBodyG4d0p5amp.show -go=go >! fallingBodyG4d0p5.out
+
+
+
+REDUCE DAMPING
+
+G4: AMP: dt=.02 AD=1 --> OK,  AD=.1 --> OK 
+cgins -noplot fallingBody.cmd -g=fallingBodyGride4.order2 -tf=5. -tp=.1 -nu=.01 -ts=im -density=2 -radius=1. -gravity=-1. -amp=.1 -dtMax=.02 -project=0 -numberOfCorrections=2 -omega=.2 -addedMass=1 -addedDamping=1 -addedDampingCoeff=.1 -scaleAddedDampingWithDt=0 -addedDampingProjectVelocity=1 -useProvidedAcceleration=1 -useTP=0 -debug=3 -solver=best -psolver=best -rtolp=1.e-4 -atolp=1.e-6 -rtol=1.e-4 -atol=1.e-5 -ad2=0 -show=fallingBodyG4d2p0ampAD1.show -go=go >! fallingBodyG4d2p0ampAD1.out
+
+G8: dt=.01 
+cgins -noplot fallingBody.cmd -g=fallingBodyGride8.order2 -tf=5. -tp=.1 -nu=.01 -ts=im -density=2 -radius=1. -gravity=-1. -amp=.1 -dtMax=.01 -project=0 -numberOfCorrections=2 -omega=.2 -addedMass=1 -addedDamping=1 -addedDampingCoeff=5. -scaleAddedDampingWithDt=0 -addedDampingProjectVelocity=1 -useProvidedAcceleration=1 -useTP=0 -debug=3 -solver=best -psolver=best  -rtolp=1.e-5 -atolp=1.e-6 -rtol=1.e-5 -atol=1.e-6 -ad2=0 -show=fallingBodyG8d2p0ampII.show -go=go >! fallingBodyG8d2p0ampII.out
+
+G8: 
+cgins -noplot fallingBody.cmd -g=fallingBodyGride8.order2 -tf=5. -tp=.1 -nu=.01 -ts=im -density=2 -radius=1. -gravity=-1. -amp=.1 -dtMax=.02 -project=0 -numberOfCorrections=2 -omega=.2 -addedMass=1 -addedDamping=1 -addedDampingCoeff=5. -scaleAddedDampingWithDt=0 -addedDampingProjectVelocity=1 -useProvidedAcceleration=1 -useTP=0 -debug=3 -solver=best -psolver=best  -rtolp=1.e-4 -atolp=1.e-5 -rtol=1.e-4 -atol=1.e-5 -ad2=0 -show=fallingBodyG8d2p0amp.show -go=go >! fallingBodyG8d2p0amp.out
+
+G4: TP-SI: dt=.02
+cgins -noplot fallingBody.cmd -g=fallingBodyGride4.order2 -tf=5. -tp=.1 -nu=.01 -ts=im -density=2 -radius=1. -gravity=-1. -amp=.1 -dtMax=.02 -project=0 -numberOfCorrections=1000 -omega=.1 -addedMass=0 -addedDamping=0 -addedDampingCoeff=5. -scaleAddedDampingWithDt=0 -addedDampingProjectVelocity=0 -useProvidedAcceleration=0 -useTP=1 -debug=3 -solver=best -psolver=best -rtolp=1.e-4 -atolp=1.e-5 -rtol=1.e-4 -atol=1.e-5 -ad2=0 -show=fallingBodyG4d2p0.show -go=go >! fallingBodyG4d2p0.out
+
+G4: AMP: dt=.02
+cgins -noplot fallingBody.cmd -g=fallingBodyGride4.order2 -tf=5. -tp=.1 -nu=.01 -ts=im -density=2 -radius=1. -gravity=-1. -amp=.1 -dtMax=.02 -project=0 -numberOfCorrections=2 -omega=.2 -addedMass=1 -addedDamping=1 -addedDampingCoeff=5. -scaleAddedDampingWithDt=0 -addedDampingProjectVelocity=1 -useProvidedAcceleration=1 -useTP=0 -debug=3 -solver=best -psolver=best -rtolp=1.e-4 -atolp=1.e-6 -rtol=1.e-4 -atol=1.e-5 -ad2=0 -show=fallingBodyG4d2p0amp.show -go=go >! fallingBodyG4d2p0amp.out
+
+cgins -noplot fallingBody.cmd -g=fallingBodyGride4.order2 -tf=5. -tp=.01 -nu=.01 -ts=im -density=2 -radius=1. -gravity=-1. -amp=.1 -dtMax=.01 -project=0 -numberOfCorrections=2 -omega=.2 -addedMass=1 -addedDamping=1 -addedDampingCoeff=5. -scaleAddedDampingWithDt=0 -addedDampingProjectVelocity=1 -useProvidedAcceleration=1 -useTP=0 -debug=3 -solver=best -psolver=best -rtolp=1.e-4 -atolp=1.e-8 -rtol=1.e-6 -atol=1.e-7 -ad2=0 -go=og
+
+
+
+====== Re-run single falling body with iterative solver
+
+G8: 
+cgins -noplot fallingBody.cmd -g=fallingBodyGride8.order2 -tf=5. -tp=.1 -nu=.01 -ts=im -density=2 -radius=1. -gravity=-1. -amp=.1 -dtMax=.02 -project=0 -numberOfCorrections=2 -omega=.2 -addedMass=1 -addedDamping=1 -addedDampingCoeff=5. -scaleAddedDampingWithDt=0 -addedDampingProjectVelocity=1 -useProvidedAcceleration=1 -useTP=0 -debug=3 -solver=best -psolver=best -ad2=0 -show=fallingBodyG8d2p0ampVp.show -go=go >! fallingBodyG8d2p0ampVp.out
+
+
+***OK*** Three times faster
+ITERATIVE RHOS=2.0 GRAVITY=-1 AMP VELOCITY-PROJECTION dtmax=.02 
+cgins -noplot fallingBody.cmd -g=fallingBodyGride4.order2 -tf=5. -tp=.1 -nu=.01 -ts=im -density=2 -radius=1. -gravity=-1. -amp=.1 -dtMax=.02 -project=0 -numberOfCorrections=2 -omega=.2 -addedMass=1 -addedDamping=1 -addedDampingCoeff=5. -scaleAddedDampingWithDt=0 -addedDampingProjectVelocity=1 -useProvidedAcceleration=1 -useTP=0 -debug=3 -solver=best -psolver=best -ad2=0 -show=fallingBodyG4d2p0ampVpi.show -go=go >! fallingBodyG4d2p0ampVpi.out
+
+
+        ---Cgins Summary : ins --- 
+            Sat May 14 11:54:21 2016
+            Grid file=[fallingBodyGride4.order2.hdf]
+  ==== numberOfStepsTaken =373, number of grids=3, number of gridpts =8390, Np=1 (procs) ==== 
+  ==== tFinal=5.000e+00, tInitial=0.000e+00, dt(ave)=1.34e-02 ====
+  ==== memory/proc: [min=70.375,ave=70.375,max=70.375]Mb, max-recorded=0 Mb, total=70.375 Mb, 1099.4 reals/(grid-pt)
+   Timings:           (ave-sec/proc:) seconds   sec/step    TPSM     TTS       %    [max-s/proc] [min-s/proc]
+total time.......................... 6.68e+01   1.79e-01  2.1e+01  4.0e+01  100.000   6.68e+01     6.68e+01
+setup and initialize................ 2.19e-01   5.88e-04  7.0e-02  1.3e-01    0.328   2.19e-01     2.19e-01
+advance............................. 6.66e+01   1.79e-01  2.1e+01  4.0e+01   99.671   6.66e+01     6.66e+01
+  compute du/dt..................... 1.73e+00   4.63e-03  5.5e-01  1.0e+00    2.586   1.73e+00     1.73e+00
+  boundary conditions............... 8.45e-01   2.26e-03  2.7e-01  5.0e-01    1.265   8.45e-01     8.45e-01
+  moving grids...................... 1.69e+01   4.54e-02  5.4e+00  1.0e+01   25.368   1.69e+01     1.69e+01
+    grid generation (ogen).......... 1.25e+01   3.36e-02  4.0e+00  7.5e+00   18.764   1.25e+01     1.25e+01
+  moving update grids,gf............ 2.68e-02   7.18e-05  8.6e-03  1.6e-02    0.040   2.68e-02     2.68e-02
+  moving update operators........... 4.23e+00   1.13e-02  1.4e+00  2.5e+00    6.336   4.23e+00     4.23e+00
+  moving update Interpolant......... 5.65e-03   1.52e-05  1.8e-03  3.4e-03    0.008   5.65e-03     5.65e-03
+  interpolate exposed pts........... 5.20e-01   1.40e-03  1.7e-01  3.1e-01    0.779   5.20e-01     5.20e-01
+  implicit time stepping............ 8.52e+00   2.28e-02  2.7e+00  5.1e+00   12.746   8.52e+00     8.52e+00
+  compute dt........................ 8.41e-02   2.25e-04  2.7e-02  5.0e-02    0.126   8.41e-02     8.41e-02
+  time independent variables........ 2.27e+01   6.10e-02  7.3e+00  1.4e+01   34.047   2.27e+01     2.27e+01
+    update pressure equation........ 5.54e+00   1.48e-02  1.8e+00  3.3e+00    8.289   5.54e+00     5.54e+00
+    pressure solve.................. 1.83e+01   4.91e-02  5.8e+00  1.1e+01   27.397   1.83e+01     1.83e+01
+    assign pressure rhs............. 1.61e+00   4.33e-03  5.2e-01  9.6e-01    2.415   1.61e+00     1.61e+00
+  plotting.......................... 2.36e-02   6.32e-05  7.5e-03  1.4e-02    0.035   2.36e-02     2.36e-02
+  showFile.......................... 8.97e+00   2.40e-02  2.9e+00  5.3e+00   13.424   8.97e+00     8.97e+00
+other............................... 5.12e-04   1.37e-06  1.6e-04  3.1e-04    0.001   5.12e-04     5.12e-04
+ waiting (not counted).............. 2.89e-04   7.75e-07  9.2e-05  1.7e-04    0.000   2.89e-04     2.89e-04
+
+TPSM = Np * (seconds/step)/( number-of-grid-points / 10^6 ), (time-per-step-per-million-grid-points),
+TTS = TPSM/dtNormalized  (normalized measure of total time to solve),
+dtNormalized =  5.4e-01 = dtAve/( targetGridSpacing/velocityScale ), targetGridSpacing= 2.5e-02, velocityScale= 1.0e+00,
+implicit time stepping: average number of iterations to solve implicit system =  3.4/step
+Predictor-corrector time stepping: average number of corrector steps = 3.01.
+pressure equation: average number of iterations to solve =9.917186/solve (3.01 solves/step)
+
+
+YALE RHOS=2.0 GRAVITY=-1 AMP VELOCITY-PROJECTION dtmax=.02 
+cgins -noplot fallingBody.cmd -g=fallingBodyGride4.order2 -tf=5. -tp=.1 -nu=.01 -ts=im -density=2 -radius=1. -gravity=-1. -amp=.1 -dtMax=.02 -project=0 -numberOfCorrections=2 -omega=.2 -addedMass=1 -addedDamping=1 -addedDampingCoeff=5. -scaleAddedDampingWithDt=0 -addedDampingProjectVelocity=1 -useProvidedAcceleration=1 -useTP=0 -debug=3 -solver=yale -psolver=yale -ad2=0 -show=fallingBodyG4d2p0ampVp.show -go=go >! fallingBodyG4d2p0ampVp.out
+
+         ---Cgins Summary : ins --- 
+            Sat May 14 11:44:24 2016
+            Grid file=[fallingBodyGride4.order2.hdf]
+  ==== numberOfStepsTaken =373, number of grids=3, number of gridpts =8390, Np=1 (procs) ==== 
+  ==== tFinal=5.000e+00, tInitial=0.000e+00, dt(ave)=1.34e-02 ====
+  ==== memory/proc: [min=80.1211,ave=80.1211,max=80.1211]Mb, max-recorded=0 Mb, total=80.1211 Mb, 1251.7 reals/(grid-pt)
+   Timings:           (ave-sec/proc:) seconds   sec/step    TPSM     TTS       %    [max-s/proc] [min-s/proc]
+total time.......................... 2.02e+02   5.42e-01  6.5e+01  1.2e+02  100.000   2.02e+02     2.02e+02
+setup and initialize................ 6.66e-01   1.79e-03  2.1e-01  4.0e-01    0.329   6.66e-01     6.66e-01
+advance............................. 2.02e+02   5.41e-01  6.4e+01  1.2e+02   99.670   2.02e+02     2.02e+02
+  compute du/dt..................... 1.72e+00   4.61e-03  5.5e-01  1.0e+00    0.849   1.72e+00     1.72e+00
+  boundary conditions............... 8.29e-01   2.22e-03  2.6e-01  4.9e-01    0.410   8.29e-01     8.29e-01
+  moving grids...................... 1.70e+01   4.56e-02  5.4e+00  1.0e+01    8.404   1.70e+01     1.70e+01
+    grid generation (ogen).......... 1.26e+01   3.37e-02  4.0e+00  7.5e+00    6.222   1.26e+01     1.26e+01
+  moving update grids,gf............ 2.68e-02   7.20e-05  8.6e-03  1.6e-02    0.013   2.68e-02     2.68e-02
+  moving update operators........... 4.24e+00   1.14e-02  1.4e+00  2.5e+00    2.094   4.24e+00     4.24e+00
+  moving update Interpolant......... 5.83e-03   1.56e-05  1.9e-03  3.5e-03    0.003   5.83e-03     5.83e-03
+  interpolate exposed pts........... 5.18e-01   1.39e-03  1.7e-01  3.1e-01    0.256   5.18e-01     5.18e-01
+  implicit time stepping............ 1.02e+01   2.72e-02  3.2e+00  6.1e+00    5.019   1.02e+01     1.02e+01
+  compute dt........................ 8.31e-02   2.23e-04  2.7e-02  5.0e-02    0.041   8.31e-02     8.31e-02
+  time independent variables........ 1.56e+02   4.19e-01  5.0e+01  9.3e+01   77.305   1.56e+02     1.56e+02
+    update pressure equation........ 5.52e+00   1.48e-02  1.8e+00  3.3e+00    2.730   5.52e+00     5.52e+00
+    pressure solve.................. 1.52e+02   4.07e-01  4.9e+01  9.1e+01   75.122   1.52e+02     1.52e+02
+    assign pressure rhs............. 1.60e+00   4.28e-03  5.1e-01  9.5e-01    0.789   1.60e+00     1.60e+00
+  plotting.......................... 2.13e-02   5.71e-05  6.8e-03  1.3e-02    0.011   2.13e-02     2.13e-02
+  showFile.......................... 8.71e+00   2.34e-02  2.8e+00  5.2e+00    4.305   8.71e+00     8.71e+00
+other............................... 5.34e-04   1.43e-06  1.7e-04  3.2e-04    0.000   5.34e-04     5.34e-04
+ waiting (not counted).............. 2.77e-04   7.43e-07  8.9e-05  1.7e-04    0.000   2.77e-04     2.77e-04
+
+TPSM = Np * (seconds/step)/( number-of-grid-points / 10^6 ), (time-per-step-per-million-grid-points),
+TTS = TPSM/dtNormalized  (normalized measure of total time to solve),
+dtNormalized =  5.4e-01 = dtAve/( targetGridSpacing/velocityScale ), targetGridSpacing= 2.5e-02, velocityScale= 1.0e+00,
+implicit time stepping: average number of iterations to solve implicit system =  0.0/step
+Predictor-corrector time stepping: average number of corrector steps = 3.01.
+pressure equation: average number of iterations to solve =0.000000/solve (3.01 solves/step)
+
+
+
+YALE RHOS=2.0 GRAVITY=-1 AMP
+cgins -noplot fallingBody.cmd -g=fallingBodyGride4.order2 -tf=5. -tp=.1 -nu=.01 -ts=im -density=2 -radius=1. -gravity=-1. -amp=.1 -dtMax=.01 -project=0 -numberOfCorrections=1 -omega=.2 -addedMass=1 -addedDamping=1 -addedDampingCoeff=5. -scaleAddedDampingWithDt=0 -addedDampingProjectVelocity=0 -useProvidedAcceleration=1 -useTP=0 -debug=3 -solver=yale -psolver=yale -ad2=0 -show=fallingBodyG4d2p0amp.show -go=go >! fallingBodyG4d2p0amp.out
+
+
+************************************************
+**** May 5, 2016
+
+BEFORE G8 -- get iterative solvers working
+G8 --  RAMP GRAVITY 
+cgins -noplot twoFallingBodies.cmd -g=twoFallingBodiesGride8.order2 -tf=15. -tp=.1 -nu=.05 -ts=im -radius=1. -gravity=-1.  -rampGravity=1 -amp=.1 -dtMax=.02 -project=0 -numberOfCorrections=1 -omega=.2 -addedMass=1 -addedDamping=1 -addedDampingCoeff=5. -scaleAddedDampingWithDt=0 -addedDampingProjectVelocity=0 -useProvidedAcceleration=1 -useTP=0 -debug=3 -solver=yale -psolver=yale -ad2=0 -density1=1.5 -density2=0.5 -show=tfbG8.show -go=go >! tfbG8.out
+
+
+************************************************
+**** May 5, 2016
+
+REDO -- TP-SI RAMP GRAVITY -- Use explicit interpolation grid -- still trouble
+cgins -noplot twoFallingBodies.cmd -g=twoFallingBodiesGride4.order2 -tf=15. -tp=.1 -nu=.05 -ts=im -radius=1. -gravity=-1.  -rampGravity=1 -amp=.1 -dtMax=.002 -project=0 -numberOfCorrections=100 -omega=.2 -addedMass=0 -addedDamping=0 -addedDampingCoeff=5. -scaleAddedDampingWithDt=0 -addedDampingProjectVelocity=0 -useProvidedAcceleration=0 -useTP=1 -debug=3 -solver=yale -psolver=yale -ad2=0 -density1=1.5 -density2=0.5 -show=tfbTPSIrampe.show -go=go >! tfbTPSIrampe.out 
+
+************************************************
+**** May 3, 2016
+
+REDO -- TP-SI RAMP GRAVITY 
+cgins -noplot twoFallingBodies.cmd -g=twoFallingBodiesGridi4.order2 -tf=15. -tp=.1 -nu=.05 -ts=im -radius=1. -gravity=-1.  -rampGravity=1 -amp=.1 -dtMax=.002 -project=0 -numberOfCorrections=100 -omega=.2 -addedMass=0 -addedDamping=0 -addedDampingCoeff=5. -scaleAddedDampingWithDt=0 -addedDampingProjectVelocity=0 -useProvidedAcceleration=0 -useTP=1 -debug=3 -solver=yale -psolver=yale -ad2=0 -density1=1.5 -density2=0.5 -show=tfbTPSIramp.show -go=go >! tfbTPSIramp.out 
+
+************************************************
+**** April 15, 2016
+
+TEST iterative solver 
+
+PSOLVER=BEST: 
+cgins -noplot twoFallingBodies.cmd -g=twoFallingBodiesGride4.order2 -tf=.2 -tp=.1 -nu=.05 -ts=im -radius=1. -gravity=-1.  -rampGravity=1 -amp=.1 -dtMax=.02 -project=0 -numberOfCorrections=1 -omega=.2 -addedMass=1 -addedDamping=1 -addedDampingCoeff=5. -scaleAddedDampingWithDt=0 -addedDampingProjectVelocity=0 -useProvidedAcceleration=1 -useTP=0 -debug=3 -solver=yale -psolver=best -ad2=0 -density1=1.5 -density2=0.5 -show=tfbG.show -go=go >! tfbG.out 
+
+solver=best psolver=yale
+cgins -noplot twoFallingBodies.cmd -g=twoFallingBodiesGride4.order2 -tf=15. -tp=.1 -nu=.05 -ts=im -radius=1. -gravity=-1.  -rampGravity=1 -amp=.1 -dtMax=.02 -project=0 -numberOfCorrections=1 -omega=.2 -addedMass=1 -addedDamping=1 -addedDampingCoeff=5. -scaleAddedDampingWithDt=0 -addedDampingProjectVelocity=0 -useProvidedAcceleration=1 -useTP=0 -debug=3 -solver=best -psolver=yale -ad2=0 -density1=1.5 -density2=0.5 -show=tfbE.show -go=go >! tfbE.out 
+
+cgins -noplot twoFallingBodies.cmd -g=twoFallingBodiesGride4.order2 -tf=15. -tp=.1 -nu=.05 -ts=im -radius=1. -gravity=-1.  -rampGravity=1 -amp=.1 -dtMax=.02 -project=0 -numberOfCorrections=1 -omega=.2 -addedMass=1 -addedDamping=1 -addedDampingCoeff=5. -scaleAddedDampingWithDt=0 -addedDampingProjectVelocity=0 -useProvidedAcceleration=1 -useTP=0 -debug=3 -solver=yale -psolver=yale -ad2=0 -density1=1.5 -density2=0.5 -show=tfbF.show -go=go >! tfbF.out 
+
+************************************************
+**** April 14, 2016
+
+ADD option for ramped gravity 
+
+REDO -- RAMP GRAVITY 
+cgins -noplot twoFallingBodies.cmd -g=twoFallingBodiesGride4.order2 -tf=15. -tp=.1 -nu=.05 -ts=im -radius=1. -gravity=-1.  -rampGravity=1 -amp=.1 -dtMax=.02 -project=0 -numberOfCorrections=1 -omega=.2 -addedMass=1 -addedDamping=1 -addedDampingCoeff=5. -scaleAddedDampingWithDt=0 -addedDampingProjectVelocity=0 -useProvidedAcceleration=1 -useTP=0 -debug=3 -solver=yale -psolver=yale -ad2=0 -density1=1.5 -density2=0.5 -show=tfbD.show -go=go >! tfbD.out 
+
+
+cgins fallingBody.cmd -g=fallingBodyGride4.order2 -tf=5. -tp=.1 -nu=.01 -ts=im -density=10. -radius=1. -rampGravity=1 -gravity=1. -amp=.1 -dtMax=.01 -project=0 -numberOfCorrections=1 -omega=.2 -addedMass=1 -addedDamping=1 -addedDampingCoeff=5. -scaleAddedDampingWithDt=0 -addedDampingProjectVelocity=0 -useProvidedAcceleration=1 -useTP=0 -debug=3 -solver=yale -psolver=yale -ad2=0 -go=halt
+
+
+************************************************
+**** April 13, 2016
+
+TO-DO : FIX STARTUP for AMP scheme
+
+TEST: INCREASE NUMBER OF CORRECTIONS
+cgins -noplot twoFallingBodies.cmd -g=twoFallingBodiesGride4.order2 -tf=15. -tp=.1 -nu=.05 -ts=im -radius=1. -gravity=-1. -amp=.1 -dtMax=.02 -project=0 -numberOfCorrections=10 -omega=.2 -addedMass=1 -addedDamping=1 -addedDampingCoeff=5. -scaleAddedDampingWithDt=0 -addedDampingProjectVelocity=0 -useProvidedAcceleration=1 -useTP=0 -debug=3 -solver=yale -psolver=yale -ad2=0 -density1=1.5 -density2=0.5 -go=og
+
+
+************************************************
+**** April 12, 2016
+
+TWO FALLING BODIES 
+
+REDO -- using correct added damping
+cgins -noplot twoFallingBodies.cmd -g=twoFallingBodiesGride4.order2 -tf=15. -tp=.1 -nu=.05 -ts=im -radius=1. -gravity=-1. -amp=.1 -dtMax=.02 -project=0 -numberOfCorrections=1 -omega=.2 -addedMass=1 -addedDamping=1 -addedDampingCoeff=5. -scaleAddedDampingWithDt=0 -addedDampingProjectVelocity=0 -useProvidedAcceleration=1 -useTP=0 -debug=3 -solver=yale -psolver=yale -ad2=0 -density1=1.5 -density2=0.5 -show=tfbC.show -go=go >! tfbC.out 
+
+
+two falling bodies -- TP=SI scheme
+
+***** IMPLICIT INTERPOLATION FOR GRID 
+cgins -noplot twoFallingBodies.cmd -g=twoFallingBodiesGridi4.order2 -tf=15. -tp=.1 -nu=.05 -ts=im -radius=1. -gravity=-1. -amp=.1 -dtMax=.002 -project=0 -numberOfCorrections=100 -omega=.2 -addedMass=0 -addedDamping=0 -addedDampingCoeff=5. -scaleAddedDampingWithDt=0 -addedDampingProjectVelocity=0 -useProvidedAcceleration=0 -useTP=1 -debug=3 -solver=yale -psolver=yale -ad2=0 -density1=1.5 -density2=0.5 -show=tfbTPSIa.show -go=go >! tfbTPSIa.out 
+
+---- OK till t=10 -- not enough overlap
+TP-SI: omega=.2 OK : 30-40 its  omega=.3, .5 BAD, omega=.1 OK, its=50-70
+cgins -noplot twoFallingBodies.cmd -g=twoFallingBodiesGride4.order2 -tf=15. -tp=.1 -nu=.05 -ts=im -radius=1. -gravity=-1. -amp=.1 -dtMax=.002 -project=0 -numberOfCorrections=100 -omega=.2 -addedMass=0 -addedDamping=0 -addedDampingCoeff=5. -scaleAddedDampingWithDt=0 -addedDampingProjectVelocity=0 -useProvidedAcceleration=0 -useTP=1 -debug=3 -solver=yale -psolver=yale -ad2=0 -density1=1.5 -density2=0.5 -show=tfbTPSI.show -go=go >! tfbTPSI.out 
+
+
+************************************************
+**** April 10, 2016
+
+Plot twoFallingBodiesGrid:
+
+
+
+
+
+************************************************
+**** April 2-3, 2016
+
+TEST ROTATING
+
+ TRAPEZOID:
+ogen -noplot fallingBodyGrid -interp=e -order=2 -addBottomRefinement=0 -shape=trapezoid -factor=2 
+
+ROTATED TRAP: 
+cgins -noplot fallingBody.cmd -g=fallingTrapezoidGridAngle90e2.order2 -tf=15. -tp=.1 -nu=.05 -ts=im -density=2 -gravity=0 -amp=.1 -bodyForce=wzRamp -dtMax=.02 -project=0 -numberOfCorrections=1 -omega=.2 -addedMass=1 -addedDamping=1 -addedDampingCoeff=5. -scaleAddedDampingWithDt=0 -addedDampingProjectVelocity=0 -useProvidedAcceleration=1 -useTP=0 -debug=3 -solver=yale -psolver=yale -ad2=0 -go=og 
+
+             Added Damping Tensors (without scale factor= 1.58e+01) time=0.000e+00 body=rigidBody
+             ----------------------------------------------------------
+       [   1.5121e+00   1.1572e-09   0.0000e+00 ]        [   0.0000e+00   0.0000e+00   2.9478e-02 ]
+ Dvv = [   1.1572e-09   1.8504e+00   0.0000e+00 ]  Dvw = [   0.0000e+00   0.0000e+00  -9.7111e-08 ]
+       [   0.0000e+00   0.0000e+00   0.0000e+00 ]        [   0.0000e+00   0.0000e+00   0.0000e+00 ]
+ 
+       [   0.0000e+00   0.0000e+00   0.0000e+00 ]        [   0.0000e+00   0.0000e+00   0.0000e+00 ]
+ Dwv = [   0.0000e+00   0.0000e+00   0.0000e+00 ]  Dww = [   0.0000e+00   0.0000e+00   0.0000e+00 ]
+       [   2.9478e-02  -9.7111e-08   0.0000e+00 ]        [   0.0000e+00   0.0000e+00   6.6381e-01 ]
+
+TRAPEZOID
+cgins -noplot fallingBody.cmd -g=fallingTrapezoidGride2.order2 -tf=15. -tp=.1 -nu=.05 -ts=im -density=2 -gravity=0. -amp=.1 -bodyForce=wzRamp -dtMax=.02 -project=0 -numberOfCorrections=1 -omega=.2 -addedMass=1 -addedDamping=1 -addedDampingCoeff=5. -scaleAddedDampingWithDt=0 -addedDampingProjectVelocity=0 -useProvidedAcceleration=1 -useTP=0 -debug=3 -solver=yale -psolver=yale -ad2=0 -go=og 
+
+             Added Damping Tensors (without scale factor= 1.58e+01) time=0.000e+00 body=rigidBody
+             ----------------------------------------------------------
+       [   1.8504e+00  -1.1572e-09   0.0000e+00 ]        [   0.0000e+00   0.0000e+00  -9.7111e-08 ]
+ Dvv = [  -1.1572e-09   1.5121e+00   0.0000e+00 ]  Dvw = [   0.0000e+00   0.0000e+00  -2.9478e-02 ]
+       [   0.0000e+00   0.0000e+00   0.0000e+00 ]        [   0.0000e+00   0.0000e+00   0.0000e+00 ]
+ 
+       [   0.0000e+00   0.0000e+00   0.0000e+00 ]        [   0.0000e+00   0.0000e+00   0.0000e+00 ]
+ Dwv = [   0.0000e+00   0.0000e+00   0.0000e+00 ]  Dww = [   0.0000e+00   0.0000e+00   0.0000e+00 ]
+       [  -9.7111e-08  -2.9478e-02   0.0000e+00 ]        [   0.0000e+00   0.0000e+00   6.6381e-01 ]
+
+t=3.5: 
+             Added Damping Tensors (without scale factor= 1.58e+01) t=3.500e+00 body=rigidBody
+             ----------------------------------------------------------
+       [   1.7056e+00   1.6739e-01   0.0000e+00 ]        [   0.0000e+00   0.0000e+00   1.9283e-02 ]
+ Dvv = [   1.6739e-01   1.6569e+00   0.0000e+00 ]  Dvw = [   0.0000e+00   0.0000e+00  -2.2296e-02 ]
+       [   0.0000e+00   0.0000e+00   0.0000e+00 ]        [   0.0000e+00   0.0000e+00   0.0000e+00 ]
+ 
+       [   0.0000e+00   0.0000e+00   0.0000e+00 ]        [   0.0000e+00   0.0000e+00   0.0000e+00 ]
+ Dwv = [   0.0000e+00   0.0000e+00   0.0000e+00 ]  Dww = [   0.0000e+00   0.0000e+00   0.0000e+00 ]
+       [   1.9283e-02  -2.2296e-02   0.0000e+00 ]        [   0.0000e+00   0.0000e+00   6.6381e-01 ]
+
+
+Rectangle 
+cgins -noplot fallingBody.cmd -g=fallingBodyGride2.order2 -tf=15. -tp=.1 -nu=.05 -ts=im -density=2 -gravity=-1. -amp=.1 -bodyForce=wzRamp -dtMax=.02 -project=0 -numberOfCorrections=1 -omega=.2 -addedMass=1 -addedDamping=1 -addedDampingCoeff=5. -scaleAddedDampingWithDt=0 -addedDampingProjectVelocity=0 -useProvidedAcceleration=1 -useTP=0 -debug=3 -solver=yale -psolver=yale -ad2=0 -go=og
+
+             Added Damping Tensors (without scale factor= 1.58e+01) time=0.000e+00 body=rigidBody
+             ----------------------------------------------------------
+       [   1.9170e+00   7.6109e-15   0.0000e+00 ]        [   0.0000e+00   0.0000e+00  -1.4023e-07 ]
+ Dvv = [   7.6109e-15   9.1701e-01   0.0000e+00 ]  Dvw = [   0.0000e+00   0.0000e+00   2.2878e-15 ]
+       [   0.0000e+00   0.0000e+00   0.0000e+00 ]        [   0.0000e+00   0.0000e+00   0.0000e+00 ]
+ 
+       [   0.0000e+00   0.0000e+00   0.0000e+00 ]        [   0.0000e+00   0.0000e+00   0.0000e+00 ]
+ Dwv = [   0.0000e+00   0.0000e+00   0.0000e+00 ]  Dww = [   0.0000e+00   0.0000e+00   0.0000e+00 ]
+       [  -1.4023e-07   2.2878e-15   0.0000e+00 ]        [   0.0000e+00   0.0000e+00   3.7925e-01 ]
+
+
+
+--> FIXED: ADDED-DAMPING TENORS CHANGE AS THE BODY ROTATES 
+
+cgins -noplot twoFallingBodies.cmd -g=twoFallingBodiesGride4.order2 -tf=15. -tp=.1 -nu=.05 -ts=im -radius=1. -gravity=-1. -amp=.1 -bodyForce=wzRamp -dtMax=.02 -project=0 -numberOfCorrections=1 -omega=.2 -addedMass=1 -addedDamping=1 -addedDampingCoeff=5. -scaleAddedDampingWithDt=0 -addedDampingProjectVelocity=0 -useProvidedAcceleration=1 -useTP=0 -debug=3 -solver=yale -psolver=yale -ad2=0 -density1=1.5 -density2=0.5 -go=og 
+
+
+
+************************************************
+**** April 1, 2016
+
+TWO FALLING BODIES 
+
+cgins -noplot twoFallingBodies.cmd -g=twoFallingBodiesGride4.order2 -tf=15. -tp=.1 -nu=.05 -ts=im -radius=1. -gravity=-1. -amp=.1 -dtMax=.02 -project=0 -numberOfCorrections=1 -omega=.2 -addedMass=1 -addedDamping=1 -addedDampingCoeff=5. -scaleAddedDampingWithDt=0 -addedDampingProjectVelocity=0 -useProvidedAcceleration=1 -useTP=0 -debug=3 -solver=yale -psolver=yale -ad2=0 -density1=1.5 -density2=0.5 -show=tfbB.show -go=go >! tfbB.out 
+
+
+cgins -noplot twoFallingBodies.cmd -g=twoFallingBodiesGride4.order2 -tf=30. -tp=.1 -nu=.05 -ts=im -radius=1. -gravity=-1. -amp=.1 -dtMax=.02 -project=0 -numberOfCorrections=1 -omega=.2 -addedMass=1 -addedDamping=1 -addedDampingCoeff=5. -scaleAddedDampingWithDt=0 -addedDampingProjectVelocity=0 -useProvidedAcceleration=1 -useTP=0 -debug=3 -solver=yale -psolver=yale -ad2=0 -density1=1.5 -density2=0.5 -show=tfbA.show -go=go >! tfbA.out 
+
+OK
+cgins twoFallingBodies.cmd -g=twoFallingBodiesGride4.order2 -tf=10. -tp=.1 -nu=.05 -ts=im -radius=1. -gravity=-1. -amp=.1 -dtMax=.02 -project=0 -numberOfCorrections=1 -omega=.2 -addedMass=1 -addedDamping=1 -addedDampingCoeff=5. -scaleAddedDampingWithDt=0 -addedDampingProjectVelocity=0 -useProvidedAcceleration=1 -useTP=0 -debug=3 -solver=yale -psolver=yale -ad2=0 -density1=1.5 -density2=0.5 -show=twoFallingBodiesA.show -go=halt
+
+OK
+cgins twoFallingBodies.cmd -g=twoFallingBodiesGride4.order2 -tf=5. -tp=.1 -nu=.05 -ts=im -radius=1. -gravity=-1. -amp=.1 -dtMax=.02 -project=0 -numberOfCorrections=1 -omega=.2 -addedMass=1 -addedDamping=1 -addedDampingCoeff=5. -scaleAddedDampingWithDt=0 -addedDampingProjectVelocity=0 -useProvidedAcceleration=1 -useTP=0 -debug=3 -solver=yale -psolver=yale -ad2=0 -density1=10. -density2=1. -show=twoFallingBodies.show -go=halt
+
+
+SIMPLE TWO BODY CASE FOR TEST
+twoDiskse1.order2
+cgins twoFallingBodies.cmd -g=twoDisksGride1.order2 -tf=5. -tp=.1 -nu=.01 -ts=im -density=2 -radius=1. -gravity=-1. -amp=.1 -dtMax=.01 -project=0 -numberOfCorrections=1 -omega=.2 -addedMass=1 -addedDamping=1 -addedDampingCoeff=5. -scaleAddedDampingWithDt=0 -addedDampingProjectVelocity=0 -useProvidedAcceleration=1 -useTP=0 -debug=3 -solver=yale -psolver=yale -ad2=0 -fallingBody1=disk1 -fallingBody2=disk2 -go=halt
+
+TWO FALLING BODIES -- starts to work
+
+cgins -noplot twoFallingBodies.cmd -g=twoFallingBodiesGride2.order2 -tf=5. -tp=.1 -nu=.01 -ts=im -density=2 -radius=1. -gravity=-1. -amp=.1 -dtMax=.01 -project=0 -numberOfCorrections=1 -omega=.2 -addedMass=1 -addedDamping=1 -addedDampingCoeff=5. -scaleAddedDampingWithDt=0 -addedDampingProjectVelocity=0 -useProvidedAcceleration=1 -useTP=0 -debug=3 -solver=yale -psolver=yale -ad2=0 -go=og
+
+ROTATED brick
+
+cgins -noplot fallingBody.cmd -g=fallingBodyGridAngle45e2.order2 -tf=5. -tp=.1 -nu=.01 -ts=im -density=2 -radius=1. -gravity=-1. -amp=.1 -dtMax=.01 -project=0 -numberOfCorrections=1 -omega=.2 -addedMass=1 -addedDamping=1 -addedDampingCoeff=5. -scaleAddedDampingWithDt=0 -addedDampingProjectVelocity=0 -useProvidedAcceleration=1 -useTP=0 -debug=3 -solver=yale -psolver=yale -ad2=0 -go=og
+
+
+
+************************************************
+**** Mar 6, 2016
+
+CHECK MOMENT-OF-INERTIA COMPUTATION
+
+cgins -noplot fallingBody.cmd -g=fallingBodyGride4.order2 -tf=5. -tp=.1 -nu=.01 -ts=im -density=2 -radius=1. -gravity=-1. -amp=.1 -dtMax=.01 -project=0 -numberOfCorrections=1 -omega=.2 -addedMass=1 -addedDamping=1 -addedDampingCoeff=5. -scaleAddedDampingWithDt=0 -addedDampingProjectVelocity=0 -useProvidedAcceleration=1 -useTP=0 -debug=3 -solver=yale -psolver=yale -ad2=0 -go=og
+
+
+
+CHECK INITIAL CONDITIONS FOR TP-SI -- trouble with initial acceleration
+
+PROJECT IC's FIXED -- 
+
+RERUN: RHOS=2 TP-SI
+cgins -noplot fallingBody.cmd -g=fallingBodyGride4.order2 -tf=5. -tp=.1 -nu=.01 -ts=im -density=2 -gravity=-1. -amp=.1 -dtMax=.01 -project=0 -numberOfCorrections=1000 -omega=.1 -addedMass=0 -addedDamping=0 -addedDampingCoeff=0. -scaleAddedDampingWithDt=0 -addedDampingProjectVelocity=0 -useProvidedAcceleration=0 -useTP=1 -debug=3 -solver=yale -psolver=yale -ad2=0 -show=fallingBodyG4d2p0.show -go=go >! fallingBodyG4d2p0.out
+
+
+
+cgins -noplot fallingBody.cmd -g=fallingBodyGride4.order2 -tf=5. -tp=.1 -nu=.01 -ts=im -density=2 -gravity=-1. -amp=.1 -dtMax=.01 -project=0 -numberOfCorrections=1000 -omega=.1 -addedMass=0 -addedDamping=0 -addedDampingCoeff=0. -scaleAddedDampingWithDt=0 -addedDampingProjectVelocity=0 -useProvidedAcceleration=0 -useTP=1 -debug=3 -solver=yale -psolver=yale -ad2=0 -go=og
+
+
+************************************************
+**** Mar 5, 2016
+
+*TEST* NOW ALL ADDED DAMPING terms are added
+
+TP-SI EASIER: RHOS=2 gravity=-1 AVE=13 corrector steps
+cgins -noplot fallingBody.cmd -g=fallingBodyGride4.order2 -tf=5. -tp=.1 -nu=.01 -ts=im -density=2 -gravity=-1. -amp=.1 -dtMax=.01 -project=0 -numberOfCorrections=1000 -omega=.1 -addedMass=0 -addedDamping=0 -addedDampingCoeff=0. -scaleAddedDampingWithDt=0 -addedDampingProjectVelocity=0 -useProvidedAcceleration=0 -useTP=1 -debug=3 -solver=yale -psolver=yale -ad2=0 -show=fallingBodyG4d2p0.show -go=go >! fallingBodyG4d2p0.out
+
+RHOS=2.0 GRAVITY=-1 AMP
+cgins -noplot fallingBody.cmd -g=fallingBodyGride4.order2 -tf=5. -tp=.1 -nu=.01 -ts=im -density=2 -radius=1. -gravity=-1. -amp=.1 -dtMax=.01 -project=0 -numberOfCorrections=1 -omega=.2 -addedMass=1 -addedDamping=1 -addedDampingCoeff=5. -scaleAddedDampingWithDt=0 -addedDampingProjectVelocity=0 -useProvidedAcceleration=1 -useTP=0 -debug=3 -solver=yale -psolver=yale -ad2=0 -show=fallingBodyG4d2p0amp.show -go=go >! fallingBodyG4d2p0amp.out
+
+
+
+TRADITIONAL: FAILS
+cgins -noplot fallingBody.cmd -g=fallingBodyGride4.order2 -tf=5. -tp=.01 -nu=.01 -ts=im -density=2 -gravity=-1. -amp=.1 -dtMax=.01 -project=0 -numberOfCorrections=1 -omega=.1 -addedMass=0 -addedDamping=0 -addedDampingCoeff=0. -scaleAddedDampingWithDt=0 -addedDampingProjectVelocity=0 -useProvidedAcceleration=0 -useTP=0 -debug=3 -solver=yale -psolver=yale -ad2=0 -show=fallingBodyG4d2p0.show -go=og 
+
+
+===== TROUBLE HERE AT STARTUP **FIX ME**
+cgins -noplot fallingBody.cmd -g=fallingBodyGride4.order2 -tf=5. -tp=.1 -nu=.01 -ts=im -density=0.1 -radius=1. -gravity=1. -amp=.1 -dtMax=.001 -project=0 -numberOfCorrections=1000 -omega=.01 -addedMass=0 -addedDamping=0 -addedDampingCoeff=0. -scaleAddedDampingWithDt=0 -addedDampingProjectVelocity=0 -useProvidedAcceleration=0 -useTP=1 -debug=3 -solver=yale -psolver=yale -ad2=0 -show=fallingBodyG4d0p1.show -go=go >! fallingBodyG4d0p1.out
+
+RHOS=0.1 AMP
+cgins -noplot fallingBody.cmd -g=fallingBodyGride4.order2 -tf=5. -tp=.1 -nu=.01 -ts=im -density=0.1 -radius=1. -gravity=1. -amp=.1 -dtMax=.01 -project=0 -numberOfCorrections=1 -omega=.2 -addedMass=1 -addedDamping=1 -addedDampingCoeff=5. -scaleAddedDampingWithDt=0 -addedDampingProjectVelocity=0 -useProvidedAcceleration=1 -useTP=0 -debug=3 -solver=yale -psolver=yale -ad2=0 -show=fallingBodyG4d0p1amp.show -go=go >! fallingBodyG4d0p1amp.out
+
+
+RHOS=0.1 gravity=1 -- looks OK now
+cgins -noplot fallingBody.cmd -g=fallingBodyGride4.order2 -tf=5. -tp=.1 -nu=.01 -ts=im -density=0.1 -radius=1. -gravity=1. -amp=.1 -dtMax=.01 -project=0 -numberOfCorrections=1 -omega=.2 -addedMass=1 -addedDamping=1 -addedDampingCoeff=5. -scaleAddedDampingWithDt=0 -addedDampingProjectVelocity=0 -useProvidedAcceleration=1 -useTP=0 -debug=3 -solver=yale -psolver=yale -ad2=0 -go=og
+
+
+************************************************
+**** Mar 1, 2016
+
+
+TURN ON ADDED DAMPING 
+cgins -noplot fallingBody.cmd -g=fallingBodyGride4.order2 -tf=5. -tp=.1 -nu=.01 -ts=im -density=0.1 -inertia=1000. -radius=1. -gravity=1. -amp=.1 -dtMax=.01 -project=0 -numberOfCorrections=1 -omega=.2 -addedMass=1 -addedDamping=1 -addedDampingCoeff=5. -scaleAddedDampingWithDt=0 -addedDampingProjectVelocity=0 -useProvidedAcceleration=1 -useTP=0 -debug=3 -solver=yale -psolver=yale -ad2=0 -go=og
+
+
+NU=.01 OK --> gravity=+1
+cgins -noplot fallingBody.cmd -g=fallingBodyGride4.order2 -tf=5. -tp=.1 -nu=.01 -ts=im -density=0.1 -inertia=1000. -radius=1. -gravity=1. -amp=.1 -dtMax=.01 -project=0 -numberOfCorrections=1 -omega=.2 -addedMass=1 -addedDamping=0 -addedDampingCoeff=5. -scaleAddedDampingWithDt=0 -addedDampingProjectVelocity=0 -useProvidedAcceleration=1 -useTP=0 -debug=3 -solver=yale -psolver=yale -ad2=0 -show=fallingBodyG4d0p1.show -go=go >! fallingBodyG4d0p1.out
+
+
+************************************************
+**** Feb 29, 2016
+
+
+TEST AMP:
+
+
+dtmax=.005 nc=2:  -- wiggles
+cgins -noplot fallingBody.cmd -g=fallingBodyGride4.order2 -tf=5. -tp=.1 -nu=.1 -ts=im -density=0.1 -inertia=1000. -radius=1. -gravity=-1. -amp=.1 -dtMax=.005 -project=0 -numberOfCorrections=2 -omega=.2 -addedMass=1 -addedDamping=0 -addedDampingCoeff=5. -scaleAddedDampingWithDt=0 -addedDampingProjectVelocity=0 -useProvidedAcceleration=1 -useTP=0 -debug=3 -solver=yale -psolver=yale -ad2=0 -show=fallingBodyG4d0p1.show -go=og
+
+dtmax=.005 nc=2:  -- wiggles
+cgins -noplot fallingBody.cmd -g=fallingBodyGride4.order2 -tf=5. -tp=.1 -nu=.1 -ts=im -density=0.1 -inertia=1000. -radius=1. -gravity=-10. -amp=.1 -dtMax=.005 -project=0 -numberOfCorrections=2 -omega=.2 -addedMass=1 -addedDamping=0 -addedDampingCoeff=5. -scaleAddedDampingWithDt=0 -addedDampingProjectVelocity=0 -useProvidedAcceleration=1 -useTP=0 -debug=3 -solver=yale -psolver=yale -ad2=0 -show=fallingBodyG4d0p1.show -go=og
+
+
+OK: dtmax=.001 nc=2: 
+cgins -noplot fallingBody.cmd -g=fallingBodyGride4.order2 -tf=5. -tp=.1 -nu=.1 -ts=im -density=0.1 -inertia=1000. -radius=1. -gravity=-10. -amp=.1 -dtMax=.001 -project=0 -numberOfCorrections=2 -omega=.2 -addedMass=1 -addedDamping=0 -addedDampingCoeff=5. -scaleAddedDampingWithDt=0 -addedDampingProjectVelocity=0 -useProvidedAcceleration=1 -useTP=0 -debug=3 -solver=yale -psolver=yale -ad2=0 -show=fallingBodyG4d0p1.show -go=og
+
+Wiggles in the acceleration:
+cgins -noplot fallingBody.cmd -g=fallingBodyGride4.order2 -tf=5. -tp=.1 -nu=.1 -ts=im -density=0.1 -inertia=1000. -radius=1. -gravity=-10. -amp=.1 -dtMax=.01 -project=0 -numberOfCorrections=1 -omega=.2 -addedMass=1 -addedDamping=0 -addedDampingCoeff=5. -scaleAddedDampingWithDt=0 -addedDampingProjectVelocity=0 -useProvidedAcceleration=1 -useTP=0 -debug=3 -solver=yale -psolver=yale -ad2=0 -show=fallingBodyG4d0p1.show -go=og
+
+rouble at t=.7 -- large horizontal acceleration
+cgins -noplot fallingBody.cmd -g=fallingBodyGride4.order2 -tf=5. -tp=.1 -nu=.1 -ts=im -density=0.1 -inertia=100. -radius=1. -gravity=-1. -amp=.1 -dtMax=.01 -project=0 -numberOfCorrections=1 -omega=.2 -addedMass=1 -addedDamping=1 -addedDampingCoeff=5. -scaleAddedDampingWithDt=0 -addedDampingProjectVelocity=0 -useProvidedAcceleration=1 -useTP=0 -debug=3 -solver=yale -psolver=yale -ad2=0 -show=fallingBodyG4d0p1.show -go=og
+
+DENSITY=.1  -- SET INERTia for now -- FIX ME
+cgins -noplot fallingBody.cmd -g=fallingBodyGride4.order2 -tf=5. -tp=.1 -nu=.1 -ts=im -density=0.1 -inertia=100. -radius=1. -gravity=-1. -amp=.1 -dtMax=.01 -project=0 -numberOfCorrections=1 -omega=.2 -addedMass=1 -addedDamping=1 -addedDampingCoeff=2. -scaleAddedDampingWithDt=1 -addedDampingProjectVelocity=0 -useProvidedAcceleration=1 -useTP=0 -debug=3 -solver=yale -psolver=yale -ad2=0 -show=fallingBodyG4d0p1.show -go=go >! fallingBodyG4d0p1.out
+
+DENSITY=2.  gravity=10 -- OK 
+cgins -noplot fallingBody.cmd -g=fallingBodyGride4.order2 -tf=2. -tp=.1 -nu=.1 -ts=im -density=2. -radius=1. -gravity=-10. -amp=.1 -dtMax=.01 -project=0 -numberOfCorrections=1 -omega=.2 -addedMass=1 -addedDamping=1 -addedDampingCoeff=2. -scaleAddedDampingWithDt=1 -addedDampingProjectVelocity=0 -useProvidedAcceleration=1 -useTP=0 -debug=3 -solver=yale -psolver=yale -ad2=0 -show=fallingBodyG4d2p0.show -go=go >! fallingBodyG4d2p0.out
 
 ************************************************
 **** Feb 28, 2016
@@ -13,21 +428,24 @@ ADD STRETCH GRID AT BOTTOM
 
 
 DENSITY=0.1 *FAILS*
-cgins -noplot fallingBody.cmd -g=fallingBodyGride4.order2 -tf=2. -tp=.1 -nu=.1 -ts=im -density=.1 -radius=1. -gravity=-1. -amp=.1 -bodyForce=wzRamp -dtMax=.01 -project=0 -numberOfCorrections=1 -omega=.2 -addedMass=0 -addedDamping=0 -addedDampingCoeff=2. -scaleAddedDampingWithDt=1 -addedDampingProjectVelocity=0 -useProvidedAcceleration=1 -useTP=0 -debug=3 -solver=yale -psolver=yale -ad2=0 -show=fallingBodyG4d0p1.show -go=go >! fallingBodyG4d0p1.out
+cgins -noplot fallingBody.cmd -g=fallingBodyGride4.order2 -tf=2. -tp=.1 -nu=.1 -ts=im -density=.1 -radius=1. -gravity=-1. -amp=.1 -dtMax=.01 -project=0 -numberOfCorrections=1 -omega=.2 -addedMass=0 -addedDamping=0 -addedDampingCoeff=2. -scaleAddedDampingWithDt=1 -addedDampingProjectVelocity=0 -useProvidedAcceleration=1 -useTP=0 -debug=3 -solver=yale -psolver=yale -ad2=0 -show=fallingBodyG4d0p1.show -go=go >! fallingBodyG4d0p1.out
 
 DENSITY=1 *FAILS*
-cgins -noplot fallingBody.cmd -g=fallingBodyGride4.order2 -tf=2. -tp=.1 -nu=.1 -ts=im -density=1. -radius=1. -gravity=-1. -amp=.1 -bodyForce=wzRamp -dtMax=.01 -project=0 -numberOfCorrections=1 -omega=.2 -addedMass=0 -addedDamping=0 -addedDampingCoeff=2. -scaleAddedDampingWithDt=1 -addedDampingProjectVelocity=0 -useProvidedAcceleration=1 -useTP=0 -debug=3 -solver=yale -psolver=yale -ad2=0 -show=fallingBodyG4d1p0.show -go=go >! fallingBodyG4d1p0.out
+cgins -noplot fallingBody.cmd -g=fallingBodyGride4.order2 -tf=2. -tp=.1 -nu=.1 -ts=im -density=1. -radius=1. -gravity=-1. -amp=.1 -dtMax=.01 -project=0 -numberOfCorrections=1 -omega=.2 -addedMass=0 -addedDamping=0 -addedDampingCoeff=2. -scaleAddedDampingWithDt=1 -addedDampingProjectVelocity=0 -useProvidedAcceleration=1 -useTP=0 -debug=3 -solver=yale -psolver=yale -ad2=0 -show=fallingBodyG4d1p0.show -go=go >! fallingBodyG4d1p0.out
+
+DENSITY=2 *FAILS*
+cgins -noplot fallingBody.cmd -g=fallingBodyGride4.order2 -tf=2. -tp=.1 -nu=.1 -ts=im -density=2. -radius=1. -gravity=-1. -amp=.1 -dtMax=.01 -project=0 -numberOfCorrections=1 -omega=.2 -addedMass=0 -addedDamping=0 -addedDampingCoeff=2. -scaleAddedDampingWithDt=1 -addedDampingProjectVelocity=0 -useProvidedAcceleration=1 -useTP=0 -debug=3 -solver=yale -psolver=yale -ad2=0 -show=fallingBodyG4d1p0.show -go=go >! fallingBodyG4d1p0.out
 
 
 G4: DENSITY=5 -- OK
-cgins -noplot fallingBody.cmd -g=fallingBodyGride4.order2 -tf=10. -tp=.1 -nu=.1 -ts=im -density=5 -radius=1. -gravity=-1. -amp=.1 -bodyForce=wzRamp -dtMax=.01 -project=0 -numberOfCorrections=1 -omega=.2 -addedMass=0 -addedDamping=0 -addedDampingCoeff=2. -scaleAddedDampingWithDt=1 -addedDampingProjectVelocity=0 -useProvidedAcceleration=1 -useTP=0 -debug=3 -solver=yale -psolver=yale -ad2=0 -show=fallingBody4.show -go=go >! fallingBody4.out
+cgins -noplot fallingBody.cmd -g=fallingBodyGride4.order2 -tf=10. -tp=.1 -nu=.1 -ts=im -density=5 -radius=1. -gravity=-1. -amp=.1 -dtMax=.01 -project=0 -numberOfCorrections=1 -omega=.2 -addedMass=0 -addedDamping=0 -addedDampingCoeff=2. -scaleAddedDampingWithDt=1 -addedDampingProjectVelocity=0 -useProvidedAcceleration=1 -useTP=0 -debug=3 -solver=yale -psolver=yale -ad2=0 -show=fallingBody4.show -go=go >! fallingBody4.out
 
 G4 
-cgins -noplot fallingBody.cmd -g=fallingBodyGride4.order2 -tf=5. -tp=.1 -nu=.1 -ts=im -density=5 -radius=1. -gravity=-1. -amp=.1 -bodyForce=wzRamp -dtMax=.01 -project=0 -numberOfCorrections=1 -omega=.2 -addedMass=0 -addedDamping=0 -addedDampingCoeff=2. -scaleAddedDampingWithDt=1 -addedDampingProjectVelocity=0 -useProvidedAcceleration=1 -useTP=0 -debug=3 -solver=yale -psolver=yale -ad2=0 -show=fallingBody4.show -go=go >! fallingBody4.out
+cgins -noplot fallingBody.cmd -g=fallingBodyGride4.order2 -tf=5. -tp=.1 -nu=.1 -ts=im -density=5 -radius=1. -gravity=-1. -amp=.1 -dtMax=.01 -project=0 -numberOfCorrections=1 -omega=.2 -addedMass=0 -addedDamping=0 -addedDampingCoeff=2. -scaleAddedDampingWithDt=1 -addedDampingProjectVelocity=0 -useProvidedAcceleration=1 -useTP=0 -debug=3 -solver=yale -psolver=yale -ad2=0 -show=fallingBody4.show -go=go >! fallingBody4.out
 
 COLLISIONS ARE WRONG -- TURN OFF 
 
-cgins -noplot fallingBody.cmd -g=fallingBodyGride2.order2 -tf=5. -tp=.05 -nu=.1 -ts=im -density=100 -radius=1. -gravity=-1. -amp=.1 -bodyForce=wzRamp -dtMax=.01 -project=0 -numberOfCorrections=1 -omega=.2 -addedMass=0 -addedDamping=0 -addedDampingCoeff=2. -scaleAddedDampingWithDt=1 -addedDampingProjectVelocity=0 -useProvidedAcceleration=1 -useTP=0 -debug=3 -solver=yale -psolver=yale -ad2=0 -show=fallingBody2.show -go=go >! fallingBody2.out
+cgins -noplot fallingBody.cmd -g=fallingBodyGride2.order2 -tf=5. -tp=.05 -nu=.1 -ts=im -density=100 -radius=1. -gravity=-1. -amp=.1 -dtMax=.01 -project=0 -numberOfCorrections=1 -omega=.2 -addedMass=0 -addedDamping=0 -addedDampingCoeff=2. -scaleAddedDampingWithDt=1 -addedDampingProjectVelocity=0 -useProvidedAcceleration=1 -useTP=0 -debug=3 -solver=yale -psolver=yale -ad2=0 -show=fallingBody2.show -go=go >! fallingBody2.out
 
 TP scheme:   (density=5 has some issues)
-cgins fallingBody.cmd -g=fallingBodyGride2.order2 -tf=10. -tp=.01 -nu=.1 -ts=im -density=100 -radius=1. -gravity=-1. -amp=.1 -bodyForce=wzRamp -dtMax=.01 -project=0 -numberOfCorrections=1 -omega=.2 -addedMass=0 -addedDamping=0 -addedDampingCoeff=2. -scaleAddedDampingWithDt=1 -addedDampingProjectVelocity=0 -useProvidedAcceleration=1 -useTP=0 -debug=3 -solver=yale -psolver=yale -ad2=0 -go=halt
+cgins fallingBody.cmd -g=fallingBodyGride2.order2 -tf=10. -tp=.01 -nu=.1 -ts=im -density=100 -radius=1. -gravity=-1. -amp=.1 -dtMax=.01 -project=0 -numberOfCorrections=1 -omega=.2 -addedMass=0 -addedDamping=0 -addedDampingCoeff=2. -scaleAddedDampingWithDt=1 -addedDampingProjectVelocity=0 -useProvidedAcceleration=1 -useTP=0 -debug=3 -solver=yale -psolver=yale -ad2=0 -go=halt

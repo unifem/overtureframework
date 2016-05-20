@@ -87,10 +87,9 @@ formMatrix(int & numberOfEquations_, int & numberOfNonzeros_,
   numberOfNonzerosBound = int(numberOfEquations*parameters.zeroRatio+.5);
 
   //...........allocate space for the coefficients of the equation
-  if (Oges::debug & 1) 
-  {
-    cout << "------OGES::formMatrix --- Allocating space--\n";
-  }
+  if( Oges::debug & 2 ) 
+    printF("------OGES::formMatrix --- Allocating space--\n");
+
   // eqnNo.redim(Range(1,maximumNumberOfCoefficients+1),Range(1,numberOfComponents+1)); 
 
   //...........allocate work spaces for the appropriate solver

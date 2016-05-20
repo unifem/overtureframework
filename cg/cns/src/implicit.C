@@ -489,7 +489,12 @@ formImplicitTimeSteppingMatrix(realMappedGridFunction & coeff,
   const real reynoldsNumber = parameters.dbase.get<real >("reynoldsNumber");
   const real prandtlNumber = parameters.dbase.get<real >("prandtlNumber");
   const real machNumber = parameters.dbase.get<real >("machNumber");
-  const ArraySimpleFixed<real,3,1,1,1> &gravity=parameters.dbase.get<ArraySimpleFixed<real,3,1,1,1> >("gravity");
+  // const ArraySimpleFixed<real,3,1,1,1> &gravity=parameters.dbase.get<ArraySimpleFixed<real,3,1,1,1> >("gravity");
+  // get the gravity vector -- may be time dependent for a slow start
+  real gravity[3];
+
+  real t=0;  // ** FIX ME ****
+  parameters.getGravityVector( gravity,t );
 
   ArraySimpleFixed<real,20,1,1,1> rparam;
   rparam[0]=reynoldsNumber;

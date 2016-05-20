@@ -1,3 +1,15 @@
+set ogmgt = $ogmg/ogmgt
+
+
+****************
+*** March 30, 2016
+
+Test for mostafa
+
+
+$ogmgt tz -noplot -g=floating_cylinder.hdf -predefined=1 -debug=3
+
+
 ****************
 *** Dec 31, 2015
 

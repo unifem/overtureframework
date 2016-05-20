@@ -1,3 +1,150 @@
+*********************
+****** May 12, 2016
+
+TEST project velocity for added-damping 
+
+G4  -- AD=16
+cgins -noplot movingDiskInDisk.cmd -g=diskInDiskGride4.order2.hdf -tf=10. -tp=.05 -nu=.1 -ts=im -density=.01 -radius=1. -gravity=0. -amp=.1 -bodyForce=wzRamp -dtMax=.05 -project=0 -numberOfCorrections=2 -addedDampingProjectVelocity=1 -omega=.2 -addedMass=1 -addedDamping=1 -addedDampingCoeff=16. -useProvidedAcceleration=1 -useTP=0 -debug=3 -solver=yale -psolver=yale -show=did4rotatebd0p01ampAD16pv.show -ad2=0 -go=go >! did4rotatebd0p01ampAD16pv.out
+
+G4  -- AD=8 -OK 
+cgins -noplot movingDiskInDisk.cmd -g=diskInDiskGride4.order2.hdf -tf=10. -tp=.05 -nu=.1 -ts=im -density=.01 -radius=1. -gravity=0. -amp=.1 -bodyForce=wzRamp -dtMax=.05 -project=0 -numberOfCorrections=2 -addedDampingProjectVelocity=1 -omega=.2 -addedMass=1 -addedDamping=1 -addedDampingCoeff=8. -useProvidedAcceleration=1 -useTP=0 -debug=3 -solver=yale -psolver=yale -show=did4rotatebd0p01ampAD8pv.show -ad2=0 -go=go >! did4rotatebd0p01ampAD8pv.out
+
+G4  -- AD=4 -OK 
+cgins -noplot movingDiskInDisk.cmd -g=diskInDiskGride4.order2.hdf -tf=10. -tp=.05 -nu=.1 -ts=im -density=.01 -radius=1. -gravity=0. -amp=.1 -bodyForce=wzRamp -dtMax=.05 -project=0 -numberOfCorrections=2 -addedDampingProjectVelocity=1 -omega=.2 -addedMass=1 -addedDamping=1 -addedDampingCoeff=4. -useProvidedAcceleration=1 -useTP=0 -debug=3 -solver=yale -psolver=yale -show=did4rotatebd0p01ampAD4pv.show -ad2=0 -go=go >! did4rotatebd0p01ampAD4pv.out
+
+G4  -- AD=1 fails -1 mode 
+cgins -noplot movingDiskInDisk.cmd -g=diskInDiskGride4.order2.hdf -tf=10. -tp=.05 -nu=.1 -ts=im -density=.01 -radius=1. -gravity=0. -amp=.1 -bodyForce=wzRamp -dtMax=.05 -project=0 -numberOfCorrections=2 -addedDampingProjectVelocity=1 -omega=.2 -addedMass=1 -addedDamping=1 -addedDampingCoeff=1. -useProvidedAcceleration=1 -useTP=0 -debug=3 -solver=yale -psolver=yale -show=did4rotatebd0p01ampAD1pv.show -ad2=0 -go=go >! did4rotatebd0p01ampAD1pv.out
+
+
+AD=1 -- fails
+cgins -noplot movingDiskInDisk.cmd -g=diskInDiskGride2.order2.hdf -tf=10. -tp=.05 -nu=.1 -ts=im -density=.01 -radius=1. -gravity=0. -amp=.1 -bodyForce=wzRamp -dtMax=.08 -project=0 -numberOfCorrections=2 -addedDampingProjectVelocity=1 -omega=.2 -addedMass=1 -addedDamping=1 -addedDampingCoeff=1. -useProvidedAcceleration=1 -useTP=0 -debug=3 -solver=yale -psolver=yale -show=did2rotatebd0p01ampAD1pv.show -ad2=0 -go=go >! did2rotatebd0p01ampAD1pv.out
+
+G2 AD=8 OK:
+cgins -noplot movingDiskInDisk.cmd -g=diskInDiskGride2.order2.hdf -tf=10. -tp=.05 -nu=.1 -ts=im -density=.01 -radius=1. -gravity=0. -amp=.1 -bodyForce=wzRamp -dtMax=.08 -project=0 -numberOfCorrections=2 -addedDampingProjectVelocity=1 -omega=.2 -addedMass=1 -addedDamping=1 -addedDampingCoeff=8. -useProvidedAcceleration=1 -useTP=0 -debug=3 -solver=yale -psolver=yale -show=did2rotatebd0p01ampAD8pv.show -ad2=0 -go=go >! did2rotatebd0p01ampAD8pv.out
+
+
+
+*********************
+****** May 10, 2016
+
+Long time run to test stability 
+
+
+SMALLER AMP -- Small inertia, large density
+cgins -noplot movingDiskInDisk.cmd -g=diskInDiskGride2.order2.hdf -tf=200. -tp=.5 -nu=.1 -ts=im -density=100. -inertia=.001 -radius=1. -gravity=0. -amp=.001 -bodyForce=wzRamp -dtMax=.5 -project=0 -numberOfCorrections=1 -omega=.2 -addedMass=1 -addedDamping=1 -addedDampingCoeff=16. -useProvidedAcceleration=1 -useTP=0 -debug=3 -solver=yale -psolver=yale -show=did2rotatebd0p001ampAD16b.show -ad2=0 -go=go >! did2rotatebd0p001ampAD16b.out 
+
+
+SMALLER AMP -- oscillations in a1, a2  
+cgins -noplot movingDiskInDisk.cmd -g=diskInDiskGride2.order2.hdf -tf=200. -tp=.5 -nu=.1 -ts=im -density=.001 -radius=1. -gravity=0. -amp=.001 -bodyForce=wzRamp -dtMax=.5 -project=0 -numberOfCorrections=1 -omega=.2 -addedMass=1 -addedDamping=1 -addedDampingCoeff=16. -useProvidedAcceleration=1 -useTP=0 -debug=3 -solver=yale -psolver=yale -show=did2rotatebd0p001ampAD16a.show -ad2=0 -go=go >! did2rotatebd0p001ampAD16a.out 
+
+
+OK: very small oscillation in a1, a2
+cgins -noplot movingDiskInDisk.cmd -g=diskInDiskGride2.order2.hdf -tf=200. -tp=.5 -nu=.1 -ts=im -density=.001 -radius=1. -gravity=0. -amp=.1 -bodyForce=wzRamp -dtMax=.5 -project=0 -numberOfCorrections=1 -omega=.2 -addedMass=1 -addedDamping=1 -addedDampingCoeff=4. -useProvidedAcceleration=1 -useTP=0 -debug=3 -solver=yale -psolver=yale -show=did2rotatebd0p001ampAD4.show -ad2=0 -go=go >! did2rotatebd0p001ampAD4.out 
+
+
+# note: big oscillations in a1, a2 
+cgins -noplot movingDiskInDisk.cmd -g=diskInDiskGride2.order2.hdf -tf=100. -tp=.5 -nu=.1 -ts=im -density=.001 -radius=1. -gravity=0. -amp=.1 -bodyForce=wzRamp -dtMax=.5 -project=0 -numberOfCorrections=1 -omega=.2 -addedMass=1 -addedDamping=1 -addedDampingCoeff=100. -useProvidedAcceleration=1 -useTP=0 -debug=3 -solver=yale -psolver=yale -show=did2rotatebd0p001ampAD100.show -ad2=0 -go=go >! did2rotatebd0p001ampAD100.out 
+
+
+cgins -noplot movingDiskInDisk.cmd -g=diskInDiskGride2.order2.hdf -tf=200. -tp=.5 -nu=.1 -ts=im -density=.001 -radius=1. -gravity=0. -amp=.1 -bodyForce=wzRamp -dtMax=.5 -project=0 -numberOfCorrections=1 -omega=.2 -addedMass=1 -addedDamping=1 -addedDampingCoeff=16. -useProvidedAcceleration=1 -useTP=0 -debug=3 -solver=yale -psolver=yale -show=did2rotatebd0p001ampAD16.show -ad2=0 -go=go >! did2rotatebd0p001ampAD16.out 
+
+
+dt=.1 -- OK dt=.5 : OK 
+cgins -noplot movingDiskInDisk.cmd -g=diskInDiskGride2.order2.hdf -tf=100. -tp=.5 -nu=.1 -ts=im -density=.001 -radius=1. -gravity=0. -amp=.1 -bodyForce=wzRamp -dtMax=.5 -project=0 -numberOfCorrections=1 -omega=.2 -addedMass=1 -addedDamping=1 -addedDampingCoeff=8. -useProvidedAcceleration=1 -useTP=0 -debug=3 -solver=yale -psolver=yale -show=did2rotatebd0p001ampAD8.show -ad2=0 -go=go >! did2rotatebd0p001ampAD8.out 
+
+
+
+dtMax=.02 : OK,  dt=.04 looks ok, dt=.08 
+cgins -noplot movingDiskInDisk.cmd -g=diskInDiskGride2.order2.hdf -tf=100. -tp=.05 -nu=.1 -ts=im -density=.01 -radius=1. -gravity=0. -amp=.1 -bodyForce=wzRamp -dtMax=.08 -project=0 -numberOfCorrections=1 -omega=.2 -addedMass=1 -addedDamping=1 -addedDampingCoeff=8. -useProvidedAcceleration=1 -useTP=0 -debug=3 -solver=yale -psolver=yale -show=did2rotatebd0p01ampAD8.show -ad2=0 -go=go >! did2rotatebd0p01ampAD8.out 
+
+
+
+
+*****************************
+******* March 5, 2016
+
+*** CHECK TP-SI WHY DON'T SUB-ITERATIONS WORK ??
+
+TP-SI  G2: RHOS=0.1, NU=.1 rotational force: -bodyForce=wzRamp 
+   dtMax=.01:  omega=.1 : 
+
+cgins -noplot movingDiskInDisk.cmd -g=diskInDiskGride2.order2.hdf -tf=10. -tp=.05 -nu=.1 -ts=im -density=0.1 -radius=1. -gravity=0. -amp=.1 -bodyForce=wzRamp -dtMax=.01 -project=0 -numberOfCorrections=5000 -omega=.01 -addedMass=0 -useProvidedAcceleration=0 -useTP=1 -debug=3 -solver=yale -psolver=yale -ad2=0 -go=og
+
+
+**ADD ALL ADDED DAMPING TERMS** -->OK, seems to work
+
+RHOS=0.01 AMP 
+cgins -noplot movingDiskInDisk.cmd -g=diskInDiskGride2.order2.hdf -tf=10. -tp=.05 -nu=.1 -ts=im -density=0.01 -radius=1. -gravity=0. -amp=.1 -bodyForce=wzRamp -dtMax=.02 -project=0 -numberOfCorrections=1 -omega=.2 -addedMass=1 -addedDamping=1  -addedDampingCoeff=4. -useProvidedAcceleration=1 -useTP=0 -debug=3 -solver=yale -psolver=yale -show=did2rotatebd0p01ampAD.show -ad2=0 -go=go >! did2rotatebd0p01ampAD.out
+
+
+RHOS=.1 -- include all added-damping: 
+cgins -noplot movingDiskInDisk.cmd -g=diskInDiskGride2.order2.hdf -tf=10. -tp=.05 -nu=.1 -ts=im -density=.1 -radius=1. -gravity=0. -amp=.1 -bodyForce=wzRamp -dtMax=.02 -project=0 -numberOfCorrections=1 -omega=.2 -addedMass=1 -addedDamping=1  -addedDampingCoeff=4. -useProvidedAcceleration=1 -useTP=0 -debug=3 -solver=yale -psolver=yale   -show=did2rotatebd0p1ampAD.show -ad2=0 -go=go >! did2rotatebd0p1ampAD.out
+
+
+RHOS=.001 -- include all added-damping: 
+cgins -noplot movingDiskInDisk.cmd -g=diskInDiskGride2.order2.hdf -tf=10. -tp=.05 -nu=.1 -ts=im -density=0.001 -radius=1. -gravity=0. -amp=.1 -bodyForce=wzRamp -dtMax=.02 -project=0 -numberOfCorrections=1 -omega=.2 -addedMass=1 -addedDamping=1  -addedDampingCoeff=4. -useProvidedAcceleration=1 -useTP=0 -debug=3 -solver=yale -psolver=yale -show=did2rotatebd0p001ampAD.show -ad2=0 -go=go >! did2rotatebd0p001ampAD.out 
+
+LOOKS OK:
+cgins -noplot movingDiskInDisk.cmd -g=diskInDiskGride2.order2.hdf -tf=10. -tp=.05 -nu=.1 -ts=im -density=0.001 -radius=1. -gravity=0. -amp=.1 -bodyForce=wzRamp -dtMax=.02 -project=0 -numberOfCorrections=1 -omega=.2 -addedMass=1 -addedDamping=1  -addedDampingCoeff=4. -useProvidedAcceleration=1 -useTP=0 -debug=3 -solver=yale -psolver=yale -show=did2rotatebd0p001amp.show -ad2=0 -go=og 
+
+
+cgins -noplot movingDiskInDisk.cmd -g=diskInDiskGride2.order2.hdf -tf=10. -tp=.05 -nu=.1 -ts=im -density=0.001 -radius=1. -gravity=0. -amp=.1 -bodyForce=wzRamp -dtMax=.02 -project=0 -numberOfCorrections=1 -omega=.2 -addedMass=1 -addedDamping=1  -addedDampingCoeff=4. -useProvidedAcceleration=1 -useTP=0 -debug=3 -solver=yale -psolver=yale -show=did2rotatebd0p001amp.show -ad2=0 -go=halt
+
+
+
+*****************************
+******* March 4, 2016
+
+**START TO ADD ALL ADDED DAMPING TERMS**
+
+cgins movingDiskInDisk.cmd -g=diskInDiskGride2.order2.hdf -tf=10. -tp=.05 -nu=.1 -ts=im -density=0.001 -radius=1. -gravity=0. -amp=.1 -bodyForce=wzRamp -dtMax=.02 -project=0 -numberOfCorrections=1 -omega=.2 -addedMass=1 -addedDamping=1  -addedDampingCoeff=4. -useProvidedAcceleration=1 -useTP=0 -debug=3 -solver=yale -psolver=yale -show=did2rotatebd0p001amp.show -ad2=0 -go=halt
+
+*****************************
+******* March 3, 2016
+
+MISTAKE FOUND IN ADDED DAMPING implementaion -- boundaryConditions.C had impFactor=.1 instead of 1
+
+RE-RUN SOME CASES
+
+
+
+RHOS=0.001 AMP 
+cgins -noplot movingDiskInDisk.cmd -g=diskInDiskGride2.order2.hdf -tf=10. -tp=.05 -nu=.1 -ts=im -density=0.001 -radius=1. -gravity=0. -amp=.1 -bodyForce=wzRamp -dtMax=.02 -project=0 -numberOfCorrections=1 -omega=.2 -addedMass=1 -addedDamping=1  -addedDampingCoeff=4. -useProvidedAcceleration=1 -useTP=0 -debug=3 -solver=yale -psolver=yale -show=did2rotatebd0p001amp.show -ad2=0 -go=go >! did2rotatebd0p001amp.out
+
+RHOS=0.01 AMP 
+cgins -noplot movingDiskInDisk.cmd -g=diskInDiskGride2.order2.hdf -tf=10. -tp=.05 -nu=.1 -ts=im -density=0.01 -radius=1. -gravity=0. -amp=.1 -bodyForce=wzRamp -dtMax=.02 -project=0 -numberOfCorrections=1 -omega=.2 -addedMass=1 -addedDamping=1  -addedDampingCoeff=4. -useProvidedAcceleration=1 -useTP=0 -debug=3 -solver=yale -psolver=yale -show=did2rotatebd0p01amp.show -ad2=0 -go=go >! did2rotatebd0p01amp.out
+
+RHOS=1.0 AMP 
+cgins -noplot movingDiskInDisk.cmd -g=diskInDiskGride2.order2.hdf -tf=10. -tp=.05 -nu=.1 -ts=im -density=1. -radius=1. -gravity=0. -amp=.1 -bodyForce=wzRamp -dtMax=.02 -project=0 -numberOfCorrections=1 -omega=.2 -addedMass=1 -addedDamping=1  -addedDampingCoeff=4. -useProvidedAcceleration=1 -useTP=0 -debug=3 -solver=yale -psolver=yale -show=did2rotatebd1p0amp.show -ad2=0 -go=go >! did2rotatebd1p0amp.out
+
+RUN : LIGHT rhos=.1 -- Trouble at t=1.4 for ADC=2 --> ADC=4 OK
+cgins -noplot movingDiskInDisk.cmd -g=diskInDiskGride2.order2.hdf -tf=10. -tp=.05 -nu=.1 -ts=im -density=.1 -radius=1. -gravity=0. -amp=.1 -bodyForce=wzRamp -dtMax=.02 -project=0 -numberOfCorrections=1 -omega=.2 -addedMass=1 -addedDamping=1  -addedDampingCoeff=4. -useProvidedAcceleration=1 -useTP=0 -debug=3 -solver=yale -psolver=yale -show=did2rotatebd0p1amp.show -ad2=0 -go=go >! did2rotatebd0p1amp.out
+
+TP-SI  G2: RHOS=1, NU=.1 rotational force: -bodyForce=wzRamp omega=.2 OK, omega=.5 better 
+cgins -noplot movingDiskInDisk.cmd -g=diskInDiskGride2.order2.hdf -tf=10. -tp=.1 -nu=.1 -ts=im -density=1. -radius=1. -gravity=0. -amp=.1 -bodyForce=wzRamp -dtMax=.02 -project=0 -numberOfCorrections=100 -omega=.5 -addedMass=0 -useProvidedAcceleration=0 -useTP=1 -debug=3 -solver=yale -psolver=yale -show=did2rotatebd1p0.show -ad2=0 -go=go > did2rotatebd1p0.out 
+
+**TRY DECREASING DT**
+TP-SI  G2: RHOS=0.1, NU=.1 rotational force: -bodyForce=wzRamp 
+   dt=.002 omega=.1 (.5=NO) 
+   dt=.005, omega=.1 OK for a while omega=.2 =NO 
+   dt=.01 omega=.1 NO, omega=.01 OK but many it's 400+ 
+cgins -noplot movingDiskInDisk.cmd -g=diskInDiskGride2.order2.hdf -tf=10. -tp=.1 -nu=.1 -ts=im -density=0.1 -radius=1. -gravity=0. -amp=.1 -bodyForce=wzRamp -dtMax=.002 -project=0 -numberOfCorrections=500 -omega=.1 -addedMass=0 -useProvidedAcceleration=0 -useTP=1 -debug=3 -solver=yale -psolver=yale -show=did2rotatebd0p1.show -ad2=0 -go=go > did2rotatebd0p1.out 
+
+**** THIS DOES NOT WORK YET -- FIX ME 
+TP-SI  G2: RHOS=0.01, NU=.1 rotational force: -bodyForce=wzRamp 
+   dt=.001 omega=.01
+cgins -noplot movingDiskInDisk.cmd -g=diskInDiskGride2.order2.hdf -tf=10. -tp=.1 -nu=.1 -ts=im -density=0.01 -radius=1. -gravity=0. -amp=.1 -bodyForce=wzRamp -dtMax=.001 -project=0 -numberOfCorrections=1000 -omega=.01 -addedMass=0 -useProvidedAcceleration=0 -useTP=1 -debug=3 -solver=yale -psolver=yale -show=did2rotatebd0p01.show -ad2=0 -go=go > did2rotatebd0p01.out 
+
+
+*****************************
+******* Feb 29, 2016
+
+*CHECK OLD RESULTS***
+
+
+DENSITY=1 AMP=1.e-5 NU=.1 --- looks OK: 
+cgins -noplot movingDiskInDisk.cmd -g=diskInDiskGride2.order2.hdf -tf=2. -tp=.05 -nu=.1 -ad2=0 -ts=im -density=1. -radius=1. -inertia=1. -amp=1.e-5 -gravity=0. -dtMax=.02 -project=0 -numberOfCorrections=1 -omega=.2 -addedMass=1 -useProvidedAcceleration=1 -useTP=0 -debug=3 -solver=yale -psolver=yale -show=did2bd1p0new.show -go=go >! did2bd1p0new.out
+
 *****************************
 ******* Feb 28, 2016
 

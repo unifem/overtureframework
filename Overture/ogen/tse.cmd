@@ -59,7 +59,7 @@ create mappings
     cylinder
     * pause
   exit
-  delete
+  delete a mapping
     unrotated-cylinder
   *
   * ----- here is the core of piston -----
@@ -109,7 +109,7 @@ create mappings
     mappingName
     piston
   exit
-  delete
+  delete a mapping
     unrotated-piston
   *
   * Here is a port for the two-stroke-engine

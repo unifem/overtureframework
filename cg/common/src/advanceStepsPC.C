@@ -1730,10 +1730,11 @@ takeTimeStepPC( real & t0, real & dt0, int correction, AdvanceOptions & advanceO
       // Correct for forces on moving bodies if we have more corrections.
             bool movingGridCorrectionsHaveConverged = false;
             real delta =0.; // holds relative correction when we are sub-cycling 
+            const bool useMovingGridSubIterations= parameters.dbase.get<bool>("useMovingGridSubIterations");
       // *wdh* 2015/12/16 -- explicitly check for useMovingGridSubIterations, otherwise we can do multiple
       //                     corrections always if requested,
             if( movingGridProblem() && (numberOfCorrections==1  // *wdh* 2015/05/24 -- this case was missing in new version
-                                			      || !parameters.dbase.get<bool>("useMovingGridSubIterations"))  ) // *wdh* 2015/12/16 
+                                			      || !useMovingGridSubIterations)  ) // *wdh* 2015/12/16 
             {
                 if( numberOfCorrections>10 )
                 {

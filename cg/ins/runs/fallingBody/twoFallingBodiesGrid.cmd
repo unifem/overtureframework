@@ -31,20 +31,20 @@
 #    ogen -noplot twoFallingBodiesGrid -interp=e -order=2 -factor=4
 #    ogen -noplot twoFallingBodiesGrid -interp=e -order=2 -factor=8
 #
+#    ogen -noplot twoFallingBodiesGrid -interp=i -order=2 -factor=4
 #    
 # 
 $prefix="twoFallingBodiesGrid";  
 $order=2; $factor=1; $interp="i"; $ml=0; # default values
 $orderOfAccuracy = "second order"; $ng=2; $interpType = "implicit for all grids";
-$xa =-1.5; $xb=1.5; $ya=-2.; $yb=1.; 
+$xa =-1.5; $xb=1.5; $ya=-2.; $yb=2; 
 $name=""; 
 $width1=1.; $height1=.4; 
-$cx1=.5; $cy1= .25; $angle1=5; # center and angle for body 1
+$cx1=.0; $cy1= .35; $angle1=15; # center and angle for body 1
 $width2=1.; $height2=.4; 
-$cx2=.5; $cy2=-.25; $angle2=5; # center and angle for body 2
+$cx2=.0; $cy2=-.35; $angle2=15; # center and angle for body 2
 #
-$blf=4;  # grid lines are this much finer near the boundary and bottom wall
-$bottomHeight=.25; # height of stretch grid at bottom wall
+$blf=4;  # grid lines are this much finer near the boundary
 # 
 # get command line arguments
 GetOptions( "order=i"=>\$order,"factor=f"=> \$factor,"xa=f"=>\$xa,"xb=f"=>\$xb,"ya=f"=>\$ya,"yb=f"=>\$yb,\
@@ -74,7 +74,7 @@ create mappings
 #
 rectangle
   set corners
-    $yac=$ya+$bottomHeight-$ng*$ds; 
+    $yac=$ya;
     $xa $xb $yac $yb 
   lines
     $nx = intmg( ($xb-$xa )/$ds+1.5);  

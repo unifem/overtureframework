@@ -49,6 +49,9 @@ virtual ~MovingGrids();
 // Assign initial conditions and past time state
 int assignInitialConditions( GridFunction & cgf );
 
+// Compute rigid body properties such as the mass and moments of inertia
+int computeRigidBodyProperties( const int bodyNumber, CompositeGrid & cg );
+
 // correction step: 
 virtual int correctGrids(const real t1,
 			 const real t2, 

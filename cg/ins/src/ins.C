@@ -406,6 +406,10 @@ getUt(const realMappedGridFunction & v,
                  materialFormat
     };
 
+    // get the gravity vector -- may be time dependent for a slow start
+    real gravity[3];
+    parameters.getGravityVector( gravity,t );
+
     real rpar[]={mg.gridSpacing(0),mg.gridSpacing(1),mg.gridSpacing(2),
 		 dx[0],dx[1],dx[2],
 		 nu,
@@ -420,9 +424,9 @@ getUt(const realMappedGridFunction & v,
 		 parameters.dbase.get<real >("ad41n"),
 		 parameters.dbase.get<real >("ad42n"),
 		 0.,                    // 17 : was yEps, no longer used 
-		 parameters.dbase.get<ArraySimpleFixed<real,3,1,1,1> >("gravity")[0],
-		 parameters.dbase.get<ArraySimpleFixed<real,3,1,1,1> >("gravity")[1],
-		 parameters.dbase.get<ArraySimpleFixed<real,3,1,1,1> >("gravity")[2],
+		 gravity[0],
+		 gravity[1],
+		 gravity[2],
 		 thermalExpansivity,
 		 adcBoussinesq,    // ipar[22]
 		 kThermal,         // ipar[23]

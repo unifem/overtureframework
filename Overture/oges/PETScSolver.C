@@ -2744,22 +2744,23 @@ setExtraEquationValues( realCompositeGridFunction & f, real *value )
 }
 
 int PETScSolver::
-getExtraEquationValues( const realCompositeGridFunction & u, real *value )
+getExtraEquationValues( const realCompositeGridFunction & u, real *value, const int maxNumberToReturn /* =1 */ )
 //==================================================================================
-// /Description:
-//   Return solution values from the extra equations
+/// \brief Return solution values from the extra equations
+///
+/// \param u (input) : grid function holding the solution.
+/// \param value[i] (output) : values for each extra equation, i=0,1,2,...,
+/// \param maxNumberToReturn (input) : max number of values to return.
 //
-// /u(input) : grid function holding the solution.
-// /value[i] (output) : values for each extra equation, i=0,1,2,...,
-// 
-// /Return values: 0=success
-// /Author: wdh
 //==================================================================================
 {
   const int myid=max(0,Communication_Manager::My_Process_Number);
 
 //  assert( problemIsSingular==addExtraEquation );
-//  assert( oges.numberOfExtraEquations==1 );  // we only do this case so far
+
+  const int numExtra=min(maxNumberToReturn,oges.numberOfExtraEquations);
+  
+  assert( numExtra==1 );  // we only do this case so far
 
   const CompositeGrid & cg = *u.getCompositeGrid();
   // find a spot to put the extra equation

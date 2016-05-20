@@ -1,8 +1,9 @@
 #
 # A dropping cylinder -- compare to the results frm Glowinski, Pan, et.al.dropping cylinders
 # Usage:
-#    cgins [-noplot] cylDrop -g=<name> -tp=<f> -tp=<f> -density=<f> -bcOption=[walls|inflowOutflow|pressure] ...
-#        -sep=<f> -vIn=<f> -forceLimit=<f> -go[halt|go|og]
+#    cgins [-noplot] cylDrop -g=<name> -tp=<f> -tp=<f> -density=<f> ...
+#          -bcOption=[walls|inflowOutflow|pressure|rampedPressure|rampedInflow] ...
+#        -sep=<f> -vIn=<f> -forceLimit=<f> -rampGravity=[0|1] -go[halt|go|og]
 #  
 #  -sep : separation distance for collisions
 #
@@ -16,7 +17,7 @@
 #
 $model="ins"; $solver = "best"; $show=" "; $ts="pc"; $noplot=""; 
 $density=1.25; 
-$inertia=""; # set this to over-ride computed inertia
+$inertia="-1"; # set this to over-ride computed inertia, -1=auto-compute 
 $nu = .1; $dtMax=.05; $newts=0; $movingWall=0; 
 # for nu=.005 the terminal velocity of one drop is about .9 -- for low Re the velocity is prop. to Re
 $inflowVelocity=.9;
@@ -26,10 +27,11 @@ $restart="";
 #
 $radius=.125; $dropName="drop"; $channelName="channel"; 
 $gravity = "-981.";   # cm/s^2   -9.81 acceleration due to gravity standard value: 9.80665 m/s^2.
+$rampGravity=0; 
 #
 $numberOfCorrections=1; 
 $addedMass=0; $useTP=0;  $useProvidedAcceleration=1; 
-$addedDamping=0;  $addedDampingCoeff=1.; 
+$addedDamping=0;  $addedDampingCoeff=1.; $scaleAddedDampingWithDt=0; $addedDampingProjectVelocity=0; 
 $omega=.5; $rtolc=1.e-4; $atolc=1.e-7; 
 # 
 $freqFullUpdate=10; # frequency for using full ogen update in moving grids 
@@ -44,6 +46,7 @@ $aftol=1e-2;
 $filter=0; $filterFrequency=1; $filterOrder=6; $filterStages=2; 
 $vIn=.0;
 $bcOption="walls"; 
+$inflowPressure=.1; # inflow pressure for $bcOption eq "rampedPressure"
 $option=""; 
 $freqFullUpdate=10; $flushFrequency=10; 
 #
@@ -61,9 +64,10 @@ GetOptions( "g=s"=>\$grid,"tf=f"=>\$tFinal,"model=s"=>\$model,"inflowVelocity=f"
  "freqFullUpdate=i"=>\$freqFullUpdate,"radius=f"=>\$radius,"dropName=s"=>\$dropName,"channelName=s"=>\$channelName,\
  "numberOfCorrections=i"=>\$numberOfCorrections,"omega=f"=>\$omega,"addedMass=f"=>\$addedMass,"useTP=i"=>\$useTP,\
  "rtolc=f"=>\$rtolc,"atolc=f"=>\$atolc,"option=s"=>\$option,"useProvidedAcceleration=i"=>\$useProvidedAcceleration,\
- "inertia=f"=>\$inertia,"ampSinusoidalPressure=f"=>\$ampSinusoidalPressure,\
+ "inertia=f"=>\$inertia,"ampSinusoidalPressure=f"=>\$ampSinusoidalPressure,"inflowPressure=f"=>\$inflowPressure,\
  "freqSinusoidalPressure=f"=>\$freqSinusoidalPressure, "flushFrequency=f"=>\$flushFrequency,\
- "addedDamping=f"=>\$addedDamping,"addedDampingCoeff=f"=>\$addedDampingCoeff  );
+ "addedDamping=f"=>\$addedDamping,"addedDampingCoeff=f"=>\$addedDampingCoeff,"rampGravity=i"=>\$rampGravity,\
+ "scaleAddedDampingWithDt=f"=>\$scaleAddedDampingWithDt,"addedDampingProjectVelocity=f"=>\$addedDampingProjectVelocity  );
 # -------------------------------------------------------------------------------------------------
 if( $solver eq "best" ){ $solver="choose best iterative solver"; }
 if( $solver eq "mg" ){ $solver="multigrid"; }
@@ -89,33 +93,6 @@ if( $go eq "halt" ){ $go = "break"; }
 if( $go eq "og" ){ $go = "open graphics"; }
 if( $go eq "run" || $go eq "go" ){ $go = "movie mode\n finish"; }
 #
-#
-#- $nu =.1;
-#- $show = " "; $go="halt"; 
-#- $solver = "choose best iterative solver";
-#- # $solver = "yale";
-#- # $solver = "multigrid";
-#- $tolerance = "1.e-6";
-#- $tFinal=1.;
-#- $sep = 3.;
-#- $cdv = 1.;
-#- $forceLimit = 30.;
-#- $density=1.25;
-#- $dtMax = .1; # 1.5e-3; 
-#
-# -- old way:
-# $grid = "cylDrop.hdf"; $show="cylDropi2.show"; $tFinal=1.; $tPlot=.05; $nu=.1; $density=1.25; $dtMax=.75e-3; 
-# $grid = "cylDrop.hdf"; $show="cylDrope.show"; $tFinal=1.; $tPlot=.05; $nu=.1; $density=1.25;
-# $grid = "cylDrop2.hdf"; $show="cylDrop2.show"; $tPlot=.05; $nu=.05; 
-# $grid = "cylDrop4.hdf"; $show="cylDrop4.show"; $tPlot=.025; $nu=.01; $forceLimit = 40.;
-# $grid = "cylDrop2.hdf"; $show="cylDrop2.show"; $tFinal=.5; $tPlot=.05; $nu=.01; $density=1.5; $forceLimit = 30.;
-# $grid = "cylDrop2.hdf"; $show="cylDrop2A.show"; $tFinal=.75; $tPlot=.05; $nu=.05; $density=1.5; $forceLimit = 30.;
-# ----------------------------- get command line arguments ---------------------------------------
-#- GetOptions( "g=s"=>\$grid,"tf=f"=>\$tFinal,"tp=f"=>\$tPlot,"show=s"=>\$show,"nu=f"=>\$nu, \
-#-             "density=f"=>\$density,"dtMax=f"=>\$dtMax,"go=s"=>\$go );
-#- if( $go eq "halt" ){ $go = "break"; }
-#- if( $go eq "og" ){ $go = "open graphics"; }
-#- if( $go eq "run" || $go eq "go" ){ $go = "movie mode\n finish"; }
 #
 $grid
 #
@@ -159,6 +136,8 @@ $grid
   # for added damping algorithm: 
   added damping coefficient: $addedDampingCoeff
   use added damping algorithm $addedDamping
+  scale added damping with dt $scaleAddedDampingWithDt
+  added damping project velocity $addedDampingProjectVelocity
   # -- CHECK ME: 
   use moving grid sub-iterations $useTP
   # TEMP FIX: 
@@ -185,6 +164,10 @@ $grid
    gravity
      $gravityVector
      # 0. $gravity 0.
+   # optionally ramp gravity 
+   $taGravity=0; $tbGravity=1.; 
+   if( $rampGravity eq 1 ){ $cmd ="OBPDE:set gravity time dependence\n ramp end values: 0,1 (start,end)\n ramp times: $taGravity,$tbGravity (start,end)\n ramp order: 3\n ramp function\n   exit"; }else{ $cmd="#"; }
+   $cmd
    #  turn on 2nd-order AD here:
    OBPDE:second-order artificial diffusion $ad2
    OBPDE:ad21,ad22 $ad21, $ad22
@@ -215,29 +198,32 @@ $grid
      #   .25
      density
        $density
-     moments of inertia
-       $pi=3.141592653; 
-       $volume=$pi*$radius**2; $mass=$density*$volume;
-       $momentOfInertia=.5*$mass*$radius**2;
-       if( $inertia ne "" ){ $momentOfInertia=$inertia; } # user supplied inertia
-       $momentOfInertia
+     #
+     $pi=4.*atan2(1.,1.);
+     $volume=$pi*$radius**2; $mass=$density*$volume;
+     $momentOfInertia=.5*$mass*$radius**2;
+     if( $inertia eq "" ){ $inertia=$momentOfInertia; }
+     # inertia=-1 : means auto compute inertia
+     if( $inertia eq "-1" ){ $cmd="#"; }else{ $cmd="moments of inertia\n $inertia"; }
+     $cmd
 # 
-      # relaxation is used for light bodies to stabilize the time stepping
-      relax correction steps $useTP
-      # -- indicate if we are using the direct projection AMP scheme ---
-      direct projection added mass $addedMass
-      use provided acceleration $useProvidedAcceleration
-      # tolerences for TP-SI 
-      force relaxation parameter: $omega
-      force relative tol: $rtolc
-      force absolute tol: $atolc
-      $beta=$omega; 
-      torque relaxation parameter: $beta
-      torque relative tol: $rtolc
-      torque absolute tol: $atolc
-     done
-      $dropName
-    done
+    # relaxation is used for light bodies to stabilize the time stepping
+    relax correction steps $useTP
+    # -- indicate if we are using the direct projection AMP scheme ---
+    direct projection added mass $addedMass
+    use provided acceleration $useProvidedAcceleration
+    # tolerences for TP-SI 
+    force relaxation parameter: $omega
+    force relative tol: $rtolc
+    force absolute tol: $atolc
+    $beta=$omega; 
+    torque relaxation parameter: $beta
+    torque relative tol: $rtolc
+    torque absolute tol: $atolc
+   done
+    $dropName
+  done
+   # pause
    #
   done
 #
@@ -260,6 +246,36 @@ $grid
            "  exit\n" . \
            "done\n" };
     #
+    # Ramped pressure   
+    #    Inflow pressure : $inflowPressure
+    #    Outflow pressure = 0
+    if( $bcOption eq "rampedPressure" ){ \
+      $cmd="$channelName=noSlipWall\n" . \
+           "$channelName(0,1)=outflow , pressure(1.*p+0.*p.n=0.)\n" . \
+           "$channelName(1,1)=inflowWithPressureAndTangentialVelocityGiven, uniform(u=0.,v=0.,p=1)\n" . \
+           "$channelName(1,1)=inflowWithPressureAndTangentialVelocityGiven, userDefinedBoundaryData\n" . \
+           "time function option\n" . \
+           " ramp function\n" . \
+           "   ramp end values: 0,$inflowPressure (start,end)\n". \
+           "   ramp times: $taGravity,$tbGravity (start,end)\n" .\
+           "   ramp order: 3\n" . \
+           "  exit\n" . \
+           "done\n" };
+    #
+    # ramped velocity:
+    #
+    if( $bcOption eq "rampedVelocity" ){ \
+      $cmd="$channelName=noSlipWall\n" . \
+           "$channelName(0,1)=outflow , pressure(1.*p+0.*p.n=0.)\n" . \
+           "$channelName(1,1)=inflowWithVelocityGiven, parabolic(d=.2,p=1,v=$inflowVelocity), userDefinedBoundaryData\n" . \
+           "time function option\n" . \
+           " ramp function\n" . \
+           "   ramp end values: 0,1 (start,end)\n". \
+           "   ramp times: $taGravity,$tbGravity (start,end)\n" .\
+           "   ramp order: 3\n" . \
+           "  exit\n" . \
+           "done\n" };
+    #
     $cmd 
     #
     # $channel(0,1)=inflowWithVelocityGiven,  parabolic(d=.2,p=1,v=$vIn)
@@ -273,7 +289,7 @@ $grid
 #
   pressure solver options
    # $ogesDebug=$debug; 
-   $ogesSolver=$psolver; $ogesRtol=$rtolp; $ogesAtol=$atolp; $ogesIluLevels=$iluLevels;
+   $ogesSolver=$psolver; $ogesRtol=$rtolp; $ogesAtol=$atolp; $ogesIluLevels=$iluLevels;  $ogesDtol=1e20; 
    include $ENV{CG}/ins/cmd/ogesOptions.h
   exit
 #

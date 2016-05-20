@@ -52,7 +52,12 @@ class EquationSolver
   virtual int setExtraEquationValues( realCompositeGridFunction & f, real *value );
 
   // return solution values from the extra equations
-  virtual int getExtraEquationValues( const realCompositeGridFunction & u, real *value );
+  virtual int getExtraEquationValues( RealArray & values ) const;
+  // Old way: 
+  virtual int getExtraEquationValues( const realCompositeGridFunction & u, real *value, const int maxNumberToReturn=1 );
+
+  // return right-hand side values from the extra equations
+  int getExtraEquationRightHandSideValues( RealArray & values ) const;
 
   // evaluate the dot product of an extra equation times u 
   virtual int evaluateExtraEquation( const realCompositeGridFunction & u, real & value, int extraEquation=0 );

@@ -1016,23 +1016,46 @@ setExtraEquationValues( realCompositeGridFunction & f, real *value )
   return equationSolver[parameters.solver]->setExtraEquationValues(f,value);
 }
 
-//\begin{>>OgesInclude.tex}{\subsection{setExtraEquationValues}} 
 int Oges::
-getExtraEquationValues( const realCompositeGridFunction & u, real *value )
+getExtraEquationValues( RealArray & values ) const
 //==================================================================================
-// /Description:
-//   Return solution values from the extra equations
+/// \brief Return solution values from the extra equations
+///
+/// \param values (output) : values for each extra equation, i=0,1,2,...,numberOfExtraEquations-1
 //
-// /u(input) : grid function holding the solution.
-// /value[i] (output) : values for each extra equation, i=0,1,2,...,
-// 
-// /Return values: 0=success
-// /Author: wdh
-//\end{OgesInclude.tex} 
 //==================================================================================
 {
   assert( equationSolver[parameters.solver]!=NULL );
-  return equationSolver[parameters.solver]->getExtraEquationValues(u,value);
+  return equationSolver[parameters.solver]->getExtraEquationValues(values);
+}
+
+int Oges::
+getExtraEquationValues( const realCompositeGridFunction & u, real *value, const int maxNumberToReturn /* =1 */ )
+//==================================================================================
+/// \brief Return solution values from the extra equations *OLD WAY* 
+///
+/// \param u (input) : grid function holding the solution.
+/// \param value[i] (output) : values for each extra equation, i=0,1,2,...,
+/// \param maxNumberToReturn (input) : max number of values to return.
+//
+//==================================================================================
+{
+  assert( equationSolver[parameters.solver]!=NULL );
+  return equationSolver[parameters.solver]->getExtraEquationValues(u,value,maxNumberToReturn);
+}
+
+
+int Oges::
+getExtraEquationRightHandSideValues( RealArray & values ) const
+//==================================================================================
+/// \brief Return the currect values in the right-hand-side for the extra equations
+///
+/// \param values (output) : values for each extra equation, i=0,1,2,...,numberOfExtraEquations-1
+//
+//==================================================================================
+{
+  assert( equationSolver[parameters.solver]!=NULL );
+  return equationSolver[parameters.solver]->getExtraEquationRightHandSideValues(values);
 }
 
 

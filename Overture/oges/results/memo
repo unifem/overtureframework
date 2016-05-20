@@ -1,6 +1,21 @@
 set tcm3x   = $OVHOME/Overture/op/tests/tcm3
 set tosx   = $OVHOME/Overture/oges/results/tos
 
+*****************************
+********** March 23, 2016
+
+$tcm3x square2048.order2.hdf -solver=yale -dirichlet
+*** max residual=0.00e+00, time for 1st solve of the Dirichlet problem = 3.05e+02 (iterations=0) ***
+
+$tcm3x square1024.order2.hdf -solver=yale -dirichlet
+
+** max residual=0.00e+00, time for 1st solve of the Dirichlet problem = 3.42e+01 (iterations=0) ***
+
+$tcm3x square512.order2.hdf -solver=yale -dirichlet
+
+*** max residual=0.00e+00, time for 1st solve of the Dirichlet problem = 4.15e+00 (iterations=0) ***
+
+
 *****************
 ***** Sept 2, 2015
 

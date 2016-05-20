@@ -89,7 +89,9 @@
 	  rpar[8] = parameters->dbase.get<real >("nu");\
 	  rpar[9]= parameters->dbase.get<real >("kThermal");\
           \
-	  ArraySimpleFixed<real,3,1,1,1> & gravity = parameters->dbase.get<ArraySimpleFixed<real,3,1,1,1> >("gravity");\
+	  /* ArraySimpleFixed<real,3,1,1,1> & gravity = parameters->dbase.get<ArraySimpleFixed<real,3,1,1,1> >("gravity"); */  \
+    real gravity[3]; \
+    ((InsParameters*)parameters)->getGravityVector( gravity,u.t );	\
 	  rpar[20]=gravity[0];\
 	  rpar[21]=gravity[1];\
 	  rpar[22]=gravity[2];\

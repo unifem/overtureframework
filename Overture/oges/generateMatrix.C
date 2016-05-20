@@ -239,8 +239,8 @@ generateMatrix( int & errorNumber )
     {
       numberOfDenseExtraEquations=1;
       numberOfExtraEquationCoeffs = (*coefficientsOfDenseExtraEquations)[grid].getLength(3);
-      if( true )
-	printF("--OGES--: addDenseExtraEquations=%i numberOfDenseExtraEquations=%i, numCoeff=%i \n",
+      if( debug & 4 )
+	printF("--OGES-- addDenseExtraEquations=%i numberOfDenseExtraEquations=%i, numCoeff=%i \n",
 	       (int)addDenseExtraEquations,numberOfDenseExtraEquations,numberOfExtraEquationCoeffs);
       
       // *wdh* 2015/10/12 -- for case when there are dense + extra equations
@@ -298,8 +298,9 @@ generateMatrix( int & errorNumber )
 	    {
               // --- user has defined this equation ---
               // This is either an extra "constraint" equation or an over-riden equation
-	      printF("--OGES-- Add user extra equation %i: ieqn=%i (num-extra=%i)\n",
-                     iExtraEquation,ieqn,extraEquations.neq);
+	      if( false )
+		printF("--OGES-- Add user extra equation %i: ieqn=%i (num-extra=%i)\n",
+		       iExtraEquation,ieqn,extraEquations.neq);
 	      
               for( int kk=iaExtra(iExtraEquation); kk<=iaExtra(iExtraEquation+1)-1; kk++ )
 	      {

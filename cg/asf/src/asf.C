@@ -212,11 +212,16 @@ getUt(const realMappedGridFunction & v,
     const real & ad21 = parameters.dbase.get<real >("ad21");
     const real & ad22 = parameters.dbase.get<real >("ad22");
     const real & advectionCoefficient = parameters.dbase.get<real >("advectionCoefficient");  
-    const ArraySimpleFixed<real,3,1,1,1> & gravity = parameters.dbase.get<ArraySimpleFixed<real,3,1,1,1> >("gravity");
     const Range & Rt = parameters.dbase.get<Range >("Rt");
 
     const real implicitFactor = (parameters.getGridIsImplicit(grid) 
                                                     && implicitMethod==Parameters::crankNicolson ) ? .5 : 1.;
+
+    // const ArraySimpleFixed<real,3,1,1,1> & gravity = parameters.dbase.get<ArraySimpleFixed<real,3,1,1,1> >("gravity");
+    // get the gravity vector -- may be time dependent for a slow start
+    real gravity[3];
+    parameters.getGravityVector( gravity,t );
+
 
     MappedGrid & mg = *(v.getMappedGrid());
     const int isRectangular=mg.isRectangular(); 
@@ -365,9 +370,9 @@ getUt(const realMappedGridFunction & v,
                		   parameters.dbase.get<real >("ad41n"),
                		   parameters.dbase.get<real >("ad42n"),
                		   yEps,                    // 17
-               		   parameters.dbase.get<ArraySimpleFixed<real,3,1,1,1> >("gravity")[0],
-               		   parameters.dbase.get<ArraySimpleFixed<real,3,1,1,1> >("gravity")[1],
-               		   parameters.dbase.get<ArraySimpleFixed<real,3,1,1,1> >("gravity")[2],
+               		   gravity[0],
+               		   gravity[1],
+               		   gravity[2],
                		   parameters.dbase.get<real >("mu"),
                		   parameters.dbase.get<real >("kThermal"),
                		   parameters.dbase.get<real >("gamma"),
@@ -900,7 +905,7 @@ getUt(const realMappedGridFunction & v,
             }
         }
     
-    // add gravity if it is on.
+        // add gravity if it is on.
         int axis;
         for( axis=0; axis<mg.numberOfDimensions(); axis++ )
         {

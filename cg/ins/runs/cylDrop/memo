@@ -1,4 +1,151 @@
 *************************************
+**** May 20, 2016
+
+TODO : Add ramped downward flow
+
+RISING cylinder offset from wall
+
+G4 TEST Smaller nu   -vIn=-1.6 : too small, -1.9 slightly too small
+cgins -noplot cylDrop -g=offsetCylInChannele4.order2.s2.hdf -tf=15. -tp=.1 -nu=.01 -ad2=1 -ts=im -density=.1 -radius=.5 -dropName=drop -channelName=channel -bcOption=rampedVelocity -inflowVelocity=-2 -gravity=-10. -rampGravity=1 -dtMax=.005 -project=0 -numberOfCorrections=2 -omega=1. -addedMass=1  -useProvidedAcceleration=1 -addedDamping=1 -addedDampingCoeff=6. -addedDampingProjectVelocity=1  -useTP=0 -debug=3  -solver=best -psolver=best -rtolp=1.e-5 -atolp=1.e-12 -rtol=1.e-5 -atol=1.e-10 -show=OcicG4Bd0p1.show -go=go >! OcicG4Bd0p1.out
+
+
+INCREASE GRAVITY to 10   vIn=-1 :: too big, -.8 too small
+cgins -noplot cylDrop -g=offsetCylInChannele2.order2.s2.hdf -tf=10. -tp=.1 -nu=.1 -ad2=1 -ts=im -density=.1 -radius=.5 -dropName=drop -channelName=channel -bcOption=rampedVelocity -inflowVelocity=-.9 -gravity=-10. -rampGravity=1 -dtMax=.01 -project=0 -numberOfCorrections=2 -omega=1. -addedMass=1  -useProvidedAcceleration=1 -addedDamping=1 -addedDampingCoeff=16. -addedDampingProjectVelocity=1  -useTP=0 -debug=3  -solver=best -psolver=best -rtolp=1.e-5 -atolp=1.e-12 -rtol=1.e-5 -atol=1.e-10 -show=OcicG2Bd0p1a.show -go=go >! OcicG2Bd0p1a.out
+
+
+INFLOW: -.1 too small, -.2 too big , -.15 too big 
+cgins -noplot cylDrop -g=offsetCylInChannele2.order2.s2.hdf -tf=30. -tp=.2 -nu=.1 -ad2=1 -ts=im -density=.1 -radius=.5 -dropName=drop -channelName=channel -bcOption=rampedVelocity -inflowVelocity=-.13 -gravity=-1. -rampGravity=1 -dtMax=.01 -project=0 -numberOfCorrections=2 -omega=1. -addedMass=1  -useProvidedAcceleration=1 -addedDamping=1 -addedDampingCoeff=16. -addedDampingProjectVelocity=1  -useTP=0 -debug=3  -solver=best -psolver=best -rtolp=1.e-5 -atolp=1.e-12 -rtol=1.e-5 -atol=1.e-10 -show=OcicG2Bd0p1.show -go=go >! OcicG2Bd0p1.out
+
+
+*************************************
+**** May 19, 2016
+
+TODO : Add ramped downward flow
+
+RISING cylinder offset from wall
+
+INFLOW: -.1 too small, -.2 too big 
+cgins -noplot cylDrop -g=offsetCylInChannele2.order2.s2.hdf -tf=10. -tp=.2 -nu=.1 -ad2=1 -ts=im -density=.1 -radius=.5 -dropName=drop -channelName=channel -bcOption=rampedVelocity -inflowVelocity=-.15 -gravity=-1. -rampGravity=1 -dtMax=.01 -project=0 -numberOfCorrections=2 -omega=1. -addedMass=1  -useProvidedAcceleration=1 -addedDamping=1 -addedDampingCoeff=16. -addedDampingProjectVelocity=1  -useTP=0 -debug=3  -solver=best -psolver=best -rtolp=1.e-5 -atolp=1.e-12 -rtol=1.e-5 -atol=1.e-10 -show=OcicG2Bd0p1.show -go=go >! OcicG2Bd0p1.out
+
+
+TROUBLE: pressure at infloe 
+cgins -noplot cylDrop -g=offsetCylInChannele2.order2.s2.hdf -tf=5. -tp=.05 -nu=.1 -ad2=1 -ts=im -density=.1 -radius=.5 -dropName=drop -channelName=channel -bcOption=rampedPressure -gravity=-1. -rampGravity=1 -dtMax=.01 -project=0 -numberOfCorrections=2 -omega=1. -addedMass=1  -useProvidedAcceleration=1 -addedDamping=1 -addedDampingCoeff=16. -addedDampingProjectVelocity=1  -useTP=0 -debug=3  -solver=best -psolver=best -rtolp=1.e-5 -atolp=1.e-12 -rtol=1.e-5 -atol=1.e-10 -go=og
+
+
+
+*************************************
+**** May 17, 2016
+
+=== THIN domain
+
+ogen -noplot settlingCylGrid.cmd -interp=i -blf=5 -cy=0 -xa=-1. -xb=1. -ya=-3 -yb=1. -factor=4 -prefix=settlingCylThinGrid
+
+
+
+ogen -noplot settlingCylGrid.cmd -interp=i -blf=5 -cy=1 -ya=-2 -factor=4 -prefix=settlingRaisedCylGrid
+
+
+============ Raised Cylinder ==========
+-- G4 GRAVITY=1 RHOS=.1 
+cgins -noplot cylDrop -g=settlingRaisedCylGridi4.order2.s5.hdf -tf=10. -tp=.05 -nu=.1 -ad2=1 -ts=im -density=.1 -radius=.5 -dropName=drop -channelName=background -gravity=1. -rampGravity=1 -dtMax=.01 -project=0 -numberOfCorrections=2 -omega=1. -addedMass=1  -useProvidedAcceleration=1 -addedDamping=1 -addedDampingCoeff=16. -addedDampingProjectVelocity=1  -useTP=0 -debug=3  -solver=best -psolver=best -rtolp=1.e-5 -atolp=1.e-12 -rtol=1.e-5 -atol=1.e-10 -show=srcG4Bd0p1.show -go=go >! srcG4Bd0p1.out
+
+
+*************************************
+**** May 17, 2016
+
+
+REVISIT settling cylinder
+
+ogen -noplot settlingCylGrid.cmd -interp=i -blf=10 -factor=8
+ogen -noplot settlingCylGrid.cmd -interp=i -blf=5 -factor=8
+ogen -noplot settlingCylGrid.cmd -interp=i -blf=5 -factor=16
+
+ogen -noplot settlingCylGrid.cmd -interp=i -blf=10 -factor=4
+
+NOTE -- INERTIA=100 WAS SET IN MANY RUNS
+
+ 
+-- G16 GRAVITY=1 RHOS=.1 -- OK to t=9 then oscillations grwo in a2 
+cgins -noplot cylDrop -g=settlingCylGridi16.order2.s5.hdf -tf=10. -tp=.05 -nu=.1 -ad2=1 -ts=im -density=.1 -radius=.5 -dropName=drop -channelName=background -gravity=1. -rampGravity=1 -dtMax=.01 -project=0 -numberOfCorrections=2 -omega=1. -addedMass=1  -useProvidedAcceleration=1 -addedDamping=1 -addedDampingCoeff=8. -addedDampingProjectVelocity=1  -useTP=0 -debug=3  -solver=best -psolver=best -rtolp=1.e-6 -atolp=1.e-12 -rtol=1.e-6 -atol=1.e-10 -show=settlingCylG16s5Bd0p1.show -go=go >! settlingCylG16s5Bd0p1.out 
+ 
+-- G8 GRAVITY=1 RHOS=.1 
+cgins -noplot cylDrop -g=settlingCylGridi8.order2.s5.hdf -tf=10. -tp=.05 -nu=.1 -ad2=1 -ts=im -density=.1 -radius=.5 -dropName=drop -channelName=background -gravity=1. -rampGravity=1 -dtMax=.01 -project=0 -numberOfCorrections=2 -omega=1. -addedMass=1  -useProvidedAcceleration=1 -addedDamping=1 -addedDampingCoeff=8. -addedDampingProjectVelocity=1  -useTP=0 -debug=3  -solver=best -psolver=best -rtolp=1.e-6 -atolp=1.e-12 -rtol=1.e-6 -atol=1.e-10 -show=settlingCylG8s5Bd0p1.show -go=go >! settlingCylG8s5Bd0p1.out 
+
+
+-- G4 GRAVITY=1 RHOS=.1 TURN OFF projection
+cgins -noplot cylDrop -g=settlingCylGridi4.order2.s5.hdf -tf=10. -tp=.05 -nu=.1 -ad2=1 -ts=im -density=.1 -radius=.5 -dropName=drop -channelName=background -gravity=1. -rampGravity=1 -dtMax=.01 -project=0 -numberOfCorrections=2 -omega=1. -addedMass=1  -useProvidedAcceleration=1 -addedDamping=1 -addedDampingCoeff=16. -addedDampingProjectVelocity=0  -useTP=0 -debug=3  -solver=best -psolver=best -rtolp=1.e-5 -atolp=1.e-12 -rtol=1.e-5 -atol=1.e-10 -show=settlingCylG4s5Bd0p1AD8a.show -go=go >! settlingCylG4s5Bd0p1AD8a.out 
+
+-- G4 GRAVITY=1 RHOS=.1 -dtMax=.025: TOO BIG , dt=.01 -- wiggles 
+cgins -noplot cylDrop -g=settlingCylGridi4.order2.s5.hdf -tf=10. -tp=.05 -nu=.1 -ad2=1 -ts=im -density=.1 -radius=.5 -dropName=drop -channelName=background -gravity=1. -rampGravity=1 -dtMax=.01 -project=0 -numberOfCorrections=2 -omega=1. -addedMass=1  -useProvidedAcceleration=1 -addedDamping=1 -addedDampingCoeff=16. -addedDampingProjectVelocity=1  -useTP=0 -debug=3  -solver=best -psolver=best -rtolp=1.e-5 -atolp=1.e-12 -rtol=1.e-5 -atol=1.e-10 -show=settlingCylG4s5Bd0p1AD16.show -go=go >! settlingCylG4s5Bd0p1AD16.out 
+
+
+FLOATING BODY RHOS=.5 
+-- G4 GRAVITY=1 RHOS=.1 -dtMax=.025: TOO BIG , dt=.01 -- wiggles 
+cgins -noplot cylDrop -g=settlingCylGridi4.order2.s5.hdf -tf=10. -tp=.05 -nu=.1 -ad2=1 -ts=im -density=.1 -radius=.5 -dropName=drop -channelName=background -gravity=1. -rampGravity=1 -dtMax=.01 -project=0 -numberOfCorrections=2 -omega=1. -addedMass=1  -useProvidedAcceleration=1 -addedDamping=1 -addedDampingCoeff=8. -addedDampingProjectVelocity=1  -useTP=0 -debug=3  -solver=best -psolver=best -rtolp=1.e-5 -atolp=1.e-12 -rtol=1.e-5 -atol=1.e-10 -show=settlingCylG4s5Bd0p1.show -go=go >! settlingCylG4s5Bd0p1.out 
+
+
+-- G4 GRAVITY=1 RHOS=.5 
+cgins -noplot cylDrop -g=settlingCylGridi4.order2.s5.hdf -tf=10. -tp=.05 -nu=.1 -ad2=1 -ts=im -density=.5 -radius=.5 -dropName=drop -channelName=background -gravity=1. -rampGravity=1 -dtMax=.025 -project=0 -numberOfCorrections=2 -omega=1. -addedMass=1  -useProvidedAcceleration=1 -addedDamping=1 -addedDampingCoeff=8. -addedDampingProjectVelocity=1  -useTP=0 -debug=3  -solver=best -psolver=best -rtolp=1.e-5 -atolp=1.e-12 -rtol=1.e-5 -atol=1.e-10 -show=settlingCylG4s5Bd0p5.show -go=go >! settlingCylG4s5Bd0p5.out 
+
+
+INCREASE NU 
+-- G4 -dtMax=.05 : too big
+cgins -noplot cylDrop -g=settlingCylGridi4.order2.s5.hdf -tf=10. -tp=.05 -nu=.2 -ad2=1 -ts=im -density=2. -radius=.5 -dropName=drop -channelName=background -gravity=-1. -rampGravity=1 -dtMax=.025 -project=0 -numberOfCorrections=2 -omega=1. -addedMass=1  -useProvidedAcceleration=1 -addedDamping=1 -addedDampingCoeff=8. -addedDampingProjectVelocity=1  -useTP=0 -debug=3  -solver=best -psolver=best -rtolp=1.e-5 -atolp=1.e-12 -rtol=1.e-5 -atol=1.e-10 -show=settlingCylG4s5Bd2nu0p2.show -go=go >! settlingCylG4s5Bd2nu0p.out 
+
+
+-- G8 -- G8s5  dtMax=.02 -- less added-damping AD=1 TOO SMall
+cgins -noplot cylDrop -g=settlingCylGridi8.order2.s5.hdf -tf=10. -tp=.05 -nu=.1 -ad2=1 -ts=im -density=2. -radius=.5 -dropName=drop -channelName=background -gravity=-1. -rampGravity=1 -dtMax=.02 -project=0 -numberOfCorrections=2 -omega=1. -addedMass=1  -useProvidedAcceleration=1 -addedDamping=1 -addedDampingCoeff=1. -addedDampingProjectVelocity=1  -useTP=0 -debug=3  -solver=best -psolver=best -rtolp=1.e-6 -atolp=1.e-12 -rtol=1.e-6 -atol=1.e-10 -show=settlingCylG8s5Bd2b.show -go=go >! settlingCylG8s5Bd2b.out 
+
+-- G8 -- G8s5  TRY dtMax=.01 
+cgins -noplot cylDrop -g=settlingCylGridi8.order2.s5.hdf -tf=10. -tp=.05 -nu=.1 -ad2=1 -ts=im -density=2. -radius=.5 -dropName=drop -channelName=background -gravity=-1. -rampGravity=1 -dtMax=.01 -project=0 -numberOfCorrections=2 -omega=1. -addedMass=1  -useProvidedAcceleration=1 -addedDamping=1 -addedDampingCoeff=8. -addedDampingProjectVelocity=1  -useTP=0 -debug=3  -solver=best -psolver=best -rtolp=1.e-6 -atolp=1.e-12 -rtol=1.e-6 -atol=1.e-10 -show=settlingCylG8s5Bd2a.show -go=go >! settlingCylG8s5Bd2a.out 
+
+-- G8 -- G8s5  -- decrease dt --Better
+cgins -noplot cylDrop -g=settlingCylGridi8.order2.s5.hdf -tf=10. -tp=.05 -nu=.1 -ad2=1 -ts=im -density=2. -radius=.5 -dropName=drop -channelName=background -gravity=-1. -rampGravity=1 -dtMax=.025 -project=0 -numberOfCorrections=2 -omega=1. -addedMass=1  -useProvidedAcceleration=1 -addedDamping=1 -addedDampingCoeff=8. -addedDampingProjectVelocity=1  -useTP=0 -debug=3  -solver=best -psolver=best -rtolp=1.e-6 -atolp=1.e-12 -rtol=1.e-6 -atol=1.e-10 -show=settlingCylG8s5Bd2.show -go=go >! settlingCylG8s5Bd2.out 
+
+-- G8 -- AD=4 : Rotating !! --> AD=8, PV=1, -NC=2
+cgins -noplot cylDrop -g=settlingCylGridi8.order2.s10.hdf -tf=10. -tp=.05 -nu=.1 -ad2=1 -ts=im -density=2. -radius=.5 -dropName=drop -channelName=background -gravity=-1. -rampGravity=1 -dtMax=.05 -project=0 -numberOfCorrections=2 -omega=1. -addedMass=1  -useProvidedAcceleration=1 -addedDamping=1 -addedDampingCoeff=8. -addedDampingProjectVelocity=1  -useTP=0 -debug=3  -solver=best -psolver=best -rtolp=1.e-6 -atolp=1.e-12 -rtol=1.e-6 -atol=1.e-10 -show=settlingCylG8s10Bd2.show -go=go >! settlingCylG8s10Bd2.out 
+
+RERUN WITH PROPER INERTIA
+cgins -noplot cylDrop -g=settlingCylGridi4.order2.s5.hdf -tf=10. -tp=.05 -nu=.1 -ad2=1 -ts=im -density=2. -radius=.5 -dropName=drop -channelName=background -gravity=-1. -rampGravity=1 -dtMax=.05 -project=0 -numberOfCorrections=1 -omega=1. -addedMass=1  -useProvidedAcceleration=1 -addedDamping=1 -addedDampingCoeff=4. -useTP=0 -debug=3  -solver=best -psolver=best -rtolp=1.e-6 -atolp=1.e-12 -rtol=1.e-6 -atol=1.e-10 -show=settlingCylG4ampa.show -show=settlingCylG4Bd2.show -go=go >! settlingCylG4Bd2.out 
+
+
+====
+
+TRY PETSC: SET DTOL!!  -rtolp=1.e-5, rtol=1.e-6 OK 
+cgins -noplot cylDrop -g=settlingCylGridi4.order2.s5.hdf -tf=10. -tp=.05 -nu=.1 -ad2=0 -ts=im -density=2. -inertia=100. -radius=.5 -dropName=drop -channelName=background -gravity=-1. -rampGravity=1 -dtMax=.05 -project=0 -numberOfCorrections=1 -omega=1. -addedMass=1  -useProvidedAcceleration=1 -addedDamping=1 -addedDampingCoeff=4. -useTP=0 -debug=3 -solver=best -psolver=best -rtolp=1.e-4 -atolp=1.e-12 -rtol=1.e-5 -atol=1.e-10  -show=settlingCylG4ampa.show -show=settlingCylG4Bd2i.show -go=go >! settlingCylG4Bd2i.out 
+
+TRY PROJECTING VELOCITY
+cgins -noplot cylDrop -g=settlingCylGridi4.order2.s10.hdf -tf=10. -tp=.05 -nu=.1 -ad2=1 -ts=im -density=2. -inertia=100. -radius=.5 -dropName=drop -channelName=background -gravity=-1. -rampGravity=1 -dtMax=.05 -project=0 -numberOfCorrections=2 -omega=1. -addedMass=1  -useProvidedAcceleration=1 -addedDamping=1 -addedDampingCoeff=4. -addedDampingProjectVelocity=1 -useTP=0 -debug=3  -solver=best -psolver=best -rtolp=1.e-4 -atol=1.e-12 -rtol=1.e-5 -atolp=1.e-10 -show=settlingCylG4s10Bd2pv.show -go=go >! settlingCylG4s10Bd2pv.out 
+
+
+INCREASE STRETCHING 
+cgins -noplot cylDrop -g=settlingCylGridi4.order2.s10.hdf -tf=10. -tp=.05 -nu=.1 -ad2=0 -ts=im -density=2. -inertia=100. -radius=.5 -dropName=drop -channelName=background -gravity=-1. -rampGravity=1 -dtMax=.05 -project=0 -numberOfCorrections=1 -omega=1. -addedMass=1  -useProvidedAcceleration=1 -addedDamping=1 -addedDampingCoeff=4. -useTP=0 -debug=3 -psolver=yale -show=settlingCylG4s10Bd2.show -go=go >! settlingCylG4s10Bd2.out 
+
+
+RAMP GRAVITY, TURN OFF AD2
+cgins -noplot cylDrop -g=settlingCylGridi4.order2.s5.hdf -tf=10. -tp=.05 -nu=.1 -ad2=0 -ts=im -density=2. -inertia=100. -radius=.5 -dropName=drop -channelName=background -gravity=-1. -rampGravity=1 -dtMax=.05 -project=0 -numberOfCorrections=1 -omega=1. -addedMass=1  -useProvidedAcceleration=1 -addedDamping=1 -addedDampingCoeff=4. -useTP=0 -debug=3 -psolver=yale -show=settlingCylG4ampa.show -show=settlingCylG4Bd2.show -go=go >! settlingCylG4Bd2.out 
+
+TRY THIS:
+cgins cylDrop -g=settlingCylGridi4.order2.s5.hdf -tf=10. -tp=.05 -nu=.1 -ts=im -density=2. -inertia=100. -radius=.5 -dropName=drop -channelName=background -gravity=-1. -dtMax=.05 -project=0 -numberOfCorrections=1 -omega=1. -addedMass=1  -useProvidedAcceleration=1 -addedDamping=1 -addedDampingCoeff=4. -useTP=0 -debug=3 -psolver=yale -show=settlingCylG4ampa.show -go=halt
+
+
+OLD:
+G4 AMP DENSITY=2 nu=.1 
+cgins -noplot cylDrop -g=settlingCylGridi4.order2.s5.hdf -tf=10. -tp=.05 -nu=.1 -ts=im -density=2. -inertia=100. -radius=.5 -dropName=drop -channelName=background -gravity=-1. -dtMax=.005 -project=0 -numberOfCorrections=2 -omega=1. -addedMass=1  -useProvidedAcceleration=1  -useTP=0 -debug=3 -psolver=yale -show=settlingCylG4ampa.show -go=go >! settlingCylG4ampa.out
+
+cgins -noplot cylDrop -g=settlingCylGridi2.order2.s10.hdf -tf=5. -tp=.05 -nu=.1 -ts=im -density=4. -radius=.5 -dropName=drop -channelName=background -gravity=-1. -dtMax=.01 -project=0 -numberOfCorrections=1 -omega=1. -addedMass=1 -addedDamping=1 -useProvidedAcceleration=1  -useTP=0 -debug=3 -psolver=yale -go=og 
+
+
+*************************************
+**** March 6, 2016
+
+Compute more rigid body properties automatically 
+
+
+cgins -noplot cylDrop -g=settlingCylGridi2.order2.s10.hdf -tf=5. -tp=.05 -nu=.1 -ts=im -density=4. -radius=.5 -dropName=drop -channelName=background -gravity=-1. -dtMax=.01 -project=0 -numberOfCorrections=1 -omega=1. -addedMass=1 -addedDamping=1 -useProvidedAcceleration=1  -useTP=0 -debug=3 -psolver=yale -go=og 
+
+
+*************************************
 ****Feb 09, 2016
 
 ----- SETTLING PROBLEM -----

@@ -308,13 +308,16 @@ writeParameterSummary( FILE * file )
           parameters.dbase.get<real >("kThermal"),parameters.dbase.get<real >("thermalConductivity"),
           parameters.dbase.get<real >("Rg"),
 	  parameters.dbase.get<real >("gamma"));
-  if( parameters.dbase.get<ArraySimpleFixed<real,3,1,1,1> >("gravity")[0]!=0. || 
-      parameters.dbase.get<ArraySimpleFixed<real,3,1,1,1> >("gravity")[1]!=0. || 
-      parameters.dbase.get<ArraySimpleFixed<real,3,1,1,1> >("gravity")[2]!=0. )
+
+  const ArraySimpleFixed<real,3,1,1,1> & gravity = parameters.dbase.get<ArraySimpleFixed<real,3,1,1,1> >("gravity");
+
+  if( gravity[0]!=0. || 
+      gravity[1]!=0. || 
+      gravity[2]!=0. )
     fPrintF(file," gravity is on, acceleration due to gravity = (%8.2e,%8.2e,%8.2e) \n",
-	    parameters.dbase.get<ArraySimpleFixed<real,3,1,1,1> >("gravity")[0],
-            parameters.dbase.get<ArraySimpleFixed<real,3,1,1,1> >("gravity")[1],
-            parameters.dbase.get<ArraySimpleFixed<real,3,1,1,1> >("gravity")[2]);
+	    gravity[0],
+            gravity[1],
+            gravity[2]);
       
   if( pdeVariation==CnsParameters::conservativeWithArtificialDissipation )
   {

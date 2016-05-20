@@ -288,6 +288,18 @@ setTwilightZoneFunction(const TwilightZoneChoice & choice_,
     amplitude=1.;
     cc=0.;
 
+    if( pdeName=="thinFilmEquations" )
+    {
+      // ***hard code this for now ***
+  
+      static real S = 6.92*pow(10.,-6);
+
+      amplitude = 1.; amplitude(1) = 2*S*pow(twoPi,2.);  //would be nice to pass this information
+      cc = 2.; cc(1) = 0.; //would be nice to pass this information
+    }
+    
+
+
     fx= dbase.get<ArraySimpleFixed<real,4,1,1,1> >("omega")[0];
     fy =  numberOfDimensions>1 ?  dbase.get<ArraySimpleFixed<real,4,1,1,1> >("omega")[1] : 0.;
     fz =  numberOfDimensions>2 ?  dbase.get<ArraySimpleFixed<real,4,1,1,1> >("omega")[2] : 0.;

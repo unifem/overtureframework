@@ -784,9 +784,9 @@ getErrors( int current, real t, real dt )
 
       //            err(I1,I2,I3,C)=fabs(u(I1,I2,I3,C)-ur(I1,I2,I3,C));
       Index Ch = cg.numberOfDimensions()==2 ? Range(hz,hz) : Range(hx,hz);
-      errh(Ih1,Ih2,Ih3,Ch)=fabs(uh(I1,I2,I3,Ch)-urLocal(I1,I2,I3,Ch));
+      errh(Ih1,Ih2,Ih3,Ch)=uh(I1,I2,I3,Ch)-urLocal(I1,I2,I3,Ch);
       Index Ce = cg.numberOfDimensions()==2 ? Range(ex,ey) : Range(ex,ez);
-      erre(Ie1,Ie2,Ie3,Ce)=fabs( ue(Ie1,Ie2,Ie3,Ce) - urLocal(Ie1,Ie2,Ie3,Ce));
+      erre(Ie1,Ie2,Ie3,Ce)=ue(Ie1,Ie2,Ie3,Ce) - urLocal(Ie1,Ie2,Ie3,Ce);
     }
 
 //     else if (forcingOption==planeWaveBoundaryForcing ||
@@ -815,15 +815,6 @@ getErrors( int current, real t, real dt )
       // Ex:
       Index Ch = cg.numberOfDimensions()==2 ? Range(hz,hz) : Range(hx,hz);
       Index Ce = cg.numberOfDimensions()==2 ? Range(ex,ey) : Range(ex,ez);
-
-//             real cost = cos(-twoPi*cc0*tH);  // *wdh* 040626 add "-"
-// 	    real sint = sin(-twoPi*cc0*tH);
-//             errh(Ih1,Ih2,Ih3,Ch)=fabs( uh(Ih1,Ih2,Ih3,Ch) - 
-// 				       (ug(Ih1,Ih2,Ih3,Ch)*sint+ug(Ih1,Ih2,Ih3,Ch+3)*cost) );
-
-//             cost = cos(-twoPi*cc0*tE);  // *wdh* 040626 add "-"
-// 	    sint = sin(-twoPi*cc0*tE);  // *wdh* 040626 add "-"
-//             erre(Ie1,Ie2,Ie3,Ce)=fabs( ue(Ie1,Ie2,Ie3,Ce) - (ug(Ie1,Ie2,Ie3,Ce)*sint+ug(Ie1,Ie2,Ie3,Ce+3)*cost) );
 
 #ifdef USE_PPP
       const realSerialArray & ugLocal = ug.getLocalArrayWithGhostBoundaries();
@@ -856,14 +847,14 @@ getErrors( int current, real t, real dt )
 	{
 	  FOR_3D(i1,i2,i3,J1,J2,J3)
 	  {
-	    ERREX(i1,i2,i3) = fabs(UEX(i1,i2,i3)-(UG(i1,i2,i3,ex)*sint+UG(i1,i2,i3,ex+3)*cost));
-	    ERREY(i1,i2,i3) = fabs(UEY(i1,i2,i3)-(UG(i1,i2,i3,ey)*sint+UG(i1,i2,i3,ey+3)*cost));
-	    ERRHZ(i1,i2,i3) = fabs(UHZ(i1,i2,i3)-(UG(i1,i2,i3,hz)*sint+UG(i1,i2,i3,hz+3)*cost));
+	    ERREX(i1,i2,i3) = UEX(i1,i2,i3)-(UG(i1,i2,i3,ex)*sint+UG(i1,i2,i3,ex+3)*cost);
+	    ERREY(i1,i2,i3) = UEY(i1,i2,i3)-(UG(i1,i2,i3,ey)*sint+UG(i1,i2,i3,ey+3)*cost);
+	    ERRHZ(i1,i2,i3) = UHZ(i1,i2,i3)-(UG(i1,i2,i3,hz)*sint+UG(i1,i2,i3,hz+3)*cost);
 	    if( method==sosup )
 	    { // errors in time derivatives:
-              errLocal(i1,i2,i3,ext) = fabs(uLocal(i1,i2,i3,ext)-(UG(i1,i2,i3,ex)*dsint+UG(i1,i2,i3,ex+3)*dcost));
-              errLocal(i1,i2,i3,eyt) = fabs(uLocal(i1,i2,i3,eyt)-(UG(i1,i2,i3,ey)*dsint+UG(i1,i2,i3,ey+3)*dcost));
-              errLocal(i1,i2,i3,hzt) = fabs(uLocal(i1,i2,i3,hzt)-(UG(i1,i2,i3,hz)*dsint+UG(i1,i2,i3,hz+3)*dcost));
+              errLocal(i1,i2,i3,ext) = uLocal(i1,i2,i3,ext)-(UG(i1,i2,i3,ex)*dsint+UG(i1,i2,i3,ex+3)*dcost);
+              errLocal(i1,i2,i3,eyt) = uLocal(i1,i2,i3,eyt)-(UG(i1,i2,i3,ey)*dsint+UG(i1,i2,i3,ey+3)*dcost);
+              errLocal(i1,i2,i3,hzt) = uLocal(i1,i2,i3,hzt)-(UG(i1,i2,i3,hz)*dsint+UG(i1,i2,i3,hz+3)*dcost);
 	    }
 	    
 	  }
@@ -874,14 +865,14 @@ getErrors( int current, real t, real dt )
 	  {
 	    FOR_3D(i1,i2,i3,J1,J2,J3)
 	    {
-	      ERREX(i1,i2,i3) =fabs(UEX(i1,i2,i3)-(UG(i1,i2,i3,ex)*sint+UG(i1,i2,i3,ex+3)*cost));
-	      ERREY(i1,i2,i3) =fabs(UEY(i1,i2,i3)-(UG(i1,i2,i3,ey)*sint+UG(i1,i2,i3,ey+3)*cost));
-	      ERREZ(i1,i2,i3) =fabs(UEZ(i1,i2,i3)-(UG(i1,i2,i3,ez)*sint+UG(i1,i2,i3,ez+3)*cost));
+	      ERREX(i1,i2,i3) = UEX(i1,i2,i3)-(UG(i1,i2,i3,ex)*sint+UG(i1,i2,i3,ex+3)*cost);
+	      ERREY(i1,i2,i3) = UEY(i1,i2,i3)-(UG(i1,i2,i3,ey)*sint+UG(i1,i2,i3,ey+3)*cost);
+	      ERREZ(i1,i2,i3) = UEZ(i1,i2,i3)-(UG(i1,i2,i3,ez)*sint+UG(i1,i2,i3,ez+3)*cost);
 	      if( method==sosup )
 	      { // errors in time derivatives:
-		errLocal(i1,i2,i3,ext) = fabs(uLocal(i1,i2,i3,ext)-(UG(i1,i2,i3,ex)*dsint+UG(i1,i2,i3,ex+3)*dcost));
-		errLocal(i1,i2,i3,eyt) = fabs(uLocal(i1,i2,i3,eyt)-(UG(i1,i2,i3,ey)*dsint+UG(i1,i2,i3,ey+3)*dcost));
-		errLocal(i1,i2,i3,ezt) = fabs(uLocal(i1,i2,i3,ezt)-(UG(i1,i2,i3,ez)*dsint+UG(i1,i2,i3,ez+3)*dcost));
+		errLocal(i1,i2,i3,ext) = uLocal(i1,i2,i3,ext)-(UG(i1,i2,i3,ex)*dsint+UG(i1,i2,i3,ex+3)*dcost);
+		errLocal(i1,i2,i3,eyt) = uLocal(i1,i2,i3,eyt)-(UG(i1,i2,i3,ey)*dsint+UG(i1,i2,i3,ey+3)*dcost);
+		errLocal(i1,i2,i3,ezt) = uLocal(i1,i2,i3,ezt)-(UG(i1,i2,i3,ez)*dsint+UG(i1,i2,i3,ez+3)*dcost);
 	      }
 	    }
 	  }
@@ -889,9 +880,9 @@ getErrors( int current, real t, real dt )
 	  {
 	    FOR_3D(i1,i2,i3,J1,J2,J3)
 	    {
-	      ERRHX(i1,i2,i3) =fabs(UHX(i1,i2,i3)-(UG(i1,i2,i3,hx)*sint+UG(i1,i2,i3,hx+3)*cost));
-	      ERRHY(i1,i2,i3) =fabs(UHY(i1,i2,i3)-(UG(i1,i2,i3,hy)*sint+UG(i1,i2,i3,hy+3)*cost));
-	      ERRHZ(i1,i2,i3) =fabs(UHZ(i1,i2,i3)-(UG(i1,i2,i3,hz)*sint+UG(i1,i2,i3,hz+3)*cost));
+	      ERRHX(i1,i2,i3) = UHX(i1,i2,i3)-(UG(i1,i2,i3,hx)*sint+UG(i1,i2,i3,hx+3)*cost);
+	      ERRHY(i1,i2,i3) = UHY(i1,i2,i3)-(UG(i1,i2,i3,hy)*sint+UG(i1,i2,i3,hy+3)*cost);
+	      ERRHZ(i1,i2,i3) = UHZ(i1,i2,i3)-(UG(i1,i2,i3,hz)*sint+UG(i1,i2,i3,hz+3)*cost);
 	    }
 	  }
 	}
@@ -902,12 +893,11 @@ getErrors( int current, real t, real dt )
       {
 	real cost = cos(-twoPi*cc*tH);  // *wdh* 040626 add "-"
 	real sint = sin(-twoPi*cc*tH);
-	errh(Ih1,Ih2,Ih3,Ch)=fabs( uh(Ih1,Ih2,Ih3,Ch) - 
-				   (ugLocal(Ih1,Ih2,Ih3,Ch)*sint+ugLocal(Ih1,Ih2,Ih3,Ch+3)*cost) );
+	errh(Ih1,Ih2,Ih3,Ch)=uh(Ih1,Ih2,Ih3,Ch) - (ugLocal(Ih1,Ih2,Ih3,Ch)*sint+ugLocal(Ih1,Ih2,Ih3,Ch+3)*cost);
 
 	cost = cos(-twoPi*cc*tE);  // *wdh* 040626 add "-"
 	sint = sin(-twoPi*cc*tE);  // *wdh* 040626 add "-"
-	erre(Ie1,Ie2,Ie3,Ce)=fabs( ue(Ie1,Ie2,Ie3,Ce) - (ugLocal(Ie1,Ie2,Ie3,Ce)*sint+ugLocal(Ie1,Ie2,Ie3,Ce+3)*cost) );
+	erre(Ie1,Ie2,Ie3,Ce)=ue(Ie1,Ie2,Ie3,Ce) - (ugLocal(Ie1,Ie2,Ie3,Ce)*sint+ugLocal(Ie1,Ie2,Ie3,Ce+3)*cost);
 	    
 //              // err(I1,I2,I3,C)=fabs( u(I1,I2,I3,C) - (ug(I1,I2,I3,C)*sint+ug(I1,I2,I3,C+3)*cost) );
 //              // ok err(I1,I2,I3,hz)=fabs( u(I1,I2,I3,hz) - (-ug(I1,I2,I3,hz)*sint)+ug(I1,I2,I3,hz+3)*cost));

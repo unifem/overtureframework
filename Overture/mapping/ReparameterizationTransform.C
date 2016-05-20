@@ -1269,7 +1269,8 @@ setMappingProperties( Mapping *mapPointer )
       int numGridPoints=mapPointer->getGridDimensions(axis);
       if( true ) // *wdh* 070403  -- turn this off -- check this 
       {
-	setGridDimensions(axis,int((numGridPoints-1)*(abrs(1,axis)-abrs(0,axis))+1+.5));
+	// setGridDimensions(axis,int((numGridPoints-1)*(abrs(1,axis)-abrs(0,axis))+1+.5));
+	setGridDimensions(axis,int((numGridPoints-1)*(fabs(abrs(1,axis)-abrs(0,axis)))+1+.5));
       }
       else  // *wdh* 070403 -- set the gridIndexRange to use non-zero base
       {
