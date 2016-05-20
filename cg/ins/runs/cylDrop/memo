@@ -6,7 +6,7 @@ TODO : Add ramped downward flow
 RISING cylinder offset from wall
 
 G4 TEST Smaller nu   -vIn=-1.6 : too small, -1.9 slightly too small
-cgins -noplot cylDrop -g=offsetCylInChannele4.order2.s2.hdf -tf=15. -tp=.1 -nu=.01 -ad2=1 -ts=im -density=.1 -radius=.5 -dropName=drop -channelName=channel -bcOption=rampedVelocity -inflowVelocity=-2 -gravity=-10. -rampGravity=1 -dtMax=.005 -project=0 -numberOfCorrections=2 -omega=1. -addedMass=1  -useProvidedAcceleration=1 -addedDamping=1 -addedDampingCoeff=6. -addedDampingProjectVelocity=1  -useTP=0 -debug=3  -solver=best -psolver=best -rtolp=1.e-5 -atolp=1.e-12 -rtol=1.e-5 -atol=1.e-10 -show=OcicG4Bd0p1.show -go=go >! OcicG4Bd0p1.out
+cgins -noplot cylDrop -g=offsetCylInChannele4.order2.s2.hdf -tf=20. -tp=.1 -nu=.01 -ad2=1 -ts=im -density=.1 -radius=.5 -dropName=drop -channelName=channel -bcOption=rampedVelocity -inflowVelocity=-2 -gravity=-10. -rampGravity=1 -dtMax=.005 -project=0 -numberOfCorrections=2 -omega=1. -addedMass=1  -useProvidedAcceleration=1 -addedDamping=1 -addedDampingCoeff=6. -addedDampingProjectVelocity=1  -useTP=0 -debug=3  -solver=best -psolver=best -rtolp=1.e-5 -atolp=1.e-12 -rtol=1.e-5 -atol=1.e-10 -show=OcicG4Bd0p1.show -go=go >! OcicG4Bd0p1.out
 
 
 INCREASE GRAVITY to 10   vIn=-1 :: too big, -.8 too small
