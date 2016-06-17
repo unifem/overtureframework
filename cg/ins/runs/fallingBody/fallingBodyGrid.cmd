@@ -7,7 +7,7 @@
 #         |                                     |
 #         |           ------------              | 
 #         |           |          |              |
-#         |           |          |  height      |  -- cy (center of body)
+#         |           |   angle  |  height      |  -- cy (center of body)
 #         |           ------------              | 
 #         |              width                  |
 #         |                                     |
@@ -15,16 +15,31 @@
 #        xa                |                    xb
 #                          cx
 #
+# Usage:
+#   ogen [-noplot] fallingBodyGrid interp=[i|e] -order=[2|4|6] -factor=<i> ...
+#        -shape=[rectangle|trapezoid] -addBottomRefinement=[0|1] 
+#
 # Examples:
-#     ogen -noplot fallingBodyGrid -factor=4
+#    ogen -noplot fallingBodyGrid -cy=-.25 -interp=e -order=2 -factor=2
+#    ogen -noplot fallingBodyGrid -cy=-.25 -interp=e -order=2 -factor=4
+#    ogen -noplot fallingBodyGrid -cy=-.25 -interp=e -order=2 -factor=8
+#
+#  Rotated:
+#    ogen -noplot fallingBodyGrid -interp=e -order=2 -angle=45 -prefix=fallingBodyGridAngle45 -factor=2 
+#    
+#  Trapezoid, no bottom refinement: 
+#   ogen -noplot fallingBodyGrid -interp=e -order=2 -addBottomRefinement=0 -shape=trapezoid -factor=2 
+#    -- rotated by 90 degrees:
+#   ogen -noplot fallingBodyGrid -interp=e -order=2 -addBottomRefinement=0 -angle=90 -shape=trapezoid -prefix=fallingTrapezoidGridAngle90 -factor=2 
 # 
-$prefix="fallingBodyGrid";  
+$prefix=""; $shape="rectangle"; $addBottomRefinement=1; 
 $order=2; $factor=1; $interp="i"; $ml=0; # default values
 $orderOfAccuracy = "second order"; $ng=2; $interpType = "implicit for all grids";
-$xa =-1.; $xb=1.; $ya=-1.; $yb=1.; $angle=0.; 
+$xa =-1.; $xb=1.; $ya=-1.; $yb=1.; 
 $name=""; 
 $width=1.; $height=.5; 
 $cx=0.; $cy=0.;  # center for the body
+$angle=0.;  # angle of rotation (degrees)
 #
 $blf=4;  # grid lines are this much finer near the boundary and bottom wall
 $bottomHeight=.25; # height of stretch grid at bottom wall
@@ -32,9 +47,11 @@ $bottomHeight=.25; # height of stretch grid at bottom wall
 # get command line arguments
 GetOptions( "order=i"=>\$order,"factor=f"=> \$factor,"xa=f"=>\$xa,"xb=f"=>\$xb,"ya=f"=>\$ya,"yb=f"=>\$yb,\
             "interp=s"=> \$interp,"name=s"=> \$name,"ml=i"=>\$ml,"blf=f"=> \$blf, "prefix=s"=> \$prefix,\
-            "cx=f"=>\$cx,"cy=f"=>\$cy,"rgd=s"=> \$rgd,"angle=f"=>\$angle );
+            "cx=f"=>\$cx,"cy=f"=>\$cy,"rgd=s"=> \$rgd,"angle=f"=>\$angle,"shape=s"=> \$shape,\
+            "addBottomRefinement=i"=>\$addBottomRefinement  );
 #
-$xba=-.5*$width; $xbb=$xba+$width; $ybb=-$depth; $yba=$ybb-$height; # corners of embedded body
+if( $prefix eq "" && $shape eq "trapezoid" ){ $prefix = "fallingTrapezoidGrid"; }
+if( $prefix eq "" ){ $prefix="fallingBodyGrid"; }
 # 
 if( $order eq 4 ){ $orderOfAccuracy="fourth order"; $ng=2; }\
 elsif( $order eq 6 ){ $orderOfAccuracy="sixth order"; $ng=4; }\
@@ -56,16 +73,18 @@ create mappings
 #
 rectangle
   set corners
-    $yac=$ya+$bottomHeight-$ng*$ds; 
+    if( $addBottomRefinement eq 1 ){ $yac=$ya+$bottomHeight-$ng*$ds; }else{ $yac=$ya; }
     $xa $xb $yac $yb 
   lines
     $nx = intmg( ($xb-$xa )/$ds+1.5);  
     $ny = intmg( ($yb-$yac)/$ds+1.5);
     $nx $ny 
   boundary conditions
-     1 2 0 4 
+    if( $addBottomRefinement eq 1 ){ $bc="1 2 0 4"; }else{ $bc="1 2 3 4"; } 
+    $bc
   share
-    1 2 0 0 
+    if( $addBottomRefinement eq 1 ){ $share="1 2 0 0"; }else{ $share="0 0 0 0"; } 
+    $share
   mappingName
    channel
 exit
@@ -105,23 +124,45 @@ exit
  exit
 #
 #
-#  -- rectangular body ---
+#  -- rectangular or trapezoidal body ---
+#
+#
+#                              .......  yrb
+#                       .......       |
+#                 ......              |
+#    ylb  +.......                    |
+#         |                           |
+#         |                           |
+#    yla  +.......                    |
+#         xl      ......              |
+#                        ......       |
+#                               ......+ yra
+#                                    xr 
+#               
 #
 $nr = 7+$order;
 # $nr = 12+$order;
+#
+$trapFactor=2.0; # right height is this factor larger than left height 
+if( $shape eq "trapezoid" ){ $heightRight=$height*$trapFactor; }else{ $heightRight=$height; }
+$xl=$cx-.5*$width; $xr=$xl+$width; 
+$yla=$cy-.5*$height; $ylb=$cy+.5*$height;
+$yra=$cy-.5*$heightRight; $yrb=$cy+.5*$heightRight; 
+# $ybb=$cy+.5*$height; $yba=$ybb-$height; # corners of embedded body
+# 
 SmoothedPolygon
   # start on a side so that the polygon is symmetric
   vertices 
-    $xbm=.5*($xba+$xbb); # mid-point on horizontal face
-    $ybm=.5*($yba+$ybb); # mid-point on vertical face
+    $xm=.5*($xl+$xr);   # mid-point on bottom face
+    $ym=.5*($yla+$yra); # mid-point on bottom face
     6
     # --- start curve on bottom in middle if a wide body ---
-    $xbm   $yba
-    $xbb   $yba
-    $xbb   $ybb
-    $xba   $ybb
-    $xba   $yba
-    $xbm   $yba
+    $xm   $ym
+    $xr   $yra
+    $xr   $yrb
+    $xl   $ylb
+    $xl   $yla
+    $xm   $ym
   n-stretch
    $nStretch=$blf; 
    1. $nStretch 0.
@@ -133,7 +174,9 @@ SmoothedPolygon
     2
   lines
     $stretchFactor=1.7; # add more lines in the tangential direction due to stretching at corners
-    $length=2*( $xbb-$xba + $ybb-$yba ); # perimeter length 
+    $length=$ylb-$yla + $yrb-$yra + 2.*sqrt( ($xr-$xl)**2 + ($yra-$yla)**2 ); # perimeter length 
+    printf("Body Perimeter: length=$length\n"); 
+    #
     $nTheta = int( $stretchFactor*$length/$ds +1.5 ); 
     $nTheta $nr
   t-stretch
@@ -164,7 +207,7 @@ SmoothedPolygon
      rectangularBodyUnRotated
     rotate
      $angle
-     0 0 0
+     $cx $cy 0
     mappingName
      fallingBody
   exit
@@ -172,7 +215,8 @@ SmoothedPolygon
 exit
 generate an overlapping grid
     channel
-    bottomWallGrid
+    if( $addBottomRefinement eq 1 ){ $cmd="bottomWallGrid"; }else{ $cmd="#"; }
+    $cmd
     fallingBody
   done
   change parameters

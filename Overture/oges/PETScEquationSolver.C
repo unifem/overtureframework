@@ -796,7 +796,7 @@ solve(realCompositeGridFunction & u,
   dh_solveTime= dh_getCpuTime();
 #endif
 
-  if( Oges::debug & 1 ) 
+  if( Oges::debug & 2 ) 
   {
     cout << "++Petsc TIMINGS (for "<<oges.numberOfIterations<<" its, "
 	 <<  "size of matrix n = " << numberOfEquations << " ):\n";
@@ -820,8 +820,35 @@ solve(realCompositeGridFunction & u,
 
     for( i=0; i<oges.numberOfEquations; i++)   // can we avoid this copy?
       ovSol[i]=soln[i];
+
+    if( Oges::debug & 32  ) 
+    {
+      printF("PETSC: sol: ");
+      for( i=0; i<oges.numberOfEquations; i++)   // can we avoid this copy?
+	printF("(%i,%7.3f)",i,soln[i]);
+      printF("\n");
+    
+    }
+
   }
   
+  // Save values from the extra equations *wdh* May 8, 2016
+  if( oges.numberOfExtraEquations>0 )
+  {
+    if( !oges.dbase.has_key("extraEquationValues") )
+    {
+      oges.dbase.put<RealArray>("extraEquationValues");
+    }
+
+    RealArray & extraEquationValues = oges.dbase.get<RealArray>("extraEquationValues");
+    extraEquationValues.redim(oges.numberOfExtraEquations);
+    realArray & sol = oges.sol;
+    for( int i=0; i<oges.numberOfExtraEquations; i++ )
+    {
+      extraEquationValues(i)=sol(oges.extraEquationNumber(i)-1);
+    }
+  }
+
   // oges.solvingSparseSubset : is true if we are solving a smaller implicit system (e.g. interface eqns)
   if( !oges.solvingSparseSubset )
     oges.storeSolutionIntoGridFunction();

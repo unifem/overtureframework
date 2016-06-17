@@ -10,7 +10,7 @@ NODEP := $(strip $(filter usage doc clean cleano cleanc cleandep,$(MAKECMDGOALS)
 
 
 # sparse solver packages:
-usePETSc   := on
+usePETSc   := off
 # Kyle: I am not sure what are you trying to do here ?
 ifeq ($(usePETSc),)
 usePETSc   := off

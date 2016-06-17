@@ -1382,6 +1382,8 @@ buildCompressibleDialog(DialogData & dialog,
 {
   dialog.closeDialog();
 
+  ArraySimpleFixed<real,3,1,1,1> & gravity = parameters.dbase.get<ArraySimpleFixed<real,3,1,1,1> >("gravity");
+
   dialog.setWindowTitle("Compressible NS parameters");
 
   const int numberOfUserVariables=parameters.dbase.get<ListOfShowFileParameters >("pdeParameters").size();
@@ -1433,7 +1435,7 @@ buildCompressibleDialog(DialogData & dialog,
   textLabels[nt] = "gamma";  sPrintF(textStrings[nt], "%g",parameters.dbase.get<real >("gamma"));  nt++; 
   textLabels[nt] = "Prandtl number";  sPrintF(textStrings[nt], "%g",parameters.dbase.get<real >("prandtlNumber"));  nt++; 
   textLabels[nt] = "gravity";  
-  sPrintF(textStrings[nt], "%g,%g,%g",parameters.dbase.get<ArraySimpleFixed<real,3,1,1,1> >("gravity")[0],parameters.dbase.get<ArraySimpleFixed<real,3,1,1,1> >("gravity")[1],parameters.dbase.get<ArraySimpleFixed<real,3,1,1,1> >("gravity")[2]);  nt++; 
+  sPrintF(textStrings[nt], "%g,%g,%g",gravity[0],gravity[1],gravity[2]);  nt++; 
 
   if( parameters.dbase.get<CnsParameters::PDEVariation >("pdeVariation")==CnsParameters::nonConservative )
   {
@@ -1583,6 +1585,8 @@ setPdeParameters(CompositeGrid & cg, const aString & command /* = nullString */,
   const CnsParameters::PDE & pde = dbase.get<CnsParameters::PDE >("pde");
   GodunovVariation & conservativeGodunovMethod = 
                            dbase.get<CnsParameters::GodunovVariation >("conservativeGodunovMethod");
+
+  ArraySimpleFixed<real,3,1,1,1> & gravity =dbase.get<ArraySimpleFixed<real,3,1,1,1> >("gravity");
 
   aString answer;
   char buff[100];
@@ -1831,18 +1835,18 @@ setPdeParameters(CompositeGrid & cg, const aString & command /* = nullString */,
       if(  numberOfDimensions==2 )
       {
 	gi.inputString(answer,sPrintF(buff,"Enter gravity, 2 values, default=(%8.2e,%8.2e))",
-				        dbase.get<ArraySimpleFixed<real,3,1,1,1> >("gravity")[0], dbase.get<ArraySimpleFixed<real,3,1,1,1> >("gravity")[1]));
+				        gravity[0], gravity[1]));
 	if( answer!="" )
-	  sScanF(answer,"%e %e",& dbase.get<ArraySimpleFixed<real,3,1,1,1> >("gravity")[0],& dbase.get<ArraySimpleFixed<real,3,1,1,1> >("gravity")[1]);
-	printF(" gravity=(%8.2e,%8.2e)\n", dbase.get<ArraySimpleFixed<real,3,1,1,1> >("gravity")[0], dbase.get<ArraySimpleFixed<real,3,1,1,1> >("gravity")[1]);
+	  sScanF(answer,"%e %e",&gravity[0],&gravity[1]);
+	printF(" gravity=(%8.2e,%8.2e)\n", gravity[0], gravity[1]);
       }
       else
       {
 	gi.inputString(answer,sPrintF(buff,"Enter gravity, 3 values, default=(%8.2e,%8.2e,%8.2e))",
-				        dbase.get<ArraySimpleFixed<real,3,1,1,1> >("gravity")[0], dbase.get<ArraySimpleFixed<real,3,1,1,1> >("gravity")[1], dbase.get<ArraySimpleFixed<real,3,1,1,1> >("gravity")[2]));
+				        gravity[0], gravity[1], gravity[2]));
 	if( answer!="" )
-	  sScanF(answer,"%e %e %e",& dbase.get<ArraySimpleFixed<real,3,1,1,1> >("gravity")[0],& dbase.get<ArraySimpleFixed<real,3,1,1,1> >("gravity")[1],& dbase.get<ArraySimpleFixed<real,3,1,1,1> >("gravity")[2]);
-	printF(" gravity=(%8.2e,%8.2e,%8.2e)\n", dbase.get<ArraySimpleFixed<real,3,1,1,1> >("gravity")[0], dbase.get<ArraySimpleFixed<real,3,1,1,1> >("gravity")[1], dbase.get<ArraySimpleFixed<real,3,1,1,1> >("gravity")[2]);
+	  sScanF(answer,"%e %e %e",&gravity[0],&gravity[1],&gravity[2]);
+	printF(" gravity=(%8.2e,%8.2e,%8.2e)\n", gravity[0], gravity[1], gravity[2]);
       }
     }
     else if( answer=="fluid density"  )
@@ -2304,9 +2308,9 @@ setPdeParameters(CompositeGrid & cg, const aString & command /* = nullString */,
     }
     else if( answer(0,6)=="gravity" )
     {
-      sScanF(answer(7,answer.length()),"%e %e %e",& dbase.get<ArraySimpleFixed<real,3,1,1,1> >("gravity")[0],& dbase.get<ArraySimpleFixed<real,3,1,1,1> >("gravity")[1],
-	     & dbase.get<ArraySimpleFixed<real,3,1,1,1> >("gravity")[2]);
-      printF(" gravity=(%8.2e,%8.2e)\n", dbase.get<ArraySimpleFixed<real,3,1,1,1> >("gravity")[0], dbase.get<ArraySimpleFixed<real,3,1,1,1> >("gravity")[1]);
+      sScanF(answer(7,answer.length()),"%e %e %e",& gravity[0],& gravity[1],
+	     & gravity[2]);
+      printF(" gravity=(%8.2e,%8.2e)\n", gravity[0], gravity[1]);
     }
     else if( dialog.getTextValue(answer,"Godunov order of accuracy","%i", dbase.get<int >("orderOfAccuracyForGodunovMethod")) )
     {
@@ -2545,9 +2549,10 @@ displayPdeParameters(FILE *file /* = stdout */ )
              dbase.get<real >("mu"), dbase.get<real >("kThermal"), dbase.get<real >("thermalConductivity"), 
              dbase.get<real >("Rg"), dbase.get<real >("gamma"));
 
-    if(  dbase.get<ArraySimpleFixed<real,3,1,1,1> >("gravity")[0]!=0. ||  dbase.get<ArraySimpleFixed<real,3,1,1,1> >("gravity")[1]!=0. ||  dbase.get<ArraySimpleFixed<real,3,1,1,1> >("gravity")[2]!=0. )
+    const ArraySimpleFixed<real,3,1,1,1> & gravity =dbase.get<ArraySimpleFixed<real,3,1,1,1> >("gravity");
+    if(  gravity[0]!=0. ||  gravity[1]!=0. ||  gravity[2]!=0. )
       fprintf(file," gravity is on, acceleration due to gravity = (%8.2e,%8.2e,%8.2e) \n",
-	       dbase.get<ArraySimpleFixed<real,3,1,1,1> >("gravity")[0], dbase.get<ArraySimpleFixed<real,3,1,1,1> >("gravity")[1], dbase.get<ArraySimpleFixed<real,3,1,1,1> >("gravity")[2]);
+	       gravity[0], gravity[1], gravity[2]);
    
 
 //     for( DataBase::iterator e=modelParameters.begin(); e!=modelParameters.end(); e++ )

@@ -1,13 +1,21 @@
 #
 #  plotStuff plotRotatingDisk.cmd -show=did2bd1.show
 #
+# rhos=0.001:
+#  plotStuff plotRotatingDisk.cmd -show=did2rotatebd0p001amp.show -matlab=did2rotatebd0p001amp  [ G2
+#  plotStuff plotRotatingDisk.cmd -show=did2rotatebd0p001ampAD.show -matlab=did2rotatebd0p001ampAD  [ G2 -- include all added damping terms
+#
 # rhos=0.01:
+#  plotStuff plotRotatingDisk.cmd -show=did2rotatebd0p01.show -matlab=did2rotatebd0p01  [ G2
 #  plotStuff plotRotatingDisk.cmd -show=did2rotatebd0p01amp.show -matlab=did2rotatebd0p01amp  [ G2
 #  plotStuff plotRotatingDisk.cmd -show=didnudt.show
 #
 # rhos=0.1:
-#  plotStuff plotRotatingDisk.cmd -show=did2rotatebd0p1.show -matlab=did2rotatebd0p1  [ G2
+#  plotStuff plotRotatingDisk.cmd -show=did2rotatebd0p1.show -matlab=did2rotatebd0p1  [ G2 TP
+#
 #  plotStuff plotRotatingDisk.cmd -show=did2rotatebd0p1amp.show -matlab=did2rotatebd0p1amp  [ G2
+#  plotStuff plotRotatingDisk.cmd -show=did2rotatebd0p1ampAD.show -matlab=did2rotatebd0p1ampAD   [ G2 -- include all added damping terms
+#
 #  plotStuff plotRotatingDisk.cmd -show=did2rotatebd0p1ampTSpc.show -matlab=did2rotatebd0p1ampTSpc  [ G2, explicit TS beta=4
 #  plotStuff plotRotatingDisk.cmd -show=did2rotatebd0p1ampTSpca.show -matlab=did2rotatebd0p1ampTSpca  [ G2, expl-TS beta=1.1
 #  plotStuff plotRotatingDisk.cmd -show=did2rotatebd0p1ampTSpcb.show -matlab=did2rotatebd0p1ampTSpcb  [ G2, expl-TS beta=2 dt=FIXED
@@ -18,10 +26,26 @@
 #  plotStuff plotRotatingDisk.cmd -show=did2rotatebd0p1ampAD8.show 
 #  plotStuff plotRotatingDisk.cmd -show=did2rotatebd0p1ampAD4nc.show 
 #
+#  plotStuff plotRotatingDisk.cmd -show=did2rotatebd0p01ampAD8.show  [ long time run
+#  plotStuff plotRotatingDisk.cmd -show=did2rotatebd0p001ampAD8.show  [ long time run
+#  plotStuff plotRotatingDisk.cmd -show=did2rotatebd0p001ampAD4.show  [ long time run
+#  plotStuff plotRotatingDisk.cmd -show=did2rotatebd0p001ampAD16.show  [ long time run
+#  plotStuff plotRotatingDisk.cmd -show=did2rotatebd0p001ampAD16a.show  [ long time run, smaller amp
+#  plotStuff plotRotatingDisk.cmd -show=did2rotatebd0p001ampAD16b.show  [ long time run, smaller amp
+#  plotStuff plotRotatingDisk.cmd -show=did2rotatebd0p001ampAD100.show  [ long time run
+#
+#  -- project velocity
+#  plotStuff plotRotatingDisk.cmd -show=did2rotatebd0p01ampAD8pv.show
+#  plotStuff plotRotatingDisk.cmd -show=did2rotatebd0p01ampAD1pv.show
+#  plotStuff plotRotatingDisk.cmd -show=did4rotatebd0p01ampAD1pv.show
+#  plotStuff plotRotatingDisk.cmd -show=did4rotatebd0p01ampAD4pv.show
+#  plotStuff plotRotatingDisk.cmd -show=did4rotatebd0p01ampAD8pv.show
+# 
 #  plotStuff plotRotatingDisk.cmd -show=did2rotatebd0p1ampIMdt0p0001.show [ small dt
 #
 # rhos=1:
 #  plotStuff plotRotatingDisk.cmd -show=did2rotatebd1p0.show -matlab=did2rotatebd1p0  [ G2
+#  plotStuff plotRotatingDisk.cmd -show=did2rotatebd1p0amp.show -matlab=did2rotatebd1p0amp  [ G2
 #
 # rhos=10:
 #  plotStuff plotRotatingDisk.cmd -show=did2rotatebd10p0.show -matlab=did2rotatebd10p0  [ G2
@@ -34,6 +58,7 @@
 # rhos=1000
 #  plotStuff plotDisk.cmd -show=did2rotatebd1000p0.show [ G2 
 #  plotStuff plotDisk.cmd -show=did4rotatebd1000p0.show [ G4
+# 
 # 
 $show="cic.show";
 $vorMin=-50; $vorMax=25.; $option=""; $name="bic"; $matlab="did"; 
@@ -55,6 +80,7 @@ pause
   add v2
   add a1
   add a2  
+pause
   if( $matlab ne "" ){ $cmd = "save results to a matlab file\n $matlab.m"; }else{ $cmd="#"; }
   $cmd
 exit

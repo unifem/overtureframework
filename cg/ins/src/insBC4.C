@@ -1354,7 +1354,10 @@ applyFourthOrderBoundaryConditions( realMappedGridFunction & u0, real t, int gri
     real thermalExpansivity=1.;
     parameters.dbase.get<ListOfShowFileParameters >("pdeParameters").getParameter("thermalExpansivity",thermalExpansivity);
 
-    ArraySimpleFixed<real,3,1,1,1> & gravity =parameters.dbase.get<ArraySimpleFixed<real,3,1,1,1> >("gravity");
+  // ArraySimpleFixed<real,3,1,1,1> & gravity =parameters.dbase.get<ArraySimpleFixed<real,3,1,1,1> >("gravity");
+    real gravity[3];
+    parameters.getGravityVector( gravity,t );
+
 
     if( !parameters.dbase.get<int >("useNewFourthOrderBoundaryConditions") )
     {
@@ -1392,9 +1395,9 @@ applyFourthOrderBoundaryConditions( realMappedGridFunction & u0, real t, int gri
     // printf(" applyFourthOrderBoundaryConditions at t=%e\n",t);
         assert( parameters.dbase.get<Insbc4WorkSpace* >("bc4workSpacePointer")!=NULL );
             
-        rpar(6) = gravity(0);
-        rpar(7) = gravity(1);
-        rpar(8) = gravity(2);
+        rpar(6) = gravity[0];
+        rpar(7) = gravity[1];
+        rpar(8) = gravity[2];
         rpar(9) = thermalExpansivity;
 
         applyFourthOrderBoundaryConditionsOld( u0,t,grid,ws,ipar,rpar,exact,parameters );
@@ -1684,9 +1687,9 @@ applyFourthOrderBoundaryConditions( realMappedGridFunction & u0, real t, int gri
                                   parameters.dbase.get<real >("nuPassiveScalar"),
                                   adcPassiveScalar,
                                   ajs,
-                                  gravity(0),
-                                  gravity(1),
-                                  gravity(2),
+                                  gravity[0],
+                                  gravity[1],
+                                  gravity[2],
                                   thermalExpansivity,
                                   (real &)(parameters.dbase.get<OGFunction* >("exactSolution")), // pointer to TZ
                                   REAL_MIN

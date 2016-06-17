@@ -454,6 +454,9 @@ getDerivedFunction( const aString & name, const realMappedGridFunction & u,
 virtual
 int getGridIsImplicit(int grid) const;
 
+// return the gravity vector (which may depend on time )
+int getGravityVector( real gravityVector[3], real t );
+
 // evaluate the known solution: (if there is one defined)
 virtual
 realCompositeGridFunction& getKnownSolution( CompositeGrid & cg, real t, int numberOfTimeDerivatives = 0 );

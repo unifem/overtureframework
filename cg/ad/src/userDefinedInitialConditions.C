@@ -9,6 +9,7 @@
 #include "GenericGraphicsInterface.h"
 #include "ParallelUtility.h"
 
+static real S = 6.92*pow(10.,-6);
 
 //==============================================================================================
 /// \brief Assign user defined initial conditions.
@@ -47,7 +48,10 @@ userDefinedInitialConditions(CompositeGrid & cg, realCompositeGridFunction & u )
   const int & numberOfComponents=parameters.dbase.get<int >("numberOfComponents");
   const int & numberOfDimensions=parameters.dbase.get<int >("numberOfDimensions");
   const int & tc = parameters.dbase.get<int >("tc");
-
+    
+    // Added by Kara to generate initial pressure profile
+    CompositeGridOperators op(cg);
+    u.setOperators(op);
 
   // Loop over all grids and assign values to all components.
   for( int grid=0; grid<cg.numberOfComponentGrids(); grid++ )
@@ -86,12 +90,16 @@ userDefinedInitialConditions(CompositeGrid & cg, realCompositeGridFunction & u )
       printF(">>> Cgad:userDefinedInitialConditions: assign pulse initial conditions...\n");
       if( numberOfDimensions==2 )
       {
-	ug(I1,I2,I3,tc)=U2D(vertex(I1,I2,I3,0),vertex(I1,I2,I3,1),vertex(I1,I2,I3,2),t);   
+	ug(I1,I2,I3,tc)=U2D(vertex(I1,I2,I3,0),vertex(I1,I2,I3,1),vertex(I1,I2,I3,2),t);
+        //Add by Kara to establish initial pressure, note that tc = 0
+        //  ug(I1,I2,I3,tc+1)= -S*u[grid].laplacian()(I1,I2,I3,t);
       }
       else if( numberOfDimensions==3 )
       {
 	// Displacements:
-	ug(I1,I2,I3,tc)=U3D(vertex(I1,I2,I3,0),vertex(I1,I2,I3,1),vertex(I1,I2,I3,2),t);   
+	ug(I1,I2,I3,tc)=U3D(vertex(I1,I2,I3,0),vertex(I1,I2,I3,1),vertex(I1,I2,I3,2),t);
+        //  Add by Kara to establish initial pressure, note that tc = 0
+        // ug(I1,I2,I3,tc+1)= -S*u[grid].laplacian()(I1,I2,I3,t);
       }
     } // end pulse
     else

@@ -1,3 +1,256 @@
+***************
+*** May 13, 2016
+
+TEST iterative solvers
+
+AMP + velocity projection : NOTE -numberOfCorrections=2
+  -rtolp=1.e-3 -atolp=1.e-5: small wiggles in a1 -- better that no-project
+  -rtolp=1.e-5 -atolp=1.e-8 : OK
+  -rtolp=1.e-9 -atolp=1.e-10 : OK 
+  rtolp=1.e-12 -atolp=1.e-14 : OK 
+AMP rho=0.1 -- note: rtolp needs to be small enough, otherwise wiggles in acceleration
+cgins -noplot piston -g=plug4.hdf -ts=im -dtMax=.01 -bodyDensity=.1 -tf=2. -tp=.05 -relaxRigidBody=0 -numberOfCorrections=2 -omega=.2 -rtolc=1.e-3 -solver=best -psolver=best -rtolp=1.e-3 -atolp=1.e-5 -addedMass=1 -addedDamping=1 -addedDampingCoeff=1 -addedDampingProjectVelocity=1 -inertia=1. -nu=.01 -useProvidedAcceleration=1 -gravity=0. -option=rigidBodyPiston -show=piston4bd0p1ipv.show -go=go >! piston4bd0p1ipv.out
+
+
+AMP rho=0.1 -- note: rtolp needs to be small enough, otherwise wiggles in acceleration
+  -rtolp=1.e-3 -atolp=1.e-5: medium wiggles in a1, but survives
+  -rtolp=1.e-5 -atolp=1.e-8 : OK 
+  -rtolp=1.e-7 -atolp=1.e-9 : OK    
+            -- OK: -rtolp=1.e-12 -atolp=1.e-14
+cgins -noplot piston -g=plug4.hdf -ts=im -dtMax=.01 -bodyDensity=.1 -tf=2. -tp=.05 -relaxRigidBody=0 -numberOfCorrections=1 -omega=.2 -rtolc=1.e-3 -solver=best -psolver=best -rtolp=1.e-3 -atolp=1.e-5 -addedMass=1 -addedDamping=1 -addedDampingCoeff=1 -inertia=1. -nu=.01 -useProvidedAcceleration=1 -gravity=0. -option=rigidBodyPiston -show=piston4bd0p1i.show -go=go >! piston4bd0p1i.out
+
+RERUN with added-damping
+AMP rho=0.1
+cgins -noplot piston -g=plug4.hdf -ts=im -dtMax=.01 -bodyDensity=.1 -tf=2. -tp=.05 -relaxRigidBody=0 -numberOfCorrections=1 -omega=.2 -rtolc=1.e-3 -psolver=yale -addedMass=1  -addedDamping=1  -addedDampingCoeff=1 -inertia=1. -nu=.01 -useProvidedAcceleration=1 -gravity=0. -option=rigidBodyPiston -show=piston4bd0p1.show -go=go >! piston4bd0p1.out
+
+***************
+*** May 12, 2016
+
+Sliding block for added damping 
+
+Test extra projection:
+
+*NOTE* Use -numberOfCorrections=2 for addedDampingProjectVelocity
+
+
+G64: NO-PROJECTION AD=1 - oscillations (low freq, undamped)
+                   AD=2-4 - oscillations (low freq, undamped)
+cgins -noplot slider -g=sliderGrid64.order2 -ts=im -dtMax=.05 -bodyDensity=.01 -tf=5. -tp=.5 -bodyForce=ramp -amp=.1 -relaxRigidBody=0 -addedDampingProjectVelocity=0 -omega=.2 -rtolc=1.e-3 -psolver=yale -addedMass=1 -addedDamping=1 -addedDampingCoeff=1 -inertia=1e100 -nu=.1 -useProvidedAcceleration=1 -gravity=0. -show="slider64bd01Ad1.show" -go=go >! slider64bd01Ad1.out
+
+
+G64: AD=.05 - NO 
+G64: AD=.1 -- OK 
+G64: AD=.5 -- undamped oscillations (low freq)
+
+G64: AD=.2 - oscillations (low freq, undamped)
+cgins -noplot slider -g=sliderGrid64.order2 -ts=im -dtMax=.05 -bodyDensity=.01 -tf=5. -tp=.5 -bodyForce=ramp -amp=.1 -relaxRigidBody=0 -numberOfCorrections=2 -addedDampingProjectVelocity=1 -omega=.2 -rtolc=1.e-3 -psolver=yale -addedMass=1 -addedDamping=1 -addedDampingCoeff=.2 -inertia=1e100 -nu=.1 -useProvidedAcceleration=1 -gravity=0. -show="slider64bd01Ad0p2pv.show" -go=go >! slider64bd01Ad0p2pv.out
+
+G16: AD=.5 -- small wiggles , looks OK
+cgins -noplot slider -g=sliderGrid16.order2 -ts=im -dtMax=.05 -bodyDensity=.01 -tf=5. -tp=.5 -bodyForce=ramp -amp=.1 -relaxRigidBody=0 -numberOfCorrections=2 -addedDampingProjectVelocity=1 -omega=.2 -rtolc=1.e-3 -psolver=yale -addedMass=1 -addedDamping=1 -addedDampingCoeff=.5 -inertia=1e100 -nu=.1 -useProvidedAcceleration=1 -gravity=0. -show="slider16bd01Ad0p5pv.show" -go=go >! slider16bd01Ad0p5pv.out
+
+---------------------- G4 ----------------------
+
+Continuous theory says beta = .65*dn/dy = .22 should work 
+cgins -noplot slider -g=sliderGrid4.order2 -ts=im -dtMax=.05 -bodyDensity=.01 -tf=10. -tp=.5 -bodyForce=ramp -amp=.1 -relaxRigidBody=0 -numberOfCorrections=2 -addedDampingProjectVelocity=1 -omega=.2 -rtolc=1.e-3 -psolver=yale -addedMass=1 -addedDamping=1 -addedDampingCoeff=.2 -inertia=1e100 -nu=.1 -useProvidedAcceleration=1 -gravity=0. -show="slider4bd01Ad0p2pv.show" -go=go >! slider4bd01Ad0p2pv.out
+
+
+AD=4 : undamped wiggles (low freq)
+
+AD=2: small wiggles, damped
+cgins -noplot slider -g=sliderGrid4.order2 -ts=im -dtMax=.05 -bodyDensity=.01 -tf=10. -tp=.5 -bodyForce=ramp -amp=.1 -relaxRigidBody=0 -numberOfCorrections=2 -addedDampingProjectVelocity=1 -omega=.2 -rtolc=1.e-3 -psolver=yale -addedMass=1 -addedDamping=1 -addedDampingCoeff=5 -inertia=1e100 -nu=.1 -useProvidedAcceleration=1 -gravity=0. -show="slider4bd01Ad2pv.show" -go=go >! slider4bd01Ad2pv.out
+
+
+G4 AD=0.5 PV=project-velocity : NO -- high-freq oscillations 
+cgins -noplot slider -g=sliderGrid4.order2 -ts=im -dtMax=.05 -bodyDensity=.01 -tf=10. -tp=.5 -bodyForce=ramp -amp=.1 -relaxRigidBody=0 -numberOfCorrections=2 -addedDampingProjectVelocity=1 -omega=.2 -rtolc=1.e-3 -psolver=yale -addedMass=1 -addedDamping=1 -addedDampingCoeff=.5 -inertia=1e100 -nu=.1 -useProvidedAcceleration=1 -gravity=0. -show="slider4bd01Ad0p5pv.show" -go=go >! slider4bd01Ad0p5pv.out
+
+G4 AD=1 PV=project-velocity : OK 
+cgins -noplot slider -g=sliderGrid4.order2 -ts=im -dtMax=.05 -bodyDensity=.01 -tf=10. -tp=.5 -bodyForce=ramp -amp=.1 -relaxRigidBody=0 -numberOfCorrections=2 -addedDampingProjectVelocity=1 -omega=.2 -rtolc=1.e-3 -psolver=yale -addedMass=1 -addedDamping=1 -addedDampingCoeff=1 -inertia=1e100 -nu=.1 -useProvidedAcceleration=1 -gravity=0. -show="slider4bd01Ad1pv.show" -go=go >! slider4bd01Ad1pv.out
+
+
+
+***************
+*** May 11, 2016
+
+Sliding block for added damping 
+
+----------------------- G16 ------------------------
+
+g16, rhos=.01 -- AD=.3 
+cgins -noplot slider -g=sliderGrid16.order2 -ts=im -dtMax=.05 -bodyDensity=.01 -tf=5. -tp=.5 -bodyForce=ramp -amp=.1 -relaxRigidBody=0 -numberOfCorrections=1 -omega=.2 -rtolc=1.e-3 -psolver=yale -addedMass=1 -addedDamping=1 -addedDampingCoeff=.3 -inertia=1e100 -nu=.1 -useProvidedAcceleration=1 -gravity=0. -show="slider16bd01Ad0p2.show" -go=go >! slider16bd01Ad0p3.out
+
+
+g16, rhos=.01 -- AD=0.5  : damped oscillations 
+cgins -noplot slider -g=sliderGrid16.order2 -ts=im -dtMax=.05 -bodyDensity=.01 -tf=5. -tp=.5 -bodyForce=ramp -amp=.1 -relaxRigidBody=0 -numberOfCorrections=1 -omega=.2 -rtolc=1.e-3 -psolver=yale -addedMass=1 -addedDamping=1 -addedDampingCoeff=.5 -inertia=1e100 -nu=.1 -useProvidedAcceleration=1 -gravity=0. -show="slider16bd01Ad0p5.show" -go=go >! slider16bd01Ad0p5.out
+
+
+g16, rhos=.01 -- AD=1  : damped oscillations 
+cgins -noplot slider -g=sliderGrid16.order2 -ts=im -dtMax=.05 -bodyDensity=.01 -tf=5. -tp=.5 -bodyForce=ramp -amp=.1 -relaxRigidBody=0 -numberOfCorrections=1 -omega=.2 -rtolc=1.e-3 -psolver=yale -addedMass=1 -addedDamping=1 -addedDampingCoeff=1 -inertia=1e100 -nu=.1 -useProvidedAcceleration=1 -gravity=0. -show="slider16bd01Ad1.show" -go=go >! slider16bd01Ad1.out
+
+
+----------------------- G8 ------------------------
+
+g8, rhos=.01 -- AD=2  : un-damped oscillations 
+cgins -noplot slider -g=sliderGrid8.order2 -ts=im -dtMax=.05 -bodyDensity=.01 -tf=5. -tp=.5 -bodyForce=ramp -amp=.1 -relaxRigidBody=0 -numberOfCorrections=1 -omega=.2 -rtolc=1.e-3 -psolver=yale -addedMass=1 -addedDamping=1 -addedDampingCoeff=2 -inertia=1e100 -nu=.1 -useProvidedAcceleration=1 -gravity=0. -show="slider8bd01Ad2.show" -go=go >! slider8bd01Ad2.out
+
+g8, rhos=.01 -- AD=1  : damped oscillations 
+cgins -noplot slider -g=sliderGrid8.order2 -ts=im -dtMax=.05 -bodyDensity=.01 -tf=5. -tp=.5 -bodyForce=ramp -amp=.1 -relaxRigidBody=0 -numberOfCorrections=1 -omega=.2 -rtolc=1.e-3 -psolver=yale -addedMass=1 -addedDamping=1 -addedDampingCoeff=1 -inertia=1e100 -nu=.1 -useProvidedAcceleration=1 -gravity=0. -show="slider8bd01Ad1.show" -go=go >! slider8bd01Ad1.out
+
+----------------------- G4 ------------------------
+
+G4: beta=.21
+cgins -noplot slider -g=sliderGrid4.order2 -ts=im -dtMax=.05 -bodyDensity=.01 -tf=10. -tp=.5 -bodyForce=ramp -amp=.1 -relaxRigidBody=0 -numberOfCorrections=1 -omega=.2 -rtolc=1.e-3 -psolver=yale -addedMass=1 -addedDamping=1 -addedDampingCoeff=.21 -inertia=1e100 -nu=.1 -useProvidedAcceleration=1 -gravity=0. -show="slider4bd01Ad0p21.show" -go=go >! slider4bd01Ad0p21.out
+
+
+g4, rhos=.01 -- AD=8 - failed
+cgins -noplot slider -g=sliderGrid4.order2 -ts=im -dtMax=.05 -bodyDensity=.01 -tf=10. -tp=.5 -bodyForce=ramp -amp=.1 -relaxRigidBody=0 -numberOfCorrections=1 -omega=.2 -rtolc=1.e-3 -psolver=yale -addedMass=1 -addedDamping=1 -addedDampingCoeff=8 -inertia=1e100 -nu=.1 -useProvidedAcceleration=1 -gravity=0. -show="slider4bd01Ad8.show" -go=go >! slider4bd01Ad8.out
+
+g4, rhos=.01 -- AD=4 : undamped oscillations
+cgins -noplot slider -g=sliderGrid4.order2 -ts=im -dtMax=.05 -bodyDensity=.01 -tf=5. -tp=.5 -bodyForce=ramp -amp=.1 -relaxRigidBody=0 -numberOfCorrections=1 -omega=.2 -rtolc=1.e-3 -psolver=yale -addedMass=1 -addedDamping=1 -addedDampingCoeff=4 -inertia=1e100 -nu=.1 -useProvidedAcceleration=1 -gravity=0. -show="slider4bd01Ad4.show" -go=go >! slider4bd01Ad4.out
+
+g4, rhos=.01 -- AD=2  : damped oscillations 
+cgins -noplot slider -g=sliderGrid4.order2 -ts=im -dtMax=.05 -bodyDensity=.01 -tf=20. -tp=.5 -bodyForce=ramp -amp=.1 -relaxRigidBody=0 -numberOfCorrections=1 -omega=.2 -rtolc=1.e-3 -psolver=yale -addedMass=1 -addedDamping=1 -addedDampingCoeff=2 -inertia=1e100 -nu=.1 -useProvidedAcceleration=1 -gravity=0. -show="slider4bd01Ad2.show" -go=go >! slider4bd01Ad2.out
+
+g4, rhos=.01 -- AD=1  : undamped oscillations 
+cgins -noplot slider -g=sliderGrid4.order2 -ts=im -dtMax=.05 -bodyDensity=.01 -tf=5. -tp=.5 -bodyForce=ramp -amp=.1 -relaxRigidBody=0 -numberOfCorrections=1 -omega=.2 -rtolc=1.e-3 -psolver=yale -addedMass=1 -addedDamping=1 -addedDampingCoeff=1 -inertia=1e100 -nu=.1 -useProvidedAcceleration=1 -gravity=0. -show="slider4bd01Ad1.show" -go=go >! slider4bd01Ad1.out
+
+
+***************
+*** May 10, 2016
+
+Sliding block for added damping 
+
+RAMP TO constant velocity 
+
+G4 AD=16
+cgins -noplot slider -g=sliderGrid4.order2 -ts=im -dtMax=.02 -bodyDensity=.01 -tf=50. -tp=.05 -bodyForce=sine -amp=.1 -relaxRigidBody=0 -numberOfCorrections=1 -omega=.2 -rtolc=1.e-3 -psolver=yale -addedMass=1 -addedDamping=1 -addedDampingCoeff=16 -inertia=1e100 -nu=.1 -useProvidedAcceleration=1 -gravity=0. -show="slider4bd01Ad16.show" -go=go >! slider4bd01Ad16.out
+
+
+
+
+AD=16 : dt=.01 = OK , dt=.05 ?
+cgins -noplot slider -g=sliderGrid2.order2 -ts=im -dtMax=.05 -bodyDensity=.01 -tf=20. -tp=.05 -bodyForce=sine -amp=.1 -relaxRigidBody=0 -numberOfCorrections=1 -omega=.2 -rtolc=1.e-3 -psolver=yale -addedMass=1 -addedDamping=1 -addedDampingCoeff=16 -inertia=1e100 -nu=.1 -useProvidedAcceleration=1 -gravity=0. -show="slider2bd01Ad16.show" -go=go >! slider2bd01Ad16.out
+
+*new* dtMax=.05 *REDO OTHERS**
+AD=4 : OK
+cgins -noplot slider -g=sliderGrid2.order2 -ts=im -dtMax=.05 -bodyDensity=.01 -tf=20. -tp=.05 -bodyForce=sine -amp=.1 -relaxRigidBody=0 -numberOfCorrections=1 -omega=.2 -rtolc=1.e-3 -psolver=yale -addedMass=1 -addedDamping=1 -addedDampingCoeff=4 -inertia=1e100 -nu=.1 -useProvidedAcceleration=1 -gravity=0. -show="slider2bd01Ad4.show" -go=go >! slider2bd01Ad4.out
+
+AD=2 : OK
+cgins -noplot slider -g=sliderGrid2.order2 -ts=im -dtMax=.01 -bodyDensity=.01 -tf=5. -tp=.05 -bodyForce=sine -amp=.1 -relaxRigidBody=0 -numberOfCorrections=1 -omega=.2 -rtolc=1.e-3 -psolver=yale -addedMass=1 -addedDamping=1 -addedDampingCoeff=2 -inertia=1e100 -nu=.1 -useProvidedAcceleration=1 -gravity=0. -show="slider2bd01Ad2.show" -go=go >! slider2bd01Ad2.out
+
+AD=1 : OK
+cgins -noplot slider -g=sliderGrid2.order2 -ts=im -dtMax=.01 -bodyDensity=.01 -tf=5. -tp=.05 -bodyForce=sine -amp=.1 -relaxRigidBody=0 -numberOfCorrections=1 -omega=.2 -rtolc=1.e-3 -psolver=yale -addedMass=1 -addedDamping=1 -addedDampingCoeff=1 -inertia=1e100 -nu=.1 -useProvidedAcceleration=1 -gravity=0. -show="slider2bd01Ad1.show" -go=go >! slider2bd01Ad1.out
+
+
+ADC=1 - fails -ADC=4 OK -ADC=8 : wiggles
+cgins -noplot slider -g=sliderGrid2.order2 -ts=im -dtMax=.01 -bodyDensity=.01 -tf=5. -tp=.05 -relaxRigidBody=0 -numberOfCorrections=1 -omega=.2 -rtolc=1.e-3 -psolver=yale -addedMass=1 -addedDamping=1 -addedDampingCoeff=8 -inertia=1e100 -nu=.1 -useProvidedAcceleration=1 -gravity=0. -show="slider2bd01.show" -go=go >! slider2bd01.out 
+
+OK: 
+cgins -noplot slider -g=sliderGrid1.order2 -ts=im -dtMax=.01 -bodyDensity=.01 -tf=2. -tp=.1 -relaxRigidBody=0 -numberOfCorrections=1 -omega=.2 -rtolc=1.e-3 -psolver=yale -addedMass=1 -addedDamping=1 -addedDampingCoeff=4 -inertia=1e100 -nu=.1 -useProvidedAcceleration=1 -gravity=0. -show="slider1bd01.show" -go=go >! slider1bd01.out 
+
+OK: 
+cgins -noplot slider -g=sliderGrid1.order2 -ts=im -dtMax=.01 -bodyDensity=.01 -tf=2. -tp=.05 -relaxRigidBody=0 -numberOfCorrections=1 -omega=.2 -rtolc=1.e-3 -psolver=yale -addedMass=1 -addedDamping=1  -inertia=1e100 -nu=.1 -useProvidedAcceleration=1 -gravity=0. -show="slider1bd01.show" -go=go >! slider1bd01.out 
+
+
+
+*****************
+**** May 8, 2016
+
+*BUG SOLVED* -- fixed extra equations in Oges 
+
+
+TEST Added-damping too AMP rho=0.01
+cgins -noplot piston -g=plug4.hdf -ts=im -dtMax=.01 -bodyDensity=.01 -tf=2. -tp=.05 -relaxRigidBody=0 -numberOfCorrections=1 -omega=.2 -rtolc=1.e-3 -psolver=yale -addedMass=1 -addedDamping=1  -inertia=1. -nu=.01 -useProvidedAcceleration=1 -gravity=0. -option=rigidBodyPiston -go=og
+
+
+OK: 
+cgins -noplot piston -g=plug1.hdf -bodyDensity=10. -tf=1. -tp=.01 -relaxRigidBody=0 -numberOfCorrections=1 -omega=.2 -rtolc=1.e-3 -psolver=best -rtolp=1.e-9 -atolp=1.e-11 -addedMass=1 -addedDamping=0 -debug=3 -go=og
+
+
+
+*****************
+**** May 7, 2016
+
+TEST iterative sparse solver with added-mass and added-damping 
+
+COARSER GRID 
+
+cgins -noplot piston -g=plug1.hdf -bodyDensity=10. -tf=1. -tp=.01 -relaxRigidBody=0 -numberOfCorrections=1 -omega=.2 -rtolc=1.e-3 -psolver=best -rtolp=1.e-9 -atolp=1.e-11 -addedMass=1 -addedDamping=0 -debug=63 -go=og >! plug1Best.out
+
+cgins -noplot piston -g=plug1.hdf -bodyDensity=10. -tf=1. -tp=.01 -relaxRigidBody=0 -numberOfCorrections=1 -omega=.2 -rtolc=1.e-3 -psolver=yale -rtolp=1.e-9 -atolp=1.e-11 -addedMass=1 -addedDamping=0 -debug=63 -go=og >! plug1Yale.out
+
+
+
+cgins -noplot piston -g=plug2.hdf -bodyDensity=10. -tf=1. -tp=.01 -relaxRigidBody=0 -numberOfCorrections=1 -omega=.2 -rtolc=1.e-3 -psolver=best -rtolp=1.e-9 -atolp=1.e-11 -addedMass=1 -addedDamping=0 -go=og
+
+------- BEST ----
+
+++Petsc TIMINGS (for 21 its, size of matrix n = 1625 ):
+ build=0.000833, precond=0.000702, solve=0.001517, total=0.003052.
+--INS-STI-- After pressure solve: extraEquation: i=0 : constraint value= 7.826e-01
+--INS-STI-- After pressure solve: extraEquation: i=1 : constraint value= 0.000e+00
+--INS-STI-- After pressure solve: extraEquation: i=2 : constraint value= 6.925e-11
+--RBM-- setAcceleration: t0=0.000e+00, vDot=( 7.83e-01, 0.00e+00, 0.00e+00) wDot=( 0.00e+00, 0.00e+00, 6.93e-11)
+***userDefinedInitialConditionsCleanup: delete arrays
+ >>> t =  0.000e+00, dt = 9.00e-03, cpu = 6.79e-04 seconds (0 steps)
+           p : (min,max)=( 0.000000e+00, 1.173913e+00) 
+           u : (min,max)=( 0.000000e+00, 0.000000e+00) 
+           v : (min,max)=( 0.000000e+00, 0.000000e+00) 
+ Divergence: divMax/vorMax = 0.00e+00 divl2Norm/vorMax=0.00e+00 vorMax=0.00e+00
+++Petsc TIMINGS (for 18 its, size of matrix n = 1625 ):
+ build=0.000173, precond=1.9e-05, solve=0.001832, total=0.002024.
+--INS-STI-- After pressure solve: extraEquation: i=0 : constraint value= 7.827e-01
+--INS-STI-- After pressure solve: extraEquation: i=1 : constraint value= 5.332e-10
+--INS-STI-- After pressure solve: extraEquation: i=2 : constraint value=-1.490e-04
+--RBM-- setAcceleration: t0=1.000e-02, vDot=( 7.83e-01, 5.33e-10, 0.00e+00) wDot=( 0.00e+00, 0.00e+00,-1.49e-04)
+--MVG:RB-- body 0 : t2=1.00e-02 fCM=(-1.17e+00,-3.49e-04,0.00e+00) torque=(0.00e+00,0.00e+00,-3.82e-03)
+--RBM-TRAP-- Provided: t=1.000e-02 time=1.000e-02, vDot=( 7.83e-01, 5.33e-10, 0.00e+00) wDot=( 0.00e+00, 0.00e+00,-1.49e-04)
+RB: correct: t=1.000000e-02, dt=5.000000e-03, current=1 x(next)=(3.91e-05,5.00e-01,0.00e+00), f(next)=(7.83e+00,0.00e+00,0.00e+00), g(next)=(0.00e+00,0.00e+00,0.00e+00)
+  : vCM=(7.83e-03,1.33e-12,0.00e+00), w=(0.00e+00,0.00e+00,6.25e-03)
+--RBM-- getAcceleration:  t=1.00e-02, mass=1.00e+01, a-provided = (7.83e-01,5.33e-10,0.00e+00), ip=1, ipp1=2, beta=0.0e+00 times=[5.000e-03,1.000e-02] a1=[7.827e-01,7.827e-01] numberProvided=5 
+ >>> t =  1.000e-02, dt = 5.00e-03, cpu = 3.82e+01 seconds (2 steps)
+           p : (min,max)=( 0.000000e+00, 1.193571e+00) 
+           u : (min,max)=( 2.826900e-03, 1.282690e-02) 
+           v : (min,max)=(-1.875000e-07, 5.000001e-03) 
+
+
+---------- YALE ----------
+++Yale TIMINGS :  build=0.000347, solve=0.00184.
+--INS-STI-- After pressure solve: extraEquation: i=0 : constraint value= 7.826e-01
+--INS-STI-- After pressure solve: extraEquation: i=1 : constraint value= 0.000e+00
+--INS-STI-- After pressure solve: extraEquation: i=2 : constraint value= 1.136e-16
+--RBM-- setAcceleration: t0=0.000e+00, vDot=( 7.83e-01, 0.00e+00, 0.00e+00) wDot=( 0.00e+00, 0.00e+00, 1.14e-16)
+***userDefinedInitialConditionsCleanup: delete arrays
+ >>> t =  0.000e+00, dt = 9.00e-03, cpu = 6.78e-04 seconds (0 steps)
+           p : (min,max)=( 0.000000e+00, 1.173913e+00) 
+           u : (min,max)=( 0.000000e+00, 0.000000e+00) 
+           v : (min,max)=( 0.000000e+00, 0.000000e+00) 
+
+++Yale TIMINGS :  build=4.2e-05, solve=7.1e-05.
+--INS-STI-- After pressure solve: extraEquation: i=0 : constraint value= 7.827e-01
+--INS-STI-- After pressure solve: extraEquation: i=1 : constraint value= 1.247e-26
+--INS-STI-- After pressure solve: extraEquation: i=2 : constraint value= 4.424e-17
+--RBM-- setAcceleration: t0=1.000e-02, vDot=( 7.83e-01, 1.25e-26, 0.00e+00) wDot=( 0.00e+00, 0.00e+00, 4.42e-17)
+--MVG:RB-- body 0 : t2=1.00e-02 fCM=(-1.17e+00,2.77e-17,0.00e+00) torque=(0.00e+00,0.00e+00,1.98e-16)
+--RBM-TRAP-- Provided: t=1.000e-02 time=1.000e-02, vDot=( 7.83e-01, 1.25e-26, 0.00e+00) wDot=( 0.00e+00, 0.00e+00, 4.42e-17)
+RB: correct: t=1.000000e-02, dt=5.000000e-03, current=1 x(next)=(3.91e-05,5.00e-01,0.00e+00), f(next)=(7.83e+00,0.00e+00,0.00e+00), g(next)=(0.00e+00,0.00e+00,0.00e+00)
+  : vCM=(7.83e-03,4.06e-27,0.00e+00), w=(0.00e+00,0.00e+00,1.77e-19)
+--RBM-- getAcceleration:  t=1.00e-02, mass=1.00e+01, a-provided = (7.83e-01,1.25e-26,0.00e+00), ip=1, ipp1=2, beta=0.0e+00 times=[5.000e-03,1.000e-02] a1=[7.827e-01,7.827e-01] numberProvided=5 
+ >>> t =  1.000e-02, dt = 5.00e-03, cpu = 2.57e+01 seconds (2 steps)
+           p : (min,max)=( 0.000000e+00, 1.173169e+00) 
+           u : (min,max)=( 7.771671e-03, 7.870267e-03) 
+           v : (min,max)=(-4.149620e-06, 4.149620e-06) 
+ Divergence: divMax/vorMax = 7.83e+00 divl2Norm/vorMax=2.12e+00 vorMax=9.14e-05
+
+
+OK: 
+cgins -noplot piston -g=plug2.hdf -bodyDensity=10. -tf=1. -tp=.01 -relaxRigidBody=0 -numberOfCorrections=1 -omega=.2 -rtolc=1.e-3 -psolver=yale -addedMass=1 -addedDamping=1 -go=og
+
+OK: 
+cgins -noplot piston -g=plug2.hdf -bodyDensity=10. -tf=1. -tp=.01 -relaxRigidBody=0 -numberOfCorrections=1 -omega=.2 -rtolc=1.e-3 -psolver=yale -addedMass=1 -addedDamping=0 -go=og
+>>
+cgins: src/adjustPressureCoefficients.C:862: void Cgins::adjustPressureCoefficients(CompositeGrid&, GridFunction&): Assertion `nnz <numberOfNonzerosInConstraint' failed.
+
+
 *******************
 ********* DEC 8, 2015 TEST RESTART
 

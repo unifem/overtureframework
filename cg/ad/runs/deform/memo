@@ -12,6 +12,38 @@ ogen -noplot eyeGrid2d -interp=e -factor=16
 
 *******************************************
 
+***************
+**** Mar 28, 2016
+
+Etele:
+
+cgad deformingSurface -g=freeSurfaceGrid2de4.order2.ml1 -motion=sinusoid -kappa=.02 -ampy=.05 -tf=2. -tp=.01 -ic=pulse -tz=none -go=halt
+
+
+RY THIS:
+
+cgad deformingSurface -g=freeSurfaceGrid2de4.order2.ml1 -motion=concentration -kappa=1. -tf=10. -tp=.05 -tz=none -ic=pulse -a=1 -b=1 -bc=n -ts=im -go=halt
+
+
+
+THIS WORKS: 
+implicit:
+cgad deformingSurface -g=freeSurfaceGrid2de4.order2.ml1 -motion=concentration -kappa=.05 -tf=10. -tp=.05 -tz=none -ic=pulse -a=0 -b=0 -bc=n -ts=im -go=halt
+
+
+#    Grid: ogen -noplot freeSurfaceGrid2dy -interp=e -factor=4 -ml=1 
+#    cgad -noplot deformingSurface -g=freeSurfaceGrid2dye4.order2.ml1 -kappa=.01 -ampx=.1 -tf=2. -tp=.05 -ts=im -go=halt 
+#    cgad -noplot deformingSurface -g=freeSurfaceGrid2dye4.order2.ml1 -kappa=.01 -ampx=.1 -tf=2. -tp=.05 -go=halt 
+#
+#  Horizontal interface: 
+#    Grid: ogen -noplot freeSurfaceGrid2d -interp=e -factor=4 -ml=1 
+#   Pulse:
+#    cgad -noplot deformingSurface -g=freeSurfaceGrid2de4.order2.ml1 -kappa=.01 -ampy=.1 -tf=2. -tp=.05 -ic=pulse -tz=none -go=og
+
+
+
+
+
 2015/04/17 -- start on thin-film equations
 
 

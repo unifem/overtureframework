@@ -1,4 +1,17 @@
 ***********************************
+****** April 8, 2016
+
+SOSUP ORDER=2 bro=ken for BOX
+
+
+conv.p diskeigen.conv -tp=.1 -tf=.1 -mx=2 -my=2 -mz=2 -order=2 -method=sosup -name=boxEigen -cg=nonBox -ng=3
+
+Broken: 
+conv.p diskeigen.conv -tp=.1 -tf=.1 -mx=2 -my=2 -mz=2 -order=2 -method=sosup -name=boxEigen -cg=box -ng=3
+
+
+
+***********************************
 ****** Jan 23, 2016
 
 ----------------------------------- BOX EIGENFUNCTIONS ---------------------------------------

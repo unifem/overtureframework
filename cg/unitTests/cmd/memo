@@ -1,5 +1,4 @@
 
-
 **** 2016/03/07
 --implicit method:
 tbm tzbeam.cmd -nElem=80 -tz=trig -Em=1. -tension=0. -tf=1. -tp=.1 -numberOfSmooths=1 -smoothOrder=6 -fx=2.5 -BM=FD -smooth=0 -bc=c -useSameStencilSize=1
@@ -7,6 +6,39 @@ tbm tzbeam.cmd -nElem=80 -tz=trig -Em=1. -tension=0. -tf=1. -tp=.1 -numberOfSmoo
 --Explicit method:
 tbm tzbeam.cmd -nElem=80 -tz=trig -Em=1. -tension=0. -tf=1. -tp=.1 -numberOfSmooths=1 -smoothOrder=6 -fx=2.5 -BM=FD -smooth=0 -bc=c -useSameStencilSize=1 -predictor=leapFrog -corrector=adamsMoulton
 
+*************
+***** 2016/04/05
+
+TEST large E
+
+
+tbm tzbeam.cmd -nElem=40 -tz=trig -bc=cf -Em=20. -tension=0. -tf=1. -tp=.01 -smooth=0 -numberOfSmooths=1 -go=halt
+
+OK 
+tbm tzbeam.cmd -nElem=40 -tz=eigenmode -bc=cf -Em=20. -tension=0. -tf=1. -tp=.01 -smooth=0 -numberOfSmooths=1 -go=halt
+
+
+OK 
+tbm tzbeam.cmd -nElem=40 -tz=eigenmode -bc=c -Em=20. -tension=0. -tf=1. -tp=.01 -smooth=0 -numberOfSmooths=1 -go=halt
+
+OK
+tbm tzbeam.cmd -nElem=40 -tz=eigenmode -bc=c -Em=10. -tension=0. -tf=1. -tp=.01 -smooth=0 -numberOfSmooths=1 -go=halt
+
+
+OK 
+tbm tzbeam.cmd -nElem=40 -tz=eigenmode -bc=c -Em=1. -tension=0. -tf=1. -tp=.01 -smooth=0 -numberOfSmooths=1 -go=halt
+
+
+----- PERIOIDIC: 
+OK
+tbm tzbeam.cmd -nElem=40 -tz=sw -bc=per -Em=20. -tension=0. -tf=1. -tp=.01 -smooth=0 -numberOfSmooths=1 -go=halt
+
+OK
+tbm tzbeam.cmd -nElem=40 -tz=sw -bc=per -Em=10. -tension=0. -tf=1. -tp=.01 -smooth=0 -numberOfSmooths=1 -go=halt
+
+OK: 
+tbm tzbeam.cmd -nElem=40 -tz=sw -bc=per -Em=1. -tension=0. -tf=1. -tp=.01 -smooth=0 -numberOfSmooths=1 -go=halt
+-- BM -- predictor: dt has changed, dt=2.500e-04, dtOld=-1.000e+00, will refactor.           
 
 **** 2015/06/17 
 

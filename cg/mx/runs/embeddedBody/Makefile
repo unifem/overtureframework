@@ -1,5 +1,10 @@
 ogen = /home/henshw/Overture.g/bin/ogen
 
+# Make the documentation:
+doc:
+	pdflatex embeddedBody
+	bibtex embeddedBody
+
 # generate some grids
 grids : grids2d grids2dp
 
@@ -30,7 +35,3 @@ grids2dp:
 	$(ogen) -noplot embeddedBodyGrid -interp=e -order=4 -per=1 -theta=60 -numGhost=3 -factor=16
 
 
-# Make the documentation:
-doc:
-	pdflatex embeddedBody
-	bibtex embeddedBody

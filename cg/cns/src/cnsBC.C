@@ -2266,10 +2266,14 @@ applyBoundaryConditions(const real & t,
         	  rpar[10]=parameters.dbase.get<OGFunction* >("exactSolution")!=NULL ? 
                                       (real &)parameters.dbase.get<OGFunction* >("exactSolution") : 0.;  // twilight zone pointer
 
-                    const ArraySimpleFixed<real,3,1,1,1> &gravity=parameters.dbase.get<ArraySimpleFixed<real,3,1,1,1> >("gravity");
-                    rpar[11]=gravity(0);
-        	  rpar[12]=gravity(1);
-        	  rpar[13]=gravity(2);
+          // const ArraySimpleFixed<real,3,1,1,1> &gravity=parameters.dbase.get<ArraySimpleFixed<real,3,1,1,1> >("gravity");
+	  // get the gravity vector -- may be time dependent for a slow start
+        	  real gravity[3];
+        	  parameters.getGravityVector( gravity,t );          
+
+                    rpar[11]=gravity[0];
+        	  rpar[12]=gravity[1];
+        	  rpar[13]=gravity[2];
                     rpar[14]=parameters.dbase.get<real>("mu");
                     rpar[15]=parameters.dbase.get<real>("kThermal");
                     rpar[16]=parameters.dbase.get<real>("Rg");
@@ -2455,8 +2459,11 @@ applyBoundaryConditions(const real & t,
             const real reynoldsNumber = parameters.dbase.get<real >("reynoldsNumber");
             const real prandtlNumber = parameters.dbase.get<real >("prandtlNumber");
             const real machNumber = parameters.dbase.get<real >("machNumber");
-            const ArraySimpleFixed<real,3,1,1,1> &gravity=parameters.dbase.get<ArraySimpleFixed<real,3,1,1,1> >("gravity");
-            
+      // const ArraySimpleFixed<real,3,1,1,1> &gravity=parameters.dbase.get<ArraySimpleFixed<real,3,1,1,1> >("gravity");
+      // get the gravity vector -- may be time dependent for a slow start
+            real gravity[3];
+            parameters.getGravityVector( gravity,t );                
+
             rpar[0]=reynoldsNumber;
             rpar[1]=prandtlNumber;
             rpar[2]=machNumber;

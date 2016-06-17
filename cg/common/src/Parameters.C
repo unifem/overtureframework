@@ -47,6 +47,8 @@
 #include "ExternalBoundaryData.h"
 #include "BodyForce.h"
 
+#include "TimeFunction.h"
+
 aString Parameters::timeSteppingName[Parameters::numberOfTimeSteppingMethods+1];
 aString Parameters::turbulenceModelName[Parameters::numberOfTurbulenceModels+1];
 
@@ -2149,6 +2151,42 @@ setShowVariable( const aString & name, const bool variableIsOn )
   }
   else  
     return 0;
+}
+
+
+// ===================================================================================================================
+/// \brief Return the gravity vector (which may depend on time )
+/// \param gravityVector (output) : gravity vector at time t
+/// \param t (input) : time to evaluate the gravity 
+// ===================================================================================================================
+int Parameters::
+getGravityVector( real gravityVector[3], real t )
+{
+  const ArraySimpleFixed<real,3,1,1,1> & gravity =dbase.get<ArraySimpleFixed<real,3,1,1,1> >("gravity");
+
+  if( dbase.has_key("gravityTimeFunction") )
+  {
+    TimeFunction & timeFunction = dbase.get<TimeFunction>("gravityTimeFunction");
+    real timeValue;
+    timeFunction.eval( t,timeValue );
+
+    for( int axis=0; axis<3; axis++ )
+      gravityVector[axis]=gravity[axis]*timeValue;
+
+    // printF("--PAR-- getGravityVector: t=%9.3e value=%9.2e gravityVector=[%9.2e,%9.2e,%9.2e]\n",t,timeValue,
+    // 	   gravityVector[0],gravityVector[1],gravityVector[2] );
+
+  }
+  else
+  {
+    for( int axis=0; axis<3; axis++ )
+      gravityVector[axis]=gravity[axis];
+
+    // printF("--PAR-- getGravityVector: t=%9.3e gravityVector=[%9.2e,%9.2e,%9.2e]\n",t,
+    //	   gravityVector[0],gravityVector[1],gravityVector[2] );
+  }
+  
+  
 }
 
 

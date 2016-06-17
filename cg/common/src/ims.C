@@ -1297,54 +1297,6 @@ advanceImplicitMultiStep( real & t0, real & dt0, int & numberOfSubSteps, int & i
       	predictTimeIndependentVariables( numberOfTimeLevels,gfIndex );
             }
 
-/* --- OLD
-      // extrapolate p in time as an initial guess for iterative solvers
-            bool timeExtrapolatePressureForIterative = ( parameters.dbase.has_key("extrapolatePoissonSolveInTime") && 
-                                           				                   poisson->isSolverIterative() );
-
-      // Extrap. p for the 'light-body' mixed pressure BC *testing*
-            const int & movingBodyPressureBC = parameters.dbase.get<int>("movingBodyPressureBC");
-            bool timeExtrapolatePressureForMoving = movingBodyPressureBC!=0;
-            if( false )
-      	printF("+++++++++++++ ims: movingBodyPressureBC=%i\n",movingBodyPressureBC);
-            
-            if( correction==0 && ( timeExtrapolatePressureForIterative || timeExtrapolatePressureForMoving ) )
-            {
-      	const int & pc = parameters.dbase.get<int >("pc");
-      	assert( pc>= 0 );
-      	for( grid=0; grid<gf[mCur].cg.numberOfComponentGrids(); grid++ )
-      	{
-        	  if( timeExtrapolatePressureForIterative || 
-                            ( (parameters.gridIsMoving(grid) && (bool)movingBodyPressureBC) || movingBodyPressureBC==2 ) )
-        	  {
-          	    if( debug() & 4 )
-            	      printF("ims: extrapolate p in time to t=%8.2e (correction=%i) extrap-coeffs=(%8.2e,%8.2e)\n",
-                 		     gf[mNew].t,correction,cex2a,cex2b);
-          	    
-	    // *wdh* 050424 getIndex(gf[mCur].cg[grid].gridIndexRange(),I1,I2,I3);  // **** why not include ghost pts??
-          	    getIndex(gf[mCur].cg[grid].dimension(),I1,I2,I3);  // **** why not include ghost pts??
-	    // note that initially gf[mNew](.,.,.,pc) = p(t-dt)
-#ifdef USE_PPP
-          	    realSerialArray uNew; getLocalArrayWithGhostBoundaries(gf[mNew].u[grid],uNew);
-          	    realSerialArray uCur; getLocalArrayWithGhostBoundaries(gf[mCur].u[grid],uCur);
-          	    realSerialArray uOld; getLocalArrayWithGhostBoundaries(gf[mOld].u[grid],uOld);
-                        bool ok = ParallelUtility::getLocalArrayBounds(gf[mNew].u[grid],uNew,I1,I2,I3); 
-                        if( !ok ) continue;
-#else
-                        const realSerialArray & uNew=gf[mNew].u[grid];
-                        const realSerialArray & uCur=gf[mCur].u[grid];
-                        const realSerialArray & uOld=gf[mOld].u[grid];
-#endif	    
-        	  
-            // *wdh* fixed extrap in time for p to p(t+dt) (instead of p(t+dt/2)) 100912
-                        uNew(I1,I2,I3,pc)=cex2a*uCur(I1,I2,I3,pc)+cex2b*uOld(I1,I2,I3,pc);
-            // uNew(I1,I2,I3,pc)=(ab1/dt0)*uCur(I1,I2,I3,pc)+(ab2/dt0)*uOld(I1,I2,I3,pc);
-        	  }
-        	  
-      	}
-            }
-        --- */
-
       // e.g. for variable density, update p eqn here     
             bool updateSolutionDependentEquations = correction==0;  
             solveForTimeIndependentVariables( gf[mNew],updateSolutionDependentEquations ); 
@@ -1356,14 +1308,24 @@ advanceImplicitMultiStep( real & t0, real & dt0, int & numberOfSubSteps, int & i
             }
 
       // -- Correct for forces on moving bodies if we have more corrections --
-      //  *wdh* use macro: 2015/03/08
+
+            const bool addedDamping = (parameters.dbase.get<bool>("useAddedDampingAlgorithm") && 
+                                                                  parameters.dbase.get<bool>("addedDampingProjectVelocity") );
+      // **TEMP** May 12, 2016      
+            if( correction==2 && addedDamping )
+            {
+                  	printF("--IMS: skip moving grid correction step for AMP: correction=%i, t=%9.3e\n",correction,t0);
+            }
+            else
+            {
         // Correct for forces on moving bodies if we have more corrections.
                 bool movingGridCorrectionsHaveConverged = false;
                 real delta =0.; // holds relative correction when we are sub-cycling 
+                const bool useMovingGridSubIterations= parameters.dbase.get<bool>("useMovingGridSubIterations");
         // *wdh* 2015/12/16 -- explicitly check for useMovingGridSubIterations, otherwise we can do multiple
         //                     corrections always if requested,
                 if( movingGridProblem() && (numberOfCorrections==1  // *wdh* 2015/05/24 -- this case was missing in new version
-                                    			      || !parameters.dbase.get<bool>("useMovingGridSubIterations"))  ) // *wdh* 2015/12/16 
+                                    			      || !useMovingGridSubIterations)  ) // *wdh* 2015/12/16 
                 {
                     if( numberOfCorrections>10 )
                     {
@@ -1401,46 +1363,10 @@ advanceImplicitMultiStep( real & t0, real & dt0, int & numberOfSubSteps, int & i
                 else 
                 {
                 }
-            if( movingGridCorrectionsHaveConverged )
-                break;
-
-      // // correct for forces on moving bodies  *wdh* 040913
-      // if( movingGridProblem() )  // may only need to do this for correction<numberOfCorrections
-      // {
-      // 	correctMovingGrids( t0,t0+dt0,gf[mCur],gf[mNew] ); 
-
-      //   // Check if the correction step has converged
-      //   bool isConverged = getMovingGridCorrectionHasConverged();
-      //   real delta = getMovingGridMaximumRelativeCorrection();
-      // 	if( debug() & 2 )
-      // 	{
-      //     printF("ims: moving grid correction step : delta =%8.2e (correction=%i, isConverged=%i)\n",
-      //            delta,correction,(int)isConverged);
-      // 	}
-      // 	if( isConverged && correction>=minimumNumberOfPCcorrections )
-      // 	  break;  // we have converged -- break from correction steps
-      // }
+      	if( movingGridCorrectionsHaveConverged )
+        	  break;
+            }
             
-
-      // * ----
-
-//       if( correction>=2 )
-//       {
-// 	parameters.dbase.get<int >("globalStepNumber")++;
-//       }
-
-//       if( parameters.dbase.get<int >("globalStepNumber") % 10 == 0 )
-//       {
-// 	if( parameters.dbase.get<int>("useNewImplicitMethod")==1 )
-// 	{
-// 	  realCompositeGridFunction & residual = uti;  // save residual here -- check this 
-// 	  getResidual( t0+dt0 ,dt0,gf[mNew],residual );
-// 	  saveSequenceInfo(t0+dt0,residual);
-// 	}
-            
-//       }
-
-
         } // end corrections
         
     // permute (mab0,mab1,mab2) 

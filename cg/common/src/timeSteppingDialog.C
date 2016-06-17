@@ -773,7 +773,8 @@ getTimeSteppingOption(const aString & answer,
                                 parameters.dbase.get<real>("addedDampingCoefficient")) ) 
   {
     printF("Setting addedDampingCoefficient=%9.3e. This value scales the added damping term in the\n"
-           " rigid body equations when coupling to an incompressible flow.\n");
+           " rigid body equations when coupling to an incompressible flow.\n",
+           parameters.dbase.get<real>("addedDampingCoefficient"));
   }
   
 

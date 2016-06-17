@@ -168,7 +168,12 @@ RigidBodyMotion(int numberOfDimensions_ /* = 3 */)
   // useProvidedAcceleration : if true then use any provided acceleration
   if( !dbase.has_key("useProvidedAcceleration") ) dbase.put<bool>("useProvidedAcceleration")=true;
 
-  
+  // implicitFactor : for Trapezoidal corrector
+  //               =1  : Backward Euler
+  //               =.5 : Trapezoidal
+  //               =0  : Forward Euler
+  if( !dbase.has_key("implicitFactor") ) dbase.put<real>("implicitFactor")=.5;
+
   logFile=NULL;
 
 }
@@ -191,8 +196,9 @@ writeParameterSummary( FILE *file /* =stdout */ )
   fPrintF(file,"--------------------------------------------------------------------\n");
   fPrintF(file,"------------------- Rigid body : %s -----------------------\n",(const char*)dbase.get<aString>("bodyName"));
   fPrintF(file," mass=%9.3e : mass of the body,\n"
-               " prinicpal moments of inertia: (I1,I2,I3)=(%8.2e,%8.2e,%8.2e)\n",mass,mI(0),mI(1),mI(2));
+               " prinicpal moments of inertia: (I1,I2,I3)=(%.5g,%.5g,%.5g)\n",mass,mI(0),mI(1),mI(2));
   if( density>=0 ) fPrintF(file," density=%9.3e\n",density);
+  fPrintF(file," Initial center of mass=(%10.3e,%10.3e,%10.3e)\n",x0(0),x0(1),x0(2));
   fPrintF(file," includeAddedMass=%i : include added mass tensors from AMP scheme, \n"
                " relaxCorrectionSteps=%i : under-relax correction steps: \n"
                "   force : omega=%9.3e, tolerances: relative=%8.2e, absolute=%8.2e\n"
@@ -200,7 +206,7 @@ writeParameterSummary( FILE *file /* =stdout */ )
                " directProjectionAddedMass=%i, : use the direct-projection AMP scheme,\n"
                " useProvidedAcceleration=%i  : use provided accelerations (e.g. from AMP scheme),\n"
                " useExtrapolationInPredictor=%i, orderOfExtrapolationPredictor=%i\n"
-    	       " time-stepping= %s,\n"
+    	       " time-stepping= %s, implicitFactor=%g (.5=Trap, 1=Backward-Euler)\n"
 	       " order of accuracy= %i, twilight-zone=%i,\n"
 	       " number of past time values= %i\n",
 	  (int)dbase.get<bool>("includeAddedMass"),
@@ -213,6 +219,7 @@ writeParameterSummary( FILE *file /* =stdout */ )
           (timeSteppingMethod==leapFrogTrapezoidal ? "Leap-frog predictor, Trapezodial corrector" :
 	   timeSteppingMethod==improvedEuler ? "Improved-Euler" :
 	   timeSteppingMethod==implicitRungeKutta ? "Implicit Runge-Kutta" : "unknown"),
+          dbase.get<real>("implicitFactor"),
 	  (int)twilightZone,
           dbase.get<int>("orderOfAccuracy"),
           dbase.get<int>("numberOfPastTimeValues")
@@ -760,13 +767,14 @@ setProperties(real totalMass,
 }
 
 // =================================================================================================
-/// \brief Get the added damping tensors. These should have be set using setAddedDampingTensors
+/// \brief Get the added-damping tensors. These should have be set using setAddedDampingTensors
 /// 
 /// \param addedDampingTensors(3,3,2,2) (output) : 4 3x3 tensors
 ///    addedDampingTensors(0:2,0:2,0,0) : Dvv : coeff of linear velocity in linear velocity eqn.
 ///    addedDampingTensors(0:2,0:2,0,1) : Dvw : coeff of angular velocity in linear velocity eqn.
 ///    addedDampingTensors(0:2,0:2,1,0) : Dwv : coeff of linear velocity in angular velocity eqn.
 ///    addedDampingTensors(0:2,0:2,1,1) : Dww : coeff of angular velocity in angular velocity eqn.
+/// \param Return added-damping tensors at this time (the tensors "rotate" with the body)
 ///
 /// \return Returns 0 if tensors have been defined (normal return), otherwise returns 1;
 /// 
@@ -774,13 +782,50 @@ setProperties(real totalMass,
 ///    Currently these added damping tensors are computed in the MovingGrids class which knows
 ///    about the grids being used.
 // =================================================================================================
-int RigidBodyMotion::getAddedDampingTensors( RealArray & addedDampingTensors ) const
+int RigidBodyMotion::getAddedDampingTensors( RealArray & addedDampingTensors, const real t  ) const
 {
   if( !dbase.has_key("addedDampingTensors") ) 
     return 1;  // tensors have not yet been defined
   
-  addedDampingTensors = dbase.get<RealArray>("addedDampingTensors");
+  real & addDampingTensorTime = dbase.get<real>("addDampingTensorTime");
 
+  // --- for now we assume that the added-dampng tensor was saved at t=0 ---
+  assert( addDampingTensorTime==0. );
+  
+  // Here is ADT(0) : added damping tensor at time t=addDampingTensorTime 
+  RealArray & adt = dbase.get<RealArray>("addedDampingTensors");
+
+  // --- get rotation matrix at time t  ---
+  RealArray r(3,3);
+  getRotationMatrix( t,r );
+  // ::display(r,sPrintF("getAddedDampingTensors: rotation matrix at t=%9.2e",t),"%6.2f ");
+  
+  // There are 4 matrices in "adt" we need to rotate : 
+  for( int wc=0; wc<=1; wc++ )
+  {
+    for( int vc=0; vc<=1; vc++ )
+    {
+      // ADT = R ADT(0) R^T 
+      for( int j=0; j<=2; j++ )
+      {
+	for( int i=0; i<=2; i++ )
+	{
+          // Compute entry (i,j) in R * ADT(0:2,0:2,vc,wc) * R^T 
+          real temp=0;
+	  for( int k=0; k<=2; k++ )
+	  {
+	    for( int l=0; l<=2; l++ )
+	    {
+	      temp += r(i,k)*adt(k,l,vc,wc)*r(j,l);
+	    }
+	  }
+	  addedDampingTensors(i,j,vc,wc)=temp;
+
+	}
+      }
+    }
+  }
+  
   return 0;
 }
 
@@ -792,21 +837,89 @@ int RigidBodyMotion::getAddedDampingTensors( RealArray & addedDampingTensors ) c
 ///    addedDampingTensors(0:2,0:2,0,1) : Dvw : coeff of angular velocity in linear velocity eqn.
 ///    addedDampingTensors(0:2,0:2,1,0) : Dwv : coeff of linear velocity in angular velocity eqn.
 ///    addedDampingTensors(0:2,0:2,1,1) : Dww : coeff of angular velocity in angular velocity eqn.
+/// \param t (input) : the time corresponding to the added-damping tensors (the tensors "rotate" with the body)
+/// \param scaleFactor (input) : scale factor for the tensor, e.g. mu/dn 
 /// 
 /// \note The added damping tensors for viscous flow depend on the grid spacing near the body.
 ///    Currently these added damping tensors are computed in the MovingGrids class which knows
 ///    about the grids being used.
 // =================================================================================================
-int RigidBodyMotion::setAddedDampingTensors( const RealArray & addedDampingTensors )
+int RigidBodyMotion::setAddedDampingTensors( const RealArray & addedDampingTensors, 
+                                             const real t, 
+                                             const real scaleFactor )
 {
+
   if( !dbase.has_key("addedDampingTensors") ) 
   {
     RealArray & tensor = dbase.put<RealArray>("addedDampingTensors");
     tensor.redim(3,3,2,2);
+    // Here is the current time at which we saved the addedDampingTensor. 
+    dbase.put<real>("addDampingTensorTime")=0.;
+    dbase.put<real>("addDampingScaleFactor")=0.;
   }
+  real & addDampingTensorTime = dbase.get<real>("addDampingTensorTime");
+  real & addDampingScaleFactor = dbase.get<real>("addDampingScaleFactor");
+  
   RealArray & tensor = dbase.get<RealArray>("addedDampingTensors");
   tensor=addedDampingTensors;
+  addDampingTensorTime=t;
+  addDampingScaleFactor=scaleFactor;
 
+  return 0;
+}
+
+
+// =================================================================================================
+/// \brief Display the added-damping tensors (if they have been defined).
+/// 
+// =================================================================================================
+int RigidBodyMotion::displayAddedDampingTensors( const aString & label, 
+						 const real t /* = 0. */, 
+						 FILE *file /* =stdout */ ) const
+{
+  if( !dbase.has_key("addedDampingTensors") )    
+    return 1;  // tensors have not yet been defined
+
+  const aString & bodyName = dbase.get<aString>("bodyName");
+  // const RealArray & addedDampingTensors   = dbase.get<RealArray>("addedDampingTensors");
+  const real & addDampingTensorTime = dbase.get<real>("addDampingTensorTime");
+  const real & addDampingScaleFactor = dbase.get<real>("addDampingScaleFactor");
+  const int vbc=0, wbc=1; // component numbers of v and omega in addedDampingTensors
+  
+  // Get tensors at time t: 
+  RealArray adt(3,3,2,2);
+  getAddedDampingTensors( adt,t );
+  adt *= 1./addDampingScaleFactor; // scaled AD tensor
+
+  fPrintF(file,"%s \n",(const char*)label);
+  fPrintF(file,
+	  "             Added Damping Tensors (without scale factor=%9.2e) t=%9.3e body=%s\n"
+	  "             ----------------------------------------------------------\n"
+	  "       [ %12.4e %12.4e %12.4e ]        [ %12.4e %12.4e %12.4e ]\n"
+	  " Dvv = [ %12.4e %12.4e %12.4e ]  Dvw = [ %12.4e %12.4e %12.4e ]\n"
+	  "       [ %12.4e %12.4e %12.4e ]        [ %12.4e %12.4e %12.4e ]\n"
+	  " \n"
+	  "       [ %12.4e %12.4e %12.4e ]        [ %12.4e %12.4e %12.4e ]\n"
+	  " Dwv = [ %12.4e %12.4e %12.4e ]  Dww = [ %12.4e %12.4e %12.4e ]\n"
+	  "       [ %12.4e %12.4e %12.4e ]        [ %12.4e %12.4e %12.4e ]\n",
+	  addDampingScaleFactor,t,(const char*)bodyName,
+	  adt(0,0,vbc,vbc),adt(1,0,vbc,vbc),adt(2,0,vbc,vbc),
+	  adt(0,0,vbc,wbc),adt(1,0,vbc,wbc),adt(2,0,vbc,wbc),
+
+	  adt(0,1,vbc,vbc),adt(1,1,vbc,vbc),adt(2,1,vbc,vbc),
+	  adt(0,1,vbc,wbc),adt(1,1,vbc,wbc),adt(2,1,vbc,wbc),
+
+	  adt(0,2,vbc,vbc),adt(1,2,vbc,vbc),adt(2,2,vbc,vbc),
+	  adt(0,2,vbc,wbc),adt(1,2,vbc,wbc),adt(2,2,vbc,wbc),
+
+	  adt(0,0,wbc,vbc),adt(1,0,wbc,vbc),adt(2,0,wbc,vbc),
+	  adt(0,0,wbc,wbc),adt(1,0,wbc,wbc),adt(2,0,wbc,wbc),
+
+	  adt(0,1,wbc,vbc),adt(1,1,wbc,vbc),adt(2,1,wbc,vbc),
+	  adt(0,1,wbc,wbc),adt(1,1,wbc,wbc),adt(2,1,wbc,wbc),
+
+	  adt(0,2,wbc,vbc),adt(1,2,wbc,vbc),adt(2,2,wbc,vbc),
+	  adt(0,2,wbc,wbc),adt(1,2,wbc,wbc),adt(2,2,wbc,wbc));
   return 0;
 }
 
@@ -838,6 +951,74 @@ massHasBeenInitialized() const
 { 
   return ((initialConditionsGiven/2) % 2) == 1; 
 } 
+
+// =======================================================================================
+/// \brief Return true if the moments of inertia have been initialized
+/// \param mI1,mI2,mI3 (input) : moment of inertia (only mI3 is used in 2D)
+// =======================================================================================
+int RigidBodyMotion::setMomentsOfInertia( const real mI1, const real mI2, const real mI3 )
+{
+  printF("\n *** --RBM-- setMomentsOfInertia ***\n\n");
+  
+  mI(0)=mI1;
+  mI(1)=mI2;
+  mI(2)=mI3;
+  if( (initialConditionsGiven/8 % 2)==0 )
+    initialConditionsGiven+=8;  // this means the moments of inertia have been initialized
+
+  return 0;
+}
+
+
+// =======================================================================================
+/// \brief Return true if the moments of inertia have been initialized
+// =======================================================================================
+bool RigidBodyMotion::momentsOfInertiaHaveBeenInitialized() const
+{
+  return ((initialConditionsGiven/8) % 2) == 1; 
+}
+
+
+// =======================================================================================
+/// \brief Return true if the moments of inertia have been initialized
+/// \param mI1,mI2,mI3 (input) : moment of inertia (only mI3 is used in 2D)
+// =======================================================================================
+int RigidBodyMotion::setAxesOfInertial( const RealArray & axesOfInertia )
+{
+  e(R,R)=axesOfInertia;
+
+  // check that axes are orthogonal and unit length.
+  for( int axis=0; axis<numberOfDimensions; axis++ )
+  {
+    real norm =max(REAL_MIN, SQRT( SQR(e(0,axis))+SQR(e(1,axis))+SQR(e(2,axis)) ));
+    e(R,axis)/=norm;
+    for( int dir=0; dir<numberOfDimensions-1; dir++ )
+    {
+      real dot = e(0,axis)*e(0,dir)+e(1,axis)*e(1,dir)+e(2,axis)*e(2,dir);
+      if( fabs(dot)>REAL_EPSILON*10. )
+      {
+	printF("RigidBodyMotion::setAxesOfInertial:ERROR: axis of inertia %i is not orthogonal "
+	       "to axis %i. dot-product=%e \n",axis,dir,dot);
+      }
+    }
+  }
+  
+  if( (initialConditionsGiven/16 % 2)==0 )
+    initialConditionsGiven+=16;  // this means the axes of inertia have been initialized
+
+  return 0;
+}
+
+
+// =======================================================================================
+/// \brief Return true if the moments of inertia have been initialized
+// =======================================================================================
+bool RigidBodyMotion::axesOfInertiaHaveBeenInitialized() const
+{
+  return ((initialConditionsGiven/16) % 2) == 1; 
+}
+
+
 
 //\begin{>>RigidBodyMotionInclude.tex}{\subsection{setInitialCenterOfMass}} 
 int RigidBodyMotion::
@@ -910,6 +1091,9 @@ setInitialConditions(real t0 /* = 0. */,
   w(R,0)=w0;
   if( numberOfDimensions==3 && axesOfInertia.getLength(0)>2 && axesOfInertia.getLength(1)>2 )
   {
+    if( (initialConditionsGiven/16 % 2)==0 )
+      initialConditionsGiven+=16;  // this means the axes of inertia have been initialized
+
     e0(R,R)=axesOfInertia(R,R);
     e(R,R,0)=e0;
   }
@@ -992,8 +1176,9 @@ setAcceleration( real t0, RealArray & vDot, RealArray & wDot )
   vDotProvided(R3  ,stageToSet) = vDot;
   vDotProvided(R3+3,stageToSet) = wDot;
 
-  printF("--RBM-- setAcceleration: t0=%9.3e, vDot=(%9.2e,%9.2e,%9.2e) wDot=(%9.2e,%9.2e,%9.2e)\n",
-	 t0,vDot(0),vDot(1),vDot(2), wDot(0),wDot(1),wDot(2));
+  if( debug & 8 )
+    printF("--RBM-- setAcceleration: t0=%9.3e, vDot=(%9.2e,%9.2e,%9.2e) wDot=(%9.2e,%9.2e,%9.2e)\n",
+	   t0,vDot(0),vDot(1),vDot(2), wDot(0),wDot(1),wDot(2));
   
   return 0;
 }
@@ -1643,136 +1828,6 @@ integrate(real t0,
     // --- OLD WAY ---
     OV_ABORT("ERROR");
 
-//     printF("RB:integrate:WARNING: old way be used.\n");
-
-//     RealArray vDot(R);
-//     vDot(R)=f(R,current)/mass;
-
-//     // NOTE: the v array is not used here in computing x, but is used in the corrector.
-//     if( numberOfSteps==2 )
-//     {
-//       // at t=dt we  recompute v(dt) = v(0)+ ( vDot(0)*dt + vDot(dt)*dt )*.5
-//       v(R,current)=v(R,previous)+( v(R,current)-v(R,previous) + dt*vDot(R) )*.5;
-//     }
-//     if( false )
-//     {
-//       printf("RB:integrate: current=%i numberOfSteps=%i v0=(%8.2e,%8.2e) \n",current,numberOfSteps,
-// 	     v0(0),v0(1));
-//     }
-  
-//     if( numberOfSteps==1 )
-//     {
-//       v(R,next)=v0(R)+dt*vDot(R); // this is only first order but is fixed at second step.
-//       x(R,next)=x(R,current)+dt*( v0(R) + .5*dt*vDot(R) );
-//     }
-//     else
-//     {
-//       if( timeSteppingMethod==leapFrogTrapezoidal )
-//       {
-// 	v(R,next)=v(R,previous)+(2.*dt)*vDot(R);  // leap frog
-//       }
-//       else if( timeSteppingMethod==improvedEuler )
-//       {
-// 	v(R,next)=v(R,current)+dt*vDot(R);   // forward euler 
-//       }
-//       else
-//       {
-// 	Overture::abort("error");
-//       }
-//       // *wdh* 062306 -- add a damping factor      
-//       x(R,next)=2.*x(R,current)-x(R,previous)+ (dt*dt)*( vDot(R) -damping*dt*(x(R,current)-x(R,previous)) );
-//     }
-  
-//     if( numberOfDimensions==2 )
-//     {
-//       x(2,next)=0.;
-//       v(2,next)=0.;
-//     }
-
-//     // xCM(R)=x(R,next);
-
-//     RealArray wDot(R), eDot(R,R);
-//     int axis;
-//     for( axis=0; axis<3; axis++ )
-//     {
-//       const int axisp1=(axis+1) % 3;
-//       const int axisp2=(axis+2) % 3;
-//       wDot(axis)=( (mI(axisp1)-mI(axisp2))*w(axisp1,current)*w(axisp2,current) +
-// 		   g(0,current)*e(0,axis,current)+
-// 		   g(1,current)*e(1,axis,current)+
-// 		   g(2,current)*e(2,axis,current) )/mI(axis);
-//     }
-  
-//     if( numberOfSteps==2 )
-//     {
-//       // at t=dt we  recompute w(dt) = w(0)+ ( wDot(0)*dt + wDot(dt)*dt )*.5
-//       w(R,current)=w(R,previous)+( w(R,current)-w(R,previous) + dt*wDot(R) )*.5;
-//     }
-
-//     if( numberOfSteps==1 )
-//     {
-//       w(R,next)=w(R,current)+wDot(R)*dt;  // this is only first order for w(dt), but we fix this at step 2
-//     }
-//     else
-//     {
-//       w(R,next)=w(R,previous)+wDot(R)*(2.*dt); 
-//     }
-  
-//     // eDot =  w X e
-//     eDot(0,R)=w(1,current)*e(2,R,current)-w(2,current)*e(1,R,current);
-//     eDot(1,R)=w(2,current)*e(0,R,current)-w(0,current)*e(2,R,current);
-//     eDot(2,R)=w(0,current)*e(1,R,current)-w(1,current)*e(0,R,current);
-  
-
-//     if( numberOfSteps==1 )
-//     {
-//       RealArray eDotDot(3,3);
-    
-//       eDotDot(0,R)=(wDot(1,current)*   e(2,R,current)-wDot(2,current)*   e(1,R,current)+
-// 		    w(1,current)*eDot(2,R,current)-   w(2,current)*eDot(1,R,current));
-//       eDotDot(1,R)=(wDot(2,current)*   e(0,R,current)-wDot(0,current)*   e(2,R,current)+
-// 		    w(2,current)*eDot(0,R,current)-   w(0,current)*eDot(2,R,current));
-//       eDotDot(2,R)=(wDot(0,current)*   e(1,R,current)-wDot(1,current)*   e(0,R,current)+
-// 		    w(0,current)*eDot(1,R,current)-   w(1,current)*eDot(0,R,current));
-    
-//       e(R,R,next)=e(R,R,current)+dt*(eDot(R,R)+.5*dt*eDotDot(R,R));
-//     }
-//     else
-//     {
-//       e(R,R,next)=e(R,R,previous)+eDot(R,R)*(2.*dt);
-//     }
-  
-//     if( numberOfDimensions==2 )
-//     {
-//       // 2D: first 2 axes should remain in the plane.
-//       e(2,R,next)=0.;
-//       e(R,2,next)=0.;
-//       e(2,2,next)=1.;
-//     }
-  
-//     // The matrix e(R,R,next) should be orthonormal
-//     // Renormalize and orthogonalize the axes of inertia
-//     int n;
-//     for( n=0; n<3; n++ )
-//     {
-//       // make column "n" orthogonal to all previous columns "m"
-//       for( int m=0; m<n; m++ )
-//       {
-// 	real dot=e(0,m,next)*e(0,n,next)+e(1,m,next)*e(1,n,next)+e(2,m,next)*e(2,n,next);
-// 	e(R,n,next)-=dot*e(R,m,next);
-//       }
-//       // normalized column n
-//       real normInverse=1./max(REAL_MIN,SQRT( SQR(e(0,n,next))+SQR(e(1,n,next))+SQR(e(2,n,next))));
-//       e(R,n,next)*=normInverse;
-      
-//     }
-  
-
-// //     for( n=0; n<3; n++ )
-// //       rotation(R,n)=e(R,0,next)*e0(0,n)+e(R,1,next)*e0(1,n)+e(R,2,next)*e0(2,n);
-
-//     applyConstraints( next,applyConstraintsToPosition );
-    
   }
   
 
@@ -1904,7 +1959,60 @@ correct(real t,
 		  Overture::nullRealArray(),
                   xCM,rotation);
 }
+// =========================================================================================
+/// \brief Under-relax the forces on the body. This is needed to stabilize some algorithms 
+// =========================================================================================
+int RigidBodyMotion::relaxForce( real t, int next, 
+				 const RealArray & f, const RealArray & force, const RealArray & bodyForce, 
+				 const RealArray & g, const RealArray & torque, const RealArray & bodyTorque )
+{
+       
+  // --- under-relax the new value for f(t+dt), force(R), with the old value for f(t+dt), f(R,next). ---
+  //  -- This seems to work for "light" bodies.
+      
 
+  real fNorm = sqrt(sum(f(R,next)*f(R,next)));
+  real fDiff = max(fabs(force(R)+bodyForce(R)-f(R,next)));
+  real fDiffRelative = fDiff/max(1.e-5,fNorm);  // ****** note 1.e-5 -- FIX ME ---
+
+  real gNorm = sqrt(sum(g(R,next)*g(R,next)));
+  real gDiff = max(fabs(torque(R)+bodyTorque(R)-g(R,next)));
+  real gDiffRelative = gDiff/max(1.e-5,gNorm);  // ****** note 1.e-5 -- FIX ME ---
+
+
+  real relativeDiff = max(fDiffRelative,gDiffRelative);
+  real absoluteDiff = max(fDiff,gDiff);
+
+  maximumRelativeCorrection=max(maximumRelativeCorrection,relativeDiff );  // fix me -- use relative ? 
+
+  // The corrections are assumed to have converged if the relative OR the absolute tolerance has been met:
+  bool forceHasConverged = fDiffRelative<correctionRelativeToleranceForce ||
+    fDiff < correctionAbsoluteToleranceForce;
+
+  bool torqueHasConverged = gDiffRelative<correctionRelativeToleranceTorque ||
+    gDiff < correctionAbsoluteToleranceTorque;
+
+  correctionHasConverged= forceHasConverged && torqueHasConverged;
+
+  const real alpha=correctionRelaxationParameterForce; 
+  const real beta =correctionRelaxationParameterTorque; 
+  if( debug & 2 )
+  {
+    printF("RB:correct: relax force : t=%8.2e alpha=%8.2e: fDiff=%8.2e <? %8.2e or fDiff/fNorm=%8.2e <? %8.2e\n"
+	   "          : relax torque: t=%8.2e beta =%8.2e: gDiff=%8.2e <? %8.2e or gDiff/gNorm=%8.2e <? %8.2e\n"
+	   "           f(old)=(%8.2e,%8.2e,%8.2e) f(new)=(%8.2e,%8.2e,%8.2e), g(new)=(%8.2e,%8.2e,%8.2e)\n",
+	   t,alpha,fDiff,correctionAbsoluteToleranceForce,fDiffRelative,correctionRelativeToleranceForce,
+	   t,beta, gDiff,correctionAbsoluteToleranceTorque,gDiffRelative,correctionRelativeToleranceTorque,
+	   f(0,next),f(1,next),f(2,next),force(0),force(1),force(2),
+	   torque(0),torque(1),torque(2));
+  }
+      
+  f(R,next)=alpha*( force(R)+bodyForce(R)  ) + (1.-alpha)*f(R,next);
+    
+  g(R,next)= beta*( torque(R)+bodyTorque(R) ) + (1.-beta)*g(R,next);  
+
+  return 0;
+}
 
 
 // ==================================================================================
@@ -1958,7 +2066,7 @@ correct(real t,
 
   if( numberOfSteps<0 )
   {
-    printF("RigidBodyMotion::integrate:WARNING:setInitialConditions should be called before integrate\n");
+    printF("RigidBodyMotion::correct:WARNING:setInitialConditions should be called before integrate\n");
     numberOfSteps=0;
   }
   else if( numberOfSteps==0 )
@@ -1966,10 +2074,27 @@ correct(real t,
     // -------------------------------------------
     // ---- assign forces for t==0 and RETURN ----
     // -------------------------------------------
+
+    if( true )
+      printF("RigidBodyMotion::correct: numberOfSteps==0 :  assign forces for t==0 and RETURN\n");
+
     dbase.get<bool>("forcesInitialized")=true;
     
-    f(R,0)=force(R)+bodyForce(R);
-    g(R,0)=torque(R)+bodyTorque(R);
+    if( ! relaxCorrectionSteps )
+    {
+      f(R,0)=force(R)+bodyForce(R);
+      g(R,0)=torque(R)+bodyTorque(R);
+    }
+    else
+    {
+      // ---- relaxCorrectionSteps at t==0 ---- *wdh* March 6, 2016 -- add this for projecting initial conditions
+      const int next=0; // relax forces at this step 
+       
+      relaxForce( t,next,f,force,bodyForce, g,torque,bodyTorque );
+
+    }
+
+
     xCM(R)=x(R,0);
     rotation=0.;
     rotation(0,0)=rotation(1,1)=rotation(2,2)=1.;
@@ -1981,6 +2106,7 @@ correct(real t,
 	AddedMass(R,R,k,0)=*AM[k];
     }
     
+
     applyConstraints( 0,applyConstraintsToForces );
 
     return 0;
@@ -2014,46 +2140,47 @@ correct(real t,
       // --- under-relax the new value for f(t+dt), force(R), with the old value for f(t+dt), f(R,next). ---
       //  -- This seems to work for "light" bodies.
       
+      relaxForce( t,next,f,force,bodyForce, g,torque,bodyTorque );
 
-      real fNorm = sqrt(sum(f(R,next)*f(R,next)));
-      real fDiff = max(fabs(force(R)+bodyForce(R)-f(R,next)));
-      real fDiffRelative = fDiff/max(1.e-5,fNorm);  // ****** note 1.e-5 -- FIX ME ---
+      // real fNorm = sqrt(sum(f(R,next)*f(R,next)));
+      // real fDiff = max(fabs(force(R)+bodyForce(R)-f(R,next)));
+      // real fDiffRelative = fDiff/max(1.e-5,fNorm);  // ****** note 1.e-5 -- FIX ME ---
 
-      real gNorm = sqrt(sum(g(R,next)*g(R,next)));
-      real gDiff = max(fabs(torque(R)+bodyTorque(R)-g(R,next)));
-      real gDiffRelative = gDiff/max(1.e-5,gNorm);  // ****** note 1.e-5 -- FIX ME ---
+      // real gNorm = sqrt(sum(g(R,next)*g(R,next)));
+      // real gDiff = max(fabs(torque(R)+bodyTorque(R)-g(R,next)));
+      // real gDiffRelative = gDiff/max(1.e-5,gNorm);  // ****** note 1.e-5 -- FIX ME ---
 
 
-      real relativeDiff = max(fDiffRelative,gDiffRelative);
-      real absoluteDiff = max(fDiff,gDiff);
+      // real relativeDiff = max(fDiffRelative,gDiffRelative);
+      // real absoluteDiff = max(fDiff,gDiff);
 
-      maximumRelativeCorrection=max(maximumRelativeCorrection,relativeDiff );  // fix me -- use relative ? 
+      // maximumRelativeCorrection=max(maximumRelativeCorrection,relativeDiff );  // fix me -- use relative ? 
 
-      // The corrections are assumed to have converged if the relative OR the absolute tolerance has been met:
-      bool forceHasConverged = fDiffRelative<correctionRelativeToleranceForce ||
-	fDiff < correctionAbsoluteToleranceForce;
+      // // The corrections are assumed to have converged if the relative OR the absolute tolerance has been met:
+      // bool forceHasConverged = fDiffRelative<correctionRelativeToleranceForce ||
+      // 	fDiff < correctionAbsoluteToleranceForce;
 
-      bool torqueHasConverged = gDiffRelative<correctionRelativeToleranceTorque ||
-	gDiff < correctionAbsoluteToleranceTorque;
+      // bool torqueHasConverged = gDiffRelative<correctionRelativeToleranceTorque ||
+      // 	gDiff < correctionAbsoluteToleranceTorque;
 
-      correctionHasConverged= forceHasConverged && torqueHasConverged;
+      // correctionHasConverged= forceHasConverged && torqueHasConverged;
 
-      const real alpha=correctionRelaxationParameterForce; 
-      const real beta =correctionRelaxationParameterTorque; 
-      if( true || debug & 2 )
-      {
-	printF("RB:correct: relax force : t=%8.2e alpha=%8.2e: fDiff=%8.2e <? %8.2e or fDiff/fNorm=%8.2e <? %8.2e\n"
-	       "          : relax torque: t=%8.2e beta =%8.2e: gDiff=%8.2e <? %8.2e or gDiff/gNorm=%8.2e <? %8.2e\n"
-	       "           f(old)=(%8.2e,%8.2e,%8.2e) f(new)=(%8.2e,%8.2e,%8.2e), g(new)=(%8.2e,%8.2e,%8.2e)\n",
-	       t,alpha,fDiff,correctionAbsoluteToleranceForce,fDiffRelative,correctionRelativeToleranceForce,
-               t,beta, gDiff,correctionAbsoluteToleranceTorque,gDiffRelative,correctionRelativeToleranceTorque,
-               f(0,next),f(1,next),f(2,next),force(0),force(1),force(2),
-	       torque(0),torque(1),torque(2));
-      }
+      // const real alpha=correctionRelaxationParameterForce; 
+      // const real beta =correctionRelaxationParameterTorque; 
+      // if( true || debug & 2 )
+      // {
+      // 	printF("RB:correct: relax force : t=%8.2e alpha=%8.2e: fDiff=%8.2e <? %8.2e or fDiff/fNorm=%8.2e <? %8.2e\n"
+      // 	       "          : relax torque: t=%8.2e beta =%8.2e: gDiff=%8.2e <? %8.2e or gDiff/gNorm=%8.2e <? %8.2e\n"
+      // 	       "           f(old)=(%8.2e,%8.2e,%8.2e) f(new)=(%8.2e,%8.2e,%8.2e), g(new)=(%8.2e,%8.2e,%8.2e)\n",
+      // 	       t,alpha,fDiff,correctionAbsoluteToleranceForce,fDiffRelative,correctionRelativeToleranceForce,
+      //          t,beta, gDiff,correctionAbsoluteToleranceTorque,gDiffRelative,correctionRelativeToleranceTorque,
+      //          f(0,next),f(1,next),f(2,next),force(0),force(1),force(2),
+      // 	       torque(0),torque(1),torque(2));
+      // }
       
-      f(R,next)=alpha*( force(R)+bodyForce(R)  ) + (1.-alpha)*f(R,next);
+      // f(R,next)=alpha*( force(R)+bodyForce(R)  ) + (1.-alpha)*f(R,next);
     
-      g(R,next)= beta*( torque(R)+bodyTorque(R) ) + (1.-beta)*g(R,next);  
+      // g(R,next)= beta*( torque(R)+bodyTorque(R) ) + (1.-beta)*g(R,next);  
 
     }
     else
@@ -2094,73 +2221,6 @@ correct(real t,
   {
 
     OV_ABORT("ERROR");
-    
-
-//     // printF("RB:correct:WARNING: old way be used.\n");
-
-
-//     v(R,next)=v(R,current) + .5*dt*( f(R,current)/mass + f(R,next)/mass );
-
-//     x(R,next)=x(R,current) + .5*dt*( v(R,next)+v(R,current) );
-  
-//     RealArray wDot(R), wDotCurrent(R), eDot(R,R), eDotCurrent(R,R);
-//     int axis;
-//     for( axis=0; axis<3; axis++ )
-//     {
-//       const int axisp1=(axis+1) % 3;
-//       const int axisp2=(axis+2) % 3;
-//       wDot(axis)=( (mI(axisp1)-mI(axisp2))*w(axisp1,next)*w(axisp2,next) +
-// 		   g(0,next)*e(0,axis,next)+
-// 		   g(1,next)*e(1,axis,next)+
-// 		   g(2,next)*e(2,axis,next) )/mI(axis);
-    
-//       wDotCurrent(axis)=( (mI(axisp1)-mI(axisp2))*w(axisp1,current)*w(axisp2,current)+
-// 			  g(0,current)*e(0,axis,current)+
-// 			  g(1,current)*e(1,axis,current)+ 
-// 			  g(2,current)*e(2,axis,current) )/mI(axis);
-//     }
-  
-//     w(R,next)=w(R,current)+.5*dt*( wDot(R)+wDotCurrent(R) );
-
-//     // eDot =  w X e
-//     eDot(0,R)=w(1,next)*e(2,R,next)-w(2,next)*e(1,R,next);
-//     eDot(1,R)=w(2,next)*e(0,R,next)-w(0,next)*e(2,R,next);
-//     eDot(2,R)=w(0,next)*e(1,R,next)-w(1,next)*e(0,R,next);
-  
-//     eDotCurrent(0,R)=w(1,current)*e(2,R,current)-w(2,current)*e(1,R,current);
-//     eDotCurrent(1,R)=w(2,current)*e(0,R,current)-w(0,current)*e(2,R,current);
-//     eDotCurrent(2,R)=w(0,current)*e(1,R,current)-w(1,current)*e(0,R,current);
-  
-
-//     e(R,R,next)=e(R,R,current)+.5*dt*(eDot(R,R)+eDotCurrent(R,R));
-
-  
-//     if( numberOfDimensions==2 )
-//     {
-//       // 2D: first 2 axes should remain in the plane.
-//       e(2,R,next)=0.;
-//       e(R,2,next)=0.;
-//       e(2,2,next)=1.;
-//     }
-  
-//     // The matrix e(R,R,next) should be orthonormal
-//     // Renormalize and orthogonalize the axes of inertia
-//     for( int n=0; n<3; n++ )
-//     {
-//       // make column "n" orthogonal to all previous columns "m"
-//       for( int m=0; m<n; m++ )
-//       {
-// 	real dot=e(0,m,next)*e(0,n,next)+e(1,m,next)*e(1,n,next)+e(2,m,next)*e(2,n,next);
-// 	e(R,n,next)-=dot*e(R,m,next);
-//       }
-//       // normalized column n
-//       real normInverse=1./max(REAL_MIN,SQRT( SQR(e(0,n,next))+SQR(e(1,n,next))+SQR(e(2,n,next))));
-//       e(R,n,next)*=normInverse;
-      
-//     }
-
-//     applyConstraints( next,applyConstraintsToPosition );
-    
   }
   
 
@@ -2173,7 +2233,7 @@ correct(real t,
 
 
 
-  if( debug & 1 )
+  if( debug & 4 )
   {
     printF("RB: correct: t=%e, dt=%e, current=%i x(next)=(%6.2e,%6.2e,%6.2e), f(next)=(%6.2e,%6.2e,%6.2e), g(next)=(%6.2e,%6.2e,%6.2e)\n",
 	   t,dt,current,x(0,next),x(1,next),x(2,next),f(0,next),f(1,next),f(2,next),g(0,next),g(1,next),g(2,next));
@@ -2233,11 +2293,14 @@ takeStepLeapFrog( const real t0, const real dt )
 
     assert( timeProvided(current)==t0 );
 
-    printF("--RBM-LF-- t=%9.3e Provided: t0=%9.3e time=%9.3e, vDot=(%9.2e,%9.2e,%9.2e) wDot=(%9.2e,%9.2e,%9.2e)\n",
-	   t,t0,timeProvided(current),
-	   vDotProvided(0,current),vDotProvided(1,current),vDotProvided(2,current),
-	   vDotProvided(3,current),vDotProvided(4,current),vDotProvided(5,current));
-  
+    if( debug & 2 )
+    {
+      printF("--RBM-LF-- t=%9.3e Provided: t0=%9.3e time=%9.3e, vDot=(%9.2e,%9.2e,%9.2e) wDot=(%9.2e,%9.2e,%9.2e)\n",
+	     t,t0,timeProvided(current),
+	     vDotProvided(0,current),vDotProvided(1,current),vDotProvided(2,current),
+	     vDotProvided(3,current),vDotProvided(4,current),vDotProvided(5,current));
+    }
+    
     vDot(R)=vDotProvided(R,current);
     Range Rw=R+3;
     wDot(R)=vDotProvided(Rw,current);
@@ -2310,7 +2373,7 @@ takeStepLeapFrog( const real t0, const real dt )
 	   v0(0),v0(1));
   }
   
-  if( true || debug & 1 )
+  if( debug & 2 )
   {
     printF("--RB-- LeapFrog: numberOfSteps=%i t=%9.2e x(cur)=[%9.3e,%9.3e] v(cur)=[%9.3e,%9.3e] \n",numberOfSteps,t0,
 	   x(0,current),x(1,current),v(0,current),v(1,current));
@@ -2354,7 +2417,7 @@ takeStepLeapFrog( const real t0, const real dt )
     else
     { // variable dt: 
       // we could also use: x = x + dt*v + .5*dt*dt*vDot 
-      x(R,next)=x(R,current) + .5*dt*( v(R,next) + v(R,current) );
+      x(R,next)=x(R,current) + .5*dt*( v(R,next) + v(R,current) );  // Use implicit factor here ??
     }
     
   }
@@ -2506,9 +2569,9 @@ takeStepLeapFrog( const real t0, const real dt )
     printF("RigidBodyMotion:takeStepLeapFrog: t=%e, current=%i x(next)=(%6.2e,%6.2e,%6.2e), w(current)=(%6.2e,%6.2e,%6.2e)\n",
 	   t,current,x(0,next),x(1,next),x(2,next),w(0,current),w(1,current),w(2,current));
   }
-  if( debug & 1 )
+  if( debug & 2 )
   {
-    printF("RBM:takeStepLeapFrog: integrate: t0=%e, t=%e, current=%i x(next)=(%6.2e,%6.2e,%6.2e)\n",
+    printF("--RBM--takeStepLeapFrog: integrate: t0=%e, t=%e, current=%i x(next)=(%6.2e,%6.2e,%6.2e)\n",
 	   t0,t,current,x(0,next),x(1,next),x(2,next));
   }
   
@@ -2531,6 +2594,16 @@ takeStepTrapezoid( const real t0, const real dt )
   assert( current!=next );
 
   const real t=t0+dt;
+
+  // implicitFactor : for Trapezoidal corrector
+  //               =1  : Backward Euler
+  //               =.5 : Trapezoidal
+  //               =0  : Forward Euler
+  const bool useImplicitFactor=true;  // set to false to go back to old way 
+  const real implicitFactor= dbase.get<real>("implicitFactor");  // *new* May 15, 2016 *wdh*
+  const real dtn  =  implicitFactor *dt;  
+  const real dtc =(1-implicitFactor)*dt;
+   
 
   RealArray eDot(R,R), eDotCurrent(R,R);
 
@@ -2572,10 +2645,17 @@ takeStepTrapezoid( const real t0, const real dt )
 
     vDot=fv/mass;
 
-    v(R,next)=v(R,current) + .5*dt*( fv/mass + fvn/mass );
-
-    x(R,next)=x(R,current) + .5*dt*( v(R,next)+v(R,current) );
-  
+    if( useImplicitFactor )
+    {
+      v(R,next)=v(R,current) + (dtn/mass)*fvn + (dtc/mass)*fv;
+      x(R,next)=x(R,current) + dtn*v(R,next) + dtc*v(R,current);
+    }
+    else
+    {
+      v(R,next)=v(R,current) + .5*dt*( fv/mass + fvn/mass );
+      x(R,next)=x(R,current) + .5*dt*( v(R,next)+v(R,current) );
+    }
+    
     RealArray wDotCurrent(R);
     if( true )
     {
@@ -2620,7 +2700,15 @@ takeStepTrapezoid( const real t0, const real dt )
       }
     }
   
-    w(R,next)=w(R,current)+.5*dt*( wDot(R)+wDotCurrent(R) );
+    if( useImplicitFactor )
+    {
+      w(R,next)=w(R,current) + dtn*wDot(R) + dtc*wDotCurrent(R);
+    }
+    else
+    {
+      w(R,next)=w(R,current)+.5*dt*( wDot(R)+wDotCurrent(R) );
+    }
+	
 
   }
   else
@@ -2631,17 +2719,30 @@ takeStepTrapezoid( const real t0, const real dt )
 
     assert( timeProvided(current)==t0 && timeProvided(next)==t );
 
-    printF("--RBM-TRAP-- Provided: t=%9.3e time=%9.3e, vDot=(%9.2e,%9.2e,%9.2e) wDot=(%9.2e,%9.2e,%9.2e)\n",
-	   t,timeProvided(next),
-	   vDotProvided(0,next),vDotProvided(1,next),vDotProvided(2,next),
-	   vDotProvided(3,next),vDotProvided(4,next),vDotProvided(5,next));
-  
-    v(R,next)=v(R,current) + .5*dt*( vDotProvided(R,current) + vDotProvided(R,next) );
-    x(R,next)=x(R,current) + .5*dt*( v(R,next)+v(R,current) );
-
+    if( debug & 2 )
+    {
+      printF("--RBM-TRAP-- Provided: t=%9.3e time=%9.3e, vDot=(%9.2e,%9.2e,%9.2e) wDot=(%9.2e,%9.2e,%9.2e)\n",
+	     t,timeProvided(next),
+	     vDotProvided(0,next),vDotProvided(1,next),vDotProvided(2,next),
+	     vDotProvided(3,next),vDotProvided(4,next),vDotProvided(5,next));
+    }
+    
     Range Rw=R+3;
-    w(R,next)=w(R,current)+.5*dt*( vDotProvided(Rw,current) + vDotProvided(Rw,next) );
+    if( useImplicitFactor )
+    {
+      v(R,next)=v(R,current) + dtn*vDotProvided(R,next)  + dtc*vDotProvided(R,current);
+      x(R,next)=x(R,current) + dtn*v(R,next)             + dtc*v(R,current);
+      w(R,next)=w(R,current) + dtn*vDotProvided(Rw,next) + dtc*vDotProvided(Rw,current);
+    }
+    else
+    {
+      v(R,next)=v(R,current) + .5*dt*( vDotProvided(R,current) + vDotProvided(R,next) );
+      x(R,next)=x(R,current) + .5*dt*( v(R,next)+v(R,current) );
+      w(R,next)=w(R,current)+.5*dt*( vDotProvided(Rw,current) + vDotProvided(Rw,next) );
+    }
+
   }
+
 
   if( accelerationProvided && !useProvidedAcceleration )
   {
@@ -2671,7 +2772,14 @@ takeStepTrapezoid( const real t0, const real dt )
   eDotCurrent(2,R)=w(0,current)*e(1,R,current)-w(1,current)*e(0,R,current);
   
 
-  e(R,R,next)=e(R,R,current)+.5*dt*(eDot(R,R)+eDotCurrent(R,R));
+  if( useImplicitFactor )
+  {
+    e(R,R,next)=e(R,R,current) + dtn*eDot(R,R) + dtc*eDotCurrent(R,R);
+  }
+  else
+  {
+    e(R,R,next)=e(R,R,current)+.5*dt*(eDot(R,R)+eDotCurrent(R,R));
+  }
 
   
   if( numberOfDimensions==2 )
@@ -3771,19 +3879,28 @@ getMass() const
   return mass;
 }
 
-//\begin{>>RigidBodyMotionInclude.tex}{\subsection{setMass}} 
+// =======================================================================================
+/// \brief Specify the total mass.
+// 
+//=========================================================================================
 void RigidBodyMotion::
 setMass(const real totalMass ) 
-// =======================================================================================
-// /Description:
-//    Specify the total mass.
-// 
-//\end{RigidBodyMotionInclude.tex}  
-//=========================================================================================
 {
   mass=totalMass;
   if( ((initialConditionsGiven/2)%2)==0 )
     initialConditionsGiven +=2; // this means the mass has been set
+}
+
+// =======================================================================================
+/// \brief Specify the density of the body
+// 
+//=========================================================================================
+void RigidBodyMotion::
+setDensity( const real bodyDensity ) 
+{
+  density=bodyDensity;
+  if( (initialConditionsGiven/4 % 2)==0 )
+    initialConditionsGiven+=4;  // this means the density has been initialized
 }
 
 
@@ -4300,7 +4417,7 @@ getCoordinates( real t,
                 t,mass,aCM(0),aCM(1),aCM(2),ip,ipp1,beta,
                 timeProvided(ip),timeProvided(ipp1),vDotProvided(0,ip),vDotProvided(0,ipp1),numberProvided );
 
-      if( true )
+      if( debug & 4 )
       {
 	printF("--RBM-- getAcceleration:  t=%8.2e, mass=%8.2e, a-provided = (%6.2e,%6.2e,%6.2e), "
 		"ip=%i, ipp1=%i, beta=%7.1e times=[%9.3e,%9.3e] a1=[%9.3e,%9.3e] numberProvided=%i \n",
@@ -5034,6 +5151,7 @@ update( GenericGraphicsInterface & gi )
   aString & bodyName = dbase.get<aString>("bodyName");
   bool & useExtrapolationInPredictor = dbase.get<bool>("useExtrapolationInPredictor");
   int & orderOfExtrapolationPredictor = dbase.get<int>("orderOfExtrapolationPredictor");
+  real & implicitFactor= dbase.get<real>("implicitFactor");  // *new* May 15, 2016 *wdh*
 
   bool & accelerationComputedByDifferencingVelocity = dbase.get<bool>("accelerationComputedByDifferencingVelocity");
   bool & directProjectionAddedMass = dbase.get<bool>("directProjectionAddedMass");
@@ -5149,6 +5267,9 @@ update( GenericGraphicsInterface & gi )
   textLabels[nt] = "newtonTol:"; 
   sPrintF(textStrings[nt],"%8.2e",dbase.get<real>("toleranceNewton"));  nt++; 
 
+  textLabels[nt] = "implicitFactor:"; 
+  sPrintF(textStrings[nt],"%8.2e (1=BE, .5=Trap)",dbase.get<real>("implicitFactor"));  nt++; 
+
   aString logFileName="rigidBody1.log";
   textLabels[nt] = "log file:";  sPrintF(textStrings[nt],"%s",(const char*)logFileName);  
   nt++; 
@@ -5221,25 +5342,34 @@ update( GenericGraphicsInterface & gi )
     }
     else if( answer=="density" )
     {
-      gi.inputString(answer2,sPrintF(buff,"Enter the body density, -1. if not known, (default=%8.2e)",density));
+      real bodyDensity=density;
+      
+      gi.inputString(answer2,sPrintF(buff,"Enter the body density, -1. if not known, (default=%8.2e)",bodyDensity));
       if( answer2!="" )
-	sScanF(answer2,"%e",&density);
+	sScanF(answer2,"%e",&bodyDensity);
+
+      setDensity( bodyDensity );
+      
     }
     else if( answer=="moments of inertia" )
     {
+      real mI1=mI(0), mI2=mI(1) ,mI3=mI(2);
       if( numberOfDimensions==2 )
       {
-	gi.inputString(answer2,sPrintF(buff,"Enter the moment of inertia (default=%8.2e)",mI(2)));
+	gi.inputString(answer2,sPrintF(buff,"Enter the moment of inertia (default=%8.2e)",mI3));
 	if( answer2!="" )
-	  sScanF(answer2,"%e",&mI(2));
+	  sScanF(answer2,"%e",&mI3);
       }
       else
       {
 	gi.inputString(answer2,sPrintF(buff,"Enter the moments of inertia (default=%8.2e,%8.2e,%8.2e)",
-             mI(0),mI(1),mI(2)));
+				       mI1,mI2,mI3));
 	if( answer2!="" )
-	  sScanF(answer2,"%e %e %e",&mI(0),&mI(1),&mI(2));
+	  sScanF(answer2,"%e %e %e",&mI1,&mI2,&mI3);
       }
+
+      setMomentsOfInertia( mI1,mI2,mI3 );
+      
     }
     else if( answer=="initial centre of mass" || answer=="initial center of mass" )
     {
@@ -5301,25 +5431,29 @@ update( GenericGraphicsInterface & gi )
       }
       else
       {
+	RealArray axesOfInertia(3,3);
         for( int axis=0; axis<numberOfDimensions; axis++ )
 	{
 	  gi.inputString(answer2,sPrintF(buff,"Enter axis %i (default=%8.2e,%8.2e,%8.2e)",
-					 axis,e(0,axis),e(1,axis),e(2,axis)));
+					 axis,axesOfInertia(0,axis),axesOfInertia(1,axis),axesOfInertia(2,axis)));
 	  if( answer2!="" )
-	    sScanF(answer2,"%e %e %e",&e(0,axis),&e(1,axis),&e(2,axis));
+	    sScanF(answer2,"%e %e %e",&axesOfInertia(0,axis),&axesOfInertia(1,axis),&axesOfInertia(2,axis));
  
-          // check that axes are orthogonal and unit length.
-          real norm =max(REAL_MIN, SQRT( SQR(e(0,axis))+SQR(e(1,axis))+SQR(e(2,axis)) ));
-          e(R,axis)/=norm;
-	  for( int dir=0; dir<numberOfDimensions-1; dir++ )
-	  {
-            real dot = e(0,axis)*e(0,dir)+e(1,axis)*e(1,dir)+e(2,axis)*e(2,dir);
-	    if( fabs(dot)>REAL_EPSILON*10. )
-	    {
-	      printF("ERROR: axis of inertia %i is not orthogonal to axis %i. dot-product=%e \n",axis,dir,dot);
-	    }
-	  }
+          // // check that axes are orthogonal and unit length.
+          // real norm =max(REAL_MIN, SQRT( SQR(e(0,axis))+SQR(e(1,axis))+SQR(e(2,axis)) ));
+          // e(R,axis)/=norm;
+	  // for( int dir=0; dir<numberOfDimensions-1; dir++ )
+	  // {
+          //   real dot = e(0,axis)*e(0,dir)+e(1,axis)*e(1,dir)+e(2,axis)*e(2,dir);
+	  //   if( fabs(dot)>REAL_EPSILON*10. )
+	  //   {
+	  //     printF("ERROR: axis of inertia %i is not orthogonal to axis %i. dot-product=%e \n",axis,dir,dot);
+	  //   }
+	  // }
 	}
+
+        setAxesOfInertial( axesOfInertia );
+	
       }
     }
     else if( answer=="position has no constraint" )
@@ -5510,6 +5644,7 @@ update( GenericGraphicsInterface & gi )
 
     else if( dialog.getTextValue(answer,"order of accuracy:","%i",dbase.get<int>("orderOfAccuracy")) ){} //
     else if( dialog.getTextValue(answer,"newtonTol:","%e",dbase.get<real>("toleranceNewton")) ){} //
+    else if( dialog.getTextValue(answer,"implicitFactor:","%e",implicitFactor) ){} //
 
     else if( dialog.getTextValue(answer,"predictor extrap order:","%i",orderOfExtrapolationPredictor) ){} //
 

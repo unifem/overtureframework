@@ -322,6 +322,27 @@ solve()
     }
   }
 
+  // Save values from the extra equations *wdh* May 8, 2016
+  if( oges.numberOfExtraEquations>0 )
+  {
+    if( !oges.dbase.has_key("extraEquationValues") )
+    {
+      oges.dbase.put<RealArray>("extraEquationValues");
+    }
+
+    RealArray & extraEquationValues = oges.dbase.get<RealArray>("extraEquationValues");
+    extraEquationValues.redim(oges.numberOfExtraEquations);
+    realArray & sol = oges.sol;
+    for( int i=0; i<oges.numberOfExtraEquations; i++ )
+    {
+      extraEquationValues(i)=sol(oges.extraEquationNumber(i)-1);
+
+      // printF("Yale: setting extra equation %i eqn=%i to %12.4e\n",
+      //            i,oges.extraEquationNumber(i),extraEquationValues(i));
+    }
+  }
+  
+
   solverJob=0;
   
   return ierr;

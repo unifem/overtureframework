@@ -8,6 +8,7 @@
 #include "ParallelUtility.h"
 #include "PenaltySlipWallBC.h"
 #include "PenaltyWallFunction.h"
+#include "TimeFunction.h"
 
 int
 addPrefix(const aString label[], const aString & prefix, aString cmd[], const int maxCommands);
@@ -1334,6 +1335,7 @@ setPdeParameters(CompositeGrid & cg, const aString & command /* = nullString */,
     return 1;
 
   real & thermalConductivity = dbase.get<real>("thermalConductivity");
+  ArraySimpleFixed<real,3,1,1,1> & gravity =dbase.get<ArraySimpleFixed<real,3,1,1,1> >("gravity");
 
   aString answer;
   char buff[100];
@@ -1421,14 +1423,16 @@ setPdeParameters(CompositeGrid & cg, const aString & command /* = nullString */,
 
     dialog.addOptionMenu("", commands, commands,  dbase.get<int >("pressureBoundaryCondition"));
       
+    aString pbLabels[] = {"set gravity time dependence","",""};
+
     if(  dbase.get<Parameters::TurbulenceModel >("turbulenceModel")==SpalartAllmaras ||  
          dbase.get<Parameters::TurbulenceModel >("turbulenceModel")==BaldwinLomax )
     {
-      aString pbLabels[] = {"turbulence trip positions",""};
-      addPrefix(pbLabels,prefix,cmd,maxCommands);
-      int numRows=1;
-      dialog.setPushButtons( cmd, pbLabels, numRows );
+      pbLabels[1] = "turbulence trip positions";
     }
+    addPrefix(pbLabels,prefix,cmd,maxCommands);
+    int numRows=1;
+    dialog.setPushButtons( cmd, pbLabels, numRows );
       
     const int numberOfUserVariables= dbase.get<ListOfShowFileParameters >("pdeParameters").size();
     const int numberOfTextStrings=12+numberOfUserVariables;
@@ -1622,20 +1626,33 @@ setPdeParameters(CompositeGrid & cg, const aString & command /* = nullString */,
       if(  dbase.get<int >("numberOfDimensions")==2 )
       {
 	gi.inputString(answer,sPrintF(buff,"Enter gravity, 2 values, default=(%8.2e,%8.2e))",
-				        dbase.get<ArraySimpleFixed<real,3,1,1,1> >("gravity")[0], dbase.get<ArraySimpleFixed<real,3,1,1,1> >("gravity")[1]));
+				        gravity[0], gravity[1]));
 	if( answer!="" )
-	  sScanF(answer,"%e %e",& dbase.get<ArraySimpleFixed<real,3,1,1,1> >("gravity")[0],& dbase.get<ArraySimpleFixed<real,3,1,1,1> >("gravity")[1]);
-	printF(" gravity=(%8.2e,%8.2e)\n", dbase.get<ArraySimpleFixed<real,3,1,1,1> >("gravity")[0], dbase.get<ArraySimpleFixed<real,3,1,1,1> >("gravity")[1]);
+	  sScanF(answer,"%e %e",& gravity[0],& gravity[1]);
+	printF(" gravity=(%8.2e,%8.2e)\n", gravity[0], gravity[1]);
       }
       else
       {
 	gi.inputString(answer,sPrintF(buff,"Enter gravity, 3 values, default=(%8.2e,%8.2e,%8.2e))",
-				        dbase.get<ArraySimpleFixed<real,3,1,1,1> >("gravity")[0], dbase.get<ArraySimpleFixed<real,3,1,1,1> >("gravity")[1], dbase.get<ArraySimpleFixed<real,3,1,1,1> >("gravity")[2]));
+				        gravity[0], gravity[1], gravity[2]));
 	if( answer!="" )
-	  sScanF(answer,"%e %e %e",& dbase.get<ArraySimpleFixed<real,3,1,1,1> >("gravity")[0],& dbase.get<ArraySimpleFixed<real,3,1,1,1> >("gravity")[1],& dbase.get<ArraySimpleFixed<real,3,1,1,1> >("gravity")[2]);
-	printF(" gravity=(%8.2e,%8.2e,%8.2e)\n", dbase.get<ArraySimpleFixed<real,3,1,1,1> >("gravity")[0], dbase.get<ArraySimpleFixed<real,3,1,1,1> >("gravity")[1], dbase.get<ArraySimpleFixed<real,3,1,1,1> >("gravity")[2]);
+	  sScanF(answer,"%e %e %e",& gravity[0],& gravity[1],& gravity[2]);
+	printF(" gravity=(%8.2e,%8.2e,%8.2e)\n", gravity[0], gravity[1], gravity[2]);
       }
     }
+
+    else if( answer=="set gravity time dependence" )
+    {
+      // Define the time dependent gravity (e.g. for slow starts)
+      if( !dbase.has_key("gravityTimeFunction") )
+      {
+	dbase.put<TimeFunction>("gravityTimeFunction");
+      }
+      TimeFunction & timeFunction = dbase.get<TimeFunction>("gravityTimeFunction");
+      timeFunction.update(gi);
+
+    }
+
     else if( answer=="fluid density"  )
     {
       printF("Enter the density of the (incompressible) fluid, current=%9.3e\n"
@@ -2023,9 +2040,9 @@ setPdeParameters(CompositeGrid & cg, const aString & command /* = nullString */,
     }
     else if( answer(0,6)=="gravity" )
     {
-      sScanF(answer(7,answer.length()),"%e %e %e",& dbase.get<ArraySimpleFixed<real,3,1,1,1> >("gravity")[0],& dbase.get<ArraySimpleFixed<real,3,1,1,1> >("gravity")[1],
-	     & dbase.get<ArraySimpleFixed<real,3,1,1,1> >("gravity")[2]);
-      printF(" gravity=(%8.2e,%8.2e)\n", dbase.get<ArraySimpleFixed<real,3,1,1,1> >("gravity")[0], dbase.get<ArraySimpleFixed<real,3,1,1,1> >("gravity")[1]);
+      sScanF(answer(7,answer.length()),"%e %e %e",& gravity[0],& gravity[1],
+	     & gravity[2]);
+      printF(" gravity=(%8.2e,%8.2e)\n", gravity[0], gravity[1]);
     }
     else if( answer=="default interpolation type" ||
              answer=="interpolate conservative variables" ||
@@ -2247,9 +2264,11 @@ displayPdeParameters(FILE *file /* = stdout */ )
 	  offOn[dbase.get<bool >("useSixthOrderArtificialDiffusion")],
 	   dbase.get<real >("ad61"), dbase.get<real >("ad62"));
 
-  if(  dbase.get<ArraySimpleFixed<real,3,1,1,1> >("gravity")[0]!=0. ||  dbase.get<ArraySimpleFixed<real,3,1,1,1> >("gravity")[1]!=0. ||  dbase.get<ArraySimpleFixed<real,3,1,1,1> >("gravity")[2]!=0. )
+  const ArraySimpleFixed<real,3,1,1,1> & gravity =dbase.get<ArraySimpleFixed<real,3,1,1,1> >("gravity");
+
+  if(  gravity[0]!=0. ||  gravity[1]!=0. ||  gravity[2]!=0. )
     fprintf(file," gravity is on, acceleration due to gravity = (%8.2e,%8.2e,%8.2e) \n",
-	     dbase.get<ArraySimpleFixed<real,3,1,1,1> >("gravity")[0], dbase.get<ArraySimpleFixed<real,3,1,1,1> >("gravity")[1], dbase.get<ArraySimpleFixed<real,3,1,1,1> >("gravity")[2]);
+	     gravity[0], gravity[1], gravity[2]);
             
   return 0;
 }

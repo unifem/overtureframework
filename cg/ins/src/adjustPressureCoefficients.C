@@ -10,6 +10,18 @@
 #include "Integrate.h"
 #include "RigidBodyMotion.h"
 
+// ==================================================================================================
+/// \brief Return the equation number in the sparse matrix of a particular "extra equation"
+// ==================================================================================================
+int getSparseMatrixEquationNumberFromExtraEquationNumber( int extraEquationNumber, int totalNumberOfExtraEquations, 
+                                                          Oges & pSolver)
+{
+  // NOTE extra equations are stored in reverse order:
+  int eqn = totalNumberOfExtraEquations-1 -extraEquationNumber; 
+  return pSolver.extraEquationNumber(eqn);
+}
+
+
 #define ForBoundary(side,axis)   for( int axis=0; axis<mg.numberOfDimensions(); axis++ ) \
                                  for( int side=0; side<=1; side++ )
 
@@ -394,7 +406,9 @@ adjustPressureCoefficients(CompositeGrid & cg0, GridFunction & cgf  )
     // ======================================================================
     
     const real & t = cgf.t;
-    printF("--INS:APC-- rigidy body AMP scheme -- t=%9.3e: adjust pressure BC and add direct projection equations\n",t);
+    if( debug()& 4 || cgf.t <= dt )
+      printF("--INS:APC-- rigidy body AMP scheme -- numberOfRigidBodies=%i, t=%9.3e: adjust pressure BC and"
+	     " add direct projection equations\n",numberOfRigidBodies,t);
     
     assert( poisson!=NULL );
     Oges & pSolver = *poisson;
@@ -429,21 +443,22 @@ adjustPressureCoefficients(CompositeGrid & cg0, GridFunction & cgf  )
     
     const int totalNumberOfExtraEquations=numberOfDenseExtraEquations+numberOfExtraEquations;
     pSolver.setNumberOfExtraEquations(totalNumberOfExtraEquations);
-    printF("--APC-- numberOfDenseExtraEquations=%i, totalNumberOfExtraEquations=%i\n",
-           numberOfDenseExtraEquations,totalNumberOfExtraEquations);
+    if( debug()& 4 || cgf.t <= dt )
+      printF("--APC-- numberOfDenseExtraEquations=%i, totalNumberOfExtraEquations=%i\n",
+	     numberOfDenseExtraEquations,totalNumberOfExtraEquations);
 
     // --- there are user defined extra equations ----
     pSolver.set(OgesParameters::THEuserSuppliedEquations,true);
 
     pSolver.initialize(); // ---- Need to call initialize now ********** FIX ME **********
-    ::display(pSolver.extraEquationNumber,"pSolver.extraEquationNumber");
+
+    if( cgf.t<= dt && (debug() & 1)  )
+      ::display(pSolver.extraEquationNumber,"pSolver.extraEquationNumber");
+
     assert( pSolver.extraEquationNumber.getBound(0)==totalNumberOfExtraEquations-1 );
 
     Index Ib1,Ib2,Ib3;
     Index Ig1,Ig2,Ig3;
-
-
-
 
     // integrate: holds the integration weights and 
     //   also the info on which grid faces are adjacent to the body (should fix this)
@@ -479,27 +494,43 @@ adjustPressureCoefficients(CompositeGrid & cg0, GridFunction & cgf  )
 	
         int numSurfacePoints = Ib1.getLength()*Ib2.getLength()*Ib3.getLength();
 	
-	printF("--APC--- rigidBody %i: face=%i (side,axis,grid)=(%i,%i,%i) numSurfacePoints=%i\n",b,face,side,axis,grid,numSurfacePoints);
+	if( debug()& 4 || cgf.t <= dt )
+	  printF("--APC--- rigidBody %i: face=%i (side,axis,grid)=(%i,%i,%i) numSurfacePoints=%i\n",b,face,side,axis,grid,numSurfacePoints);
 
         totalNumberOfSurfacePoints+= numSurfacePoints;
 
       }
     }
 
-    // -----------------------------
-    // --- add up the total number of nonzeros: 
+    // ---------------------------------------------
+    // --- add up the total number of nonzeros: ---
+    // --------------------------------------------
+    // Each extra equation contains an integral constraint: 
     int numberOfNonzerosInConstraint = totalNumberOfSurfacePoints*numberOfExtraEquations; // surface integrals 
     if( numberOfDimensions==2 )
     {
       // mb*a1, mb*a2, A33*b3 terms: 
-      numberOfNonzerosInConstraint += numberOfExtraEquations;  
+      numberOfNonzerosInConstraint += numberOfRigidBodies*numberOfExtraEquationsPerBody;
     }
     else
     {
       // mb*a1, mb*a2, mb*a3, A*bv terms 
       numberOfNonzerosInConstraint += numberOfRigidBodies*(  numberOfDimensions + SQR(numberOfDimensions));
     }
-    
+
+    if( useAddedDampingAlgorithm )
+    {
+      // count added damping terms: 
+      // Added damping looks like this (in 3D)
+      //       [           ][ a1 ]
+      //       [           ][ a2 ]
+      //    dt*[   Matrix  ][ a3 ]
+      //       [           ][ b1 ]
+      //       [           ][ b2 ]
+      //       [           ][ b3 ]
+      numberOfNonzerosInConstraint +=  numberOfRigidBodies*( SQR(numberOfExtraEquationsPerBody) );
+    }
+
     // ------------------------------------------------------------------
     // ---- Stage II:  FILL-IN CONSTRAINT EQUATIONS --------------------
     // ------------------------------------------------------------------
@@ -535,6 +566,10 @@ adjustPressureCoefficients(CompositeGrid & cg0, GridFunction & cgf  )
       {
 	movingGrids.getRigidBodyAddedDampingTensors( b, addedDampingTensors, cgf, dt );
       }
+      else
+      {
+	addedDampingTensors=0.;
+      }
       
 
       // integrate: holds the info on which grid faces are adjacent to the body (should fix this)
@@ -548,12 +583,12 @@ adjustPressureCoefficients(CompositeGrid & cg0, GridFunction & cgf  )
       //       =1 : RB angular velocity constraints
       // 
       // --- 2D: AMP constraint equations are:
-      //    mb*a1 + INT p n_1 ds = ...
-      //    mb*a2 + INT p n_2 ds = ...
-      //    A(3,3)*b3 + INT n_1 r_2 - n_2 r_1 ds = ...    
+      //    mb*a1 + INT p n_1 ds + dt*Dvv(1,1)*a1 + Dvv(1,2)*a2 + Dvw(1,3)*b3  = ...
+      //    mb*a2 + INT p n_2 ds + dt*Dvv(2,1)*a1 + Dvv(2,2)*a2 + Dvw(2,3)*b3 = ...
+      //    A(3,3)*b3 + INT n_1 r_2 - n_2 r_1 ds + dt*Dwv(3,1)*a1 + D3v(3,2)*a2+  dt*Dww(3,3)*b3 = ...    
       //
       // --- 3D: AMP constraint equations are: ( e1=[1 0 0],  e2=[0 1 0], e3= [ 0 0 1] )
-      //    mb*a1 + INT p n_1 ds = ...
+      //    mb*a1 + INT p n_1 ds + dt*Dvv(1,1)*a1 = ...
       //    mb*a2 + INT p n_2 ds = ...
       //    mb*a3 + INT p n_3 ds = ...
       //    A(1,1)*b1 + A(1,2)*b2 + A(1,3)*b3 + INT e1 . rv X (p nv) ds = ...
@@ -561,16 +596,121 @@ adjustPressureCoefficients(CompositeGrid & cg0, GridFunction & cgf  )
       //    A(3,1)*b1 + A(3,2)*b2 + A(3,3)*b3 + INT e3 . rv X (p nv) ds = ...
       //
       // -------------------------------------------------------------------------------------
+
+      
+      // Determine the equation numbers in the sparse matrix for the 3 (or 6) rigid body unknowns
+      // ieqv[i] = index into the sparse matrix for unknown i
+      int ieqv[6];
+      for( int i=0; i<numberOfExtraEquationsPerBody; i++ ) // counts extra equations for this body 
+      {
+        int ee = i + b*numberOfExtraEquationsPerBody;  // counts all extra equations (i.e. for all bodies)
+	
+        ieqv[i] = getSparseMatrixEquationNumberFromExtraEquationNumber( ee,totalNumberOfExtraEquations,pSolver);
+
+        equation(ee)=ieqv[i];  // Constraint equation is located here in the sparse matrix
+
+	if( debug()& 4 || cgf.t <= 0. )
+	  printF(" body=%i: extraEquation=%i --> sparse matrix equation=%i\n",b,ee,ieqv[i]);
+      }
+
+
+      const int vbc=0, wbc=1; // component numbers of v and omega in addedDampingTensors
+
+      // The combined matrix of added mass and added damping coefficients looks like this in 2D
+      //  {  [mb   0   0  ]      [           ] }  [ a1 ]
+      //  {  [ 0  mb      ] + dt*[   Matrix  ] }  [ a2 ]
+      //  {  [ 0   0  I33 ]      [           ] }  [ b3 ]
+      RealArray Amd(numberOfExtraEquationsPerBody,numberOfExtraEquationsPerBody);
+      Amd=0.;
+      RealArray & adt = addedDampingTensors;  // short form
+      RealArray & Ib = inertiaTensor;         // short form
+      
+      const int nd=numberOfDimensions; // short form
+      if( nd==2 )
+      {
+        // ---- Fill in 2D matrix of added mass and added damping coefficients ----
+	Amd(0,0)=massBody;  // diagonal terms from mb*av 
+	Amd(1,1)=massBody;
+	Amd(2,2)=Ib(2,2);   // moment of inertia matrix terms 
+       
+	if( useAddedDampingAlgorithm )
+	{
+          // -- added damping --
+	  // Eqn 1: ()*a1 + ()*a2 + ()*b3 
+	  Amd(0,0)+= dt*adt(0,0,vbc,vbc);
+	  Amd(0,1)+= dt*adt(0,1,vbc,vbc);
+	  Amd(0,2)+= dt*adt(0,2,vbc,wbc); // note wbc
+	 
+	  // Eqn 2: 
+	  Amd(1,0)+= dt*adt(1,0,vbc,vbc);
+	  Amd(1,1)+= dt*adt(1,1,vbc,vbc);
+	  Amd(1,2)+= dt*adt(1,2,vbc,wbc); // note wbc
+	 
+	  // Eqn 3
+	  Amd(2,0)+= dt*adt(2,0,wbc,vbc);
+	  Amd(2,1)+= dt*adt(2,1,wbc,vbc);
+	  Amd(2,2)+= dt*adt(2,2,wbc,wbc);
+	}
+	
+	if( (t < 3.*dt) || (debug() & 4) )
+	{
+	  printF("--AdjustPressureCoefficients : dt=%9.2e, useAddedDampingAlgorithm=%i\n"
+		 "   Mass + dt(Added Damping) body=%i   \n"
+		 " -------------------------------------\n"
+		 "       [ %12.4e %12.4e %12.4e ] \n"
+		 " Amd = [ %12.4e %12.4e %12.4e ] \n"
+		 "       [ %12.4e %12.4e %12.4e ] \n",
+		 dt,(int)useAddedDampingAlgorithm,b,
+		 Amd(0,0),Amd(0,1),Amd(0,2),
+		 Amd(1,0),Amd(1,1),Amd(1,2),
+		 Amd(2,0),Amd(2,1),Amd(2,2));
+	}
+
+
+      }
+      else
+      {
+        // ---- Fill in 3D matrix of added mass and added damping coefficients ----
+        // **CHECK ME**
+        for( int dir=0; dir<nd; dir++ )
+	{
+          Amd(dir,dir)=massBody;                // diagonal terms from mb*av 
+	  for( int dir2=0; dir2<nd; dir2++ )
+	    Amd(dir+nd,dir2+nd)=Ib(dir,dir2);  // moment of inertia matrix terms 
+	}
+	if( useAddedDampingAlgorithm )
+	{
+	  // -- added damping --
+	  for( int dir=0; dir<nd; dir++ )
+	  {
+	    for( int dir2=0; dir2<nd; dir2++ )
+	    {
+	      Amd(dir   ,dir2   ) += dt*adt(dir,dir2,vbc,vbc);
+	      Amd(dir   ,dir2+nd) += dt*adt(dir,dir2,vbc,wbc);
+
+	      Amd(dir+nd,dir2   ) += dt*adt(dir,dir2,wbc,vbc);
+	      Amd(dir+nd,dir2+nd) += dt*adt(dir,dir2,wbc,wbc);
+	    }
+	  }
+	}
+	
+        OV_ABORT("**check me**");
+      }
+
+
       for( int vbType=0; vbType<=1; vbType++ )
       {
-	printF("--APC: body b=%i, vbType=%i , massBody=%9.3e\n",b,vbType,massBody);
+        if( debug()& 4 || cgf.t <= 0. )
+	  printF("--APC: body b=%i, vbType=%i , massBody=%9.3e\n",b,vbType,massBody);
 
         //  numDim = numberOfDimensions in 3D or in 2D 
         //         = 1 for 2D angular velocity
         const int numDim = (vbType==0 || numberOfDimensions==3) ? numberOfDimensions : 1;
 	for( int dir=0; dir<numDim; dir++ )
 	{
-	  const int extraEqn = dir + numberOfDimensions*(vbType); // current extra equation 
+          // current extra equation: 
+	  const int localEqn = dir + numberOfDimensions*(vbType);
+	  const int extraEqn = dir + numberOfDimensions*(vbType) + b*( numberOfExtraEquationsPerBody ); 
 
 	  // solver.extraEquationNumber : NOTE extra equations are stored in reverse order:
           //                             last extra eqn is optional dense constraint. 
@@ -584,39 +724,57 @@ adjustPressureCoefficients(CompositeGrid & cg0, GridFunction & cgf  )
 
 	  equation(extraEqn)=ieqn;  // Constraint equation is located here in the sparse matrix
 	  ia(extraEqn)=nnz;         // This extra equation (extraEqn) starts at nnz in (ja,a)
-	  if( vbType==0 )
+	  if( true )
 	  {
-            // Body linear velocity: 
-  	    ja(nnz)=ieqn;    // diagonal entry in the matrix 
-  	    a(nnz)=massBody;  
+            // ** new way **
+	    for( int j=0; j<numberOfExtraEquationsPerBody; j++ )
+	    {
+	      if( Amd(localEqn,j)!=0. )
+	      {
+		ja(nnz)=ieqv[j];
+		a(nnz)=Amd(localEqn,j);
+		nnz++;
+	      }
+	    }
 	  }
 	  else
 	  {
-	    // body angular velocity
-	    if( numberOfDimensions==2 )
+	    // *OLD WAY*
+	    if( vbType==0 )
 	    {
-	      ja(nnz)=ieqn;     // diagonal entry in the matrix 
-	      a(nnz)=inertiaTensor(2,2); 
-	      if( useAddedDampingAlgorithm )
-	      {
-                const int vbc=0, wbc=1; // component numbers of v and omega in addedDampingTensors
-
-                const real Dww = addedDampingTensors(2,2,wbc,wbc);  // coeff of the angular velocity in the omega_t eqn
-                real impFactor=1.;
-                printF("--APC-- addedDamping coeff: Dww=%8.2e, dt=%8.2e, inertiaTensor(2,2)=%8.2e %3.1f*dt*Dww=%8.2e \n",
-                       Dww,dt,inertiaTensor(2,2),impFactor,impFactor*dt*Dww  );
-		a(nnz) += impFactor*dt*Dww;
-	      }
-	      
+	      // Body linear velocity: 
+	      ja(nnz)=ieqn;    // diagonal entry in the matrix 
+	      a(nnz)=massBody;  
 	    }
 	    else
 	    {
-              // *** FINISH ME***
-              OV_ABORT("finish me");
-	    }
+	      // body angular velocity
+	      if( numberOfDimensions==2 )
+	      {
+		ja(nnz)=ieqn;     // diagonal entry in the matrix 
+		a(nnz)=inertiaTensor(2,2); 
+		if( useAddedDampingAlgorithm )
+		{
+
+		  const real Dww = addedDampingTensors(2,2,wbc,wbc);  // coeff of the angular velocity in the omega_t eqn
+		  real impFactor=1.;
+                  if( debug()& 4 || cgf.t <= 0. )
+		    printF("--APC-- addedDamping coeff: Dww=%8.2e, dt=%8.2e, inertiaTensor(2,2)=%8.2e %3.1f*dt*Dww=%8.2e \n",
+			 Dww,dt,inertiaTensor(2,2),impFactor,impFactor*dt*Dww  );
+		  a(nnz) += impFactor*dt*Dww;
+		}
+	      
+	      }
+	      else
+	      {
+		// *** FINISH ME***
+		OV_ABORT("finish me");
+	      }
 	    
-	  } 
-          nnz++;
+	    } 
+	    nnz++;
+	  } // end old way
+	  
 
 	  const int numberOfFaces=integrate->numberOfFacesOnASurface(b);
           // --------------- LOOP OVER FACES OF THE RIGID BODY --------------------
@@ -627,7 +785,8 @@ adjustPressureCoefficients(CompositeGrid & cg0, GridFunction & cgf  )
 	    assert( side>=0 && side<=1 && axis>=0 && axis<cg.numberOfDimensions());
 	    assert( grid>=0 && grid<cg.numberOfComponentGrids());
 
-	    printF("--APC: body b=%i, vbType=%i dir=%i face=%i\n",b,vbType,dir,face);
+            if( debug()& 4 || cgf.t <= 0. )
+	      printF("--APC: body b=%i, vbType=%i dir=%i face=%i\n",b,vbType,dir,face);
 	    
 	    MappedGrid & mg = cg0[grid];
 	    const IntegerArray & gid = mg.gridIndexRange();
@@ -704,19 +863,24 @@ adjustPressureCoefficients(CompositeGrid & cg0, GridFunction & cgf  )
     } // end for body b
     ia(numberOfExtraEquations)=nnz; 
     
-    if( false )
+
+    assert( nnz <= numberOfNonzerosInConstraint );
+
+    if( debug() & 32 )
     {
       printF("--APC-- nnz=%i, numberOfNonzerosInConstraint=%i\n",nnz,numberOfNonzerosInConstraint);
       printF("--APC-- constraint equations in CSR format:\n");
       for( int i=0; i<numberOfExtraEquations; i++ )
       {
-	printF(" eqn=%i, i=%i: ",equation(i),i);
+	printF("\n eqn=%i, i=%i: ",equation(i),i);
 	for( int j=ia(i); j<ia(i+1); j++ )
 	  printF(" (j=%i,%8.2e)",ja(j),a(j));
 	printF("\n");
+	
       }
     }
     
+
     // Tell Oges about the extra equations 
     pSolver.setEquations( numberOfExtraEquations, equation,ia,ja,a );
 
@@ -758,13 +922,13 @@ adjustPressureCoefficients(CompositeGrid & cg0, GridFunction & cgf  )
 
 	MappedGrid & mg = cg0[grid];
 
-        OV_GET_SERIAL_ARRAY(int,mg.mask(),maskLocal);
-        OV_GET_SERIAL_ARRAY(real,mg.vertex(),xLocal);
-        #ifdef USE_PPP
-	  const realSerialArray & normal = mg.vertexBoundaryNormalArray(side,axis);
-        #else
-	  const realSerialArray & normal = mg.vertexBoundaryNormal(side,axis);
-        #endif
+	OV_GET_SERIAL_ARRAY(int,mg.mask(),maskLocal);
+	OV_GET_SERIAL_ARRAY(real,mg.vertex(),xLocal);
+#ifdef USE_PPP
+	const realSerialArray & normal = mg.vertexBoundaryNormalArray(side,axis);
+#else
+	const realSerialArray & normal = mg.vertexBoundaryNormal(side,axis);
+#endif
 
 	realMappedGridFunction & coeff0 = coeff[grid];
     
@@ -772,40 +936,40 @@ adjustPressureCoefficients(CompositeGrid & cg0, GridFunction & cgf  )
 	SparseRepForMGF & sparse = *coeff0.sparse;
 	intArray & equationNumber = sparse.equationNumber;
 	intArray & classify = sparse.classify;
-        OV_GET_SERIAL_ARRAY(int,classify,classifyLocal);
+	OV_GET_SERIAL_ARRAY(int,classify,classifyLocal);
 
-        const IntegerArray & gid = mg.gridIndexRange();
+	const IntegerArray & gid = mg.gridIndexRange();
 	getBoundaryIndex(gid,side,axis,Ib1,Ib2,Ib3);                       // boundary points
 	getGhostIndex(cg[grid].gridIndexRange(),side,axis,Ig1,Ig2,Ig3);    // ghost points
 
-        // The stencil coefficients for p.n should be zero in the "corners" -- put the extra coefficients there 
-        //          6 7 8   15 16 17    24 25 26
-        //          3 4 5   12 13 14    21 22 23
-        //          0 1 2    9 10 11    18 19 20
+	// The stencil coefficients for p.n should be zero in the "corners" -- put the extra coefficients there 
+	//          6 7 8   15 16 17    24 25 26
+	//          3 4 5   12 13 14    21 22 23
+	//          0 1 2    9 10 11    18 19 20
 	int emptySpot[] = { 0,2,6,8, 9,11, 15, 17, 18, 19, 20, 21, 23, 24, 25, 26 };  // there are a few more in 3D
 	FOR_3IJD(i1,i2,i3,Ib1,Ib2,Ib3,j1,j2,j3,Ig1,Ig2,Ig3)
 	{
 	  // (i1,i2,i3) : boundary pt
-          // (j1,j2,j3) : ghost pt
+	  // (j1,j2,j3) : ghost pt
 
-          // classify: -2=periodic, -1=interpolation, 1=boundary, 2=interior
-          bool neumannBC = classify(i1,i2,i3)==SparseRepForMGF::boundary || classify(i1,i2,i3)==SparseRepForMGF::interior;
+	  // classify: -2=periodic, -1=interpolation, 1=boundary, 2=interior
+	  bool neumannBC = classify(i1,i2,i3)==SparseRepForMGF::boundary || classify(i1,i2,i3)==SparseRepForMGF::interior;
 	  if( !neumannBC )
 	  {
-            // -- skip this point : could be a ghost outside of periodic, interpolation or unused ---
+	    // -- skip this point : could be a ghost outside of periodic, interpolation or unused ---
 	    continue;
 	  }
 	  
 
 	  for( int dir=0; dir<numberOfDimensions; dir++ )
 	  {
-  	    // --- Add rho nv.av  terms ---
+	    // --- Add rho nv.av  terms ---
 
-            int extraEqn = dir + b*( numberOfExtraEquationsPerBody ); //  a-equation
-            // ieqn = location in sparse matrix of extraEqn 
-            int ieqn = pSolver.extraEquationNumber(totalNumberOfExtraEquations - extraEqn -1);
-            // The coefficients for p.n should be zero in the "corners" -- put the extra coefficients there 
-            int me = emptySpot[extraEqn]; // put the coefficient here in the stencil
+	    int extraEqn = dir + b*( numberOfExtraEquationsPerBody ); //  a-equation
+	    // ieqn = location in sparse matrix of extraEqn 
+	    int ieqn = pSolver.extraEquationNumber(totalNumberOfExtraEquations - extraEqn -1);
+	    // The coefficients for p.n should be zero in the "corners" -- put the extra coefficients there 
+	    int me = emptySpot[dir]; // put the coefficient here in the stencil
 	     
 	    if(  coeff0(me,j1,j2,j3)!=0. )
 	    {
@@ -815,24 +979,23 @@ adjustPressureCoefficients(CompositeGrid & cg0, GridFunction & cgf  )
 	    
 	    assert( coeff0(me,j1,j2,j3)==0. );
 	    coeff0(me,j1,j2,j3)=fluidDensity*normal(i1,i2,i3,dir);
-            // we have changed the equation number 
+	    // we have changed the equation number 
 	    equationNumber(me,j1,j2,j3)=ieqn;   // we have set the coeff of a[dir]
 
-            // --- add bv terms ---
-            //     bv X ( xv - xb ) = cv . bv 
-            //     c_i = n[i+2]*r[i+1] - nv[i+1]*rv[i+2]   i=1,2,3
-            extraEqn = numberOfDimensions + dir + b*( numberOfExtraEquationsPerBody ); //  b-equation
-            ieqn = pSolver.extraEquationNumber(totalNumberOfExtraEquations - extraEqn -1);
-
-            me = emptySpot[extraEqn]; // put the coefficient here in the stencil
-	    assert( coeff0(me,j1,j2,j3)==0. );
-	    
+	    // --- add bv terms ---
+	    //     bv X ( xv - xb ) = cv . bv 
+	    //     c_i = n[i+2]*r[i+1] - nv[i+1]*rv[i+2]   i=1,2,3
 	    real rv[3]; // holds x - xb
 	    for( int d=0; d<numberOfDimensions; d++ ){  rv[d]=xLocal(i1,i2,i3,d)-xb(d); } //             
             if( numberOfDimensions==2 )
 	    {
 	      if( dir==0 ) // we only keep component b3 of the angular acceleration in 2D 
 	      {
+		extraEqn = numberOfDimensions + dir + b*( numberOfExtraEquationsPerBody ); //  b-equation
+		ieqn = pSolver.extraEquationNumber(totalNumberOfExtraEquations - extraEqn -1);
+		me = emptySpot[numberOfDimensions + dir]; // put the coefficient here in the stencil
+		assert( coeff0(me,j1,j2,j3)==0. );
+	    
 		coeff0(me,j1,j2,j3)=fluidDensity*( normal(i1,i2,i3,1)*rv[0]-normal(i1,i2,i3,0)*rv[1] ); // coeff of b3
 		equationNumber(me,j1,j2,j3)=ieqn;   
 	      }
@@ -841,6 +1004,11 @@ adjustPressureCoefficients(CompositeGrid & cg0, GridFunction & cgf  )
 	    else
 	    { // In 3D there are 3 components of the angular acceleration
               // 
+	      extraEqn = numberOfDimensions + dir + b*( numberOfExtraEquationsPerBody ); //  b-equation
+	      ieqn = pSolver.extraEquationNumber(totalNumberOfExtraEquations - extraEqn -1);
+	      me = emptySpot[numberOfDimensions + dir]; // put the coefficient here in the stencil
+	      assert( coeff0(me,j1,j2,j3)==0. );
+	    
 	      const int dirp1 = (dir+1) % numberOfDimensions;
 	      const int dirp2 = (dir+2) % numberOfDimensions;
 	      coeff0(me,j1,j2,j3)=fluidDensity*( normal(i1,i2,i3,dirp2)*rv[dirp1]-normal(i1,i2,i3,dirp1)*rv[dirp2] );

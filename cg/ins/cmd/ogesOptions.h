@@ -35,7 +35,7 @@ if( $ogesCmd eq "" ){ $ogesCmd="#"; } #
 if( $ogesRtol eq "" ){ $ogesRtol=1.e-6; } #
 if( $ogesAtol eq "" ){ $ogesAtol=1.e-8; } #
 if( $ogesEtol eq "" ){ $ogesEtol=1.e-3; } #
-if( $ogesDtol eq "" ){ $ogesDtol=1.e5; } #
+if( $ogesDtol eq "" ){ $ogesDtol=1.e20; } # wdh changed to 1e20 May, 17, 2016
 if( $ogesMaxIterations eq "" ){ $ogesMaxIterations=-1; } #
 if( $ogesPc eq "ilu" ){ $ogesPc = "incomplete LU preconditioner"; }elsif( $ogesPc eq "lu" ){ $ogesPc = "lu preconditioner"; }else{ $ogesPc="#"; }
 if( $ogesIluLevels eq "" ){ $ogesIluLevels=3; } #

@@ -138,8 +138,11 @@ addForcing(realMappedGridFunction & dvdt,
   FILE *& debugFile = parameters.dbase.get<FILE* >("debugFile");
   FILE *& pDebugFile = parameters.dbase.get<FILE* >("pDebugFile");
   
-  const ArraySimpleFixed<real,3,1,1,1> & gravity = parameters.dbase.get<ArraySimpleFixed<real,3,1,1,1> >("gravity");
-  
+  // const ArraySimpleFixed<real,3,1,1,1> & gravity = parameters.dbase.get<ArraySimpleFixed<real,3,1,1,1> >("gravity");
+  // get the gravity vector -- may be time dependent for a slow start
+  real gravity[3];
+  parameters.getGravityVector( gravity,t );
+
   DataBase & pdeParameters = parameters.dbase.get<DataBase>("PdeParameters");
   
   // Note: steadyStateRungeKutta is considered implicit but we do not adjust the forcing 

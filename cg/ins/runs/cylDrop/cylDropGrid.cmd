@@ -26,6 +26,13 @@
 #    ogen -noplot cylDropGrid.cmd -interp=e -radius=.25 -yb=2. -cx=1. -cy=1. -blfc=3. -prefix=cylGridSmallStretched -factor=2
 #    ogen -noplot cylDropGrid.cmd -interp=e -radius=.25 -yb=2. -cx=1. -cy=1. -blfc=3. -prefix=cylGridSmalllStretched -factor=4
 #
+#  --- offset cylinder in a channel
+#   ogen -noplot cylDropGrid.cmd -interp=e -radius=.5 -xa=-1.25 -xb=1.25 -ya=-3. -yb=2. -cx=.5 -cy=0. -wallStretchOption=1 -blfc=2 -blf=2 -prefix=offsetCylInChannel -factor=2
+#   ogen -noplot cylDropGrid.cmd -interp=e -radius=.5 -xa=-1.25 -xb=1.25 -ya=-4. -yb=2. -cx=.5 -cy=0. -wallStretchOption=1 -blfc=2 -blf=2 -prefix=offsetCylInChannel -factor=4
+# 
+#  -- no stretching on the channel
+#   ogen -noplot cylDropGrid.cmd -interp=e -radius=.5 -xa=-1.25 -xb=1.25 -ya=-2. -yb=2. -cx=.5 -cy=0. -blf=2 -prefix=offsetCylInChannel -factor=2
+#
 # ------------------------------------------------------------------------------------------------------
 $prefix="cylDropGrid";  $rgd="var";
 $order=2; $factor=1; $interp="i"; $ml=0; # default values
@@ -35,13 +42,14 @@ $radius=.125; # radius of the cylinder
 $cx=1.; $cy=4.;  # center for the cylinder 
 $blf=3;  # grid lines are this much finer near the boundary
 $blfc=1;  # grid lines on Channel-grid are this much finer near the boundary
+$wallStretchOption=0; # 0=stretch-near=bottom, 1=stretchNearSides
 $deltaRadius0=.1; # radius for rgd fixed
 $numGhost=-1;  # if this value is set, then use this number of ghost points
 # 
 # get command line arguments
 GetOptions( "order=i"=>\$order,"factor=f"=> \$factor,"xa=f"=>\$xa,"xb=f"=>\$xb,"ya=f"=>\$ya,"yb=f"=>\$yb,\
             "interp=s"=> \$interp,"name=s"=> \$name,"ml=i"=>\$ml,"blf=f"=> \$blf,"blfc=f"=> \$blfc,\
-            "prefix=s"=> \$prefix,\
+            "prefix=s"=> \$prefix,"wallStretchOption=i"=>\$wallStretchOption,\
             "radius=f"=>\$radius,"cx=f"=>\$cx,"cy=f"=>\$cy,"rgd=s"=> \$rgd,"numGhost=i"=>\$numGhost );
 # 
 if( $order eq 4 ){ $orderOfAccuracy="fourth order"; $ng=2; }\
@@ -143,10 +151,12 @@ exit
   # add extra resolution in the stretching direction: 
   stretch resolution factor  $stretchResolution
   # exponential to linear stretching: 
-   Stretch r2:exp to linear
-   STP:stretch r2 expl: position 0
+  if( $wallStretchOption eq 0 ){ $dir="r2"; $pos=0.; }
+  if( $wallStretchOption eq 1 ){ $dir="r1"; $pos=1.; }
+   Stretch $dir:exp to linear
+   STP:stretch $dir expl: position $pos
    $dxMin = $ds/$blfc; 
-   STP:stretch r2 expl: min dx, max dx $dxMin $ds
+   STP:stretch $dir expl: min dx, max dx $dxMin $ds
   STRT:name $channelStretched
  exit
 #

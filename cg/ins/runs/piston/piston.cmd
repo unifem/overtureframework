@@ -13,7 +13,7 @@
 # 
 # ============================================================================
 $grid="plug4.hdf";  $tFinal=1.; $tPlot=.05; $bodyDensity=3.;  $fluidDensity=1.; $go="halt"; $show=" "; $vIn=.1;
-$nu=.05; $gravity=1.; $cfl=.9; $dtMax=.1; $restart="": 
+$nu=.05; $gravity=1.; $cfl=.9; $dtMax=.1; $restart=""; $debug=1; 
 $option="none"; 
 #
 $amp=.25; $freq=1.; $depth=1.;  # for rigidBodyPiston solution
@@ -26,12 +26,13 @@ $solver="choose best iterative solver";
 $psolver="choose best iterative solver";  
 $solver="yale"; $psolver="yale"; 
 $relaxRigidBody=0; # set to 1 for "light bodies" which are otherwise unstable 
-$addedMass=0; $useTP=1;  $useProvidedAcceleration=1; 
+$addedMass=0; $useTP=0;  $useProvidedAcceleration=1; 
+$addedDamping=0;  $addedDampingCoeff=1.; $scaleAddedDampingWithDt=0; $addedDampingProjectVelocity=0; 
 $omega=.5; $inertia=1.; $rtolc=1.e-3; $atolc=1.e-7; 
 $mbpbc=0; $mbpbcc=1.; # fix for light bodies: mbpbc=1 
 # ----------------------------- get command line arguments ---------------------------------------
 GetOptions( "g=s"=>\$grid,"tf=f"=>\$tFinal,"degreex=i"=>\$degreex, "degreet=i"=>\$degreet, "model=s"=>\$model,\
- "tp=f"=>\$tPlot, "solver=s"=>\$solver, "tz=s"=>\$tz, "show=s"=>\$show,"order=i"=>\$order,"debug=i"=>\$debug, \
+ "tp=f"=>\$tPlot, "solver=s"=>\$solver,"psolver=s"=>\$psolver, "tz=s"=>\$tz, "show=s"=>\$show,"order=i"=>\$order,"debug=i"=>\$debug, \
  "ts=s"=>\$ts,"nu=f"=>\$nu,"cfl=f"=>\$cfl, "bg=s"=>\$backGround,"fullSystem=i"=>\$fullSystem, "go=s"=>\$go,\
  "noplot=s"=>\$noplot,"dtMax=f"=>\$dtMax,"project=i"=>\$project,"rf=i"=> \$refactorFrequency,"impGrids=s"=>\$impGrids,\
  "iv=s"=>\$implicitVariation,"dtMax=f"=>\$dtMax,"ad2=i"=>\$ad2,"ad22=f"=>\$ad22,"imp=f"=>\$implicitFactor,\
@@ -40,8 +41,15 @@ GetOptions( "g=s"=>\$grid,"tf=f"=>\$tFinal,"degreex=i"=>\$degreex, "degreet=i"=>
   "nc=i"=>\$numberOfCorrections,"numberOfCorrections=i"=>\$numberOfCorrections,"mbpbc=i"=>\$mbpbc,"mbpbcc=f"=>\$mbpbcc,\
   "relaxRigidBody=i"=>\$relaxRigidBody,"omega=f"=>\$omega,"addedMass=f"=>\$addedMass,"useTP=i"=>\$useTP,\
   "rtolc=f"=>\$rtolc,"atolc=f"=>\$atolc,"useProvidedAcceleration=i"=>\$useProvidedAcceleration,\
-  "option=s"=>\$option,"gravity=f"=>\$gravity,"dtMax=f"=>\$dtMax );
+  "option=s"=>\$option,"gravity=f"=>\$gravity,"dtMax=f"=>\$dtMax,"addedDamping=f"=>\$addedDamping,\
+  "addedDampingCoeff=f"=>\$addedDampingCoeff,"scaleAddedDampingWithDt=f"=>\$scaleAddedDampingWithDt,\
+  "addedDampingProjectVelocity=f"=>\$addedDampingProjectVelocity   );
 # -------------------------------------------------------------------------------------------------
+if( $solver eq "best" ){ $solver="choose best iterative solver"; }
+if( $solver eq "mg" ){ $solver="multigrid"; }
+if( $psolver eq "best" ){ $psolver="choose best iterative solver"; }
+if( $psolver eq "mg" ){ $psolver="multigrid"; }
+#
 if( $ts eq "im" ){ $ts="implicit"; }
 if( $ts eq "pc" ){ $ts="adams PC"; }
 # 
@@ -103,8 +111,10 @@ if( $go eq "run" || $go eq "go" ){ $go = "movie mode\n finish"; }
       $vBody=$amp*$freq*2.*$pi; # initial velocity of the body 
       if( $option eq "rigidBodyPiston" ){ $cmd="initial velocity\n $vBody 0. 0. "; }else{ $cmd="#"; }
       $cmd
-      #initial centre of mass
-      #   -.25 -.75
+      initial centre of mass
+        # added damping is proportional to  w*h*(w+h)
+        # -10 .5
+         -1 .5
       # $omega=$bodyDensity*.5; # guess for relaxation parameter; omega should be <=1 
       debug: $debug
       force relaxation parameter: $omega
@@ -130,8 +140,13 @@ if( $go eq "run" || $go eq "go" ){ $go = "movie mode\n finish"; }
   use added mass algorithm $addedMass
   # for now we let the solver know that the added mass algorithm needed predicted values for the pressure:
   predicted pressure needed $addedMass
+  # for added damping algorithm: 
+  added damping coefficient: $addedDampingCoeff
+  use added damping algorithm $addedDamping
+  scale added damping with dt $scaleAddedDampingWithDt
+  added damping project velocity $addedDampingProjectVelocity
   # -- CHECK ME: 
-  # use moving grid sub-iterations $useTP
+  use moving grid sub-iterations $useTP
   # 
   choose grids for implicit
     all=implicit
@@ -144,7 +159,7 @@ if( $option eq "rigidBodyPiston" ){ $cmd="OBTZ:user defined known solution\n rig
 $cmd
 # 
   pressure solver options
-     $solver
+     $psolver
      # these tolerances are chosen for PETSc
      relative tolerance
        $rtolp
@@ -155,7 +170,7 @@ $cmd
     exit
 # 
   implicit time step solver options
-     $psolver
+     $solver
      # these tolerances are chosen for PETSc
      relative tolerance
        $rtol
@@ -203,7 +218,7 @@ $cmd
   plot and always wait
  # no plotting
   debug
-    1  63
+    $debug
   continue
 #
   plot:p

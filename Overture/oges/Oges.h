@@ -139,7 +139,12 @@ class Oges
   int setExtraEquationValues( realCompositeGridFunction & f, real *value );
 
   // return solution values from the extra equations
-  int getExtraEquationValues( const realCompositeGridFunction & u, real *value );
+  int getExtraEquationValues( RealArray & values ) const;
+  // Old way: 
+  int getExtraEquationValues( const realCompositeGridFunction & u, real *value, const int maxNumberToReturn=1 );
+  
+  // return right-hand side values from the extra equations
+  int getExtraEquationRightHandSideValues( RealArray & values ) const;
 
   int setCommunicator( MPI_Comm & comm );
   MPI_Comm & getCommunicator();

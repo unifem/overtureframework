@@ -62,6 +62,8 @@ enum PositionConstraintEnum
   RigidBodyMotion(int numberOfDimensions = 3);
   ~RigidBodyMotion();
   
+  bool axesOfInertiaHaveBeenInitialized() const;
+
   bool centerOfMassHasBeenInitialized() const;
 
   // correct solution at time t using new values of the forces at time t.
@@ -79,13 +81,15 @@ enum PositionConstraintEnum
 	       RealArray & xCM, 
 	       RealArray & rotation );
 
+  int displayAddedDampingTensors( const aString & label, const real t = 0., FILE *file=stdout ) const;
+
   // get from a data base file
   int get( const GenericDataBase & dir, const aString & name);
 
   int getAcceleration( real t, RealArray & aCM  ) const;
 
   // Get the added damping tensors: 
-  int getAddedDampingTensors( RealArray & addedDampingTensors ) const;
+  int getAddedDampingTensors( RealArray & addedDampingTensors, const real t ) const;
 
   // evaluate the added mass matrices at time t
   int getAddedMassMatrices( const real t, RealArray & A11 , RealArray & A12 , RealArray & A21, RealArray & A22 ) const;
@@ -188,6 +192,8 @@ enum PositionConstraintEnum
 
   bool massHasBeenInitialized() const;
 
+  bool momentsOfInertiaHaveBeenInitialized() const;
+
   int momentumTransfer( real t, RealArray & v );
 
   // print time step info
@@ -203,7 +209,11 @@ enum PositionConstraintEnum
   int setAcceleration( real t, RealArray & vDot, RealArray & wDot );
 
   // Specify the added damping tensors: 
-  int setAddedDampingTensors( const RealArray & addedDampingTensors );
+  int setAddedDampingTensors( const RealArray & addedDampingTensors, const real t, const real scaleFactor );
+
+  int setAxesOfInertial( const RealArray & axesOfInertia );
+
+  void setDensity( const real bodyDensity );
 
   int setInitialCentreOfMass( const RealArray & x0 );
 
@@ -214,6 +224,8 @@ enum PositionConstraintEnum
 			    const RealArray & axesOfInertia = Overture::nullRealArray()  );
 
   void setMass( const real totalMass );
+
+  int setMomentsOfInertia( const real mI1, const real mI2, const real mI3 );
 
   // Set the tolerance for the Newton iteration for implicit schemes.
   int setNewtonTolerance( real tol );
@@ -273,6 +285,11 @@ enum PositionConstraintEnum
 
   // get forcing (protected routine) 
   int getForceInternal(const real t, RealArray & fv, RealArray & gv, RealArray *pA=NULL ) const;
+ 
+  // Under-relax the forces on the body.
+  int relaxForce( real t, int next, 
+  		  const RealArray & f, const RealArray & force, const RealArray & bodyForce, 
+		  const RealArray & g, const RealArray & torque, const RealArray & bodyTorque );
 
   // Take a step with implicit Runge-Kutta.
   int takeStepImplicitRungeKutta( const real t0, const real dt );

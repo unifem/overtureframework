@@ -5,6 +5,189 @@ Grids:
 
 ==================================================================================
 
+********
+**** March 22, 2016
+
+
+SQUARE-IN-SQUARE SHIFT
+cgad eyeDeform -g=sise4.order2.hdf -dg=inner-square -motion=shift -moveGrids=1 -kappa=.002 -tf=1 -tp=.01 -tz=poly -degreex=1 -degreet=0 -ic=tz -alphaPulse=80. -x0=-.5 -y0=-.05 -bc=n -ts=bdf -a=0.1 -b=0.0 -ampb=-.4 -implicitAdvection=1 -evalGridAsNurbs=1 -pde=thinFilm -go=halt
+
+
+
+SQUARE-IN-SQUARE ROTATE
+cgad eyeDeform -g=sise4.order2.hdf -dg=inner-square -motion=rotate -moveGrids=1 -kappa=.002 -tf=1 -tp=.01 -tz=poly -degreex=1 -degreet=0 -ic=tz -alphaPulse=80. -x0=-.5 -y0=-.05 -bc=n -ts=bdf -a=0.1 -b=0.0 -ampb=-.4 -implicitAdvection=1 -evalGridAsNurbs=1 -pde=thinFilm -go=halt
+
+     t    err(h)   err(p)    uMax     dt       cpu    mem (Mb) (10 steps)
+   0.100 4.50e-03 7.22e-05 3.75e+00 1.00e-02 1.07e+01        0
+
+    t    err(h)   err(p)    uMax     dt       cpu    mem (Mb) (5 steps)
+   0.100 9.00e-03 1.50e-04 3.75e+00 2.00e-02 2.52e+00        0
+
+
+
+
+ROTATE SQUARE
+cgad eyeDeform -g=square32.order2 -dg=square -motion=rotate -moveGrids=1 -kappa=.002 -tf=1 -tp=.01 -tz=poly -degreex=1 -degreet=0 -ic=tz -alphaPulse=80. -x0=-.5 -y0=-.05 -bc=n -ts=bdf -a=0.1 -b=0.0 -ampb=-.4 -implicitAdvection=1 -evalGridAsNurbs=1 -pde=thinFilm -go=halt
+
+     t    err(h)   err(p)    uMax     dt       cpu    mem (Mb) (10 steps)
+   0.100 1.33e-02 3.01e-04 3.64e+00 1.00e-02 2.13e+01        0
+
+     t    err(h)   err(p)    uMax     dt       cpu    mem (Mb) (5 steps)
+   0.100 2.75e-02 6.31e-04 3.64e+00 2.00e-02 3.22e+00        0
+
+
+MOVINg + POLY TZ  -- first order in time 
+cgad eyeDeform -g=square32.order2 -dg=square -motion=shift -moveGrids=1 -kappa=.002 -tf=1 -tp=.01 -tz=poly -degreex=2 -degreet=0 -ic=tz -alphaPulse=80. -x0=-.5 -y0=-.05 -bc=n -ts=bdf -a=0.1 -b=0.0 -ampb=-.4 -implicitAdvection=1 -evalGridAsNurbs=1 -pde=thinFilm -go=halt
+
+     t    err(h)   err(p)    uMax     dt       cpu    mem (Mb) (10 steps)
+   0.100 8.33e-04 1.55e-05 4.46e+00 1.00e-02 2.25e+02        0
+
+    t    err(h)   err(p)    uMax     dt       cpu    mem (Mb) (5 steps)
+   0.100 1.68e-03 3.14e-05 4.46e+00 2.00e-02 3.26e+00   
+
+
+
+POLYNOMIAL TZ on a SQUARE exact for degreex=2, degreet=1
+cgad eyeDeform -g=square32.order2 -motion=realDeformingEye -moveGrids=0 -kappa=.002 -tf=.01 -tp=.001 -tz=poly -degreex=2 -degreet=1 -ic=tz -alphaPulse=80. -x0=-.5 -y0=-.05 -bc=n -ts=bdf -a=0.1 -b=0.0 -ampb=-.4 -implicitAdvection=1 -evalGridAsNurbs=1 -pde=thinFilm -go=halt
+
+     t    err(h)   err(p)    uMax     dt       cpu    mem (Mb) (4 steps)
+   0.004 8.88e-16 0.00e+00 3.76e+00 1.00e-03 2.03e+01        0
+
+
+**MOVE: DECOUPLE H FROM P  -- DECREASE DT
+cgad eyeDeform -g=realEyeGride2.order2.hdf -motion=realDeformingEye -moveGrids=1 -kappa=.002 -tf=.01 -tp=.001 -tz=trig -ic=tz -alphaPulse=80. -x0=-.5 -y0=-.05 -bc=n -ts=bdf -a=0.1 -b=0.0 -ampb=-.4 -implicitAdvection=1 -evalGridAsNurbs=1 -pde=thinFilm -show="realEye.show" -go=halt
+
+Norm of RHS is 6.490641e-15.  The max of r0 is 6.490641e-15.  The max of r1 is 1.575346e-15. 
+ grid=0: err(h)=2.285e-01, err(p)=1.620e-01
+ grid=1: err(h)=1.360e-01, err(p)=2.364e-01
+max value of thickness is 2.999980e+00 and max value of pressure is 5.463705e-04 
+HyperbolicMapping:put: name=eyeGrid, usesDistributedInverse=1 usesDistributedMap=1
+--DeformingBodyMotion::userDefinedDeformingSurface called for t1=0, t2=0.001, t3=0.001, dt=1.000e-03 globalStepNumber=1, option=1.
+--DBMS-- evaluate eye curve at t=1.00e-03, numPoints=800
+advance: step=1: number of array ID's has increased to 1019
+     t    err(h)   err(p)    uMax     dt       cpu    mem (Mb) (1 steps)
+   0.001 2.28e-01 2.36e-01 3.00e+00 1.00e-03 2.28e+01        0
+
+
+
+
+NO-MOVE: DECOUPLE H FROM P  -- DECREASE DT
+cgad eyeDeform -g=realEyeGride2.order2.hdf -motion=realDeformingEye -moveGrids=0 -kappa=.002 -tf=.01 -tp=.001 -tz=trig -ic=tz -alphaPulse=80. -x0=-.5 -y0=-.05 -bc=n -ts=bdf -a=0.1 -b=0.0 -ampb=-.4 -implicitAdvection=1 -evalGridAsNurbs=1 -pde=thinFilm -show="realEye.show" -go=halt
+
+Norm of RHS is 1.197134e-15.  The max of r0 is 2.220446e-16.  The max of r1 is 1.197134e-15. 
+ grid=0: err(h)=1.974e-05, err(p)=3.026e-05
+ grid=1: err(h)=1.974e-05, err(p)=3.264e-05
+
+DECOUPLE H FROM P 
+cgad eyeDeform -g=realEyeGride2.order2.hdf -motion=realDeformingEye -moveGrids=0 -kappa=.002 -tf=.01 -tp=.01 -tz=trig -ic=tz -alphaPulse=80. -x0=-.5 -y0=-.05 -bc=n -ts=bdf -a=0.1 -b=0.0 -ampb=-.4 -implicitAdvection=1 -evalGridAsNurbs=1 -pde=thinFilm -show="realEye.show" -go=halt
+
+DECOUPLE H FROM P 
+cgad eyeDeform -g=realEyeGride2.order2.hdf -motion=realDeformingEye -moveGrids=0 -kappa=.002 -tf=.01 -tp=.01 -tz=trig -ic=tz -alphaPulse=80. -x0=-.5 -y0=-.05 -bc=n -ts=bdf -a=0.1 -b=0.0 -ampb=-.4 -implicitAdvection=1 -evalGridAsNurbs=1 -pde=thinFilm -show="realEye.show" -go=halt
+
+
+-AD-- thinFilmSolver WARNING : FINISH ME, t=0.000e+00
+File created with Overture.v26
+ gf[mCur].t = 0.000e+00
+Norm of RHS is 3.945245e-03 
+Size of dt is 1.000000e-02
+Oges::allocateWorkSpace: numberOfNonzeros=374456 fillinRatio=2.000000e+01
+allocateWorkSpace: numberOfEquations=136746, nsp = 7489120, fillinRatio= 20, numberOfNonzeros = 374456
+time for solving of the problem = 9.12e-02, (iterations=0)
+Norm of RHS is 1.266890e-15.  The max of r0 is 2.220446e-16.  The max of r1 is 1.266890e-15. 
+ grid=0: err(h)=1.972e-03, err(p)=3.065e-05
+ grid=1: err(h)=1.972e-03, err(p)=1.183e-03
+max value of thickness is 2.998027e+00 and max value of pressure is 5.453031e-04 
+HyperbolicMapping:put: name=eyeGrid, usesDistributedInverse=0 usesDistributedMap=0
+advance: step=1: number of array ID's has increased to 649
+     t    err(h)   err(p)    uMax     dt       cpu    mem (Mb) (1 steps)
+   0.010 1.97e-03 1.18e-03 3.00e+00 1.00e-02 3.19e+00        0
+***Save solution in the show file: showFileFrameForGrid=1 (-2=default)
+
+
+
+
+TURN OFF MOVING
+cgad eyeDeform -g=realEyeGride2.order2.hdf -motion=realDeformingEye -moveGrids=0 -kappa=.002 -tf=.01 -tp=.01 -tz=trig -ic=tz -alphaPulse=80. -x0=-.5 -y0=-.05 -bc=n -ts=bdf -a=0.1 -b=0.0 -ampb=-.4 -implicitAdvection=1 -evalGridAsNurbs=1 -pde=thinFilm -show="realEye.show" -go=halt
+
+Norm of RHS is 2.997652e-02 
+Size of dt is 1.000000e-02
+Oges::allocateWorkSpace: numberOfNonzeros=732250 fillinRatio=2.000000e+01
+allocateWorkSpace: numberOfEquations=136746, nsp = 14645000, fillinRatio= 20, numberOfNonzeros = 732250
+time for solving of the problem = 2.51e+00, (iterations=0)
+Norm of RHS is 3.323916e-04.  The max of r0 is 3.323916e-04.  The max of r1 is 2.890120e-14. 
+time for solving of the problem = 2.06e+00, (iterations=0)
+Norm of RHS is 6.875845e-09.  The max of r0 is 6.875845e-09.  The max of r1 is 1.517829e-15. 
+ grid=0: err(h)=3.528e-02, err(p)=2.402e-04
+ grid=1: err(h)=2.237e-02, err(p)=2.403e-04
+max value of thickness is 2.998027e+00 and max value of pressure is 5.453031e-04 
+HyperbolicMapping:put: name=eyeGrid, usesDistributedInverse=0 usesDistributedMap=0
+advance: step=1: number of array ID's has increased to 793
+     t    err(h)   err(p)    uMax     dt       cpu    mem (Mb) (1 steps)
+   0.010 3.53e-02 2.40e-04 3.03e+00 1.00e-02 1.13e+01        0
+
+
+--AD-- thinFilmSolver WARNING : FINISH ME, t=1.000e-02
+File created with Overture.v26
+ gf[mCur].t = 1.000e-02
+Norm of RHS is 3.415608e-01 
+Size of dt is 1.000000e-02
+Oges::allocateWorkSpace: numberOfNonzeros=734536 fillinRatio=2.000000e+01
+allocateWorkSpace: numberOfEquations=136746, nsp = 14690720, fillinRatio= 20, numberOfNonzeros = 734536
+time for solving of the problem = 1.99e+00, (iterations=0)
+Norm of RHS is 1.574404e-04.  The max of r0 is 1.574404e-04.  The max of r1 is 2.282526e-13. 
+time for solving of the problem = 1.57e+00, (iterations=0)
+Norm of RHS is 2.577441e-09.  The max of r0 is 2.577441e-09.  The max of r1 is 1.152127e-15. 
+ grid=0: err(h)=7.583e-02, err(p)=4.002e-04
+ grid=1: err(h)=4.330e-02, err(p)=3.977e-04
+max value of thickness is 2.992115e+00 and max value of pressure is 5.420729e-04 
+HyperbolicMapping:put: name=eyeGrid, usesDistributedInverse=0 usesDistributedMap=0
+advance: step=2: number of array ID's has increased to 802
+     t    err(h)   err(p)    uMax     dt       cpu    mem (Mb) (2 steps)
+   0.020 7.58e-02 4.00e-04 3.06e+00 1.00e-02 6.14e+01        0
+
+
+
+
+
+
+TODO -- -Change to TRIG TZ:
+
+cgad eyeDeform -g=realEyeGride2.order2.hdf -motion=realDeformingEye -kappa=.002 -tf=.01 -tp=.01 -tz=trig -ic=tz -alphaPulse=80. -x0=-.5 -y0=-.05 -bc=n -ts=bdf -a=0.1 -b=0.0 -ampb=-.4 -implicitAdvection=1 -evalGridAsNurbs=1 -pde=thinFilm -show="realEye.show" -go=halt
+
+Norm of RHS is 1.434722e-12.  The max of r0 is 1.434722e-12.  The max of r1 is 2.198464e-15. 
+ grid=0: err(h)=1.973e-03, err(p)=1.078e-06
+ grid=1: err(h)=1.973e-03, err(p)=1.078e-06
+
+Step 2;
+Norm of RHS is 1.613029e-11.  The max of r0 is 1.613029e-11.  The max of r1 is 1.333731e-15. 
+ grid=0: err(h)=5.163e-03, err(p)=1.895e-05
+ grid=1: err(h)=6.247e-03, err(p)=1.831e-05
+
+
+cgad eyeDeform -g=realEyeGride2.order2.hdf -motion=realDeformingEye -kappa=.002 -tf=.01 -tp=.01 -tz=none -ic=pulse -alphaPulse=80. -x0=-.5 -y0=-.05 -bc=n -ts=bdf -a=0.1 -b=0.0 -ampb=-.4 -implicitAdvection=1 -evalGridAsNurbs=1 -pde=thinFilm -show="realEye.show" -go=halt
+
+Norm of RHS is 1.434700e-12.  The max of r0 is 1.434700e-12.  The max of r1 is 1.541031e-15. 
+ grid=0: err(h)=1.973e-03, err(p)=1.078e-06
+ grid=1: err(h)=1.973e-03, err(p)=1.078e-06
+
+Step 2: 
+Norm of RHS is 1.613009e-11.  The max of r0 is 1.613009e-11.  The max of r1 is 1.397428e-15. 
+ grid=0: err(h)=5.163e-03, err(p)=1.895e-05
+ grid=1: err(h)=6.247e-03, err(p)=1.831e-05
+
+
+
+
+
+Initial test: 
+cgad eyeDeform -g=realEyeGride2.order2.hdf -motion=realDeformingEye -kappa=.002 -tf=.01 -tp=.01 -tz=none -ic=pulse -alphaPulse=80. -x0=-.5 -y0=-.05 -bc=n -ts=bdf -a=0.1 -b=0.0 -ampb=-.4 -implicitAdvection=1 -evalGridAsNurbs=1 -pde=thinFilm -show="realEye.show" -go=halt
+
+Norm of RHS is 1.434700e-12.  The max of r0 is 1.434700e-12.  The max of r1 is 1.541031e-15. 
+ grid=0: err(h)=1.973e-03, err(p)=1.078e-06
+ grid=1: err(h)=1.973e-03, err(p)=1.078e-06
+
+
+
 ***********
 **** Sept 9, 2015 
 

@@ -354,8 +354,14 @@ writeParameterSummary( FILE * file )
     ArraySimpleFixed<real,3,1,1,1> & gravity = parameters.dbase.get<ArraySimpleFixed<real,3,1,1,1> >("gravity");
     if( gravity[0]!=0. || gravity[1]!=0. || gravity[2]!=0. )
     {
-      fPrintF(file," gravity is on, acceleration due to gravity = (%8.2e,%8.2e,%8.2e) \n",
+      fPrintF(file," gravity is on, acceleration due to gravity = (%8.2e,%8.2e,%8.2e)",
                      gravity[0],gravity[1],gravity[2]);
+
+      if( parameters.dbase.has_key("gravityTimeFunction") )
+      {
+        fPrintF(file," : gravity is time dependent");
+      }
+      fPrintF(file,"\n");
     }
     else
     {

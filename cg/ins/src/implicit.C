@@ -1462,7 +1462,10 @@ insImplicitMatrix(InsParameters::InsImplicitMatrixOptionsEnum option,
     const real yEps=sqrt(REAL_EPSILON);  // tol for axisymmetric *** fix this ***
     rpar[19]= yEps;  // for axisymmetric
 
-    ArraySimpleFixed<real,3,1,1,1> & gravity = parameters.dbase.get<ArraySimpleFixed<real,3,1,1,1> >("gravity");
+    // ArraySimpleFixed<real,3,1,1,1> & gravity = parameters.dbase.get<ArraySimpleFixed<real,3,1,1,1> >("gravity");
+    real gravity[3];
+    real tGravity=0;  // ** fix me for time dependence 
+    parameters.getGravityVector( gravity,tGravity );
     rpar[20]=gravity[0];
     rpar[21]=gravity[1];
     rpar[22]=gravity[2];

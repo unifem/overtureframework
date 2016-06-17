@@ -507,7 +507,10 @@ advanceLineSolveNew(LineSolve & lineSolve,
           rpar[14]= parameters.dbase.get<real >("ad41n");
           rpar[15]= parameters.dbase.get<real >("ad42n");
           rpar[16]= parameters.dbase.get<real >("kThermal");
-          ArraySimpleFixed<real,3,1,1,1> & gravity = parameters.dbase.get<ArraySimpleFixed<real,3,1,1,1> >("gravity");
+     // ArraySimpleFixed<real,3,1,1,1> & gravity = parameters.dbase.get<ArraySimpleFixed<real,3,1,1,1> >("gravity");
+     // get the gravity vector -- may be time dependent for a slow start
+          real gravity[3];
+          parameters.getGravityVector( gravity,t );  // ** CHECK ME FOR time dependence ***
           real thermalExpansivity=1.;
           parameters.dbase.get<ListOfShowFileParameters >("pdeParameters").getParameter("thermalExpansivity",thermalExpansivity);
           rpar[17]=thermalExpansivity;

@@ -5,7 +5,8 @@
 #   
 #  cgad [-noplot] eyeDeform -g=<name> -pde=[AD|TF] -tz=[poly|trig|none] -degreex=<> -degreet=<> -tf=<tFinal> -tp=<tPlot> ...
 #         -go=<go/halt/og> -kappa=<value> -kapVar=[] -solver=<yale/best> -order=<2/4> -ts=[pc2|fe|im] ...
-#         -gridToMove=<name> -a=<val> -b=<val> -ic=[tz|pulse] -bc=[d|n] -motion=[sinusoid|concentration|deformingEye]
+#         -gridToMove=<name> -a=<val> -b=<val> -ic=[tz|pulse] -bc=[d|n] -motion=[sinusoid|concentration|deformingEye|shift|rotate] ...
+#         -moveGrids=[0|1]
 # 
 #   -ts : time-stepping, euler, adams2, implicit. 
 # 
@@ -38,9 +39,10 @@ $eyeOption=0;  # 0=Gaussian, 1=ellipse
 $bdfOrder=2; $implicitAdvection=0;
 $evalGridAsNurbs=0; $nurbsDegree=3;
 # 
+$moveGrids=1; # 1=move
 # ----------------------------- get command line arguments ---------------------------------------
 GetOptions( "pde=s"=>\$pde, "g=s"=>\$grid,"tf=f"=>\$tFinal,"degreex=i"=>\$degreex, "degreet=i"=>\$degreet, "kappa=f"=>\$kappa,\
- "tp=f"=>\$tPlot, "solver=s"=>\$solver, "tz=s"=>\$tz, "show=s"=>\$show,"order=i"=>\$order,"move=s"=>\$move, \
+ "tp=f"=>\$tPlot, "solver=s"=>\$solver, "tz=s"=>\$tz, "show=s"=>\$show,"order=i"=>\$order,"moveGrids=i"=>\$moveGrids, \
  "ts=s"=>\$ts, "noplot=s"=>\$noplot, "go=s"=>\$go,"debug=i"=>\$debug,"a=f"=>\$a,"b=f"=>\$b,\
   "dg=s"=>\$deformingGrid,"dt=s"=>\$deformationType,"ampx=f"=>\$ampx,"ampy=f"=>\$ampy,"ic=s"=>\$ic,"bc=s"=>\$bc,\
   "motion=s"=>\$motion,"ampPulse=f"=>\$ampPulse,"ue=f"=>\$ue,"x0=f"=>\$x0,"y0=f"=>\$y0,"ampb=f"=>\$ampb,\
@@ -81,6 +83,7 @@ $grid
 # Twilight zone option: 
     $tz 
     frequencies (x,y,z,t)   $fx $fy $fz $ft
+#
     $xPulse=-.5; $yPulse=-.15; $zPulse=0.;
     OBTZ:pulse center $xPulse $yPulse $zPulse
     OBTZ:pulse velocity 1 0 0
@@ -115,31 +118,43 @@ $grid
   exit
 # 
   #  turn on moving grids
-  use moving grids 1
+  use moving grids $moveGrids
+  $xshift=1.; $yshift=0.; $zshift=0.; $speed=1.; 
   specify grids to move
-    deforming body
-      # evaluate the Hyperbolic grid as a Nurbs: 
-      evaluate grid as Nurbs $evalGridAsNurbs
-      nurbs degree: $degreeOfNurbs
-#
-      user defined deforming body
-#
-      user defined deforming surface
-        $cmd="#"; 
-        if( $motion eq "sinusoid" ){ $cmd="sinusoidal\n $ampx $ampy 0. $freqx $freqt"; }
-        if( $motion eq "concentration" ){ $cmd="concentration motion\n $alpha $ue"; }
-        $b0=.5;
-        if( $motion eq "deformingEye" ){ $cmd="deforming eye\n $freqt $b0 $ampb $eyeOption"; }
-        if( $motion eq "realDeformingEye" ){ $cmd="real deforming eye"; }
-        $cmd
-        exit
-        #
-        done
-        if( $deformingGrid =~ /^share=/ ){ $deformingGrid =~ s/^share=//; \
-                   $deformingGrid="choose grids by share flag\n $deformingGrid"; };
-        $deformingGrid
-     done
+    # translate
+    #    $xshift $yshift $zshift
+    #    $speed
+     rotate
+       # .5 .5 0.
+        .0 .0 0.
+        .5 0.
+      $deformingGrid 
+    done
   done
+if( $move eq "rotate" ){ $cmd="turn on moving grids\n specify grids to move\n pause\nrotate\n 0. 0. 0 \n $rate 0.\n$gridToMove\n$gridToMove2\n done\n done"; }
+# --- deforming grid: ----
+#-   specify grids to move
+#-     deforming body
+#-       # evaluate the Hyperbolic grid as a Nurbs: 
+#-       evaluate grid as Nurbs $evalGridAsNurbs
+#-       nurbs degree: $degreeOfNurbs
+#-       user defined deforming body
+#-       user defined deforming surface
+#-         $cmd="#"; 
+#-         if( $motion eq "sinusoid" ){ $cmd="sinusoidal\n $ampx $ampy 0. $freqx $freqt"; }
+#-         if( $motion eq "concentration" ){ $cmd="concentration motion\n $alpha $ue"; }
+#-         $b0=.5;
+#-         if( $motion eq "deformingEye" ){ $cmd="deforming eye\n $freqt $b0 $ampb $eyeOption"; }
+#-         if( $motion eq "realDeformingEye" ){ $cmd="real deforming eye"; }
+#-         $cmd
+#-         exit
+#-         #
+#-         done
+#-         if( $deformingGrid =~ /^share=/ ){ $deformingGrid =~ s/^share=//; \
+#-                    $deformingGrid="choose grids by share flag\n $deformingGrid"; };
+#-         $deformingGrid
+#-      done
+#-   done
 #**************************
    $ts
    BDF order $bdfOrder
@@ -156,12 +171,12 @@ $grid
     if( $bc eq "n" ){ $cmd="all=neumannBoundaryCondition"; }
     $cmd
     # example of specifying user defined boundary values:
-    bcNumber4=neumannBoundaryCondition, userDefinedBoundaryData
-     specified Neumann values
-       # For now we set the RHS to the Neumann BC to the following value: 
-       0. 
-    done  
-    if( $tz ne "turn off twilight zone" ){ $cmd = "bcNumber4=dirichletBoundaryCondition"; }else{ $cmd="#"; }
+    # bcNumber4=neumannBoundaryCondition, userDefinedBoundaryData
+   #   specified Neumann values
+   #     # For now we set the RHS to the Neumann BC to the following value: 
+   #     0. 
+   #  done  
+    # if( $tz ne "turn off twilight zone" ){ $cmd = "bcNumber4=dirichletBoundaryCondition"; }else{ $cmd="#"; }
     $cmd
   done
 # 

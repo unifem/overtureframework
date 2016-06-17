@@ -351,8 +351,11 @@ getUt(const realMappedGridFunction & v,
   const real & Rg = parameters.dbase.get<real >("Rg");
   const real & nuRho = parameters.dbase.get<real >("nuRho");
   const real & avr = parameters.dbase.get<real >("avr");
-  const ArraySimpleFixed<real,3,1,1,1> &gravity=parameters.dbase.get<ArraySimpleFixed<real,3,1,1,1> >("gravity");
-  //  const real *gravity = parameters.dbase.get<ArraySimpleFixed<real,3,1,1,1> >("gravity");
+
+  // const ArraySimpleFixed<real,3,1,1,1> &gravity=parameters.dbase.get<ArraySimpleFixed<real,3,1,1,1> >("gravity");
+  // get the gravity vector -- may be time dependent for a slow start
+  real gravity[3];
+  parameters.getGravityVector( gravity,t );
   
   RealArray & statistics = parameters.dbase.get<RealArray>("statistics");
 

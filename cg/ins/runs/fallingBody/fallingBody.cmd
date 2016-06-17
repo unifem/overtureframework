@@ -3,8 +3,8 @@
 #
 # Usage:
 #    cgins [-noplot] fallingBody -g=<name> -tp=<f> -tp=<f> -density=<f> ...
-#         -bcOption=[walls|inflowOutflow|pressure] ...
-#        -sep=<f> -vIn=<f> -forceLimit=<f> -bodyForce=[x|y|wz|none] -go[halt|go|og]
+#         -bcOption=[walls|inflowOutflow|pressure] -rampGravity=[0|1] -implicitFactor=<f>  ...
+#        -sep=<f> -vIn=<f> -forceLimit=<f> -bodyForce=[x|y|wz|wzRamp|none] -go[halt|go|og]
 #  
 #  -sep : separation distance for collisions
 #
@@ -15,7 +15,7 @@
 #
 $model="ins"; $solver = "best"; $show=" "; $ts="pc"; $noplot=""; 
 $density=1.25; 
-$inertia=""; # set this to over-ride computed inertia
+$inertia="-1"; # set this to over-ride computed inertia, -1=auto-compute 
 $nu = .1; $dtMax=.05; $newts=0; $movingWall=0; 
 # for nu=.005 the terminal velocity of one drop is about .9 -- for low Re the velocity is prop. to Re
 $inflowVelocity=.9;
@@ -25,7 +25,9 @@ $restart="";
 #
 $radius=.125; $fallingBody="fallingBody";
 $gravity = -1.; # acceleration due to gravity
-$bodyForce="x"; 
+$rampGravity=1; 
+$bodyForce=""; 
+$implicitFactor=.5; # for RB corrector. 1=BE, .5=TRap
 #
 $numberOfCorrections=1; 
 $addedMass=0; $useTP=0;  $useProvidedAcceleration=1; 
@@ -36,7 +38,7 @@ $freqFullUpdate=10; # frequency for using full ogen update in moving grids
 $cdv=1.; $cDt=.25; $ad2=1; $ad21=1; $ad22=1;  $ad4=0; $ad41=2.; $ad42=2.; 
 $psolver="best"; $solver="best"; 
 $iluLevels=1; $ogesDebug=0; 
-$rtolp=1.e-3; $atolp=1.e-4;  # tolerances for the pressure solve
+$rtolp=1.e-4; $atolp=1.e-5;  # tolerances for the pressure solve
 $rtol=1.e-4; $atol=1.e-5;    # tolerances for the implicit solver
 # -- for Kyle's AF scheme:
 $afit = 20;  # max iterations for AFS
@@ -64,6 +66,7 @@ GetOptions( "g=s"=>\$grid,"tf=f"=>\$tFinal,"model=s"=>\$model,"inflowVelocity=f"
  "numberOfCorrections=i"=>\$numberOfCorrections,"omega=f"=>\$omega,"addedMass=f"=>\$addedMass,"useTP=i"=>\$useTP,\
  "rtolc=f"=>\$rtolc,"atolc=f"=>\$atolc,"option=s"=>\$option,"useProvidedAcceleration=i"=>\$useProvidedAcceleration,\
  "inertia=f"=>\$inertia,"amp=f"=>\$amp,"freq=f"=>\$freq,"addedDamping=f"=>\$addedDamping,\
+ "rampGravity=i"=>\$rampGravity,"implicitFactor=f"=>\$implicitFactor,\
  "ampSinusoidalPressure=f"=>\$ampSinusoidalPressure,"freqSinusoidalPressure=f"=>\$freqSinusoidalPressure,\
  "bodyForce=s"=>\$bodyForce,"cdv=f"=>\$cdv,"cDt=f"=>\$cDt,"addedDampingCoeff=f"=>\$addedDampingCoeff,\
  "scaleAddedDampingWithDt=f"=>\$scaleAddedDampingWithDt,"addedDampingProjectVelocity=f"=>\$addedDampingProjectVelocity );
@@ -109,6 +112,7 @@ $grid
   final time $tFinal
   times to plot $tPlot
   cfl $cfl
+  implicit factor $implicitFactor 
   dtMax $dtMax 
 #
   recompute dt every 10
@@ -161,6 +165,10 @@ $grid
    $gravityVector="0. $gravity 0.";
    gravity
      $gravityVector
+   # optionally ramp gravity 
+   $taGravity=0; $tbGravity=1.; 
+   if( $rampGravity eq 1 ){ $cmd ="OBPDE:set gravity time dependence\n ramp end values: 0,1 (start,end)\n ramp times: $taGravity,$tbGravity (start,end)\n ramp order: 3\n ramp function\n   exit"; }else{ $cmd="#"; }
+   $cmd
    #  turn on 2nd-order AD here:
    OBPDE:second-order artificial diffusion $ad2
    OBPDE:ad21,ad22 $ad21, $ad22
@@ -194,13 +202,24 @@ $grid
      density
        $density
      #
-     # --- FIX ME ---
-     moments of inertia
-       $pi=4.*atan2(1.,1.); # 3.141592653; 
-       $volume=$pi*$radius**2; $mass=$density*$volume;
-       $momentOfInertia=.5*$mass*$radius**2;
-       if( $inertia ne "" ){ $momentOfInertia=$inertia; } # user supplied inertia
-       $momentOfInertia
+      # moment of inertia of a rectangle: (M/12)*( w^2 + d^2) = (rhos*w*d/12)*(  w^2 + d^2 )
+      $width=1.; $depth=.5; # do this for now 
+      if( $inertia eq "" ){ $inertia = ($density*$width*$depth/12.)*( $width*$width + $depth*$depth); }
+      if( $inertia eq "-1" ){ $cmd="#"; }else{ $cmd="moments of inertia\n $inertia"; }
+      $cmd
+     # implicitFactor: .5=Trapezoidal, 1=BE for the corrector 
+     implicitFactor: $implicitFactor
+     # 
+     # Add body force if any: 
+     $a0=0.; $a1=1.; 
+     $a0=10.; $a1=0.; 
+     $cmd="#"; 
+     if( $bodyForce eq "wz" ){ $cmd="time function\n  body torque z time function...\n linear function\n linear parameters: $a0,$a1 (a0,a1)\n  exit"; }
+     if( $bodyForce eq "wzs" ){ $cmd="time function\n body torque z time function...\n sinusoidal function\n sinusoid parameters: $amp, $freq,0 (b0,f0,t0)\n  exit"; }
+     # ramp: 
+     if( $bodyForce eq "wzRamp" ){ $cmd="time function\n body torque z time function...\n ramp function\n ramp end values: 0,$amp (start,end)\n ramp times: 0,1 (start,end)\n  ramp order: 3\n exit"; }
+     #
+     $cmd
 # 
       # relaxation is used for light bodies to stabilize the time stepping
       relax correction steps $useTP
@@ -231,7 +250,7 @@ $grid
 #
   pressure solver options
    # $ogesDebug=$debug; 
-   $ogesSolver=$psolver; $ogesRtol=$rtolp; $ogesAtol=$atolp; $ogesIluLevels=$iluLevels;
+   $ogesSolver=$psolver; $ogesRtol=$rtolp; $ogesAtol=$atolp; $ogesIluLevels=$iluLevels; $ogesDtol=1e20; 
    include $ENV{CG}/ins/cmd/ogesOptions.h
   exit
 #

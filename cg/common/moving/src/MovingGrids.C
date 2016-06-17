@@ -577,12 +577,16 @@ int MovingGrids::getRigidBodyAddedDampingTensors( const int bodyNumber, RealArra
   //   In the case scaleAddedDampingWithDt==1 : the added-damping tensors are stored without 
   //     the factor of mu/dn , dn=sqrt(nu*dt)
   if( (!scaleAddedDampingWithDt || dt>0. ) && 
-      (body.getAddedDampingTensors( addedDampingTensors ) == 0) )
+      (body.getAddedDampingTensors( addedDampingTensors,t ) == 0) )
   {
+    if( debug() & 4  )
+      body.displayAddedDampingTensors("--MVG--getRigidBodyAddedDampingTensors:",cgf.t);
+
     if( scaleAddedDampingWithDt )
     {
       const real dn = sqrt(nu*dt);
-      printF("--MVG--getRigidBodyAddedDampingTensors: SCALING stored added damping tensors by mu/sqrt(nu*dt)\n");
+      if( debug() & 4  )
+        printF("--MVG--getRigidBodyAddedDampingTensors: SCALING stored added damping tensors by mu/sqrt(nu*dt)\n");
       addedDampingTensors *= addedDampingCoefficient*(mu/dn);
     }
       
@@ -812,36 +816,21 @@ int MovingGrids::getRigidBodyAddedDampingTensors( const int bodyNumber, RealArra
 
     } // end for ma, loop over different added mass coefficients
     
-    if( true )
+    if( false )
     {
-      printF("--MVG--getRigidBodyAddedDampingTensors : \n"
-             "             Added Damping Tensors (without factor of mu/dn) body=%i\n"
-             "             ----------------------------------------------------------\n"
-	     "       [ %12.4e %12.4e %12.4e ]        [ %12.4e %12.4e %12.4e ]\n"
-	     " Dvv = [ %12.4e %12.4e %12.4e ]  Dvw = [ %12.4e %12.4e %12.4e ]\n"
-	     "       [ %12.4e %12.4e %12.4e ]        [ %12.4e %12.4e %12.4e ]\n"
-	     " \n"
-	     "       [ %12.4e %12.4e %12.4e ]        [ %12.4e %12.4e %12.4e ]\n"
-	     " Dwv = [ %12.4e %12.4e %12.4e ]  Dww = [ %12.4e %12.4e %12.4e ]\n"
-	     "       [ %12.4e %12.4e %12.4e ]        [ %12.4e %12.4e %12.4e ]\n",
-             bodyNumber,
-	     addedDampingTensors(0,0,vbc,vbc),addedDampingTensors(1,0,vbc,vbc),addedDampingTensors(2,0,vbc,vbc),
-	     addedDampingTensors(0,0,vbc,wbc),addedDampingTensors(1,0,vbc,wbc),addedDampingTensors(2,0,vbc,wbc),
+      // *** TESTING *** -- fill in all values 
+      for( int i1=0; i1<3; i1++ )
+      for( int i2=0; i2<3; i2++ )
+      for( int i3=0; i3<2; i3++ )
+      for( int i4=0; i4<2; i4++ )
+	addedDampingTensors(i1,i2,i3,i4)= 1+ i1+3*(i2+3*(i3+2*i4));
+    }
+    
 
-	     addedDampingTensors(0,1,vbc,vbc),addedDampingTensors(1,1,vbc,vbc),addedDampingTensors(2,1,vbc,vbc),
-	     addedDampingTensors(0,1,vbc,wbc),addedDampingTensors(1,1,vbc,wbc),addedDampingTensors(2,1,vbc,wbc),
+    if( true  )
+    {
+      body.displayAddedDampingTensors("--MVG--getRigidBodyAddedDampingTensors (Computed from surface integrals) :",t);
 
-	     addedDampingTensors(0,2,vbc,vbc),addedDampingTensors(1,2,vbc,vbc),addedDampingTensors(2,2,vbc,vbc),
-	     addedDampingTensors(0,2,vbc,wbc),addedDampingTensors(1,2,vbc,wbc),addedDampingTensors(2,2,vbc,wbc),
-
-	     addedDampingTensors(0,0,wbc,vbc),addedDampingTensors(1,0,wbc,vbc),addedDampingTensors(2,0,wbc,vbc),
-	     addedDampingTensors(0,0,wbc,wbc),addedDampingTensors(1,0,wbc,wbc),addedDampingTensors(2,0,wbc,wbc),
-
-	     addedDampingTensors(0,1,wbc,vbc),addedDampingTensors(1,1,wbc,vbc),addedDampingTensors(2,1,wbc,vbc),
-	     addedDampingTensors(0,1,wbc,wbc),addedDampingTensors(1,1,wbc,wbc),addedDampingTensors(2,1,wbc,wbc),
-
-	     addedDampingTensors(0,2,wbc,vbc),addedDampingTensors(1,2,wbc,vbc),addedDampingTensors(2,2,wbc,vbc),
-	     addedDampingTensors(0,2,wbc,wbc),addedDampingTensors(1,2,wbc,wbc),addedDampingTensors(2,2,wbc,wbc));
     }
     
     if( true )
@@ -860,16 +849,17 @@ int MovingGrids::getRigidBodyAddedDampingTensors( const int bodyNumber, RealArra
 
   }
   
-  if( !scaleAddedDampingWithDt )
-    addedDampingTensors *= addedDampingCoefficient*(mu/dn);  // save true AD matrices if dn does not depend on dt
 
+  // Scale the added damping tensors if dn does NOT depend on dt 
+  real scaleFactor=1;
+  if( !scaleAddedDampingWithDt )
+  {
+    scaleFactor=addedDampingCoefficient*(mu/dn);
+    addedDampingTensors *= scaleFactor;  // save true AD matrices if dn does not depend on dt
+  }
+  
   // Save the (scaled or un-scaled ) added damping tensors with the RigidBody: 
-  body.setAddedDampingTensors( addedDampingTensors );
-
-  // Scale the added damping tensors if dn depends on dt 
-  if( !scaleAddedDampingWithDt )
-    addedDampingTensors *= addedDampingCoefficient*(mu/dn);
-   
+  body.setAddedDampingTensors( addedDampingTensors,t, scaleFactor );
 
   return 0;
 }
@@ -1934,7 +1924,7 @@ getForceOnRigidBodies( RealArray & force, RealArray & torque, GridFunction & gf0
     forceTorque=0.;
     integrate->surfaceIntegral( stress,FT,forceTorque,b );  // surface integral of forces and torques.
 
-    printF("--MVG:getForceRB: t=%9.3e torque=%9.3e\n",gf0.t,forceTorque(torquec));
+    // printF("--MVG:getForceRB: t=%9.3e torque=%9.3e\n",gf0.t,forceTorque(torquec));
     
     // --- save results in user supplied arrays ---
     force(F,b)=forceTorque(F);
@@ -1946,7 +1936,11 @@ getForceOnRigidBodies( RealArray & force, RealArray & torque, GridFunction & gf0
     // --- Add gravity buoyancy force ---
     if( includeGravity )
     {
-      ArraySimpleFixed<real,3,1,1,1> & gravity = parameters.dbase.get<ArraySimpleFixed<real,3,1,1,1> >("gravity");
+      // ArraySimpleFixed<real,3,1,1,1> & gravity = parameters.dbase.get<ArraySimpleFixed<real,3,1,1,1> >("gravity");
+
+      // get the gravity vector -- may be time dependent for a slow start
+      real gravity[3];
+      parameters.getGravityVector( gravity,gf0.t );
 
       // -- check if the gravity is non-zero --
       real maxGravity=0.;
@@ -1968,7 +1962,8 @@ getForceOnRigidBodies( RealArray & force, RealArray & torque, GridFunction & gf0
 	    real volume = bodyMass/bodyDensity;
 	    fluidMass = fluidDensity*volume; 
 
-	    if( debug() & 2 ) 
+	    const real dt = parameters.dbase.get<real >("dt");
+	    if( (debug() & 2) && gf0.t< 2.*dt ) 
 	      printF("--MVG-- getForceOnRigidBodies: body b=%i: bodyMass=%8.2e, fluidMass=%8.2e, volume=%9.3e\n",
 		     b,bodyMass,fluidMass,volume);
 	  }
@@ -2034,7 +2029,7 @@ getGridVelocity( GridFunction & gf0, const real & tGV )
   {
     MappedGrid & c = gf0.cg[grid];
     
-    if( debug() & 2 )
+    if( debug() & 4 )
        printF(" MovingGrids::getGridVelocity grid=%i movingGrid=%i, moveOption=%i\n",
             grid,movingGrid(grid),moveOption(grid));
     
@@ -2734,7 +2729,10 @@ gridAccelerationBC(const int grid, const int side, const int axis,
 
 	real bodyMass = body[b]->getMass();
 
-	ArraySimpleFixed<real,3,1,1,1> & gravity = parameters.dbase.get<ArraySimpleFixed<real,3,1,1,1> >("gravity");
+	// ArraySimpleFixed<real,3,1,1,1> & gravity = parameters.dbase.get<ArraySimpleFixed<real,3,1,1,1> >("gravity");
+	// get the gravity vector -- may be time dependent for a slow start
+	real gravity[3];
+	parameters.getGravityVector( gravity,t0 );
 
 	// printF("--INS: Accel-BC: directProjectionAddedMass: exclude RB acceleration terms, t=%9.2e\n"
 	//        "        bodyForce=(%9.2e,%9.2e,%9.2e), gravity=(%9.2e,%9.2e,%9.2e)\n",
@@ -2752,7 +2750,8 @@ gridAccelerationBC(const int grid, const int side, const int axis,
 	  real volume = bodyMass/body[b]->getDensity();
 	  fluidMass = parameters.dbase.get<real >("fluidDensity")*volume; 
 
-	  if( debug() & 2 ) 
+	  const real dt = parameters.dbase.get<real >("dt");
+	  if( (debug() & 2) && t0< 2.*dt ) 
 	    printF(" --- body b=%i: bodyMass=%8.2e, fluidMass=%8.2e, volume=%9.3e\n",b,bodyMass,fluidMass,volume);
 
 	}
@@ -2762,7 +2761,7 @@ gridAccelerationBC(const int grid, const int side, const int axis,
 		 " Thus the volume of the body b=%i cannot be computed! \n",b);
 	}
 
-	if( true )
+	if( debug() & 64 )
 	{
 	  RealArray omegaDot(3);
 	  body[b]->getAngularAcceleration( t0, omegaDot  );
@@ -2775,8 +2774,9 @@ gridAccelerationBC(const int grid, const int side, const int axis,
 	for( int d=0; d<c.numberOfDimensions(); d++ )
 	  aCM(d) = gravity[d]*(bodyMass-fluidMass)/bodyMass; 
 
-	printF("        gravity=(%9.2e,%9.2e,%9.2e) fluidMass=%9.3e bodyMass=%9.3e Buoyancy=(%9.2e,%9.2e,%9.2e)\n",
-	       gravity[0],gravity[1],gravity[2],fluidMass,bodyMass, aCM(0),aCM(1),aCM(2));
+	if( debug() & 8 ) 
+	  printF("--MVG--  gravity=(%9.2e,%9.2e,%9.2e) fluidMass=%9.3e bodyMass=%9.3e Buoyancy=(%9.2e,%9.2e,%9.2e)\n",
+		 gravity[0],gravity[1],gravity[2],fluidMass,bodyMass, aCM(0),aCM(1),aCM(2));
       
 	// **FIX ME** also zero out angular acceleration **
       }
@@ -3855,7 +3855,8 @@ rigidBodyMotion(const real & t1,
         real volume = bodyMass/body[b]->getDensity();
 	fluidMass = parameters.dbase.get<real >("fluidDensity")*volume; 
 
-        if( debug() & 2 ) 
+        const real dt = parameters.dbase.get<real >("dt");
+        if( (debug() & 2) && t2< 2.*dt ) 
           printF(" --- body b=%i: bodyMass=%8.2e, fluidMass=%8.2e, volume=%9.3e\n",b,bodyMass,fluidMass,volume);
 
       }
@@ -3867,8 +3868,12 @@ rigidBodyMotion(const real & t1,
     }
     
 
+    // get the gravity vector -- may be time dependent for a slow start
+    real gravity[3];
+    parameters.getGravityVector( gravity,t2 );
+
     for( int n=0; n<cg.numberOfDimensions(); n++ )
-      f(n)+=parameters.dbase.get<ArraySimpleFixed<real,3,1,1,1> >("gravity")[n]*(bodyMass-fluidMass);  // add weight: mass*g 
+      f(n)+=gravity[n]*(bodyMass-fluidMass);  // add weight: mass*g 
 
     // if( true ) // ***** TEMP ***
     //  printF("  body=%i : t=%9.2e, bodyMass=%9.3e fluidMass=%9.3e force=[%9.3e,%9.3e]\n",b,t3,bodyMass,fluidMass,f(0),f(1));
@@ -4066,8 +4071,9 @@ rigidBodyMotion(const real & t1,
     }
     else
     {
-      if( debug() & 2 ) 
-        printF("\nMovingGrids::rigidBodyMotion: correct solution at time t=%e\n",t3);
+      if( debug() & 4 ) 
+        printF("--MVG--rigidBodyMotion: correct solution at time t=%e\n",t3);
+
       if( !useAddedMass )
       {
 	body[b]->correct( t3,f,g,x,r );
@@ -4116,7 +4122,7 @@ rigidBodyMotion(const real & t1,
       correctionHasConverged=correctionHasConverged && body[b]->getCorrectionHasConverged();
       maximumRelativeCorrection=max( maximumRelativeCorrection,body[b]->getMaximumRelativeCorrection());
 
-      if( debug() & 2  )
+      if( debug() & 4  )
       {
 	real dtMax = body[b]->getTimeStepEstimate();
 	printF("  body=%i : t=%9.2e, estimated maximum dt = %9.2e (dt=%9.2e)\n",b,t3,dtMax,parameters.dbase.get<real >("dt"));
@@ -4630,6 +4636,358 @@ plot(GenericGraphicsInterface & gi, GridFunction & cgf, GraphicsParameters & psp
   return 0;
 }
 
+// =================================================================================================
+/// \brief Compute rigid body properties such as the mass, center of mass and moments of inertia
+/// \details Compute properties of the rigid body that have not been specified by the user using surface ietgrals:
+///   - center of mass
+///   - Mass of the body given the density
+///   - Moment of inertia matrix given the density
+///
+/// \param bodyNumber (input) : compute properties for this body
+/// \param cg (input) : current grid
+// =================================================================================================
+int MovingGrids::
+computeRigidBodyProperties( const int bodyNumber, CompositeGrid & cg )
+{
+  // Precompute the initial centre of mass for any Rigid Body that was not given a center of mass,
+  // assuming a uniform density.
+
+  RigidBodyMotion & rigidBody = *(body[bodyNumber]);
+
+  const int numberOfDimensions = cg.numberOfDimensions();
+  
+
+  realCompositeGridFunction f(cg);   // *************** fix me *****************
+  f=1.;
+  real surfaceArea=integrate->surfaceIntegral(f,bodyNumber);
+  printF("--MVG--computeRigidBodyProperties:Surface area computed by Integrate for body=%i is %10.4e \n",
+         bodyNumber,surfaceArea);
+
+  if( !(rigidBody.centerOfMassHasBeenInitialized()) )
+  {
+    const BodyDefinition & bodyDefinition = integrate->getBodyDefinition();
+
+    RealArray x0(3);
+    x0=0.;
+    int numberOfPointsOnBody=0;
+	
+    //  get the grid(s) that form the body
+    const int numberOfFaces=bodyDefinition.numberOfFacesOnASurface(bodyNumber);
+    Index Ib1,Ib2,Ib3;
+    //  *************************************************************
+    //  **** Compute the centre of mass using surface integrals  ****
+    //  *************************************************************
+    for( int dir=0; dir<numberOfDimensions; dir++ )
+    {
+      f=0.;
+      for( int face=0; face<numberOfFaces; face++ )
+      {
+	int side=-1,axis,grid;
+	bodyDefinition.getFace(bodyNumber,face,side,axis,grid);
+	assert( side>=0 && side<=1 && axis>=0 && axis<numberOfDimensions);
+	assert( grid>=0 && grid<cg.numberOfComponentGrids());
+
+	// printF("\nMovingGrids::detectCollisions: body %i : face %i: (side,axis,grid)=(%i,%i,%i)\n",
+	//   b,face,side,axis,grid);
+
+	MappedGrid & c = cg[grid];
+	c.update(MappedGrid::THEcenter | MappedGrid::THEvertex );
+	  
+        int extra=1;  // do we need extra for periodic ? 
+	getBoundaryIndex(c.gridIndexRange(),side,axis,Ib1,Ib2,Ib3,extra); // NB to use gridIndexRange, not indexRange
+	realArray & x = c.vertex();
+        OV_GET_SERIAL_ARRAY(real,x,xLocal);
+        OV_GET_SERIAL_ARRAY(real,f[grid],fLocal);
+	    
+	// f[grid](Ib1,Ib2,Ib3)=x(Ib1,Ib2,Ib3,dir);
+	int includeGhost=1;
+	bool ok = ParallelUtility::getLocalArrayBounds(f[grid],fLocal,Ib1,Ib2,Ib3,includeGhost);
+	if( ok )
+	  fLocal(Ib1,Ib2,Ib3)=xLocal(Ib1,Ib2,Ib3,dir);
+	  
+      }
+      x0(dir)=integrate->surfaceIntegral(f,bodyNumber)/surfaceArea;
+    }
+
+
+    printF("--MVG--CRBP-- INFO: body %i has a center of mass: (integrate) (%8.2e,%8.2e,%8.2e)\n",
+	   bodyNumber,x0(0),x0(1),x0(2));
+
+    rigidBody.setInitialCentreOfMass(x0);
+  }
+
+  if( !(rigidBody.massHasBeenInitialized()) && rigidBody.getDensity()>0   )
+  {
+    // If the mass has not been given but the density has, we compute the mass
+
+    // the volume of the body can be computed as a surface integral using the divergence theorem
+    //    
+    //  bodyVolume = int_V div.(x,0,0) dV = int_S (x,0,0).nv dS
+    //     --> set f= (x,0,0).nv = x*n_x
+
+    const BodyDefinition & bodyDefinition = integrate->getBodyDefinition();
+    const int numberOfFaces=bodyDefinition.numberOfFacesOnASurface(bodyNumber);
+    Index Ib1,Ib2,Ib3;
+
+    f=0.;
+    for( int face=0; face<numberOfFaces; face++ )
+    {
+      int side=-1,axis,grid;
+      bodyDefinition.getFace(bodyNumber,face,side,axis,grid);
+      assert( side>=0 && side<=1 && axis>=0 && axis<numberOfDimensions);
+      assert( grid>=0 && grid<cg.numberOfComponentGrids());
+
+      // printF("\nMovingGrids::detectCollisions: body %i : face %i: (side,axis,grid)=(%i,%i,%i)\n",
+      //   b,face,side,axis,grid);
+
+      MappedGrid & c = cg[grid];
+      c.update(MappedGrid::THEcenter | MappedGrid::THEvertex | MappedGrid::THEvertexBoundaryNormal );
+	  
+      OV_GET_SERIAL_ARRAY(real,c.vertex(),xLocal);
+      OV_GET_SERIAL_ARRAY(real,f[grid],fLocal);
+
+      #ifdef USE_PPP
+        const realSerialArray & normalLocal = c.vertexBoundaryNormalArray(side,axis);
+      #else
+         const realSerialArray & normalLocal = c.vertexBoundaryNormal(side,axis);
+      #endif 
+
+      int extra=1;  // do we need extra for periodic ? 
+      getBoundaryIndex(c.gridIndexRange(),side,axis,Ib1,Ib2,Ib3,extra); // NB to use gridIndexRange, not indexRange
+
+      int includeGhost=1;
+      bool ok = ParallelUtility::getLocalArrayBounds(f[grid],fLocal,Ib1,Ib2,Ib3,includeGhost);
+      if( ok )
+	fLocal(Ib1,Ib2,Ib3)=xLocal(Ib1,Ib2,Ib3,0)*normalLocal(Ib1,Ib2,Ib3,0); 
+
+    }
+
+    // The surface integral should be negative since the outward normal to the body is minus the
+    // outward normal to the grid.
+    real bodyVolume = fabs( integrate->surfaceIntegral(f,bodyNumber) );
+    printF("--MVG--CRBP-- INFO: Body %i volume from surface-integral = %10.4e \n",bodyNumber,bodyVolume);
+	
+    if( numberOfFaces==1 )
+    {
+      int side=-1,axis,grid;
+      int face=0;
+	  
+      bodyDefinition.getFace(bodyNumber,face,side,axis,grid);
+      Mapping & map = cg[grid].mapping().getMapping();
+      if( map.getClassName()=="AnnulusMapping" )
+      {
+	AnnulusMapping & annulus = (AnnulusMapping &)map;
+	real radius = annulus.innerRadius; 
+        bodyVolume=Pi*radius*radius;
+
+	printF("--MVG--CRBP-- INFO: Body %i is an annulus with radius=%10.4e, true volume = %10.4e \n",
+	       bodyNumber,radius,bodyVolume);
+
+      }
+    }
+
+    real density=rigidBody.getDensity();
+    real mass= bodyVolume*density;
+    rigidBody.setMass(mass);
+    printF("--MVG--CRBP-- INFO: Body %i has volume=%12.5e, density=%9.3e; Setting mass=%12.5e\n",
+	   bodyNumber,bodyVolume,density,mass);
+  }
+      
+  // --- Moment of Inertial Matrix ---
+  printF(" rigidBody.momentsOfInertiaHaveBeenInitialized()=%i\n",rigidBody.momentsOfInertiaHaveBeenInitialized());
+  
+
+  if( !(rigidBody.momentsOfInertiaHaveBeenInitialized()) && 
+      rigidBody.getDensity()>0   )
+  {
+    // --- Compute the  moments of inertia given the density -----
+
+    // In 2D we only need to compute one number 
+    //         Ib(2,2) = density *  int_V x^2 + y^2 dV
+
+    // In 3D we need to compute 6 numbers:
+    //        Ib(0,0) = density * int_V y^2 + z^2 dV
+    //        Ib(0,1) = density * int_V -x*y dV
+    //        Ib(0,2) = density * int_V -x*z dV
+    //        Ib(1,1) = density * int_V x^2 + y^2 dV
+    //        Ib(1,2) = density * int_V -y*z dV
+    //        Ib(2,2) = density * int_V x^2 + y^2 dV
+    //
+    // From matrix Ib we can compute the eigenvalues and eigenvectors 
+
+    const int numberOfInertiaEntries = numberOfDimensions==2 ? 1 : 6;
+
+    RealArray xCM(3);
+    real t0=parameters.dbase.get<real>("tInitial");
+    rigidBody.getPosition( t0,xCM );  // ** need time corresponding to the grid so integrals are correct
+
+    const BodyDefinition & bodyDefinition = integrate->getBodyDefinition();
+    const int numberOfFaces=bodyDefinition.numberOfFacesOnASurface(bodyNumber);
+    Index Ib1,Ib2,Ib3;
+
+    f=0.;
+
+    const real density=rigidBody.getDensity();
+
+    RealArray InertiaMatrix(3,3); // holds entries in inertia matrix
+    InertiaMatrix=0.;
+    for( int mi=0; mi<numberOfInertiaEntries; mi++ ) // moment of inertia entries
+    {
+      
+      for( int face=0; face<numberOfFaces; face++ )
+      {
+	int side=-1,axis,grid;
+	bodyDefinition.getFace(bodyNumber,face,side,axis,grid);
+	assert( side>=0 && side<=1 && axis>=0 && axis<numberOfDimensions);
+	assert( grid>=0 && grid<cg.numberOfComponentGrids());
+
+	MappedGrid & c = cg[grid];
+	c.update(MappedGrid::THEcenter | MappedGrid::THEvertex | MappedGrid::THEvertexBoundaryNormal );
+	  
+	OV_GET_SERIAL_ARRAY(real,c.vertex(),xLocal);
+	OV_GET_SERIAL_ARRAY(real,f[grid],fLocal);
+        #ifdef USE_PPP
+          const realSerialArray & normalLocal = c.vertexBoundaryNormalArray(side,axis);
+        #else
+	  const realSerialArray & normalLocal = c.vertexBoundaryNormal(side,axis);
+        #endif 
+
+	int extra=1;  // do we need extra for periodic ? 
+	getBoundaryIndex(c.gridIndexRange(),side,axis,Ib1,Ib2,Ib3,extra); // NB to use gridIndexRange, not indexRange
+
+	int includeGhost=1;
+	bool ok = ParallelUtility::getLocalArrayBounds(f[grid],fLocal,Ib1,Ib2,Ib3,includeGhost);
+
+        // **NOTE** There are many choices for converting the colume integral to the surface integral
+        // Some choices are probebly better conditioned than others *check me*
+
+	// int_V x^2 + y^2 dV = int_V div.(x^3,y^3,0)/3  dV = int_S (1/3)*(x^3,y^3,0).nv dS
+#define CUBE(x) ((x)*(x)*(x))
+	if( ok )
+	{
+          // RV(dir) = vector from center-of-mass to a point on body surface 
+          #define RV(dir) (xLocal(Ib1,Ib2,Ib3,dir)-xCM(dir))
+	  if( numberOfDimensions==2 )
+	  {
+            // diagonal: x^2 + y^2 -> (1/3)( x^3, y^3, 0 )
+	    fLocal(Ib1,Ib2,Ib3) = ( CUBE(RV(0))*normalLocal(Ib1,Ib2,Ib3,0) +
+				    CUBE(RV(1))*normalLocal(Ib1,Ib2,Ib3,1)  )*(1./3);
+	  }
+	  else
+	  {
+	    if( mi==0 )
+	    {
+              // diagonal: y^2 + z^2 -> (1/3)( 0, y^3, z^3 )
+	      fLocal(Ib1,Ib2,Ib3) = ( CUBE(RV(1))*normalLocal(Ib1,Ib2,Ib3,1) +
+				      CUBE(RV(2))*normalLocal(Ib1,Ib2,Ib3,2)  )*(1./3);
+	    }
+	    else if( mi==1 )
+	    {
+              // -x*y  ->  ( 0, 0, -x*y*z )
+	      fLocal(Ib1,Ib2,Ib3) = -RV(0)*RV(1)*RV(2)*normalLocal(Ib1,Ib2,Ib3,2);
+	    }
+	    else if( mi==2 )
+	    {
+              // -x*z  -> ( 0, -x*y*z, 0 )
+	      fLocal(Ib1,Ib2,Ib3) = -RV(0)*RV(1)*RV(2)*normalLocal(Ib1,Ib2,Ib3,1);
+	    }
+	    else if( mi==3 )
+	    {
+              //diagonal:  x^2 + z^2 -> (1/3)( x^3, 0, z^3 )
+	      fLocal(Ib1,Ib2,Ib3) = ( CUBE(RV(0))*normalLocal(Ib1,Ib2,Ib3,0) +
+				      CUBE(RV(2))*normalLocal(Ib1,Ib2,Ib3,2)  )*(1./3);
+	    }
+	    else if( mi==4 )
+	    {
+              // -y*z  -> ( -x*y*z,0,0 )
+	      fLocal(Ib1,Ib2,Ib3) = -RV(0)*RV(1)*RV(2)*normalLocal(Ib1,Ib2,Ib3,0);
+	    }
+	    else if( mi==5 )
+	    {
+              // diagonal: x^2 + y^2 -> (1/3)( x^3, y^3, 0 )
+	      fLocal(Ib1,Ib2,Ib3) = ( CUBE(RV(0))*normalLocal(Ib1,Ib2,Ib3,0) +
+				      CUBE(RV(1))*normalLocal(Ib1,Ib2,Ib3,1)  )*(1./3);
+	    }
+	    else 
+	    {
+	      OV_ABORT("error !?");
+	    }
+	  }
+	 
+	} // end if ok 
+	
+      }  // end for face
+      
+
+      // The surface integral should be negative since the outward normal to the body is minus the
+      // outward normal to the grid.
+	real moi = -( integrate->surfaceIntegral(f,bodyNumber) );
+      printF("--MVG--CRBP-- INFO: Body %i : moment of inertia integral = %10.4e \n",bodyNumber,moi);
+	
+      if( numberOfDimensions==2 )
+      {
+	InertiaMatrix(0,0)=1.;
+	InertiaMatrix(1,1)=1.;
+	InertiaMatrix(2,2)=density*moi;
+	printF("--MVG--CRBP-- INFO: Body %i density=%9.3e : InertiaMatrix(2,2) = %12.5e\n",
+	       bodyNumber,density,InertiaMatrix(2,2));
+      }
+      else
+      {
+	if( mi==0 )
+	{
+	  InertiaMatrix(0,0)=density*moi;
+	}
+	else if( mi==1 )
+	{
+	  InertiaMatrix(0,1)=InertiaMatrix(1,0)=density*moi;
+	}
+	else if( mi==2 )
+	{
+	  InertiaMatrix(0,2)=InertiaMatrix(2,0)=density*moi;
+	}
+	else if( mi==3 )
+	{
+	  InertiaMatrix(1,1)=density*moi;
+	}
+	else if( mi==4 )
+	{
+	  InertiaMatrix(1,2)=InertiaMatrix(2,1)=density*moi;
+	}
+	else if( mi==5 )
+	{
+	  InertiaMatrix(2,2)=density*moi;
+	}
+	else 
+	{
+	  OV_ABORT("error !?");
+	}
+
+      }
+      
+    } // end for mi 
+    
+    RealArray mI(3);
+    if( numberOfDimensions==3 )
+    {
+      // compute eigenvalues and eigenvectors of Inertia matrix:
+
+      //  
+      OV_ABORT("finish me for 3D");
+    }
+    else
+    {
+      mI(0)=1.; mI(1)=1.; mI(2)=InertiaMatrix(2,2);
+    }
+       
+    // set moments of inertia
+    rigidBody.setMomentsOfInertia(mI(0),mI(1),mI(2));
+
+
+  } // end compute moments of inertia
+      
+  return 0;
+}
 
 
 // =================================================================================================
@@ -5541,145 +5899,153 @@ update( CompositeGrid & cg, GenericGraphicsInterface & gi )
       integrate->defineSurface( bodyNumber,numberOfFaces,boundary ); 
       
 
-      realCompositeGridFunction f(cg);   // *************** fix me *****************
-      f=1.;
-      real surfaceArea=integrate->surfaceIntegral(f,bodyNumber);
-      printF(">>> MovingGrids:Surface area computed by Integrate for body=%i is %10.4e \n",bodyNumber,surfaceArea);
+      // --- Compute properties of the rigid body that have not been specified by the user ----
+      //   (1) center of mass
+      //   (2) Mass of the body given the density
+      //   (3) Moment of inertia matrix given the density
+      computeRigidBodyProperties(  bodyNumber, cg );
+
+      // *** OLD ***
+      // realCompositeGridFunction f(cg);   // *************** fix me *****************
+      // f=1.;
+      // real surfaceArea=integrate->surfaceIntegral(f,bodyNumber);
+      // printF(">>> MovingGrids:Surface area computed by Integrate for body=%i is %10.4e \n",bodyNumber,surfaceArea);
 
       
-      // Precompute the initial centre of mass for any Rigid Body that was not given a center of mass,
-      // assuming a uniform density.
+      // // Precompute the initial centre of mass for any Rigid Body that was not given a center of mass,
+      // // assuming a uniform density.
 
-      if( !(body[bodyNumber]->centerOfMassHasBeenInitialized()) )
-      {
-        const BodyDefinition & bodyDefinition = integrate->getBodyDefinition();
 
-	RealArray x0(3);
-	x0=0.;
-	int numberOfPointsOnBody=0;
+      // if( !(body[bodyNumber]->centerOfMassHasBeenInitialized()) )
+      // {
+      //   const BodyDefinition & bodyDefinition = integrate->getBodyDefinition();
+
+      // 	RealArray x0(3);
+      // 	x0=0.;
+      // 	int numberOfPointsOnBody=0;
 	
-	//  get the grid(s) that form the body
-	const int numberOfFaces=bodyDefinition.numberOfFacesOnASurface(bodyNumber);
-        Index Ib1,Ib2,Ib3;
-        //  *************************************************************
-        //  **** Compute the centre of mass using surface integrals  ****
-        //  *************************************************************
-	for( int dir=0; dir<cg.numberOfDimensions(); dir++ )
-	{
-          f=0.;
-	  for( int face=0; face<numberOfFaces; face++ )
-	  {
-	    int side=-1,axis,grid;
-	    bodyDefinition.getFace(bodyNumber,face,side,axis,grid);
-	    assert( side>=0 && side<=1 && axis>=0 && axis<cg.numberOfDimensions());
-	    assert( grid>=0 && grid<cg.numberOfComponentGrids());
+      // 	//  get the grid(s) that form the body
+      // 	const int numberOfFaces=bodyDefinition.numberOfFacesOnASurface(bodyNumber);
+      //   Index Ib1,Ib2,Ib3;
+      //   //  *************************************************************
+      //   //  **** Compute the centre of mass using surface integrals  ****
+      //   //  *************************************************************
+      // 	for( int dir=0; dir<cg.numberOfDimensions(); dir++ )
+      // 	{
+      //     f=0.;
+      // 	  for( int face=0; face<numberOfFaces; face++ )
+      // 	  {
+      // 	    int side=-1,axis,grid;
+      // 	    bodyDefinition.getFace(bodyNumber,face,side,axis,grid);
+      // 	    assert( side>=0 && side<=1 && axis>=0 && axis<cg.numberOfDimensions());
+      // 	    assert( grid>=0 && grid<cg.numberOfComponentGrids());
 
-	    // printF("\nMovingGrids::detectCollisions: body %i : face %i: (side,axis,grid)=(%i,%i,%i)\n",
-	    //   b,face,side,axis,grid);
+      // 	    // printF("\nMovingGrids::detectCollisions: body %i : face %i: (side,axis,grid)=(%i,%i,%i)\n",
+      // 	    //   b,face,side,axis,grid);
 
-	    MappedGrid & c = cg[grid];
-	    c.update(MappedGrid::THEcenter | MappedGrid::THEvertex );
+      // 	    MappedGrid & c = cg[grid];
+      // 	    c.update(MappedGrid::THEcenter | MappedGrid::THEvertex );
 	  
-            int extra=1;  // do we need extra for periodic ? 
-	    getBoundaryIndex(c.gridIndexRange(),side,axis,Ib1,Ib2,Ib3,extra); // NB to use gridIndexRange, not indexRange
-	    realArray & x = c.vertex();
-            OV_GET_SERIAL_ARRAY(real,x,xLocal);
-            OV_GET_SERIAL_ARRAY(real,f[grid],fLocal);
+      //       int extra=1;  // do we need extra for periodic ? 
+      // 	    getBoundaryIndex(c.gridIndexRange(),side,axis,Ib1,Ib2,Ib3,extra); // NB to use gridIndexRange, not indexRange
+      // 	    realArray & x = c.vertex();
+      //       OV_GET_SERIAL_ARRAY(real,x,xLocal);
+      //       OV_GET_SERIAL_ARRAY(real,f[grid],fLocal);
 	    
-  	    // f[grid](Ib1,Ib2,Ib3)=x(Ib1,Ib2,Ib3,dir);
-	    int includeGhost=1;
-	    bool ok = ParallelUtility::getLocalArrayBounds(f[grid],fLocal,Ib1,Ib2,Ib3,includeGhost);
-	    if( ok )
-	      fLocal(Ib1,Ib2,Ib3)=xLocal(Ib1,Ib2,Ib3,dir);
+      // 	    // f[grid](Ib1,Ib2,Ib3)=x(Ib1,Ib2,Ib3,dir);
+      // 	    int includeGhost=1;
+      // 	    bool ok = ParallelUtility::getLocalArrayBounds(f[grid],fLocal,Ib1,Ib2,Ib3,includeGhost);
+      // 	    if( ok )
+      // 	      fLocal(Ib1,Ib2,Ib3)=xLocal(Ib1,Ib2,Ib3,dir);
 	  
-	  }
-          x0(dir)=integrate->surfaceIntegral(f,bodyNumber)/surfaceArea;
-	}
+      // 	  }
+      //     x0(dir)=integrate->surfaceIntegral(f,bodyNumber)/surfaceArea;
+      // 	}
 
     
-	printF(" **** INFO: body %i has a center of mass: (integrate) (%8.2e,%8.2e,%8.2e)\n",
-                bodyNumber,x0(0),x0(1),x0(2));
+      // 	printF(" **** INFO: body %i has a center of mass: (integrate) (%8.2e,%8.2e,%8.2e)\n",
+      //           bodyNumber,x0(0),x0(1),x0(2));
 
-	body[bodyNumber]->setInitialCentreOfMass(x0);
-      }
+      // 	body[bodyNumber]->setInitialCentreOfMass(x0);
+      // }
 
-      if( !(body[bodyNumber]->massHasBeenInitialized()) && body[bodyNumber]->getDensity()>0   )
-      {
-        // If the mass has not been given but the density has, we compute the mass
+      // if( !(body[bodyNumber]->massHasBeenInitialized()) && body[bodyNumber]->getDensity()>0   )
+      // {
+      //   // If the mass has not been given but the density has, we compute the mass
 
-        // the volume of the body can be computed as a surface integral using the divergence theorem
-        //    
-        //  bodyVolume = int_V div.(x,0,0) dV = int_S (x,0,0).nv dS
-        //     --> set f= (x,0,0).nv = x*n_x
+      //   // the volume of the body can be computed as a surface integral using the divergence theorem
+      //   //    
+      //   //  bodyVolume = int_V div.(x,0,0) dV = int_S (x,0,0).nv dS
+      //   //     --> set f= (x,0,0).nv = x*n_x
 
-        const BodyDefinition & bodyDefinition = integrate->getBodyDefinition();
-	const int numberOfFaces=bodyDefinition.numberOfFacesOnASurface(bodyNumber);
-        Index Ib1,Ib2,Ib3;
+      //   const BodyDefinition & bodyDefinition = integrate->getBodyDefinition();
+      // 	const int numberOfFaces=bodyDefinition.numberOfFacesOnASurface(bodyNumber);
+      //   Index Ib1,Ib2,Ib3;
 
-	f=0.;
-	for( int face=0; face<numberOfFaces; face++ )
-	{
-	  int side=-1,axis,grid;
-	  bodyDefinition.getFace(bodyNumber,face,side,axis,grid);
-	  assert( side>=0 && side<=1 && axis>=0 && axis<cg.numberOfDimensions());
-	  assert( grid>=0 && grid<cg.numberOfComponentGrids());
+      // 	f=0.;
+      // 	for( int face=0; face<numberOfFaces; face++ )
+      // 	{
+      // 	  int side=-1,axis,grid;
+      // 	  bodyDefinition.getFace(bodyNumber,face,side,axis,grid);
+      // 	  assert( side>=0 && side<=1 && axis>=0 && axis<cg.numberOfDimensions());
+      // 	  assert( grid>=0 && grid<cg.numberOfComponentGrids());
 
-	  // printF("\nMovingGrids::detectCollisions: body %i : face %i: (side,axis,grid)=(%i,%i,%i)\n",
-	  //   b,face,side,axis,grid);
+      // 	  // printF("\nMovingGrids::detectCollisions: body %i : face %i: (side,axis,grid)=(%i,%i,%i)\n",
+      // 	  //   b,face,side,axis,grid);
 
-	  MappedGrid & c = cg[grid];
-	  c.update(MappedGrid::THEcenter | MappedGrid::THEvertex | MappedGrid::THEvertexBoundaryNormal );
+      // 	  MappedGrid & c = cg[grid];
+      // 	  c.update(MappedGrid::THEcenter | MappedGrid::THEvertex | MappedGrid::THEvertexBoundaryNormal );
 	  
-          #ifdef USE_PPP
-  	    realSerialArray fLocal; getLocalArrayWithGhostBoundaries(f[grid],fLocal);
-  	    realSerialArray xLocal; getLocalArrayWithGhostBoundaries(c.vertex(),xLocal);
-  	    const realSerialArray & normalLocal = c.vertexBoundaryNormalArray(side,axis);
-          #else
-	    realSerialArray & fLocal = f[grid];
-  	    const realSerialArray & normalLocal = c.vertexBoundaryNormal(side,axis);
-	    const realSerialArray & xLocal = c.vertex();
-	  #endif 
+      //     #ifdef USE_PPP
+      // 	    realSerialArray fLocal; getLocalArrayWithGhostBoundaries(f[grid],fLocal);
+      // 	    realSerialArray xLocal; getLocalArrayWithGhostBoundaries(c.vertex(),xLocal);
+      // 	    const realSerialArray & normalLocal = c.vertexBoundaryNormalArray(side,axis);
+      //     #else
+      // 	    realSerialArray & fLocal = f[grid];
+      // 	    const realSerialArray & normalLocal = c.vertexBoundaryNormal(side,axis);
+      // 	    const realSerialArray & xLocal = c.vertex();
+      // 	  #endif 
 
-          int extra=1;  // do we need extra for periodic ? 
-          getBoundaryIndex(c.gridIndexRange(),side,axis,Ib1,Ib2,Ib3,extra); // NB to use gridIndexRange, not indexRange
+      //     int extra=1;  // do we need extra for periodic ? 
+      //     getBoundaryIndex(c.gridIndexRange(),side,axis,Ib1,Ib2,Ib3,extra); // NB to use gridIndexRange, not indexRange
 
-          int includeGhost=1;
-          bool ok = ParallelUtility::getLocalArrayBounds(f[grid],fLocal,Ib1,Ib2,Ib3,includeGhost);
-	  if( ok )
-	    fLocal(Ib1,Ib2,Ib3)=xLocal(Ib1,Ib2,Ib3,0)*normalLocal(Ib1,Ib2,Ib3,0); 
+      //     int includeGhost=1;
+      //     bool ok = ParallelUtility::getLocalArrayBounds(f[grid],fLocal,Ib1,Ib2,Ib3,includeGhost);
+      // 	  if( ok )
+      // 	    fLocal(Ib1,Ib2,Ib3)=xLocal(Ib1,Ib2,Ib3,0)*normalLocal(Ib1,Ib2,Ib3,0); 
 
-	}
+      // 	}
 
-        // The surface integral should be negative since the outward normal to the body is minus the
-        // outward normal to the grid.
-        real bodyVolume = fabs( integrate->surfaceIntegral(f,bodyNumber) );
-	printF(" **** INFO: Body %i volume from surface-integral = %10.4e \n",bodyNumber,bodyVolume);
+      //   // The surface integral should be negative since the outward normal to the body is minus the
+      //   // outward normal to the grid.
+      //   real bodyVolume = fabs( integrate->surfaceIntegral(f,bodyNumber) );
+      // 	printF(" **** INFO: Body %i volume from surface-integral = %10.4e \n",bodyNumber,bodyVolume);
 	
-        if( numberOfFaces==1 )
-	{
-	  int side=-1,axis,grid;
-          int face=0;
+      //   if( numberOfFaces==1 )
+      // 	{
+      // 	  int side=-1,axis,grid;
+      //     int face=0;
 	  
-	  bodyDefinition.getFace(bodyNumber,face,side,axis,grid);
-	  Mapping & map = cg[grid].mapping().getMapping();
-	  if( map.getClassName()=="AnnulusMapping" )
-	  {
-	    AnnulusMapping & annulus = (AnnulusMapping &)map;
-	    real radius = annulus.innerRadius; 
-            bodyVolume=Pi*radius*radius;
+      // 	  bodyDefinition.getFace(bodyNumber,face,side,axis,grid);
+      // 	  Mapping & map = cg[grid].mapping().getMapping();
+      // 	  if( map.getClassName()=="AnnulusMapping" )
+      // 	  {
+      // 	    AnnulusMapping & annulus = (AnnulusMapping &)map;
+      // 	    real radius = annulus.innerRadius; 
+      //       bodyVolume=Pi*radius*radius;
 
-	    printF(" **** INFO: Body %i is an annulus with radius=%10.4e, true volume = %10.4e \n",
-                    bodyNumber,radius,bodyVolume);
+      // 	    printF(" **** INFO: Body %i is an annulus with radius=%10.4e, true volume = %10.4e \n",
+      //               bodyNumber,radius,bodyVolume);
 
-	  }
-	}
+      // 	  }
+      // 	}
 
-        real density=body[bodyNumber]->getDensity();
-        real mass= bodyVolume*density;
-	body[bodyNumber]->setMass(mass);
-	printF(" **** INFO: Body %i has volume=%9.3e, density=%9.3e; Setting mass=%9.3e\n",
-                bodyNumber,bodyVolume,density,mass);
-      }
+      //   real density=body[bodyNumber]->getDensity();
+      //   real mass= bodyVolume*density;
+      // 	body[bodyNumber]->setMass(mass);
+      // 	printF(" **** INFO: Body %i has volume=%9.3e, density=%9.3e; Setting mass=%9.3e\n",
+      //           bodyNumber,bodyVolume,density,mass);
+      // }
       
       
     } //end if rigid body
