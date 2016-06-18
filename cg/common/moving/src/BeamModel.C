@@ -843,7 +843,7 @@ writeParameterSummary( FILE *file /* = stdout */ )
 {
 
   fPrintF(file,"---------------------------------------------------------------------\n");
-  fPrintF(file,"                        Beam Model\n");
+  fPrintF(file,"                        Beam %i  \n",getBeamID());
   fPrintF(file,"---------------------------------------------------------------------\n");
   fPrintF(file,"Euler-Bernoulli beam: Type=%s\n",(const char*)beamType);
   fPrintF(file,"(density*thickness*b)*w_tt = -K0 w + T w_xx - EI w_xxxx -Kt w_t + Kxxt w_xxt \n");
@@ -1120,9 +1120,10 @@ initialize()
   RealArray &vtilde = dbase.get<RealArray>("vtilde");
   dtilde = u[current];
   vtilde = v[current];
-
-
-
+  
+  //Longfei 20160617: initialize timeStep
+  dbase.get<real>("dt") = getTimeStep(); 
+ 
   dbase.get<bool>("initialized")=true;
 }
 
@@ -5109,7 +5110,7 @@ corrector(real tnp1, real dt )
       fOld=0.;
     }
   
-  if( relaxForce  )
+  if( relaxForce && relaxCorrectionSteps ) //Longfei 20160617: call this only when relaxCorrectionSteps==true
     {
       // ::display(fOld,"fOld","%8.2e ");
       // ::display(f3,"f3","%8.2e ");
