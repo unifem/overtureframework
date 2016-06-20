@@ -25,8 +25,6 @@
 # ---------------------
 # Set default parameters: 
 $model="linearBeam";
-#Longfei: BM option FEM or FD
-$BM="FEM";
 $tz="trig"; $bcn = "c"; $cg="line"; $suffix=""; 
 $en="max"; $ngStart=1; $ng=4; $tf=.5;  $tp=.1; $degreeX=2; $degreeT=2; $fx=2.; $ft=2.; $order=2; $nd=2; $cfl=.5; 
 $Em=1.; $T=1.; $rhos=100.; $debug=0; $orderOfProjection=2; 
@@ -35,18 +33,19 @@ $tbmCmd = "$CGBUILDPREFIX/unitTests/bin/tbm";  # command we run
 $cmdDir="$ENV{CG}/unitTests/cmd"; 
 $alwaysCompute=1; 
 $showAllComponents=1;  # set to 1 to include all components in the table.
-#Longfei: time-stepping options
-$predictor="newmark2Implicit";
-$corrector="newmarkCorrector";
 $Kxxt=0.;
 $smooth=0;
 $smoothOrder=4; # 4 or 6
 $numberOfSmooths=1;
-$
+#Longfei: new options
+$predictor="newmark2Implicit";
+$corrector="newmarkCorrector";
+$BM="FEM";
+$useSameStencilSize=1;
 #
 GetOptions( "model=s"=>\$model,"BM=s"=>\$BM,"en=s"=>\$en,"ng=i"=>\$ng,"bcn=s"=>\$bcn,"cg=s"=>\$cg,"tf=f"=>\$tf,"tp=f"=>\$tp,\
             "Em=f"=>\$Em,"T=f"=>\$T,"tz=s"=>\$tz,"fx=f"=>\$fx,"ft=f"=>\$ft,"order=i"=>\$order,"alwaysCompute=i"=>\$alwaysCompute,\
-            "showAllComponents=i"=>\$showAllComponents,"orderOfProjection=i"=>\$orderOfProjection,\
+            "showAllComponents=i"=>\$showAllComponents,"orderOfProjection=i"=>\$orderOfProjection,"useSameStencilSize=i"=>\$useSameStencilSize,\
             "cfl=f"=>\$cfl,"degreeX=f"=>\$degreeX,"degreeT=f"=>\$degreeT,"debug=i"=>\$debug,\
             "tbmCmd=s"=>\$tbmCmd,"ngStart=i"=>\$ngStart,"rhos=f"=>\$rhos,"suffix=s"=>\$suffix,"predictor=s"=>\$predictor, "corrector=s"=>\$corrector,"Kxxt=f"=>\$Kxxt,\
 	    "smooth=i"=>\$smooth,"smoothOrder=i"=>\$smoothOrder,"numberOfSmooths=i"=>\$numberOfSmooths );
@@ -72,7 +71,7 @@ $smoothLabel = "smooth=$smooth, smoothOrder=$smoothOrder, numberOfSmooths=$numbe
 $caption= "\\caption\{tbm, $model, $name, bcn=$bcn, \$ t=$tf\$, \$ E=$Em\$, \$ rhos=$rhos\$, \$ T=$T\$,  orderOfProjection=$orderOfProjection, $smoothLable, $tzLabel, cfl=$cfl, $date}\\label\{table:$name}"; 
 $outputFile="$name" . ".ConvTable.tex"; 
 # 
-$options = "-BM=$BM -predictor=$predictor  -corrector=$corrector  -tz=$tz -degreex=$degreeX -degreet=$degreeT -bc=$bcn -Em=$Em -tension=$T -rhos=$rhos -fx=$fx -ft=$ft -tf=$tf -tp=$tp -orderOfProjection=$orderOfProjection -cfl=$cfl -Kxxt=$Kxxt -smooth=$smooth  -smoothOrder=$smoothOrder  -numberOfSmooths=$numberOfSmooths  -go=go";
+$options = "-BM=$BM -predictor=$predictor  -corrector=$corrector -useSameStencilSize=$useSameStencilSize -tz=$tz -degreex=$degreeX -degreet=$degreeT -bc=$bcn -Em=$Em -tension=$T -rhos=$rhos -fx=$fx -ft=$ft -tf=$tf -tp=$tp -orderOfProjection=$orderOfProjection -cfl=$cfl -Kxxt=$Kxxt -smooth=$smooth  -smoothOrder=$smoothOrder  -numberOfSmooths=$numberOfSmooths  -go=go";
 if( $cg eq "line" ){\
 $grid1="Line10"; $gName1 = "Line10";\
 $grid2="Line20"; $gName2 = "Line20";\

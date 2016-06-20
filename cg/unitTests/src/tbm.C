@@ -1426,12 +1426,12 @@ main(int argc, char *argv[])
       beamModelType=nonlinearBeamModel;
     }
     // Longfei 20160116: determine which beam model at run time
-    else if(answer=="Finite Element")
+    else if(answer=="FEMBeamModel")
       {
 	printF("testing FEMBeamModel\n");
 	tbm.pbeam = new FEMBeamModel;
       }
-    else if(answer=="Finite Difference")
+    else if(answer=="FDBeamModel")
       {
 	printF("testing FDBeamModel\n");
 	tbm.pbeam = new FDBeamModel;
@@ -1441,8 +1441,8 @@ main(int argc, char *argv[])
     {
       if(tbm.pbeam==NULL)
 	{
-	  printF("Warning: beam model is NULL. Choose FEM or FD first");
-	  continue;
+	  printF("Warning: beam model is NULL. Use FEMBeamModel by default for backward compatibility");
+	  tbm.pbeam = new FEMBeamModel;
 	}
       
       

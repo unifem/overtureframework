@@ -17,13 +17,13 @@ $go="halt";
 #Longfei: new options
 $predictor="newmark2Implicit";
 $corrector="newmarkCorrector";
-$BM="Finite Element";
+$BM="FEM";
 $useSameStencilSize=1;
 #
 #
 GetOptions( "nElem=i"=>\$nElem,"cfl=f"=>\$cfl,"Em=f"=>\$Em,"tension=f"=>\$tension,"degreet=i"=>\$degreet,\
             "degreex=i"=>\$degreex, "bc=s"=>\$bc, "tz=s"=>\$tz, "useNewTri=i"=>\$useNewTri,"standingFSI=i"=>\$standingFSI,\
-            "tf=f"=>\$tf,"tp=f"=>\$tp,"fx=f"=>\$fx,"ft=f"=>\$ft,"rhos=f"=>\$rhos,"hs=f"=>\$hs,"debug=i"=>\$debug,\
+            "tf=f"=>\$tf,"tp=f"=>\$tp,"fx=f"=>\$fx,"ft=f"=>\$ft,"rhos=f"=>\$rhos,"hs=f"=>\$hs,"debug=i"=>\$debug,"thickness=f"=>\$hs,\
             "K0=f"=>\$K0,"Kt=f"=>\$Kt,"Kxxt=f"=>\$Kxxt,"orderOfProjection=i"=>\$orderOfProjection,"smooth=i"=>\$smooth,\
             "numberOfSmooths=i"=>\$numberOfSmooths,"smoothOrder=i"=>\$smoothOrder,"eigenmode=i"=>\$eigenmode, \
 	    "predictor=s"=>\$predictor, "corrector=s"=>\$corrector,"BM=s"=>\$BM,"useSameStencilSize=i"=>\$useSameStencilSize,"go=s"=>\$go );
@@ -34,8 +34,8 @@ if( $go eq "run" || $go eq "go" ){ $go = "movie mode\n exit\n exit"; }
 #
 linear beam model
 #Longfei 20160116: new options added: FEM or FD:
-if($BM eq "FEM") {$BM = "Finite Element";}
-if($BM eq "FD"){$BM="Finite Difference";}
+if($BM eq "FEM") {$BM = "FEMBeamModel";}
+if($BM eq "FD"){$BM="FDBeamModel";}
 $BM
 # 
 tFinal: $tf
@@ -118,14 +118,14 @@ contour
 #plot grid points (toggle)
 #ghost lines
 #2
-#  uErr
-#  add vErr
+  uErr
+  add vErr
+  add aErr
 #  add uxErr
 #  add vxErr
-#  add aErr
-    u 
-    add v
-    add a
+#    u 
+#    add v
+#    add a
 #  add ux
 #  add vx
 #  add ax

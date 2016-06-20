@@ -5,7 +5,7 @@ if 0;
 # 
 # -conv= conv directory (and directory for output). .. So you can run the script outside the conv dir, e.g. for parallel
 # 
-require "ctime.pl"; 
+#require "ctime.pl"; 
 
 use Getopt::Long; use Getopt::Std;
 
@@ -57,8 +57,9 @@ $cmd="";
 $alwaysCompute=0; # if 1 always compute errors, otherwise look for computed results in a saved check file.
 $outputFile=""; # name of final TeX file with errors and convergence rates
 $closeFile="false";
-$date=&ctime(time);  chop($date);  # here is the date
-
+#Longfei: ctime.pl is not supported in perl 5. use localtime() to get the date string
+#$date=&ctime(time);  chop($date);  # here is the date
+$date=localtime();  # new way to get $date
 
 @ignoreComponent = (); # specify any components to ignore by setting ignoreComponent[$component]=1; 
 
