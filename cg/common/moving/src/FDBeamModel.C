@@ -921,7 +921,7 @@ factorTridiagonalSolver( const aString & tridiagonalSolverName)
 	    }
 	  else if(bc==pinned || bc== clamped)
 	    {
-	      // Replace eqn on second ghost line with compatibility bc
+	      //To do: Replace eqn on second ghost line with compatibility bc
 	      modifyMatrixForExtrapolation(at,bt,ct,dt,et,ib-2*is,side);
 	    }
 	  else
@@ -1227,7 +1227,7 @@ assignBoundaryConditions( real t, RealArray & u, RealArray & v, RealArray & a,co
 	      
 	  if(false)
 	    {
-	      // check if the ghost points are compute correctly
+	      // check if the ghost points are computed correctly
 	      RealArray  ue,ve,ae;
 	      getExactSolution(t,ue,ve,ae);
 	      real errug0,errug1,errug2,errvg0, errvg1,errvg2,errag0, errag1,errag2;
