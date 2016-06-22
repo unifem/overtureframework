@@ -2939,8 +2939,12 @@ advanceElasticBeam(real t1, real t2, real t3,
 
     if( numberOfDimensions==2 )
     {
+      //Longfei 20160621: old
       // add to the applied force on the beam
-      pBeamModel->addForce( tForce,x0,stressLocal,normal2,Ib1,Ib2,Ib3 );
+      //pBeamModel->addForce( tForce,x0,stressLocal,normal2,Ib1,Ib2,Ib3 );
+      // new: we now separate addForce and setSurfaceForce.
+      //         the surfaceForce consists contributions from all faces of the beam
+      pBeamModel->setSurfaceForce( tForce,x0,stressLocal,normal2,Ib1,Ib2,Ib3 );
     }
     else if( numberOfDimensions==3)
     {
@@ -2948,7 +2952,10 @@ advanceElasticBeam(real t1, real t2, real t3,
     }
     
   } // end for face
-  
+
+  //Longfei 20160621:
+  // now the surfaceForce has included contributions from all faces, we add it to the current force
+  pBeamModel->addForce();
   
   // --------------------------
   // ---- advance the beam ----

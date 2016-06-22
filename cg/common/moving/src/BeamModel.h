@@ -105,8 +105,12 @@ public:
 
   // Longfei 20160115: Empty definition for base class. Each derived class implements its own version. Make it pure virtual??? This is an interface function called by DeformingBodyMotion
   // Add to the force on the beam 
-  virtual void addForce(const real & tf, const RealArray & x0, const RealArray & traction, const RealArray & normal,
-			const Index & Ib1, const Index & Ib2,  const Index & Ib3 )=0;
+  // virtual void addForce(const real & tf, const RealArray & x0, const RealArray & traction, const RealArray & normal,
+  // 			const Index & Ib1, const Index & Ib2,  const Index & Ib3 )=0;
+
+  //Longfei 20160621: new addForce function that add the surfaceForce to the current force
+  //                           we now separate  setSurfaceForce and addForce
+  virtual void addForce()=0;
 
   // ???Longfei 20160329: this function seems to be unused ... remove for now
   // Accumulate a pressure force to the beam from a fluid element.
@@ -204,15 +208,15 @@ public:
   //Longfei 20160206: new function to factor block  tridiangnal solvers
   // for FEMBeamModel and/or projection between beam surface and beam neutal line
   int factorBlockTridiagonalSolver(const aString & tridiagonalSolverName);
-  
+
+  // convert BoundaryCondition to its name in a string
+  aString getBCName(const BoundaryCondition & bc) const;
+
   // Longfei 20160115: applies to all derived beam models. 
   // make it non-virtual for now.
   // Return the current force of the structure.
   //renamed force() to getCurrentForce()
   const RealArray& getCurrentForce() const;
-
-  // convert BoundaryCondition to its name in a string
-  aString getBCName(const BoundaryCondition & bc) const;
 
     // convert TimeSteppingMethod to its name in a string
   aString getTSName(const TimeSteppingMethod & ts) const;

@@ -25,9 +25,12 @@ public:
   virtual void addInternalForces( const real t, RealArray & f );
   
   // Add to the force on the beam
-  virtual void addForce(const real & tf, const RealArray & x0, const RealArray & traction, 
-			const RealArray & normal,const Index & Ib1, const Index & Ib2,  
-			const Index & Ib3 );
+  // virtual void addForce(const real & tf, const RealArray & x0, const RealArray & traction, 
+  // 			const RealArray & normal,const Index & Ib1, const Index & Ib2,  
+  // 			const Index & Ib3 );
+  // Longfei 20160621: new addForce() function, we now separate setSurfaceForce and addForce
+  //                            addForce() adds the surfaceForce to the current force
+  virtual void addForce();
 
   // assign boundary conditions
   virtual int assignBoundaryConditions( real t, RealArray & x, RealArray & v, RealArray & a, const RealArray & f);

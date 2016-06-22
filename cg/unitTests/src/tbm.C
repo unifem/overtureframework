@@ -728,8 +728,9 @@ checkForce()
     normal(Ib1,Ib2,Ib3,1)=1.;
       
     // Assign forces to points on the beam 
-   
-    beam.addForce(  tf,xi,fi,normal,Ib1,Ib2,Ib3 );
+    // Longfei 20160621: we now separate setSurfaceForce and addForce
+    beam.setSurfaceForce(  tf,xi,fi,normal,Ib1,Ib2,Ib3 );
+    beam.addForce();
       
     const RealArray & force = beam.getCurrentForce();
     ::display(force(Range(0,2*nElem,2)),"Top (element) force","%8.2e ");
@@ -750,7 +751,9 @@ checkForce()
       fi(i,0,0,0) = 0.; fi(i,0,0,1) = FORCE(xi(i)); 
     }
 
-    beam.addForce(  tf,xi,fi,normal,Ib1,Ib2,Ib3 );
+    // Longfei 20160621: we now separate setSurfaceForce and addForce
+    beam.setSurfaceForce(  tf,xi,fi,normal,Ib1,Ib2,Ib3 );
+    beam.addForce();
       
     ::display(force(Range(0,2*nElem,2)),"Bottom force","%8.2e ");
 
@@ -971,8 +974,10 @@ checkInternalForce()
 
       
     // Assign forces to points on the beam
-    beam.resetForce();
-    beam.addForce(  tf,xi,ftz,normal,Ib1,Ib2,Ib3 );
+    beam.resetForce(); // reset the surfaceForce
+    // Longfei 20160621: we now separate setSurfaceForce and addForce
+    beam.setSurfaceForce(  tf,xi,ftz,normal,Ib1,Ib2,Ib3 );
+    beam.addForce();
 
     const RealArray & force = beam.getCurrentForce();
     ::display(force(Range(0,2*nElem,2)),"Top (element) force","%8.2e ");

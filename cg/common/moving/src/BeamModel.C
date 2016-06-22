@@ -3323,7 +3323,8 @@ interpolateThirdDerivative(const RealArray& X,
 
 
 
-
+//Longfei: new...
+// reset dbase.get<RealArray>("surfaceForce");
 void BeamModel::
 resetForce()
 {

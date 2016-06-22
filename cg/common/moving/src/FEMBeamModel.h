@@ -25,9 +25,13 @@ public:
   //public interface is hanlded via base class.
 private:
   // Add to the force on the beam
-  virtual void addForce(const real & tf, const RealArray & x0, const RealArray & traction, 
-			const RealArray & normal,const Index & Ib1, const Index & Ib2,  
-			const Index & Ib3 );
+  // virtual void addForce(const real & tf, const RealArray & x0, const RealArray & traction, 
+  // 			const RealArray & normal,const Index & Ib1, const Index & Ib2,  
+  // 			const Index & Ib3 );
+  // Longfei 20160621: new addForce() function, we now separate setSurfaceForce and addForce
+  //                            addForce() adds the surfaceForce to the current force
+  virtual void addForce();
+  
 
   // ??? Longfei 20160329: this function seems unused... remove for now
   // Accumulate a pressure force to the beam from a fluid element.

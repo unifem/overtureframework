@@ -53,6 +53,7 @@ FDBeamModel::
 
 
 
+// Longfei 20160621: old
 // =================================================================================================
 /// /brief Assign the force on the beam
 /// /param x0 (input) : array of (undeformed) locations on the beam surface
@@ -60,16 +61,45 @@ FDBeamModel::
 /// /param normal (input) : normal to the deformed surface 
 /// /param Ib1,Ib2,Ib3 (input) : index of points on the boundary.
 // =================================================================================================
+// void FDBeamModel::
+// addForce(const real & tf, const RealArray & x0, const RealArray & traction, const RealArray & normal,  
+// 	 const Index & Ib1, const Index & Ib2,  const Index & Ib3 )
+// {
+//   const int & current = dbase.get<int>("current"); 
+//   std::vector<RealArray> & f = dbase.get<std::vector<RealArray> >("f"); // force
+//   RealArray & fc = f[current];  // force at current time
+  
+//   // compute the surfaceForce load vector
+//   setSurfaceForce(tf, x0, traction, normal, Ib1, Ib2, Ib3 );
+  
+//   RealArray & sf = dbase.get<RealArray>("surfaceForce"); // this is a load vector
+
+//   //project the load vector to nodal values
+//   const int & numElem = dbase.get<int>("numElem");
+//   solveBlockTridiagonal(sf, sf, "massMatrixSolverNoBC" );
+//   Index I1 = Range(0,numElem);
+//   Index J1=2*I1;  
+//   fc(I1,0,0,0) = sf(J1,0,0,0); // get the surfaceForce nodal values 
+
+
+//   if( false )
+//     {
+//       const RealArray &time=dbase.get<RealArray>("time");
+//       ::display(fc,sPrintF("-- BM -- addForce : fc after projected to nodal values, t=%9.3e\n",time(current)),"%9.2e ");
+//     }
+  
+
+//   return;
+  
+// }
+
+// Longfei 20160621: new addForce() to add the surface velocity to the current force
 void FDBeamModel::
-addForce(const real & tf, const RealArray & x0, const RealArray & traction, const RealArray & normal,  
-	 const Index & Ib1, const Index & Ib2,  const Index & Ib3 )
+addForce( )
 {
   const int & current = dbase.get<int>("current"); 
   std::vector<RealArray> & f = dbase.get<std::vector<RealArray> >("f"); // force
   RealArray & fc = f[current];  // force at current time
-  
-  // compute the surfaceForce load vector
-  setSurfaceForce(tf, x0, traction, normal, Ib1, Ib2, Ib3 );
   
   RealArray & sf = dbase.get<RealArray>("surfaceForce"); // this is a load vector
 
@@ -91,6 +121,8 @@ addForce(const real & tf, const RealArray & x0, const RealArray & traction, cons
   return;
   
 }
+
+
 
 // ======================================================================================
 /// \brief initialize the beam model

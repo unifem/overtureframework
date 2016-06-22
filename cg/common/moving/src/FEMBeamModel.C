@@ -98,7 +98,7 @@ FEMBeamModel::
 
 
 
-
+//Longfei 20160621: old
 // =================================================================================================
 /// /brief Assign the force on the beam
 /// /param x0 (input) : array of (undeformed) locations on the beam surface
@@ -106,17 +106,163 @@ FEMBeamModel::
 /// /param normal (input) : normal to the deformed surface 
 /// /param Ib1,Ib2,Ib3 (input) : index of points on the boundary.
 // =================================================================================================
+// void FEMBeamModel::
+// addForce(const real & tf, const RealArray & x0, const RealArray & traction, const RealArray & normal,  
+// 	 const Index & Ib1, const Index & Ib2,  const Index & Ib3 )
+// {
+
+//   const int & current = dbase.get<int>("current"); 
+//   std::vector<RealArray> & f = dbase.get<std::vector<RealArray> >("f"); // force
+//   RealArray & fc = f[current];  // force at current time
+  
+//   // compute the surfaceForce load vector
+//   setSurfaceForce(tf, x0, traction, normal, Ib1, Ib2, Ib3 );
+  
+//   fc = dbase.get<RealArray>("surfaceForce"); // pass the updated surface force to fc
+
+//   if( false )
+//     {
+//       const RealArray &time=dbase.get<RealArray>("time");
+//       ::display(fc,sPrintF("-- BM -- addForce : fc after addToElementIntegral, t=%9.3e\n",time(current)),"%9.2e ");
+//     }
+  
+
+//   return;
+
+
+//   // // ** old way**
+
+//   // // Jb1, Jb2, Jb3 : for looping over cells instead of grid points -- decrease by 1 along active axis
+//   // Index Jb1=Ib1, Jb2=Ib2, Jb3=Ib3;
+//   // Index Jg1=Ib1, Jg2=Ib2, Jg3=Ib3;
+//   // int ia, ib; // index for boundary points
+//   // int iga, igb; // index for ghost points
+//   // int axis=-1, is1=0, is2=0, is3=0;
+//   // if( Jb1.getLength()>1 )
+//   // { // grid points on boundary are along axis=0
+//   //   axis=0; is1=1;
+//   //   ia=Ib1.getBase(); ib=Ib1.getBound();
+//   //   Jb1=Range(Jb1.getBase(),Jb1.getBound()-1); // decrease length by 1
+//   //   assert( Jb2.getLength()==1 );
+//   //   Jg1=Range(Jg1.getBase()-1,Jg1.getBound()+1); // add ghost
+//   //   iga = Jg1.getBase(); igb=Jg1.getBound();
+//   // }
+//   // else
+//   // { // grid points on boundary are along axis=1
+//   //   axis=1; is2=1;
+//   //   ia=Ib2.getBase(); ib=Ib2.getBound();
+//   //   Jb2=Range(Jb2.getBase(),Jb2.getBound()-1); // decrease length by 1
+//   //   assert( Jb1.getLength()==1 );
+//   //   Jg2=Range(Jg2.getBase()-1,Jg2.getBound()+1); // add ghost
+//   //   iga = Jg2.getBase(); igb=Jg2.getBound();
+//   // }
+//   // assert( axis>=0 );
+  
+  
+//   // const int & orderOfGalerkinProjection = dbase.get<int>("orderOfGalerkinProjection");
+//   // const int orderOfAccuracyForDerivative=orderOfGalerkinProjection;
+
+//   // RealArray fDotN(Jg1,Jg2,Jg3); // add ghost
+
+//   // int iv[3], &i1=iv[0], &i2=iv[1], &i3=iv[2];
+//   // FOR_3D(i1,i2,i3,Ib1,Ib2,Ib3)
+//   // {
+//   //   fDotN(iv[axis])= (traction(i1,i2,i3,0)*normal(i1,i2,i3,0)+
+//   // 	              traction(i1,i2,i3,1)*normal(i1,i2,i3,1) );
+//   // }
+//   // // extrapolate ghost
+//   // if( orderOfAccuracyForDerivative==4 && igb > iga+5 )
+//   // { // this is needed for fourth-order accuracy 
+//   //   fDotN(iga)=5.*fDotN(iga+1)-10.*fDotN(iga+2)+10.*fDotN(iga+3)-5.*fDotN(iga+4)+fDotN(iga+5);
+//   //   fDotN(igb)=5.*fDotN(igb-1)-10.*fDotN(igb-2)+10.*fDotN(igb-3)-5.*fDotN(igb-4)+fDotN(igb-5);
+//   // }
+//   // else if( orderOfAccuracyForDerivative==4 &&  igb > iga+4 )
+//   // {
+//   //   fDotN(iga)=4.*fDotN(iga+1)-6.*fDotN(iga+2)+4.*fDotN(iga+3)-fDotN(iga+4);
+//   //   fDotN(igb)=4.*fDotN(igb-1)-6.*fDotN(igb-2)+4.*fDotN(igb-3)-fDotN(igb-4);
+//   // }
+//   // else if( igb > iga+3 )
+//   // {
+//   //   fDotN(iga)=3.*fDotN(iga+1)-3.*fDotN(iga+2)+fDotN(iga+3);
+//   //   fDotN(igb)=3.*fDotN(igb-1)-3.*fDotN(igb-2)+fDotN(igb-3);
+//   // }
+//   // else
+//   // {
+//   //   assert( igb> iga+2 );
+//   //   fDotN(iga)=2.*fDotN(iga+1)-fDotN(iga+2);
+//   //   fDotN(igb)=2.*fDotN(igb-1)-fDotN(igb-2);
+//   // }
+ 
+//   //   // printF("--BM-- addForce : tf=%9.3e (p1,p2)=(%8.2e,%8.2e)\n",tf,p1,p2);
+//   // real beamLength=L;
+//   // const real dx = beamLength/numElem;  
+//   // FOR_3(i1,i2,i3,Jb1,Jb2,Jb3)
+//   // {
+//   //   int i1p=i1+is1, i2p=i2+is2, i3p=i3+is3;
+//   //   real f1x, f2x;
+//   //   if( orderOfAccuracyForDerivative==2 )
+//   //   {
+//   //     f1x = (fDotN(iv[axis]+1)-fDotN(iv[axis]-1))/(2.*dx);
+//   //     f2x = (fDotN(iv[axis]+2)-fDotN(iv[axis]  ))/(2.*dx);
+//   //   }
+//   //   else
+//   //   {
+//   //     int i=iv[axis];
+//   //     if( i-2 >= iga && i+2 <= igb )
+//   //       f1x = ( 8.*(fDotN(i+1)-fDotN(i-1)) - fDotN(i+2) +fDotN(i-2) )/(12.*dx);
+//   //     else if( i==ia && i+4 <=igb )
+//   //     { // fourth-order one-sided
+//   //       f1x = ( -(25./12.)*fDotN(i) + 4.*fDotN(i+1) -3.*fDotN(i+2) + (4./3.)*fDotN(i+3) -.25*fDotN(i+4) )/dx;
+//   //     }
+//   //     else
+//   // 	f1x = (fDotN(i+1)-fDotN(i-1))/(2.*dx);
+      
+//   //     i=iv[axis]+1;
+//   //     if( i-2 >= iga && i+2 <= igb )
+//   //       f2x = ( 8.*(fDotN(i+1)-fDotN(i-1)) - fDotN(i+2) +fDotN(i-2) )/(12.*dx);
+//   //     else if( i==ib && i-4 >=iga )
+//   //     { // fourth-order one-sided
+//   //       f2x = -( -(25./12.)*fDotN(i) + 4.*fDotN(i-1) -3.*fDotN(i-2) + (4./3.)*fDotN(i-3) -.25*fDotN(i-4) )/dx;
+//   //     }
+//   //     else
+//   // 	f2x = (fDotN(i+1)-fDotN(i-1))/(2.*dx);
+//   //   }
+    
+//   //   printF("--BM-- addForce: x0=[%8.2e,%8.2e] f1=%8.2e f1x=%8.2e, x0=[%8.2e,%8.2e] f2=%8.2e f2x=%8.2e\n",
+//   // 	   x0(i1,i2,i3,0),x0(i1,i2,i3,1),  fDotN(iv[axis]), f1x, 
+//   //          x0(i1p,i2p,i3p,0),x0(i1p,i2p,i3p,1), fDotN(iv[axis]+1), f2x );    
+
+//   //   addForce(tf,
+//   // 	     x0(i1,i2,i3,0), 
+//   // 	     x0(i1,i2,i3,1),  fDotN(iv[axis]), f1x,
+//   // 	     normal(i1,i2,i3,0), normal(i1,i2,i3,1),
+//   // 	     x0(i1p,i2p,i3p,0), 
+//   // 	     x0(i1p,i2p,i3p,1), fDotN(iv[axis]+1), f2x, 
+//   // 	     normal(i1p,i2p,i3p,0), normal(i1p,i2p,i3p,1));
+//   // }
+  
+//   // if( false )
+//   // {
+//   //   const int & numberOfTimeLevels = dbase.get<int>("numberOfTimeLevels");
+//   //   const int & current = dbase.get<int>("current"); 
+
+//   //   RealArray & time = dbase.get<RealArray>("time");
+//   //   std::vector<RealArray> & f = dbase.get<std::vector<RealArray> >("f"); // force
+
+//   //   RealArray & fc = f[current];  // force at current time
+//   //   ::display(fc,sPrintF("--BM-- addForce:END: : fc at t=%9.3e",tf),"%8.2e ");
+//   // }
+// }
+
+
+// Longfei 20160621: new addForce() to add the surface velocity to the current force
 void FEMBeamModel::
-addForce(const real & tf, const RealArray & x0, const RealArray & traction, const RealArray & normal,  
-	 const Index & Ib1, const Index & Ib2,  const Index & Ib3 )
+addForce( )
 {
 
   const int & current = dbase.get<int>("current"); 
   std::vector<RealArray> & f = dbase.get<std::vector<RealArray> >("f"); // force
   RealArray & fc = f[current];  // force at current time
-  
-  // compute the surfaceForce load vector
-  setSurfaceForce(tf, x0, traction, normal, Ib1, Ib2, Ib3 );
   
   fc = dbase.get<RealArray>("surfaceForce"); // pass the updated surface force to fc
 
@@ -128,131 +274,6 @@ addForce(const real & tf, const RealArray & x0, const RealArray & traction, cons
   
 
   return;
-
-
-  // // ** old way**
-
-  // // Jb1, Jb2, Jb3 : for looping over cells instead of grid points -- decrease by 1 along active axis
-  // Index Jb1=Ib1, Jb2=Ib2, Jb3=Ib3;
-  // Index Jg1=Ib1, Jg2=Ib2, Jg3=Ib3;
-  // int ia, ib; // index for boundary points
-  // int iga, igb; // index for ghost points
-  // int axis=-1, is1=0, is2=0, is3=0;
-  // if( Jb1.getLength()>1 )
-  // { // grid points on boundary are along axis=0
-  //   axis=0; is1=1;
-  //   ia=Ib1.getBase(); ib=Ib1.getBound();
-  //   Jb1=Range(Jb1.getBase(),Jb1.getBound()-1); // decrease length by 1
-  //   assert( Jb2.getLength()==1 );
-  //   Jg1=Range(Jg1.getBase()-1,Jg1.getBound()+1); // add ghost
-  //   iga = Jg1.getBase(); igb=Jg1.getBound();
-  // }
-  // else
-  // { // grid points on boundary are along axis=1
-  //   axis=1; is2=1;
-  //   ia=Ib2.getBase(); ib=Ib2.getBound();
-  //   Jb2=Range(Jb2.getBase(),Jb2.getBound()-1); // decrease length by 1
-  //   assert( Jb1.getLength()==1 );
-  //   Jg2=Range(Jg2.getBase()-1,Jg2.getBound()+1); // add ghost
-  //   iga = Jg2.getBase(); igb=Jg2.getBound();
-  // }
-  // assert( axis>=0 );
-  
-  
-  // const int & orderOfGalerkinProjection = dbase.get<int>("orderOfGalerkinProjection");
-  // const int orderOfAccuracyForDerivative=orderOfGalerkinProjection;
-
-  // RealArray fDotN(Jg1,Jg2,Jg3); // add ghost
-
-  // int iv[3], &i1=iv[0], &i2=iv[1], &i3=iv[2];
-  // FOR_3D(i1,i2,i3,Ib1,Ib2,Ib3)
-  // {
-  //   fDotN(iv[axis])= (traction(i1,i2,i3,0)*normal(i1,i2,i3,0)+
-  // 	              traction(i1,i2,i3,1)*normal(i1,i2,i3,1) );
-  // }
-  // // extrapolate ghost
-  // if( orderOfAccuracyForDerivative==4 && igb > iga+5 )
-  // { // this is needed for fourth-order accuracy 
-  //   fDotN(iga)=5.*fDotN(iga+1)-10.*fDotN(iga+2)+10.*fDotN(iga+3)-5.*fDotN(iga+4)+fDotN(iga+5);
-  //   fDotN(igb)=5.*fDotN(igb-1)-10.*fDotN(igb-2)+10.*fDotN(igb-3)-5.*fDotN(igb-4)+fDotN(igb-5);
-  // }
-  // else if( orderOfAccuracyForDerivative==4 &&  igb > iga+4 )
-  // {
-  //   fDotN(iga)=4.*fDotN(iga+1)-6.*fDotN(iga+2)+4.*fDotN(iga+3)-fDotN(iga+4);
-  //   fDotN(igb)=4.*fDotN(igb-1)-6.*fDotN(igb-2)+4.*fDotN(igb-3)-fDotN(igb-4);
-  // }
-  // else if( igb > iga+3 )
-  // {
-  //   fDotN(iga)=3.*fDotN(iga+1)-3.*fDotN(iga+2)+fDotN(iga+3);
-  //   fDotN(igb)=3.*fDotN(igb-1)-3.*fDotN(igb-2)+fDotN(igb-3);
-  // }
-  // else
-  // {
-  //   assert( igb> iga+2 );
-  //   fDotN(iga)=2.*fDotN(iga+1)-fDotN(iga+2);
-  //   fDotN(igb)=2.*fDotN(igb-1)-fDotN(igb-2);
-  // }
- 
-  //   // printF("--BM-- addForce : tf=%9.3e (p1,p2)=(%8.2e,%8.2e)\n",tf,p1,p2);
-  // real beamLength=L;
-  // const real dx = beamLength/numElem;  
-  // FOR_3(i1,i2,i3,Jb1,Jb2,Jb3)
-  // {
-  //   int i1p=i1+is1, i2p=i2+is2, i3p=i3+is3;
-  //   real f1x, f2x;
-  //   if( orderOfAccuracyForDerivative==2 )
-  //   {
-  //     f1x = (fDotN(iv[axis]+1)-fDotN(iv[axis]-1))/(2.*dx);
-  //     f2x = (fDotN(iv[axis]+2)-fDotN(iv[axis]  ))/(2.*dx);
-  //   }
-  //   else
-  //   {
-  //     int i=iv[axis];
-  //     if( i-2 >= iga && i+2 <= igb )
-  //       f1x = ( 8.*(fDotN(i+1)-fDotN(i-1)) - fDotN(i+2) +fDotN(i-2) )/(12.*dx);
-  //     else if( i==ia && i+4 <=igb )
-  //     { // fourth-order one-sided
-  //       f1x = ( -(25./12.)*fDotN(i) + 4.*fDotN(i+1) -3.*fDotN(i+2) + (4./3.)*fDotN(i+3) -.25*fDotN(i+4) )/dx;
-  //     }
-  //     else
-  // 	f1x = (fDotN(i+1)-fDotN(i-1))/(2.*dx);
-      
-  //     i=iv[axis]+1;
-  //     if( i-2 >= iga && i+2 <= igb )
-  //       f2x = ( 8.*(fDotN(i+1)-fDotN(i-1)) - fDotN(i+2) +fDotN(i-2) )/(12.*dx);
-  //     else if( i==ib && i-4 >=iga )
-  //     { // fourth-order one-sided
-  //       f2x = -( -(25./12.)*fDotN(i) + 4.*fDotN(i-1) -3.*fDotN(i-2) + (4./3.)*fDotN(i-3) -.25*fDotN(i-4) )/dx;
-  //     }
-  //     else
-  // 	f2x = (fDotN(i+1)-fDotN(i-1))/(2.*dx);
-  //   }
-    
-  //   printF("--BM-- addForce: x0=[%8.2e,%8.2e] f1=%8.2e f1x=%8.2e, x0=[%8.2e,%8.2e] f2=%8.2e f2x=%8.2e\n",
-  // 	   x0(i1,i2,i3,0),x0(i1,i2,i3,1),  fDotN(iv[axis]), f1x, 
-  //          x0(i1p,i2p,i3p,0),x0(i1p,i2p,i3p,1), fDotN(iv[axis]+1), f2x );    
-
-  //   addForce(tf,
-  // 	     x0(i1,i2,i3,0), 
-  // 	     x0(i1,i2,i3,1),  fDotN(iv[axis]), f1x,
-  // 	     normal(i1,i2,i3,0), normal(i1,i2,i3,1),
-  // 	     x0(i1p,i2p,i3p,0), 
-  // 	     x0(i1p,i2p,i3p,1), fDotN(iv[axis]+1), f2x, 
-  // 	     normal(i1p,i2p,i3p,0), normal(i1p,i2p,i3p,1));
-  // }
-  
-  // if( false )
-  // {
-  //   const int & numberOfTimeLevels = dbase.get<int>("numberOfTimeLevels");
-  //   const int & current = dbase.get<int>("current"); 
-
-  //   RealArray & time = dbase.get<RealArray>("time");
-  //   std::vector<RealArray> & f = dbase.get<std::vector<RealArray> >("f"); // force
-
-  //   RealArray & fc = f[current];  // force at current time
-  //   ::display(fc,sPrintF("--BM-- addForce:END: : fc at t=%9.3e",tf),"%8.2e ");
-  // }
-  
 
 }
 
