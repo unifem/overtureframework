@@ -53,7 +53,10 @@ public:
 
   // modify the pentadiagonal matrix defined by at,...,et for extrapolation
   void modifyMatrixForExtrapolation(RealArray & at,RealArray & bt,RealArray & ct,RealArray & dt,RealArray &et, int ie, int side);
-  
+
+ // Return nodal force values on beam center-line
+  virtual void getForceOnBeam( const real t, RealArray & force );
+
   //Longfei 20160216: new function to factor  tridiangnal solvers for FDBeamModel
   int factorTridiagonalSolver(const aString & tridiagonalSolverName);
 

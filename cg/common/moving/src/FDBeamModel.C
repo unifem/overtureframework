@@ -268,7 +268,18 @@ computeInternalForce(const RealArray& u, const RealArray& v, RealArray& f)
 
     }
   
-
+ const bool isPeriodic = bcLeft==periodic;
+ if(isPeriodic)
+   {
+     // -- assign values on the right boundary node
+     u(numElem,0,0,0) = u(0,0,0,0);
+	      
+     // -- assign values on ghost points
+     f(-1,0,0,0) = f(numElem-1,0,0,0);
+     f(-2,0,0,0) = f(numElem-2,0,0,0);
+     f(numElem+1,0,0,0) = f(1,0,0,0);
+     f(numElem+2,0,0,0) = f(2,0,0,0);
+   }
 
 }
 
@@ -328,6 +339,8 @@ computeAcceleration(const real t,
 
   rhs += f;
 
+  real accelerationScaleFactor=1.;
+
   if( !allowsFreeMotion ) 
     {
       // --- Apply boundary conditions to rhs  ----
@@ -343,7 +356,6 @@ computeAcceleration(const real t,
       // RealArray g;
       // getBoundaryValues( t, g );
       
-      real accelerationScaleFactor=1.;
       if( solverName=="explicitSolver")
 	{
 	  // explicitSolver do not invert anything
@@ -440,131 +452,6 @@ computeAcceleration(const real t,
   if( allowsFreeMotion ) 
     {
       OV_ABORT("Error: FDBeamModel does not support free motion yet....finish me");
-      //   // --- free body motion ---
-      //   const  real * initialBeamTangent = dbase.get<real[2]>("initialBeamTangent");
-      //   const  real * initialBeamNormal = dbase.get<real[2]>("initialBeamNormal");
-      //   const real * bodyForce =  dbase.get<real[2]>("bodyForce");
-
-      //   //std::cout << "Total pressure force = " << totalPressureForce << std::endl;
-      //   linAcceleration[0] = totalPressureForce*normal[0] / totalMass + bodyForce[0] * buoyantMass / totalMass;
-      //   linAcceleration[1] = totalPressureForce*normal[1] / totalMass + bodyForce[1] * buoyantMass / totalMass;
-      //   omegadd = totalPressureMoment / totalInertia;
-
-      //   if (bcLeft == BeamModel::pinned ||
-      // 	  bcLeft == BeamModel::clamped) {
-
-      // 	real wend,wendslope;
-      // 	int elem = 0;
-      // 	real eta = -1.0;
-      // 	interpolateSolution(uc, elem,eta, wend, wendslope);
-      
-      
-      // 	real end[2] = {centerOfMass[0] + normal[0]*wend - tangent[0]*L*0.5,
-      // 		       centerOfMass[1] + normal[1]*wend - tangent[1]*L*0.5};
-      
-      // 	linAcceleration[0] -= penalty*(end[0]-initialEndLeft[0])/totalMass;
-      // 	linAcceleration[1] -= penalty*(end[1]-initialEndLeft[1])/totalMass;
-      
-      // 	real mom = penalty*((end[0]-initialEndLeft[0])*(/*-wend*tangent[0]*/-normal[0]*L*0.5)+
-      // 			    (end[1]-initialEndLeft[1])*(/*-wend*tangent[1]*/-normal[1]*L*0.5));
-      // 	omegadd -= mom / totalInertia;
-
-      // 	real shear = penalty*((end[0]-initialEndLeft[0])*(-normal[0])+
-      // 			      (end[1]-initialEndLeft[1])*(-normal[1]));
-      
-      // 	rhs(0) += shear;
-      //   }
-    
-      //   if (bcRight == BeamModel::pinned ||
-      // 	  bcRight == BeamModel::clamped) {
-
-      // 	real wend,wendslope;
-      // 	int elem = numElem-1;
-      // 	real eta = 1.0;
-      // 	interpolateSolution(uc, elem,eta, wend, wendslope);
-      
-      
-      // 	real end[2] = {centerOfMass[0] + normal[0]*wend - tangent[0]*L*0.5,
-      // 		       centerOfMass[1] + normal[1]*wend - tangent[1]*L*0.5};
-      
-      // 	linAcceleration[0] -= penalty*(end[0]-initialEndRight[0])/totalMass;
-      // 	linAcceleration[1] -= penalty*(end[1]-initialEndRight[1])/totalMass;
-      
-      // 	real mom = penalty*((end[0]-initialEndLeft[0])*(/*-wend*tangent[0]*/normal[0]*L*0.5)+
-      // 			    (end[1]-initialEndLeft[1])*(/*-wend*tangent[1]*/normal[1]*L*0.5));
-      // 	omegadd -= mom / totalInertia;
-
-      // 	real shear = penalty*((end[0]-initialEndRight[0])*(normal[0])+
-      // 			      (end[1]-initialEndRight[1])*(normal[1]));
-      
-      // 	rhs(numElem*2) += shear;
-      //   }
-
-      //   if (bcLeft == BeamModel::clamped) {
-
-      // 	real wend,wendslope;
-      // 	int elem = 0;
-      // 	real eta = -1.0;
-      // 	interpolateSolution(uc, elem,eta, wend, wendslope);
-      
-      
-      // 	real slopeend[2] = {normal[0]*wendslope+tangent[0],
-      // 			    normal[1]*wendslope+tangent[1]};
-      
-      // 	real proj = (-tangent[0]*wendslope+initialBeamNormal[0])*normal[0] + 
-      // 	  (-tangent[1]*wendslope+initialBeamNormal[1])*normal[1] ;
-
-      // 	real err = slopeend[0]*initialBeamNormal[0] + 
-      // 	  slopeend[1]*initialBeamNormal[1] ;
-
-      // 	real mom = 0.1*penalty*err*proj;
-      
-      // 	real rf = 1.0;
-      // 	real & leftCantileverMoment = dbase.get<real>("leftCantileverMoment");
-      // 	leftCantileverMoment = mom*rf + (1.0-rf)*leftCantileverMoment;
-      // 	omegadd -= leftCantileverMoment / totalInertia;
-
-      // 	std::cout << "End slope error = " << err << std::endl;
-      
-      // 	//rhs(1) += mom; 
-      //   }
-
-      //   RealArray ones = f,res;
-      //   ones = 0.0;
-      //   for (int i = 0; i < numElem*2+2; i+=2)
-      // 	ones(i) = linAcceleration[0]*normal[0]+linAcceleration[1]*normal[1];
-
-      //   //printArray(ones,0,1000,0,1000,0,1000,0,1000,0,1000,0,1000);
-    
-      //   multiplyByMassMatrix(ones, res);
-      //   //res *= 1.0/massPerUnitLength*totalMass;
-      //   rhs -= res;
-
-      //   multiplyByMassMatrix(u, res);
-      //   rhs += angularVelocityTilde*angularVelocityTilde*res;
-
-      //   for (int i = 0; i < numElem*2+2; i+=2) 
-      // 	{
-      // 	  ones(i) = -0.5*L+dx*(i/2); //Longfei 20160121: replace le with dx.
-      // 	  ones(i+1) = 1.0;
-      // 	}
-    
-      //   //printArray(ones,0,1000,0,1000,0,1000,0,1000,0,1000,0,1000);
-    
-    
-      //   //real R = 0.0;
-      //   //for (int i = 0; i < numElem*2+2; ++i) 
-      //   //  R += f(i)*ones(i);
-      //   //std::cout << "R = " << R << std::endl;
-    
-      //   //std::cout << "computed pressure moments = " << mult(evaluate(transpose(ones)),f)(0) << " " << totalPressureMoment << std::endl;
-
-      //   multiplyByMassMatrix(ones, res);
-
-      //   //std::cout << "inertias = " << mult(evaluate(transpose(ones)),res)(0) << " " << totalInertia << std::endl;
-
-      //   rhs -= res*omegadd;
-
     }
   // end if allows free motion
   
@@ -578,13 +465,17 @@ computeAcceleration(const real t,
   solveTridiagonal(rhs, a, solverName );
   if(solverName=="explicitSolver")  // M= I, bc for a is not implemented
     {
-      a/=Abar; // explicitSolver solves Abar*utt
-      RealArray utemp=u,vtemp=v; // use the size of u,v
-      //apply bc for a
-      assignBoundaryConditions(t,utemp,vtemp,a,f ); 
+      a/=accelerationScaleFactor; // explicitSolver solves Abar*utt
+      //apply bc for a if not computing internalForce 
+      if(bcLeft!=internalForceBC)
+	{
+	  assert(bcRight!=internalForceBC);
+	  RealArray utemp=u,vtemp=v; // use the size of u,v
+	  assignBoundaryConditions(t,utemp,vtemp,a,f ); 
+	}
     }
 
-  
+
   if( debug & 2 )
     {
       ::display(a,"-- BM -- computeAcceleration: solution a after solve","%11.4e ");
@@ -1426,3 +1317,43 @@ addInternalForces( const real t, RealArray & f )
   f+=fi; // add interalforces to total force
 
 }
+
+
+
+
+// Longfei 20160622: new function for FDBeamModel.
+//                  
+// ===================================================================================================
+/// \brief  Return the nodal force values on the beam reference line.
+///         The force of FDBeamModel is already stored in nodal value, so just return the current force on the grids exclude ghost points
+// ====================================================================================================
+void FDBeamModel::
+getForceOnBeam( const real t, RealArray & force )
+{
+
+  const int & current = dbase.get<int>("current"); 
+  const int & numElem = dbase.get<int>("numElem");
+
+  RealArray & time = dbase.get<RealArray>("time");
+  std::vector<RealArray> & f = dbase.get<std::vector<RealArray> >("f"); // force in nodal values 
+
+  RealArray & fc = f[current];  // force at current time
+  if( fabs(time(current)-t) > 1.e-10*(1.+t) )
+    {
+      printF("-- BM%i -- BeamModel::getForceOnBeam:ERROR: t=%10.3e is not equal to time(current)=%10.3e, current=%i\n",
+	     getBeamID(),t,time(current),current);
+      OV_ABORT("ERROR");
+    }
+
+  force.redim(numElem+1);
+  Index I2,I3,C;
+  I2=I3=C=0;
+  force=fc(Range(0,numElem),I2,I3,C);  // return values on interior and boundary grids
+  
+  if( false )
+    {
+      ::display(force,sPrintF("-- BM -- getForceOnBeam: force at t=%9.3e",t),"%8.2e ");
+    }
+  
+}
+

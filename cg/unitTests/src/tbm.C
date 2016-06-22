@@ -681,8 +681,8 @@ checkForce()
   // Longfei 20160116: member beam is replaced by its pointer pbeam.
   // Create a reference named beam to avoid code changes.
   BeamModel &beam = *pbeam;
-  
-
+  const aString& beamType = beam.getBeamType();
+                                 
   const int numberOfDimensions=2;
   
   const int nElem=beam.getNumberOfElements();
@@ -733,7 +733,11 @@ checkForce()
     beam.addForce();
       
     const RealArray & force = beam.getCurrentForce();
-    ::display(force(Range(0,2*nElem,2)),"Top (element) force","%8.2e ");
+    //Longfei 20160621: modification made to tackle both FD and FEM beam
+    Index I=Range(0,nElem);
+    if(beamType=="FEMBeamModel")
+      I=2*I;
+    ::display(force(I),"Top (element) force","%8.2e ");
     ::display(fe,"Exact force","%8.2e ");
 
     RealArray fc;
@@ -755,7 +759,7 @@ checkForce()
     beam.setSurfaceForce(  tf,xi,fi,normal,Ib1,Ib2,Ib3 );
     beam.addForce();
       
-    ::display(force(Range(0,2*nElem,2)),"Bottom force","%8.2e ");
+    ::display(force(I),"Bottom force","%8.2e ");
 
     beam.getForceOnBeam( tf, fc );  // point-wise force values on the center-line
     ::display(fc,"Force on center-line","%8.2e ");
@@ -948,7 +952,7 @@ checkInternalForce()
     fPrintF(checkFile,"%i %9.2e %10.3e ",0,err,fNorm);
     fPrintF(checkFile,"\n");
 
-
+    /*Longfei 20160622: redudannt with checkForce()
     // -- Now apply a force 
     printF("\n --- Apply a force : density=%e, thickness=%e\n",density,thickness);
 
@@ -1002,7 +1006,7 @@ checkInternalForce()
 
     real maxErr = max(fabs(fs(Ib1,Ib2,Ib3,1)-ft));
     printF("\n +++  numElem = %i, Max error in L(u,v)+f = %8.2e +++\n",numElem,maxErr);
-
+    */
 /* -----
     // RealArray fi(Ib1,Ib2,Ib3,numberOfDimensions
     // beam.addInternalForces( tf, fa )
@@ -1455,6 +1459,8 @@ main(int argc, char *argv[])
       {
 	printF("Change Beam Parameters and initialize the beam model\n");
 	tbm.pbeam->update(cg,gi);
+	//Longfei 20160622: writeParameters after updates
+	tbm.pbeam-> writeParameterSummary();
       }
       else if(  beamModelType==nonlinearBeamModel )
       {

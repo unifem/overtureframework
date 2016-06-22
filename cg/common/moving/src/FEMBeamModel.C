@@ -1196,6 +1196,7 @@ computeAcceleration(const real t,
   rhs += f;
 
   aString tridiagonalSolverName;
+  real accelerationScaleFactor=1.;
 
   if( !allowsFreeMotion ) 
     {
@@ -1210,7 +1211,6 @@ computeAcceleration(const real t,
       getBoundaryValues( t, gt, 1 );
       getBoundaryValues( t, gtt,2 );
 
-      real accelerationScaleFactor=1.;
       if( solverName=="explicitSolver")
 	{
 	  // explicitSolver inverts mass matrix
@@ -1513,7 +1513,7 @@ computeAcceleration(const real t,
   solveBlockTridiagonal(rhs, a, tridiagonalSolverName );
   if(tridiagonalSolverName=="massMatrixSolver")
     {
-      a/=Abar; // massMatrixSolver solves Abar*utt
+      a/=accelerationScaleFactor; // massMatrixSolver solves Abar*utt
     }
 
   

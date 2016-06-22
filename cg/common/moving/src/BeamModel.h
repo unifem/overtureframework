@@ -209,6 +209,7 @@ public:
   // for FEMBeamModel and/or projection between beam surface and beam neutal line
   int factorBlockTridiagonalSolver(const aString & tridiagonalSolverName);
 
+
   // convert BoundaryCondition to its name in a string
   aString getBCName(const BoundaryCondition & bc) const;
 
@@ -223,7 +224,10 @@ public:
 
   // for public access of beamID (read only)
   // Return the beam ID (a unique ID for this beam)
-  int getBeamID() const; 
+  const int& getBeamID() const; 
+
+  //Longfei 20160622:
+  const aString& getBeamType() const;
 
   // Longfei 20160117: applies to all derived beam models. 
   // compute an exact eigenmode solution 
@@ -285,7 +289,7 @@ public:
 
   // Longfei 20160120: made this function virtual
   // Return nodal force values on beam center-line
-  virtual void getForceOnBeam( const real t, RealArray & force );
+  virtual void getForceOnBeam( const real t, RealArray & force )=0;
 
   // Longfei 20160120: this should apply to all beam models
   // Get the beam's mass per unit length ( rho*A = rho*h*b in  2D)
@@ -494,7 +498,7 @@ public:
 
 
   // Compute the internal force in the beam
-  virtual void computeInternalForce( const RealArray& u, const RealArray& v, RealArray& f );
+  virtual void computeInternalForce( const RealArray& u, const RealArray& v, RealArray& f )=0;
 
 
 

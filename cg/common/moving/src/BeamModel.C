@@ -3549,7 +3549,8 @@ setSurfaceVelocity(const real & t, const RealArray & x0, const RealArray & vSurf
   const  real * initialBeamTangent = dbase.get<real[2]>("initialBeamTangent");
   const  real * initialBeamNormal = dbase.get<real[2]>("initialBeamNormal");
   
-  const bool correctForSurfaceRotation=false;  // *CHECK ME* 2015/06/02 
+  //Longfei 20160622:  make correctForSurfaceRotation=true
+  const bool correctForSurfaceRotation=true;  // *CHECK ME* 2015/06/02 
   if( correctForSurfaceRotation )
     {
       // ---  Remove the surface rotation term "W" before projecting the velocity onto the beam reference line ----
@@ -3595,7 +3596,7 @@ setSurfaceVelocity(const real & t, const RealArray & x0, const RealArray & vSurf
 	  if( !allowsFreeMotion ) 
 	    { // -- subtract off "w"
 	      for( int axis=0; axis<rangeDimension; axis++ )
-		vBeam(i1,i2,i3,axis) = vSurface(i1,i2,i3,axis) - normald[axis]*halfThickness;
+		vBeam(i1,i2,i3,axis) = vSurface(i1,i2,i3,axis) - normald[axis]*halfThickness; //Longfei: fixme normal should be in physical space
 	    }
 	  else
 	    {
@@ -4059,16 +4060,6 @@ void BeamModel::recomputeNormalAndTangent() {
   tangent[1] = sin(angle);
 }
 
-// Longfei 20160621: renamed BeamModel::force() to BeamModel::getCurrentForce()
-// Return the current force of the structure.
-//
-const RealArray& BeamModel::getCurrentForce() const
-{
-  const int & current = dbase.get<int>("current"); 
-  std::vector<RealArray> & f = dbase.get<std::vector<RealArray> >("f"); // force
-
-  return f[current];  // force at current time
-}
 
 
 //  =========================================================================================
@@ -5424,13 +5415,13 @@ corrector(real tnp1, real dt )
 
 
 
-
-void  BeamModel::
-computeInternalForce( const RealArray& u, const RealArray& v, RealArray& f )
-{
-  // implementation moved to FEMBeamModel
-  OV_ABORT("Error: BeamModel::computeInternalForce base version called");
-}
+// Longfei 20160622: made this function pure virtual. No longer need this
+// void  BeamModel::
+// computeInternalForce( const RealArray& u, const RealArray& v, RealArray& f )
+// {
+//   // implementation moved to FEMBeamModel
+//   OV_ABORT("Error: BeamModel::computeInternalForce base version called");
+// }
 
 
 
@@ -5451,13 +5442,13 @@ computeInternalForce( const RealArray& u, const RealArray& v, RealArray& f )
 
 
 
-
-void BeamModel::
-getForceOnBeam( const real t, RealArray & force )
-{
-  // implementation moved to FEMBeamModel
-  OV_ABORT("Error: BeamModel::getForceOnBeam base version called");
-}
+// Longfei 20160622: getForceOnBeam is pure virtual now. Do not need this anymore
+// void BeamModel::
+// getForceOnBeam( const real t, RealArray & force )
+// {
+//   // implementation moved to FEMBeamModel
+//   OV_ABORT("Error: BeamModel::getForceOnBeam base version called");
+// }
 
 // ====================================================================================
 /// \brief Output probe info.
@@ -6702,7 +6693,7 @@ update(CompositeGrid & cg, GenericGraphicsInterface & gi )
   if( true )
     {
       printF("-- BM%i -- Parameters are updated:\n",getBeamID());
-      writeParameterSummary();
+      //writeParameterSummary(); // Longfei 20160621: do not print summary here. Parameters are printed when called.
     }
   
   //  pBeamModel->setParameters(I, Em, rho, L, thick, pnorm, nelem, bcl, bcr,x0,y0,(exact==1));
@@ -6798,13 +6789,29 @@ getExactSolutionOption() const
 
 // for public access of beamID (read only)
 // Return the beam ID (a unique ID for this beam)
-int BeamModel::
+const int& BeamModel::
 getBeamID() const
 {
   return dbase.get<int>("beamID");
 }
 
+// for public access of beamType (read only)
+const aString& BeamModel::
+getBeamType() const
+{
+  return beamType;
+}
 
+// Longfei 20160621: renamed BeamModel::force() to BeamModel::getCurrentForce()
+// Return the current force of the structure.
+//
+const RealArray& BeamModel::getCurrentForce() const
+{
+  const int & current = dbase.get<int>("current"); 
+  std::vector<RealArray> & f = dbase.get<std::vector<RealArray> >("f"); // force
+
+  return f[current];  // force at current time
+}
 
 real BeamModel::
 getCurrentTime() const
@@ -6815,8 +6822,8 @@ getCurrentTime() const
 }
 
 
-// make this inline for now. Seems not needed elsewhere
-inline aString BeamModel::
+// make this  for now.
+aString BeamModel::
 getBCName(const BoundaryCondition & bc) const
 {
   return (bc==pinned ? "pinned" : 
