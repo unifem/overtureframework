@@ -3,7 +3,8 @@
 #
 # ----------------------------- get command line arguments ---------------------------------------
 $degreex=2; $degreet=2; $orderOfProjection=2; 
-$thick=.1; $numElem=10; 
+$thick=.1; $numElem=10;
+$BM="FEM";
 GetOptions( "g=s"=>\$grid,"tf=f"=>\$tFinal,"degreex=i"=>\$degreex, "degreet=i"=>\$degreet,\
  "tp=f"=>\$tPlot, "tz=s"=>\$tz, "show=s"=>\$show,"numElem=i"=>\$numElem,"orderOfProjection=i"=>\$orderOfProjection, \
  "thick=f"=>\$thick,"nu=f"=>\$nu,"cfl=f"=>\$cfl,"noplot=s"=>\$noplot,\
@@ -11,10 +12,11 @@ GetOptions( "g=s"=>\$grid,"tf=f"=>\$tFinal,"degreex=i"=>\$degreex, "degreet=i"=>
  "solver=s"=>\$solver,"psolver=s"=>\$psolver,"pc=s"=>\$pc,"outflowOption=s"=>\$outflowOption,"ad4=i"=>\$ad4,\
  "debug=i"=>\$debug,"pdebug=i"=>\$pdebug,"idebug=i"=>\$idebug,"project=i"=>\$project,"cfl=f"=>\$cfl,\
  "restart=s"=>\$restart,"useNewImp=i"=>\$useNewImp,"p0=f"=>\$p0,"addedMass=i"=>\$addedMass,"rhoBeam=f"=>\$rhoBeam,\
- "bdebug=i"=>\$bdebug,"E=f"=>\$E,"ampProjectVelocity=i"=>\$ampProjectVelocity,"dsBeam=f"=>\$dsBeam );
+ "bdebug=i"=>\$bdebug,"E=f"=>\$E,"ampProjectVelocity=i"=>\$ampProjectVelocity,"dsBeam=f"=>\$dsBeam,"BM=s"=>\$BM );
 # -------------------------------------------------------------------------------------------------
 #Longfei 20160116: new options added: FEM or FD:
-Finite Element
+if($BM eq "FEM"){$beamModel="FEMBeamModel";}
+if($BM eq "FD")  {$beamModel="FDBeamModel";}
 standing wave
 change beam parameters
   number of elements: $numElem

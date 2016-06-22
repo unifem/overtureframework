@@ -426,9 +426,9 @@ getBeamPiston( real t, RealArray & u, RealArray & v, RealArray & a ) const
 
   const real & dt = dbase.get<real>("dt");
   if( t<=0 || t<=3.*dt )
-    printF("--BM-- getBeamPiston solution at t=%9.3e, rhos*hs=%8.2e, rho*H=%8.2e, K0=%8.2e, pa=%g pb=%g dpdy=%g"
+    printF("-- BM%i -- getBeamPiston solution at t=%9.3e, rhos*hs=%8.2e, rho*H=%8.2e, K0=%8.2e, pa=%g pb=%g dpdy=%g"
            " w=%g, wt=%g, wtt=%g\n",
-	   t,rhos*hs,rho*fluidHeight,K0,pa,pb,dpdy,w,wt,wtt);
+	   getBeamID(), t,rhos*hs,rho*fluidHeight,K0,pa,pb,dpdy,w,wt,wtt);
 
   const bool xd = dbase.get<bool>("isCubicHermiteFEM");
   const int & numElem = dbase.get<int>("numElem");
@@ -498,7 +498,7 @@ getBeamUnderPressure( real t, RealArray & u, RealArray & v, RealArray & a ) cons
   
   const real & dt = dbase.get<real>("dt");
   if( t<=0 || t<=3.*dt )
-    printF("--BM-- getBeamUnderPressure solution at t=%9.3e, dp=%8.2e\n",t,dp);
+    printF("-- BM%i -- getBeamUnderPressure solution at t=%9.3e, dp=%8.2e\n",getBeamID(),t,dp);
 
   real factor;
   if( tension!=0. && elasticModulus==0. )
@@ -914,9 +914,9 @@ chooseExactSolution(CompositeGrid & cg, GenericGraphicsInterface & gi )
 	  else if( option=="beam piston" )
 	    {
 	      exactSolutionOption="beamPiston"; 
-	      printF("--BM-- The beam piston solution is an FSI solution for a horizontal beam adjacent to one or two fluid domains.\n"
+	      printF("-- BM%i -- The beam piston solution is an FSI solution for a horizontal beam adjacent to one or two fluid domains.\n"
 		     " The vertical motion of the beam is of the form:\n"
-		     "      y(t) = (dp/K0)*( 1 - cos(omega*t) )   (for an undamped beam, Kt=0)\n");
+		     "      y(t) = (dp/K0)*( 1 - cos(omega*t) )   (for an undamped beam, Kt=0)\n", getBeamID());
 
 	      if( !dbase.has_key("beamPistonPar") )
 		dbase.put<real[10]>("beamPistonPar");
@@ -942,12 +942,12 @@ chooseExactSolution(CompositeGrid & cg, GenericGraphicsInterface & gi )
 	  else if( option=="beam under pressure" )
 	    {
 	      exactSolutionOption="beamUnderPressure"; 
-	      printF("--BM-- The `beam under pressure' solution is a steady FSI solution for a horizontal beam \n"
+	      printF("-- BM%i -- The `beam under pressure' solution is a steady FSI solution for a horizontal beam \n"
 		     " pinned (or clamped) on both ends and with constant pressure force.\n"
 		     " The vertical displacement of the beam is of the form :\n"
 		     "      y(t) = ( dp/(2T) )*(x-a)(b-x) )          (for T!=0, E=0)\n"
 		     "      y(t) = ( dp/(24 EI) )*(x-a)^2*(b-x)^2 )  (for T=0, E!=0)\n"
-		     "      dp = pressure force\n"
+		     "      dp = pressure force\n", getBeamID()
 		     );
 
 	      if( !dbase.has_key("beamUnderPressurePar") )

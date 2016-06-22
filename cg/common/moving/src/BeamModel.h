@@ -208,8 +208,8 @@ public:
   // Longfei 20160115: applies to all derived beam models. 
   // make it non-virtual for now.
   // Return the current force of the structure.
-  //
-  const RealArray& force() const;
+  //renamed force() to getCurrentForce()
+  const RealArray& getCurrentForce() const;
 
   // convert BoundaryCondition to its name in a string
   aString getBCName(const BoundaryCondition & bc) const;

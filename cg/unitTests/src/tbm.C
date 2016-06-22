@@ -731,7 +731,7 @@ checkForce()
    
     beam.addForce(  tf,xi,fi,normal,Ib1,Ib2,Ib3 );
       
-    const RealArray & force = beam.force();
+    const RealArray & force = beam.getCurrentForce();
     ::display(force(Range(0,2*nElem,2)),"Top (element) force","%8.2e ");
     ::display(fe,"Exact force","%8.2e ");
 
@@ -974,7 +974,7 @@ checkInternalForce()
     beam.resetForce();
     beam.addForce(  tf,xi,ftz,normal,Ib1,Ib2,Ib3 );
 
-    const RealArray & force = beam.force();
+    const RealArray & force = beam.getCurrentForce();
     ::display(force(Range(0,2*nElem,2)),"Top (element) force","%8.2e ");
     ::display(ftz(I1,I2,I3,1),"Exact force","%8.2e ");
 

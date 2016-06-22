@@ -4058,9 +4058,10 @@ void BeamModel::recomputeNormalAndTangent() {
   tangent[1] = sin(angle);
 }
 
+// Longfei 20160621: renamed BeamModel::force() to BeamModel::getCurrentForce()
 // Return the current force of the structure.
 //
-const RealArray& BeamModel::force() const
+const RealArray& BeamModel::getCurrentForce() const
 {
   const int & current = dbase.get<int>("current"); 
   std::vector<RealArray> & f = dbase.get<std::vector<RealArray> >("f"); // force
