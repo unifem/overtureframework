@@ -1176,7 +1176,7 @@ computeAcceleration(const real t,
 
   
   
-  if( debug & 2 )
+  if( debug() & 2 )
     printF("-- BM%i -- BeamModel::computeAcceleration, t=%8.2e, dt=%8.2e\n",getBeamID(),t,dt);
   
 
@@ -1186,7 +1186,7 @@ computeAcceleration(const real t,
   computeInternalForce(u, v, rhs);
 
 
-  if(debug & 2 )
+  if(debug() & 2 )
     {
       rhs.reshape(2,numElem+1);
       ::display(rhs,"-- BM -- computeAcceleration: rhs after computeInternalForce","%9.2e ");
@@ -1263,7 +1263,7 @@ computeAcceleration(const real t,
 		{
 		  // Boundary term is of the form:  -EI* v_x*w_xx
 		  // -- correct for natural BC:  E*I*w_xx = +/- g(2,side)
-		  if( debug & 1 )	printF("-- BM%i -- set rhs for pinned BC wxx = g(2,side)=%8.2e, EI=%g\n",getBeamID(),g(2,side),EI);
+		  if( debug() & 1 )	printF("-- BM%i -- set rhs for pinned BC wxx = g(2,side)=%8.2e, EI=%g\n",getBeamID(),g(2,side),EI);
 		  rhs(ia+1) += -(is)*EI*g(2,side);   // add : -E*I*wxx(0,t) * Np_x(0)
 		}
 	    }
@@ -1502,7 +1502,7 @@ computeAcceleration(const real t,
     } // end if allows free motion
   
 
-  if( debug & 2 )
+  if( debug() & 2 )
     {
       rhs.reshape(2,numElem+1);
       ::display(rhs,"-- BM -- computeAcceleration: rhs before solve Ma=rhs","%11.4e ");
@@ -1517,7 +1517,7 @@ computeAcceleration(const real t,
     }
 
   
-  if( debug & 2 )
+  if( debug() & 2 )
     {
       a.reshape(2,numElem+1);
       ::display(a,"-- BM -- computeAcceleration: solution a after solve","%11.4e ");

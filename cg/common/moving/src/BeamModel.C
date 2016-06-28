@@ -54,7 +54,7 @@ solve( const RealArray & a, const RealArray & b );
 
 // --- assign static class variables --
 //real BeamModel::exactSolutionScaleFactorFSI=.00001;  // scale factor for the exact FSI solution  //Longfei: seems unused
-int BeamModel::debug=0;
+//int BeamModel::debug=0;  // Not static now,  put debug in dbase to  control each beam object.
 int BeamModel::globalBeamCounter=0; // keeps track of number of beams that have been created
 
 
@@ -70,7 +70,7 @@ BeamModel::BeamModel()
 
   globalBeamCounter++;
   
-
+  dbase.put<int>("debug")=1; 
   dbase.put<int>("domainDimension")=1; 
   dbase.put<int>("rangeDimension")=2;  
   dbase.put<int>("beamID")=globalBeamCounter; //  a unique ID 
@@ -107,9 +107,13 @@ BeamModel::BeamModel()
   dbase.put<int>("orderOfGalerkinProjection")=2; // order of accuracy of the Galerkin projection (force and velocity)
   
   //Longfei 20160303: added to control the FDBeamModel to use same order or same stencil size for all difference operators.
-  // if true, all the derivatives ux,uxx,uxxx,uxxxx are approximated using 5 point stencils. This option must be true for  FDBeamModel
-  // to work properpy. make it false only to show that keeping the difference operators of the same order is bad.
+  // if true, all the derivatives ux,uxx,uxxx,uxxxx are approximated using 5 point stencils. 
   dbase.put<bool>("useSameStencilSize") = true; 
+  //Longfei 20160628:  if true, use 5 point stencils for the derivatives of v and a as well.
+  //                    make it false right now, since now higher order (>2) derivatives are needed for v and a 
+  //                    of the currente beam model. We need to change this if we add vxxxx into the damping term.
+  dbase.put<bool>("useSameStencilForVandA") = false; 
+
   
   // parameters will be updated in BeamModel::initialize()
   dbase.put<bool>("initialized")=false;
@@ -1140,7 +1144,7 @@ initTwilightZone()
   // -- twilight zone ---
   const bool & twilightZone = dbase.get<bool>("twilightZone");
 
-  if( debug & 1 )
+  if( debug() & 1 )
     printF("-- BM%i -- initTwilightZone twilightZone=%i\n",getBeamID(),(int)twilightZone);
 
   if( !twilightZone )
@@ -1472,7 +1476,7 @@ getExplicitTimeStep() const
   
 
 
-  if( true || debug & 1 )
+  if( true || debug() & 1 )
     {
       // printF("BeamModel::getExplicitTimeStep: rho=%g, rho*A=%g, EI=%g, T=%g, K0=%g, Kt=%g, Kxxt=%g, dx=%8.2e, dt=%8.2e (dt-oldway=%8.2e) (cfl=%g).\n",
       // 	   density,density*thickness*breadth,EI,T,K0,Kt,Kxxt, dx,dt,dtOld,cfl);
@@ -1929,7 +1933,7 @@ projectDisplacement(const real t, const RealArray& X, const real& x0, const real
       wy += (tangent[1] * normall[0] + normal[1]*normall[1])*halfThickness;
     }
     
-  if( debug & 4 && exactSolutionOption=="travelingWaveFSI" )
+  if( debug() & 4 && exactSolutionOption=="travelingWaveFSI" )
     {
       // -- compare to exact ---
       TravelingWaveFsi & travelingWaveFsi = *dbase.get<TravelingWaveFsi*>("travelingWaveFsi");
@@ -1941,7 +1945,7 @@ projectDisplacement(const real t, const RealArray& X, const real& x0, const real
       x(0,0,0,1)=0.;
       travelingWaveFsi.getExactShellSolution( x,ue,ve,ae, t, I1,I2,I3 );
 
-      if( debug & 4 )
+      if( debug() & 4 )
 	printF(" -- BM%i -- projectDisplacement: t=%8.2e, x0=%8.2e computed w=(%9.2e,%9.2e) exact=(%9.2e,%9.2e) err=(%9.2e,%9.2e)\n",
 	       getBeamID(), t,x0,wx,wy-y0,ue(0,0,0,0),ue(0,0,0,1),wx-ue(0,0,0,0),(wy-y0)-ue(0,0,0,1));
       if( false )
@@ -2016,7 +2020,7 @@ projectAcceleration(const real t,
   real DDdisplacement, DDslope;
   interpolateSolution(ac, elemNum, eta, DDdisplacement, DDslope);
 
-  if( debug & 2 )
+  if( debug() & 2 )
     printF(" -- BM%i -- projectAcceleration: x=(%g,%g) DDdisplacement=%g (beam accel)\n",getBeamID(),x0,y0,DDdisplacement);
   
   
@@ -2069,7 +2073,7 @@ projectAcceleration(const real t,
     }
 
   bool useExact=false;
-  if(( useExact || debug & 4 ) && exactSolutionOption=="travelingWaveFSI" )
+  if(( useExact || debug() & 4 ) && exactSolutionOption=="travelingWaveFSI" )
     {
       // -- compare to exact ---
       TravelingWaveFsi & travelingWaveFsi = *dbase.get<TravelingWaveFsi*>("travelingWaveFsi");
@@ -2081,7 +2085,7 @@ projectAcceleration(const real t,
       x(0,0,0,1)=0.;
       travelingWaveFsi.getExactShellSolution( x,ue,ve,ae, t, I1,I2,I3 );
 
-      if( ( useExact || debug & 4 ) )
+      if( ( useExact || debug() & 4 ) )
 	printF(" -- BM%i -- projectAcceleration: t=%8.2e, x0=%8.2e computed a=(%9.2e,%9.2e) exact=(%9.2e,%9.2e) err=(%9.2e,%9.2e)\n",
 	       getBeamID(),t,x0,ax,ay,ae(0,0,0,0),ae(0,0,0,1),ax-ae(0,0,0,0),ay-ae(0,0,0,1));
     
@@ -2639,7 +2643,7 @@ getSurfaceInternalForce( const real t0, const RealArray & x0, RealArray & fs,
   //      nv.Fs = +/- nbv.fs
   //      tv.Fs = +/- tbv.fs  
   //  where nv = fluid normal, tv = fluid tangent
-  //  where nbv, tv = beam normal and tangent (undeformed beam)
+  //  where nbv, tbv = beam normal and tangent (undeformed beam)
   //
   //   Normal component of force = fs(Ib1,Ib2,Ib3,1)
   //   Tangential component of force = fs(Ib1,Ib2,Ib3,0)
@@ -2718,7 +2722,7 @@ projectVelocity( const real t, const real& x0, const real& y0, real& vx, real& v
   real Ddisplacement, Dslope;
   interpolateSolution(vc, elemNum, eta, Ddisplacement, Dslope);     //  Ddisplacement = v, Dslope=v_x 
 
-  if( debug & 2 )
+  if( debug() & 2 )
     printF(" -- BM%i -- projectVelocity: x=(%g,%g) Ddisplacement=%g (beam velocity)\n",getBeamID(),x0,y0,Ddisplacement);
   
   
@@ -2753,7 +2757,7 @@ projectVelocity( const real t, const real& x0, const real& y0, real& vx, real& v
     
     }
 
-  if( debug & 4  && exactSolutionOption=="travelingWaveFSI" )
+  if( debug() & 4  && exactSolutionOption=="travelingWaveFSI" )
     {
       // -- compare to exact ---
 
@@ -2766,7 +2770,7 @@ projectVelocity( const real t, const real& x0, const real& y0, real& vx, real& v
       x(0,0,0,1)=0.;
       travelingWaveFsi.getExactShellSolution( x,ue,ve,ae, t, I1,I2,I3 );
 
-      if( debug & 4 )
+      if( debug() & 4 )
 	printF(" -- BM%i -- projectVelocity: t=%8.2e, x0=%8.2e computed v=(%9.2e,%9.2e) exact=(%9.2e,%9.2e) err=(%9.2e,%9.2e)\n",
 	       getBeamID(), t,x0,vx,vy,ve(0,0,0,0),ve(0,0,0,1),vx-ve(0,0,0,0),vy-ve(0,0,0,1));
 
@@ -3177,7 +3181,7 @@ factorBlockTridiagonalSolver(const aString & tridiagonalSolverName)
   
 
 
-  if( true || debug & 1 )
+  if( true || debug() & 1 )
     printF("-- BM%i -- solveBlockTridiagonal : name=[%s] form block tridiagonal system and factor, isPeriodic=%i\n",
 	   getBeamID(),(const char*)tridiagonalSolverName, (int)isPeriodic);
       
@@ -3592,11 +3596,28 @@ setSurfaceVelocity(const real & t, const RealArray & x0, const RealArray & vSurf
 	  real omag = 1./sqrt(slope*slope+1.0);
 	  real omag3 = omag*omag*omag;
 	  real normald[2] = {-Dslope*omag3,-slope*Dslope*omag3};
+      
+	  //Longfei 20160623: normald after rotation
+	  real normaldRot[2];
+	  normaldRot[0]=initialBeamTangent[0]*normald[0] + initialBeamNormal[0]*normald[1];
+	  normaldRot[1]=initialBeamTangent[1]*normald[0] + initialBeamNormal[1]*normald[1];
+
+	  if(debug() & 8)
+	    {
+	      printF("|normald-normaldRot|*h/2 = [%10.3e,%10.3e]\n",
+		     abs((normald[0]-normaldRot[0])*halfThickness),abs((normald[1]-normaldRot[1])*halfThickness));
+	    }
 
 	  if( !allowsFreeMotion ) 
 	    { // -- subtract off "w"
 	      for( int axis=0; axis<rangeDimension; axis++ )
-		vBeam(i1,i2,i3,axis) = vSurface(i1,i2,i3,axis) - normald[axis]*halfThickness; //Longfei: fixme normal should be in physical space
+		{
+		  // Longfei 20160623:
+		  //old: 
+		  //vBeam(i1,i2,i3,axis) = vSurface(i1,i2,i3,axis) - normald[axis]*halfThickness; 
+		  //new: should use normaldRot not normald
+		  vBeam(i1,i2,i3,axis) = vSurface(i1,i2,i3,axis) - normaldRot[axis]*halfThickness;
+		}
 	    }
 	  else
 	    {
@@ -4600,7 +4621,7 @@ predictor(real tnp1, real dt )
       ::display(x2,"x2","%8.2e ");
       ::display(v2,"v2","%8.2e ");
     }
-  if( debug & 4 )
+  if( debug() & 4 )
     {
       ::display(f2,"BeamModel::predictor: RHS force f2 BEFORE addInternalForces","%8.2e ");
     }
@@ -4627,7 +4648,7 @@ predictor(real tnp1, real dt )
   //   f2(idx) += lt;
   // }
 
-  if( debug & 4 )
+  if( debug() & 4 )
     {
       ::display(f2,"BeamModel::predictor: RHS force f2","%8.2e ");
     }
@@ -4651,7 +4672,7 @@ predictor(real tnp1, real dt )
     }
 
 
-  if( debug & 4 )
+  if( debug() & 4 )
     {
       ::display(a2,"-- BM -- predictor: a2","%8.2e ");
       ::display(f2,"-- BM -- predictor: f2","%8.2e ");
@@ -4709,7 +4730,7 @@ predictor(real tnp1, real dt )
     {
       // -- The implicit predictor makes a guess for the forcing at time tnp1 = t+dt  ---
 
-      if( debug & 2 )
+      if( debug() & 2 )
 	printF("-- BM%i -- use implicit predictor tnp1=%8.2e\n",getBeamID(),tnp1);
 
 
@@ -4771,7 +4792,7 @@ predictor(real tnp1, real dt )
   
       if(predictorMethod==leapFrog) // use leapFrog predictor
 	{
-	  if( debug & 2 )
+	  if( debug() & 2 )
 	    printF("-- BM%i -- use leapFrog predictor tnp1=%8.2e\n",getBeamID(),tnp1);
 	  //Longfei 20160204: note this is only first order predictor if dt!=dtOld
 	  if( tnp1 >= 1.5*dt ) // 
@@ -4792,7 +4813,7 @@ predictor(real tnp1, real dt )
       else if(predictorMethod==adamsBashforth2)
 	{
 
-	  if( debug & 2 )
+	  if( debug() & 2 )
 	    printF("-- BM%i -- use adamsBashforth2 predictor tnp1=%8.2e\n",getBeamID(),tnp1);
 	  real ab1,ab2;
 	  if( tnp1 >= 1.5*dt ) 
@@ -4908,7 +4929,7 @@ predictor(real tnp1, real dt )
   //   smooth( tnp1,v3, "v: predictor" );
 
 
-  if( debug & 2 )
+  if( debug() & 2 )
     {
       aString buff;
       getErrors( tnp1, x3,v3,a3,sPrintF(buff,"-- BM%i --: after predict t=%9.3e",getBeamID(),tnp1));
@@ -4992,10 +5013,23 @@ norm( RealArray & u ) const
 {
   const int & numElem = dbase.get<int>("numElem");
   real uNorm=0;
+  
+  //Longfei 20160624: fix idx for FDBeamModel
+  const bool & isFEM = dbase.get<bool>("isCubicHermiteFEM");
+  int idxFactor=1;
+  if(isFEM)
+    idxFactor=2;
   for (int i = 0; i < numElem; ++i) 
     {
       // norm of | a3 - aold |   *wdh: should we scale by dx ?  
-      uNorm += u(i*2)*u(i*2);
+   
+      uNorm += u(i*idxFactor)*u(i*idxFactor);
+
+    }
+
+  if(debug() & 8)
+    {
+      ::display(u,"u in norm","%10.3e");
     }
   return uNorm;
 }
@@ -5195,7 +5229,7 @@ corrector(real tnp1, real dt )
   // use  use second order Adams-moulton corrector
   if(correctorMethod==adamsMoultonCorrector)
     {
-      if( debug & 2 )
+      if( debug() & 2 )
 	printF("-- BM%i -- use second order Adams-Moulton corrector tnp1=%8.2e\n",getBeamID(),tnp1);
 
       const int prev = ( current -1 + numberOfTimeLevels) % numberOfTimeLevels; // points to solution at t^{n} 
@@ -5211,14 +5245,14 @@ corrector(real tnp1, real dt )
     }
   else if(correctorMethod==newmarkCorrector)
     {
-      if( debug & 2 )
+      if( debug() & 2 )
 	printF("-- BM%i -- use implicit second order newmark corrector tnp1=%8.2e\n",getBeamID(),tnp1);
 
 
       v3 = vtilde+newmarkGamma*dt*a3;
       x3 = dtilde+newmarkBeta*dt*dt*a3;
     }
-  if( debug & 4 )
+  if( debug() & 4 )
     {
       //int nn=numElem+1;
       //v3.reshape(2,nn); x3.reshape(2,nn); a3.reshape(2,nn); f3.reshape(2,nn);
@@ -5343,7 +5377,7 @@ corrector(real tnp1, real dt )
 	{
 	  correctionHasConverged = true;
 	}
-      if( true && (debug & 2) )
+      if( true && (debug() & 2) )
 	{
 	  printF("-- BM%i -- TP-iteration: omega=%6.3f, iter=%i, corr=%8.2e rel-corr=%8.2e, rtol=%8.2e, atol=%8.2e converged=%i\n",
 		 getBeamID(),omega,numCorrectorIterations,correction,maximumRelativeCorrection, subIterationConvergenceTolerance,
@@ -5403,7 +5437,7 @@ corrector(real tnp1, real dt )
     }
   
 
-  if( debug & 2 )
+  if( debug() & 2 )
     {
       aString buff;
       getErrors( tnp1, x3,v3,a3,sPrintF(buff,"-- BM%i -- : after correct t=%9.3e",getBeamID(),tnp1));
@@ -5508,7 +5542,7 @@ outputProbes( real t, int stepNumber )
       interpolateSolution(v3, elemNum,eta, vp, vpx);
       interpolateSolution(a3, elemNum,eta, ap, apx);
 
-      if( debug & 2 )
+      if( debug() & 2 )
 	printf("-- BM%i -- save probe: t=%9.3e (xp0,yp0)=(%9.3e,%9.3e) (up,vp,ap)=(%9.3e,%9.3e,%9.3e) elemNum=%i eta=%9.3e\n",
 	       getBeamID(),t,xp0,yp0,up,vp,ap,elemNum,eta);
       
@@ -5648,7 +5682,7 @@ getErrors( const real t, const RealArray & u, const RealArray & v, const RealArr
   const int & numGhost = dbase.get<int>("numberOfGhostPoints");
   Index I1 = Range(-numGhost,numElem+numGhost); // index of all nodes (include ghost nodes if any)
   
-  if( file !=NULL && debug & 2 )
+  if( file !=NULL && debug() & 2 )
     fPrintF(file,"-- BM%i -- %s: Errors at t=%9.3e:\n",getBeamID(),(const char*)label,t);
   real uErr=0., uNorm=0.; // ul2err=0. 
   real vErr=0., vNorm=0.;
@@ -5677,7 +5711,7 @@ getErrors( const real t, const RealArray & u, const RealArray & v, const RealArr
       aNorm=aNorm+SQR(ae(si));  //???Longfei 20160125: why evaluate the norm for exact solutions?
       
 
-      if( FALSE && debug & 2 )
+      if( FALSE && debug() & 2 )
 	printF("-- BM%i -- t=%8.2e i=%3i u=%9.2e ue=%9.2e err=%9.2e, v=%9.2e ve=%9.2e err=%8.2e,  a=%9.2e ae=%9.2e err=%8.2e\n",
 	       getBeamID(),t,i,u(si),ue(si),erru,v(si),ve(si),errv,a(si),ae(si),erra);
 
@@ -6003,7 +6037,7 @@ update(CompositeGrid & cg, GenericGraphicsInterface & gi )
 
   //Longfei 20160303: option to test same order vs. same stencil size for FDBeamModel
   bool & useSameStencilSize = dbase.get<bool>("useSameStencilSize");
-
+  int & dbg = dbase.get<int>("debug");
   
   GUIState gui;
   gui.setWindowTitle("Beam Model");
@@ -6166,7 +6200,7 @@ update(CompositeGrid & cg, GenericGraphicsInterface & gi )
       textLabels[nt] = "number of smooths:"; sPrintF(textStrings[nt], "%i",numberOfSmooths);  nt++; 
       textLabels[nt] = "smooth order:"; sPrintF(textStrings[nt], "%i",smoothOrder);  nt++; 
       textLabels[nt] = "smooth omega:"; sPrintF(textStrings[nt], "%e",smoothOmega);  nt++; 
-      textLabels[nt] = "debug:"; sPrintF(textStrings[nt], "%i",debug);  nt++; 
+      textLabels[nt] = "debug:"; sPrintF(textStrings[nt], "%i",dbg);  nt++; 
       textLabels[nt] = "probe position:"; sPrintF(textStrings[nt], "%g (in [0,1])",probePosition);  nt++; 
 
 
@@ -6235,7 +6269,7 @@ update(CompositeGrid & cg, GenericGraphicsInterface & gi )
       
 	}
     
-      else if( dialog.getTextValue(answer,"debug:","%i",debug) ){} //
+      else if( dialog.getTextValue(answer,"debug:","%i",dbg) ){} //
       else if( dialog.getTextValue(answer,"name:","%s",name) ){} //
       else if( dialog.getTextValue(answer,"probe position:","%g",probePosition) )
 	{
@@ -6414,7 +6448,7 @@ update(CompositeGrid & cg, GenericGraphicsInterface & gi )
 	      probeFile = fopen((const char*)probeFileName,"w");
 	      assert( probeFile!=NULL );
 
-	      printF("-- BM%i --  BeamModel: tip position info will be saved to file '%s'\n",getBeamID(),(const char*)probeFileName);
+	      printF("-- BM%i --  BeamModel: info of the probed position will be saved to file '%s'\n",getBeamID(),(const char*)probeFileName);
 
 	      // Probe file header info:
 	      // Get the current date

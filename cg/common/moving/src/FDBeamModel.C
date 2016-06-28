@@ -167,6 +167,8 @@ initialize()
 
 
   const bool & useSameStencilSize = dbase.get<bool>("useSameStencilSize");
+  const bool & useSameStencilForVandA = dbase.get<bool>("useSameStencilForVandA");
+
   // finite-difference coefficients:
   RealArray Dss(stencilSize), Dssss(stencilSize);
 
@@ -321,7 +323,7 @@ computeAcceleration(const real t,
   const bool & allowsFreeMotion = dbase.get<bool>("allowsFreeMotion");
   const real & Abar = dbase.get<real>("massPerUnitLength");
   
-  if( debug & 2 )
+  if( debug() & 2 )
     printF("-- BM%i -- BeamModel::computeAcceleration, t=%8.2e, dt=%8.2e\n",getBeamID(),t,dt);
   
 
@@ -331,7 +333,7 @@ computeAcceleration(const real t,
   computeInternalForce(u, v, rhs);
 
 
-  if(debug & 2 )
+  if(debug() & 2 )
     {
       ::display(rhs,"-- BM -- computeAcceleration: rhs after computeInternalForce","%9.2e ");
       ::display(f,"-- BM -- computeAcceleration: f ","%9.2e ");
@@ -402,7 +404,7 @@ computeAcceleration(const real t,
 	      if(  EI != 0.) 
 		{
 		  //  E*I*w_xx = given => a_xx = given
-		  if( debug & 1 )	
+		  if( debug() & 1 )	
 		    printF("-- BM%i -- set rhs for pinned BC axx = gtt(2,side)=%8.2e, EI=%g\n",getBeamID(),gtt(2,side),EI);
 		  rhs(ib-is,0,0,0) = gtt(2,side)*accelerationScaleFactor;   // axx is given, this determines the first ghost line
 		}
@@ -456,7 +458,7 @@ computeAcceleration(const real t,
   // end if allows free motion
   
 
-  if( debug & 2 )
+  if( debug() & 2 )
     {
       ::display(rhs,"-- BM -- computeAcceleration: rhs before solve Ma=rhs","%11.4e ");
     }
@@ -476,7 +478,7 @@ computeAcceleration(const real t,
     }
 
 
-  if( debug & 2 )
+  if( debug() & 2 )
     {
       ::display(a,"-- BM -- computeAcceleration: solution a after solve","%11.4e ");
     }
@@ -679,12 +681,16 @@ factorTridiagonalSolver( const aString & tridiagonalSolverName)
   
   
 
-  if( true || debug & 1 )
+  if( true || debug() & 1 )
     printF("-- BM%i -- solveBlockTridiagonal : name=[%s] form block tridiagonal system and factor, isPeriodic=%i\n",
 	   getBeamID(),(const char*)tridiagonalSolverName, (int)isPeriodic);
   
       
   // -- Boundary fixup ---
+  //Longfei 20160628: do not use same stencil schemes for v and a
+  //                  since no higher order (>2) derivatives of v and a are needed
+  const bool & useSameStencilForVandA=dbase.get<bool>("useSameStencilForVandA");
+  
   if( !allowsFreeMotion && !isPeriodic )  // skip this for periodic bc
     {
       // --- Boundary conditions ---
@@ -718,7 +724,7 @@ factorTridiagonalSolver( const aString & tridiagonalSolverName)
 	      // Replace eqn on first ghost line with  wx_tt = given
 	      if(side==0)
 		{
-		  if(useSameStencilSize)
+		  if(useSameStencilSize && useSameStencilForVandA)
 		    {
 		      //4th order
 		      bt(ib-is,0,0)=1./(12.*dx);
@@ -739,7 +745,7 @@ factorTridiagonalSolver( const aString & tridiagonalSolverName)
 		}
 	      else
 		{
-		  if(useSameStencilSize)
+		  if(useSameStencilSize && useSameStencilForVandA)
 		    {
 		      //4th order
 		      et(ib-is,0,0)=1./(12.*dx);
@@ -769,7 +775,7 @@ factorTridiagonalSolver( const aString & tridiagonalSolverName)
 		  if(side==0)
 		    {
 
-		      if(useSameStencilSize)
+		      if(useSameStencilSize && useSameStencilForVandA)
 			{
 			  // 4th order
 			  bt(ib-is,0,0)=-1./(12.*dx2);
@@ -790,7 +796,7 @@ factorTridiagonalSolver( const aString & tridiagonalSolverName)
 		    }
 		  else 
 		    {
-		      if(useSameStencilSize)
+		      if(useSameStencilSize && useSameStencilForVandA)
 			{
 			  // 4th order
 			  et(ib-is,0,0)=-1./(12.*dx2);
@@ -857,7 +863,7 @@ factorTridiagonalSolver( const aString & tridiagonalSolverName)
     	}
     }
 
-  if(debug &2)
+  if(debug() &2)
     {
       printF("Pentadiagonal matrix: a,b,c,d,e\n");
       ::display(at,"a","%10.2e");

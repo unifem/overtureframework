@@ -670,7 +670,7 @@ assignInitialConditions( real t, RealArray & u, RealArray & v, RealArray & a )
 {
   const aString & initialConditionOption = dbase.get<aString>("initialConditionOption");
 
-  if( debug & 1 )
+  if( debug() & 1 )
     printF("BeamModel::assignInitialConditions for %s, t=%9.3e\n",(const char*)initialConditionOption,t);
 
   //real beamLength=L; //Longfei 20160121: this is not needed in this function

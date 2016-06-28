@@ -33,8 +33,6 @@ protected:
 
 
 public:
-  static int debug;
-
   // Boundary conditions:
   // clamped: w=g, w_x=h
   // pinned:  w=g, w_xx=h   (simply supported)
@@ -173,6 +171,12 @@ public:
   void computeGalerkinProjection(real fa, real fap, real fb, real fbp, 
 				 real a, real b,
 				 RealArray & f );
+
+
+  //Longfei 20160622: 
+  // new function handles debug. New way to handle debug. it is no longer a static member
+  const int & debug() const { return dbase.get<int>("debug");}
+
 
 
   // Return the current displacement of the structure.  (Displacement solution u[current])

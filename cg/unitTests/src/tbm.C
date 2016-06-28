@@ -316,7 +316,7 @@ getErrors( real t )
 
 	real err = fabs( xc(i,1)- we );
 
-	if( beam.debug & 2 )
+	if( beam.debug() & 2 )
 	  printF("t=%9.3e i=%3i x=%9.3e w=%9.3e we=%9.3e err=%9.2e\n",t,i,xl,xc(i,1),we,err);
       
 	errMax=max(errMax,err);
@@ -1232,10 +1232,9 @@ main(int argc, char *argv[])
   TestBeamModel tbm;
   CompositeGrid cg;  // not currently used
 
-  int & debug = BeamModel::debug;
+  // int & debug = BeamModel::debug;
   NonlinearBeamModel::debug=3;
 
-  debug=1;
 
   int & nElem= tbm.nElem;    // number of elements 
   int & plotOption = tbm.plotOption; 
@@ -1282,12 +1281,12 @@ main(int argc, char *argv[])
         sScanF(line(len,line.length()-1),"%e",&tPlot);
 	printF("tPlot = %6.3f\n",tPlot);
       }
-      else if( len=line.matches("-debug=") )
-      {
-        sScanF(line(len,line.length()-1),"%i",&debug);
-	printF("debug = %i\n",debug);
-        // RigidBodyMotion::debug=debug;
-      }
+      // else if( len=line.matches("-debug=") )
+      // {
+      //   sScanF(line(len,line.length()-1),"%i",&debug);
+      // 	printF("debug = %i\n",debug);
+      //   // RigidBodyMotion::debug=debug;
+      // }
       else if( len=line.matches("-nElem=") )
       {
         sScanF(line(len,line.length()-1),"%i",&nElem);
@@ -1404,8 +1403,8 @@ main(int argc, char *argv[])
   textLabels[nt] = "force polynomial degree x:"; 
   sPrintF(textStrings[nt],"%g",tbm.forceDegreeX);  nt++; 
 
-  textLabels[nt] = "debug:"; 
-  sPrintF(textStrings[nt],"%i",debug);  nt++; 
+  // textLabels[nt] = "debug:"; 
+  // sPrintF(textStrings[nt],"%i",debug);  nt++; 
 
   //  textLabels[nt] = "output file:"; 
   // sPrintF(textStrings[nt],"%s",(const char*)outputFileName);  nt++; 
