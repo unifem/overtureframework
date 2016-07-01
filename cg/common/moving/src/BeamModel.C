@@ -2557,17 +2557,16 @@ getSurfaceInternalForce( const real t0, const RealArray & x0, RealArray & fs,
   // bool & refactor = dbase.get<bool>("refactor");
   // refactor=true; //Longfei 20160209: no longer need to refactor solvers
   
-  // Longfei 20160329: new
-  aString tridiagonalSolverName= isFEM? "massMatrixSolverNoBC" : "explicitSolver";
   if(addExternalForcing)
     { 
       // Longfei 20160701: recompute ac. The velocity is changed after projecting the beam and fluid velocities at the interface
-      computeAcceleration( t, xc,vc,fe, ac, centerOfMassAcceleration, angularAcceleration, dt,tridiagonalSolverName );
+      computeAcceleration( t, xc,vc,fe, ac, centerOfMassAcceleration, angularAcceleration, dt,"explicitSolver" );
       internalForce=Abar*ac;
       
     }
   else
     {
+      aString tridiagonalSolverName= isFEM? "massMatrixSolverNoBC" : "explicitSolver";
       computeAcceleration( t, xc,vc,fe, internalForce, centerOfMassAcceleration, angularAcceleration, dt,tridiagonalSolverName );
     }
   
