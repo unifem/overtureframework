@@ -1198,6 +1198,19 @@ computeAcceleration(const real t,
   aString tridiagonalSolverName;
   real accelerationScaleFactor=1.;
 
+  if( solverName=="explicitSolver")
+    {
+      // explicitSolver inverts mass matrix
+      // it  is solving for Abar utt (not utt )
+      tridiagonalSolverName="massMatrixSolver";
+      accelerationScaleFactor=Abar;
+    }
+  else
+    {
+      tridiagonalSolverName=solverName;
+    }
+
+  // apply bc for rhs
   if( !allowsFreeMotion ) 
     {
       // --- Apply boundary conditions to f - Ku  ----
@@ -1211,17 +1224,7 @@ computeAcceleration(const real t,
       getBoundaryValues( t, gt, 1 );
       getBoundaryValues( t, gtt,2 );
 
-      if( solverName=="explicitSolver")
-	{
-	  // explicitSolver inverts mass matrix
-	  // it  is solving for Abar utt (not utt )
-	  tridiagonalSolverName="massMatrixSolver";
-	  accelerationScaleFactor=Abar;
-	}
-      else
-	{
-	  tridiagonalSolverName=solverName;
-	}
+
       // Longfei 20160208: no longer need this
       // real accelerationScaleFactor=1.;
       // if( tridiagonalSolverName=="rhsSolver" )
@@ -1229,6 +1232,7 @@ computeAcceleration(const real t,
       // 	  // when we compute the RHS directly we are solving for rho*hs*b utt (not utt )
       // 	  accelerationScaleFactor=density*thickness*breadth;
       // 	}
+
     
       for( int side=0; side<=1; side++ )
 	{

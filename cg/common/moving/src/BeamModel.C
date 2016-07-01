@@ -109,10 +109,7 @@ BeamModel::BeamModel()
   //Longfei 20160303: added to control the FDBeamModel to use same order or same stencil size for all difference operators.
   // if true, all the derivatives ux,uxx,uxxx,uxxxx are approximated using 5 point stencils. 
   dbase.put<bool>("useSameStencilSize") = true; 
-  //Longfei 20160628:  if true, use 5 point stencils for the derivatives of v and a as well.
-  //                    make it false right now, since now higher order (>2) derivatives are needed for v and a 
-  //                    of the currente beam model. We need to change this if we add vxxxx into the damping term.
-  dbase.put<bool>("useSameStencilForVandA") = false; 
+
 
   
   // parameters will be updated in BeamModel::initialize()
@@ -291,6 +288,10 @@ BeamModel::BeamModel()
   dbase.put<bool>("useSmallDeformationApproximation")=true;
 
 
+  
+
+
+
   //=========================================================
   // -- free motion parameters ---
   centerOfMass[0] = 0.0;
@@ -413,6 +414,8 @@ BeamModel::~BeamModel()
 
   if( dbase.get<bool>("saveProbeFile") &&  dbase.get<FILE*>("probeFile")!=NULL )
     fclose(dbase.get<FILE*>("probeFile"));
+
+
 
 
 }
@@ -2557,16 +2560,22 @@ getSurfaceInternalForce( const real t0, const RealArray & x0, RealArray & fs,
   // Longfei 20160329: new
   aString tridiagonalSolverName= isFEM? "massMatrixSolverNoBC" : "explicitSolver";
   if(addExternalForcing)
-    // no need to recompute acceleration for this case
-    internalForce=Abar*ac;
+    { 
+      // Longfei 20160701: recompute ac. The velocity is changed after projecting the beam and fluid velocities at the interface
+      computeAcceleration( t, xc,vc,fe, ac, centerOfMassAcceleration, angularAcceleration, dt,tridiagonalSolverName );
+      internalForce=Abar*ac;
+      
+    }
   else
     {
       computeAcceleration( t, xc,vc,fe, internalForce, centerOfMassAcceleration, angularAcceleration, dt,tridiagonalSolverName );
     }
   
-  if( false )
-    ::display(internalForce,sPrintF("-- BM -- getSurfaceInternalForce: internalForce at t=%8.2e",t),"%8.2e ");  
-
+  if( debug() & 16 && false )
+    {
+      ::display(internalForce,sPrintF("-- BM -- getSurfaceInternalForce: internalForce at t=%8.2e",t),"%8.2e ");  
+      ::display(fc,sPrintF("-- BM -- getSurfaceInternalForce: current force fc at t=%8.2e",t),"%8.2e ");  
+    }
 
 
   // refactor=true;          
@@ -4688,18 +4697,7 @@ predictor(real tnp1, real dt )
     }
   dbase.get<real>("dt")=dt; // adjust "dtOld"
 
-  
-  // Predicted position/velocity of the beam
-  RealArray &dtilde = dbase.get<RealArray>("dtilde");
-  RealArray &vtilde = dbase.get<RealArray>("vtilde");
-  
-  if( predictorMethod==newmark1 || predictorMethod==newmark2Implicit || predictorMethod==newmark2Explicit || correctorMethod==newmarkCorrector) 
-    {
-      // newmarks schemes need dtilde and vtilde
-      //  -- first order predictor --
-      dtilde = x2 + dt*v2 + (dt*dt*0.5*(1.0-2.0*newmarkBeta))*a2;
-      vtilde = v2 + dt*(1.0-newmarkGamma)*a2;
-    }
+
 
   
   // predict force f3. Implicit Solver and compatibility bc needs force at new time
@@ -4718,6 +4716,23 @@ predictor(real tnp1, real dt )
     {
       // -- we only have 1 old forces at f(tnp1-dt)
       f3=f2; 
+    }
+
+
+  
+  // Predicted position/velocity of the beam
+  RealArray &dtilde = dbase.get<RealArray>("dtilde");
+  RealArray &vtilde = dbase.get<RealArray>("vtilde");
+  
+  if( predictorMethod==newmark1 || predictorMethod==newmark2Implicit || predictorMethod==newmark2Explicit || correctorMethod==newmarkCorrector) 
+    {
+      // newmarks schemes need dtilde and vtilde
+      //  -- first order predictor --
+      dtilde = x2 + dt*v2 + (dt*dt*0.5*(1.0-2.0*newmarkBeta))*a2;
+      vtilde = v2 + dt*(1.0-newmarkGamma)*a2;
+
+      //Longfei 20160628: implicitNewmarkSolver need valid ghost values for dtilde,vtilde
+      assignBoundaryConditions( tnp1,dtilde,vtilde,a3,f3); 
     }
 
   
@@ -4749,11 +4764,18 @@ predictor(real tnp1, real dt )
 
       // old:
       //computeAcceleration( tnp1, dtilde,vtilde,f3, A, a3,  linaccel,omegadd,dt, alpha, alphaB,"tridiagonalSolver" );
+
+
+
       // Longfei 20160209: new
       computeAcceleration( tnp1, dtilde,vtilde,f3, a3,  linaccel,omegadd,dt,"implicitNewmarkSolver" );     
 
       v3 = vtilde + (newmarkGamma*dt)*a3;
       x3 = dtilde + (newmarkBeta*dt*dt)*a3;
+      
+      //Longfei 20160630: implement bc for the predicted values
+      assignBoundaryConditions( tnp1, x3,v3,a3,f3);
+
 
       if( false && t<=2.*dt )
 	{
@@ -4807,8 +4829,6 @@ predictor(real tnp1, real dt )
 	      x3=x2+dt*v2;
 	      v3=v2+dt*a2;
 	    }
-
-	  
 	}
       else if(predictorMethod==adamsBashforth2)
 	{
@@ -4849,8 +4869,12 @@ predictor(real tnp1, real dt )
 	{
 	  OV_ABORT("Error: unsupported time-stepping method");
 	}
-
+      
+      // Longfei 20160630: we should have valid ghost point values before compute acceleration using explicit methods
+      assignBoundaryConditions( tnp1, x3,v3,a3,f3);
+  
       //predict acceleration for all explicit predictors:
+      //Longfei: note that computeAcceleration takes care of the acceleration boundary conditions
       computeAcceleration(tnp1, x3,v3,f3, a3,  linaccel,omegadd,dt,"explicitSolver" );
       
     }
@@ -4866,11 +4890,9 @@ predictor(real tnp1, real dt )
     }
   
 
-  //Longfei 20160201: we need to apply BC for 2nd order predictor.
-  // old:
+
   // if( false ) // do not apply BC's to first-order predictor 
   //   assignBoundaryConditions( tnp1, dtilde,vtilde,a3 );
-  assignBoundaryConditions( tnp1, x3,v3,a3,f3);
 
   if (allowsFreeMotion) 
     {
@@ -5181,7 +5203,7 @@ corrector(real tnp1, real dt )
   // real alpha=0., alphaB=0.;
   // RealArray A=elementM;
 
-  // compute acceleration at time t^{n+1}
+  // recompute acceleration at time t^{n+1} with updated force
   if(correctorMethod==newmarkCorrector)
     {
       // old: now solver knows the matrix, no need to pass the matrix in
@@ -5203,6 +5225,7 @@ corrector(real tnp1, real dt )
     {
       // for AM2: M*a^{n+1} = f^{n+1}-K*x^{p}-B*v^{p}
       //computeAcceleration(tnp1, x3,v3,f3, A, a3,  linaccel,omegadd,dt, alpha, alphaB,"tridiagonalSolver");
+
       computeAcceleration(tnp1, x3,v3,f3, a3,  linaccel,omegadd,dt,"explicitSolver" );
 
     }
@@ -5241,6 +5264,9 @@ corrector(real tnp1, real dt )
       const real am2=0.5*dt;
       v3 = v2+am1*a3+am2*a2;
       x3 = x2+am1*v3+am2*v2;
+      //Longfei 20160630: we need valid ghost values for v3 and x3 before compute acceleration
+      assignBoundaryConditions( t,x3,v3,a3,f3);
+      
       computeAcceleration(tnp1, x3,v3,f3, a3,  linaccel,omegadd,dt,"explicitSolver" );	    	    
     }
   else if(correctorMethod==newmarkCorrector)
@@ -5251,6 +5277,10 @@ corrector(real tnp1, real dt )
 
       v3 = vtilde+newmarkGamma*dt*a3;
       x3 = dtilde+newmarkBeta*dt*dt*a3;
+      
+      //Longfei 20160630: apply bc for corrected values
+      assignBoundaryConditions( t,x3,v3,a3,f3);
+      
     }
   if( debug() & 4 )
     {
@@ -5386,7 +5416,6 @@ corrector(real tnp1, real dt )
     
     }
 
-  assignBoundaryConditions( t,x3,v3,a3,f3);
 
   // optionally smooth the solution:
   if( smoothSolution )

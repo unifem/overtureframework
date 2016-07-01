@@ -478,7 +478,7 @@ public:
 
   // Write information to the `check file' 
   int writeCheckFile( FILE *file );
-
+  
 
   // Write information about the beam
   void writeParameterSummary( FILE *file= stdout );

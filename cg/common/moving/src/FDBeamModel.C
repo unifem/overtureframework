@@ -155,62 +155,77 @@ initialize()
   const real & Kt = dbase.get<real>("Kt");
   const real & Kxxt = dbase.get<real>("Kxxt");
 
-  // initialize finite difference coefficients
-  const int &stencilSize = dbase.get<int>("stencilSize");
-  RealArray & coefficientI = *dbase.get<RealArray*>("coefficientI");
-  RealArray & coefficientK = *dbase.get<RealArray*>("coefficientK");
-  RealArray & coefficientB = *dbase.get<RealArray*>("coefficientB");
-
-  const real & dx = dbase.get<real>("elementLength");
-  real dx2=dx*dx;
-  real dx4=dx2*dx2;
 
 
-  const bool & useSameStencilSize = dbase.get<bool>("useSameStencilSize");
-  const bool & useSameStencilForVandA = dbase.get<bool>("useSameStencilForVandA");
-
-  // finite-difference coefficients:
-  RealArray Dss(stencilSize), Dssss(stencilSize);
-
-  //coefficientI=[0, 0, 1, 0, 0]
-  coefficientI = 0.;
-  coefficientI(2)=1.;
-
-
-  if(useSameStencilSize)
+  const TimeSteppingMethod & predictorMethod = dbase.get<TimeSteppingMethod>("predictorMethod");
+  const TimeSteppingMethod & correctorMethod = dbase.get<TimeSteppingMethod>("correctorMethod");
+  // initialize finite difference coefficients.
+  // initialize the coefficient matrices for the implicit methods only
+  if(predictorMethod==newmark2Implicit || correctorMethod==newmarkCorrector)
     {
-      // 5 point stencil 4th order Dss
-      Dss=0.;
-      Dss(0)=-1./12.;
-      Dss(1)=4./3.;
-      Dss(2)=-5./2.;
-      Dss(3)=4./3.;
-      Dss(4)=-1./12.;
-      Dss /= dx2;
-    }
-  else
-    {
-      // use second order schemes for all derivatives
-      // Dss=[0, 1,-2, 1, 0] /dx^2
-      Dss=0.;
-      Dss(1)=1.;
-      Dss(2)=-2;
-      Dss(3)=1;
-      Dss /= dx2;
-    }
+      const int &stencilSize = dbase.get<int>("stencilSize");
+      RealArray & coefficientI = *dbase.get<RealArray*>("coefficientI");
+      RealArray & coefficientK = *dbase.get<RealArray*>("coefficientK");
+      RealArray & coefficientB = *dbase.get<RealArray*>("coefficientB");
 
-  //Dssss=[1,-4, 6,-4, 1] /dx^4
-  Dssss=0.;
-  Dssss(0)=1.;
-  Dssss(1)=-4.;
-  Dssss(2)=6.;
-  Dssss(3)=-4.;
-  Dssss(4)=1.;
-  Dssss /= dx4;
+      const real & dx = dbase.get<real>("elementLength");
+      real dx2=dx*dx;
+      real dx4=dx2*dx2;
 
-  coefficientK= K0*coefficientI-T*Dss+EI*Dssss;  
-  coefficientB= Kt*coefficientI-Kxxt*Dss;
-    
+
+      const bool & useSameStencilSize = dbase.get<bool>("useSameStencilSize");
+  
+
+      // finite-difference coefficients:
+      RealArray Dss2(stencilSize),Dss4(stencilSize), Dssss(stencilSize);
+
+      //coefficientI=[0, 0, 1, 0, 0]
+      coefficientI = 0.;
+      coefficientI(2)=1.;
+
+      //fourth order scheme for second derivative
+      //Dss4=[-1/12, 4/3, -5/2, 4/3, -1/12]/dx^2
+      Dss4=0.;
+      Dss4(0)=-1./12.;
+      Dss4(1)=4./3.;
+      Dss4(2)=-5./2.;
+      Dss4(3)=4./3.;
+      Dss4(4)=-1./12.;
+      Dss4 /= dx2;
+
+      //second order schemes for second derivative
+      //Dss2=[0, 1,-2, 1, 0] /dx^2
+      Dss2=0.;
+      Dss2(1)=1.;
+      Dss2(2)=-2;
+      Dss2(3)=1;
+      Dss2 /= dx2;
+ 
+
+      //Dssss=[1,-4, 6,-4, 1] /dx^4
+      Dssss=0.;
+      Dssss(0)=1.;
+      Dssss(1)=-4.;
+      Dssss(2)=6.;
+      Dssss(3)=-4.;
+      Dssss(4)=1.;
+      Dssss /= dx4;
+  
+      if(useSameStencilSize)
+	{
+	  // scheme for the beam operator K:
+	  coefficientK= K0*coefficientI-T*Dss4+EI*Dssss;  
+	}
+      else
+	{
+	  // same order:
+	  // scheme for the beam operator K:
+	  coefficientK= K0*coefficientI-T*Dss2+EI*Dssss;  
+	}
+	  // scheme for the damping operator B:
+      coefficientB= Kt*coefficientI-Kxxt*Dss2; // this is the scheme described in the paper	
+	
+    }
 }
 
 
@@ -342,8 +357,16 @@ computeAcceleration(const real t,
   rhs += f;
 
   real accelerationScaleFactor=1.;
+  if( solverName=="explicitSolver")
+    {
+      // explicitSolver do not invert anything
+      // it  is solving for Abar utt (not utt )
+      accelerationScaleFactor=Abar;
+    }
 
-  if( !allowsFreeMotion ) 
+
+  // apply bc for rhs
+  if( !allowsFreeMotion &&  solverName!="explicitSolver") //Longfei 20160701: no need to ajust rhs for explicitSolver
     {
       // --- Apply boundary conditions to rhs  ----
 
@@ -358,16 +381,7 @@ computeAcceleration(const real t,
       // RealArray g;
       // getBoundaryValues( t, g );
       
-      if( solverName=="explicitSolver")
-	{
-	  // explicitSolver do not invert anything
-	  // it  is solving for Abar utt (not utt )
-	  accelerationScaleFactor=Abar;
-	}
-
-
     
-      // adjust rhs for BCs
       for( int side=0; side<=1; side++ )
 	{
 	  BoundaryCondition bc = side==0 ? bcLeft : bcRight;
@@ -468,13 +482,8 @@ computeAcceleration(const real t,
   if(solverName=="explicitSolver")  // M= I, bc for a is not implemented
     {
       a/=accelerationScaleFactor; // explicitSolver solves Abar*utt
-      //apply bc for a if not computing internalForce 
-      if(bcLeft!=internalForceBC)
-	{
-	  assert(bcRight!=internalForceBC);
-	  RealArray utemp=u,vtemp=v; // use the size of u,v
-	  assignBoundaryConditions(t,utemp,vtemp,a,f ); 
-	}
+      RealArray utemp=u,vtemp=v; // use the size of u,v
+      assignBoundaryConditions(t,utemp,vtemp,a,f ); 	
     }
 
 
@@ -614,16 +623,14 @@ factorTridiagonalSolver( const aString & tridiagonalSolverName)
   const real & Abar = dbase.get<real>("massPerUnitLength");
   const real & EI = dbase.get<real>("EI");
 
-  const bool & useSameStencilSize=dbase.get<bool>("useSameStencilSize");
  
   if( isPeriodic ) 
     { // consistency check:
       assert( bcRight==periodic );
     }
 
-  
   RealArray A;
-  if(tridiagonalSolverName=="implicitNewmarkSolver") // solve (Abar*I+alpha*K+alphB*B) u = f
+  if(tridiagonalSolverName=="implicitNewmarkSolver") // solve (Abar*I+alpha*K+alphB*B) a = f
     {
       const RealArray & coefficientI = *dbase.get<RealArray*>("coefficientI");
       const RealArray & coefficientK = *dbase.get<RealArray*>("coefficientK");
@@ -686,11 +693,10 @@ factorTridiagonalSolver( const aString & tridiagonalSolverName)
 	   getBeamID(),(const char*)tridiagonalSolverName, (int)isPeriodic);
   
       
-  // -- Boundary fixup ---
-  //Longfei 20160628: do not use same stencil schemes for v and a
-  //                  since no higher order (>2) derivatives of v and a are needed
-  const bool & useSameStencilForVandA=dbase.get<bool>("useSameStencilForVandA");
-  
+  // Longfei 20160628:
+  // note this is the matrix for acceleration equations.
+  const bool & useSameStencilSize = dbase.get<bool>("useSameStencilSize");
+  real delta = useSameStencilSize?1.:0.;
   if( !allowsFreeMotion && !isPeriodic )  // skip this for periodic bc
     {
       // --- Boundary conditions ---
@@ -724,45 +730,21 @@ factorTridiagonalSolver( const aString & tridiagonalSolverName)
 	      // Replace eqn on first ghost line with  wx_tt = given
 	      if(side==0)
 		{
-		  if(useSameStencilSize && useSameStencilForVandA)
-		    {
-		      //4th order
-		      bt(ib-is,0,0)=1./(12.*dx);
-		      ct(ib-is,0,0)=-2./(3.*dx);
-		      dt(ib-is,0,0)=0.;
-		      et(ib-is,0,0)=2./(3.*dx);
-		      at(ib-is,0,0)=-1./(12.*dx);
-		    }
-		  else
-		    {
-		      // 2nd order
-		      bt(ib-is,0,0)=0.;
-		      ct(ib-is,0,0)=-.5/dx;
-		      dt(ib-is,0,0)=0.;
-		      et(ib-is,0,0)=.5/dx;
-		      at(ib-is,0,0)=0.;
-		    }
+		  bt(ib-is,0,0)=(delta/12.)/dx;
+		  ct(ib-is,0,0)=-(.5+delta/6.)/dx;
+		  dt(ib-is,0,0)=0.;
+		  et(ib-is,0,0)=(.5+delta/6.)/dx;
+		  at(ib-is,0,0)=-(delta/12.)/dx;
+		 
 		}
 	      else
 		{
-		  if(useSameStencilSize && useSameStencilForVandA)
-		    {
-		      //4th order
-		      et(ib-is,0,0)=1./(12.*dx);
-		      at(ib-is,0,0)=-2./(3.*dx);
-		      bt(ib-is,0,0)=0.;
-		      ct(ib-is,0,0)=2./(3.*dx);
-		      dt(ib-is,0,0)=-1./(12.*dx);
-		    }
-		  else
-		    {
-		      // 2nd order
-		      et(ib-is,0,0)=0.;
-		      at(ib-is,0,0)=-.5/dx;
-		      bt(ib-is,0,0)=0.;
-		      ct(ib-is,0,0)=.5/dx;
-		      dt(ib-is,0,0)=0.;
-		    }
+		  et(ib-is,0,0)=(delta/12.)/dx;
+		  at(ib-is,0,0)=-(.5+delta/6.)/dx;
+		  bt(ib-is,0,0)=0.;
+		  ct(ib-is,0,0)=(.5+delta/6.)/dx;
+		  dt(ib-is,0,0)=-(delta/12.)/dx;
+		    
 		}
 	    }
 	  // EI*wxx_tt = given
@@ -774,46 +756,21 @@ factorTridiagonalSolver( const aString & tridiagonalSolverName)
 		  // Replace eqn on first ghost line with  wxx_tt = given
 		  if(side==0)
 		    {
-
-		      if(useSameStencilSize && useSameStencilForVandA)
-			{
-			  // 4th order
-			  bt(ib-is,0,0)=-1./(12.*dx2);
-			  ct(ib-is,0,0)=4./(3.*dx2);
-			  dt(ib-is,0,0)=-5./(2.*dx2);
-			  et(ib-is,0,0)=4./(3.*dx2);
-			  at(ib-is,0,0)=-1./(12.*dx2);
-			}
-		      else
-			{
-			  // 2nd order
-			  bt(ib-is,0,0)=0.;
-			  ct(ib-is,0,0)=1./dx2;
-			  dt(ib-is,0,0)=-2./dx2;
-			  et(ib-is,0,0)=1./dx2;
-			  at(ib-is,0,0)=0.;
-			}
+		      // 2nd order
+		      bt(ib-is,0,0)=-(delta/12.)/dx2;
+		      ct(ib-is,0,0)=(1.+delta/3.)/dx2;
+		      dt(ib-is,0,0)=-(2.+delta/2.)/dx2;
+		      et(ib-is,0,0)=(1.+delta/3.)/dx2;
+		      at(ib-is,0,0)=-(delta/12.)/dx2;
 		    }
 		  else 
 		    {
-		      if(useSameStencilSize && useSameStencilForVandA)
-			{
-			  // 4th order
-			  et(ib-is,0,0)=-1./(12.*dx2);
-			  at(ib-is,0,0)=4./(3.*dx2);
-			  bt(ib-is,0,0)=-5./(2.*dx2);
-			  ct(ib-is,0,0)=4./(3.*dx2);
-			  dt(ib-is,0,0)=-1./(12.*dx2);
-			}
-		      else
-			{
-			  // 2nd order
-			  et(ib-is,0,0)=0.;
-			  at(ib-is,0,0)=1./dx2;
-			  bt(ib-is,0,0)=-2./dx2;
-			  ct(ib-is,0,0)=1./dx2;
-			  dt(ib-is,0,0)=0.;
-			}
+		      // 2nd order
+		      et(ib-is,0,0)=-(delta/12.)/dx2;
+		      at(ib-is,0,0)=(1.+delta/3.)/dx2;
+		      bt(ib-is,0,0)=-(2.+delta/2.)/dx2;
+		      ct(ib-is,0,0)=(1.+delta/3.)/dx2;
+		      dt(ib-is,0,0)=-(delta/12.)/dx2;
 		    }
 		}
 	      else
@@ -850,7 +807,7 @@ factorTridiagonalSolver( const aString & tridiagonalSolverName)
 	    }
 	  else if(bc==pinned || bc== clamped)
 	    {
-	      //To do: Replace eqn on second ghost line with compatibility bc
+	      // fill in second ghost with extrapolation. This value will not be used
 	      modifyMatrixForExtrapolation(at,bt,ct,dt,et,ib-2*is,side);
 	    }
 	  else
@@ -951,6 +908,7 @@ assignBoundaryConditions( real t, RealArray & u, RealArray & v, RealArray & a,co
   const bool & useSameStencilSize = dbase.get<bool>("useSameStencilSize");
 
 
+
   if( !allowsFreeMotion )
     {
       RealArray g,gt,gtt;
@@ -975,6 +933,13 @@ assignBoundaryConditions( real t, RealArray & u, RealArray & v, RealArray & a,co
 	      u(ib,0,0,0) =  g(0,side);          // u is given
 	      v(ib,0,0,0) =  gt(0,side);         // v is given
 	      a(ib,0,0,0) =  gtt(0,side);        // a is given
+	      
+	      // 2nd order for u and v
+	      v(ib-is,0,0,0) = v(ib+is)-is*2.*dx*gt(1,side);  // vx is given, this determines the first ghost line
+	      a(ib-is,0,0,0) = a(ib+is)-is*2.*dx*gtt(1,side); // ax is given, this determines the first ghost line
+	      // extrapolate the second ghost line for v and a. These values will not be used by the scheme
+	      v(ib-2*is,0,0,0)=3.*v(ib-is,0,0,0)-3.*v(ib,0,0,0)+v(ib+is,0,0,0); 
+	      a(ib-2*is,0,0,0)=3.*a(ib-is,0,0,0)-3.*a(ib,0,0,0)+a(ib+is,0,0,0);
 
 	      if(useSameStencilSize)
 		{
@@ -1002,35 +967,17 @@ assignBoundaryConditions( real t, RealArray & u, RealArray & v, RealArray & a,co
 		  u(ib-is,0,0,0) = (rhs1-am2*rhs2-a0*u(ib,0,0,0)-(ap1-8*am2)*u(ib+is,0,0,0)-(ap2+am2)*u(ib+2*is,0,0,0))/(am1+8.*am2);
 		  u(ib-2*is,0,0,0) = 8.*u(ib-is,0,0,0)-8.*u(ib+is,0,0,0)+ u(ib+2*is,0,0,0)+rhs2;
 
-		  //-----ghost points for v --------------------
-		  rhs1 = 0.;
-		  rhs2 = 12.*is*dx*gt(1,side);
-		  //=====================================================================================================
-		  //           D+^3 v =[1,-3, 3,-1,0 ]v =rhs1;
-		  //               D1v =[1,-8, 0, 8,-1]v =rhs2   
-		  v(ib-is,0,0,0)=(rhs1-rhs2-3.*v(ib,0,0,0)+9.*v(ib+is,0,0,0)-v(ib+2*is,0,0,0))/5.;
-		  v(ib-2*is,0,0,0)= 8.*v(ib-is,0,0,0)-8.*v(ib+is,0,0,0)+ v(ib+2*is,0,0,0)+rhs2;	
-	      
-		  //-----ghost points for a --------------------
-		  rhs1 = 0.;
-		  rhs2 = 12.*is*dx*gtt(1,side);
-		  a(ib-is,0,0,0)=(rhs1-rhs2-3.*a(ib,0,0,0)+9.*a(ib+is,0,0,0)-a(ib+2*is,0,0,0))/5.;
-		  a(ib-2*is,0,0,0)= 8.*a(ib-is,0,0,0)-8.*a(ib+is,0,0,0)+ a(ib+2*is,0,0,0)+rhs2;	
 		}
 	      else
 		{
 		  // 2nd order
 		  u(ib-is,0,0,0) = u(ib+is)-is*2.*dx*g(1,side);   // ux is given, this determines the first ghost line
-		  v(ib-is,0,0,0) = v(ib+is)-is*2.*dx*gt(1,side);  // vx is given, this determines the first ghost line
-		  a(ib-is,0,0,0) = a(ib+is)-is*2.*dx*gtt(1,side); // ax is given, this determines the first ghost line
 
 		  // use compatiblitiy condition for the second ghost line or u
-		  real uxxxx = -Abar*gtt(0,side)-K0*g(0,side)+T*(u(ib-is,0,0,0)-2.*u(ib,0,0,0)+u(ib+is,0,0,0))/dx2-Kt*gt(0,side)+Kxxt*(v(ib-is,0,0,0)-2.*v(ib,0,0,0)+v(ib+is,0,0,0))/dx2 + f(ib,0,0,0);
+		  real uxxxx = -Abar*gtt(0,side)-K0*g(0,side)+T*(u(ib-is,0,0,0)-2.*u(ib,0,0,0)+u(ib+is,0,0,0))/dx2
+		    -Kt*gt(0,side)+Kxxt*(v(ib-is,0,0,0)-2.*v(ib,0,0,0)+v(ib+is,0,0,0))/dx2 + f(ib,0,0,0);
 		  u(ib-2*is) = 4.*u(ib-is)-6.*u(ib)+4.*u(ib+is)-u(ib+2*is) + uxxxx*dx4;
-	  
-		  // extrapolate the second ghost line for v and a. These values will not be used by the scheme
-		  v(ib-2*is,0,0,0)=3.*v(ib-is,0,0,0)-3.*v(ib,0,0,0)+v(ib+is,0,0,0); 
-		  a(ib-2*is,0,0,0)=3.*a(ib-is,0,0,0)-3.*a(ib,0,0,0)+a(ib+is,0,0,0);
+
 		}
 	    }
 	 else if(bc==pinned)
@@ -1094,13 +1041,16 @@ assignBoundaryConditions( real t, RealArray & u, RealArray & v, RealArray & a,co
 	       {
 		 if(useSameStencilSize)
 		   {
+
 		     // use 5 point stencil for w.x = D0(I-h^2/6(D+D-))*u = D0*u-h^2/6D0*((D+D-))u=g1     
-		     // add higher order correcto to u(ib-is),v(ib-is),a(ib-is),
 		     // sinde D0*((D+D-))u = g3, we have u(ib-is,0,0,0) = u(ib+is,0,0,0)-is*2*dx*(g(1,side)+h^2/6*g(3,side));
 		     // so correct u(ib-is) with -is*2*dx*dx2/6*g(3,side)
+		     // add higher order correcto to u(ib-is)
 		     u(ib-is,0,0,0) +=   -is*2.*dx*dx2/6.*g(3,side);
+		     //  add higher order correcto to v(ib-is),a(ib-is) as well
 		     v(ib-is,0,0,0) +=   -is*2.*dx*dx2/6.*gt(3,side);
 		     a(ib-is,0,0,0) +=   -is*2.*dx*dx2/6.*gtt(3,side);
+		   
 		   }
 		 // uxxx =D0(D+D-)u is given, this determines the second ghost line   
 		 u(ib-2*is,0,0,0)=2.*u(ib-is,0,0,0)-2.*u(ib+is,0,0,0)+u(ib+2*is,0,0,0)-is*2.*dx3*g(3,side);
@@ -1122,6 +1072,7 @@ assignBoundaryConditions( real t, RealArray & u, RealArray & v, RealArray & a,co
 
 	     assert(EI!=0);
 
+	     // use same stencil schemes for bc
 	     if(useSameStencilSize)
 	       {
 		 // use (D+D-)D0 u=g3 and (D+D-)u-h^2/12*(D+D-)^2 u = g2 to dertermine first and second ghost line for u
@@ -1130,6 +1081,7 @@ assignBoundaryConditions( real t, RealArray & u, RealArray & v, RealArray & a,co
 		 // solve for u(ib-2*is) and u(ib-is):
 		 u(ib-is,0,0,0)    = (30.*u(ib,0,0,0)-18.*u(ib+is,0,0,0)+2.*u(ib+2*is,0,0,0)+12.*dx2*g(2,side)-2.*is*dx3*g(3,side))/14.;
 		 u(ib-2*is,0,0,0) = (18.*u(ib-is,0,0,0)-30.*u(ib,0,0,0)+14.*u(ib+is,0,0,0) -12.*dx2*g(2,side)-2.*is*dx3*g(3,side))/2.;
+
 		 // same for v and a
 		 v(ib-is,0,0,0)    = (30.*v(ib,0,0,0)-18.*v(ib+is,0,0,0)+2.*v(ib+2*is,0,0,0)+12.*dx2*gt(2,side)-2.*is*dx3*gt(3,side))/14.;
 		 v(ib-2*is,0,0,0) = (18.*v(ib-is,0,0,0)-30.*v(ib,0,0,0)+14.*v(ib+is,0,0,0) -12.*dx2*gt(2,side)-2.*is*dx3*gt(3,side))/2.;
@@ -1138,7 +1090,8 @@ assignBoundaryConditions( real t, RealArray & u, RealArray & v, RealArray & a,co
 	       }
 	     else
 	       {
-		 // second order
+	     
+		 // use same order schemes for bc
 		 u(ib-is,0,0,0)=2.*u(ib,0,0,0)-u(ib+is,0,0,0)+dx2*g(2,side);         /// uxx is given, this determines the first ghost line, this produces wiggles for a
 		 v(ib-is,0,0,0)=2.*v(ib,0,0,0)-v(ib+is,0,0,0)+dx2*gt(2,side);         /// vxx is given, this determines the first ghost line
 		 a(ib-is,0,0,0)=2.*a(ib,0,0,0)-a(ib+is,0,0,0)+dx2*gtt(2,side);         /// axx is given, this determines the first ghost line
@@ -1146,7 +1099,9 @@ assignBoundaryConditions( real t, RealArray & u, RealArray & v, RealArray & a,co
 		 u(ib-2*is,0,0,0)=2.*u(ib-is,0,0,0)-2.*u(ib+is,0,0,0)+u(ib+2*is,0,0,0)-is*2.*dx3*g(3,side); // uxxx is given, this determines the second ghost line   
 		 v(ib-2*is,0,0,0)=2.*v(ib-is,0,0,0)-2.*v(ib+is,0,0,0)+v(ib+2*is,0,0,0)-is*2.*dx3*gt(3,side); // uxxx is given, this determines the second ghost line   
 		 a(ib-2*is,0,0,0)=2.*a(ib-is,0,0,0)-2.*a(ib+is,0,0,0)+a(ib+2*is,0,0,0)-is*2.*dx3*gtt(3,side); // uxxx is given, this determines the second ghost line
+	     
 	       }
+
 	   }
 	 else if( bc==internalForceBC )
 	   {
