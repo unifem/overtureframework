@@ -926,20 +926,13 @@ assignBoundaryConditions( real t, RealArray & u, RealArray & v, RealArray & a,co
 	  // Special case when EI=0 : (we only have 1 BC for clamped instead of 2)
 	  if( bc==clamped && EI==0. ) bc=pinned;
 	  
-	  if( bc == clamped ) 
-	    {
+	  if( bc == clamped )
+	    {//old:
 	      //       w = given
 	      //       wx = given 
 	      u(ib,0,0,0) =  g(0,side);          // u is given
 	      v(ib,0,0,0) =  gt(0,side);         // v is given
 	      a(ib,0,0,0) =  gtt(0,side);        // a is given
-	      
-	      // 2nd order for u and v
-	      v(ib-is,0,0,0) = v(ib+is)-is*2.*dx*gt(1,side);  // vx is given, this determines the first ghost line
-	      a(ib-is,0,0,0) = a(ib+is)-is*2.*dx*gtt(1,side); // ax is given, this determines the first ghost line
-	      // extrapolate the second ghost line for v and a. These values will not be used by the scheme
-	      v(ib-2*is,0,0,0)=3.*v(ib-is,0,0,0)-3.*v(ib,0,0,0)+v(ib+is,0,0,0); 
-	      a(ib-2*is,0,0,0)=3.*a(ib-is,0,0,0)-3.*a(ib,0,0,0)+a(ib+is,0,0,0);
 
 	      if(useSameStencilSize)
 		{
@@ -967,19 +960,90 @@ assignBoundaryConditions( real t, RealArray & u, RealArray & v, RealArray & a,co
 		  u(ib-is,0,0,0) = (rhs1-am2*rhs2-a0*u(ib,0,0,0)-(ap1-8*am2)*u(ib+is,0,0,0)-(ap2+am2)*u(ib+2*is,0,0,0))/(am1+8.*am2);
 		  u(ib-2*is,0,0,0) = 8.*u(ib-is,0,0,0)-8.*u(ib+is,0,0,0)+ u(ib+2*is,0,0,0)+rhs2;
 
+		  //-----ghost points for v --------------------
+		  rhs1 = 0.;
+		  rhs2 = 12.*is*dx*gt(1,side);
+		  //=====================================================================================================
+		  //           D+^3 v =[1,-3, 3,-1,0 ]v =rhs1;
+		  //               D1v =[1,-8, 0, 8,-1]v =rhs2   
+		  v(ib-is,0,0,0)=(rhs1-rhs2-3.*v(ib,0,0,0)+9.*v(ib+is,0,0,0)-v(ib+2*is,0,0,0))/5.;
+		  v(ib-2*is,0,0,0)= 8.*v(ib-is,0,0,0)-8.*v(ib+is,0,0,0)+ v(ib+2*is,0,0,0)+rhs2;	
+	      
+		  //-----ghost points for a --------------------
+		  rhs1 = 0.;
+		  rhs2 = 12.*is*dx*gtt(1,side);
+		  a(ib-is,0,0,0)=(rhs1-rhs2-3.*a(ib,0,0,0)+9.*a(ib+is,0,0,0)-a(ib+2*is,0,0,0))/5.;
+		  a(ib-2*is,0,0,0)= 8.*a(ib-is,0,0,0)-8.*a(ib+is,0,0,0)+ a(ib+2*is,0,0,0)+rhs2;	
 		}
 	      else
 		{
 		  // 2nd order
 		  u(ib-is,0,0,0) = u(ib+is)-is*2.*dx*g(1,side);   // ux is given, this determines the first ghost line
+		  v(ib-is,0,0,0) = v(ib+is)-is*2.*dx*gt(1,side);  // vx is given, this determines the first ghost line
+		  a(ib-is,0,0,0) = a(ib+is)-is*2.*dx*gtt(1,side); // ax is given, this determines the first ghost line
 
 		  // use compatiblitiy condition for the second ghost line or u
-		  real uxxxx = -Abar*gtt(0,side)-K0*g(0,side)+T*(u(ib-is,0,0,0)-2.*u(ib,0,0,0)+u(ib+is,0,0,0))/dx2
-		    -Kt*gt(0,side)+Kxxt*(v(ib-is,0,0,0)-2.*v(ib,0,0,0)+v(ib+is,0,0,0))/dx2 + f(ib,0,0,0);
+		  real uxxxx = -Abar*gtt(0,side)-K0*g(0,side)+T*(u(ib-is,0,0,0)-2.*u(ib,0,0,0)+u(ib+is,0,0,0))/dx2-Kt*gt(0,side)+Kxxt*(v(ib-is,0,0,0)-2.*v(ib,0,0,0)+v(ib+is,0,0,0))/dx2 + f(ib,0,0,0);
 		  u(ib-2*is) = 4.*u(ib-is)-6.*u(ib)+4.*u(ib+is)-u(ib+2*is) + uxxxx*dx4;
-
+	  
+		  // extrapolate the second ghost line for v and a. These values will not be used by the scheme
+		  v(ib-2*is,0,0,0)=3.*v(ib-is,0,0,0)-3.*v(ib,0,0,0)+v(ib+is,0,0,0); 
+		  a(ib-2*is,0,0,0)=3.*a(ib-is,0,0,0)-3.*a(ib,0,0,0)+a(ib+is,0,0,0);
 		}
 	    }
+	    // { // modification 20160630
+	    //   //       w = given
+	    //   //       wx = given 
+	    //   u(ib,0,0,0) =  g(0,side);          // u is given
+	    //   v(ib,0,0,0) =  gt(0,side);         // v is given
+	    //   a(ib,0,0,0) =  gtt(0,side);        // a is given
+	      
+	    //   // 2nd order for u and v
+	    //   v(ib-is,0,0,0) = v(ib+is)-is*2.*dx*gt(1,side);  // vx is given, this determines the first ghost line
+	    //   a(ib-is,0,0,0) = a(ib+is)-is*2.*dx*gtt(1,side); // ax is given, this determines the first ghost line
+	    //   // extrapolate the second ghost line for v and a. These values will not be used by the scheme
+	    //   v(ib-2*is,0,0,0)=3.*v(ib-is,0,0,0)-3.*v(ib,0,0,0)+v(ib+is,0,0,0); 
+	    //   a(ib-2*is,0,0,0)=3.*a(ib-is,0,0,0)-3.*a(ib,0,0,0)+a(ib+is,0,0,0);
+
+	    //   if(useSameStencilSize)
+	    // 	{
+	    // 	  // same stencil for all
+	    // 	  //-----ghost points for u --------------------
+	    // 	  // use u.x=given and compatibility BC to determine the first and second ghost line for u
+	    // 	  // D1*u = g1, where D1 = D0(I-h^2/6(D+D-))
+	    // 	  // EI*D4*u-T*D2*u = -rhos*bs*gtt-K0*g-Kt*gt+Kxxt*(D+D-)v+f, where D4=(D+D-)^2, D2=(D+D-) - h^2/12(D+D-)^2
+	    // 	  real rhs1 = -Abar*gtt(0,side)-K0*g(0,side)-Kt*gt(0,side)+Kxxt*(v(ib-is,0,0,0)-2.*v(ib,0,0,0)+v(ib+is,0,0,0))/dx2 + f(ib,0,0,0);
+	    // 	  real rhs2 = 12.*is*dx*g(1,side);
+	    // 	  //=====================================================================================================
+	    // 	  //              EI*D4= [     EI*1./dx4       -EI*4./dx4        EI*6./dx4        -EI*4./dx4           EI/dx4]
+	    // 	  //               T*D2= [ −T/(12.*dx2)      4.*T/(3.*dx2)   −5.*T/(2.*dx2)   4.*T/(3.*dx2)	 −T/(12.*dx2)]
+	    // 	  //  =====> define
+	    // 	  real am2=EI*1./dx4+T/(12.*dx2);
+	    // 	  real am1= -EI*4./dx4- 4.*T/(3.*dx2);
+	    // 	  real a0 =  EI*6./dx4+5.*T/(2.*dx2);
+	    // 	  real ap1 = -EI*4./dx4-4.*T/(3.*dx2);
+	    // 	  real ap2 = EI/dx4+T/(12.*dx2);
+	    // 	  // ======> 
+	    // 	  //  (EI*D4- T*D2)u=[ am2, am1, a0, ap1, ap2 ]*u=rhs1   --------- (1)
+	    // 	  //                  D1u=[     1,    -8,  0,     8,    -1 ]*u=rhs2   -------- (2)
+	    // 	  //=====================================================================================================
+	    // 	  // solve eqn (1) and (2) for 
+	    // 	  u(ib-is,0,0,0) = (rhs1-am2*rhs2-a0*u(ib,0,0,0)-(ap1-8*am2)*u(ib+is,0,0,0)-(ap2+am2)*u(ib+2*is,0,0,0))/(am1+8.*am2);
+	    // 	  u(ib-2*is,0,0,0) = 8.*u(ib-is,0,0,0)-8.*u(ib+is,0,0,0)+ u(ib+2*is,0,0,0)+rhs2;
+
+	    // 	}
+	    //   else
+	    // 	{
+	    // 	  // 2nd order
+	    // 	  u(ib-is,0,0,0) = u(ib+is)-is*2.*dx*g(1,side);   // ux is given, this determines the first ghost line
+
+	    // 	  // use compatiblitiy condition for the second ghost line or u
+	    // 	  real uxxxx = -Abar*gtt(0,side)-K0*g(0,side)+T*(u(ib-is,0,0,0)-2.*u(ib,0,0,0)+u(ib+is,0,0,0))/dx2
+	    // 	    -Kt*gt(0,side)+Kxxt*(v(ib-is,0,0,0)-2.*v(ib,0,0,0)+v(ib+is,0,0,0))/dx2 + f(ib,0,0,0);
+	    // 	  u(ib-2*is) = 4.*u(ib-is)-6.*u(ib)+4.*u(ib+is)-u(ib+2*is) + uxxxx*dx4;
+
+	    // 	}
+	    // }
 	 else if(bc==pinned)
 	    {
 	      // w=given
