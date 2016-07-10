@@ -127,12 +127,9 @@ $grid
       deforming body
         user defined deforming body
           elastic beam
-	  FDBeamModel
           $I=1.; $length=1.; $thick=.2; $pNorm=1.; 
           $angle=90.; # $Pi*.5; 
           elastic beam parameters...
-	    #predictor: adamsBashforth2
-	    #corrector: adamsMoultonCorrector
             name: beam1
             number of elements: $numElem
             area moment of inertia: $I
