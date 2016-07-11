@@ -1,0 +1,91 @@
+
+========7/8/2016======
+#compare FEM and FD with smaller uIn=1.5:
+
+PID: 29129
+FEM: 
+mkdir -p FEM1234_LongerChannel_AMP_NB_G8
+/home/lil19/cg.g/ins/bin/cgins -noplot fourBeamsInAChannel -BM1=FEM -BM2=FEM -BM3=FEM -BM4=FEM -g=fourBeamsInALongerChannelGride8.order2.hdf -tf=20. -tp=.01 -rhoBeam1=1000  -rhoBeam2=10 -rhoBeam3=1 -rhoBeam4=100 -E1=30 -E2=10 -E3=20 -E4=30 -numElem=28 -outflowOption=neumann -uIn=1.5 -nu=0.001 -addedMass=1 -ampProjectVelocity=1 -useApproximateAMPcondition=0 -numberOfCorrections=1 -saveProbe=1 -cfls=1 -smoothBeam=0  -smoothInterfaceVelocity=1 -nis=10 -rampInflow=1 -show=FEM1234_LongerChannel_AMP_NB_G8.show -go=go >  FEM1234_LongerChannel_AMP_NB_G8.out &
+
+PID: 29189
+FD:
+mkdir -p FD1234_LongerChannel_AMP_NB_G8
+/home/lil19/cg.g/ins/bin/cgins -noplot fourBeamsInAChannel -BM1=FD -BM2=FD -BM3=FD -BM4=FD -useSameStencilSize=1 -g=fourBeamsInALongerChannelGride8.order2.hdf -tf=20. -tp=.01 -rhoBeam1=1000 -rhoBeam2=10 -rhoBeam3=1 -rhoBeam4=100 -E1=30 -E2=10 -E3=20 -E4=30 -numElem=28 -outflowOption=neumann -uIn=1.5 -nu=0.001 -addedMass=1 -ampProjectVelocity=1 -useApproximateAMPcondition=0 -numberOfCorrections=1 -saveProbe=1 -cfls=1 -smoothBeam=1 -numberOfBeamSmooths=30 -smoothInterfaceVelocity=1 -nis=30 -rampInflow=1 -show=FD1234_LongerChannel_AMP_NB_G8.show -go=go >  FD1234_LongerChannel_AMP_NB_G8.out &
+
+
+
+
+======7/7/2016===========
+PID:23561 
+Compute G8: more smoothers (FAILED)
+nohup /home/lil19/cg.g/ins/bin/cgins -noplot fourBeamsInAChannel -BM1=FD -BM2=FD -BM3=FD -BM4=FD -useSameStencilSize=1 -g=fourBeamsInALongerChannelGride8.order2.hdf -tf=20. -tp=.01 -rhoBeam1=1000. -rhoBeam2=10. -rhoBeam3=1. -rhoBeam4=100. -E1=30 -E2=10 -E3=20 -E4=30 -numElem=28 -outflowOption=neumann -uIn=2. -nu=1.e-3 -addedMass=1 -ampProjectVelocity=1 -useApproximateAMPcondition=0 -numberOfCorrections=1 -saveProbe=1 -cfls=4. -smoothBeam=1 -numberOfBeamSmooths=30 -smoothInterfaceVelocity=1 -nis=30 -rampInflow=1 -show=FD1234_LongerChannel_AMP_NB_G8.show -go=go >  FD1234_LongerChannel_AMP_NB_G8.out &
+
+
+make channel longer.
+try this: 
+PID: 20750
+mkdir -p FD1234_LongerChannel_AMP_NB_G2
+(OK at t=10)
+/home/lil19/cg.g/ins/bin/cgins -noplot fourBeamsInAChannel -BM1=FD -BM2=FD -BM3=FD -BM4=FD -useSameStencilSize=1 -g=fourBeamsInALongerChannelGride1.order2.hdf -tf=10. -tp=.01 -rhoBeam1=1000. -rhoBeam2=10. -rhoBeam3=1. -rhoBeam4=100. -E1=30 -E2=10 -E3=20 -E4=30 -numElem=7 -outflowOption=neumann -uIn=2. -nu=1.e-3 -addedMass=1 -ampProjectVelocity=1 -useApproximateAMPcondition=0 -numberOfCorrections=1 -saveProbe=1 -cfls=4. -smoothBeam=1 -numberOfBeamSmooths=10 -smoothInterfaceVelocity=1 -nis=10 -rampInflow=1 -show=FD1234_LongerChannel_AMP_NB_G2.show -go=go >  FD1234_LongerChannel_AMP_NB_G2.out &
+
+try the same as aboe for FEM beam
+PID: 27151
+mkdir -p FEM1234_LongerChannel_AMP_NB_G2
+/home/lil19/cg.g/ins/bin/cgins -noplot fourBeamsInAChannel -BM1=FEM -BM2=FEM -BM3=FEM -BM4=FEM -useSameStencilSize=1 -g=fourBeamsInALongerChannelGride1.order2.hdf -tf=10. -tp=.01 -rhoBeam1=1000. -rhoBeam2=10. -rhoBeam3=1. -rhoBeam4=100. -E1=30 -E2=10 -E3=20 -E4=30 -numElem=7 -outflowOption=neumann -uIn=2. -nu=1.e-3 -addedMass=1 -ampProjectVelocity=1 -useApproximateAMPcondition=0 -numberOfCorrections=1 -saveProbe=1 -cfls=4. -smoothBeam=0  -smoothInterfaceVelocity=1 -nis=10 -rampInflow=1 -show=FEM1234_LongerChannel_AMP_NB_G2.show -go=go >  FEM1234_LongerChannel_AMP_NB_G2.out &
+
+
+
+
+======07/05/2016=========
+mkdir -p FD1234_AMP_NB_G8
+/home/lil19/cg.g/ins/bin/cgins -noplot  fourBeamsInAChannel -BM1=FD -BM2=FD -BM3=FD -BM4=FD -useSameStencilSize=1 -g=fourBeamsInAChannelGride8.order2.hdf -tf=10. -tp=.01 -rhoBeam=1. -E=5. -numElem=21 -outflowOption=neumann -nu=5.e-2 -addedMass=1 -ampProjectVelocity=1 -useApproximateAMPcondition=0 -numberOfCorrections=1 -saveProbe=1 -cfls=1. -smoothBeam=1 -numberOfBeamSmooths=10 -smoothInterfaceVelocity=1 -nis=10 -show=FD1234_AMP_NB_G8.show -go=go >  FD1234_AMP_NB_G8.out &
+
+mkdir -p FD1234_AMP_ABAM_G8
+/home/lil19/cg.g/ins/bin/cgins -noplot  fourBeamsInAChannel -BM1=FD -BM2=FD -BM3=FD -BM4=FD -useSameStencilSize=1 -g=fourBeamsInAChannelGride8.order2.hdf -tf=10. -tp=.01 -rhoBeam=1. -E=5. -numElem=21 -outflowOption=neumann -nu=5.e-2 -addedMass=1 -ampProjectVelocity=0 -useApproximateAMPcondition=0 -numberOfCorrections=1 -saveProbe=1 -cfls=1. -smoothBeam=1 -numberOfBeamSmooths=10 -smoothInterfaceVelocity=1 -nis=10 -pc=adamsBashforth2 -cs=adamsMoultonCorrector -show=FD1234_AMP_ABAM_G8.show -go=go >  FD1234_AMP_ABAM_G8.out &
+
+
+
+
+
+
+
+
+
+
+
+
+
+==========07/04/2016========
+
+test fourBeamsInAChannel:
+
+FD1 Failed:
+cgins fourBeamsInAChannel -BM1=FD -BM2=FD -BM3=FD -BM4=FD -useSameStencilSize=1 -g=fourBeamsInAChannelGride1.order2.hdf -tf=10. -tp=.01 -rhoBeam=1. -E=2 -numElem=7 -outflowOption=neumann -nu=1.e-2 -addedMass=1 -ampProjectVelocity=1 -useApproximateAMPcondition=0 -numberOfCorrections=1 -saveProbe=1 -cfls=1. -smoothBeam=1 -numberOfBeamSmooths=3
+
+FD0 failed
+cgins fourBeamsInAChannel -BM1=FD -BM2=FD -BM3=FD -BM4=FD -useSameStencilSize=0 -g=fourBeamsInAChannelGride1.order2.hdf -tf=10. -tp=.01 -rhoBeam=1. -E=2 -numElem=7 -outflowOption=neumann -nu=1.e-2 -addedMass=1 -ampProjectVelocity=1 -useApproximateAMPcondition=0 -numberOfCorrections=1 -saveProbe=1 -cfls=1. -smoothBeam=1 -numberOfBeamSmooths=3
+
+
+FD1:(OK at t=2)
+cgins fourBeamsInAChannel -BM1=FD -BM2=FD -BM3=FD -BM4=FD -useSameStencilSize=1 -g=fourBeamsInAChannelGride1.order2.hdf -tf=10. -tp=.01 -rhoBeam=1. -E=5. -numElem=7 -outflowOption=neumann -nu=1.e-2 -addedMass=1 -ampProjectVelocity=1 -useApproximateAMPcondition=0 -numberOfCorrections=1 -saveProbe=1 -cfls=1. -smoothBeam=1 -numberOfBeamSmooths=3
+
+
+(OK at t=4)
+cgins  fourBeamsInAChannel -BM1=FD -BM2=FD -BM3=FD -BM4=FD -useSameStencilSize=1 -g=fourBeamsInAChannelGride1.order2.hdf -tf=10. -tp=.01 -rhoBeam=1. -E=5. -numElem=7 -outflowOption=neumann -nu=5.e-2 -addedMass=1 -ampProjectVelocity=1 -useApproximateAMPcondition=0 -numberOfCorrections=1 -saveProbe=1 -cfls=1. -smoothBeam=1 -numberOfBeamSmooths=3 -smoothInterfaceVelocity=1 -nis=4 -go=go -show=aa.show
+
+G8: NBNB (might be OK. ) RECHECK ME using CG3
+cgins -noplot  fourBeamsInAChannel -BM1=FD -BM2=FD -BM3=FD -BM4=FD -useSameStencilSize=1 -g=fourBeamsInAChannelGride8.order2.hdf -tf=10. -tp=.01 -rhoBeam=1. -E=5. -numElem=21 -outflowOption=neumann -nu=5.e-2 -addedMass=1 -ampProjectVelocity=1 -useApproximateAMPcondition=0 -numberOfCorrections=1 -saveProbe=1 -cfls=1. -smoothBeam=1 -numberOfBeamSmooths=10 -smoothInterfaceVelocity=1 -nis=10  -go=go -show=aaG8.show
+
+G8: ABAM increase smooth numbers: (might be OK, to run on CG3)
+cgins -noplot  fourBeamsInAChannel -BM1=FD -BM2=FD -BM3=FD -BM4=FD -useSameStencilSize=1 -g=fourBeamsInAChannelGride8.order2.hdf -tf=10. -tp=.01 -rhoBeam=1. -E=5. -numElem=21 -outflowOption=neumann -nu=5.e-2 -addedMass=1 -ampProjectVelocity=0 -useApproximateAMPcondition=0 -numberOfCorrections=1 -saveProbe=1 -cfls=1. -smoothBeam=1 -numberOfBeamSmooths=10 -smoothInterfaceVelocity=1 -nis=10 -pc=adamsBashforth2 -cs=adamsMoultonCorrector -go=go -show=aaG8ABAM.show
+
+G8 FD0 (Failed even faster)
+cgins -noplot  fourBeamsInAChannel -BM1=FD -BM2=FD -BM3=FD -BM4=FD -useSameStencilSize=0 -g=fourBeamsInAChannelGride8.order2.hdf -tf=10. -tp=.01 -rhoBeam=1. -E=5. -numElem=21 -outflowOption=neumann -nu=5.e-2 -addedMass=1 -ampProjectVelocity=0 -useApproximateAMPcondition=0 -numberOfCorrections=1 -saveProbe=1 -cfls=1. -smoothBeam=1 -numberOfBeamSmooths=10 -smoothInterfaceVelocity=1 -nis=10 -pc=adamsBashforth2 -cs=adamsMoultonCorrector -go=go -show=aaG8ABAM.show
+
+G8 PBF (Failed even faster)
+cgins -noplot  fourBeamsInAChannel -BM1=FD -BM2=FD -BM3=FD -BM4=FD -useSameStencilSize=1 -g=fourBeamsInAChannelGride8.order2.hdf -tf=10. -tp=.01 -rhoBeam=1. -E=5. -numElem=21 -outflowOption=neumann -nu=5.e-2 -addedMass=1 -ampProjectVelocity=0 -useApproximateAMPcondition=1 -numberOfCorrections=1 -saveProbe=1 -cfls=1. -smoothBeam=1 -numberOfBeamSmooths=10 -smoothInterfaceVelocity=1 -nis=10 -pc=adamsBashforth2 -cs=adamsMoultonCorrector -go=go -show=aaG8ABAM.show
+
+
+G8 FEM (Failed)
+cgins -noplot  fourBeamsInAChannel -BM1=FEM -BM2=FEM -BM3=FEM -BM4=FEM -g=fourBeamsInAChannelGride8.order2.hdf -tf=10. -tp=.01 -rhoBeam=1. -E=5. -numElem=21 -outflowOption=neumann -nu=5.e-2 -addedMass=1 -ampProjectVelocity=1 -useApproximateAMPcondition=0 -numberOfCorrections=1 -saveProbe=1 -cfls=1. -smoothBeam=0 -numberOfBeamSmooths=10 -smoothInterfaceVelocity=1 -nis=10  -go=go -show=aaFEMG8.show
+

@@ -1,0 +1,1878 @@
+Files:
+   flexibleChannel.cmd : cgins script
+   plotFlexibleChannel.cmd  : plot show files
+   compfc.cmd : for comp self-convergence
+   runCase.p : run multiple cases
+   saveLinePlots.cmd : save matlab files with line plots
+
+   plotPartition.cmd  : plot flexible partition solution
+
+   flexiblePartition.cmd
+   flexiblePartitionGrid.cmd
+
+==============================================================================================================
+==============================================================================================================
+-- -grids: 
+ogen -noplot flexibleChannelGrid -interp=e -factor=2
+ogen -noplot flexibleChannelGrid -interp=e -factor=4
+ogen -noplot flexibleChannelGrid -interp=e -factor=8
+ogen -noplot flexibleChannelGrid -interp=e -factor=16
+ogen -noplot flexibleChannelGrid -interp=e -factor=32
+
+ogen -noplot flexiblePartitionGrid -interp=e -factor=1
+ogen -noplot flexiblePartitionGrid -interp=e -factor=2
+ogen -noplot flexiblePartitionGrid -interp=e -factor=4
+ogen -noplot flexiblePartitionGrid -interp=e -factor=8
+ 
+ogen -noplot flexiblePartitionGrid -option=top -interp=e -factor=1
+==============================================================================================================
+==============================================================================================================
+**********************************************************************************************************
+****** July 5, 2016
+add beam smoother to FD TP runs
+
+mkdir -p beamUnderPressure_EI0p2_Rhos0p1_CFLs1_TP_FD1_NBNB_bSmoother
+/home/lil19/cg.g/ins/bin/cgins -noplot flexiblePartition -g=flexiblePartitionGride2.order2.hdf -nu=.025 -tf=10. -tp=.01 -rhoBeam=.1 -E=.2 -tension=0. -thickness=.1 -Kt=1 -numElem=40 -p0=1 -addedMass=0 -useTP=1 -addedMassRelaxation=0.01 -addedMassTol=1e-5 -numberOfCorrections=500 -useApproximateTPcondition=0 -fluidOnTwoSides=1 -ampProjectVelocity=0 -projectNormalComponent=1 -option=beamUnderPressure -smoothInterfaceVelocity=1 -nis=4 -probePosition=.5  -cfls=1. -BM=FD -useSameStencilSize=1 -smoothBeam=1 -numberOfBeamSmooths=4 -ps=newmark2Implicit -cs=newmarkCorrector -show=beamUnderPressure_EI0p2_Rhos0p1_CFLs1_TP_FD1_NBNB_bSmoother.show -go=go > beamUnderPressure_EI0p2_Rhos0p1_CFLs1_TP_FD1_NBNB_bSmoother.out &
+
+
+mkdir -p beamUnderPressure_EI0p2_Rhos0p1_CFLs1_TP_FD1_ABAM_bSmoother
+/home/lil19/cg.g/ins/bin/cgins -noplot flexiblePartition -g=flexiblePartitionGride2.order2.hdf -nu=.025 -tf=10. -tp=.01 -rhoBeam=.1 -E=.2 -tension=0. -thickness=.1 -Kt=1 -numElem=40 -p0=1 -addedMass=0 -useTP=1 -addedMassRelaxation=0.01 -addedMassTol=1e-5 -numberOfCorrections=500 -useApproximateTPcondition=0 -fluidOnTwoSides=1 -ampProjectVelocity=0 -projectNormalComponent=1 -option=beamUnderPressure -smoothInterfaceVelocity=1 -nis=4 -probePosition=.5  -cfls=1. -BM=FD -useSameStencilSize=1 -smoothBeam=1 -numberOfBeamSmooths=4  -ps=adamsBashforth2 -cs=adamsMoultonCorrector -show=beamUnderPressure_EI0p2_Rhos0p1_CFLs1_TP_FD1_ABAM_bSmoother.show -go=go > beamUnderPressure_EI0p2_Rhos0p1_CFLs1_TP_FD1_ABAM_bSmoother.out &
+
+
+
+
+***********************************************************************************************************
+******* July 2, 2016
+**runs for beamPaper
+runs.p
+
+mkdir -p beamUnderPressure_EI0p2_Rhos0p1_CFLs1_AMP_FD0_NBNB                                                              
+/home/lil19/cg.g/ins/bin/cgins -noplot flexiblePartition -g=flexiblePartitionGride2.order2.hdf -nu=.025 -tf=50. -tp=.01 -rhoBeam=.1 -E=.2 -tension=0. -thickness=.1 -Kt=1 -numElem=40 -p0=1 -addedMass=1 -useApproximateAMPcondition=0 -fluidOnTwoSides=1 -ampProjectVelocity=1 -projectNormalComponent=1 -option=beamUnderPressure -smoothInterfaceVelocity=1 -nis=4 -probePosition=.5  -cfls=1. -BM=FD -useSameStencilSize=0 -ps=newmark2Implicit -cs=newmarkCorrector -show=beamUnderPressure_EI0p2_Rhos0p1_CFLs1_AMP_FD0_NBNB.show -go=go > beamUnderPressure_EI0p2_Rhos0p1_CFLs1_AMP_FD0_NBNB.out &
+
+mkdir -p beamUnderPressure_EI0p2_Rhos0p1_CFLs1_AMP_FD0_ABAM                                                                                              
+/home/lil19/cg.g/ins/bin/cgins -noplot flexiblePartition -g=flexiblePartitionGride2.order2.hdf -nu=.025 -tf=50. -tp=.01 -rhoBeam=.1 -E=.2 -tension=0. -thickness=.1 -Kt=1 -numElem=40 -p0=1 -addedMass=1 -useApproximateAMPcondition=0 -fluidOnTwoSides=1 -ampProjectVelocity=1 -projectNormalComponent=1 -option=beamUnderPressure -smoothInterfaceVelocity=1 -nis=4 -probePosition=.5  -cfls=1. -BM=FD -useSameStencilSize=0 -ps=adamsBashforth2 -cs=adamsMoultonCorrector -show=beamUnderPressure_EI0p2_Rhos0p1_CFLs1_AMP_FD0_ABAM.show -go=go > beamUnderPressure_EI0p2_Rhos0p1_CFLs1_AMP_FD0_ABAM.out &
+
+mkdir -p beamUnderPressure_EI0p2_Rhos0p1_CFLs1_AMP_FD1_NBNB                                                                                              
+/home/lil19/cg.g/ins/bin/cgins -noplot flexiblePartition -g=flexiblePartitionGride2.order2.hdf -nu=.025 -tf=50. -tp=.01 -rhoBeam=.1 -E=.2 -tension=0. -thickness=.1 -Kt=1 -numElem=40 -p0=1 -addedMass=1 -useApproximateAMPcondition=0 -fluidOnTwoSides=1 -ampProjectVelocity=1 -projectNormalComponent=1 -option=beamUnderPressure -smoothInterfaceVelocity=1 -nis=4 -probePosition=.5  -cfls=1. -BM=FD -useSameStencilSize=1 -ps=newmark2Implicit -cs=newmarkCorrector -show=beamUnderPressure_EI0p2_Rhos0p1_CFLs1_AMP_FD1_NBNB.show -go=go > beamUnderPressure_EI0p2_Rhos0p1_CFLs1_AMP_FD1_NBNB.out &
+
+mkdir -p beamUnderPressure_EI0p2_Rhos0p1_CFLs1_AMP_FD1_ABAM
+/home/lil19/cg.g/ins/bin/cgins -noplot flexiblePartition -g=flexiblePartitionGride2.order2.hdf -nu=.025 -tf=50. -tp=.01 -rhoBeam=.1 -E=.2 -tension=0. -thickness=.1 -Kt=1 -numElem=40 -p0=1 -addedMass=1 -useApproximateAMPcondition=0 -fluidOnTwoSides=1 -ampProjectVelocity=1 -projectNormalComponent=1 -option=beamUnderPressure -smoothInterfaceVelocity=1 -nis=4 -probePosition=.5  -cfls=1. -BM=FD -useSameStencilSize=1 -ps=adamsBashforth2 -cs=adamsMoultonCorrector -show=beamUnderPressure_EI0p2_Rhos0p1_CFLs1_AMP_FD1_ABAM.show -go=go > beamUnderPressure_EI0p2_Rhos0p1_CFLs1_AMP_FD1_ABAM.out &
+
+mkdir -p beamUnderPressure_EI0p2_Rhos0p1_CFLs1_AMP_FEM_NBNB
+/home/lil19/cg.g/ins/bin/cgins -noplot flexiblePartition -g=flexiblePartitionGride2.order2.hdf -nu=.025 -tf=50. -tp=.01 -rhoBeam=.1 -E=.2 -tension=0. -thickness=.1 -Kt=1 -numElem=40 -p0=1 -addedMass=1 -useApproximateAMPcondition=0 -fluidOnTwoSides=1 -ampProjectVelocity=1 -projectNormalComponent=1 -option=beamUnderPressure -smoothInterfaceVelocity=1 -nis=4 -probePosition=.5  -cfls=1. -BM=FEM -ps=newmark2Implicit -cs=newmarkCorrector -show=beamUnderPressure_EI0p2_Rhos0p1_CFLs1_AMP_FEM_NBNB.show -go=go > beamUnderPressure_EI0p2_Rhos0p1_CFLs1_AMP_FEM_NBNB.out &
+
+mkdir -p beamUnderPressure_EI0p2_Rhos0p1_CFLs1_TP_FD1_NBNB
+/home/lil19/cg.g/ins/bin/cgins -noplot flexiblePartition -g=flexiblePartitionGride2.order2.hdf -nu=.025 -tf=10. -tp=.01 -rhoBeam=.1 -E=.2 -tension=0. -thickness=.1 -Kt=1 -numElem=40 -p0=1 -addedMass=0 -useTP=1 -addedMassRelaxation=0.01 -addedMassTol=1e-5 -numberOfCorrections=500 -useApproximateTPcondition=0 -fluidOnTwoSides=1 -ampProjectVelocity=0 -projectNormalComponent=1 -option=beamUnderPressure -smoothInterfaceVelocity=1 -nis=4 -probePosition=.5  -cfls=1. -BM=FD -useSameStencilSize=1 -ps=newmark2Implicit -cs=newmarkCorrector -show=beamUnderPressure_EI0p2_Rhos0p1_CFLs1_TP_FD1_NBNB.show -go=go > beamUnderPressure_EI0p2_Rhos0p1_CFLs1_TP_FD1_NBNB.out &
+
+mkdir -p beamUnderPressure_EI0p2_Rhos0p1_CFLs1_TP_FD1_ABAM
+/home/lil19/cg.g/ins/bin/cgins -noplot flexiblePartition -g=flexiblePartitionGride2.order2.hdf -nu=.025 -tf=10. -tp=.01 -rhoBeam=.1 -E=.2 -tension=0. -thickness=.1 -Kt=1 -numElem=40 -p0=1 -addedMass=0 -useTP=1 -addedMassRelaxation=0.01 -addedMassTol=1e-5 -numberOfCorrections=500 -useApproximateTPcondition=0 -fluidOnTwoSides=1 -ampProjectVelocity=0 -projectNormalComponent=1 -option=beamUnderPressure -smoothInterfaceVelocity=1 -nis=4 -probePosition=.5  -cfls=1. -BM=FD -useSameStencilSize=1 -ps=adamsBashforth2 -cs=adamsMoultonCorrector -show=beamUnderPressure_EI0p2_Rhos0p1_CFLs1_TP_FD1_ABAM.show -go=go > beamUnderPressure_EI0p2_Rhos0p1_CFLs1_TP_FD1_ABAM.out &
+
+mkdir -p beamUnderPressure_EI0p2_Rhos0p1_CFLs1_TP_FEM_NBNB
+/home/lil19/cg.g/ins/bin/cgins -noplot flexiblePartition -g=flexiblePartitionGride2.order2.hdf -nu=.025 -tf=10. -tp=.01 -rhoBeam=.1 -E=.2 -tension=0. -thickness=.1 -Kt=1 -numElem=40 -p0=1 -addedMass=0 -useTP=1 -addedMassRelaxation=0.01 -addedMassTol=1e-5 -numberOfCorrections=500 -useApproximateTPcondition=0 -fluidOnTwoSides=1 -ampProjectVelocity=0 -projectNormalComponent=1 -option=beamUnderPressure -smoothInterfaceVelocity=1 -nis=4 -probePosition=.5  -cfls=1. -BM=FEM -ps=newmark2Implicit -cs=newmarkCorrector -show=beamUnderPressure_EI0p2_Rhos0p1_CFLs1_TP_FEM_NBNB.show -go=go > beamUnderPressure_EI0p2_Rhos0p1_CFLs1_TP_FEM_NBNB.out &
+
+mkdir -p beamUnderPressure_EI0p2_Rhos0p1_CFLs1_TP_FEM_NBNB_Kxxt0p01
+/home/lil19/cg.g/ins/bin/cgins -noplot flexiblePartition -g=flexiblePartitionGride2.order2.hdf -nu=.025 -tf=10. -tp=.01 -rhoBeam=.1 -E=.2 -tension=0. -thickness=.1 -Kt=1 -Kxxt=0.01 -numElem=40 -p0=1 -addedMass=0 -useTP=1 -addedMassRelaxation=0.01 -addedMassTol=1e-5 -numberOfCorrections=500 -useApproximateTPcondition=0 -fluidOnTwoSides=1 -ampProjectVelocity=0 -projectNormalComponent=1 -option=beamUnderPressure -smoothInterfaceVelocity=1 -nis=4 -probePosition=.5  -cfls=1. -BM=FEM -ps=newmark2Implicit -cs=newmarkCorrector -show=beamUnderPressure_EI0p2_Rhos0p1_CFLs1_TP_FEM_NBNB_Kxxt0p01.show -go=go > beamUnderPressure_EI0p2_Rhos0p1_CFLs1_TP_FEM_NBNB_Kxxt0p01.out &
+
+
+
+
+***********************************************************************************************************
+******* June 18, 2015 
+
+PBF - SMOOTH ACCELERATION
+cgins flexiblePartition -g=flexiblePartitionGride2.order2.hdf -nu=.025 -tf=1. -tp=.001 -rhoBeam=.1 -E=.2 -tension=0. -thickness=.1 -Kt=1 -numElem=40 -p0=1 -addedMass=1 -useApproximateAMPcondition=1 -fluidOnTwoSides=1 -ampProjectVelocity=1 -projectNormalComponent=1 -option=beamUnderPressure -smoothInterfaceVelocity=1 -nis=4 -probePosition=.5  -cfls=1.  -go=halt
+
+PBF -- reduce CFL
+nohup $cgins -noplot flexiblePartition -g=flexiblePartitionGride2.order2.hdf -nu=.025 -tf=1. -tp=.05 -rhoBeam=.1 -E=.2 -tension=0. -thickness=.1 -Kt=1 -numElem=40 -p0=1 -addedMass=1 -useApproximateAMPcondition=1 -fluidOnTwoSides=1 -ampProjectVelocity=1 -projectNormalComponent=1 -option=beamUnderPressure -smoothInterfaceVelocity=1 -nis=4 -probePosition=.5 -beamProbeFileName=beamUnderPressure_EI0p2_Rhos0p1_AMP_PBF_CFL0p1.text -cfls=.1 -show=pbf.show -go=go >! beamUnderPressure_EI0p2_Rhos0p1_AMP_PBF_CFL0p1.out &
+
+cfls=.2: 
+9.9916284647e-01 1.1528268288e-01 3.2540807150e-01 1.1246209603e-01
+9.9944189765e-01 1.1537349276e-01 3.2543936785e-01 1.1183886539e-01
+9.9972094882e-01 1.1546431134e-01 3.2547048722e-01 1.1119738465e-01
+1.0000000000e+00 1.1555513859e-01 3.2550142723e-01 1.1055361078e-01
+
+cfls=1.
+9.9582393513e-01 1.2709556392e-01 3.6150645071e-01 1.1221387915e-01
+9.9721595675e-01 1.2759889618e-01 3.6165998653e-01 1.0844785765e-01
+9.9860797838e-01 1.2810243852e-01 3.6180827105e-01 1.0461980115e-01
+1.0000000000e+00 1.2860618361e-01 3.6195129420e-01 1.0083969227e-01
+
+
+
+G4 : PBF TEST: --> solution looks closer to PBA
+cgins flexiblePartition -g=flexiblePartitionGride4.order2.hdf -nu=.025 -tf=5. -tp=.05 -rhoBeam=.1 -E=.2 -tension=0. -thickness=.1 -Kt=1 -numElem=80 -p0=1 -addedMass=1 -useApproximateAMPcondition=1 -fluidOnTwoSides=1 -ampProjectVelocity=1 -projectNormalComponent=1 -option=beamUnderPressure -smoothInterfaceVelocity=1 -nis=4 -probePosition=.5  -cfls=1.  -go=halt
+
+
+PBF TEST: 
+cgins flexiblePartition -g=flexiblePartitionGride2.order2.hdf -nu=.025 -tf=1. -tp=.05 -rhoBeam=.1 -E=.2 -tension=0. -thickness=.1 -Kt=1 -numElem=40 -p0=1 -addedMass=1 -useApproximateAMPcondition=1 -fluidOnTwoSides=1 -ampProjectVelocity=1 -projectNormalComponent=1 -option=beamUnderPressure -smoothInterfaceVelocity=1 -nis=4 -probePosition=.5  -cfls=1.  -go=halt
+
+
+***NOTE*** VERY-LIGHT -- PBA and PBF do not match very well
+
+G4: 
+nohup $cgins -noplot flexiblePartition -g=flexiblePartitionGride4.order2.hdf -nu=.025 -tf=5. -tp=.05 -rhoBeam=.1 -E=.2 -tension=0. -thickness=.1 -Kt=1 -numElem=80 -p0=1 -addedMass=1 -useApproximateAMPcondition=1 -fluidOnTwoSides=1 -ampProjectVelocity=1 -projectNormalComponent=1 -option=beamUnderPressure -smoothInterfaceVelocity=1 -nis=4 -probePosition=.5 -beamProbeFileName=beamUnderPressure_EI0p2_Rhos0p1_AMP_PBF_G4.text -cfls=1. -show=pbf.show -go=go >! beamUnderPressure_EI0p2_Rhos0p1_AMP_PBF_G4.out &
+
+REDO beam under pressure: PBA VERSUS PBF
+TRY NIS=4, CFLS=1
+nohup $cgins -noplot flexiblePartition -g=flexiblePartitionGride2.order2.hdf -nu=.025 -tf=5. -tp=.05 -rhoBeam=.1 -E=.2 -tension=0. -thickness=.1 -Kt=1 -numElem=40 -p0=1 -addedMass=1 -useApproximateAMPcondition=1 -fluidOnTwoSides=1 -ampProjectVelocity=1 -projectNormalComponent=1 -option=beamUnderPressure -smoothInterfaceVelocity=1 -nis=4 -probePosition=.5 -beamProbeFileName=beamUnderPressure_EI0p2_Rhos0p1_AMP_PBF.text -cfls=1. -show=pbf.show -go=go >! beamUnderPressure_EI0p2_Rhos0p1_AMP_PBF.out &
+
+PBA: 
+nohup $cgins -noplot flexiblePartition -g=flexiblePartitionGride2.order2.hdf -nu=.025 -tf=5. -tp=.05 -rhoBeam=.1 -E=.2 -tension=0. -thickness=.1 -Kt=1 -numElem=40 -p0=1 -addedMass=1 -useApproximateAMPcondition=0 -fluidOnTwoSides=1 -ampProjectVelocity=1 -projectNormalComponent=1 -option=beamUnderPressure -smoothInterfaceVelocity=1 -nis=4 -probePosition=.5 -beamProbeFileName=beamUnderPressure_EI0p2_Rhos0p1_AMP_PBA.text -cfls=1. -show=pba.show -go=go >! beamUnderPressure_EI0p2_Rhos0p1_AMP_PBA.out &
+
+
+VERY LIGHT: PBF: -- looks OK to t=1.75
+cgins -noplot flexiblePartition -g=flexiblePartitionGride2.order2.hdf -nu=.025 -tf=5. -tp=.001 -rhoBeam=.1 -E=.2 -tension=0. -thickness=.1 -Kt=1 -numElem=40 -p0=1 -addedMass=1 -useApproximateAMPcondition=1 -fluidOnTwoSides=1 -ampProjectVelocity=1 -projectNormalComponent=1 -option=beamUnderPressure -smoothInterfaceVelocity=1 -nis=8 -probePosition=.5 -cfls=1.  -go=og
+
+
+*OLD*
+LIGHTER: G2: - predict beam force (PBF)  -nis=4 : oscillations at late time, -cfl=.5 : trouble
+nohup $cgins -noplot flexiblePartition -g=flexiblePartitionGride2.order2.hdf -nu=.025 -tf=5. -tp=.05 -rhoBeam=.1 -E=.2 -tension=0. -thickness=.1 -Kt=1 -numElem=40 -p0=1 -addedMass=1 -useApproximateAMPcondition=1 -fluidOnTwoSides=1 -ampProjectVelocity=1 -projectNormalComponent=1 -option=beamUnderPressure -smoothInterfaceVelocity=1 -nis=8 -probePosition=.5 -beamProbeFileName=beamUnderPressure_EI0p2_Rhos0p1_AMP_PBF.text -cfls=.5 -show=pbf.show -go=go >! beamUnderPressure_EI0p2_Rhos0p1_AMP_PBF.out &
+
+***********************************************************************************************************
+******* June 18, 2015 
+
+REDO - PBF -- STIFFER + 
+
+=========== REDO MOVIES ==
+
+G2 - PBA: (stiffer)
+cgins -noplot flexiblePartition -g=flexiblePartitionGride2.order2.hdf -nu=.01 -tf=10. -tp=.1 -rhoBeam=.1 -E=1.e-3 -tension=1.e-1 -thickness=.1 -K0=10 -numElem=40 -p0=1 -addedMass=1 -useApproximateAMPcondition=0 -fluidOnTwoSides=1  -ampProjectVelocity=1 -projectNormalComponent=1 -option=beamPiston -sideBC=slipWall -nis=8 -beamProbeFileName="beamPistonRhos0p1PBA.text" -show=bp2pba.show -go=go >! beamPistonRhos0p1PBA.out
+
+G2 - PBF: (stiffer)
+cgins -noplot flexiblePartition -g=flexiblePartitionGride2.order2.hdf -nu=.01 -tf=10. -tp=.1 -rhoBeam=.1 -E=1.e-3 -tension=1.e-1 -thickness=.1 -K0=10 -numElem=40 -p0=1 -addedMass=1 -useApproximateAMPcondition=1 -fluidOnTwoSides=1  -ampProjectVelocity=1 -projectNormalComponent=1 -option=beamPiston -sideBC=slipWall -nis=8 -beamProbeFileName="beamPistonRhos0p1PBF.text" -show=bp2pbf.show -go=go >! beamPistonRhos0p1PBF.out
+
+
+
+
+================================  REDO
+G4: OK - NO wiggles
+cgins flexiblePartition -g=flexiblePartitionGride4.order2.hdf -nu=.01 -tf=10. -tp=.1 -rhoBeam=1. -E=1.e-3 -tension=1.e-1 -thickness=.1 -K0=10 -numElem=80 -p0=1 -addedMass=1 -useApproximateAMPcondition=1 -fluidOnTwoSides=1  -ampProjectVelocity=1 -projectNormalComponent=1 -option=beamPiston -sideBC=slipWall -nis=2  -go=halt
+
+G2: NOW OK: PBF -nis=2 stiffer, slideBC  ... no wiggles!
+cgins flexiblePartition -g=flexiblePartitionGride2.order2.hdf -nu=.01 -tf=10. -tp=.1 -rhoBeam=1. -E=1.e-3 -tension=1.e-1 -thickness=.1 -K0=10 -numElem=40 -p0=1 -addedMass=1 -useApproximateAMPcondition=1 -fluidOnTwoSides=1  -ampProjectVelocity=1 -projectNormalComponent=1 -option=beamPiston -sideBC=slipWall -nis=2  -go=halt
+
+
+
+
+
+BEAM-PISTON -- revisit -> MAKE STIFFER
+
+CHECK END EFFECTS
+cgins -noplot flexiblePartition -g=flexiblePartitionGride2.order2.hdf -nu=.01 -tf=10. -tp=.001 -rhoBeam=1. -E=1.e-3 -tension=1.e-1 -thickness=.1 -K0=10 -numElem=40 -p0=1 -addedMass=1 -useApproximateAMPcondition=0 -fluidOnTwoSides=1  -ampProjectVelocity=1 -projectNormalComponent=1 -option=beamPiston -sideBC=slipWall -nis=2 -go=og
+
+Stiffer, slide-BC on beam PBA and PBF look ok
+cgins -noplot flexiblePartition -g=flexiblePartitionGride2.order2.hdf -nu=.01 -tf=10. -tp=.1 -rhoBeam=1. -E=1.e-3 -tension=1.e-1 -thickness=.1 -K0=10 -numElem=40 -p0=1 -addedMass=1 -useApproximateAMPcondition=0 -fluidOnTwoSides=1  -ampProjectVelocity=1 -projectNormalComponent=1 -option=beamPiston -sideBC=slipWall -nis=2 -go=og
+
+***********************************************************************************************************
+******* June 10, 2015 
+
+LIGHTER: G2: - predict beam force (PBF)  -nis=4 : oscillations at late time, -cfl=.5 : trouble
+nohup $cgins -noplot flexiblePartition -g=flexiblePartitionGride2.order2.hdf -nu=.025 -tf=5. -tp=.05 -rhoBeam=.1 -E=.2 -tension=0. -thickness=.1 -Kt=1 -numElem=40 -p0=1 -addedMass=1 -useApproximateAMPcondition=1 -fluidOnTwoSides=1 -ampProjectVelocity=1 -projectNormalComponent=1 -option=beamUnderPressure -smoothInterfaceVelocity=1 -nis=8 -probePosition=.5 -beamProbeFileName=beamUnderPressure_EI0p2_Rhos0p1_AMP_PBF.text -cfls=.5 -show=pbf.show -go=go >! beamUnderPressure_EI0p2_Rhos0p1_AMP_PBF.out &
+
+
+G4: LIGHTER PBF 
+nohup $cgins -noplot flexiblePartition -g=flexiblePartitionGride4.order2.hdf -nu=.025 -tf=5. -tp=.1 -rhoBeam=.1 -E=.2 -tension=0. -thickness=.1 -Kt=1 -numElem=80 -p0=1 -addedMass=1 -useApproximateAMPcondition=1 -fluidOnTwoSides=1 -ampProjectVelocity=1 -projectNormalComponent=1 -option=beamUnderPressure -smoothInterfaceVelocity=1 -probePosition=.5 -beamProbeFileName=beamUnderPressure_EI0p2_Rhos0p1_AMP_PBF_G4.text -cfls=1 -show=bp.show -go=go >! beamUnderPressure_EI0p2_Rhos0p1_AMP_PBF_G4.out &
+
+nohup $cgins -noplot flexiblePartition -g=flexiblePartitionGride2.order2.hdf -nu=.025 -tf=5. -tp=.1 -rhoBeam=.1 -E=.2 -tension=0. -thickness=.1 -Kt=1 -numElem=40 -p0=1 -addedMass=1 -useApproximateAMPcondition=1 -fluidOnTwoSides=1 -ampProjectVelocity=1 -projectNormalComponent=1 -option=beamUnderPressure -smoothInterfaceVelocity=1 -probePosition=.5 -beamProbeFileName=beamUnderPressure_EI0p2_Rhos0p1_AMP_PBF.text -cfls=1 -show=bp.show -go=go >! beamUnderPressure_EI0p2_Rhos0p1_AMP_PBF.out
+
+
+***********************************************************************************************************
+******* June 9, 2015 
+
+Beam under pressure: LIGHTER-beam:
+
+LIGHTER: TP G4:
+nohup $cgins -noplot flexiblePartition -g=flexiblePartitionGride4.order2.hdf -nu=.025 -tf=5. -tp=.01 -rhoBeam=.1 -E=.2 -tension=0. -thickness=.1 -Kt=1 -numElem=80 -p0=1 -useTP=1 -addedMassRelaxation=.01 -addedMass=0 -useApproximateAMPcondition=0 -fluidOnTwoSides=1 -ampProjectVelocity=0 -projectNormalComponent=1 -option=beamUnderPressure -smoothInterfaceVelocity=1 -addedMassTol=1.e-5 -numberOfCorrections=1000  -probePosition=.5 -beamProbeFileName=beamUnderPressure_EI0p2_Rhos0p1_TP_G4.text -cfls=2 -go=go >! beamUnderPressure_EI0p2_Rhos0p1_TP_G4.out &
+
+LIGHTER: TP G2:
+nohup $cgins -noplot flexiblePartition -g=flexiblePartitionGride2.order2.hdf -nu=.025 -tf=5. -tp=.01 -rhoBeam=.1 -E=.2 -tension=0. -thickness=.1 -Kt=1 -numElem=40 -p0=1 -useTP=1 -addedMassRelaxation=.01 -addedMass=0 -useApproximateAMPcondition=0 -fluidOnTwoSides=1 -ampProjectVelocity=0 -projectNormalComponent=1 -option=beamUnderPressure -smoothInterfaceVelocity=1 -addedMassTol=1.e-5 -numberOfCorrections=1000  -probePosition=.5 -beamProbeFileName=beamUnderPressure_EI0p2_Rhos0p1_TP.text -cfls=2 -go=go >! beamUnderPressure_EI0p2_Rhos0p1_TP.out &
+
+CHECK convergence
+$cgins flexiblePartition -g=flexiblePartitionGride2.order2.hdf -nu=.025 -tf=5. -tp=.01 -rhoBeam=.1 -E=.2 -tension=0. -thickness=.1 -Kt=1 -numElem=40 -p0=1 -useTP=1  -addedMass=0 -useApproximateAMPcondition=0 -fluidOnTwoSides=1 -ampProjectVelocity=0 -projectNormalComponent=1 -option=beamUnderPressure -smoothInterfaceVelocity=1 -addedMassTol=1.e-5 -numberOfCorrections=500  -probePosition=.5 -beamProbeFileName=beamUnderPressure_EI0p2_Rhos0p1_TP.text -cfls=2 -addedMassRelaxation=.1 -go=halt
+
+
+LIGHTER: G4: - try cfls=1
+nohup $cgins -noplot flexiblePartition -g=flexiblePartitionGride4.order2.hdf -nu=.025 -tf=5. -tp=.05 -rhoBeam=.1 -E=.2 -tension=0. -thickness=.1 -Kt=1 -numElem=80 -p0=1 -addedMass=1 -useApproximateAMPcondition=0 -fluidOnTwoSides=1 -ampProjectVelocity=1 -projectNormalComponent=1 -option=beamUnderPressure -smoothInterfaceVelocity=1 -nis=8 -probePosition=.5 -beamProbeFileName=beamUnderPressure_EI0p2_Rhos0p1_AMP_G4.text -cfls=1 -go=go >! beamUnderPressure_EI0p2_Rhos0p1_AMP_G4.out &
+
+
+
+G2: LIGHTER -cfls=1 OK 
+nohup $cgins -noplot flexiblePartition -g=flexiblePartitionGride2.order2.hdf -nu=.025 -tf=5. -tp=.1 -rhoBeam=.1 -E=.2 -tension=0. -thickness=.1 -Kt=1 -numElem=40 -p0=1 -addedMass=1 -useApproximateAMPcondition=0 -fluidOnTwoSides=1 -ampProjectVelocity=1 -projectNormalComponent=1 -option=beamUnderPressure -smoothInterfaceVelocity=1 -nis=8 -probePosition=.5 -beamProbeFileName=beamUnderPressure_EI0p2_Rhos0p1_AMP.text -cfls=1 -show=bp.show -go=go >! beamUnderPressure_EI0p2_Rhos0p1_AMP.out
+
+G2: LIGHTER *trouble* add more smooths
+nohup $cgins -noplot flexiblePartition -g=flexiblePartitionGride2.order2.hdf -nu=.025 -tf=5. -tp=.1 -rhoBeam=.1 -E=.2 -tension=0. -thickness=.1 -Kt=1 -numElem=40 -p0=1 -addedMass=1 -useApproximateAMPcondition=0 -fluidOnTwoSides=1 -ampProjectVelocity=1 -projectNormalComponent=1 -option=beamUnderPressure -smoothInterfaceVelocity=1 -nis=8 -probePosition=.5 -beamProbeFileName=beamUnderPressure_EI0p2_Rhos0p1_AMP.text -cfls=2 -go=go >! beamUnderPressure_EI0p2_Rhos0p1_AMP.out
+
+G2: LIGHTER TEST
+$cgins -noplot flexiblePartition -g=flexiblePartitionGride2.order2.hdf -nu=.025 -tf=5. -tp=.1 -rhoBeam=.1 -E=.2 -tension=0. -thickness=.1 -Kt=1 -numElem=40 -p0=1 -addedMass=1 -useApproximateAMPcondition=0 -fluidOnTwoSides=1 -ampProjectVelocity=1 -projectNormalComponent=1 -option=beamUnderPressure -smoothInterfaceVelocity=1 -nis=4 -probePosition=.5 -cfls=2 -go=og
+
+Light: TP G4:
+nohup $cgins -noplot flexiblePartition -g=flexiblePartitionGride4.order2.hdf -nu=.025 -tf=5. -tp=.01 -rhoBeam=1. -E=.2 -tension=0. -thickness=.1 -Kt=1 -numElem=80 -p0=1 -useTP=1 -addedMassRelaxation=.1 -addedMass=0 -useApproximateAMPcondition=0 -fluidOnTwoSides=1 -ampProjectVelocity=0 -projectNormalComponent=1 -option=beamUnderPressure -smoothInterfaceVelocity=1 -addedMassTol=1.e-5 -numberOfCorrections=500  -probePosition=.5 -beamProbeFileName=beamUnderPressure_EI0p2_Rhos1p0_TP_G4.text -cfls=2 -go=go >! beamUnderPressure_EI0p2_Rhos1p0_TP_G4.out &
+
+Light: TP G2:
+nohup $cgins -noplot flexiblePartition -g=flexiblePartitionGride2.order2.hdf -nu=.025 -tf=5. -tp=.01 -rhoBeam=1. -E=.2 -tension=0. -thickness=.1 -Kt=1 -numElem=40 -p0=1 -useTP=1 -addedMassRelaxation=.1 -addedMass=0 -useApproximateAMPcondition=0 -fluidOnTwoSides=1 -ampProjectVelocity=0 -projectNormalComponent=1 -option=beamUnderPressure -smoothInterfaceVelocity=1 -addedMassTol=1.e-5 -numberOfCorrections=500  -probePosition=.5 -beamProbeFileName=beamUnderPressure_EI0p2_Rhos1p0_TP.text -cfls=2 -go=go >! beamUnderPressure_EI0p2_Rhos1p0_TP.out &
+
+
+***********************************************************************************************************
+******* June 8/9, 2015 --- revisit steady beam solution --
+
+*** TEST RAMPED PRESSURE 
+
+REDO RUNS with ramped
+
+Heavier: G2: MOVIE
+nohup $cgins -noplot flexiblePartition -g=flexiblePartitionGride2.order2.hdf -nu=.025 -tf=10. -tp=.01 -rhoBeam=10. -E=.2 -tension=0. -thickness=.1 -Kt=1 -numElem=40 -p0=1 -addedMass=1 -useApproximateAMPcondition=0 -fluidOnTwoSides=1 -ampProjectVelocity=1 -projectNormalComponent=1 -option=beamUnderPressure -smoothInterfaceVelocity=1 -probePosition=.5 -cfls=2 -show=beamUnderPressure_EI0p2_Rhos10p0_AMP.show -go=go >! beamUnderPressure_EI0p2_Rhos10p0_AMP_Movie.out &
+
+
+Heavier: G4: 
+nohup $cgins -noplot flexiblePartition -g=flexiblePartitionGride4.order2.hdf -nu=.025 -tf=5. -tp=.1 -rhoBeam=10. -E=.2 -tension=0. -thickness=.1 -Kt=1 -numElem=80 -p0=1 -addedMass=1 -useApproximateAMPcondition=0 -fluidOnTwoSides=1 -ampProjectVelocity=1 -projectNormalComponent=1 -option=beamUnderPressure -smoothInterfaceVelocity=1 -probePosition=.5 -beamProbeFileName=beamUnderPressure_EI0p2_Rhos10p0_AMP_G4.text -cfls=2 -go=go >! beamUnderPressure_EI0p2_Rhos10p0_AMP_G4.out &
+
+Heavier: G2:
+nohup $cgins -noplot flexiblePartition -g=flexiblePartitionGride2.order2.hdf -nu=.025 -tf=5. -tp=.1 -rhoBeam=10. -E=.2 -tension=0. -thickness=.1 -Kt=1 -numElem=40 -p0=1 -addedMass=1 -useApproximateAMPcondition=0 -fluidOnTwoSides=1 -ampProjectVelocity=1 -projectNormalComponent=1 -option=beamUnderPressure -smoothInterfaceVelocity=1 -probePosition=.5 -beamProbeFileName=beamUnderPressure_EI0p2_Rhos10p0_AMP.text -cfls=2 -go=go >! beamUnderPressure_EI0p2_Rhos10p0_AMP.out &
+
+
+Light: G4: PBF
+nohup $cgins -noplot flexiblePartition -g=flexiblePartitionGride4.order2.hdf -nu=.025 -tf=5. -tp=.1 -rhoBeam=1. -E=.2 -tension=0. -thickness=.1 -Kt=1 -numElem=80 -p0=1 -addedMass=1 -useApproximateAMPcondition=1 -fluidOnTwoSides=1 -ampProjectVelocity=1 -projectNormalComponent=1 -option=beamUnderPressure -smoothInterfaceVelocity=1 -probePosition=.5 -beamProbeFileName=beamUnderPressure_EI0p2_Rhos1p0_AMP_PBF_G4.text -cfls=2 -go=go >! beamUnderPressure_EI0p2_Rhos1p0_AMP_PBF_G4.out &
+
+Light: G2: - predict beam force (PBF)  (APPROX)
+nohup $cgins -noplot flexiblePartition -g=flexiblePartitionGride2.order2.hdf -nu=.025 -tf=5. -tp=.1 -rhoBeam=1. -E=.2 -tension=0. -thickness=.1 -Kt=1 -numElem=40 -p0=1 -addedMass=1 -useApproximateAMPcondition=1 -fluidOnTwoSides=1 -ampProjectVelocity=1 -projectNormalComponent=1 -option=beamUnderPressure -smoothInterfaceVelocity=1 -probePosition=.5 -beamProbeFileName=beamUnderPressure_EI0p2_Rhos1p0_AMP_PBF.text -cfls=2 -go=go >! beamUnderPressure_EI0p2_Rhos1p0_AMP_PBF.out &
+
+Light: G4: 
+nohup $cgins -noplot flexiblePartition -g=flexiblePartitionGride4.order2.hdf -nu=.025 -tf=5. -tp=.1 -rhoBeam=1. -E=.2 -tension=0. -thickness=.1 -Kt=1 -numElem=80 -p0=1 -addedMass=1 -useApproximateAMPcondition=0 -fluidOnTwoSides=1 -ampProjectVelocity=1 -projectNormalComponent=1 -option=beamUnderPressure -smoothInterfaceVelocity=1 -probePosition=.5 -beamProbeFileName=beamUnderPressure_EI0p2_Rhos1p0_AMP_G4.text -cfls=2 -go=go >! beamUnderPressure_EI0p2_Rhos1p0_AMP_G4.out
+
+Light: TP G4:
+nohup $cgins -noplot flexiblePartition -g=flexiblePartitionGride4.order2.hdf -nu=.025 -tf=5. -tp=.01 -rhoBeam=.1 -E=.2 -tension=0. -thickness=.1 -Kt=1 -numElem=80 -p0=1 -useTP=1 -addedMassRelaxation=.01 -addedMass=0 -useApproximateAMPcondition=0 -fluidOnTwoSides=1 -ampProjectVelocity=0 -projectNormalComponent=1 -option=beamUnderPressure -smoothInterfaceVelocity=1 -addedMassTol=1.e-5 -numberOfCorrections=500  -probePosition=.5 -beamProbeFileName=beamUnderPressure_EI0p2_Rhos1p0_TP_G4.text -cfls=2 -go=go >! beamUnderPressure_EI0p2_Rhos1p0_TP_G4.out &
+
+
+Light: TP G2: DECREASE TOL **REDO** rhos WRONG
+nohup $cgins -noplot flexiblePartition -g=flexiblePartitionGride2.order2.hdf -nu=.025 -tf=5. -tp=.01 -rhoBeam=1. -E=.2 -tension=0. -thickness=.1 -Kt=1 -numElem=40 -p0=1 -useTP=1 -addedMassRelaxation=.01 -addedMass=0 -useApproximateAMPcondition=0 -fluidOnTwoSides=1 -ampProjectVelocity=0 -projectNormalComponent=1 -option=beamUnderPressure -smoothInterfaceVelocity=1 -addedMassTol=1.e-7 -numberOfCorrections=2000  -probePosition=.5 -beamProbeFileName=beamUnderPressure_EI0p2_Rhos1p0_TPb.text -cfls=2 -go=go >! beamUnderPressure_EI0p2_Rhos1p0_TPb.out &
+
+Light: TP G2:
+nohup $cgins -noplot flexiblePartition -g=flexiblePartitionGride2.order2.hdf -nu=.025 -tf=5. -tp=.01 -rhoBeam=1. -E=.2 -tension=0. -thickness=.1 -Kt=1 -numElem=40 -p0=1 -useTP=1 -addedMassRelaxation=.1 -addedMass=0 -useApproximateAMPcondition=0 -fluidOnTwoSides=1 -ampProjectVelocity=0 -projectNormalComponent=1 -option=beamUnderPressure -smoothInterfaceVelocity=1 -addedMassTol=1.e-5 -numberOfCorrections=500  -probePosition=.5 -beamProbeFileName=beamUnderPressure_EI0p2_Rhos1p0_TP.text -cfls=2 -go=go >! beamUnderPressure_EI0p2_Rhos1p0_TP.out &
+
+CHECK convergence: rhos=.1: use addedMassRelaxation=.01, rhos=1. use 
+cgins -noplot flexiblePartition -g=flexiblePartitionGride2.order2.hdf -nu=.025 -tf=5. -tp=.0005 -rhoBeam=1. -E=.2 -tension=0. -thickness=.1 -Kt=1 -numElem=40 -p0=1 -useTP=1  -addedMass=0 -useApproximateAMPcondition=0 -fluidOnTwoSides=1 -ampProjectVelocity=0 -projectNormalComponent=1 -option=beamUnderPressure -smoothInterfaceVelocity=1 -addedMassTol=1.e-5 -numberOfCorrections=500  -probePosition=.5 -cfls=2 -addedMassRelaxation=.1 -go=og
+
+
+G2: light
+nohup $cgins -noplot flexiblePartition -g=flexiblePartitionGride2.order2.hdf -nu=.025 -tf=5. -tp=.1 -rhoBeam=1. -E=.2 -tension=0. -thickness=.1 -Kt=1 -numElem=40 -p0=1 -addedMass=1 -useApproximateAMPcondition=0 -fluidOnTwoSides=1 -ampProjectVelocity=1 -projectNormalComponent=1 -option=beamUnderPressure -smoothInterfaceVelocity=1 -probePosition=.5 -beamProbeFileName=beamUnderPressure_EI0p2_Rhos1p0_AMP.text -cfls=2 -go=go >! beamUnderPressure_EI0p2_Rhos1p0_AMP.out
+
+
+
+cgins -noplot flexiblePartition -g=flexiblePartitionGride2.order2.hdf -nu=.025 -tf=5. -tp=.1 -rhoBeam=1. -E=.2 -tension=0. -thickness=.1 -Kt=1 -numElem=40 -p0=1 -addedMass=1 -useApproximateAMPcondition=0 -fluidOnTwoSides=1 -ampProjectVelocity=1 -projectNormalComponent=1 -option=beamUnderPressure -smoothInterfaceVelocity=1 -probePosition=.5 -cfls=2 -go=og
+
+
+FIX : INITIALIZATION OF PRESSURE ON MOVING GRIDS.
+
+
+
+Light: G2: 
+nohup $cgins -noplot flexiblePartition -g=flexiblePartitionGride2.order2.hdf -nu=.025 -tf=5. -tp=.1 -rhoBeam=1. -E=.2 -tension=0. -thickness=.1 -Kt=1 -numElem=40 -p0=1 -addedMass=1 -useApproximateAMPcondition=0 -fluidOnTwoSides=1 -ampProjectVelocity=1 -projectNormalComponent=1 -option=beamUnderPressure -smoothInterfaceVelocity=1 -probePosition=.5 -beamProbeFileName=beamUnderPressure_EI0p2_Rhos1p0_AMP.text -cfls=2 -go=go >! beamUnderPressure_EI0p2_Rhos1p0_AMP.out &
+
+
+Light: TP G2: relaxation=.01 : OK , .02 worse, tol=1e-4 not good enough?
+nohup $cgins -noplot flexiblePartition -g=flexiblePartitionGride2.order2.hdf -nu=.025 -tf=5. -tp=.01 -rhoBeam=.1 -E=.2 -tension=0. -thickness=.1 -Kt=1 -numElem=40 -p0=1 -useTP=1 -addedMassRelaxation=.01 -addedMass=0 -useApproximateAMPcondition=0 -fluidOnTwoSides=1 -ampProjectVelocity=0 -projectNormalComponent=1 -option=beamUnderPressure -smoothInterfaceVelocity=1 -addedMassTol=1.e-5 -numberOfCorrections=500  -probePosition=.5 -beamProbeFileName=beamUnderPressure_EI0p2_Rhos1p0_TP.text -cfls=2 -go=go >! beamUnderPressure_EI0p2_Rhos1p0_TP.out &
+
+
+cgins -noplot flexiblePartition -g=flexiblePartitionGride2.order2.hdf -nu=.025 -tf=5. -tp=.0001 -rhoBeam=.1 -E=.2 -tension=0. -thickness=.1 -Kt=1 -numElem=40 -p0=1 -useTP=1 -addedMassRelaxation=.01 -addedMass=0 -useApproximateAMPcondition=0 -fluidOnTwoSides=1 -ampProjectVelocity=0 -projectNormalComponent=1 -option=beamUnderPressure -smoothInterfaceVelocity=1 -addedMassTol=1.e-4 -numberOfCorrections=1000  -probePosition=.5 -cfls=2 -debug=3 -go=og
+
+***********************************************************************************************************
+******* June 7, 2015 --- revisit steady beam solution -- plot beam center point
+
+----Heavier ---
+
+Heavier: G4: 
+cgins -noplot flexiblePartition -g=flexiblePartitionGride4.order2.hdf -nu=.025 -tf=5. -tp=.1 -rhoBeam=10. -E=.2 -tension=0. -thickness=.1 -Kt=1 -numElem=80 -p0=1 -addedMass=1 -useApproximateAMPcondition=0 -fluidOnTwoSides=1 -ampProjectVelocity=1 -projectNormalComponent=1 -option=beamUnderPressure -smoothInterfaceVelocity=1 -probePosition=.5 -beamProbeFileName=beamUnderPressure_EI0p2_Rhos10p0_AMP_G4.text -cfls=2 -go=go >! beamUnderPressure_EI0p2_Rhos10p0_AMP_G4.out
+
+Heavier: G2:
+cgins -noplot flexiblePartition -g=flexiblePartitionGride2.order2.hdf -nu=.025 -tf=5. -tp=.1 -rhoBeam=10. -E=.2 -tension=0. -thickness=.1 -Kt=1 -numElem=40 -p0=1 -addedMass=1 -useApproximateAMPcondition=0 -fluidOnTwoSides=1 -ampProjectVelocity=1 -projectNormalComponent=1 -option=beamUnderPressure -smoothInterfaceVelocity=1 -probePosition=.5 -beamProbeFileName=beamUnderPressure_EI0p2_Rhos10p0_AMP.text -cfls=2 -go=go >! beamUnderPressure_EI0p2_Rhos10p0_AMP.out
+
+
+Light: TP G2: DECREASE TOL
+nohup $cgins -noplot flexiblePartition -g=flexiblePartitionGride2.order2.hdf -nu=.025 -tf=5. -tp=.01 -rhoBeam=.1 -E=.2 -tension=0. -thickness=.1 -Kt=1 -numElem=40 -p0=1 -useTP=1 -addedMassRelaxation=.01 -addedMass=0 -useApproximateAMPcondition=0 -fluidOnTwoSides=1 -ampProjectVelocity=0 -projectNormalComponent=1 -option=beamUnderPressure -smoothInterfaceVelocity=1 -addedMassTol=1.e-7 -numberOfCorrections=900  -probePosition=.5 -beamProbeFileName=beamUnderPressure_EI0p2_Rhos1p0_TPb.text -cfls=2 -go=go >! beamUnderPressure_EI0p2_Rhos1p0_TPb.out &
+
+
+Light: TP G2: relaxation=.01 : OK , .02 worse, tol=1e-4 not good enough?
+nohup $cgins -noplot flexiblePartition -g=flexiblePartitionGride2.order2.hdf -nu=.025 -tf=5. -tp=.01 -rhoBeam=.1 -E=.2 -tension=0. -thickness=.1 -Kt=1 -numElem=40 -p0=1 -useTP=1 -addedMassRelaxation=.01 -addedMass=0 -useApproximateAMPcondition=0 -fluidOnTwoSides=1 -ampProjectVelocity=0 -projectNormalComponent=1 -option=beamUnderPressure -smoothInterfaceVelocity=1 -addedMassTol=1.e-5 -numberOfCorrections=500  -probePosition=.5 -beamProbeFileName=beamUnderPressure_EI0p2_Rhos1p0_TP.text -cfls=2 -go=go >! beamUnderPressure_EI0p2_Rhos1p0_TP.out &
+
+TEST TP
+cgins -noplot flexiblePartition -g=flexiblePartitionGride2.order2.hdf -nu=.025 -tf=5. -tp=.0001 -rhoBeam=.1 -E=.2 -tension=0. -thickness=.1 -Kt=1 -numElem=40 -p0=1 -useTP=1 -addedMassRelaxation=.01 -addedMass=0 -useApproximateAMPcondition=0 -fluidOnTwoSides=1 -ampProjectVelocity=0 -projectNormalComponent=1 -option=beamUnderPressure -smoothInterfaceVelocity=1 -addedMassTol=1.e-4 -numberOfCorrections=1000  -probePosition=.5 -cfls=2 -debug=3 -go=og
+
+
+Light: G4: PBF
+cgins -noplot flexiblePartition -g=flexiblePartitionGride4.order2.hdf -nu=.025 -tf=5. -tp=.1 -rhoBeam=1. -E=.2 -tension=0. -thickness=.1 -Kt=1 -numElem=80 -p0=1 -addedMass=1 -useApproximateAMPcondition=1 -fluidOnTwoSides=1 -ampProjectVelocity=1 -projectNormalComponent=1 -option=beamUnderPressure -smoothInterfaceVelocity=1 -probePosition=.5 -beamProbeFileName=beamUnderPressure_EI0p2_Rhos1p0_AMP_PBF_G4.text -cfls=2 -go=go >! beamUnderPressure_EI0p2_Rhos1p0_AMP_PBF_G4.out
+
+
+Light: G4: 
+cgins -noplot flexiblePartition -g=flexiblePartitionGride4.order2.hdf -nu=.025 -tf=5. -tp=.1 -rhoBeam=1. -E=.2 -tension=0. -thickness=.1 -Kt=1 -numElem=80 -p0=1 -addedMass=1 -useApproximateAMPcondition=0 -fluidOnTwoSides=1 -ampProjectVelocity=1 -projectNormalComponent=1 -option=beamUnderPressure -smoothInterfaceVelocity=1 -probePosition=.5 -beamProbeFileName=beamUnderPressure_EI0p2_Rhos1p0_AMP_G4.text -cfls=2 -go=go >! beamUnderPressure_EI0p2_Rhos1p0_AMP_G4.out
+
+Light: G2: PFF - predict beam force (PBF)  (APPROX)
+cgins -noplot flexiblePartition -g=flexiblePartitionGride2.order2.hdf -nu=.025 -tf=5. -tp=.1 -rhoBeam=1. -E=.2 -tension=0. -thickness=.1 -Kt=1 -numElem=40 -p0=1 -addedMass=1 -useApproximateAMPcondition=1 -fluidOnTwoSides=1 -ampProjectVelocity=1 -projectNormalComponent=1 -option=beamUnderPressure -smoothInterfaceVelocity=1 -probePosition=.5 -beamProbeFileName=beamUnderPressure_EI0p2_Rhos1p0_AMP_PBF.text -cfls=2 -go=go >! beamUnderPressure_EI0p2_Rhos1p0_AMP_PBF.out
+
+
+Light: G2: 
+cgins -noplot flexiblePartition -g=flexiblePartitionGride2.order2.hdf -nu=.025 -tf=5. -tp=.1 -rhoBeam=1. -E=.2 -tension=0. -thickness=.1 -Kt=1 -numElem=40 -p0=1 -addedMass=1 -useApproximateAMPcondition=0 -fluidOnTwoSides=1 -ampProjectVelocity=1 -projectNormalComponent=1 -option=beamUnderPressure -smoothInterfaceVelocity=1 -probePosition=.5 -beamProbeFileName=beamUnderPressure_EI0p2_Rhos1p0_AMP.text -cfls=2 -go=go >! beamUnderPressure2.out
+
+
+
+
+
+***********************************************************************************************************
+******* June 4, 2015 --- revisit steady beam solution -- plot beam center point
+
+
+E=.2 save probe
+cgins -noplot flexiblePartition -g=flexiblePartitionGride2.order2.hdf -nu=.05 -tf=30. -tp=.01 -rhoBeam=1. -E=.2 -tension=0. -thickness=.1 -Kt=5 -numElem=40 -p0=1 -addedMass=1 -useApproximateAMPcondition=0 -fluidOnTwoSides=1 -ampProjectVelocity=1 -projectNormalComponent=1 -option=beamUnderPressure -smoothInterfaceVelocity=1 -probePosition=.5 -go=og -cfls=2
+
+
+TP-SI: 
+cgins -noplot flexiblePartition -g=beamOnTopGride1.order2.hdf -nu=.05 -tf=30. -tp=.001 -rhoBeam=.1 -E=0. -tension=5. -thickness=.1 -Kt=6 -numElem=20 -p0=1 -useTP=1 -addedMassRelaxation=.025 -addedMass=0 -useApproximateAMPcondition=1 -fluidOnTwoSides=0 -ampProjectVelocity=1 -projectNormalComponent=1 -option=beamUnderPressure -smoothInterfaceVelocity=1 -orientation=horizontal -addedMassTol=1.e-5 -numberOfCorrections=300 -go=og
+
+
+
+
+**************************************************************************************************
+****** June 2, 2015
+
+NOTE: ISSUES WITH VERY LIGHT BEAM AND LARGE NU
+
+=== AMP-APPROX -  -nis=4 not enough 
+cgins -noplot flexiblePartition -g=flexiblePartitionGride2.order2.hdf -nu=.01 -tf=10. -tp=.1 -rhoBeam=1. -E=1.e-4 -tension=1.e-2 -thickness=.1 -K0=10 -numElem=40 -p0=1 -addedMass=1 -useApproximateAMPcondition=1 -fluidOnTwoSides=1  -ampProjectVelocity=1 -projectNormalComponent=1 -option=beamPiston -sideBC=slipWall -nis=8 -beamProbeFileName="beamPistonRhos1p0Approx.text" -show=bp2b.show -go=go >! bp2b.out
+
+
+=== AMP-ADJUSTED
+cgins -noplot flexiblePartition -g=flexiblePartitionGride2.order2.hdf -nu=.01 -tf=10. -tp=.1 -rhoBeam=1. -E=1.e-4 -tension=1.e-2 -thickness=.1 -K0=10 -numElem=40 -p0=1 -addedMass=1 -useApproximateAMPcondition=0 -fluidOnTwoSides=1  -ampProjectVelocity=1 -projectNormalComponent=1 -option=beamPiston -sideBC=slipWall -nis=4 -beamProbeFileName="beamPistonRhos1p0Adjusted.text" -show=bp2a.show -go=go >! bp2a.out
+
+
+
+
+
+
+
+
+
+
+
+
+REDO oscillating beam (BUG FIXED)
+
+G8 - VERY LIGHT -- NOTE nu=.01 is fine (nu=.05 has wiggles)
+cgins flexiblePartition -g=flexiblePartitionGride8.order2.hdf -nu=.01 -tf=1. -tp=.02 -rhoBeam=0.1 -E=1.e-4 -tension=1.e-2 -thickness=.1 -K0=10 -numElem=160 -p0=1 -addedMass=1 -useApproximateAMPcondition=0 -fluidOnTwoSides=1 -ampProjectVelocity=1 -projectNormalComponent=1 -option=beamPiston -sideBC=slipWall -nis=32 -projectBeamVelocity=1 -go=halt
+
+
+
+AMP-APPROX: OK: -Kxxt=.02 -> dt=3e-3
+cgins flexiblePartition -g=flexiblePartitionGride2.order2.hdf -nu=.05 -tf=10. -tp=.1 -rhoBeam=1. -E=1.e-4 -tension=1.e-2 -thickness=.1 -K0=10 -numElem=40 -p0=1 -addedMass=1 -useApproximateAMPcondition=1 -fluidOnTwoSides=1 -ampProjectVelocity=1 -projectNormalComponent=1 -option=beamPiston -sideBC=slipWall -nis=8 -cfls=1. -projectBeamVelocity=1 -go=halt -Kxxt=.02
+
+
+AMP-APPROX -- wiggles -- increase nis
+cgins flexiblePartition -g=flexiblePartitionGride2.order2.hdf -nu=.05 -tf=10. -tp=.1 -rhoBeam=1. -E=1.e-4 -tension=1.e-2 -thickness=.1 -K0=10 -numElem=40 -p0=1 -addedMass=1 -useApproximateAMPcondition=1 -fluidOnTwoSides=1  -ampProjectVelocity=1 -projectNormalComponent=1 -option=beamPiston -sideBC=slipWall -nis=8 -cfls=1. -projectBeamVelocity=1  -go=halt
+
+
+AMP-ADJ -OK  dt=8.3e-3 
+cgins flexiblePartition -g=flexiblePartitionGride2.order2.hdf -nu=.05 -tf=10. -tp=.1 -rhoBeam=1. -E=1.e-4 -tension=1.e-2 -thickness=.1 -K0=10 -numElem=40 -p0=1 -addedMass=1 -useApproximateAMPcondition=0 -fluidOnTwoSides=1  -ampProjectVelocity=1 -projectNormalComponent=1 -option=beamPiston -sideBC=slipWall -nis=4 -cfls=1. -projectBeamVelocity=1 -go=halt
+
+VERY-LIGHT : G4 : SMOOTH BEAM -- works but errors large at beam ends
+cgins flexiblePartition -g=flexiblePartitionGride4.order2.hdf -nu=.05 -tf=1. -tp=.02 -rhoBeam=0.1 -E=1.e-4 -tension=1.e-2 -thickness=.1 -K0=10 -numElem=80 -p0=1 -addedMass=1 -useApproximateAMPcondition=0 -fluidOnTwoSides=1 -ampProjectVelocity=1 -projectNormalComponent=1 -option=beamPiston -sideBC=slipWall -nis=4 -cfls=1. -projectBeamVelocity=1 -go=halt -smoothBeam=1 -numberOfBeamSmooths=4
+
+VERY-LIGHT : G8 : SMOOTH BEAM -- trouble 
+cgins flexiblePartition -g=flexiblePartitionGride8.order2.hdf -nu=.05 -tf=1. -tp=.02 -rhoBeam=0.1 -E=1.e-4 -tension=1.e-2 -thickness=.1 -K0=10 -numElem=160 -p0=1 -addedMass=1 -useApproximateAMPcondition=0 -fluidOnTwoSides=1 -ampProjectVelocity=1 -projectNormalComponent=1 -option=beamPiston -sideBC=slipWall -nis=8 -cfls=1. -projectBeamVelocity=1 -go=halt -smoothBeam=1 -numberOfBeamSmooths=4
+
+
+
+VERY-LIGHT : G4 : -Kxxt = C*dx^2, C=5   dx=(2/80)^2 = (1/40)^2 =6.25e-4  -> -Kxxt=.003125 -- OK 
+cgins flexiblePartition -g=flexiblePartitionGride4.order2.hdf -nu=.05 -tf=1. -tp=.02 -rhoBeam=0.1 -E=1.e-4 -tension=1.e-2 -thickness=.1 -K0=10 -numElem=80 -p0=1 -addedMass=1 -useApproximateAMPcondition=0 -fluidOnTwoSides=1 -ampProjectVelocity=1 -projectNormalComponent=1 -option=beamPiston -sideBC=slipWall -nis=8 -cfls=1. -projectBeamVelocity=1 -go=halt -Kxxt=3.125e-3
+
+VERY-LIGHT : G8 : -Kxxt = C*dx^2, C=5 -- WIGGLES 
+cgins flexiblePartition -g=flexiblePartitionGride8.order2.hdf -nu=.05 -tf=1. -tp=.02 -rhoBeam=0.1 -E=1.e-4 -tension=1.e-2 -thickness=.1 -K0=10 -numElem=160 -p0=1 -addedMass=1 -useApproximateAMPcondition=0 -fluidOnTwoSides=1 -ampProjectVelocity=1 -projectNormalComponent=1 -option=beamPiston -sideBC=slipWall -nis=8 -projectBeamVelocity=1 -go=halt -Kxxt=7.8125e-4 
+
+
+VERY LIGHT: G8: AMP-ADJ 
+cgins flexiblePartition -g=flexiblePartitionGride8.order2.hdf -nu=.05 -tf=1. -tp=.02 -rhoBeam=0.1 -E=1.e-4 -tension=1.e-2 -thickness=.1 -K0=10 -numElem=160 -p0=1 -addedMass=1 -useApproximateAMPcondition=0 -fluidOnTwoSides=1  -ampProjectVelocity=1 -projectNormalComponent=1 -option=beamPiston -sideBC=slipWall -nis=16 -cfls=1. -projectBeamVelocity=1 -go=halt -Kxxt=.005
+
+LIGHT: G8: AMP-ADJ  --> WIGGLES ... OK if nis=8+cfl=.5 or -nis=16 
+cgins flexiblePartition -g=flexiblePartitionGride8.order2.hdf -nu=.05 -tf=1. -tp=.02 -rhoBeam=1. -E=1.e-4 -tension=1.e-2 -thickness=.1 -K0=10 -numElem=160 -p0=1 -addedMass=1 -useApproximateAMPcondition=0 -fluidOnTwoSides=1  -ampProjectVelocity=1 -projectNormalComponent=1 -option=beamPiston -sideBC=slipWall -nis=16 -cfls=1. -projectBeamVelocity=1 -go=halt
+
+
+**************************************************************************************************
+****** June 2, 2015
+
+REDO oscillating beam -- compare AMP-APPROX VERSUS AMP-ADJUST
+
+=== AMP-APPROX - NOTE: use cfl=.5, cfls=.5  (WHY?)
+cgins -noplot flexiblePartition -g=flexiblePartitionGride2.order2.hdf -nu=.05 -tf=10. -tp=.1 -rhoBeam=1. -E=1.e-4 -tension=1.e-2 -thickness=.1 -K0=10 -numElem=40 -p0=1 -cfl=.5 -cfls=.5 -addedMass=1 -useApproximateAMPcondition=1 -fluidOnTwoSides=1  -ampProjectVelocity=1 -projectNormalComponent=1 -option=beamPiston -sideBC=slipWall -nis=4 -beamProbeFileName="beamPistonRhos1p0Approx.text" -show=bp2b.show -go=go >! bp2b.out
+
+G4: 
+cgins flexiblePartition -g=flexiblePartitionGride4.order2.hdf -nu=.05 -tf=10. -tp=.1 -rhoBeam=1. -E=1.e-4 -tension=1.e-2 -thickness=.1 -K0=10 -numElem=80 -p0=1 -addedMass=1 -useApproximateAMPcondition=1 -fluidOnTwoSides=1  -ampProjectVelocity=1 -projectNormalComponent=1 -option=beamPiston -sideBC=slipWall -nis=4 -go=halt
+
+G2: -Kxxt 
+cgins flexiblePartition -g=flexiblePartitionGride2.order2.hdf -nu=.05 -tf=10. -tp=.1 -rhoBeam=1. -E=1.e-4 -tension=1.e-2 -Kxxt=.05 -thickness=.1 -K0=10 -numElem=40 -p0=1 -addedMass=1 -useApproximateAMPcondition=1 -fluidOnTwoSides=1  -ampProjectVelocity=1 -projectNormalComponent=1 -option=beamPiston -sideBC=slipWall -nis=4 -cfls=1. -go=halt
+
+G2: -nis=8
+cgins flexiblePartition -g=flexiblePartitionGride2.order2.hdf -nu=.05 -tf=10. -tp=.1 -rhoBeam=1. -E=1.e-4 -tension=1.e-2 -thickness=.1 -K0=10 -numElem=40 -p0=1 -addedMass=1 -useApproximateAMPcondition=1 -fluidOnTwoSides=1  -ampProjectVelocity=1 -projectNormalComponent=1 -option=beamPiston -sideBC=slipWall -nis=8 -cfls=1. -go=halt
+
+cgins flexiblePartition -g=flexiblePartitionGride2.order2.hdf -nu=.05 -tf=10. -tp=.1 -rhoBeam=1. -E=1.e-4 -tension=1.e-2 -thickness=.1 -K0=10 -numElem=40 -p0=1 -addedMass=1 -useApproximateAMPcondition=1 -fluidOnTwoSides=1  -ampProjectVelocity=1 -projectNormalComponent=1 -option=beamPiston -sideBC=slipWall -nis=4 -cfls=1. -projectBeamVelocity=1 -projectVelocityOnBeamEnds=0 -go=halt
+
+projectVelocityOnBeamEnds
+projectBeamVelocity
+
+=== AMP-ADJUSTED
+cgins -noplot flexiblePartition -g=flexiblePartitionGride2.order2.hdf -nu=.05 -tf=10. -tp=.1 -rhoBeam=1. -E=1.e-4 -tension=1.e-2 -thickness=.1 -K0=10 -numElem=40 -p0=1 -addedMass=1 -useApproximateAMPcondition=0 -fluidOnTwoSides=1  -ampProjectVelocity=1 -projectNormalComponent=1 -option=beamPiston -sideBC=slipWall -nis=4 -beamProbeFileName="beamPistonRhos1p0Adjusted.text" -show=bp2a.show -go=go >! bp2a.out
+
+cgins flexiblePartition -g=flexiblePartitionGride2.order2.hdf -nu=.05 -tf=10. -tp=.1 -rhoBeam=1. -E=1.e-4 -tension=1.e-2 -thickness=.1 -K0=10 -numElem=40 -p0=1 -addedMass=1 -useApproximateAMPcondition=0 -fluidOnTwoSides=1  -ampProjectVelocity=1 -projectNormalComponent=1 -option=beamPiston -sideBC=slipWall -nis=4 -go=ghlat
+
+
+
+
+***********************************************************************************************************
+******* May 17, 2015 --- Fixed AMP velocity projection to adjust for "w" when projection ONTO the beam reference line
+
+
+Try this: 
+Looks ok: 
+cgins -noplot flexiblePartition -g=flexiblePartitionGride2.order2.hdf -nu=.05 -tf=30. -tp=.1 -rhoBeam=1. -E=0. -tension=5. -thickness=.1 -Kt=5 -numElem=40 -p0=1 -addedMass=1 -useApproximateAMPcondition=0 -fluidOnTwoSides=1 -ampProjectVelocity=1 -projectNormalComponent=1 -option=beamUnderPressure -smoothInterfaceVelocity=1 -numberOfBeamSmooths=1 -smoothBeam=1 -go=og -cfls=2
+
+
+TP-SI: 
+cgins -noplot flexiblePartition -g=beamOnTopGride1.order2.hdf -nu=.05 -tf=30. -tp=.001 -rhoBeam=.1 -E=0. -tension=5. -thickness=.1 -Kt=6 -numElem=20 -p0=1 -useTP=1 -addedMassRelaxation=.025 -addedMass=0 -useApproximateAMPcondition=1 -fluidOnTwoSides=0 -ampProjectVelocity=1 -projectNormalComponent=1 -option=beamUnderPressure -smoothInterfaceVelocity=1 -orientation=horizontal -addedMassTol=1.e-5 -numberOfCorrections=300 -go=og
+
+*****************************
+April 2, 2015:
+
+RERUN CASE B - PIV +  FIXED GRID NON_DIMENSIONAL PARAMETERS note: CFLS=1
+
+G32
+nohup $cgins -noplot flexibleChannel -g=flexibleChannelGridFixede32.order2.hdf -numElem=1920 -cfl=.9 -ad2=1 -nu=1. -tf=1.5 -tp=.5 -addedMass=1 -ampProjectVelocity=1 -projectNormalComponent=1 -beamPlotScaleFactor=5 -pMax=2.e4 -tMax=.0075 -E0=.25e6 -U0=100. -cfls=1. -nis=6 -show="fc32bfixedPIV.show" -go=go >! fc32bfixedPIV.out &
+
+G16
+nohup $cgins -noplot flexibleChannel -g=flexibleChannelGridFixede16.order2.hdf -numElem=960 -cfl=.9 -ad2=1 -nu=1. -tf=1.5 -tp=.5 -addedMass=1 -ampProjectVelocity=1 -projectNormalComponent=1 -beamPlotScaleFactor=5 -pMax=2.e4 -tMax=.0075 -E0=.25e6 -U0=100. -cfls=1. -nis=6 -show="fc16bfixedPIV.show" -go=go >! fc16bfixedPIV.out &
+
+G8
+nohup $cgins -noplot flexibleChannel -g=flexibleChannelGridFixede8.order2.hdf -numElem=480 -cfl=.9 -ad2=1 -nu=1. -tf=1.5 -tp=.5 -addedMass=1 -ampProjectVelocity=1 -projectNormalComponent=1 -beamPlotScaleFactor=5 -pMax=2.e4 -tMax=.0075 -E0=.25e6 -U0=100. -cfls=1. -nis=4 -show="fc8bfixedPIV.show" -go=go >! fc8bfixedPIV.out &
+
+G4
+nohup $cgins -noplot flexibleChannel -g=flexibleChannelGridFixede4.order2.hdf -numElem=240 -cfl=.9 -ad2=1 -nu=1. -tf=1.5 -tp=.5 -addedMass=1 -ampProjectVelocity=1 -projectNormalComponent=1 -beamPlotScaleFactor=5 -pMax=2.e4 -tMax=.0075 -E0=.25e6 -U0=100. -cfls=1. -nis=4 -show="fc4bfixedPIV.show" -go=go >! fc4bfixedPIV.out &
+
+G2
+nohup $cgins -noplot flexibleChannel -g=flexibleChannelGridFixede2.order2.hdf -numElem=120 -cfl=.9 -ad2=1 -nu=1. -tf=1.5 -tp=.5 -addedMass=1 -ampProjectVelocity=1 -projectNormalComponent=1 -beamPlotScaleFactor=5 -pMax=2.e4 -tMax=.0075 -E0=.25e6 -U0=100. -cfls=1. -nis=4 -show="fc2bfixedPIV.show" -go=go >! fc2bfixedPIV.out &
+
+G1
+nohup $cgins -noplot flexibleChannel -g=flexibleChannelGridFixede1.order2.hdf -numElem=60 -cfl=.9 -ad2=1 -nu=1. -tf=1.5 -tp=.5 -addedMass=1 -ampProjectVelocity=1 -projectNormalComponent=1 -beamPlotScaleFactor=5 -pMax=2.e4 -tMax=.0075 -E0=.25e6 -U0=100. -cfls=1. -nis=4 -show="fc1bfixedPIV.show" -go=go >! fc1bfixedPIV.out &
+
+
+
+*****************************
+April 1, 2015:
+
+When do TP go bad?
+OK:  rhos=10,7  
+BAD: rhos=1, 5 
+cgins flexiblePartition -g=beamOnTopGride2.order2.hdf -numElem=40 -nu=.05 -tf=30. -tp=.001 -rhoBeam=7. -E=0. -tension=5. -thickness=.1 -Kt=6  -p0=1 -addedMass=0 -useApproximateAMPcondition=1 -fluidOnTwoSides=0 -ampProjectVelocity=1 -projectNormalComponent=1 -option=beamUnderPressure -smoothInterfaceVelocity=1 -orientation=horizontal -go=halt
+
+
+*****************************
+March 30, 2015:
+
+**CHECK ME: Use fourth-order DPM for grids *******
+*********** COULD BE TROUBLE NEAR corners at the grid deforms ***
+
+
+TODO: G32 - cfls=4
+nohup $cgins -noplot flexibleChannel -g=flexibleChannelGridDpm4Fixede32.order2.hdf -numElem=1920 -cfl=.9 -ad2=1 -nu=1. -tf=1.5 -tp=.5 -addedMass=1 -ampProjectVelocity=0 -projectNormalComponent=1 -beamPlotScaleFactor=5 -pMax=2.e4 -tMax=.0075 -E0=.25e6 -U0=100. -cfls=2. -nis=4 -show="fc32bDpm4fixed.show" -go=go >! fc32bDpm4fixed.out &
+
+
+G16  -- cfls=2 trouble at t=.3 
+nohup $cgins -noplot flexibleChannel -g=flexibleChannelGridDpm4Fixede16.order2.hdf -numElem=960 -cfl=.9 -ad2=1 -nu=1. -tf=1.5 -tp=.5 -addedMass=1 -ampProjectVelocity=0 -projectNormalComponent=1 -beamPlotScaleFactor=5 -pMax=2.e4 -tMax=.0075 -E0=.25e6 -U0=100. -cfls=1. -nis=6 -show="fc16bDpm4fixed.show" -go=go >! fc16bfDpm4ixed.out &
+
+G8
+nohup $cgins -noplot flexibleChannel -g=flexibleChannelGridDpm4Fixede8.order2.hdf -numElem=480 -cfl=.9 -ad2=1 -nu=1. -tf=1.5 -tp=.5 -addedMass=1 -ampProjectVelocity=0 -projectNormalComponent=1 -beamPlotScaleFactor=5 -pMax=2.e4 -tMax=.0075 -E0=.25e6 -U0=100. -cfls=2. -nis=4 -show="fc8bDpm4fixed.show" -go=go >! fc8bDpm4fixed.out &
+
+G4
+nohup $cgins -noplot flexibleChannel -g=flexibleChannelGridDpm4Fixede4.order2.hdf -numElem=240 -cfl=.9 -ad2=1 -nu=1. -tf=1.5 -tp=.5 -addedMass=1 -ampProjectVelocity=0 -projectNormalComponent=1 -beamPlotScaleFactor=5 -pMax=2.e4 -tMax=.0075 -E0=.25e6 -U0=100. -cfls=2. -nis=4 -show="fc4bDpm4fixed.show" -go=go >! fc4bDpm4fixed.out &
+
+G2
+nohup $cgins -noplot flexibleChannel -g=flexibleChannelGridDpm4Fixede2.order2.hdf -numElem=120 -cfl=.9 -ad2=1 -nu=1. -tf=1.5 -tp=.5 -addedMass=1 -ampProjectVelocity=0 -projectNormalComponent=1 -beamPlotScaleFactor=5 -pMax=2.e4 -tMax=.0075 -E0=.25e6 -U0=100. -cfls=2. -nis=4 -show="fc2bDpm4fixed.show" -go=go >! fc2bDpm4fixed.out &
+
+G1
+nohup $cgins -noplot flexibleChannel -g=flexibleChannelGridDpm4Fixede1.order2.hdf -numElem=60 -cfl=.9 -ad2=1 -nu=1. -tf=1.5 -tp=.5 -addedMass=1 -ampProjectVelocity=0 -projectNormalComponent=1 -beamPlotScaleFactor=5 -pMax=2.e4 -tMax=.0075 -E0=.25e6 -U0=100. -cfls=2. -nis=4 -show="fc1bDpm4fixed.show" -go=go >! fc1bDpm4fixed.out
+
+
+
+*****************************
+March 28, 2015:
+
+RERUN CASE B - PIV +  FIXED GRID NON_DIMENSIONAL PARAMETERS note: CFLS=2
+
+G32
+nohup $cgins -noplot flexibleChannel -g=flexibleChannelGridFixede32.order2.hdf -numElem=1920 -cfl=.9 -ad2=1 -nu=1. -tf=1.5 -tp=.5 -addedMass=1 -ampProjectVelocity=1 -projectNormalComponent=1 -beamPlotScaleFactor=5 -pMax=2.e4 -tMax=.0075 -E0=.25e6 -U0=100. -cfls=2. -nis=4 -show="fc32bfixedPIV.show" -go=go >! fc32bfixedPIV.out &
+
+G16
+nohup $cgins -noplot flexibleChannel -g=flexibleChannelGridFixede16.order2.hdf -numElem=960 -cfl=.9 -ad2=1 -nu=1. -tf=1.5 -tp=.5 -addedMass=1 -ampProjectVelocity=1 -projectNormalComponent=1 -beamPlotScaleFactor=5 -pMax=2.e4 -tMax=.0075 -E0=.25e6 -U0=100. -cfls=2. -nis=4 -show="fc16bfixedPIV.show" -go=go >! fc16bfixedPIV.out &
+
+G8
+nohup $cgins -noplot flexibleChannel -g=flexibleChannelGridFixede8.order2.hdf -numElem=480 -cfl=.9 -ad2=1 -nu=1. -tf=1.5 -tp=.5 -addedMass=1 -ampProjectVelocity=1 -projectNormalComponent=1 -beamPlotScaleFactor=5 -pMax=2.e4 -tMax=.0075 -E0=.25e6 -U0=100. -cfls=2. -nis=4 -show="fc8bfixedPIV.show" -go=go >! fc8bfixedPIV.out &
+
+G4
+nohup $cgins -noplot flexibleChannel -g=flexibleChannelGridFixede4.order2.hdf -numElem=240 -cfl=.9 -ad2=1 -nu=1. -tf=1.5 -tp=.5 -addedMass=1 -ampProjectVelocity=1 -projectNormalComponent=1 -beamPlotScaleFactor=5 -pMax=2.e4 -tMax=.0075 -E0=.25e6 -U0=100. -cfls=2. -nis=4 -show="fc4bfixedPIV.show" -go=go >! fc4bfixedPIV.out
+
+G2
+nohup $cgins -noplot flexibleChannel -g=flexibleChannelGridFixede2.order2.hdf -numElem=120 -cfl=.9 -ad2=1 -nu=1. -tf=1.5 -tp=.5 -addedMass=1 -ampProjectVelocity=1 -projectNormalComponent=1 -beamPlotScaleFactor=5 -pMax=2.e4 -tMax=.0075 -E0=.25e6 -U0=100. -cfls=2. -nis=4 -show="fc2bfixedPIV.show" -go=go >! fc2bfixedPIV.out
+
+G1
+nohup $cgins -noplot flexibleChannel -g=flexibleChannelGridFixede1.order2.hdf -numElem=60 -cfl=.9 -ad2=1 -nu=1. -tf=1.5 -tp=.5 -addedMass=1 -ampProjectVelocity=1 -projectNormalComponent=1 -beamPlotScaleFactor=5 -pMax=2.e4 -tMax=.0075 -E0=.25e6 -U0=100. -cfls=2. -nis=4 -show="fc1bfixedPIV.show" -go=go >! fc1bfixedPIV.out
+
+
+*****************************
+March 28, 2015:
+
+RERUN CASE B - FIXED GRID NON_DIMENSIONAL PARAMETERS 
+
+G32 - cfls=4
+nohup $cgins -noplot flexibleChannel -g=flexibleChannelGridFixede32.order2.hdf -numElem=1920 -cfl=.9 -ad2=1 -nu=1. -tf=1.5 -tp=.5 -addedMass=1 -ampProjectVelocity=0 -projectNormalComponent=1 -beamPlotScaleFactor=5 -pMax=2.e4 -tMax=.0075 -E0=.25e6 -U0=100. -cfls=4. -nis=4 -show="fc32fixed.show" -go=go >! fc32bfixed.out &
+
+
+G16
+nohup $cgins -noplot flexibleChannel -g=flexibleChannelGridFixede16.order2.hdf -numElem=960 -cfl=.9 -ad2=1 -nu=1. -tf=1.5 -tp=.5 -addedMass=1 -ampProjectVelocity=0 -projectNormalComponent=1 -beamPlotScaleFactor=5 -pMax=2.e4 -tMax=.0075 -E0=.25e6 -U0=100. -cfls=1. -nis=4 -show="fc16bfixed.show" -go=go >! fc16bfixed.out &
+
+G8
+nohup $cgins -noplot flexibleChannel -g=flexibleChannelGridFixede8.order2.hdf -numElem=480 -cfl=.9 -ad2=1 -nu=1. -tf=1.5 -tp=.5 -addedMass=1 -ampProjectVelocity=0 -projectNormalComponent=1 -beamPlotScaleFactor=5 -pMax=2.e4 -tMax=.0075 -E0=.25e6 -U0=100. -cfls=1. -nis=4 -show="fc8bfixed.show" -go=go >! fc8bfixed.out &
+
+G4
+nohup $cgins -noplot flexibleChannel -g=flexibleChannelGridFixede4.order2.hdf -numElem=240 -cfl=.9 -ad2=1 -nu=1. -tf=1.5 -tp=.5 -addedMass=1 -ampProjectVelocity=0 -projectNormalComponent=1 -beamPlotScaleFactor=5 -pMax=2.e4 -tMax=.0075 -E0=.25e6 -U0=100. -cfls=1. -nis=4 -show="fc4bfixed.show" -go=go >! fc4bfixed.out
+
+G2
+nohup $cgins -noplot flexibleChannel -g=flexibleChannelGridFixede2.order2.hdf -numElem=120 -cfl=.9 -ad2=1 -nu=1. -tf=1.5 -tp=.5 -addedMass=1 -ampProjectVelocity=0 -projectNormalComponent=1 -beamPlotScaleFactor=5 -pMax=2.e4 -tMax=.0075 -E0=.25e6 -U0=100. -cfls=1. -nis=4 -show="fc2bfixed.show" -go=go >! fc2bfixed.out
+
+G1
+nohup $cgins -noplot flexibleChannel -g=flexibleChannelGridFixede1.order2.hdf -numElem=60 -cfl=.9 -ad2=1 -nu=1. -tf=1.5 -tp=.5 -addedMass=1 -ampProjectVelocity=0 -projectNormalComponent=1 -beamPlotScaleFactor=5 -pMax=2.e4 -tMax=.0075 -E0=.25e6 -U0=100. -cfls=1. -nis=4 -show="fc1bfixed.show" -go=go >! fc1bfixed.out
+
+*****************************
+March 28, 2015:
+
+RERUN CASE B - NON_DIMENSIONAL PARAMETERS for paper
+CFLS=1 PIV=0
+
+G16
+nohup $cgins -noplot flexibleChannel -g=flexibleChannelGride16.order2.hdf -numElem=960 -cfl=.9 -ad2=1 -nu=1. -tf=1.5 -tp=.5 -addedMass=1 -ampProjectVelocity=0 -projectNormalComponent=1 -beamPlotScaleFactor=5 -pMax=2.e4 -tMax=.0075 -E0=.25e6 -U0=100. -cfls=1. -nis=4 -show="fc16b.show" -go=go >! fc16b.out
+
+G8
+nohup $cgins -noplot flexibleChannel -g=flexibleChannelGride8.order2.hdf -numElem=480 -cfl=.9 -ad2=1 -nu=1. -tf=1.5 -tp=.5 -addedMass=1 -ampProjectVelocity=0 -projectNormalComponent=1 -beamPlotScaleFactor=5 -pMax=2.e4 -tMax=.0075 -E0=.25e6 -U0=100. -cfls=1. -nis=4 -show="fc8b.show" -go=go >! fc8b.out
+
+G4
+nohup $cgins -noplot flexibleChannel -g=flexibleChannelGride4.order2.hdf -numElem=240 -cfl=.9 -ad2=1 -nu=1. -tf=1.5 -tp=.5 -addedMass=1 -ampProjectVelocity=0 -projectNormalComponent=1 -beamPlotScaleFactor=5 -pMax=2.e4 -tMax=.0075 -E0=.25e6 -U0=100. -cfls=1. -nis=4 -show="fc4b.show" -go=go >! fc4b.out
+
+G2
+nohup $cgins -noplot flexibleChannel -g=flexibleChannelGride2.order2.hdf -numElem=120 -cfl=.9 -ad2=1 -nu=1. -tf=1.5 -tp=.5 -addedMass=1 -ampProjectVelocity=0 -projectNormalComponent=1 -beamPlotScaleFactor=5 -pMax=2.e4 -tMax=.0075 -E0=.25e6 -U0=100. -cfls=1. -nis=4 -show="fc2b.show" -go=go >! fc2b.out
+
+
+*****************************
+March 28, 2015:
+
+RERUN CASE B - NON_DIMENSIONAL PARAMETERS for paper
+
+TODO -- TP cases
+G2  -TP 
+nohup $cgins -noplot flexibleChannel -g=flexibleChannelGride2.order2.hdf -numElem=120 -cfl=.9 -cfls=1. -nu=1. -tf=1.5 -tp=.5 -addedMass=0  -useTP=1 -addedMassRelaxation=.025 -addedMassTol=1.e-5  -numberOfCorrections=400 -beamPlotScaleFactor=5 -pMax=2.e4  -tMax=.0075 -E0=.25e6 -U0=100  -cfls=2. -nis=4 -show="fc2TP.show" -go=go >! fc2TP.out
+
+
+G16
+nohup $cgins -noplot flexibleChannel -g=flexibleChannelGride16.order2.hdf -numElem=960 -cfl=.9 -ad2=1 -nu=1. -tf=1.5 -tp=.5 -addedMass=1 -ampProjectVelocity=1 -projectNormalComponent=1 -beamPlotScaleFactor=5 -pMax=2.e4 -tMax=.0075 -E0=.25e6 -U0=100. -cfls=2. -nis=4 -show="fc16b.show" -go=go >! fc16b.out
+
+G8
+nohup $cgins -noplot flexibleChannel -g=flexibleChannelGride8.order2.hdf -numElem=480 -cfl=.9 -ad2=1 -nu=1. -tf=1.5 -tp=.5 -addedMass=1 -ampProjectVelocity=1 -projectNormalComponent=1 -beamPlotScaleFactor=5 -pMax=2.e4 -tMax=.0075 -E0=.25e6 -U0=100. -cfls=2. -nis=4 -show="fc8b.show" -go=go >! fc8b.out
+
+G4
+nohup $cgins -noplot flexibleChannel -g=flexibleChannelGride4.order2.hdf -numElem=240 -cfl=.9 -ad2=1 -nu=1. -tf=1.5 -tp=.5 -addedMass=1 -ampProjectVelocity=1 -projectNormalComponent=1 -beamPlotScaleFactor=5 -pMax=2.e4 -tMax=.0075 -E0=.25e6 -U0=100. -cfls=2. -nis=4 -show="fc4b.show" -go=go >! fc4b.out
+
+G2
+nohup $cgins -noplot flexibleChannel -g=flexibleChannelGride2.order2.hdf -numElem=120 -cfl=.9 -ad2=1 -nu=1. -tf=1.5 -tp=.5 -addedMass=1 -ampProjectVelocity=1 -projectNormalComponent=1 -beamPlotScaleFactor=5 -pMax=2.e4 -tMax=.0075 -E0=.25e6 -U0=100. -cfls=2. -nis=4 -show="fc2b.show" -go=go >! fc2b.out
+
+
+cgins flexibleChannel -g=flexibleChannelGride8.order2.hdf -numElem=240 -cfl=.9 -cfls=1. -nu=1. -tf=.02 -tp=.001 -addedMass=1 -beamPlotScaleFactor=10 -pMax=2.e4 -go=halt -tMax=.0075 -E0=.25e6 -show="fc8b.show" -go=halt
+
+*****************************
+March 25, 2015:
+
+Test beam SMOOTHER
+
+cgins -noplot flexiblePartition -g=flexiblePartitionGride2.order2.hdf -nu=.05 -tf=30. -tp=.1 -rhoBeam=1. -E=0. -tension=5. -thickness=.1 -Kt=5 -numElem=40 -p0=1 -addedMass=1 -useApproximateAMPcondition=0 -fluidOnTwoSides=1 -ampProjectVelocity=1 -projectNormalComponent=1 -option=beamUnderPressure -smoothInterfaceVelocity=1 -numberOfBeamSmooths=1 -smoothBeam=1 -go=og -cfls=2
+
+>>> t =  1.500e+00, dt = 5.00e-03, cpu = 3.54e+01 seconds (263 steps)
+           p : (min,max)=(-8.041614e-03, 1.011643e+00) 
+           u : (min,max)=(-6.263919e-03, 6.274547e-03) 
+           v : (min,max)=(-9.807293e-03, 2.173520e-03) 
+ Divergence: divMax/vorMax = 2.74e-02 divl2Norm/vorMax=1.98e-03 vorMax=9.79e-02
+-- BM -- beam: Error t=1.500e+00 : uErr=(3.82e-03,5.30e-02)=(max,max/uNorm), vErr=(5.14e-03,5.14e+09)=(max,max/vNorm) (steps=264)
+
+NO Smooths: 
+ >>> t =  1.500e+00, dt = 5.00e-03, cpu = 3.99e+01 seconds (263 steps)
+           p : (min,max)=(-8.047515e-03, 1.011622e+00) 
+           u : (min,max)=(-6.209165e-03, 6.194657e-03) 
+           v : (min,max)=(-9.695874e-03, 2.036975e-03) 
+ Divergence: divMax/vorMax = 2.78e-02 divl2Norm/vorMax=2.00e-03 vorMax=9.64e-02
+-- BM -- beam: Error t=1.500e+00 : uErr=(3.82e-03,5.30e-02)=(max,max/uNorm), vErr=(5.14e-03,5.14e+09)=(max,max/vNorm) (steps=264)
+
+
+*****************************
+March 24, 2015:
+
+===============CASE A - Fernandez but larger nu
+
+NOTE: convergence rates look good: 
+
+
+ G16 -- larger nu, ad2, smaller Kxxt
+nohup $cgins -noplot flexibleChannel -g=flexibleChannelGride16.order2.hdf -numElem=960 -cfl=.9 -ad2=1 -nu=1. -tf=1.5 -tp=.5 -addedMass=1 -ampProjectVelocity=1 -projectNormalComponent=1 -beamPlotScaleFactor=10 -pMax=2.e4 -go=halt -tMax=.005 -E0=.75e6 -Kxxt=1.e-4 -U0=100. -cfls=2. -nis=4 -show="fc16a.show" -go=go >! fc16a.out
+
+
+G8 -- larger nu, ad2, smaller Kxxt
+nohup $cgins -noplot flexibleChannel -g=flexibleChannelGride8.order2.hdf -numElem=480 -cfl=.9 -ad2=1 -nu=1. -tf=1.5 -tp=.5 -addedMass=1 -ampProjectVelocity=1 -projectNormalComponent=1 -beamPlotScaleFactor=10 -pMax=2.e4 -go=halt -tMax=.005 -E0=.75e6 -Kxxt=1.e-4 -U0=100. -cfls=2. -nis=4 -show="fc8a.show" -go=go >! fc8a.out
+
+G4 -- larger nu, ad2, smaller Kxxt
+nohup $cgins -noplot flexibleChannel -g=flexibleChannelGride4.order2.hdf -numElem=240 -cfl=.9 -ad2=1 -nu=1. -tf=1.5 -tp=.5 -addedMass=1 -ampProjectVelocity=1 -projectNormalComponent=1 -beamPlotScaleFactor=10 -pMax=2.e4 -go=halt -tMax=.005 -E0=.75e6 -Kxxt=1.e-4  -U0=100. -cfls=2.  -nis=4 -show="fc4a.show" -go=go >! fc4a.out
+
+G2 -- larger nu, ad2, smaller Kxxt
+nohup $cgins -noplot flexibleChannel -g=flexibleChannelGride2.order2.hdf -numElem=120 -cfl=.9 -ad2=1 -nu=1. -tf=1.5 -tp=.5 -addedMass=1 -ampProjectVelocity=1 -projectNormalComponent=1 -beamPlotScaleFactor=10 -pMax=2.e4 -go=halt -tMax=.005 -E0=.75e6 -Kxxt=1.e-4 -U0=100. -cfls=2.  -nis=4 -show="fc2a.show" -go=go >! fc2a.out
+
+
+===============MATCH Fernandez 2013 paper 
+
+NOTE- nu is different : nu=.035 instead of 1 
+NOTE - ad2 is OFF
+NOTE: dt scales like dx^2 for small grids due to Kxxt term 
+
+G8S -- stretched grid -- about 4 times as fine at the interface
+nohup $cgins -noplot flexibleChannel -g=flexibleChannelGridStretchede8.order2.hdf -numElem=480 -cfl=.9 -ad2=1 -nu=.035 -tf=1.5 -tp=.5 -addedMass=1 -ampProjectVelocity=1 -projectNormalComponent=1 -beamPlotScaleFactor=10 -pMax=2.e4 -go=halt -tMax=.005 -E0=.75e6 -U0=100. -cfls=3.  -nis=4 -show="fc8as.show" -go=go >! fc8as.out &
+
+G4S -- stretched grid -- about twice as fine at the interface
+nohup $cgins -noplot flexibleChannel -g=flexibleChannelGridStretchede4.order2.hdf -numElem=240 -cfl=.9 -ad2=1 -nu=.035 -tf=1.5 -tp=.5 -addedMass=1 -ampProjectVelocity=1 -projectNormalComponent=1 -beamPlotScaleFactor=10 -pMax=2.e4 -go=halt -tMax=.005 -E0=.75e6 -U0=100. -cfls=3. -show="fc4as.show" -go=go >! fc4as.out
+
+G2S -- stretched grid -- about twice as fine at the interface
+nohup $cgins -noplot flexibleChannel -g=flexibleChannelGridStretchede2.order2.hdf -numElem=120 -cfl=.9 -ad2=1 -nu=.035 -tf=1.5 -tp=.5 -addedMass=1 -ampProjectVelocity=1 -projectNormalComponent=1 -beamPlotScaleFactor=10 -pMax=2.e4 -go=halt -tMax=.005 -E0=.75e6 -U0=100. -cfls=3. -show="fc2as.show" -go=go >! fc2as.out
+
+
+cgins flexibleChannel -g=flexibleChannelGridStretchede4.order2.hdf -numElem=240 -cfl=.9 -ad2=1 -nu=.035 -tf=1.5 -tp=.5 -addedMass=1 -ampProjectVelocity=1 -projectNormalComponent=1 -beamPlotScaleFactor=10 -pMax=2.e4 -go=halt -tMax=.005 -E0=.75e6 -U0=100. -cfls=3. -go=halt
+
+
+
+
+G16 -- smaller nu, ad2
+nohup $cgins -noplot flexibleChannel -g=flexibleChannelGride16.order2.hdf -numElem=960 -cfl=.9 -ad2=1 -nu=.035 -tf=1.5 -tp=.5 -addedMass=1 -ampProjectVelocity=1 -projectNormalComponent=1 -beamPlotScaleFactor=10 -pMax=2.e4 -go=halt -tMax=.005 -E0=.75e6 -U0=100. -cfls=3. -nis=4 -show="fc16an.show" -go=go >! fc16an.out
+
+
+G8 -- smaller nu, ad2
+nohup $cgins -noplot flexibleChannel -g=flexibleChannelGride8.order2.hdf -numElem=480 -cfl=.9 -ad2=1 -nu=.035 -tf=1.5 -tp=.5 -addedMass=1 -ampProjectVelocity=1 -projectNormalComponent=1 -beamPlotScaleFactor=10 -pMax=2.e4 -go=halt -tMax=.005 -E0=.75e6 -U0=100. -cfls=3. -nis=4 -show="fc8an.show" -go=go >! fc8an.out
+
+G4 -- smaller nu, ad2
+nohup $cgins -noplot flexibleChannel -g=flexibleChannelGride4.order2.hdf -numElem=240 -cfl=.9 -ad2=1 -nu=.035 -tf=1.5 -tp=.5 -addedMass=1 -ampProjectVelocity=1 -projectNormalComponent=1 -beamPlotScaleFactor=10 -pMax=2.e4 -go=halt -tMax=.005 -E0=.75e6 -U0=100. -cfls=3. -show="fc4an.show" -go=go >! fc4an.out
+
+G2 -- smaller nu, ad2
+nohup $cgins -noplot flexibleChannel -g=flexibleChannelGride2.order2.hdf -numElem=120 -cfl=.9 -ad2=1 -nu=.035 -tf=1.5 -tp=.5 -addedMass=1 -ampProjectVelocity=1 -projectNormalComponent=1 -beamPlotScaleFactor=10 -pMax=2.e4 -go=halt -tMax=.005 -E0=.75e6 -U0=100. -cfls=3. -show="fc2an.show" -go=go >! fc2an.out
+
+
+
+
+-- add more smoothing
+nohup $cgins -noplot flexibleChannel -g=flexibleChannelGride8.order2.hdf -numElem=480 -cfl=.9 -ad2=0 -nu=1. -tf=1.5 -tp=.5 -addedMass=1 -ampProjectVelocity=1 -projectNormalComponent=1 -beamPlotScaleFactor=10 -pMax=2.e4 -go=halt -tMax=.005 -E0=.75e6 -U0=100. -cfls=3. -nis=4 -show="fc8a.show" -go=go >! fc8a.out
+
+
+cgins -noplot flexibleChannel -g=flexibleChannelGride4.order2.hdf -numElem=240 -cfl=.9 -ad2=0 -nu=1. -tf=1.5 -tp=.5 -addedMass=1 -ampProjectVelocity=1 -projectNormalComponent=1 -beamPlotScaleFactor=10 -pMax=2.e4 -go=halt -tMax=.005 -E0=.75e6 -U0=100. -cfls=3. -show="fc4a.show" -go=go >! fc4a.out
+ >>> t =  5.000e-01, dt = 2.03e-04, cpu = 1.27e+02 seconds (2423 steps)
+           p : (min,max)=(-2.716308e-18, 1.671537e+00) 
+           u : (min,max)=(-5.243337e-02, 3.613936e-01) 
+           v : (min,max)=(-1.142425e-01, 1.265935e-01) 
+ Divergence: divMax/vorMax = 4.25e-03 divl2Norm/vorMax=1.38e-04 vorMax=6.84e+00
+
+cgins -noplot flexibleChannel -g=flexibleChannelGride2.order2.hdf -numElem=120 -cfl=.9 -ad2=0 -nu=1. -tf=1.5 -tp=.5 -addedMass=1 -ampProjectVelocity=1 -projectNormalComponent=1 -beamPlotScaleFactor=10 -pMax=2.e4 -go=halt -tMax=.005 -E0=.75e6 -U0=100. -cfls=3. -show="fc2a.show" -go=go >! fc2a.out
+
+ >>> t =  5.000e-01, dt = 7.24e-04, cpu = 1.69e+01 seconds (605 steps)
+           p : (min,max)=(-2.421882e-18, 1.664120e+00) 
+           u : (min,max)=(-2.845290e-04, 3.571120e-01) 
+           v : (min,max)=(-1.151191e-01, 1.260143e-01) 
+ Divergence: divMax/vorMax = 6.26e-03 divl2Norm/vorMax=2.88e-04 vorMax=6.21e+00
+
+*****************************
+March 23, 2015:
+
+
+G4: NON-DIM,  -- MATCH Fernandez 2013  paper
+cgins -noplot flexibleChannel -g=flexibleChannelGride4.order2.hdf -numElem=240 -cfl=.9 -ad2=0 -nu=1. -tf=1.5 -tp=.1 -addedMass=1 -ampProjectVelocity=1 -projectNormalComponent=1 -beamPlotScaleFactor=10 -pMax=2.e4 -go=halt -tMax=.005 -E0=.75e6 -U0=100. -cfls=3. -go=og
+ >>> t =  1.000e-01, dt = 2.05e-04, cpu = 4.37e+01 seconds (485 steps)
+           p : (min,max)=(-5.715892e-21, 1.175571e+00) 
+           u : (min,max)=(-4.864421e-05, 1.362163e-01) 
+           v : (min,max)=(-9.239265e-13, 6.925302e-02) 
+ Divergence: divMax/vorMax = 5.15e-04 divl2Norm/vorMax=2.18e-05 vorMax=6.37e+00
+
+
+G2: NON-DIM,  -- MATCH Fernandez 2013  paper
+cgins -noplot flexibleChannel -g=flexibleChannelGride2.order2.hdf -numElem=120 -cfl=.9 -ad2=0 -nu=1. -tf=1.5 -tp=.1 -addedMass=1 -ampProjectVelocity=1 -projectNormalComponent=1 -beamPlotScaleFactor=10 -pMax=2.e4 -go=halt -tMax=.005 -E0=.75e6 -U0=100. -cfls=3. -go=og
+
+>>> t =  1.000e-01, dt = 8.22e-04, cpu = 3.15e+01 seconds (121 steps)
+           p : (min,max)=(-5.558932e-21, 1.175571e+00) 
+           u : (min,max)=(-4.902440e-05, 1.299397e-01) 
+           v : (min,max)=( 0.000000e+00, 6.976281e-02) 
+
+
+
+cfl=1:
+>>> t =  1.000e-01, dt = 2.74e-04, cpu = 3.01e+01 seconds (363 steps)
+
+
+===== RERUN elastic tube with non-dimensional values ======
+
+CLEANER CASE:
+cgins flexibleChannel -g=flexibleChannelGridFixede2.order2.hdf -numElem=120 -cfl=.9 -ad2=0 -nu=1. -tf=2. -tp=.1 -addedMass=1 -ampProjectVelocity=1 -projectNormalComponent=1 -beamPlotScaleFactor=10 -pMax=2.e4 -go=halt -tMax=.0075 -E0=.25e6 -U0=100. -cfls=5. -Kt=0. -Kxxt=0. -go=halt
+
+
+
+
+
+G8: NON-DIM, turn off Kxxt=0, Kt=0 , -cfls=5. -- MATCH EARLIER Fernandez paper
+cgins flexibleChannel -g=flexibleChannelGride8.order2.hdf -numElem=480 -cfl=.9 -ad2=0 -nu=1. -tf=1.5 -tp=.1 -addedMass=1 -ampProjectVelocity=1 -projectNormalComponent=1 -beamPlotScaleFactor=10 -pMax=2.e4 -go=halt -tMax=.005 -E0=.75e6 -U0=100. -cfls=5. -Kt=0. -Kxxt=0. -go=halt
+
+G4: NON-DIM, turn off Kxxt=0, Kt=0 , -cfls=5. -- MATCH EARLIER Fernandez paper
+cgins flexibleChannel -g=flexibleChannelGride4.order2.hdf -numElem=240 -cfl=.9 -ad2=0 -nu=1. -tf=1.5 -tp=.1 -addedMass=1 -ampProjectVelocity=1 -projectNormalComponent=1 -beamPlotScaleFactor=10 -pMax=2.e4 -go=halt -tMax=.005 -E0=.75e6 -U0=100. -cfls=5. -Kt=0. -Kxxt=0. -go=halt
+
+G2: NON-DIM, turn off Kxxt=0, Kt=0 , -cfls=5. -- MATCH EARLIER Fernandez paper
+cgins -noplot flexibleChannel -g=flexibleChannelGride2.order2.hdf -numElem=120 -cfl=.9 -ad2=0 -nu=1. -tf=1.5 -tp=.1 -addedMass=1 -ampProjectVelocity=1 -projectNormalComponent=1 -beamPlotScaleFactor=10 -pMax=2.e4 -go=halt -tMax=.005 -E0=.75e6 -U0=100. -cfls=5. -go=og
+
+
+G2: NON-DIM, turn off Kxxt=0, Kt=0 , -cfls=5. OK too
+cgins flexibleChannel -g=flexibleChannelGride2.order2.hdf -numElem=120 -cfl=.9 -ad2=0 -nu=1. -tf=2. -tp=.1 -addedMass=1 -ampProjectVelocity=1 -projectNormalComponent=1 -beamPlotScaleFactor=10 -pMax=2.e4 -go=halt -tMax=.0075 -E0=.25e6 -U0=100. -cfls=5. -Kt=0. -Kxxt=0. -go=halt
+
+
+*****************************
+March 22, 2015:
+
+===== PARTITION WITH oscillating pressure at bottom ====
+FINISH ME 
+
+Kt=0 
+cgins -noplot flexiblePartition -g=flexiblePartitionGride2.order2.hdf -nu=.05 -tf=30. -tp=.1 -rhoBeam=1. -E=0. -tension=5. -thickness=.1 -Kt=0 -numElem=40 -p0=0 -addedMass=1 -useApproximateAMPcondition=0 -fluidOnTwoSides=1 -ampProjectVelocity=1 -projectNormalComponent=1 -option=beamUnderPressure -smoothInterfaceVelocity=1 -go=og -cfls=5
+
+
+OK: p0=1
+cgins -noplot flexiblePartition -g=flexiblePartitionGride2.order2.hdf -nu=.05 -tf=30. -tp=.1 -rhoBeam=1. -E=0. -tension=5. -thickness=.1 -Kt=5 -numElem=40 -p0=1 -addedMass=1 -useApproximateAMPcondition=0 -fluidOnTwoSides=1 -ampProjectVelocity=1 -projectNormalComponent=1 -option=beamUnderPressure -smoothInterfaceVelocity=1 -go=og -cfls=5
+
+
+===== RERUN elastic tube with non-dimensional values ======
+
+G4: NON-DIM, turn off Kxxt=0, Kt=0 , -cfls=5. OK too
+cgins -noplot flexibleChannel -g=flexibleChannelGride4.order2.hdf -numElem=240 -cfl=.9 -ad2=0 -nu=1. -tf=2. -tp=.1 -addedMass=1 -ampProjectVelocity=1 -projectNormalComponent=1 -beamPlotScaleFactor=10 -pMax=2.e4 -go=halt -tMax=.0075 -E0=.25e6 -U0=100. -cfls=5. -Kt=0. -Kxxt=0. -go=og
+
+
+G2: NON-DIM, turn off Kxxt=0, Kt=0 , -cfls=5. OK too
+cgins -noplot flexibleChannel -g=flexibleChannelGride2.order2.hdf -numElem=120 -cfl=.9 -ad2=0 -nu=1. -tf=2. -tp=.1 -addedMass=1 -ampProjectVelocity=1 -projectNormalComponent=1 -beamPlotScaleFactor=10 -pMax=2.e4 -go=halt -tMax=.0075 -E0=.25e6 -U0=100. -cfls=5. -Kt=0. -Kxxt=0. -go=og
+
+
+SCALEL -U0=100
+cgins -noplot flexibleChannel -g=flexibleChannelGride2.order2.hdf -numElem=120 -cfl=.9 -cfls=1. -ad2=0 -nu=1. -tf=2. -tp=.1 -addedMass=1 -ampProjectVelocity=1 -projectNormalComponent=1 -beamPlotScaleFactor=10 -pMax=2.e4 -go=halt -tMax=.0075 -E0=.25e6 -U0=100. -go=og
+
+AD@=0 
+cgins -noplot flexibleChannel -g=flexibleChannelGride2.order2.hdf -numElem=120 -cfl=.9 -cfls=1. -ad2=0 -nu=1. -tf=.02 -tp=.001 -addedMass=1 -ampProjectVelocity=1 -projectNormalComponent=1 -beamPlotScaleFactor=10 -pMax=2.e4 -go=halt -tMax=.0075 -E0=.25e6 -go=og
+
+
+*****************************
+March 10, 2015:
+
+TEST TP-SI scheme with new INITIAL-CONDITION SUB-ITERATION
+
+RELAX THE FORCE -- rhoBeam=.1 omega=.025 OK (need to smooth the beam)  (omega=.05 too big)
+cgins flexiblePartition -g=beamOnTopGride1.order2.hdf -nu=.05 -tf=30. -tp=.001 -rhoBeam=.1 -E=0. -tension=5. -thickness=.1 -Kt=6 -numElem=20 -p0=1 -useTP=1 -addedMassRelaxation=.025 -addedMass=0 -useApproximateAMPcondition=1 -fluidOnTwoSides=0 -ampProjectVelocity=1 -projectNormalComponent=1 -option=beamUnderPressure -smoothInterfaceVelocity=1 -orientation=horizontal -addedMassTol=1.e-5 -numberOfCorrections=300 -go=halt
+
+
+RELAX THE FORCE -- OK rhoBeam=1
+cgins flexiblePartition -g=beamOnTopGride1.order2.hdf -nu=.05 -tf=30. -tp=.001 -rhoBeam=1. -E=0. -tension=5. -thickness=.1 -Kt=6 -numElem=20 -p0=1 -useTP=1 -addedMassRelaxation=.1 -addedMass=0 -useApproximateAMPcondition=1 -fluidOnTwoSides=0 -ampProjectVelocity=1 -projectNormalComponent=1 -option=beamUnderPressure -smoothInterfaceVelocity=1 -orientation=horizontal -addedMassTol=1.e-4 -go=halt
+
+
+*****************************
+March 9, 2015:
+
+  GET TRADITIIONAL PARTITION RESULTS FOR PAPER
+
+G4: Elastic-Tube: TP scheme: -- decrease tol 
+nohup $cgins -noplot flexibleChannel -g=flexibleChannelGride4.order2.hdf -numElem=240 -cfl=.9 -cfls=1. -nu=1. -tf=.02 -tp=.005 -addedMass=0  -useTP=1 -addedMassRelaxation=.025 -addedMassTol=.25e-3  -numberOfCorrections=400 -beamPlotScaleFactor=10 -pMax=2.e4 -go=halt -tMax=.0075 -E0=.25e6 -show="fc4TP.show" -go=go >! f42TP.out
+
+
+G2: Elastic-Tube: TP scheme: -- REDO with smaller tol 1.e-3 -> 1.e-4 -> 1.e-5
+nohup $cgins -noplot flexibleChannel -g=flexibleChannelGride2.order2.hdf -numElem=120 -cfl=.9 -cfls=1. -nu=1. -tf=.02 -tp=.005 -addedMass=0  -useTP=1 -addedMassRelaxation=.025 -addedMassTol=1.e-5  -numberOfCorrections=400 -beamPlotScaleFactor=10 -pMax=2.e4 -go=halt -tMax=.0075 -E0=.25e6 -show="fc2TP.show" -go=go >! fc2TP.out
+
+NOTE: tol=1e-4 gives better comparison to AMP than 1e-3 
+tol=1.e-4 : Predictor-corrector time stepping: average number of corrector steps =15.14.
+tol=1.e-5 : Predictor-corrector time stepping: average number of corrector steps =29.27. (but late average 16 ?)
+
+
+cgins -noplot flexibleChannel -g=flexibleChannelGride2.order2.hdf -numElem=120 -cfl=.9 -cfls=1. -nu=1. -tf=.02 -tp=.005 -addedMass=0  -useTP=1 -addedMassRelaxation=.025 -addedMassTol=1.e-3  -numberOfCorrections=200 -beamPlotScaleFactor=10 -pMax=2.e4 -go=halt -tMax=.0075 -E0=.25e6 -go=og
+
+*****************************
+March 8, 2015:
+
+TEST Aitken:
+TP-SI for artery omega=.025 -- OK -- (omega=.05 -- too big) (tol=1.e-2 TOO BIG) -- cfls=4 OK
+cgins -noplot flexibleChannel -g=flexibleChannelGride2.order2.hdf -numElem=120 -cfl=.9 -cfls=4. -slowStartSteps=100 -slowStartCFL=.25 -nu=1. -tf=.02 -tp=.000001 -beamPlotScaleFactor=10 -pMax=2.e4 -tMax=.0075 -E0=.25e6 -useTP=1 -addedMassRelaxation=.025 -addedMassTol=1.e-3 -addedMass=0 -useApproximateAMPcondition=0 -ampProjectVelocity=0 -smoothInterfaceVelocity=1 -nis=2  -projectNormalComponent=1 -numberOfCorrections=200 -useAitken=1 -go=og
+
+useAitek=0 
+PC: moving grid correction step : sub-iterations converged after 165 corrections, rel-err =9.94e-04
+PC: moving grid correction step : sub-iterations converged after 98 corrections, rel-err =9.80e-04
+
+
+G4: TP-SI for artery
+cgins -noplot flexibleChannel -g=flexibleChannelGride4.order2.hdf -numElem=240 -cfl=.9 -cfls=4. -slowStartSteps=100 -slowStartCFL=.25 -nu=1. -tf=.02 -tp=.0001 -beamPlotScaleFactor=10 -pMax=2.e4 -tMax=.0075 -E0=.25e6 -useTP=1 -addedMassRelaxation=.025 -addedMassTol=1.e-3 -addedMass=0 -useApproximateAMPcondition=0 -ampProjectVelocity=0 -smoothInterfaceVelocity=1 -nis=2  -projectNormalComponent=1 -numberOfCorrections=200 -go=og
+
+TP-SI for artery omega=.025 -- OK -- (omega=.05 -- too big) (tol=1.e-2 TOO BIG) -- cfls=4 OK
+cgins -noplot flexibleChannel -g=flexibleChannelGride2.order2.hdf -numElem=120 -cfl=.9 -cfls=4. -slowStartSteps=100 -slowStartCFL=.25 -nu=1. -tf=.02 -tp=.0001 -beamPlotScaleFactor=10 -pMax=2.e4 -tMax=.0075 -E0=.25e6 -useTP=1 -addedMassRelaxation=.025 -addedMassTol=1.e-3 -addedMass=0 -useApproximateAMPcondition=0 -ampProjectVelocity=0 -smoothInterfaceVelocity=1 -nis=2  -projectNormalComponent=1 -numberOfCorrections=200 -go=og
+
+
+
+OK: (Kxxt=.001 too small)
+cgins -noplot flexiblePartition -g=flexiblePartitionGride2.order2.hdf -nu=.05 -tf=30. -tp=.1 -rhoBeam=1. -E=0. -tension=5. -thickness=.1 -Kt=5 -numElem=40 -p0=1 -useTP=1 -addedMassRelaxation=.1 -addedMass=0 -useApproximateAMPcondition=0 -fluidOnTwoSides=1 -ampProjectVelocity=0 -projectNormalComponent=0 -option=beamUnderPressure -smoothInterfaceVelocity=1 -nis=4 -go=og -cfls=5 -addedMassTol=1.e-4 -Kxxt=.01
+
+
+TP-sub-iteration - trouble in corners at t=1 -- surfac smoothing needed
+cgins -noplot flexiblePartition -g=flexiblePartitionGride2.order2.hdf -nu=.05 -tf=30. -tp=.1 -rhoBeam=1. -E=0. -tension=5. -thickness=.1 -Kt=5 -numElem=40 -p0=1 -useTP=1 -addedMassRelaxation=.2 -addedMass=0 -useApproximateAMPcondition=0 -fluidOnTwoSides=1 -ampProjectVelocity=0 -projectNormalComponent=0 -option=beamUnderPressure -smoothInterfaceVelocity=1 -nis=4 -go=og -cfls=5 -addedMassTol=1.e-5 -Kxxt=.01
+
+
+
+*****************************
+March 7, 2015:
+
+*****useTP=1 : iterate with TP scheme 
+
+RELAX THE FORCE -- OK rhoBeam=.1  **TROUBLE** Initial pressure is BAD
+cgins -noplot flexiblePartition -g=beamOnTopGride1.order2.hdf -nu=.05 -tf=30. -tp=.001 -rhoBeam=.1 -E=0. -tension=5. -thickness=.1 -Kt=6 -numElem=20 -p0=1 -useTP=1 -addedMassRelaxation=.05 -addedMass=0 -useApproximateAMPcondition=1 -fluidOnTwoSides=0 -ampProjectVelocity=1 -projectNormalComponent=1 -option=beamUnderPressure -smoothInterfaceVelocity=1 -orientation=horizontal -addedMassTol=1.e-4 -go=og
+
+RELAX THE FORCE -- OK rhoBeam=1
+cgins -noplot flexiblePartition -g=beamOnTopGride1.order2.hdf -nu=.05 -tf=30. -tp=.001 -rhoBeam=1. -E=0. -tension=5. -thickness=.1 -Kt=6 -numElem=20 -p0=1 -useTP=1 -addedMassRelaxation=.1 -addedMass=0 -useApproximateAMPcondition=1 -fluidOnTwoSides=0 -ampProjectVelocity=1 -projectNormalComponent=1 -option=beamUnderPressure -smoothInterfaceVelocity=1 -orientation=horizontal -addedMassTol=1.e-4 -go=og
+
+RELAX THE FORCE - OK: 
+cgins -noplot flexiblePartition -g=beamOnTopGride1.order2.hdf -nu=.05 -tf=30. -tp=.001 -rhoBeam=2. -E=0. -tension=5. -thickness=.1 -Kt=6 -numElem=20 -p0=1 -useTP=1 -addedMassRelaxation=.1 -addedMass=0 -useApproximateAMPcondition=1 -fluidOnTwoSides=0 -ampProjectVelocity=1 -projectNormalComponent=1 -option=beamUnderPressure -smoothInterfaceVelocity=1 -orientation=horizontal -go=og
+
+
+relax FORCE:  OK
+cgins -noplot flexiblePartition -g=beamOnTopGride1.order2.hdf -nu=.05 -tf=30. -tp=.001 -rhoBeam=5. -E=0. -tension=5. -thickness=.1 -Kt=6 -numElem=20 -p0=1 -useTP=1 -addedMassRelaxation=.1 -addedMass=0 -useApproximateAMPcondition=1 -fluidOnTwoSides=0 -ampProjectVelocity=1 -projectNormalComponent=1 -option=beamUnderPressure -smoothInterfaceVelocity=1 -orientation=horizontal -go=og
+
+
+
+REDUCE p0
+cgins -noplot flexiblePartition -g=beamOnTopGride1.order2.hdf -nu=.05 -tf=30. -tp=.001 -rhoBeam=4. -E=0. -tension=5. -thickness=.1 -Kt=6 -numElem=20 -p0=1 -useTP=1 -addedMassRelaxation=.01 -addedMass=0 -useApproximateAMPcondition=1 -fluidOnTwoSides=0 -ampProjectVelocity=1 -projectNormalComponent=1 -option=beamUnderPressure -smoothInterfaceVelocity=1 -orientation=horizontal -go=og -p0=1.e-3
+
+cgins -noplot flexiblePartition -g=beamOnTopGride1.order2.hdf -nu=.05 -tf=30. -tp=.001 -rhoBeam=4. -E=0. -tension=5. -thickness=.1 -Kt=6 -numElem=20 -p0=1 -useTP=1 -addedMassRelaxation=.005 -addedMass=0 -useApproximateAMPcondition=1 -fluidOnTwoSides=0 -ampProjectVelocity=1 -projectNormalComponent=1 -option=beamUnderPressure -smoothInterfaceVelocity=1 -orientation=horizontal -go=og -p0=1.e-3
+
+TROUBLE: rhoBeam=1
+cgins -noplot flexiblePartition -g=beamOnTopGride1.order2.hdf -nu=.05 -tf=30. -tp=.001 -rhoBeam=5. -E=0. -tension=5. -thickness=.1 -Kt=6 -numElem=20 -p0=1 -useTP=1 -addedMassRelaxation=.1 -addedMass=0 -useApproximateAMPcondition=1 -fluidOnTwoSides=0 -ampProjectVelocity=1 -projectNormalComponent=1 -option=beamUnderPressure -smoothInterfaceVelocity=1 -orientation=horizontal -go=og
+
+OK: (AMP=0 OK for rhoBeam=10, rhoBeam=5 --> on the edge, just fails)
+cgins -noplot flexiblePartition -g=beamOnTopGride1.order2.hdf -nu=.05 -tf=30. -tp=.001 -rhoBeam=10. -E=0. -tension=5. -thickness=.1 -Kt=6 -numElem=20 -p0=1 -useTP=1 -addedMassRelaxation=.3 -addedMass=0 -useApproximateAMPcondition=1 -fluidOnTwoSides=0 -ampProjectVelocity=1 -projectNormalComponent=1 -option=beamUnderPressure -smoothInterfaceVelocity=1 -orientation=horizontal -go=og
+
+
+
+*****************************
+March 6, 2015:
+
+REVIST: LIGHT beam -- ADJUSTED-AMP - cfls=5 OK with Kt=5
+cgins -noplot flexiblePartition -g=flexiblePartitionGride2.order2.hdf -nu=.05 -tf=30. -tp=.1 -rhoBeam=.1 -E=0. -tension=5. -thickness=.1 -Kt=5 -numElem=40 -p0=1 -addedMass=1 -useApproximateAMPcondition=0 -fluidOnTwoSides=1 -ampProjectVelocity=1 -projectNormalComponent=1 -option=beamUnderPressure -smoothInterfaceVelocity=1 -go=og -cfls=5
+
+
+cgins -noplot flexiblePartition -g=beamOnTopGride1.order2.hdf -nu=.05 -tf=30. -tp=.1 -rhoBeam=1. -E=0. -tension=5. -thickness=.1 -Kt=6 -numElem=20 -p0=1 -addedMass=1 -useApproximateAMPcondition=1 -fluidOnTwoSides=0 -ampProjectVelocity=1 -projectNormalComponent=1 -option=beamUnderPressure  -smoothInterfaceVelocity=1 -orientation=horizontal -go=og
+
+
+FIXED dt computation for Kxxt
+
+Kxxt=0:
+cgins -noplot flexibleChannel -g=flexibleChannelGride4.order2.hdf -numElem=240 -cfl=.9 -cfls=2. -slowStartSteps=100 -slowStartCFL=.25 -nu=1. -tf=.02 -tp=.0001 -beamPlotScaleFactor=10 -pMax=2.e4 -tMax=.0075 -E0=.25e6 -Kxxt=0. -addedMass=1 -useApproximateAMPcondition=0 -ampProjectVelocity=1 -smoothInterfaceVelocity=1 -nis=2  -projectNormalComponent=1 -go=og
+
+
+cfls=.125 --> cfls=2. OK
+cgins -noplot flexibleChannel -g=flexibleChannelGride4.order2.hdf -numElem=240 -cfl=.9 -cfls=2. -slowStartSteps=100 -slowStartCFL=.25 -nu=1. -tf=.02 -tp=.0001 -beamPlotScaleFactor=10 -pMax=2.e4 -tMax=.0075 -E0=.25e6 -addedMass=1 -useApproximateAMPcondition=0 -ampProjectVelocity=1 -smoothInterfaceVelocity=1 -nis=2  -projectNormalComponent=1 -go=og
+
+cgins -noplot flexibleChannel -g=flexibleChannelGride2.order2.hdf -numElem=120 -cfl=.9 -cfls=2. -slowStartSteps=100 -slowStartCFL=.25 -nu=1. -tf=.02 -tp=.0001 -beamPlotScaleFactor=10 -pMax=2.e4 -tMax=.0075 -E0=.25e6 -addedMass=1 -useApproximateAMPcondition=0 -ampProjectVelocity=1 -smoothInterfaceVelocity=1 -nis=2  -projectNormalComponent=1 -go=og
+
+*****************************
+March 3, 2015: 
+
+ *FIX ME* dts computation for Kxxt term
+
+Adjusted-AMP G2 TURN OFF Kxxt and increase cfls *WORKS*
+cgins -noplot flexibleChannel -g=flexibleChannelGride2.order2.hdf -numElem=120 -cfl=.9 -cfls=.9 -slowStartSteps=100 -slowStartCFL=.25 -nu=1. -tf=.02 -tp=.0001 -beamPlotScaleFactor=10 -pMax=2.e4 -tMax=.0075 -E0=.25e6 -Kxxt=0. -addedMass=1 -useApproximateAMPcondition=0 -ampProjectVelocity=1 -smoothInterfaceVelocity=1 -nis=2  -projectNormalComponent=1 -go=og
+
+
+MOVIE: APPROX-AMP  trouble with PIV 
+cgins -noplot flexibleChannel -g=flexibleChannelGride4.order2.hdf -numElem=240 -cfl=.9 -cfls=.25 -slowStartSteps=100 -slowStartCFL=.25 -nu=1. -tf=.04 -tp=.0002 -beamPlotScaleFactor=10 -pMax=2.e4 -tMax=.0075 -E0=.25e6 -addedMass=1 -useApproximateAMPcondition=1 -ampProjectVelocity=0 -smoothInterfaceVelocity=1 -nis=2  -projectNormalComponent=1 -show="flexibleChannel4.show" -go=go >! flexibleChannel4.out
+
+APPROX-AMP  trouble with PIV
+cgins flexibleChannel -g=flexibleChannelGride4.order2.hdf -numElem=240 -cfl=.9 -cfls=.25 -slowStartSteps=100 -slowStartCFL=.25 -nu=1. -tf=.02 -tp=.0002 -beamPlotScaleFactor=10 -pMax=2.e4 -tMax=.0075 -E0=.25e6 -addedMass=1 -useApproximateAMPcondition=0 -ampProjectVelocity=0 -smoothInterfaceVelocity=1 -nis=2  -projectNormalComponent=1 -go=halt
+
+Adjusted-AMP G4 trouble with PIV --> cfls=.125 OK
+cgins -noplot flexibleChannel -g=flexibleChannelGride4.order2.hdf -numElem=240 -cfl=.9 -cfls=.125 -slowStartSteps=100 -slowStartCFL=.25 -nu=1. -tf=.02 -tp=.0001 -beamPlotScaleFactor=10 -pMax=2.e4 -tMax=.0075 -E0=.25e6 -addedMass=1 -useApproximateAMPcondition=0 -ampProjectVelocity=1 -smoothInterfaceVelocity=1 -nis=2  -projectNormalComponent=1 -go=og
+
+Adjusted-AMP G2 OK with PIV 
+cgins -noplot flexibleChannel -g=flexibleChannelGride2.order2.hdf -numElem=120 -cfl=.9 -cfls=.25 -slowStartSteps=100 -slowStartCFL=.25 -nu=1. -tf=.02 -tp=.0001 -beamPlotScaleFactor=10 -pMax=2.e4 -tMax=.0075 -E0=.25e6 -addedMass=1 -useApproximateAMPcondition=0 -ampProjectVelocity=1 -smoothInterfaceVelocity=1 -nis=2  -projectNormalComponent=1 -go=og
+
+
+FIXED end : Beam surfaceVelocity, surfaceAccel 
+N.B. reproject fluid velocity for two-sided beams so velocity stays consistent.
+
+V-BEAM: Light AMP=1 - OK
+cgins -noplot flexiblePartition -g=beamOnRightGride1.order2.hdf -nu=.05 -tf=30. -tp=.1 -rhoBeam=1. -E=0. -tension=5. -thickness=.1 -Kt=6 -numElem=20 -p0=1 -addedMass=1 -useApproximateAMPcondition=1 -fluidOnTwoSides=0 -ampProjectVelocity=1 -projectNormalComponent=1 -option=beamUnderPressure -orientation=vertical -go=og
+
+
+LIGHT beam -- ADJUSTED-AMP - cfls=5 OK with Kt=5
+cgins -noplot flexiblePartition -g=flexiblePartitionGride2.order2.hdf -nu=.05 -tf=30. -tp=.1 -rhoBeam=.1 -E=0. -tension=5. -thickness=.1 -Kt=5 -numElem=40 -p0=1 -addedMass=1 -useApproximateAMPcondition=0 -fluidOnTwoSides=1 -ampProjectVelocity=1 -projectNormalComponent=1 -option=beamUnderPressure -smoothInterfaceVelocity=1 -go=og -cfls=5
+
+
+
+LIGHT beam -- ADJUSTED-AMP - cfls=1 OK, cfls=2-5 trouble t=.6 + at points next to corners
+cgins -noplot flexiblePartition -g=flexiblePartitionGride2.order2.hdf -nu=.05 -tf=30. -tp=.1 -rhoBeam=.1 -E=0. -tension=5. -thickness=.1 -Kt=1 -numElem=40 -p0=1 -addedMass=1 -useApproximateAMPcondition=0 -fluidOnTwoSides=1 -ampProjectVelocity=1 -projectNormalComponent=1 -option=beamUnderPressure -smoothInterfaceVelocity=1 -go=og -cfls=1
+
+LIGHT beam -- APPROX-AMP looks OK TROUBLE with Kt=1 near ends
+cgins flexiblePartition -g=flexiblePartitionGride2.order2.hdf -nu=.05 -tf=30. -tp=.1 -rhoBeam=.1 -E=0. -tension=5. -thickness=.1 -Kt=6 -numElem=40 -p0=1 -addedMass=1 -useApproximateAMPcondition=1 -fluidOnTwoSides=1 -ampProjectVelocity=1 -projectNormalComponent=1 -option=beamUnderPressure -smoothInterfaceVelocity=1 -go=halt -cfls=5
+
+
+*****************************
+March 2, 2015: 
+
+CHECK PIV:
+
+RHOS=.1 smoothing -- trouble in corners at late time
+cgins flexiblePartition -g=flexiblePartitionGride2.order2.hdf -nu=.05 -tf=30. -tp=.1 -rhoBeam=.1 -E=0. -tension=5. -thickness=.1 -Kt=1 -numElem=40 -p0=1 -addedMass=1 -useApproximateAMPcondition=0 -fluidOnTwoSides=1 -ampProjectVelocity=1 -projectNormalComponent=1 -option=beamUnderPressure -smoothInterfaceVelocity=1 -go=halt -cfls=5
+
+RHOS=.1 smoothing APPROX_AMP -- trouble in corners cfls=5 t=2.5
+cgins flexiblePartition -g=flexiblePartitionGride2.order2.hdf -nu=.05 -tf=30. -tp=.1 -rhoBeam=.1 -E=0. -tension=5. -thickness=.1 -Kt=1 -numElem=40 -p0=1 -addedMass=1 -useApproximateAMPcondition=1 -fluidOnTwoSides=1 -ampProjectVelocity=1 -projectNormalComponent=1 -option=beamUnderPressure -smoothInterfaceVelocity=1 -go=halt -cfls=5
+
+RHOS=.1 no-smoothing -- wiggles at late time
+cgins flexiblePartition -g=flexiblePartitionGride2.order2.hdf -nu=.05 -tf=30. -tp=.1 -rhoBeam=.1 -E=0. -tension=5. -thickness=.1 -Kt=6 -numElem=40 -p0=1 -addedMass=1 -useApproximateAMPcondition=1 -fluidOnTwoSides=1 -ampProjectVelocity=1 -projectNormalComponent=1 -option=beamUnderPressure -smoothInterfaceVelocity=0 -go=halt -cfls=5
+
+
+FINER H-BEAM - APPROX-AMP PIV no-smoothing 
+cgins flexiblePartition -g=flexiblePartitionGride2.order2.hdf -nu=.05 -tf=30. -tp=.1 -rhoBeam=1. -E=0. -tension=5. -thickness=.1 -Kt=6 -numElem=40 -p0=1 -addedMass=1 -useApproximateAMPcondition=1 -fluidOnTwoSides=1 -ampProjectVelocity=1 -projectNormalComponent=1 -option=beamUnderPressure -smoothInterfaceVelocity=0 -go=halt 
+
+V-BEAM: Light AMP=1 - OK
+cgins flexiblePartition -g=beamOnRightGride1.order2.hdf -nu=.05 -tf=30. -tp=.1 -rhoBeam=1. -E=0. -tension=5. -thickness=.1 -Kt=6 -numElem=20 -p0=1 -addedMass=1 -useApproximateAMPcondition=1 -fluidOnTwoSides=0 -ampProjectVelocity=01 -projectNormalComponent=1 -option=beamUnderPressure -orientation=vertical -go=halt
+
+
+V-BEAM: Light APPROX AMP=1 PIV - OK
+cgins flexiblePartition -g=verticalPartitionGride1.order2.hdf -nu=.05 -tf=30. -tp=.1 -rhoBeam=1. -E=0. -tension=5. -thickness=.1 -Kt=6 -numElem=20 -p0=1 -addedMass=1 -useApproximateAMPcondition=1 -fluidOnTwoSides=1 -ampProjectVelocity=1 -projectNormalComponent=1 -option=beamUnderPressure -orientation=vertical -go=halt
+
+H-BEAM - APPROX-AMP no-smoothing 
+cgins flexiblePartition -g=flexiblePartitionGride1.order2.hdf -nu=.05 -tf=30. -tp=.1 -rhoBeam=1. -E=0. -tension=5. -thickness=.1 -Kt=6 -numElem=20 -p0=1 -addedMass=1 -useApproximateAMPcondition=1 -fluidOnTwoSides=1 -ampProjectVelocity=1 -projectNormalComponent=1 -option=beamUnderPressure -smoothInterfaceVelocity=0 -go=halt 
+
+H-BEAM - ADJUSTED-AMP no-smoothing 
+cgins flexiblePartition -g=flexiblePartitionGride1.order2.hdf -nu=.05 -tf=30. -tp=.1 -rhoBeam=1. -E=0. -tension=5. -thickness=.1 -Kt=6 -numElem=20 -p0=1 -addedMass=1 -useApproximateAMPcondition=0 -fluidOnTwoSides=1 -ampProjectVelocity=1 -projectNormalComponent=1 -option=beamUnderPressure -smoothInterfaceVelocity=0 -go=halt 
+
+
+H-Beam: AMP=1 PIV
+cgins flexiblePartition -g=flexiblePartitionGride1.order2.hdf -nu=.05 -tf=30. -tp=.1 -rhoBeam=1. -E=0. -tension=5. -thickness=.1 -Kt=6 -numElem=20 -p0=1 -addedMass=1 -useApproximateAMPcondition=1 -fluidOnTwoSides=1 -ampProjectVelocity=1 -projectNormalComponent=1 -option=beamUnderPressure -go=halt
+
+
+
+
+LIGHT BEAM- ADJUSTED=OK, APPROX=trouble in corners after many steps for cfls=1, cfls=5 OK? 
+cgins flexiblePartition -g=verticalPartitionGride1.order2.hdf -nu=.05 -tf=30. -tp=.1 -rhoBeam=.1 -E=0. -tension=5. -thickness=.1 -Kt=6 -numElem=20 -p0=1 -addedMass=1 -useApproximateAMPcondition=0 -fluidOnTwoSides=1 -ampProjectVelocity=0 -projectNormalComponent=1 -option=beamUnderPressure -orientation=vertical -go=halt -cfls=5
+
+cgins flexiblePartition -g=verticalPartitionGride1.order2.hdf -nu=.05 -tf=30. -tp=.1 -rhoBeam=.1 -E=0. -tension=5. -thickness=.1 -Kt=6 -numElem=20 -p0=1 -addedMass=1 -useApproximateAMPcondition=1 -fluidOnTwoSides=1 -ampProjectVelocity=0 -projectNormalComponent=1 -option=beamUnderPressure -orientation=vertical -go=halt -cfls=5
+
+TEST APPROX. AMP - two sided beam
+
+V-BEAM: Light AMP=1 ADJUSTED-AMP - OK
+cgins -noplot flexiblePartition -g=verticalPartitionGride1.order2.hdf -nu=.05 -tf=30. -tp=.1 -rhoBeam=1. -E=0. -tension=5. -thickness=.1 -Kt=6 -numElem=20 -p0=1 -addedMass=1 -useApproximateAMPcondition=0 -fluidOnTwoSides=1 -ampProjectVelocity=0 -projectNormalComponent=1 -option=beamUnderPressure -orientation=vertical -go=og
+
+
+V-BEAM: Light APPROX AMP=1 - OK
+cgins -noplot flexiblePartition -g=verticalPartitionGride1.order2.hdf -nu=.05 -tf=30. -tp=.1 -rhoBeam=1. -E=0. -tension=5. -thickness=.1 -Kt=6 -numElem=20 -p0=1 -addedMass=1 -useApproximateAMPcondition=1 -fluidOnTwoSides=1 -ampProjectVelocity=0 -projectNormalComponent=1 -option=beamUnderPressure -orientation=vertical -go=og
+
+H-Beam: AMP=1 - OK
+cgins -noplot flexiblePartition -g=flexiblePartitionGride1.order2.hdf -nu=.05 -tf=30. -tp=.1 -rhoBeam=1. -E=0. -tension=5. -thickness=.1 -Kt=6 -numElem=20 -p0=1 -addedMass=1 -useApproximateAMPcondition=1 -fluidOnTwoSides=1 -ampProjectVelocity=0 -projectNormalComponent=1 -option=beamUnderPressure -go=og
+
+
+*****************************
+March 1, 2015: 
+
+=== TEST VERTICAL PARTITION:
+
+V-BEAM: Light AMP=1 - OK
+cgins -noplot flexiblePartition -g=beamOnRightGride1.order2.hdf -nu=.05 -tf=30. -tp=.1 -rhoBeam=1. -E=0. -tension=5. -thickness=.1 -Kt=6 -numElem=20 -p0=1 -addedMass=1 -useApproximateAMPcondition=1 -fluidOnTwoSides=0 -ampProjectVelocity=0 -projectNormalComponent=1 -option=beamUnderPressure -orientation=vertical -go=og
+
+
+
+V-BEAM: AMP=1 - OK
+cgins -noplot flexiblePartition -g=beamOnRightGride1.order2.hdf -nu=.05 -tf=30. -tp=.001 -rhoBeam=100. -E=0. -tension=5. -thickness=.1 -Kt=6 -numElem=20 -p0=1 -addedMass=1 -useApproximateAMPcondition=1 -fluidOnTwoSides=0 -ampProjectVelocity=0 -projectNormalComponent=1 -option=beamUnderPressure -orientation=vertical -go=og
+
+H-Beam : AMP - OK
+cgins -noplot flexiblePartition -g=beamOnTopGride1.order2.hdf -nu=.05 -tf=30. -tp=.001 -rhoBeam=100. -E=0. -tension=5. -thickness=.1 -Kt=6 -numElem=20 -p0=1 -addedMass=1 -useApproximateAMPcondition=1 -fluidOnTwoSides=0 -ampProjectVelocity=0 -projectNormalComponent=1 -option=beamUnderPressure -orientation=horizontal -go=og
+
+
+V-BEAM: AMP=0 OK
+cgins -noplot flexiblePartition -g=beamOnRightGride1.order2.hdf -nu=.05 -tf=30. -tp=.001 -rhoBeam=100. -E=0. -tension=5. -thickness=.1 -Kt=6 -numElem=20 -p0=1 -addedMass=0 -useApproximateAMPcondition=1 -fluidOnTwoSides=0 -ampProjectVelocity=0 -projectNormalComponent=1 -option=beamUnderPressure -orientation=vertical -go=og
+
+H-BEAM : AMP=0 : OK: 
+cgins -noplot flexiblePartition -g=beamOnTopGride1.order2.hdf -nu=.05 -tf=30. -tp=.001 -rhoBeam=100. -E=0. -tension=5. -thickness=.1 -Kt=6 -numElem=20 -p0=1 -addedMass=0 -useApproximateAMPcondition=1 -fluidOnTwoSides=0 -ampProjectVelocity=0 -projectNormalComponent=1 -option=beamUnderPressure -orientation=horizontal -go=og
+
+
+
+
+*****************************
+Feb 27, 2015 -- TEST beam operator evaluation
+
+BUG FIXED -- need to project the beam internal force onto the normal to be consistent
+
+THIN BEAM -- G2: E=10  rhos*hs=.01  -- ok near corners, converges.
+cgins flexiblePartition -g=thinBeamOnTope2.order2 -nu=.05 -tf=30. -tp=.01 -rhoBeam=1e4 -E=10 -tension=0. -thickness=1.e-6 -Kt=6 -numElem=40 -p0=1 -addedMass=1 -useApproximateAMPcondition=1 -fluidOnTwoSides=0 -ampProjectVelocity=1 -projectNormalComponent=1 -option=beamUnderPressure -cfls=.5 -go=halt
+
+
+THIN BEAM -- G2: E=.1  rhos*hs=.01  -- same trouble near corners for p 
+cgins flexiblePartition -g=thinBeamOnTope2.order2 -nu=.05 -tf=30. -tp=.01 -rhoBeam=1e4 -E=.1 -tension=0. -thickness=1.e-6 -Kt=6 -numElem=40 -p0=1 -addedMass=1 -useApproximateAMPcondition=1 -fluidOnTwoSides=0 -ampProjectVelocity=1 -projectNormalComponent=1 -option=beamUnderPressure -cfls=.5 -go=halt
+
+G2: E=.1 -- trouble in corners -- incompatibility ?
+cgins flexiblePartition -g=beamOnTopGride2.order2.hdf -nu=.05 -tf=30. -tp=.01 -rhoBeam=.1 -E=.1 -tension=0. -thickness=.1 -Kt=6 -numElem=40 -p0=1 -addedMass=1 -useApproximateAMPcondition=1 -fluidOnTwoSides=0 -ampProjectVelocity=1 -projectNormalComponent=1 -option=beamUnderPressure -cfls=.5 -go=halt
+
+cgins flexiblePartition -g=beamOnTopGride2.order2.hdf -nu=.05 -tf=30. -tp=.01 -rhoBeam=.1 -E=.1 -tension=0. -thickness=.1 -Kt=6 -numElem=40 -p0=1 -addedMass=1 -useApproximateAMPcondition=0 -fluidOnTwoSides=0 -ampProjectVelocity=1 -projectNormalComponent=1 -option=beamUnderPressure -cfls=.5 -go=halt
+
+
+G2 : rhos=.1, E=10, cfls=.5  -- OK
+cgins flexiblePartition -g=beamOnTopGride2.order2.hdf -nu=.05 -tf=30. -tp=.01 -rhoBeam=.1 -E=10. -tension=0. -thickness=.1 -Kt=6 -numElem=40 -p0=1 -addedMass=1 -useApproximateAMPcondition=1 -fluidOnTwoSides=0 -ampProjectVelocity=1 -projectNormalComponent=1 -option=beamUnderPressure -cfls=.5 -go=halt
+
+G1 : rhos=.1, E=10, cfls=.5   -- OK
+cgins flexiblePartition -g=beamOnTopGride1.order2.hdf -nu=.05 -tf=30. -tp=.01 -rhoBeam=.1 -E=10. -tension=0. -thickness=.1 -Kt=6 -numElem=20 -p0=1 -addedMass=1 -useApproximateAMPcondition=1 -fluidOnTwoSides=0 -ampProjectVelocity=1 -projectNormalComponent=1 -option=beamUnderPressure -cfls=.5 -go=halt
+
+rhos=1, E=10 -- wiggles on the surface -decrease CFLS=.5 --> OK
+cgins flexiblePartition -g=beamOnTopGride1.order2.hdf -nu=.05 -tf=30. -tp=.01 -rhoBeam=1. -E=10. -tension=0. -thickness=.1 -Kt=6 -numElem=20 -p0=1 -addedMass=1 -useApproximateAMPcondition=1 -fluidOnTwoSides=0 -ampProjectVelocity=1 -projectNormalComponent=1 -option=beamUnderPressure -cfls=.5 -go=halt
+
+
+G1 : E=1 rhoBeam=1 : OK
+cgins flexiblePartition -g=beamOnTopGride1.order2.hdf -nu=.05 -tf=30. -tp=.01 -rhoBeam=1. -E=1. -tension=0. -thickness=.1 -Kt=6 -numElem=20 -p0=1 -addedMass=1 -useApproximateAMPcondition=1 -fluidOnTwoSides=0 -ampProjectVelocity=1 -projectNormalComponent=1 -option=beamUnderPressure -go=halt
+
+
+
+G2 : rhoBeam=.01 -- OK  although pressure in corners is funny 
+cgins flexiblePartition -g=beamOnTopGride2.order2.hdf -nu=.05 -tf=30. -tp=.01 -rhoBeam=.01 -E=0 -tension=5. -thickness=.1 -Kt=6 -numElem=40 -p0=1 -addedMass=1 -useApproximateAMPcondition=1 -fluidOnTwoSides=0 -ampProjectVelocity=1 -projectNormalComponent=1 -option=beamUnderPressure -go=halt
+
+rhoBeam=.01 -- OK,  although pressure in corners is funny 
+cgins flexiblePartition -g=beamOnTopGride1.order2.hdf -nu=.05 -tf=30. -tp=.01 -rhoBeam=.01 -E=0 -tension=5. -thickness=.1 -Kt=6 -numElem=20 -p0=1 -addedMass=1 -useApproximateAMPcondition=1 -fluidOnTwoSides=0 -ampProjectVelocity=1 -projectNormalComponent=1 -option=beamUnderPressure -go=halt
+
+rhoBeam=.1 -- OK
+cgins flexiblePartition -g=beamOnTopGride1.order2.hdf -nu=.05 -tf=30. -tp=.01 -rhoBeam=.1 -E=0 -tension=5. -thickness=.1 -Kt=6 -numElem=20 -p0=1 -addedMass=1 -useApproximateAMPcondition=1 -fluidOnTwoSides=0 -ampProjectVelocity=1 -projectNormalComponent=1 -option=beamUnderPressure -go=halt
+
+
+
+Kxxt=.1 -- decrease CFL
+cgins flexiblePartition -g=beamOnTopGride2.order2.hdf -nu=.05 -tf=30. -tp=.01 -rhoBeam=1. -E=1 -tension=0. -thickness=.1 -Kt=6 -numElem=40 -p0=1 -addedMass=1 -useApproximateAMPcondition=1 -fluidOnTwoSides=0 -ampProjectVelocity=1 -projectNormalComponent=1 -option=beamUnderPressure -go=halt -Kxxt=.1 -cfls=.2 
+
+
+E=10. 
+cgins flexiblePartition -g=beamOnTopGride2.order2.hdf -nu=.05 -tf=30. -tp=.01 -rhoBeam=1. -E=10 -tension=0. -thickness=.1 -Kt=6 -numElem=40 -p0=1 -addedMass=1 -useApproximateAMPcondition=1 -fluidOnTwoSides=0 -ampProjectVelocity=1 -projectNormalComponent=1 -option=beamUnderPressure -go=halt
+
+OK: E=1. 
+cgins flexiblePartition -g=beamOnTopGride2.order2.hdf -nu=.05 -tf=30. -tp=.01 -rhoBeam=1. -E=1 -tension=0. -thickness=.1 -Kt=6 -numElem=40 -p0=1 -addedMass=1 -useApproximateAMPcondition=1 -fluidOnTwoSides=0 -ampProjectVelocity=1 -projectNormalComponent=1 -option=beamUnderPressure -go=halt
+
+Finer:
+cgins flexiblePartition -g=beamOnTopGride2.order2.hdf -nu=.05 -tf=30. -tp=.1 -rhoBeam=1. -E=0 -tension=5. -thickness=.1 -Kt=6 -numElem=40 -p0=1 -addedMass=1 -useApproximateAMPcondition=1 -fluidOnTwoSides=0 -ampProjectVelocity=1 -projectNormalComponent=1 -option=beamUnderPressure -go=halt
+
+
+
+WORKS: E=1 T=0  PIV or no PIV: 
+cgins flexiblePartition -g=beamOnTopGride1.order2.hdf -nu=.05 -tf=30. -tp=.1 -rhoBeam=1. -E=1 -tension=0. -thickness=.1 -Kt=6 -numElem=20 -p0=1 -addedMass=1 -useApproximateAMPcondition=1 -fluidOnTwoSides=0 -ampProjectVelocity=1 -projectNormalComponent=1 -option=beamUnderPressure -go=halt
+
+WORKS: E=0  PIV or no PIV: 
+cgins flexiblePartition -g=beamOnTopGride1.order2.hdf -nu=.05 -tf=30. -tp=.1 -rhoBeam=1. -E=0 -tension=5. -thickness=.1 -Kt=6 -numElem=20 -p0=1 -addedMass=1 -useApproximateAMPcondition=1 -fluidOnTwoSides=0 -ampProjectVelocity=1 -projectNormalComponent=1 -option=beamUnderPressure -go=halt
+
+
+
+
+*****************************
+Feb 26, 2015 -- TEST beam operator evaluation
+
+========== THIN BEAM
+
+cgins flexiblePartition -g=thinBeamOnTope1.order2.hdf -nu=.05 -tf=30. -rhoBeam=1. -thickness=1.e-6 -E=0 -tension=5. -thickness=.1 -Kt=6 -numElem=20 -p0=1 -addedMass=1 -useApproximateAMPcondition=1 -fluidOnTwoSides=0 -ampProjectVelocity=1 -projectNormalComponent=1 -option=beamUnderPressure -go=halt -tp=.001 
+
+========================
+
+
+
+----------------- APPROXIMATE AMP ----------------
+THIS ALMOST converges: E=.5 T=0. PIV corner troubles
+cgins flexiblePartition -g=beamOnTopGride1.order2.hdf -nu=.01 -tf=30. -rhoBeam=1. -E=0.5 -tension=0. -thickness=.1 -Kt=6 -numElem=20 -p0=1 -addedMass=1 -useApproximateAMPcondition=1 -fluidOnTwoSides=0 -ampProjectVelocity=1 -projectNormalComponent=1 -option=beamUnderPressure -go=halt -tp=.01
+
+PIV=0 -- trouble on corners and ends
+cgins flexiblePartition -g=beamOnTopGride1.order2.hdf -nu=.05 -tf=30. -tp=.1 -rhoBeam=1. -E=0 -tension=5. -thickness=.1 -Kt=6 -numElem=20 -p0=1 -addedMass=1 -useApproximateAMPcondition=1 -fluidOnTwoSides=0 -ampProjectVelocity=0 -projectNormalComponent=1 -option=beamUnderPressure -go=halt
+
+----------------- ADJUSTED AMP ----------------
+
+CONVERGES: PIV
+cgins flexiblePartition -g=beamOnTopGride1.order2.hdf -nu=.05 -tf=30. -rhoBeam=1. -E=0 -tension=5. -thickness=.1 -Kt=6 -numElem=20 -p0=1 -addedMass=1 -useApproximateAMPcondition=0 -fluidOnTwoSides=0 -ampProjectVelocity=1 -projectNormalComponent=1 -option=beamUnderPressure -go=halt -tp=.1
+
+CONVERGES: 
+cgins flexiblePartition -g=beamOnTopGride1.order2.hdf -nu=.05 -tf=30. -rhoBeam=1. -E=0 -tension=5. -thickness=.1 -Kt=6 -numElem=20 -p0=1 -addedMass=1 -useApproximateAMPcondition=0 -fluidOnTwoSides=0 -ampProjectVelocity=0 -projectNormalComponent=1 -option=beamUnderPressure -go=halt -tp=.1 
+
+****************************
+Feb 23, 2017
+
+FIXED INTERNAL FORCE COMPUTATION -- boundary conditions
+
+one-sided steady beam: APPROXIMATE AMP 
+cgins -noplot flexiblePartition -g=beamOnTopGride2.order2.hdf -nu=.05 -tf=30. -tp=.1 -rhoBeam=1. -E=0 -tension=5. -thickness=.1 -Kt=6 -numElem=40 -p0=1 -addedMass=1 -useApproximateAMPcondition=1 -fluidOnTwoSides=0 -ampProjectVelocity=0 -projectNormalComponent=1 -option=beamUnderPressure -go=og
+
+HEAVY:
+cgins flexiblePartition -g=beamOnTopGride2.order2.hdf -nu=.05 -tf=30. -tp=.1 -rhoBeam=100. -E=0 -tension=5. -thickness=.1 -Kt=6 -numElem=40 -p0=1 -addedMass=1 -useApproximateAMPcondition=1 -fluidOnTwoSides=0 -ampProjectVelocity=0 -projectNormalComponent=1 -option=beamUnderPressure -go=halt
+
+adjusted-AMP: 
+cgins -noplot flexiblePartition -g=beamOnTopGride2.order2.hdf -nu=.05 -tf=30. -tp=.1 -rhoBeam=1. -E=0 -tension=5. -thickness=.1 -Kt=6 -numElem=40 -p0=1 -addedMass=1 -useApproximateAMPcondition=0 -fluidOnTwoSides=0 -ampProjectVelocity=0 -projectNormalComponent=1 -option=beamUnderPressure -go=og
+>>> t =  2.500e+00, dt = 3.45e-03, cpu = 4.71e+01 seconds (725 steps)
+           p : (min,max)=( 1.000000e+00, 1.000925e+00) 
+           u : (min,max)=(-1.637974e-03, 1.640687e-03) 
+           v : (min,max)=(-1.818687e-03, 2.764961e-03) 
+ Divergence: divMax/vorMax = 1.24e-02 divl2Norm/vorMax=1.67e-03 vorMax=1.83e-02
+-- BM -- beam: Error t=2.500e+00 : uErr=(4.93e-05,6.83e-04)=(max,max/uNorm), vErr=(2.52e-04,2.52e+08)=(max,max/vNorm) (steps=726)
+
+
+****************************
+Feb 21, 2017
+
+one-sided steady beam: APPROXIMATE AMP 
+cgins -noplot flexiblePartition -g=beamOnTopGride2.order2.hdf -nu=.05 -tf=30. -tp=.1 -rhoBeam=1. -E=0 -tension=5. -thickness=.1 -Kt=6 -numElem=40 -p0=1 -addedMass=1 -useApproximateAMPcondition=1 -fluidOnTwoSides=0 -ampProjectVelocity=0 -projectNormalComponent=1 -option=beamUnderPressure -go=og
+
+
+one-sided steady beam: OK
+cgins -noplot flexiblePartition -g=beamOnTopGride2.order2.hdf -nu=.05 -tf=30. -tp=.1 -rhoBeam=1. -E=0 -tension=5. -thickness=.1 -Kt=6 -numElem=40 -p0=1 -addedMass=1 -fluidOnTwoSides=0 -ampProjectVelocity=0 -projectNormalComponent=1 -option=beamUnderPressure -go=og
+
+
+cgins -noplot flexiblePartition -g=flexiblePartitionGride2.order2.hdf -nu=.05 -tf=40. -tp=.05 -rhoBeam=1. -E=.2 -tension=0 -thickness=.1 -Kt=5 -numElem=20 -addedMass=1 -fluidOnTwoSides=1 -ampProjectVelocity=0 -smoothInterfaceVelocity=1 -nis=4 -projectNormalComponent=1 -option=beamUnderPressure -go=og
+
+NON-MATCHING GRIDS, no PIV, small dt:  - OK
+cgins -noplot flexiblePartition -g=flexiblePartitionGridExtraTop5e1.order2.hdf -nu=.05 -tf=40. -tp=.0001 -rhoBeam=1. -E=.2 -tension=0 -thickness=.1 -Kt=5 -numElem=9 -addedMass=1 -fluidOnTwoSides=1 -ampProjectVelocity=0 -smoothInterfaceVelocity=0 -nis=2 -projectNormalComponent=1 -option=beamUnderPressure -go=og
+
+
+
+****************************
+Feb 20, 2017 -- go back and test previous cases -- velocity projection is broken,
+
+OK: increase to nis=4 
+cgins flexiblePartition -g=flexiblePartitionGride2.order2.hdf -nu=.05 -tf=40. -tp=.05 -rhoBeam=1. -E=.2 -tension=0 -thickness=.1 -Kt=5 -numElem=20 -addedMass=1 -fluidOnTwoSides=1 -ampProjectVelocity=1 -smoothInterfaceVelocity=1 -nis=4 -projectNormalComponent=1 -option=beamUnderPressure -go=halt
+
+NON-MATCHING GRIDS: OK: 
+cgins flexiblePartition -g=flexiblePartitionGridExtraTop5e1.order2.hdf -nu=.05 -tf=40. -tp=.05 -rhoBeam=1. -E=.2 -tension=0 -thickness=.1 -Kt=5 -numElem=9 -addedMass=1 -fluidOnTwoSides=1 -ampProjectVelocity=1 -smoothInterfaceVelocity=1 -nis=2 -projectNormalComponent=1 -option=beamUnderPressure -go=halt
+
+
+*********************
+Feb 13, 2014  -- NON-MATCHING GRIDS
+
+Works ?
+cgins flexiblePartition -g=flexiblePartitionGridExtraTop5e1.order2.hdf -nu=.05 -tf=40. -tp=.05 -rhoBeam=1. -E=.2 -tension=0 -thickness=.1 -Kt=5 -numElem=9 -addedMass=1 -fluidOnTwoSides=1 -ampProjectVelocity=1 -smoothInterfaceVelocity=1 -nis=2 -projectNormalComponent=1 -option=beamUnderPressure -go=halt
+
+*********************
+Feb 13, 2015  -- start on NON-MATCHING GRIDS on top and bottom of beam
+
+Grid:
+ogen -noplot flexiblePartitionGrid -interp=e -factor=1 -extraTop=5
+
+Run:
+NON-MATCHING BEAM GRID:
+cgins flexiblePartition -g=flexiblePartitionGridExtraTop5e1.order2.hdf -nu=.05 -tf=40. -tp=.05 -rhoBeam=1. -E=.2 -tension=0 -thickness=.1 -Kt=5 -numElem=9 -addedMass=1 -fluidOnTwoSides=1 -ampProjectVelocity=1 -smoothInterfaceVelocity=1 -nis=2 -projectNormalComponent=1 -option=beamUnderPressure -go=halt
+
+
+*********************
+Feb 10, 2015 TEST STEADY QUARTIC BEAM
+
+Steady beam with E
+
+RUN FOR PAPER 
+cgins -noplot flexiblePartition -g=flexiblePartitionGride2.order2.hdf -nu=.05 -tf=20. -tp=1. -rhoBeam=1. -E=.2 -tension=0 -thickness=.1 -Kt=5 -numElem=20 -addedMass=1 -fluidOnTwoSides=1  -ampProjectVelocity=1  -smoothInterfaceVelocity=1 -nis=2  -projectNormalComponent=1 -option=beamUnderPressure -show=fp_BUP_AMP_RHOS1_E0p2.show -go=go >! fp_BUP_AMP_RHOS1_E0p2.out 
+
+cgins flexiblePartition -g=flexiblePartitionGride2.order2.hdf -nu=.05 -tf=40. -tp=.05 -rhoBeam=1. -E=.2 -tension=0 -thickness=.1 -Kt=5 -numElem=9 -addedMass=1 -fluidOnTwoSides=1 -ampProjectVelocity=1 -smoothInterfaceVelocity=1 -nis=2 -projectNormalComponent=1 -option=beamUnderPressure -go=halt
+-- BM -- beam: Error t=1.800e+01 : uErr=(2.97e-10,2.35e-09)=(max,max/uNorm), vErr=(2.67e-10,2.67e+02)=(max,max/vNorm) (steps=2979)
+
+cgins flexiblePartition -g=flexiblePartitionGride4.order2.hdf -nu=.05 -tf=40. -tp=.05 -rhoBeam=1. -E=.2 -tension=0 -thickness=.1 -Kt=5 -numElem=40 -addedMass=1 -fluidOnTwoSides=1  -ampProjectVelocity=1  -smoothInterfaceVelocity=1 -nis=2  -projectNormalComponent=1 -option=beamUnderPressure -go=halt 
+-- BM -- beam: Error t=4.000e+01 : uErr=(7.41e-15,5.65e-14)=(max,max/uNorm), vErr=(1.82e-13,1.82e-01)=(max,max/vNorm) (steps=23113)
+
+cgins flexiblePartition -g=flexiblePartitionGride2.order2.hdf -nu=.05 -tf=40. -tp=.05 -rhoBeam=1. -E=.2 -tension=0 -thickness=.1 -Kt=5 -numElem=20 -addedMass=1 -fluidOnTwoSides=1  -ampProjectVelocity=1  -smoothInterfaceVelocity=1 -nis=2  -projectNormalComponent=1 -option=beamUnderPressure -go=halt 
+-- BM -- beam: Error t=6.050e+00 : uErr=(1.16e-05,8.99e-05)=(max,max/uNorm), vErr=(7.57e-06,7.57e+06)=(max,max/vNorm) (steps=1056)
+-- BM -- beam: Error t=3.650e+01 : uErr=(4.47e-15,3.45e-14)=(max,max/uNorm), vErr=(4.43e-14,4.43e-02)=(max,max/vNorm) (steps=6155)
+
+OK: 
+cgins flexiblePartition -g=flexiblePartitionGride2.order2.hdf -nu=.05 -tf=40. -tp=.01 -rhoBeam=1. -E=1. -tension=0 -thickness=.1 -Kt=5 -numElem=20 -addedMass=1 -fluidOnTwoSides=1  -ampProjectVelocity=1  -smoothInterfaceVelocity=1 -nis=2  -projectNormalComponent=1 -option=beamUnderPressure -go=halt
+
+
+
+***************************************************************************************************************
+Feb 7, 2015 -- REVSIT CHANNEL -- pressure pulse
+
+SELF CONVERGENCE:
+
+CASE A -- t=.0075
+% -------------- max norm results -------------
+\begin{table}[hbt]\tableFont % you should set \tableFont to \footnotesize or other size
+% \newcommand{\num}[2]{#1e{#2}} % use this command to set the format of numbers in the table.
+% \newcommand{\errFormat}[1]{#1}} % use this command to set the format of the error label.
+\begin{center}
+\begin{tabular}{|l|c|c|c|c|c|c|} \hline 
+   grid              & \errFormat{p} &  r   & \errFormat{u} &  r   & \errFormat{v} &  r  \\ \hline
+ fc2a.show & \num{36.5}{1} &      & \num{1.7}{0} &      & \num{6.9}{-1} &      \\ \hline
+ fc4a.show & \num{10.9}{1} &  3.3 & \num{5.6}{-1} &  3.1 & \num{2.2}{-1} &  3.1 \\ \hline
+ fc8a.show & \num{32.7}{0} &  3.3 & \num{1.8}{-1} &  3.1 & \num{7.1}{-2} &  3.1 \\ \hline
+                      &     1.74      &      &     1.63      &      &     1.64      &     \\ \hline
+\end{tabular}
+\caption{Max-norm self convergence results, Sat Feb  7 11:58:56 2015. }
+\end{center}
+\end{table}
+
+
+
+
+--- G8 : fine grid
+
+OK: 
+cgins flexibleChannel -g=flexibleChannelGride8.order2.hdf -numElem=480 -cfl=.9 -cfls=.25 -slowStartSteps=100 -slowStartCFL=.25 -nu=1. -tf=.1 -tp=.0002 -beamPlotScaleFactor=10 -pMax=2.e4 -tMax=.0075 -E0=.25e6 -addedMass=1 -ampProjectVelocity=1 -smoothInterfaceVelocity=1 -nis=2  -projectNormalComponent=1 -go=halt
+
+
+--- G4 : finer grid
+
+NO smooths: -- trouble:
+cgins flexibleChannel -g=flexibleChannelGride4.order2.hdf -numElem=240 -cfl=.9 -cfls=.25 -slowStartSteps=100 -slowStartCFL=.25 -nu=1. -tf=.1 -tp=.0002 -beamPlotScaleFactor=10 -pMax=2.e4 -tMax=.0075 -E0=.25e6 -addedMass=1 -ampProjectVelocity=1 -smoothInterfaceVelocity=0 -nis=5  -projectNormalComponent=1 -go=halt
+
+2-smooths : OK
+cgins flexibleChannel -g=flexibleChannelGride4.order2.hdf -numElem=240 -cfl=.9 -cfls=.25 -slowStartSteps=100 -slowStartCFL=.25 -nu=1. -tf=.1 -tp=.0002 -beamPlotScaleFactor=10 -pMax=2.e4 -tMax=.0075 -E0=.25e6 -addedMass=1 -ampProjectVelocity=1 -smoothInterfaceVelocity=1 -nis=2  -projectNormalComponent=1 -go=halt
+
+OK
+cgins flexibleChannel -g=flexibleChannelGride4.order2.hdf -numElem=240 -cfl=.9 -cfls=.25 -slowStartSteps=100 -slowStartCFL=.25 -nu=1. -tf=.1 -tp=.0002 -beamPlotScaleFactor=10 -pMax=2.e4 -tMax=.0075 -E0=.25e6 -addedMass=1 -ampProjectVelocity=1 -smoothInterfaceVelocity=1 -nis=5  -projectNormalComponent=1 -go=halt
+
+---- G2 : coarse ggrid 
+NO smooths
+cgins flexibleChannel -g=flexibleChannelGride2.order2.hdf -numElem=120 -cfl=.9 -cfls=.25 -slowStartSteps=100 -slowStartCFL=.25 -nu=1. -tf=.1 -tp=.0002 -beamPlotScaleFactor=10 -pMax=2.e4 -tMax=.0075 -E0=.25e6 -addedMass=1 -ampProjectVelocity=1 -smoothInterfaceVelocity=0 -nis=2  -projectNormalComponent=1 -go=halt
+
+Fewer smooths --OK
+cgins flexibleChannel -g=flexibleChannelGride2.order2.hdf -numElem=120 -cfl=.9 -cfls=.25 -slowStartSteps=100 -slowStartCFL=.25 -nu=1. -tf=.1 -tp=.0002 -beamPlotScaleFactor=10 -pMax=2.e4 -tMax=.0075 -E0=.25e6 -addedMass=1 -ampProjectVelocity=1 -smoothInterfaceVelocity=1 -nis=2  -projectNormalComponent=1 -go=halt
+
+project NORMAL component: OK
+cgins flexibleChannel -g=flexibleChannelGride2.order2.hdf -numElem=120 -cfl=.9 -cfls=.25 -slowStartSteps=100 -slowStartCFL=.25 -nu=1. -tf=.1 -tp=.0002 -beamPlotScaleFactor=10 -pMax=2.e4 -tMax=.0075 -E0=.25e6 -addedMass=1 -ampProjectVelocity=1 -smoothInterfaceVelocity=1 -nis=5  -projectNormalComponent=1 -go=halt
+
+
+***************************************************************************************************************
+Feb 6-7, 2015 -- add option to only project NORMAL component
+
+project NORMAL component:
+cgins flexiblePartition -g=flexiblePartitionGride2.order2.hdf -nu=.05 -tf=40. -tp=.5 -rhoBeam=1. -E=0. -tension=5 -thickness=.1 -Kt=5 -numElem=20 -addedMass=1 -fluidOnTwoSides=1  -ampProjectVelocity=1 -projectNormalComponent=1 -option=beamUnderPressure -go=halt
+
+ >>> t =  5.000e+00, dt = 6.85e-03, cpu = 2.09e+02 seconds (727 steps)
+           p : (min,max)=(-1.968251e-05, 1.000028e+00) 
+           u : (min,max)=(-1.536833e-04, 1.049844e-04) 
+           v : (min,max)=(-1.458311e-04, 1.764232e-04) 
+ Divergence: divMax/vorMax = 1.55e-02 divl2Norm/vorMax=1.15e-03 vorMax=1.34e-03
+-- BM -- beam: Error t=5.000e+00 : uErr=(3.56e-06,5.00e-05)=(max,max/uNorm), vErr=(5.65e-06,5.65e+06)=(max,max/vNorm) (steps=728)
+
+ >>> t =  1.000e+01, dt = 6.85e-03, cpu = 2.66e+02 seconds (1452 steps)
+           p : (min,max)=(-8.480835e-08, 1.000001e+00) 
+           u : (min,max)=(-4.239785e-06, 3.863945e-07) 
+           v : (min,max)=(-3.310558e-06, 2.471608e-06) 
+ Divergence: divMax/vorMax = 1.55e-02 divl2Norm/vorMax=7.45e-04 vorMax=2.75e-05
+-- BM -- beam: Error t=1.000e+01 : uErr=(3.08e-08,4.32e-07)=(max,max/uNorm), vErr=(2.82e-08,2.82e+04)=(max,max/vNorm) (steps=1453)
+
+===== project ALL components of v
+cgins flexiblePartition -g=flexiblePartitionGride2.order2.hdf -nu=.05 -tf=40. -tp=.5 -rhoBeam=1. -E=0. -tension=5 -thickness=.1 -Kt=5 -numElem=20 -addedMass=1 -fluidOnTwoSides=1  -ampProjectVelocity=1 -option=beamUnderPressure -go=halt
+>>> t =  1.000e-01, dt = 6.67e-03, cpu = 1.24e+02 seconds (15 steps)
+           p : (min,max)=( 0.000000e+00, 1.000000e+00) 
+           u : (min,max)=(-1.703268e-02, 1.703259e-02) 
+           v : (min,max)=( 0.000000e+00, 7.912803e-02) 
+ Divergence: divMax/vorMax = 8.04e-03 divl2Norm/vorMax=1.00e-03 vorMax=8.35e-01
+-- BM -- beam: Error t=1.000e-01 : uErr=(9.61e-02,1.35e+00)=(max,max/uNorm), vErr=(7.87e-02,7.87e+10)=(max,max/vNorm) (steps=16)
+
+ >>> t =  5.000e-01, dt = 7.02e-03, cpu = 1.53e+02 seconds (72 steps)
+           p : (min,max)=(-7.638166e-02, 1.092155e+00) 
+           u : (min,max)=(-1.549862e-02, 1.549017e-02) 
+           v : (min,max)=( 0.000000e+00, 1.394860e-01) 
+ Divergence: divMax/vorMax = 9.00e-03 divl2Norm/vorMax=1.20e-03 vorMax=3.05e-01
+-- BM -- beam: Error t=5.000e-01 : uErr=(4.03e-02,5.66e-01)=(max,max/uNorm), vErr=(1.39e-01,1.39e+11)=(max,max/vNorm) (steps=73)
+
+>>> t =  1.000e+00, dt = 7.04e-03, cpu = 1.68e+02 seconds (143 steps)
+           p : (min,max)=(-5.656025e-02, 1.080068e+00) 
+           u : (min,max)=(-8.005572e-03, 8.014187e-03) 
+           v : (min,max)=(-4.448137e-03, 3.545475e-02) 
+ Divergence: divMax/vorMax = 2.19e-02 divl2Norm/vorMax=2.75e-03 vorMax=1.13e-01
+-- BM -- beam: Error t=1.000e+00 : uErr=(2.58e-04,3.63e-03)=(max,max/uNorm), vErr=(3.13e-02,3.13e+10)=(max,max/vNorm) (steps=144)
+
+ >>> t =  1.000e+01, dt = 6.85e-03, cpu = 9.03e+01 seconds (1449 steps)
+           p : (min,max)=(-8.768491e-08, 1.000000e+00) 
+           u : (min,max)=(-1.541447e-06, 2.137587e-06) 
+           v : (min,max)=(-2.040957e-06, 2.628168e-06) 
+ Divergence: divMax/vorMax = 1.49e-02 divl2Norm/vorMax=9.38e-04 vorMax=1.89e-05
+-- BM -- beam: Error t=1.000e+01 : uErr=(3.76e-08,5.28e-07)=(max,max/uNorm), vErr=(3.55e-08,3.55e+04)=(max,max/vNorm) (steps=1450)
+
+
+
+
+***************************************************************************************************************
+Feb 1-2, 2015 -- runs for paper
+
+REVSIT CHANNEL -- pressure pulse
+
+FINER: OK -- trouble with nelem=120
+gins flexibleChannel -g=flexibleChannelGride4.order2.hdf -numElem=240 -cfl=.9 -cfls=.25 -slowStartSteps=100 -slowStartCFL=.25 -nu=1. -tf=.1 -tp=.0002 -beamPlotScaleFactor=10 -pMax=2.e4 -tMax=.0075 -E0=.25e6 -addedMass=1 -ampProjectVelocity=1 -smoothInterfaceVelocity=1 -nis=5 -go=halt
+
+
+
+NOTE: TURN ON E : u is better behaved at inflow 
+cgins flexibleChannel -g=flexibleChannelGride2.order2.hdf -numElem=120 -cfl=.9 -cfls=.25 -slowStartSteps=100 -slowStartCFL=.25 -nu=1. -tf=.1 -tp=.0002 -beamPlotScaleFactor=10 -pMax=2.e4 -tMax=.0075 -E0=.25e6 -addedMass=1 -ampProjectVelocity=1 -smoothInterfaceVelocity=1 -nis=5 -go=halt -E=1000.
+
+SLOW-START + CFL=.5 - OK NOTE: TROUBLE IS WITH KXXT term in beam -- not taken into account for dt
+cgins flexibleChannel -g=flexibleChannelGride4.order2.hdf -numElem=120 -cfl=.9 -cfls=.5 -slowStartSteps=100 -slowStartCFL=.25 -nu=1. -tf=.1 -tp=.0002 -beamPlotScaleFactor=10 -pMax=2.e4 -tMax=.0075 -E0=.25e6 -addedMass=1 -ampProjectVelocity=1 -smoothInterfaceVelocity=1 -nis=5 -go=halt
+
+
+
+TRY: cfls=.5 
+cgins flexibleChannel -g=flexibleChannelGride2.order2.hdf -numElem=120 -cfl=.9 -cfls=.5 -tf=.1 -tp=.0002 -beamPlotScaleFactor=10 -pMax=2.e4 -tMax=.0075 -E0=.25e6 -addedMass=1 -ampProjectVelocity=1 -smoothInterfaceVelocity=1 -nis=5 -go=halt
+
+
+SLOW-START + CFL=.5 - OK NOTE: TROUBLE IS WITH KXXT term in beam -- not taken into account for dt
+cgins flexibleChannel -g=flexibleChannelGride2.order2.hdf -numElem=120 -cfl=.9 -cfls=.5 -slowStartSteps=100 -slowStartCFL=.25 -nu=1. -tf=.1 -tp=.0002 -beamPlotScaleFactor=10 -pMax=2.e4 -tMax=.0075 -E0=.25e6 -addedMass=1 -ampProjectVelocity=1 -smoothInterfaceVelocity=1 -nis=5 -go=halt
+
+
+MAYBE inital dt is too big - dtMax=5.e-5 - OK -- SLOW START NEEDED? 
+cgins flexibleChannel -g=flexibleChannelGride2.order2.hdf -numElem=120 -cfl=.9 -cfls=.9 -dtMax=5.e-5 -nu=1. -tf=.1 -tp=.0001 -beamPlotScaleFactor=10 -pMax=2.e4 -tMax=.0075 -E0=.25e6 -addedMass=1 -ampProjectVelocity=1 -smoothInterfaceVelocity=1 -nis=5 -go=halt
+
+TROUBLE dt=9e-5 at start 
+cgins flexibleChannel -g=flexibleChannelGride2.order2.hdf -numElem=120 -cfl=.9 -cfls=1. -nu=1. -tf=.1 -tp=.0001 -beamPlotScaleFactor=10 -pMax=2.e4 -tMax=.0075 -E0=.25e6 -addedMass=1 -ampProjectVelocity=1 -smoothInterfaceVelocity=1 -nis=5 -go=halt
+
+REDUCE cfl -- OK
+cgins flexibleChannel -g=flexibleChannelGride2.order2.hdf -numElem=120 -cfl=.2 -cfls=.2 -nu=1. -tf=.1 -tp=.0001 -beamPlotScaleFactor=10 -pMax=2.e4 -tMax=.0075 -E0=.25e6 -addedMass=1 -ampProjectVelocity=1 -smoothInterfaceVelocity=1 -nis=5 -go=halt
+
+
+Goes for some time:
+cgins flexibleChannel -g=flexibleChannelGride2.order2.hdf -numElem=120 -cfl=.9 -cfls=1. -nu=1. -tf=.1 -tp=.0001 -beamPlotScaleFactor=10 -pMax=2.e4 -tMax=.0075 -E0=.25e6 -addedMass=1 -ampProjectVelocity=1 -smoothInterfaceVelocity=1 -nis=5 -go=halt
+
+
+STIFFER, more smooths:  **TROUBLE***
+cgins flexibleChannel -g=flexibleChannelGride2.order2.hdf -numElem=120 -cfl=.9 -cfls=1. -nu=1. -tf=.1 -tp=.001 -beamPlotScaleFactor=10 -pMax=2.e4 -tMax=.0075 -E0=.75e6  -addedMass=1 -ampProjectVelocity=1 -smoothInterfaceVelocity=1 -nis=5 -go=halt
+
+
+project velocity: **TROUBLE***
+cgins flexibleChannel -g=flexibleChannelGride2.order2.hdf -numElem=120 -cfl=.9 -cfls=1. -nu=1. -tf=.1 -tp=.001 -beamPlotScaleFactor=10 -pMax=2.e4 -tMax=.0075 -E0=.25e6  -addedMass=1 -ampProjectVelocity=1 -smoothInterfaceVelocity=1 -go=halt
+
+Looks OK:
+cgins flexibleChannel -g=flexibleChannelGride2.order2.hdf -numElem=120 -cfl=.9 -cfls=1. -nu=1. -tf=.1 -tp=.001 -beamPlotScaleFactor=10 -pMax=2.e4 -tMax=.0075 -E0=.25e6  -addedMass=1 -go=halt
+
+
+
+PARTITION:
+cgins -noplot flexiblePartition -g=flexiblePartitionGride2.order2.hdf -nu=.05 -tf=10. -tp=.1 -rhoBeam=1. -E=1.e-4 -tension=1.e-2 -thickness=.1 -K0=10 -numElem=40 -p0=1 -addedMass=1 -fluidOnTwoSides=1  -ampProjectVelocity=1 -option=beamPiston -sideBC=slipWall -nis=4 -beamProbeFileName="beamPistonRhos1p0.text" -show=bp2.show -go=go >! bp2.out
+
+
+***************************************************************************************************************
+Jan 30, 2015 **** STEADY BEAM SOLUTIONS **** 
+
+===TWO-SIDED BEAM:
+optimal damping? Kt=2*sqrt(rhos*hs*K) = 2*sqrt(10*K)  K=tension*k^2    eta=cos((pi/2)*x)  k=pi/2,  K=10*(pi/2)^2 
+--> Kt = 2*sqrt(10*10*(pi/2)^2) = 2*10*pi/2 = 31.
+
+RUN FOR PAPER: 
+cgins -noplot flexiblePartition -g=flexiblePartitionGride2.order2.hdf -nu=.05 -tf=20. -tp=1. -rhoBeam=1. -E=0. -tension=5. -thickness=.1 -Kt=6 -numElem=20 -addedMass=1 -fluidOnTwoSides=1  -ampProjectVelocity=1 -option=beamUnderPressure -show="fp_BUP_AMP_RHOS1_T5.show" -go=go >! fp_BUP_AMP_RHOS1_T5.out
+
+BIGGER DISPLACEMENT : tension=5.
+cgins flexiblePartition -g=flexiblePartitionGride2.order2.hdf -nu=.05 -tf=40. -tp=.5 -rhoBeam=1. -E=0. -tension=5 -thickness=.1 -Kt=5 -numElem=20 -addedMass=1 -fluidOnTwoSides=1  -ampProjectVelocity=1 -option=beamUnderPressure -go=halt
+
+ >>> t =  1.000e+01, dt = 6.85e-03, cpu = 7.79e+01 seconds (1452 steps)
+           p : (min,max)=(-8.491134e-08, 1.000000e+00) 
+           u : (min,max)=(-2.587901e-06, 1.304422e-06) 
+           v : (min,max)=(-2.397310e-06, 2.778339e-06) 
+ Divergence: divMax/vorMax = 1.56e-02 divl2Norm/vorMax=8.95e-04 vorMax=2.17e-05
+-- BM -- beam: Error t=1.000e+01 : uErr=(3.91e-08,5.49e-07)=(max,max/uNorm), vErr=(3.70e-08,3.70e+04)=(max,max/vNorm) (steps=1453)
+
+LIGHT Kt=1 NOTE: run with cfls=2
+cgins flexiblePartition -g=flexiblePartitionGride2.order2.hdf -nu=.05 -tf=40. -tp=.5 -rhoBeam=.1 -E=0. -tension=10 -thickness=.1 -Kt=3 -numElem=20 -addedMass=1 -fluidOnTwoSides=1  -ampProjectVelocity=1 -option=beamUnderPressure -cfls=2. -go=halt
+
+>>> t =  1.000e+01, dt = 3.02e-03, cpu = 1.92e+02 seconds (3175 steps)
+           p : (min,max)=(-2.042934e-07, 1.000000e+00) 
+           u : (min,max)=(-9.808619e-07, 6.786083e-07) 
+           v : (min,max)=(-7.011378e-07, 9.564092e-07) 
+ Divergence: divMax/vorMax = 1.66e-02 divl2Norm/vorMax=2.45e-03 vorMax=6.53e-06
+-- BM -- beam: Error t=1.000e+01 : uErr=(3.14e-09,8.82e-08)=(max,max/uNorm), vErr=(3.07e-09,3.07e+03)=(max,max/vNorm) (steps=3176)
+
+
+MEDIUM Kt=3.14
+
+cgins flexiblePartition -g=flexiblePartitionGride2.order2.hdf -nu=.05 -tf=40. -tp=.5 -rhoBeam=1. -E=0. -tension=10 -thickness=.1 -Kt=6 -numElem=20 -addedMass=1 -fluidOnTwoSides=1  -ampProjectVelocity=1 -option=beamUnderPressure -go=halt
+ >>> t =  1.150e+01, dt = 5.00e-03, cpu = 1.27e+02 seconds (2300 steps)
+           p : (min,max)=(-2.015569e-08, 1.000000e+00) 
+           u : (min,max)=(-1.093143e-07, 5.853792e-08) 
+           v : (min,max)=(-8.168570e-08, 9.272818e-08) 
+ Divergence: divMax/vorMax = 1.85e-02 divl2Norm/vorMax=1.20e-03 vorMax=7.78e-07
+-- BM -- beam: Error t=1.150e+01 : uErr=(7.94e-10,2.23e-08)=(max,max/uNorm), vErr=(7.84e-10,7.84e+02)=(max,max/vNorm) (steps=2301)
+
+HEAVY: Kt=31
+cgins flexiblePartition -g=flexiblePartitionGride2.order2.hdf -nu=.05 -tf=40. -tp=.5 -rhoBeam=100. -E=0. -tension=10 -thickness=.1 -Kt=30 -numElem=20 -addedMass=1 -fluidOnTwoSides=1  -ampProjectVelocity=1 -option=beamUnderPressure -go=halt
+
+ >>> t =  2.000e+01, dt = 7.90e-03, cpu = 2.24e+02 seconds (2503 steps)
+           p : (min,max)=(-4.485751e-12, 1.000000e+00) 
+           u : (min,max)=(-7.303272e-13, 7.354994e-10) 
+           v : (min,max)=(-4.991105e-10, 3.590500e-10) 
+ Divergence: divMax/vorMax = 1.63e-02 divl2Norm/vorMax=7.74e-04 vorMax=4.21e-09
+-- BM -- beam: Error t=2.000e+01 : uErr=(4.66e-12,1.31e-10)=(max,max/uNorm), vErr=(4.39e-12,4.39e+00)=(max,max/vNorm) (steps=2504)
+
+cgins -noplot flexiblePartition -g=flexiblePartitionGride2.order2.hdf -nu=.05 -tf=40. -tp=.5 -rhoBeam=100. -E=0. -tension=10 -thickness=.1 -Kt=100 -numElem=20 -addedMass=1 -fluidOnTwoSides=1  -ampProjectVelocity=1 -option=beamUnderPressure -show="fp2_rhoshs10_AMP.show" -go=go >! fp2_rhoshs10_AMP.out 
+
+
+
+
+
+***************************************************************************************************************
+*** Jan 29-30 Test one-sided beam:
+
+============== ONE-SIDED=====================
+
+NOTE: CURRENT ONE-SIDED BEAM EXACT SOLUTION IS WRONG
+
+
+LIGHTER-BEAM - SOMETHING WRONG
+cgins flexiblePartition -g=beamOnTopGride4.order2.hdf -nu=.05 -tf=30. -tp=.1 -rhoBeam=1. -E=1.e-4 -tension=1.e-2 -thickness=.1 -K0=10 -numElem=80 -p0=1 -addedMass=1 -fluidOnTwoSides=0 -ampProjectVelocity=1 -option=beamPiston -sideBC=slipWall -go=halt
+    t    err(p)   err(u)   err(v)    div       uMax     dt       cpu
+   0.100 1.03e-02 2.88e-09 7.16e-04 1.01e-06  1.00e+00 2.22e-03 1.20e+01 
+
+cgins flexiblePartition -g=beamOnTopGride2.order2.hdf -nu=.05 -tf=30. -tp=.1 -rhoBeam=1. -E=1.e-4 -tension=1.e-2 -thickness=.1 -K0=10 -numElem=40 -p0=1 -addedMass=1 -fluidOnTwoSides=0 -ampProjectVelocity=1 -option=beamPiston -sideBC=slipWall -go=halt
+     t    err(p)   err(u)   err(v)    div       uMax     dt       cpu
+   0.100 1.03e-02 8.19e-08 7.28e-04 2.47e-05  1.00e+00 8.33e-03 4.89e+00 
+
+MEDIUM
+cgins flexiblePartition -g=beamOnTopGride4.order2.hdf -nu=.05 -tf=30. -tp=.1 -rhoBeam=10. -E=1.e-4 -tension=1.e-2 -thickness=.1 -K0=10 -numElem=80 -p0=1 -addedMass=1 -fluidOnTwoSides=0 -ampProjectVelocity=1 -option=beamPiston -sideBC=slipWall -go=halt
+    t    err(p)   err(u)   err(v)    div       uMax     dt       cpu
+   0.100 7.11e-04 3.86e-10 4.82e-05 2.18e-07  1.00e+00 2.22e-03 4.38e+00 
+
+cgins flexiblePartition -g=beamOnTopGride2.order2.hdf -nu=.05 -tf=30. -tp=.1 -rhoBeam=10. -E=1.e-4 -tension=1.e-2 -thickness=.1 -K0=10 -numElem=40 -p0=1 -addedMass=1 -fluidOnTwoSides=0 -ampProjectVelocity=1 -option=beamPiston -sideBC=slipWall -go=halt
+     t    err(p)   err(u)   err(v)    div       uMax     dt       cpu
+   0.100 7.09e-04 2.95e-08 5.08e-05 5.31e-06  1.00e+00 8.33e-03 5.01e+00 
+
+============== TWO-SIDED ================
+
+NOTE: dt is small due to the BEAM COEFF E 
+
+LIGHT -- smaller E  and tension -- looks ok
+cgins flexiblePartition -g=flexiblePartitionGride2.order2.hdf -nu=.05 -tf=2. -tp=.1 -rhoBeam=.1 -E=1.e-4 -tension=1.e-2 -thickness=.1 -K0=10 -numElem=40 -p0=1 -addedMass=1 -fluidOnTwoSides=1  -ampProjectVelocity=1 -option=beamPiston -sideBC=slipWall -nis=4 -go=halt
+    t    err(p)   err(u)   err(v)    div       uMax     dt       cpu
+   0.100 1.05e-05 2.47e-07 3.42e-06 1.54e-05  1.00e+00 8.33e-03 1.99e+00
+     t    err(p)   err(u)   err(v)    div       uMax     dt       cpu
+   0.500 5.21e-05 2.33e-07 7.42e-06 1.70e-06  1.00e+00 8.33e-03 3.26e+01 
+
+
+LIGHT- More smooths: better
+cgins flexiblePartition -g=flexiblePartitionGride2.order2.hdf -nu=.05 -tf=2. -tp=.1 -rhoBeam=.1 -E=1. -tension=10 -thickness=.1 -K0=10 -numElem=40 -p0=1 -addedMass=1 -fluidOnTwoSides=1  -ampProjectVelocity=1 -option=beamPiston -sideBC=slipWall -nis=4 -go=halt
+    t    err(p)   err(u)   err(v)    div       uMax     dt       cpu
+   0.100 2.34e-09 1.19e-12 4.38e-09 3.07e-10  1.00e+00 2.33e-04 1.49e+01
+
+
+LIGHT: TROUBLE
+cgins flexiblePartition -g=flexiblePartitionGride2.order2.hdf -nu=.05 -tf=2. -tp=.1 -rhoBeam=.1 -E=1. -tension=10 -thickness=.1 -K0=10 -numElem=40 -p0=1 -addedMass=1 -fluidOnTwoSides=1  -ampProjectVelocity=1 -option=beamPiston -sideBC=slipWall -go=halt
+    t    err(p)   err(u)   err(v)    div       uMax     dt       cpu
+   0.100 3.95e-03 5.79e-05 2.58e-04 1.07e-03  1.00e+00 2.33e-04 1.55e+01
+
+
+MEDIUM:
+cgins flexiblePartition -g=flexiblePartitionGride2.order2.hdf -nu=.05 -tf=2. -tp=.1 -rhoBeam=1. -E=1. -tension=10 -thickness=.1 -K0=10 -numElem=40 -p0=1 -addedMass=1 -fluidOnTwoSides=1  -ampProjectVelocity=1 -option=beamPiston -sideBC=slipWall -go=halt
+    t    err(p)   err(u)   err(v)    div       uMax     dt       cpu
+   0.100 1.80e-08 2.22e-11 3.67e-08 8.21e-09  1.00e+00 7.46e-04 9.48e+00
+    t    err(p)   err(u)   err(v)    div       uMax     dt       cpu
+   0.500 3.46e-07 3.11e-11 1.27e-08 1.47e-09  1.00e+00 7.46e-04 5.23e+01
+
+
+HEAVY: 
+cgins flexiblePartition -g=flexiblePartitionGride2.order2.hdf -nu=.05 -tf=2. -tp=.1 -rhoBeam=10. -E=1. -tension=10 -thickness=.1 -K0=10 -numElem=40 -p0=1 -addedMass=1 -fluidOnTwoSides=1  -ampProjectVelocity=1 -option=beamPiston -sideBC=slipWall -go=halt
+
+    t    err(p)   err(u)   err(v)    div       uMax     dt       cpu
+   0.100 5.19e-08 2.27e-10 1.15e-07 8.49e-08  1.00e+00 2.38e-03 1.04e+01
+    t    err(p)   err(u)   err(v)    div       uMax     dt       cpu
+   0.500 6.67e-07 1.17e-10 2.59e-07 4.99e-08  1.00e+00 2.38e-03 3.30e+01
+
+
+============== ONE-SIDED=====================
+
+LIGHTER-BEAM - TROUBLE
+cgins flexiblePartition -g=beamOnTopGride2.order2.hdf -nu=.05 -tf=30. -tp=.1 -rhoBeam=1. -E=1. -tension=10 -thickness=.1 -K0=10 -numElem=40 -p0=1 -addedMass=1 -fluidOnTwoSides=0 -ampProjectVelocity=1 -option=beamPiston -sideBC=slipWall -go=halt
+    t    err(p)   err(u)   err(v)    div       uMax     dt       cpu
+   0.100 1.03e-02 6.99e-11 7.15e-04 1.46e-08  1.00e+00 7.46e-04 4.93e+00
+
+cgins flexiblePartition -g=beamOnTopGride1.order2.hdf -nu=.05 -tf=30. -tp=.1 -rhoBeam=1. -E=1. -tension=10 -thickness=.1 -K0=10 -numElem=20 -p0=1 -addedMass=1 -fluidOnTwoSides=0 -ampProjectVelocity=1 -option=beamPiston -sideBC=slipWall -go=halt
+
+    t    err(p)   err(u)   err(v)    div       uMax     dt       cpu
+   0.100 1.03e-02 9.68e-09 7.16e-04 1.35e-07  1.00e+00 2.63e-03 6.98e+00
+
+
+MEDIUM BEAM
+
+rhoBeam=9
+cgins flexiblePartition -g=beamOnTopGride1.order2.hdf -nu=.05 -tf=30. -tp=.1 -rhoBeam=9. -E=1. -tension=10 -thickness=.1 -K0=10 -numElem=20 -p0=1 -addedMass=1 -fluidOnTwoSides=0 -ampProjectVelocity=1 -option=beamPiston -sideBC=slipWall -go=halt
+    t    err(p)   err(u)   err(v)    div       uMax     dt       cpu
+   0.100 8.71e-04 2.18e-08 6.15e-05 1.17e-06  1.00e+00 7.69e-03 3.09e+00
+    t    err(p)   err(u)   err(v)    div       uMax     dt       cpu
+   0.500 2.77e-03 6.31e-09 3.09e-03 1.11e-06  1.00e+00 7.69e-03 5.73e+00
+
+rhoBeam=10
+cgins flexiblePartition -g=beamOnTopGride1.order2.hdf -nu=.05 -tf=30. -tp=.1 -rhoBeam=10. -E=1. -tension=10 -thickness=.1 -K0=10 -numElem=20 -p0=1 -addedMass=1 -fluidOnTwoSides=0 -ampProjectVelocity=1 -option=beamPiston -sideBC=slipWall -go=halt
+     t    err(p)   err(u)   err(v)    div       uMax     dt       cpu
+   0.100 7.10e-04 2.35e-08 5.07e-05 1.32e-06  1.00e+00 8.33e-03 2.13e+00
+
+
+
+cgins flexiblePartition -g=beamOnTopGride1.order2.hdf -nu=.05 -tf=30. -tp=.01 -rhoBeam=1. -E=1. -tension=10 -thickness=.1 -K0=10 -numElem=20 -p0=1 -addedMass=1 -fluidOnTwoSides=0 -ampProjectVelocity=1 -option=beamPiston -sideBC=slipWall -go=halt
+
+
+BUG FOUND -- beam model, predictor, first step had a bug
+
+ERRORS ARE SMALLER
+cgins flexiblePartition -g=beamOnTopGride1.order2.hdf -nu=.05 -tf=30. -tp=.01 -rhoBeam=10. -E=1. -tension=10 -thickness=.1 -K0=10 -numElem=20 -p0=1 -addedMass=1 -fluidOnTwoSides=0 -ampProjectVelocity=1 -option=beamPiston -sideBC=slipWall -go=halt
+
+     t    err(p)   err(u)   err(v)    div       uMax     dt       cpu
+   0.010 7.45e-06 6.09e-10 1.45e-07 1.75e-07  1.00e+00 5.00e-03 1.94e+00
+
+
+cgins flexiblePartition -g=beamOnTopGrid.dsxe1.order2 -nu=.05 -tf=30. -tp=.01 -rhoBeam=10. -E=1. -tension=10 -thickness=.1 -K0=10 -numElem=5 -p0=1 -addedMass=1 -fluidOnTwoSides=0 -ampProjectVelocity=1 -option=beamPiston -sideBC=slipWall -debug=7 -go=halt > ! junk.out
+
+
+***************************************************************************************************************
+*** Jan 26 , 29 Test one-sided beam:
+cgins flexiblePartition -g=beamOnTopGrid.dsxe1.order2 -nu=.05 -tf=30. -tp=.01 -rhoBeam=10. -E=1. -tension=10 -thickness=.1 -K0=10 -numElem=5 -p0=1 -addedMass=1 -fluidOnTwoSides=0 -ampProjectVelocity=1 -option=beamPiston -sideBC=slipWall -debug=7 -go=halt > ! junk.out
+
+
+COARSE GRID
+cgins flexiblePartition -g=beamOnTopGrid.dsxe1.order2 -nu=.05 -tf=30. -tp=.01 -rhoBeam=10. -E=1. -tension=10 -thickness=.1 -K0=10 -numElem=20 -p0=1 -addedMass=1 -fluidOnTwoSides=0 -ampProjectVelocity=1 -option=beamPiston -sideBC=slipWall -debug=7 -go=halt
+    t    err(p)   err(u)   err(v)    div       uMax     dt       cpu
+   0.010 7.56e-04 5.19e-06 1.10e-03 5.09e-03  1.00e+00 5.00e-03 2.03e+00
+
+
+cgins flexiblePartition -g=beamOnTopGride1.order2.hdf -nu=.05 -tf=30. -tp=.01 -rhoBeam=10. -E=1. -tension=10 -thickness=.1 -K0=10 -numElem=20 -p0=1 -addedMass=1 -fluidOnTwoSides=0 -ampProjectVelocity=1 -option=beamPiston -sideBC=slipWall -go=halt
+    t    err(p)   err(u)   err(v)    div       uMax     dt       cpu
+   0.010 1.46e-03 7.16e-06 1.07e-03 4.99e-03  1.00e+00 5.00e-03 1.56e+00
+
+
+***************************************************************************************************************
+*** Jan 26 -- why is slidling beam solution not ONE-DIMENSIONAL?
+
+FIXED: use new time-stepping startup 1:
+ERRORS are much smaller:
+cgins -noplot flexiblePartition -g=flexiblePartitionGride2.order2.hdf -nu=.05 -tf=2. -tp=.1 -rhoBeam=10. -E=1. -tension=10 -thickness=.1 -K0=10 -numElem=40 -p0=1 -addedMass=1 -fluidOnTwoSides=1  -ampProjectVelocity=1 -option=beamPiston -sideBC=slipWall -go=og
+GRID2:
+    t    err(p)   err(u)   err(v)    div       uMax     dt       cpu
+   0.100 5.83e-08 1.18e-10 1.20e-07 9.37e-08  1.00e+00 2.38e-03 1.83e+01 
+
+GRID4:
+     t    err(p)   err(u)   err(v)    div       uMax     dt       cpu
+   0.100 3.90e-09 2.43e-12 7.79e-09 3.29e-09  1.00e+00 6.17e-04 2.55e+01 
+     t    err(p)   err(u)   err(v)    div       uMax     dt       cpu
+   0.500 4.68e-08 6.55e-12 1.73e-08 1.52e-09  1.00e+00 6.17e-04 1.51e+02 
+
+ONE-STEP : trouble near corners (also with -ampProjectVelocity=0)
+cgins -noplot flexiblePartition -g=flexiblePartitionGride1.order2.hdf -nu=.05 -tf=2. -tp=.001 -rhoBeam=10. -E=1. -tension=10 -thickness=.1 -K0=10 -numElem=20 -p0=1 -addedMass=1 -fluidOnTwoSides=1  -ampProjectVelocity=1 -option=beamPiston -sideBC=slipWall -go=og
+
+***************************************************************************************************************
+****** January 18, 23, ... , 26 -- test sliding beam
+
+SLIDING BEAM -- check errors with "beam piston" exact solution.
+
+Smooth: finer grid 
+cgins -noplot flexiblePartition -g=flexiblePartitionGride4.order2.hdf -nu=.05 -tf=2. -tp=.1 -rhoBeam=10. -E=1. -tension=10 -thickness=.1 -K0=10 -numElem=80 -p0=1 -addedMass=1 -fluidOnTwoSides=1  -ampProjectVelocity=1 -option=beamPiston -sideBC=slipWall -go=og
+
+SMOOTH + generate past time grids:
+    t    err(p)   err(u)   err(v)    div       uMax     dt       cpu
+   0.100 1.46e-04 1.70e-06 4.67e-05 2.29e-06  1.00e+00 6.17e-04 2.26e+01 
+
+
+SMOOTH (+ fixes to smooth BC's)
+    t    err(p)   err(u)   err(v)    div       uMax     dt       cpu
+   0.100 1.46e-04 1.70e-06 4.67e-05 2.29e-06  1.00e+00 6.17e-04 2.26e+01 
+
+--> ?? initial small time-step ?
+     t    err(p)   err(u)   err(v)    div       uMax     dt       cpu
+   0.100 5.91e-05 1.33e-06 3.78e-05 1.28e-06  1.00e+00 6.13e-04 1.09e+02 
+
+
+NO-SMOOTH:
+     t    err(p)   err(u)   err(v)    div       uMax     dt       cpu
+   0.100 1.25e-04 2.29e-06 4.74e-05 3.66e-05  1.00e+00 6.17e-04 1.93e+01 
+
+
+
+Smooth: medium grid 
+cgins -noplot flexiblePartition -g=flexiblePartitionGride2.order2.hdf -nu=.05 -tf=2. -tp=.1 -rhoBeam=10. -E=1. -tension=10 -thickness=.1 -K0=10 -numElem=40 -p0=1 -addedMass=1 -fluidOnTwoSides=1  -ampProjectVelocity=1 -option=beamPiston -sideBC=slipWall -go=og
+     t    err(p)   err(u)   err(v)    div       uMax     dt       cpu
+   0.100 3.25e-04 7.56e-06 1.88e-04 3.67e-04  1.00e+00 2.38e-03 1.05e+01
+
+
+WIGGLES: -- Smmoth interface velocity : OK
+cgins -noplot flexiblePartition -g=flexiblePartitionGride1.order2.hdf -nu=.05 -tf=2. -tp=.1 -rhoBeam=10. -E=1. -tension=10 -thickness=.1 -K0=10 -numElem=20 -p0=1 -addedMass=1 -fluidOnTwoSides=1  -ampProjectVelocity=1 -option=beamPiston -sideBC=slipWall -go=og
+
+
+SOME WIGGES IN V: 
+cgins -noplot flexiblePartition -g=flexiblePartitionGride1.order2.hdf -nu=.05 -tf=2. -tp=.1 -rhoBeam=10. -E=1. -tension=10 -thickness=.1 -K0=10 -numElem=20 -p0=1 -addedMass=1 -fluidOnTwoSides=1  -ampProjectVelocity=1 -sideBC=slipWall -show=sb1.show -go=go  >! sb1.out 
+
+ADD beam smoothing: - no help, not expected as beam has a small effect
+cgins flexiblePartition -g=flexiblePartitionGride1.order2.hdf -nu=.05 -tf=2. -tp=.1 -rhoBeam=10. -E=1. -tension=10 -thickness=.1 -K0=10 -Kxxt=.001 -numElem=20 -p0=1 -addedMass=1 -fluidOnTwoSides=1  -ampProjectVelocity=1 -sideBC=slipWall -go=halt
+
+
+HEAVY: fewer wiggles 
+cgins flexiblePartition -g=flexiblePartitionGride1.order2.hdf -nu=.05 -tf=2. -tp=.1 -rhoBeam=100. -E=1. -tension=10 -thickness=.1 -K0=10 -numElem=20 -p0=1 -addedMass=1 -fluidOnTwoSides=1  -ampProjectVelocity=1 -sideBC=slipWall -go=halt
+
+TURN OFF PROJECTION: -- NO wiggles
+cgins flexiblePartition -g=flexiblePartitionGride1.order2.hdf -nu=.05 -tf=2. -tp=.1 -rhoBeam=10. -E=1. -tension=10 -thickness=.1 -K0=10 -numElem=20 -p0=1 -addedMass=1 -fluidOnTwoSides=1  -ampProjectVelocity=0 -sideBC=slipWall -go=halt
+
+
+
+cgins -noplot flexiblePartition -g=flexiblePartitionGride2.order2.hdf -nu=.05 -tf=.5 -tp=.1 -rhoBeam=10. -E=1. -tension=10 -thickness=.1 -K0=10 -numElem=40 -p0=1 -addedMass=1 -fluidOnTwoSides=1  -ampProjectVelocity=1 -sideBC=slipWall -go=go 
+WIGGLES: turn on Kxxt: 
+cgins -noplot flexiblePartition -g=flexiblePartitionGride4.order2.hdf -nu=.05 -tf=.5 -tp=.1 -rhoBeam=10. -E=1. -tension=10 -thickness=.1 -K0=10 -Kxxt=.1 -numElem=80 -p0=1 -addedMass=1 -fluidOnTwoSides=1  -ampProjectVelocity=1 -sideBC=slipWall -show=sb4.show -go=go  >! sb4.out
+
+-- errors: two-sided, solution at t=-dt is not correct
+Grid1:
+     t    err(p)   err(u)   err(v)    div       uMax     dt       cpu
+   0.500 3.20e-03 3.94e-05 4.05e-04 1.07e-04  1.00e+00 8.33e-03 1.51e+00 
+Grid2:
+     t    err(p)   err(u)   err(v)    div       uMax     dt       cpu
+   0.500 1.08e-03 4.17e-05 1.26e-04 3.02e-04  1.00e+00 2.38e-03 6.68e+00 
+Grid4: trouble  -- ok early on
+
+
+SLIDING BEAM - TWO SIDED
+cgins -noplot flexiblePartition -g=flexiblePartitionGride1.order2.hdf -nu=.05 -tf=10. -tp=.5 -rhoBeam=10. -E=1. -tension=10 -thickness=.1 -K0=10 -numElem=20 -p0=1 -addedMass=1 -fluidOnTwoSides=1  -ampProjectVelocity=1 -sideBC=slipWall -go=go >! beamPistonTwoSided.out 
+
+SLIDING BEAM - ONE-SIDED
+cgins -noplot flexiblePartition -g=beamOnTopGride1.order2.hdf -nu=.05 -tf=30. -tp=.01 -rhoBeam=10. -E=1. -tension=10 -thickness=.1 -K0=10 -numElem=20 -p0=1 -addedMass=1 -fluidOnTwoSides=0  -ampProjectVelocity=1 -sideBC=slipWall -go=og
+
+
+***************************************************************************************************************
+***************************************************************************************************************
+**** STEADY SOLUTIONS **** 
+
+===TWO-SIDED BEAM:
+cgins -noplot flexiblePartition -g=flexiblePartitionGride2.order2.hdf -nu=.05 -tf=40. -tp=.5 -rhoBeam=100. -E=0. -tension=10 -thickness=.1 -Kt=100 -numElem=20 -addedMass=1 -fluidOnTwoSides=1  -ampProjectVelocity=1 -show="fp2_rhoshs10_AMP.show" -go=go >! fp2_rhoshs10_AMP.out 
+
+AMP=0
+cgins -noplot flexiblePartition -g=flexiblePartitionGride2.order2.hdf -nu=.05 -tf=30. -tp=.5 -rhoBeam=100. -E=0. -tension=10 -thickness=.1 -Kt=100 -numElem=20 -addedMass=0 -fluidOnTwoSides=1  -ampProjectVelocity=0 -show="fp2_rhoshs10.show" -go=go >! fp2_rhoshs10.out 
+
+===ONE-SIDED BEAM:
+cgins -noplot flexiblePartition -g=flexiblePartitionGride2.order2.hdf -nu=.05 -tf=40. -tp=.5 -rhoBeam=10. -E=0. -tension=10 -thickness=.1 -Kt=100 -numElem=20 -addedMass=1 -fluidOnTwoSides=1  -ampProjectVelocity=1 -show="fp1_rhoshs1_AMP.show" -go=go >! fp1_rhoshs1_AMP.out 
+
+
+
+***************************************************************************************************************
+***************************************************************************************************************
+
+
+**** January 17,  2015 - TWO-SIDED BEAM and the VELOCITY PROJECTION 
+
+VERY LIGHT - OK (requires the velocity projection)
+cgins -noplot flexiblePartition -g=flexiblePartitionGride1.order2.hdf -nu=.05 -tf=30. -tp=.01 -rhoBeam=.1 -E=0. -tension=10 -thickness=.1 -Kt=10 -numElem=20 -addedMass=1 -fluidOnTwoSides=1  -ampProjectVelocity=1 -go=og
+
+LIGHT
+cgins flexiblePartition -g=flexiblePartitionGride1.order2.hdf -nu=.05 -tf=30. -tp=.01 -rhoBeam=1. -E=0. -tension=10 -thickness=.1 -Kt=10 -numElem=20 -addedMass=1 -fluidOnTwoSides=1  -ampProjectVelocity=1
+
+HEAVY beam: -- looks ok
+cgins flexiblePartition -g=flexiblePartitionGride1.order2.hdf -nu=.05 -tf=30. -tp=.01 -rhoBeam=100. -E=0. -tension=10 -thickness=.1 -Kt=10 -numElem=20 -addedMass=1 -fluidOnTwoSides=1  -ampProjectVelocity=1
+
+
+**** January 15-16, 2015  === TEST VELOCITY PROJECTION ===
+
+==== ADD FIX for BEAM ends not to move
+
+cgins flexiblePartition -g=beamOnTopGride1.order2.hdf -nu=.05 -tf=30. -tp=.01 -rhoBeam=100. -E=0. -tension=10 -thickness=.1 -Kt=10 -numElem=20 -p0=1 -addedMass=1 -fluidOnTwoSides=0  -ampProjectVelocity=1 -beamPlotScaleFactor=10.
+
+
+LIGHTER:rhos*hs=.001 :  OK (For testing set gridVelocity=0 on ends!)
+cgins flexiblePartition -g=beamOnTopGride1.order2.hdf -nu=.05 -tf=30. -tp=.01 -rhoBeam=1e5 -E=0. -tension=10 -thickness=1.e-8 -Kt=10 -numElem=20 -p0=.02 -addedMass=1 -fluidOnTwoSides=0 -ampProjectVelocity=1 -beamPlotScaleFactor=10. -go=halt
+
+
+
+cgins -noplot flexiblePartition -g=beamOnTopGride1.order2.hdf -nu=.05 -tf=30. -tp=.01 -rhoBeam=1e6 -E=0. -tension=10 -thickness=1.e-8 -Kt=10 -numElem=20 -p0=.02 -addedMass=1 -fluidOnTwoSides=0 -ampProjectVelocity=1 -beamPlotScaleFactor=10. -go=og
+
+THINNER: this sort of works
+cgins -noplot flexiblePartition -g=beamOnTopGride1.order2.hdf -nu=.05 -tf=30. -tp=.01 -rhoBeam=1e3 -E=0. -tension=10 -thickness=1.e-5 -Kt=10 -numElem=20 -p0=.02 -addedMass=1 -fluidOnTwoSides=0 -ampProjectVelocity=1 -go=og
+
+
+NOTE: set -p0=.02 helps start, BUT TROUBLE: near corners
+cgins flexiblePartition -g=beamOnTopGride1.order2.hdf -nu=.05 -tf=30. -tp=.01 -rhoBeam=10. -E=0. -tension=10 -thickness=1.e-3 -Kt=10 -numElem=20 -p0=.02 -addedMass=1 -fluidOnTwoSides=0 -ampProjectVelocity=1
+
+
+THIN BEAM: OK for rhos*hs=0.1 --> trouble in corners for p at start
+cgins flexiblePartition -g=beamOnTopGride1.order2.hdf -nu=.05 -tf=30. -tp=.01 -rhoBeam=100. -E=0. -tension=10 -thickness=1.e-3 -Kt=10 -numElem=20 -p0=1 -addedMass=1 -fluidOnTwoSides=0 -ampProjectVelocity=1
+
+
+cgins flexiblePartition -g=beamOnTopGride1.order2.hdf -nu=.05 -tf=30. -tp=.01 -rhoBeam=100. -E=0. -tension=10 -thickness=.1 -Kt=10 -numElem=20 -p0=1 -addedMass=1 -fluidOnTwoSides=0 -ampProjectVelocity=1 
+
+HEAVY AND THIN: 
+cgins flexiblePartition -g=beamOnTopGride1.order2.hdf -nu=.05 -tf=30. -tp=.01 -rhoBeam=1000. -E=0. -tension=10 -thickness=1.e-4 -Kt=10 -numElem=20 -p0=1 -addedMass=1 -fluidOnTwoSides=0 -ampProjectVelocity=1 
+
+**** January 9, 2015
+
+=== START TEST OF VELOCITY PROJECTION
+cgins flexiblePartition -g=beamOnTopGride1.order2.hdf -nu=.05 -tf=30. -tp=.01 -rhoBeam=100. -E=0. -tension=10 -thickness=.1 -Kt=10 -numElem=20 -p0=1 -addedMass=1 -ampProjectVelocity=1
+
+
+*** Beam on top of flexible channel - works to rhoBeam=1
+
+cgins flexiblePartition -g=beamOnTopGride1.order2.hdf -nu=.05 -tf=30. -tp=.01 -rhoBeam=100. -E=0. -tension=10 -thickness=.1 -Kt=10 -numElem=20 -p0=1 -addedMass=1
+
+
+
+***** January 8, 2015 -- start implementing added mass for two-sided beam
+
+TROUBLE FOR rhoBeam=.1 --> we might need the VELOCITY PROJECTION
+
+
+COARSE AND LIGHTER --> add delta(p) to both sides of BC --> now we converge to correct steady state.
+cgins flexiblePartition -g=flexiblePartitionGride1.order2.hdf -nu=.05 -tf=30. -tp=.01 -rhoBeam=1. -E=0. -tension=10 -thickness=.1 -Kt=10 -numElem=20 -addedMass=1
+
+COARSE AND LIGHTER -- starts to work (issues near corners where beam force is probably 1/2 of dp) AMP=0 fails right away
+cgins flexiblePartition -g=flexiblePartitionGride1.order2.hdf -nu=.05 -tf=30. -tp=.01 -rhoBeam=1. -E=0. -tension=10 -thickness=.1 -Kt=10 -numElem=20 -addedMass=1
+
+
+COARSE: 
+cgins flexiblePartition -g=flexiblePartitionGride1.order2.hdf -nu=.05 -tf=30. -tp=.01 -rhoBeam=100. -E=0. -tension=10 -thickness=.1 -Kt=10 -numElem=20 -addedMass=1
+
+cgins flexiblePartition -g=flexiblePartitionGride2.order2.hdf -nu=.05 -tf=30. -tp=.01 -rhoBeam=100. -E=0. -tension=10 -thickness
+=.1 -Kt=10 -addedMass=1
+
+
+
+**** January 5, 2015 -- Check pressure-pulse "artery" after changes to BeamModel surfaceAcceleration
+
+looks ok: 
+cgins flexibleChannel -g=flexibleChannelGride2.order2.hdf -numElem=120 -cfl=.9 -cfls=1. -nu=1. -tf=.1 -tp=.001 -beamPlotScaleFactor=10 -pMax=2.e4 -tMax=.0075 -E0=.25e6  -addedMass=1 -go=halt
+
+
+
+
+**** January 3-4, 2015 -- TEST flexible PARTITION **************************
+
+
+** EVEN LIGHTER -- TROUBLE
+cgins flexiblePartition -g=flexiblePartitionGride2.order2.hdf -nu=.05 -tf=30. -tp=.01 -rhoBeam=1. -E=0. -tension=10 -thickness=.1 -Kt=10 -p0=.5 -project=0 -addedMass=1
+
+
+** LIGHTER - do NOT PROJECT, set p0=.5 -- OK
+cgins flexiblePartition -g=flexiblePartitionGride2.order2.hdf -nu=.05 -tf=30. -tp=.01 -rhoBeam=10. -E=0. -tension=10 -thickness=.1 -Kt=10 -p0=.5 -project=0 -addedMass=1
+
+*** NEW AMP -- valid for beam with two sides next to fluid
+cgins flexiblePartition -g=flexiblePartitionGride2.order2.hdf -nu=.05 -tf=30. -tp=.01 -rhoBeam=100. -E=0. -tension=10 -thickness=.1 -Kt=10 -addedMass=1
+
+**** Steady solution reached by around t=30. NOTE: TENSION=5
+cgins -noplot flexiblePartition -g=flexiblePartitionGride2.order2.hdf -nu=.05 -tf=30. -tp=1. -rhoBeam=100. -E=0. -tension=5 -thickness=.1 -Kt=10 -show="fp2.show" -go=go >! fp2.out 
+
+LIGHTER BEAM - trouble with AMP=0
+cgins flexiblePartition -g=flexiblePartitionGride2.order2.hdf -nu=.05 -tf=30. -tp=.01 -rhoBeam=10. -E=0. -tension=10 -thickness=.1 -Kt=10 -addedMass=1
+
+HEAVY BEAM
+cgins flexiblePartition -g=flexiblePartitionGride2.order2.hdf -nu=.05 -tf=30. -tp=1. -rhoBeam=100. -E=0. -tension=10 -thickness=.1 -Kt=10
+
+
+**** 2014/01/01 --
+
+run case 4: flexibleChannelGride32.order2.hdf
+CPU = 15605.40
+
+
+**** 2014/12/29-31:
+
+** output more often for surface animation
+cgins -noplot flexibleChannel -g=flexibleChannelGride4.order2.hdf -numElem=240 -cfl=.9 -cfls=1. -nu=1. -tf=.02 -tp=.001 -addedMass=1 -beamPlotScaleFactor=10 -pMax=2.e4 -go=halt -tMax=.0075 -E0=.25e6 -show="fc4c.show" -go=go >! fc4c.out
+
+
+*** LESS STIFF BEAM  : change E0, tMax  E0=.25e6-> eta=.17 peak
+cgins flexibleChannel -g=flexibleChannelGride8.order2.hdf -numElem=240 -cfl=.9 -cfls=1. -nu=1. -tf=.02 -tp=.001 -addedMass=1 -beamPlotScaleFactor=10 -pMax=2.e4 -go=halt -tMax=.0075 -E0=.25e6 -show="fc8b.show" -go=halt
+
+
+*** LESS STIFF BEAM  : change E0, tMax  E0=.25e6-> eta=.17 peak
+cgins -noplot flexibleChannel -g=flexibleChannelGride4.order2.hdf -numElem=240 -cfl=.9 -cfls=1. -nu=1. -tf=.02 -tp=.005 -addedMass=1 -beamPlotScaleFactor=10 -pMax=2.e4 -go=halt -tMax=.0075 -E0=.25e6 -show="fc4b.show" -go=go >! fc4b.out
+
+cgins -noplot flexibleChannel -g=flexibleChannelGride2.order2.hdf -numElem=120 -cfl=.9 -cfls=1. -nu=1. -tf=.02 -tp=.005 -addedMass=1 -beamPlotScaleFactor=10 -pMax=2.e4 -go=halt -tMax=.0075 -E0=.25e6 -show="fc2b.show" -go=go >! fc2b.out
+
+
+cgins flexibleChannel -g=flexibleChannelGride2.order2.hdf -numElem=120 -cfl=.9 -cfls=1. -nu=1. -tf=.1 -tp=.001 -addedMass=1 -beamPlotScaleFactor=10 -pMax=2.e4 -go=halt -tMax=.0075 -E0=.25e6
+
+
+
+*** try BIGGER NU 
+cgins flexibleChannel -g=flexibleChannelGride2.order2.hdf -numElem=120 -cfl=.9 -cfls=1. -nu=.5 -tf=.015 -tp=.005 -addedMass=1 -beamPlotScaleFactor=10 -pMax=2.e4 -go=halt
+
+
+**** 2014/12/28 : initial runs for self convergence
+
+*** NOTE*** solution is INACCURATE for CFLS=10 (cfl-for-beam)
+
+cgins -noplot flexibleChannel -g=flexibleChannelGride16.order2.hdf -numElem=960 -cfl=.9 -cfls=1. -nu=.035 -tf=.015 -tp=.005 -addedMass=1 -beamPlotScaleFactor=10 -pMax=2.e4 -show=fc16.show -go=go >! fc16.out &
+
+cgins -noplot flexibleChannel -g=flexibleChannelGride8.order2.hdf -numElem=480 -cfl=.9 -cfls=1. -nu=.035 -tf=.015 -tp=.005 -addedMass=1 -beamPlotScaleFactor=10 -pMax=2.e4 -show=fc8.show -go=go >! fc8.out &
+
+cgins -noplot flexibleChannel -g=flexibleChannelGride4.order2.hdf -numElem=240 -cfl=.9 -cfls=1. -nu=.035 -tf=.015 -tp=.005 -addedMass=1 -beamPlotScaleFactor=10 -pMax=2.e4 -show=fc4.show -go=go >! fc4.out &
+
+cgins -noplot flexibleChannel -g=flexibleChannelGride2.order2.hdf -numElem=120 -cfl=.9 -cfls=1. -nu=.035 -tf=.015 -tp=.005 -addedMass=1 -beamPlotScaleFactor=10 -pMax=2.e4 -show=fc2.show -go=go >! fc2.out &
+
+
+
+ADD CFL for beam: (-cfls)
+cgins flexibleChannel -g=flexibleChannelGride4.order2.hdf -nu=.035 -tf=20. -tp=.001 -addedMass=1 -beamPlotScaleFactor=10 -pMax=2.e4  -cfls=10.
+
+*** 2014/12/25-27 -- Try to Match to Fernandez-Landajuela paper 2014
+
+Adjust dt for beam:
+
+cgins flexibleChannel -g=flexibleChannelGride4.order2.hdf -cfl=.9 -nu=.035 -tf=20. -tp=.001 -addedMass=1 -beamPlotScaleFactor=10 -pMax=2.e4
+
+
+Bigger pMax:  NOTE: SMALLER CFL 
+cgins flexibleChannel -g=flexibleChannelGride4.order2.hdf -cfl=.1 -nu=.035 -tf=20. -tp=.001 -addedMass=1 -beamPlotScaleFactor=10 -pMax=2.e4
+
+
+
+TURN OFF ampProjectVelocity <- PROBLEMS HERE
+
+DEBUG short channel
+
+ogen -noplot flexibleChannelGrid -xb=1 -interp=e -factor=2  -name=shortFlexibleChannelGrid.hdf
+cgins flexibleChannel -g=shortFlexibleChannelGrid -length=1 -cfl=.01 -nu=.035 -tf=20. -tp=.001 -addedMass=1 -beamPlotScaleFactor=500 -pMax=1.e3 -ampProjectVelocity=0
+
+
+** finer grid: - OK
+cgins flexibleChannel -g=flexibleChannelGride4.order2.hdf -cfl=.01 -nu=.035 -tf=20. -tp=.001 -addedMass=1 -beamPlotScaleFactor=500 -pMax=1.e3
+
+
+Add linear stiffness term
+cgins flexibleChaxnnel -g=flexibleChannelGrid2.order2.hdf -cfl=.01 -nu=.035 -tf=20. -tp=.002 -addedMass=1 -beamPlotScaleFactor=500 -pMax=1.e3
+
+Reduce pressure pulse amplitude since we do not have stiffness-term and amplitude get large
+cgins flexibleChannel -g=flexibleChannelGrid2.order2.hdf -nu=.035 -tf=20. -tp=.001 -addedMass=1 -beamPlotScaleFactor=500 -pMax=1.e2
+
+
+*** 2014/12/16 -- REVISIT flexible channel
+
+
+cgins flexibleChannel -g=flexibleChannelGrid2.order2.hdf -nu=.05 -tf=20. -tp=.05 -addedMass=1 -delta=5. -tension=1. -E=0. -tMax=.2
+
+
+OK: 
+cgins flexibleChannel -g=flexibleChannelGrid2.order2.hdf -nu=.05 -tf=20. -tp=.05 -addedMass=1 -delta=10. -tension=1. -E=0. -tMax=.2
+
+
+
+**** 2014/07/09 -- more runs 
+
+Set E=.01 -> clamped BC 
+cgins flexibleChannel -g=flexibleChannelGrid4.order2.hdf -nu=.05 -tf=20. -tp=.05 -addedMass=1 -delta=4. -thick=.05 -tension=1. -E=0.01 -tMax=.2
+
+
+OK: finer grid 
+cgins flexibleChannel -g=flexibleChannelGrid4.order2.hdf -nu=.05 -tf=20. -tp=.05 -addedMass=1 -delta=5. -tension=1. -E=0. -tMax=.1 -pMax=2.
+
+OK:
+cgins flexibleChannel -g=flexibleChannelGrid2.order2.hdf -nu=.05 -tf=20. -tp=.05 -addedMass=1 -delta=10. -tension=1. -E=0. -tMax=.2
+
+
+LIGHTER, increase tension *TROUBLE NEAR INLET CORNER **
+cgins flexibleChannel -g=flexibleChannelGrid2.order2.hdf -nu=.05 -tf=20. -tp=.05 -addedMass=1 -delta=1. -tension=100.
+
+
+LIGHTER, increase tension 
+cgins flexibleChannel -g=flexibleChannelGrid2.order2.hdf -nu=.05 -tf=20. -tp=.05 -addedMass=1 -delta=10. -tension=10.
+AM=0 : fails right away
+
+
+AMP:  -- OK
+cgins flexibleChannel -g=flexibleChannelGrid2.order2.hdf -nu=.05 -tf=20. -tp=.05 -addedMass=1
+
+**** 2014/07/09 -- initial runs
+
+cgins flexibleChannel -g=flexibleChannelGrid2.order2.hdf -nu=.05 -tf=20. -tp=.05
+
+
+

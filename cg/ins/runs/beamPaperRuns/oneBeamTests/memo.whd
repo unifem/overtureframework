@@ -1,0 +1,945 @@
+***********************
+***** Nov 11, 2015
+
+beamins : RE-RUN for PERFORMANCE TESTS
+--------------------------------------
+
+  -- IMPULSIVE: G8 
+
+AMP G8-HEAVY
+nohup $cgins -noplot beamInAChannel -g=beamInAChannelGridBiggere8.order2.hdf  -numElem=41 -tf=.1 -tp=.1 -rhoBeam=100. -E=5. -Kt=0. -Kxxt=5e-3 -addedMass=1 -ampProjectVelocity=1  -useApproximateAMPcondition=1 -nu=.05 -ad2=1 -rampInflow=0 -cfls=3. -nis=6 -psolver=best -rtolp=1.e-6 -atolp=1.e-8 -show="bicG8Rhos100.show" -go=go >!  bicG8Rhos100.out
+
+AMP-G8:
+nohup $cgins -noplot beamInAChannel -g=beamInAChannelGridBiggere8.order2.hdf  -numElem=41 -tf=.1 -tp=.1 -rhoBeam=1. -E=5. -Kt=0. -Kxxt=5e-3 -addedMass=1 -ampProjectVelocity=1  -useApproximateAMPcondition=1 -nu=.05 -ad2=1 -rampInflow=0 -cfls=3. -nis=6 -psolver=best -rtolp=1.e-6 -atolp=1.e-8 -show="bicG8.show" -go=go >!  bicG8.out
+
+TP-G8: RHOS=100  
+nohup $cgins -noplot beamInAChannel -g=beamInAChannelGridBiggere8.order2.hdf  -numElem=41 -tf=.1 -tp=.1 -rhoBeam=100. -E=5. -Kt=0. -Kxxt=.0 -useTP=0 -addedMassRelaxation=1. -addedMassTol=1.e-6 -numberOfCorrections=1 -addedMass=0 -ampProjectVelocity=0  -useApproximateAMPcondition=1 -nu=.05 -ad2=1 -rampInflow=0 -cfls=3. -nis=6 -psolver=best -rtolp=1.e-6 -atolp=1.e-8 -show="bicG8TPRhos100.show" -go=go >!  bicG8TPRhos100.out
+
+
+TP-G8: omega=.1
+nohup $cgins -noplot beamInAChannel -g=beamInAChannelGridBiggere8.order2.hdf  -numElem=41 -tf=.1 -tp=.1 -rhoBeam=1. -E=5. -Kt=0. -Kxxt=.0 -useTP=1 -addedMassRelaxation=.1 -addedMassTol=1.e-6 -numberOfCorrections=500 -addedMass=0 -ampProjectVelocity=0  -useApproximateAMPcondition=1 -nu=.05 -ad2=1 -rampInflow=0 -cfls=3. -nis=6 -psolver=best -rtolp=1.e-6 -atolp=1.e-8 -show="bicG8TP.show" -go=go >!  bicG8TP.out
+
+
+
+
+  -- SLOW START -- LONGER RUN ---
+
+
+NOTE: Solution goes to steady state by t=2 so not a good test
+
+
+AMP FORGOT TO RAMP!!
+nohup $cgins -noplot beamInAChannel -g=beamInAChannelGridBiggere4.order2.hdf  -numElem=21 -tf=5. -tp=.1 -rhoBeam=1. -E=5. -Kt=0. -Kxxt=5e-3 -addedMass=1 -ampProjectVelocity=1  -useApproximateAMPcondition=1 -nu=.05 -ad2=1 -rampInflow=0 -cfls=3. -nis=6 -psolver=best -rtolp=1.e-6 -atolp=1.e-8 -show="bicG4c.show" -go=go >!  bicG4c.out
+
+
+TP-G4: omega=.1
+nohup $cgins -noplot beamInAChannel -g=beamInAChannelGridBiggere4.order2.hdf  -numElem=21 -tf=5. -tp=.1 -rhoBeam=1. -E=5. -Kt=0. -Kxxt=.0 -useTP=1 -addedMassRelaxation=.1 -addedMassTol=1.e-6 -numberOfCorrections=500 -addedMass=0 -ampProjectVelocity=0  -useApproximateAMPcondition=1 -nu=.05 -ad2=1 -rampInflow=1 -cfls=3. -nis=6 -psolver=best -rtolp=1.e-6 -atolp=1.e-8 -show="bicG4TPc.show" -go=go >!  bicG4TPc.out
+
+
+
+
+***********************
+***** Nov 11, 2015
+
+beamins : RE-RUN for PERFORMANCE TESTS
+--------------------------------------
+
+NOTE: DO NOT RAMP INFLOW
+
+
+MEDIUM: rhos=100. 
+
+AMP : RHOS=100 -- 
+nohup $cgins -noplot beamInAChannel -g=beamInAChannelGridBiggere4.order2.hdf  -numElem=21 -tf=.1 -tp=.1 -rhoBeam=100. -E=5. -Kt=0. -Kxxt=5e-3 -addedMass=1 -ampProjectVelocity=1  -useApproximateAMPcondition=1 -nu=.05 -ad2=1 -rampInflow=0 -cfls=3. -nis=6 -psolver=best -rtolp=1.e-6 -atolp=1.e-8 -show="bicG4Rhos100.show" -go=go >!  bicG4Rhos100.out
+
+
+TP-G4: RHOS=100  TP=OK 
+nohup $cgins -noplot beamInAChannel -g=beamInAChannelGridBiggere4.order2.hdf  -numElem=21 -tf=.1 -tp=.1 -rhoBeam=100. -E=5. -Kt=0. -Kxxt=.0 -useTP=0 -addedMassRelaxation=1. -addedMassTol=1.e-6 -numberOfCorrections=1 -addedMass=0 -ampProjectVelocity=0  -useApproximateAMPcondition=1 -nu=.05 -ad2=1 -rampInflow=0 -cfls=3. -nis=6 -psolver=best -rtolp=1.e-6 -atolp=1.e-8 -show="bicG4TPRhos100.show" -go=go >!  bicG4TPRhos100.out
+
+
+AMP: decrease rtolp
+nohup $cgins -noplot beamInAChannel -g=beamInAChannelGridBiggere4.order2.hdf  -numElem=21 -tf=.1 -tp=.1 -rhoBeam=1. -E=5. -Kt=0. -Kxxt=5e-3 -addedMass=1 -ampProjectVelocity=1  -useApproximateAMPcondition=1 -nu=.05 -ad2=1 -rampInflow=0 -cfls=3. -nis=6 -psolver=best -rtolp=1.e-6 -atolp=1.e-8 -show="bicG4b.show" -go=go >!  bicG4b.out
+
+
+TP-G4: omega=.1
+nohup $cgins -noplot beamInAChannel -g=beamInAChannelGridBiggere4.order2.hdf  -numElem=21 -tf=.1 -tp=.1 -rhoBeam=1. -E=5. -Kt=0. -Kxxt=.0 -useTP=1 -addedMassRelaxation=.1 -addedMassTol=1.e-6 -numberOfCorrections=500 -addedMass=0 -ampProjectVelocity=0  -useApproximateAMPcondition=1 -nu=.05 -ad2=1 -rampInflow=0 -cfls=3. -nis=6 -psolver=best -rtolp=1.e-6 -atolp=1.e-8 -show="bicG4TPb.show" -go=go >!  bicG4TPb.out
+
+TP-G4 -- omega=.15 -- omega=.2 *FAILS*
+nohup $cgins -noplot beamInAChannel -g=beamInAChannelGridBiggere4.order2.hdf  -numElem=21 -tf=.1 -tp=.1 -rhoBeam=1. -E=5. -Kt=0. -Kxxt=.0 -useTP=1 -addedMassRelaxation=.15 -addedMassTol=1.e-6 -numberOfCorrections=500 -addedMass=0 -ampProjectVelocity=0  -useApproximateAMPcondition=1 -nu=.05 -ad2=1 -rampInflow=0 -cfls=3. -nis=6 -psolver=best -rtolp=1.e-6 -atolp=1.e-8 -show="bicG4TPa.show" -go=go >!  bicG4TPa.out
+
+
+
+
+------ Ramped inflow
+
+
+AMP:
+nohup $cgins -noplot beamInAChannel -g=beamInAChannelGridBiggere4.order2.hdf  -numElem=21 -tf=.1 -tp=.1 -rhoBeam=1. -E=5. -Kt=0. -Kxxt=5e-3 -addedMass=1 -ampProjectVelocity=1  -useApproximateAMPcondition=1 -nu=.05 -ad2=1 -rampInflow=1 -cfls=3. -nis=6 -psolver=best -show="bicG4a.show" -go=go >!  bicG4a.out
+
+
+TP-G4: 
+nohup $cgins -noplot beamInAChannel -g=beamInAChannelGridBiggere4.order2.hdf  -numElem=21 -tf=.1 -tp=.1 -rhoBeam=1. -E=5. -Kt=0. -Kxxt=.0 -useTP=1 -addedMassRelaxation=.1 -addedMassTol=1.e-6 -numberOfCorrections=500 -addedMass=0 -ampProjectVelocity=0  -useApproximateAMPcondition=1 -nu=.05 -ad2=1 -rampInflow=1 -cfls=3. -nis=6 -psolver=best -show="bicG4TPa.show" -go=go >!  bicG4TPa.out
+
+
+
+
+
+
+
+
+
+***********************
+***** Sept 3-4, 2015 
+
+
+TEST TP- scheme  omega=.1 OK (.2 too big)  Average TP-IS's = 30-40 ? 
+nohup $cgins -noplot multiBeamsInAChannel -g=multiBeamsInAChannelGride16.order2.hdf -tf=.02 -tp=.01 -rhoBeam=1. -outflowOption=neumann -nu=5.e-4 -useTP=1 -addedMassRelaxation=.1 -addedMassTol=1.e-5 -numberOfCorrections=500 -addedMass=0 -ampProjectVelocity=0 -useApproximateAMPcondition= 1-show=twoBeamsInAChannelRhos1G16TP.show -go=go > ! twoBeamsInAChannelRhos1G16TP.out
+
+
+
+TEST TP- scheme  omega=.1 OK (.2 too big)   Average TP-IS's = 30-40 (max=100)
+nohup $cgins -noplot multiBeamsInAChannel -g=multiBeamsInAChannelGride8.order2.hdf -tf=.2 -tp=.01 -rhoBeam=1. -outflowOption=neumann -nu=1.e-3 -useTP=1 -addedMassRelaxation=.1 -addedMassTol=1.e-5 -numberOfCorrections=500 -addedMass=0 -ampProjectVelocity=0 -useApproximateAMPcondition= 1-show=twoBeamsInAChannelRhos1G8TP.show -go=go > ! twoBeamsInAChannelRhos1G8TP.out
+
+-----  MOVIE:
+
+We may want a stiffer beam and more elements
+
+G8: rhoBeam=1:  
+nohup $cgins -noplot multiBeamsInAChannel -g=multiBeamsInAChannelGride8.order2.hdf -tf=20. -tp=.01 -rhoBeam=1. -E=20 -numElem=21 -outflowOption=neumann -nu=1.e-3  -addedMass=1 -ampProjectVelocity=1 -useApproximateAMPcondition=1 -show=twoBeamsInAChannelRhos1E20G8.show -go=go > ! twoBeamsInAChannelRhos1E20G8.out 
+
+
+MULTI-BEAMS MOVIE: AMP 
+G16: rhoBeam=1: OK to t=4 
+cgins -noplot multiBeamsInAChannel -g=multiBeamsInAChannelGride16.order2.hdf -tf=20. -tp=.01 -rhoBeam=1. -outflowOption=neumann -nu=5.e-4  -addedMass=1 -ampProjectVelocity=1 -useApproximateAMPcondition=1 -show=twoBeamsInAChannelRhos1.show -go=go > ! twoBeamsInAChannelRhos1.out 
+
+G8: rhoBeam=1:  --> OK to t=8 but then beam deforms too much
+cgins -noplot multiBeamsInAChannel -g=multiBeamsInAChannelGride8.order2.hdf -tf=20. -tp=.01 -rhoBeam=1. -outflowOption=neumann -nu=1.e-3  -addedMass=1 -ampProjectVelocity=1 -useApproximateAMPcondition=1 -show=twoBeamsInAChannelRhos1G8.show -go=go > ! twoBeamsInAChannelRhos1G8.out 
+
+
+G8 AMP OK- rhoBeam=1
+cgins multiBeamsInAChannel -g=multiBeamsInAChannelGride8.order2.hdf -tf=10. -tp=.001 -rhoBeam=1. -outflowOption=neumann -nu=.001  -addedMass=1 -ampProjectVelocity=1 -useApproximateAMPcondition=1 -go=halt
+
+G4 AMP OK- rhoBeam=1
+cgins multiBeamsInAChannel -g=multiBeamsInAChannelGride4.order2.hdf -tf=10. -tp=.001 -rhoBeam=1. -outflowOption=neumann -nu=.005  -addedMass=1 -ampProjectVelocity=1 -useApproximateAMPcondition=1 -go=halt
+
+
+
+G4 AMP OK- rhoBeam=10
+cgins multiBeamsInAChannel -g=multiBeamsInAChannelGride4.order2.hdf -tf=10. -tp=.001 -rhoBeam=10. -outflowOption=neumann -nu=.005  -addedMass=1 -ampProjectVelocity=1 -useApproximateAMPcondition=1 -go=halt
+
+
+G4 TROUBLE rhoBeam=10 : TP
+cgins multiBeamsInAChannel -g=multiBeamsInAChannelGride4.order2.hdf -tf=10. -tp=.001 -rhoBeam=10. -show="multiBeamRsTen.show" -outflowOption=neumann -nu=.005 -go=halt
+
+
+REMAKE GRID: 
+ogen -noplot beamInAChannelGrid -interp=e -xa=-3. -xb=8. -yb=2. -prefix=beamInAChannelGridBigger -factor=4
+
+nohup $cgins -noplot beamInAChannel -g=beamInAChannelGridBiggere4.order2.hdf  -numElem=21 -tf=20. -tp=.01 -rhoBeam=1. -E=5. -Kt=0. -Kxxt=.0 -addedMass=1 -ampProjectVelocity=1 -useApproximateAMPcondition=1 -nu=.05 -ad2=1 -rampInflow=1 -cfls=5. -nis=4 -show="bicG4movie.show" -go=go >!  bicG4movie.out 
+
+$cgins beamInAChannel -g=beamInAChannelGridBiggere4.order2.hdf  -numElem=21 -tf=20. -tp=.01 -rhoBeam=1. -E=5. -Kt=0. -Kxxt=.0 -addedMass=1 -ampProjectVelocity=1 -useApproximateAMPcondition=1 -nu=.05 -ad2=1 -rampInflow=1 -cfls=5. -nis=4 -go=go
+
+
+
+****** March 29, 2015
+
+We could compare rhos=.1,1,10
+RERUN at lower CFLS 
+
+WHEN DOES TP scheme go bad?
+
+OK: RHOS=20 cfls=.1,  OK
+nohup $cgins -noplot beamInAChannel -g=beamInAChannelGridBiggere2.order2.hdf  -numElem=11 -tf=50. -tp=.5 -rhoBeam=20. -E=5. -Kt=0. -Kxxt=.0 -addedMass=0 -ampProjectVelocity=0 -useApproximateAMPcondition=1 -nu=.05 -ad2=1 -rampInflow=1 -cfls=.1 -nis=4 -show="bicTP_R20G2.show" -probeFileName="beamTip_bicTP_R20G2.txt" -go=go >!  bicTP_R20G2.out
+
+G2: RHOS=15, cfls=.1 OK
+nohup $cgins -noplot beamInAChannel -g=beamInAChannelGridBiggere2.order2.hdf  -numElem=11 -tf=50. -tp=.5 -rhoBeam=15. -E=5. -Kt=0. -Kxxt=.0 -addedMass=0 -ampProjectVelocity=0 -useApproximateAMPcondition=1 -nu=.05 -ad2=1 -rampInflow=1 -cfls=1. -nis=4 -show="bicTP_R15G2.show" -probeFileName="beamTip_bicTP_R15G2.txt" -go=go >!  bicTP_R15G2.out
+
+G4 RHOS=15, cfls=.1 OK
+nohup $cgins -noplot beamInAChannel -g=beamInAChannelGridBiggere4.order2.hdf  -numElem=11 -tf=50. -tp=.5 -rhoBeam=15. -E=5. -Kt=0. -Kxxt=.0 -addedMass=0 -ampProjectVelocity=0 -useApproximateAMPcondition=1 -nu=.05 -ad2=1 -rampInflow=1 -cfls=.1 -nis=4 -show="bicTP_R15G4.show" -probeFileName="beamTip_bicTP_R15G4.txt" -go=go >!  bicTP_R15G4.out
+
+G2 BAD: RHOS=10 cfls=.1, 
+nohup $cgins -noplot beamInAChannel -g=beamInAChannelGridBiggere2.order2.hdf  -numElem=11 -tf=50. -tp=.5 -rhoBeam=10. -E=5. -Kt=0. -Kxxt=.0 -addedMass=0 -ampProjectVelocity=0 -useApproximateAMPcondition=1 -nu=.05 -ad2=1 -rampInflow=1 -cfls=.1 -nis=4 -show="bicTP_R10G2.show" -probeFileName="beamTip_bicTP_R10G2.txt" -go=go >!  bicTP_R10G2.out
+
+G4 BAD: RHOS=10 cfls=.1, 
+nohup $cgins -noplot beamInAChannel -g=beamInAChannelGridBiggere4.order2.hdf  -numElem=11 -tf=50. -tp=.5 -rhoBeam=10. -E=5. -Kt=0. -Kxxt=.0 -addedMass=0 -ampProjectVelocity=0 -useApproximateAMPcondition=1 -nu=.05 -ad2=1 -rampInflow=1 -cfls=.1 -nis=4 -show="bicTP_R10G4.show" -probeFileName="beamTip_bicTP_R10G4.txt" -go=go >!  bicTP_R10G4.out
+
+
+
+
+G4: RHOS=10 AMP PIV
+nohup $cgins -noplot beamInAChannel -g=beamInAChannelGridBiggere4.order2.hdf  -numElem=21 -tf=10. -tp=.5 -rhoBeam=10. -E=5. -Kt=0. -Kxxt=.0 -addedMass=1 -ampProjectVelocity=1 -useApproximateAMPcondition=1 -nu=.05 -ad2=1 -rampInflow=1 -cfls=5. -nis=4 -show="bicR10G4.show" -probeFileName="beamTip_bicR10G4.txt" -go=go >!  bicR10G4.out
+
+G4: RHOS=0.1 AMP PIV cfls=5 -> cfls=2
+nohup $cgins -noplot beamInAChannel -g=beamInAChannelGridBiggere4.order2.hdf  -numElem=21 -tf=10. -tp=.5 -rhoBeam=0.1 -E=5. -Kt=0. -Kxxt=.0 -addedMass=1 -ampProjectVelocity=1 -useApproximateAMPcondition=1 -nu=.05 -ad2=1 -rampInflow=1 -cfls=2. -nis=4 -show="bicR0p1G4.show" -probeFileName="beamTip_bicR0p1G4.txt" -go=go >!  bicR0p1G4.out
+
+
+****** March 28, 2015
+
+***** TODO: TEST : adjusted AMP 
+
+G4 heavy beam  TP
+nohup $cgins -noplot beamInAChannel -g=beamInAChannelGridBiggere4.order2.hdf  -numElem=21 -tf=20. -tp=.5 -rhoBeam=100. -E=5. -Kt=0. -Kxxt=.0 -addedMass=0 -ampProjectVelocity=0 -useApproximateAMPcondition=1 -nu=.05 -ad2=1 -rampInflow=1 -cfls=5. -nis=4 -show="bicR100G4.show" -probeFileName="beamTip_bicR100G4.txt" -go=go >!  bicR100G4.out
+
+G2  heavy beam  TP
+nohup $cgins -noplot beamInAChannel -g=beamInAChannelGridBiggere2.order2.hdf  -numElem=11 -tf=50. -tp=.5 -rhoBeam=100. -E=5. -Kt=0. -Kxxt=.0 -addedMass=0 -ampProjectVelocity=0 -useApproximateAMPcondition=1 -nu=.05 -ad2=1 -rampInflow=1 -cfls=5. -nis=4 -show="bicR100G2.show" -probeFileName="beamTip_bicR100G2.txt" -go=go >!  bicR100G2.out
+
+
+
+G4: LONGER IN TIME AMP PIV
+nohup $cgins -noplot beamInAChannel -g=beamInAChannelGridBiggere4.order2.hdf  -numElem=21 -tf=20. -tp=.5 -rhoBeam=1. -E=5. -Kt=0. -Kxxt=.0 -addedMass=1 -ampProjectVelocity=1 -useApproximateAMPcondition=1 -nu=.05 -ad2=1 -rampInflow=1 -cfls=5. -nis=4 -show="bicG4long.show" -probeFileName="beamTip_bicG4long.txt" -go=go >!  bicG4long.out 
+
+
+
+G8: smooth beam using Kxxt=dr^2 = 1/40^2 = 6.25e-4 --> cfls=3 Kxxt=5e-3 
+nohup $cgins -noplot beamInAChannel -g=beamInAChannelGridBiggere8.order2.hdf  -numElem=41 -tf=5. -tp=.5 -rhoBeam=1. -E=5. -Kt=0. -Kxxt=5e-3 -addedMass=1 -ampProjectVelocity=1  -useApproximateAMPcondition=1 -nu=.05 -ad2=1 -rampInflow=1 -cfls=3. -nis=6 -show="bicG8.show" -probeFileName="beamTip_bicG8.txt" -go=go >!  bicG8.out
+
+G8: smooth beam: PIV=0
+nohup $cgins -noplot beamInAChannel -g=beamInAChannelGridBiggere8.order2.hdf  -numElem=41 -tf=5. -tp=.5 -rhoBeam=1. -E=5. -Kt=0. -Kxxt=0 -addedMass=1 -ampProjectVelocity=0  -useApproximateAMPcondition=1 -nu=.05 -ad2=1 -rampInflow=1 -cfls=5. -nis=6 -smoothBeam=1 -numberOfBeamSmooths=6 -show="bicG8sb.show" -probeFileName="beamTip_bicG8sb.txt" -go=go >!  bicG8sb.out
+
+G8: smooth beam: NO
+nohup $cgins -noplot beamInAChannel -g=beamInAChannelGridBiggere8.order2.hdf  -numElem=41 -tf=5. -tp=.5 -rhoBeam=1. -E=5. -Kt=0. -Kxxt=0 -addedMass=1 -ampProjectVelocity=1  -useApproximateAMPcondition=1 -nu=.05 -ad2=1 -rampInflow=1 -cfls=5. -nis=6 -smoothBeam=1 -numberOfBeamSmooths=6 -show="bicG8sb.show" -probeFileName="beamTip_bicG8sb.txt" -go=go >!  bicG8sb.out
+
+
+G4: smooth beam using Kxxt=dr^2 = 1/20^2 = 
+nohup $cgins -noplot beamInAChannel -g=beamInAChannelGridBiggere4.order2.hdf  -numElem=21 -tf=5. -tp=.5 -rhoBeam=1. -E=5. -Kt=0. -Kxxt=.0025 -addedMass=1 -ampProjectVelocity=1 -useApproximateAMPcondition=1 -nu=.05 -ad2=1 -rampInflow=1 -cfls=5. -nis=4 -show="bicG4sb.show" -probeFileName="beamTip_bicG4sb.txt" -go=go >!  bicG4sb.out 
+
+G4: AMP PIV smooth beam too cfls=5 Ok to 1.5, 
+nohup $cgins -noplot beamInAChannel -g=beamInAChannelGridBiggere4.order2.hdf  -numElem=21 -tf=5. -tp=.5 -rhoBeam=1. -E=5. -Kt=0. -Kxxt=.0 -addedMass=1 -ampProjectVelocity=1 -useApproximateAMPcondition=1 -nu=.05 -ad2=1 -rampInflow=1 -cfls=3. -nis=4 -smoothBeam=1 -numberOfBeamSmooths=2 -show="bicG4sb.show" -probeFileName="beamTip_bicG4sb.txt" -go=go >!  bicG4sb.out 
+
+
+****** March 27, 2015
+
+FIX UP INFLOW  -- use ramp function from Time function
+
+TP-G8: 
+nohup $cgins -noplot beamInAChannel -g=beamInAChannelGridBiggere8.order2.hdf  -numElem=41 -tf=5. -tp=.5 -rhoBeam=1. -E=5. -Kt=0. -Kxxt=.0 -useTP=1 -addedMassRelaxation=.1 -addedMassTol=1.e-6 -numberOfCorrections=500 -addedMass=0 -ampProjectVelocity=0  -useApproximateAMPcondition=1 -nu=.05 -ad2=1 -rampInflow=1 -cfls=5. -nis=4 -show="bicG8TP.show" -probeFileName="beamTip_bicG8TP.txt" -go=go >!  bicG8TP.out 
+
+TP-G4:  
+nohup $cgins -noplot beamInAChannel -g=beamInAChannelGridBiggere4.order2.hdf  -numElem=21 -tf=5. -tp=.5 -rhoBeam=1. -E=5. -Kt=0. -Kxxt=.0 -useTP=1 -addedMassRelaxation=.15 -addedMassTol=1.e-6 -numberOfCorrections=600 -addedMass=0 -ampProjectVelocity=0  -useApproximateAMPcondition=1 -nu=.05 -ad2=1 -rampInflow=1 -cfls=5. -nis=4 -show="bicG4TP.show" -probeFileName="beamTip_bicG4TP.txt" -go=go >!  bicG4TP.out 
+
+
+G8: AMP PIV TROUBLE -nis=4, cfls=5. , try -nis=6, cfls=3
+nohup $cgins -noplot beamInAChannel -g=beamInAChannelGridBiggere8.order2.hdf  -numElem=41 -tf=5. -tp=.5 -rhoBeam=1. -E=5. -Kt=0. -Kxxt=.0 -addedMass=1 -ampProjectVelocity=1  -useApproximateAMPcondition=1 -nu=.05 -ad2=1 -rampInflow=1 -cfls=3. -nis=6 -show="bicG8.show" -probeFileName="beamTip_bicG8.txt" -go=go >!  bicG8.out 
+
+TRY cfls=3 nis=6 OK till t=1.1
+$cgins beamInAChannel -g=beamInAChannelGridBiggere8.order2.hdf  -numElem=41 -tf=5. -tp=.5 -rhoBeam=1. -E=5. -Kt=0. -Kxxt=.0 -addedMass=1 -ampProjectVelocity=1  -useApproximateAMPcondition=1 -nu=.05 -ad2=1 -rampInflow=1 -cfls=3. -nis=6 -go=halt
+
+
+G4: AMP PIV
+nohup $cgins -noplot beamInAChannel -g=beamInAChannelGridBiggere4.order2.hdf  -numElem=21 -tf=5. -tp=.5 -rhoBeam=1. -E=5. -Kt=0. -Kxxt=.0 -addedMass=1 -ampProjectVelocity=1 -useApproximateAMPcondition=1 -nu=.05 -ad2=1 -rampInflow=1 -cfls=5. -nis=4 -show="bicG4.show" -probeFileName="beamTip_bicG4.txt" -go=go >!  bicG4.out 
+
+
+G2: AMP PIV
+nohup $cgins -noplot beamInAChannel -g=beamInAChannelGridBiggere2.order2.hdf  -numElem=11 -tf=5. -tp=.5 -rhoBeam=1. -E=5. -Kt=0. -Kxxt=.0 -addedMass=1 -ampProjectVelocity=1  -useApproximateAMPcondition=1 -nu=.05 -ad2=1 -rampInflow=1 -cfls=5. -nis=4 -show="bicG2.show" -probeFileName="beamTip_bicG2.txt" -go=go >!  bicG2.out 
+
+
+
+$cgins beamInAChannel -g=beamInAChannelGridBiggere4.order2.hdf  -numElem=21 -tf=1. -tp=.001 -rhoBeam=1. -E=5. -Kt=0. -Kxxt=.0 -addedMass=1 -ampProjectVelocity=0  -useApproximateAMPcondition=1 -nu=.05 -ad2=1 -rampInflow=1 -cfls=5. -nis=4 -go=halt
+
+$cgins beamInAChannel -g=beamInAChannelGridBiggere2.order2.hdf  -numElem=11 -tf=1. -tp=.001 -rhoBeam=1. -E=5. -Kt=0. -Kxxt=.0 -addedMass=1 -ampProjectVelocity=0  -useApproximateAMPcondition=1 -nu=.05 -ad2=1 -rampInflow=1 -cfls=5. -nis=4 -go=halt
+
+
+****** March 26, 2015
+
+Runs for paper:
+
+RE-do :: Kt=0 
+
+
+------------ TRADITIONAL PARTITITIONED ----------------
+
+
+RUN LONGER TO STEADY STATE
+G4: AMP PIV=0
+nohup $cgins -noplot beamInAChannel -g=beamInAChannelGridBige4.order2.hdf  -numElem=21 -tf=20. -tp=.5 -rhoBeam=1. -E=5. -Kt=0. -Kxxt=.0 -addedMass=1 -ampProjectVelocity=0  -useApproximateAMPcondition=1 -nu=.05 -ad2=1 -rampInflow=1 -cfls=5. -nis=4 -show="bicG4.show" -probeFileName="beamTip_bicG4.txt" -go=go >!  bicG4.out 
+
+
+
+TP-G4:  NOTE: REDO WITH SMALLER  -addedMassTol
+nohup $cgins -noplot beamInAChannel -g=beamInAChannelGridBige4.order2.hdf  -numElem=21 -tf=5. -tp=.5 -rhoBeam=1. -E=5. -Kt=0. -Kxxt=.0 -useTP=1 -addedMassRelaxation=.15 -addedMassTol=1.e-6 -numberOfCorrections=600 -addedMass=0 -ampProjectVelocity=0  -useApproximateAMPcondition=1 -nu=.05 -ad2=1 -rampInflow=1 -cfls=5. -nis=4 -show="bicG4TP.show" -probeFileName="beamTip_bicG4TP.txt" -go=go >!  bicG4TP.out 
+
+
+
+TP-G8: 
+nohup $cgins -noplot beamInAChannel -g=beamInAChannelGridBige8.order2.hdf  -numElem=41 -tf=5. -tp=.5 -rhoBeam=1. -E=5. -Kt=0. -Kxxt=.0 -useTP=1 -addedMassRelaxation=.1 -addedMassTol=1.e-6 -numberOfCorrections=500 -addedMass=0 -ampProjectVelocity=0  -useApproximateAMPcondition=1 -nu=.05 -ad2=1 -rampInflow=1 -cfls=5. -nis=4 -show="bicG8TP.show" -probeFileName="beamTip_bicG8TP.txt" -go=go >!  bicG8TP.out 
+
+
+TP-G4:
+nohup $cgins -noplot beamInAChannel -g=beamInAChannelGridBige4.order2.hdf  -numElem=21 -tf=5. -tp=.5 -rhoBeam=1. -E=5. -Kt=0. -Kxxt=.0 -useTP=1 -addedMassRelaxation=.15 -addedMassTol=1.e-4 -numberOfCorrections=300 -addedMass=0 -ampProjectVelocity=0  -useApproximateAMPcondition=1 -nu=.05 -ad2=1 -rampInflow=1 -cfls=5. -nis=4 -show="bicG4TP.show" -probeFileName="beamTip_bicG4TP.txt" -go=go >!  bicG4TP.out 
+
+$cgins beamInAChannel -g=beamInAChannelGridBige4.order2.hdf  -numElem=21 -tf=1. -tp=.001 -rhoBeam=1. -E=5. -Kt=10. -Kxxt=.0  -useTP=1 -addedMassRelaxation=.15 -addedMassTol=1.e-4 -numberOfCorrections=300 -addedMass=0 -ampProjectVelocity=0  -useApproximateAMPcondition=1 -nu=.05 -ad2=1 -rampInflow=1 -cfls=5. -nis=4 -go=halt
+
+
+# omega=.2 -- too big, .05 OK (86), .1 OK (42), .15 OK (27)
+$cgins beamInAChannel -g=beamInAChannelGridBige2.order2.hdf  -numElem=11 -tf=1. -tp=.001 -rhoBeam=1. -E=5. -Kt=10. -Kxxt=.0  -useTP=1 -addedMassRelaxation=.15 -addedMassTol=1.e-4 -numberOfCorrections=300 -addedMass=0 -ampProjectVelocity=0  -useApproximateAMPcondition=1 -nu=.05 -ad2=1 -rampInflow=1 -cfls=5. -nis=4 -go=halt
+
+
+----------------------AMP -----------------
+
+G8: AMP PIV=0 -- trouble -nis=4, wiggles after t=1 REDO cfl=2 STILL WIGGLES
+nohup $cgins -noplot beamInAChannel -g=beamInAChannelGridBige8.order2.hdf  -numElem=41 -tf=5. -tp=.5 -rhoBeam=1. -E=5. -Kt=0. -Kxxt=.0 -addedMass=1 -ampProjectVelocity=0  -useApproximateAMPcondition=1 -nu=.05 -ad2=1 -rampInflow=1 -cfls=2. -nis=4 -show="bicG8.show" -probeFileName="beamTip_bicG8.txt" -go=go >!  bicG8.out 
+
+
+G4: AMP PIV=0
+nohup $cgins -noplot beamInAChannel -g=beamInAChannelGridBige4.order2.hdf  -numElem=21 -tf=5. -tp=.5 -rhoBeam=1. -E=5. -Kt=0. -Kxxt=.0 -addedMass=1 -ampProjectVelocity=0  -useApproximateAMPcondition=1 -nu=.05 -ad2=1 -rampInflow=1 -cfls=5. -nis=4 -show="bicG4.show" -probeFileName="beamTip_bicG4.txt" -go=go >!  bicG4.out 
+
+G2: AMP  PIV=0  tf=5 good enough, REDO: 
+nohup $cgins -noplot beamInAChannel -g=beamInAChannelGridBige2.order2.hdf  -numElem=11 -tf=5. -tp=.5 -rhoBeam=1. -E=5. -Kt=0. -Kxxt=.0 -addedMass=1 -ampProjectVelocity=0  -useApproximateAMPcondition=1 -nu=.05 -ad2=1 -rampInflow=1 -cfls=5. -nis=4 -show="bicG2.show" -probeFileName="beamTip_bicG2.txt" -go=go >!  bicG2.out 
+
+
+$cgins beamInAChannel -g=beamInAChannelGridBige2.order2.hdf  -numElem=11 -tf=1. -tp=.05 -rhoBeam=1. -E=5. -Kt=10. -Kxxt=.0 -addedMass=1 -ampProjectVelocity=0  -useApproximateAMPcondition=1 -nu=.05 -ad2=1 -rampInflow=1 -cfls=5. -nis=4 -go=halt
+
+
+****** March 25, 2015
+
+
+
+
+G8 : APPROX-AMP 
+cfls=5. : OK 
+cfls=10?,-numberOfBeamSmooths=2 :  OK 
+cfls=10 : wiggles
+cgins beamInAChannel -g=beamInAChannelGride8.order2.hdf -numElem=41 -tf=2. -tp=.02  -rhoBeam=1. -E=5. -Kt=10. -Kxxt=.0 -addedMass=1 -ampProjectVelocity=1 -useApproximateAMPcondition=1 -nu=.025 -ad2=1 -cfls=5 -rampInflow=1  -nis=4 -smoothBeam=0 -numberOfBeamSmooths=2 -go=halt
+
+G4 : APPROX-AMP 
+PIV=1: 
+PIV=0 :  OK
+cgins beamInAChannel -g=beamInAChannelGride4.order2.hdf -numElem=21 -tf=2. -tp=.02  -rhoBeam=1. -E=5. -Kt=10. -Kxxt=.0 -addedMass=1 -ampProjectVelocity=1 -useApproximateAMPcondition=1 -nu=.025 -ad2=1 -cfls=10 -rampInflow=1  -nis=4 -go=halt
+
+
+*** TRY Backward-Euler for beam: -newmarkBeta=.5 -newmarkGamma=1.
+
+Kxxt=.1 cfls=20 -- OK, maybe small wiggles in interface near top
+cgins beamInAChannel -g=beamInAChannelGride8.order2.hdf -numElem=41 -tf=.5 -tp=.001 -rhoBeam=1. -E=5. -Kt=10. -Kxxt=.1 -addedMass=1 -ampProjectVelocity=0 -nu=.025 -ad2=1 -cfls=20 -rampInflow=1 -nis=4 -newmarkBeta=.5 -newmarkGamma=1. -go=halt
+
+
+cgins beamInAChannel -g=beamInAChannelGride8.order2.hdf -numElem=41 -tf=.5 -tp=.001 -rhoBeam=1. -E=5. -Kt=10. -Kxxt=.01 -addedMass=1 -ampProjectVelocity=1 -nu=.025 -ad2=1 -cfls=5 -rampInflow=1 -nis=4 -newmarkBeta=.5 -newmarkGamma=1. -go=halt
+
+
+
+**** ADD Kxxt term --
+    Kxxt=.01 cfls=5 OK 
+    Kxxt=.01 cfls=10 small wiggles at t=.5 
+cgins beamInAChannel -g=beamInAChannelGride8.order2.hdf -numElem=41 -tf=.5 -tp=.001 -rhoBeam=1. -E=5. -Kt=10. -Kxxt=.01 -addedMass=1 -ampProjectVelocity=1 -nu=.025 -ad2=1 -cfls=5 -rampInflow=1 -nis=4 -smoothBeam=0 -numberOfBeamSmooths=1 -go=halt
+
+
+
+
+
+
+
+RE-RUN WITH BEAM SMOOTHER -- trouble  - not converging very well in pressure
+G16:  PIV=0 
+cgins -noplot beamInAChannel -g=beamInAChannelGride16.order2.hdf -numElem=81 -tf=.5 -tp=.1  -rhoBeam=1. -E=5. -Kt=10. -Kxxt=.0 -addedMass=1 -ampProjectVelocity=0 -nu=.025 -ad2=1 -cfls=5 -rampInflow=1  -nis=6  -smoothBeam=1 -numberOfBeamSmooths=2 -show="bic16.show" -go=go >! bic16.out
+
+G8:  PIV=0 -- small wiggles, -nis=6
+cgins -noplot beamInAChannel -g=beamInAChannelGride8.order2.hdf -numElem=41 -tf=.5 -tp=.1  -rhoBeam=1. -E=5. -Kt=10. -Kxxt=.0 -addedMass=1 -ampProjectVelocity=0 -nu=.025 -ad2=1 -cfls=5 -rampInflow=1 -nis=6  -smoothBeam=1 -numberOfBeamSmooths=2 -show="bic8.show" -go=go >! bic8.out
+
+G4:  PIV=0 
+cgins -noplot beamInAChannel -g=beamInAChannelGride4.order2.hdf -numElem=21 -tf=.5 -tp=.1  -rhoBeam=1. -E=5. -Kt=10. -Kxxt=.0 -addedMass=1 -ampProjectVelocity=0 -nu=.025 -ad2=1 -cfls=5 -rampInflow=1  -nis=6  -smoothBeam=1 -numberOfBeamSmooths=2 -show="bic4.show" -go=go >! bic4.out
+
+G2: PIV=0 
+cgins -noplot beamInAChannel -g=beamInAChannelGride2.order2.hdf -numElem=11 -tf=.5 -tp=.1  -rhoBeam=1. -E=5. -Kt=10. -Kxxt=.0 -addedMass=1 -ampProjectVelocity=0 -nu=.025 -ad2=1 -cfls=5 -rampInflow=1  -nis=6 -smoothBeam=1 -numberOfBeamSmooths=2 -show="bic2.show" -go=go >! bic2.out
+
+
+
+*** Test beam SMOOTHER
+
+G8: PIV=1 -- 
+    cfls=10, -nis=6 -nbs=6 NO 
+    cfls=5, -nbs=2 : OK
+    clfs=10, -nbs=1 : some wiggles at t=.08 
+cgins beamInAChannel -g=beamInAChannelGride8.order2.hdf -numElem=41 -tf=.5 -tp=.001 -rhoBeam=1. -E=5. -Kt=10. -Kxxt=.0 -addedMass=1 -ampProjectVelocity=1 -nu=.025 -ad2=1 -cfls=10 -rampInflow=1 -nis=4 -smoothBeam=1 -numberOfBeamSmooths=4 -go=halt
+
+
+G8: PIV=0 -- OK
+cgins beamInAChannel -g=beamInAChannelGride8.order2.hdf -numElem=41 -tf=.5 -tp=.001 -rhoBeam=1. -E=5. -Kt=10. -Kxxt=.0 -addedMass=1 -ampProjectVelocity=0 -nu=.025 -ad2=1 -cfls=10 -rampInflow=1 -nis=4 -smoothBeam=1 -numberOfBeamSmooths=1 -go=halt
+
+G4: OK PIV=1 -- smooth beam in predictor:
+cgins beamInAChannel -g=beamInAChannelGride4.order2.hdf -numElem=21 -tf=.5 -tp=.02  -rhoBeam=1. -E=5. -Kt=10. -Kxxt=.0 -addedMass=1 -ampProjectVelocity=1 -nu=.025 -ad2=1 -cfls=10 -rampInflow=1  -nis=4 -smoothBeam=1  -numberOfBeamSmooths=1  -go=halt
+
+G4: OK PIV=0 -- smooth beam in predictor:
+cgins beamInAChannel -g=beamInAChannelGride4.order2.hdf -numElem=21 -tf=.5 -tp=.02  -rhoBeam=1. -E=5. -Kt=10. -Kxxt=.0 -addedMass=1 -ampProjectVelocity=0 -nu=.025 -ad2=1 -cfls=10 -rampInflow=1  -nis=6 -smoothBeam=1  -numberOfBeamSmooths=1  -go=halt
+
+
+
+PIV: 
+cgins beamInAChannel -g=beamInAChannelGride8.order2.hdf -numElem=41 -tf=.5 -tp=.001 -rhoBeam=1. -E=5. -Kt=10. -Kxxt=.0 -addedMass=1 -ampProjectVelocity=1 -nu=.025 -ad2=1 -cfls=10 -rampInflow=1 -nis=2 -smoothBeam=1 -numberOfBeamSmooths=2 -go=halt
+
+PIV: OLD: wiggles in u by t=.06
+cgins beamInAChannel -g=beamInAChannelGride8.order2.hdf -numElem=41 -tf=.5 -tp=.001 -rhoBeam=1. -E=5. -Kt=10. -Kxxt=.0 -addedMass=1 -ampProjectVelocity=1 -nu=.025 -ad2=1 -cfls=10 -rampInflow=1 -nis=2 -smoothBeam=0 -numberOfBeamSmooths=1 -go=halt
+
+
+Smooth beam velocity -- looks OK
+cgins beamInAChannel -g=beamInAChannelGride8.order2.hdf -numElem=41 -tf=.5 -tp=.001  -rhoBeam=1. -E=5. -Kt=10. -Kxxt=.0 -addedMass=1 -ampProjectVelocity=0 -nu=.025 -ad2=1 -cfls=5 -rampInflow=1  -nis=6 -smoothBeam=1  -numberOfBeamSmooths=1  -go=halt
+
+
+cgins beamInAChannel -g=beamInAChannelGride4.order2.hdf -numElem=21 -tf=.5 -tp=.01  -rhoBeam=1. -E=5. -Kt=10. -Kxxt=.0 -addedMass=1 -ampProjectVelocity=0 -nu=.025 -ad2=1 -cfls=5 -rampInflow=1  -nis=6 -smoothBeam=1  -numberOfBeamSmooths=1  -go=halt
+
+
+cgins beamInAChannel -g=beamInAChannelGride2.order2.hdf -numElem=11 -tf=.5 -tp=.01  -rhoBeam=1. -E=5. -Kt=10. -Kxxt=.0 -addedMass=1 -ampProjectVelocity=0 -nu=.025 -ad2=1 -cfls=5 -rampInflow=1  -nis=6 -smoothBeam=1  -numberOfBeamSmooths=0  -go=halt
+
+
+****** March 24, 2015
+
+INITIAL SELF CONVERGENCE
+
+NOTE: we probably need a 4th-order filter on the beam when PIV=1 
+
+RERUN AT LOWER CFLS cfls=10 --> cfls=1
+   Wiggles at CFLS=10 could be due to beam solver
+
+
+G16:  PIV=0 
+cgins -noplot beamInAChannel -g=beamInAChannelGride16.order2.hdf -numElem=81 -tf=.5 -tp=.1  -rhoBeam=1. -E=5. -Kt=10. -Kxxt=.0 -addedMass=1 -ampProjectVelocity=0 -nu=.025 -ad2=1 -cfls=1 -rampInflow=1  -nis=6 -show="bic16.show" -go=go >! bic16.out
+
+cgins beamInAChannel -g=beamInAChannelGride16.order2.hdf -numElem=81 -tf=.5 -tp=.01 -rhoBeam=1. -E=5. -Kt=10. -Kxxt=.0 -addedMass=1 -ampProjectVelocity=0 -nu=.025 -ad2=1 -cfls=1 -rampInflow=1 -nis=6 -go=halt
+
+G8:  PIV=0 -- small wiggles, -nis=6
+cgins -noplot beamInAChannel -g=beamInAChannelGride8.order2.hdf -numElem=41 -tf=.5 -tp=.1  -rhoBeam=1. -E=5. -Kt=10. -Kxxt=.0 -addedMass=1 -ampProjectVelocity=0 -nu=.025 -ad2=1 -cfls=1 -rampInflow=1 -nis=6 -show="bic8.show" -go=go >! bic8.out
+
+G4:  PIV=0 
+cgins -noplot beamInAChannel -g=beamInAChannelGride4.order2.hdf -numElem=21 -tf=.5 -tp=.1  -rhoBeam=1. -E=5. -Kt=10. -Kxxt=.0 -addedMass=1 -ampProjectVelocity=0 -nu=.025 -ad2=1 -cfls=1 -rampInflow=1  -nis=6 -show="bic4.show" -go=go >! bic4.out
+
+G2: PIV=0 
+cgins -noplot beamInAChannel -g=beamInAChannelGride2.order2.hdf -numElem=11 -tf=.5 -tp=.1  -rhoBeam=1. -E=5. -Kt=10. -Kxxt=.0 -addedMass=1 -ampProjectVelocity=0 -nu=.025 -ad2=1 -cfls=1 -rampInflow=1  -nis=6 -show="bic2.show" -go=go >! bic2.out
+
+
+
+
+G8: Kxxt=.01 OK for longer (.001 : wiggles)
+cgins beamInAChannel -g=beamInAChannelGride8.order2.hdf -numElem=41 -tf=.5 -tp=.01  -rhoBeam=1. -E=5. -Kt=10. -Kxxt=.01 -addedMass=1 -ampProjectVelocity=1 -nu=.025 -ad2=1 -cfls=10 -rampInflow=1 -nis=6 -go=halt
+
+
+G8: Wiggles on beam with PIV
+cgins beamInAChannel -g=beamInAChannelGride8.order2.hdf -numElem=41 -tf=.5 -tp=.01  -rhoBeam=1. -E=5. -Kt=10. -Kxxt=.0 -addedMass=1 -ampProjectVelocity=1 -nu=.025 -ad2=1 -cfls=10 -rampInflow=1 -nis=6 -go=halt
+
+G8: -piv=0 - no wiggles
+cgins beamInAChannel -g=beamInAChannelGride8.order2.hdf -numElem=41 -tf=.5 -tp=.01  -rhoBeam=1. -E=5. -Kt=10. -Kxxt=.0 -addedMass=1 -ampProjectVelocity=0 -nu=.025 -ad2=1 -cfls=10 -rampInflow=1 -nis=4 -go=halt
+
+
+
+
+
+****** March 23, 2015
+
+cgins beamInAChannel -g=beamInAChannelGride4.order2.hdf -numElem=21 -tf=1. -tp=.1  -rhoBeam=1. -E=5. -Kt=10. -Kxxt=.0 -addedMass=1 -ampProjectVelocity=1 -nu=.05 -ad2=1 -show=beamForGrid4.show -cfls=10 -go=halt 
+
+
+# run for plotting grid and beam at different times
+cgins beamInAChannel -g=beamInAChannelGride2.order2.hdf -numElem=11 -tf=1. -tp=.1  -rhoBeam=1. -E=5. -Kt=10. -Kxxt=.0 -addedMass=1 -ampProjectVelocity=1 -nu=.05 -ad2=1 -show=beamForGrid.show -cfls=10 -go=halt 
+
+
+
+****** March 22, 2015
+
+Run to steady state: E=5 . Kxxt=0 cfls=10
+nohup $cgins -noplot beamInAChannel -g=beamInAChannelGridBige2.order2.hdf -tf=20. -tp=.5 -rhoBeam=1. -E=5. -Kt=10. -Kxxt=.0 -addedMass=1 -ampProjectVelocity=1 -nu=.05 -ad2=1 -rampInflow=1 -show="bicA.show" -cfls=10. -go=go >!  bicA.out 
+
+
+
+== check for steady state ... converges!
+PIV=0 , Kxxt=0 APPROX-AMP
+cgins beamInAChannel -g=beamInAChannelGridBige2.order2.hdf -tf=20. -tp=.1 -rhoBeam=1. -E=10. -Kt=10. -Kxxt=.0  -addedMass=1 -ampProjectVelocity=0 -nu=.05 -ad2=1 -rampInflow=1 -projectVelocityOnBeamEnds=1  -useApproximateAMPcondition=1 -cfls=8. -go=halt
+
+ ----> t=1.997e+01, dt=1.52e-03: step=13032 |u.t|[max,l2]: all=[8.7e-05, 2.2e-05] u=[8.67e-05, 2.16e-05] v=[3.80e-05, 1.19e-05]
+ ----> t=1.999e+01, dt=1.52e-03: step=13042 |u.t|[max,l2]: all=[8.6e-05, 2.2e-05] u=[8.63e-05, 2.15e-05] v=[3.77e-05, 1.18e-05]
+ >>> t =  2.000e+01, dt = 1.52e-03, cpu = 7.34e+02 seconds (13050 steps)
+           p : (min,max)=(-1.178271e+01, 1.379885e+01) 
+           u : (min,max)=(-9.118381e-01, 6.224622e+00) 
+           v : (min,max)=(-1.390978e-01, 3.244952e+00) 
+ Divergence: divMax/vorMax = 1.05e-01 divl2Norm/vorMax=1.80e-03 vorMax=1.16e+02
+
+
+ ----> t=2.999e+01, dt=1.52e-03: step=19622 |u.t|[max,l2]: all=[1.5e-06, 5.8e-08] u=[1.41e-06, 5.75e-08] v=[1.45e-06, 4.24e-08]
+ >>> t =  3.000e+01, dt = 1.52e-03, cpu = 1.31e+03 seconds (19630 steps)
+           p : (min,max)=(-1.178243e+01, 1.379914e+01) 
+           u : (min,max)=(-9.118386e-01, 6.224621e+00) 
+           v : (min,max)=(-1.391003e-01, 3.244952e+00) 
+ Divergence: divMax/vorMax = 1.05e-01 divl2Norm/vorMax=1.80e-03 vorMax=1.16e+02
+
+
+****** March 20, 2015
+
+*BUG* found -- set residual to zero on the boundary
+
+PIV=0 , Kxxt=0 
+cgins beamInAChannel -g=beamInAChannelGridBige2.order2.hdf -tf=20. -tp=.1 -rhoBeam=1. -E=10. -Kt=10. -Kxxt=.0  -addedMass=1 -ampProjectVelocity=0 -nu=.05 -ad2=1 -rampInflow=1 -projectVelocityOnBeamEnds=1 -cfls=2. -go=halt
+
+
+PIV=1 do-not-project ends -- residual large near the beam
+cgins beamInAChannel -g=beamInAChannelGridBige2.order2.hdf -tf=20. -tp=.1 -rhoBeam=1. -E=10. -Kt=10. -Kxxt=.1 -addedMass=1 -ampProjectVelocity=1 -nu=.05 -ad2=1 -rampInflow=1 -projectVelocityOnBeamEnds=0 -cfls=10. -go=halt
+
+
+
+PIV=0: residual goes to 10^-7 
+cgins beamInAChannel -g=beamInAChannelGridBige2.order2.hdf -tf=20. -tp=.1 -rhoBeam=1. -E=10. -Kt=10. -Kxxt=.1  -addedMass=1 -ampProjectVelocity=0 -nu=.05 -ad2=1 -rampInflow=1 -projectVelocityOnBeamEnds=1 -cfls=10. -go=halt
+
+**** Residuals do NOT go to zero on beam tip with  -projectVelocityOnBeamEnds=1
+cgins beamInAChannel -g=beamInAChannelGridBige2.order2.hdf -tf=20. -tp=.1 -rhoBeam=1. -E=10. -Kt=10. -Kxxt=.1  -addedMass=1 -ampProjectVelocity=1 -nu=.05 -ad2=1 -rampInflow=1 -projectVelocityOnBeamEnds=1 -cfls=10. -go=halt
+
+
+**** Residuals do NOT go to zero on beam tip with  -projectVelocityOnBeamEnds=0
+cgins beamInAChannel -g=beamInAChannelGridBige2.order2.hdf -tf=20. -tp=.1 -rhoBeam=1. -E=10. -Kt=10. -Kxxt=.1  -addedMass=1 -ampProjectVelocity=1 -nu=.05 -ad2=1 -rampInflow=1 -projectVelocityOnBeamEnds=0 -cfls=5. -go=halt
+
+****** March 19, 2015
+
+Ramp inflow, compute steady state
+
+Run to steady state: 
+nohup $cgins -noplot beamInAChannel -g=beamInAChannelGridBige2.order2.hdf -tf=20. -tp=.5 -rhoBeam=1. -E=10. -Kt=10. -Kxxt=.1  -addedMass=1 -ampProjectVelocity=1 -nu=.05 -ad2=1 -rampInflow=1 -show="bicA.show" -go=go >!  bicA.out 
+
+
+cgins beamInAChannel -g=beamInAChannelGridBige2.order2.hdf -tf=20. -tp=.01 -rhoBeam=1. -E=10. -Kt=10. -Kxxt=.1  -addedMass=1 -ampProjectVelocity=1 -nu=.05 -ad2=1 -rampInflow=1 -go=halt
+
+No-ramp:
+cgins beamInAChannel -g=beamInAChannelGridBige2.order2.hdf -tf=20. -tp=.01 -rhoBeam=1. -E=10. -Kt=10. -Kxxt=.1  -addedMass=1 -ampProjectVelocity=1 -nu=.05 -ad2=1 -rampInflow=0 -go=halt
+
+****** March 11, 2015
+
+
+AMP: APPROX - OK
+cgins beamInAChannel -g=beamInAChannelGride2.order2.hdf -tf=20. -tp=.01 -rhoBeam=10. -E=5. -Kt=10. -Kxxt=.0 -addedMass=1 -ampProjectVelocity=1 -projectBeamVelocity=1 -projectVelocityOnBeamEnds=1 -useApproximateAMPcondition=1 -nu=.05 -smoothInterfaceVelocity=1 -nis=6 -numElem=17 -cfls=5. -go=halt
+
+
+AMP: ADJUSTED -OK
+cgins beamInAChannel -g=beamInAChannelGride2.order2.hdf -tf=20. -tp=.01 -rhoBeam=10. -E=5. -Kt=10. -Kxxt=.0 -addedMass=1 -ampProjectVelocity=1 -projectBeamVelocity=1 -projectVelocityOnBeamEnds=1 -useApproximateAMPcondition=0 -nu=.05 -smoothInterfaceVelocity=1 -nis=6 -numElem=17 -cfls=5. -go=halt
+
+
+TP-SI
+cgins -noplot beamInAChannel -g=beamInAChannelGride2.order2.hdf -tf=20. -tp=.001 -rhoBeam=10. -E=5. -Kt=10. -Kxxt=.0 -useTP=1 -addedMassRelaxation=.7 -addedMassTol=1.e-4 -numberOfCorrections=300 -addedMass=0 -ampProjectVelocity=0 -projectBeamVelocity=0 -projectVelocityOnBeamEnds=1 -useApproximateAMPcondition=0 -nu=.05 -smoothInterfaceVelocity=1 -nis=6 -numElem=17 -go=og
+
+
+
+****** March 10, 2015
+
+==== REVISIT BEAM IN A LONG CHANNEL: 
+
+RAMP INFLOW FOR SMOOTH START:
+
+
+TP:
+cgins beamInAChannel -g=beamInAChannelGridBige2.order2.hdf -tf=20. -tp=.01 -rhoBeam=1. -E=10. -Kt=10. -Kxxt=.1  -useTP=1 -addedMassRelaxation=.1 -addedMassTol=1.e-4 -numberOfCorrections=300 -addedMass=0 -ampProjectVelocity=0 -nu=.05 -ad2=1 -rampInflow=1 -go=halt
+
+
+AMP:
+cgins -noplot beamInAChannel -g=beamInAChannelGridBige2.order2.hdf -tf=20. -tp=.01 -rhoBeam=1. -E=10. -Kt=10. -Kxxt=.1  -addedMass=1 -ampProjectVelocity=1 -nu=.05 -ad2=1 -rampInflow=1 -go=og
+
+
+with PIV E=10 is OK now.
+cgins beamInAChannel -g=beamInAChannelGridBige2.order2.hdf -tf=20. -tp=.01 -rhoBeam=1. -E=10. -Kt=10. -Kxxt=.5  -addedMass=1 -ampProjectVelocity=1 -nu=.05 -ad2=1 -go=halt
+
+
+
+
+REVISIT horizontal beam 
+cgins horizontalBeamInAChannel -g=horizontalBeamInAChannelGride2.order2.hdf -tf=10. -tp=.01 -delta=1. -E=20. -addedMass=1 -ampProjectVelocity=1 -projectVelocityOnBeamEnds=0 -nu=.05 -smoothInterfaceVelocity=1 -project=1 -numElem=11 -go=halt
+
+
+====  TEST TP-SI scheme  + INITIAL-CONDITION ITERATION
+
+RHOS=1  omega= .2=big
+cgins beamInAChannel -g=beamInAChannelGride2.order2.hdf -tf=20. -tp=.001 -rhoBeam=1. -E=5. -Kt=10. -Kxxt=.0 -useTP=1 -addedMassRelaxation=.1 -addedMassTol=1.e-4 -numberOfCorrections=300 -addedMass=0 -ampProjectVelocity=0 -projectBeamVelocity=0 -projectVelocityOnBeamEnds=1 -useApproximateAMPcondition=0 -nu=.05 -smoothInterfaceVelocity=1 -nis=6 -numElem=17 -go=halt
+
+
+MEDIUM-BEAM omega=.7 : Ok, (.9 too big)
+cgins beamInAChannel -g=beamInAChannelGride2.order2.hdf -tf=20. -tp=.001 -rhoBeam=10. -E=5. -Kt=10. -Kxxt=.0 -useTP=1 -addedMassRelaxation=.7 -addedMassTol=1.e-4 -numberOfCorrections=300 -addedMass=0 -ampProjectVelocity=0 -projectBeamVelocity=0 -projectVelocityOnBeamEnds=1 -useApproximateAMPcondition=0 -nu=.05 -smoothInterfaceVelocity=1 -nis=6 -numElem=17 -go=halt
+
+
+****** March 6, 2015
+
+REVIST WITH NEW PIV projection
+
+ADJUSTED-AMP PIV -- TROUBLE : nis=2, OK: nis=6 
+cgins -noplot beamInAChannel -g=beamInAChannelGride2.order2.hdf -tf=20. -tp=.001 -rhoBeam=1. -E=5. -Kt=10. -Kxxt=.0 -addedMass=1 -ampProjectVelocity=1 -projectBeamVelocity=1 -projectVelocityOnBeamEnds=1 -useApproximateAMPcondition=0 -nu=.05 -smoothInterfaceVelocity=1 -nis=6 -numElem=17 -go=og
+
+APPROX-AMP PIV -- OK 
+cgins -noplot beamInAChannel -g=beamInAChannelGride2.order2.hdf -tf=20. -tp=.001 -rhoBeam=1. -E=5. -Kt=10. -Kxxt=.0 -addedMass=1 -ampProjectVelocity=1 -projectBeamVelocity=1 -projectVelocityOnBeamEnds=1 -useApproximateAMPcondition=1 -nu=.05 -smoothInterfaceVelocity=1 -numElem=17 -go=og
+
+****** March 2, 2015
+CHECK PIV after adjustEnds fix
+
+ADJUSTED-AMP PIV -- TROUBLE : nis=2, OK: nis=4 
+cgins -noplot beamInAChannel -g=beamInAChannelGride2.order2.hdf -tf=20. -tp=.001 -rhoBeam=1. -E=5. -Kt=10. -Kxxt=.0 -addedMass=1 -ampProjectVelocity=1 -projectBeamVelocity=1 -projectVelocityOnBeamEnds=1 -useApproximateAMPcondition=0 -nu=.05 -smoothInterfaceVelocity=1 -nis=4 -numElem=17 -go=og
+
+APPROX-AMP PIV -- OK 
+cgins -noplot beamInAChannel -g=beamInAChannelGride2.order2.hdf -tf=20. -tp=.001 -rhoBeam=1. -E=5. -Kt=10. -Kxxt=.0 -addedMass=1 -ampProjectVelocity=1 -projectBeamVelocity=1 -projectVelocityOnBeamEnds=1 -useApproximateAMPcondition=1 -nu=.05 -smoothInterfaceVelocity=1 -numElem=17 -go=og
+
+****** March 2, 2015
+
+REVISIT vertical beam:
+
+cgins beamInAChannel -g=beamInAChannelGride2.order2.hdf -tf=20. -tp=.001 -rhoBeam=1. -E=5. -Kt=10. -Kxxt=.0 -addedMass=1 -ampProjectVelocity=0 -projectBeamVelocity=0 -projectVelocityOnBeamEnds=1 -useApproximateAMPcondition=1 -nu=.05 -smoothInterfaceVelocity=1 -numElem=17 -go=halt
+
+****** Feb 28, 2015
+
+cgins -noplot beamInAChannel -g=beamInAChannelGride2.order2.hdf -tf=20. -tp=.001 -rhoBeam=1. -E=5. -Kt=10. -Kxxt=.0 -addedMass=1 -ampProjectVelocity=0 -projectBeamVelocity=1 -projectVelocityOnBeamEnds=1 -useApproximateAMPcondition=1 -nu=.05 -smoothInterfaceVelocity=1 -numElem=17 -go=og
+
+
+TP rhos=100 looks OK: 
+cgins -noplot beamInAChannel -g=beamInAChannelGride2.order2.hdf -tf=20. -tp=.001 -rhoBeam=100. -E=5. -Kt=10. -Kxxt=.0 -addedMass=0 -ampProjectVelocity=0 -projectBeamVelocity=1 -projectVelocityOnBeamEnds=1 -useApproximateAMPcondition=1 -nu=.05 -smoothInterfaceVelocity=1 -numElem=17 -go=og
+
+
+===== COMPARE VERTICAL BEAM TO HORIZONTAL ===========
+cgins -noplot verticalBeamInAChannel -g=verticalBeamInAChannelGride2.order2 -tf=10. -tp=.001 -delta=1. -E=1. -addedMass=1 -useApproximateAMPcondition=1 -ampProjectVelocity=0 -projectVelocityOnBeamEnds=1 -nu=.05 -smoothInterfaceVelocity=1 -project=1 -numElem=11 -go=og
+
+-- horizontal
+cgins -noplot horizontalBeamInAChannel -g=horizontalBeamInAChannelGride2.order2 -tf=10. -tp=.001 -delta=1. -E=1. -addedMass=1 -useApproximateAMPcondition=1 -ampProjectVelocity=0 -projectVelocityOnBeamEnds=1 -nu=.05 -smoothInterfaceVelocity=1 -project=1 -numElem=11 -go=og
+
+
+===== REVISIT HORIZONTAL BEAM ===========
+
+
+upward flow OK!
+cgins -noplot horizontalBeamInAChannel -g=horizontalBeamInAnOffsetChannelGride2.order2 -tf=10. -tp=.01 -delta=1. -E=2. -addedMass=1 -useApproximateAMPcondition=1 -ampProjectVelocity=0 -projectVelocityOnBeamEnds=1 -nu=.05 -smoothInterfaceVelocity=1 -project=1 -numElem=11 -option=upwardFlow -go=og
+
+
+
+APPROXIMATE AMP UN-centered beam: PIV=0 E=5, E=1 -OK (AMP=0 fails immediately)
+cgins -noplot horizontalBeamInAChannel -g=horizontalBeamInAnOffsetChannelGride2.order2 -tf=10. -tp=.01 -delta=1. -E=1. -addedMass=1 -useApproximateAMPcondition=1 -ampProjectVelocity=0 -projectVelocityOnBeamEnds=1 -nu=.05 -smoothInterfaceVelocity=1 -project=1 -numElem=11 -go=og
+
+
+APPROXIMATE AMP - OK
+cgins -noplot horizontalBeamInAChannel -g=horizontalBeamInAChannelGride2.order2.hdf -tf=10. -tp=.01 -delta=1. -E=10. -addedMass=1 -useApproximateAMPcondition=1 -ampProjectVelocity=0 -projectVelocityOnBeamEnds=1 -nu=.05 -smoothInterfaceVelocity=1 -project=1 -numElem=11 -go=og
+
+
+UN-centered beam: PIV=0 E=5, E=1 -OK (AMP=0 fails immediately)
+cgins -noplot horizontalBeamInAChannel -g=horizontalBeamInAnOffsetChannelGride2.order2 -tf=10. -tp=.01 -delta=1. -E=5. -addedMass=1 -ampProjectVelocity=0 -projectVelocityOnBeamEnds=1 -nu=.05 -smoothInterfaceVelocity=1 -project=1 -numElem=11 -go=og
+
+UN-centered beam: PIV=0 -OK
+cgins -noplot horizontalBeamInAChannel -g=horizontalBeamInAnOffsetChannelGride2.order2 -tf=10. -tp=.01 -delta=1. -E=10. -addedMass=1 -ampProjectVelocity=0 -projectVelocityOnBeamEnds=1 -nu=.05 -smoothInterfaceVelocity=1 -project=1 -numElem=11 -go=og
+
+
+PIV=0: OK: 
+cgins -noplot horizontalBeamInAChannel -g=horizontalBeamInAChannelGride2.order2.hdf -tf=10. -tp=.01 -delta=1. -E=10. -addedMass=1 -ampProjectVelocity=0 -projectVelocityOnBeamEnds=1 -nu=.05 -smoothInterfaceVelocity=1 -project=1 -numElem=11 -go=og
+
+
+PIV: trouble: wiggles on surface
+cgins -noplot horizontalBeamInAChannel -g=horizontalBeamInAChannelGride2.order2.hdf -tf=10. -tp=.01 -delta=1. -E=10. -addedMass=1 -ampProjectVelocity=1 -projectVelocityOnBeamEnds=1 -nu=.05 -smoothInterfaceVelocity=1 -project=1 -numElem=11 -go=og
+
+
+******** Feb 27, 2015
+
+TRY APPROX. AMP:
+
+TROUBLE rhoBeam=1
+$cgins beamInAChannel -g=beamInAChannelGride2.order2.hdf -tf=20. -tp=.001 -rhoBeam=1. -E=50. -Kt=10. -Kxxt=.05 -addedMass=1 -ampProjectVelocity=0 -projectBeamVelocity=1 -projectVelocityOnBeamEnds=1 -useApproximateAMPcondition=1 -nu=.05 -smoothInterfaceVelocity=1 -numElem=17 -go=halt
+
+WORKS:  rhoBeam=100, 10 
+$cgins beamInAChannel -g=beamInAChannelGride2.order2.hdf -tf=20. -tp=.001 -rhoBeam=10. -E=50. -Kt=10. -Kxxt=.05 -addedMass=1 -ampProjectVelocity=0 -projectBeamVelocity=1 -projectVelocityOnBeamEnds=1 -useApproximateAMPcondition=1 -nu=.05 -smoothInterfaceVelocity=1 -go=halt
+
+
+
+
+
+******** Feb 21, 2015 
+
+Increase numElem
+$cgins -noplot beamInAChannel -g=beamInAChannelGride2.order2.hdf -tf=20. -tp=.0001 -rhoBeam=1. -E=50. -Kt=10. -Kxxt=.5  -addedMass=1 -ampProjectVelocity=1 -projectBeamVelocity=0 -projectVelocityOnBeamEnds=0 -nu=.05 -smoothInterfaceVelocity=1 -numElem=19 -go=og
+
+
+******** Feb 20, 2015  --- fix: project interface velocity : reallt set t.v=0
+
+OK to at least t=4.4, wiggles in p but eventually go away
+$cgins beamInAChannel -g=beamInAChannelGride2.order2.hdf -tf=20. -tp=.01 -rhoBeam=1. -E=50. -Kt=10. -Kxxt=.2 -addedMass=1 -ampProjectVelocity=0 -projectBeamVelocity=1 -projectVelocityOnBeamEnds=1 -nu=.05 -smoothInterfaceVelocity=1 -go=halt
+
+
+AGAIN:  
+OK bug wiggles in p: (Kxxt=0)
+$cgins beamInAChannel -g=beamInAChannelGride2.order2.hdf -tf=20. -tp=.01 -rhoBeam=1. -E=50. -Kt=10. -Kxxt=.0 -addedMass=1 -ampProjectVelocity=0 -projectBeamVelocity=1 -projectVelocityOnBeamEnds=1 -nu=.05 -smoothInterfaceVelocity=1 -go=halt
+
+$cgins beamInAChannel -g=beamInAChannelGride2.order2.hdf -tf=20. -tp=.01 -rhoBeam=1. -E=50. -Kt=10. -Kxxt=.2 -addedMass=1 -ampProjectVelocity=0 -projectBeamVelocity=1 -projectVelocityOnBeamEnds=1 -nu=.05 -smoothInterfaceVelocity=1 -go=halt
+
+
+$cgins beamInAChannel -g=beamInAChannelGride2.order2.hdf -tf=20. -tp=.0001 -rhoBeam=1. -E=50. -Kt=10. -Kxxt=.5  -addedMass=1 -ampProjectVelocity=1 -projectBeamVelocity=0 -projectVelocityOnBeamEnds=0 -nu=.05 -smoothInterfaceVelocity=1 -go=halt
+
+NOTE: WE DO NOT SMOOTH THE INTERFACE IF WE DO NOT PROJECT
+GOES BAD AT LONG TIMES: 
+$cgins beamInAChannel -g=beamInAChannelGride2.order2.hdf -tf=20. -tp=.0001 -rhoBeam=1. -E=50. -Kt=10. -Kxxt=.5  -addedMass=1 -ampProjectVelocity=1 -projectBeamVelocity=0 -projectVelocityOnBeamEnds=0 -nu=.05 -smoothInterfaceVelocity=1  -go=halt
+
+
+PIV: do NOT project beam velocity: -- OK
+$cgins -noplot beamInAChannel -g=beamInAChannelGride2.order2.hdf -tf=20. -tp=.001 -rhoBeam=1. -E=50. -Kt=10. -Kxxt=.5  -addedMass=1 -ampProjectVelocity=1 -projectBeamVelocity=0 -projectVelocityOnBeamEnds=0 -nu=.05 -smoothInterfaceVelocity=1  -go=og
+
+
+-----------------------
+
+NOTE: OK if we do NOT project beam velocity!
+
+HEAVY:
+cgins beamInAChannel -g=beamInAChannelGride2.order2.hdf -tf=20. -tp=.0001 -rhoBeam=100. -E=50. -Kt=10. -Kxxt=.5  -addedMass=1 -ampProjectVelocity=1 -projectVelocityOnBeamEnds=1 -nu=.05 -ad2=1 -smoothInterfaceVelocity=1  -go=halt
+
+LIGHT:
+$cgins -noplot beamInAChannel -g=beamInAChannelGride2.order2.hdf -tf=20. -tp=.0001 -rhoBeam=1. -E=50. -Kt=10. -Kxxt=.5  -addedMass=1 -ampProjectVelocity=1 -projectVelocityOnBeamEnds=1 -nu=.05 -ad2=1 -smoothInterfaceVelocity=1  -go=og
+
+
+PIV: do NOT project beam velocity: -- OK
+$cgins -noplot beamInAChannel -g=beamInAChannelGride2.order2.hdf -tf=20. -tp=.001 -rhoBeam=1. -E=50. -Kt=10. -Kxxt=.5  -addedMass=1 -ampProjectVelocity=1 -projectBeamVelocity=0 -projectVelocityOnBeamEnds=0 -nu=.05 -smoothInterfaceVelocity=1  -go=og
+
+PIV - TROUBLE at top of beam
+$cgins -noplot beamInAChannel -g=beamInAChannelGride2.order2.hdf -tf=20. -tp=.0001 -rhoBeam=1. -E=50. -Kt=10. -Kxxt=.5  -addedMass=1 -ampProjectVelocity=1 -projectVelocityOnBeamEnds=1 -nu=.05 -smoothInterfaceVelocity=1  -go=og
+
+
+
+*** Feb 19, 2015
+
+*BUG fixed* Project normal compnent  -- use solid velocity as base velocity
+
+PIV - TROUBLE
+$cgins beamInAChannel -g=beamInAChannelGride2.order2.hdf -tf=20. -tp=.01 -rhoBeam=1. -E=50. -Kt=10. -Kxxt=.5  -addedMass=1 -ampProjectVelocity=1 -projectVelocityOnBeamEnds=1 -nu=.05 -smoothInterfaceVelocity=1  -go=halt
+
+OK
+$cgins beamInAChannel -g=beamInAChannelGride2.order2.hdf -tf=20. -tp=.01 -rhoBeam=1. -E=50. -Kt=10. -Kxxt=.5  -addedMass=1 -ampProjectVelocity=0 -nu=.05  -go=halt
+
+
+PROJECT velocity INCLUDING beam ends: OK 
+cgins horizontalBeamInAChannel -g=horizontalBeamInAChannelGride2.order2.hdf -tf=10. -tp=.01 -delta=1. -E=20. -addedMass=1 -ampProjectVelocity=1 -projectVelocityOnBeamEnds=1 -nu=.05 -smoothInterfaceVelocity=1 -project=1 -numElem=11 -go=halt
+
+
+PROJECT velocity but NOT on the beam ends: OK 
+cgins -noplot horizontalBeamInAChannel -g=horizontalBeamInAChannelGride2.order2.hdf -tf=10. -tp=.01 -delta=1. -E=20. -addedMass=1 -ampProjectVelocity=1 -projectVelocityOnBeamEnds=0 -nu=.05 -smoothInterfaceVelocity=1 -project=1 -numElem=11 -go=og
+
+
+PROJECT velocity but NOT on the beam ends: OK 
+cgins -noplot horizontalBeamInAChannel -g=horizontalBeamInAChannelGride2.order2.hdf -tf=10. -tp=.01 -delta=1. -E=20. -addedMass=1 -ampProjectVelocity=1 -projectVelocityOnBeamEnds=0 -nu=.05 -smoothInterfaceVelocity=1 -project=1 -numElem=11 -go=og
+
+*** Feb 18, 2015
+
+*** RE-VISIT VELOCITY PROJECTION 
+
+DO NOT project velocity near ends: looks OK
+cgins horizontalBeamInAChannel -g=horizontalBeamInAChannelGride2.order2.hdf -tf=10. -tp=.01 -delta=1. -E=20. -addedMass=1 -ampProjectVelocity=1 -nu=.05 -smoothInterfaceVelocity=1 -project=1 -numElem=11 -go=halt
+
+
+
+**** Feb 17, 2015 
+
+beam in a channel
+
+
+INX
+cgins  beamInAChannel -g=beamInAChannelGridBige2.order2.hdf -tf=20. -tp=.5 -rhoBeam=1. -E=10. -Kt=10. -Kxxt=.5  -addedMass=1 -ampProjectVelocity=0 -nu=.05 -ad2=1 -go=halt
+
+
+
+**** Feb 15-16, 2015 -- start testing two-sided beam AMP scheme
+
+===== VERTICAL BEAM -- BIGGER DOMAIN -- steady state for paper
+
+NOTE: Add beam smoothing: Kxxt (needed)
+
+HEAVY BEAM + TRADITIONAL
+nohup $cgins -noplot beamInAChannel -g=beamInAChannelGridBige2.order2.hdf -tf=20. -tp=.5 -rhoBeam=100. -E=10. -Kt=10. -Kxxt=.5  -addedMass=0 -ampProjectVelocity=0 -nu=.05 -show="bicBigE10RS100.show" -go=go >! bicBigE10RS100.out
+
+HEAVY BEAM + TRADITIONAL
+nohup $cgins -noplot beamInAChannel -g=beamInAChannelGridBige2.order2.hdf -tf=20. -tp=.5 -rhoBeam=100. -E=20. -Kt=10. -Kxxt=.5  -addedMass=0 -ampProjectVelocity=0 -nu=.05 -show="bicBigE20RS100.show" -go=go >! bicBigE20RS100.out
+
+E=10. -- FAILS
+nohup $cgins -noplot beamInAChannel -g=beamInAChannelGridBige2.order2.hdf -tf=20. -tp=.5 -rhoBeam=1. -E=10. -Kt=10. -Kxxt=.5  -addedMass=1 -ampProjectVelocity=0 -nu=.05 -ad2=1 -show="bicBigE10RS1.show" -go=go >! bicBigE10RS1.out
+
+E=20. -- 
+nohup $cgins -noplot beamInAChannel -g=beamInAChannelGridBige2.order2.hdf -tf=20. -tp=.5 -rhoBeam=1. -E=20. -Kt=10. -Kxxt=.5  -addedMass=1 -ampProjectVelocity=0 -nu=.05 -show="bicBigE20RS1.show" -go=go >! bicBigE20Rs1.out
+
+OK: -- reaching steady state 
+nohup $cgins -noplot beamInAChannel -g=beamInAChannelGridBige2.order2.hdf -tf=20. -tp=.5 -rhoBeam=1. -E=20. -Kt=10. -Kxxt=.5  -addedMass=1 -ampProjectVelocity=0 -nu=.05 -show="bicBig2.show" -go=go >! bicBig2.out
+
+AMP -- add damping - trouble at t=7.8 ??
+nohup cgins -noplot beamInAChannel -g=beamInAChannelGridBige2.order2.hdf -tf=10. -tp=.5 -rhoBeam=1. -E=20. -Kt=10. -addedMass=1 -ampProjectVelocity=0 -nu=.05 -show="bicBig2.show" -go=go >! bicBig2.out 
+
+
+============HORIZONTAL BEAM =============
+
+AMP + PIV
+cgins -noplot horizontalBeamInAChannel -g=horizontalBeamInAChannelGride2.order2.hdf -tf=10. -tp=.001 -delta=1. -E=20. -addedMass=1 -ampProjectVelocity=1 -nu=.05 -smoothInterfaceVelocity=1 -project=1 -numElem=11 -go=og
+
+
+AMP -- HORIZONTAL BEAM - OK: 
+cgins -noplot horizontalBeamInAChannel -g=horizontalBeamInAChannelGride2.order2.hdf -tf=10. -tp=.01 -delta=1. -E=20. -addedMass=1 -ampProjectVelocity=0 -nu=.05 -smoothInterfaceVelocity=0 -project=1 -numElem=11 -go=og
+
+AMP=0 FAILS
+cgins -noplot horizontalBeamInAChannel -g=horizontalBeamInAChannelGride2.order2.hdf -tf=10. -tp=.01 -delta=1. -E=20. -addedMass=0 -ampProjectVelocity=0 -nu=.05 -smoothInterfaceVelocity=0 -project=1 -numElem=21 -go=og
+
+===================
+
+
+PROJECT INTERFACE VELOCITY
+cgins -noplot beamInAChannel -g=beamInAChannelGride2.order2.hdf -tf=10. -tp=.0001 -delta=1. -E=100. -addedMass=1 -ampProjectVelocity=1 -nu=.05 -smoothInterfaceVelocity=0 -project=1 -numElem=21 -go=og
+
+
+delta=1, E=50 project-velocity (TURN ON project normal component)
+cgins -noplot beamInAChannel -g=beamInAChannelGride2.order2.hdf -tf=10. -tp=.01 -delta=1. -E=50. -addedMass=1 -ampProjectVelocity=1 -nu=.05 -go=og
+
+
+delta=1, E=50 -OK
+cgins -noplot beamInAChannel -g=beamInAChannelGride2.order2.hdf -tf=10. -tp=.01 -delta=1. -E=50. -addedMass=1 -ampProjectVelocity=0 -nu=.05 -go=og
+
+
+AMP -- delta=1 : OK (No velocity projection)
+cgins -noplot beamInAChannel -g=beamInAChannelGride2.order2.hdf -tf=10. -tp=.01 -delta=1. -E=100. -addedMass=1 -ampProjectVelocity=0 -nu=.05 -go=og
+
+
+AMP=1 -- Trouble with velocity projection
+cgins -noplot beamInAChannel -g=beamInAChannelGride2.order2.hdf -tf=10. -tp=.01 -delta=100. -E=100. -addedMass=1 -ampProjectVelocity=0 -nu=.05 -go=og
+
+AMP=1 -- coarse
+cgins -noplot beamInAChannel -g=beamInAChannelGride1.order2.hdf -tf=10. -tp=.01 -delta=10. -E=100. -addedMass=1 -ampProjectVelocity=1 -nu=.1 -go=og
+ 
+coarse - amp=0 -- trouble near t=.6 ??
+cgins -noplot beamInAChannel -g=beamInAChannelGride1.order2.hdf -tf=10. -tp=.01 -delta=100. -E=200. -addedMass=0 -nu=.1 -go=og
+
+AMP=0 : OK: 
+cgins -noplot beamInAChannel -g=beamInAChannelGride2.order2.hdf -tf=10. -tp=.01 -delta=100. -E=100. -addedMass=0 -nu=.05 -go=og
+
+******* Dec 27, 2014 -- save beams to the show file 
+
+Multibeam: 
+
+nohup $cginsx -noplot multiBeamsInAChannel -g=multiBeamsInAChannelGride4.order2.hdf -tf=2. -tp=.1 -show="multiBeam4.show" -outflowOption=neumann -nu=1.e-2 -go=go > multiBeam4.out &
+
+
+
+# run for plotting grid and beam at different times
+cgins beamInAChannel -g=beamInAChannelGride2.order2.hdf -tf=10. -tp=.05 -delta=10. -addedMass=1 -nu=.05 -show=beamForGrid.show -go=halt 
+
+cgins beamInAChannel -g=beamInAChannelGride2.order2.hdf -tf=10. -tp=.01 -delta=10. -addedMass=1 -nu=.05 -show=beam.show -go=halt 
+
+
+
+*********** Dec 16, 2014 -- REVIST LIGHT BEAM 
+
+
+AMP=1 : OK
+cgins beamInAChannel -g=beamInAChannelGride2.order2.hdf -tf=10. -tp=.01 -delta=10. -addedMass=1 -go=halt -nu=.05
+
+AMP=0 : fails right away
+cgins beamInAChannel -g=beamInAChannelGride2.order2.hdf -tf=10. -tp=.01 -delta=10. -addedMass=0 -go=halt -nu=.05
+
+
+
+
+************ Oct 3, 2014  
+
+cgins beamInAChannel -g=beamInAChannelGride2.order2.hdf -tf=10. -tp=.05 -debug=1
+
+************ July 9, 2014  
+
+*** ADDED implicit predictor in BEAM -- HELPS!
+
+DELTA=5:  TROUBLE WITH ampProjectVelocity=1 --> lower CFL!
+cgins beamInAChannel -g=beamInAChannelGride2.order2.hdf -tf=10. -tp=.01 -delta=5. -addedMass=1 -ampProjectVelocity=1 -go=halt -nu=.05 -cfl=.25
+
+
+OK:
+cgins beamInAChannel -g=beamInAChannelGride2.order2.hdf -tf=10. -tp=.01 -delta=5. -addedMass=1 -ampProjectVelocity=0 -go=halt -nu=.05 
+
+
+
+DELTA=10.
+cgins beamInAChannel -g=beamInAChannelGride2.order2.hdf -tf=10. -tp=.01 -delta=10. -addedMass=1 -go=halt -nu=.05
+
+AM=1: OK 
+AM=0: FAILS
+
+
+
+
+CFL=.1 nu=.05 -- better to t=.4 BUT we may need to project the solid velocity 
+cgins beamInAChannel -g=beamInAChannelGride2.order2.hdf -tf=10. -tp=.01 -delta=10. -addedMass=0 -go=halt -nu=.05 -cfl=.1
+
+
+*** July 7, 2014 
+
+
+cgins beamInAChannel -g=beamInAChannelGride2.order2.hdf -tf=10. -tp=.01 -delta=100. -addedMass=0 -go=haltx
+
+
+
+MOVIE:
+cgins -noplot multiBeamsInAChannel -g=multiBeamsInAChannelGride16.order2.hdf -tf=10. -tp=.025 -show="multiBeam16m.show" -outflowOption=neumann -nu=5.e-4 -go=go > multiBeam16m.out &
+
+
+
+
+RUNS/BEAM: TEST added -mass - single beam
+
+AMP + LIGHTER: better but velocity develops wiggles near surface
+cgins beamInAChannel -g=beamInAChannelGride2.order2.hdf -tf=10. -tp=.01 -delta=10. -addedMass=1 -go=halt
+
+
+LIGHTER: TROUBLE: after 50 steps:
+cgins beamInAChannel -g=beamInAChannelGride2.order2.hdf -tf=10. -tp=.01 -delta=10. -addedMass=0 -go=halt
+
+OK
+cgins beamInAChannel -g=beamInAChannelGride2.order2.hdf -tf=10. -tp=.01 -delta=100. -addedMass=0 -go=halt
+
+
+
+
+
+FINER MULTI_BEAM
+nohup $cginsx -noplot multiBeamsInAChannel -g=multiBeamsInAChannelGride32.order2.hdf -tf=20. -tp=.02 -show="multiBeam32.show" -outflowOption=neumann -nu=1.e-4 -go=go > multiBeam32.out &
+
+
+
+*** July 3, 2014 -- revisit beam with latest version of BeamModel class
+
+Broken.... fixed ...
+
+
+OK: 
+cgins -noplot multiBeamsInAChannel -g=multiBeamsInAChannelGride16.order2.hdf -tf=10. -tp=.1 -show="multiBeam16.show" -outflowOption=neumann -nu=5.e-4 -go=go > multiBeam16.out &
+
+
+-- WIDEN space between beams
+
+cgins -noplot multiBeamsInAChannel -g=multiBeamsInAChannelGride8.order2.hdf -tf=10. -tp=.1 -show="multiBeam8.show" -outflowOption=neumann -go=go > multiBeam8.out &
+
+cgins -noplot multiBeamsInAChannel -g=multiBeamsInAChannelGride4.order2.hdf -tf=10. -tp=.1 -show="multiBeam4.show" -outflowOption=neumann -go=go > multiBeam4.out &
+
+
+----
+cgins -noplot multiBeamsInAChannel -g=multiBeamsInAChannelGride8.order2.hdf -tf=10. -tp=.1 -show="multiBeam8.show" -outflowOption=neumann -go=go > multiBeam8.out &
+
+cgins multiBeamsInAChannel -g=multiBeamsInAChannelGride4.order2.hdf -tf=10. -tp=.1 -outflowOption=neumann -go=halt
+
+OK: 
+cgins beamInAChannel -g=beamInAChannelGride2.order2.hdf -tf=10. -tp=.05 -debug=1
+
+Broken... OK: 
+cgins beamInAChannel -g=beamInAChannelGride1.order2.hdf -tf=10. -tp=.001 -debug=3
+
+
+
+** 2014/06/07 -- nonlinear beam
+
+
+cgins nonlinearBeamInAChannel -g=beamInAChannelGride4.order2.hdf -tf=10. -tp=.1 -go=halt
+
+
+** 2014/06/05 -- clean up beam model to allow for multiple beams
+
+
+cgins -noplot multiBeamsInAChannel -g=multiBeamsInAChannelGride4.order2.hdf -tf=10. -tp=.1 -show="multiBeam4.show" -outflowOption=neumann -go=go > multiBeam4.out
+
+cgins multiBeamsInAChannel -g=multiBeamsInAChannelGride4.order2.hdf -tf=10. -tp=.1 -outflowOption=neumann -go=halt
+
+
+
+    ogen -noplot multiBeamsInAChannelGrid -interp=e -factor=2
+    ogen -noplot multiBeamsInAChannelGrid -interp=e -factor=4
+    ogen -noplot multiBeamsInAChannelGrid -interp=e -factor=8
+
+
+
+cgins beamInAChannel -g=beamInAChannelGride4.order2.hdf -tf=10. -tp=.1 -go=halt
+
+
+** 2014/05/23 -- fix bug in BeamModel.C 
+
+
+nohup $cgins -noplot beamInAChannel -g=beamInAChannelGride4.order2.hdf -tf=10. -tp=.1 -show=beam4.show -go=go >! beam4.out 
+
+    ogen -noplot beamInAChannelGrid -interp=e -factor=2
+    ogen -noplot beamInAChannelGrid -interp=e -factor=4
+
+  cgins beamInAChannel -g=beamInAChannelGride2.order2.hdf -tf=10. -tp=.1
