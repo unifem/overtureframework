@@ -366,7 +366,7 @@ computeAcceleration(const real t,
 
 
   // apply bc for rhs
-  if( !allowsFreeMotion &&  solverName!="explicitSolver") //Longfei 20160701: no need to ajust rhs for explicitSolver
+  if( !allowsFreeMotion )
     {
       // --- Apply boundary conditions to rhs  ----
 
