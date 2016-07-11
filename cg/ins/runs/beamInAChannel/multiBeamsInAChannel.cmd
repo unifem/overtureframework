@@ -24,7 +24,13 @@ $gravity = "0 0.0 0."; $cdv=1.; $cDt=.25; $project=1; $restart="";
 $solver="yale";  $rtoli=1.e-5; $atoli=1.e-6; $idebug=0; 
 $psolver="yale"; $rtolp=1.e-5; $atolp=1.e-6; $pdebug=0; $dtolp=1.e20; 
 $pc="ilu"; $refactorFrequency=500; 
-# 
+#
+#beam parameters
+$bdebug=0; # this is passed to beam1 only.
+$cfls=1.;  #cfl for solid
+$ps="newmark2Implicit"; #solid predictor
+$cs="newmarkCorrector"; #solid corrector
+$BM="FEM";
 $rhoBeam=100.; $E=10.; 
 $numElem = 11; # number of elements in the beam
 $addedMass=0; $ampProjectVelocity=0; 
@@ -58,7 +64,8 @@ GetOptions( "g=s"=>\$grid,"tf=f"=>\$tFinal,"implicitFactor=f"=>\$implicitFactor,
   "projectBeamVelocity=i"=>\$projectBeamVelocity,"numberOfCorrections=i"=>\$numberOfCorrections,\
   "useApproximateAMPcondition=i"=>\$useApproximateAMPcondition,"rampInflow=i"=>\$rampInflow,\
   "useTP=i"=>\$useTP,"addedMassRelaxation=f"=>\$addedMassRelaxation,"addedMassTol=f"=>\$addedMassTol,\
-  "smoothBeam=i"=>\$smoothBeam,"numberOfBeamSmooths=i"=>\$numberOfBeamSmooths,"numElem=i"=>\$numElem,"E=f"=>\$E );
+  "smoothBeam=i"=>\$smoothBeam,"numberOfBeamSmooths=i"=>\$numberOfBeamSmooths,"numElem=i"=>\$numElem,"E=f"=>\$E,\
+  "ps=s"=>\$ps,"cs=s"=>\$cs,"BM=s"=>\$BM );
 * -------------------------------------------------------------------------------------------------
 if( $solver eq "best" ){ $solver="choose best iterative solver"; }
 if( $solver eq "mg" ){ $solver="multigrid"; }
@@ -83,6 +90,12 @@ if( $project eq "1" && $restart eq "" ){ $project = "project initial conditions"
 if( $go eq "halt" ){ $go = "break"; }
 if( $go eq "og" ){ $go = "open graphics"; }
 if( $go eq "run" || $go eq "go" ){ $go = "movie mode\n finish"; }
+#
+#
+if($BM eq "FEM") {$beamModel = "FEMBeamModel";}
+if($BM eq "FD")  {$beamModel = "FDBeamModel";}
+#
+#
 $kThermal=$nu/$Prandtl;
 $Pi=4.*atan2(1.,1.);
 *
@@ -126,10 +139,14 @@ $grid
       # ----- BEAM 1 -----
       deforming body
         user defined deforming body
-          elastic beam
+        elastic beam
+    	  $beamModel
           $I=1.; $length=1.; $thick=.2; $pNorm=1.; 
           $angle=90.; # $Pi*.5; 
           elastic beam parameters...
+	    predictor: $ps
+	    corrector: $cs
+	    cfl: $cfls
             name: beam1
             number of elements: $numElem
             area moment of inertia: $I

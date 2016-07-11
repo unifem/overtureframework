@@ -2,11 +2,15 @@
        deforming body
          user defined deforming body
            elastic beam
+           $beamModel
            $I=1.; $length=1.; $thick=.2; $pNorm=1.; 
            $x0=2.; 
            $angle=90.; # $Pi*.5; 
            elastic beam parameters...
-             name: beam2
+	    predictor: $ps
+	    corrector: $cs
+	    cfl: $cfls
+	    name: beam2
              number of elements: $numElem
              area moment of inertia: $I
              elastic modulus: $E

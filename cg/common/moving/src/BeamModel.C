@@ -4731,7 +4731,7 @@ predictor(real tnp1, real dt )
       vtilde = v2 + dt*(1.0-newmarkGamma)*a2;
 
       //Longfei 20160628: implicitNewmarkSolver need valid ghost values for dtilde,vtilde
-      assignBoundaryConditions( tnp1,dtilde,vtilde,a3,f3); 
+      // assignBoundaryConditions( tnp1,dtilde,vtilde,a3,f3);  // 20160711 turn this off for now
     }
 
   

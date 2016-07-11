@@ -28,7 +28,12 @@ $pc="ilu"; $refactorFrequency=500;
 $rampInflow=0; # set to 1 to ramp inflow
 # 
 $addedMass=0; $ampProjectVelocity=0; $E=10.; $tension=0.; $bdebug=0; $K0=0.; $Kt=0.; $Kxxt=0.;
-$rhoBeam=100.; 
+$rhoBeam=100.;
+#
+$ps="newmark2Implicit"; #solid predictor
+$cs="newmarkCorrector"; #solid corrector
+$BM="FEM";
+#
 $delta=-1.; # old way 
 $useApproximateAMPcondition=0;
 $projectNormalComponent=1; # 1 = project only the normal component of the velocity
@@ -68,7 +73,8 @@ GetOptions( "g=s"=>\$grid,"tf=f"=>\$tFinal,"implicitFactor=f"=>\$implicitFactor,
   "useApproximateAMPcondition=i"=>\$useApproximateAMPcondition,"rampInflow=i"=>\$rampInflow,\
   "useTP=i"=>\$useTP,"addedMassRelaxation=f"=>\$addedMassRelaxation,"addedMassTol=f"=>\$addedMassTol,\
   "smoothBeam=i"=>\$smoothBeam,"numberOfBeamSmooths=i"=>\$numberOfBeamSmooths,"newmarkBeta=f"=>\$newmarkBeta,\
-  "newmarkGamma=f"=>\$newmarkGamma,"probeFileName=s"=>\$probeFileName,"rtolp=f"=>\$rtolp,"atolp=f"=>\$atolp );
+  "newmarkGamma=f"=>\$newmarkGamma,"probeFileName=s"=>\$probeFileName,"rtolp=f"=>\$rtolp,"atolp=f"=>\$atolp,\
+  "ps=s"=>\$ps,"cs=s"=>\$cs, "BM=s"=>\$BM);
 # -------------------------------------------------------------------------------------------------
 if( $delta > 0. ){ $rhoBeam=$delta; }
 if( $solver eq "best" ){ $solver="choose best iterative solver"; }
@@ -94,6 +100,12 @@ if( $project eq "1" && $restart eq "" ){ $project = "project initial conditions"
 if( $go eq "halt" ){ $go = "break"; }
 if( $go eq "og" ){ $go = "open graphics"; }
 if( $go eq "run" || $go eq "go" ){ $go = "movie mode\n finish"; }
+#
+#
+if($BM eq "FEM") {$beamModel = "FEMBeamModel";}
+if($BM eq "FD")  {$beamModel = "FDBeamModel";}
+#
+#
 $kThermal=$nu/$Prandtl;
 $Pi=4.*atan2(1.,1.);
 #
@@ -136,10 +148,13 @@ $grid
   specify grids to move
       deforming body
         user defined deforming body
-          elastic beam
+         elastic beam
+         $beamModel
           $I=1.;  $length=1.; $thick=.2; $pNorm=1.; 
           $angle=90.; # $Pi*.5; 
           elastic beam parameters...
+    	    predictor: $ps
+	    corrector: $cs
             number of elements: $numElem
             cfl: $cfls
             # beta=.25, gamma=.5 => second-order;  BE: set beta=.5 gamma=1
