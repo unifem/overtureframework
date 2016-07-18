@@ -284,3 +284,144 @@ then the refracted wave is
 \begin{align*}
   \uv(\xv,t) &= \tau \dv e^{-\alpha x} e^{ i (\kappa_2 y - \omega t)} \qquad\mbox{for $x>0$}
 \end{align*}
+
+
+
+% --------------------------------------------------------------------------------------
+\section{Characteristic conditions and solution to the interface Riemann problem}
+
+
+In this section we derive the characteristic conditions and the solution
+to a Riemann problem at a material interface. These conditions will determine how to
+project the values on the interface to match the jump conditions byusing weighted
+averages of the predicted values. 
+
+Consider the two-dimensional problem 
+\begin{align}
+  \epsilon(x) u_t & = w_y \label{eq:u} \\
+  \epsilon(x) v_t &= -w_x \label{eq:v} \\
+  \mu w_t &= u_y - v_x  \label{eq:w} \\
+  (\epsilon(x) u)_x + (\epsilon(x) v)_y &= 0 \label{eq:div}
+\end{align}
+The permitivity, $\epsilon(x)$ is assumed to be piecewise constant with a possible jump at $x=0$.
+We assume that the solution to these equations remains bounded.
+
+At an interface we have the jump conditions
+\begin{align*}
+    [\eps u]=0, \quad [v]=0, \quad [w]=0.
+\end{align*}
+
+Consider a Riemann problem with left states $u_L$, $v_L$, $w_L$, $\eps_L$ for $x<0$ and
+right states $u_R$, $v_R$, $w_R$, $\eps_R$ for $x>0$.
+
+The equations are
+\begin{align*}
+\begin{bmatrix} u \\ v \\ w \end{bmatrix}_t 
+ + 
+\begin{bmatrix} 0 & 0 & 0 \\
+                0 & 0 & 1/\eps \\
+                0 & 1/\mu & 0 
+\end{bmatrix}
+\begin{bmatrix} u \\ v \\ w \end{bmatrix}_x
++ 
+\begin{bmatrix} 0 & 0 & -1/\eps \\
+                0 & 0 &  0 \\
+                -1/\mu & 0 & 0 
+\end{bmatrix}
+\begin{bmatrix} u \\ v \\ w \end{bmatrix}_y
+= 0
+\end{align*}
+In the x-direction the equations become a wave equation for the transverse wave components, 
+(the component $u$ is a characteristic variable with eigenvalue $\lambda=0$)
+\begin{align*}
+\begin{bmatrix} v \\ w \end{bmatrix}_t 
+ + 
+\begin{bmatrix} 
+                 0 & 1/\eps \\
+                 1/\mu & 0 
+\end{bmatrix}
+\begin{bmatrix} v \\ w \end{bmatrix}_x
+= 0 
+\end{align*}
+where  the matrix $A$ is 
+\begin{align*}
+A = \begin{bmatrix} 
+                 0 & 1/\eps \\
+                 1/\mu & 0 
+\end{bmatrix} .
+\end{align*}
+The eigenvalues and eigenvectors are 
+\begin{align*}
+&  
+A - c I = \begin{bmatrix} 
+                 -\frac{1}{\sqrt{\eps\mu}} & 1/\eps \\
+                 1/\mu & -\frac{1}{\sqrt{\eps\mu}} \end{bmatrix}, \qquad 
+\lambda_{\pm} = \pm c = \pm \frac{1}{\sqrt{\eps\mu}} , \\
+&
+   r_{\pm} = \begin{bmatrix} \pm\eta \\ 1\end{bmatrix}, ~\text{right eigenvectors}, \quad
+   l_{\pm} = \begin{bmatrix} 1 \\ \pm\eta\end{bmatrix}, ~\text{left eigenvectors},
+\end{align*}
+where the electrical impedance $\eta$ is defined as 
+\begin{align*}
+  \eta = \sqrt{\frac{\mu}{\eps}} \quad \text{(electrical impedance)}. 
+\end{align*}
+The characteristic relations are thus (in one-dimension)
+\begin{align*}
+&  \chi_{\pm} = l_\pm^T \begin{bmatrix} v \\ w \end{bmatrix} = 
+v \pm \sqrt{\frac{\mu}{\eps}} w =  v \pm \eta w \quad \text{ are constant along $\frac{dx}{dt}=\pm c$}. 
+\end{align*}
+(Note the analogy from solid mechanics where $\chi_{\pm} = \sigma \mp z v$, $\sigma=$stress, $v=$velocity).
+Also note that by taking the time derivative of $\chi_\pm$ we get the characteristic relations in terms of
+$v_t$ and $v_x$ (using $\mu w_t=-v_x$)
+\begin{align*}
+&  \frac{\partial\chi_{\pm}}{\partial t}  =  v_t   \mp \frac{1}{\mu}\sqrt{\frac{\mu}{\eps}} v_x
+ =  v_t \mp c v_x 
+\end{align*}
+To solve for the interface values, $v^{I}$, $w^{I}$,
+from the solution to the Riemann problem we impose
+\begin{align*}
+&  v^{I} +  \eta_L w^{I} = v_L  + \eta_L w_L, \\
+&  v^{I} -  \eta_R w^{I} = v_R  - \eta_R w_R,
+\end{align*}
+to give 
+\begin{align*}
+ &  v^{I} = \frac{ \eta_L^{-1} v_L + \eta_R^{-1} v_R}{\eta_L^{-1} + \eta_R^{-1}} + \frac{ w_L - w_R}{\eta_L^{-1} + \eta_R^{-1}}, \\ 
+ &  w^{I} = \frac{ \eta_L w_L + \eta_R w_R}{\eta_L + \eta_R} + \frac{ v_L - v_R}{\eta_L + \eta_R} .
+\end{align*}
+Thus the interface value $w^{I}$ is determined from an impedance weighted average of $w$,
+while $v^{I}$ is determined from an inverse-impedance weighted average for $v$.
+
+\medskip
+Question: How do we set $u^I$? 
+The characteristic and jump conditions for $u$ are
+\begin{align*}
+ &  \text{$u$ is constant along $\frac{dx}{dt}=0$ and $\eps_L u_L = \eps_R u_R$}. 
+\end{align*}
+Let us integrate the u equation 
+\[
+  \eps(x) u_t = w_y , \\
+\]
+and average over a cell of width $\dx$ that crosses the interface, 
+\begin{align*}
+   \left<\eps u_t\right>_I \equiv & \frac{1}{\dx} \int \eps(x) u_t \, dx \\
+       & = \frac{1}{\dx}\int  w^I_y \, dx , \\
+       & = \frac{ \eta_L \partial_y w_L + \eta_R \partial_y w_R}{\eta_L + \eta_R} + ... , \\
+       & = \frac{ \eta_L \eps_L \partial_t u_L + \eta_R \eps_R\partial_t u_R}{\eta_L + \eta_R} + ... , \\
+%  &  \eps^I u^I_t = w^I_y = \frac{ \eta_L \eps_L \partial_t u_L + \eta_R \eps_R\partial_t u_R}{\eta_L + \eta_R} + ... , \\
+\end{align*}
+where we have used the formula for $w^I$ along with the governing PDEs. This 
+suggests, by integrating in time, that the average is given by 
+\begin{align*}
+ &  \left<\eps u\right>_I = \frac{ \eta_L\, (\eps_L u_L) + \eta_R\, (\eps_R u_R)}{\eta_L + \eta_R} ,
+\end{align*}
+Thus it appears that the zero-characteristic quantity $\eps u$ should be determined by an impedance weighted average,
+similar to $w$. 
+Thus we maybe we should take new left and right interface values from 
+\begin{align*}
+ &  \eps_L u_L^I = \eps_R u_R^I =  \frac{ \eta_L\, (\eps_L u_L) + \eta_R\, (\eps_R u_R)}{\eta_L + \eta_R} . 
+\end{align*}
+i.e.
+\begin{align*}
+ &   u_L^I = \frac{1}{\eps_L} ~  \frac{ \eta_L\, (\eps_L u_L) + \eta_R\, (\eps_R u_R)}{\eta_L + \eta_R} , \\
+ &   u_R^I = \frac{1}{\eps_R} ~  \frac{ \eta_L\, (\eps_L u_L) + \eta_R\, (\eps_R u_R)}{\eta_L + \eta_R} . 
+\end{align*}

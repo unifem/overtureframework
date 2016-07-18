@@ -35,6 +35,7 @@ Changes:
                   The 'grid quality' button can also be used to print a list of negative volumes.
    o 2015/12/18 - fixed the tolerance used to merge NurbsMapping's -- was too big in general.
                   New dialog GUI for the NurbsMapping with better plotting options.
+   o 2016/06/16 - symmetry boundary conditions fixed in cgmx 
 
 ==============================================================================================
 Overture.v26 - released August 1, 2015
