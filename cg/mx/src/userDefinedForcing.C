@@ -51,12 +51,6 @@ userDefinedForcing( realArray & f, int iparam[], real rparam[] )
   if( option=="none" ) // No user defined forcing has been specified
    return 0;
 
-  if( method!=nfdtd )
-  {
-    printF("userDefinedForcing:ERROR: method!=nfdtd -- not implemented for other methods yet\n");
-    OV_ABORT("ERROR");
-  }
-
   const real t =rparam[0];       // Add the forcing at this time.
   const real dt =rparam[1];      // Current time step.
   const int & grid = iparam[0];  // Here is the grid we are on 
@@ -105,10 +99,10 @@ userDefinedForcing( realArray & f, int iparam[], real rparam[] )
     }
   }
   // This macro defines the grid points for rectangular grids:
-  #undef XC
-  #define XC(iv,axis) (xab[0][axis]+dvx[axis]*(iv[axis]-iv0[axis]))
+#undef XC
+#define XC(iv,axis) (xab[0][axis]+dvx[axis]*(iv[axis]-iv0[axis]))
 
-
+  
   Index I1,I2,I3;
   getIndex( mg.dimension(),I1,I2,I3 );          // all points including ghost points.
   // getIndex( mg.gridIndexRange(),I1,I2,I3 );  // boundary plus interior points.
@@ -120,6 +114,7 @@ userDefinedForcing( realArray & f, int iparam[], real rparam[] )
 
   if( option=="gaussianSources" )
   {
+  
     int & numberOfGaussianSources = db.get<int>("numberOfGaussianSources");
     RealArray & gaussianParameters = db.get<RealArray>("gaussianParameters");
 
@@ -144,12 +139,14 @@ userDefinedForcing( realArray & f, int iparam[], real rparam[] )
 
       if( mg.numberOfDimensions()==2 )
       {
+      
 	FOR_3D(i1,i2,i3,I1,I2,I3)
 	{
           real x= xLocal(i1,i2,i3,0), y=xLocal(i1,i2,i3,1);
           real rSq = SQR(x-x0)+SQR(y-y0);
 	  // real g = a*cost*exp( -beta*pow( rSq, p ) );
-	  real g = a*cost*exp( -beta*pow( rSq, p ) );
+	  real aExp = a*exp( -beta*pow( rSq, p ) );
+	  real g = aExp*cost;
           real rPow = p==1. ? 1 :  pow(rSq,p-1.);
 
           // *wdh* 2015/04/19 -- fixed to be divergence free for p!=1
@@ -158,7 +155,17 @@ userDefinedForcing( realArray & f, int iparam[], real rparam[] )
           // => (Fx)_x + (Fy)_y = 0 
 	  fLocal(i1,i2,i3,ex)+= -(y-y0)*rPow*g;
 	  fLocal(i1,i2,i3,ey)+=  (x-x0)*rPow*g;
-	  fLocal(i1,i2,i3,hz)+=         g;
+	  fLocal(i1,i2,i3,hz)+=              g;
+
+          // ---- this next section is currently not needed -- maybe in future ---
+	  // if( method==sosup )
+	  // {
+          //   // supply time derivative of the forcing 
+          //   real gt = -(2.*Pi*omega)*aExp*sint;
+	  //   fLocal(i1,i2,i3,ext)+= -(y-y0)*rPow*gt;
+	  //   fLocal(i1,i2,i3,eyt)+=  (x-x0)*rPow*gt;
+	  //   fLocal(i1,i2,i3,hzt)+=              gt;
+	  // }
 	  
 	}
       }
@@ -169,7 +176,9 @@ userDefinedForcing( realArray & f, int iparam[], real rparam[] )
 	{
           real x= xLocal(i1,i2,i3,0), y=xLocal(i1,i2,i3,1), z=xLocal(i1,i2,i3,2);
           real rSq =  SQR(x-x0)+SQR(y-y0)+SQR(z-z0);
-	  real g = a*cost*exp( -beta*pow( rSq, p ) );
+	  // real g = a*cost*exp( -beta*pow( rSq, p ) );
+	  real aExp = a*exp( -beta*pow( rSq, p ) );
+	  real g = aExp*cost;
 	  real rPow = pow(rSq,p-1.);
 	  
           // *wdh* 2015/04/19 --FIX ME to be DIV FREE
@@ -180,6 +189,17 @@ userDefinedForcing( realArray & f, int iparam[], real rparam[] )
 	  fLocal(i1,i2,i3,ex)+= ((z-z0)-(y-y0))*rPow*g;
 	  fLocal(i1,i2,i3,ey)+= ((x-x0)-(z-z0))*rPow*g;
 	  fLocal(i1,i2,i3,ez)+= ((y-y0)-(x-x0))*rPow*g;
+
+          // ---- this next section is currently not needed -- maybe in future ---
+	  // if( method==sosup )
+	  // {
+          //   // supply time derivative of the forcing 
+          //   real gt = -(2.*Pi*omega)*aExp*sint;
+	  //   fLocal(i1,i2,i3,ex)+= ((z-z0)-(y-y0))*rPow*gt;
+	  //   fLocal(i1,i2,i3,ey)+= ((x-x0)-(z-z0))*rPow*gt;
+	  //   fLocal(i1,i2,i3,ez)+= ((y-y0)-(x-x0))*rPow*gt;
+	  // }
+
 	}
       }
     }
@@ -213,14 +233,24 @@ userDefinedForcing( realArray & f, int iparam[], real rparam[] )
 	FOR_3D(i1,i2,i3,I1,I2,I3)
 	{
           real x= xLocal(i1,i2,i3,0), y=xLocal(i1,i2,i3,1);
-	  real g = a*cost*exp( -beta*pow( SQR(x-x0)+SQR(y-y0), p ) );
+	  // real g = a*cost*exp( -beta*pow( SQR(x-x0)+SQR(y-y0), p ) );
+	  real aExp = a*exp( -beta*pow( SQR(x-x0)+SQR(y-y0), p ) );
+	  real g = aExp*cost;
 
 	  fLocal(i1,i2,i3,ex)+= -(y-y0)*g;
 	  fLocal(i1,i2,i3,ey)+=  (x-x0)*g;
 	  fLocal(i1,i2,i3,hz)+=         g;
+	  // fLocal(i1,i2,i3,ey)=0.; // *****************
 
-	  fLocal(i1,i2,i3,ey)=0.; // *****************
-	  
+          // ---- this next section is currently not needed -- maybe in future ---
+	  // if( method==sosup )
+	  // {
+          //   // supply time derivative of the forcing 
+          //   real gt = -(2.*Pi*omega)*aExp*sint;
+	  //   fLocal(i1,i2,i3,ex)+= -(y-y0)*gt;
+	  //   fLocal(i1,i2,i3,ey)+=  (x-x0)*gt;
+	  //   fLocal(i1,i2,i3,hz)+=         gt;
+	  // }	  
 	}
       }
       else
@@ -229,12 +259,26 @@ userDefinedForcing( realArray & f, int iparam[], real rparam[] )
 	FOR_3D(i1,i2,i3,I1,I2,I3)
 	{
           real x= xLocal(i1,i2,i3,0), y=xLocal(i1,i2,i3,1), z=xLocal(i1,i2,i3,2);
-	  real g = a*cost*exp( -beta*pow( SQR(x-x0)+SQR(y-y0)+SQR(z-z0), p ) );
+	  // real g = a*cost*exp( -beta*pow( SQR(x-x0)+SQR(y-y0)+SQR(z-z0), p ) );
+	  real aExp = a*exp( -beta*pow( SQR(x-x0)+SQR(y-y0)+SQR(z-z0), p ) );
+	  real g = aExp*cost;
 
 	  fLocal(i1,i2,i3,ex)+= ((z-z0)-(y-y0))*g;
 	  fLocal(i1,i2,i3,ey)+= ((x-x0)-(z-z0))*g;
 	  fLocal(i1,i2,i3,ez) =0.;  // *****************
 	  // fLocal(i1,i2,i3,ez)+= ((y-y0)-(x-x0))*g;
+
+          // ---- this next section is currently not needed -- maybe in future ---
+	  // if( method==sosup )
+	  // {
+          //   // supply time derivative of the forcing 
+          //   real gt = -(2.*Pi*omega)*aExp*sint;
+	  //   fLocal(i1,i2,i3,ex)+= ((z-z0)-(y-y0))*gt;
+	  //   fLocal(i1,i2,i3,ey)+= ((x-x0)-(z-z0))*gt;
+	  //   fLocal(i1,i2,i3,ez) =0.;  // *****************
+	  // }	  
+
+
 	}
       }
     }
@@ -245,7 +289,13 @@ userDefinedForcing( realArray & f, int iparam[], real rparam[] )
     //   A pulse like solution that requires a forcing function to make it a solution
     //   Used to test the forcing terms in the equations.
 
-    if( true )
+    if( method!=nfdtd && method!=sosup )
+    {
+      printF("userDefinedForcing:ERROR: method!=nfdtd -- not implemented for option=[%s] yet.\n",(const char*)option);
+      OV_ABORT("ERROR");
+    }
+
+    if( true && t<5.*dt  )
       printF("--MX-- getUserDefinedForcing: -- eval RHS for manufacturedPulse at t=%9.3e\n",t);
 
     // --- NOTE: We use the same parameters as for the userDefinedKnownSolution -----
@@ -289,13 +339,27 @@ userDefinedForcing( realArray & f, int iparam[], real rparam[] )
 	  y=XC(iv,1);
 	}
 
+	// if( method==nfdtd )
+	// {
         // The forcing function is determined in mx/codes/manufacturedPulse.maple 
         #include "../codes/manufacturedPulseForcing2d.h"
-
 	fLocal(i1,i2,i3,ex) += FEX;
 	fLocal(i1,i2,i3,ey) += FEY;
 	fLocal(i1,i2,i3,hz) += FHZ;
 
+        // ---- this next section is currently not needed -- maybe in future ---
+	// }
+        // else if( method=sosup )
+	// {
+	//   // The forcing function is determined in mx/codes/manufacturedPulse.maple 
+        //   #include "../codes/manufacturedPulseForcingSosup2d.h"
+	//   fLocal(i1,i2,i3,ex ) += FEX;
+	//   fLocal(i1,i2,i3,ey ) += FEY;
+	//   fLocal(i1,i2,i3,hz ) += FHZ;
+	//   fLocal(i1,i2,i3,ext) += FEXT;
+	//   fLocal(i1,i2,i3,eyt) += FEYT;
+	//   fLocal(i1,i2,i3,hzt) += FHZT;
+	// }
       }
     }
     else
@@ -314,14 +378,27 @@ userDefinedForcing( realArray & f, int iparam[], real rparam[] )
 	  y=XC(iv,1);
 	  z=XC(iv,2);
 	}
+	//if( method==nfdtd )
+	// {
+          // The forcing function is determined in mx/codes/manufacturedPulse.maple 
+          #include "../codes/manufacturedPulseForcing3d.h"
+	  fLocal(i1,i2,i3,ex) += FEX;
+  	  fLocal(i1,i2,i3,ey) += FEY;
+	  fLocal(i1,i2,i3,ez) += FEZ;
 
-        // The forcing function is determined in mx/codes/manufacturedPulse.maple 
-        #include "../codes/manufacturedPulseForcing3d.h"
-
-	fLocal(i1,i2,i3,ex) += FEX;
-	fLocal(i1,i2,i3,ey) += FEY;
-	fLocal(i1,i2,i3,hz) += FEZ;
-
+        // ---- this next section is currently not needed -- maybe in future --- 
+	// }
+	// else if( method=sosup )
+	// {
+	//   // The forcing function is determined in mx/codes/manufacturedPulse.maple 
+        //   #include "../codes/manufacturedPulseForcingSosup3d.h"
+	//   fLocal(i1,i2,i3,ex ) += FEX;
+  	//   fLocal(i1,i2,i3,ey ) += FEY;
+	//   fLocal(i1,i2,i3,hz ) += FEZ;
+	//   fLocal(i1,i2,i3,ext) += FEXT;
+  	//   fLocal(i1,i2,i3,eyt) += FEYT;
+	//   fLocal(i1,i2,i3,hzt) += FEZT;
+	// }
       }
     }
     

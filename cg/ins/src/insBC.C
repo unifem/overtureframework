@@ -270,15 +270,24 @@ applyBoundaryConditions(const real & t, realMappedGridFunction & u,
         Index I1,I2,I3;
         getIndex(mg.gridIndexRange(),I1,I2,I3,extra);  // **************** fix this -- only evaluate near boundaries --
 
+        if( false )// ************** TEMP ********************
+        {
+            realArray & x = mg.vertex();
+            int i1=0, i2=0, i3=0;
+            printF("--INSBC-- before getKnown: grid=%i: t=%12.5e, point (i1=0,i2=0) (x,y)=(%20.12e,%20.12e)\n",
+           	     grid,t,x(i1,i2,i3,0),x(i1,i2,i3,1));
+        }
+
         uKnownPointer = &parameters.getKnownSolution( t,grid,I1,I2,I3 );
     }
     realArray & uKnown = uKnownPointer!=NULL ? *uKnownPointer : u;
-
-    #ifdef USE_PPP
-        const realSerialArray & uKnownLocal = uKnown.getLocalArray();
-    #else
-        const realSerialArray & uKnownLocal = uKnown;
-    #endif  
+    OV_GET_SERIAL_ARRAY(real,uKnown,uKnownLocal);
+    
+  // #ifdef USE_PPP
+  //   const realSerialArray & uKnownLocal = uKnown.getLocalArray();
+  // #else
+  //   const realSerialArray & uKnownLocal = uKnown;
+  // #endif  
 
 
   // =======================================================================================================
@@ -884,7 +893,8 @@ applyBoundaryConditions(const real & t, realMappedGridFunction & u,
 
         if( knownSolution!=InsParameters::noKnownSolution ) 
         {
-      // printF(" *** assign dirichletBoundaryCondition at t=%9.3e\n",t);
+            if( false )
+                printF("--INSBC--  *** assign dirichletBoundaryCondition to known at t=%9.3e\n",t);
 
       // apply any known solution at dirichlet BC's   *wdh* 2013/07/25
             bcParams.extraInTangentialDirections=2;

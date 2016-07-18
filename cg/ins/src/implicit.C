@@ -2243,6 +2243,9 @@ applyBoundaryConditionsForImplicitTimeStepping(realMappedGridFunction & u,
 				       parameters.dbase.get<IntegerArray>("interfaceCondition") :
 				       Overture::nullIntArray() );
 
+  const Parameters::KnownSolutionsEnum & knownSolution = 
+            parameters.dbase.get<Parameters::KnownSolutionsEnum >("knownSolution");
+
   if( parameters.getGridIsImplicit(grid) )
   {
     // ** NOTE that we are assigning the RHS for the implicit solve ***
@@ -2296,10 +2299,61 @@ applyBoundaryConditionsForImplicitTimeStepping(realMappedGridFunction & u,
     // === assign dirichlet BC's for the velocity ====
     // ===============================================
 
+    // -- fake dirichletBoundaryCondition *new* July 3, 2017 *wdh* account for knownSolution
+    if( assignDirichletBoundaryCondition )
+    {
+      if( knownSolution!=InsParameters::noKnownSolution ) 
+      {
+	if( false )// ************** TEMP ********************
+	{
+	  printF("--INSBC-IMP--  *** assign dirichletBoundaryCondition to known at t=%9.3e\n",t);
+
+	  realArray & x = mg.vertex();
+	  int i1=0, i2=0, i3=0;
+          printF("  ...  grid=%i: t=%12.5e, point (i1=0,i2=0) (x,y)=(%20.12e,%20.12e)\n",
+		 grid,t,x(i1,i2,i3,0),x(i1,i2,i3,1));
+	}
+	
+
+	realArray *uKnownPointer=NULL;
+	int extra=2;
+	Index I1,I2,I3;
+	getIndex(mg.gridIndexRange(),I1,I2,I3,extra);  // **************** fix this -- only evaluate near boundaries --
+
+	uKnownPointer = &parameters.getKnownSolution( t,grid,I1,I2,I3 );
+	realArray & uKnown = uKnownPointer!=NULL ? *uKnownPointer : u;
+	OV_GET_SERIAL_ARRAY(real,uKnown,uKnownLocal);
+
+	BoundaryConditionParameters bcParams;
+	bcParams.extraInTangentialDirections=2;
+	bcParams.setBoundaryConditionForcingOption(BoundaryConditionParameters::arrayForcing); 
+
+	u.applyBoundaryCondition(V,dirichlet,dirichletBoundaryCondition,uKnownLocal,t,bcParams);
+      
+	bcParams.lineToAssign=0;  // reset
+	bcParams.extraInTangentialDirections=0;
+	bcParams.setBoundaryConditionForcingOption(BoundaryConditionParameters::unSpecifiedForcing);
+
+      }
+      else
+      {
+	u.applyBoundaryCondition(V,dirichlet,dirichletBoundaryCondition,bcData,t,
+				 Overture::defaultBoundaryConditionParameters(),grid);
+      }
+    }
+    
+
     if( parameters.gridIsMoving(grid) )
     {
+      // if( true )
+      // { // *** TEMP**  OUTPUT FOR SHEAR-BLOCK
+      // 	int i1=0, i2=0, i3=0;
+      // 	printF("--INS--IMP-BC: t=%9.3e gridVelocity on boundary=[%14.6e,%14.6e]\n",
+      // 	       t,gridVelocity(i1,i2,i3,0),gridVelocity(i1,i2,i3,1));
+      // }
+      
       u.applyBoundaryCondition(V,dirichlet,noSlipWall,gridVelocity,t);
-      u.applyBoundaryCondition(V,dirichlet,dirichletBoundaryCondition,gridVelocity,t);
+      // *wdh* 2016/07/03 u.applyBoundaryCondition(V,dirichlet,dirichletBoundaryCondition,gridVelocity,t);
     }
     else
     {
@@ -2308,8 +2362,8 @@ applyBoundaryConditionsForImplicitTimeStepping(realMappedGridFunction & u,
       u.applyBoundaryCondition(V,dirichlet,noSlipWall,bcData,pBoundaryData,t,
                                Overture::defaultBoundaryConditionParameters(),grid);
 
-      u.applyBoundaryCondition(V,dirichlet,dirichletBoundaryCondition,bcData,t,
-				Overture::defaultBoundaryConditionParameters(),grid);
+       // *wdh* 2016/07/03 u.applyBoundaryCondition(V,dirichlet,dirichletBoundaryCondition,bcData,t,
+       //				Overture::defaultBoundaryConditionParameters(),grid);
     }
 
     if( turbulenceModel==Parameters::kEpsilon ||

@@ -7,4 +7,8 @@ To run just one of the regression tests type:
 
 
 To replace all check files
-  check.p replace
+  check.p -replace
+
+To replace one check file:
+  check.p -replace boxtz
+

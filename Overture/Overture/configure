@@ -1557,7 +1557,7 @@ foreach $dir ( @directories )
         {
           # We do not specify the compiler lib directory if it is in /usr/lib or /usr/lib/64 as this may cause libGL to
           # be found there instead of in the Mesa directory.
-          if( ($compilerLibDir ne "") && ($compilerLibDir ne "/usr/lib") && ($compilerLibDir ne "/usr/lib64") )
+          if( ($compilerLibDir ne "") && ($compilerLibDir ne "/usr/lib") && ($compilerLibDir ne "/usr/lib64") && ($compilerLibDir ne "/lib64") )
           {
             $line =~ s/\$\(COMPILER_LIB_DIRECTORY\)/$compilerLibDir/g;
             $compilerLibraryLocation = $line;

@@ -278,11 +278,11 @@ outputResults( int current, real t, real dt )
     {
       FILE *output = fileio==0 ? logFile : stdout;
 
-      if ( method==nfdtd || method==yee )
+      if ( method==nfdtd || method==yee || method==sosup )
 	fPrintF(output,"-->t=%10.4e dt=%8.2e |div(E)|=%8.2e |div(E)|/|grad(E)|=%8.2e, |grad(E)|=%8.2e, max(u):[",
                 t,dt,divEMax,divEMax/max(REAL_MIN*100.,gradEMax),gradEMax);
       else
-	fPrintF(output,"-->t=%10.4e dt=%8.2e |div(E)|=%8.2e |div(H)=%8.2e, max(u):[",
+	fPrintF(output,"-->t=%10.4e dt=%8.2e |div(E)|=%8.2e |div(H)|=%8.2e, max(u):[",
                 t,dt,divEMax,gradEMax);
       for( int c=C.getBase(); c<=C.getBound(); c++ )
 	fPrintF(output,"%8.2e,",solutionNorm(c));

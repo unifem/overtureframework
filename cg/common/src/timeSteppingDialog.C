@@ -194,6 +194,11 @@ buildTimeSteppingDialog(DialogData & dialog )
   tbState[ntb]=parameters.dbase.get<bool>("useFullSystemForImplicitTimeStepping");
   ntb++;
 
+  tbCommands[ntb]="exit on instability";
+  tbState[ntb]=parameters.dbase.get<bool>("exitOnInstablity");
+  ntb++;
+
+
   assert( ntb<maxNumberOfToggleButtons );
   tbCommands[ntb]="";  // null termination string
 
@@ -315,6 +320,7 @@ getTimeSteppingOption(const aString & answer,
   bool & projectVelocityOnBeamEnds = parameters.dbase.get<bool>("projectVelocityOnBeamEnds");
   bool & useMovingGridSubIterations = parameters.dbase.get<bool>("useMovingGridSubIterations");
   bool & useFullSystemForImplicitTimeStepping = parameters.dbase.get<bool>("useFullSystemForImplicitTimeStepping");
+  bool & exitOnInstablity = parameters.dbase.get<bool>("exitOnInstablity");
   
   int found=true; 
   char buff[180];
@@ -681,6 +687,13 @@ getTimeSteppingOption(const aString & answer,
       printF("Use multiple sub-iterations per time-step for moving grid problems with light bodies.\n");
     else
       printF("Do NOT use multiple sub-iterations per time-step for moving grid problems with light bodies.\n");
+  }
+  else if( dialog.getToggleValue(answer,"exit on instability",exitOnInstablity) )
+  {
+    if( exitOnInstablity )
+      printF("exitOnInstablity=true: Exit code if an instability is detected.\n");
+    else
+      printF("exitOnInstablity=false: do not monitor solution for an instability\n");
   }
 
   else if( dialog.getToggleValue(answer,"use vector implicit system",useFullSystemForImplicitTimeStepping) )

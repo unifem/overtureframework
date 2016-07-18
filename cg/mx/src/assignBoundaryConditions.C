@@ -1283,35 +1283,36 @@ assignBoundaryConditions( int option, int grid, real t, real dt, realMappedGridF
         	  }
                     else if( mg.boundaryCondition(side,axis)==symmetry )
         	  {
-            // This is a vector symmetry condition
-            // Normal component is odd
-            // Tangential components are  even
-
-                        if( t<=2*dt )
-                        {
-                            printF("Apply symmetry BC on (side,axis)=(%i,%i) t=%8.2e is1,is2=(%i,%i)\n"
-                                          " ************ This symmetry BC should not be used any more! *********\n",
-                                          side,axis,t,is1,is2);
-                        }
-
-            //              Range V(ex,ey);
-            //              mgop.applyBoundaryCondition(u,V,BCTypes::vectorSymmetry,symmetry,0.,t);
-            //              Range H(hz,hz);
-            //              mgop.applyBoundaryCondition(u,H,BCTypes::evenSymmetry,symmetry,0.,t);
-                        Range C(ex,hz);
-          	    mgop.applyBoundaryCondition(u,C,BCTypes::evenSymmetry,symmetry,0.,t);
-          	    if( orderOfAccuracyInSpace==4 )
+          	    if( FALSE ) // *WDH* June 16, 2016
           	    {
-            	      bcParams.ghostLineToAssign=2;
-            	      mgop.applyBoundaryCondition(u,C,BCTypes::evenSymmetry,symmetry,0.,t,bcParams);
-          	    }
+	      // THIS IS AN OLD INCORRECT SYMMETRY BC -- only did even symmetry
+	      // Symmetry conditions are now performed elsewhere in bcSymmetry 
 
-          	    if( orderOfAccuracyInSpace!=2 && orderOfAccuracyInSpace!=4 )
-          	    {
-            	      printF("cgmx: assignBC: symmetry BC : ERROR: orderOfAccuracyInSpace=%i\n",orderOfAccuracyInSpace);
-            	      OV_ABORT("FINISH ME");
+            	      if( t<=2*dt )
+            	      {
+            		printF("Apply symmetry BC on (side,axis)=(%i,%i) t=%8.2e is1,is2=(%i,%i)\n"
+                   		       " ************ This symmetry BC should not be used any more! *********\n",
+                   		       side,axis,t,is1,is2);
+            	      }
+
+	      //              Range V(ex,ey);
+	      //              mgop.applyBoundaryCondition(u,V,BCTypes::vectorSymmetry,symmetry,0.,t);
+	      //              Range H(hz,hz);
+	      //              mgop.applyBoundaryCondition(u,H,BCTypes::evenSymmetry,symmetry,0.,t);
+            	      Range C(ex,hz);
+            	      mgop.applyBoundaryCondition(u,C,BCTypes::evenSymmetry,symmetry,0.,t);
+            	      if( orderOfAccuracyInSpace==4 )
+            	      {
+            		bcParams.ghostLineToAssign=2;
+            		mgop.applyBoundaryCondition(u,C,BCTypes::evenSymmetry,symmetry,0.,t,bcParams);
+            	      }
+
+            	      if( orderOfAccuracyInSpace!=2 && orderOfAccuracyInSpace!=4 )
+            	      {
+            		printF("cgmx: assignBC: symmetry BC : ERROR: orderOfAccuracyInSpace=%i\n",orderOfAccuracyInSpace);
+            		OV_ABORT("FINISH ME");
+            	      }
           	    }
-          	    
           	    
         	  }
                     else if( mg.boundaryCondition(side,axis)==interfaceBoundaryCondition )
@@ -1668,7 +1669,8 @@ assignBoundaryConditions( int option, int grid, real t, real dt, realMappedGridF
         if( debugGhost && grid==1 )
             fprintf(debugFile,"\n --DBG--- Before optBC: u[1](-1,-1,0,ey)=%8.2e\n",uLocal(-1,-1,0,ey));
 
-        if( initialConditionOption!=planeMaterialInterfaceInitialCondition ) // *wdh* 080922
+    // *wdh* June 25, 2016 if( initialConditionOption!=planeMaterialInterfaceInitialCondition ) // *wdh* 080922
+        if( true )
         {
       // *wdh* 2011/12/02 -- this next line was wrong -- side and axis are not correct here.
       // *wdh* getBoundaryIndex(mg.gridIndexRange(),side,axis,I1,I2,I3);
@@ -1730,11 +1732,23 @@ assignBoundaryConditions( int option, int grid, real t, real dt, realMappedGridF
                 ipar[24]=(int)useChargeDensity;
                 ipar[25]= adjustFarFieldBoundariesForIncidentField(grid);
         // ipar[26]=bcOpt;  // assigned below
-                int bcSymmetryOption=0;     // 0=even symmetry, 1=even-odd symmetry
+        // int bcSymmetryOption=0;     // 0=even symmetry, 1=even-odd symmetry
+                int bcSymmetryOption=1;     // This is the proper symmetry condition *wdh* Sept 6, 2016
                 ipar[27]= bcSymmetryOption;
                 ipar[28]=myid;
           // apply BCs to field variables
                     ipar[29]=0;  // fieldOption
+                int numberOfGhostLines = orderOfAccuracyInSpace/2;
+                if( method==sosup ) numberOfGhostLines++;  // sosup uses one extra ghost line
+                ipar[30]=numberOfGhostLines;  // for symmetry BC in bcSymmetry
+        // field we subtract off the incident field over this many points next to the boundary.
+        // This value should take into account the width of extrapolation used at far-fields
+        // For order=2: we may extrap first ghost using 1 -3 3 1 
+        // For order=4: we may extrap first ghost using 1 -4 6 -4 1
+                int widthForAdjustFieldsForIncident=orderOfAccuracyInSpace/2+1; 
+                if( orderOfAccuracyInSpace>2 )
+                    widthForAdjustFieldsForIncident+=1;  // *wdh* ABC 4th-order corners needs 1 more 
+                ipar[31]=widthForAdjustFieldsForIncident;
                 rpar[0]=dx[0];       // for Cartesian grids          
                 rpar[1]=dx[1];                
                 rpar[2]=dx[2];                
@@ -1819,7 +1833,7 @@ assignBoundaryConditions( int option, int grid, real t, real dt, realMappedGridF
                 const int bc0=-1;  // do all boundaries.
                 int ierr=0;
         // *wdh* 090509 -- symmetry BC's (like a straight PEC wall)
-                int bcOption=0;     // assign all faces
+                int bcOption=0;     // 0=assign all faces, 1=assign corners and edges
                 ipar[26]=bcOption;
                 bcSymmetry( mg.numberOfDimensions(), 
                         	      uu.getBase(0),uu.getBound(0),
@@ -1869,6 +1883,25 @@ assignBoundaryConditions( int option, int grid, real t, real dt, realMappedGridF
                     ipar[25]=-1;  // subtract the incident field
                     ipar[26]=numberLinesForPML;
                     ipar[27]=adjustThreeLevels;
+          // parameters for tanh smoothing near bounding box front:
+          // -- this must match the formula in getInitialConditions.bC
+                    const int & side = dbase.get<int>("boundingBoxDecaySide");
+                    const int & axis = dbase.get<int>("boundingBoxDecayAxis");
+                    real beta=boundingBoxDecayExponent/twoPi;
+                    real nv[3]={0.,0.,0.};  // normal to decay direction
+                    nv[axis]=2*side-1;
+          // Damp near the point xv0[] on the front
+                    real xv0[3]={0.,0.,0.};  // normal to decay direction
+                    xv0[0] = .5*(initialConditionBoundingBox(1,0)+initialConditionBoundingBox(0,0));
+                    xv0[1] = .5*(initialConditionBoundingBox(1,1)+initialConditionBoundingBox(0,1));
+                    xv0[axis]=initialConditionBoundingBox(side,axis);
+                    rpar[29]=beta;
+                    rpar[30]=nv[0];
+                    rpar[31]=nv[1];
+                    rpar[32]=nv[2];
+                    rpar[33]=xv0[0];
+                    rpar[34]=xv0[1];
+                    rpar[35]=xv0[2];
                     adjustForIncident( mg.numberOfDimensions(),  
                         		uu.getBase(0),uu.getBound(0),
                         		uu.getBase(1),uu.getBound(1),
@@ -2133,7 +2166,7 @@ assignBoundaryConditions( int option, int grid, real t, real dt, realMappedGridF
                         }
                 }
         // *wdh* 090509 -- symmetry CORNERS BC's (like a straight PEC wall)
-                bcOption=1; // assign corners and edges
+                bcOption=1; // 1=assign corners and edges only
                 ipar[26]=bcOption; 
                 bcSymmetry( mg.numberOfDimensions(), 
                         	      uu.getBase(0),uu.getBound(0),
@@ -2227,11 +2260,23 @@ assignBoundaryConditions( int option, int grid, real t, real dt, realMappedGridF
                     ipar[24]=(int)useChargeDensity;
                     ipar[25]= adjustFarFieldBoundariesForIncidentField(grid);
           // ipar[26]=bcOpt;  // assigned below
-                    int bcSymmetryOption=0;     // 0=even symmetry, 1=even-odd symmetry
+          // int bcSymmetryOption=0;     // 0=even symmetry, 1=even-odd symmetry
+                    int bcSymmetryOption=1;     // This is the proper symmetry condition *wdh* Sept 6, 2016
                     ipar[27]= bcSymmetryOption;
                     ipar[28]=myid;
             // apply BCs to time-derivatives
                         ipar[29]=1;  // fieldOption
+                    int numberOfGhostLines = orderOfAccuracyInSpace/2;
+                    if( method==sosup ) numberOfGhostLines++;  // sosup uses one extra ghost line
+                    ipar[30]=numberOfGhostLines;  // for symmetry BC in bcSymmetry
+          // field we subtract off the incident field over this many points next to the boundary.
+          // This value should take into account the width of extrapolation used at far-fields
+          // For order=2: we may extrap first ghost using 1 -3 3 1 
+          // For order=4: we may extrap first ghost using 1 -4 6 -4 1
+                    int widthForAdjustFieldsForIncident=orderOfAccuracyInSpace/2+1; 
+                    if( orderOfAccuracyInSpace>2 )
+                        widthForAdjustFieldsForIncident+=1;  // *wdh* ABC 4th-order corners needs 1 more 
+                    ipar[31]=widthForAdjustFieldsForIncident;
                     rpar[0]=dx[0];       // for Cartesian grids          
                     rpar[1]=dx[1];                
                     rpar[2]=dx[2];                
@@ -2316,7 +2361,7 @@ assignBoundaryConditions( int option, int grid, real t, real dt, realMappedGridF
                     const int bc0=-1;  // do all boundaries.
                     int ierr=0;
           // *wdh* 090509 -- symmetry BC's (like a straight PEC wall)
-                    int bcOption=0;     // assign all faces
+                    int bcOption=0;     // 0=assign all faces, 1=assign corners and edges
                     ipar[26]=bcOption;
                     bcSymmetry( mg.numberOfDimensions(), 
                             	      uu.getBase(0),uu.getBound(0),
@@ -2366,6 +2411,25 @@ assignBoundaryConditions( int option, int grid, real t, real dt, realMappedGridF
                         ipar[25]=-1;  // subtract the incident field
                         ipar[26]=numberLinesForPML;
                         ipar[27]=adjustThreeLevels;
+            // parameters for tanh smoothing near bounding box front:
+            // -- this must match the formula in getInitialConditions.bC
+                        const int & side = dbase.get<int>("boundingBoxDecaySide");
+                        const int & axis = dbase.get<int>("boundingBoxDecayAxis");
+                        real beta=boundingBoxDecayExponent/twoPi;
+                        real nv[3]={0.,0.,0.};  // normal to decay direction
+                        nv[axis]=2*side-1;
+            // Damp near the point xv0[] on the front
+                        real xv0[3]={0.,0.,0.};  // normal to decay direction
+                        xv0[0] = .5*(initialConditionBoundingBox(1,0)+initialConditionBoundingBox(0,0));
+                        xv0[1] = .5*(initialConditionBoundingBox(1,1)+initialConditionBoundingBox(0,1));
+                        xv0[axis]=initialConditionBoundingBox(side,axis);
+                        rpar[29]=beta;
+                        rpar[30]=nv[0];
+                        rpar[31]=nv[1];
+                        rpar[32]=nv[2];
+                        rpar[33]=xv0[0];
+                        rpar[34]=xv0[1];
+                        rpar[35]=xv0[2];
                         adjustForIncident( mg.numberOfDimensions(),  
                             		uu.getBase(0),uu.getBound(0),
                             		uu.getBase(1),uu.getBound(1),
@@ -2630,7 +2694,7 @@ assignBoundaryConditions( int option, int grid, real t, real dt, realMappedGridF
                             }
                     }
           // *wdh* 090509 -- symmetry CORNERS BC's (like a straight PEC wall)
-                    bcOption=1; // assign corners and edges
+                    bcOption=1; // 1=assign corners and edges only
                     ipar[26]=bcOption; 
                     bcSymmetry( mg.numberOfDimensions(), 
                             	      uu.getBase(0),uu.getBound(0),
@@ -2719,7 +2783,7 @@ assignBoundaryConditions( int option, int grid, real t, real dt, realMappedGridF
             for( int axis=0; axis<mg.numberOfDimensions(); axis++ )for( int side=0; side<=1; side++ )
             {
       	const int bc = mg.boundaryCondition(side,axis);
-      	if( bc!=dirichlet )
+      	if( bc!=dirichlet && bc!=symmetry )
       	{
         	  u.applyBoundaryCondition(Ca,BCTypes::extrapolate,BCTypes::boundary1+side+2*(axis),0.,t,extrapParams);
       	}

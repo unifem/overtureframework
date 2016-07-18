@@ -26,9 +26,15 @@
 #  plotStuff plotFallingBody.cmd -show=fallingBodyG4d0p1ampAD2.show -matlab=fallingBodyG4d0p1ampAD2 [ AD=2
 #  plotStuff plotFallingBody.cmd -show=fallingBodyG4d0p1ampAD4.show -matlab=fallingBodyG4d0p1ampAD4 [ AD=4 
 #  plotStuff plotFallingBody.cmd -show=fallingBodyG4d0p1ampBE.show -matlab=fallingBodyG4d0p1ampBE [ RB-backward-Euler
+#
 #  --- G8
 #  plotStuff plotFallingBody.cmd -show=fallingBodyG8d0p1amp.show -matlab=fallingBodyG8d0p1amp [dt=.04
 #  plotStuff plotFallingBody.cmd -show=fallingBodyG8d0p1ampA.show -matlab=fallingBodyG8d0p1ampA [dt=.02
+# 
+# For paper:  Light: rhob=0.1 
+#  plotStuff plotFallingBody.cmd -show=fallingBodyG4d0p1ampAD1.show -matlab=fallingBodyG4d0p1ampAD1 [ AD=1
+#  plotStuff plotFallingBody.cmd -show=fallingBodyG8d0p1ampAD1.show -matlab=fallingBodyG8d0p1ampAD1 [ AD=1
+#  plotStuff plotFallingBody.cmd -show=fallingBodyG16d0p1ampAD1.show -matlab=fallingBodyG16d0p1ampAD1 [ AD=1
 # 
 $show="fallingBody2.show";
 $vorMin=-50; $vorMax=25.; $option=""; $name="fallingBody"; $matlab="fallingBody"; 

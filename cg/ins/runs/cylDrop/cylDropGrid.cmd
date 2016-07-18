@@ -28,10 +28,11 @@
 #
 #  --- offset cylinder in a channel
 #   ogen -noplot cylDropGrid.cmd -interp=e -radius=.5 -xa=-1.25 -xb=1.25 -ya=-3. -yb=2. -cx=.5 -cy=0. -wallStretchOption=1 -blfc=2 -blf=2 -prefix=offsetCylInChannel -factor=2
-#   ogen -noplot cylDropGrid.cmd -interp=e -radius=.5 -xa=-1.25 -xb=1.25 -ya=-6. -yb=2. -cx=.5 -cy=0. -wallStretchOption=1 -blfc=2 -blf=2 -prefix=offsetCylInChannel -factor=4
+#   ogen -noplot cylDropGrid.cmd -interp=e -radius=.5 -xa=-1.25 -xb=1.25 -ya=-6. -yb=3. -cx=.5 -cy=0. -wallStretchOption=1 -blfc=2 -blf=2 -prefix=offsetCylInChannel -factor=4
+#   ogen -noplot cylDropGrid.cmd -interp=e -radius=.5 -xa=-1.25 -xb=1.25 -ya=-6. -yb=3. -cx=.5 -cy=0. -wallStretchOption=1 -blfc=2 -blf=2 -prefix=offsetCylInChannel -factor=8
 # 
 #  -- no stretching on the channel
-#   ogen -noplot cylDropGrid.cmd -interp=e -radius=.5 -xa=-1.25 -xb=1.25 -ya=-2. -yb=2. -cx=.5 -cy=0. -blf=2 -prefix=offsetCylInChannel -factor=2
+#   ogen -noplot cylDropGrid.cmd -interp=e -radius=.5 -xa=-1.25 -xb=1.25 -ya=-6. -yb=3. -cx=.5 -cy=0. -wallStretchOption=0 -blf=2 -prefix=offsetCylInChannel -factor=8
 #
 # ------------------------------------------------------------------------------------------------------
 $prefix="cylDropGrid";  $rgd="var";

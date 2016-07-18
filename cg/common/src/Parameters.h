@@ -465,6 +465,15 @@ realMappedGridFunction& getKnownSolution(real t, int grid,
 					 const Index & I1, const Index &I2, const Index &I3, 
 					 bool initialCall=false, int numberOfTimeDerivatives = 0 );
 
+// Some known solutions include rigid-body motions
+virtual
+int getKnownSolutionRigidBody( int body, real t, 
+			       RealArray & xCM      = Overture::nullRealArray(), 
+			       RealArray & vCM      = Overture::nullRealArray(),
+                               RealArray & aCM      = Overture::nullRealArray(),
+			       RealArray & omega    = Overture::nullRealArray(), 
+			       RealArray & omegaDot = Overture::nullRealArray() );
+
 virtual int 
 getMaterialParametersOption(const aString & answer,
 			    BodyForceRegionParameters & regionPar,
@@ -497,6 +506,17 @@ int getUserBoundaryConditionParameters(int side, int axis, int grid, RealArray &
 virtual
 int getUserDefinedKnownSolution(real t, CompositeGrid & cg, int grid, RealArray & ua, 
 				const Index & I1, const Index &I2, const Index &I3, int numberOfTimeDerivatives = 0 );
+
+// Some known solutions include rigid-body motions
+virtual
+int getUserDefinedKnownSolutionRigidBody( int body, real t, 
+					  RealArray & xCM      = Overture::nullRealArray(), 
+					  RealArray & vCM      = Overture::nullRealArray(),
+					  RealArray & aCM      = Overture::nullRealArray(),
+					  RealArray & omega    = Overture::nullRealArray(), 
+					  RealArray & omegaDot = Overture::nullRealArray() );
+
+
 virtual
 bool gridIsMoving(int grid) const;
 

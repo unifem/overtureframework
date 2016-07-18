@@ -5,7 +5,8 @@
 #include "TravelingWaveFsi.h"
 #include "TridiagonalSolver.h"
 
-
+// Matrix-matrix multiple routine "mult" is now here: 
+#include "RigidBodyMotion.h" 
 
 
 #define  FOR_3(i1,i2,i3,I1,I2,I3)					\
@@ -23,13 +24,6 @@
   for( i3=I3Base; i3<=I3Bound; i3++ )					\
     for( i2=I2Base; i2<=I2Bound; i2++ )					\
       for( i1=I1Base; i1<=I1Bound; i1++ )
-
-
-
-// Forward declarations of utility matrix functions on A++ arrays
-//
-RealArray 
-mult( const RealArray & a, const RealArray & b );
 
 
 
@@ -642,7 +636,7 @@ computeInternalForce(const RealArray& u, const RealArray& v, RealArray& f)
       for (int k = 0; k < 4; ++k)
 	elementU(k) = u(i*2+k);
     
-      elementForce = mult(elementK, elementU);
+      elementForce = RigidBodyMotion::mult(elementK, elementU);
       for( int k = 0; k < 4; ++k )
 	f(i*2+k) -= elementForce(k);
     }
@@ -659,7 +653,7 @@ computeInternalForce(const RealArray& u, const RealArray& v, RealArray& f)
 	  for (int k = 0; k < 4; ++k )
 	    elementV(k) = v(i*2+k);
     
-	  elementForce = mult(elementB, elementV);
+	  elementForce = RigidBodyMotion::mult(elementB, elementV);
 	  for( int k = 0; k < 4; ++k )
 	    f(i*2+k) -= elementForce(k);
 	}
@@ -704,7 +698,7 @@ multiplyByMassMatrix(const RealArray& w, RealArray& Mw)
       for (int k = 0; k < 4; ++k)
 	elementU(k) = w(i*2+k);
     
-      tmpv = mult(elementM, elementU);
+      tmpv = RigidBodyMotion::mult(elementM, elementU);
 
       for (int k = 0; k < 4; ++k)
 	Mw(i*2+k) += tmpv(k);

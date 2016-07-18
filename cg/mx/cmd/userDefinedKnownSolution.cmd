@@ -14,7 +14,7 @@
 #   cgmx userDefinedKnownSolution -g=square64.order4 -beta=40 -rbc=abcPML -pmlWidth=21 -pmlStrength=50. -diss=1. -tf=100 -tp=.1 -go=halt
 #
 $tFinal=10.; $tPlot=.1; $diss=.1; $cfl=.9;  $kx=1; $ky=0; $kz=0.; $plotIntensity=0; 
-$x0=.5; $y0=.5; $z0=.5; $beta=40.; 
+$x0=.5; $y0=.5; $z0=.5; $beta=40.;  $method="NFDTD";
 $grid="sib1.order4.hdf"; $ic="gs"; $ks="none";
 $cons=0; $go="halt"; $rbc="abcEM2"; $bcn="debug $debug"; 
 $pmlWidth=11;  $pmlStrength=50.; $pmlPower=4.; 
@@ -26,15 +26,17 @@ GetOptions( "g=s"=>\$grid,"tf=f"=>\$tFinal,"diss=f"=>\$diss,"tp=f"=>\$tPlot,"sho
   "dtMax=f"=>\$dtMax, "cons=i"=>\$cons,"kx=i"=>\$kx,"ky=i"=>\$ky,"kz=i"=>\$kz,"plotIntensity=i"=>\$plotIntensity,\
   "ks=s"=>\$ks,"rbc=s"=>\$rbc,"pmlWidth=f"=>\$pmlWidth,"pmlStrength=f"=>\$pmlStrength,"pmlPower=f"=>\$pmlPower,\
   "x0=f"=>\$x0,"y0=f"=>\$y0,"z0=f"=>\$z0,"beta=f"=>\$beta,"cons=i"=>\$cons,\
-  "useNewForcingMethod=i"=>\$useNewForcingMethod );
+  "useNewForcingMethod=i"=>\$useNewForcingMethod,"method=s"=>\$method );
 # -------------------------------------------------------------------------------------------------
+if( $method eq "sosup" ){ $diss=0.; }
+if( $method eq "fd" ){ $method="nfdtd"; }
 if( $go eq "halt" ){ $go = "break"; }
 if( $go eq "og" ){ $go = "open graphics"; }
 if( $go eq "run" || $go eq "go" ){ $go = "movie mode\n finish"; }
 #
 $grid
 # 
-NFDTD
+$method
 #
 user defined known solution
   manufactured pulse

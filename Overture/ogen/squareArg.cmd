@@ -81,14 +81,19 @@
 #     ogen -noplot squareArg -order=4 -nx=40 -numGhost=3
 #     ogen -noplot squareArg -order=6 -nx=40 -numGhost=4
 #
+#  Bigger square
+#    ogen -noplot squareArg -order=4 -prefix=bigSquare -xa=-2 -xb=2 -ya=-2 -yb=2 -nx=10 
+#
 # see also the script buildSquares
 #
 $order=2; $n=10; # default values
 $orderOfAccuracy = "second order"; $ng=2; $periodic=""; 
 $numGhost=-1;  # if this value is set, then use this number of ghost points
+$prefix="square"; $xa=0.; $xb=1.; $ya=0.; $yb=1.; 
 # 
 # get command line arguments
-GetOptions( "order=i"=>\$order,"nx=i"=> \$n,"periodic=s"=>\$periodic,"numGhost=i"=> \$numGhost );
+GetOptions( "order=i"=>\$order,"nx=i"=> \$n,"periodic=s"=>\$periodic,"numGhost=i"=> \$numGhost,\
+            "xa=f"=>\$xa,"xb=f"=>\$xb,"ya=f"=>\$ya,"yb=f"=>\$yb, "prefix=s"=> \$prefix );
 $nx=$n+1; 
 # 
 if( $order eq 4 ){ $orderOfAccuracy="fourth order"; $ng=2; }\
@@ -106,10 +111,12 @@ if( $numGhost ne -1 ){ $suffix .= ".ng$numGhost"; }
 # 
 # 
 $cells = $lines -1;
-$name = "square" . "$cells" . $suffix;
+$name = $prefix . "$cells" . $suffix;
 #
 create mappings
   rectangle
+    set corners
+      $xa $xb $ya $yb
     mappingName
       square
     lines

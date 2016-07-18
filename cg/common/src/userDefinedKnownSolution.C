@@ -647,6 +647,29 @@ getUserDefinedKnownSolution(real t, CompositeGrid & cg, int grid, RealArray & ua
 }
 
 
+// ===================================================================================================================
+/// \brief Return proerties of a known solution for rigid-body motions
+/// \param body (input) : body number
+/// \param t (input) : time
+// ===================================================================================================================
+int Parameters::
+getUserDefinedKnownSolutionRigidBody( int body, real t, 
+				      RealArray & xCM      /* = Overture::nullRealArray() */, 
+				      RealArray & vCM      /* = Overture::nullRealArray() */,
+				      RealArray & aCM      /* = Overture::nullRealArray() */,
+				      RealArray & omega    /* = Overture::nullRealArray() */, 
+				      RealArray & omegaDot /* = Overture::nullRealArray() */ )
+{
+
+  const KnownSolutionsEnum & knownSolution = dbase.get<KnownSolutionsEnum >("knownSolution");
+
+  printF("Parameters::getKnownSolutionRigidBody:ERROR: unknown knownSolution=%i\n", (int)knownSolution);
+  OV_ABORT("ERROR");
+
+  return 0;
+}
+
+
 
 //\begin{>>MovingGridsSolverInclude.tex}{\subsection{updateUserDefinedMotion}} 
 int Parameters::

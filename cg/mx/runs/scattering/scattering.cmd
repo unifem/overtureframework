@@ -20,8 +20,14 @@
 #   cgmx scattering -g=trianglee8.order4.hdf -bg=backGround -plotIntensity=1
 #   cgmx scattering -g=crve4.order4.hdf -bg=backGround                (scattering from a space reentry vehicle )
 #
-# -- PML with boundaryForcing
+# -- computed scattered field directly using boundaryForcing=1: --------
+#    -- scattering from a cylinder
+#    ogen -noplot cicArg -order=4 -interp=e -factor=4 
 #    cgmx scattering -g=cice4.order4.hdf  -bg=square -rbc=abcPML -boundaryForcing=1
+# 
+#     -- scattering from a sphere with zero initial conditions and PML far-field
+#    ogen -noplot sphereInABox -order=4 -factor=2 
+#    cgmx scattering -g=sphereInABoxe2.order4 -bg=backGround -rbc=abcPML -boundaryForcing=1
 # 
 # parallel: 
 #   mpirun -np 2 $cgmxp scattering -g=trianglee8.order4.hdf -bg=backGround

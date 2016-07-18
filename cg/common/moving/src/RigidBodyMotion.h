@@ -11,6 +11,7 @@ using namespace DBase;
 
 
 class GenericGraphicsInterface;
+class Parameters;
 
 class RigidBodyMotion
 {
@@ -87,6 +88,9 @@ enum PositionConstraintEnum
   int get( const GenericDataBase & dir, const aString & name);
 
   int getAcceleration( real t, RealArray & aCM  ) const;
+ 
+  // return the added-daping scale factor 
+  real getAddedDampingScaleFactor() const;
 
   // Get the added damping tensors: 
   int getAddedDampingTensors( RealArray & addedDampingTensors, const real t ) const;
@@ -131,6 +135,14 @@ enum PositionConstraintEnum
 			   RealArray & v0 = Overture::nullRealArray() , 
 			   RealArray & w0 = Overture::nullRealArray() ,
 			   RealArray & axesOfInertia = Overture::nullRealArray()  ) const ;
+
+  // return the known solution (if available)
+  int getKnownSolution( real t, 
+			RealArray & xCM      = Overture::nullRealArray(), 
+			RealArray & vCM      = Overture::nullRealArray(),
+			RealArray & aCM      = Overture::nullRealArray(),
+			RealArray & omega    = Overture::nullRealArray(), 
+			RealArray & omegaDot = Overture::nullRealArray() ) const;
 
   real getMass() const;
 
@@ -213,6 +225,12 @@ enum PositionConstraintEnum
 
   int setAxesOfInertial( const RealArray & axesOfInertia );
 
+  // set the body number corresponding to the MovingGrids class
+  int setBodyNumber( int bodyNumber );
+
+  // set the name of the check file
+  int setCheckFileName( const aString & checkFileName );
+
   void setDensity( const real bodyDensity );
 
   int setInitialCentreOfMass( const RealArray & x0 );
@@ -229,6 +247,9 @@ enum PositionConstraintEnum
 
   // Set the tolerance for the Newton iteration for implicit schemes.
   int setNewtonTolerance( real tol );
+
+  // set the Parameters
+  int setParameters( Parameters & parameters );
 
   // Supply forcing at "negative" times for startup (the fourth-order scheme requires values at t=-dt).
   int setPastTimeForcing( real t, const RealArray & force, const RealArray & torque );
@@ -254,9 +275,19 @@ enum PositionConstraintEnum
   // Return true if the added mass matrices are being used.
   bool useAddedMass() const;
 
+  // Write the current solution (and errors) in the check file (for regression tests)
+  int writeCheckFile( real t );
+
   // Write information about the moving grids
   void writeParameterSummary( FILE *file= stdout );
 
+
+  // --- Martix utility routines (these should be put elsewhere) ---
+  static RealArray mult( const RealArray & a, const RealArray & b );
+  static RealArray trans( const RealArray &a );
+  static real dot( const RealArray &a, const RealArray &b );
+  static RealArray getCrossProductMatrix( const RealArray & w );
+  static RealArray solve( const RealArray & a, const RealArray & b );
 
   static int debug;               // debug flag
 
@@ -286,6 +317,9 @@ enum PositionConstraintEnum
   // get forcing (protected routine) 
   int getForceInternal(const real t, RealArray & fv, RealArray & gv, RealArray *pA=NULL ) const;
  
+  // Make a matrix orthonormal
+  int orthoNormalizeMatrix( RealArray & e, int k =0 ) const;
+
   // Under-relax the forces on the body.
   int relaxForce( real t, int next, 
   		  const RealArray & f, const RealArray & force, const RealArray & bodyForce, 

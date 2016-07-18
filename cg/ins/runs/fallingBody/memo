@@ -1,5 +1,46 @@
 Falling body examples to test added mass and added damping
 
+*************************************
+****** July 18, 2016
+
+REVISIT FALLING BODY
+
+------------------------- LIGHT RHOB=0.01 ---------------------------
+
+G16: *TO-DO*
+cgins -noplot fallingBody.cmd -g=fallingBodyGride16.order2 -tf=10. -tp=.1 -nu=.01 -ts=im -density=.1 -radius=1. -gravity=1. -amp=.1 -dtMax=.04 -project=0 -numberOfCorrections=2 -omega=.2 -addedMass=1 -addedDamping=1 -addedDampingCoeff=1 -scaleAddedDampingWithDt=1 -addedDampingProjectVelocity=1 -useProvidedAcceleration=1 -useTP=0 -debug=3 -solver=best -psolver=best -rtolp=1.e-6 -atolp=1.e-8 -rtol=1.e-6 -atol=1.e-7 -ad2=0 -show=fallingBodyG16d0p1ampAD1.show -go=go >! fallingBodyG16d0p1AD1.out
+
+G8
+cgins -noplot fallingBody.cmd -g=fallingBodyGride8.order2 -tf=10. -tp=.1 -nu=.01 -ts=im -density=.1 -radius=1. -gravity=1. -amp=.1 -dtMax=.04 -project=0 -numberOfCorrections=2 -omega=.2 -addedMass=1 -addedDamping=1 -addedDampingCoeff=1 -scaleAddedDampingWithDt=1 -addedDampingProjectVelocity=1 -useProvidedAcceleration=1 -useTP=0 -debug=3 -solver=best -psolver=best -rtolp=1.e-6 -atolp=1.e-8 -rtol=1.e-6 -atol=1.e-7 -ad2=0 -show=fallingBodyG8d0p1ampAD1.show -go=go >! fallingBodyG8d0p1AD1.out
+
+
+
+NEW: Looks OK, very small wigggles in a2, w3 on order of tol
+G4: OLD: GRAVITY=1, RHOS=.1 -- OK , AD=1: some wiggles in a2, w3 --> AD=4 : wiggles growing 
+cgins -noplot fallingBody.cmd -g=fallingBodyGride4.order2 -tf=10. -tp=.1 -nu=.01 -ts=im -density=.1 -radius=1. -gravity=1. -amp=.1 -dtMax=.04 -project=0 -numberOfCorrections=2 -omega=.2 -addedMass=1 -addedDamping=1 -addedDampingCoeff=1 -scaleAddedDampingWithDt=1 -addedDampingProjectVelocity=1 -useProvidedAcceleration=1 -useTP=0 -debug=3 -solver=best -psolver=best -rtolp=1.e-5 -atolp=1.e-7 -rtol=1.e-5 -atol=1.e-5 -ad2=0 -show=fallingBodyG4d0p1ampAD1.show -go=go >! fallingBodyG4d0p1AD1.out
+
+
+*************************************
+****** July 9, 2016
+
+REVISIT FALLING BODY
+
+G4: AMP: 
+cgins -noplot fallingBody.cmd -g=fallingBodyGride4.order2 -tf=5. -tp=.1 -nu=.01 -ts=im -density=2 -radius=1. -gravity=-1. -amp=.1 -dtMax=.02 -project=0 -numberOfCorrections=2 -omega=.2 -addedMass=1 -addedDamping=1 -addedDampingCoeff=1. -scaleAddedDampingWithDt=1 -addedDampingProjectVelocity=1 -useProvidedAcceleration=1 -useTP=0 -debug=3 -solver=best -psolver=best -rtolp=1.e-4 -atolp=1.e-6 -rtol=1.e-4 -atol=1.e-5 -ad2=0 -show=fallingBodyG4d2p0ampAD1.show -go=go >! fallingBodyG4d2p0ampAD1.out
+
+
+*************************************
+****** July 8, 2016
+
+TWO FALLING BODY MOVIE:
+
+Todo: G8
+cgins -noplot twoFallingBodies.cmd -g=twoFallingBodiesGridi8.order2 -tf=15. -tp=.05 -nu=.05 -ts=im -radius=1. -gravity=-1.  -rampGravity=1 -amp=.1 -dtMax=.025 -project=0 -numberOfCorrections=1 -omega=.2 -addedMass=1 -addedDamping=1 -addedDampingCoeff=5. -scaleAddedDampingWithDt=0 -addedDampingProjectVelocity=0 -useProvidedAcceleration=1 -useTP=0 -debug=3 -solver=best -psolver=best -ad2=0 -density1=1.5 -density2=0.5 -show=twoFallingBodiesG8.show -go=go >! twoFallingBodiesG8.out
+
+G4
+cgins -noplot twoFallingBodies.cmd -g=twoFallingBodiesGridi4.order2 -tf=15. -tp=.05 -nu=.05 -ts=im -radius=1. -gravity=-1.  -rampGravity=1 -amp=.1 -dtMax=.025 -project=0 -numberOfCorrections=1 -omega=.2 -addedMass=1 -addedDamping=1 -addedDampingCoeff=5. -scaleAddedDampingWithDt=0 -addedDampingProjectVelocity=0 -useProvidedAcceleration=1 -useTP=0 -debug=3 -solver=best -psolver=best -ad2=0 -density1=1.5 -density2=0.5 -show=twoFallingBodiesG4.show -go=go >! twoFallingBodiesG4.out
+
+
 
 *************************************
 ****** May 14, 2016

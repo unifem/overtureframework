@@ -110,6 +110,7 @@ chooseUserDefinedBoundaryValues(int side, int axis, int grid, CompositeGrid & cg
     "flat plate boundary layer profile",
     "pressure pulse",
     "time function option",
+    "polynomial inflow profile",
     "done",
     ""
   };
@@ -653,6 +654,32 @@ chooseUserDefinedBoundaryValues(int side, int axis, int grid, CompositeGrid & cg
       parameters.setUserBoundaryConditionParameters(side,axis,grid,values);
 
     }    
+    else if( answer=="polynomial inflow profile" )
+    {
+      // parameters.setUserBcType(side,axis,grid,pressurePulse);  // set the bcType to be a unique value.
+      userDefinedBoundaryValue = "polynomialInflowProfile";
+
+      parameters.setBcIsTimeDependent(side,axis,grid,false);      // this condition is NOT time dependent
+
+      // printF("The pressure pulse is p = .5*pMax*[ 1 - cos(2*pi*t/tMax) ],  for 0 <=t<=tMax, p=0 other-wise\n");
+      // gi.inputString(answer2,"Enter pMax, tMax");
+      // real pMax=1., tMax=1.;
+      // if( answer2!="" )
+      // {
+      // 	sScanF(answer2,"%e %e",&pMax,&tMax);
+      // }
+      // printF("***userDefinedBoundaryValues: pressure pulse: setting pMax=%8.2e, tMax=%8.2e for"
+      //        " (side,axis,grid)=(%i,%i,%i)\n",pMax,tMax,side,axis,grid);
+
+      real uMax=1.;
+
+      RealArray values(2);
+      values(0)=uMax;
+      // save the parameters to be used when evaluating the time dependent BC's:
+      parameters.setUserBoundaryConditionParameters(side,axis,grid,values);
+
+
+    }
     else if( answer=="time function option" )
     {
       // parameters.setUserBcType(side,axis,grid,timeFunctionOption);  // set the bcType to be a unique value.
@@ -1751,6 +1778,53 @@ userDefinedBoundaryValues(const real & t,
 	  
 	//	}
       }
+
+      else if( userDefinedBoundaryValue=="polynomialInflowProfile" )
+      {
+	// -- define an inflow profile --
+
+        // -- we could avoid building the vertex array on Cartesian grids ---
+	mg.update(MappedGrid::THEvertex | MappedGrid::THEcenter);
+        OV_GET_SERIAL_ARRAY_CONST(real,mg.vertex(),x);
+
+
+	getBoundaryIndex(mg.gridIndexRange(),side,axis,Ib1,Ib2,Ib3);
+	
+	bool ok=ParallelUtility::getLocalArrayBounds(u,uLocal,Ib1,Ib2,Ib3,includeGhost);
+	if( !ok ) continue;  // no points on this processor
+
+	numberOfSidesAssigned++;
+
+	RealArray values(2);
+	parameters.getUserBoundaryConditionParameters(side,axis,grid,values);
+
+	const real uMax  =values(0);
+
+
+	printF("userDefinedBoundaryValues: polyInflowProfile: uMax=%g (t=%9.3e)\n",uMax,t);
+	// ::display(x(Ib1,Ib2,Ib3,1),"Here is x on the side");
+	
+        RealArray & bd = parameters.getBoundaryData(side,axis,grid,mg);
+
+	if( forcingType==computeForcing )
+	{
+          // u = (16*uMax) * [y(1-y)]^2
+	  // bd(Ib1,Ib2,Ib3,uc)=(16.*uMax)*x(Ib1,Ib2,Ib3,1)*(1.-x(Ib1,Ib2,Ib3,1))*x(Ib1,Ib2,Ib3,1)*(1.-x(Ib1,Ib2,Ib3,1));
+	  // bd(Ib1,Ib2,Ib3,uc)=(64.*uMax)*x(Ib1,Ib2,Ib3,1)*(1.-x(Ib1,Ib2,Ib3,1))*x(Ib1,Ib2,Ib3,1)*(1.-x(Ib1,Ib2,Ib3,1))*x(Ib1,Ib2,Ib3,1)*(1.-x(Ib1,Ib2,Ib3,1));
+
+	  bd(Ib1,Ib2,Ib3,uc)=pow( (4.*uMax)*x(Ib1,Ib2,Ib3,1)*(1.-x(Ib1,Ib2,Ib3,1)), .5 );
+	}
+	else
+	{
+	  // time derivative of the forcing 
+	  bd(Ib1,Ib2,Ib3,uc)=0.;
+	}
+	bd(Ib1,Ib2,Ib3,vc)=0.;
+	if( numberOfDimensions==3 )
+	  bd(Ib1,Ib2,Ib3,wc)=0.;
+	
+      }
+
 
       else if( userDefinedBoundaryValue=="timeFunctionOption" )
       {

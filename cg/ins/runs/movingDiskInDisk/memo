@@ -1,4 +1,1468 @@
 *********************
+****** Sun July 11, 2016
+
+TEST TP-SI scheme now that velocity is fixed
+
+TEST STRAIGHT TP:
+
+density=10 dt=.01 : OK 
+
+density=1 dt=.001 : OK dy=.05 sqrt(.5*nu*dt) = =.00707 Mass=3.141  mBar = mass/(rho*L*dnu) = 3.14/.043 
+
+density=1 dt=.005 : NO
+
+density=1 dt=.01 : NO 
+
+density=1 dt=.05 : NO
+cgins -noplot movingDiskInDisk.cmd -g=diskInDiskGride2.order2.hdf -tf=10. -tp=.1 -nu=.1 -ts=im -density=1. -radius=1. -gravity=0. -amp=1. -bodyForce=none -option=rotatingDisk -dtMax=.001 -project=0 -numberOfCorrections=1 -omega=.3 -addedMass=0 -addeDamping=0 -useProvidedAcceleration=0 -useTP=0 -debug=3  -solver=best -rtol=1.e-5 -atol=1.e-12 -psolver=best -rtolp=1.e-5 -atolp=1.e-12  -ad2=0 -go=og
+
+
+ROTATING DISK -- OK TP-SI 
+
+G4 dt=.025
+cgins -noplot movingDiskInDisk.cmd -g=diskInDiskGride4.order2.hdf -tf=10. -tp=.05 -nu=.1 -ts=im -density=0.1 -radius=1. -gravity=0. -amp=1. -bodyForce=none -option=rotatingDisk -dtMax=.025 -project=0 -numberOfCorrections=5000 -omega=.3 -addedMass=0 -addeDamping=0 -useProvidedAcceleration=0 -useTP=1 -debug=3  -solver=best -rtol=1.e-5 -atol=1.e-12 -psolver=best -rtolp=1.e-5 -atolp=1.e-12  -ad2=0 -go=og
+
+G2: omega=.3 --> its=26,68,
+cgins movingDiskInDisk.cmd -g=diskInDiskGride2.order2.hdf -tf=10. -tp=.05 -nu=.1 -ts=im -density=0.1 -radius=1. -gravity=0. -amp=1. -bodyForce=none -option=rotatingDisk -dtMax=.05 -project=0 -numberOfCorrections=5000 -omega=.3 -addedMass=0 -addeDamping=0 -useProvidedAcceleration=0 -useTP=1 -debug=3  -solver=best -rtol=1.e-5 -atol=1.e-12 -psolver=best -rtolp=1.e-5 -atolp=1.e-12  -ad2=0 -go=halt
+
+implicit time stepping: average number of iterations to solve implicit system =201.8/step
+Predictor-corrector time stepping: average number of corrector steps =100.91.
+
+
+
+cgins -noplot movingDiskInDisk.cmd -g=annulusGrid2.order2 -dropName=annulus -tf=.5 -tp=.05 -nu=.1 -ts=im -density=0.01 -radius=1. -gravity=0. -amp=1. -bodyForce=none -option=rotatingDisk -dtMax=.025 -project=0 -numberOfCorrections=2 -addedDampingProjectVelocity=1 -omega=.2 -addedMass=1 -addedDamping=1 -scaleAddedDampingWithDt=1 -useProvidedAcceleration=1 -useTP=0 -debug=3 -solver=best -rtol=1.e-10 -atol=1.e-12 -psolver=best -rtolp=1.e-10 -atolp=1.e-12 -ad2=0 -addedDampingCoeff=1. -show=annulusG2Bd0p01.show -go=og
+
+===== TRANS DISK =====
+Paper: Run special beta's  to show instability FOR NO-VELOCITY CORRECTION
+runCases.p -option=transDisk -tf=10 -rhos=.001 -projectVelocity=0 -beta=0.5 -instabilityErrorTol=100.
+runCases.p -option=transDisk -tf=10 -rhos=.001 -projectVelocity=0 -beta=5 -instabilityErrorTol=100.
+runCases.p -option=transDisk -tf=10 -rhos=.001 -projectVelocity=0 -beta=8 -instabilityErrorTol=100.
+
+
+
+===== ROTATING DISK =====
+Paper: Run special beta's  to show instability FOR NO-VELOCITY CORRECTION
+runCases.p -option=shearDisk -tf=10 -rhos=.001 -projectVelocity=0 -beta=0.5 -instabilityErrorTol=100.
+runCases.p -option=shearDisk -tf=10 -rhos=.001 -projectVelocity=0 -beta=5 -instabilityErrorTol=100.
+
+
+
+
+
+
+++++++++++++++++++++++++++++SHEAR-DISK ++++++++++++++++++++++++++++++++++++++++
+
+================================== NO PROJECT ======================================
+
+beta=.6 stable 
+beta=.9 unstable
+beta=1.1 -- stable
+
+runCases.p -option=shearDisk -tf=20 -rhos=.001 -projectVelocity=0 -instabilityErrorTol=.01 -beta=1.2
+--> looks stable
+
+runCases.p -option=shearDisk -tf=20 -rhos=.001 -projectVelocity=0 -instabilityErrorTol=.01 -beta=1.3
+--> looks stable
+
+runCases.p -option=shearDisk -tf=20 -rhos=.001 -projectVelocity=0 -instabilityErrorTol=.01 -beta=1.5
+--> looks stable
+
+runCases.p -option=shearDisk -tf=20 -rhos=.001 -projectVelocity=0 -instabilityErrorTol=.02
+
+
+%------------ SUMMARY Option=[shearDisk] rhos=.001 tf=20 projectVelocity=0--------------
+%------------    dy=  3.3400e-02,  dnu=sqrt(.5*nu*dt)=  3.5355e-02,  delta=dy/dnu=  9.4469e-01,  mBar=  1.4142e-02 --------------
+%------------ instabilityErrorTol= 2.00e-02                                               ------------------
+ shearDiskNPVDelta=9.446947e-01;
+ shearDiskNPVMbar=1.414214e-02;
+ shearDiskNPVStab=[   0.540,   0.600,   2.000,   3.000,   3.500];
+ shearDiskNPVUnstab=[   0.300,   0.500,   1.000,   4.000,   5.000];
+
+++++++++++++++++++++++++++++TRANS-DISK ++++++++++++++++++++++++++++++++++++++++
+
+plotStuff plotTransDisk.cmd -show=transDiskPV0.5.show
+
+================================== NO PROJECT ======================================
+
+NOTE beta=5 is going unstable 
+
+runCases.p -option=transDisk -tf=30 -rhos=.001 -projectVelocity=0 -instabilityErrorTol=.01 -beta=1.5
+addedDampingCoefficient= 1.50 : UNSTABLE ******
+
+
+runCases.p -option=transDisk -tf=30 -rhos=.001 -projectVelocity=0 -instabilityErrorTol=.01
+
+%------------ SUMMARY Option=[transDisk] rhos=.001 tf=30 projectVelocity=0--------------
+%------------    dy=  3.3400e-02,  dnu=sqrt(.5*nu*dt)=  3.5355e-02,  delta=dy/dnu=  9.4469e-01,  mBar=  1.4142e-02 --------------
+%------------ instabilityErrorTol= 1.00e-02                                               ------------------
+ transDiskNPVDelta=9.446947e-01;
+ transDiskNPVMbar=1.414214e-02;
+ transDiskNPVStab=[   0.540,   2.000,   3.000,   4.000];
+ transDiskNPVUnstab=[   0.300,   0.500,   1.000,   5.000,  6.000];
+
+
+*********************
+****** Sat July 10, 2016
+
+===== TRANS DISK =====
+Paper: Run special beta's  to show instability: 
+runCases.p -option=transDisk -tf=10 -rhos=.001 -beta=0.35 -instabilityErrorTol=100 [Stable
+
+runCases.p -option=transDisk -tf=10 -rhos=.001 -beta=0.3 -instabilityErrorTol=10   [very unstable
+runCases.p -option=transDisk -tf=10 -rhos=.001 -beta=0.32 -instabilityErrorTol=1000 
+
+runCases.p -option=transDisk -tf=20 -rhos=.001 -beta=0.325 -instabilityErrorTol=1000 [slowly unstable
+
+runCases.p -option=transDisk -tf=20 -rhos=.001 -beta=1 -instabilityErrorTol=2.
+runCases.p -option=transDisk -tf=20 -rhos=.001 -beta=4 -instabilityErrorTol=10. [stable after all
+runCases.p -option=transDisk -tf=20 -rhos=.001 -beta=5 -instabilityErrorTol=10.
+
+
+
+===== ROTATING DISK =====
+Paper: Run special beta's  to show instability: 
+runCases.p -option=shearDisk -tf=10 -rhos=.001 -beta=0.35 -instabilityErrorTol=1000
+runCases.p -option=shearDisk -tf=10 -rhos=.001 -beta=1 -instabilityErrorTol=2.
+runCases.p -option=shearDisk -tf=10 -rhos=.001 -beta=4 -instabilityErrorTol=10.
+
+*********************
+****** July 8, 2016
+
+++++++++++++++++++++++++++++TRANS-DISK ++++++++++++++++++++++++++++++++++++++++
+
+plotStuff plotTransDisk.cmd -show=transDisk0.3.show
+================================== NO PROJECT ======================================
+
+runCases.p -option=transDisk -tf=2 -rhos=.001 -projectVelocity=0
+------------ SUMMARY Option=[transDisk] rhos=.001 tf=5 projectVelocity=0--------------
+ addedDampingCoefficient= 0.20 : UNSTABLE ******
+ addedDampingCoefficient= 0.30 : UNSTABLE ******
+ addedDampingCoefficient= 0.54 : stable.
+ addedDampingCoefficient= 1.00 : UNSTABLE ******
+ addedDampingCoefficient= 3.00 : stable.
+ addedDampingCoefficient= 5.00 : stable.
+ addedDampingCoefficient= 8.00 : stable.
+
+
+
+================================== PROJECT ======================================
+
+runCases.p -option=transDisk -tf=5 -rhos=.001 
+
+------------ SUMMARY Option=[transDisk] rhos=.001 tf=10 projectVelocity=1--------------
+------------    dy=  3.3400e-02,  dnu=sqrt(.5*nu*dt)=  3.5355e-02,  delta=dy/dnu=  9.4469e-01,  mBar=  1.4142e-02 --------------
+ addedDampingCoefficient= 0.30 : UNSTABLE ******
+ addedDampingCoefficient= 0.50 : stable.
+ addedDampingCoefficient= 1.00 : stable.
+ addedDampingCoefficient= 3.00 : stable.
+ addedDampingCoefficient= 5.00 : stable. -> becoming unstable
+ addedDampingCoefficient= 8.00 : stable. -> becoming unstable
+ addedDampingCoefficient=12.00 : stable. -> becoming unstable
+ transDiskPVDelta=9.446947e-01;
+ transDiskPVMbar=1.414214e-02;
+ transDiskPVStab=[   0.500,   1.000,   3.000,   5.000,   8.000,  12.000];
+ transDiskPVUnstab=[   0.300];
+
+
+
+
+
+
+
+++++++++++++++++++++++++++++SHEAR-DISK ++++++++++++++++++++++++++++++++++++++++
+
+================================== NO PROJECT ======================================
+
+runCases.p -option=shearDisk -tf=5 -rhos=.001 -projectVelocity=0
+
+------------ SUMMARY Option=[shearDisk] rhos=.001 tf=10 projectVelocity=0--------------
+------------    dy=  3.3400e-02,  dnu=sqrt(.5*nu*dt)=  3.5355e-02,  delta=dy/dnu=  9.4469e-01,  mbar=  0.0000e+00 --------------
+ addedDampingCoefficient= 0.30 : UNSTABLE ******
+ addedDampingCoefficient= 0.50 : UNSTABLE ******
+ addedDampingCoefficient= 0.54 : stable.
+ addedDampingCoefficient= 0.60 : stable.
+ addedDampingCoefficient= 1.00 : UNSTABLE ******
+ addedDampingCoefficient= 3.00 : stable.
+ addedDampingCoefficient= 4.00 : UNSTABLE ******
+ addedDampingCoefficient= 5.00 : UNSTABLE ******
+ shearDiskNPVDelta=9.446947e-01
+ shearDiskNPVMbar=1.414214e-02
+ shearDiskNPVStab=[   0.540,   0.600,   3.000];
+ shearDiskNPVUnstab=[   0.300,   0.500,   1.000,   4.000,   5.000];
+
+
+----------- SUMMARY Option=[shearDisk] rhos=.001 tf=10 projectVelocity=0--------------
+ addedDampingCoefficient= 0.30 : UNSTABLE ******
+ addedDampingCoefficient= 0.50 : UNSTABLE ******
+ addedDampingCoefficient= 0.54 : stable.
+ addedDampingCoefficient= 1.00 : UNSTABLE ******
+ addedDampingCoefficient= 3.00 : stable.
+ addedDampingCoefficient= 5.00 : UNSTABLE ******
+
+
+
+================================== PROJECT ======================================
+plotStuff plotShearDisk.cmd -show=shearDisk5.show
+
+runCases.p -option=shearDisk -tf=5 -rhos=.001
+
+  %------------ SUMMARY Option=[shearDisk] rhos=.001 tf=5 projectVelocity=1--------------
+  %------------    dy=  3.3400e-02,  dnu=sqrt(.5*nu*dt)=  3.5355e-02,  delta=dy/dnu=  9.4469e-01,  mBar=  1.4142e-02 --------------
+  shearDiskPVDelta=9.446947e-01;
+  shearDiskPVMbar=1.414214e-02;
+  shearDiskPVStab=[   0.500,   0.600,   1.000,   2.000,   3.000,   3.500];
+  shearDiskPVUnstab=[   0.300,   4.000,   5.000];
+
+
+
+*********************
+****** Thurs July 7, 2016
+
+TEST translating disk  COMPARE TO MATLAB
+
+=========================== TEST 2 annulus grid ==========================================================
+
+G8:
+cgins movingDiskInDisk.cmd -g=diskInDiskGridHalfe8.order2.hdf -tf=1 -tp=.1 -nu=.1 -ts=im -density=0.1 -radius=1. -gravity=0. -amp=1.e-7 -bodyForce=none -option=translatingDisk -dtMax=.0125 -project=0 -numberOfCorrections=2 -addedDampingProjectVelocity=1 -omega=.2 -addedMass=1 -addedDamping=1 -scaleAddedDampingWithDt=1 -useProvidedAcceleration=1 -useTP=0 -debug=3 -solver=best -rtol=1.e-12 -atol=1.e-15  -psolver=best -rtolp=1.e-12 -atolp=1.e-15  -ad2=0 -addedDampingCoeff=1 -go=halt
+
+    t    err(p)   err(u)   err(v)    div       uMax     dt       cpu    (40 steps)
+   0.500 1.50e-11 8.22e-12 2.86e-12 1.15e-11  9.20e-08 1.25e-02 7.61e+01 
+     t    err(p)   err(u)   err(v)    div       uMax     dt       cpu    (80 steps)
+   1.000 6.45e-12 4.80e-12 2.15e-12 5.43e-12  4.34e-08 1.25e-02 1.62e+02 
+
+G4:
+cgins movingDiskInDisk.cmd -g=diskInDiskGridHalfe4.order2.hdf -tf=1 -tp=.1 -nu=.1 -ts=im -density=0.1 -radius=1. -gravity=0. -amp=1.e-7 -bodyForce=none -option=translatingDisk -dtMax=.025 -project=0 -numberOfCorrections=2 -addedDampingProjectVelocity=1 -omega=.2 -addedMass=1 -addedDamping=1 -scaleAddedDampingWithDt=1 -useProvidedAcceleration=1 -useTP=0 -debug=3 -solver=best -rtol=1.e-12 -atol=1.e-15  -psolver=best -rtolp=1.e-12 -atolp=1.e-15  -ad2=0 -addedDampingCoeff=1 -go=halt
+
+    t    err(p)   err(u)   err(v)    div       uMax     dt       cpu    (20 steps)
+   0.500 6.09e-11 2.60e-11 1.06e-11 6.28e-11  9.20e-08 2.50e-02 1.08e+01 
+    t    err(p)   err(u)   err(v)    div       uMax     dt       cpu    (40 steps)
+   1.000 2.64e-11 1.64e-11 8.49e-12 2.94e-11  4.33e-08 2.50e-02 2.51e+01 
+
+G2:
+cgins movingDiskInDisk.cmd -g=diskInDiskGridHalfe2.order2.hdf -tf=1 -tp=.1 -nu=.1 -ts=im -density=0.1 -radius=1. -gravity=0. -amp=1.e-7 -bodyForce=none -option=translatingDisk -dtMax=.05 -project=0 -numberOfCorrections=2 -addedDampingProjectVelocity=1 -omega=.2 -addedMass=1 -addedDamping=1 -scaleAddedDampingWithDt=1 -useProvidedAcceleration=1 -useTP=0 -debug=3 -solver=best -rtol=1.e-12 -atol=1.e-15  -psolver=best -rtolp=1.e-12 -atolp=1.e-15  -ad2=0 -addedDampingCoeff=1 -go=halt
+
+    t    err(p)   err(u)   err(v)    div       uMax     dt       cpu    (10 steps)
+   0.500 2.46e-10 6.12e-11 3.89e-11 3.42e-10  9.18e-08 5.00e-02 4.83e+00 
+    t    err(p)   err(u)   err(v)    div       uMax     dt       cpu    (20 steps)
+   1.000 1.19e-10 4.60e-11 3.29e-11 1.61e-10  4.32e-08 5.00e-02 1.17e+01 
+
+G1:
+cgins movingDiskInDisk.cmd -g=diskInDiskGridHalfe1.order2.hdf -tf=1. -tp=.1 -nu=.1 -ts=im -density=0.1 -radius=1. -gravity=0. -amp=1.e-7 -bodyForce=none -option=translatingDisk -dtMax=.1 -project=0 -numberOfCorrections=2 -addedDampingProjectVelocity=1 -omega=.2 -addedMass=1 -addedDamping=1 -scaleAddedDampingWithDt=1 -useProvidedAcceleration=1 -useTP=0 -debug=3 -solver=best -rtol=1.e-12 -atol=1.e-15  -psolver=best -rtolp=1.e-12 -atolp=1.e-15  -ad2=0 -addedDampingCoeff=1 -go=halt
+
+    t    err(p)   err(u)   err(v)    div       uMax     dt       cpu    (5 steps)
+   0.500 6.47e-10 3.69e-10 1.33e-10 1.30e-09  9.18e-08 1.00e-01 6.81e+00 
+     t    err(p)   err(u)   err(v)    div       uMax     dt       cpu    (10 steps)
+   1.000 4.03e-10 3.04e-10 1.22e-10 7.52e-10  4.32e-08 1.00e-01 2.26e+00 
+
+=====================================================================================
+G4 dt=.0125
+cgins movingDiskInDisk.cmd -g=diskInDiskGridFixede4.order2.hdf -tf=.5 -tp=.1 -nu=.1 -ts=im -density=0.1 -radius=1. -gravity=0. -amp=1.e-7 -bodyForce=none -option=translatingDisk -dtMax=.0125 -project=0 -numberOfCorrections=2 -addedDampingProjectVelocity=1 -omega=.2 -addedMass=1 -addedDamping=1 -scaleAddedDampingWithDt=1 -useProvidedAcceleration=1 -useTP=0 -debug=3 -solver=best -rtol=1.e-12 -atol=1.e-15  -psolver=best -rtolp=1.e-12 -atolp=1.e-15  -ad2=0 -addedDampingCoeff=1 -go=halt
+
+**BUG FXED**
+     t    err(p)   err(u)   err(v)    div       uMax     dt       cpu    (0 steps)
+   0.000 3.02e-10 6.42e-12 2.82e-12 2.93e-10  1.95e-07 1.25e-02 1.76e-02      
+
+OLD: 
+     t    err(p)   err(u)   err(v)    div       uMax     dt       cpu    (0 steps)
+   0.000 4.85e-09 6.42e-12 2.82e-12 2.93e-10  1.95e-07 1.25e-02 1.80e-02 
+
+
+G2 dt=.025
+cgins movingDiskInDisk.cmd -g=diskInDiskGridFixede2.order2.hdf -tf=.5 -tp=.1 -nu=.1 -ts=im -density=0.1 -radius=1. -gravity=0. -amp=1.e-7 -bodyForce=none -option=translatingDisk -dtMax=.025 -project=0 -numberOfCorrections=2 -addedDampingProjectVelocity=1 -omega=.2 -addedMass=1 -addedDamping=1 -scaleAddedDampingWithDt=1 -useProvidedAcceleration=1 -useTP=0 -debug=3 -solver=best -rtol=1.e-12 -atol=1.e-15  -psolver=best -rtolp=1.e-12 -atolp=1.e-15  -ad2=0 -addedDampingCoeff=1 -go=halt
+
+    t    err(p)   err(u)   err(v)    div       uMax     dt       cpu    (0 steps)
+   0.000 6.44e-09 4.24e-11 2.03e-11 1.08e-09  1.95e-07 2.50e-02 7.44e-03 
+
+
+G8 dt=.00625
+cgins -noplot movingDiskInDisk.cmd -g=diskInDiskGridFixede8.order2.hdf -tf=.5 -tp=.1 -nu=.1 -ts=im -density=0.1 -radius=1. -gravity=0. -amp=1.e-7 -bodyForce=none -option=translatingDisk -dtMax=.00625 -project=0 -numberOfCorrections=2 -addedDampingProjectVelocity=1 -omega=.2 -addedMass=1 -addedDamping=1 -scaleAddedDampingWithDt=1 -useProvidedAcceleration=1 -useTP=0 -debug=3 -solver=best -rtol=1.e-14 -atol=1.e-15  -psolver=best -rtolp=1.e-14 -atolp=1.e-15  -ad2=0 -addedDampingCoeff=1 -cdv=.01 -go=go >! transDisk8.out
+
+
+**** cdv=.01
+    t    err(p)   err(u)   err(v)    div       uMax     dt       cpu    (0 steps)
+   0.000 4.53e-11 8.56e-13 3.76e-13 7.91e-11  1.95e-07 6.25e-03 6.70e-02 
+
+*** dt=.1 beta=1
+    t    err(p)   err(u)   err(v)    div       uMax     dt       cpu    (0 steps)
+   0.000 3.28e-11 8.56e-13 3.76e-13 7.91e-11  1.95e-07 1.00e-01 6.02e-02 
+*** dt=.1 beta=.01
+    t    err(p)   err(u)   err(v)    div       uMax     dt       cpu    (0 steps)
+   0.000 4.33e-11 8.56e-13 3.76e-13 7.91e-11  1.95e-07 1.00e-01 5.63e-02 
+***dt=.1 beta=10
+    t    err(p)   err(u)   err(v)    div       uMax     dt       cpu    (0 steps)
+   0.000 4.10e-11 8.56e-13 3.76e-13 7.91e-11  1.95e-07 1.00e-01 6.24e-02 
+
+*** dt=.0125 
+     t    err(p)   err(u)   err(v)    div       uMax     dt       cpu    (0 steps)
+   0.000 7.68e-11 8.56e-13 3.76e-13 7.91e-11  1.95e-07 1.25e-02 6.20e-04 
+     t    err(p)   err(u)   err(v)    div       uMax     dt       cpu    (40 steps)
+   0.500 2.01e-11 7.96e-12 3.53e-12 3.45e-11  9.20e-08 1.25e-02 1.14e+02 
+
+** dt=.00625
+     t    err(p)   err(u)   err(v)    div       uMax     dt       cpu    (0 steps)
+   0.000 1.46e-10 8.56e-13 3.76e-13 7.91e-11  1.95e-07 6.25e-03 6.12e-02 
+
+     t    err(p)   err(u)   err(v)    div       uMax     dt       cpu    (80 steps)
+   0.500 1.92e-11 8.03e-12 3.43e-12 3.52e-11  9.20e-08 6.25e-03 2.08e+02 
+
+cdv=.01: 
+     t    err(p)   err(u)   err(v)    div       uMax     dt       cpu    (80 steps)
+   0.500 2.24e-11 5.56e-12 2.88e-12 3.12e-11  9.20e-08 6.25e-03 1.94e+02 
+
+G4 dt=.0125
+cgins -noplot movingDiskInDisk.cmd -g=diskInDiskGridFixede4.order2.hdf -tf=.5 -tp=.1 -nu=.1 -ts=im -density=0.1 -radius=1. -gravity=0. -amp=1.e-7 -bodyForce=none -option=translatingDisk -dtMax=.0125 -project=0 -numberOfCorrections=2 -addedDampingProjectVelocity=1 -omega=.2 -addedMass=1 -addedDamping=1 -scaleAddedDampingWithDt=1 -useProvidedAcceleration=1 -useTP=0 -debug=3 -solver=best -rtol=1.e-14 -atol=1.e-15  -psolver=best -rtolp=1.e-14 -atolp=1.e-15  -ad2=0 -addedDampingCoeff=1 -go=go >! transDisk4.out
+
+NEW
+     t    err(p)   err(u)   err(v)    div       uMax     dt       cpu    (0 steps)
+   0.000 3.02e-10 6.42e-12 2.82e-12 2.93e-10  1.95e-07 1.25e-02 1.76e-02      
+
+      t    err(p)   err(u)   err(v)    div       uMax     dt       cpu    (40 steps)
+   0.500 7.65e-11 2.70e-11 1.43e-11 1.19e-10  9.20e-08 1.25e-02 2.20e+01      
+
+     t    err(p)   err(u)   err(v)    div       uMax     dt       cpu    (40 steps)
+   0.500 7.54e-11 3.19e-11 1.46e-11 1.19e-10  9.20e-08 1.25e-02 2.22e+01 
+yale: 
+     t    err(p)   err(u)   err(v)    div       uMax     dt       cpu    (40 steps)
+   0.500 7.54e-11 3.19e-11 1.46e-11 1.19e-10  9.20e-08 1.25e-02 1.09e+02 
+
+
+G2 dt=.025
+cgins -noplot movingDiskInDisk.cmd -g=diskInDiskGridFixede2.order2.hdf -tf=.5 -tp=.1 -nu=.1 -ts=im -density=0.1 -radius=1. -gravity=0. -amp=1.e-7 -bodyForce=none -option=translatingDisk -dtMax=.025 -project=0 -numberOfCorrections=2 -addedDampingProjectVelocity=1 -omega=.2 -addedMass=1 -addedDamping=1 -scaleAddedDampingWithDt=1 -useProvidedAcceleration=1 -useTP=0 -debug=3 -solver=best -rtol=1.e-12 -atol=1.e-15  -psolver=best -rtolp=1.e-12 -atolp=1.e-15  -ad2=0 -addedDampingCoeff=1 -go=go >! transDisk2.out
+
+New: 
+     t    err(p)   err(u)   err(v)    div       uMax     dt       cpu    (0 steps)
+   0.000 6.31e-10 4.24e-11 2.03e-11 1.08e-09  1.95e-07 2.50e-02 5.68e-04 
+     t    err(p)   err(u)   err(v)    div       uMax     dt       cpu    (20 steps)
+   0.500 3.00e-10 8.89e-11 6.27e-11 4.27e-10  9.20e-08 2.50e-02 3.17e+00 
+
+     t    err(p)   err(u)   err(v)    div       uMax     dt       cpu    (20 steps)
+   0.500 2.96e-10 7.79e-11 5.07e-11 4.26e-10  9.19e-08 2.50e-02 3.21e+00 
+
+G1
+cgins -noplot movingDiskInDisk.cmd -g=diskInDiskGridFixede1.order2.hdf -tf=.5 -tp=.1 -nu=.1 -ts=im -density=0.1 -radius=1. -gravity=0. -amp=1.e-7 -bodyForce=none -option=translatingDisk -dtMax=.05 -project=0 -numberOfCorrections=2 -addedDampingProjectVelocity=1 -omega=.2 -addedMass=1 -addedDamping=1 -scaleAddedDampingWithDt=1 -useProvidedAcceleration=1 -useTP=0 -debug=3 -solver=best -rtol=1.e-12 -atol=1.e-15  -psolver=best -rtolp=1.e-12 -atolp=1.e-15  -ad2=0 -addedDampingCoeff=1 -go=go >! transDisk1.out
+     t    err(p)   err(u)   err(v)    div       uMax     dt       cpu    (10 steps)
+   0.500 9.44e-10 4.28e-10 2.76e-10 1.72e-09  9.08e-08 5.00e-02 6.13e-01 
+
+
+Looks OK
+cgins movingDiskInDisk.cmd -g=diskInDiskGridFixede1.order2.hdf -tf=5. -tp=.1 -nu=.1 -ts=im -density=0.1 -radius=1. -gravity=0. -amp=1.e-7 -bodyForce=none -option=translatingDisk -dtMax=.05 -project=0 -numberOfCorrections=2 -addedDampingProjectVelocity=1 -omega=.2 -addedMass=1 -addedDamping=1 -scaleAddedDampingWithDt=1 -useProvidedAcceleration=1 -useTP=0 -debug=3 -solver=best -rtol=1.e-12 -atol=1.e-15  -psolver=best -rtolp=1.e-12 -atolp=1.e-15  -ad2=0 -addedDampingCoeff=1 -go=halt
+
+
+*********************
+******  July 5-6-7, 2016
+
+TEST: small mass --OK 
+cgins -noplot movingDiskInDisk.cmd -g=annulusGrid2.order2 -dropName=annulus -tf=.5 -tp=.05 -nu=.1 -ts=im -density=0.01 -radius=1. -gravity=0. -amp=1. -bodyForce=none -option=rotatingDisk -dtMax=.025 -project=0 -numberOfCorrections=2 -addedDampingProjectVelocity=1 -omega=.2 -addedMass=1 -addedDamping=1 -scaleAddedDampingWithDt=1 -useProvidedAcceleration=1 -useTP=0 -debug=3 -solver=best -rtol=1.e-10 -atol=1.e-12 -psolver=best -rtolp=1.e-10 -atolp=1.e-12 -ad2=0 -addedDampingCoeff=1. -show=annulusG2Bd0p01.show -go=og
+
+
+G2: dtMax=.025
+cgins -noplot movingDiskInDisk.cmd -g=annulusGrid2.order2 -dropName=annulus -tf=.5 -tp=.05 -nu=.1 -ts=im -density=0.1 -radius=1. -gravity=0. -amp=1. -bodyForce=none -option=rotatingDisk -dtMax=.025 -project=0 -numberOfCorrections=2 -addedDampingProjectVelocity=1 -omega=.2 -addedMass=1 -addedDamping=1 -scaleAddedDampingWithDt=1 -useProvidedAcceleration=1 -useTP=0 -debug=3 -solver=best -rtol=1.e-10 -atol=1.e-12 -psolver=best -rtolp=1.e-10 -atolp=1.e-12 -ad2=0 -addedDampingCoeff=1. -go=go > ! annulus2.out
+
+G4: dtMax=.0125
+cgins -noplot movingDiskInDisk.cmd -g=annulusGrid4.order2 -dropName=annulus -tf=.5 -tp=.05 -nu=.1 -ts=im -density=0.1 -radius=1. -gravity=0. -amp=1. -bodyForce=none -option=rotatingDisk -dtMax=.0125 -project=0 -numberOfCorrections=2 -addedDampingProjectVelocity=1 -omega=.2 -addedMass=1 -addedDamping=1 -scaleAddedDampingWithDt=1 -useProvidedAcceleration=1 -useTP=0 -debug=3 -solver=best -rtol=1.e-10 -atol=1.e-12 -psolver=best -rtolp=1.e-10 -atolp=1.e-12 -ad2=0 -addedDampingCoeff=1. -go=go > ! annulus4.out
+
+----------------------------------------------
+G1:
+--INS-- determineErrors: t=5.000e-01, maxNorm errors: [p,u,v,T]=[2.35e-03,1.71e-03,1.69e-03,0.00e+00]
+     t    err(p)   err(u)   err(v)    div       uMax     dt       cpu    (10 steps)
+   0.500 2.35e-03 1.71e-03 1.69e-03 7.17e-03  8.39e-01 5.00e-02 4.14e-01 
+
+G2: 
+     t    err(p)   err(u)   err(v)    div       uMax     dt       cpu    (20 steps)
+   0.500 4.50e-04 2.37e-04 2.44e-04 1.53e-03  8.39e-01 2.50e-02 1.74e+00 
+
+G4: 
+     t    err(p)   err(u)   err(v)    div       uMax     dt       cpu    (40 steps)
+   0.500 1.07e-04 5.20e-05 5.15e-05 2.92e-04  8.39e-01 1.25e-02 1.05e+01 
+
+
+Qi's Matlab: -----------------------------------
+
+G1: the maximal error at final time=5.000e-01 are u=1.100221e-03, v=1.100779e-03, p=1.928287e-03
+G2 :the maximal error at final time=5.000e-01 are u=3.036137e-04, v=3.036137e-04, p=5.462055e-04
+G4: the maximal error at final time=5.000e-01 are u=7.874104e-05, v=7.874063e-05, p=1.429361e-04
+
+
+-----------------------
+Compare to Qi's code:
+
+cgins movingDiskInDisk.cmd -g=annulusGrid1.order2 -dropName=annulus -tf=5. -tp=.05 -nu=.1 -ts=im -density=0.1 -radius=1. -gravity=0. -amp=1. -bodyForce=none -option=rotatingDisk -dtMax=.05 -project=0 -numberOfCorrections=2 -addedDampingProjectVelocity=1 -omega=.2 -addedMass=1 -addedDamping=1 -scaleAddedDampingWithDt=1 -useProvidedAcceleration=1 -useTP=0 -debug=3 -solver=best -rtol=1.e-10 -atol=1.e-12  -psolver=best -rtolp=1.e-10 -atolp=1.e-12  -ad2=0 -addedDampingCoeff=1. -go=halt >! junk.out
+
+
+             Added Damping Tensors (without scale factor= 1.00e+00) t=0.000e+00 body=rigidBody
+             ----------------------------------------------------------
+       [   3.1416e+00   9.8879e-17   0.0000e+00 ]        [   0.0000e+00   0.0000e+00  -3.5562e-16 ]
+ Dvv = [   9.8879e-17   3.1416e+00   0.0000e+00 ]  Dvw = [   0.0000e+00   0.0000e+00  -9.7145e-17 ]
+       [   0.0000e+00   0.0000e+00   0.0000e+00 ]        [   0.0000e+00   0.0000e+00   0.0000e+00 ]
+ 
+       [   0.0000e+00   0.0000e+00   0.0000e+00 ]        [   0.0000e+00   0.0000e+00   0.0000e+00 ]
+ Dwv = [   0.0000e+00   0.0000e+00   0.0000e+00 ]  Dww = [   0.0000e+00   0.0000e+00   0.0000e+00 ]
+       [  -3.5562e-16  -9.7145e-17   0.0000e+00 ]        [   0.0000e+00   0.0000e+00   6.2832e+00 ]
+--MVG--getRigidBodyAddedDampingTensors : body=0, dn=9.09e-02 mu=1.00e-01 Dww= 6.91150e+00 (disk), adc= 6.28319e+00 adc/(2pi)= 1.00000e+00 DwwFromIntegral= 6.91150e+00
+
+--INS--setPressConstrnt: t= 5.00000e-02 vDotPred=[ 0.00000e+00, 0.00000e+00, 0.00000e+00] omegaDotPred=[ 0.00000e+00, 0.00000e+00,-4.89946e-01]
+ Viscous traction = [ 1.27132e-12, 6.89175e-12]
+ u(i1=0,i2=[-1,0,1,2])=[-4.68329e-02,-4.81477e-02,-5.44893e-02,-5.78051e-02]
+--INS-SPC-- TESTING... use bodyForceFromViscousStress *CHECK GRAVITY*...
+--INS--setPressureConstraintValues: body=0, d=0, m*a= 3.53e-12, bodyForce: (pressure= -7.0817e-12,viscous=  1.2713e-12), value= 1.27132e-12
+--INS-SPC-- TESTING... use bodyForceFromViscousStress *CHECK GRAVITY*...
+--INS--setPressureConstraintValues: body=0, d=1, m*a= 3.20e-11, bodyForce: (pressure=  5.4961e-11,viscous=  6.8918e-12), value= 6.89175e-12
+--INS-SPC-- TESTING... use bodyTorqueFromViscousStress *CHECK GRAVITY*...
+--INS--setPressureConstraintValues: body=0, d=2, A*w_t=-8.035e-02, bodyTorque (pressure= -1.6233e-17,viscous= -7.6264e-02), value= -2.1809e-01
+ ** iter's to solve p eqn = 16 (t=5.000e-02, dt= 5.0e-02, step=0, max res=1.81e-09 rel-tol=1.0e-10, abs-tol=1.0e-12)
+--INS-STI-- t= 5.000e-02 After pres. solve: extraEquation: i=0 : constraint value=-2.54249e-10
+--INS-STI-- t= 5.000e-02 After pres. solve: extraEquation: i=1 : constraint value= 5.99619e-11
+--INS-STI-- t= 5.000e-02 After pres. solve: extraEquation: i=2 : constraint value=-4.88385e-01
+--RBM-- setAcceleration: t0=5.000e-02, vDot=(-2.54249e-10, 5.99619e-11, 0.00000e+00) wDot=( 0.00000e+00, 0.00000e+00,-4.88385e-01)
+
+
+*********************
+****** Tuesday July 4, 2016
+
+**FIXED GRID-VELOCITY ***
+
+RHOS=0.1 ADC=1  -- 
+cgins -noplot movingDiskInDisk.cmd -g=annulusGrid1.order2 -dropName=annulus -tf=5. -tp=.1 -nu=.1 -ts=im -density=0.1 -radius=1. -gravity=0. -amp=1. -bodyForce=none -option=rotatingDisk -dtMax=.02 -project=0 -numberOfCorrections=2 -addedDampingProjectVelocity=1 -omega=.2 -addedMass=1 -addedDamping=1 -scaleAddedDampingWithDt=1 -useProvidedAcceleration=1 -useTP=0 -debug=3 -solver=best -rtol=1.e-5 -atol=1.e-12  -psolver=best -rtolp=1.e-5 -atolp=1.e-12  -ad2=0 -addedDampingCoeff=1. -show=rotAnG1Bd0p1AD1.show -go=go >! rotAnG1Bd0p1AD1.out
+
+TEST ADC=1 !!
+cgins movingDiskInDisk.cmd -g=annulusGrid4.order2 -dropName=annulus -tf=2. -tp=.1 -nu=.1 -ts=im -density=0.1 -radius=1. -gravity=0. -amp=1. -bodyForce=none -option=rotatingDisk -dtMax=.02 -project=0 -numberOfCorrections=2 -addedDampingProjectVelocity=1 -omega=.2 -addedMass=1 -addedDamping=1 -scaleAddedDampingWithDt=1 -useProvidedAcceleration=1 -useTP=0 -debug=3 -solver=best -rtol=1.e-5 -atol=1.e-12  -psolver=best -rtolp=1.e-5 -atolp=1.e-12  -ad2=0 -addedDampingCoeff=1. -go=halt
+
+*********************
+****** Monday July 4, 2016
+
+
+TEST AMP WITH rotating annulus -- compare to Qi's resuls 
+
+PSOLVER=yale
+
+
+G4: RHOS=0.1 ADC=3  PSOLVER=YALE
+cgins -noplot movingDiskInDisk.cmd -g=annulusGrid4.order2 -dropName=annulus -tf=2. -tp=.1 -nu=.1 -ts=im -density=0.1 -radius=1. -gravity=0. -amp=1. -bodyForce=none -option=rotatingDisk -dtMax=.02 -project=0 -numberOfCorrections=2 -addedDampingProjectVelocity=1 -omega=.2 -addedMass=1 -addedDamping=1 -scaleAddedDampingWithDt=1 -useProvidedAcceleration=1 -useTP=0 -debug=3 -solver=best -rtol=1.e-7 -atol=1.e-12  -psolver=yale -rtolp=1.e-5 -atolp=1.e-12  -ad2=0 -addedDampingCoeff=3. -show=rotAnG4Bd0p1AD3y.show -go=go >! rotAnG4Bd0p1AD3y.out
+
+
+
+cgins -noplot movingDiskInDisk.cmd -g=annulusGrid1.order2 -dropName=annulus -tf=2. -tp=.1 -nu=.1 -ts=im -density=0.1 -radius=1. -gravity=0. -amp=1. -bodyForce=none -option=rotatingDisk -dtMax=.02 -project=0 -numberOfCorrections=2 -addedDampingProjectVelocity=1 -omega=.2 -addedMass=1 -addedDamping=1 -scaleAddedDampingWithDt=1 -useProvidedAcceleration=1 -useTP=0 -debug=3 -solver=best -rtol=1.e-5 -atol=1.e-12  -psolver=yale -rtolp=1.e-5 -atolp=1.e-12  -ad2=0 -addedDampingCoeff=3.  -go=og
+
+
+
+G4: RHOS=0.1 ADC=3  decrease rtolp
+cgins -noplot movingDiskInDisk.cmd -g=annulusGrid4.order2 -dropName=annulus -tf=2. -tp=.1 -nu=.1 -ts=im -density=0.1 -radius=1. -gravity=0. -amp=1. -bodyForce=none -option=rotatingDisk -dtMax=.02 -project=0 -numberOfCorrections=2 -addedDampingProjectVelocity=1 -omega=.2 -addedMass=1 -addedDamping=1 -scaleAddedDampingWithDt=1 -useProvidedAcceleration=1 -useTP=0 -debug=3 -solver=best -rtol=1.e-7 -atol=1.e-12  -psolver=best -rtolp=1.e-12 -atolp=1.e-15  -ad2=0 -addedDampingCoeff=3. -show=rotAnG4Bd0p1AD3.show -go=go >! rotAnG4Bd0p1AD3.out
+
+
+
+RHOS=0.1 ADC=4  -- UNSTABLE
+cgins -noplot movingDiskInDisk.cmd -g=annulusGrid1.order2 -dropName=annulus -tf=5. -tp=.1 -nu=.1 -ts=im -density=0.1 -radius=1. -gravity=0. -amp=1. -bodyForce=none -option=rotatingDisk -dtMax=.02 -project=0 -numberOfCorrections=2 -addedDampingProjectVelocity=1 -omega=.2 -addedMass=1 -addedDamping=1 -scaleAddedDampingWithDt=1 -useProvidedAcceleration=1 -useTP=0 -debug=3 -solver=best -rtol=1.e-5 -atol=1.e-12  -psolver=best -rtolp=1.e-5 -atolp=1.e-12  -ad2=0 -addedDampingCoeff=4. -show=rotAnG1Bd0p1AD4.show -go=go >! rotAnG1Bd0p1AD4.out
+
+G4: RHOS=0.1 ADC=3  --  OK
+cgins -noplot movingDiskInDisk.cmd -g=annulusGrid4.order2 -dropName=annulus -tf=2. -tp=.1 -nu=.1 -ts=im -density=0.1 -radius=1. -gravity=0. -amp=1. -bodyForce=none -option=rotatingDisk -dtMax=.02 -project=0 -numberOfCorrections=2 -addedDampingProjectVelocity=1 -omega=.2 -addedMass=1 -addedDamping=1 -scaleAddedDampingWithDt=1 -useProvidedAcceleration=1 -useTP=0 -debug=3 -solver=best -rtol=1.e-5 -atol=1.e-12  -psolver=best -rtolp=1.e-5 -atolp=1.e-12  -ad2=0 -addedDampingCoeff=3. -show=rotAnG4Bd0p1AD3.show -go=go >! rotAnG4Bd0p1AD3.out
+
+
+
+G1 RHOS=0.1 ADC=3  --  UNSTABLE
+cgins -noplot movingDiskInDisk.cmd -g=annulusGrid1.order2 -dropName=annulus -tf=2. -tp=.1 -nu=.1 -ts=im -density=0.1 -radius=1. -gravity=0. -amp=1. -bodyForce=none -option=rotatingDisk -dtMax=.02 -project=0 -numberOfCorrections=2 -addedDampingProjectVelocity=1 -omega=.2 -addedMass=1 -addedDamping=1 -scaleAddedDampingWithDt=1 -useProvidedAcceleration=1 -useTP=0 -debug=3 -solver=best -rtol=1.e-5 -atol=1.e-12  -psolver=best -rtolp=1.e-5 -atolp=1.e-12  -ad2=0 -addedDampingCoeff=3. -show=rotAnG1Bd0p1AD3.show -go=go >! rotAnG1Bd0p1AD3.out
+
+
+RHOS=10
+cgins -noplot movingDiskInDisk.cmd -g=annulusGrid2.order2 -dropName=annulus -tf=5. -tp=.1 -nu=.1 -ts=im -density=10 -radius=1. -gravity=0. -amp=1. -bodyForce=none -option=rotatingDisk -dtMax=.02 -project=0 -numberOfCorrections=2 -addedDampingProjectVelocity=1 -omega=.2 -addedMass=1 -addedDamping=1 -scaleAddedDampingWithDt=1 -useProvidedAcceleration=1 -useTP=0 -debug=3 -solver=best -rtol=1.e-5 -atol=1.e-12  -psolver=best -rtolp=1.e-5 -atolp=1.e-12  -ad2=0 -addedDampingCoeff=4. -go=og
+
+G4:
+     t    err(p)   err(u)   err(v)    div       uMax     dt       cpu    (0 steps)
+   0.000 7.61e-04 3.33e-16 4.44e-16 2.58e-14  1.00e+00 1.36e-02 6.43e-04 
+     t    err(p)   err(u)   err(v)    div       uMax     dt       cpu    (40 steps)
+   0.500 4.46e-04 2.79e-05 3.42e-05 2.91e-04  9.54e-01 1.25e-02 2.86e+01 
+
+
+G2:
+    t    err(p)   err(u)   err(v)    div       uMax     dt       cpu    (0 steps)
+   0.000 2.93e-03 3.33e-16 4.44e-16 1.23e-14  1.00e+00 2.00e-02 6.38e-04 
+     t    err(p)   err(u)   err(v)    div       uMax     dt       cpu    (5 steps)
+   0.100 1.71e-03 1.48e-04 1.41e-04 1.04e-03  9.91e-01 2.00e-02 3.04e+01 
+     t    err(p)   err(u)   err(v)    div       uMax     dt       cpu    (25 steps)
+   0.500 1.41e-03 1.57e-04 1.66e-04 9.36e-04  9.54e-01 2.00e-02 4.63e+01 
+G1
+     t    err(p)   err(u)   err(v)    div       uMax     dt       cpu    (25 steps)
+   0.500 5.06e-03 5.63e-04 6.09e-04 2.55e-03  9.54e-01 2.00e-02 9.90e+00 
+
+*********************
+****** Sunday July 3, 2016
+
+
+SET-UP ROTATIG DISK -- SINGLE GRID 
+
+
+TP:  -ts=pc 
+cgins movingDiskInDisk.cmd -g=annulusGrid1.order2 -dropName=annulus -tf=5. -tp=.01 -nu=.05 -ts=pc -density=10 -radius=1. -gravity=0. -amp=1 -bodyForce=none -option=rotatingDisk -dtMax=.02 -project=0 -numberOfCorrections=1 -addedDampingProjectVelocity=1 -omega=.2 -addedMass=0 -addedDamping=0 -scaleAddedDampingWithDt=1 -useProvidedAcceleration=0 -useTP=0 -debug=3 -solver=best -rtol=1.e-9 -atol=1.e-12  -psolver=best -rtolp=1.e-9 -atolp=1.e-12  -ad2=0 -addedDampingCoeff=4. -go=og
+
+
+FIXED ts=IM -- assign known solution to dirichletBC
+AMP: 
+cgins movingDiskInDisk.cmd -g=annulusGrid1.order2 -dropName=annulus -tf=5. -tp=.01 -nu=.05 -ts=im -density=10. -radius=1. -gravity=0. -amp=1 -bodyForce=none -option=rotatingDisk -dtMax=.02 -project=0 -numberOfCorrections=2 -addedDampingProjectVelocity=1 -omega=.2 -addedMass=1 -addedDamping=1 -scaleAddedDampingWithDt=1 -useProvidedAcceleration=1 -useTP=0 -debug=3 -solver=best -rtol=1.e-5 -atol=1.e-12  -psolver=best -rtolp=1.e-5 -atolp=1.e-12  -ad2=0 -addedDampingCoeff=4. -go=og
+
+     t    err(p)   err(u)   err(v)    div       uMax     dt       cpu    (1 steps)
+   0.010 1.02e-02 6.25e-05 6.25e-05 3.09e-04  9.99e-01 1.00e-02 2.23e+01 
+
+
+PC22: + AMP
+cgins movingDiskInDisk.cmd -g=annulusGrid1.order2 -dropName=annulus -tf=5. -tp=.01 -nu=.05 -ts=pc -density=10. -radius=1. -gravity=0. -amp=1 -bodyForce=none -option=rotatingDisk -dtMax=.02 -project=0 -numberOfCorrections=2 -addedDampingProjectVelocity=1 -omega=.2 -addedMass=1 -addedDamping=1 -scaleAddedDampingWithDt=1 -useProvidedAcceleration=1 -useTP=0 -debug=3 -solver=best -rtol=1.e-5 -atol=1.e-12 -psolver=best -rtolp=1.e-5 -atolp=1.e-12 -ad2=0 -addedDampingCoeff=4. -go=og
+-- improve past time rotation matrix
+     t    err(p)   err(u)   err(v)    div       uMax     dt       cpu    (1 steps)
+   0.010 9.83e-03 6.33e-05 6.32e-05 3.51e-04  9.99e-01 1.00e-02 3.32e+00 
+
+
+
+
+cgins -noplot movingDiskInDisk.cmd -g=diskInDiskGridFixede4.order2.hdf -tf=5. -tp=.1 -nu=.1 -ts=im -density=0.1 -radius=1. -gravity=0. -amp=1. -bodyForce=none -option=rotatingDisk -dtMax=.02 -project=0 -numberOfCorrections=2 -addedDampingProjectVelocity=1 -omega=.2 -addedMass=1 -addedDamping=1 -scaleAddedDampingWithDt=1 -useProvidedAcceleration=1 -useTP=0 -debug=3 -solver=best -rtol=1.e-5 -atol=1.e-12  -psolver=best -rtolp=1.e-5 -atolp=1.e-12  -ad2=0 -addedDampingCoeff=4. -go=og
+
+
+*********************
+****** June 25, 2016
+
+TEST *new* check files for rigid-bodies
+
+cgins -noplot movingDiskInDisk.cmd -g=diskInDiskGridFixede4.order2.hdf -tf=5. -tp=.01 -nu=.1 -ts=im -density=0.1 -radius=1. -gravity=0. -amp=1.e-2 -bodyForce=none -option=translatingDisk -dtMax=.02 -project=0 -numberOfCorrections=2 -addedDampingProjectVelocity=1 -omega=.2 -addedMass=1 -addedDamping=1 -scaleAddedDampingWithDt=1 -useProvidedAcceleration=1 -useTP=0 -debug=3 -solver=best -rtol=1.e-5 -atol=1.e-12  -psolver=best -rtolp=1.e-5 -atolp=1.e-12  -ad2=0 -addedDampingCoeff=4 -go=og
+
+
+cgins -noplot movingDiskInDisk.cmd -g=diskInDiskGridFixede4.order2.hdf -tf=5. -tp=.1 -nu=.1 -ts=im -density=0.1 -radius=1. -gravity=0. -amp=1. -bodyForce=none -option=rotatingDisk -dtMax=.02 -project=0 -numberOfCorrections=2 -addedDampingProjectVelocity=1 -omega=.2 -addedMass=1 -addedDamping=1 -scaleAddedDampingWithDt=1 -useProvidedAcceleration=1 -useTP=0 -debug=3 -solver=best -rtol=1.e-5 -atol=1.e-12  -psolver=best -rtolp=1.e-5 -atolp=1.e-12  -ad2=0 -addedDampingCoeff=4. -go=og
+
+
+
+
+**************
+G4 : ADC=4 : BIG Inertia
+cgins movingDiskInDisk.cmd -g=diskInDiskGride4.order2.hdf -tf=20. -tp=.1 -nu=.1 -ts=im -density=.1 -radius=1. -gravity=0. -amp=.1 -bodyForce=wzRamp -dtMax=.05 -project=0 -numberOfCorrections=2 -addedDampingProjectVelocity=1 -omega=.2 -addedMass=1 -addedDamping=1 -addedDampingCoeff=4. -scaleAddedDampingWithDt=1 -useProvidedAcceleration=1 -useTP=0 -debug=3 -solver=yale -psolver=yale -go=halt
+
+
+G4 : ADC=4 : BIG Inertia
+cgins movingDiskInDisk.cmd -g=diskInDiskGride4.order2.hdf -tf=20. -tp=.1 -nu=.1 -ts=im -inertia=100. -density=.01 -radius=1. -gravity=0. -amp=.1 -bodyForce=wzRamp -dtMax=.05 -project=0 -numberOfCorrections=2 -addedDampingProjectVelocity=1 -omega=.2 -addedMass=1 -addedDamping=1 -addedDampingCoeff=4. -scaleAddedDampingWithDt=1 -useProvidedAcceleration=1 -useTP=0 -debug=3 -solver=yale -psolver=yale -go=halt
+
+*********************
+****** June 12, 2016
+
+----------- Rotating disk in a disk -- test stability ----------
+
+
+RHOS=0.1 ADC=10
+cgins -noplot movingDiskInDisk.cmd -g=diskInDiskGridFixede4.order2.hdf -tf=5. -tp=.1 -nu=.1 -ts=im -density=0.1 -radius=1. -gravity=0. -amp=1. -bodyForce=none -option=rotatingDisk -dtMax=.02 -project=0 -numberOfCorrections=2 -addedDampingProjectVelocity=1 -omega=.2 -addedMass=1 -addedDamping=1 -scaleAddedDampingWithDt=1 -useProvidedAcceleration=1 -useTP=0 -debug=3 -solver=best -rtol=1.e-5 -atol=1.e-12  -psolver=best -rtolp=1.e-5 -atolp=1.e-12  -ad2=0 -addedDampingCoeff=10. -show=rotDiskG4Bd0p1AD10.show -go=go >! rotDiskG4Bd0p1AD10.out
+
+RHOS=0.1 ADC=7
+cgins -noplot movingDiskInDisk.cmd -g=diskInDiskGridFixede4.order2.hdf -tf=10. -tp=.1 -nu=.1 -ts=im -density=0.1 -radius=1. -gravity=0. -amp=1. -bodyForce=none -option=rotatingDisk -dtMax=.02 -project=0 -numberOfCorrections=2 -addedDampingProjectVelocity=1 -omega=.2 -addedMass=1 -addedDamping=1 -scaleAddedDampingWithDt=1 -useProvidedAcceleration=1 -useTP=0 -debug=3 -solver=best -rtol=1.e-5 -atol=1.e-12  -psolver=best -rtolp=1.e-5 -atolp=1.e-12  -ad2=0 -addedDampingCoeff=7. -show=rotDiskG4Bd0p1AD7.show -go=go >! rotDiskG4Bd0p1AD7.out
+
+RHOS=0.1 ADC=6 - OK
+cgins -noplot movingDiskInDisk.cmd -g=diskInDiskGridFixede4.order2.hdf -tf=5. -tp=.1 -nu=.1 -ts=im -density=0.1 -radius=1. -gravity=0. -amp=1. -bodyForce=none -option=rotatingDisk -dtMax=.02 -project=0 -numberOfCorrections=2 -addedDampingProjectVelocity=1 -omega=.2 -addedMass=1 -addedDamping=1 -scaleAddedDampingWithDt=1 -useProvidedAcceleration=1 -useTP=0 -debug=3 -solver=best -rtol=1.e-5 -atol=1.e-12  -psolver=best -rtolp=1.e-5 -atolp=1.e-12  -ad2=0 -addedDampingCoeff=6. -show=rotDiskG4Bd0p1AD6.show -go=go >! rotDiskG4Bd0p1AD6.out
+
+RHOS=0.1 ADC=5
+cgins -noplot movingDiskInDisk.cmd -g=diskInDiskGridFixede4.order2.hdf -tf=5. -tp=.1 -nu=.1 -ts=im -density=0.1 -radius=1. -gravity=0. -amp=1. -bodyForce=none -option=rotatingDisk -dtMax=.02 -project=0 -numberOfCorrections=2 -addedDampingProjectVelocity=1 -omega=.2 -addedMass=1 -addedDamping=1 -scaleAddedDampingWithDt=1 -useProvidedAcceleration=1 -useTP=0 -debug=3 -solver=best -rtol=1.e-5 -atol=1.e-12  -psolver=best -rtolp=1.e-5 -atolp=1.e-12  -ad2=0 -addedDampingCoeff=5. -show=rotDiskG4Bd0p1AD5.show -go=go >! rotDiskG4Bd0p1AD5.out
+
+
+RHOS=0.1 ADC=4  OK
+cgins -noplot movingDiskInDisk.cmd -g=diskInDiskGridFixede4.order2.hdf -tf=5. -tp=.1 -nu=.1 -ts=im -density=0.1 -radius=1. -gravity=0. -amp=1. -bodyForce=none -option=rotatingDisk -dtMax=.02 -project=0 -numberOfCorrections=2 -addedDampingProjectVelocity=1 -omega=.2 -addedMass=1 -addedDamping=1 -scaleAddedDampingWithDt=1 -useProvidedAcceleration=1 -useTP=0 -debug=3 -solver=best -rtol=1.e-5 -atol=1.e-12  -psolver=best -rtolp=1.e-5 -atolp=1.e-12  -ad2=0 -addedDampingCoeff=4. -show=rotDiskG4Bd0p1AD4.show -go=go >! rotDiskG4Bd0p1AD4.out
+
+RHOS=0.1 ADC=3
+cgins -noplot movingDiskInDisk.cmd -g=diskInDiskGridFixede4.order2.hdf -tf=5. -tp=.1 -nu=.1 -ts=im -density=0.1 -radius=1. -gravity=0. -amp=1. -bodyForce=none -option=rotatingDisk -dtMax=.02 -project=0 -numberOfCorrections=2 -addedDampingProjectVelocity=1 -omega=.2 -addedMass=1 -addedDamping=1 -scaleAddedDampingWithDt=1 -useProvidedAcceleration=1 -useTP=0 -debug=3 -solver=best -rtol=1.e-5 -atol=1.e-12  -psolver=best -rtolp=1.e-5 -atolp=1.e-12  -ad2=0 -addedDampingCoeff=3. -show=rotDiskG4Bd0p1AD3.show -go=go >! rotDiskG4Bd0p1AD3.out
+
+
+RHOS=0.1 ADC=2
+cgins -noplot movingDiskInDisk.cmd -g=diskInDiskGridFixede4.order2.hdf -tf=5. -tp=.1 -nu=.1 -ts=im -density=0.1 -radius=1. -gravity=0. -amp=1. -bodyForce=none -option=rotatingDisk -dtMax=.02 -project=0 -numberOfCorrections=2 -addedDampingProjectVelocity=1 -omega=.2 -addedMass=1 -addedDamping=1 -scaleAddedDampingWithDt=1 -useProvidedAcceleration=1 -useTP=0 -debug=3 -solver=best -rtol=1.e-5 -atol=1.e-12  -psolver=best -rtolp=1.e-5 -atolp=1.e-12  -ad2=0 -addedDampingCoeff=2. -show=rotDiskG4Bd0p1AD2.show -go=go >! rotDiskG4Bd0p1AD2.out
+
+
+
+
+TEST: 
+cgins movingDiskInDisk.cmd -g=diskInDiskGridFixede4.order2.hdf -tf=1. -tp=.1 -nu=.1 -ts=im -density=10 -radius=1. -gravity=0. -amp=1. -bodyForce=none -option=rotatingDisk -dtMax=.02 -project=0 -numberOfCorrections=2 -addedDampingProjectVelocity=1 -omega=.2 -addedMass=1 -addedDamping=1 -scaleAddedDampingWithDt=1 -useProvidedAcceleration=1 -useTP=0 -debug=3 -solver=best -rtol=1.e-5 -atol=1.e-12  -psolver=best -rtolp=1.e-5 -atolp=1.e-12  -ad2=0 -addedDampingCoeff=4. -go=halt
+
+cgins movingDiskInDisk.cmd -g=diskInDiskGridFixede4.order2.hdf -tf=10. -tp=.1 -nu=.1 -ts=im -density=1. -radius=1. -gravity=0. -amp=.1 -bodyForce=none -option=rotatingDisk -dtMax=.0125 -project=0 -numberOfCorrections=2 -addedDampingProjectVelocity=1 -omega=.2 -addedMass=1 -addedDamping=1 -scaleAddedDampingWithDt=1 -useProvidedAcceleration=1 -useTP=0 -debug=3  -solver=best -rol=1.e-5 -atol=1.e-7  -psolver=best -rtolp=1.e-5 -atolp=1.e-7 -ad2=0 -addedDampingCoeff=4. -go=halt
+
+
+================================ RHOS=.01  ===============================
+RHOS=0.01 ADC=5 
+cgins -noplot movingDiskInDisk.cmd -g=diskInDiskGridFixede4.order2.hdf -tf=5. -tp=.1 -nu=.1 -ts=im -density=0.01 -radius=1. -gravity=0. -amp=1. -bodyForce=none -option=rotatingDisk -dtMax=.02 -project=0 -numberOfCorrections=2 -addedDampingProjectVelocity=1 -omega=.2 -addedMass=1 -addedDamping=1 -scaleAddedDampingWithDt=1 -useProvidedAcceleration=1 -useTP=0 -debug=3 -solver=best -rtol=1.e-5 -atol=1.e-12  -psolver=best -rtolp=1.e-5 -atolp=1.e-12  -ad2=0 -addedDampingCoeff=5. -show=rotDiskG4Bd0p01AD5.show -go=go >! rotDiskG4Bd0p01AD5.out
+
+
+RHOS=0.01 ADC=4
+cgins -noplot movingDiskInDisk.cmd -g=diskInDiskGridFixede4.order2.hdf -tf=10. -tp=.1 -nu=.1 -ts=im -density=0.01 -radius=1. -gravity=0. -amp=1. -bodyForce=none -option=rotatingDisk -dtMax=.02 -project=0 -numberOfCorrections=2 -addedDampingProjectVelocity=1 -omega=.2 -addedMass=1 -addedDamping=1 -scaleAddedDampingWithDt=1 -useProvidedAcceleration=1 -useTP=0 -debug=3 -solver=best -rtol=1.e-5 -atol=1.e-12  -psolver=best -rtolp=1.e-5 -atolp=1.e-12  -ad2=0 -addedDampingCoeff=4. -show=rotDiskG4Bd0p01AD4.show -go=go >! rotDiskG4Bd0p01AD4.out
+
+RHOS=0.01 ADC=3
+cgins -noplot movingDiskInDisk.cmd -g=diskInDiskGridFixede4.order2.hdf -tf=1. -tp=.1 -nu=.1 -ts=im -density=0.01 -radius=1. -gravity=0. -amp=1. -bodyForce=none -option=rotatingDisk -dtMax=.02 -project=0 -numberOfCorrections=2 -addedDampingProjectVelocity=1 -omega=.2 -addedMass=1 -addedDamping=1 -scaleAddedDampingWithDt=1 -useProvidedAcceleration=1 -useTP=0 -debug=3 -solver=best -rtol=1.e-5 -atol=1.e-12  -psolver=best -rtolp=1.e-5 -atolp=1.e-12  -ad2=0 -addedDampingCoeff=3. -show=rotDiskG4Bd0p01AD3.show -go=go >! rotDiskG4Bd0p01AD3.out
+
+*********************
+****** June 11, 2016
+
+
+TEST STABILITY 
+
+
+RHOS=0.01 ADC=3: NO 
+cgins -noplot movingDiskInDisk.cmd -g=diskInDiskGridFixede4.order2.hdf -tf=5. -tp=.1 -nu=.1 -ts=im -density=0.01 -radius=1. -gravity=0. -amp=1.e-5 -bodyForce=none -option=translatingDisk -dtMax=.02 -project=0 -numberOfCorrections=2 -addedDampingProjectVelocity=1 -omega=.2 -addedMass=1 -addedDamping=1 -scaleAddedDampingWithDt=1 -useProvidedAcceleration=1 -useTP=0 -debug=3 -solver=best -rtol=1.e-5 -atol=1.e-12  -psolver=best -rtolp=1.e-5 -atolp=1.e-12  -ad2=0 -addedDampingCoeff=3. -show=transDiskG4Bd0p01AD3.show -go=go >! transDiskG4Bd0p01AD3.out 
+
+RHOS=0.01 ADC=3.5
+cgins -noplot movingDiskInDisk.cmd -g=diskInDiskGridFixede4.order2.hdf -tf=5. -tp=.1 -nu=.1 -ts=im -density=0.01 -radius=1. -gravity=0. -amp=1.e-5 -bodyForce=none -option=translatingDisk -dtMax=.02 -project=0 -numberOfCorrections=2 -addedDampingProjectVelocity=1 -omega=.2 -addedMass=1 -addedDamping=1 -scaleAddedDampingWithDt=1 -useProvidedAcceleration=1 -useTP=0 -debug=3 -solver=best -rtol=1.e-5 -atol=1.e-12  -psolver=best -rtolp=1.e-5 -atolp=1.e-12  -ad2=0 -addedDampingCoeff=3.5 -show=transDiskG4Bd0p01AD3p5.show -go=go >! transDiskG4Bd0p01AD3p5.out 
+
+
+RHOS=0.01 ADC=4 OK : 
+cgins -noplot movingDiskInDisk.cmd -g=diskInDiskGridFixede4.order2.hdf -tf=5. -tp=.1 -nu=.1 -ts=im -density=0.01 -radius=1. -gravity=0. -amp=1.e-5 -bodyForce=none -option=translatingDisk -dtMax=.02 -project=0 -numberOfCorrections=2 -addedDampingProjectVelocity=1 -omega=.2 -addedMass=1 -addedDamping=1 -scaleAddedDampingWithDt=1 -useProvidedAcceleration=1 -useTP=0 -debug=3 -solver=best -rtol=1.e-5 -atol=1.e-12  -psolver=best -rtolp=1.e-5 -atolp=1.e-12  -ad2=0 -addedDampingCoeff=4. -show=transDiskG4Bd0p01AD4.show -go=go >! transDiskG4Bd0p01AD4.out 
+
+RHOS=0.01 ADC=4.5
+cgins -noplot movingDiskInDisk.cmd -g=diskInDiskGridFixede4.order2.hdf -tf=5. -tp=.1 -nu=.1 -ts=im -density=0.01 -radius=1. -gravity=0. -amp=1.e-5 -bodyForce=none -option=translatingDisk -dtMax=.02 -project=0 -numberOfCorrections=2 -addedDampingProjectVelocity=1 -omega=.2 -addedMass=1 -addedDamping=1 -scaleAddedDampingWithDt=1 -useProvidedAcceleration=1 -useTP=0 -debug=3 -solver=best -rtol=1.e-5 -atol=1.e-12  -psolver=best -rtolp=1.e-5 -atolp=1.e-12  -ad2=0 -addedDampingCoeff=4.5 -show=transDiskG4Bd0p01AD4p5.show -go=go >! transDiskG4Bd0p01AD4p5.out 
+
+RHOS=0.01 ADC=5 - NO 
+cgins -noplot movingDiskInDisk.cmd -g=diskInDiskGridFixede4.order2.hdf -tf=5. -tp=.1 -nu=.1 -ts=im -density=0.01 -radius=1. -gravity=0. -amp=1.e-5 -bodyForce=none -option=translatingDisk -dtMax=.02 -project=0 -numberOfCorrections=2 -addedDampingProjectVelocity=1 -omega=.2 -addedMass=1 -addedDamping=1 -scaleAddedDampingWithDt=1 -useProvidedAcceleration=1 -useTP=0 -debug=3 -solver=best -rtol=1.e-5 -atol=1.e-12  -psolver=best -rtolp=1.e-5 -atolp=1.e-12  -ad2=0 -addedDampingCoeff=5. -show=transDiskG4Bd0p01AD5.show -go=go >! transDiskG4Bd0p01AD5.out 
+
+
+
+RHOS=.1, ADC=4 : OK 
+cgins -noplot movingDiskInDisk.cmd -g=diskInDiskGridFixede4.order2.hdf -tf=5. -tp=.1 -nu=.1 -ts=im -density=0.1 -radius=1. -gravity=0. -amp=1.e-5 -bodyForce=none -option=translatingDisk -dtMax=.02 -project=0 -numberOfCorrections=2 -addedDampingProjectVelocity=1 -omega=.2 -addedMass=1 -addedDamping=1 -scaleAddedDampingWithDt=1 -useProvidedAcceleration=1 -useTP=0 -debug=3 -solver=best -rtol=1.e-5 -atol=1.e-12  -psolver=best -rtolp=1.e-5 -atolp=1.e-12  -ad2=0 -addedDampingCoeff=4. -show=transDiskAD4G4.show -go=go >! transDiskG4Ad4.out
+
+
+
+Test translating disk KNOWN SOLUTION
+
+Translating disk in disk: setting amp=1e-05, a=1, b=2, delta=mb/(rho*pi*a^2)=0.001, k=  3.941550131313e+00.
+Translating disk in disk: setting amp=1e-05, a=1, b=2, delta=mb/(rho*pi*a^2)=0.01, k=  3.935735031521e+00.
+Translating disk in disk: setting amp=1e-05, a=1, b=2, delta=mb/(rho*pi*a^2)=0.1, k=  3.878729254903e+00.
+Translating disk in disk: setting amp=1e-05, a=1, b=2, delta=mb/(rho*pi*a^2)=1, k=  3.406921426568e+00.
+Translating disk in disk: setting amp=1e-05, a=1, b=2, delta=mb/(rho*pi*a^2)=10, k=  1.846041656282e+00.
+Translating disk in disk: setting amp=1e-05, a=1, b=2, delta=mb/(rho*pi*a^2)=100, k=  6.470375919702e-01.
+Translating disk in disk: setting amp=1e-05, a=1, b=2, delta=mb/(rho*pi*a^2)=1000, k=  2.069607353924e-01.
+
+cgins -noplot movingDiskInDisk.cmd -g=diskInDiskGridFixede2.order2.hdf -tf=.5 -tp=.1 -nu=.1 -ts=im -density=100. -radius=1. -gravity=0. -amp=1.e-5 -bodyForce=none -option=translatingDisk -dtMax=.04 -project=0 -numberOfCorrections=2 -addedDampingProjectVelocity=1 -omega=.2 -addedMass=1 -addedDamping=1 -scaleAddedDampingWithDt=1 -useProvidedAcceleration=1 -useTP=0 -debug=3 -solver=best -rtol=1.e-7 -atol=1.e-12  -psolver=best -rtolp=1.e-7 -atolp=1.e-12  -ad2=0 -addedDampingCoeff=4. -go=halt
+
+
+============= RE-DO WIth PROPER TOL's ===============
+----RUN FOR CONTOURS
+
+cgins -noplot movingDiskInDisk.cmd -g=diskInDiskGridFixede4.order2.hdf -tf=.5 -tp=.1 -nu=.1 -ts=im -density=0.1 -radius=1. -gravity=0. -amp=1.e-5 -bodyForce=none -option=translatingDisk -dtMax=.02 -project=0 -numberOfCorrections=2 -addedDampingProjectVelocity=1 -omega=.2 -addedMass=1 -addedDamping=1 -scaleAddedDampingWithDt=1 -useProvidedAcceleration=1 -useTP=0 -debug=3 -solver=best -rtol=1.e-7 -atol=1.e-12  -psolver=best -rtolp=1.e-7 -atolp=1.e-12  -ad2=0 -addedDampingCoeff=4. -show=transDiskG4Bd0p1Ad4.show -go=go >! transDiskG4Bd0p1Ad4.out
+
+G8 - dt=.01
+cgins -noplot movingDiskInDisk.cmd -g=diskInDiskGridFixede8.order2.hdf -tf=.5 -tp=.1 -nu=.1 -ts=im -density=2. -radius=1. -gravity=0. -amp=1.e-5 -bodyForce=none -option=translatingDisk -dtMax=.01 -project=0 -numberOfCorrections=2 -addedDampingProjectVelocity=1 -omega=.2 -addedMass=1 -addedDamping=1 -scaleAddedDampingWithDt=1 -useProvidedAcceleration=1 -useTP=0 -debug=3 -solver=best -rtol=1.e-8 -atol=1.e-12  -psolver=best -rtolp=1.e-8 -atolp=1.e-12  -ad2=0 -addedDampingCoeff=4. -go=go >! transDiskG8.out 
+
+     t    err(p)   err(u)   err(v)    div       uMax     dt       cpu    (50 steps)
+   0.500 8.31e-10 1.72e-09 6.57e-10 3.84e-09  1.16e-05 1.00e-02 1.26e+02 
+
+G4 - dt=.02
+cgins -noplot movingDiskInDisk.cmd -g=diskInDiskGridFixede4.order2.hdf -tf=.5 -tp=.1 -nu=.1 -ts=im -density=2. -radius=1. -gravity=0. -amp=1.e-5 -bodyForce=none -option=translatingDisk -dtMax=.02 -project=0 -numberOfCorrections=2 -addedDampingProjectVelocity=1 -omega=.2 -addedMass=1 -addedDamping=1 -scaleAddedDampingWithDt=1 -useProvidedAcceleration=1 -useTP=0 -debug=3 -solver=best -rtol=1.e-7 -atol=1.e-12  -psolver=best -rtolp=1.e-7 -atolp=1.e-12  -ad2=0 -addedDampingCoeff=4. -go=go >! transDiskG4.out 
+
+
+dt=.01 
+--INS-- determineErrors: t=5.000e-01, maxNorm errors: [p,u,v,T]=[2.42e-09,4.87e-09,1.71e-09,0.00e+00]
+     t    err(p)   err(u)   err(v)    div       uMax     dt       cpu    (50 steps)
+   0.500 2.42e-09 4.87e-09 1.71e-09 1.55e-08  1.16e-05 1.00e-02 2.40e+01 
+
+dt=.02
+     t    err(p)   err(u)   err(v)    div       uMax     dt       cpu    (25 steps)
+   0.500 2.93e-09 5.47e-09 2.00e-09 1.58e-08  1.16e-05 2.00e-02 1.34e+01 
+
+
+G2 - dt=.04
+cgins -noplot movingDiskInDisk.cmd -g=diskInDiskGridFixede2.order2.hdf -tf=.5 -tp=.1 -nu=.1 -ts=im -density=2. -radius=1. -gravity=0. -amp=1.e-5 -bodyForce=none -option=translatingDisk -dtMax=.04 -project=0 -numberOfCorrections=2 -addedDampingProjectVelocity=1 -omega=.2 -addedMass=1 -addedDamping=1 -scaleAddedDampingWithDt=1 -useProvidedAcceleration=1 -useTP=0 -debug=3 -solver=best -rtol=1.e-7 -atol=1.e-12  -psolver=best -rtolp=1.e-7 -atolp=1.e-12  -ad2=0 -addedDampingCoeff=4. -go=go >! transDiskG2.out 
+
+     t    err(p)   err(u)   err(v)    div       uMax     dt       cpu    (15 steps)
+   0.500 1.05e-08 1.59e-08 5.97e-09 5.96e-08  1.15e-05 3.33e-02 2.32e+00 
+
+
+
+**BUG FOUND*** RTOL NOT SET -- SPELIING **ROL**
+
+
+CHECK BLIP AT BRANCH CUT
+
+G8 Blips go away with Yale
+cgins movingDiskInDisk.cmd -g=diskInDiskGridFixede8.order2.hdf -tf=.5 -tp=.02 -nu=.1 -ts=im -density=2. -radius=1. -gravity=0. -amp=1.e-5 -bodyForce=none -option=translatingDisk -dtMax=.02 -project=0 -numberOfCorrections=2 -addedDampingProjectVelocity=1 -omega=.2 -addedMass=1 -addedDamping=1 -scaleAddedDampingWithDt=1 -useProvidedAcceleration=1 -useTP=0 -debug=3 -solver=best -rol=1.e-12 -atol=1.e-14  -psolver=best -rtolp=1.e-9 -atolp=1.e-12  -ad2=0 -addedDampingCoeff=4. -go=halt
+
+
+G8 -- blip in u and div(u) at branch cut
+cgins movingDiskInDisk.cmd -g=diskInDiskGridFixede8.order2.hdf -tf=.5 -tp=.02 -nu=.1 -ts=im -density=2. -radius=1. -gravity=0. -amp=1.e-5 -bodyForce=none -option=translatingDisk -dtMax=.02 -project=0 -numberOfCorrections=2 -addedDampingProjectVelocity=1 -omega=.2 -addedMass=1 -addedDamping=1 -scaleAddedDampingWithDt=1 -useProvidedAcceleration=1 -useTP=0 -debug=3 -solver=best -rol=1.e-7 -atol=1.e-9  -psolver=best -rtolp=1.e-7 -atolp=1.e-9  -ad2=0 -addedDampingCoeff=4. -go=halt
+
+G4 -- OK
+cgins movingDiskInDisk.cmd -g=diskInDiskGridFixede4.order2.hdf -tf=.5 -tp=.02 -nu=.1 -ts=im -density=2. -radius=1. -gravity=0. -amp=1.e-5 -bodyForce=none -option=translatingDisk -dtMax=.02 -project=0 -numberOfCorrections=2 -addedDampingProjectVelocity=1 -omega=.2 -addedMass=1 -addedDamping=1 -scaleAddedDampingWithDt=1 -useProvidedAcceleration=1 -useTP=0 -debug=3 -solver=best -rol=1.e-7 -atol=1.e-9  -psolver=best -rtolp=1.e-7 -atolp=1.e-9  -ad2=0 -addedDampingCoeff=4. -go=halt
+
+
+G2 -- 
+cgins movingDiskInDisk.cmd -g=diskInDiskGridFixede2.order2.hdf -tf=.5 -tp=.02 -nu=.1 -ts=im -density=2. -radius=1. -gravity=0. -amp=1.e-5 -bodyForce=none -option=translatingDisk -dtMax=.02 -project=0 -numberOfCorrections=2 -addedDampingProjectVelocity=1 -omega=.2 -addedMass=1 -addedDamping=1 -scaleAddedDampingWithDt=1 -useProvidedAcceleration=1 -useTP=0 -debug=3 -solver=best -rol=1.e-7 -atol=1.e-9  -psolver=best -rtolp=1.e-7 -atolp=1.e-9  -ad2=0 -addedDampingCoeff=4. -go=halt
+
+
+
+Check initial pressure computation
+
+NOTE -- errors in u at ghost are large at t=0 
+
+
+G8 TP
+     t    err(p)   err(u)   err(v)    div       uMax     dt       cpu    (0 steps)
+   0.000 2.26e-07 2.95e-10 1.68e-10 3.07e-08  1.83e-05 1.00e-02 2.08e-02 
+
+
+
+
+
+
+G8 dt=.01 
+cgins -noplot movingDiskInDisk.cmd -g=diskInDiskGridFixede8.order2.hdf -tf=.5 -tp=.1 -nu=.1 -ts=im -density=2. -radius=1. -gravity=0. -amp=1.e-5 -bodyForce=none -option=translatingDisk -dtMax=.01 -project=0 -numberOfCorrections=2 -addedDampingProjectVelocity=1 -omega=.2 -addedMass=1 -addedDamping=1 -scaleAddedDampingWithDt=1 -useProvidedAcceleration=1 -useTP=0 -debug=3 -solver=best -rol=1.e-7 -atol=1.e-9  -psolver=best -rtolp=1.e-9 -atolp=1.e-11  -ad2=0 -addedDampingCoeff=4. -go=go >! transDiskG8.out 
+
+
+     t    err(p)   err(u)   err(v)    div       uMax     dt       cpu    (0 steps)
+   0.000 6.14e-07 4.18e-11 2.34e-11 8.65e-09  1.83e-05 1.00e-02 6.03e-04 
+     t    err(p)   err(u)   err(v)    div       uMax     dt       cpu    (10 steps)
+   0.100 1.98e-09 2.71e-09 1.22e-09 1.64e-08  1.67e-05 1.00e-02 2.59e+01 
+     t    err(p)   err(u)   err(v)    div       uMax     dt       cpu    (50 steps)
+   0.500 1.98e-09 1.64e-09 6.33e-10 1.25e-08  1.16e-05 1.00e-02 1.15e+02 
+
+G4 - dt=.02
+cgins -noplot movingDiskInDisk.cmd -g=diskInDiskGridFixede4.order2.hdf -tf=.5 -tp=.1 -nu=.1 -ts=im -density=2. -radius=1. -gravity=0. -amp=1.e-5 -bodyForce=none -option=translatingDisk -dtMax=.02 -project=0 -numberOfCorrections=2 -addedDampingProjectVelocity=1 -omega=.2 -addedMass=1 -addedDamping=1 -scaleAddedDampingWithDt=1 -useProvidedAcceleration=1 -useTP=0 -debug=3 -solver=best -rol=1.e-7 -atol=1.e-9  -psolver=best -rtolp=1.e-7 -atolp=1.e-9  -ad2=0 -addedDampingCoeff=4. -go=go >! transDiskG4.out 
+
+    t    err(p)   err(u)   err(v)    div       uMax     dt       cpu    (0 steps)
+   0.000 8.06e-07 2.95e-10 1.68e-10 3.07e-08  1.83e-05 2.00e-02 6.59e-04 
+     t    err(p)   err(u)   err(v)    div       uMax     dt       cpu    (25 steps)
+   0.500 3.82e-09 5.52e-09 1.95e-09 1.60e-08  1.16e-05 2.00e-02 1.71e+01 
+
+G8:
+cgins movingDiskInDisk.cmd -g=diskInDiskGridFixede8.order2.hdf -tf=10. -tp=.1 -nu=.1 -ts=im -density=2. -radius=1. -gravity=0. -amp=1.e-5 -bodyForce=none -option=translatingDisk -dtMax=.01 -project=0 -numberOfCorrections=2 -addedDampingProjectVelocity=1 -omega=.2 -addedMass=1 -addedDamping=1 -scaleAddedDampingWithDt=1 -useProvidedAcceleration=1 -useTP=0 -debug=3 -solver=best -rol=1.e-7 -atol=1.e-9  -psolver=best -rtolp=1.e-9 -atolp=1.e-11  -ad2=0 -addedDampingCoeff=4. -go=halt
+
+nu=.1: 
+     t    err(p)   err(u)   err(v)    div       uMax     dt       cpu    (0 steps)
+   0.000 6.14e-07 4.18e-11 2.34e-11 8.65e-09  1.83e-05 1.00e-02 5.47e-02 
+
+nu=.001
+     t    err(p)   err(u)   err(v)    div       uMax     dt       cpu    (0 steps)
+   0.000 3.87e-08 4.18e-11 2.34e-11 8.65e-09  1.83e-05 1.00e-02 5.42e-02 
+
+
+G4
+cgins movingDiskInDisk.cmd -g=diskInDiskGridFixede4.order2.hdf -tf=10. -tp=.1 -nu=.1 -ts=im -density=2. -radius=1. -gravity=0. -amp=1.e-5 -bodyForce=none -option=translatingDisk -dtMax=.01 -project=0 -numberOfCorrections=2 -addedDampingProjectVelocity=1 -omega=.2 -addedMass=1 -addedDamping=1 -scaleAddedDampingWithDt=1 -useProvidedAcceleration=1 -useTP=0 -debug=3 -solver=best -rol=1.e-7 -atol=1.e-9  -psolver=best -rtolp=1.e-7 -atolp=1.e-9  -ad2=0 -addedDampingCoeff=4. -go=halt
+
+     t    err(p)   err(u)   err(v)    div       uMax     dt       cpu    (0 steps)
+   0.000 5.87e-07 2.95e-10 1.68e-10 3.07e-08  1.83e-05 1.00e-02 2.06e-02 
+
+
+*********************
+****** June 10, 2016
+
+
+Test translating disk KNOWN SOLUTION
+
+G8:
+cgins movingDiskInDisk.cmd -g=diskInDiskGridFixede8.order2.hdf -tf=10. -tp=.1 -nu=.1 -ts=im -density=2. -radius=1. -gravity=0. -amp=1.e-5 -bodyForce=none -option=translatingDisk -dtMax=.01 -project=0 -numberOfCorrections=2 -addedDampingProjectVelocity=1 -omega=.2 -addedMass=1 -addedDamping=1 -scaleAddedDampingWithDt=1 -useProvidedAcceleration=1 -useTP=0 -debug=3 -solver=best -rol=1.e-7 -atol=1.e-9  -psolver=best -rtolp=1.e-7 -atolp=1.e-9  -ad2=0 -addedDampingCoeff=4. -go=hal
+
+     t    err(p)   err(u)   err(v)    div       uMax     dt       cpu    (0 steps)
+   0.000 6.14e-07 4.18e-11 2.34e-11 8.65e-09  1.83e-05 1.00e-02 5.47e-02 
+
+TP scheme 
+cgins movingDiskInDisk.cmd -g=diskInDiskGridFixede4.order2.hdf -tf=10. -tp=.1 -nu=.1 -ts=im -density=2. -radius=1. -gravity=0. -amp=1.e-5 -bodyForce=none -option=translatingDisk -dtMax=.01 -project=0 -numberOfCorrections=1 -addedDampingProjectVelocity=0 -omega=.2 -addedMass=0 -addedDamping=0 -scaleAddedDampingWithDt=1 -useProvidedAcceleration=1 -useTP=0 -debug=3 -solver=best -rol=1.e-7 -atol=1.e-9  -psolver=best -rtolp=1.e-7 -atolp=1.e-9  -ad2=0 -addedDampingCoeff=4. -go=halt
+
+
+amp=1.e-5 , better tols
+cgins movingDiskInDisk.cmd -g=diskInDiskGridFixede4.order2.hdf -tf=10. -tp=.1 -nu=.1 -ts=im -density=2. -radius=1. -gravity=0. -amp=1.e-5 -bodyForce=none -option=translatingDisk -dtMax=.01 -project=0 -numberOfCorrections=2 -addedDampingProjectVelocity=1 -omega=.2 -addedMass=1 -addedDamping=1 -scaleAddedDampingWithDt=1 -useProvidedAcceleration=1 -useTP=0 -debug=3 -solver=best -rol=1.e-7 -atol=1.e-9  -psolver=best -rtolp=1.e-7 -atolp=1.e-9  -ad2=0 -addedDampingCoeff=4. -go=halt
+    t    err(p)   err(u)   err(v)    div       uMax     dt       cpu    (0 steps)
+   0.000 5.87e-07 2.95e-10 1.68e-10 3.07e-08  1.83e-05 1.00e-02 2.12e-02 
+    t    err(p)   err(u)   err(v)    div       uMax     dt       cpu    (10 steps)
+   0.100 1.68e-08 8.42e-09 2.99e-09 4.21e-08  1.67e-05 1.00e-02 1.14e+01 
+     t    err(p)   err(u)   err(v)    div       uMax     dt       cpu    (20 steps)
+   0.200 5.71e-09 8.66e-09 2.74e-09 3.83e-08  1.52e-05 1.00e-02 2.99e+01 
+
+
+
+cgins movingDiskInDisk.cmd -g=diskInDiskGridFixede4.order2.hdf -tf=10. -tp=.1 -nu=.1 -ts=im -density=2. -radius=1. -gravity=0. -amp=1.e-5 -bodyForce=none -option=translatingDisk -dtMax=.01 -project=0 -numberOfCorrections=2 -addedDampingProjectVelocity=1 -omega=.2 -addedMass=1 -addedDamping=1 -scaleAddedDampingWithDt=1 -useProvidedAcceleration=1 -useTP=0 -debug=3 -solver=yale -psolver=yale -ad2=0 -addedDampingCoeff=4. -go=halt
+
+Yale: 
+    t    err(p)   err(u)   err(v)    div       uMax     dt       cpu    (0 steps)
+   0.000 5.88e-07 2.95e-10 1.68e-10 3.07e-08  1.83e-05 1.00e-02 1.69e-02 
+    t    err(p)   err(u)   err(v)    div       uMax     dt       cpu    (10 steps)
+   0.100 1.17e-08 7.32e-09 2.92e-09 2.24e-08  1.67e-05 1.00e-02 3.86e+01 
+    t    err(p)   err(u)   err(v)    div       uMax     dt       cpu    (20 steps)
+   0.200 4.62e-09 7.01e-09 2.62e-09 2.05e-08  1.52e-05 1.00e-02 8.07e+01 
+
+PETSC  -- tols a bit too 
+    t    err(p)   err(u)   err(v)    div       uMax     dt       cpu    (0 steps)
+   0.000 2.34e-07 2.95e-10 1.68e-10 3.07e-08  1.83e-05 1.00e-02 2.08e-02 
+    t    err(p)   err(u)   err(v)    div       uMax     dt       cpu    (10 steps)
+   0.100 1.39e-07 9.93e-09 3.66e-09 3.26e-08  1.67e-05 1.00e-02 1.67e+01 
+     t    err(p)   err(u)   err(v)    div       uMax     dt       cpu    (20 steps)
+   0.200 8.31e-08 1.24e-08 3.55e-09 3.35e-08  1.52e-05 1.00e-02 4.45e+01 
+
+cgins movingDiskInDisk.cmd -g=diskInDiskGridFixede4.order2.hdf -tf=10. -tp=.1 -nu=.1 -ts=im -density=2. -radius=1. -gravity=0. -amp=1.e-3 -bodyForce=none -option=translatingDisk -dtMax=.05 -project=0 -numberOfCorrections=2 -addedDampingProjectVelocity=1 -omega=.2 -addedMass=1 -addedDamping=1 -scaleAddedDampingWithDt=1 -useProvidedAcceleration=1 -useTP=0 -debug=3 -solver=best -rol=1.e-5 -atol=1.e-7  -psolver=best -rtolp=1.e-5 -atolp=1.e-7  -ad2=0 -addedDampingCoeff=4. -go=halt
+
+dtMax=.001
+    t    err(p)   err(u)   err(v)    div       uMax     dt       cpu    (0 steps)
+   0.000 1.02e-04 2.95e-08 1.68e-08 3.07e-06  1.83e-03 1.00e-03 2.09e-02 
+    t    err(p)   err(u)   err(v)    div       uMax     dt       cpu    (100 steps)
+   0.100 2.13e-06 7.45e-07 3.18e-07 2.46e-06  1.67e-03 1.00e-03 6.07e+01 
+
+
+dtMax=.01
+    t    err(p)   err(u)   err(v)    div       uMax     dt       cpu    (0 steps)
+   0.000 5.87e-05 2.95e-08 1.68e-08 3.07e-06  1.83e-03 1.00e-02 3.47e-02 
+    t    err(p)   err(u)   err(v)    div       uMax     dt       cpu    (10 steps)
+   0.100 2.57e-06 8.34e-07 3.20e-07 4.22e-06  1.67e-03 1.00e-02 3.12e+01 
+    t    err(p)   err(u)   err(v)    div       uMax     dt       cpu    (20 steps)
+   0.200 1.96e-06 8.75e-07 5.59e-07 3.82e-06  1.52e-03 1.00e-02 1.25e+01 
+
+TRUE-LAMBDA
+    t    err(p)   err(u)   err(v)    div       uMax     dt       cpu    (0 steps)
+   0.000 1.36e-04 2.95e-08 1.68e-08 3.07e-06  1.83e-03 5.00e-02 2.09e-02 
+
+    t    err(p)   err(u)   err(v)    div       uMax     dt       cpu    (2 steps)
+   0.100 6.73e-06 2.48e-06 1.70e-06 2.10e-05  1.67e-03 5.00e-02 4.79e+00 
+    t    err(p)   err(u)   err(v)    div       uMax     dt       cpu    (4 steps)
+   0.200 7.57e-06 1.98e-06 1.15e-06 1.29e-05  1.52e-03 5.00e-02 1.83e+01 
+
+
+BAD-LAMBDA  : lambda*1.1
+    t    err(p)   err(u)   err(v)    div       uMax     dt       cpu    (2 steps)
+   0.100 4.67e-04 2.49e-05 1.47e-05 1.80e-04  1.69e-03 5.00e-02 1.83e+01 
+    t    err(p)   err(u)   err(v)    div       uMax     dt       cpu    (4 steps)
+   0.200 4.26e-04 4.43e-05 3.21e-05 7.89e-05  1.53e-03 5.00e-02 6.05e+01 
+
+cgins movingDiskInDisk.cmd -g=diskInDiskGridFixede2.order2.hdf -tf=10. -tp=.1 -nu=.1 -ts=im -density=2. -radius=1. -gravity=0. -amp=1.e-3 -bodyForce=none -option=translatingDisk -dtMax=.05 -project=0 -numberOfCorrections=2 -addedDampingProjectVelocity=1 -omega=.2 -addedMass=1 -addedDamping=1 -scaleAddedDampingWithDt=1 -useProvidedAcceleration=1 -useTP=0 -debug=3 -solver=best -rol=1.e-5 -atol=1.e-7  -psolver=best -rtolp=1.e-5 -atolp=1.e-7  -ad2=0 -addedDampingCoeff=4. -go=halt
+
+    t    err(p)   err(u)   err(v)    div       uMax     dt       cpu    (10 steps)
+   0.500 1.62e-06 1.58e-06 9.25e-07 6.07e-06  1.15e-03 5.00e-02 1.07e+02 
+
+
+cgins movingDiskInDisk.cmd -g=diskInDiskGridFixede2.order2.hdf -tf=10. -tp=.1 -nu=.1 -ts=im -density=.01 -radius=1. -gravity=0. -amp=.1 -bodyForce=none -option=translatingDisk -dtMax=.05 -project=0 -numberOfCorrections=2 -addedDampingProjectVelocity=1 -omega=.2 -addedMass=1 -addedDamping=1 -scaleAddedDampingWithDt=1 -useProvidedAcceleration=1 -useTP=0 -debug=3 -solver=best -rol=1.e-5 -atol=1.e-7  -psolver=best -rtolp=1.e-5 -atolp=1.e-7  -ad2=0 -addedDampingCoeff=4. -go=halt
+
+
+
+------------------------------------------------------------------------------------------
+
+
+ADC=4 : 
+cgins -noplot movingDiskInDisk.cmd -g=diskInDiskGridFixede4.order2.hdf -tf=10. -tp=.1 -nu=.1 -ts=im -density=.01 -radius=1. -gravity=0. -amp=.1 -bodyForce=x -option=none -dtMax=.05 -project=0 -numberOfCorrections=2 -addedDampingProjectVelocity=1 -omega=.2 -addedMass=1 -addedDamping=1 -scaleAddedDampingWithDt=1 -useProvidedAcceleration=1 -useTP=0 -debug=3 -solver=best -rol=1.e-5 -atol=1.e-7  -psolver=best -rtolp=1.e-5 -atolp=1.e-7  -ad2=0 -addedDampingCoeff=4. -show=transDiskG4Ad4.show -go=go >! transDiskG4Ad4.out
+
+ADC=3 
+cgins -noplot movingDiskInDisk.cmd -g=diskInDiskGridFixede4.order2.hdf -tf=10. -tp=.1 -nu=.1 -ts=im -density=.01 -radius=1. -gravity=0. -amp=.1 -bodyForce=x -option=none -dtMax=.05 -project=0 -numberOfCorrections=2 -addedDampingProjectVelocity=1 -omega=.2 -addedMass=1 -addedDamping=1 -scaleAddedDampingWithDt=1 -useProvidedAcceleration=1 -useTP=0 -debug=3 -solver=best -rol=1.e-5 -atol=1.e-7  -psolver=best -rtolp=1.e-5 -atolp=1.e-7  -ad2=0 -addedDampingCoeff=3. -show=transDiskG4Ad3.show -go=go >! transDiskG4Ad3.out
+
+*********************
+****** June 9, 2016
+
+
+=========================== TRANSLATION =================================
+
+G8:
+cgins -noplot movingDiskInDisk.cmd -g=diskInDiskGridFixede8.order2.hdf -tf=10. -tp=.1 -nu=.1 -ts=im -density=.01 -radius=1. -gravity=0. -amp=.1 -bodyForce=x -option=none -dtMax=.025 -project=0 -numberOfCorrections=2 -addedDampingProjectVelocity=1 -omega=.2 -addedMass=1 -addedDamping=1 -scaleAddedDampingWithDt=1 -useProvidedAcceleration=1 -useTP=0 -debug=3 -solver=best -rol=1.e-5 -atol=1.e-7  -psolver=best -rtolp=1.e-5 -atolp=1.e-7  -ad2=0 -addedDampingCoeff=3. -show=transDiskG8.show -go=go >! transDiskG8.out 
+
+G4:
+cgins -noplot movingDiskInDisk.cmd -g=diskInDiskGridFixede4.order2.hdf -tf=10. -tp=.1 -nu=.1 -ts=im -density=.01 -radius=1. -gravity=0. -amp=.1 -bodyForce=x -option=none -dtMax=.05 -project=0 -numberOfCorrections=2 -addedDampingProjectVelocity=1 -omega=.2 -addedMass=1 -addedDamping=1 -scaleAddedDampingWithDt=1 -useProvidedAcceleration=1 -useTP=0 -debug=3 -solver=best -rol=1.e-5 -atol=1.e-7  -psolver=best -rtolp=1.e-5 -atolp=1.e-7  -ad2=0 -addedDampingCoeff=3. -show=transDiskG4.show -go=go >! transDiskG4.out 
+
+cgins movingDiskInDisk.cmd -g=diskInDiskGridFixede4.order2.hdf -tf=10. -tp=.1 -nu=.1 -ts=im -density=.01 -radius=1. -gravity=0. -amp=.1 -bodyForce=x -option=none -dtMax=.05 -project=0 -numberOfCorrections=2 -addedDampingProjectVelocity=1 -omega=.2 -addedMass=1 -addedDamping=1 -scaleAddedDampingWithDt=1 -useProvidedAcceleration=1 -useTP=0 -debug=3 -solver=best -rol=1.e-5 -atol=1.e-7  -psolver=best -rtolp=1.e-5 -atolp=1.e-7  -ad2=0 -addedDampingCoeff=4. -show=transDiskG4.show -go=halt
+
+
+G2: 
+cgins -noplot movingDiskInDisk.cmd -g=diskInDiskGridFixede2.order2.hdf -tf=10. -tp=.1 -nu=.1 -ts=im -density=.01 -radius=1. -gravity=0. -amp=.1 -bodyForce=x -option=none -dtMax=.05 -project=0 -numberOfCorrections=2 -addedDampingProjectVelocity=1 -omega=.2 -addedMass=1 -addedDamping=1 -scaleAddedDampingWithDt=1 -useProvidedAcceleration=1 -useTP=0 -debug=3 -solver=best -rol=1.e-5 -atol=1.e-7  -psolver=best -rtolp=1.e-5 -atolp=1.e-7  -ad2=0 -addedDampingCoeff=3. -show=transDiskG2.show -go=go >! transDiskG2.out 
+
+
+
+-------------------------------------------------------------------------------------
+
+
+G4: ADC=4 Adjust RB corrector: 
+cgins -noplot movingDiskInDisk.cmd -g=diskInDiskGridFixede4.order2.hdf -tf=10. -tp=.1 -nu=.1 -ts=im -density=.01 -radius=1. -gravity=0. -amp=.1 -bodyForce=none -option=rotatingDisk -dtMax=.025 -project=0 -numberOfCorrections=2 -addedDampingProjectVelocity=1 -omega=.2 -addedMass=1 -addedDamping=1 -scaleAddedDampingWithDt=1 -useProvidedAcceleration=1 -useTP=0 -debug=3  -solver=best -rol=1.e-5 -atol=1.e-7  -psolver=best -rtolp=1.e-5 -atolp=1.e-7 -ad2=0 -show=shearDiskG4Bd0p01Ad4be.show  -addedDampingCoeff=4. -go=go >!  shearDiskG4Bd0p01Ad4be.out
+
+
+G4: ADC=4 t=.0125 -- stable, some wiggles in w3
+cgins -noplot movingDiskInDisk.cmd -g=diskInDiskGridFixede4.order2.hdf -tf=10. -tp=.1 -nu=.1 -ts=im -density=.01 -radius=1. -gravity=0. -amp=.1 -bodyForce=none -option=rotatingDisk -dtMax=.0125 -project=0 -numberOfCorrections=2 -addedDampingProjectVelocity=1 -omega=.2 -addedMass=1 -addedDamping=1 -scaleAddedDampingWithDt=1 -useProvidedAcceleration=1 -useTP=0 -debug=3  -solver=best -rol=1.e-5 -atol=1.e-7  -psolver=best -rtolp=1.e-5 -atolp=1.e-7 -ad2=0 -show=shearDiskG4Bd0p01Ad4dt0125.show  -addedDampingCoeff=4. -go=go >!  shearDiskG4Bd0p01Ad4dt0125.out
+
+G4: ADC=4 dt=.025 -- OK
+cgins -noplot movingDiskInDisk.cmd -g=diskInDiskGridFixede4.order2.hdf -tf=10. -tp=.1 -nu=.1 -ts=im -density=.01 -radius=1. -gravity=0. -amp=.1 -bodyForce=none -option=rotatingDisk -dtMax=.025 -project=0 -numberOfCorrections=2 -addedDampingProjectVelocity=1 -omega=.2 -addedMass=1 -addedDamping=1 -scaleAddedDampingWithDt=1 -useProvidedAcceleration=1 -useTP=0 -debug=3  -solver=best -rol=1.e-5 -atol=1.e-7  -psolver=best -rtolp=1.e-5 -atolp=1.e-7 -ad2=0 -show=shearDiskG4Bd0p01Ad4dt025.show  -addedDampingCoeff=4. -go=go >!  shearDiskG4Bd0p01Ad4dt025.out
+
+G4: ADC=3 (PETSC) dt=.025 w - HFW
+cgins -noplot movingDiskInDisk.cmd -g=diskInDiskGridFixede4.order2.hdf -tf=10. -tp=.1 -nu=.1 -ts=im -density=.01 -radius=1. -gravity=0. -amp=.1 -bodyForce=none -option=rotatingDisk -dtMax=.025 -project=0 -numberOfCorrections=2 -addedDampingProjectVelocity=1 -omega=.2 -addedMass=1 -addedDamping=1 -scaleAddedDampingWithDt=1 -useProvidedAcceleration=1 -useTP=0 -debug=3  -solver=best -rol=1.e-5 -atol=1.e-7  -psolver=best -rtolp=1.e-5 -atolp=1.e-7 -ad2=0 -show=shearDiskG4Bd0p01Ad3dt025.show  -addedDampingCoeff=3. -go=go >!  shearDiskG4Bd0p01Ad3st025.out
+
+G4: ADC=3 (PETSC) dt=.025
+cgins -noplot movingDiskInDisk.cmd -g=diskInDiskGridFixede4.order2.hdf -tf=10. -tp=.1 -nu=.1 -ts=im -density=.01 -radius=1. -gravity=0. -amp=.1 -bodyForce=none -option=rotatingDisk -dtMax=.025 -project=0 -numberOfCorrections=2 -addedDampingProjectVelocity=1 -omega=.2 -addedMass=1 -addedDamping=1 -scaleAddedDampingWithDt=1 -useProvidedAcceleration=1 -useTP=0 -debug=3  -solver=best -rol=1.e-5 -atol=1.e-7  -psolver=best -rtolp=1.e-5 -atolp=1.e-7 -ad2=0 -show=shearDiskG4Bd0p01Ad3dt025.show  -addedDampingCoeff=3. -go=go >!  shearDiskG4Bd0p01Ad3st025.out
+
+G4: ADC=3 (PETSC) -- growing HFW in a1 
+cgins -noplot movingDiskInDisk.cmd -g=diskInDiskGridFixede4.order2.hdf -tf=10. -tp=.1 -nu=.1 -ts=im -density=.01 -radius=1. -gravity=0. -amp=.1 -bodyForce=none -option=rotatingDisk -dtMax=.05 -project=0 -numberOfCorrections=2 -addedDampingProjectVelocity=1 -omega=.2 -addedMass=1 -addedDamping=1 -scaleAddedDampingWithDt=1 -useProvidedAcceleration=1 -useTP=0 -debug=3  -solver=best -rol=1.e-5 -atol=1.e-7  -psolver=best -rtolp=1.e-5 -atolp=1.e-7 -ad2=0 -show=shearDiskG4Bd0p01Ad3.show  -addedDampingCoeff=3. -go=go >!  shearDiskG4Bd0p01Ad3.out
+
+G4: ADC=3 (Yale)
+cgins -noplot movingDiskInDisk.cmd -g=diskInDiskGridFixede4.order2.hdf -tf=5. -tp=.1 -nu=.1 -ts=im -density=.01 -radius=1. -gravity=0. -amp=.1 -bodyForce=none -option=rotatingDisk -dtMax=.05 -project=0 -numberOfCorrections=2 -addedDampingProjectVelocity=1 -omega=.2 -addedMass=1 -addedDamping=1 -scaleAddedDampingWithDt=1 -useProvidedAcceleration=1 -useTP=0 -debug=3  -solver=best -rol=1.e-5 -atol=1.e-7  -psolver=best -rtolp=1.e-5 -atolp=1.e-7 -ad2=0 -show=shearDiskG4Bd0p01Ad3y.show  -addedDampingCoeff=3. -go=go >!  shearDiskG4Bd0p01Ad3y.out
+
+
+G4: -- a1.=, a2 are OK now -- may be a growing LFW
+cgins -noplot movingDiskInDisk.cmd -g=diskInDiskGridFixede4.order2.hdf -tf=5. -tp=.1 -nu=.1 -ts=im -density=.01 -radius=1. -gravity=0. -amp=.1 -bodyForce=none -option=rotatingDisk -dtMax=.05 -project=0 -numberOfCorrections=2 -addedDampingProjectVelocity=1 -omega=.2 -addedMass=1 -addedDamping=1 -scaleAddedDampingWithDt=1 -useProvidedAcceleration=1 -useTP=0 -debug=3 -solver=yale -psolver=yale -ad2=0 -show=shearDiskG4Bd0p01Ad4z.show  -addedDampingCoeff=4. -go=go >!  shearDiskG4Bd0p01Ad4z.out
+
+
+dt=.0125
+cgins -noplot movingDiskInDisk.cmd -g=diskInDiskGridFixede8.order2.hdf -tf=5. -tp=.1 -nu=.1 -ts=im -density=.01 -radius=1. -gravity=0. -amp=.1 -bodyForce=none -option=rotatingDisk -dtMax=.0125 -project=0 -numberOfCorrections=2 -addedDampingProjectVelocity=1 -omega=.2 -addedMass=1 -addedDamping=1 -scaleAddedDampingWithDt=1 -useProvidedAcceleration=1 -useTP=0 -debug=3 -solver=best -rol=1.e-5 -atol=1.e-7  -psolver=best -rtolp=1.e-5 -atolp=1.e-7  -ad2=0 -show=shearDiskG8Bd0p01Ad4x.show  -addedDampingCoeff=4.  -go=go >!  shearDiskG8Bd0p01Ad4xout
+
+dt=.025 -- maybe oK, a1 HFW but saturates 
+cgins -noplot movingDiskInDisk.cmd -g=diskInDiskGridFixede8.order2.hdf -tf=5. -tp=.1 -nu=.1 -ts=im -density=.01 -radius=1. -gravity=0. -amp=.1 -bodyForce=none -option=rotatingDisk -dtMax=.025 -project=0 -numberOfCorrections=2 -addedDampingProjectVelocity=1 -omega=.2 -addedMass=1 -addedDamping=1 -scaleAddedDampingWithDt=1 -useProvidedAcceleration=1 -useTP=0 -debug=3 -solver=best -rol=1.e-5 -atol=1.e-7  -psolver=best -rtolp=1.e-5 -atolp=1.e-7  -ad2=0 -show=shearDiskG8Bd0p01Ad4z.show  -addedDampingCoeff=4.  -go=go >!  shearDiskG8Bd0p01Ad4z.out
+
+No velocity correction:
+cgins -noplot movingDiskInDisk.cmd -g=diskInDiskGridFixede8.order2.hdf -tf=5. -tp=.1 -nu=.1 -ts=im -density=.01 -radius=1. -gravity=0. -amp=.1 -bodyForce=none -option=rotatingDisk -dtMax=.025 -project=0 -numberOfCorrections=1 -addedDampingProjectVelocity=0 -omega=.2 -addedMass=1 -addedDamping=1 -scaleAddedDampingWithDt=1 -useProvidedAcceleration=1 -useTP=0 -debug=3 -solver=best -rol=1.e-5 -atol=1.e-7  -psolver=best -rtolp=1.e-5 -atolp=1.e-7  -ad2=0 -show=shearDiskG8Bd0p01Ad4y.show  -addedDampingCoeff=4.  -go=go >!  shearDiskG8Bd0p01Ad4y.out
+
+*********************
+****** June 8, 2016
+
+TEST ITERATIVE SOLVERS
+
+
+TROUBLE WITH IMPLICIT TIME-STEPPING -- nan's *** BUG FIXED --> do not eval Yn(r) at r=0
+
+TEST PURE Translation, no rotations
+G8 
+cgins -noplot movingDiskInDisk.cmd -g=diskInDiskGridFixede8.order2.hdf -tf=10. -tp=.1 -nu=.1 -ts=im -density=.01 -radius=1. -gravity=0. -inertia=100 -amp=1. -bodyForce=x -dtMax=.05 -project=0 -numberOfCorrections=2 -addedDampingProjectVelocity=1 -omega=.2 -addedMass=1 -addedDamping=1 -scaleAddedDampingWithDt=1 -useProvidedAcceleration=1 -useTP=0 -debug=3 -solver=best -rol=1.e-5 -atol=1.e-7  -psolver=best -rtolp=1.e-5 -atolp=1.e-7  -ad2=0 -show=transDiskG8Bd0p01Ad4.show  -addedDampingCoeff=4.  -go=go >!  transDiskG8Bd0p01Ad4.out
+
+G4 INERTIA=100
+cgins -noplot movingDiskInDisk.cmd -g=diskInDiskGridFixede4.order2.hdf -tf=10. -tp=.1 -nu=.1 -ts=im -density=.01 -radius=1. -gravity=0. -inertia=100 -amp=1. -bodyForce=x -dtMax=.05 -project=0 -numberOfCorrections=2 -addedDampingProjectVelocity=1 -omega=.2 -addedMass=1 -addedDamping=1 -scaleAddedDampingWithDt=1 -useProvidedAcceleration=1 -useTP=0 -debug=3 -solver=best -rol=1.e-5 -atol=1.e-7  -psolver=best -rtolp=1.e-5 -atolp=1.e-7  -ad2=0 -show=transDiskG4Bd0p01.show  -addedDampingCoeff=1.  -go=go >!  transDiskG4Bd0p01.out
+
+**FIX ME**
+cgins movingDiskInDisk.cmd -g=diskInDiskGridFixede4.order2.hdf -tf=10. -tp=.1 -nu=.1 -ts=im -density=.01 -radius=1. -gravity=0. -inertia=100 -amp=1. -bodyForce=x -dtMax=.05 -project=0 -numberOfCorrections=2 -addedDampingProjectVelocity=1 -omega=.2 -addedMass=1 -addedDamping=1 -scaleAddedDampingWithDt=1 -useProvidedAcceleration=1 -useTP=0 -debug=3 -solver=best -rol=1.e-5 -atol=1.e-7  -psolver=best -rtolp=1.e-5 -atolp=1.e-7  -ad2=0 -show=transDiskG4Bd0p01.show  -addedDampingCoeff=1.  -go=halt
+
+
+TRANSLATE DISK INERTIA=100 : bodyForce=x
+cgins -noplot movingDiskInDisk.cmd -g=diskInDiskGridFixede8.order2.hdf -tf=10. -tp=.1 -nu=.1 -ts=im -density=.01 -radius=1. -gravity=0. -inertia=100 -amp=.1 -bodyForce=x -option=rotatingDisk -dtMax=.05 -project=0 -numberOfCorrections=2 -addedDampingProjectVelocity=1 -omega=.2 -addedMass=1 -addedDamping=1 -scaleAddedDampingWithDt=1 -useProvidedAcceleration=1 -useTP=0 -debug=3 -solver=best -rol=1.e-5 -atol=1.e-7  -psolver=best -rtolp=1.e-5 -atolp=1.e-7  -ad2=0 -show=shearDiskG8Bd0p01Ad4trans.show  -addedDampingCoeff=4.  -go=go >!  shearDiskG8Bd0p01Ad4trans.out
+
+TRANSLATE DISK : bodyForce=x
+cgins -noplot movingDiskInDisk.cmd -g=diskInDiskGridFixede8.order2.hdf -tf=10. -tp=.1 -nu=.1 -ts=im -density=.01 -radius=1. -gravity=0. -amp=.1 -bodyForce=x -option=rotatingDisk -dtMax=.05 -project=0 -numberOfCorrections=2 -addedDampingProjectVelocity=1 -omega=.2 -addedMass=1 -addedDamping=1 -scaleAddedDampingWithDt=1 -useProvidedAcceleration=1 -useTP=0 -debug=3 -solver=best -rol=1.e-5 -atol=1.e-7  -psolver=best -rtolp=1.e-5 -atolp=1.e-7  -ad2=0 -show=shearDiskG8Bd0p01Ad4trans.show  -addedDampingCoeff=4.  -go=go >!  shearDiskG8Bd0p01Ad4trans.out
+
+dt=.025 
+cgins -noplot movingDiskInDisk.cmd -g=diskInDiskGridFixede8.order2.hdf -tf=10. -tp=.1 -nu=.1 -ts=im -density=.01 -radius=1. -gravity=0. -amp=.1 -bodyForce=x -option=rotatingDisk -dtMax=.025 -project=0 -numberOfCorrections=2 -addedDampingProjectVelocity=1 -omega=.2 -addedMass=1 -addedDamping=1 -scaleAddedDampingWithDt=1 -useProvidedAcceleration=1 -useTP=0 -debug=3 -solver=best -rol=1.e-5 -atol=1.e-7  -psolver=best -rtolp=1.e-5 -atolp=1.e-7  -ad2=0 -show=shearDiskG8Bd0p01Ad4transa.show  -addedDampingCoeff=4.  -go=go >!  shearDiskG8Bd0p01Ad4transa.out
+
+
+Test G8, increase Dvv*2 
+cgins -noplot movingDiskInDisk.cmd -g=diskInDiskGridFixede8.order2.hdf -tf=10. -tp=.1 -nu=.1 -ts=im -density=.01 -radius=1. -gravity=0. -amp=.1 -bodyForce=none -option=rotatingDisk -dtMax=.05 -project=0 -numberOfCorrections=2 -addedDampingProjectVelocity=1 -omega=.2 -addedMass=1 -addedDamping=1 -scaleAddedDampingWithDt=1 -useProvidedAcceleration=1 -useTP=0 -debug=3 -solver=best -rol=1.e-5 -atol=1.e-7  -psolver=best -rtolp=1.e-5 -atolp=1.e-7  -ad2=0 -show=shearDiskG8Bd0p01Ad4t2.show  -addedDampingCoeff=4.  -go=go >!  shearDiskG8Bd0p01Ad4t2.out
+
+Test G8, increase Dvv*4 
+cgins -noplot movingDiskInDisk.cmd -g=diskInDiskGridFixede8.order2.hdf -tf=5. -tp=.1 -nu=.1 -ts=im -density=.01 -radius=1. -gravity=0. -amp=.1 -bodyForce=none -option=rotatingDisk -dtMax=.05 -project=0 -numberOfCorrections=2 -addedDampingProjectVelocity=1 -omega=.2 -addedMass=1 -addedDamping=1 -scaleAddedDampingWithDt=1 -useProvidedAcceleration=1 -useTP=0 -debug=3 -solver=best -rol=1.e-5 -atol=1.e-7  -psolver=best -rtolp=1.e-5 -atolp=1.e-7  -ad2=0 -show=shearDiskG8Bd0p01Ad4t4.show  -addedDampingCoeff=4.  -go=go >!  shearDiskG8Bd0p01Ad4t4.out
+
+
+
+
+ADC=3-- TURN OFF nu*Delta(v) term
+cgins -noplot movingDiskInDisk.cmd -g=diskInDiskGridFixede8.order2.hdf -tf=5. -tp=.1 -nu=.1 -ts=im -density=.01 -radius=1. -gravity=0. -amp=.1 -bodyForce=none -option=rotatingDisk -dtMax=.05 -project=0 -numberOfCorrections=2 -addedDampingProjectVelocity=1 -omega=.2 -addedMass=1 -addedDamping=1 -scaleAddedDampingWithDt=1 -useProvidedAcceleration=1 -useTP=0 -debug=3 -solver=best -rol=1.e-5 -atol=1.e-7  -psolver=best -rtolp=1.e-5 -atolp=1.e-7  -ad2=0 -show=shearDiskG8Bd0p01Ad3x.show  -addedDampingCoeff=3.  -go=go >!  shearDiskG8Bd0p01Ad3x.out
+
+ADC=6-- TURN OFF nu*Delta(v) term
+cgins -noplot movingDiskInDisk.cmd -g=diskInDiskGridFixede8.order2.hdf -tf=5. -tp=.1 -nu=.1 -ts=im -density=.01 -radius=1. -gravity=0. -amp=.1 -bodyForce=none -option=rotatingDisk -dtMax=.05 -project=0 -numberOfCorrections=2 -addedDampingProjectVelocity=1 -omega=.2 -addedMass=1 -addedDamping=1 -scaleAddedDampingWithDt=1 -useProvidedAcceleration=1 -useTP=0 -debug=3 -solver=best -rol=1.e-5 -atol=1.e-7  -psolver=best -rtolp=1.e-5 -atolp=1.e-7  -ad2=0 -show=shearDiskG8Bd0p01Ad6x.show  -addedDampingCoeff=6.  -go=go >!  shearDiskG8Bd0p01Ad6x.out
+
+
+G8 -- TURN OFF nu*Delta(v) term
+cgins -noplot movingDiskInDisk.cmd -g=diskInDiskGridFixede8.order2.hdf -tf=5. -tp=.1 -nu=.1 -ts=im -density=.01 -radius=1. -gravity=0. -amp=.1 -bodyForce=none -option=rotatingDisk -dtMax=.05 -project=0 -numberOfCorrections=2 -addedDampingProjectVelocity=1 -omega=.2 -addedMass=1 -addedDamping=1 -scaleAddedDampingWithDt=1 -useProvidedAcceleration=1 -useTP=0 -debug=3 -solver=best -rol=1.e-5 -atol=1.e-7  -psolver=best -rtolp=1.e-5 -atolp=1.e-7  -ad2=0 -show=shearDiskG8Bd0p01Ad4x.show  -addedDampingCoeff=4.  -go=go >!  shearDiskG8Bd0p01Ad4x.out
+
+
+
+G8 : nu=.01
+cgins -noplot movingDiskInDisk.cmd -g=diskInDiskGridFixede8.order2.hdf -tf=5. -tp=.1 -nu=.01 -ts=im -density=.01 -radius=1. -gravity=0. -amp=.1 -bodyForce=none -option=rotatingDisk -dtMax=.025 -project=0 -numberOfCorrections=2 -addedDampingProjectVelocity=1 -omega=.2 -addedMass=1 -addedDamping=1 -scaleAddedDampingWithDt=1 -useProvidedAcceleration=1 -useTP=0 -debug=3 -solver=best -rol=1.e-5 -atol=1.e-7  -psolver=best -rtolp=1.e-5 -atolp=1.e-7  -ad2=0 -show=shearDiskG8Bd0p01Ad4nu0p01.show  -addedDampingCoeff=4.  -go=go >!  shearDiskG8Bd0p01Ad4nu0p01.out
+
+
+Test G8  dt=.025 --> wiggles in a1 grow 
+         dt=.0125 --> wiggles in a1 saturate at .0026
+cgins -noplot movingDiskInDisk.cmd -g=diskInDiskGridFixede8.order2.hdf -tf=5. -tp=.1 -nu=.1 -ts=im -density=.01 -radius=1. -gravity=0. -amp=.1 -bodyForce=none -option=rotatingDisk -dtMax=.0125 -project=0 -numberOfCorrections=2 -addedDampingProjectVelocity=1 -omega=.2 -addedMass=1 -addedDamping=1 -scaleAddedDampingWithDt=1 -useProvidedAcceleration=1 -useTP=0 -debug=3 -solver=best -rol=1.e-5 -atol=1.e-7  -psolver=best -rtolp=1.e-5 -atolp=1.e-7  -ad2=0 -show=shearDiskG8Bd0p01Ad4.show  -addedDampingCoeff=4.  -go=go >!  shearDiskG8Bd0p01Ad4.out
+
+
+
+G4
+cgins -noplot movingDiskInDisk.cmd -g=diskInDiskGridFixede4.order2.hdf -tf=5. -tp=.1 -nu=.1 -ts=im -density=.01 -radius=1. -gravity=0. -amp=.1 -bodyForce=none -option=rotatingDisk -dtMax=.05 -project=0 -numberOfCorrections=2 -addedDampingProjectVelocity=1 -omega=.2 -addedMass=1 -addedDamping=1 -scaleAddedDampingWithDt=1 -useProvidedAcceleration=1 -useTP=0 -debug=3 -solver=best -rol=1.e-5 -atol=1.e-7  -psolver=best -rtolp=1.e-5 -atolp=1.e-7  -ad2=0 -show=shearDiskG4Bd0p01Ad4it.show  -addedDampingCoeff=4.  -go=go >!  shearDiskG4Bd0p01Ad4it.out
+
+PETSC:
+   Timings:           (ave-sec/proc:) seconds   sec/step    TPSM     TTS       %    [max-s/proc] [min-s/proc]
+total time.......................... 7.29e+01   7.01e-01  3.7e+01  1.9e+01  100.000   7.29e+01     7.29e+01
+
+Yale: 
+    t    err(p)   err(u)   err(v)    div       uMax     dt       cpu    (2 steps)
+   0.100 6.73e-06 8.67e-05 8.67e-05 3.52e-05  1.04e-01 5.00e-02 8.89e+00 
+
+   Timings:           (ave-sec/proc:) seconds   sec/step    TPSM     TTS       %    [max-s/proc] [min-s/proc]
+total time.......................... 6.62e+02   2.94e+00  1.6e+02  8.7e+01  100.000   6.62e+02     6.62e+02
+
+
+*********************
+****** June 6, 2016
+
+ROTATING DISK -- runs for paper
+
+ogen -noplot diskInDiskGrid -order=2 -interp=e -outerRadius=5 -prefix=diskInDiskGridRad5 -rgd=fixed -factor=4
+
+
+G4 -- Zero ou nu*Delta(v) term in pressure BC
+cgins -noplot movingDiskInDisk.cmd -g=diskInDiskGridFixede4.order2.hdf -tf=5. -tp=.1 -nu=.1 -ts=im -density=.01 -radius=1. -gravity=0. -amp=.1 -bodyForce=none -option=rotatingDisk -dtMax=.05 -project=0 -numberOfCorrections=2 -addedDampingProjectVelocity=1 -omega=.2 -addedMass=1 -addedDamping=1 -scaleAddedDampingWithDt=1 -useProvidedAcceleration=1 -useTP=0 -debug=3 -solver=yale -psolver=yale -ad2=0 -show=shearDiskG4Bd0p01Ad4c.show  -addedDampingCoeff=4. -go=go >!  shearDiskG4Bd0p01Ad4c.out
+
+G4: OUTER-RADIUS=5 Test wider gap  NOTe: pressure exact solution will be wrong 
+cgins -noplot movingDiskInDisk.cmd -g=diskInDiskGridRad5Fixede4.order2.hdf -outerRadius=5 -tf=5. -tp=.1 -nu=.1 -ts=im -density=.1 -radius=1. -gravity=0. -amp=.1 -bodyForce=none -option=rotatingDisk -dtMax=.05 -project=0 -numberOfCorrections=2 -addedDampingProjectVelocity=1 -omega=.2 -addedMass=1 -addedDamping=1 -scaleAddedDampingWithDt=1 -useProvidedAcceleration=1 -useTP=0 -debug=3 -solver=yale -psolver=yale -ad2=0 -show=shearDiskG4Bd0p01Ad4Rad5.show  -addedDampingCoeff=4. -go=go >!  shearDiskG4Bd0p01Ad4Rad5.out
+
+ogen -noplot diskInDiskGrid -order=2 -interp=e -outerRadius=3 -prefix=diskInDiskGridRad3 -rgd=fixed -factor=4
+diskInDiskGridRad3Fixede4.order2.hdf
+
+G4: OUTER-RADIUS=3 Test wider gap  NOTe: pressure exact solution will be wrong 
+cgins -noplot movingDiskInDisk.cmd -g=diskInDiskGridRad3Fixede4.order2.hdf -outerRadius=3 -tf=5. -tp=.1 -nu=.1 -ts=im -density=.1 -radius=1. -gravity=0. -amp=.1 -bodyForce=none -option=rotatingDisk -dtMax=.05 -project=0 -numberOfCorrections=2 -addedDampingProjectVelocity=1 -omega=.2 -addedMass=1 -addedDamping=1 -scaleAddedDampingWithDt=1 -useProvidedAcceleration=1 -useTP=0 -debug=3 -solver=yale -psolver=yale -ad2=0 -show=shearDiskG4Bd0p01Ad4Rad3.show  -addedDampingCoeff=4. -go=go >!  shearDiskG4Bd0p01Ad4Rad3.out
+
+cgins movingDiskInDisk.cmd -g=diskInDiskGridRad3Fixede4.order2.hdf -outerRadius=3 -tf=5. -tp=.1 -nu=.1 -ts=im -density=.1 -radius=1. -gravity=0. -amp=.1 -bodyForce=none -option=rotatingDisk -dtMax=.05 -project=0 -numberOfCorrections=2 -addedDampingProjectVelocity=1 -omega=.2 -addedMass=1 -addedDamping=1 -scaleAddedDampingWithDt=1 -useProvidedAcceleration=1 -useTP=0 -debug=3 -solver=yale -psolver=yale -ad2=0 -addedDampingCoeff=4. -go=halt
+
+G4 -- baseline 
+cgins -noplot movingDiskInDisk.cmd -g=diskInDiskGridFixede4.order2.hdf -tf=5. -tp=.1 -nu=.1 -ts=im -density=.01 -radius=1. -gravity=0. -amp=.1 -bodyForce=none -option=rotatingDisk -dtMax=.05 -project=0 -numberOfCorrections=2 -addedDampingProjectVelocity=1 -omega=.2 -addedMass=1 -addedDamping=1 -scaleAddedDampingWithDt=1 -useProvidedAcceleration=1 -useTP=0 -debug=3 -solver=yale -psolver=yale -ad2=0 -show=shearDiskG4Bd0p01Ad4a.show  -addedDampingCoeff=4. -go=go >!  shearDiskG4Bd0p01Ad4a.out
+
+
+*********************
+****** June 6, 2016
+
+ROTATING DISK -- runs for paper
+
+
+NOTE: 
+
+G4 - ADC=4 dt=.05 INCREASE Dvv --> 4*Dvv -- OK for a1, a2
+                               --> 2*Dvv NOT OK
+     AMP=.01 : BAD
+cgins -noplot movingDiskInDisk.cmd -g=diskInDiskGridFixede4.order2.hdf -tf=5. -tp=.1 -nu=.1 -ts=im -density=.01 -radius=1. -gravity=0. -amp=.01 -bodyForce=none -option=rotatingDisk -dtMax=.05 -project=0 -numberOfCorrections=2 -addedDampingProjectVelocity=1 -omega=.2 -addedMass=1 -addedDamping=1 -scaleAddedDampingWithDt=1 -useProvidedAcceleration=1 -useTP=0 -debug=3 -solver=yale -psolver=yale -ad2=0 -show=shearDiskG4Bd0p01Ad4b.show  -addedDampingCoeff=4. -go=go >!  shearDiskG4Bd0p01Ad4b.out
+
+
+G4 - ADC=4 dt=.05 INCREASE Dvv --> 4*Dvv -- OK for a1, a2
+cgins -noplot movingDiskInDisk.cmd -g=diskInDiskGridFixede4.order2.hdf -tf=5. -tp=.1 -nu=.1 -ts=im -density=.01 -radius=1. -gravity=0. -amp=.1 -bodyForce=none -option=rotatingDisk -dtMax=.05 -project=0 -numberOfCorrections=2 -addedDampingProjectVelocity=1 -omega=.2 -addedMass=1 -addedDamping=1 -scaleAddedDampingWithDt=1 -useProvidedAcceleration=1 -useTP=0 -debug=3 -solver=yale -psolver=yale -ad2=0 -show=shearDiskG4Bd0p01Ad4b.show  -addedDampingCoeff=4. -go=go >!  shearDiskG4Bd0p01Ad4b.out
+
+
+
+G2: ADC=4 dt=.1 
+cgins -noplot movingDiskInDisk.cmd -g=diskInDiskGridFixede2.order2.hdf -tf=5. -tp=.1 -nu=.1 -ts=im -density=.01 -radius=1. -gravity=0. -amp=.1 -bodyForce=none -option=rotatingDisk -dtMax=.2 -project=0 -numberOfCorrections=2 -addedDampingProjectVelocity=1 -omega=.2 -addedMass=1 -addedDamping=1 -scaleAddedDampingWithDt=1 -useProvidedAcceleration=1 -useTP=0 -debug=3 -solver=yale -psolver=yale -ad2=0 -show=shearDiskG2Bd0p01Ad4a.show  -addedDampingCoeff=4. -go=go >!  shearDiskGBd0p01Ad4a.out
+
+
+G4: ADC=4 + dt=.05 : -- HFW in a1, a2
+    ADC=6 
+cgins -noplot movingDiskInDisk.cmd -g=diskInDiskGridFixede4.order2.hdf -tf=5. -tp=.1 -nu=.1 -ts=im -density=.01 -radius=1. -gravity=0. -amp=.1 -bodyForce=none -option=rotatingDisk -dtMax=.05 -project=0 -numberOfCorrections=2 -addedDampingProjectVelocity=1 -omega=.2 -addedMass=1 -addedDamping=1 -scaleAddedDampingWithDt=1 -useProvidedAcceleration=1 -useTP=0 -debug=3 -solver=yale -psolver=yale -ad2=0 -show=shearDiskG4Bd0p01Ad6.show  -addedDampingCoeff=6. -go=go >!  shearDiskG4Bd0p01Ad6.out
+
+G4 - ADC=4 dt=.05  TURN OFF Dvv terms 
+cgins -noplot movingDiskInDisk.cmd -g=diskInDiskGridFixede4.order2.hdf -tf=5. -tp=.1 -nu=.1 -ts=im -density=.01 -radius=1. -gravity=0. -amp=.1 -bodyForce=none -option=rotatingDisk -dtMax=.05 -project=0 -numberOfCorrections=2 -addedDampingProjectVelocity=1 -omega=.2 -addedMass=1 -addedDamping=1 -scaleAddedDampingWithDt=1 -useProvidedAcceleration=1 -useTP=0 -debug=3 -solver=yale -psolver=yale -ad2=0 -show=shearDiskG4Bd0p01Ad4b.show  -addedDampingCoeff=4. -go=go >!  shearDiskG4Bd0p01Ad4b.out
+
+G4 - ADC=4 dt=.05 -- big wiggles in a1
+cgins -noplot movingDiskInDisk.cmd -g=diskInDiskGridFixede4.order2.hdf -tf=5. -tp=.1 -nu=.1 -ts=im -density=.01 -radius=1. -gravity=0. -amp=.1 -bodyForce=none -option=rotatingDisk -dtMax=.05 -project=0 -numberOfCorrections=2 -addedDampingProjectVelocity=1 -omega=.2 -addedMass=1 -addedDamping=1 -scaleAddedDampingWithDt=1 -useProvidedAcceleration=1 -useTP=0 -debug=3 -solver=yale -psolver=yale -ad2=0 -show=shearDiskG4Bd0p01Ad4a.show  -addedDampingCoeff=4. -go=go >!  shearDiskG4Bd0p01Ad4a.out
+
+G4: ADC=4 -- dt=.05 : HFW in a1, a2
+cgins -noplot movingDiskInDisk.cmd -g=diskInDiskGridFixede4.order2.hdf -tf=5. -tp=.1 -nu=.1 -ts=im -density=.01 -radius=1. -gravity=0. -amp=.1 -bodyForce=none -option=rotatingDisk -dtMax=.025 -project=0 -numberOfCorrections=2 -addedDampingProjectVelocity=1 -omega=.2 -addedMass=1 -addedDamping=1 -scaleAddedDampingWithDt=1 -useProvidedAcceleration=1 -useTP=0 -debug=3 -solver=yale -psolver=yale -ad2=0 -show=shearDiskG4Bd0p01Ad4.show  -addedDampingCoeff=4. -go=go >!  shearDiskG4Bd0p01Ad4.out
+
+
+ADC=3
+cgins -noplot movingDiskInDisk.cmd -g=diskInDiskGridFixede2.order2.hdf -tf=2.5 -tp=.1 -nu=.1 -ts=im -density=.01 -radius=1. -gravity=0. -amp=.1 -bodyForce=none -option=rotatingDisk -dtMax=.05 -project=0 -numberOfCorrections=2 -addedDampingProjectVelocity=1 -omega=.2 -addedMass=1 -addedDamping=1 -scaleAddedDampingWithDt=1 -useProvidedAcceleration=1 -useTP=0 -debug=3 -solver=yale -psolver=yale -ad2=0 -show=shearDiskG2Bd0p01Ad3.show  -addedDampingCoeff=3 -go=go >!  shearDiskGBd0p01Ad3.out
+
+
+G2: ADC=6
+cgins -noplot movingDiskInDisk.cmd -g=diskInDiskGridFixede2.order2.hdf -tf=5. -tp=.1 -nu=.1 -ts=im -density=.01 -radius=1. -gravity=0. -amp=.1 -bodyForce=none -option=rotatingDisk -dtMax=.05 -project=0 -numberOfCorrections=2 -addedDampingProjectVelocity=1 -omega=.2 -addedMass=1 -addedDamping=1 -scaleAddedDampingWithDt=1 -useProvidedAcceleration=1 -useTP=0 -debug=3 -solver=yale -psolver=yale -ad2=0 -show=shearDiskG2Bd0p01Ad6.show  -addedDampingCoeff=6. -go=go >!  shearDiskGBd0p01Ad6.out
+
+G2: ADC=4
+cgins -noplot movingDiskInDisk.cmd -g=diskInDiskGridFixede2.order2.hdf -tf=5. -tp=.1 -nu=.1 -ts=im -density=.01 -radius=1. -gravity=0. -amp=.1 -bodyForce=none -option=rotatingDisk -dtMax=.05 -project=0 -numberOfCorrections=2 -addedDampingProjectVelocity=1 -omega=.2 -addedMass=1 -addedDamping=1 -scaleAddedDampingWithDt=1 -useProvidedAcceleration=1 -useTP=0 -debug=3 -solver=yale -psolver=yale -ad2=0 -show=shearDiskG2Bd0p01Ad4.show  -addedDampingCoeff=4. -go=go >!  shearDiskGBd0p01Ad4.out
+
+
+*********************
+****** June 4, 2016
+
+--BUG FIXED in computing the RHS to the p.n BC for p.n -- missing [omega X][omega X]
+
+-- PRESSURE IS OK now
+
+TEST ADDED-DAMPING stability 
+
+---G4  Project-velocity
+RHOS=.01 ADC=4:
+cgins -noplot movingDiskInDisk.cmd -g=diskInDiskGridFixede4.order2.hdf -tf=5 -tp=.1 -nu=.1 -ts=im -density=.01 -radius=1. -gravity=0. -amp=.1 -bodyForce=none -option=rotatingDisk -dtMax=.025 -project=0 -numberOfCorrections=2 -addedDampingProjectVelocity=1 -omega=.2 -addedMass=1 -addedDamping=1 -addedDampingCoeff=4. -scaleAddedDampingWithDt=1 -useProvidedAcceleration=1 -useTP=0 -debug=3 -solver=yale -psolver=yale -ad2=0 -show=shearDiskG4.show -go=go >!  shearDiskG4.out
+
+
+-------------------- RHOS=.01 ---------------------------
+---G2  Project-velocity
+RHOS=.01 ADC=4: GOOD
+cgins -noplot movingDiskInDisk.cmd -g=diskInDiskGridFixede2.order2.hdf -tf=5 -tp=.1 -nu=.1 -ts=im -density=.01 -radius=1. -gravity=0. -amp=.1 -bodyForce=none -option=rotatingDisk -dtMax=.05 -project=0 -numberOfCorrections=2 -addedDampingProjectVelocity=1 -omega=.2 -addedMass=1 -addedDamping=1 -scaleAddedDampingWithDt=1 -useProvidedAcceleration=1 -useTP=0 -debug=3 -solver=yale -psolver=yale -ad2=0 -show=shearDiskG2.show  -addedDampingCoeff=4. -go=go >!  shearDiskG2.out
+
+-------------------- RHOS=.1 ---------------------------
+---G2  Project-velocity
+RHOS=.1 ADC=2:NO,  ADC=4=GOOD , ADC=6
+cgins -noplot movingDiskInDisk.cmd -g=diskInDiskGridFixede2.order2.hdf -tf=5 -tp=.1 -nu=.1 -ts=im -density=.1 -radius=1. -gravity=0. -amp=.1 -bodyForce=none -option=rotatingDisk -dtMax=.05 -project=0 -numberOfCorrections=2 -addedDampingProjectVelocity=1 -omega=.2 -addedMass=1 -addedDamping=1 -scaleAddedDampingWithDt=1 -useProvidedAcceleration=1 -useTP=0 -debug=3 -solver=yale -psolver=yale -ad2=0 -show=shearDiskG2.show  -addedDampingCoeff=3. -go=go >!  shearDiskG2.out
+
+
+-- G2, No-project RHOS=.1 ADC=1 : NO, ADC=3: 
+cgins -noplot movingDiskInDisk.cmd -g=diskInDiskGridFixede2.order2.hdf -tf=5 -tp=.1 -nu=.1 -ts=im -density=.1 -radius=1. -gravity=0. -amp=.1 -bodyForce=none -option=rotatingDisk -dtMax=.05 -project=0 -numberOfCorrections=1 -addedDampingProjectVelocity=0 -omega=.2 -addedMass=1 -addedDamping=1 -addedDampingCoeff=1. -scaleAddedDampingWithDt=1 -useProvidedAcceleration=1 -useTP=0 -debug=3 -solver=yale -psolver=yale -ad2=0 -show=shearDiskG2.show -go=go >!  shearDiskG2.out
+
+---------------------- RHOS=1 ----------------------------------------
+
+OK: RHOS=1 ADC=1
+cgins -noplot movingDiskInDisk.cmd -g=diskInDiskGridFixede2.order2.hdf -tf=5 -tp=.1 -nu=.1 -ts=im -density=1. -radius=1. -gravity=0. -amp=.1 -bodyForce=none -option=rotatingDisk -dtMax=.05 -project=0 -numberOfCorrections=1 -addedDampingProjectVelocity=0 -omega=.2 -addedMass=1 -addedDamping=1 -addedDampingCoeff=1. -scaleAddedDampingWithDt=1 -useProvidedAcceleration=1 -useTP=0 -debug=3 -solver=yale -psolver=yale -ad2=0 -show=shearDiskG2.show -go=go >!  shearDiskG2.out
+
+
+ADD pressure true solution
+G2 - AMP HEAVY
+cgins movingDiskInDisk.cmd -g=diskInDiskGridFixede2.order2.hdf -tf=1 -tp=.1 -nu=.1 -ts=im -density=10. -radius=1. -gravity=0. -amp=.1 -bodyForce=none -option=rotatingDisk -dtMax=.05 -project=0 -numberOfCorrections=1 -addedDampingProjectVelocity=0 -omega=.2 -addedMass=1 -addedDamping=1 -addedDampingCoeff=1. -scaleAddedDampingWithDt=1 -useProvidedAcceleration=1 -useTP=0 -debug=3 -solver=yale -psolver=yale -ad2=0 -go=og
+
+
+G4 - AMP HEAVY
+cgins -noplot movingDiskInDisk.cmd -g=diskInDiskGridFixede4.order2.hdf -tf=1 -tp=.1 -nu=.1 -ts=im -density=10. -radius=1. -gravity=0. -amp=.1 -bodyForce=none -option=rotatingDisk -dtMax=.025 -project=0 -numberOfCorrections=1 -addedDampingProjectVelocity=0 -omega=.2 -addedMass=1 -addedDamping=1 -addedDampingCoeff=1. -scaleAddedDampingWithDt=1 -useProvidedAcceleration=1 -useTP=0 -debug=3 -solver=yale -psolver=yale -ad2=0 -show=shearDiskG4.show -go=go >!  shearDiskG4.out
+
+     t    err(p)   err(u)   err(v)    div       uMax     dt       cpu    (40 steps)
+   1.000 2.10e-04 7.50e-06 7.05e-06 2.97e-05  9.10e-02 2.50e-02 1.10e+02 
+     t    err(p)   err(u)   err(v)    div       uMax     dt       cpu    (40 steps)
+   1.000 1.00e-03 7.50e-06 7.05e-06 2.97e-05  9.10e-02 2.50e-02 1.08e+02 
+
+G2 - AMP HEAVY
+cgins -noplot movingDiskInDisk.cmd -g=diskInDiskGridFixede2.order2.hdf -tf=1 -tp=.1 -nu=.1 -ts=im -density=10. -radius=1. -gravity=0. -amp=.1 -bodyForce=none -option=rotatingDisk -dtMax=.05 -project=0 -numberOfCorrections=1 -addedDampingProjectVelocity=0 -omega=.2 -addedMass=1 -addedDamping=1 -addedDampingCoeff=1. -scaleAddedDampingWithDt=1 -useProvidedAcceleration=1 -useTP=0 -debug=3 -solver=yale -psolver=yale -ad2=0 -show=shearDiskG2.show -go=go >!  shearDiskG2.out
+
+G2: 
+ADC=1
+     t    err(p)   err(u)   err(v)    div       uMax     dt       cpu    (20 steps)
+   1.000 1.79e-05 3.00e-05 2.71e-05 1.39e-04  9.10e-02 5.00e-02 7.11e+00 
+ADC=.1
+     t    err(p)   err(u)   err(v)    div       uMax     dt       cpu    (20 steps)
+   1.000 1.01e-03 3.00e-05 2.71e-05 1.39e-04  9.10e-02 5.00e-02 7.42e+00 
+
+
+cgins movingDiskInDisk.cmd -g=diskInDiskGridFixede4.order2.hdf -tf=1 -tp=.01 -nu=.1 -ts=im -density=10. -radius=1. -gravity=0. -amp=.1 -bodyForce=none -option=rotatingDisk -dtMax=.01 -project=0 -numberOfCorrections=1 -addedDampingProjectVelocity=0 -omega=.2 -addedMass=1 -addedDamping=1 -addedDampingCoeff=.01 -scaleAddedDampingWithDt=1 -useProvidedAcceleration=1 -useTP=0 -debug=3 -solver=yale -psolver=yale -ad2=0 -go=halt
+
+NEW:
+     t    err(p)   err(u)   err(v)    div       uMax     dt       cpu    (1 steps)
+   0.010 1.22e-03 2.77e-06 2.75e-06 7.64e-05  9.99e-02 1.00e-02 9.18e+00 
+
+OLD:
+    t    err(p)   err(u)   err(v)    div       uMax     dt       cpu    (1 steps)
+   0.010 6.58e-04 7.78e-05 7.78e-05 1.66e-03  9.99e-02 1.00e-02 6.01e+00 
+
+
+
+
+
+*********************
+****** June 3, 2016
+
+
+AMP ERRORS ARE MUCH LARGER THAN TP -- why??
+
+AMP HEAVY -- look's first order
+
+
+G4 - AMP HEAVY
+cgins -noplot movingDiskInDisk.cmd -g=diskInDiskGridFixede4.order2.hdf -tf=1 -tp=.1 -nu=.1 -ts=im -density=10. -radius=1. -gravity=0. -amp=.1 -bodyForce=none -option=rotatingDisk -dtMax=.005 -project=0 -numberOfCorrections=1 -addedDampingProjectVelocity=0 -omega=.2 -addedMass=1 -addedDamping=1 -addedDampingCoeff=1. -scaleAddedDampingWithDt=1 -useProvidedAcceleration=1 -useTP=0 -debug=3 -solver=yale -psolver=yale -ad2=0 -show=shearDiskG4.show -go=go >!  shearDiskG4.out
+
+G4 -- dt=.0125
+     t    err(p)   err(u)   err(v)    div       uMax     dt       cpu    (80 steps)
+   1.000 6.92e-04 3.21e-04 3.21e-04 4.48e-03  9.10e-02 1.25e-02 2.17e+02 
+
+G4 -- dt=.025
+     t    err(p)   err(u)   err(v)    div       uMax     dt       cpu    (40 steps)
+   1.000 5.91e-04 5.47e-04 5.47e-04 6.40e-03  9.10e-02 2.50e-02 1.07e+02 
+
+G4 - dt=.05 
+     t    err(p)   err(u)   err(v)    div       uMax     dt       cpu    (20 steps)
+   1.000 4.51e-04 9.11e-04 9.12e-04 8.92e-03  9.10e-02 5.00e-02 5.36e+01 
+
+G2 - AMP HEAVY
+cgins -noplot movingDiskInDisk.cmd -g=diskInDiskGridFixede2.order2.hdf -tf=1 -tp=.1 -nu=.1 -ts=im -density=10. -radius=1. -gravity=0. -amp=.1 -bodyForce=none -option=rotatingDisk -dtMax=.05 -project=0 -numberOfCorrections=1 -addedDampingProjectVelocity=0 -omega=.2 -addedMass=1 -addedDamping=1 -addedDampingCoeff=.1 -scaleAddedDampingWithDt=1 -useProvidedAcceleration=1 -useTP=0 -debug=3 -solver=yale -psolver=yale -ad2=0 -show=shearDiskG2.show -go=go >!  shearDiskG2.out
+
+cgins -noplot movingDiskInDisk.cmd -g=diskInDiskGridFixede2.order2.hdf -tf=1 -tp=.1 -nu=.01 -ts=im -density=10. -radius=1. -gravity=0. -amp=.1 -bodyForce=none -option=rotatingDisk -dtMax=.025 -project=0 -numberOfCorrections=1 -addedDampingProjectVelocity=0 -omega=.2 -addedMass=1 -addedDamping=1 -addedDampingCoeff=.01 -scaleAddedDampingWithDt=1 -useProvidedAcceleration=1 -useTP=0 -debug=3 -solver=yale -psolver=yale -ad2=0 -show=shearDiskG2.show -go=go >!  shearDiskG2.out
+
+ERROR SEEMS INDEPENDENT OF ADC , PRESSURE DOES NOT LOOK SO ACCURATE 
+
+G2 -- dt=.05 nu=.1 ADC=.1 
+     t    err(p)   err(u)   err(v)    div       uMax     dt       cpu    (20 steps)
+   1.000 4.31e-04 9.65e-04 9.65e-04 8.14e-03  9.10e-02 5.00e-02 7.77e+00 
+
+G2 -- dt=.025 nu=.2 
+     t    err(p)   err(u)   err(v)    div       uMax     dt       cpu    (40 steps)
+   1.000 3.71e-04 4.02e-04 4.02e-04 3.39e-03  8.29e-02 2.50e-02 1.32e+01 
+
+G2 -- dt=.05 nu=.2 
+     t    err(p)   err(u)   err(v)    div       uMax     dt       cpu    (20 steps)
+   1.000 2.23e-04 6.34e-04 6.35e-04 4.68e-03  8.29e-02 5.00e-02 7.36e+00
+
+G2 -- nu=.01 dt=.025 ADC=.01
+     t    err(p)   err(u)   err(v)    div       uMax     dt       cpu    (40 steps)
+   1.000 9.50e-04 1.31e-03 1.31e-03 1.64e-02  9.91e-02 2.50e-02 1.40e+01 
+G2 -- nu=.01 dt=.05 
+     t    err(p)   err(u)   err(v)    div       uMax     dt       cpu    (20 steps)
+   1.000 8.56e-04 2.12e-03 2.12e-03 2.58e-02  9.91e-02 5.00e-02 8.60e+00 
+
+G2 -- dt=.0125
+     t    err(p)   err(u)   err(v)    div       uMax     dt       cpu    (80 steps)
+   1.000 6.73e-04 3.57e-04 3.57e-04 3.87e-03  9.10e-02 1.25e-02 2.55e+01
+
+G2 -- dt=.025 
+     t    err(p)   err(u)   err(v)    div       uMax     dt       cpu    (40 steps)
+   1.000 5.71e-04 5.92e-04 5.92e-04 5.70e-03  9.10e-02 2.50e-02 1.38e+01 
+
+G2 -- dt=.05
+     t    err(p)   err(u)   err(v)    div       uMax     dt       cpu    (20 steps)
+   1.000 4.31e-04 9.65e-04 9.65e-04 8.14e-03  9.10e-02 5.00e-02 7.76e+00 
+
+cgins movingDiskInDisk.cmd -g=diskInDiskGridFixede4.order2.hdf -tf=1 -tp=.01 -nu=.1 -ts=im -density=10. -radius=1. -gravity=0. -amp=.1 -bodyForce=none -option=rotatingDisk -dtMax=.01 -project=0 -numberOfCorrections=1 -addedDampingProjectVelocity=0 -omega=.2 -addedMass=1 -addedDamping=1 -addedDampingCoeff=.01 -scaleAddedDampingWithDt=1 -useProvidedAcceleration=1 -useTP=0 -debug=3 -solver=yale -psolver=yale -ad2=0 -go=halt
+
+    t    err(p)   err(u)   err(v)    div       uMax     dt       cpu    (1 steps)
+   0.010 6.58e-04 7.78e-05 7.78e-05 1.66e-03  9.99e-02 1.00e-02 6.01e+00 
+
+*********************
+****** June 2, 2016
+
+============= TRADITIONAL ==========
+
+
+MAKE HEAVIER TO STABILIZE
+
+
+=========== USE FIXED-WIDTH GRIDS  ===================
+
+HEAVY -- AMP
+
+cgins movingDiskInDisk.cmd -g=diskInDiskGridFixede4.order2.hdf -tf=1 -tp=.1 -nu=.1 -ts=im -density=10. -radius=1. -gravity=0. -amp=.1 -bodyForce=none -option=rotatingDisk -dtMax=.025 -project=0 -numberOfCorrections=1 -addedDampingProjectVelocity=0 -omega=.2 -addedMass=1 -addedDamping=1 -addedDampingCoeff=.01 -scaleAddedDampingWithDt=1 -useProvidedAcceleration=1 -useTP=0 -debug=3 -solver=yale -psolver=yale -ad2=0 -go=halt
+
+    t    err(p)   err(u)   err(v)    div       uMax     dt       cpu    (4 steps)
+   0.100 2.30e-04 4.56e-04 4.56e-04 6.14e-03  9.91e-02 2.50e-02 1.33e+01 
+
+cgins movingDiskInDisk.cmd -g=diskInDiskGridFixede2.order2.hdf -tf=1 -tp=.1 -nu=.1 -ts=im -density=10. -radius=1. -gravity=0. -amp=.1 -bodyForce=none -option=rotatingDisk -dtMax=.05 -project=0 -numberOfCorrections=1 -addedDampingProjectVelocity=0 -omega=.2 -addedMass=1 -addedDamping=1 -addedDampingCoeff=.01 -scaleAddedDampingWithDt=1 -useProvidedAcceleration=1 -useTP=0 -debug=3 -solver=yale -psolver=yale -ad2=0 -go=halt
+
+Added-mass only: 
+     t    err(p)   err(u)   err(v)    div       uMax     dt       cpu    (2 steps)
+   0.100 3.88e-04 5.56e-04 5.56e-04 5.78e-03  9.91e-02 5.00e-02 1.56e+01 
+
+G2 - AMP HEAVY
+cgins -noplot movingDiskInDisk.cmd -g=diskInDiskGridFixede2.order2.hdf -tf=1 -tp=.1 -nu=.1 -ts=im -density=10. -radius=1. -gravity=0. -amp=.1 -bodyForce=none -option=rotatingDisk -dtMax=.05 -project=0 -numberOfCorrections=1 -addedDampingProjectVelocity=0 -omega=.2 -addedMass=1 -addedDamping=1 -addedDampingCoeff=1. -scaleAddedDampingWithDt=1 -useProvidedAcceleration=1 -useTP=0 -debug=3 -solver=yale -psolver=yale -ad2=0 -show=shearDiskG2.show -go=go >!  shearDiskG2.out
+G2 - amp 
+     t    err(p)   err(u)   err(v)    div       uMax     dt       cpu    (20 steps)
+   1.000 4.31e-04 9.65e-04 9.65e-04 8.14e-03  9.10e-02 5.00e-02 7.37e+00 
+
+
+TEST iterative solver 
+
+TROUBLE HERE with implicit time-step equations diverging -- Nans
+cgins movingDiskInDisk.cmd -g=diskInDiskGridFixede4.order2.hdf -tf=1 -tp=.01 -nu=.1 -ts=im -density=10. -radius=1. -gravity=0. -amp=.1 -bodyForce=none -option=rotatingDisk -dtMax=.01 -project=0 -numberOfCorrections=1 -addedDampingProjectVelocity=0 -omega=.2 -addedMass=0 -addedDamping=0 -addedDampingCoeff=0. -scaleAddedDampingWithDt=0 -useProvidedAcceleration=0 -useTP=0 -debug=3 -solver=yale -psolver=best -rtolp=1.e-6 -atolp=1.e-8 -rtol=1.e-6 -atol=1.e-8 -ad2=0 -show=shearDiskG4TPi.show -go=halt
+
+-------------------------------   TP HEAVY -- WORKS for rotating disk -----------
+G8 TP -- heavy 
+cgins -noplot movingDiskInDisk.cmd -g=diskInDiskGridFixede8.order2.hdf -tf=1 -tp=.1 -nu=.1 -ts=im -density=10. -radius=1. -gravity=0. -amp=.1 -bodyForce=none -option=rotatingDisk -dtMax=.0125 -project=0 -numberOfCorrections=1 -addedDampingProjectVelocity=0 -omega=.2 -addedMass=0 -addedDamping=0 -addedDampingCoeff=0. -scaleAddedDampingWithDt=0 -useProvidedAcceleration=0 -useTP=0 -debug=3 -solver=yale -psolver=yale -ad2=0 -show=shearDiskG8TP.show -go=go >!  shearDiskG8TP.out
+
+G8: 
+     t    err(p)   err(u)   err(v)    div       uMax     dt       cpu    (80 steps)
+   1.000 9.99e-04 1.89e-06 1.83e-06 6.89e-06  9.10e-02 1.25e-02 2.34e+03 
+
+G4 TP -- heavy 
+cgins -noplot movingDiskInDisk.cmd -g=diskInDiskGridFixede4.order2.hdf -tf=1 -tp=.1 -nu=.1 -ts=im -density=10. -radius=1. -gravity=0. -amp=.1 -bodyForce=none -option=rotatingDisk -dtMax=.025 -project=0 -numberOfCorrections=1 -addedDampingProjectVelocity=0 -omega=.2 -addedMass=0 -addedDamping=0 -addedDampingCoeff=0. -scaleAddedDampingWithDt=0 -useProvidedAcceleration=0 -useTP=0 -debug=3 -solver=yale -psolver=yale -ad2=0 -show=shearDiskG4TP.show -go=go >!  shearDiskG4TP.out
+
+G4: 
+     t    err(p)   err(u)   err(v)    div       uMax     dt       cpu    (40 steps)
+   1.000 1.00e-03 7.51e-06 7.07e-06 2.97e-05  9.10e-02 2.50e-02 1.07e+02 
+
+
+G2 TP -- heavy 
+cgins -noplot movingDiskInDisk.cmd -g=diskInDiskGridFixede2.order2.hdf -tf=1 -tp=.1 -nu=.1 -ts=im -density=10. -radius=1. -gravity=0. -amp=.1 -bodyForce=none -option=rotatingDisk -dtMax=.05 -project=0 -numberOfCorrections=1 -addedDampingProjectVelocity=0 -omega=.2 -addedMass=0 -addedDamping=0 -addedDampingCoeff=0. -scaleAddedDampingWithDt=0 -useProvidedAcceleration=0 -useTP=0 -debug=3 -solver=yale -psolver=yale -ad2=0 -show=shearDiskG2TP.show -go=go >!  shearDiskG2TP.out
+
+G2: 
+     t    err(p)   err(u)   err(v)    div       uMax     dt       cpu    (20 steps)
+   1.000 1.01e-03 3.00e-05 2.71e-05 1.39e-04  9.10e-02 5.00e-02 6.68e+00 
+
+
+
+
+FIXED STARTUP GRIDS
+
+cdv=.1 cDt=.1
+    t    err(p)   err(u)   err(v)    div       uMax     dt       cpu    (1 steps)
+   0.005 1.20e-01 4.69e-05 4.68e-05 1.62e-03  1.00e+00 5.00e-03 1.24e+01 
+
+     t    err(p)   err(u)   err(v)    div       uMax     dt       cpu    (1 steps)
+   0.005 1.20e-01 1.51e-04 1.50e-04 3.16e-03  1.00e+00 5.00e-03 3.98e+00 
+
+AMP=1
+cgins movingDiskInDisk.cmd -g=diskInDiskGride4.order2.hdf -tf=1 -tp=.1 -nu=.1 -ts=im -density=10. -radius=1. -gravity=0. -amp=1. -bodyForce=none -option=rotatingDisk -dtMax=.05 -project=0 -numberOfCorrections=1 -addedDampingProjectVelocity=0 -omega=.2 -addedMass=0 -addedDamping=0 -addedDampingCoeff=0. -scaleAddedDampingWithDt=0 -useProvidedAcceleration=0 -useTP=0 -debug=3 -solver=yale -psolver=yale -ad2=0 -go=halt
+
+     t    err(p)   err(u)   err(v)    div       uMax     dt       cpu    (0 steps)
+   0.000 1.21e-01 2.67e-06 2.74e-06 8.09e-04  1.00e+00 1.73e-02 1.16e-02 
+
+    t    err(p)   err(u)   err(v)    div       uMax     dt       cpu    (6 steps)
+   0.100 1.18e-01 1.37e-04 1.37e-04 9.75e-04  9.91e-01 1.67e-02 2.50e+01 
+
+cdv=.1 cDt=.1
+    t    err(p)   err(u)   err(v)    div       uMax     dt       cpu    (10 steps)
+   0.100 1.18e-01 8.25e-05 7.71e-05 6.15e-04  9.91e-01 1.00e-02 2.74e+01 
+
+cdv=.05 cDt=.05 
+    t    err(p)   err(u)   err(v)    div       uMax     dt       cpu    (10 steps)
+   0.100 1.18e-01 5.96e-05 5.41e-05 7.49e-04  9.91e-01 1.00e-02 2.58e+01 
+
+--- dt=1.e-3 
+     t    err(p)   err(u)   err(v)    div       uMax     dt       cpu    (100 steps)
+   0.100 1.18e-01 1.19e-04 1.19e-04 6.01e-04  9.91e-01 1.00e-03 2.50e+02 
+
+
+cgins movingDiskInDisk.cmd -g=diskInDiskGride2.order2.hdf -tf=1 -tp=.1 -nu=.1 -ts=im -density=10. -radius=1. -gravity=0. -amp=1. -bodyForce=none -option=rotatingDisk -dtMax=.05 -project=0 -numberOfCorrections=1 -addedDampingProjectVelocity=0 -omega=.2 -addedMass=0 -addedDamping=0 -addedDampingCoeff=0. -scaleAddedDampingWithDt=0 -useProvidedAcceleration=0 -useTP=0 -debug=3 -solver=yale -psolver=yale -ad2=0 -go=halt
+
+    t    err(p)   err(u)   err(v)    div       uMax     dt       cpu    (0 steps)
+   0.000 1.20e-01 1.34e-05 1.36e-05 2.07e-03  1.00e+00 4.18e-02 4.53e-03 
+
+    t    err(p)   err(u)   err(v)    div       uMax     dt       cpu    (3 steps)
+   0.100 1.17e-01 3.26e-04 3.27e-04 2.82e-03  9.91e-01 3.33e-02 1.96e+01 
+
+-- dt=.01
+    t    err(p)   err(u)   err(v)    div       uMax     dt       cpu    (10 steps)
+   0.100 1.18e-01 2.41e-04 2.32e-04 1.82e-03  9.91e-01 1.00e-02 5.45e+00 
+
+    t    err(p)   err(u)   err(v)    div       uMax     dt       cpu    (100 steps)
+   1.000 9.96e-02 3.24e-04 3.15e-04 1.68e-03  9.10e-01 1.00e-02 2.05e+02 
+
+--dt=.005
+    t    err(p)   err(u)   err(v)    div       uMax     dt       cpu    (20 steps)
+   0.100 1.18e-01 2.59e-04 2.53e-04 1.87e-03  9.91e-01 5.00e-03 8.15e+00 
+
+cdv=.1 cDt=.1
+     t    err(p)   err(u)   err(v)    div       uMax     dt       cpu    (10 steps)
+   0.100 1.18e-01 1.86e-04 1.77e-04 2.16e-03  9.91e-01 1.00e-02 4.46e+00 
+
+
+cgins -noplot movingDiskInDisk.cmd -g=diskInDiskGride4.order2.hdf -tf=1 -tp=.1 -nu=.1 -ts=im -density=10. -radius=1. -gravity=0. -amp=.1 -bodyForce=none -option=rotatingDisk -dtMax=.025 -project=0 -numberOfCorrections=1 -addedDampingProjectVelocity=0 -omega=.2 -addedMass=0 -addedDamping=0 -addedDampingCoeff=0. -scaleAddedDampingWithDt=0 -useProvidedAcceleration=0 -useTP=0 -debug=3 -solver=yale -psolver=yale -ad2=0 -show=shearDiskG4TP.show -go=go 
+
+G4:
+     t    err(p)   err(u)   err(v)    div       uMax     dt       cpu    (40 steps)
+   1.000 1.00e-03 1.19e-05 1.14e-05 4.58e-05  9.10e-02 2.50e-02 9.70e+01 
+
+G2:
+     t    err(p)   err(u)   err(v)    div       uMax     dt       cpu    (20 steps)
+   1.000 1.01e-03 3.05e-05 2.66e-05 1.31e-04  9.10e-02 5.00e-02 6.01e+00 
+
+
+
+
+
+
+
+
+cgins movingDiskInDisk.cmd -g=diskInDiskGride2.order2.hdf -tf=1 -tp=.1 -nu=.1 -ts=im -density=10. -radius=1. -gravity=0. -amp=.1 -bodyForce=none -option=rotatingDisk -dtMax=.05 -project=0 -numberOfCorrections=1 -addedDampingProjectVelocity=0 -omega=.2 -addedMass=0 -addedDamping=0 -addedDampingCoeff=0. -scaleAddedDampingWithDt=0 -useProvidedAcceleration=0 -useTP=0 -debug=3 -solver=yale -psolver=yale -ad2=0 -show=shearDiskG2TP.show -go=halt
+
+G8
+cgins -noplot movingDiskInDisk.cmd -g=diskInDiskGride8.order2.hdf -tf=1 -tp=.1 -nu=.1 -ts=im -density=10. -radius=1. -gravity=0. -amp=.1 -bodyForce=none -option=rotatingDisk -dtMax=.0125 -project=0 -numberOfCorrections=1 -addedDampingProjectVelocity=0 -omega=.2 -addedMass=0 -addedDamping=0 -addedDampingCoeff=0. -scaleAddedDampingWithDt=0 -useProvidedAcceleration=0 -useTP=0 -debug=3 -solver=yale -psolver=yale -ad2=0 -show=shearDiskG8TP.show -go=go >!  shearDiskG8TP.out
+
+G4
+cgins -noplot movingDiskInDisk.cmd -g=diskInDiskGride4.order2.hdf -tf=1 -tp=.1 -nu=.1 -ts=im -density=10. -radius=1. -gravity=0. -amp=.1 -bodyForce=none -option=rotatingDisk -dtMax=.025 -project=0 -numberOfCorrections=1 -addedDampingProjectVelocity=0 -omega=.2 -addedMass=0 -addedDamping=0 -addedDampingCoeff=0. -scaleAddedDampingWithDt=0 -useProvidedAcceleration=0 -useTP=0 -debug=3 -solver=yale -psolver=yale -ad2=0 -show=shearDiskG4TP.show -go=go >!  shearDiskG4TP.out
+
+dt=.025:
+     t    err(p)   err(u)   err(v)    div       uMax     dt       cpu    (40 steps)
+   1.000 1.00e-03 1.19e-05 1.14e-05 4.58e-05  9.10e-02 2.50e-02 9.65e+01 
+
+dt=.05:
+     t    err(p)   err(u)   err(v)    div       uMax     dt       cpu    (20 steps)
+   1.000 1.00e-03 1.18e-05 1.09e-05 4.64e-05  9.10e-02 5.00e-02 4.85e+01 
+G2
+cgins -noplot movingDiskInDisk.cmd -g=diskInDiskGride2.order2.hdf -tf=1 -tp=.1 -nu=.1 -ts=im -density=10. -radius=1. -gravity=0. -amp=.1 -bodyForce=none -option=rotatingDisk -dtMax=.05 -project=0 -numberOfCorrections=1 -addedDampingProjectVelocity=0 -omega=.2 -addedMass=0 -addedDamping=0 -addedDampingCoeff=0. -scaleAddedDampingWithDt=0 -useProvidedAcceleration=0 -useTP=0 -debug=3 -solver=yale -psolver=yale -ad2=0 -show=shearDiskG2TP.show -go=go >!  shearDiskG2TP.out
+
+     t    err(p)   err(u)   err(v)    div       uMax     dt       cpu    (20 steps)
+   1.000 1.01e-03 3.05e-05 2.65e-05 1.31e-04  9.10e-02 5.00e-02 6.35e+00 
+
+
+
+
+
+*********************
+****** June 1, 2016
+
+ADD exact solution for the rotating disk 
+
+TEST ACCURACY -- HEAVy DISK 
+
+============= TRADITIONAL ==========
+
+cgins movingDiskInDisk.cmd -g=diskInDiskGride4.order2.hdf -tf=1 -tp=.1 -nu=.1 -ts=im -density=1. -radius=1. -gravity=0. -amp=1.e-5 -bodyForce=none -option=rotatingDisk -dtMax=.0125 -project=0 -numberOfCorrections=1 -addedDampingProjectVelocity=0 -omega=.2 -addedMass=0 -addedDamping=0 -addedDampingCoeff=0. -scaleAddedDampingWithDt=0 -useProvidedAcceleration=0 -useTP=0 -debug=3 -solver=yale -psolver=yale -ad2=0 -go=halt
+
+cgins -noplot movingDiskInDisk.cmd -g=diskInDiskGride4.order2.hdf -tf=1. -tp=.1 -nu=.1 -ts=im -density=1. -radius=1. -gravity=0. -amp=.01 -bodyForce=none -option=rotatingDisk -dtMax=.0125 -project=0 -numberOfCorrections=1 -addedDampingProjectVelocity=0 -omega=.2 -addedMass=0 -addedDamping=0 -addedDampingCoeff=0. -scaleAddedDampingWithDt=0 -useProvidedAcceleration=0 -useTP=0 -debug=3 -solver=yale -psolver=yale -ad2=0 -show=shearDiskG4TP.show -go=go >!  shearDiskG4TP.out
+
+     t    err(p)   err(u)   err(v)    div       uMax     dt       cpu    (8 steps)
+   0.100 1.30e-03 3.45e-06 5.10e-06 5.52e-05  9.62e-03 1.25e-02 1.92e+01 
+
+G2: 
+cgins -noplot movingDiskInDisk.cmd -g=diskInDiskGride2.order2.hdf -tf=1 -tp=.1 -nu=.1 -ts=im -density=1. -radius=1. -gravity=0. -amp=.01 -bodyForce=none -option=rotatingDisk -dtMax=.05 -project=0 -numberOfCorrections=1 -addedDampingProjectVelocity=0 -omega=.2 -addedMass=0 -addedDamping=0 -addedDampingCoeff=0. -scaleAddedDampingWithDt=0 -useProvidedAcceleration=0 -useTP=0 -debug=3 -solver=yale -psolver=yale -ad2=0 -show=shearDiskG2TP.show -go=go >!  shearDiskG2TP.out
+
+     t    err(p)   err(u)   err(v)    div       uMax     dt       cpu    (2 steps)
+   0.100 1.97e-05 1.27e-06 1.26e-06 5.68e-06  9.62e-03 5.00e-02 7.07e-01 
+
+     t    err(p)   err(u)   err(v)    div       uMax     dt       cpu    (4 steps)
+   0.100 7.85e-05 7.79e-07 6.13e-07 5.58e-06  9.62e-03 2.50e-02 1.31e+00 
+
+
+G4: 
+cgins -noplot movingDiskInDisk.cmd -g=diskInDiskGride4.order2.hdf -tf=.5 -tp=.05 -nu=.1 -ts=im -density=1. -radius=1. -gravity=0. -amp=.01 -bodyForce=none -option=rotatingDisk -dtMax=.01 -project=0 -numberOfCorrections=2 -addedDampingProjectVelocity=1 -omega=.2 -addedMass=1 -addedDamping=1 -addedDampingCoeff=1. -scaleAddedDampingWithDt=1 -useProvidedAcceleration=1 -useTP=0 -debug=3 -solver=yale -psolver=yale -ad2=0 -show=shearDiskG4.show -go=go >!  shearDiskG4.out
+
+--INS-- determineErrors: t=5.000e-01, maxNorm errors: [p,u,v,T]=[1.11e-05,2.29e-06,2.30e-06,0.00e+00]
+     t    err(p)   err(u)   err(v)    div       uMax     dt       cpu    (50 steps)
+   0.500 1.11e-05 2.29e-06 2.30e-06 3.27e-05  8.24e-03 1.00e-02 1.25e+02 
+
+
+G2: 
+cgins -noplot movingDiskInDisk.cmd -g=diskInDiskGride2.order2.hdf -tf=.5 -tp=.05 -nu=.1 -ts=im -density=1. -radius=1. -gravity=0. -amp=.01 -bodyForce=none -option=rotatingDisk -dtMax=.02 -project=0 -numberOfCorrections=2 -addedDampingProjectVelocity=1 -omega=.2 -addedMass=1 -addedDamping=1 -addedDampingCoeff=1. -scaleAddedDampingWithDt=1 -useProvidedAcceleration=1 -useTP=0 -debug=3 -solver=yale -psolver=yale -ad2=0 -show=shearDiskG2.show -go=go >!  shearDiskG2.out
+
+dt=.02
+     t    err(p)   err(u)   err(v)    div       uMax     dt       cpu    (50 steps)
+   0.500 1.11e-05 2.29e-06 2.30e-06 3.27e-05  8.24e-03 1.00e-02 1.25e+02 
+
+
+dt=.01
+     t    err(p)   err(u)   err(v)    div       uMax     dt       cpu    (50 steps)
+   0.500 1.10e-05 2.67e-06 2.72e-06 2.74e-05  8.24e-03 1.00e-02 1.50e+01 
+
+
+
+
+
+G4 
+cgins movingDiskInDisk.cmd -g=diskInDiskGride4.order2.hdf -tf=20. -tp=.01 -nu=.1 -ts=im -density=.01 -radius=1. -gravity=0. -amp=.01 -bodyForce=none -option=rotatingDisk -dtMax=.01 -project=0 -numberOfCorrections=2 -addedDampingProjectVelocity=1 -omega=.2 -addedMass=1 -addedDamping=1 -addedDampingCoeff=4. -scaleAddedDampingWithDt=1 -useProvidedAcceleration=1 -useTP=0 -debug=3 -solver=yale -psolver=yale -ad2=0 -go=halt
+
+--INS-- determineErrors: t=1.000e-01, maxNorm errors: [p,u,v,T]=[1.68e-05,3.26e-04,3.26e-04,0.00e+00]
+     t    err(p)   err(u)   err(v)    div       uMax     dt       cpu    (10 steps)
+   0.100 1.68e-05 3.26e-04 3.26e-04 3.93e-05  9.71e-03 1.00e-02 6.84e+01 
+
+AD=8 : smooth-wiggles grow
+AD=6: trouble 
+AD=4 : trouble 
+G2: 
+cgins -noplot movingDiskInDisk.cmd -g=diskInDiskGride2.order2.hdf -tf=.5 -tp=.05 -nu=.1 -ts=im -density=.01 -radius=1. -gravity=0. -amp=.01 -bodyForce=none -option=rotatingDisk -dtMax=.01 -project=0 -numberOfCorrections=2 -addedDampingProjectVelocity=1 -omega=.2 -addedMass=1 -addedDamping=1 -addedDampingCoeff=1. -scaleAddedDampingWithDt=1 -useProvidedAcceleration=1 -useTP=0 -debug=3 -solver=yale -psolver=yale -ad2=0 -show=shearDiskG2.show -go=go >!  shearDiskG2.out
+
+--INS-- determineErrors: t=1.000e-01, maxNorm errors: [p,u,v,T]=[1.34e-05,6.18e-04,6.18e-04,0.00e+00]
+     t    err(p)   err(u)   err(v)    div       uMax     dt       cpu    (10 steps)
+   0.100 1.34e-05 6.18e-04 6.18e-04 3.39e-05  1.02e-02 1.00e-02 1.55e+01 
+
+
+*********************
+****** May 29, 2016
+
+====BUG FIXED : omegaDot was not being predicted to 2nd-order ===
+
+
+G4 : ADC=16 : 
+cgins -noplot movingDiskInDisk.cmd -g=diskInDiskGride4.order2.hdf -tf=20. -tp=.1 -nu=.1 -ts=im -density=.01 -radius=1. -gravity=0. -amp=.1 -bodyForce=wzRamp -dtMax=.05 -project=0 -numberOfCorrections=2 -addedDampingProjectVelocity=1 -omega=.2 -addedMass=1 -addedDamping=1 -addedDampingCoeff=16. -scaleAddedDampingWithDt=1 -useProvidedAcceleration=1 -useTP=0 -debug=3 -solver=yale -psolver=yale -show=didrG4Ad16.show -ad2=0 -go=go >! didrG4Ad16.out
+
+
+G4: ADC=16, Iz=100 -- damped PM oscillations in a1, a2
+
+G4 : ADC=16 : BIG Inertia
+cgins -noplot movingDiskInDisk.cmd -g=diskInDiskGride4.order2.hdf -tf=20. -tp=.1 -nu=.1 -ts=im -inertia=100. -density=.01 -radius=1. -gravity=0. -amp=.1 -bodyForce=wzRamp -dtMax=.05 -project=0 -numberOfCorrections=2 -addedDampingProjectVelocity=1 -omega=.2 -addedMass=1 -addedDamping=1 -addedDampingCoeff=16. -scaleAddedDampingWithDt=1 -useProvidedAcceleration=1 -useTP=0 -debug=3 -solver=yale -psolver=yale -show=didrG4Ad16Iz100.show -ad2=0 -go=go >! didrG4Ad16Iz100.out
+
+
+
+G4 : ADC=4 : BIG Inertia
+cgins -noplot movingDiskInDisk.cmd -g=diskInDiskGride4.order2.hdf -tf=20. -tp=.1 -nu=.1 -ts=im -inertia=100. -density=.01 -radius=1. -gravity=0. -amp=.1 -bodyForce=wzRamp -dtMax=.05 -project=0 -numberOfCorrections=2 -addedDampingProjectVelocity=1 -omega=.2 -addedMass=1 -addedDamping=1 -addedDampingCoeff=4. -scaleAddedDampingWithDt=1 -useProvidedAcceleration=1 -useTP=0 -debug=3 -solver=yale -psolver=yale -show=didrG4Ad4Iz100.show -ad2=0 -go=go >! didrG4Ad4Iz100.out
+
+
+G4 : ADC=8: TOO BIG -- low-frequency oscillations
+cgins -noplot movingDiskInDisk.cmd -g=diskInDiskGride4.order2.hdf -tf=10. -tp=.1 -nu=.1 -ts=im -density=.01 -radius=1. -gravity=0. -amp=.1 -bodyForce=wzRamp -dtMax=.05 -project=0 -numberOfCorrections=2 -addedDampingProjectVelocity=1 -omega=.2 -addedMass=1 -addedDamping=1 -addedDampingCoeff=8. -scaleAddedDampingWithDt=1 -useProvidedAcceleration=1 -useTP=0 -debug=3 -solver=yale -psolver=yale -show=didrG4Ad8.show -ad2=0 -go=go >! didrG4Ad8.out
+
+
+
+G4 : ADC=4 : lat time failure --> t>12 
+cgins -noplot movingDiskInDisk.cmd -g=diskInDiskGride4.order2.hdf -tf=20. -tp=.1 -nu=.1 -ts=im -density=.01 -radius=1. -gravity=0. -amp=.1 -bodyForce=wzRamp -dtMax=.05 -project=0 -numberOfCorrections=2 -addedDampingProjectVelocity=1 -omega=.2 -addedMass=1 -addedDamping=1 -addedDampingCoeff=4. -scaleAddedDampingWithDt=1 -useProvidedAcceleration=1 -useTP=0 -debug=3 -solver=yale -psolver=yale -show=didrG4Ad4.show -ad2=0 -go=go >! didrG4Ad4.out
+
+G4: ADC=2 FAILS -- Plus-minus
+cgins -noplot movingDiskInDisk.cmd -g=diskInDiskGride4.order2.hdf -tf=10. -tp=.1 -nu=.1 -ts=im -density=.01 -radius=1. -gravity=0. -amp=.1 -bodyForce=wzRamp -dtMax=.05 -project=0 -numberOfCorrections=2 -addedDampingProjectVelocity=1 -omega=.2 -addedMass=1 -addedDamping=1 -addedDampingCoeff=2. -scaleAddedDampingWithDt=1 -useProvidedAcceleration=1 -useTP=0 -debug=3 -solver=yale -psolver=yale -show=didrG4Ad2.show -ad2=0 -go=go >! didrG4Ad2.out
+
+
+G2 : ****scaleAddedDampingWithDt***
+ADC=2 : NO, ADC=4 : OK 
+cgins -noplot movingDiskInDisk.cmd -g=diskInDiskGride2.order2.hdf -tf=10. -tp=.1 -nu=.1 -ts=im -density=.01 -radius=1. -gravity=0. -amp=.1 -bodyForce=wzRamp -dtMax=.05 -project=0 -numberOfCorrections=2 -addedDampingProjectVelocity=1 -omega=.2 -addedMass=1 -addedDamping=1 -addedDampingCoeff=4. -scaleAddedDampingWithDt=1 -useProvidedAcceleration=1 -useTP=0 -debug=3 -solver=yale -psolver=yale -show=didrG2Ad4.show -ad2=0 -go=go >! didrG2Ad4.out
+
+
+*********************
+****** May 28-29, 2016
+
+
+TEST NEW ADDED DAMPING SCALING SCALING 
+ ****scaleAddedDampingWithDt***
+
+G4 :
+ADC=
+cgins -noplot movingDiskInDisk.cmd -g=diskInDiskGride4.order2.hdf -tf=10. -tp=.1 -nu=.1 -ts=im -density=.01 -radius=1. -gravity=0. -amp=.1 -bodyForce=wzRamp -dtMax=.05 -project=0 -numberOfCorrections=2 -addedDampingProjectVelocity=1 -omega=.2 -addedMass=1 -addedDamping=1 -addedDampingCoeff=4. -scaleAddedDampingWithDt=1 -useProvidedAcceleration=1 -useTP=0 -debug=3 -solver=yale -psolver=yale -show=didrG4Ad4.show -ad2=0 -go=go >! didrG4Ad4.out
+
+
+
+G2 : ****scaleAddedDampingWithDt***
+ADC=2 , ADC=4-- too small --> ADC=8 OK
+cgins -noplot movingDiskInDisk.cmd -g=diskInDiskGride2.order2.hdf -tf=10. -tp=.1 -nu=.1 -ts=im -density=.01 -radius=1. -gravity=0. -amp=.1 -bodyForce=wzRamp -dtMax=.05 -project=0 -numberOfCorrections=2 -addedDampingProjectVelocity=1 -omega=.2 -addedMass=1 -addedDamping=1 -addedDampingCoeff=8. -scaleAddedDampingWithDt=1 -useProvidedAcceleration=1 -useTP=0 -debug=3 -solver=yale -psolver=yale -show=didrG2.show -ad2=0 -go=go >! didrG2.out
+
+
+
+*********************
 ****** May 12, 2016
 
 TEST project velocity for added-damping 

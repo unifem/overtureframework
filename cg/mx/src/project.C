@@ -61,11 +61,20 @@ updateProjectionEquation()
     {
       boundaryConditions(side,axis,grid)=OgesParameters::neumann;  // default
       
+      // *** FIX ME** for material interfaces
+
       switch( c.boundaryCondition(side,axis) )
       {
       case perfectElectricalConductor:
+        // PEC: t.E =0 => phi=constant
         // boundaryConditions(side,axis,grid)=OgesParameters::dirichletAndOddSymmetry;  
         boundaryConditions(side,axis,grid)=OgesParameters::dirichlet;  
+        break;
+      case abcEM2: 
+      case abcPML: 
+	// Extrapolate phi at far-field boundaries ... *wdh* July 9, 2016: 
+        // ** boundaryConditions(side,axis,grid)=OgesParameters::extrapolate;  
+        boundaryConditions(side,axis,grid)=OgesParameters::neumann;
         break;
       default:
         // boundaryConditions(side,axis,grid)=OgesParameters::dirichletAndOddSymmetry;  
@@ -87,15 +96,14 @@ updateProjectionEquation()
 
   // printF(" *** insp: cgop:orderOfAccuracy=%i\n",cgop[0].orderOfAccuracy);
 
-  if( orderOfAccuracyInSpace!=2 )
-  {
-    printF("--MX-- project: WARNING - FIX ME -- order of extrapolation=2 for projection \n");
-  }
-  
-  // **FIX ME* 2015/08/16 ---
-  poisson->parameters.set(OgesParameters::THEorderOfExtrapolation,2);
-  // we should use this I guess: 
-  // poisson->parameters.set(OgesParameters::THEorderOfExtrapolation,orderOfAccuracyInSpace+1);
+  // if( orderOfAccuracyInSpace!=2 )
+  // {
+  //   printF("--MX-- project: WARNING - FIX ME -- order of extrapolation=2 for projection \n");
+  // }
+  // poisson->parameters.set(OgesParameters::THEorderOfExtrapolation,2);
+
+  // *wdh* July 9, 2016: 
+  poisson->parameters.set(OgesParameters::THEorderOfExtrapolation,orderOfAccuracyInSpace+1);
   
 
   assert( cgop!=NULL );

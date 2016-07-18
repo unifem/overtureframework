@@ -1,12 +1,102 @@
 *************************************
+**** May 24, 2016
+
+----------- nu=.01 NARROWER GRID
+
+G32
+cgins -noplot cylDrop -g=diskDropGride32.order2.s3.hdf -tf=10. -tp=.1 -nu=.01 -ad2=0 -ts=im -density=.1 -radius=.5 -dropName=drop -channelName=channel -bcOption=rampedVelocityThreeSide -inflowVelocity=-2.1 -gravity=-10. -rampGravity=1 -dtMax=.0025 -project=0 -numberOfCorrections=2 -omega=.1 -addedMass=1  -useProvidedAcceleration=1 -addedDamping=1 -addedDampingCoeff=4. -addedDampingProjectVelocity=1  -useTP=0 -debug=3  -solver=best -psolver=best -rtolp=1.e-5 -atolp=1.e-12 -rtol=1.e-5 -atol=1.e-10 -show=diskDropG32Bd0p1nu0p01.show -go=go >! diskDropG32Bd0p1nu0p01.out
+
+
+G16
+cgins -noplot cylDrop -g=diskDropGride16.order2.s3.hdf -tf=10. -tp=.1 -nu=.01 -ad2=0 -ts=im -density=.1 -radius=.5 -dropName=drop -channelName=channel -bcOption=rampedVelocityThreeSide -inflowVelocity=-2.1 -gravity=-10. -rampGravity=1 -dtMax=.005 -project=0 -numberOfCorrections=2 -omega=.1 -addedMass=1  -useProvidedAcceleration=1 -addedDamping=1 -addedDampingCoeff=4. -addedDampingProjectVelocity=1  -useTP=0 -debug=3  -solver=best -psolver=best -rtolp=1.e-5 -atolp=1.e-12 -rtol=1.e-5 -atol=1.e-10 -show=diskDropG16Bd0p1nu0p01.show -go=go >! diskDropG16Bd0p1nu0p01.out
+
+
+----------  nu=.1
+
+DESCREASE dt from
+G8 
+cgins -noplot cylDrop -g=diskDropGride8.order2.s3.hdf -tf=10. -tp=.1 -nu=.1 -ad2=1 -ts=im -density=.1 -radius=.5 -dropName=drop -channelName=channel -bcOption=rampedVelocityThreeSide -inflowVelocity=-.9 -gravity=-10. -rampGravity=1 -dtMax=.005 -project=0 -numberOfCorrections=2 -omega=1. -addedMass=1  -useProvidedAcceleration=1 -addedDamping=1 -addedDampingCoeff=8. -addedDampingProjectVelocity=1  -useTP=0 -debug=3  -solver=best -psolver=best -rtolp=1.e-5 -atolp=1.e-12 -rtol=1.e-5 -atol=1.e-10 -show=diskDropG8Bd0p1nu0p1a.show -go=go >! diskDropG8Bd0p1nu0p1a.out
+
+*************************************
+**** May 23, 2016
+
+GO BACK TO SIMPLER CASE nu=.1
+
+G16
+cgins -noplot cylDrop -g=diskDropGride16.order2.s3.hdf -tf=10. -tp=.1 -nu=.1 -ad2=1 -ts=im -density=.1 -radius=.5 -dropName=drop -channelName=channel -bcOption=rampedVelocityThreeSide -inflowVelocity=-.9 -gravity=-10. -rampGravity=1 -dtMax=.005 -project=0 -numberOfCorrections=2 -omega=1. -addedMass=1  -useProvidedAcceleration=1 -addedDamping=1 -addedDampingCoeff=8. -addedDampingProjectVelocity=1  -useTP=0 -debug=3  -solver=best -psolver=best -rtolp=1.e-5 -atolp=1.e-12 -rtol=1.e-5 -atol=1.e-10 -show=diskDropG16Bd0p1nu0p1.show -go=go >! diskDropG16Bd0p1nu0p1.out
+
+G8
+cgins -noplot cylDrop -g=diskDropGride8.order2.s3.hdf -tf=10. -tp=.1 -nu=.1 -ad2=1 -ts=im -density=.1 -radius=.5 -dropName=drop -channelName=channel -bcOption=rampedVelocityThreeSide -inflowVelocity=-.9 -gravity=-10. -rampGravity=1 -dtMax=.01 -project=0 -numberOfCorrections=2 -omega=1. -addedMass=1  -useProvidedAcceleration=1 -addedDamping=1 -addedDampingCoeff=8. -addedDampingProjectVelocity=1  -useTP=0 -debug=3  -solver=best -psolver=best -rtolp=1.e-5 -atolp=1.e-12 -rtol=1.e-5 -atol=1.e-10 -show=diskDropG8Bd0p1nu0p1.show -go=go >! diskDropG8Bd0p1nu0p1.out
+
+G4 
+cgins -noplot cylDrop -g=diskDropGride4.order2.s3.hdf -tf=10. -tp=.1 -nu=.1 -ad2=1 -ts=im -density=.1 -radius=.5 -dropName=drop -channelName=channel -bcOption=rampedVelocityThreeSide -inflowVelocity=-.9 -gravity=-10. -rampGravity=1 -dtMax=.02 -project=0 -numberOfCorrections=2 -omega=1. -addedMass=1  -useProvidedAcceleration=1 -addedDamping=1 -addedDampingCoeff=8. -addedDampingProjectVelocity=1  -useTP=0 -debug=3  -solver=best -psolver=best -rtolp=1.e-5 -atolp=1.e-12 -rtol=1.e-5 -atol=1.e-10 -show=diskDropG4Bd0p1nu0p1.show -go=go >! diskDropG4Bd0p1nu0p1.out
+
+G2: nu=0.1 -- plus-minus wiggles ADC=4. -> ADC=8. OK 
+cgins -noplot cylDrop -g=diskDropGride2.order2.s3.hdf -tf=10. -tp=.1 -nu=.1 -ad2=1 -ts=im -density=.1 -radius=.5 -dropName=drop -channelName=channel -bcOption=rampedVelocityThreeSide -inflowVelocity=-.9 -gravity=-10. -rampGravity=1 -dtMax=.04 -project=0 -numberOfCorrections=2 -omega=1. -addedMass=1  -useProvidedAcceleration=1 -addedDamping=1 -addedDampingCoeff=8. -addedDampingProjectVelocity=1  -useTP=0 -debug=3  -solver=best -psolver=best -rtolp=1.e-5 -atolp=1.e-12 -rtol=1.e-5 -atol=1.e-10 -show=diskDropG2Bd0p1nu0p1.show -go=go >! diskDropG2Bd0p1nu0p1.out
+
+
+
+*************************************
+**** May 22, 2016
+
+#   -- wider channel,, disk closer to wall:
+
+G8
+cgins -noplot cylDrop -g=risingDiskGride8.order2.s3.hdf -tf=15. -tp=.1 -nu=.01 -ad2=0 -ts=im -density=.1 -radius=.5 -dropName=drop -channelName=channel -bcOption=rampedVelocityThreeSide -inflowVelocity=-2.4 -gravity=-10. -rampGravity=1 -dtMax=.01 -project=0 -numberOfCorrections=2 -omega=1. -addedMass=1  -useProvidedAcceleration=1 -addedDamping=1 -addedDampingCoeff=4. -addedDampingProjectVelocity=1  -useTP=0 -debug=3  -solver=best -psolver=best -rtolp=1.e-5 -atolp=1.e-12 -rtol=1.e-5 -atol=1.e-10 -show=risingDiskG8Bd0p1nu0p01.show -go=go >! risingDiskG8Bd0p1nu0p01.out
+
+G4 increase vIn from -2.1 to -2.4
+cgins -noplot cylDrop -g=risingDiskGride4.order2.s3.hdf -tf=15. -tp=.1 -nu=.01 -ad2=0 -ts=im -density=.1 -radius=.5 -dropName=drop -channelName=channel -bcOption=rampedVelocityThreeSide -inflowVelocity=-2.4 -gravity=-10. -rampGravity=1 -dtMax=.01 -project=0 -numberOfCorrections=2 -omega=1. -addedMass=1  -useProvidedAcceleration=1 -addedDamping=1 -addedDampingCoeff=4. -addedDampingProjectVelocity=1  -useTP=0 -debug=3  -solver=best -psolver=best -rtolp=1.e-5 -atolp=1.e-12 -rtol=1.e-5 -atol=1.e-10 -show=risingDiskG4Bd0p1nu0p01.show -go=go >! risingDiskG4Bd0p1nu0p01.out
+
+
+-------------- NARROWER GRID -------
+
+TPSI - omega=.2 too big 
+G4  -- TROUBLE WITH w3 after a while, decrease dtMax=.01 -> dtMax=.005 --> .001
+    dt=.001 OK,  -rtolc=1.e-4 -atolc=1.e-7 --> but answers drift --> rtolc
+  TRYL dt=.002,  -rtolc=1.e-6 -atolc=1.e-10
+cgins -noplot cylDrop -g=diskDropGride4.order2.s3.hdf -tf=10. -tp=.1 -nu=.01 -ad2=1 -ts=im -density=.1 -radius=.5 -dropName=drop -channelName=channel -bcOption=rampedVelocityThreeSide -inflowVelocity=-2.1 -gravity=-10. -rampGravity=1 -dtMax=.002 -project=0 -numberOfCorrections=1000 -omega=.05 -rtolc=1.e-6 -atolc=1.e-10 -addedMass=0  -useProvidedAcceleration=1 -addedDamping=0 -addedDampingCoeff=0. -addedDampingProjectVelocity=0  -useTP=1 -debug=3  -solver=best -psolver=best -rtolp=1.e-5 -atolp=1.e-12 -rtol=1.e-5 -atol=1.e-10 -show=diskDropG4Bd0p1nu0p01TPSI.show -go=go >! diskDropG4Bd0p1nu0p01TPSI.out
+
+
+G16
+cgins -noplot cylDrop -g=diskDropGride16.order2.s3.hdf -tf=10. -tp=.1 -nu=.01 -ad2=0 -ts=im -density=.1 -radius=.5 -dropName=drop -channelName=channel -bcOption=rampedVelocityThreeSide -inflowVelocity=-2.1 -gravity=-10. -rampGravity=1 -dtMax=.005 -project=0 -numberOfCorrections=2 -omega=.1 -addedMass=1  -useProvidedAcceleration=1 -addedDamping=1 -addedDampingCoeff=4. -addedDampingProjectVelocity=1  -useTP=0 -debug=3  -solver=best -psolver=best -rtolp=1.e-5 -atolp=1.e-12 -rtol=1.e-5 -atol=1.e-10 -show=diskDropG16Bd0p1nu0p01.show -go=go >! diskDropG16Bd0p1nu0p01.out
+
+
+
+*************************************
+**** May 20, 2016
+
+
+**NEW GRID : diskDropGrid.cmd
+
+G8 
+cgins -noplot cylDrop -g=diskDropGride8.order2.s3.hdf -tf=10. -tp=.1 -nu=.01 -ad2=0 -ts=im -density=.1 -radius=.5 -dropName=drop -channelName=channel -bcOption=rampedVelocityThreeSide -inflowVelocity=-2.1 -gravity=-10. -rampGravity=1 -dtMax=.005 -project=0 -numberOfCorrections=2 -omega=1. -addedMass=1  -useProvidedAcceleration=1 -addedDamping=1 -addedDampingCoeff=4. -addedDampingProjectVelocity=1  -useTP=0 -debug=3  -solver=best -psolver=best -rtolp=1.e-5 -atolp=1.e-12 -rtol=1.e-5 -atol=1.e-10 -show=diskDropG8Bd0p1nu0p01.show -go=go >! diskDropG8Bd0p1nu0p01.out
+
+G4 -- note dtMax  --> try .01 too
+cgins -noplot cylDrop -g=diskDropGride4.order2.s3.hdf -tf=10. -tp=.1 -nu=.01 -ad2=0 -ts=im -density=.1 -radius=.5 -dropName=drop -channelName=channel -bcOption=rampedVelocityThreeSide -inflowVelocity=-2.1 -gravity=-10. -rampGravity=1 -dtMax=.005 -project=0 -numberOfCorrections=2 -omega=1. -addedMass=1  -useProvidedAcceleration=1 -addedDamping=1 -addedDampingCoeff=4. -addedDampingProjectVelocity=1  -useTP=0 -debug=3  -solver=best -psolver=best -rtolp=1.e-5 -atolp=1.e-12 -rtol=1.e-5 -atol=1.e-10 -show=diskDropG4Bd0p1nu0p01.show -go=go >! diskDropG4Bd0p1nu0p01.out
+
+G4 -- note dtMax  --> try .01 too
+cgins -noplot cylDrop -g=diskDropGride4.order2.s3.hdf -tf=10. -tp=.1 -nu=.01 -ad2=0 -ts=im -density=.1 -radius=.5 -dropName=drop -channelName=channel -bcOption=rampedVelocityThreeSide -inflowVelocity=-2.1 -gravity=-10. -rampGravity=1 -dtMax=.01 -project=0 -numberOfCorrections=2 -omega=1. -addedMass=1  -useProvidedAcceleration=1 -addedDamping=1 -addedDampingCoeff=4. -addedDampingProjectVelocity=1  -useTP=0 -debug=3  -solver=best -psolver=best -rtolp=1.e-5 -atolp=1.e-12 -rtol=1.e-5 -atol=1.e-10 -show=diskDropG4Bd0p1nu0p01dt01.show -go=go >! diskDropG4Bd0p1nu0p01st01.out
+
+G2  -- AD=4 too small ? AD=8 still trouble, --> turn on ad2=1
+cgins -noplot cylDrop -g=diskDropGride2.order2.s3.hdf -tf=10. -tp=.1 -nu=.01 -ad2=1 -ts=im -density=.1 -radius=.5 -dropName=drop -channelName=channel -bcOption=rampedVelocityThreeSide -inflowVelocity=-2.1 -gravity=-10. -rampGravity=1 -dtMax=.005 -project=0 -numberOfCorrections=2 -omega=1. -addedMass=1  -useProvidedAcceleration=1 -addedDamping=1 -addedDampingCoeff=4. -addedDampingProjectVelocity=1  -useTP=0 -debug=3  -solver=best -psolver=best -rtolp=1.e-5 -atolp=1.e-12 -rtol=1.e-5 -atol=1.e-10 -show=diskDropG2Bd0p1nu0p01.show -go=go >! diskDropG2Bd0p1nu0p01.out
+
+
+*************************************
 **** May 20, 2016
 
 TODO : Add ramped downward flow
 
 RISING cylinder offset from wall
 
-G4 TEST Smaller nu   -vIn=-1.6 : too small, -1.9 slightly too small
-cgins -noplot cylDrop -g=offsetCylInChannele4.order2.s2.hdf -tf=20. -tp=.1 -nu=.01 -ad2=1 -ts=im -density=.1 -radius=.5 -dropName=drop -channelName=channel -bcOption=rampedVelocity -inflowVelocity=-2 -gravity=-10. -rampGravity=1 -dtMax=.005 -project=0 -numberOfCorrections=2 -omega=1. -addedMass=1  -useProvidedAcceleration=1 -addedDamping=1 -addedDampingCoeff=6. -addedDampingProjectVelocity=1  -useTP=0 -debug=3  -solver=best -psolver=best -rtolp=1.e-5 -atolp=1.e-12 -rtol=1.e-5 -atol=1.e-10 -show=OcicG4Bd0p1.show -go=go >! OcicG4Bd0p1.out
+G8: 
+cgins -noplot cylDrop -g=offsetCylInChannele8.order2.s2.hdf -tf=20. -tp=.1 -nu=.01 -ad2=1 -ts=im -density=.1 -radius=.5 -dropName=drop -channelName=channel -bcOption=rampedVelocity -inflowVelocity=-2.0 -gravity=-10. -rampGravity=1 -dtMax=.005 -project=0 -numberOfCorrections=2 -omega=1. -addedMass=1  -useProvidedAcceleration=1 -addedDamping=1 -addedDampingCoeff=4. -addedDampingProjectVelocity=1  -useTP=0 -debug=3  -solver=best -psolver=best -rtolp=1.e-5 -atolp=1.e-12 -rtol=1.e-5 -atol=1.e-10 -show=OcicG8Bd0p1.show -go=go >! OcicG8Bd0p1.out
+
+
+G4 TEST Smaller nu   -vIn=-1.6 : too small, -1.9 slightly too small, AD=16=OK, AD=6 OK 
+cgins -noplot cylDrop -g=offsetCylInChannele4.order2.s2.hdf -tf=20. -tp=.1 -nu=.01 -ad2=1 -ts=im -density=.1 -radius=.5 -dropName=drop -channelName=channel -bcOption=rampedVelocity -inflowVelocity=-2.0 -gravity=-10. -rampGravity=1 -dtMax=.005 -project=0 -numberOfCorrections=2 -omega=1. -addedMass=1  -useProvidedAcceleration=1 -addedDamping=1 -addedDampingCoeff=4. -addedDampingProjectVelocity=1  -useTP=0 -debug=3  -solver=best -psolver=best -rtolp=1.e-5 -atolp=1.e-12 -rtol=1.e-5 -atol=1.e-10 -show=OcicG4Bd0p1.show -go=go >! OcicG4Bd0p1.out
+
+AD=6: 
+cgins -noplot cylDrop -g=offsetCylInChannele4.order2.s2.hdf -tf=20. -tp=.1 -nu=.01 -ad2=1 -ts=im -density=.1 -radius=.5 -dropName=drop -channelName=channel -bcOption=rampedVelocity -inflowVelocity=-2.0 -gravity=-10. -rampGravity=1 -dtMax=.005 -project=0 -numberOfCorrections=2 -omega=1. -addedMass=1  -useProvidedAcceleration=1 -addedDamping=1 -addedDampingCoeff=6. -addedDampingProjectVelocity=1  -useTP=0 -debug=3  -solver=best -psolver=best -rtolp=1.e-5 -atolp=1.e-12 -rtol=1.e-5 -atol=1.e-10 -show=OcicG4Bd0p1a.show -go=go >! OcicG4Bd0p1a.out
 
 
 INCREASE GRAVITY to 10   vIn=-1 :: too big, -.8 too small

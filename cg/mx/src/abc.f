@@ -1,10 +1,10 @@
 ! This file automatically generated from abc.bf with bpp.
-c *******************************************************************************
-c   Absorbing boundary conditions
-c *******************************************************************************
+! *******************************************************************************
+!   Absorbing boundary conditions
+! *******************************************************************************
 
-c These next include files will define the macros that will define the difference approximations
-c The actual macro is called below
+! These next include files will define the macros that will define the difference approximations
+! The actual macro is called below
 c Use this next macro to declare the statement functions that are defined below
 c To include derivatives of rx use OPTION=RX
 
@@ -23,7 +23,7 @@ c Define statement functions for difference approximations of order 4
 c To include derivatives of rx use OPTION=RX
 c To include derivatives of rx use OPTION=RX
 
-c Here are macros that define the planeWave solution
+! Here are macros that define the planeWave solution
 c **************************************************
 c Here are macros that define the:
 c      planeWave solution 
@@ -123,23 +123,25 @@ c Helper function: Return minus the second time derivative
 
 
 
+! Evaluate the twilight-zone forcing 
 
 
 
 
-c ************************************************************************************************
-c  This macro is used for looping over the faces of a grid to assign booundary conditions
-c
-c extra: extra points to assign
-c          Case 1: extra=numberOfGhostPoints -- for assigning extended boundaries
-c          Case 2: extra=-1 -- for assigning ghost points but not including extended boundaries
-c numberOfGhostPoints : number of ghost points (1 for 2nd order, 2 for fourth-order ...)
-c ***********************************************************************************************
+
+! ************************************************************************************************
+!  This macro is used for looping over the faces of a grid to assign booundary conditions
+!
+! extra: extra points to assign
+!          Case 1: extra=numberOfGhostPoints -- for assigning extended boundaries
+!          Case 2: extra=-1 -- for assigning ghost points but not including extended boundaries
+! numberOfGhostPoints : number of ghost points (1 for 2nd order, 2 for fourth-order ...)
+! ***********************************************************************************************
 
 
-c ========================================================================
-c Begin loop over edges in 3D
-c ========================================================================
+! ========================================================================
+! Begin loop over edges in 3D
+! ========================================================================
 
 
 
@@ -153,9 +155,26 @@ c ========================================================================
 
 ! -------------------- CARTESIAN GRID ---------------------
 
+! Here are first-order-in-time formula that do not require other ghost point at new time (un)
+!  Solve for ghost value from:
+!      D+t D0x ( u^n ) = c1abcem2 * D+xD-x u^n + c2abcem2 D+yD-y u^n  + f(t^n+dt/2)
+! These are used at corners.
 
-! Here is a 2nd-order in time approx
 
+! Here are 2nd-order in time approximations -- centered in space-time, solve for ghost at new time: 
+!   D+t D0x ( u^n ) = A+t[ c1abcem2 * D+xD-x u^n + c2abcem2 D+yD-y u^n ] + f(t^n+dt/2)
+!   Average in time operator:  A+t u^n = .5*( u^(n+1) + u^n )
+
+
+
+
+! --------------------------------------------------------------
+! Macro: 
+!     ------ 2nd-order accurate corner approximations ----
+!
+! Parameters: 
+!   side1,side2 : 0,1 to denote which corner in 2D
+! --------------------------------------------------------------
 
 
 
@@ -173,7 +192,7 @@ c ========================================================================
 ! ======================================================================================
 ! Setup Macro to apply the 2nd-order accurate Engquist-Majda ABC on a curvilinear grid
 ! 
-! On a Curvlinear grid we write:
+! On a Curvilinear grid we write:
 !        u_tt = L u  
 !        u_tt = D_n^2 u + (L-D_n^2) u 
 ! where the "normal" derivative is 
@@ -197,6 +216,24 @@ c ========================================================================
 ! EXCEPT for the first ghost point on the extended boundary
 ! ============================================================================
 
+! --------------------------------------------------------------------------
+! Macro: Evaluate the forcing for the ABC EM2 for twilight zone   
+!        Cartesian grid version
+!    DIR = X or Y or Z
+!    DIM = 2 or 3
+!    tf : evaluate the forcing at this time
+! Output: 
+!    force(0:2) 
+! --------------------------------------------------------------------------
+
+! ----------------------------------------------------------------------------
+! Macro: Get the forcing for the trapezoid rule by averaging times tp amd tf
+!   This will make the scheme exact for degree 2 polynomials in time 
+! --------------------------------------------------------------------------
+
+! ----------------------------------------------------------------------------
+! Macro: Extrapolate the ghost point along a given direction
+! --------------------------------------------------------------------------
 
       subroutine abcMaxwell( nd, nd1a,nd1b,nd2a,nd2b,nd3a,nd3b,ndf1a,
      & ndf1b,ndf2a,ndf2b,ndf3a,ndf3b,gridIndexRange, u, un, f,mask,
@@ -233,7 +270,7 @@ c ========================================================================
 
       integer side,axis,gridType,orderOfAccuracy,orderOfExtrapolation,
      & useForcing,ex,ey,ez,hx,hy,hz,useWhereMask,grid,debug,side1,
-     & side2,side3
+     & side2,side3,forcingOption
       real dx(0:2),dr(0:2),t,ep,dt,c
       real dxa,dya,dza
       integer axisp1,axisp2,i1,i2,i3,is1,is2,is3,js1,js2,js3,ks1,ks2,
@@ -252,6 +289,15 @@ c ========================================================================
       real ux0,uy0,uz0, uxx0,uyy0,uzz0
       real unx0,uny0,unz0, unxx0,unyy0,unzz0
       real t0,t1,t2
+      real x,y,z,eyTrue
+      real forcex(0:2),forcey(0:2),forcez(0:2),forcep(0:2),forcef(0:2)
+      real tp,tm,tf,utx,uty,utz,uxx,uyy,uzz
+
+      integer ksv(0:2)
+      integer isign1,isign2,idir,extrapOrder
+      real r1,r2,f1,f2,a11,a12,a21,a22,uA,uB,det
+
+      real ux,vy,vxy,alpha,uGhost,aGhost
 
       real eps,mu,kx,ky,kz,slowStartInterval,twoPi,cc
 
@@ -270,6 +316,17 @@ c ========================================================================
      & perfectMagneticConductor=3,planeWaveBoundaryCondition=4,
      & symmetryBoundaryCondition=5,interfaceBC=6,abcEM2=7,abcPML=8,
      & abc3=9,abc4=10,abc5=11,rbcNonLocal=12,rbcLocal=13,lastBC=13 )
+
+      ! forcing options
+      ! forcingOptions -- these should match ForcingEnum in Maxwell.h 
+      integer noForcing,magneticSinusoidalPointSource,gaussianSource,
+     & twilightZoneForcing,planeWaveBoundaryForcing, 
+     & gaussianChargeSource, userDefinedForcingOption
+      parameter(noForcing                =0,
+     & magneticSinusoidalPointSource =1,gaussianSource                
+     & =2,twilightZoneForcing           =3,planeWaveBoundaryForcing   
+     &    =4,    gaussianChargeSource          =5,
+     & userDefinedForcingOption      =6 )
 
       integer rectangular,curvilinear
       parameter(rectangular=0,curvilinear=1)
@@ -2220,6 +2277,7 @@ c===============================================================================
       useWhereMask         =ipar(18)
       grid                 =ipar(19)
       debug                =ipar(20)
+      forcingOption        =ipar(21)
 
       dx(0)                =rpar(0)
       dx(1)                =rpar(1)
@@ -2239,6 +2297,9 @@ c===============================================================================
       kz                   =rpar(14)
       slowStartInterval    =rpar(15)
 
+      tp=t-dt ! previous time
+      tm=t-.5*dt ! midpoint in time
+
       ! For fourth order, when we set div(E)=0 on the face we can change the first or second ghost point: 
       ! NOTE: for the mx/cmd/abc.cmd test of square128.order4, the errors in div(E) are 5 times smaller with projectDivLine=1
       !   *** thus just stick with this ***
@@ -2251,6 +2312,14 @@ c===============================================================================
         ! set 2nd ghost line
         divCoeff= 1./12. ! coeff of u(-2) in fourth order formula for div
       end if
+
+      if( t.le.1.5*dt )then
+        write(*,'("abcMaxwell: order=",i2,"gridType=",i2," t=",e9.2", 
+     & dt=",e9.2)') orderOfAccuracy,gridType,t,dt
+        write(*,'("abcMaxwell: useForcing=",i2," forcingOption=",i2)') 
+     & useForcing,forcingOption
+      end if
+
       if( debug.gt.1 )then
         write(*,'(" abcMaxwell: **START** grid=",i4," side,axis=",2i2,
      & " projectDivLine=",i2)') grid,side,axis,projectDivLine
@@ -2282,7 +2351,7 @@ c===============================================================================
 
 
       extra=-1  ! no need to do corners -- these are already done in another way
-      extra=0 ! re-compute corners
+      extra=0   ! re-compute corners
       numberOfGhostPoints=orderOfAccuracy/2
 
       if( gridType.eq.curvilinear )then
@@ -2299,6 +2368,8 @@ c===============================================================================
       if( gridType.eq.curvilinear )then
         ! On a curvilinear grid we need to make sure that there are valid values on the
         ! first ghost line -- these may be used on non-orthogonal grids (cross terms in uxx, uyy, ...)
+
+        ! Note: This next loop only applies to boundaries that are ABCs : 
          extra1a=extra
          extra1b=extra
          extra2a=extra
@@ -2447,6 +2518,18 @@ c===============================================================================
 
       end if
 
+      ! -- initialize for forcing:
+      z=0.
+      forcex(0)=0.
+      forcex(1)=0.
+      forcex(2)=0.
+      forcey(0)=0.
+      forcey(1)=0.
+      forcey(2)=0.
+      forcez(0)=0.
+      forcez(1)=0.
+      forcez(2)=0.
+
       ! ------------------------------------------------------------------------
       ! ------------------Corners-----------------------------------------------
       ! ------------------------------------------------------------------------
@@ -2496,28 +2579,279 @@ c===============================================================================
            !* extrapolateGhost(ex,ey,hz,numberOfGhostPoints,numberOfGhostPoints,0)
 
 
-           ! --- Assign point 'A' on the extended boundary ---
+
+           ! --- Assign points 'A' and 'B" on the extended boundary ---
            if( adjacentFaceIsABC )then
              is1=1-2*side1
              is2=0
              is3=0
 
-             ! Use first-order-in-time formula since it doesn't require other ghost point at new time (un)
              if( gridType.eq.rectangular )then
-              un(i1-is1,i2-is2,i3-is3,ex)=(un(i1+is1,i2+is2,i3+is3,ex)-
-     & (u(i1+is1,i2+is2,i3+is3,ex)-u(i1-is1,i2-is2,i3-is3,ex))-(2.*
+              if( .true. )then
+               ! *new* way
+               is1=1-2*side1
+               is2=1-2*side2
+                 ! getForcingEM2(X,2,tm,is1,is2,forcex)
+                  if( forcingOption.eq.twilightZoneForcing )then
+                    ! Test: set to exact solution at time t:
+                    ! x=xy(i1-is1,i2,i3,0)
+                    ! y=xy(i1-is1,i2,i3,1)
+                    ! OGDERIV(0,0,0,0,x,y,z,t,ey,eyTrue)
+                    ! un(i1-is1,i2,i3,ey)=eyTrue
+                    ! add TZ forcing *wdh* Sept 17, 2016
+                    ! OGDERIV(ntd,nxd,nyd,nzd,x,y,z,t,n,ud)
+                    x=xy(i1,i2,i3,0)
+                    y=xy(i1,i2,i3,1)
+                       ! Values for forcep(ex) are currently needed at corners:
+                         call ogDeriv(ep, 1,1,0,0,x,y,z,tp,ex,utx)
+                         call ogDeriv(ep, 0,2,0,0,x,y,z,tp,ex,uxx)
+                         call ogDeriv(ep, 0,0,2,0,x,y,z,tp,ex,uyy)
+                       forcep(ex) = is1*utx - ( c1abcem2*uxx + 
+     & c2abcem2*uyy )
+                         call ogDeriv(ep, 1,1,0,0,x,y,z,tp,ey,utx)
+                         call ogDeriv(ep, 0,2,0,0,x,y,z,tp,ey,uxx)
+                         call ogDeriv(ep, 0,0,2,0,x,y,z,tp,ey,uyy)
+                       forcep(ey) = is1*utx - ( c1abcem2*uxx + 
+     & c2abcem2*uyy )
+                         call ogDeriv(ep, 1,1,0,0,x,y,z,tp,hz,utx)
+                         call ogDeriv(ep, 0,2,0,0,x,y,z,tp,hz,uxx)
+                         call ogDeriv(ep, 0,0,2,0,x,y,z,tp,hz,uyy)
+                       forcep(hz) = is1*utx - ( c1abcem2*uxx + 
+     & c2abcem2*uyy )
+                    ! write(*,'(" Apply abcEM2: add TZ forcing t,dt,utx,uxx,uyy=",5e10.3)') t,dt,utx,uxx,uyy
+                  end if
+                  if( forcingOption.eq.twilightZoneForcing )then
+                    ! Test: set to exact solution at time t:
+                    ! x=xy(i1-is1,i2,i3,0)
+                    ! y=xy(i1-is1,i2,i3,1)
+                    ! OGDERIV(0,0,0,0,x,y,z,t,ey,eyTrue)
+                    ! un(i1-is1,i2,i3,ey)=eyTrue
+                    ! add TZ forcing *wdh* Sept 17, 2016
+                    ! OGDERIV(ntd,nxd,nyd,nzd,x,y,z,t,n,ud)
+                    x=xy(i1,i2,i3,0)
+                    y=xy(i1,i2,i3,1)
+                       ! Values for forcef(ex) are currently needed at corners:
+                         call ogDeriv(ep, 1,1,0,0,x,y,z,t,ex,utx)
+                         call ogDeriv(ep, 0,2,0,0,x,y,z,t,ex,uxx)
+                         call ogDeriv(ep, 0,0,2,0,x,y,z,t,ex,uyy)
+                       forcef(ex) = is1*utx - ( c1abcem2*uxx + 
+     & c2abcem2*uyy )
+                         call ogDeriv(ep, 1,1,0,0,x,y,z,t,ey,utx)
+                         call ogDeriv(ep, 0,2,0,0,x,y,z,t,ey,uxx)
+                         call ogDeriv(ep, 0,0,2,0,x,y,z,t,ey,uyy)
+                       forcef(ey) = is1*utx - ( c1abcem2*uxx + 
+     & c2abcem2*uyy )
+                         call ogDeriv(ep, 1,1,0,0,x,y,z,t,hz,utx)
+                         call ogDeriv(ep, 0,2,0,0,x,y,z,t,hz,uxx)
+                         call ogDeriv(ep, 0,0,2,0,x,y,z,t,hz,uyy)
+                       forcef(hz) = is1*utx - ( c1abcem2*uxx + 
+     & c2abcem2*uyy )
+                    ! write(*,'(" Apply abcEM2: add TZ forcing t,dt,utx,uxx,uyy=",5e10.3)') t,dt,utx,uxx,uyy
+                  end if
+                 do idir=0,2
+                   forcex(idir)=.5*(forcep(idir)+forcef(idir))
+                 end do
+                 ! getForcingEM2(Y,2,tm,is1,is2,forcey)
+                  if( forcingOption.eq.twilightZoneForcing )then
+                    ! Test: set to exact solution at time t:
+                    ! x=xy(i1-is1,i2,i3,0)
+                    ! y=xy(i1-is1,i2,i3,1)
+                    ! OGDERIV(0,0,0,0,x,y,z,t,ey,eyTrue)
+                    ! un(i1-is1,i2,i3,ey)=eyTrue
+                    ! add TZ forcing *wdh* Sept 17, 2016
+                    ! OGDERIV(ntd,nxd,nyd,nzd,x,y,z,t,n,ud)
+                    x=xy(i1,i2,i3,0)
+                    y=xy(i1,i2,i3,1)
+                         call ogDeriv(ep, 1,0,1,0,x,y,z,tp,ex,uty)
+                         call ogDeriv(ep, 0,2,0,0,x,y,z,tp,ex,uxx)
+                         call ogDeriv(ep, 0,0,2,0,x,y,z,tp,ex,uyy)
+                       forcep(ex) = is2*uty - ( c1abcem2*uyy + 
+     & c2abcem2*uxx )
+                       ! Values for forcep(ey) are currently needed at corners:
+                         call ogDeriv(ep, 1,0,1,0,x,y,z,tp,ey,uty)
+                         call ogDeriv(ep, 0,2,0,0,x,y,z,tp,ey,uxx)
+                         call ogDeriv(ep, 0,0,2,0,x,y,z,tp,ey,uyy)
+                       forcep(ey) = is2*uty - ( c1abcem2*uyy + 
+     & c2abcem2*uxx )
+                         call ogDeriv(ep, 1,0,1,0,x,y,z,tp,hz,uty)
+                         call ogDeriv(ep, 0,2,0,0,x,y,z,tp,hz,uxx)
+                         call ogDeriv(ep, 0,0,2,0,x,y,z,tp,hz,uyy)
+                       forcep(hz) = is2*uty - ( c1abcem2*uyy + 
+     & c2abcem2*uxx )
+                    ! write(*,'(" Apply abcEM2: add TZ forcing t,dt,utx,uxx,uyy=",5e10.3)') t,dt,utx,uxx,uyy
+                  end if
+                  if( forcingOption.eq.twilightZoneForcing )then
+                    ! Test: set to exact solution at time t:
+                    ! x=xy(i1-is1,i2,i3,0)
+                    ! y=xy(i1-is1,i2,i3,1)
+                    ! OGDERIV(0,0,0,0,x,y,z,t,ey,eyTrue)
+                    ! un(i1-is1,i2,i3,ey)=eyTrue
+                    ! add TZ forcing *wdh* Sept 17, 2016
+                    ! OGDERIV(ntd,nxd,nyd,nzd,x,y,z,t,n,ud)
+                    x=xy(i1,i2,i3,0)
+                    y=xy(i1,i2,i3,1)
+                         call ogDeriv(ep, 1,0,1,0,x,y,z,t,ex,uty)
+                         call ogDeriv(ep, 0,2,0,0,x,y,z,t,ex,uxx)
+                         call ogDeriv(ep, 0,0,2,0,x,y,z,t,ex,uyy)
+                       forcef(ex) = is2*uty - ( c1abcem2*uyy + 
+     & c2abcem2*uxx )
+                       ! Values for forcef(ey) are currently needed at corners:
+                         call ogDeriv(ep, 1,0,1,0,x,y,z,t,ey,uty)
+                         call ogDeriv(ep, 0,2,0,0,x,y,z,t,ey,uxx)
+                         call ogDeriv(ep, 0,0,2,0,x,y,z,t,ey,uyy)
+                       forcef(ey) = is2*uty - ( c1abcem2*uyy + 
+     & c2abcem2*uxx )
+                         call ogDeriv(ep, 1,0,1,0,x,y,z,t,hz,uty)
+                         call ogDeriv(ep, 0,2,0,0,x,y,z,t,hz,uxx)
+                         call ogDeriv(ep, 0,0,2,0,x,y,z,t,hz,uyy)
+                       forcef(hz) = is2*uty - ( c1abcem2*uyy + 
+     & c2abcem2*uxx )
+                    ! write(*,'(" Apply abcEM2: add TZ forcing t,dt,utx,uxx,uyy=",5e10.3)') t,dt,utx,uxx,uyy
+                  end if
+                 do idir=0,2
+                   forcey(idir)=.5*(forcep(idir)+forcef(idir))
+                 end do
+
+                 ! At a corner there are two coupled equations we need to solve for ghost points A,B below
+                 !                   |
+                 !                 A +---+----
+                 !                   B
+                 !  f(u)  = [ f(u_old) - A (u_old) ] + A u = 0 
+                 !  [ a11 a12 ][ uA ] = [ a11 a12 ][ uA_old ] - [ f1(u_old) ]
+                 !  [ a21 a22 ][ uB ]   [ a21 a22 ][ uB_old ]   [ f2(u_old) ]
+                 isign1=1-2*side1
+                 isign2=1-2*side2
+                 ! first evaluate residuals in equations given current (wrong) values at A, B
+                 r1 = isign1*(unx22r(i1,i2,i3,ex)-ux22r(i1,i2,i3,ex))/(
+     & dt)- .5*( c1abcem2*unxx22r(i1,i2,i3,ex) + c2abcem2*unyy22r(i1,
+     & i2,i3,ex) +c1abcem2* uxx22r(i1,i2,i3,ex) + c2abcem2* uyy22r(i1,
+     & i2,i3,ex) ) - forcex(ex)
+                 r2 = isign2*(uny22r(i1,i2,i3,ex)-uy22r(i1,i2,i3,ex))/(
+     & dt)- .5*( c1abcem2*unyy22r(i1,i2,i3,ex) + c2abcem2*unxx22r(i1,
+     & i2,i3,ex) +c1abcem2* uyy22r(i1,i2,i3,ex) + c2abcem2* uxx22r(i1,
+     & i2,i3,ex) ) - forcey(ex)
+                 a11 = -1./(2.*dt*dx(0))  - .5*c1abcem2/(dx(0)**2)
+                 a12 = -.5*c2abcem2/(dx(1)**2)
+                 a21 = -.5*c2abcem2/(dx(0)**2)
+                 a22 = -1./(2.*dt*dx(1))  - .5*c1abcem2/(dx(1)**2)
+                 det = a11*a22-a21*a12
+                 uA = un(i1-isign1,i2,i3,ex)
+                 uB = un(i1,i2-isign2,i3,ex)
+                 f1 = a11*uA + a12*uB - r1
+                 f2 = a21*uA + a22*uB - r2
+                 ! Solve for A, B
+                 un(i1-isign1,i2,i3,ex) = ( f1*a22 - f2*a12)/det
+                 un(i1,i2-isign2,i3,ex) = (-f1*a21 + f2*a11)/det
+                 ! At a corner there are two coupled equations we need to solve for ghost points A,B below
+                 !                   |
+                 !                 A +---+----
+                 !                   B
+                 !  f(u)  = [ f(u_old) - A (u_old) ] + A u = 0 
+                 !  [ a11 a12 ][ uA ] = [ a11 a12 ][ uA_old ] - [ f1(u_old) ]
+                 !  [ a21 a22 ][ uB ]   [ a21 a22 ][ uB_old ]   [ f2(u_old) ]
+                 isign1=1-2*side1
+                 isign2=1-2*side2
+                 ! first evaluate residuals in equations given current (wrong) values at A, B
+                 r1 = isign1*(unx22r(i1,i2,i3,ey)-ux22r(i1,i2,i3,ey))/(
+     & dt)- .5*( c1abcem2*unxx22r(i1,i2,i3,ey) + c2abcem2*unyy22r(i1,
+     & i2,i3,ey) +c1abcem2* uxx22r(i1,i2,i3,ey) + c2abcem2* uyy22r(i1,
+     & i2,i3,ey) ) - forcex(ey)
+                 r2 = isign2*(uny22r(i1,i2,i3,ey)-uy22r(i1,i2,i3,ey))/(
+     & dt)- .5*( c1abcem2*unyy22r(i1,i2,i3,ey) + c2abcem2*unxx22r(i1,
+     & i2,i3,ey) +c1abcem2* uyy22r(i1,i2,i3,ey) + c2abcem2* uxx22r(i1,
+     & i2,i3,ey) ) - forcey(ey)
+                 a11 = -1./(2.*dt*dx(0))  - .5*c1abcem2/(dx(0)**2)
+                 a12 = -.5*c2abcem2/(dx(1)**2)
+                 a21 = -.5*c2abcem2/(dx(0)**2)
+                 a22 = -1./(2.*dt*dx(1))  - .5*c1abcem2/(dx(1)**2)
+                 det = a11*a22-a21*a12
+                 uA = un(i1-isign1,i2,i3,ey)
+                 uB = un(i1,i2-isign2,i3,ey)
+                 f1 = a11*uA + a12*uB - r1
+                 f2 = a21*uA + a22*uB - r2
+                 ! Solve for A, B
+                 un(i1-isign1,i2,i3,ey) = ( f1*a22 - f2*a12)/det
+                 un(i1,i2-isign2,i3,ey) = (-f1*a21 + f2*a11)/det
+                 ! At a corner there are two coupled equations we need to solve for ghost points A,B below
+                 !                   |
+                 !                 A +---+----
+                 !                   B
+                 !  f(u)  = [ f(u_old) - A (u_old) ] + A u = 0 
+                 !  [ a11 a12 ][ uA ] = [ a11 a12 ][ uA_old ] - [ f1(u_old) ]
+                 !  [ a21 a22 ][ uB ]   [ a21 a22 ][ uB_old ]   [ f2(u_old) ]
+                 isign1=1-2*side1
+                 isign2=1-2*side2
+                 ! first evaluate residuals in equations given current (wrong) values at A, B
+                 r1 = isign1*(unx22r(i1,i2,i3,hz)-ux22r(i1,i2,i3,hz))/(
+     & dt)- .5*( c1abcem2*unxx22r(i1,i2,i3,hz) + c2abcem2*unyy22r(i1,
+     & i2,i3,hz) +c1abcem2* uxx22r(i1,i2,i3,hz) + c2abcem2* uyy22r(i1,
+     & i2,i3,hz) ) - forcex(hz)
+                 r2 = isign2*(uny22r(i1,i2,i3,hz)-uy22r(i1,i2,i3,hz))/(
+     & dt)- .5*( c1abcem2*unyy22r(i1,i2,i3,hz) + c2abcem2*unxx22r(i1,
+     & i2,i3,hz) +c1abcem2* uyy22r(i1,i2,i3,hz) + c2abcem2* uxx22r(i1,
+     & i2,i3,hz) ) - forcey(hz)
+                 a11 = -1./(2.*dt*dx(0))  - .5*c1abcem2/(dx(0)**2)
+                 a12 = -.5*c2abcem2/(dx(1)**2)
+                 a21 = -.5*c2abcem2/(dx(0)**2)
+                 a22 = -1./(2.*dt*dx(1))  - .5*c1abcem2/(dx(1)**2)
+                 det = a11*a22-a21*a12
+                 uA = un(i1-isign1,i2,i3,hz)
+                 uB = un(i1,i2-isign2,i3,hz)
+                 f1 = a11*uA + a12*uB - r1
+                 f2 = a21*uA + a22*uB - r2
+                 ! Solve for A, B
+                 un(i1-isign1,i2,i3,hz) = ( f1*a22 - f2*a12)/det
+                 un(i1,i2-isign2,i3,hz) = (-f1*a21 + f2*a11)/det
+              else
+               ! *old* way          
+               ! --- Assign point 'A' on the extended boundary ---
+               ! Use first-order-in-time formula since it doesn't require other ghost point 'B' at new time (un)
+
+                if( forcingOption.eq.twilightZoneForcing )then
+                  ! Test: set to exact solution at time t:
+                  ! x=xy(i1-is1,i2,i3,0)
+                  ! y=xy(i1-is1,i2,i3,1)
+                  ! OGDERIV(0,0,0,0,x,y,z,t,ey,eyTrue)
+                  ! un(i1-is1,i2,i3,ey)=eyTrue
+                  ! add TZ forcing *wdh* Sept 17, 2016
+                  ! OGDERIV(ntd,nxd,nyd,nzd,x,y,z,t,n,ud)
+                  x=xy(i1,i2,i3,0)
+                  y=xy(i1,i2,i3,1)
+                     ! Values for forcex(ex) are currently needed at corners:
+                       call ogDeriv(ep, 1,1,0,0,x,y,z,tp,ex,utx)
+                       call ogDeriv(ep, 0,2,0,0,x,y,z,tp,ex,uxx)
+                       call ogDeriv(ep, 0,0,2,0,x,y,z,tp,ex,uyy)
+                     forcex(ex) = is1*utx - ( c1abcem2*uxx + c2abcem2*
+     & uyy )
+                       call ogDeriv(ep, 1,1,0,0,x,y,z,tp,ey,utx)
+                       call ogDeriv(ep, 0,2,0,0,x,y,z,tp,ey,uxx)
+                       call ogDeriv(ep, 0,0,2,0,x,y,z,tp,ey,uyy)
+                     forcex(ey) = is1*utx - ( c1abcem2*uxx + c2abcem2*
+     & uyy )
+                       call ogDeriv(ep, 1,1,0,0,x,y,z,tp,hz,utx)
+                       call ogDeriv(ep, 0,2,0,0,x,y,z,tp,hz,uxx)
+                       call ogDeriv(ep, 0,0,2,0,x,y,z,tp,hz,uyy)
+                     forcex(hz) = is1*utx - ( c1abcem2*uxx + c2abcem2*
+     & uyy )
+                  ! write(*,'(" Apply abcEM2: add TZ forcing t,dt,utx,uxx,uyy=",5e10.3)') t,dt,utx,uxx,uyy
+                end if
+
+               un(i1-is1,i2-is2,i3-is3,ex)=(un(i1+is1,i2+is2,i3+is3,ex)
+     & -(u(i1+is1,i2+is2,i3+is3,ex)-u(i1-is1,i2-is2,i3-is3,ex))-(2.*
      & dxa*dt)*(c1abcem2*uxx22r(i1,i2,i3,ex)+c2abcem2*uyy22r(i1,i2,i3,
-     & ex)))
-              un(i1-is1,i2-is2,i3-is3,ey)=(un(i1+is1,i2+is2,i3+is3,ey)-
-     & (u(i1+is1,i2+is2,i3+is3,ey)-u(i1-is1,i2-is2,i3-is3,ey))-(2.*
+     & ex)+forcex(ex)))
+               un(i1-is1,i2-is2,i3-is3,ey)=(un(i1+is1,i2+is2,i3+is3,ey)
+     & -(u(i1+is1,i2+is2,i3+is3,ey)-u(i1-is1,i2-is2,i3-is3,ey))-(2.*
      & dxa*dt)*(c1abcem2*uxx22r(i1,i2,i3,ey)+c2abcem2*uyy22r(i1,i2,i3,
-     & ey)))
-              un(i1-is1,i2-is2,i3-is3,hz)=(un(i1+is1,i2+is2,i3+is3,hz)-
-     & (u(i1+is1,i2+is2,i3+is3,hz)-u(i1-is1,i2-is2,i3-is3,hz))-(2.*
+     & ey)+forcex(ey)))
+               un(i1-is1,i2-is2,i3-is3,hz)=(un(i1+is1,i2+is2,i3+is3,hz)
+     & -(u(i1+is1,i2+is2,i3+is3,hz)-u(i1-is1,i2-is2,i3-is3,hz))-(2.*
      & dxa*dt)*(c1abcem2*uxx22r(i1,i2,i3,hz)+c2abcem2*uyy22r(i1,i2,i3,
-     & hz)))
+     & hz)+forcex(hz)))
+              end if
              else
 
+              ! curvilinear grid 
               side=side1
               axis=0
                 is =1-2*side
@@ -2617,20 +2951,53 @@ c===============================================================================
              is2=1-2*side2
 
              if( gridType.eq.rectangular )then
-              un(i1-is1,i2-is2,i3-is3,ex)=(un(i1+is1,i2+is2,i3+is3,ex)-
-     & (u(i1+is1,i2+is2,i3+is3,ex)-u(i1-is1,i2-is2,i3-is3,ex))-(2.*
+              if( .false. )then
+               ! *old* way
+                if( forcingOption.eq.twilightZoneForcing )then
+                  ! Test: set to exact solution at time t:
+                  ! x=xy(i1-is1,i2,i3,0)
+                  ! y=xy(i1-is1,i2,i3,1)
+                  ! OGDERIV(0,0,0,0,x,y,z,t,ey,eyTrue)
+                  ! un(i1-is1,i2,i3,ey)=eyTrue
+                  ! add TZ forcing *wdh* Sept 17, 2016
+                  ! OGDERIV(ntd,nxd,nyd,nzd,x,y,z,t,n,ud)
+                  x=xy(i1,i2,i3,0)
+                  y=xy(i1,i2,i3,1)
+                       call ogDeriv(ep, 1,0,1,0,x,y,z,tp,ex,uty)
+                       call ogDeriv(ep, 0,2,0,0,x,y,z,tp,ex,uxx)
+                       call ogDeriv(ep, 0,0,2,0,x,y,z,tp,ex,uyy)
+                     forcey(ex) = is2*uty - ( c1abcem2*uyy + c2abcem2*
+     & uxx )
+                     ! Values for forcey(ey) are currently needed at corners:
+                       call ogDeriv(ep, 1,0,1,0,x,y,z,tp,ey,uty)
+                       call ogDeriv(ep, 0,2,0,0,x,y,z,tp,ey,uxx)
+                       call ogDeriv(ep, 0,0,2,0,x,y,z,tp,ey,uyy)
+                     forcey(ey) = is2*uty - ( c1abcem2*uyy + c2abcem2*
+     & uxx )
+                       call ogDeriv(ep, 1,0,1,0,x,y,z,tp,hz,uty)
+                       call ogDeriv(ep, 0,2,0,0,x,y,z,tp,hz,uxx)
+                       call ogDeriv(ep, 0,0,2,0,x,y,z,tp,hz,uyy)
+                     forcey(hz) = is2*uty - ( c1abcem2*uyy + c2abcem2*
+     & uxx )
+                  ! write(*,'(" Apply abcEM2: add TZ forcing t,dt,utx,uxx,uyy=",5e10.3)') t,dt,utx,uxx,uyy
+                end if
+
+               un(i1-is1,i2-is2,i3-is3,ex)=(un(i1+is1,i2+is2,i3+is3,ex)
+     & -(u(i1+is1,i2+is2,i3+is3,ex)-u(i1-is1,i2-is2,i3-is3,ex))-(2.*
      & dya*dt)*(c1abcem2*uyy22r(i1,i2,i3,ex)+c2abcem2*uxx22r(i1,i2,i3,
-     & ex)))
-              un(i1-is1,i2-is2,i3-is3,ey)=(un(i1+is1,i2+is2,i3+is3,ey)-
-     & (u(i1+is1,i2+is2,i3+is3,ey)-u(i1-is1,i2-is2,i3-is3,ey))-(2.*
+     & ex)+forcey(ex)))
+               un(i1-is1,i2-is2,i3-is3,ey)=(un(i1+is1,i2+is2,i3+is3,ey)
+     & -(u(i1+is1,i2+is2,i3+is3,ey)-u(i1-is1,i2-is2,i3-is3,ey))-(2.*
      & dya*dt)*(c1abcem2*uyy22r(i1,i2,i3,ey)+c2abcem2*uxx22r(i1,i2,i3,
-     & ey)))
-              un(i1-is1,i2-is2,i3-is3,hz)=(un(i1+is1,i2+is2,i3+is3,hz)-
-     & (u(i1+is1,i2+is2,i3+is3,hz)-u(i1-is1,i2-is2,i3-is3,hz))-(2.*
+     & ey)+forcey(ey)))
+               un(i1-is1,i2-is2,i3-is3,hz)=(un(i1+is1,i2+is2,i3+is3,hz)
+     & -(u(i1+is1,i2+is2,i3+is3,hz)-u(i1-is1,i2-is2,i3-is3,hz))-(2.*
      & dya*dt)*(c1abcem2*uyy22r(i1,i2,i3,hz)+c2abcem2*uxx22r(i1,i2,i3,
-     & hz)))
+     & hz)+forcey(hz)))
+              end if
              else
 
+              ! curvilinear grid 
               side=side2
               axis=1
                 is =1-2*side
@@ -2723,6 +3090,149 @@ c===============================================================================
                 un(i1-is1,i2-is2,i3-is3,hz) = -(g - cm1*un(i1-is1,i2-
      & is2,i3-is3,hz) )/cm1
              end if
+
+
+           else if( .true. )then
+             ! .false. .and. bc1.ne.symmetryBoundaryCondition .and. bc2.ne.symmetryBoundaryCondition )then
+             ! --- adjacent face is NOT another ABC ---
+             ! Do this for now *wdh* Sept 19, 2016
+             if( orderOfAccuracy.eq.2 )then
+               extrapOrder=3
+             else if( orderOfAccuracy.eq.4 )then
+               extrapOrder=5
+             else
+               stop 4114
+             end if
+
+             if( bc1.ne.symmetryBoundaryCondition )then
+                 ksv(0)=0
+                 ksv(1)=0
+                 ksv(2)=0
+                 ksv(0)=1-2*side1
+                 ks1=ksv(0)
+                 ks2=ksv(1)
+                 ks3=ksv(2)
+                 if( extrapOrder.eq.3 )then
+                   un(i1-ks1,i2-ks2,i3-ks3,ex)=(3.*un(i1,i2,i3,ex)-3.*
+     & un(i1+ks1,i2+ks2,i3+ks3,ex)+un(i1+2*ks1,i2+2*ks2,i3+2*ks3,ex))
+                   un(i1-ks1,i2-ks2,i3-ks3,ey)=(3.*un(i1,i2,i3,ey)-3.*
+     & un(i1+ks1,i2+ks2,i3+ks3,ey)+un(i1+2*ks1,i2+2*ks2,i3+2*ks3,ey))
+                   un(i1-ks1,i2-ks2,i3-ks3,hz)=(3.*un(i1,i2,i3,hz)-3.*
+     & un(i1+ks1,i2+ks2,i3+ks3,hz)+un(i1+2*ks1,i2+2*ks2,i3+2*ks3,hz))
+                 else if( extrapOrder.eq.5 )then
+                   un(i1-ks1,i2-ks2,i3-ks3,ex)=(5.*un(i1,i2,i3,ex)-10.*
+     & un(i1+ks1,i2+ks2,i3+ks3,ex)+10.*un(i1+2*ks1,i2+2*ks2,i3+2*ks3,
+     & ex)-5.*un(i1+3*ks1,i2+3*ks2,i3+3*ks3,ex)+un(i1+4*ks1,i2+4*ks2,
+     & i3+4*ks3,ex))
+                   un(i1-ks1,i2-ks2,i3-ks3,ey)=(5.*un(i1,i2,i3,ey)-10.*
+     & un(i1+ks1,i2+ks2,i3+ks3,ey)+10.*un(i1+2*ks1,i2+2*ks2,i3+2*ks3,
+     & ey)-5.*un(i1+3*ks1,i2+3*ks2,i3+3*ks3,ey)+un(i1+4*ks1,i2+4*ks2,
+     & i3+4*ks3,ey))
+                   un(i1-ks1,i2-ks2,i3-ks3,hz)=(5.*un(i1,i2,i3,hz)-10.*
+     & un(i1+ks1,i2+ks2,i3+ks3,hz)+10.*un(i1+2*ks1,i2+2*ks2,i3+2*ks3,
+     & hz)-5.*un(i1+3*ks1,i2+3*ks2,i3+3*ks3,hz)+un(i1+4*ks1,i2+4*ks2,
+     & i3+4*ks3,hz))
+                 else
+                   stop 1782
+                 end if
+             end if
+
+             if( bc2.ne.symmetryBoundaryCondition )then
+                 ksv(0)=0
+                 ksv(1)=0
+                 ksv(2)=0
+                 ksv(1)=1-2*side2
+                 ks1=ksv(0)
+                 ks2=ksv(1)
+                 ks3=ksv(2)
+                 if( extrapOrder.eq.3 )then
+                   un(i1-ks1,i2-ks2,i3-ks3,ex)=(3.*un(i1,i2,i3,ex)-3.*
+     & un(i1+ks1,i2+ks2,i3+ks3,ex)+un(i1+2*ks1,i2+2*ks2,i3+2*ks3,ex))
+                   un(i1-ks1,i2-ks2,i3-ks3,ey)=(3.*un(i1,i2,i3,ey)-3.*
+     & un(i1+ks1,i2+ks2,i3+ks3,ey)+un(i1+2*ks1,i2+2*ks2,i3+2*ks3,ey))
+                   un(i1-ks1,i2-ks2,i3-ks3,hz)=(3.*un(i1,i2,i3,hz)-3.*
+     & un(i1+ks1,i2+ks2,i3+ks3,hz)+un(i1+2*ks1,i2+2*ks2,i3+2*ks3,hz))
+                 else if( extrapOrder.eq.5 )then
+                   un(i1-ks1,i2-ks2,i3-ks3,ex)=(5.*un(i1,i2,i3,ex)-10.*
+     & un(i1+ks1,i2+ks2,i3+ks3,ex)+10.*un(i1+2*ks1,i2+2*ks2,i3+2*ks3,
+     & ex)-5.*un(i1+3*ks1,i2+3*ks2,i3+3*ks3,ex)+un(i1+4*ks1,i2+4*ks2,
+     & i3+4*ks3,ex))
+                   un(i1-ks1,i2-ks2,i3-ks3,ey)=(5.*un(i1,i2,i3,ey)-10.*
+     & un(i1+ks1,i2+ks2,i3+ks3,ey)+10.*un(i1+2*ks1,i2+2*ks2,i3+2*ks3,
+     & ey)-5.*un(i1+3*ks1,i2+3*ks2,i3+3*ks3,ey)+un(i1+4*ks1,i2+4*ks2,
+     & i3+4*ks3,ey))
+                   un(i1-ks1,i2-ks2,i3-ks3,hz)=(5.*un(i1,i2,i3,hz)-10.*
+     & un(i1+ks1,i2+ks2,i3+ks3,hz)+10.*un(i1+2*ks1,i2+2*ks2,i3+2*ks3,
+     & hz)-5.*un(i1+3*ks1,i2+3*ks2,i3+3*ks3,hz)+un(i1+4*ks1,i2+4*ks2,
+     & i3+4*ks3,hz))
+                 else
+                   stop 1782
+                 end if
+             end if
+
+             ! ----------------------------------------
+             ! --- Now set div(e) = 0 at the corner ---
+             ! ----------------------------------------
+             if( orderOfAccuracy.eq.2 .and. (bc1.ge.abcEM2 .and. 
+     & bc1.le.abc5) )then
+
+               is1=1-2*side1
+               if( gridType.eq.rectangular )then
+                 un(i1-is1,i2,i3,ex)=un(i1+is1,i2,i3,ex)+ 2.*is1*dx(0)*
+     & uny22r(i1,i2,i3,ey)
+               else
+                 ! *check me* 
+                 axis=0
+                 is=is1
+                 is2=0
+                 div = unx22(i1,i2,i3,ex)+uny22(i1,i2,i3,ey)
+                 ax = -is*rsxy(i1,i2,i3,axis,0)/(2.*dr(axis))
+                 ay = -is*rsxy(i1,i2,i3,axis,1)/(2.*dr(axis))
+                 aSq = max( epsX, ax**2 + ay**2)
+                 un(i1-is1,i2-is2,i3,ex) = un(i1-is1,i2-is2,i3,ex) - 
+     & div*ax/aSq
+                 un(i1-is1,i2-is2,i3,ey) = un(i1-is1,i2-is2,i3,ey) - 
+     & div*ay/aSq
+               end if
+             end if
+
+             if( orderOfAccuracy.eq.2 .and. (bc2.ge.abcEM2 .and. 
+     & bc2.le.abc5) )then
+               ! set div(E)=0
+               is2=1-2*side2
+               if( gridType.eq.rectangular )then
+                 un(i1,i2-is2,i3,ey)=un(i1,i2+is2,i3,ey) + 2.*is2*dx(1)
+     & *unx22r(i1,i2,i3,ex)
+               else
+                 ! *check me* 
+                 axis=1
+                 is=is2
+                 is1=0
+                 div = unx22(i1,i2,i3,ex)+uny22(i1,i2,i3,ey)
+                 ax = -is*rsxy(i1,i2,i3,axis,0)/(2.*dr(axis))
+                 ay = -is*rsxy(i1,i2,i3,axis,1)/(2.*dr(axis))
+                 aSq = max( epsX, ax**2 + ay**2)
+                 un(i1-is1,i2-is2,i3,ex) = un(i1-is1,i2-is2,i3,ex) - 
+     & div*ax/aSq
+                 un(i1-is1,i2-is2,i3,ey) = un(i1-is1,i2-is2,i3,ey) - 
+     & div*ay/aSq
+
+               end if
+             end if
+
+!!$             is1=1-2*side1
+!!$             is2=0
+!!$             is3=0
+!!$             un(i1-is1,i2-is2,i3-is3,ex)=extrap3(un,i1,i2,i3,ex,is1,is2,is3)
+!!$             un(i1-is1,i2-is2,i3-is3,ey)=extrap3(un,i1,i2,i3,ey,is1,is2,is3)
+!!$             un(i1-is1,i2-is2,i3-is3,hz)=extrap3(un,i1,i2,i3,hz,is1,is2,is3)
+!!$             
+!!$             is1=0
+!!$             is2=1-2*side2
+!!$             un(i1-is1,i2-is2,i3-is3,ex)=extrap3(un,i1,i2,i3,ex,is1,is2,is3)
+!!$             un(i1-is1,i2-is2,i3-is3,ey)=extrap3(un,i1,i2,i3,ey,is1,is2,is3)
+!!$             un(i1-is1,i2-is2,i3-is3,hz)=extrap3(un,i1,i2,i3,hz,is1,is2,is3)
+
            end if ! end if adjacentFaceIsABC
 
            ! --- Now extrapolate all other points on the extended boundary and adjacent to the corner ---
@@ -2744,38 +3254,55 @@ c===============================================================================
               js2 = is2*min(m2,1)
               js3 = is3*min(m3,1)
               if( orderOfAccuracy.eq.2 )then
-                un(j1,j2,j3,ex)=(2.*un(j1+js1,j2+js2,j3+js3,ex)-un(j1+
-     & js1+js1,j2+js2+js2,j3+js3+js3,ex))
-                un(j1,j2,j3,ey)=(2.*un(j1+js1,j2+js2,j3+js3,ey)-un(j1+
-     & js1+js1,j2+js2+js2,j3+js3+js3,ey))
-                un(j1,j2,j3,hz)=(2.*un(j1+js1,j2+js2,j3+js3,hz)-un(j1+
-     & js1+js1,j2+js2+js2,j3+js3+js3,hz))
+                ! Changed to third-order extra *wdh* Sept 18, 2016
+                un(j1,j2,j3,ex)=(3.*un(j1+js1,j2+js2,j3+js3,ex)-3.*un(
+     & j1+js1+js1,j2+js2+js2,j3+js3+js3,ex)+un(j1+js1+2*js1,j2+js2+2*
+     & js2,j3+js3+2*js3,ex))
+                un(j1,j2,j3,ey)=(3.*un(j1+js1,j2+js2,j3+js3,ey)-3.*un(
+     & j1+js1+js1,j2+js2+js2,j3+js3+js3,ey)+un(j1+js1+2*js1,j2+js2+2*
+     & js2,j3+js3+2*js3,ey))
+                un(j1,j2,j3,hz)=(3.*un(j1+js1,j2+js2,j3+js3,hz)-3.*un(
+     & j1+js1+js1,j2+js2+js2,j3+js3+js3,hz)+un(j1+js1+2*js1,j2+js2+2*
+     & js2,j3+js3+2*js3,hz))
+                ! un(j1,j2,j3,ex)=extrap2(un,j1+js1,j2+js2,j3+js3,ex,js1,js2,js3)
+                ! un(j1,j2,j3,ey)=extrap2(un,j1+js1,j2+js2,j3+js3,ey,js1,js2,js3)
+                ! un(j1,j2,j3,hz)=extrap2(un,j1+js1,j2+js2,j3+js3,hz,js1,js2,js3)
               else
-                ! extrap first line to a max of order 3 in case we adjust for incident fields 
+                ! Note: adjust for incident fields should take into account the width of extrapolation: 
                 if( m1.le.1 .and. m2.le.1 .and. m3.le.1 )then
-                  un(j1,j2,j3,ex)=(3.*un(j1+js1,j2+js2,j3+js3,ex)-3.*
-     & un(j1+js1+js1,j2+js2+js2,j3+js3+js3,ex)+un(j1+js1+2*js1,j2+js2+
-     & 2*js2,j3+js3+2*js3,ex))
-                  un(j1,j2,j3,ey)=(3.*un(j1+js1,j2+js2,j3+js3,ey)-3.*
-     & un(j1+js1+js1,j2+js2+js2,j3+js3+js3,ey)+un(j1+js1+2*js1,j2+js2+
-     & 2*js2,j3+js3+2*js3,ey))
-                  un(j1,j2,j3,hz)=(3.*un(j1+js1,j2+js2,j3+js3,hz)-3.*
-     & un(j1+js1+js1,j2+js2+js2,j3+js3+js3,hz)+un(j1+js1+2*js1,j2+js2+
-     & 2*js2,j3+js3+2*js3,hz))
+                  ! increased extrapolation to order=5 *wdh* June 20, 2016
+                  un(j1,j2,j3,ex)=(5.*un(j1+js1,j2+js2,j3+js3,ex)-10.*
+     & un(j1+js1+js1,j2+js2+js2,j3+js3+js3,ex)+10.*un(j1+js1+2*js1,j2+
+     & js2+2*js2,j3+js3+2*js3,ex)-5.*un(j1+js1+3*js1,j2+js2+3*js2,j3+
+     & js3+3*js3,ex)+un(j1+js1+4*js1,j2+js2+4*js2,j3+js3+4*js3,ex))
+                  un(j1,j2,j3,ey)=(5.*un(j1+js1,j2+js2,j3+js3,ey)-10.*
+     & un(j1+js1+js1,j2+js2+js2,j3+js3+js3,ey)+10.*un(j1+js1+2*js1,j2+
+     & js2+2*js2,j3+js3+2*js3,ey)-5.*un(j1+js1+3*js1,j2+js2+3*js2,j3+
+     & js3+3*js3,ey)+un(j1+js1+4*js1,j2+js2+4*js2,j3+js3+4*js3,ey))
+                  un(j1,j2,j3,hz)=(5.*un(j1+js1,j2+js2,j3+js3,hz)-10.*
+     & un(j1+js1+js1,j2+js2+js2,j3+js3+js3,hz)+10.*un(j1+js1+2*js1,j2+
+     & js2+2*js2,j3+js3+2*js3,hz)-5.*un(j1+js1+3*js1,j2+js2+3*js2,j3+
+     & js3+3*js3,hz)+un(j1+js1+4*js1,j2+js2+4*js2,j3+js3+4*js3,hz))
+                  !un(j1,j2,j3,ex)=extrap3(un,j1+js1,j2+js2,j3+js3,ex,js1,js2,js3)
+                  !un(j1,j2,j3,ey)=extrap3(un,j1+js1,j2+js2,j3+js3,ey,js1,js2,js3)
+                  !un(j1,j2,j3,hz)=extrap3(un,j1+js1,j2+js2,j3+js3,hz,js1,js2,js3)
                 else
                   ! 2nd-ghost line 
-                  un(j1,j2,j3,ex)=(4.*un(j1+js1,j2+js2,j3+js3,ex)-6.*
-     & un(j1+js1+js1,j2+js2+js2,j3+js3+js3,ex)+4.*un(j1+js1+2*js1,j2+
-     & js2+2*js2,j3+js3+2*js3,ex)-un(j1+js1+3*js1,j2+js2+3*js2,j3+js3+
-     & 3*js3,ex))
-                  un(j1,j2,j3,ey)=(4.*un(j1+js1,j2+js2,j3+js3,ey)-6.*
-     & un(j1+js1+js1,j2+js2+js2,j3+js3+js3,ey)+4.*un(j1+js1+2*js1,j2+
-     & js2+2*js2,j3+js3+2*js3,ey)-un(j1+js1+3*js1,j2+js2+3*js2,j3+js3+
-     & 3*js3,ey))
-                  un(j1,j2,j3,hz)=(4.*un(j1+js1,j2+js2,j3+js3,hz)-6.*
-     & un(j1+js1+js1,j2+js2+js2,j3+js3+js3,hz)+4.*un(j1+js1+2*js1,j2+
-     & js2+2*js2,j3+js3+2*js3,hz)-un(j1+js1+3*js1,j2+js2+3*js2,j3+js3+
-     & 3*js3,hz))
+                  un(j1,j2,j3,ex)=(5.*un(j1+js1,j2+js2,j3+js3,ex)-10.*
+     & un(j1+js1+js1,j2+js2+js2,j3+js3+js3,ex)+10.*un(j1+js1+2*js1,j2+
+     & js2+2*js2,j3+js3+2*js3,ex)-5.*un(j1+js1+3*js1,j2+js2+3*js2,j3+
+     & js3+3*js3,ex)+un(j1+js1+4*js1,j2+js2+4*js2,j3+js3+4*js3,ex))
+                  un(j1,j2,j3,ey)=(5.*un(j1+js1,j2+js2,j3+js3,ey)-10.*
+     & un(j1+js1+js1,j2+js2+js2,j3+js3+js3,ey)+10.*un(j1+js1+2*js1,j2+
+     & js2+2*js2,j3+js3+2*js3,ey)-5.*un(j1+js1+3*js1,j2+js2+3*js2,j3+
+     & js3+3*js3,ey)+un(j1+js1+4*js1,j2+js2+4*js2,j3+js3+4*js3,ey))
+                  un(j1,j2,j3,hz)=(5.*un(j1+js1,j2+js2,j3+js3,hz)-10.*
+     & un(j1+js1+js1,j2+js2+js2,j3+js3+js3,hz)+10.*un(j1+js1+2*js1,j2+
+     & js2+2*js2,j3+js3+2*js3,hz)-5.*un(j1+js1+3*js1,j2+js2+3*js2,j3+
+     & js3+3*js3,hz)+un(j1+js1+4*js1,j2+js2+4*js2,j3+js3+4*js3,hz))
+                  ! un(j1,j2,j3,ex)=extrap4(un,j1+js1,j2+js2,j3+js3,ex,js1,js2,js3)
+                  ! un(j1,j2,j3,ey)=extrap4(un,j1+js1,j2+js2,j3+js3,ey,js1,js2,js3)
+                  ! un(j1,j2,j3,hz)=extrap4(un,j1+js1,j2+js2,j3+js3,hz,js1,js2,js3)
                 end if
              end if
              end if
@@ -2862,31 +3389,98 @@ c===============================================================================
             ! Use first-order-in-time formula since it doesn't require other ghost point at new time (un)
             if( adjacentFaceIsABC )then
              if( gridType.eq.rectangular )then
+
+               if( forcingOption.eq.twilightZoneForcing )then
+                 ! Test: set to exact solution at time t:
+                 ! x=xy(i1-is1,i2,i3,0)
+                 ! y=xy(i1-is1,i2,i3,1)
+                 ! OGDERIV(0,0,0,0,x,y,z,t,ey,eyTrue)
+                 ! un(i1-is1,i2,i3,ey)=eyTrue
+                 ! add TZ forcing *wdh* Sept 17, 2016
+                 ! OGDERIV(ntd,nxd,nyd,nzd,x,y,z,t,n,ud)
+                 x=xy(i1,i2,i3,0)
+                 y=xy(i1,i2,i3,1)
+                   ! ------ Cartesian Grid 3d forcing ----------
+                   z=xy(i1,i2,i3,2)
+                      call ogDeriv(ep, 1,0,0,1,x,y,z,tp,ex,utz)
+                      call ogDeriv(ep, 0,2,0,0,x,y,z,tp,ex,uxx)
+                      call ogDeriv(ep, 0,0,2,0,x,y,z,tp,ex,uyy)
+                      call ogDeriv(ep, 0,0,0,2,x,y,z,tp,ex,uzz)
+                    forcez(ex) = is3*utz - ( c1abcem2*uzz + c2abcem2*(
+     & uxx+uyy) )
+                      call ogDeriv(ep, 1,0,0,1,x,y,z,tp,ey,utz)
+                      call ogDeriv(ep, 0,2,0,0,x,y,z,tp,ey,uxx)
+                      call ogDeriv(ep, 0,0,2,0,x,y,z,tp,ey,uyy)
+                      call ogDeriv(ep, 0,0,0,2,x,y,z,tp,ey,uzz)
+                    forcez(ey) = is3*utz - ( c1abcem2*uzz + c2abcem2*(
+     & uxx+uyy) )
+                      call ogDeriv(ep, 1,0,0,1,x,y,z,tp,ez,utz)
+                      call ogDeriv(ep, 0,2,0,0,x,y,z,tp,ez,uxx)
+                      call ogDeriv(ep, 0,0,2,0,x,y,z,tp,ez,uyy)
+                      call ogDeriv(ep, 0,0,0,2,x,y,z,tp,ez,uzz)
+                    forcez(ez) = is3*utz - ( c1abcem2*uzz + c2abcem2*(
+     & uxx+uyy) )
+                 ! write(*,'(" Apply abcEM2: add TZ forcing t,dt,utx,uxx,uyy=",5e10.3)') t,dt,utx,uxx,uyy
+               end if
+
               un(i1,i2,i3-is3,ex)=(un(i1+0,i2+0,i3+is3,ex)-(u(i1+0,i2+
      & 0,i3+is3,ex)-u(i1-0,i2-0,i3-is3,ex))-(2.*dza*dt)*(c1abcem2*
      & uzz23r(i1,i2,i3,ex)+c2abcem2*(uxx23r(i1,i2,i3,ex)+uyy23r(i1,i2,
-     & i3,ex))))
+     & i3,ex))+forcez(ex)))
               un(i1,i2,i3-is3,ey)=(un(i1+0,i2+0,i3+is3,ey)-(u(i1+0,i2+
      & 0,i3+is3,ey)-u(i1-0,i2-0,i3-is3,ey))-(2.*dza*dt)*(c1abcem2*
      & uzz23r(i1,i2,i3,ey)+c2abcem2*(uxx23r(i1,i2,i3,ey)+uyy23r(i1,i2,
-     & i3,ey))))
+     & i3,ey))+forcez(ey)))
               un(i1,i2,i3-is3,ez)=(un(i1+0,i2+0,i3+is3,ez)-(u(i1+0,i2+
      & 0,i3+is3,ez)-u(i1-0,i2-0,i3-is3,ez))-(2.*dza*dt)*(c1abcem2*
      & uzz23r(i1,i2,i3,ez)+c2abcem2*(uxx23r(i1,i2,i3,ez)+uyy23r(i1,i2,
-     & i3,ez))))
+     & i3,ez))+forcez(ez)))
+
+               if( forcingOption.eq.twilightZoneForcing )then
+                 ! Test: set to exact solution at time t:
+                 ! x=xy(i1-is1,i2,i3,0)
+                 ! y=xy(i1-is1,i2,i3,1)
+                 ! OGDERIV(0,0,0,0,x,y,z,t,ey,eyTrue)
+                 ! un(i1-is1,i2,i3,ey)=eyTrue
+                 ! add TZ forcing *wdh* Sept 17, 2016
+                 ! OGDERIV(ntd,nxd,nyd,nzd,x,y,z,t,n,ud)
+                 x=xy(i1,i2,i3,0)
+                 y=xy(i1,i2,i3,1)
+                   ! ------ Cartesian Grid 3d forcing ----------
+                   z=xy(i1,i2,i3,2)
+                      call ogDeriv(ep, 1,0,1,0,x,y,z,tp,ex,uty)
+                      call ogDeriv(ep, 0,2,0,0,x,y,z,tp,ex,uxx)
+                      call ogDeriv(ep, 0,0,2,0,x,y,z,tp,ex,uyy)
+                      call ogDeriv(ep, 0,0,0,2,x,y,z,tp,ex,uzz)
+                    forcey(ex) = is2*uty - ( c1abcem2*uyy + c2abcem2*(
+     & uxx+uzz) )
+                      call ogDeriv(ep, 1,0,1,0,x,y,z,tp,ey,uty)
+                      call ogDeriv(ep, 0,2,0,0,x,y,z,tp,ey,uxx)
+                      call ogDeriv(ep, 0,0,2,0,x,y,z,tp,ey,uyy)
+                      call ogDeriv(ep, 0,0,0,2,x,y,z,tp,ey,uzz)
+                    forcey(ey) = is2*uty - ( c1abcem2*uyy + c2abcem2*(
+     & uxx+uzz) )
+                      call ogDeriv(ep, 1,0,1,0,x,y,z,tp,ez,uty)
+                      call ogDeriv(ep, 0,2,0,0,x,y,z,tp,ez,uxx)
+                      call ogDeriv(ep, 0,0,2,0,x,y,z,tp,ez,uyy)
+                      call ogDeriv(ep, 0,0,0,2,x,y,z,tp,ez,uzz)
+                    forcey(ez) = is2*uty - ( c1abcem2*uyy + c2abcem2*(
+     & uxx+uzz) )
+                 ! write(*,'(" Apply abcEM2: add TZ forcing t,dt,utx,uxx,uyy=",5e10.3)') t,dt,utx,uxx,uyy
+               end if
 
               un(i1,i2-is2,i3,ex)=(un(i1+0,i2+is2,i3+0,ex)-(u(i1+0,i2+
      & is2,i3+0,ex)-u(i1-0,i2-is2,i3-0,ex))-(2.*dya*dt)*(c1abcem2*
      & uyy23r(i1,i2,i3,ex)+c2abcem2*(uxx23r(i1,i2,i3,ex)+uzz23r(i1,i2,
-     & i3,ex))))
+     & i3,ex))+forcey(ex)))
               un(i1,i2-is2,i3,ey)=(un(i1+0,i2+is2,i3+0,ey)-(u(i1+0,i2+
      & is2,i3+0,ey)-u(i1-0,i2-is2,i3-0,ey))-(2.*dya*dt)*(c1abcem2*
      & uyy23r(i1,i2,i3,ey)+c2abcem2*(uxx23r(i1,i2,i3,ey)+uzz23r(i1,i2,
-     & i3,ey))))
+     & i3,ey))+forcey(ey)))
               un(i1,i2-is2,i3,ez)=(un(i1+0,i2+is2,i3+0,ez)-(u(i1+0,i2+
      & is2,i3+0,ez)-u(i1-0,i2-is2,i3-0,ez))-(2.*dya*dt)*(c1abcem2*
      & uyy23r(i1,i2,i3,ez)+c2abcem2*(uxx23r(i1,i2,i3,ez)+uzz23r(i1,i2,
-     & i3,ez))))
+     & i3,ez))+forcey(ez)))
              else
 
                 is =1-2*side3
@@ -3118,7 +3712,33 @@ c===============================================================================
      & 0,ez) )/cm1
 
              end if
-            end if
+
+            else
+             ! --- adjacent face is NOT another ABC ---
+             ! *CHECK ME*
+
+             ! Do this for now *wdh* Sept 20, 2016
+             js1=0
+             js2=0
+             js3=is3
+             un(i1-js1,i2-js2,i3-js3,ex)=(3.*un(i1,i2,i3,ex)-3.*un(i1+
+     & js1,i2+js2,i3+js3,ex)+un(i1+2*js1,i2+2*js2,i3+2*js3,ex))
+             un(i1-js1,i2-js2,i3-js3,ey)=(3.*un(i1,i2,i3,ey)-3.*un(i1+
+     & js1,i2+js2,i3+js3,ey)+un(i1+2*js1,i2+2*js2,i3+2*js3,ey))
+             un(i1-js1,i2-js2,i3-js3,ez)=(3.*un(i1,i2,i3,ez)-3.*un(i1+
+     & js1,i2+js2,i3+js3,ez)+un(i1+2*js1,i2+2*js2,i3+2*js3,ez))
+
+             js1=0
+             js2=is2
+             js3=0
+             un(i1-js1,i2-js2,i3-js3,ex)=(3.*un(i1,i2,i3,ex)-3.*un(i1+
+     & js1,i2+js2,i3+js3,ex)+un(i1+2*js1,i2+2*js2,i3+2*js3,ex))
+             un(i1-js1,i2-js2,i3-js3,ey)=(3.*un(i1,i2,i3,ey)-3.*un(i1+
+     & js1,i2+js2,i3+js3,ey)+un(i1+2*js1,i2+2*js2,i3+2*js3,ey))
+             un(i1-js1,i2-js2,i3-js3,ez)=(3.*un(i1,i2,i3,ez)-3.*un(i1+
+     & js1,i2+js2,i3+js3,ez)+un(i1+2*js1,i2+2*js2,i3+2*js3,ez))
+
+            end if ! end adjacentFace
 
              do m3=0,numberOfGhostPoints
              do m2=0,numberOfGhostPoints
@@ -3134,38 +3754,55 @@ c===============================================================================
                js2 = is2*min(m2,1)
                js3 = is3*min(m3,1)
                if( orderOfAccuracy.eq.2 )then
-                 un(j1,j2,j3,ex)=(2.*un(j1+js1,j2+js2,j3+js3,ex)-un(j1+
-     & js1+js1,j2+js2+js2,j3+js3+js3,ex))
-                 un(j1,j2,j3,ey)=(2.*un(j1+js1,j2+js2,j3+js3,ey)-un(j1+
-     & js1+js1,j2+js2+js2,j3+js3+js3,ey))
-                 un(j1,j2,j3,ez)=(2.*un(j1+js1,j2+js2,j3+js3,ez)-un(j1+
-     & js1+js1,j2+js2+js2,j3+js3+js3,ez))
+                 ! Changed to third-order extra *wdh* Sept 18, 2016
+                 un(j1,j2,j3,ex)=(3.*un(j1+js1,j2+js2,j3+js3,ex)-3.*un(
+     & j1+js1+js1,j2+js2+js2,j3+js3+js3,ex)+un(j1+js1+2*js1,j2+js2+2*
+     & js2,j3+js3+2*js3,ex))
+                 un(j1,j2,j3,ey)=(3.*un(j1+js1,j2+js2,j3+js3,ey)-3.*un(
+     & j1+js1+js1,j2+js2+js2,j3+js3+js3,ey)+un(j1+js1+2*js1,j2+js2+2*
+     & js2,j3+js3+2*js3,ey))
+                 un(j1,j2,j3,ez)=(3.*un(j1+js1,j2+js2,j3+js3,ez)-3.*un(
+     & j1+js1+js1,j2+js2+js2,j3+js3+js3,ez)+un(j1+js1+2*js1,j2+js2+2*
+     & js2,j3+js3+2*js3,ez))
+                 ! un(j1,j2,j3,ex)=extrap2(un,j1+js1,j2+js2,j3+js3,ex,js1,js2,js3)
+                 ! un(j1,j2,j3,ey)=extrap2(un,j1+js1,j2+js2,j3+js3,ey,js1,js2,js3)
+                 ! un(j1,j2,j3,ez)=extrap2(un,j1+js1,j2+js2,j3+js3,ez,js1,js2,js3)
                else
-                 ! extrap first line to a max of order 3 in case we adjust for incident fields 
+                 ! Note: adjust for incident fields should take into account the width of extrapolation: 
                  if( m1.le.1 .and. m2.le.1 .and. m3.le.1 )then
-                   un(j1,j2,j3,ex)=(3.*un(j1+js1,j2+js2,j3+js3,ex)-3.*
-     & un(j1+js1+js1,j2+js2+js2,j3+js3+js3,ex)+un(j1+js1+2*js1,j2+js2+
-     & 2*js2,j3+js3+2*js3,ex))
-                   un(j1,j2,j3,ey)=(3.*un(j1+js1,j2+js2,j3+js3,ey)-3.*
-     & un(j1+js1+js1,j2+js2+js2,j3+js3+js3,ey)+un(j1+js1+2*js1,j2+js2+
-     & 2*js2,j3+js3+2*js3,ey))
-                   un(j1,j2,j3,ez)=(3.*un(j1+js1,j2+js2,j3+js3,ez)-3.*
-     & un(j1+js1+js1,j2+js2+js2,j3+js3+js3,ez)+un(j1+js1+2*js1,j2+js2+
-     & 2*js2,j3+js3+2*js3,ez))
+                   ! increased extrapolation to order=5 *wdh* June 20, 2016
+                   un(j1,j2,j3,ex)=(5.*un(j1+js1,j2+js2,j3+js3,ex)-10.*
+     & un(j1+js1+js1,j2+js2+js2,j3+js3+js3,ex)+10.*un(j1+js1+2*js1,j2+
+     & js2+2*js2,j3+js3+2*js3,ex)-5.*un(j1+js1+3*js1,j2+js2+3*js2,j3+
+     & js3+3*js3,ex)+un(j1+js1+4*js1,j2+js2+4*js2,j3+js3+4*js3,ex))
+                   un(j1,j2,j3,ey)=(5.*un(j1+js1,j2+js2,j3+js3,ey)-10.*
+     & un(j1+js1+js1,j2+js2+js2,j3+js3+js3,ey)+10.*un(j1+js1+2*js1,j2+
+     & js2+2*js2,j3+js3+2*js3,ey)-5.*un(j1+js1+3*js1,j2+js2+3*js2,j3+
+     & js3+3*js3,ey)+un(j1+js1+4*js1,j2+js2+4*js2,j3+js3+4*js3,ey))
+                   un(j1,j2,j3,ez)=(5.*un(j1+js1,j2+js2,j3+js3,ez)-10.*
+     & un(j1+js1+js1,j2+js2+js2,j3+js3+js3,ez)+10.*un(j1+js1+2*js1,j2+
+     & js2+2*js2,j3+js3+2*js3,ez)-5.*un(j1+js1+3*js1,j2+js2+3*js2,j3+
+     & js3+3*js3,ez)+un(j1+js1+4*js1,j2+js2+4*js2,j3+js3+4*js3,ez))
+                   !un(j1,j2,j3,ex)=extrap3(un,j1+js1,j2+js2,j3+js3,ex,js1,js2,js3)
+                   !un(j1,j2,j3,ey)=extrap3(un,j1+js1,j2+js2,j3+js3,ey,js1,js2,js3)
+                   !un(j1,j2,j3,ez)=extrap3(un,j1+js1,j2+js2,j3+js3,ez,js1,js2,js3)
                  else
                    ! 2nd-ghost line 
-                   un(j1,j2,j3,ex)=(4.*un(j1+js1,j2+js2,j3+js3,ex)-6.*
-     & un(j1+js1+js1,j2+js2+js2,j3+js3+js3,ex)+4.*un(j1+js1+2*js1,j2+
-     & js2+2*js2,j3+js3+2*js3,ex)-un(j1+js1+3*js1,j2+js2+3*js2,j3+js3+
-     & 3*js3,ex))
-                   un(j1,j2,j3,ey)=(4.*un(j1+js1,j2+js2,j3+js3,ey)-6.*
-     & un(j1+js1+js1,j2+js2+js2,j3+js3+js3,ey)+4.*un(j1+js1+2*js1,j2+
-     & js2+2*js2,j3+js3+2*js3,ey)-un(j1+js1+3*js1,j2+js2+3*js2,j3+js3+
-     & 3*js3,ey))
-                   un(j1,j2,j3,ez)=(4.*un(j1+js1,j2+js2,j3+js3,ez)-6.*
-     & un(j1+js1+js1,j2+js2+js2,j3+js3+js3,ez)+4.*un(j1+js1+2*js1,j2+
-     & js2+2*js2,j3+js3+2*js3,ez)-un(j1+js1+3*js1,j2+js2+3*js2,j3+js3+
-     & 3*js3,ez))
+                   un(j1,j2,j3,ex)=(5.*un(j1+js1,j2+js2,j3+js3,ex)-10.*
+     & un(j1+js1+js1,j2+js2+js2,j3+js3+js3,ex)+10.*un(j1+js1+2*js1,j2+
+     & js2+2*js2,j3+js3+2*js3,ex)-5.*un(j1+js1+3*js1,j2+js2+3*js2,j3+
+     & js3+3*js3,ex)+un(j1+js1+4*js1,j2+js2+4*js2,j3+js3+4*js3,ex))
+                   un(j1,j2,j3,ey)=(5.*un(j1+js1,j2+js2,j3+js3,ey)-10.*
+     & un(j1+js1+js1,j2+js2+js2,j3+js3+js3,ey)+10.*un(j1+js1+2*js1,j2+
+     & js2+2*js2,j3+js3+2*js3,ey)-5.*un(j1+js1+3*js1,j2+js2+3*js2,j3+
+     & js3+3*js3,ey)+un(j1+js1+4*js1,j2+js2+4*js2,j3+js3+4*js3,ey))
+                   un(j1,j2,j3,ez)=(5.*un(j1+js1,j2+js2,j3+js3,ez)-10.*
+     & un(j1+js1+js1,j2+js2+js2,j3+js3+js3,ez)+10.*un(j1+js1+2*js1,j2+
+     & js2+2*js2,j3+js3+2*js3,ez)-5.*un(j1+js1+3*js1,j2+js2+3*js2,j3+
+     & js3+3*js3,ez)+un(j1+js1+4*js1,j2+js2+4*js2,j3+js3+4*js3,ez))
+                   ! un(j1,j2,j3,ex)=extrap4(un,j1+js1,j2+js2,j3+js3,ex,js1,js2,js3)
+                   ! un(j1,j2,j3,ey)=extrap4(un,j1+js1,j2+js2,j3+js3,ey,js1,js2,js3)
+                   ! un(j1,j2,j3,ez)=extrap4(un,j1+js1,j2+js2,j3+js3,ez,js1,js2,js3)
                  end if
               end if
               end if
@@ -3186,31 +3823,99 @@ c===============================================================================
             if( adjacentFaceIsABC )then
               ! Use first-order-in-time formula since it doesn't require other ghost point at new time (un)
               if( gridType.eq.rectangular )then
+
+                if( forcingOption.eq.twilightZoneForcing )then
+                  ! Test: set to exact solution at time t:
+                  ! x=xy(i1-is1,i2,i3,0)
+                  ! y=xy(i1-is1,i2,i3,1)
+                  ! OGDERIV(0,0,0,0,x,y,z,t,ey,eyTrue)
+                  ! un(i1-is1,i2,i3,ey)=eyTrue
+                  ! add TZ forcing *wdh* Sept 17, 2016
+                  ! OGDERIV(ntd,nxd,nyd,nzd,x,y,z,t,n,ud)
+                  x=xy(i1,i2,i3,0)
+                  y=xy(i1,i2,i3,1)
+                    ! ------ Cartesian Grid 3d forcing ----------
+                    z=xy(i1,i2,i3,2)
+                     ! Values for forcex(ex) are currently needed at corners:
+                       call ogDeriv(ep, 1,1,0,0,x,y,z,tp,ex,utx)
+                       call ogDeriv(ep, 0,2,0,0,x,y,z,tp,ex,uxx)
+                       call ogDeriv(ep, 0,0,2,0,x,y,z,tp,ex,uyy)
+                       call ogDeriv(ep, 0,0,0,2,x,y,z,tp,ex,uzz)
+                     forcex(ex) = is1*utx - ( c1abcem2*uxx + c2abcem2*(
+     & uyy+uzz) )
+                       call ogDeriv(ep, 1,1,0,0,x,y,z,tp,ey,utx)
+                       call ogDeriv(ep, 0,2,0,0,x,y,z,tp,ey,uxx)
+                       call ogDeriv(ep, 0,0,2,0,x,y,z,tp,ey,uyy)
+                       call ogDeriv(ep, 0,0,0,2,x,y,z,tp,ey,uzz)
+                     forcex(ey) = is1*utx - ( c1abcem2*uxx + c2abcem2*(
+     & uyy+uzz) )
+                       call ogDeriv(ep, 1,1,0,0,x,y,z,tp,ez,utx)
+                       call ogDeriv(ep, 0,2,0,0,x,y,z,tp,ez,uxx)
+                       call ogDeriv(ep, 0,0,2,0,x,y,z,tp,ez,uyy)
+                       call ogDeriv(ep, 0,0,0,2,x,y,z,tp,ez,uzz)
+                     forcex(ez) = is1*utx - ( c1abcem2*uxx + c2abcem2*(
+     & uyy+uzz) )
+                  ! write(*,'(" Apply abcEM2: add TZ forcing t,dt,utx,uxx,uyy=",5e10.3)') t,dt,utx,uxx,uyy
+                end if
+
                un(i1-is1,i2,i3,ex)=(un(i1+is1,i2+0,i3+0,ex)-(u(i1+is1,
      & i2+0,i3+0,ex)-u(i1-is1,i2-0,i3-0,ex))-(2.*dxa*dt)*(c1abcem2*
      & uxx23r(i1,i2,i3,ex)+c2abcem2*(uyy23r(i1,i2,i3,ex)+uzz23r(i1,i2,
-     & i3,ex))))
+     & i3,ex))+forcex(ex)))
                un(i1-is1,i2,i3,ey)=(un(i1+is1,i2+0,i3+0,ey)-(u(i1+is1,
      & i2+0,i3+0,ey)-u(i1-is1,i2-0,i3-0,ey))-(2.*dxa*dt)*(c1abcem2*
      & uxx23r(i1,i2,i3,ey)+c2abcem2*(uyy23r(i1,i2,i3,ey)+uzz23r(i1,i2,
-     & i3,ey))))
+     & i3,ey))+forcex(ey)))
                un(i1-is1,i2,i3,ez)=(un(i1+is1,i2+0,i3+0,ez)-(u(i1+is1,
      & i2+0,i3+0,ez)-u(i1-is1,i2-0,i3-0,ez))-(2.*dxa*dt)*(c1abcem2*
      & uxx23r(i1,i2,i3,ez)+c2abcem2*(uyy23r(i1,i2,i3,ez)+uzz23r(i1,i2,
-     & i3,ez))))
+     & i3,ez))+forcex(ez)))
+
+                if( forcingOption.eq.twilightZoneForcing )then
+                  ! Test: set to exact solution at time t:
+                  ! x=xy(i1-is1,i2,i3,0)
+                  ! y=xy(i1-is1,i2,i3,1)
+                  ! OGDERIV(0,0,0,0,x,y,z,t,ey,eyTrue)
+                  ! un(i1-is1,i2,i3,ey)=eyTrue
+                  ! add TZ forcing *wdh* Sept 17, 2016
+                  ! OGDERIV(ntd,nxd,nyd,nzd,x,y,z,t,n,ud)
+                  x=xy(i1,i2,i3,0)
+                  y=xy(i1,i2,i3,1)
+                    ! ------ Cartesian Grid 3d forcing ----------
+                    z=xy(i1,i2,i3,2)
+                       call ogDeriv(ep, 1,0,0,1,x,y,z,tp,ex,utz)
+                       call ogDeriv(ep, 0,2,0,0,x,y,z,tp,ex,uxx)
+                       call ogDeriv(ep, 0,0,2,0,x,y,z,tp,ex,uyy)
+                       call ogDeriv(ep, 0,0,0,2,x,y,z,tp,ex,uzz)
+                     forcez(ex) = is3*utz - ( c1abcem2*uzz + c2abcem2*(
+     & uxx+uyy) )
+                       call ogDeriv(ep, 1,0,0,1,x,y,z,tp,ey,utz)
+                       call ogDeriv(ep, 0,2,0,0,x,y,z,tp,ey,uxx)
+                       call ogDeriv(ep, 0,0,2,0,x,y,z,tp,ey,uyy)
+                       call ogDeriv(ep, 0,0,0,2,x,y,z,tp,ey,uzz)
+                     forcez(ey) = is3*utz - ( c1abcem2*uzz + c2abcem2*(
+     & uxx+uyy) )
+                       call ogDeriv(ep, 1,0,0,1,x,y,z,tp,ez,utz)
+                       call ogDeriv(ep, 0,2,0,0,x,y,z,tp,ez,uxx)
+                       call ogDeriv(ep, 0,0,2,0,x,y,z,tp,ez,uyy)
+                       call ogDeriv(ep, 0,0,0,2,x,y,z,tp,ez,uzz)
+                     forcez(ez) = is3*utz - ( c1abcem2*uzz + c2abcem2*(
+     & uxx+uyy) )
+                  ! write(*,'(" Apply abcEM2: add TZ forcing t,dt,utx,uxx,uyy=",5e10.3)') t,dt,utx,uxx,uyy
+                end if
 
                un(i1,i2,i3-is3,ex)=(un(i1+0,i2+0,i3+is3,ex)-(u(i1+0,i2+
      & 0,i3+is3,ex)-u(i1-0,i2-0,i3-is3,ex))-(2.*dza*dt)*(c1abcem2*
      & uzz23r(i1,i2,i3,ex)+c2abcem2*(uxx23r(i1,i2,i3,ex)+uyy23r(i1,i2,
-     & i3,ex))))
+     & i3,ex))+forcez(ex)))
                un(i1,i2,i3-is3,ey)=(un(i1+0,i2+0,i3+is3,ey)-(u(i1+0,i2+
      & 0,i3+is3,ey)-u(i1-0,i2-0,i3-is3,ey))-(2.*dza*dt)*(c1abcem2*
      & uzz23r(i1,i2,i3,ey)+c2abcem2*(uxx23r(i1,i2,i3,ey)+uyy23r(i1,i2,
-     & i3,ey))))
+     & i3,ey))+forcez(ey)))
                un(i1,i2,i3-is3,ez)=(un(i1+0,i2+0,i3+is3,ez)-(u(i1+0,i2+
      & 0,i3+is3,ez)-u(i1-0,i2-0,i3-is3,ez))-(2.*dza*dt)*(c1abcem2*
      & uzz23r(i1,i2,i3,ez)+c2abcem2*(uxx23r(i1,i2,i3,ez)+uyy23r(i1,i2,
-     & i3,ez))))
+     & i3,ez))+forcez(ez)))
 
               else
 
@@ -3443,7 +4148,33 @@ c===============================================================================
      & is3,ez) )/cm1
 
               end if
-            end if
+
+            else
+             ! --- adjacent face is NOT another ABC ---
+             ! *CHECK ME*
+
+             ! Do this for now *wdh* Sept 20, 2016
+             js1=is1
+             js2=0
+             js3=0
+             un(i1-js1,i2-js2,i3-js3,ex)=(3.*un(i1,i2,i3,ex)-3.*un(i1+
+     & js1,i2+js2,i3+js3,ex)+un(i1+2*js1,i2+2*js2,i3+2*js3,ex))
+             un(i1-js1,i2-js2,i3-js3,ey)=(3.*un(i1,i2,i3,ey)-3.*un(i1+
+     & js1,i2+js2,i3+js3,ey)+un(i1+2*js1,i2+2*js2,i3+2*js3,ey))
+             un(i1-js1,i2-js2,i3-js3,ez)=(3.*un(i1,i2,i3,ez)-3.*un(i1+
+     & js1,i2+js2,i3+js3,ez)+un(i1+2*js1,i2+2*js2,i3+2*js3,ez))
+
+             js1=0
+             js2=0
+             js3=is3
+             un(i1-js1,i2-js2,i3-js3,ex)=(3.*un(i1,i2,i3,ex)-3.*un(i1+
+     & js1,i2+js2,i3+js3,ex)+un(i1+2*js1,i2+2*js2,i3+2*js3,ex))
+             un(i1-js1,i2-js2,i3-js3,ey)=(3.*un(i1,i2,i3,ey)-3.*un(i1+
+     & js1,i2+js2,i3+js3,ey)+un(i1+2*js1,i2+2*js2,i3+2*js3,ey))
+             un(i1-js1,i2-js2,i3-js3,ez)=(3.*un(i1,i2,i3,ez)-3.*un(i1+
+     & js1,i2+js2,i3+js3,ez)+un(i1+2*js1,i2+2*js2,i3+2*js3,ez))
+
+            end if ! end adjacentFace
 
              do m3=0,numberOfGhostPoints
              do m2=0,0
@@ -3459,38 +4190,55 @@ c===============================================================================
                js2 = is2*min(m2,1)
                js3 = is3*min(m3,1)
                if( orderOfAccuracy.eq.2 )then
-                 un(j1,j2,j3,ex)=(2.*un(j1+js1,j2+js2,j3+js3,ex)-un(j1+
-     & js1+js1,j2+js2+js2,j3+js3+js3,ex))
-                 un(j1,j2,j3,ey)=(2.*un(j1+js1,j2+js2,j3+js3,ey)-un(j1+
-     & js1+js1,j2+js2+js2,j3+js3+js3,ey))
-                 un(j1,j2,j3,ez)=(2.*un(j1+js1,j2+js2,j3+js3,ez)-un(j1+
-     & js1+js1,j2+js2+js2,j3+js3+js3,ez))
+                 ! Changed to third-order extra *wdh* Sept 18, 2016
+                 un(j1,j2,j3,ex)=(3.*un(j1+js1,j2+js2,j3+js3,ex)-3.*un(
+     & j1+js1+js1,j2+js2+js2,j3+js3+js3,ex)+un(j1+js1+2*js1,j2+js2+2*
+     & js2,j3+js3+2*js3,ex))
+                 un(j1,j2,j3,ey)=(3.*un(j1+js1,j2+js2,j3+js3,ey)-3.*un(
+     & j1+js1+js1,j2+js2+js2,j3+js3+js3,ey)+un(j1+js1+2*js1,j2+js2+2*
+     & js2,j3+js3+2*js3,ey))
+                 un(j1,j2,j3,ez)=(3.*un(j1+js1,j2+js2,j3+js3,ez)-3.*un(
+     & j1+js1+js1,j2+js2+js2,j3+js3+js3,ez)+un(j1+js1+2*js1,j2+js2+2*
+     & js2,j3+js3+2*js3,ez))
+                 ! un(j1,j2,j3,ex)=extrap2(un,j1+js1,j2+js2,j3+js3,ex,js1,js2,js3)
+                 ! un(j1,j2,j3,ey)=extrap2(un,j1+js1,j2+js2,j3+js3,ey,js1,js2,js3)
+                 ! un(j1,j2,j3,ez)=extrap2(un,j1+js1,j2+js2,j3+js3,ez,js1,js2,js3)
                else
-                 ! extrap first line to a max of order 3 in case we adjust for incident fields 
+                 ! Note: adjust for incident fields should take into account the width of extrapolation: 
                  if( m1.le.1 .and. m2.le.1 .and. m3.le.1 )then
-                   un(j1,j2,j3,ex)=(3.*un(j1+js1,j2+js2,j3+js3,ex)-3.*
-     & un(j1+js1+js1,j2+js2+js2,j3+js3+js3,ex)+un(j1+js1+2*js1,j2+js2+
-     & 2*js2,j3+js3+2*js3,ex))
-                   un(j1,j2,j3,ey)=(3.*un(j1+js1,j2+js2,j3+js3,ey)-3.*
-     & un(j1+js1+js1,j2+js2+js2,j3+js3+js3,ey)+un(j1+js1+2*js1,j2+js2+
-     & 2*js2,j3+js3+2*js3,ey))
-                   un(j1,j2,j3,ez)=(3.*un(j1+js1,j2+js2,j3+js3,ez)-3.*
-     & un(j1+js1+js1,j2+js2+js2,j3+js3+js3,ez)+un(j1+js1+2*js1,j2+js2+
-     & 2*js2,j3+js3+2*js3,ez))
+                   ! increased extrapolation to order=5 *wdh* June 20, 2016
+                   un(j1,j2,j3,ex)=(5.*un(j1+js1,j2+js2,j3+js3,ex)-10.*
+     & un(j1+js1+js1,j2+js2+js2,j3+js3+js3,ex)+10.*un(j1+js1+2*js1,j2+
+     & js2+2*js2,j3+js3+2*js3,ex)-5.*un(j1+js1+3*js1,j2+js2+3*js2,j3+
+     & js3+3*js3,ex)+un(j1+js1+4*js1,j2+js2+4*js2,j3+js3+4*js3,ex))
+                   un(j1,j2,j3,ey)=(5.*un(j1+js1,j2+js2,j3+js3,ey)-10.*
+     & un(j1+js1+js1,j2+js2+js2,j3+js3+js3,ey)+10.*un(j1+js1+2*js1,j2+
+     & js2+2*js2,j3+js3+2*js3,ey)-5.*un(j1+js1+3*js1,j2+js2+3*js2,j3+
+     & js3+3*js3,ey)+un(j1+js1+4*js1,j2+js2+4*js2,j3+js3+4*js3,ey))
+                   un(j1,j2,j3,ez)=(5.*un(j1+js1,j2+js2,j3+js3,ez)-10.*
+     & un(j1+js1+js1,j2+js2+js2,j3+js3+js3,ez)+10.*un(j1+js1+2*js1,j2+
+     & js2+2*js2,j3+js3+2*js3,ez)-5.*un(j1+js1+3*js1,j2+js2+3*js2,j3+
+     & js3+3*js3,ez)+un(j1+js1+4*js1,j2+js2+4*js2,j3+js3+4*js3,ez))
+                   !un(j1,j2,j3,ex)=extrap3(un,j1+js1,j2+js2,j3+js3,ex,js1,js2,js3)
+                   !un(j1,j2,j3,ey)=extrap3(un,j1+js1,j2+js2,j3+js3,ey,js1,js2,js3)
+                   !un(j1,j2,j3,ez)=extrap3(un,j1+js1,j2+js2,j3+js3,ez,js1,js2,js3)
                  else
                    ! 2nd-ghost line 
-                   un(j1,j2,j3,ex)=(4.*un(j1+js1,j2+js2,j3+js3,ex)-6.*
-     & un(j1+js1+js1,j2+js2+js2,j3+js3+js3,ex)+4.*un(j1+js1+2*js1,j2+
-     & js2+2*js2,j3+js3+2*js3,ex)-un(j1+js1+3*js1,j2+js2+3*js2,j3+js3+
-     & 3*js3,ex))
-                   un(j1,j2,j3,ey)=(4.*un(j1+js1,j2+js2,j3+js3,ey)-6.*
-     & un(j1+js1+js1,j2+js2+js2,j3+js3+js3,ey)+4.*un(j1+js1+2*js1,j2+
-     & js2+2*js2,j3+js3+2*js3,ey)-un(j1+js1+3*js1,j2+js2+3*js2,j3+js3+
-     & 3*js3,ey))
-                   un(j1,j2,j3,ez)=(4.*un(j1+js1,j2+js2,j3+js3,ez)-6.*
-     & un(j1+js1+js1,j2+js2+js2,j3+js3+js3,ez)+4.*un(j1+js1+2*js1,j2+
-     & js2+2*js2,j3+js3+2*js3,ez)-un(j1+js1+3*js1,j2+js2+3*js2,j3+js3+
-     & 3*js3,ez))
+                   un(j1,j2,j3,ex)=(5.*un(j1+js1,j2+js2,j3+js3,ex)-10.*
+     & un(j1+js1+js1,j2+js2+js2,j3+js3+js3,ex)+10.*un(j1+js1+2*js1,j2+
+     & js2+2*js2,j3+js3+2*js3,ex)-5.*un(j1+js1+3*js1,j2+js2+3*js2,j3+
+     & js3+3*js3,ex)+un(j1+js1+4*js1,j2+js2+4*js2,j3+js3+4*js3,ex))
+                   un(j1,j2,j3,ey)=(5.*un(j1+js1,j2+js2,j3+js3,ey)-10.*
+     & un(j1+js1+js1,j2+js2+js2,j3+js3+js3,ey)+10.*un(j1+js1+2*js1,j2+
+     & js2+2*js2,j3+js3+2*js3,ey)-5.*un(j1+js1+3*js1,j2+js2+3*js2,j3+
+     & js3+3*js3,ey)+un(j1+js1+4*js1,j2+js2+4*js2,j3+js3+4*js3,ey))
+                   un(j1,j2,j3,ez)=(5.*un(j1+js1,j2+js2,j3+js3,ez)-10.*
+     & un(j1+js1+js1,j2+js2+js2,j3+js3+js3,ez)+10.*un(j1+js1+2*js1,j2+
+     & js2+2*js2,j3+js3+2*js3,ez)-5.*un(j1+js1+3*js1,j2+js2+3*js2,j3+
+     & js3+3*js3,ez)+un(j1+js1+4*js1,j2+js2+4*js2,j3+js3+4*js3,ez))
+                   ! un(j1,j2,j3,ex)=extrap4(un,j1+js1,j2+js2,j3+js3,ex,js1,js2,js3)
+                   ! un(j1,j2,j3,ey)=extrap4(un,j1+js1,j2+js2,j3+js3,ey,js1,js2,js3)
+                   ! un(j1,j2,j3,ez)=extrap4(un,j1+js1,j2+js2,j3+js3,ez,js1,js2,js3)
                  end if
               end if
               end if
@@ -3511,31 +4259,98 @@ c===============================================================================
             if( adjacentFaceIsABC )then
               ! Use first-order-in-time formula since it doesn't require other ghost point at new time (un)
               if( gridType.eq.rectangular )then
+                if( forcingOption.eq.twilightZoneForcing )then
+                  ! Test: set to exact solution at time t:
+                  ! x=xy(i1-is1,i2,i3,0)
+                  ! y=xy(i1-is1,i2,i3,1)
+                  ! OGDERIV(0,0,0,0,x,y,z,t,ey,eyTrue)
+                  ! un(i1-is1,i2,i3,ey)=eyTrue
+                  ! add TZ forcing *wdh* Sept 17, 2016
+                  ! OGDERIV(ntd,nxd,nyd,nzd,x,y,z,t,n,ud)
+                  x=xy(i1,i2,i3,0)
+                  y=xy(i1,i2,i3,1)
+                    ! ------ Cartesian Grid 3d forcing ----------
+                    z=xy(i1,i2,i3,2)
+                     ! Values for forcex(ex) are currently needed at corners:
+                       call ogDeriv(ep, 1,1,0,0,x,y,z,tp,ex,utx)
+                       call ogDeriv(ep, 0,2,0,0,x,y,z,tp,ex,uxx)
+                       call ogDeriv(ep, 0,0,2,0,x,y,z,tp,ex,uyy)
+                       call ogDeriv(ep, 0,0,0,2,x,y,z,tp,ex,uzz)
+                     forcex(ex) = is1*utx - ( c1abcem2*uxx + c2abcem2*(
+     & uyy+uzz) )
+                       call ogDeriv(ep, 1,1,0,0,x,y,z,tp,ey,utx)
+                       call ogDeriv(ep, 0,2,0,0,x,y,z,tp,ey,uxx)
+                       call ogDeriv(ep, 0,0,2,0,x,y,z,tp,ey,uyy)
+                       call ogDeriv(ep, 0,0,0,2,x,y,z,tp,ey,uzz)
+                     forcex(ey) = is1*utx - ( c1abcem2*uxx + c2abcem2*(
+     & uyy+uzz) )
+                       call ogDeriv(ep, 1,1,0,0,x,y,z,tp,ez,utx)
+                       call ogDeriv(ep, 0,2,0,0,x,y,z,tp,ez,uxx)
+                       call ogDeriv(ep, 0,0,2,0,x,y,z,tp,ez,uyy)
+                       call ogDeriv(ep, 0,0,0,2,x,y,z,tp,ez,uzz)
+                     forcex(ez) = is1*utx - ( c1abcem2*uxx + c2abcem2*(
+     & uyy+uzz) )
+                  ! write(*,'(" Apply abcEM2: add TZ forcing t,dt,utx,uxx,uyy=",5e10.3)') t,dt,utx,uxx,uyy
+                end if
+
                un(i1-is1,i2,i3,ex)=(un(i1+is1,i2+0,i3+0,ex)-(u(i1+is1,
      & i2+0,i3+0,ex)-u(i1-is1,i2-0,i3-0,ex))-(2.*dxa*dt)*(c1abcem2*
      & uxx23r(i1,i2,i3,ex)+c2abcem2*(uyy23r(i1,i2,i3,ex)+uzz23r(i1,i2,
-     & i3,ex))))
+     & i3,ex))+forcex(ex)))
                un(i1-is1,i2,i3,ey)=(un(i1+is1,i2+0,i3+0,ey)-(u(i1+is1,
      & i2+0,i3+0,ey)-u(i1-is1,i2-0,i3-0,ey))-(2.*dxa*dt)*(c1abcem2*
      & uxx23r(i1,i2,i3,ey)+c2abcem2*(uyy23r(i1,i2,i3,ey)+uzz23r(i1,i2,
-     & i3,ey))))
+     & i3,ey))+forcex(ey)))
                un(i1-is1,i2,i3,ez)=(un(i1+is1,i2+0,i3+0,ez)-(u(i1+is1,
      & i2+0,i3+0,ez)-u(i1-is1,i2-0,i3-0,ez))-(2.*dxa*dt)*(c1abcem2*
      & uxx23r(i1,i2,i3,ez)+c2abcem2*(uyy23r(i1,i2,i3,ez)+uzz23r(i1,i2,
-     & i3,ez))))
+     & i3,ez))+forcex(ez)))
+
+                if( forcingOption.eq.twilightZoneForcing )then
+                  ! Test: set to exact solution at time t:
+                  ! x=xy(i1-is1,i2,i3,0)
+                  ! y=xy(i1-is1,i2,i3,1)
+                  ! OGDERIV(0,0,0,0,x,y,z,t,ey,eyTrue)
+                  ! un(i1-is1,i2,i3,ey)=eyTrue
+                  ! add TZ forcing *wdh* Sept 17, 2016
+                  ! OGDERIV(ntd,nxd,nyd,nzd,x,y,z,t,n,ud)
+                  x=xy(i1,i2,i3,0)
+                  y=xy(i1,i2,i3,1)
+                    ! ------ Cartesian Grid 3d forcing ----------
+                    z=xy(i1,i2,i3,2)
+                       call ogDeriv(ep, 1,0,1,0,x,y,z,tp,ex,uty)
+                       call ogDeriv(ep, 0,2,0,0,x,y,z,tp,ex,uxx)
+                       call ogDeriv(ep, 0,0,2,0,x,y,z,tp,ex,uyy)
+                       call ogDeriv(ep, 0,0,0,2,x,y,z,tp,ex,uzz)
+                     forcey(ex) = is2*uty - ( c1abcem2*uyy + c2abcem2*(
+     & uxx+uzz) )
+                       call ogDeriv(ep, 1,0,1,0,x,y,z,tp,ey,uty)
+                       call ogDeriv(ep, 0,2,0,0,x,y,z,tp,ey,uxx)
+                       call ogDeriv(ep, 0,0,2,0,x,y,z,tp,ey,uyy)
+                       call ogDeriv(ep, 0,0,0,2,x,y,z,tp,ey,uzz)
+                     forcey(ey) = is2*uty - ( c1abcem2*uyy + c2abcem2*(
+     & uxx+uzz) )
+                       call ogDeriv(ep, 1,0,1,0,x,y,z,tp,ez,uty)
+                       call ogDeriv(ep, 0,2,0,0,x,y,z,tp,ez,uxx)
+                       call ogDeriv(ep, 0,0,2,0,x,y,z,tp,ez,uyy)
+                       call ogDeriv(ep, 0,0,0,2,x,y,z,tp,ez,uzz)
+                     forcey(ez) = is2*uty - ( c1abcem2*uyy + c2abcem2*(
+     & uxx+uzz) )
+                  ! write(*,'(" Apply abcEM2: add TZ forcing t,dt,utx,uxx,uyy=",5e10.3)') t,dt,utx,uxx,uyy
+                end if
 
                un(i1,i2-is2,i3,ex)=(un(i1+0,i2+is2,i3+0,ex)-(u(i1+0,i2+
      & is2,i3+0,ex)-u(i1-0,i2-is2,i3-0,ex))-(2.*dya*dt)*(c1abcem2*
      & uyy23r(i1,i2,i3,ex)+c2abcem2*(uxx23r(i1,i2,i3,ex)+uzz23r(i1,i2,
-     & i3,ex))))
+     & i3,ex))+forcey(ex)))
                un(i1,i2-is2,i3,ey)=(un(i1+0,i2+is2,i3+0,ey)-(u(i1+0,i2+
      & is2,i3+0,ey)-u(i1-0,i2-is2,i3-0,ey))-(2.*dya*dt)*(c1abcem2*
      & uyy23r(i1,i2,i3,ey)+c2abcem2*(uxx23r(i1,i2,i3,ey)+uzz23r(i1,i2,
-     & i3,ey))))
+     & i3,ey))+forcey(ey)))
                un(i1,i2-is2,i3,ez)=(un(i1+0,i2+is2,i3+0,ez)-(u(i1+0,i2+
      & is2,i3+0,ez)-u(i1-0,i2-is2,i3-0,ez))-(2.*dya*dt)*(c1abcem2*
      & uyy23r(i1,i2,i3,ez)+c2abcem2*(uxx23r(i1,i2,i3,ez)+uzz23r(i1,i2,
-     & i3,ez))))
+     & i3,ez))+forcey(ez)))
 
               else
 
@@ -3768,7 +4583,33 @@ c===============================================================================
      & 0,ez) )/cm1
 
               end if
-            end if
+
+            else
+             ! --- adjacent face is NOT another ABC ---
+             ! *CHECK ME*
+
+             ! Do this for now *wdh* Sept 20, 2016
+             js1=is1
+             js2=0
+             js3=0
+             un(i1-js1,i2-js2,i3-js3,ex)=(3.*un(i1,i2,i3,ex)-3.*un(i1+
+     & js1,i2+js2,i3+js3,ex)+un(i1+2*js1,i2+2*js2,i3+2*js3,ex))
+             un(i1-js1,i2-js2,i3-js3,ey)=(3.*un(i1,i2,i3,ey)-3.*un(i1+
+     & js1,i2+js2,i3+js3,ey)+un(i1+2*js1,i2+2*js2,i3+2*js3,ey))
+             un(i1-js1,i2-js2,i3-js3,ez)=(3.*un(i1,i2,i3,ez)-3.*un(i1+
+     & js1,i2+js2,i3+js3,ez)+un(i1+2*js1,i2+2*js2,i3+2*js3,ez))
+
+             js1=0
+             js2=is2
+             js3=0
+             un(i1-js1,i2-js2,i3-js3,ex)=(3.*un(i1,i2,i3,ex)-3.*un(i1+
+     & js1,i2+js2,i3+js3,ex)+un(i1+2*js1,i2+2*js2,i3+2*js3,ex))
+             un(i1-js1,i2-js2,i3-js3,ey)=(3.*un(i1,i2,i3,ey)-3.*un(i1+
+     & js1,i2+js2,i3+js3,ey)+un(i1+2*js1,i2+2*js2,i3+2*js3,ey))
+             un(i1-js1,i2-js2,i3-js3,ez)=(3.*un(i1,i2,i3,ez)-3.*un(i1+
+     & js1,i2+js2,i3+js3,ez)+un(i1+2*js1,i2+2*js2,i3+2*js3,ez))
+
+            end if ! end adjacentFace
 
              do m3=0,0
              do m2=0,numberOfGhostPoints
@@ -3784,38 +4625,55 @@ c===============================================================================
                js2 = is2*min(m2,1)
                js3 = is3*min(m3,1)
                if( orderOfAccuracy.eq.2 )then
-                 un(j1,j2,j3,ex)=(2.*un(j1+js1,j2+js2,j3+js3,ex)-un(j1+
-     & js1+js1,j2+js2+js2,j3+js3+js3,ex))
-                 un(j1,j2,j3,ey)=(2.*un(j1+js1,j2+js2,j3+js3,ey)-un(j1+
-     & js1+js1,j2+js2+js2,j3+js3+js3,ey))
-                 un(j1,j2,j3,ez)=(2.*un(j1+js1,j2+js2,j3+js3,ez)-un(j1+
-     & js1+js1,j2+js2+js2,j3+js3+js3,ez))
+                 ! Changed to third-order extra *wdh* Sept 18, 2016
+                 un(j1,j2,j3,ex)=(3.*un(j1+js1,j2+js2,j3+js3,ex)-3.*un(
+     & j1+js1+js1,j2+js2+js2,j3+js3+js3,ex)+un(j1+js1+2*js1,j2+js2+2*
+     & js2,j3+js3+2*js3,ex))
+                 un(j1,j2,j3,ey)=(3.*un(j1+js1,j2+js2,j3+js3,ey)-3.*un(
+     & j1+js1+js1,j2+js2+js2,j3+js3+js3,ey)+un(j1+js1+2*js1,j2+js2+2*
+     & js2,j3+js3+2*js3,ey))
+                 un(j1,j2,j3,ez)=(3.*un(j1+js1,j2+js2,j3+js3,ez)-3.*un(
+     & j1+js1+js1,j2+js2+js2,j3+js3+js3,ez)+un(j1+js1+2*js1,j2+js2+2*
+     & js2,j3+js3+2*js3,ez))
+                 ! un(j1,j2,j3,ex)=extrap2(un,j1+js1,j2+js2,j3+js3,ex,js1,js2,js3)
+                 ! un(j1,j2,j3,ey)=extrap2(un,j1+js1,j2+js2,j3+js3,ey,js1,js2,js3)
+                 ! un(j1,j2,j3,ez)=extrap2(un,j1+js1,j2+js2,j3+js3,ez,js1,js2,js3)
                else
-                 ! extrap first line to a max of order 3 in case we adjust for incident fields 
+                 ! Note: adjust for incident fields should take into account the width of extrapolation: 
                  if( m1.le.1 .and. m2.le.1 .and. m3.le.1 )then
-                   un(j1,j2,j3,ex)=(3.*un(j1+js1,j2+js2,j3+js3,ex)-3.*
-     & un(j1+js1+js1,j2+js2+js2,j3+js3+js3,ex)+un(j1+js1+2*js1,j2+js2+
-     & 2*js2,j3+js3+2*js3,ex))
-                   un(j1,j2,j3,ey)=(3.*un(j1+js1,j2+js2,j3+js3,ey)-3.*
-     & un(j1+js1+js1,j2+js2+js2,j3+js3+js3,ey)+un(j1+js1+2*js1,j2+js2+
-     & 2*js2,j3+js3+2*js3,ey))
-                   un(j1,j2,j3,ez)=(3.*un(j1+js1,j2+js2,j3+js3,ez)-3.*
-     & un(j1+js1+js1,j2+js2+js2,j3+js3+js3,ez)+un(j1+js1+2*js1,j2+js2+
-     & 2*js2,j3+js3+2*js3,ez))
+                   ! increased extrapolation to order=5 *wdh* June 20, 2016
+                   un(j1,j2,j3,ex)=(5.*un(j1+js1,j2+js2,j3+js3,ex)-10.*
+     & un(j1+js1+js1,j2+js2+js2,j3+js3+js3,ex)+10.*un(j1+js1+2*js1,j2+
+     & js2+2*js2,j3+js3+2*js3,ex)-5.*un(j1+js1+3*js1,j2+js2+3*js2,j3+
+     & js3+3*js3,ex)+un(j1+js1+4*js1,j2+js2+4*js2,j3+js3+4*js3,ex))
+                   un(j1,j2,j3,ey)=(5.*un(j1+js1,j2+js2,j3+js3,ey)-10.*
+     & un(j1+js1+js1,j2+js2+js2,j3+js3+js3,ey)+10.*un(j1+js1+2*js1,j2+
+     & js2+2*js2,j3+js3+2*js3,ey)-5.*un(j1+js1+3*js1,j2+js2+3*js2,j3+
+     & js3+3*js3,ey)+un(j1+js1+4*js1,j2+js2+4*js2,j3+js3+4*js3,ey))
+                   un(j1,j2,j3,ez)=(5.*un(j1+js1,j2+js2,j3+js3,ez)-10.*
+     & un(j1+js1+js1,j2+js2+js2,j3+js3+js3,ez)+10.*un(j1+js1+2*js1,j2+
+     & js2+2*js2,j3+js3+2*js3,ez)-5.*un(j1+js1+3*js1,j2+js2+3*js2,j3+
+     & js3+3*js3,ez)+un(j1+js1+4*js1,j2+js2+4*js2,j3+js3+4*js3,ez))
+                   !un(j1,j2,j3,ex)=extrap3(un,j1+js1,j2+js2,j3+js3,ex,js1,js2,js3)
+                   !un(j1,j2,j3,ey)=extrap3(un,j1+js1,j2+js2,j3+js3,ey,js1,js2,js3)
+                   !un(j1,j2,j3,ez)=extrap3(un,j1+js1,j2+js2,j3+js3,ez,js1,js2,js3)
                  else
                    ! 2nd-ghost line 
-                   un(j1,j2,j3,ex)=(4.*un(j1+js1,j2+js2,j3+js3,ex)-6.*
-     & un(j1+js1+js1,j2+js2+js2,j3+js3+js3,ex)+4.*un(j1+js1+2*js1,j2+
-     & js2+2*js2,j3+js3+2*js3,ex)-un(j1+js1+3*js1,j2+js2+3*js2,j3+js3+
-     & 3*js3,ex))
-                   un(j1,j2,j3,ey)=(4.*un(j1+js1,j2+js2,j3+js3,ey)-6.*
-     & un(j1+js1+js1,j2+js2+js2,j3+js3+js3,ey)+4.*un(j1+js1+2*js1,j2+
-     & js2+2*js2,j3+js3+2*js3,ey)-un(j1+js1+3*js1,j2+js2+3*js2,j3+js3+
-     & 3*js3,ey))
-                   un(j1,j2,j3,ez)=(4.*un(j1+js1,j2+js2,j3+js3,ez)-6.*
-     & un(j1+js1+js1,j2+js2+js2,j3+js3+js3,ez)+4.*un(j1+js1+2*js1,j2+
-     & js2+2*js2,j3+js3+2*js3,ez)-un(j1+js1+3*js1,j2+js2+3*js2,j3+js3+
-     & 3*js3,ez))
+                   un(j1,j2,j3,ex)=(5.*un(j1+js1,j2+js2,j3+js3,ex)-10.*
+     & un(j1+js1+js1,j2+js2+js2,j3+js3+js3,ex)+10.*un(j1+js1+2*js1,j2+
+     & js2+2*js2,j3+js3+2*js3,ex)-5.*un(j1+js1+3*js1,j2+js2+3*js2,j3+
+     & js3+3*js3,ex)+un(j1+js1+4*js1,j2+js2+4*js2,j3+js3+4*js3,ex))
+                   un(j1,j2,j3,ey)=(5.*un(j1+js1,j2+js2,j3+js3,ey)-10.*
+     & un(j1+js1+js1,j2+js2+js2,j3+js3+js3,ey)+10.*un(j1+js1+2*js1,j2+
+     & js2+2*js2,j3+js3+2*js3,ey)-5.*un(j1+js1+3*js1,j2+js2+3*js2,j3+
+     & js3+3*js3,ey)+un(j1+js1+4*js1,j2+js2+4*js2,j3+js3+4*js3,ey))
+                   un(j1,j2,j3,ez)=(5.*un(j1+js1,j2+js2,j3+js3,ez)-10.*
+     & un(j1+js1+js1,j2+js2+js2,j3+js3+js3,ez)+10.*un(j1+js1+2*js1,j2+
+     & js2+2*js2,j3+js3+2*js3,ez)-5.*un(j1+js1+3*js1,j2+js2+3*js2,j3+
+     & js3+3*js3,ez)+un(j1+js1+4*js1,j2+js2+4*js2,j3+js3+4*js3,ez))
+                   ! un(j1,j2,j3,ex)=extrap4(un,j1+js1,j2+js2,j3+js3,ex,js1,js2,js3)
+                   ! un(j1,j2,j3,ey)=extrap4(un,j1+js1,j2+js2,j3+js3,ey,js1,js2,js3)
+                   ! un(j1,j2,j3,ez)=extrap4(un,j1+js1,j2+js2,j3+js3,ez,js1,js2,js3)
                  end if
               end if
               end if
@@ -3899,38 +4757,55 @@ c===============================================================================
                js2 = is2*min(m2,1)
                js3 = is3*min(m3,1)
                if( orderOfAccuracy.eq.2 )then
-                 un(j1,j2,j3,ex)=(2.*un(j1+js1,j2+js2,j3+js3,ex)-un(j1+
-     & js1+js1,j2+js2+js2,j3+js3+js3,ex))
-                 un(j1,j2,j3,ey)=(2.*un(j1+js1,j2+js2,j3+js3,ey)-un(j1+
-     & js1+js1,j2+js2+js2,j3+js3+js3,ey))
-                 un(j1,j2,j3,ez)=(2.*un(j1+js1,j2+js2,j3+js3,ez)-un(j1+
-     & js1+js1,j2+js2+js2,j3+js3+js3,ez))
+                 ! Changed to third-order extra *wdh* Sept 18, 2016
+                 un(j1,j2,j3,ex)=(3.*un(j1+js1,j2+js2,j3+js3,ex)-3.*un(
+     & j1+js1+js1,j2+js2+js2,j3+js3+js3,ex)+un(j1+js1+2*js1,j2+js2+2*
+     & js2,j3+js3+2*js3,ex))
+                 un(j1,j2,j3,ey)=(3.*un(j1+js1,j2+js2,j3+js3,ey)-3.*un(
+     & j1+js1+js1,j2+js2+js2,j3+js3+js3,ey)+un(j1+js1+2*js1,j2+js2+2*
+     & js2,j3+js3+2*js3,ey))
+                 un(j1,j2,j3,ez)=(3.*un(j1+js1,j2+js2,j3+js3,ez)-3.*un(
+     & j1+js1+js1,j2+js2+js2,j3+js3+js3,ez)+un(j1+js1+2*js1,j2+js2+2*
+     & js2,j3+js3+2*js3,ez))
+                 ! un(j1,j2,j3,ex)=extrap2(un,j1+js1,j2+js2,j3+js3,ex,js1,js2,js3)
+                 ! un(j1,j2,j3,ey)=extrap2(un,j1+js1,j2+js2,j3+js3,ey,js1,js2,js3)
+                 ! un(j1,j2,j3,ez)=extrap2(un,j1+js1,j2+js2,j3+js3,ez,js1,js2,js3)
                else
-                 ! extrap first line to a max of order 3 in case we adjust for incident fields 
+                 ! Note: adjust for incident fields should take into account the width of extrapolation: 
                  if( m1.le.1 .and. m2.le.1 .and. m3.le.1 )then
-                   un(j1,j2,j3,ex)=(3.*un(j1+js1,j2+js2,j3+js3,ex)-3.*
-     & un(j1+js1+js1,j2+js2+js2,j3+js3+js3,ex)+un(j1+js1+2*js1,j2+js2+
-     & 2*js2,j3+js3+2*js3,ex))
-                   un(j1,j2,j3,ey)=(3.*un(j1+js1,j2+js2,j3+js3,ey)-3.*
-     & un(j1+js1+js1,j2+js2+js2,j3+js3+js3,ey)+un(j1+js1+2*js1,j2+js2+
-     & 2*js2,j3+js3+2*js3,ey))
-                   un(j1,j2,j3,ez)=(3.*un(j1+js1,j2+js2,j3+js3,ez)-3.*
-     & un(j1+js1+js1,j2+js2+js2,j3+js3+js3,ez)+un(j1+js1+2*js1,j2+js2+
-     & 2*js2,j3+js3+2*js3,ez))
+                   ! increased extrapolation to order=5 *wdh* June 20, 2016
+                   un(j1,j2,j3,ex)=(5.*un(j1+js1,j2+js2,j3+js3,ex)-10.*
+     & un(j1+js1+js1,j2+js2+js2,j3+js3+js3,ex)+10.*un(j1+js1+2*js1,j2+
+     & js2+2*js2,j3+js3+2*js3,ex)-5.*un(j1+js1+3*js1,j2+js2+3*js2,j3+
+     & js3+3*js3,ex)+un(j1+js1+4*js1,j2+js2+4*js2,j3+js3+4*js3,ex))
+                   un(j1,j2,j3,ey)=(5.*un(j1+js1,j2+js2,j3+js3,ey)-10.*
+     & un(j1+js1+js1,j2+js2+js2,j3+js3+js3,ey)+10.*un(j1+js1+2*js1,j2+
+     & js2+2*js2,j3+js3+2*js3,ey)-5.*un(j1+js1+3*js1,j2+js2+3*js2,j3+
+     & js3+3*js3,ey)+un(j1+js1+4*js1,j2+js2+4*js2,j3+js3+4*js3,ey))
+                   un(j1,j2,j3,ez)=(5.*un(j1+js1,j2+js2,j3+js3,ez)-10.*
+     & un(j1+js1+js1,j2+js2+js2,j3+js3+js3,ez)+10.*un(j1+js1+2*js1,j2+
+     & js2+2*js2,j3+js3+2*js3,ez)-5.*un(j1+js1+3*js1,j2+js2+3*js2,j3+
+     & js3+3*js3,ez)+un(j1+js1+4*js1,j2+js2+4*js2,j3+js3+4*js3,ez))
+                   !un(j1,j2,j3,ex)=extrap3(un,j1+js1,j2+js2,j3+js3,ex,js1,js2,js3)
+                   !un(j1,j2,j3,ey)=extrap3(un,j1+js1,j2+js2,j3+js3,ey,js1,js2,js3)
+                   !un(j1,j2,j3,ez)=extrap3(un,j1+js1,j2+js2,j3+js3,ez,js1,js2,js3)
                  else
                    ! 2nd-ghost line 
-                   un(j1,j2,j3,ex)=(4.*un(j1+js1,j2+js2,j3+js3,ex)-6.*
-     & un(j1+js1+js1,j2+js2+js2,j3+js3+js3,ex)+4.*un(j1+js1+2*js1,j2+
-     & js2+2*js2,j3+js3+2*js3,ex)-un(j1+js1+3*js1,j2+js2+3*js2,j3+js3+
-     & 3*js3,ex))
-                   un(j1,j2,j3,ey)=(4.*un(j1+js1,j2+js2,j3+js3,ey)-6.*
-     & un(j1+js1+js1,j2+js2+js2,j3+js3+js3,ey)+4.*un(j1+js1+2*js1,j2+
-     & js2+2*js2,j3+js3+2*js3,ey)-un(j1+js1+3*js1,j2+js2+3*js2,j3+js3+
-     & 3*js3,ey))
-                   un(j1,j2,j3,ez)=(4.*un(j1+js1,j2+js2,j3+js3,ez)-6.*
-     & un(j1+js1+js1,j2+js2+js2,j3+js3+js3,ez)+4.*un(j1+js1+2*js1,j2+
-     & js2+2*js2,j3+js3+2*js3,ez)-un(j1+js1+3*js1,j2+js2+3*js2,j3+js3+
-     & 3*js3,ez))
+                   un(j1,j2,j3,ex)=(5.*un(j1+js1,j2+js2,j3+js3,ex)-10.*
+     & un(j1+js1+js1,j2+js2+js2,j3+js3+js3,ex)+10.*un(j1+js1+2*js1,j2+
+     & js2+2*js2,j3+js3+2*js3,ex)-5.*un(j1+js1+3*js1,j2+js2+3*js2,j3+
+     & js3+3*js3,ex)+un(j1+js1+4*js1,j2+js2+4*js2,j3+js3+4*js3,ex))
+                   un(j1,j2,j3,ey)=(5.*un(j1+js1,j2+js2,j3+js3,ey)-10.*
+     & un(j1+js1+js1,j2+js2+js2,j3+js3+js3,ey)+10.*un(j1+js1+2*js1,j2+
+     & js2+2*js2,j3+js3+2*js3,ey)-5.*un(j1+js1+3*js1,j2+js2+3*js2,j3+
+     & js3+3*js3,ey)+un(j1+js1+4*js1,j2+js2+4*js2,j3+js3+4*js3,ey))
+                   un(j1,j2,j3,ez)=(5.*un(j1+js1,j2+js2,j3+js3,ez)-10.*
+     & un(j1+js1+js1,j2+js2+js2,j3+js3+js3,ez)+10.*un(j1+js1+2*js1,j2+
+     & js2+2*js2,j3+js3+2*js3,ez)-5.*un(j1+js1+3*js1,j2+js2+3*js2,j3+
+     & js3+3*js3,ez)+un(j1+js1+4*js1,j2+js2+4*js2,j3+js3+4*js3,ez))
+                   ! un(j1,j2,j3,ex)=extrap4(un,j1+js1,j2+js2,j3+js3,ex,js1,js2,js3)
+                   ! un(j1,j2,j3,ey)=extrap4(un,j1+js1,j2+js2,j3+js3,ey,js1,js2,js3)
+                   ! un(j1,j2,j3,ez)=extrap4(un,j1+js1,j2+js2,j3+js3,ez,js1,js2,js3)
                  end if
               end if
               end if
@@ -4075,19 +4950,81 @@ c===============================================================================
           do i1=n1a,n1b
           if( mask(i1,i2,i3).gt.0 )then
 
+           ! macro: 
+             ! getForcingEM2(X,2,tm,is1,is2,forcex)
+              if( forcingOption.eq.twilightZoneForcing )then
+                ! Test: set to exact solution at time t:
+                ! x=xy(i1-is1,i2,i3,0)
+                ! y=xy(i1-is1,i2,i3,1)
+                ! OGDERIV(0,0,0,0,x,y,z,t,ey,eyTrue)
+                ! un(i1-is1,i2,i3,ey)=eyTrue
+                ! add TZ forcing *wdh* Sept 17, 2016
+                ! OGDERIV(ntd,nxd,nyd,nzd,x,y,z,t,n,ud)
+                x=xy(i1,i2,i3,0)
+                y=xy(i1,i2,i3,1)
+                   ! Values for forcep(ex) are currently needed at corners:
+                     call ogDeriv(ep, 1,1,0,0,x,y,z,tp,ex,utx)
+                     call ogDeriv(ep, 0,2,0,0,x,y,z,tp,ex,uxx)
+                     call ogDeriv(ep, 0,0,2,0,x,y,z,tp,ex,uyy)
+                   forcep(ex) = is1*utx - ( c1abcem2*uxx + c2abcem2*
+     & uyy )
+                     call ogDeriv(ep, 1,1,0,0,x,y,z,tp,ey,utx)
+                     call ogDeriv(ep, 0,2,0,0,x,y,z,tp,ey,uxx)
+                     call ogDeriv(ep, 0,0,2,0,x,y,z,tp,ey,uyy)
+                   forcep(ey) = is1*utx - ( c1abcem2*uxx + c2abcem2*
+     & uyy )
+                     call ogDeriv(ep, 1,1,0,0,x,y,z,tp,hz,utx)
+                     call ogDeriv(ep, 0,2,0,0,x,y,z,tp,hz,uxx)
+                     call ogDeriv(ep, 0,0,2,0,x,y,z,tp,hz,uyy)
+                   forcep(hz) = is1*utx - ( c1abcem2*uxx + c2abcem2*
+     & uyy )
+                ! write(*,'(" Apply abcEM2: add TZ forcing t,dt,utx,uxx,uyy=",5e10.3)') t,dt,utx,uxx,uyy
+              end if
+              if( forcingOption.eq.twilightZoneForcing )then
+                ! Test: set to exact solution at time t:
+                ! x=xy(i1-is1,i2,i3,0)
+                ! y=xy(i1-is1,i2,i3,1)
+                ! OGDERIV(0,0,0,0,x,y,z,t,ey,eyTrue)
+                ! un(i1-is1,i2,i3,ey)=eyTrue
+                ! add TZ forcing *wdh* Sept 17, 2016
+                ! OGDERIV(ntd,nxd,nyd,nzd,x,y,z,t,n,ud)
+                x=xy(i1,i2,i3,0)
+                y=xy(i1,i2,i3,1)
+                   ! Values for forcef(ex) are currently needed at corners:
+                     call ogDeriv(ep, 1,1,0,0,x,y,z,t,ex,utx)
+                     call ogDeriv(ep, 0,2,0,0,x,y,z,t,ex,uxx)
+                     call ogDeriv(ep, 0,0,2,0,x,y,z,t,ex,uyy)
+                   forcef(ex) = is1*utx - ( c1abcem2*uxx + c2abcem2*
+     & uyy )
+                     call ogDeriv(ep, 1,1,0,0,x,y,z,t,ey,utx)
+                     call ogDeriv(ep, 0,2,0,0,x,y,z,t,ey,uxx)
+                     call ogDeriv(ep, 0,0,2,0,x,y,z,t,ey,uyy)
+                   forcef(ey) = is1*utx - ( c1abcem2*uxx + c2abcem2*
+     & uyy )
+                     call ogDeriv(ep, 1,1,0,0,x,y,z,t,hz,utx)
+                     call ogDeriv(ep, 0,2,0,0,x,y,z,t,hz,uxx)
+                     call ogDeriv(ep, 0,0,2,0,x,y,z,t,hz,uyy)
+                   forcef(hz) = is1*utx - ( c1abcem2*uxx + c2abcem2*
+     & uyy )
+                ! write(*,'(" Apply abcEM2: add TZ forcing t,dt,utx,uxx,uyy=",5e10.3)') t,dt,utx,uxx,uyy
+              end if
+             do idir=0,2
+               forcex(idir)=.5*(forcep(idir)+forcef(idir))
+             end do
+
            ! un(i1-is1,i2-is2,i3-is3,ex)=ABCEM2X(i1,i2,i3,ex)
            un(i1-is1,i2-is2,i3-is3,ey)=((un(i1+is1,i2+is2,i3+is3,ey)-(
      & u(i1+is1,i2+is2,i3+is3,ey)-u(i1-is1,i2-is2,i3-is3,ey))-(dxa*dt)
      & *(c1abcem2*uxx22r(i1,i2,i3,ey)+c2abcem2*uyy22r(i1,i2,i3,ey)+
      & c1abcem2*(-2.*un(i1,i2,i3,ey)+un(i1+is1,i2,i3,ey))/dxa**2+
      & c2abcem2*(un(i1,i2-1,i3,ey)-2.*un(i1,i2,i3,ey)+un(i1,i2+1,i3,
-     & ey))/dx(1)**2))/(1.+c1abcem2*dt/dxa))
+     & ey))/dx(1)**2+2.*forcex(ey)))/(1.+c1abcem2*dt/dxa))
            un(i1-is1,i2-is2,i3-is3,hz)=((un(i1+is1,i2+is2,i3+is3,hz)-(
      & u(i1+is1,i2+is2,i3+is3,hz)-u(i1-is1,i2-is2,i3-is3,hz))-(dxa*dt)
      & *(c1abcem2*uxx22r(i1,i2,i3,hz)+c2abcem2*uyy22r(i1,i2,i3,hz)+
      & c1abcem2*(-2.*un(i1,i2,i3,hz)+un(i1+is1,i2,i3,hz))/dxa**2+
      & c2abcem2*(un(i1,i2-1,i3,hz)-2.*un(i1,i2,i3,hz)+un(i1,i2+1,i3,
-     & hz))/dx(1)**2))/(1.+c1abcem2*dt/dxa))
+     & hz))/dx(1)**2+2.*forcex(hz)))/(1.+c1abcem2*dt/dxa))
 
            ! set div(E)=0 *wdh* 090712
            ! (u(i+1)-u(i-1))/(2*dx) + vy = 0 
@@ -4100,24 +5037,119 @@ c===============================================================================
           end do
           end do
           end do
+
+          ! div(E) BC:
+          if( .false. )then
+           do i3=n3a,n3b
+           do i2=n2a,n2b
+           do i1=n1a,n1b
+           if( mask(i1,i2,i3).gt.0 )then
+            ! set div(E)=0 
+            ! (u(i+1)-u(i-1))/(2*dx) + vy = 0 
+            un(i1-is1,i2,i3,ex)=un(i1+is1,i2,i3,ex)+ 2.*is1*dx(axis)*
+     & uny22r(i1,i2,i3,ey)
+
+            ! Set d +- alpha*d_x = 0 ,   d=div(E) 
+            if( .false. )then
+              ux  = unx22r(i1,i2,i3,ex)
+              uxx = unxx22r(i1,i2,i3,ex)
+              vy  = uny22r(i1,i2,i3,ey)
+              vxy = unxy22r(i1,i2,i3,ey)
+
+              alpha= -is1*dx(0)  ! choose correct sign
+              uGhost=un(i1-is1,i2,i3,ex)
+              aGhost = -is1/(2.*dx(0)) + alpha/(dx(0)**2)
+              un(i1-is1,i2,i3,ex) = uGhost - ( (ux+vy) + alpha*(uxx+
+     & vxy) )/aGhost
+              ! write(*,'(" uGhost=",e12.4," un=",e12.4," ux+vy=",e10.2)') uGhost,un(i1-is1,i2,i3,ex),ux+vy
+             end if
+           end if
+           end do
+           end do
+           end do
+          end if
+
          else if( axis.eq.1 )then
           do i3=n3a,n3b
           do i2=n2a,n2b
           do i1=n1a,n1b
           if( mask(i1,i2,i3).gt.0 )then
+
+           ! macro: 
+             ! getForcingEM2(Y,2,tm,is1,is2,forcey)
+              if( forcingOption.eq.twilightZoneForcing )then
+                ! Test: set to exact solution at time t:
+                ! x=xy(i1-is1,i2,i3,0)
+                ! y=xy(i1-is1,i2,i3,1)
+                ! OGDERIV(0,0,0,0,x,y,z,t,ey,eyTrue)
+                ! un(i1-is1,i2,i3,ey)=eyTrue
+                ! add TZ forcing *wdh* Sept 17, 2016
+                ! OGDERIV(ntd,nxd,nyd,nzd,x,y,z,t,n,ud)
+                x=xy(i1,i2,i3,0)
+                y=xy(i1,i2,i3,1)
+                     call ogDeriv(ep, 1,0,1,0,x,y,z,tp,ex,uty)
+                     call ogDeriv(ep, 0,2,0,0,x,y,z,tp,ex,uxx)
+                     call ogDeriv(ep, 0,0,2,0,x,y,z,tp,ex,uyy)
+                   forcep(ex) = is2*uty - ( c1abcem2*uyy + c2abcem2*
+     & uxx )
+                   ! Values for forcep(ey) are currently needed at corners:
+                     call ogDeriv(ep, 1,0,1,0,x,y,z,tp,ey,uty)
+                     call ogDeriv(ep, 0,2,0,0,x,y,z,tp,ey,uxx)
+                     call ogDeriv(ep, 0,0,2,0,x,y,z,tp,ey,uyy)
+                   forcep(ey) = is2*uty - ( c1abcem2*uyy + c2abcem2*
+     & uxx )
+                     call ogDeriv(ep, 1,0,1,0,x,y,z,tp,hz,uty)
+                     call ogDeriv(ep, 0,2,0,0,x,y,z,tp,hz,uxx)
+                     call ogDeriv(ep, 0,0,2,0,x,y,z,tp,hz,uyy)
+                   forcep(hz) = is2*uty - ( c1abcem2*uyy + c2abcem2*
+     & uxx )
+                ! write(*,'(" Apply abcEM2: add TZ forcing t,dt,utx,uxx,uyy=",5e10.3)') t,dt,utx,uxx,uyy
+              end if
+              if( forcingOption.eq.twilightZoneForcing )then
+                ! Test: set to exact solution at time t:
+                ! x=xy(i1-is1,i2,i3,0)
+                ! y=xy(i1-is1,i2,i3,1)
+                ! OGDERIV(0,0,0,0,x,y,z,t,ey,eyTrue)
+                ! un(i1-is1,i2,i3,ey)=eyTrue
+                ! add TZ forcing *wdh* Sept 17, 2016
+                ! OGDERIV(ntd,nxd,nyd,nzd,x,y,z,t,n,ud)
+                x=xy(i1,i2,i3,0)
+                y=xy(i1,i2,i3,1)
+                     call ogDeriv(ep, 1,0,1,0,x,y,z,t,ex,uty)
+                     call ogDeriv(ep, 0,2,0,0,x,y,z,t,ex,uxx)
+                     call ogDeriv(ep, 0,0,2,0,x,y,z,t,ex,uyy)
+                   forcef(ex) = is2*uty - ( c1abcem2*uyy + c2abcem2*
+     & uxx )
+                   ! Values for forcef(ey) are currently needed at corners:
+                     call ogDeriv(ep, 1,0,1,0,x,y,z,t,ey,uty)
+                     call ogDeriv(ep, 0,2,0,0,x,y,z,t,ey,uxx)
+                     call ogDeriv(ep, 0,0,2,0,x,y,z,t,ey,uyy)
+                   forcef(ey) = is2*uty - ( c1abcem2*uyy + c2abcem2*
+     & uxx )
+                     call ogDeriv(ep, 1,0,1,0,x,y,z,t,hz,uty)
+                     call ogDeriv(ep, 0,2,0,0,x,y,z,t,hz,uxx)
+                     call ogDeriv(ep, 0,0,2,0,x,y,z,t,hz,uyy)
+                   forcef(hz) = is2*uty - ( c1abcem2*uyy + c2abcem2*
+     & uxx )
+                ! write(*,'(" Apply abcEM2: add TZ forcing t,dt,utx,uxx,uyy=",5e10.3)') t,dt,utx,uxx,uyy
+              end if
+             do idir=0,2
+               forcey(idir)=.5*(forcep(idir)+forcef(idir))
+             end do
+
            un(i1-is1,i2-is2,i3-is3,ex)=((un(i1+is1,i2+is2,i3+is3,ex)-(
      & u(i1+is1,i2+is2,i3+is3,ex)-u(i1-is1,i2-is2,i3-is3,ex))-(dya*dt)
      & *(c1abcem2*uyy22r(i1,i2,i3,ex)+c2abcem2*uxx22r(i1,i2,i3,ex)+
      & c1abcem2*(-2.*un(i1,i2,i3,ex)+un(i1,i2+is2,i3,ex))/dya**2+
      & c2abcem2*(un(i1-1,i2,i3,ex)-2.*un(i1,i2,i3,ex)+un(i1+1,i2,i3,
-     & ex))/dx(0)**2))/(1.+c1abcem2*dt/dya))
+     & ex))/dx(0)**2+2.*forcey(ex)))/(1.+c1abcem2*dt/dya))
            ! un(i1-is1,i2-is2,i3-is3,ey)=ABCEM2Y(i1,i2,i3,ey)
            un(i1-is1,i2-is2,i3-is3,hz)=((un(i1+is1,i2+is2,i3+is3,hz)-(
      & u(i1+is1,i2+is2,i3+is3,hz)-u(i1-is1,i2-is2,i3-is3,hz))-(dya*dt)
      & *(c1abcem2*uyy22r(i1,i2,i3,hz)+c2abcem2*uxx22r(i1,i2,i3,hz)+
      & c1abcem2*(-2.*un(i1,i2,i3,hz)+un(i1,i2+is2,i3,hz))/dya**2+
      & c2abcem2*(un(i1-1,i2,i3,hz)-2.*un(i1,i2,i3,hz)+un(i1+1,i2,i3,
-     & hz))/dx(0)**2))/(1.+c1abcem2*dt/dya))
+     & hz))/dx(0)**2+2.*forcey(hz)))/(1.+c1abcem2*dt/dya))
 
            ! set div(E)=0 *wdh* 090712
            un(i1,i2-is2,i3,ey)=un(i1,i2+is2,i3,ey) + 2.*is2*dx(axis)*
@@ -4132,11 +5164,85 @@ c===============================================================================
          end if
 
         else ! ***** 3D *****
+
+         ! -------- Cartesian Grid 3D --------
          if( axis.eq.0 )then
           do i3=n3a,n3b
           do i2=n2a,n2b
           do i1=n1a,n1b
           if( mask(i1,i2,i3).gt.0 )then
+
+             ! getForcingEM2(X,3,tm,is1,is2,forcex)
+              if( forcingOption.eq.twilightZoneForcing )then
+                ! Test: set to exact solution at time t:
+                ! x=xy(i1-is1,i2,i3,0)
+                ! y=xy(i1-is1,i2,i3,1)
+                ! OGDERIV(0,0,0,0,x,y,z,t,ey,eyTrue)
+                ! un(i1-is1,i2,i3,ey)=eyTrue
+                ! add TZ forcing *wdh* Sept 17, 2016
+                ! OGDERIV(ntd,nxd,nyd,nzd,x,y,z,t,n,ud)
+                x=xy(i1,i2,i3,0)
+                y=xy(i1,i2,i3,1)
+                  ! ------ Cartesian Grid 3d forcing ----------
+                  z=xy(i1,i2,i3,2)
+                   ! Values for forcep(ex) are currently needed at corners:
+                     call ogDeriv(ep, 1,1,0,0,x,y,z,tp,ex,utx)
+                     call ogDeriv(ep, 0,2,0,0,x,y,z,tp,ex,uxx)
+                     call ogDeriv(ep, 0,0,2,0,x,y,z,tp,ex,uyy)
+                     call ogDeriv(ep, 0,0,0,2,x,y,z,tp,ex,uzz)
+                   forcep(ex) = is1*utx - ( c1abcem2*uxx + c2abcem2*(
+     & uyy+uzz) )
+                     call ogDeriv(ep, 1,1,0,0,x,y,z,tp,ey,utx)
+                     call ogDeriv(ep, 0,2,0,0,x,y,z,tp,ey,uxx)
+                     call ogDeriv(ep, 0,0,2,0,x,y,z,tp,ey,uyy)
+                     call ogDeriv(ep, 0,0,0,2,x,y,z,tp,ey,uzz)
+                   forcep(ey) = is1*utx - ( c1abcem2*uxx + c2abcem2*(
+     & uyy+uzz) )
+                     call ogDeriv(ep, 1,1,0,0,x,y,z,tp,ez,utx)
+                     call ogDeriv(ep, 0,2,0,0,x,y,z,tp,ez,uxx)
+                     call ogDeriv(ep, 0,0,2,0,x,y,z,tp,ez,uyy)
+                     call ogDeriv(ep, 0,0,0,2,x,y,z,tp,ez,uzz)
+                   forcep(ez) = is1*utx - ( c1abcem2*uxx + c2abcem2*(
+     & uyy+uzz) )
+                ! write(*,'(" Apply abcEM2: add TZ forcing t,dt,utx,uxx,uyy=",5e10.3)') t,dt,utx,uxx,uyy
+              end if
+              if( forcingOption.eq.twilightZoneForcing )then
+                ! Test: set to exact solution at time t:
+                ! x=xy(i1-is1,i2,i3,0)
+                ! y=xy(i1-is1,i2,i3,1)
+                ! OGDERIV(0,0,0,0,x,y,z,t,ey,eyTrue)
+                ! un(i1-is1,i2,i3,ey)=eyTrue
+                ! add TZ forcing *wdh* Sept 17, 2016
+                ! OGDERIV(ntd,nxd,nyd,nzd,x,y,z,t,n,ud)
+                x=xy(i1,i2,i3,0)
+                y=xy(i1,i2,i3,1)
+                  ! ------ Cartesian Grid 3d forcing ----------
+                  z=xy(i1,i2,i3,2)
+                   ! Values for forcef(ex) are currently needed at corners:
+                     call ogDeriv(ep, 1,1,0,0,x,y,z,t,ex,utx)
+                     call ogDeriv(ep, 0,2,0,0,x,y,z,t,ex,uxx)
+                     call ogDeriv(ep, 0,0,2,0,x,y,z,t,ex,uyy)
+                     call ogDeriv(ep, 0,0,0,2,x,y,z,t,ex,uzz)
+                   forcef(ex) = is1*utx - ( c1abcem2*uxx + c2abcem2*(
+     & uyy+uzz) )
+                     call ogDeriv(ep, 1,1,0,0,x,y,z,t,ey,utx)
+                     call ogDeriv(ep, 0,2,0,0,x,y,z,t,ey,uxx)
+                     call ogDeriv(ep, 0,0,2,0,x,y,z,t,ey,uyy)
+                     call ogDeriv(ep, 0,0,0,2,x,y,z,t,ey,uzz)
+                   forcef(ey) = is1*utx - ( c1abcem2*uxx + c2abcem2*(
+     & uyy+uzz) )
+                     call ogDeriv(ep, 1,1,0,0,x,y,z,t,ez,utx)
+                     call ogDeriv(ep, 0,2,0,0,x,y,z,t,ez,uxx)
+                     call ogDeriv(ep, 0,0,2,0,x,y,z,t,ez,uyy)
+                     call ogDeriv(ep, 0,0,0,2,x,y,z,t,ez,uzz)
+                   forcef(ez) = is1*utx - ( c1abcem2*uxx + c2abcem2*(
+     & uyy+uzz) )
+                ! write(*,'(" Apply abcEM2: add TZ forcing t,dt,utx,uxx,uyy=",5e10.3)') t,dt,utx,uxx,uyy
+              end if
+             do idir=0,2
+               forcex(idir)=.5*(forcep(idir)+forcef(idir))
+             end do
+
            ! un(i1-is1,i2-is2,i3-is3,ex)=ABCEM23DX(i1,i2,i3,ex)
            un(i1-is1,i2-is2,i3-is3,ey)=((un(i1+is1,i2+is2,i3+is3,ey)-(
      & u(i1+is1,i2+is2,i3+is3,ey)-u(i1-is1,i2-is2,i3-is3,ey))-(dxa*dt)
@@ -4144,16 +5250,16 @@ c===============================================================================
      & uzz23r(i1,i2,i3,ey))+c1abcem2*(-2.*un(i1,i2,i3,ey)+un(i1+is1,
      & i2,i3,ey))/dxa**2+c2abcem2*(un(i1,i2-1,i3,ey)-2.*un(i1,i2,i3,
      & ey)+un(i1,i2+1,i3,ey))/dx(1)**2+c2abcem2*(un(i1,i2,i3-1,ey)-2.*
-     & un(i1,i2,i3,ey)+un(i1,i2,i3+1,ey))/dx(2)**2))/(1.+c1abcem2*
-     & dt/dxa))
+     & un(i1,i2,i3,ey)+un(i1,i2,i3+1,ey))/dx(2)**2+2.*forcex(ey)))/(
+     & 1.+c1abcem2*dt/dxa))
            un(i1-is1,i2-is2,i3-is3,ez)=((un(i1+is1,i2+is2,i3+is3,ez)-(
      & u(i1+is1,i2+is2,i3+is3,ez)-u(i1-is1,i2-is2,i3-is3,ez))-(dxa*dt)
      & *(c1abcem2*uxx23r(i1,i2,i3,ez)+c2abcem2*(uyy23r(i1,i2,i3,ez)+
      & uzz23r(i1,i2,i3,ez))+c1abcem2*(-2.*un(i1,i2,i3,ez)+un(i1+is1,
      & i2,i3,ez))/dxa**2+c2abcem2*(un(i1,i2-1,i3,ez)-2.*un(i1,i2,i3,
      & ez)+un(i1,i2+1,i3,ez))/dx(1)**2+c2abcem2*(un(i1,i2,i3-1,ez)-2.*
-     & un(i1,i2,i3,ez)+un(i1,i2,i3+1,ez))/dx(2)**2))/(1.+c1abcem2*
-     & dt/dxa))
+     & un(i1,i2,i3,ez)+un(i1,i2,i3+1,ez))/dx(2)**2+2.*forcex(ez)))/(
+     & 1.+c1abcem2*dt/dxa))
 
            ! set div(E)=0 *wdh* 090712
            un(i1-is1,i2,i3,ex)=un(i1+is1,i2,i3,ex)+ 2.*is1*dx(axis)*(
@@ -4168,14 +5274,84 @@ c===============================================================================
           do i2=n2a,n2b
           do i1=n1a,n1b
           if( mask(i1,i2,i3).gt.0 )then
+
+             ! getForcingEM2(Y,3,tm,is1,is2,forcey)
+              if( forcingOption.eq.twilightZoneForcing )then
+                ! Test: set to exact solution at time t:
+                ! x=xy(i1-is1,i2,i3,0)
+                ! y=xy(i1-is1,i2,i3,1)
+                ! OGDERIV(0,0,0,0,x,y,z,t,ey,eyTrue)
+                ! un(i1-is1,i2,i3,ey)=eyTrue
+                ! add TZ forcing *wdh* Sept 17, 2016
+                ! OGDERIV(ntd,nxd,nyd,nzd,x,y,z,t,n,ud)
+                x=xy(i1,i2,i3,0)
+                y=xy(i1,i2,i3,1)
+                  ! ------ Cartesian Grid 3d forcing ----------
+                  z=xy(i1,i2,i3,2)
+                     call ogDeriv(ep, 1,0,1,0,x,y,z,tp,ex,uty)
+                     call ogDeriv(ep, 0,2,0,0,x,y,z,tp,ex,uxx)
+                     call ogDeriv(ep, 0,0,2,0,x,y,z,tp,ex,uyy)
+                     call ogDeriv(ep, 0,0,0,2,x,y,z,tp,ex,uzz)
+                   forcep(ex) = is2*uty - ( c1abcem2*uyy + c2abcem2*(
+     & uxx+uzz) )
+                     call ogDeriv(ep, 1,0,1,0,x,y,z,tp,ey,uty)
+                     call ogDeriv(ep, 0,2,0,0,x,y,z,tp,ey,uxx)
+                     call ogDeriv(ep, 0,0,2,0,x,y,z,tp,ey,uyy)
+                     call ogDeriv(ep, 0,0,0,2,x,y,z,tp,ey,uzz)
+                   forcep(ey) = is2*uty - ( c1abcem2*uyy + c2abcem2*(
+     & uxx+uzz) )
+                     call ogDeriv(ep, 1,0,1,0,x,y,z,tp,ez,uty)
+                     call ogDeriv(ep, 0,2,0,0,x,y,z,tp,ez,uxx)
+                     call ogDeriv(ep, 0,0,2,0,x,y,z,tp,ez,uyy)
+                     call ogDeriv(ep, 0,0,0,2,x,y,z,tp,ez,uzz)
+                   forcep(ez) = is2*uty - ( c1abcem2*uyy + c2abcem2*(
+     & uxx+uzz) )
+                ! write(*,'(" Apply abcEM2: add TZ forcing t,dt,utx,uxx,uyy=",5e10.3)') t,dt,utx,uxx,uyy
+              end if
+              if( forcingOption.eq.twilightZoneForcing )then
+                ! Test: set to exact solution at time t:
+                ! x=xy(i1-is1,i2,i3,0)
+                ! y=xy(i1-is1,i2,i3,1)
+                ! OGDERIV(0,0,0,0,x,y,z,t,ey,eyTrue)
+                ! un(i1-is1,i2,i3,ey)=eyTrue
+                ! add TZ forcing *wdh* Sept 17, 2016
+                ! OGDERIV(ntd,nxd,nyd,nzd,x,y,z,t,n,ud)
+                x=xy(i1,i2,i3,0)
+                y=xy(i1,i2,i3,1)
+                  ! ------ Cartesian Grid 3d forcing ----------
+                  z=xy(i1,i2,i3,2)
+                     call ogDeriv(ep, 1,0,1,0,x,y,z,t,ex,uty)
+                     call ogDeriv(ep, 0,2,0,0,x,y,z,t,ex,uxx)
+                     call ogDeriv(ep, 0,0,2,0,x,y,z,t,ex,uyy)
+                     call ogDeriv(ep, 0,0,0,2,x,y,z,t,ex,uzz)
+                   forcef(ex) = is2*uty - ( c1abcem2*uyy + c2abcem2*(
+     & uxx+uzz) )
+                     call ogDeriv(ep, 1,0,1,0,x,y,z,t,ey,uty)
+                     call ogDeriv(ep, 0,2,0,0,x,y,z,t,ey,uxx)
+                     call ogDeriv(ep, 0,0,2,0,x,y,z,t,ey,uyy)
+                     call ogDeriv(ep, 0,0,0,2,x,y,z,t,ey,uzz)
+                   forcef(ey) = is2*uty - ( c1abcem2*uyy + c2abcem2*(
+     & uxx+uzz) )
+                     call ogDeriv(ep, 1,0,1,0,x,y,z,t,ez,uty)
+                     call ogDeriv(ep, 0,2,0,0,x,y,z,t,ez,uxx)
+                     call ogDeriv(ep, 0,0,2,0,x,y,z,t,ez,uyy)
+                     call ogDeriv(ep, 0,0,0,2,x,y,z,t,ez,uzz)
+                   forcef(ez) = is2*uty - ( c1abcem2*uyy + c2abcem2*(
+     & uxx+uzz) )
+                ! write(*,'(" Apply abcEM2: add TZ forcing t,dt,utx,uxx,uyy=",5e10.3)') t,dt,utx,uxx,uyy
+              end if
+             do idir=0,2
+               forcey(idir)=.5*(forcep(idir)+forcef(idir))
+             end do
+
            un(i1-is1,i2-is2,i3-is3,ex)=((un(i1+is1,i2+is2,i3+is3,ex)-(
      & u(i1+is1,i2+is2,i3+is3,ex)-u(i1-is1,i2-is2,i3-is3,ex))-(dya*dt)
      & *(c1abcem2*uyy23r(i1,i2,i3,ex)+c2abcem2*(uxx23r(i1,i2,i3,ex)+
      & uzz23r(i1,i2,i3,ex))+c1abcem2*(-2.*un(i1,i2,i3,ex)+un(i1,i2+
      & is2,i3,ex))/dya**2+c2abcem2*(un(i1-1,i2,i3,ex)-2.*un(i1,i2,i3,
      & ex)+un(i1+1,i2,i3,ex))/dx(0)**2+c2abcem2*(un(i1,i2,i3-1,ex)-2.*
-     & un(i1,i2,i3,ex)+un(i1,i2,i3+1,ex))/dx(2)**2))/(1.+c1abcem2*
-     & dt/dya))
+     & un(i1,i2,i3,ex)+un(i1,i2,i3+1,ex))/dx(2)**2+2.*forcey(ex)))/(
+     & 1.+c1abcem2*dt/dya))
            ! un(i1-is1,i2-is2,i3-is3,ey)=ABCEM23DY(i1,i2,i3,ey)
            un(i1-is1,i2-is2,i3-is3,ez)=((un(i1+is1,i2+is2,i3+is3,ez)-(
      & u(i1+is1,i2+is2,i3+is3,ez)-u(i1-is1,i2-is2,i3-is3,ez))-(dya*dt)
@@ -4183,8 +5359,8 @@ c===============================================================================
      & uzz23r(i1,i2,i3,ez))+c1abcem2*(-2.*un(i1,i2,i3,ez)+un(i1,i2+
      & is2,i3,ez))/dya**2+c2abcem2*(un(i1-1,i2,i3,ez)-2.*un(i1,i2,i3,
      & ez)+un(i1+1,i2,i3,ez))/dx(0)**2+c2abcem2*(un(i1,i2,i3-1,ez)-2.*
-     & un(i1,i2,i3,ez)+un(i1,i2,i3+1,ez))/dx(2)**2))/(1.+c1abcem2*
-     & dt/dya))
+     & un(i1,i2,i3,ez)+un(i1,i2,i3+1,ez))/dx(2)**2+2.*forcey(ez)))/(
+     & 1.+c1abcem2*dt/dya))
 
            ! set div(E)=0 *wdh* 090712
            un(i1,i2-is2,i3,ey)=un(i1,i2+is2,i3,ey) + 2.*is2*dx(axis)*(
@@ -4199,22 +5375,92 @@ c===============================================================================
           do i2=n2a,n2b
           do i1=n1a,n1b
           if( mask(i1,i2,i3).gt.0 )then
+
+             ! getForcingEM2(Z,3,tm,is1,is2,forcez)
+              if( forcingOption.eq.twilightZoneForcing )then
+                ! Test: set to exact solution at time t:
+                ! x=xy(i1-is1,i2,i3,0)
+                ! y=xy(i1-is1,i2,i3,1)
+                ! OGDERIV(0,0,0,0,x,y,z,t,ey,eyTrue)
+                ! un(i1-is1,i2,i3,ey)=eyTrue
+                ! add TZ forcing *wdh* Sept 17, 2016
+                ! OGDERIV(ntd,nxd,nyd,nzd,x,y,z,t,n,ud)
+                x=xy(i1,i2,i3,0)
+                y=xy(i1,i2,i3,1)
+                  ! ------ Cartesian Grid 3d forcing ----------
+                  z=xy(i1,i2,i3,2)
+                     call ogDeriv(ep, 1,0,0,1,x,y,z,tp,ex,utz)
+                     call ogDeriv(ep, 0,2,0,0,x,y,z,tp,ex,uxx)
+                     call ogDeriv(ep, 0,0,2,0,x,y,z,tp,ex,uyy)
+                     call ogDeriv(ep, 0,0,0,2,x,y,z,tp,ex,uzz)
+                   forcep(ex) = is3*utz - ( c1abcem2*uzz + c2abcem2*(
+     & uxx+uyy) )
+                     call ogDeriv(ep, 1,0,0,1,x,y,z,tp,ey,utz)
+                     call ogDeriv(ep, 0,2,0,0,x,y,z,tp,ey,uxx)
+                     call ogDeriv(ep, 0,0,2,0,x,y,z,tp,ey,uyy)
+                     call ogDeriv(ep, 0,0,0,2,x,y,z,tp,ey,uzz)
+                   forcep(ey) = is3*utz - ( c1abcem2*uzz + c2abcem2*(
+     & uxx+uyy) )
+                     call ogDeriv(ep, 1,0,0,1,x,y,z,tp,ez,utz)
+                     call ogDeriv(ep, 0,2,0,0,x,y,z,tp,ez,uxx)
+                     call ogDeriv(ep, 0,0,2,0,x,y,z,tp,ez,uyy)
+                     call ogDeriv(ep, 0,0,0,2,x,y,z,tp,ez,uzz)
+                   forcep(ez) = is3*utz - ( c1abcem2*uzz + c2abcem2*(
+     & uxx+uyy) )
+                ! write(*,'(" Apply abcEM2: add TZ forcing t,dt,utx,uxx,uyy=",5e10.3)') t,dt,utx,uxx,uyy
+              end if
+              if( forcingOption.eq.twilightZoneForcing )then
+                ! Test: set to exact solution at time t:
+                ! x=xy(i1-is1,i2,i3,0)
+                ! y=xy(i1-is1,i2,i3,1)
+                ! OGDERIV(0,0,0,0,x,y,z,t,ey,eyTrue)
+                ! un(i1-is1,i2,i3,ey)=eyTrue
+                ! add TZ forcing *wdh* Sept 17, 2016
+                ! OGDERIV(ntd,nxd,nyd,nzd,x,y,z,t,n,ud)
+                x=xy(i1,i2,i3,0)
+                y=xy(i1,i2,i3,1)
+                  ! ------ Cartesian Grid 3d forcing ----------
+                  z=xy(i1,i2,i3,2)
+                     call ogDeriv(ep, 1,0,0,1,x,y,z,t,ex,utz)
+                     call ogDeriv(ep, 0,2,0,0,x,y,z,t,ex,uxx)
+                     call ogDeriv(ep, 0,0,2,0,x,y,z,t,ex,uyy)
+                     call ogDeriv(ep, 0,0,0,2,x,y,z,t,ex,uzz)
+                   forcef(ex) = is3*utz - ( c1abcem2*uzz + c2abcem2*(
+     & uxx+uyy) )
+                     call ogDeriv(ep, 1,0,0,1,x,y,z,t,ey,utz)
+                     call ogDeriv(ep, 0,2,0,0,x,y,z,t,ey,uxx)
+                     call ogDeriv(ep, 0,0,2,0,x,y,z,t,ey,uyy)
+                     call ogDeriv(ep, 0,0,0,2,x,y,z,t,ey,uzz)
+                   forcef(ey) = is3*utz - ( c1abcem2*uzz + c2abcem2*(
+     & uxx+uyy) )
+                     call ogDeriv(ep, 1,0,0,1,x,y,z,t,ez,utz)
+                     call ogDeriv(ep, 0,2,0,0,x,y,z,t,ez,uxx)
+                     call ogDeriv(ep, 0,0,2,0,x,y,z,t,ez,uyy)
+                     call ogDeriv(ep, 0,0,0,2,x,y,z,t,ez,uzz)
+                   forcef(ez) = is3*utz - ( c1abcem2*uzz + c2abcem2*(
+     & uxx+uyy) )
+                ! write(*,'(" Apply abcEM2: add TZ forcing t,dt,utx,uxx,uyy=",5e10.3)') t,dt,utx,uxx,uyy
+              end if
+             do idir=0,2
+               forcez(idir)=.5*(forcep(idir)+forcef(idir))
+             end do
+
            un(i1-is1,i2-is2,i3-is3,ex)=((un(i1+is1,i2+is2,i3+is3,ex)-(
      & u(i1+is1,i2+is2,i3+is3,ex)-u(i1-is1,i2-is2,i3-is3,ex))-(dza*dt)
      & *(c1abcem2*uzz23r(i1,i2,i3,ex)+c2abcem2*(uxx23r(i1,i2,i3,ex)+
      & uyy23r(i1,i2,i3,ex))+c1abcem2*(-2.*un(i1,i2,i3,ex)+un(i1,i2,i3+
      & is3,ex))/dza**2+c2abcem2*(un(i1-1,i2,i3,ex)-2.*un(i1,i2,i3,ex)+
      & un(i1+1,i2,i3,ex))/dx(0)**2+c2abcem2*(un(i1,i2-1,i3,ex)-2.*un(
-     & i1,i2,i3,ex)+un(i1,i2+1,i3,ex))/dx(1)**2))/(1.+c1abcem2*dt/dza)
-     & )
+     & i1,i2,i3,ex)+un(i1,i2+1,i3,ex))/dx(1)**2+2.*forcez(ex)))/(1.+
+     & c1abcem2*dt/dza))
            un(i1-is1,i2-is2,i3-is3,ey)=((un(i1+is1,i2+is2,i3+is3,ey)-(
      & u(i1+is1,i2+is2,i3+is3,ey)-u(i1-is1,i2-is2,i3-is3,ey))-(dza*dt)
      & *(c1abcem2*uzz23r(i1,i2,i3,ey)+c2abcem2*(uxx23r(i1,i2,i3,ey)+
      & uyy23r(i1,i2,i3,ey))+c1abcem2*(-2.*un(i1,i2,i3,ey)+un(i1,i2,i3+
      & is3,ey))/dza**2+c2abcem2*(un(i1-1,i2,i3,ey)-2.*un(i1,i2,i3,ey)+
      & un(i1+1,i2,i3,ey))/dx(0)**2+c2abcem2*(un(i1,i2-1,i3,ey)-2.*un(
-     & i1,i2,i3,ey)+un(i1,i2+1,i3,ey))/dx(1)**2))/(1.+c1abcem2*dt/dza)
-     & )
+     & i1,i2,i3,ey)+un(i1,i2+1,i3,ey))/dx(1)**2+2.*forcez(ey)))/(1.+
+     & c1abcem2*dt/dza))
            ! un(i1-is1,i2-is2,i3-is3,ez)=ABCEM23DZ(i1,i2,i3,ez)
 
            ! set div(E)=0 *wdh* 090712
@@ -4256,19 +5502,19 @@ c===============================================================================
      & *(c1abcem2*uxx22r(i1,i2,i3,ex)+c2abcem2*uyy22r(i1,i2,i3,ex)+
      & c1abcem2*(-2.*un(i1,i2,i3,ex)+un(i1+is1,i2,i3,ex))/dxa**2+
      & c2abcem2*(un(i1,i2-1,i3,ex)-2.*un(i1,i2,i3,ex)+un(i1,i2+1,i3,
-     & ex))/dx(1)**2))/(1.+c1abcem2*dt/dxa))
+     & ex))/dx(1)**2+2.*forcex(ex)))/(1.+c1abcem2*dt/dxa))
            un(i1-is1,i2-is2,i3-is3,ey)=((un(i1+is1,i2+is2,i3+is3,ey)-(
      & u(i1+is1,i2+is2,i3+is3,ey)-u(i1-is1,i2-is2,i3-is3,ey))-(dxa*dt)
      & *(c1abcem2*uxx22r(i1,i2,i3,ey)+c2abcem2*uyy22r(i1,i2,i3,ey)+
      & c1abcem2*(-2.*un(i1,i2,i3,ey)+un(i1+is1,i2,i3,ey))/dxa**2+
      & c2abcem2*(un(i1,i2-1,i3,ey)-2.*un(i1,i2,i3,ey)+un(i1,i2+1,i3,
-     & ey))/dx(1)**2))/(1.+c1abcem2*dt/dxa))
+     & ey))/dx(1)**2+2.*forcex(ey)))/(1.+c1abcem2*dt/dxa))
            un(i1-is1,i2-is2,i3-is3,hz)=((un(i1+is1,i2+is2,i3+is3,hz)-(
      & u(i1+is1,i2+is2,i3+is3,hz)-u(i1-is1,i2-is2,i3-is3,hz))-(dxa*dt)
      & *(c1abcem2*uxx22r(i1,i2,i3,hz)+c2abcem2*uyy22r(i1,i2,i3,hz)+
      & c1abcem2*(-2.*un(i1,i2,i3,hz)+un(i1+is1,i2,i3,hz))/dxa**2+
      & c2abcem2*(un(i1,i2-1,i3,hz)-2.*un(i1,i2,i3,hz)+un(i1,i2+1,i3,
-     & hz))/dx(1)**2))/(1.+c1abcem2*dt/dxa))
+     & hz))/dx(1)**2+2.*forcex(hz)))/(1.+c1abcem2*dt/dxa))
 
              un(i1-2*is1,i2-2*is2,i3-2*is3,ex)=4.*un(i1-is1,i2-is2,i3-
      & is3,ex)-6.*un(i1,i2,i3,ex)+4.*un(i1+is1,i2+is2,i3+is3,ex)-un(
@@ -4309,19 +5555,19 @@ c===============================================================================
      & *(c1abcem2*uyy22r(i1,i2,i3,ex)+c2abcem2*uxx22r(i1,i2,i3,ex)+
      & c1abcem2*(-2.*un(i1,i2,i3,ex)+un(i1,i2+is2,i3,ex))/dya**2+
      & c2abcem2*(un(i1-1,i2,i3,ex)-2.*un(i1,i2,i3,ex)+un(i1+1,i2,i3,
-     & ex))/dx(0)**2))/(1.+c1abcem2*dt/dya))
+     & ex))/dx(0)**2+2.*forcey(ex)))/(1.+c1abcem2*dt/dya))
            un(i1-is1,i2-is2,i3-is3,ey)=((un(i1+is1,i2+is2,i3+is3,ey)-(
      & u(i1+is1,i2+is2,i3+is3,ey)-u(i1-is1,i2-is2,i3-is3,ey))-(dya*dt)
      & *(c1abcem2*uyy22r(i1,i2,i3,ey)+c2abcem2*uxx22r(i1,i2,i3,ey)+
      & c1abcem2*(-2.*un(i1,i2,i3,ey)+un(i1,i2+is2,i3,ey))/dya**2+
      & c2abcem2*(un(i1-1,i2,i3,ey)-2.*un(i1,i2,i3,ey)+un(i1+1,i2,i3,
-     & ey))/dx(0)**2))/(1.+c1abcem2*dt/dya))
+     & ey))/dx(0)**2+2.*forcey(ey)))/(1.+c1abcem2*dt/dya))
            un(i1-is1,i2-is2,i3-is3,hz)=((un(i1+is1,i2+is2,i3+is3,hz)-(
      & u(i1+is1,i2+is2,i3+is3,hz)-u(i1-is1,i2-is2,i3-is3,hz))-(dya*dt)
      & *(c1abcem2*uyy22r(i1,i2,i3,hz)+c2abcem2*uxx22r(i1,i2,i3,hz)+
      & c1abcem2*(-2.*un(i1,i2,i3,hz)+un(i1,i2+is2,i3,hz))/dya**2+
      & c2abcem2*(un(i1-1,i2,i3,hz)-2.*un(i1,i2,i3,hz)+un(i1+1,i2,i3,
-     & hz))/dx(0)**2))/(1.+c1abcem2*dt/dya))
+     & hz))/dx(0)**2+2.*forcey(hz)))/(1.+c1abcem2*dt/dya))
 
              un(i1-2*is1,i2-2*is2,i3-2*is3,ex)=4.*un(i1-is1,i2-is2,i3-
      & is3,ex)-6.*un(i1,i2,i3,ex)+4.*un(i1+is1,i2+is2,i3+is3,ex)-un(
@@ -4366,24 +5612,24 @@ c===============================================================================
      & uzz23r(i1,i2,i3,ex))+c1abcem2*(-2.*un(i1,i2,i3,ex)+un(i1+is1,
      & i2,i3,ex))/dxa**2+c2abcem2*(un(i1,i2-1,i3,ex)-2.*un(i1,i2,i3,
      & ex)+un(i1,i2+1,i3,ex))/dx(1)**2+c2abcem2*(un(i1,i2,i3-1,ex)-2.*
-     & un(i1,i2,i3,ex)+un(i1,i2,i3+1,ex))/dx(2)**2))/(1.+c1abcem2*
-     & dt/dxa))
+     & un(i1,i2,i3,ex)+un(i1,i2,i3+1,ex))/dx(2)**2+2.*forcex(ex)))/(
+     & 1.+c1abcem2*dt/dxa))
            un(i1-is1,i2-is2,i3-is3,ey)=((un(i1+is1,i2+is2,i3+is3,ey)-(
      & u(i1+is1,i2+is2,i3+is3,ey)-u(i1-is1,i2-is2,i3-is3,ey))-(dxa*dt)
      & *(c1abcem2*uxx23r(i1,i2,i3,ey)+c2abcem2*(uyy23r(i1,i2,i3,ey)+
      & uzz23r(i1,i2,i3,ey))+c1abcem2*(-2.*un(i1,i2,i3,ey)+un(i1+is1,
      & i2,i3,ey))/dxa**2+c2abcem2*(un(i1,i2-1,i3,ey)-2.*un(i1,i2,i3,
      & ey)+un(i1,i2+1,i3,ey))/dx(1)**2+c2abcem2*(un(i1,i2,i3-1,ey)-2.*
-     & un(i1,i2,i3,ey)+un(i1,i2,i3+1,ey))/dx(2)**2))/(1.+c1abcem2*
-     & dt/dxa))
+     & un(i1,i2,i3,ey)+un(i1,i2,i3+1,ey))/dx(2)**2+2.*forcex(ey)))/(
+     & 1.+c1abcem2*dt/dxa))
            un(i1-is1,i2-is2,i3-is3,ez)=((un(i1+is1,i2+is2,i3+is3,ez)-(
      & u(i1+is1,i2+is2,i3+is3,ez)-u(i1-is1,i2-is2,i3-is3,ez))-(dxa*dt)
      & *(c1abcem2*uxx23r(i1,i2,i3,ez)+c2abcem2*(uyy23r(i1,i2,i3,ez)+
      & uzz23r(i1,i2,i3,ez))+c1abcem2*(-2.*un(i1,i2,i3,ez)+un(i1+is1,
      & i2,i3,ez))/dxa**2+c2abcem2*(un(i1,i2-1,i3,ez)-2.*un(i1,i2,i3,
      & ez)+un(i1,i2+1,i3,ez))/dx(1)**2+c2abcem2*(un(i1,i2,i3-1,ez)-2.*
-     & un(i1,i2,i3,ez)+un(i1,i2,i3+1,ez))/dx(2)**2))/(1.+c1abcem2*
-     & dt/dxa))
+     & un(i1,i2,i3,ez)+un(i1,i2,i3+1,ez))/dx(2)**2+2.*forcex(ez)))/(
+     & 1.+c1abcem2*dt/dxa))
 
              un(i1-2*is1,i2-2*is2,i3-2*is3,ex)=4.*un(i1-is1,i2-is2,i3-
      & is3,ex)-6.*un(i1,i2,i3,ex)+4.*un(i1+is1,i2+is2,i3+is3,ex)-un(
@@ -4425,24 +5671,24 @@ c===============================================================================
      & uzz23r(i1,i2,i3,ex))+c1abcem2*(-2.*un(i1,i2,i3,ex)+un(i1,i2+
      & is2,i3,ex))/dya**2+c2abcem2*(un(i1-1,i2,i3,ex)-2.*un(i1,i2,i3,
      & ex)+un(i1+1,i2,i3,ex))/dx(0)**2+c2abcem2*(un(i1,i2,i3-1,ex)-2.*
-     & un(i1,i2,i3,ex)+un(i1,i2,i3+1,ex))/dx(2)**2))/(1.+c1abcem2*
-     & dt/dya))
+     & un(i1,i2,i3,ex)+un(i1,i2,i3+1,ex))/dx(2)**2+2.*forcey(ex)))/(
+     & 1.+c1abcem2*dt/dya))
            un(i1-is1,i2-is2,i3-is3,ey)=((un(i1+is1,i2+is2,i3+is3,ey)-(
      & u(i1+is1,i2+is2,i3+is3,ey)-u(i1-is1,i2-is2,i3-is3,ey))-(dya*dt)
      & *(c1abcem2*uyy23r(i1,i2,i3,ey)+c2abcem2*(uxx23r(i1,i2,i3,ey)+
      & uzz23r(i1,i2,i3,ey))+c1abcem2*(-2.*un(i1,i2,i3,ey)+un(i1,i2+
      & is2,i3,ey))/dya**2+c2abcem2*(un(i1-1,i2,i3,ey)-2.*un(i1,i2,i3,
      & ey)+un(i1+1,i2,i3,ey))/dx(0)**2+c2abcem2*(un(i1,i2,i3-1,ey)-2.*
-     & un(i1,i2,i3,ey)+un(i1,i2,i3+1,ey))/dx(2)**2))/(1.+c1abcem2*
-     & dt/dya))
+     & un(i1,i2,i3,ey)+un(i1,i2,i3+1,ey))/dx(2)**2+2.*forcey(ey)))/(
+     & 1.+c1abcem2*dt/dya))
            un(i1-is1,i2-is2,i3-is3,ez)=((un(i1+is1,i2+is2,i3+is3,ez)-(
      & u(i1+is1,i2+is2,i3+is3,ez)-u(i1-is1,i2-is2,i3-is3,ez))-(dya*dt)
      & *(c1abcem2*uyy23r(i1,i2,i3,ez)+c2abcem2*(uxx23r(i1,i2,i3,ez)+
      & uzz23r(i1,i2,i3,ez))+c1abcem2*(-2.*un(i1,i2,i3,ez)+un(i1,i2+
      & is2,i3,ez))/dya**2+c2abcem2*(un(i1-1,i2,i3,ez)-2.*un(i1,i2,i3,
      & ez)+un(i1+1,i2,i3,ez))/dx(0)**2+c2abcem2*(un(i1,i2,i3-1,ez)-2.*
-     & un(i1,i2,i3,ez)+un(i1,i2,i3+1,ez))/dx(2)**2))/(1.+c1abcem2*
-     & dt/dya))
+     & un(i1,i2,i3,ez)+un(i1,i2,i3+1,ez))/dx(2)**2+2.*forcey(ez)))/(
+     & 1.+c1abcem2*dt/dya))
 
              un(i1-2*is1,i2-2*is2,i3-2*is3,ex)=4.*un(i1-is1,i2-is2,i3-
      & is3,ex)-6.*un(i1,i2,i3,ex)+4.*un(i1+is1,i2+is2,i3+is3,ex)-un(
@@ -4484,24 +5730,24 @@ c===============================================================================
      & uyy23r(i1,i2,i3,ex))+c1abcem2*(-2.*un(i1,i2,i3,ex)+un(i1,i2,i3+
      & is3,ex))/dza**2+c2abcem2*(un(i1-1,i2,i3,ex)-2.*un(i1,i2,i3,ex)+
      & un(i1+1,i2,i3,ex))/dx(0)**2+c2abcem2*(un(i1,i2-1,i3,ex)-2.*un(
-     & i1,i2,i3,ex)+un(i1,i2+1,i3,ex))/dx(1)**2))/(1.+c1abcem2*dt/dza)
-     & )
+     & i1,i2,i3,ex)+un(i1,i2+1,i3,ex))/dx(1)**2+2.*forcez(ex)))/(1.+
+     & c1abcem2*dt/dza))
            un(i1-is1,i2-is2,i3-is3,ey)=((un(i1+is1,i2+is2,i3+is3,ey)-(
      & u(i1+is1,i2+is2,i3+is3,ey)-u(i1-is1,i2-is2,i3-is3,ey))-(dza*dt)
      & *(c1abcem2*uzz23r(i1,i2,i3,ey)+c2abcem2*(uxx23r(i1,i2,i3,ey)+
      & uyy23r(i1,i2,i3,ey))+c1abcem2*(-2.*un(i1,i2,i3,ey)+un(i1,i2,i3+
      & is3,ey))/dza**2+c2abcem2*(un(i1-1,i2,i3,ey)-2.*un(i1,i2,i3,ey)+
      & un(i1+1,i2,i3,ey))/dx(0)**2+c2abcem2*(un(i1,i2-1,i3,ey)-2.*un(
-     & i1,i2,i3,ey)+un(i1,i2+1,i3,ey))/dx(1)**2))/(1.+c1abcem2*dt/dza)
-     & )
+     & i1,i2,i3,ey)+un(i1,i2+1,i3,ey))/dx(1)**2+2.*forcez(ey)))/(1.+
+     & c1abcem2*dt/dza))
            un(i1-is1,i2-is2,i3-is3,ez)=((un(i1+is1,i2+is2,i3+is3,ez)-(
      & u(i1+is1,i2+is2,i3+is3,ez)-u(i1-is1,i2-is2,i3-is3,ez))-(dza*dt)
      & *(c1abcem2*uzz23r(i1,i2,i3,ez)+c2abcem2*(uxx23r(i1,i2,i3,ez)+
      & uyy23r(i1,i2,i3,ez))+c1abcem2*(-2.*un(i1,i2,i3,ez)+un(i1,i2,i3+
      & is3,ez))/dza**2+c2abcem2*(un(i1-1,i2,i3,ez)-2.*un(i1,i2,i3,ez)+
      & un(i1+1,i2,i3,ez))/dx(0)**2+c2abcem2*(un(i1,i2-1,i3,ez)-2.*un(
-     & i1,i2,i3,ez)+un(i1,i2+1,i3,ez))/dx(1)**2))/(1.+c1abcem2*dt/dza)
-     & )
+     & i1,i2,i3,ez)+un(i1,i2+1,i3,ez))/dx(1)**2+2.*forcez(ez)))/(1.+
+     & c1abcem2*dt/dza))
 
              un(i1-2*is1,i2-2*is2,i3-2*is3,ex)=4.*un(i1-is1,i2-is2,i3-
      & is3,ex)-6.*un(i1,i2,i3,ex)+4.*un(i1+is1,i2+is2,i3+is3,ex)-un(

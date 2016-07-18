@@ -105,7 +105,7 @@ main(int argc, char *argv[])
       cout << "convRate: ERROR:unable to open file [" << fileName << "]\n";
 
     bool done=FALSE;
-    char buff[500], buff2[40], header[500];
+    char buff[1000], buff2[40], header[1000];
     aString line,caption;
     bool tableIsOn=FALSE;
     int grid=0;
@@ -192,8 +192,15 @@ main(int argc, char *argv[])
 	  fprintf(stdout    ,"%20s & %5i ",buff2,gridLines);  // grid-name and 'N'
 	  for( int j=0; j<numberOfComponents; j++ )
 	  {
-	    int exp = int( log10(e(grid,j))-.999999999999999);
-	    real frac = e(grid,j)/pow(10.,exp);
+            // convert the number into a fraction and exponent
+	    int exp=1;
+	    real frac=0.;
+            if( e(grid,j)!=0. )
+	    {
+	      exp = int( log10(e(grid,j))-.999999999999999);
+	      frac = e(grid,j)/pow(10.,exp);
+	    }
+	    
 	    // fprintf(outputFile,"& ~$%2.1f\\times10^{%3i}$~ ",frac,exp);
 	    fprintf(outputFile,"& \\num{%2.1f}{%i} ",frac,exp);
 	    fprintf(stdout    ,"& %8.2e ",e(grid,j));

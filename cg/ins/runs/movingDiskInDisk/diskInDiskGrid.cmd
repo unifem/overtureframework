@@ -17,8 +17,18 @@
 #     ogen -noplot diskInDiskGrid -order=2 -interp=e -factor=4
 #     ogen -noplot diskInDiskGrid -order=2 -interp=e -factor=8
 #
+# -- fixed radius of annular grids
+#     ogen -noplot diskInDiskGrid -order=2 -interp=e -rgd=fixed -factor=2
+#     ogen -noplot diskInDiskGrid -order=2 -interp=e -rgd=fixed -factor=4
+#     ogen -noplot diskInDiskGrid -order=2 -interp=e -rgd=fixed -factor=8
+#     ogen -noplot diskInDiskGrid -order=2 -interp=e -rgd=fixed -factor=16
+#
+# -- Grid using only annular grids (no background)
+#     ogen -noplot diskInDiskGrid -order=2 -interp=e -rgd=half -factor=2
+# 
 # Outer radius=3 
 #     ogen -noplot diskInDiskGrid -order=2 -interp=e -outerRadius=3 -prefix=diskInDiskGridRad3 -factor=2
+#     ogen -noplot diskInDiskGrid -order=2 -interp=e -outerRadius=3 -prefix=diskInDiskGridRad3 -rgd=fixed -factor=4
 #
 $prefix="diskInDiskGrid";  $rgd="var"; $bcSquare="d"; 
 $innerRadius=1.; $outerRadius=2.; 
@@ -42,6 +52,9 @@ elsif( $order eq 8 ){ $orderOfAccuracy="eighth order"; $ng=4; }
 if( $interp eq "e" ){ $interpType = "explicit for all grids"; }
 # 
 if( $rgd eq "fixed" ){ $prefix = $prefix . "Fixed"; }
+if( $rgd eq "half" ){ $prefix = $prefix . "Half"; }
+if( $rgd eq "half" ){ $deltaRadius0 = .5*($outerRadius-$innerRadius)+$ds*($ng-1);}
+# 
 if( $bcSquare eq "p" ){ $prefix = $prefix . "p"; }
 $suffix = ".order$order"; 
 if( $numGhost ne -1 ){ $ng = $numGhost; } # overide number of ghost
@@ -94,7 +107,7 @@ Annulus
   $nr = max( 5+ $ng + 2*($order-2), 2**($ml+2) );
   $nr = intmg( $nr );
   $innerRad=$innerRadius; $outerRad = $innerRad + ($nr-1)*$ds;
-  if( $rgd eq "fixed" ){ $outerRad = $innerRad + $deltaRadius0; $nr=intmg( $deltaRadius0/$ds + 2.5 ); }
+  if( $rgd eq "fixed" || $rgd eq "half" ){ $outerRad = $innerRad + $deltaRadius0; $nr=intmg( 1.1*$deltaRadius0/$ds + 2.5 ); }
   center: $cx $cy
   inner and outer radii
     $innerRad $outerRad
@@ -139,7 +152,7 @@ Annulus
   $nr = max( 5+ $ng + 2*($order-2), 2**($ml+2) );
   $nr = intmg( $nr );
   $outerRad = $outerRadius; $innerRad=$outerRad - ($nr-1)*$ds; 
-  if( $rgd eq "fixed" ){ $outerRad = $innerRad + $deltaRadius0; $nr=intmg( $deltaRadius0/$ds + 2.5 ); }
+  if( $rgd eq "fixed" || $rgd eq "half" ){ $innerRad = $outerRad - $deltaRadius0; $nr=intmg( 1.1*$deltaRadius0/$ds + 4.5 ); }
   center: $cx $cy
   inner and outer radii
     $innerRad $outerRad
@@ -178,7 +191,8 @@ exit
 #
 exit
 generate an overlapping grid
-    backGround
+    if( $rgd eq "half" ){ $cmd="#"; }else{ $cmd="backGround"; }
+    $cmd
     $innerDisk
     $outerDisk
   done

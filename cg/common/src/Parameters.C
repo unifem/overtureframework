@@ -650,6 +650,9 @@ Parameters(const int & numberOfDimensions0) : pdeName("unknown"), numberOfBCName
   // For the traditional FSI scheme we sometimes perform sub-iterations for FSI problems
   if( !dbase.has_key("useMovingGridSubIterations") ) dbase.put<bool>("useMovingGridSubIterations")=false;
 
+  // If exitOnInstablity=true then exit the code if an instability is detected
+  if( !dbase.has_key("exitOnInstablity") ) dbase.put<bool>("exitOnInstablity")=false;
+
 
   // -----------------------------------------------------------------
   // ---- Assign initial values to those variables not already set ----
@@ -4463,6 +4466,34 @@ getKnownSolution(real t, int grid, const Index & I1, const Index &I2, const Inde
 
 
 // ===================================================================================================================
+/// \brief Return proerties of a known solution for rigid-body motions
+/// \param body (input) : body number
+/// \param t (input) : time
+// ===================================================================================================================
+int Parameters::
+getKnownSolutionRigidBody( int body, real t, 
+			   RealArray & xCM      /* = Overture::nullRealArray() */, 
+			   RealArray & vCM      /* = Overture::nullRealArray() */,
+			   RealArray & aCM      /* = Overture::nullRealArray() */,
+			   RealArray & omega    /* = Overture::nullRealArray() */, 
+			   RealArray & omegaDot /* = Overture::nullRealArray() */ )
+{
+
+  const KnownSolutionsEnum & knownSolution = dbase.get<KnownSolutionsEnum >("knownSolution");
+  if( knownSolution==userDefinedKnownSolution )
+  {
+    getUserDefinedKnownSolutionRigidBody(body,t,xCM,vCM,aCM,omega,omegaDot);
+  }
+  else 
+  {
+    printF("Parameters::getKnownSolutionRigidBody:ERROR: unknown knownSolution=%i\n", (int)knownSolution);
+    OV_ABORT("ERROR");
+  }
+
+
+}
+
+
 /// \brief Set user defined parameters.
 // ===================================================================================================================
 int Parameters::

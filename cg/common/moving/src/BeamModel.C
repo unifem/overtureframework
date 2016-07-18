@@ -30,16 +30,16 @@
     for( i2=I2Base; i2<=I2Bound; i2++ )					\
       for( i1=I1Base; i1<=I1Bound; i1++ )
 
-// Forward declarations of utility matrix functions on A++ arrays
-//
-RealArray 
-mult( const RealArray & a, const RealArray & b );
-
-RealArray 
-trans( const RealArray &a );
-
-RealArray 
-solve( const RealArray & a, const RealArray & b );
+// // Forward declarations of utility matrix functions on A++ arrays
+// //
+// RealArray 
+// mult( const RealArray & a, const RealArray & b );
+// 
+// RealArray 
+// trans( const RealArray &a );
+// 
+// RealArray 
+// solve( const RealArray & a, const RealArray & b );
 
 // Forward declaration of printArray() function (for debugging)
 // void 
@@ -5677,7 +5677,7 @@ getErrors( const real t, const RealArray & u, const RealArray & v, const RealArr
   if( file !=NULL )
     {
       FILE *checkFile = dbase.get<FILE*>("checkFile");
-      writeCheckFile( checkFile );
+      writeCheckFile( t, checkFile );
     }
 
   // const int myid=max(0,Communication_Manager::My_Process_Number);
@@ -5705,7 +5705,7 @@ getErrors( const real t, const RealArray & u, const RealArray & v, const RealArr
 /// \brief  Write information to the `check file' (used for regression tests)
 //=================================================================================
 int BeamModel::
-writeCheckFile( FILE *file )
+writeCheckFile( real t, FILE *file )
 {
   const int myid=max(0,Communication_Manager::My_Process_Number);
   if( file!=NULL && myid==0 )

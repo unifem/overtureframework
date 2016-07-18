@@ -13,6 +13,11 @@ InterfaceInfo::InterfaceInfo()
   ndf1=0; ndf2=0;
   initialized=false;
   
+  totalInterfaceIterations=0; // counts total number of interface iterations
+  averageInterfaceConvergenceRate=0.;  // accumulate average convergence rate here 
+  maxFinalResidual=0.;      // save maximum of the final residual in interface equations
+  averageFinalResidual=0.;  // accumulate average final residual in interface equations
+
   rwk=NULL;
   iwk=NULL;
 
@@ -30,6 +35,11 @@ InterfaceInfo::InterfaceInfo(int grid1_, int side1_, int dir1_,
   ndf1=0; ndf2=0;
   initialized=false;
    
+  totalInterfaceIterations=0; // counts total number of interface iterations
+  averageInterfaceConvergenceRate=0.;  // accumulate average convergence rate here 
+  maxFinalResidual=0.;      // save maximum of the final residual in interface equations
+  averageFinalResidual=0.;  // accumulate average final residual in interface equations
+
   rwk=NULL;
   iwk=NULL;
 
@@ -62,6 +72,11 @@ operator=( const InterfaceInfo& x)
   ndf1=x.ndf1;
   ndf2=x.ndf2;
   initialized=x.initialized;
+  totalInterfaceIterations=x.totalInterfaceIterations;
+  averageInterfaceConvergenceRate=x.averageInterfaceConvergenceRate; 
+  maxFinalResidual=x.maxFinalResidual;
+  averageFinalResidual=x.averageFinalResidual;
+
   rwk=x.rwk;
   iwk=x.iwk;
   assert( rwk==NULL && iwk==NULL );  // enforce this since we don't reference count

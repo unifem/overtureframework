@@ -913,18 +913,21 @@ setupGridFunctions()
     fCurrent=0;
 
     // --- allocate space ---
-    for( int grid=0; grid<numberOfComponentGrids; grid++ )
+    if( numberOfForcingFunctions>0 )
     {
-      MappedGrid & mg = cg[grid];
-      Index I1,I2,I3;
-      getIndex(mg.dimension(),I1,I2,I3);
-      Range C(ex,hz);
+      for( int grid=0; grid<numberOfComponentGrids; grid++ )
+      {
+	MappedGrid & mg = cg[grid];
+	Index I1,I2,I3;
+	getIndex(mg.dimension(),I1,I2,I3);
+	Range C(ex,hz);
 	
-      realArray & fa = forcingArray[grid];
-      fa.partition(mg.getPartition());
-      fa.redim(I1,I2,I3,C,numberOfForcingFunctions);
+	realArray & fa = forcingArray[grid];
+	fa.partition(mg.getPartition());
+	fa.redim(I1,I2,I3,C,numberOfForcingFunctions);
+      }
     }
-      
+    
   }
   
   // ----------------------------------------------------------

@@ -35,3 +35,7 @@ grids2dp:
 	$(ogen) -noplot embeddedBodyGrid -interp=e -order=4 -per=1 -theta=60 -numGhost=3 -factor=16
 
 
+# grids no body:
+grid2dNoBody:
+	$(ogen) -noplot embeddedBodyGrid -interp=e -order=4 -prefix=embeddedNoBodyGrid -body=0 -factor=4
+	$(ogen) -noplot embeddedBodyGrid -interp=e -order=4 -prefix=embeddedNoBodyGrid -body=0 -factor=8

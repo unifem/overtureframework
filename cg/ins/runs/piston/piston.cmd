@@ -13,7 +13,7 @@
 # 
 # ============================================================================
 $grid="plug4.hdf";  $tFinal=1.; $tPlot=.05; $bodyDensity=3.;  $fluidDensity=1.; $go="halt"; $show=" "; $vIn=.1;
-$nu=.05; $gravity=1.; $cfl=.9; $dtMax=.1; $restart=""; $debug=1; 
+$nu=.05; $gravity=1.; $cfl=.9; $dtMax=.1; $restart=""; $debug=1; $ogesDebug=0; 
 $option="none"; 
 #
 $amp=.25; $freq=1.; $depth=1.;  # for rigidBodyPiston solution
@@ -28,6 +28,7 @@ $solver="yale"; $psolver="yale";
 $relaxRigidBody=0; # set to 1 for "light bodies" which are otherwise unstable 
 $addedMass=0; $useTP=0;  $useProvidedAcceleration=1; 
 $addedDamping=0;  $addedDampingCoeff=1.; $scaleAddedDampingWithDt=0; $addedDampingProjectVelocity=0; 
+$rigidBodyCheckFile="piston.check"; 
 $omega=.5; $inertia=1.; $rtolc=1.e-3; $atolc=1.e-7; 
 $mbpbc=0; $mbpbcc=1.; # fix for light bodies: mbpbc=1 
 # ----------------------------- get command line arguments ---------------------------------------
@@ -115,6 +116,9 @@ if( $go eq "run" || $go eq "go" ){ $go = "movie mode\n finish"; }
         # added damping is proportional to  w*h*(w+h)
         # -10 .5
          -1 .5
+      # -- useKnownSolution will set initial velocity and acceleration
+      if( $option eq "rigidBodyPiston" ){ $useKnownSolution=1; }else{ $useKnownSolution=0; }
+      use known solution $useKnownSolution
       # $omega=$bodyDensity*.5; # guess for relaxation parameter; omega should be <=1 
       debug: $debug
       force relaxation parameter: $omega
@@ -124,6 +128,9 @@ if( $go eq "run" || $go eq "go" ){ $go = "movie mode\n finish"; }
       torque relaxation parameter: $beta
       torque relative tol: $rtolc
       torque absolute tol: $atolc
+      # -- check files
+      save check file 1
+      check file: $rigidBodyCheckFile
     done
       choose grids by share flag
           100
@@ -145,7 +152,7 @@ if( $go eq "run" || $go eq "go" ){ $go = "movie mode\n finish"; }
   use added damping algorithm $addedDamping
   scale added damping with dt $scaleAddedDampingWithDt
   added damping project velocity $addedDampingProjectVelocity
-  # -- CHECK ME: 
+  # -- use sub-iterations: 
   use moving grid sub-iterations $useTP
   # 
   choose grids for implicit
@@ -166,7 +173,7 @@ $cmd
      absolute tolerance
        $atolp
      debug 
-       $debug
+       $ogesDebug
     exit
 # 
   implicit time step solver options

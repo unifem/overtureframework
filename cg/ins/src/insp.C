@@ -112,7 +112,7 @@ updatePressureEquation(CompositeGrid & cg0, GridFunction & cgf )
     if( useAddedMassAlgorithm && parameters.gridIsMoving(grid) )
     {
       if( cgf.t <= dt )
-        printF("Cgins::updatePressureEquation: USE AMP ADDED MASS ALGORITHM grid=%i t=%8.2e\n",grid,cgf.t);
+        printF("Cgins::updatePressureEquation: USE AMP ADDED MASS ALGORITHM grid=%i t=%8.2e, dt=%9.3e\n",grid,cgf.t,dt);
 
       BoundaryData::BoundaryDataArray & pBoundaryData = parameters.getBoundaryData(grid); // this will create the BDA if it is not there
       std::vector<BoundaryData> & boundaryDataArray =parameters.dbase.get<std::vector<BoundaryData> >("boundaryData");

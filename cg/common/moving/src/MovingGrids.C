@@ -79,6 +79,9 @@ MovingGrids(Parameters & parameters_)
   // We keep track if the correction steps have converged (N.B. for "light" rigid bodies for e.g.)
   correctionHasConverged=true;
   maximumRelativeCorrection=0.;
+
+  // recompute the grid velocity after correcting a moving grid
+  recomputeGridVelocityOnCorrection=true;  // *new* July 5, 2016 -- for old way, set to false
 }
 
 //\begin{>MovingGridsSolverInclude.tex}{\subsection{constructor}} 
@@ -121,6 +124,9 @@ MovingGrids(const MovingGrids & mg)
   // We keep track if the correction steps have converged (N.B. for "light" rigid bodies for e.g.)
   correctionHasConverged=true;
   maximumRelativeCorrection=0.;
+
+  // recompute the grid velocity after correcting a moving grid
+  recomputeGridVelocityOnCorrection=true;  // *new* July 5, 2016 -- for old way, set to false
 }
 
 int MovingGrids::
@@ -226,10 +232,13 @@ MovingGrids::
 /// \brief  Write information to the `check file' (used for regression tests)
 //=================================================================================
 int MovingGrids::
-writeCheckFile( FILE *file )
+writeCheckFile( real t, FILE *file )
 {
   for( int b=0; b<numberOfDeformingBodies; b++ )
-    deformingBodyList[b]->writeCheckFile(file);
+    deformingBodyList[b]->writeCheckFile(t, file);
+
+  for( int b=0; b<numberOfRigidBodies; b++ )
+    body[b]->writeCheckFile(t);  // currently each rigid body has it's own check file
 
   return 0;
 }
@@ -568,26 +577,47 @@ int MovingGrids::getRigidBodyAddedDampingTensors( const int bodyNumber, RealArra
 
   const real & addedDampingCoefficient = parameters.dbase.get<real>("addedDampingCoefficient");
 
-  // scaleAddedDampingWithDt:
-  //     0 : dn = average grid spacing in the normal direction
-  //     1 : dn = sqrt(nu*dt )
+  // if scaleAddedDampingWithDt==1 then adjust the added-damping tensors by an addtional factor of
+  //     1 - exp(-delta) 
+  //  where 
+  //    delta = dy/sqrt(nu*alpha*dt)  (alpha=/1/2 for Trapezoidal rule)
+  //    
   const bool & scaleAddedDampingWithDt = parameters.dbase.get<bool>("scaleAddedDampingWithDt");
 
   // Added damping tensors may have already been computed and saved in the RigidBody: 
   //   In the case scaleAddedDampingWithDt==1 : the added-damping tensors are stored without 
   //     the factor of mu/dn , dn=sqrt(nu*dt)
-  if( (!scaleAddedDampingWithDt || dt>0. ) && 
-      (body.getAddedDampingTensors( addedDampingTensors,t ) == 0) )
+
+  // -- retrieve the added-damping tensors if they have been already computed: 
+  const int returnValue = body.getAddedDampingTensors( addedDampingTensors,t );
+  bool addedDampingTensorsHaveBeenComputed = returnValue==0;
+
+  if( addedDampingTensorsHaveBeenComputed )
   {
+    // --- added-damping tensors have been pre-computed ---
     if( debug() & 4  )
       body.displayAddedDampingTensors("--MVG--getRigidBodyAddedDampingTensors:",cgf.t);
 
-    if( scaleAddedDampingWithDt )
+    if( scaleAddedDampingWithDt && dt>0.  )
     {
-      const real dn = sqrt(nu*dt);
-      if( debug() & 4  )
-        printF("--MVG--getRigidBodyAddedDampingTensors: SCALING stored added damping tensors by mu/sqrt(nu*dt)\n");
-      addedDampingTensors *= addedDampingCoefficient*(mu/dn);
+      // --- Adjust the added-damping tensors based on the current time step ---
+
+      // addedDampingScaleFactor=addedDampingCoefficient*(mu/dy);
+      const real addedDampingScaleFactor = body.getAddedDampingScaleFactor(); 
+      printF("--MVG--getRigidBodyAddedDampingTensors:addedDampingScaleFactor=ADC*mu/dy=%8.2e\n",
+              addedDampingScaleFactor);
+      
+      const real dy = mu*addedDampingCoefficient/addedDampingScaleFactor; // minGridSpacing 
+
+      const real alpha = .5;                // weight for Trapezoidal rule 
+      const real dnu = sqrt( nu*alpha*dt);  // viscous length-scale
+      const real delta = dy/dnu;
+
+      const real scaleFactor = delta<.1 ? delta*(1-.5*delta) : 1 - exp(-delta); 
+      if( true || debug() & 4  )
+        printF("--MVG--getRigidBodyAddedDampingTensors: SCALING stored added damping tensors "
+               "by 1-exp(-delta) = %8.2e, (dy=%8.2e, dnu=%8.2e, delta=dy/dnu=%8.2e)\n",scaleFactor,dy,dnu,delta);
+      addedDampingTensors *= scaleFactor; 
     }
       
 
@@ -606,55 +636,40 @@ int MovingGrids::getRigidBodyAddedDampingTensors( const int bodyNumber, RealArra
     printF("--MVG--getRigidBodyAddedDampingTensors:WARNING dt<=0 !! using dn from grid instead.\n");
   }
   
-  if( scaleAddedDampingWithDt && dt>0. )
-  {
-    // added damping uses dn = sqrt( nu*dt )
-    dn = sqrt( nu*dt );
+  // --- Compute the minimum grid spacing in the normal direction ---
 
-    printF("--MVG--getRigidBodyAddedDampingTensors: body=%i, dt=%9.2e, nu=%8.2e, -- setting dn=sqrt(nu*dt)=%8.2e\n",
-	   bodyNumber,dt,nu,dn);
+  real minGridSpacing=REAL_MAX;  // holds min-grid-spacing
+  assert( integrate!=NULL );
+  const int numberOfFaces=integrate->numberOfFacesOnASurface(bodyNumber);
+  for( int face=0; face<numberOfFaces; face++ )
+  {
+    int side=-1,axis,grid;
+    integrate->getFace(bodyNumber,face,side,axis,grid);
+    assert( side>=0 && side<=1 && axis>=0 && axis<cg.numberOfDimensions());
+    assert( grid>=0 && grid<cg.numberOfComponentGrids());
+
+    MappedGrid & c = cg[grid];
+    OV_GET_SERIAL_ARRAY(real,c.vertex(),xLocal);
+    Index Ib1,Ib2,Ib3, Ip1,Ip2,Ip3;
+    getBoundaryIndex(c.gridIndexRange(),side,axis,Ib1,Ib2,Ib3); // boundary line 
+    getGhostIndex(c.gridIndexRange(),side,axis,Ip1,Ip2,Ip3,-1); // first line in 
+
+    // Assume grid is nearly orthogonal -- we could check using the mask 
+    real dist=minGridSpacing;
+    if( numberOfDimensions==2 )
+      dist = sqrt( min(SQR(xLocal(Ip1,Ip2,Ip3,0)-xLocal(Ib1,Ib2,Ib3,0))+
+		       SQR(xLocal(Ip1,Ip2,Ip3,1)-xLocal(Ib1,Ib2,Ib3,1))) );
+    else
+      dist = sqrt( min(SQR(xLocal(Ip1,Ip2,Ip3,0)-xLocal(Ib1,Ib2,Ib3,0))+
+		       SQR(xLocal(Ip1,Ip2,Ip3,1)-xLocal(Ib1,Ib2,Ib3,1))+
+		       SQR(xLocal(Ip1,Ip2,Ip3,2)-xLocal(Ib1,Ib2,Ib3,2))) );
+    minGridSpacing=min(minGridSpacing,dist);
 
   }
-  else
-  {
-    // Compute the minimum grid spacing in the normal direction
-
-    const int numberOfDimensions = cg.numberOfDimensions();
-
-    // Compute the min grid spacing at the body surface 
-    real minGridSpacing=REAL_MAX;  // holds min-grid-spacing
-    assert( integrate!=NULL );
-    const int numberOfFaces=integrate->numberOfFacesOnASurface(bodyNumber);
-    for( int face=0; face<numberOfFaces; face++ )
-    {
-      int side=-1,axis,grid;
-      integrate->getFace(bodyNumber,face,side,axis,grid);
-      assert( side>=0 && side<=1 && axis>=0 && axis<cg.numberOfDimensions());
-      assert( grid>=0 && grid<cg.numberOfComponentGrids());
-
-      MappedGrid & c = cg[grid];
-      OV_GET_SERIAL_ARRAY(real,c.vertex(),xLocal);
-      Index Ib1,Ib2,Ib3, Ip1,Ip2,Ip3;
-      getBoundaryIndex(c.gridIndexRange(),side,axis,Ib1,Ib2,Ib3); // boundary line 
-      getGhostIndex(c.gridIndexRange(),side,axis,Ip1,Ip2,Ip3,-1); // first line in 
-
-      // Assume grid is nearly orthogonal -- we could check using the mask 
-      real dist=minGridSpacing;
-      if( numberOfDimensions==2 )
-	dist = sqrt( min(SQR(xLocal(Ip1,Ip2,Ip3,0)-xLocal(Ib1,Ib2,Ib3,0))+
-			 SQR(xLocal(Ip1,Ip2,Ip3,1)-xLocal(Ib1,Ib2,Ib3,1))) );
-      else
-	dist = sqrt( min(SQR(xLocal(Ip1,Ip2,Ip3,0)-xLocal(Ib1,Ib2,Ib3,0))+
-			 SQR(xLocal(Ip1,Ip2,Ip3,1)-xLocal(Ib1,Ib2,Ib3,1))+
-			 SQR(xLocal(Ip1,Ip2,Ip3,2)-xLocal(Ib1,Ib2,Ib3,2))) );
-      minGridSpacing=min(minGridSpacing,dist);
-
-    }
-    minGridSpacing=ParallelUtility::getMinValue(minGridSpacing);
-    dn=minGridSpacing;
-    printF("--MVG--getRigidBodyAddedDampingTensors: body=%i min-grid-spacing at boundary=%8.2e -- setting dn=%8.2e\n",
-	   bodyNumber,minGridSpacing,dn);
-  }
+  minGridSpacing=ParallelUtility::getMinValue(minGridSpacing);
+  dn=minGridSpacing;
+  printF("--MVG--getRigidBodyAddedDampingTensors: body=%i min-grid-spacing at boundary=%8.2e -- setting dn=%8.2e\n",
+	 bodyNumber,minGridSpacing,dn);
   
   // Given the grid spacing on the boundary we evaluate the integrals defining the added damping tensors 
 
@@ -666,8 +681,6 @@ int MovingGrids::getRigidBodyAddedDampingTensors( const int bodyNumber, RealArra
   // printF("--MVG--getRigidBodyAddedDampingTensors : body=%i, dn=%8.2e radius=%8.2e mu=%8.2e "
   //        "addedDampingCoefficient=%4.2f Dww=%8.2e\n",
   // 	 bodyNumber,dn,radius,mu,addedDampingCoefficient, DwwDisk);
-
-
 
   if( true )
   {
@@ -731,7 +744,7 @@ int MovingGrids::getRigidBodyAddedDampingTensors( const int bodyNumber, RealArra
 	yCrossT(Ib1,Ib2,Ib3) = ((xLocal(Ib1,Ib2,Ib3,0)-xCM(0))*normalLocal(Ib1,Ib2,Ib3,0) + 
 			        (xLocal(Ib1,Ib2,Ib3,1)-xCM(1))*normalLocal(Ib1,Ib2,Ib3,1) );
 
-	// -- save added mass matrix extries ( without mu/dn)  ---
+	// -- save added-damping matrix entries ( without mu/dn)  ---
         // if dn varied in space we could include the effect here: (?)
 
         //  Dvv =  Int (mu/dn)  tv tv^T ds 
@@ -791,13 +804,18 @@ int MovingGrids::getRigidBodyAddedDampingTensors( const int bodyNumber, RealArra
       integrate->surfaceIntegral(addedDampingCoeff,R,adc,bodyNumber);
       
       if( ma==0 )
+      {
         addedDampingTensors(0,0,vbc,vbc)=adc(0);                                 // Dvv(0,0)
+      }
+	
       else if( ma==1 )
       {
         addedDampingTensors(0,1,vbc,vbc)=addedDampingTensors(1,0,vbc,vbc)=adc(0);  // Dvv(0,1)=Dvv(1,0)
       }
       else if( ma==2 )
+      {
         addedDampingTensors(1,1,vbc,vbc)=adc(0);                                 // Dvv(1,1)
+      }
       else if( ma==3 )
       {
         addedDampingTensors(2,0,vbc,wbc)=addedDampingTensors(0,2,wbc,vbc)=adc(0);  // Dvw(2,0)=Dwv(0,2)
@@ -816,20 +834,37 @@ int MovingGrids::getRigidBodyAddedDampingTensors( const int bodyNumber, RealArra
 
     } // end for ma, loop over different added mass coefficients
     
+    // if( true )  // ****************** TEST ***************************************************** TEMP 
+    // {  
+    //   addedDampingTensors(0,0,vbc,vbc) *=2;
+    //   addedDampingTensors(1,1,vbc,vbc) *=2; 
+    // }
+    
+    if( false )  // ****************** TEST ***************************************************** TEMP 
+    {
+      printF("--TESTING--- zero all addedDampingTensors except for rotations...\n");
+      Range all;
+      addedDampingTensors(all,all,vbc,all)=0.;
+      addedDampingTensors(all,all,all,vbc)=0.;
+      
+    }
+    
     if( false )
     {
       // *** TESTING *** -- fill in all values 
       for( int i1=0; i1<3; i1++ )
-      for( int i2=0; i2<3; i2++ )
-      for( int i3=0; i3<2; i3++ )
-      for( int i4=0; i4<2; i4++ )
-	addedDampingTensors(i1,i2,i3,i4)= 1+ i1+3*(i2+3*(i3+2*i4));
+	for( int i2=0; i2<3; i2++ )
+	  for( int i3=0; i3<2; i3++ )
+	    for( int i4=0; i4<2; i4++ )
+	      addedDampingTensors(i1,i2,i3,i4)= 1+ i1+3*(i2+3*(i3+2*i4));
     }
     
-
     if( true  )
     {
-      body.displayAddedDampingTensors("--MVG--getRigidBodyAddedDampingTensors (Computed from surface integrals) :",t);
+      // -- temporarily set added-dampping tensors so we can print them out 
+      real addedDampingScaleFactor=1.;
+      body.setAddedDampingTensors( addedDampingTensors,t, addedDampingScaleFactor );
+      body.displayAddedDampingTensors("--MVG--getRigidBodyAddedDampingTensors (Computed from surface integrals, no scaling by mu/dn) :",t);
 
     }
     
@@ -839,27 +874,41 @@ int MovingGrids::getRigidBodyAddedDampingTensors( const int bodyNumber, RealArra
 
       const real DwwFromIntegral = addedDampingCoefficient*(mu/dn)*adc; 
       printF("--MVG--getRigidBodyAddedDampingTensors : body=%i, dn=%8.2e mu=%8.2e "
-	     "Dww=%12.5e (disk), adc=%12.5e adc/(2pi)=%12.5e DwwFromIntegral=%12.5e\n",
-	     bodyNumber,dn,mu, DwwDisk,adc,adc/twoPi,DwwFromIntegral);
+	     "scaled-Dww=%12.5e scaled-Dww/(2pi)=%12.5e, Dww=%12.5e (disk=%12.5e)\n",
+	     bodyNumber,dn,mu, adc,adc/twoPi, DwwFromIntegral, DwwDisk);
 
 
       // OV_ABORT("stop here for now");
     }
     
 
-  }
+  } // end if true 
   
 
-  // Scale the added damping tensors if dn does NOT depend on dt 
-  real scaleFactor=1;
-  if( !scaleAddedDampingWithDt )
-  {
-    scaleFactor=addedDampingCoefficient*(mu/dn);
-    addedDampingTensors *= scaleFactor;  // save true AD matrices if dn does not depend on dt
-  }
+  // --- Scale the added damping tensors by mu/dy ---
+  real addedDampingScaleFactor=addedDampingCoefficient*(mu/dn);
+  addedDampingTensors *= addedDampingScaleFactor;  // This may be adjusted below
+
+  // printF("--MVG--getRigidBodyAddedDampingTensors: INIT: addedDampingScaleFactor=%8.2e\n",addedDampingScaleFactor);
   
-  // Save the (scaled or un-scaled ) added damping tensors with the RigidBody: 
-  body.setAddedDampingTensors( addedDampingTensors,t, scaleFactor );
+
+  // Save the scaled added damping tensors with the RigidBody: 
+  body.setAddedDampingTensors( addedDampingTensors,t, addedDampingScaleFactor );
+
+  // Adjust the addedDampingTensors being returned if the scaling depends on dt 
+  if( scaleAddedDampingWithDt && dt>0.  )
+  {
+    const real dy = dn;
+    const real alpha = .5;  // Weight for Trapezoidal rule 
+    const real dnu = sqrt( nu*alpha*dt);
+    const real delta = dy/dnu;
+
+    const real scaleFactor = delta<.1 ? delta*(1-.5*delta) : 1 - exp(-delta); 
+    if( true || debug() & 4  )
+      printF("--MVG--getRigidBodyAddedDampingTensors: SCALING INITIAL added damping tensors "
+	     "by 1-exp(-delta) = %8.2e, (dy=%8.2e, dnu=%8.2e, delta=dy/dnu%8.2e)\n",scaleFactor,dy,dnu,delta);
+    addedDampingTensors *= scaleFactor; 
+  }
 
   return 0;
 }
@@ -947,12 +996,12 @@ getTimeStepForRigidBodies() const
 
 //! Return ramp value and derivatives
 /*!
-\verbatim
- cubic ramp [0,1] : ramp(t)=t*t*(3-2*t) = 3t^2 - 2t^3
-                     r'=6t*(1.-t)
- ramp(1)=1
-\endverbatim
- */
+  \verbatim
+  cubic ramp [0,1] : ramp(t)=t*t*(3-2*t) = 3t^2 - 2t^3
+  r'=6t*(1.-t)
+  ramp(1)=1
+  \endverbatim
+*/
 int MovingGrids::
 getRamp(real t, real rampInterval, real & ramp, real & rampSpeed, real & rampAcceleration )
 {
@@ -1061,8 +1110,8 @@ getPastTimeGrid( GridFunction & cgf  )
         
         if( debug() & 2 )
   	  printF("--MvG--:getPastTimeGrid: rotate grid: %s,  rotation rate =%e, center=(%e,%e,%e) ramp=[%8.2e,%8.2e,%8.2e]\n",
-	       (const char *)cg[grid].mapping().getName(Mapping::mappingName) ,
-	       moveParameters(6,grid),x0(0),x0(1),x0(2),rampNew,rampSpeed,rampAcceleration);
+		 (const char *)cg[grid].mapping().getName(Mapping::mappingName) ,
+		 moveParameters(6,grid),x0(0),x0(1),x0(2),rampNew,rampSpeed,rampAcceleration);
       
 	// shift to centre, rotate and shift back
 	transform.shift(-x0(0),-x0(1),-x0(2));
@@ -1084,10 +1133,10 @@ getPastTimeGrid( GridFunction & cgf  )
 	}
         else
 	{
-	    printF("MovingGrids::getPastTimeGrid::ERROR: can only rotate about the positive x, y or z-axis for now\n"
-                   " tangent=(%8.2e,%8.2e,%8.2e)\n"
-                   " rotation-point=(%8.2e,%8.2e,%8.2e)\n",tn(0),tn(1),tn(2),x0(0),x0(1),x0(2));
-	    OV_ABORT("Error");
+	  printF("MovingGrids::getPastTimeGrid::ERROR: can only rotate about the positive x, y or z-axis for now\n"
+		 " tangent=(%8.2e,%8.2e,%8.2e)\n"
+		 " rotation-point=(%8.2e,%8.2e,%8.2e)\n",tn(0),tn(1),tn(2),x0(0),x0(1),x0(2));
+	  OV_ABORT("Error");
 	}
 	transform.shift( x0(0), x0(1), x0(2));
       
@@ -1146,6 +1195,15 @@ getPastTimeGrid( GridFunction & cgf  )
 	}
 	
         body[b]->getRotationMatrix( pastTime,r );
+
+	if( true )
+	{
+	  printF("--MVG-- getPastGrid: transform rigid body: t0=%7.2e x1=xCM(t=0)=(%6.1e,%6.1e,%6.1e) pastTime=%7.2e"
+		  " x3=xCM(pastTime)-(%6.1e,%6.1e,%6.1e)\n",t0,x1(0),x1(1),x1(2),pastTime,x3(0),x3(1),x3(2),pastTime);
+          ::display(r,"rotation matrix at past time","%10.8f ");
+	}
+	
+
         transform.reset();
 
         transform.shift(-x1(0),-x1(1),-x1(2));   // move xCM(0) to the origin
@@ -1268,7 +1326,7 @@ initializeMovingGridTransforms( GridFunction & cgf3 )
           if( true )
 	  {
 	    const IntegerArray & d = cgf3.cg[grid].dimension();
-	    printF(" ***moveGrids: build transform: cfg3: grid=%i dimension=[%i,%i][%i,%i], t3=%9.3e\n",
+	    printF("--MVG--initMovingGridTrans: build transform: cfg3: grid=%i dimension=[%i,%i][%i,%i], t3=%9.3e\n",
                    grid,d(0,0),d(1,0),d(0,1),d(1,1),cgf3.t);
 	  }
 	  
@@ -1338,8 +1396,8 @@ moveGrids(const real & t1,
   
 
   if( debug() & 2 )
-     fprintf(parameters.dbase.get<FILE* >("moveFile"),"\n****moveGrids: start *** movingGridProblem=%i\n",
-             (int)movingGridProblem);
+    fprintf(parameters.dbase.get<FILE* >("moveFile"),"\n****moveGrids: start *** movingGridProblem=%i\n",
+	    (int)movingGridProblem);
 
   if( !movingGridProblem )
     return 0;
@@ -1591,8 +1649,8 @@ moveGrids(const real & t1,
         
         if( debug() & 2 )
   	  printF("moveGrids: rotate grid: %s,  rotation rate =%e, center=(%e,%e,%e) ramp=[%8.2e,%8.2e,%8.2e]\n",
-	       (const char *)cgf3.cg[grid].mapping().getName(Mapping::mappingName) ,
-	       moveParameters(6,grid),x0(0),x0(1),x0(2),rampNew,rampSpeed,rampAcceleration);
+		 (const char *)cgf3.cg[grid].mapping().getName(Mapping::mappingName) ,
+		 moveParameters(6,grid),x0(0),x0(1),x0(2),rampNew,rampSpeed,rampAcceleration);
       
 	// shift to centre, rotate and shift back
 	transform.shift(-x0(0),-x0(1),-x0(2));
@@ -1614,10 +1672,10 @@ moveGrids(const real & t1,
 	}
         else
 	{
-	    printF("MovingGrids::moveGrids:ERROR: can only rotate about the positive x, y or z-axis for now\n"
-                   " tangent=(%8.2e,%8.2e,%8.2e)\n"
-                   " rotation-point=(%8.2e,%8.2e,%8.2e)\n",tn(0),tn(1),tn(2),x0(0),x0(1),x0(2));
-	    OV_ABORT("Error");
+	  printF("MovingGrids::moveGrids:ERROR: can only rotate about the positive x, y or z-axis for now\n"
+		 " tangent=(%8.2e,%8.2e,%8.2e)\n"
+		 " rotation-point=(%8.2e,%8.2e,%8.2e)\n",tn(0),tn(1),tn(2),x0(0),x0(1),x0(2));
+	  OV_ABORT("Error");
 	}
 	transform.shift( x0(0), x0(1), x0(2));
       
@@ -1673,7 +1731,7 @@ moveGrids(const real & t1,
         if( debug() & 2 )
 	{
           fprintf(parameters.dbase.get<FILE* >("moveFile"),"transform rigid body: t1=%7.2e x1=xCM(t=0)=(%6.1e,%6.1e,%6.1e) t3=%7.2e"
-             " x3=(%6.1e,%6.1e,%6.1e)\n",t1,x1(0),x1(1),x1(2),t3,x3(0),x3(1),x3(2));
+		  " x3=(%6.1e,%6.1e,%6.1e)\n",t1,x1(0),x1(1),x1(2),t3,x3(0),x3(1),x3(2));
 	}
 	
         body[b]->getRotationMatrix( t3,r );
@@ -1753,7 +1811,7 @@ moveGrids(const real & t1,
   }// end if numberOfDeformingGrids !=0
 
   // ..Done generating new component grids, now updateRefs in cg for ogen
-   cgf3.cg.updateReferences();
+  cgf3.cg.updateReferences();
 
   if( debug() & 8  )
     fprintf(parameters.dbase.get<FILE* >("moveFile"),"$$$$$ MovingGrids:moveGrids: getGridVelocity for cgf3 at t3=%7.4f\n",t3);
@@ -1795,6 +1853,19 @@ correctGrids(const real t1,
       correctionHasConverged = correctionHasConverged && deformingBodyList[b]->hasCorrectionConverged();
     }  
   }
+  
+  if( recomputeGridVelocityOnCorrection ) 
+  {
+    // --- re-compute the grid velocity ---// *new* *wdh* July 5, 2016
+
+    printF("--MVG--correctGrids INFO : t=%9.3e Update the grid velocity!!! ***NEW***\n",cgf2.t);
+    
+    //  FORCE getGridVelocity to recompute the grid velocity by 
+    //     making sure cgf2.gridVelocityTime != cgf2.t
+    cgf2.gridVelocityTime=cgf2.t - 1.;  
+    getGridVelocity( cgf2,cgf2.t );
+  }
+  
   
 }
 
@@ -1868,11 +1939,11 @@ getForceOnRigidBodies( RealArray & force, RealArray & torque, GridFunction & gf0
       OV_GET_SERIAL_ARRAY(real,c.vertex(),vertexLocal);
       OV_GET_SERIAL_ARRAY(real,stress[grid],stressLocal);
       OV_GET_SERIAL_ARRAY(int,c.mask(),maskLocal);
-      #ifdef USE_PPP
-        realSerialArray & normalLocal = c.vertexBoundaryNormalArray(side,axis);
-      #else
-        realSerialArray & normalLocal = c.vertexBoundaryNormal(side,axis);
-      #endif
+#ifdef USE_PPP
+      realSerialArray & normalLocal = c.vertexBoundaryNormalArray(side,axis);
+#else
+      realSerialArray & normalLocal = c.vertexBoundaryNormal(side,axis);
+#endif
 
       getBoundaryIndex(c.gridIndexRange(),side,axis,Ib1,Ib2,Ib3,extraInTangential);
       int includeGhost=1;
@@ -2030,8 +2101,8 @@ getGridVelocity( GridFunction & gf0, const real & tGV )
     MappedGrid & c = gf0.cg[grid];
     
     if( debug() & 4 )
-       printF(" MovingGrids::getGridVelocity grid=%i movingGrid=%i, moveOption=%i\n",
-            grid,movingGrid(grid),moveOption(grid));
+      printF(" MovingGrids::getGridVelocity grid=%i movingGrid=%i, moveOption=%i\n",
+	     grid,movingGrid(grid),moveOption(grid));
     
     if( movingGrid(grid) )
     {
@@ -2047,13 +2118,13 @@ getGridVelocity( GridFunction & gf0, const real & tGV )
 	c.update(MappedGrid::THEvertex | MappedGrid::THEcenter );
       }
       
-      #ifdef USE_PPP
-        realSerialArray gridVelocity; getLocalArrayWithGhostBoundaries(gridVelocityd,gridVelocity);
-        realSerialArray vertex; if( centerNeeded ){ getLocalArrayWithGhostBoundaries(c.vertex(),vertex); } //  
-      #else
-        realSerialArray & gridVelocity = gridVelocityd;
-        realSerialArray & vertex = c.vertex();
-      #endif
+#ifdef USE_PPP
+      realSerialArray gridVelocity; getLocalArrayWithGhostBoundaries(gridVelocityd,gridVelocity);
+      realSerialArray vertex; if( centerNeeded ){ getLocalArrayWithGhostBoundaries(c.vertex(),vertex); } //  
+#else
+      realSerialArray & gridVelocity = gridVelocityd;
+      realSerialArray & vertex = c.vertex();
+#endif
 	
 
       getIndex( c.dimension(),I1,I2,I3 );
@@ -2136,7 +2207,7 @@ getGridVelocity( GridFunction & gf0, const real & tGV )
 
         if( debug() & 2 )
 	  fprintf(pDebugFile,"getGridVelocity for rotate at t=%e rampInterval=%e ramp=%e rampSpeed=%e\n",
-                    t0,rampInterval,ramp,rampSpeed);
+		  t0,rampInterval,ramp,rampSpeed);
 
         // NOTE: theta(t) = 2.*Pi*omega*ramp(t)*t 
 
@@ -2292,7 +2363,7 @@ getGridVelocity( GridFunction & gf0, const real & tGV )
 	  RealArray w(3);
 	  body[b]->getAngularVelocities( t0,w );
 	  fprintf(parameters.dbase.get<FILE* >("moveFile"),">>>MovingGrids::getGridVelocity: t=%8.2e, v=(%8.3e,%8.3e,%8.3e) "
-                      "w=(%6.2e,%6.2e,%6.2e) \n",t0,vCM(0),vCM(1),vCM(2),w(0),w(1),w(2));
+		  "w=(%6.2e,%6.2e,%6.2e) \n",t0,vCM(0),vCM(1),vCM(2),w(0),w(1),w(2));
 	}
 
 	for( int axis=axis1; axis<c.numberOfDimensions(); axis++ )
@@ -2337,18 +2408,18 @@ getGridVelocity( GridFunction & gf0, const real & tGV )
   //.. note that 'ForBoundary' uses c = link to gf0.cg[grid]
 #undef ForBoundary
 # define ForBoundary(side,axis)   for( axis=0; axis<c.numberOfDimensions(); axis++ ) \
-                                  for( side=0; side<=1; side++ )
+    for( side=0; side<=1; side++ )
 
   for( grid=0; grid < gf0.cg.numberOfComponentGrids(); grid++ )
   {
     MappedGrid & c = gf0.cg[grid];
     //RealArray & gridVelocity = gf0.gridVelocity[grid];  OLD WAY **pf
     realArray & gridVelocity = gf0.getGridVelocity(grid);
-    #ifdef USE_PPP
-      realSerialArray gridVelocityLocal; getLocalArrayWithGhostBoundaries(gridVelocity,gridVelocityLocal);
-    #else
-      realSerialArray & gridVelocityLocal=gridVelocity;
-    #endif
+#ifdef USE_PPP
+    realSerialArray gridVelocityLocal; getLocalArrayWithGhostBoundaries(gridVelocity,gridVelocityLocal);
+#else
+    realSerialArray & gridVelocityLocal=gridVelocity;
+#endif
 
     if (movingGrid(grid))
     {
@@ -2446,45 +2517,45 @@ getGridVelocity( GridFunction & gf0, const real & tGV )
 //===========================================================================================
 int MovingGrids::
 gridAccelerationBC(const int grid, const int side, const int axis,
-                    const real t0,
-                    MappedGrid & c,
-                    realMappedGridFunction & u ,
-                    realMappedGridFunction & f ,
-                    realMappedGridFunction & gridVelocity ,
-                    realSerialArray & normal,
-                    const Index & J1,
-                    const Index & J2,
-                    const Index & J3,
-                    const Index & J1g,
-                    const Index & J2g,
-                    const Index & J3g
-                    )
+		   const real t0,
+		   MappedGrid & c,
+		   realMappedGridFunction & u ,
+		   realMappedGridFunction & f ,
+		   realMappedGridFunction & gridVelocity ,
+		   realSerialArray & normal,
+		   const Index & J1,
+		   const Index & J2,
+		   const Index & J3,
+		   const Index & J1g,
+		   const Index & J2g,
+		   const Index & J3g
+  )
 {
   if( !movingGrid(grid) )
     return 0;
 
   assert( isInitialized );
 
-  #ifdef USE_PPP
-    realSerialArray vertex; getLocalArrayWithGhostBoundaries(c.vertex(),vertex);
-    realSerialArray uLocal; getLocalArrayWithGhostBoundaries(u,uLocal);
-    realSerialArray fLocal; getLocalArrayWithGhostBoundaries(f,fLocal);
-    // intSerialArray  maskLocal;   getLocalArrayWithGhostBoundaries(mask,maskLocal);
-    Index I1=J1,   I2=J2,   I3=J3;
-    Index I1g=J1g, I2g=J2g, I3g=J3g;
-    int includeGhost=1;
-    bool ok = ParallelUtility::getLocalArrayBounds(u,uLocal,I1,I2,I3,includeGhost);
-    ok = ParallelUtility::getLocalArrayBounds(u,uLocal,I1g,I2g,I3g,includeGhost);
-    if( !ok ) return 0;
+#ifdef USE_PPP
+  realSerialArray vertex; getLocalArrayWithGhostBoundaries(c.vertex(),vertex);
+  realSerialArray uLocal; getLocalArrayWithGhostBoundaries(u,uLocal);
+  realSerialArray fLocal; getLocalArrayWithGhostBoundaries(f,fLocal);
+  // intSerialArray  maskLocal;   getLocalArrayWithGhostBoundaries(mask,maskLocal);
+  Index I1=J1,   I2=J2,   I3=J3;
+  Index I1g=J1g, I2g=J2g, I3g=J3g;
+  int includeGhost=1;
+  bool ok = ParallelUtility::getLocalArrayBounds(u,uLocal,I1,I2,I3,includeGhost);
+  ok = ParallelUtility::getLocalArrayBounds(u,uLocal,I1g,I2g,I3g,includeGhost);
+  if( !ok ) return 0;
 
-  #else
-    const Index &I1=J1,   &I2=J2,   &I3=J3;
-    const Index &I1g=J1g, &I2g=J2g, &I3g=J3g;
-    realArray & vertex = c.vertex();
-    realArray & uLocal = u;
-    realArray & fLocal = f;
-    // intSerialArray & maskLocal = mask;
-  #endif
+#else
+  const Index &I1=J1,   &I2=J2,   &I3=J3;
+  const Index &I1g=J1g, &I2g=J2g, &I3g=J3g;
+  realArray & vertex = c.vertex();
+  realArray & uLocal = u;
+  realArray & fLocal = f;
+  // intSerialArray & maskLocal = mask;
+#endif
 
 
   if( moveOption(grid)==matrixMotion )
@@ -2517,13 +2588,13 @@ gridAccelerationBC(const int grid, const int side, const int axis,
     MatrixMapping::matrixMatrixProduct( rpri, rt, ri );
  
 
-#define matMotionAcceleration2d(I1,I2,I3,axis) \
-          ( ( rpri(axis,0)*(vertex(I1,I2,I3,0) - rMatrix(0,3))+ \
-	      rpri(axis,1)*(vertex(I1,I2,I3,1) - rMatrix(1,3)) ) + rt(axis,3) ) 
-#define matMotionAcceleration3d(I1,I2,I3,axis) \
-          ( ( rpri(axis,0)*(vertex(I1,I2,I3,0) - rMatrix(0,3))+ \
-	      rpri(axis,1)*(vertex(I1,I2,I3,1) - rMatrix(1,3))+  \
-	      rpri(axis,2)*(vertex(I1,I2,I3,2) - rMatrix(2,3)) ) + rt(axis,3) )
+#define matMotionAcceleration2d(I1,I2,I3,axis)				\
+    ( ( rpri(axis,0)*(vertex(I1,I2,I3,0) - rMatrix(0,3))+		\
+	rpri(axis,1)*(vertex(I1,I2,I3,1) - rMatrix(1,3)) ) + rt(axis,3) ) 
+#define matMotionAcceleration3d(I1,I2,I3,axis)				\
+    ( ( rpri(axis,0)*(vertex(I1,I2,I3,0) - rMatrix(0,3))+		\
+	rpri(axis,1)*(vertex(I1,I2,I3,1) - rMatrix(1,3))+		\
+	rpri(axis,2)*(vertex(I1,I2,I3,2) - rMatrix(2,3)) ) + rt(axis,3) )
 
     if( c.numberOfDimensions()==2 )
     {
@@ -2587,7 +2658,7 @@ gridAccelerationBC(const int grid, const int side, const int axis,
       if( angularAcceleration!=0. )
       {
 	fLocal(I1g,I2g,I3g)-=(normal(I1,I2,I3,0)*(vertex(I1,I2,I3,1)-x0(1))+
-			     normal(I1,I2,I3,1)*(x0(0)-vertex(I1,I2,I3,0)))*angularAcceleration;
+			      normal(I1,I2,I3,1)*(x0(0)-vertex(I1,I2,I3,0)))*angularAcceleration;
       }
     }
     else 
@@ -2654,9 +2725,9 @@ gridAccelerationBC(const int grid, const int side, const int axis,
   }
   else if( moveOption(grid)==oscillate )
   {
-     // x(t) = (1-cos([t-tOrigin]*omega)))*amplitude
-     // x_t = omega*sin([t-tOrigin]*omega)*amplitude
-     // x_tt = omega*omega*cos([t-tOrigin]*omega)*amplitude
+    // x(t) = (1-cos([t-tOrigin]*omega)))*amplitude
+    // x_t = omega*sin([t-tOrigin]*omega)*amplitude
+    // x_tt = omega*omega*cos([t-tOrigin]*omega)*amplitude
 
     const RealArray & vector = moveParameters(Range(0,2),grid); // tangent
     const real omega = moveParameters(3,grid)*2.*Pi;        // oscillation rate
@@ -2695,33 +2766,34 @@ gridAccelerationBC(const int grid, const int side, const int axis,
     assert( b>=0 && b<numberOfRigidBodies );
 
     body[b]->getPosition( t0,xCM  );
-    body[b]->getAcceleration( t0,aCM  );
-    // total acceleration is
-    //    a =    aCM + R'' R^{-1} (x-xCM)
-    body[b]->getPointTransformationMatrix( t0,Overture::nullRealArray(),rttri ); 
 
-    if( parameters.dbase.get<bool>("printMovingBodyInfo") || debug() & 2 )
-    {
-      RealArray vCM(3),w(3);
-      body[b]->getVelocity( t0,vCM  );
-      body[b]->getAngularVelocities( t0,w );
-      if( c.numberOfDimensions()==2 )
-	printF("--MVG--::gridAccelBC: t0=%9.2e, xCM=(%9.2e,%9.2e), vCM=(%9.2e,%9.2e), aCM=(%9.2e,%9.2e), "
-               "wCM=(0,0,%9.2e) \n",
-	       t0,xCM(0),xCM(1),vCM(0),vCM(1),aCM(0),aCM(1),w(2));
-      else
-	printF("--MVG--::gridAccelBC: t0=%9.2e, vCM=(%9.2e,%9.2e,%9.2e), aCM=(%9.2e,%9.2e,%9.2e), wCM=(%9.2e,%9.2e,%9.2e) \n",
-	       t0,vCM(0),vCM(1),vCM(2),aCM(0),aCM(1),aCM(2),w(0),w(1),w(2));
-    }
-        
+    // -- these are done below now *wdh* June 4, 2016
+    // body[b]->getAcceleration( t0,aCM  );
+    // // total acceleration is
+    // //    a =    aCM + R'' R^{-1} (x-xCM)
+    // body[b]->getPointTransformationMatrix( t0,Overture::nullRealArray(),rttri ); 
+
     // directProjectionAddedMass: if true, we are using the direct projection scheme 
     const bool directProjectionAddedMass = body[b]->getDirectProjectionAddedMass();
-    if( directProjectionAddedMass )
+    if( !directProjectionAddedMass )
+    {
+      // --- Normal case ---
+      // --- not directProjection added-mass ---
+
+      // total acceleration is
+      //    a =    aCM + R'' R^{-1} (x-xCM)
+      body[b]->getAcceleration( t0,aCM  );
+
+      //  rttri =  R'' R^{-1} (x-xCM)
+      body[b]->getPointTransformationMatrix( t0,Overture::nullRealArray(),rttri ); 
+
+    }
+    else
     {
       // Direct-projection AMP scheme: do NOT include the acceleration terms as these are 
       // incorporated into the pressure BC
 
-      if( TRUE )
+      if( TRUE ) // This can be turned off I think 
       {
 	// TEMPORARY FUDGE
 	// RealArray bodyForce(3), bodyTorque(3);
@@ -2778,23 +2850,57 @@ gridAccelerationBC(const int grid, const int side, const int axis,
 	  printF("--MVG--  gravity=(%9.2e,%9.2e,%9.2e) fluidMass=%9.3e bodyMass=%9.3e Buoyancy=(%9.2e,%9.2e,%9.2e)\n",
 		 gravity[0],gravity[1],gravity[2],fluidMass,bodyMass, aCM(0),aCM(1),aCM(2));
       
-	// **FIX ME** also zero out angular acceleration **
-      }
+      } // end if true
+      
+
+      // In the direct-projection case we replace 
+      //      rttri =  R'' R^{-1} (x-xCM) = [ omegaDot X] + [omega X][omega X]
+      //    by
+      //      rttri =  [omega X][omega X] = rDotRt*rDotRt
+      // rDotRt = R' R^T = matrix representing [omega X ]
+      // -- added June 4, 2016 *wdh*
+      RealArray rDotRt(3,3);
+      body[b]->getPointTransformationMatrix( t0,rDotRt ); 
+      rttri = RigidBodyMotion::mult(rDotRt,rDotRt);  
+
       if( TRUE )
       {
         // --- do this for now --- (later: no need to evaluate RB values at all)
 	aCM=0.;
-	rttri=0.;
+	// rttri=0.;
       }
       
+    } // end if direct projection
+    
+    
+    if( parameters.dbase.get<bool>("printMovingBodyInfo") || debug() & 2 )
+    {
+      RealArray vCM(3),w(3);
+      body[b]->getVelocity( t0,vCM  );
+      body[b]->getAngularVelocities( t0,w );
+      if( c.numberOfDimensions()==2 )
+	printF("--MVG--::gridAccelBC: t0=%9.2e, xCM=(%9.2e,%9.2e), vCM=(%9.2e,%9.2e), aCM=(%9.2e,%9.2e), "
+               "wCM=(0,0,%9.2e) \n",
+	       t0,xCM(0),xCM(1),vCM(0),vCM(1),aCM(0),aCM(1),w(2));
+      else
+	printF("--MVG--::gridAccelBC: t0=%9.2e, vCM=(%9.2e,%9.2e,%9.2e), aCM=(%9.2e,%9.2e,%9.2e), wCM=(%9.2e,%9.2e,%9.2e) \n",
+	       t0,vCM(0),vCM(1),vCM(2),aCM(0),aCM(1),aCM(2),w(0),w(1),w(2));
     }
+        
 
     if( c.numberOfDimensions()==2 )
     {
+      // For testing -- turn off nu*Delta v 
+      // if( TRUE ) 
+      // {
+      // 	fLocal(I1g,I2g,I3g)=0.; // ZERO OUT nu*Delta(v) term in BC  
+      // }
+
       fLocal(I1g,I2g,I3g)-=(normal(I1,I2,I3,0)*(aCM(0) +(rttri(0,0)*(vertex(I1,I2,I3,0)-xCM(0))+
-			 			         rttri(0,1)*(vertex(I1,I2,I3,1)-xCM(1))))+
-                            normal(I1,I2,I3,1)*(aCM(1) +(rttri(1,0)*(vertex(I1,I2,I3,0)-xCM(0))+
+							 rttri(0,1)*(vertex(I1,I2,I3,1)-xCM(1))))+
+			    normal(I1,I2,I3,1)*(aCM(1) +(rttri(1,0)*(vertex(I1,I2,I3,0)-xCM(0))+
 						         rttri(1,1)*(vertex(I1,I2,I3,1)-xCM(1)))));
+      
       if( debug() & 8 )
       {
 	RealArray abc(I1,I2,I3);
@@ -4513,6 +4619,10 @@ get( const GenericDataBase & dir, const aString & name)
     {
       body[b] = new RigidBodyMotion();
       body[b]->get(subDir,sPrintF("rigidBody%i",b));
+
+      body[b]->setBodyNumber( b );
+      body[b]->setParameters( parameters );
+      
     }
   }
   
@@ -5080,12 +5190,14 @@ update( CompositeGrid & cg, GenericGraphicsInterface & gi )
     aString tbCommands[] = {"use hybrid grid for surface integrals",
                             "improve quality of interpolation",
                             "print moving body info",
+                            "recompute grid velocity on correction",
 			    // "limit forces",
     			    ""};
     int tbState[10];
     tbState[0] = useHybridGridsForSurfaceIntegrals;
     tbState[1] = improveQualityOfInterpolation;
     tbState[2] = printMovingBodyInfo;
+    tbState[3] = recomputeGridVelocityOnCorrection;
     
     int numColumns=1;
     dialog.setToggleButtons(tbCommands, tbCommands, tbState, numColumns); 
@@ -5326,11 +5438,12 @@ update( CompositeGrid & cg, GenericGraphicsInterface & gi )
     {
       movingGridOption=rigidBody;
 
-      if(numberOfRigidBodies==0 )
+      if(  numberOfRigidBodies==0 )
       { 
         // -- first rigid body : create an Integrate object, used to compute surface integrals --
 
 	body = new RigidBodyMotion* [cg.numberOfComponentGrids()];
+
         delete integrate;
         integrate = new Integrate(cg);
         aString & nameOfGridFile = parameters.dbase.get<aString>("nameOfGridFile");
@@ -5375,6 +5488,10 @@ update( CompositeGrid & cg, GenericGraphicsInterface & gi )
       }
 	
       body[numberOfRigidBodies]=new RigidBodyMotion( cg.numberOfDimensions());
+
+      body[numberOfRigidBodies]->setBodyNumber( numberOfRigidBodies );  // *wdh* May 30, 2016
+      body[numberOfRigidBodies]->setParameters( parameters );
+
 
       // set default initial conditions
       body[numberOfRigidBodies]->setInitialConditions(0.);
@@ -5542,6 +5659,13 @@ update( CompositeGrid & cg, GenericGraphicsInterface & gi )
       continue;   // skip choosing a grid below
     }
 
+    else if( dialog.getToggleValue(answer2,"recompute grid velocity on correction",recomputeGridVelocityOnCorrection) )
+    {
+      printF("--MVG-- recomputeGridVelocityOnCorrection%i : 1=recompute gridVelocity after each moving grid "
+             "correction step.\n", (int)recomputeGridVelocityOnCorrection);
+
+      continue;   // skip choosing a grid below
+    }
 
     else
     {

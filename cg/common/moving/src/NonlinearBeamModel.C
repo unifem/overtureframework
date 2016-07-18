@@ -8,14 +8,16 @@
 
 #include <sstream>
 
-RealArray 
-mult( const RealArray & a, const RealArray & b );
+// Matrix-matrix multiple routine "mult" is now here: 
+#include "RigidBodyMotion.h" 
+// RealArray 
+// mult( const RealArray & a, const RealArray & b );
 
-RealArray 
-trans( const RealArray &a );
+// RealArray 
+// trans( const RealArray &a );
 
-RealArray 
-solve( const RealArray & a, const RealArray & b );
+// RealArray 
+// solve( const RealArray & a, const RealArray & b );
 
 void 
 printArray(const doubleSerialArray & u,  
@@ -140,22 +142,22 @@ static void solveBlockTridiagonal3(const RealArray& elementM, const RealArray& f
   for (int i = 0; i < numElem; ++i) {
 
     inverse3x3(diagonal[i], inv);
-    superdiagonal[i] = mult(inv, superdiagonal[i]);
-    u(i3x3) = mult(inv, u(i3x3) );
-    u(i3x3+3) -= mult(subdiagonal[i],u(i3x3));
-    diagonal[i+1] -= mult(subdiagonal[i],superdiagonal[i]);   
+    superdiagonal[i] = RigidBodyMotion::mult(inv, superdiagonal[i]);
+    u(i3x3) = RigidBodyMotion::mult(inv, u(i3x3) );
+    u(i3x3+3) -= RigidBodyMotion::mult(subdiagonal[i],u(i3x3));
+    diagonal[i+1] -= RigidBodyMotion::mult(subdiagonal[i],superdiagonal[i]);   
 
     i3x3 += 3;
   }
 
   inverse3x3(diagonal[numElem], inv);
-  u(i3x3) = mult(inv, u(i3x3) );
+  u(i3x3) = RigidBodyMotion::mult(inv, u(i3x3) );
   
   i3x3 -= 3;
 
   for (int i = numElem-1; i >= 0; --i) {
 
-    u(i3x3) -= mult(superdiagonal[i], u(i3x3+3));
+    u(i3x3) -= RigidBodyMotion::mult(superdiagonal[i], u(i3x3+3));
 
     i3x3 -= 3;
   }

@@ -3,7 +3,8 @@
 #
 # Usage:
 #    cgmx [-noplot] interface -g=<name> -tf=<tFinal> -tp=<tPlot> -cfl=<> -diss=<> -eps1=<> -eps2=<> -ic=<> ...
-#                   -bc=<> -useNewInterface=[0|1] -method=[nfdtd|Yee] -errorNorm=[0|1|2] 
+#                   -bc=[abcEM2|rbcNonLocal|abcPML|perfectElectricalConductor|symmetry] ...
+#                   -useNewInterface=[0|1] -method=[nfdtd|Yee] -errorNorm=[0|1|2] -interfaceIts=<i>
 # 
 # Examples:
 # 
@@ -76,14 +77,15 @@
 #  
 # -- set default values for parameters ---
 $kx=2; $ky=0; $kz=0; $left="leftSquare*"; $right="rightSquare*"; $degreex=2; $degreet=2; $method="NFDTD"; $tz="poly";
-$tFinal=5.; $tPlot=.2; $cfl=.9; $show=" "; $interfaceIts=30; $debug=0; $diss=.1; $dissOrder=-1;
-$useNewInterface=1; $errorNorm=0; $interfaceEquationOption=1; $interfaceOmega=1.;
+$tFinal=5.; $tPlot=.2; $cfl=.9; $show=" "; $interfaceIts=3; $debug=0; $diss=.1; $dissOrder=-1;
+$useNewInterface=1; $errorNorm=0; $interfaceEquationOption=1; $interfaceOmega=.7; $setDivergenceAtInterfaces=0; 
+$useImpedanceInterfaceProjection=1; 
 $eps1=1.; $mu1=1.;
 $eps2=1.; $mu2=1.;
 $ax=0.; $ay=0.; $az=0.; # plane wave coeffs. all zero -> use default
-$ic = "zeroInitialCondition";
+$ic = "zeroInitialCondition"; $bc1=""; $bc2=""; $bc3=""; $bc4=""; $bc5=""; $bc6=""; $bc7=""; $bc8=""; 
 $pmic = "planeMaterialInterfaceInitialCondition";
-$bc = "all=perfectElectricalConductor";
+$bc = "perfectElectricalConductor";
 $interfaceNormal = "1. 0. 0.";
 $interfacePoint = ".0 0. 0.";
 $tz = "*"; $go="halt";
@@ -98,57 +100,21 @@ GetOptions("bc=s"=>\$bc,"cfl=f"=>\$cfl,"debug=i"=>\$debug,"diss=f"=>\$diss,"eps1
            "ip=s"=>\$interfacePoint,"in=s"=>\$interfaceNormal,"ax=f"=>\$ax,"ay=f"=>\$ay,"az=f"=>\$az,\
            "left=s"=>\$left,"right=s"=>\$right,"restart=s"=>\$restart,"interfaceIts=i"=>\$interfaceIts,\
            "show=s"=>\$show,"tf=f"=>\$tFinal,"tp=f"=>\$tPlot,"tz=s"=>\$tz,"useNewInterface=i"=>\$useNewInterface,\
-           "interfaceEquationOption=i"=>\$interfaceEquationOption,"interfaceOmega=f"=>\$interfaceOmega,"tz=s"=>\$tz);
+           "interfaceEquationOption=i"=>\$interfaceEquationOption,"interfaceOmega=f"=>\$interfaceOmega,"tz=s"=>\$tz,\
+           "bc1=s"=>\$bc1,"bc2=s"=>\$bc2,"bc3=s"=>\$bc3,"bc4=s"=>\$bc4,"bc5=s"=>\$bc5,"bc6=s"=>\$bc6,\
+           "bc7=s"=>\$bc7,"bc8=s"=>\$bc8,"setDivergenceAtInterfaces=s"=>\$setDivergenceAtInterfaces,\
+           "useImpedanceInterfaceProjection=s"=>\$useImpedanceInterfaceProjection);
 # -------------------------------------------------------------------------------------------------
 if( $go eq "halt" ){ $go = "break"; }
 if( $go eq "og" ){ $go = "open graphics"; }
 if( $go eq "run" || $go eq "go" ){ $go = "movie mode\n finish"; }
 if( $ic eq "pmic" ){ $ic="planeMaterialInterfaceInitialCondition"; }
 if( $ic eq "tz" ){ $ic="twilightZone"; }
-if( $bc eq "d" ){ $bc="all=dirichlet"; }
+if( $bc eq "d" ){ $bc="dirichlet"; }
 if( $tz eq "poly" ){ $tz="polynomial"; }
 if( $tz eq "trig" ){ $tz="trigonometric"; }
 if( $method eq "sosup" ){ $diss=0.; }
 # 
-#
-# **** sixth order ***
-#  $ts16  ="twoSquaresInterface1.order6.hdf"; 
-#  $ts26  ="twoSquaresInterface2.order6.hdf"; 
-#  $ts46  ="twoSquaresInterface4.order6.hdf"; 
-#  $ts26s ="twoSquaresInterface2s.order6.hdf"; 
-#  $ts46s ="twoSquaresInterface4s.order6.hdf"; 
-#  $ts86s ="twoSquaresInterface8s.order6.hdf"; 
-#
-# $gridName=$ts16; $tz="twilightZone"; $tPlot=.01; $bc="all=dirichlet"; $eps2=1.; $debug=1; $diss=0.
-# $gridName=$ts26; $kx=1.; $ky=0.; $tPlot=.01; $eps2=4.; $ic=$pmic; $bc="all=dirichlet"; $debug=0; $diss=0.
-# $gridName=$ts46; $kx=1.; $ky=0.; $tPlot=.01; $eps2=4.; $ic=$pmic; $bc="all=dirichlet"; $debug=1; $diss=.2;
-# $gridName=$ts26s; $kx=1.; $ky=0.; $tPlot=.01; $eps2=4.; $ic=$pmic; $bc="all=dirichlet"; $debug=1; $diss=.2;
-# $gridName=$ts46s; $kx=1.; $ky=0.; $tPlot=.01; $eps2=4.; $ic=$pmic; $bc="all=dirichlet"; $debug=1; $diss=.2;
-# $gridName=$ts86s; $kx=1.; $ky=1.; $tPlot=.01; $eps2=4.; $ic=$pmic; $bc="all=dirichlet"; $debug=0; $diss=.2;
-#
-# square aspect ratio:
-#
-#*****
-# $gridName="twoSquaresInterface4s.hdf"; $kx=1.; $ky=0.; $debug=0; $tPlot=.01; $eps2=4.; $ic=$pmic; $bc="all=dirichlet";
-# $gridName="twoSquaresInterface8s.hdf"; $kx=1.; $ky=1.; $tPlot=.1; $eps2=4.; $ic=$pmic;  $bc="all=dirichlet";
-# $gridName="twoSquaresInterface16s.hdf"; $kx=1.; $ky=1.; $tPlot=.5; $eps2=4.; $ic=$pmic;  $bc="all=dirichlet";
-#
-# $gridName="twoSquaresInterface2s.order4.hdf"; $kx=4.; $ky=4.; $tPlot=.5;
-# $gridName="twoSquaresInterface2s.order4.hdf"; $kx=1.; $ky=1.; $debug=1; $tPlot=.01; $eps2=4.; $ic=$pmic; $bc="all=dirichlet";
-#* $gridName="twoSquaresInterface4s.order4.hdf"; $kx=1.; $ky=1.; $debug=1; $tPlot=.01; $eps2=4.; $ic=$pmic; $bc="all=dirichlet";
-# $gridName="twoSquaresInterface8sp.order4.hdf"; $kx=2.; $ky=2.; $tFinal=500.; $tPlot=2.; $eps2=4.; $ic=$pmic; $bc="all=dirichlet"; $show=" "; 
-#* $gridName="twoSquaresInterface8sp.order4.hdf"; $kx=2.; $ky=2.; $tFinal=500.; $tPlot=50.; $eps2=4.; $ic=$pmic; $bc="all=dirichlet"; $show="twoSquaresInterface8sp.order4.show"; 
-#* $gridName="twoSquaresInterface8sp.order4.hdf"; $kx=2.; $ky=2.; $tFinal=500.; $tPlot=50.; $eps2=16.; $ic=$pmic; $bc="all=dirichlet"; $show="twoSquaresInterface8spEps16.order4.show"; 
-# $gridName="twoSquaresInterface8s.order4.hdf"; $kx=4.; $ky=4.; $tPlot=.5;
-#
-# $gridName="twoSquaresInterface4s.hdf"; $kx=1.; $ky=0.; $tPlot=.01; $debug=1; $eps2=1.; $ic=$pmic; $bc="all=dirichlet";
-# --- rotated
-# $gridName="twoSquaresInterface4s45.order4.hdf"; $kx=1.; $ky=1.; $debug=0; $tPlot=.5; $eps2=4.; $ic=$pmic; $bc="all=dirichlet"; $interfaceNormal = "1. 1. 0."; $interfacePoint="0. .5 0."; $diss=0.; 
-#   periodic BC's:
-# $gridName="twoSquaresInterface4s45p.order4.hdf"; $kx=1.; $ky=1.; $debug=0; $tFinal=500.; $tPlot=100.; $eps2=16.; $ic=$pmic; $bc="all=dirichlet"; $interfaceNormal = "1. 1. 0."; $interfacePoint="0. .5 0."; $diss=0.; $show="twoSquaresInterface4s45p.order4.show"; 
-#* $gridName="twoSquaresInterface8s45p.order4.hdf"; $kx=1.; $ky=1.; $debug=0; $tFinal=500.; $tPlot=10.; $eps2=16.; $ic=$pmic; $bc="all=dirichlet"; $interfaceNormal = "1. 1. 0."; $interfacePoint="0. .5 0."; $diss=0.; $show="twoSquaresInterface8s45p.order4.show"; $interfaceIts=60;
-# $gridName="twoSquaresInterface8s45p.order4.hdf"; $kx=1.; $ky=1.; $debug=0; $tFinal=500.; $tPlot=10.; $eps2=16.; $ic=$pmic; $bc="all=dirichlet"; $interfaceNormal = "1. 1. 0."; $interfacePoint="0. .5 0."; $diss=2.; $show="twoSquaresInterface8s45pDiss0p5.order4.show"; $interfaceIts=5;
-# $gridName="twoSquaresInterface4s90.order4.hdf"; $kx=1.; $ky=1.; $debug=0; $tPlot=.5; $eps2=4.; $ic=$pmic; $bc="all=dirichlet"; $interfaceNormal = "0. 1. 0."; $interfacePoint="0. .5 0.";
 #
 $grid
 #
@@ -162,6 +128,8 @@ kx,ky,kz $kx $ky $kz
 plane wave coefficients $ax $ay $az $eps1 $mu1
 #
 use new interface routines $useNewInterface
+set divergence at interfaces $setDivergenceAtInterfaces
+use impedance interface projection $useImpedanceInterfaceProjection
 # These next parameters define the exact solution for a material interface: 
 material interface point $interfacePoint
 material interface normal $interfaceNormal
@@ -172,14 +140,31 @@ $cmds="#";
 if( $method eq "Yee" ){ $cmds = "define embedded bodies\n plane material interface\n $interfaceNormal $interfacePoint\n $eps2 $mu2 0. 0. \nexit"; }
 $cmds 
 # ****************
-bc: $bc
+bc: all=$bc
 #** bc: all=dirichlet
 #* bc: leftSquare(0,0)=planeWaveBoundaryCondition
+# ****************
+if( $bc1 ne "" ){ $cmd="bc: bcNumber1=$bc1"; }else{ $cmd="#"; }
+$cmd
+if( $bc2 ne "" ){ $cmd="bc: bcNumber2=$bc2"; }else{ $cmd="#"; }
+$cmd
+if( $bc3 ne "" ){ $cmd="bc: bcNumber3=$bc3"; }else{ $cmd="#"; }
+$cmd
+if( $bc4 ne "" ){ $cmd="bc: bcNumber4=$bc4"; }else{ $cmd="#"; }
+$cmd
+if( $bc5 ne "" ){ $cmd="bc: bcNumber5=$bc5"; }else{ $cmd="#"; }
+$cmd
+if( $bc6 ne "" ){ $cmd="bc: bcNumber6=$bc6"; }else{ $cmd="#"; }
+$cmd
+if( $bc7 ne "" ){ $cmd="bc: bcNumber7=$bc7"; }else{ $cmd="#"; }
+$cmd
+if( $bc8 ne "" ){ $cmd="bc: bcNumber8=$bc8"; }else{ $cmd="#"; }
+$cmd
 # 
 $cmd="#";
 if( $method ne "Yee" ){ $cmd = \
-  "coefficients $eps1 1. $left* (eps,mu,grid-name)\n" . \
-  "coefficients $eps2 1. $right* (eps,mu,grid-name)\n"; }
+  "coefficients $eps1 1. leftDomain (eps,mu,grid-name)\n" . \
+  "coefficients $eps2 1. rightDomain (eps,mu,grid-name)\n"; }
 $cmd 
 #
 # option: 1=extrapolate as initial guess for material interface ghost values

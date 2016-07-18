@@ -388,6 +388,36 @@
 
 
 
+! -----------------------------------------------------------------------
+! Macro: utility macro to extrapolate 3 field values 
+! -----------------------------------------------------------------------
+
+! TEMP: 
+
+
+! u ## x43r(i1,i2,i3)=(8.*(u(i1+1,i2,i3)-u(i1-1,i2,i3))-(u(i1+2,i2,i3)-u(i1-2,i2,i3)))*dx ## 41(0)
+! u ## y43r(i1,i2,i3)=(8.*(u(i1,i2+1,i3)-u(i1,i2-1,i3))-(u(i1,i2+2,i3)-u(i1,i2-2,i3)))*dx ## 41(1)
+
+! Fourth-order first-derivative (Cartesian)
+
+! -------------------------------------------------------------------
+! Macro: Fixup the end values of the interface
+! DIM (input): number of dimensions (2 or 3)
+! GRIDTYPE (input) : curvilinear or rectangular
+!
+! This routine sets points near the corner (maybe A, B, C for 2D, order=2)
+!
+!           |    |    |    |
+!           G----+----+----+---
+!           |    |    |    |
+!           A----X----+----+---    X=corner-pt
+!           |    |    |    |
+!      E----C----B----G----G---    G=Ghost    
+!      |    |
+!      F----G     
+!--------------------------------------------------------------------
+
+
 ! This macro will assign the jump conditions on the boundary
 ! DIM (input): number of dimensions (2 or 3)
 ! GRIDTYPE (input) : curvilinear or rectangular
@@ -520,6 +550,72 @@
 
 
 
+
+! --------------------------------------------------------------------
+! Macro: Assign interface ghost values, DIM=2, ORDER=2, GRID=Rectangular
+! 
+! Here are the jump conditions
+!   [ u.x + v.y +w.z ] = 0
+!   [ u.xx + u.yy +u.zz ] = 0
+! 
+!   [ tau1.(w.y-v.z, u.z-w.x, v.x-u.y)/mu] = 0 
+!   [ (v.xx+v.yy+v.zz)/eps ] = 0
+! 
+!   [ tau2.(w.y-v.z, u.z-w.x, v.x-u.y)/mu] = 0 
+!   [ (w.xx+w.yy+w.zz)/eps ] = 0
+! ---------------------------------------------------------------------
+
+! --------------------------------------------------------------------------------------------
+! Macro: 
+! --------------------------------------------------------------------------------------------
+
+
+! --------------------------------------------------------------------
+! Macro: Assign interface ghost values, DIM=2, ORDER=2, GRID=Curvilinear
+! 
+! Here are the jump conditions
+!   [ u.x + v.y +w.z ] = 0
+!   [ u.xx + u.yy +u.zz ] = 0
+! 
+!   [ tau1.(w.y-v.z, u.z-w.x, v.x-u.y)/mu] = 0 
+!   [ (v.xx+v.yy+v.zz)/eps ] = 0
+! 
+!   [ tau2.(w.y-v.z, u.z-w.x, v.x-u.y)/mu] = 0 
+!   [ (w.xx+w.yy+w.zz)/eps ] = 0
+! ---------------------------------------------------------------------
+
+! --------------------------------------------------------------------------
+! Macro: 
+! --------------------------------------------------------------------------
+
+
+! --------------------------------------------------------------------------
+! Macro: Assign interface ghost values, DIM=2, ORDER=4, GRID=Rectangular
+! 
+! --------------------------------------------------------------------------
+
+! --------------------------------------------------------------------------
+! Macro: Evaluate the jump conditions in 2D, order=4
+! --------------------------------------------------------------------------
+
+! here are the macros from deriv.maple (file=derivMacros.h)
+
+
+
+
+
+
+
+
+
+
+
+! --------------------------------------------------------------------------
+! Macro: Assign interface ghost values, DIM=2, ORDER=4, GRID=Curvilinear
+! 
+! --------------------------------------------------------------------------
+
+
       subroutine interface3dMaxwell( nd, nd1a,nd1b,nd2a,nd2b,nd3a,nd3b,
      & gridIndexRange1, u1, mask1,rsxy1, xy1, boundaryCondition1, 
      & md1a,md1b,md2a,md2b,md3a,md3b,gridIndexRange2, u2, mask2,rsxy2,
@@ -555,7 +651,7 @@
       real xy2(md1a:md1b,md2a:md2b,md3a:md3b,0:nd-1)
       integer gridIndexRange2(0:1,0:2),boundaryCondition2(0:1,0:2)
 
-      integer ipar(0:*)
+      integer ipar(0:*),numberOfInterfaceIterationsUsed
       real rpar(0:*)
 
       ! work space arrays that must be saved from call to call:
@@ -571,12 +667,16 @@
      & axis2p1,axis2p2,nn,n1,n2,twilightZone
       real dx1(0:2),dr1(0:2),dx2(0:2),dr2(0:2)
 !      real dx(0:2),dr(0:2)
-      real t,ep,dt,eps1,mu1,c1,eps2,mu2,c2,epsmu1,epsmu2
+      real t,ep,dt,eps1,mu1,c1,eps2,mu2,c2,epsmu1,epsmu2,eta1,eta2,
+     & eta1i,eta2i
+      real absoluteErrorTolerance
       integer axisp1,axisp2,i1,i2,i3,is1,is2,is3,j1,j2,j3,js1,js2,js3,
-     & ks1,ks2,ks3,is,js,it,nit,k1,k2,k3
+     & ks1,ks2,ks3,is,js,it,nit,k1,k2,k3,i,j
+      integer ii1,ii2,ii3,numberOfIterations
       integer interfaceOption,interfaceEquationsOption,initialized,
      & forcingOption
-
+      integer assignInterfaceValues,assignInterfaceGhostValues,
+     & setDivergenceAtInterfaces
       integer numGhost,giveDiv
       integer nn1a,nn1b,nn2a,nn2b,nn3a,nn3b
       integer mm1a,mm1b,mm2a,mm2b,mm3a,mm3b
@@ -587,7 +687,7 @@
       real aLap0,aLap1,bLap0,bLap1,aLapX0,aLapX1,bLapY0,bLapY1,cLapX0,
      & cLapX1,dLapY0,dLapY1,aLapSq0,aLapSq1,bLapSq0,bLapSq1
       real a0,a1,b0,b1,cc0,cc1,d0,d1,dr0,ds0
-      real aNormSq,divu
+      real aNormSq,divu,dive
 
       real epsRatio,an1,an2,an3,aNorm,ua,ub,uc,nDotU
       real epsx
@@ -612,7 +712,7 @@
      & 0:11),q(0:11),f(0:11),rcond,work(0:11)
       integer ipvt(0:11)
 
-      real err
+      real err,errOld,errRatio,ratioAve
       integer debugFile,myid,parallel
       character*20 debugFileName
 
@@ -652,7 +752,7 @@
       real c2x,c2y,c2z
 
       ! these are for the exact solution from TZ flow: 
-      real ue,ve,we
+      real ue,ve,we, we0,we1,we2,we3
       real uex,uey,uez, vex,vey,vez, wex,wey,wez, hex,hey,hez
       real uexx,ueyy,uezz, vexx,veyy,vezz, wexx,weyy,wezz
       real ueLap, veLap, weLap
@@ -663,6 +763,14 @@
       real uexxxx,uexxyy,ueyyyy,ueLapSq
       real vexxxx,vexxyy,veyyyy,veLapSq
       real wexxxx,wexxyy,weyyyy,weLapSq
+
+      integer iv(0:2),ksv(0:2),sidea
+
+      ! for impedance projection 
+      integer useImpedanceInterfaceProjection
+      real  ex1,ey1,ez1, hz1, ex2,ey2,ez2, hz2, nDotE1, nDotE2, 
+     & epsNDotEI,  nDotEI, nDotE1I, nDotE2I
+      real  exI, eyI, ezI, hzI, g1,g2, nDotEe
 
       ! boundary conditions parameters
 ! define BC parameters for fortran routines
@@ -1683,7 +1791,17 @@
       myid                 =ipar(35)
       parallel             =ipar(36)
       forcingOption        =ipar(37)
-      interfaceEquationsOption=ipar(38)
+      interfaceEquationsOption  =ipar(38)
+      assignInterfaceValues     =ipar(39)
+      assignInterfaceGhostValues=ipar(40)
+      setDivergenceAtInterfaces =ipar(41)
+      ! *new* *wdh* June 28, 2016
+      !  useImpedanceInterfaceProjection=0: OLD way 
+      !  useImpedanceInterfaceProjection=1: new way using impedance weighting (see maxwell.pdf)
+      useImpedanceInterfaceProjection=ipar(42)
+      ! numberOfInterfaceIterationsUsed = ipar(43)  ! returned value 
+      ipar(43)=0
+
 
       dx1(0)                =rpar(0)
       dx1(1)                =rpar(1)
@@ -1708,11 +1826,20 @@
       eps2                 =rpar(18)
       mu2                  =rpar(19)
       c2                   =rpar(20)
+      ! rpar(22) : averageInterfaceConvergenceRate : return value 
+      ! rpar(23) : maxFinalResidual : return value 
+
+      eta1=sqrt(mu1/eps1) ! electrical impedance
+      eta2=sqrt(mu2/eps2) ! electrical impedance
+      eta1i=1./eta1
+      eta2i=1./eta2
 
       epsmu1=eps1*mu1
       epsmu2=eps2*mu2
 
       twilightZone=useForcing
+
+      absoluteErrorTolerance=1.e-10  ! fix me -- need a relative tol
 
       debugFile=10
       if( initialized.eq.0 .and. debug.gt.0 )then
@@ -1731,12 +1858,30 @@
         ! INQUIRE(FILE=filen, EXIST=filex)
       end if
 
-      if( t.lt.dt )then
+      if( .true. .and. t.le. 1.5*dt )then
+        write(*,'(" +++++++++cgmx interface3d t=",e9.2," dt=",e9.2," 
+     & nit=",i3," ++++++++")') t,dt,nit
+           ! '
+        write(*,'("  ... nd=",i2," gridType=",i2," order=",i2," 
+     & debug=",i3,", ex=",i2)') nd,gridType,orderOfAccuracy,debug,ex
+        write(*,'("  ... assignInterface=",i2," assignGhost=",i2)') 
+     & assignInterfaceValues,assignInterfaceGhostValues
+        write(*,'("  ... setDivergenceAtInterfaces=",i2)') 
+     & setDivergenceAtInterfaces
+        write(*,'("  ... useImpedanceInterfaceProjection=",i2)') 
+     & useImpedanceInterfaceProjection
+      end if
+
+      if( t.lt.1.5*dt )then
         write(debugFile,'(" +++++++++cgmx interface3d t=",e9.2," ++++++
      & ++")') t
            ! '
-        write(debugFile,'(" interface3d new: nd=",i2," gridType=",i2)')
-     &  nd,gridType
+        write(debugFile,'(" interface3d: nd=",i2," gridType=",i2)') nd,
+     & gridType
+        write(debugFile,'("  ... nd=",i2," gridType=",i2," order=",i2,
+     & " debug=",i3)') nd,gridType,orderOfAccuracy,debug
+        write(debugFile,'("  ... assignInterface=",i2," assignGhost=",
+     & i2)') assignInterfaceValues,assignInterfaceGhostValues
       end if
 
       if( abs(c1*c1-1./(mu1*eps1)).gt. 1.e-10 )then
@@ -1986,7 +2131,7 @@
         rz2=1.
       endif
 
-      if( debug.gt.3 )then
+      if( debug.gt.1 )then
         write(debugFile,'("nn1a,nn1b,...=",6i5)') nn1a,nn1b,nn2a,nn2b,
      & nn3a,nn3b
         write(debugFile,'("mm1a,mm1b,...=",6i5)') mm1a,mm1b,mm2a,mm2b,
@@ -2069,473 +2214,1043 @@
       if( nd.eq.2 .and. orderOfAccuracy.eq.2 .and. 
      & gridType.eq.rectangular )then
 
+         ! ************************************
+         ! ***** 2d rectangular 2nd-order *****
+         ! ************************************
 
-        if( useForcing.ne.0 )then
+
+        if( .false. .and. useForcing.ne.0 )then
           ! finish me 
           stop 7715
         end if
 
 
-       if( .false. )then
-        ! just copy values from ghost points for now
-         i3=n3a
-         j3=m3a
-         j2=m2a
-         do i2=n2a,n2b
-          j1=m1a
-          do i1=n1a,n1b
-           if( mask1(i1,i2,i3).gt.0 .and. mask2(j1,j2,j3).gt.0 )then
-          u1(i1-is1,i2-is2,i3,ex)=u2(j1+js1,j2+js2,j3,ex)
-          u1(i1-is1,i2-is2,i3,ey)=u2(j1+js1,j2+js2,j3,ey)
-          u1(i1-is1,i2-is2,i3,hz)=u2(j1+js1,j2+js2,j3,hz)
-           end if
-           j1=j1+1
-          end do
-          j2=j2+1
-         end do
-      else
+        !-  ! just copy values from ghost points for now
+        !-  beginLoopsMask2d()
+        !-    u1(i1-is1,i2-is2,i3,ex)=u2(j1+js1,j2+js2,j3,ex)
+        !-    u1(i1-is1,i2-is2,i3,ey)=u2(j1+js1,j2+js2,j3,ey)
+        !-    u1(i1-is1,i2-is2,i3,hz)=u2(j1+js1,j2+js2,j3,hz) 
+        !-  endLoopsMask2d()
 
         ! ---- first satisfy the jump conditions on the boundary --------
         !    [ eps n.u ] = 0
         !    [ tau.u ] = 0
-          if( eps1.lt.eps2 )then
-            epsRatio=eps1/eps2
-             i3=n3a
-             j3=m3a
-             j2=mm2a
-             do i2=nn2a,nn2b
-              j1=mm1a
-              do i1=nn1a,nn1b
-              ! if( mask1(i1,i2,i3).gt.0 .and. mask2(j1,j2,j3).gt.0 )then
-              ! *wdh* 2015/08/14 -- project interpolation points too
-              if( mask1(i1,i2,i3).ne.0 .and. mask2(j1,j2,j3).ne.0 )then
-              ! eps2 n.u2 = eps1 n.u1
-              !     tau.u2 = tau.u1
-               an1=an1Cartesian
-               an2=an2Cartesian
-              ua=u1(i1,i2,i3,ex)
-              ub=u1(i1,i2,i3,ey)
-              nDotU = an1*ua+an2*ub
-              if( twilightZone.eq.1 )then
-               ! adjust for TZ forcing (here we assume the exact solution is the same on both sides)
-               call ogderiv(ep, 0,0,0,0, xy1(i1,i2,i3,0),xy1(i1,i2,i3,
-     & 1),0.,t, ex, ue )
-               call ogderiv(ep, 0,0,0,0, xy1(i1,i2,i3,0),xy1(i1,i2,i3,
-     & 1),0.,t, ey, ve )
-               nDotU = nDotU - (an1*ue+an2*ve)
-              end if
-              ! u2 equals u1 but with normal component = eps1/eps2*(n.u1)
-              u2(j1,j2,j3,ex) = ua + (nDotU*epsRatio - nDotU)*an1
-              u2(j1,j2,j3,ey) = ub + (nDotU*epsRatio - nDotU)*an2
-              u2(j1,j2,j3,hz) = u1(i1,i2,i3,hz)
-               end if
-               j1=j1+1
-              end do
-              j2=j2+1
-             end do
-          else
-            epsRatio=eps2/eps1
-             i3=n3a
-             j3=m3a
-             j2=mm2a
-             do i2=nn2a,nn2b
-              j1=mm1a
-              do i1=nn1a,nn1b
-              ! if( mask1(i1,i2,i3).gt.0 .and. mask2(j1,j2,j3).gt.0 )then
-              ! *wdh* 2015/08/14 -- project interpolation points too
-              if( mask1(i1,i2,i3).ne.0 .and. mask2(j1,j2,j3).ne.0 )then
-              ! eps2 n.u2 = eps1 n.u1
-              !     tau.u2 = tau.u1
-               an1=an1Cartesian
-               an2=an2Cartesian
-              ua=u2(j1,j2,j3,ex)
-              ub=u2(j1,j2,j3,ey)
-              nDotU = an1*ua+an2*ub
-              if( twilightZone.eq.1 )then
-               ! adjust for TZ forcing (here we assume the exact solution is the same on both sides)
-               call ogderiv(ep, 0,0,0,0, xy1(i1,i2,i3,0),xy1(i1,i2,i3,
-     & 1),0.,t, ex, ue )
-               call ogderiv(ep, 0,0,0,0, xy1(i1,i2,i3,0),xy1(i1,i2,i3,
-     & 1),0.,t, ey, ve )
-        ! write(*,'(" jump: x,y=",2e10.2," ua,ue=",2e10.2," ub,ve=",2e10.2)') xy1(i1,i2,i3,0),xy1(i1,i2,i3,1),ua,ue,ub,ve
-               nDotU = nDotU - (an1*ue+an2*ve)
-              end if
-              u1(i1,i2,i3,ex) = ua + (nDotU*epsRatio - nDotU)*an1
-              u1(i1,i2,i3,ey) = ub + (nDotU*epsRatio - nDotU)*an2
-              u1(i1,i2,i3,hz) = u2(j1,j2,j3,hz)
-               end if
-               j1=j1+1
-              end do
-              j2=j2+1
-             end do
-          end if
+        if( assignInterfaceValues.eq.1 )then
+            if( useImpedanceInterfaceProjection.eq.1 )then
+              ! --------------------------------------------------------------
+              ! ------ Use impedance weighting to project the interface ------
+              ! --------------------------------------------------------------
+              !  (see maxwell.pdf)
+              !
+               i3=n3a
+               j3=m3a
+               j2=mm2a
+               do i2=nn2a,nn2b
+                j1=mm1a
+                do i1=nn1a,nn1b
+                ! if( mask1(i1,i2,i3).gt.0 .and. mask2(j1,j2,j3).gt.0 )then
+                ! *wdh* 2015/08/14 -- project interpolation points too
+                if( mask1(i1,i2,i3).ne.0 .and. mask2(j1,j2,j3).ne.0 )
+     & then
+                ! eps2 n.u2 = eps1 n.u1
+                !     tau.u2 = tau.u1
+                 an1=an1Cartesian
+                 an2=an2Cartesian
+                ! left state:
+                ex1=u1(i1,i2,i3,ex)
+                ey1=u1(i1,i2,i3,ey)
+                hz1=u1(i1,i2,i3,hz)
+                ! right state:
+                ex2=u2(j1,j2,j3,ex)
+                ey2=u2(j1,j2,j3,ey)
+                hz2=u2(j1,j2,j3,hz)
+                ! normal components 
+                nDotE1 = an1*ex1+an2*ey1
+                nDotE2 = an1*ex2+an2*ey2
+                ! The interface value of (eps n.E) is an impedance average of (eps* n.E)
+                !
+                !      (eps n.E)_I = [ eta1*( eps1*n.E1 ) +  eta2*( eps2*n.E2 ) ]/[ eta1 + eta2 ]
+                !
+                ! We then set 
+                !   eps1*nDotE1_I = (eps n.E)_I 
+                !   eps2*nDotE2_I = (eps n.E)_I 
+                epsNDotEI = ( eta1*(eps1*nDotE1) + eta2*(eps2*nDotE2) )
+     & /(eta1+eta2) ! (eps * n. E)_I
+                if( twilightZone.eq.1)then
+                 ! adjust for TZ forcing (here we assume the exact solution is the same on both sides)
+                 call ogderiv(ep, 0,0,0,0, xy1(i1,i2,i3,0),xy1(i1,i2,
+     & i3,1),0.,t, ex, ue )
+                 call ogderiv(ep, 0,0,0,0, xy1(i1,i2,i3,0),xy1(i1,i2,
+     & i3,1),0.,t, ey, ve )
+                 nDotEe = an1*ue+an2*ve
+                 ! epsNDotEI + g1 = eps1*nDotE 
+                 ! epsNDotEI + g2 = eps2*nDotE 
+                 g1= (eps1-eps2) * nDotEe *eta2/(eta1+eta2)
+                 g2= (eps2-eps1) * nDotEe *eta1/(eta1+eta2)
+                else
+                  g1=0.
+                  g2=0.
+                end if
+                nDotE1I = (epsNDotEI+g1)/eps1  ! nDotE for interface on left
+                nDotE2I = (epsNDotEI+g2)/eps2  ! nDotE for interface on right
+                ! inverse impedance average of tangential components  (do full vector and correct below)
+                exI = ( eta1i*ex1 + eta2i*ex2 )/( eta1i + eta2i )
+                eyI = ( eta1i*ey1 + eta2i*ey2 )/( eta1i + eta2i )
+                ! hz : impedance weighted average 
+                hzI = ( eta1*hz1 + eta2*hz2 )/(eta1+eta2)
+                nDotEI= an1*exI+an2*eyI  ! we need to subtract off normal component of (exI,eyI)
+                u1(i1,i2,i3,ex) = exI + (nDotE1I - nDotEI)*an1
+                u1(i1,i2,i3,ey) = eyI + (nDotE1I - nDotEI)*an2
+                u1(i1,i2,i3,hz) = hzI
+                u2(j1,j2,j3,ex) = exI + (nDotE2I - nDotEI)*an1
+                u2(j1,j2,j3,ey) = eyI + (nDotE2I - nDotEI)*an2
+                u2(j1,j2,j3,hz) = hzI
+                 end if
+                 j1=j1+1
+                end do
+                j2=j2+1
+               end do
+            else if( eps1.lt.eps2 )then
+              epsRatio=eps1/eps2
+               i3=n3a
+               j3=m3a
+               j2=mm2a
+               do i2=nn2a,nn2b
+                j1=mm1a
+                do i1=nn1a,nn1b
+                ! if( mask1(i1,i2,i3).gt.0 .and. mask2(j1,j2,j3).gt.0 )then
+                ! *wdh* 2015/08/14 -- project interpolation points too
+                if( mask1(i1,i2,i3).ne.0 .and. mask2(j1,j2,j3).ne.0 )
+     & then
+                ! eps2 n.u2 = eps1 n.u1
+                !     tau.u2 = tau.u1
+                 an1=an1Cartesian
+                 an2=an2Cartesian
+                ua=u1(i1,i2,i3,ex)
+                ub=u1(i1,i2,i3,ey)
+                nDotU = an1*ua+an2*ub
+                if( twilightZone.eq.1 )then
+                 ! adjust for TZ forcing (here we assume the exact solution is the same on both sides)
+                 call ogderiv(ep, 0,0,0,0, xy1(i1,i2,i3,0),xy1(i1,i2,
+     & i3,1),0.,t, ex, ue )
+                 call ogderiv(ep, 0,0,0,0, xy1(i1,i2,i3,0),xy1(i1,i2,
+     & i3,1),0.,t, ey, ve )
+                 nDotU = nDotU - (an1*ue+an2*ve)
+                end if
+                ! u2 equals u1 but with normal component = eps1/eps2*(n.u1)
+                u2(j1,j2,j3,ex) = ua + (nDotU*epsRatio - nDotU)*an1
+                u2(j1,j2,j3,ey) = ub + (nDotU*epsRatio - nDotU)*an2
+                u2(j1,j2,j3,hz) = u1(i1,i2,i3,hz)
+                 end if
+                 j1=j1+1
+                end do
+                j2=j2+1
+               end do
+            else
+              epsRatio=eps2/eps1
+               i3=n3a
+               j3=m3a
+               j2=mm2a
+               do i2=nn2a,nn2b
+                j1=mm1a
+                do i1=nn1a,nn1b
+                ! if( mask1(i1,i2,i3).gt.0 .and. mask2(j1,j2,j3).gt.0 )then
+                ! *wdh* 2015/08/14 -- project interpolation points too
+                if( mask1(i1,i2,i3).ne.0 .and. mask2(j1,j2,j3).ne.0 )
+     & then
+                ! eps2 n.u2 = eps1 n.u1
+                !     tau.u2 = tau.u1
+                 an1=an1Cartesian
+                 an2=an2Cartesian
+                ua=u2(j1,j2,j3,ex)
+                ub=u2(j1,j2,j3,ey)
+                nDotU = an1*ua+an2*ub
+                if( twilightZone.eq.1 )then
+                 ! adjust for TZ forcing (here we assume the exact solution is the same on both sides)
+                 call ogderiv(ep, 0,0,0,0, xy1(i1,i2,i3,0),xy1(i1,i2,
+     & i3,1),0.,t, ex, ue )
+                 call ogderiv(ep, 0,0,0,0, xy1(i1,i2,i3,0),xy1(i1,i2,
+     & i3,1),0.,t, ey, ve )
+          ! write(*,'(" jump: x,y=",2e10.2," ua,ue=",2e10.2," ub,ve=",2e10.2)') xy1(i1,i2,i3,0),xy1(i1,i2,i3,1),ua,ue,ub,ve
+                 nDotU = nDotU - (an1*ue+an2*ve)
+                end if
+                u1(i1,i2,i3,ex) = ua + (nDotU*epsRatio - nDotU)*an1
+                u1(i1,i2,i3,ey) = ub + (nDotU*epsRatio - nDotU)*an2
+                u1(i1,i2,i3,hz) = u2(j1,j2,j3,hz)
+                 end if
+                 j1=j1+1
+                end do
+                j2=j2+1
+               end do
+            end if
+        end if
 
         ! initialization step: assign first ghost line by extrapolation
-        ! NOTE: assign ghost points outside the ends
-        if( solveForE.ne.0 )then
-          i3=n3a
-          j3=m3a
-          j2=mm2a
-          do i2=nn2a,nn2b
-           j1=mm1a
-           do i1=nn1a,nn1b
-           u1(i1-is1,i2-is2,i3,ex)=(3.*u1(i1,i2,i3,ex)-3.*u1(i1+is1,i2+
-     & is2,i3+is3,ex)+u1(i1+2*is1,i2+2*is2,i3+2*is3,ex))
-           u1(i1-is1,i2-is2,i3,ey)=(3.*u1(i1,i2,i3,ey)-3.*u1(i1+is1,i2+
-     & is2,i3+is3,ey)+u1(i1+2*is1,i2+2*is2,i3+2*is3,ey))
-           u1(i1-is1,i2-is2,i3,hz)=(3.*u1(i1,i2,i3,hz)-3.*u1(i1+is1,i2+
-     & is2,i3+is3,hz)+u1(i1+2*is1,i2+2*is2,i3+2*is3,hz))
-            j1=j1+1
-           end do
-           j2=j2+1
-          end do
-        end if
-        if( solveForH .ne.0 )then
-          stop 3017
-        end if
-        ! here are the real jump conditions
-        !   [ u.x + v.y +w.z ] = 0
-        !   [ u.xx + u.yy +u.zz ] = 0
-        ! 
-        !   [ tau1.(w.y-v.z, u.z-w.x, v.x-u.y)/mu] = 0 
-        !   [ (v.xx+v.yy+v.zz)/eps ] = 0
-        ! 
-        !   [ tau2.(w.y-v.z, u.z-w.x, v.x-u.y)/mu] = 0 
-        !   [ (w.xx+w.yy+w.zz)/eps ] = 0
 
-         i3=n3a
-         j3=m3a
-         j2=m2a
-         do i2=n2a,n2b
-          j1=m1a
-          do i1=n1a,n1b
-           if( mask1(i1,i2,i3).gt.0 .and. mask2(j1,j2,j3).gt.0 )then
-         ! first evaluate the equations we want to solve with the wrong values at the ghost points:
+        ! NOTE: assign ghost points outside the ends (for periodic only??)
 
-           ! NOTE: the jacobian derivatives can be computed once for all components
-             uu1=u1(i1,i2,i3,ex) ! in the rectangular case just eval the solution
-              u1x = (-u1(i1-1,i2,i3,ex)+u1(i1+1,i2,i3,ex))/(2.*dx1(0))
-              u1y = (-u1(i1,i2-1,i3,ex)+u1(i1,i2+1,i3,ex))/(2.*dx1(1))
-              u1xx = (u1(i1-1,i2,i3,ex)-2.*u1(i1,i2,i3,ex)+u1(i1+1,i2,
-     & i3,ex))/(dx1(0)**2)
-              u1yy = (u1(i1,i2-1,i3,ex)-2.*u1(i1,i2,i3,ex)+u1(i1,i2+1,
-     & i3,ex))/(dx1(1)**2)
-            u1Lap = u1xx+ u1yy
-             vv1=u1(i1,i2,i3,ey) ! in the rectangular case just eval the solution
-              v1x = (-u1(i1-1,i2,i3,ey)+u1(i1+1,i2,i3,ey))/(2.*dx1(0))
-              v1y = (-u1(i1,i2-1,i3,ey)+u1(i1,i2+1,i3,ey))/(2.*dx1(1))
-              v1xx = (u1(i1-1,i2,i3,ey)-2.*u1(i1,i2,i3,ey)+u1(i1+1,i2,
-     & i3,ey))/(dx1(0)**2)
-              v1yy = (u1(i1,i2-1,i3,ey)-2.*u1(i1,i2,i3,ey)+u1(i1,i2+1,
-     & i3,ey))/(dx1(1)**2)
-            v1Lap = v1xx+ v1yy
-           ! NOTE: the jacobian derivatives can be computed once for all components
-             uu2=u2(j1,j2,j3,ex) ! in the rectangular case just eval the solution
-              u2x = (-u2(j1-1,j2,j3,ex)+u2(j1+1,j2,j3,ex))/(2.*dx2(0))
-              u2y = (-u2(j1,j2-1,j3,ex)+u2(j1,j2+1,j3,ex))/(2.*dx2(1))
-              u2xx = (u2(j1-1,j2,j3,ex)-2.*u2(j1,j2,j3,ex)+u2(j1+1,j2,
-     & j3,ex))/(dx2(0)**2)
-              u2yy = (u2(j1,j2-1,j3,ex)-2.*u2(j1,j2,j3,ex)+u2(j1,j2+1,
-     & j3,ex))/(dx2(1)**2)
-            u2Lap = u2xx+ u2yy
-             vv2=u2(j1,j2,j3,ey) ! in the rectangular case just eval the solution
-              v2x = (-u2(j1-1,j2,j3,ey)+u2(j1+1,j2,j3,ey))/(2.*dx2(0))
-              v2y = (-u2(j1,j2-1,j3,ey)+u2(j1,j2+1,j3,ey))/(2.*dx2(1))
-              v2xx = (u2(j1-1,j2,j3,ey)-2.*u2(j1,j2,j3,ey)+u2(j1+1,j2,
-     & j3,ey))/(dx2(0)**2)
-              v2yy = (u2(j1,j2-1,j3,ey)-2.*u2(j1,j2,j3,ey)+u2(j1,j2+1,
-     & j3,ey))/(dx2(1)**2)
-            v2Lap = v2xx+ v2yy
+        ! ***WHY IS THIS HERE AND WHY ISN'T U2 SET TOO? *************************************
 
-          f(0)=(u1x+v1y) - (u2x+v2y)
-          f(1)=(u1xx+u1yy) - (u2xx+u2yy)
+        ! ----- assign ghost using jump conditions -----
+        if( assignInterfaceGhostValues.eq.1 )then
+          if( solveForE.ne.0 )then
+            i3=n3a
+            j3=m3a
+            j2=mm2a
+            do i2=nn2a,nn2b
+             j1=mm1a
+             do i1=nn1a,nn1b
+             u1(i1-is1,i2-is2,i3,ex)=(3.*u1(i1,i2,i3,ex)-3.*u1(i1+is1,
+     & i2+is2,i3+is3,ex)+u1(i1+2*is1,i2+2*is2,i3+2*is3,ex))
+             u1(i1-is1,i2-is2,i3,ey)=(3.*u1(i1,i2,i3,ey)-3.*u1(i1+is1,
+     & i2+is2,i3+is3,ey)+u1(i1+2*is1,i2+2*is2,i3+2*is3,ey))
+             u1(i1-is1,i2-is2,i3,hz)=(3.*u1(i1,i2,i3,hz)-3.*u1(i1+is1,
+     & i2+is2,i3+is3,hz)+u1(i1+2*is1,i2+2*is2,i3+2*is3,hz))
 
-          f(2)=(v1x-u1y)/mu1 - (v2x-u2y)/mu2
+             !*wdh* June 22, 2016 -- added: is this needed?
+             u2(j1-js1,j2-js2,j3,ex)=(3.*u2(j1,j2,j3,ex)-3.*u2(j1+js1,
+     & j2+js2,j3+js3,ex)+u2(j1+2*js1,j2+2*js2,j3+2*js3,ex))
+             u2(j1-js1,j2-js2,j3,ey)=(3.*u2(j1,j2,j3,ey)-3.*u2(j1+js1,
+     & j2+js2,j3+js3,ey)+u2(j1+2*js1,j2+2*js2,j3+2*js3,ey))
+             u2(j1-js1,j2-js2,j3,hz)=(3.*u2(j1,j2,j3,hz)-3.*u2(j1+js1,
+     & j2+js2,j3+js3,hz)+u2(j1+2*js1,j2+2*js2,j3+2*js3,hz))
+              j1=j1+1
+             end do
+             j2=j2+1
+            end do
+          end if
 
-          f(3)=(v1xx+v1yy)/epsmu1 - (v2xx+v2yy)/epsmu2
-
-          ! write(debugFile,'(" --> i1,i2=",2i4," f(start)=",4f8.3)') i1,i2,f(0),f(1),f(2),f(3)
-
-           ! here is the matrix of coefficients for the unknowns u1(-1),v1(-1),u2(-1),v2(-1)
-           ! Solve:
-           !     
-           !       A [ U ] = A [ U(old) ] - [ f ]
-           if( axis1.eq.0 )then
-             a4(0,0) = -is1/(2.*dx1(0))    ! coeff of u1(-1) from [u.x+v.y]
-             a4(0,1) = 0.                  ! coeff of v1(-1) from [u.x+v.y]
-
-             a4(2,0) = 0.
-             a4(2,1) = -is1/(2.*dx1(0))    ! coeff of v1(-1) from [v.x - u.y]
-           else
-             a4(0,0) = 0.
-             a4(0,1) = -is2/(2.*dx1(1))    ! coeff of v1(-1) from [u.x+v.y]
-
-             a4(2,0) =  is2/(2.*dx1(1))    ! coeff of u1(-1) from [v.x - u.y]
-             a4(2,1) = 0.
-           end if
-           if( axis2.eq.0 )then
-             a4(0,2) = js1/(2.*dx2(0))    ! coeff of u2(-1) from [u.x+v.y]
-             a4(0,3) = 0.
-
-             a4(2,2) = 0.
-             a4(2,3) = js1/(2.*dx2(0))    ! coeff of v2(-1) from [v.x - u.y]
-           else
-             a4(0,2) = 0.
-             a4(0,3) = js2/(2.*dx2(1))    ! coeff of v2(-1) from [u.x+v.y]
-
-             a4(2,2) =-js2/(2.*dx2(1))    ! coeff of u2(-1) from [v.x - u.y]
-             a4(2,3) = 0.
-           end if
-
-           a4(1,0) = 1./(dx1(axis1)**2)   ! coeff of u1(-1) from [u.xx + u.yy]
-           a4(1,1) = 0.
-           a4(1,2) =-1./(dx2(axis2)**2)   ! coeff of u2(-1) from [u.xx + u.yy]
-           a4(1,3) = 0.
-
-           a4(3,0) = 0.
-           a4(3,1) = 1./(dx1(axis1)**2)/eps1 ! coeff of v1(-1) from [(v.xx+v.yy)/eps]
-           a4(3,2) = 0.
-           a4(3,3) =-1./(dx2(axis2)**2)/eps2 ! coeff of v2(-1) from [(v.xx+v.yy)/eps]
-
-
-           q(0) = u1(i1-is1,i2-is2,i3,ex)
-           q(1) = u1(i1-is1,i2-is2,i3,ey)
-           q(2) = u2(j1-js1,j2-js2,j3,ex)
-           q(3) = u2(j1-js1,j2-js2,j3,ey)
-
-           ! subtract off the contributions from the wrong values at the ghost points:
-           do n=0,3
-             f(n) = (a4(n,0)*q(0)+a4(n,1)*q(1)+a4(n,2)*q(2)+a4(n,3)*q(
-     & 3)) - f(n)
-           end do
-      ! write(debugFile,'(" --> i1,i2=",2i4," f(subtract)=",4f8.3)') i1,i2,f(0),f(1),f(2),f(3)
-           ! solve A Q = F
-           ! factor the matrix
-           numberOfEquations=4
-           call dgeco( a4(0,0), numberOfEquations, numberOfEquations, 
-     & ipvt(0),rcond,work(0))
-           ! solve
-      ! write(debugFile,'(" --> i1,i2=",2i4," rcond=",e10.2)') i1,i2,rcond
-           job=0
-           call dgesl( a4(0,0), numberOfEquations, numberOfEquations, 
-     & ipvt(0), f(0), job)
-      ! write(debugFile,'(" --> i1,i2=",2i4," f(solve)=",4f8.3)') i1,i2,f(0),f(1),f(2),f(3)
-
-           u1(i1-is1,i2-is2,i3,ex)=f(0)
-           u1(i1-is1,i2-is2,i3,ey)=f(1)
-           u2(j1-js1,j2-js2,j3,ex)=f(2)
-           u2(j1-js1,j2-js2,j3,ey)=f(3)
-
-      if( debug.gt.2 )then ! re-evaluate
-           ! NOTE: the jacobian derivatives can be computed once for all components
-             uu1=u1(i1,i2,i3,ex) ! in the rectangular case just eval the solution
-              u1x = (-u1(i1-1,i2,i3,ex)+u1(i1+1,i2,i3,ex))/(2.*dx1(0))
-              u1y = (-u1(i1,i2-1,i3,ex)+u1(i1,i2+1,i3,ex))/(2.*dx1(1))
-              u1xx = (u1(i1-1,i2,i3,ex)-2.*u1(i1,i2,i3,ex)+u1(i1+1,i2,
-     & i3,ex))/(dx1(0)**2)
-              u1yy = (u1(i1,i2-1,i3,ex)-2.*u1(i1,i2,i3,ex)+u1(i1,i2+1,
-     & i3,ex))/(dx1(1)**2)
-            u1Lap = u1xx+ u1yy
-             vv1=u1(i1,i2,i3,ey) ! in the rectangular case just eval the solution
-              v1x = (-u1(i1-1,i2,i3,ey)+u1(i1+1,i2,i3,ey))/(2.*dx1(0))
-              v1y = (-u1(i1,i2-1,i3,ey)+u1(i1,i2+1,i3,ey))/(2.*dx1(1))
-              v1xx = (u1(i1-1,i2,i3,ey)-2.*u1(i1,i2,i3,ey)+u1(i1+1,i2,
-     & i3,ey))/(dx1(0)**2)
-              v1yy = (u1(i1,i2-1,i3,ey)-2.*u1(i1,i2,i3,ey)+u1(i1,i2+1,
-     & i3,ey))/(dx1(1)**2)
-            v1Lap = v1xx+ v1yy
-           ! NOTE: the jacobian derivatives can be computed once for all components
-             uu2=u2(j1,j2,j3,ex) ! in the rectangular case just eval the solution
-              u2x = (-u2(j1-1,j2,j3,ex)+u2(j1+1,j2,j3,ex))/(2.*dx2(0))
-              u2y = (-u2(j1,j2-1,j3,ex)+u2(j1,j2+1,j3,ex))/(2.*dx2(1))
-              u2xx = (u2(j1-1,j2,j3,ex)-2.*u2(j1,j2,j3,ex)+u2(j1+1,j2,
-     & j3,ex))/(dx2(0)**2)
-              u2yy = (u2(j1,j2-1,j3,ex)-2.*u2(j1,j2,j3,ex)+u2(j1,j2+1,
-     & j3,ex))/(dx2(1)**2)
-            u2Lap = u2xx+ u2yy
-             vv2=u2(j1,j2,j3,ey) ! in the rectangular case just eval the solution
-              v2x = (-u2(j1-1,j2,j3,ey)+u2(j1+1,j2,j3,ey))/(2.*dx2(0))
-              v2y = (-u2(j1,j2-1,j3,ey)+u2(j1,j2+1,j3,ey))/(2.*dx2(1))
-              v2xx = (u2(j1-1,j2,j3,ey)-2.*u2(j1,j2,j3,ey)+u2(j1+1,j2,
-     & j3,ey))/(dx2(0)**2)
-              v2yy = (u2(j1,j2-1,j3,ey)-2.*u2(j1,j2,j3,ey)+u2(j1,j2+1,
-     & j3,ey))/(dx2(1)**2)
-            v2Lap = v2xx+ v2yy
-          f(0)=(u1x+v1y) - (u2x+v2y)
-          f(1)=(u1xx+u1yy) - (u2xx+u2yy)
-          f(2)=(v1x-u1y)/mu1 - (v2x-u2y)/mu2
-          f(3)=(v1xx+v1yy)/epsmu1 - (v2xx+v2yy)/epsmu2
-        write(debugFile,'(" --> i1,i2=",2i4," f(re-eval)=",4e10.2)') 
-     & i1,i2,f(0),f(1),f(2),f(3)
-      end if
-
-           ! do this for now
-           u1(i1-is1,i2-is2,i3,hz)=u2(j1+js1,j2+js2,j3,hz)
-           u2(j1-js1,j2-js2,j3,hz)=u1(i1+is1,i2+is2,i3,hz)
-
-
+          ! Macro to assign ghost values:
+           ! ****************************************************
+           ! ***********  2D, ORDER=2, RECTANGULAR **************
+           ! ****************************************************
+           i3=n3a
+           j3=m3a
+           j2=m2a
+           do i2=n2a,n2b
+            j1=m1a
+            do i1=n1a,n1b
+             if( mask1(i1,i2,i3).gt.0 .and. mask2(j1,j2,j3).gt.0 )then
+           ! first evaluate the equations we want to solve with the wrong values at the ghost points:
+             ! NOTE: the jacobian derivatives can be computed once for all components
+               uu1=u1(i1,i2,i3,ex) ! in the rectangular case just eval the solution
+                u1x = (-u1(i1-1,i2,i3,ex)+u1(i1+1,i2,i3,ex))/(2.*dx1(0)
+     & )
+                u1y = (-u1(i1,i2-1,i3,ex)+u1(i1,i2+1,i3,ex))/(2.*dx1(1)
+     & )
+                u1xx = (u1(i1-1,i2,i3,ex)-2.*u1(i1,i2,i3,ex)+u1(i1+1,
+     & i2,i3,ex))/(dx1(0)**2)
+                u1yy = (u1(i1,i2-1,i3,ex)-2.*u1(i1,i2,i3,ex)+u1(i1,i2+
+     & 1,i3,ex))/(dx1(1)**2)
+              u1Lap = u1xx+ u1yy
+               vv1=u1(i1,i2,i3,ey) ! in the rectangular case just eval the solution
+                v1x = (-u1(i1-1,i2,i3,ey)+u1(i1+1,i2,i3,ey))/(2.*dx1(0)
+     & )
+                v1y = (-u1(i1,i2-1,i3,ey)+u1(i1,i2+1,i3,ey))/(2.*dx1(1)
+     & )
+                v1xx = (u1(i1-1,i2,i3,ey)-2.*u1(i1,i2,i3,ey)+u1(i1+1,
+     & i2,i3,ey))/(dx1(0)**2)
+                v1yy = (u1(i1,i2-1,i3,ey)-2.*u1(i1,i2,i3,ey)+u1(i1,i2+
+     & 1,i3,ey))/(dx1(1)**2)
+              v1Lap = v1xx+ v1yy
+             ! NOTE: the jacobian derivatives can be computed once for all components
+               uu2=u2(j1,j2,j3,ex) ! in the rectangular case just eval the solution
+                u2x = (-u2(j1-1,j2,j3,ex)+u2(j1+1,j2,j3,ex))/(2.*dx2(0)
+     & )
+                u2y = (-u2(j1,j2-1,j3,ex)+u2(j1,j2+1,j3,ex))/(2.*dx2(1)
+     & )
+                u2xx = (u2(j1-1,j2,j3,ex)-2.*u2(j1,j2,j3,ex)+u2(j1+1,
+     & j2,j3,ex))/(dx2(0)**2)
+                u2yy = (u2(j1,j2-1,j3,ex)-2.*u2(j1,j2,j3,ex)+u2(j1,j2+
+     & 1,j3,ex))/(dx2(1)**2)
+              u2Lap = u2xx+ u2yy
+               vv2=u2(j1,j2,j3,ey) ! in the rectangular case just eval the solution
+                v2x = (-u2(j1-1,j2,j3,ey)+u2(j1+1,j2,j3,ey))/(2.*dx2(0)
+     & )
+                v2y = (-u2(j1,j2-1,j3,ey)+u2(j1,j2+1,j3,ey))/(2.*dx2(1)
+     & )
+                v2xx = (u2(j1-1,j2,j3,ey)-2.*u2(j1,j2,j3,ey)+u2(j1+1,
+     & j2,j3,ey))/(dx2(0)**2)
+                v2yy = (u2(j1,j2-1,j3,ey)-2.*u2(j1,j2,j3,ey)+u2(j1,j2+
+     & 1,j3,ey))/(dx2(1)**2)
+              v2Lap = v2xx+ v2yy
+            f(0)=(u1x+v1y) - (u2x+v2y)
+            if( setDivergenceAtInterfaces.eq.0 )then
+              f(1)=(u1xx+u1yy) - (u2xx+u2yy)
+            else
+              ! set div(E)=0 at both intefaces 
+              f(1)=(u1x+v1y)
             end if
-            j1=j1+1
-           end do
-           j2=j2+1
-          end do
+            f(2)=(v1x-u1y)/mu1 - (v2x-u2y)/mu2
+            f(3)=(v1xx+v1yy)/epsmu1 - (v2xx+v2yy)/epsmu2
+            ! write(debugFile,'(" --> i1,i2=",2i4," f(start)=",4f8.3)') i1,i2,f(0),f(1),f(2),f(3)
+             ! here is the matrix of coefficients for the unknowns u1(-1),v1(-1),u2(-1),v2(-1)
+             ! Solve:
+             !     
+             !       A [ U ] = A [ U(old) ] - [ f ]
+             if( axis1.eq.0 )then
+               a4(0,0) = -is1/(2.*dx1(0))    ! coeff of u1(-1) from [u.x+v.y]
+               a4(0,1) = 0.                  ! coeff of v1(-1) from [u.x+v.y]
+               a4(2,0) = 0.
+               a4(2,1) = -is1/(2.*dx1(0))    ! coeff of v1(-1) from [v.x - u.y]
+             else
+               a4(0,0) = 0.
+               a4(0,1) = -is2/(2.*dx1(1))    ! coeff of v1(-1) from [u.x+v.y]
+               a4(2,0) =  is2/(2.*dx1(1))    ! coeff of u1(-1) from [v.x - u.y]
+               a4(2,1) = 0.
+             end if
+             if( axis2.eq.0 )then
+               a4(0,2) = js1/(2.*dx2(0))    ! coeff of u2(-1) from [u.x+v.y]
+               a4(0,3) = 0.
+               a4(2,2) = 0.
+               a4(2,3) = js1/(2.*dx2(0))    ! coeff of v2(-1) from [v.x - u.y]
+             else
+               a4(0,2) = 0.
+               a4(0,3) = js2/(2.*dx2(1))    ! coeff of v2(-1) from [u.x+v.y]
+               a4(2,2) =-js2/(2.*dx2(1))    ! coeff of u2(-1) from [v.x - u.y]
+               a4(2,3) = 0.
+             end if
+             ! equation 1:
+             if( setDivergenceAtInterfaces.eq.0 )then
+               a4(1,0) = 1./(dx1(axis1)**2)   ! coeff of u1(-1) from [u.xx + u.yy]
+               a4(1,1) = 0.
+               a4(1,2) =-1./(dx2(axis2)**2)   ! coeff of u2(-1) from [u.xx + u.yy]
+               a4(1,3) = 0.
+             else
+               ! u1x+v1y=0
+               if( axis1.eq.0 )then
+                 a4(1,0) = -is1/(2.*dx1(0))    ! coeff of u1(-1) from [u.x+v.y]
+                 a4(1,1) = 0.                  ! coeff of v1(-1) from [u.x+v.y]
+               else
+                 a4(1,0) = 0.
+                 a4(1,1) = -is2/(2.*dx1(1))    ! coeff of v1(-1) from [u.x+v.y]
+               end if
+               a4(1,2) = 0.
+               a4(1,3) = 0.
+             end if
+             ! equation 3: 
+             a4(3,0) = 0.
+             a4(3,1) = 1./(dx1(axis1)**2)/eps1 ! coeff of v1(-1) from [(v.xx+v.yy)/eps]
+             a4(3,2) = 0.
+             a4(3,3) =-1./(dx2(axis2)**2)/eps2 ! coeff of v2(-1) from [(v.xx+v.yy)/eps]
+             q(0) = u1(i1-is1,i2-is2,i3,ex)
+             q(1) = u1(i1-is1,i2-is2,i3,ey)
+             q(2) = u2(j1-js1,j2-js2,j3,ex)
+             q(3) = u2(j1-js1,j2-js2,j3,ey)
+             ! subtract off the contributions from the wrong values at the ghost points:
+             do n=0,3
+               f(n) = (a4(n,0)*q(0)+a4(n,1)*q(1)+a4(n,2)*q(2)+a4(n,3)*
+     & q(3)) - f(n)
+             end do
+             ! write(debugFile,'(" --> i1,i2=",2i4," f(subtract)=",4f8.3)') i1,i2,f(0),f(1),f(2),f(3)
+             ! solve A Q = F
+             ! factor the matrix
+             numberOfEquations=4
+             call dgeco( a4(0,0), numberOfEquations, numberOfEquations,
+     &  ipvt(0),rcond,work(0))
+             ! solve
+             ! write(debugFile,'(" --> i1,i2=",2i4," rcond=",e10.2)') i1,i2,rcond
+             job=0
+             call dgesl( a4(0,0), numberOfEquations, numberOfEquations,
+     &  ipvt(0), f(0), job)
+             ! write(debugFile,'(" --> i1,i2=",2i4," f(solve)=",4f8.3)') i1,i2,f(0),f(1),f(2),f(3)
+             u1(i1-is1,i2-is2,i3,ex)=f(0)
+             u1(i1-is1,i2-is2,i3,ey)=f(1)
+             u2(j1-js1,j2-js2,j3,ex)=f(2)
+             u2(j1-js1,j2-js2,j3,ey)=f(3)
+             if( debug.gt.2 )then ! re-evaluate
+               ! NOTE: the jacobian derivatives can be computed once for all components
+                 uu1=u1(i1,i2,i3,ex) ! in the rectangular case just eval the solution
+                  u1x = (-u1(i1-1,i2,i3,ex)+u1(i1+1,i2,i3,ex))/(2.*dx1(
+     & 0))
+                  u1y = (-u1(i1,i2-1,i3,ex)+u1(i1,i2+1,i3,ex))/(2.*dx1(
+     & 1))
+                  u1xx = (u1(i1-1,i2,i3,ex)-2.*u1(i1,i2,i3,ex)+u1(i1+1,
+     & i2,i3,ex))/(dx1(0)**2)
+                  u1yy = (u1(i1,i2-1,i3,ex)-2.*u1(i1,i2,i3,ex)+u1(i1,
+     & i2+1,i3,ex))/(dx1(1)**2)
+                u1Lap = u1xx+ u1yy
+                 vv1=u1(i1,i2,i3,ey) ! in the rectangular case just eval the solution
+                  v1x = (-u1(i1-1,i2,i3,ey)+u1(i1+1,i2,i3,ey))/(2.*dx1(
+     & 0))
+                  v1y = (-u1(i1,i2-1,i3,ey)+u1(i1,i2+1,i3,ey))/(2.*dx1(
+     & 1))
+                  v1xx = (u1(i1-1,i2,i3,ey)-2.*u1(i1,i2,i3,ey)+u1(i1+1,
+     & i2,i3,ey))/(dx1(0)**2)
+                  v1yy = (u1(i1,i2-1,i3,ey)-2.*u1(i1,i2,i3,ey)+u1(i1,
+     & i2+1,i3,ey))/(dx1(1)**2)
+                v1Lap = v1xx+ v1yy
+               ! NOTE: the jacobian derivatives can be computed once for all components
+                 uu2=u2(j1,j2,j3,ex) ! in the rectangular case just eval the solution
+                  u2x = (-u2(j1-1,j2,j3,ex)+u2(j1+1,j2,j3,ex))/(2.*dx2(
+     & 0))
+                  u2y = (-u2(j1,j2-1,j3,ex)+u2(j1,j2+1,j3,ex))/(2.*dx2(
+     & 1))
+                  u2xx = (u2(j1-1,j2,j3,ex)-2.*u2(j1,j2,j3,ex)+u2(j1+1,
+     & j2,j3,ex))/(dx2(0)**2)
+                  u2yy = (u2(j1,j2-1,j3,ex)-2.*u2(j1,j2,j3,ex)+u2(j1,
+     & j2+1,j3,ex))/(dx2(1)**2)
+                u2Lap = u2xx+ u2yy
+                 vv2=u2(j1,j2,j3,ey) ! in the rectangular case just eval the solution
+                  v2x = (-u2(j1-1,j2,j3,ey)+u2(j1+1,j2,j3,ey))/(2.*dx2(
+     & 0))
+                  v2y = (-u2(j1,j2-1,j3,ey)+u2(j1,j2+1,j3,ey))/(2.*dx2(
+     & 1))
+                  v2xx = (u2(j1-1,j2,j3,ey)-2.*u2(j1,j2,j3,ey)+u2(j1+1,
+     & j2,j3,ey))/(dx2(0)**2)
+                  v2yy = (u2(j1,j2-1,j3,ey)-2.*u2(j1,j2,j3,ey)+u2(j1,
+     & j2+1,j3,ey))/(dx2(1)**2)
+                v2Lap = v2xx+ v2yy
+              f(0)=(u1x+v1y) - (u2x+v2y)
+              if( setDivergenceAtInterfaces.eq.0 )then
+                f(1)=(u1xx+u1yy) - (u2xx+u2yy)
+              else
+                f(1)=(u1x+v1y)
+              end if
+              f(2)=(v1x-u1y)/mu1 - (v2x-u2y)/mu2
+              f(3)=(v1xx+v1yy)/epsmu1 - (v2xx+v2yy)/epsmu2
+              write(debugFile,'("i3d: --> i1,i2=",2i4," f(re-eval)=",
+     & 4e10.2)') i1,i2,f(0),f(1),f(2),f(3)
+             end if
+             ! -------------------------------------------------------
+             ! solve for Hz         *fixed* *wdh* June 24, 2016
+             !  [ w.n/eps] = 0
+             !  [ Lap(w)/eps] = 0
+                ww1=u1(i1,i2,i3,hz) ! in the rectangular case just eval the solution
+                 w1x = (-u1(i1-1,i2,i3,hz)+u1(i1+1,i2,i3,hz))/(2.*dx1(
+     & 0))
+                 w1y = (-u1(i1,i2-1,i3,hz)+u1(i1,i2+1,i3,hz))/(2.*dx1(
+     & 1))
+                 w1xx = (u1(i1-1,i2,i3,hz)-2.*u1(i1,i2,i3,hz)+u1(i1+1,
+     & i2,i3,hz))/(dx1(0)**2)
+                 w1yy = (u1(i1,i2-1,i3,hz)-2.*u1(i1,i2,i3,hz)+u1(i1,i2+
+     & 1,i3,hz))/(dx1(1)**2)
+               w1Lap = w1xx+ w1yy
+                ww2=u2(j1,j2,j3,hz) ! in the rectangular case just eval the solution
+                 w2x = (-u2(j1-1,j2,j3,hz)+u2(j1+1,j2,j3,hz))/(2.*dx2(
+     & 0))
+                 w2y = (-u2(j1,j2-1,j3,hz)+u2(j1,j2+1,j3,hz))/(2.*dx2(
+     & 1))
+                 w2xx = (u2(j1-1,j2,j3,hz)-2.*u2(j1,j2,j3,hz)+u2(j1+1,
+     & j2,j3,hz))/(dx2(0)**2)
+                 w2yy = (u2(j1,j2-1,j3,hz)-2.*u2(j1,j2,j3,hz)+u2(j1,j2+
+     & 1,j3,hz))/(dx2(1)**2)
+               w2Lap = w2xx+ w2yy
+              f(0) = (an1*w1x+an2*w1y)/eps1 -(an1*w2x+an2*w2y)/eps2
+              f(1) = w1Lap/eps1 - w2Lap/eps2
+              if( twilightZone.eq.1 )then
+                call ogderiv(ep, 0,1,0,0, xy1(i1,i2,i3,0),xy1(i1,i2,i3,
+     & 1),0.,t, hz, wex  )
+                call ogderiv(ep, 0,0,1,0, xy1(i1,i2,i3,0),xy1(i1,i2,i3,
+     & 1),0.,t, hz, wey  )
+                call ogderiv(ep, 0,2,0,0, xy1(i1,i2,i3,0),xy1(i1,i2,i3,
+     & 1),0.,t, hz, wexx )
+                call ogderiv(ep, 0,0,2,0, xy1(i1,i2,i3,0),xy1(i1,i2,i3,
+     & 1),0.,t, hz, weyy )
+                weLap = wexx + weyy
+                f(0) = f(0) - (an1*wex+an2*wey)*(1./eps1 - 1./eps2)
+                f(1) = f(1) - ( weLap )*(1./eps1 - 1./eps2)
+              end if
+             ! a2(0,0)=-is*(an1*rsxy1(i1,i2,i3,axis1,0)+an2*rsxy1(i1,i2,i3,axis1,1))/(2.*dr1(axis1)*eps1)
+             ! a2(0,1)= js*(an1*rsxy2(j1,j2,j3,axis2,0)+an2*rsxy2(j1,j2,j3,axis2,1))/(2.*dr2(axis2)*eps2)
+             a2(0,0)=-is*(1./(2.*dx1(axis1)*eps1)) ! coeff of w1(-1) in [w.n/eps]=0
+             a2(0,1)= js*(1./(2.*dx2(axis2)*eps2)) ! coeff of w2(-1) in [w.n/eps]=0
+             a2(1,0)= 1./(dx1(axis1)**2*eps1)    ! coeff of w1(-1) in [Lap(w)/eps ]=0
+             a2(1,1)=-1./(dx2(axis2)**2*eps2)    ! coeff of w2(-1) in [Lap(w)/eps ]=0
+             q(0) = u1(i1-is1,i2-is2,i3,hz)
+             q(1) = u2(j1-js1,j2-js2,j3,hz)
+             ! subtract off the contributions from the wrong values at the ghost points:
+             do n=0,1
+               f(n) = (a2(n,0)*q(0)+a2(n,1)*q(1)) - f(n)
+             end do
+             call dgeco( a2(0,0), 2, 2, ipvt(0),rcond,work(0))
+             job=0
+             call dgesl( a2(0,0), 2, 2, ipvt(0), f(0), job)
+             u1(i1-is1,i2-is2,i3,hz)=f(0)
+             u2(j1-js1,j2-js2,j3,hz)=f(1)
+             ! do this for now
+             !u1(i1-is1,i2-is2,i3,hz)=u2(j1+js1,j2+js2,j3,hz) 
+             !u2(j1-js1,j2-js2,j3,hz)=u1(i1+is1,i2+is2,i3,hz)
+              end if
+              j1=j1+1
+             end do
+             j2=j2+1
+            end do
 
-         ! opt periodic update
-         if( parallel.eq.0 )then
-          axisp1=mod(axis1+1,nd)
-          if( boundaryCondition1(0,axisp1).lt.0 )then
-           ! direction axisp1 is periodic
-           diff(axis1)=0
-           diff(axisp1)=gridIndexRange1(1,axisp1)-gridIndexRange1(0,
+          ! fixup values on ends *wdh* June 22, 2016
+          if( .false. )then
+             ! **FINISH ME**
+             iv(2)=0
+             ksv(0)=0
+             ksv(1)=0
+             ksv(2)=0
+              do sidea=0,1 ! loop over adjacent sides
+                if( boundaryCondition1(sidea,axis1p1).gt.0 )then ! adjacent boundary is a physical BC or farfield BC
+                 ! Set iv = corner point X
+                 iv(axis1  )=gridIndexRange1(side1,axis1 )
+                 iv(axis1p1)=gridIndexRange1(sidea,axis1p1)
+                 ksv(axis1p1)=1-2*sidea  ! tangential direction to the interface
+                 ii1=iv(0)
+                 ii2=iv(1)
+                 ii3=iv(2)
+                 ks1=ksv(0)
+                 ks2=ksv(1)
+                 ks3=ksv(2)
+                 if( debug.gt.1 )then
+                   write(debugFile,'("Interface:fixupEnds u1: side1,
+     & axis1=",2i3," axis1p1,sidea=",2i3)') side1,axis1,axis1p1,sidea
+                   write(debugFile,'("... iv=",3i3," ksv=",3i2," 
+     & ghost=",3i4)') ii1,ii2,ii3,ks1,ks2,ks3,ii1-ks1,ii2-ks2,ii3-ks3
+                 end if
+                 ! extrapolate value on extended boundary, point A or B, from points along the interface
+                 ! extrapolateFields(ex,ey,hz,u1,ii1,ii2,ii3,ks1,ks2,ks3)
+                 ! -------------------------------------------------------
+                 ! -------------------- set div(E)=0 ---------------------
+                 ! -------------------------------------------------------
+                  if( axis1.eq.0 )then
+                    ! set point B on extended material interface boundary
+                    if( orderOfAccuracy.eq.2 )then
+                      u1(ii1-ks1,ii2-ks2,ii3,ey)=u1(ii1+ks1,ii2+ks2,
+     & ii3,ey) + 2.*ksv(axis1p1)*dx1(axis1p1)*(u1(ii1+1,ii2,ii3,ex)-
+     & u1(ii1-1,ii2,ii3,ex))/(2.*dx1(0))
+                    else if( orderOfAccuracy.eq.4 )then
+                      ! Set first ghost value from div(E)=0
+                      ! from abc.bf line 1684: 
+                      u1(ii1,ii2-ks2,ii3,ey)=(-u1(ii1,ii2+2*ks2,ii3,ey)
+     & +8.*u1(ii1,ii2+ks2,ii3,ey)+u1(ii1,ii2-2*ks2,ii3,ey))/8. + 1.5*
+     & ks2*dx1(axis1)*(8.*(u1(ii1+1,ii2,ii3,ex)-u1(ii1-1,ii2,ii3,ex))-
+     & (u1(ii1+2,ii2,ii3,ex)-u1(ii1-2,ii2,ii3,ex)))/(12.*dx1(0))
+                    end if
+                  else
+                    ! set point A on extended material interface boundary
+                    if( orderOfAccuracy.eq.2 )then
+                      u1(ii1-ks1,ii2-ks2,ii3,ex)=u1(ii1+ks1,ii2+ks2,
+     & ii3,ex) + 2.*ksv(axis1p1)*dx1(axis1p1)*(u1(ii1,ii2+1,ii3,ey)-
+     & u1(ii1,ii2-1,ii3,ey))/(2.*dx1(1))
+                    else if( orderOfAccuracy.eq.4 )then
+                      ! Set first ghost value from div(E)=0
+                      ! from abc.bf line 1684: 
+                      u1(ii1-ks1,ii2,ii3,ex)=(-u1(ii1+2*ks1,ii2,ii3,ex)
+     & +8.*u1(ii1+ks1,ii2,ii3,ex)+u1(ii1-2*ks1,ii2,ii3,ex))/8. + 1.5*
+     & ks1*dx1(axis1)*(8.*(u1(ii1,ii2+1,ii3,ey)-u1(ii1,ii2-1,ii3,ey))-
+     & (u1(ii1,ii2+2,ii3,ey)-u1(ii1,ii2-2,ii3,ey)))/(12.*dx1(1))
+                    else
+                      stop 4432
+                    end if
+                  end if
+                 ! extrapolate corner point C along the diagonal
+                 ksv(axis1)=1-2*side1
+                   if( orderOfAccuracy.eq.2 )then
+                      u1(ii1-ksv(0),ii2-ksv(1),ii3-ksv(2),ex)=(3.*u1(
+     & ii1,ii2,ii3,ex)-3.*u1(ii1+ksv(0),ii2+ksv(1),ii3+ksv(2),ex)+u1(
+     & ii1+2*ksv(0),ii2+2*ksv(1),ii3+2*ksv(2),ex))
+                      u1(ii1-ksv(0),ii2-ksv(1),ii3-ksv(2),ey)=(3.*u1(
+     & ii1,ii2,ii3,ey)-3.*u1(ii1+ksv(0),ii2+ksv(1),ii3+ksv(2),ey)+u1(
+     & ii1+2*ksv(0),ii2+2*ksv(1),ii3+2*ksv(2),ey))
+                      u1(ii1-ksv(0),ii2-ksv(1),ii3-ksv(2),hz)=(3.*u1(
+     & ii1,ii2,ii3,hz)-3.*u1(ii1+ksv(0),ii2+ksv(1),ii3+ksv(2),hz)+u1(
+     & ii1+2*ksv(0),ii2+2*ksv(1),ii3+2*ksv(2),hz))
+                   else
+                      u1(ii1-ksv(0),ii2-ksv(1),ii3-ksv(2),ex)=(5.*u1(
+     & ii1,ii2,ii3,ex)-10.*u1(ii1+ksv(0),ii2+ksv(1),ii3+ksv(2),ex)+
+     & 10.*u1(ii1+2*ksv(0),ii2+2*ksv(1),ii3+2*ksv(2),ex)-5.*u1(ii1+3*
+     & ksv(0),ii2+3*ksv(1),ii3+3*ksv(2),ex)+u1(ii1+4*ksv(0),ii2+4*ksv(
+     & 1),ii3+4*ksv(2),ex))
+                      u1(ii1-ksv(0),ii2-ksv(1),ii3-ksv(2),ey)=(5.*u1(
+     & ii1,ii2,ii3,ey)-10.*u1(ii1+ksv(0),ii2+ksv(1),ii3+ksv(2),ey)+
+     & 10.*u1(ii1+2*ksv(0),ii2+2*ksv(1),ii3+2*ksv(2),ey)-5.*u1(ii1+3*
+     & ksv(0),ii2+3*ksv(1),ii3+3*ksv(2),ey)+u1(ii1+4*ksv(0),ii2+4*ksv(
+     & 1),ii3+4*ksv(2),ey))
+                      u1(ii1-ksv(0),ii2-ksv(1),ii3-ksv(2),hz)=(5.*u1(
+     & ii1,ii2,ii3,hz)-10.*u1(ii1+ksv(0),ii2+ksv(1),ii3+ksv(2),hz)+
+     & 10.*u1(ii1+2*ksv(0),ii2+2*ksv(1),ii3+2*ksv(2),hz)-5.*u1(ii1+3*
+     & ksv(0),ii2+3*ksv(1),ii3+3*ksv(2),hz)+u1(ii1+4*ksv(0),ii2+4*ksv(
+     & 1),ii3+4*ksv(2),hz))
+                   end if
+                 if( orderOfAccuracy.eq.4 )then
+                   ! extrapolate extra corner points E-F-G
+                     if( orderOfAccuracy.eq.2 )then
+                        u1(ii1-ksv(0)-ksv(0),ii2-ksv(1),ii3-ksv(2),ex)
+     & =(3.*u1(ii1-ksv(0),ii2,ii3,ex)-3.*u1(ii1-ksv(0)+ksv(0),ii2+ksv(
+     & 1),ii3+ksv(2),ex)+u1(ii1-ksv(0)+2*ksv(0),ii2+2*ksv(1),ii3+2*
+     & ksv(2),ex))
+                        u1(ii1-ksv(0)-ksv(0),ii2-ksv(1),ii3-ksv(2),ey)
+     & =(3.*u1(ii1-ksv(0),ii2,ii3,ey)-3.*u1(ii1-ksv(0)+ksv(0),ii2+ksv(
+     & 1),ii3+ksv(2),ey)+u1(ii1-ksv(0)+2*ksv(0),ii2+2*ksv(1),ii3+2*
+     & ksv(2),ey))
+                        u1(ii1-ksv(0)-ksv(0),ii2-ksv(1),ii3-ksv(2),hz)
+     & =(3.*u1(ii1-ksv(0),ii2,ii3,hz)-3.*u1(ii1-ksv(0)+ksv(0),ii2+ksv(
+     & 1),ii3+ksv(2),hz)+u1(ii1-ksv(0)+2*ksv(0),ii2+2*ksv(1),ii3+2*
+     & ksv(2),hz))
+                     else
+                        u1(ii1-ksv(0)-ksv(0),ii2-ksv(1),ii3-ksv(2),ex)
+     & =(5.*u1(ii1-ksv(0),ii2,ii3,ex)-10.*u1(ii1-ksv(0)+ksv(0),ii2+
+     & ksv(1),ii3+ksv(2),ex)+10.*u1(ii1-ksv(0)+2*ksv(0),ii2+2*ksv(1),
+     & ii3+2*ksv(2),ex)-5.*u1(ii1-ksv(0)+3*ksv(0),ii2+3*ksv(1),ii3+3*
+     & ksv(2),ex)+u1(ii1-ksv(0)+4*ksv(0),ii2+4*ksv(1),ii3+4*ksv(2),ex)
+     & )
+                        u1(ii1-ksv(0)-ksv(0),ii2-ksv(1),ii3-ksv(2),ey)
+     & =(5.*u1(ii1-ksv(0),ii2,ii3,ey)-10.*u1(ii1-ksv(0)+ksv(0),ii2+
+     & ksv(1),ii3+ksv(2),ey)+10.*u1(ii1-ksv(0)+2*ksv(0),ii2+2*ksv(1),
+     & ii3+2*ksv(2),ey)-5.*u1(ii1-ksv(0)+3*ksv(0),ii2+3*ksv(1),ii3+3*
+     & ksv(2),ey)+u1(ii1-ksv(0)+4*ksv(0),ii2+4*ksv(1),ii3+4*ksv(2),ey)
+     & )
+                        u1(ii1-ksv(0)-ksv(0),ii2-ksv(1),ii3-ksv(2),hz)
+     & =(5.*u1(ii1-ksv(0),ii2,ii3,hz)-10.*u1(ii1-ksv(0)+ksv(0),ii2+
+     & ksv(1),ii3+ksv(2),hz)+10.*u1(ii1-ksv(0)+2*ksv(0),ii2+2*ksv(1),
+     & ii3+2*ksv(2),hz)-5.*u1(ii1-ksv(0)+3*ksv(0),ii2+3*ksv(1),ii3+3*
+     & ksv(2),hz)+u1(ii1-ksv(0)+4*ksv(0),ii2+4*ksv(1),ii3+4*ksv(2),hz)
+     & )
+                     end if
+                     if( orderOfAccuracy.eq.2 )then
+                        u1(ii1-ksv(0),ii2-ksv(1)-ksv(1),ii3-ksv(2),ex)
+     & =(3.*u1(ii1,ii2-ksv(1),ii3,ex)-3.*u1(ii1+ksv(0),ii2-ksv(1)+ksv(
+     & 1),ii3+ksv(2),ex)+u1(ii1+2*ksv(0),ii2-ksv(1)+2*ksv(1),ii3+2*
+     & ksv(2),ex))
+                        u1(ii1-ksv(0),ii2-ksv(1)-ksv(1),ii3-ksv(2),ey)
+     & =(3.*u1(ii1,ii2-ksv(1),ii3,ey)-3.*u1(ii1+ksv(0),ii2-ksv(1)+ksv(
+     & 1),ii3+ksv(2),ey)+u1(ii1+2*ksv(0),ii2-ksv(1)+2*ksv(1),ii3+2*
+     & ksv(2),ey))
+                        u1(ii1-ksv(0),ii2-ksv(1)-ksv(1),ii3-ksv(2),hz)
+     & =(3.*u1(ii1,ii2-ksv(1),ii3,hz)-3.*u1(ii1+ksv(0),ii2-ksv(1)+ksv(
+     & 1),ii3+ksv(2),hz)+u1(ii1+2*ksv(0),ii2-ksv(1)+2*ksv(1),ii3+2*
+     & ksv(2),hz))
+                     else
+                        u1(ii1-ksv(0),ii2-ksv(1)-ksv(1),ii3-ksv(2),ex)
+     & =(5.*u1(ii1,ii2-ksv(1),ii3,ex)-10.*u1(ii1+ksv(0),ii2-ksv(1)+
+     & ksv(1),ii3+ksv(2),ex)+10.*u1(ii1+2*ksv(0),ii2-ksv(1)+2*ksv(1),
+     & ii3+2*ksv(2),ex)-5.*u1(ii1+3*ksv(0),ii2-ksv(1)+3*ksv(1),ii3+3*
+     & ksv(2),ex)+u1(ii1+4*ksv(0),ii2-ksv(1)+4*ksv(1),ii3+4*ksv(2),ex)
+     & )
+                        u1(ii1-ksv(0),ii2-ksv(1)-ksv(1),ii3-ksv(2),ey)
+     & =(5.*u1(ii1,ii2-ksv(1),ii3,ey)-10.*u1(ii1+ksv(0),ii2-ksv(1)+
+     & ksv(1),ii3+ksv(2),ey)+10.*u1(ii1+2*ksv(0),ii2-ksv(1)+2*ksv(1),
+     & ii3+2*ksv(2),ey)-5.*u1(ii1+3*ksv(0),ii2-ksv(1)+3*ksv(1),ii3+3*
+     & ksv(2),ey)+u1(ii1+4*ksv(0),ii2-ksv(1)+4*ksv(1),ii3+4*ksv(2),ey)
+     & )
+                        u1(ii1-ksv(0),ii2-ksv(1)-ksv(1),ii3-ksv(2),hz)
+     & =(5.*u1(ii1,ii2-ksv(1),ii3,hz)-10.*u1(ii1+ksv(0),ii2-ksv(1)+
+     & ksv(1),ii3+ksv(2),hz)+10.*u1(ii1+2*ksv(0),ii2-ksv(1)+2*ksv(1),
+     & ii3+2*ksv(2),hz)-5.*u1(ii1+3*ksv(0),ii2-ksv(1)+3*ksv(1),ii3+3*
+     & ksv(2),hz)+u1(ii1+4*ksv(0),ii2-ksv(1)+4*ksv(1),ii3+4*ksv(2),hz)
+     & )
+                     end if
+                     if( orderOfAccuracy.eq.2 )then
+                        u1(ii1-ksv(0)-ksv(0),ii2-ksv(1)-ksv(1),ii3-ksv(
+     & 2),ex)=(3.*u1(ii1-ksv(0),ii2-ksv(1),ii3,ex)-3.*u1(ii1-ksv(0)+
+     & ksv(0),ii2-ksv(1)+ksv(1),ii3+ksv(2),ex)+u1(ii1-ksv(0)+2*ksv(0),
+     & ii2-ksv(1)+2*ksv(1),ii3+2*ksv(2),ex))
+                        u1(ii1-ksv(0)-ksv(0),ii2-ksv(1)-ksv(1),ii3-ksv(
+     & 2),ey)=(3.*u1(ii1-ksv(0),ii2-ksv(1),ii3,ey)-3.*u1(ii1-ksv(0)+
+     & ksv(0),ii2-ksv(1)+ksv(1),ii3+ksv(2),ey)+u1(ii1-ksv(0)+2*ksv(0),
+     & ii2-ksv(1)+2*ksv(1),ii3+2*ksv(2),ey))
+                        u1(ii1-ksv(0)-ksv(0),ii2-ksv(1)-ksv(1),ii3-ksv(
+     & 2),hz)=(3.*u1(ii1-ksv(0),ii2-ksv(1),ii3,hz)-3.*u1(ii1-ksv(0)+
+     & ksv(0),ii2-ksv(1)+ksv(1),ii3+ksv(2),hz)+u1(ii1-ksv(0)+2*ksv(0),
+     & ii2-ksv(1)+2*ksv(1),ii3+2*ksv(2),hz))
+                     else
+                        u1(ii1-ksv(0)-ksv(0),ii2-ksv(1)-ksv(1),ii3-ksv(
+     & 2),ex)=(5.*u1(ii1-ksv(0),ii2-ksv(1),ii3,ex)-10.*u1(ii1-ksv(0)+
+     & ksv(0),ii2-ksv(1)+ksv(1),ii3+ksv(2),ex)+10.*u1(ii1-ksv(0)+2*
+     & ksv(0),ii2-ksv(1)+2*ksv(1),ii3+2*ksv(2),ex)-5.*u1(ii1-ksv(0)+3*
+     & ksv(0),ii2-ksv(1)+3*ksv(1),ii3+3*ksv(2),ex)+u1(ii1-ksv(0)+4*
+     & ksv(0),ii2-ksv(1)+4*ksv(1),ii3+4*ksv(2),ex))
+                        u1(ii1-ksv(0)-ksv(0),ii2-ksv(1)-ksv(1),ii3-ksv(
+     & 2),ey)=(5.*u1(ii1-ksv(0),ii2-ksv(1),ii3,ey)-10.*u1(ii1-ksv(0)+
+     & ksv(0),ii2-ksv(1)+ksv(1),ii3+ksv(2),ey)+10.*u1(ii1-ksv(0)+2*
+     & ksv(0),ii2-ksv(1)+2*ksv(1),ii3+2*ksv(2),ey)-5.*u1(ii1-ksv(0)+3*
+     & ksv(0),ii2-ksv(1)+3*ksv(1),ii3+3*ksv(2),ey)+u1(ii1-ksv(0)+4*
+     & ksv(0),ii2-ksv(1)+4*ksv(1),ii3+4*ksv(2),ey))
+                        u1(ii1-ksv(0)-ksv(0),ii2-ksv(1)-ksv(1),ii3-ksv(
+     & 2),hz)=(5.*u1(ii1-ksv(0),ii2-ksv(1),ii3,hz)-10.*u1(ii1-ksv(0)+
+     & ksv(0),ii2-ksv(1)+ksv(1),ii3+ksv(2),hz)+10.*u1(ii1-ksv(0)+2*
+     & ksv(0),ii2-ksv(1)+2*ksv(1),ii3+2*ksv(2),hz)-5.*u1(ii1-ksv(0)+3*
+     & ksv(0),ii2-ksv(1)+3*ksv(1),ii3+3*ksv(2),hz)+u1(ii1-ksv(0)+4*
+     & ksv(0),ii2-ksv(1)+4*ksv(1),ii3+4*ksv(2),hz))
+                     end if
+                 end if
+                 if( debug.gt.1 )then
+                   if( orderOfAccuracy.eq.2 )then
+                     dive=(u1(ii1+1,ii2,ii3,ex)-u1(ii1-1,ii2,ii3,ex))/(
+     & 2.*dx1(0)) + (u1(ii1,ii2+1,ii3,ey)-u1(ii1,ii2-1,ii3,ey))/(2.*
+     & dx1(1))
+                   else
+                     dive=(8.*(u1(ii1+1,ii2,ii3,ex)-u1(ii1-1,ii2,ii3,
+     & ex))-(u1(ii1+2,ii2,ii3,ex)-u1(ii1-2,ii2,ii3,ex)))/(12.*dx1(0)) 
+     & + (8.*(u1(ii1,ii2+1,ii3,ey)-u1(ii1,ii2-1,ii3,ey))-(u1(ii1,ii2+
+     & 2,ii3,ey)-u1(ii1,ii2-2,ii3,ey)))/(12.*dx1(1))
+                   end if
+                   write(debugFile,'("... after: div(E)=",e10.2)') dive
+                 end if
+                 ksv(axis1p1)=0 ! reset
+                 ksv(axis1)=0 ! reset
+                end if
+              end do ! end sidea
+             ! **FINISH ME**
+             iv(2)=0
+             ksv(0)=0
+             ksv(1)=0
+             ksv(2)=0
+              do sidea=0,1 ! loop over adjacent sides
+                if( boundaryCondition2(sidea,axis2p1).gt.0 )then ! adjacent boundary is a physical BC or farfield BC
+                 ! Set iv = corner point X
+                 iv(axis2  )=gridIndexRange2(side2,axis2 )
+                 iv(axis2p1)=gridIndexRange2(sidea,axis2p1)
+                 ksv(axis2p1)=1-2*sidea  ! tangential direction to the interface
+                 ii1=iv(0)
+                 ii2=iv(1)
+                 ii3=iv(2)
+                 ks1=ksv(0)
+                 ks2=ksv(1)
+                 ks3=ksv(2)
+                 if( debug.gt.1 )then
+                   write(debugFile,'("Interface:fixupEnds u2: side2,
+     & axis2=",2i3," axis2p1,sidea=",2i3)') side2,axis2,axis2p1,sidea
+                   write(debugFile,'("... iv=",3i3," ksv=",3i2," 
+     & ghost=",3i4)') ii1,ii2,ii3,ks1,ks2,ks3,ii1-ks1,ii2-ks2,ii3-ks3
+                 end if
+                 ! extrapolate value on extended boundary, point A or B, from points along the interface
+                 ! extrapolateFields(ex,ey,hz,u2,ii1,ii2,ii3,ks1,ks2,ks3)
+                 ! -------------------------------------------------------
+                 ! -------------------- set div(E)=0 ---------------------
+                 ! -------------------------------------------------------
+                  if( axis2.eq.0 )then
+                    ! set point B on extended material interface boundary
+                    if( orderOfAccuracy.eq.2 )then
+                      u2(ii1-ks1,ii2-ks2,ii3,ey)=u2(ii1+ks1,ii2+ks2,
+     & ii3,ey) + 2.*ksv(axis2p1)*dx2(axis2p1)*(u2(ii1+1,ii2,ii3,ex)-
+     & u2(ii1-1,ii2,ii3,ex))/(2.*dx2(0))
+                    else if( orderOfAccuracy.eq.4 )then
+                      ! Set first ghost value from div(E)=0
+                      ! from abc.bf line 1684: 
+                      u2(ii1,ii2-ks2,ii3,ey)=(-u2(ii1,ii2+2*ks2,ii3,ey)
+     & +8.*u2(ii1,ii2+ks2,ii3,ey)+u2(ii1,ii2-2*ks2,ii3,ey))/8. + 1.5*
+     & ks2*dx2(axis2)*(8.*(u2(ii1+1,ii2,ii3,ex)-u2(ii1-1,ii2,ii3,ex))-
+     & (u2(ii1+2,ii2,ii3,ex)-u2(ii1-2,ii2,ii3,ex)))/(12.*dx2(0))
+                    end if
+                  else
+                    ! set point A on extended material interface boundary
+                    if( orderOfAccuracy.eq.2 )then
+                      u2(ii1-ks1,ii2-ks2,ii3,ex)=u2(ii1+ks1,ii2+ks2,
+     & ii3,ex) + 2.*ksv(axis2p1)*dx2(axis2p1)*(u2(ii1,ii2+1,ii3,ey)-
+     & u2(ii1,ii2-1,ii3,ey))/(2.*dx2(1))
+                    else if( orderOfAccuracy.eq.4 )then
+                      ! Set first ghost value from div(E)=0
+                      ! from abc.bf line 1684: 
+                      u2(ii1-ks1,ii2,ii3,ex)=(-u2(ii1+2*ks1,ii2,ii3,ex)
+     & +8.*u2(ii1+ks1,ii2,ii3,ex)+u2(ii1-2*ks1,ii2,ii3,ex))/8. + 1.5*
+     & ks1*dx2(axis2)*(8.*(u2(ii1,ii2+1,ii3,ey)-u2(ii1,ii2-1,ii3,ey))-
+     & (u2(ii1,ii2+2,ii3,ey)-u2(ii1,ii2-2,ii3,ey)))/(12.*dx2(1))
+                    else
+                      stop 4432
+                    end if
+                  end if
+                 ! extrapolate corner point C along the diagonal
+                 ksv(axis2)=1-2*side2
+                   if( orderOfAccuracy.eq.2 )then
+                      u2(ii1-ksv(0),ii2-ksv(1),ii3-ksv(2),ex)=(3.*u2(
+     & ii1,ii2,ii3,ex)-3.*u2(ii1+ksv(0),ii2+ksv(1),ii3+ksv(2),ex)+u2(
+     & ii1+2*ksv(0),ii2+2*ksv(1),ii3+2*ksv(2),ex))
+                      u2(ii1-ksv(0),ii2-ksv(1),ii3-ksv(2),ey)=(3.*u2(
+     & ii1,ii2,ii3,ey)-3.*u2(ii1+ksv(0),ii2+ksv(1),ii3+ksv(2),ey)+u2(
+     & ii1+2*ksv(0),ii2+2*ksv(1),ii3+2*ksv(2),ey))
+                      u2(ii1-ksv(0),ii2-ksv(1),ii3-ksv(2),hz)=(3.*u2(
+     & ii1,ii2,ii3,hz)-3.*u2(ii1+ksv(0),ii2+ksv(1),ii3+ksv(2),hz)+u2(
+     & ii1+2*ksv(0),ii2+2*ksv(1),ii3+2*ksv(2),hz))
+                   else
+                      u2(ii1-ksv(0),ii2-ksv(1),ii3-ksv(2),ex)=(5.*u2(
+     & ii1,ii2,ii3,ex)-10.*u2(ii1+ksv(0),ii2+ksv(1),ii3+ksv(2),ex)+
+     & 10.*u2(ii1+2*ksv(0),ii2+2*ksv(1),ii3+2*ksv(2),ex)-5.*u2(ii1+3*
+     & ksv(0),ii2+3*ksv(1),ii3+3*ksv(2),ex)+u2(ii1+4*ksv(0),ii2+4*ksv(
+     & 1),ii3+4*ksv(2),ex))
+                      u2(ii1-ksv(0),ii2-ksv(1),ii3-ksv(2),ey)=(5.*u2(
+     & ii1,ii2,ii3,ey)-10.*u2(ii1+ksv(0),ii2+ksv(1),ii3+ksv(2),ey)+
+     & 10.*u2(ii1+2*ksv(0),ii2+2*ksv(1),ii3+2*ksv(2),ey)-5.*u2(ii1+3*
+     & ksv(0),ii2+3*ksv(1),ii3+3*ksv(2),ey)+u2(ii1+4*ksv(0),ii2+4*ksv(
+     & 1),ii3+4*ksv(2),ey))
+                      u2(ii1-ksv(0),ii2-ksv(1),ii3-ksv(2),hz)=(5.*u2(
+     & ii1,ii2,ii3,hz)-10.*u2(ii1+ksv(0),ii2+ksv(1),ii3+ksv(2),hz)+
+     & 10.*u2(ii1+2*ksv(0),ii2+2*ksv(1),ii3+2*ksv(2),hz)-5.*u2(ii1+3*
+     & ksv(0),ii2+3*ksv(1),ii3+3*ksv(2),hz)+u2(ii1+4*ksv(0),ii2+4*ksv(
+     & 1),ii3+4*ksv(2),hz))
+                   end if
+                 if( orderOfAccuracy.eq.4 )then
+                   ! extrapolate extra corner points E-F-G
+                     if( orderOfAccuracy.eq.2 )then
+                        u2(ii1-ksv(0)-ksv(0),ii2-ksv(1),ii3-ksv(2),ex)
+     & =(3.*u2(ii1-ksv(0),ii2,ii3,ex)-3.*u2(ii1-ksv(0)+ksv(0),ii2+ksv(
+     & 1),ii3+ksv(2),ex)+u2(ii1-ksv(0)+2*ksv(0),ii2+2*ksv(1),ii3+2*
+     & ksv(2),ex))
+                        u2(ii1-ksv(0)-ksv(0),ii2-ksv(1),ii3-ksv(2),ey)
+     & =(3.*u2(ii1-ksv(0),ii2,ii3,ey)-3.*u2(ii1-ksv(0)+ksv(0),ii2+ksv(
+     & 1),ii3+ksv(2),ey)+u2(ii1-ksv(0)+2*ksv(0),ii2+2*ksv(1),ii3+2*
+     & ksv(2),ey))
+                        u2(ii1-ksv(0)-ksv(0),ii2-ksv(1),ii3-ksv(2),hz)
+     & =(3.*u2(ii1-ksv(0),ii2,ii3,hz)-3.*u2(ii1-ksv(0)+ksv(0),ii2+ksv(
+     & 1),ii3+ksv(2),hz)+u2(ii1-ksv(0)+2*ksv(0),ii2+2*ksv(1),ii3+2*
+     & ksv(2),hz))
+                     else
+                        u2(ii1-ksv(0)-ksv(0),ii2-ksv(1),ii3-ksv(2),ex)
+     & =(5.*u2(ii1-ksv(0),ii2,ii3,ex)-10.*u2(ii1-ksv(0)+ksv(0),ii2+
+     & ksv(1),ii3+ksv(2),ex)+10.*u2(ii1-ksv(0)+2*ksv(0),ii2+2*ksv(1),
+     & ii3+2*ksv(2),ex)-5.*u2(ii1-ksv(0)+3*ksv(0),ii2+3*ksv(1),ii3+3*
+     & ksv(2),ex)+u2(ii1-ksv(0)+4*ksv(0),ii2+4*ksv(1),ii3+4*ksv(2),ex)
+     & )
+                        u2(ii1-ksv(0)-ksv(0),ii2-ksv(1),ii3-ksv(2),ey)
+     & =(5.*u2(ii1-ksv(0),ii2,ii3,ey)-10.*u2(ii1-ksv(0)+ksv(0),ii2+
+     & ksv(1),ii3+ksv(2),ey)+10.*u2(ii1-ksv(0)+2*ksv(0),ii2+2*ksv(1),
+     & ii3+2*ksv(2),ey)-5.*u2(ii1-ksv(0)+3*ksv(0),ii2+3*ksv(1),ii3+3*
+     & ksv(2),ey)+u2(ii1-ksv(0)+4*ksv(0),ii2+4*ksv(1),ii3+4*ksv(2),ey)
+     & )
+                        u2(ii1-ksv(0)-ksv(0),ii2-ksv(1),ii3-ksv(2),hz)
+     & =(5.*u2(ii1-ksv(0),ii2,ii3,hz)-10.*u2(ii1-ksv(0)+ksv(0),ii2+
+     & ksv(1),ii3+ksv(2),hz)+10.*u2(ii1-ksv(0)+2*ksv(0),ii2+2*ksv(1),
+     & ii3+2*ksv(2),hz)-5.*u2(ii1-ksv(0)+3*ksv(0),ii2+3*ksv(1),ii3+3*
+     & ksv(2),hz)+u2(ii1-ksv(0)+4*ksv(0),ii2+4*ksv(1),ii3+4*ksv(2),hz)
+     & )
+                     end if
+                     if( orderOfAccuracy.eq.2 )then
+                        u2(ii1-ksv(0),ii2-ksv(1)-ksv(1),ii3-ksv(2),ex)
+     & =(3.*u2(ii1,ii2-ksv(1),ii3,ex)-3.*u2(ii1+ksv(0),ii2-ksv(1)+ksv(
+     & 1),ii3+ksv(2),ex)+u2(ii1+2*ksv(0),ii2-ksv(1)+2*ksv(1),ii3+2*
+     & ksv(2),ex))
+                        u2(ii1-ksv(0),ii2-ksv(1)-ksv(1),ii3-ksv(2),ey)
+     & =(3.*u2(ii1,ii2-ksv(1),ii3,ey)-3.*u2(ii1+ksv(0),ii2-ksv(1)+ksv(
+     & 1),ii3+ksv(2),ey)+u2(ii1+2*ksv(0),ii2-ksv(1)+2*ksv(1),ii3+2*
+     & ksv(2),ey))
+                        u2(ii1-ksv(0),ii2-ksv(1)-ksv(1),ii3-ksv(2),hz)
+     & =(3.*u2(ii1,ii2-ksv(1),ii3,hz)-3.*u2(ii1+ksv(0),ii2-ksv(1)+ksv(
+     & 1),ii3+ksv(2),hz)+u2(ii1+2*ksv(0),ii2-ksv(1)+2*ksv(1),ii3+2*
+     & ksv(2),hz))
+                     else
+                        u2(ii1-ksv(0),ii2-ksv(1)-ksv(1),ii3-ksv(2),ex)
+     & =(5.*u2(ii1,ii2-ksv(1),ii3,ex)-10.*u2(ii1+ksv(0),ii2-ksv(1)+
+     & ksv(1),ii3+ksv(2),ex)+10.*u2(ii1+2*ksv(0),ii2-ksv(1)+2*ksv(1),
+     & ii3+2*ksv(2),ex)-5.*u2(ii1+3*ksv(0),ii2-ksv(1)+3*ksv(1),ii3+3*
+     & ksv(2),ex)+u2(ii1+4*ksv(0),ii2-ksv(1)+4*ksv(1),ii3+4*ksv(2),ex)
+     & )
+                        u2(ii1-ksv(0),ii2-ksv(1)-ksv(1),ii3-ksv(2),ey)
+     & =(5.*u2(ii1,ii2-ksv(1),ii3,ey)-10.*u2(ii1+ksv(0),ii2-ksv(1)+
+     & ksv(1),ii3+ksv(2),ey)+10.*u2(ii1+2*ksv(0),ii2-ksv(1)+2*ksv(1),
+     & ii3+2*ksv(2),ey)-5.*u2(ii1+3*ksv(0),ii2-ksv(1)+3*ksv(1),ii3+3*
+     & ksv(2),ey)+u2(ii1+4*ksv(0),ii2-ksv(1)+4*ksv(1),ii3+4*ksv(2),ey)
+     & )
+                        u2(ii1-ksv(0),ii2-ksv(1)-ksv(1),ii3-ksv(2),hz)
+     & =(5.*u2(ii1,ii2-ksv(1),ii3,hz)-10.*u2(ii1+ksv(0),ii2-ksv(1)+
+     & ksv(1),ii3+ksv(2),hz)+10.*u2(ii1+2*ksv(0),ii2-ksv(1)+2*ksv(1),
+     & ii3+2*ksv(2),hz)-5.*u2(ii1+3*ksv(0),ii2-ksv(1)+3*ksv(1),ii3+3*
+     & ksv(2),hz)+u2(ii1+4*ksv(0),ii2-ksv(1)+4*ksv(1),ii3+4*ksv(2),hz)
+     & )
+                     end if
+                     if( orderOfAccuracy.eq.2 )then
+                        u2(ii1-ksv(0)-ksv(0),ii2-ksv(1)-ksv(1),ii3-ksv(
+     & 2),ex)=(3.*u2(ii1-ksv(0),ii2-ksv(1),ii3,ex)-3.*u2(ii1-ksv(0)+
+     & ksv(0),ii2-ksv(1)+ksv(1),ii3+ksv(2),ex)+u2(ii1-ksv(0)+2*ksv(0),
+     & ii2-ksv(1)+2*ksv(1),ii3+2*ksv(2),ex))
+                        u2(ii1-ksv(0)-ksv(0),ii2-ksv(1)-ksv(1),ii3-ksv(
+     & 2),ey)=(3.*u2(ii1-ksv(0),ii2-ksv(1),ii3,ey)-3.*u2(ii1-ksv(0)+
+     & ksv(0),ii2-ksv(1)+ksv(1),ii3+ksv(2),ey)+u2(ii1-ksv(0)+2*ksv(0),
+     & ii2-ksv(1)+2*ksv(1),ii3+2*ksv(2),ey))
+                        u2(ii1-ksv(0)-ksv(0),ii2-ksv(1)-ksv(1),ii3-ksv(
+     & 2),hz)=(3.*u2(ii1-ksv(0),ii2-ksv(1),ii3,hz)-3.*u2(ii1-ksv(0)+
+     & ksv(0),ii2-ksv(1)+ksv(1),ii3+ksv(2),hz)+u2(ii1-ksv(0)+2*ksv(0),
+     & ii2-ksv(1)+2*ksv(1),ii3+2*ksv(2),hz))
+                     else
+                        u2(ii1-ksv(0)-ksv(0),ii2-ksv(1)-ksv(1),ii3-ksv(
+     & 2),ex)=(5.*u2(ii1-ksv(0),ii2-ksv(1),ii3,ex)-10.*u2(ii1-ksv(0)+
+     & ksv(0),ii2-ksv(1)+ksv(1),ii3+ksv(2),ex)+10.*u2(ii1-ksv(0)+2*
+     & ksv(0),ii2-ksv(1)+2*ksv(1),ii3+2*ksv(2),ex)-5.*u2(ii1-ksv(0)+3*
+     & ksv(0),ii2-ksv(1)+3*ksv(1),ii3+3*ksv(2),ex)+u2(ii1-ksv(0)+4*
+     & ksv(0),ii2-ksv(1)+4*ksv(1),ii3+4*ksv(2),ex))
+                        u2(ii1-ksv(0)-ksv(0),ii2-ksv(1)-ksv(1),ii3-ksv(
+     & 2),ey)=(5.*u2(ii1-ksv(0),ii2-ksv(1),ii3,ey)-10.*u2(ii1-ksv(0)+
+     & ksv(0),ii2-ksv(1)+ksv(1),ii3+ksv(2),ey)+10.*u2(ii1-ksv(0)+2*
+     & ksv(0),ii2-ksv(1)+2*ksv(1),ii3+2*ksv(2),ey)-5.*u2(ii1-ksv(0)+3*
+     & ksv(0),ii2-ksv(1)+3*ksv(1),ii3+3*ksv(2),ey)+u2(ii1-ksv(0)+4*
+     & ksv(0),ii2-ksv(1)+4*ksv(1),ii3+4*ksv(2),ey))
+                        u2(ii1-ksv(0)-ksv(0),ii2-ksv(1)-ksv(1),ii3-ksv(
+     & 2),hz)=(5.*u2(ii1-ksv(0),ii2-ksv(1),ii3,hz)-10.*u2(ii1-ksv(0)+
+     & ksv(0),ii2-ksv(1)+ksv(1),ii3+ksv(2),hz)+10.*u2(ii1-ksv(0)+2*
+     & ksv(0),ii2-ksv(1)+2*ksv(1),ii3+2*ksv(2),hz)-5.*u2(ii1-ksv(0)+3*
+     & ksv(0),ii2-ksv(1)+3*ksv(1),ii3+3*ksv(2),hz)+u2(ii1-ksv(0)+4*
+     & ksv(0),ii2-ksv(1)+4*ksv(1),ii3+4*ksv(2),hz))
+                     end if
+                 end if
+                 if( debug.gt.1 )then
+                   if( orderOfAccuracy.eq.2 )then
+                     dive=(u2(ii1+1,ii2,ii3,ex)-u2(ii1-1,ii2,ii3,ex))/(
+     & 2.*dx2(0)) + (u2(ii1,ii2+1,ii3,ey)-u2(ii1,ii2-1,ii3,ey))/(2.*
+     & dx2(1))
+                   else
+                     dive=(8.*(u2(ii1+1,ii2,ii3,ex)-u2(ii1-1,ii2,ii3,
+     & ex))-(u2(ii1+2,ii2,ii3,ex)-u2(ii1-2,ii2,ii3,ex)))/(12.*dx2(0)) 
+     & + (8.*(u2(ii1,ii2+1,ii3,ey)-u2(ii1,ii2-1,ii3,ey))-(u2(ii1,ii2+
+     & 2,ii3,ey)-u2(ii1,ii2-2,ii3,ey)))/(12.*dx2(1))
+                   end if
+                   write(debugFile,'("... after: div(E)=",e10.2)') dive
+                 end if
+                 ksv(axis2p1)=0 ! reset
+                 ksv(axis2)=0 ! reset
+                end if
+              end do ! end sidea
+          end if
+
+          ! opt periodic update
+          if( parallel.eq.0 )then
+           axisp1=mod(axis1+1,nd)
+           if( boundaryCondition1(0,axisp1).lt.0 )then
+            ! direction axisp1 is periodic
+            diff(axis1)=0
+            diff(axisp1)=gridIndexRange1(1,axisp1)-gridIndexRange1(0,
      & axisp1)
-           if( side1.eq.0 )then
-             ! assign 4 ghost points outside lower corner
-             np1a=gridIndexRange1(0,0)-2
-             np1b=gridIndexRange1(0,0)-1
-             np2a=gridIndexRange1(0,1)-2
-             np2b=gridIndexRange1(0,1)-1
-             do i3=n3a,n3b
-             do i2=np2a,np2b
-             do i1=np1a,np1b
-             do n=ex,hz
-               ! write(*,'(" periodic i1,i2,i3,n=",4i4)') i1,i2,i3,n
-              u1(i1,i2,i3,n) = u1(i1+diff(0),i2+diff(1),i3,n)
-             end do
-             end do
-             end do
-             end do
-             ! assign 4 ghost points outside upper corner
-             if( axis1.eq.0 )then
-               np2a=gridIndexRange1(1,axisp1)+1
-               np2b=gridIndexRange1(1,axisp1)+2
-             else
-               np1a=gridIndexRange1(1,axisp1)+1
-               np1b=gridIndexRange1(1,axisp1)+2
-             end if
-             do i3=n3a,n3b
-             do i2=np2a,np2b
-             do i1=np1a,np1b
-             do n=ex,hz
-               ! write(*,'(" periodic i1,i2,i3,n=",4i4)') i1,i2,i3,n
-              u1(i1,i2,i3,n) = u1(i1-diff(0),i2-diff(1),i3,n)
-             end do
-             end do
-             end do
-             end do
-           else
-             ! assign 4 ghost points outside upper corner
-             np1a=gridIndexRange1(1,0)+1
-             np1b=gridIndexRange1(1,0)+2
-             np2a=gridIndexRange1(1,1)+1
-             np2b=gridIndexRange1(1,1)+2
-             do i3=n3a,n3b
-             do i2=np2a,np2b
-             do i1=np1a,np1b
-             do n=ex,hz
-               ! write(*,'(" periodic i1,i2,i3,n=",4i4)') i1,i2,i3,n
-              u1(i1,i2,i3,n) = u1(i1-diff(0),i2-diff(1),i3,n)
-             end do
-             end do
-             end do
-             end do
-             if( axis1.eq.0 )then
-               np2a=gridIndexRange1(0,axisp1)-2
-               np2b=gridIndexRange1(0,axisp1)-1
-             else
-               np1a=gridIndexRange1(0,axisp1)-2
-               np1b=gridIndexRange1(0,axisp1)-1
-             end if
-             do i3=n3a,n3b
-             do i2=np2a,np2b
-             do i1=np1a,np1b
-             do n=ex,hz
-               ! write(*,'(" periodic i1,i2,i3,n=",4i4)') i1,i2,i3,n
-              u1(i1,i2,i3,n) = u1(i1+diff(0),i2+diff(1),i3,n)
-             end do
-             end do
-             end do
-             end do
-           end if
-          endif
-         end if
-         if( parallel.eq.0 )then
-          axisp1=mod(axis2+1,nd)
-          if( boundaryCondition2(0,axisp1).lt.0 )then
-           ! direction axisp1 is periodic
-           diff(axis2)=0
-           diff(axisp1)=gridIndexRange2(1,axisp1)-gridIndexRange2(0,
+            if( side1.eq.0 )then
+              ! assign 4 ghost points outside lower corner
+              np1a=gridIndexRange1(0,0)-2
+              np1b=gridIndexRange1(0,0)-1
+              np2a=gridIndexRange1(0,1)-2
+              np2b=gridIndexRange1(0,1)-1
+              do i3=n3a,n3b
+              do i2=np2a,np2b
+              do i1=np1a,np1b
+              do n=ex,hz
+                ! write(*,'(" periodic i1,i2,i3,n=",4i4)') i1,i2,i3,n
+               u1(i1,i2,i3,n) = u1(i1+diff(0),i2+diff(1),i3,n)
+              end do
+              end do
+              end do
+              end do
+              ! assign 4 ghost points outside upper corner
+              if( axis1.eq.0 )then
+                np2a=gridIndexRange1(1,axisp1)+1
+                np2b=gridIndexRange1(1,axisp1)+2
+              else
+                np1a=gridIndexRange1(1,axisp1)+1
+                np1b=gridIndexRange1(1,axisp1)+2
+              end if
+              do i3=n3a,n3b
+              do i2=np2a,np2b
+              do i1=np1a,np1b
+              do n=ex,hz
+                ! write(*,'(" periodic i1,i2,i3,n=",4i4)') i1,i2,i3,n
+               u1(i1,i2,i3,n) = u1(i1-diff(0),i2-diff(1),i3,n)
+              end do
+              end do
+              end do
+              end do
+            else
+              ! assign 4 ghost points outside upper corner
+              np1a=gridIndexRange1(1,0)+1
+              np1b=gridIndexRange1(1,0)+2
+              np2a=gridIndexRange1(1,1)+1
+              np2b=gridIndexRange1(1,1)+2
+              do i3=n3a,n3b
+              do i2=np2a,np2b
+              do i1=np1a,np1b
+              do n=ex,hz
+                ! write(*,'(" periodic i1,i2,i3,n=",4i4)') i1,i2,i3,n
+               u1(i1,i2,i3,n) = u1(i1-diff(0),i2-diff(1),i3,n)
+              end do
+              end do
+              end do
+              end do
+              if( axis1.eq.0 )then
+                np2a=gridIndexRange1(0,axisp1)-2
+                np2b=gridIndexRange1(0,axisp1)-1
+              else
+                np1a=gridIndexRange1(0,axisp1)-2
+                np1b=gridIndexRange1(0,axisp1)-1
+              end if
+              do i3=n3a,n3b
+              do i2=np2a,np2b
+              do i1=np1a,np1b
+              do n=ex,hz
+                ! write(*,'(" periodic i1,i2,i3,n=",4i4)') i1,i2,i3,n
+               u1(i1,i2,i3,n) = u1(i1+diff(0),i2+diff(1),i3,n)
+              end do
+              end do
+              end do
+              end do
+            end if
+           endif
+          end if
+          if( parallel.eq.0 )then
+           axisp1=mod(axis2+1,nd)
+           if( boundaryCondition2(0,axisp1).lt.0 )then
+            ! direction axisp1 is periodic
+            diff(axis2)=0
+            diff(axisp1)=gridIndexRange2(1,axisp1)-gridIndexRange2(0,
      & axisp1)
-           if( side2.eq.0 )then
-             ! assign 4 ghost points outside lower corner
-             np1a=gridIndexRange2(0,0)-2
-             np1b=gridIndexRange2(0,0)-1
-             np2a=gridIndexRange2(0,1)-2
-             np2b=gridIndexRange2(0,1)-1
-             do i3=n3a,n3b
-             do i2=np2a,np2b
-             do i1=np1a,np1b
-             do n=ex,hz
-               ! write(*,'(" periodic i1,i2,i3,n=",4i4)') i1,i2,i3,n
-              u2(i1,i2,i3,n) = u2(i1+diff(0),i2+diff(1),i3,n)
-             end do
-             end do
-             end do
-             end do
-             ! assign 4 ghost points outside upper corner
-             if( axis2.eq.0 )then
-               np2a=gridIndexRange2(1,axisp1)+1
-               np2b=gridIndexRange2(1,axisp1)+2
-             else
-               np1a=gridIndexRange2(1,axisp1)+1
-               np1b=gridIndexRange2(1,axisp1)+2
-             end if
-             do i3=n3a,n3b
-             do i2=np2a,np2b
-             do i1=np1a,np1b
-             do n=ex,hz
-               ! write(*,'(" periodic i1,i2,i3,n=",4i4)') i1,i2,i3,n
-              u2(i1,i2,i3,n) = u2(i1-diff(0),i2-diff(1),i3,n)
-             end do
-             end do
-             end do
-             end do
-           else
-             ! assign 4 ghost points outside upper corner
-             np1a=gridIndexRange2(1,0)+1
-             np1b=gridIndexRange2(1,0)+2
-             np2a=gridIndexRange2(1,1)+1
-             np2b=gridIndexRange2(1,1)+2
-             do i3=n3a,n3b
-             do i2=np2a,np2b
-             do i1=np1a,np1b
-             do n=ex,hz
-               ! write(*,'(" periodic i1,i2,i3,n=",4i4)') i1,i2,i3,n
-              u2(i1,i2,i3,n) = u2(i1-diff(0),i2-diff(1),i3,n)
-             end do
-             end do
-             end do
-             end do
-             if( axis2.eq.0 )then
-               np2a=gridIndexRange2(0,axisp1)-2
-               np2b=gridIndexRange2(0,axisp1)-1
-             else
-               np1a=gridIndexRange2(0,axisp1)-2
-               np1b=gridIndexRange2(0,axisp1)-1
-             end if
-             do i3=n3a,n3b
-             do i2=np2a,np2b
-             do i1=np1a,np1b
-             do n=ex,hz
-               ! write(*,'(" periodic i1,i2,i3,n=",4i4)') i1,i2,i3,n
-              u2(i1,i2,i3,n) = u2(i1+diff(0),i2+diff(1),i3,n)
-             end do
-             end do
-             end do
-             end do
-           end if
-          endif
-         end if
-       end if
+            if( side2.eq.0 )then
+              ! assign 4 ghost points outside lower corner
+              np1a=gridIndexRange2(0,0)-2
+              np1b=gridIndexRange2(0,0)-1
+              np2a=gridIndexRange2(0,1)-2
+              np2b=gridIndexRange2(0,1)-1
+              do i3=n3a,n3b
+              do i2=np2a,np2b
+              do i1=np1a,np1b
+              do n=ex,hz
+                ! write(*,'(" periodic i1,i2,i3,n=",4i4)') i1,i2,i3,n
+               u2(i1,i2,i3,n) = u2(i1+diff(0),i2+diff(1),i3,n)
+              end do
+              end do
+              end do
+              end do
+              ! assign 4 ghost points outside upper corner
+              if( axis2.eq.0 )then
+                np2a=gridIndexRange2(1,axisp1)+1
+                np2b=gridIndexRange2(1,axisp1)+2
+              else
+                np1a=gridIndexRange2(1,axisp1)+1
+                np1b=gridIndexRange2(1,axisp1)+2
+              end if
+              do i3=n3a,n3b
+              do i2=np2a,np2b
+              do i1=np1a,np1b
+              do n=ex,hz
+                ! write(*,'(" periodic i1,i2,i3,n=",4i4)') i1,i2,i3,n
+               u2(i1,i2,i3,n) = u2(i1-diff(0),i2-diff(1),i3,n)
+              end do
+              end do
+              end do
+              end do
+            else
+              ! assign 4 ghost points outside upper corner
+              np1a=gridIndexRange2(1,0)+1
+              np1b=gridIndexRange2(1,0)+2
+              np2a=gridIndexRange2(1,1)+1
+              np2b=gridIndexRange2(1,1)+2
+              do i3=n3a,n3b
+              do i2=np2a,np2b
+              do i1=np1a,np1b
+              do n=ex,hz
+                ! write(*,'(" periodic i1,i2,i3,n=",4i4)') i1,i2,i3,n
+               u2(i1,i2,i3,n) = u2(i1-diff(0),i2-diff(1),i3,n)
+              end do
+              end do
+              end do
+              end do
+              if( axis2.eq.0 )then
+                np2a=gridIndexRange2(0,axisp1)-2
+                np2b=gridIndexRange2(0,axisp1)-1
+              else
+                np1a=gridIndexRange2(0,axisp1)-2
+                np1b=gridIndexRange2(0,axisp1)-1
+              end if
+              do i3=n3a,n3b
+              do i2=np2a,np2b
+              do i1=np1a,np1b
+              do n=ex,hz
+                ! write(*,'(" periodic i1,i2,i3,n=",4i4)') i1,i2,i3,n
+               u2(i1,i2,i3,n) = u2(i1+diff(0),i2+diff(1),i3,n)
+              end do
+              end do
+              end do
+              end do
+            end if
+           endif
+          end if
+        end if
 
        else if( nd.eq.2 .and. orderOfAccuracy.eq.2 .and. 
      & gridType.eq.curvilinear )then
@@ -2550,85 +3265,168 @@
          ! ---- first satisfy the jump conditions on the boundary --------
          !    [ eps n.u ] = 0
          !    [ tau.u ] = 0
-           if( eps1.lt.eps2 )then
-             epsRatio=eps1/eps2
-              i3=n3a
-              j3=m3a
-              j2=mm2a
-              do i2=nn2a,nn2b
-               j1=mm1a
-               do i1=nn1a,nn1b
-               ! if( mask1(i1,i2,i3).gt.0 .and. mask2(j1,j2,j3).gt.0 )then
-               ! *wdh* 2015/08/14 -- project interpolation points too
-               if( mask1(i1,i2,i3).ne.0 .and. mask2(j1,j2,j3).ne.0 )
+
+         if( assignInterfaceValues.eq.1 )then
+             if( useImpedanceInterfaceProjection.eq.1 )then
+               ! --------------------------------------------------------------
+               ! ------ Use impedance weighting to project the interface ------
+               ! --------------------------------------------------------------
+               !  (see maxwell.pdf)
+               !
+                i3=n3a
+                j3=m3a
+                j2=mm2a
+                do i2=nn2a,nn2b
+                 j1=mm1a
+                 do i1=nn1a,nn1b
+                 ! if( mask1(i1,i2,i3).gt.0 .and. mask2(j1,j2,j3).gt.0 )then
+                 ! *wdh* 2015/08/14 -- project interpolation points too
+                 if( mask1(i1,i2,i3).ne.0 .and. mask2(j1,j2,j3).ne.0 )
      & then
-               ! eps2 n.u2 = eps1 n.u1
-               !     tau.u2 = tau.u1
-                an1=rsxy1(i1,i2,i3,axis1,0)   ! normal (an1,an2)
-                an2=rsxy1(i1,i2,i3,axis1,1)
-                aNorm=max(epsx,sqrt(an1**2+an2**2))
-                an1=an1/aNorm
-                an2=an2/aNorm
-               ua=u1(i1,i2,i3,ex)
-               ub=u1(i1,i2,i3,ey)
-               nDotU = an1*ua+an2*ub
-               if( twilightZone.eq.1 )then
-                ! adjust for TZ forcing (here we assume the exact solution is the same on both sides)
-                call ogderiv(ep, 0,0,0,0, xy1(i1,i2,i3,0),xy1(i1,i2,i3,
-     & 1),0.,t, ex, ue )
-                call ogderiv(ep, 0,0,0,0, xy1(i1,i2,i3,0),xy1(i1,i2,i3,
-     & 1),0.,t, ey, ve )
-                nDotU = nDotU - (an1*ue+an2*ve)
-               end if
-               ! u2 equals u1 but with normal component = eps1/eps2*(n.u1)
-               u2(j1,j2,j3,ex) = ua + (nDotU*epsRatio - nDotU)*an1
-               u2(j1,j2,j3,ey) = ub + (nDotU*epsRatio - nDotU)*an2
-               u2(j1,j2,j3,hz) = u1(i1,i2,i3,hz)
-                end if
-                j1=j1+1
-               end do
-               j2=j2+1
-              end do
-           else
-             epsRatio=eps2/eps1
-              i3=n3a
-              j3=m3a
-              j2=mm2a
-              do i2=nn2a,nn2b
-               j1=mm1a
-               do i1=nn1a,nn1b
-               ! if( mask1(i1,i2,i3).gt.0 .and. mask2(j1,j2,j3).gt.0 )then
-               ! *wdh* 2015/08/14 -- project interpolation points too
-               if( mask1(i1,i2,i3).ne.0 .and. mask2(j1,j2,j3).ne.0 )
+                 ! eps2 n.u2 = eps1 n.u1
+                 !     tau.u2 = tau.u1
+                  an1=rsxy1(i1,i2,i3,axis1,0)   ! normal (an1,an2)
+                  an2=rsxy1(i1,i2,i3,axis1,1)
+                  aNorm=max(epsx,sqrt(an1**2+an2**2))
+                  an1=an1/aNorm
+                  an2=an2/aNorm
+                 ! left state:
+                 ex1=u1(i1,i2,i3,ex)
+                 ey1=u1(i1,i2,i3,ey)
+                 hz1=u1(i1,i2,i3,hz)
+                 ! right state:
+                 ex2=u2(j1,j2,j3,ex)
+                 ey2=u2(j1,j2,j3,ey)
+                 hz2=u2(j1,j2,j3,hz)
+                 ! normal components 
+                 nDotE1 = an1*ex1+an2*ey1
+                 nDotE2 = an1*ex2+an2*ey2
+                 ! The interface value of (eps n.E) is an impedance average of (eps* n.E)
+                 !
+                 !      (eps n.E)_I = [ eta1*( eps1*n.E1 ) +  eta2*( eps2*n.E2 ) ]/[ eta1 + eta2 ]
+                 !
+                 ! We then set 
+                 !   eps1*nDotE1_I = (eps n.E)_I 
+                 !   eps2*nDotE2_I = (eps n.E)_I 
+                 epsNDotEI = ( eta1*(eps1*nDotE1) + eta2*(eps2*nDotE2) 
+     & )/(eta1+eta2) ! (eps * n. E)_I
+                 if( twilightZone.eq.1)then
+                  ! adjust for TZ forcing (here we assume the exact solution is the same on both sides)
+                  call ogderiv(ep, 0,0,0,0, xy1(i1,i2,i3,0),xy1(i1,i2,
+     & i3,1),0.,t, ex, ue )
+                  call ogderiv(ep, 0,0,0,0, xy1(i1,i2,i3,0),xy1(i1,i2,
+     & i3,1),0.,t, ey, ve )
+                  nDotEe = an1*ue+an2*ve
+                  ! epsNDotEI + g1 = eps1*nDotE 
+                  ! epsNDotEI + g2 = eps2*nDotE 
+                  g1= (eps1-eps2) * nDotEe *eta2/(eta1+eta2)
+                  g2= (eps2-eps1) * nDotEe *eta1/(eta1+eta2)
+                 else
+                   g1=0.
+                   g2=0.
+                 end if
+                 nDotE1I = (epsNDotEI+g1)/eps1  ! nDotE for interface on left
+                 nDotE2I = (epsNDotEI+g2)/eps2  ! nDotE for interface on right
+                 ! inverse impedance average of tangential components  (do full vector and correct below)
+                 exI = ( eta1i*ex1 + eta2i*ex2 )/( eta1i + eta2i )
+                 eyI = ( eta1i*ey1 + eta2i*ey2 )/( eta1i + eta2i )
+                 ! hz : impedance weighted average 
+                 hzI = ( eta1*hz1 + eta2*hz2 )/(eta1+eta2)
+                 nDotEI= an1*exI+an2*eyI  ! we need to subtract off normal component of (exI,eyI)
+                 u1(i1,i2,i3,ex) = exI + (nDotE1I - nDotEI)*an1
+                 u1(i1,i2,i3,ey) = eyI + (nDotE1I - nDotEI)*an2
+                 u1(i1,i2,i3,hz) = hzI
+                 u2(j1,j2,j3,ex) = exI + (nDotE2I - nDotEI)*an1
+                 u2(j1,j2,j3,ey) = eyI + (nDotE2I - nDotEI)*an2
+                 u2(j1,j2,j3,hz) = hzI
+                  end if
+                  j1=j1+1
+                 end do
+                 j2=j2+1
+                end do
+             else if( eps1.lt.eps2 )then
+               epsRatio=eps1/eps2
+                i3=n3a
+                j3=m3a
+                j2=mm2a
+                do i2=nn2a,nn2b
+                 j1=mm1a
+                 do i1=nn1a,nn1b
+                 ! if( mask1(i1,i2,i3).gt.0 .and. mask2(j1,j2,j3).gt.0 )then
+                 ! *wdh* 2015/08/14 -- project interpolation points too
+                 if( mask1(i1,i2,i3).ne.0 .and. mask2(j1,j2,j3).ne.0 )
      & then
-               ! eps2 n.u2 = eps1 n.u1
-               !     tau.u2 = tau.u1
-                an1=rsxy1(i1,i2,i3,axis1,0)
-                an2=rsxy1(i1,i2,i3,axis1,1)
-                aNorm=max(epsx,sqrt(an1**2+an2**2))
-                an1=an1/aNorm
-                an2=an2/aNorm
-               ua=u2(j1,j2,j3,ex)
-               ub=u2(j1,j2,j3,ey)
-               nDotU = an1*ua+an2*ub
-               if( twilightZone.eq.1 )then
-                ! adjust for TZ forcing (here we assume the exact solution is the same on both sides)
-                call ogderiv(ep, 0,0,0,0, xy1(i1,i2,i3,0),xy1(i1,i2,i3,
-     & 1),0.,t, ex, ue )
-                call ogderiv(ep, 0,0,0,0, xy1(i1,i2,i3,0),xy1(i1,i2,i3,
-     & 1),0.,t, ey, ve )
-         ! write(*,'(" jump: x,y=",2e10.2," ua,ue=",2e10.2," ub,ve=",2e10.2)') xy1(i1,i2,i3,0),xy1(i1,i2,i3,1),ua,ue,ub,ve
-                nDotU = nDotU - (an1*ue+an2*ve)
-               end if
-               u1(i1,i2,i3,ex) = ua + (nDotU*epsRatio - nDotU)*an1
-               u1(i1,i2,i3,ey) = ub + (nDotU*epsRatio - nDotU)*an2
-               u1(i1,i2,i3,hz) = u2(j1,j2,j3,hz)
-                end if
-                j1=j1+1
-               end do
-               j2=j2+1
-              end do
-           end if
+                 ! eps2 n.u2 = eps1 n.u1
+                 !     tau.u2 = tau.u1
+                  an1=rsxy1(i1,i2,i3,axis1,0)   ! normal (an1,an2)
+                  an2=rsxy1(i1,i2,i3,axis1,1)
+                  aNorm=max(epsx,sqrt(an1**2+an2**2))
+                  an1=an1/aNorm
+                  an2=an2/aNorm
+                 ua=u1(i1,i2,i3,ex)
+                 ub=u1(i1,i2,i3,ey)
+                 nDotU = an1*ua+an2*ub
+                 if( twilightZone.eq.1 )then
+                  ! adjust for TZ forcing (here we assume the exact solution is the same on both sides)
+                  call ogderiv(ep, 0,0,0,0, xy1(i1,i2,i3,0),xy1(i1,i2,
+     & i3,1),0.,t, ex, ue )
+                  call ogderiv(ep, 0,0,0,0, xy1(i1,i2,i3,0),xy1(i1,i2,
+     & i3,1),0.,t, ey, ve )
+                  nDotU = nDotU - (an1*ue+an2*ve)
+                 end if
+                 ! u2 equals u1 but with normal component = eps1/eps2*(n.u1)
+                 u2(j1,j2,j3,ex) = ua + (nDotU*epsRatio - nDotU)*an1
+                 u2(j1,j2,j3,ey) = ub + (nDotU*epsRatio - nDotU)*an2
+                 u2(j1,j2,j3,hz) = u1(i1,i2,i3,hz)
+                  end if
+                  j1=j1+1
+                 end do
+                 j2=j2+1
+                end do
+             else
+               epsRatio=eps2/eps1
+                i3=n3a
+                j3=m3a
+                j2=mm2a
+                do i2=nn2a,nn2b
+                 j1=mm1a
+                 do i1=nn1a,nn1b
+                 ! if( mask1(i1,i2,i3).gt.0 .and. mask2(j1,j2,j3).gt.0 )then
+                 ! *wdh* 2015/08/14 -- project interpolation points too
+                 if( mask1(i1,i2,i3).ne.0 .and. mask2(j1,j2,j3).ne.0 )
+     & then
+                 ! eps2 n.u2 = eps1 n.u1
+                 !     tau.u2 = tau.u1
+                  an1=rsxy1(i1,i2,i3,axis1,0)
+                  an2=rsxy1(i1,i2,i3,axis1,1)
+                  aNorm=max(epsx,sqrt(an1**2+an2**2))
+                  an1=an1/aNorm
+                  an2=an2/aNorm
+                 ua=u2(j1,j2,j3,ex)
+                 ub=u2(j1,j2,j3,ey)
+                 nDotU = an1*ua+an2*ub
+                 if( twilightZone.eq.1 )then
+                  ! adjust for TZ forcing (here we assume the exact solution is the same on both sides)
+                  call ogderiv(ep, 0,0,0,0, xy1(i1,i2,i3,0),xy1(i1,i2,
+     & i3,1),0.,t, ex, ue )
+                  call ogderiv(ep, 0,0,0,0, xy1(i1,i2,i3,0),xy1(i1,i2,
+     & i3,1),0.,t, ey, ve )
+           ! write(*,'(" jump: x,y=",2e10.2," ua,ue=",2e10.2," ub,ve=",2e10.2)') xy1(i1,i2,i3,0),xy1(i1,i2,i3,1),ua,ue,ub,ve
+                  nDotU = nDotU - (an1*ue+an2*ve)
+                 end if
+                 u1(i1,i2,i3,ex) = ua + (nDotU*epsRatio - nDotU)*an1
+                 u1(i1,i2,i3,ey) = ub + (nDotU*epsRatio - nDotU)*an2
+                 u1(i1,i2,i3,hz) = u2(j1,j2,j3,hz)
+                  end if
+                  j1=j1+1
+                 end do
+                 j2=j2+1
+                end do
+             end if
+         end if
+
+        ! ----- assign ghost using jump conditions -----
+        if( assignInterfaceGhostValues.eq.1 )then
 
          ! initialization step: assign first ghost line by extrapolation
          ! NOTE: assign ghost points outside the ends
@@ -2657,296 +3455,30 @@
            j2=j2+1
           end do
 
-         ! here are the real jump conditions for the ghost points
-         !   [ u.x + v.y ] = 0 = [ rx*ur + ry*vr + sx*us + sy*vs ] 
-         !   [ n.(uv.xx + uv.yy) ] = 0
-         !   [ v.x - u.y ] =0 
-         !   [ tau.(uv.xx+uv.yy)/eps ] = 0
-
-         ! ***** fix these for [mu] != 0 ****
-         if( mu1.ne.mu2 )then
-           stop 9923
-         end if
-          i3=n3a
-          j3=m3a
-          j2=m2a
-          do i2=n2a,n2b
-           j1=m1a
-           do i1=n1a,n1b
-            if( mask1(i1,i2,i3).gt.0 .and. mask2(j1,j2,j3).gt.0 )then
-
-           ! here is the normal (assumed to be the same on both sides)
-           an1=rsxy1(i1,i2,i3,axis1,0)   ! normal (an1,an2)
-           an2=rsxy1(i1,i2,i3,axis1,1)
-           aNorm=max(epsx,sqrt(an1**2+an2**2))
-           an1=an1/aNorm
-           an2=an2/aNorm
-           tau1=-an2
-           tau2= an1
-
-           ! first evaluate the equations we want to solve with the wrong values at the ghost points:
-
-
-            ! NOTE: the jacobian derivatives can be computed once for all components
-             ! this next call will define the jacobian and its derivatives (parameteric and spatial)
-             aj1rx = rsxy1(i1,i2,i3,0,0)
-             aj1rxr = (-rsxy1(i1-1,i2,i3,0,0)+rsxy1(i1+1,i2,i3,0,0))/(
-     & 2.*dr1(0))
-             aj1rxs = (-rsxy1(i1,i2-1,i3,0,0)+rsxy1(i1,i2+1,i3,0,0))/(
-     & 2.*dr1(1))
-             aj1sx = rsxy1(i1,i2,i3,1,0)
-             aj1sxr = (-rsxy1(i1-1,i2,i3,1,0)+rsxy1(i1+1,i2,i3,1,0))/(
-     & 2.*dr1(0))
-             aj1sxs = (-rsxy1(i1,i2-1,i3,1,0)+rsxy1(i1,i2+1,i3,1,0))/(
-     & 2.*dr1(1))
-             aj1ry = rsxy1(i1,i2,i3,0,1)
-             aj1ryr = (-rsxy1(i1-1,i2,i3,0,1)+rsxy1(i1+1,i2,i3,0,1))/(
-     & 2.*dr1(0))
-             aj1rys = (-rsxy1(i1,i2-1,i3,0,1)+rsxy1(i1,i2+1,i3,0,1))/(
-     & 2.*dr1(1))
-             aj1sy = rsxy1(i1,i2,i3,1,1)
-             aj1syr = (-rsxy1(i1-1,i2,i3,1,1)+rsxy1(i1+1,i2,i3,1,1))/(
-     & 2.*dr1(0))
-             aj1sys = (-rsxy1(i1,i2-1,i3,1,1)+rsxy1(i1,i2+1,i3,1,1))/(
-     & 2.*dr1(1))
-             aj1rxx = aj1rx*aj1rxr+aj1sx*aj1rxs
-             aj1rxy = aj1ry*aj1rxr+aj1sy*aj1rxs
-             aj1sxx = aj1rx*aj1sxr+aj1sx*aj1sxs
-             aj1sxy = aj1ry*aj1sxr+aj1sy*aj1sxs
-             aj1ryx = aj1rx*aj1ryr+aj1sx*aj1rys
-             aj1ryy = aj1ry*aj1ryr+aj1sy*aj1rys
-             aj1syx = aj1rx*aj1syr+aj1sx*aj1sys
-             aj1syy = aj1ry*aj1syr+aj1sy*aj1sys
-              uu1 = u1(i1,i2,i3,ex)
-              uu1r = (-u1(i1-1,i2,i3,ex)+u1(i1+1,i2,i3,ex))/(2.*dr1(0))
-              uu1s = (-u1(i1,i2-1,i3,ex)+u1(i1,i2+1,i3,ex))/(2.*dr1(1))
-              uu1rr = (u1(i1-1,i2,i3,ex)-2.*u1(i1,i2,i3,ex)+u1(i1+1,i2,
-     & i3,ex))/(dr1(0)**2)
-              uu1rs = (-(-u1(i1-1,i2-1,i3,ex)+u1(i1-1,i2+1,i3,ex))/(2.*
-     & dr1(1))+(-u1(i1+1,i2-1,i3,ex)+u1(i1+1,i2+1,i3,ex))/(2.*dr1(1)))
-     & /(2.*dr1(0))
-              uu1ss = (u1(i1,i2-1,i3,ex)-2.*u1(i1,i2,i3,ex)+u1(i1,i2+1,
-     & i3,ex))/(dr1(1)**2)
-               u1x = aj1rx*uu1r+aj1sx*uu1s
-               u1y = aj1ry*uu1r+aj1sy*uu1s
-               t1 = aj1rx**2
-               t6 = aj1sx**2
-               u1xx = t1*uu1rr+2*aj1rx*aj1sx*uu1rs+t6*uu1ss+aj1rxx*
-     & uu1r+aj1sxx*uu1s
-               t1 = aj1ry**2
-               t6 = aj1sy**2
-               u1yy = t1*uu1rr+2*aj1ry*aj1sy*uu1rs+t6*uu1ss+aj1ryy*
-     & uu1r+aj1syy*uu1s
-             u1Lap = u1xx+ u1yy
-              vv1 = u1(i1,i2,i3,ey)
-              vv1r = (-u1(i1-1,i2,i3,ey)+u1(i1+1,i2,i3,ey))/(2.*dr1(0))
-              vv1s = (-u1(i1,i2-1,i3,ey)+u1(i1,i2+1,i3,ey))/(2.*dr1(1))
-              vv1rr = (u1(i1-1,i2,i3,ey)-2.*u1(i1,i2,i3,ey)+u1(i1+1,i2,
-     & i3,ey))/(dr1(0)**2)
-              vv1rs = (-(-u1(i1-1,i2-1,i3,ey)+u1(i1-1,i2+1,i3,ey))/(2.*
-     & dr1(1))+(-u1(i1+1,i2-1,i3,ey)+u1(i1+1,i2+1,i3,ey))/(2.*dr1(1)))
-     & /(2.*dr1(0))
-              vv1ss = (u1(i1,i2-1,i3,ey)-2.*u1(i1,i2,i3,ey)+u1(i1,i2+1,
-     & i3,ey))/(dr1(1)**2)
-               v1x = aj1rx*vv1r+aj1sx*vv1s
-               v1y = aj1ry*vv1r+aj1sy*vv1s
-               t1 = aj1rx**2
-               t6 = aj1sx**2
-               v1xx = t1*vv1rr+2*aj1rx*aj1sx*vv1rs+t6*vv1ss+aj1rxx*
-     & vv1r+aj1sxx*vv1s
-               t1 = aj1ry**2
-               t6 = aj1sy**2
-               v1yy = t1*vv1rr+2*aj1ry*aj1sy*vv1rs+t6*vv1ss+aj1ryy*
-     & vv1r+aj1syy*vv1s
-             v1Lap = v1xx+ v1yy
-            ! NOTE: the jacobian derivatives can be computed once for all components
-             ! this next call will define the jacobian and its derivatives (parameteric and spatial)
-             aj2rx = rsxy2(j1,j2,j3,0,0)
-             aj2rxr = (-rsxy2(j1-1,j2,j3,0,0)+rsxy2(j1+1,j2,j3,0,0))/(
-     & 2.*dr2(0))
-             aj2rxs = (-rsxy2(j1,j2-1,j3,0,0)+rsxy2(j1,j2+1,j3,0,0))/(
-     & 2.*dr2(1))
-             aj2sx = rsxy2(j1,j2,j3,1,0)
-             aj2sxr = (-rsxy2(j1-1,j2,j3,1,0)+rsxy2(j1+1,j2,j3,1,0))/(
-     & 2.*dr2(0))
-             aj2sxs = (-rsxy2(j1,j2-1,j3,1,0)+rsxy2(j1,j2+1,j3,1,0))/(
-     & 2.*dr2(1))
-             aj2ry = rsxy2(j1,j2,j3,0,1)
-             aj2ryr = (-rsxy2(j1-1,j2,j3,0,1)+rsxy2(j1+1,j2,j3,0,1))/(
-     & 2.*dr2(0))
-             aj2rys = (-rsxy2(j1,j2-1,j3,0,1)+rsxy2(j1,j2+1,j3,0,1))/(
-     & 2.*dr2(1))
-             aj2sy = rsxy2(j1,j2,j3,1,1)
-             aj2syr = (-rsxy2(j1-1,j2,j3,1,1)+rsxy2(j1+1,j2,j3,1,1))/(
-     & 2.*dr2(0))
-             aj2sys = (-rsxy2(j1,j2-1,j3,1,1)+rsxy2(j1,j2+1,j3,1,1))/(
-     & 2.*dr2(1))
-             aj2rxx = aj2rx*aj2rxr+aj2sx*aj2rxs
-             aj2rxy = aj2ry*aj2rxr+aj2sy*aj2rxs
-             aj2sxx = aj2rx*aj2sxr+aj2sx*aj2sxs
-             aj2sxy = aj2ry*aj2sxr+aj2sy*aj2sxs
-             aj2ryx = aj2rx*aj2ryr+aj2sx*aj2rys
-             aj2ryy = aj2ry*aj2ryr+aj2sy*aj2rys
-             aj2syx = aj2rx*aj2syr+aj2sx*aj2sys
-             aj2syy = aj2ry*aj2syr+aj2sy*aj2sys
-              uu2 = u2(j1,j2,j3,ex)
-              uu2r = (-u2(j1-1,j2,j3,ex)+u2(j1+1,j2,j3,ex))/(2.*dr2(0))
-              uu2s = (-u2(j1,j2-1,j3,ex)+u2(j1,j2+1,j3,ex))/(2.*dr2(1))
-              uu2rr = (u2(j1-1,j2,j3,ex)-2.*u2(j1,j2,j3,ex)+u2(j1+1,j2,
-     & j3,ex))/(dr2(0)**2)
-              uu2rs = (-(-u2(j1-1,j2-1,j3,ex)+u2(j1-1,j2+1,j3,ex))/(2.*
-     & dr2(1))+(-u2(j1+1,j2-1,j3,ex)+u2(j1+1,j2+1,j3,ex))/(2.*dr2(1)))
-     & /(2.*dr2(0))
-              uu2ss = (u2(j1,j2-1,j3,ex)-2.*u2(j1,j2,j3,ex)+u2(j1,j2+1,
-     & j3,ex))/(dr2(1)**2)
-               u2x = aj2rx*uu2r+aj2sx*uu2s
-               u2y = aj2ry*uu2r+aj2sy*uu2s
-               t1 = aj2rx**2
-               t6 = aj2sx**2
-               u2xx = t1*uu2rr+2*aj2rx*aj2sx*uu2rs+t6*uu2ss+aj2rxx*
-     & uu2r+aj2sxx*uu2s
-               t1 = aj2ry**2
-               t6 = aj2sy**2
-               u2yy = t1*uu2rr+2*aj2ry*aj2sy*uu2rs+t6*uu2ss+aj2ryy*
-     & uu2r+aj2syy*uu2s
-             u2Lap = u2xx+ u2yy
-              vv2 = u2(j1,j2,j3,ey)
-              vv2r = (-u2(j1-1,j2,j3,ey)+u2(j1+1,j2,j3,ey))/(2.*dr2(0))
-              vv2s = (-u2(j1,j2-1,j3,ey)+u2(j1,j2+1,j3,ey))/(2.*dr2(1))
-              vv2rr = (u2(j1-1,j2,j3,ey)-2.*u2(j1,j2,j3,ey)+u2(j1+1,j2,
-     & j3,ey))/(dr2(0)**2)
-              vv2rs = (-(-u2(j1-1,j2-1,j3,ey)+u2(j1-1,j2+1,j3,ey))/(2.*
-     & dr2(1))+(-u2(j1+1,j2-1,j3,ey)+u2(j1+1,j2+1,j3,ey))/(2.*dr2(1)))
-     & /(2.*dr2(0))
-              vv2ss = (u2(j1,j2-1,j3,ey)-2.*u2(j1,j2,j3,ey)+u2(j1,j2+1,
-     & j3,ey))/(dr2(1)**2)
-               v2x = aj2rx*vv2r+aj2sx*vv2s
-               v2y = aj2ry*vv2r+aj2sy*vv2s
-               t1 = aj2rx**2
-               t6 = aj2sx**2
-               v2xx = t1*vv2rr+2*aj2rx*aj2sx*vv2rs+t6*vv2ss+aj2rxx*
-     & vv2r+aj2sxx*vv2s
-               t1 = aj2ry**2
-               t6 = aj2sy**2
-               v2yy = t1*vv2rr+2*aj2ry*aj2sy*vv2rs+t6*vv2ss+aj2ryy*
-     & vv2r+aj2syy*vv2s
-             v2Lap = v2xx+ v2yy
-            f(0)=(u1x+v1y) - (u2x+v2y)
-            f(1)=( an1*u1Lap +an2*v1Lap )- ( an1*u2Lap +an2*v2Lap )
-            f(2)=(v1x-u1y) - (v2x-u2y)
-            f(3)=( tau1*u1Lap +tau2*v1Lap )/eps1 - ( tau1*u2Lap +tau2*
-     & v2Lap )/eps2
-            if( twilightZone.eq.1 )then
-              call ogderiv(ep, 0,2,0,0, xy1(i1,i2,i3,0),xy1(i1,i2,i3,1)
-     & ,0.,t, ex, uexx )
-              call ogderiv(ep, 0,0,2,0, xy1(i1,i2,i3,0),xy1(i1,i2,i3,1)
-     & ,0.,t, ex, ueyy )
-              call ogderiv(ep, 0,2,0,0, xy1(i1,i2,i3,0),xy1(i1,i2,i3,1)
-     & ,0.,t, ey, vexx )
-              call ogderiv(ep, 0,0,2,0, xy1(i1,i2,i3,0),xy1(i1,i2,i3,1)
-     & ,0.,t, ey, veyy )
-              ueLap = uexx + ueyy
-              veLap = vexx + veyy
-              f(3) = f(3) - ( tau1*ueLap +tau2*veLap )*(1./eps1-
-     & 1./eps2)
-              ! write(debugFile,'(" u1Lap,ueLap=",2e10.2," v1Lap,veLap=",2e10.2)') u1Lap,ueLap,v1Lap,veLap
-            end if
-
-           ! write(debugFile,'(" --> order2-curv: i1,i2=",2i4," f(start)=",4f8.3)') i1,i2,f(0),f(1),f(2),f(3)
-           ! write(debugFile,'(" --> u1(ghost),u1=",4f8.3)') u1(i1-is1,i2-is2,i3,ex),u1(i1,i2,i3,ex)
-           ! write(debugFile,'(" --> u2(ghost),u2=",4f8.3)') u2(j1-js1,j2-js2,j3,ex),u2(j1,j2,j3,ex)
-           ! '
-
-           ! here is the matrix of coefficients for the unknowns u1(-1),v1(-1),u2(-1),v2(-1)
-           ! Solve:
-           !     
-           !       A [ U ] = A [ U(old) ] - [ f ]
-           a4(0,0) = -is*rsxy1(i1,i2,i3,axis1,0)/(2.*dr1(axis1))    ! coeff of u1(-1) from [u.x+v.y]
-           a4(0,1) = -is*rsxy1(i1,i2,i3,axis1,1)/(2.*dr1(axis1))    ! coeff of v1(-1) from [u.x+v.y]
-           a4(0,2) =  js*rsxy2(j1,j2,j3,axis2,0)/(2.*dr2(axis2))    ! coeff of u2(-1) from [u.x+v.y]
-           a4(0,3) =  js*rsxy2(j1,j2,j3,axis2,1)/(2.*dr2(axis2))    ! coeff of v2(-1) from [u.x+v.y]
-
-           a4(2,0) =  is*rsxy1(i1,i2,i3,axis1,1)/(2.*dr1(axis1))   ! coeff of u1(-1) from [v.x - u.y]
-           a4(2,1) = -is*rsxy1(i1,i2,i3,axis1,0)/(2.*dr1(axis1))   ! coeff of v1(-1) from [v.x - u.y]
-
-           a4(2,2) = -js*rsxy2(j1,j2,j3,axis2,1)/(2.*dr2(axis2))   ! coeff of u2(-1) from [v.x - u.y]
-           a4(2,3) =  js*rsxy2(j1,j2,j3,axis2,0)/(2.*dr2(axis2))   ! coeff of v2(-1) from [v.x - u.y]
-
-
-           ! coeff of u(-1) from lap = u.xx + u.yy
-           rxx1(0,0,0)=aj1rxx
-           rxx1(1,0,0)=aj1sxx
-           rxx1(0,1,1)=aj1ryy
-           rxx1(1,1,1)=aj1syy
-
-           rxx2(0,0,0)=aj2rxx
-           rxx2(1,0,0)=aj2sxx
-           rxx2(0,1,1)=aj2ryy
-           rxx2(1,1,1)=aj2syy
-
-           ! clap1=(rsxy1(i1,i2,i3,axis1,0)**2+rsxy1(i1,i2,i3,axis1,1)**2)/(dr1(axis1)**2) !           -is*(rsxy1x22(i1,i2,i3,axis1,0)+rsxy1y22(i1,i2,i3,axis1,1))/(2.*dr1(axis1))
-           ! clap2=(rsxy2(j1,j2,j3,axis2,0)**2+rsxy2(j1,j2,j3,axis2,1)**2)/(dr2(axis2)**2) !             -js*(rsxy2x22(j1,j2,j3,axis2,0)+rsxy2y22(j1,j2,j3,axis2,1))/(2.*dr2(axis2)) 
-           clap1=(rsxy1(i1,i2,i3,axis1,0)**2+rsxy1(i1,i2,i3,axis1,1)**
-     & 2)/(dr1(axis1)**2) -is*(rxx1(axis1,0,0)+rxx1(axis1,1,1))/(2.*
-     & dr1(axis1))
-           clap2=(rsxy2(j1,j2,j3,axis2,0)**2+rsxy2(j1,j2,j3,axis2,1)**
-     & 2)/(dr2(axis2)**2) -js*(rxx2(axis2,0,0)+rxx2(axis2,1,1))/(2.*
-     & dr2(axis2))
-
-           !   [ n.(uv.xx + u.yy) ] = 0
-           a4(1,0) = an1*clap1
-           a4(1,1) = an2*clap1
-           a4(1,2) =-an1*clap2
-           a4(1,3) =-an2*clap2
-           !   [ tau.(uv.xx+uv.yy)/eps ] = 0
-           a4(3,0) = tau1*clap1/eps1
-           a4(3,1) = tau2*clap1/eps1
-           a4(3,2) =-tau1*clap2/eps2
-           a4(3,3) =-tau2*clap2/eps2
-
-
-           q(0) = u1(i1-is1,i2-is2,i3,ex)
-           q(1) = u1(i1-is1,i2-is2,i3,ey)
-           q(2) = u2(j1-js1,j2-js2,j3,ex)
-           q(3) = u2(j1-js1,j2-js2,j3,ey)
-
-           ! write(debugFile,'(" --> xy1=",4f8.3)') xy1(i1,i2,i3,0),xy1(i1,i2,i3,1)
-           ! write(debugFile,'(" --> rsxy1=",4f8.3)') rsxy1(i1,i2,i3,0,0),rsxy1(i1,i2,i3,1,0),rsxy1(i1,i2,i3,0,1),rsxy1(i1,i2,i3,1,1)
-           ! write(debugFile,'(" --> rsxy2=",4f8.3)') rsxy2(j1,j2,j3,0,0),rsxy2(j1,j2,j3,1,0),rsxy2(j1,j2,j3,0,1),rsxy2(j1,j2,j3,1,1)
-
-           ! write(debugFile,'(" --> rxx1=",2f8.3)') rxx1(axis1,0,0),rxx1(axis1,1,1)
-           ! write(debugFile,'(" --> rxx2=",2f8.3)') rxx2(axis2,0,0),rxx2(axis1,1,1)
-
-           ! write(debugFile,'(" --> a4(0,.)=",4f8.3)') a4(0,0),a4(0,1),a4(0,2),a4(0,3)
-           ! write(debugFile,'(" --> a4(1,.)=",4f8.3)') a4(1,0),a4(1,1),a4(1,2),a4(1,3)
-           ! write(debugFile,'(" --> a4(2,.)=",4f8.3)') a4(2,0),a4(2,1),a4(2,2),a4(2,3)
-           ! write(debugFile,'(" --> a4(3,.)=",4f8.3)') a4(3,0),a4(3,1),a4(3,2),a4(3,3)
-           ! write(debugFile,'(" --> an1,an2=",2f8.3)') an1,an2
-           ! write(debugFile,'(" --> clap1,clap2=",2f8.3)') clap1,clap2
-           ! subtract off the contributions from the wrong values at the ghost points:
-           do n=0,3
-             f(n) = (a4(n,0)*q(0)+a4(n,1)*q(1)+a4(n,2)*q(2)+a4(n,3)*q(
-     & 3)) - f(n)
-           end do
-           ! write(debugFile,'(" --> order2-curv: i1,i2=",2i4," f(subtract)=",4f8.3)') i1,i2,f(0),f(1),f(2),f(3)
-           ! solve A Q = F
-           ! factor the matrix
-           numberOfEquations=4
-           call dgeco( a4(0,0), numberOfEquations, numberOfEquations, 
-     & ipvt(0),rcond,work(0))
-           ! solve
-           ! write(debugFile,'(" --> order2-curv: i1,i2=",2i4," rcond=",e10.2)') i1,i2,rcond
-           job=0
-           call dgesl( a4(0,0), numberOfEquations, numberOfEquations, 
-     & ipvt(0), f(0), job)
-           ! write(debugFile,'(" --> order2-curv: i1,i2=",2i4," f(solve)=",4f8.3)') i1,i2,f(0),f(1),f(2),f(3)
-
-           u1(i1-is1,i2-is2,i3,ex)=f(0)
-           u1(i1-is1,i2-is2,i3,ey)=f(1)
-           u2(j1-js1,j2-js2,j3,ex)=f(2)
-           u2(j1-js1,j2-js2,j3,ey)=f(3)
-
-           if( debug.gt.3 )then ! re-evaluate
+         ! Macro to assign ghost values:
+           ! ****************************************************
+           ! ***********  2D, ORDER=2, CURVILINEAR **************
+           ! ****************************************************
+           ! ***** fix these for [mu] != 0 ****
+           if( mu1.ne.mu2 )then
+             stop 9923
+           end if
+            i3=n3a
+            j3=m3a
+            j2=m2a
+            do i2=n2a,n2b
+             j1=m1a
+             do i1=n1a,n1b
+              if( mask1(i1,i2,i3).gt.0 .and. mask2(j1,j2,j3).gt.0 )then
+             ! here is the normal (assumed to be the same on both sides)
+             an1=rsxy1(i1,i2,i3,axis1,0)   ! normal (an1,an2)
+             an2=rsxy1(i1,i2,i3,axis1,1)
+             aNorm=max(epsx,sqrt(an1**2+an2**2))
+             an1=an1/aNorm
+             an2=an2/aNorm
+             tau1=-an2
+             tau2= an1
+             ! first evaluate the equations we want to solve with the wrong values at the ghost points:
               ! NOTE: the jacobian derivatives can be computed once for all components
                ! this next call will define the jacobian and its derivatives (parameteric and spatial)
                aj1rx = rsxy1(i1,i2,i3,0,0)
@@ -3119,121 +3651,286 @@
      & 1./eps2)
                 ! write(debugFile,'(" u1Lap,ueLap=",2e10.2," v1Lap,veLap=",2e10.2)') u1Lap,ueLap,v1Lap,veLap
               end if
-             !write(debugFile,'(" --> order2-curv: xy1(ghost)=",2e11.3)') xy1(i1-is1,i2-is2,i3,0),xy1(i1-is1,i2-is2,i3,1)
-             !write(debugFile,'(" --> order2-curv: xy2(ghost)=",2e11.3)') xy2(j1-js1,j2-js2,j3,0),xy2(j1-js1,j2-js2,j3,1)
-             if( twilightZone.eq.1 )then
-               call ogderiv(ep, 0,0,0,0, xy1(i1-is1,i2-is2,i3,0),xy1(
+             ! write(debugFile,'(" --> order2-curv: i1,i2=",2i4," f(start)=",4f8.3)') i1,i2,f(0),f(1),f(2),f(3)
+             ! write(debugFile,'(" --> u1(ghost),u1=",4f8.3)') u1(i1-is1,i2-is2,i3,ex),u1(i1,i2,i3,ex)
+             ! write(debugFile,'(" --> u2(ghost),u2=",4f8.3)') u2(j1-js1,j2-js2,j3,ex),u2(j1,j2,j3,ex)
+             ! '
+             ! here is the matrix of coefficients for the unknowns u1(-1),v1(-1),u2(-1),v2(-1)
+             ! Solve:
+             !     
+             !       A [ U ] = A [ U(old) ] - [ f ]
+             a4(0,0) = -is*rsxy1(i1,i2,i3,axis1,0)/(2.*dr1(axis1))    ! coeff of u1(-1) from [u.x+v.y]
+             a4(0,1) = -is*rsxy1(i1,i2,i3,axis1,1)/(2.*dr1(axis1))    ! coeff of v1(-1) from [u.x+v.y]
+             a4(0,2) =  js*rsxy2(j1,j2,j3,axis2,0)/(2.*dr2(axis2))    ! coeff of u2(-1) from [u.x+v.y]
+             a4(0,3) =  js*rsxy2(j1,j2,j3,axis2,1)/(2.*dr2(axis2))    ! coeff of v2(-1) from [u.x+v.y]
+             a4(2,0) =  is*rsxy1(i1,i2,i3,axis1,1)/(2.*dr1(axis1))   ! coeff of u1(-1) from [v.x - u.y]
+             a4(2,1) = -is*rsxy1(i1,i2,i3,axis1,0)/(2.*dr1(axis1))   ! coeff of v1(-1) from [v.x - u.y]
+             a4(2,2) = -js*rsxy2(j1,j2,j3,axis2,1)/(2.*dr2(axis2))   ! coeff of u2(-1) from [v.x - u.y]
+             a4(2,3) =  js*rsxy2(j1,j2,j3,axis2,0)/(2.*dr2(axis2))   ! coeff of v2(-1) from [v.x - u.y]
+             ! coeff of u(-1) from lap = u.xx + u.yy
+             rxx1(0,0,0)=aj1rxx
+             rxx1(1,0,0)=aj1sxx
+             rxx1(0,1,1)=aj1ryy
+             rxx1(1,1,1)=aj1syy
+             rxx2(0,0,0)=aj2rxx
+             rxx2(1,0,0)=aj2sxx
+             rxx2(0,1,1)=aj2ryy
+             rxx2(1,1,1)=aj2syy
+             ! clap1=(rsxy1(i1,i2,i3,axis1,0)**2+rsxy1(i1,i2,i3,axis1,1)**2)/(dr1(axis1)**2) !           -is*(rsxy1x22(i1,i2,i3,axis1,0)+rsxy1y22(i1,i2,i3,axis1,1))/(2.*dr1(axis1))
+             ! clap2=(rsxy2(j1,j2,j3,axis2,0)**2+rsxy2(j1,j2,j3,axis2,1)**2)/(dr2(axis2)**2) !             -js*(rsxy2x22(j1,j2,j3,axis2,0)+rsxy2y22(j1,j2,j3,axis2,1))/(2.*dr2(axis2)) 
+             clap1=(rsxy1(i1,i2,i3,axis1,0)**2+rsxy1(i1,i2,i3,axis1,1)*
+     & *2)/(dr1(axis1)**2) -is*(rxx1(axis1,0,0)+rxx1(axis1,1,1))/(2.*
+     & dr1(axis1))
+             clap2=(rsxy2(j1,j2,j3,axis2,0)**2+rsxy2(j1,j2,j3,axis2,1)*
+     & *2)/(dr2(axis2)**2) -js*(rxx2(axis2,0,0)+rxx2(axis2,1,1))/(2.*
+     & dr2(axis2))
+             !   [ n.(uv.xx + u.yy) ] = 0
+             a4(1,0) = an1*clap1
+             a4(1,1) = an2*clap1
+             a4(1,2) =-an1*clap2
+             a4(1,3) =-an2*clap2
+             !   [ tau.(uv.xx+uv.yy)/eps ] = 0
+             a4(3,0) = tau1*clap1/eps1
+             a4(3,1) = tau2*clap1/eps1
+             a4(3,2) =-tau1*clap2/eps2
+             a4(3,3) =-tau2*clap2/eps2
+             q(0) = u1(i1-is1,i2-is2,i3,ex)
+             q(1) = u1(i1-is1,i2-is2,i3,ey)
+             q(2) = u2(j1-js1,j2-js2,j3,ex)
+             q(3) = u2(j1-js1,j2-js2,j3,ey)
+             ! write(debugFile,'(" --> xy1=",4f8.3)') xy1(i1,i2,i3,0),xy1(i1,i2,i3,1)
+             ! write(debugFile,'(" --> rsxy1=",4f8.3)') rsxy1(i1,i2,i3,0,0),rsxy1(i1,i2,i3,1,0),rsxy1(i1,i2,i3,0,1),rsxy1(i1,i2,i3,1,1)
+             ! write(debugFile,'(" --> rsxy2=",4f8.3)') rsxy2(j1,j2,j3,0,0),rsxy2(j1,j2,j3,1,0),rsxy2(j1,j2,j3,0,1),rsxy2(j1,j2,j3,1,1)
+             ! write(debugFile,'(" --> rxx1=",2f8.3)') rxx1(axis1,0,0),rxx1(axis1,1,1)
+             ! write(debugFile,'(" --> rxx2=",2f8.3)') rxx2(axis2,0,0),rxx2(axis1,1,1)
+             ! write(debugFile,'(" --> a4(0,.)=",4f8.3)') a4(0,0),a4(0,1),a4(0,2),a4(0,3)
+             ! write(debugFile,'(" --> a4(1,.)=",4f8.3)') a4(1,0),a4(1,1),a4(1,2),a4(1,3)
+             ! write(debugFile,'(" --> a4(2,.)=",4f8.3)') a4(2,0),a4(2,1),a4(2,2),a4(2,3)
+             ! write(debugFile,'(" --> a4(3,.)=",4f8.3)') a4(3,0),a4(3,1),a4(3,2),a4(3,3)
+             ! write(debugFile,'(" --> an1,an2=",2f8.3)') an1,an2
+             ! write(debugFile,'(" --> clap1,clap2=",2f8.3)') clap1,clap2
+             ! subtract off the contributions from the wrong values at the ghost points:
+             do n=0,3
+               f(n) = (a4(n,0)*q(0)+a4(n,1)*q(1)+a4(n,2)*q(2)+a4(n,3)*
+     & q(3)) - f(n)
+             end do
+             ! write(debugFile,'(" --> order2-curv: i1,i2=",2i4," f(subtract)=",4f8.3)') i1,i2,f(0),f(1),f(2),f(3)
+             ! solve A Q = F
+             ! factor the matrix
+             numberOfEquations=4
+             call dgeco( a4(0,0), numberOfEquations, numberOfEquations,
+     &  ipvt(0),rcond,work(0))
+             ! solve
+             ! write(debugFile,'(" --> order2-curv: i1,i2=",2i4," rcond=",e10.2)') i1,i2,rcond
+             job=0
+             call dgesl( a4(0,0), numberOfEquations, numberOfEquations,
+     &  ipvt(0), f(0), job)
+             ! write(debugFile,'(" --> order2-curv: i1,i2=",2i4," f(solve)=",4f8.3)') i1,i2,f(0),f(1),f(2),f(3)
+             u1(i1-is1,i2-is2,i3,ex)=f(0)
+             u1(i1-is1,i2-is2,i3,ey)=f(1)
+             u2(j1-js1,j2-js2,j3,ex)=f(2)
+             u2(j1-js1,j2-js2,j3,ey)=f(3)
+             if( debug.gt.3 )then ! re-evaluate
+                ! NOTE: the jacobian derivatives can be computed once for all components
+                 ! this next call will define the jacobian and its derivatives (parameteric and spatial)
+                 aj1rx = rsxy1(i1,i2,i3,0,0)
+                 aj1rxr = (-rsxy1(i1-1,i2,i3,0,0)+rsxy1(i1+1,i2,i3,0,0)
+     & )/(2.*dr1(0))
+                 aj1rxs = (-rsxy1(i1,i2-1,i3,0,0)+rsxy1(i1,i2+1,i3,0,0)
+     & )/(2.*dr1(1))
+                 aj1sx = rsxy1(i1,i2,i3,1,0)
+                 aj1sxr = (-rsxy1(i1-1,i2,i3,1,0)+rsxy1(i1+1,i2,i3,1,0)
+     & )/(2.*dr1(0))
+                 aj1sxs = (-rsxy1(i1,i2-1,i3,1,0)+rsxy1(i1,i2+1,i3,1,0)
+     & )/(2.*dr1(1))
+                 aj1ry = rsxy1(i1,i2,i3,0,1)
+                 aj1ryr = (-rsxy1(i1-1,i2,i3,0,1)+rsxy1(i1+1,i2,i3,0,1)
+     & )/(2.*dr1(0))
+                 aj1rys = (-rsxy1(i1,i2-1,i3,0,1)+rsxy1(i1,i2+1,i3,0,1)
+     & )/(2.*dr1(1))
+                 aj1sy = rsxy1(i1,i2,i3,1,1)
+                 aj1syr = (-rsxy1(i1-1,i2,i3,1,1)+rsxy1(i1+1,i2,i3,1,1)
+     & )/(2.*dr1(0))
+                 aj1sys = (-rsxy1(i1,i2-1,i3,1,1)+rsxy1(i1,i2+1,i3,1,1)
+     & )/(2.*dr1(1))
+                 aj1rxx = aj1rx*aj1rxr+aj1sx*aj1rxs
+                 aj1rxy = aj1ry*aj1rxr+aj1sy*aj1rxs
+                 aj1sxx = aj1rx*aj1sxr+aj1sx*aj1sxs
+                 aj1sxy = aj1ry*aj1sxr+aj1sy*aj1sxs
+                 aj1ryx = aj1rx*aj1ryr+aj1sx*aj1rys
+                 aj1ryy = aj1ry*aj1ryr+aj1sy*aj1rys
+                 aj1syx = aj1rx*aj1syr+aj1sx*aj1sys
+                 aj1syy = aj1ry*aj1syr+aj1sy*aj1sys
+                  uu1 = u1(i1,i2,i3,ex)
+                  uu1r = (-u1(i1-1,i2,i3,ex)+u1(i1+1,i2,i3,ex))/(2.*
+     & dr1(0))
+                  uu1s = (-u1(i1,i2-1,i3,ex)+u1(i1,i2+1,i3,ex))/(2.*
+     & dr1(1))
+                  uu1rr = (u1(i1-1,i2,i3,ex)-2.*u1(i1,i2,i3,ex)+u1(i1+
+     & 1,i2,i3,ex))/(dr1(0)**2)
+                  uu1rs = (-(-u1(i1-1,i2-1,i3,ex)+u1(i1-1,i2+1,i3,ex))
+     & /(2.*dr1(1))+(-u1(i1+1,i2-1,i3,ex)+u1(i1+1,i2+1,i3,ex))/(2.*
+     & dr1(1)))/(2.*dr1(0))
+                  uu1ss = (u1(i1,i2-1,i3,ex)-2.*u1(i1,i2,i3,ex)+u1(i1,
+     & i2+1,i3,ex))/(dr1(1)**2)
+                   u1x = aj1rx*uu1r+aj1sx*uu1s
+                   u1y = aj1ry*uu1r+aj1sy*uu1s
+                   t1 = aj1rx**2
+                   t6 = aj1sx**2
+                   u1xx = t1*uu1rr+2*aj1rx*aj1sx*uu1rs+t6*uu1ss+aj1rxx*
+     & uu1r+aj1sxx*uu1s
+                   t1 = aj1ry**2
+                   t6 = aj1sy**2
+                   u1yy = t1*uu1rr+2*aj1ry*aj1sy*uu1rs+t6*uu1ss+aj1ryy*
+     & uu1r+aj1syy*uu1s
+                 u1Lap = u1xx+ u1yy
+                  vv1 = u1(i1,i2,i3,ey)
+                  vv1r = (-u1(i1-1,i2,i3,ey)+u1(i1+1,i2,i3,ey))/(2.*
+     & dr1(0))
+                  vv1s = (-u1(i1,i2-1,i3,ey)+u1(i1,i2+1,i3,ey))/(2.*
+     & dr1(1))
+                  vv1rr = (u1(i1-1,i2,i3,ey)-2.*u1(i1,i2,i3,ey)+u1(i1+
+     & 1,i2,i3,ey))/(dr1(0)**2)
+                  vv1rs = (-(-u1(i1-1,i2-1,i3,ey)+u1(i1-1,i2+1,i3,ey))
+     & /(2.*dr1(1))+(-u1(i1+1,i2-1,i3,ey)+u1(i1+1,i2+1,i3,ey))/(2.*
+     & dr1(1)))/(2.*dr1(0))
+                  vv1ss = (u1(i1,i2-1,i3,ey)-2.*u1(i1,i2,i3,ey)+u1(i1,
+     & i2+1,i3,ey))/(dr1(1)**2)
+                   v1x = aj1rx*vv1r+aj1sx*vv1s
+                   v1y = aj1ry*vv1r+aj1sy*vv1s
+                   t1 = aj1rx**2
+                   t6 = aj1sx**2
+                   v1xx = t1*vv1rr+2*aj1rx*aj1sx*vv1rs+t6*vv1ss+aj1rxx*
+     & vv1r+aj1sxx*vv1s
+                   t1 = aj1ry**2
+                   t6 = aj1sy**2
+                   v1yy = t1*vv1rr+2*aj1ry*aj1sy*vv1rs+t6*vv1ss+aj1ryy*
+     & vv1r+aj1syy*vv1s
+                 v1Lap = v1xx+ v1yy
+                ! NOTE: the jacobian derivatives can be computed once for all components
+                 ! this next call will define the jacobian and its derivatives (parameteric and spatial)
+                 aj2rx = rsxy2(j1,j2,j3,0,0)
+                 aj2rxr = (-rsxy2(j1-1,j2,j3,0,0)+rsxy2(j1+1,j2,j3,0,0)
+     & )/(2.*dr2(0))
+                 aj2rxs = (-rsxy2(j1,j2-1,j3,0,0)+rsxy2(j1,j2+1,j3,0,0)
+     & )/(2.*dr2(1))
+                 aj2sx = rsxy2(j1,j2,j3,1,0)
+                 aj2sxr = (-rsxy2(j1-1,j2,j3,1,0)+rsxy2(j1+1,j2,j3,1,0)
+     & )/(2.*dr2(0))
+                 aj2sxs = (-rsxy2(j1,j2-1,j3,1,0)+rsxy2(j1,j2+1,j3,1,0)
+     & )/(2.*dr2(1))
+                 aj2ry = rsxy2(j1,j2,j3,0,1)
+                 aj2ryr = (-rsxy2(j1-1,j2,j3,0,1)+rsxy2(j1+1,j2,j3,0,1)
+     & )/(2.*dr2(0))
+                 aj2rys = (-rsxy2(j1,j2-1,j3,0,1)+rsxy2(j1,j2+1,j3,0,1)
+     & )/(2.*dr2(1))
+                 aj2sy = rsxy2(j1,j2,j3,1,1)
+                 aj2syr = (-rsxy2(j1-1,j2,j3,1,1)+rsxy2(j1+1,j2,j3,1,1)
+     & )/(2.*dr2(0))
+                 aj2sys = (-rsxy2(j1,j2-1,j3,1,1)+rsxy2(j1,j2+1,j3,1,1)
+     & )/(2.*dr2(1))
+                 aj2rxx = aj2rx*aj2rxr+aj2sx*aj2rxs
+                 aj2rxy = aj2ry*aj2rxr+aj2sy*aj2rxs
+                 aj2sxx = aj2rx*aj2sxr+aj2sx*aj2sxs
+                 aj2sxy = aj2ry*aj2sxr+aj2sy*aj2sxs
+                 aj2ryx = aj2rx*aj2ryr+aj2sx*aj2rys
+                 aj2ryy = aj2ry*aj2ryr+aj2sy*aj2rys
+                 aj2syx = aj2rx*aj2syr+aj2sx*aj2sys
+                 aj2syy = aj2ry*aj2syr+aj2sy*aj2sys
+                  uu2 = u2(j1,j2,j3,ex)
+                  uu2r = (-u2(j1-1,j2,j3,ex)+u2(j1+1,j2,j3,ex))/(2.*
+     & dr2(0))
+                  uu2s = (-u2(j1,j2-1,j3,ex)+u2(j1,j2+1,j3,ex))/(2.*
+     & dr2(1))
+                  uu2rr = (u2(j1-1,j2,j3,ex)-2.*u2(j1,j2,j3,ex)+u2(j1+
+     & 1,j2,j3,ex))/(dr2(0)**2)
+                  uu2rs = (-(-u2(j1-1,j2-1,j3,ex)+u2(j1-1,j2+1,j3,ex))
+     & /(2.*dr2(1))+(-u2(j1+1,j2-1,j3,ex)+u2(j1+1,j2+1,j3,ex))/(2.*
+     & dr2(1)))/(2.*dr2(0))
+                  uu2ss = (u2(j1,j2-1,j3,ex)-2.*u2(j1,j2,j3,ex)+u2(j1,
+     & j2+1,j3,ex))/(dr2(1)**2)
+                   u2x = aj2rx*uu2r+aj2sx*uu2s
+                   u2y = aj2ry*uu2r+aj2sy*uu2s
+                   t1 = aj2rx**2
+                   t6 = aj2sx**2
+                   u2xx = t1*uu2rr+2*aj2rx*aj2sx*uu2rs+t6*uu2ss+aj2rxx*
+     & uu2r+aj2sxx*uu2s
+                   t1 = aj2ry**2
+                   t6 = aj2sy**2
+                   u2yy = t1*uu2rr+2*aj2ry*aj2sy*uu2rs+t6*uu2ss+aj2ryy*
+     & uu2r+aj2syy*uu2s
+                 u2Lap = u2xx+ u2yy
+                  vv2 = u2(j1,j2,j3,ey)
+                  vv2r = (-u2(j1-1,j2,j3,ey)+u2(j1+1,j2,j3,ey))/(2.*
+     & dr2(0))
+                  vv2s = (-u2(j1,j2-1,j3,ey)+u2(j1,j2+1,j3,ey))/(2.*
+     & dr2(1))
+                  vv2rr = (u2(j1-1,j2,j3,ey)-2.*u2(j1,j2,j3,ey)+u2(j1+
+     & 1,j2,j3,ey))/(dr2(0)**2)
+                  vv2rs = (-(-u2(j1-1,j2-1,j3,ey)+u2(j1-1,j2+1,j3,ey))
+     & /(2.*dr2(1))+(-u2(j1+1,j2-1,j3,ey)+u2(j1+1,j2+1,j3,ey))/(2.*
+     & dr2(1)))/(2.*dr2(0))
+                  vv2ss = (u2(j1,j2-1,j3,ey)-2.*u2(j1,j2,j3,ey)+u2(j1,
+     & j2+1,j3,ey))/(dr2(1)**2)
+                   v2x = aj2rx*vv2r+aj2sx*vv2s
+                   v2y = aj2ry*vv2r+aj2sy*vv2s
+                   t1 = aj2rx**2
+                   t6 = aj2sx**2
+                   v2xx = t1*vv2rr+2*aj2rx*aj2sx*vv2rs+t6*vv2ss+aj2rxx*
+     & vv2r+aj2sxx*vv2s
+                   t1 = aj2ry**2
+                   t6 = aj2sy**2
+                   v2yy = t1*vv2rr+2*aj2ry*aj2sy*vv2rs+t6*vv2ss+aj2ryy*
+     & vv2r+aj2syy*vv2s
+                 v2Lap = v2xx+ v2yy
+                f(0)=(u1x+v1y) - (u2x+v2y)
+                f(1)=( an1*u1Lap +an2*v1Lap )- ( an1*u2Lap +an2*v2Lap )
+                f(2)=(v1x-u1y) - (v2x-u2y)
+                f(3)=( tau1*u1Lap +tau2*v1Lap )/eps1 - ( tau1*u2Lap +
+     & tau2*v2Lap )/eps2
+                if( twilightZone.eq.1 )then
+                  call ogderiv(ep, 0,2,0,0, xy1(i1,i2,i3,0),xy1(i1,i2,
+     & i3,1),0.,t, ex, uexx )
+                  call ogderiv(ep, 0,0,2,0, xy1(i1,i2,i3,0),xy1(i1,i2,
+     & i3,1),0.,t, ex, ueyy )
+                  call ogderiv(ep, 0,2,0,0, xy1(i1,i2,i3,0),xy1(i1,i2,
+     & i3,1),0.,t, ey, vexx )
+                  call ogderiv(ep, 0,0,2,0, xy1(i1,i2,i3,0),xy1(i1,i2,
+     & i3,1),0.,t, ey, veyy )
+                  ueLap = uexx + ueyy
+                  veLap = vexx + veyy
+                  f(3) = f(3) - ( tau1*ueLap +tau2*veLap )*(1./eps1-
+     & 1./eps2)
+                  ! write(debugFile,'(" u1Lap,ueLap=",2e10.2," v1Lap,veLap=",2e10.2)') u1Lap,ueLap,v1Lap,veLap
+                end if
+               !write(debugFile,'(" --> order2-curv: xy1(ghost)=",2e11.3)') xy1(i1-is1,i2-is2,i3,0),xy1(i1-is1,i2-is2,i3,1)
+               !write(debugFile,'(" --> order2-curv: xy2(ghost)=",2e11.3)') xy2(j1-js1,j2-js2,j3,0),xy2(j1-js1,j2-js2,j3,1)
+               if( twilightZone.eq.1 )then
+                 call ogderiv(ep, 0,0,0,0, xy1(i1-is1,i2-is2,i3,0),xy1(
      & i1-is1,i2-is2,i3,1),0.,t, ex, uex  )
-               call ogderiv(ep, 0,0,0,0, xy1(i1-is1,i2-is2,i3,0),xy1(
+                 call ogderiv(ep, 0,0,0,0, xy1(i1-is1,i2-is2,i3,0),xy1(
      & i1-is1,i2-is2,i3,1),0.,t, ey, uey  )
-              write(debugFile,'(" --> order2-curv: i1,i2=",2i4," u1=",
-     & 2e11.3," err=",2e11.3)') i1,i2,u1(i1-is1,i2-is2,i3,ex),u1(i1-
-     & is1,i2-is2,i3,ey),u1(i1-is1,i2-is2,i3,ex)-uex,u1(i1-is1,i2-is2,
-     & i3,ey)-uey
-               ! '
-             else
-              write(debugFile,'(" --> order2-curv: i1,i2=",2i4," u1=",
-     & 2e11.3)') i1,i2,u1(i1-is1,i2-is2,i3,ex),u1(i1-is1,i2-is2,i3,ey)
-               ! '
-             end if
-             write(debugFile,'(" --> order2-curv: j1,j2=",2i4," u2=",
+                write(debugFile,'(" --> order2-curv: i1,i2=",2i4," 
+     & u1=",2e11.3," err=",2e11.3)') i1,i2,u1(i1-is1,i2-is2,i3,ex),u1(
+     & i1-is1,i2-is2,i3,ey),u1(i1-is1,i2-is2,i3,ex)-uex,u1(i1-is1,i2-
+     & is2,i3,ey)-uey
+                 ! '
+               else
+                write(debugFile,'(" --> order2-curv: i1,i2=",2i4," 
+     & u1=",2e11.3)') i1,i2,u1(i1-is1,i2-is2,i3,ex),u1(i1-is1,i2-is2,
+     & i3,ey)
+                 ! '
+               end if
+               write(debugFile,'(" --> order2-curv: j1,j2=",2i4," u2=",
      & 2e11.3)') j1,j2,u2(j1-js1,j2-js2,j3,ex),u2(j1-js1,j2-js2,j3,ey)
-               ! '
-             write(debugFile,'(" --> order2-curv: i1,i2=",2i4," f(re-
+                 ! '
+               write(debugFile,'(" --> order2-curv: i1,i2=",2i4," f(re-
      & eval)=",4e10.2)') i1,i2,f(0),f(1),f(2),f(3)
-               ! '
-           end if
-
-           ! solve for Hz
-           !  [ w.n/eps] = 0
-           !  [ Lap(w)/eps] = 0
-
-              ww1 = u1(i1,i2,i3,hz)
-              ww1r = (-u1(i1-1,i2,i3,hz)+u1(i1+1,i2,i3,hz))/(2.*dr1(0))
-              ww1s = (-u1(i1,i2-1,i3,hz)+u1(i1,i2+1,i3,hz))/(2.*dr1(1))
-              ww1rr = (u1(i1-1,i2,i3,hz)-2.*u1(i1,i2,i3,hz)+u1(i1+1,i2,
-     & i3,hz))/(dr1(0)**2)
-              ww1rs = (-(-u1(i1-1,i2-1,i3,hz)+u1(i1-1,i2+1,i3,hz))/(2.*
-     & dr1(1))+(-u1(i1+1,i2-1,i3,hz)+u1(i1+1,i2+1,i3,hz))/(2.*dr1(1)))
-     & /(2.*dr1(0))
-              ww1ss = (u1(i1,i2-1,i3,hz)-2.*u1(i1,i2,i3,hz)+u1(i1,i2+1,
-     & i3,hz))/(dr1(1)**2)
-               w1x = aj1rx*ww1r+aj1sx*ww1s
-               w1y = aj1ry*ww1r+aj1sy*ww1s
-               t1 = aj1rx**2
-               t6 = aj1sx**2
-               w1xx = t1*ww1rr+2*aj1rx*aj1sx*ww1rs+t6*ww1ss+aj1rxx*
-     & ww1r+aj1sxx*ww1s
-               t1 = aj1ry**2
-               t6 = aj1sy**2
-               w1yy = t1*ww1rr+2*aj1ry*aj1sy*ww1rs+t6*ww1ss+aj1ryy*
-     & ww1r+aj1syy*ww1s
-             w1Lap = w1xx+ w1yy
-              ww2 = u2(j1,j2,j3,hz)
-              ww2r = (-u2(j1-1,j2,j3,hz)+u2(j1+1,j2,j3,hz))/(2.*dr2(0))
-              ww2s = (-u2(j1,j2-1,j3,hz)+u2(j1,j2+1,j3,hz))/(2.*dr2(1))
-              ww2rr = (u2(j1-1,j2,j3,hz)-2.*u2(j1,j2,j3,hz)+u2(j1+1,j2,
-     & j3,hz))/(dr2(0)**2)
-              ww2rs = (-(-u2(j1-1,j2-1,j3,hz)+u2(j1-1,j2+1,j3,hz))/(2.*
-     & dr2(1))+(-u2(j1+1,j2-1,j3,hz)+u2(j1+1,j2+1,j3,hz))/(2.*dr2(1)))
-     & /(2.*dr2(0))
-              ww2ss = (u2(j1,j2-1,j3,hz)-2.*u2(j1,j2,j3,hz)+u2(j1,j2+1,
-     & j3,hz))/(dr2(1)**2)
-               w2x = aj2rx*ww2r+aj2sx*ww2s
-               w2y = aj2ry*ww2r+aj2sy*ww2s
-               t1 = aj2rx**2
-               t6 = aj2sx**2
-               w2xx = t1*ww2rr+2*aj2rx*aj2sx*ww2rs+t6*ww2ss+aj2rxx*
-     & ww2r+aj2sxx*ww2s
-               t1 = aj2ry**2
-               t6 = aj2sy**2
-               w2yy = t1*ww2rr+2*aj2ry*aj2sy*ww2rs+t6*ww2ss+aj2ryy*
-     & ww2r+aj2syy*ww2s
-             w2Lap = w2xx+ w2yy
-            f(0) = (an1*w1x+an2*w1y)/eps1 -(an1*w2x+an2*w2y)/eps2
-            f(1) = w1Lap/eps1 - w2Lap/eps2
-            if( twilightZone.eq.1 )then
-              call ogderiv(ep, 0,1,0,0, xy1(i1,i2,i3,0),xy1(i1,i2,i3,1)
-     & ,0.,t, hz, wex  )
-              call ogderiv(ep, 0,0,1,0, xy1(i1,i2,i3,0),xy1(i1,i2,i3,1)
-     & ,0.,t, hz, wey  )
-              call ogderiv(ep, 0,2,0,0, xy1(i1,i2,i3,0),xy1(i1,i2,i3,1)
-     & ,0.,t, hz, wexx )
-              call ogderiv(ep, 0,0,2,0, xy1(i1,i2,i3,0),xy1(i1,i2,i3,1)
-     & ,0.,t, hz, weyy )
-              weLap = wexx + weyy
-              f(0) = f(0) - (an1*wex+an2*wey)*(1./eps1 - 1./eps2)
-              f(1) = f(1) - ( weLap )*(1./eps1 - 1./eps2)
-            end if
-
-           a2(0,0)=-is*(an1*rsxy1(i1,i2,i3,axis1,0)+an2*rsxy1(i1,i2,i3,
-     & axis1,1))/(2.*dr1(axis1)*eps1)
-           a2(0,1)= js*(an1*rsxy2(j1,j2,j3,axis2,0)+an2*rsxy2(j1,j2,j3,
-     & axis2,1))/(2.*dr2(axis2)*eps2)
-
-           a2(1,0)= clap1/eps1
-           a2(1,1)=-clap2/eps2
-
-           q(0) = u1(i1-is1,i2-is2,i3,hz)
-           q(1) = u2(j1-js1,j2-js2,j3,hz)
-
-           ! subtract off the contributions from the wrong values at the ghost points:
-           do n=0,1
-             f(n) = (a2(n,0)*q(0)+a2(n,1)*q(1)) - f(n)
-           end do
-
-           call dgeco( a2(0,0), 2, 2, ipvt(0),rcond,work(0))
-           job=0
-           call dgesl( a2(0,0), 2, 2, ipvt(0), f(0), job)
-
-           u1(i1-is1,i2-is2,i3,hz)=f(0)
-           u2(j1-js1,j2-js2,j3,hz)=f(1)
-
-           ! u1(i1-is1,i2-is2,i3,hz)=u2(j1+js1,j2+js2,j3,hz) 
-           ! u2(j1-js1,j2-js2,j3,hz)=u1(i1+is1,i2+is2,i3,hz)
-
-           if( debug.gt.3 )then ! re-evaluate
-
+                 ! '
+             end if
+             ! solve for Hz
+             !  [ w.n/eps] = 0
+             !  [ Lap(w)/eps] = 0
                 ww1 = u1(i1,i2,i3,hz)
                 ww1r = (-u1(i1-1,i2,i3,hz)+u1(i1+1,i2,i3,hz))/(2.*dr1(
      & 0))
@@ -3295,45 +3992,124 @@
                 f(0) = f(0) - (an1*wex+an2*wey)*(1./eps1 - 1./eps2)
                 f(1) = f(1) - ( weLap )*(1./eps1 - 1./eps2)
               end if
-
-             write(debugFile,'(" --> order2-curv: i1,i2=",2i4," hz-f(
+             a2(0,0)=-is*(an1*rsxy1(i1,i2,i3,axis1,0)+an2*rsxy1(i1,i2,
+     & i3,axis1,1))/(2.*dr1(axis1)*eps1)
+             a2(0,1)= js*(an1*rsxy2(j1,j2,j3,axis2,0)+an2*rsxy2(j1,j2,
+     & j3,axis2,1))/(2.*dr2(axis2)*eps2)
+             a2(1,0)= clap1/eps1
+             a2(1,1)=-clap2/eps2
+             q(0) = u1(i1-is1,i2-is2,i3,hz)
+             q(1) = u2(j1-js1,j2-js2,j3,hz)
+             ! subtract off the contributions from the wrong values at the ghost points:
+             do n=0,1
+               f(n) = (a2(n,0)*q(0)+a2(n,1)*q(1)) - f(n)
+             end do
+             call dgeco( a2(0,0), 2, 2, ipvt(0),rcond,work(0))
+             job=0
+             call dgesl( a2(0,0), 2, 2, ipvt(0), f(0), job)
+             u1(i1-is1,i2-is2,i3,hz)=f(0)
+             u2(j1-js1,j2-js2,j3,hz)=f(1)
+             ! u1(i1-is1,i2-is2,i3,hz)=u2(j1+js1,j2+js2,j3,hz) 
+             ! u2(j1-js1,j2-js2,j3,hz)=u1(i1+is1,i2+is2,i3,hz)
+             if( debug.gt.3 )then ! re-evaluate
+                  ww1 = u1(i1,i2,i3,hz)
+                  ww1r = (-u1(i1-1,i2,i3,hz)+u1(i1+1,i2,i3,hz))/(2.*
+     & dr1(0))
+                  ww1s = (-u1(i1,i2-1,i3,hz)+u1(i1,i2+1,i3,hz))/(2.*
+     & dr1(1))
+                  ww1rr = (u1(i1-1,i2,i3,hz)-2.*u1(i1,i2,i3,hz)+u1(i1+
+     & 1,i2,i3,hz))/(dr1(0)**2)
+                  ww1rs = (-(-u1(i1-1,i2-1,i3,hz)+u1(i1-1,i2+1,i3,hz))
+     & /(2.*dr1(1))+(-u1(i1+1,i2-1,i3,hz)+u1(i1+1,i2+1,i3,hz))/(2.*
+     & dr1(1)))/(2.*dr1(0))
+                  ww1ss = (u1(i1,i2-1,i3,hz)-2.*u1(i1,i2,i3,hz)+u1(i1,
+     & i2+1,i3,hz))/(dr1(1)**2)
+                   w1x = aj1rx*ww1r+aj1sx*ww1s
+                   w1y = aj1ry*ww1r+aj1sy*ww1s
+                   t1 = aj1rx**2
+                   t6 = aj1sx**2
+                   w1xx = t1*ww1rr+2*aj1rx*aj1sx*ww1rs+t6*ww1ss+aj1rxx*
+     & ww1r+aj1sxx*ww1s
+                   t1 = aj1ry**2
+                   t6 = aj1sy**2
+                   w1yy = t1*ww1rr+2*aj1ry*aj1sy*ww1rs+t6*ww1ss+aj1ryy*
+     & ww1r+aj1syy*ww1s
+                 w1Lap = w1xx+ w1yy
+                  ww2 = u2(j1,j2,j3,hz)
+                  ww2r = (-u2(j1-1,j2,j3,hz)+u2(j1+1,j2,j3,hz))/(2.*
+     & dr2(0))
+                  ww2s = (-u2(j1,j2-1,j3,hz)+u2(j1,j2+1,j3,hz))/(2.*
+     & dr2(1))
+                  ww2rr = (u2(j1-1,j2,j3,hz)-2.*u2(j1,j2,j3,hz)+u2(j1+
+     & 1,j2,j3,hz))/(dr2(0)**2)
+                  ww2rs = (-(-u2(j1-1,j2-1,j3,hz)+u2(j1-1,j2+1,j3,hz))
+     & /(2.*dr2(1))+(-u2(j1+1,j2-1,j3,hz)+u2(j1+1,j2+1,j3,hz))/(2.*
+     & dr2(1)))/(2.*dr2(0))
+                  ww2ss = (u2(j1,j2-1,j3,hz)-2.*u2(j1,j2,j3,hz)+u2(j1,
+     & j2+1,j3,hz))/(dr2(1)**2)
+                   w2x = aj2rx*ww2r+aj2sx*ww2s
+                   w2y = aj2ry*ww2r+aj2sy*ww2s
+                   t1 = aj2rx**2
+                   t6 = aj2sx**2
+                   w2xx = t1*ww2rr+2*aj2rx*aj2sx*ww2rs+t6*ww2ss+aj2rxx*
+     & ww2r+aj2sxx*ww2s
+                   t1 = aj2ry**2
+                   t6 = aj2sy**2
+                   w2yy = t1*ww2rr+2*aj2ry*aj2sy*ww2rs+t6*ww2ss+aj2ryy*
+     & ww2r+aj2syy*ww2s
+                 w2Lap = w2xx+ w2yy
+                f(0) = (an1*w1x+an2*w1y)/eps1 -(an1*w2x+an2*w2y)/eps2
+                f(1) = w1Lap/eps1 - w2Lap/eps2
+                if( twilightZone.eq.1 )then
+                  call ogderiv(ep, 0,1,0,0, xy1(i1,i2,i3,0),xy1(i1,i2,
+     & i3,1),0.,t, hz, wex  )
+                  call ogderiv(ep, 0,0,1,0, xy1(i1,i2,i3,0),xy1(i1,i2,
+     & i3,1),0.,t, hz, wey  )
+                  call ogderiv(ep, 0,2,0,0, xy1(i1,i2,i3,0),xy1(i1,i2,
+     & i3,1),0.,t, hz, wexx )
+                  call ogderiv(ep, 0,0,2,0, xy1(i1,i2,i3,0),xy1(i1,i2,
+     & i3,1),0.,t, hz, weyy )
+                  weLap = wexx + weyy
+                  f(0) = f(0) - (an1*wex+an2*wey)*(1./eps1 - 1./eps2)
+                  f(1) = f(1) - ( weLap )*(1./eps1 - 1./eps2)
+                end if
+               write(debugFile,'(" --> order2-curv: i1,i2=",2i4," hz-f(
      & re-eval)=",4e10.2)') i1,i2,f(0),f(1)
-               ! '
-           end if
-
-            end if
-            j1=j1+1
-           end do
-           j2=j2+1
-          end do
+                 ! '
+             end if
+              end if
+              j1=j1+1
+             end do
+             j2=j2+1
+            end do
 
          ! now make sure that div(u)=0 etc.
-         if( .false. )then
-!2         beginLoops2d() ! =============== start loops =======================
-!2
-!2           ! 0  [ u.x + v.y ] = 0
-!2           ! first evaluate the equations we want to solve with the wrong values at the ghost points:
-!2           divu=u1x22(i1,i2,i3,ex)+u1y22(i1,i2,i3,ey)
-!2           a0=-is*rsxy1(i1,i2,i3,axis1,0)*dr112(axis1)
-!2           a1=-is*rsxy1(i1,i2,i3,axis1,1)*dr112(axis1)
-!2           aNormSq=a0**2+a1**2
-!2           ! now project:  a.uNew = a.uOld - div  ->  (div-a.uOld)+a.uNew = div(uNew) = 0
-!2           u1(i1-is1,i2-is2,i3,ex)=u1(i1-is1,i2-is2,i3,ex)-divu*a0/aNormSq
-!2           u1(i1-is1,i2-is2,i3,ey)=u1(i1-is1,i2-is2,i3,ey)-divu*a1/aNormSq
-!2
-!2           divu=u2x22(j1,j2,j3,ex)+u2y22(j1,j2,j3,ey)
-!2           a0=-js*rsxy2(j1,j2,j3,axis2,0)*dr212(axis2) 
-!2           a1=-js*rsxy2(j1,j2,j3,axis2,1)*dr212(axis2) 
-!2           aNormSq=a0**2+a1**2
-!2
-!2           u2(j1-js1,j2-js2,j3,ex)=u2(j1-js1,j2-js2,j3,ex)-divu*a0/aNormSq
-!2           u2(j1-js1,j2-js2,j3,ey)=u2(j1-js1,j2-js2,j3,ey)-divu*a1/aNormSq
-!2
-!2           if( debug.gt.0 )then
-!2             write(debugFile,'(" --> 2cth: eval div1,div2=",2e10.2)') u1x22(i1,i2,i3,ex)+u1y22(i1,i2,i3,ey),u2x22(j1,j2,j3,ex)+u2y22(j1,j2,j3,ey)
-!2           end if
-!2         endLoops2d()
-         end if
+         !2          if( .false. )then
+         !2         beginLoops2d() ! =============== start loops =======================
+         !2
+         !2           ! 0  [ u.x + v.y ] = 0
+         !2           ! first evaluate the equations we want to solve with the wrong values at the ghost points:
+         !2           divu=u1x22(i1,i2,i3,ex)+u1y22(i1,i2,i3,ey)
+         !2           a0=-is*rsxy1(i1,i2,i3,axis1,0)*dr112(axis1)
+         !2           a1=-is*rsxy1(i1,i2,i3,axis1,1)*dr112(axis1)
+         !2           aNormSq=a0**2+a1**2
+         !2           ! now project:  a.uNew = a.uOld - div  ->  (div-a.uOld)+a.uNew = div(uNew) = 0
+         !2           u1(i1-is1,i2-is2,i3,ex)=u1(i1-is1,i2-is2,i3,ex)-divu*a0/aNormSq
+         !2           u1(i1-is1,i2-is2,i3,ey)=u1(i1-is1,i2-is2,i3,ey)-divu*a1/aNormSq
+         !2
+         !2           divu=u2x22(j1,j2,j3,ex)+u2y22(j1,j2,j3,ey)
+         !2           a0=-js*rsxy2(j1,j2,j3,axis2,0)*dr212(axis2) 
+         !2           a1=-js*rsxy2(j1,j2,j3,axis2,1)*dr212(axis2) 
+         !2           aNormSq=a0**2+a1**2
+         !2
+         !2           u2(j1-js1,j2-js2,j3,ex)=u2(j1-js1,j2-js2,j3,ex)-divu*a0/aNormSq
+         !2           u2(j1-js1,j2-js2,j3,ey)=u2(j1-js1,j2-js2,j3,ey)-divu*a1/aNormSq
+         !2
+         !2           if( debug.gt.0 )then
+         !2             write(debugFile,'(" --> 2cth: eval div1,div2=",2e10.2)') u1x22(i1,i2,i3,ex)+u1y22(i1,i2,i3,ey),u2x22(j1,j2,j3,ex)+u2y22(j1,j2,j3,ey)
+         !2           end if
+         !2         endLoops2d()
+         !2          end if
 
          ! periodic update **** THIS WON T WORK IN PARALLEL
          if( parallel.eq.0 )then
@@ -3491,6 +4267,8 @@
           endif
          end if
 
+        end if ! end assignInterfaceGhostValues
+
        else if( .false. .and. orderOfAccuracy.eq.4 )then
 
          ! for testing -- just assign from the other ghost points
@@ -3527,10 +4305,24 @@
 
          ! --------------- 4th Order Rectangular ---------------
 
-         if( useForcing.ne.0 )then
-           ! finish me 
-           stop 7716
+         ! WARNING: The 4th order interface equations couple ghost values along the
+         ! interface -- do NOT use this version since it is not stable without iterations
+         ! We need to add itertions to this version but then the curvlinear version is
+         ! almost as efficient since the equations are saved. *wdh* June 25, 2016
+
+         if( .true. )then
+           write(*,'("interface3d.bf: ERROR: do NOT USE THIS option: 
+     & ORDER=4 RECTANGULAR")')
+           write(*,'("interface3d.bf: USE CURVILINEAR VERSION INSTEAD 
+     & SINCE ITERATIONS ARE REQUIRED")')
+           stop 6543
          end if
+
+
+         ! if( useForcing.ne.0 )then 
+         !   ! finish me 
+         !   stop 7716
+         ! end if
          ! ***** fix these for [mu] != 0 ****
          if( mu1.ne.mu2 )then
            stop 9924
@@ -3540,79 +4332,155 @@
          ! ---- first satisfy the jump conditions on the boundary --------
          !    [ eps n.u ] = 0
          !    [ tau.u ] = 0
-           if( eps1.lt.eps2 )then
-             epsRatio=eps1/eps2
-              i3=n3a
-              j3=m3a
-              j2=mm2a
-              do i2=nn2a,nn2b
-               j1=mm1a
-               do i1=nn1a,nn1b
-               ! if( mask1(i1,i2,i3).gt.0 .and. mask2(j1,j2,j3).gt.0 )then
-               ! *wdh* 2015/08/14 -- project interpolation points too
-               if( mask1(i1,i2,i3).ne.0 .and. mask2(j1,j2,j3).ne.0 )
+         if( assignInterfaceValues.eq.1 )then
+             if( useImpedanceInterfaceProjection.eq.1 )then
+               ! --------------------------------------------------------------
+               ! ------ Use impedance weighting to project the interface ------
+               ! --------------------------------------------------------------
+               !  (see maxwell.pdf)
+               !
+                i3=n3a
+                j3=m3a
+                j2=mm2a
+                do i2=nn2a,nn2b
+                 j1=mm1a
+                 do i1=nn1a,nn1b
+                 ! if( mask1(i1,i2,i3).gt.0 .and. mask2(j1,j2,j3).gt.0 )then
+                 ! *wdh* 2015/08/14 -- project interpolation points too
+                 if( mask1(i1,i2,i3).ne.0 .and. mask2(j1,j2,j3).ne.0 )
      & then
-               ! eps2 n.u2 = eps1 n.u1
-               !     tau.u2 = tau.u1
-                an1=an1Cartesian
-                an2=an2Cartesian
-               ua=u1(i1,i2,i3,ex)
-               ub=u1(i1,i2,i3,ey)
-               nDotU = an1*ua+an2*ub
-               if( twilightZone.eq.1 )then
-                ! adjust for TZ forcing (here we assume the exact solution is the same on both sides)
-                call ogderiv(ep, 0,0,0,0, xy1(i1,i2,i3,0),xy1(i1,i2,i3,
-     & 1),0.,t, ex, ue )
-                call ogderiv(ep, 0,0,0,0, xy1(i1,i2,i3,0),xy1(i1,i2,i3,
-     & 1),0.,t, ey, ve )
-                nDotU = nDotU - (an1*ue+an2*ve)
-               end if
-               ! u2 equals u1 but with normal component = eps1/eps2*(n.u1)
-               u2(j1,j2,j3,ex) = ua + (nDotU*epsRatio - nDotU)*an1
-               u2(j1,j2,j3,ey) = ub + (nDotU*epsRatio - nDotU)*an2
-               u2(j1,j2,j3,hz) = u1(i1,i2,i3,hz)
-                end if
-                j1=j1+1
-               end do
-               j2=j2+1
-              end do
-           else
-             epsRatio=eps2/eps1
-              i3=n3a
-              j3=m3a
-              j2=mm2a
-              do i2=nn2a,nn2b
-               j1=mm1a
-               do i1=nn1a,nn1b
-               ! if( mask1(i1,i2,i3).gt.0 .and. mask2(j1,j2,j3).gt.0 )then
-               ! *wdh* 2015/08/14 -- project interpolation points too
-               if( mask1(i1,i2,i3).ne.0 .and. mask2(j1,j2,j3).ne.0 )
+                 ! eps2 n.u2 = eps1 n.u1
+                 !     tau.u2 = tau.u1
+                  an1=an1Cartesian
+                  an2=an2Cartesian
+                 ! left state:
+                 ex1=u1(i1,i2,i3,ex)
+                 ey1=u1(i1,i2,i3,ey)
+                 hz1=u1(i1,i2,i3,hz)
+                 ! right state:
+                 ex2=u2(j1,j2,j3,ex)
+                 ey2=u2(j1,j2,j3,ey)
+                 hz2=u2(j1,j2,j3,hz)
+                 ! normal components 
+                 nDotE1 = an1*ex1+an2*ey1
+                 nDotE2 = an1*ex2+an2*ey2
+                 ! The interface value of (eps n.E) is an impedance average of (eps* n.E)
+                 !
+                 !      (eps n.E)_I = [ eta1*( eps1*n.E1 ) +  eta2*( eps2*n.E2 ) ]/[ eta1 + eta2 ]
+                 !
+                 ! We then set 
+                 !   eps1*nDotE1_I = (eps n.E)_I 
+                 !   eps2*nDotE2_I = (eps n.E)_I 
+                 epsNDotEI = ( eta1*(eps1*nDotE1) + eta2*(eps2*nDotE2) 
+     & )/(eta1+eta2) ! (eps * n. E)_I
+                 if( twilightZone.eq.1)then
+                  ! adjust for TZ forcing (here we assume the exact solution is the same on both sides)
+                  call ogderiv(ep, 0,0,0,0, xy1(i1,i2,i3,0),xy1(i1,i2,
+     & i3,1),0.,t, ex, ue )
+                  call ogderiv(ep, 0,0,0,0, xy1(i1,i2,i3,0),xy1(i1,i2,
+     & i3,1),0.,t, ey, ve )
+                  nDotEe = an1*ue+an2*ve
+                  ! epsNDotEI + g1 = eps1*nDotE 
+                  ! epsNDotEI + g2 = eps2*nDotE 
+                  g1= (eps1-eps2) * nDotEe *eta2/(eta1+eta2)
+                  g2= (eps2-eps1) * nDotEe *eta1/(eta1+eta2)
+                 else
+                   g1=0.
+                   g2=0.
+                 end if
+                 nDotE1I = (epsNDotEI+g1)/eps1  ! nDotE for interface on left
+                 nDotE2I = (epsNDotEI+g2)/eps2  ! nDotE for interface on right
+                 ! inverse impedance average of tangential components  (do full vector and correct below)
+                 exI = ( eta1i*ex1 + eta2i*ex2 )/( eta1i + eta2i )
+                 eyI = ( eta1i*ey1 + eta2i*ey2 )/( eta1i + eta2i )
+                 ! hz : impedance weighted average 
+                 hzI = ( eta1*hz1 + eta2*hz2 )/(eta1+eta2)
+                 nDotEI= an1*exI+an2*eyI  ! we need to subtract off normal component of (exI,eyI)
+                 u1(i1,i2,i3,ex) = exI + (nDotE1I - nDotEI)*an1
+                 u1(i1,i2,i3,ey) = eyI + (nDotE1I - nDotEI)*an2
+                 u1(i1,i2,i3,hz) = hzI
+                 u2(j1,j2,j3,ex) = exI + (nDotE2I - nDotEI)*an1
+                 u2(j1,j2,j3,ey) = eyI + (nDotE2I - nDotEI)*an2
+                 u2(j1,j2,j3,hz) = hzI
+                  end if
+                  j1=j1+1
+                 end do
+                 j2=j2+1
+                end do
+             else if( eps1.lt.eps2 )then
+               epsRatio=eps1/eps2
+                i3=n3a
+                j3=m3a
+                j2=mm2a
+                do i2=nn2a,nn2b
+                 j1=mm1a
+                 do i1=nn1a,nn1b
+                 ! if( mask1(i1,i2,i3).gt.0 .and. mask2(j1,j2,j3).gt.0 )then
+                 ! *wdh* 2015/08/14 -- project interpolation points too
+                 if( mask1(i1,i2,i3).ne.0 .and. mask2(j1,j2,j3).ne.0 )
      & then
-               ! eps2 n.u2 = eps1 n.u1
-               !     tau.u2 = tau.u1
-                an1=an1Cartesian
-                an2=an2Cartesian
-               ua=u2(j1,j2,j3,ex)
-               ub=u2(j1,j2,j3,ey)
-               nDotU = an1*ua+an2*ub
-               if( twilightZone.eq.1 )then
-                ! adjust for TZ forcing (here we assume the exact solution is the same on both sides)
-                call ogderiv(ep, 0,0,0,0, xy1(i1,i2,i3,0),xy1(i1,i2,i3,
-     & 1),0.,t, ex, ue )
-                call ogderiv(ep, 0,0,0,0, xy1(i1,i2,i3,0),xy1(i1,i2,i3,
-     & 1),0.,t, ey, ve )
-         ! write(*,'(" jump: x,y=",2e10.2," ua,ue=",2e10.2," ub,ve=",2e10.2)') xy1(i1,i2,i3,0),xy1(i1,i2,i3,1),ua,ue,ub,ve
-                nDotU = nDotU - (an1*ue+an2*ve)
-               end if
-               u1(i1,i2,i3,ex) = ua + (nDotU*epsRatio - nDotU)*an1
-               u1(i1,i2,i3,ey) = ub + (nDotU*epsRatio - nDotU)*an2
-               u1(i1,i2,i3,hz) = u2(j1,j2,j3,hz)
-                end if
-                j1=j1+1
-               end do
-               j2=j2+1
-              end do
-           end if
+                 ! eps2 n.u2 = eps1 n.u1
+                 !     tau.u2 = tau.u1
+                  an1=an1Cartesian
+                  an2=an2Cartesian
+                 ua=u1(i1,i2,i3,ex)
+                 ub=u1(i1,i2,i3,ey)
+                 nDotU = an1*ua+an2*ub
+                 if( twilightZone.eq.1 )then
+                  ! adjust for TZ forcing (here we assume the exact solution is the same on both sides)
+                  call ogderiv(ep, 0,0,0,0, xy1(i1,i2,i3,0),xy1(i1,i2,
+     & i3,1),0.,t, ex, ue )
+                  call ogderiv(ep, 0,0,0,0, xy1(i1,i2,i3,0),xy1(i1,i2,
+     & i3,1),0.,t, ey, ve )
+                  nDotU = nDotU - (an1*ue+an2*ve)
+                 end if
+                 ! u2 equals u1 but with normal component = eps1/eps2*(n.u1)
+                 u2(j1,j2,j3,ex) = ua + (nDotU*epsRatio - nDotU)*an1
+                 u2(j1,j2,j3,ey) = ub + (nDotU*epsRatio - nDotU)*an2
+                 u2(j1,j2,j3,hz) = u1(i1,i2,i3,hz)
+                  end if
+                  j1=j1+1
+                 end do
+                 j2=j2+1
+                end do
+             else
+               epsRatio=eps2/eps1
+                i3=n3a
+                j3=m3a
+                j2=mm2a
+                do i2=nn2a,nn2b
+                 j1=mm1a
+                 do i1=nn1a,nn1b
+                 ! if( mask1(i1,i2,i3).gt.0 .and. mask2(j1,j2,j3).gt.0 )then
+                 ! *wdh* 2015/08/14 -- project interpolation points too
+                 if( mask1(i1,i2,i3).ne.0 .and. mask2(j1,j2,j3).ne.0 )
+     & then
+                 ! eps2 n.u2 = eps1 n.u1
+                 !     tau.u2 = tau.u1
+                  an1=an1Cartesian
+                  an2=an2Cartesian
+                 ua=u2(j1,j2,j3,ex)
+                 ub=u2(j1,j2,j3,ey)
+                 nDotU = an1*ua+an2*ub
+                 if( twilightZone.eq.1 )then
+                  ! adjust for TZ forcing (here we assume the exact solution is the same on both sides)
+                  call ogderiv(ep, 0,0,0,0, xy1(i1,i2,i3,0),xy1(i1,i2,
+     & i3,1),0.,t, ex, ue )
+                  call ogderiv(ep, 0,0,0,0, xy1(i1,i2,i3,0),xy1(i1,i2,
+     & i3,1),0.,t, ey, ve )
+           ! write(*,'(" jump: x,y=",2e10.2," ua,ue=",2e10.2," ub,ve=",2e10.2)') xy1(i1,i2,i3,0),xy1(i1,i2,i3,1),ua,ue,ub,ve
+                  nDotU = nDotU - (an1*ue+an2*ve)
+                 end if
+                 u1(i1,i2,i3,ex) = ua + (nDotU*epsRatio - nDotU)*an1
+                 u1(i1,i2,i3,ey) = ub + (nDotU*epsRatio - nDotU)*an2
+                 u1(i1,i2,i3,hz) = u2(j1,j2,j3,hz)
+                  end if
+                  j1=j1+1
+                 end do
+                 j2=j2+1
+                end do
+             end if
+         end if
 
          ! here are the real jump conditions for the ghost points
          ! 0  [ u.x + v.y ] = 0
@@ -3624,6 +4492,9 @@
          ! 6  [ Delta^2 u/eps ] = 0
          ! 7  [ Delta^2 v/eps^2 ] = 0 
 
+
+        ! ----- assign ghost using jump conditions -----
+        if( assignInterfaceGhostValues.eq.1 )then
 
          ! initialization step: assign first ghost line by extrapolation
          ! NOTE: assign ghost points outside the ends
@@ -3681,535 +4552,1267 @@
            j2=j2+1
           end do
 
-          i3=n3a
-          j3=m3a
-          j2=m2a
-          do i2=n2a,n2b
-           j1=m1a
-           do i1=n1a,n1b
-            if( mask1(i1,i2,i3).gt.0 .and. mask2(j1,j2,j3).gt.0 )then
-
-           ! first evaluate the equations we want to solve with the wrong values at the ghost points:
-
-
-           ! evalDerivs2dOrder4()
-            ! These derivatives are computed to 2nd-order accuracy
-            ! NOTE: the jacobian derivatives can be computed once for all components
-              uu1=u1(i1,i2,i3,ex) ! in the rectangular case just eval the solution
-               u1xxx = (-u1(i1-2,i2,i3,ex)+2.*u1(i1-1,i2,i3,ex)-2.*u1(
+         ! Macro to assign ghost values:
+          ! ****************************************************
+          ! ***********  2D, ORDER=4, RECTANGULAR **************
+          ! ****************************************************
+          ! normal and tangent (for TZ forcing)
+          an1=an1Cartesian
+          an2=an2Cartesian
+          tau1=-an2
+          tau2= an1
+           i3=n3a
+           j3=m3a
+           j2=m2a
+           do i2=n2a,n2b
+            j1=m1a
+            do i1=n1a,n1b
+             if( mask1(i1,i2,i3).gt.0 .and. mask2(j1,j2,j3).gt.0 )then
+            ! first evaluate the equations we want to solve with the wrong values at the ghost points:
+            ! evalDerivs2dOrder4()
+             ! These derivatives are computed to 2nd-order accuracy
+             ! NOTE: the jacobian derivatives can be computed once for all components
+               uu1=u1(i1,i2,i3,ex) ! in the rectangular case just eval the solution
+                u1xxx = (-u1(i1-2,i2,i3,ex)+2.*u1(i1-1,i2,i3,ex)-2.*u1(
      & i1+1,i2,i3,ex)+u1(i1+2,i2,i3,ex))/(2.*dx1(0)**3)
-               u1xxy = ((-u1(i1-1,i2-1,i3,ex)+u1(i1-1,i2+1,i3,ex))/(2.*
-     & dx1(1))-2.*(-u1(i1,i2-1,i3,ex)+u1(i1,i2+1,i3,ex))/(2.*dx1(1))+(
-     & -u1(i1+1,i2-1,i3,ex)+u1(i1+1,i2+1,i3,ex))/(2.*dx1(1)))/(dx1(0)*
-     & *2)
-               u1xyy = (-(u1(i1-1,i2-1,i3,ex)-2.*u1(i1-1,i2,i3,ex)+u1(
+                u1xxy = ((-u1(i1-1,i2-1,i3,ex)+u1(i1-1,i2+1,i3,ex))/(
+     & 2.*dx1(1))-2.*(-u1(i1,i2-1,i3,ex)+u1(i1,i2+1,i3,ex))/(2.*dx1(1)
+     & )+(-u1(i1+1,i2-1,i3,ex)+u1(i1+1,i2+1,i3,ex))/(2.*dx1(1)))/(dx1(
+     & 0)**2)
+                u1xyy = (-(u1(i1-1,i2-1,i3,ex)-2.*u1(i1-1,i2,i3,ex)+u1(
      & i1-1,i2+1,i3,ex))/(dx1(1)**2)+(u1(i1+1,i2-1,i3,ex)-2.*u1(i1+1,
      & i2,i3,ex)+u1(i1+1,i2+1,i3,ex))/(dx1(1)**2))/(2.*dx1(0))
-               u1yyy = (-u1(i1,i2-2,i3,ex)+2.*u1(i1,i2-1,i3,ex)-2.*u1(
+                u1yyy = (-u1(i1,i2-2,i3,ex)+2.*u1(i1,i2-1,i3,ex)-2.*u1(
      & i1,i2+1,i3,ex)+u1(i1,i2+2,i3,ex))/(2.*dx1(1)**3)
-               u1xxxx = (u1(i1-2,i2,i3,ex)-4.*u1(i1-1,i2,i3,ex)+6.*u1(
+                u1xxxx = (u1(i1-2,i2,i3,ex)-4.*u1(i1-1,i2,i3,ex)+6.*u1(
      & i1,i2,i3,ex)-4.*u1(i1+1,i2,i3,ex)+u1(i1+2,i2,i3,ex))/(dx1(0)**
      & 4)
-               u1xxyy = ((u1(i1-1,i2-1,i3,ex)-2.*u1(i1-1,i2,i3,ex)+u1(
+                u1xxyy = ((u1(i1-1,i2-1,i3,ex)-2.*u1(i1-1,i2,i3,ex)+u1(
      & i1-1,i2+1,i3,ex))/(dx1(1)**2)-2.*(u1(i1,i2-1,i3,ex)-2.*u1(i1,
      & i2,i3,ex)+u1(i1,i2+1,i3,ex))/(dx1(1)**2)+(u1(i1+1,i2-1,i3,ex)-
      & 2.*u1(i1+1,i2,i3,ex)+u1(i1+1,i2+1,i3,ex))/(dx1(1)**2))/(dx1(0)*
      & *2)
-               u1yyyy = (u1(i1,i2-2,i3,ex)-4.*u1(i1,i2-1,i3,ex)+6.*u1(
+                u1yyyy = (u1(i1,i2-2,i3,ex)-4.*u1(i1,i2-1,i3,ex)+6.*u1(
      & i1,i2,i3,ex)-4.*u1(i1,i2+1,i3,ex)+u1(i1,i2+2,i3,ex))/(dx1(1)**
      & 4)
-             u1LapSq = u1xxxx +2.* u1xxyy + u1yyyy
-              vv1=u1(i1,i2,i3,ey) ! in the rectangular case just eval the solution
-               v1xxx = (-u1(i1-2,i2,i3,ey)+2.*u1(i1-1,i2,i3,ey)-2.*u1(
+              u1LapSq = u1xxxx +2.* u1xxyy + u1yyyy
+               vv1=u1(i1,i2,i3,ey) ! in the rectangular case just eval the solution
+                v1xxx = (-u1(i1-2,i2,i3,ey)+2.*u1(i1-1,i2,i3,ey)-2.*u1(
      & i1+1,i2,i3,ey)+u1(i1+2,i2,i3,ey))/(2.*dx1(0)**3)
-               v1xxy = ((-u1(i1-1,i2-1,i3,ey)+u1(i1-1,i2+1,i3,ey))/(2.*
-     & dx1(1))-2.*(-u1(i1,i2-1,i3,ey)+u1(i1,i2+1,i3,ey))/(2.*dx1(1))+(
-     & -u1(i1+1,i2-1,i3,ey)+u1(i1+1,i2+1,i3,ey))/(2.*dx1(1)))/(dx1(0)*
-     & *2)
-               v1xyy = (-(u1(i1-1,i2-1,i3,ey)-2.*u1(i1-1,i2,i3,ey)+u1(
+                v1xxy = ((-u1(i1-1,i2-1,i3,ey)+u1(i1-1,i2+1,i3,ey))/(
+     & 2.*dx1(1))-2.*(-u1(i1,i2-1,i3,ey)+u1(i1,i2+1,i3,ey))/(2.*dx1(1)
+     & )+(-u1(i1+1,i2-1,i3,ey)+u1(i1+1,i2+1,i3,ey))/(2.*dx1(1)))/(dx1(
+     & 0)**2)
+                v1xyy = (-(u1(i1-1,i2-1,i3,ey)-2.*u1(i1-1,i2,i3,ey)+u1(
      & i1-1,i2+1,i3,ey))/(dx1(1)**2)+(u1(i1+1,i2-1,i3,ey)-2.*u1(i1+1,
      & i2,i3,ey)+u1(i1+1,i2+1,i3,ey))/(dx1(1)**2))/(2.*dx1(0))
-               v1yyy = (-u1(i1,i2-2,i3,ey)+2.*u1(i1,i2-1,i3,ey)-2.*u1(
+                v1yyy = (-u1(i1,i2-2,i3,ey)+2.*u1(i1,i2-1,i3,ey)-2.*u1(
      & i1,i2+1,i3,ey)+u1(i1,i2+2,i3,ey))/(2.*dx1(1)**3)
-               v1xxxx = (u1(i1-2,i2,i3,ey)-4.*u1(i1-1,i2,i3,ey)+6.*u1(
+                v1xxxx = (u1(i1-2,i2,i3,ey)-4.*u1(i1-1,i2,i3,ey)+6.*u1(
      & i1,i2,i3,ey)-4.*u1(i1+1,i2,i3,ey)+u1(i1+2,i2,i3,ey))/(dx1(0)**
      & 4)
-               v1xxyy = ((u1(i1-1,i2-1,i3,ey)-2.*u1(i1-1,i2,i3,ey)+u1(
+                v1xxyy = ((u1(i1-1,i2-1,i3,ey)-2.*u1(i1-1,i2,i3,ey)+u1(
      & i1-1,i2+1,i3,ey))/(dx1(1)**2)-2.*(u1(i1,i2-1,i3,ey)-2.*u1(i1,
      & i2,i3,ey)+u1(i1,i2+1,i3,ey))/(dx1(1)**2)+(u1(i1+1,i2-1,i3,ey)-
      & 2.*u1(i1+1,i2,i3,ey)+u1(i1+1,i2+1,i3,ey))/(dx1(1)**2))/(dx1(0)*
      & *2)
-               v1yyyy = (u1(i1,i2-2,i3,ey)-4.*u1(i1,i2-1,i3,ey)+6.*u1(
+                v1yyyy = (u1(i1,i2-2,i3,ey)-4.*u1(i1,i2-1,i3,ey)+6.*u1(
      & i1,i2,i3,ey)-4.*u1(i1,i2+1,i3,ey)+u1(i1,i2+2,i3,ey))/(dx1(1)**
      & 4)
-             v1LapSq = v1xxxx +2.* v1xxyy + v1yyyy
-            ! NOTE: the jacobian derivatives can be computed once for all components
-              uu2=u2(j1,j2,j3,ex) ! in the rectangular case just eval the solution
-               u2xxx = (-u2(j1-2,j2,j3,ex)+2.*u2(j1-1,j2,j3,ex)-2.*u2(
+              v1LapSq = v1xxxx +2.* v1xxyy + v1yyyy
+             ! NOTE: the jacobian derivatives can be computed once for all components
+               uu2=u2(j1,j2,j3,ex) ! in the rectangular case just eval the solution
+                u2xxx = (-u2(j1-2,j2,j3,ex)+2.*u2(j1-1,j2,j3,ex)-2.*u2(
      & j1+1,j2,j3,ex)+u2(j1+2,j2,j3,ex))/(2.*dx2(0)**3)
-               u2xxy = ((-u2(j1-1,j2-1,j3,ex)+u2(j1-1,j2+1,j3,ex))/(2.*
-     & dx2(1))-2.*(-u2(j1,j2-1,j3,ex)+u2(j1,j2+1,j3,ex))/(2.*dx2(1))+(
-     & -u2(j1+1,j2-1,j3,ex)+u2(j1+1,j2+1,j3,ex))/(2.*dx2(1)))/(dx2(0)*
-     & *2)
-               u2xyy = (-(u2(j1-1,j2-1,j3,ex)-2.*u2(j1-1,j2,j3,ex)+u2(
+                u2xxy = ((-u2(j1-1,j2-1,j3,ex)+u2(j1-1,j2+1,j3,ex))/(
+     & 2.*dx2(1))-2.*(-u2(j1,j2-1,j3,ex)+u2(j1,j2+1,j3,ex))/(2.*dx2(1)
+     & )+(-u2(j1+1,j2-1,j3,ex)+u2(j1+1,j2+1,j3,ex))/(2.*dx2(1)))/(dx2(
+     & 0)**2)
+                u2xyy = (-(u2(j1-1,j2-1,j3,ex)-2.*u2(j1-1,j2,j3,ex)+u2(
      & j1-1,j2+1,j3,ex))/(dx2(1)**2)+(u2(j1+1,j2-1,j3,ex)-2.*u2(j1+1,
      & j2,j3,ex)+u2(j1+1,j2+1,j3,ex))/(dx2(1)**2))/(2.*dx2(0))
-               u2yyy = (-u2(j1,j2-2,j3,ex)+2.*u2(j1,j2-1,j3,ex)-2.*u2(
+                u2yyy = (-u2(j1,j2-2,j3,ex)+2.*u2(j1,j2-1,j3,ex)-2.*u2(
      & j1,j2+1,j3,ex)+u2(j1,j2+2,j3,ex))/(2.*dx2(1)**3)
-               u2xxxx = (u2(j1-2,j2,j3,ex)-4.*u2(j1-1,j2,j3,ex)+6.*u2(
+                u2xxxx = (u2(j1-2,j2,j3,ex)-4.*u2(j1-1,j2,j3,ex)+6.*u2(
      & j1,j2,j3,ex)-4.*u2(j1+1,j2,j3,ex)+u2(j1+2,j2,j3,ex))/(dx2(0)**
      & 4)
-               u2xxyy = ((u2(j1-1,j2-1,j3,ex)-2.*u2(j1-1,j2,j3,ex)+u2(
+                u2xxyy = ((u2(j1-1,j2-1,j3,ex)-2.*u2(j1-1,j2,j3,ex)+u2(
      & j1-1,j2+1,j3,ex))/(dx2(1)**2)-2.*(u2(j1,j2-1,j3,ex)-2.*u2(j1,
      & j2,j3,ex)+u2(j1,j2+1,j3,ex))/(dx2(1)**2)+(u2(j1+1,j2-1,j3,ex)-
      & 2.*u2(j1+1,j2,j3,ex)+u2(j1+1,j2+1,j3,ex))/(dx2(1)**2))/(dx2(0)*
      & *2)
-               u2yyyy = (u2(j1,j2-2,j3,ex)-4.*u2(j1,j2-1,j3,ex)+6.*u2(
+                u2yyyy = (u2(j1,j2-2,j3,ex)-4.*u2(j1,j2-1,j3,ex)+6.*u2(
      & j1,j2,j3,ex)-4.*u2(j1,j2+1,j3,ex)+u2(j1,j2+2,j3,ex))/(dx2(1)**
      & 4)
-             u2LapSq = u2xxxx +2.* u2xxyy + u2yyyy
-              vv2=u2(j1,j2,j3,ey) ! in the rectangular case just eval the solution
-               v2xxx = (-u2(j1-2,j2,j3,ey)+2.*u2(j1-1,j2,j3,ey)-2.*u2(
+              u2LapSq = u2xxxx +2.* u2xxyy + u2yyyy
+               vv2=u2(j1,j2,j3,ey) ! in the rectangular case just eval the solution
+                v2xxx = (-u2(j1-2,j2,j3,ey)+2.*u2(j1-1,j2,j3,ey)-2.*u2(
      & j1+1,j2,j3,ey)+u2(j1+2,j2,j3,ey))/(2.*dx2(0)**3)
-               v2xxy = ((-u2(j1-1,j2-1,j3,ey)+u2(j1-1,j2+1,j3,ey))/(2.*
-     & dx2(1))-2.*(-u2(j1,j2-1,j3,ey)+u2(j1,j2+1,j3,ey))/(2.*dx2(1))+(
-     & -u2(j1+1,j2-1,j3,ey)+u2(j1+1,j2+1,j3,ey))/(2.*dx2(1)))/(dx2(0)*
-     & *2)
-               v2xyy = (-(u2(j1-1,j2-1,j3,ey)-2.*u2(j1-1,j2,j3,ey)+u2(
+                v2xxy = ((-u2(j1-1,j2-1,j3,ey)+u2(j1-1,j2+1,j3,ey))/(
+     & 2.*dx2(1))-2.*(-u2(j1,j2-1,j3,ey)+u2(j1,j2+1,j3,ey))/(2.*dx2(1)
+     & )+(-u2(j1+1,j2-1,j3,ey)+u2(j1+1,j2+1,j3,ey))/(2.*dx2(1)))/(dx2(
+     & 0)**2)
+                v2xyy = (-(u2(j1-1,j2-1,j3,ey)-2.*u2(j1-1,j2,j3,ey)+u2(
      & j1-1,j2+1,j3,ey))/(dx2(1)**2)+(u2(j1+1,j2-1,j3,ey)-2.*u2(j1+1,
      & j2,j3,ey)+u2(j1+1,j2+1,j3,ey))/(dx2(1)**2))/(2.*dx2(0))
-               v2yyy = (-u2(j1,j2-2,j3,ey)+2.*u2(j1,j2-1,j3,ey)-2.*u2(
+                v2yyy = (-u2(j1,j2-2,j3,ey)+2.*u2(j1,j2-1,j3,ey)-2.*u2(
      & j1,j2+1,j3,ey)+u2(j1,j2+2,j3,ey))/(2.*dx2(1)**3)
-               v2xxxx = (u2(j1-2,j2,j3,ey)-4.*u2(j1-1,j2,j3,ey)+6.*u2(
+                v2xxxx = (u2(j1-2,j2,j3,ey)-4.*u2(j1-1,j2,j3,ey)+6.*u2(
      & j1,j2,j3,ey)-4.*u2(j1+1,j2,j3,ey)+u2(j1+2,j2,j3,ey))/(dx2(0)**
      & 4)
-               v2xxyy = ((u2(j1-1,j2-1,j3,ey)-2.*u2(j1-1,j2,j3,ey)+u2(
+                v2xxyy = ((u2(j1-1,j2-1,j3,ey)-2.*u2(j1-1,j2,j3,ey)+u2(
      & j1-1,j2+1,j3,ey))/(dx2(1)**2)-2.*(u2(j1,j2-1,j3,ey)-2.*u2(j1,
      & j2,j3,ey)+u2(j1,j2+1,j3,ey))/(dx2(1)**2)+(u2(j1+1,j2-1,j3,ey)-
      & 2.*u2(j1+1,j2,j3,ey)+u2(j1+1,j2+1,j3,ey))/(dx2(1)**2))/(dx2(0)*
      & *2)
-               v2yyyy = (u2(j1,j2-2,j3,ey)-4.*u2(j1,j2-1,j3,ey)+6.*u2(
+                v2yyyy = (u2(j1,j2-2,j3,ey)-4.*u2(j1,j2-1,j3,ey)+6.*u2(
      & j1,j2,j3,ey)-4.*u2(j1,j2+1,j3,ey)+u2(j1,j2+2,j3,ey))/(dx2(1)**
      & 4)
-             v2LapSq = v2xxxx +2.* v2xxyy + v2yyyy
-            ! These derivatives are computed to 4th-order accuracy
-            ! NOTE: the jacobian derivatives can be computed once for all components
-              uu1=u1(i1,i2,i3,ex) ! in the rectangular case just eval the solution
-               u1x = (u1(i1-2,i2,i3,ex)-8.*u1(i1-1,i2,i3,ex)+8.*u1(i1+
+              v2LapSq = v2xxxx +2.* v2xxyy + v2yyyy
+             ! These derivatives are computed to 4th-order accuracy
+             ! NOTE: the jacobian derivatives can be computed once for all components
+               uu1=u1(i1,i2,i3,ex) ! in the rectangular case just eval the solution
+                u1x = (u1(i1-2,i2,i3,ex)-8.*u1(i1-1,i2,i3,ex)+8.*u1(i1+
      & 1,i2,i3,ex)-u1(i1+2,i2,i3,ex))/(12.*dx1(0))
-               u1y = (u1(i1,i2-2,i3,ex)-8.*u1(i1,i2-1,i3,ex)+8.*u1(i1,
+                u1y = (u1(i1,i2-2,i3,ex)-8.*u1(i1,i2-1,i3,ex)+8.*u1(i1,
      & i2+1,i3,ex)-u1(i1,i2+2,i3,ex))/(12.*dx1(1))
-               u1xx = (-u1(i1-2,i2,i3,ex)+16.*u1(i1-1,i2,i3,ex)-30.*u1(
-     & i1,i2,i3,ex)+16.*u1(i1+1,i2,i3,ex)-u1(i1+2,i2,i3,ex))/(12.*dx1(
-     & 0)**2)
-               u1yy = (-u1(i1,i2-2,i3,ex)+16.*u1(i1,i2-1,i3,ex)-30.*u1(
-     & i1,i2,i3,ex)+16.*u1(i1,i2+1,i3,ex)-u1(i1,i2+2,i3,ex))/(12.*dx1(
-     & 1)**2)
-             u1Lap = u1xx+ u1yy
-              vv1=u1(i1,i2,i3,ey) ! in the rectangular case just eval the solution
-               v1x = (u1(i1-2,i2,i3,ey)-8.*u1(i1-1,i2,i3,ey)+8.*u1(i1+
+                u1xx = (-u1(i1-2,i2,i3,ex)+16.*u1(i1-1,i2,i3,ex)-30.*
+     & u1(i1,i2,i3,ex)+16.*u1(i1+1,i2,i3,ex)-u1(i1+2,i2,i3,ex))/(12.*
+     & dx1(0)**2)
+                u1yy = (-u1(i1,i2-2,i3,ex)+16.*u1(i1,i2-1,i3,ex)-30.*
+     & u1(i1,i2,i3,ex)+16.*u1(i1,i2+1,i3,ex)-u1(i1,i2+2,i3,ex))/(12.*
+     & dx1(1)**2)
+              u1Lap = u1xx+ u1yy
+               vv1=u1(i1,i2,i3,ey) ! in the rectangular case just eval the solution
+                v1x = (u1(i1-2,i2,i3,ey)-8.*u1(i1-1,i2,i3,ey)+8.*u1(i1+
      & 1,i2,i3,ey)-u1(i1+2,i2,i3,ey))/(12.*dx1(0))
-               v1y = (u1(i1,i2-2,i3,ey)-8.*u1(i1,i2-1,i3,ey)+8.*u1(i1,
+                v1y = (u1(i1,i2-2,i3,ey)-8.*u1(i1,i2-1,i3,ey)+8.*u1(i1,
      & i2+1,i3,ey)-u1(i1,i2+2,i3,ey))/(12.*dx1(1))
-               v1xx = (-u1(i1-2,i2,i3,ey)+16.*u1(i1-1,i2,i3,ey)-30.*u1(
-     & i1,i2,i3,ey)+16.*u1(i1+1,i2,i3,ey)-u1(i1+2,i2,i3,ey))/(12.*dx1(
-     & 0)**2)
-               v1yy = (-u1(i1,i2-2,i3,ey)+16.*u1(i1,i2-1,i3,ey)-30.*u1(
-     & i1,i2,i3,ey)+16.*u1(i1,i2+1,i3,ey)-u1(i1,i2+2,i3,ey))/(12.*dx1(
-     & 1)**2)
-             v1Lap = v1xx+ v1yy
-            ! NOTE: the jacobian derivatives can be computed once for all components
-              uu2=u2(j1,j2,j3,ex) ! in the rectangular case just eval the solution
-               u2x = (u2(j1-2,j2,j3,ex)-8.*u2(j1-1,j2,j3,ex)+8.*u2(j1+
+                v1xx = (-u1(i1-2,i2,i3,ey)+16.*u1(i1-1,i2,i3,ey)-30.*
+     & u1(i1,i2,i3,ey)+16.*u1(i1+1,i2,i3,ey)-u1(i1+2,i2,i3,ey))/(12.*
+     & dx1(0)**2)
+                v1yy = (-u1(i1,i2-2,i3,ey)+16.*u1(i1,i2-1,i3,ey)-30.*
+     & u1(i1,i2,i3,ey)+16.*u1(i1,i2+1,i3,ey)-u1(i1,i2+2,i3,ey))/(12.*
+     & dx1(1)**2)
+              v1Lap = v1xx+ v1yy
+             ! NOTE: the jacobian derivatives can be computed once for all components
+               uu2=u2(j1,j2,j3,ex) ! in the rectangular case just eval the solution
+                u2x = (u2(j1-2,j2,j3,ex)-8.*u2(j1-1,j2,j3,ex)+8.*u2(j1+
      & 1,j2,j3,ex)-u2(j1+2,j2,j3,ex))/(12.*dx2(0))
-               u2y = (u2(j1,j2-2,j3,ex)-8.*u2(j1,j2-1,j3,ex)+8.*u2(j1,
+                u2y = (u2(j1,j2-2,j3,ex)-8.*u2(j1,j2-1,j3,ex)+8.*u2(j1,
      & j2+1,j3,ex)-u2(j1,j2+2,j3,ex))/(12.*dx2(1))
-               u2xx = (-u2(j1-2,j2,j3,ex)+16.*u2(j1-1,j2,j3,ex)-30.*u2(
-     & j1,j2,j3,ex)+16.*u2(j1+1,j2,j3,ex)-u2(j1+2,j2,j3,ex))/(12.*dx2(
-     & 0)**2)
-               u2yy = (-u2(j1,j2-2,j3,ex)+16.*u2(j1,j2-1,j3,ex)-30.*u2(
-     & j1,j2,j3,ex)+16.*u2(j1,j2+1,j3,ex)-u2(j1,j2+2,j3,ex))/(12.*dx2(
-     & 1)**2)
-             u2Lap = u2xx+ u2yy
-              vv2=u2(j1,j2,j3,ey) ! in the rectangular case just eval the solution
-               v2x = (u2(j1-2,j2,j3,ey)-8.*u2(j1-1,j2,j3,ey)+8.*u2(j1+
+                u2xx = (-u2(j1-2,j2,j3,ex)+16.*u2(j1-1,j2,j3,ex)-30.*
+     & u2(j1,j2,j3,ex)+16.*u2(j1+1,j2,j3,ex)-u2(j1+2,j2,j3,ex))/(12.*
+     & dx2(0)**2)
+                u2yy = (-u2(j1,j2-2,j3,ex)+16.*u2(j1,j2-1,j3,ex)-30.*
+     & u2(j1,j2,j3,ex)+16.*u2(j1,j2+1,j3,ex)-u2(j1,j2+2,j3,ex))/(12.*
+     & dx2(1)**2)
+              u2Lap = u2xx+ u2yy
+               vv2=u2(j1,j2,j3,ey) ! in the rectangular case just eval the solution
+                v2x = (u2(j1-2,j2,j3,ey)-8.*u2(j1-1,j2,j3,ey)+8.*u2(j1+
      & 1,j2,j3,ey)-u2(j1+2,j2,j3,ey))/(12.*dx2(0))
-               v2y = (u2(j1,j2-2,j3,ey)-8.*u2(j1,j2-1,j3,ey)+8.*u2(j1,
+                v2y = (u2(j1,j2-2,j3,ey)-8.*u2(j1,j2-1,j3,ey)+8.*u2(j1,
      & j2+1,j3,ey)-u2(j1,j2+2,j3,ey))/(12.*dx2(1))
-               v2xx = (-u2(j1-2,j2,j3,ey)+16.*u2(j1-1,j2,j3,ey)-30.*u2(
-     & j1,j2,j3,ey)+16.*u2(j1+1,j2,j3,ey)-u2(j1+2,j2,j3,ey))/(12.*dx2(
-     & 0)**2)
-               v2yy = (-u2(j1,j2-2,j3,ey)+16.*u2(j1,j2-1,j3,ey)-30.*u2(
-     & j1,j2,j3,ey)+16.*u2(j1,j2+1,j3,ey)-u2(j1,j2+2,j3,ey))/(12.*dx2(
-     & 1)**2)
-             v2Lap = v2xx+ v2yy
-           f(0)=(u1x+v1y) - (u2x+v2y)
-           f(1)=(u1Lap) - (u2Lap)
-           f(2)=(v1x-u1y) - (v2x-u2y)
-           f(3)=(v1Lap)/eps1 - (v2Lap)/eps2
-           ! These next we can do to 2nd order -- these need a value on the first ghost line --
-           f(4)=(u1xxx+u1xyy+v1xxy+v1yyy) - (u2xxx+u2xyy+v2xxy+v2yyy)
-           f(5)=((v1xxx+v1xyy)-(u1xxy+u1yyy))/eps1 - ((v2xxx+v2xyy)-(
+                v2xx = (-u2(j1-2,j2,j3,ey)+16.*u2(j1-1,j2,j3,ey)-30.*
+     & u2(j1,j2,j3,ey)+16.*u2(j1+1,j2,j3,ey)-u2(j1+2,j2,j3,ey))/(12.*
+     & dx2(0)**2)
+                v2yy = (-u2(j1,j2-2,j3,ey)+16.*u2(j1,j2-1,j3,ey)-30.*
+     & u2(j1,j2,j3,ey)+16.*u2(j1,j2+1,j3,ey)-u2(j1,j2+2,j3,ey))/(12.*
+     & dx2(1)**2)
+              v2Lap = v2xx+ v2yy
+            f(0)=(u1x+v1y) - (u2x+v2y)
+            f(1)=(u1Lap) - (u2Lap)
+            f(2)=(v1x-u1y) - (v2x-u2y)
+            f(3)=(v1Lap)/eps1 - (v2Lap)/eps2
+            ! These next we can do to 2nd order -- these need a value on the first ghost line --
+            f(4)=(u1xxx+u1xyy+v1xxy+v1yyy) - (u2xxx+u2xyy+v2xxy+v2yyy)
+            f(5)=((v1xxx+v1xyy)-(u1xxy+u1yyy))/eps1 - ((v2xxx+v2xyy)-(
      & u2xxy+u2yyy))/eps2
-           f(6)=(u1LapSq)/eps1 - (u2LapSq)/eps2
-           f(7)=(v1LapSq)/eps1**2 - (v2LapSq)/eps2**2
-
-!      write(debugFile,'(" --> 4th: j1,j2=",2i4," u1xx,u1yy,u2xx,u2yy=",4e10.2)') j1,j2,u1xx42r(i1,i2,i3,ex),!          u1yy42r(i1,i2,i3,ex),u2xx42r(j1,j2,j3,ex),u2yy42r(j1,j2,j3,ex)
-!      write(debugFile,'(" --> 4th: i1,i2=",2i4," f(start)=",8e10.2)') i1,i2,f(0),f(1),f(2),f(3),f(4),f(5),f(6),f(7)
-
-           ! here is the matrix of coefficients for the unknowns u1(-1),v1(-1),u2(-1),v2(-1)
-           ! Solve:
-           !     
-           !       A [ U ] = A [ U(old) ] - [ f ]
-!      u1x43r(i1,i2,i3,kd)=(8.*(u1(i1+1,i2,i3,kd)-u1(i1-1,i2,i3,kd))-(
-!     & u1(i1+2,i2,i3,kd)-u1(i1-2,i2,i3,kd)))*dx141(0)
-
-
-           ! 0  [ u.x + v.y ] = 0
-           a8(0,0) = -is*8.*rx1*dx141(axis1)     ! coeff of u1(-1) from [u.x+v.y]
-           a8(0,1) = -is*8.*ry1*dx141(axis1)     ! coeff of v1(-1) from [u.x+v.y]
-           a8(0,4) =  is*rx1*dx141(axis1)        ! u1(-2)
-           a8(0,5) =  is*ry1*dx141(axis1)        ! v1(-2)
-
-           a8(0,2) =  js*8.*rx2*dx241(axis2)     ! coeff of u2(-1) from [u.x+v.y]
-           a8(0,3) =  js*8.*ry2*dx241(axis2)
-           a8(0,6) = -js*   rx2*dx241(axis2)
-           a8(0,7) = -js*   ry2*dx241(axis2)
-
-           ! 1  [ u.xx + u.yy ] = 0
-!      u1xx43r(i1,i2,i3,kd)=( -30.*u1(i1,i2,i3,kd)+16.*(u1(i1+1,i2,i3,
-!     & kd)+u1(i1-1,i2,i3,kd))-(u1(i1+2,i2,i3,kd)+u1(i1-2,i2,i3,kd)) )*
-!     & dx142(0)
-
-           a8(1,0) = 16.*dx142(axis1)         ! coeff of u1(-1) from [u.xx + u.yy]
-           a8(1,1) = 0.
-           a8(1,4) =    -dx142(axis1)         ! coeff of u1(-2) from [u.xx + u.yy]
-           a8(1,5) = 0.
-
-           a8(1,2) =-16.*dx242(axis2)         ! coeff of u2(-1) from [u.xx + u.yy]
-           a8(1,3) = 0.
-           a8(1,6) =     dx242(axis2)         ! coeff of u2(-2) from [u.xx + u.yy]
-           a8(1,7) = 0.
-
-
-           ! 2  [ v.x - u.y ] =0 
-           a8(2,0) =  is*8.*ry1*dx141(axis1)
-           a8(2,1) = -is*8.*rx1*dx141(axis1)    ! coeff of v1(-1) from [v.x - u.y]
-           a8(2,4) = -is*   ry1*dx141(axis1)
-           a8(2,5) =  is*   rx1*dx141(axis1)
-
-           a8(2,2) = -js*8.*ry2*dx241(axis2)
-           a8(2,3) =  js*8.*rx2*dx241(axis2)
-           a8(2,6) =  js*   ry2*dx241(axis2)
-           a8(2,7) = -js*   rx2*dx241(axis2)
-
-           ! 3  [ (v.xx+v.yy)/eps ] = 0
-           a8(3,0) = 0.
-           a8(3,1) = 16.*dx142(axis1)/eps1 ! coeff of v1(-1) from [(v.xx+v.yy)/eps]
-           a8(3,4) = 0.
-           a8(3,5) =    -dx142(axis1)/eps1 ! coeff of v1(-2) from [(v.xx+v.yy)/eps]
-
-           a8(3,2) = 0.
-           a8(3,3) =-16.*dx242(axis2)/eps2 ! coeff of v2(-1) from [(v.xx+v.yy)/eps]
-           a8(3,6) = 0.
-           a8(3,7) =     dx242(axis2)/eps2 ! coeff of v2(-2) from [(v.xx+v.yy)/eps]
-
-           ! 4  [ (u.xx+u.yy).x + (v.xx+v.yy).y ] = 0
-!     u1xxx22r(i1,i2,i3,kd)=(-2.*(u1(i1+1,i2,i3,kd)-u1(i1-1,i2,i3,kd))+
-!    & (u1(i1+2,i2,i3,kd)-u1(i1-2,i2,i3,kd)) )*dx122(0)*dx112(0)
-!    u1xxy22r(i1,i2,i3,kd)=( u1xx22r(i1,i2+1,i3,kd)-u1xx22r(i1,i2-1,
-!     & i3,kd))/(2.*dx1(1))
-!      u1yy23r(i1,i2,i3,kd)=(-2.*u1(i1,i2,i3,kd)+(u1(i1,i2+1,i3,kd)+u1(
-!     & i1,i2-1,i3,kd)) )*dx122(1)
-!     u1xyy22r(i1,i2,i3,kd)=( u1yy22r(i1+1,i2,i3,kd)-u1yy22r(i1-1,i2,
-!     & i3,kd))/(2.*dx1(0))
-          a8(4,0)= ( is*rx1*2.*dx122(axis1)*dx112(axis1)+is*rx1*2.*
-     & dx122(1)/(2.*dx1(0)))
-          a8(4,1)= ( is*ry1*2.*dx122(axis1)*dx112(axis1)+is*ry1*2.*
-     & dx122(0)/(2.*dx1(1)))
-          a8(4,4)= (-is*rx1   *dx122(axis1)*dx112(axis1) )
-          a8(4,5)= (-is*ry1   *dx122(axis1)*dx112(axis1))
-
-          a8(4,2)=-( js*rx2*2.*dx222(axis2)*dx212(axis2)+js*rx2*2.*
-     & dx222(1)/(2.*dx2(0)))
-          a8(4,3)=-( js*ry2*2.*dx222(axis2)*dx212(axis2)+js*ry2*2.*
-     & dx222(0)/(2.*dx2(1)))
-          a8(4,6)=-(-js*rx2   *dx222(axis2)*dx212(axis2))
-          a8(4,7)=-(-js*ry2   *dx222(axis2)*dx212(axis2))
-
-          ! 5  [ {(Delta v).x - (Delta u).y}/eps ] =0  -> [ {(v.xxx+v.xyy)-(u.xxy+u.yyy)}/eps ] = 0
-
-          a8(5,0)=-( is*ry1*2.*dx122(axis1)*dx112(axis1)+is*ry1*2.*
-     & dx122(0)/(2.*dx1(1)))/eps1
-          a8(5,1)= ( is*rx1*2.*dx122(axis1)*dx112(axis1)+is*rx1*2.*
-     & dx122(1)/(2.*dx1(0)))/eps1
-          a8(5,4)=-(-is*ry1   *dx122(axis1)*dx112(axis1))/eps1
-          a8(5,5)= (-is*rx1   *dx122(axis1)*dx112(axis1))/eps1
-
-          a8(5,2)= ( js*ry2*2.*dx222(axis2)*dx212(axis2)+js*ry2*2.*
-     & dx222(0)/(2.*dx2(1)))/eps2
-          a8(5,3)=-( js*rx2*2.*dx222(axis2)*dx212(axis2)+js*rx2*2.*
-     & dx222(1)/(2.*dx2(0)))/eps2
-          a8(5,6)= (-js*ry2   *dx222(axis2)*dx212(axis2))/eps2
-          a8(5,7)=-(-js*rx2   *dx222(axis2)*dx212(axis2))/eps2
-
-           ! 6  [ Delta^2 u/eps ] = 0
-!     u1LapSq22r(i1,i2,i3,kd)= ( 6.*u1(i1,i2,i3,kd)- 4.*(u1(i1+1,i2,i3,
-!    & kd)+u1(i1-1,i2,i3,kd))+(u1(i1+2,i2,i3,kd)+u1(i1-2,i2,i3,kd)) )
-!    & /(dx1(0)**4)+( 6.*u1(i1,i2,i3,kd)-4.*(u1(i1,i2+1,i3,kd)+u1(i1,
-!    & i2-1,i3,kd)) +(u1(i1,i2+2,i3,kd)+u1(i1,i2-2,i3,kd)) )/(dx1(1)**
-!    & 4)+( 8.*u1(i1,i2,i3,kd)-4.*(u1(i1+1,i2,i3,kd)+u1(i1-1,i2,i3,kd)
-!    & +u1(i1,i2+1,i3,kd)+u1(i1,i2-1,i3,kd))+2.*(u1(i1+1,i2+1,i3,kd)+
-!    & u1(i1-1,i2+1,i3,kd)+u1(i1+1,i2-1,i3,kd)+u1(i1-1,i2-1,i3,kd)) )
-!    & /(dx1(0)**2*dx1(1)**2)
-
-           a8(6,0) = -(4./(dx1(axis1)**4) +4./(dx1(0)**2*dx1(1)**2) )
-     & /eps1
-           a8(6,1) = 0.
-           a8(6,4) =   1./(dx1(axis1)**4)/eps1
-           a8(6,5) = 0.
-
-           a8(6,2) = (4./(dx2(axis2)**4) +4./(dx1(0)**2*dx1(1)**2) )
-     & /eps2
-           a8(6,3) = 0.
-           a8(6,6) =  -1./(dx2(axis2)**4)/eps2
-           a8(6,7) = 0.
-
-           ! 7  [ Delta^2 v/eps^2 ] = 0 
-           a8(7,0) = 0.
-           a8(7,1) = -(4./(dx1(axis1)**4) +4./(dx2(0)**2*dx2(1)**2) )
-     & /eps1**2
-           a8(7,4) = 0.
-           a8(7,5) =   1./(dx1(axis1)**4)/eps1**2
-
-           a8(7,2) = 0.
-           a8(7,3) =  (4./(dx2(axis2)**4) +4./(dx2(0)**2*dx2(1)**2) )
-     & /eps2**2
-           a8(7,6) = 0.
-           a8(7,7) =  -1./(dx2(axis2)**4)/eps2**2
-
-           q(0) = u1(i1-is1,i2-is2,i3,ex)
-           q(1) = u1(i1-is1,i2-is2,i3,ey)
-           q(2) = u2(j1-js1,j2-js2,j3,ex)
-           q(3) = u2(j1-js1,j2-js2,j3,ey)
-
-           q(4) = u1(i1-2*is1,i2-2*is2,i3,ex)
-           q(5) = u1(i1-2*is1,i2-2*is2,i3,ey)
-           q(6) = u2(j1-2*js1,j2-2*js2,j3,ex)
-           q(7) = u2(j1-2*js1,j2-2*js2,j3,ey)
-
-!      write(debugFile,'(" --> 4th: i1,i2=",2i4," q=",8e10.2)') i1,i2,q(0),q(1),q(2),q(3),q(4),q(5),q(6),q(7)
-
-           ! subtract off the contributions from the initial (wrong) values at the ghost points:
-           do n=0,7
-             f(n) = (a8(n,0)*q(0)+a8(n,1)*q(1)+a8(n,2)*q(2)+a8(n,3)*q(
-     & 3)+a8(n,4)*q(4)+a8(n,5)*q(5)+a8(n,6)*q(6)+a8(n,7)*q(7)) - f(n)
-           end do
-
-           ! solve A Q = F
-           ! factor the matrix
-           numberOfEquations=8
-           call dgeco( a8(0,0), numberOfEquations, numberOfEquations, 
-     & ipvt(0),rcond,work(0))
-           ! solve
-           !write(debugFile,'(" --> 4th: i1,i2=",2i4," rcond=",e10.2)') i1,i2,rcond
-           job=0
-           call dgesl( a8(0,0), numberOfEquations, numberOfEquations, 
-     & ipvt(0), f(0), job)
-
-           !write(debugFile,'(" --> 4th: i1,i2=",2i4," f(solve)=",8e10.2)') i1,i2,f(0),f(1),f(2),f(3),f(4),f(5),f(6),f(7)
-
-           if( .true. )then
-           u1(i1-is1,i2-is2,i3,ex)=f(0)
-           u1(i1-is1,i2-is2,i3,ey)=f(1)
-           u2(j1-js1,j2-js2,j3,ex)=f(2)
-           u2(j1-js1,j2-js2,j3,ey)=f(3)
-
-           u1(i1-2*is1,i2-2*is2,i3,ex)=f(4)
-           u1(i1-2*is1,i2-2*is2,i3,ey)=f(5)
-           u2(j1-2*js1,j2-2*js2,j3,ex)=f(6)
-           u2(j1-2*js1,j2-2*js2,j3,ey)=f(7)
-           end if
-
-          if( debug.gt.3 )then ! re-evaluate
-            ! These derivatives are computed to 2nd-order accuracy
-            ! NOTE: the jacobian derivatives can be computed once for all components
-              uu1=u1(i1,i2,i3,ex) ! in the rectangular case just eval the solution
-               u1xxx = (-u1(i1-2,i2,i3,ex)+2.*u1(i1-1,i2,i3,ex)-2.*u1(
-     & i1+1,i2,i3,ex)+u1(i1+2,i2,i3,ex))/(2.*dx1(0)**3)
-               u1xxy = ((-u1(i1-1,i2-1,i3,ex)+u1(i1-1,i2+1,i3,ex))/(2.*
-     & dx1(1))-2.*(-u1(i1,i2-1,i3,ex)+u1(i1,i2+1,i3,ex))/(2.*dx1(1))+(
-     & -u1(i1+1,i2-1,i3,ex)+u1(i1+1,i2+1,i3,ex))/(2.*dx1(1)))/(dx1(0)*
-     & *2)
-               u1xyy = (-(u1(i1-1,i2-1,i3,ex)-2.*u1(i1-1,i2,i3,ex)+u1(
-     & i1-1,i2+1,i3,ex))/(dx1(1)**2)+(u1(i1+1,i2-1,i3,ex)-2.*u1(i1+1,
-     & i2,i3,ex)+u1(i1+1,i2+1,i3,ex))/(dx1(1)**2))/(2.*dx1(0))
-               u1yyy = (-u1(i1,i2-2,i3,ex)+2.*u1(i1,i2-1,i3,ex)-2.*u1(
-     & i1,i2+1,i3,ex)+u1(i1,i2+2,i3,ex))/(2.*dx1(1)**3)
-               u1xxxx = (u1(i1-2,i2,i3,ex)-4.*u1(i1-1,i2,i3,ex)+6.*u1(
-     & i1,i2,i3,ex)-4.*u1(i1+1,i2,i3,ex)+u1(i1+2,i2,i3,ex))/(dx1(0)**
-     & 4)
-               u1xxyy = ((u1(i1-1,i2-1,i3,ex)-2.*u1(i1-1,i2,i3,ex)+u1(
-     & i1-1,i2+1,i3,ex))/(dx1(1)**2)-2.*(u1(i1,i2-1,i3,ex)-2.*u1(i1,
-     & i2,i3,ex)+u1(i1,i2+1,i3,ex))/(dx1(1)**2)+(u1(i1+1,i2-1,i3,ex)-
-     & 2.*u1(i1+1,i2,i3,ex)+u1(i1+1,i2+1,i3,ex))/(dx1(1)**2))/(dx1(0)*
-     & *2)
-               u1yyyy = (u1(i1,i2-2,i3,ex)-4.*u1(i1,i2-1,i3,ex)+6.*u1(
-     & i1,i2,i3,ex)-4.*u1(i1,i2+1,i3,ex)+u1(i1,i2+2,i3,ex))/(dx1(1)**
-     & 4)
-             u1LapSq = u1xxxx +2.* u1xxyy + u1yyyy
-              vv1=u1(i1,i2,i3,ey) ! in the rectangular case just eval the solution
-               v1xxx = (-u1(i1-2,i2,i3,ey)+2.*u1(i1-1,i2,i3,ey)-2.*u1(
-     & i1+1,i2,i3,ey)+u1(i1+2,i2,i3,ey))/(2.*dx1(0)**3)
-               v1xxy = ((-u1(i1-1,i2-1,i3,ey)+u1(i1-1,i2+1,i3,ey))/(2.*
-     & dx1(1))-2.*(-u1(i1,i2-1,i3,ey)+u1(i1,i2+1,i3,ey))/(2.*dx1(1))+(
-     & -u1(i1+1,i2-1,i3,ey)+u1(i1+1,i2+1,i3,ey))/(2.*dx1(1)))/(dx1(0)*
-     & *2)
-               v1xyy = (-(u1(i1-1,i2-1,i3,ey)-2.*u1(i1-1,i2,i3,ey)+u1(
-     & i1-1,i2+1,i3,ey))/(dx1(1)**2)+(u1(i1+1,i2-1,i3,ey)-2.*u1(i1+1,
-     & i2,i3,ey)+u1(i1+1,i2+1,i3,ey))/(dx1(1)**2))/(2.*dx1(0))
-               v1yyy = (-u1(i1,i2-2,i3,ey)+2.*u1(i1,i2-1,i3,ey)-2.*u1(
-     & i1,i2+1,i3,ey)+u1(i1,i2+2,i3,ey))/(2.*dx1(1)**3)
-               v1xxxx = (u1(i1-2,i2,i3,ey)-4.*u1(i1-1,i2,i3,ey)+6.*u1(
-     & i1,i2,i3,ey)-4.*u1(i1+1,i2,i3,ey)+u1(i1+2,i2,i3,ey))/(dx1(0)**
-     & 4)
-               v1xxyy = ((u1(i1-1,i2-1,i3,ey)-2.*u1(i1-1,i2,i3,ey)+u1(
-     & i1-1,i2+1,i3,ey))/(dx1(1)**2)-2.*(u1(i1,i2-1,i3,ey)-2.*u1(i1,
-     & i2,i3,ey)+u1(i1,i2+1,i3,ey))/(dx1(1)**2)+(u1(i1+1,i2-1,i3,ey)-
-     & 2.*u1(i1+1,i2,i3,ey)+u1(i1+1,i2+1,i3,ey))/(dx1(1)**2))/(dx1(0)*
-     & *2)
-               v1yyyy = (u1(i1,i2-2,i3,ey)-4.*u1(i1,i2-1,i3,ey)+6.*u1(
-     & i1,i2,i3,ey)-4.*u1(i1,i2+1,i3,ey)+u1(i1,i2+2,i3,ey))/(dx1(1)**
-     & 4)
-             v1LapSq = v1xxxx +2.* v1xxyy + v1yyyy
-            ! NOTE: the jacobian derivatives can be computed once for all components
-              uu2=u2(j1,j2,j3,ex) ! in the rectangular case just eval the solution
-               u2xxx = (-u2(j1-2,j2,j3,ex)+2.*u2(j1-1,j2,j3,ex)-2.*u2(
-     & j1+1,j2,j3,ex)+u2(j1+2,j2,j3,ex))/(2.*dx2(0)**3)
-               u2xxy = ((-u2(j1-1,j2-1,j3,ex)+u2(j1-1,j2+1,j3,ex))/(2.*
-     & dx2(1))-2.*(-u2(j1,j2-1,j3,ex)+u2(j1,j2+1,j3,ex))/(2.*dx2(1))+(
-     & -u2(j1+1,j2-1,j3,ex)+u2(j1+1,j2+1,j3,ex))/(2.*dx2(1)))/(dx2(0)*
-     & *2)
-               u2xyy = (-(u2(j1-1,j2-1,j3,ex)-2.*u2(j1-1,j2,j3,ex)+u2(
-     & j1-1,j2+1,j3,ex))/(dx2(1)**2)+(u2(j1+1,j2-1,j3,ex)-2.*u2(j1+1,
-     & j2,j3,ex)+u2(j1+1,j2+1,j3,ex))/(dx2(1)**2))/(2.*dx2(0))
-               u2yyy = (-u2(j1,j2-2,j3,ex)+2.*u2(j1,j2-1,j3,ex)-2.*u2(
-     & j1,j2+1,j3,ex)+u2(j1,j2+2,j3,ex))/(2.*dx2(1)**3)
-               u2xxxx = (u2(j1-2,j2,j3,ex)-4.*u2(j1-1,j2,j3,ex)+6.*u2(
-     & j1,j2,j3,ex)-4.*u2(j1+1,j2,j3,ex)+u2(j1+2,j2,j3,ex))/(dx2(0)**
-     & 4)
-               u2xxyy = ((u2(j1-1,j2-1,j3,ex)-2.*u2(j1-1,j2,j3,ex)+u2(
-     & j1-1,j2+1,j3,ex))/(dx2(1)**2)-2.*(u2(j1,j2-1,j3,ex)-2.*u2(j1,
-     & j2,j3,ex)+u2(j1,j2+1,j3,ex))/(dx2(1)**2)+(u2(j1+1,j2-1,j3,ex)-
-     & 2.*u2(j1+1,j2,j3,ex)+u2(j1+1,j2+1,j3,ex))/(dx2(1)**2))/(dx2(0)*
-     & *2)
-               u2yyyy = (u2(j1,j2-2,j3,ex)-4.*u2(j1,j2-1,j3,ex)+6.*u2(
-     & j1,j2,j3,ex)-4.*u2(j1,j2+1,j3,ex)+u2(j1,j2+2,j3,ex))/(dx2(1)**
-     & 4)
-             u2LapSq = u2xxxx +2.* u2xxyy + u2yyyy
-              vv2=u2(j1,j2,j3,ey) ! in the rectangular case just eval the solution
-               v2xxx = (-u2(j1-2,j2,j3,ey)+2.*u2(j1-1,j2,j3,ey)-2.*u2(
-     & j1+1,j2,j3,ey)+u2(j1+2,j2,j3,ey))/(2.*dx2(0)**3)
-               v2xxy = ((-u2(j1-1,j2-1,j3,ey)+u2(j1-1,j2+1,j3,ey))/(2.*
-     & dx2(1))-2.*(-u2(j1,j2-1,j3,ey)+u2(j1,j2+1,j3,ey))/(2.*dx2(1))+(
-     & -u2(j1+1,j2-1,j3,ey)+u2(j1+1,j2+1,j3,ey))/(2.*dx2(1)))/(dx2(0)*
-     & *2)
-               v2xyy = (-(u2(j1-1,j2-1,j3,ey)-2.*u2(j1-1,j2,j3,ey)+u2(
-     & j1-1,j2+1,j3,ey))/(dx2(1)**2)+(u2(j1+1,j2-1,j3,ey)-2.*u2(j1+1,
-     & j2,j3,ey)+u2(j1+1,j2+1,j3,ey))/(dx2(1)**2))/(2.*dx2(0))
-               v2yyy = (-u2(j1,j2-2,j3,ey)+2.*u2(j1,j2-1,j3,ey)-2.*u2(
-     & j1,j2+1,j3,ey)+u2(j1,j2+2,j3,ey))/(2.*dx2(1)**3)
-               v2xxxx = (u2(j1-2,j2,j3,ey)-4.*u2(j1-1,j2,j3,ey)+6.*u2(
-     & j1,j2,j3,ey)-4.*u2(j1+1,j2,j3,ey)+u2(j1+2,j2,j3,ey))/(dx2(0)**
-     & 4)
-               v2xxyy = ((u2(j1-1,j2-1,j3,ey)-2.*u2(j1-1,j2,j3,ey)+u2(
-     & j1-1,j2+1,j3,ey))/(dx2(1)**2)-2.*(u2(j1,j2-1,j3,ey)-2.*u2(j1,
-     & j2,j3,ey)+u2(j1,j2+1,j3,ey))/(dx2(1)**2)+(u2(j1+1,j2-1,j3,ey)-
-     & 2.*u2(j1+1,j2,j3,ey)+u2(j1+1,j2+1,j3,ey))/(dx2(1)**2))/(dx2(0)*
-     & *2)
-               v2yyyy = (u2(j1,j2-2,j3,ey)-4.*u2(j1,j2-1,j3,ey)+6.*u2(
-     & j1,j2,j3,ey)-4.*u2(j1,j2+1,j3,ey)+u2(j1,j2+2,j3,ey))/(dx2(1)**
-     & 4)
-             v2LapSq = v2xxxx +2.* v2xxyy + v2yyyy
-            ! These derivatives are computed to 4th-order accuracy
-            ! NOTE: the jacobian derivatives can be computed once for all components
-              uu1=u1(i1,i2,i3,ex) ! in the rectangular case just eval the solution
-               u1x = (u1(i1-2,i2,i3,ex)-8.*u1(i1-1,i2,i3,ex)+8.*u1(i1+
-     & 1,i2,i3,ex)-u1(i1+2,i2,i3,ex))/(12.*dx1(0))
-               u1y = (u1(i1,i2-2,i3,ex)-8.*u1(i1,i2-1,i3,ex)+8.*u1(i1,
-     & i2+1,i3,ex)-u1(i1,i2+2,i3,ex))/(12.*dx1(1))
-               u1xx = (-u1(i1-2,i2,i3,ex)+16.*u1(i1-1,i2,i3,ex)-30.*u1(
-     & i1,i2,i3,ex)+16.*u1(i1+1,i2,i3,ex)-u1(i1+2,i2,i3,ex))/(12.*dx1(
-     & 0)**2)
-               u1yy = (-u1(i1,i2-2,i3,ex)+16.*u1(i1,i2-1,i3,ex)-30.*u1(
-     & i1,i2,i3,ex)+16.*u1(i1,i2+1,i3,ex)-u1(i1,i2+2,i3,ex))/(12.*dx1(
-     & 1)**2)
-             u1Lap = u1xx+ u1yy
-              vv1=u1(i1,i2,i3,ey) ! in the rectangular case just eval the solution
-               v1x = (u1(i1-2,i2,i3,ey)-8.*u1(i1-1,i2,i3,ey)+8.*u1(i1+
-     & 1,i2,i3,ey)-u1(i1+2,i2,i3,ey))/(12.*dx1(0))
-               v1y = (u1(i1,i2-2,i3,ey)-8.*u1(i1,i2-1,i3,ey)+8.*u1(i1,
-     & i2+1,i3,ey)-u1(i1,i2+2,i3,ey))/(12.*dx1(1))
-               v1xx = (-u1(i1-2,i2,i3,ey)+16.*u1(i1-1,i2,i3,ey)-30.*u1(
-     & i1,i2,i3,ey)+16.*u1(i1+1,i2,i3,ey)-u1(i1+2,i2,i3,ey))/(12.*dx1(
-     & 0)**2)
-               v1yy = (-u1(i1,i2-2,i3,ey)+16.*u1(i1,i2-1,i3,ey)-30.*u1(
-     & i1,i2,i3,ey)+16.*u1(i1,i2+1,i3,ey)-u1(i1,i2+2,i3,ey))/(12.*dx1(
-     & 1)**2)
-             v1Lap = v1xx+ v1yy
-            ! NOTE: the jacobian derivatives can be computed once for all components
-              uu2=u2(j1,j2,j3,ex) ! in the rectangular case just eval the solution
-               u2x = (u2(j1-2,j2,j3,ex)-8.*u2(j1-1,j2,j3,ex)+8.*u2(j1+
-     & 1,j2,j3,ex)-u2(j1+2,j2,j3,ex))/(12.*dx2(0))
-               u2y = (u2(j1,j2-2,j3,ex)-8.*u2(j1,j2-1,j3,ex)+8.*u2(j1,
-     & j2+1,j3,ex)-u2(j1,j2+2,j3,ex))/(12.*dx2(1))
-               u2xx = (-u2(j1-2,j2,j3,ex)+16.*u2(j1-1,j2,j3,ex)-30.*u2(
-     & j1,j2,j3,ex)+16.*u2(j1+1,j2,j3,ex)-u2(j1+2,j2,j3,ex))/(12.*dx2(
-     & 0)**2)
-               u2yy = (-u2(j1,j2-2,j3,ex)+16.*u2(j1,j2-1,j3,ex)-30.*u2(
-     & j1,j2,j3,ex)+16.*u2(j1,j2+1,j3,ex)-u2(j1,j2+2,j3,ex))/(12.*dx2(
-     & 1)**2)
-             u2Lap = u2xx+ u2yy
-              vv2=u2(j1,j2,j3,ey) ! in the rectangular case just eval the solution
-               v2x = (u2(j1-2,j2,j3,ey)-8.*u2(j1-1,j2,j3,ey)+8.*u2(j1+
-     & 1,j2,j3,ey)-u2(j1+2,j2,j3,ey))/(12.*dx2(0))
-               v2y = (u2(j1,j2-2,j3,ey)-8.*u2(j1,j2-1,j3,ey)+8.*u2(j1,
-     & j2+1,j3,ey)-u2(j1,j2+2,j3,ey))/(12.*dx2(1))
-               v2xx = (-u2(j1-2,j2,j3,ey)+16.*u2(j1-1,j2,j3,ey)-30.*u2(
-     & j1,j2,j3,ey)+16.*u2(j1+1,j2,j3,ey)-u2(j1+2,j2,j3,ey))/(12.*dx2(
-     & 0)**2)
-               v2yy = (-u2(j1,j2-2,j3,ey)+16.*u2(j1,j2-1,j3,ey)-30.*u2(
-     & j1,j2,j3,ey)+16.*u2(j1,j2+1,j3,ey)-u2(j1,j2+2,j3,ey))/(12.*dx2(
-     & 1)**2)
-             v2Lap = v2xx+ v2yy
-           f(0)=(u1x+v1y) - (u2x+v2y)
-           f(1)=(u1Lap) - (u2Lap)
-           f(2)=(v1x-u1y) - (v2x-u2y)
-           f(3)=(v1Lap)/eps1 - (v2Lap)/eps2
-           ! These next we can do to 2nd order -- these need a value on the first ghost line --
-           f(4)=(u1xxx+u1xyy+v1xxy+v1yyy) - (u2xxx+u2xyy+v2xxy+v2yyy)
-           f(5)=((v1xxx+v1xyy)-(u1xxy+u1yyy))/eps1 - ((v2xxx+v2xyy)-(
-     & u2xxy+u2yyy))/eps2
-           f(6)=(u1LapSq)/eps1 - (u2LapSq)/eps2
-           f(7)=(v1LapSq)/eps1**2 - (v2LapSq)/eps2**2
-
-           write(debugFile,'(" --> 4th: i1,i2=",2i4," f(re-eval)=",
-     & 8e10.2)') i1,i2,f(0),f(1),f(2),f(3),f(4),f(5),f(6),f(7)
-           ! '
-          end if
-
-           ! do this for now
-           u1(i1-is1,i2-is2,i3,hz)=u2(j1+js1,j2+js2,j3,hz)
-           u2(j1-js1,j2-js2,j3,hz)=u1(i1+is1,i2+is2,i3,hz)
-
-           u1(i1-2*is1,i2-2*is2,i3,hz)=u2(j1+2*js1,j2+2*js2,j3,hz)
-           u2(j1-2*js1,j2-2*js2,j3,hz)=u1(i1+2*is1,i2+2*is2,i3,hz)
-
+            f(6)=(u1LapSq)/eps1 - (u2LapSq)/eps2
+            f(7)=(v1LapSq)/eps1**2 - (v2LapSq)/eps2**2
+            if( twilightZone.eq.1 )then
+              call ogderiv(ep, 0,2,0,0, xy1(i1,i2,i3,0),xy1(i1,i2,i3,1)
+     & ,0.,t, ex, uexx )
+              call ogderiv(ep, 0,0,2,0, xy1(i1,i2,i3,0),xy1(i1,i2,i3,1)
+     & ,0.,t, ex, ueyy )
+              call ogderiv(ep, 0,2,0,0, xy1(i1,i2,i3,0),xy1(i1,i2,i3,1)
+     & ,0.,t, ey, vexx )
+              call ogderiv(ep, 0,0,2,0, xy1(i1,i2,i3,0),xy1(i1,i2,i3,1)
+     & ,0.,t, ey, veyy )
+              call ogderiv(ep, 0,2,1,0, xy1(i1,i2,i3,0),xy1(i1,i2,i3,1)
+     & ,0.,t, ex, uexxy )
+              call ogderiv(ep, 0,0,3,0, xy1(i1,i2,i3,0),xy1(i1,i2,i3,1)
+     & ,0.,t, ex, ueyyy )
+              call ogderiv(ep, 0,3,0,0, xy1(i1,i2,i3,0),xy1(i1,i2,i3,1)
+     & ,0.,t, ey, vexxx )
+              call ogderiv(ep, 0,1,2,0, xy1(i1,i2,i3,0),xy1(i1,i2,i3,1)
+     & ,0.,t, ey, vexyy )
+              call ogderiv(ep, 0,4,0,0, xy1(i1,i2,i3,0),xy1(i1,i2,i3,1)
+     & ,0.,t, ex, uexxxx )
+              call ogderiv(ep, 0,2,2,0, xy1(i1,i2,i3,0),xy1(i1,i2,i3,1)
+     & ,0.,t, ex, uexxyy )
+              call ogderiv(ep, 0,0,4,0, xy1(i1,i2,i3,0),xy1(i1,i2,i3,1)
+     & ,0.,t, ex, ueyyyy )
+              call ogderiv(ep, 0,4,0,0, xy1(i1,i2,i3,0),xy1(i1,i2,i3,1)
+     & ,0.,t, ey, vexxxx )
+              call ogderiv(ep, 0,2,2,0, xy1(i1,i2,i3,0),xy1(i1,i2,i3,1)
+     & ,0.,t, ey, vexxyy )
+              call ogderiv(ep, 0,0,4,0, xy1(i1,i2,i3,0),xy1(i1,i2,i3,1)
+     & ,0.,t, ey, veyyyy )
+              ueLap = uexx + ueyy
+              veLap = vexx + veyy
+              ueLapSq = uexxxx + 2.*uexxyy + ueyyyy
+              veLapSq = vexxxx + 2.*vexxyy + veyyyy
+              f(3) = f(3) - ( tau1*ueLap +tau2*veLap )*(1./eps1-
+     & 1./eps2)
+              f(5) = f(5) - ((vexxx+vexyy)-(uexxy+ueyyy))*(1./eps1-
+     & 1./eps2)
+              f(6) = f(6) - (an1*ueLapSq+an2*veLapSq)*(1./eps1-1./eps2)
+              f(7) = f(7) - (tau1*ueLapSq+tau2*veLapSq)*(1./eps1**2 - 
+     & 1./eps2**2)
             end if
-            j1=j1+1
+            !      write(debugFile,'(" --> 4th: j1,j2=",2i4," u1xx,u1yy,u2xx,u2yy=",4e10.2)') j1,j2,u1xx42r(i1,i2,i3,ex),!          u1yy42r(i1,i2,i3,ex),u2xx42r(j1,j2,j3,ex),u2yy42r(j1,j2,j3,ex)
+            !      write(debugFile,'(" --> 4th: i1,i2=",2i4," f(start)=",8e10.2)') i1,i2,f(0),f(1),f(2),f(3),f(4),f(5),f(6),f(7)
+            ! here is the matrix of coefficients for the unknowns u1(-1),v1(-1),u2(-1),v2(-1)
+            ! Solve:
+            !     
+            !       A [ U ] = A [ U(old) ] - [ f ]
+            !      u1x43r(i1,i2,i3,kd)=(8.*(u1(i1+1,i2,i3,kd)-u1(i1-1,i2,i3,kd))-(
+            !     & u1(i1+2,i2,i3,kd)-u1(i1-2,i2,i3,kd)))*dx141(0)
+            ! 0  [ u.x + v.y ] = 0
+            a8(0,0) = -is*8.*rx1*dx141(axis1)     ! coeff of u1(-1) from [u.x+v.y]
+            a8(0,1) = -is*8.*ry1*dx141(axis1)     ! coeff of v1(-1) from [u.x+v.y]
+            a8(0,4) =  is*rx1*dx141(axis1)        ! u1(-2)
+            a8(0,5) =  is*ry1*dx141(axis1)        ! v1(-2)
+            a8(0,2) =  js*8.*rx2*dx241(axis2)     ! coeff of u2(-1) from [u.x+v.y]
+            a8(0,3) =  js*8.*ry2*dx241(axis2)
+            a8(0,6) = -js*   rx2*dx241(axis2)
+            a8(0,7) = -js*   ry2*dx241(axis2)
+            ! 1  [ u.xx + u.yy ] = 0
+            !      u1xx43r(i1,i2,i3,kd)=( -30.*u1(i1,i2,i3,kd)+16.*(u1(i1+1,i2,i3,
+            !     & kd)+u1(i1-1,i2,i3,kd))-(u1(i1+2,i2,i3,kd)+u1(i1-2,i2,i3,kd)) )*
+            !     & dx142(0)
+            a8(1,0) = 16.*dx142(axis1)         ! coeff of u1(-1) from [u.xx + u.yy]
+            a8(1,1) = 0.
+            a8(1,4) =    -dx142(axis1)         ! coeff of u1(-2) from [u.xx + u.yy]
+            a8(1,5) = 0.
+            a8(1,2) =-16.*dx242(axis2)         ! coeff of u2(-1) from [u.xx + u.yy]
+            a8(1,3) = 0.
+            a8(1,6) =     dx242(axis2)         ! coeff of u2(-2) from [u.xx + u.yy]
+            a8(1,7) = 0.
+            ! 2  [ v.x - u.y ] =0 
+            a8(2,0) =  is*8.*ry1*dx141(axis1)
+            a8(2,1) = -is*8.*rx1*dx141(axis1)    ! coeff of v1(-1) from [v.x - u.y]
+            a8(2,4) = -is*   ry1*dx141(axis1)
+            a8(2,5) =  is*   rx1*dx141(axis1)
+            a8(2,2) = -js*8.*ry2*dx241(axis2)
+            a8(2,3) =  js*8.*rx2*dx241(axis2)
+            a8(2,6) =  js*   ry2*dx241(axis2)
+            a8(2,7) = -js*   rx2*dx241(axis2)
+            ! 3  [ (v.xx+v.yy)/eps ] = 0
+            a8(3,0) = 0.
+            a8(3,1) = 16.*dx142(axis1)/eps1 ! coeff of v1(-1) from [(v.xx+v.yy)/eps]
+            a8(3,4) = 0.
+            a8(3,5) =    -dx142(axis1)/eps1 ! coeff of v1(-2) from [(v.xx+v.yy)/eps]
+            a8(3,2) = 0.
+            a8(3,3) =-16.*dx242(axis2)/eps2 ! coeff of v2(-1) from [(v.xx+v.yy)/eps]
+            a8(3,6) = 0.
+            a8(3,7) =     dx242(axis2)/eps2 ! coeff of v2(-2) from [(v.xx+v.yy)/eps]
+            ! 4  [ (u.xx+u.yy).x + (v.xx+v.yy).y ] = 0
+            !     u1xxx22r(i1,i2,i3,kd)=(-2.*(u1(i1+1,i2,i3,kd)-u1(i1-1,i2,i3,kd))+
+            !    & (u1(i1+2,i2,i3,kd)-u1(i1-2,i2,i3,kd)) )*dx122(0)*dx112(0)
+            !    u1xxy22r(i1,i2,i3,kd)=( u1xx22r(i1,i2+1,i3,kd)-u1xx22r(i1,i2-1,
+            !     & i3,kd))/(2.*dx1(1))
+            !      u1yy23r(i1,i2,i3,kd)=(-2.*u1(i1,i2,i3,kd)+(u1(i1,i2+1,i3,kd)+u1(
+            !     & i1,i2-1,i3,kd)) )*dx122(1)
+            !     u1xyy22r(i1,i2,i3,kd)=( u1yy22r(i1+1,i2,i3,kd)-u1yy22r(i1-1,i2,
+            !     & i3,kd))/(2.*dx1(0))
+           a8(4,0)= ( is*rx1*2.*dx122(axis1)*dx112(axis1)+is*rx1*2.*
+     & dx122(1)/(2.*dx1(0)))
+           a8(4,1)= ( is*ry1*2.*dx122(axis1)*dx112(axis1)+is*ry1*2.*
+     & dx122(0)/(2.*dx1(1)))
+           a8(4,4)= (-is*rx1   *dx122(axis1)*dx112(axis1) )
+           a8(4,5)= (-is*ry1   *dx122(axis1)*dx112(axis1))
+           a8(4,2)=-( js*rx2*2.*dx222(axis2)*dx212(axis2)+js*rx2*2.*
+     & dx222(1)/(2.*dx2(0)))
+           a8(4,3)=-( js*ry2*2.*dx222(axis2)*dx212(axis2)+js*ry2*2.*
+     & dx222(0)/(2.*dx2(1)))
+           a8(4,6)=-(-js*rx2   *dx222(axis2)*dx212(axis2))
+           a8(4,7)=-(-js*ry2   *dx222(axis2)*dx212(axis2))
+           ! 5  [ {(Delta v).x - (Delta u).y}/eps ] =0  -> [ {(v.xxx+v.xyy)-(u.xxy+u.yyy)}/eps ] = 0
+           a8(5,0)=-( is*ry1*2.*dx122(axis1)*dx112(axis1)+is*ry1*2.*
+     & dx122(0)/(2.*dx1(1)))/eps1
+           a8(5,1)= ( is*rx1*2.*dx122(axis1)*dx112(axis1)+is*rx1*2.*
+     & dx122(1)/(2.*dx1(0)))/eps1
+           a8(5,4)=-(-is*ry1   *dx122(axis1)*dx112(axis1))/eps1
+           a8(5,5)= (-is*rx1   *dx122(axis1)*dx112(axis1))/eps1
+           a8(5,2)= ( js*ry2*2.*dx222(axis2)*dx212(axis2)+js*ry2*2.*
+     & dx222(0)/(2.*dx2(1)))/eps2
+           a8(5,3)=-( js*rx2*2.*dx222(axis2)*dx212(axis2)+js*rx2*2.*
+     & dx222(1)/(2.*dx2(0)))/eps2
+           a8(5,6)= (-js*ry2   *dx222(axis2)*dx212(axis2))/eps2
+           a8(5,7)=-(-js*rx2   *dx222(axis2)*dx212(axis2))/eps2
+            ! 6  [ Delta^2 u/eps ] = 0
+            !     u1LapSq22r(i1,i2,i3,kd)= ( 6.*u1(i1,i2,i3,kd)- 4.*(u1(i1+1,i2,i3,
+            !    & kd)+u1(i1-1,i2,i3,kd))+(u1(i1+2,i2,i3,kd)+u1(i1-2,i2,i3,kd)) )
+            !    & /(dx1(0)**4)+( 6.*u1(i1,i2,i3,kd)-4.*(u1(i1,i2+1,i3,kd)+u1(i1,
+            !    & i2-1,i3,kd)) +(u1(i1,i2+2,i3,kd)+u1(i1,i2-2,i3,kd)) )/(dx1(1)**
+            !    & 4)+( 8.*u1(i1,i2,i3,kd)-4.*(u1(i1+1,i2,i3,kd)+u1(i1-1,i2,i3,kd)
+            !    & +u1(i1,i2+1,i3,kd)+u1(i1,i2-1,i3,kd))+2.*(u1(i1+1,i2+1,i3,kd)+
+            !    & u1(i1-1,i2+1,i3,kd)+u1(i1+1,i2-1,i3,kd)+u1(i1-1,i2-1,i3,kd)) )
+            !    & /(dx1(0)**2*dx1(1)**2)
+            a8(6,0) = -(4./(dx1(axis1)**4) +4./(dx1(0)**2*dx1(1)**2) )
+     & /eps1
+            a8(6,1) = 0.
+            a8(6,4) =   1./(dx1(axis1)**4)/eps1
+            a8(6,5) = 0.
+            a8(6,2) = (4./(dx2(axis2)**4) +4./(dx1(0)**2*dx1(1)**2) )
+     & /eps2
+            a8(6,3) = 0.
+            a8(6,6) =  -1./(dx2(axis2)**4)/eps2
+            a8(6,7) = 0.
+            ! 7  [ Delta^2 v/eps^2 ] = 0 
+            a8(7,0) = 0.
+            a8(7,1) = -(4./(dx1(axis1)**4) +4./(dx2(0)**2*dx2(1)**2) )
+     & /eps1**2
+            a8(7,4) = 0.
+            a8(7,5) =   1./(dx1(axis1)**4)/eps1**2
+            a8(7,2) = 0.
+            a8(7,3) =  (4./(dx2(axis2)**4) +4./(dx2(0)**2*dx2(1)**2) )
+     & /eps2**2
+            a8(7,6) = 0.
+            a8(7,7) =  -1./(dx2(axis2)**4)/eps2**2
+            q(0) = u1(i1-is1,i2-is2,i3,ex)
+            q(1) = u1(i1-is1,i2-is2,i3,ey)
+            q(2) = u2(j1-js1,j2-js2,j3,ex)
+            q(3) = u2(j1-js1,j2-js2,j3,ey)
+            q(4) = u1(i1-2*is1,i2-2*is2,i3,ex)
+            q(5) = u1(i1-2*is1,i2-2*is2,i3,ey)
+            q(6) = u2(j1-2*js1,j2-2*js2,j3,ex)
+            q(7) = u2(j1-2*js1,j2-2*js2,j3,ey)
+            !      write(debugFile,'(" --> 4th: i1,i2=",2i4," q=",8e10.2)') i1,i2,q(0),q(1),q(2),q(3),q(4),q(5),q(6),q(7)
+            ! subtract off the contributions from the initial (wrong) values at the ghost points:
+            do n=0,7
+              f(n) = (a8(n,0)*q(0)+a8(n,1)*q(1)+a8(n,2)*q(2)+a8(n,3)*q(
+     & 3)+a8(n,4)*q(4)+a8(n,5)*q(5)+a8(n,6)*q(6)+a8(n,7)*q(7)) - f(n)
+            end do
+            ! solve A Q = F
+            ! factor the matrix
+            numberOfEquations=8
+            call dgeco( a8(0,0), numberOfEquations, numberOfEquations, 
+     & ipvt(0),rcond,work(0))
+            ! solve
+            !write(debugFile,'(" --> 4th: i1,i2=",2i4," rcond=",e10.2)') i1,i2,rcond
+            job=0
+            call dgesl( a8(0,0), numberOfEquations, numberOfEquations, 
+     & ipvt(0), f(0), job)
+            !write(debugFile,'(" --> 4th: i1,i2=",2i4," f(solve)=",8e10.2)') i1,i2,f(0),f(1),f(2),f(3),f(4),f(5),f(6),f(7)
+            if( .true. )then
+            u1(i1-is1,i2-is2,i3,ex)=f(0)
+            u1(i1-is1,i2-is2,i3,ey)=f(1)
+            u2(j1-js1,j2-js2,j3,ex)=f(2)
+            u2(j1-js1,j2-js2,j3,ey)=f(3)
+            u1(i1-2*is1,i2-2*is2,i3,ex)=f(4)
+            u1(i1-2*is1,i2-2*is2,i3,ey)=f(5)
+            u2(j1-2*js1,j2-2*js2,j3,ex)=f(6)
+            u2(j1-2*js1,j2-2*js2,j3,ey)=f(7)
+            end if
+           if( debug.gt.3 )then ! re-evaluate
+             ! These derivatives are computed to 2nd-order accuracy
+             ! NOTE: the jacobian derivatives can be computed once for all components
+               uu1=u1(i1,i2,i3,ex) ! in the rectangular case just eval the solution
+                u1xxx = (-u1(i1-2,i2,i3,ex)+2.*u1(i1-1,i2,i3,ex)-2.*u1(
+     & i1+1,i2,i3,ex)+u1(i1+2,i2,i3,ex))/(2.*dx1(0)**3)
+                u1xxy = ((-u1(i1-1,i2-1,i3,ex)+u1(i1-1,i2+1,i3,ex))/(
+     & 2.*dx1(1))-2.*(-u1(i1,i2-1,i3,ex)+u1(i1,i2+1,i3,ex))/(2.*dx1(1)
+     & )+(-u1(i1+1,i2-1,i3,ex)+u1(i1+1,i2+1,i3,ex))/(2.*dx1(1)))/(dx1(
+     & 0)**2)
+                u1xyy = (-(u1(i1-1,i2-1,i3,ex)-2.*u1(i1-1,i2,i3,ex)+u1(
+     & i1-1,i2+1,i3,ex))/(dx1(1)**2)+(u1(i1+1,i2-1,i3,ex)-2.*u1(i1+1,
+     & i2,i3,ex)+u1(i1+1,i2+1,i3,ex))/(dx1(1)**2))/(2.*dx1(0))
+                u1yyy = (-u1(i1,i2-2,i3,ex)+2.*u1(i1,i2-1,i3,ex)-2.*u1(
+     & i1,i2+1,i3,ex)+u1(i1,i2+2,i3,ex))/(2.*dx1(1)**3)
+                u1xxxx = (u1(i1-2,i2,i3,ex)-4.*u1(i1-1,i2,i3,ex)+6.*u1(
+     & i1,i2,i3,ex)-4.*u1(i1+1,i2,i3,ex)+u1(i1+2,i2,i3,ex))/(dx1(0)**
+     & 4)
+                u1xxyy = ((u1(i1-1,i2-1,i3,ex)-2.*u1(i1-1,i2,i3,ex)+u1(
+     & i1-1,i2+1,i3,ex))/(dx1(1)**2)-2.*(u1(i1,i2-1,i3,ex)-2.*u1(i1,
+     & i2,i3,ex)+u1(i1,i2+1,i3,ex))/(dx1(1)**2)+(u1(i1+1,i2-1,i3,ex)-
+     & 2.*u1(i1+1,i2,i3,ex)+u1(i1+1,i2+1,i3,ex))/(dx1(1)**2))/(dx1(0)*
+     & *2)
+                u1yyyy = (u1(i1,i2-2,i3,ex)-4.*u1(i1,i2-1,i3,ex)+6.*u1(
+     & i1,i2,i3,ex)-4.*u1(i1,i2+1,i3,ex)+u1(i1,i2+2,i3,ex))/(dx1(1)**
+     & 4)
+              u1LapSq = u1xxxx +2.* u1xxyy + u1yyyy
+               vv1=u1(i1,i2,i3,ey) ! in the rectangular case just eval the solution
+                v1xxx = (-u1(i1-2,i2,i3,ey)+2.*u1(i1-1,i2,i3,ey)-2.*u1(
+     & i1+1,i2,i3,ey)+u1(i1+2,i2,i3,ey))/(2.*dx1(0)**3)
+                v1xxy = ((-u1(i1-1,i2-1,i3,ey)+u1(i1-1,i2+1,i3,ey))/(
+     & 2.*dx1(1))-2.*(-u1(i1,i2-1,i3,ey)+u1(i1,i2+1,i3,ey))/(2.*dx1(1)
+     & )+(-u1(i1+1,i2-1,i3,ey)+u1(i1+1,i2+1,i3,ey))/(2.*dx1(1)))/(dx1(
+     & 0)**2)
+                v1xyy = (-(u1(i1-1,i2-1,i3,ey)-2.*u1(i1-1,i2,i3,ey)+u1(
+     & i1-1,i2+1,i3,ey))/(dx1(1)**2)+(u1(i1+1,i2-1,i3,ey)-2.*u1(i1+1,
+     & i2,i3,ey)+u1(i1+1,i2+1,i3,ey))/(dx1(1)**2))/(2.*dx1(0))
+                v1yyy = (-u1(i1,i2-2,i3,ey)+2.*u1(i1,i2-1,i3,ey)-2.*u1(
+     & i1,i2+1,i3,ey)+u1(i1,i2+2,i3,ey))/(2.*dx1(1)**3)
+                v1xxxx = (u1(i1-2,i2,i3,ey)-4.*u1(i1-1,i2,i3,ey)+6.*u1(
+     & i1,i2,i3,ey)-4.*u1(i1+1,i2,i3,ey)+u1(i1+2,i2,i3,ey))/(dx1(0)**
+     & 4)
+                v1xxyy = ((u1(i1-1,i2-1,i3,ey)-2.*u1(i1-1,i2,i3,ey)+u1(
+     & i1-1,i2+1,i3,ey))/(dx1(1)**2)-2.*(u1(i1,i2-1,i3,ey)-2.*u1(i1,
+     & i2,i3,ey)+u1(i1,i2+1,i3,ey))/(dx1(1)**2)+(u1(i1+1,i2-1,i3,ey)-
+     & 2.*u1(i1+1,i2,i3,ey)+u1(i1+1,i2+1,i3,ey))/(dx1(1)**2))/(dx1(0)*
+     & *2)
+                v1yyyy = (u1(i1,i2-2,i3,ey)-4.*u1(i1,i2-1,i3,ey)+6.*u1(
+     & i1,i2,i3,ey)-4.*u1(i1,i2+1,i3,ey)+u1(i1,i2+2,i3,ey))/(dx1(1)**
+     & 4)
+              v1LapSq = v1xxxx +2.* v1xxyy + v1yyyy
+             ! NOTE: the jacobian derivatives can be computed once for all components
+               uu2=u2(j1,j2,j3,ex) ! in the rectangular case just eval the solution
+                u2xxx = (-u2(j1-2,j2,j3,ex)+2.*u2(j1-1,j2,j3,ex)-2.*u2(
+     & j1+1,j2,j3,ex)+u2(j1+2,j2,j3,ex))/(2.*dx2(0)**3)
+                u2xxy = ((-u2(j1-1,j2-1,j3,ex)+u2(j1-1,j2+1,j3,ex))/(
+     & 2.*dx2(1))-2.*(-u2(j1,j2-1,j3,ex)+u2(j1,j2+1,j3,ex))/(2.*dx2(1)
+     & )+(-u2(j1+1,j2-1,j3,ex)+u2(j1+1,j2+1,j3,ex))/(2.*dx2(1)))/(dx2(
+     & 0)**2)
+                u2xyy = (-(u2(j1-1,j2-1,j3,ex)-2.*u2(j1-1,j2,j3,ex)+u2(
+     & j1-1,j2+1,j3,ex))/(dx2(1)**2)+(u2(j1+1,j2-1,j3,ex)-2.*u2(j1+1,
+     & j2,j3,ex)+u2(j1+1,j2+1,j3,ex))/(dx2(1)**2))/(2.*dx2(0))
+                u2yyy = (-u2(j1,j2-2,j3,ex)+2.*u2(j1,j2-1,j3,ex)-2.*u2(
+     & j1,j2+1,j3,ex)+u2(j1,j2+2,j3,ex))/(2.*dx2(1)**3)
+                u2xxxx = (u2(j1-2,j2,j3,ex)-4.*u2(j1-1,j2,j3,ex)+6.*u2(
+     & j1,j2,j3,ex)-4.*u2(j1+1,j2,j3,ex)+u2(j1+2,j2,j3,ex))/(dx2(0)**
+     & 4)
+                u2xxyy = ((u2(j1-1,j2-1,j3,ex)-2.*u2(j1-1,j2,j3,ex)+u2(
+     & j1-1,j2+1,j3,ex))/(dx2(1)**2)-2.*(u2(j1,j2-1,j3,ex)-2.*u2(j1,
+     & j2,j3,ex)+u2(j1,j2+1,j3,ex))/(dx2(1)**2)+(u2(j1+1,j2-1,j3,ex)-
+     & 2.*u2(j1+1,j2,j3,ex)+u2(j1+1,j2+1,j3,ex))/(dx2(1)**2))/(dx2(0)*
+     & *2)
+                u2yyyy = (u2(j1,j2-2,j3,ex)-4.*u2(j1,j2-1,j3,ex)+6.*u2(
+     & j1,j2,j3,ex)-4.*u2(j1,j2+1,j3,ex)+u2(j1,j2+2,j3,ex))/(dx2(1)**
+     & 4)
+              u2LapSq = u2xxxx +2.* u2xxyy + u2yyyy
+               vv2=u2(j1,j2,j3,ey) ! in the rectangular case just eval the solution
+                v2xxx = (-u2(j1-2,j2,j3,ey)+2.*u2(j1-1,j2,j3,ey)-2.*u2(
+     & j1+1,j2,j3,ey)+u2(j1+2,j2,j3,ey))/(2.*dx2(0)**3)
+                v2xxy = ((-u2(j1-1,j2-1,j3,ey)+u2(j1-1,j2+1,j3,ey))/(
+     & 2.*dx2(1))-2.*(-u2(j1,j2-1,j3,ey)+u2(j1,j2+1,j3,ey))/(2.*dx2(1)
+     & )+(-u2(j1+1,j2-1,j3,ey)+u2(j1+1,j2+1,j3,ey))/(2.*dx2(1)))/(dx2(
+     & 0)**2)
+                v2xyy = (-(u2(j1-1,j2-1,j3,ey)-2.*u2(j1-1,j2,j3,ey)+u2(
+     & j1-1,j2+1,j3,ey))/(dx2(1)**2)+(u2(j1+1,j2-1,j3,ey)-2.*u2(j1+1,
+     & j2,j3,ey)+u2(j1+1,j2+1,j3,ey))/(dx2(1)**2))/(2.*dx2(0))
+                v2yyy = (-u2(j1,j2-2,j3,ey)+2.*u2(j1,j2-1,j3,ey)-2.*u2(
+     & j1,j2+1,j3,ey)+u2(j1,j2+2,j3,ey))/(2.*dx2(1)**3)
+                v2xxxx = (u2(j1-2,j2,j3,ey)-4.*u2(j1-1,j2,j3,ey)+6.*u2(
+     & j1,j2,j3,ey)-4.*u2(j1+1,j2,j3,ey)+u2(j1+2,j2,j3,ey))/(dx2(0)**
+     & 4)
+                v2xxyy = ((u2(j1-1,j2-1,j3,ey)-2.*u2(j1-1,j2,j3,ey)+u2(
+     & j1-1,j2+1,j3,ey))/(dx2(1)**2)-2.*(u2(j1,j2-1,j3,ey)-2.*u2(j1,
+     & j2,j3,ey)+u2(j1,j2+1,j3,ey))/(dx2(1)**2)+(u2(j1+1,j2-1,j3,ey)-
+     & 2.*u2(j1+1,j2,j3,ey)+u2(j1+1,j2+1,j3,ey))/(dx2(1)**2))/(dx2(0)*
+     & *2)
+                v2yyyy = (u2(j1,j2-2,j3,ey)-4.*u2(j1,j2-1,j3,ey)+6.*u2(
+     & j1,j2,j3,ey)-4.*u2(j1,j2+1,j3,ey)+u2(j1,j2+2,j3,ey))/(dx2(1)**
+     & 4)
+              v2LapSq = v2xxxx +2.* v2xxyy + v2yyyy
+             ! These derivatives are computed to 4th-order accuracy
+             ! NOTE: the jacobian derivatives can be computed once for all components
+               uu1=u1(i1,i2,i3,ex) ! in the rectangular case just eval the solution
+                u1x = (u1(i1-2,i2,i3,ex)-8.*u1(i1-1,i2,i3,ex)+8.*u1(i1+
+     & 1,i2,i3,ex)-u1(i1+2,i2,i3,ex))/(12.*dx1(0))
+                u1y = (u1(i1,i2-2,i3,ex)-8.*u1(i1,i2-1,i3,ex)+8.*u1(i1,
+     & i2+1,i3,ex)-u1(i1,i2+2,i3,ex))/(12.*dx1(1))
+                u1xx = (-u1(i1-2,i2,i3,ex)+16.*u1(i1-1,i2,i3,ex)-30.*
+     & u1(i1,i2,i3,ex)+16.*u1(i1+1,i2,i3,ex)-u1(i1+2,i2,i3,ex))/(12.*
+     & dx1(0)**2)
+                u1yy = (-u1(i1,i2-2,i3,ex)+16.*u1(i1,i2-1,i3,ex)-30.*
+     & u1(i1,i2,i3,ex)+16.*u1(i1,i2+1,i3,ex)-u1(i1,i2+2,i3,ex))/(12.*
+     & dx1(1)**2)
+              u1Lap = u1xx+ u1yy
+               vv1=u1(i1,i2,i3,ey) ! in the rectangular case just eval the solution
+                v1x = (u1(i1-2,i2,i3,ey)-8.*u1(i1-1,i2,i3,ey)+8.*u1(i1+
+     & 1,i2,i3,ey)-u1(i1+2,i2,i3,ey))/(12.*dx1(0))
+                v1y = (u1(i1,i2-2,i3,ey)-8.*u1(i1,i2-1,i3,ey)+8.*u1(i1,
+     & i2+1,i3,ey)-u1(i1,i2+2,i3,ey))/(12.*dx1(1))
+                v1xx = (-u1(i1-2,i2,i3,ey)+16.*u1(i1-1,i2,i3,ey)-30.*
+     & u1(i1,i2,i3,ey)+16.*u1(i1+1,i2,i3,ey)-u1(i1+2,i2,i3,ey))/(12.*
+     & dx1(0)**2)
+                v1yy = (-u1(i1,i2-2,i3,ey)+16.*u1(i1,i2-1,i3,ey)-30.*
+     & u1(i1,i2,i3,ey)+16.*u1(i1,i2+1,i3,ey)-u1(i1,i2+2,i3,ey))/(12.*
+     & dx1(1)**2)
+              v1Lap = v1xx+ v1yy
+             ! NOTE: the jacobian derivatives can be computed once for all components
+               uu2=u2(j1,j2,j3,ex) ! in the rectangular case just eval the solution
+                u2x = (u2(j1-2,j2,j3,ex)-8.*u2(j1-1,j2,j3,ex)+8.*u2(j1+
+     & 1,j2,j3,ex)-u2(j1+2,j2,j3,ex))/(12.*dx2(0))
+                u2y = (u2(j1,j2-2,j3,ex)-8.*u2(j1,j2-1,j3,ex)+8.*u2(j1,
+     & j2+1,j3,ex)-u2(j1,j2+2,j3,ex))/(12.*dx2(1))
+                u2xx = (-u2(j1-2,j2,j3,ex)+16.*u2(j1-1,j2,j3,ex)-30.*
+     & u2(j1,j2,j3,ex)+16.*u2(j1+1,j2,j3,ex)-u2(j1+2,j2,j3,ex))/(12.*
+     & dx2(0)**2)
+                u2yy = (-u2(j1,j2-2,j3,ex)+16.*u2(j1,j2-1,j3,ex)-30.*
+     & u2(j1,j2,j3,ex)+16.*u2(j1,j2+1,j3,ex)-u2(j1,j2+2,j3,ex))/(12.*
+     & dx2(1)**2)
+              u2Lap = u2xx+ u2yy
+               vv2=u2(j1,j2,j3,ey) ! in the rectangular case just eval the solution
+                v2x = (u2(j1-2,j2,j3,ey)-8.*u2(j1-1,j2,j3,ey)+8.*u2(j1+
+     & 1,j2,j3,ey)-u2(j1+2,j2,j3,ey))/(12.*dx2(0))
+                v2y = (u2(j1,j2-2,j3,ey)-8.*u2(j1,j2-1,j3,ey)+8.*u2(j1,
+     & j2+1,j3,ey)-u2(j1,j2+2,j3,ey))/(12.*dx2(1))
+                v2xx = (-u2(j1-2,j2,j3,ey)+16.*u2(j1-1,j2,j3,ey)-30.*
+     & u2(j1,j2,j3,ey)+16.*u2(j1+1,j2,j3,ey)-u2(j1+2,j2,j3,ey))/(12.*
+     & dx2(0)**2)
+                v2yy = (-u2(j1,j2-2,j3,ey)+16.*u2(j1,j2-1,j3,ey)-30.*
+     & u2(j1,j2,j3,ey)+16.*u2(j1,j2+1,j3,ey)-u2(j1,j2+2,j3,ey))/(12.*
+     & dx2(1)**2)
+              v2Lap = v2xx+ v2yy
+            f(0)=(u1x+v1y) - (u2x+v2y)
+            f(1)=(u1Lap) - (u2Lap)
+            f(2)=(v1x-u1y) - (v2x-u2y)
+            f(3)=(v1Lap)/eps1 - (v2Lap)/eps2
+            ! These next we can do to 2nd order -- these need a value on the first ghost line --
+            f(4)=(u1xxx+u1xyy+v1xxy+v1yyy) - (u2xxx+u2xyy+v2xxy+v2yyy)
+            f(5)=((v1xxx+v1xyy)-(u1xxy+u1yyy))/eps1 - ((v2xxx+v2xyy)-(
+     & u2xxy+u2yyy))/eps2
+            f(6)=(u1LapSq)/eps1 - (u2LapSq)/eps2
+            f(7)=(v1LapSq)/eps1**2 - (v2LapSq)/eps2**2
+            write(debugFile,'(" --> 4th: i1,i2=",2i4," f(re-eval)=",
+     & 8e10.2)') i1,i2,f(0),f(1),f(2),f(3),f(4),f(5),f(6),f(7)
+            ! '
+           end if
+            ! -------------------------------------------------------
+            ! solve for Hz         *fixed* *wdh* June 24, 2016
+            !  [ w.n/eps ] = 0
+            !  [ lap(w)/eps ] = 0
+            !  [ lap(w).n/eps**2 ] = 0
+            !  [ lapSq(w)/eps**2 ] = 0
+            ! first evaluate the equations we want to solve with the wrong values at the ghost points:
+             ! These derivatives are computed to 4th-order accuracy
+               ww1=u1(i1,i2,i3,hz) ! in the rectangular case just eval the solution
+                w1x = (u1(i1-2,i2,i3,hz)-8.*u1(i1-1,i2,i3,hz)+8.*u1(i1+
+     & 1,i2,i3,hz)-u1(i1+2,i2,i3,hz))/(12.*dx1(0))
+                w1y = (u1(i1,i2-2,i3,hz)-8.*u1(i1,i2-1,i3,hz)+8.*u1(i1,
+     & i2+1,i3,hz)-u1(i1,i2+2,i3,hz))/(12.*dx1(1))
+                w1xx = (-u1(i1-2,i2,i3,hz)+16.*u1(i1-1,i2,i3,hz)-30.*
+     & u1(i1,i2,i3,hz)+16.*u1(i1+1,i2,i3,hz)-u1(i1+2,i2,i3,hz))/(12.*
+     & dx1(0)**2)
+                w1yy = (-u1(i1,i2-2,i3,hz)+16.*u1(i1,i2-1,i3,hz)-30.*
+     & u1(i1,i2,i3,hz)+16.*u1(i1,i2+1,i3,hz)-u1(i1,i2+2,i3,hz))/(12.*
+     & dx1(1)**2)
+              w1Lap = w1xx+ w1yy
+               ww2=u2(j1,j2,j3,hz) ! in the rectangular case just eval the solution
+                w2x = (u2(j1-2,j2,j3,hz)-8.*u2(j1-1,j2,j3,hz)+8.*u2(j1+
+     & 1,j2,j3,hz)-u2(j1+2,j2,j3,hz))/(12.*dx2(0))
+                w2y = (u2(j1,j2-2,j3,hz)-8.*u2(j1,j2-1,j3,hz)+8.*u2(j1,
+     & j2+1,j3,hz)-u2(j1,j2+2,j3,hz))/(12.*dx2(1))
+                w2xx = (-u2(j1-2,j2,j3,hz)+16.*u2(j1-1,j2,j3,hz)-30.*
+     & u2(j1,j2,j3,hz)+16.*u2(j1+1,j2,j3,hz)-u2(j1+2,j2,j3,hz))/(12.*
+     & dx2(0)**2)
+                w2yy = (-u2(j1,j2-2,j3,hz)+16.*u2(j1,j2-1,j3,hz)-30.*
+     & u2(j1,j2,j3,hz)+16.*u2(j1,j2+1,j3,hz)-u2(j1,j2+2,j3,hz))/(12.*
+     & dx2(1)**2)
+              w2Lap = w2xx+ w2yy
+             ! These derivatives are computed to 2nd-order accuracy
+               ww1=u1(i1,i2,i3,hz) ! in the rectangular case just eval the solution
+                w1xxx = (-u1(i1-2,i2,i3,hz)+2.*u1(i1-1,i2,i3,hz)-2.*u1(
+     & i1+1,i2,i3,hz)+u1(i1+2,i2,i3,hz))/(2.*dx1(0)**3)
+                w1xxy = ((-u1(i1-1,i2-1,i3,hz)+u1(i1-1,i2+1,i3,hz))/(
+     & 2.*dx1(1))-2.*(-u1(i1,i2-1,i3,hz)+u1(i1,i2+1,i3,hz))/(2.*dx1(1)
+     & )+(-u1(i1+1,i2-1,i3,hz)+u1(i1+1,i2+1,i3,hz))/(2.*dx1(1)))/(dx1(
+     & 0)**2)
+                w1xyy = (-(u1(i1-1,i2-1,i3,hz)-2.*u1(i1-1,i2,i3,hz)+u1(
+     & i1-1,i2+1,i3,hz))/(dx1(1)**2)+(u1(i1+1,i2-1,i3,hz)-2.*u1(i1+1,
+     & i2,i3,hz)+u1(i1+1,i2+1,i3,hz))/(dx1(1)**2))/(2.*dx1(0))
+                w1yyy = (-u1(i1,i2-2,i3,hz)+2.*u1(i1,i2-1,i3,hz)-2.*u1(
+     & i1,i2+1,i3,hz)+u1(i1,i2+2,i3,hz))/(2.*dx1(1)**3)
+                w1xxxx = (u1(i1-2,i2,i3,hz)-4.*u1(i1-1,i2,i3,hz)+6.*u1(
+     & i1,i2,i3,hz)-4.*u1(i1+1,i2,i3,hz)+u1(i1+2,i2,i3,hz))/(dx1(0)**
+     & 4)
+                w1xxyy = ((u1(i1-1,i2-1,i3,hz)-2.*u1(i1-1,i2,i3,hz)+u1(
+     & i1-1,i2+1,i3,hz))/(dx1(1)**2)-2.*(u1(i1,i2-1,i3,hz)-2.*u1(i1,
+     & i2,i3,hz)+u1(i1,i2+1,i3,hz))/(dx1(1)**2)+(u1(i1+1,i2-1,i3,hz)-
+     & 2.*u1(i1+1,i2,i3,hz)+u1(i1+1,i2+1,i3,hz))/(dx1(1)**2))/(dx1(0)*
+     & *2)
+                w1yyyy = (u1(i1,i2-2,i3,hz)-4.*u1(i1,i2-1,i3,hz)+6.*u1(
+     & i1,i2,i3,hz)-4.*u1(i1,i2+1,i3,hz)+u1(i1,i2+2,i3,hz))/(dx1(1)**
+     & 4)
+              w1LapSq = w1xxxx +2.* w1xxyy + w1yyyy
+               ww2=u2(j1,j2,j3,hz) ! in the rectangular case just eval the solution
+                w2xxx = (-u2(j1-2,j2,j3,hz)+2.*u2(j1-1,j2,j3,hz)-2.*u2(
+     & j1+1,j2,j3,hz)+u2(j1+2,j2,j3,hz))/(2.*dx2(0)**3)
+                w2xxy = ((-u2(j1-1,j2-1,j3,hz)+u2(j1-1,j2+1,j3,hz))/(
+     & 2.*dx2(1))-2.*(-u2(j1,j2-1,j3,hz)+u2(j1,j2+1,j3,hz))/(2.*dx2(1)
+     & )+(-u2(j1+1,j2-1,j3,hz)+u2(j1+1,j2+1,j3,hz))/(2.*dx2(1)))/(dx2(
+     & 0)**2)
+                w2xyy = (-(u2(j1-1,j2-1,j3,hz)-2.*u2(j1-1,j2,j3,hz)+u2(
+     & j1-1,j2+1,j3,hz))/(dx2(1)**2)+(u2(j1+1,j2-1,j3,hz)-2.*u2(j1+1,
+     & j2,j3,hz)+u2(j1+1,j2+1,j3,hz))/(dx2(1)**2))/(2.*dx2(0))
+                w2yyy = (-u2(j1,j2-2,j3,hz)+2.*u2(j1,j2-1,j3,hz)-2.*u2(
+     & j1,j2+1,j3,hz)+u2(j1,j2+2,j3,hz))/(2.*dx2(1)**3)
+                w2xxxx = (u2(j1-2,j2,j3,hz)-4.*u2(j1-1,j2,j3,hz)+6.*u2(
+     & j1,j2,j3,hz)-4.*u2(j1+1,j2,j3,hz)+u2(j1+2,j2,j3,hz))/(dx2(0)**
+     & 4)
+                w2xxyy = ((u2(j1-1,j2-1,j3,hz)-2.*u2(j1-1,j2,j3,hz)+u2(
+     & j1-1,j2+1,j3,hz))/(dx2(1)**2)-2.*(u2(j1,j2-1,j3,hz)-2.*u2(j1,
+     & j2,j3,hz)+u2(j1,j2+1,j3,hz))/(dx2(1)**2)+(u2(j1+1,j2-1,j3,hz)-
+     & 2.*u2(j1+1,j2,j3,hz)+u2(j1+1,j2+1,j3,hz))/(dx2(1)**2))/(dx2(0)*
+     & *2)
+                w2yyyy = (u2(j1,j2-2,j3,hz)-4.*u2(j1,j2-1,j3,hz)+6.*u2(
+     & j1,j2,j3,hz)-4.*u2(j1,j2+1,j3,hz)+u2(j1,j2+2,j3,hz))/(dx2(1)**
+     & 4)
+              w2LapSq = w2xxxx +2.* w2xxyy + w2yyyy
+             f(0)=(an1*w1x+an2*w1y)/eps1 - (an1*w2x+an2*w2y)/eps2
+             f(1)=w1Lap/eps1 - w2Lap/eps2
+             f(2)=(an1*(w1xxx+w1xyy)+an2*(w1xxy+w1yyy))/eps1**2 - (an1*
+     & (w2xxx+w2xyy)+an2*(w2xxy+w2yyy))/eps2**2
+             f(3)=w1LapSq/eps1**2 - w2LapSq/eps2**2
+             if( twilightZone.eq.1 )then
+               call ogderiv(ep, 0,1,0,0, xy1(i1,i2,i3,0),xy1(i1,i2,i3,
+     & 1),0.,t, hz, wex  )
+               call ogderiv(ep, 0,0,1,0, xy1(i1,i2,i3,0),xy1(i1,i2,i3,
+     & 1),0.,t, hz, wey  )
+               call ogderiv(ep, 0,2,0,0, xy1(i1,i2,i3,0),xy1(i1,i2,i3,
+     & 1),0.,t, hz, wexx )
+               call ogderiv(ep, 0,0,2,0, xy1(i1,i2,i3,0),xy1(i1,i2,i3,
+     & 1),0.,t, hz, weyy )
+               call ogderiv(ep, 0,3,0,0, xy1(i1,i2,i3,0),xy1(i1,i2,i3,
+     & 1),0.,t, hz, wexxx )
+               call ogderiv(ep, 0,2,1,0, xy1(i1,i2,i3,0),xy1(i1,i2,i3,
+     & 1),0.,t, hz, wexxy )
+               call ogderiv(ep, 0,1,2,0, xy1(i1,i2,i3,0),xy1(i1,i2,i3,
+     & 1),0.,t, hz, wexyy )
+               call ogderiv(ep, 0,0,3,0, xy1(i1,i2,i3,0),xy1(i1,i2,i3,
+     & 1),0.,t, hz, weyyy )
+               call ogderiv(ep, 0,4,0,0, xy1(i1,i2,i3,0),xy1(i1,i2,i3,
+     & 1),0.,t, hz, wexxxx )
+               call ogderiv(ep, 0,2,2,0, xy1(i1,i2,i3,0),xy1(i1,i2,i3,
+     & 1),0.,t, hz, wexxyy )
+               call ogderiv(ep, 0,0,4,0, xy1(i1,i2,i3,0),xy1(i1,i2,i3,
+     & 1),0.,t, hz, weyyyy )
+               weLap = wexx + weyy
+               weLapSq = wexxxx + 2.*wexxyy + weyyyy
+               f(0) = f(0) - (an1*wex+an2*wey)*(1./eps1 - 1./eps2)
+               f(1) = f(1) - ( weLap )*(1./eps1 - 1./eps2)
+               f(2) = f(2) - (an1*(wexxx+wexyy)+an2*(wexxy+weyyy))*(
+     & 1./eps1**2 - 1./eps2**2)
+               f(3) = f(3) - weLapSq*(1./eps1**2 - 1./eps2**2)
+             end if
+            ! form the matrix for computing Hz
+            ! 1: [ w.n/eps ] = 0
+            a0 = dx141(axis1)/eps1
+            b0 = dx241(axis2)/eps2
+            a4(0,0) = -is*8.*a0
+            a4(0,2) =  is*   a0
+            a4(0,1) =  js*8.*b0
+            a4(0,3) = -js*   b0
+            ! 2: [ lap(w)/eps ] = 0 
+            aLap0=16.*dx142(axis1)  ! coeff of w1(-1)
+            aLap1=-1.*dx142(axis1)  ! coeff of w1(-2)
+            bLap0=16.*dx242(axis2)  ! coeff of w2(-1)
+            bLap1=-1.*dx242(axis2)  ! coeff of w2(-1)
+            a4(1,0) = aLap0/eps1    ! coeff of w1(-1)
+            a4(1,2) = aLap1/eps1    ! coeff of w1(-2)
+            a4(1,1) =-bLap0/eps2    ! coeff of w2(-1)
+            a4(1,3) =-bLap1/eps2    ! coeff of w2(-1)
+            ! 3:  [ (an1*(w.xx+w.yy).x + an2.(w.xx+w.yy).y)/eps**2 ] = 0
+            !  a4(2,0)= (an1*aLapX0+an2*bLapY0)/eps1**2  ! coeff of w1(-1) 
+            !  a4(2,1)=-(an1*cLapX0+an2*dLapY0)/eps2**2  ! coeff of w2(-1)
+            !  a4(2,2)= (an1*aLapX1+an2*bLapY1)/eps1**2  ! coeff of w1(-2)
+            !  a4(2,3)=-(an1*cLapX1+an2*dLapY1)/eps2**2  ! coeff of w2(-2)
+            a4(2,0)=  is*(  1./(dx1(axis1)**3) +1./(dx1(axis1)*dx1(
+     & axis1p1)**2) )/eps1**2  ! coeff of w1(-1) aLapX0
+            a4(2,2)=  is*( -.5/(dx1(axis1)**3)                         
+     &          )/eps1**2  ! coeff of w1(-2) aLapX1
+            a4(2,1)= -js*(  1./(dx2(axis2)**3) +1./(dx2(axis2)*dx2(
+     & axis2p1)**2) )/eps2**2  ! coeff of w2(-1) cLapX0
+            a4(2,3)= -js*( -.5/(dx2(axis2)**3)                         
+     &          )/eps2**2  ! coeff of w2(-2) cLapX1
+            ! 4 [ lapSq(w)/eps**2 ] = 0   [ w_xxxx + 2 * w_xxyy + w_yyyy ]
+            aLapSq0= ( -4./(dx1(axis1)**4) -4./(dx1(axis1)**2 * dx1(
+     & axis1p1)**2 ) )
+            aLapSq1= (  1./(dx1(axis1)**4) )
+            bLapSq0= ( -4./(dx2(axis2)**4) -4./(dx2(axis2)**2 * dx2(
+     & axis2p1)**2 ) )
+            bLapSq1= (  1./(dx2(axis2)**4) )
+            a4(3,0) = aLapSq0/eps1**2
+            a4(3,2) = aLapSq1/eps1**2
+            a4(3,1) =-bLapSq0/eps2**2
+            a4(3,3) =-bLapSq1/eps2**2
+            q(0) = u1(i1-is1,i2-is2,i3,hz)
+            q(1) = u2(j1-js1,j2-js2,j3,hz)
+            q(2) = u1(i1-2*is1,i2-2*is2,i3,hz)
+            q(3) = u2(j1-2*js1,j2-2*js2,j3,hz)
+            ! subtract off the contributions from the wrong values at the ghost points:
+            do n=0,3
+              f(n) = (a4(n,0)*q(0)+a4(n,1)*q(1)+a4(n,2)*q(2)+a4(n,3)*q(
+     & 3)) - f(n)
+            end do
+            ! write(*,'(" a4=",4(e9.2,1x))') ((a4(i,j),j=0,3),i=0,3)
+            ! factor the matrix
+            numberOfEquations=4
+            call dgeco( a4(0,0), numberOfEquations, numberOfEquations, 
+     & ipvt(0),rcond,work(0))
+            ! write(*,'("rcond=",e12.4)') rcond
+            ! solve
+            job=0
+            call dgesl( a4(0,0), numberOfEquations, numberOfEquations, 
+     & ipvt(0), f(0), job)
+            if( .true. )then
+             u1(i1-is1,i2-is2,i3,hz)=f(0)
+             u2(j1-js1,j2-js2,j3,hz)=f(1)
+             u1(i1-2*is1,i2-2*is2,i3,hz)=f(2)
+             u2(j1-2*js1,j2-2*js2,j3,hz)=f(3)
+            else
+             ! do this for now
+             u1(i1-is1,i2-is2,i3,hz)=u2(j1+js1,j2+js2,j3,hz)
+             u2(j1-js1,j2-js2,j3,hz)=u1(i1+is1,i2+is2,i3,hz)
+             u1(i1-2*is1,i2-2*is2,i3,hz)=u2(j1+2*js1,j2+2*js2,j3,hz)
+             u2(j1-2*js1,j2-2*js2,j3,hz)=u1(i1+2*is1,i2+2*is2,i3,hz)
+            end if
+            if( .false. .or. debug.gt.0 )then ! re-evaluate
+             call ogderiv(ep, 0,0,0,0, xy1(i1-is1,i2-is2,i3,0),xy1(i1-
+     & is1,i2-is2,i3,1),0.,t, hz, we0  )
+             call ogderiv(ep, 0,0,0,0, xy1(i1-2*is1,i2-2*is2,i3,0),xy1(
+     & i1-2*is1,i2-2*is2,i3,1),0.,t, hz, we1  )
+             write(*,'(" w1(-1),w1(-2)=",2e11.3," err=",2e11.3)') f(0),
+     & f(2),f(0)-we0,f(2)-we1
+             call ogderiv(ep, 0,0,0,0, xy2(j1-js1,j2-js2,j3,0),xy2(j1-
+     & js1,j2-js2,j3,1),0.,t, hz, we2  )
+             call ogderiv(ep, 0,0,0,0, xy2(j1-2*js1,j2-2*js2,j3,0),xy2(
+     & j1-2*js1,j2-2*js2,j3,1),0.,t, hz, we3  )
+             write(*,'(" w2(-1),w2(-2)=",2e11.3," err=",2e11.3)') f(1),
+     & f(3),f(1)-we2,f(3)-we3
+              ! These derivatives are computed to 4th-order accuracy
+                ww1=u1(i1,i2,i3,hz) ! in the rectangular case just eval the solution
+                 w1x = (u1(i1-2,i2,i3,hz)-8.*u1(i1-1,i2,i3,hz)+8.*u1(
+     & i1+1,i2,i3,hz)-u1(i1+2,i2,i3,hz))/(12.*dx1(0))
+                 w1y = (u1(i1,i2-2,i3,hz)-8.*u1(i1,i2-1,i3,hz)+8.*u1(
+     & i1,i2+1,i3,hz)-u1(i1,i2+2,i3,hz))/(12.*dx1(1))
+                 w1xx = (-u1(i1-2,i2,i3,hz)+16.*u1(i1-1,i2,i3,hz)-30.*
+     & u1(i1,i2,i3,hz)+16.*u1(i1+1,i2,i3,hz)-u1(i1+2,i2,i3,hz))/(12.*
+     & dx1(0)**2)
+                 w1yy = (-u1(i1,i2-2,i3,hz)+16.*u1(i1,i2-1,i3,hz)-30.*
+     & u1(i1,i2,i3,hz)+16.*u1(i1,i2+1,i3,hz)-u1(i1,i2+2,i3,hz))/(12.*
+     & dx1(1)**2)
+               w1Lap = w1xx+ w1yy
+                ww2=u2(j1,j2,j3,hz) ! in the rectangular case just eval the solution
+                 w2x = (u2(j1-2,j2,j3,hz)-8.*u2(j1-1,j2,j3,hz)+8.*u2(
+     & j1+1,j2,j3,hz)-u2(j1+2,j2,j3,hz))/(12.*dx2(0))
+                 w2y = (u2(j1,j2-2,j3,hz)-8.*u2(j1,j2-1,j3,hz)+8.*u2(
+     & j1,j2+1,j3,hz)-u2(j1,j2+2,j3,hz))/(12.*dx2(1))
+                 w2xx = (-u2(j1-2,j2,j3,hz)+16.*u2(j1-1,j2,j3,hz)-30.*
+     & u2(j1,j2,j3,hz)+16.*u2(j1+1,j2,j3,hz)-u2(j1+2,j2,j3,hz))/(12.*
+     & dx2(0)**2)
+                 w2yy = (-u2(j1,j2-2,j3,hz)+16.*u2(j1,j2-1,j3,hz)-30.*
+     & u2(j1,j2,j3,hz)+16.*u2(j1,j2+1,j3,hz)-u2(j1,j2+2,j3,hz))/(12.*
+     & dx2(1)**2)
+               w2Lap = w2xx+ w2yy
+              ! These derivatives are computed to 2nd-order accuracy
+                ww1=u1(i1,i2,i3,hz) ! in the rectangular case just eval the solution
+                 w1xxx = (-u1(i1-2,i2,i3,hz)+2.*u1(i1-1,i2,i3,hz)-2.*
+     & u1(i1+1,i2,i3,hz)+u1(i1+2,i2,i3,hz))/(2.*dx1(0)**3)
+                 w1xxy = ((-u1(i1-1,i2-1,i3,hz)+u1(i1-1,i2+1,i3,hz))/(
+     & 2.*dx1(1))-2.*(-u1(i1,i2-1,i3,hz)+u1(i1,i2+1,i3,hz))/(2.*dx1(1)
+     & )+(-u1(i1+1,i2-1,i3,hz)+u1(i1+1,i2+1,i3,hz))/(2.*dx1(1)))/(dx1(
+     & 0)**2)
+                 w1xyy = (-(u1(i1-1,i2-1,i3,hz)-2.*u1(i1-1,i2,i3,hz)+
+     & u1(i1-1,i2+1,i3,hz))/(dx1(1)**2)+(u1(i1+1,i2-1,i3,hz)-2.*u1(i1+
+     & 1,i2,i3,hz)+u1(i1+1,i2+1,i3,hz))/(dx1(1)**2))/(2.*dx1(0))
+                 w1yyy = (-u1(i1,i2-2,i3,hz)+2.*u1(i1,i2-1,i3,hz)-2.*
+     & u1(i1,i2+1,i3,hz)+u1(i1,i2+2,i3,hz))/(2.*dx1(1)**3)
+                 w1xxxx = (u1(i1-2,i2,i3,hz)-4.*u1(i1-1,i2,i3,hz)+6.*
+     & u1(i1,i2,i3,hz)-4.*u1(i1+1,i2,i3,hz)+u1(i1+2,i2,i3,hz))/(dx1(0)
+     & **4)
+                 w1xxyy = ((u1(i1-1,i2-1,i3,hz)-2.*u1(i1-1,i2,i3,hz)+
+     & u1(i1-1,i2+1,i3,hz))/(dx1(1)**2)-2.*(u1(i1,i2-1,i3,hz)-2.*u1(
+     & i1,i2,i3,hz)+u1(i1,i2+1,i3,hz))/(dx1(1)**2)+(u1(i1+1,i2-1,i3,
+     & hz)-2.*u1(i1+1,i2,i3,hz)+u1(i1+1,i2+1,i3,hz))/(dx1(1)**2))/(
+     & dx1(0)**2)
+                 w1yyyy = (u1(i1,i2-2,i3,hz)-4.*u1(i1,i2-1,i3,hz)+6.*
+     & u1(i1,i2,i3,hz)-4.*u1(i1,i2+1,i3,hz)+u1(i1,i2+2,i3,hz))/(dx1(1)
+     & **4)
+               w1LapSq = w1xxxx +2.* w1xxyy + w1yyyy
+                ww2=u2(j1,j2,j3,hz) ! in the rectangular case just eval the solution
+                 w2xxx = (-u2(j1-2,j2,j3,hz)+2.*u2(j1-1,j2,j3,hz)-2.*
+     & u2(j1+1,j2,j3,hz)+u2(j1+2,j2,j3,hz))/(2.*dx2(0)**3)
+                 w2xxy = ((-u2(j1-1,j2-1,j3,hz)+u2(j1-1,j2+1,j3,hz))/(
+     & 2.*dx2(1))-2.*(-u2(j1,j2-1,j3,hz)+u2(j1,j2+1,j3,hz))/(2.*dx2(1)
+     & )+(-u2(j1+1,j2-1,j3,hz)+u2(j1+1,j2+1,j3,hz))/(2.*dx2(1)))/(dx2(
+     & 0)**2)
+                 w2xyy = (-(u2(j1-1,j2-1,j3,hz)-2.*u2(j1-1,j2,j3,hz)+
+     & u2(j1-1,j2+1,j3,hz))/(dx2(1)**2)+(u2(j1+1,j2-1,j3,hz)-2.*u2(j1+
+     & 1,j2,j3,hz)+u2(j1+1,j2+1,j3,hz))/(dx2(1)**2))/(2.*dx2(0))
+                 w2yyy = (-u2(j1,j2-2,j3,hz)+2.*u2(j1,j2-1,j3,hz)-2.*
+     & u2(j1,j2+1,j3,hz)+u2(j1,j2+2,j3,hz))/(2.*dx2(1)**3)
+                 w2xxxx = (u2(j1-2,j2,j3,hz)-4.*u2(j1-1,j2,j3,hz)+6.*
+     & u2(j1,j2,j3,hz)-4.*u2(j1+1,j2,j3,hz)+u2(j1+2,j2,j3,hz))/(dx2(0)
+     & **4)
+                 w2xxyy = ((u2(j1-1,j2-1,j3,hz)-2.*u2(j1-1,j2,j3,hz)+
+     & u2(j1-1,j2+1,j3,hz))/(dx2(1)**2)-2.*(u2(j1,j2-1,j3,hz)-2.*u2(
+     & j1,j2,j3,hz)+u2(j1,j2+1,j3,hz))/(dx2(1)**2)+(u2(j1+1,j2-1,j3,
+     & hz)-2.*u2(j1+1,j2,j3,hz)+u2(j1+1,j2+1,j3,hz))/(dx2(1)**2))/(
+     & dx2(0)**2)
+                 w2yyyy = (u2(j1,j2-2,j3,hz)-4.*u2(j1,j2-1,j3,hz)+6.*
+     & u2(j1,j2,j3,hz)-4.*u2(j1,j2+1,j3,hz)+u2(j1,j2+2,j3,hz))/(dx2(1)
+     & **4)
+               w2LapSq = w2xxxx +2.* w2xxyy + w2yyyy
+              f(0)=(an1*w1x+an2*w1y)/eps1 - (an1*w2x+an2*w2y)/eps2
+              f(1)=w1Lap/eps1 - w2Lap/eps2
+              f(2)=(an1*(w1xxx+w1xyy)+an2*(w1xxy+w1yyy))/eps1**2 - (
+     & an1*(w2xxx+w2xyy)+an2*(w2xxy+w2yyy))/eps2**2
+              f(3)=w1LapSq/eps1**2 - w2LapSq/eps2**2
+              if( twilightZone.eq.1 )then
+                call ogderiv(ep, 0,1,0,0, xy1(i1,i2,i3,0),xy1(i1,i2,i3,
+     & 1),0.,t, hz, wex  )
+                call ogderiv(ep, 0,0,1,0, xy1(i1,i2,i3,0),xy1(i1,i2,i3,
+     & 1),0.,t, hz, wey  )
+                call ogderiv(ep, 0,2,0,0, xy1(i1,i2,i3,0),xy1(i1,i2,i3,
+     & 1),0.,t, hz, wexx )
+                call ogderiv(ep, 0,0,2,0, xy1(i1,i2,i3,0),xy1(i1,i2,i3,
+     & 1),0.,t, hz, weyy )
+                call ogderiv(ep, 0,3,0,0, xy1(i1,i2,i3,0),xy1(i1,i2,i3,
+     & 1),0.,t, hz, wexxx )
+                call ogderiv(ep, 0,2,1,0, xy1(i1,i2,i3,0),xy1(i1,i2,i3,
+     & 1),0.,t, hz, wexxy )
+                call ogderiv(ep, 0,1,2,0, xy1(i1,i2,i3,0),xy1(i1,i2,i3,
+     & 1),0.,t, hz, wexyy )
+                call ogderiv(ep, 0,0,3,0, xy1(i1,i2,i3,0),xy1(i1,i2,i3,
+     & 1),0.,t, hz, weyyy )
+                call ogderiv(ep, 0,4,0,0, xy1(i1,i2,i3,0),xy1(i1,i2,i3,
+     & 1),0.,t, hz, wexxxx )
+                call ogderiv(ep, 0,2,2,0, xy1(i1,i2,i3,0),xy1(i1,i2,i3,
+     & 1),0.,t, hz, wexxyy )
+                call ogderiv(ep, 0,0,4,0, xy1(i1,i2,i3,0),xy1(i1,i2,i3,
+     & 1),0.,t, hz, weyyyy )
+                weLap = wexx + weyy
+                weLapSq = wexxxx + 2.*wexxyy + weyyyy
+                f(0) = f(0) - (an1*wex+an2*wey)*(1./eps1 - 1./eps2)
+                f(1) = f(1) - ( weLap )*(1./eps1 - 1./eps2)
+                f(2) = f(2) - (an1*(wexxx+wexyy)+an2*(wexxy+weyyy))*(
+     & 1./eps1**2 - 1./eps2**2)
+                f(3) = f(3) - weLapSq*(1./eps1**2 - 1./eps2**2)
+              end if
+             write(*,'(" --> 4r th: i1,i2=",2i4," hz-f(re-eval)=",
+     & 8e10.2)') i1,i2,f(0),f(1),f(2),f(3)
+               ! '
+             u1(i1-is1,i2-is2,i3,hz)=we0
+             u2(j1-js1,j2-js2,j3,hz)=we2
+             u1(i1-2*is1,i2-2*is2,i3,hz)=we1
+             u2(j1-2*js1,j2-2*js2,j3,hz)=we3
+            end if
+             end if
+             j1=j1+1
+            end do
+            j2=j2+1
            end do
-           j2=j2+1
-          end do
+
+         ! fixup corner points 
+         if( .false. )then
+            ! **FINISH ME**
+            iv(2)=0
+            ksv(0)=0
+            ksv(1)=0
+            ksv(2)=0
+             do sidea=0,1 ! loop over adjacent sides
+               if( boundaryCondition1(sidea,axis1p1).gt.0 )then ! adjacent boundary is a physical BC or farfield BC
+                ! Set iv = corner point X
+                iv(axis1  )=gridIndexRange1(side1,axis1 )
+                iv(axis1p1)=gridIndexRange1(sidea,axis1p1)
+                ksv(axis1p1)=1-2*sidea  ! tangential direction to the interface
+                ii1=iv(0)
+                ii2=iv(1)
+                ii3=iv(2)
+                ks1=ksv(0)
+                ks2=ksv(1)
+                ks3=ksv(2)
+                if( debug.gt.1 )then
+                  write(debugFile,'("Interface:fixupEnds u1: side1,
+     & axis1=",2i3," axis1p1,sidea=",2i3)') side1,axis1,axis1p1,sidea
+                  write(debugFile,'("... iv=",3i3," ksv=",3i2," 
+     & ghost=",3i4)') ii1,ii2,ii3,ks1,ks2,ks3,ii1-ks1,ii2-ks2,ii3-ks3
+                end if
+                ! extrapolate value on extended boundary, point A or B, from points along the interface
+                ! extrapolateFields(ex,ey,hz,u1,ii1,ii2,ii3,ks1,ks2,ks3)
+                ! -------------------------------------------------------
+                ! -------------------- set div(E)=0 ---------------------
+                ! -------------------------------------------------------
+                 if( axis1.eq.0 )then
+                   ! set point B on extended material interface boundary
+                   if( orderOfAccuracy.eq.2 )then
+                     u1(ii1-ks1,ii2-ks2,ii3,ey)=u1(ii1+ks1,ii2+ks2,ii3,
+     & ey) + 2.*ksv(axis1p1)*dx1(axis1p1)*(u1(ii1+1,ii2,ii3,ex)-u1(
+     & ii1-1,ii2,ii3,ex))/(2.*dx1(0))
+                   else if( orderOfAccuracy.eq.4 )then
+                     ! Set first ghost value from div(E)=0
+                     ! from abc.bf line 1684: 
+                     u1(ii1,ii2-ks2,ii3,ey)=(-u1(ii1,ii2+2*ks2,ii3,ey)+
+     & 8.*u1(ii1,ii2+ks2,ii3,ey)+u1(ii1,ii2-2*ks2,ii3,ey))/8. + 1.5*
+     & ks2*dx1(axis1)*(8.*(u1(ii1+1,ii2,ii3,ex)-u1(ii1-1,ii2,ii3,ex))-
+     & (u1(ii1+2,ii2,ii3,ex)-u1(ii1-2,ii2,ii3,ex)))/(12.*dx1(0))
+                   end if
+                 else
+                   ! set point A on extended material interface boundary
+                   if( orderOfAccuracy.eq.2 )then
+                     u1(ii1-ks1,ii2-ks2,ii3,ex)=u1(ii1+ks1,ii2+ks2,ii3,
+     & ex) + 2.*ksv(axis1p1)*dx1(axis1p1)*(u1(ii1,ii2+1,ii3,ey)-u1(
+     & ii1,ii2-1,ii3,ey))/(2.*dx1(1))
+                   else if( orderOfAccuracy.eq.4 )then
+                     ! Set first ghost value from div(E)=0
+                     ! from abc.bf line 1684: 
+                     u1(ii1-ks1,ii2,ii3,ex)=(-u1(ii1+2*ks1,ii2,ii3,ex)+
+     & 8.*u1(ii1+ks1,ii2,ii3,ex)+u1(ii1-2*ks1,ii2,ii3,ex))/8. + 1.5*
+     & ks1*dx1(axis1)*(8.*(u1(ii1,ii2+1,ii3,ey)-u1(ii1,ii2-1,ii3,ey))-
+     & (u1(ii1,ii2+2,ii3,ey)-u1(ii1,ii2-2,ii3,ey)))/(12.*dx1(1))
+                   else
+                     stop 4432
+                   end if
+                 end if
+                ! extrapolate corner point C along the diagonal
+                ksv(axis1)=1-2*side1
+                  if( orderOfAccuracy.eq.2 )then
+                     u1(ii1-ksv(0),ii2-ksv(1),ii3-ksv(2),ex)=(3.*u1(
+     & ii1,ii2,ii3,ex)-3.*u1(ii1+ksv(0),ii2+ksv(1),ii3+ksv(2),ex)+u1(
+     & ii1+2*ksv(0),ii2+2*ksv(1),ii3+2*ksv(2),ex))
+                     u1(ii1-ksv(0),ii2-ksv(1),ii3-ksv(2),ey)=(3.*u1(
+     & ii1,ii2,ii3,ey)-3.*u1(ii1+ksv(0),ii2+ksv(1),ii3+ksv(2),ey)+u1(
+     & ii1+2*ksv(0),ii2+2*ksv(1),ii3+2*ksv(2),ey))
+                     u1(ii1-ksv(0),ii2-ksv(1),ii3-ksv(2),hz)=(3.*u1(
+     & ii1,ii2,ii3,hz)-3.*u1(ii1+ksv(0),ii2+ksv(1),ii3+ksv(2),hz)+u1(
+     & ii1+2*ksv(0),ii2+2*ksv(1),ii3+2*ksv(2),hz))
+                  else
+                     u1(ii1-ksv(0),ii2-ksv(1),ii3-ksv(2),ex)=(5.*u1(
+     & ii1,ii2,ii3,ex)-10.*u1(ii1+ksv(0),ii2+ksv(1),ii3+ksv(2),ex)+
+     & 10.*u1(ii1+2*ksv(0),ii2+2*ksv(1),ii3+2*ksv(2),ex)-5.*u1(ii1+3*
+     & ksv(0),ii2+3*ksv(1),ii3+3*ksv(2),ex)+u1(ii1+4*ksv(0),ii2+4*ksv(
+     & 1),ii3+4*ksv(2),ex))
+                     u1(ii1-ksv(0),ii2-ksv(1),ii3-ksv(2),ey)=(5.*u1(
+     & ii1,ii2,ii3,ey)-10.*u1(ii1+ksv(0),ii2+ksv(1),ii3+ksv(2),ey)+
+     & 10.*u1(ii1+2*ksv(0),ii2+2*ksv(1),ii3+2*ksv(2),ey)-5.*u1(ii1+3*
+     & ksv(0),ii2+3*ksv(1),ii3+3*ksv(2),ey)+u1(ii1+4*ksv(0),ii2+4*ksv(
+     & 1),ii3+4*ksv(2),ey))
+                     u1(ii1-ksv(0),ii2-ksv(1),ii3-ksv(2),hz)=(5.*u1(
+     & ii1,ii2,ii3,hz)-10.*u1(ii1+ksv(0),ii2+ksv(1),ii3+ksv(2),hz)+
+     & 10.*u1(ii1+2*ksv(0),ii2+2*ksv(1),ii3+2*ksv(2),hz)-5.*u1(ii1+3*
+     & ksv(0),ii2+3*ksv(1),ii3+3*ksv(2),hz)+u1(ii1+4*ksv(0),ii2+4*ksv(
+     & 1),ii3+4*ksv(2),hz))
+                  end if
+                if( orderOfAccuracy.eq.4 )then
+                  ! extrapolate extra corner points E-F-G
+                    if( orderOfAccuracy.eq.2 )then
+                       u1(ii1-ksv(0)-ksv(0),ii2-ksv(1),ii3-ksv(2),ex)=(
+     & 3.*u1(ii1-ksv(0),ii2,ii3,ex)-3.*u1(ii1-ksv(0)+ksv(0),ii2+ksv(1)
+     & ,ii3+ksv(2),ex)+u1(ii1-ksv(0)+2*ksv(0),ii2+2*ksv(1),ii3+2*ksv(
+     & 2),ex))
+                       u1(ii1-ksv(0)-ksv(0),ii2-ksv(1),ii3-ksv(2),ey)=(
+     & 3.*u1(ii1-ksv(0),ii2,ii3,ey)-3.*u1(ii1-ksv(0)+ksv(0),ii2+ksv(1)
+     & ,ii3+ksv(2),ey)+u1(ii1-ksv(0)+2*ksv(0),ii2+2*ksv(1),ii3+2*ksv(
+     & 2),ey))
+                       u1(ii1-ksv(0)-ksv(0),ii2-ksv(1),ii3-ksv(2),hz)=(
+     & 3.*u1(ii1-ksv(0),ii2,ii3,hz)-3.*u1(ii1-ksv(0)+ksv(0),ii2+ksv(1)
+     & ,ii3+ksv(2),hz)+u1(ii1-ksv(0)+2*ksv(0),ii2+2*ksv(1),ii3+2*ksv(
+     & 2),hz))
+                    else
+                       u1(ii1-ksv(0)-ksv(0),ii2-ksv(1),ii3-ksv(2),ex)=(
+     & 5.*u1(ii1-ksv(0),ii2,ii3,ex)-10.*u1(ii1-ksv(0)+ksv(0),ii2+ksv(
+     & 1),ii3+ksv(2),ex)+10.*u1(ii1-ksv(0)+2*ksv(0),ii2+2*ksv(1),ii3+
+     & 2*ksv(2),ex)-5.*u1(ii1-ksv(0)+3*ksv(0),ii2+3*ksv(1),ii3+3*ksv(
+     & 2),ex)+u1(ii1-ksv(0)+4*ksv(0),ii2+4*ksv(1),ii3+4*ksv(2),ex))
+                       u1(ii1-ksv(0)-ksv(0),ii2-ksv(1),ii3-ksv(2),ey)=(
+     & 5.*u1(ii1-ksv(0),ii2,ii3,ey)-10.*u1(ii1-ksv(0)+ksv(0),ii2+ksv(
+     & 1),ii3+ksv(2),ey)+10.*u1(ii1-ksv(0)+2*ksv(0),ii2+2*ksv(1),ii3+
+     & 2*ksv(2),ey)-5.*u1(ii1-ksv(0)+3*ksv(0),ii2+3*ksv(1),ii3+3*ksv(
+     & 2),ey)+u1(ii1-ksv(0)+4*ksv(0),ii2+4*ksv(1),ii3+4*ksv(2),ey))
+                       u1(ii1-ksv(0)-ksv(0),ii2-ksv(1),ii3-ksv(2),hz)=(
+     & 5.*u1(ii1-ksv(0),ii2,ii3,hz)-10.*u1(ii1-ksv(0)+ksv(0),ii2+ksv(
+     & 1),ii3+ksv(2),hz)+10.*u1(ii1-ksv(0)+2*ksv(0),ii2+2*ksv(1),ii3+
+     & 2*ksv(2),hz)-5.*u1(ii1-ksv(0)+3*ksv(0),ii2+3*ksv(1),ii3+3*ksv(
+     & 2),hz)+u1(ii1-ksv(0)+4*ksv(0),ii2+4*ksv(1),ii3+4*ksv(2),hz))
+                    end if
+                    if( orderOfAccuracy.eq.2 )then
+                       u1(ii1-ksv(0),ii2-ksv(1)-ksv(1),ii3-ksv(2),ex)=(
+     & 3.*u1(ii1,ii2-ksv(1),ii3,ex)-3.*u1(ii1+ksv(0),ii2-ksv(1)+ksv(1)
+     & ,ii3+ksv(2),ex)+u1(ii1+2*ksv(0),ii2-ksv(1)+2*ksv(1),ii3+2*ksv(
+     & 2),ex))
+                       u1(ii1-ksv(0),ii2-ksv(1)-ksv(1),ii3-ksv(2),ey)=(
+     & 3.*u1(ii1,ii2-ksv(1),ii3,ey)-3.*u1(ii1+ksv(0),ii2-ksv(1)+ksv(1)
+     & ,ii3+ksv(2),ey)+u1(ii1+2*ksv(0),ii2-ksv(1)+2*ksv(1),ii3+2*ksv(
+     & 2),ey))
+                       u1(ii1-ksv(0),ii2-ksv(1)-ksv(1),ii3-ksv(2),hz)=(
+     & 3.*u1(ii1,ii2-ksv(1),ii3,hz)-3.*u1(ii1+ksv(0),ii2-ksv(1)+ksv(1)
+     & ,ii3+ksv(2),hz)+u1(ii1+2*ksv(0),ii2-ksv(1)+2*ksv(1),ii3+2*ksv(
+     & 2),hz))
+                    else
+                       u1(ii1-ksv(0),ii2-ksv(1)-ksv(1),ii3-ksv(2),ex)=(
+     & 5.*u1(ii1,ii2-ksv(1),ii3,ex)-10.*u1(ii1+ksv(0),ii2-ksv(1)+ksv(
+     & 1),ii3+ksv(2),ex)+10.*u1(ii1+2*ksv(0),ii2-ksv(1)+2*ksv(1),ii3+
+     & 2*ksv(2),ex)-5.*u1(ii1+3*ksv(0),ii2-ksv(1)+3*ksv(1),ii3+3*ksv(
+     & 2),ex)+u1(ii1+4*ksv(0),ii2-ksv(1)+4*ksv(1),ii3+4*ksv(2),ex))
+                       u1(ii1-ksv(0),ii2-ksv(1)-ksv(1),ii3-ksv(2),ey)=(
+     & 5.*u1(ii1,ii2-ksv(1),ii3,ey)-10.*u1(ii1+ksv(0),ii2-ksv(1)+ksv(
+     & 1),ii3+ksv(2),ey)+10.*u1(ii1+2*ksv(0),ii2-ksv(1)+2*ksv(1),ii3+
+     & 2*ksv(2),ey)-5.*u1(ii1+3*ksv(0),ii2-ksv(1)+3*ksv(1),ii3+3*ksv(
+     & 2),ey)+u1(ii1+4*ksv(0),ii2-ksv(1)+4*ksv(1),ii3+4*ksv(2),ey))
+                       u1(ii1-ksv(0),ii2-ksv(1)-ksv(1),ii3-ksv(2),hz)=(
+     & 5.*u1(ii1,ii2-ksv(1),ii3,hz)-10.*u1(ii1+ksv(0),ii2-ksv(1)+ksv(
+     & 1),ii3+ksv(2),hz)+10.*u1(ii1+2*ksv(0),ii2-ksv(1)+2*ksv(1),ii3+
+     & 2*ksv(2),hz)-5.*u1(ii1+3*ksv(0),ii2-ksv(1)+3*ksv(1),ii3+3*ksv(
+     & 2),hz)+u1(ii1+4*ksv(0),ii2-ksv(1)+4*ksv(1),ii3+4*ksv(2),hz))
+                    end if
+                    if( orderOfAccuracy.eq.2 )then
+                       u1(ii1-ksv(0)-ksv(0),ii2-ksv(1)-ksv(1),ii3-ksv(
+     & 2),ex)=(3.*u1(ii1-ksv(0),ii2-ksv(1),ii3,ex)-3.*u1(ii1-ksv(0)+
+     & ksv(0),ii2-ksv(1)+ksv(1),ii3+ksv(2),ex)+u1(ii1-ksv(0)+2*ksv(0),
+     & ii2-ksv(1)+2*ksv(1),ii3+2*ksv(2),ex))
+                       u1(ii1-ksv(0)-ksv(0),ii2-ksv(1)-ksv(1),ii3-ksv(
+     & 2),ey)=(3.*u1(ii1-ksv(0),ii2-ksv(1),ii3,ey)-3.*u1(ii1-ksv(0)+
+     & ksv(0),ii2-ksv(1)+ksv(1),ii3+ksv(2),ey)+u1(ii1-ksv(0)+2*ksv(0),
+     & ii2-ksv(1)+2*ksv(1),ii3+2*ksv(2),ey))
+                       u1(ii1-ksv(0)-ksv(0),ii2-ksv(1)-ksv(1),ii3-ksv(
+     & 2),hz)=(3.*u1(ii1-ksv(0),ii2-ksv(1),ii3,hz)-3.*u1(ii1-ksv(0)+
+     & ksv(0),ii2-ksv(1)+ksv(1),ii3+ksv(2),hz)+u1(ii1-ksv(0)+2*ksv(0),
+     & ii2-ksv(1)+2*ksv(1),ii3+2*ksv(2),hz))
+                    else
+                       u1(ii1-ksv(0)-ksv(0),ii2-ksv(1)-ksv(1),ii3-ksv(
+     & 2),ex)=(5.*u1(ii1-ksv(0),ii2-ksv(1),ii3,ex)-10.*u1(ii1-ksv(0)+
+     & ksv(0),ii2-ksv(1)+ksv(1),ii3+ksv(2),ex)+10.*u1(ii1-ksv(0)+2*
+     & ksv(0),ii2-ksv(1)+2*ksv(1),ii3+2*ksv(2),ex)-5.*u1(ii1-ksv(0)+3*
+     & ksv(0),ii2-ksv(1)+3*ksv(1),ii3+3*ksv(2),ex)+u1(ii1-ksv(0)+4*
+     & ksv(0),ii2-ksv(1)+4*ksv(1),ii3+4*ksv(2),ex))
+                       u1(ii1-ksv(0)-ksv(0),ii2-ksv(1)-ksv(1),ii3-ksv(
+     & 2),ey)=(5.*u1(ii1-ksv(0),ii2-ksv(1),ii3,ey)-10.*u1(ii1-ksv(0)+
+     & ksv(0),ii2-ksv(1)+ksv(1),ii3+ksv(2),ey)+10.*u1(ii1-ksv(0)+2*
+     & ksv(0),ii2-ksv(1)+2*ksv(1),ii3+2*ksv(2),ey)-5.*u1(ii1-ksv(0)+3*
+     & ksv(0),ii2-ksv(1)+3*ksv(1),ii3+3*ksv(2),ey)+u1(ii1-ksv(0)+4*
+     & ksv(0),ii2-ksv(1)+4*ksv(1),ii3+4*ksv(2),ey))
+                       u1(ii1-ksv(0)-ksv(0),ii2-ksv(1)-ksv(1),ii3-ksv(
+     & 2),hz)=(5.*u1(ii1-ksv(0),ii2-ksv(1),ii3,hz)-10.*u1(ii1-ksv(0)+
+     & ksv(0),ii2-ksv(1)+ksv(1),ii3+ksv(2),hz)+10.*u1(ii1-ksv(0)+2*
+     & ksv(0),ii2-ksv(1)+2*ksv(1),ii3+2*ksv(2),hz)-5.*u1(ii1-ksv(0)+3*
+     & ksv(0),ii2-ksv(1)+3*ksv(1),ii3+3*ksv(2),hz)+u1(ii1-ksv(0)+4*
+     & ksv(0),ii2-ksv(1)+4*ksv(1),ii3+4*ksv(2),hz))
+                    end if
+                end if
+                if( debug.gt.1 )then
+                  if( orderOfAccuracy.eq.2 )then
+                    dive=(u1(ii1+1,ii2,ii3,ex)-u1(ii1-1,ii2,ii3,ex))/(
+     & 2.*dx1(0)) + (u1(ii1,ii2+1,ii3,ey)-u1(ii1,ii2-1,ii3,ey))/(2.*
+     & dx1(1))
+                  else
+                    dive=(8.*(u1(ii1+1,ii2,ii3,ex)-u1(ii1-1,ii2,ii3,ex)
+     & )-(u1(ii1+2,ii2,ii3,ex)-u1(ii1-2,ii2,ii3,ex)))/(12.*dx1(0)) + (
+     & 8.*(u1(ii1,ii2+1,ii3,ey)-u1(ii1,ii2-1,ii3,ey))-(u1(ii1,ii2+2,
+     & ii3,ey)-u1(ii1,ii2-2,ii3,ey)))/(12.*dx1(1))
+                  end if
+                  write(debugFile,'("... after: div(E)=",e10.2)') dive
+                end if
+                ksv(axis1p1)=0 ! reset
+                ksv(axis1)=0 ! reset
+               end if
+             end do ! end sidea
+            ! **FINISH ME**
+            iv(2)=0
+            ksv(0)=0
+            ksv(1)=0
+            ksv(2)=0
+             do sidea=0,1 ! loop over adjacent sides
+               if( boundaryCondition2(sidea,axis2p1).gt.0 )then ! adjacent boundary is a physical BC or farfield BC
+                ! Set iv = corner point X
+                iv(axis2  )=gridIndexRange2(side2,axis2 )
+                iv(axis2p1)=gridIndexRange2(sidea,axis2p1)
+                ksv(axis2p1)=1-2*sidea  ! tangential direction to the interface
+                ii1=iv(0)
+                ii2=iv(1)
+                ii3=iv(2)
+                ks1=ksv(0)
+                ks2=ksv(1)
+                ks3=ksv(2)
+                if( debug.gt.1 )then
+                  write(debugFile,'("Interface:fixupEnds u2: side2,
+     & axis2=",2i3," axis2p1,sidea=",2i3)') side2,axis2,axis2p1,sidea
+                  write(debugFile,'("... iv=",3i3," ksv=",3i2," 
+     & ghost=",3i4)') ii1,ii2,ii3,ks1,ks2,ks3,ii1-ks1,ii2-ks2,ii3-ks3
+                end if
+                ! extrapolate value on extended boundary, point A or B, from points along the interface
+                ! extrapolateFields(ex,ey,hz,u2,ii1,ii2,ii3,ks1,ks2,ks3)
+                ! -------------------------------------------------------
+                ! -------------------- set div(E)=0 ---------------------
+                ! -------------------------------------------------------
+                 if( axis2.eq.0 )then
+                   ! set point B on extended material interface boundary
+                   if( orderOfAccuracy.eq.2 )then
+                     u2(ii1-ks1,ii2-ks2,ii3,ey)=u2(ii1+ks1,ii2+ks2,ii3,
+     & ey) + 2.*ksv(axis2p1)*dx2(axis2p1)*(u2(ii1+1,ii2,ii3,ex)-u2(
+     & ii1-1,ii2,ii3,ex))/(2.*dx2(0))
+                   else if( orderOfAccuracy.eq.4 )then
+                     ! Set first ghost value from div(E)=0
+                     ! from abc.bf line 1684: 
+                     u2(ii1,ii2-ks2,ii3,ey)=(-u2(ii1,ii2+2*ks2,ii3,ey)+
+     & 8.*u2(ii1,ii2+ks2,ii3,ey)+u2(ii1,ii2-2*ks2,ii3,ey))/8. + 1.5*
+     & ks2*dx2(axis2)*(8.*(u2(ii1+1,ii2,ii3,ex)-u2(ii1-1,ii2,ii3,ex))-
+     & (u2(ii1+2,ii2,ii3,ex)-u2(ii1-2,ii2,ii3,ex)))/(12.*dx2(0))
+                   end if
+                 else
+                   ! set point A on extended material interface boundary
+                   if( orderOfAccuracy.eq.2 )then
+                     u2(ii1-ks1,ii2-ks2,ii3,ex)=u2(ii1+ks1,ii2+ks2,ii3,
+     & ex) + 2.*ksv(axis2p1)*dx2(axis2p1)*(u2(ii1,ii2+1,ii3,ey)-u2(
+     & ii1,ii2-1,ii3,ey))/(2.*dx2(1))
+                   else if( orderOfAccuracy.eq.4 )then
+                     ! Set first ghost value from div(E)=0
+                     ! from abc.bf line 1684: 
+                     u2(ii1-ks1,ii2,ii3,ex)=(-u2(ii1+2*ks1,ii2,ii3,ex)+
+     & 8.*u2(ii1+ks1,ii2,ii3,ex)+u2(ii1-2*ks1,ii2,ii3,ex))/8. + 1.5*
+     & ks1*dx2(axis2)*(8.*(u2(ii1,ii2+1,ii3,ey)-u2(ii1,ii2-1,ii3,ey))-
+     & (u2(ii1,ii2+2,ii3,ey)-u2(ii1,ii2-2,ii3,ey)))/(12.*dx2(1))
+                   else
+                     stop 4432
+                   end if
+                 end if
+                ! extrapolate corner point C along the diagonal
+                ksv(axis2)=1-2*side2
+                  if( orderOfAccuracy.eq.2 )then
+                     u2(ii1-ksv(0),ii2-ksv(1),ii3-ksv(2),ex)=(3.*u2(
+     & ii1,ii2,ii3,ex)-3.*u2(ii1+ksv(0),ii2+ksv(1),ii3+ksv(2),ex)+u2(
+     & ii1+2*ksv(0),ii2+2*ksv(1),ii3+2*ksv(2),ex))
+                     u2(ii1-ksv(0),ii2-ksv(1),ii3-ksv(2),ey)=(3.*u2(
+     & ii1,ii2,ii3,ey)-3.*u2(ii1+ksv(0),ii2+ksv(1),ii3+ksv(2),ey)+u2(
+     & ii1+2*ksv(0),ii2+2*ksv(1),ii3+2*ksv(2),ey))
+                     u2(ii1-ksv(0),ii2-ksv(1),ii3-ksv(2),hz)=(3.*u2(
+     & ii1,ii2,ii3,hz)-3.*u2(ii1+ksv(0),ii2+ksv(1),ii3+ksv(2),hz)+u2(
+     & ii1+2*ksv(0),ii2+2*ksv(1),ii3+2*ksv(2),hz))
+                  else
+                     u2(ii1-ksv(0),ii2-ksv(1),ii3-ksv(2),ex)=(5.*u2(
+     & ii1,ii2,ii3,ex)-10.*u2(ii1+ksv(0),ii2+ksv(1),ii3+ksv(2),ex)+
+     & 10.*u2(ii1+2*ksv(0),ii2+2*ksv(1),ii3+2*ksv(2),ex)-5.*u2(ii1+3*
+     & ksv(0),ii2+3*ksv(1),ii3+3*ksv(2),ex)+u2(ii1+4*ksv(0),ii2+4*ksv(
+     & 1),ii3+4*ksv(2),ex))
+                     u2(ii1-ksv(0),ii2-ksv(1),ii3-ksv(2),ey)=(5.*u2(
+     & ii1,ii2,ii3,ey)-10.*u2(ii1+ksv(0),ii2+ksv(1),ii3+ksv(2),ey)+
+     & 10.*u2(ii1+2*ksv(0),ii2+2*ksv(1),ii3+2*ksv(2),ey)-5.*u2(ii1+3*
+     & ksv(0),ii2+3*ksv(1),ii3+3*ksv(2),ey)+u2(ii1+4*ksv(0),ii2+4*ksv(
+     & 1),ii3+4*ksv(2),ey))
+                     u2(ii1-ksv(0),ii2-ksv(1),ii3-ksv(2),hz)=(5.*u2(
+     & ii1,ii2,ii3,hz)-10.*u2(ii1+ksv(0),ii2+ksv(1),ii3+ksv(2),hz)+
+     & 10.*u2(ii1+2*ksv(0),ii2+2*ksv(1),ii3+2*ksv(2),hz)-5.*u2(ii1+3*
+     & ksv(0),ii2+3*ksv(1),ii3+3*ksv(2),hz)+u2(ii1+4*ksv(0),ii2+4*ksv(
+     & 1),ii3+4*ksv(2),hz))
+                  end if
+                if( orderOfAccuracy.eq.4 )then
+                  ! extrapolate extra corner points E-F-G
+                    if( orderOfAccuracy.eq.2 )then
+                       u2(ii1-ksv(0)-ksv(0),ii2-ksv(1),ii3-ksv(2),ex)=(
+     & 3.*u2(ii1-ksv(0),ii2,ii3,ex)-3.*u2(ii1-ksv(0)+ksv(0),ii2+ksv(1)
+     & ,ii3+ksv(2),ex)+u2(ii1-ksv(0)+2*ksv(0),ii2+2*ksv(1),ii3+2*ksv(
+     & 2),ex))
+                       u2(ii1-ksv(0)-ksv(0),ii2-ksv(1),ii3-ksv(2),ey)=(
+     & 3.*u2(ii1-ksv(0),ii2,ii3,ey)-3.*u2(ii1-ksv(0)+ksv(0),ii2+ksv(1)
+     & ,ii3+ksv(2),ey)+u2(ii1-ksv(0)+2*ksv(0),ii2+2*ksv(1),ii3+2*ksv(
+     & 2),ey))
+                       u2(ii1-ksv(0)-ksv(0),ii2-ksv(1),ii3-ksv(2),hz)=(
+     & 3.*u2(ii1-ksv(0),ii2,ii3,hz)-3.*u2(ii1-ksv(0)+ksv(0),ii2+ksv(1)
+     & ,ii3+ksv(2),hz)+u2(ii1-ksv(0)+2*ksv(0),ii2+2*ksv(1),ii3+2*ksv(
+     & 2),hz))
+                    else
+                       u2(ii1-ksv(0)-ksv(0),ii2-ksv(1),ii3-ksv(2),ex)=(
+     & 5.*u2(ii1-ksv(0),ii2,ii3,ex)-10.*u2(ii1-ksv(0)+ksv(0),ii2+ksv(
+     & 1),ii3+ksv(2),ex)+10.*u2(ii1-ksv(0)+2*ksv(0),ii2+2*ksv(1),ii3+
+     & 2*ksv(2),ex)-5.*u2(ii1-ksv(0)+3*ksv(0),ii2+3*ksv(1),ii3+3*ksv(
+     & 2),ex)+u2(ii1-ksv(0)+4*ksv(0),ii2+4*ksv(1),ii3+4*ksv(2),ex))
+                       u2(ii1-ksv(0)-ksv(0),ii2-ksv(1),ii3-ksv(2),ey)=(
+     & 5.*u2(ii1-ksv(0),ii2,ii3,ey)-10.*u2(ii1-ksv(0)+ksv(0),ii2+ksv(
+     & 1),ii3+ksv(2),ey)+10.*u2(ii1-ksv(0)+2*ksv(0),ii2+2*ksv(1),ii3+
+     & 2*ksv(2),ey)-5.*u2(ii1-ksv(0)+3*ksv(0),ii2+3*ksv(1),ii3+3*ksv(
+     & 2),ey)+u2(ii1-ksv(0)+4*ksv(0),ii2+4*ksv(1),ii3+4*ksv(2),ey))
+                       u2(ii1-ksv(0)-ksv(0),ii2-ksv(1),ii3-ksv(2),hz)=(
+     & 5.*u2(ii1-ksv(0),ii2,ii3,hz)-10.*u2(ii1-ksv(0)+ksv(0),ii2+ksv(
+     & 1),ii3+ksv(2),hz)+10.*u2(ii1-ksv(0)+2*ksv(0),ii2+2*ksv(1),ii3+
+     & 2*ksv(2),hz)-5.*u2(ii1-ksv(0)+3*ksv(0),ii2+3*ksv(1),ii3+3*ksv(
+     & 2),hz)+u2(ii1-ksv(0)+4*ksv(0),ii2+4*ksv(1),ii3+4*ksv(2),hz))
+                    end if
+                    if( orderOfAccuracy.eq.2 )then
+                       u2(ii1-ksv(0),ii2-ksv(1)-ksv(1),ii3-ksv(2),ex)=(
+     & 3.*u2(ii1,ii2-ksv(1),ii3,ex)-3.*u2(ii1+ksv(0),ii2-ksv(1)+ksv(1)
+     & ,ii3+ksv(2),ex)+u2(ii1+2*ksv(0),ii2-ksv(1)+2*ksv(1),ii3+2*ksv(
+     & 2),ex))
+                       u2(ii1-ksv(0),ii2-ksv(1)-ksv(1),ii3-ksv(2),ey)=(
+     & 3.*u2(ii1,ii2-ksv(1),ii3,ey)-3.*u2(ii1+ksv(0),ii2-ksv(1)+ksv(1)
+     & ,ii3+ksv(2),ey)+u2(ii1+2*ksv(0),ii2-ksv(1)+2*ksv(1),ii3+2*ksv(
+     & 2),ey))
+                       u2(ii1-ksv(0),ii2-ksv(1)-ksv(1),ii3-ksv(2),hz)=(
+     & 3.*u2(ii1,ii2-ksv(1),ii3,hz)-3.*u2(ii1+ksv(0),ii2-ksv(1)+ksv(1)
+     & ,ii3+ksv(2),hz)+u2(ii1+2*ksv(0),ii2-ksv(1)+2*ksv(1),ii3+2*ksv(
+     & 2),hz))
+                    else
+                       u2(ii1-ksv(0),ii2-ksv(1)-ksv(1),ii3-ksv(2),ex)=(
+     & 5.*u2(ii1,ii2-ksv(1),ii3,ex)-10.*u2(ii1+ksv(0),ii2-ksv(1)+ksv(
+     & 1),ii3+ksv(2),ex)+10.*u2(ii1+2*ksv(0),ii2-ksv(1)+2*ksv(1),ii3+
+     & 2*ksv(2),ex)-5.*u2(ii1+3*ksv(0),ii2-ksv(1)+3*ksv(1),ii3+3*ksv(
+     & 2),ex)+u2(ii1+4*ksv(0),ii2-ksv(1)+4*ksv(1),ii3+4*ksv(2),ex))
+                       u2(ii1-ksv(0),ii2-ksv(1)-ksv(1),ii3-ksv(2),ey)=(
+     & 5.*u2(ii1,ii2-ksv(1),ii3,ey)-10.*u2(ii1+ksv(0),ii2-ksv(1)+ksv(
+     & 1),ii3+ksv(2),ey)+10.*u2(ii1+2*ksv(0),ii2-ksv(1)+2*ksv(1),ii3+
+     & 2*ksv(2),ey)-5.*u2(ii1+3*ksv(0),ii2-ksv(1)+3*ksv(1),ii3+3*ksv(
+     & 2),ey)+u2(ii1+4*ksv(0),ii2-ksv(1)+4*ksv(1),ii3+4*ksv(2),ey))
+                       u2(ii1-ksv(0),ii2-ksv(1)-ksv(1),ii3-ksv(2),hz)=(
+     & 5.*u2(ii1,ii2-ksv(1),ii3,hz)-10.*u2(ii1+ksv(0),ii2-ksv(1)+ksv(
+     & 1),ii3+ksv(2),hz)+10.*u2(ii1+2*ksv(0),ii2-ksv(1)+2*ksv(1),ii3+
+     & 2*ksv(2),hz)-5.*u2(ii1+3*ksv(0),ii2-ksv(1)+3*ksv(1),ii3+3*ksv(
+     & 2),hz)+u2(ii1+4*ksv(0),ii2-ksv(1)+4*ksv(1),ii3+4*ksv(2),hz))
+                    end if
+                    if( orderOfAccuracy.eq.2 )then
+                       u2(ii1-ksv(0)-ksv(0),ii2-ksv(1)-ksv(1),ii3-ksv(
+     & 2),ex)=(3.*u2(ii1-ksv(0),ii2-ksv(1),ii3,ex)-3.*u2(ii1-ksv(0)+
+     & ksv(0),ii2-ksv(1)+ksv(1),ii3+ksv(2),ex)+u2(ii1-ksv(0)+2*ksv(0),
+     & ii2-ksv(1)+2*ksv(1),ii3+2*ksv(2),ex))
+                       u2(ii1-ksv(0)-ksv(0),ii2-ksv(1)-ksv(1),ii3-ksv(
+     & 2),ey)=(3.*u2(ii1-ksv(0),ii2-ksv(1),ii3,ey)-3.*u2(ii1-ksv(0)+
+     & ksv(0),ii2-ksv(1)+ksv(1),ii3+ksv(2),ey)+u2(ii1-ksv(0)+2*ksv(0),
+     & ii2-ksv(1)+2*ksv(1),ii3+2*ksv(2),ey))
+                       u2(ii1-ksv(0)-ksv(0),ii2-ksv(1)-ksv(1),ii3-ksv(
+     & 2),hz)=(3.*u2(ii1-ksv(0),ii2-ksv(1),ii3,hz)-3.*u2(ii1-ksv(0)+
+     & ksv(0),ii2-ksv(1)+ksv(1),ii3+ksv(2),hz)+u2(ii1-ksv(0)+2*ksv(0),
+     & ii2-ksv(1)+2*ksv(1),ii3+2*ksv(2),hz))
+                    else
+                       u2(ii1-ksv(0)-ksv(0),ii2-ksv(1)-ksv(1),ii3-ksv(
+     & 2),ex)=(5.*u2(ii1-ksv(0),ii2-ksv(1),ii3,ex)-10.*u2(ii1-ksv(0)+
+     & ksv(0),ii2-ksv(1)+ksv(1),ii3+ksv(2),ex)+10.*u2(ii1-ksv(0)+2*
+     & ksv(0),ii2-ksv(1)+2*ksv(1),ii3+2*ksv(2),ex)-5.*u2(ii1-ksv(0)+3*
+     & ksv(0),ii2-ksv(1)+3*ksv(1),ii3+3*ksv(2),ex)+u2(ii1-ksv(0)+4*
+     & ksv(0),ii2-ksv(1)+4*ksv(1),ii3+4*ksv(2),ex))
+                       u2(ii1-ksv(0)-ksv(0),ii2-ksv(1)-ksv(1),ii3-ksv(
+     & 2),ey)=(5.*u2(ii1-ksv(0),ii2-ksv(1),ii3,ey)-10.*u2(ii1-ksv(0)+
+     & ksv(0),ii2-ksv(1)+ksv(1),ii3+ksv(2),ey)+10.*u2(ii1-ksv(0)+2*
+     & ksv(0),ii2-ksv(1)+2*ksv(1),ii3+2*ksv(2),ey)-5.*u2(ii1-ksv(0)+3*
+     & ksv(0),ii2-ksv(1)+3*ksv(1),ii3+3*ksv(2),ey)+u2(ii1-ksv(0)+4*
+     & ksv(0),ii2-ksv(1)+4*ksv(1),ii3+4*ksv(2),ey))
+                       u2(ii1-ksv(0)-ksv(0),ii2-ksv(1)-ksv(1),ii3-ksv(
+     & 2),hz)=(5.*u2(ii1-ksv(0),ii2-ksv(1),ii3,hz)-10.*u2(ii1-ksv(0)+
+     & ksv(0),ii2-ksv(1)+ksv(1),ii3+ksv(2),hz)+10.*u2(ii1-ksv(0)+2*
+     & ksv(0),ii2-ksv(1)+2*ksv(1),ii3+2*ksv(2),hz)-5.*u2(ii1-ksv(0)+3*
+     & ksv(0),ii2-ksv(1)+3*ksv(1),ii3+3*ksv(2),hz)+u2(ii1-ksv(0)+4*
+     & ksv(0),ii2-ksv(1)+4*ksv(1),ii3+4*ksv(2),hz))
+                    end if
+                end if
+                if( debug.gt.1 )then
+                  if( orderOfAccuracy.eq.2 )then
+                    dive=(u2(ii1+1,ii2,ii3,ex)-u2(ii1-1,ii2,ii3,ex))/(
+     & 2.*dx2(0)) + (u2(ii1,ii2+1,ii3,ey)-u2(ii1,ii2-1,ii3,ey))/(2.*
+     & dx2(1))
+                  else
+                    dive=(8.*(u2(ii1+1,ii2,ii3,ex)-u2(ii1-1,ii2,ii3,ex)
+     & )-(u2(ii1+2,ii2,ii3,ex)-u2(ii1-2,ii2,ii3,ex)))/(12.*dx2(0)) + (
+     & 8.*(u2(ii1,ii2+1,ii3,ey)-u2(ii1,ii2-1,ii3,ey))-(u2(ii1,ii2+2,
+     & ii3,ey)-u2(ii1,ii2-2,ii3,ey)))/(12.*dx2(1))
+                  end if
+                  write(debugFile,'("... after: div(E)=",e10.2)') dive
+                end if
+                ksv(axis2p1)=0 ! reset
+                ksv(axis2)=0 ! reset
+               end if
+             end do ! end sidea
+         end if
 
          ! periodic update
          if( parallel.eq.0 )then
@@ -4367,6 +5970,8 @@
           endif
          end if
 
+        end if ! assign ghost
+
        else if( nd.eq.2 .and. orderOfAccuracy.eq.4 .and. 
      & gridType.eq.curvilinear )then
 
@@ -4381,85 +5986,168 @@
          !    [ eps n.u ] = 0
          !    [ tau.u ] = 0
          !    [ w ] = 0 
-           if( eps1.lt.eps2 )then
-             epsRatio=eps1/eps2
-              i3=n3a
-              j3=m3a
-              j2=mm2a
-              do i2=nn2a,nn2b
-               j1=mm1a
-               do i1=nn1a,nn1b
-               ! if( mask1(i1,i2,i3).gt.0 .and. mask2(j1,j2,j3).gt.0 )then
-               ! *wdh* 2015/08/14 -- project interpolation points too
-               if( mask1(i1,i2,i3).ne.0 .and. mask2(j1,j2,j3).ne.0 )
+         if( assignInterfaceValues.eq.1 )then
+             if( useImpedanceInterfaceProjection.eq.1 )then
+               ! --------------------------------------------------------------
+               ! ------ Use impedance weighting to project the interface ------
+               ! --------------------------------------------------------------
+               !  (see maxwell.pdf)
+               !
+                i3=n3a
+                j3=m3a
+                j2=mm2a
+                do i2=nn2a,nn2b
+                 j1=mm1a
+                 do i1=nn1a,nn1b
+                 ! if( mask1(i1,i2,i3).gt.0 .and. mask2(j1,j2,j3).gt.0 )then
+                 ! *wdh* 2015/08/14 -- project interpolation points too
+                 if( mask1(i1,i2,i3).ne.0 .and. mask2(j1,j2,j3).ne.0 )
      & then
-               ! eps2 n.u2 = eps1 n.u1
-               !     tau.u2 = tau.u1
-                an1=rsxy1(i1,i2,i3,axis1,0)   ! normal (an1,an2)
-                an2=rsxy1(i1,i2,i3,axis1,1)
-                aNorm=max(epsx,sqrt(an1**2+an2**2))
-                an1=an1/aNorm
-                an2=an2/aNorm
-               ua=u1(i1,i2,i3,ex)
-               ub=u1(i1,i2,i3,ey)
-               nDotU = an1*ua+an2*ub
-               if( twilightZone.eq.1 )then
-                ! adjust for TZ forcing (here we assume the exact solution is the same on both sides)
-                call ogderiv(ep, 0,0,0,0, xy1(i1,i2,i3,0),xy1(i1,i2,i3,
-     & 1),0.,t, ex, ue )
-                call ogderiv(ep, 0,0,0,0, xy1(i1,i2,i3,0),xy1(i1,i2,i3,
-     & 1),0.,t, ey, ve )
-                nDotU = nDotU - (an1*ue+an2*ve)
-               end if
-               ! u2 equals u1 but with normal component = eps1/eps2*(n.u1)
-               u2(j1,j2,j3,ex) = ua + (nDotU*epsRatio - nDotU)*an1
-               u2(j1,j2,j3,ey) = ub + (nDotU*epsRatio - nDotU)*an2
-               u2(j1,j2,j3,hz) = u1(i1,i2,i3,hz)
-                end if
-                j1=j1+1
-               end do
-               j2=j2+1
-              end do
-           else
-             epsRatio=eps2/eps1
-              i3=n3a
-              j3=m3a
-              j2=mm2a
-              do i2=nn2a,nn2b
-               j1=mm1a
-               do i1=nn1a,nn1b
-               ! if( mask1(i1,i2,i3).gt.0 .and. mask2(j1,j2,j3).gt.0 )then
-               ! *wdh* 2015/08/14 -- project interpolation points too
-               if( mask1(i1,i2,i3).ne.0 .and. mask2(j1,j2,j3).ne.0 )
+                 ! eps2 n.u2 = eps1 n.u1
+                 !     tau.u2 = tau.u1
+                  an1=rsxy1(i1,i2,i3,axis1,0)   ! normal (an1,an2)
+                  an2=rsxy1(i1,i2,i3,axis1,1)
+                  aNorm=max(epsx,sqrt(an1**2+an2**2))
+                  an1=an1/aNorm
+                  an2=an2/aNorm
+                 ! left state:
+                 ex1=u1(i1,i2,i3,ex)
+                 ey1=u1(i1,i2,i3,ey)
+                 hz1=u1(i1,i2,i3,hz)
+                 ! right state:
+                 ex2=u2(j1,j2,j3,ex)
+                 ey2=u2(j1,j2,j3,ey)
+                 hz2=u2(j1,j2,j3,hz)
+                 ! normal components 
+                 nDotE1 = an1*ex1+an2*ey1
+                 nDotE2 = an1*ex2+an2*ey2
+                 ! The interface value of (eps n.E) is an impedance average of (eps* n.E)
+                 !
+                 !      (eps n.E)_I = [ eta1*( eps1*n.E1 ) +  eta2*( eps2*n.E2 ) ]/[ eta1 + eta2 ]
+                 !
+                 ! We then set 
+                 !   eps1*nDotE1_I = (eps n.E)_I 
+                 !   eps2*nDotE2_I = (eps n.E)_I 
+                 epsNDotEI = ( eta1*(eps1*nDotE1) + eta2*(eps2*nDotE2) 
+     & )/(eta1+eta2) ! (eps * n. E)_I
+                 if( twilightZone.eq.1)then
+                  ! adjust for TZ forcing (here we assume the exact solution is the same on both sides)
+                  call ogderiv(ep, 0,0,0,0, xy1(i1,i2,i3,0),xy1(i1,i2,
+     & i3,1),0.,t, ex, ue )
+                  call ogderiv(ep, 0,0,0,0, xy1(i1,i2,i3,0),xy1(i1,i2,
+     & i3,1),0.,t, ey, ve )
+                  nDotEe = an1*ue+an2*ve
+                  ! epsNDotEI + g1 = eps1*nDotE 
+                  ! epsNDotEI + g2 = eps2*nDotE 
+                  g1= (eps1-eps2) * nDotEe *eta2/(eta1+eta2)
+                  g2= (eps2-eps1) * nDotEe *eta1/(eta1+eta2)
+                 else
+                   g1=0.
+                   g2=0.
+                 end if
+                 nDotE1I = (epsNDotEI+g1)/eps1  ! nDotE for interface on left
+                 nDotE2I = (epsNDotEI+g2)/eps2  ! nDotE for interface on right
+                 ! inverse impedance average of tangential components  (do full vector and correct below)
+                 exI = ( eta1i*ex1 + eta2i*ex2 )/( eta1i + eta2i )
+                 eyI = ( eta1i*ey1 + eta2i*ey2 )/( eta1i + eta2i )
+                 ! hz : impedance weighted average 
+                 hzI = ( eta1*hz1 + eta2*hz2 )/(eta1+eta2)
+                 nDotEI= an1*exI+an2*eyI  ! we need to subtract off normal component of (exI,eyI)
+                 u1(i1,i2,i3,ex) = exI + (nDotE1I - nDotEI)*an1
+                 u1(i1,i2,i3,ey) = eyI + (nDotE1I - nDotEI)*an2
+                 u1(i1,i2,i3,hz) = hzI
+                 u2(j1,j2,j3,ex) = exI + (nDotE2I - nDotEI)*an1
+                 u2(j1,j2,j3,ey) = eyI + (nDotE2I - nDotEI)*an2
+                 u2(j1,j2,j3,hz) = hzI
+                  end if
+                  j1=j1+1
+                 end do
+                 j2=j2+1
+                end do
+             else if( eps1.lt.eps2 )then
+               epsRatio=eps1/eps2
+                i3=n3a
+                j3=m3a
+                j2=mm2a
+                do i2=nn2a,nn2b
+                 j1=mm1a
+                 do i1=nn1a,nn1b
+                 ! if( mask1(i1,i2,i3).gt.0 .and. mask2(j1,j2,j3).gt.0 )then
+                 ! *wdh* 2015/08/14 -- project interpolation points too
+                 if( mask1(i1,i2,i3).ne.0 .and. mask2(j1,j2,j3).ne.0 )
      & then
-               ! eps2 n.u2 = eps1 n.u1
-               !     tau.u2 = tau.u1
-                an1=rsxy1(i1,i2,i3,axis1,0)
-                an2=rsxy1(i1,i2,i3,axis1,1)
-                aNorm=max(epsx,sqrt(an1**2+an2**2))
-                an1=an1/aNorm
-                an2=an2/aNorm
-               ua=u2(j1,j2,j3,ex)
-               ub=u2(j1,j2,j3,ey)
-               nDotU = an1*ua+an2*ub
-               if( twilightZone.eq.1 )then
-                ! adjust for TZ forcing (here we assume the exact solution is the same on both sides)
-                call ogderiv(ep, 0,0,0,0, xy1(i1,i2,i3,0),xy1(i1,i2,i3,
-     & 1),0.,t, ex, ue )
-                call ogderiv(ep, 0,0,0,0, xy1(i1,i2,i3,0),xy1(i1,i2,i3,
-     & 1),0.,t, ey, ve )
-         ! write(*,'(" jump: x,y=",2e10.2," ua,ue=",2e10.2," ub,ve=",2e10.2)') xy1(i1,i2,i3,0),xy1(i1,i2,i3,1),ua,ue,ub,ve
-                nDotU = nDotU - (an1*ue+an2*ve)
-               end if
-               u1(i1,i2,i3,ex) = ua + (nDotU*epsRatio - nDotU)*an1
-               u1(i1,i2,i3,ey) = ub + (nDotU*epsRatio - nDotU)*an2
-               u1(i1,i2,i3,hz) = u2(j1,j2,j3,hz)
-                end if
-                j1=j1+1
-               end do
-               j2=j2+1
-              end do
-           end if
+                 ! eps2 n.u2 = eps1 n.u1
+                 !     tau.u2 = tau.u1
+                  an1=rsxy1(i1,i2,i3,axis1,0)   ! normal (an1,an2)
+                  an2=rsxy1(i1,i2,i3,axis1,1)
+                  aNorm=max(epsx,sqrt(an1**2+an2**2))
+                  an1=an1/aNorm
+                  an2=an2/aNorm
+                 ua=u1(i1,i2,i3,ex)
+                 ub=u1(i1,i2,i3,ey)
+                 nDotU = an1*ua+an2*ub
+                 if( twilightZone.eq.1 )then
+                  ! adjust for TZ forcing (here we assume the exact solution is the same on both sides)
+                  call ogderiv(ep, 0,0,0,0, xy1(i1,i2,i3,0),xy1(i1,i2,
+     & i3,1),0.,t, ex, ue )
+                  call ogderiv(ep, 0,0,0,0, xy1(i1,i2,i3,0),xy1(i1,i2,
+     & i3,1),0.,t, ey, ve )
+                  nDotU = nDotU - (an1*ue+an2*ve)
+                 end if
+                 ! u2 equals u1 but with normal component = eps1/eps2*(n.u1)
+                 u2(j1,j2,j3,ex) = ua + (nDotU*epsRatio - nDotU)*an1
+                 u2(j1,j2,j3,ey) = ub + (nDotU*epsRatio - nDotU)*an2
+                 u2(j1,j2,j3,hz) = u1(i1,i2,i3,hz)
+                  end if
+                  j1=j1+1
+                 end do
+                 j2=j2+1
+                end do
+             else
+               epsRatio=eps2/eps1
+                i3=n3a
+                j3=m3a
+                j2=mm2a
+                do i2=nn2a,nn2b
+                 j1=mm1a
+                 do i1=nn1a,nn1b
+                 ! if( mask1(i1,i2,i3).gt.0 .and. mask2(j1,j2,j3).gt.0 )then
+                 ! *wdh* 2015/08/14 -- project interpolation points too
+                 if( mask1(i1,i2,i3).ne.0 .and. mask2(j1,j2,j3).ne.0 )
+     & then
+                 ! eps2 n.u2 = eps1 n.u1
+                 !     tau.u2 = tau.u1
+                  an1=rsxy1(i1,i2,i3,axis1,0)
+                  an2=rsxy1(i1,i2,i3,axis1,1)
+                  aNorm=max(epsx,sqrt(an1**2+an2**2))
+                  an1=an1/aNorm
+                  an2=an2/aNorm
+                 ua=u2(j1,j2,j3,ex)
+                 ub=u2(j1,j2,j3,ey)
+                 nDotU = an1*ua+an2*ub
+                 if( twilightZone.eq.1 )then
+                  ! adjust for TZ forcing (here we assume the exact solution is the same on both sides)
+                  call ogderiv(ep, 0,0,0,0, xy1(i1,i2,i3,0),xy1(i1,i2,
+     & i3,1),0.,t, ex, ue )
+                  call ogderiv(ep, 0,0,0,0, xy1(i1,i2,i3,0),xy1(i1,i2,
+     & i3,1),0.,t, ey, ve )
+           ! write(*,'(" jump: x,y=",2e10.2," ua,ue=",2e10.2," ub,ve=",2e10.2)') xy1(i1,i2,i3,0),xy1(i1,i2,i3,1),ua,ue,ub,ve
+                  nDotU = nDotU - (an1*ue+an2*ve)
+                 end if
+                 u1(i1,i2,i3,ex) = ua + (nDotU*epsRatio - nDotU)*an1
+                 u1(i1,i2,i3,ey) = ub + (nDotU*epsRatio - nDotU)*an2
+                 u1(i1,i2,i3,hz) = u2(j1,j2,j3,hz)
+                  end if
+                  j1=j1+1
+                 end do
+                 j2=j2+1
+                end do
+             end if
+         end if
+
+
+        ! ----- assign ghost using jump conditions -----
+        if( assignInterfaceGhostValues.eq.1 )then
 
          ! here are the real jump conditions for the ghost points
          ! 0  [ u.x + v.y ] = 0
@@ -4561,406 +6249,413 @@
 
          ! write(debugFile,'(">>> interface: order=4 initialized=",i4)') initialized
 
-         do it=1,nit ! *** begin iteration ****
+         ! *********************************************************
+         ! **************** begin interface iteration **************
+         errOld=1.
+         ratioAve=0.
+         do it=1,nit
 
+          ! Macro to assign ghost values:
+           ! ****************************************************
+           ! ***********  2D, ORDER=4, CURVILINEAR **************
+           ! ****************************************************
            err=0.
-         ! =============== start loops ======================
-         nn=-1 ! counts points on the interface
-          i3=n3a
-          j3=m3a
-          j2=m2a
-          do i2=n2a,n2b
-           j1=m1a
-           do i1=n1a,n1b
-            if( mask1(i1,i2,i3).gt.0 .and. mask2(j1,j2,j3).gt.0 )then
-
-           nn=nn+1
-
-           ! here is the normal (assumed to be the same on both sides)
-           an1=rsxy1(i1,i2,i3,axis1,0)   ! normal (an1,an2)
-           an2=rsxy1(i1,i2,i3,axis1,1)
-           aNorm=max(epsx,sqrt(an1**2+an2**2))
-           an1=an1/aNorm
-           an2=an2/aNorm
-           tau1=-an2
-           tau2= an1
-
-           ! evalDerivs2dOrder4()
-            ! These derivatives are computed to 2nd-order accuracy
-            ! NOTE: the jacobian derivatives can be computed once for all components
-             ! this next call will define the jacobian and its derivatives (parameteric and spatial)
-             aj1rx = rsxy1(i1,i2,i3,0,0)
-             aj1rxr = (-rsxy1(i1-1,i2,i3,0,0)+rsxy1(i1+1,i2,i3,0,0))/(
-     & 2.*dr1(0))
-             aj1rxs = (-rsxy1(i1,i2-1,i3,0,0)+rsxy1(i1,i2+1,i3,0,0))/(
-     & 2.*dr1(1))
-             aj1rxrr = (rsxy1(i1-1,i2,i3,0,0)-2.*rsxy1(i1,i2,i3,0,0)+
-     & rsxy1(i1+1,i2,i3,0,0))/(dr1(0)**2)
-             aj1rxrs = (-(-rsxy1(i1-1,i2-1,i3,0,0)+rsxy1(i1-1,i2+1,i3,
-     & 0,0))/(2.*dr1(1))+(-rsxy1(i1+1,i2-1,i3,0,0)+rsxy1(i1+1,i2+1,i3,
-     & 0,0))/(2.*dr1(1)))/(2.*dr1(0))
-             aj1rxss = (rsxy1(i1,i2-1,i3,0,0)-2.*rsxy1(i1,i2,i3,0,0)+
-     & rsxy1(i1,i2+1,i3,0,0))/(dr1(1)**2)
-             aj1rxrrr = (-rsxy1(i1-2,i2,i3,0,0)+2.*rsxy1(i1-1,i2,i3,0,
-     & 0)-2.*rsxy1(i1+1,i2,i3,0,0)+rsxy1(i1+2,i2,i3,0,0))/(2.*dr1(0)**
-     & 3)
-             aj1rxrrs = ((-rsxy1(i1-1,i2-1,i3,0,0)+rsxy1(i1-1,i2+1,i3,
-     & 0,0))/(2.*dr1(1))-2.*(-rsxy1(i1,i2-1,i3,0,0)+rsxy1(i1,i2+1,i3,
-     & 0,0))/(2.*dr1(1))+(-rsxy1(i1+1,i2-1,i3,0,0)+rsxy1(i1+1,i2+1,i3,
-     & 0,0))/(2.*dr1(1)))/(dr1(0)**2)
-             aj1rxrss = (-(rsxy1(i1-1,i2-1,i3,0,0)-2.*rsxy1(i1-1,i2,i3,
-     & 0,0)+rsxy1(i1-1,i2+1,i3,0,0))/(dr1(1)**2)+(rsxy1(i1+1,i2-1,i3,
-     & 0,0)-2.*rsxy1(i1+1,i2,i3,0,0)+rsxy1(i1+1,i2+1,i3,0,0))/(dr1(1)*
-     & *2))/(2.*dr1(0))
-             aj1rxsss = (-rsxy1(i1,i2-2,i3,0,0)+2.*rsxy1(i1,i2-1,i3,0,
-     & 0)-2.*rsxy1(i1,i2+1,i3,0,0)+rsxy1(i1,i2+2,i3,0,0))/(2.*dr1(1)**
-     & 3)
-             aj1sx = rsxy1(i1,i2,i3,1,0)
-             aj1sxr = (-rsxy1(i1-1,i2,i3,1,0)+rsxy1(i1+1,i2,i3,1,0))/(
-     & 2.*dr1(0))
-             aj1sxs = (-rsxy1(i1,i2-1,i3,1,0)+rsxy1(i1,i2+1,i3,1,0))/(
-     & 2.*dr1(1))
-             aj1sxrr = (rsxy1(i1-1,i2,i3,1,0)-2.*rsxy1(i1,i2,i3,1,0)+
-     & rsxy1(i1+1,i2,i3,1,0))/(dr1(0)**2)
-             aj1sxrs = (-(-rsxy1(i1-1,i2-1,i3,1,0)+rsxy1(i1-1,i2+1,i3,
-     & 1,0))/(2.*dr1(1))+(-rsxy1(i1+1,i2-1,i3,1,0)+rsxy1(i1+1,i2+1,i3,
-     & 1,0))/(2.*dr1(1)))/(2.*dr1(0))
-             aj1sxss = (rsxy1(i1,i2-1,i3,1,0)-2.*rsxy1(i1,i2,i3,1,0)+
-     & rsxy1(i1,i2+1,i3,1,0))/(dr1(1)**2)
-             aj1sxrrr = (-rsxy1(i1-2,i2,i3,1,0)+2.*rsxy1(i1-1,i2,i3,1,
-     & 0)-2.*rsxy1(i1+1,i2,i3,1,0)+rsxy1(i1+2,i2,i3,1,0))/(2.*dr1(0)**
-     & 3)
-             aj1sxrrs = ((-rsxy1(i1-1,i2-1,i3,1,0)+rsxy1(i1-1,i2+1,i3,
-     & 1,0))/(2.*dr1(1))-2.*(-rsxy1(i1,i2-1,i3,1,0)+rsxy1(i1,i2+1,i3,
-     & 1,0))/(2.*dr1(1))+(-rsxy1(i1+1,i2-1,i3,1,0)+rsxy1(i1+1,i2+1,i3,
-     & 1,0))/(2.*dr1(1)))/(dr1(0)**2)
-             aj1sxrss = (-(rsxy1(i1-1,i2-1,i3,1,0)-2.*rsxy1(i1-1,i2,i3,
-     & 1,0)+rsxy1(i1-1,i2+1,i3,1,0))/(dr1(1)**2)+(rsxy1(i1+1,i2-1,i3,
-     & 1,0)-2.*rsxy1(i1+1,i2,i3,1,0)+rsxy1(i1+1,i2+1,i3,1,0))/(dr1(1)*
-     & *2))/(2.*dr1(0))
-             aj1sxsss = (-rsxy1(i1,i2-2,i3,1,0)+2.*rsxy1(i1,i2-1,i3,1,
-     & 0)-2.*rsxy1(i1,i2+1,i3,1,0)+rsxy1(i1,i2+2,i3,1,0))/(2.*dr1(1)**
-     & 3)
-             aj1ry = rsxy1(i1,i2,i3,0,1)
-             aj1ryr = (-rsxy1(i1-1,i2,i3,0,1)+rsxy1(i1+1,i2,i3,0,1))/(
-     & 2.*dr1(0))
-             aj1rys = (-rsxy1(i1,i2-1,i3,0,1)+rsxy1(i1,i2+1,i3,0,1))/(
-     & 2.*dr1(1))
-             aj1ryrr = (rsxy1(i1-1,i2,i3,0,1)-2.*rsxy1(i1,i2,i3,0,1)+
-     & rsxy1(i1+1,i2,i3,0,1))/(dr1(0)**2)
-             aj1ryrs = (-(-rsxy1(i1-1,i2-1,i3,0,1)+rsxy1(i1-1,i2+1,i3,
-     & 0,1))/(2.*dr1(1))+(-rsxy1(i1+1,i2-1,i3,0,1)+rsxy1(i1+1,i2+1,i3,
-     & 0,1))/(2.*dr1(1)))/(2.*dr1(0))
-             aj1ryss = (rsxy1(i1,i2-1,i3,0,1)-2.*rsxy1(i1,i2,i3,0,1)+
-     & rsxy1(i1,i2+1,i3,0,1))/(dr1(1)**2)
-             aj1ryrrr = (-rsxy1(i1-2,i2,i3,0,1)+2.*rsxy1(i1-1,i2,i3,0,
-     & 1)-2.*rsxy1(i1+1,i2,i3,0,1)+rsxy1(i1+2,i2,i3,0,1))/(2.*dr1(0)**
-     & 3)
-             aj1ryrrs = ((-rsxy1(i1-1,i2-1,i3,0,1)+rsxy1(i1-1,i2+1,i3,
-     & 0,1))/(2.*dr1(1))-2.*(-rsxy1(i1,i2-1,i3,0,1)+rsxy1(i1,i2+1,i3,
-     & 0,1))/(2.*dr1(1))+(-rsxy1(i1+1,i2-1,i3,0,1)+rsxy1(i1+1,i2+1,i3,
-     & 0,1))/(2.*dr1(1)))/(dr1(0)**2)
-             aj1ryrss = (-(rsxy1(i1-1,i2-1,i3,0,1)-2.*rsxy1(i1-1,i2,i3,
-     & 0,1)+rsxy1(i1-1,i2+1,i3,0,1))/(dr1(1)**2)+(rsxy1(i1+1,i2-1,i3,
-     & 0,1)-2.*rsxy1(i1+1,i2,i3,0,1)+rsxy1(i1+1,i2+1,i3,0,1))/(dr1(1)*
-     & *2))/(2.*dr1(0))
-             aj1rysss = (-rsxy1(i1,i2-2,i3,0,1)+2.*rsxy1(i1,i2-1,i3,0,
-     & 1)-2.*rsxy1(i1,i2+1,i3,0,1)+rsxy1(i1,i2+2,i3,0,1))/(2.*dr1(1)**
-     & 3)
-             aj1sy = rsxy1(i1,i2,i3,1,1)
-             aj1syr = (-rsxy1(i1-1,i2,i3,1,1)+rsxy1(i1+1,i2,i3,1,1))/(
-     & 2.*dr1(0))
-             aj1sys = (-rsxy1(i1,i2-1,i3,1,1)+rsxy1(i1,i2+1,i3,1,1))/(
-     & 2.*dr1(1))
-             aj1syrr = (rsxy1(i1-1,i2,i3,1,1)-2.*rsxy1(i1,i2,i3,1,1)+
-     & rsxy1(i1+1,i2,i3,1,1))/(dr1(0)**2)
-             aj1syrs = (-(-rsxy1(i1-1,i2-1,i3,1,1)+rsxy1(i1-1,i2+1,i3,
-     & 1,1))/(2.*dr1(1))+(-rsxy1(i1+1,i2-1,i3,1,1)+rsxy1(i1+1,i2+1,i3,
-     & 1,1))/(2.*dr1(1)))/(2.*dr1(0))
-             aj1syss = (rsxy1(i1,i2-1,i3,1,1)-2.*rsxy1(i1,i2,i3,1,1)+
-     & rsxy1(i1,i2+1,i3,1,1))/(dr1(1)**2)
-             aj1syrrr = (-rsxy1(i1-2,i2,i3,1,1)+2.*rsxy1(i1-1,i2,i3,1,
-     & 1)-2.*rsxy1(i1+1,i2,i3,1,1)+rsxy1(i1+2,i2,i3,1,1))/(2.*dr1(0)**
-     & 3)
-             aj1syrrs = ((-rsxy1(i1-1,i2-1,i3,1,1)+rsxy1(i1-1,i2+1,i3,
-     & 1,1))/(2.*dr1(1))-2.*(-rsxy1(i1,i2-1,i3,1,1)+rsxy1(i1,i2+1,i3,
-     & 1,1))/(2.*dr1(1))+(-rsxy1(i1+1,i2-1,i3,1,1)+rsxy1(i1+1,i2+1,i3,
-     & 1,1))/(2.*dr1(1)))/(dr1(0)**2)
-             aj1syrss = (-(rsxy1(i1-1,i2-1,i3,1,1)-2.*rsxy1(i1-1,i2,i3,
-     & 1,1)+rsxy1(i1-1,i2+1,i3,1,1))/(dr1(1)**2)+(rsxy1(i1+1,i2-1,i3,
-     & 1,1)-2.*rsxy1(i1+1,i2,i3,1,1)+rsxy1(i1+1,i2+1,i3,1,1))/(dr1(1)*
-     & *2))/(2.*dr1(0))
-             aj1sysss = (-rsxy1(i1,i2-2,i3,1,1)+2.*rsxy1(i1,i2-1,i3,1,
-     & 1)-2.*rsxy1(i1,i2+1,i3,1,1)+rsxy1(i1,i2+2,i3,1,1))/(2.*dr1(1)**
-     & 3)
-             aj1rxx = aj1rx*aj1rxr+aj1sx*aj1rxs
-             aj1rxy = aj1ry*aj1rxr+aj1sy*aj1rxs
-             aj1sxx = aj1rx*aj1sxr+aj1sx*aj1sxs
-             aj1sxy = aj1ry*aj1sxr+aj1sy*aj1sxs
-             aj1ryx = aj1rx*aj1ryr+aj1sx*aj1rys
-             aj1ryy = aj1ry*aj1ryr+aj1sy*aj1rys
-             aj1syx = aj1rx*aj1syr+aj1sx*aj1sys
-             aj1syy = aj1ry*aj1syr+aj1sy*aj1sys
-             t1 = aj1rx**2
-             t6 = aj1sx**2
-             aj1rxxx = t1*aj1rxrr+2*aj1rx*aj1sx*aj1rxrs+t6*aj1rxss+
+           nn=-1 ! counts points on the interface
+           ! =============== start loops ======================
+            i3=n3a
+            j3=m3a
+            j2=m2a
+            do i2=n2a,n2b
+             j1=m1a
+             do i1=n1a,n1b
+              if( mask1(i1,i2,i3).gt.0 .and. mask2(j1,j2,j3).gt.0 )then
+               nn=nn+1
+               ! here is the normal (assumed to be the same on both sides)
+               an1=rsxy1(i1,i2,i3,axis1,0)   ! normal (an1,an2)
+               an2=rsxy1(i1,i2,i3,axis1,1)
+               aNorm=max(epsx,sqrt(an1**2+an2**2))
+               an1=an1/aNorm
+               an2=an2/aNorm
+               tau1=-an2
+               tau2= an1
+               ! evalDerivs2dOrder4()
+                ! These derivatives are computed to 2nd-order accuracy
+                ! NOTE: the jacobian derivatives can be computed once for all components
+                 ! this next call will define the jacobian and its derivatives (parameteric and spatial)
+                 aj1rx = rsxy1(i1,i2,i3,0,0)
+                 aj1rxr = (-rsxy1(i1-1,i2,i3,0,0)+rsxy1(i1+1,i2,i3,0,0)
+     & )/(2.*dr1(0))
+                 aj1rxs = (-rsxy1(i1,i2-1,i3,0,0)+rsxy1(i1,i2+1,i3,0,0)
+     & )/(2.*dr1(1))
+                 aj1rxrr = (rsxy1(i1-1,i2,i3,0,0)-2.*rsxy1(i1,i2,i3,0,
+     & 0)+rsxy1(i1+1,i2,i3,0,0))/(dr1(0)**2)
+                 aj1rxrs = (-(-rsxy1(i1-1,i2-1,i3,0,0)+rsxy1(i1-1,i2+1,
+     & i3,0,0))/(2.*dr1(1))+(-rsxy1(i1+1,i2-1,i3,0,0)+rsxy1(i1+1,i2+1,
+     & i3,0,0))/(2.*dr1(1)))/(2.*dr1(0))
+                 aj1rxss = (rsxy1(i1,i2-1,i3,0,0)-2.*rsxy1(i1,i2,i3,0,
+     & 0)+rsxy1(i1,i2+1,i3,0,0))/(dr1(1)**2)
+                 aj1rxrrr = (-rsxy1(i1-2,i2,i3,0,0)+2.*rsxy1(i1-1,i2,
+     & i3,0,0)-2.*rsxy1(i1+1,i2,i3,0,0)+rsxy1(i1+2,i2,i3,0,0))/(2.*
+     & dr1(0)**3)
+                 aj1rxrrs = ((-rsxy1(i1-1,i2-1,i3,0,0)+rsxy1(i1-1,i2+1,
+     & i3,0,0))/(2.*dr1(1))-2.*(-rsxy1(i1,i2-1,i3,0,0)+rsxy1(i1,i2+1,
+     & i3,0,0))/(2.*dr1(1))+(-rsxy1(i1+1,i2-1,i3,0,0)+rsxy1(i1+1,i2+1,
+     & i3,0,0))/(2.*dr1(1)))/(dr1(0)**2)
+                 aj1rxrss = (-(rsxy1(i1-1,i2-1,i3,0,0)-2.*rsxy1(i1-1,
+     & i2,i3,0,0)+rsxy1(i1-1,i2+1,i3,0,0))/(dr1(1)**2)+(rsxy1(i1+1,i2-
+     & 1,i3,0,0)-2.*rsxy1(i1+1,i2,i3,0,0)+rsxy1(i1+1,i2+1,i3,0,0))/(
+     & dr1(1)**2))/(2.*dr1(0))
+                 aj1rxsss = (-rsxy1(i1,i2-2,i3,0,0)+2.*rsxy1(i1,i2-1,
+     & i3,0,0)-2.*rsxy1(i1,i2+1,i3,0,0)+rsxy1(i1,i2+2,i3,0,0))/(2.*
+     & dr1(1)**3)
+                 aj1sx = rsxy1(i1,i2,i3,1,0)
+                 aj1sxr = (-rsxy1(i1-1,i2,i3,1,0)+rsxy1(i1+1,i2,i3,1,0)
+     & )/(2.*dr1(0))
+                 aj1sxs = (-rsxy1(i1,i2-1,i3,1,0)+rsxy1(i1,i2+1,i3,1,0)
+     & )/(2.*dr1(1))
+                 aj1sxrr = (rsxy1(i1-1,i2,i3,1,0)-2.*rsxy1(i1,i2,i3,1,
+     & 0)+rsxy1(i1+1,i2,i3,1,0))/(dr1(0)**2)
+                 aj1sxrs = (-(-rsxy1(i1-1,i2-1,i3,1,0)+rsxy1(i1-1,i2+1,
+     & i3,1,0))/(2.*dr1(1))+(-rsxy1(i1+1,i2-1,i3,1,0)+rsxy1(i1+1,i2+1,
+     & i3,1,0))/(2.*dr1(1)))/(2.*dr1(0))
+                 aj1sxss = (rsxy1(i1,i2-1,i3,1,0)-2.*rsxy1(i1,i2,i3,1,
+     & 0)+rsxy1(i1,i2+1,i3,1,0))/(dr1(1)**2)
+                 aj1sxrrr = (-rsxy1(i1-2,i2,i3,1,0)+2.*rsxy1(i1-1,i2,
+     & i3,1,0)-2.*rsxy1(i1+1,i2,i3,1,0)+rsxy1(i1+2,i2,i3,1,0))/(2.*
+     & dr1(0)**3)
+                 aj1sxrrs = ((-rsxy1(i1-1,i2-1,i3,1,0)+rsxy1(i1-1,i2+1,
+     & i3,1,0))/(2.*dr1(1))-2.*(-rsxy1(i1,i2-1,i3,1,0)+rsxy1(i1,i2+1,
+     & i3,1,0))/(2.*dr1(1))+(-rsxy1(i1+1,i2-1,i3,1,0)+rsxy1(i1+1,i2+1,
+     & i3,1,0))/(2.*dr1(1)))/(dr1(0)**2)
+                 aj1sxrss = (-(rsxy1(i1-1,i2-1,i3,1,0)-2.*rsxy1(i1-1,
+     & i2,i3,1,0)+rsxy1(i1-1,i2+1,i3,1,0))/(dr1(1)**2)+(rsxy1(i1+1,i2-
+     & 1,i3,1,0)-2.*rsxy1(i1+1,i2,i3,1,0)+rsxy1(i1+1,i2+1,i3,1,0))/(
+     & dr1(1)**2))/(2.*dr1(0))
+                 aj1sxsss = (-rsxy1(i1,i2-2,i3,1,0)+2.*rsxy1(i1,i2-1,
+     & i3,1,0)-2.*rsxy1(i1,i2+1,i3,1,0)+rsxy1(i1,i2+2,i3,1,0))/(2.*
+     & dr1(1)**3)
+                 aj1ry = rsxy1(i1,i2,i3,0,1)
+                 aj1ryr = (-rsxy1(i1-1,i2,i3,0,1)+rsxy1(i1+1,i2,i3,0,1)
+     & )/(2.*dr1(0))
+                 aj1rys = (-rsxy1(i1,i2-1,i3,0,1)+rsxy1(i1,i2+1,i3,0,1)
+     & )/(2.*dr1(1))
+                 aj1ryrr = (rsxy1(i1-1,i2,i3,0,1)-2.*rsxy1(i1,i2,i3,0,
+     & 1)+rsxy1(i1+1,i2,i3,0,1))/(dr1(0)**2)
+                 aj1ryrs = (-(-rsxy1(i1-1,i2-1,i3,0,1)+rsxy1(i1-1,i2+1,
+     & i3,0,1))/(2.*dr1(1))+(-rsxy1(i1+1,i2-1,i3,0,1)+rsxy1(i1+1,i2+1,
+     & i3,0,1))/(2.*dr1(1)))/(2.*dr1(0))
+                 aj1ryss = (rsxy1(i1,i2-1,i3,0,1)-2.*rsxy1(i1,i2,i3,0,
+     & 1)+rsxy1(i1,i2+1,i3,0,1))/(dr1(1)**2)
+                 aj1ryrrr = (-rsxy1(i1-2,i2,i3,0,1)+2.*rsxy1(i1-1,i2,
+     & i3,0,1)-2.*rsxy1(i1+1,i2,i3,0,1)+rsxy1(i1+2,i2,i3,0,1))/(2.*
+     & dr1(0)**3)
+                 aj1ryrrs = ((-rsxy1(i1-1,i2-1,i3,0,1)+rsxy1(i1-1,i2+1,
+     & i3,0,1))/(2.*dr1(1))-2.*(-rsxy1(i1,i2-1,i3,0,1)+rsxy1(i1,i2+1,
+     & i3,0,1))/(2.*dr1(1))+(-rsxy1(i1+1,i2-1,i3,0,1)+rsxy1(i1+1,i2+1,
+     & i3,0,1))/(2.*dr1(1)))/(dr1(0)**2)
+                 aj1ryrss = (-(rsxy1(i1-1,i2-1,i3,0,1)-2.*rsxy1(i1-1,
+     & i2,i3,0,1)+rsxy1(i1-1,i2+1,i3,0,1))/(dr1(1)**2)+(rsxy1(i1+1,i2-
+     & 1,i3,0,1)-2.*rsxy1(i1+1,i2,i3,0,1)+rsxy1(i1+1,i2+1,i3,0,1))/(
+     & dr1(1)**2))/(2.*dr1(0))
+                 aj1rysss = (-rsxy1(i1,i2-2,i3,0,1)+2.*rsxy1(i1,i2-1,
+     & i3,0,1)-2.*rsxy1(i1,i2+1,i3,0,1)+rsxy1(i1,i2+2,i3,0,1))/(2.*
+     & dr1(1)**3)
+                 aj1sy = rsxy1(i1,i2,i3,1,1)
+                 aj1syr = (-rsxy1(i1-1,i2,i3,1,1)+rsxy1(i1+1,i2,i3,1,1)
+     & )/(2.*dr1(0))
+                 aj1sys = (-rsxy1(i1,i2-1,i3,1,1)+rsxy1(i1,i2+1,i3,1,1)
+     & )/(2.*dr1(1))
+                 aj1syrr = (rsxy1(i1-1,i2,i3,1,1)-2.*rsxy1(i1,i2,i3,1,
+     & 1)+rsxy1(i1+1,i2,i3,1,1))/(dr1(0)**2)
+                 aj1syrs = (-(-rsxy1(i1-1,i2-1,i3,1,1)+rsxy1(i1-1,i2+1,
+     & i3,1,1))/(2.*dr1(1))+(-rsxy1(i1+1,i2-1,i3,1,1)+rsxy1(i1+1,i2+1,
+     & i3,1,1))/(2.*dr1(1)))/(2.*dr1(0))
+                 aj1syss = (rsxy1(i1,i2-1,i3,1,1)-2.*rsxy1(i1,i2,i3,1,
+     & 1)+rsxy1(i1,i2+1,i3,1,1))/(dr1(1)**2)
+                 aj1syrrr = (-rsxy1(i1-2,i2,i3,1,1)+2.*rsxy1(i1-1,i2,
+     & i3,1,1)-2.*rsxy1(i1+1,i2,i3,1,1)+rsxy1(i1+2,i2,i3,1,1))/(2.*
+     & dr1(0)**3)
+                 aj1syrrs = ((-rsxy1(i1-1,i2-1,i3,1,1)+rsxy1(i1-1,i2+1,
+     & i3,1,1))/(2.*dr1(1))-2.*(-rsxy1(i1,i2-1,i3,1,1)+rsxy1(i1,i2+1,
+     & i3,1,1))/(2.*dr1(1))+(-rsxy1(i1+1,i2-1,i3,1,1)+rsxy1(i1+1,i2+1,
+     & i3,1,1))/(2.*dr1(1)))/(dr1(0)**2)
+                 aj1syrss = (-(rsxy1(i1-1,i2-1,i3,1,1)-2.*rsxy1(i1-1,
+     & i2,i3,1,1)+rsxy1(i1-1,i2+1,i3,1,1))/(dr1(1)**2)+(rsxy1(i1+1,i2-
+     & 1,i3,1,1)-2.*rsxy1(i1+1,i2,i3,1,1)+rsxy1(i1+1,i2+1,i3,1,1))/(
+     & dr1(1)**2))/(2.*dr1(0))
+                 aj1sysss = (-rsxy1(i1,i2-2,i3,1,1)+2.*rsxy1(i1,i2-1,
+     & i3,1,1)-2.*rsxy1(i1,i2+1,i3,1,1)+rsxy1(i1,i2+2,i3,1,1))/(2.*
+     & dr1(1)**3)
+                 aj1rxx = aj1rx*aj1rxr+aj1sx*aj1rxs
+                 aj1rxy = aj1ry*aj1rxr+aj1sy*aj1rxs
+                 aj1sxx = aj1rx*aj1sxr+aj1sx*aj1sxs
+                 aj1sxy = aj1ry*aj1sxr+aj1sy*aj1sxs
+                 aj1ryx = aj1rx*aj1ryr+aj1sx*aj1rys
+                 aj1ryy = aj1ry*aj1ryr+aj1sy*aj1rys
+                 aj1syx = aj1rx*aj1syr+aj1sx*aj1sys
+                 aj1syy = aj1ry*aj1syr+aj1sy*aj1sys
+                 t1 = aj1rx**2
+                 t6 = aj1sx**2
+                 aj1rxxx = t1*aj1rxrr+2*aj1rx*aj1sx*aj1rxrs+t6*aj1rxss+
      & aj1rxx*aj1rxr+aj1sxx*aj1rxs
-             aj1rxxy = aj1ry*aj1rx*aj1rxrr+(aj1sy*aj1rx+aj1ry*aj1sx)*
-     & aj1rxrs+aj1sy*aj1sx*aj1rxss+aj1rxy*aj1rxr+aj1sxy*aj1rxs
-             t1 = aj1ry**2
-             t6 = aj1sy**2
-             aj1rxyy = t1*aj1rxrr+2*aj1ry*aj1sy*aj1rxrs+t6*aj1rxss+
+                 aj1rxxy = aj1ry*aj1rx*aj1rxrr+(aj1sy*aj1rx+aj1ry*
+     & aj1sx)*aj1rxrs+aj1sy*aj1sx*aj1rxss+aj1rxy*aj1rxr+aj1sxy*aj1rxs
+                 t1 = aj1ry**2
+                 t6 = aj1sy**2
+                 aj1rxyy = t1*aj1rxrr+2*aj1ry*aj1sy*aj1rxrs+t6*aj1rxss+
      & aj1ryy*aj1rxr+aj1syy*aj1rxs
-             t1 = aj1rx**2
-             t6 = aj1sx**2
-             aj1sxxx = t1*aj1sxrr+2*aj1rx*aj1sx*aj1sxrs+t6*aj1sxss+
+                 t1 = aj1rx**2
+                 t6 = aj1sx**2
+                 aj1sxxx = t1*aj1sxrr+2*aj1rx*aj1sx*aj1sxrs+t6*aj1sxss+
      & aj1rxx*aj1sxr+aj1sxx*aj1sxs
-             aj1sxxy = aj1ry*aj1rx*aj1sxrr+(aj1sy*aj1rx+aj1ry*aj1sx)*
-     & aj1sxrs+aj1sy*aj1sx*aj1sxss+aj1rxy*aj1sxr+aj1sxy*aj1sxs
-             t1 = aj1ry**2
-             t6 = aj1sy**2
-             aj1sxyy = t1*aj1sxrr+2*aj1ry*aj1sy*aj1sxrs+t6*aj1sxss+
+                 aj1sxxy = aj1ry*aj1rx*aj1sxrr+(aj1sy*aj1rx+aj1ry*
+     & aj1sx)*aj1sxrs+aj1sy*aj1sx*aj1sxss+aj1rxy*aj1sxr+aj1sxy*aj1sxs
+                 t1 = aj1ry**2
+                 t6 = aj1sy**2
+                 aj1sxyy = t1*aj1sxrr+2*aj1ry*aj1sy*aj1sxrs+t6*aj1sxss+
      & aj1ryy*aj1sxr+aj1syy*aj1sxs
-             t1 = aj1rx**2
-             t6 = aj1sx**2
-             aj1ryxx = t1*aj1ryrr+2*aj1rx*aj1sx*aj1ryrs+t6*aj1ryss+
+                 t1 = aj1rx**2
+                 t6 = aj1sx**2
+                 aj1ryxx = t1*aj1ryrr+2*aj1rx*aj1sx*aj1ryrs+t6*aj1ryss+
      & aj1rxx*aj1ryr+aj1sxx*aj1rys
-             aj1ryxy = aj1ry*aj1rx*aj1ryrr+(aj1sy*aj1rx+aj1ry*aj1sx)*
-     & aj1ryrs+aj1sy*aj1sx*aj1ryss+aj1rxy*aj1ryr+aj1sxy*aj1rys
-             t1 = aj1ry**2
-             t6 = aj1sy**2
-             aj1ryyy = t1*aj1ryrr+2*aj1ry*aj1sy*aj1ryrs+t6*aj1ryss+
+                 aj1ryxy = aj1ry*aj1rx*aj1ryrr+(aj1sy*aj1rx+aj1ry*
+     & aj1sx)*aj1ryrs+aj1sy*aj1sx*aj1ryss+aj1rxy*aj1ryr+aj1sxy*aj1rys
+                 t1 = aj1ry**2
+                 t6 = aj1sy**2
+                 aj1ryyy = t1*aj1ryrr+2*aj1ry*aj1sy*aj1ryrs+t6*aj1ryss+
      & aj1ryy*aj1ryr+aj1syy*aj1rys
-             t1 = aj1rx**2
-             t6 = aj1sx**2
-             aj1syxx = t1*aj1syrr+2*aj1rx*aj1sx*aj1syrs+t6*aj1syss+
+                 t1 = aj1rx**2
+                 t6 = aj1sx**2
+                 aj1syxx = t1*aj1syrr+2*aj1rx*aj1sx*aj1syrs+t6*aj1syss+
      & aj1rxx*aj1syr+aj1sxx*aj1sys
-             aj1syxy = aj1ry*aj1rx*aj1syrr+(aj1sy*aj1rx+aj1ry*aj1sx)*
-     & aj1syrs+aj1sy*aj1sx*aj1syss+aj1rxy*aj1syr+aj1sxy*aj1sys
-             t1 = aj1ry**2
-             t6 = aj1sy**2
-             aj1syyy = t1*aj1syrr+2*aj1ry*aj1sy*aj1syrs+t6*aj1syss+
+                 aj1syxy = aj1ry*aj1rx*aj1syrr+(aj1sy*aj1rx+aj1ry*
+     & aj1sx)*aj1syrs+aj1sy*aj1sx*aj1syss+aj1rxy*aj1syr+aj1sxy*aj1sys
+                 t1 = aj1ry**2
+                 t6 = aj1sy**2
+                 aj1syyy = t1*aj1syrr+2*aj1ry*aj1sy*aj1syrs+t6*aj1syss+
      & aj1ryy*aj1syr+aj1syy*aj1sys
-             t1 = aj1rx**2
-             t7 = aj1sx**2
-             aj1rxxxx = t1*aj1rx*aj1rxrrr+3*t1*aj1sx*aj1rxrrs+3*aj1rx*
-     & t7*aj1rxrss+t7*aj1sx*aj1rxsss+3*aj1rx*aj1rxx*aj1rxrr+(3*aj1sxx*
-     & aj1rx+3*aj1sx*aj1rxx)*aj1rxrs+3*aj1sxx*aj1sx*aj1rxss+aj1rxxx*
-     & aj1rxr+aj1sxxx*aj1rxs
-             t1 = aj1rx**2
-             t10 = aj1sx**2
-             aj1rxxxy = aj1ry*t1*aj1rxrrr+(aj1sy*t1+2*aj1ry*aj1sx*
+                 t1 = aj1rx**2
+                 t7 = aj1sx**2
+                 aj1rxxxx = t1*aj1rx*aj1rxrrr+3*t1*aj1sx*aj1rxrrs+3*
+     & aj1rx*t7*aj1rxrss+t7*aj1sx*aj1rxsss+3*aj1rx*aj1rxx*aj1rxrr+(3*
+     & aj1sxx*aj1rx+3*aj1sx*aj1rxx)*aj1rxrs+3*aj1sxx*aj1sx*aj1rxss+
+     & aj1rxxx*aj1rxr+aj1sxxx*aj1rxs
+                 t1 = aj1rx**2
+                 t10 = aj1sx**2
+                 aj1rxxxy = aj1ry*t1*aj1rxrrr+(aj1sy*t1+2*aj1ry*aj1sx*
      & aj1rx)*aj1rxrrs+(aj1ry*t10+2*aj1sy*aj1sx*aj1rx)*aj1rxrss+aj1sy*
      & t10*aj1rxsss+(2*aj1rxy*aj1rx+aj1ry*aj1rxx)*aj1rxrr+(aj1ry*
      & aj1sxx+2*aj1sx*aj1rxy+2*aj1sxy*aj1rx+aj1sy*aj1rxx)*aj1rxrs+(
      & aj1sy*aj1sxx+2*aj1sxy*aj1sx)*aj1rxss+aj1rxxy*aj1rxr+aj1sxxy*
      & aj1rxs
-             t1 = aj1ry**2
-             t4 = aj1sy*aj1ry
-             t8 = aj1sy*aj1rx+aj1ry*aj1sx
-             t16 = aj1sy**2
-             aj1rxxyy = t1*aj1rx*aj1rxrrr+(t4*aj1rx+aj1ry*t8)*aj1rxrrs+
-     & (t4*aj1sx+aj1sy*t8)*aj1rxrss+t16*aj1sx*aj1rxsss+(aj1ryy*aj1rx+
-     & 2*aj1ry*aj1rxy)*aj1rxrr+(2*aj1ry*aj1sxy+2*aj1sy*aj1rxy+aj1ryy*
-     & aj1sx+aj1syy*aj1rx)*aj1rxrs+(aj1syy*aj1sx+2*aj1sy*aj1sxy)*
-     & aj1rxss+aj1rxyy*aj1rxr+aj1sxyy*aj1rxs
-             t1 = aj1ry**2
-             t7 = aj1sy**2
-             aj1rxyyy = aj1ry*t1*aj1rxrrr+3*t1*aj1sy*aj1rxrrs+3*aj1ry*
-     & t7*aj1rxrss+t7*aj1sy*aj1rxsss+3*aj1ry*aj1ryy*aj1rxrr+(3*aj1syy*
-     & aj1ry+3*aj1sy*aj1ryy)*aj1rxrs+3*aj1syy*aj1sy*aj1rxss+aj1ryyy*
-     & aj1rxr+aj1syyy*aj1rxs
-             t1 = aj1rx**2
-             t7 = aj1sx**2
-             aj1sxxxx = t1*aj1rx*aj1sxrrr+3*t1*aj1sx*aj1sxrrs+3*aj1rx*
-     & t7*aj1sxrss+t7*aj1sx*aj1sxsss+3*aj1rx*aj1rxx*aj1sxrr+(3*aj1sxx*
-     & aj1rx+3*aj1sx*aj1rxx)*aj1sxrs+3*aj1sxx*aj1sx*aj1sxss+aj1rxxx*
-     & aj1sxr+aj1sxxx*aj1sxs
-             t1 = aj1rx**2
-             t10 = aj1sx**2
-             aj1sxxxy = aj1ry*t1*aj1sxrrr+(aj1sy*t1+2*aj1ry*aj1sx*
+                 t1 = aj1ry**2
+                 t4 = aj1sy*aj1ry
+                 t8 = aj1sy*aj1rx+aj1ry*aj1sx
+                 t16 = aj1sy**2
+                 aj1rxxyy = t1*aj1rx*aj1rxrrr+(t4*aj1rx+aj1ry*t8)*
+     & aj1rxrrs+(t4*aj1sx+aj1sy*t8)*aj1rxrss+t16*aj1sx*aj1rxsss+(
+     & aj1ryy*aj1rx+2*aj1ry*aj1rxy)*aj1rxrr+(2*aj1ry*aj1sxy+2*aj1sy*
+     & aj1rxy+aj1ryy*aj1sx+aj1syy*aj1rx)*aj1rxrs+(aj1syy*aj1sx+2*
+     & aj1sy*aj1sxy)*aj1rxss+aj1rxyy*aj1rxr+aj1sxyy*aj1rxs
+                 t1 = aj1ry**2
+                 t7 = aj1sy**2
+                 aj1rxyyy = aj1ry*t1*aj1rxrrr+3*t1*aj1sy*aj1rxrrs+3*
+     & aj1ry*t7*aj1rxrss+t7*aj1sy*aj1rxsss+3*aj1ry*aj1ryy*aj1rxrr+(3*
+     & aj1syy*aj1ry+3*aj1sy*aj1ryy)*aj1rxrs+3*aj1syy*aj1sy*aj1rxss+
+     & aj1ryyy*aj1rxr+aj1syyy*aj1rxs
+                 t1 = aj1rx**2
+                 t7 = aj1sx**2
+                 aj1sxxxx = t1*aj1rx*aj1sxrrr+3*t1*aj1sx*aj1sxrrs+3*
+     & aj1rx*t7*aj1sxrss+t7*aj1sx*aj1sxsss+3*aj1rx*aj1rxx*aj1sxrr+(3*
+     & aj1sxx*aj1rx+3*aj1sx*aj1rxx)*aj1sxrs+3*aj1sxx*aj1sx*aj1sxss+
+     & aj1rxxx*aj1sxr+aj1sxxx*aj1sxs
+                 t1 = aj1rx**2
+                 t10 = aj1sx**2
+                 aj1sxxxy = aj1ry*t1*aj1sxrrr+(aj1sy*t1+2*aj1ry*aj1sx*
      & aj1rx)*aj1sxrrs+(aj1ry*t10+2*aj1sy*aj1sx*aj1rx)*aj1sxrss+aj1sy*
      & t10*aj1sxsss+(2*aj1rxy*aj1rx+aj1ry*aj1rxx)*aj1sxrr+(aj1ry*
      & aj1sxx+2*aj1sx*aj1rxy+2*aj1sxy*aj1rx+aj1sy*aj1rxx)*aj1sxrs+(
      & aj1sy*aj1sxx+2*aj1sxy*aj1sx)*aj1sxss+aj1rxxy*aj1sxr+aj1sxxy*
      & aj1sxs
-             t1 = aj1ry**2
-             t4 = aj1sy*aj1ry
-             t8 = aj1sy*aj1rx+aj1ry*aj1sx
-             t16 = aj1sy**2
-             aj1sxxyy = t1*aj1rx*aj1sxrrr+(t4*aj1rx+aj1ry*t8)*aj1sxrrs+
-     & (t4*aj1sx+aj1sy*t8)*aj1sxrss+t16*aj1sx*aj1sxsss+(aj1ryy*aj1rx+
-     & 2*aj1ry*aj1rxy)*aj1sxrr+(2*aj1ry*aj1sxy+2*aj1sy*aj1rxy+aj1ryy*
-     & aj1sx+aj1syy*aj1rx)*aj1sxrs+(aj1syy*aj1sx+2*aj1sy*aj1sxy)*
-     & aj1sxss+aj1rxyy*aj1sxr+aj1sxyy*aj1sxs
-             t1 = aj1ry**2
-             t7 = aj1sy**2
-             aj1sxyyy = aj1ry*t1*aj1sxrrr+3*t1*aj1sy*aj1sxrrs+3*aj1ry*
-     & t7*aj1sxrss+t7*aj1sy*aj1sxsss+3*aj1ry*aj1ryy*aj1sxrr+(3*aj1syy*
-     & aj1ry+3*aj1sy*aj1ryy)*aj1sxrs+3*aj1syy*aj1sy*aj1sxss+aj1ryyy*
-     & aj1sxr+aj1syyy*aj1sxs
-             t1 = aj1rx**2
-             t7 = aj1sx**2
-             aj1ryxxx = t1*aj1rx*aj1ryrrr+3*t1*aj1sx*aj1ryrrs+3*aj1rx*
-     & t7*aj1ryrss+t7*aj1sx*aj1rysss+3*aj1rx*aj1rxx*aj1ryrr+(3*aj1sxx*
-     & aj1rx+3*aj1sx*aj1rxx)*aj1ryrs+3*aj1sxx*aj1sx*aj1ryss+aj1rxxx*
-     & aj1ryr+aj1sxxx*aj1rys
-             t1 = aj1rx**2
-             t10 = aj1sx**2
-             aj1ryxxy = aj1ry*t1*aj1ryrrr+(aj1sy*t1+2*aj1ry*aj1sx*
+                 t1 = aj1ry**2
+                 t4 = aj1sy*aj1ry
+                 t8 = aj1sy*aj1rx+aj1ry*aj1sx
+                 t16 = aj1sy**2
+                 aj1sxxyy = t1*aj1rx*aj1sxrrr+(t4*aj1rx+aj1ry*t8)*
+     & aj1sxrrs+(t4*aj1sx+aj1sy*t8)*aj1sxrss+t16*aj1sx*aj1sxsss+(
+     & aj1ryy*aj1rx+2*aj1ry*aj1rxy)*aj1sxrr+(2*aj1ry*aj1sxy+2*aj1sy*
+     & aj1rxy+aj1ryy*aj1sx+aj1syy*aj1rx)*aj1sxrs+(aj1syy*aj1sx+2*
+     & aj1sy*aj1sxy)*aj1sxss+aj1rxyy*aj1sxr+aj1sxyy*aj1sxs
+                 t1 = aj1ry**2
+                 t7 = aj1sy**2
+                 aj1sxyyy = aj1ry*t1*aj1sxrrr+3*t1*aj1sy*aj1sxrrs+3*
+     & aj1ry*t7*aj1sxrss+t7*aj1sy*aj1sxsss+3*aj1ry*aj1ryy*aj1sxrr+(3*
+     & aj1syy*aj1ry+3*aj1sy*aj1ryy)*aj1sxrs+3*aj1syy*aj1sy*aj1sxss+
+     & aj1ryyy*aj1sxr+aj1syyy*aj1sxs
+                 t1 = aj1rx**2
+                 t7 = aj1sx**2
+                 aj1ryxxx = t1*aj1rx*aj1ryrrr+3*t1*aj1sx*aj1ryrrs+3*
+     & aj1rx*t7*aj1ryrss+t7*aj1sx*aj1rysss+3*aj1rx*aj1rxx*aj1ryrr+(3*
+     & aj1sxx*aj1rx+3*aj1sx*aj1rxx)*aj1ryrs+3*aj1sxx*aj1sx*aj1ryss+
+     & aj1rxxx*aj1ryr+aj1sxxx*aj1rys
+                 t1 = aj1rx**2
+                 t10 = aj1sx**2
+                 aj1ryxxy = aj1ry*t1*aj1ryrrr+(aj1sy*t1+2*aj1ry*aj1sx*
      & aj1rx)*aj1ryrrs+(aj1ry*t10+2*aj1sy*aj1sx*aj1rx)*aj1ryrss+aj1sy*
      & t10*aj1rysss+(2*aj1rxy*aj1rx+aj1ry*aj1rxx)*aj1ryrr+(aj1ry*
      & aj1sxx+2*aj1sx*aj1rxy+2*aj1sxy*aj1rx+aj1sy*aj1rxx)*aj1ryrs+(
      & aj1sy*aj1sxx+2*aj1sxy*aj1sx)*aj1ryss+aj1rxxy*aj1ryr+aj1sxxy*
      & aj1rys
-             t1 = aj1ry**2
-             t4 = aj1sy*aj1ry
-             t8 = aj1sy*aj1rx+aj1ry*aj1sx
-             t16 = aj1sy**2
-             aj1ryxyy = t1*aj1rx*aj1ryrrr+(t4*aj1rx+aj1ry*t8)*aj1ryrrs+
-     & (t4*aj1sx+aj1sy*t8)*aj1ryrss+t16*aj1sx*aj1rysss+(aj1ryy*aj1rx+
-     & 2*aj1ry*aj1rxy)*aj1ryrr+(2*aj1ry*aj1sxy+2*aj1sy*aj1rxy+aj1ryy*
-     & aj1sx+aj1syy*aj1rx)*aj1ryrs+(aj1syy*aj1sx+2*aj1sy*aj1sxy)*
-     & aj1ryss+aj1rxyy*aj1ryr+aj1sxyy*aj1rys
-             t1 = aj1ry**2
-             t7 = aj1sy**2
-             aj1ryyyy = aj1ry*t1*aj1ryrrr+3*t1*aj1sy*aj1ryrrs+3*aj1ry*
-     & t7*aj1ryrss+t7*aj1sy*aj1rysss+3*aj1ry*aj1ryy*aj1ryrr+(3*aj1syy*
-     & aj1ry+3*aj1sy*aj1ryy)*aj1ryrs+3*aj1syy*aj1sy*aj1ryss+aj1ryyy*
-     & aj1ryr+aj1syyy*aj1rys
-             t1 = aj1rx**2
-             t7 = aj1sx**2
-             aj1syxxx = t1*aj1rx*aj1syrrr+3*t1*aj1sx*aj1syrrs+3*aj1rx*
-     & t7*aj1syrss+t7*aj1sx*aj1sysss+3*aj1rx*aj1rxx*aj1syrr+(3*aj1sxx*
-     & aj1rx+3*aj1sx*aj1rxx)*aj1syrs+3*aj1sxx*aj1sx*aj1syss+aj1rxxx*
-     & aj1syr+aj1sxxx*aj1sys
-             t1 = aj1rx**2
-             t10 = aj1sx**2
-             aj1syxxy = aj1ry*t1*aj1syrrr+(aj1sy*t1+2*aj1ry*aj1sx*
+                 t1 = aj1ry**2
+                 t4 = aj1sy*aj1ry
+                 t8 = aj1sy*aj1rx+aj1ry*aj1sx
+                 t16 = aj1sy**2
+                 aj1ryxyy = t1*aj1rx*aj1ryrrr+(t4*aj1rx+aj1ry*t8)*
+     & aj1ryrrs+(t4*aj1sx+aj1sy*t8)*aj1ryrss+t16*aj1sx*aj1rysss+(
+     & aj1ryy*aj1rx+2*aj1ry*aj1rxy)*aj1ryrr+(2*aj1ry*aj1sxy+2*aj1sy*
+     & aj1rxy+aj1ryy*aj1sx+aj1syy*aj1rx)*aj1ryrs+(aj1syy*aj1sx+2*
+     & aj1sy*aj1sxy)*aj1ryss+aj1rxyy*aj1ryr+aj1sxyy*aj1rys
+                 t1 = aj1ry**2
+                 t7 = aj1sy**2
+                 aj1ryyyy = aj1ry*t1*aj1ryrrr+3*t1*aj1sy*aj1ryrrs+3*
+     & aj1ry*t7*aj1ryrss+t7*aj1sy*aj1rysss+3*aj1ry*aj1ryy*aj1ryrr+(3*
+     & aj1syy*aj1ry+3*aj1sy*aj1ryy)*aj1ryrs+3*aj1syy*aj1sy*aj1ryss+
+     & aj1ryyy*aj1ryr+aj1syyy*aj1rys
+                 t1 = aj1rx**2
+                 t7 = aj1sx**2
+                 aj1syxxx = t1*aj1rx*aj1syrrr+3*t1*aj1sx*aj1syrrs+3*
+     & aj1rx*t7*aj1syrss+t7*aj1sx*aj1sysss+3*aj1rx*aj1rxx*aj1syrr+(3*
+     & aj1sxx*aj1rx+3*aj1sx*aj1rxx)*aj1syrs+3*aj1sxx*aj1sx*aj1syss+
+     & aj1rxxx*aj1syr+aj1sxxx*aj1sys
+                 t1 = aj1rx**2
+                 t10 = aj1sx**2
+                 aj1syxxy = aj1ry*t1*aj1syrrr+(aj1sy*t1+2*aj1ry*aj1sx*
      & aj1rx)*aj1syrrs+(aj1ry*t10+2*aj1sy*aj1sx*aj1rx)*aj1syrss+aj1sy*
      & t10*aj1sysss+(2*aj1rxy*aj1rx+aj1ry*aj1rxx)*aj1syrr+(aj1ry*
      & aj1sxx+2*aj1sx*aj1rxy+2*aj1sxy*aj1rx+aj1sy*aj1rxx)*aj1syrs+(
      & aj1sy*aj1sxx+2*aj1sxy*aj1sx)*aj1syss+aj1rxxy*aj1syr+aj1sxxy*
      & aj1sys
-             t1 = aj1ry**2
-             t4 = aj1sy*aj1ry
-             t8 = aj1sy*aj1rx+aj1ry*aj1sx
-             t16 = aj1sy**2
-             aj1syxyy = t1*aj1rx*aj1syrrr+(t4*aj1rx+aj1ry*t8)*aj1syrrs+
-     & (t4*aj1sx+aj1sy*t8)*aj1syrss+t16*aj1sx*aj1sysss+(aj1ryy*aj1rx+
-     & 2*aj1ry*aj1rxy)*aj1syrr+(2*aj1ry*aj1sxy+2*aj1sy*aj1rxy+aj1ryy*
-     & aj1sx+aj1syy*aj1rx)*aj1syrs+(aj1syy*aj1sx+2*aj1sy*aj1sxy)*
-     & aj1syss+aj1rxyy*aj1syr+aj1sxyy*aj1sys
-             t1 = aj1ry**2
-             t7 = aj1sy**2
-             aj1syyyy = aj1ry*t1*aj1syrrr+3*t1*aj1sy*aj1syrrs+3*aj1ry*
-     & t7*aj1syrss+t7*aj1sy*aj1sysss+3*aj1ry*aj1ryy*aj1syrr+(3*aj1syy*
-     & aj1ry+3*aj1sy*aj1ryy)*aj1syrs+3*aj1syy*aj1sy*aj1syss+aj1ryyy*
-     & aj1syr+aj1syyy*aj1sys
-              uu1 = u1(i1,i2,i3,ex)
-              uu1r = (-u1(i1-1,i2,i3,ex)+u1(i1+1,i2,i3,ex))/(2.*dr1(0))
-              uu1s = (-u1(i1,i2-1,i3,ex)+u1(i1,i2+1,i3,ex))/(2.*dr1(1))
-              uu1rr = (u1(i1-1,i2,i3,ex)-2.*u1(i1,i2,i3,ex)+u1(i1+1,i2,
-     & i3,ex))/(dr1(0)**2)
-              uu1rs = (-(-u1(i1-1,i2-1,i3,ex)+u1(i1-1,i2+1,i3,ex))/(2.*
-     & dr1(1))+(-u1(i1+1,i2-1,i3,ex)+u1(i1+1,i2+1,i3,ex))/(2.*dr1(1)))
-     & /(2.*dr1(0))
-              uu1ss = (u1(i1,i2-1,i3,ex)-2.*u1(i1,i2,i3,ex)+u1(i1,i2+1,
-     & i3,ex))/(dr1(1)**2)
-              uu1rrr = (-u1(i1-2,i2,i3,ex)+2.*u1(i1-1,i2,i3,ex)-2.*u1(
-     & i1+1,i2,i3,ex)+u1(i1+2,i2,i3,ex))/(2.*dr1(0)**3)
-              uu1rrs = ((-u1(i1-1,i2-1,i3,ex)+u1(i1-1,i2+1,i3,ex))/(2.*
-     & dr1(1))-2.*(-u1(i1,i2-1,i3,ex)+u1(i1,i2+1,i3,ex))/(2.*dr1(1))+(
-     & -u1(i1+1,i2-1,i3,ex)+u1(i1+1,i2+1,i3,ex))/(2.*dr1(1)))/(dr1(0)*
-     & *2)
-              uu1rss = (-(u1(i1-1,i2-1,i3,ex)-2.*u1(i1-1,i2,i3,ex)+u1(
-     & i1-1,i2+1,i3,ex))/(dr1(1)**2)+(u1(i1+1,i2-1,i3,ex)-2.*u1(i1+1,
-     & i2,i3,ex)+u1(i1+1,i2+1,i3,ex))/(dr1(1)**2))/(2.*dr1(0))
-              uu1sss = (-u1(i1,i2-2,i3,ex)+2.*u1(i1,i2-1,i3,ex)-2.*u1(
-     & i1,i2+1,i3,ex)+u1(i1,i2+2,i3,ex))/(2.*dr1(1)**3)
-              uu1rrrr = (u1(i1-2,i2,i3,ex)-4.*u1(i1-1,i2,i3,ex)+6.*u1(
-     & i1,i2,i3,ex)-4.*u1(i1+1,i2,i3,ex)+u1(i1+2,i2,i3,ex))/(dr1(0)**
-     & 4)
-              uu1rrrs = (-(-u1(i1-2,i2-1,i3,ex)+u1(i1-2,i2+1,i3,ex))/(
-     & 2.*dr1(1))+2.*(-u1(i1-1,i2-1,i3,ex)+u1(i1-1,i2+1,i3,ex))/(2.*
-     & dr1(1))-2.*(-u1(i1+1,i2-1,i3,ex)+u1(i1+1,i2+1,i3,ex))/(2.*dr1(
-     & 1))+(-u1(i1+2,i2-1,i3,ex)+u1(i1+2,i2+1,i3,ex))/(2.*dr1(1)))/(
-     & 2.*dr1(0)**3)
-              uu1rrss = ((u1(i1-1,i2-1,i3,ex)-2.*u1(i1-1,i2,i3,ex)+u1(
-     & i1-1,i2+1,i3,ex))/(dr1(1)**2)-2.*(u1(i1,i2-1,i3,ex)-2.*u1(i1,
-     & i2,i3,ex)+u1(i1,i2+1,i3,ex))/(dr1(1)**2)+(u1(i1+1,i2-1,i3,ex)-
-     & 2.*u1(i1+1,i2,i3,ex)+u1(i1+1,i2+1,i3,ex))/(dr1(1)**2))/(dr1(0)*
-     & *2)
-              uu1rsss = (-(-u1(i1-1,i2-2,i3,ex)+2.*u1(i1-1,i2-1,i3,ex)-
-     & 2.*u1(i1-1,i2+1,i3,ex)+u1(i1-1,i2+2,i3,ex))/(2.*dr1(1)**3)+(-
-     & u1(i1+1,i2-2,i3,ex)+2.*u1(i1+1,i2-1,i3,ex)-2.*u1(i1+1,i2+1,i3,
-     & ex)+u1(i1+1,i2+2,i3,ex))/(2.*dr1(1)**3))/(2.*dr1(0))
-              uu1ssss = (u1(i1,i2-2,i3,ex)-4.*u1(i1,i2-1,i3,ex)+6.*u1(
-     & i1,i2,i3,ex)-4.*u1(i1,i2+1,i3,ex)+u1(i1,i2+2,i3,ex))/(dr1(1)**
-     & 4)
-               t1 = aj1rx**2
-               t7 = aj1sx**2
-               u1xxx = t1*aj1rx*uu1rrr+3*t1*aj1sx*uu1rrs+3*aj1rx*t7*
-     & uu1rss+t7*aj1sx*uu1sss+3*aj1rx*aj1rxx*uu1rr+(3*aj1sxx*aj1rx+3*
-     & aj1sx*aj1rxx)*uu1rs+3*aj1sxx*aj1sx*uu1ss+aj1rxxx*uu1r+aj1sxxx*
-     & uu1s
-               t1 = aj1rx**2
-               t10 = aj1sx**2
-               u1xxy = aj1ry*t1*uu1rrr+(aj1sy*t1+2*aj1ry*aj1sx*aj1rx)*
-     & uu1rrs+(aj1ry*t10+2*aj1sy*aj1sx*aj1rx)*uu1rss+aj1sy*t10*uu1sss+
-     & (2*aj1rxy*aj1rx+aj1ry*aj1rxx)*uu1rr+(aj1ry*aj1sxx+2*aj1sx*
-     & aj1rxy+2*aj1sxy*aj1rx+aj1sy*aj1rxx)*uu1rs+(aj1sy*aj1sxx+2*
-     & aj1sxy*aj1sx)*uu1ss+aj1rxxy*uu1r+aj1sxxy*uu1s
-               t1 = aj1ry**2
-               t4 = aj1sy*aj1ry
-               t8 = aj1sy*aj1rx+aj1ry*aj1sx
-               t16 = aj1sy**2
-               u1xyy = t1*aj1rx*uu1rrr+(t4*aj1rx+aj1ry*t8)*uu1rrs+(t4*
-     & aj1sx+aj1sy*t8)*uu1rss+t16*aj1sx*uu1sss+(aj1ryy*aj1rx+2*aj1ry*
-     & aj1rxy)*uu1rr+(2*aj1ry*aj1sxy+2*aj1sy*aj1rxy+aj1ryy*aj1sx+
-     & aj1syy*aj1rx)*uu1rs+(aj1syy*aj1sx+2*aj1sy*aj1sxy)*uu1ss+
+                 t1 = aj1ry**2
+                 t4 = aj1sy*aj1ry
+                 t8 = aj1sy*aj1rx+aj1ry*aj1sx
+                 t16 = aj1sy**2
+                 aj1syxyy = t1*aj1rx*aj1syrrr+(t4*aj1rx+aj1ry*t8)*
+     & aj1syrrs+(t4*aj1sx+aj1sy*t8)*aj1syrss+t16*aj1sx*aj1sysss+(
+     & aj1ryy*aj1rx+2*aj1ry*aj1rxy)*aj1syrr+(2*aj1ry*aj1sxy+2*aj1sy*
+     & aj1rxy+aj1ryy*aj1sx+aj1syy*aj1rx)*aj1syrs+(aj1syy*aj1sx+2*
+     & aj1sy*aj1sxy)*aj1syss+aj1rxyy*aj1syr+aj1sxyy*aj1sys
+                 t1 = aj1ry**2
+                 t7 = aj1sy**2
+                 aj1syyyy = aj1ry*t1*aj1syrrr+3*t1*aj1sy*aj1syrrs+3*
+     & aj1ry*t7*aj1syrss+t7*aj1sy*aj1sysss+3*aj1ry*aj1ryy*aj1syrr+(3*
+     & aj1syy*aj1ry+3*aj1sy*aj1ryy)*aj1syrs+3*aj1syy*aj1sy*aj1syss+
+     & aj1ryyy*aj1syr+aj1syyy*aj1sys
+                  uu1 = u1(i1,i2,i3,ex)
+                  uu1r = (-u1(i1-1,i2,i3,ex)+u1(i1+1,i2,i3,ex))/(2.*
+     & dr1(0))
+                  uu1s = (-u1(i1,i2-1,i3,ex)+u1(i1,i2+1,i3,ex))/(2.*
+     & dr1(1))
+                  uu1rr = (u1(i1-1,i2,i3,ex)-2.*u1(i1,i2,i3,ex)+u1(i1+
+     & 1,i2,i3,ex))/(dr1(0)**2)
+                  uu1rs = (-(-u1(i1-1,i2-1,i3,ex)+u1(i1-1,i2+1,i3,ex))
+     & /(2.*dr1(1))+(-u1(i1+1,i2-1,i3,ex)+u1(i1+1,i2+1,i3,ex))/(2.*
+     & dr1(1)))/(2.*dr1(0))
+                  uu1ss = (u1(i1,i2-1,i3,ex)-2.*u1(i1,i2,i3,ex)+u1(i1,
+     & i2+1,i3,ex))/(dr1(1)**2)
+                  uu1rrr = (-u1(i1-2,i2,i3,ex)+2.*u1(i1-1,i2,i3,ex)-2.*
+     & u1(i1+1,i2,i3,ex)+u1(i1+2,i2,i3,ex))/(2.*dr1(0)**3)
+                  uu1rrs = ((-u1(i1-1,i2-1,i3,ex)+u1(i1-1,i2+1,i3,ex))
+     & /(2.*dr1(1))-2.*(-u1(i1,i2-1,i3,ex)+u1(i1,i2+1,i3,ex))/(2.*dr1(
+     & 1))+(-u1(i1+1,i2-1,i3,ex)+u1(i1+1,i2+1,i3,ex))/(2.*dr1(1)))/(
+     & dr1(0)**2)
+                  uu1rss = (-(u1(i1-1,i2-1,i3,ex)-2.*u1(i1-1,i2,i3,ex)+
+     & u1(i1-1,i2+1,i3,ex))/(dr1(1)**2)+(u1(i1+1,i2-1,i3,ex)-2.*u1(i1+
+     & 1,i2,i3,ex)+u1(i1+1,i2+1,i3,ex))/(dr1(1)**2))/(2.*dr1(0))
+                  uu1sss = (-u1(i1,i2-2,i3,ex)+2.*u1(i1,i2-1,i3,ex)-2.*
+     & u1(i1,i2+1,i3,ex)+u1(i1,i2+2,i3,ex))/(2.*dr1(1)**3)
+                  uu1rrrr = (u1(i1-2,i2,i3,ex)-4.*u1(i1-1,i2,i3,ex)+6.*
+     & u1(i1,i2,i3,ex)-4.*u1(i1+1,i2,i3,ex)+u1(i1+2,i2,i3,ex))/(dr1(0)
+     & **4)
+                  uu1rrrs = (-(-u1(i1-2,i2-1,i3,ex)+u1(i1-2,i2+1,i3,ex)
+     & )/(2.*dr1(1))+2.*(-u1(i1-1,i2-1,i3,ex)+u1(i1-1,i2+1,i3,ex))/(
+     & 2.*dr1(1))-2.*(-u1(i1+1,i2-1,i3,ex)+u1(i1+1,i2+1,i3,ex))/(2.*
+     & dr1(1))+(-u1(i1+2,i2-1,i3,ex)+u1(i1+2,i2+1,i3,ex))/(2.*dr1(1)))
+     & /(2.*dr1(0)**3)
+                  uu1rrss = ((u1(i1-1,i2-1,i3,ex)-2.*u1(i1-1,i2,i3,ex)+
+     & u1(i1-1,i2+1,i3,ex))/(dr1(1)**2)-2.*(u1(i1,i2-1,i3,ex)-2.*u1(
+     & i1,i2,i3,ex)+u1(i1,i2+1,i3,ex))/(dr1(1)**2)+(u1(i1+1,i2-1,i3,
+     & ex)-2.*u1(i1+1,i2,i3,ex)+u1(i1+1,i2+1,i3,ex))/(dr1(1)**2))/(
+     & dr1(0)**2)
+                  uu1rsss = (-(-u1(i1-1,i2-2,i3,ex)+2.*u1(i1-1,i2-1,i3,
+     & ex)-2.*u1(i1-1,i2+1,i3,ex)+u1(i1-1,i2+2,i3,ex))/(2.*dr1(1)**3)+
+     & (-u1(i1+1,i2-2,i3,ex)+2.*u1(i1+1,i2-1,i3,ex)-2.*u1(i1+1,i2+1,
+     & i3,ex)+u1(i1+1,i2+2,i3,ex))/(2.*dr1(1)**3))/(2.*dr1(0))
+                  uu1ssss = (u1(i1,i2-2,i3,ex)-4.*u1(i1,i2-1,i3,ex)+6.*
+     & u1(i1,i2,i3,ex)-4.*u1(i1,i2+1,i3,ex)+u1(i1,i2+2,i3,ex))/(dr1(1)
+     & **4)
+                   t1 = aj1rx**2
+                   t7 = aj1sx**2
+                   u1xxx = t1*aj1rx*uu1rrr+3*t1*aj1sx*uu1rrs+3*aj1rx*
+     & t7*uu1rss+t7*aj1sx*uu1sss+3*aj1rx*aj1rxx*uu1rr+(3*aj1sxx*aj1rx+
+     & 3*aj1sx*aj1rxx)*uu1rs+3*aj1sxx*aj1sx*uu1ss+aj1rxxx*uu1r+
+     & aj1sxxx*uu1s
+                   t1 = aj1rx**2
+                   t10 = aj1sx**2
+                   u1xxy = aj1ry*t1*uu1rrr+(aj1sy*t1+2*aj1ry*aj1sx*
+     & aj1rx)*uu1rrs+(aj1ry*t10+2*aj1sy*aj1sx*aj1rx)*uu1rss+aj1sy*t10*
+     & uu1sss+(2*aj1rxy*aj1rx+aj1ry*aj1rxx)*uu1rr+(aj1ry*aj1sxx+2*
+     & aj1sx*aj1rxy+2*aj1sxy*aj1rx+aj1sy*aj1rxx)*uu1rs+(aj1sy*aj1sxx+
+     & 2*aj1sxy*aj1sx)*uu1ss+aj1rxxy*uu1r+aj1sxxy*uu1s
+                   t1 = aj1ry**2
+                   t4 = aj1sy*aj1ry
+                   t8 = aj1sy*aj1rx+aj1ry*aj1sx
+                   t16 = aj1sy**2
+                   u1xyy = t1*aj1rx*uu1rrr+(t4*aj1rx+aj1ry*t8)*uu1rrs+(
+     & t4*aj1sx+aj1sy*t8)*uu1rss+t16*aj1sx*uu1sss+(aj1ryy*aj1rx+2*
+     & aj1ry*aj1rxy)*uu1rr+(2*aj1ry*aj1sxy+2*aj1sy*aj1rxy+aj1ryy*
+     & aj1sx+aj1syy*aj1rx)*uu1rs+(aj1syy*aj1sx+2*aj1sy*aj1sxy)*uu1ss+
      & aj1rxyy*uu1r+aj1sxyy*uu1s
-               t1 = aj1ry**2
-               t7 = aj1sy**2
-               u1yyy = aj1ry*t1*uu1rrr+3*t1*aj1sy*uu1rrs+3*aj1ry*t7*
-     & uu1rss+t7*aj1sy*uu1sss+3*aj1ry*aj1ryy*uu1rr+(3*aj1syy*aj1ry+3*
-     & aj1sy*aj1ryy)*uu1rs+3*aj1syy*aj1sy*uu1ss+aj1ryyy*uu1r+aj1syyy*
-     & uu1s
-               t1 = aj1rx**2
-               t2 = t1**2
-               t8 = aj1sx**2
-               t16 = t8**2
-               t25 = aj1sxx*aj1rx
-               t27 = t25+aj1sx*aj1rxx
-               t28 = 3*t27
-               t30 = 2*t27
-               t46 = aj1rxx**2
-               t60 = aj1sxx**2
-               u1xxxx = t2*uu1rrrr+4*t1*aj1rx*aj1sx*uu1rrrs+6*t1*t8*
-     & uu1rrss+4*aj1rx*t8*aj1sx*uu1rsss+t16*uu1ssss+6*t1*aj1rxx*
+                   t1 = aj1ry**2
+                   t7 = aj1sy**2
+                   u1yyy = aj1ry*t1*uu1rrr+3*t1*aj1sy*uu1rrs+3*aj1ry*
+     & t7*uu1rss+t7*aj1sy*uu1sss+3*aj1ry*aj1ryy*uu1rr+(3*aj1syy*aj1ry+
+     & 3*aj1sy*aj1ryy)*uu1rs+3*aj1syy*aj1sy*uu1ss+aj1ryyy*uu1r+
+     & aj1syyy*uu1s
+                   t1 = aj1rx**2
+                   t2 = t1**2
+                   t8 = aj1sx**2
+                   t16 = t8**2
+                   t25 = aj1sxx*aj1rx
+                   t27 = t25+aj1sx*aj1rxx
+                   t28 = 3*t27
+                   t30 = 2*t27
+                   t46 = aj1rxx**2
+                   t60 = aj1sxx**2
+                   u1xxxx = t2*uu1rrrr+4*t1*aj1rx*aj1sx*uu1rrrs+6*t1*
+     & t8*uu1rrss+4*aj1rx*t8*aj1sx*uu1rsss+t16*uu1ssss+6*t1*aj1rxx*
      & uu1rrr+(7*aj1sx*aj1rx*aj1rxx+aj1sxx*t1+aj1rx*t28+aj1rx*t30)*
      & uu1rrs+(aj1sx*t28+7*t25*aj1sx+aj1rxx*t8+aj1sx*t30)*uu1rss+6*t8*
      & aj1sxx*uu1sss+(4*aj1rx*aj1rxxx+3*t46)*uu1rr+(4*aj1sxxx*aj1rx+4*
      & aj1sx*aj1rxxx+6*aj1sxx*aj1rxx)*uu1rs+(4*aj1sxxx*aj1sx+3*t60)*
      & uu1ss+aj1rxxxx*uu1r+aj1sxxxx*uu1s
-               t1 = aj1ry**2
-               t2 = aj1rx**2
-               t5 = aj1sy*aj1ry
-               t11 = aj1sy*t2+2*aj1ry*aj1sx*aj1rx
-               t16 = aj1sx**2
-               t21 = aj1ry*t16+2*aj1sy*aj1sx*aj1rx
-               t29 = aj1sy**2
-               t38 = 2*aj1rxy*aj1rx+aj1ry*aj1rxx
-               t52 = aj1sx*aj1rxy
-               t54 = aj1sxy*aj1rx
-               t57 = aj1ry*aj1sxx+2*t52+2*t54+aj1sy*aj1rxx
-               t60 = 2*t52+2*t54
-               t68 = aj1sy*aj1sxx+2*aj1sxy*aj1sx
-               t92 = aj1rxy**2
-               t110 = aj1sxy**2
-               u1xxyy = t1*t2*uu1rrrr+(t5*t2+aj1ry*t11)*uu1rrrs+(aj1sy*
-     & t11+aj1ry*t21)*uu1rrss+(aj1sy*t21+t5*t16)*uu1rsss+t29*t16*
-     & uu1ssss+(2*aj1ry*aj1rxy*aj1rx+aj1ry*t38+aj1ryy*t2)*uu1rrr+(
+                   t1 = aj1ry**2
+                   t2 = aj1rx**2
+                   t5 = aj1sy*aj1ry
+                   t11 = aj1sy*t2+2*aj1ry*aj1sx*aj1rx
+                   t16 = aj1sx**2
+                   t21 = aj1ry*t16+2*aj1sy*aj1sx*aj1rx
+                   t29 = aj1sy**2
+                   t38 = 2*aj1rxy*aj1rx+aj1ry*aj1rxx
+                   t52 = aj1sx*aj1rxy
+                   t54 = aj1sxy*aj1rx
+                   t57 = aj1ry*aj1sxx+2*t52+2*t54+aj1sy*aj1rxx
+                   t60 = 2*t52+2*t54
+                   t68 = aj1sy*aj1sxx+2*aj1sxy*aj1sx
+                   t92 = aj1rxy**2
+                   t110 = aj1sxy**2
+                   u1xxyy = t1*t2*uu1rrrr+(t5*t2+aj1ry*t11)*uu1rrrs+(
+     & aj1sy*t11+aj1ry*t21)*uu1rrss+(aj1sy*t21+t5*t16)*uu1rsss+t29*
+     & t16*uu1ssss+(2*aj1ry*aj1rxy*aj1rx+aj1ry*t38+aj1ryy*t2)*uu1rrr+(
      & aj1sy*t38+2*aj1sy*aj1rxy*aj1rx+2*aj1ryy*aj1sx*aj1rx+aj1syy*t2+
      & aj1ry*t57+aj1ry*t60)*uu1rrs+(aj1sy*t57+aj1ry*t68+aj1ryy*t16+2*
      & aj1ry*aj1sxy*aj1sx+2*aj1syy*aj1sx*aj1rx+aj1sy*t60)*uu1rss+(2*
@@ -4970,128 +6665,130 @@
      & aj1rx+aj1syy*aj1rxx+2*aj1sx*aj1rxyy)*uu1rs+(2*t110+2*aj1sy*
      & aj1sxxy+aj1syy*aj1sxx+2*aj1sx*aj1sxyy)*uu1ss+aj1rxxyy*uu1r+
      & aj1sxxyy*uu1s
-               t1 = aj1ry**2
-               t2 = t1**2
-               t8 = aj1sy**2
-               t16 = t8**2
-               t25 = aj1syy*aj1ry
-               t27 = t25+aj1sy*aj1ryy
-               t28 = 3*t27
-               t30 = 2*t27
-               t46 = aj1ryy**2
-               t60 = aj1syy**2
-               u1yyyy = t2*uu1rrrr+4*t1*aj1ry*aj1sy*uu1rrrs+6*t1*t8*
-     & uu1rrss+4*aj1ry*t8*aj1sy*uu1rsss+t16*uu1ssss+6*t1*aj1ryy*
+                   t1 = aj1ry**2
+                   t2 = t1**2
+                   t8 = aj1sy**2
+                   t16 = t8**2
+                   t25 = aj1syy*aj1ry
+                   t27 = t25+aj1sy*aj1ryy
+                   t28 = 3*t27
+                   t30 = 2*t27
+                   t46 = aj1ryy**2
+                   t60 = aj1syy**2
+                   u1yyyy = t2*uu1rrrr+4*t1*aj1ry*aj1sy*uu1rrrs+6*t1*
+     & t8*uu1rrss+4*aj1ry*t8*aj1sy*uu1rsss+t16*uu1ssss+6*t1*aj1ryy*
      & uu1rrr+(7*aj1sy*aj1ry*aj1ryy+aj1syy*t1+aj1ry*t28+aj1ry*t30)*
      & uu1rrs+(aj1sy*t28+7*t25*aj1sy+aj1ryy*t8+aj1sy*t30)*uu1rss+6*t8*
      & aj1syy*uu1sss+(4*aj1ry*aj1ryyy+3*t46)*uu1rr+(4*aj1syyy*aj1ry+4*
      & aj1sy*aj1ryyy+6*aj1syy*aj1ryy)*uu1rs+(4*aj1syyy*aj1sy+3*t60)*
      & uu1ss+aj1ryyyy*uu1r+aj1syyyy*uu1s
-             u1LapSq = u1xxxx +2.* u1xxyy + u1yyyy
-              vv1 = u1(i1,i2,i3,ey)
-              vv1r = (-u1(i1-1,i2,i3,ey)+u1(i1+1,i2,i3,ey))/(2.*dr1(0))
-              vv1s = (-u1(i1,i2-1,i3,ey)+u1(i1,i2+1,i3,ey))/(2.*dr1(1))
-              vv1rr = (u1(i1-1,i2,i3,ey)-2.*u1(i1,i2,i3,ey)+u1(i1+1,i2,
-     & i3,ey))/(dr1(0)**2)
-              vv1rs = (-(-u1(i1-1,i2-1,i3,ey)+u1(i1-1,i2+1,i3,ey))/(2.*
-     & dr1(1))+(-u1(i1+1,i2-1,i3,ey)+u1(i1+1,i2+1,i3,ey))/(2.*dr1(1)))
-     & /(2.*dr1(0))
-              vv1ss = (u1(i1,i2-1,i3,ey)-2.*u1(i1,i2,i3,ey)+u1(i1,i2+1,
-     & i3,ey))/(dr1(1)**2)
-              vv1rrr = (-u1(i1-2,i2,i3,ey)+2.*u1(i1-1,i2,i3,ey)-2.*u1(
-     & i1+1,i2,i3,ey)+u1(i1+2,i2,i3,ey))/(2.*dr1(0)**3)
-              vv1rrs = ((-u1(i1-1,i2-1,i3,ey)+u1(i1-1,i2+1,i3,ey))/(2.*
-     & dr1(1))-2.*(-u1(i1,i2-1,i3,ey)+u1(i1,i2+1,i3,ey))/(2.*dr1(1))+(
-     & -u1(i1+1,i2-1,i3,ey)+u1(i1+1,i2+1,i3,ey))/(2.*dr1(1)))/(dr1(0)*
-     & *2)
-              vv1rss = (-(u1(i1-1,i2-1,i3,ey)-2.*u1(i1-1,i2,i3,ey)+u1(
-     & i1-1,i2+1,i3,ey))/(dr1(1)**2)+(u1(i1+1,i2-1,i3,ey)-2.*u1(i1+1,
-     & i2,i3,ey)+u1(i1+1,i2+1,i3,ey))/(dr1(1)**2))/(2.*dr1(0))
-              vv1sss = (-u1(i1,i2-2,i3,ey)+2.*u1(i1,i2-1,i3,ey)-2.*u1(
-     & i1,i2+1,i3,ey)+u1(i1,i2+2,i3,ey))/(2.*dr1(1)**3)
-              vv1rrrr = (u1(i1-2,i2,i3,ey)-4.*u1(i1-1,i2,i3,ey)+6.*u1(
-     & i1,i2,i3,ey)-4.*u1(i1+1,i2,i3,ey)+u1(i1+2,i2,i3,ey))/(dr1(0)**
-     & 4)
-              vv1rrrs = (-(-u1(i1-2,i2-1,i3,ey)+u1(i1-2,i2+1,i3,ey))/(
-     & 2.*dr1(1))+2.*(-u1(i1-1,i2-1,i3,ey)+u1(i1-1,i2+1,i3,ey))/(2.*
-     & dr1(1))-2.*(-u1(i1+1,i2-1,i3,ey)+u1(i1+1,i2+1,i3,ey))/(2.*dr1(
-     & 1))+(-u1(i1+2,i2-1,i3,ey)+u1(i1+2,i2+1,i3,ey))/(2.*dr1(1)))/(
-     & 2.*dr1(0)**3)
-              vv1rrss = ((u1(i1-1,i2-1,i3,ey)-2.*u1(i1-1,i2,i3,ey)+u1(
-     & i1-1,i2+1,i3,ey))/(dr1(1)**2)-2.*(u1(i1,i2-1,i3,ey)-2.*u1(i1,
-     & i2,i3,ey)+u1(i1,i2+1,i3,ey))/(dr1(1)**2)+(u1(i1+1,i2-1,i3,ey)-
-     & 2.*u1(i1+1,i2,i3,ey)+u1(i1+1,i2+1,i3,ey))/(dr1(1)**2))/(dr1(0)*
-     & *2)
-              vv1rsss = (-(-u1(i1-1,i2-2,i3,ey)+2.*u1(i1-1,i2-1,i3,ey)-
-     & 2.*u1(i1-1,i2+1,i3,ey)+u1(i1-1,i2+2,i3,ey))/(2.*dr1(1)**3)+(-
-     & u1(i1+1,i2-2,i3,ey)+2.*u1(i1+1,i2-1,i3,ey)-2.*u1(i1+1,i2+1,i3,
-     & ey)+u1(i1+1,i2+2,i3,ey))/(2.*dr1(1)**3))/(2.*dr1(0))
-              vv1ssss = (u1(i1,i2-2,i3,ey)-4.*u1(i1,i2-1,i3,ey)+6.*u1(
-     & i1,i2,i3,ey)-4.*u1(i1,i2+1,i3,ey)+u1(i1,i2+2,i3,ey))/(dr1(1)**
-     & 4)
-               t1 = aj1rx**2
-               t7 = aj1sx**2
-               v1xxx = t1*aj1rx*vv1rrr+3*t1*aj1sx*vv1rrs+3*aj1rx*t7*
-     & vv1rss+t7*aj1sx*vv1sss+3*aj1rx*aj1rxx*vv1rr+(3*aj1sxx*aj1rx+3*
-     & aj1sx*aj1rxx)*vv1rs+3*aj1sxx*aj1sx*vv1ss+aj1rxxx*vv1r+aj1sxxx*
-     & vv1s
-               t1 = aj1rx**2
-               t10 = aj1sx**2
-               v1xxy = aj1ry*t1*vv1rrr+(aj1sy*t1+2*aj1ry*aj1sx*aj1rx)*
-     & vv1rrs+(aj1ry*t10+2*aj1sy*aj1sx*aj1rx)*vv1rss+aj1sy*t10*vv1sss+
-     & (2*aj1rxy*aj1rx+aj1ry*aj1rxx)*vv1rr+(aj1ry*aj1sxx+2*aj1sx*
-     & aj1rxy+2*aj1sxy*aj1rx+aj1sy*aj1rxx)*vv1rs+(aj1sy*aj1sxx+2*
-     & aj1sxy*aj1sx)*vv1ss+aj1rxxy*vv1r+aj1sxxy*vv1s
-               t1 = aj1ry**2
-               t4 = aj1sy*aj1ry
-               t8 = aj1sy*aj1rx+aj1ry*aj1sx
-               t16 = aj1sy**2
-               v1xyy = t1*aj1rx*vv1rrr+(t4*aj1rx+aj1ry*t8)*vv1rrs+(t4*
-     & aj1sx+aj1sy*t8)*vv1rss+t16*aj1sx*vv1sss+(aj1ryy*aj1rx+2*aj1ry*
-     & aj1rxy)*vv1rr+(2*aj1ry*aj1sxy+2*aj1sy*aj1rxy+aj1ryy*aj1sx+
-     & aj1syy*aj1rx)*vv1rs+(aj1syy*aj1sx+2*aj1sy*aj1sxy)*vv1ss+
+                 u1LapSq = u1xxxx +2.* u1xxyy + u1yyyy
+                  vv1 = u1(i1,i2,i3,ey)
+                  vv1r = (-u1(i1-1,i2,i3,ey)+u1(i1+1,i2,i3,ey))/(2.*
+     & dr1(0))
+                  vv1s = (-u1(i1,i2-1,i3,ey)+u1(i1,i2+1,i3,ey))/(2.*
+     & dr1(1))
+                  vv1rr = (u1(i1-1,i2,i3,ey)-2.*u1(i1,i2,i3,ey)+u1(i1+
+     & 1,i2,i3,ey))/(dr1(0)**2)
+                  vv1rs = (-(-u1(i1-1,i2-1,i3,ey)+u1(i1-1,i2+1,i3,ey))
+     & /(2.*dr1(1))+(-u1(i1+1,i2-1,i3,ey)+u1(i1+1,i2+1,i3,ey))/(2.*
+     & dr1(1)))/(2.*dr1(0))
+                  vv1ss = (u1(i1,i2-1,i3,ey)-2.*u1(i1,i2,i3,ey)+u1(i1,
+     & i2+1,i3,ey))/(dr1(1)**2)
+                  vv1rrr = (-u1(i1-2,i2,i3,ey)+2.*u1(i1-1,i2,i3,ey)-2.*
+     & u1(i1+1,i2,i3,ey)+u1(i1+2,i2,i3,ey))/(2.*dr1(0)**3)
+                  vv1rrs = ((-u1(i1-1,i2-1,i3,ey)+u1(i1-1,i2+1,i3,ey))
+     & /(2.*dr1(1))-2.*(-u1(i1,i2-1,i3,ey)+u1(i1,i2+1,i3,ey))/(2.*dr1(
+     & 1))+(-u1(i1+1,i2-1,i3,ey)+u1(i1+1,i2+1,i3,ey))/(2.*dr1(1)))/(
+     & dr1(0)**2)
+                  vv1rss = (-(u1(i1-1,i2-1,i3,ey)-2.*u1(i1-1,i2,i3,ey)+
+     & u1(i1-1,i2+1,i3,ey))/(dr1(1)**2)+(u1(i1+1,i2-1,i3,ey)-2.*u1(i1+
+     & 1,i2,i3,ey)+u1(i1+1,i2+1,i3,ey))/(dr1(1)**2))/(2.*dr1(0))
+                  vv1sss = (-u1(i1,i2-2,i3,ey)+2.*u1(i1,i2-1,i3,ey)-2.*
+     & u1(i1,i2+1,i3,ey)+u1(i1,i2+2,i3,ey))/(2.*dr1(1)**3)
+                  vv1rrrr = (u1(i1-2,i2,i3,ey)-4.*u1(i1-1,i2,i3,ey)+6.*
+     & u1(i1,i2,i3,ey)-4.*u1(i1+1,i2,i3,ey)+u1(i1+2,i2,i3,ey))/(dr1(0)
+     & **4)
+                  vv1rrrs = (-(-u1(i1-2,i2-1,i3,ey)+u1(i1-2,i2+1,i3,ey)
+     & )/(2.*dr1(1))+2.*(-u1(i1-1,i2-1,i3,ey)+u1(i1-1,i2+1,i3,ey))/(
+     & 2.*dr1(1))-2.*(-u1(i1+1,i2-1,i3,ey)+u1(i1+1,i2+1,i3,ey))/(2.*
+     & dr1(1))+(-u1(i1+2,i2-1,i3,ey)+u1(i1+2,i2+1,i3,ey))/(2.*dr1(1)))
+     & /(2.*dr1(0)**3)
+                  vv1rrss = ((u1(i1-1,i2-1,i3,ey)-2.*u1(i1-1,i2,i3,ey)+
+     & u1(i1-1,i2+1,i3,ey))/(dr1(1)**2)-2.*(u1(i1,i2-1,i3,ey)-2.*u1(
+     & i1,i2,i3,ey)+u1(i1,i2+1,i3,ey))/(dr1(1)**2)+(u1(i1+1,i2-1,i3,
+     & ey)-2.*u1(i1+1,i2,i3,ey)+u1(i1+1,i2+1,i3,ey))/(dr1(1)**2))/(
+     & dr1(0)**2)
+                  vv1rsss = (-(-u1(i1-1,i2-2,i3,ey)+2.*u1(i1-1,i2-1,i3,
+     & ey)-2.*u1(i1-1,i2+1,i3,ey)+u1(i1-1,i2+2,i3,ey))/(2.*dr1(1)**3)+
+     & (-u1(i1+1,i2-2,i3,ey)+2.*u1(i1+1,i2-1,i3,ey)-2.*u1(i1+1,i2+1,
+     & i3,ey)+u1(i1+1,i2+2,i3,ey))/(2.*dr1(1)**3))/(2.*dr1(0))
+                  vv1ssss = (u1(i1,i2-2,i3,ey)-4.*u1(i1,i2-1,i3,ey)+6.*
+     & u1(i1,i2,i3,ey)-4.*u1(i1,i2+1,i3,ey)+u1(i1,i2+2,i3,ey))/(dr1(1)
+     & **4)
+                   t1 = aj1rx**2
+                   t7 = aj1sx**2
+                   v1xxx = t1*aj1rx*vv1rrr+3*t1*aj1sx*vv1rrs+3*aj1rx*
+     & t7*vv1rss+t7*aj1sx*vv1sss+3*aj1rx*aj1rxx*vv1rr+(3*aj1sxx*aj1rx+
+     & 3*aj1sx*aj1rxx)*vv1rs+3*aj1sxx*aj1sx*vv1ss+aj1rxxx*vv1r+
+     & aj1sxxx*vv1s
+                   t1 = aj1rx**2
+                   t10 = aj1sx**2
+                   v1xxy = aj1ry*t1*vv1rrr+(aj1sy*t1+2*aj1ry*aj1sx*
+     & aj1rx)*vv1rrs+(aj1ry*t10+2*aj1sy*aj1sx*aj1rx)*vv1rss+aj1sy*t10*
+     & vv1sss+(2*aj1rxy*aj1rx+aj1ry*aj1rxx)*vv1rr+(aj1ry*aj1sxx+2*
+     & aj1sx*aj1rxy+2*aj1sxy*aj1rx+aj1sy*aj1rxx)*vv1rs+(aj1sy*aj1sxx+
+     & 2*aj1sxy*aj1sx)*vv1ss+aj1rxxy*vv1r+aj1sxxy*vv1s
+                   t1 = aj1ry**2
+                   t4 = aj1sy*aj1ry
+                   t8 = aj1sy*aj1rx+aj1ry*aj1sx
+                   t16 = aj1sy**2
+                   v1xyy = t1*aj1rx*vv1rrr+(t4*aj1rx+aj1ry*t8)*vv1rrs+(
+     & t4*aj1sx+aj1sy*t8)*vv1rss+t16*aj1sx*vv1sss+(aj1ryy*aj1rx+2*
+     & aj1ry*aj1rxy)*vv1rr+(2*aj1ry*aj1sxy+2*aj1sy*aj1rxy+aj1ryy*
+     & aj1sx+aj1syy*aj1rx)*vv1rs+(aj1syy*aj1sx+2*aj1sy*aj1sxy)*vv1ss+
      & aj1rxyy*vv1r+aj1sxyy*vv1s
-               t1 = aj1ry**2
-               t7 = aj1sy**2
-               v1yyy = aj1ry*t1*vv1rrr+3*t1*aj1sy*vv1rrs+3*aj1ry*t7*
-     & vv1rss+t7*aj1sy*vv1sss+3*aj1ry*aj1ryy*vv1rr+(3*aj1syy*aj1ry+3*
-     & aj1sy*aj1ryy)*vv1rs+3*aj1syy*aj1sy*vv1ss+aj1ryyy*vv1r+aj1syyy*
-     & vv1s
-               t1 = aj1rx**2
-               t2 = t1**2
-               t8 = aj1sx**2
-               t16 = t8**2
-               t25 = aj1sxx*aj1rx
-               t27 = t25+aj1sx*aj1rxx
-               t28 = 3*t27
-               t30 = 2*t27
-               t46 = aj1rxx**2
-               t60 = aj1sxx**2
-               v1xxxx = t2*vv1rrrr+4*t1*aj1rx*aj1sx*vv1rrrs+6*t1*t8*
-     & vv1rrss+4*aj1rx*t8*aj1sx*vv1rsss+t16*vv1ssss+6*t1*aj1rxx*
+                   t1 = aj1ry**2
+                   t7 = aj1sy**2
+                   v1yyy = aj1ry*t1*vv1rrr+3*t1*aj1sy*vv1rrs+3*aj1ry*
+     & t7*vv1rss+t7*aj1sy*vv1sss+3*aj1ry*aj1ryy*vv1rr+(3*aj1syy*aj1ry+
+     & 3*aj1sy*aj1ryy)*vv1rs+3*aj1syy*aj1sy*vv1ss+aj1ryyy*vv1r+
+     & aj1syyy*vv1s
+                   t1 = aj1rx**2
+                   t2 = t1**2
+                   t8 = aj1sx**2
+                   t16 = t8**2
+                   t25 = aj1sxx*aj1rx
+                   t27 = t25+aj1sx*aj1rxx
+                   t28 = 3*t27
+                   t30 = 2*t27
+                   t46 = aj1rxx**2
+                   t60 = aj1sxx**2
+                   v1xxxx = t2*vv1rrrr+4*t1*aj1rx*aj1sx*vv1rrrs+6*t1*
+     & t8*vv1rrss+4*aj1rx*t8*aj1sx*vv1rsss+t16*vv1ssss+6*t1*aj1rxx*
      & vv1rrr+(7*aj1sx*aj1rx*aj1rxx+aj1sxx*t1+aj1rx*t28+aj1rx*t30)*
      & vv1rrs+(aj1sx*t28+7*t25*aj1sx+aj1rxx*t8+aj1sx*t30)*vv1rss+6*t8*
      & aj1sxx*vv1sss+(4*aj1rx*aj1rxxx+3*t46)*vv1rr+(4*aj1sxxx*aj1rx+4*
      & aj1sx*aj1rxxx+6*aj1sxx*aj1rxx)*vv1rs+(4*aj1sxxx*aj1sx+3*t60)*
      & vv1ss+aj1rxxxx*vv1r+aj1sxxxx*vv1s
-               t1 = aj1ry**2
-               t2 = aj1rx**2
-               t5 = aj1sy*aj1ry
-               t11 = aj1sy*t2+2*aj1ry*aj1sx*aj1rx
-               t16 = aj1sx**2
-               t21 = aj1ry*t16+2*aj1sy*aj1sx*aj1rx
-               t29 = aj1sy**2
-               t38 = 2*aj1rxy*aj1rx+aj1ry*aj1rxx
-               t52 = aj1sx*aj1rxy
-               t54 = aj1sxy*aj1rx
-               t57 = aj1ry*aj1sxx+2*t52+2*t54+aj1sy*aj1rxx
-               t60 = 2*t52+2*t54
-               t68 = aj1sy*aj1sxx+2*aj1sxy*aj1sx
-               t92 = aj1rxy**2
-               t110 = aj1sxy**2
-               v1xxyy = t1*t2*vv1rrrr+(t5*t2+aj1ry*t11)*vv1rrrs+(aj1sy*
-     & t11+aj1ry*t21)*vv1rrss+(aj1sy*t21+t5*t16)*vv1rsss+t29*t16*
-     & vv1ssss+(2*aj1ry*aj1rxy*aj1rx+aj1ry*t38+aj1ryy*t2)*vv1rrr+(
+                   t1 = aj1ry**2
+                   t2 = aj1rx**2
+                   t5 = aj1sy*aj1ry
+                   t11 = aj1sy*t2+2*aj1ry*aj1sx*aj1rx
+                   t16 = aj1sx**2
+                   t21 = aj1ry*t16+2*aj1sy*aj1sx*aj1rx
+                   t29 = aj1sy**2
+                   t38 = 2*aj1rxy*aj1rx+aj1ry*aj1rxx
+                   t52 = aj1sx*aj1rxy
+                   t54 = aj1sxy*aj1rx
+                   t57 = aj1ry*aj1sxx+2*t52+2*t54+aj1sy*aj1rxx
+                   t60 = 2*t52+2*t54
+                   t68 = aj1sy*aj1sxx+2*aj1sxy*aj1sx
+                   t92 = aj1rxy**2
+                   t110 = aj1sxy**2
+                   v1xxyy = t1*t2*vv1rrrr+(t5*t2+aj1ry*t11)*vv1rrrs+(
+     & aj1sy*t11+aj1ry*t21)*vv1rrss+(aj1sy*t21+t5*t16)*vv1rsss+t29*
+     & t16*vv1ssss+(2*aj1ry*aj1rxy*aj1rx+aj1ry*t38+aj1ryy*t2)*vv1rrr+(
      & aj1sy*t38+2*aj1sy*aj1rxy*aj1rx+2*aj1ryy*aj1sx*aj1rx+aj1syy*t2+
      & aj1ry*t57+aj1ry*t60)*vv1rrs+(aj1sy*t57+aj1ry*t68+aj1ryy*t16+2*
      & aj1ry*aj1sxy*aj1sx+2*aj1syy*aj1sx*aj1rx+aj1sy*t60)*vv1rss+(2*
@@ -5101,398 +6798,400 @@
      & aj1rx+aj1syy*aj1rxx+2*aj1sx*aj1rxyy)*vv1rs+(2*t110+2*aj1sy*
      & aj1sxxy+aj1syy*aj1sxx+2*aj1sx*aj1sxyy)*vv1ss+aj1rxxyy*vv1r+
      & aj1sxxyy*vv1s
-               t1 = aj1ry**2
-               t2 = t1**2
-               t8 = aj1sy**2
-               t16 = t8**2
-               t25 = aj1syy*aj1ry
-               t27 = t25+aj1sy*aj1ryy
-               t28 = 3*t27
-               t30 = 2*t27
-               t46 = aj1ryy**2
-               t60 = aj1syy**2
-               v1yyyy = t2*vv1rrrr+4*t1*aj1ry*aj1sy*vv1rrrs+6*t1*t8*
-     & vv1rrss+4*aj1ry*t8*aj1sy*vv1rsss+t16*vv1ssss+6*t1*aj1ryy*
+                   t1 = aj1ry**2
+                   t2 = t1**2
+                   t8 = aj1sy**2
+                   t16 = t8**2
+                   t25 = aj1syy*aj1ry
+                   t27 = t25+aj1sy*aj1ryy
+                   t28 = 3*t27
+                   t30 = 2*t27
+                   t46 = aj1ryy**2
+                   t60 = aj1syy**2
+                   v1yyyy = t2*vv1rrrr+4*t1*aj1ry*aj1sy*vv1rrrs+6*t1*
+     & t8*vv1rrss+4*aj1ry*t8*aj1sy*vv1rsss+t16*vv1ssss+6*t1*aj1ryy*
      & vv1rrr+(7*aj1sy*aj1ry*aj1ryy+aj1syy*t1+aj1ry*t28+aj1ry*t30)*
      & vv1rrs+(aj1sy*t28+7*t25*aj1sy+aj1ryy*t8+aj1sy*t30)*vv1rss+6*t8*
      & aj1syy*vv1sss+(4*aj1ry*aj1ryyy+3*t46)*vv1rr+(4*aj1syyy*aj1ry+4*
      & aj1sy*aj1ryyy+6*aj1syy*aj1ryy)*vv1rs+(4*aj1syyy*aj1sy+3*t60)*
      & vv1ss+aj1ryyyy*vv1r+aj1syyyy*vv1s
-             v1LapSq = v1xxxx +2.* v1xxyy + v1yyyy
-            ! NOTE: the jacobian derivatives can be computed once for all components
-             ! this next call will define the jacobian and its derivatives (parameteric and spatial)
-             aj2rx = rsxy2(j1,j2,j3,0,0)
-             aj2rxr = (-rsxy2(j1-1,j2,j3,0,0)+rsxy2(j1+1,j2,j3,0,0))/(
-     & 2.*dr2(0))
-             aj2rxs = (-rsxy2(j1,j2-1,j3,0,0)+rsxy2(j1,j2+1,j3,0,0))/(
-     & 2.*dr2(1))
-             aj2rxrr = (rsxy2(j1-1,j2,j3,0,0)-2.*rsxy2(j1,j2,j3,0,0)+
-     & rsxy2(j1+1,j2,j3,0,0))/(dr2(0)**2)
-             aj2rxrs = (-(-rsxy2(j1-1,j2-1,j3,0,0)+rsxy2(j1-1,j2+1,j3,
-     & 0,0))/(2.*dr2(1))+(-rsxy2(j1+1,j2-1,j3,0,0)+rsxy2(j1+1,j2+1,j3,
-     & 0,0))/(2.*dr2(1)))/(2.*dr2(0))
-             aj2rxss = (rsxy2(j1,j2-1,j3,0,0)-2.*rsxy2(j1,j2,j3,0,0)+
-     & rsxy2(j1,j2+1,j3,0,0))/(dr2(1)**2)
-             aj2rxrrr = (-rsxy2(j1-2,j2,j3,0,0)+2.*rsxy2(j1-1,j2,j3,0,
-     & 0)-2.*rsxy2(j1+1,j2,j3,0,0)+rsxy2(j1+2,j2,j3,0,0))/(2.*dr2(0)**
-     & 3)
-             aj2rxrrs = ((-rsxy2(j1-1,j2-1,j3,0,0)+rsxy2(j1-1,j2+1,j3,
-     & 0,0))/(2.*dr2(1))-2.*(-rsxy2(j1,j2-1,j3,0,0)+rsxy2(j1,j2+1,j3,
-     & 0,0))/(2.*dr2(1))+(-rsxy2(j1+1,j2-1,j3,0,0)+rsxy2(j1+1,j2+1,j3,
-     & 0,0))/(2.*dr2(1)))/(dr2(0)**2)
-             aj2rxrss = (-(rsxy2(j1-1,j2-1,j3,0,0)-2.*rsxy2(j1-1,j2,j3,
-     & 0,0)+rsxy2(j1-1,j2+1,j3,0,0))/(dr2(1)**2)+(rsxy2(j1+1,j2-1,j3,
-     & 0,0)-2.*rsxy2(j1+1,j2,j3,0,0)+rsxy2(j1+1,j2+1,j3,0,0))/(dr2(1)*
-     & *2))/(2.*dr2(0))
-             aj2rxsss = (-rsxy2(j1,j2-2,j3,0,0)+2.*rsxy2(j1,j2-1,j3,0,
-     & 0)-2.*rsxy2(j1,j2+1,j3,0,0)+rsxy2(j1,j2+2,j3,0,0))/(2.*dr2(1)**
-     & 3)
-             aj2sx = rsxy2(j1,j2,j3,1,0)
-             aj2sxr = (-rsxy2(j1-1,j2,j3,1,0)+rsxy2(j1+1,j2,j3,1,0))/(
-     & 2.*dr2(0))
-             aj2sxs = (-rsxy2(j1,j2-1,j3,1,0)+rsxy2(j1,j2+1,j3,1,0))/(
-     & 2.*dr2(1))
-             aj2sxrr = (rsxy2(j1-1,j2,j3,1,0)-2.*rsxy2(j1,j2,j3,1,0)+
-     & rsxy2(j1+1,j2,j3,1,0))/(dr2(0)**2)
-             aj2sxrs = (-(-rsxy2(j1-1,j2-1,j3,1,0)+rsxy2(j1-1,j2+1,j3,
-     & 1,0))/(2.*dr2(1))+(-rsxy2(j1+1,j2-1,j3,1,0)+rsxy2(j1+1,j2+1,j3,
-     & 1,0))/(2.*dr2(1)))/(2.*dr2(0))
-             aj2sxss = (rsxy2(j1,j2-1,j3,1,0)-2.*rsxy2(j1,j2,j3,1,0)+
-     & rsxy2(j1,j2+1,j3,1,0))/(dr2(1)**2)
-             aj2sxrrr = (-rsxy2(j1-2,j2,j3,1,0)+2.*rsxy2(j1-1,j2,j3,1,
-     & 0)-2.*rsxy2(j1+1,j2,j3,1,0)+rsxy2(j1+2,j2,j3,1,0))/(2.*dr2(0)**
-     & 3)
-             aj2sxrrs = ((-rsxy2(j1-1,j2-1,j3,1,0)+rsxy2(j1-1,j2+1,j3,
-     & 1,0))/(2.*dr2(1))-2.*(-rsxy2(j1,j2-1,j3,1,0)+rsxy2(j1,j2+1,j3,
-     & 1,0))/(2.*dr2(1))+(-rsxy2(j1+1,j2-1,j3,1,0)+rsxy2(j1+1,j2+1,j3,
-     & 1,0))/(2.*dr2(1)))/(dr2(0)**2)
-             aj2sxrss = (-(rsxy2(j1-1,j2-1,j3,1,0)-2.*rsxy2(j1-1,j2,j3,
-     & 1,0)+rsxy2(j1-1,j2+1,j3,1,0))/(dr2(1)**2)+(rsxy2(j1+1,j2-1,j3,
-     & 1,0)-2.*rsxy2(j1+1,j2,j3,1,0)+rsxy2(j1+1,j2+1,j3,1,0))/(dr2(1)*
-     & *2))/(2.*dr2(0))
-             aj2sxsss = (-rsxy2(j1,j2-2,j3,1,0)+2.*rsxy2(j1,j2-1,j3,1,
-     & 0)-2.*rsxy2(j1,j2+1,j3,1,0)+rsxy2(j1,j2+2,j3,1,0))/(2.*dr2(1)**
-     & 3)
-             aj2ry = rsxy2(j1,j2,j3,0,1)
-             aj2ryr = (-rsxy2(j1-1,j2,j3,0,1)+rsxy2(j1+1,j2,j3,0,1))/(
-     & 2.*dr2(0))
-             aj2rys = (-rsxy2(j1,j2-1,j3,0,1)+rsxy2(j1,j2+1,j3,0,1))/(
-     & 2.*dr2(1))
-             aj2ryrr = (rsxy2(j1-1,j2,j3,0,1)-2.*rsxy2(j1,j2,j3,0,1)+
-     & rsxy2(j1+1,j2,j3,0,1))/(dr2(0)**2)
-             aj2ryrs = (-(-rsxy2(j1-1,j2-1,j3,0,1)+rsxy2(j1-1,j2+1,j3,
-     & 0,1))/(2.*dr2(1))+(-rsxy2(j1+1,j2-1,j3,0,1)+rsxy2(j1+1,j2+1,j3,
-     & 0,1))/(2.*dr2(1)))/(2.*dr2(0))
-             aj2ryss = (rsxy2(j1,j2-1,j3,0,1)-2.*rsxy2(j1,j2,j3,0,1)+
-     & rsxy2(j1,j2+1,j3,0,1))/(dr2(1)**2)
-             aj2ryrrr = (-rsxy2(j1-2,j2,j3,0,1)+2.*rsxy2(j1-1,j2,j3,0,
-     & 1)-2.*rsxy2(j1+1,j2,j3,0,1)+rsxy2(j1+2,j2,j3,0,1))/(2.*dr2(0)**
-     & 3)
-             aj2ryrrs = ((-rsxy2(j1-1,j2-1,j3,0,1)+rsxy2(j1-1,j2+1,j3,
-     & 0,1))/(2.*dr2(1))-2.*(-rsxy2(j1,j2-1,j3,0,1)+rsxy2(j1,j2+1,j3,
-     & 0,1))/(2.*dr2(1))+(-rsxy2(j1+1,j2-1,j3,0,1)+rsxy2(j1+1,j2+1,j3,
-     & 0,1))/(2.*dr2(1)))/(dr2(0)**2)
-             aj2ryrss = (-(rsxy2(j1-1,j2-1,j3,0,1)-2.*rsxy2(j1-1,j2,j3,
-     & 0,1)+rsxy2(j1-1,j2+1,j3,0,1))/(dr2(1)**2)+(rsxy2(j1+1,j2-1,j3,
-     & 0,1)-2.*rsxy2(j1+1,j2,j3,0,1)+rsxy2(j1+1,j2+1,j3,0,1))/(dr2(1)*
-     & *2))/(2.*dr2(0))
-             aj2rysss = (-rsxy2(j1,j2-2,j3,0,1)+2.*rsxy2(j1,j2-1,j3,0,
-     & 1)-2.*rsxy2(j1,j2+1,j3,0,1)+rsxy2(j1,j2+2,j3,0,1))/(2.*dr2(1)**
-     & 3)
-             aj2sy = rsxy2(j1,j2,j3,1,1)
-             aj2syr = (-rsxy2(j1-1,j2,j3,1,1)+rsxy2(j1+1,j2,j3,1,1))/(
-     & 2.*dr2(0))
-             aj2sys = (-rsxy2(j1,j2-1,j3,1,1)+rsxy2(j1,j2+1,j3,1,1))/(
-     & 2.*dr2(1))
-             aj2syrr = (rsxy2(j1-1,j2,j3,1,1)-2.*rsxy2(j1,j2,j3,1,1)+
-     & rsxy2(j1+1,j2,j3,1,1))/(dr2(0)**2)
-             aj2syrs = (-(-rsxy2(j1-1,j2-1,j3,1,1)+rsxy2(j1-1,j2+1,j3,
-     & 1,1))/(2.*dr2(1))+(-rsxy2(j1+1,j2-1,j3,1,1)+rsxy2(j1+1,j2+1,j3,
-     & 1,1))/(2.*dr2(1)))/(2.*dr2(0))
-             aj2syss = (rsxy2(j1,j2-1,j3,1,1)-2.*rsxy2(j1,j2,j3,1,1)+
-     & rsxy2(j1,j2+1,j3,1,1))/(dr2(1)**2)
-             aj2syrrr = (-rsxy2(j1-2,j2,j3,1,1)+2.*rsxy2(j1-1,j2,j3,1,
-     & 1)-2.*rsxy2(j1+1,j2,j3,1,1)+rsxy2(j1+2,j2,j3,1,1))/(2.*dr2(0)**
-     & 3)
-             aj2syrrs = ((-rsxy2(j1-1,j2-1,j3,1,1)+rsxy2(j1-1,j2+1,j3,
-     & 1,1))/(2.*dr2(1))-2.*(-rsxy2(j1,j2-1,j3,1,1)+rsxy2(j1,j2+1,j3,
-     & 1,1))/(2.*dr2(1))+(-rsxy2(j1+1,j2-1,j3,1,1)+rsxy2(j1+1,j2+1,j3,
-     & 1,1))/(2.*dr2(1)))/(dr2(0)**2)
-             aj2syrss = (-(rsxy2(j1-1,j2-1,j3,1,1)-2.*rsxy2(j1-1,j2,j3,
-     & 1,1)+rsxy2(j1-1,j2+1,j3,1,1))/(dr2(1)**2)+(rsxy2(j1+1,j2-1,j3,
-     & 1,1)-2.*rsxy2(j1+1,j2,j3,1,1)+rsxy2(j1+1,j2+1,j3,1,1))/(dr2(1)*
-     & *2))/(2.*dr2(0))
-             aj2sysss = (-rsxy2(j1,j2-2,j3,1,1)+2.*rsxy2(j1,j2-1,j3,1,
-     & 1)-2.*rsxy2(j1,j2+1,j3,1,1)+rsxy2(j1,j2+2,j3,1,1))/(2.*dr2(1)**
-     & 3)
-             aj2rxx = aj2rx*aj2rxr+aj2sx*aj2rxs
-             aj2rxy = aj2ry*aj2rxr+aj2sy*aj2rxs
-             aj2sxx = aj2rx*aj2sxr+aj2sx*aj2sxs
-             aj2sxy = aj2ry*aj2sxr+aj2sy*aj2sxs
-             aj2ryx = aj2rx*aj2ryr+aj2sx*aj2rys
-             aj2ryy = aj2ry*aj2ryr+aj2sy*aj2rys
-             aj2syx = aj2rx*aj2syr+aj2sx*aj2sys
-             aj2syy = aj2ry*aj2syr+aj2sy*aj2sys
-             t1 = aj2rx**2
-             t6 = aj2sx**2
-             aj2rxxx = t1*aj2rxrr+2*aj2rx*aj2sx*aj2rxrs+t6*aj2rxss+
+                 v1LapSq = v1xxxx +2.* v1xxyy + v1yyyy
+                ! NOTE: the jacobian derivatives can be computed once for all components
+                 ! this next call will define the jacobian and its derivatives (parameteric and spatial)
+                 aj2rx = rsxy2(j1,j2,j3,0,0)
+                 aj2rxr = (-rsxy2(j1-1,j2,j3,0,0)+rsxy2(j1+1,j2,j3,0,0)
+     & )/(2.*dr2(0))
+                 aj2rxs = (-rsxy2(j1,j2-1,j3,0,0)+rsxy2(j1,j2+1,j3,0,0)
+     & )/(2.*dr2(1))
+                 aj2rxrr = (rsxy2(j1-1,j2,j3,0,0)-2.*rsxy2(j1,j2,j3,0,
+     & 0)+rsxy2(j1+1,j2,j3,0,0))/(dr2(0)**2)
+                 aj2rxrs = (-(-rsxy2(j1-1,j2-1,j3,0,0)+rsxy2(j1-1,j2+1,
+     & j3,0,0))/(2.*dr2(1))+(-rsxy2(j1+1,j2-1,j3,0,0)+rsxy2(j1+1,j2+1,
+     & j3,0,0))/(2.*dr2(1)))/(2.*dr2(0))
+                 aj2rxss = (rsxy2(j1,j2-1,j3,0,0)-2.*rsxy2(j1,j2,j3,0,
+     & 0)+rsxy2(j1,j2+1,j3,0,0))/(dr2(1)**2)
+                 aj2rxrrr = (-rsxy2(j1-2,j2,j3,0,0)+2.*rsxy2(j1-1,j2,
+     & j3,0,0)-2.*rsxy2(j1+1,j2,j3,0,0)+rsxy2(j1+2,j2,j3,0,0))/(2.*
+     & dr2(0)**3)
+                 aj2rxrrs = ((-rsxy2(j1-1,j2-1,j3,0,0)+rsxy2(j1-1,j2+1,
+     & j3,0,0))/(2.*dr2(1))-2.*(-rsxy2(j1,j2-1,j3,0,0)+rsxy2(j1,j2+1,
+     & j3,0,0))/(2.*dr2(1))+(-rsxy2(j1+1,j2-1,j3,0,0)+rsxy2(j1+1,j2+1,
+     & j3,0,0))/(2.*dr2(1)))/(dr2(0)**2)
+                 aj2rxrss = (-(rsxy2(j1-1,j2-1,j3,0,0)-2.*rsxy2(j1-1,
+     & j2,j3,0,0)+rsxy2(j1-1,j2+1,j3,0,0))/(dr2(1)**2)+(rsxy2(j1+1,j2-
+     & 1,j3,0,0)-2.*rsxy2(j1+1,j2,j3,0,0)+rsxy2(j1+1,j2+1,j3,0,0))/(
+     & dr2(1)**2))/(2.*dr2(0))
+                 aj2rxsss = (-rsxy2(j1,j2-2,j3,0,0)+2.*rsxy2(j1,j2-1,
+     & j3,0,0)-2.*rsxy2(j1,j2+1,j3,0,0)+rsxy2(j1,j2+2,j3,0,0))/(2.*
+     & dr2(1)**3)
+                 aj2sx = rsxy2(j1,j2,j3,1,0)
+                 aj2sxr = (-rsxy2(j1-1,j2,j3,1,0)+rsxy2(j1+1,j2,j3,1,0)
+     & )/(2.*dr2(0))
+                 aj2sxs = (-rsxy2(j1,j2-1,j3,1,0)+rsxy2(j1,j2+1,j3,1,0)
+     & )/(2.*dr2(1))
+                 aj2sxrr = (rsxy2(j1-1,j2,j3,1,0)-2.*rsxy2(j1,j2,j3,1,
+     & 0)+rsxy2(j1+1,j2,j3,1,0))/(dr2(0)**2)
+                 aj2sxrs = (-(-rsxy2(j1-1,j2-1,j3,1,0)+rsxy2(j1-1,j2+1,
+     & j3,1,0))/(2.*dr2(1))+(-rsxy2(j1+1,j2-1,j3,1,0)+rsxy2(j1+1,j2+1,
+     & j3,1,0))/(2.*dr2(1)))/(2.*dr2(0))
+                 aj2sxss = (rsxy2(j1,j2-1,j3,1,0)-2.*rsxy2(j1,j2,j3,1,
+     & 0)+rsxy2(j1,j2+1,j3,1,0))/(dr2(1)**2)
+                 aj2sxrrr = (-rsxy2(j1-2,j2,j3,1,0)+2.*rsxy2(j1-1,j2,
+     & j3,1,0)-2.*rsxy2(j1+1,j2,j3,1,0)+rsxy2(j1+2,j2,j3,1,0))/(2.*
+     & dr2(0)**3)
+                 aj2sxrrs = ((-rsxy2(j1-1,j2-1,j3,1,0)+rsxy2(j1-1,j2+1,
+     & j3,1,0))/(2.*dr2(1))-2.*(-rsxy2(j1,j2-1,j3,1,0)+rsxy2(j1,j2+1,
+     & j3,1,0))/(2.*dr2(1))+(-rsxy2(j1+1,j2-1,j3,1,0)+rsxy2(j1+1,j2+1,
+     & j3,1,0))/(2.*dr2(1)))/(dr2(0)**2)
+                 aj2sxrss = (-(rsxy2(j1-1,j2-1,j3,1,0)-2.*rsxy2(j1-1,
+     & j2,j3,1,0)+rsxy2(j1-1,j2+1,j3,1,0))/(dr2(1)**2)+(rsxy2(j1+1,j2-
+     & 1,j3,1,0)-2.*rsxy2(j1+1,j2,j3,1,0)+rsxy2(j1+1,j2+1,j3,1,0))/(
+     & dr2(1)**2))/(2.*dr2(0))
+                 aj2sxsss = (-rsxy2(j1,j2-2,j3,1,0)+2.*rsxy2(j1,j2-1,
+     & j3,1,0)-2.*rsxy2(j1,j2+1,j3,1,0)+rsxy2(j1,j2+2,j3,1,0))/(2.*
+     & dr2(1)**3)
+                 aj2ry = rsxy2(j1,j2,j3,0,1)
+                 aj2ryr = (-rsxy2(j1-1,j2,j3,0,1)+rsxy2(j1+1,j2,j3,0,1)
+     & )/(2.*dr2(0))
+                 aj2rys = (-rsxy2(j1,j2-1,j3,0,1)+rsxy2(j1,j2+1,j3,0,1)
+     & )/(2.*dr2(1))
+                 aj2ryrr = (rsxy2(j1-1,j2,j3,0,1)-2.*rsxy2(j1,j2,j3,0,
+     & 1)+rsxy2(j1+1,j2,j3,0,1))/(dr2(0)**2)
+                 aj2ryrs = (-(-rsxy2(j1-1,j2-1,j3,0,1)+rsxy2(j1-1,j2+1,
+     & j3,0,1))/(2.*dr2(1))+(-rsxy2(j1+1,j2-1,j3,0,1)+rsxy2(j1+1,j2+1,
+     & j3,0,1))/(2.*dr2(1)))/(2.*dr2(0))
+                 aj2ryss = (rsxy2(j1,j2-1,j3,0,1)-2.*rsxy2(j1,j2,j3,0,
+     & 1)+rsxy2(j1,j2+1,j3,0,1))/(dr2(1)**2)
+                 aj2ryrrr = (-rsxy2(j1-2,j2,j3,0,1)+2.*rsxy2(j1-1,j2,
+     & j3,0,1)-2.*rsxy2(j1+1,j2,j3,0,1)+rsxy2(j1+2,j2,j3,0,1))/(2.*
+     & dr2(0)**3)
+                 aj2ryrrs = ((-rsxy2(j1-1,j2-1,j3,0,1)+rsxy2(j1-1,j2+1,
+     & j3,0,1))/(2.*dr2(1))-2.*(-rsxy2(j1,j2-1,j3,0,1)+rsxy2(j1,j2+1,
+     & j3,0,1))/(2.*dr2(1))+(-rsxy2(j1+1,j2-1,j3,0,1)+rsxy2(j1+1,j2+1,
+     & j3,0,1))/(2.*dr2(1)))/(dr2(0)**2)
+                 aj2ryrss = (-(rsxy2(j1-1,j2-1,j3,0,1)-2.*rsxy2(j1-1,
+     & j2,j3,0,1)+rsxy2(j1-1,j2+1,j3,0,1))/(dr2(1)**2)+(rsxy2(j1+1,j2-
+     & 1,j3,0,1)-2.*rsxy2(j1+1,j2,j3,0,1)+rsxy2(j1+1,j2+1,j3,0,1))/(
+     & dr2(1)**2))/(2.*dr2(0))
+                 aj2rysss = (-rsxy2(j1,j2-2,j3,0,1)+2.*rsxy2(j1,j2-1,
+     & j3,0,1)-2.*rsxy2(j1,j2+1,j3,0,1)+rsxy2(j1,j2+2,j3,0,1))/(2.*
+     & dr2(1)**3)
+                 aj2sy = rsxy2(j1,j2,j3,1,1)
+                 aj2syr = (-rsxy2(j1-1,j2,j3,1,1)+rsxy2(j1+1,j2,j3,1,1)
+     & )/(2.*dr2(0))
+                 aj2sys = (-rsxy2(j1,j2-1,j3,1,1)+rsxy2(j1,j2+1,j3,1,1)
+     & )/(2.*dr2(1))
+                 aj2syrr = (rsxy2(j1-1,j2,j3,1,1)-2.*rsxy2(j1,j2,j3,1,
+     & 1)+rsxy2(j1+1,j2,j3,1,1))/(dr2(0)**2)
+                 aj2syrs = (-(-rsxy2(j1-1,j2-1,j3,1,1)+rsxy2(j1-1,j2+1,
+     & j3,1,1))/(2.*dr2(1))+(-rsxy2(j1+1,j2-1,j3,1,1)+rsxy2(j1+1,j2+1,
+     & j3,1,1))/(2.*dr2(1)))/(2.*dr2(0))
+                 aj2syss = (rsxy2(j1,j2-1,j3,1,1)-2.*rsxy2(j1,j2,j3,1,
+     & 1)+rsxy2(j1,j2+1,j3,1,1))/(dr2(1)**2)
+                 aj2syrrr = (-rsxy2(j1-2,j2,j3,1,1)+2.*rsxy2(j1-1,j2,
+     & j3,1,1)-2.*rsxy2(j1+1,j2,j3,1,1)+rsxy2(j1+2,j2,j3,1,1))/(2.*
+     & dr2(0)**3)
+                 aj2syrrs = ((-rsxy2(j1-1,j2-1,j3,1,1)+rsxy2(j1-1,j2+1,
+     & j3,1,1))/(2.*dr2(1))-2.*(-rsxy2(j1,j2-1,j3,1,1)+rsxy2(j1,j2+1,
+     & j3,1,1))/(2.*dr2(1))+(-rsxy2(j1+1,j2-1,j3,1,1)+rsxy2(j1+1,j2+1,
+     & j3,1,1))/(2.*dr2(1)))/(dr2(0)**2)
+                 aj2syrss = (-(rsxy2(j1-1,j2-1,j3,1,1)-2.*rsxy2(j1-1,
+     & j2,j3,1,1)+rsxy2(j1-1,j2+1,j3,1,1))/(dr2(1)**2)+(rsxy2(j1+1,j2-
+     & 1,j3,1,1)-2.*rsxy2(j1+1,j2,j3,1,1)+rsxy2(j1+1,j2+1,j3,1,1))/(
+     & dr2(1)**2))/(2.*dr2(0))
+                 aj2sysss = (-rsxy2(j1,j2-2,j3,1,1)+2.*rsxy2(j1,j2-1,
+     & j3,1,1)-2.*rsxy2(j1,j2+1,j3,1,1)+rsxy2(j1,j2+2,j3,1,1))/(2.*
+     & dr2(1)**3)
+                 aj2rxx = aj2rx*aj2rxr+aj2sx*aj2rxs
+                 aj2rxy = aj2ry*aj2rxr+aj2sy*aj2rxs
+                 aj2sxx = aj2rx*aj2sxr+aj2sx*aj2sxs
+                 aj2sxy = aj2ry*aj2sxr+aj2sy*aj2sxs
+                 aj2ryx = aj2rx*aj2ryr+aj2sx*aj2rys
+                 aj2ryy = aj2ry*aj2ryr+aj2sy*aj2rys
+                 aj2syx = aj2rx*aj2syr+aj2sx*aj2sys
+                 aj2syy = aj2ry*aj2syr+aj2sy*aj2sys
+                 t1 = aj2rx**2
+                 t6 = aj2sx**2
+                 aj2rxxx = t1*aj2rxrr+2*aj2rx*aj2sx*aj2rxrs+t6*aj2rxss+
      & aj2rxx*aj2rxr+aj2sxx*aj2rxs
-             aj2rxxy = aj2ry*aj2rx*aj2rxrr+(aj2sy*aj2rx+aj2ry*aj2sx)*
-     & aj2rxrs+aj2sy*aj2sx*aj2rxss+aj2rxy*aj2rxr+aj2sxy*aj2rxs
-             t1 = aj2ry**2
-             t6 = aj2sy**2
-             aj2rxyy = t1*aj2rxrr+2*aj2ry*aj2sy*aj2rxrs+t6*aj2rxss+
+                 aj2rxxy = aj2ry*aj2rx*aj2rxrr+(aj2sy*aj2rx+aj2ry*
+     & aj2sx)*aj2rxrs+aj2sy*aj2sx*aj2rxss+aj2rxy*aj2rxr+aj2sxy*aj2rxs
+                 t1 = aj2ry**2
+                 t6 = aj2sy**2
+                 aj2rxyy = t1*aj2rxrr+2*aj2ry*aj2sy*aj2rxrs+t6*aj2rxss+
      & aj2ryy*aj2rxr+aj2syy*aj2rxs
-             t1 = aj2rx**2
-             t6 = aj2sx**2
-             aj2sxxx = t1*aj2sxrr+2*aj2rx*aj2sx*aj2sxrs+t6*aj2sxss+
+                 t1 = aj2rx**2
+                 t6 = aj2sx**2
+                 aj2sxxx = t1*aj2sxrr+2*aj2rx*aj2sx*aj2sxrs+t6*aj2sxss+
      & aj2rxx*aj2sxr+aj2sxx*aj2sxs
-             aj2sxxy = aj2ry*aj2rx*aj2sxrr+(aj2sy*aj2rx+aj2ry*aj2sx)*
-     & aj2sxrs+aj2sy*aj2sx*aj2sxss+aj2rxy*aj2sxr+aj2sxy*aj2sxs
-             t1 = aj2ry**2
-             t6 = aj2sy**2
-             aj2sxyy = t1*aj2sxrr+2*aj2ry*aj2sy*aj2sxrs+t6*aj2sxss+
+                 aj2sxxy = aj2ry*aj2rx*aj2sxrr+(aj2sy*aj2rx+aj2ry*
+     & aj2sx)*aj2sxrs+aj2sy*aj2sx*aj2sxss+aj2rxy*aj2sxr+aj2sxy*aj2sxs
+                 t1 = aj2ry**2
+                 t6 = aj2sy**2
+                 aj2sxyy = t1*aj2sxrr+2*aj2ry*aj2sy*aj2sxrs+t6*aj2sxss+
      & aj2ryy*aj2sxr+aj2syy*aj2sxs
-             t1 = aj2rx**2
-             t6 = aj2sx**2
-             aj2ryxx = t1*aj2ryrr+2*aj2rx*aj2sx*aj2ryrs+t6*aj2ryss+
+                 t1 = aj2rx**2
+                 t6 = aj2sx**2
+                 aj2ryxx = t1*aj2ryrr+2*aj2rx*aj2sx*aj2ryrs+t6*aj2ryss+
      & aj2rxx*aj2ryr+aj2sxx*aj2rys
-             aj2ryxy = aj2ry*aj2rx*aj2ryrr+(aj2sy*aj2rx+aj2ry*aj2sx)*
-     & aj2ryrs+aj2sy*aj2sx*aj2ryss+aj2rxy*aj2ryr+aj2sxy*aj2rys
-             t1 = aj2ry**2
-             t6 = aj2sy**2
-             aj2ryyy = t1*aj2ryrr+2*aj2ry*aj2sy*aj2ryrs+t6*aj2ryss+
+                 aj2ryxy = aj2ry*aj2rx*aj2ryrr+(aj2sy*aj2rx+aj2ry*
+     & aj2sx)*aj2ryrs+aj2sy*aj2sx*aj2ryss+aj2rxy*aj2ryr+aj2sxy*aj2rys
+                 t1 = aj2ry**2
+                 t6 = aj2sy**2
+                 aj2ryyy = t1*aj2ryrr+2*aj2ry*aj2sy*aj2ryrs+t6*aj2ryss+
      & aj2ryy*aj2ryr+aj2syy*aj2rys
-             t1 = aj2rx**2
-             t6 = aj2sx**2
-             aj2syxx = t1*aj2syrr+2*aj2rx*aj2sx*aj2syrs+t6*aj2syss+
+                 t1 = aj2rx**2
+                 t6 = aj2sx**2
+                 aj2syxx = t1*aj2syrr+2*aj2rx*aj2sx*aj2syrs+t6*aj2syss+
      & aj2rxx*aj2syr+aj2sxx*aj2sys
-             aj2syxy = aj2ry*aj2rx*aj2syrr+(aj2sy*aj2rx+aj2ry*aj2sx)*
-     & aj2syrs+aj2sy*aj2sx*aj2syss+aj2rxy*aj2syr+aj2sxy*aj2sys
-             t1 = aj2ry**2
-             t6 = aj2sy**2
-             aj2syyy = t1*aj2syrr+2*aj2ry*aj2sy*aj2syrs+t6*aj2syss+
+                 aj2syxy = aj2ry*aj2rx*aj2syrr+(aj2sy*aj2rx+aj2ry*
+     & aj2sx)*aj2syrs+aj2sy*aj2sx*aj2syss+aj2rxy*aj2syr+aj2sxy*aj2sys
+                 t1 = aj2ry**2
+                 t6 = aj2sy**2
+                 aj2syyy = t1*aj2syrr+2*aj2ry*aj2sy*aj2syrs+t6*aj2syss+
      & aj2ryy*aj2syr+aj2syy*aj2sys
-             t1 = aj2rx**2
-             t7 = aj2sx**2
-             aj2rxxxx = t1*aj2rx*aj2rxrrr+3*t1*aj2sx*aj2rxrrs+3*aj2rx*
-     & t7*aj2rxrss+t7*aj2sx*aj2rxsss+3*aj2rx*aj2rxx*aj2rxrr+(3*aj2sxx*
-     & aj2rx+3*aj2sx*aj2rxx)*aj2rxrs+3*aj2sxx*aj2sx*aj2rxss+aj2rxxx*
-     & aj2rxr+aj2sxxx*aj2rxs
-             t1 = aj2rx**2
-             t10 = aj2sx**2
-             aj2rxxxy = aj2ry*t1*aj2rxrrr+(aj2sy*t1+2*aj2ry*aj2sx*
+                 t1 = aj2rx**2
+                 t7 = aj2sx**2
+                 aj2rxxxx = t1*aj2rx*aj2rxrrr+3*t1*aj2sx*aj2rxrrs+3*
+     & aj2rx*t7*aj2rxrss+t7*aj2sx*aj2rxsss+3*aj2rx*aj2rxx*aj2rxrr+(3*
+     & aj2sxx*aj2rx+3*aj2sx*aj2rxx)*aj2rxrs+3*aj2sxx*aj2sx*aj2rxss+
+     & aj2rxxx*aj2rxr+aj2sxxx*aj2rxs
+                 t1 = aj2rx**2
+                 t10 = aj2sx**2
+                 aj2rxxxy = aj2ry*t1*aj2rxrrr+(aj2sy*t1+2*aj2ry*aj2sx*
      & aj2rx)*aj2rxrrs+(aj2ry*t10+2*aj2sy*aj2sx*aj2rx)*aj2rxrss+aj2sy*
      & t10*aj2rxsss+(2*aj2rxy*aj2rx+aj2ry*aj2rxx)*aj2rxrr+(aj2ry*
      & aj2sxx+2*aj2sx*aj2rxy+2*aj2sxy*aj2rx+aj2sy*aj2rxx)*aj2rxrs+(
      & aj2sy*aj2sxx+2*aj2sxy*aj2sx)*aj2rxss+aj2rxxy*aj2rxr+aj2sxxy*
      & aj2rxs
-             t1 = aj2ry**2
-             t4 = aj2sy*aj2ry
-             t8 = aj2sy*aj2rx+aj2ry*aj2sx
-             t16 = aj2sy**2
-             aj2rxxyy = t1*aj2rx*aj2rxrrr+(t4*aj2rx+aj2ry*t8)*aj2rxrrs+
-     & (t4*aj2sx+aj2sy*t8)*aj2rxrss+t16*aj2sx*aj2rxsss+(aj2ryy*aj2rx+
-     & 2*aj2ry*aj2rxy)*aj2rxrr+(2*aj2ry*aj2sxy+2*aj2sy*aj2rxy+aj2ryy*
-     & aj2sx+aj2syy*aj2rx)*aj2rxrs+(aj2syy*aj2sx+2*aj2sy*aj2sxy)*
-     & aj2rxss+aj2rxyy*aj2rxr+aj2sxyy*aj2rxs
-             t1 = aj2ry**2
-             t7 = aj2sy**2
-             aj2rxyyy = aj2ry*t1*aj2rxrrr+3*t1*aj2sy*aj2rxrrs+3*aj2ry*
-     & t7*aj2rxrss+t7*aj2sy*aj2rxsss+3*aj2ry*aj2ryy*aj2rxrr+(3*aj2syy*
-     & aj2ry+3*aj2sy*aj2ryy)*aj2rxrs+3*aj2syy*aj2sy*aj2rxss+aj2ryyy*
-     & aj2rxr+aj2syyy*aj2rxs
-             t1 = aj2rx**2
-             t7 = aj2sx**2
-             aj2sxxxx = t1*aj2rx*aj2sxrrr+3*t1*aj2sx*aj2sxrrs+3*aj2rx*
-     & t7*aj2sxrss+t7*aj2sx*aj2sxsss+3*aj2rx*aj2rxx*aj2sxrr+(3*aj2sxx*
-     & aj2rx+3*aj2sx*aj2rxx)*aj2sxrs+3*aj2sxx*aj2sx*aj2sxss+aj2rxxx*
-     & aj2sxr+aj2sxxx*aj2sxs
-             t1 = aj2rx**2
-             t10 = aj2sx**2
-             aj2sxxxy = aj2ry*t1*aj2sxrrr+(aj2sy*t1+2*aj2ry*aj2sx*
+                 t1 = aj2ry**2
+                 t4 = aj2sy*aj2ry
+                 t8 = aj2sy*aj2rx+aj2ry*aj2sx
+                 t16 = aj2sy**2
+                 aj2rxxyy = t1*aj2rx*aj2rxrrr+(t4*aj2rx+aj2ry*t8)*
+     & aj2rxrrs+(t4*aj2sx+aj2sy*t8)*aj2rxrss+t16*aj2sx*aj2rxsss+(
+     & aj2ryy*aj2rx+2*aj2ry*aj2rxy)*aj2rxrr+(2*aj2ry*aj2sxy+2*aj2sy*
+     & aj2rxy+aj2ryy*aj2sx+aj2syy*aj2rx)*aj2rxrs+(aj2syy*aj2sx+2*
+     & aj2sy*aj2sxy)*aj2rxss+aj2rxyy*aj2rxr+aj2sxyy*aj2rxs
+                 t1 = aj2ry**2
+                 t7 = aj2sy**2
+                 aj2rxyyy = aj2ry*t1*aj2rxrrr+3*t1*aj2sy*aj2rxrrs+3*
+     & aj2ry*t7*aj2rxrss+t7*aj2sy*aj2rxsss+3*aj2ry*aj2ryy*aj2rxrr+(3*
+     & aj2syy*aj2ry+3*aj2sy*aj2ryy)*aj2rxrs+3*aj2syy*aj2sy*aj2rxss+
+     & aj2ryyy*aj2rxr+aj2syyy*aj2rxs
+                 t1 = aj2rx**2
+                 t7 = aj2sx**2
+                 aj2sxxxx = t1*aj2rx*aj2sxrrr+3*t1*aj2sx*aj2sxrrs+3*
+     & aj2rx*t7*aj2sxrss+t7*aj2sx*aj2sxsss+3*aj2rx*aj2rxx*aj2sxrr+(3*
+     & aj2sxx*aj2rx+3*aj2sx*aj2rxx)*aj2sxrs+3*aj2sxx*aj2sx*aj2sxss+
+     & aj2rxxx*aj2sxr+aj2sxxx*aj2sxs
+                 t1 = aj2rx**2
+                 t10 = aj2sx**2
+                 aj2sxxxy = aj2ry*t1*aj2sxrrr+(aj2sy*t1+2*aj2ry*aj2sx*
      & aj2rx)*aj2sxrrs+(aj2ry*t10+2*aj2sy*aj2sx*aj2rx)*aj2sxrss+aj2sy*
      & t10*aj2sxsss+(2*aj2rxy*aj2rx+aj2ry*aj2rxx)*aj2sxrr+(aj2ry*
      & aj2sxx+2*aj2sx*aj2rxy+2*aj2sxy*aj2rx+aj2sy*aj2rxx)*aj2sxrs+(
      & aj2sy*aj2sxx+2*aj2sxy*aj2sx)*aj2sxss+aj2rxxy*aj2sxr+aj2sxxy*
      & aj2sxs
-             t1 = aj2ry**2
-             t4 = aj2sy*aj2ry
-             t8 = aj2sy*aj2rx+aj2ry*aj2sx
-             t16 = aj2sy**2
-             aj2sxxyy = t1*aj2rx*aj2sxrrr+(t4*aj2rx+aj2ry*t8)*aj2sxrrs+
-     & (t4*aj2sx+aj2sy*t8)*aj2sxrss+t16*aj2sx*aj2sxsss+(aj2ryy*aj2rx+
-     & 2*aj2ry*aj2rxy)*aj2sxrr+(2*aj2ry*aj2sxy+2*aj2sy*aj2rxy+aj2ryy*
-     & aj2sx+aj2syy*aj2rx)*aj2sxrs+(aj2syy*aj2sx+2*aj2sy*aj2sxy)*
-     & aj2sxss+aj2rxyy*aj2sxr+aj2sxyy*aj2sxs
-             t1 = aj2ry**2
-             t7 = aj2sy**2
-             aj2sxyyy = aj2ry*t1*aj2sxrrr+3*t1*aj2sy*aj2sxrrs+3*aj2ry*
-     & t7*aj2sxrss+t7*aj2sy*aj2sxsss+3*aj2ry*aj2ryy*aj2sxrr+(3*aj2syy*
-     & aj2ry+3*aj2sy*aj2ryy)*aj2sxrs+3*aj2syy*aj2sy*aj2sxss+aj2ryyy*
-     & aj2sxr+aj2syyy*aj2sxs
-             t1 = aj2rx**2
-             t7 = aj2sx**2
-             aj2ryxxx = t1*aj2rx*aj2ryrrr+3*t1*aj2sx*aj2ryrrs+3*aj2rx*
-     & t7*aj2ryrss+t7*aj2sx*aj2rysss+3*aj2rx*aj2rxx*aj2ryrr+(3*aj2sxx*
-     & aj2rx+3*aj2sx*aj2rxx)*aj2ryrs+3*aj2sxx*aj2sx*aj2ryss+aj2rxxx*
-     & aj2ryr+aj2sxxx*aj2rys
-             t1 = aj2rx**2
-             t10 = aj2sx**2
-             aj2ryxxy = aj2ry*t1*aj2ryrrr+(aj2sy*t1+2*aj2ry*aj2sx*
+                 t1 = aj2ry**2
+                 t4 = aj2sy*aj2ry
+                 t8 = aj2sy*aj2rx+aj2ry*aj2sx
+                 t16 = aj2sy**2
+                 aj2sxxyy = t1*aj2rx*aj2sxrrr+(t4*aj2rx+aj2ry*t8)*
+     & aj2sxrrs+(t4*aj2sx+aj2sy*t8)*aj2sxrss+t16*aj2sx*aj2sxsss+(
+     & aj2ryy*aj2rx+2*aj2ry*aj2rxy)*aj2sxrr+(2*aj2ry*aj2sxy+2*aj2sy*
+     & aj2rxy+aj2ryy*aj2sx+aj2syy*aj2rx)*aj2sxrs+(aj2syy*aj2sx+2*
+     & aj2sy*aj2sxy)*aj2sxss+aj2rxyy*aj2sxr+aj2sxyy*aj2sxs
+                 t1 = aj2ry**2
+                 t7 = aj2sy**2
+                 aj2sxyyy = aj2ry*t1*aj2sxrrr+3*t1*aj2sy*aj2sxrrs+3*
+     & aj2ry*t7*aj2sxrss+t7*aj2sy*aj2sxsss+3*aj2ry*aj2ryy*aj2sxrr+(3*
+     & aj2syy*aj2ry+3*aj2sy*aj2ryy)*aj2sxrs+3*aj2syy*aj2sy*aj2sxss+
+     & aj2ryyy*aj2sxr+aj2syyy*aj2sxs
+                 t1 = aj2rx**2
+                 t7 = aj2sx**2
+                 aj2ryxxx = t1*aj2rx*aj2ryrrr+3*t1*aj2sx*aj2ryrrs+3*
+     & aj2rx*t7*aj2ryrss+t7*aj2sx*aj2rysss+3*aj2rx*aj2rxx*aj2ryrr+(3*
+     & aj2sxx*aj2rx+3*aj2sx*aj2rxx)*aj2ryrs+3*aj2sxx*aj2sx*aj2ryss+
+     & aj2rxxx*aj2ryr+aj2sxxx*aj2rys
+                 t1 = aj2rx**2
+                 t10 = aj2sx**2
+                 aj2ryxxy = aj2ry*t1*aj2ryrrr+(aj2sy*t1+2*aj2ry*aj2sx*
      & aj2rx)*aj2ryrrs+(aj2ry*t10+2*aj2sy*aj2sx*aj2rx)*aj2ryrss+aj2sy*
      & t10*aj2rysss+(2*aj2rxy*aj2rx+aj2ry*aj2rxx)*aj2ryrr+(aj2ry*
      & aj2sxx+2*aj2sx*aj2rxy+2*aj2sxy*aj2rx+aj2sy*aj2rxx)*aj2ryrs+(
      & aj2sy*aj2sxx+2*aj2sxy*aj2sx)*aj2ryss+aj2rxxy*aj2ryr+aj2sxxy*
      & aj2rys
-             t1 = aj2ry**2
-             t4 = aj2sy*aj2ry
-             t8 = aj2sy*aj2rx+aj2ry*aj2sx
-             t16 = aj2sy**2
-             aj2ryxyy = t1*aj2rx*aj2ryrrr+(t4*aj2rx+aj2ry*t8)*aj2ryrrs+
-     & (t4*aj2sx+aj2sy*t8)*aj2ryrss+t16*aj2sx*aj2rysss+(aj2ryy*aj2rx+
-     & 2*aj2ry*aj2rxy)*aj2ryrr+(2*aj2ry*aj2sxy+2*aj2sy*aj2rxy+aj2ryy*
-     & aj2sx+aj2syy*aj2rx)*aj2ryrs+(aj2syy*aj2sx+2*aj2sy*aj2sxy)*
-     & aj2ryss+aj2rxyy*aj2ryr+aj2sxyy*aj2rys
-             t1 = aj2ry**2
-             t7 = aj2sy**2
-             aj2ryyyy = aj2ry*t1*aj2ryrrr+3*t1*aj2sy*aj2ryrrs+3*aj2ry*
-     & t7*aj2ryrss+t7*aj2sy*aj2rysss+3*aj2ry*aj2ryy*aj2ryrr+(3*aj2syy*
-     & aj2ry+3*aj2sy*aj2ryy)*aj2ryrs+3*aj2syy*aj2sy*aj2ryss+aj2ryyy*
-     & aj2ryr+aj2syyy*aj2rys
-             t1 = aj2rx**2
-             t7 = aj2sx**2
-             aj2syxxx = t1*aj2rx*aj2syrrr+3*t1*aj2sx*aj2syrrs+3*aj2rx*
-     & t7*aj2syrss+t7*aj2sx*aj2sysss+3*aj2rx*aj2rxx*aj2syrr+(3*aj2sxx*
-     & aj2rx+3*aj2sx*aj2rxx)*aj2syrs+3*aj2sxx*aj2sx*aj2syss+aj2rxxx*
-     & aj2syr+aj2sxxx*aj2sys
-             t1 = aj2rx**2
-             t10 = aj2sx**2
-             aj2syxxy = aj2ry*t1*aj2syrrr+(aj2sy*t1+2*aj2ry*aj2sx*
+                 t1 = aj2ry**2
+                 t4 = aj2sy*aj2ry
+                 t8 = aj2sy*aj2rx+aj2ry*aj2sx
+                 t16 = aj2sy**2
+                 aj2ryxyy = t1*aj2rx*aj2ryrrr+(t4*aj2rx+aj2ry*t8)*
+     & aj2ryrrs+(t4*aj2sx+aj2sy*t8)*aj2ryrss+t16*aj2sx*aj2rysss+(
+     & aj2ryy*aj2rx+2*aj2ry*aj2rxy)*aj2ryrr+(2*aj2ry*aj2sxy+2*aj2sy*
+     & aj2rxy+aj2ryy*aj2sx+aj2syy*aj2rx)*aj2ryrs+(aj2syy*aj2sx+2*
+     & aj2sy*aj2sxy)*aj2ryss+aj2rxyy*aj2ryr+aj2sxyy*aj2rys
+                 t1 = aj2ry**2
+                 t7 = aj2sy**2
+                 aj2ryyyy = aj2ry*t1*aj2ryrrr+3*t1*aj2sy*aj2ryrrs+3*
+     & aj2ry*t7*aj2ryrss+t7*aj2sy*aj2rysss+3*aj2ry*aj2ryy*aj2ryrr+(3*
+     & aj2syy*aj2ry+3*aj2sy*aj2ryy)*aj2ryrs+3*aj2syy*aj2sy*aj2ryss+
+     & aj2ryyy*aj2ryr+aj2syyy*aj2rys
+                 t1 = aj2rx**2
+                 t7 = aj2sx**2
+                 aj2syxxx = t1*aj2rx*aj2syrrr+3*t1*aj2sx*aj2syrrs+3*
+     & aj2rx*t7*aj2syrss+t7*aj2sx*aj2sysss+3*aj2rx*aj2rxx*aj2syrr+(3*
+     & aj2sxx*aj2rx+3*aj2sx*aj2rxx)*aj2syrs+3*aj2sxx*aj2sx*aj2syss+
+     & aj2rxxx*aj2syr+aj2sxxx*aj2sys
+                 t1 = aj2rx**2
+                 t10 = aj2sx**2
+                 aj2syxxy = aj2ry*t1*aj2syrrr+(aj2sy*t1+2*aj2ry*aj2sx*
      & aj2rx)*aj2syrrs+(aj2ry*t10+2*aj2sy*aj2sx*aj2rx)*aj2syrss+aj2sy*
      & t10*aj2sysss+(2*aj2rxy*aj2rx+aj2ry*aj2rxx)*aj2syrr+(aj2ry*
      & aj2sxx+2*aj2sx*aj2rxy+2*aj2sxy*aj2rx+aj2sy*aj2rxx)*aj2syrs+(
      & aj2sy*aj2sxx+2*aj2sxy*aj2sx)*aj2syss+aj2rxxy*aj2syr+aj2sxxy*
      & aj2sys
-             t1 = aj2ry**2
-             t4 = aj2sy*aj2ry
-             t8 = aj2sy*aj2rx+aj2ry*aj2sx
-             t16 = aj2sy**2
-             aj2syxyy = t1*aj2rx*aj2syrrr+(t4*aj2rx+aj2ry*t8)*aj2syrrs+
-     & (t4*aj2sx+aj2sy*t8)*aj2syrss+t16*aj2sx*aj2sysss+(aj2ryy*aj2rx+
-     & 2*aj2ry*aj2rxy)*aj2syrr+(2*aj2ry*aj2sxy+2*aj2sy*aj2rxy+aj2ryy*
-     & aj2sx+aj2syy*aj2rx)*aj2syrs+(aj2syy*aj2sx+2*aj2sy*aj2sxy)*
-     & aj2syss+aj2rxyy*aj2syr+aj2sxyy*aj2sys
-             t1 = aj2ry**2
-             t7 = aj2sy**2
-             aj2syyyy = aj2ry*t1*aj2syrrr+3*t1*aj2sy*aj2syrrs+3*aj2ry*
-     & t7*aj2syrss+t7*aj2sy*aj2sysss+3*aj2ry*aj2ryy*aj2syrr+(3*aj2syy*
-     & aj2ry+3*aj2sy*aj2ryy)*aj2syrs+3*aj2syy*aj2sy*aj2syss+aj2ryyy*
-     & aj2syr+aj2syyy*aj2sys
-              uu2 = u2(j1,j2,j3,ex)
-              uu2r = (-u2(j1-1,j2,j3,ex)+u2(j1+1,j2,j3,ex))/(2.*dr2(0))
-              uu2s = (-u2(j1,j2-1,j3,ex)+u2(j1,j2+1,j3,ex))/(2.*dr2(1))
-              uu2rr = (u2(j1-1,j2,j3,ex)-2.*u2(j1,j2,j3,ex)+u2(j1+1,j2,
-     & j3,ex))/(dr2(0)**2)
-              uu2rs = (-(-u2(j1-1,j2-1,j3,ex)+u2(j1-1,j2+1,j3,ex))/(2.*
-     & dr2(1))+(-u2(j1+1,j2-1,j3,ex)+u2(j1+1,j2+1,j3,ex))/(2.*dr2(1)))
-     & /(2.*dr2(0))
-              uu2ss = (u2(j1,j2-1,j3,ex)-2.*u2(j1,j2,j3,ex)+u2(j1,j2+1,
-     & j3,ex))/(dr2(1)**2)
-              uu2rrr = (-u2(j1-2,j2,j3,ex)+2.*u2(j1-1,j2,j3,ex)-2.*u2(
-     & j1+1,j2,j3,ex)+u2(j1+2,j2,j3,ex))/(2.*dr2(0)**3)
-              uu2rrs = ((-u2(j1-1,j2-1,j3,ex)+u2(j1-1,j2+1,j3,ex))/(2.*
-     & dr2(1))-2.*(-u2(j1,j2-1,j3,ex)+u2(j1,j2+1,j3,ex))/(2.*dr2(1))+(
-     & -u2(j1+1,j2-1,j3,ex)+u2(j1+1,j2+1,j3,ex))/(2.*dr2(1)))/(dr2(0)*
-     & *2)
-              uu2rss = (-(u2(j1-1,j2-1,j3,ex)-2.*u2(j1-1,j2,j3,ex)+u2(
-     & j1-1,j2+1,j3,ex))/(dr2(1)**2)+(u2(j1+1,j2-1,j3,ex)-2.*u2(j1+1,
-     & j2,j3,ex)+u2(j1+1,j2+1,j3,ex))/(dr2(1)**2))/(2.*dr2(0))
-              uu2sss = (-u2(j1,j2-2,j3,ex)+2.*u2(j1,j2-1,j3,ex)-2.*u2(
-     & j1,j2+1,j3,ex)+u2(j1,j2+2,j3,ex))/(2.*dr2(1)**3)
-              uu2rrrr = (u2(j1-2,j2,j3,ex)-4.*u2(j1-1,j2,j3,ex)+6.*u2(
-     & j1,j2,j3,ex)-4.*u2(j1+1,j2,j3,ex)+u2(j1+2,j2,j3,ex))/(dr2(0)**
-     & 4)
-              uu2rrrs = (-(-u2(j1-2,j2-1,j3,ex)+u2(j1-2,j2+1,j3,ex))/(
-     & 2.*dr2(1))+2.*(-u2(j1-1,j2-1,j3,ex)+u2(j1-1,j2+1,j3,ex))/(2.*
-     & dr2(1))-2.*(-u2(j1+1,j2-1,j3,ex)+u2(j1+1,j2+1,j3,ex))/(2.*dr2(
-     & 1))+(-u2(j1+2,j2-1,j3,ex)+u2(j1+2,j2+1,j3,ex))/(2.*dr2(1)))/(
-     & 2.*dr2(0)**3)
-              uu2rrss = ((u2(j1-1,j2-1,j3,ex)-2.*u2(j1-1,j2,j3,ex)+u2(
-     & j1-1,j2+1,j3,ex))/(dr2(1)**2)-2.*(u2(j1,j2-1,j3,ex)-2.*u2(j1,
-     & j2,j3,ex)+u2(j1,j2+1,j3,ex))/(dr2(1)**2)+(u2(j1+1,j2-1,j3,ex)-
-     & 2.*u2(j1+1,j2,j3,ex)+u2(j1+1,j2+1,j3,ex))/(dr2(1)**2))/(dr2(0)*
-     & *2)
-              uu2rsss = (-(-u2(j1-1,j2-2,j3,ex)+2.*u2(j1-1,j2-1,j3,ex)-
-     & 2.*u2(j1-1,j2+1,j3,ex)+u2(j1-1,j2+2,j3,ex))/(2.*dr2(1)**3)+(-
-     & u2(j1+1,j2-2,j3,ex)+2.*u2(j1+1,j2-1,j3,ex)-2.*u2(j1+1,j2+1,j3,
-     & ex)+u2(j1+1,j2+2,j3,ex))/(2.*dr2(1)**3))/(2.*dr2(0))
-              uu2ssss = (u2(j1,j2-2,j3,ex)-4.*u2(j1,j2-1,j3,ex)+6.*u2(
-     & j1,j2,j3,ex)-4.*u2(j1,j2+1,j3,ex)+u2(j1,j2+2,j3,ex))/(dr2(1)**
-     & 4)
-               t1 = aj2rx**2
-               t7 = aj2sx**2
-               u2xxx = t1*aj2rx*uu2rrr+3*t1*aj2sx*uu2rrs+3*aj2rx*t7*
-     & uu2rss+t7*aj2sx*uu2sss+3*aj2rx*aj2rxx*uu2rr+(3*aj2sxx*aj2rx+3*
-     & aj2sx*aj2rxx)*uu2rs+3*aj2sxx*aj2sx*uu2ss+aj2rxxx*uu2r+aj2sxxx*
-     & uu2s
-               t1 = aj2rx**2
-               t10 = aj2sx**2
-               u2xxy = aj2ry*t1*uu2rrr+(aj2sy*t1+2*aj2ry*aj2sx*aj2rx)*
-     & uu2rrs+(aj2ry*t10+2*aj2sy*aj2sx*aj2rx)*uu2rss+aj2sy*t10*uu2sss+
-     & (2*aj2rxy*aj2rx+aj2ry*aj2rxx)*uu2rr+(aj2ry*aj2sxx+2*aj2sx*
-     & aj2rxy+2*aj2sxy*aj2rx+aj2sy*aj2rxx)*uu2rs+(aj2sy*aj2sxx+2*
-     & aj2sxy*aj2sx)*uu2ss+aj2rxxy*uu2r+aj2sxxy*uu2s
-               t1 = aj2ry**2
-               t4 = aj2sy*aj2ry
-               t8 = aj2sy*aj2rx+aj2ry*aj2sx
-               t16 = aj2sy**2
-               u2xyy = t1*aj2rx*uu2rrr+(t4*aj2rx+aj2ry*t8)*uu2rrs+(t4*
-     & aj2sx+aj2sy*t8)*uu2rss+t16*aj2sx*uu2sss+(aj2ryy*aj2rx+2*aj2ry*
-     & aj2rxy)*uu2rr+(2*aj2ry*aj2sxy+2*aj2sy*aj2rxy+aj2ryy*aj2sx+
-     & aj2syy*aj2rx)*uu2rs+(aj2syy*aj2sx+2*aj2sy*aj2sxy)*uu2ss+
+                 t1 = aj2ry**2
+                 t4 = aj2sy*aj2ry
+                 t8 = aj2sy*aj2rx+aj2ry*aj2sx
+                 t16 = aj2sy**2
+                 aj2syxyy = t1*aj2rx*aj2syrrr+(t4*aj2rx+aj2ry*t8)*
+     & aj2syrrs+(t4*aj2sx+aj2sy*t8)*aj2syrss+t16*aj2sx*aj2sysss+(
+     & aj2ryy*aj2rx+2*aj2ry*aj2rxy)*aj2syrr+(2*aj2ry*aj2sxy+2*aj2sy*
+     & aj2rxy+aj2ryy*aj2sx+aj2syy*aj2rx)*aj2syrs+(aj2syy*aj2sx+2*
+     & aj2sy*aj2sxy)*aj2syss+aj2rxyy*aj2syr+aj2sxyy*aj2sys
+                 t1 = aj2ry**2
+                 t7 = aj2sy**2
+                 aj2syyyy = aj2ry*t1*aj2syrrr+3*t1*aj2sy*aj2syrrs+3*
+     & aj2ry*t7*aj2syrss+t7*aj2sy*aj2sysss+3*aj2ry*aj2ryy*aj2syrr+(3*
+     & aj2syy*aj2ry+3*aj2sy*aj2ryy)*aj2syrs+3*aj2syy*aj2sy*aj2syss+
+     & aj2ryyy*aj2syr+aj2syyy*aj2sys
+                  uu2 = u2(j1,j2,j3,ex)
+                  uu2r = (-u2(j1-1,j2,j3,ex)+u2(j1+1,j2,j3,ex))/(2.*
+     & dr2(0))
+                  uu2s = (-u2(j1,j2-1,j3,ex)+u2(j1,j2+1,j3,ex))/(2.*
+     & dr2(1))
+                  uu2rr = (u2(j1-1,j2,j3,ex)-2.*u2(j1,j2,j3,ex)+u2(j1+
+     & 1,j2,j3,ex))/(dr2(0)**2)
+                  uu2rs = (-(-u2(j1-1,j2-1,j3,ex)+u2(j1-1,j2+1,j3,ex))
+     & /(2.*dr2(1))+(-u2(j1+1,j2-1,j3,ex)+u2(j1+1,j2+1,j3,ex))/(2.*
+     & dr2(1)))/(2.*dr2(0))
+                  uu2ss = (u2(j1,j2-1,j3,ex)-2.*u2(j1,j2,j3,ex)+u2(j1,
+     & j2+1,j3,ex))/(dr2(1)**2)
+                  uu2rrr = (-u2(j1-2,j2,j3,ex)+2.*u2(j1-1,j2,j3,ex)-2.*
+     & u2(j1+1,j2,j3,ex)+u2(j1+2,j2,j3,ex))/(2.*dr2(0)**3)
+                  uu2rrs = ((-u2(j1-1,j2-1,j3,ex)+u2(j1-1,j2+1,j3,ex))
+     & /(2.*dr2(1))-2.*(-u2(j1,j2-1,j3,ex)+u2(j1,j2+1,j3,ex))/(2.*dr2(
+     & 1))+(-u2(j1+1,j2-1,j3,ex)+u2(j1+1,j2+1,j3,ex))/(2.*dr2(1)))/(
+     & dr2(0)**2)
+                  uu2rss = (-(u2(j1-1,j2-1,j3,ex)-2.*u2(j1-1,j2,j3,ex)+
+     & u2(j1-1,j2+1,j3,ex))/(dr2(1)**2)+(u2(j1+1,j2-1,j3,ex)-2.*u2(j1+
+     & 1,j2,j3,ex)+u2(j1+1,j2+1,j3,ex))/(dr2(1)**2))/(2.*dr2(0))
+                  uu2sss = (-u2(j1,j2-2,j3,ex)+2.*u2(j1,j2-1,j3,ex)-2.*
+     & u2(j1,j2+1,j3,ex)+u2(j1,j2+2,j3,ex))/(2.*dr2(1)**3)
+                  uu2rrrr = (u2(j1-2,j2,j3,ex)-4.*u2(j1-1,j2,j3,ex)+6.*
+     & u2(j1,j2,j3,ex)-4.*u2(j1+1,j2,j3,ex)+u2(j1+2,j2,j3,ex))/(dr2(0)
+     & **4)
+                  uu2rrrs = (-(-u2(j1-2,j2-1,j3,ex)+u2(j1-2,j2+1,j3,ex)
+     & )/(2.*dr2(1))+2.*(-u2(j1-1,j2-1,j3,ex)+u2(j1-1,j2+1,j3,ex))/(
+     & 2.*dr2(1))-2.*(-u2(j1+1,j2-1,j3,ex)+u2(j1+1,j2+1,j3,ex))/(2.*
+     & dr2(1))+(-u2(j1+2,j2-1,j3,ex)+u2(j1+2,j2+1,j3,ex))/(2.*dr2(1)))
+     & /(2.*dr2(0)**3)
+                  uu2rrss = ((u2(j1-1,j2-1,j3,ex)-2.*u2(j1-1,j2,j3,ex)+
+     & u2(j1-1,j2+1,j3,ex))/(dr2(1)**2)-2.*(u2(j1,j2-1,j3,ex)-2.*u2(
+     & j1,j2,j3,ex)+u2(j1,j2+1,j3,ex))/(dr2(1)**2)+(u2(j1+1,j2-1,j3,
+     & ex)-2.*u2(j1+1,j2,j3,ex)+u2(j1+1,j2+1,j3,ex))/(dr2(1)**2))/(
+     & dr2(0)**2)
+                  uu2rsss = (-(-u2(j1-1,j2-2,j3,ex)+2.*u2(j1-1,j2-1,j3,
+     & ex)-2.*u2(j1-1,j2+1,j3,ex)+u2(j1-1,j2+2,j3,ex))/(2.*dr2(1)**3)+
+     & (-u2(j1+1,j2-2,j3,ex)+2.*u2(j1+1,j2-1,j3,ex)-2.*u2(j1+1,j2+1,
+     & j3,ex)+u2(j1+1,j2+2,j3,ex))/(2.*dr2(1)**3))/(2.*dr2(0))
+                  uu2ssss = (u2(j1,j2-2,j3,ex)-4.*u2(j1,j2-1,j3,ex)+6.*
+     & u2(j1,j2,j3,ex)-4.*u2(j1,j2+1,j3,ex)+u2(j1,j2+2,j3,ex))/(dr2(1)
+     & **4)
+                   t1 = aj2rx**2
+                   t7 = aj2sx**2
+                   u2xxx = t1*aj2rx*uu2rrr+3*t1*aj2sx*uu2rrs+3*aj2rx*
+     & t7*uu2rss+t7*aj2sx*uu2sss+3*aj2rx*aj2rxx*uu2rr+(3*aj2sxx*aj2rx+
+     & 3*aj2sx*aj2rxx)*uu2rs+3*aj2sxx*aj2sx*uu2ss+aj2rxxx*uu2r+
+     & aj2sxxx*uu2s
+                   t1 = aj2rx**2
+                   t10 = aj2sx**2
+                   u2xxy = aj2ry*t1*uu2rrr+(aj2sy*t1+2*aj2ry*aj2sx*
+     & aj2rx)*uu2rrs+(aj2ry*t10+2*aj2sy*aj2sx*aj2rx)*uu2rss+aj2sy*t10*
+     & uu2sss+(2*aj2rxy*aj2rx+aj2ry*aj2rxx)*uu2rr+(aj2ry*aj2sxx+2*
+     & aj2sx*aj2rxy+2*aj2sxy*aj2rx+aj2sy*aj2rxx)*uu2rs+(aj2sy*aj2sxx+
+     & 2*aj2sxy*aj2sx)*uu2ss+aj2rxxy*uu2r+aj2sxxy*uu2s
+                   t1 = aj2ry**2
+                   t4 = aj2sy*aj2ry
+                   t8 = aj2sy*aj2rx+aj2ry*aj2sx
+                   t16 = aj2sy**2
+                   u2xyy = t1*aj2rx*uu2rrr+(t4*aj2rx+aj2ry*t8)*uu2rrs+(
+     & t4*aj2sx+aj2sy*t8)*uu2rss+t16*aj2sx*uu2sss+(aj2ryy*aj2rx+2*
+     & aj2ry*aj2rxy)*uu2rr+(2*aj2ry*aj2sxy+2*aj2sy*aj2rxy+aj2ryy*
+     & aj2sx+aj2syy*aj2rx)*uu2rs+(aj2syy*aj2sx+2*aj2sy*aj2sxy)*uu2ss+
      & aj2rxyy*uu2r+aj2sxyy*uu2s
-               t1 = aj2ry**2
-               t7 = aj2sy**2
-               u2yyy = aj2ry*t1*uu2rrr+3*t1*aj2sy*uu2rrs+3*aj2ry*t7*
-     & uu2rss+t7*aj2sy*uu2sss+3*aj2ry*aj2ryy*uu2rr+(3*aj2syy*aj2ry+3*
-     & aj2sy*aj2ryy)*uu2rs+3*aj2syy*aj2sy*uu2ss+aj2ryyy*uu2r+aj2syyy*
-     & uu2s
-               t1 = aj2rx**2
-               t2 = t1**2
-               t8 = aj2sx**2
-               t16 = t8**2
-               t25 = aj2sxx*aj2rx
-               t27 = t25+aj2sx*aj2rxx
-               t28 = 3*t27
-               t30 = 2*t27
-               t46 = aj2rxx**2
-               t60 = aj2sxx**2
-               u2xxxx = t2*uu2rrrr+4*t1*aj2rx*aj2sx*uu2rrrs+6*t1*t8*
-     & uu2rrss+4*aj2rx*t8*aj2sx*uu2rsss+t16*uu2ssss+6*t1*aj2rxx*
+                   t1 = aj2ry**2
+                   t7 = aj2sy**2
+                   u2yyy = aj2ry*t1*uu2rrr+3*t1*aj2sy*uu2rrs+3*aj2ry*
+     & t7*uu2rss+t7*aj2sy*uu2sss+3*aj2ry*aj2ryy*uu2rr+(3*aj2syy*aj2ry+
+     & 3*aj2sy*aj2ryy)*uu2rs+3*aj2syy*aj2sy*uu2ss+aj2ryyy*uu2r+
+     & aj2syyy*uu2s
+                   t1 = aj2rx**2
+                   t2 = t1**2
+                   t8 = aj2sx**2
+                   t16 = t8**2
+                   t25 = aj2sxx*aj2rx
+                   t27 = t25+aj2sx*aj2rxx
+                   t28 = 3*t27
+                   t30 = 2*t27
+                   t46 = aj2rxx**2
+                   t60 = aj2sxx**2
+                   u2xxxx = t2*uu2rrrr+4*t1*aj2rx*aj2sx*uu2rrrs+6*t1*
+     & t8*uu2rrss+4*aj2rx*t8*aj2sx*uu2rsss+t16*uu2ssss+6*t1*aj2rxx*
      & uu2rrr+(7*aj2sx*aj2rx*aj2rxx+aj2sxx*t1+aj2rx*t28+aj2rx*t30)*
      & uu2rrs+(aj2sx*t28+7*t25*aj2sx+aj2rxx*t8+aj2sx*t30)*uu2rss+6*t8*
      & aj2sxx*uu2sss+(4*aj2rx*aj2rxxx+3*t46)*uu2rr+(4*aj2sxxx*aj2rx+4*
      & aj2sx*aj2rxxx+6*aj2sxx*aj2rxx)*uu2rs+(4*aj2sxxx*aj2sx+3*t60)*
      & uu2ss+aj2rxxxx*uu2r+aj2sxxxx*uu2s
-               t1 = aj2ry**2
-               t2 = aj2rx**2
-               t5 = aj2sy*aj2ry
-               t11 = aj2sy*t2+2*aj2ry*aj2sx*aj2rx
-               t16 = aj2sx**2
-               t21 = aj2ry*t16+2*aj2sy*aj2sx*aj2rx
-               t29 = aj2sy**2
-               t38 = 2*aj2rxy*aj2rx+aj2ry*aj2rxx
-               t52 = aj2sx*aj2rxy
-               t54 = aj2sxy*aj2rx
-               t57 = aj2ry*aj2sxx+2*t52+2*t54+aj2sy*aj2rxx
-               t60 = 2*t52+2*t54
-               t68 = aj2sy*aj2sxx+2*aj2sxy*aj2sx
-               t92 = aj2rxy**2
-               t110 = aj2sxy**2
-               u2xxyy = t1*t2*uu2rrrr+(t5*t2+aj2ry*t11)*uu2rrrs+(aj2sy*
-     & t11+aj2ry*t21)*uu2rrss+(aj2sy*t21+t5*t16)*uu2rsss+t29*t16*
-     & uu2ssss+(2*aj2ry*aj2rxy*aj2rx+aj2ry*t38+aj2ryy*t2)*uu2rrr+(
+                   t1 = aj2ry**2
+                   t2 = aj2rx**2
+                   t5 = aj2sy*aj2ry
+                   t11 = aj2sy*t2+2*aj2ry*aj2sx*aj2rx
+                   t16 = aj2sx**2
+                   t21 = aj2ry*t16+2*aj2sy*aj2sx*aj2rx
+                   t29 = aj2sy**2
+                   t38 = 2*aj2rxy*aj2rx+aj2ry*aj2rxx
+                   t52 = aj2sx*aj2rxy
+                   t54 = aj2sxy*aj2rx
+                   t57 = aj2ry*aj2sxx+2*t52+2*t54+aj2sy*aj2rxx
+                   t60 = 2*t52+2*t54
+                   t68 = aj2sy*aj2sxx+2*aj2sxy*aj2sx
+                   t92 = aj2rxy**2
+                   t110 = aj2sxy**2
+                   u2xxyy = t1*t2*uu2rrrr+(t5*t2+aj2ry*t11)*uu2rrrs+(
+     & aj2sy*t11+aj2ry*t21)*uu2rrss+(aj2sy*t21+t5*t16)*uu2rsss+t29*
+     & t16*uu2ssss+(2*aj2ry*aj2rxy*aj2rx+aj2ry*t38+aj2ryy*t2)*uu2rrr+(
      & aj2sy*t38+2*aj2sy*aj2rxy*aj2rx+2*aj2ryy*aj2sx*aj2rx+aj2syy*t2+
      & aj2ry*t57+aj2ry*t60)*uu2rrs+(aj2sy*t57+aj2ry*t68+aj2ryy*t16+2*
      & aj2ry*aj2sxy*aj2sx+2*aj2syy*aj2sx*aj2rx+aj2sy*t60)*uu2rss+(2*
@@ -5502,128 +7201,130 @@
      & aj2rx+aj2syy*aj2rxx+2*aj2sx*aj2rxyy)*uu2rs+(2*t110+2*aj2sy*
      & aj2sxxy+aj2syy*aj2sxx+2*aj2sx*aj2sxyy)*uu2ss+aj2rxxyy*uu2r+
      & aj2sxxyy*uu2s
-               t1 = aj2ry**2
-               t2 = t1**2
-               t8 = aj2sy**2
-               t16 = t8**2
-               t25 = aj2syy*aj2ry
-               t27 = t25+aj2sy*aj2ryy
-               t28 = 3*t27
-               t30 = 2*t27
-               t46 = aj2ryy**2
-               t60 = aj2syy**2
-               u2yyyy = t2*uu2rrrr+4*t1*aj2ry*aj2sy*uu2rrrs+6*t1*t8*
-     & uu2rrss+4*aj2ry*t8*aj2sy*uu2rsss+t16*uu2ssss+6*t1*aj2ryy*
+                   t1 = aj2ry**2
+                   t2 = t1**2
+                   t8 = aj2sy**2
+                   t16 = t8**2
+                   t25 = aj2syy*aj2ry
+                   t27 = t25+aj2sy*aj2ryy
+                   t28 = 3*t27
+                   t30 = 2*t27
+                   t46 = aj2ryy**2
+                   t60 = aj2syy**2
+                   u2yyyy = t2*uu2rrrr+4*t1*aj2ry*aj2sy*uu2rrrs+6*t1*
+     & t8*uu2rrss+4*aj2ry*t8*aj2sy*uu2rsss+t16*uu2ssss+6*t1*aj2ryy*
      & uu2rrr+(7*aj2sy*aj2ry*aj2ryy+aj2syy*t1+aj2ry*t28+aj2ry*t30)*
      & uu2rrs+(aj2sy*t28+7*t25*aj2sy+aj2ryy*t8+aj2sy*t30)*uu2rss+6*t8*
      & aj2syy*uu2sss+(4*aj2ry*aj2ryyy+3*t46)*uu2rr+(4*aj2syyy*aj2ry+4*
      & aj2sy*aj2ryyy+6*aj2syy*aj2ryy)*uu2rs+(4*aj2syyy*aj2sy+3*t60)*
      & uu2ss+aj2ryyyy*uu2r+aj2syyyy*uu2s
-             u2LapSq = u2xxxx +2.* u2xxyy + u2yyyy
-              vv2 = u2(j1,j2,j3,ey)
-              vv2r = (-u2(j1-1,j2,j3,ey)+u2(j1+1,j2,j3,ey))/(2.*dr2(0))
-              vv2s = (-u2(j1,j2-1,j3,ey)+u2(j1,j2+1,j3,ey))/(2.*dr2(1))
-              vv2rr = (u2(j1-1,j2,j3,ey)-2.*u2(j1,j2,j3,ey)+u2(j1+1,j2,
-     & j3,ey))/(dr2(0)**2)
-              vv2rs = (-(-u2(j1-1,j2-1,j3,ey)+u2(j1-1,j2+1,j3,ey))/(2.*
-     & dr2(1))+(-u2(j1+1,j2-1,j3,ey)+u2(j1+1,j2+1,j3,ey))/(2.*dr2(1)))
-     & /(2.*dr2(0))
-              vv2ss = (u2(j1,j2-1,j3,ey)-2.*u2(j1,j2,j3,ey)+u2(j1,j2+1,
-     & j3,ey))/(dr2(1)**2)
-              vv2rrr = (-u2(j1-2,j2,j3,ey)+2.*u2(j1-1,j2,j3,ey)-2.*u2(
-     & j1+1,j2,j3,ey)+u2(j1+2,j2,j3,ey))/(2.*dr2(0)**3)
-              vv2rrs = ((-u2(j1-1,j2-1,j3,ey)+u2(j1-1,j2+1,j3,ey))/(2.*
-     & dr2(1))-2.*(-u2(j1,j2-1,j3,ey)+u2(j1,j2+1,j3,ey))/(2.*dr2(1))+(
-     & -u2(j1+1,j2-1,j3,ey)+u2(j1+1,j2+1,j3,ey))/(2.*dr2(1)))/(dr2(0)*
-     & *2)
-              vv2rss = (-(u2(j1-1,j2-1,j3,ey)-2.*u2(j1-1,j2,j3,ey)+u2(
-     & j1-1,j2+1,j3,ey))/(dr2(1)**2)+(u2(j1+1,j2-1,j3,ey)-2.*u2(j1+1,
-     & j2,j3,ey)+u2(j1+1,j2+1,j3,ey))/(dr2(1)**2))/(2.*dr2(0))
-              vv2sss = (-u2(j1,j2-2,j3,ey)+2.*u2(j1,j2-1,j3,ey)-2.*u2(
-     & j1,j2+1,j3,ey)+u2(j1,j2+2,j3,ey))/(2.*dr2(1)**3)
-              vv2rrrr = (u2(j1-2,j2,j3,ey)-4.*u2(j1-1,j2,j3,ey)+6.*u2(
-     & j1,j2,j3,ey)-4.*u2(j1+1,j2,j3,ey)+u2(j1+2,j2,j3,ey))/(dr2(0)**
-     & 4)
-              vv2rrrs = (-(-u2(j1-2,j2-1,j3,ey)+u2(j1-2,j2+1,j3,ey))/(
-     & 2.*dr2(1))+2.*(-u2(j1-1,j2-1,j3,ey)+u2(j1-1,j2+1,j3,ey))/(2.*
-     & dr2(1))-2.*(-u2(j1+1,j2-1,j3,ey)+u2(j1+1,j2+1,j3,ey))/(2.*dr2(
-     & 1))+(-u2(j1+2,j2-1,j3,ey)+u2(j1+2,j2+1,j3,ey))/(2.*dr2(1)))/(
-     & 2.*dr2(0)**3)
-              vv2rrss = ((u2(j1-1,j2-1,j3,ey)-2.*u2(j1-1,j2,j3,ey)+u2(
-     & j1-1,j2+1,j3,ey))/(dr2(1)**2)-2.*(u2(j1,j2-1,j3,ey)-2.*u2(j1,
-     & j2,j3,ey)+u2(j1,j2+1,j3,ey))/(dr2(1)**2)+(u2(j1+1,j2-1,j3,ey)-
-     & 2.*u2(j1+1,j2,j3,ey)+u2(j1+1,j2+1,j3,ey))/(dr2(1)**2))/(dr2(0)*
-     & *2)
-              vv2rsss = (-(-u2(j1-1,j2-2,j3,ey)+2.*u2(j1-1,j2-1,j3,ey)-
-     & 2.*u2(j1-1,j2+1,j3,ey)+u2(j1-1,j2+2,j3,ey))/(2.*dr2(1)**3)+(-
-     & u2(j1+1,j2-2,j3,ey)+2.*u2(j1+1,j2-1,j3,ey)-2.*u2(j1+1,j2+1,j3,
-     & ey)+u2(j1+1,j2+2,j3,ey))/(2.*dr2(1)**3))/(2.*dr2(0))
-              vv2ssss = (u2(j1,j2-2,j3,ey)-4.*u2(j1,j2-1,j3,ey)+6.*u2(
-     & j1,j2,j3,ey)-4.*u2(j1,j2+1,j3,ey)+u2(j1,j2+2,j3,ey))/(dr2(1)**
-     & 4)
-               t1 = aj2rx**2
-               t7 = aj2sx**2
-               v2xxx = t1*aj2rx*vv2rrr+3*t1*aj2sx*vv2rrs+3*aj2rx*t7*
-     & vv2rss+t7*aj2sx*vv2sss+3*aj2rx*aj2rxx*vv2rr+(3*aj2sxx*aj2rx+3*
-     & aj2sx*aj2rxx)*vv2rs+3*aj2sxx*aj2sx*vv2ss+aj2rxxx*vv2r+aj2sxxx*
-     & vv2s
-               t1 = aj2rx**2
-               t10 = aj2sx**2
-               v2xxy = aj2ry*t1*vv2rrr+(aj2sy*t1+2*aj2ry*aj2sx*aj2rx)*
-     & vv2rrs+(aj2ry*t10+2*aj2sy*aj2sx*aj2rx)*vv2rss+aj2sy*t10*vv2sss+
-     & (2*aj2rxy*aj2rx+aj2ry*aj2rxx)*vv2rr+(aj2ry*aj2sxx+2*aj2sx*
-     & aj2rxy+2*aj2sxy*aj2rx+aj2sy*aj2rxx)*vv2rs+(aj2sy*aj2sxx+2*
-     & aj2sxy*aj2sx)*vv2ss+aj2rxxy*vv2r+aj2sxxy*vv2s
-               t1 = aj2ry**2
-               t4 = aj2sy*aj2ry
-               t8 = aj2sy*aj2rx+aj2ry*aj2sx
-               t16 = aj2sy**2
-               v2xyy = t1*aj2rx*vv2rrr+(t4*aj2rx+aj2ry*t8)*vv2rrs+(t4*
-     & aj2sx+aj2sy*t8)*vv2rss+t16*aj2sx*vv2sss+(aj2ryy*aj2rx+2*aj2ry*
-     & aj2rxy)*vv2rr+(2*aj2ry*aj2sxy+2*aj2sy*aj2rxy+aj2ryy*aj2sx+
-     & aj2syy*aj2rx)*vv2rs+(aj2syy*aj2sx+2*aj2sy*aj2sxy)*vv2ss+
+                 u2LapSq = u2xxxx +2.* u2xxyy + u2yyyy
+                  vv2 = u2(j1,j2,j3,ey)
+                  vv2r = (-u2(j1-1,j2,j3,ey)+u2(j1+1,j2,j3,ey))/(2.*
+     & dr2(0))
+                  vv2s = (-u2(j1,j2-1,j3,ey)+u2(j1,j2+1,j3,ey))/(2.*
+     & dr2(1))
+                  vv2rr = (u2(j1-1,j2,j3,ey)-2.*u2(j1,j2,j3,ey)+u2(j1+
+     & 1,j2,j3,ey))/(dr2(0)**2)
+                  vv2rs = (-(-u2(j1-1,j2-1,j3,ey)+u2(j1-1,j2+1,j3,ey))
+     & /(2.*dr2(1))+(-u2(j1+1,j2-1,j3,ey)+u2(j1+1,j2+1,j3,ey))/(2.*
+     & dr2(1)))/(2.*dr2(0))
+                  vv2ss = (u2(j1,j2-1,j3,ey)-2.*u2(j1,j2,j3,ey)+u2(j1,
+     & j2+1,j3,ey))/(dr2(1)**2)
+                  vv2rrr = (-u2(j1-2,j2,j3,ey)+2.*u2(j1-1,j2,j3,ey)-2.*
+     & u2(j1+1,j2,j3,ey)+u2(j1+2,j2,j3,ey))/(2.*dr2(0)**3)
+                  vv2rrs = ((-u2(j1-1,j2-1,j3,ey)+u2(j1-1,j2+1,j3,ey))
+     & /(2.*dr2(1))-2.*(-u2(j1,j2-1,j3,ey)+u2(j1,j2+1,j3,ey))/(2.*dr2(
+     & 1))+(-u2(j1+1,j2-1,j3,ey)+u2(j1+1,j2+1,j3,ey))/(2.*dr2(1)))/(
+     & dr2(0)**2)
+                  vv2rss = (-(u2(j1-1,j2-1,j3,ey)-2.*u2(j1-1,j2,j3,ey)+
+     & u2(j1-1,j2+1,j3,ey))/(dr2(1)**2)+(u2(j1+1,j2-1,j3,ey)-2.*u2(j1+
+     & 1,j2,j3,ey)+u2(j1+1,j2+1,j3,ey))/(dr2(1)**2))/(2.*dr2(0))
+                  vv2sss = (-u2(j1,j2-2,j3,ey)+2.*u2(j1,j2-1,j3,ey)-2.*
+     & u2(j1,j2+1,j3,ey)+u2(j1,j2+2,j3,ey))/(2.*dr2(1)**3)
+                  vv2rrrr = (u2(j1-2,j2,j3,ey)-4.*u2(j1-1,j2,j3,ey)+6.*
+     & u2(j1,j2,j3,ey)-4.*u2(j1+1,j2,j3,ey)+u2(j1+2,j2,j3,ey))/(dr2(0)
+     & **4)
+                  vv2rrrs = (-(-u2(j1-2,j2-1,j3,ey)+u2(j1-2,j2+1,j3,ey)
+     & )/(2.*dr2(1))+2.*(-u2(j1-1,j2-1,j3,ey)+u2(j1-1,j2+1,j3,ey))/(
+     & 2.*dr2(1))-2.*(-u2(j1+1,j2-1,j3,ey)+u2(j1+1,j2+1,j3,ey))/(2.*
+     & dr2(1))+(-u2(j1+2,j2-1,j3,ey)+u2(j1+2,j2+1,j3,ey))/(2.*dr2(1)))
+     & /(2.*dr2(0)**3)
+                  vv2rrss = ((u2(j1-1,j2-1,j3,ey)-2.*u2(j1-1,j2,j3,ey)+
+     & u2(j1-1,j2+1,j3,ey))/(dr2(1)**2)-2.*(u2(j1,j2-1,j3,ey)-2.*u2(
+     & j1,j2,j3,ey)+u2(j1,j2+1,j3,ey))/(dr2(1)**2)+(u2(j1+1,j2-1,j3,
+     & ey)-2.*u2(j1+1,j2,j3,ey)+u2(j1+1,j2+1,j3,ey))/(dr2(1)**2))/(
+     & dr2(0)**2)
+                  vv2rsss = (-(-u2(j1-1,j2-2,j3,ey)+2.*u2(j1-1,j2-1,j3,
+     & ey)-2.*u2(j1-1,j2+1,j3,ey)+u2(j1-1,j2+2,j3,ey))/(2.*dr2(1)**3)+
+     & (-u2(j1+1,j2-2,j3,ey)+2.*u2(j1+1,j2-1,j3,ey)-2.*u2(j1+1,j2+1,
+     & j3,ey)+u2(j1+1,j2+2,j3,ey))/(2.*dr2(1)**3))/(2.*dr2(0))
+                  vv2ssss = (u2(j1,j2-2,j3,ey)-4.*u2(j1,j2-1,j3,ey)+6.*
+     & u2(j1,j2,j3,ey)-4.*u2(j1,j2+1,j3,ey)+u2(j1,j2+2,j3,ey))/(dr2(1)
+     & **4)
+                   t1 = aj2rx**2
+                   t7 = aj2sx**2
+                   v2xxx = t1*aj2rx*vv2rrr+3*t1*aj2sx*vv2rrs+3*aj2rx*
+     & t7*vv2rss+t7*aj2sx*vv2sss+3*aj2rx*aj2rxx*vv2rr+(3*aj2sxx*aj2rx+
+     & 3*aj2sx*aj2rxx)*vv2rs+3*aj2sxx*aj2sx*vv2ss+aj2rxxx*vv2r+
+     & aj2sxxx*vv2s
+                   t1 = aj2rx**2
+                   t10 = aj2sx**2
+                   v2xxy = aj2ry*t1*vv2rrr+(aj2sy*t1+2*aj2ry*aj2sx*
+     & aj2rx)*vv2rrs+(aj2ry*t10+2*aj2sy*aj2sx*aj2rx)*vv2rss+aj2sy*t10*
+     & vv2sss+(2*aj2rxy*aj2rx+aj2ry*aj2rxx)*vv2rr+(aj2ry*aj2sxx+2*
+     & aj2sx*aj2rxy+2*aj2sxy*aj2rx+aj2sy*aj2rxx)*vv2rs+(aj2sy*aj2sxx+
+     & 2*aj2sxy*aj2sx)*vv2ss+aj2rxxy*vv2r+aj2sxxy*vv2s
+                   t1 = aj2ry**2
+                   t4 = aj2sy*aj2ry
+                   t8 = aj2sy*aj2rx+aj2ry*aj2sx
+                   t16 = aj2sy**2
+                   v2xyy = t1*aj2rx*vv2rrr+(t4*aj2rx+aj2ry*t8)*vv2rrs+(
+     & t4*aj2sx+aj2sy*t8)*vv2rss+t16*aj2sx*vv2sss+(aj2ryy*aj2rx+2*
+     & aj2ry*aj2rxy)*vv2rr+(2*aj2ry*aj2sxy+2*aj2sy*aj2rxy+aj2ryy*
+     & aj2sx+aj2syy*aj2rx)*vv2rs+(aj2syy*aj2sx+2*aj2sy*aj2sxy)*vv2ss+
      & aj2rxyy*vv2r+aj2sxyy*vv2s
-               t1 = aj2ry**2
-               t7 = aj2sy**2
-               v2yyy = aj2ry*t1*vv2rrr+3*t1*aj2sy*vv2rrs+3*aj2ry*t7*
-     & vv2rss+t7*aj2sy*vv2sss+3*aj2ry*aj2ryy*vv2rr+(3*aj2syy*aj2ry+3*
-     & aj2sy*aj2ryy)*vv2rs+3*aj2syy*aj2sy*vv2ss+aj2ryyy*vv2r+aj2syyy*
-     & vv2s
-               t1 = aj2rx**2
-               t2 = t1**2
-               t8 = aj2sx**2
-               t16 = t8**2
-               t25 = aj2sxx*aj2rx
-               t27 = t25+aj2sx*aj2rxx
-               t28 = 3*t27
-               t30 = 2*t27
-               t46 = aj2rxx**2
-               t60 = aj2sxx**2
-               v2xxxx = t2*vv2rrrr+4*t1*aj2rx*aj2sx*vv2rrrs+6*t1*t8*
-     & vv2rrss+4*aj2rx*t8*aj2sx*vv2rsss+t16*vv2ssss+6*t1*aj2rxx*
+                   t1 = aj2ry**2
+                   t7 = aj2sy**2
+                   v2yyy = aj2ry*t1*vv2rrr+3*t1*aj2sy*vv2rrs+3*aj2ry*
+     & t7*vv2rss+t7*aj2sy*vv2sss+3*aj2ry*aj2ryy*vv2rr+(3*aj2syy*aj2ry+
+     & 3*aj2sy*aj2ryy)*vv2rs+3*aj2syy*aj2sy*vv2ss+aj2ryyy*vv2r+
+     & aj2syyy*vv2s
+                   t1 = aj2rx**2
+                   t2 = t1**2
+                   t8 = aj2sx**2
+                   t16 = t8**2
+                   t25 = aj2sxx*aj2rx
+                   t27 = t25+aj2sx*aj2rxx
+                   t28 = 3*t27
+                   t30 = 2*t27
+                   t46 = aj2rxx**2
+                   t60 = aj2sxx**2
+                   v2xxxx = t2*vv2rrrr+4*t1*aj2rx*aj2sx*vv2rrrs+6*t1*
+     & t8*vv2rrss+4*aj2rx*t8*aj2sx*vv2rsss+t16*vv2ssss+6*t1*aj2rxx*
      & vv2rrr+(7*aj2sx*aj2rx*aj2rxx+aj2sxx*t1+aj2rx*t28+aj2rx*t30)*
      & vv2rrs+(aj2sx*t28+7*t25*aj2sx+aj2rxx*t8+aj2sx*t30)*vv2rss+6*t8*
      & aj2sxx*vv2sss+(4*aj2rx*aj2rxxx+3*t46)*vv2rr+(4*aj2sxxx*aj2rx+4*
      & aj2sx*aj2rxxx+6*aj2sxx*aj2rxx)*vv2rs+(4*aj2sxxx*aj2sx+3*t60)*
      & vv2ss+aj2rxxxx*vv2r+aj2sxxxx*vv2s
-               t1 = aj2ry**2
-               t2 = aj2rx**2
-               t5 = aj2sy*aj2ry
-               t11 = aj2sy*t2+2*aj2ry*aj2sx*aj2rx
-               t16 = aj2sx**2
-               t21 = aj2ry*t16+2*aj2sy*aj2sx*aj2rx
-               t29 = aj2sy**2
-               t38 = 2*aj2rxy*aj2rx+aj2ry*aj2rxx
-               t52 = aj2sx*aj2rxy
-               t54 = aj2sxy*aj2rx
-               t57 = aj2ry*aj2sxx+2*t52+2*t54+aj2sy*aj2rxx
-               t60 = 2*t52+2*t54
-               t68 = aj2sy*aj2sxx+2*aj2sxy*aj2sx
-               t92 = aj2rxy**2
-               t110 = aj2sxy**2
-               v2xxyy = t1*t2*vv2rrrr+(t5*t2+aj2ry*t11)*vv2rrrs+(aj2sy*
-     & t11+aj2ry*t21)*vv2rrss+(aj2sy*t21+t5*t16)*vv2rsss+t29*t16*
-     & vv2ssss+(2*aj2ry*aj2rxy*aj2rx+aj2ry*t38+aj2ryy*t2)*vv2rrr+(
+                   t1 = aj2ry**2
+                   t2 = aj2rx**2
+                   t5 = aj2sy*aj2ry
+                   t11 = aj2sy*t2+2*aj2ry*aj2sx*aj2rx
+                   t16 = aj2sx**2
+                   t21 = aj2ry*t16+2*aj2sy*aj2sx*aj2rx
+                   t29 = aj2sy**2
+                   t38 = 2*aj2rxy*aj2rx+aj2ry*aj2rxx
+                   t52 = aj2sx*aj2rxy
+                   t54 = aj2sxy*aj2rx
+                   t57 = aj2ry*aj2sxx+2*t52+2*t54+aj2sy*aj2rxx
+                   t60 = 2*t52+2*t54
+                   t68 = aj2sy*aj2sxx+2*aj2sxy*aj2sx
+                   t92 = aj2rxy**2
+                   t110 = aj2sxy**2
+                   v2xxyy = t1*t2*vv2rrrr+(t5*t2+aj2ry*t11)*vv2rrrs+(
+     & aj2sy*t11+aj2ry*t21)*vv2rrss+(aj2sy*t21+t5*t16)*vv2rsss+t29*
+     & t16*vv2ssss+(2*aj2ry*aj2rxy*aj2rx+aj2ry*t38+aj2ryy*t2)*vv2rrr+(
      & aj2sy*t38+2*aj2sy*aj2rxy*aj2rx+2*aj2ryy*aj2sx*aj2rx+aj2syy*t2+
      & aj2ry*t57+aj2ry*t60)*vv2rrs+(aj2sy*t57+aj2ry*t68+aj2ryy*t16+2*
      & aj2ry*aj2sxy*aj2sx+2*aj2syy*aj2sx*aj2rx+aj2sy*t60)*vv2rss+(2*
@@ -5633,1311 +7334,1268 @@
      & aj2rx+aj2syy*aj2rxx+2*aj2sx*aj2rxyy)*vv2rs+(2*t110+2*aj2sy*
      & aj2sxxy+aj2syy*aj2sxx+2*aj2sx*aj2sxyy)*vv2ss+aj2rxxyy*vv2r+
      & aj2sxxyy*vv2s
-               t1 = aj2ry**2
-               t2 = t1**2
-               t8 = aj2sy**2
-               t16 = t8**2
-               t25 = aj2syy*aj2ry
-               t27 = t25+aj2sy*aj2ryy
-               t28 = 3*t27
-               t30 = 2*t27
-               t46 = aj2ryy**2
-               t60 = aj2syy**2
-               v2yyyy = t2*vv2rrrr+4*t1*aj2ry*aj2sy*vv2rrrs+6*t1*t8*
-     & vv2rrss+4*aj2ry*t8*aj2sy*vv2rsss+t16*vv2ssss+6*t1*aj2ryy*
+                   t1 = aj2ry**2
+                   t2 = t1**2
+                   t8 = aj2sy**2
+                   t16 = t8**2
+                   t25 = aj2syy*aj2ry
+                   t27 = t25+aj2sy*aj2ryy
+                   t28 = 3*t27
+                   t30 = 2*t27
+                   t46 = aj2ryy**2
+                   t60 = aj2syy**2
+                   v2yyyy = t2*vv2rrrr+4*t1*aj2ry*aj2sy*vv2rrrs+6*t1*
+     & t8*vv2rrss+4*aj2ry*t8*aj2sy*vv2rsss+t16*vv2ssss+6*t1*aj2ryy*
      & vv2rrr+(7*aj2sy*aj2ry*aj2ryy+aj2syy*t1+aj2ry*t28+aj2ry*t30)*
      & vv2rrs+(aj2sy*t28+7*t25*aj2sy+aj2ryy*t8+aj2sy*t30)*vv2rss+6*t8*
      & aj2syy*vv2sss+(4*aj2ry*aj2ryyy+3*t46)*vv2rr+(4*aj2syyy*aj2ry+4*
      & aj2sy*aj2ryyy+6*aj2syy*aj2ryy)*vv2rs+(4*aj2syyy*aj2sy+3*t60)*
      & vv2ss+aj2ryyyy*vv2r+aj2syyyy*vv2s
-             v2LapSq = v2xxxx +2.* v2xxyy + v2yyyy
-            ! These derivatives are computed to 4th-order accuracy
-            ! NOTE: the jacobian derivatives can be computed once for all components
-             ! this next call will define the jacobian and its derivatives (parameteric and spatial)
-             aj1rx = rsxy1(i1,i2,i3,0,0)
-             aj1rxr = (rsxy1(i1-2,i2,i3,0,0)-8.*rsxy1(i1-1,i2,i3,0,0)+
-     & 8.*rsxy1(i1+1,i2,i3,0,0)-rsxy1(i1+2,i2,i3,0,0))/(12.*dr1(0))
-             aj1rxs = (rsxy1(i1,i2-2,i3,0,0)-8.*rsxy1(i1,i2-1,i3,0,0)+
-     & 8.*rsxy1(i1,i2+1,i3,0,0)-rsxy1(i1,i2+2,i3,0,0))/(12.*dr1(1))
-             aj1sx = rsxy1(i1,i2,i3,1,0)
-             aj1sxr = (rsxy1(i1-2,i2,i3,1,0)-8.*rsxy1(i1-1,i2,i3,1,0)+
-     & 8.*rsxy1(i1+1,i2,i3,1,0)-rsxy1(i1+2,i2,i3,1,0))/(12.*dr1(0))
-             aj1sxs = (rsxy1(i1,i2-2,i3,1,0)-8.*rsxy1(i1,i2-1,i3,1,0)+
-     & 8.*rsxy1(i1,i2+1,i3,1,0)-rsxy1(i1,i2+2,i3,1,0))/(12.*dr1(1))
-             aj1ry = rsxy1(i1,i2,i3,0,1)
-             aj1ryr = (rsxy1(i1-2,i2,i3,0,1)-8.*rsxy1(i1-1,i2,i3,0,1)+
-     & 8.*rsxy1(i1+1,i2,i3,0,1)-rsxy1(i1+2,i2,i3,0,1))/(12.*dr1(0))
-             aj1rys = (rsxy1(i1,i2-2,i3,0,1)-8.*rsxy1(i1,i2-1,i3,0,1)+
-     & 8.*rsxy1(i1,i2+1,i3,0,1)-rsxy1(i1,i2+2,i3,0,1))/(12.*dr1(1))
-             aj1sy = rsxy1(i1,i2,i3,1,1)
-             aj1syr = (rsxy1(i1-2,i2,i3,1,1)-8.*rsxy1(i1-1,i2,i3,1,1)+
-     & 8.*rsxy1(i1+1,i2,i3,1,1)-rsxy1(i1+2,i2,i3,1,1))/(12.*dr1(0))
-             aj1sys = (rsxy1(i1,i2-2,i3,1,1)-8.*rsxy1(i1,i2-1,i3,1,1)+
-     & 8.*rsxy1(i1,i2+1,i3,1,1)-rsxy1(i1,i2+2,i3,1,1))/(12.*dr1(1))
-             aj1rxx = aj1rx*aj1rxr+aj1sx*aj1rxs
-             aj1rxy = aj1ry*aj1rxr+aj1sy*aj1rxs
-             aj1sxx = aj1rx*aj1sxr+aj1sx*aj1sxs
-             aj1sxy = aj1ry*aj1sxr+aj1sy*aj1sxs
-             aj1ryx = aj1rx*aj1ryr+aj1sx*aj1rys
-             aj1ryy = aj1ry*aj1ryr+aj1sy*aj1rys
-             aj1syx = aj1rx*aj1syr+aj1sx*aj1sys
-             aj1syy = aj1ry*aj1syr+aj1sy*aj1sys
-              uu1 = u1(i1,i2,i3,ex)
-              uu1r = (u1(i1-2,i2,i3,ex)-8.*u1(i1-1,i2,i3,ex)+8.*u1(i1+
-     & 1,i2,i3,ex)-u1(i1+2,i2,i3,ex))/(12.*dr1(0))
-              uu1s = (u1(i1,i2-2,i3,ex)-8.*u1(i1,i2-1,i3,ex)+8.*u1(i1,
-     & i2+1,i3,ex)-u1(i1,i2+2,i3,ex))/(12.*dr1(1))
-              uu1rr = (-u1(i1-2,i2,i3,ex)+16.*u1(i1-1,i2,i3,ex)-30.*u1(
-     & i1,i2,i3,ex)+16.*u1(i1+1,i2,i3,ex)-u1(i1+2,i2,i3,ex))/(12.*dr1(
-     & 0)**2)
-              uu1rs = ((u1(i1-2,i2-2,i3,ex)-8.*u1(i1-2,i2-1,i3,ex)+8.*
-     & u1(i1-2,i2+1,i3,ex)-u1(i1-2,i2+2,i3,ex))/(12.*dr1(1))-8.*(u1(
-     & i1-1,i2-2,i3,ex)-8.*u1(i1-1,i2-1,i3,ex)+8.*u1(i1-1,i2+1,i3,ex)-
-     & u1(i1-1,i2+2,i3,ex))/(12.*dr1(1))+8.*(u1(i1+1,i2-2,i3,ex)-8.*
-     & u1(i1+1,i2-1,i3,ex)+8.*u1(i1+1,i2+1,i3,ex)-u1(i1+1,i2+2,i3,ex))
-     & /(12.*dr1(1))-(u1(i1+2,i2-2,i3,ex)-8.*u1(i1+2,i2-1,i3,ex)+8.*
-     & u1(i1+2,i2+1,i3,ex)-u1(i1+2,i2+2,i3,ex))/(12.*dr1(1)))/(12.*
+                 v2LapSq = v2xxxx +2.* v2xxyy + v2yyyy
+                ! These derivatives are computed to 4th-order accuracy
+                ! NOTE: the jacobian derivatives can be computed once for all components
+                 ! this next call will define the jacobian and its derivatives (parameteric and spatial)
+                 aj1rx = rsxy1(i1,i2,i3,0,0)
+                 aj1rxr = (rsxy1(i1-2,i2,i3,0,0)-8.*rsxy1(i1-1,i2,i3,0,
+     & 0)+8.*rsxy1(i1+1,i2,i3,0,0)-rsxy1(i1+2,i2,i3,0,0))/(12.*dr1(0))
+                 aj1rxs = (rsxy1(i1,i2-2,i3,0,0)-8.*rsxy1(i1,i2-1,i3,0,
+     & 0)+8.*rsxy1(i1,i2+1,i3,0,0)-rsxy1(i1,i2+2,i3,0,0))/(12.*dr1(1))
+                 aj1sx = rsxy1(i1,i2,i3,1,0)
+                 aj1sxr = (rsxy1(i1-2,i2,i3,1,0)-8.*rsxy1(i1-1,i2,i3,1,
+     & 0)+8.*rsxy1(i1+1,i2,i3,1,0)-rsxy1(i1+2,i2,i3,1,0))/(12.*dr1(0))
+                 aj1sxs = (rsxy1(i1,i2-2,i3,1,0)-8.*rsxy1(i1,i2-1,i3,1,
+     & 0)+8.*rsxy1(i1,i2+1,i3,1,0)-rsxy1(i1,i2+2,i3,1,0))/(12.*dr1(1))
+                 aj1ry = rsxy1(i1,i2,i3,0,1)
+                 aj1ryr = (rsxy1(i1-2,i2,i3,0,1)-8.*rsxy1(i1-1,i2,i3,0,
+     & 1)+8.*rsxy1(i1+1,i2,i3,0,1)-rsxy1(i1+2,i2,i3,0,1))/(12.*dr1(0))
+                 aj1rys = (rsxy1(i1,i2-2,i3,0,1)-8.*rsxy1(i1,i2-1,i3,0,
+     & 1)+8.*rsxy1(i1,i2+1,i3,0,1)-rsxy1(i1,i2+2,i3,0,1))/(12.*dr1(1))
+                 aj1sy = rsxy1(i1,i2,i3,1,1)
+                 aj1syr = (rsxy1(i1-2,i2,i3,1,1)-8.*rsxy1(i1-1,i2,i3,1,
+     & 1)+8.*rsxy1(i1+1,i2,i3,1,1)-rsxy1(i1+2,i2,i3,1,1))/(12.*dr1(0))
+                 aj1sys = (rsxy1(i1,i2-2,i3,1,1)-8.*rsxy1(i1,i2-1,i3,1,
+     & 1)+8.*rsxy1(i1,i2+1,i3,1,1)-rsxy1(i1,i2+2,i3,1,1))/(12.*dr1(1))
+                 aj1rxx = aj1rx*aj1rxr+aj1sx*aj1rxs
+                 aj1rxy = aj1ry*aj1rxr+aj1sy*aj1rxs
+                 aj1sxx = aj1rx*aj1sxr+aj1sx*aj1sxs
+                 aj1sxy = aj1ry*aj1sxr+aj1sy*aj1sxs
+                 aj1ryx = aj1rx*aj1ryr+aj1sx*aj1rys
+                 aj1ryy = aj1ry*aj1ryr+aj1sy*aj1rys
+                 aj1syx = aj1rx*aj1syr+aj1sx*aj1sys
+                 aj1syy = aj1ry*aj1syr+aj1sy*aj1sys
+                  uu1 = u1(i1,i2,i3,ex)
+                  uu1r = (u1(i1-2,i2,i3,ex)-8.*u1(i1-1,i2,i3,ex)+8.*u1(
+     & i1+1,i2,i3,ex)-u1(i1+2,i2,i3,ex))/(12.*dr1(0))
+                  uu1s = (u1(i1,i2-2,i3,ex)-8.*u1(i1,i2-1,i3,ex)+8.*u1(
+     & i1,i2+1,i3,ex)-u1(i1,i2+2,i3,ex))/(12.*dr1(1))
+                  uu1rr = (-u1(i1-2,i2,i3,ex)+16.*u1(i1-1,i2,i3,ex)-
+     & 30.*u1(i1,i2,i3,ex)+16.*u1(i1+1,i2,i3,ex)-u1(i1+2,i2,i3,ex))/(
+     & 12.*dr1(0)**2)
+                  uu1rs = ((u1(i1-2,i2-2,i3,ex)-8.*u1(i1-2,i2-1,i3,ex)+
+     & 8.*u1(i1-2,i2+1,i3,ex)-u1(i1-2,i2+2,i3,ex))/(12.*dr1(1))-8.*(
+     & u1(i1-1,i2-2,i3,ex)-8.*u1(i1-1,i2-1,i3,ex)+8.*u1(i1-1,i2+1,i3,
+     & ex)-u1(i1-1,i2+2,i3,ex))/(12.*dr1(1))+8.*(u1(i1+1,i2-2,i3,ex)-
+     & 8.*u1(i1+1,i2-1,i3,ex)+8.*u1(i1+1,i2+1,i3,ex)-u1(i1+1,i2+2,i3,
+     & ex))/(12.*dr1(1))-(u1(i1+2,i2-2,i3,ex)-8.*u1(i1+2,i2-1,i3,ex)+
+     & 8.*u1(i1+2,i2+1,i3,ex)-u1(i1+2,i2+2,i3,ex))/(12.*dr1(1)))/(12.*
      & dr1(0))
-              uu1ss = (-u1(i1,i2-2,i3,ex)+16.*u1(i1,i2-1,i3,ex)-30.*u1(
-     & i1,i2,i3,ex)+16.*u1(i1,i2+1,i3,ex)-u1(i1,i2+2,i3,ex))/(12.*dr1(
-     & 1)**2)
-               u1x = aj1rx*uu1r+aj1sx*uu1s
-               u1y = aj1ry*uu1r+aj1sy*uu1s
-               t1 = aj1rx**2
-               t6 = aj1sx**2
-               u1xx = t1*uu1rr+2*aj1rx*aj1sx*uu1rs+t6*uu1ss+aj1rxx*
+                  uu1ss = (-u1(i1,i2-2,i3,ex)+16.*u1(i1,i2-1,i3,ex)-
+     & 30.*u1(i1,i2,i3,ex)+16.*u1(i1,i2+1,i3,ex)-u1(i1,i2+2,i3,ex))/(
+     & 12.*dr1(1)**2)
+                   u1x = aj1rx*uu1r+aj1sx*uu1s
+                   u1y = aj1ry*uu1r+aj1sy*uu1s
+                   t1 = aj1rx**2
+                   t6 = aj1sx**2
+                   u1xx = t1*uu1rr+2*aj1rx*aj1sx*uu1rs+t6*uu1ss+aj1rxx*
      & uu1r+aj1sxx*uu1s
-               t1 = aj1ry**2
-               t6 = aj1sy**2
-               u1yy = t1*uu1rr+2*aj1ry*aj1sy*uu1rs+t6*uu1ss+aj1ryy*
+                   t1 = aj1ry**2
+                   t6 = aj1sy**2
+                   u1yy = t1*uu1rr+2*aj1ry*aj1sy*uu1rs+t6*uu1ss+aj1ryy*
      & uu1r+aj1syy*uu1s
-             u1Lap = u1xx+ u1yy
-              vv1 = u1(i1,i2,i3,ey)
-              vv1r = (u1(i1-2,i2,i3,ey)-8.*u1(i1-1,i2,i3,ey)+8.*u1(i1+
-     & 1,i2,i3,ey)-u1(i1+2,i2,i3,ey))/(12.*dr1(0))
-              vv1s = (u1(i1,i2-2,i3,ey)-8.*u1(i1,i2-1,i3,ey)+8.*u1(i1,
-     & i2+1,i3,ey)-u1(i1,i2+2,i3,ey))/(12.*dr1(1))
-              vv1rr = (-u1(i1-2,i2,i3,ey)+16.*u1(i1-1,i2,i3,ey)-30.*u1(
-     & i1,i2,i3,ey)+16.*u1(i1+1,i2,i3,ey)-u1(i1+2,i2,i3,ey))/(12.*dr1(
-     & 0)**2)
-              vv1rs = ((u1(i1-2,i2-2,i3,ey)-8.*u1(i1-2,i2-1,i3,ey)+8.*
-     & u1(i1-2,i2+1,i3,ey)-u1(i1-2,i2+2,i3,ey))/(12.*dr1(1))-8.*(u1(
-     & i1-1,i2-2,i3,ey)-8.*u1(i1-1,i2-1,i3,ey)+8.*u1(i1-1,i2+1,i3,ey)-
-     & u1(i1-1,i2+2,i3,ey))/(12.*dr1(1))+8.*(u1(i1+1,i2-2,i3,ey)-8.*
-     & u1(i1+1,i2-1,i3,ey)+8.*u1(i1+1,i2+1,i3,ey)-u1(i1+1,i2+2,i3,ey))
-     & /(12.*dr1(1))-(u1(i1+2,i2-2,i3,ey)-8.*u1(i1+2,i2-1,i3,ey)+8.*
-     & u1(i1+2,i2+1,i3,ey)-u1(i1+2,i2+2,i3,ey))/(12.*dr1(1)))/(12.*
+                 u1Lap = u1xx+ u1yy
+                  vv1 = u1(i1,i2,i3,ey)
+                  vv1r = (u1(i1-2,i2,i3,ey)-8.*u1(i1-1,i2,i3,ey)+8.*u1(
+     & i1+1,i2,i3,ey)-u1(i1+2,i2,i3,ey))/(12.*dr1(0))
+                  vv1s = (u1(i1,i2-2,i3,ey)-8.*u1(i1,i2-1,i3,ey)+8.*u1(
+     & i1,i2+1,i3,ey)-u1(i1,i2+2,i3,ey))/(12.*dr1(1))
+                  vv1rr = (-u1(i1-2,i2,i3,ey)+16.*u1(i1-1,i2,i3,ey)-
+     & 30.*u1(i1,i2,i3,ey)+16.*u1(i1+1,i2,i3,ey)-u1(i1+2,i2,i3,ey))/(
+     & 12.*dr1(0)**2)
+                  vv1rs = ((u1(i1-2,i2-2,i3,ey)-8.*u1(i1-2,i2-1,i3,ey)+
+     & 8.*u1(i1-2,i2+1,i3,ey)-u1(i1-2,i2+2,i3,ey))/(12.*dr1(1))-8.*(
+     & u1(i1-1,i2-2,i3,ey)-8.*u1(i1-1,i2-1,i3,ey)+8.*u1(i1-1,i2+1,i3,
+     & ey)-u1(i1-1,i2+2,i3,ey))/(12.*dr1(1))+8.*(u1(i1+1,i2-2,i3,ey)-
+     & 8.*u1(i1+1,i2-1,i3,ey)+8.*u1(i1+1,i2+1,i3,ey)-u1(i1+1,i2+2,i3,
+     & ey))/(12.*dr1(1))-(u1(i1+2,i2-2,i3,ey)-8.*u1(i1+2,i2-1,i3,ey)+
+     & 8.*u1(i1+2,i2+1,i3,ey)-u1(i1+2,i2+2,i3,ey))/(12.*dr1(1)))/(12.*
      & dr1(0))
-              vv1ss = (-u1(i1,i2-2,i3,ey)+16.*u1(i1,i2-1,i3,ey)-30.*u1(
-     & i1,i2,i3,ey)+16.*u1(i1,i2+1,i3,ey)-u1(i1,i2+2,i3,ey))/(12.*dr1(
-     & 1)**2)
-               v1x = aj1rx*vv1r+aj1sx*vv1s
-               v1y = aj1ry*vv1r+aj1sy*vv1s
-               t1 = aj1rx**2
-               t6 = aj1sx**2
-               v1xx = t1*vv1rr+2*aj1rx*aj1sx*vv1rs+t6*vv1ss+aj1rxx*
+                  vv1ss = (-u1(i1,i2-2,i3,ey)+16.*u1(i1,i2-1,i3,ey)-
+     & 30.*u1(i1,i2,i3,ey)+16.*u1(i1,i2+1,i3,ey)-u1(i1,i2+2,i3,ey))/(
+     & 12.*dr1(1)**2)
+                   v1x = aj1rx*vv1r+aj1sx*vv1s
+                   v1y = aj1ry*vv1r+aj1sy*vv1s
+                   t1 = aj1rx**2
+                   t6 = aj1sx**2
+                   v1xx = t1*vv1rr+2*aj1rx*aj1sx*vv1rs+t6*vv1ss+aj1rxx*
      & vv1r+aj1sxx*vv1s
-               t1 = aj1ry**2
-               t6 = aj1sy**2
-               v1yy = t1*vv1rr+2*aj1ry*aj1sy*vv1rs+t6*vv1ss+aj1ryy*
+                   t1 = aj1ry**2
+                   t6 = aj1sy**2
+                   v1yy = t1*vv1rr+2*aj1ry*aj1sy*vv1rs+t6*vv1ss+aj1ryy*
      & vv1r+aj1syy*vv1s
-             v1Lap = v1xx+ v1yy
-            ! NOTE: the jacobian derivatives can be computed once for all components
-             ! this next call will define the jacobian and its derivatives (parameteric and spatial)
-             aj2rx = rsxy2(j1,j2,j3,0,0)
-             aj2rxr = (rsxy2(j1-2,j2,j3,0,0)-8.*rsxy2(j1-1,j2,j3,0,0)+
-     & 8.*rsxy2(j1+1,j2,j3,0,0)-rsxy2(j1+2,j2,j3,0,0))/(12.*dr2(0))
-             aj2rxs = (rsxy2(j1,j2-2,j3,0,0)-8.*rsxy2(j1,j2-1,j3,0,0)+
-     & 8.*rsxy2(j1,j2+1,j3,0,0)-rsxy2(j1,j2+2,j3,0,0))/(12.*dr2(1))
-             aj2sx = rsxy2(j1,j2,j3,1,0)
-             aj2sxr = (rsxy2(j1-2,j2,j3,1,0)-8.*rsxy2(j1-1,j2,j3,1,0)+
-     & 8.*rsxy2(j1+1,j2,j3,1,0)-rsxy2(j1+2,j2,j3,1,0))/(12.*dr2(0))
-             aj2sxs = (rsxy2(j1,j2-2,j3,1,0)-8.*rsxy2(j1,j2-1,j3,1,0)+
-     & 8.*rsxy2(j1,j2+1,j3,1,0)-rsxy2(j1,j2+2,j3,1,0))/(12.*dr2(1))
-             aj2ry = rsxy2(j1,j2,j3,0,1)
-             aj2ryr = (rsxy2(j1-2,j2,j3,0,1)-8.*rsxy2(j1-1,j2,j3,0,1)+
-     & 8.*rsxy2(j1+1,j2,j3,0,1)-rsxy2(j1+2,j2,j3,0,1))/(12.*dr2(0))
-             aj2rys = (rsxy2(j1,j2-2,j3,0,1)-8.*rsxy2(j1,j2-1,j3,0,1)+
-     & 8.*rsxy2(j1,j2+1,j3,0,1)-rsxy2(j1,j2+2,j3,0,1))/(12.*dr2(1))
-             aj2sy = rsxy2(j1,j2,j3,1,1)
-             aj2syr = (rsxy2(j1-2,j2,j3,1,1)-8.*rsxy2(j1-1,j2,j3,1,1)+
-     & 8.*rsxy2(j1+1,j2,j3,1,1)-rsxy2(j1+2,j2,j3,1,1))/(12.*dr2(0))
-             aj2sys = (rsxy2(j1,j2-2,j3,1,1)-8.*rsxy2(j1,j2-1,j3,1,1)+
-     & 8.*rsxy2(j1,j2+1,j3,1,1)-rsxy2(j1,j2+2,j3,1,1))/(12.*dr2(1))
-             aj2rxx = aj2rx*aj2rxr+aj2sx*aj2rxs
-             aj2rxy = aj2ry*aj2rxr+aj2sy*aj2rxs
-             aj2sxx = aj2rx*aj2sxr+aj2sx*aj2sxs
-             aj2sxy = aj2ry*aj2sxr+aj2sy*aj2sxs
-             aj2ryx = aj2rx*aj2ryr+aj2sx*aj2rys
-             aj2ryy = aj2ry*aj2ryr+aj2sy*aj2rys
-             aj2syx = aj2rx*aj2syr+aj2sx*aj2sys
-             aj2syy = aj2ry*aj2syr+aj2sy*aj2sys
-              uu2 = u2(j1,j2,j3,ex)
-              uu2r = (u2(j1-2,j2,j3,ex)-8.*u2(j1-1,j2,j3,ex)+8.*u2(j1+
-     & 1,j2,j3,ex)-u2(j1+2,j2,j3,ex))/(12.*dr2(0))
-              uu2s = (u2(j1,j2-2,j3,ex)-8.*u2(j1,j2-1,j3,ex)+8.*u2(j1,
-     & j2+1,j3,ex)-u2(j1,j2+2,j3,ex))/(12.*dr2(1))
-              uu2rr = (-u2(j1-2,j2,j3,ex)+16.*u2(j1-1,j2,j3,ex)-30.*u2(
-     & j1,j2,j3,ex)+16.*u2(j1+1,j2,j3,ex)-u2(j1+2,j2,j3,ex))/(12.*dr2(
-     & 0)**2)
-              uu2rs = ((u2(j1-2,j2-2,j3,ex)-8.*u2(j1-2,j2-1,j3,ex)+8.*
-     & u2(j1-2,j2+1,j3,ex)-u2(j1-2,j2+2,j3,ex))/(12.*dr2(1))-8.*(u2(
-     & j1-1,j2-2,j3,ex)-8.*u2(j1-1,j2-1,j3,ex)+8.*u2(j1-1,j2+1,j3,ex)-
-     & u2(j1-1,j2+2,j3,ex))/(12.*dr2(1))+8.*(u2(j1+1,j2-2,j3,ex)-8.*
-     & u2(j1+1,j2-1,j3,ex)+8.*u2(j1+1,j2+1,j3,ex)-u2(j1+1,j2+2,j3,ex))
-     & /(12.*dr2(1))-(u2(j1+2,j2-2,j3,ex)-8.*u2(j1+2,j2-1,j3,ex)+8.*
-     & u2(j1+2,j2+1,j3,ex)-u2(j1+2,j2+2,j3,ex))/(12.*dr2(1)))/(12.*
+                 v1Lap = v1xx+ v1yy
+                ! NOTE: the jacobian derivatives can be computed once for all components
+                 ! this next call will define the jacobian and its derivatives (parameteric and spatial)
+                 aj2rx = rsxy2(j1,j2,j3,0,0)
+                 aj2rxr = (rsxy2(j1-2,j2,j3,0,0)-8.*rsxy2(j1-1,j2,j3,0,
+     & 0)+8.*rsxy2(j1+1,j2,j3,0,0)-rsxy2(j1+2,j2,j3,0,0))/(12.*dr2(0))
+                 aj2rxs = (rsxy2(j1,j2-2,j3,0,0)-8.*rsxy2(j1,j2-1,j3,0,
+     & 0)+8.*rsxy2(j1,j2+1,j3,0,0)-rsxy2(j1,j2+2,j3,0,0))/(12.*dr2(1))
+                 aj2sx = rsxy2(j1,j2,j3,1,0)
+                 aj2sxr = (rsxy2(j1-2,j2,j3,1,0)-8.*rsxy2(j1-1,j2,j3,1,
+     & 0)+8.*rsxy2(j1+1,j2,j3,1,0)-rsxy2(j1+2,j2,j3,1,0))/(12.*dr2(0))
+                 aj2sxs = (rsxy2(j1,j2-2,j3,1,0)-8.*rsxy2(j1,j2-1,j3,1,
+     & 0)+8.*rsxy2(j1,j2+1,j3,1,0)-rsxy2(j1,j2+2,j3,1,0))/(12.*dr2(1))
+                 aj2ry = rsxy2(j1,j2,j3,0,1)
+                 aj2ryr = (rsxy2(j1-2,j2,j3,0,1)-8.*rsxy2(j1-1,j2,j3,0,
+     & 1)+8.*rsxy2(j1+1,j2,j3,0,1)-rsxy2(j1+2,j2,j3,0,1))/(12.*dr2(0))
+                 aj2rys = (rsxy2(j1,j2-2,j3,0,1)-8.*rsxy2(j1,j2-1,j3,0,
+     & 1)+8.*rsxy2(j1,j2+1,j3,0,1)-rsxy2(j1,j2+2,j3,0,1))/(12.*dr2(1))
+                 aj2sy = rsxy2(j1,j2,j3,1,1)
+                 aj2syr = (rsxy2(j1-2,j2,j3,1,1)-8.*rsxy2(j1-1,j2,j3,1,
+     & 1)+8.*rsxy2(j1+1,j2,j3,1,1)-rsxy2(j1+2,j2,j3,1,1))/(12.*dr2(0))
+                 aj2sys = (rsxy2(j1,j2-2,j3,1,1)-8.*rsxy2(j1,j2-1,j3,1,
+     & 1)+8.*rsxy2(j1,j2+1,j3,1,1)-rsxy2(j1,j2+2,j3,1,1))/(12.*dr2(1))
+                 aj2rxx = aj2rx*aj2rxr+aj2sx*aj2rxs
+                 aj2rxy = aj2ry*aj2rxr+aj2sy*aj2rxs
+                 aj2sxx = aj2rx*aj2sxr+aj2sx*aj2sxs
+                 aj2sxy = aj2ry*aj2sxr+aj2sy*aj2sxs
+                 aj2ryx = aj2rx*aj2ryr+aj2sx*aj2rys
+                 aj2ryy = aj2ry*aj2ryr+aj2sy*aj2rys
+                 aj2syx = aj2rx*aj2syr+aj2sx*aj2sys
+                 aj2syy = aj2ry*aj2syr+aj2sy*aj2sys
+                  uu2 = u2(j1,j2,j3,ex)
+                  uu2r = (u2(j1-2,j2,j3,ex)-8.*u2(j1-1,j2,j3,ex)+8.*u2(
+     & j1+1,j2,j3,ex)-u2(j1+2,j2,j3,ex))/(12.*dr2(0))
+                  uu2s = (u2(j1,j2-2,j3,ex)-8.*u2(j1,j2-1,j3,ex)+8.*u2(
+     & j1,j2+1,j3,ex)-u2(j1,j2+2,j3,ex))/(12.*dr2(1))
+                  uu2rr = (-u2(j1-2,j2,j3,ex)+16.*u2(j1-1,j2,j3,ex)-
+     & 30.*u2(j1,j2,j3,ex)+16.*u2(j1+1,j2,j3,ex)-u2(j1+2,j2,j3,ex))/(
+     & 12.*dr2(0)**2)
+                  uu2rs = ((u2(j1-2,j2-2,j3,ex)-8.*u2(j1-2,j2-1,j3,ex)+
+     & 8.*u2(j1-2,j2+1,j3,ex)-u2(j1-2,j2+2,j3,ex))/(12.*dr2(1))-8.*(
+     & u2(j1-1,j2-2,j3,ex)-8.*u2(j1-1,j2-1,j3,ex)+8.*u2(j1-1,j2+1,j3,
+     & ex)-u2(j1-1,j2+2,j3,ex))/(12.*dr2(1))+8.*(u2(j1+1,j2-2,j3,ex)-
+     & 8.*u2(j1+1,j2-1,j3,ex)+8.*u2(j1+1,j2+1,j3,ex)-u2(j1+1,j2+2,j3,
+     & ex))/(12.*dr2(1))-(u2(j1+2,j2-2,j3,ex)-8.*u2(j1+2,j2-1,j3,ex)+
+     & 8.*u2(j1+2,j2+1,j3,ex)-u2(j1+2,j2+2,j3,ex))/(12.*dr2(1)))/(12.*
      & dr2(0))
-              uu2ss = (-u2(j1,j2-2,j3,ex)+16.*u2(j1,j2-1,j3,ex)-30.*u2(
-     & j1,j2,j3,ex)+16.*u2(j1,j2+1,j3,ex)-u2(j1,j2+2,j3,ex))/(12.*dr2(
-     & 1)**2)
-               u2x = aj2rx*uu2r+aj2sx*uu2s
-               u2y = aj2ry*uu2r+aj2sy*uu2s
-               t1 = aj2rx**2
-               t6 = aj2sx**2
-               u2xx = t1*uu2rr+2*aj2rx*aj2sx*uu2rs+t6*uu2ss+aj2rxx*
+                  uu2ss = (-u2(j1,j2-2,j3,ex)+16.*u2(j1,j2-1,j3,ex)-
+     & 30.*u2(j1,j2,j3,ex)+16.*u2(j1,j2+1,j3,ex)-u2(j1,j2+2,j3,ex))/(
+     & 12.*dr2(1)**2)
+                   u2x = aj2rx*uu2r+aj2sx*uu2s
+                   u2y = aj2ry*uu2r+aj2sy*uu2s
+                   t1 = aj2rx**2
+                   t6 = aj2sx**2
+                   u2xx = t1*uu2rr+2*aj2rx*aj2sx*uu2rs+t6*uu2ss+aj2rxx*
      & uu2r+aj2sxx*uu2s
-               t1 = aj2ry**2
-               t6 = aj2sy**2
-               u2yy = t1*uu2rr+2*aj2ry*aj2sy*uu2rs+t6*uu2ss+aj2ryy*
+                   t1 = aj2ry**2
+                   t6 = aj2sy**2
+                   u2yy = t1*uu2rr+2*aj2ry*aj2sy*uu2rs+t6*uu2ss+aj2ryy*
      & uu2r+aj2syy*uu2s
-             u2Lap = u2xx+ u2yy
-              vv2 = u2(j1,j2,j3,ey)
-              vv2r = (u2(j1-2,j2,j3,ey)-8.*u2(j1-1,j2,j3,ey)+8.*u2(j1+
-     & 1,j2,j3,ey)-u2(j1+2,j2,j3,ey))/(12.*dr2(0))
-              vv2s = (u2(j1,j2-2,j3,ey)-8.*u2(j1,j2-1,j3,ey)+8.*u2(j1,
-     & j2+1,j3,ey)-u2(j1,j2+2,j3,ey))/(12.*dr2(1))
-              vv2rr = (-u2(j1-2,j2,j3,ey)+16.*u2(j1-1,j2,j3,ey)-30.*u2(
-     & j1,j2,j3,ey)+16.*u2(j1+1,j2,j3,ey)-u2(j1+2,j2,j3,ey))/(12.*dr2(
-     & 0)**2)
-              vv2rs = ((u2(j1-2,j2-2,j3,ey)-8.*u2(j1-2,j2-1,j3,ey)+8.*
-     & u2(j1-2,j2+1,j3,ey)-u2(j1-2,j2+2,j3,ey))/(12.*dr2(1))-8.*(u2(
-     & j1-1,j2-2,j3,ey)-8.*u2(j1-1,j2-1,j3,ey)+8.*u2(j1-1,j2+1,j3,ey)-
-     & u2(j1-1,j2+2,j3,ey))/(12.*dr2(1))+8.*(u2(j1+1,j2-2,j3,ey)-8.*
-     & u2(j1+1,j2-1,j3,ey)+8.*u2(j1+1,j2+1,j3,ey)-u2(j1+1,j2+2,j3,ey))
-     & /(12.*dr2(1))-(u2(j1+2,j2-2,j3,ey)-8.*u2(j1+2,j2-1,j3,ey)+8.*
-     & u2(j1+2,j2+1,j3,ey)-u2(j1+2,j2+2,j3,ey))/(12.*dr2(1)))/(12.*
+                 u2Lap = u2xx+ u2yy
+                  vv2 = u2(j1,j2,j3,ey)
+                  vv2r = (u2(j1-2,j2,j3,ey)-8.*u2(j1-1,j2,j3,ey)+8.*u2(
+     & j1+1,j2,j3,ey)-u2(j1+2,j2,j3,ey))/(12.*dr2(0))
+                  vv2s = (u2(j1,j2-2,j3,ey)-8.*u2(j1,j2-1,j3,ey)+8.*u2(
+     & j1,j2+1,j3,ey)-u2(j1,j2+2,j3,ey))/(12.*dr2(1))
+                  vv2rr = (-u2(j1-2,j2,j3,ey)+16.*u2(j1-1,j2,j3,ey)-
+     & 30.*u2(j1,j2,j3,ey)+16.*u2(j1+1,j2,j3,ey)-u2(j1+2,j2,j3,ey))/(
+     & 12.*dr2(0)**2)
+                  vv2rs = ((u2(j1-2,j2-2,j3,ey)-8.*u2(j1-2,j2-1,j3,ey)+
+     & 8.*u2(j1-2,j2+1,j3,ey)-u2(j1-2,j2+2,j3,ey))/(12.*dr2(1))-8.*(
+     & u2(j1-1,j2-2,j3,ey)-8.*u2(j1-1,j2-1,j3,ey)+8.*u2(j1-1,j2+1,j3,
+     & ey)-u2(j1-1,j2+2,j3,ey))/(12.*dr2(1))+8.*(u2(j1+1,j2-2,j3,ey)-
+     & 8.*u2(j1+1,j2-1,j3,ey)+8.*u2(j1+1,j2+1,j3,ey)-u2(j1+1,j2+2,j3,
+     & ey))/(12.*dr2(1))-(u2(j1+2,j2-2,j3,ey)-8.*u2(j1+2,j2-1,j3,ey)+
+     & 8.*u2(j1+2,j2+1,j3,ey)-u2(j1+2,j2+2,j3,ey))/(12.*dr2(1)))/(12.*
      & dr2(0))
-              vv2ss = (-u2(j1,j2-2,j3,ey)+16.*u2(j1,j2-1,j3,ey)-30.*u2(
-     & j1,j2,j3,ey)+16.*u2(j1,j2+1,j3,ey)-u2(j1,j2+2,j3,ey))/(12.*dr2(
-     & 1)**2)
-               v2x = aj2rx*vv2r+aj2sx*vv2s
-               v2y = aj2ry*vv2r+aj2sy*vv2s
-               t1 = aj2rx**2
-               t6 = aj2sx**2
-               v2xx = t1*vv2rr+2*aj2rx*aj2sx*vv2rs+t6*vv2ss+aj2rxx*
+                  vv2ss = (-u2(j1,j2-2,j3,ey)+16.*u2(j1,j2-1,j3,ey)-
+     & 30.*u2(j1,j2,j3,ey)+16.*u2(j1,j2+1,j3,ey)-u2(j1,j2+2,j3,ey))/(
+     & 12.*dr2(1)**2)
+                   v2x = aj2rx*vv2r+aj2sx*vv2s
+                   v2y = aj2ry*vv2r+aj2sy*vv2s
+                   t1 = aj2rx**2
+                   t6 = aj2sx**2
+                   v2xx = t1*vv2rr+2*aj2rx*aj2sx*vv2rs+t6*vv2ss+aj2rxx*
      & vv2r+aj2sxx*vv2s
-               t1 = aj2ry**2
-               t6 = aj2sy**2
-               v2yy = t1*vv2rr+2*aj2ry*aj2sy*vv2rs+t6*vv2ss+aj2ryy*
+                   t1 = aj2ry**2
+                   t6 = aj2sy**2
+                   v2yy = t1*vv2rr+2*aj2ry*aj2sy*vv2rs+t6*vv2ss+aj2ryy*
      & vv2r+aj2syy*vv2s
-             v2Lap = v2xx+ v2yy
-           ! first evaluate the equations we want to solve with the wrong values at the ghost points:
-            f(0)=(u1x+v1y) - (u2x+v2y)
-            f(1)=(an1*u1Lap+an2*v1Lap) - (an1*u2Lap+an2*v2Lap)
-            f(2)=(v1x-u1y) - (v2x-u2y)
-            f(3)=(tau1*u1Lap+tau2*v1Lap)/eps1 - (tau1*u2Lap+tau2*v2Lap)
-     & /eps2
-            f(4)=(u1xxx+u1xyy+v1xxy+v1yyy) - (u2xxx+u2xyy+v2xxy+v2yyy)
-            f(5)=((v1xxx+v1xyy)-(u1xxy+u1yyy))/eps1 - ((v2xxx+v2xyy)-(
-     & u2xxy+u2yyy))/eps2
-            f(6)=(an1*u1LapSq+an2*v1LapSq)/eps1 - (an1*u2LapSq+an2*
-     & v2LapSq)/eps2
-            f(7)=(tau1*u1LapSq+tau2*v1LapSq)/eps1**2 - (tau1*u2LapSq+
-     & tau2*v2LapSq)/eps2**2
-            if( twilightZone.eq.1 )then
-              call ogderiv(ep, 0,2,0,0, xy1(i1,i2,i3,0),xy1(i1,i2,i3,1)
-     & ,0.,t, ex, uexx )
-              call ogderiv(ep, 0,0,2,0, xy1(i1,i2,i3,0),xy1(i1,i2,i3,1)
-     & ,0.,t, ex, ueyy )
-              call ogderiv(ep, 0,2,0,0, xy1(i1,i2,i3,0),xy1(i1,i2,i3,1)
-     & ,0.,t, ey, vexx )
-              call ogderiv(ep, 0,0,2,0, xy1(i1,i2,i3,0),xy1(i1,i2,i3,1)
-     & ,0.,t, ey, veyy )
-              call ogderiv(ep, 0,2,1,0, xy1(i1,i2,i3,0),xy1(i1,i2,i3,1)
-     & ,0.,t, ex, uexxy )
-              call ogderiv(ep, 0,0,3,0, xy1(i1,i2,i3,0),xy1(i1,i2,i3,1)
-     & ,0.,t, ex, ueyyy )
-              call ogderiv(ep, 0,3,0,0, xy1(i1,i2,i3,0),xy1(i1,i2,i3,1)
-     & ,0.,t, ey, vexxx )
-              call ogderiv(ep, 0,1,2,0, xy1(i1,i2,i3,0),xy1(i1,i2,i3,1)
-     & ,0.,t, ey, vexyy )
-              call ogderiv(ep, 0,4,0,0, xy1(i1,i2,i3,0),xy1(i1,i2,i3,1)
-     & ,0.,t, ex, uexxxx )
-              call ogderiv(ep, 0,2,2,0, xy1(i1,i2,i3,0),xy1(i1,i2,i3,1)
-     & ,0.,t, ex, uexxyy )
-              call ogderiv(ep, 0,0,4,0, xy1(i1,i2,i3,0),xy1(i1,i2,i3,1)
-     & ,0.,t, ex, ueyyyy )
-              call ogderiv(ep, 0,4,0,0, xy1(i1,i2,i3,0),xy1(i1,i2,i3,1)
-     & ,0.,t, ey, vexxxx )
-              call ogderiv(ep, 0,2,2,0, xy1(i1,i2,i3,0),xy1(i1,i2,i3,1)
-     & ,0.,t, ey, vexxyy )
-              call ogderiv(ep, 0,0,4,0, xy1(i1,i2,i3,0),xy1(i1,i2,i3,1)
-     & ,0.,t, ey, veyyyy )
-              ueLap = uexx + ueyy
-              veLap = vexx + veyy
-              ueLapSq = uexxxx + 2.*uexxyy + ueyyyy
-              veLapSq = vexxxx + 2.*vexxyy + veyyyy
-              f(3) = f(3) - ( tau1*ueLap +tau2*veLap )*(1./eps1-
+                 v2Lap = v2xx+ v2yy
+               ! first evaluate the equations we want to solve with the wrong values at the ghost points:
+                f(0)=(u1x+v1y) - (u2x+v2y)
+                f(1)=(an1*u1Lap+an2*v1Lap) - (an1*u2Lap+an2*v2Lap)
+                f(2)=(v1x-u1y) - (v2x-u2y)
+                f(3)=(tau1*u1Lap+tau2*v1Lap)/eps1 - (tau1*u2Lap+tau2*
+     & v2Lap)/eps2
+                f(4)=(u1xxx+u1xyy+v1xxy+v1yyy) - (u2xxx+u2xyy+v2xxy+
+     & v2yyy)
+                f(5)=((v1xxx+v1xyy)-(u1xxy+u1yyy))/eps1 - ((v2xxx+
+     & v2xyy)-(u2xxy+u2yyy))/eps2
+                if( setDivergenceAtInterfaces.eq.0 )then
+                 f(6)=(an1*u1LapSq+an2*v1LapSq)/eps1 - (an1*u2LapSq+
+     & an2*v2LapSq)/eps2
+                else
+                 f(6)=(u1x+v1y)
+                end if
+                f(7)=(tau1*u1LapSq+tau2*v1LapSq)/eps1**2 - (tau1*
+     & u2LapSq+tau2*v2LapSq)/eps2**2
+                if( twilightZone.eq.1 )then
+                  call ogderiv(ep, 0,2,0,0, xy1(i1,i2,i3,0),xy1(i1,i2,
+     & i3,1),0.,t, ex, uexx )
+                  call ogderiv(ep, 0,0,2,0, xy1(i1,i2,i3,0),xy1(i1,i2,
+     & i3,1),0.,t, ex, ueyy )
+                  call ogderiv(ep, 0,2,0,0, xy1(i1,i2,i3,0),xy1(i1,i2,
+     & i3,1),0.,t, ey, vexx )
+                  call ogderiv(ep, 0,0,2,0, xy1(i1,i2,i3,0),xy1(i1,i2,
+     & i3,1),0.,t, ey, veyy )
+                  call ogderiv(ep, 0,2,1,0, xy1(i1,i2,i3,0),xy1(i1,i2,
+     & i3,1),0.,t, ex, uexxy )
+                  call ogderiv(ep, 0,0,3,0, xy1(i1,i2,i3,0),xy1(i1,i2,
+     & i3,1),0.,t, ex, ueyyy )
+                  call ogderiv(ep, 0,3,0,0, xy1(i1,i2,i3,0),xy1(i1,i2,
+     & i3,1),0.,t, ey, vexxx )
+                  call ogderiv(ep, 0,1,2,0, xy1(i1,i2,i3,0),xy1(i1,i2,
+     & i3,1),0.,t, ey, vexyy )
+                  call ogderiv(ep, 0,4,0,0, xy1(i1,i2,i3,0),xy1(i1,i2,
+     & i3,1),0.,t, ex, uexxxx )
+                  call ogderiv(ep, 0,2,2,0, xy1(i1,i2,i3,0),xy1(i1,i2,
+     & i3,1),0.,t, ex, uexxyy )
+                  call ogderiv(ep, 0,0,4,0, xy1(i1,i2,i3,0),xy1(i1,i2,
+     & i3,1),0.,t, ex, ueyyyy )
+                  call ogderiv(ep, 0,4,0,0, xy1(i1,i2,i3,0),xy1(i1,i2,
+     & i3,1),0.,t, ey, vexxxx )
+                  call ogderiv(ep, 0,2,2,0, xy1(i1,i2,i3,0),xy1(i1,i2,
+     & i3,1),0.,t, ey, vexxyy )
+                  call ogderiv(ep, 0,0,4,0, xy1(i1,i2,i3,0),xy1(i1,i2,
+     & i3,1),0.,t, ey, veyyyy )
+                  ueLap = uexx + ueyy
+                  veLap = vexx + veyy
+                  ueLapSq = uexxxx + 2.*uexxyy + ueyyyy
+                  veLapSq = vexxxx + 2.*vexxyy + veyyyy
+                  f(3) = f(3) - ( tau1*ueLap +tau2*veLap )*(1./eps1-
      & 1./eps2)
-              f(5) = f(5) - ((vexxx+vexyy)-(uexxy+ueyyy))*(1./eps1-
+                  f(5) = f(5) - ((vexxx+vexyy)-(uexxy+ueyyy))*(1./eps1-
      & 1./eps2)
-              f(6) = f(6) - (an1*ueLapSq+an2*veLapSq)*(1./eps1-1./eps2)
-              f(7) = f(7) - (tau1*ueLapSq+tau2*veLapSq)*(1./eps1**2 - 
-     & 1./eps2**2)
-            end if
-
-
-       if( debug.gt.7 ) write(debugFile,'(" --> 4cth: j1,j2=",2i4," 
-     & u1xx,u1yy,u2xx,u2yy=",4e10.2)') j1,j2,u1xx,u1yy,u2xx,u2yy
-        ! '
-       if( debug.gt.3 ) write(debugFile,'(" --> 4cth: i1,i2=",2i4," f(
-     & start)=",8e10.2)') i1,i2,f(0),f(1),f(2),f(3),f(4),f(5),f(6),f(
-     & 7)
-        ! '
-
-
-! here are the macros from deriv.maple (file=derivMacros.h)
-
-
-
-
-
-
-
-
-
-
-           ! here is the matrix of coefficients for the unknowns u1(-1),v1(-1),u2(-1),v2(-1)
-           ! Solve:
-           !     
-           !       A [ U ] = A [ U(old) ] - [ f ]
-!      u1r4(i1,i2,i3,kd)=(8.*(u1(i1+1,i2,i3,kd)-u1(i1-1,i2,i3,kd))-(u1(
-!     & i1+2,i2,i3,kd)-u1(i1-2,i2,i3,kd)))*dr114(0)
-!      u1x42(i1,i2,i3,kd)= rsxy1(i1,i2,i3,0,0)*u1r4(i1,i2,i3,kd)+rsxy1(
-!     & i1,i2,i3,1,0)*u1s4(i1,i2,i3,kd)
-!      u1y42(i1,i2,i3,kd)= rsxy1(i1,i2,i3,0,1)*u1r4(i1,i2,i3,kd)+rsxy1(
-!     & i1,i2,i3,1,1)*u1s4(i1,i2,i3,kd)
-!          a4(0,0) = -is*rsxy1(i1,i2,i3,axis1,0)/(2.*dr1(axis1))    ! coeff of u1(-1) from [u.x+v.y] 
-!          a4(0,1) = -is*rsxy1(i1,i2,i3,axis1,1)/(2.*dr1(axis1))    ! coeff of v1(-1) from [u.x+v.y] 
-!
-!          a4(2,0) =  is*rsxy1(i1,i2,i3,axis1,1)/(2.*dr1(axis1))   ! coeff of u1(-1) from [v.x - u.y] 
-!          a4(2,1) = -is*rsxy1(i1,i2,i3,axis1,0)/(2.*dr1(axis1))   ! coeff of v1(-1) from [v.x - u.y] 
-!
-!          a4(0,2) =  js*rsxy2(j1,j2,j3,axis2,0)/(2.*dr2(axis2))    ! coeff of u2(-1) from [u.x+v.y] 
-!          a4(0,3) =  js*rsxy2(j1,j2,j3,axis2,1)/(2.*dr2(axis2))    ! coeff of v2(-1) from [u.x+v.y] 
-!
-!          a4(2,2) = -js*rsxy2(j1,j2,j3,axis2,1)/(2.*dr2(axis2))   ! coeff of u2(-1) from [v.x - u.y] 
-!          a4(2,3) =  js*rsxy2(j1,j2,j3,axis2,0)/(2.*dr2(axis2))   ! coeff of v2(-1) from [v.x - u.y] 
-
-
-           ! write(debugFile,'(" interface:E: initialized,it=",2i4)') initialized,it
-           if( .false. .or. (initialized.eq.0 .and. it.eq.1) )then
-             ! form the matrix (and save factor for later use)
-
-             ! 0  [ u.x + v.y ] = 0
-             aa8(0,0,0,nn) = -is*8.*rsxy1(i1,i2,i3,axis1,0)*dr114(
+                  if( setDivergenceAtInterfaces.eq.0 )then
+                    f(6) = f(6) - (an1*ueLapSq+an2*veLapSq)*(1./eps1-
+     & 1./eps2)
+                  end if
+                  f(7) = f(7) - (tau1*ueLapSq+tau2*veLapSq)*(1./eps1**
+     & 2 - 1./eps2**2)
+                end if
+               if( debug.gt.7 ) write(debugFile,'(" --> 4cth: j1,j2=",
+     & 2i4," u1xx,u1yy,u2xx,u2yy=",4e10.2)') j1,j2,u1xx,u1yy,u2xx,u2yy
+               ! '
+                if( debug.gt.3 ) write(debugFile,'(" --> 4cth: i1,i2=",
+     & 2i4," f(start)=",8e10.2)') i1,i2,f(0),f(1),f(2),f(3),f(4),f(5),
+     & f(6),f(7)
+               ! '
+               ! here is the matrix of coefficients for the unknowns u1(-1),v1(-1),u2(-1),v2(-1)
+               ! Solve:
+               !     
+               !       A [ U ] = A [ U(old) ] - [ f ]
+               !      u1r4(i1,i2,i3,kd)=(8.*(u1(i1+1,i2,i3,kd)-u1(i1-1,i2,i3,kd))-(u1(
+               !     & i1+2,i2,i3,kd)-u1(i1-2,i2,i3,kd)))*dr114(0)
+               !      u1x42(i1,i2,i3,kd)= rsxy1(i1,i2,i3,0,0)*u1r4(i1,i2,i3,kd)+rsxy1(
+               !     & i1,i2,i3,1,0)*u1s4(i1,i2,i3,kd)
+               !      u1y42(i1,i2,i3,kd)= rsxy1(i1,i2,i3,0,1)*u1r4(i1,i2,i3,kd)+rsxy1(
+               !     & i1,i2,i3,1,1)*u1s4(i1,i2,i3,kd)
+               !          a4(0,0) = -is*rsxy1(i1,i2,i3,axis1,0)/(2.*dr1(axis1))    ! coeff of u1(-1) from [u.x+v.y] 
+               !          a4(0,1) = -is*rsxy1(i1,i2,i3,axis1,1)/(2.*dr1(axis1))    ! coeff of v1(-1) from [u.x+v.y] 
+               !
+               !          a4(2,0) =  is*rsxy1(i1,i2,i3,axis1,1)/(2.*dr1(axis1))   ! coeff of u1(-1) from [v.x - u.y] 
+               !          a4(2,1) = -is*rsxy1(i1,i2,i3,axis1,0)/(2.*dr1(axis1))   ! coeff of v1(-1) from [v.x - u.y] 
+               !
+               !          a4(0,2) =  js*rsxy2(j1,j2,j3,axis2,0)/(2.*dr2(axis2))    ! coeff of u2(-1) from [u.x+v.y] 
+               !          a4(0,3) =  js*rsxy2(j1,j2,j3,axis2,1)/(2.*dr2(axis2))    ! coeff of v2(-1) from [u.x+v.y] 
+               !
+               !          a4(2,2) = -js*rsxy2(j1,j2,j3,axis2,1)/(2.*dr2(axis2))   ! coeff of u2(-1) from [v.x - u.y] 
+               !          a4(2,3) =  js*rsxy2(j1,j2,j3,axis2,0)/(2.*dr2(axis2))   ! coeff of v2(-1) from [v.x - u.y] 
+               ! write(debugFile,'(" interface:E: initialized,it=",2i4)') initialized,it
+               if( .false. .or. (initialized.eq.0 .and. it.eq.1) )then
+                 ! form the matrix (and save factor for later use)
+                 ! Equation 0: 
+                 ! 0  [ u.x + v.y ] = 0
+                 aa8(0,0,0,nn) = -is*8.*rsxy1(i1,i2,i3,axis1,0)*dr114(
      & axis1)     ! coeff of u1(-1) from [u.x+v.y]
-             aa8(0,1,0,nn) = -is*8.*rsxy1(i1,i2,i3,axis1,1)*dr114(
+                 aa8(0,1,0,nn) = -is*8.*rsxy1(i1,i2,i3,axis1,1)*dr114(
      & axis1)     ! coeff of v1(-1) from [u.x+v.y]
-             aa8(0,4,0,nn) =  is*   rsxy1(i1,i2,i3,axis1,0)*dr114(
+                 aa8(0,4,0,nn) =  is*   rsxy1(i1,i2,i3,axis1,0)*dr114(
      & axis1)     ! u1(-2)
-             aa8(0,5,0,nn) =  is*   rsxy1(i1,i2,i3,axis1,1)*dr114(
+                 aa8(0,5,0,nn) =  is*   rsxy1(i1,i2,i3,axis1,1)*dr114(
      & axis1)     ! v1(-2)
-
-             aa8(0,2,0,nn) =  js*8.*rsxy2(j1,j2,j3,axis2,0)*dr214(
+                 aa8(0,2,0,nn) =  js*8.*rsxy2(j1,j2,j3,axis2,0)*dr214(
      & axis2)     ! coeff of u2(-1) from [u.x+v.y]
-             aa8(0,3,0,nn) =  js*8.*rsxy2(j1,j2,j3,axis2,1)*dr214(
+                 aa8(0,3,0,nn) =  js*8.*rsxy2(j1,j2,j3,axis2,1)*dr214(
      & axis2)
-             aa8(0,6,0,nn) = -js*   rsxy2(j1,j2,j3,axis2,0)*dr214(
+                 aa8(0,6,0,nn) = -js*   rsxy2(j1,j2,j3,axis2,0)*dr214(
      & axis2)
-             aa8(0,7,0,nn) = -js*   rsxy2(j1,j2,j3,axis2,1)*dr214(
+                 aa8(0,7,0,nn) = -js*   rsxy2(j1,j2,j3,axis2,1)*dr214(
      & axis2)
-
-           ! 1  [ u.xx + u.yy ] = 0
-! this macro comes from deriv.maple
-! return the coefficient of u(-1) in uxxx+uxyy
-!#defineMacro lapCoeff4a(is,dr,ds) ((-1/3.*rxx*is-1/3.*ryy*is)/dr+(4/3.*rx**2+4/3.*ry**2)/dr**2)
-
-! return the coefficient of u(-2) in uxxx+uxyy
-!#defineMacro lapCoeff4b(is,dr,ds) ((1/24.*rxx*is+1/24.*ryy*is)/dr+(-1/12.*rx**2-1/12.*ry**2)/dr**2 )
-
-             if( axis1.eq.0 )then
-               rx   =aj1rx
-               ry   =aj1ry
-               rxx  =aj1rxx
-               rxy  =aj1rxy
-               ryy  =aj1ryy
-               rxxx =aj1rxxx
-               rxxy =aj1rxxy
-               rxyy =aj1rxyy
-               ryyy =aj1ryyy
-               rxxxx=aj1rxxxx
-               rxxyy=aj1rxxyy
-               ryyyy=aj1ryyyy
-               sx   =aj1sx
-               sy   =aj1sy
-               sxx  =aj1sxx
-               sxy  =aj1sxy
-               syy  =aj1syy
-               sxxx =aj1sxxx
-               sxxy =aj1sxxy
-               sxyy =aj1sxyy
-               syyy =aj1syyy
-               sxxxx=aj1sxxxx
-               sxxyy=aj1sxxyy
-               syyyy=aj1syyyy
-             else
-               rx   =aj1sx
-               ry   =aj1sy
-               rxx  =aj1sxx
-               rxy  =aj1sxy
-               ryy  =aj1syy
-               rxxx =aj1sxxx
-               rxxy =aj1sxxy
-               rxyy =aj1sxyy
-               ryyy =aj1syyy
-               rxxxx=aj1sxxxx
-               rxxyy=aj1sxxyy
-               ryyyy=aj1syyyy
-               sx   =aj1rx
-               sy   =aj1ry
-               sxx  =aj1rxx
-               sxy  =aj1rxy
-               syy  =aj1ryy
-               sxxx =aj1rxxx
-               sxxy =aj1rxxy
-               sxyy =aj1rxyy
-               syyy =aj1ryyy
-               sxxxx=aj1rxxxx
-               sxxyy=aj1rxxyy
-               syyyy=aj1ryyyy
-             end if
-
-             dr0=dr1(axis1)
-             ds0=dr1(axis1p1)
-             aLap0 = ((-2/3.*rxx*is-2/3.*ryy*is)/dr0+(4/3.*rx**2+4/3.*
-     & ry**2)/dr0**2)
-             aLap1 = ((1/12.*rxx*is+1/12.*ryy*is)/dr0+(-1/12.*rx**2-
-     & 1/12.*ry**2)/dr0**2)
-
-             if( axis2.eq.0 )then
-               rx   =aj2rx
-               ry   =aj2ry
-               rxx  =aj2rxx
-               rxy  =aj2rxy
-               ryy  =aj2ryy
-               rxxx =aj2rxxx
-               rxxy =aj2rxxy
-               rxyy =aj2rxyy
-               ryyy =aj2ryyy
-               rxxxx=aj2rxxxx
-               rxxyy=aj2rxxyy
-               ryyyy=aj2ryyyy
-               sx   =aj2sx
-               sy   =aj2sy
-               sxx  =aj2sxx
-               sxy  =aj2sxy
-               syy  =aj2syy
-               sxxx =aj2sxxx
-               sxxy =aj2sxxy
-               sxyy =aj2sxyy
-               syyy =aj2syyy
-               sxxxx=aj2sxxxx
-               sxxyy=aj2sxxyy
-               syyyy=aj2syyyy
-             else
-               rx   =aj2sx
-               ry   =aj2sy
-               rxx  =aj2sxx
-               rxy  =aj2sxy
-               ryy  =aj2syy
-               rxxx =aj2sxxx
-               rxxy =aj2sxxy
-               rxyy =aj2sxyy
-               ryyy =aj2syyy
-               rxxxx=aj2sxxxx
-               rxxyy=aj2sxxyy
-               ryyyy=aj2syyyy
-               sx   =aj2rx
-               sy   =aj2ry
-               sxx  =aj2rxx
-               sxy  =aj2rxy
-               syy  =aj2ryy
-               sxxx =aj2rxxx
-               sxxy =aj2rxxy
-               sxyy =aj2rxyy
-               syyy =aj2ryyy
-               sxxxx=aj2rxxxx
-               sxxyy=aj2rxxyy
-               syyyy=aj2ryyyy
-             end if
-             dr0=dr2(axis2)
-             ds0=dr2(axis2p1)
-             bLap0 = ((-2/3.*rxx*js-2/3.*ryy*js)/dr0+(4/3.*rx**2+4/3.*
-     & ry**2)/dr0**2)
-             bLap1 = ((1/12.*rxx*js+1/12.*ryy*js)/dr0+(-1/12.*rx**2-
-     & 1/12.*ry**2)/dr0**2)
-
-            if( debug.gt.8 )then
-             aa8(1,0,0,nn) = 16.*dx142(axis1)         ! coeff of u1(-1) from [u.xx + u.yy]
-             aa8(1,4,0,nn) =    -dx142(axis1)         ! coeff of u1(-2) from [u.xx + u.yy]
-              write(debugFile,'(" 4th: lap4: aLap0: rect=",e12.4," 
+               ! 1  [ u.xx + u.yy ] = 0
+               ! this macro comes from deriv.maple
+               ! return the coefficient of u(-1) in uxxx+uxyy
+               !#defineMacro lapCoeff4a(is,dr,ds) ((-1/3.*rxx*is-1/3.*ryy*is)/dr+(4/3.*rx**2+4/3.*ry**2)/dr**2)
+               ! return the coefficient of u(-2) in uxxx+uxyy
+               !#defineMacro lapCoeff4b(is,dr,ds) ((1/24.*rxx*is+1/24.*ryy*is)/dr+(-1/12.*rx**2-1/12.*ry**2)/dr**2 )
+                 ! optimize me ** June 27, 2016: 
+                 if( axis1.eq.0 )then
+                   rx   =aj1rx
+                   ry   =aj1ry
+                   rxx  =aj1rxx
+                   rxy  =aj1rxy
+                   ryy  =aj1ryy
+                   rxxx =aj1rxxx
+                   rxxy =aj1rxxy
+                   rxyy =aj1rxyy
+                   ryyy =aj1ryyy
+                   rxxxx=aj1rxxxx
+                   rxxyy=aj1rxxyy
+                   ryyyy=aj1ryyyy
+                   sx   =aj1sx
+                   sy   =aj1sy
+                   sxx  =aj1sxx
+                   sxy  =aj1sxy
+                   syy  =aj1syy
+                   sxxx =aj1sxxx
+                   sxxy =aj1sxxy
+                   sxyy =aj1sxyy
+                   syyy =aj1syyy
+                   sxxxx=aj1sxxxx
+                   sxxyy=aj1sxxyy
+                   syyyy=aj1syyyy
+                 else
+                   rx   =aj1sx
+                   ry   =aj1sy
+                   rxx  =aj1sxx
+                   rxy  =aj1sxy
+                   ryy  =aj1syy
+                   rxxx =aj1sxxx
+                   rxxy =aj1sxxy
+                   rxyy =aj1sxyy
+                   ryyy =aj1syyy
+                   rxxxx=aj1sxxxx
+                   rxxyy=aj1sxxyy
+                   ryyyy=aj1syyyy
+                   sx   =aj1rx
+                   sy   =aj1ry
+                   sxx  =aj1rxx
+                   sxy  =aj1rxy
+                   syy  =aj1ryy
+                   sxxx =aj1rxxx
+                   sxxy =aj1rxxy
+                   sxyy =aj1rxyy
+                   syyy =aj1ryyy
+                   sxxxx=aj1rxxxx
+                   sxxyy=aj1rxxyy
+                   syyyy=aj1ryyyy
+                 end if
+                 dr0=dr1(axis1)
+                 ds0=dr1(axis1p1)
+                 aLap0 = ((-2/3.*rxx*is-2/3.*ryy*is)/dr0+(4/3.*rx**2+
+     & 4/3.*ry**2)/dr0**2)
+                 aLap1 = ((1/12.*rxx*is+1/12.*ryy*is)/dr0+(-1/12.*rx**
+     & 2-1/12.*ry**2)/dr0**2)
+                 if( axis2.eq.0 )then
+                   rx   =aj2rx
+                   ry   =aj2ry
+                   rxx  =aj2rxx
+                   rxy  =aj2rxy
+                   ryy  =aj2ryy
+                   rxxx =aj2rxxx
+                   rxxy =aj2rxxy
+                   rxyy =aj2rxyy
+                   ryyy =aj2ryyy
+                   rxxxx=aj2rxxxx
+                   rxxyy=aj2rxxyy
+                   ryyyy=aj2ryyyy
+                   sx   =aj2sx
+                   sy   =aj2sy
+                   sxx  =aj2sxx
+                   sxy  =aj2sxy
+                   syy  =aj2syy
+                   sxxx =aj2sxxx
+                   sxxy =aj2sxxy
+                   sxyy =aj2sxyy
+                   syyy =aj2syyy
+                   sxxxx=aj2sxxxx
+                   sxxyy=aj2sxxyy
+                   syyyy=aj2syyyy
+                 else
+                   rx   =aj2sx
+                   ry   =aj2sy
+                   rxx  =aj2sxx
+                   rxy  =aj2sxy
+                   ryy  =aj2syy
+                   rxxx =aj2sxxx
+                   rxxy =aj2sxxy
+                   rxyy =aj2sxyy
+                   ryyy =aj2syyy
+                   rxxxx=aj2sxxxx
+                   rxxyy=aj2sxxyy
+                   ryyyy=aj2syyyy
+                   sx   =aj2rx
+                   sy   =aj2ry
+                   sxx  =aj2rxx
+                   sxy  =aj2rxy
+                   syy  =aj2ryy
+                   sxxx =aj2rxxx
+                   sxxy =aj2rxxy
+                   sxyy =aj2rxyy
+                   syyy =aj2ryyy
+                   sxxxx=aj2rxxxx
+                   sxxyy=aj2rxxyy
+                   syyyy=aj2ryyyy
+                 end if
+                 dr0=dr2(axis2)
+                 ds0=dr2(axis2p1)
+                 bLap0 = ((-2/3.*rxx*js-2/3.*ryy*js)/dr0+(4/3.*rx**2+
+     & 4/3.*ry**2)/dr0**2)
+                 bLap1 = ((1/12.*rxx*js+1/12.*ryy*js)/dr0+(-1/12.*rx**
+     & 2-1/12.*ry**2)/dr0**2)
+                if( debug.gt.8 )then
+                 aa8(1,0,0,nn) = 16.*dx142(axis1)         ! coeff of u1(-1) from [u.xx + u.yy]
+                 aa8(1,4,0,nn) =    -dx142(axis1)         ! coeff of u1(-2) from [u.xx + u.yy]
+                  write(debugFile,'(" 4th: lap4: aLap0: rect=",e12.4," 
      & curv=",e12.4)') aLap0,aa8(1,0,0,nn)
-              ! '
-              write(debugFile,'(" 4th: lap4: aLap1: rect=",e12.4," 
+                  ! '
+                  write(debugFile,'(" 4th: lap4: aLap1: rect=",e12.4," 
      & curv=",e12.4)') aLap1,aa8(1,4,0,nn)
-              ! '
-            end if
-
-             aa8(1,0,0,nn) = an1*aLap0       ! coeff of u1(-1) from [n.(u.xx + u.yy)]
-             aa8(1,1,0,nn) = an2*aLap0
-             aa8(1,4,0,nn) = an1*aLap1       ! coeff of u1(-2) from [n.(u.xx + u.yy)]
-             aa8(1,5,0,nn) = an2*aLap1
-
-             aa8(1,2,0,nn) =-an1*bLap0       ! coeff of u2(-1) from [n.(u.xx + u.yy)]
-             aa8(1,3,0,nn) =-an2*bLap0
-             aa8(1,6,0,nn) =-an1*bLap1       ! coeff of u2(-2) from [n.(u.xx + u.yy)]
-             aa8(1,7,0,nn) =-an2*bLap1
-
-           ! 2  [ v.x - u.y ] =0 
-!          a8(2,0) =  is*8.*ry1*dx114(axis1)
-!          a8(2,1) = -is*8.*rx1*dx114(axis1)    ! coeff of v1(-1) from [v.x - u.y] 
-!          a8(2,4) = -is*   ry1*dx114(axis1)
-!          a8(2,5) =  is*   rx1*dx114(axis1)
-!          a8(2,2) = -js*8.*ry2*dx214(axis2)
-!          a8(2,3) =  js*8.*rx2*dx214(axis2)
-!          a8(2,6) =  js*   ry2*dx214(axis2)
-!          a8(2,7) = -js*   rx2*dx214(axis2)
-
-             aa8(2,0,0,nn) =  is*8.*rsxy1(i1,i2,i3,axis1,1)*dr114(
+                  ! '
+                end if
+                ! Equation 1:
+                aa8(1,0,0,nn) = an1*aLap0       ! coeff of u1(-1) from [n.(u.xx + u.yy)]
+                aa8(1,1,0,nn) = an2*aLap0
+                aa8(1,4,0,nn) = an1*aLap1       ! coeff of u1(-2) from [n.(u.xx + u.yy)]
+                aa8(1,5,0,nn) = an2*aLap1
+                aa8(1,2,0,nn) =-an1*bLap0       ! coeff of u2(-1) from [n.(u.xx + u.yy)]
+                aa8(1,3,0,nn) =-an2*bLap0
+                aa8(1,6,0,nn) =-an1*bLap1       ! coeff of u2(-2) from [n.(u.xx + u.yy)]
+                aa8(1,7,0,nn) =-an2*bLap1
+                ! Equation 2: 
+                ! 2  [ v.x - u.y ] =0 
+                !          a8(2,0) =  is*8.*ry1*dx114(axis1)
+                !          a8(2,1) = -is*8.*rx1*dx114(axis1)    ! coeff of v1(-1) from [v.x - u.y] 
+                !          a8(2,4) = -is*   ry1*dx114(axis1)
+                !          a8(2,5) =  is*   rx1*dx114(axis1)
+                !          a8(2,2) = -js*8.*ry2*dx214(axis2)
+                !          a8(2,3) =  js*8.*rx2*dx214(axis2)
+                !          a8(2,6) =  js*   ry2*dx214(axis2)
+                !          a8(2,7) = -js*   rx2*dx214(axis2)
+                 aa8(2,0,0,nn) =  is*8.*rsxy1(i1,i2,i3,axis1,1)*dr114(
      & axis1)
-             aa8(2,1,0,nn) = -is*8.*rsxy1(i1,i2,i3,axis1,0)*dr114(
+                 aa8(2,1,0,nn) = -is*8.*rsxy1(i1,i2,i3,axis1,0)*dr114(
      & axis1)
-             aa8(2,4,0,nn) = -is*   rsxy1(i1,i2,i3,axis1,1)*dr114(
+                 aa8(2,4,0,nn) = -is*   rsxy1(i1,i2,i3,axis1,1)*dr114(
      & axis1)
-             aa8(2,5,0,nn) =  is*   rsxy1(i1,i2,i3,axis1,0)*dr114(
+                 aa8(2,5,0,nn) =  is*   rsxy1(i1,i2,i3,axis1,0)*dr114(
      & axis1)
-
-             aa8(2,2,0,nn) = -js*8.*rsxy2(j1,j2,j3,axis2,1)*dr214(
+                 aa8(2,2,0,nn) = -js*8.*rsxy2(j1,j2,j3,axis2,1)*dr214(
      & axis2)
-             aa8(2,3,0,nn) =  js*8.*rsxy2(j1,j2,j3,axis2,0)*dr214(
+                 aa8(2,3,0,nn) =  js*8.*rsxy2(j1,j2,j3,axis2,0)*dr214(
      & axis2)
-             aa8(2,6,0,nn) =  js*   rsxy2(j1,j2,j3,axis2,1)*dr214(
+                 aa8(2,6,0,nn) =  js*   rsxy2(j1,j2,j3,axis2,1)*dr214(
      & axis2)
-             aa8(2,7,0,nn) = -js*   rsxy2(j1,j2,j3,axis2,0)*dr214(
+                 aa8(2,7,0,nn) = -js*   rsxy2(j1,j2,j3,axis2,0)*dr214(
      & axis2)
-
-             ! 3  [ tau.(uv.xx+uv.yy)/eps ] = 0
-             aa8(3,0,0,nn) =tau1*aLap0/eps1
-             aa8(3,1,0,nn) =tau2*aLap0/eps1
-             aa8(3,4,0,nn) =tau1*aLap1/eps1
-             aa8(3,5,0,nn) =tau2*aLap1/eps1
-
-             aa8(3,2,0,nn) =-tau1*bLap0/eps2
-             aa8(3,3,0,nn) =-tau2*bLap0/eps2
-             aa8(3,6,0,nn) =-tau1*bLap1/eps2
-             aa8(3,7,0,nn) =-tau2*bLap1/eps2
-
-
-             ! 4  [ (u.xx+u.yy).x + (v.xx+v.yy).y ] = 0
-
-            if( axis1.eq.0 )then
-              rx   =aj1rx
-              ry   =aj1ry
-              rxx  =aj1rxx
-              rxy  =aj1rxy
-              ryy  =aj1ryy
-              rxxx =aj1rxxx
-              rxxy =aj1rxxy
-              rxyy =aj1rxyy
-              ryyy =aj1ryyy
-              rxxxx=aj1rxxxx
-              rxxyy=aj1rxxyy
-              ryyyy=aj1ryyyy
-              sx   =aj1sx
-              sy   =aj1sy
-              sxx  =aj1sxx
-              sxy  =aj1sxy
-              syy  =aj1syy
-              sxxx =aj1sxxx
-              sxxy =aj1sxxy
-              sxyy =aj1sxyy
-              syyy =aj1syyy
-              sxxxx=aj1sxxxx
-              sxxyy=aj1sxxyy
-              syyyy=aj1syyyy
-            else
-              rx   =aj1sx
-              ry   =aj1sy
-              rxx  =aj1sxx
-              rxy  =aj1sxy
-              ryy  =aj1syy
-              rxxx =aj1sxxx
-              rxxy =aj1sxxy
-              rxyy =aj1sxyy
-              ryyy =aj1syyy
-              rxxxx=aj1sxxxx
-              rxxyy=aj1sxxyy
-              ryyyy=aj1syyyy
-              sx   =aj1rx
-              sy   =aj1ry
-              sxx  =aj1rxx
-              sxy  =aj1rxy
-              syy  =aj1ryy
-              sxxx =aj1rxxx
-              sxxy =aj1rxxy
-              sxyy =aj1rxyy
-              syyy =aj1ryyy
-              sxxxx=aj1rxxxx
-              sxxyy=aj1rxxyy
-              syyyy=aj1ryyyy
-            end if
-
-            dr0=dr1(axis1)
-            ds0=dr1(axis1p1)
-            aLapX0 = ((-1/2.*rxyy*is-1/2.*rxxx*is+(sy*(ry*sx*is+sy*rx*
-     & is)+3*rx*sx**2*is+ry*sy*sx*is)/ds0**2)/dr0+(2*ry*rxy+3*rx*rxx+
-     & ryy*rx)/dr0**2+(ry**2*rx*is+rx**3*is)/dr0**3)
-            aLapX1 = ((-1/2.*rx**3*is-1/2.*ry**2*rx*is)/dr0**3)
-
-            bLapY0 = ((-1/2.*ryyy*is-1/2.*rxxy*is+(3*ry*sy**2*is+ry*sx*
-     & *2*is+2*sy*rx*sx*is)/ds0**2)/dr0+(2*rxy*rx+ry*rxx+3*ry*ryy)
-     & /dr0**2+(ry**3*is+ry*rx**2*is)/dr0**3)
-            bLapY1 = ((-1/2.*ry*rx**2*is-1/2.*ry**3*is)/dr0**3)
-
-            if( axis2.eq.0 )then
-              rx   =aj2rx
-              ry   =aj2ry
-              rxx  =aj2rxx
-              rxy  =aj2rxy
-              ryy  =aj2ryy
-              rxxx =aj2rxxx
-              rxxy =aj2rxxy
-              rxyy =aj2rxyy
-              ryyy =aj2ryyy
-              rxxxx=aj2rxxxx
-              rxxyy=aj2rxxyy
-              ryyyy=aj2ryyyy
-              sx   =aj2sx
-              sy   =aj2sy
-              sxx  =aj2sxx
-              sxy  =aj2sxy
-              syy  =aj2syy
-              sxxx =aj2sxxx
-              sxxy =aj2sxxy
-              sxyy =aj2sxyy
-              syyy =aj2syyy
-              sxxxx=aj2sxxxx
-              sxxyy=aj2sxxyy
-              syyyy=aj2syyyy
-            else
-              rx   =aj2sx
-              ry   =aj2sy
-              rxx  =aj2sxx
-              rxy  =aj2sxy
-              ryy  =aj2syy
-              rxxx =aj2sxxx
-              rxxy =aj2sxxy
-              rxyy =aj2sxyy
-              ryyy =aj2syyy
-              rxxxx=aj2sxxxx
-              rxxyy=aj2sxxyy
-              ryyyy=aj2syyyy
-              sx   =aj2rx
-              sy   =aj2ry
-              sxx  =aj2rxx
-              sxy  =aj2rxy
-              syy  =aj2ryy
-              sxxx =aj2rxxx
-              sxxy =aj2rxxy
-              sxyy =aj2rxyy
-              syyy =aj2ryyy
-              sxxxx=aj2rxxxx
-              sxxyy=aj2rxxyy
-              syyyy=aj2ryyyy
-            end if
-
-            dr0=dr2(axis2)
-            ds0=dr2(axis2p1)
-            cLapX0 = ((-1/2.*rxyy*js-1/2.*rxxx*js+(sy*(ry*sx*js+sy*rx*
-     & js)+3*rx*sx**2*js+ry*sy*sx*js)/ds0**2)/dr0+(2*ry*rxy+3*rx*rxx+
-     & ryy*rx)/dr0**2+(ry**2*rx*js+rx**3*js)/dr0**3)
-            cLapX1 = ((-1/2.*rx**3*js-1/2.*ry**2*rx*js)/dr0**3)
-
-            dLapY0 = ((-1/2.*ryyy*js-1/2.*rxxy*js+(3*ry*sy**2*js+ry*sx*
-     & *2*js+2*sy*rx*sx*js)/ds0**2)/dr0+(2*rxy*rx+ry*rxx+3*ry*ryy)
-     & /dr0**2+(ry**3*js+ry*rx**2*js)/dr0**3)
-            dLapY1 = ((-1/2.*ry*rx**2*js-1/2.*ry**3*js)/dr0**3)
-
-
-            ! 4  [ (u.xx+u.yy).x + (v.xx+v.yy).y ] = 0
-            if( debug.gt.8 )then
-            aa8(4,0,0,nn)= ( is*rx1*2.*dx122(axis1)*dx112(axis1)+is*
-     & rx1*2.*dx122(1)/(2.*dx1(0)))
-            aa8(4,1,0,nn)= ( is*ry1*2.*dx122(axis1)*dx112(axis1)+is*
-     & ry1*2.*dx122(0)/(2.*dx1(1)))
-            aa8(4,4,0,nn)= (-is*rx1   *dx122(axis1)*dx112(axis1) )
-            aa8(4,5,0,nn)= (-is*ry1   *dx122(axis1)*dx112(axis1))
-              write(debugFile,'(" 4th: xlap4: aLapX0: rect=",e12.4," 
-     & curv=",e12.4)') aLapX0,aa8(4,0,0,nn)
-              write(debugFile,'(" 4th: xlap4: aLapX1: rect=",e12.4," 
-     & curv=",e12.4)') aLapX1,aa8(4,4,0,nn)
-              write(debugFile,'(" 4th: ylap4: bLapY0: rect=",e12.4," 
-     & curv=",e12.4)') bLapY0,aa8(4,1,0,nn)
-              write(debugFile,'(" 4th: ylap4: bLapY1: rect=",e12.4," 
-     & curv=",e12.4)') bLapY1,aa8(4,5,0,nn)
-              ! '
-            end if
-
-            aa8(4,0,0,nn)= aLapX0
-            aa8(4,1,0,nn)= bLapY0
-            aa8(4,4,0,nn)= aLapX1
-            aa8(4,5,0,nn)= bLapY1
-
-            aa8(4,2,0,nn)=-cLapX0
-            aa8(4,3,0,nn)=-dLapY0
-            aa8(4,6,0,nn)=-cLapX1
-            aa8(4,7,0,nn)=-dLapY1
-
-            ! 5  [ {(Delta v).x - (Delta u).y}/eps ] =0  -> [ {(v.xxx+v.xyy)-(u.xxy+u.yyy)}/eps ] = 0
-
-            aa8(5,0,0,nn)=-bLapY0/eps1
-            aa8(5,1,0,nn)= aLapX0/eps1
-            aa8(5,4,0,nn)=-bLapY1/eps1
-            aa8(5,5,0,nn)= aLapX1/eps1
-
-            aa8(5,2,0,nn)= dLapY0/eps2
-            aa8(5,3,0,nn)=-cLapX0/eps2
-            aa8(5,6,0,nn)= dLapY1/eps2
-            aa8(5,7,0,nn)=-cLapX1/eps2
-
-
-             ! 6  [ n.Delta^2 u/eps ] = 0
-
-             ! assign rx,ry,rxx,rxy,... 
-
-             if( axis1.eq.0 )then
-               rx   =aj1rx
-               ry   =aj1ry
-               rxx  =aj1rxx
-               rxy  =aj1rxy
-               ryy  =aj1ryy
-               rxxx =aj1rxxx
-               rxxy =aj1rxxy
-               rxyy =aj1rxyy
-               ryyy =aj1ryyy
-               rxxxx=aj1rxxxx
-               rxxyy=aj1rxxyy
-               ryyyy=aj1ryyyy
-               sx   =aj1sx
-               sy   =aj1sy
-               sxx  =aj1sxx
-               sxy  =aj1sxy
-               syy  =aj1syy
-               sxxx =aj1sxxx
-               sxxy =aj1sxxy
-               sxyy =aj1sxyy
-               syyy =aj1syyy
-               sxxxx=aj1sxxxx
-               sxxyy=aj1sxxyy
-               syyyy=aj1syyyy
-             else
-               rx   =aj1sx
-               ry   =aj1sy
-               rxx  =aj1sxx
-               rxy  =aj1sxy
-               ryy  =aj1syy
-               rxxx =aj1sxxx
-               rxxy =aj1sxxy
-               rxyy =aj1sxyy
-               ryyy =aj1syyy
-               rxxxx=aj1sxxxx
-               rxxyy=aj1sxxyy
-               ryyyy=aj1syyyy
-               sx   =aj1rx
-               sy   =aj1ry
-               sxx  =aj1rxx
-               sxy  =aj1rxy
-               syy  =aj1ryy
-               sxxx =aj1rxxx
-               sxxy =aj1rxxy
-               sxyy =aj1rxyy
-               syyy =aj1ryyy
-               sxxxx=aj1rxxxx
-               sxxyy=aj1rxxyy
-               syyyy=aj1ryyyy
-             end if
-
-             dr0=dr1(axis1)
-             ds0=dr1(axis1p1)
-             aLapSq0 = ((-1/2.*rxxxx*is-rxxyy*is-1/2.*ryyyy*is+(2*sy*(
-     & 2*rxy*sx*is+2*rx*sxy*is)+2*ry*(2*sxy*sx*is+sy*sxx*is)+7*rx*sxx*
-     & sx*is+sy*(3*ry*syy*is+3*sy*ryy*is)+sx*(3*rx*sxx*is+3*rxx*sx*is)
-     & +sx*(2*rxx*sx*is+2*rx*sxx*is)+2*sy*(2*rx*sxy*is+ry*sxx*is+2*
-     & rxy*sx*is+sy*rxx*is)+7*ry*sy*syy*is+rxx*sx**2*is+4*ry*sxy*sx*
-     & is+4*syy*rx*sx*is+2*ryy*sx**2*is+ryy*sy**2*is+sy*(2*sy*ryy*is+
-     & 2*ry*syy*is))/ds0**2)/dr0+(3*ryy**2+3*rxx**2+4*rxy**2+4*ry*
+                 ! 3  [ tau.(uv.xx+uv.yy)/eps ] = 0
+                 aa8(3,0,0,nn) =tau1*aLap0/eps1
+                 aa8(3,1,0,nn) =tau2*aLap0/eps1
+                 aa8(3,4,0,nn) =tau1*aLap1/eps1
+                 aa8(3,5,0,nn) =tau2*aLap1/eps1
+                 aa8(3,2,0,nn) =-tau1*bLap0/eps2
+                 aa8(3,3,0,nn) =-tau2*bLap0/eps2
+                 aa8(3,6,0,nn) =-tau1*bLap1/eps2
+                 aa8(3,7,0,nn) =-tau2*bLap1/eps2
+                 ! 4  [ (u.xx+u.yy).x + (v.xx+v.yy).y ] = 0
+                if( axis1.eq.0 )then
+                  rx   =aj1rx
+                  ry   =aj1ry
+                  rxx  =aj1rxx
+                  rxy  =aj1rxy
+                  ryy  =aj1ryy
+                  rxxx =aj1rxxx
+                  rxxy =aj1rxxy
+                  rxyy =aj1rxyy
+                  ryyy =aj1ryyy
+                  rxxxx=aj1rxxxx
+                  rxxyy=aj1rxxyy
+                  ryyyy=aj1ryyyy
+                  sx   =aj1sx
+                  sy   =aj1sy
+                  sxx  =aj1sxx
+                  sxy  =aj1sxy
+                  syy  =aj1syy
+                  sxxx =aj1sxxx
+                  sxxy =aj1sxxy
+                  sxyy =aj1sxyy
+                  syyy =aj1syyy
+                  sxxxx=aj1sxxxx
+                  sxxyy=aj1sxxyy
+                  syyyy=aj1syyyy
+                else
+                  rx   =aj1sx
+                  ry   =aj1sy
+                  rxx  =aj1sxx
+                  rxy  =aj1sxy
+                  ryy  =aj1syy
+                  rxxx =aj1sxxx
+                  rxxy =aj1sxxy
+                  rxyy =aj1sxyy
+                  ryyy =aj1syyy
+                  rxxxx=aj1sxxxx
+                  rxxyy=aj1sxxyy
+                  ryyyy=aj1syyyy
+                  sx   =aj1rx
+                  sy   =aj1ry
+                  sxx  =aj1rxx
+                  sxy  =aj1rxy
+                  syy  =aj1ryy
+                  sxxx =aj1rxxx
+                  sxxy =aj1rxxy
+                  sxyy =aj1rxyy
+                  syyy =aj1ryyy
+                  sxxxx=aj1rxxxx
+                  sxxyy=aj1rxxyy
+                  syyyy=aj1ryyyy
+                end if
+                dr0=dr1(axis1)
+                ds0=dr1(axis1p1)
+                aLapX0 = ((-1/2.*rxyy*is-1/2.*rxxx*is+(sy*(ry*sx*is+sy*
+     & rx*is)+3*rx*sx**2*is+ry*sy*sx*is)/ds0**2)/dr0+(2*ry*rxy+3*rx*
+     & rxx+ryy*rx)/dr0**2+(ry**2*rx*is+rx**3*is)/dr0**3)
+                aLapX1 = ((-1/2.*rx**3*is-1/2.*ry**2*rx*is)/dr0**3)
+                bLapY0 = ((-1/2.*ryyy*is-1/2.*rxxy*is+(3*ry*sy**2*is+
+     & ry*sx**2*is+2*sy*rx*sx*is)/ds0**2)/dr0+(2*rxy*rx+ry*rxx+3*ry*
+     & ryy)/dr0**2+(ry**3*is+ry*rx**2*is)/dr0**3)
+                bLapY1 = ((-1/2.*ry*rx**2*is-1/2.*ry**3*is)/dr0**3)
+                if( axis2.eq.0 )then
+                  rx   =aj2rx
+                  ry   =aj2ry
+                  rxx  =aj2rxx
+                  rxy  =aj2rxy
+                  ryy  =aj2ryy
+                  rxxx =aj2rxxx
+                  rxxy =aj2rxxy
+                  rxyy =aj2rxyy
+                  ryyy =aj2ryyy
+                  rxxxx=aj2rxxxx
+                  rxxyy=aj2rxxyy
+                  ryyyy=aj2ryyyy
+                  sx   =aj2sx
+                  sy   =aj2sy
+                  sxx  =aj2sxx
+                  sxy  =aj2sxy
+                  syy  =aj2syy
+                  sxxx =aj2sxxx
+                  sxxy =aj2sxxy
+                  sxyy =aj2sxyy
+                  syyy =aj2syyy
+                  sxxxx=aj2sxxxx
+                  sxxyy=aj2sxxyy
+                  syyyy=aj2syyyy
+                else
+                  rx   =aj2sx
+                  ry   =aj2sy
+                  rxx  =aj2sxx
+                  rxy  =aj2sxy
+                  ryy  =aj2syy
+                  rxxx =aj2sxxx
+                  rxxy =aj2sxxy
+                  rxyy =aj2sxyy
+                  ryyy =aj2syyy
+                  rxxxx=aj2sxxxx
+                  rxxyy=aj2sxxyy
+                  ryyyy=aj2syyyy
+                  sx   =aj2rx
+                  sy   =aj2ry
+                  sxx  =aj2rxx
+                  sxy  =aj2rxy
+                  syy  =aj2ryy
+                  sxxx =aj2rxxx
+                  sxxy =aj2rxxy
+                  sxyy =aj2rxyy
+                  syyy =aj2ryyy
+                  sxxxx=aj2rxxxx
+                  sxxyy=aj2rxxyy
+                  syyyy=aj2ryyyy
+                end if
+                dr0=dr2(axis2)
+                ds0=dr2(axis2p1)
+                cLapX0 = ((-1/2.*rxyy*js-1/2.*rxxx*js+(sy*(ry*sx*js+sy*
+     & rx*js)+3*rx*sx**2*js+ry*sy*sx*js)/ds0**2)/dr0+(2*ry*rxy+3*rx*
+     & rxx+ryy*rx)/dr0**2+(ry**2*rx*js+rx**3*js)/dr0**3)
+                cLapX1 = ((-1/2.*rx**3*js-1/2.*ry**2*rx*js)/dr0**3)
+                dLapY0 = ((-1/2.*ryyy*js-1/2.*rxxy*js+(3*ry*sy**2*js+
+     & ry*sx**2*js+2*sy*rx*sx*js)/ds0**2)/dr0+(2*rxy*rx+ry*rxx+3*ry*
+     & ryy)/dr0**2+(ry**3*js+ry*rx**2*js)/dr0**3)
+                dLapY1 = ((-1/2.*ry*rx**2*js-1/2.*ry**3*js)/dr0**3)
+                ! 4  [ (u.xx+u.yy).x + (v.xx+v.yy).y ] = 0
+                if( debug.gt.8 )then
+                aa8(4,0,0,nn)= ( is*rx1*2.*dx122(axis1)*dx112(axis1)+
+     & is*rx1*2.*dx122(1)/(2.*dx1(0)))
+                aa8(4,1,0,nn)= ( is*ry1*2.*dx122(axis1)*dx112(axis1)+
+     & is*ry1*2.*dx122(0)/(2.*dx1(1)))
+                aa8(4,4,0,nn)= (-is*rx1   *dx122(axis1)*dx112(axis1) )
+                aa8(4,5,0,nn)= (-is*ry1   *dx122(axis1)*dx112(axis1))
+                  write(debugFile,'(" 4th: xlap4: aLapX0: rect=",e12.4,
+     & " curv=",e12.4)') aLapX0,aa8(4,0,0,nn)
+                  write(debugFile,'(" 4th: xlap4: aLapX1: rect=",e12.4,
+     & " curv=",e12.4)') aLapX1,aa8(4,4,0,nn)
+                  write(debugFile,'(" 4th: ylap4: bLapY0: rect=",e12.4,
+     & " curv=",e12.4)') bLapY0,aa8(4,1,0,nn)
+                  write(debugFile,'(" 4th: ylap4: bLapY1: rect=",e12.4,
+     & " curv=",e12.4)') bLapY1,aa8(4,5,0,nn)
+                  ! '
+                end if
+                aa8(4,0,0,nn)= aLapX0
+                aa8(4,1,0,nn)= bLapY0
+                aa8(4,4,0,nn)= aLapX1
+                aa8(4,5,0,nn)= bLapY1
+                aa8(4,2,0,nn)=-cLapX0
+                aa8(4,3,0,nn)=-dLapY0
+                aa8(4,6,0,nn)=-cLapX1
+                aa8(4,7,0,nn)=-dLapY1
+                ! 5  [ {(Delta v).x - (Delta u).y}/eps ] =0  -> [ {(v.xxx+v.xyy)-(u.xxy+u.yyy)}/eps ] = 0
+                aa8(5,0,0,nn)=-bLapY0/eps1
+                aa8(5,1,0,nn)= aLapX0/eps1
+                aa8(5,4,0,nn)=-bLapY1/eps1
+                aa8(5,5,0,nn)= aLapX1/eps1
+                aa8(5,2,0,nn)= dLapY0/eps2
+                aa8(5,3,0,nn)=-cLapX0/eps2
+                aa8(5,6,0,nn)= dLapY1/eps2
+                aa8(5,7,0,nn)=-cLapX1/eps2
+                 ! 6  [ n.Delta^2 u/eps ] = 0
+                 ! assign rx,ry,rxx,rxy,... 
+                 if( axis1.eq.0 )then
+                   rx   =aj1rx
+                   ry   =aj1ry
+                   rxx  =aj1rxx
+                   rxy  =aj1rxy
+                   ryy  =aj1ryy
+                   rxxx =aj1rxxx
+                   rxxy =aj1rxxy
+                   rxyy =aj1rxyy
+                   ryyy =aj1ryyy
+                   rxxxx=aj1rxxxx
+                   rxxyy=aj1rxxyy
+                   ryyyy=aj1ryyyy
+                   sx   =aj1sx
+                   sy   =aj1sy
+                   sxx  =aj1sxx
+                   sxy  =aj1sxy
+                   syy  =aj1syy
+                   sxxx =aj1sxxx
+                   sxxy =aj1sxxy
+                   sxyy =aj1sxyy
+                   syyy =aj1syyy
+                   sxxxx=aj1sxxxx
+                   sxxyy=aj1sxxyy
+                   syyyy=aj1syyyy
+                 else
+                   rx   =aj1sx
+                   ry   =aj1sy
+                   rxx  =aj1sxx
+                   rxy  =aj1sxy
+                   ryy  =aj1syy
+                   rxxx =aj1sxxx
+                   rxxy =aj1sxxy
+                   rxyy =aj1sxyy
+                   ryyy =aj1syyy
+                   rxxxx=aj1sxxxx
+                   rxxyy=aj1sxxyy
+                   ryyyy=aj1syyyy
+                   sx   =aj1rx
+                   sy   =aj1ry
+                   sxx  =aj1rxx
+                   sxy  =aj1rxy
+                   syy  =aj1ryy
+                   sxxx =aj1rxxx
+                   sxxy =aj1rxxy
+                   sxyy =aj1rxyy
+                   syyy =aj1ryyy
+                   sxxxx=aj1rxxxx
+                   sxxyy=aj1rxxyy
+                   syyyy=aj1ryyyy
+                 end if
+                 dr0=dr1(axis1)
+                 ds0=dr1(axis1p1)
+                 aLapSq0 = ((-1/2.*rxxxx*is-rxxyy*is-1/2.*ryyyy*is+(2*
+     & sy*(2*rxy*sx*is+2*rx*sxy*is)+2*ry*(2*sxy*sx*is+sy*sxx*is)+7*rx*
+     & sxx*sx*is+sy*(3*ry*syy*is+3*sy*ryy*is)+sx*(3*rx*sxx*is+3*rxx*
+     & sx*is)+sx*(2*rxx*sx*is+2*rx*sxx*is)+2*sy*(2*rx*sxy*is+ry*sxx*
+     & is+2*rxy*sx*is+sy*rxx*is)+7*ry*sy*syy*is+rxx*sx**2*is+4*ry*sxy*
+     & sx*is+4*syy*rx*sx*is+2*ryy*sx**2*is+ryy*sy**2*is+sy*(2*sy*ryy*
+     & is+2*ry*syy*is))/ds0**2)/dr0+(3*ryy**2+3*rxx**2+4*rxy**2+4*ry*
      & rxxy+4*rx*rxxx+4*ry*ryyy+2*ryy*rxx+4*rx*rxyy+(2*ry*(-4*sy*rx*
      & sx-2*ry*sx**2)-12*ry**2*sy**2+2*sy*(-2*sy*rx**2-4*ry*rx*sx)-12*
      & rx**2*sx**2)/ds0**2)/dr0**2+(6*ry**2*ryy*is+4*ry*rxy*rx*is+2*
      & ry*(ry*rxx*is+2*rxy*rx*is)+6*rxx*rx**2*is+2*ryy*rx**2*is)/dr0**
      & 3+(-8*ry**2*rx**2-4*ry**4-4*rx**4)/dr0**4)
-             aLapSq1 = ((-3*rxx*rx**2*is-ryy*rx**2*is-2*ry*rxy*rx*is-3*
-     & ry**2*ryy*is+2*ry*(-rxy*rx*is-1/2.*ry*rxx*is))/dr0**3+(rx**4+2*
-     & ry**2*rx**2+ry**4)/dr0**4)
-
-             if( debug.gt.8 )then
-               aa8(6,0,0,nn) = -(4./(dx1(axis1)**4) +4./(dx1(0)**2*dx1(
-     & 1)**2) )
-               aa8(6,4,0,nn) =   1./(dx1(axis1)**4)
-               write(debugFile,'(" 4th: lapSq: aLapSq0: rect=",e12.4," 
-     & curv=",e12.4)') aLapSq0,aa8(6,0,0,nn)
-               ! '
-               write(debugFile,'(" 4th: lapSq: aLapSq1: rect=",e12.4," 
-     & curv=",e12.4)') aLapSq1,aa8(6,4,0,nn)
-               ! '
-             end if
-
-             aa8(6,0,0,nn) = an1*aLapSq0/eps1
-             aa8(6,1,0,nn) = an2*aLapSq0/eps1
-             aa8(6,4,0,nn) = an1*aLapSq1/eps1
-             aa8(6,5,0,nn) = an2*aLapSq1/eps1
-
-             if( axis2.eq.0 )then
-               rx   =aj2rx
-               ry   =aj2ry
-               rxx  =aj2rxx
-               rxy  =aj2rxy
-               ryy  =aj2ryy
-               rxxx =aj2rxxx
-               rxxy =aj2rxxy
-               rxyy =aj2rxyy
-               ryyy =aj2ryyy
-               rxxxx=aj2rxxxx
-               rxxyy=aj2rxxyy
-               ryyyy=aj2ryyyy
-               sx   =aj2sx
-               sy   =aj2sy
-               sxx  =aj2sxx
-               sxy  =aj2sxy
-               syy  =aj2syy
-               sxxx =aj2sxxx
-               sxxy =aj2sxxy
-               sxyy =aj2sxyy
-               syyy =aj2syyy
-               sxxxx=aj2sxxxx
-               sxxyy=aj2sxxyy
-               syyyy=aj2syyyy
-             else
-               rx   =aj2sx
-               ry   =aj2sy
-               rxx  =aj2sxx
-               rxy  =aj2sxy
-               ryy  =aj2syy
-               rxxx =aj2sxxx
-               rxxy =aj2sxxy
-               rxyy =aj2sxyy
-               ryyy =aj2syyy
-               rxxxx=aj2sxxxx
-               rxxyy=aj2sxxyy
-               ryyyy=aj2syyyy
-               sx   =aj2rx
-               sy   =aj2ry
-               sxx  =aj2rxx
-               sxy  =aj2rxy
-               syy  =aj2ryy
-               sxxx =aj2rxxx
-               sxxy =aj2rxxy
-               sxyy =aj2rxyy
-               syyy =aj2ryyy
-               sxxxx=aj2rxxxx
-               sxxyy=aj2rxxyy
-               syyyy=aj2ryyyy
-             end if
-             dr0=dr2(axis2)
-             ds0=dr2(axis2p1)
-             bLapSq0 = ((-1/2.*rxxxx*js-rxxyy*js-1/2.*ryyyy*js+(2*sy*(
-     & 2*rxy*sx*js+2*rx*sxy*js)+2*ry*(2*sxy*sx*js+sy*sxx*js)+7*rx*sxx*
-     & sx*js+sy*(3*ry*syy*js+3*sy*ryy*js)+sx*(3*rx*sxx*js+3*rxx*sx*js)
-     & +sx*(2*rxx*sx*js+2*rx*sxx*js)+2*sy*(2*rx*sxy*js+ry*sxx*js+2*
-     & rxy*sx*js+sy*rxx*js)+7*ry*sy*syy*js+rxx*sx**2*js+4*ry*sxy*sx*
-     & js+4*syy*rx*sx*js+2*ryy*sx**2*js+ryy*sy**2*js+sy*(2*sy*ryy*js+
-     & 2*ry*syy*js))/ds0**2)/dr0+(3*ryy**2+3*rxx**2+4*rxy**2+4*ry*
+                 aLapSq1 = ((-3*rxx*rx**2*is-ryy*rx**2*is-2*ry*rxy*rx*
+     & is-3*ry**2*ryy*is+2*ry*(-rxy*rx*is-1/2.*ry*rxx*is))/dr0**3+(rx*
+     & *4+2*ry**2*rx**2+ry**4)/dr0**4)
+                 if( debug.gt.8 )then
+                   aa8(6,0,0,nn) = -(4./(dx1(axis1)**4) +4./(dx1(0)**2*
+     & dx1(1)**2) )
+                   aa8(6,4,0,nn) =   1./(dx1(axis1)**4)
+                   write(debugFile,'(" 4th: lapSq: aLapSq0: rect=",
+     & e12.4," curv=",e12.4)') aLapSq0,aa8(6,0,0,nn)
+                   ! '
+                   write(debugFile,'(" 4th: lapSq: aLapSq1: rect=",
+     & e12.4," curv=",e12.4)') aLapSq1,aa8(6,4,0,nn)
+                   ! '
+                 end if
+                 if( setDivergenceAtInterfaces.eq.0 )then
+                  aa8(6,0,0,nn) = an1*aLapSq0/eps1
+                  aa8(6,1,0,nn) = an2*aLapSq0/eps1
+                  aa8(6,4,0,nn) = an1*aLapSq1/eps1
+                  aa8(6,5,0,nn) = an2*aLapSq1/eps1
+                 end if
+                 if( axis2.eq.0 )then
+                   rx   =aj2rx
+                   ry   =aj2ry
+                   rxx  =aj2rxx
+                   rxy  =aj2rxy
+                   ryy  =aj2ryy
+                   rxxx =aj2rxxx
+                   rxxy =aj2rxxy
+                   rxyy =aj2rxyy
+                   ryyy =aj2ryyy
+                   rxxxx=aj2rxxxx
+                   rxxyy=aj2rxxyy
+                   ryyyy=aj2ryyyy
+                   sx   =aj2sx
+                   sy   =aj2sy
+                   sxx  =aj2sxx
+                   sxy  =aj2sxy
+                   syy  =aj2syy
+                   sxxx =aj2sxxx
+                   sxxy =aj2sxxy
+                   sxyy =aj2sxyy
+                   syyy =aj2syyy
+                   sxxxx=aj2sxxxx
+                   sxxyy=aj2sxxyy
+                   syyyy=aj2syyyy
+                 else
+                   rx   =aj2sx
+                   ry   =aj2sy
+                   rxx  =aj2sxx
+                   rxy  =aj2sxy
+                   ryy  =aj2syy
+                   rxxx =aj2sxxx
+                   rxxy =aj2sxxy
+                   rxyy =aj2sxyy
+                   ryyy =aj2syyy
+                   rxxxx=aj2sxxxx
+                   rxxyy=aj2sxxyy
+                   ryyyy=aj2syyyy
+                   sx   =aj2rx
+                   sy   =aj2ry
+                   sxx  =aj2rxx
+                   sxy  =aj2rxy
+                   syy  =aj2ryy
+                   sxxx =aj2rxxx
+                   sxxy =aj2rxxy
+                   sxyy =aj2rxyy
+                   syyy =aj2ryyy
+                   sxxxx=aj2rxxxx
+                   sxxyy=aj2rxxyy
+                   syyyy=aj2ryyyy
+                 end if
+                 dr0=dr2(axis2)
+                 ds0=dr2(axis2p1)
+                 bLapSq0 = ((-1/2.*rxxxx*js-rxxyy*js-1/2.*ryyyy*js+(2*
+     & sy*(2*rxy*sx*js+2*rx*sxy*js)+2*ry*(2*sxy*sx*js+sy*sxx*js)+7*rx*
+     & sxx*sx*js+sy*(3*ry*syy*js+3*sy*ryy*js)+sx*(3*rx*sxx*js+3*rxx*
+     & sx*js)+sx*(2*rxx*sx*js+2*rx*sxx*js)+2*sy*(2*rx*sxy*js+ry*sxx*
+     & js+2*rxy*sx*js+sy*rxx*js)+7*ry*sy*syy*js+rxx*sx**2*js+4*ry*sxy*
+     & sx*js+4*syy*rx*sx*js+2*ryy*sx**2*js+ryy*sy**2*js+sy*(2*sy*ryy*
+     & js+2*ry*syy*js))/ds0**2)/dr0+(3*ryy**2+3*rxx**2+4*rxy**2+4*ry*
      & rxxy+4*rx*rxxx+4*ry*ryyy+2*ryy*rxx+4*rx*rxyy+(2*ry*(-4*sy*rx*
      & sx-2*ry*sx**2)-12*ry**2*sy**2+2*sy*(-2*sy*rx**2-4*ry*rx*sx)-12*
      & rx**2*sx**2)/ds0**2)/dr0**2+(6*ry**2*ryy*js+4*ry*rxy*rx*js+2*
      & ry*(ry*rxx*js+2*rxy*rx*js)+6*rxx*rx**2*js+2*ryy*rx**2*js)/dr0**
      & 3+(-8*ry**2*rx**2-4*ry**4-4*rx**4)/dr0**4)
-             bLapSq1 = ((-3*rxx*rx**2*js-ryy*rx**2*js-2*ry*rxy*rx*js-3*
-     & ry**2*ryy*js+2*ry*(-rxy*rx*js-1/2.*ry*rxx*js))/dr0**3+(rx**4+2*
-     & ry**2*rx**2+ry**4)/dr0**4)
-
-             aa8(6,2,0,nn) = -an1*bLapSq0/eps2
-             aa8(6,3,0,nn) = -an2*bLapSq0/eps2
-             aa8(6,6,0,nn) = -an1*bLapSq1/eps2
-             aa8(6,7,0,nn) = -an2*bLapSq1/eps2
-
-             ! 7  [ tau.Delta^2 v/eps^2 ] = 0 
-             aa8(7,0,0,nn) = tau1*aLapSq0/eps1**2
-             aa8(7,1,0,nn) = tau2*aLapSq0/eps1**2
-             aa8(7,4,0,nn) = tau1*aLapSq1/eps1**2
-             aa8(7,5,0,nn) = tau2*aLapSq1/eps1**2
-
-             aa8(7,2,0,nn) = -tau1*bLapSq0/eps2**2
-             aa8(7,3,0,nn) = -tau2*bLapSq0/eps2**2
-             aa8(7,6,0,nn) = -tau1*bLapSq1/eps2**2
-             aa8(7,7,0,nn) = -tau2*bLapSq1/eps2**2
-
-             ! save a copy of the matrix
-             do n2=0,7
-             do n1=0,7
-               aa8(n1,n2,1,nn)=aa8(n1,n2,0,nn)
-             end do
-             end do
-
-             ! solve A Q = F
-             ! factor the matrix
-             numberOfEquations=8
-             call dgeco( aa8(0,0,0,nn), numberOfEquations, 
+                 bLapSq1 = ((-3*rxx*rx**2*js-ryy*rx**2*js-2*ry*rxy*rx*
+     & js-3*ry**2*ryy*js+2*ry*(-rxy*rx*js-1/2.*ry*rxx*js))/dr0**3+(rx*
+     & *4+2*ry**2*rx**2+ry**4)/dr0**4)
+                 if( setDivergenceAtInterfaces.eq.0 )then
+                  aa8(6,2,0,nn) = -an1*bLapSq0/eps2
+                  aa8(6,3,0,nn) = -an2*bLapSq0/eps2
+                  aa8(6,6,0,nn) = -an1*bLapSq1/eps2
+                  aa8(6,7,0,nn) = -an2*bLapSq1/eps2
+                 end if
+                 if( setDivergenceAtInterfaces.eq.1 )then
+                   ! Set div(E)=0 
+                  aa8(6,0,0,nn) = -is*8.*rsxy1(i1,i2,i3,axis1,0)*dr114(
+     & axis1)     ! coeff of u1(-1) from [u.x+v.y]
+                  aa8(6,1,0,nn) = -is*8.*rsxy1(i1,i2,i3,axis1,1)*dr114(
+     & axis1)     ! coeff of v1(-1) from [u.x+v.y]
+                  aa8(6,4,0,nn) =  is*   rsxy1(i1,i2,i3,axis1,0)*dr114(
+     & axis1)     ! u1(-2)
+                  aa8(6,5,0,nn) =  is*   rsxy1(i1,i2,i3,axis1,1)*dr114(
+     & axis1)     ! v1(-2)
+                  aa8(6,2,0,nn) = 0.
+                  aa8(6,3,0,nn) = 0.
+                  aa8(6,6,0,nn) = 0.
+                  aa8(6,7,0,nn) = 0.
+                 end if
+                 ! 7  [ tau.Delta^2 v/eps^2 ] = 0 
+                 aa8(7,0,0,nn) = tau1*aLapSq0/eps1**2
+                 aa8(7,1,0,nn) = tau2*aLapSq0/eps1**2
+                 aa8(7,4,0,nn) = tau1*aLapSq1/eps1**2
+                 aa8(7,5,0,nn) = tau2*aLapSq1/eps1**2
+                 aa8(7,2,0,nn) = -tau1*bLapSq0/eps2**2
+                 aa8(7,3,0,nn) = -tau2*bLapSq0/eps2**2
+                 aa8(7,6,0,nn) = -tau1*bLapSq1/eps2**2
+                 aa8(7,7,0,nn) = -tau2*bLapSq1/eps2**2
+                 ! save a copy of the matrix
+                 do n2=0,7
+                 do n1=0,7
+                   aa8(n1,n2,1,nn)=aa8(n1,n2,0,nn)
+                 end do
+                 end do
+                 ! solve A Q = F
+                 ! factor the matrix
+                 numberOfEquations=8
+                 call dgeco( aa8(0,0,0,nn), numberOfEquations, 
      & numberOfEquations, ipvt8(0,nn),rcond,work(0))
-
-             if( debug.gt.3 ) write(debugFile,'(" --> 4cth: i1,i2=",
-     & 2i4," rcond=",e10.2)') i1,i2,rcond
-             ! '
-           end if
-
-
-           q(0) = u1(i1-is1,i2-is2,i3,ex)
-           q(1) = u1(i1-is1,i2-is2,i3,ey)
-           q(2) = u2(j1-js1,j2-js2,j3,ex)
-           q(3) = u2(j1-js1,j2-js2,j3,ey)
-
-           q(4) = u1(i1-2*is1,i2-2*is2,i3,ex)
-           q(5) = u1(i1-2*is1,i2-2*is2,i3,ey)
-           q(6) = u2(j1-2*js1,j2-2*js2,j3,ex)
-           q(7) = u2(j1-2*js1,j2-2*js2,j3,ey)
-
-       if( debug.gt.4 ) write(debugFile,'(" --> 4cth: i1,i2=",2i4," 
-     & q=",8e10.2)') i1,i2,(q(n),n=0,7)
-
-           ! subtract off the contributions from the initial (wrong) values at the ghost points:
-           do n=0,7
-             f(n) = (aa8(n,0,1,nn)*q(0)+aa8(n,1,1,nn)*q(1)+aa8(n,2,1,
-     & nn)*q(2)+aa8(n,3,1,nn)*q(3)+aa8(n,4,1,nn)*q(4)+aa8(n,5,1,nn)*q(
-     & 5)+aa8(n,6,1,nn)*q(6)+aa8(n,7,1,nn)*q(7)) - f(n)
-           end do
-
-                                ! '
-
-           ! solve A Q = F
-           job=0
-           numberOfEquations=8
-           call dgesl( aa8(0,0,0,nn), numberOfEquations, 
+                 if( debug.gt.3 ) write(debugFile,'(" --> 4cth: i1,
+     & i2=",2i4," rcond=",e10.2)') i1,i2,rcond
+                 ! '
+               end if
+               q(0) = u1(i1-is1,i2-is2,i3,ex)
+               q(1) = u1(i1-is1,i2-is2,i3,ey)
+               q(2) = u2(j1-js1,j2-js2,j3,ex)
+               q(3) = u2(j1-js1,j2-js2,j3,ey)
+               q(4) = u1(i1-2*is1,i2-2*is2,i3,ex)
+               q(5) = u1(i1-2*is1,i2-2*is2,i3,ey)
+               q(6) = u2(j1-2*js1,j2-2*js2,j3,ex)
+               q(7) = u2(j1-2*js1,j2-2*js2,j3,ey)
+                if( debug.gt.4 ) write(debugFile,'(" --> 4cth: i1,i2=",
+     & 2i4," q=",8e10.2)') i1,i2,(q(n),n=0,7)
+               ! subtract off the contributions from the initial (wrong) values at the ghost points:
+               do n=0,7
+                 f(n) = (aa8(n,0,1,nn)*q(0)+aa8(n,1,1,nn)*q(1)+aa8(n,2,
+     & 1,nn)*q(2)+aa8(n,3,1,nn)*q(3)+aa8(n,4,1,nn)*q(4)+aa8(n,5,1,nn)*
+     & q(5)+aa8(n,6,1,nn)*q(6)+aa8(n,7,1,nn)*q(7)) - f(n)
+               end do
+                                    ! '
+               ! solve A Q = F
+               job=0
+               numberOfEquations=8
+               call dgesl( aa8(0,0,0,nn), numberOfEquations, 
      & numberOfEquations, ipvt8(0,nn), f(0), job)
-
-       if( debug.gt.4 )then
-          write(debugFile,'(" --> 4cth: i1,i2=",2i4," f(solve)=",
+               if( debug.gt.4 )then
+                write(debugFile,'(" --> 4cth: i1,i2=",2i4," f(solve)=",
      & 8e10.2)') i1,i2,(f(n),n=0,7)
-          write(debugFile,'(" --> 4cth: i1,i2=",2i4,"      f-q=",
+                write(debugFile,'(" --> 4cth: i1,i2=",2i4,"      f-q=",
      & 8e10.2)') i1,i2,(f(n)-q(n),n=0,7)
-       end if
-           ! '
-
-           if( .true. )then
-           u1(i1-is1,i2-is2,i3,ex)=f(0)
-           u1(i1-is1,i2-is2,i3,ey)=f(1)
-           u2(j1-js1,j2-js2,j3,ex)=f(2)
-           u2(j1-js1,j2-js2,j3,ey)=f(3)
-
-           u1(i1-2*is1,i2-2*is2,i3,ex)=f(4)
-           u1(i1-2*is1,i2-2*is2,i3,ey)=f(5)
-           u2(j1-2*js1,j2-2*js2,j3,ex)=f(6)
-           u2(j1-2*js1,j2-2*js2,j3,ey)=f(7)
-           end if
-
-          if( debug.gt.0 )then ! re-evaluate
-
-           ! compute the maximum change in the solution for this iteration
-           do n=0,7
-             err=max(err,abs(q(n)-f(n)))
-           end do
-
-            ! These derivatives are computed to 2nd-order accuracy
-            ! NOTE: the jacobian derivatives can be computed once for all components
-             ! this next call will define the jacobian and its derivatives (parameteric and spatial)
-             aj1rx = rsxy1(i1,i2,i3,0,0)
-             aj1rxr = (-rsxy1(i1-1,i2,i3,0,0)+rsxy1(i1+1,i2,i3,0,0))/(
-     & 2.*dr1(0))
-             aj1rxs = (-rsxy1(i1,i2-1,i3,0,0)+rsxy1(i1,i2+1,i3,0,0))/(
-     & 2.*dr1(1))
-             aj1rxrr = (rsxy1(i1-1,i2,i3,0,0)-2.*rsxy1(i1,i2,i3,0,0)+
-     & rsxy1(i1+1,i2,i3,0,0))/(dr1(0)**2)
-             aj1rxrs = (-(-rsxy1(i1-1,i2-1,i3,0,0)+rsxy1(i1-1,i2+1,i3,
-     & 0,0))/(2.*dr1(1))+(-rsxy1(i1+1,i2-1,i3,0,0)+rsxy1(i1+1,i2+1,i3,
-     & 0,0))/(2.*dr1(1)))/(2.*dr1(0))
-             aj1rxss = (rsxy1(i1,i2-1,i3,0,0)-2.*rsxy1(i1,i2,i3,0,0)+
-     & rsxy1(i1,i2+1,i3,0,0))/(dr1(1)**2)
-             aj1rxrrr = (-rsxy1(i1-2,i2,i3,0,0)+2.*rsxy1(i1-1,i2,i3,0,
-     & 0)-2.*rsxy1(i1+1,i2,i3,0,0)+rsxy1(i1+2,i2,i3,0,0))/(2.*dr1(0)**
-     & 3)
-             aj1rxrrs = ((-rsxy1(i1-1,i2-1,i3,0,0)+rsxy1(i1-1,i2+1,i3,
-     & 0,0))/(2.*dr1(1))-2.*(-rsxy1(i1,i2-1,i3,0,0)+rsxy1(i1,i2+1,i3,
-     & 0,0))/(2.*dr1(1))+(-rsxy1(i1+1,i2-1,i3,0,0)+rsxy1(i1+1,i2+1,i3,
-     & 0,0))/(2.*dr1(1)))/(dr1(0)**2)
-             aj1rxrss = (-(rsxy1(i1-1,i2-1,i3,0,0)-2.*rsxy1(i1-1,i2,i3,
-     & 0,0)+rsxy1(i1-1,i2+1,i3,0,0))/(dr1(1)**2)+(rsxy1(i1+1,i2-1,i3,
-     & 0,0)-2.*rsxy1(i1+1,i2,i3,0,0)+rsxy1(i1+1,i2+1,i3,0,0))/(dr1(1)*
-     & *2))/(2.*dr1(0))
-             aj1rxsss = (-rsxy1(i1,i2-2,i3,0,0)+2.*rsxy1(i1,i2-1,i3,0,
-     & 0)-2.*rsxy1(i1,i2+1,i3,0,0)+rsxy1(i1,i2+2,i3,0,0))/(2.*dr1(1)**
-     & 3)
-             aj1sx = rsxy1(i1,i2,i3,1,0)
-             aj1sxr = (-rsxy1(i1-1,i2,i3,1,0)+rsxy1(i1+1,i2,i3,1,0))/(
-     & 2.*dr1(0))
-             aj1sxs = (-rsxy1(i1,i2-1,i3,1,0)+rsxy1(i1,i2+1,i3,1,0))/(
-     & 2.*dr1(1))
-             aj1sxrr = (rsxy1(i1-1,i2,i3,1,0)-2.*rsxy1(i1,i2,i3,1,0)+
-     & rsxy1(i1+1,i2,i3,1,0))/(dr1(0)**2)
-             aj1sxrs = (-(-rsxy1(i1-1,i2-1,i3,1,0)+rsxy1(i1-1,i2+1,i3,
-     & 1,0))/(2.*dr1(1))+(-rsxy1(i1+1,i2-1,i3,1,0)+rsxy1(i1+1,i2+1,i3,
-     & 1,0))/(2.*dr1(1)))/(2.*dr1(0))
-             aj1sxss = (rsxy1(i1,i2-1,i3,1,0)-2.*rsxy1(i1,i2,i3,1,0)+
-     & rsxy1(i1,i2+1,i3,1,0))/(dr1(1)**2)
-             aj1sxrrr = (-rsxy1(i1-2,i2,i3,1,0)+2.*rsxy1(i1-1,i2,i3,1,
-     & 0)-2.*rsxy1(i1+1,i2,i3,1,0)+rsxy1(i1+2,i2,i3,1,0))/(2.*dr1(0)**
-     & 3)
-             aj1sxrrs = ((-rsxy1(i1-1,i2-1,i3,1,0)+rsxy1(i1-1,i2+1,i3,
-     & 1,0))/(2.*dr1(1))-2.*(-rsxy1(i1,i2-1,i3,1,0)+rsxy1(i1,i2+1,i3,
-     & 1,0))/(2.*dr1(1))+(-rsxy1(i1+1,i2-1,i3,1,0)+rsxy1(i1+1,i2+1,i3,
-     & 1,0))/(2.*dr1(1)))/(dr1(0)**2)
-             aj1sxrss = (-(rsxy1(i1-1,i2-1,i3,1,0)-2.*rsxy1(i1-1,i2,i3,
-     & 1,0)+rsxy1(i1-1,i2+1,i3,1,0))/(dr1(1)**2)+(rsxy1(i1+1,i2-1,i3,
-     & 1,0)-2.*rsxy1(i1+1,i2,i3,1,0)+rsxy1(i1+1,i2+1,i3,1,0))/(dr1(1)*
-     & *2))/(2.*dr1(0))
-             aj1sxsss = (-rsxy1(i1,i2-2,i3,1,0)+2.*rsxy1(i1,i2-1,i3,1,
-     & 0)-2.*rsxy1(i1,i2+1,i3,1,0)+rsxy1(i1,i2+2,i3,1,0))/(2.*dr1(1)**
-     & 3)
-             aj1ry = rsxy1(i1,i2,i3,0,1)
-             aj1ryr = (-rsxy1(i1-1,i2,i3,0,1)+rsxy1(i1+1,i2,i3,0,1))/(
-     & 2.*dr1(0))
-             aj1rys = (-rsxy1(i1,i2-1,i3,0,1)+rsxy1(i1,i2+1,i3,0,1))/(
-     & 2.*dr1(1))
-             aj1ryrr = (rsxy1(i1-1,i2,i3,0,1)-2.*rsxy1(i1,i2,i3,0,1)+
-     & rsxy1(i1+1,i2,i3,0,1))/(dr1(0)**2)
-             aj1ryrs = (-(-rsxy1(i1-1,i2-1,i3,0,1)+rsxy1(i1-1,i2+1,i3,
-     & 0,1))/(2.*dr1(1))+(-rsxy1(i1+1,i2-1,i3,0,1)+rsxy1(i1+1,i2+1,i3,
-     & 0,1))/(2.*dr1(1)))/(2.*dr1(0))
-             aj1ryss = (rsxy1(i1,i2-1,i3,0,1)-2.*rsxy1(i1,i2,i3,0,1)+
-     & rsxy1(i1,i2+1,i3,0,1))/(dr1(1)**2)
-             aj1ryrrr = (-rsxy1(i1-2,i2,i3,0,1)+2.*rsxy1(i1-1,i2,i3,0,
-     & 1)-2.*rsxy1(i1+1,i2,i3,0,1)+rsxy1(i1+2,i2,i3,0,1))/(2.*dr1(0)**
-     & 3)
-             aj1ryrrs = ((-rsxy1(i1-1,i2-1,i3,0,1)+rsxy1(i1-1,i2+1,i3,
-     & 0,1))/(2.*dr1(1))-2.*(-rsxy1(i1,i2-1,i3,0,1)+rsxy1(i1,i2+1,i3,
-     & 0,1))/(2.*dr1(1))+(-rsxy1(i1+1,i2-1,i3,0,1)+rsxy1(i1+1,i2+1,i3,
-     & 0,1))/(2.*dr1(1)))/(dr1(0)**2)
-             aj1ryrss = (-(rsxy1(i1-1,i2-1,i3,0,1)-2.*rsxy1(i1-1,i2,i3,
-     & 0,1)+rsxy1(i1-1,i2+1,i3,0,1))/(dr1(1)**2)+(rsxy1(i1+1,i2-1,i3,
-     & 0,1)-2.*rsxy1(i1+1,i2,i3,0,1)+rsxy1(i1+1,i2+1,i3,0,1))/(dr1(1)*
-     & *2))/(2.*dr1(0))
-             aj1rysss = (-rsxy1(i1,i2-2,i3,0,1)+2.*rsxy1(i1,i2-1,i3,0,
-     & 1)-2.*rsxy1(i1,i2+1,i3,0,1)+rsxy1(i1,i2+2,i3,0,1))/(2.*dr1(1)**
-     & 3)
-             aj1sy = rsxy1(i1,i2,i3,1,1)
-             aj1syr = (-rsxy1(i1-1,i2,i3,1,1)+rsxy1(i1+1,i2,i3,1,1))/(
-     & 2.*dr1(0))
-             aj1sys = (-rsxy1(i1,i2-1,i3,1,1)+rsxy1(i1,i2+1,i3,1,1))/(
-     & 2.*dr1(1))
-             aj1syrr = (rsxy1(i1-1,i2,i3,1,1)-2.*rsxy1(i1,i2,i3,1,1)+
-     & rsxy1(i1+1,i2,i3,1,1))/(dr1(0)**2)
-             aj1syrs = (-(-rsxy1(i1-1,i2-1,i3,1,1)+rsxy1(i1-1,i2+1,i3,
-     & 1,1))/(2.*dr1(1))+(-rsxy1(i1+1,i2-1,i3,1,1)+rsxy1(i1+1,i2+1,i3,
-     & 1,1))/(2.*dr1(1)))/(2.*dr1(0))
-             aj1syss = (rsxy1(i1,i2-1,i3,1,1)-2.*rsxy1(i1,i2,i3,1,1)+
-     & rsxy1(i1,i2+1,i3,1,1))/(dr1(1)**2)
-             aj1syrrr = (-rsxy1(i1-2,i2,i3,1,1)+2.*rsxy1(i1-1,i2,i3,1,
-     & 1)-2.*rsxy1(i1+1,i2,i3,1,1)+rsxy1(i1+2,i2,i3,1,1))/(2.*dr1(0)**
-     & 3)
-             aj1syrrs = ((-rsxy1(i1-1,i2-1,i3,1,1)+rsxy1(i1-1,i2+1,i3,
-     & 1,1))/(2.*dr1(1))-2.*(-rsxy1(i1,i2-1,i3,1,1)+rsxy1(i1,i2+1,i3,
-     & 1,1))/(2.*dr1(1))+(-rsxy1(i1+1,i2-1,i3,1,1)+rsxy1(i1+1,i2+1,i3,
-     & 1,1))/(2.*dr1(1)))/(dr1(0)**2)
-             aj1syrss = (-(rsxy1(i1-1,i2-1,i3,1,1)-2.*rsxy1(i1-1,i2,i3,
-     & 1,1)+rsxy1(i1-1,i2+1,i3,1,1))/(dr1(1)**2)+(rsxy1(i1+1,i2-1,i3,
-     & 1,1)-2.*rsxy1(i1+1,i2,i3,1,1)+rsxy1(i1+1,i2+1,i3,1,1))/(dr1(1)*
-     & *2))/(2.*dr1(0))
-             aj1sysss = (-rsxy1(i1,i2-2,i3,1,1)+2.*rsxy1(i1,i2-1,i3,1,
-     & 1)-2.*rsxy1(i1,i2+1,i3,1,1)+rsxy1(i1,i2+2,i3,1,1))/(2.*dr1(1)**
-     & 3)
-             aj1rxx = aj1rx*aj1rxr+aj1sx*aj1rxs
-             aj1rxy = aj1ry*aj1rxr+aj1sy*aj1rxs
-             aj1sxx = aj1rx*aj1sxr+aj1sx*aj1sxs
-             aj1sxy = aj1ry*aj1sxr+aj1sy*aj1sxs
-             aj1ryx = aj1rx*aj1ryr+aj1sx*aj1rys
-             aj1ryy = aj1ry*aj1ryr+aj1sy*aj1rys
-             aj1syx = aj1rx*aj1syr+aj1sx*aj1sys
-             aj1syy = aj1ry*aj1syr+aj1sy*aj1sys
-             t1 = aj1rx**2
-             t6 = aj1sx**2
-             aj1rxxx = t1*aj1rxrr+2*aj1rx*aj1sx*aj1rxrs+t6*aj1rxss+
+               end if
+               ! '
+               u1(i1-is1,i2-is2,i3,ex)=f(0)
+               u1(i1-is1,i2-is2,i3,ey)=f(1)
+               u2(j1-js1,j2-js2,j3,ex)=f(2)
+               u2(j1-js1,j2-js2,j3,ey)=f(3)
+               u1(i1-2*is1,i2-2*is2,i3,ex)=f(4)
+               u1(i1-2*is1,i2-2*is2,i3,ey)=f(5)
+               u2(j1-2*js1,j2-2*js2,j3,ex)=f(6)
+               u2(j1-2*js1,j2-2*js2,j3,ey)=f(7)
+               ! compute the maximum change in the solution for this iteration
+               do n=0,7
+                 err=max(err,abs(q(n)-f(n)))
+               end do
+              if( debug.gt.0 )then ! re-evaluate
+                ! These derivatives are computed to 2nd-order accuracy
+                ! NOTE: the jacobian derivatives can be computed once for all components
+                 ! this next call will define the jacobian and its derivatives (parameteric and spatial)
+                 aj1rx = rsxy1(i1,i2,i3,0,0)
+                 aj1rxr = (-rsxy1(i1-1,i2,i3,0,0)+rsxy1(i1+1,i2,i3,0,0)
+     & )/(2.*dr1(0))
+                 aj1rxs = (-rsxy1(i1,i2-1,i3,0,0)+rsxy1(i1,i2+1,i3,0,0)
+     & )/(2.*dr1(1))
+                 aj1rxrr = (rsxy1(i1-1,i2,i3,0,0)-2.*rsxy1(i1,i2,i3,0,
+     & 0)+rsxy1(i1+1,i2,i3,0,0))/(dr1(0)**2)
+                 aj1rxrs = (-(-rsxy1(i1-1,i2-1,i3,0,0)+rsxy1(i1-1,i2+1,
+     & i3,0,0))/(2.*dr1(1))+(-rsxy1(i1+1,i2-1,i3,0,0)+rsxy1(i1+1,i2+1,
+     & i3,0,0))/(2.*dr1(1)))/(2.*dr1(0))
+                 aj1rxss = (rsxy1(i1,i2-1,i3,0,0)-2.*rsxy1(i1,i2,i3,0,
+     & 0)+rsxy1(i1,i2+1,i3,0,0))/(dr1(1)**2)
+                 aj1rxrrr = (-rsxy1(i1-2,i2,i3,0,0)+2.*rsxy1(i1-1,i2,
+     & i3,0,0)-2.*rsxy1(i1+1,i2,i3,0,0)+rsxy1(i1+2,i2,i3,0,0))/(2.*
+     & dr1(0)**3)
+                 aj1rxrrs = ((-rsxy1(i1-1,i2-1,i3,0,0)+rsxy1(i1-1,i2+1,
+     & i3,0,0))/(2.*dr1(1))-2.*(-rsxy1(i1,i2-1,i3,0,0)+rsxy1(i1,i2+1,
+     & i3,0,0))/(2.*dr1(1))+(-rsxy1(i1+1,i2-1,i3,0,0)+rsxy1(i1+1,i2+1,
+     & i3,0,0))/(2.*dr1(1)))/(dr1(0)**2)
+                 aj1rxrss = (-(rsxy1(i1-1,i2-1,i3,0,0)-2.*rsxy1(i1-1,
+     & i2,i3,0,0)+rsxy1(i1-1,i2+1,i3,0,0))/(dr1(1)**2)+(rsxy1(i1+1,i2-
+     & 1,i3,0,0)-2.*rsxy1(i1+1,i2,i3,0,0)+rsxy1(i1+1,i2+1,i3,0,0))/(
+     & dr1(1)**2))/(2.*dr1(0))
+                 aj1rxsss = (-rsxy1(i1,i2-2,i3,0,0)+2.*rsxy1(i1,i2-1,
+     & i3,0,0)-2.*rsxy1(i1,i2+1,i3,0,0)+rsxy1(i1,i2+2,i3,0,0))/(2.*
+     & dr1(1)**3)
+                 aj1sx = rsxy1(i1,i2,i3,1,0)
+                 aj1sxr = (-rsxy1(i1-1,i2,i3,1,0)+rsxy1(i1+1,i2,i3,1,0)
+     & )/(2.*dr1(0))
+                 aj1sxs = (-rsxy1(i1,i2-1,i3,1,0)+rsxy1(i1,i2+1,i3,1,0)
+     & )/(2.*dr1(1))
+                 aj1sxrr = (rsxy1(i1-1,i2,i3,1,0)-2.*rsxy1(i1,i2,i3,1,
+     & 0)+rsxy1(i1+1,i2,i3,1,0))/(dr1(0)**2)
+                 aj1sxrs = (-(-rsxy1(i1-1,i2-1,i3,1,0)+rsxy1(i1-1,i2+1,
+     & i3,1,0))/(2.*dr1(1))+(-rsxy1(i1+1,i2-1,i3,1,0)+rsxy1(i1+1,i2+1,
+     & i3,1,0))/(2.*dr1(1)))/(2.*dr1(0))
+                 aj1sxss = (rsxy1(i1,i2-1,i3,1,0)-2.*rsxy1(i1,i2,i3,1,
+     & 0)+rsxy1(i1,i2+1,i3,1,0))/(dr1(1)**2)
+                 aj1sxrrr = (-rsxy1(i1-2,i2,i3,1,0)+2.*rsxy1(i1-1,i2,
+     & i3,1,0)-2.*rsxy1(i1+1,i2,i3,1,0)+rsxy1(i1+2,i2,i3,1,0))/(2.*
+     & dr1(0)**3)
+                 aj1sxrrs = ((-rsxy1(i1-1,i2-1,i3,1,0)+rsxy1(i1-1,i2+1,
+     & i3,1,0))/(2.*dr1(1))-2.*(-rsxy1(i1,i2-1,i3,1,0)+rsxy1(i1,i2+1,
+     & i3,1,0))/(2.*dr1(1))+(-rsxy1(i1+1,i2-1,i3,1,0)+rsxy1(i1+1,i2+1,
+     & i3,1,0))/(2.*dr1(1)))/(dr1(0)**2)
+                 aj1sxrss = (-(rsxy1(i1-1,i2-1,i3,1,0)-2.*rsxy1(i1-1,
+     & i2,i3,1,0)+rsxy1(i1-1,i2+1,i3,1,0))/(dr1(1)**2)+(rsxy1(i1+1,i2-
+     & 1,i3,1,0)-2.*rsxy1(i1+1,i2,i3,1,0)+rsxy1(i1+1,i2+1,i3,1,0))/(
+     & dr1(1)**2))/(2.*dr1(0))
+                 aj1sxsss = (-rsxy1(i1,i2-2,i3,1,0)+2.*rsxy1(i1,i2-1,
+     & i3,1,0)-2.*rsxy1(i1,i2+1,i3,1,0)+rsxy1(i1,i2+2,i3,1,0))/(2.*
+     & dr1(1)**3)
+                 aj1ry = rsxy1(i1,i2,i3,0,1)
+                 aj1ryr = (-rsxy1(i1-1,i2,i3,0,1)+rsxy1(i1+1,i2,i3,0,1)
+     & )/(2.*dr1(0))
+                 aj1rys = (-rsxy1(i1,i2-1,i3,0,1)+rsxy1(i1,i2+1,i3,0,1)
+     & )/(2.*dr1(1))
+                 aj1ryrr = (rsxy1(i1-1,i2,i3,0,1)-2.*rsxy1(i1,i2,i3,0,
+     & 1)+rsxy1(i1+1,i2,i3,0,1))/(dr1(0)**2)
+                 aj1ryrs = (-(-rsxy1(i1-1,i2-1,i3,0,1)+rsxy1(i1-1,i2+1,
+     & i3,0,1))/(2.*dr1(1))+(-rsxy1(i1+1,i2-1,i3,0,1)+rsxy1(i1+1,i2+1,
+     & i3,0,1))/(2.*dr1(1)))/(2.*dr1(0))
+                 aj1ryss = (rsxy1(i1,i2-1,i3,0,1)-2.*rsxy1(i1,i2,i3,0,
+     & 1)+rsxy1(i1,i2+1,i3,0,1))/(dr1(1)**2)
+                 aj1ryrrr = (-rsxy1(i1-2,i2,i3,0,1)+2.*rsxy1(i1-1,i2,
+     & i3,0,1)-2.*rsxy1(i1+1,i2,i3,0,1)+rsxy1(i1+2,i2,i3,0,1))/(2.*
+     & dr1(0)**3)
+                 aj1ryrrs = ((-rsxy1(i1-1,i2-1,i3,0,1)+rsxy1(i1-1,i2+1,
+     & i3,0,1))/(2.*dr1(1))-2.*(-rsxy1(i1,i2-1,i3,0,1)+rsxy1(i1,i2+1,
+     & i3,0,1))/(2.*dr1(1))+(-rsxy1(i1+1,i2-1,i3,0,1)+rsxy1(i1+1,i2+1,
+     & i3,0,1))/(2.*dr1(1)))/(dr1(0)**2)
+                 aj1ryrss = (-(rsxy1(i1-1,i2-1,i3,0,1)-2.*rsxy1(i1-1,
+     & i2,i3,0,1)+rsxy1(i1-1,i2+1,i3,0,1))/(dr1(1)**2)+(rsxy1(i1+1,i2-
+     & 1,i3,0,1)-2.*rsxy1(i1+1,i2,i3,0,1)+rsxy1(i1+1,i2+1,i3,0,1))/(
+     & dr1(1)**2))/(2.*dr1(0))
+                 aj1rysss = (-rsxy1(i1,i2-2,i3,0,1)+2.*rsxy1(i1,i2-1,
+     & i3,0,1)-2.*rsxy1(i1,i2+1,i3,0,1)+rsxy1(i1,i2+2,i3,0,1))/(2.*
+     & dr1(1)**3)
+                 aj1sy = rsxy1(i1,i2,i3,1,1)
+                 aj1syr = (-rsxy1(i1-1,i2,i3,1,1)+rsxy1(i1+1,i2,i3,1,1)
+     & )/(2.*dr1(0))
+                 aj1sys = (-rsxy1(i1,i2-1,i3,1,1)+rsxy1(i1,i2+1,i3,1,1)
+     & )/(2.*dr1(1))
+                 aj1syrr = (rsxy1(i1-1,i2,i3,1,1)-2.*rsxy1(i1,i2,i3,1,
+     & 1)+rsxy1(i1+1,i2,i3,1,1))/(dr1(0)**2)
+                 aj1syrs = (-(-rsxy1(i1-1,i2-1,i3,1,1)+rsxy1(i1-1,i2+1,
+     & i3,1,1))/(2.*dr1(1))+(-rsxy1(i1+1,i2-1,i3,1,1)+rsxy1(i1+1,i2+1,
+     & i3,1,1))/(2.*dr1(1)))/(2.*dr1(0))
+                 aj1syss = (rsxy1(i1,i2-1,i3,1,1)-2.*rsxy1(i1,i2,i3,1,
+     & 1)+rsxy1(i1,i2+1,i3,1,1))/(dr1(1)**2)
+                 aj1syrrr = (-rsxy1(i1-2,i2,i3,1,1)+2.*rsxy1(i1-1,i2,
+     & i3,1,1)-2.*rsxy1(i1+1,i2,i3,1,1)+rsxy1(i1+2,i2,i3,1,1))/(2.*
+     & dr1(0)**3)
+                 aj1syrrs = ((-rsxy1(i1-1,i2-1,i3,1,1)+rsxy1(i1-1,i2+1,
+     & i3,1,1))/(2.*dr1(1))-2.*(-rsxy1(i1,i2-1,i3,1,1)+rsxy1(i1,i2+1,
+     & i3,1,1))/(2.*dr1(1))+(-rsxy1(i1+1,i2-1,i3,1,1)+rsxy1(i1+1,i2+1,
+     & i3,1,1))/(2.*dr1(1)))/(dr1(0)**2)
+                 aj1syrss = (-(rsxy1(i1-1,i2-1,i3,1,1)-2.*rsxy1(i1-1,
+     & i2,i3,1,1)+rsxy1(i1-1,i2+1,i3,1,1))/(dr1(1)**2)+(rsxy1(i1+1,i2-
+     & 1,i3,1,1)-2.*rsxy1(i1+1,i2,i3,1,1)+rsxy1(i1+1,i2+1,i3,1,1))/(
+     & dr1(1)**2))/(2.*dr1(0))
+                 aj1sysss = (-rsxy1(i1,i2-2,i3,1,1)+2.*rsxy1(i1,i2-1,
+     & i3,1,1)-2.*rsxy1(i1,i2+1,i3,1,1)+rsxy1(i1,i2+2,i3,1,1))/(2.*
+     & dr1(1)**3)
+                 aj1rxx = aj1rx*aj1rxr+aj1sx*aj1rxs
+                 aj1rxy = aj1ry*aj1rxr+aj1sy*aj1rxs
+                 aj1sxx = aj1rx*aj1sxr+aj1sx*aj1sxs
+                 aj1sxy = aj1ry*aj1sxr+aj1sy*aj1sxs
+                 aj1ryx = aj1rx*aj1ryr+aj1sx*aj1rys
+                 aj1ryy = aj1ry*aj1ryr+aj1sy*aj1rys
+                 aj1syx = aj1rx*aj1syr+aj1sx*aj1sys
+                 aj1syy = aj1ry*aj1syr+aj1sy*aj1sys
+                 t1 = aj1rx**2
+                 t6 = aj1sx**2
+                 aj1rxxx = t1*aj1rxrr+2*aj1rx*aj1sx*aj1rxrs+t6*aj1rxss+
      & aj1rxx*aj1rxr+aj1sxx*aj1rxs
-             aj1rxxy = aj1ry*aj1rx*aj1rxrr+(aj1sy*aj1rx+aj1ry*aj1sx)*
-     & aj1rxrs+aj1sy*aj1sx*aj1rxss+aj1rxy*aj1rxr+aj1sxy*aj1rxs
-             t1 = aj1ry**2
-             t6 = aj1sy**2
-             aj1rxyy = t1*aj1rxrr+2*aj1ry*aj1sy*aj1rxrs+t6*aj1rxss+
+                 aj1rxxy = aj1ry*aj1rx*aj1rxrr+(aj1sy*aj1rx+aj1ry*
+     & aj1sx)*aj1rxrs+aj1sy*aj1sx*aj1rxss+aj1rxy*aj1rxr+aj1sxy*aj1rxs
+                 t1 = aj1ry**2
+                 t6 = aj1sy**2
+                 aj1rxyy = t1*aj1rxrr+2*aj1ry*aj1sy*aj1rxrs+t6*aj1rxss+
      & aj1ryy*aj1rxr+aj1syy*aj1rxs
-             t1 = aj1rx**2
-             t6 = aj1sx**2
-             aj1sxxx = t1*aj1sxrr+2*aj1rx*aj1sx*aj1sxrs+t6*aj1sxss+
+                 t1 = aj1rx**2
+                 t6 = aj1sx**2
+                 aj1sxxx = t1*aj1sxrr+2*aj1rx*aj1sx*aj1sxrs+t6*aj1sxss+
      & aj1rxx*aj1sxr+aj1sxx*aj1sxs
-             aj1sxxy = aj1ry*aj1rx*aj1sxrr+(aj1sy*aj1rx+aj1ry*aj1sx)*
-     & aj1sxrs+aj1sy*aj1sx*aj1sxss+aj1rxy*aj1sxr+aj1sxy*aj1sxs
-             t1 = aj1ry**2
-             t6 = aj1sy**2
-             aj1sxyy = t1*aj1sxrr+2*aj1ry*aj1sy*aj1sxrs+t6*aj1sxss+
+                 aj1sxxy = aj1ry*aj1rx*aj1sxrr+(aj1sy*aj1rx+aj1ry*
+     & aj1sx)*aj1sxrs+aj1sy*aj1sx*aj1sxss+aj1rxy*aj1sxr+aj1sxy*aj1sxs
+                 t1 = aj1ry**2
+                 t6 = aj1sy**2
+                 aj1sxyy = t1*aj1sxrr+2*aj1ry*aj1sy*aj1sxrs+t6*aj1sxss+
      & aj1ryy*aj1sxr+aj1syy*aj1sxs
-             t1 = aj1rx**2
-             t6 = aj1sx**2
-             aj1ryxx = t1*aj1ryrr+2*aj1rx*aj1sx*aj1ryrs+t6*aj1ryss+
+                 t1 = aj1rx**2
+                 t6 = aj1sx**2
+                 aj1ryxx = t1*aj1ryrr+2*aj1rx*aj1sx*aj1ryrs+t6*aj1ryss+
      & aj1rxx*aj1ryr+aj1sxx*aj1rys
-             aj1ryxy = aj1ry*aj1rx*aj1ryrr+(aj1sy*aj1rx+aj1ry*aj1sx)*
-     & aj1ryrs+aj1sy*aj1sx*aj1ryss+aj1rxy*aj1ryr+aj1sxy*aj1rys
-             t1 = aj1ry**2
-             t6 = aj1sy**2
-             aj1ryyy = t1*aj1ryrr+2*aj1ry*aj1sy*aj1ryrs+t6*aj1ryss+
+                 aj1ryxy = aj1ry*aj1rx*aj1ryrr+(aj1sy*aj1rx+aj1ry*
+     & aj1sx)*aj1ryrs+aj1sy*aj1sx*aj1ryss+aj1rxy*aj1ryr+aj1sxy*aj1rys
+                 t1 = aj1ry**2
+                 t6 = aj1sy**2
+                 aj1ryyy = t1*aj1ryrr+2*aj1ry*aj1sy*aj1ryrs+t6*aj1ryss+
      & aj1ryy*aj1ryr+aj1syy*aj1rys
-             t1 = aj1rx**2
-             t6 = aj1sx**2
-             aj1syxx = t1*aj1syrr+2*aj1rx*aj1sx*aj1syrs+t6*aj1syss+
+                 t1 = aj1rx**2
+                 t6 = aj1sx**2
+                 aj1syxx = t1*aj1syrr+2*aj1rx*aj1sx*aj1syrs+t6*aj1syss+
      & aj1rxx*aj1syr+aj1sxx*aj1sys
-             aj1syxy = aj1ry*aj1rx*aj1syrr+(aj1sy*aj1rx+aj1ry*aj1sx)*
-     & aj1syrs+aj1sy*aj1sx*aj1syss+aj1rxy*aj1syr+aj1sxy*aj1sys
-             t1 = aj1ry**2
-             t6 = aj1sy**2
-             aj1syyy = t1*aj1syrr+2*aj1ry*aj1sy*aj1syrs+t6*aj1syss+
+                 aj1syxy = aj1ry*aj1rx*aj1syrr+(aj1sy*aj1rx+aj1ry*
+     & aj1sx)*aj1syrs+aj1sy*aj1sx*aj1syss+aj1rxy*aj1syr+aj1sxy*aj1sys
+                 t1 = aj1ry**2
+                 t6 = aj1sy**2
+                 aj1syyy = t1*aj1syrr+2*aj1ry*aj1sy*aj1syrs+t6*aj1syss+
      & aj1ryy*aj1syr+aj1syy*aj1sys
-             t1 = aj1rx**2
-             t7 = aj1sx**2
-             aj1rxxxx = t1*aj1rx*aj1rxrrr+3*t1*aj1sx*aj1rxrrs+3*aj1rx*
-     & t7*aj1rxrss+t7*aj1sx*aj1rxsss+3*aj1rx*aj1rxx*aj1rxrr+(3*aj1sxx*
-     & aj1rx+3*aj1sx*aj1rxx)*aj1rxrs+3*aj1sxx*aj1sx*aj1rxss+aj1rxxx*
-     & aj1rxr+aj1sxxx*aj1rxs
-             t1 = aj1rx**2
-             t10 = aj1sx**2
-             aj1rxxxy = aj1ry*t1*aj1rxrrr+(aj1sy*t1+2*aj1ry*aj1sx*
+                 t1 = aj1rx**2
+                 t7 = aj1sx**2
+                 aj1rxxxx = t1*aj1rx*aj1rxrrr+3*t1*aj1sx*aj1rxrrs+3*
+     & aj1rx*t7*aj1rxrss+t7*aj1sx*aj1rxsss+3*aj1rx*aj1rxx*aj1rxrr+(3*
+     & aj1sxx*aj1rx+3*aj1sx*aj1rxx)*aj1rxrs+3*aj1sxx*aj1sx*aj1rxss+
+     & aj1rxxx*aj1rxr+aj1sxxx*aj1rxs
+                 t1 = aj1rx**2
+                 t10 = aj1sx**2
+                 aj1rxxxy = aj1ry*t1*aj1rxrrr+(aj1sy*t1+2*aj1ry*aj1sx*
      & aj1rx)*aj1rxrrs+(aj1ry*t10+2*aj1sy*aj1sx*aj1rx)*aj1rxrss+aj1sy*
      & t10*aj1rxsss+(2*aj1rxy*aj1rx+aj1ry*aj1rxx)*aj1rxrr+(aj1ry*
      & aj1sxx+2*aj1sx*aj1rxy+2*aj1sxy*aj1rx+aj1sy*aj1rxx)*aj1rxrs+(
      & aj1sy*aj1sxx+2*aj1sxy*aj1sx)*aj1rxss+aj1rxxy*aj1rxr+aj1sxxy*
      & aj1rxs
-             t1 = aj1ry**2
-             t4 = aj1sy*aj1ry
-             t8 = aj1sy*aj1rx+aj1ry*aj1sx
-             t16 = aj1sy**2
-             aj1rxxyy = t1*aj1rx*aj1rxrrr+(t4*aj1rx+aj1ry*t8)*aj1rxrrs+
-     & (t4*aj1sx+aj1sy*t8)*aj1rxrss+t16*aj1sx*aj1rxsss+(aj1ryy*aj1rx+
-     & 2*aj1ry*aj1rxy)*aj1rxrr+(2*aj1ry*aj1sxy+2*aj1sy*aj1rxy+aj1ryy*
-     & aj1sx+aj1syy*aj1rx)*aj1rxrs+(aj1syy*aj1sx+2*aj1sy*aj1sxy)*
-     & aj1rxss+aj1rxyy*aj1rxr+aj1sxyy*aj1rxs
-             t1 = aj1ry**2
-             t7 = aj1sy**2
-             aj1rxyyy = aj1ry*t1*aj1rxrrr+3*t1*aj1sy*aj1rxrrs+3*aj1ry*
-     & t7*aj1rxrss+t7*aj1sy*aj1rxsss+3*aj1ry*aj1ryy*aj1rxrr+(3*aj1syy*
-     & aj1ry+3*aj1sy*aj1ryy)*aj1rxrs+3*aj1syy*aj1sy*aj1rxss+aj1ryyy*
-     & aj1rxr+aj1syyy*aj1rxs
-             t1 = aj1rx**2
-             t7 = aj1sx**2
-             aj1sxxxx = t1*aj1rx*aj1sxrrr+3*t1*aj1sx*aj1sxrrs+3*aj1rx*
-     & t7*aj1sxrss+t7*aj1sx*aj1sxsss+3*aj1rx*aj1rxx*aj1sxrr+(3*aj1sxx*
-     & aj1rx+3*aj1sx*aj1rxx)*aj1sxrs+3*aj1sxx*aj1sx*aj1sxss+aj1rxxx*
-     & aj1sxr+aj1sxxx*aj1sxs
-             t1 = aj1rx**2
-             t10 = aj1sx**2
-             aj1sxxxy = aj1ry*t1*aj1sxrrr+(aj1sy*t1+2*aj1ry*aj1sx*
+                 t1 = aj1ry**2
+                 t4 = aj1sy*aj1ry
+                 t8 = aj1sy*aj1rx+aj1ry*aj1sx
+                 t16 = aj1sy**2
+                 aj1rxxyy = t1*aj1rx*aj1rxrrr+(t4*aj1rx+aj1ry*t8)*
+     & aj1rxrrs+(t4*aj1sx+aj1sy*t8)*aj1rxrss+t16*aj1sx*aj1rxsss+(
+     & aj1ryy*aj1rx+2*aj1ry*aj1rxy)*aj1rxrr+(2*aj1ry*aj1sxy+2*aj1sy*
+     & aj1rxy+aj1ryy*aj1sx+aj1syy*aj1rx)*aj1rxrs+(aj1syy*aj1sx+2*
+     & aj1sy*aj1sxy)*aj1rxss+aj1rxyy*aj1rxr+aj1sxyy*aj1rxs
+                 t1 = aj1ry**2
+                 t7 = aj1sy**2
+                 aj1rxyyy = aj1ry*t1*aj1rxrrr+3*t1*aj1sy*aj1rxrrs+3*
+     & aj1ry*t7*aj1rxrss+t7*aj1sy*aj1rxsss+3*aj1ry*aj1ryy*aj1rxrr+(3*
+     & aj1syy*aj1ry+3*aj1sy*aj1ryy)*aj1rxrs+3*aj1syy*aj1sy*aj1rxss+
+     & aj1ryyy*aj1rxr+aj1syyy*aj1rxs
+                 t1 = aj1rx**2
+                 t7 = aj1sx**2
+                 aj1sxxxx = t1*aj1rx*aj1sxrrr+3*t1*aj1sx*aj1sxrrs+3*
+     & aj1rx*t7*aj1sxrss+t7*aj1sx*aj1sxsss+3*aj1rx*aj1rxx*aj1sxrr+(3*
+     & aj1sxx*aj1rx+3*aj1sx*aj1rxx)*aj1sxrs+3*aj1sxx*aj1sx*aj1sxss+
+     & aj1rxxx*aj1sxr+aj1sxxx*aj1sxs
+                 t1 = aj1rx**2
+                 t10 = aj1sx**2
+                 aj1sxxxy = aj1ry*t1*aj1sxrrr+(aj1sy*t1+2*aj1ry*aj1sx*
      & aj1rx)*aj1sxrrs+(aj1ry*t10+2*aj1sy*aj1sx*aj1rx)*aj1sxrss+aj1sy*
      & t10*aj1sxsss+(2*aj1rxy*aj1rx+aj1ry*aj1rxx)*aj1sxrr+(aj1ry*
      & aj1sxx+2*aj1sx*aj1rxy+2*aj1sxy*aj1rx+aj1sy*aj1rxx)*aj1sxrs+(
      & aj1sy*aj1sxx+2*aj1sxy*aj1sx)*aj1sxss+aj1rxxy*aj1sxr+aj1sxxy*
      & aj1sxs
-             t1 = aj1ry**2
-             t4 = aj1sy*aj1ry
-             t8 = aj1sy*aj1rx+aj1ry*aj1sx
-             t16 = aj1sy**2
-             aj1sxxyy = t1*aj1rx*aj1sxrrr+(t4*aj1rx+aj1ry*t8)*aj1sxrrs+
-     & (t4*aj1sx+aj1sy*t8)*aj1sxrss+t16*aj1sx*aj1sxsss+(aj1ryy*aj1rx+
-     & 2*aj1ry*aj1rxy)*aj1sxrr+(2*aj1ry*aj1sxy+2*aj1sy*aj1rxy+aj1ryy*
-     & aj1sx+aj1syy*aj1rx)*aj1sxrs+(aj1syy*aj1sx+2*aj1sy*aj1sxy)*
-     & aj1sxss+aj1rxyy*aj1sxr+aj1sxyy*aj1sxs
-             t1 = aj1ry**2
-             t7 = aj1sy**2
-             aj1sxyyy = aj1ry*t1*aj1sxrrr+3*t1*aj1sy*aj1sxrrs+3*aj1ry*
-     & t7*aj1sxrss+t7*aj1sy*aj1sxsss+3*aj1ry*aj1ryy*aj1sxrr+(3*aj1syy*
-     & aj1ry+3*aj1sy*aj1ryy)*aj1sxrs+3*aj1syy*aj1sy*aj1sxss+aj1ryyy*
-     & aj1sxr+aj1syyy*aj1sxs
-             t1 = aj1rx**2
-             t7 = aj1sx**2
-             aj1ryxxx = t1*aj1rx*aj1ryrrr+3*t1*aj1sx*aj1ryrrs+3*aj1rx*
-     & t7*aj1ryrss+t7*aj1sx*aj1rysss+3*aj1rx*aj1rxx*aj1ryrr+(3*aj1sxx*
-     & aj1rx+3*aj1sx*aj1rxx)*aj1ryrs+3*aj1sxx*aj1sx*aj1ryss+aj1rxxx*
-     & aj1ryr+aj1sxxx*aj1rys
-             t1 = aj1rx**2
-             t10 = aj1sx**2
-             aj1ryxxy = aj1ry*t1*aj1ryrrr+(aj1sy*t1+2*aj1ry*aj1sx*
+                 t1 = aj1ry**2
+                 t4 = aj1sy*aj1ry
+                 t8 = aj1sy*aj1rx+aj1ry*aj1sx
+                 t16 = aj1sy**2
+                 aj1sxxyy = t1*aj1rx*aj1sxrrr+(t4*aj1rx+aj1ry*t8)*
+     & aj1sxrrs+(t4*aj1sx+aj1sy*t8)*aj1sxrss+t16*aj1sx*aj1sxsss+(
+     & aj1ryy*aj1rx+2*aj1ry*aj1rxy)*aj1sxrr+(2*aj1ry*aj1sxy+2*aj1sy*
+     & aj1rxy+aj1ryy*aj1sx+aj1syy*aj1rx)*aj1sxrs+(aj1syy*aj1sx+2*
+     & aj1sy*aj1sxy)*aj1sxss+aj1rxyy*aj1sxr+aj1sxyy*aj1sxs
+                 t1 = aj1ry**2
+                 t7 = aj1sy**2
+                 aj1sxyyy = aj1ry*t1*aj1sxrrr+3*t1*aj1sy*aj1sxrrs+3*
+     & aj1ry*t7*aj1sxrss+t7*aj1sy*aj1sxsss+3*aj1ry*aj1ryy*aj1sxrr+(3*
+     & aj1syy*aj1ry+3*aj1sy*aj1ryy)*aj1sxrs+3*aj1syy*aj1sy*aj1sxss+
+     & aj1ryyy*aj1sxr+aj1syyy*aj1sxs
+                 t1 = aj1rx**2
+                 t7 = aj1sx**2
+                 aj1ryxxx = t1*aj1rx*aj1ryrrr+3*t1*aj1sx*aj1ryrrs+3*
+     & aj1rx*t7*aj1ryrss+t7*aj1sx*aj1rysss+3*aj1rx*aj1rxx*aj1ryrr+(3*
+     & aj1sxx*aj1rx+3*aj1sx*aj1rxx)*aj1ryrs+3*aj1sxx*aj1sx*aj1ryss+
+     & aj1rxxx*aj1ryr+aj1sxxx*aj1rys
+                 t1 = aj1rx**2
+                 t10 = aj1sx**2
+                 aj1ryxxy = aj1ry*t1*aj1ryrrr+(aj1sy*t1+2*aj1ry*aj1sx*
      & aj1rx)*aj1ryrrs+(aj1ry*t10+2*aj1sy*aj1sx*aj1rx)*aj1ryrss+aj1sy*
      & t10*aj1rysss+(2*aj1rxy*aj1rx+aj1ry*aj1rxx)*aj1ryrr+(aj1ry*
      & aj1sxx+2*aj1sx*aj1rxy+2*aj1sxy*aj1rx+aj1sy*aj1rxx)*aj1ryrs+(
      & aj1sy*aj1sxx+2*aj1sxy*aj1sx)*aj1ryss+aj1rxxy*aj1ryr+aj1sxxy*
      & aj1rys
-             t1 = aj1ry**2
-             t4 = aj1sy*aj1ry
-             t8 = aj1sy*aj1rx+aj1ry*aj1sx
-             t16 = aj1sy**2
-             aj1ryxyy = t1*aj1rx*aj1ryrrr+(t4*aj1rx+aj1ry*t8)*aj1ryrrs+
-     & (t4*aj1sx+aj1sy*t8)*aj1ryrss+t16*aj1sx*aj1rysss+(aj1ryy*aj1rx+
-     & 2*aj1ry*aj1rxy)*aj1ryrr+(2*aj1ry*aj1sxy+2*aj1sy*aj1rxy+aj1ryy*
-     & aj1sx+aj1syy*aj1rx)*aj1ryrs+(aj1syy*aj1sx+2*aj1sy*aj1sxy)*
-     & aj1ryss+aj1rxyy*aj1ryr+aj1sxyy*aj1rys
-             t1 = aj1ry**2
-             t7 = aj1sy**2
-             aj1ryyyy = aj1ry*t1*aj1ryrrr+3*t1*aj1sy*aj1ryrrs+3*aj1ry*
-     & t7*aj1ryrss+t7*aj1sy*aj1rysss+3*aj1ry*aj1ryy*aj1ryrr+(3*aj1syy*
-     & aj1ry+3*aj1sy*aj1ryy)*aj1ryrs+3*aj1syy*aj1sy*aj1ryss+aj1ryyy*
-     & aj1ryr+aj1syyy*aj1rys
-             t1 = aj1rx**2
-             t7 = aj1sx**2
-             aj1syxxx = t1*aj1rx*aj1syrrr+3*t1*aj1sx*aj1syrrs+3*aj1rx*
-     & t7*aj1syrss+t7*aj1sx*aj1sysss+3*aj1rx*aj1rxx*aj1syrr+(3*aj1sxx*
-     & aj1rx+3*aj1sx*aj1rxx)*aj1syrs+3*aj1sxx*aj1sx*aj1syss+aj1rxxx*
-     & aj1syr+aj1sxxx*aj1sys
-             t1 = aj1rx**2
-             t10 = aj1sx**2
-             aj1syxxy = aj1ry*t1*aj1syrrr+(aj1sy*t1+2*aj1ry*aj1sx*
+                 t1 = aj1ry**2
+                 t4 = aj1sy*aj1ry
+                 t8 = aj1sy*aj1rx+aj1ry*aj1sx
+                 t16 = aj1sy**2
+                 aj1ryxyy = t1*aj1rx*aj1ryrrr+(t4*aj1rx+aj1ry*t8)*
+     & aj1ryrrs+(t4*aj1sx+aj1sy*t8)*aj1ryrss+t16*aj1sx*aj1rysss+(
+     & aj1ryy*aj1rx+2*aj1ry*aj1rxy)*aj1ryrr+(2*aj1ry*aj1sxy+2*aj1sy*
+     & aj1rxy+aj1ryy*aj1sx+aj1syy*aj1rx)*aj1ryrs+(aj1syy*aj1sx+2*
+     & aj1sy*aj1sxy)*aj1ryss+aj1rxyy*aj1ryr+aj1sxyy*aj1rys
+                 t1 = aj1ry**2
+                 t7 = aj1sy**2
+                 aj1ryyyy = aj1ry*t1*aj1ryrrr+3*t1*aj1sy*aj1ryrrs+3*
+     & aj1ry*t7*aj1ryrss+t7*aj1sy*aj1rysss+3*aj1ry*aj1ryy*aj1ryrr+(3*
+     & aj1syy*aj1ry+3*aj1sy*aj1ryy)*aj1ryrs+3*aj1syy*aj1sy*aj1ryss+
+     & aj1ryyy*aj1ryr+aj1syyy*aj1rys
+                 t1 = aj1rx**2
+                 t7 = aj1sx**2
+                 aj1syxxx = t1*aj1rx*aj1syrrr+3*t1*aj1sx*aj1syrrs+3*
+     & aj1rx*t7*aj1syrss+t7*aj1sx*aj1sysss+3*aj1rx*aj1rxx*aj1syrr+(3*
+     & aj1sxx*aj1rx+3*aj1sx*aj1rxx)*aj1syrs+3*aj1sxx*aj1sx*aj1syss+
+     & aj1rxxx*aj1syr+aj1sxxx*aj1sys
+                 t1 = aj1rx**2
+                 t10 = aj1sx**2
+                 aj1syxxy = aj1ry*t1*aj1syrrr+(aj1sy*t1+2*aj1ry*aj1sx*
      & aj1rx)*aj1syrrs+(aj1ry*t10+2*aj1sy*aj1sx*aj1rx)*aj1syrss+aj1sy*
      & t10*aj1sysss+(2*aj1rxy*aj1rx+aj1ry*aj1rxx)*aj1syrr+(aj1ry*
      & aj1sxx+2*aj1sx*aj1rxy+2*aj1sxy*aj1rx+aj1sy*aj1rxx)*aj1syrs+(
      & aj1sy*aj1sxx+2*aj1sxy*aj1sx)*aj1syss+aj1rxxy*aj1syr+aj1sxxy*
      & aj1sys
-             t1 = aj1ry**2
-             t4 = aj1sy*aj1ry
-             t8 = aj1sy*aj1rx+aj1ry*aj1sx
-             t16 = aj1sy**2
-             aj1syxyy = t1*aj1rx*aj1syrrr+(t4*aj1rx+aj1ry*t8)*aj1syrrs+
-     & (t4*aj1sx+aj1sy*t8)*aj1syrss+t16*aj1sx*aj1sysss+(aj1ryy*aj1rx+
-     & 2*aj1ry*aj1rxy)*aj1syrr+(2*aj1ry*aj1sxy+2*aj1sy*aj1rxy+aj1ryy*
-     & aj1sx+aj1syy*aj1rx)*aj1syrs+(aj1syy*aj1sx+2*aj1sy*aj1sxy)*
-     & aj1syss+aj1rxyy*aj1syr+aj1sxyy*aj1sys
-             t1 = aj1ry**2
-             t7 = aj1sy**2
-             aj1syyyy = aj1ry*t1*aj1syrrr+3*t1*aj1sy*aj1syrrs+3*aj1ry*
-     & t7*aj1syrss+t7*aj1sy*aj1sysss+3*aj1ry*aj1ryy*aj1syrr+(3*aj1syy*
-     & aj1ry+3*aj1sy*aj1ryy)*aj1syrs+3*aj1syy*aj1sy*aj1syss+aj1ryyy*
-     & aj1syr+aj1syyy*aj1sys
-              uu1 = u1(i1,i2,i3,ex)
-              uu1r = (-u1(i1-1,i2,i3,ex)+u1(i1+1,i2,i3,ex))/(2.*dr1(0))
-              uu1s = (-u1(i1,i2-1,i3,ex)+u1(i1,i2+1,i3,ex))/(2.*dr1(1))
-              uu1rr = (u1(i1-1,i2,i3,ex)-2.*u1(i1,i2,i3,ex)+u1(i1+1,i2,
-     & i3,ex))/(dr1(0)**2)
-              uu1rs = (-(-u1(i1-1,i2-1,i3,ex)+u1(i1-1,i2+1,i3,ex))/(2.*
-     & dr1(1))+(-u1(i1+1,i2-1,i3,ex)+u1(i1+1,i2+1,i3,ex))/(2.*dr1(1)))
-     & /(2.*dr1(0))
-              uu1ss = (u1(i1,i2-1,i3,ex)-2.*u1(i1,i2,i3,ex)+u1(i1,i2+1,
-     & i3,ex))/(dr1(1)**2)
-              uu1rrr = (-u1(i1-2,i2,i3,ex)+2.*u1(i1-1,i2,i3,ex)-2.*u1(
-     & i1+1,i2,i3,ex)+u1(i1+2,i2,i3,ex))/(2.*dr1(0)**3)
-              uu1rrs = ((-u1(i1-1,i2-1,i3,ex)+u1(i1-1,i2+1,i3,ex))/(2.*
-     & dr1(1))-2.*(-u1(i1,i2-1,i3,ex)+u1(i1,i2+1,i3,ex))/(2.*dr1(1))+(
-     & -u1(i1+1,i2-1,i3,ex)+u1(i1+1,i2+1,i3,ex))/(2.*dr1(1)))/(dr1(0)*
-     & *2)
-              uu1rss = (-(u1(i1-1,i2-1,i3,ex)-2.*u1(i1-1,i2,i3,ex)+u1(
-     & i1-1,i2+1,i3,ex))/(dr1(1)**2)+(u1(i1+1,i2-1,i3,ex)-2.*u1(i1+1,
-     & i2,i3,ex)+u1(i1+1,i2+1,i3,ex))/(dr1(1)**2))/(2.*dr1(0))
-              uu1sss = (-u1(i1,i2-2,i3,ex)+2.*u1(i1,i2-1,i3,ex)-2.*u1(
-     & i1,i2+1,i3,ex)+u1(i1,i2+2,i3,ex))/(2.*dr1(1)**3)
-              uu1rrrr = (u1(i1-2,i2,i3,ex)-4.*u1(i1-1,i2,i3,ex)+6.*u1(
-     & i1,i2,i3,ex)-4.*u1(i1+1,i2,i3,ex)+u1(i1+2,i2,i3,ex))/(dr1(0)**
-     & 4)
-              uu1rrrs = (-(-u1(i1-2,i2-1,i3,ex)+u1(i1-2,i2+1,i3,ex))/(
-     & 2.*dr1(1))+2.*(-u1(i1-1,i2-1,i3,ex)+u1(i1-1,i2+1,i3,ex))/(2.*
-     & dr1(1))-2.*(-u1(i1+1,i2-1,i3,ex)+u1(i1+1,i2+1,i3,ex))/(2.*dr1(
-     & 1))+(-u1(i1+2,i2-1,i3,ex)+u1(i1+2,i2+1,i3,ex))/(2.*dr1(1)))/(
-     & 2.*dr1(0)**3)
-              uu1rrss = ((u1(i1-1,i2-1,i3,ex)-2.*u1(i1-1,i2,i3,ex)+u1(
-     & i1-1,i2+1,i3,ex))/(dr1(1)**2)-2.*(u1(i1,i2-1,i3,ex)-2.*u1(i1,
-     & i2,i3,ex)+u1(i1,i2+1,i3,ex))/(dr1(1)**2)+(u1(i1+1,i2-1,i3,ex)-
-     & 2.*u1(i1+1,i2,i3,ex)+u1(i1+1,i2+1,i3,ex))/(dr1(1)**2))/(dr1(0)*
-     & *2)
-              uu1rsss = (-(-u1(i1-1,i2-2,i3,ex)+2.*u1(i1-1,i2-1,i3,ex)-
-     & 2.*u1(i1-1,i2+1,i3,ex)+u1(i1-1,i2+2,i3,ex))/(2.*dr1(1)**3)+(-
-     & u1(i1+1,i2-2,i3,ex)+2.*u1(i1+1,i2-1,i3,ex)-2.*u1(i1+1,i2+1,i3,
-     & ex)+u1(i1+1,i2+2,i3,ex))/(2.*dr1(1)**3))/(2.*dr1(0))
-              uu1ssss = (u1(i1,i2-2,i3,ex)-4.*u1(i1,i2-1,i3,ex)+6.*u1(
-     & i1,i2,i3,ex)-4.*u1(i1,i2+1,i3,ex)+u1(i1,i2+2,i3,ex))/(dr1(1)**
-     & 4)
-               t1 = aj1rx**2
-               t7 = aj1sx**2
-               u1xxx = t1*aj1rx*uu1rrr+3*t1*aj1sx*uu1rrs+3*aj1rx*t7*
-     & uu1rss+t7*aj1sx*uu1sss+3*aj1rx*aj1rxx*uu1rr+(3*aj1sxx*aj1rx+3*
-     & aj1sx*aj1rxx)*uu1rs+3*aj1sxx*aj1sx*uu1ss+aj1rxxx*uu1r+aj1sxxx*
-     & uu1s
-               t1 = aj1rx**2
-               t10 = aj1sx**2
-               u1xxy = aj1ry*t1*uu1rrr+(aj1sy*t1+2*aj1ry*aj1sx*aj1rx)*
-     & uu1rrs+(aj1ry*t10+2*aj1sy*aj1sx*aj1rx)*uu1rss+aj1sy*t10*uu1sss+
-     & (2*aj1rxy*aj1rx+aj1ry*aj1rxx)*uu1rr+(aj1ry*aj1sxx+2*aj1sx*
-     & aj1rxy+2*aj1sxy*aj1rx+aj1sy*aj1rxx)*uu1rs+(aj1sy*aj1sxx+2*
-     & aj1sxy*aj1sx)*uu1ss+aj1rxxy*uu1r+aj1sxxy*uu1s
-               t1 = aj1ry**2
-               t4 = aj1sy*aj1ry
-               t8 = aj1sy*aj1rx+aj1ry*aj1sx
-               t16 = aj1sy**2
-               u1xyy = t1*aj1rx*uu1rrr+(t4*aj1rx+aj1ry*t8)*uu1rrs+(t4*
-     & aj1sx+aj1sy*t8)*uu1rss+t16*aj1sx*uu1sss+(aj1ryy*aj1rx+2*aj1ry*
-     & aj1rxy)*uu1rr+(2*aj1ry*aj1sxy+2*aj1sy*aj1rxy+aj1ryy*aj1sx+
-     & aj1syy*aj1rx)*uu1rs+(aj1syy*aj1sx+2*aj1sy*aj1sxy)*uu1ss+
+                 t1 = aj1ry**2
+                 t4 = aj1sy*aj1ry
+                 t8 = aj1sy*aj1rx+aj1ry*aj1sx
+                 t16 = aj1sy**2
+                 aj1syxyy = t1*aj1rx*aj1syrrr+(t4*aj1rx+aj1ry*t8)*
+     & aj1syrrs+(t4*aj1sx+aj1sy*t8)*aj1syrss+t16*aj1sx*aj1sysss+(
+     & aj1ryy*aj1rx+2*aj1ry*aj1rxy)*aj1syrr+(2*aj1ry*aj1sxy+2*aj1sy*
+     & aj1rxy+aj1ryy*aj1sx+aj1syy*aj1rx)*aj1syrs+(aj1syy*aj1sx+2*
+     & aj1sy*aj1sxy)*aj1syss+aj1rxyy*aj1syr+aj1sxyy*aj1sys
+                 t1 = aj1ry**2
+                 t7 = aj1sy**2
+                 aj1syyyy = aj1ry*t1*aj1syrrr+3*t1*aj1sy*aj1syrrs+3*
+     & aj1ry*t7*aj1syrss+t7*aj1sy*aj1sysss+3*aj1ry*aj1ryy*aj1syrr+(3*
+     & aj1syy*aj1ry+3*aj1sy*aj1ryy)*aj1syrs+3*aj1syy*aj1sy*aj1syss+
+     & aj1ryyy*aj1syr+aj1syyy*aj1sys
+                  uu1 = u1(i1,i2,i3,ex)
+                  uu1r = (-u1(i1-1,i2,i3,ex)+u1(i1+1,i2,i3,ex))/(2.*
+     & dr1(0))
+                  uu1s = (-u1(i1,i2-1,i3,ex)+u1(i1,i2+1,i3,ex))/(2.*
+     & dr1(1))
+                  uu1rr = (u1(i1-1,i2,i3,ex)-2.*u1(i1,i2,i3,ex)+u1(i1+
+     & 1,i2,i3,ex))/(dr1(0)**2)
+                  uu1rs = (-(-u1(i1-1,i2-1,i3,ex)+u1(i1-1,i2+1,i3,ex))
+     & /(2.*dr1(1))+(-u1(i1+1,i2-1,i3,ex)+u1(i1+1,i2+1,i3,ex))/(2.*
+     & dr1(1)))/(2.*dr1(0))
+                  uu1ss = (u1(i1,i2-1,i3,ex)-2.*u1(i1,i2,i3,ex)+u1(i1,
+     & i2+1,i3,ex))/(dr1(1)**2)
+                  uu1rrr = (-u1(i1-2,i2,i3,ex)+2.*u1(i1-1,i2,i3,ex)-2.*
+     & u1(i1+1,i2,i3,ex)+u1(i1+2,i2,i3,ex))/(2.*dr1(0)**3)
+                  uu1rrs = ((-u1(i1-1,i2-1,i3,ex)+u1(i1-1,i2+1,i3,ex))
+     & /(2.*dr1(1))-2.*(-u1(i1,i2-1,i3,ex)+u1(i1,i2+1,i3,ex))/(2.*dr1(
+     & 1))+(-u1(i1+1,i2-1,i3,ex)+u1(i1+1,i2+1,i3,ex))/(2.*dr1(1)))/(
+     & dr1(0)**2)
+                  uu1rss = (-(u1(i1-1,i2-1,i3,ex)-2.*u1(i1-1,i2,i3,ex)+
+     & u1(i1-1,i2+1,i3,ex))/(dr1(1)**2)+(u1(i1+1,i2-1,i3,ex)-2.*u1(i1+
+     & 1,i2,i3,ex)+u1(i1+1,i2+1,i3,ex))/(dr1(1)**2))/(2.*dr1(0))
+                  uu1sss = (-u1(i1,i2-2,i3,ex)+2.*u1(i1,i2-1,i3,ex)-2.*
+     & u1(i1,i2+1,i3,ex)+u1(i1,i2+2,i3,ex))/(2.*dr1(1)**3)
+                  uu1rrrr = (u1(i1-2,i2,i3,ex)-4.*u1(i1-1,i2,i3,ex)+6.*
+     & u1(i1,i2,i3,ex)-4.*u1(i1+1,i2,i3,ex)+u1(i1+2,i2,i3,ex))/(dr1(0)
+     & **4)
+                  uu1rrrs = (-(-u1(i1-2,i2-1,i3,ex)+u1(i1-2,i2+1,i3,ex)
+     & )/(2.*dr1(1))+2.*(-u1(i1-1,i2-1,i3,ex)+u1(i1-1,i2+1,i3,ex))/(
+     & 2.*dr1(1))-2.*(-u1(i1+1,i2-1,i3,ex)+u1(i1+1,i2+1,i3,ex))/(2.*
+     & dr1(1))+(-u1(i1+2,i2-1,i3,ex)+u1(i1+2,i2+1,i3,ex))/(2.*dr1(1)))
+     & /(2.*dr1(0)**3)
+                  uu1rrss = ((u1(i1-1,i2-1,i3,ex)-2.*u1(i1-1,i2,i3,ex)+
+     & u1(i1-1,i2+1,i3,ex))/(dr1(1)**2)-2.*(u1(i1,i2-1,i3,ex)-2.*u1(
+     & i1,i2,i3,ex)+u1(i1,i2+1,i3,ex))/(dr1(1)**2)+(u1(i1+1,i2-1,i3,
+     & ex)-2.*u1(i1+1,i2,i3,ex)+u1(i1+1,i2+1,i3,ex))/(dr1(1)**2))/(
+     & dr1(0)**2)
+                  uu1rsss = (-(-u1(i1-1,i2-2,i3,ex)+2.*u1(i1-1,i2-1,i3,
+     & ex)-2.*u1(i1-1,i2+1,i3,ex)+u1(i1-1,i2+2,i3,ex))/(2.*dr1(1)**3)+
+     & (-u1(i1+1,i2-2,i3,ex)+2.*u1(i1+1,i2-1,i3,ex)-2.*u1(i1+1,i2+1,
+     & i3,ex)+u1(i1+1,i2+2,i3,ex))/(2.*dr1(1)**3))/(2.*dr1(0))
+                  uu1ssss = (u1(i1,i2-2,i3,ex)-4.*u1(i1,i2-1,i3,ex)+6.*
+     & u1(i1,i2,i3,ex)-4.*u1(i1,i2+1,i3,ex)+u1(i1,i2+2,i3,ex))/(dr1(1)
+     & **4)
+                   t1 = aj1rx**2
+                   t7 = aj1sx**2
+                   u1xxx = t1*aj1rx*uu1rrr+3*t1*aj1sx*uu1rrs+3*aj1rx*
+     & t7*uu1rss+t7*aj1sx*uu1sss+3*aj1rx*aj1rxx*uu1rr+(3*aj1sxx*aj1rx+
+     & 3*aj1sx*aj1rxx)*uu1rs+3*aj1sxx*aj1sx*uu1ss+aj1rxxx*uu1r+
+     & aj1sxxx*uu1s
+                   t1 = aj1rx**2
+                   t10 = aj1sx**2
+                   u1xxy = aj1ry*t1*uu1rrr+(aj1sy*t1+2*aj1ry*aj1sx*
+     & aj1rx)*uu1rrs+(aj1ry*t10+2*aj1sy*aj1sx*aj1rx)*uu1rss+aj1sy*t10*
+     & uu1sss+(2*aj1rxy*aj1rx+aj1ry*aj1rxx)*uu1rr+(aj1ry*aj1sxx+2*
+     & aj1sx*aj1rxy+2*aj1sxy*aj1rx+aj1sy*aj1rxx)*uu1rs+(aj1sy*aj1sxx+
+     & 2*aj1sxy*aj1sx)*uu1ss+aj1rxxy*uu1r+aj1sxxy*uu1s
+                   t1 = aj1ry**2
+                   t4 = aj1sy*aj1ry
+                   t8 = aj1sy*aj1rx+aj1ry*aj1sx
+                   t16 = aj1sy**2
+                   u1xyy = t1*aj1rx*uu1rrr+(t4*aj1rx+aj1ry*t8)*uu1rrs+(
+     & t4*aj1sx+aj1sy*t8)*uu1rss+t16*aj1sx*uu1sss+(aj1ryy*aj1rx+2*
+     & aj1ry*aj1rxy)*uu1rr+(2*aj1ry*aj1sxy+2*aj1sy*aj1rxy+aj1ryy*
+     & aj1sx+aj1syy*aj1rx)*uu1rs+(aj1syy*aj1sx+2*aj1sy*aj1sxy)*uu1ss+
      & aj1rxyy*uu1r+aj1sxyy*uu1s
-               t1 = aj1ry**2
-               t7 = aj1sy**2
-               u1yyy = aj1ry*t1*uu1rrr+3*t1*aj1sy*uu1rrs+3*aj1ry*t7*
-     & uu1rss+t7*aj1sy*uu1sss+3*aj1ry*aj1ryy*uu1rr+(3*aj1syy*aj1ry+3*
-     & aj1sy*aj1ryy)*uu1rs+3*aj1syy*aj1sy*uu1ss+aj1ryyy*uu1r+aj1syyy*
-     & uu1s
-               t1 = aj1rx**2
-               t2 = t1**2
-               t8 = aj1sx**2
-               t16 = t8**2
-               t25 = aj1sxx*aj1rx
-               t27 = t25+aj1sx*aj1rxx
-               t28 = 3*t27
-               t30 = 2*t27
-               t46 = aj1rxx**2
-               t60 = aj1sxx**2
-               u1xxxx = t2*uu1rrrr+4*t1*aj1rx*aj1sx*uu1rrrs+6*t1*t8*
-     & uu1rrss+4*aj1rx*t8*aj1sx*uu1rsss+t16*uu1ssss+6*t1*aj1rxx*
+                   t1 = aj1ry**2
+                   t7 = aj1sy**2
+                   u1yyy = aj1ry*t1*uu1rrr+3*t1*aj1sy*uu1rrs+3*aj1ry*
+     & t7*uu1rss+t7*aj1sy*uu1sss+3*aj1ry*aj1ryy*uu1rr+(3*aj1syy*aj1ry+
+     & 3*aj1sy*aj1ryy)*uu1rs+3*aj1syy*aj1sy*uu1ss+aj1ryyy*uu1r+
+     & aj1syyy*uu1s
+                   t1 = aj1rx**2
+                   t2 = t1**2
+                   t8 = aj1sx**2
+                   t16 = t8**2
+                   t25 = aj1sxx*aj1rx
+                   t27 = t25+aj1sx*aj1rxx
+                   t28 = 3*t27
+                   t30 = 2*t27
+                   t46 = aj1rxx**2
+                   t60 = aj1sxx**2
+                   u1xxxx = t2*uu1rrrr+4*t1*aj1rx*aj1sx*uu1rrrs+6*t1*
+     & t8*uu1rrss+4*aj1rx*t8*aj1sx*uu1rsss+t16*uu1ssss+6*t1*aj1rxx*
      & uu1rrr+(7*aj1sx*aj1rx*aj1rxx+aj1sxx*t1+aj1rx*t28+aj1rx*t30)*
      & uu1rrs+(aj1sx*t28+7*t25*aj1sx+aj1rxx*t8+aj1sx*t30)*uu1rss+6*t8*
      & aj1sxx*uu1sss+(4*aj1rx*aj1rxxx+3*t46)*uu1rr+(4*aj1sxxx*aj1rx+4*
      & aj1sx*aj1rxxx+6*aj1sxx*aj1rxx)*uu1rs+(4*aj1sxxx*aj1sx+3*t60)*
      & uu1ss+aj1rxxxx*uu1r+aj1sxxxx*uu1s
-               t1 = aj1ry**2
-               t2 = aj1rx**2
-               t5 = aj1sy*aj1ry
-               t11 = aj1sy*t2+2*aj1ry*aj1sx*aj1rx
-               t16 = aj1sx**2
-               t21 = aj1ry*t16+2*aj1sy*aj1sx*aj1rx
-               t29 = aj1sy**2
-               t38 = 2*aj1rxy*aj1rx+aj1ry*aj1rxx
-               t52 = aj1sx*aj1rxy
-               t54 = aj1sxy*aj1rx
-               t57 = aj1ry*aj1sxx+2*t52+2*t54+aj1sy*aj1rxx
-               t60 = 2*t52+2*t54
-               t68 = aj1sy*aj1sxx+2*aj1sxy*aj1sx
-               t92 = aj1rxy**2
-               t110 = aj1sxy**2
-               u1xxyy = t1*t2*uu1rrrr+(t5*t2+aj1ry*t11)*uu1rrrs+(aj1sy*
-     & t11+aj1ry*t21)*uu1rrss+(aj1sy*t21+t5*t16)*uu1rsss+t29*t16*
-     & uu1ssss+(2*aj1ry*aj1rxy*aj1rx+aj1ry*t38+aj1ryy*t2)*uu1rrr+(
+                   t1 = aj1ry**2
+                   t2 = aj1rx**2
+                   t5 = aj1sy*aj1ry
+                   t11 = aj1sy*t2+2*aj1ry*aj1sx*aj1rx
+                   t16 = aj1sx**2
+                   t21 = aj1ry*t16+2*aj1sy*aj1sx*aj1rx
+                   t29 = aj1sy**2
+                   t38 = 2*aj1rxy*aj1rx+aj1ry*aj1rxx
+                   t52 = aj1sx*aj1rxy
+                   t54 = aj1sxy*aj1rx
+                   t57 = aj1ry*aj1sxx+2*t52+2*t54+aj1sy*aj1rxx
+                   t60 = 2*t52+2*t54
+                   t68 = aj1sy*aj1sxx+2*aj1sxy*aj1sx
+                   t92 = aj1rxy**2
+                   t110 = aj1sxy**2
+                   u1xxyy = t1*t2*uu1rrrr+(t5*t2+aj1ry*t11)*uu1rrrs+(
+     & aj1sy*t11+aj1ry*t21)*uu1rrss+(aj1sy*t21+t5*t16)*uu1rsss+t29*
+     & t16*uu1ssss+(2*aj1ry*aj1rxy*aj1rx+aj1ry*t38+aj1ryy*t2)*uu1rrr+(
      & aj1sy*t38+2*aj1sy*aj1rxy*aj1rx+2*aj1ryy*aj1sx*aj1rx+aj1syy*t2+
      & aj1ry*t57+aj1ry*t60)*uu1rrs+(aj1sy*t57+aj1ry*t68+aj1ryy*t16+2*
      & aj1ry*aj1sxy*aj1sx+2*aj1syy*aj1sx*aj1rx+aj1sy*t60)*uu1rss+(2*
@@ -6947,128 +8605,130 @@
      & aj1rx+aj1syy*aj1rxx+2*aj1sx*aj1rxyy)*uu1rs+(2*t110+2*aj1sy*
      & aj1sxxy+aj1syy*aj1sxx+2*aj1sx*aj1sxyy)*uu1ss+aj1rxxyy*uu1r+
      & aj1sxxyy*uu1s
-               t1 = aj1ry**2
-               t2 = t1**2
-               t8 = aj1sy**2
-               t16 = t8**2
-               t25 = aj1syy*aj1ry
-               t27 = t25+aj1sy*aj1ryy
-               t28 = 3*t27
-               t30 = 2*t27
-               t46 = aj1ryy**2
-               t60 = aj1syy**2
-               u1yyyy = t2*uu1rrrr+4*t1*aj1ry*aj1sy*uu1rrrs+6*t1*t8*
-     & uu1rrss+4*aj1ry*t8*aj1sy*uu1rsss+t16*uu1ssss+6*t1*aj1ryy*
+                   t1 = aj1ry**2
+                   t2 = t1**2
+                   t8 = aj1sy**2
+                   t16 = t8**2
+                   t25 = aj1syy*aj1ry
+                   t27 = t25+aj1sy*aj1ryy
+                   t28 = 3*t27
+                   t30 = 2*t27
+                   t46 = aj1ryy**2
+                   t60 = aj1syy**2
+                   u1yyyy = t2*uu1rrrr+4*t1*aj1ry*aj1sy*uu1rrrs+6*t1*
+     & t8*uu1rrss+4*aj1ry*t8*aj1sy*uu1rsss+t16*uu1ssss+6*t1*aj1ryy*
      & uu1rrr+(7*aj1sy*aj1ry*aj1ryy+aj1syy*t1+aj1ry*t28+aj1ry*t30)*
      & uu1rrs+(aj1sy*t28+7*t25*aj1sy+aj1ryy*t8+aj1sy*t30)*uu1rss+6*t8*
      & aj1syy*uu1sss+(4*aj1ry*aj1ryyy+3*t46)*uu1rr+(4*aj1syyy*aj1ry+4*
      & aj1sy*aj1ryyy+6*aj1syy*aj1ryy)*uu1rs+(4*aj1syyy*aj1sy+3*t60)*
      & uu1ss+aj1ryyyy*uu1r+aj1syyyy*uu1s
-             u1LapSq = u1xxxx +2.* u1xxyy + u1yyyy
-              vv1 = u1(i1,i2,i3,ey)
-              vv1r = (-u1(i1-1,i2,i3,ey)+u1(i1+1,i2,i3,ey))/(2.*dr1(0))
-              vv1s = (-u1(i1,i2-1,i3,ey)+u1(i1,i2+1,i3,ey))/(2.*dr1(1))
-              vv1rr = (u1(i1-1,i2,i3,ey)-2.*u1(i1,i2,i3,ey)+u1(i1+1,i2,
-     & i3,ey))/(dr1(0)**2)
-              vv1rs = (-(-u1(i1-1,i2-1,i3,ey)+u1(i1-1,i2+1,i3,ey))/(2.*
-     & dr1(1))+(-u1(i1+1,i2-1,i3,ey)+u1(i1+1,i2+1,i3,ey))/(2.*dr1(1)))
-     & /(2.*dr1(0))
-              vv1ss = (u1(i1,i2-1,i3,ey)-2.*u1(i1,i2,i3,ey)+u1(i1,i2+1,
-     & i3,ey))/(dr1(1)**2)
-              vv1rrr = (-u1(i1-2,i2,i3,ey)+2.*u1(i1-1,i2,i3,ey)-2.*u1(
-     & i1+1,i2,i3,ey)+u1(i1+2,i2,i3,ey))/(2.*dr1(0)**3)
-              vv1rrs = ((-u1(i1-1,i2-1,i3,ey)+u1(i1-1,i2+1,i3,ey))/(2.*
-     & dr1(1))-2.*(-u1(i1,i2-1,i3,ey)+u1(i1,i2+1,i3,ey))/(2.*dr1(1))+(
-     & -u1(i1+1,i2-1,i3,ey)+u1(i1+1,i2+1,i3,ey))/(2.*dr1(1)))/(dr1(0)*
-     & *2)
-              vv1rss = (-(u1(i1-1,i2-1,i3,ey)-2.*u1(i1-1,i2,i3,ey)+u1(
-     & i1-1,i2+1,i3,ey))/(dr1(1)**2)+(u1(i1+1,i2-1,i3,ey)-2.*u1(i1+1,
-     & i2,i3,ey)+u1(i1+1,i2+1,i3,ey))/(dr1(1)**2))/(2.*dr1(0))
-              vv1sss = (-u1(i1,i2-2,i3,ey)+2.*u1(i1,i2-1,i3,ey)-2.*u1(
-     & i1,i2+1,i3,ey)+u1(i1,i2+2,i3,ey))/(2.*dr1(1)**3)
-              vv1rrrr = (u1(i1-2,i2,i3,ey)-4.*u1(i1-1,i2,i3,ey)+6.*u1(
-     & i1,i2,i3,ey)-4.*u1(i1+1,i2,i3,ey)+u1(i1+2,i2,i3,ey))/(dr1(0)**
-     & 4)
-              vv1rrrs = (-(-u1(i1-2,i2-1,i3,ey)+u1(i1-2,i2+1,i3,ey))/(
-     & 2.*dr1(1))+2.*(-u1(i1-1,i2-1,i3,ey)+u1(i1-1,i2+1,i3,ey))/(2.*
-     & dr1(1))-2.*(-u1(i1+1,i2-1,i3,ey)+u1(i1+1,i2+1,i3,ey))/(2.*dr1(
-     & 1))+(-u1(i1+2,i2-1,i3,ey)+u1(i1+2,i2+1,i3,ey))/(2.*dr1(1)))/(
-     & 2.*dr1(0)**3)
-              vv1rrss = ((u1(i1-1,i2-1,i3,ey)-2.*u1(i1-1,i2,i3,ey)+u1(
-     & i1-1,i2+1,i3,ey))/(dr1(1)**2)-2.*(u1(i1,i2-1,i3,ey)-2.*u1(i1,
-     & i2,i3,ey)+u1(i1,i2+1,i3,ey))/(dr1(1)**2)+(u1(i1+1,i2-1,i3,ey)-
-     & 2.*u1(i1+1,i2,i3,ey)+u1(i1+1,i2+1,i3,ey))/(dr1(1)**2))/(dr1(0)*
-     & *2)
-              vv1rsss = (-(-u1(i1-1,i2-2,i3,ey)+2.*u1(i1-1,i2-1,i3,ey)-
-     & 2.*u1(i1-1,i2+1,i3,ey)+u1(i1-1,i2+2,i3,ey))/(2.*dr1(1)**3)+(-
-     & u1(i1+1,i2-2,i3,ey)+2.*u1(i1+1,i2-1,i3,ey)-2.*u1(i1+1,i2+1,i3,
-     & ey)+u1(i1+1,i2+2,i3,ey))/(2.*dr1(1)**3))/(2.*dr1(0))
-              vv1ssss = (u1(i1,i2-2,i3,ey)-4.*u1(i1,i2-1,i3,ey)+6.*u1(
-     & i1,i2,i3,ey)-4.*u1(i1,i2+1,i3,ey)+u1(i1,i2+2,i3,ey))/(dr1(1)**
-     & 4)
-               t1 = aj1rx**2
-               t7 = aj1sx**2
-               v1xxx = t1*aj1rx*vv1rrr+3*t1*aj1sx*vv1rrs+3*aj1rx*t7*
-     & vv1rss+t7*aj1sx*vv1sss+3*aj1rx*aj1rxx*vv1rr+(3*aj1sxx*aj1rx+3*
-     & aj1sx*aj1rxx)*vv1rs+3*aj1sxx*aj1sx*vv1ss+aj1rxxx*vv1r+aj1sxxx*
-     & vv1s
-               t1 = aj1rx**2
-               t10 = aj1sx**2
-               v1xxy = aj1ry*t1*vv1rrr+(aj1sy*t1+2*aj1ry*aj1sx*aj1rx)*
-     & vv1rrs+(aj1ry*t10+2*aj1sy*aj1sx*aj1rx)*vv1rss+aj1sy*t10*vv1sss+
-     & (2*aj1rxy*aj1rx+aj1ry*aj1rxx)*vv1rr+(aj1ry*aj1sxx+2*aj1sx*
-     & aj1rxy+2*aj1sxy*aj1rx+aj1sy*aj1rxx)*vv1rs+(aj1sy*aj1sxx+2*
-     & aj1sxy*aj1sx)*vv1ss+aj1rxxy*vv1r+aj1sxxy*vv1s
-               t1 = aj1ry**2
-               t4 = aj1sy*aj1ry
-               t8 = aj1sy*aj1rx+aj1ry*aj1sx
-               t16 = aj1sy**2
-               v1xyy = t1*aj1rx*vv1rrr+(t4*aj1rx+aj1ry*t8)*vv1rrs+(t4*
-     & aj1sx+aj1sy*t8)*vv1rss+t16*aj1sx*vv1sss+(aj1ryy*aj1rx+2*aj1ry*
-     & aj1rxy)*vv1rr+(2*aj1ry*aj1sxy+2*aj1sy*aj1rxy+aj1ryy*aj1sx+
-     & aj1syy*aj1rx)*vv1rs+(aj1syy*aj1sx+2*aj1sy*aj1sxy)*vv1ss+
+                 u1LapSq = u1xxxx +2.* u1xxyy + u1yyyy
+                  vv1 = u1(i1,i2,i3,ey)
+                  vv1r = (-u1(i1-1,i2,i3,ey)+u1(i1+1,i2,i3,ey))/(2.*
+     & dr1(0))
+                  vv1s = (-u1(i1,i2-1,i3,ey)+u1(i1,i2+1,i3,ey))/(2.*
+     & dr1(1))
+                  vv1rr = (u1(i1-1,i2,i3,ey)-2.*u1(i1,i2,i3,ey)+u1(i1+
+     & 1,i2,i3,ey))/(dr1(0)**2)
+                  vv1rs = (-(-u1(i1-1,i2-1,i3,ey)+u1(i1-1,i2+1,i3,ey))
+     & /(2.*dr1(1))+(-u1(i1+1,i2-1,i3,ey)+u1(i1+1,i2+1,i3,ey))/(2.*
+     & dr1(1)))/(2.*dr1(0))
+                  vv1ss = (u1(i1,i2-1,i3,ey)-2.*u1(i1,i2,i3,ey)+u1(i1,
+     & i2+1,i3,ey))/(dr1(1)**2)
+                  vv1rrr = (-u1(i1-2,i2,i3,ey)+2.*u1(i1-1,i2,i3,ey)-2.*
+     & u1(i1+1,i2,i3,ey)+u1(i1+2,i2,i3,ey))/(2.*dr1(0)**3)
+                  vv1rrs = ((-u1(i1-1,i2-1,i3,ey)+u1(i1-1,i2+1,i3,ey))
+     & /(2.*dr1(1))-2.*(-u1(i1,i2-1,i3,ey)+u1(i1,i2+1,i3,ey))/(2.*dr1(
+     & 1))+(-u1(i1+1,i2-1,i3,ey)+u1(i1+1,i2+1,i3,ey))/(2.*dr1(1)))/(
+     & dr1(0)**2)
+                  vv1rss = (-(u1(i1-1,i2-1,i3,ey)-2.*u1(i1-1,i2,i3,ey)+
+     & u1(i1-1,i2+1,i3,ey))/(dr1(1)**2)+(u1(i1+1,i2-1,i3,ey)-2.*u1(i1+
+     & 1,i2,i3,ey)+u1(i1+1,i2+1,i3,ey))/(dr1(1)**2))/(2.*dr1(0))
+                  vv1sss = (-u1(i1,i2-2,i3,ey)+2.*u1(i1,i2-1,i3,ey)-2.*
+     & u1(i1,i2+1,i3,ey)+u1(i1,i2+2,i3,ey))/(2.*dr1(1)**3)
+                  vv1rrrr = (u1(i1-2,i2,i3,ey)-4.*u1(i1-1,i2,i3,ey)+6.*
+     & u1(i1,i2,i3,ey)-4.*u1(i1+1,i2,i3,ey)+u1(i1+2,i2,i3,ey))/(dr1(0)
+     & **4)
+                  vv1rrrs = (-(-u1(i1-2,i2-1,i3,ey)+u1(i1-2,i2+1,i3,ey)
+     & )/(2.*dr1(1))+2.*(-u1(i1-1,i2-1,i3,ey)+u1(i1-1,i2+1,i3,ey))/(
+     & 2.*dr1(1))-2.*(-u1(i1+1,i2-1,i3,ey)+u1(i1+1,i2+1,i3,ey))/(2.*
+     & dr1(1))+(-u1(i1+2,i2-1,i3,ey)+u1(i1+2,i2+1,i3,ey))/(2.*dr1(1)))
+     & /(2.*dr1(0)**3)
+                  vv1rrss = ((u1(i1-1,i2-1,i3,ey)-2.*u1(i1-1,i2,i3,ey)+
+     & u1(i1-1,i2+1,i3,ey))/(dr1(1)**2)-2.*(u1(i1,i2-1,i3,ey)-2.*u1(
+     & i1,i2,i3,ey)+u1(i1,i2+1,i3,ey))/(dr1(1)**2)+(u1(i1+1,i2-1,i3,
+     & ey)-2.*u1(i1+1,i2,i3,ey)+u1(i1+1,i2+1,i3,ey))/(dr1(1)**2))/(
+     & dr1(0)**2)
+                  vv1rsss = (-(-u1(i1-1,i2-2,i3,ey)+2.*u1(i1-1,i2-1,i3,
+     & ey)-2.*u1(i1-1,i2+1,i3,ey)+u1(i1-1,i2+2,i3,ey))/(2.*dr1(1)**3)+
+     & (-u1(i1+1,i2-2,i3,ey)+2.*u1(i1+1,i2-1,i3,ey)-2.*u1(i1+1,i2+1,
+     & i3,ey)+u1(i1+1,i2+2,i3,ey))/(2.*dr1(1)**3))/(2.*dr1(0))
+                  vv1ssss = (u1(i1,i2-2,i3,ey)-4.*u1(i1,i2-1,i3,ey)+6.*
+     & u1(i1,i2,i3,ey)-4.*u1(i1,i2+1,i3,ey)+u1(i1,i2+2,i3,ey))/(dr1(1)
+     & **4)
+                   t1 = aj1rx**2
+                   t7 = aj1sx**2
+                   v1xxx = t1*aj1rx*vv1rrr+3*t1*aj1sx*vv1rrs+3*aj1rx*
+     & t7*vv1rss+t7*aj1sx*vv1sss+3*aj1rx*aj1rxx*vv1rr+(3*aj1sxx*aj1rx+
+     & 3*aj1sx*aj1rxx)*vv1rs+3*aj1sxx*aj1sx*vv1ss+aj1rxxx*vv1r+
+     & aj1sxxx*vv1s
+                   t1 = aj1rx**2
+                   t10 = aj1sx**2
+                   v1xxy = aj1ry*t1*vv1rrr+(aj1sy*t1+2*aj1ry*aj1sx*
+     & aj1rx)*vv1rrs+(aj1ry*t10+2*aj1sy*aj1sx*aj1rx)*vv1rss+aj1sy*t10*
+     & vv1sss+(2*aj1rxy*aj1rx+aj1ry*aj1rxx)*vv1rr+(aj1ry*aj1sxx+2*
+     & aj1sx*aj1rxy+2*aj1sxy*aj1rx+aj1sy*aj1rxx)*vv1rs+(aj1sy*aj1sxx+
+     & 2*aj1sxy*aj1sx)*vv1ss+aj1rxxy*vv1r+aj1sxxy*vv1s
+                   t1 = aj1ry**2
+                   t4 = aj1sy*aj1ry
+                   t8 = aj1sy*aj1rx+aj1ry*aj1sx
+                   t16 = aj1sy**2
+                   v1xyy = t1*aj1rx*vv1rrr+(t4*aj1rx+aj1ry*t8)*vv1rrs+(
+     & t4*aj1sx+aj1sy*t8)*vv1rss+t16*aj1sx*vv1sss+(aj1ryy*aj1rx+2*
+     & aj1ry*aj1rxy)*vv1rr+(2*aj1ry*aj1sxy+2*aj1sy*aj1rxy+aj1ryy*
+     & aj1sx+aj1syy*aj1rx)*vv1rs+(aj1syy*aj1sx+2*aj1sy*aj1sxy)*vv1ss+
      & aj1rxyy*vv1r+aj1sxyy*vv1s
-               t1 = aj1ry**2
-               t7 = aj1sy**2
-               v1yyy = aj1ry*t1*vv1rrr+3*t1*aj1sy*vv1rrs+3*aj1ry*t7*
-     & vv1rss+t7*aj1sy*vv1sss+3*aj1ry*aj1ryy*vv1rr+(3*aj1syy*aj1ry+3*
-     & aj1sy*aj1ryy)*vv1rs+3*aj1syy*aj1sy*vv1ss+aj1ryyy*vv1r+aj1syyy*
-     & vv1s
-               t1 = aj1rx**2
-               t2 = t1**2
-               t8 = aj1sx**2
-               t16 = t8**2
-               t25 = aj1sxx*aj1rx
-               t27 = t25+aj1sx*aj1rxx
-               t28 = 3*t27
-               t30 = 2*t27
-               t46 = aj1rxx**2
-               t60 = aj1sxx**2
-               v1xxxx = t2*vv1rrrr+4*t1*aj1rx*aj1sx*vv1rrrs+6*t1*t8*
-     & vv1rrss+4*aj1rx*t8*aj1sx*vv1rsss+t16*vv1ssss+6*t1*aj1rxx*
+                   t1 = aj1ry**2
+                   t7 = aj1sy**2
+                   v1yyy = aj1ry*t1*vv1rrr+3*t1*aj1sy*vv1rrs+3*aj1ry*
+     & t7*vv1rss+t7*aj1sy*vv1sss+3*aj1ry*aj1ryy*vv1rr+(3*aj1syy*aj1ry+
+     & 3*aj1sy*aj1ryy)*vv1rs+3*aj1syy*aj1sy*vv1ss+aj1ryyy*vv1r+
+     & aj1syyy*vv1s
+                   t1 = aj1rx**2
+                   t2 = t1**2
+                   t8 = aj1sx**2
+                   t16 = t8**2
+                   t25 = aj1sxx*aj1rx
+                   t27 = t25+aj1sx*aj1rxx
+                   t28 = 3*t27
+                   t30 = 2*t27
+                   t46 = aj1rxx**2
+                   t60 = aj1sxx**2
+                   v1xxxx = t2*vv1rrrr+4*t1*aj1rx*aj1sx*vv1rrrs+6*t1*
+     & t8*vv1rrss+4*aj1rx*t8*aj1sx*vv1rsss+t16*vv1ssss+6*t1*aj1rxx*
      & vv1rrr+(7*aj1sx*aj1rx*aj1rxx+aj1sxx*t1+aj1rx*t28+aj1rx*t30)*
      & vv1rrs+(aj1sx*t28+7*t25*aj1sx+aj1rxx*t8+aj1sx*t30)*vv1rss+6*t8*
      & aj1sxx*vv1sss+(4*aj1rx*aj1rxxx+3*t46)*vv1rr+(4*aj1sxxx*aj1rx+4*
      & aj1sx*aj1rxxx+6*aj1sxx*aj1rxx)*vv1rs+(4*aj1sxxx*aj1sx+3*t60)*
      & vv1ss+aj1rxxxx*vv1r+aj1sxxxx*vv1s
-               t1 = aj1ry**2
-               t2 = aj1rx**2
-               t5 = aj1sy*aj1ry
-               t11 = aj1sy*t2+2*aj1ry*aj1sx*aj1rx
-               t16 = aj1sx**2
-               t21 = aj1ry*t16+2*aj1sy*aj1sx*aj1rx
-               t29 = aj1sy**2
-               t38 = 2*aj1rxy*aj1rx+aj1ry*aj1rxx
-               t52 = aj1sx*aj1rxy
-               t54 = aj1sxy*aj1rx
-               t57 = aj1ry*aj1sxx+2*t52+2*t54+aj1sy*aj1rxx
-               t60 = 2*t52+2*t54
-               t68 = aj1sy*aj1sxx+2*aj1sxy*aj1sx
-               t92 = aj1rxy**2
-               t110 = aj1sxy**2
-               v1xxyy = t1*t2*vv1rrrr+(t5*t2+aj1ry*t11)*vv1rrrs+(aj1sy*
-     & t11+aj1ry*t21)*vv1rrss+(aj1sy*t21+t5*t16)*vv1rsss+t29*t16*
-     & vv1ssss+(2*aj1ry*aj1rxy*aj1rx+aj1ry*t38+aj1ryy*t2)*vv1rrr+(
+                   t1 = aj1ry**2
+                   t2 = aj1rx**2
+                   t5 = aj1sy*aj1ry
+                   t11 = aj1sy*t2+2*aj1ry*aj1sx*aj1rx
+                   t16 = aj1sx**2
+                   t21 = aj1ry*t16+2*aj1sy*aj1sx*aj1rx
+                   t29 = aj1sy**2
+                   t38 = 2*aj1rxy*aj1rx+aj1ry*aj1rxx
+                   t52 = aj1sx*aj1rxy
+                   t54 = aj1sxy*aj1rx
+                   t57 = aj1ry*aj1sxx+2*t52+2*t54+aj1sy*aj1rxx
+                   t60 = 2*t52+2*t54
+                   t68 = aj1sy*aj1sxx+2*aj1sxy*aj1sx
+                   t92 = aj1rxy**2
+                   t110 = aj1sxy**2
+                   v1xxyy = t1*t2*vv1rrrr+(t5*t2+aj1ry*t11)*vv1rrrs+(
+     & aj1sy*t11+aj1ry*t21)*vv1rrss+(aj1sy*t21+t5*t16)*vv1rsss+t29*
+     & t16*vv1ssss+(2*aj1ry*aj1rxy*aj1rx+aj1ry*t38+aj1ryy*t2)*vv1rrr+(
      & aj1sy*t38+2*aj1sy*aj1rxy*aj1rx+2*aj1ryy*aj1sx*aj1rx+aj1syy*t2+
      & aj1ry*t57+aj1ry*t60)*vv1rrs+(aj1sy*t57+aj1ry*t68+aj1ryy*t16+2*
      & aj1ry*aj1sxy*aj1sx+2*aj1syy*aj1sx*aj1rx+aj1sy*t60)*vv1rss+(2*
@@ -7078,398 +8738,400 @@
      & aj1rx+aj1syy*aj1rxx+2*aj1sx*aj1rxyy)*vv1rs+(2*t110+2*aj1sy*
      & aj1sxxy+aj1syy*aj1sxx+2*aj1sx*aj1sxyy)*vv1ss+aj1rxxyy*vv1r+
      & aj1sxxyy*vv1s
-               t1 = aj1ry**2
-               t2 = t1**2
-               t8 = aj1sy**2
-               t16 = t8**2
-               t25 = aj1syy*aj1ry
-               t27 = t25+aj1sy*aj1ryy
-               t28 = 3*t27
-               t30 = 2*t27
-               t46 = aj1ryy**2
-               t60 = aj1syy**2
-               v1yyyy = t2*vv1rrrr+4*t1*aj1ry*aj1sy*vv1rrrs+6*t1*t8*
-     & vv1rrss+4*aj1ry*t8*aj1sy*vv1rsss+t16*vv1ssss+6*t1*aj1ryy*
+                   t1 = aj1ry**2
+                   t2 = t1**2
+                   t8 = aj1sy**2
+                   t16 = t8**2
+                   t25 = aj1syy*aj1ry
+                   t27 = t25+aj1sy*aj1ryy
+                   t28 = 3*t27
+                   t30 = 2*t27
+                   t46 = aj1ryy**2
+                   t60 = aj1syy**2
+                   v1yyyy = t2*vv1rrrr+4*t1*aj1ry*aj1sy*vv1rrrs+6*t1*
+     & t8*vv1rrss+4*aj1ry*t8*aj1sy*vv1rsss+t16*vv1ssss+6*t1*aj1ryy*
      & vv1rrr+(7*aj1sy*aj1ry*aj1ryy+aj1syy*t1+aj1ry*t28+aj1ry*t30)*
      & vv1rrs+(aj1sy*t28+7*t25*aj1sy+aj1ryy*t8+aj1sy*t30)*vv1rss+6*t8*
      & aj1syy*vv1sss+(4*aj1ry*aj1ryyy+3*t46)*vv1rr+(4*aj1syyy*aj1ry+4*
      & aj1sy*aj1ryyy+6*aj1syy*aj1ryy)*vv1rs+(4*aj1syyy*aj1sy+3*t60)*
      & vv1ss+aj1ryyyy*vv1r+aj1syyyy*vv1s
-             v1LapSq = v1xxxx +2.* v1xxyy + v1yyyy
-            ! NOTE: the jacobian derivatives can be computed once for all components
-             ! this next call will define the jacobian and its derivatives (parameteric and spatial)
-             aj2rx = rsxy2(j1,j2,j3,0,0)
-             aj2rxr = (-rsxy2(j1-1,j2,j3,0,0)+rsxy2(j1+1,j2,j3,0,0))/(
-     & 2.*dr2(0))
-             aj2rxs = (-rsxy2(j1,j2-1,j3,0,0)+rsxy2(j1,j2+1,j3,0,0))/(
-     & 2.*dr2(1))
-             aj2rxrr = (rsxy2(j1-1,j2,j3,0,0)-2.*rsxy2(j1,j2,j3,0,0)+
-     & rsxy2(j1+1,j2,j3,0,0))/(dr2(0)**2)
-             aj2rxrs = (-(-rsxy2(j1-1,j2-1,j3,0,0)+rsxy2(j1-1,j2+1,j3,
-     & 0,0))/(2.*dr2(1))+(-rsxy2(j1+1,j2-1,j3,0,0)+rsxy2(j1+1,j2+1,j3,
-     & 0,0))/(2.*dr2(1)))/(2.*dr2(0))
-             aj2rxss = (rsxy2(j1,j2-1,j3,0,0)-2.*rsxy2(j1,j2,j3,0,0)+
-     & rsxy2(j1,j2+1,j3,0,0))/(dr2(1)**2)
-             aj2rxrrr = (-rsxy2(j1-2,j2,j3,0,0)+2.*rsxy2(j1-1,j2,j3,0,
-     & 0)-2.*rsxy2(j1+1,j2,j3,0,0)+rsxy2(j1+2,j2,j3,0,0))/(2.*dr2(0)**
-     & 3)
-             aj2rxrrs = ((-rsxy2(j1-1,j2-1,j3,0,0)+rsxy2(j1-1,j2+1,j3,
-     & 0,0))/(2.*dr2(1))-2.*(-rsxy2(j1,j2-1,j3,0,0)+rsxy2(j1,j2+1,j3,
-     & 0,0))/(2.*dr2(1))+(-rsxy2(j1+1,j2-1,j3,0,0)+rsxy2(j1+1,j2+1,j3,
-     & 0,0))/(2.*dr2(1)))/(dr2(0)**2)
-             aj2rxrss = (-(rsxy2(j1-1,j2-1,j3,0,0)-2.*rsxy2(j1-1,j2,j3,
-     & 0,0)+rsxy2(j1-1,j2+1,j3,0,0))/(dr2(1)**2)+(rsxy2(j1+1,j2-1,j3,
-     & 0,0)-2.*rsxy2(j1+1,j2,j3,0,0)+rsxy2(j1+1,j2+1,j3,0,0))/(dr2(1)*
-     & *2))/(2.*dr2(0))
-             aj2rxsss = (-rsxy2(j1,j2-2,j3,0,0)+2.*rsxy2(j1,j2-1,j3,0,
-     & 0)-2.*rsxy2(j1,j2+1,j3,0,0)+rsxy2(j1,j2+2,j3,0,0))/(2.*dr2(1)**
-     & 3)
-             aj2sx = rsxy2(j1,j2,j3,1,0)
-             aj2sxr = (-rsxy2(j1-1,j2,j3,1,0)+rsxy2(j1+1,j2,j3,1,0))/(
-     & 2.*dr2(0))
-             aj2sxs = (-rsxy2(j1,j2-1,j3,1,0)+rsxy2(j1,j2+1,j3,1,0))/(
-     & 2.*dr2(1))
-             aj2sxrr = (rsxy2(j1-1,j2,j3,1,0)-2.*rsxy2(j1,j2,j3,1,0)+
-     & rsxy2(j1+1,j2,j3,1,0))/(dr2(0)**2)
-             aj2sxrs = (-(-rsxy2(j1-1,j2-1,j3,1,0)+rsxy2(j1-1,j2+1,j3,
-     & 1,0))/(2.*dr2(1))+(-rsxy2(j1+1,j2-1,j3,1,0)+rsxy2(j1+1,j2+1,j3,
-     & 1,0))/(2.*dr2(1)))/(2.*dr2(0))
-             aj2sxss = (rsxy2(j1,j2-1,j3,1,0)-2.*rsxy2(j1,j2,j3,1,0)+
-     & rsxy2(j1,j2+1,j3,1,0))/(dr2(1)**2)
-             aj2sxrrr = (-rsxy2(j1-2,j2,j3,1,0)+2.*rsxy2(j1-1,j2,j3,1,
-     & 0)-2.*rsxy2(j1+1,j2,j3,1,0)+rsxy2(j1+2,j2,j3,1,0))/(2.*dr2(0)**
-     & 3)
-             aj2sxrrs = ((-rsxy2(j1-1,j2-1,j3,1,0)+rsxy2(j1-1,j2+1,j3,
-     & 1,0))/(2.*dr2(1))-2.*(-rsxy2(j1,j2-1,j3,1,0)+rsxy2(j1,j2+1,j3,
-     & 1,0))/(2.*dr2(1))+(-rsxy2(j1+1,j2-1,j3,1,0)+rsxy2(j1+1,j2+1,j3,
-     & 1,0))/(2.*dr2(1)))/(dr2(0)**2)
-             aj2sxrss = (-(rsxy2(j1-1,j2-1,j3,1,0)-2.*rsxy2(j1-1,j2,j3,
-     & 1,0)+rsxy2(j1-1,j2+1,j3,1,0))/(dr2(1)**2)+(rsxy2(j1+1,j2-1,j3,
-     & 1,0)-2.*rsxy2(j1+1,j2,j3,1,0)+rsxy2(j1+1,j2+1,j3,1,0))/(dr2(1)*
-     & *2))/(2.*dr2(0))
-             aj2sxsss = (-rsxy2(j1,j2-2,j3,1,0)+2.*rsxy2(j1,j2-1,j3,1,
-     & 0)-2.*rsxy2(j1,j2+1,j3,1,0)+rsxy2(j1,j2+2,j3,1,0))/(2.*dr2(1)**
-     & 3)
-             aj2ry = rsxy2(j1,j2,j3,0,1)
-             aj2ryr = (-rsxy2(j1-1,j2,j3,0,1)+rsxy2(j1+1,j2,j3,0,1))/(
-     & 2.*dr2(0))
-             aj2rys = (-rsxy2(j1,j2-1,j3,0,1)+rsxy2(j1,j2+1,j3,0,1))/(
-     & 2.*dr2(1))
-             aj2ryrr = (rsxy2(j1-1,j2,j3,0,1)-2.*rsxy2(j1,j2,j3,0,1)+
-     & rsxy2(j1+1,j2,j3,0,1))/(dr2(0)**2)
-             aj2ryrs = (-(-rsxy2(j1-1,j2-1,j3,0,1)+rsxy2(j1-1,j2+1,j3,
-     & 0,1))/(2.*dr2(1))+(-rsxy2(j1+1,j2-1,j3,0,1)+rsxy2(j1+1,j2+1,j3,
-     & 0,1))/(2.*dr2(1)))/(2.*dr2(0))
-             aj2ryss = (rsxy2(j1,j2-1,j3,0,1)-2.*rsxy2(j1,j2,j3,0,1)+
-     & rsxy2(j1,j2+1,j3,0,1))/(dr2(1)**2)
-             aj2ryrrr = (-rsxy2(j1-2,j2,j3,0,1)+2.*rsxy2(j1-1,j2,j3,0,
-     & 1)-2.*rsxy2(j1+1,j2,j3,0,1)+rsxy2(j1+2,j2,j3,0,1))/(2.*dr2(0)**
-     & 3)
-             aj2ryrrs = ((-rsxy2(j1-1,j2-1,j3,0,1)+rsxy2(j1-1,j2+1,j3,
-     & 0,1))/(2.*dr2(1))-2.*(-rsxy2(j1,j2-1,j3,0,1)+rsxy2(j1,j2+1,j3,
-     & 0,1))/(2.*dr2(1))+(-rsxy2(j1+1,j2-1,j3,0,1)+rsxy2(j1+1,j2+1,j3,
-     & 0,1))/(2.*dr2(1)))/(dr2(0)**2)
-             aj2ryrss = (-(rsxy2(j1-1,j2-1,j3,0,1)-2.*rsxy2(j1-1,j2,j3,
-     & 0,1)+rsxy2(j1-1,j2+1,j3,0,1))/(dr2(1)**2)+(rsxy2(j1+1,j2-1,j3,
-     & 0,1)-2.*rsxy2(j1+1,j2,j3,0,1)+rsxy2(j1+1,j2+1,j3,0,1))/(dr2(1)*
-     & *2))/(2.*dr2(0))
-             aj2rysss = (-rsxy2(j1,j2-2,j3,0,1)+2.*rsxy2(j1,j2-1,j3,0,
-     & 1)-2.*rsxy2(j1,j2+1,j3,0,1)+rsxy2(j1,j2+2,j3,0,1))/(2.*dr2(1)**
-     & 3)
-             aj2sy = rsxy2(j1,j2,j3,1,1)
-             aj2syr = (-rsxy2(j1-1,j2,j3,1,1)+rsxy2(j1+1,j2,j3,1,1))/(
-     & 2.*dr2(0))
-             aj2sys = (-rsxy2(j1,j2-1,j3,1,1)+rsxy2(j1,j2+1,j3,1,1))/(
-     & 2.*dr2(1))
-             aj2syrr = (rsxy2(j1-1,j2,j3,1,1)-2.*rsxy2(j1,j2,j3,1,1)+
-     & rsxy2(j1+1,j2,j3,1,1))/(dr2(0)**2)
-             aj2syrs = (-(-rsxy2(j1-1,j2-1,j3,1,1)+rsxy2(j1-1,j2+1,j3,
-     & 1,1))/(2.*dr2(1))+(-rsxy2(j1+1,j2-1,j3,1,1)+rsxy2(j1+1,j2+1,j3,
-     & 1,1))/(2.*dr2(1)))/(2.*dr2(0))
-             aj2syss = (rsxy2(j1,j2-1,j3,1,1)-2.*rsxy2(j1,j2,j3,1,1)+
-     & rsxy2(j1,j2+1,j3,1,1))/(dr2(1)**2)
-             aj2syrrr = (-rsxy2(j1-2,j2,j3,1,1)+2.*rsxy2(j1-1,j2,j3,1,
-     & 1)-2.*rsxy2(j1+1,j2,j3,1,1)+rsxy2(j1+2,j2,j3,1,1))/(2.*dr2(0)**
-     & 3)
-             aj2syrrs = ((-rsxy2(j1-1,j2-1,j3,1,1)+rsxy2(j1-1,j2+1,j3,
-     & 1,1))/(2.*dr2(1))-2.*(-rsxy2(j1,j2-1,j3,1,1)+rsxy2(j1,j2+1,j3,
-     & 1,1))/(2.*dr2(1))+(-rsxy2(j1+1,j2-1,j3,1,1)+rsxy2(j1+1,j2+1,j3,
-     & 1,1))/(2.*dr2(1)))/(dr2(0)**2)
-             aj2syrss = (-(rsxy2(j1-1,j2-1,j3,1,1)-2.*rsxy2(j1-1,j2,j3,
-     & 1,1)+rsxy2(j1-1,j2+1,j3,1,1))/(dr2(1)**2)+(rsxy2(j1+1,j2-1,j3,
-     & 1,1)-2.*rsxy2(j1+1,j2,j3,1,1)+rsxy2(j1+1,j2+1,j3,1,1))/(dr2(1)*
-     & *2))/(2.*dr2(0))
-             aj2sysss = (-rsxy2(j1,j2-2,j3,1,1)+2.*rsxy2(j1,j2-1,j3,1,
-     & 1)-2.*rsxy2(j1,j2+1,j3,1,1)+rsxy2(j1,j2+2,j3,1,1))/(2.*dr2(1)**
-     & 3)
-             aj2rxx = aj2rx*aj2rxr+aj2sx*aj2rxs
-             aj2rxy = aj2ry*aj2rxr+aj2sy*aj2rxs
-             aj2sxx = aj2rx*aj2sxr+aj2sx*aj2sxs
-             aj2sxy = aj2ry*aj2sxr+aj2sy*aj2sxs
-             aj2ryx = aj2rx*aj2ryr+aj2sx*aj2rys
-             aj2ryy = aj2ry*aj2ryr+aj2sy*aj2rys
-             aj2syx = aj2rx*aj2syr+aj2sx*aj2sys
-             aj2syy = aj2ry*aj2syr+aj2sy*aj2sys
-             t1 = aj2rx**2
-             t6 = aj2sx**2
-             aj2rxxx = t1*aj2rxrr+2*aj2rx*aj2sx*aj2rxrs+t6*aj2rxss+
+                 v1LapSq = v1xxxx +2.* v1xxyy + v1yyyy
+                ! NOTE: the jacobian derivatives can be computed once for all components
+                 ! this next call will define the jacobian and its derivatives (parameteric and spatial)
+                 aj2rx = rsxy2(j1,j2,j3,0,0)
+                 aj2rxr = (-rsxy2(j1-1,j2,j3,0,0)+rsxy2(j1+1,j2,j3,0,0)
+     & )/(2.*dr2(0))
+                 aj2rxs = (-rsxy2(j1,j2-1,j3,0,0)+rsxy2(j1,j2+1,j3,0,0)
+     & )/(2.*dr2(1))
+                 aj2rxrr = (rsxy2(j1-1,j2,j3,0,0)-2.*rsxy2(j1,j2,j3,0,
+     & 0)+rsxy2(j1+1,j2,j3,0,0))/(dr2(0)**2)
+                 aj2rxrs = (-(-rsxy2(j1-1,j2-1,j3,0,0)+rsxy2(j1-1,j2+1,
+     & j3,0,0))/(2.*dr2(1))+(-rsxy2(j1+1,j2-1,j3,0,0)+rsxy2(j1+1,j2+1,
+     & j3,0,0))/(2.*dr2(1)))/(2.*dr2(0))
+                 aj2rxss = (rsxy2(j1,j2-1,j3,0,0)-2.*rsxy2(j1,j2,j3,0,
+     & 0)+rsxy2(j1,j2+1,j3,0,0))/(dr2(1)**2)
+                 aj2rxrrr = (-rsxy2(j1-2,j2,j3,0,0)+2.*rsxy2(j1-1,j2,
+     & j3,0,0)-2.*rsxy2(j1+1,j2,j3,0,0)+rsxy2(j1+2,j2,j3,0,0))/(2.*
+     & dr2(0)**3)
+                 aj2rxrrs = ((-rsxy2(j1-1,j2-1,j3,0,0)+rsxy2(j1-1,j2+1,
+     & j3,0,0))/(2.*dr2(1))-2.*(-rsxy2(j1,j2-1,j3,0,0)+rsxy2(j1,j2+1,
+     & j3,0,0))/(2.*dr2(1))+(-rsxy2(j1+1,j2-1,j3,0,0)+rsxy2(j1+1,j2+1,
+     & j3,0,0))/(2.*dr2(1)))/(dr2(0)**2)
+                 aj2rxrss = (-(rsxy2(j1-1,j2-1,j3,0,0)-2.*rsxy2(j1-1,
+     & j2,j3,0,0)+rsxy2(j1-1,j2+1,j3,0,0))/(dr2(1)**2)+(rsxy2(j1+1,j2-
+     & 1,j3,0,0)-2.*rsxy2(j1+1,j2,j3,0,0)+rsxy2(j1+1,j2+1,j3,0,0))/(
+     & dr2(1)**2))/(2.*dr2(0))
+                 aj2rxsss = (-rsxy2(j1,j2-2,j3,0,0)+2.*rsxy2(j1,j2-1,
+     & j3,0,0)-2.*rsxy2(j1,j2+1,j3,0,0)+rsxy2(j1,j2+2,j3,0,0))/(2.*
+     & dr2(1)**3)
+                 aj2sx = rsxy2(j1,j2,j3,1,0)
+                 aj2sxr = (-rsxy2(j1-1,j2,j3,1,0)+rsxy2(j1+1,j2,j3,1,0)
+     & )/(2.*dr2(0))
+                 aj2sxs = (-rsxy2(j1,j2-1,j3,1,0)+rsxy2(j1,j2+1,j3,1,0)
+     & )/(2.*dr2(1))
+                 aj2sxrr = (rsxy2(j1-1,j2,j3,1,0)-2.*rsxy2(j1,j2,j3,1,
+     & 0)+rsxy2(j1+1,j2,j3,1,0))/(dr2(0)**2)
+                 aj2sxrs = (-(-rsxy2(j1-1,j2-1,j3,1,0)+rsxy2(j1-1,j2+1,
+     & j3,1,0))/(2.*dr2(1))+(-rsxy2(j1+1,j2-1,j3,1,0)+rsxy2(j1+1,j2+1,
+     & j3,1,0))/(2.*dr2(1)))/(2.*dr2(0))
+                 aj2sxss = (rsxy2(j1,j2-1,j3,1,0)-2.*rsxy2(j1,j2,j3,1,
+     & 0)+rsxy2(j1,j2+1,j3,1,0))/(dr2(1)**2)
+                 aj2sxrrr = (-rsxy2(j1-2,j2,j3,1,0)+2.*rsxy2(j1-1,j2,
+     & j3,1,0)-2.*rsxy2(j1+1,j2,j3,1,0)+rsxy2(j1+2,j2,j3,1,0))/(2.*
+     & dr2(0)**3)
+                 aj2sxrrs = ((-rsxy2(j1-1,j2-1,j3,1,0)+rsxy2(j1-1,j2+1,
+     & j3,1,0))/(2.*dr2(1))-2.*(-rsxy2(j1,j2-1,j3,1,0)+rsxy2(j1,j2+1,
+     & j3,1,0))/(2.*dr2(1))+(-rsxy2(j1+1,j2-1,j3,1,0)+rsxy2(j1+1,j2+1,
+     & j3,1,0))/(2.*dr2(1)))/(dr2(0)**2)
+                 aj2sxrss = (-(rsxy2(j1-1,j2-1,j3,1,0)-2.*rsxy2(j1-1,
+     & j2,j3,1,0)+rsxy2(j1-1,j2+1,j3,1,0))/(dr2(1)**2)+(rsxy2(j1+1,j2-
+     & 1,j3,1,0)-2.*rsxy2(j1+1,j2,j3,1,0)+rsxy2(j1+1,j2+1,j3,1,0))/(
+     & dr2(1)**2))/(2.*dr2(0))
+                 aj2sxsss = (-rsxy2(j1,j2-2,j3,1,0)+2.*rsxy2(j1,j2-1,
+     & j3,1,0)-2.*rsxy2(j1,j2+1,j3,1,0)+rsxy2(j1,j2+2,j3,1,0))/(2.*
+     & dr2(1)**3)
+                 aj2ry = rsxy2(j1,j2,j3,0,1)
+                 aj2ryr = (-rsxy2(j1-1,j2,j3,0,1)+rsxy2(j1+1,j2,j3,0,1)
+     & )/(2.*dr2(0))
+                 aj2rys = (-rsxy2(j1,j2-1,j3,0,1)+rsxy2(j1,j2+1,j3,0,1)
+     & )/(2.*dr2(1))
+                 aj2ryrr = (rsxy2(j1-1,j2,j3,0,1)-2.*rsxy2(j1,j2,j3,0,
+     & 1)+rsxy2(j1+1,j2,j3,0,1))/(dr2(0)**2)
+                 aj2ryrs = (-(-rsxy2(j1-1,j2-1,j3,0,1)+rsxy2(j1-1,j2+1,
+     & j3,0,1))/(2.*dr2(1))+(-rsxy2(j1+1,j2-1,j3,0,1)+rsxy2(j1+1,j2+1,
+     & j3,0,1))/(2.*dr2(1)))/(2.*dr2(0))
+                 aj2ryss = (rsxy2(j1,j2-1,j3,0,1)-2.*rsxy2(j1,j2,j3,0,
+     & 1)+rsxy2(j1,j2+1,j3,0,1))/(dr2(1)**2)
+                 aj2ryrrr = (-rsxy2(j1-2,j2,j3,0,1)+2.*rsxy2(j1-1,j2,
+     & j3,0,1)-2.*rsxy2(j1+1,j2,j3,0,1)+rsxy2(j1+2,j2,j3,0,1))/(2.*
+     & dr2(0)**3)
+                 aj2ryrrs = ((-rsxy2(j1-1,j2-1,j3,0,1)+rsxy2(j1-1,j2+1,
+     & j3,0,1))/(2.*dr2(1))-2.*(-rsxy2(j1,j2-1,j3,0,1)+rsxy2(j1,j2+1,
+     & j3,0,1))/(2.*dr2(1))+(-rsxy2(j1+1,j2-1,j3,0,1)+rsxy2(j1+1,j2+1,
+     & j3,0,1))/(2.*dr2(1)))/(dr2(0)**2)
+                 aj2ryrss = (-(rsxy2(j1-1,j2-1,j3,0,1)-2.*rsxy2(j1-1,
+     & j2,j3,0,1)+rsxy2(j1-1,j2+1,j3,0,1))/(dr2(1)**2)+(rsxy2(j1+1,j2-
+     & 1,j3,0,1)-2.*rsxy2(j1+1,j2,j3,0,1)+rsxy2(j1+1,j2+1,j3,0,1))/(
+     & dr2(1)**2))/(2.*dr2(0))
+                 aj2rysss = (-rsxy2(j1,j2-2,j3,0,1)+2.*rsxy2(j1,j2-1,
+     & j3,0,1)-2.*rsxy2(j1,j2+1,j3,0,1)+rsxy2(j1,j2+2,j3,0,1))/(2.*
+     & dr2(1)**3)
+                 aj2sy = rsxy2(j1,j2,j3,1,1)
+                 aj2syr = (-rsxy2(j1-1,j2,j3,1,1)+rsxy2(j1+1,j2,j3,1,1)
+     & )/(2.*dr2(0))
+                 aj2sys = (-rsxy2(j1,j2-1,j3,1,1)+rsxy2(j1,j2+1,j3,1,1)
+     & )/(2.*dr2(1))
+                 aj2syrr = (rsxy2(j1-1,j2,j3,1,1)-2.*rsxy2(j1,j2,j3,1,
+     & 1)+rsxy2(j1+1,j2,j3,1,1))/(dr2(0)**2)
+                 aj2syrs = (-(-rsxy2(j1-1,j2-1,j3,1,1)+rsxy2(j1-1,j2+1,
+     & j3,1,1))/(2.*dr2(1))+(-rsxy2(j1+1,j2-1,j3,1,1)+rsxy2(j1+1,j2+1,
+     & j3,1,1))/(2.*dr2(1)))/(2.*dr2(0))
+                 aj2syss = (rsxy2(j1,j2-1,j3,1,1)-2.*rsxy2(j1,j2,j3,1,
+     & 1)+rsxy2(j1,j2+1,j3,1,1))/(dr2(1)**2)
+                 aj2syrrr = (-rsxy2(j1-2,j2,j3,1,1)+2.*rsxy2(j1-1,j2,
+     & j3,1,1)-2.*rsxy2(j1+1,j2,j3,1,1)+rsxy2(j1+2,j2,j3,1,1))/(2.*
+     & dr2(0)**3)
+                 aj2syrrs = ((-rsxy2(j1-1,j2-1,j3,1,1)+rsxy2(j1-1,j2+1,
+     & j3,1,1))/(2.*dr2(1))-2.*(-rsxy2(j1,j2-1,j3,1,1)+rsxy2(j1,j2+1,
+     & j3,1,1))/(2.*dr2(1))+(-rsxy2(j1+1,j2-1,j3,1,1)+rsxy2(j1+1,j2+1,
+     & j3,1,1))/(2.*dr2(1)))/(dr2(0)**2)
+                 aj2syrss = (-(rsxy2(j1-1,j2-1,j3,1,1)-2.*rsxy2(j1-1,
+     & j2,j3,1,1)+rsxy2(j1-1,j2+1,j3,1,1))/(dr2(1)**2)+(rsxy2(j1+1,j2-
+     & 1,j3,1,1)-2.*rsxy2(j1+1,j2,j3,1,1)+rsxy2(j1+1,j2+1,j3,1,1))/(
+     & dr2(1)**2))/(2.*dr2(0))
+                 aj2sysss = (-rsxy2(j1,j2-2,j3,1,1)+2.*rsxy2(j1,j2-1,
+     & j3,1,1)-2.*rsxy2(j1,j2+1,j3,1,1)+rsxy2(j1,j2+2,j3,1,1))/(2.*
+     & dr2(1)**3)
+                 aj2rxx = aj2rx*aj2rxr+aj2sx*aj2rxs
+                 aj2rxy = aj2ry*aj2rxr+aj2sy*aj2rxs
+                 aj2sxx = aj2rx*aj2sxr+aj2sx*aj2sxs
+                 aj2sxy = aj2ry*aj2sxr+aj2sy*aj2sxs
+                 aj2ryx = aj2rx*aj2ryr+aj2sx*aj2rys
+                 aj2ryy = aj2ry*aj2ryr+aj2sy*aj2rys
+                 aj2syx = aj2rx*aj2syr+aj2sx*aj2sys
+                 aj2syy = aj2ry*aj2syr+aj2sy*aj2sys
+                 t1 = aj2rx**2
+                 t6 = aj2sx**2
+                 aj2rxxx = t1*aj2rxrr+2*aj2rx*aj2sx*aj2rxrs+t6*aj2rxss+
      & aj2rxx*aj2rxr+aj2sxx*aj2rxs
-             aj2rxxy = aj2ry*aj2rx*aj2rxrr+(aj2sy*aj2rx+aj2ry*aj2sx)*
-     & aj2rxrs+aj2sy*aj2sx*aj2rxss+aj2rxy*aj2rxr+aj2sxy*aj2rxs
-             t1 = aj2ry**2
-             t6 = aj2sy**2
-             aj2rxyy = t1*aj2rxrr+2*aj2ry*aj2sy*aj2rxrs+t6*aj2rxss+
+                 aj2rxxy = aj2ry*aj2rx*aj2rxrr+(aj2sy*aj2rx+aj2ry*
+     & aj2sx)*aj2rxrs+aj2sy*aj2sx*aj2rxss+aj2rxy*aj2rxr+aj2sxy*aj2rxs
+                 t1 = aj2ry**2
+                 t6 = aj2sy**2
+                 aj2rxyy = t1*aj2rxrr+2*aj2ry*aj2sy*aj2rxrs+t6*aj2rxss+
      & aj2ryy*aj2rxr+aj2syy*aj2rxs
-             t1 = aj2rx**2
-             t6 = aj2sx**2
-             aj2sxxx = t1*aj2sxrr+2*aj2rx*aj2sx*aj2sxrs+t6*aj2sxss+
+                 t1 = aj2rx**2
+                 t6 = aj2sx**2
+                 aj2sxxx = t1*aj2sxrr+2*aj2rx*aj2sx*aj2sxrs+t6*aj2sxss+
      & aj2rxx*aj2sxr+aj2sxx*aj2sxs
-             aj2sxxy = aj2ry*aj2rx*aj2sxrr+(aj2sy*aj2rx+aj2ry*aj2sx)*
-     & aj2sxrs+aj2sy*aj2sx*aj2sxss+aj2rxy*aj2sxr+aj2sxy*aj2sxs
-             t1 = aj2ry**2
-             t6 = aj2sy**2
-             aj2sxyy = t1*aj2sxrr+2*aj2ry*aj2sy*aj2sxrs+t6*aj2sxss+
+                 aj2sxxy = aj2ry*aj2rx*aj2sxrr+(aj2sy*aj2rx+aj2ry*
+     & aj2sx)*aj2sxrs+aj2sy*aj2sx*aj2sxss+aj2rxy*aj2sxr+aj2sxy*aj2sxs
+                 t1 = aj2ry**2
+                 t6 = aj2sy**2
+                 aj2sxyy = t1*aj2sxrr+2*aj2ry*aj2sy*aj2sxrs+t6*aj2sxss+
      & aj2ryy*aj2sxr+aj2syy*aj2sxs
-             t1 = aj2rx**2
-             t6 = aj2sx**2
-             aj2ryxx = t1*aj2ryrr+2*aj2rx*aj2sx*aj2ryrs+t6*aj2ryss+
+                 t1 = aj2rx**2
+                 t6 = aj2sx**2
+                 aj2ryxx = t1*aj2ryrr+2*aj2rx*aj2sx*aj2ryrs+t6*aj2ryss+
      & aj2rxx*aj2ryr+aj2sxx*aj2rys
-             aj2ryxy = aj2ry*aj2rx*aj2ryrr+(aj2sy*aj2rx+aj2ry*aj2sx)*
-     & aj2ryrs+aj2sy*aj2sx*aj2ryss+aj2rxy*aj2ryr+aj2sxy*aj2rys
-             t1 = aj2ry**2
-             t6 = aj2sy**2
-             aj2ryyy = t1*aj2ryrr+2*aj2ry*aj2sy*aj2ryrs+t6*aj2ryss+
+                 aj2ryxy = aj2ry*aj2rx*aj2ryrr+(aj2sy*aj2rx+aj2ry*
+     & aj2sx)*aj2ryrs+aj2sy*aj2sx*aj2ryss+aj2rxy*aj2ryr+aj2sxy*aj2rys
+                 t1 = aj2ry**2
+                 t6 = aj2sy**2
+                 aj2ryyy = t1*aj2ryrr+2*aj2ry*aj2sy*aj2ryrs+t6*aj2ryss+
      & aj2ryy*aj2ryr+aj2syy*aj2rys
-             t1 = aj2rx**2
-             t6 = aj2sx**2
-             aj2syxx = t1*aj2syrr+2*aj2rx*aj2sx*aj2syrs+t6*aj2syss+
+                 t1 = aj2rx**2
+                 t6 = aj2sx**2
+                 aj2syxx = t1*aj2syrr+2*aj2rx*aj2sx*aj2syrs+t6*aj2syss+
      & aj2rxx*aj2syr+aj2sxx*aj2sys
-             aj2syxy = aj2ry*aj2rx*aj2syrr+(aj2sy*aj2rx+aj2ry*aj2sx)*
-     & aj2syrs+aj2sy*aj2sx*aj2syss+aj2rxy*aj2syr+aj2sxy*aj2sys
-             t1 = aj2ry**2
-             t6 = aj2sy**2
-             aj2syyy = t1*aj2syrr+2*aj2ry*aj2sy*aj2syrs+t6*aj2syss+
+                 aj2syxy = aj2ry*aj2rx*aj2syrr+(aj2sy*aj2rx+aj2ry*
+     & aj2sx)*aj2syrs+aj2sy*aj2sx*aj2syss+aj2rxy*aj2syr+aj2sxy*aj2sys
+                 t1 = aj2ry**2
+                 t6 = aj2sy**2
+                 aj2syyy = t1*aj2syrr+2*aj2ry*aj2sy*aj2syrs+t6*aj2syss+
      & aj2ryy*aj2syr+aj2syy*aj2sys
-             t1 = aj2rx**2
-             t7 = aj2sx**2
-             aj2rxxxx = t1*aj2rx*aj2rxrrr+3*t1*aj2sx*aj2rxrrs+3*aj2rx*
-     & t7*aj2rxrss+t7*aj2sx*aj2rxsss+3*aj2rx*aj2rxx*aj2rxrr+(3*aj2sxx*
-     & aj2rx+3*aj2sx*aj2rxx)*aj2rxrs+3*aj2sxx*aj2sx*aj2rxss+aj2rxxx*
-     & aj2rxr+aj2sxxx*aj2rxs
-             t1 = aj2rx**2
-             t10 = aj2sx**2
-             aj2rxxxy = aj2ry*t1*aj2rxrrr+(aj2sy*t1+2*aj2ry*aj2sx*
+                 t1 = aj2rx**2
+                 t7 = aj2sx**2
+                 aj2rxxxx = t1*aj2rx*aj2rxrrr+3*t1*aj2sx*aj2rxrrs+3*
+     & aj2rx*t7*aj2rxrss+t7*aj2sx*aj2rxsss+3*aj2rx*aj2rxx*aj2rxrr+(3*
+     & aj2sxx*aj2rx+3*aj2sx*aj2rxx)*aj2rxrs+3*aj2sxx*aj2sx*aj2rxss+
+     & aj2rxxx*aj2rxr+aj2sxxx*aj2rxs
+                 t1 = aj2rx**2
+                 t10 = aj2sx**2
+                 aj2rxxxy = aj2ry*t1*aj2rxrrr+(aj2sy*t1+2*aj2ry*aj2sx*
      & aj2rx)*aj2rxrrs+(aj2ry*t10+2*aj2sy*aj2sx*aj2rx)*aj2rxrss+aj2sy*
      & t10*aj2rxsss+(2*aj2rxy*aj2rx+aj2ry*aj2rxx)*aj2rxrr+(aj2ry*
      & aj2sxx+2*aj2sx*aj2rxy+2*aj2sxy*aj2rx+aj2sy*aj2rxx)*aj2rxrs+(
      & aj2sy*aj2sxx+2*aj2sxy*aj2sx)*aj2rxss+aj2rxxy*aj2rxr+aj2sxxy*
      & aj2rxs
-             t1 = aj2ry**2
-             t4 = aj2sy*aj2ry
-             t8 = aj2sy*aj2rx+aj2ry*aj2sx
-             t16 = aj2sy**2
-             aj2rxxyy = t1*aj2rx*aj2rxrrr+(t4*aj2rx+aj2ry*t8)*aj2rxrrs+
-     & (t4*aj2sx+aj2sy*t8)*aj2rxrss+t16*aj2sx*aj2rxsss+(aj2ryy*aj2rx+
-     & 2*aj2ry*aj2rxy)*aj2rxrr+(2*aj2ry*aj2sxy+2*aj2sy*aj2rxy+aj2ryy*
-     & aj2sx+aj2syy*aj2rx)*aj2rxrs+(aj2syy*aj2sx+2*aj2sy*aj2sxy)*
-     & aj2rxss+aj2rxyy*aj2rxr+aj2sxyy*aj2rxs
-             t1 = aj2ry**2
-             t7 = aj2sy**2
-             aj2rxyyy = aj2ry*t1*aj2rxrrr+3*t1*aj2sy*aj2rxrrs+3*aj2ry*
-     & t7*aj2rxrss+t7*aj2sy*aj2rxsss+3*aj2ry*aj2ryy*aj2rxrr+(3*aj2syy*
-     & aj2ry+3*aj2sy*aj2ryy)*aj2rxrs+3*aj2syy*aj2sy*aj2rxss+aj2ryyy*
-     & aj2rxr+aj2syyy*aj2rxs
-             t1 = aj2rx**2
-             t7 = aj2sx**2
-             aj2sxxxx = t1*aj2rx*aj2sxrrr+3*t1*aj2sx*aj2sxrrs+3*aj2rx*
-     & t7*aj2sxrss+t7*aj2sx*aj2sxsss+3*aj2rx*aj2rxx*aj2sxrr+(3*aj2sxx*
-     & aj2rx+3*aj2sx*aj2rxx)*aj2sxrs+3*aj2sxx*aj2sx*aj2sxss+aj2rxxx*
-     & aj2sxr+aj2sxxx*aj2sxs
-             t1 = aj2rx**2
-             t10 = aj2sx**2
-             aj2sxxxy = aj2ry*t1*aj2sxrrr+(aj2sy*t1+2*aj2ry*aj2sx*
+                 t1 = aj2ry**2
+                 t4 = aj2sy*aj2ry
+                 t8 = aj2sy*aj2rx+aj2ry*aj2sx
+                 t16 = aj2sy**2
+                 aj2rxxyy = t1*aj2rx*aj2rxrrr+(t4*aj2rx+aj2ry*t8)*
+     & aj2rxrrs+(t4*aj2sx+aj2sy*t8)*aj2rxrss+t16*aj2sx*aj2rxsss+(
+     & aj2ryy*aj2rx+2*aj2ry*aj2rxy)*aj2rxrr+(2*aj2ry*aj2sxy+2*aj2sy*
+     & aj2rxy+aj2ryy*aj2sx+aj2syy*aj2rx)*aj2rxrs+(aj2syy*aj2sx+2*
+     & aj2sy*aj2sxy)*aj2rxss+aj2rxyy*aj2rxr+aj2sxyy*aj2rxs
+                 t1 = aj2ry**2
+                 t7 = aj2sy**2
+                 aj2rxyyy = aj2ry*t1*aj2rxrrr+3*t1*aj2sy*aj2rxrrs+3*
+     & aj2ry*t7*aj2rxrss+t7*aj2sy*aj2rxsss+3*aj2ry*aj2ryy*aj2rxrr+(3*
+     & aj2syy*aj2ry+3*aj2sy*aj2ryy)*aj2rxrs+3*aj2syy*aj2sy*aj2rxss+
+     & aj2ryyy*aj2rxr+aj2syyy*aj2rxs
+                 t1 = aj2rx**2
+                 t7 = aj2sx**2
+                 aj2sxxxx = t1*aj2rx*aj2sxrrr+3*t1*aj2sx*aj2sxrrs+3*
+     & aj2rx*t7*aj2sxrss+t7*aj2sx*aj2sxsss+3*aj2rx*aj2rxx*aj2sxrr+(3*
+     & aj2sxx*aj2rx+3*aj2sx*aj2rxx)*aj2sxrs+3*aj2sxx*aj2sx*aj2sxss+
+     & aj2rxxx*aj2sxr+aj2sxxx*aj2sxs
+                 t1 = aj2rx**2
+                 t10 = aj2sx**2
+                 aj2sxxxy = aj2ry*t1*aj2sxrrr+(aj2sy*t1+2*aj2ry*aj2sx*
      & aj2rx)*aj2sxrrs+(aj2ry*t10+2*aj2sy*aj2sx*aj2rx)*aj2sxrss+aj2sy*
      & t10*aj2sxsss+(2*aj2rxy*aj2rx+aj2ry*aj2rxx)*aj2sxrr+(aj2ry*
      & aj2sxx+2*aj2sx*aj2rxy+2*aj2sxy*aj2rx+aj2sy*aj2rxx)*aj2sxrs+(
      & aj2sy*aj2sxx+2*aj2sxy*aj2sx)*aj2sxss+aj2rxxy*aj2sxr+aj2sxxy*
      & aj2sxs
-             t1 = aj2ry**2
-             t4 = aj2sy*aj2ry
-             t8 = aj2sy*aj2rx+aj2ry*aj2sx
-             t16 = aj2sy**2
-             aj2sxxyy = t1*aj2rx*aj2sxrrr+(t4*aj2rx+aj2ry*t8)*aj2sxrrs+
-     & (t4*aj2sx+aj2sy*t8)*aj2sxrss+t16*aj2sx*aj2sxsss+(aj2ryy*aj2rx+
-     & 2*aj2ry*aj2rxy)*aj2sxrr+(2*aj2ry*aj2sxy+2*aj2sy*aj2rxy+aj2ryy*
-     & aj2sx+aj2syy*aj2rx)*aj2sxrs+(aj2syy*aj2sx+2*aj2sy*aj2sxy)*
-     & aj2sxss+aj2rxyy*aj2sxr+aj2sxyy*aj2sxs
-             t1 = aj2ry**2
-             t7 = aj2sy**2
-             aj2sxyyy = aj2ry*t1*aj2sxrrr+3*t1*aj2sy*aj2sxrrs+3*aj2ry*
-     & t7*aj2sxrss+t7*aj2sy*aj2sxsss+3*aj2ry*aj2ryy*aj2sxrr+(3*aj2syy*
-     & aj2ry+3*aj2sy*aj2ryy)*aj2sxrs+3*aj2syy*aj2sy*aj2sxss+aj2ryyy*
-     & aj2sxr+aj2syyy*aj2sxs
-             t1 = aj2rx**2
-             t7 = aj2sx**2
-             aj2ryxxx = t1*aj2rx*aj2ryrrr+3*t1*aj2sx*aj2ryrrs+3*aj2rx*
-     & t7*aj2ryrss+t7*aj2sx*aj2rysss+3*aj2rx*aj2rxx*aj2ryrr+(3*aj2sxx*
-     & aj2rx+3*aj2sx*aj2rxx)*aj2ryrs+3*aj2sxx*aj2sx*aj2ryss+aj2rxxx*
-     & aj2ryr+aj2sxxx*aj2rys
-             t1 = aj2rx**2
-             t10 = aj2sx**2
-             aj2ryxxy = aj2ry*t1*aj2ryrrr+(aj2sy*t1+2*aj2ry*aj2sx*
+                 t1 = aj2ry**2
+                 t4 = aj2sy*aj2ry
+                 t8 = aj2sy*aj2rx+aj2ry*aj2sx
+                 t16 = aj2sy**2
+                 aj2sxxyy = t1*aj2rx*aj2sxrrr+(t4*aj2rx+aj2ry*t8)*
+     & aj2sxrrs+(t4*aj2sx+aj2sy*t8)*aj2sxrss+t16*aj2sx*aj2sxsss+(
+     & aj2ryy*aj2rx+2*aj2ry*aj2rxy)*aj2sxrr+(2*aj2ry*aj2sxy+2*aj2sy*
+     & aj2rxy+aj2ryy*aj2sx+aj2syy*aj2rx)*aj2sxrs+(aj2syy*aj2sx+2*
+     & aj2sy*aj2sxy)*aj2sxss+aj2rxyy*aj2sxr+aj2sxyy*aj2sxs
+                 t1 = aj2ry**2
+                 t7 = aj2sy**2
+                 aj2sxyyy = aj2ry*t1*aj2sxrrr+3*t1*aj2sy*aj2sxrrs+3*
+     & aj2ry*t7*aj2sxrss+t7*aj2sy*aj2sxsss+3*aj2ry*aj2ryy*aj2sxrr+(3*
+     & aj2syy*aj2ry+3*aj2sy*aj2ryy)*aj2sxrs+3*aj2syy*aj2sy*aj2sxss+
+     & aj2ryyy*aj2sxr+aj2syyy*aj2sxs
+                 t1 = aj2rx**2
+                 t7 = aj2sx**2
+                 aj2ryxxx = t1*aj2rx*aj2ryrrr+3*t1*aj2sx*aj2ryrrs+3*
+     & aj2rx*t7*aj2ryrss+t7*aj2sx*aj2rysss+3*aj2rx*aj2rxx*aj2ryrr+(3*
+     & aj2sxx*aj2rx+3*aj2sx*aj2rxx)*aj2ryrs+3*aj2sxx*aj2sx*aj2ryss+
+     & aj2rxxx*aj2ryr+aj2sxxx*aj2rys
+                 t1 = aj2rx**2
+                 t10 = aj2sx**2
+                 aj2ryxxy = aj2ry*t1*aj2ryrrr+(aj2sy*t1+2*aj2ry*aj2sx*
      & aj2rx)*aj2ryrrs+(aj2ry*t10+2*aj2sy*aj2sx*aj2rx)*aj2ryrss+aj2sy*
      & t10*aj2rysss+(2*aj2rxy*aj2rx+aj2ry*aj2rxx)*aj2ryrr+(aj2ry*
      & aj2sxx+2*aj2sx*aj2rxy+2*aj2sxy*aj2rx+aj2sy*aj2rxx)*aj2ryrs+(
      & aj2sy*aj2sxx+2*aj2sxy*aj2sx)*aj2ryss+aj2rxxy*aj2ryr+aj2sxxy*
      & aj2rys
-             t1 = aj2ry**2
-             t4 = aj2sy*aj2ry
-             t8 = aj2sy*aj2rx+aj2ry*aj2sx
-             t16 = aj2sy**2
-             aj2ryxyy = t1*aj2rx*aj2ryrrr+(t4*aj2rx+aj2ry*t8)*aj2ryrrs+
-     & (t4*aj2sx+aj2sy*t8)*aj2ryrss+t16*aj2sx*aj2rysss+(aj2ryy*aj2rx+
-     & 2*aj2ry*aj2rxy)*aj2ryrr+(2*aj2ry*aj2sxy+2*aj2sy*aj2rxy+aj2ryy*
-     & aj2sx+aj2syy*aj2rx)*aj2ryrs+(aj2syy*aj2sx+2*aj2sy*aj2sxy)*
-     & aj2ryss+aj2rxyy*aj2ryr+aj2sxyy*aj2rys
-             t1 = aj2ry**2
-             t7 = aj2sy**2
-             aj2ryyyy = aj2ry*t1*aj2ryrrr+3*t1*aj2sy*aj2ryrrs+3*aj2ry*
-     & t7*aj2ryrss+t7*aj2sy*aj2rysss+3*aj2ry*aj2ryy*aj2ryrr+(3*aj2syy*
-     & aj2ry+3*aj2sy*aj2ryy)*aj2ryrs+3*aj2syy*aj2sy*aj2ryss+aj2ryyy*
-     & aj2ryr+aj2syyy*aj2rys
-             t1 = aj2rx**2
-             t7 = aj2sx**2
-             aj2syxxx = t1*aj2rx*aj2syrrr+3*t1*aj2sx*aj2syrrs+3*aj2rx*
-     & t7*aj2syrss+t7*aj2sx*aj2sysss+3*aj2rx*aj2rxx*aj2syrr+(3*aj2sxx*
-     & aj2rx+3*aj2sx*aj2rxx)*aj2syrs+3*aj2sxx*aj2sx*aj2syss+aj2rxxx*
-     & aj2syr+aj2sxxx*aj2sys
-             t1 = aj2rx**2
-             t10 = aj2sx**2
-             aj2syxxy = aj2ry*t1*aj2syrrr+(aj2sy*t1+2*aj2ry*aj2sx*
+                 t1 = aj2ry**2
+                 t4 = aj2sy*aj2ry
+                 t8 = aj2sy*aj2rx+aj2ry*aj2sx
+                 t16 = aj2sy**2
+                 aj2ryxyy = t1*aj2rx*aj2ryrrr+(t4*aj2rx+aj2ry*t8)*
+     & aj2ryrrs+(t4*aj2sx+aj2sy*t8)*aj2ryrss+t16*aj2sx*aj2rysss+(
+     & aj2ryy*aj2rx+2*aj2ry*aj2rxy)*aj2ryrr+(2*aj2ry*aj2sxy+2*aj2sy*
+     & aj2rxy+aj2ryy*aj2sx+aj2syy*aj2rx)*aj2ryrs+(aj2syy*aj2sx+2*
+     & aj2sy*aj2sxy)*aj2ryss+aj2rxyy*aj2ryr+aj2sxyy*aj2rys
+                 t1 = aj2ry**2
+                 t7 = aj2sy**2
+                 aj2ryyyy = aj2ry*t1*aj2ryrrr+3*t1*aj2sy*aj2ryrrs+3*
+     & aj2ry*t7*aj2ryrss+t7*aj2sy*aj2rysss+3*aj2ry*aj2ryy*aj2ryrr+(3*
+     & aj2syy*aj2ry+3*aj2sy*aj2ryy)*aj2ryrs+3*aj2syy*aj2sy*aj2ryss+
+     & aj2ryyy*aj2ryr+aj2syyy*aj2rys
+                 t1 = aj2rx**2
+                 t7 = aj2sx**2
+                 aj2syxxx = t1*aj2rx*aj2syrrr+3*t1*aj2sx*aj2syrrs+3*
+     & aj2rx*t7*aj2syrss+t7*aj2sx*aj2sysss+3*aj2rx*aj2rxx*aj2syrr+(3*
+     & aj2sxx*aj2rx+3*aj2sx*aj2rxx)*aj2syrs+3*aj2sxx*aj2sx*aj2syss+
+     & aj2rxxx*aj2syr+aj2sxxx*aj2sys
+                 t1 = aj2rx**2
+                 t10 = aj2sx**2
+                 aj2syxxy = aj2ry*t1*aj2syrrr+(aj2sy*t1+2*aj2ry*aj2sx*
      & aj2rx)*aj2syrrs+(aj2ry*t10+2*aj2sy*aj2sx*aj2rx)*aj2syrss+aj2sy*
      & t10*aj2sysss+(2*aj2rxy*aj2rx+aj2ry*aj2rxx)*aj2syrr+(aj2ry*
      & aj2sxx+2*aj2sx*aj2rxy+2*aj2sxy*aj2rx+aj2sy*aj2rxx)*aj2syrs+(
      & aj2sy*aj2sxx+2*aj2sxy*aj2sx)*aj2syss+aj2rxxy*aj2syr+aj2sxxy*
      & aj2sys
-             t1 = aj2ry**2
-             t4 = aj2sy*aj2ry
-             t8 = aj2sy*aj2rx+aj2ry*aj2sx
-             t16 = aj2sy**2
-             aj2syxyy = t1*aj2rx*aj2syrrr+(t4*aj2rx+aj2ry*t8)*aj2syrrs+
-     & (t4*aj2sx+aj2sy*t8)*aj2syrss+t16*aj2sx*aj2sysss+(aj2ryy*aj2rx+
-     & 2*aj2ry*aj2rxy)*aj2syrr+(2*aj2ry*aj2sxy+2*aj2sy*aj2rxy+aj2ryy*
-     & aj2sx+aj2syy*aj2rx)*aj2syrs+(aj2syy*aj2sx+2*aj2sy*aj2sxy)*
-     & aj2syss+aj2rxyy*aj2syr+aj2sxyy*aj2sys
-             t1 = aj2ry**2
-             t7 = aj2sy**2
-             aj2syyyy = aj2ry*t1*aj2syrrr+3*t1*aj2sy*aj2syrrs+3*aj2ry*
-     & t7*aj2syrss+t7*aj2sy*aj2sysss+3*aj2ry*aj2ryy*aj2syrr+(3*aj2syy*
-     & aj2ry+3*aj2sy*aj2ryy)*aj2syrs+3*aj2syy*aj2sy*aj2syss+aj2ryyy*
-     & aj2syr+aj2syyy*aj2sys
-              uu2 = u2(j1,j2,j3,ex)
-              uu2r = (-u2(j1-1,j2,j3,ex)+u2(j1+1,j2,j3,ex))/(2.*dr2(0))
-              uu2s = (-u2(j1,j2-1,j3,ex)+u2(j1,j2+1,j3,ex))/(2.*dr2(1))
-              uu2rr = (u2(j1-1,j2,j3,ex)-2.*u2(j1,j2,j3,ex)+u2(j1+1,j2,
-     & j3,ex))/(dr2(0)**2)
-              uu2rs = (-(-u2(j1-1,j2-1,j3,ex)+u2(j1-1,j2+1,j3,ex))/(2.*
-     & dr2(1))+(-u2(j1+1,j2-1,j3,ex)+u2(j1+1,j2+1,j3,ex))/(2.*dr2(1)))
-     & /(2.*dr2(0))
-              uu2ss = (u2(j1,j2-1,j3,ex)-2.*u2(j1,j2,j3,ex)+u2(j1,j2+1,
-     & j3,ex))/(dr2(1)**2)
-              uu2rrr = (-u2(j1-2,j2,j3,ex)+2.*u2(j1-1,j2,j3,ex)-2.*u2(
-     & j1+1,j2,j3,ex)+u2(j1+2,j2,j3,ex))/(2.*dr2(0)**3)
-              uu2rrs = ((-u2(j1-1,j2-1,j3,ex)+u2(j1-1,j2+1,j3,ex))/(2.*
-     & dr2(1))-2.*(-u2(j1,j2-1,j3,ex)+u2(j1,j2+1,j3,ex))/(2.*dr2(1))+(
-     & -u2(j1+1,j2-1,j3,ex)+u2(j1+1,j2+1,j3,ex))/(2.*dr2(1)))/(dr2(0)*
-     & *2)
-              uu2rss = (-(u2(j1-1,j2-1,j3,ex)-2.*u2(j1-1,j2,j3,ex)+u2(
-     & j1-1,j2+1,j3,ex))/(dr2(1)**2)+(u2(j1+1,j2-1,j3,ex)-2.*u2(j1+1,
-     & j2,j3,ex)+u2(j1+1,j2+1,j3,ex))/(dr2(1)**2))/(2.*dr2(0))
-              uu2sss = (-u2(j1,j2-2,j3,ex)+2.*u2(j1,j2-1,j3,ex)-2.*u2(
-     & j1,j2+1,j3,ex)+u2(j1,j2+2,j3,ex))/(2.*dr2(1)**3)
-              uu2rrrr = (u2(j1-2,j2,j3,ex)-4.*u2(j1-1,j2,j3,ex)+6.*u2(
-     & j1,j2,j3,ex)-4.*u2(j1+1,j2,j3,ex)+u2(j1+2,j2,j3,ex))/(dr2(0)**
-     & 4)
-              uu2rrrs = (-(-u2(j1-2,j2-1,j3,ex)+u2(j1-2,j2+1,j3,ex))/(
-     & 2.*dr2(1))+2.*(-u2(j1-1,j2-1,j3,ex)+u2(j1-1,j2+1,j3,ex))/(2.*
-     & dr2(1))-2.*(-u2(j1+1,j2-1,j3,ex)+u2(j1+1,j2+1,j3,ex))/(2.*dr2(
-     & 1))+(-u2(j1+2,j2-1,j3,ex)+u2(j1+2,j2+1,j3,ex))/(2.*dr2(1)))/(
-     & 2.*dr2(0)**3)
-              uu2rrss = ((u2(j1-1,j2-1,j3,ex)-2.*u2(j1-1,j2,j3,ex)+u2(
-     & j1-1,j2+1,j3,ex))/(dr2(1)**2)-2.*(u2(j1,j2-1,j3,ex)-2.*u2(j1,
-     & j2,j3,ex)+u2(j1,j2+1,j3,ex))/(dr2(1)**2)+(u2(j1+1,j2-1,j3,ex)-
-     & 2.*u2(j1+1,j2,j3,ex)+u2(j1+1,j2+1,j3,ex))/(dr2(1)**2))/(dr2(0)*
-     & *2)
-              uu2rsss = (-(-u2(j1-1,j2-2,j3,ex)+2.*u2(j1-1,j2-1,j3,ex)-
-     & 2.*u2(j1-1,j2+1,j3,ex)+u2(j1-1,j2+2,j3,ex))/(2.*dr2(1)**3)+(-
-     & u2(j1+1,j2-2,j3,ex)+2.*u2(j1+1,j2-1,j3,ex)-2.*u2(j1+1,j2+1,j3,
-     & ex)+u2(j1+1,j2+2,j3,ex))/(2.*dr2(1)**3))/(2.*dr2(0))
-              uu2ssss = (u2(j1,j2-2,j3,ex)-4.*u2(j1,j2-1,j3,ex)+6.*u2(
-     & j1,j2,j3,ex)-4.*u2(j1,j2+1,j3,ex)+u2(j1,j2+2,j3,ex))/(dr2(1)**
-     & 4)
-               t1 = aj2rx**2
-               t7 = aj2sx**2
-               u2xxx = t1*aj2rx*uu2rrr+3*t1*aj2sx*uu2rrs+3*aj2rx*t7*
-     & uu2rss+t7*aj2sx*uu2sss+3*aj2rx*aj2rxx*uu2rr+(3*aj2sxx*aj2rx+3*
-     & aj2sx*aj2rxx)*uu2rs+3*aj2sxx*aj2sx*uu2ss+aj2rxxx*uu2r+aj2sxxx*
-     & uu2s
-               t1 = aj2rx**2
-               t10 = aj2sx**2
-               u2xxy = aj2ry*t1*uu2rrr+(aj2sy*t1+2*aj2ry*aj2sx*aj2rx)*
-     & uu2rrs+(aj2ry*t10+2*aj2sy*aj2sx*aj2rx)*uu2rss+aj2sy*t10*uu2sss+
-     & (2*aj2rxy*aj2rx+aj2ry*aj2rxx)*uu2rr+(aj2ry*aj2sxx+2*aj2sx*
-     & aj2rxy+2*aj2sxy*aj2rx+aj2sy*aj2rxx)*uu2rs+(aj2sy*aj2sxx+2*
-     & aj2sxy*aj2sx)*uu2ss+aj2rxxy*uu2r+aj2sxxy*uu2s
-               t1 = aj2ry**2
-               t4 = aj2sy*aj2ry
-               t8 = aj2sy*aj2rx+aj2ry*aj2sx
-               t16 = aj2sy**2
-               u2xyy = t1*aj2rx*uu2rrr+(t4*aj2rx+aj2ry*t8)*uu2rrs+(t4*
-     & aj2sx+aj2sy*t8)*uu2rss+t16*aj2sx*uu2sss+(aj2ryy*aj2rx+2*aj2ry*
-     & aj2rxy)*uu2rr+(2*aj2ry*aj2sxy+2*aj2sy*aj2rxy+aj2ryy*aj2sx+
-     & aj2syy*aj2rx)*uu2rs+(aj2syy*aj2sx+2*aj2sy*aj2sxy)*uu2ss+
+                 t1 = aj2ry**2
+                 t4 = aj2sy*aj2ry
+                 t8 = aj2sy*aj2rx+aj2ry*aj2sx
+                 t16 = aj2sy**2
+                 aj2syxyy = t1*aj2rx*aj2syrrr+(t4*aj2rx+aj2ry*t8)*
+     & aj2syrrs+(t4*aj2sx+aj2sy*t8)*aj2syrss+t16*aj2sx*aj2sysss+(
+     & aj2ryy*aj2rx+2*aj2ry*aj2rxy)*aj2syrr+(2*aj2ry*aj2sxy+2*aj2sy*
+     & aj2rxy+aj2ryy*aj2sx+aj2syy*aj2rx)*aj2syrs+(aj2syy*aj2sx+2*
+     & aj2sy*aj2sxy)*aj2syss+aj2rxyy*aj2syr+aj2sxyy*aj2sys
+                 t1 = aj2ry**2
+                 t7 = aj2sy**2
+                 aj2syyyy = aj2ry*t1*aj2syrrr+3*t1*aj2sy*aj2syrrs+3*
+     & aj2ry*t7*aj2syrss+t7*aj2sy*aj2sysss+3*aj2ry*aj2ryy*aj2syrr+(3*
+     & aj2syy*aj2ry+3*aj2sy*aj2ryy)*aj2syrs+3*aj2syy*aj2sy*aj2syss+
+     & aj2ryyy*aj2syr+aj2syyy*aj2sys
+                  uu2 = u2(j1,j2,j3,ex)
+                  uu2r = (-u2(j1-1,j2,j3,ex)+u2(j1+1,j2,j3,ex))/(2.*
+     & dr2(0))
+                  uu2s = (-u2(j1,j2-1,j3,ex)+u2(j1,j2+1,j3,ex))/(2.*
+     & dr2(1))
+                  uu2rr = (u2(j1-1,j2,j3,ex)-2.*u2(j1,j2,j3,ex)+u2(j1+
+     & 1,j2,j3,ex))/(dr2(0)**2)
+                  uu2rs = (-(-u2(j1-1,j2-1,j3,ex)+u2(j1-1,j2+1,j3,ex))
+     & /(2.*dr2(1))+(-u2(j1+1,j2-1,j3,ex)+u2(j1+1,j2+1,j3,ex))/(2.*
+     & dr2(1)))/(2.*dr2(0))
+                  uu2ss = (u2(j1,j2-1,j3,ex)-2.*u2(j1,j2,j3,ex)+u2(j1,
+     & j2+1,j3,ex))/(dr2(1)**2)
+                  uu2rrr = (-u2(j1-2,j2,j3,ex)+2.*u2(j1-1,j2,j3,ex)-2.*
+     & u2(j1+1,j2,j3,ex)+u2(j1+2,j2,j3,ex))/(2.*dr2(0)**3)
+                  uu2rrs = ((-u2(j1-1,j2-1,j3,ex)+u2(j1-1,j2+1,j3,ex))
+     & /(2.*dr2(1))-2.*(-u2(j1,j2-1,j3,ex)+u2(j1,j2+1,j3,ex))/(2.*dr2(
+     & 1))+(-u2(j1+1,j2-1,j3,ex)+u2(j1+1,j2+1,j3,ex))/(2.*dr2(1)))/(
+     & dr2(0)**2)
+                  uu2rss = (-(u2(j1-1,j2-1,j3,ex)-2.*u2(j1-1,j2,j3,ex)+
+     & u2(j1-1,j2+1,j3,ex))/(dr2(1)**2)+(u2(j1+1,j2-1,j3,ex)-2.*u2(j1+
+     & 1,j2,j3,ex)+u2(j1+1,j2+1,j3,ex))/(dr2(1)**2))/(2.*dr2(0))
+                  uu2sss = (-u2(j1,j2-2,j3,ex)+2.*u2(j1,j2-1,j3,ex)-2.*
+     & u2(j1,j2+1,j3,ex)+u2(j1,j2+2,j3,ex))/(2.*dr2(1)**3)
+                  uu2rrrr = (u2(j1-2,j2,j3,ex)-4.*u2(j1-1,j2,j3,ex)+6.*
+     & u2(j1,j2,j3,ex)-4.*u2(j1+1,j2,j3,ex)+u2(j1+2,j2,j3,ex))/(dr2(0)
+     & **4)
+                  uu2rrrs = (-(-u2(j1-2,j2-1,j3,ex)+u2(j1-2,j2+1,j3,ex)
+     & )/(2.*dr2(1))+2.*(-u2(j1-1,j2-1,j3,ex)+u2(j1-1,j2+1,j3,ex))/(
+     & 2.*dr2(1))-2.*(-u2(j1+1,j2-1,j3,ex)+u2(j1+1,j2+1,j3,ex))/(2.*
+     & dr2(1))+(-u2(j1+2,j2-1,j3,ex)+u2(j1+2,j2+1,j3,ex))/(2.*dr2(1)))
+     & /(2.*dr2(0)**3)
+                  uu2rrss = ((u2(j1-1,j2-1,j3,ex)-2.*u2(j1-1,j2,j3,ex)+
+     & u2(j1-1,j2+1,j3,ex))/(dr2(1)**2)-2.*(u2(j1,j2-1,j3,ex)-2.*u2(
+     & j1,j2,j3,ex)+u2(j1,j2+1,j3,ex))/(dr2(1)**2)+(u2(j1+1,j2-1,j3,
+     & ex)-2.*u2(j1+1,j2,j3,ex)+u2(j1+1,j2+1,j3,ex))/(dr2(1)**2))/(
+     & dr2(0)**2)
+                  uu2rsss = (-(-u2(j1-1,j2-2,j3,ex)+2.*u2(j1-1,j2-1,j3,
+     & ex)-2.*u2(j1-1,j2+1,j3,ex)+u2(j1-1,j2+2,j3,ex))/(2.*dr2(1)**3)+
+     & (-u2(j1+1,j2-2,j3,ex)+2.*u2(j1+1,j2-1,j3,ex)-2.*u2(j1+1,j2+1,
+     & j3,ex)+u2(j1+1,j2+2,j3,ex))/(2.*dr2(1)**3))/(2.*dr2(0))
+                  uu2ssss = (u2(j1,j2-2,j3,ex)-4.*u2(j1,j2-1,j3,ex)+6.*
+     & u2(j1,j2,j3,ex)-4.*u2(j1,j2+1,j3,ex)+u2(j1,j2+2,j3,ex))/(dr2(1)
+     & **4)
+                   t1 = aj2rx**2
+                   t7 = aj2sx**2
+                   u2xxx = t1*aj2rx*uu2rrr+3*t1*aj2sx*uu2rrs+3*aj2rx*
+     & t7*uu2rss+t7*aj2sx*uu2sss+3*aj2rx*aj2rxx*uu2rr+(3*aj2sxx*aj2rx+
+     & 3*aj2sx*aj2rxx)*uu2rs+3*aj2sxx*aj2sx*uu2ss+aj2rxxx*uu2r+
+     & aj2sxxx*uu2s
+                   t1 = aj2rx**2
+                   t10 = aj2sx**2
+                   u2xxy = aj2ry*t1*uu2rrr+(aj2sy*t1+2*aj2ry*aj2sx*
+     & aj2rx)*uu2rrs+(aj2ry*t10+2*aj2sy*aj2sx*aj2rx)*uu2rss+aj2sy*t10*
+     & uu2sss+(2*aj2rxy*aj2rx+aj2ry*aj2rxx)*uu2rr+(aj2ry*aj2sxx+2*
+     & aj2sx*aj2rxy+2*aj2sxy*aj2rx+aj2sy*aj2rxx)*uu2rs+(aj2sy*aj2sxx+
+     & 2*aj2sxy*aj2sx)*uu2ss+aj2rxxy*uu2r+aj2sxxy*uu2s
+                   t1 = aj2ry**2
+                   t4 = aj2sy*aj2ry
+                   t8 = aj2sy*aj2rx+aj2ry*aj2sx
+                   t16 = aj2sy**2
+                   u2xyy = t1*aj2rx*uu2rrr+(t4*aj2rx+aj2ry*t8)*uu2rrs+(
+     & t4*aj2sx+aj2sy*t8)*uu2rss+t16*aj2sx*uu2sss+(aj2ryy*aj2rx+2*
+     & aj2ry*aj2rxy)*uu2rr+(2*aj2ry*aj2sxy+2*aj2sy*aj2rxy+aj2ryy*
+     & aj2sx+aj2syy*aj2rx)*uu2rs+(aj2syy*aj2sx+2*aj2sy*aj2sxy)*uu2ss+
      & aj2rxyy*uu2r+aj2sxyy*uu2s
-               t1 = aj2ry**2
-               t7 = aj2sy**2
-               u2yyy = aj2ry*t1*uu2rrr+3*t1*aj2sy*uu2rrs+3*aj2ry*t7*
-     & uu2rss+t7*aj2sy*uu2sss+3*aj2ry*aj2ryy*uu2rr+(3*aj2syy*aj2ry+3*
-     & aj2sy*aj2ryy)*uu2rs+3*aj2syy*aj2sy*uu2ss+aj2ryyy*uu2r+aj2syyy*
-     & uu2s
-               t1 = aj2rx**2
-               t2 = t1**2
-               t8 = aj2sx**2
-               t16 = t8**2
-               t25 = aj2sxx*aj2rx
-               t27 = t25+aj2sx*aj2rxx
-               t28 = 3*t27
-               t30 = 2*t27
-               t46 = aj2rxx**2
-               t60 = aj2sxx**2
-               u2xxxx = t2*uu2rrrr+4*t1*aj2rx*aj2sx*uu2rrrs+6*t1*t8*
-     & uu2rrss+4*aj2rx*t8*aj2sx*uu2rsss+t16*uu2ssss+6*t1*aj2rxx*
+                   t1 = aj2ry**2
+                   t7 = aj2sy**2
+                   u2yyy = aj2ry*t1*uu2rrr+3*t1*aj2sy*uu2rrs+3*aj2ry*
+     & t7*uu2rss+t7*aj2sy*uu2sss+3*aj2ry*aj2ryy*uu2rr+(3*aj2syy*aj2ry+
+     & 3*aj2sy*aj2ryy)*uu2rs+3*aj2syy*aj2sy*uu2ss+aj2ryyy*uu2r+
+     & aj2syyy*uu2s
+                   t1 = aj2rx**2
+                   t2 = t1**2
+                   t8 = aj2sx**2
+                   t16 = t8**2
+                   t25 = aj2sxx*aj2rx
+                   t27 = t25+aj2sx*aj2rxx
+                   t28 = 3*t27
+                   t30 = 2*t27
+                   t46 = aj2rxx**2
+                   t60 = aj2sxx**2
+                   u2xxxx = t2*uu2rrrr+4*t1*aj2rx*aj2sx*uu2rrrs+6*t1*
+     & t8*uu2rrss+4*aj2rx*t8*aj2sx*uu2rsss+t16*uu2ssss+6*t1*aj2rxx*
      & uu2rrr+(7*aj2sx*aj2rx*aj2rxx+aj2sxx*t1+aj2rx*t28+aj2rx*t30)*
      & uu2rrs+(aj2sx*t28+7*t25*aj2sx+aj2rxx*t8+aj2sx*t30)*uu2rss+6*t8*
      & aj2sxx*uu2sss+(4*aj2rx*aj2rxxx+3*t46)*uu2rr+(4*aj2sxxx*aj2rx+4*
      & aj2sx*aj2rxxx+6*aj2sxx*aj2rxx)*uu2rs+(4*aj2sxxx*aj2sx+3*t60)*
      & uu2ss+aj2rxxxx*uu2r+aj2sxxxx*uu2s
-               t1 = aj2ry**2
-               t2 = aj2rx**2
-               t5 = aj2sy*aj2ry
-               t11 = aj2sy*t2+2*aj2ry*aj2sx*aj2rx
-               t16 = aj2sx**2
-               t21 = aj2ry*t16+2*aj2sy*aj2sx*aj2rx
-               t29 = aj2sy**2
-               t38 = 2*aj2rxy*aj2rx+aj2ry*aj2rxx
-               t52 = aj2sx*aj2rxy
-               t54 = aj2sxy*aj2rx
-               t57 = aj2ry*aj2sxx+2*t52+2*t54+aj2sy*aj2rxx
-               t60 = 2*t52+2*t54
-               t68 = aj2sy*aj2sxx+2*aj2sxy*aj2sx
-               t92 = aj2rxy**2
-               t110 = aj2sxy**2
-               u2xxyy = t1*t2*uu2rrrr+(t5*t2+aj2ry*t11)*uu2rrrs+(aj2sy*
-     & t11+aj2ry*t21)*uu2rrss+(aj2sy*t21+t5*t16)*uu2rsss+t29*t16*
-     & uu2ssss+(2*aj2ry*aj2rxy*aj2rx+aj2ry*t38+aj2ryy*t2)*uu2rrr+(
+                   t1 = aj2ry**2
+                   t2 = aj2rx**2
+                   t5 = aj2sy*aj2ry
+                   t11 = aj2sy*t2+2*aj2ry*aj2sx*aj2rx
+                   t16 = aj2sx**2
+                   t21 = aj2ry*t16+2*aj2sy*aj2sx*aj2rx
+                   t29 = aj2sy**2
+                   t38 = 2*aj2rxy*aj2rx+aj2ry*aj2rxx
+                   t52 = aj2sx*aj2rxy
+                   t54 = aj2sxy*aj2rx
+                   t57 = aj2ry*aj2sxx+2*t52+2*t54+aj2sy*aj2rxx
+                   t60 = 2*t52+2*t54
+                   t68 = aj2sy*aj2sxx+2*aj2sxy*aj2sx
+                   t92 = aj2rxy**2
+                   t110 = aj2sxy**2
+                   u2xxyy = t1*t2*uu2rrrr+(t5*t2+aj2ry*t11)*uu2rrrs+(
+     & aj2sy*t11+aj2ry*t21)*uu2rrss+(aj2sy*t21+t5*t16)*uu2rsss+t29*
+     & t16*uu2ssss+(2*aj2ry*aj2rxy*aj2rx+aj2ry*t38+aj2ryy*t2)*uu2rrr+(
      & aj2sy*t38+2*aj2sy*aj2rxy*aj2rx+2*aj2ryy*aj2sx*aj2rx+aj2syy*t2+
      & aj2ry*t57+aj2ry*t60)*uu2rrs+(aj2sy*t57+aj2ry*t68+aj2ryy*t16+2*
      & aj2ry*aj2sxy*aj2sx+2*aj2syy*aj2sx*aj2rx+aj2sy*t60)*uu2rss+(2*
@@ -7479,128 +9141,130 @@
      & aj2rx+aj2syy*aj2rxx+2*aj2sx*aj2rxyy)*uu2rs+(2*t110+2*aj2sy*
      & aj2sxxy+aj2syy*aj2sxx+2*aj2sx*aj2sxyy)*uu2ss+aj2rxxyy*uu2r+
      & aj2sxxyy*uu2s
-               t1 = aj2ry**2
-               t2 = t1**2
-               t8 = aj2sy**2
-               t16 = t8**2
-               t25 = aj2syy*aj2ry
-               t27 = t25+aj2sy*aj2ryy
-               t28 = 3*t27
-               t30 = 2*t27
-               t46 = aj2ryy**2
-               t60 = aj2syy**2
-               u2yyyy = t2*uu2rrrr+4*t1*aj2ry*aj2sy*uu2rrrs+6*t1*t8*
-     & uu2rrss+4*aj2ry*t8*aj2sy*uu2rsss+t16*uu2ssss+6*t1*aj2ryy*
+                   t1 = aj2ry**2
+                   t2 = t1**2
+                   t8 = aj2sy**2
+                   t16 = t8**2
+                   t25 = aj2syy*aj2ry
+                   t27 = t25+aj2sy*aj2ryy
+                   t28 = 3*t27
+                   t30 = 2*t27
+                   t46 = aj2ryy**2
+                   t60 = aj2syy**2
+                   u2yyyy = t2*uu2rrrr+4*t1*aj2ry*aj2sy*uu2rrrs+6*t1*
+     & t8*uu2rrss+4*aj2ry*t8*aj2sy*uu2rsss+t16*uu2ssss+6*t1*aj2ryy*
      & uu2rrr+(7*aj2sy*aj2ry*aj2ryy+aj2syy*t1+aj2ry*t28+aj2ry*t30)*
      & uu2rrs+(aj2sy*t28+7*t25*aj2sy+aj2ryy*t8+aj2sy*t30)*uu2rss+6*t8*
      & aj2syy*uu2sss+(4*aj2ry*aj2ryyy+3*t46)*uu2rr+(4*aj2syyy*aj2ry+4*
      & aj2sy*aj2ryyy+6*aj2syy*aj2ryy)*uu2rs+(4*aj2syyy*aj2sy+3*t60)*
      & uu2ss+aj2ryyyy*uu2r+aj2syyyy*uu2s
-             u2LapSq = u2xxxx +2.* u2xxyy + u2yyyy
-              vv2 = u2(j1,j2,j3,ey)
-              vv2r = (-u2(j1-1,j2,j3,ey)+u2(j1+1,j2,j3,ey))/(2.*dr2(0))
-              vv2s = (-u2(j1,j2-1,j3,ey)+u2(j1,j2+1,j3,ey))/(2.*dr2(1))
-              vv2rr = (u2(j1-1,j2,j3,ey)-2.*u2(j1,j2,j3,ey)+u2(j1+1,j2,
-     & j3,ey))/(dr2(0)**2)
-              vv2rs = (-(-u2(j1-1,j2-1,j3,ey)+u2(j1-1,j2+1,j3,ey))/(2.*
-     & dr2(1))+(-u2(j1+1,j2-1,j3,ey)+u2(j1+1,j2+1,j3,ey))/(2.*dr2(1)))
-     & /(2.*dr2(0))
-              vv2ss = (u2(j1,j2-1,j3,ey)-2.*u2(j1,j2,j3,ey)+u2(j1,j2+1,
-     & j3,ey))/(dr2(1)**2)
-              vv2rrr = (-u2(j1-2,j2,j3,ey)+2.*u2(j1-1,j2,j3,ey)-2.*u2(
-     & j1+1,j2,j3,ey)+u2(j1+2,j2,j3,ey))/(2.*dr2(0)**3)
-              vv2rrs = ((-u2(j1-1,j2-1,j3,ey)+u2(j1-1,j2+1,j3,ey))/(2.*
-     & dr2(1))-2.*(-u2(j1,j2-1,j3,ey)+u2(j1,j2+1,j3,ey))/(2.*dr2(1))+(
-     & -u2(j1+1,j2-1,j3,ey)+u2(j1+1,j2+1,j3,ey))/(2.*dr2(1)))/(dr2(0)*
-     & *2)
-              vv2rss = (-(u2(j1-1,j2-1,j3,ey)-2.*u2(j1-1,j2,j3,ey)+u2(
-     & j1-1,j2+1,j3,ey))/(dr2(1)**2)+(u2(j1+1,j2-1,j3,ey)-2.*u2(j1+1,
-     & j2,j3,ey)+u2(j1+1,j2+1,j3,ey))/(dr2(1)**2))/(2.*dr2(0))
-              vv2sss = (-u2(j1,j2-2,j3,ey)+2.*u2(j1,j2-1,j3,ey)-2.*u2(
-     & j1,j2+1,j3,ey)+u2(j1,j2+2,j3,ey))/(2.*dr2(1)**3)
-              vv2rrrr = (u2(j1-2,j2,j3,ey)-4.*u2(j1-1,j2,j3,ey)+6.*u2(
-     & j1,j2,j3,ey)-4.*u2(j1+1,j2,j3,ey)+u2(j1+2,j2,j3,ey))/(dr2(0)**
-     & 4)
-              vv2rrrs = (-(-u2(j1-2,j2-1,j3,ey)+u2(j1-2,j2+1,j3,ey))/(
-     & 2.*dr2(1))+2.*(-u2(j1-1,j2-1,j3,ey)+u2(j1-1,j2+1,j3,ey))/(2.*
-     & dr2(1))-2.*(-u2(j1+1,j2-1,j3,ey)+u2(j1+1,j2+1,j3,ey))/(2.*dr2(
-     & 1))+(-u2(j1+2,j2-1,j3,ey)+u2(j1+2,j2+1,j3,ey))/(2.*dr2(1)))/(
-     & 2.*dr2(0)**3)
-              vv2rrss = ((u2(j1-1,j2-1,j3,ey)-2.*u2(j1-1,j2,j3,ey)+u2(
-     & j1-1,j2+1,j3,ey))/(dr2(1)**2)-2.*(u2(j1,j2-1,j3,ey)-2.*u2(j1,
-     & j2,j3,ey)+u2(j1,j2+1,j3,ey))/(dr2(1)**2)+(u2(j1+1,j2-1,j3,ey)-
-     & 2.*u2(j1+1,j2,j3,ey)+u2(j1+1,j2+1,j3,ey))/(dr2(1)**2))/(dr2(0)*
-     & *2)
-              vv2rsss = (-(-u2(j1-1,j2-2,j3,ey)+2.*u2(j1-1,j2-1,j3,ey)-
-     & 2.*u2(j1-1,j2+1,j3,ey)+u2(j1-1,j2+2,j3,ey))/(2.*dr2(1)**3)+(-
-     & u2(j1+1,j2-2,j3,ey)+2.*u2(j1+1,j2-1,j3,ey)-2.*u2(j1+1,j2+1,j3,
-     & ey)+u2(j1+1,j2+2,j3,ey))/(2.*dr2(1)**3))/(2.*dr2(0))
-              vv2ssss = (u2(j1,j2-2,j3,ey)-4.*u2(j1,j2-1,j3,ey)+6.*u2(
-     & j1,j2,j3,ey)-4.*u2(j1,j2+1,j3,ey)+u2(j1,j2+2,j3,ey))/(dr2(1)**
-     & 4)
-               t1 = aj2rx**2
-               t7 = aj2sx**2
-               v2xxx = t1*aj2rx*vv2rrr+3*t1*aj2sx*vv2rrs+3*aj2rx*t7*
-     & vv2rss+t7*aj2sx*vv2sss+3*aj2rx*aj2rxx*vv2rr+(3*aj2sxx*aj2rx+3*
-     & aj2sx*aj2rxx)*vv2rs+3*aj2sxx*aj2sx*vv2ss+aj2rxxx*vv2r+aj2sxxx*
-     & vv2s
-               t1 = aj2rx**2
-               t10 = aj2sx**2
-               v2xxy = aj2ry*t1*vv2rrr+(aj2sy*t1+2*aj2ry*aj2sx*aj2rx)*
-     & vv2rrs+(aj2ry*t10+2*aj2sy*aj2sx*aj2rx)*vv2rss+aj2sy*t10*vv2sss+
-     & (2*aj2rxy*aj2rx+aj2ry*aj2rxx)*vv2rr+(aj2ry*aj2sxx+2*aj2sx*
-     & aj2rxy+2*aj2sxy*aj2rx+aj2sy*aj2rxx)*vv2rs+(aj2sy*aj2sxx+2*
-     & aj2sxy*aj2sx)*vv2ss+aj2rxxy*vv2r+aj2sxxy*vv2s
-               t1 = aj2ry**2
-               t4 = aj2sy*aj2ry
-               t8 = aj2sy*aj2rx+aj2ry*aj2sx
-               t16 = aj2sy**2
-               v2xyy = t1*aj2rx*vv2rrr+(t4*aj2rx+aj2ry*t8)*vv2rrs+(t4*
-     & aj2sx+aj2sy*t8)*vv2rss+t16*aj2sx*vv2sss+(aj2ryy*aj2rx+2*aj2ry*
-     & aj2rxy)*vv2rr+(2*aj2ry*aj2sxy+2*aj2sy*aj2rxy+aj2ryy*aj2sx+
-     & aj2syy*aj2rx)*vv2rs+(aj2syy*aj2sx+2*aj2sy*aj2sxy)*vv2ss+
+                 u2LapSq = u2xxxx +2.* u2xxyy + u2yyyy
+                  vv2 = u2(j1,j2,j3,ey)
+                  vv2r = (-u2(j1-1,j2,j3,ey)+u2(j1+1,j2,j3,ey))/(2.*
+     & dr2(0))
+                  vv2s = (-u2(j1,j2-1,j3,ey)+u2(j1,j2+1,j3,ey))/(2.*
+     & dr2(1))
+                  vv2rr = (u2(j1-1,j2,j3,ey)-2.*u2(j1,j2,j3,ey)+u2(j1+
+     & 1,j2,j3,ey))/(dr2(0)**2)
+                  vv2rs = (-(-u2(j1-1,j2-1,j3,ey)+u2(j1-1,j2+1,j3,ey))
+     & /(2.*dr2(1))+(-u2(j1+1,j2-1,j3,ey)+u2(j1+1,j2+1,j3,ey))/(2.*
+     & dr2(1)))/(2.*dr2(0))
+                  vv2ss = (u2(j1,j2-1,j3,ey)-2.*u2(j1,j2,j3,ey)+u2(j1,
+     & j2+1,j3,ey))/(dr2(1)**2)
+                  vv2rrr = (-u2(j1-2,j2,j3,ey)+2.*u2(j1-1,j2,j3,ey)-2.*
+     & u2(j1+1,j2,j3,ey)+u2(j1+2,j2,j3,ey))/(2.*dr2(0)**3)
+                  vv2rrs = ((-u2(j1-1,j2-1,j3,ey)+u2(j1-1,j2+1,j3,ey))
+     & /(2.*dr2(1))-2.*(-u2(j1,j2-1,j3,ey)+u2(j1,j2+1,j3,ey))/(2.*dr2(
+     & 1))+(-u2(j1+1,j2-1,j3,ey)+u2(j1+1,j2+1,j3,ey))/(2.*dr2(1)))/(
+     & dr2(0)**2)
+                  vv2rss = (-(u2(j1-1,j2-1,j3,ey)-2.*u2(j1-1,j2,j3,ey)+
+     & u2(j1-1,j2+1,j3,ey))/(dr2(1)**2)+(u2(j1+1,j2-1,j3,ey)-2.*u2(j1+
+     & 1,j2,j3,ey)+u2(j1+1,j2+1,j3,ey))/(dr2(1)**2))/(2.*dr2(0))
+                  vv2sss = (-u2(j1,j2-2,j3,ey)+2.*u2(j1,j2-1,j3,ey)-2.*
+     & u2(j1,j2+1,j3,ey)+u2(j1,j2+2,j3,ey))/(2.*dr2(1)**3)
+                  vv2rrrr = (u2(j1-2,j2,j3,ey)-4.*u2(j1-1,j2,j3,ey)+6.*
+     & u2(j1,j2,j3,ey)-4.*u2(j1+1,j2,j3,ey)+u2(j1+2,j2,j3,ey))/(dr2(0)
+     & **4)
+                  vv2rrrs = (-(-u2(j1-2,j2-1,j3,ey)+u2(j1-2,j2+1,j3,ey)
+     & )/(2.*dr2(1))+2.*(-u2(j1-1,j2-1,j3,ey)+u2(j1-1,j2+1,j3,ey))/(
+     & 2.*dr2(1))-2.*(-u2(j1+1,j2-1,j3,ey)+u2(j1+1,j2+1,j3,ey))/(2.*
+     & dr2(1))+(-u2(j1+2,j2-1,j3,ey)+u2(j1+2,j2+1,j3,ey))/(2.*dr2(1)))
+     & /(2.*dr2(0)**3)
+                  vv2rrss = ((u2(j1-1,j2-1,j3,ey)-2.*u2(j1-1,j2,j3,ey)+
+     & u2(j1-1,j2+1,j3,ey))/(dr2(1)**2)-2.*(u2(j1,j2-1,j3,ey)-2.*u2(
+     & j1,j2,j3,ey)+u2(j1,j2+1,j3,ey))/(dr2(1)**2)+(u2(j1+1,j2-1,j3,
+     & ey)-2.*u2(j1+1,j2,j3,ey)+u2(j1+1,j2+1,j3,ey))/(dr2(1)**2))/(
+     & dr2(0)**2)
+                  vv2rsss = (-(-u2(j1-1,j2-2,j3,ey)+2.*u2(j1-1,j2-1,j3,
+     & ey)-2.*u2(j1-1,j2+1,j3,ey)+u2(j1-1,j2+2,j3,ey))/(2.*dr2(1)**3)+
+     & (-u2(j1+1,j2-2,j3,ey)+2.*u2(j1+1,j2-1,j3,ey)-2.*u2(j1+1,j2+1,
+     & j3,ey)+u2(j1+1,j2+2,j3,ey))/(2.*dr2(1)**3))/(2.*dr2(0))
+                  vv2ssss = (u2(j1,j2-2,j3,ey)-4.*u2(j1,j2-1,j3,ey)+6.*
+     & u2(j1,j2,j3,ey)-4.*u2(j1,j2+1,j3,ey)+u2(j1,j2+2,j3,ey))/(dr2(1)
+     & **4)
+                   t1 = aj2rx**2
+                   t7 = aj2sx**2
+                   v2xxx = t1*aj2rx*vv2rrr+3*t1*aj2sx*vv2rrs+3*aj2rx*
+     & t7*vv2rss+t7*aj2sx*vv2sss+3*aj2rx*aj2rxx*vv2rr+(3*aj2sxx*aj2rx+
+     & 3*aj2sx*aj2rxx)*vv2rs+3*aj2sxx*aj2sx*vv2ss+aj2rxxx*vv2r+
+     & aj2sxxx*vv2s
+                   t1 = aj2rx**2
+                   t10 = aj2sx**2
+                   v2xxy = aj2ry*t1*vv2rrr+(aj2sy*t1+2*aj2ry*aj2sx*
+     & aj2rx)*vv2rrs+(aj2ry*t10+2*aj2sy*aj2sx*aj2rx)*vv2rss+aj2sy*t10*
+     & vv2sss+(2*aj2rxy*aj2rx+aj2ry*aj2rxx)*vv2rr+(aj2ry*aj2sxx+2*
+     & aj2sx*aj2rxy+2*aj2sxy*aj2rx+aj2sy*aj2rxx)*vv2rs+(aj2sy*aj2sxx+
+     & 2*aj2sxy*aj2sx)*vv2ss+aj2rxxy*vv2r+aj2sxxy*vv2s
+                   t1 = aj2ry**2
+                   t4 = aj2sy*aj2ry
+                   t8 = aj2sy*aj2rx+aj2ry*aj2sx
+                   t16 = aj2sy**2
+                   v2xyy = t1*aj2rx*vv2rrr+(t4*aj2rx+aj2ry*t8)*vv2rrs+(
+     & t4*aj2sx+aj2sy*t8)*vv2rss+t16*aj2sx*vv2sss+(aj2ryy*aj2rx+2*
+     & aj2ry*aj2rxy)*vv2rr+(2*aj2ry*aj2sxy+2*aj2sy*aj2rxy+aj2ryy*
+     & aj2sx+aj2syy*aj2rx)*vv2rs+(aj2syy*aj2sx+2*aj2sy*aj2sxy)*vv2ss+
      & aj2rxyy*vv2r+aj2sxyy*vv2s
-               t1 = aj2ry**2
-               t7 = aj2sy**2
-               v2yyy = aj2ry*t1*vv2rrr+3*t1*aj2sy*vv2rrs+3*aj2ry*t7*
-     & vv2rss+t7*aj2sy*vv2sss+3*aj2ry*aj2ryy*vv2rr+(3*aj2syy*aj2ry+3*
-     & aj2sy*aj2ryy)*vv2rs+3*aj2syy*aj2sy*vv2ss+aj2ryyy*vv2r+aj2syyy*
-     & vv2s
-               t1 = aj2rx**2
-               t2 = t1**2
-               t8 = aj2sx**2
-               t16 = t8**2
-               t25 = aj2sxx*aj2rx
-               t27 = t25+aj2sx*aj2rxx
-               t28 = 3*t27
-               t30 = 2*t27
-               t46 = aj2rxx**2
-               t60 = aj2sxx**2
-               v2xxxx = t2*vv2rrrr+4*t1*aj2rx*aj2sx*vv2rrrs+6*t1*t8*
-     & vv2rrss+4*aj2rx*t8*aj2sx*vv2rsss+t16*vv2ssss+6*t1*aj2rxx*
+                   t1 = aj2ry**2
+                   t7 = aj2sy**2
+                   v2yyy = aj2ry*t1*vv2rrr+3*t1*aj2sy*vv2rrs+3*aj2ry*
+     & t7*vv2rss+t7*aj2sy*vv2sss+3*aj2ry*aj2ryy*vv2rr+(3*aj2syy*aj2ry+
+     & 3*aj2sy*aj2ryy)*vv2rs+3*aj2syy*aj2sy*vv2ss+aj2ryyy*vv2r+
+     & aj2syyy*vv2s
+                   t1 = aj2rx**2
+                   t2 = t1**2
+                   t8 = aj2sx**2
+                   t16 = t8**2
+                   t25 = aj2sxx*aj2rx
+                   t27 = t25+aj2sx*aj2rxx
+                   t28 = 3*t27
+                   t30 = 2*t27
+                   t46 = aj2rxx**2
+                   t60 = aj2sxx**2
+                   v2xxxx = t2*vv2rrrr+4*t1*aj2rx*aj2sx*vv2rrrs+6*t1*
+     & t8*vv2rrss+4*aj2rx*t8*aj2sx*vv2rsss+t16*vv2ssss+6*t1*aj2rxx*
      & vv2rrr+(7*aj2sx*aj2rx*aj2rxx+aj2sxx*t1+aj2rx*t28+aj2rx*t30)*
      & vv2rrs+(aj2sx*t28+7*t25*aj2sx+aj2rxx*t8+aj2sx*t30)*vv2rss+6*t8*
      & aj2sxx*vv2sss+(4*aj2rx*aj2rxxx+3*t46)*vv2rr+(4*aj2sxxx*aj2rx+4*
      & aj2sx*aj2rxxx+6*aj2sxx*aj2rxx)*vv2rs+(4*aj2sxxx*aj2sx+3*t60)*
      & vv2ss+aj2rxxxx*vv2r+aj2sxxxx*vv2s
-               t1 = aj2ry**2
-               t2 = aj2rx**2
-               t5 = aj2sy*aj2ry
-               t11 = aj2sy*t2+2*aj2ry*aj2sx*aj2rx
-               t16 = aj2sx**2
-               t21 = aj2ry*t16+2*aj2sy*aj2sx*aj2rx
-               t29 = aj2sy**2
-               t38 = 2*aj2rxy*aj2rx+aj2ry*aj2rxx
-               t52 = aj2sx*aj2rxy
-               t54 = aj2sxy*aj2rx
-               t57 = aj2ry*aj2sxx+2*t52+2*t54+aj2sy*aj2rxx
-               t60 = 2*t52+2*t54
-               t68 = aj2sy*aj2sxx+2*aj2sxy*aj2sx
-               t92 = aj2rxy**2
-               t110 = aj2sxy**2
-               v2xxyy = t1*t2*vv2rrrr+(t5*t2+aj2ry*t11)*vv2rrrs+(aj2sy*
-     & t11+aj2ry*t21)*vv2rrss+(aj2sy*t21+t5*t16)*vv2rsss+t29*t16*
-     & vv2ssss+(2*aj2ry*aj2rxy*aj2rx+aj2ry*t38+aj2ryy*t2)*vv2rrr+(
+                   t1 = aj2ry**2
+                   t2 = aj2rx**2
+                   t5 = aj2sy*aj2ry
+                   t11 = aj2sy*t2+2*aj2ry*aj2sx*aj2rx
+                   t16 = aj2sx**2
+                   t21 = aj2ry*t16+2*aj2sy*aj2sx*aj2rx
+                   t29 = aj2sy**2
+                   t38 = 2*aj2rxy*aj2rx+aj2ry*aj2rxx
+                   t52 = aj2sx*aj2rxy
+                   t54 = aj2sxy*aj2rx
+                   t57 = aj2ry*aj2sxx+2*t52+2*t54+aj2sy*aj2rxx
+                   t60 = 2*t52+2*t54
+                   t68 = aj2sy*aj2sxx+2*aj2sxy*aj2sx
+                   t92 = aj2rxy**2
+                   t110 = aj2sxy**2
+                   v2xxyy = t1*t2*vv2rrrr+(t5*t2+aj2ry*t11)*vv2rrrs+(
+     & aj2sy*t11+aj2ry*t21)*vv2rrss+(aj2sy*t21+t5*t16)*vv2rsss+t29*
+     & t16*vv2ssss+(2*aj2ry*aj2rxy*aj2rx+aj2ry*t38+aj2ryy*t2)*vv2rrr+(
      & aj2sy*t38+2*aj2sy*aj2rxy*aj2rx+2*aj2ryy*aj2sx*aj2rx+aj2syy*t2+
      & aj2ry*t57+aj2ry*t60)*vv2rrs+(aj2sy*t57+aj2ry*t68+aj2ryy*t16+2*
      & aj2ry*aj2sxy*aj2sx+2*aj2syy*aj2sx*aj2rx+aj2sy*t60)*vv2rss+(2*
@@ -7610,526 +9274,533 @@
      & aj2rx+aj2syy*aj2rxx+2*aj2sx*aj2rxyy)*vv2rs+(2*t110+2*aj2sy*
      & aj2sxxy+aj2syy*aj2sxx+2*aj2sx*aj2sxyy)*vv2ss+aj2rxxyy*vv2r+
      & aj2sxxyy*vv2s
-               t1 = aj2ry**2
-               t2 = t1**2
-               t8 = aj2sy**2
-               t16 = t8**2
-               t25 = aj2syy*aj2ry
-               t27 = t25+aj2sy*aj2ryy
-               t28 = 3*t27
-               t30 = 2*t27
-               t46 = aj2ryy**2
-               t60 = aj2syy**2
-               v2yyyy = t2*vv2rrrr+4*t1*aj2ry*aj2sy*vv2rrrs+6*t1*t8*
-     & vv2rrss+4*aj2ry*t8*aj2sy*vv2rsss+t16*vv2ssss+6*t1*aj2ryy*
+                   t1 = aj2ry**2
+                   t2 = t1**2
+                   t8 = aj2sy**2
+                   t16 = t8**2
+                   t25 = aj2syy*aj2ry
+                   t27 = t25+aj2sy*aj2ryy
+                   t28 = 3*t27
+                   t30 = 2*t27
+                   t46 = aj2ryy**2
+                   t60 = aj2syy**2
+                   v2yyyy = t2*vv2rrrr+4*t1*aj2ry*aj2sy*vv2rrrs+6*t1*
+     & t8*vv2rrss+4*aj2ry*t8*aj2sy*vv2rsss+t16*vv2ssss+6*t1*aj2ryy*
      & vv2rrr+(7*aj2sy*aj2ry*aj2ryy+aj2syy*t1+aj2ry*t28+aj2ry*t30)*
      & vv2rrs+(aj2sy*t28+7*t25*aj2sy+aj2ryy*t8+aj2sy*t30)*vv2rss+6*t8*
      & aj2syy*vv2sss+(4*aj2ry*aj2ryyy+3*t46)*vv2rr+(4*aj2syyy*aj2ry+4*
      & aj2sy*aj2ryyy+6*aj2syy*aj2ryy)*vv2rs+(4*aj2syyy*aj2sy+3*t60)*
      & vv2ss+aj2ryyyy*vv2r+aj2syyyy*vv2s
-             v2LapSq = v2xxxx +2.* v2xxyy + v2yyyy
-            ! These derivatives are computed to 4th-order accuracy
-            ! NOTE: the jacobian derivatives can be computed once for all components
-             ! this next call will define the jacobian and its derivatives (parameteric and spatial)
-             aj1rx = rsxy1(i1,i2,i3,0,0)
-             aj1rxr = (rsxy1(i1-2,i2,i3,0,0)-8.*rsxy1(i1-1,i2,i3,0,0)+
-     & 8.*rsxy1(i1+1,i2,i3,0,0)-rsxy1(i1+2,i2,i3,0,0))/(12.*dr1(0))
-             aj1rxs = (rsxy1(i1,i2-2,i3,0,0)-8.*rsxy1(i1,i2-1,i3,0,0)+
-     & 8.*rsxy1(i1,i2+1,i3,0,0)-rsxy1(i1,i2+2,i3,0,0))/(12.*dr1(1))
-             aj1sx = rsxy1(i1,i2,i3,1,0)
-             aj1sxr = (rsxy1(i1-2,i2,i3,1,0)-8.*rsxy1(i1-1,i2,i3,1,0)+
-     & 8.*rsxy1(i1+1,i2,i3,1,0)-rsxy1(i1+2,i2,i3,1,0))/(12.*dr1(0))
-             aj1sxs = (rsxy1(i1,i2-2,i3,1,0)-8.*rsxy1(i1,i2-1,i3,1,0)+
-     & 8.*rsxy1(i1,i2+1,i3,1,0)-rsxy1(i1,i2+2,i3,1,0))/(12.*dr1(1))
-             aj1ry = rsxy1(i1,i2,i3,0,1)
-             aj1ryr = (rsxy1(i1-2,i2,i3,0,1)-8.*rsxy1(i1-1,i2,i3,0,1)+
-     & 8.*rsxy1(i1+1,i2,i3,0,1)-rsxy1(i1+2,i2,i3,0,1))/(12.*dr1(0))
-             aj1rys = (rsxy1(i1,i2-2,i3,0,1)-8.*rsxy1(i1,i2-1,i3,0,1)+
-     & 8.*rsxy1(i1,i2+1,i3,0,1)-rsxy1(i1,i2+2,i3,0,1))/(12.*dr1(1))
-             aj1sy = rsxy1(i1,i2,i3,1,1)
-             aj1syr = (rsxy1(i1-2,i2,i3,1,1)-8.*rsxy1(i1-1,i2,i3,1,1)+
-     & 8.*rsxy1(i1+1,i2,i3,1,1)-rsxy1(i1+2,i2,i3,1,1))/(12.*dr1(0))
-             aj1sys = (rsxy1(i1,i2-2,i3,1,1)-8.*rsxy1(i1,i2-1,i3,1,1)+
-     & 8.*rsxy1(i1,i2+1,i3,1,1)-rsxy1(i1,i2+2,i3,1,1))/(12.*dr1(1))
-             aj1rxx = aj1rx*aj1rxr+aj1sx*aj1rxs
-             aj1rxy = aj1ry*aj1rxr+aj1sy*aj1rxs
-             aj1sxx = aj1rx*aj1sxr+aj1sx*aj1sxs
-             aj1sxy = aj1ry*aj1sxr+aj1sy*aj1sxs
-             aj1ryx = aj1rx*aj1ryr+aj1sx*aj1rys
-             aj1ryy = aj1ry*aj1ryr+aj1sy*aj1rys
-             aj1syx = aj1rx*aj1syr+aj1sx*aj1sys
-             aj1syy = aj1ry*aj1syr+aj1sy*aj1sys
-              uu1 = u1(i1,i2,i3,ex)
-              uu1r = (u1(i1-2,i2,i3,ex)-8.*u1(i1-1,i2,i3,ex)+8.*u1(i1+
-     & 1,i2,i3,ex)-u1(i1+2,i2,i3,ex))/(12.*dr1(0))
-              uu1s = (u1(i1,i2-2,i3,ex)-8.*u1(i1,i2-1,i3,ex)+8.*u1(i1,
-     & i2+1,i3,ex)-u1(i1,i2+2,i3,ex))/(12.*dr1(1))
-              uu1rr = (-u1(i1-2,i2,i3,ex)+16.*u1(i1-1,i2,i3,ex)-30.*u1(
-     & i1,i2,i3,ex)+16.*u1(i1+1,i2,i3,ex)-u1(i1+2,i2,i3,ex))/(12.*dr1(
-     & 0)**2)
-              uu1rs = ((u1(i1-2,i2-2,i3,ex)-8.*u1(i1-2,i2-1,i3,ex)+8.*
-     & u1(i1-2,i2+1,i3,ex)-u1(i1-2,i2+2,i3,ex))/(12.*dr1(1))-8.*(u1(
-     & i1-1,i2-2,i3,ex)-8.*u1(i1-1,i2-1,i3,ex)+8.*u1(i1-1,i2+1,i3,ex)-
-     & u1(i1-1,i2+2,i3,ex))/(12.*dr1(1))+8.*(u1(i1+1,i2-2,i3,ex)-8.*
-     & u1(i1+1,i2-1,i3,ex)+8.*u1(i1+1,i2+1,i3,ex)-u1(i1+1,i2+2,i3,ex))
-     & /(12.*dr1(1))-(u1(i1+2,i2-2,i3,ex)-8.*u1(i1+2,i2-1,i3,ex)+8.*
-     & u1(i1+2,i2+1,i3,ex)-u1(i1+2,i2+2,i3,ex))/(12.*dr1(1)))/(12.*
+                 v2LapSq = v2xxxx +2.* v2xxyy + v2yyyy
+                ! These derivatives are computed to 4th-order accuracy
+                ! NOTE: the jacobian derivatives can be computed once for all components
+                 ! this next call will define the jacobian and its derivatives (parameteric and spatial)
+                 aj1rx = rsxy1(i1,i2,i3,0,0)
+                 aj1rxr = (rsxy1(i1-2,i2,i3,0,0)-8.*rsxy1(i1-1,i2,i3,0,
+     & 0)+8.*rsxy1(i1+1,i2,i3,0,0)-rsxy1(i1+2,i2,i3,0,0))/(12.*dr1(0))
+                 aj1rxs = (rsxy1(i1,i2-2,i3,0,0)-8.*rsxy1(i1,i2-1,i3,0,
+     & 0)+8.*rsxy1(i1,i2+1,i3,0,0)-rsxy1(i1,i2+2,i3,0,0))/(12.*dr1(1))
+                 aj1sx = rsxy1(i1,i2,i3,1,0)
+                 aj1sxr = (rsxy1(i1-2,i2,i3,1,0)-8.*rsxy1(i1-1,i2,i3,1,
+     & 0)+8.*rsxy1(i1+1,i2,i3,1,0)-rsxy1(i1+2,i2,i3,1,0))/(12.*dr1(0))
+                 aj1sxs = (rsxy1(i1,i2-2,i3,1,0)-8.*rsxy1(i1,i2-1,i3,1,
+     & 0)+8.*rsxy1(i1,i2+1,i3,1,0)-rsxy1(i1,i2+2,i3,1,0))/(12.*dr1(1))
+                 aj1ry = rsxy1(i1,i2,i3,0,1)
+                 aj1ryr = (rsxy1(i1-2,i2,i3,0,1)-8.*rsxy1(i1-1,i2,i3,0,
+     & 1)+8.*rsxy1(i1+1,i2,i3,0,1)-rsxy1(i1+2,i2,i3,0,1))/(12.*dr1(0))
+                 aj1rys = (rsxy1(i1,i2-2,i3,0,1)-8.*rsxy1(i1,i2-1,i3,0,
+     & 1)+8.*rsxy1(i1,i2+1,i3,0,1)-rsxy1(i1,i2+2,i3,0,1))/(12.*dr1(1))
+                 aj1sy = rsxy1(i1,i2,i3,1,1)
+                 aj1syr = (rsxy1(i1-2,i2,i3,1,1)-8.*rsxy1(i1-1,i2,i3,1,
+     & 1)+8.*rsxy1(i1+1,i2,i3,1,1)-rsxy1(i1+2,i2,i3,1,1))/(12.*dr1(0))
+                 aj1sys = (rsxy1(i1,i2-2,i3,1,1)-8.*rsxy1(i1,i2-1,i3,1,
+     & 1)+8.*rsxy1(i1,i2+1,i3,1,1)-rsxy1(i1,i2+2,i3,1,1))/(12.*dr1(1))
+                 aj1rxx = aj1rx*aj1rxr+aj1sx*aj1rxs
+                 aj1rxy = aj1ry*aj1rxr+aj1sy*aj1rxs
+                 aj1sxx = aj1rx*aj1sxr+aj1sx*aj1sxs
+                 aj1sxy = aj1ry*aj1sxr+aj1sy*aj1sxs
+                 aj1ryx = aj1rx*aj1ryr+aj1sx*aj1rys
+                 aj1ryy = aj1ry*aj1ryr+aj1sy*aj1rys
+                 aj1syx = aj1rx*aj1syr+aj1sx*aj1sys
+                 aj1syy = aj1ry*aj1syr+aj1sy*aj1sys
+                  uu1 = u1(i1,i2,i3,ex)
+                  uu1r = (u1(i1-2,i2,i3,ex)-8.*u1(i1-1,i2,i3,ex)+8.*u1(
+     & i1+1,i2,i3,ex)-u1(i1+2,i2,i3,ex))/(12.*dr1(0))
+                  uu1s = (u1(i1,i2-2,i3,ex)-8.*u1(i1,i2-1,i3,ex)+8.*u1(
+     & i1,i2+1,i3,ex)-u1(i1,i2+2,i3,ex))/(12.*dr1(1))
+                  uu1rr = (-u1(i1-2,i2,i3,ex)+16.*u1(i1-1,i2,i3,ex)-
+     & 30.*u1(i1,i2,i3,ex)+16.*u1(i1+1,i2,i3,ex)-u1(i1+2,i2,i3,ex))/(
+     & 12.*dr1(0)**2)
+                  uu1rs = ((u1(i1-2,i2-2,i3,ex)-8.*u1(i1-2,i2-1,i3,ex)+
+     & 8.*u1(i1-2,i2+1,i3,ex)-u1(i1-2,i2+2,i3,ex))/(12.*dr1(1))-8.*(
+     & u1(i1-1,i2-2,i3,ex)-8.*u1(i1-1,i2-1,i3,ex)+8.*u1(i1-1,i2+1,i3,
+     & ex)-u1(i1-1,i2+2,i3,ex))/(12.*dr1(1))+8.*(u1(i1+1,i2-2,i3,ex)-
+     & 8.*u1(i1+1,i2-1,i3,ex)+8.*u1(i1+1,i2+1,i3,ex)-u1(i1+1,i2+2,i3,
+     & ex))/(12.*dr1(1))-(u1(i1+2,i2-2,i3,ex)-8.*u1(i1+2,i2-1,i3,ex)+
+     & 8.*u1(i1+2,i2+1,i3,ex)-u1(i1+2,i2+2,i3,ex))/(12.*dr1(1)))/(12.*
      & dr1(0))
-              uu1ss = (-u1(i1,i2-2,i3,ex)+16.*u1(i1,i2-1,i3,ex)-30.*u1(
-     & i1,i2,i3,ex)+16.*u1(i1,i2+1,i3,ex)-u1(i1,i2+2,i3,ex))/(12.*dr1(
-     & 1)**2)
-               u1x = aj1rx*uu1r+aj1sx*uu1s
-               u1y = aj1ry*uu1r+aj1sy*uu1s
-               t1 = aj1rx**2
-               t6 = aj1sx**2
-               u1xx = t1*uu1rr+2*aj1rx*aj1sx*uu1rs+t6*uu1ss+aj1rxx*
+                  uu1ss = (-u1(i1,i2-2,i3,ex)+16.*u1(i1,i2-1,i3,ex)-
+     & 30.*u1(i1,i2,i3,ex)+16.*u1(i1,i2+1,i3,ex)-u1(i1,i2+2,i3,ex))/(
+     & 12.*dr1(1)**2)
+                   u1x = aj1rx*uu1r+aj1sx*uu1s
+                   u1y = aj1ry*uu1r+aj1sy*uu1s
+                   t1 = aj1rx**2
+                   t6 = aj1sx**2
+                   u1xx = t1*uu1rr+2*aj1rx*aj1sx*uu1rs+t6*uu1ss+aj1rxx*
      & uu1r+aj1sxx*uu1s
-               t1 = aj1ry**2
-               t6 = aj1sy**2
-               u1yy = t1*uu1rr+2*aj1ry*aj1sy*uu1rs+t6*uu1ss+aj1ryy*
+                   t1 = aj1ry**2
+                   t6 = aj1sy**2
+                   u1yy = t1*uu1rr+2*aj1ry*aj1sy*uu1rs+t6*uu1ss+aj1ryy*
      & uu1r+aj1syy*uu1s
-             u1Lap = u1xx+ u1yy
-              vv1 = u1(i1,i2,i3,ey)
-              vv1r = (u1(i1-2,i2,i3,ey)-8.*u1(i1-1,i2,i3,ey)+8.*u1(i1+
-     & 1,i2,i3,ey)-u1(i1+2,i2,i3,ey))/(12.*dr1(0))
-              vv1s = (u1(i1,i2-2,i3,ey)-8.*u1(i1,i2-1,i3,ey)+8.*u1(i1,
-     & i2+1,i3,ey)-u1(i1,i2+2,i3,ey))/(12.*dr1(1))
-              vv1rr = (-u1(i1-2,i2,i3,ey)+16.*u1(i1-1,i2,i3,ey)-30.*u1(
-     & i1,i2,i3,ey)+16.*u1(i1+1,i2,i3,ey)-u1(i1+2,i2,i3,ey))/(12.*dr1(
-     & 0)**2)
-              vv1rs = ((u1(i1-2,i2-2,i3,ey)-8.*u1(i1-2,i2-1,i3,ey)+8.*
-     & u1(i1-2,i2+1,i3,ey)-u1(i1-2,i2+2,i3,ey))/(12.*dr1(1))-8.*(u1(
-     & i1-1,i2-2,i3,ey)-8.*u1(i1-1,i2-1,i3,ey)+8.*u1(i1-1,i2+1,i3,ey)-
-     & u1(i1-1,i2+2,i3,ey))/(12.*dr1(1))+8.*(u1(i1+1,i2-2,i3,ey)-8.*
-     & u1(i1+1,i2-1,i3,ey)+8.*u1(i1+1,i2+1,i3,ey)-u1(i1+1,i2+2,i3,ey))
-     & /(12.*dr1(1))-(u1(i1+2,i2-2,i3,ey)-8.*u1(i1+2,i2-1,i3,ey)+8.*
-     & u1(i1+2,i2+1,i3,ey)-u1(i1+2,i2+2,i3,ey))/(12.*dr1(1)))/(12.*
+                 u1Lap = u1xx+ u1yy
+                  vv1 = u1(i1,i2,i3,ey)
+                  vv1r = (u1(i1-2,i2,i3,ey)-8.*u1(i1-1,i2,i3,ey)+8.*u1(
+     & i1+1,i2,i3,ey)-u1(i1+2,i2,i3,ey))/(12.*dr1(0))
+                  vv1s = (u1(i1,i2-2,i3,ey)-8.*u1(i1,i2-1,i3,ey)+8.*u1(
+     & i1,i2+1,i3,ey)-u1(i1,i2+2,i3,ey))/(12.*dr1(1))
+                  vv1rr = (-u1(i1-2,i2,i3,ey)+16.*u1(i1-1,i2,i3,ey)-
+     & 30.*u1(i1,i2,i3,ey)+16.*u1(i1+1,i2,i3,ey)-u1(i1+2,i2,i3,ey))/(
+     & 12.*dr1(0)**2)
+                  vv1rs = ((u1(i1-2,i2-2,i3,ey)-8.*u1(i1-2,i2-1,i3,ey)+
+     & 8.*u1(i1-2,i2+1,i3,ey)-u1(i1-2,i2+2,i3,ey))/(12.*dr1(1))-8.*(
+     & u1(i1-1,i2-2,i3,ey)-8.*u1(i1-1,i2-1,i3,ey)+8.*u1(i1-1,i2+1,i3,
+     & ey)-u1(i1-1,i2+2,i3,ey))/(12.*dr1(1))+8.*(u1(i1+1,i2-2,i3,ey)-
+     & 8.*u1(i1+1,i2-1,i3,ey)+8.*u1(i1+1,i2+1,i3,ey)-u1(i1+1,i2+2,i3,
+     & ey))/(12.*dr1(1))-(u1(i1+2,i2-2,i3,ey)-8.*u1(i1+2,i2-1,i3,ey)+
+     & 8.*u1(i1+2,i2+1,i3,ey)-u1(i1+2,i2+2,i3,ey))/(12.*dr1(1)))/(12.*
      & dr1(0))
-              vv1ss = (-u1(i1,i2-2,i3,ey)+16.*u1(i1,i2-1,i3,ey)-30.*u1(
-     & i1,i2,i3,ey)+16.*u1(i1,i2+1,i3,ey)-u1(i1,i2+2,i3,ey))/(12.*dr1(
-     & 1)**2)
-               v1x = aj1rx*vv1r+aj1sx*vv1s
-               v1y = aj1ry*vv1r+aj1sy*vv1s
-               t1 = aj1rx**2
-               t6 = aj1sx**2
-               v1xx = t1*vv1rr+2*aj1rx*aj1sx*vv1rs+t6*vv1ss+aj1rxx*
+                  vv1ss = (-u1(i1,i2-2,i3,ey)+16.*u1(i1,i2-1,i3,ey)-
+     & 30.*u1(i1,i2,i3,ey)+16.*u1(i1,i2+1,i3,ey)-u1(i1,i2+2,i3,ey))/(
+     & 12.*dr1(1)**2)
+                   v1x = aj1rx*vv1r+aj1sx*vv1s
+                   v1y = aj1ry*vv1r+aj1sy*vv1s
+                   t1 = aj1rx**2
+                   t6 = aj1sx**2
+                   v1xx = t1*vv1rr+2*aj1rx*aj1sx*vv1rs+t6*vv1ss+aj1rxx*
      & vv1r+aj1sxx*vv1s
-               t1 = aj1ry**2
-               t6 = aj1sy**2
-               v1yy = t1*vv1rr+2*aj1ry*aj1sy*vv1rs+t6*vv1ss+aj1ryy*
+                   t1 = aj1ry**2
+                   t6 = aj1sy**2
+                   v1yy = t1*vv1rr+2*aj1ry*aj1sy*vv1rs+t6*vv1ss+aj1ryy*
      & vv1r+aj1syy*vv1s
-             v1Lap = v1xx+ v1yy
-            ! NOTE: the jacobian derivatives can be computed once for all components
-             ! this next call will define the jacobian and its derivatives (parameteric and spatial)
-             aj2rx = rsxy2(j1,j2,j3,0,0)
-             aj2rxr = (rsxy2(j1-2,j2,j3,0,0)-8.*rsxy2(j1-1,j2,j3,0,0)+
-     & 8.*rsxy2(j1+1,j2,j3,0,0)-rsxy2(j1+2,j2,j3,0,0))/(12.*dr2(0))
-             aj2rxs = (rsxy2(j1,j2-2,j3,0,0)-8.*rsxy2(j1,j2-1,j3,0,0)+
-     & 8.*rsxy2(j1,j2+1,j3,0,0)-rsxy2(j1,j2+2,j3,0,0))/(12.*dr2(1))
-             aj2sx = rsxy2(j1,j2,j3,1,0)
-             aj2sxr = (rsxy2(j1-2,j2,j3,1,0)-8.*rsxy2(j1-1,j2,j3,1,0)+
-     & 8.*rsxy2(j1+1,j2,j3,1,0)-rsxy2(j1+2,j2,j3,1,0))/(12.*dr2(0))
-             aj2sxs = (rsxy2(j1,j2-2,j3,1,0)-8.*rsxy2(j1,j2-1,j3,1,0)+
-     & 8.*rsxy2(j1,j2+1,j3,1,0)-rsxy2(j1,j2+2,j3,1,0))/(12.*dr2(1))
-             aj2ry = rsxy2(j1,j2,j3,0,1)
-             aj2ryr = (rsxy2(j1-2,j2,j3,0,1)-8.*rsxy2(j1-1,j2,j3,0,1)+
-     & 8.*rsxy2(j1+1,j2,j3,0,1)-rsxy2(j1+2,j2,j3,0,1))/(12.*dr2(0))
-             aj2rys = (rsxy2(j1,j2-2,j3,0,1)-8.*rsxy2(j1,j2-1,j3,0,1)+
-     & 8.*rsxy2(j1,j2+1,j3,0,1)-rsxy2(j1,j2+2,j3,0,1))/(12.*dr2(1))
-             aj2sy = rsxy2(j1,j2,j3,1,1)
-             aj2syr = (rsxy2(j1-2,j2,j3,1,1)-8.*rsxy2(j1-1,j2,j3,1,1)+
-     & 8.*rsxy2(j1+1,j2,j3,1,1)-rsxy2(j1+2,j2,j3,1,1))/(12.*dr2(0))
-             aj2sys = (rsxy2(j1,j2-2,j3,1,1)-8.*rsxy2(j1,j2-1,j3,1,1)+
-     & 8.*rsxy2(j1,j2+1,j3,1,1)-rsxy2(j1,j2+2,j3,1,1))/(12.*dr2(1))
-             aj2rxx = aj2rx*aj2rxr+aj2sx*aj2rxs
-             aj2rxy = aj2ry*aj2rxr+aj2sy*aj2rxs
-             aj2sxx = aj2rx*aj2sxr+aj2sx*aj2sxs
-             aj2sxy = aj2ry*aj2sxr+aj2sy*aj2sxs
-             aj2ryx = aj2rx*aj2ryr+aj2sx*aj2rys
-             aj2ryy = aj2ry*aj2ryr+aj2sy*aj2rys
-             aj2syx = aj2rx*aj2syr+aj2sx*aj2sys
-             aj2syy = aj2ry*aj2syr+aj2sy*aj2sys
-              uu2 = u2(j1,j2,j3,ex)
-              uu2r = (u2(j1-2,j2,j3,ex)-8.*u2(j1-1,j2,j3,ex)+8.*u2(j1+
-     & 1,j2,j3,ex)-u2(j1+2,j2,j3,ex))/(12.*dr2(0))
-              uu2s = (u2(j1,j2-2,j3,ex)-8.*u2(j1,j2-1,j3,ex)+8.*u2(j1,
-     & j2+1,j3,ex)-u2(j1,j2+2,j3,ex))/(12.*dr2(1))
-              uu2rr = (-u2(j1-2,j2,j3,ex)+16.*u2(j1-1,j2,j3,ex)-30.*u2(
-     & j1,j2,j3,ex)+16.*u2(j1+1,j2,j3,ex)-u2(j1+2,j2,j3,ex))/(12.*dr2(
-     & 0)**2)
-              uu2rs = ((u2(j1-2,j2-2,j3,ex)-8.*u2(j1-2,j2-1,j3,ex)+8.*
-     & u2(j1-2,j2+1,j3,ex)-u2(j1-2,j2+2,j3,ex))/(12.*dr2(1))-8.*(u2(
-     & j1-1,j2-2,j3,ex)-8.*u2(j1-1,j2-1,j3,ex)+8.*u2(j1-1,j2+1,j3,ex)-
-     & u2(j1-1,j2+2,j3,ex))/(12.*dr2(1))+8.*(u2(j1+1,j2-2,j3,ex)-8.*
-     & u2(j1+1,j2-1,j3,ex)+8.*u2(j1+1,j2+1,j3,ex)-u2(j1+1,j2+2,j3,ex))
-     & /(12.*dr2(1))-(u2(j1+2,j2-2,j3,ex)-8.*u2(j1+2,j2-1,j3,ex)+8.*
-     & u2(j1+2,j2+1,j3,ex)-u2(j1+2,j2+2,j3,ex))/(12.*dr2(1)))/(12.*
+                 v1Lap = v1xx+ v1yy
+                ! NOTE: the jacobian derivatives can be computed once for all components
+                 ! this next call will define the jacobian and its derivatives (parameteric and spatial)
+                 aj2rx = rsxy2(j1,j2,j3,0,0)
+                 aj2rxr = (rsxy2(j1-2,j2,j3,0,0)-8.*rsxy2(j1-1,j2,j3,0,
+     & 0)+8.*rsxy2(j1+1,j2,j3,0,0)-rsxy2(j1+2,j2,j3,0,0))/(12.*dr2(0))
+                 aj2rxs = (rsxy2(j1,j2-2,j3,0,0)-8.*rsxy2(j1,j2-1,j3,0,
+     & 0)+8.*rsxy2(j1,j2+1,j3,0,0)-rsxy2(j1,j2+2,j3,0,0))/(12.*dr2(1))
+                 aj2sx = rsxy2(j1,j2,j3,1,0)
+                 aj2sxr = (rsxy2(j1-2,j2,j3,1,0)-8.*rsxy2(j1-1,j2,j3,1,
+     & 0)+8.*rsxy2(j1+1,j2,j3,1,0)-rsxy2(j1+2,j2,j3,1,0))/(12.*dr2(0))
+                 aj2sxs = (rsxy2(j1,j2-2,j3,1,0)-8.*rsxy2(j1,j2-1,j3,1,
+     & 0)+8.*rsxy2(j1,j2+1,j3,1,0)-rsxy2(j1,j2+2,j3,1,0))/(12.*dr2(1))
+                 aj2ry = rsxy2(j1,j2,j3,0,1)
+                 aj2ryr = (rsxy2(j1-2,j2,j3,0,1)-8.*rsxy2(j1-1,j2,j3,0,
+     & 1)+8.*rsxy2(j1+1,j2,j3,0,1)-rsxy2(j1+2,j2,j3,0,1))/(12.*dr2(0))
+                 aj2rys = (rsxy2(j1,j2-2,j3,0,1)-8.*rsxy2(j1,j2-1,j3,0,
+     & 1)+8.*rsxy2(j1,j2+1,j3,0,1)-rsxy2(j1,j2+2,j3,0,1))/(12.*dr2(1))
+                 aj2sy = rsxy2(j1,j2,j3,1,1)
+                 aj2syr = (rsxy2(j1-2,j2,j3,1,1)-8.*rsxy2(j1-1,j2,j3,1,
+     & 1)+8.*rsxy2(j1+1,j2,j3,1,1)-rsxy2(j1+2,j2,j3,1,1))/(12.*dr2(0))
+                 aj2sys = (rsxy2(j1,j2-2,j3,1,1)-8.*rsxy2(j1,j2-1,j3,1,
+     & 1)+8.*rsxy2(j1,j2+1,j3,1,1)-rsxy2(j1,j2+2,j3,1,1))/(12.*dr2(1))
+                 aj2rxx = aj2rx*aj2rxr+aj2sx*aj2rxs
+                 aj2rxy = aj2ry*aj2rxr+aj2sy*aj2rxs
+                 aj2sxx = aj2rx*aj2sxr+aj2sx*aj2sxs
+                 aj2sxy = aj2ry*aj2sxr+aj2sy*aj2sxs
+                 aj2ryx = aj2rx*aj2ryr+aj2sx*aj2rys
+                 aj2ryy = aj2ry*aj2ryr+aj2sy*aj2rys
+                 aj2syx = aj2rx*aj2syr+aj2sx*aj2sys
+                 aj2syy = aj2ry*aj2syr+aj2sy*aj2sys
+                  uu2 = u2(j1,j2,j3,ex)
+                  uu2r = (u2(j1-2,j2,j3,ex)-8.*u2(j1-1,j2,j3,ex)+8.*u2(
+     & j1+1,j2,j3,ex)-u2(j1+2,j2,j3,ex))/(12.*dr2(0))
+                  uu2s = (u2(j1,j2-2,j3,ex)-8.*u2(j1,j2-1,j3,ex)+8.*u2(
+     & j1,j2+1,j3,ex)-u2(j1,j2+2,j3,ex))/(12.*dr2(1))
+                  uu2rr = (-u2(j1-2,j2,j3,ex)+16.*u2(j1-1,j2,j3,ex)-
+     & 30.*u2(j1,j2,j3,ex)+16.*u2(j1+1,j2,j3,ex)-u2(j1+2,j2,j3,ex))/(
+     & 12.*dr2(0)**2)
+                  uu2rs = ((u2(j1-2,j2-2,j3,ex)-8.*u2(j1-2,j2-1,j3,ex)+
+     & 8.*u2(j1-2,j2+1,j3,ex)-u2(j1-2,j2+2,j3,ex))/(12.*dr2(1))-8.*(
+     & u2(j1-1,j2-2,j3,ex)-8.*u2(j1-1,j2-1,j3,ex)+8.*u2(j1-1,j2+1,j3,
+     & ex)-u2(j1-1,j2+2,j3,ex))/(12.*dr2(1))+8.*(u2(j1+1,j2-2,j3,ex)-
+     & 8.*u2(j1+1,j2-1,j3,ex)+8.*u2(j1+1,j2+1,j3,ex)-u2(j1+1,j2+2,j3,
+     & ex))/(12.*dr2(1))-(u2(j1+2,j2-2,j3,ex)-8.*u2(j1+2,j2-1,j3,ex)+
+     & 8.*u2(j1+2,j2+1,j3,ex)-u2(j1+2,j2+2,j3,ex))/(12.*dr2(1)))/(12.*
      & dr2(0))
-              uu2ss = (-u2(j1,j2-2,j3,ex)+16.*u2(j1,j2-1,j3,ex)-30.*u2(
-     & j1,j2,j3,ex)+16.*u2(j1,j2+1,j3,ex)-u2(j1,j2+2,j3,ex))/(12.*dr2(
-     & 1)**2)
-               u2x = aj2rx*uu2r+aj2sx*uu2s
-               u2y = aj2ry*uu2r+aj2sy*uu2s
-               t1 = aj2rx**2
-               t6 = aj2sx**2
-               u2xx = t1*uu2rr+2*aj2rx*aj2sx*uu2rs+t6*uu2ss+aj2rxx*
+                  uu2ss = (-u2(j1,j2-2,j3,ex)+16.*u2(j1,j2-1,j3,ex)-
+     & 30.*u2(j1,j2,j3,ex)+16.*u2(j1,j2+1,j3,ex)-u2(j1,j2+2,j3,ex))/(
+     & 12.*dr2(1)**2)
+                   u2x = aj2rx*uu2r+aj2sx*uu2s
+                   u2y = aj2ry*uu2r+aj2sy*uu2s
+                   t1 = aj2rx**2
+                   t6 = aj2sx**2
+                   u2xx = t1*uu2rr+2*aj2rx*aj2sx*uu2rs+t6*uu2ss+aj2rxx*
      & uu2r+aj2sxx*uu2s
-               t1 = aj2ry**2
-               t6 = aj2sy**2
-               u2yy = t1*uu2rr+2*aj2ry*aj2sy*uu2rs+t6*uu2ss+aj2ryy*
+                   t1 = aj2ry**2
+                   t6 = aj2sy**2
+                   u2yy = t1*uu2rr+2*aj2ry*aj2sy*uu2rs+t6*uu2ss+aj2ryy*
      & uu2r+aj2syy*uu2s
-             u2Lap = u2xx+ u2yy
-              vv2 = u2(j1,j2,j3,ey)
-              vv2r = (u2(j1-2,j2,j3,ey)-8.*u2(j1-1,j2,j3,ey)+8.*u2(j1+
-     & 1,j2,j3,ey)-u2(j1+2,j2,j3,ey))/(12.*dr2(0))
-              vv2s = (u2(j1,j2-2,j3,ey)-8.*u2(j1,j2-1,j3,ey)+8.*u2(j1,
-     & j2+1,j3,ey)-u2(j1,j2+2,j3,ey))/(12.*dr2(1))
-              vv2rr = (-u2(j1-2,j2,j3,ey)+16.*u2(j1-1,j2,j3,ey)-30.*u2(
-     & j1,j2,j3,ey)+16.*u2(j1+1,j2,j3,ey)-u2(j1+2,j2,j3,ey))/(12.*dr2(
-     & 0)**2)
-              vv2rs = ((u2(j1-2,j2-2,j3,ey)-8.*u2(j1-2,j2-1,j3,ey)+8.*
-     & u2(j1-2,j2+1,j3,ey)-u2(j1-2,j2+2,j3,ey))/(12.*dr2(1))-8.*(u2(
-     & j1-1,j2-2,j3,ey)-8.*u2(j1-1,j2-1,j3,ey)+8.*u2(j1-1,j2+1,j3,ey)-
-     & u2(j1-1,j2+2,j3,ey))/(12.*dr2(1))+8.*(u2(j1+1,j2-2,j3,ey)-8.*
-     & u2(j1+1,j2-1,j3,ey)+8.*u2(j1+1,j2+1,j3,ey)-u2(j1+1,j2+2,j3,ey))
-     & /(12.*dr2(1))-(u2(j1+2,j2-2,j3,ey)-8.*u2(j1+2,j2-1,j3,ey)+8.*
-     & u2(j1+2,j2+1,j3,ey)-u2(j1+2,j2+2,j3,ey))/(12.*dr2(1)))/(12.*
+                 u2Lap = u2xx+ u2yy
+                  vv2 = u2(j1,j2,j3,ey)
+                  vv2r = (u2(j1-2,j2,j3,ey)-8.*u2(j1-1,j2,j3,ey)+8.*u2(
+     & j1+1,j2,j3,ey)-u2(j1+2,j2,j3,ey))/(12.*dr2(0))
+                  vv2s = (u2(j1,j2-2,j3,ey)-8.*u2(j1,j2-1,j3,ey)+8.*u2(
+     & j1,j2+1,j3,ey)-u2(j1,j2+2,j3,ey))/(12.*dr2(1))
+                  vv2rr = (-u2(j1-2,j2,j3,ey)+16.*u2(j1-1,j2,j3,ey)-
+     & 30.*u2(j1,j2,j3,ey)+16.*u2(j1+1,j2,j3,ey)-u2(j1+2,j2,j3,ey))/(
+     & 12.*dr2(0)**2)
+                  vv2rs = ((u2(j1-2,j2-2,j3,ey)-8.*u2(j1-2,j2-1,j3,ey)+
+     & 8.*u2(j1-2,j2+1,j3,ey)-u2(j1-2,j2+2,j3,ey))/(12.*dr2(1))-8.*(
+     & u2(j1-1,j2-2,j3,ey)-8.*u2(j1-1,j2-1,j3,ey)+8.*u2(j1-1,j2+1,j3,
+     & ey)-u2(j1-1,j2+2,j3,ey))/(12.*dr2(1))+8.*(u2(j1+1,j2-2,j3,ey)-
+     & 8.*u2(j1+1,j2-1,j3,ey)+8.*u2(j1+1,j2+1,j3,ey)-u2(j1+1,j2+2,j3,
+     & ey))/(12.*dr2(1))-(u2(j1+2,j2-2,j3,ey)-8.*u2(j1+2,j2-1,j3,ey)+
+     & 8.*u2(j1+2,j2+1,j3,ey)-u2(j1+2,j2+2,j3,ey))/(12.*dr2(1)))/(12.*
      & dr2(0))
-              vv2ss = (-u2(j1,j2-2,j3,ey)+16.*u2(j1,j2-1,j3,ey)-30.*u2(
-     & j1,j2,j3,ey)+16.*u2(j1,j2+1,j3,ey)-u2(j1,j2+2,j3,ey))/(12.*dr2(
-     & 1)**2)
-               v2x = aj2rx*vv2r+aj2sx*vv2s
-               v2y = aj2ry*vv2r+aj2sy*vv2s
-               t1 = aj2rx**2
-               t6 = aj2sx**2
-               v2xx = t1*vv2rr+2*aj2rx*aj2sx*vv2rs+t6*vv2ss+aj2rxx*
+                  vv2ss = (-u2(j1,j2-2,j3,ey)+16.*u2(j1,j2-1,j3,ey)-
+     & 30.*u2(j1,j2,j3,ey)+16.*u2(j1,j2+1,j3,ey)-u2(j1,j2+2,j3,ey))/(
+     & 12.*dr2(1)**2)
+                   v2x = aj2rx*vv2r+aj2sx*vv2s
+                   v2y = aj2ry*vv2r+aj2sy*vv2s
+                   t1 = aj2rx**2
+                   t6 = aj2sx**2
+                   v2xx = t1*vv2rr+2*aj2rx*aj2sx*vv2rs+t6*vv2ss+aj2rxx*
      & vv2r+aj2sxx*vv2s
-               t1 = aj2ry**2
-               t6 = aj2sy**2
-               v2yy = t1*vv2rr+2*aj2ry*aj2sy*vv2rs+t6*vv2ss+aj2ryy*
+                   t1 = aj2ry**2
+                   t6 = aj2sy**2
+                   v2yy = t1*vv2rr+2*aj2ry*aj2sy*vv2rs+t6*vv2ss+aj2ryy*
      & vv2r+aj2syy*vv2s
-             v2Lap = v2xx+ v2yy
-            f(0)=(u1x+v1y) - (u2x+v2y)
-            f(1)=(an1*u1Lap+an2*v1Lap) - (an1*u2Lap+an2*v2Lap)
-            f(2)=(v1x-u1y) - (v2x-u2y)
-            f(3)=(tau1*u1Lap+tau2*v1Lap)/eps1 - (tau1*u2Lap+tau2*v2Lap)
-     & /eps2
-            f(4)=(u1xxx+u1xyy+v1xxy+v1yyy) - (u2xxx+u2xyy+v2xxy+v2yyy)
-            f(5)=((v1xxx+v1xyy)-(u1xxy+u1yyy))/eps1 - ((v2xxx+v2xyy)-(
-     & u2xxy+u2yyy))/eps2
-            f(6)=(an1*u1LapSq+an2*v1LapSq)/eps1 - (an1*u2LapSq+an2*
-     & v2LapSq)/eps2
-            f(7)=(tau1*u1LapSq+tau2*v1LapSq)/eps1**2 - (tau1*u2LapSq+
-     & tau2*v2LapSq)/eps2**2
-            if( twilightZone.eq.1 )then
-              call ogderiv(ep, 0,2,0,0, xy1(i1,i2,i3,0),xy1(i1,i2,i3,1)
-     & ,0.,t, ex, uexx )
-              call ogderiv(ep, 0,0,2,0, xy1(i1,i2,i3,0),xy1(i1,i2,i3,1)
-     & ,0.,t, ex, ueyy )
-              call ogderiv(ep, 0,2,0,0, xy1(i1,i2,i3,0),xy1(i1,i2,i3,1)
-     & ,0.,t, ey, vexx )
-              call ogderiv(ep, 0,0,2,0, xy1(i1,i2,i3,0),xy1(i1,i2,i3,1)
-     & ,0.,t, ey, veyy )
-              call ogderiv(ep, 0,2,1,0, xy1(i1,i2,i3,0),xy1(i1,i2,i3,1)
-     & ,0.,t, ex, uexxy )
-              call ogderiv(ep, 0,0,3,0, xy1(i1,i2,i3,0),xy1(i1,i2,i3,1)
-     & ,0.,t, ex, ueyyy )
-              call ogderiv(ep, 0,3,0,0, xy1(i1,i2,i3,0),xy1(i1,i2,i3,1)
-     & ,0.,t, ey, vexxx )
-              call ogderiv(ep, 0,1,2,0, xy1(i1,i2,i3,0),xy1(i1,i2,i3,1)
-     & ,0.,t, ey, vexyy )
-              call ogderiv(ep, 0,4,0,0, xy1(i1,i2,i3,0),xy1(i1,i2,i3,1)
-     & ,0.,t, ex, uexxxx )
-              call ogderiv(ep, 0,2,2,0, xy1(i1,i2,i3,0),xy1(i1,i2,i3,1)
-     & ,0.,t, ex, uexxyy )
-              call ogderiv(ep, 0,0,4,0, xy1(i1,i2,i3,0),xy1(i1,i2,i3,1)
-     & ,0.,t, ex, ueyyyy )
-              call ogderiv(ep, 0,4,0,0, xy1(i1,i2,i3,0),xy1(i1,i2,i3,1)
-     & ,0.,t, ey, vexxxx )
-              call ogderiv(ep, 0,2,2,0, xy1(i1,i2,i3,0),xy1(i1,i2,i3,1)
-     & ,0.,t, ey, vexxyy )
-              call ogderiv(ep, 0,0,4,0, xy1(i1,i2,i3,0),xy1(i1,i2,i3,1)
-     & ,0.,t, ey, veyyyy )
-              ueLap = uexx + ueyy
-              veLap = vexx + veyy
-              ueLapSq = uexxxx + 2.*uexxyy + ueyyyy
-              veLapSq = vexxxx + 2.*vexxyy + veyyyy
-              f(3) = f(3) - ( tau1*ueLap +tau2*veLap )*(1./eps1-
+                 v2Lap = v2xx+ v2yy
+                f(0)=(u1x+v1y) - (u2x+v2y)
+                f(1)=(an1*u1Lap+an2*v1Lap) - (an1*u2Lap+an2*v2Lap)
+                f(2)=(v1x-u1y) - (v2x-u2y)
+                f(3)=(tau1*u1Lap+tau2*v1Lap)/eps1 - (tau1*u2Lap+tau2*
+     & v2Lap)/eps2
+                f(4)=(u1xxx+u1xyy+v1xxy+v1yyy) - (u2xxx+u2xyy+v2xxy+
+     & v2yyy)
+                f(5)=((v1xxx+v1xyy)-(u1xxy+u1yyy))/eps1 - ((v2xxx+
+     & v2xyy)-(u2xxy+u2yyy))/eps2
+                if( setDivergenceAtInterfaces.eq.0 )then
+                 f(6)=(an1*u1LapSq+an2*v1LapSq)/eps1 - (an1*u2LapSq+
+     & an2*v2LapSq)/eps2
+                else
+                 f(6)=(u1x+v1y)
+                end if
+                f(7)=(tau1*u1LapSq+tau2*v1LapSq)/eps1**2 - (tau1*
+     & u2LapSq+tau2*v2LapSq)/eps2**2
+                if( twilightZone.eq.1 )then
+                  call ogderiv(ep, 0,2,0,0, xy1(i1,i2,i3,0),xy1(i1,i2,
+     & i3,1),0.,t, ex, uexx )
+                  call ogderiv(ep, 0,0,2,0, xy1(i1,i2,i3,0),xy1(i1,i2,
+     & i3,1),0.,t, ex, ueyy )
+                  call ogderiv(ep, 0,2,0,0, xy1(i1,i2,i3,0),xy1(i1,i2,
+     & i3,1),0.,t, ey, vexx )
+                  call ogderiv(ep, 0,0,2,0, xy1(i1,i2,i3,0),xy1(i1,i2,
+     & i3,1),0.,t, ey, veyy )
+                  call ogderiv(ep, 0,2,1,0, xy1(i1,i2,i3,0),xy1(i1,i2,
+     & i3,1),0.,t, ex, uexxy )
+                  call ogderiv(ep, 0,0,3,0, xy1(i1,i2,i3,0),xy1(i1,i2,
+     & i3,1),0.,t, ex, ueyyy )
+                  call ogderiv(ep, 0,3,0,0, xy1(i1,i2,i3,0),xy1(i1,i2,
+     & i3,1),0.,t, ey, vexxx )
+                  call ogderiv(ep, 0,1,2,0, xy1(i1,i2,i3,0),xy1(i1,i2,
+     & i3,1),0.,t, ey, vexyy )
+                  call ogderiv(ep, 0,4,0,0, xy1(i1,i2,i3,0),xy1(i1,i2,
+     & i3,1),0.,t, ex, uexxxx )
+                  call ogderiv(ep, 0,2,2,0, xy1(i1,i2,i3,0),xy1(i1,i2,
+     & i3,1),0.,t, ex, uexxyy )
+                  call ogderiv(ep, 0,0,4,0, xy1(i1,i2,i3,0),xy1(i1,i2,
+     & i3,1),0.,t, ex, ueyyyy )
+                  call ogderiv(ep, 0,4,0,0, xy1(i1,i2,i3,0),xy1(i1,i2,
+     & i3,1),0.,t, ey, vexxxx )
+                  call ogderiv(ep, 0,2,2,0, xy1(i1,i2,i3,0),xy1(i1,i2,
+     & i3,1),0.,t, ey, vexxyy )
+                  call ogderiv(ep, 0,0,4,0, xy1(i1,i2,i3,0),xy1(i1,i2,
+     & i3,1),0.,t, ey, veyyyy )
+                  ueLap = uexx + ueyy
+                  veLap = vexx + veyy
+                  ueLapSq = uexxxx + 2.*uexxyy + ueyyyy
+                  veLapSq = vexxxx + 2.*vexxyy + veyyyy
+                  f(3) = f(3) - ( tau1*ueLap +tau2*veLap )*(1./eps1-
      & 1./eps2)
-              f(5) = f(5) - ((vexxx+vexyy)-(uexxy+ueyyy))*(1./eps1-
+                  f(5) = f(5) - ((vexxx+vexyy)-(uexxy+ueyyy))*(1./eps1-
      & 1./eps2)
-              f(6) = f(6) - (an1*ueLapSq+an2*veLapSq)*(1./eps1-1./eps2)
-              f(7) = f(7) - (tau1*ueLapSq+tau2*veLapSq)*(1./eps1**2 - 
-     & 1./eps2**2)
-            end if
-
-           if( debug.gt.3 ) write(debugFile,'(" --> 4cth: i1,i2=",2i4,
-     & " f(re-eval)=",8e10.2)') i1,i2,f(0),f(1),f(2),f(3),f(4),f(5),f(
-     & 6),f(7)
-             ! '
-          end if
-
-           ! ******************************************************
-           ! solve for Hz
-           !  [ w.n/eps ] = 0
-           !  [ lap(w)/eps ] = 0
-           !  [ lap(w).n/eps**2 ] = 0
-           !  [ lapSq(w)/eps**2 ] = 0
-
-           ! first evaluate the equations we want to solve with the wrong values at the ghost points:
-            ! These derivatives are computed to 4th-order accuracy
-             ! this next call will define the jacobian and its derivatives (parameteric and spatial)
-             aj1rx = rsxy1(i1,i2,i3,0,0)
-             aj1rxr = (rsxy1(i1-2,i2,i3,0,0)-8.*rsxy1(i1-1,i2,i3,0,0)+
-     & 8.*rsxy1(i1+1,i2,i3,0,0)-rsxy1(i1+2,i2,i3,0,0))/(12.*dr1(0))
-             aj1rxs = (rsxy1(i1,i2-2,i3,0,0)-8.*rsxy1(i1,i2-1,i3,0,0)+
-     & 8.*rsxy1(i1,i2+1,i3,0,0)-rsxy1(i1,i2+2,i3,0,0))/(12.*dr1(1))
-             aj1sx = rsxy1(i1,i2,i3,1,0)
-             aj1sxr = (rsxy1(i1-2,i2,i3,1,0)-8.*rsxy1(i1-1,i2,i3,1,0)+
-     & 8.*rsxy1(i1+1,i2,i3,1,0)-rsxy1(i1+2,i2,i3,1,0))/(12.*dr1(0))
-             aj1sxs = (rsxy1(i1,i2-2,i3,1,0)-8.*rsxy1(i1,i2-1,i3,1,0)+
-     & 8.*rsxy1(i1,i2+1,i3,1,0)-rsxy1(i1,i2+2,i3,1,0))/(12.*dr1(1))
-             aj1ry = rsxy1(i1,i2,i3,0,1)
-             aj1ryr = (rsxy1(i1-2,i2,i3,0,1)-8.*rsxy1(i1-1,i2,i3,0,1)+
-     & 8.*rsxy1(i1+1,i2,i3,0,1)-rsxy1(i1+2,i2,i3,0,1))/(12.*dr1(0))
-             aj1rys = (rsxy1(i1,i2-2,i3,0,1)-8.*rsxy1(i1,i2-1,i3,0,1)+
-     & 8.*rsxy1(i1,i2+1,i3,0,1)-rsxy1(i1,i2+2,i3,0,1))/(12.*dr1(1))
-             aj1sy = rsxy1(i1,i2,i3,1,1)
-             aj1syr = (rsxy1(i1-2,i2,i3,1,1)-8.*rsxy1(i1-1,i2,i3,1,1)+
-     & 8.*rsxy1(i1+1,i2,i3,1,1)-rsxy1(i1+2,i2,i3,1,1))/(12.*dr1(0))
-             aj1sys = (rsxy1(i1,i2-2,i3,1,1)-8.*rsxy1(i1,i2-1,i3,1,1)+
-     & 8.*rsxy1(i1,i2+1,i3,1,1)-rsxy1(i1,i2+2,i3,1,1))/(12.*dr1(1))
-             aj1rxx = aj1rx*aj1rxr+aj1sx*aj1rxs
-             aj1rxy = aj1ry*aj1rxr+aj1sy*aj1rxs
-             aj1sxx = aj1rx*aj1sxr+aj1sx*aj1sxs
-             aj1sxy = aj1ry*aj1sxr+aj1sy*aj1sxs
-             aj1ryx = aj1rx*aj1ryr+aj1sx*aj1rys
-             aj1ryy = aj1ry*aj1ryr+aj1sy*aj1rys
-             aj1syx = aj1rx*aj1syr+aj1sx*aj1sys
-             aj1syy = aj1ry*aj1syr+aj1sy*aj1sys
-              ww1 = u1(i1,i2,i3,hz)
-              ww1r = (u1(i1-2,i2,i3,hz)-8.*u1(i1-1,i2,i3,hz)+8.*u1(i1+
-     & 1,i2,i3,hz)-u1(i1+2,i2,i3,hz))/(12.*dr1(0))
-              ww1s = (u1(i1,i2-2,i3,hz)-8.*u1(i1,i2-1,i3,hz)+8.*u1(i1,
-     & i2+1,i3,hz)-u1(i1,i2+2,i3,hz))/(12.*dr1(1))
-              ww1rr = (-u1(i1-2,i2,i3,hz)+16.*u1(i1-1,i2,i3,hz)-30.*u1(
-     & i1,i2,i3,hz)+16.*u1(i1+1,i2,i3,hz)-u1(i1+2,i2,i3,hz))/(12.*dr1(
-     & 0)**2)
-              ww1rs = ((u1(i1-2,i2-2,i3,hz)-8.*u1(i1-2,i2-1,i3,hz)+8.*
-     & u1(i1-2,i2+1,i3,hz)-u1(i1-2,i2+2,i3,hz))/(12.*dr1(1))-8.*(u1(
-     & i1-1,i2-2,i3,hz)-8.*u1(i1-1,i2-1,i3,hz)+8.*u1(i1-1,i2+1,i3,hz)-
-     & u1(i1-1,i2+2,i3,hz))/(12.*dr1(1))+8.*(u1(i1+1,i2-2,i3,hz)-8.*
-     & u1(i1+1,i2-1,i3,hz)+8.*u1(i1+1,i2+1,i3,hz)-u1(i1+1,i2+2,i3,hz))
-     & /(12.*dr1(1))-(u1(i1+2,i2-2,i3,hz)-8.*u1(i1+2,i2-1,i3,hz)+8.*
-     & u1(i1+2,i2+1,i3,hz)-u1(i1+2,i2+2,i3,hz))/(12.*dr1(1)))/(12.*
+                  if( setDivergenceAtInterfaces.eq.0 )then
+                    f(6) = f(6) - (an1*ueLapSq+an2*veLapSq)*(1./eps1-
+     & 1./eps2)
+                  end if
+                  f(7) = f(7) - (tau1*ueLapSq+tau2*veLapSq)*(1./eps1**
+     & 2 - 1./eps2**2)
+                end if
+               if( debug.gt.3 ) write(debugFile,'(" --> 4cth: i1,i2=",
+     & 2i4," f(re-eval)=",8e10.2)') i1,i2,f(0),f(1),f(2),f(3),f(4),f(
+     & 5),f(6),f(7)
+                 ! '
+              end if
+               ! ******************************************************
+               ! solve for Hz
+               !  [ w.n/eps ] = 0
+               !  [ lap(w)/eps ] = 0
+               !  [ lap(w).n/eps**2 ] = 0
+               !  [ lapSq(w)/eps**2 ] = 0
+               ! first evaluate the equations we want to solve with the wrong values at the ghost points:
+                ! These derivatives are computed to 4th-order accuracy
+                 ! this next call will define the jacobian and its derivatives (parameteric and spatial)
+                 aj1rx = rsxy1(i1,i2,i3,0,0)
+                 aj1rxr = (rsxy1(i1-2,i2,i3,0,0)-8.*rsxy1(i1-1,i2,i3,0,
+     & 0)+8.*rsxy1(i1+1,i2,i3,0,0)-rsxy1(i1+2,i2,i3,0,0))/(12.*dr1(0))
+                 aj1rxs = (rsxy1(i1,i2-2,i3,0,0)-8.*rsxy1(i1,i2-1,i3,0,
+     & 0)+8.*rsxy1(i1,i2+1,i3,0,0)-rsxy1(i1,i2+2,i3,0,0))/(12.*dr1(1))
+                 aj1sx = rsxy1(i1,i2,i3,1,0)
+                 aj1sxr = (rsxy1(i1-2,i2,i3,1,0)-8.*rsxy1(i1-1,i2,i3,1,
+     & 0)+8.*rsxy1(i1+1,i2,i3,1,0)-rsxy1(i1+2,i2,i3,1,0))/(12.*dr1(0))
+                 aj1sxs = (rsxy1(i1,i2-2,i3,1,0)-8.*rsxy1(i1,i2-1,i3,1,
+     & 0)+8.*rsxy1(i1,i2+1,i3,1,0)-rsxy1(i1,i2+2,i3,1,0))/(12.*dr1(1))
+                 aj1ry = rsxy1(i1,i2,i3,0,1)
+                 aj1ryr = (rsxy1(i1-2,i2,i3,0,1)-8.*rsxy1(i1-1,i2,i3,0,
+     & 1)+8.*rsxy1(i1+1,i2,i3,0,1)-rsxy1(i1+2,i2,i3,0,1))/(12.*dr1(0))
+                 aj1rys = (rsxy1(i1,i2-2,i3,0,1)-8.*rsxy1(i1,i2-1,i3,0,
+     & 1)+8.*rsxy1(i1,i2+1,i3,0,1)-rsxy1(i1,i2+2,i3,0,1))/(12.*dr1(1))
+                 aj1sy = rsxy1(i1,i2,i3,1,1)
+                 aj1syr = (rsxy1(i1-2,i2,i3,1,1)-8.*rsxy1(i1-1,i2,i3,1,
+     & 1)+8.*rsxy1(i1+1,i2,i3,1,1)-rsxy1(i1+2,i2,i3,1,1))/(12.*dr1(0))
+                 aj1sys = (rsxy1(i1,i2-2,i3,1,1)-8.*rsxy1(i1,i2-1,i3,1,
+     & 1)+8.*rsxy1(i1,i2+1,i3,1,1)-rsxy1(i1,i2+2,i3,1,1))/(12.*dr1(1))
+                 aj1rxx = aj1rx*aj1rxr+aj1sx*aj1rxs
+                 aj1rxy = aj1ry*aj1rxr+aj1sy*aj1rxs
+                 aj1sxx = aj1rx*aj1sxr+aj1sx*aj1sxs
+                 aj1sxy = aj1ry*aj1sxr+aj1sy*aj1sxs
+                 aj1ryx = aj1rx*aj1ryr+aj1sx*aj1rys
+                 aj1ryy = aj1ry*aj1ryr+aj1sy*aj1rys
+                 aj1syx = aj1rx*aj1syr+aj1sx*aj1sys
+                 aj1syy = aj1ry*aj1syr+aj1sy*aj1sys
+                  ww1 = u1(i1,i2,i3,hz)
+                  ww1r = (u1(i1-2,i2,i3,hz)-8.*u1(i1-1,i2,i3,hz)+8.*u1(
+     & i1+1,i2,i3,hz)-u1(i1+2,i2,i3,hz))/(12.*dr1(0))
+                  ww1s = (u1(i1,i2-2,i3,hz)-8.*u1(i1,i2-1,i3,hz)+8.*u1(
+     & i1,i2+1,i3,hz)-u1(i1,i2+2,i3,hz))/(12.*dr1(1))
+                  ww1rr = (-u1(i1-2,i2,i3,hz)+16.*u1(i1-1,i2,i3,hz)-
+     & 30.*u1(i1,i2,i3,hz)+16.*u1(i1+1,i2,i3,hz)-u1(i1+2,i2,i3,hz))/(
+     & 12.*dr1(0)**2)
+                  ww1rs = ((u1(i1-2,i2-2,i3,hz)-8.*u1(i1-2,i2-1,i3,hz)+
+     & 8.*u1(i1-2,i2+1,i3,hz)-u1(i1-2,i2+2,i3,hz))/(12.*dr1(1))-8.*(
+     & u1(i1-1,i2-2,i3,hz)-8.*u1(i1-1,i2-1,i3,hz)+8.*u1(i1-1,i2+1,i3,
+     & hz)-u1(i1-1,i2+2,i3,hz))/(12.*dr1(1))+8.*(u1(i1+1,i2-2,i3,hz)-
+     & 8.*u1(i1+1,i2-1,i3,hz)+8.*u1(i1+1,i2+1,i3,hz)-u1(i1+1,i2+2,i3,
+     & hz))/(12.*dr1(1))-(u1(i1+2,i2-2,i3,hz)-8.*u1(i1+2,i2-1,i3,hz)+
+     & 8.*u1(i1+2,i2+1,i3,hz)-u1(i1+2,i2+2,i3,hz))/(12.*dr1(1)))/(12.*
      & dr1(0))
-              ww1ss = (-u1(i1,i2-2,i3,hz)+16.*u1(i1,i2-1,i3,hz)-30.*u1(
-     & i1,i2,i3,hz)+16.*u1(i1,i2+1,i3,hz)-u1(i1,i2+2,i3,hz))/(12.*dr1(
-     & 1)**2)
-               w1x = aj1rx*ww1r+aj1sx*ww1s
-               w1y = aj1ry*ww1r+aj1sy*ww1s
-               t1 = aj1rx**2
-               t6 = aj1sx**2
-               w1xx = t1*ww1rr+2*aj1rx*aj1sx*ww1rs+t6*ww1ss+aj1rxx*
+                  ww1ss = (-u1(i1,i2-2,i3,hz)+16.*u1(i1,i2-1,i3,hz)-
+     & 30.*u1(i1,i2,i3,hz)+16.*u1(i1,i2+1,i3,hz)-u1(i1,i2+2,i3,hz))/(
+     & 12.*dr1(1)**2)
+                   w1x = aj1rx*ww1r+aj1sx*ww1s
+                   w1y = aj1ry*ww1r+aj1sy*ww1s
+                   t1 = aj1rx**2
+                   t6 = aj1sx**2
+                   w1xx = t1*ww1rr+2*aj1rx*aj1sx*ww1rs+t6*ww1ss+aj1rxx*
      & ww1r+aj1sxx*ww1s
-               t1 = aj1ry**2
-               t6 = aj1sy**2
-               w1yy = t1*ww1rr+2*aj1ry*aj1sy*ww1rs+t6*ww1ss+aj1ryy*
+                   t1 = aj1ry**2
+                   t6 = aj1sy**2
+                   w1yy = t1*ww1rr+2*aj1ry*aj1sy*ww1rs+t6*ww1ss+aj1ryy*
      & ww1r+aj1syy*ww1s
-             w1Lap = w1xx+ w1yy
-             ! this next call will define the jacobian and its derivatives (parameteric and spatial)
-             aj2rx = rsxy2(j1,j2,j3,0,0)
-             aj2rxr = (rsxy2(j1-2,j2,j3,0,0)-8.*rsxy2(j1-1,j2,j3,0,0)+
-     & 8.*rsxy2(j1+1,j2,j3,0,0)-rsxy2(j1+2,j2,j3,0,0))/(12.*dr2(0))
-             aj2rxs = (rsxy2(j1,j2-2,j3,0,0)-8.*rsxy2(j1,j2-1,j3,0,0)+
-     & 8.*rsxy2(j1,j2+1,j3,0,0)-rsxy2(j1,j2+2,j3,0,0))/(12.*dr2(1))
-             aj2sx = rsxy2(j1,j2,j3,1,0)
-             aj2sxr = (rsxy2(j1-2,j2,j3,1,0)-8.*rsxy2(j1-1,j2,j3,1,0)+
-     & 8.*rsxy2(j1+1,j2,j3,1,0)-rsxy2(j1+2,j2,j3,1,0))/(12.*dr2(0))
-             aj2sxs = (rsxy2(j1,j2-2,j3,1,0)-8.*rsxy2(j1,j2-1,j3,1,0)+
-     & 8.*rsxy2(j1,j2+1,j3,1,0)-rsxy2(j1,j2+2,j3,1,0))/(12.*dr2(1))
-             aj2ry = rsxy2(j1,j2,j3,0,1)
-             aj2ryr = (rsxy2(j1-2,j2,j3,0,1)-8.*rsxy2(j1-1,j2,j3,0,1)+
-     & 8.*rsxy2(j1+1,j2,j3,0,1)-rsxy2(j1+2,j2,j3,0,1))/(12.*dr2(0))
-             aj2rys = (rsxy2(j1,j2-2,j3,0,1)-8.*rsxy2(j1,j2-1,j3,0,1)+
-     & 8.*rsxy2(j1,j2+1,j3,0,1)-rsxy2(j1,j2+2,j3,0,1))/(12.*dr2(1))
-             aj2sy = rsxy2(j1,j2,j3,1,1)
-             aj2syr = (rsxy2(j1-2,j2,j3,1,1)-8.*rsxy2(j1-1,j2,j3,1,1)+
-     & 8.*rsxy2(j1+1,j2,j3,1,1)-rsxy2(j1+2,j2,j3,1,1))/(12.*dr2(0))
-             aj2sys = (rsxy2(j1,j2-2,j3,1,1)-8.*rsxy2(j1,j2-1,j3,1,1)+
-     & 8.*rsxy2(j1,j2+1,j3,1,1)-rsxy2(j1,j2+2,j3,1,1))/(12.*dr2(1))
-             aj2rxx = aj2rx*aj2rxr+aj2sx*aj2rxs
-             aj2rxy = aj2ry*aj2rxr+aj2sy*aj2rxs
-             aj2sxx = aj2rx*aj2sxr+aj2sx*aj2sxs
-             aj2sxy = aj2ry*aj2sxr+aj2sy*aj2sxs
-             aj2ryx = aj2rx*aj2ryr+aj2sx*aj2rys
-             aj2ryy = aj2ry*aj2ryr+aj2sy*aj2rys
-             aj2syx = aj2rx*aj2syr+aj2sx*aj2sys
-             aj2syy = aj2ry*aj2syr+aj2sy*aj2sys
-              ww2 = u2(j1,j2,j3,hz)
-              ww2r = (u2(j1-2,j2,j3,hz)-8.*u2(j1-1,j2,j3,hz)+8.*u2(j1+
-     & 1,j2,j3,hz)-u2(j1+2,j2,j3,hz))/(12.*dr2(0))
-              ww2s = (u2(j1,j2-2,j3,hz)-8.*u2(j1,j2-1,j3,hz)+8.*u2(j1,
-     & j2+1,j3,hz)-u2(j1,j2+2,j3,hz))/(12.*dr2(1))
-              ww2rr = (-u2(j1-2,j2,j3,hz)+16.*u2(j1-1,j2,j3,hz)-30.*u2(
-     & j1,j2,j3,hz)+16.*u2(j1+1,j2,j3,hz)-u2(j1+2,j2,j3,hz))/(12.*dr2(
-     & 0)**2)
-              ww2rs = ((u2(j1-2,j2-2,j3,hz)-8.*u2(j1-2,j2-1,j3,hz)+8.*
-     & u2(j1-2,j2+1,j3,hz)-u2(j1-2,j2+2,j3,hz))/(12.*dr2(1))-8.*(u2(
-     & j1-1,j2-2,j3,hz)-8.*u2(j1-1,j2-1,j3,hz)+8.*u2(j1-1,j2+1,j3,hz)-
-     & u2(j1-1,j2+2,j3,hz))/(12.*dr2(1))+8.*(u2(j1+1,j2-2,j3,hz)-8.*
-     & u2(j1+1,j2-1,j3,hz)+8.*u2(j1+1,j2+1,j3,hz)-u2(j1+1,j2+2,j3,hz))
-     & /(12.*dr2(1))-(u2(j1+2,j2-2,j3,hz)-8.*u2(j1+2,j2-1,j3,hz)+8.*
-     & u2(j1+2,j2+1,j3,hz)-u2(j1+2,j2+2,j3,hz))/(12.*dr2(1)))/(12.*
+                 w1Lap = w1xx+ w1yy
+                 ! this next call will define the jacobian and its derivatives (parameteric and spatial)
+                 aj2rx = rsxy2(j1,j2,j3,0,0)
+                 aj2rxr = (rsxy2(j1-2,j2,j3,0,0)-8.*rsxy2(j1-1,j2,j3,0,
+     & 0)+8.*rsxy2(j1+1,j2,j3,0,0)-rsxy2(j1+2,j2,j3,0,0))/(12.*dr2(0))
+                 aj2rxs = (rsxy2(j1,j2-2,j3,0,0)-8.*rsxy2(j1,j2-1,j3,0,
+     & 0)+8.*rsxy2(j1,j2+1,j3,0,0)-rsxy2(j1,j2+2,j3,0,0))/(12.*dr2(1))
+                 aj2sx = rsxy2(j1,j2,j3,1,0)
+                 aj2sxr = (rsxy2(j1-2,j2,j3,1,0)-8.*rsxy2(j1-1,j2,j3,1,
+     & 0)+8.*rsxy2(j1+1,j2,j3,1,0)-rsxy2(j1+2,j2,j3,1,0))/(12.*dr2(0))
+                 aj2sxs = (rsxy2(j1,j2-2,j3,1,0)-8.*rsxy2(j1,j2-1,j3,1,
+     & 0)+8.*rsxy2(j1,j2+1,j3,1,0)-rsxy2(j1,j2+2,j3,1,0))/(12.*dr2(1))
+                 aj2ry = rsxy2(j1,j2,j3,0,1)
+                 aj2ryr = (rsxy2(j1-2,j2,j3,0,1)-8.*rsxy2(j1-1,j2,j3,0,
+     & 1)+8.*rsxy2(j1+1,j2,j3,0,1)-rsxy2(j1+2,j2,j3,0,1))/(12.*dr2(0))
+                 aj2rys = (rsxy2(j1,j2-2,j3,0,1)-8.*rsxy2(j1,j2-1,j3,0,
+     & 1)+8.*rsxy2(j1,j2+1,j3,0,1)-rsxy2(j1,j2+2,j3,0,1))/(12.*dr2(1))
+                 aj2sy = rsxy2(j1,j2,j3,1,1)
+                 aj2syr = (rsxy2(j1-2,j2,j3,1,1)-8.*rsxy2(j1-1,j2,j3,1,
+     & 1)+8.*rsxy2(j1+1,j2,j3,1,1)-rsxy2(j1+2,j2,j3,1,1))/(12.*dr2(0))
+                 aj2sys = (rsxy2(j1,j2-2,j3,1,1)-8.*rsxy2(j1,j2-1,j3,1,
+     & 1)+8.*rsxy2(j1,j2+1,j3,1,1)-rsxy2(j1,j2+2,j3,1,1))/(12.*dr2(1))
+                 aj2rxx = aj2rx*aj2rxr+aj2sx*aj2rxs
+                 aj2rxy = aj2ry*aj2rxr+aj2sy*aj2rxs
+                 aj2sxx = aj2rx*aj2sxr+aj2sx*aj2sxs
+                 aj2sxy = aj2ry*aj2sxr+aj2sy*aj2sxs
+                 aj2ryx = aj2rx*aj2ryr+aj2sx*aj2rys
+                 aj2ryy = aj2ry*aj2ryr+aj2sy*aj2rys
+                 aj2syx = aj2rx*aj2syr+aj2sx*aj2sys
+                 aj2syy = aj2ry*aj2syr+aj2sy*aj2sys
+                  ww2 = u2(j1,j2,j3,hz)
+                  ww2r = (u2(j1-2,j2,j3,hz)-8.*u2(j1-1,j2,j3,hz)+8.*u2(
+     & j1+1,j2,j3,hz)-u2(j1+2,j2,j3,hz))/(12.*dr2(0))
+                  ww2s = (u2(j1,j2-2,j3,hz)-8.*u2(j1,j2-1,j3,hz)+8.*u2(
+     & j1,j2+1,j3,hz)-u2(j1,j2+2,j3,hz))/(12.*dr2(1))
+                  ww2rr = (-u2(j1-2,j2,j3,hz)+16.*u2(j1-1,j2,j3,hz)-
+     & 30.*u2(j1,j2,j3,hz)+16.*u2(j1+1,j2,j3,hz)-u2(j1+2,j2,j3,hz))/(
+     & 12.*dr2(0)**2)
+                  ww2rs = ((u2(j1-2,j2-2,j3,hz)-8.*u2(j1-2,j2-1,j3,hz)+
+     & 8.*u2(j1-2,j2+1,j3,hz)-u2(j1-2,j2+2,j3,hz))/(12.*dr2(1))-8.*(
+     & u2(j1-1,j2-2,j3,hz)-8.*u2(j1-1,j2-1,j3,hz)+8.*u2(j1-1,j2+1,j3,
+     & hz)-u2(j1-1,j2+2,j3,hz))/(12.*dr2(1))+8.*(u2(j1+1,j2-2,j3,hz)-
+     & 8.*u2(j1+1,j2-1,j3,hz)+8.*u2(j1+1,j2+1,j3,hz)-u2(j1+1,j2+2,j3,
+     & hz))/(12.*dr2(1))-(u2(j1+2,j2-2,j3,hz)-8.*u2(j1+2,j2-1,j3,hz)+
+     & 8.*u2(j1+2,j2+1,j3,hz)-u2(j1+2,j2+2,j3,hz))/(12.*dr2(1)))/(12.*
      & dr2(0))
-              ww2ss = (-u2(j1,j2-2,j3,hz)+16.*u2(j1,j2-1,j3,hz)-30.*u2(
-     & j1,j2,j3,hz)+16.*u2(j1,j2+1,j3,hz)-u2(j1,j2+2,j3,hz))/(12.*dr2(
-     & 1)**2)
-               w2x = aj2rx*ww2r+aj2sx*ww2s
-               w2y = aj2ry*ww2r+aj2sy*ww2s
-               t1 = aj2rx**2
-               t6 = aj2sx**2
-               w2xx = t1*ww2rr+2*aj2rx*aj2sx*ww2rs+t6*ww2ss+aj2rxx*
+                  ww2ss = (-u2(j1,j2-2,j3,hz)+16.*u2(j1,j2-1,j3,hz)-
+     & 30.*u2(j1,j2,j3,hz)+16.*u2(j1,j2+1,j3,hz)-u2(j1,j2+2,j3,hz))/(
+     & 12.*dr2(1)**2)
+                   w2x = aj2rx*ww2r+aj2sx*ww2s
+                   w2y = aj2ry*ww2r+aj2sy*ww2s
+                   t1 = aj2rx**2
+                   t6 = aj2sx**2
+                   w2xx = t1*ww2rr+2*aj2rx*aj2sx*ww2rs+t6*ww2ss+aj2rxx*
      & ww2r+aj2sxx*ww2s
-               t1 = aj2ry**2
-               t6 = aj2sy**2
-               w2yy = t1*ww2rr+2*aj2ry*aj2sy*ww2rs+t6*ww2ss+aj2ryy*
+                   t1 = aj2ry**2
+                   t6 = aj2sy**2
+                   w2yy = t1*ww2rr+2*aj2ry*aj2sy*ww2rs+t6*ww2ss+aj2ryy*
      & ww2r+aj2syy*ww2s
-             w2Lap = w2xx+ w2yy
-            ! These derivatives are computed to 2nd-order accuracy
-             ! this next call will define the jacobian and its derivatives (parameteric and spatial)
-             aj1rx = rsxy1(i1,i2,i3,0,0)
-             aj1rxr = (-rsxy1(i1-1,i2,i3,0,0)+rsxy1(i1+1,i2,i3,0,0))/(
-     & 2.*dr1(0))
-             aj1rxs = (-rsxy1(i1,i2-1,i3,0,0)+rsxy1(i1,i2+1,i3,0,0))/(
-     & 2.*dr1(1))
-             aj1sx = rsxy1(i1,i2,i3,1,0)
-             aj1sxr = (-rsxy1(i1-1,i2,i3,1,0)+rsxy1(i1+1,i2,i3,1,0))/(
-     & 2.*dr1(0))
-             aj1sxs = (-rsxy1(i1,i2-1,i3,1,0)+rsxy1(i1,i2+1,i3,1,0))/(
-     & 2.*dr1(1))
-             aj1ry = rsxy1(i1,i2,i3,0,1)
-             aj1ryr = (-rsxy1(i1-1,i2,i3,0,1)+rsxy1(i1+1,i2,i3,0,1))/(
-     & 2.*dr1(0))
-             aj1rys = (-rsxy1(i1,i2-1,i3,0,1)+rsxy1(i1,i2+1,i3,0,1))/(
-     & 2.*dr1(1))
-             aj1sy = rsxy1(i1,i2,i3,1,1)
-             aj1syr = (-rsxy1(i1-1,i2,i3,1,1)+rsxy1(i1+1,i2,i3,1,1))/(
-     & 2.*dr1(0))
-             aj1sys = (-rsxy1(i1,i2-1,i3,1,1)+rsxy1(i1,i2+1,i3,1,1))/(
-     & 2.*dr1(1))
-             aj1rxx = aj1rx*aj1rxr+aj1sx*aj1rxs
-             aj1rxy = aj1ry*aj1rxr+aj1sy*aj1rxs
-             aj1sxx = aj1rx*aj1sxr+aj1sx*aj1sxs
-             aj1sxy = aj1ry*aj1sxr+aj1sy*aj1sxs
-             aj1ryx = aj1rx*aj1ryr+aj1sx*aj1rys
-             aj1ryy = aj1ry*aj1ryr+aj1sy*aj1rys
-             aj1syx = aj1rx*aj1syr+aj1sx*aj1sys
-             aj1syy = aj1ry*aj1syr+aj1sy*aj1sys
-              ww1 = u1(i1,i2,i3,hz)
-              ww1r = (-u1(i1-1,i2,i3,hz)+u1(i1+1,i2,i3,hz))/(2.*dr1(0))
-              ww1s = (-u1(i1,i2-1,i3,hz)+u1(i1,i2+1,i3,hz))/(2.*dr1(1))
-              ww1rr = (u1(i1-1,i2,i3,hz)-2.*u1(i1,i2,i3,hz)+u1(i1+1,i2,
-     & i3,hz))/(dr1(0)**2)
-              ww1rs = (-(-u1(i1-1,i2-1,i3,hz)+u1(i1-1,i2+1,i3,hz))/(2.*
-     & dr1(1))+(-u1(i1+1,i2-1,i3,hz)+u1(i1+1,i2+1,i3,hz))/(2.*dr1(1)))
-     & /(2.*dr1(0))
-              ww1ss = (u1(i1,i2-1,i3,hz)-2.*u1(i1,i2,i3,hz)+u1(i1,i2+1,
-     & i3,hz))/(dr1(1)**2)
-              ww1rrr = (-u1(i1-2,i2,i3,hz)+2.*u1(i1-1,i2,i3,hz)-2.*u1(
-     & i1+1,i2,i3,hz)+u1(i1+2,i2,i3,hz))/(2.*dr1(0)**3)
-              ww1rrs = ((-u1(i1-1,i2-1,i3,hz)+u1(i1-1,i2+1,i3,hz))/(2.*
-     & dr1(1))-2.*(-u1(i1,i2-1,i3,hz)+u1(i1,i2+1,i3,hz))/(2.*dr1(1))+(
-     & -u1(i1+1,i2-1,i3,hz)+u1(i1+1,i2+1,i3,hz))/(2.*dr1(1)))/(dr1(0)*
-     & *2)
-              ww1rss = (-(u1(i1-1,i2-1,i3,hz)-2.*u1(i1-1,i2,i3,hz)+u1(
-     & i1-1,i2+1,i3,hz))/(dr1(1)**2)+(u1(i1+1,i2-1,i3,hz)-2.*u1(i1+1,
-     & i2,i3,hz)+u1(i1+1,i2+1,i3,hz))/(dr1(1)**2))/(2.*dr1(0))
-              ww1sss = (-u1(i1,i2-2,i3,hz)+2.*u1(i1,i2-1,i3,hz)-2.*u1(
-     & i1,i2+1,i3,hz)+u1(i1,i2+2,i3,hz))/(2.*dr1(1)**3)
-              ww1rrrr = (u1(i1-2,i2,i3,hz)-4.*u1(i1-1,i2,i3,hz)+6.*u1(
-     & i1,i2,i3,hz)-4.*u1(i1+1,i2,i3,hz)+u1(i1+2,i2,i3,hz))/(dr1(0)**
-     & 4)
-              ww1rrrs = (-(-u1(i1-2,i2-1,i3,hz)+u1(i1-2,i2+1,i3,hz))/(
-     & 2.*dr1(1))+2.*(-u1(i1-1,i2-1,i3,hz)+u1(i1-1,i2+1,i3,hz))/(2.*
-     & dr1(1))-2.*(-u1(i1+1,i2-1,i3,hz)+u1(i1+1,i2+1,i3,hz))/(2.*dr1(
-     & 1))+(-u1(i1+2,i2-1,i3,hz)+u1(i1+2,i2+1,i3,hz))/(2.*dr1(1)))/(
-     & 2.*dr1(0)**3)
-              ww1rrss = ((u1(i1-1,i2-1,i3,hz)-2.*u1(i1-1,i2,i3,hz)+u1(
-     & i1-1,i2+1,i3,hz))/(dr1(1)**2)-2.*(u1(i1,i2-1,i3,hz)-2.*u1(i1,
-     & i2,i3,hz)+u1(i1,i2+1,i3,hz))/(dr1(1)**2)+(u1(i1+1,i2-1,i3,hz)-
-     & 2.*u1(i1+1,i2,i3,hz)+u1(i1+1,i2+1,i3,hz))/(dr1(1)**2))/(dr1(0)*
-     & *2)
-              ww1rsss = (-(-u1(i1-1,i2-2,i3,hz)+2.*u1(i1-1,i2-1,i3,hz)-
-     & 2.*u1(i1-1,i2+1,i3,hz)+u1(i1-1,i2+2,i3,hz))/(2.*dr1(1)**3)+(-
-     & u1(i1+1,i2-2,i3,hz)+2.*u1(i1+1,i2-1,i3,hz)-2.*u1(i1+1,i2+1,i3,
-     & hz)+u1(i1+1,i2+2,i3,hz))/(2.*dr1(1)**3))/(2.*dr1(0))
-              ww1ssss = (u1(i1,i2-2,i3,hz)-4.*u1(i1,i2-1,i3,hz)+6.*u1(
-     & i1,i2,i3,hz)-4.*u1(i1,i2+1,i3,hz)+u1(i1,i2+2,i3,hz))/(dr1(1)**
-     & 4)
-               t1 = aj1rx**2
-               t7 = aj1sx**2
-               w1xxx = t1*aj1rx*ww1rrr+3*t1*aj1sx*ww1rrs+3*aj1rx*t7*
-     & ww1rss+t7*aj1sx*ww1sss+3*aj1rx*aj1rxx*ww1rr+(3*aj1sxx*aj1rx+3*
-     & aj1sx*aj1rxx)*ww1rs+3*aj1sxx*aj1sx*ww1ss+aj1rxxx*ww1r+aj1sxxx*
-     & ww1s
-               t1 = aj1rx**2
-               t10 = aj1sx**2
-               w1xxy = aj1ry*t1*ww1rrr+(aj1sy*t1+2*aj1ry*aj1sx*aj1rx)*
-     & ww1rrs+(aj1ry*t10+2*aj1sy*aj1sx*aj1rx)*ww1rss+aj1sy*t10*ww1sss+
-     & (2*aj1rxy*aj1rx+aj1ry*aj1rxx)*ww1rr+(aj1ry*aj1sxx+2*aj1sx*
-     & aj1rxy+2*aj1sxy*aj1rx+aj1sy*aj1rxx)*ww1rs+(aj1sy*aj1sxx+2*
-     & aj1sxy*aj1sx)*ww1ss+aj1rxxy*ww1r+aj1sxxy*ww1s
-               t1 = aj1ry**2
-               t4 = aj1sy*aj1ry
-               t8 = aj1sy*aj1rx+aj1ry*aj1sx
-               t16 = aj1sy**2
-               w1xyy = t1*aj1rx*ww1rrr+(t4*aj1rx+aj1ry*t8)*ww1rrs+(t4*
-     & aj1sx+aj1sy*t8)*ww1rss+t16*aj1sx*ww1sss+(aj1ryy*aj1rx+2*aj1ry*
-     & aj1rxy)*ww1rr+(2*aj1ry*aj1sxy+2*aj1sy*aj1rxy+aj1ryy*aj1sx+
-     & aj1syy*aj1rx)*ww1rs+(aj1syy*aj1sx+2*aj1sy*aj1sxy)*ww1ss+
+                 w2Lap = w2xx+ w2yy
+                ! These derivatives are computed to 2nd-order accuracy
+                 ! this next call will define the jacobian and its derivatives (parameteric and spatial)
+                 aj1rx = rsxy1(i1,i2,i3,0,0)
+                 aj1rxr = (-rsxy1(i1-1,i2,i3,0,0)+rsxy1(i1+1,i2,i3,0,0)
+     & )/(2.*dr1(0))
+                 aj1rxs = (-rsxy1(i1,i2-1,i3,0,0)+rsxy1(i1,i2+1,i3,0,0)
+     & )/(2.*dr1(1))
+                 aj1sx = rsxy1(i1,i2,i3,1,0)
+                 aj1sxr = (-rsxy1(i1-1,i2,i3,1,0)+rsxy1(i1+1,i2,i3,1,0)
+     & )/(2.*dr1(0))
+                 aj1sxs = (-rsxy1(i1,i2-1,i3,1,0)+rsxy1(i1,i2+1,i3,1,0)
+     & )/(2.*dr1(1))
+                 aj1ry = rsxy1(i1,i2,i3,0,1)
+                 aj1ryr = (-rsxy1(i1-1,i2,i3,0,1)+rsxy1(i1+1,i2,i3,0,1)
+     & )/(2.*dr1(0))
+                 aj1rys = (-rsxy1(i1,i2-1,i3,0,1)+rsxy1(i1,i2+1,i3,0,1)
+     & )/(2.*dr1(1))
+                 aj1sy = rsxy1(i1,i2,i3,1,1)
+                 aj1syr = (-rsxy1(i1-1,i2,i3,1,1)+rsxy1(i1+1,i2,i3,1,1)
+     & )/(2.*dr1(0))
+                 aj1sys = (-rsxy1(i1,i2-1,i3,1,1)+rsxy1(i1,i2+1,i3,1,1)
+     & )/(2.*dr1(1))
+                 aj1rxx = aj1rx*aj1rxr+aj1sx*aj1rxs
+                 aj1rxy = aj1ry*aj1rxr+aj1sy*aj1rxs
+                 aj1sxx = aj1rx*aj1sxr+aj1sx*aj1sxs
+                 aj1sxy = aj1ry*aj1sxr+aj1sy*aj1sxs
+                 aj1ryx = aj1rx*aj1ryr+aj1sx*aj1rys
+                 aj1ryy = aj1ry*aj1ryr+aj1sy*aj1rys
+                 aj1syx = aj1rx*aj1syr+aj1sx*aj1sys
+                 aj1syy = aj1ry*aj1syr+aj1sy*aj1sys
+                  ww1 = u1(i1,i2,i3,hz)
+                  ww1r = (-u1(i1-1,i2,i3,hz)+u1(i1+1,i2,i3,hz))/(2.*
+     & dr1(0))
+                  ww1s = (-u1(i1,i2-1,i3,hz)+u1(i1,i2+1,i3,hz))/(2.*
+     & dr1(1))
+                  ww1rr = (u1(i1-1,i2,i3,hz)-2.*u1(i1,i2,i3,hz)+u1(i1+
+     & 1,i2,i3,hz))/(dr1(0)**2)
+                  ww1rs = (-(-u1(i1-1,i2-1,i3,hz)+u1(i1-1,i2+1,i3,hz))
+     & /(2.*dr1(1))+(-u1(i1+1,i2-1,i3,hz)+u1(i1+1,i2+1,i3,hz))/(2.*
+     & dr1(1)))/(2.*dr1(0))
+                  ww1ss = (u1(i1,i2-1,i3,hz)-2.*u1(i1,i2,i3,hz)+u1(i1,
+     & i2+1,i3,hz))/(dr1(1)**2)
+                  ww1rrr = (-u1(i1-2,i2,i3,hz)+2.*u1(i1-1,i2,i3,hz)-2.*
+     & u1(i1+1,i2,i3,hz)+u1(i1+2,i2,i3,hz))/(2.*dr1(0)**3)
+                  ww1rrs = ((-u1(i1-1,i2-1,i3,hz)+u1(i1-1,i2+1,i3,hz))
+     & /(2.*dr1(1))-2.*(-u1(i1,i2-1,i3,hz)+u1(i1,i2+1,i3,hz))/(2.*dr1(
+     & 1))+(-u1(i1+1,i2-1,i3,hz)+u1(i1+1,i2+1,i3,hz))/(2.*dr1(1)))/(
+     & dr1(0)**2)
+                  ww1rss = (-(u1(i1-1,i2-1,i3,hz)-2.*u1(i1-1,i2,i3,hz)+
+     & u1(i1-1,i2+1,i3,hz))/(dr1(1)**2)+(u1(i1+1,i2-1,i3,hz)-2.*u1(i1+
+     & 1,i2,i3,hz)+u1(i1+1,i2+1,i3,hz))/(dr1(1)**2))/(2.*dr1(0))
+                  ww1sss = (-u1(i1,i2-2,i3,hz)+2.*u1(i1,i2-1,i3,hz)-2.*
+     & u1(i1,i2+1,i3,hz)+u1(i1,i2+2,i3,hz))/(2.*dr1(1)**3)
+                  ww1rrrr = (u1(i1-2,i2,i3,hz)-4.*u1(i1-1,i2,i3,hz)+6.*
+     & u1(i1,i2,i3,hz)-4.*u1(i1+1,i2,i3,hz)+u1(i1+2,i2,i3,hz))/(dr1(0)
+     & **4)
+                  ww1rrrs = (-(-u1(i1-2,i2-1,i3,hz)+u1(i1-2,i2+1,i3,hz)
+     & )/(2.*dr1(1))+2.*(-u1(i1-1,i2-1,i3,hz)+u1(i1-1,i2+1,i3,hz))/(
+     & 2.*dr1(1))-2.*(-u1(i1+1,i2-1,i3,hz)+u1(i1+1,i2+1,i3,hz))/(2.*
+     & dr1(1))+(-u1(i1+2,i2-1,i3,hz)+u1(i1+2,i2+1,i3,hz))/(2.*dr1(1)))
+     & /(2.*dr1(0)**3)
+                  ww1rrss = ((u1(i1-1,i2-1,i3,hz)-2.*u1(i1-1,i2,i3,hz)+
+     & u1(i1-1,i2+1,i3,hz))/(dr1(1)**2)-2.*(u1(i1,i2-1,i3,hz)-2.*u1(
+     & i1,i2,i3,hz)+u1(i1,i2+1,i3,hz))/(dr1(1)**2)+(u1(i1+1,i2-1,i3,
+     & hz)-2.*u1(i1+1,i2,i3,hz)+u1(i1+1,i2+1,i3,hz))/(dr1(1)**2))/(
+     & dr1(0)**2)
+                  ww1rsss = (-(-u1(i1-1,i2-2,i3,hz)+2.*u1(i1-1,i2-1,i3,
+     & hz)-2.*u1(i1-1,i2+1,i3,hz)+u1(i1-1,i2+2,i3,hz))/(2.*dr1(1)**3)+
+     & (-u1(i1+1,i2-2,i3,hz)+2.*u1(i1+1,i2-1,i3,hz)-2.*u1(i1+1,i2+1,
+     & i3,hz)+u1(i1+1,i2+2,i3,hz))/(2.*dr1(1)**3))/(2.*dr1(0))
+                  ww1ssss = (u1(i1,i2-2,i3,hz)-4.*u1(i1,i2-1,i3,hz)+6.*
+     & u1(i1,i2,i3,hz)-4.*u1(i1,i2+1,i3,hz)+u1(i1,i2+2,i3,hz))/(dr1(1)
+     & **4)
+                   t1 = aj1rx**2
+                   t7 = aj1sx**2
+                   w1xxx = t1*aj1rx*ww1rrr+3*t1*aj1sx*ww1rrs+3*aj1rx*
+     & t7*ww1rss+t7*aj1sx*ww1sss+3*aj1rx*aj1rxx*ww1rr+(3*aj1sxx*aj1rx+
+     & 3*aj1sx*aj1rxx)*ww1rs+3*aj1sxx*aj1sx*ww1ss+aj1rxxx*ww1r+
+     & aj1sxxx*ww1s
+                   t1 = aj1rx**2
+                   t10 = aj1sx**2
+                   w1xxy = aj1ry*t1*ww1rrr+(aj1sy*t1+2*aj1ry*aj1sx*
+     & aj1rx)*ww1rrs+(aj1ry*t10+2*aj1sy*aj1sx*aj1rx)*ww1rss+aj1sy*t10*
+     & ww1sss+(2*aj1rxy*aj1rx+aj1ry*aj1rxx)*ww1rr+(aj1ry*aj1sxx+2*
+     & aj1sx*aj1rxy+2*aj1sxy*aj1rx+aj1sy*aj1rxx)*ww1rs+(aj1sy*aj1sxx+
+     & 2*aj1sxy*aj1sx)*ww1ss+aj1rxxy*ww1r+aj1sxxy*ww1s
+                   t1 = aj1ry**2
+                   t4 = aj1sy*aj1ry
+                   t8 = aj1sy*aj1rx+aj1ry*aj1sx
+                   t16 = aj1sy**2
+                   w1xyy = t1*aj1rx*ww1rrr+(t4*aj1rx+aj1ry*t8)*ww1rrs+(
+     & t4*aj1sx+aj1sy*t8)*ww1rss+t16*aj1sx*ww1sss+(aj1ryy*aj1rx+2*
+     & aj1ry*aj1rxy)*ww1rr+(2*aj1ry*aj1sxy+2*aj1sy*aj1rxy+aj1ryy*
+     & aj1sx+aj1syy*aj1rx)*ww1rs+(aj1syy*aj1sx+2*aj1sy*aj1sxy)*ww1ss+
      & aj1rxyy*ww1r+aj1sxyy*ww1s
-               t1 = aj1ry**2
-               t7 = aj1sy**2
-               w1yyy = aj1ry*t1*ww1rrr+3*t1*aj1sy*ww1rrs+3*aj1ry*t7*
-     & ww1rss+t7*aj1sy*ww1sss+3*aj1ry*aj1ryy*ww1rr+(3*aj1syy*aj1ry+3*
-     & aj1sy*aj1ryy)*ww1rs+3*aj1syy*aj1sy*ww1ss+aj1ryyy*ww1r+aj1syyy*
-     & ww1s
-               t1 = aj1rx**2
-               t2 = t1**2
-               t8 = aj1sx**2
-               t16 = t8**2
-               t25 = aj1sxx*aj1rx
-               t27 = t25+aj1sx*aj1rxx
-               t28 = 3*t27
-               t30 = 2*t27
-               t46 = aj1rxx**2
-               t60 = aj1sxx**2
-               w1xxxx = t2*ww1rrrr+4*t1*aj1rx*aj1sx*ww1rrrs+6*t1*t8*
-     & ww1rrss+4*aj1rx*t8*aj1sx*ww1rsss+t16*ww1ssss+6*t1*aj1rxx*
+                   t1 = aj1ry**2
+                   t7 = aj1sy**2
+                   w1yyy = aj1ry*t1*ww1rrr+3*t1*aj1sy*ww1rrs+3*aj1ry*
+     & t7*ww1rss+t7*aj1sy*ww1sss+3*aj1ry*aj1ryy*ww1rr+(3*aj1syy*aj1ry+
+     & 3*aj1sy*aj1ryy)*ww1rs+3*aj1syy*aj1sy*ww1ss+aj1ryyy*ww1r+
+     & aj1syyy*ww1s
+                   t1 = aj1rx**2
+                   t2 = t1**2
+                   t8 = aj1sx**2
+                   t16 = t8**2
+                   t25 = aj1sxx*aj1rx
+                   t27 = t25+aj1sx*aj1rxx
+                   t28 = 3*t27
+                   t30 = 2*t27
+                   t46 = aj1rxx**2
+                   t60 = aj1sxx**2
+                   w1xxxx = t2*ww1rrrr+4*t1*aj1rx*aj1sx*ww1rrrs+6*t1*
+     & t8*ww1rrss+4*aj1rx*t8*aj1sx*ww1rsss+t16*ww1ssss+6*t1*aj1rxx*
      & ww1rrr+(7*aj1sx*aj1rx*aj1rxx+aj1sxx*t1+aj1rx*t28+aj1rx*t30)*
      & ww1rrs+(aj1sx*t28+7*t25*aj1sx+aj1rxx*t8+aj1sx*t30)*ww1rss+6*t8*
      & aj1sxx*ww1sss+(4*aj1rx*aj1rxxx+3*t46)*ww1rr+(4*aj1sxxx*aj1rx+4*
      & aj1sx*aj1rxxx+6*aj1sxx*aj1rxx)*ww1rs+(4*aj1sxxx*aj1sx+3*t60)*
      & ww1ss+aj1rxxxx*ww1r+aj1sxxxx*ww1s
-               t1 = aj1ry**2
-               t2 = aj1rx**2
-               t5 = aj1sy*aj1ry
-               t11 = aj1sy*t2+2*aj1ry*aj1sx*aj1rx
-               t16 = aj1sx**2
-               t21 = aj1ry*t16+2*aj1sy*aj1sx*aj1rx
-               t29 = aj1sy**2
-               t38 = 2*aj1rxy*aj1rx+aj1ry*aj1rxx
-               t52 = aj1sx*aj1rxy
-               t54 = aj1sxy*aj1rx
-               t57 = aj1ry*aj1sxx+2*t52+2*t54+aj1sy*aj1rxx
-               t60 = 2*t52+2*t54
-               t68 = aj1sy*aj1sxx+2*aj1sxy*aj1sx
-               t92 = aj1rxy**2
-               t110 = aj1sxy**2
-               w1xxyy = t1*t2*ww1rrrr+(t5*t2+aj1ry*t11)*ww1rrrs+(aj1sy*
-     & t11+aj1ry*t21)*ww1rrss+(aj1sy*t21+t5*t16)*ww1rsss+t29*t16*
-     & ww1ssss+(2*aj1ry*aj1rxy*aj1rx+aj1ry*t38+aj1ryy*t2)*ww1rrr+(
+                   t1 = aj1ry**2
+                   t2 = aj1rx**2
+                   t5 = aj1sy*aj1ry
+                   t11 = aj1sy*t2+2*aj1ry*aj1sx*aj1rx
+                   t16 = aj1sx**2
+                   t21 = aj1ry*t16+2*aj1sy*aj1sx*aj1rx
+                   t29 = aj1sy**2
+                   t38 = 2*aj1rxy*aj1rx+aj1ry*aj1rxx
+                   t52 = aj1sx*aj1rxy
+                   t54 = aj1sxy*aj1rx
+                   t57 = aj1ry*aj1sxx+2*t52+2*t54+aj1sy*aj1rxx
+                   t60 = 2*t52+2*t54
+                   t68 = aj1sy*aj1sxx+2*aj1sxy*aj1sx
+                   t92 = aj1rxy**2
+                   t110 = aj1sxy**2
+                   w1xxyy = t1*t2*ww1rrrr+(t5*t2+aj1ry*t11)*ww1rrrs+(
+     & aj1sy*t11+aj1ry*t21)*ww1rrss+(aj1sy*t21+t5*t16)*ww1rsss+t29*
+     & t16*ww1ssss+(2*aj1ry*aj1rxy*aj1rx+aj1ry*t38+aj1ryy*t2)*ww1rrr+(
      & aj1sy*t38+2*aj1sy*aj1rxy*aj1rx+2*aj1ryy*aj1sx*aj1rx+aj1syy*t2+
      & aj1ry*t57+aj1ry*t60)*ww1rrs+(aj1sy*t57+aj1ry*t68+aj1ryy*t16+2*
      & aj1ry*aj1sxy*aj1sx+2*aj1syy*aj1sx*aj1rx+aj1sy*t60)*ww1rss+(2*
@@ -8139,157 +9810,159 @@
      & aj1rx+aj1syy*aj1rxx+2*aj1sx*aj1rxyy)*ww1rs+(2*t110+2*aj1sy*
      & aj1sxxy+aj1syy*aj1sxx+2*aj1sx*aj1sxyy)*ww1ss+aj1rxxyy*ww1r+
      & aj1sxxyy*ww1s
-               t1 = aj1ry**2
-               t2 = t1**2
-               t8 = aj1sy**2
-               t16 = t8**2
-               t25 = aj1syy*aj1ry
-               t27 = t25+aj1sy*aj1ryy
-               t28 = 3*t27
-               t30 = 2*t27
-               t46 = aj1ryy**2
-               t60 = aj1syy**2
-               w1yyyy = t2*ww1rrrr+4*t1*aj1ry*aj1sy*ww1rrrs+6*t1*t8*
-     & ww1rrss+4*aj1ry*t8*aj1sy*ww1rsss+t16*ww1ssss+6*t1*aj1ryy*
+                   t1 = aj1ry**2
+                   t2 = t1**2
+                   t8 = aj1sy**2
+                   t16 = t8**2
+                   t25 = aj1syy*aj1ry
+                   t27 = t25+aj1sy*aj1ryy
+                   t28 = 3*t27
+                   t30 = 2*t27
+                   t46 = aj1ryy**2
+                   t60 = aj1syy**2
+                   w1yyyy = t2*ww1rrrr+4*t1*aj1ry*aj1sy*ww1rrrs+6*t1*
+     & t8*ww1rrss+4*aj1ry*t8*aj1sy*ww1rsss+t16*ww1ssss+6*t1*aj1ryy*
      & ww1rrr+(7*aj1sy*aj1ry*aj1ryy+aj1syy*t1+aj1ry*t28+aj1ry*t30)*
      & ww1rrs+(aj1sy*t28+7*t25*aj1sy+aj1ryy*t8+aj1sy*t30)*ww1rss+6*t8*
      & aj1syy*ww1sss+(4*aj1ry*aj1ryyy+3*t46)*ww1rr+(4*aj1syyy*aj1ry+4*
      & aj1sy*aj1ryyy+6*aj1syy*aj1ryy)*ww1rs+(4*aj1syyy*aj1sy+3*t60)*
      & ww1ss+aj1ryyyy*ww1r+aj1syyyy*ww1s
-             w1LapSq = w1xxxx +2.* w1xxyy + w1yyyy
-             ! this next call will define the jacobian and its derivatives (parameteric and spatial)
-             aj2rx = rsxy2(j1,j2,j3,0,0)
-             aj2rxr = (-rsxy2(j1-1,j2,j3,0,0)+rsxy2(j1+1,j2,j3,0,0))/(
-     & 2.*dr2(0))
-             aj2rxs = (-rsxy2(j1,j2-1,j3,0,0)+rsxy2(j1,j2+1,j3,0,0))/(
-     & 2.*dr2(1))
-             aj2sx = rsxy2(j1,j2,j3,1,0)
-             aj2sxr = (-rsxy2(j1-1,j2,j3,1,0)+rsxy2(j1+1,j2,j3,1,0))/(
-     & 2.*dr2(0))
-             aj2sxs = (-rsxy2(j1,j2-1,j3,1,0)+rsxy2(j1,j2+1,j3,1,0))/(
-     & 2.*dr2(1))
-             aj2ry = rsxy2(j1,j2,j3,0,1)
-             aj2ryr = (-rsxy2(j1-1,j2,j3,0,1)+rsxy2(j1+1,j2,j3,0,1))/(
-     & 2.*dr2(0))
-             aj2rys = (-rsxy2(j1,j2-1,j3,0,1)+rsxy2(j1,j2+1,j3,0,1))/(
-     & 2.*dr2(1))
-             aj2sy = rsxy2(j1,j2,j3,1,1)
-             aj2syr = (-rsxy2(j1-1,j2,j3,1,1)+rsxy2(j1+1,j2,j3,1,1))/(
-     & 2.*dr2(0))
-             aj2sys = (-rsxy2(j1,j2-1,j3,1,1)+rsxy2(j1,j2+1,j3,1,1))/(
-     & 2.*dr2(1))
-             aj2rxx = aj2rx*aj2rxr+aj2sx*aj2rxs
-             aj2rxy = aj2ry*aj2rxr+aj2sy*aj2rxs
-             aj2sxx = aj2rx*aj2sxr+aj2sx*aj2sxs
-             aj2sxy = aj2ry*aj2sxr+aj2sy*aj2sxs
-             aj2ryx = aj2rx*aj2ryr+aj2sx*aj2rys
-             aj2ryy = aj2ry*aj2ryr+aj2sy*aj2rys
-             aj2syx = aj2rx*aj2syr+aj2sx*aj2sys
-             aj2syy = aj2ry*aj2syr+aj2sy*aj2sys
-              ww2 = u2(j1,j2,j3,hz)
-              ww2r = (-u2(j1-1,j2,j3,hz)+u2(j1+1,j2,j3,hz))/(2.*dr2(0))
-              ww2s = (-u2(j1,j2-1,j3,hz)+u2(j1,j2+1,j3,hz))/(2.*dr2(1))
-              ww2rr = (u2(j1-1,j2,j3,hz)-2.*u2(j1,j2,j3,hz)+u2(j1+1,j2,
-     & j3,hz))/(dr2(0)**2)
-              ww2rs = (-(-u2(j1-1,j2-1,j3,hz)+u2(j1-1,j2+1,j3,hz))/(2.*
-     & dr2(1))+(-u2(j1+1,j2-1,j3,hz)+u2(j1+1,j2+1,j3,hz))/(2.*dr2(1)))
-     & /(2.*dr2(0))
-              ww2ss = (u2(j1,j2-1,j3,hz)-2.*u2(j1,j2,j3,hz)+u2(j1,j2+1,
-     & j3,hz))/(dr2(1)**2)
-              ww2rrr = (-u2(j1-2,j2,j3,hz)+2.*u2(j1-1,j2,j3,hz)-2.*u2(
-     & j1+1,j2,j3,hz)+u2(j1+2,j2,j3,hz))/(2.*dr2(0)**3)
-              ww2rrs = ((-u2(j1-1,j2-1,j3,hz)+u2(j1-1,j2+1,j3,hz))/(2.*
-     & dr2(1))-2.*(-u2(j1,j2-1,j3,hz)+u2(j1,j2+1,j3,hz))/(2.*dr2(1))+(
-     & -u2(j1+1,j2-1,j3,hz)+u2(j1+1,j2+1,j3,hz))/(2.*dr2(1)))/(dr2(0)*
-     & *2)
-              ww2rss = (-(u2(j1-1,j2-1,j3,hz)-2.*u2(j1-1,j2,j3,hz)+u2(
-     & j1-1,j2+1,j3,hz))/(dr2(1)**2)+(u2(j1+1,j2-1,j3,hz)-2.*u2(j1+1,
-     & j2,j3,hz)+u2(j1+1,j2+1,j3,hz))/(dr2(1)**2))/(2.*dr2(0))
-              ww2sss = (-u2(j1,j2-2,j3,hz)+2.*u2(j1,j2-1,j3,hz)-2.*u2(
-     & j1,j2+1,j3,hz)+u2(j1,j2+2,j3,hz))/(2.*dr2(1)**3)
-              ww2rrrr = (u2(j1-2,j2,j3,hz)-4.*u2(j1-1,j2,j3,hz)+6.*u2(
-     & j1,j2,j3,hz)-4.*u2(j1+1,j2,j3,hz)+u2(j1+2,j2,j3,hz))/(dr2(0)**
-     & 4)
-              ww2rrrs = (-(-u2(j1-2,j2-1,j3,hz)+u2(j1-2,j2+1,j3,hz))/(
-     & 2.*dr2(1))+2.*(-u2(j1-1,j2-1,j3,hz)+u2(j1-1,j2+1,j3,hz))/(2.*
-     & dr2(1))-2.*(-u2(j1+1,j2-1,j3,hz)+u2(j1+1,j2+1,j3,hz))/(2.*dr2(
-     & 1))+(-u2(j1+2,j2-1,j3,hz)+u2(j1+2,j2+1,j3,hz))/(2.*dr2(1)))/(
-     & 2.*dr2(0)**3)
-              ww2rrss = ((u2(j1-1,j2-1,j3,hz)-2.*u2(j1-1,j2,j3,hz)+u2(
-     & j1-1,j2+1,j3,hz))/(dr2(1)**2)-2.*(u2(j1,j2-1,j3,hz)-2.*u2(j1,
-     & j2,j3,hz)+u2(j1,j2+1,j3,hz))/(dr2(1)**2)+(u2(j1+1,j2-1,j3,hz)-
-     & 2.*u2(j1+1,j2,j3,hz)+u2(j1+1,j2+1,j3,hz))/(dr2(1)**2))/(dr2(0)*
-     & *2)
-              ww2rsss = (-(-u2(j1-1,j2-2,j3,hz)+2.*u2(j1-1,j2-1,j3,hz)-
-     & 2.*u2(j1-1,j2+1,j3,hz)+u2(j1-1,j2+2,j3,hz))/(2.*dr2(1)**3)+(-
-     & u2(j1+1,j2-2,j3,hz)+2.*u2(j1+1,j2-1,j3,hz)-2.*u2(j1+1,j2+1,j3,
-     & hz)+u2(j1+1,j2+2,j3,hz))/(2.*dr2(1)**3))/(2.*dr2(0))
-              ww2ssss = (u2(j1,j2-2,j3,hz)-4.*u2(j1,j2-1,j3,hz)+6.*u2(
-     & j1,j2,j3,hz)-4.*u2(j1,j2+1,j3,hz)+u2(j1,j2+2,j3,hz))/(dr2(1)**
-     & 4)
-               t1 = aj2rx**2
-               t7 = aj2sx**2
-               w2xxx = t1*aj2rx*ww2rrr+3*t1*aj2sx*ww2rrs+3*aj2rx*t7*
-     & ww2rss+t7*aj2sx*ww2sss+3*aj2rx*aj2rxx*ww2rr+(3*aj2sxx*aj2rx+3*
-     & aj2sx*aj2rxx)*ww2rs+3*aj2sxx*aj2sx*ww2ss+aj2rxxx*ww2r+aj2sxxx*
-     & ww2s
-               t1 = aj2rx**2
-               t10 = aj2sx**2
-               w2xxy = aj2ry*t1*ww2rrr+(aj2sy*t1+2*aj2ry*aj2sx*aj2rx)*
-     & ww2rrs+(aj2ry*t10+2*aj2sy*aj2sx*aj2rx)*ww2rss+aj2sy*t10*ww2sss+
-     & (2*aj2rxy*aj2rx+aj2ry*aj2rxx)*ww2rr+(aj2ry*aj2sxx+2*aj2sx*
-     & aj2rxy+2*aj2sxy*aj2rx+aj2sy*aj2rxx)*ww2rs+(aj2sy*aj2sxx+2*
-     & aj2sxy*aj2sx)*ww2ss+aj2rxxy*ww2r+aj2sxxy*ww2s
-               t1 = aj2ry**2
-               t4 = aj2sy*aj2ry
-               t8 = aj2sy*aj2rx+aj2ry*aj2sx
-               t16 = aj2sy**2
-               w2xyy = t1*aj2rx*ww2rrr+(t4*aj2rx+aj2ry*t8)*ww2rrs+(t4*
-     & aj2sx+aj2sy*t8)*ww2rss+t16*aj2sx*ww2sss+(aj2ryy*aj2rx+2*aj2ry*
-     & aj2rxy)*ww2rr+(2*aj2ry*aj2sxy+2*aj2sy*aj2rxy+aj2ryy*aj2sx+
-     & aj2syy*aj2rx)*ww2rs+(aj2syy*aj2sx+2*aj2sy*aj2sxy)*ww2ss+
+                 w1LapSq = w1xxxx +2.* w1xxyy + w1yyyy
+                 ! this next call will define the jacobian and its derivatives (parameteric and spatial)
+                 aj2rx = rsxy2(j1,j2,j3,0,0)
+                 aj2rxr = (-rsxy2(j1-1,j2,j3,0,0)+rsxy2(j1+1,j2,j3,0,0)
+     & )/(2.*dr2(0))
+                 aj2rxs = (-rsxy2(j1,j2-1,j3,0,0)+rsxy2(j1,j2+1,j3,0,0)
+     & )/(2.*dr2(1))
+                 aj2sx = rsxy2(j1,j2,j3,1,0)
+                 aj2sxr = (-rsxy2(j1-1,j2,j3,1,0)+rsxy2(j1+1,j2,j3,1,0)
+     & )/(2.*dr2(0))
+                 aj2sxs = (-rsxy2(j1,j2-1,j3,1,0)+rsxy2(j1,j2+1,j3,1,0)
+     & )/(2.*dr2(1))
+                 aj2ry = rsxy2(j1,j2,j3,0,1)
+                 aj2ryr = (-rsxy2(j1-1,j2,j3,0,1)+rsxy2(j1+1,j2,j3,0,1)
+     & )/(2.*dr2(0))
+                 aj2rys = (-rsxy2(j1,j2-1,j3,0,1)+rsxy2(j1,j2+1,j3,0,1)
+     & )/(2.*dr2(1))
+                 aj2sy = rsxy2(j1,j2,j3,1,1)
+                 aj2syr = (-rsxy2(j1-1,j2,j3,1,1)+rsxy2(j1+1,j2,j3,1,1)
+     & )/(2.*dr2(0))
+                 aj2sys = (-rsxy2(j1,j2-1,j3,1,1)+rsxy2(j1,j2+1,j3,1,1)
+     & )/(2.*dr2(1))
+                 aj2rxx = aj2rx*aj2rxr+aj2sx*aj2rxs
+                 aj2rxy = aj2ry*aj2rxr+aj2sy*aj2rxs
+                 aj2sxx = aj2rx*aj2sxr+aj2sx*aj2sxs
+                 aj2sxy = aj2ry*aj2sxr+aj2sy*aj2sxs
+                 aj2ryx = aj2rx*aj2ryr+aj2sx*aj2rys
+                 aj2ryy = aj2ry*aj2ryr+aj2sy*aj2rys
+                 aj2syx = aj2rx*aj2syr+aj2sx*aj2sys
+                 aj2syy = aj2ry*aj2syr+aj2sy*aj2sys
+                  ww2 = u2(j1,j2,j3,hz)
+                  ww2r = (-u2(j1-1,j2,j3,hz)+u2(j1+1,j2,j3,hz))/(2.*
+     & dr2(0))
+                  ww2s = (-u2(j1,j2-1,j3,hz)+u2(j1,j2+1,j3,hz))/(2.*
+     & dr2(1))
+                  ww2rr = (u2(j1-1,j2,j3,hz)-2.*u2(j1,j2,j3,hz)+u2(j1+
+     & 1,j2,j3,hz))/(dr2(0)**2)
+                  ww2rs = (-(-u2(j1-1,j2-1,j3,hz)+u2(j1-1,j2+1,j3,hz))
+     & /(2.*dr2(1))+(-u2(j1+1,j2-1,j3,hz)+u2(j1+1,j2+1,j3,hz))/(2.*
+     & dr2(1)))/(2.*dr2(0))
+                  ww2ss = (u2(j1,j2-1,j3,hz)-2.*u2(j1,j2,j3,hz)+u2(j1,
+     & j2+1,j3,hz))/(dr2(1)**2)
+                  ww2rrr = (-u2(j1-2,j2,j3,hz)+2.*u2(j1-1,j2,j3,hz)-2.*
+     & u2(j1+1,j2,j3,hz)+u2(j1+2,j2,j3,hz))/(2.*dr2(0)**3)
+                  ww2rrs = ((-u2(j1-1,j2-1,j3,hz)+u2(j1-1,j2+1,j3,hz))
+     & /(2.*dr2(1))-2.*(-u2(j1,j2-1,j3,hz)+u2(j1,j2+1,j3,hz))/(2.*dr2(
+     & 1))+(-u2(j1+1,j2-1,j3,hz)+u2(j1+1,j2+1,j3,hz))/(2.*dr2(1)))/(
+     & dr2(0)**2)
+                  ww2rss = (-(u2(j1-1,j2-1,j3,hz)-2.*u2(j1-1,j2,j3,hz)+
+     & u2(j1-1,j2+1,j3,hz))/(dr2(1)**2)+(u2(j1+1,j2-1,j3,hz)-2.*u2(j1+
+     & 1,j2,j3,hz)+u2(j1+1,j2+1,j3,hz))/(dr2(1)**2))/(2.*dr2(0))
+                  ww2sss = (-u2(j1,j2-2,j3,hz)+2.*u2(j1,j2-1,j3,hz)-2.*
+     & u2(j1,j2+1,j3,hz)+u2(j1,j2+2,j3,hz))/(2.*dr2(1)**3)
+                  ww2rrrr = (u2(j1-2,j2,j3,hz)-4.*u2(j1-1,j2,j3,hz)+6.*
+     & u2(j1,j2,j3,hz)-4.*u2(j1+1,j2,j3,hz)+u2(j1+2,j2,j3,hz))/(dr2(0)
+     & **4)
+                  ww2rrrs = (-(-u2(j1-2,j2-1,j3,hz)+u2(j1-2,j2+1,j3,hz)
+     & )/(2.*dr2(1))+2.*(-u2(j1-1,j2-1,j3,hz)+u2(j1-1,j2+1,j3,hz))/(
+     & 2.*dr2(1))-2.*(-u2(j1+1,j2-1,j3,hz)+u2(j1+1,j2+1,j3,hz))/(2.*
+     & dr2(1))+(-u2(j1+2,j2-1,j3,hz)+u2(j1+2,j2+1,j3,hz))/(2.*dr2(1)))
+     & /(2.*dr2(0)**3)
+                  ww2rrss = ((u2(j1-1,j2-1,j3,hz)-2.*u2(j1-1,j2,j3,hz)+
+     & u2(j1-1,j2+1,j3,hz))/(dr2(1)**2)-2.*(u2(j1,j2-1,j3,hz)-2.*u2(
+     & j1,j2,j3,hz)+u2(j1,j2+1,j3,hz))/(dr2(1)**2)+(u2(j1+1,j2-1,j3,
+     & hz)-2.*u2(j1+1,j2,j3,hz)+u2(j1+1,j2+1,j3,hz))/(dr2(1)**2))/(
+     & dr2(0)**2)
+                  ww2rsss = (-(-u2(j1-1,j2-2,j3,hz)+2.*u2(j1-1,j2-1,j3,
+     & hz)-2.*u2(j1-1,j2+1,j3,hz)+u2(j1-1,j2+2,j3,hz))/(2.*dr2(1)**3)+
+     & (-u2(j1+1,j2-2,j3,hz)+2.*u2(j1+1,j2-1,j3,hz)-2.*u2(j1+1,j2+1,
+     & j3,hz)+u2(j1+1,j2+2,j3,hz))/(2.*dr2(1)**3))/(2.*dr2(0))
+                  ww2ssss = (u2(j1,j2-2,j3,hz)-4.*u2(j1,j2-1,j3,hz)+6.*
+     & u2(j1,j2,j3,hz)-4.*u2(j1,j2+1,j3,hz)+u2(j1,j2+2,j3,hz))/(dr2(1)
+     & **4)
+                   t1 = aj2rx**2
+                   t7 = aj2sx**2
+                   w2xxx = t1*aj2rx*ww2rrr+3*t1*aj2sx*ww2rrs+3*aj2rx*
+     & t7*ww2rss+t7*aj2sx*ww2sss+3*aj2rx*aj2rxx*ww2rr+(3*aj2sxx*aj2rx+
+     & 3*aj2sx*aj2rxx)*ww2rs+3*aj2sxx*aj2sx*ww2ss+aj2rxxx*ww2r+
+     & aj2sxxx*ww2s
+                   t1 = aj2rx**2
+                   t10 = aj2sx**2
+                   w2xxy = aj2ry*t1*ww2rrr+(aj2sy*t1+2*aj2ry*aj2sx*
+     & aj2rx)*ww2rrs+(aj2ry*t10+2*aj2sy*aj2sx*aj2rx)*ww2rss+aj2sy*t10*
+     & ww2sss+(2*aj2rxy*aj2rx+aj2ry*aj2rxx)*ww2rr+(aj2ry*aj2sxx+2*
+     & aj2sx*aj2rxy+2*aj2sxy*aj2rx+aj2sy*aj2rxx)*ww2rs+(aj2sy*aj2sxx+
+     & 2*aj2sxy*aj2sx)*ww2ss+aj2rxxy*ww2r+aj2sxxy*ww2s
+                   t1 = aj2ry**2
+                   t4 = aj2sy*aj2ry
+                   t8 = aj2sy*aj2rx+aj2ry*aj2sx
+                   t16 = aj2sy**2
+                   w2xyy = t1*aj2rx*ww2rrr+(t4*aj2rx+aj2ry*t8)*ww2rrs+(
+     & t4*aj2sx+aj2sy*t8)*ww2rss+t16*aj2sx*ww2sss+(aj2ryy*aj2rx+2*
+     & aj2ry*aj2rxy)*ww2rr+(2*aj2ry*aj2sxy+2*aj2sy*aj2rxy+aj2ryy*
+     & aj2sx+aj2syy*aj2rx)*ww2rs+(aj2syy*aj2sx+2*aj2sy*aj2sxy)*ww2ss+
      & aj2rxyy*ww2r+aj2sxyy*ww2s
-               t1 = aj2ry**2
-               t7 = aj2sy**2
-               w2yyy = aj2ry*t1*ww2rrr+3*t1*aj2sy*ww2rrs+3*aj2ry*t7*
-     & ww2rss+t7*aj2sy*ww2sss+3*aj2ry*aj2ryy*ww2rr+(3*aj2syy*aj2ry+3*
-     & aj2sy*aj2ryy)*ww2rs+3*aj2syy*aj2sy*ww2ss+aj2ryyy*ww2r+aj2syyy*
-     & ww2s
-               t1 = aj2rx**2
-               t2 = t1**2
-               t8 = aj2sx**2
-               t16 = t8**2
-               t25 = aj2sxx*aj2rx
-               t27 = t25+aj2sx*aj2rxx
-               t28 = 3*t27
-               t30 = 2*t27
-               t46 = aj2rxx**2
-               t60 = aj2sxx**2
-               w2xxxx = t2*ww2rrrr+4*t1*aj2rx*aj2sx*ww2rrrs+6*t1*t8*
-     & ww2rrss+4*aj2rx*t8*aj2sx*ww2rsss+t16*ww2ssss+6*t1*aj2rxx*
+                   t1 = aj2ry**2
+                   t7 = aj2sy**2
+                   w2yyy = aj2ry*t1*ww2rrr+3*t1*aj2sy*ww2rrs+3*aj2ry*
+     & t7*ww2rss+t7*aj2sy*ww2sss+3*aj2ry*aj2ryy*ww2rr+(3*aj2syy*aj2ry+
+     & 3*aj2sy*aj2ryy)*ww2rs+3*aj2syy*aj2sy*ww2ss+aj2ryyy*ww2r+
+     & aj2syyy*ww2s
+                   t1 = aj2rx**2
+                   t2 = t1**2
+                   t8 = aj2sx**2
+                   t16 = t8**2
+                   t25 = aj2sxx*aj2rx
+                   t27 = t25+aj2sx*aj2rxx
+                   t28 = 3*t27
+                   t30 = 2*t27
+                   t46 = aj2rxx**2
+                   t60 = aj2sxx**2
+                   w2xxxx = t2*ww2rrrr+4*t1*aj2rx*aj2sx*ww2rrrs+6*t1*
+     & t8*ww2rrss+4*aj2rx*t8*aj2sx*ww2rsss+t16*ww2ssss+6*t1*aj2rxx*
      & ww2rrr+(7*aj2sx*aj2rx*aj2rxx+aj2sxx*t1+aj2rx*t28+aj2rx*t30)*
      & ww2rrs+(aj2sx*t28+7*t25*aj2sx+aj2rxx*t8+aj2sx*t30)*ww2rss+6*t8*
      & aj2sxx*ww2sss+(4*aj2rx*aj2rxxx+3*t46)*ww2rr+(4*aj2sxxx*aj2rx+4*
      & aj2sx*aj2rxxx+6*aj2sxx*aj2rxx)*ww2rs+(4*aj2sxxx*aj2sx+3*t60)*
      & ww2ss+aj2rxxxx*ww2r+aj2sxxxx*ww2s
-               t1 = aj2ry**2
-               t2 = aj2rx**2
-               t5 = aj2sy*aj2ry
-               t11 = aj2sy*t2+2*aj2ry*aj2sx*aj2rx
-               t16 = aj2sx**2
-               t21 = aj2ry*t16+2*aj2sy*aj2sx*aj2rx
-               t29 = aj2sy**2
-               t38 = 2*aj2rxy*aj2rx+aj2ry*aj2rxx
-               t52 = aj2sx*aj2rxy
-               t54 = aj2sxy*aj2rx
-               t57 = aj2ry*aj2sxx+2*t52+2*t54+aj2sy*aj2rxx
-               t60 = 2*t52+2*t54
-               t68 = aj2sy*aj2sxx+2*aj2sxy*aj2sx
-               t92 = aj2rxy**2
-               t110 = aj2sxy**2
-               w2xxyy = t1*t2*ww2rrrr+(t5*t2+aj2ry*t11)*ww2rrrs+(aj2sy*
-     & t11+aj2ry*t21)*ww2rrss+(aj2sy*t21+t5*t16)*ww2rsss+t29*t16*
-     & ww2ssss+(2*aj2ry*aj2rxy*aj2rx+aj2ry*t38+aj2ryy*t2)*ww2rrr+(
+                   t1 = aj2ry**2
+                   t2 = aj2rx**2
+                   t5 = aj2sy*aj2ry
+                   t11 = aj2sy*t2+2*aj2ry*aj2sx*aj2rx
+                   t16 = aj2sx**2
+                   t21 = aj2ry*t16+2*aj2sy*aj2sx*aj2rx
+                   t29 = aj2sy**2
+                   t38 = 2*aj2rxy*aj2rx+aj2ry*aj2rxx
+                   t52 = aj2sx*aj2rxy
+                   t54 = aj2sxy*aj2rx
+                   t57 = aj2ry*aj2sxx+2*t52+2*t54+aj2sy*aj2rxx
+                   t60 = 2*t52+2*t54
+                   t68 = aj2sy*aj2sxx+2*aj2sxy*aj2sx
+                   t92 = aj2rxy**2
+                   t110 = aj2sxy**2
+                   w2xxyy = t1*t2*ww2rrrr+(t5*t2+aj2ry*t11)*ww2rrrs+(
+     & aj2sy*t11+aj2ry*t21)*ww2rrss+(aj2sy*t21+t5*t16)*ww2rsss+t29*
+     & t16*ww2ssss+(2*aj2ry*aj2rxy*aj2rx+aj2ry*t38+aj2ryy*t2)*ww2rrr+(
      & aj2sy*t38+2*aj2sy*aj2rxy*aj2rx+2*aj2ryy*aj2sx*aj2rx+aj2syy*t2+
      & aj2ry*t57+aj2ry*t60)*ww2rrs+(aj2sy*t57+aj2ry*t68+aj2ryy*t16+2*
      & aj2ry*aj2sxy*aj2sx+2*aj2syy*aj2sx*aj2rx+aj2sy*t60)*ww2rss+(2*
@@ -8299,381 +9972,375 @@
      & aj2rx+aj2syy*aj2rxx+2*aj2sx*aj2rxyy)*ww2rs+(2*t110+2*aj2sy*
      & aj2sxxy+aj2syy*aj2sxx+2*aj2sx*aj2sxyy)*ww2ss+aj2rxxyy*ww2r+
      & aj2sxxyy*ww2s
-               t1 = aj2ry**2
-               t2 = t1**2
-               t8 = aj2sy**2
-               t16 = t8**2
-               t25 = aj2syy*aj2ry
-               t27 = t25+aj2sy*aj2ryy
-               t28 = 3*t27
-               t30 = 2*t27
-               t46 = aj2ryy**2
-               t60 = aj2syy**2
-               w2yyyy = t2*ww2rrrr+4*t1*aj2ry*aj2sy*ww2rrrs+6*t1*t8*
-     & ww2rrss+4*aj2ry*t8*aj2sy*ww2rsss+t16*ww2ssss+6*t1*aj2ryy*
+                   t1 = aj2ry**2
+                   t2 = t1**2
+                   t8 = aj2sy**2
+                   t16 = t8**2
+                   t25 = aj2syy*aj2ry
+                   t27 = t25+aj2sy*aj2ryy
+                   t28 = 3*t27
+                   t30 = 2*t27
+                   t46 = aj2ryy**2
+                   t60 = aj2syy**2
+                   w2yyyy = t2*ww2rrrr+4*t1*aj2ry*aj2sy*ww2rrrs+6*t1*
+     & t8*ww2rrss+4*aj2ry*t8*aj2sy*ww2rsss+t16*ww2ssss+6*t1*aj2ryy*
      & ww2rrr+(7*aj2sy*aj2ry*aj2ryy+aj2syy*t1+aj2ry*t28+aj2ry*t30)*
      & ww2rrs+(aj2sy*t28+7*t25*aj2sy+aj2ryy*t8+aj2sy*t30)*ww2rss+6*t8*
      & aj2syy*ww2sss+(4*aj2ry*aj2ryyy+3*t46)*ww2rr+(4*aj2syyy*aj2ry+4*
      & aj2sy*aj2ryyy+6*aj2syy*aj2ryy)*ww2rs+(4*aj2syyy*aj2sy+3*t60)*
      & ww2ss+aj2ryyyy*ww2r+aj2syyyy*ww2s
-             w2LapSq = w2xxxx +2.* w2xxyy + w2yyyy
-            f(0)=(an1*w1x+an2*w1y)/eps1 - (an1*w2x+an2*w2y)/eps2
-            f(1)=w1Lap/eps1 - w2Lap/eps2
-            f(2)=(an1*(w1xxx+w1xyy)+an2*(w1xxy+w1yyy))/eps1**2 - (an1*(
-     & w2xxx+w2xyy)+an2*(w2xxy+w2yyy))/eps2**2
-            f(3)=w1LapSq/eps1**2 - w2LapSq/eps2**2
-            if( twilightZone.eq.1 )then
-              call ogderiv(ep, 0,1,0,0, xy1(i1,i2,i3,0),xy1(i1,i2,i3,1)
-     & ,0.,t, hz, wex  )
-              call ogderiv(ep, 0,0,1,0, xy1(i1,i2,i3,0),xy1(i1,i2,i3,1)
-     & ,0.,t, hz, wey  )
-              call ogderiv(ep, 0,2,0,0, xy1(i1,i2,i3,0),xy1(i1,i2,i3,1)
-     & ,0.,t, hz, wexx )
-              call ogderiv(ep, 0,0,2,0, xy1(i1,i2,i3,0),xy1(i1,i2,i3,1)
-     & ,0.,t, hz, weyy )
-              call ogderiv(ep, 0,3,0,0, xy1(i1,i2,i3,0),xy1(i1,i2,i3,1)
-     & ,0.,t, hz, wexxx )
-              call ogderiv(ep, 0,2,1,0, xy1(i1,i2,i3,0),xy1(i1,i2,i3,1)
-     & ,0.,t, hz, wexxy )
-              call ogderiv(ep, 0,1,2,0, xy1(i1,i2,i3,0),xy1(i1,i2,i3,1)
-     & ,0.,t, hz, wexyy )
-              call ogderiv(ep, 0,0,3,0, xy1(i1,i2,i3,0),xy1(i1,i2,i3,1)
-     & ,0.,t, hz, weyyy )
-              call ogderiv(ep, 0,4,0,0, xy1(i1,i2,i3,0),xy1(i1,i2,i3,1)
-     & ,0.,t, hz, wexxxx )
-              call ogderiv(ep, 0,2,2,0, xy1(i1,i2,i3,0),xy1(i1,i2,i3,1)
-     & ,0.,t, hz, wexxyy )
-              call ogderiv(ep, 0,0,4,0, xy1(i1,i2,i3,0),xy1(i1,i2,i3,1)
-     & ,0.,t, hz, weyyyy )
-              weLap = wexx + weyy
-              weLapSq = wexxxx + 2.*wexxyy + weyyyy
-              f(0) = f(0) - (an1*wex+an2*wey)*(1./eps1 - 1./eps2)
-              f(1) = f(1) - ( weLap )*(1./eps1 - 1./eps2)
-              f(2) = f(2) - (an1*(wexxx+wexyy)+an2*(wexxy+weyyy))*(
+                 w2LapSq = w2xxxx +2.* w2xxyy + w2yyyy
+                f(0)=(an1*w1x+an2*w1y)/eps1 - (an1*w2x+an2*w2y)/eps2
+                f(1)=w1Lap/eps1 - w2Lap/eps2
+                f(2)=(an1*(w1xxx+w1xyy)+an2*(w1xxy+w1yyy))/eps1**2 - (
+     & an1*(w2xxx+w2xyy)+an2*(w2xxy+w2yyy))/eps2**2
+                f(3)=w1LapSq/eps1**2 - w2LapSq/eps2**2
+                if( twilightZone.eq.1 )then
+                  call ogderiv(ep, 0,1,0,0, xy1(i1,i2,i3,0),xy1(i1,i2,
+     & i3,1),0.,t, hz, wex  )
+                  call ogderiv(ep, 0,0,1,0, xy1(i1,i2,i3,0),xy1(i1,i2,
+     & i3,1),0.,t, hz, wey  )
+                  call ogderiv(ep, 0,2,0,0, xy1(i1,i2,i3,0),xy1(i1,i2,
+     & i3,1),0.,t, hz, wexx )
+                  call ogderiv(ep, 0,0,2,0, xy1(i1,i2,i3,0),xy1(i1,i2,
+     & i3,1),0.,t, hz, weyy )
+                  call ogderiv(ep, 0,3,0,0, xy1(i1,i2,i3,0),xy1(i1,i2,
+     & i3,1),0.,t, hz, wexxx )
+                  call ogderiv(ep, 0,2,1,0, xy1(i1,i2,i3,0),xy1(i1,i2,
+     & i3,1),0.,t, hz, wexxy )
+                  call ogderiv(ep, 0,1,2,0, xy1(i1,i2,i3,0),xy1(i1,i2,
+     & i3,1),0.,t, hz, wexyy )
+                  call ogderiv(ep, 0,0,3,0, xy1(i1,i2,i3,0),xy1(i1,i2,
+     & i3,1),0.,t, hz, weyyy )
+                  call ogderiv(ep, 0,4,0,0, xy1(i1,i2,i3,0),xy1(i1,i2,
+     & i3,1),0.,t, hz, wexxxx )
+                  call ogderiv(ep, 0,2,2,0, xy1(i1,i2,i3,0),xy1(i1,i2,
+     & i3,1),0.,t, hz, wexxyy )
+                  call ogderiv(ep, 0,0,4,0, xy1(i1,i2,i3,0),xy1(i1,i2,
+     & i3,1),0.,t, hz, weyyyy )
+                  weLap = wexx + weyy
+                  weLapSq = wexxxx + 2.*wexxyy + weyyyy
+                  f(0) = f(0) - (an1*wex+an2*wey)*(1./eps1 - 1./eps2)
+                  f(1) = f(1) - ( weLap )*(1./eps1 - 1./eps2)
+                  f(2) = f(2) - (an1*(wexxx+wexyy)+an2*(wexxy+weyyy))*(
      & 1./eps1**2 - 1./eps2**2)
-              f(3) = f(3) - weLapSq*(1./eps1**2 - 1./eps2**2)
-            end if
-
-           if( .false. .or. (initialized.eq.0 .and. it.eq.1) )then
-             ! form the matrix for computing Hz (and save factor for later use)
-
-             ! 1: [ w.n/eps ] = 0
-             a0 = (an1*rsxy1(i1,i2,i3,axis1,0)+an2*rsxy1(i1,i2,i3,
+                  f(3) = f(3) - weLapSq*(1./eps1**2 - 1./eps2**2)
+                end if
+               if( .false. .or. (initialized.eq.0 .and. it.eq.1) )then
+                 ! form the matrix for computing Hz (and save factor for later use)
+                 ! 1: [ w.n/eps ] = 0
+                 a0 = (an1*rsxy1(i1,i2,i3,axis1,0)+an2*rsxy1(i1,i2,i3,
      & axis1,1))*dr114(axis1)/eps1
-             b0 = (an1*rsxy2(j1,j2,j3,axis2,0)+an2*rsxy2(j1,j2,j3,
+                 b0 = (an1*rsxy2(j1,j2,j3,axis2,0)+an2*rsxy2(j1,j2,j3,
      & axis2,1))*dr214(axis2)/eps2
-             aa4(0,0,0,nn) = -is*8.*a0
-             aa4(0,2,0,nn) =  is*   a0
-             aa4(0,1,0,nn) =  js*8.*b0
-             aa4(0,3,0,nn) = -js*   b0
-
-             ! 2: [ lap(w)/eps ] = 0 
-             aa4(1,0,0,nn) = aLap0/eps1
-             aa4(1,2,0,nn) = aLap1/eps1
-             aa4(1,1,0,nn) =-bLap0/eps2
-             aa4(1,3,0,nn) =-bLap1/eps2
-
-             ! 3  [ (an1*(w.xx+w.yy).x + an2.(w.xx+w.yy).y)/eps**2 ] = 0
-             aa4(2,0,0,nn)= (an1*aLapX0+an2*bLapY0)/eps1**2
-             aa4(2,2,0,nn)= (an1*aLapX1+an2*bLapY1)/eps1**2
-             aa4(2,1,0,nn)=-(an1*cLapX0+an2*dLapY0)/eps2**2
-             aa4(2,3,0,nn)=-(an1*cLapX1+an2*dLapY1)/eps2**2
-
-             ! 4 [ lapSq(w)/eps**2 ] = 0 
-             aa4(3,0,0,nn) = aLapSq0/eps1**2
-             aa4(3,2,0,nn) = aLapSq1/eps1**2
-             aa4(3,1,0,nn) =-bLapSq0/eps2**2
-             aa4(3,3,0,nn) =-bLapSq1/eps2**2
-
-             ! save a copy of the matrix
-             do n2=0,3
-             do n1=0,3
-               aa4(n1,n2,1,nn)=aa4(n1,n2,0,nn)
-             end do
-             end do
-
-             ! factor the matrix
-             numberOfEquations=4
-             call dgeco( aa4(0,0,0,nn), numberOfEquations, 
+                 aa4(0,0,0,nn) = -is*8.*a0
+                 aa4(0,2,0,nn) =  is*   a0
+                 aa4(0,1,0,nn) =  js*8.*b0
+                 aa4(0,3,0,nn) = -js*   b0
+                 ! 2: [ lap(w)/eps ] = 0 
+                 aa4(1,0,0,nn) = aLap0/eps1
+                 aa4(1,2,0,nn) = aLap1/eps1
+                 aa4(1,1,0,nn) =-bLap0/eps2
+                 aa4(1,3,0,nn) =-bLap1/eps2
+                 ! 3  [ (an1*(w.xx+w.yy).x + an2.(w.xx+w.yy).y)/eps**2 ] = 0
+                 aa4(2,0,0,nn)= (an1*aLapX0+an2*bLapY0)/eps1**2
+                 aa4(2,2,0,nn)= (an1*aLapX1+an2*bLapY1)/eps1**2
+                 aa4(2,1,0,nn)=-(an1*cLapX0+an2*dLapY0)/eps2**2
+                 aa4(2,3,0,nn)=-(an1*cLapX1+an2*dLapY1)/eps2**2
+                 ! 4 [ lapSq(w)/eps**2 ] = 0 
+                 aa4(3,0,0,nn) = aLapSq0/eps1**2
+                 aa4(3,2,0,nn) = aLapSq1/eps1**2
+                 aa4(3,1,0,nn) =-bLapSq0/eps2**2
+                 aa4(3,3,0,nn) =-bLapSq1/eps2**2
+                 ! save a copy of the matrix
+                 do n2=0,3
+                 do n1=0,3
+                   aa4(n1,n2,1,nn)=aa4(n1,n2,0,nn)
+                 end do
+                 end do
+                 ! factor the matrix
+                 numberOfEquations=4
+                 call dgeco( aa4(0,0,0,nn), numberOfEquations, 
      & numberOfEquations, ipvt4(0,nn),rcond,work(0))
-           end if
-
-           q(0) = u1(i1-is1,i2-is2,i3,hz)
-           q(1) = u2(j1-js1,j2-js2,j3,hz)
-           q(2) = u1(i1-2*is1,i2-2*is2,i3,hz)
-           q(3) = u2(j1-2*js1,j2-2*js2,j3,hz)
-
-           ! subtract off the contributions from the wrong values at the ghost points:
-           do n=0,3
-             f(n) = (aa4(n,0,1,nn)*q(0)+aa4(n,1,1,nn)*q(1)+aa4(n,2,1,
-     & nn)*q(2)+aa4(n,3,1,nn)*q(3)) - f(n)
-           end do
-           ! solve
-           numberOfEquations=4
-           job=0
-           call dgesl( aa4(0,0,0,nn), numberOfEquations, 
+               end if
+               q(0) = u1(i1-is1,i2-is2,i3,hz)
+               q(1) = u2(j1-js1,j2-js2,j3,hz)
+               q(2) = u1(i1-2*is1,i2-2*is2,i3,hz)
+               q(3) = u2(j1-2*js1,j2-2*js2,j3,hz)
+               ! subtract off the contributions from the wrong values at the ghost points:
+               do n=0,3
+                 f(n) = (aa4(n,0,1,nn)*q(0)+aa4(n,1,1,nn)*q(1)+aa4(n,2,
+     & 1,nn)*q(2)+aa4(n,3,1,nn)*q(3)) - f(n)
+               end do
+               ! solve
+               numberOfEquations=4
+               job=0
+               call dgesl( aa4(0,0,0,nn), numberOfEquations, 
      & numberOfEquations, ipvt4(0,nn), f(0), job)
-
-           u1(i1-is1,i2-is2,i3,hz)=f(0)
-           u2(j1-js1,j2-js2,j3,hz)=f(1)
-           u1(i1-2*is1,i2-2*is2,i3,hz)=f(2)
-           u2(j1-2*js1,j2-2*js2,j3,hz)=f(3)
-
-          if( debug.gt.0 )then ! re-evaluate
-
-            ! These derivatives are computed to 4th-order accuracy
-             ! this next call will define the jacobian and its derivatives (parameteric and spatial)
-             aj1rx = rsxy1(i1,i2,i3,0,0)
-             aj1rxr = (rsxy1(i1-2,i2,i3,0,0)-8.*rsxy1(i1-1,i2,i3,0,0)+
-     & 8.*rsxy1(i1+1,i2,i3,0,0)-rsxy1(i1+2,i2,i3,0,0))/(12.*dr1(0))
-             aj1rxs = (rsxy1(i1,i2-2,i3,0,0)-8.*rsxy1(i1,i2-1,i3,0,0)+
-     & 8.*rsxy1(i1,i2+1,i3,0,0)-rsxy1(i1,i2+2,i3,0,0))/(12.*dr1(1))
-             aj1sx = rsxy1(i1,i2,i3,1,0)
-             aj1sxr = (rsxy1(i1-2,i2,i3,1,0)-8.*rsxy1(i1-1,i2,i3,1,0)+
-     & 8.*rsxy1(i1+1,i2,i3,1,0)-rsxy1(i1+2,i2,i3,1,0))/(12.*dr1(0))
-             aj1sxs = (rsxy1(i1,i2-2,i3,1,0)-8.*rsxy1(i1,i2-1,i3,1,0)+
-     & 8.*rsxy1(i1,i2+1,i3,1,0)-rsxy1(i1,i2+2,i3,1,0))/(12.*dr1(1))
-             aj1ry = rsxy1(i1,i2,i3,0,1)
-             aj1ryr = (rsxy1(i1-2,i2,i3,0,1)-8.*rsxy1(i1-1,i2,i3,0,1)+
-     & 8.*rsxy1(i1+1,i2,i3,0,1)-rsxy1(i1+2,i2,i3,0,1))/(12.*dr1(0))
-             aj1rys = (rsxy1(i1,i2-2,i3,0,1)-8.*rsxy1(i1,i2-1,i3,0,1)+
-     & 8.*rsxy1(i1,i2+1,i3,0,1)-rsxy1(i1,i2+2,i3,0,1))/(12.*dr1(1))
-             aj1sy = rsxy1(i1,i2,i3,1,1)
-             aj1syr = (rsxy1(i1-2,i2,i3,1,1)-8.*rsxy1(i1-1,i2,i3,1,1)+
-     & 8.*rsxy1(i1+1,i2,i3,1,1)-rsxy1(i1+2,i2,i3,1,1))/(12.*dr1(0))
-             aj1sys = (rsxy1(i1,i2-2,i3,1,1)-8.*rsxy1(i1,i2-1,i3,1,1)+
-     & 8.*rsxy1(i1,i2+1,i3,1,1)-rsxy1(i1,i2+2,i3,1,1))/(12.*dr1(1))
-             aj1rxx = aj1rx*aj1rxr+aj1sx*aj1rxs
-             aj1rxy = aj1ry*aj1rxr+aj1sy*aj1rxs
-             aj1sxx = aj1rx*aj1sxr+aj1sx*aj1sxs
-             aj1sxy = aj1ry*aj1sxr+aj1sy*aj1sxs
-             aj1ryx = aj1rx*aj1ryr+aj1sx*aj1rys
-             aj1ryy = aj1ry*aj1ryr+aj1sy*aj1rys
-             aj1syx = aj1rx*aj1syr+aj1sx*aj1sys
-             aj1syy = aj1ry*aj1syr+aj1sy*aj1sys
-              ww1 = u1(i1,i2,i3,hz)
-              ww1r = (u1(i1-2,i2,i3,hz)-8.*u1(i1-1,i2,i3,hz)+8.*u1(i1+
-     & 1,i2,i3,hz)-u1(i1+2,i2,i3,hz))/(12.*dr1(0))
-              ww1s = (u1(i1,i2-2,i3,hz)-8.*u1(i1,i2-1,i3,hz)+8.*u1(i1,
-     & i2+1,i3,hz)-u1(i1,i2+2,i3,hz))/(12.*dr1(1))
-              ww1rr = (-u1(i1-2,i2,i3,hz)+16.*u1(i1-1,i2,i3,hz)-30.*u1(
-     & i1,i2,i3,hz)+16.*u1(i1+1,i2,i3,hz)-u1(i1+2,i2,i3,hz))/(12.*dr1(
-     & 0)**2)
-              ww1rs = ((u1(i1-2,i2-2,i3,hz)-8.*u1(i1-2,i2-1,i3,hz)+8.*
-     & u1(i1-2,i2+1,i3,hz)-u1(i1-2,i2+2,i3,hz))/(12.*dr1(1))-8.*(u1(
-     & i1-1,i2-2,i3,hz)-8.*u1(i1-1,i2-1,i3,hz)+8.*u1(i1-1,i2+1,i3,hz)-
-     & u1(i1-1,i2+2,i3,hz))/(12.*dr1(1))+8.*(u1(i1+1,i2-2,i3,hz)-8.*
-     & u1(i1+1,i2-1,i3,hz)+8.*u1(i1+1,i2+1,i3,hz)-u1(i1+1,i2+2,i3,hz))
-     & /(12.*dr1(1))-(u1(i1+2,i2-2,i3,hz)-8.*u1(i1+2,i2-1,i3,hz)+8.*
-     & u1(i1+2,i2+1,i3,hz)-u1(i1+2,i2+2,i3,hz))/(12.*dr1(1)))/(12.*
+               u1(i1-is1,i2-is2,i3,hz)=f(0)
+               u2(j1-js1,j2-js2,j3,hz)=f(1)
+               u1(i1-2*is1,i2-2*is2,i3,hz)=f(2)
+               u2(j1-2*js1,j2-2*js2,j3,hz)=f(3)
+              ! compute the maximum change in the solution for this iteration
+              do n=0,3
+                err=max(err,abs(q(n)-f(n)))
+              end do
+              if( debug.gt.0 )then ! re-evaluate
+                ! These derivatives are computed to 4th-order accuracy
+                 ! this next call will define the jacobian and its derivatives (parameteric and spatial)
+                 aj1rx = rsxy1(i1,i2,i3,0,0)
+                 aj1rxr = (rsxy1(i1-2,i2,i3,0,0)-8.*rsxy1(i1-1,i2,i3,0,
+     & 0)+8.*rsxy1(i1+1,i2,i3,0,0)-rsxy1(i1+2,i2,i3,0,0))/(12.*dr1(0))
+                 aj1rxs = (rsxy1(i1,i2-2,i3,0,0)-8.*rsxy1(i1,i2-1,i3,0,
+     & 0)+8.*rsxy1(i1,i2+1,i3,0,0)-rsxy1(i1,i2+2,i3,0,0))/(12.*dr1(1))
+                 aj1sx = rsxy1(i1,i2,i3,1,0)
+                 aj1sxr = (rsxy1(i1-2,i2,i3,1,0)-8.*rsxy1(i1-1,i2,i3,1,
+     & 0)+8.*rsxy1(i1+1,i2,i3,1,0)-rsxy1(i1+2,i2,i3,1,0))/(12.*dr1(0))
+                 aj1sxs = (rsxy1(i1,i2-2,i3,1,0)-8.*rsxy1(i1,i2-1,i3,1,
+     & 0)+8.*rsxy1(i1,i2+1,i3,1,0)-rsxy1(i1,i2+2,i3,1,0))/(12.*dr1(1))
+                 aj1ry = rsxy1(i1,i2,i3,0,1)
+                 aj1ryr = (rsxy1(i1-2,i2,i3,0,1)-8.*rsxy1(i1-1,i2,i3,0,
+     & 1)+8.*rsxy1(i1+1,i2,i3,0,1)-rsxy1(i1+2,i2,i3,0,1))/(12.*dr1(0))
+                 aj1rys = (rsxy1(i1,i2-2,i3,0,1)-8.*rsxy1(i1,i2-1,i3,0,
+     & 1)+8.*rsxy1(i1,i2+1,i3,0,1)-rsxy1(i1,i2+2,i3,0,1))/(12.*dr1(1))
+                 aj1sy = rsxy1(i1,i2,i3,1,1)
+                 aj1syr = (rsxy1(i1-2,i2,i3,1,1)-8.*rsxy1(i1-1,i2,i3,1,
+     & 1)+8.*rsxy1(i1+1,i2,i3,1,1)-rsxy1(i1+2,i2,i3,1,1))/(12.*dr1(0))
+                 aj1sys = (rsxy1(i1,i2-2,i3,1,1)-8.*rsxy1(i1,i2-1,i3,1,
+     & 1)+8.*rsxy1(i1,i2+1,i3,1,1)-rsxy1(i1,i2+2,i3,1,1))/(12.*dr1(1))
+                 aj1rxx = aj1rx*aj1rxr+aj1sx*aj1rxs
+                 aj1rxy = aj1ry*aj1rxr+aj1sy*aj1rxs
+                 aj1sxx = aj1rx*aj1sxr+aj1sx*aj1sxs
+                 aj1sxy = aj1ry*aj1sxr+aj1sy*aj1sxs
+                 aj1ryx = aj1rx*aj1ryr+aj1sx*aj1rys
+                 aj1ryy = aj1ry*aj1ryr+aj1sy*aj1rys
+                 aj1syx = aj1rx*aj1syr+aj1sx*aj1sys
+                 aj1syy = aj1ry*aj1syr+aj1sy*aj1sys
+                  ww1 = u1(i1,i2,i3,hz)
+                  ww1r = (u1(i1-2,i2,i3,hz)-8.*u1(i1-1,i2,i3,hz)+8.*u1(
+     & i1+1,i2,i3,hz)-u1(i1+2,i2,i3,hz))/(12.*dr1(0))
+                  ww1s = (u1(i1,i2-2,i3,hz)-8.*u1(i1,i2-1,i3,hz)+8.*u1(
+     & i1,i2+1,i3,hz)-u1(i1,i2+2,i3,hz))/(12.*dr1(1))
+                  ww1rr = (-u1(i1-2,i2,i3,hz)+16.*u1(i1-1,i2,i3,hz)-
+     & 30.*u1(i1,i2,i3,hz)+16.*u1(i1+1,i2,i3,hz)-u1(i1+2,i2,i3,hz))/(
+     & 12.*dr1(0)**2)
+                  ww1rs = ((u1(i1-2,i2-2,i3,hz)-8.*u1(i1-2,i2-1,i3,hz)+
+     & 8.*u1(i1-2,i2+1,i3,hz)-u1(i1-2,i2+2,i3,hz))/(12.*dr1(1))-8.*(
+     & u1(i1-1,i2-2,i3,hz)-8.*u1(i1-1,i2-1,i3,hz)+8.*u1(i1-1,i2+1,i3,
+     & hz)-u1(i1-1,i2+2,i3,hz))/(12.*dr1(1))+8.*(u1(i1+1,i2-2,i3,hz)-
+     & 8.*u1(i1+1,i2-1,i3,hz)+8.*u1(i1+1,i2+1,i3,hz)-u1(i1+1,i2+2,i3,
+     & hz))/(12.*dr1(1))-(u1(i1+2,i2-2,i3,hz)-8.*u1(i1+2,i2-1,i3,hz)+
+     & 8.*u1(i1+2,i2+1,i3,hz)-u1(i1+2,i2+2,i3,hz))/(12.*dr1(1)))/(12.*
      & dr1(0))
-              ww1ss = (-u1(i1,i2-2,i3,hz)+16.*u1(i1,i2-1,i3,hz)-30.*u1(
-     & i1,i2,i3,hz)+16.*u1(i1,i2+1,i3,hz)-u1(i1,i2+2,i3,hz))/(12.*dr1(
-     & 1)**2)
-               w1x = aj1rx*ww1r+aj1sx*ww1s
-               w1y = aj1ry*ww1r+aj1sy*ww1s
-               t1 = aj1rx**2
-               t6 = aj1sx**2
-               w1xx = t1*ww1rr+2*aj1rx*aj1sx*ww1rs+t6*ww1ss+aj1rxx*
+                  ww1ss = (-u1(i1,i2-2,i3,hz)+16.*u1(i1,i2-1,i3,hz)-
+     & 30.*u1(i1,i2,i3,hz)+16.*u1(i1,i2+1,i3,hz)-u1(i1,i2+2,i3,hz))/(
+     & 12.*dr1(1)**2)
+                   w1x = aj1rx*ww1r+aj1sx*ww1s
+                   w1y = aj1ry*ww1r+aj1sy*ww1s
+                   t1 = aj1rx**2
+                   t6 = aj1sx**2
+                   w1xx = t1*ww1rr+2*aj1rx*aj1sx*ww1rs+t6*ww1ss+aj1rxx*
      & ww1r+aj1sxx*ww1s
-               t1 = aj1ry**2
-               t6 = aj1sy**2
-               w1yy = t1*ww1rr+2*aj1ry*aj1sy*ww1rs+t6*ww1ss+aj1ryy*
+                   t1 = aj1ry**2
+                   t6 = aj1sy**2
+                   w1yy = t1*ww1rr+2*aj1ry*aj1sy*ww1rs+t6*ww1ss+aj1ryy*
      & ww1r+aj1syy*ww1s
-             w1Lap = w1xx+ w1yy
-             ! this next call will define the jacobian and its derivatives (parameteric and spatial)
-             aj2rx = rsxy2(j1,j2,j3,0,0)
-             aj2rxr = (rsxy2(j1-2,j2,j3,0,0)-8.*rsxy2(j1-1,j2,j3,0,0)+
-     & 8.*rsxy2(j1+1,j2,j3,0,0)-rsxy2(j1+2,j2,j3,0,0))/(12.*dr2(0))
-             aj2rxs = (rsxy2(j1,j2-2,j3,0,0)-8.*rsxy2(j1,j2-1,j3,0,0)+
-     & 8.*rsxy2(j1,j2+1,j3,0,0)-rsxy2(j1,j2+2,j3,0,0))/(12.*dr2(1))
-             aj2sx = rsxy2(j1,j2,j3,1,0)
-             aj2sxr = (rsxy2(j1-2,j2,j3,1,0)-8.*rsxy2(j1-1,j2,j3,1,0)+
-     & 8.*rsxy2(j1+1,j2,j3,1,0)-rsxy2(j1+2,j2,j3,1,0))/(12.*dr2(0))
-             aj2sxs = (rsxy2(j1,j2-2,j3,1,0)-8.*rsxy2(j1,j2-1,j3,1,0)+
-     & 8.*rsxy2(j1,j2+1,j3,1,0)-rsxy2(j1,j2+2,j3,1,0))/(12.*dr2(1))
-             aj2ry = rsxy2(j1,j2,j3,0,1)
-             aj2ryr = (rsxy2(j1-2,j2,j3,0,1)-8.*rsxy2(j1-1,j2,j3,0,1)+
-     & 8.*rsxy2(j1+1,j2,j3,0,1)-rsxy2(j1+2,j2,j3,0,1))/(12.*dr2(0))
-             aj2rys = (rsxy2(j1,j2-2,j3,0,1)-8.*rsxy2(j1,j2-1,j3,0,1)+
-     & 8.*rsxy2(j1,j2+1,j3,0,1)-rsxy2(j1,j2+2,j3,0,1))/(12.*dr2(1))
-             aj2sy = rsxy2(j1,j2,j3,1,1)
-             aj2syr = (rsxy2(j1-2,j2,j3,1,1)-8.*rsxy2(j1-1,j2,j3,1,1)+
-     & 8.*rsxy2(j1+1,j2,j3,1,1)-rsxy2(j1+2,j2,j3,1,1))/(12.*dr2(0))
-             aj2sys = (rsxy2(j1,j2-2,j3,1,1)-8.*rsxy2(j1,j2-1,j3,1,1)+
-     & 8.*rsxy2(j1,j2+1,j3,1,1)-rsxy2(j1,j2+2,j3,1,1))/(12.*dr2(1))
-             aj2rxx = aj2rx*aj2rxr+aj2sx*aj2rxs
-             aj2rxy = aj2ry*aj2rxr+aj2sy*aj2rxs
-             aj2sxx = aj2rx*aj2sxr+aj2sx*aj2sxs
-             aj2sxy = aj2ry*aj2sxr+aj2sy*aj2sxs
-             aj2ryx = aj2rx*aj2ryr+aj2sx*aj2rys
-             aj2ryy = aj2ry*aj2ryr+aj2sy*aj2rys
-             aj2syx = aj2rx*aj2syr+aj2sx*aj2sys
-             aj2syy = aj2ry*aj2syr+aj2sy*aj2sys
-              ww2 = u2(j1,j2,j3,hz)
-              ww2r = (u2(j1-2,j2,j3,hz)-8.*u2(j1-1,j2,j3,hz)+8.*u2(j1+
-     & 1,j2,j3,hz)-u2(j1+2,j2,j3,hz))/(12.*dr2(0))
-              ww2s = (u2(j1,j2-2,j3,hz)-8.*u2(j1,j2-1,j3,hz)+8.*u2(j1,
-     & j2+1,j3,hz)-u2(j1,j2+2,j3,hz))/(12.*dr2(1))
-              ww2rr = (-u2(j1-2,j2,j3,hz)+16.*u2(j1-1,j2,j3,hz)-30.*u2(
-     & j1,j2,j3,hz)+16.*u2(j1+1,j2,j3,hz)-u2(j1+2,j2,j3,hz))/(12.*dr2(
-     & 0)**2)
-              ww2rs = ((u2(j1-2,j2-2,j3,hz)-8.*u2(j1-2,j2-1,j3,hz)+8.*
-     & u2(j1-2,j2+1,j3,hz)-u2(j1-2,j2+2,j3,hz))/(12.*dr2(1))-8.*(u2(
-     & j1-1,j2-2,j3,hz)-8.*u2(j1-1,j2-1,j3,hz)+8.*u2(j1-1,j2+1,j3,hz)-
-     & u2(j1-1,j2+2,j3,hz))/(12.*dr2(1))+8.*(u2(j1+1,j2-2,j3,hz)-8.*
-     & u2(j1+1,j2-1,j3,hz)+8.*u2(j1+1,j2+1,j3,hz)-u2(j1+1,j2+2,j3,hz))
-     & /(12.*dr2(1))-(u2(j1+2,j2-2,j3,hz)-8.*u2(j1+2,j2-1,j3,hz)+8.*
-     & u2(j1+2,j2+1,j3,hz)-u2(j1+2,j2+2,j3,hz))/(12.*dr2(1)))/(12.*
+                 w1Lap = w1xx+ w1yy
+                 ! this next call will define the jacobian and its derivatives (parameteric and spatial)
+                 aj2rx = rsxy2(j1,j2,j3,0,0)
+                 aj2rxr = (rsxy2(j1-2,j2,j3,0,0)-8.*rsxy2(j1-1,j2,j3,0,
+     & 0)+8.*rsxy2(j1+1,j2,j3,0,0)-rsxy2(j1+2,j2,j3,0,0))/(12.*dr2(0))
+                 aj2rxs = (rsxy2(j1,j2-2,j3,0,0)-8.*rsxy2(j1,j2-1,j3,0,
+     & 0)+8.*rsxy2(j1,j2+1,j3,0,0)-rsxy2(j1,j2+2,j3,0,0))/(12.*dr2(1))
+                 aj2sx = rsxy2(j1,j2,j3,1,0)
+                 aj2sxr = (rsxy2(j1-2,j2,j3,1,0)-8.*rsxy2(j1-1,j2,j3,1,
+     & 0)+8.*rsxy2(j1+1,j2,j3,1,0)-rsxy2(j1+2,j2,j3,1,0))/(12.*dr2(0))
+                 aj2sxs = (rsxy2(j1,j2-2,j3,1,0)-8.*rsxy2(j1,j2-1,j3,1,
+     & 0)+8.*rsxy2(j1,j2+1,j3,1,0)-rsxy2(j1,j2+2,j3,1,0))/(12.*dr2(1))
+                 aj2ry = rsxy2(j1,j2,j3,0,1)
+                 aj2ryr = (rsxy2(j1-2,j2,j3,0,1)-8.*rsxy2(j1-1,j2,j3,0,
+     & 1)+8.*rsxy2(j1+1,j2,j3,0,1)-rsxy2(j1+2,j2,j3,0,1))/(12.*dr2(0))
+                 aj2rys = (rsxy2(j1,j2-2,j3,0,1)-8.*rsxy2(j1,j2-1,j3,0,
+     & 1)+8.*rsxy2(j1,j2+1,j3,0,1)-rsxy2(j1,j2+2,j3,0,1))/(12.*dr2(1))
+                 aj2sy = rsxy2(j1,j2,j3,1,1)
+                 aj2syr = (rsxy2(j1-2,j2,j3,1,1)-8.*rsxy2(j1-1,j2,j3,1,
+     & 1)+8.*rsxy2(j1+1,j2,j3,1,1)-rsxy2(j1+2,j2,j3,1,1))/(12.*dr2(0))
+                 aj2sys = (rsxy2(j1,j2-2,j3,1,1)-8.*rsxy2(j1,j2-1,j3,1,
+     & 1)+8.*rsxy2(j1,j2+1,j3,1,1)-rsxy2(j1,j2+2,j3,1,1))/(12.*dr2(1))
+                 aj2rxx = aj2rx*aj2rxr+aj2sx*aj2rxs
+                 aj2rxy = aj2ry*aj2rxr+aj2sy*aj2rxs
+                 aj2sxx = aj2rx*aj2sxr+aj2sx*aj2sxs
+                 aj2sxy = aj2ry*aj2sxr+aj2sy*aj2sxs
+                 aj2ryx = aj2rx*aj2ryr+aj2sx*aj2rys
+                 aj2ryy = aj2ry*aj2ryr+aj2sy*aj2rys
+                 aj2syx = aj2rx*aj2syr+aj2sx*aj2sys
+                 aj2syy = aj2ry*aj2syr+aj2sy*aj2sys
+                  ww2 = u2(j1,j2,j3,hz)
+                  ww2r = (u2(j1-2,j2,j3,hz)-8.*u2(j1-1,j2,j3,hz)+8.*u2(
+     & j1+1,j2,j3,hz)-u2(j1+2,j2,j3,hz))/(12.*dr2(0))
+                  ww2s = (u2(j1,j2-2,j3,hz)-8.*u2(j1,j2-1,j3,hz)+8.*u2(
+     & j1,j2+1,j3,hz)-u2(j1,j2+2,j3,hz))/(12.*dr2(1))
+                  ww2rr = (-u2(j1-2,j2,j3,hz)+16.*u2(j1-1,j2,j3,hz)-
+     & 30.*u2(j1,j2,j3,hz)+16.*u2(j1+1,j2,j3,hz)-u2(j1+2,j2,j3,hz))/(
+     & 12.*dr2(0)**2)
+                  ww2rs = ((u2(j1-2,j2-2,j3,hz)-8.*u2(j1-2,j2-1,j3,hz)+
+     & 8.*u2(j1-2,j2+1,j3,hz)-u2(j1-2,j2+2,j3,hz))/(12.*dr2(1))-8.*(
+     & u2(j1-1,j2-2,j3,hz)-8.*u2(j1-1,j2-1,j3,hz)+8.*u2(j1-1,j2+1,j3,
+     & hz)-u2(j1-1,j2+2,j3,hz))/(12.*dr2(1))+8.*(u2(j1+1,j2-2,j3,hz)-
+     & 8.*u2(j1+1,j2-1,j3,hz)+8.*u2(j1+1,j2+1,j3,hz)-u2(j1+1,j2+2,j3,
+     & hz))/(12.*dr2(1))-(u2(j1+2,j2-2,j3,hz)-8.*u2(j1+2,j2-1,j3,hz)+
+     & 8.*u2(j1+2,j2+1,j3,hz)-u2(j1+2,j2+2,j3,hz))/(12.*dr2(1)))/(12.*
      & dr2(0))
-              ww2ss = (-u2(j1,j2-2,j3,hz)+16.*u2(j1,j2-1,j3,hz)-30.*u2(
-     & j1,j2,j3,hz)+16.*u2(j1,j2+1,j3,hz)-u2(j1,j2+2,j3,hz))/(12.*dr2(
-     & 1)**2)
-               w2x = aj2rx*ww2r+aj2sx*ww2s
-               w2y = aj2ry*ww2r+aj2sy*ww2s
-               t1 = aj2rx**2
-               t6 = aj2sx**2
-               w2xx = t1*ww2rr+2*aj2rx*aj2sx*ww2rs+t6*ww2ss+aj2rxx*
+                  ww2ss = (-u2(j1,j2-2,j3,hz)+16.*u2(j1,j2-1,j3,hz)-
+     & 30.*u2(j1,j2,j3,hz)+16.*u2(j1,j2+1,j3,hz)-u2(j1,j2+2,j3,hz))/(
+     & 12.*dr2(1)**2)
+                   w2x = aj2rx*ww2r+aj2sx*ww2s
+                   w2y = aj2ry*ww2r+aj2sy*ww2s
+                   t1 = aj2rx**2
+                   t6 = aj2sx**2
+                   w2xx = t1*ww2rr+2*aj2rx*aj2sx*ww2rs+t6*ww2ss+aj2rxx*
      & ww2r+aj2sxx*ww2s
-               t1 = aj2ry**2
-               t6 = aj2sy**2
-               w2yy = t1*ww2rr+2*aj2ry*aj2sy*ww2rs+t6*ww2ss+aj2ryy*
+                   t1 = aj2ry**2
+                   t6 = aj2sy**2
+                   w2yy = t1*ww2rr+2*aj2ry*aj2sy*ww2rs+t6*ww2ss+aj2ryy*
      & ww2r+aj2syy*ww2s
-             w2Lap = w2xx+ w2yy
-            ! These derivatives are computed to 2nd-order accuracy
-             ! this next call will define the jacobian and its derivatives (parameteric and spatial)
-             aj1rx = rsxy1(i1,i2,i3,0,0)
-             aj1rxr = (-rsxy1(i1-1,i2,i3,0,0)+rsxy1(i1+1,i2,i3,0,0))/(
-     & 2.*dr1(0))
-             aj1rxs = (-rsxy1(i1,i2-1,i3,0,0)+rsxy1(i1,i2+1,i3,0,0))/(
-     & 2.*dr1(1))
-             aj1sx = rsxy1(i1,i2,i3,1,0)
-             aj1sxr = (-rsxy1(i1-1,i2,i3,1,0)+rsxy1(i1+1,i2,i3,1,0))/(
-     & 2.*dr1(0))
-             aj1sxs = (-rsxy1(i1,i2-1,i3,1,0)+rsxy1(i1,i2+1,i3,1,0))/(
-     & 2.*dr1(1))
-             aj1ry = rsxy1(i1,i2,i3,0,1)
-             aj1ryr = (-rsxy1(i1-1,i2,i3,0,1)+rsxy1(i1+1,i2,i3,0,1))/(
-     & 2.*dr1(0))
-             aj1rys = (-rsxy1(i1,i2-1,i3,0,1)+rsxy1(i1,i2+1,i3,0,1))/(
-     & 2.*dr1(1))
-             aj1sy = rsxy1(i1,i2,i3,1,1)
-             aj1syr = (-rsxy1(i1-1,i2,i3,1,1)+rsxy1(i1+1,i2,i3,1,1))/(
-     & 2.*dr1(0))
-             aj1sys = (-rsxy1(i1,i2-1,i3,1,1)+rsxy1(i1,i2+1,i3,1,1))/(
-     & 2.*dr1(1))
-             aj1rxx = aj1rx*aj1rxr+aj1sx*aj1rxs
-             aj1rxy = aj1ry*aj1rxr+aj1sy*aj1rxs
-             aj1sxx = aj1rx*aj1sxr+aj1sx*aj1sxs
-             aj1sxy = aj1ry*aj1sxr+aj1sy*aj1sxs
-             aj1ryx = aj1rx*aj1ryr+aj1sx*aj1rys
-             aj1ryy = aj1ry*aj1ryr+aj1sy*aj1rys
-             aj1syx = aj1rx*aj1syr+aj1sx*aj1sys
-             aj1syy = aj1ry*aj1syr+aj1sy*aj1sys
-              ww1 = u1(i1,i2,i3,hz)
-              ww1r = (-u1(i1-1,i2,i3,hz)+u1(i1+1,i2,i3,hz))/(2.*dr1(0))
-              ww1s = (-u1(i1,i2-1,i3,hz)+u1(i1,i2+1,i3,hz))/(2.*dr1(1))
-              ww1rr = (u1(i1-1,i2,i3,hz)-2.*u1(i1,i2,i3,hz)+u1(i1+1,i2,
-     & i3,hz))/(dr1(0)**2)
-              ww1rs = (-(-u1(i1-1,i2-1,i3,hz)+u1(i1-1,i2+1,i3,hz))/(2.*
-     & dr1(1))+(-u1(i1+1,i2-1,i3,hz)+u1(i1+1,i2+1,i3,hz))/(2.*dr1(1)))
-     & /(2.*dr1(0))
-              ww1ss = (u1(i1,i2-1,i3,hz)-2.*u1(i1,i2,i3,hz)+u1(i1,i2+1,
-     & i3,hz))/(dr1(1)**2)
-              ww1rrr = (-u1(i1-2,i2,i3,hz)+2.*u1(i1-1,i2,i3,hz)-2.*u1(
-     & i1+1,i2,i3,hz)+u1(i1+2,i2,i3,hz))/(2.*dr1(0)**3)
-              ww1rrs = ((-u1(i1-1,i2-1,i3,hz)+u1(i1-1,i2+1,i3,hz))/(2.*
-     & dr1(1))-2.*(-u1(i1,i2-1,i3,hz)+u1(i1,i2+1,i3,hz))/(2.*dr1(1))+(
-     & -u1(i1+1,i2-1,i3,hz)+u1(i1+1,i2+1,i3,hz))/(2.*dr1(1)))/(dr1(0)*
-     & *2)
-              ww1rss = (-(u1(i1-1,i2-1,i3,hz)-2.*u1(i1-1,i2,i3,hz)+u1(
-     & i1-1,i2+1,i3,hz))/(dr1(1)**2)+(u1(i1+1,i2-1,i3,hz)-2.*u1(i1+1,
-     & i2,i3,hz)+u1(i1+1,i2+1,i3,hz))/(dr1(1)**2))/(2.*dr1(0))
-              ww1sss = (-u1(i1,i2-2,i3,hz)+2.*u1(i1,i2-1,i3,hz)-2.*u1(
-     & i1,i2+1,i3,hz)+u1(i1,i2+2,i3,hz))/(2.*dr1(1)**3)
-              ww1rrrr = (u1(i1-2,i2,i3,hz)-4.*u1(i1-1,i2,i3,hz)+6.*u1(
-     & i1,i2,i3,hz)-4.*u1(i1+1,i2,i3,hz)+u1(i1+2,i2,i3,hz))/(dr1(0)**
-     & 4)
-              ww1rrrs = (-(-u1(i1-2,i2-1,i3,hz)+u1(i1-2,i2+1,i3,hz))/(
-     & 2.*dr1(1))+2.*(-u1(i1-1,i2-1,i3,hz)+u1(i1-1,i2+1,i3,hz))/(2.*
-     & dr1(1))-2.*(-u1(i1+1,i2-1,i3,hz)+u1(i1+1,i2+1,i3,hz))/(2.*dr1(
-     & 1))+(-u1(i1+2,i2-1,i3,hz)+u1(i1+2,i2+1,i3,hz))/(2.*dr1(1)))/(
-     & 2.*dr1(0)**3)
-              ww1rrss = ((u1(i1-1,i2-1,i3,hz)-2.*u1(i1-1,i2,i3,hz)+u1(
-     & i1-1,i2+1,i3,hz))/(dr1(1)**2)-2.*(u1(i1,i2-1,i3,hz)-2.*u1(i1,
-     & i2,i3,hz)+u1(i1,i2+1,i3,hz))/(dr1(1)**2)+(u1(i1+1,i2-1,i3,hz)-
-     & 2.*u1(i1+1,i2,i3,hz)+u1(i1+1,i2+1,i3,hz))/(dr1(1)**2))/(dr1(0)*
-     & *2)
-              ww1rsss = (-(-u1(i1-1,i2-2,i3,hz)+2.*u1(i1-1,i2-1,i3,hz)-
-     & 2.*u1(i1-1,i2+1,i3,hz)+u1(i1-1,i2+2,i3,hz))/(2.*dr1(1)**3)+(-
-     & u1(i1+1,i2-2,i3,hz)+2.*u1(i1+1,i2-1,i3,hz)-2.*u1(i1+1,i2+1,i3,
-     & hz)+u1(i1+1,i2+2,i3,hz))/(2.*dr1(1)**3))/(2.*dr1(0))
-              ww1ssss = (u1(i1,i2-2,i3,hz)-4.*u1(i1,i2-1,i3,hz)+6.*u1(
-     & i1,i2,i3,hz)-4.*u1(i1,i2+1,i3,hz)+u1(i1,i2+2,i3,hz))/(dr1(1)**
-     & 4)
-               t1 = aj1rx**2
-               t7 = aj1sx**2
-               w1xxx = t1*aj1rx*ww1rrr+3*t1*aj1sx*ww1rrs+3*aj1rx*t7*
-     & ww1rss+t7*aj1sx*ww1sss+3*aj1rx*aj1rxx*ww1rr+(3*aj1sxx*aj1rx+3*
-     & aj1sx*aj1rxx)*ww1rs+3*aj1sxx*aj1sx*ww1ss+aj1rxxx*ww1r+aj1sxxx*
-     & ww1s
-               t1 = aj1rx**2
-               t10 = aj1sx**2
-               w1xxy = aj1ry*t1*ww1rrr+(aj1sy*t1+2*aj1ry*aj1sx*aj1rx)*
-     & ww1rrs+(aj1ry*t10+2*aj1sy*aj1sx*aj1rx)*ww1rss+aj1sy*t10*ww1sss+
-     & (2*aj1rxy*aj1rx+aj1ry*aj1rxx)*ww1rr+(aj1ry*aj1sxx+2*aj1sx*
-     & aj1rxy+2*aj1sxy*aj1rx+aj1sy*aj1rxx)*ww1rs+(aj1sy*aj1sxx+2*
-     & aj1sxy*aj1sx)*ww1ss+aj1rxxy*ww1r+aj1sxxy*ww1s
-               t1 = aj1ry**2
-               t4 = aj1sy*aj1ry
-               t8 = aj1sy*aj1rx+aj1ry*aj1sx
-               t16 = aj1sy**2
-               w1xyy = t1*aj1rx*ww1rrr+(t4*aj1rx+aj1ry*t8)*ww1rrs+(t4*
-     & aj1sx+aj1sy*t8)*ww1rss+t16*aj1sx*ww1sss+(aj1ryy*aj1rx+2*aj1ry*
-     & aj1rxy)*ww1rr+(2*aj1ry*aj1sxy+2*aj1sy*aj1rxy+aj1ryy*aj1sx+
-     & aj1syy*aj1rx)*ww1rs+(aj1syy*aj1sx+2*aj1sy*aj1sxy)*ww1ss+
+                 w2Lap = w2xx+ w2yy
+                ! These derivatives are computed to 2nd-order accuracy
+                 ! this next call will define the jacobian and its derivatives (parameteric and spatial)
+                 aj1rx = rsxy1(i1,i2,i3,0,0)
+                 aj1rxr = (-rsxy1(i1-1,i2,i3,0,0)+rsxy1(i1+1,i2,i3,0,0)
+     & )/(2.*dr1(0))
+                 aj1rxs = (-rsxy1(i1,i2-1,i3,0,0)+rsxy1(i1,i2+1,i3,0,0)
+     & )/(2.*dr1(1))
+                 aj1sx = rsxy1(i1,i2,i3,1,0)
+                 aj1sxr = (-rsxy1(i1-1,i2,i3,1,0)+rsxy1(i1+1,i2,i3,1,0)
+     & )/(2.*dr1(0))
+                 aj1sxs = (-rsxy1(i1,i2-1,i3,1,0)+rsxy1(i1,i2+1,i3,1,0)
+     & )/(2.*dr1(1))
+                 aj1ry = rsxy1(i1,i2,i3,0,1)
+                 aj1ryr = (-rsxy1(i1-1,i2,i3,0,1)+rsxy1(i1+1,i2,i3,0,1)
+     & )/(2.*dr1(0))
+                 aj1rys = (-rsxy1(i1,i2-1,i3,0,1)+rsxy1(i1,i2+1,i3,0,1)
+     & )/(2.*dr1(1))
+                 aj1sy = rsxy1(i1,i2,i3,1,1)
+                 aj1syr = (-rsxy1(i1-1,i2,i3,1,1)+rsxy1(i1+1,i2,i3,1,1)
+     & )/(2.*dr1(0))
+                 aj1sys = (-rsxy1(i1,i2-1,i3,1,1)+rsxy1(i1,i2+1,i3,1,1)
+     & )/(2.*dr1(1))
+                 aj1rxx = aj1rx*aj1rxr+aj1sx*aj1rxs
+                 aj1rxy = aj1ry*aj1rxr+aj1sy*aj1rxs
+                 aj1sxx = aj1rx*aj1sxr+aj1sx*aj1sxs
+                 aj1sxy = aj1ry*aj1sxr+aj1sy*aj1sxs
+                 aj1ryx = aj1rx*aj1ryr+aj1sx*aj1rys
+                 aj1ryy = aj1ry*aj1ryr+aj1sy*aj1rys
+                 aj1syx = aj1rx*aj1syr+aj1sx*aj1sys
+                 aj1syy = aj1ry*aj1syr+aj1sy*aj1sys
+                  ww1 = u1(i1,i2,i3,hz)
+                  ww1r = (-u1(i1-1,i2,i3,hz)+u1(i1+1,i2,i3,hz))/(2.*
+     & dr1(0))
+                  ww1s = (-u1(i1,i2-1,i3,hz)+u1(i1,i2+1,i3,hz))/(2.*
+     & dr1(1))
+                  ww1rr = (u1(i1-1,i2,i3,hz)-2.*u1(i1,i2,i3,hz)+u1(i1+
+     & 1,i2,i3,hz))/(dr1(0)**2)
+                  ww1rs = (-(-u1(i1-1,i2-1,i3,hz)+u1(i1-1,i2+1,i3,hz))
+     & /(2.*dr1(1))+(-u1(i1+1,i2-1,i3,hz)+u1(i1+1,i2+1,i3,hz))/(2.*
+     & dr1(1)))/(2.*dr1(0))
+                  ww1ss = (u1(i1,i2-1,i3,hz)-2.*u1(i1,i2,i3,hz)+u1(i1,
+     & i2+1,i3,hz))/(dr1(1)**2)
+                  ww1rrr = (-u1(i1-2,i2,i3,hz)+2.*u1(i1-1,i2,i3,hz)-2.*
+     & u1(i1+1,i2,i3,hz)+u1(i1+2,i2,i3,hz))/(2.*dr1(0)**3)
+                  ww1rrs = ((-u1(i1-1,i2-1,i3,hz)+u1(i1-1,i2+1,i3,hz))
+     & /(2.*dr1(1))-2.*(-u1(i1,i2-1,i3,hz)+u1(i1,i2+1,i3,hz))/(2.*dr1(
+     & 1))+(-u1(i1+1,i2-1,i3,hz)+u1(i1+1,i2+1,i3,hz))/(2.*dr1(1)))/(
+     & dr1(0)**2)
+                  ww1rss = (-(u1(i1-1,i2-1,i3,hz)-2.*u1(i1-1,i2,i3,hz)+
+     & u1(i1-1,i2+1,i3,hz))/(dr1(1)**2)+(u1(i1+1,i2-1,i3,hz)-2.*u1(i1+
+     & 1,i2,i3,hz)+u1(i1+1,i2+1,i3,hz))/(dr1(1)**2))/(2.*dr1(0))
+                  ww1sss = (-u1(i1,i2-2,i3,hz)+2.*u1(i1,i2-1,i3,hz)-2.*
+     & u1(i1,i2+1,i3,hz)+u1(i1,i2+2,i3,hz))/(2.*dr1(1)**3)
+                  ww1rrrr = (u1(i1-2,i2,i3,hz)-4.*u1(i1-1,i2,i3,hz)+6.*
+     & u1(i1,i2,i3,hz)-4.*u1(i1+1,i2,i3,hz)+u1(i1+2,i2,i3,hz))/(dr1(0)
+     & **4)
+                  ww1rrrs = (-(-u1(i1-2,i2-1,i3,hz)+u1(i1-2,i2+1,i3,hz)
+     & )/(2.*dr1(1))+2.*(-u1(i1-1,i2-1,i3,hz)+u1(i1-1,i2+1,i3,hz))/(
+     & 2.*dr1(1))-2.*(-u1(i1+1,i2-1,i3,hz)+u1(i1+1,i2+1,i3,hz))/(2.*
+     & dr1(1))+(-u1(i1+2,i2-1,i3,hz)+u1(i1+2,i2+1,i3,hz))/(2.*dr1(1)))
+     & /(2.*dr1(0)**3)
+                  ww1rrss = ((u1(i1-1,i2-1,i3,hz)-2.*u1(i1-1,i2,i3,hz)+
+     & u1(i1-1,i2+1,i3,hz))/(dr1(1)**2)-2.*(u1(i1,i2-1,i3,hz)-2.*u1(
+     & i1,i2,i3,hz)+u1(i1,i2+1,i3,hz))/(dr1(1)**2)+(u1(i1+1,i2-1,i3,
+     & hz)-2.*u1(i1+1,i2,i3,hz)+u1(i1+1,i2+1,i3,hz))/(dr1(1)**2))/(
+     & dr1(0)**2)
+                  ww1rsss = (-(-u1(i1-1,i2-2,i3,hz)+2.*u1(i1-1,i2-1,i3,
+     & hz)-2.*u1(i1-1,i2+1,i3,hz)+u1(i1-1,i2+2,i3,hz))/(2.*dr1(1)**3)+
+     & (-u1(i1+1,i2-2,i3,hz)+2.*u1(i1+1,i2-1,i3,hz)-2.*u1(i1+1,i2+1,
+     & i3,hz)+u1(i1+1,i2+2,i3,hz))/(2.*dr1(1)**3))/(2.*dr1(0))
+                  ww1ssss = (u1(i1,i2-2,i3,hz)-4.*u1(i1,i2-1,i3,hz)+6.*
+     & u1(i1,i2,i3,hz)-4.*u1(i1,i2+1,i3,hz)+u1(i1,i2+2,i3,hz))/(dr1(1)
+     & **4)
+                   t1 = aj1rx**2
+                   t7 = aj1sx**2
+                   w1xxx = t1*aj1rx*ww1rrr+3*t1*aj1sx*ww1rrs+3*aj1rx*
+     & t7*ww1rss+t7*aj1sx*ww1sss+3*aj1rx*aj1rxx*ww1rr+(3*aj1sxx*aj1rx+
+     & 3*aj1sx*aj1rxx)*ww1rs+3*aj1sxx*aj1sx*ww1ss+aj1rxxx*ww1r+
+     & aj1sxxx*ww1s
+                   t1 = aj1rx**2
+                   t10 = aj1sx**2
+                   w1xxy = aj1ry*t1*ww1rrr+(aj1sy*t1+2*aj1ry*aj1sx*
+     & aj1rx)*ww1rrs+(aj1ry*t10+2*aj1sy*aj1sx*aj1rx)*ww1rss+aj1sy*t10*
+     & ww1sss+(2*aj1rxy*aj1rx+aj1ry*aj1rxx)*ww1rr+(aj1ry*aj1sxx+2*
+     & aj1sx*aj1rxy+2*aj1sxy*aj1rx+aj1sy*aj1rxx)*ww1rs+(aj1sy*aj1sxx+
+     & 2*aj1sxy*aj1sx)*ww1ss+aj1rxxy*ww1r+aj1sxxy*ww1s
+                   t1 = aj1ry**2
+                   t4 = aj1sy*aj1ry
+                   t8 = aj1sy*aj1rx+aj1ry*aj1sx
+                   t16 = aj1sy**2
+                   w1xyy = t1*aj1rx*ww1rrr+(t4*aj1rx+aj1ry*t8)*ww1rrs+(
+     & t4*aj1sx+aj1sy*t8)*ww1rss+t16*aj1sx*ww1sss+(aj1ryy*aj1rx+2*
+     & aj1ry*aj1rxy)*ww1rr+(2*aj1ry*aj1sxy+2*aj1sy*aj1rxy+aj1ryy*
+     & aj1sx+aj1syy*aj1rx)*ww1rs+(aj1syy*aj1sx+2*aj1sy*aj1sxy)*ww1ss+
      & aj1rxyy*ww1r+aj1sxyy*ww1s
-               t1 = aj1ry**2
-               t7 = aj1sy**2
-               w1yyy = aj1ry*t1*ww1rrr+3*t1*aj1sy*ww1rrs+3*aj1ry*t7*
-     & ww1rss+t7*aj1sy*ww1sss+3*aj1ry*aj1ryy*ww1rr+(3*aj1syy*aj1ry+3*
-     & aj1sy*aj1ryy)*ww1rs+3*aj1syy*aj1sy*ww1ss+aj1ryyy*ww1r+aj1syyy*
-     & ww1s
-               t1 = aj1rx**2
-               t2 = t1**2
-               t8 = aj1sx**2
-               t16 = t8**2
-               t25 = aj1sxx*aj1rx
-               t27 = t25+aj1sx*aj1rxx
-               t28 = 3*t27
-               t30 = 2*t27
-               t46 = aj1rxx**2
-               t60 = aj1sxx**2
-               w1xxxx = t2*ww1rrrr+4*t1*aj1rx*aj1sx*ww1rrrs+6*t1*t8*
-     & ww1rrss+4*aj1rx*t8*aj1sx*ww1rsss+t16*ww1ssss+6*t1*aj1rxx*
+                   t1 = aj1ry**2
+                   t7 = aj1sy**2
+                   w1yyy = aj1ry*t1*ww1rrr+3*t1*aj1sy*ww1rrs+3*aj1ry*
+     & t7*ww1rss+t7*aj1sy*ww1sss+3*aj1ry*aj1ryy*ww1rr+(3*aj1syy*aj1ry+
+     & 3*aj1sy*aj1ryy)*ww1rs+3*aj1syy*aj1sy*ww1ss+aj1ryyy*ww1r+
+     & aj1syyy*ww1s
+                   t1 = aj1rx**2
+                   t2 = t1**2
+                   t8 = aj1sx**2
+                   t16 = t8**2
+                   t25 = aj1sxx*aj1rx
+                   t27 = t25+aj1sx*aj1rxx
+                   t28 = 3*t27
+                   t30 = 2*t27
+                   t46 = aj1rxx**2
+                   t60 = aj1sxx**2
+                   w1xxxx = t2*ww1rrrr+4*t1*aj1rx*aj1sx*ww1rrrs+6*t1*
+     & t8*ww1rrss+4*aj1rx*t8*aj1sx*ww1rsss+t16*ww1ssss+6*t1*aj1rxx*
      & ww1rrr+(7*aj1sx*aj1rx*aj1rxx+aj1sxx*t1+aj1rx*t28+aj1rx*t30)*
      & ww1rrs+(aj1sx*t28+7*t25*aj1sx+aj1rxx*t8+aj1sx*t30)*ww1rss+6*t8*
      & aj1sxx*ww1sss+(4*aj1rx*aj1rxxx+3*t46)*ww1rr+(4*aj1sxxx*aj1rx+4*
      & aj1sx*aj1rxxx+6*aj1sxx*aj1rxx)*ww1rs+(4*aj1sxxx*aj1sx+3*t60)*
      & ww1ss+aj1rxxxx*ww1r+aj1sxxxx*ww1s
-               t1 = aj1ry**2
-               t2 = aj1rx**2
-               t5 = aj1sy*aj1ry
-               t11 = aj1sy*t2+2*aj1ry*aj1sx*aj1rx
-               t16 = aj1sx**2
-               t21 = aj1ry*t16+2*aj1sy*aj1sx*aj1rx
-               t29 = aj1sy**2
-               t38 = 2*aj1rxy*aj1rx+aj1ry*aj1rxx
-               t52 = aj1sx*aj1rxy
-               t54 = aj1sxy*aj1rx
-               t57 = aj1ry*aj1sxx+2*t52+2*t54+aj1sy*aj1rxx
-               t60 = 2*t52+2*t54
-               t68 = aj1sy*aj1sxx+2*aj1sxy*aj1sx
-               t92 = aj1rxy**2
-               t110 = aj1sxy**2
-               w1xxyy = t1*t2*ww1rrrr+(t5*t2+aj1ry*t11)*ww1rrrs+(aj1sy*
-     & t11+aj1ry*t21)*ww1rrss+(aj1sy*t21+t5*t16)*ww1rsss+t29*t16*
-     & ww1ssss+(2*aj1ry*aj1rxy*aj1rx+aj1ry*t38+aj1ryy*t2)*ww1rrr+(
+                   t1 = aj1ry**2
+                   t2 = aj1rx**2
+                   t5 = aj1sy*aj1ry
+                   t11 = aj1sy*t2+2*aj1ry*aj1sx*aj1rx
+                   t16 = aj1sx**2
+                   t21 = aj1ry*t16+2*aj1sy*aj1sx*aj1rx
+                   t29 = aj1sy**2
+                   t38 = 2*aj1rxy*aj1rx+aj1ry*aj1rxx
+                   t52 = aj1sx*aj1rxy
+                   t54 = aj1sxy*aj1rx
+                   t57 = aj1ry*aj1sxx+2*t52+2*t54+aj1sy*aj1rxx
+                   t60 = 2*t52+2*t54
+                   t68 = aj1sy*aj1sxx+2*aj1sxy*aj1sx
+                   t92 = aj1rxy**2
+                   t110 = aj1sxy**2
+                   w1xxyy = t1*t2*ww1rrrr+(t5*t2+aj1ry*t11)*ww1rrrs+(
+     & aj1sy*t11+aj1ry*t21)*ww1rrss+(aj1sy*t21+t5*t16)*ww1rsss+t29*
+     & t16*ww1ssss+(2*aj1ry*aj1rxy*aj1rx+aj1ry*t38+aj1ryy*t2)*ww1rrr+(
      & aj1sy*t38+2*aj1sy*aj1rxy*aj1rx+2*aj1ryy*aj1sx*aj1rx+aj1syy*t2+
      & aj1ry*t57+aj1ry*t60)*ww1rrs+(aj1sy*t57+aj1ry*t68+aj1ryy*t16+2*
      & aj1ry*aj1sxy*aj1sx+2*aj1syy*aj1sx*aj1rx+aj1sy*t60)*ww1rss+(2*
@@ -8683,157 +10350,159 @@
      & aj1rx+aj1syy*aj1rxx+2*aj1sx*aj1rxyy)*ww1rs+(2*t110+2*aj1sy*
      & aj1sxxy+aj1syy*aj1sxx+2*aj1sx*aj1sxyy)*ww1ss+aj1rxxyy*ww1r+
      & aj1sxxyy*ww1s
-               t1 = aj1ry**2
-               t2 = t1**2
-               t8 = aj1sy**2
-               t16 = t8**2
-               t25 = aj1syy*aj1ry
-               t27 = t25+aj1sy*aj1ryy
-               t28 = 3*t27
-               t30 = 2*t27
-               t46 = aj1ryy**2
-               t60 = aj1syy**2
-               w1yyyy = t2*ww1rrrr+4*t1*aj1ry*aj1sy*ww1rrrs+6*t1*t8*
-     & ww1rrss+4*aj1ry*t8*aj1sy*ww1rsss+t16*ww1ssss+6*t1*aj1ryy*
+                   t1 = aj1ry**2
+                   t2 = t1**2
+                   t8 = aj1sy**2
+                   t16 = t8**2
+                   t25 = aj1syy*aj1ry
+                   t27 = t25+aj1sy*aj1ryy
+                   t28 = 3*t27
+                   t30 = 2*t27
+                   t46 = aj1ryy**2
+                   t60 = aj1syy**2
+                   w1yyyy = t2*ww1rrrr+4*t1*aj1ry*aj1sy*ww1rrrs+6*t1*
+     & t8*ww1rrss+4*aj1ry*t8*aj1sy*ww1rsss+t16*ww1ssss+6*t1*aj1ryy*
      & ww1rrr+(7*aj1sy*aj1ry*aj1ryy+aj1syy*t1+aj1ry*t28+aj1ry*t30)*
      & ww1rrs+(aj1sy*t28+7*t25*aj1sy+aj1ryy*t8+aj1sy*t30)*ww1rss+6*t8*
      & aj1syy*ww1sss+(4*aj1ry*aj1ryyy+3*t46)*ww1rr+(4*aj1syyy*aj1ry+4*
      & aj1sy*aj1ryyy+6*aj1syy*aj1ryy)*ww1rs+(4*aj1syyy*aj1sy+3*t60)*
      & ww1ss+aj1ryyyy*ww1r+aj1syyyy*ww1s
-             w1LapSq = w1xxxx +2.* w1xxyy + w1yyyy
-             ! this next call will define the jacobian and its derivatives (parameteric and spatial)
-             aj2rx = rsxy2(j1,j2,j3,0,0)
-             aj2rxr = (-rsxy2(j1-1,j2,j3,0,0)+rsxy2(j1+1,j2,j3,0,0))/(
-     & 2.*dr2(0))
-             aj2rxs = (-rsxy2(j1,j2-1,j3,0,0)+rsxy2(j1,j2+1,j3,0,0))/(
-     & 2.*dr2(1))
-             aj2sx = rsxy2(j1,j2,j3,1,0)
-             aj2sxr = (-rsxy2(j1-1,j2,j3,1,0)+rsxy2(j1+1,j2,j3,1,0))/(
-     & 2.*dr2(0))
-             aj2sxs = (-rsxy2(j1,j2-1,j3,1,0)+rsxy2(j1,j2+1,j3,1,0))/(
-     & 2.*dr2(1))
-             aj2ry = rsxy2(j1,j2,j3,0,1)
-             aj2ryr = (-rsxy2(j1-1,j2,j3,0,1)+rsxy2(j1+1,j2,j3,0,1))/(
-     & 2.*dr2(0))
-             aj2rys = (-rsxy2(j1,j2-1,j3,0,1)+rsxy2(j1,j2+1,j3,0,1))/(
-     & 2.*dr2(1))
-             aj2sy = rsxy2(j1,j2,j3,1,1)
-             aj2syr = (-rsxy2(j1-1,j2,j3,1,1)+rsxy2(j1+1,j2,j3,1,1))/(
-     & 2.*dr2(0))
-             aj2sys = (-rsxy2(j1,j2-1,j3,1,1)+rsxy2(j1,j2+1,j3,1,1))/(
-     & 2.*dr2(1))
-             aj2rxx = aj2rx*aj2rxr+aj2sx*aj2rxs
-             aj2rxy = aj2ry*aj2rxr+aj2sy*aj2rxs
-             aj2sxx = aj2rx*aj2sxr+aj2sx*aj2sxs
-             aj2sxy = aj2ry*aj2sxr+aj2sy*aj2sxs
-             aj2ryx = aj2rx*aj2ryr+aj2sx*aj2rys
-             aj2ryy = aj2ry*aj2ryr+aj2sy*aj2rys
-             aj2syx = aj2rx*aj2syr+aj2sx*aj2sys
-             aj2syy = aj2ry*aj2syr+aj2sy*aj2sys
-              ww2 = u2(j1,j2,j3,hz)
-              ww2r = (-u2(j1-1,j2,j3,hz)+u2(j1+1,j2,j3,hz))/(2.*dr2(0))
-              ww2s = (-u2(j1,j2-1,j3,hz)+u2(j1,j2+1,j3,hz))/(2.*dr2(1))
-              ww2rr = (u2(j1-1,j2,j3,hz)-2.*u2(j1,j2,j3,hz)+u2(j1+1,j2,
-     & j3,hz))/(dr2(0)**2)
-              ww2rs = (-(-u2(j1-1,j2-1,j3,hz)+u2(j1-1,j2+1,j3,hz))/(2.*
-     & dr2(1))+(-u2(j1+1,j2-1,j3,hz)+u2(j1+1,j2+1,j3,hz))/(2.*dr2(1)))
-     & /(2.*dr2(0))
-              ww2ss = (u2(j1,j2-1,j3,hz)-2.*u2(j1,j2,j3,hz)+u2(j1,j2+1,
-     & j3,hz))/(dr2(1)**2)
-              ww2rrr = (-u2(j1-2,j2,j3,hz)+2.*u2(j1-1,j2,j3,hz)-2.*u2(
-     & j1+1,j2,j3,hz)+u2(j1+2,j2,j3,hz))/(2.*dr2(0)**3)
-              ww2rrs = ((-u2(j1-1,j2-1,j3,hz)+u2(j1-1,j2+1,j3,hz))/(2.*
-     & dr2(1))-2.*(-u2(j1,j2-1,j3,hz)+u2(j1,j2+1,j3,hz))/(2.*dr2(1))+(
-     & -u2(j1+1,j2-1,j3,hz)+u2(j1+1,j2+1,j3,hz))/(2.*dr2(1)))/(dr2(0)*
-     & *2)
-              ww2rss = (-(u2(j1-1,j2-1,j3,hz)-2.*u2(j1-1,j2,j3,hz)+u2(
-     & j1-1,j2+1,j3,hz))/(dr2(1)**2)+(u2(j1+1,j2-1,j3,hz)-2.*u2(j1+1,
-     & j2,j3,hz)+u2(j1+1,j2+1,j3,hz))/(dr2(1)**2))/(2.*dr2(0))
-              ww2sss = (-u2(j1,j2-2,j3,hz)+2.*u2(j1,j2-1,j3,hz)-2.*u2(
-     & j1,j2+1,j3,hz)+u2(j1,j2+2,j3,hz))/(2.*dr2(1)**3)
-              ww2rrrr = (u2(j1-2,j2,j3,hz)-4.*u2(j1-1,j2,j3,hz)+6.*u2(
-     & j1,j2,j3,hz)-4.*u2(j1+1,j2,j3,hz)+u2(j1+2,j2,j3,hz))/(dr2(0)**
-     & 4)
-              ww2rrrs = (-(-u2(j1-2,j2-1,j3,hz)+u2(j1-2,j2+1,j3,hz))/(
-     & 2.*dr2(1))+2.*(-u2(j1-1,j2-1,j3,hz)+u2(j1-1,j2+1,j3,hz))/(2.*
-     & dr2(1))-2.*(-u2(j1+1,j2-1,j3,hz)+u2(j1+1,j2+1,j3,hz))/(2.*dr2(
-     & 1))+(-u2(j1+2,j2-1,j3,hz)+u2(j1+2,j2+1,j3,hz))/(2.*dr2(1)))/(
-     & 2.*dr2(0)**3)
-              ww2rrss = ((u2(j1-1,j2-1,j3,hz)-2.*u2(j1-1,j2,j3,hz)+u2(
-     & j1-1,j2+1,j3,hz))/(dr2(1)**2)-2.*(u2(j1,j2-1,j3,hz)-2.*u2(j1,
-     & j2,j3,hz)+u2(j1,j2+1,j3,hz))/(dr2(1)**2)+(u2(j1+1,j2-1,j3,hz)-
-     & 2.*u2(j1+1,j2,j3,hz)+u2(j1+1,j2+1,j3,hz))/(dr2(1)**2))/(dr2(0)*
-     & *2)
-              ww2rsss = (-(-u2(j1-1,j2-2,j3,hz)+2.*u2(j1-1,j2-1,j3,hz)-
-     & 2.*u2(j1-1,j2+1,j3,hz)+u2(j1-1,j2+2,j3,hz))/(2.*dr2(1)**3)+(-
-     & u2(j1+1,j2-2,j3,hz)+2.*u2(j1+1,j2-1,j3,hz)-2.*u2(j1+1,j2+1,j3,
-     & hz)+u2(j1+1,j2+2,j3,hz))/(2.*dr2(1)**3))/(2.*dr2(0))
-              ww2ssss = (u2(j1,j2-2,j3,hz)-4.*u2(j1,j2-1,j3,hz)+6.*u2(
-     & j1,j2,j3,hz)-4.*u2(j1,j2+1,j3,hz)+u2(j1,j2+2,j3,hz))/(dr2(1)**
-     & 4)
-               t1 = aj2rx**2
-               t7 = aj2sx**2
-               w2xxx = t1*aj2rx*ww2rrr+3*t1*aj2sx*ww2rrs+3*aj2rx*t7*
-     & ww2rss+t7*aj2sx*ww2sss+3*aj2rx*aj2rxx*ww2rr+(3*aj2sxx*aj2rx+3*
-     & aj2sx*aj2rxx)*ww2rs+3*aj2sxx*aj2sx*ww2ss+aj2rxxx*ww2r+aj2sxxx*
-     & ww2s
-               t1 = aj2rx**2
-               t10 = aj2sx**2
-               w2xxy = aj2ry*t1*ww2rrr+(aj2sy*t1+2*aj2ry*aj2sx*aj2rx)*
-     & ww2rrs+(aj2ry*t10+2*aj2sy*aj2sx*aj2rx)*ww2rss+aj2sy*t10*ww2sss+
-     & (2*aj2rxy*aj2rx+aj2ry*aj2rxx)*ww2rr+(aj2ry*aj2sxx+2*aj2sx*
-     & aj2rxy+2*aj2sxy*aj2rx+aj2sy*aj2rxx)*ww2rs+(aj2sy*aj2sxx+2*
-     & aj2sxy*aj2sx)*ww2ss+aj2rxxy*ww2r+aj2sxxy*ww2s
-               t1 = aj2ry**2
-               t4 = aj2sy*aj2ry
-               t8 = aj2sy*aj2rx+aj2ry*aj2sx
-               t16 = aj2sy**2
-               w2xyy = t1*aj2rx*ww2rrr+(t4*aj2rx+aj2ry*t8)*ww2rrs+(t4*
-     & aj2sx+aj2sy*t8)*ww2rss+t16*aj2sx*ww2sss+(aj2ryy*aj2rx+2*aj2ry*
-     & aj2rxy)*ww2rr+(2*aj2ry*aj2sxy+2*aj2sy*aj2rxy+aj2ryy*aj2sx+
-     & aj2syy*aj2rx)*ww2rs+(aj2syy*aj2sx+2*aj2sy*aj2sxy)*ww2ss+
+                 w1LapSq = w1xxxx +2.* w1xxyy + w1yyyy
+                 ! this next call will define the jacobian and its derivatives (parameteric and spatial)
+                 aj2rx = rsxy2(j1,j2,j3,0,0)
+                 aj2rxr = (-rsxy2(j1-1,j2,j3,0,0)+rsxy2(j1+1,j2,j3,0,0)
+     & )/(2.*dr2(0))
+                 aj2rxs = (-rsxy2(j1,j2-1,j3,0,0)+rsxy2(j1,j2+1,j3,0,0)
+     & )/(2.*dr2(1))
+                 aj2sx = rsxy2(j1,j2,j3,1,0)
+                 aj2sxr = (-rsxy2(j1-1,j2,j3,1,0)+rsxy2(j1+1,j2,j3,1,0)
+     & )/(2.*dr2(0))
+                 aj2sxs = (-rsxy2(j1,j2-1,j3,1,0)+rsxy2(j1,j2+1,j3,1,0)
+     & )/(2.*dr2(1))
+                 aj2ry = rsxy2(j1,j2,j3,0,1)
+                 aj2ryr = (-rsxy2(j1-1,j2,j3,0,1)+rsxy2(j1+1,j2,j3,0,1)
+     & )/(2.*dr2(0))
+                 aj2rys = (-rsxy2(j1,j2-1,j3,0,1)+rsxy2(j1,j2+1,j3,0,1)
+     & )/(2.*dr2(1))
+                 aj2sy = rsxy2(j1,j2,j3,1,1)
+                 aj2syr = (-rsxy2(j1-1,j2,j3,1,1)+rsxy2(j1+1,j2,j3,1,1)
+     & )/(2.*dr2(0))
+                 aj2sys = (-rsxy2(j1,j2-1,j3,1,1)+rsxy2(j1,j2+1,j3,1,1)
+     & )/(2.*dr2(1))
+                 aj2rxx = aj2rx*aj2rxr+aj2sx*aj2rxs
+                 aj2rxy = aj2ry*aj2rxr+aj2sy*aj2rxs
+                 aj2sxx = aj2rx*aj2sxr+aj2sx*aj2sxs
+                 aj2sxy = aj2ry*aj2sxr+aj2sy*aj2sxs
+                 aj2ryx = aj2rx*aj2ryr+aj2sx*aj2rys
+                 aj2ryy = aj2ry*aj2ryr+aj2sy*aj2rys
+                 aj2syx = aj2rx*aj2syr+aj2sx*aj2sys
+                 aj2syy = aj2ry*aj2syr+aj2sy*aj2sys
+                  ww2 = u2(j1,j2,j3,hz)
+                  ww2r = (-u2(j1-1,j2,j3,hz)+u2(j1+1,j2,j3,hz))/(2.*
+     & dr2(0))
+                  ww2s = (-u2(j1,j2-1,j3,hz)+u2(j1,j2+1,j3,hz))/(2.*
+     & dr2(1))
+                  ww2rr = (u2(j1-1,j2,j3,hz)-2.*u2(j1,j2,j3,hz)+u2(j1+
+     & 1,j2,j3,hz))/(dr2(0)**2)
+                  ww2rs = (-(-u2(j1-1,j2-1,j3,hz)+u2(j1-1,j2+1,j3,hz))
+     & /(2.*dr2(1))+(-u2(j1+1,j2-1,j3,hz)+u2(j1+1,j2+1,j3,hz))/(2.*
+     & dr2(1)))/(2.*dr2(0))
+                  ww2ss = (u2(j1,j2-1,j3,hz)-2.*u2(j1,j2,j3,hz)+u2(j1,
+     & j2+1,j3,hz))/(dr2(1)**2)
+                  ww2rrr = (-u2(j1-2,j2,j3,hz)+2.*u2(j1-1,j2,j3,hz)-2.*
+     & u2(j1+1,j2,j3,hz)+u2(j1+2,j2,j3,hz))/(2.*dr2(0)**3)
+                  ww2rrs = ((-u2(j1-1,j2-1,j3,hz)+u2(j1-1,j2+1,j3,hz))
+     & /(2.*dr2(1))-2.*(-u2(j1,j2-1,j3,hz)+u2(j1,j2+1,j3,hz))/(2.*dr2(
+     & 1))+(-u2(j1+1,j2-1,j3,hz)+u2(j1+1,j2+1,j3,hz))/(2.*dr2(1)))/(
+     & dr2(0)**2)
+                  ww2rss = (-(u2(j1-1,j2-1,j3,hz)-2.*u2(j1-1,j2,j3,hz)+
+     & u2(j1-1,j2+1,j3,hz))/(dr2(1)**2)+(u2(j1+1,j2-1,j3,hz)-2.*u2(j1+
+     & 1,j2,j3,hz)+u2(j1+1,j2+1,j3,hz))/(dr2(1)**2))/(2.*dr2(0))
+                  ww2sss = (-u2(j1,j2-2,j3,hz)+2.*u2(j1,j2-1,j3,hz)-2.*
+     & u2(j1,j2+1,j3,hz)+u2(j1,j2+2,j3,hz))/(2.*dr2(1)**3)
+                  ww2rrrr = (u2(j1-2,j2,j3,hz)-4.*u2(j1-1,j2,j3,hz)+6.*
+     & u2(j1,j2,j3,hz)-4.*u2(j1+1,j2,j3,hz)+u2(j1+2,j2,j3,hz))/(dr2(0)
+     & **4)
+                  ww2rrrs = (-(-u2(j1-2,j2-1,j3,hz)+u2(j1-2,j2+1,j3,hz)
+     & )/(2.*dr2(1))+2.*(-u2(j1-1,j2-1,j3,hz)+u2(j1-1,j2+1,j3,hz))/(
+     & 2.*dr2(1))-2.*(-u2(j1+1,j2-1,j3,hz)+u2(j1+1,j2+1,j3,hz))/(2.*
+     & dr2(1))+(-u2(j1+2,j2-1,j3,hz)+u2(j1+2,j2+1,j3,hz))/(2.*dr2(1)))
+     & /(2.*dr2(0)**3)
+                  ww2rrss = ((u2(j1-1,j2-1,j3,hz)-2.*u2(j1-1,j2,j3,hz)+
+     & u2(j1-1,j2+1,j3,hz))/(dr2(1)**2)-2.*(u2(j1,j2-1,j3,hz)-2.*u2(
+     & j1,j2,j3,hz)+u2(j1,j2+1,j3,hz))/(dr2(1)**2)+(u2(j1+1,j2-1,j3,
+     & hz)-2.*u2(j1+1,j2,j3,hz)+u2(j1+1,j2+1,j3,hz))/(dr2(1)**2))/(
+     & dr2(0)**2)
+                  ww2rsss = (-(-u2(j1-1,j2-2,j3,hz)+2.*u2(j1-1,j2-1,j3,
+     & hz)-2.*u2(j1-1,j2+1,j3,hz)+u2(j1-1,j2+2,j3,hz))/(2.*dr2(1)**3)+
+     & (-u2(j1+1,j2-2,j3,hz)+2.*u2(j1+1,j2-1,j3,hz)-2.*u2(j1+1,j2+1,
+     & j3,hz)+u2(j1+1,j2+2,j3,hz))/(2.*dr2(1)**3))/(2.*dr2(0))
+                  ww2ssss = (u2(j1,j2-2,j3,hz)-4.*u2(j1,j2-1,j3,hz)+6.*
+     & u2(j1,j2,j3,hz)-4.*u2(j1,j2+1,j3,hz)+u2(j1,j2+2,j3,hz))/(dr2(1)
+     & **4)
+                   t1 = aj2rx**2
+                   t7 = aj2sx**2
+                   w2xxx = t1*aj2rx*ww2rrr+3*t1*aj2sx*ww2rrs+3*aj2rx*
+     & t7*ww2rss+t7*aj2sx*ww2sss+3*aj2rx*aj2rxx*ww2rr+(3*aj2sxx*aj2rx+
+     & 3*aj2sx*aj2rxx)*ww2rs+3*aj2sxx*aj2sx*ww2ss+aj2rxxx*ww2r+
+     & aj2sxxx*ww2s
+                   t1 = aj2rx**2
+                   t10 = aj2sx**2
+                   w2xxy = aj2ry*t1*ww2rrr+(aj2sy*t1+2*aj2ry*aj2sx*
+     & aj2rx)*ww2rrs+(aj2ry*t10+2*aj2sy*aj2sx*aj2rx)*ww2rss+aj2sy*t10*
+     & ww2sss+(2*aj2rxy*aj2rx+aj2ry*aj2rxx)*ww2rr+(aj2ry*aj2sxx+2*
+     & aj2sx*aj2rxy+2*aj2sxy*aj2rx+aj2sy*aj2rxx)*ww2rs+(aj2sy*aj2sxx+
+     & 2*aj2sxy*aj2sx)*ww2ss+aj2rxxy*ww2r+aj2sxxy*ww2s
+                   t1 = aj2ry**2
+                   t4 = aj2sy*aj2ry
+                   t8 = aj2sy*aj2rx+aj2ry*aj2sx
+                   t16 = aj2sy**2
+                   w2xyy = t1*aj2rx*ww2rrr+(t4*aj2rx+aj2ry*t8)*ww2rrs+(
+     & t4*aj2sx+aj2sy*t8)*ww2rss+t16*aj2sx*ww2sss+(aj2ryy*aj2rx+2*
+     & aj2ry*aj2rxy)*ww2rr+(2*aj2ry*aj2sxy+2*aj2sy*aj2rxy+aj2ryy*
+     & aj2sx+aj2syy*aj2rx)*ww2rs+(aj2syy*aj2sx+2*aj2sy*aj2sxy)*ww2ss+
      & aj2rxyy*ww2r+aj2sxyy*ww2s
-               t1 = aj2ry**2
-               t7 = aj2sy**2
-               w2yyy = aj2ry*t1*ww2rrr+3*t1*aj2sy*ww2rrs+3*aj2ry*t7*
-     & ww2rss+t7*aj2sy*ww2sss+3*aj2ry*aj2ryy*ww2rr+(3*aj2syy*aj2ry+3*
-     & aj2sy*aj2ryy)*ww2rs+3*aj2syy*aj2sy*ww2ss+aj2ryyy*ww2r+aj2syyy*
-     & ww2s
-               t1 = aj2rx**2
-               t2 = t1**2
-               t8 = aj2sx**2
-               t16 = t8**2
-               t25 = aj2sxx*aj2rx
-               t27 = t25+aj2sx*aj2rxx
-               t28 = 3*t27
-               t30 = 2*t27
-               t46 = aj2rxx**2
-               t60 = aj2sxx**2
-               w2xxxx = t2*ww2rrrr+4*t1*aj2rx*aj2sx*ww2rrrs+6*t1*t8*
-     & ww2rrss+4*aj2rx*t8*aj2sx*ww2rsss+t16*ww2ssss+6*t1*aj2rxx*
+                   t1 = aj2ry**2
+                   t7 = aj2sy**2
+                   w2yyy = aj2ry*t1*ww2rrr+3*t1*aj2sy*ww2rrs+3*aj2ry*
+     & t7*ww2rss+t7*aj2sy*ww2sss+3*aj2ry*aj2ryy*ww2rr+(3*aj2syy*aj2ry+
+     & 3*aj2sy*aj2ryy)*ww2rs+3*aj2syy*aj2sy*ww2ss+aj2ryyy*ww2r+
+     & aj2syyy*ww2s
+                   t1 = aj2rx**2
+                   t2 = t1**2
+                   t8 = aj2sx**2
+                   t16 = t8**2
+                   t25 = aj2sxx*aj2rx
+                   t27 = t25+aj2sx*aj2rxx
+                   t28 = 3*t27
+                   t30 = 2*t27
+                   t46 = aj2rxx**2
+                   t60 = aj2sxx**2
+                   w2xxxx = t2*ww2rrrr+4*t1*aj2rx*aj2sx*ww2rrrs+6*t1*
+     & t8*ww2rrss+4*aj2rx*t8*aj2sx*ww2rsss+t16*ww2ssss+6*t1*aj2rxx*
      & ww2rrr+(7*aj2sx*aj2rx*aj2rxx+aj2sxx*t1+aj2rx*t28+aj2rx*t30)*
      & ww2rrs+(aj2sx*t28+7*t25*aj2sx+aj2rxx*t8+aj2sx*t30)*ww2rss+6*t8*
      & aj2sxx*ww2sss+(4*aj2rx*aj2rxxx+3*t46)*ww2rr+(4*aj2sxxx*aj2rx+4*
      & aj2sx*aj2rxxx+6*aj2sxx*aj2rxx)*ww2rs+(4*aj2sxxx*aj2sx+3*t60)*
      & ww2ss+aj2rxxxx*ww2r+aj2sxxxx*ww2s
-               t1 = aj2ry**2
-               t2 = aj2rx**2
-               t5 = aj2sy*aj2ry
-               t11 = aj2sy*t2+2*aj2ry*aj2sx*aj2rx
-               t16 = aj2sx**2
-               t21 = aj2ry*t16+2*aj2sy*aj2sx*aj2rx
-               t29 = aj2sy**2
-               t38 = 2*aj2rxy*aj2rx+aj2ry*aj2rxx
-               t52 = aj2sx*aj2rxy
-               t54 = aj2sxy*aj2rx
-               t57 = aj2ry*aj2sxx+2*t52+2*t54+aj2sy*aj2rxx
-               t60 = 2*t52+2*t54
-               t68 = aj2sy*aj2sxx+2*aj2sxy*aj2sx
-               t92 = aj2rxy**2
-               t110 = aj2sxy**2
-               w2xxyy = t1*t2*ww2rrrr+(t5*t2+aj2ry*t11)*ww2rrrs+(aj2sy*
-     & t11+aj2ry*t21)*ww2rrss+(aj2sy*t21+t5*t16)*ww2rsss+t29*t16*
-     & ww2ssss+(2*aj2ry*aj2rxy*aj2rx+aj2ry*t38+aj2ryy*t2)*ww2rrr+(
+                   t1 = aj2ry**2
+                   t2 = aj2rx**2
+                   t5 = aj2sy*aj2ry
+                   t11 = aj2sy*t2+2*aj2ry*aj2sx*aj2rx
+                   t16 = aj2sx**2
+                   t21 = aj2ry*t16+2*aj2sy*aj2sx*aj2rx
+                   t29 = aj2sy**2
+                   t38 = 2*aj2rxy*aj2rx+aj2ry*aj2rxx
+                   t52 = aj2sx*aj2rxy
+                   t54 = aj2sxy*aj2rx
+                   t57 = aj2ry*aj2sxx+2*t52+2*t54+aj2sy*aj2rxx
+                   t60 = 2*t52+2*t54
+                   t68 = aj2sy*aj2sxx+2*aj2sxy*aj2sx
+                   t92 = aj2rxy**2
+                   t110 = aj2sxy**2
+                   w2xxyy = t1*t2*ww2rrrr+(t5*t2+aj2ry*t11)*ww2rrrs+(
+     & aj2sy*t11+aj2ry*t21)*ww2rrss+(aj2sy*t21+t5*t16)*ww2rsss+t29*
+     & t16*ww2ssss+(2*aj2ry*aj2rxy*aj2rx+aj2ry*t38+aj2ryy*t2)*ww2rrr+(
      & aj2sy*t38+2*aj2sy*aj2rxy*aj2rx+2*aj2ryy*aj2sx*aj2rx+aj2syy*t2+
      & aj2ry*t57+aj2ry*t60)*ww2rrs+(aj2sy*t57+aj2ry*t68+aj2ryy*t16+2*
      & aj2ry*aj2sxy*aj2sx+2*aj2syy*aj2sx*aj2rx+aj2sy*t60)*ww2rss+(2*
@@ -8843,245 +10512,695 @@
      & aj2rx+aj2syy*aj2rxx+2*aj2sx*aj2rxyy)*ww2rs+(2*t110+2*aj2sy*
      & aj2sxxy+aj2syy*aj2sxx+2*aj2sx*aj2sxyy)*ww2ss+aj2rxxyy*ww2r+
      & aj2sxxyy*ww2s
-               t1 = aj2ry**2
-               t2 = t1**2
-               t8 = aj2sy**2
-               t16 = t8**2
-               t25 = aj2syy*aj2ry
-               t27 = t25+aj2sy*aj2ryy
-               t28 = 3*t27
-               t30 = 2*t27
-               t46 = aj2ryy**2
-               t60 = aj2syy**2
-               w2yyyy = t2*ww2rrrr+4*t1*aj2ry*aj2sy*ww2rrrs+6*t1*t8*
-     & ww2rrss+4*aj2ry*t8*aj2sy*ww2rsss+t16*ww2ssss+6*t1*aj2ryy*
+                   t1 = aj2ry**2
+                   t2 = t1**2
+                   t8 = aj2sy**2
+                   t16 = t8**2
+                   t25 = aj2syy*aj2ry
+                   t27 = t25+aj2sy*aj2ryy
+                   t28 = 3*t27
+                   t30 = 2*t27
+                   t46 = aj2ryy**2
+                   t60 = aj2syy**2
+                   w2yyyy = t2*ww2rrrr+4*t1*aj2ry*aj2sy*ww2rrrs+6*t1*
+     & t8*ww2rrss+4*aj2ry*t8*aj2sy*ww2rsss+t16*ww2ssss+6*t1*aj2ryy*
      & ww2rrr+(7*aj2sy*aj2ry*aj2ryy+aj2syy*t1+aj2ry*t28+aj2ry*t30)*
      & ww2rrs+(aj2sy*t28+7*t25*aj2sy+aj2ryy*t8+aj2sy*t30)*ww2rss+6*t8*
      & aj2syy*ww2sss+(4*aj2ry*aj2ryyy+3*t46)*ww2rr+(4*aj2syyy*aj2ry+4*
      & aj2sy*aj2ryyy+6*aj2syy*aj2ryy)*ww2rs+(4*aj2syyy*aj2sy+3*t60)*
      & ww2ss+aj2ryyyy*ww2r+aj2syyyy*ww2s
-             w2LapSq = w2xxxx +2.* w2xxyy + w2yyyy
-            f(0)=(an1*w1x+an2*w1y)/eps1 - (an1*w2x+an2*w2y)/eps2
-            f(1)=w1Lap/eps1 - w2Lap/eps2
-            f(2)=(an1*(w1xxx+w1xyy)+an2*(w1xxy+w1yyy))/eps1**2 - (an1*(
-     & w2xxx+w2xyy)+an2*(w2xxy+w2yyy))/eps2**2
-            f(3)=w1LapSq/eps1**2 - w2LapSq/eps2**2
-            if( twilightZone.eq.1 )then
-              call ogderiv(ep, 0,1,0,0, xy1(i1,i2,i3,0),xy1(i1,i2,i3,1)
-     & ,0.,t, hz, wex  )
-              call ogderiv(ep, 0,0,1,0, xy1(i1,i2,i3,0),xy1(i1,i2,i3,1)
-     & ,0.,t, hz, wey  )
-              call ogderiv(ep, 0,2,0,0, xy1(i1,i2,i3,0),xy1(i1,i2,i3,1)
-     & ,0.,t, hz, wexx )
-              call ogderiv(ep, 0,0,2,0, xy1(i1,i2,i3,0),xy1(i1,i2,i3,1)
-     & ,0.,t, hz, weyy )
-              call ogderiv(ep, 0,3,0,0, xy1(i1,i2,i3,0),xy1(i1,i2,i3,1)
-     & ,0.,t, hz, wexxx )
-              call ogderiv(ep, 0,2,1,0, xy1(i1,i2,i3,0),xy1(i1,i2,i3,1)
-     & ,0.,t, hz, wexxy )
-              call ogderiv(ep, 0,1,2,0, xy1(i1,i2,i3,0),xy1(i1,i2,i3,1)
-     & ,0.,t, hz, wexyy )
-              call ogderiv(ep, 0,0,3,0, xy1(i1,i2,i3,0),xy1(i1,i2,i3,1)
-     & ,0.,t, hz, weyyy )
-              call ogderiv(ep, 0,4,0,0, xy1(i1,i2,i3,0),xy1(i1,i2,i3,1)
-     & ,0.,t, hz, wexxxx )
-              call ogderiv(ep, 0,2,2,0, xy1(i1,i2,i3,0),xy1(i1,i2,i3,1)
-     & ,0.,t, hz, wexxyy )
-              call ogderiv(ep, 0,0,4,0, xy1(i1,i2,i3,0),xy1(i1,i2,i3,1)
-     & ,0.,t, hz, weyyyy )
-              weLap = wexx + weyy
-              weLapSq = wexxxx + 2.*wexxyy + weyyyy
-              f(0) = f(0) - (an1*wex+an2*wey)*(1./eps1 - 1./eps2)
-              f(1) = f(1) - ( weLap )*(1./eps1 - 1./eps2)
-              f(2) = f(2) - (an1*(wexxx+wexyy)+an2*(wexxy+weyyy))*(
+                 w2LapSq = w2xxxx +2.* w2xxyy + w2yyyy
+                f(0)=(an1*w1x+an2*w1y)/eps1 - (an1*w2x+an2*w2y)/eps2
+                f(1)=w1Lap/eps1 - w2Lap/eps2
+                f(2)=(an1*(w1xxx+w1xyy)+an2*(w1xxy+w1yyy))/eps1**2 - (
+     & an1*(w2xxx+w2xyy)+an2*(w2xxy+w2yyy))/eps2**2
+                f(3)=w1LapSq/eps1**2 - w2LapSq/eps2**2
+                if( twilightZone.eq.1 )then
+                  call ogderiv(ep, 0,1,0,0, xy1(i1,i2,i3,0),xy1(i1,i2,
+     & i3,1),0.,t, hz, wex  )
+                  call ogderiv(ep, 0,0,1,0, xy1(i1,i2,i3,0),xy1(i1,i2,
+     & i3,1),0.,t, hz, wey  )
+                  call ogderiv(ep, 0,2,0,0, xy1(i1,i2,i3,0),xy1(i1,i2,
+     & i3,1),0.,t, hz, wexx )
+                  call ogderiv(ep, 0,0,2,0, xy1(i1,i2,i3,0),xy1(i1,i2,
+     & i3,1),0.,t, hz, weyy )
+                  call ogderiv(ep, 0,3,0,0, xy1(i1,i2,i3,0),xy1(i1,i2,
+     & i3,1),0.,t, hz, wexxx )
+                  call ogderiv(ep, 0,2,1,0, xy1(i1,i2,i3,0),xy1(i1,i2,
+     & i3,1),0.,t, hz, wexxy )
+                  call ogderiv(ep, 0,1,2,0, xy1(i1,i2,i3,0),xy1(i1,i2,
+     & i3,1),0.,t, hz, wexyy )
+                  call ogderiv(ep, 0,0,3,0, xy1(i1,i2,i3,0),xy1(i1,i2,
+     & i3,1),0.,t, hz, weyyy )
+                  call ogderiv(ep, 0,4,0,0, xy1(i1,i2,i3,0),xy1(i1,i2,
+     & i3,1),0.,t, hz, wexxxx )
+                  call ogderiv(ep, 0,2,2,0, xy1(i1,i2,i3,0),xy1(i1,i2,
+     & i3,1),0.,t, hz, wexxyy )
+                  call ogderiv(ep, 0,0,4,0, xy1(i1,i2,i3,0),xy1(i1,i2,
+     & i3,1),0.,t, hz, weyyyy )
+                  weLap = wexx + weyy
+                  weLapSq = wexxxx + 2.*wexxyy + weyyyy
+                  f(0) = f(0) - (an1*wex+an2*wey)*(1./eps1 - 1./eps2)
+                  f(1) = f(1) - ( weLap )*(1./eps1 - 1./eps2)
+                  f(2) = f(2) - (an1*(wexxx+wexyy)+an2*(wexxy+weyyy))*(
      & 1./eps1**2 - 1./eps2**2)
-              f(3) = f(3) - weLapSq*(1./eps1**2 - 1./eps2**2)
-            end if
+                  f(3) = f(3) - weLapSq*(1./eps1**2 - 1./eps2**2)
+                end if
+               if( debug.gt.3 ) write(debugFile,'(" --> 4cth: i1,i2=",
+     & 2i4," hz-f(re-eval)=",8e10.2)') i1,i2,f(0),f(1),f(2),f(3)
+                 ! '
+              end if
+               ! ***********************
+               ! u1(i1-is1,i2-is2,i3,hz)=u2(j1+js1,j2+js2,j3,hz) 
+               ! u2(j1-js1,j2-js2,j3,hz)=u1(i1+is1,i2+is2,i3,hz)
+               ! u1(i1-2*is1,i2-2*is2,i3,hz)=u2(j1+2*js1,j2+2*js2,j3,hz) 
+               ! u2(j1-2*js1,j2-2*js2,j3,hz)=u1(i1+2*is1,i2+2*is2,i3,hz)
+              end if
+              j1=j1+1
+             end do
+             j2=j2+1
+            end do
+           ! =============== end loops =======================
 
-           if( debug.gt.3 ) write(debugFile,'(" --> 4cth: i1,i2=",2i4,
-     & " hz-f(re-eval)=",8e10.2)') i1,i2,f(0),f(1),f(2),f(3)
-             ! '
+          ! fixup corner points 
+          if( .false. )then
+             ! **FINISH ME**
+             iv(2)=0
+             ksv(0)=0
+             ksv(1)=0
+             ksv(2)=0
+              do sidea=0,1 ! loop over adjacent sides
+                if( boundaryCondition1(sidea,axis1p1).gt.0 )then ! adjacent boundary is a physical BC or farfield BC
+                 ! Set iv = corner point X
+                 iv(axis1  )=gridIndexRange1(side1,axis1 )
+                 iv(axis1p1)=gridIndexRange1(sidea,axis1p1)
+                 ksv(axis1p1)=1-2*sidea  ! tangential direction to the interface
+                 ii1=iv(0)
+                 ii2=iv(1)
+                 ii3=iv(2)
+                 ks1=ksv(0)
+                 ks2=ksv(1)
+                 ks3=ksv(2)
+                 if( debug.gt.1 )then
+                   write(debugFile,'("Interface:fixupEnds u1: side1,
+     & axis1=",2i3," axis1p1,sidea=",2i3)') side1,axis1,axis1p1,sidea
+                   write(debugFile,'("... iv=",3i3," ksv=",3i2," 
+     & ghost=",3i4)') ii1,ii2,ii3,ks1,ks2,ks3,ii1-ks1,ii2-ks2,ii3-ks3
+                 end if
+                 ! extrapolate value on extended boundary, point A or B, from points along the interface
+                 ! extrapolateFields(ex,ey,hz,u1,ii1,ii2,ii3,ks1,ks2,ks3)
+                 ! -------------------------------------------------------
+                 ! -------------------- set div(E)=0 ---------------------
+                 ! -------------------------------------------------------
+                  ! **FINISH ME**
+                  dx1(0)=dr1(0)
+                  dx1(1)=dr1(1)
+                  if( axis1.eq.0 )then
+                    ! set point B on extended material interface boundary
+                    if( orderOfAccuracy.eq.2 )then
+                      u1(ii1-ks1,ii2-ks2,ii3,ey)=u1(ii1+ks1,ii2+ks2,
+     & ii3,ey) + 2.*ksv(axis1p1)*dx1(axis1p1)*(u1(ii1+1,ii2,ii3,ex)-
+     & u1(ii1-1,ii2,ii3,ex))/(2.*dx1(0))
+                    else if( orderOfAccuracy.eq.4 )then
+                      ! Set first ghost value from div(E)=0
+                      ! from abc.bf line 1684: 
+                      u1(ii1,ii2-ks2,ii3,ey)=(-u1(ii1,ii2+2*ks2,ii3,ey)
+     & +8.*u1(ii1,ii2+ks2,ii3,ey)+u1(ii1,ii2-2*ks2,ii3,ey))/8. + 1.5*
+     & ks2*dx1(axis1)*(8.*(u1(ii1+1,ii2,ii3,ex)-u1(ii1-1,ii2,ii3,ex))-
+     & (u1(ii1+2,ii2,ii3,ex)-u1(ii1-2,ii2,ii3,ex)))/(12.*dx1(0))
+                    end if
+                  else
+                    ! set point A on extended material interface boundary
+                    if( orderOfAccuracy.eq.2 )then
+                      u1(ii1-ks1,ii2-ks2,ii3,ex)=u1(ii1+ks1,ii2+ks2,
+     & ii3,ex) + 2.*ksv(axis1p1)*dx1(axis1p1)*(u1(ii1,ii2+1,ii3,ey)-
+     & u1(ii1,ii2-1,ii3,ey))/(2.*dx1(1))
+                    else if( orderOfAccuracy.eq.4 )then
+                      ! Set first ghost value from div(E)=0
+                      ! from abc.bf line 1684: 
+                      u1(ii1-ks1,ii2,ii3,ex)=(-u1(ii1+2*ks1,ii2,ii3,ex)
+     & +8.*u1(ii1+ks1,ii2,ii3,ex)+u1(ii1-2*ks1,ii2,ii3,ex))/8. + 1.5*
+     & ks1*dx1(axis1)*(8.*(u1(ii1,ii2+1,ii3,ey)-u1(ii1,ii2-1,ii3,ey))-
+     & (u1(ii1,ii2+2,ii3,ey)-u1(ii1,ii2-2,ii3,ey)))/(12.*dx1(1))
+                    else
+                      stop 4432
+                    end if
+                  end if
+                 ! extrapolate corner point C along the diagonal
+                 ksv(axis1)=1-2*side1
+                   if( orderOfAccuracy.eq.2 )then
+                      u1(ii1-ksv(0),ii2-ksv(1),ii3-ksv(2),ex)=(3.*u1(
+     & ii1,ii2,ii3,ex)-3.*u1(ii1+ksv(0),ii2+ksv(1),ii3+ksv(2),ex)+u1(
+     & ii1+2*ksv(0),ii2+2*ksv(1),ii3+2*ksv(2),ex))
+                      u1(ii1-ksv(0),ii2-ksv(1),ii3-ksv(2),ey)=(3.*u1(
+     & ii1,ii2,ii3,ey)-3.*u1(ii1+ksv(0),ii2+ksv(1),ii3+ksv(2),ey)+u1(
+     & ii1+2*ksv(0),ii2+2*ksv(1),ii3+2*ksv(2),ey))
+                      u1(ii1-ksv(0),ii2-ksv(1),ii3-ksv(2),hz)=(3.*u1(
+     & ii1,ii2,ii3,hz)-3.*u1(ii1+ksv(0),ii2+ksv(1),ii3+ksv(2),hz)+u1(
+     & ii1+2*ksv(0),ii2+2*ksv(1),ii3+2*ksv(2),hz))
+                   else
+                      u1(ii1-ksv(0),ii2-ksv(1),ii3-ksv(2),ex)=(5.*u1(
+     & ii1,ii2,ii3,ex)-10.*u1(ii1+ksv(0),ii2+ksv(1),ii3+ksv(2),ex)+
+     & 10.*u1(ii1+2*ksv(0),ii2+2*ksv(1),ii3+2*ksv(2),ex)-5.*u1(ii1+3*
+     & ksv(0),ii2+3*ksv(1),ii3+3*ksv(2),ex)+u1(ii1+4*ksv(0),ii2+4*ksv(
+     & 1),ii3+4*ksv(2),ex))
+                      u1(ii1-ksv(0),ii2-ksv(1),ii3-ksv(2),ey)=(5.*u1(
+     & ii1,ii2,ii3,ey)-10.*u1(ii1+ksv(0),ii2+ksv(1),ii3+ksv(2),ey)+
+     & 10.*u1(ii1+2*ksv(0),ii2+2*ksv(1),ii3+2*ksv(2),ey)-5.*u1(ii1+3*
+     & ksv(0),ii2+3*ksv(1),ii3+3*ksv(2),ey)+u1(ii1+4*ksv(0),ii2+4*ksv(
+     & 1),ii3+4*ksv(2),ey))
+                      u1(ii1-ksv(0),ii2-ksv(1),ii3-ksv(2),hz)=(5.*u1(
+     & ii1,ii2,ii3,hz)-10.*u1(ii1+ksv(0),ii2+ksv(1),ii3+ksv(2),hz)+
+     & 10.*u1(ii1+2*ksv(0),ii2+2*ksv(1),ii3+2*ksv(2),hz)-5.*u1(ii1+3*
+     & ksv(0),ii2+3*ksv(1),ii3+3*ksv(2),hz)+u1(ii1+4*ksv(0),ii2+4*ksv(
+     & 1),ii3+4*ksv(2),hz))
+                   end if
+                 if( orderOfAccuracy.eq.4 )then
+                   ! extrapolate extra corner points E-F-G
+                     if( orderOfAccuracy.eq.2 )then
+                        u1(ii1-ksv(0)-ksv(0),ii2-ksv(1),ii3-ksv(2),ex)
+     & =(3.*u1(ii1-ksv(0),ii2,ii3,ex)-3.*u1(ii1-ksv(0)+ksv(0),ii2+ksv(
+     & 1),ii3+ksv(2),ex)+u1(ii1-ksv(0)+2*ksv(0),ii2+2*ksv(1),ii3+2*
+     & ksv(2),ex))
+                        u1(ii1-ksv(0)-ksv(0),ii2-ksv(1),ii3-ksv(2),ey)
+     & =(3.*u1(ii1-ksv(0),ii2,ii3,ey)-3.*u1(ii1-ksv(0)+ksv(0),ii2+ksv(
+     & 1),ii3+ksv(2),ey)+u1(ii1-ksv(0)+2*ksv(0),ii2+2*ksv(1),ii3+2*
+     & ksv(2),ey))
+                        u1(ii1-ksv(0)-ksv(0),ii2-ksv(1),ii3-ksv(2),hz)
+     & =(3.*u1(ii1-ksv(0),ii2,ii3,hz)-3.*u1(ii1-ksv(0)+ksv(0),ii2+ksv(
+     & 1),ii3+ksv(2),hz)+u1(ii1-ksv(0)+2*ksv(0),ii2+2*ksv(1),ii3+2*
+     & ksv(2),hz))
+                     else
+                        u1(ii1-ksv(0)-ksv(0),ii2-ksv(1),ii3-ksv(2),ex)
+     & =(5.*u1(ii1-ksv(0),ii2,ii3,ex)-10.*u1(ii1-ksv(0)+ksv(0),ii2+
+     & ksv(1),ii3+ksv(2),ex)+10.*u1(ii1-ksv(0)+2*ksv(0),ii2+2*ksv(1),
+     & ii3+2*ksv(2),ex)-5.*u1(ii1-ksv(0)+3*ksv(0),ii2+3*ksv(1),ii3+3*
+     & ksv(2),ex)+u1(ii1-ksv(0)+4*ksv(0),ii2+4*ksv(1),ii3+4*ksv(2),ex)
+     & )
+                        u1(ii1-ksv(0)-ksv(0),ii2-ksv(1),ii3-ksv(2),ey)
+     & =(5.*u1(ii1-ksv(0),ii2,ii3,ey)-10.*u1(ii1-ksv(0)+ksv(0),ii2+
+     & ksv(1),ii3+ksv(2),ey)+10.*u1(ii1-ksv(0)+2*ksv(0),ii2+2*ksv(1),
+     & ii3+2*ksv(2),ey)-5.*u1(ii1-ksv(0)+3*ksv(0),ii2+3*ksv(1),ii3+3*
+     & ksv(2),ey)+u1(ii1-ksv(0)+4*ksv(0),ii2+4*ksv(1),ii3+4*ksv(2),ey)
+     & )
+                        u1(ii1-ksv(0)-ksv(0),ii2-ksv(1),ii3-ksv(2),hz)
+     & =(5.*u1(ii1-ksv(0),ii2,ii3,hz)-10.*u1(ii1-ksv(0)+ksv(0),ii2+
+     & ksv(1),ii3+ksv(2),hz)+10.*u1(ii1-ksv(0)+2*ksv(0),ii2+2*ksv(1),
+     & ii3+2*ksv(2),hz)-5.*u1(ii1-ksv(0)+3*ksv(0),ii2+3*ksv(1),ii3+3*
+     & ksv(2),hz)+u1(ii1-ksv(0)+4*ksv(0),ii2+4*ksv(1),ii3+4*ksv(2),hz)
+     & )
+                     end if
+                     if( orderOfAccuracy.eq.2 )then
+                        u1(ii1-ksv(0),ii2-ksv(1)-ksv(1),ii3-ksv(2),ex)
+     & =(3.*u1(ii1,ii2-ksv(1),ii3,ex)-3.*u1(ii1+ksv(0),ii2-ksv(1)+ksv(
+     & 1),ii3+ksv(2),ex)+u1(ii1+2*ksv(0),ii2-ksv(1)+2*ksv(1),ii3+2*
+     & ksv(2),ex))
+                        u1(ii1-ksv(0),ii2-ksv(1)-ksv(1),ii3-ksv(2),ey)
+     & =(3.*u1(ii1,ii2-ksv(1),ii3,ey)-3.*u1(ii1+ksv(0),ii2-ksv(1)+ksv(
+     & 1),ii3+ksv(2),ey)+u1(ii1+2*ksv(0),ii2-ksv(1)+2*ksv(1),ii3+2*
+     & ksv(2),ey))
+                        u1(ii1-ksv(0),ii2-ksv(1)-ksv(1),ii3-ksv(2),hz)
+     & =(3.*u1(ii1,ii2-ksv(1),ii3,hz)-3.*u1(ii1+ksv(0),ii2-ksv(1)+ksv(
+     & 1),ii3+ksv(2),hz)+u1(ii1+2*ksv(0),ii2-ksv(1)+2*ksv(1),ii3+2*
+     & ksv(2),hz))
+                     else
+                        u1(ii1-ksv(0),ii2-ksv(1)-ksv(1),ii3-ksv(2),ex)
+     & =(5.*u1(ii1,ii2-ksv(1),ii3,ex)-10.*u1(ii1+ksv(0),ii2-ksv(1)+
+     & ksv(1),ii3+ksv(2),ex)+10.*u1(ii1+2*ksv(0),ii2-ksv(1)+2*ksv(1),
+     & ii3+2*ksv(2),ex)-5.*u1(ii1+3*ksv(0),ii2-ksv(1)+3*ksv(1),ii3+3*
+     & ksv(2),ex)+u1(ii1+4*ksv(0),ii2-ksv(1)+4*ksv(1),ii3+4*ksv(2),ex)
+     & )
+                        u1(ii1-ksv(0),ii2-ksv(1)-ksv(1),ii3-ksv(2),ey)
+     & =(5.*u1(ii1,ii2-ksv(1),ii3,ey)-10.*u1(ii1+ksv(0),ii2-ksv(1)+
+     & ksv(1),ii3+ksv(2),ey)+10.*u1(ii1+2*ksv(0),ii2-ksv(1)+2*ksv(1),
+     & ii3+2*ksv(2),ey)-5.*u1(ii1+3*ksv(0),ii2-ksv(1)+3*ksv(1),ii3+3*
+     & ksv(2),ey)+u1(ii1+4*ksv(0),ii2-ksv(1)+4*ksv(1),ii3+4*ksv(2),ey)
+     & )
+                        u1(ii1-ksv(0),ii2-ksv(1)-ksv(1),ii3-ksv(2),hz)
+     & =(5.*u1(ii1,ii2-ksv(1),ii3,hz)-10.*u1(ii1+ksv(0),ii2-ksv(1)+
+     & ksv(1),ii3+ksv(2),hz)+10.*u1(ii1+2*ksv(0),ii2-ksv(1)+2*ksv(1),
+     & ii3+2*ksv(2),hz)-5.*u1(ii1+3*ksv(0),ii2-ksv(1)+3*ksv(1),ii3+3*
+     & ksv(2),hz)+u1(ii1+4*ksv(0),ii2-ksv(1)+4*ksv(1),ii3+4*ksv(2),hz)
+     & )
+                     end if
+                     if( orderOfAccuracy.eq.2 )then
+                        u1(ii1-ksv(0)-ksv(0),ii2-ksv(1)-ksv(1),ii3-ksv(
+     & 2),ex)=(3.*u1(ii1-ksv(0),ii2-ksv(1),ii3,ex)-3.*u1(ii1-ksv(0)+
+     & ksv(0),ii2-ksv(1)+ksv(1),ii3+ksv(2),ex)+u1(ii1-ksv(0)+2*ksv(0),
+     & ii2-ksv(1)+2*ksv(1),ii3+2*ksv(2),ex))
+                        u1(ii1-ksv(0)-ksv(0),ii2-ksv(1)-ksv(1),ii3-ksv(
+     & 2),ey)=(3.*u1(ii1-ksv(0),ii2-ksv(1),ii3,ey)-3.*u1(ii1-ksv(0)+
+     & ksv(0),ii2-ksv(1)+ksv(1),ii3+ksv(2),ey)+u1(ii1-ksv(0)+2*ksv(0),
+     & ii2-ksv(1)+2*ksv(1),ii3+2*ksv(2),ey))
+                        u1(ii1-ksv(0)-ksv(0),ii2-ksv(1)-ksv(1),ii3-ksv(
+     & 2),hz)=(3.*u1(ii1-ksv(0),ii2-ksv(1),ii3,hz)-3.*u1(ii1-ksv(0)+
+     & ksv(0),ii2-ksv(1)+ksv(1),ii3+ksv(2),hz)+u1(ii1-ksv(0)+2*ksv(0),
+     & ii2-ksv(1)+2*ksv(1),ii3+2*ksv(2),hz))
+                     else
+                        u1(ii1-ksv(0)-ksv(0),ii2-ksv(1)-ksv(1),ii3-ksv(
+     & 2),ex)=(5.*u1(ii1-ksv(0),ii2-ksv(1),ii3,ex)-10.*u1(ii1-ksv(0)+
+     & ksv(0),ii2-ksv(1)+ksv(1),ii3+ksv(2),ex)+10.*u1(ii1-ksv(0)+2*
+     & ksv(0),ii2-ksv(1)+2*ksv(1),ii3+2*ksv(2),ex)-5.*u1(ii1-ksv(0)+3*
+     & ksv(0),ii2-ksv(1)+3*ksv(1),ii3+3*ksv(2),ex)+u1(ii1-ksv(0)+4*
+     & ksv(0),ii2-ksv(1)+4*ksv(1),ii3+4*ksv(2),ex))
+                        u1(ii1-ksv(0)-ksv(0),ii2-ksv(1)-ksv(1),ii3-ksv(
+     & 2),ey)=(5.*u1(ii1-ksv(0),ii2-ksv(1),ii3,ey)-10.*u1(ii1-ksv(0)+
+     & ksv(0),ii2-ksv(1)+ksv(1),ii3+ksv(2),ey)+10.*u1(ii1-ksv(0)+2*
+     & ksv(0),ii2-ksv(1)+2*ksv(1),ii3+2*ksv(2),ey)-5.*u1(ii1-ksv(0)+3*
+     & ksv(0),ii2-ksv(1)+3*ksv(1),ii3+3*ksv(2),ey)+u1(ii1-ksv(0)+4*
+     & ksv(0),ii2-ksv(1)+4*ksv(1),ii3+4*ksv(2),ey))
+                        u1(ii1-ksv(0)-ksv(0),ii2-ksv(1)-ksv(1),ii3-ksv(
+     & 2),hz)=(5.*u1(ii1-ksv(0),ii2-ksv(1),ii3,hz)-10.*u1(ii1-ksv(0)+
+     & ksv(0),ii2-ksv(1)+ksv(1),ii3+ksv(2),hz)+10.*u1(ii1-ksv(0)+2*
+     & ksv(0),ii2-ksv(1)+2*ksv(1),ii3+2*ksv(2),hz)-5.*u1(ii1-ksv(0)+3*
+     & ksv(0),ii2-ksv(1)+3*ksv(1),ii3+3*ksv(2),hz)+u1(ii1-ksv(0)+4*
+     & ksv(0),ii2-ksv(1)+4*ksv(1),ii3+4*ksv(2),hz))
+                     end if
+                 end if
+                 if( debug.gt.1 )then
+                   if( orderOfAccuracy.eq.2 )then
+                     dive=(u1(ii1+1,ii2,ii3,ex)-u1(ii1-1,ii2,ii3,ex))/(
+     & 2.*dx1(0)) + (u1(ii1,ii2+1,ii3,ey)-u1(ii1,ii2-1,ii3,ey))/(2.*
+     & dx1(1))
+                   else
+                     dive=(8.*(u1(ii1+1,ii2,ii3,ex)-u1(ii1-1,ii2,ii3,
+     & ex))-(u1(ii1+2,ii2,ii3,ex)-u1(ii1-2,ii2,ii3,ex)))/(12.*dx1(0)) 
+     & + (8.*(u1(ii1,ii2+1,ii3,ey)-u1(ii1,ii2-1,ii3,ey))-(u1(ii1,ii2+
+     & 2,ii3,ey)-u1(ii1,ii2-2,ii3,ey)))/(12.*dx1(1))
+                   end if
+                   write(debugFile,'("... after: div(E)=",e10.2)') dive
+                 end if
+                 ksv(axis1p1)=0 ! reset
+                 ksv(axis1)=0 ! reset
+                end if
+              end do ! end sidea
+             ! **FINISH ME**
+             iv(2)=0
+             ksv(0)=0
+             ksv(1)=0
+             ksv(2)=0
+              do sidea=0,1 ! loop over adjacent sides
+                if( boundaryCondition2(sidea,axis2p1).gt.0 )then ! adjacent boundary is a physical BC or farfield BC
+                 ! Set iv = corner point X
+                 iv(axis2  )=gridIndexRange2(side2,axis2 )
+                 iv(axis2p1)=gridIndexRange2(sidea,axis2p1)
+                 ksv(axis2p1)=1-2*sidea  ! tangential direction to the interface
+                 ii1=iv(0)
+                 ii2=iv(1)
+                 ii3=iv(2)
+                 ks1=ksv(0)
+                 ks2=ksv(1)
+                 ks3=ksv(2)
+                 if( debug.gt.1 )then
+                   write(debugFile,'("Interface:fixupEnds u2: side2,
+     & axis2=",2i3," axis2p1,sidea=",2i3)') side2,axis2,axis2p1,sidea
+                   write(debugFile,'("... iv=",3i3," ksv=",3i2," 
+     & ghost=",3i4)') ii1,ii2,ii3,ks1,ks2,ks3,ii1-ks1,ii2-ks2,ii3-ks3
+                 end if
+                 ! extrapolate value on extended boundary, point A or B, from points along the interface
+                 ! extrapolateFields(ex,ey,hz,u2,ii1,ii2,ii3,ks1,ks2,ks3)
+                 ! -------------------------------------------------------
+                 ! -------------------- set div(E)=0 ---------------------
+                 ! -------------------------------------------------------
+                  ! **FINISH ME**
+                  dx2(0)=dr2(0)
+                  dx2(1)=dr2(1)
+                  if( axis2.eq.0 )then
+                    ! set point B on extended material interface boundary
+                    if( orderOfAccuracy.eq.2 )then
+                      u2(ii1-ks1,ii2-ks2,ii3,ey)=u2(ii1+ks1,ii2+ks2,
+     & ii3,ey) + 2.*ksv(axis2p1)*dx2(axis2p1)*(u2(ii1+1,ii2,ii3,ex)-
+     & u2(ii1-1,ii2,ii3,ex))/(2.*dx2(0))
+                    else if( orderOfAccuracy.eq.4 )then
+                      ! Set first ghost value from div(E)=0
+                      ! from abc.bf line 1684: 
+                      u2(ii1,ii2-ks2,ii3,ey)=(-u2(ii1,ii2+2*ks2,ii3,ey)
+     & +8.*u2(ii1,ii2+ks2,ii3,ey)+u2(ii1,ii2-2*ks2,ii3,ey))/8. + 1.5*
+     & ks2*dx2(axis2)*(8.*(u2(ii1+1,ii2,ii3,ex)-u2(ii1-1,ii2,ii3,ex))-
+     & (u2(ii1+2,ii2,ii3,ex)-u2(ii1-2,ii2,ii3,ex)))/(12.*dx2(0))
+                    end if
+                  else
+                    ! set point A on extended material interface boundary
+                    if( orderOfAccuracy.eq.2 )then
+                      u2(ii1-ks1,ii2-ks2,ii3,ex)=u2(ii1+ks1,ii2+ks2,
+     & ii3,ex) + 2.*ksv(axis2p1)*dx2(axis2p1)*(u2(ii1,ii2+1,ii3,ey)-
+     & u2(ii1,ii2-1,ii3,ey))/(2.*dx2(1))
+                    else if( orderOfAccuracy.eq.4 )then
+                      ! Set first ghost value from div(E)=0
+                      ! from abc.bf line 1684: 
+                      u2(ii1-ks1,ii2,ii3,ex)=(-u2(ii1+2*ks1,ii2,ii3,ex)
+     & +8.*u2(ii1+ks1,ii2,ii3,ex)+u2(ii1-2*ks1,ii2,ii3,ex))/8. + 1.5*
+     & ks1*dx2(axis2)*(8.*(u2(ii1,ii2+1,ii3,ey)-u2(ii1,ii2-1,ii3,ey))-
+     & (u2(ii1,ii2+2,ii3,ey)-u2(ii1,ii2-2,ii3,ey)))/(12.*dx2(1))
+                    else
+                      stop 4432
+                    end if
+                  end if
+                 ! extrapolate corner point C along the diagonal
+                 ksv(axis2)=1-2*side2
+                   if( orderOfAccuracy.eq.2 )then
+                      u2(ii1-ksv(0),ii2-ksv(1),ii3-ksv(2),ex)=(3.*u2(
+     & ii1,ii2,ii3,ex)-3.*u2(ii1+ksv(0),ii2+ksv(1),ii3+ksv(2),ex)+u2(
+     & ii1+2*ksv(0),ii2+2*ksv(1),ii3+2*ksv(2),ex))
+                      u2(ii1-ksv(0),ii2-ksv(1),ii3-ksv(2),ey)=(3.*u2(
+     & ii1,ii2,ii3,ey)-3.*u2(ii1+ksv(0),ii2+ksv(1),ii3+ksv(2),ey)+u2(
+     & ii1+2*ksv(0),ii2+2*ksv(1),ii3+2*ksv(2),ey))
+                      u2(ii1-ksv(0),ii2-ksv(1),ii3-ksv(2),hz)=(3.*u2(
+     & ii1,ii2,ii3,hz)-3.*u2(ii1+ksv(0),ii2+ksv(1),ii3+ksv(2),hz)+u2(
+     & ii1+2*ksv(0),ii2+2*ksv(1),ii3+2*ksv(2),hz))
+                   else
+                      u2(ii1-ksv(0),ii2-ksv(1),ii3-ksv(2),ex)=(5.*u2(
+     & ii1,ii2,ii3,ex)-10.*u2(ii1+ksv(0),ii2+ksv(1),ii3+ksv(2),ex)+
+     & 10.*u2(ii1+2*ksv(0),ii2+2*ksv(1),ii3+2*ksv(2),ex)-5.*u2(ii1+3*
+     & ksv(0),ii2+3*ksv(1),ii3+3*ksv(2),ex)+u2(ii1+4*ksv(0),ii2+4*ksv(
+     & 1),ii3+4*ksv(2),ex))
+                      u2(ii1-ksv(0),ii2-ksv(1),ii3-ksv(2),ey)=(5.*u2(
+     & ii1,ii2,ii3,ey)-10.*u2(ii1+ksv(0),ii2+ksv(1),ii3+ksv(2),ey)+
+     & 10.*u2(ii1+2*ksv(0),ii2+2*ksv(1),ii3+2*ksv(2),ey)-5.*u2(ii1+3*
+     & ksv(0),ii2+3*ksv(1),ii3+3*ksv(2),ey)+u2(ii1+4*ksv(0),ii2+4*ksv(
+     & 1),ii3+4*ksv(2),ey))
+                      u2(ii1-ksv(0),ii2-ksv(1),ii3-ksv(2),hz)=(5.*u2(
+     & ii1,ii2,ii3,hz)-10.*u2(ii1+ksv(0),ii2+ksv(1),ii3+ksv(2),hz)+
+     & 10.*u2(ii1+2*ksv(0),ii2+2*ksv(1),ii3+2*ksv(2),hz)-5.*u2(ii1+3*
+     & ksv(0),ii2+3*ksv(1),ii3+3*ksv(2),hz)+u2(ii1+4*ksv(0),ii2+4*ksv(
+     & 1),ii3+4*ksv(2),hz))
+                   end if
+                 if( orderOfAccuracy.eq.4 )then
+                   ! extrapolate extra corner points E-F-G
+                     if( orderOfAccuracy.eq.2 )then
+                        u2(ii1-ksv(0)-ksv(0),ii2-ksv(1),ii3-ksv(2),ex)
+     & =(3.*u2(ii1-ksv(0),ii2,ii3,ex)-3.*u2(ii1-ksv(0)+ksv(0),ii2+ksv(
+     & 1),ii3+ksv(2),ex)+u2(ii1-ksv(0)+2*ksv(0),ii2+2*ksv(1),ii3+2*
+     & ksv(2),ex))
+                        u2(ii1-ksv(0)-ksv(0),ii2-ksv(1),ii3-ksv(2),ey)
+     & =(3.*u2(ii1-ksv(0),ii2,ii3,ey)-3.*u2(ii1-ksv(0)+ksv(0),ii2+ksv(
+     & 1),ii3+ksv(2),ey)+u2(ii1-ksv(0)+2*ksv(0),ii2+2*ksv(1),ii3+2*
+     & ksv(2),ey))
+                        u2(ii1-ksv(0)-ksv(0),ii2-ksv(1),ii3-ksv(2),hz)
+     & =(3.*u2(ii1-ksv(0),ii2,ii3,hz)-3.*u2(ii1-ksv(0)+ksv(0),ii2+ksv(
+     & 1),ii3+ksv(2),hz)+u2(ii1-ksv(0)+2*ksv(0),ii2+2*ksv(1),ii3+2*
+     & ksv(2),hz))
+                     else
+                        u2(ii1-ksv(0)-ksv(0),ii2-ksv(1),ii3-ksv(2),ex)
+     & =(5.*u2(ii1-ksv(0),ii2,ii3,ex)-10.*u2(ii1-ksv(0)+ksv(0),ii2+
+     & ksv(1),ii3+ksv(2),ex)+10.*u2(ii1-ksv(0)+2*ksv(0),ii2+2*ksv(1),
+     & ii3+2*ksv(2),ex)-5.*u2(ii1-ksv(0)+3*ksv(0),ii2+3*ksv(1),ii3+3*
+     & ksv(2),ex)+u2(ii1-ksv(0)+4*ksv(0),ii2+4*ksv(1),ii3+4*ksv(2),ex)
+     & )
+                        u2(ii1-ksv(0)-ksv(0),ii2-ksv(1),ii3-ksv(2),ey)
+     & =(5.*u2(ii1-ksv(0),ii2,ii3,ey)-10.*u2(ii1-ksv(0)+ksv(0),ii2+
+     & ksv(1),ii3+ksv(2),ey)+10.*u2(ii1-ksv(0)+2*ksv(0),ii2+2*ksv(1),
+     & ii3+2*ksv(2),ey)-5.*u2(ii1-ksv(0)+3*ksv(0),ii2+3*ksv(1),ii3+3*
+     & ksv(2),ey)+u2(ii1-ksv(0)+4*ksv(0),ii2+4*ksv(1),ii3+4*ksv(2),ey)
+     & )
+                        u2(ii1-ksv(0)-ksv(0),ii2-ksv(1),ii3-ksv(2),hz)
+     & =(5.*u2(ii1-ksv(0),ii2,ii3,hz)-10.*u2(ii1-ksv(0)+ksv(0),ii2+
+     & ksv(1),ii3+ksv(2),hz)+10.*u2(ii1-ksv(0)+2*ksv(0),ii2+2*ksv(1),
+     & ii3+2*ksv(2),hz)-5.*u2(ii1-ksv(0)+3*ksv(0),ii2+3*ksv(1),ii3+3*
+     & ksv(2),hz)+u2(ii1-ksv(0)+4*ksv(0),ii2+4*ksv(1),ii3+4*ksv(2),hz)
+     & )
+                     end if
+                     if( orderOfAccuracy.eq.2 )then
+                        u2(ii1-ksv(0),ii2-ksv(1)-ksv(1),ii3-ksv(2),ex)
+     & =(3.*u2(ii1,ii2-ksv(1),ii3,ex)-3.*u2(ii1+ksv(0),ii2-ksv(1)+ksv(
+     & 1),ii3+ksv(2),ex)+u2(ii1+2*ksv(0),ii2-ksv(1)+2*ksv(1),ii3+2*
+     & ksv(2),ex))
+                        u2(ii1-ksv(0),ii2-ksv(1)-ksv(1),ii3-ksv(2),ey)
+     & =(3.*u2(ii1,ii2-ksv(1),ii3,ey)-3.*u2(ii1+ksv(0),ii2-ksv(1)+ksv(
+     & 1),ii3+ksv(2),ey)+u2(ii1+2*ksv(0),ii2-ksv(1)+2*ksv(1),ii3+2*
+     & ksv(2),ey))
+                        u2(ii1-ksv(0),ii2-ksv(1)-ksv(1),ii3-ksv(2),hz)
+     & =(3.*u2(ii1,ii2-ksv(1),ii3,hz)-3.*u2(ii1+ksv(0),ii2-ksv(1)+ksv(
+     & 1),ii3+ksv(2),hz)+u2(ii1+2*ksv(0),ii2-ksv(1)+2*ksv(1),ii3+2*
+     & ksv(2),hz))
+                     else
+                        u2(ii1-ksv(0),ii2-ksv(1)-ksv(1),ii3-ksv(2),ex)
+     & =(5.*u2(ii1,ii2-ksv(1),ii3,ex)-10.*u2(ii1+ksv(0),ii2-ksv(1)+
+     & ksv(1),ii3+ksv(2),ex)+10.*u2(ii1+2*ksv(0),ii2-ksv(1)+2*ksv(1),
+     & ii3+2*ksv(2),ex)-5.*u2(ii1+3*ksv(0),ii2-ksv(1)+3*ksv(1),ii3+3*
+     & ksv(2),ex)+u2(ii1+4*ksv(0),ii2-ksv(1)+4*ksv(1),ii3+4*ksv(2),ex)
+     & )
+                        u2(ii1-ksv(0),ii2-ksv(1)-ksv(1),ii3-ksv(2),ey)
+     & =(5.*u2(ii1,ii2-ksv(1),ii3,ey)-10.*u2(ii1+ksv(0),ii2-ksv(1)+
+     & ksv(1),ii3+ksv(2),ey)+10.*u2(ii1+2*ksv(0),ii2-ksv(1)+2*ksv(1),
+     & ii3+2*ksv(2),ey)-5.*u2(ii1+3*ksv(0),ii2-ksv(1)+3*ksv(1),ii3+3*
+     & ksv(2),ey)+u2(ii1+4*ksv(0),ii2-ksv(1)+4*ksv(1),ii3+4*ksv(2),ey)
+     & )
+                        u2(ii1-ksv(0),ii2-ksv(1)-ksv(1),ii3-ksv(2),hz)
+     & =(5.*u2(ii1,ii2-ksv(1),ii3,hz)-10.*u2(ii1+ksv(0),ii2-ksv(1)+
+     & ksv(1),ii3+ksv(2),hz)+10.*u2(ii1+2*ksv(0),ii2-ksv(1)+2*ksv(1),
+     & ii3+2*ksv(2),hz)-5.*u2(ii1+3*ksv(0),ii2-ksv(1)+3*ksv(1),ii3+3*
+     & ksv(2),hz)+u2(ii1+4*ksv(0),ii2-ksv(1)+4*ksv(1),ii3+4*ksv(2),hz)
+     & )
+                     end if
+                     if( orderOfAccuracy.eq.2 )then
+                        u2(ii1-ksv(0)-ksv(0),ii2-ksv(1)-ksv(1),ii3-ksv(
+     & 2),ex)=(3.*u2(ii1-ksv(0),ii2-ksv(1),ii3,ex)-3.*u2(ii1-ksv(0)+
+     & ksv(0),ii2-ksv(1)+ksv(1),ii3+ksv(2),ex)+u2(ii1-ksv(0)+2*ksv(0),
+     & ii2-ksv(1)+2*ksv(1),ii3+2*ksv(2),ex))
+                        u2(ii1-ksv(0)-ksv(0),ii2-ksv(1)-ksv(1),ii3-ksv(
+     & 2),ey)=(3.*u2(ii1-ksv(0),ii2-ksv(1),ii3,ey)-3.*u2(ii1-ksv(0)+
+     & ksv(0),ii2-ksv(1)+ksv(1),ii3+ksv(2),ey)+u2(ii1-ksv(0)+2*ksv(0),
+     & ii2-ksv(1)+2*ksv(1),ii3+2*ksv(2),ey))
+                        u2(ii1-ksv(0)-ksv(0),ii2-ksv(1)-ksv(1),ii3-ksv(
+     & 2),hz)=(3.*u2(ii1-ksv(0),ii2-ksv(1),ii3,hz)-3.*u2(ii1-ksv(0)+
+     & ksv(0),ii2-ksv(1)+ksv(1),ii3+ksv(2),hz)+u2(ii1-ksv(0)+2*ksv(0),
+     & ii2-ksv(1)+2*ksv(1),ii3+2*ksv(2),hz))
+                     else
+                        u2(ii1-ksv(0)-ksv(0),ii2-ksv(1)-ksv(1),ii3-ksv(
+     & 2),ex)=(5.*u2(ii1-ksv(0),ii2-ksv(1),ii3,ex)-10.*u2(ii1-ksv(0)+
+     & ksv(0),ii2-ksv(1)+ksv(1),ii3+ksv(2),ex)+10.*u2(ii1-ksv(0)+2*
+     & ksv(0),ii2-ksv(1)+2*ksv(1),ii3+2*ksv(2),ex)-5.*u2(ii1-ksv(0)+3*
+     & ksv(0),ii2-ksv(1)+3*ksv(1),ii3+3*ksv(2),ex)+u2(ii1-ksv(0)+4*
+     & ksv(0),ii2-ksv(1)+4*ksv(1),ii3+4*ksv(2),ex))
+                        u2(ii1-ksv(0)-ksv(0),ii2-ksv(1)-ksv(1),ii3-ksv(
+     & 2),ey)=(5.*u2(ii1-ksv(0),ii2-ksv(1),ii3,ey)-10.*u2(ii1-ksv(0)+
+     & ksv(0),ii2-ksv(1)+ksv(1),ii3+ksv(2),ey)+10.*u2(ii1-ksv(0)+2*
+     & ksv(0),ii2-ksv(1)+2*ksv(1),ii3+2*ksv(2),ey)-5.*u2(ii1-ksv(0)+3*
+     & ksv(0),ii2-ksv(1)+3*ksv(1),ii3+3*ksv(2),ey)+u2(ii1-ksv(0)+4*
+     & ksv(0),ii2-ksv(1)+4*ksv(1),ii3+4*ksv(2),ey))
+                        u2(ii1-ksv(0)-ksv(0),ii2-ksv(1)-ksv(1),ii3-ksv(
+     & 2),hz)=(5.*u2(ii1-ksv(0),ii2-ksv(1),ii3,hz)-10.*u2(ii1-ksv(0)+
+     & ksv(0),ii2-ksv(1)+ksv(1),ii3+ksv(2),hz)+10.*u2(ii1-ksv(0)+2*
+     & ksv(0),ii2-ksv(1)+2*ksv(1),ii3+2*ksv(2),hz)-5.*u2(ii1-ksv(0)+3*
+     & ksv(0),ii2-ksv(1)+3*ksv(1),ii3+3*ksv(2),hz)+u2(ii1-ksv(0)+4*
+     & ksv(0),ii2-ksv(1)+4*ksv(1),ii3+4*ksv(2),hz))
+                     end if
+                 end if
+                 if( debug.gt.1 )then
+                   if( orderOfAccuracy.eq.2 )then
+                     dive=(u2(ii1+1,ii2,ii3,ex)-u2(ii1-1,ii2,ii3,ex))/(
+     & 2.*dx2(0)) + (u2(ii1,ii2+1,ii3,ey)-u2(ii1,ii2-1,ii3,ey))/(2.*
+     & dx2(1))
+                   else
+                     dive=(8.*(u2(ii1+1,ii2,ii3,ex)-u2(ii1-1,ii2,ii3,
+     & ex))-(u2(ii1+2,ii2,ii3,ex)-u2(ii1-2,ii2,ii3,ex)))/(12.*dx2(0)) 
+     & + (8.*(u2(ii1,ii2+1,ii3,ey)-u2(ii1,ii2-1,ii3,ey))-(u2(ii1,ii2+
+     & 2,ii3,ey)-u2(ii1,ii2-2,ii3,ey)))/(12.*dx2(1))
+                   end if
+                   write(debugFile,'("... after: div(E)=",e10.2)') dive
+                 end if
+                 ksv(axis2p1)=0 ! reset
+                 ksv(axis2)=0 ! reset
+                end if
+              end do ! end sidea
           end if
 
-
-
-           ! ***********************
-
-           ! u1(i1-is1,i2-is2,i3,hz)=u2(j1+js1,j2+js2,j3,hz) 
-           ! u2(j1-js1,j2-js2,j3,hz)=u1(i1+is1,i2+is2,i3,hz)
-           ! u1(i1-2*is1,i2-2*is2,i3,hz)=u2(j1+2*js1,j2+2*js2,j3,hz) 
-           ! u2(j1-2*js1,j2-2*js2,j3,hz)=u1(i1+2*is1,i2+2*is2,i3,hz)
-
+          if( parallel.eq.0 )then
+           axisp1=mod(axis1+1,nd)
+           if( boundaryCondition1(0,axisp1).lt.0 )then
+            ! direction axisp1 is periodic
+            diff(axis1)=0
+            diff(axisp1)=gridIndexRange1(1,axisp1)-gridIndexRange1(0,
+     & axisp1)
+            if( side1.eq.0 )then
+              ! assign 4 ghost points outside lower corner
+              np1a=gridIndexRange1(0,0)-2
+              np1b=gridIndexRange1(0,0)-1
+              np2a=gridIndexRange1(0,1)-2
+              np2b=gridIndexRange1(0,1)-1
+              do i3=n3a,n3b
+              do i2=np2a,np2b
+              do i1=np1a,np1b
+              do n=ex,hz
+                ! write(*,'(" periodic i1,i2,i3,n=",4i4)') i1,i2,i3,n
+               u1(i1,i2,i3,n) = u1(i1+diff(0),i2+diff(1),i3,n)
+              end do
+              end do
+              end do
+              end do
+              ! assign 4 ghost points outside upper corner
+              if( axis1.eq.0 )then
+                np2a=gridIndexRange1(1,axisp1)+1
+                np2b=gridIndexRange1(1,axisp1)+2
+              else
+                np1a=gridIndexRange1(1,axisp1)+1
+                np1b=gridIndexRange1(1,axisp1)+2
+              end if
+              do i3=n3a,n3b
+              do i2=np2a,np2b
+              do i1=np1a,np1b
+              do n=ex,hz
+                ! write(*,'(" periodic i1,i2,i3,n=",4i4)') i1,i2,i3,n
+               u1(i1,i2,i3,n) = u1(i1-diff(0),i2-diff(1),i3,n)
+              end do
+              end do
+              end do
+              end do
+            else
+              ! assign 4 ghost points outside upper corner
+              np1a=gridIndexRange1(1,0)+1
+              np1b=gridIndexRange1(1,0)+2
+              np2a=gridIndexRange1(1,1)+1
+              np2b=gridIndexRange1(1,1)+2
+              do i3=n3a,n3b
+              do i2=np2a,np2b
+              do i1=np1a,np1b
+              do n=ex,hz
+                ! write(*,'(" periodic i1,i2,i3,n=",4i4)') i1,i2,i3,n
+               u1(i1,i2,i3,n) = u1(i1-diff(0),i2-diff(1),i3,n)
+              end do
+              end do
+              end do
+              end do
+              if( axis1.eq.0 )then
+                np2a=gridIndexRange1(0,axisp1)-2
+                np2b=gridIndexRange1(0,axisp1)-1
+              else
+                np1a=gridIndexRange1(0,axisp1)-2
+                np1b=gridIndexRange1(0,axisp1)-1
+              end if
+              do i3=n3a,n3b
+              do i2=np2a,np2b
+              do i1=np1a,np1b
+              do n=ex,hz
+                ! write(*,'(" periodic i1,i2,i3,n=",4i4)') i1,i2,i3,n
+               u1(i1,i2,i3,n) = u1(i1+diff(0),i2+diff(1),i3,n)
+              end do
+              end do
+              end do
+              end do
             end if
-            j1=j1+1
-           end do
-           j2=j2+1
-          end do
-         ! =============== end loops =======================
-
-         if( parallel.eq.0 )then
-          axisp1=mod(axis1+1,nd)
-          if( boundaryCondition1(0,axisp1).lt.0 )then
-           ! direction axisp1 is periodic
-           diff(axis1)=0
-           diff(axisp1)=gridIndexRange1(1,axisp1)-gridIndexRange1(0,
+           endif
+          end if
+          if( parallel.eq.0 )then
+           axisp1=mod(axis2+1,nd)
+           if( boundaryCondition2(0,axisp1).lt.0 )then
+            ! direction axisp1 is periodic
+            diff(axis2)=0
+            diff(axisp1)=gridIndexRange2(1,axisp1)-gridIndexRange2(0,
      & axisp1)
-           if( side1.eq.0 )then
-             ! assign 4 ghost points outside lower corner
-             np1a=gridIndexRange1(0,0)-2
-             np1b=gridIndexRange1(0,0)-1
-             np2a=gridIndexRange1(0,1)-2
-             np2b=gridIndexRange1(0,1)-1
-             do i3=n3a,n3b
-             do i2=np2a,np2b
-             do i1=np1a,np1b
-             do n=ex,hz
-               ! write(*,'(" periodic i1,i2,i3,n=",4i4)') i1,i2,i3,n
-              u1(i1,i2,i3,n) = u1(i1+diff(0),i2+diff(1),i3,n)
-             end do
-             end do
-             end do
-             end do
-             ! assign 4 ghost points outside upper corner
-             if( axis1.eq.0 )then
-               np2a=gridIndexRange1(1,axisp1)+1
-               np2b=gridIndexRange1(1,axisp1)+2
-             else
-               np1a=gridIndexRange1(1,axisp1)+1
-               np1b=gridIndexRange1(1,axisp1)+2
-             end if
-             do i3=n3a,n3b
-             do i2=np2a,np2b
-             do i1=np1a,np1b
-             do n=ex,hz
-               ! write(*,'(" periodic i1,i2,i3,n=",4i4)') i1,i2,i3,n
-              u1(i1,i2,i3,n) = u1(i1-diff(0),i2-diff(1),i3,n)
-             end do
-             end do
-             end do
-             end do
-           else
-             ! assign 4 ghost points outside upper corner
-             np1a=gridIndexRange1(1,0)+1
-             np1b=gridIndexRange1(1,0)+2
-             np2a=gridIndexRange1(1,1)+1
-             np2b=gridIndexRange1(1,1)+2
-             do i3=n3a,n3b
-             do i2=np2a,np2b
-             do i1=np1a,np1b
-             do n=ex,hz
-               ! write(*,'(" periodic i1,i2,i3,n=",4i4)') i1,i2,i3,n
-              u1(i1,i2,i3,n) = u1(i1-diff(0),i2-diff(1),i3,n)
-             end do
-             end do
-             end do
-             end do
-             if( axis1.eq.0 )then
-               np2a=gridIndexRange1(0,axisp1)-2
-               np2b=gridIndexRange1(0,axisp1)-1
-             else
-               np1a=gridIndexRange1(0,axisp1)-2
-               np1b=gridIndexRange1(0,axisp1)-1
-             end if
-             do i3=n3a,n3b
-             do i2=np2a,np2b
-             do i1=np1a,np1b
-             do n=ex,hz
-               ! write(*,'(" periodic i1,i2,i3,n=",4i4)') i1,i2,i3,n
-              u1(i1,i2,i3,n) = u1(i1+diff(0),i2+diff(1),i3,n)
-             end do
-             end do
-             end do
-             end do
-           end if
-          endif
-         end if
-         if( parallel.eq.0 )then
-          axisp1=mod(axis2+1,nd)
-          if( boundaryCondition2(0,axisp1).lt.0 )then
-           ! direction axisp1 is periodic
-           diff(axis2)=0
-           diff(axisp1)=gridIndexRange2(1,axisp1)-gridIndexRange2(0,
-     & axisp1)
-           if( side2.eq.0 )then
-             ! assign 4 ghost points outside lower corner
-             np1a=gridIndexRange2(0,0)-2
-             np1b=gridIndexRange2(0,0)-1
-             np2a=gridIndexRange2(0,1)-2
-             np2b=gridIndexRange2(0,1)-1
-             do i3=n3a,n3b
-             do i2=np2a,np2b
-             do i1=np1a,np1b
-             do n=ex,hz
-               ! write(*,'(" periodic i1,i2,i3,n=",4i4)') i1,i2,i3,n
-              u2(i1,i2,i3,n) = u2(i1+diff(0),i2+diff(1),i3,n)
-             end do
-             end do
-             end do
-             end do
-             ! assign 4 ghost points outside upper corner
-             if( axis2.eq.0 )then
-               np2a=gridIndexRange2(1,axisp1)+1
-               np2b=gridIndexRange2(1,axisp1)+2
-             else
-               np1a=gridIndexRange2(1,axisp1)+1
-               np1b=gridIndexRange2(1,axisp1)+2
-             end if
-             do i3=n3a,n3b
-             do i2=np2a,np2b
-             do i1=np1a,np1b
-             do n=ex,hz
-               ! write(*,'(" periodic i1,i2,i3,n=",4i4)') i1,i2,i3,n
-              u2(i1,i2,i3,n) = u2(i1-diff(0),i2-diff(1),i3,n)
-             end do
-             end do
-             end do
-             end do
-           else
-             ! assign 4 ghost points outside upper corner
-             np1a=gridIndexRange2(1,0)+1
-             np1b=gridIndexRange2(1,0)+2
-             np2a=gridIndexRange2(1,1)+1
-             np2b=gridIndexRange2(1,1)+2
-             do i3=n3a,n3b
-             do i2=np2a,np2b
-             do i1=np1a,np1b
-             do n=ex,hz
-               ! write(*,'(" periodic i1,i2,i3,n=",4i4)') i1,i2,i3,n
-              u2(i1,i2,i3,n) = u2(i1-diff(0),i2-diff(1),i3,n)
-             end do
-             end do
-             end do
-             end do
-             if( axis2.eq.0 )then
-               np2a=gridIndexRange2(0,axisp1)-2
-               np2b=gridIndexRange2(0,axisp1)-1
-             else
-               np1a=gridIndexRange2(0,axisp1)-2
-               np1b=gridIndexRange2(0,axisp1)-1
-             end if
-             do i3=n3a,n3b
-             do i2=np2a,np2b
-             do i1=np1a,np1b
-             do n=ex,hz
-               ! write(*,'(" periodic i1,i2,i3,n=",4i4)') i1,i2,i3,n
-              u2(i1,i2,i3,n) = u2(i1+diff(0),i2+diff(1),i3,n)
-             end do
-             end do
-             end do
-             end do
-           end if
-          endif
-         end if
+            if( side2.eq.0 )then
+              ! assign 4 ghost points outside lower corner
+              np1a=gridIndexRange2(0,0)-2
+              np1b=gridIndexRange2(0,0)-1
+              np2a=gridIndexRange2(0,1)-2
+              np2b=gridIndexRange2(0,1)-1
+              do i3=n3a,n3b
+              do i2=np2a,np2b
+              do i1=np1a,np1b
+              do n=ex,hz
+                ! write(*,'(" periodic i1,i2,i3,n=",4i4)') i1,i2,i3,n
+               u2(i1,i2,i3,n) = u2(i1+diff(0),i2+diff(1),i3,n)
+              end do
+              end do
+              end do
+              end do
+              ! assign 4 ghost points outside upper corner
+              if( axis2.eq.0 )then
+                np2a=gridIndexRange2(1,axisp1)+1
+                np2b=gridIndexRange2(1,axisp1)+2
+              else
+                np1a=gridIndexRange2(1,axisp1)+1
+                np1b=gridIndexRange2(1,axisp1)+2
+              end if
+              do i3=n3a,n3b
+              do i2=np2a,np2b
+              do i1=np1a,np1b
+              do n=ex,hz
+                ! write(*,'(" periodic i1,i2,i3,n=",4i4)') i1,i2,i3,n
+               u2(i1,i2,i3,n) = u2(i1-diff(0),i2-diff(1),i3,n)
+              end do
+              end do
+              end do
+              end do
+            else
+              ! assign 4 ghost points outside upper corner
+              np1a=gridIndexRange2(1,0)+1
+              np1b=gridIndexRange2(1,0)+2
+              np2a=gridIndexRange2(1,1)+1
+              np2b=gridIndexRange2(1,1)+2
+              do i3=n3a,n3b
+              do i2=np2a,np2b
+              do i1=np1a,np1b
+              do n=ex,hz
+                ! write(*,'(" periodic i1,i2,i3,n=",4i4)') i1,i2,i3,n
+               u2(i1,i2,i3,n) = u2(i1-diff(0),i2-diff(1),i3,n)
+              end do
+              end do
+              end do
+              end do
+              if( axis2.eq.0 )then
+                np2a=gridIndexRange2(0,axisp1)-2
+                np2b=gridIndexRange2(0,axisp1)-1
+              else
+                np1a=gridIndexRange2(0,axisp1)-2
+                np1b=gridIndexRange2(0,axisp1)-1
+              end if
+              do i3=n3a,n3b
+              do i2=np2a,np2b
+              do i1=np1a,np1b
+              do n=ex,hz
+                ! write(*,'(" periodic i1,i2,i3,n=",4i4)') i1,i2,i3,n
+               u2(i1,i2,i3,n) = u2(i1+diff(0),i2+diff(1),i3,n)
+              end do
+              end do
+              end do
+              end do
+            end if
+           endif
+          end if
 
-           if( debug.gt.0 )then
-             write(debugFile,'(" ***it=",i2," max-diff = ",e11.2)') it,
-     & err
+          if( it.eq.1 )then
+            errRatio=1.
+          else
+            errRatio=err/errOld
+            ratioAve=ratioAve+errRatio
+          end if
+          errOld=err
+
+          ! NOTE: We do not under-relax for now 
+          if( t.le.5*dt .or. debug.gt.3 )then
+           if( it.eq.1 )then
+             write(*,'("interface2d : t=",e10.3," (grid1,grid2)=(",i3,
+     & ",",i3,"), it=",i3,", err=",e10.2,"           (omega=",f4.2,")
+     & ")') t,grid1,grid2,it,err,1.
+           else
+             write(*,'("interface2d : t=",e10.3," (grid1,grid2)=(",i3,
+     & ",",i3,"), it=",i3,", err=",e10.2," rate=",f5.2," (omega=",
+     & f4.2,")")') t,grid1,grid2,it,err,errRatio,1.
            end if
-           if( debug.gt.3 )then
-             write(*,'(" ***it=",i2," max-diff = ",e11.2)') it,err
-           end if
-         end do ! ************** end iteration **************
+          end if
+
+          if( debug.gt.0 )then
+            write(debugFile,'("interface2d : t=",e10.3," (grid1,grid2)
+     & =(",i3,",",i3,"), it=",i3,", err=",e10.2," rate=",f5.2," (
+     & omega=",f4.2,")")') t,grid1,grid2,it,err,errRatio,1.
+          end if
+
+          numberOfIterations=it
+          if( err.lt.absoluteErrorTolerance )then
+            exit
+          end if
+
+         end do
+
+         ipar(43)= numberOfIterations  ! returned value
+         rpar(22)=ratioAve/(numberOfIterations-1)
+         rpar(23) = err !  maxFinalResidual : return value
+
+         ! ***************** end interface iteration ****************
+         ! **********************************************************
 
 
          ! now make sure that div(u)=0 etc.
@@ -9121,18 +11240,21 @@
 !*              write(debugFile,'(" --> 4cth: eval div1,div2=",2e10.2)') u1x42(i1,i2,i3,ex)+u1y42(i1,i2,i3,ey),u2x42(j1,j2,j3,ex)+u2y42(j1,j2,j3,ey)
 !*           end if
 !*         endLoops2d()
+
+
+        end if ! ----- end assign ghost using jump conditions -----
+
+
        end if
 
 
 
-       else if( nd.eq.3 .and. (orderOfAccuracy.eq.2 .or. 
-     & orderOfAccuracy.eq.2 ) .and. gridType.eq.curvilinear )then
+       else if( nd.eq.3 .and. orderOfAccuracy.eq.2 .and. 
+     & gridType.eq.curvilinear )then
 
-         ! *******************************
-         ! ***** 3D curvilinear case *****
-         ! *******************************
-
-        ! **NOTE** For now we use this 2nd order version for 4th order and just assign the 2nd ghost line below
+         ! ***********************************************
+         ! ***** 3D curvilinear case -- second-order *****
+         ! ***********************************************
 
         if( solveForH .ne.0 )then
           stop 3017
@@ -9161,8 +11283,88 @@
          ! ---- first satisfy the jump conditions on the boundary --------
          !    [ eps n.u ] = 0
          !    [ tau.u ] = 0
-           ! *** 3D ***
-           if( eps1.lt.eps2 )then
+           ! ******************** 3D PROJECT INTERFACE ******************************
+           if( useImpedanceInterfaceProjection.eq.1 )then
+             ! --------------------------------------------------------------
+             ! ------ Use impedance weighting to project the interface ------
+             ! --------------------------------------------------------------
+             !  (see maxwell.pdf)
+             !
+              j3=mm3a
+              do i3=nn3a,nn3b
+              j2=mm2a
+              do i2=nn2a,nn2b
+               j1=mm1a
+               do i1=nn1a,nn1b
+               ! if( mask1(i1,i2,i3).gt.0 .and. mask2(j1,j2,j3).gt.0 )then
+               ! *wdh* 2015/08/14 -- project interpolation points too
+               if( mask1(i1,i2,i3).ne.0 .and. mask2(j1,j2,j3).ne.0 )
+     & then
+                an1=rsxy1(i1,i2,i3,axis1,0)   ! normal (an1,an2)
+                an2=rsxy1(i1,i2,i3,axis1,1)
+                an3=rsxy1(i1,i2,i3,axis1,2)
+                aNorm=max(epsx,sqrt(an1**2+an2**2+an3**2))
+                an1=an1/aNorm
+                an2=an2/aNorm
+                an3=an3/aNorm
+               ! left state:
+               ex1=u1(i1,i2,i3,ex)
+               ey1=u1(i1,i2,i3,ey)
+               ez1=u1(i1,i2,i3,ez)
+               ! right state:
+               ex2=u2(j1,j2,j3,ex)
+               ey2=u2(j1,j2,j3,ey)
+               ez2=u2(j1,j2,j3,ez)
+               ! normal components 
+               nDotE1 = an1*ex1+an2*ey1+an3*ez1
+               nDotE2 = an1*ex2+an2*ey2+an3*ez2
+               ! The interface value of (eps n.E) is an impedance average of (eps* n.E)
+               !
+               !      (eps n.E)_I = [ eta1*( eps1*n.E1 ) +  eta2*( eps2*n.E2 ) ]/[ eta1 + eta2 ]
+               !
+               ! We then set 
+               !   eps1*nDotE1_I = (eps n.E)_I 
+               !   eps2*nDotE2_I = (eps n.E)_I 
+               epsNDotEI = ( eta1*(eps1*nDotE1) + eta2*(eps2*nDotE2) )
+     & /(eta1+eta2) ! (eps * n. E)_I
+               if( twilightZone.eq.1)then
+                ! adjust for TZ forcing (here we assume the exact solution is the same on both sides)
+                call ogderiv(ep, 0,0,0,0, xy1(i1,i2,i3,0),xy1(i1,i2,i3,
+     & 1),xy1(i1,i2,i3,2),t, ex, ue )
+                call ogderiv(ep, 0,0,0,0, xy1(i1,i2,i3,0),xy1(i1,i2,i3,
+     & 1),xy1(i1,i2,i3,2),t, ey, ve )
+                call ogderiv(ep, 0,0,0,0, xy1(i1,i2,i3,0),xy1(i1,i2,i3,
+     & 1),xy1(i1,i2,i3,2),t, ez, we )
+                nDotEe = an1*ue+an2*ve+an3*we
+                ! epsNDotEI + g1 = eps1*nDotE 
+                ! epsNDotEI + g2 = eps2*nDotE 
+                g1= (eps1-eps2) * nDotEe *eta2/(eta1+eta2)
+                g2= (eps2-eps1) * nDotEe *eta1/(eta1+eta2)
+               else
+                 g1=0.
+                 g2=0.
+               end if
+               nDotE1I = (epsNDotEI+g1)/eps1  ! nDotE for interface on left
+               nDotE2I = (epsNDotEI+g2)/eps2  ! nDotE for interface on right
+               ! inverse impedance average of tangential components  (do full vector and correct below)
+               exI = ( eta1i*ex1 + eta2i*ex2 )/( eta1i + eta2i )
+               eyI = ( eta1i*ey1 + eta2i*ey2 )/( eta1i + eta2i )
+               ezI = ( eta1i*ez1 + eta2i*ez2 )/( eta1i + eta2i )
+               nDotEI= an1*exI+an2*eyI+an3*ezI  ! we need to subtract off normal component of (exI,eyI,ezI)
+               u1(i1,i2,i3,ex) = exI + (nDotE1I - nDotEI)*an1
+               u1(i1,i2,i3,ey) = eyI + (nDotE1I - nDotEI)*an2
+               u1(i1,i2,i3,ez) = ezI + (nDotE1I - nDotEI)*an3
+               u2(j1,j2,j3,ex) = exI + (nDotE2I - nDotEI)*an1
+               u2(j1,j2,j3,ey) = eyI + (nDotE2I - nDotEI)*an2
+               u2(j1,j2,j3,ez) = ezI + (nDotE2I - nDotEI)*an3
+               end if
+                j1=j1+1
+               end do
+               j2=j2+1
+              end do
+               j3=j3+1
+              end do
+           else if( eps1.lt.eps2 )then
              epsRatio=eps1/eps2
               j3=mm3a
               do i3=nn3a,nn3b

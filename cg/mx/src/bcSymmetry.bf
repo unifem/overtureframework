@@ -670,6 +670,7 @@ end do ! edgeDirection
       bcOption             =ipar(26)
       symmetryOption       =ipar(27)
       myid                 =ipar(28)
+      numberOfGhostPoints  =ipar(30) ! *wdh* Sept. 6, 2016
 
       ! dx(0)                =rpar(0)
       ! dx(1)                =rpar(1)
@@ -693,7 +694,8 @@ end do ! edgeDirection
 
       epsX=1.e-30 ! fix this ***
 
-      numberOfGhostPoints=orderOfAccuracy/2
+      ! We now pass in numberOfGhostPoints 
+      ! ** numberOfGhostPoints=orderOfAccuracy/2
 
       if( debug.gt.1 .and. t.le.dt .and. myid.eq.0 )then
         write(*,'("NAME: orderOfAccuracy,numberOfGhostPoints=",2i3," t="e9.2)') orderOfAccuracy,numberOfGhostPoints,t
@@ -709,6 +711,10 @@ end do ! edgeDirection
       ! -------------------------------------------------------------------------
       beginLoopOverSides(extra,numberOfGhostPoints)
 
+       if( t.le.2*dt )then
+         write(*,'(" Apply bcSymmetry: grid,side,axis=",3i3," t,dt=",2e12.3," ghost=",i2)') grid,side,axis,t,dt,numberOfGhostPoints
+       end if
+
        if( gridType.eq.rectangular )then
         ! ***********************************************
         ! ************rectangular grid*******************
@@ -716,7 +722,6 @@ end do ! edgeDirection
 
        
 
-        ! write(*,'(" Apply bcSymmetry: grid,side,axis=",3i3," dt,c=",2e12.3)') grid,side,axis,dt,c
 
         en =ex + axis             ! normal component 
         et1=ex + mod(axis+1,nd)   ! tangential component 1

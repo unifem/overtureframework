@@ -69,10 +69,10 @@ assignUserDefinedKnownSolutionInitialConditions(int current, real t, real dt )
     getIndex( mg.dimension(),I1,I2,I3 );          // all points including ghost points.
 
       
+    int numberOfTimeDerivatives=0;
     if( method==nfdtd  ) 
     {
       // -- assign solution at time t:
-      int numberOfTimeDerivatives=0;
       getUserDefinedKnownSolution(   t, cg,grid, u[grid],I1,I2,I3,numberOfTimeDerivatives);
 
       // assign solution at time t-dt
@@ -81,7 +81,9 @@ assignUserDefinedKnownSolutionInitialConditions(int current, real t, real dt )
     }
     else if( method==sosup )
     {
-      OV_ABORT("assignUserDefinedKnownSolutionInitialConditions:ERROR: finish me");
+      // -- assign solution at time t:
+      getUserDefinedKnownSolution(   t, cg,grid, u[grid],I1,I2,I3,numberOfTimeDerivatives);
+
     }
     else
     {

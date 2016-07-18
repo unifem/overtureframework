@@ -347,10 +347,19 @@ initializeSolution()
       // getPastTimeSolutions( current, numberOfPast, previous  ); 
     }
 
-    if( true )
+    // ** TROUBLE HERE IF USING AMR TOO -- first grid in show file is bad. FIX ME
+    if( !parameters.isAdaptiveGridProblem() )
     {
       printF("\n ---DomainSolver::initializeSolution: REGENERATE THE INITIAL OVERLAPPING GRID  ---\n\n");
       parameters.regenerateOverlappingGrid( gf[current].cg , gf[current].cg, true );
+
+      // *wdh*  CHECK ME 
+      if( parameters.isAdaptiveGridProblem() )
+      {
+	// both moving and AMR 
+	parameters.dbase.get<Ogen* >("gridGenerator")->updateRefinement(gf[current].cg);
+	// updateForAdaptiveGrids(gf[current].cg);
+      }
     }
     
     // Note: below the initial conditions will be interpolated and BC's applied.

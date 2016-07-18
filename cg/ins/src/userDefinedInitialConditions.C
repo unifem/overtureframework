@@ -371,7 +371,6 @@ userDefinedInitialConditions(CompositeGrid & cg, realCompositeGridFunction & u )
 
 
 
-
 //\begin{>>DomainSolverInclude.tex}{\subsection{setupUserDefinedInitialConditions}}  
 int DomainSolver::
 setupUserDefinedInitialConditions()

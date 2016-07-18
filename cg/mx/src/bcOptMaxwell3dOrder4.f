@@ -2698,8 +2698,9 @@ c write(*,'("initializeBoundaryForcing slowStartInterval=",e10.2)') slowStartInt
              else if( mask(i1,i2,i3).lt.0 )then
               ! ** NEW WAY **  *wdh
               ! extrapolate ghost points next to boundary interpolation points  *wdh* 2015/08/11
-              if( t.le.dt )then
-                write(*,'("--MX-- BC4 extrap ghost next to interp")')
+              if( .false. .and. t.le.dt )then
+                write(*,'("--MX-- BC4 extrap ghost next to interp t,
+     & dt=",2e12.3)') t,dt
               end if
                u(i1-is1,i2-is2,i3-is3,ex) = (5.*u(i1,i2,i3,ex)-10.*u(
      & i1+is1,i2+is2,i3+is3,ex)+10.*u(i1+2*is1,i2+2*is2,i3+2*is3,ex)-
@@ -5170,8 +5171,9 @@ c write(*,'("initializeBoundaryForcing slowStartInterval=",e10.2)') slowStartInt
              else if( mask(i1,i2,i3).lt.0 )then
               ! ** NEW WAY **  *wdh
               ! extrapolate ghost points next to boundary interpolation points  *wdh* 2015/08/11
-              if( t.le.dt )then
-                write(*,'("--MX-- BC4 extrap ghost next to interp")')
+              if( .false. .and. t.le.dt )then
+                write(*,'("--MX-- BC4 extrap ghost next to interp t,
+     & dt=",2e12.3)') t,dt
               end if
                u(i1-is1,i2-is2,i3-is3,ex) = (5.*u(i1,i2,i3,ex)-10.*u(
      & i1+is1,i2+is2,i3+is3,ex)+10.*u(i1+2*is1,i2+2*is2,i3+2*is3,ex)-

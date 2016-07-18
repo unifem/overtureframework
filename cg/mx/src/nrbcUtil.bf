@@ -24,7 +24,7 @@ end do
 #beginMacro beginLoopOverSidesForAdjustingIncidentField()
 
  ! adjust this many points near the boundary (needs to include width of extrapolation too!)
- halfWidth = orderOfAccuracy/2
+ ! halfWidth = orderOfAccuracy/2 ** now passed in**
 
  ! restrict all bounds to fit in the array dimensions: 
  dim(0,0)=nd1a
@@ -101,6 +101,8 @@ end do
  end do
 #endMacro
 
+! This formula must match the one in getInitialConditions.bC
+#defineMacro AMP2D(x,y,t) (.5*(1.-tanh(beta*twoPi*(nv(0)*((x)-xv0(0))+nv(1)*((y)-xv0(1))-cc*(t)))))
 
 ! ===================================================================================
 ! --- Subtract/add the incident wave, before/after applying the non-reflecting BC ---
@@ -111,6 +113,7 @@ end do
  if( debug.gt.4 )then
    write(*,'(" adjust OP: kx,ky,kz,eps,cc",5e10.3)') kx,ky,kz,eps,cc
  end if
+ amp=1.
  beginLoopOverSidesForAdjustingIncidentField()
    if( nd.eq.2 )then
      beginLoops()
@@ -126,30 +129,31 @@ end do
        !  write(*,'("nrbc: adjust OP: i=",2i3," Hz,true=",2e10.3)') i1,i2,u(i1,i2,i3,hz),t0
        ! end if
        #If #ADJUST eq "YES"
-       if( x.ge.icBoundingBox(0,0) .and. x.le.icBoundingBox(1,0) .and. \
-           y.ge.icBoundingBox(0,1) .and. y.le.icBoundingBox(1,1) )then
+       ! if( x.ge.icBoundingBox(0,0) .and. x.le.icBoundingBox(1,0) .and. \
+       !     y.ge.icBoundingBox(0,1) .and. y.le.icBoundingBox(1,1) )then
+         amp = AMP2D(x,y,t)
        #Elif #ADJUST eq "NO"
        #Else
           ! ERROR
           stop 666 
        #End
 
-       u(i1,i2,i3,ex) = u(i1,i2,i3,ex) OP planeWave2Dex0(x,y,t-dt)
-       u(i1,i2,i3,ey) = u(i1,i2,i3,ey) OP planeWave2Dey0(x,y,t-dt)
-       u(i1,i2,i3,hz) = u(i1,i2,i3,hz) OP planeWave2Dhz0(x,y,t-dt)
+       u(i1,i2,i3,ex) = u(i1,i2,i3,ex) OP amp*planeWave2Dex0(x,y,t-dt)
+       u(i1,i2,i3,ey) = u(i1,i2,i3,ey) OP amp*planeWave2Dey0(x,y,t-dt)
+       u(i1,i2,i3,hz) = u(i1,i2,i3,hz) OP amp*planeWave2Dhz0(x,y,t-dt)
 
-       un(i1,i2,i3,ex)=un(i1,i2,i3,ex) OP planeWave2Dex0(x,y,t)
-       un(i1,i2,i3,ey)=un(i1,i2,i3,ey) OP planeWave2Dey0(x,y,t)
-       un(i1,i2,i3,hz)=un(i1,i2,i3,hz) OP planeWave2Dhz0(x,y,t)
+       un(i1,i2,i3,ex)= un(i1,i2,i3,ex) OP amp*planeWave2Dex0(x,y,t)
+       un(i1,i2,i3,ey)= un(i1,i2,i3,ey) OP amp*planeWave2Dey0(x,y,t)
+       un(i1,i2,i3,hz)= un(i1,i2,i3,hz) OP amp*planeWave2Dhz0(x,y,t)
 
        if( adjustThreeLevels.eq.1 )then
-        um(i1,i2,i3,ex) = um(i1,i2,i3,ex) OP planeWave2Dex0(x,y,t-2.*dt)
-        um(i1,i2,i3,ey) = um(i1,i2,i3,ey) OP planeWave2Dey0(x,y,t-2.*dt)
-        um(i1,i2,i3,hz) = um(i1,i2,i3,hz) OP planeWave2Dhz0(x,y,t-2.*dt)
+        um(i1,i2,i3,ex) = um(i1,i2,i3,ex) OP amp*planeWave2Dex0(x,y,t-2.*dt)
+        um(i1,i2,i3,ey) = um(i1,i2,i3,ey) OP amp*planeWave2Dey0(x,y,t-2.*dt)
+        um(i1,i2,i3,hz) = um(i1,i2,i3,hz) OP amp*planeWave2Dhz0(x,y,t-2.*dt)
        end if
 
        #If #ADJUST eq "YES"
-       endif
+       ! endif
        #End
      endLoops()
    else
@@ -255,6 +259,9 @@ end do
       logical adjustForBoundingBox
       real x,y,z
 
+      ! parameters for tanh() in smooth transition for IC bounding box:
+      real amp, beta, nv(0:2), xv0(0:2)
+
       ! boundary conditions parameters
       #Include "bcDefineFortranInclude.h"
 
@@ -326,6 +333,8 @@ end do
       numberLinesForPML    =ipar(26)
       adjustThreeLevels    =ipar(27)
 
+      halfWidth            =ipar(31) ! *new* June 20, 2016 *wdh*
+
       dx(0)                =rpar(0)
       dx(1)                =rpar(1)
       dx(2)                =rpar(2)
@@ -354,6 +363,15 @@ end do
       xa(0)                =rpar(26)  ! for rectangular grids
       xa(1)                =rpar(27)
       xa(2)                =rpar(28)
+
+      ! parameters for tanh() in smooth transition for IC bounding box:
+      beta = rpar(29)
+      nv(0)  =rpar(30)
+      nv(1)  =rpar(31)
+      nv(2)  =rpar(32)
+      xv0(0) =rpar(33)
+      xv0(1) =rpar(34)
+      xv0(2) =rpar(35)
 
       if( abs(pwc(0))+abs(pwc(1))+abs(pwc(2)) .eq. 0. )then
         ! sanity check

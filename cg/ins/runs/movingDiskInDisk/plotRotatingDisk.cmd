@@ -1,6 +1,7 @@
 #
 #  plotStuff plotRotatingDisk.cmd -show=did2bd1.show
 #
+#
 # rhos=0.001:
 #  plotStuff plotRotatingDisk.cmd -show=did2rotatebd0p001amp.show -matlab=did2rotatebd0p001amp  [ G2
 #  plotStuff plotRotatingDisk.cmd -show=did2rotatebd0p001ampAD.show -matlab=did2rotatebd0p001ampAD  [ G2 -- include all added damping terms
@@ -11,6 +12,7 @@
 #  plotStuff plotRotatingDisk.cmd -show=didnudt.show
 #
 # rhos=0.1:
+# 
 #  plotStuff plotRotatingDisk.cmd -show=did2rotatebd0p1.show -matlab=did2rotatebd0p1  [ G2 TP
 #
 #  plotStuff plotRotatingDisk.cmd -show=did2rotatebd0p1amp.show -matlab=did2rotatebd0p1amp  [ G2
@@ -56,9 +58,13 @@
 #  plotStuff plotRotatingDisk.cmd -show=did2rotatebd100p0cdv.show [ G2, smaller cdv
 # 
 # rhos=1000
-#  plotStuff plotDisk.cmd -show=did2rotatebd1000p0.show [ G2 
-#  plotStuff plotDisk.cmd -show=did4rotatebd1000p0.show [ G4
+#  plotStuff plotRotatingDisk.cmd -show=did2rotatebd1000p0.show [ G2 
+#  plotStuff plotRotatingDisk.cmd -show=did4rotatebd1000p0.show [ G4
 # 
+#  --- test new AD scaling 
+#   plotStuff plotRotatingDisk.cmd -show=didrG2Ad4.show
+#   plotStuff plotRotatingDisk.cmd -show=didrG4Ad4.show
+#   plotStuff plotRotatingDisk.cmd -show=didrG4Ad4Iz100.show
 # 
 $show="cic.show";
 $vorMin=-50; $vorMax=25.; $option=""; $name="bic"; $matlab="did"; 

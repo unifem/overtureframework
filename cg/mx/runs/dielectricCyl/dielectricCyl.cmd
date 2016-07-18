@@ -88,7 +88,7 @@ $kx=2; $ky=0; $kz=0;
 $eps1=.25; $mu1=1.; # inner
 $eps2=1.;  $mu2=1.; # outer 
 $show=" "; $backGround="backGround"; $useNewInterface=1; 
-$interfaceIterations=3;
+$interfaceEquationOption=1; $interfaceIterations=5;  $interfaceOmega=.5;
 $grid="innerOuter4.order4.hdf";
 $cons=0; $go="halt";  $errorNorm=0;
 $flushFrequency=10; 
@@ -98,7 +98,8 @@ GetOptions( "g=s"=>\$grid,"tf=f"=>\$tFinal,"diss=f"=>\$diss,"dissc=f"=>\$dissc,"
  "cfl=f"=>\$cfl, "bg=s"=>\$backGround,"bcn=s"=>\$bcn,"go=s"=>\$go,"noplot=s"=>\$noplot,"plotIntensity=i"=>\$plotIntensity,\
  "interit=i"=>\$interfaceIterations,"cyl=i"=>\$cyl,"useNewInterface=i"=>\$useNewInterface,"errorNorm=i"=>\$errorNorm,\
  "dtMax=f"=>\$dtMax,"kx=f"=>\$kx,"ky=f"=>\$ky,"kz=f"=>\$kz,"eps1=f"=>\$eps1,"eps2=f"=>\$eps2, "cons=i"=>\$cons,\
- "method=s"=>\$method,"dissOrder=i"=>\$dissOrder,"filter=i"=>\$filter,"flushFrequency=i"=>\$flushFrequency );
+ "method=s"=>\$method,"dissOrder=i"=>\$dissOrder,"filter=i"=>\$filter,"flushFrequency=i"=>\$flushFrequency,\
+ "interfaceEquationOption=i"=>\$interfaceEquationOption,"interfaceOmega=f"=>\$interfaceOmega );
 # -------------------------------------------------------------------------------------------------
 if( $method eq "sosup" ){ $diss=0.; }
 if( $method eq "fd" ){ $method="nfdtd"; }
@@ -160,6 +161,9 @@ if( $cyl eq 0 && $method ne "Yee" ){ $cmd = \
 $cmd
 #
 interface BC iterations $interfaceIterations
+# interfaceEquationsOption=0 : use extrap for 2nd ghost, 1=use eqns
+interface equations option $interfaceEquationOption
+omega for interface iterations $interfaceOmega
 #
 # bc: Annulus=perfectElectricalConductor
 tFinal $tFinal

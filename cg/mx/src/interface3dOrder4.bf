@@ -1290,7 +1290,10 @@ end if
 !      real dx(0:2),dr(0:2)
       real t,ep,dt,eps1,mu1,c1,eps2,mu2,c2,epsmu1,epsmu2,omega
       integer axisp1,axisp2,i1,i2,i3,is1,is2,is3,j1,j2,j3,js1,js2,js3,ks1,ks2,ks3,is,js,it,nit,k1,k2,k3
-      integer interfaceOption,interfaceEquationsOption,initialized,forcingOption
+      integer interfaceOption,interfaceEquationsOption,initialized,forcingOption,numberOfIterations
+
+      integer assignInterfaceValues,assignInterfaceGhostValues,setDivergenceAtInterfaces
+      real absoluteErrorTolerance
 
       integer numGhost,giveDiv
       integer nn1a,nn1b,nn2a,nn2b,nn3a,nn3b
@@ -1322,7 +1325,7 @@ end if
       real a2(0:1,0:1),a4(0:3,0:3),a6(0:5,0:5),a8(0:7,0:7),a12(0:11,0:11),q(0:11),f(0:11),rcond,work(0:11)
       integer ipvt(0:11)
 
-      real err,res
+      real err,res,errOld,errRatio,ratioAve
       integer debugFile,myid,parallel
       character*20 debugFileName
 
@@ -1463,6 +1466,11 @@ end if
       parallel             =ipar(36)
       forcingOption        =ipar(37)
       interfaceEquationsOption=ipar(38)
+      assignInterfaceValues     =ipar(39)
+      assignInterfaceGhostValues=ipar(40)
+      setDivergenceAtInterfaces =ipar(41)
+
+      ! numberOfInterfaceIterationsUsed = ipar(43)  ! returned value 
      
       dx1(0)                =rpar(0)
       dx1(1)                =rpar(1)
@@ -1488,11 +1496,15 @@ end if
       mu2                  =rpar(19)
       c2                   =rpar(20)
       omega                =rpar(21)
+      ! rpar(22) : averageInterfaceConvergenceRate : return value 
+      ! rpar(23) : maxFinalResidual : return value 
      
       epsmu1=eps1*mu1
       epsmu2=eps2*mu2
 
       twilightZone=useForcing
+
+      absoluteErrorTolerance=1.e-10  ! fix me -- need a relative tol
 
       debugFile=10
 !*      if( initialized.eq.0 .and. debug.gt.0 )then
@@ -1873,7 +1885,7 @@ end if
         ! ***** 3D fourth-order curvilinear case (extrapolate 2nd ghost line) *****
         ! *************************************************************************
 
-        if( debug.gt.2 )then
+        if( t.lt.3*dt .or. debug.gt.2 )then
           write(*,'("interface3d : *OLD* order 4 with extrapolation for 2nd ghost t=",e10.2)') t
         end if
 
@@ -1893,7 +1905,9 @@ end if
          ! ---- first satisfy the jump conditions on the boundary --------
          !    [ eps n.u ] = 0
          !    [ tau.u ] = 0
-         boundaryJumpConditions(3,curvilinear)
+         if( assignInterfaceValues.eq.1 )then
+           boundaryJumpConditions(3,curvilinear)
+         end if
 
         if( .false. )then
           beginGhostLoops3d()
@@ -1902,329 +1916,366 @@ end if
           endLoops3d()
         end if
 
-        ! initialization step: assign first two ghost line by extrapolation
-        ! NOTE: assign ghost points outside the ends
-
-        extrapGhost()
-
-
-         ! here are the jump conditions for the ghost points
-         !   [ div(E) n + (curl(E)- n.curl(E) n )/mu ] =0                 (3 eqns)
-         !   [ Lap(E)/(eps*mu) + (1/mu)*(1-1/eps)*( n.Lap(E) ) n ] = 0    (3 eqns)
-
-         ! These correspond to the 6 conditions:
-         !   [ div(E) ] =0 
-         !   [ tau. curl(E)/mu ] = 0       (2 tangents)
-         !   [ n.Lap(E)/mu ] = 0 
-         !   [ tau.Lap(E)/(eps*mu) ] = 0   (2 tangents)
-
-
-         beginLoopsMask3d()
-
-           ! here is the normal (assumed to be the same on both sides)
-           an1=rsxy1(i1,i2,i3,axis1,0)   ! normal (an1,an2)
-           an2=rsxy1(i1,i2,i3,axis1,1)
-           an3=rsxy1(i1,i2,i3,axis1,2)
-           aNorm=max(epsx,sqrt(an1**2+an2**2+an3**2))
-           an1=an1/aNorm
-           an2=an2/aNorm
-           an3=an3/aNorm
-
-
-           ! --- first evaluate the equations we want to solve with the wrong values at the ghost points:
-
-           cem1=(1.-1./eps1)/mu1
-           cem2=(1.-1./eps2)/mu2
-           ! evalInterfaceDerivatives3d
-           evalInterfaceDerivatives3d()
-           eval3dJumpOrder4()
-
-           if( debug.gt.4 )then
-            write(debugFile,'(/," --> 3d-order4-curv: i1,i2,i3=",3i4," an1,an2,an3=",3e11.3)') i1,i2,i3,an1,an2,an3
-            write(debugFile,'(" --> 3d-order4-curv: i1,i2,i3=",3i4," f(start)=",12e10.2)') i1,i2,i3,f(0),f(1),f(2),f(3),f(4),f(5),f(6),f(7),f(8),f(9),f(10),f(11)
-            ! '
-            write(debugFile,'(" --> u1x,u1y,u1z,v1x,v1y,v1z=",6f8.4)') u1x,u1y,u1z,v1x,v1y,v1z
-            write(debugFile,'(" --> u2x,u2y,u2z,v2x,v2y,v2z=",6f8.4)') u2x,u2y,u2z,v2x,v2y,v2z
+        ! ----------------------------------------------
+        ! ----- assign ghost using jump conditions -----
+        ! ----------------------------------------------
+        if( assignInterfaceGhostValues.eq.1 )then
+         ! initialization step: assign first two ghost line by extrapolation
+         ! NOTE: assign ghost points outside the ends
  
-            write(debugFile,'(" --> vv1r,vv1s,vv1t         =",3e9.2)') vv1r,vv1s,vv1t
-            do k3=-1,1
-            do k2=-1,1
-            write(debugFile,'(" --> v1: =",3f8.4)') u1(i1-1,i2+k2,i3+k3,ey),u1(i1,i2+k2,i3+k3,ey),u1(i1+1,i2+k2,i3+k3,ey)
-            end do
-            end do
-            do k3=-1,1
-            do k2=-1,1
-            write(debugFile,'(" --> v2: =",3f8.4)') u2(j1-1,j2+k2,j3+k3,ey),u2(j1,j2+k2,j3+k3,ey),u2(j1+1,j2+k2,j3+k3,ey)
-            end do
-            end do
-            ! '
-           end if
-
-           ! here is the matrix of coefficients for the unknowns u1(-1),v1(-1),w1(-1),  u2(-1),v2(-1),w2(-1)
-           ! Solve:
-           !     
-           !       A [ U ] = A [ U(old) ] - [ f ]
-
-
-           c1m1x = -is*8.*rsxy1(i1,i2,i3,axis1,0)/(12.*dr1(axis1))    ! coeff of u1(-1) from D.x
-           c1m1y = -is*8.*rsxy1(i1,i2,i3,axis1,1)/(12.*dr1(axis1))    ! coeff of u1(-1) from D.y 
-           c1m1z = -is*8.*rsxy1(i1,i2,i3,axis1,2)/(12.*dr1(axis1))    ! coeff of u1(-1) from D.z
-
-           c1m2x =  is   *rsxy1(i1,i2,i3,axis1,0)/(12.*dr1(axis1))    ! coeff of u1(-2) from D.x
-           c1m2y =  is   *rsxy1(i1,i2,i3,axis1,1)/(12.*dr1(axis1))    ! coeff of u1(-2) from D.y 
-           c1m2z =  is   *rsxy1(i1,i2,i3,axis1,2)/(12.*dr1(axis1))    ! coeff of u1(-2) from D.z
-
-           c2m1x = -js*8.*rsxy2(j1,j2,j3,axis2,0)/(12.*dr2(axis2))    ! coeff of u2(-1) from D.x
-           c2m1y = -js*8.*rsxy2(j1,j2,j3,axis2,1)/(12.*dr2(axis2))
-           c2m1z = -js*8.*rsxy2(j1,j2,j3,axis2,2)/(12.*dr2(axis2))
-
-           c2m2x =  js   *rsxy2(j1,j2,j3,axis2,0)/(12.*dr2(axis2))
-           c2m2y =  js   *rsxy2(j1,j2,j3,axis2,1)/(12.*dr2(axis2))
-           c2m2z =  js   *rsxy2(j1,j2,j3,axis2,2)/(12.*dr2(axis2))
-
-           rxx1(0,0,0)=aj1rxx
-           rxx1(0,1,1)=aj1ryy
-           rxx1(0,2,2)=aj1rzz
-           rxx1(1,0,0)=aj1sxx
-           rxx1(1,1,1)=aj1syy
-           rxx1(1,2,2)=aj1szz
-           rxx1(2,0,0)=aj1txx
-           rxx1(2,1,1)=aj1tyy
-           rxx1(2,2,2)=aj1tzz
-
-           rxx2(0,0,0)=aj2rxx
-           rxx2(0,1,1)=aj2ryy
-           rxx2(0,2,2)=aj2rzz
-           rxx2(1,0,0)=aj2sxx
-           rxx2(1,1,1)=aj2syy
-           rxx2(1,2,2)=aj2szz
-           rxx2(2,0,0)=aj2txx
-           rxx2(2,1,1)=aj2tyy
-           rxx2(2,2,2)=aj2tzz
-
-           ! clap1m1 : coeff of u(-1) from lap1 = u1.xx + u1.yy + u1.zz
-           ! clap1m2 : coeff of u(-2) from lap1 = u1.xx + u1.yy + u1.zz
-
-! here are the macros from deriv.maple (file=derivMacros.h)
-! defineMacro lapCoeff4a(is,dr,ds) ( (-2/3.*rxx*is-2/3.*ryy*is)/dr+(4/3.*rx**2+4/3.*ry**2)/dr**2 )
-! defineMacro lapCoeff4b(is,dr,ds) ( (1/12.*rxx*is+1/12.*ryy*is)/dr+(-1/12.*rx**2-1/12.*ry**2)/dr**2 )
-           
-           clap1m1=4./3.*(rsxy1(i1,i2,i3,axis1,0)**2+rsxy1(i1,i2,i3,axis1,1)**2+rsxy1(i1,i2,i3,axis1,2)**2)/(dr1(axis1)**2) \
-                     -is*2./3.*(rxx1(axis1,0,0)+rxx1(axis1,1,1)+rxx1(axis1,2,2))/(2.*dr1(axis1))
-           clap1m2=-1./12.*(rsxy1(i1,i2,i3,axis1,0)**2+rsxy1(i1,i2,i3,axis1,1)**2+rsxy1(i1,i2,i3,axis1,2)**2)/(dr1(axis1)**2) \
-                     +is*1./12.*(rxx1(axis1,0,0)+rxx1(axis1,1,1)+rxx1(axis1,2,2))/(2.*dr1(axis1)) 
-
-           clap2m1=4/3.*(rsxy2(j1,j2,j3,axis2,0)**2+rsxy2(j1,j2,j3,axis2,1)**2+rsxy2(j1,j2,j3,axis2,2)**2)/(dr2(axis2)**2) \
-                     -js*2./3.*(rxx2(axis2,0,0)+rxx2(axis2,1,1)+rxx2(axis2,2,2))/(2.*dr2(axis2)) 
-           clap2m2=-1./12.*(rsxy2(j1,j2,j3,axis2,0)**2+rsxy2(j1,j2,j3,axis2,1)**2+rsxy2(j1,j2,j3,axis2,2)**2)/(dr2(axis2)**2) \
-                     +js*1./12.*(rxx2(axis2,0,0)+rxx2(axis2,1,1)+rxx2(axis2,2,2))/(2.*dr2(axis2))
-
-           ! cdivE1 =  u.c1x + v.c1y + w.c1z
-           ! nDotCurlE1 = (w1y-v1z)*an1 + (u1z-w1x)*an2 + (v1x-u1y)*an3
-
-           ! 12 Unknowns:
-           !   u1(-1), v1(-1), w1(-1), u1(-2), v1(-2), w1(-2), 
-           !   u2(-1), v2(-1), w2(-1), u2(-2), v2(-2), w2(-2)  
-           ! 12 Equations: 
-           !    a12(eqn,unknown) 
-
-           ! Equation 0: 
-           ! (u.x+v.y+w.z)*an1 + ( w1y-v1z - nDotCurlE1*an1)/mu1
-           a12(0,0) = ( c1m1x*an1 + (           - (c1m1z*an2-c1m1y*an3)*an1 )/mu1 ) ! coeff of u1(-1)
-           a12(0,1) = ( c1m1y*an1 + (    -c1m1z - (c1m1x*an3-c1m1z*an1)*an1 )/mu1 ) ! coeff of v1(-1)
-           a12(0,2) = ( c1m1z*an1 + ( c1m1y     - (c1m1y*an1-c1m1x*an2)*an1 )/mu1 ) ! coeff of w1(-1)
-
-           a12(0,3) = ( c1m2x*an1 + (           - (c1m2z*an2-c1m2y*an3)*an1 )/mu1 ) ! coeff of u1(-1)
-           a12(0,4) = ( c1m2y*an1 + (    -c1m2z - (c1m2x*an3-c1m2z*an1)*an1 )/mu1 ) ! coeff of v1(-1)
-           a12(0,5) = ( c1m2z*an1 + ( c1m2y     - (c1m2y*an1-c1m2x*an2)*an1 )/mu1 ) ! coeff of w1(-1)
-
-           a12(0,6) =-( c2m1x*an1 + (           - (c2m1z*an2-c2m1y*an3)*an1 )/mu2 ) ! coeff of u2(-1)
-           a12(0,7) =-( c2m1y*an1 + (    -c2m1z - (c2m1x*an3-c2m1z*an1)*an1 )/mu2 ) ! coeff of v2(-1)
-           a12(0,8) =-( c2m1z*an1 + ( c2m1y     - (c2m1y*an1-c2m1x*an2)*an1 )/mu2 ) ! coeff of w2(-1)
-
-           a12(0,9) =-( c2m2x*an1 + (           - (c2m2z*an2-c2m2y*an3)*an1 )/mu2 ) ! coeff of u2(-1)
-           a12(0,10)=-( c2m2y*an1 + (    -c2m2z - (c2m2x*an3-c2m2z*an1)*an1 )/mu2 ) ! coeff of v2(-1)
-           a12(0,11)=-( c2m2z*an1 + ( c2m2y     - (c2m2y*an1-c2m2x*an2)*an1 )/mu2 ) ! coeff of w2(-1)
-
-           ! Equation 1:
-           ! (u.x+v.y+w.z)*an2 + ( u1z-w1x - nDotCurlE1*an2)/mu1
-           a12(1,0) = ( c1m1x*an2 + ( c1m1z     - (c1m1z*an2-c1m1y*an3)*an2 )/mu1 ) ! coeff of u1(-1)
-           a12(1,1) = ( c1m1y*an2 + (           - (c1m1x*an3+c1m1z*an1)*an2 )/mu1 ) ! coeff of v1(-1)
-           a12(1,2) = ( c1m1z*an2 + (    -c1m1x - (c1m1y*an1-c1m1x*an2)*an2 )/mu1 ) ! coeff of w1(-1)
-
-           a12(1,3) = ( c1m2x*an2 + ( c1m2z     - (c1m2z*an2-c1m2y*an3)*an2 )/mu1 ) ! coeff of u1(-1)
-           a12(1,4) = ( c1m2y*an2 + (           - (c1m2x*an3+c1m2z*an1)*an2 )/mu1 ) ! coeff of v1(-1)
-           a12(1,5) = ( c1m2z*an2 + (    -c1m2x - (c1m2y*an1-c1m2x*an2)*an2 )/mu1 ) ! coeff of w1(-1)
-
-           a12(1,6) =-( c2m1x*an2 + ( c2m1z     - (c2m1z*an2-c2m1y*an3)*an2 )/mu2 ) ! coeff of u2(-1)
-           a12(1,7) =-( c2m1y*an2 + (           - (c2m1x*an3+c2m1z*an1)*an2 )/mu2 ) ! coeff of v2(-1)
-           a12(1,8) =-( c2m1z*an2 + (    -c2m1x - (c2m1y*an1-c2m1x*an2)*an2 )/mu2 ) ! coeff of w2(-1)
-
-           a12(1,9) =-( c2m2x*an2 + ( c2m2z     - (c2m2z*an2-c2m2y*an3)*an2 )/mu2 ) ! coeff of u2(-1)
-           a12(1,10)=-( c2m2y*an2 + (           - (c2m2x*an3+c2m2z*an1)*an2 )/mu2 ) ! coeff of v2(-1)
-           a12(1,11)=-( c2m2z*an2 + (    -c2m2x - (c2m2y*an1-c2m2x*an2)*an2 )/mu2 ) ! coeff of w2(-1)
-
-           ! Equation 2:
-           ! (u.x+v.y+w.z)*an3 + ( v1x-u1y - nDotCurlE1*an2)/mu1
-           a12(2,0) = ( c1m1x*an3 + (    -c1m1y - (c1m1z*an2-c1m1y*an3)*an3 )/mu1 ) ! coeff of u1(-1)
-           a12(2,1) = ( c1m1y*an3 + ( c1m1x     - (c1m1x*an3+c1m1z*an1)*an3 )/mu1 ) ! coeff of v1(-1)
-           a12(2,2) = ( c1m1z*an3 + (           - (c1m1y*an1-c1m1x*an2)*an3 )/mu1 ) ! coeff of w1(-1)
-
-           a12(2,3) = ( c1m2x*an3 + (    -c1m2y - (c1m2z*an2-c1m2y*an3)*an3 )/mu1 ) ! coeff of u1(-1)
-           a12(2,4) = ( c1m2y*an3 + ( c1m2x     - (c1m2x*an3+c1m2z*an1)*an3 )/mu1 ) ! coeff of v1(-1)
-           a12(2,5) = ( c1m2z*an3 + (           - (c1m2y*an1-c1m2x*an2)*an3 )/mu1 ) ! coeff of w1(-1)
-
-           a12(2,6) =-( c2m1x*an3 + (    -c2m1y - (c2m1z*an2-c2m1y*an3)*an3 )/mu2 ) ! coeff of u2(-1)
-           a12(2,7) =-( c2m1y*an3 + ( c2m1x     - (c2m1x*an3+c2m1z*an1)*an3 )/mu2 ) ! coeff of v2(-1)
-           a12(2,8) =-( c2m1z*an3 + (           - (c2m1y*an1-c2m1x*an2)*an3 )/mu2 ) ! coeff of w2(-1)
-
-           a12(2,9) =-( c2m2x*an3 + (    -c2m2y - (c2m2z*an2-c2m2y*an3)*an3 )/mu2 ) ! coeff of u2(-1)
-           a12(2,10)=-( c2m2y*an3 + ( c2m2x     - (c2m2x*an3+c2m2z*an1)*an3 )/mu2 ) ! coeff of v2(-1)
-           a12(2,11)=-( c2m2z*an3 + (           - (c2m2y*an1-c2m2x*an2)*an3 )/mu2 ) ! coeff of w2(-1)
-
-           ! Equation 3:
-           !  u1Lap/(epsmu1) + cem1*( an1*u1Lap + an2*v1Lap + an3*w1Lap )*an1
-           a12(3,0) = ( clap1m1/(epsmu1) + cem1*( an1*clap1m1                         )*an1 ) ! coeff of u1(-1)
-           a12(3,1) = (                    cem1*(             an2*clap1m1             )*an1 )
-           a12(3,2) = (                    cem1*(                         an3*clap1m1 )*an1 )
-
-           a12(3,3) = ( clap1m2/(epsmu1) + cem1*( an1*clap1m2                         )*an1 ) ! coeff of u1(-2)
-           a12(3,4) = (                    cem1*(             an2*clap1m2             )*an1 )
-           a12(3,5) = (                    cem1*(                         an3*clap1m2 )*an1 )
-
-           a12(3,6) =-( clap2m1/(epsmu2) + cem2*( an1*clap2m1                         )*an1 ) ! coeff of u2(-1)
-           a12(3,7) =-(                    cem2*(             an2*clap2m1             )*an1 )
-           a12(3,8) =-(                    cem2*(                         an3*clap2m1 )*an1 )
-
-           a12(3,9) =-( clap2m2/(epsmu2) + cem2*( an1*clap2m2                         )*an1 ) ! coeff of u2(-2)
-           a12(3,10)=-(                    cem2*(             an2*clap2m2             )*an1 )
-           a12(3,11)=-(                    cem2*(                         an3*clap2m2 )*an1 )
-
-           ! Equation 4:
-           !  v1Lap/(epsmu1) + cem1*( an1*u1Lap + an2*v1Lap + an3*w1Lap )*an2
-           a12(4,0) = (                    cem1*( an1*clap1m1                         )*an2 ) ! coeff of u1(-1)
-           a12(4,1) = ( clap1m1/(epsmu1) + cem1*(             an2*clap1m1             )*an2 )
-           a12(4,2) = (                    cem1*(                         an3*clap1m1 )*an2 )
-
-           a12(4,3) = (                    cem1*( an1*clap1m2                         )*an2 ) ! coeff of u1(-2)
-           a12(4,4) = ( clap1m2/(epsmu1) + cem1*(             an2*clap1m2             )*an2 )
-           a12(4,5) = (                    cem1*(                         an3*clap1m2 )*an2 )
-
-           a12(4,6) =-(                    cem2*( an1*clap2m1                         )*an2 ) ! coeff of u2(-1)
-           a12(4,7) =-( clap2m1/(epsmu2) + cem2*(             an2*clap2m1             )*an2 )
-           a12(4,8) =-(                    cem2*(                         an3*clap2m1 )*an2 )
-
-           a12(4,9) =-(                    cem2*( an1*clap2m2                         )*an2 ) ! coeff of u2(-2)
-           a12(4,10)=-( clap2m2/(epsmu2) + cem2*(             an2*clap2m2             )*an2 )
-           a12(4,11)=-(                    cem2*(                         an3*clap2m2 )*an2 )
-
-           ! Equation 5:
-           !  w1Lap/(epsmu1) + cem1*( an1*u1Lap + an2*v1Lap + an3*w1Lap )*an3
-           a12(5,0) = (                    cem1*( an1*clap1m1                         )*an3 ) ! coeff of u1(-1)
-           a12(5,1) = (                    cem1*(             an2*clap1m1             )*an3 )
-           a12(5,2) = ( clap1m1/(epsmu1) + cem1*(                         an3*clap1m1 )*an3 )
-
-           a12(5,3) = (                    cem1*( an1*clap1m2                         )*an3 ) ! coeff of u1(-2)
-           a12(5,4) = (                    cem1*(             an2*clap1m2             )*an3 )
-           a12(5,5) = ( clap1m2/(epsmu1) + cem1*(                         an3*clap1m2 )*an3 )
-
-           a12(5,6) =-(                    cem2*( an1*clap2m1                         )*an3 ) ! coeff of u2(-1)
-           a12(5,7) =-(                    cem2*(             an2*clap2m1             )*an3 )
-           a12(5,8) =-( clap2m1/(epsmu2) + cem2*(                         an3*clap2m1 )*an3 )
-
-           a12(5,9) =-(                    cem2*( an1*clap2m2                         )*an3 ) ! coeff of u2(-2)
-           a12(5,10)=-(                    cem2*(             an2*clap2m2             )*an3 )
-           a12(5,11)=-( clap2m2/(epsmu2) + cem2*(                         an3*clap2m2 )*an3 )
-
-           ! Equation 6..11 :  extrapolate 2nd ghost point 
-           cex1=1.
-           cex2=-5. ! ** fix me ** orderOfExtrapolation for 2nd ghost point 
-           do ii=6,11
-             do jj=0,11
-               a12(ii,jj)=0.
-             end do
-           end do
-           a12(6,0)  = cex2   ! u1(-1)
-           a12(6,3)  = cex1   ! u1(-2)
-
-           a12(7,1)  = cex2   ! v1(-1)
-           a12(7,4)  = cex1   ! v1(-2)
-
-           a12(8,2)  = cex2   ! w1(-1)
-           a12(8,5)  = cex1   ! w1(-2)
-
-           a12(9,6)  = cex2   ! u2(-1)
-           a12(9,9)  = cex1   ! u2(-2)
-
-           a12(10,7) = cex2   ! v2(-1)
-           a12(10,10)= cex1   ! v2(-2)
-
-           a12(11,8) = cex2   ! w2(-1)
-           a12(11,11)= cex1   ! w2(-2)
-
-           ! fill in the current values for the unknowns: 
-           q(0) = u1(i1-is1,i2-is2,i3-is3,ex)
-           q(1) = u1(i1-is1,i2-is2,i3-is3,ey)
-           q(2) = u1(i1-is1,i2-is2,i3-is3,ez)
-           q(3) = u1(i1-2*is1,i2-2*is2,i3-2*is3,ex)
-           q(4) = u1(i1-2*is1,i2-2*is2,i3-2*is3,ey)
-           q(5) = u1(i1-2*is1,i2-2*is2,i3-2*is3,ez)
-
-           q(6) = u2(j1-js1,j2-js2,j3-js3,ex)
-           q(7) = u2(j1-js1,j2-js2,j3-js3,ey)
-           q(8) = u2(j1-js1,j2-js2,j3-js3,ez)
-           q(9) = u2(j1-2*js1,j2-2*js2,j3-2*js3,ex)
-           q(10)= u2(j1-2*js1,j2-2*js2,j3-2*js3,ey)
-           q(11)= u2(j1-2*js1,j2-2*js2,j3-2*js3,ez)
-
-           ! subtract off the contributions from the wrong values at the ghost points:
-           numberOfEquations=12
-           do n=0,numberOfEquations-1
-             f(n) = (a12(n,0)*q(0)+a12(n,1)*q(1)+a12(n,2)*q(2)+a12(n,3)*q(3)+a12(n,4)*q(4)+a12(n,5)*q(5)+\
-                     a12(n,6)*q(6)+a12(n,7)*q(7)+a12(n,8)*q(8)+a12(n,9)*q(9)+a12(n,10)*q(10)+a12(n,11)*q(11) ) - f(n)
-           end do
-      ! write(debugFile,'(" --> 3d:order2-c: f(subtract)=",6f8.3)') f(0),f(1),f(2),f(3),f(4),f(5)
-           ! solve A Q = F
-           ! factor the matrix
-           call dgeco( a12(0,0), numberOfEquations, numberOfEquations, ipvt(0),rcond,work(0))
-           ! solve
-      ! write(debugFile,'(" --> 3d:order2-c: rcond=",e10.2)') rcond
-           job=0
-           call dgesl( a12(0,0), numberOfEquations, numberOfEquations, ipvt(0), f(0), job)
-      ! write(debugFile,'(" --> 3d:order2-c: f(solve)=",6f8.3)') f(0),f(1),f(2),f(3),f(4),f(5)
-      ! write(debugFile,'(" --> 3d:order2-c:        q=",6f8.3)') q(0),q(1),q(2),q(3),q(4),q(5)
-
-           ! fill in the answer:
-           u1(i1-is1,i2-is2,i3-is3,ex)      =f(0)
-           u1(i1-is1,i2-is2,i3-is3,ey)      =f(1)
-           u1(i1-is1,i2-is2,i3-is3,ez)      =f(2)
-           u1(i1-2*is1,i2-2*is2,i3-2*is3,ex)=f(3)
-           u1(i1-2*is1,i2-2*is2,i3-2*is3,ey)=f(4)
-           u1(i1-2*is1,i2-2*is2,i3-2*is3,ez)=f(5)
-
-           u2(j1-js1,j2-js2,j3-js3,ex)      =f(6)
-           u2(j1-js1,j2-js2,j3-js3,ey)      =f(7)
-           u2(j1-js1,j2-js2,j3-js3,ez)      =f(8)
-           u2(j1-2*js1,j2-2*js2,j3-2*js3,ex)=f(9)
-           u2(j1-2*js1,j2-2*js2,j3-2*js3,ey)=f(10)
-           u2(j1-2*js1,j2-2*js2,j3-2*js3,ez)=f(11)
-
-
-           if( debug.gt.3 )then ! re-evaluate
+         extrapGhost()
+ 
+ 
+          ! here are the jump conditions for the ghost points
+          !   [ div(E) n + (curl(E)- n.curl(E) n )/mu ] =0                 (3 eqns)
+          !   [ Lap(E)/(eps*mu) + (1/mu)*(1-1/eps)*( n.Lap(E) ) n ] = 0    (3 eqns)
+ 
+          ! These correspond to the 6 conditions:
+          !   [ div(E) ] =0 
+          !   [ tau. curl(E)/mu ] = 0       (2 tangents)
+          !   [ n.Lap(E)/mu ] = 0 
+          !   [ tau.Lap(E)/(eps*mu) ] = 0   (2 tangents)
+ 
+          errOld=err
+          ratioAve=0.
+          do it=1,nit ! *** begin iteration ****
+          err=0.
+ 
+          beginLoopsMask3d()
+ 
+            ! here is the normal (assumed to be the same on both sides)
+            an1=rsxy1(i1,i2,i3,axis1,0)   ! normal (an1,an2)
+            an2=rsxy1(i1,i2,i3,axis1,1)
+            an3=rsxy1(i1,i2,i3,axis1,2)
+            aNorm=max(epsx,sqrt(an1**2+an2**2+an3**2))
+            an1=an1/aNorm
+            an2=an2/aNorm
+            an3=an3/aNorm
+ 
+ 
+            ! --- first evaluate the equations we want to solve with the wrong values at the ghost points:
+ 
+            cem1=(1.-1./eps1)/mu1
+            cem2=(1.-1./eps2)/mu2
+            ! evalInterfaceDerivatives3d
             evalInterfaceDerivatives3d()
             eval3dJumpOrder4()
-            write(debugFile,'(" --> 3d-order4-c: i1,i2,i3=",3i4," f(re-eval)=",12e10.2)') i1,i2,i3,f(0),f(1),f(2),f(3),f(4),f(5),f(6),f(7),f(8),f(9),f(10),f(11)
-              ! '
-           end if
+ 
+            if( debug.gt.4 )then
+             write(debugFile,'(/," --> 3d-order4-curv: i1,i2,i3=",3i4," an1,an2,an3=",3e11.3)') i1,i2,i3,an1,an2,an3
+             write(debugFile,'(" --> 3d-order4-curv: i1,i2,i3=",3i4," f(start)=",12e10.2)') i1,i2,i3,f(0),f(1),f(2),f(3),f(4),f(5),f(6),f(7),f(8),f(9),f(10),f(11)
+             ! '
+             write(debugFile,'(" --> u1x,u1y,u1z,v1x,v1y,v1z=",6f8.4)') u1x,u1y,u1z,v1x,v1y,v1z
+             write(debugFile,'(" --> u2x,u2y,u2z,v2x,v2y,v2z=",6f8.4)') u2x,u2y,u2z,v2x,v2y,v2z
+  
+             write(debugFile,'(" --> vv1r,vv1s,vv1t         =",3e9.2)') vv1r,vv1s,vv1t
+             do k3=-1,1
+             do k2=-1,1
+             write(debugFile,'(" --> v1: =",3f8.4)') u1(i1-1,i2+k2,i3+k3,ey),u1(i1,i2+k2,i3+k3,ey),u1(i1+1,i2+k2,i3+k3,ey)
+             end do
+             end do
+             do k3=-1,1
+             do k2=-1,1
+             write(debugFile,'(" --> v2: =",3f8.4)') u2(j1-1,j2+k2,j3+k3,ey),u2(j1,j2+k2,j3+k3,ey),u2(j1+1,j2+k2,j3+k3,ey)
+             end do
+             end do
+             ! '
+            end if
+ 
+            ! here is the matrix of coefficients for the unknowns u1(-1),v1(-1),w1(-1),  u2(-1),v2(-1),w2(-1)
+            ! Solve:
+            !     
+            !       A [ U ] = A [ U(old) ] - [ f ]
+ 
+ 
+            c1m1x = -is*8.*rsxy1(i1,i2,i3,axis1,0)/(12.*dr1(axis1))    ! coeff of u1(-1) from D.x
+            c1m1y = -is*8.*rsxy1(i1,i2,i3,axis1,1)/(12.*dr1(axis1))    ! coeff of u1(-1) from D.y 
+            c1m1z = -is*8.*rsxy1(i1,i2,i3,axis1,2)/(12.*dr1(axis1))    ! coeff of u1(-1) from D.z
+ 
+            c1m2x =  is   *rsxy1(i1,i2,i3,axis1,0)/(12.*dr1(axis1))    ! coeff of u1(-2) from D.x
+            c1m2y =  is   *rsxy1(i1,i2,i3,axis1,1)/(12.*dr1(axis1))    ! coeff of u1(-2) from D.y 
+            c1m2z =  is   *rsxy1(i1,i2,i3,axis1,2)/(12.*dr1(axis1))    ! coeff of u1(-2) from D.z
+ 
+            c2m1x = -js*8.*rsxy2(j1,j2,j3,axis2,0)/(12.*dr2(axis2))    ! coeff of u2(-1) from D.x
+            c2m1y = -js*8.*rsxy2(j1,j2,j3,axis2,1)/(12.*dr2(axis2))
+            c2m1z = -js*8.*rsxy2(j1,j2,j3,axis2,2)/(12.*dr2(axis2))
+ 
+            c2m2x =  js   *rsxy2(j1,j2,j3,axis2,0)/(12.*dr2(axis2))
+            c2m2y =  js   *rsxy2(j1,j2,j3,axis2,1)/(12.*dr2(axis2))
+            c2m2z =  js   *rsxy2(j1,j2,j3,axis2,2)/(12.*dr2(axis2))
+ 
+            rxx1(0,0,0)=aj1rxx
+            rxx1(0,1,1)=aj1ryy
+            rxx1(0,2,2)=aj1rzz
+            rxx1(1,0,0)=aj1sxx
+            rxx1(1,1,1)=aj1syy
+            rxx1(1,2,2)=aj1szz
+            rxx1(2,0,0)=aj1txx
+            rxx1(2,1,1)=aj1tyy
+            rxx1(2,2,2)=aj1tzz
+ 
+            rxx2(0,0,0)=aj2rxx
+            rxx2(0,1,1)=aj2ryy
+            rxx2(0,2,2)=aj2rzz
+            rxx2(1,0,0)=aj2sxx
+            rxx2(1,1,1)=aj2syy
+            rxx2(1,2,2)=aj2szz
+            rxx2(2,0,0)=aj2txx
+            rxx2(2,1,1)=aj2tyy
+            rxx2(2,2,2)=aj2tzz
+ 
+            ! clap1m1 : coeff of u(-1) from lap1 = u1.xx + u1.yy + u1.zz
+            ! clap1m2 : coeff of u(-2) from lap1 = u1.xx + u1.yy + u1.zz
+ 
+ ! here are the macros from deriv.maple (file=derivMacros.h)
+ ! defineMacro lapCoeff4a(is,dr,ds) ( (-2/3.*rxx*is-2/3.*ryy*is)/dr+(4/3.*rx**2+4/3.*ry**2)/dr**2 )
+ ! defineMacro lapCoeff4b(is,dr,ds) ( (1/12.*rxx*is+1/12.*ryy*is)/dr+(-1/12.*rx**2-1/12.*ry**2)/dr**2 )
+            
+            clap1m1=4./3.*(rsxy1(i1,i2,i3,axis1,0)**2+rsxy1(i1,i2,i3,axis1,1)**2+rsxy1(i1,i2,i3,axis1,2)**2)/(dr1(axis1)**2) \
+                      -is*2./3.*(rxx1(axis1,0,0)+rxx1(axis1,1,1)+rxx1(axis1,2,2))/(2.*dr1(axis1))
+            clap1m2=-1./12.*(rsxy1(i1,i2,i3,axis1,0)**2+rsxy1(i1,i2,i3,axis1,1)**2+rsxy1(i1,i2,i3,axis1,2)**2)/(dr1(axis1)**2) \
+                      +is*1./12.*(rxx1(axis1,0,0)+rxx1(axis1,1,1)+rxx1(axis1,2,2))/(2.*dr1(axis1)) 
+ 
+            clap2m1=4/3.*(rsxy2(j1,j2,j3,axis2,0)**2+rsxy2(j1,j2,j3,axis2,1)**2+rsxy2(j1,j2,j3,axis2,2)**2)/(dr2(axis2)**2) \
+                      -js*2./3.*(rxx2(axis2,0,0)+rxx2(axis2,1,1)+rxx2(axis2,2,2))/(2.*dr2(axis2)) 
+            clap2m2=-1./12.*(rsxy2(j1,j2,j3,axis2,0)**2+rsxy2(j1,j2,j3,axis2,1)**2+rsxy2(j1,j2,j3,axis2,2)**2)/(dr2(axis2)**2) \
+                      +js*1./12.*(rxx2(axis2,0,0)+rxx2(axis2,1,1)+rxx2(axis2,2,2))/(2.*dr2(axis2))
+ 
+            ! cdivE1 =  u.c1x + v.c1y + w.c1z
+            ! nDotCurlE1 = (w1y-v1z)*an1 + (u1z-w1x)*an2 + (v1x-u1y)*an3
+ 
+            ! 12 Unknowns:
+            !   u1(-1), v1(-1), w1(-1), u1(-2), v1(-2), w1(-2), 
+            !   u2(-1), v2(-1), w2(-1), u2(-2), v2(-2), w2(-2)  
+            ! 12 Equations: 
+            !    a12(eqn,unknown) 
+ 
+            ! Equation 0: 
+            ! (u.x+v.y+w.z)*an1 + ( w1y-v1z - nDotCurlE1*an1)/mu1
+            a12(0,0) = ( c1m1x*an1 + (           - (c1m1z*an2-c1m1y*an3)*an1 )/mu1 ) ! coeff of u1(-1)
+            a12(0,1) = ( c1m1y*an1 + (    -c1m1z - (c1m1x*an3-c1m1z*an1)*an1 )/mu1 ) ! coeff of v1(-1)
+            a12(0,2) = ( c1m1z*an1 + ( c1m1y     - (c1m1y*an1-c1m1x*an2)*an1 )/mu1 ) ! coeff of w1(-1)
+ 
+            a12(0,3) = ( c1m2x*an1 + (           - (c1m2z*an2-c1m2y*an3)*an1 )/mu1 ) ! coeff of u1(-1)
+            a12(0,4) = ( c1m2y*an1 + (    -c1m2z - (c1m2x*an3-c1m2z*an1)*an1 )/mu1 ) ! coeff of v1(-1)
+            a12(0,5) = ( c1m2z*an1 + ( c1m2y     - (c1m2y*an1-c1m2x*an2)*an1 )/mu1 ) ! coeff of w1(-1)
+ 
+            a12(0,6) =-( c2m1x*an1 + (           - (c2m1z*an2-c2m1y*an3)*an1 )/mu2 ) ! coeff of u2(-1)
+            a12(0,7) =-( c2m1y*an1 + (    -c2m1z - (c2m1x*an3-c2m1z*an1)*an1 )/mu2 ) ! coeff of v2(-1)
+            a12(0,8) =-( c2m1z*an1 + ( c2m1y     - (c2m1y*an1-c2m1x*an2)*an1 )/mu2 ) ! coeff of w2(-1)
+ 
+            a12(0,9) =-( c2m2x*an1 + (           - (c2m2z*an2-c2m2y*an3)*an1 )/mu2 ) ! coeff of u2(-1)
+            a12(0,10)=-( c2m2y*an1 + (    -c2m2z - (c2m2x*an3-c2m2z*an1)*an1 )/mu2 ) ! coeff of v2(-1)
+            a12(0,11)=-( c2m2z*an1 + ( c2m2y     - (c2m2y*an1-c2m2x*an2)*an1 )/mu2 ) ! coeff of w2(-1)
+ 
+            ! Equation 1:
+            ! (u.x+v.y+w.z)*an2 + ( u1z-w1x - nDotCurlE1*an2)/mu1
+            a12(1,0) = ( c1m1x*an2 + ( c1m1z     - (c1m1z*an2-c1m1y*an3)*an2 )/mu1 ) ! coeff of u1(-1)
+            a12(1,1) = ( c1m1y*an2 + (           - (c1m1x*an3+c1m1z*an1)*an2 )/mu1 ) ! coeff of v1(-1)
+            a12(1,2) = ( c1m1z*an2 + (    -c1m1x - (c1m1y*an1-c1m1x*an2)*an2 )/mu1 ) ! coeff of w1(-1)
+ 
+            a12(1,3) = ( c1m2x*an2 + ( c1m2z     - (c1m2z*an2-c1m2y*an3)*an2 )/mu1 ) ! coeff of u1(-1)
+            a12(1,4) = ( c1m2y*an2 + (           - (c1m2x*an3+c1m2z*an1)*an2 )/mu1 ) ! coeff of v1(-1)
+            a12(1,5) = ( c1m2z*an2 + (    -c1m2x - (c1m2y*an1-c1m2x*an2)*an2 )/mu1 ) ! coeff of w1(-1)
+ 
+            a12(1,6) =-( c2m1x*an2 + ( c2m1z     - (c2m1z*an2-c2m1y*an3)*an2 )/mu2 ) ! coeff of u2(-1)
+            a12(1,7) =-( c2m1y*an2 + (           - (c2m1x*an3+c2m1z*an1)*an2 )/mu2 ) ! coeff of v2(-1)
+            a12(1,8) =-( c2m1z*an2 + (    -c2m1x - (c2m1y*an1-c2m1x*an2)*an2 )/mu2 ) ! coeff of w2(-1)
+ 
+            a12(1,9) =-( c2m2x*an2 + ( c2m2z     - (c2m2z*an2-c2m2y*an3)*an2 )/mu2 ) ! coeff of u2(-1)
+            a12(1,10)=-( c2m2y*an2 + (           - (c2m2x*an3+c2m2z*an1)*an2 )/mu2 ) ! coeff of v2(-1)
+            a12(1,11)=-( c2m2z*an2 + (    -c2m2x - (c2m2y*an1-c2m2x*an2)*an2 )/mu2 ) ! coeff of w2(-1)
+ 
+            ! Equation 2:
+            ! (u.x+v.y+w.z)*an3 + ( v1x-u1y - nDotCurlE1*an2)/mu1
+            a12(2,0) = ( c1m1x*an3 + (    -c1m1y - (c1m1z*an2-c1m1y*an3)*an3 )/mu1 ) ! coeff of u1(-1)
+            a12(2,1) = ( c1m1y*an3 + ( c1m1x     - (c1m1x*an3+c1m1z*an1)*an3 )/mu1 ) ! coeff of v1(-1)
+            a12(2,2) = ( c1m1z*an3 + (           - (c1m1y*an1-c1m1x*an2)*an3 )/mu1 ) ! coeff of w1(-1)
+ 
+            a12(2,3) = ( c1m2x*an3 + (    -c1m2y - (c1m2z*an2-c1m2y*an3)*an3 )/mu1 ) ! coeff of u1(-1)
+            a12(2,4) = ( c1m2y*an3 + ( c1m2x     - (c1m2x*an3+c1m2z*an1)*an3 )/mu1 ) ! coeff of v1(-1)
+            a12(2,5) = ( c1m2z*an3 + (           - (c1m2y*an1-c1m2x*an2)*an3 )/mu1 ) ! coeff of w1(-1)
+ 
+            a12(2,6) =-( c2m1x*an3 + (    -c2m1y - (c2m1z*an2-c2m1y*an3)*an3 )/mu2 ) ! coeff of u2(-1)
+            a12(2,7) =-( c2m1y*an3 + ( c2m1x     - (c2m1x*an3+c2m1z*an1)*an3 )/mu2 ) ! coeff of v2(-1)
+            a12(2,8) =-( c2m1z*an3 + (           - (c2m1y*an1-c2m1x*an2)*an3 )/mu2 ) ! coeff of w2(-1)
+ 
+            a12(2,9) =-( c2m2x*an3 + (    -c2m2y - (c2m2z*an2-c2m2y*an3)*an3 )/mu2 ) ! coeff of u2(-1)
+            a12(2,10)=-( c2m2y*an3 + ( c2m2x     - (c2m2x*an3+c2m2z*an1)*an3 )/mu2 ) ! coeff of v2(-1)
+            a12(2,11)=-( c2m2z*an3 + (           - (c2m2y*an1-c2m2x*an2)*an3 )/mu2 ) ! coeff of w2(-1)
+ 
+            ! Equation 3:
+            !  u1Lap/(epsmu1) + cem1*( an1*u1Lap + an2*v1Lap + an3*w1Lap )*an1
+            a12(3,0) = ( clap1m1/(epsmu1) + cem1*( an1*clap1m1                         )*an1 ) ! coeff of u1(-1)
+            a12(3,1) = (                    cem1*(             an2*clap1m1             )*an1 )
+            a12(3,2) = (                    cem1*(                         an3*clap1m1 )*an1 )
+ 
+            a12(3,3) = ( clap1m2/(epsmu1) + cem1*( an1*clap1m2                         )*an1 ) ! coeff of u1(-2)
+            a12(3,4) = (                    cem1*(             an2*clap1m2             )*an1 )
+            a12(3,5) = (                    cem1*(                         an3*clap1m2 )*an1 )
+ 
+            a12(3,6) =-( clap2m1/(epsmu2) + cem2*( an1*clap2m1                         )*an1 ) ! coeff of u2(-1)
+            a12(3,7) =-(                    cem2*(             an2*clap2m1             )*an1 )
+            a12(3,8) =-(                    cem2*(                         an3*clap2m1 )*an1 )
+ 
+            a12(3,9) =-( clap2m2/(epsmu2) + cem2*( an1*clap2m2                         )*an1 ) ! coeff of u2(-2)
+            a12(3,10)=-(                    cem2*(             an2*clap2m2             )*an1 )
+            a12(3,11)=-(                    cem2*(                         an3*clap2m2 )*an1 )
+ 
+            ! Equation 4:
+            !  v1Lap/(epsmu1) + cem1*( an1*u1Lap + an2*v1Lap + an3*w1Lap )*an2
+            a12(4,0) = (                    cem1*( an1*clap1m1                         )*an2 ) ! coeff of u1(-1)
+            a12(4,1) = ( clap1m1/(epsmu1) + cem1*(             an2*clap1m1             )*an2 )
+            a12(4,2) = (                    cem1*(                         an3*clap1m1 )*an2 )
+ 
+            a12(4,3) = (                    cem1*( an1*clap1m2                         )*an2 ) ! coeff of u1(-2)
+            a12(4,4) = ( clap1m2/(epsmu1) + cem1*(             an2*clap1m2             )*an2 )
+            a12(4,5) = (                    cem1*(                         an3*clap1m2 )*an2 )
+ 
+            a12(4,6) =-(                    cem2*( an1*clap2m1                         )*an2 ) ! coeff of u2(-1)
+            a12(4,7) =-( clap2m1/(epsmu2) + cem2*(             an2*clap2m1             )*an2 )
+            a12(4,8) =-(                    cem2*(                         an3*clap2m1 )*an2 )
+ 
+            a12(4,9) =-(                    cem2*( an1*clap2m2                         )*an2 ) ! coeff of u2(-2)
+            a12(4,10)=-( clap2m2/(epsmu2) + cem2*(             an2*clap2m2             )*an2 )
+            a12(4,11)=-(                    cem2*(                         an3*clap2m2 )*an2 )
+ 
+            ! Equation 5:
+            !  w1Lap/(epsmu1) + cem1*( an1*u1Lap + an2*v1Lap + an3*w1Lap )*an3
+            a12(5,0) = (                    cem1*( an1*clap1m1                         )*an3 ) ! coeff of u1(-1)
+            a12(5,1) = (                    cem1*(             an2*clap1m1             )*an3 )
+            a12(5,2) = ( clap1m1/(epsmu1) + cem1*(                         an3*clap1m1 )*an3 )
+ 
+            a12(5,3) = (                    cem1*( an1*clap1m2                         )*an3 ) ! coeff of u1(-2)
+            a12(5,4) = (                    cem1*(             an2*clap1m2             )*an3 )
+            a12(5,5) = ( clap1m2/(epsmu1) + cem1*(                         an3*clap1m2 )*an3 )
+ 
+            a12(5,6) =-(                    cem2*( an1*clap2m1                         )*an3 ) ! coeff of u2(-1)
+            a12(5,7) =-(                    cem2*(             an2*clap2m1             )*an3 )
+            a12(5,8) =-( clap2m1/(epsmu2) + cem2*(                         an3*clap2m1 )*an3 )
+ 
+            a12(5,9) =-(                    cem2*( an1*clap2m2                         )*an3 ) ! coeff of u2(-2)
+            a12(5,10)=-(                    cem2*(             an2*clap2m2             )*an3 )
+            a12(5,11)=-( clap2m2/(epsmu2) + cem2*(                         an3*clap2m2 )*an3 )
+ 
+            ! Equation 6..11 :  extrapolate 2nd ghost point 
+            cex1=1.
+            cex2=-5. ! ** fix me ** orderOfExtrapolation for 2nd ghost point 
+            do ii=6,11
+              do jj=0,11
+                a12(ii,jj)=0.
+              end do
+            end do
+            a12(6,0)  = cex2   ! u1(-1)
+            a12(6,3)  = cex1   ! u1(-2)
+ 
+            a12(7,1)  = cex2   ! v1(-1)
+            a12(7,4)  = cex1   ! v1(-2)
+ 
+            a12(8,2)  = cex2   ! w1(-1)
+            a12(8,5)  = cex1   ! w1(-2)
+ 
+            a12(9,6)  = cex2   ! u2(-1)
+            a12(9,9)  = cex1   ! u2(-2)
+ 
+            a12(10,7) = cex2   ! v2(-1)
+            a12(10,10)= cex1   ! v2(-2)
+ 
+            a12(11,8) = cex2   ! w2(-1)
+            a12(11,11)= cex1   ! w2(-2)
+ 
+            ! fill in the current values for the unknowns: 
+            q(0) = u1(i1-is1,i2-is2,i3-is3,ex)
+            q(1) = u1(i1-is1,i2-is2,i3-is3,ey)
+            q(2) = u1(i1-is1,i2-is2,i3-is3,ez)
+            q(3) = u1(i1-2*is1,i2-2*is2,i3-2*is3,ex)
+            q(4) = u1(i1-2*is1,i2-2*is2,i3-2*is3,ey)
+            q(5) = u1(i1-2*is1,i2-2*is2,i3-2*is3,ez)
+ 
+            q(6) = u2(j1-js1,j2-js2,j3-js3,ex)
+            q(7) = u2(j1-js1,j2-js2,j3-js3,ey)
+            q(8) = u2(j1-js1,j2-js2,j3-js3,ez)
+            q(9) = u2(j1-2*js1,j2-2*js2,j3-2*js3,ex)
+            q(10)= u2(j1-2*js1,j2-2*js2,j3-2*js3,ey)
+            q(11)= u2(j1-2*js1,j2-2*js2,j3-2*js3,ez)
+ 
+            ! subtract off the contributions from the wrong values at the ghost points:
+            numberOfEquations=12
+            do n=0,numberOfEquations-1
+              f(n) = (a12(n,0)*q(0)+a12(n,1)*q(1)+a12(n,2)*q(2)+a12(n,3)*q(3)+a12(n,4)*q(4)+a12(n,5)*q(5)+\
+                      a12(n,6)*q(6)+a12(n,7)*q(7)+a12(n,8)*q(8)+a12(n,9)*q(9)+a12(n,10)*q(10)+a12(n,11)*q(11) ) - f(n)
+            end do
+            ! write(debugFile,'(" --> 3d:order2-c: f(subtract)=",6f8.3)') f(0),f(1),f(2),f(3),f(4),f(5)
+            ! solve A Q = F
+            ! factor the matrix
+            call dgeco( a12(0,0), numberOfEquations, numberOfEquations, ipvt(0),rcond,work(0))
+            ! solve
+             ! write(debugFile,'(" --> 3d:order2-c: rcond=",e10.2)') rcond
+            job=0
+            call dgesl( a12(0,0), numberOfEquations, numberOfEquations, ipvt(0), f(0), job)
+            ! write(debugFile,'(" --> 3d:order2-c: f(solve)=",6f8.3)') f(0),f(1),f(2),f(3),f(4),f(5)
+            ! write(debugFile,'(" --> 3d:order2-c:        q=",6f8.3)') q(0),q(1),q(2),q(3),q(4),q(5)
+ 
+            ! fill in the answer:
+            u1(i1-is1,i2-is2,i3-is3,ex)      =f(0)
+            u1(i1-is1,i2-is2,i3-is3,ey)      =f(1)
+            u1(i1-is1,i2-is2,i3-is3,ez)      =f(2)
+            u1(i1-2*is1,i2-2*is2,i3-2*is3,ex)=f(3)
+            u1(i1-2*is1,i2-2*is2,i3-2*is3,ey)=f(4)
+            u1(i1-2*is1,i2-2*is2,i3-2*is3,ez)=f(5)
+ 
+            u2(j1-js1,j2-js2,j3-js3,ex)      =f(6)
+            u2(j1-js1,j2-js2,j3-js3,ey)      =f(7)
+            u2(j1-js1,j2-js2,j3-js3,ez)      =f(8)
+            u2(j1-2*js1,j2-2*js2,j3-2*js3,ex)=f(9)
+            u2(j1-2*js1,j2-2*js2,j3-2*js3,ey)=f(10)
+            u2(j1-2*js1,j2-2*js2,j3-2*js3,ez)=f(11)
+ 
+             ! compute the maximum change in the solution for this iteration
+            do n=0,11
+              err=max(err,abs(q(n)-f(n)))
+            end do
 
-         endLoopsMask3d()
+            if( debug.gt.3 )then ! re-evaluate
+             evalInterfaceDerivatives3d()
+             eval3dJumpOrder4()
+             write(debugFile,'(" --> 3d-order4-c: i1,i2,i3=",3i4," f(re-eval)=",12e10.2)') i1,i2,i3,f(0),f(1),f(2),f(3),f(4),f(5),f(6),f(7),f(8),f(9),f(10),f(11)
+               ! '
+            end if
+ 
+          endLoopsMask3d()
+ 
+          if( it.eq.1 )then
+            errRatio=1.
+          else
+            errRatio=err/errOld
+            ratioAve=ratioAve+errRatio
+          end if 
+          errOld=err
+ 
+          if( t.le.5*dt )then
+           write(*,'("interface3d[old] : t=",e10.3," (grid1,grid2)=(",i3,",",i3,"), it=",i3,", err=",e10.2," rate=",f5.2," (omega=",f4.2,")")') t,grid1,grid2,it,err,errRatio,omega
+          end if
 
-         ! periodic update
-         periodicUpdate3d(u1,boundaryCondition1,gridIndexRange1,side1,axis1)
-         periodicUpdate3d(u2,boundaryCondition2,gridIndexRange2,side2,axis2)
+          numberOfIterations=it
+          if( err.lt.absoluteErrorTolerance )then
+            exit
+          end if
+
+          end do ! end it
+ 
+          ipar(43) = numberOfIterations  ! returned value
+          rpar(22) = ratioAve/(numberOfIterations-1)
+          rpar(23) = err !  maxFinalResidual : return value 
 
 
-      else if( nd.eq.3 .and. orderOfAccuracy.eq.4 .and. gridType.eq.curvilinear )then
+          ! periodic update
+          periodicUpdate3d(u1,boundaryCondition1,gridIndexRange1,side1,axis1)
+          periodicUpdate3d(u2,boundaryCondition2,gridIndexRange2,side2,axis2)
+
+        end if ! end assignInterfaceGhostValues
+ 
+       else if( nd.eq.3 .and. orderOfAccuracy.eq.4 .and. gridType.eq.curvilinear )then
 
         ! *** NEW WAY *** use equations to get values on the 2nd ghost line
 
@@ -2232,7 +2283,9 @@ end if
         ! ***** 3D fourth-order curvilinear case *****
         ! ********************************************
 
-        write(*,'("interface3d : *NEW* order 4 with centered approx for 2nd ghost t=",e10.2)') t
+        if( t.lt.3*dt )then
+          write(*,'("interface3d : *NEW* order 4 with centered approx for 2nd ghost t=",e10.2)') t
+        end if
 
         if( solveForH .ne.0 )then
           stop 3017
@@ -2250,427 +2303,457 @@ end if
          ! ---- first satisfy the jump conditions on the boundary --------
          !    [ eps n.u ] = 0
          !    [ tau.u ] = 0
-         boundaryJumpConditions(3,curvilinear)
+         if( assignInterfaceValues.eq.1 )then
+           boundaryJumpConditions(3,curvilinear)
+         end if
 
-        if( .false. )then
-          beginGhostLoops3d()
-           write(debugFile,'(" -->JUMP v1(",i2,":",i2,",",i2,",",i2,") =",3f9.4)') i1-1,i1+1,i2,i3,u1(i1-1,i2,i3,ey),u1(i1,i2,i3,ey),u1(i1+1,i2,i3,ey)
-           ! '
-          endLoops3d()
-        end if
+        ! ----------------------------------------------
+        ! ----- assign ghost using jump conditions -----
+        ! ----------------------------------------------
+        if( assignInterfaceGhostValues.eq.1 )then
 
-        ! initialization step: assign first two ghost line by extrapolation
-        ! NOTE: assign ghost points outside the ends
-
-        if( interfaceOption.eq.1 )then
-          extrapGhost()
-        end if
-
-
-        ! here are the jump conditions for the ghost points
-        !   [ div(E) n + (curl(E)- n.curl(E) n )/mu ] =0                 (3 eqns)
-        !   [ Lap(E)/(eps*mu) + (1/mu)*(1-1/eps)*( n.Lap(E) ) n ] = 0    (3 eqns)
-
-        ! These correspond to the 6 conditions:
-        !   [ div(E) ] =0 
-        !   [ tau. curl(E)/mu ] = 0       (2 tangents)
-        !   [ n.Lap(E)/mu ] = 0 
-        !   [ tau.Lap(E)/(eps*mu) ] = 0   (2 tangents)
-
-        ! Here are the equations for the 2nd ghost line (approximate to 2nd order):
-        !   [ div(Lap(E)) n/(eps*mu) + (curl(Lap(E))- n.curl(Lap(E)) n )/(mu*eps*mu) ] =0   (3 eqns)
-        !   [ Lap^2(E)/(eps*mu)^2 + (1/(eps*mu)^2)*(eps-1)*( n.Lap^2(E) ) n ] = 0           (3 eqns)
-         
-         do it=1,nit ! *** begin iteration ****
-         err=0.
-         beginLoopsMask3d()
-
-           ! here is the normal (assumed to be the same on both sides)
-           an1=rsxy1(i1,i2,i3,axis1,0)   ! normal (an1,an2)
-           an2=rsxy1(i1,i2,i3,axis1,1)
-           an3=rsxy1(i1,i2,i3,axis1,2)
-           aNorm=max(epsx,sqrt(an1**2+an2**2+an3**2))
-           an1=an1/aNorm
-           an2=an2/aNorm
-           an3=an3/aNorm
-
-
-           ! --- first evaluate the equations we want to solve with the wrong values at the ghost points:
-
-           cem1=(1.-1./eps1)/mu1
-           cem2=(1.-1./eps2)/mu2
-
-
-           ! old evalInterfaceDerivatives3d()
-           ! old eval3dJumpOrder4()
-
-           ! *new*
-           evalDerivs3dOrder4()
-           eval3dJumpOrder4New()
-
-           if( debug.gt.4 )then
-            write(debugFile,'(/," --> 3d-order4-curv: i1,i2,i3=",3i4," an1,an2,an3=",3e11.3)') i1,i2,i3,an1,an2,an3
-            write(debugFile,'(" --> 3d-order4-curv: i1,i2,i3=",3i4," f(start)=",12e10.2)') i1,i2,i3,(f(n),n=0,11)
+         if( .false. )then
+           beginGhostLoops3d()
+            write(debugFile,'(" -->JUMP v1(",i2,":",i2,",",i2,",",i2,") =",3f9.4)') i1-1,i1+1,i2,i3,u1(i1-1,i2,i3,ey),u1(i1,i2,i3,ey),u1(i1+1,i2,i3,ey)
             ! '
-           end if
-           if( debug.gt.8 )then
-            write(debugFile,'(" --> u1x,u1y,u1z,v1x,v1y,v1z=",6f8.4)') u1x,u1y,u1z,v1x,v1y,v1z
-            write(debugFile,'(" --> u2x,u2y,u2z,v2x,v2y,v2z=",6f8.4)') u2x,u2y,u2z,v2x,v2y,v2z
+           endLoops3d()
+         end if
  
-            write(debugFile,'(" --> vv1r,vv1s,vv1t         =",3e9.2)') vv1r,vv1s,vv1t
-            do k3=-1,1
-            do k2=-1,1
-            write(debugFile,'(" --> v1: =",3f8.4)') u1(i1-1,i2+k2,i3+k3,ey),u1(i1,i2+k2,i3+k3,ey),u1(i1+1,i2+k2,i3+k3,ey)
-            end do
-            end do
-            do k3=-1,1
-            do k2=-1,1
-            write(debugFile,'(" --> v2: =",3f8.4)') u2(j1-1,j2+k2,j3+k3,ey),u2(j1,j2+k2,j3+k3,ey),u2(j1+1,j2+k2,j3+k3,ey)
-            end do
-            end do
-            ! '
-           end if
-
-           ! here is the matrix of coefficients for the unknowns u1(-1),v1(-1),w1(-1),  u2(-1),v2(-1),w2(-1)
-           ! Solve:
-           !     
-           !       A [ U ] = A [ U(old) ] - [ f ]
-
-
-           c1m1x = -is*8.*rsxy1(i1,i2,i3,axis1,0)/(12.*dr1(axis1))    ! coeff of u1(-1) from D.x
-           c1m1y = -is*8.*rsxy1(i1,i2,i3,axis1,1)/(12.*dr1(axis1))    ! coeff of u1(-1) from D.y 
-           c1m1z = -is*8.*rsxy1(i1,i2,i3,axis1,2)/(12.*dr1(axis1))    ! coeff of u1(-1) from D.z
-
-           c1m2x =  is   *rsxy1(i1,i2,i3,axis1,0)/(12.*dr1(axis1))    ! coeff of u1(-2) from D.x
-           c1m2y =  is   *rsxy1(i1,i2,i3,axis1,1)/(12.*dr1(axis1))    ! coeff of u1(-2) from D.y 
-           c1m2z =  is   *rsxy1(i1,i2,i3,axis1,2)/(12.*dr1(axis1))    ! coeff of u1(-2) from D.z
-
-           c2m1x = -js*8.*rsxy2(j1,j2,j3,axis2,0)/(12.*dr2(axis2))    ! coeff of u2(-1) from D.x
-           c2m1y = -js*8.*rsxy2(j1,j2,j3,axis2,1)/(12.*dr2(axis2))
-           c2m1z = -js*8.*rsxy2(j1,j2,j3,axis2,2)/(12.*dr2(axis2))
-
-           c2m2x =  js   *rsxy2(j1,j2,j3,axis2,0)/(12.*dr2(axis2))
-           c2m2y =  js   *rsxy2(j1,j2,j3,axis2,1)/(12.*dr2(axis2))
-           c2m2z =  js   *rsxy2(j1,j2,j3,axis2,2)/(12.*dr2(axis2))
-
-           rxx1(0,0,0)=aj1rxx
-           rxx1(0,0,1)=aj1rxy
-           rxx1(0,0,2)=aj1rxz
-           rxx1(0,1,1)=aj1ryy
-           rxx1(0,1,2)=aj1ryz
-           rxx1(0,2,2)=aj1rzz
-
-           rxx1(1,0,0)=aj1sxx
-           rxx1(1,0,1)=aj1sxy
-           rxx1(1,0,2)=aj1sxz
-           rxx1(1,1,1)=aj1syy
-           rxx1(1,1,2)=aj1syz
-           rxx1(1,2,2)=aj1szz
-
-           rxx1(2,0,0)=aj1txx
-           rxx1(2,0,1)=aj1txy
-           rxx1(2,0,2)=aj1txz
-           rxx1(2,1,1)=aj1tyy
-           rxx1(2,1,2)=aj1tyz
-           rxx1(2,2,2)=aj1tzz
-
-
-           rxx2(0,0,0)=aj2rxx
-           rxx2(0,0,1)=aj2rxy
-           rxx2(0,0,2)=aj2rxz
-           rxx2(0,1,1)=aj2ryy
-           rxx2(0,1,2)=aj2ryz
-           rxx2(0,2,2)=aj2rzz
-
-           rxx2(1,0,0)=aj2sxx
-           rxx2(1,0,1)=aj2sxy
-           rxx2(1,0,2)=aj2sxz
-           rxx2(1,1,1)=aj2syy
-           rxx2(1,1,2)=aj2syz
-           rxx2(1,2,2)=aj2szz
-
-           rxx2(2,0,0)=aj2txx
-           rxx2(2,0,1)=aj2txy
-           rxx2(2,0,2)=aj2txz
-           rxx2(2,1,1)=aj2tyy
-           rxx2(2,1,2)=aj2tyz
-           rxx2(2,2,2)=aj2tzz
-
-
-           ! clap1m1 : coeff of u(-1) from lap1 = u1.xx + u1.yy + u1.zz
-           ! clap1m2 : coeff of u(-2) from lap1 = u1.xx + u1.yy + u1.zz
-
-! here are the macros from deriv.maple (file=derivMacros.h)
-! defineMacro lapCoeff4a(is,dr,ds) ( (-2/3.*rxx*is-2/3.*ryy*is)/dr+(4/3.*rx**2+4/3.*ry**2)/dr**2 )
-! defineMacro lapCoeff4b(is,dr,ds) ( (1/12.*rxx*is+1/12.*ryy*is)/dr+(-1/12.*rx**2-1/12.*ry**2)/dr**2 )
-           
-           clap1m1=4./3.*(rsxy1(i1,i2,i3,axis1,0)**2+rsxy1(i1,i2,i3,axis1,1)**2+rsxy1(i1,i2,i3,axis1,2)**2)/(dr1(axis1)**2) \
-                     -is*2./3.*(rxx1(axis1,0,0)+rxx1(axis1,1,1)+rxx1(axis1,2,2))/(2.*dr1(axis1))
-           clap1m2=-1./12.*(rsxy1(i1,i2,i3,axis1,0)**2+rsxy1(i1,i2,i3,axis1,1)**2+rsxy1(i1,i2,i3,axis1,2)**2)/(dr1(axis1)**2) \
-                     +is*1./12.*(rxx1(axis1,0,0)+rxx1(axis1,1,1)+rxx1(axis1,2,2))/(2.*dr1(axis1)) 
-
-           clap2m1=4/3.*(rsxy2(j1,j2,j3,axis2,0)**2+rsxy2(j1,j2,j3,axis2,1)**2+rsxy2(j1,j2,j3,axis2,2)**2)/(dr2(axis2)**2) \
-                     -js*2./3.*(rxx2(axis2,0,0)+rxx2(axis2,1,1)+rxx2(axis2,2,2))/(2.*dr2(axis2)) 
-           clap2m2=-1./12.*(rsxy2(j1,j2,j3,axis2,0)**2+rsxy2(j1,j2,j3,axis2,1)**2+rsxy2(j1,j2,j3,axis2,2)**2)/(dr2(axis2)**2) \
-                     +js*1./12.*(rxx2(axis2,0,0)+rxx2(axis2,1,1)+rxx2(axis2,2,2))/(2.*dr2(axis2))
-
-           ! cdivE1 =  u.c1x + v.c1y + w.c1z
-           ! nDotCurlE1 = (w1y-v1z)*an1 + (u1z-w1x)*an2 + (v1x-u1y)*an3
-
-           ! 12 Unknowns:
-           !   u1(-1), v1(-1), w1(-1), u1(-2), v1(-2), w1(-2), 
-           !   u2(-1), v2(-1), w2(-1), u2(-2), v2(-2), w2(-2)  
-           ! 12 Equations: 
-           !    a12(eqn,unknown) 
-
-
-           ! fill equations 0,..,5
-           fillEquations3dOrder4(0,1,2,3,4,5)
-
-! -- these are from op/src/derivCoeff.h (generated by op/src/derivCoeff.maple)
-#defineMacro lapSqCoeff3DOrder2a(is,dr,ds,dt,a0,a1,a2,RX,RXX,RXXX,RXXXX) ( -1/2.*(2*RXXXX(a0,0,0,1,1)+RXXXX(a0,0,0,0,0)+2*RXXXX(a0,0,0,2,2)+RXXXX(a0,1,1,1,1)+RXXXX(a0,2,2,2,2)+2*RXXXX(a0,1,1,2,2))*is/dr+(4*RX(a0,2)*RX(a0,0)*RXX(a0,0,2)+2*RX(a0,2)*(2*RX(a0,0)*RXX(a0,0,2)+RX(a0,2)*RXX(a0,0,0))+2*RXX(a0,2,2)*RX(a0,0)**2+4*RX(a0,1)*RXX(a0,0,1)*RX(a0,0)+2*RX(a0,1)*(2*RXX(a0,0,1)*RX(a0,0)+RX(a0,1)*RXX(a0,0,0))+2*RXX(a0,1,1)*RX(a0,0)**2+4*RX(a0,2)*RX(a0,1)*RXX(a0,1,2)+2*RX(a0,2)*(2*RX(a0,1)*RXX(a0,1,2)+RX(a0,2)*RXX(a0,1,1))+2*RXX(a0,2,2)*RX(a0,1)**2+6*RX(a0,1)**2*RXX(a0,1,1)+6*RX(a0,0)**2*RXX(a0,0,0)+6*RX(a0,2)**2*RXX(a0,2,2))*is/dr**3-2*(2*RX(a0,2)*(RX(a0,2)*RX(a1,1)**2+2*RX(a1,2)*RX(a1,1)*RX(a0,1))+2*RX(a1,2)*(RX(a1,2)*RX(a0,1)**2+2*RX(a0,2)*RX(a1,1)*RX(a0,1))+2*RX(a0,2)*(RX(a0,2)*RX(a1,0)**2+2*RX(a1,2)*RX(a1,0)*RX(a0,0))+2*RX(a1,2)*(RX(a1,2)*RX(a0,0)**2+2*RX(a0,2)*RX(a1,0)*RX(a0,0))+6*RX(a0,1)**2*RX(a1,1)**2+2*RX(a1,1)*(RX(a1,1)*RX(a0,0)**2+2*RX(a0,1)*RX(a1,0)*RX(a0,0))+2*RX(a0,1)*(RX(a0,1)*RX(a1,0)**2+2*RX(a1,1)*RX(a1,0)*RX(a0,0))+6*RX(a0,0)**2*RX(a1,0)**2+6*RX(a0,2)**2*RX(a1,2)**2)/dr**2/ds**2-2*(6*RX(a0,2)**2*RX(a2,2)**2+6*RX(a0,0)**2*RX(a2,0)**2+2*RX(a0,2)*(2*RX(a2,2)*RX(a2,0)*RX(a0,0)+RX(a0,2)*RX(a2,0)**2)+2*RX(a2,2)*(RX(a2,2)*RX(a0,0)**2+2*RX(a0,2)*RX(a2,0)*RX(a0,0))+2*RX(a0,2)*(2*RX(a2,2)*RX(a2,1)*RX(a0,1)+RX(a0,2)*RX(a2,1)**2)+2*RX(a2,2)*(RX(a2,2)*RX(a0,1)**2+2*RX(a0,2)*RX(a2,1)*RX(a0,1))+2*RX(a0,1)*(2*RX(a2,1)*RX(a2,0)*RX(a0,0)+RX(a0,1)*RX(a2,0)**2)+2*RX(a2,1)*(RX(a2,1)*RX(a0,0)**2+2*RX(a0,1)*RX(a2,0)*RX(a0,0))+6*RX(a0,1)**2*RX(a2,1)**2)/dr**2/dt**2+(4*RXX(a1,1,1)*RX(a1,0)*RX(a0,0)+2*RX(a1,2)*(2*RX(a0,0)*RXX(a1,0,2)+RX(a0,2)*RXX(a1,0,0)+2*RXX(a0,0,2)*RX(a1,0)+RX(a1,2)*RXX(a0,0,0))+2*RX(a1,2)*(2*RXX(a0,0,2)*RX(a1,0)+2*RX(a0,0)*RXX(a1,0,2))+7*RX(a0,0)*RXX(a1,0,0)*RX(a1,0)+7*RX(a0,1)*RXX(a1,1,1)*RX(a1,1)+4*RX(a0,1)*RXX(a1,0,1)*RX(a1,0)+4*RXX(a1,2,2)*RX(a1,0)*RX(a0,0)+RX(a1,2)*(3*RXX(a0,2,2)*RX(a1,2)+3*RX(a0,2)*RXX(a1,2,2))+RX(a1,2)*(2*RXX(a0,2,2)*RX(a1,2)+2*RX(a0,2)*RXX(a1,2,2))+4*RX(a0,2)*RX(a1,0)*RXX(a1,0,2)+2*RX(a1,2)*(2*RX(a0,1)*RXX(a1,1,2)+RX(a0,2)*RXX(a1,1,1)+2*RXX(a0,1,2)*RX(a1,1)+RX(a1,2)*RXX(a0,1,1))+RXX(a0,0,0)*RX(a1,0)**2+RX(a1,0)*(3*RXX(a1,0,0)*RX(a0,0)+3*RX(a1,0)*RXX(a0,0,0))+RX(a1,0)*(2*RX(a1,0)*RXX(a0,0,0)+2*RXX(a1,0,0)*RX(a0,0))+2*RX(a1,2)*(2*RXX(a0,1,2)*RX(a1,1)+2*RX(a0,1)*RXX(a1,1,2))+7*RX(a0,2)*RXX(a1,2,2)*RX(a1,2)+2*RX(a0,2)*(2*RX(a1,1)*RXX(a1,1,2)+RX(a1,2)*RXX(a1,1,1))+RXX(a0,2,2)*RX(a1,2)**2+2*RXX(a0,2,2)*RX(a1,1)**2+RXX(a0,1,1)*RX(a1,1)**2+RX(a1,1)*(3*RXX(a1,1,1)*RX(a0,1)+3*RX(a1,1)*RXX(a0,1,1))+RX(a1,1)*(2*RX(a1,1)*RXX(a0,1,1)+2*RXX(a1,1,1)*RX(a0,1))+4*RXX(a1,2,2)*RX(a1,1)*RX(a0,1)+4*RX(a0,2)*RX(a1,1)*RXX(a1,1,2)+2*RX(a0,1)*(RX(a1,1)*RXX(a1,0,0)+2*RXX(a1,0,1)*RX(a1,0))+2*RXX(a0,1,1)*RX(a1,0)**2+2*RX(a1,1)*(RX(a0,1)*RXX(a1,0,0)+2*RX(a1,0)*RXX(a0,0,1)+2*RXX(a1,0,1)*RX(a0,0)+RX(a1,1)*RXX(a0,0,0))+2*RX(a1,1)*(2*RX(a1,0)*RXX(a0,0,1)+2*RXX(a1,0,1)*RX(a0,0))+2*RX(a0,2)*(2*RX(a1,0)*RXX(a1,0,2)+RX(a1,2)*RXX(a1,0,0))+2*RXX(a0,2,2)*RX(a1,0)**2)*is/dr/ds**2+(2*RX(a2,2)*(2*RX(a2,0)*RXX(a0,0,2)+2*RXX(a2,0,2)*RX(a0,0))+2*RX(a2,2)*(2*RXX(a2,0,2)*RX(a0,0)+RX(a2,2)*RXX(a0,0,0)+2*RX(a2,0)*RXX(a0,0,2)+RX(a0,2)*RXX(a2,0,0))+4*RX(a0,2)*RXX(a2,0,2)*RX(a2,0)+2*RXX(a0,2,2)*RX(a2,1)**2+2*RX(a2,2)*(2*RX(a2,1)*RXX(a0,1,2)+2*RXX(a2,1,2)*RX(a0,1))+2*RX(a2,2)*(2*RXX(a2,1,2)*RX(a0,1)+RX(a2,2)*RXX(a0,1,1)+2*RX(a2,1)*RXX(a0,1,2)+RX(a0,2)*RXX(a2,1,1))+2*RX(a0,2)*(2*RXX(a2,1,2)*RX(a2,1)+RX(a2,2)*RXX(a2,1,1))+4*RX(a0,2)*RXX(a2,1,2)*RX(a2,1)+4*RXX(a2,2,2)*RX(a2,1)*RX(a0,1)+4*RXX(a2,1,1)*RX(a2,0)*RX(a0,0)+4*RX(a0,1)*RXX(a2,0,1)*RX(a2,0)+2*RX(a0,1)*(2*RXX(a2,0,1)*RX(a2,0)+RX(a2,1)*RXX(a2,0,0))+2*RXX(a0,1,1)*RX(a2,0)**2+2*RX(a2,1)*(2*RX(a2,0)*RXX(a0,0,1)+2*RXX(a2,0,1)*RX(a0,0))+2*RX(a2,1)*(2*RXX(a2,0,1)*RX(a0,0)+RX(a2,1)*RXX(a0,0,0)+2*RX(a2,0)*RXX(a0,0,1)+RX(a0,1)*RXX(a2,0,0))+RXX(a0,1,1)*RX(a2,1)**2+2*RX(a0,2)*(2*RXX(a2,0,2)*RX(a2,0)+RX(a2,2)*RXX(a2,0,0))+RX(a2,1)*(2*RX(a2,1)*RXX(a0,1,1)+2*RXX(a2,1,1)*RX(a0,1))+RX(a2,1)*(3*RXX(a2,1,1)*RX(a0,1)+3*RX(a2,1)*RXX(a0,1,1))+7*RX(a0,0)*RXX(a2,0,0)*RX(a2,0)+7*RX(a0,1)*RXX(a2,1,1)*RX(a2,1)+RXX(a0,2,2)*RX(a2,2)**2+RX(a2,2)*(2*RX(a2,2)*RXX(a0,2,2)+2*RXX(a2,2,2)*RX(a0,2))+RX(a2,2)*(3*RXX(a2,2,2)*RX(a0,2)+3*RX(a2,2)*RXX(a0,2,2))+RXX(a0,0,0)*RX(a2,0)**2+4*RXX(a2,2,2)*RX(a2,0)*RX(a0,0)+RX(a2,0)*(2*RX(a2,0)*RXX(a0,0,0)+2*RXX(a2,0,0)*RX(a0,0))+RX(a2,0)*(3*RXX(a2,0,0)*RX(a0,0)+3*RX(a2,0)*RXX(a0,0,0))+2*RXX(a0,2,2)*RX(a2,0)**2+7*RX(a0,2)*RXX(a2,2,2)*RX(a2,2))*is/dr/dt**2+(4*RX(a0,2)*RXXX(a0,1,1,2)+2*RXX(a0,2,2)*RXX(a0,1,1)+4*RXX(a0,1,2)**2+4*RX(a0,1)*RXXX(a0,1,2,2)+4*RX(a0,2)*RXXX(a0,0,0,2)+2*RXX(a0,2,2)*RXX(a0,0,0)+4*RXX(a0,0,2)**2+4*RX(a0,0)*RXXX(a0,0,2,2)+4*RX(a0,0)*RXXX(a0,0,0,0)+3*RXX(a0,0,0)**2+4*RX(a0,0)*RXXX(a0,0,1,1)+2*RXX(a0,1,1)*RXX(a0,0,0)+4*RX(a0,1)*RXXX(a0,0,0,1)+4*RXX(a0,0,1)**2+4*RX(a0,1)*RXXX(a0,1,1,1)+3*RXX(a0,1,1)**2+3*RXX(a0,2,2)**2+4*RX(a0,2)*RXXX(a0,2,2,2))/dr**2-4*(2*RX(a0,2)**2*RX(a0,1)**2+RX(a0,2)**4+RX(a0,1)**4+2*RX(a0,2)**2*RX(a0,0)**2+2*RX(a0,1)**2*RX(a0,0)**2+RX(a0,0)**4)/dr**4 )
-
-
-#defineMacro lapSqCoeff3DOrder2b(is,dr,ds,dt,a0,a1,a2,RX,RXX,RXXX,RXXXX) ( -1/2.*(4*RX(a0,1)*RXX(a0,0,1)*RX(a0,0)+2*RX(a0,1)*(2*RXX(a0,0,1)*RX(a0,0)+RX(a0,1)*RXX(a0,0,0))+2*RXX(a0,1,1)*RX(a0,0)**2+4*RX(a0,2)*RX(a0,0)*RXX(a0,0,2)+2*RX(a0,2)*(2*RX(a0,0)*RXX(a0,0,2)+RX(a0,2)*RXX(a0,0,0))+2*RXX(a0,2,2)*RX(a0,0)**2+6*RX(a0,1)**2*RXX(a0,1,1)+6*RX(a0,0)**2*RXX(a0,0,0)+4*RX(a0,2)*RX(a0,1)*RXX(a0,1,2)+2*RX(a0,2)*(2*RX(a0,1)*RXX(a0,1,2)+RX(a0,2)*RXX(a0,1,1))+2*RXX(a0,2,2)*RX(a0,1)**2+6*RX(a0,2)**2*RXX(a0,2,2))*is/dr**3+(2*RX(a0,2)**2*RX(a0,1)**2+RX(a0,2)**4+RX(a0,1)**4+2*RX(a0,2)**2*RX(a0,0)**2+2*RX(a0,1)**2*RX(a0,0)**2+RX(a0,0)**4)/dr**4 )
-
-#defineMacro xLapCoeff3DOrder2a(is,dr,ds,dt,a0,a1,a2,RX,RXX,RXXX) ( -1/2.*RXXX(a0,0,2,2)*is/dr-1/2.*RXXX(a0,0,0,0)*is/dr-1/2.*RXXX(a0,0,1,1)*is/dr+3*RX(a0,0)*RXX(a0,0,0)/dr**2+RX(a0,0)**3*is/dr**3+RX(a0,2)**2*RX(a0,0)*is/dr**3+(RX(a0,2)*RX(a1,2)*RX(a1,0)+RX(a1,2)*(RX(a1,2)*RX(a0,0)+RX(a0,2)*RX(a1,0)))*is/dr/ds**2+(RX(a2,2)*(RX(a0,2)*RX(a2,0)+RX(a2,2)*RX(a0,0))+RX(a0,2)*RX(a2,2)*RX(a2,0))*is/dr/dt**2+(RX(a2,1)*(RX(a0,1)*RX(a2,0)+RX(a2,1)*RX(a0,0))+RX(a0,1)*RX(a2,1)*RX(a2,0))*is/dr/dt**2+(RXX(a0,1,1)*RX(a0,0)+2*RX(a0,1)*RXX(a0,0,1))/dr**2+3*RX(a0,0)*RX(a2,0)**2*is/dr/dt**2+RX(a0,1)**2*RX(a0,0)*is/dr**3+3*RX(a0,0)*RX(a1,0)**2*is/dr/ds**2+(RX(a0,1)*RX(a1,1)*RX(a1,0)+RX(a1,1)*(RX(a1,1)*RX(a0,0)+RX(a0,1)*RX(a1,0)))*is/dr/ds**2+(2*RX(a0,2)*RXX(a0,0,2)+RXX(a0,2,2)*RX(a0,0))/dr**2 )
-
-! #defineMacro xLapCoeff3DOrder2b(is,dr,ds) ( -1/2.*rz**2*rx*is/dr**3-1/2.*ry**2*rx*is/dr**3-1/2.*rx**3*is/dr**3 )
-
-#defineMacro xLapCoeff3DOrder2b(is,dr,ds,dt,a0,a1,a2,RX,RXX,RXXX) ( -1/2.*RX(a0,2)**2*RX(a0,0)*is/dr**3-1/2.*RX(a0,1)**2*RX(a0,0)*is/dr**3-1/2.*RX(a0,0)**3*is/dr**3 )
-
-! #defineMacro yLapCoeff3DOrder2a(is,dr,ds) ( (2*rxy*rx+ry*rxx)/dr**2+rz**2*ry*is/dr**3+(rz*sz*sy+sz*(sz*ry+rz*sy))*is/dr/ds**2+(2*ty*tx*rx+ry*tx**2)*is/dr/dt**2+(tz*(rz*ty+tz*ry)+rz*tz*ty)*is/dr/dt**2+3*ry*ty**2*is/dr/dt**2+(2*rz*ryz+rzz*ry)/dr**2-1/2.*rxxy*is/dr-1/2.*ryyy*is/dr+3*ry*ryy/dr**2+ry**3*is/dr**3+ry*rx**2*is/dr**3+(ry*sx**2+2*sy*sx*rx)*is/dr/ds**2+3*ry*sy**2*is/dr/ds**2-1/2.*ryzz*is/dr )
-
-#defineMacro yLapCoeff3DOrder2a(is,dr,ds,dt,a0,a1,a2,RX,RXX,RXXX) ( (2*RXX(a0,0,1)*RX(a0,0)+RX(a0,1)*RXX(a0,0,0))/dr**2+RX(a0,2)**2*RX(a0,1)*is/dr**3+(RX(a0,2)*RX(a1,2)*RX(a1,1)+RX(a1,2)*(RX(a1,2)*RX(a0,1)+RX(a0,2)*RX(a1,1)))*is/dr/ds**2+(2*RX(a2,1)*RX(a2,0)*RX(a0,0)+RX(a0,1)*RX(a2,0)**2)*is/dr/dt**2+(RX(a2,2)*(RX(a0,2)*RX(a2,1)+RX(a2,2)*RX(a0,1))+RX(a0,2)*RX(a2,2)*RX(a2,1))*is/dr/dt**2+3*RX(a0,1)*RX(a2,1)**2*is/dr/dt**2+(2*RX(a0,2)*RXX(a0,1,2)+RXX(a0,2,2)*RX(a0,1))/dr**2-1/2.*RXXX(a0,0,0,1)*is/dr-1/2.*RXXX(a0,1,1,1)*is/dr+3*RX(a0,1)*RXX(a0,1,1)/dr**2+RX(a0,1)**3*is/dr**3+RX(a0,1)*RX(a0,0)**2*is/dr**3+(RX(a0,1)*RX(a1,0)**2+2*RX(a1,1)*RX(a1,0)*RX(a0,0))*is/dr/ds**2+3*RX(a0,1)*RX(a1,1)**2*is/dr/ds**2-1/2.*RXXX(a0,1,2,2)*is/dr )
-
-! #defineMacro yLapCoeff3DOrder2b(is,dr,ds) ( -1/2.*rz**2*ry*is/dr**3-1/2.*ry**3*is/dr**3-1/2.*ry*rx**2*is/dr**3 )
-
-#defineMacro yLapCoeff3DOrder2b(is,dr,ds,dt,a0,a1,a2,RX,RXX,RXXX) ( -1/2.*RX(a0,2)**2*RX(a0,1)*is/dr**3-1/2.*RX(a0,1)**3*is/dr**3-1/2.*RX(a0,1)*RX(a0,0)**2*is/dr**3 )
-
-! #defineMacro zLapCoeff3DOrder2a(is,dr,ds) ( -1/2.*rxxz*is/dr-1/2.*ryyz*is/dr+3*rz*rzz/dr**2+rz**3*is/dr**3+(2*tz*tx*rx+rz*tx**2)*is/dr/dt**2+rz*rx**2*is/dr**3+3*rz*sz**2*is/dr/ds**2-1/2.*rzzz*is/dr+(rz*sx**2+2*sz*sx*rx)*is/dr/ds**2+3*rz*tz**2*is/dr/dt**2+(rz*sy**2+2*sz*sy*ry)*is/dr/ds**2+(2*tz*ty*ry+rz*ty**2)*is/dr/dt**2+rz*ry**2*is/dr**3+(2*rx*rxz+rz*rxx)/dr**2+(2*ry*ryz+rz*ryy)/dr**2 )
-
-#defineMacro zLapCoeff3DOrder2a(is,dr,ds,dt,a0,a1,a2,RX,RXX,RXXX) ( -1/2.*RXXX(a0,0,0,2)*is/dr-1/2.*RXXX(a0,1,1,2)*is/dr+3*RX(a0,2)*RXX(a0,2,2)/dr**2+RX(a0,2)**3*is/dr**3+(2*RX(a2,2)*RX(a2,0)*RX(a0,0)+RX(a0,2)*RX(a2,0)**2)*is/dr/dt**2+RX(a0,2)*RX(a0,0)**2*is/dr**3+3*RX(a0,2)*RX(a1,2)**2*is/dr/ds**2-1/2.*RXXX(a0,2,2,2)*is/dr+(RX(a0,2)*RX(a1,0)**2+2*RX(a1,2)*RX(a1,0)*RX(a0,0))*is/dr/ds**2+3*RX(a0,2)*RX(a2,2)**2*is/dr/dt**2+(RX(a0,2)*RX(a1,1)**2+2*RX(a1,2)*RX(a1,1)*RX(a0,1))*is/dr/ds**2+(2*RX(a2,2)*RX(a2,1)*RX(a0,1)+RX(a0,2)*RX(a2,1)**2)*is/dr/dt**2+RX(a0,2)*RX(a0,1)**2*is/dr**3+(2*RX(a0,0)*RXX(a0,0,2)+RX(a0,2)*RXX(a0,0,0))/dr**2+(2*RX(a0,1)*RXX(a0,1,2)+RX(a0,2)*RXX(a0,1,1))/dr**2 )
-
-! #defineMacro zLapCoeff3DOrder2b(is,dr,ds) ( -1/2.*rz**3*is/dr**3-1/2.*rz*ry**2*is/dr**3-1/2.*rz*rx**2*is/dr**3 )
-
-#defineMacro zLapCoeff3DOrder2b(is,dr,ds,dt,a0,a1,a2,RX,RXX,RXXX) ( -1/2.*RX(a0,2)**3*is/dr**3-1/2.*RX(a0,2)*RX(a0,1)**2*is/dr**3-1/2.*RX(a0,2)*RX(a0,0)**2*is/dr**3 )
-
-           ! rx1(m,n) = D r_m / D x_n
-           ! rxx1(m,n1,n2) = D^2 r /( D x_n1 D X_n2 )
-           ! rxxx1(m,n1,n2,n3) 
-
-           ! first derivatives
-           rx1(0,0)=rsxy1(i1,i2,i3,0,0)
-           rx1(0,1)=rsxy1(i1,i2,i3,0,1)
-           rx1(0,2)=rsxy1(i1,i2,i3,0,2)
-           rx1(1,0)=rsxy1(i1,i2,i3,1,0)
-           rx1(1,1)=rsxy1(i1,i2,i3,1,1)
-           rx1(1,2)=rsxy1(i1,i2,i3,1,2)
-           rx1(2,0)=rsxy1(i1,i2,i3,2,0)
-           rx1(2,1)=rsxy1(i1,i2,i3,2,1)
-           rx1(2,2)=rsxy1(i1,i2,i3,2,2)
-
-           rx2(0,0)=rsxy2(j1,j2,j3,0,0)
-           rx2(0,1)=rsxy2(j1,j2,j3,0,1)
-           rx2(0,2)=rsxy2(j1,j2,j3,0,2)
-           rx2(1,0)=rsxy2(j1,j2,j3,1,0)
-           rx2(1,1)=rsxy2(j1,j2,j3,1,1)
-           rx2(1,2)=rsxy2(j1,j2,j3,1,2)
-           rx2(2,0)=rsxy2(j1,j2,j3,2,0)
-           rx2(2,1)=rsxy2(j1,j2,j3,2,1)
-           rx2(2,2)=rsxy2(j1,j2,j3,2,2)
-
-
-           ! 3rd derivatives: (only some are needed)
-           ! note for last 3 entries - entries must increase or stay the same
-           rxxx1(axis1,0,0,0) = aj1rxxx
-           rxxx1(axis1,1,1,1) = aj1ryyy
-           rxxx1(axis1,2,2,2) = aj1rzzz
-           rxxx1(axis1,0,0,1) = aj1rxxy
-           rxxx1(axis1,0,0,2) = aj1rxxz
-           rxxx1(axis1,0,1,1) = aj1rxyy
-           rxxx1(axis1,0,2,2) = aj1rxzz
-           rxxx1(axis1,1,1,2) = aj1ryyz
-           rxxx1(axis1,1,2,2) = aj1ryzz
-
-           rxxx2(axis2,0,0,0) = aj2rxxx
-           rxxx2(axis2,1,1,1) = aj2ryyy
-           rxxx2(axis2,2,2,2) = aj2rzzz
-           rxxx2(axis2,0,0,1) = aj2rxxy
-           rxxx2(axis2,0,0,2) = aj2rxxz
-           rxxx2(axis2,0,1,1) = aj2rxyy
-           rxxx2(axis2,0,2,2) = aj2rxzz
-           rxxx2(axis2,1,1,2) = aj2ryyz
-           rxxx2(axis2,1,2,2) = aj2ryzz
-
-
-
-           ! Some 4th derivatives are needed by LapSq: 
-           rxxxx1(axis1,0,0,0,0) = aj1rxxxx
-           rxxxx1(axis1,1,1,1,1) = aj1ryyyy
-           rxxxx1(axis1,2,2,2,2) = aj1rzzzz
-
-           rxxxx1(axis1,0,0,1,1) = aj1rxxyy
-           rxxxx1(axis1,0,0,2,2) = aj1rxxzz
-           rxxxx1(axis1,1,1,2,2) = aj1ryyzz
-
-           rxxxx2(axis2,0,0,0,0) = aj2rxxxx
-           rxxxx2(axis2,1,1,1,1) = aj2ryyyy
-           rxxxx2(axis2,2,2,2,2) = aj2rzzzz
-
-           rxxxx2(axis2,0,0,1,1) = aj2rxxyy
-           rxxxx2(axis2,0,0,2,2) = aj2rxxzz
-           rxxxx2(axis2,1,1,2,2) = aj2ryyzz
-
-           ! coeff of u1(-1) from D.x(Lap), D.y(Lap) and D.z(Lap): (divideb by eps*mu)
-           c1m1x = xLapCoeff3DOrder2a(is,dr1(axis1),dr1(axis1p1),dr1(axis1p2),axis1,axis1p1,axis1p2,rx1,rxx1,rxxx1)/epsmu1 
-           c1m1y = yLapCoeff3DOrder2a(is,dr1(axis1),dr1(axis1p1),dr1(axis1p2),axis1,axis1p1,axis1p2,rx1,rxx1,rxxx1)/epsmu1  
-           c1m1z = zLapCoeff3DOrder2a(is,dr1(axis1),dr1(axis1p1),dr1(axis1p2),axis1,axis1p1,axis1p2,rx1,rxx1,rxxx1)/epsmu1  
-
-           ! coeff of u1(-2) from D.x(Lap), D.y(Lap) and D.z(Lap): 
-           c1m2x = xLapCoeff3DOrder2b(is,dr1(axis1),dr1(axis1p1),dr1(axis1p2),axis1,axis1p1,axis1p2,rx1,rxx1,rxxx1)/epsmu1  
-           c1m2y = yLapCoeff3DOrder2b(is,dr1(axis1),dr1(axis1p1),dr1(axis1p2),axis1,axis1p1,axis1p2,rx1,rxx1,rxxx1)/epsmu1  
-           c1m2z = zLapCoeff3DOrder2b(is,dr1(axis1),dr1(axis1p1),dr1(axis1p2),axis1,axis1p1,axis1p2,rx1,rxx1,rxxx1)/epsmu1  
-
-
-           ! coeff of u2(-1) from D.x(Lap), D.y(Lap) and D.z(Lap): 
-           c2m1x = xLapCoeff3DOrder2a(js,dr2(axis2),dr2(axis2p1),dr2(axis2p2),axis2,axis2p1,axis2p2,rx2,rxx2,rxxx2)/epsmu2  
-           c2m1y = yLapCoeff3DOrder2a(js,dr2(axis2),dr2(axis2p1),dr2(axis2p2),axis2,axis2p1,axis2p2,rx2,rxx2,rxxx2)/epsmu2 
-           c2m1z = zLapCoeff3DOrder2a(js,dr2(axis2),dr2(axis2p1),dr2(axis2p2),axis2,axis2p1,axis2p2,rx2,rxx2,rxxx2)/epsmu2  
-
-           ! coeff of u2(-2) from D.x(Lap), D.y(Lap) and D.z(Lap): 
-           c2m2x = xLapCoeff3DOrder2b(js,dr2(axis2),dr2(axis2p1),dr2(axis2p2),axis2,axis2p1,axis2p2,rx2,rxx2,rxxx2)/epsmu2  
-           c2m2y = yLapCoeff3DOrder2b(js,dr2(axis2),dr2(axis2p1),dr2(axis2p2),axis2,axis2p1,axis2p2,rx2,rxx2,rxxx2)/epsmu2  
-           c2m2z = zLapCoeff3DOrder2b(js,dr2(axis2),dr2(axis2p1),dr2(axis2p2),axis2,axis2p1,axis2p2,rx2,rxx2,rxxx2)/epsmu2  
-
-
-           ! coeff of u1(-1) and u1(-2) from Lap^2
-           clap1m1=lapSqCoeff3DOrder2a(is,dr1(axis1),dr1(axis1p1),dr1(axis1p2),axis1,axis1p1,axis1p2,rx1,rxx1,rxxx1,rxxxx1)/epsmu1
-           clap1m2=lapSqCoeff3DOrder2b(is,dr1(axis1),dr1(axis1p1),dr1(axis1p2),axis1,axis1p1,axis1p2,rx1,rxx1,rxxx1,rxxxx1)/epsmu1
-
-
-           ! coeff of u2(-1) and u2(-2) from Lap^2
-           clap2m1=lapSqCoeff3DOrder2a(js,dr2(axis2),dr2(axis2p1),dr2(axis2p2),axis2,axis2p1,axis2p2,rx2,rxx2,rxxx2,rxxxx2)/epsmu2
-           clap2m2=lapSqCoeff3DOrder2b(js,dr2(axis2),dr2(axis2p1),dr2(axis2p2),axis2,axis2p1,axis2p2,rx2,rxx2,rxxx2,rxxxx2)/epsmu2
-
-           ! write(debugFile,'(" --> 3d-order4-c: i1,i2,i3=",3i4," c1m1x,c1m1y,c1m1z,clap1m1,clap1m2=",12e10.2)') i1,i2,i3,c1m1x,c1m1y,c1m1z,clap1m1,clap1m2
-
-           ! fill equations 6...11
-           fillEquations3dOrder4(6,7,8,9,10,11)
-
-           ! Equation 6..11 :  extrapolate 2nd ghost point 
-           cex1=1.
-           cex2=-5. ! ** fix me ** orderOfExtrapolation for 2nd ghost point 
-           ! *e678*
-           ! do ii=6,11
-           !   do jj=0,11
-           !     a12(ii,jj)=0.
-           !   end do
-           ! end do
-           ! a12(6,0)  = cex2   ! u1(-1)
-           ! a12(6,3)  = cex1   ! u1(-2)
-
-           ! a12(7,1)  = cex2   ! v1(-1)
-           ! a12(7,4)  = cex1   ! v1(-2)
-
-           ! a12(8,2)  = cex2   ! w1(-1)
-           ! a12(8,5)  = cex1   ! w1(-2)
-
-           ! a12(9,6)  = cex2   ! u2(-1)
-           ! a12(9,9)  = cex1   ! u2(-2)
-           ! a12(10,7) = cex2   ! v2(-1)
-           ! a12(10,10)= cex1   ! v2(-2)
-
-           ! a12(11,8) = cex2   ! w2(-1)
-           ! a12(11,11)= cex1   ! w2(-2)
-
-
-           ! fill in the current values for the unknowns: 
-           q(0) = u1(i1-is1,i2-is2,i3-is3,ex)
-           q(1) = u1(i1-is1,i2-is2,i3-is3,ey)
-           q(2) = u1(i1-is1,i2-is2,i3-is3,ez)
-           q(3) = u1(i1-2*is1,i2-2*is2,i3-2*is3,ex)
-           q(4) = u1(i1-2*is1,i2-2*is2,i3-2*is3,ey)
-           q(5) = u1(i1-2*is1,i2-2*is2,i3-2*is3,ez)
-
-           q(6) = u2(j1-js1,j2-js2,j3-js3,ex)
-           q(7) = u2(j1-js1,j2-js2,j3-js3,ey)
-           q(8) = u2(j1-js1,j2-js2,j3-js3,ez)
-           q(9) = u2(j1-2*js1,j2-2*js2,j3-2*js3,ex)
-           q(10)= u2(j1-2*js1,j2-2*js2,j3-2*js3,ey)
-           q(11)= u2(j1-2*js1,j2-2*js2,j3-2*js3,ez)
-
-           ! subtract off the contributions from the wrong values at the ghost points:
-           numberOfEquations=12
-           do n=0,numberOfEquations-1
-             f(n) = (a12(n,0)*q(0)+a12(n,1)*q(1)+a12(n,2)*q(2)+a12(n,3)*q(3)+a12(n,4)*q(4)+a12(n,5)*q(5)+\
-                     a12(n,6)*q(6)+a12(n,7)*q(7)+a12(n,8)*q(8)+a12(n,9)*q(9)+a12(n,10)*q(10)+a12(n,11)*q(11) ) - f(n)
-           end do
-           if( debug.gt.3 )then
-             write(debugFile,'(" --> 3d:order4-c: f(subtract)=",12e10.2)') (f(n),n=0,11)
-           end if
-           ! solve A Q = F
-           ! factor the matrix
-           call dgeco( a12(0,0), numberOfEquations, numberOfEquations, ipvt(0),rcond,work(0))
-           ! solve
-            if( debug.gt.3 )then
-              write(debugFile,'(" --> 3d:order4-c: rcond=",e10.2)') rcond
-            end if
-           job=0
-           call dgesl( a12(0,0), numberOfEquations, numberOfEquations, ipvt(0), f(0), job)
-           if( debug.gt.3 )then
-             write(debugFile,'(" --> 3d:order4-c: f(solve)=",12e10.2)') (f(n),n=0,11)
-             write(debugFile,'(" --> 3d:order4-c:        q=",12e10.2)') (q(n),n=0,11)
-             write(debugFile,'(" --> 3d:order4-c:      f-q=",12e10.2)') (f(n)-q(n),n=0,11)
-           end if
-           ! fill in the answer:
-           u1(i1-is1,i2-is2,i3-is3,ex)      =f(0 )*omega+(1.-omega)*q(0)
-           u1(i1-is1,i2-is2,i3-is3,ey)      =f(1 )*omega+(1.-omega)*q(1)
-           u1(i1-is1,i2-is2,i3-is3,ez)      =f(2 )*omega+(1.-omega)*q(2)
-           u1(i1-2*is1,i2-2*is2,i3-2*is3,ex)=f(3 )*omega+(1.-omega)*q(3)
-           u1(i1-2*is1,i2-2*is2,i3-2*is3,ey)=f(4 )*omega+(1.-omega)*q(4)
-           u1(i1-2*is1,i2-2*is2,i3-2*is3,ez)=f(5 )*omega+(1.-omega)*q(5)
-
-           u2(j1-js1,j2-js2,j3-js3,ex)      =f(6 )*omega+(1.-omega)*q(6)
-           u2(j1-js1,j2-js2,j3-js3,ey)      =f(7 )*omega+(1.-omega)*q(7)
-           u2(j1-js1,j2-js2,j3-js3,ez)      =f(8 )*omega+(1.-omega)*q(8)
-           u2(j1-2*js1,j2-2*js2,j3-2*js3,ex)=f(9 )*omega+(1.-omega)*q(9)
-           u2(j1-2*js1,j2-2*js2,j3-2*js3,ey)=f(10)*omega+(1.-omega)*q(10)
-           u2(j1-2*js1,j2-2*js2,j3-2*js3,ez)=f(11)*omega+(1.-omega)*q(11)
-
-
-           ! compute the maximum change in the solution for this iteration
-           do n=0,11
-             err=max(err,abs(q(n)-f(n)))
-           end do
-
-           if( debug.gt.3 )then ! re-evaluate
-
-            ! turn this off for now:
+         ! initialization step: assign first two ghost line by extrapolation
+         ! NOTE: assign ghost points outside the ends
+ 
+         if( interfaceOption.eq.1 )then
+           extrapGhost()
+         end if
+ 
+ 
+         ! here are the jump conditions for the ghost points
+         !   [ div(E) n + (curl(E)- n.curl(E) n )/mu ] =0                 (3 eqns)
+         !   [ Lap(E)/(eps*mu) + (1/mu)*(1-1/eps)*( n.Lap(E) ) n ] = 0    (3 eqns)
+ 
+         ! These correspond to the 6 conditions:
+         !   [ div(E) ] =0 
+         !   [ tau. curl(E)/mu ] = 0       (2 tangents)
+         !   [ n.Lap(E)/mu ] = 0 
+         !   [ tau.Lap(E)/(eps*mu) ] = 0   (2 tangents)
+ 
+         ! Here are the equations for the 2nd ghost line (approximate to 2nd order):
+         !   [ div(Lap(E)) n/(eps*mu) + (curl(Lap(E))- n.curl(Lap(E)) n )/(mu*eps*mu) ] =0   (3 eqns)
+         !   [ Lap^2(E)/(eps*mu)^2 + (1/(eps*mu)^2)*(eps-1)*( n.Lap^2(E) ) n ] = 0           (3 eqns)
+          
+          errOld=err
+          ratioAve=0.
+          do it=1,nit ! *** begin iteration ****
+          err=0.
+          beginLoopsMask3d()
+ 
+            ! here is the normal (assumed to be the same on both sides)
+            an1=rsxy1(i1,i2,i3,axis1,0)   ! normal (an1,an2)
+            an2=rsxy1(i1,i2,i3,axis1,1)
+            an3=rsxy1(i1,i2,i3,axis1,2)
+            aNorm=max(epsx,sqrt(an1**2+an2**2+an3**2))
+            an1=an1/aNorm
+            an2=an2/aNorm
+            an3=an3/aNorm
+ 
+ 
+            ! --- first evaluate the equations we want to solve with the wrong values at the ghost points:
+ 
+            cem1=(1.-1./eps1)/mu1
+            cem2=(1.-1./eps2)/mu2
+ 
+ 
+            ! old evalInterfaceDerivatives3d()
+            ! old eval3dJumpOrder4()
+ 
+            ! *new*
             evalDerivs3dOrder4()
             eval3dJumpOrder4New()
-
-            res=0.
-            do n=0,11
-              res=max(res,abs(f(n)))
-            end do
-            if( res.gt.1.e-9 )then
-              write(debugFile,'(" --> ERR: 3d-order4-c: i1,i2,i3=",3i4," f(re-eval)=",12e10.2)') i1,i2,i3,f(0),f(1),f(2),f(3),f(4),f(5),f(6),f(7),f(8),f(9),f(10),f(11)
+ 
+            if( debug.gt.4 )then
+             write(debugFile,'(/," --> 3d-order4-curv: i1,i2,i3=",3i4," an1,an2,an3=",3e11.3)') i1,i2,i3,an1,an2,an3
+             write(debugFile,'(" --> 3d-order4-curv: i1,i2,i3=",3i4," f(start)=",12e10.2)') i1,i2,i3,(f(n),n=0,11)
+             ! '
             end if
-           end if
+            if( debug.gt.8 )then
+             write(debugFile,'(" --> u1x,u1y,u1z,v1x,v1y,v1z=",6f8.4)') u1x,u1y,u1z,v1x,v1y,v1z
+             write(debugFile,'(" --> u2x,u2y,u2z,v2x,v2y,v2z=",6f8.4)') u2x,u2y,u2z,v2x,v2y,v2z
+  
+             write(debugFile,'(" --> vv1r,vv1s,vv1t         =",3e9.2)') vv1r,vv1s,vv1t
+             do k3=-1,1
+             do k2=-1,1
+             write(debugFile,'(" --> v1: =",3f8.4)') u1(i1-1,i2+k2,i3+k3,ey),u1(i1,i2+k2,i3+k3,ey),u1(i1+1,i2+k2,i3+k3,ey)
+             end do
+             end do
+             do k3=-1,1
+             do k2=-1,1
+             write(debugFile,'(" --> v2: =",3f8.4)') u2(j1-1,j2+k2,j3+k3,ey),u2(j1,j2+k2,j3+k3,ey),u2(j1+1,j2+k2,j3+k3,ey)
+             end do
+             end do
+             ! '
+            end if
+ 
+            ! here is the matrix of coefficients for the unknowns u1(-1),v1(-1),w1(-1),  u2(-1),v2(-1),w2(-1)
+            ! Solve:
+            !     
+            !       A [ U ] = A [ U(old) ] - [ f ]
+ 
+ 
+            c1m1x = -is*8.*rsxy1(i1,i2,i3,axis1,0)/(12.*dr1(axis1))    ! coeff of u1(-1) from D.x
+            c1m1y = -is*8.*rsxy1(i1,i2,i3,axis1,1)/(12.*dr1(axis1))    ! coeff of u1(-1) from D.y 
+            c1m1z = -is*8.*rsxy1(i1,i2,i3,axis1,2)/(12.*dr1(axis1))    ! coeff of u1(-1) from D.z
+ 
+            c1m2x =  is   *rsxy1(i1,i2,i3,axis1,0)/(12.*dr1(axis1))    ! coeff of u1(-2) from D.x
+            c1m2y =  is   *rsxy1(i1,i2,i3,axis1,1)/(12.*dr1(axis1))    ! coeff of u1(-2) from D.y 
+            c1m2z =  is   *rsxy1(i1,i2,i3,axis1,2)/(12.*dr1(axis1))    ! coeff of u1(-2) from D.z
+ 
+            c2m1x = -js*8.*rsxy2(j1,j2,j3,axis2,0)/(12.*dr2(axis2))    ! coeff of u2(-1) from D.x
+            c2m1y = -js*8.*rsxy2(j1,j2,j3,axis2,1)/(12.*dr2(axis2))
+            c2m1z = -js*8.*rsxy2(j1,j2,j3,axis2,2)/(12.*dr2(axis2))
+ 
+            c2m2x =  js   *rsxy2(j1,j2,j3,axis2,0)/(12.*dr2(axis2))
+            c2m2y =  js   *rsxy2(j1,j2,j3,axis2,1)/(12.*dr2(axis2))
+            c2m2z =  js   *rsxy2(j1,j2,j3,axis2,2)/(12.*dr2(axis2))
+ 
+            rxx1(0,0,0)=aj1rxx
+            rxx1(0,0,1)=aj1rxy
+            rxx1(0,0,2)=aj1rxz
+            rxx1(0,1,1)=aj1ryy
+            rxx1(0,1,2)=aj1ryz
+            rxx1(0,2,2)=aj1rzz
+ 
+            rxx1(1,0,0)=aj1sxx
+            rxx1(1,0,1)=aj1sxy
+            rxx1(1,0,2)=aj1sxz
+            rxx1(1,1,1)=aj1syy
+            rxx1(1,1,2)=aj1syz
+            rxx1(1,2,2)=aj1szz
+ 
+            rxx1(2,0,0)=aj1txx
+            rxx1(2,0,1)=aj1txy
+            rxx1(2,0,2)=aj1txz
+            rxx1(2,1,1)=aj1tyy
+            rxx1(2,1,2)=aj1tyz
+            rxx1(2,2,2)=aj1tzz
+ 
+ 
+            rxx2(0,0,0)=aj2rxx
+            rxx2(0,0,1)=aj2rxy
+            rxx2(0,0,2)=aj2rxz
+            rxx2(0,1,1)=aj2ryy
+            rxx2(0,1,2)=aj2ryz
+            rxx2(0,2,2)=aj2rzz
+ 
+            rxx2(1,0,0)=aj2sxx
+            rxx2(1,0,1)=aj2sxy
+            rxx2(1,0,2)=aj2sxz
+            rxx2(1,1,1)=aj2syy
+            rxx2(1,1,2)=aj2syz
+            rxx2(1,2,2)=aj2szz
+ 
+            rxx2(2,0,0)=aj2txx
+            rxx2(2,0,1)=aj2txy
+            rxx2(2,0,2)=aj2txz
+            rxx2(2,1,1)=aj2tyy
+            rxx2(2,1,2)=aj2tyz
+            rxx2(2,2,2)=aj2tzz
+ 
+ 
+            ! clap1m1 : coeff of u(-1) from lap1 = u1.xx + u1.yy + u1.zz
+            ! clap1m2 : coeff of u(-2) from lap1 = u1.xx + u1.yy + u1.zz
+ 
+ ! here are the macros from deriv.maple (file=derivMacros.h)
+ ! defineMacro lapCoeff4a(is,dr,ds) ( (-2/3.*rxx*is-2/3.*ryy*is)/dr+(4/3.*rx**2+4/3.*ry**2)/dr**2 )
+ ! defineMacro lapCoeff4b(is,dr,ds) ( (1/12.*rxx*is+1/12.*ryy*is)/dr+(-1/12.*rx**2-1/12.*ry**2)/dr**2 )
+            
+            clap1m1=4./3.*(rsxy1(i1,i2,i3,axis1,0)**2+rsxy1(i1,i2,i3,axis1,1)**2+rsxy1(i1,i2,i3,axis1,2)**2)/(dr1(axis1)**2) \
+                      -is*2./3.*(rxx1(axis1,0,0)+rxx1(axis1,1,1)+rxx1(axis1,2,2))/(2.*dr1(axis1))
+            clap1m2=-1./12.*(rsxy1(i1,i2,i3,axis1,0)**2+rsxy1(i1,i2,i3,axis1,1)**2+rsxy1(i1,i2,i3,axis1,2)**2)/(dr1(axis1)**2) \
+                      +is*1./12.*(rxx1(axis1,0,0)+rxx1(axis1,1,1)+rxx1(axis1,2,2))/(2.*dr1(axis1)) 
+ 
+            clap2m1=4/3.*(rsxy2(j1,j2,j3,axis2,0)**2+rsxy2(j1,j2,j3,axis2,1)**2+rsxy2(j1,j2,j3,axis2,2)**2)/(dr2(axis2)**2) \
+                      -js*2./3.*(rxx2(axis2,0,0)+rxx2(axis2,1,1)+rxx2(axis2,2,2))/(2.*dr2(axis2)) 
+            clap2m2=-1./12.*(rsxy2(j1,j2,j3,axis2,0)**2+rsxy2(j1,j2,j3,axis2,1)**2+rsxy2(j1,j2,j3,axis2,2)**2)/(dr2(axis2)**2) \
+                      +js*1./12.*(rxx2(axis2,0,0)+rxx2(axis2,1,1)+rxx2(axis2,2,2))/(2.*dr2(axis2))
+ 
+            ! cdivE1 =  u.c1x + v.c1y + w.c1z
+            ! nDotCurlE1 = (w1y-v1z)*an1 + (u1z-w1x)*an2 + (v1x-u1y)*an3
+ 
+            ! 12 Unknowns:
+            !   u1(-1), v1(-1), w1(-1), u1(-2), v1(-2), w1(-2), 
+            !   u2(-1), v2(-1), w2(-1), u2(-2), v2(-2), w2(-2)  
+            ! 12 Equations: 
+            !    a12(eqn,unknown) 
+ 
+ 
+            ! fill equations 0,..,5
+            fillEquations3dOrder4(0,1,2,3,4,5)
+ 
+ ! -- these are from op/src/derivCoeff.h (generated by op/src/derivCoeff.maple)
+ #defineMacro lapSqCoeff3DOrder2a(is,dr,ds,dt,a0,a1,a2,RX,RXX,RXXX,RXXXX) ( -1/2.*(2*RXXXX(a0,0,0,1,1)+RXXXX(a0,0,0,0,0)+2*RXXXX(a0,0,0,2,2)+RXXXX(a0,1,1,1,1)+RXXXX(a0,2,2,2,2)+2*RXXXX(a0,1,1,2,2))*is/dr+(4*RX(a0,2)*RX(a0,0)*RXX(a0,0,2)+2*RX(a0,2)*(2*RX(a0,0)*RXX(a0,0,2)+RX(a0,2)*RXX(a0,0,0))+2*RXX(a0,2,2)*RX(a0,0)**2+4*RX(a0,1)*RXX(a0,0,1)*RX(a0,0)+2*RX(a0,1)*(2*RXX(a0,0,1)*RX(a0,0)+RX(a0,1)*RXX(a0,0,0))+2*RXX(a0,1,1)*RX(a0,0)**2+4*RX(a0,2)*RX(a0,1)*RXX(a0,1,2)+2*RX(a0,2)*(2*RX(a0,1)*RXX(a0,1,2)+RX(a0,2)*RXX(a0,1,1))+2*RXX(a0,2,2)*RX(a0,1)**2+6*RX(a0,1)**2*RXX(a0,1,1)+6*RX(a0,0)**2*RXX(a0,0,0)+6*RX(a0,2)**2*RXX(a0,2,2))*is/dr**3-2*(2*RX(a0,2)*(RX(a0,2)*RX(a1,1)**2+2*RX(a1,2)*RX(a1,1)*RX(a0,1))+2*RX(a1,2)*(RX(a1,2)*RX(a0,1)**2+2*RX(a0,2)*RX(a1,1)*RX(a0,1))+2*RX(a0,2)*(RX(a0,2)*RX(a1,0)**2+2*RX(a1,2)*RX(a1,0)*RX(a0,0))+2*RX(a1,2)*(RX(a1,2)*RX(a0,0)**2+2*RX(a0,2)*RX(a1,0)*RX(a0,0))+6*RX(a0,1)**2*RX(a1,1)**2+2*RX(a1,1)*(RX(a1,1)*RX(a0,0)**2+2*RX(a0,1)*RX(a1,0)*RX(a0,0))+2*RX(a0,1)*(RX(a0,1)*RX(a1,0)**2+2*RX(a1,1)*RX(a1,0)*RX(a0,0))+6*RX(a0,0)**2*RX(a1,0)**2+6*RX(a0,2)**2*RX(a1,2)**2)/dr**2/ds**2-2*(6*RX(a0,2)**2*RX(a2,2)**2+6*RX(a0,0)**2*RX(a2,0)**2+2*RX(a0,2)*(2*RX(a2,2)*RX(a2,0)*RX(a0,0)+RX(a0,2)*RX(a2,0)**2)+2*RX(a2,2)*(RX(a2,2)*RX(a0,0)**2+2*RX(a0,2)*RX(a2,0)*RX(a0,0))+2*RX(a0,2)*(2*RX(a2,2)*RX(a2,1)*RX(a0,1)+RX(a0,2)*RX(a2,1)**2)+2*RX(a2,2)*(RX(a2,2)*RX(a0,1)**2+2*RX(a0,2)*RX(a2,1)*RX(a0,1))+2*RX(a0,1)*(2*RX(a2,1)*RX(a2,0)*RX(a0,0)+RX(a0,1)*RX(a2,0)**2)+2*RX(a2,1)*(RX(a2,1)*RX(a0,0)**2+2*RX(a0,1)*RX(a2,0)*RX(a0,0))+6*RX(a0,1)**2*RX(a2,1)**2)/dr**2/dt**2+(4*RXX(a1,1,1)*RX(a1,0)*RX(a0,0)+2*RX(a1,2)*(2*RX(a0,0)*RXX(a1,0,2)+RX(a0,2)*RXX(a1,0,0)+2*RXX(a0,0,2)*RX(a1,0)+RX(a1,2)*RXX(a0,0,0))+2*RX(a1,2)*(2*RXX(a0,0,2)*RX(a1,0)+2*RX(a0,0)*RXX(a1,0,2))+7*RX(a0,0)*RXX(a1,0,0)*RX(a1,0)+7*RX(a0,1)*RXX(a1,1,1)*RX(a1,1)+4*RX(a0,1)*RXX(a1,0,1)*RX(a1,0)+4*RXX(a1,2,2)*RX(a1,0)*RX(a0,0)+RX(a1,2)*(3*RXX(a0,2,2)*RX(a1,2)+3*RX(a0,2)*RXX(a1,2,2))+RX(a1,2)*(2*RXX(a0,2,2)*RX(a1,2)+2*RX(a0,2)*RXX(a1,2,2))+4*RX(a0,2)*RX(a1,0)*RXX(a1,0,2)+2*RX(a1,2)*(2*RX(a0,1)*RXX(a1,1,2)+RX(a0,2)*RXX(a1,1,1)+2*RXX(a0,1,2)*RX(a1,1)+RX(a1,2)*RXX(a0,1,1))+RXX(a0,0,0)*RX(a1,0)**2+RX(a1,0)*(3*RXX(a1,0,0)*RX(a0,0)+3*RX(a1,0)*RXX(a0,0,0))+RX(a1,0)*(2*RX(a1,0)*RXX(a0,0,0)+2*RXX(a1,0,0)*RX(a0,0))+2*RX(a1,2)*(2*RXX(a0,1,2)*RX(a1,1)+2*RX(a0,1)*RXX(a1,1,2))+7*RX(a0,2)*RXX(a1,2,2)*RX(a1,2)+2*RX(a0,2)*(2*RX(a1,1)*RXX(a1,1,2)+RX(a1,2)*RXX(a1,1,1))+RXX(a0,2,2)*RX(a1,2)**2+2*RXX(a0,2,2)*RX(a1,1)**2+RXX(a0,1,1)*RX(a1,1)**2+RX(a1,1)*(3*RXX(a1,1,1)*RX(a0,1)+3*RX(a1,1)*RXX(a0,1,1))+RX(a1,1)*(2*RX(a1,1)*RXX(a0,1,1)+2*RXX(a1,1,1)*RX(a0,1))+4*RXX(a1,2,2)*RX(a1,1)*RX(a0,1)+4*RX(a0,2)*RX(a1,1)*RXX(a1,1,2)+2*RX(a0,1)*(RX(a1,1)*RXX(a1,0,0)+2*RXX(a1,0,1)*RX(a1,0))+2*RXX(a0,1,1)*RX(a1,0)**2+2*RX(a1,1)*(RX(a0,1)*RXX(a1,0,0)+2*RX(a1,0)*RXX(a0,0,1)+2*RXX(a1,0,1)*RX(a0,0)+RX(a1,1)*RXX(a0,0,0))+2*RX(a1,1)*(2*RX(a1,0)*RXX(a0,0,1)+2*RXX(a1,0,1)*RX(a0,0))+2*RX(a0,2)*(2*RX(a1,0)*RXX(a1,0,2)+RX(a1,2)*RXX(a1,0,0))+2*RXX(a0,2,2)*RX(a1,0)**2)*is/dr/ds**2+(2*RX(a2,2)*(2*RX(a2,0)*RXX(a0,0,2)+2*RXX(a2,0,2)*RX(a0,0))+2*RX(a2,2)*(2*RXX(a2,0,2)*RX(a0,0)+RX(a2,2)*RXX(a0,0,0)+2*RX(a2,0)*RXX(a0,0,2)+RX(a0,2)*RXX(a2,0,0))+4*RX(a0,2)*RXX(a2,0,2)*RX(a2,0)+2*RXX(a0,2,2)*RX(a2,1)**2+2*RX(a2,2)*(2*RX(a2,1)*RXX(a0,1,2)+2*RXX(a2,1,2)*RX(a0,1))+2*RX(a2,2)*(2*RXX(a2,1,2)*RX(a0,1)+RX(a2,2)*RXX(a0,1,1)+2*RX(a2,1)*RXX(a0,1,2)+RX(a0,2)*RXX(a2,1,1))+2*RX(a0,2)*(2*RXX(a2,1,2)*RX(a2,1)+RX(a2,2)*RXX(a2,1,1))+4*RX(a0,2)*RXX(a2,1,2)*RX(a2,1)+4*RXX(a2,2,2)*RX(a2,1)*RX(a0,1)+4*RXX(a2,1,1)*RX(a2,0)*RX(a0,0)+4*RX(a0,1)*RXX(a2,0,1)*RX(a2,0)+2*RX(a0,1)*(2*RXX(a2,0,1)*RX(a2,0)+RX(a2,1)*RXX(a2,0,0))+2*RXX(a0,1,1)*RX(a2,0)**2+2*RX(a2,1)*(2*RX(a2,0)*RXX(a0,0,1)+2*RXX(a2,0,1)*RX(a0,0))+2*RX(a2,1)*(2*RXX(a2,0,1)*RX(a0,0)+RX(a2,1)*RXX(a0,0,0)+2*RX(a2,0)*RXX(a0,0,1)+RX(a0,1)*RXX(a2,0,0))+RXX(a0,1,1)*RX(a2,1)**2+2*RX(a0,2)*(2*RXX(a2,0,2)*RX(a2,0)+RX(a2,2)*RXX(a2,0,0))+RX(a2,1)*(2*RX(a2,1)*RXX(a0,1,1)+2*RXX(a2,1,1)*RX(a0,1))+RX(a2,1)*(3*RXX(a2,1,1)*RX(a0,1)+3*RX(a2,1)*RXX(a0,1,1))+7*RX(a0,0)*RXX(a2,0,0)*RX(a2,0)+7*RX(a0,1)*RXX(a2,1,1)*RX(a2,1)+RXX(a0,2,2)*RX(a2,2)**2+RX(a2,2)*(2*RX(a2,2)*RXX(a0,2,2)+2*RXX(a2,2,2)*RX(a0,2))+RX(a2,2)*(3*RXX(a2,2,2)*RX(a0,2)+3*RX(a2,2)*RXX(a0,2,2))+RXX(a0,0,0)*RX(a2,0)**2+4*RXX(a2,2,2)*RX(a2,0)*RX(a0,0)+RX(a2,0)*(2*RX(a2,0)*RXX(a0,0,0)+2*RXX(a2,0,0)*RX(a0,0))+RX(a2,0)*(3*RXX(a2,0,0)*RX(a0,0)+3*RX(a2,0)*RXX(a0,0,0))+2*RXX(a0,2,2)*RX(a2,0)**2+7*RX(a0,2)*RXX(a2,2,2)*RX(a2,2))*is/dr/dt**2+(4*RX(a0,2)*RXXX(a0,1,1,2)+2*RXX(a0,2,2)*RXX(a0,1,1)+4*RXX(a0,1,2)**2+4*RX(a0,1)*RXXX(a0,1,2,2)+4*RX(a0,2)*RXXX(a0,0,0,2)+2*RXX(a0,2,2)*RXX(a0,0,0)+4*RXX(a0,0,2)**2+4*RX(a0,0)*RXXX(a0,0,2,2)+4*RX(a0,0)*RXXX(a0,0,0,0)+3*RXX(a0,0,0)**2+4*RX(a0,0)*RXXX(a0,0,1,1)+2*RXX(a0,1,1)*RXX(a0,0,0)+4*RX(a0,1)*RXXX(a0,0,0,1)+4*RXX(a0,0,1)**2+4*RX(a0,1)*RXXX(a0,1,1,1)+3*RXX(a0,1,1)**2+3*RXX(a0,2,2)**2+4*RX(a0,2)*RXXX(a0,2,2,2))/dr**2-4*(2*RX(a0,2)**2*RX(a0,1)**2+RX(a0,2)**4+RX(a0,1)**4+2*RX(a0,2)**2*RX(a0,0)**2+2*RX(a0,1)**2*RX(a0,0)**2+RX(a0,0)**4)/dr**4 )
+ 
+ 
+ #defineMacro lapSqCoeff3DOrder2b(is,dr,ds,dt,a0,a1,a2,RX,RXX,RXXX,RXXXX) ( -1/2.*(4*RX(a0,1)*RXX(a0,0,1)*RX(a0,0)+2*RX(a0,1)*(2*RXX(a0,0,1)*RX(a0,0)+RX(a0,1)*RXX(a0,0,0))+2*RXX(a0,1,1)*RX(a0,0)**2+4*RX(a0,2)*RX(a0,0)*RXX(a0,0,2)+2*RX(a0,2)*(2*RX(a0,0)*RXX(a0,0,2)+RX(a0,2)*RXX(a0,0,0))+2*RXX(a0,2,2)*RX(a0,0)**2+6*RX(a0,1)**2*RXX(a0,1,1)+6*RX(a0,0)**2*RXX(a0,0,0)+4*RX(a0,2)*RX(a0,1)*RXX(a0,1,2)+2*RX(a0,2)*(2*RX(a0,1)*RXX(a0,1,2)+RX(a0,2)*RXX(a0,1,1))+2*RXX(a0,2,2)*RX(a0,1)**2+6*RX(a0,2)**2*RXX(a0,2,2))*is/dr**3+(2*RX(a0,2)**2*RX(a0,1)**2+RX(a0,2)**4+RX(a0,1)**4+2*RX(a0,2)**2*RX(a0,0)**2+2*RX(a0,1)**2*RX(a0,0)**2+RX(a0,0)**4)/dr**4 )
+ 
+ #defineMacro xLapCoeff3DOrder2a(is,dr,ds,dt,a0,a1,a2,RX,RXX,RXXX) ( -1/2.*RXXX(a0,0,2,2)*is/dr-1/2.*RXXX(a0,0,0,0)*is/dr-1/2.*RXXX(a0,0,1,1)*is/dr+3*RX(a0,0)*RXX(a0,0,0)/dr**2+RX(a0,0)**3*is/dr**3+RX(a0,2)**2*RX(a0,0)*is/dr**3+(RX(a0,2)*RX(a1,2)*RX(a1,0)+RX(a1,2)*(RX(a1,2)*RX(a0,0)+RX(a0,2)*RX(a1,0)))*is/dr/ds**2+(RX(a2,2)*(RX(a0,2)*RX(a2,0)+RX(a2,2)*RX(a0,0))+RX(a0,2)*RX(a2,2)*RX(a2,0))*is/dr/dt**2+(RX(a2,1)*(RX(a0,1)*RX(a2,0)+RX(a2,1)*RX(a0,0))+RX(a0,1)*RX(a2,1)*RX(a2,0))*is/dr/dt**2+(RXX(a0,1,1)*RX(a0,0)+2*RX(a0,1)*RXX(a0,0,1))/dr**2+3*RX(a0,0)*RX(a2,0)**2*is/dr/dt**2+RX(a0,1)**2*RX(a0,0)*is/dr**3+3*RX(a0,0)*RX(a1,0)**2*is/dr/ds**2+(RX(a0,1)*RX(a1,1)*RX(a1,0)+RX(a1,1)*(RX(a1,1)*RX(a0,0)+RX(a0,1)*RX(a1,0)))*is/dr/ds**2+(2*RX(a0,2)*RXX(a0,0,2)+RXX(a0,2,2)*RX(a0,0))/dr**2 )
+ 
+ ! #defineMacro xLapCoeff3DOrder2b(is,dr,ds) ( -1/2.*rz**2*rx*is/dr**3-1/2.*ry**2*rx*is/dr**3-1/2.*rx**3*is/dr**3 )
+ 
+ #defineMacro xLapCoeff3DOrder2b(is,dr,ds,dt,a0,a1,a2,RX,RXX,RXXX) ( -1/2.*RX(a0,2)**2*RX(a0,0)*is/dr**3-1/2.*RX(a0,1)**2*RX(a0,0)*is/dr**3-1/2.*RX(a0,0)**3*is/dr**3 )
+ 
+ ! #defineMacro yLapCoeff3DOrder2a(is,dr,ds) ( (2*rxy*rx+ry*rxx)/dr**2+rz**2*ry*is/dr**3+(rz*sz*sy+sz*(sz*ry+rz*sy))*is/dr/ds**2+(2*ty*tx*rx+ry*tx**2)*is/dr/dt**2+(tz*(rz*ty+tz*ry)+rz*tz*ty)*is/dr/dt**2+3*ry*ty**2*is/dr/dt**2+(2*rz*ryz+rzz*ry)/dr**2-1/2.*rxxy*is/dr-1/2.*ryyy*is/dr+3*ry*ryy/dr**2+ry**3*is/dr**3+ry*rx**2*is/dr**3+(ry*sx**2+2*sy*sx*rx)*is/dr/ds**2+3*ry*sy**2*is/dr/ds**2-1/2.*ryzz*is/dr )
+ 
+ #defineMacro yLapCoeff3DOrder2a(is,dr,ds,dt,a0,a1,a2,RX,RXX,RXXX) ( (2*RXX(a0,0,1)*RX(a0,0)+RX(a0,1)*RXX(a0,0,0))/dr**2+RX(a0,2)**2*RX(a0,1)*is/dr**3+(RX(a0,2)*RX(a1,2)*RX(a1,1)+RX(a1,2)*(RX(a1,2)*RX(a0,1)+RX(a0,2)*RX(a1,1)))*is/dr/ds**2+(2*RX(a2,1)*RX(a2,0)*RX(a0,0)+RX(a0,1)*RX(a2,0)**2)*is/dr/dt**2+(RX(a2,2)*(RX(a0,2)*RX(a2,1)+RX(a2,2)*RX(a0,1))+RX(a0,2)*RX(a2,2)*RX(a2,1))*is/dr/dt**2+3*RX(a0,1)*RX(a2,1)**2*is/dr/dt**2+(2*RX(a0,2)*RXX(a0,1,2)+RXX(a0,2,2)*RX(a0,1))/dr**2-1/2.*RXXX(a0,0,0,1)*is/dr-1/2.*RXXX(a0,1,1,1)*is/dr+3*RX(a0,1)*RXX(a0,1,1)/dr**2+RX(a0,1)**3*is/dr**3+RX(a0,1)*RX(a0,0)**2*is/dr**3+(RX(a0,1)*RX(a1,0)**2+2*RX(a1,1)*RX(a1,0)*RX(a0,0))*is/dr/ds**2+3*RX(a0,1)*RX(a1,1)**2*is/dr/ds**2-1/2.*RXXX(a0,1,2,2)*is/dr )
+ 
+ ! #defineMacro yLapCoeff3DOrder2b(is,dr,ds) ( -1/2.*rz**2*ry*is/dr**3-1/2.*ry**3*is/dr**3-1/2.*ry*rx**2*is/dr**3 )
+ 
+ #defineMacro yLapCoeff3DOrder2b(is,dr,ds,dt,a0,a1,a2,RX,RXX,RXXX) ( -1/2.*RX(a0,2)**2*RX(a0,1)*is/dr**3-1/2.*RX(a0,1)**3*is/dr**3-1/2.*RX(a0,1)*RX(a0,0)**2*is/dr**3 )
+ 
+ ! #defineMacro zLapCoeff3DOrder2a(is,dr,ds) ( -1/2.*rxxz*is/dr-1/2.*ryyz*is/dr+3*rz*rzz/dr**2+rz**3*is/dr**3+(2*tz*tx*rx+rz*tx**2)*is/dr/dt**2+rz*rx**2*is/dr**3+3*rz*sz**2*is/dr/ds**2-1/2.*rzzz*is/dr+(rz*sx**2+2*sz*sx*rx)*is/dr/ds**2+3*rz*tz**2*is/dr/dt**2+(rz*sy**2+2*sz*sy*ry)*is/dr/ds**2+(2*tz*ty*ry+rz*ty**2)*is/dr/dt**2+rz*ry**2*is/dr**3+(2*rx*rxz+rz*rxx)/dr**2+(2*ry*ryz+rz*ryy)/dr**2 )
+ 
+ #defineMacro zLapCoeff3DOrder2a(is,dr,ds,dt,a0,a1,a2,RX,RXX,RXXX) ( -1/2.*RXXX(a0,0,0,2)*is/dr-1/2.*RXXX(a0,1,1,2)*is/dr+3*RX(a0,2)*RXX(a0,2,2)/dr**2+RX(a0,2)**3*is/dr**3+(2*RX(a2,2)*RX(a2,0)*RX(a0,0)+RX(a0,2)*RX(a2,0)**2)*is/dr/dt**2+RX(a0,2)*RX(a0,0)**2*is/dr**3+3*RX(a0,2)*RX(a1,2)**2*is/dr/ds**2-1/2.*RXXX(a0,2,2,2)*is/dr+(RX(a0,2)*RX(a1,0)**2+2*RX(a1,2)*RX(a1,0)*RX(a0,0))*is/dr/ds**2+3*RX(a0,2)*RX(a2,2)**2*is/dr/dt**2+(RX(a0,2)*RX(a1,1)**2+2*RX(a1,2)*RX(a1,1)*RX(a0,1))*is/dr/ds**2+(2*RX(a2,2)*RX(a2,1)*RX(a0,1)+RX(a0,2)*RX(a2,1)**2)*is/dr/dt**2+RX(a0,2)*RX(a0,1)**2*is/dr**3+(2*RX(a0,0)*RXX(a0,0,2)+RX(a0,2)*RXX(a0,0,0))/dr**2+(2*RX(a0,1)*RXX(a0,1,2)+RX(a0,2)*RXX(a0,1,1))/dr**2 )
+ 
+ ! #defineMacro zLapCoeff3DOrder2b(is,dr,ds) ( -1/2.*rz**3*is/dr**3-1/2.*rz*ry**2*is/dr**3-1/2.*rz*rx**2*is/dr**3 )
+ 
+ #defineMacro zLapCoeff3DOrder2b(is,dr,ds,dt,a0,a1,a2,RX,RXX,RXXX) ( -1/2.*RX(a0,2)**3*is/dr**3-1/2.*RX(a0,2)*RX(a0,1)**2*is/dr**3-1/2.*RX(a0,2)*RX(a0,0)**2*is/dr**3 )
+ 
+            ! rx1(m,n) = D r_m / D x_n
+            ! rxx1(m,n1,n2) = D^2 r /( D x_n1 D X_n2 )
+            ! rxxx1(m,n1,n2,n3) 
+ 
+            ! first derivatives
+            rx1(0,0)=rsxy1(i1,i2,i3,0,0)
+            rx1(0,1)=rsxy1(i1,i2,i3,0,1)
+            rx1(0,2)=rsxy1(i1,i2,i3,0,2)
+            rx1(1,0)=rsxy1(i1,i2,i3,1,0)
+            rx1(1,1)=rsxy1(i1,i2,i3,1,1)
+            rx1(1,2)=rsxy1(i1,i2,i3,1,2)
+            rx1(2,0)=rsxy1(i1,i2,i3,2,0)
+            rx1(2,1)=rsxy1(i1,i2,i3,2,1)
+            rx1(2,2)=rsxy1(i1,i2,i3,2,2)
+ 
+            rx2(0,0)=rsxy2(j1,j2,j3,0,0)
+            rx2(0,1)=rsxy2(j1,j2,j3,0,1)
+            rx2(0,2)=rsxy2(j1,j2,j3,0,2)
+            rx2(1,0)=rsxy2(j1,j2,j3,1,0)
+            rx2(1,1)=rsxy2(j1,j2,j3,1,1)
+            rx2(1,2)=rsxy2(j1,j2,j3,1,2)
+            rx2(2,0)=rsxy2(j1,j2,j3,2,0)
+            rx2(2,1)=rsxy2(j1,j2,j3,2,1)
+            rx2(2,2)=rsxy2(j1,j2,j3,2,2)
+ 
+ 
+            ! 3rd derivatives: (only some are needed)
+            ! note for last 3 entries - entries must increase or stay the same
+            rxxx1(axis1,0,0,0) = aj1rxxx
+            rxxx1(axis1,1,1,1) = aj1ryyy
+            rxxx1(axis1,2,2,2) = aj1rzzz
+            rxxx1(axis1,0,0,1) = aj1rxxy
+            rxxx1(axis1,0,0,2) = aj1rxxz
+            rxxx1(axis1,0,1,1) = aj1rxyy
+            rxxx1(axis1,0,2,2) = aj1rxzz
+            rxxx1(axis1,1,1,2) = aj1ryyz
+            rxxx1(axis1,1,2,2) = aj1ryzz
+ 
+            rxxx2(axis2,0,0,0) = aj2rxxx
+            rxxx2(axis2,1,1,1) = aj2ryyy
+            rxxx2(axis2,2,2,2) = aj2rzzz
+            rxxx2(axis2,0,0,1) = aj2rxxy
+            rxxx2(axis2,0,0,2) = aj2rxxz
+            rxxx2(axis2,0,1,1) = aj2rxyy
+            rxxx2(axis2,0,2,2) = aj2rxzz
+            rxxx2(axis2,1,1,2) = aj2ryyz
+            rxxx2(axis2,1,2,2) = aj2ryzz
+ 
+ 
+ 
+            ! Some 4th derivatives are needed by LapSq: 
+            rxxxx1(axis1,0,0,0,0) = aj1rxxxx
+            rxxxx1(axis1,1,1,1,1) = aj1ryyyy
+            rxxxx1(axis1,2,2,2,2) = aj1rzzzz
+ 
+            rxxxx1(axis1,0,0,1,1) = aj1rxxyy
+            rxxxx1(axis1,0,0,2,2) = aj1rxxzz
+            rxxxx1(axis1,1,1,2,2) = aj1ryyzz
+ 
+            rxxxx2(axis2,0,0,0,0) = aj2rxxxx
+            rxxxx2(axis2,1,1,1,1) = aj2ryyyy
+            rxxxx2(axis2,2,2,2,2) = aj2rzzzz
+ 
+            rxxxx2(axis2,0,0,1,1) = aj2rxxyy
+            rxxxx2(axis2,0,0,2,2) = aj2rxxzz
+            rxxxx2(axis2,1,1,2,2) = aj2ryyzz
+ 
+            ! coeff of u1(-1) from D.x(Lap), D.y(Lap) and D.z(Lap): (divideb by eps*mu)
+            c1m1x = xLapCoeff3DOrder2a(is,dr1(axis1),dr1(axis1p1),dr1(axis1p2),axis1,axis1p1,axis1p2,rx1,rxx1,rxxx1)/epsmu1 
+            c1m1y = yLapCoeff3DOrder2a(is,dr1(axis1),dr1(axis1p1),dr1(axis1p2),axis1,axis1p1,axis1p2,rx1,rxx1,rxxx1)/epsmu1  
+            c1m1z = zLapCoeff3DOrder2a(is,dr1(axis1),dr1(axis1p1),dr1(axis1p2),axis1,axis1p1,axis1p2,rx1,rxx1,rxxx1)/epsmu1  
+ 
+            ! coeff of u1(-2) from D.x(Lap), D.y(Lap) and D.z(Lap): 
+            c1m2x = xLapCoeff3DOrder2b(is,dr1(axis1),dr1(axis1p1),dr1(axis1p2),axis1,axis1p1,axis1p2,rx1,rxx1,rxxx1)/epsmu1  
+            c1m2y = yLapCoeff3DOrder2b(is,dr1(axis1),dr1(axis1p1),dr1(axis1p2),axis1,axis1p1,axis1p2,rx1,rxx1,rxxx1)/epsmu1  
+            c1m2z = zLapCoeff3DOrder2b(is,dr1(axis1),dr1(axis1p1),dr1(axis1p2),axis1,axis1p1,axis1p2,rx1,rxx1,rxxx1)/epsmu1  
+ 
+ 
+            ! coeff of u2(-1) from D.x(Lap), D.y(Lap) and D.z(Lap): 
+            c2m1x = xLapCoeff3DOrder2a(js,dr2(axis2),dr2(axis2p1),dr2(axis2p2),axis2,axis2p1,axis2p2,rx2,rxx2,rxxx2)/epsmu2  
+            c2m1y = yLapCoeff3DOrder2a(js,dr2(axis2),dr2(axis2p1),dr2(axis2p2),axis2,axis2p1,axis2p2,rx2,rxx2,rxxx2)/epsmu2 
+            c2m1z = zLapCoeff3DOrder2a(js,dr2(axis2),dr2(axis2p1),dr2(axis2p2),axis2,axis2p1,axis2p2,rx2,rxx2,rxxx2)/epsmu2  
+ 
+            ! coeff of u2(-2) from D.x(Lap), D.y(Lap) and D.z(Lap): 
+            c2m2x = xLapCoeff3DOrder2b(js,dr2(axis2),dr2(axis2p1),dr2(axis2p2),axis2,axis2p1,axis2p2,rx2,rxx2,rxxx2)/epsmu2  
+            c2m2y = yLapCoeff3DOrder2b(js,dr2(axis2),dr2(axis2p1),dr2(axis2p2),axis2,axis2p1,axis2p2,rx2,rxx2,rxxx2)/epsmu2  
+            c2m2z = zLapCoeff3DOrder2b(js,dr2(axis2),dr2(axis2p1),dr2(axis2p2),axis2,axis2p1,axis2p2,rx2,rxx2,rxxx2)/epsmu2  
+ 
+ 
+            ! coeff of u1(-1) and u1(-2) from Lap^2
+            clap1m1=lapSqCoeff3DOrder2a(is,dr1(axis1),dr1(axis1p1),dr1(axis1p2),axis1,axis1p1,axis1p2,rx1,rxx1,rxxx1,rxxxx1)/epsmu1
+            clap1m2=lapSqCoeff3DOrder2b(is,dr1(axis1),dr1(axis1p1),dr1(axis1p2),axis1,axis1p1,axis1p2,rx1,rxx1,rxxx1,rxxxx1)/epsmu1
+ 
+ 
+            ! coeff of u2(-1) and u2(-2) from Lap^2
+            clap2m1=lapSqCoeff3DOrder2a(js,dr2(axis2),dr2(axis2p1),dr2(axis2p2),axis2,axis2p1,axis2p2,rx2,rxx2,rxxx2,rxxxx2)/epsmu2
+            clap2m2=lapSqCoeff3DOrder2b(js,dr2(axis2),dr2(axis2p1),dr2(axis2p2),axis2,axis2p1,axis2p2,rx2,rxx2,rxxx2,rxxxx2)/epsmu2
+ 
+            ! write(debugFile,'(" --> 3d-order4-c: i1,i2,i3=",3i4," c1m1x,c1m1y,c1m1z,clap1m1,clap1m2=",12e10.2)') i1,i2,i3,c1m1x,c1m1y,c1m1z,clap1m1,clap1m2
+ 
+            ! fill equations 6...11
+            fillEquations3dOrder4(6,7,8,9,10,11)
+ 
+            ! Equation 6..11 :  extrapolate 2nd ghost point 
+            cex1=1.
+            cex2=-5. ! ** fix me ** orderOfExtrapolation for 2nd ghost point 
+            ! *e678*
+            ! do ii=6,11
+            !   do jj=0,11
+            !     a12(ii,jj)=0.
+            !   end do
+            ! end do
+            ! a12(6,0)  = cex2   ! u1(-1)
+            ! a12(6,3)  = cex1   ! u1(-2)
+ 
+            ! a12(7,1)  = cex2   ! v1(-1)
+            ! a12(7,4)  = cex1   ! v1(-2)
+ 
+            ! a12(8,2)  = cex2   ! w1(-1)
+            ! a12(8,5)  = cex1   ! w1(-2)
+ 
+            ! a12(9,6)  = cex2   ! u2(-1)
+            ! a12(9,9)  = cex1   ! u2(-2)
+            ! a12(10,7) = cex2   ! v2(-1)
+            ! a12(10,10)= cex1   ! v2(-2)
+ 
+            ! a12(11,8) = cex2   ! w2(-1)
+            ! a12(11,11)= cex1   ! w2(-2)
+ 
+ 
+            ! fill in the current values for the unknowns: 
+            q(0) = u1(i1-is1,i2-is2,i3-is3,ex)
+            q(1) = u1(i1-is1,i2-is2,i3-is3,ey)
+            q(2) = u1(i1-is1,i2-is2,i3-is3,ez)
+            q(3) = u1(i1-2*is1,i2-2*is2,i3-2*is3,ex)
+            q(4) = u1(i1-2*is1,i2-2*is2,i3-2*is3,ey)
+            q(5) = u1(i1-2*is1,i2-2*is2,i3-2*is3,ez)
+ 
+            q(6) = u2(j1-js1,j2-js2,j3-js3,ex)
+            q(7) = u2(j1-js1,j2-js2,j3-js3,ey)
+            q(8) = u2(j1-js1,j2-js2,j3-js3,ez)
+            q(9) = u2(j1-2*js1,j2-2*js2,j3-2*js3,ex)
+            q(10)= u2(j1-2*js1,j2-2*js2,j3-2*js3,ey)
+            q(11)= u2(j1-2*js1,j2-2*js2,j3-2*js3,ez)
+ 
+            ! subtract off the contributions from the wrong values at the ghost points:
+            numberOfEquations=12
+            do n=0,numberOfEquations-1
+              f(n) = (a12(n,0)*q(0)+a12(n,1)*q(1)+a12(n,2)*q(2)+a12(n,3)*q(3)+a12(n,4)*q(4)+a12(n,5)*q(5)+\
+                      a12(n,6)*q(6)+a12(n,7)*q(7)+a12(n,8)*q(8)+a12(n,9)*q(9)+a12(n,10)*q(10)+a12(n,11)*q(11) ) - f(n)
+            end do
+            if( debug.gt.3 )then
+              write(debugFile,'(" --> 3d:order4-c: f(subtract)=",12e10.2)') (f(n),n=0,11)
+            end if
+            ! solve A Q = F
+            ! factor the matrix
+            call dgeco( a12(0,0), numberOfEquations, numberOfEquations, ipvt(0),rcond,work(0))
+            ! solve
+             if( debug.gt.3 )then
+               write(debugFile,'(" --> 3d:order4-c: rcond=",e10.2)') rcond
+             end if
+            job=0
+            call dgesl( a12(0,0), numberOfEquations, numberOfEquations, ipvt(0), f(0), job)
+            if( debug.gt.3 )then
+              write(debugFile,'(" --> 3d:order4-c: f(solve)=",12e10.2)') (f(n),n=0,11)
+              write(debugFile,'(" --> 3d:order4-c:        q=",12e10.2)') (q(n),n=0,11)
+              write(debugFile,'(" --> 3d:order4-c:      f-q=",12e10.2)') (f(n)-q(n),n=0,11)
+            end if
+            ! fill in the answer:
+            u1(i1-is1,i2-is2,i3-is3,ex)      =f(0 )*omega+(1.-omega)*q(0)
+            u1(i1-is1,i2-is2,i3-is3,ey)      =f(1 )*omega+(1.-omega)*q(1)
+            u1(i1-is1,i2-is2,i3-is3,ez)      =f(2 )*omega+(1.-omega)*q(2)
+            u1(i1-2*is1,i2-2*is2,i3-2*is3,ex)=f(3 )*omega+(1.-omega)*q(3)
+            u1(i1-2*is1,i2-2*is2,i3-2*is3,ey)=f(4 )*omega+(1.-omega)*q(4)
+            u1(i1-2*is1,i2-2*is2,i3-2*is3,ez)=f(5 )*omega+(1.-omega)*q(5)
+ 
+            u2(j1-js1,j2-js2,j3-js3,ex)      =f(6 )*omega+(1.-omega)*q(6)
+            u2(j1-js1,j2-js2,j3-js3,ey)      =f(7 )*omega+(1.-omega)*q(7)
+            u2(j1-js1,j2-js2,j3-js3,ez)      =f(8 )*omega+(1.-omega)*q(8)
+            u2(j1-2*js1,j2-2*js2,j3-2*js3,ex)=f(9 )*omega+(1.-omega)*q(9)
+            u2(j1-2*js1,j2-2*js2,j3-2*js3,ey)=f(10)*omega+(1.-omega)*q(10)
+            u2(j1-2*js1,j2-2*js2,j3-2*js3,ez)=f(11)*omega+(1.-omega)*q(11)
+ 
+ 
+            ! compute the maximum change in the solution for this iteration
+            do n=0,11
+              err=max(err,abs(q(n)-f(n)))
+            end do
+ 
+            if( debug.gt.3 )then ! re-evaluate
+ 
+             ! turn this off for now:
+             evalDerivs3dOrder4()
+             eval3dJumpOrder4New()
+ 
+             res=0.
+             do n=0,11
+               res=max(res,abs(f(n)))
+             end do
+             if( res.gt.1.e-9 )then
+               write(debugFile,'(" --> ERR: 3d-order4-c: i1,i2,i3=",3i4," f(re-eval)=",12e10.2)') i1,i2,i3,f(0),f(1),f(2),f(3),f(4),f(5),f(6),f(7),f(8),f(9),f(10),f(11)
+             end if
+            end if
+ 
+          endLoopsMask3d()
+ 
+          if( it.eq.1 )then
+            errRatio=1.
+          else
+            errRatio=err/errOld
+            ratioAve=ratioAve+errRatio
+          end if 
+          errOld=err
+ 
+          if( t.le.5*dt )then
+           write(*,'("interface3d : t=",e10.3," (grid1,grid2)=(",i3,",",i3,"), it=",i3,", err=",e10.2," rate=",f5.2," (omega=",f4.2,")")') t,grid1,grid2,it,err,errRatio,omega
+          end if
 
-         endLoopsMask3d()
+          if( debug.gt.0 )then 
+           write(debugFile,'("interface3d : t=",e10.3," (grid1,grid2)=(",i3,",",i3,"), it=",i3,", err=",e10.2," rate=",f5.2," (omega=",f4.2,")")') t,grid1,grid2,it,err,errRatio,omega
+          end if
+ 
+          numberOfIterations=it
+          if( err.lt.absoluteErrorTolerance )then
+            exit
+          end if
 
-           write(*,'("interface3d : done it=",i3,", err=",e10.2," (omega=",f4.2,")")') it,err,omega
-           if( debug.gt.0 )then 
-             write(debugFile,'("interface3d : done it=",i3,", err=",e10.2," (omega=",f4.2,")")') it,err,omega
-           end if
-         end do ! end it
-
-         ! periodic update
-         periodicUpdate3d(u1,boundaryCondition1,gridIndexRange1,side1,axis1)
-         periodicUpdate3d(u2,boundaryCondition2,gridIndexRange2,side2,axis2)
-
+          end do ! end it
+ 
+          ipar(43) = numberOfIterations  ! returned value
+          rpar(22) = ratioAve/(numberOfIterations-1)
+          rpar(23) = err !  maxFinalResidual : return value 
+ 
+          ! periodic update
+          periodicUpdate3d(u1,boundaryCondition1,gridIndexRange1,side1,axis1)
+          periodicUpdate3d(u2,boundaryCondition2,gridIndexRange2,side2,axis2)
+        end if ! end assignInterfaceGhostValues
 
        else
          write(debugFile,'("interface3d: ERROR: unknown options nd,order=",2i3)') nd,orderOfAccuracy

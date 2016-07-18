@@ -148,6 +148,10 @@ $grid
   turn on moving grids
   specify grids to move
       deforming body
+        #
+        #smooth surface 1
+        #number of surface smooths: 5
+        # 
         user defined deforming body
           elastic beam
           $pNorm=1.; 
