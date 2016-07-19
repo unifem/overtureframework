@@ -44,6 +44,8 @@ $orderOfProjection=4; # order of accuracy for beam element integrals
 #
 $smoothBeam=0; $numnberOfBeamSmooths=2; 
 #
+$probeFileName="BeamTip.text";
+#
 $useTP=0; # set to 1 to iterate with TP scheme
 $addedMassRelaxation=1.; # 1=no-relaxation
 $addedMassTol=1.e-3;
@@ -174,7 +176,13 @@ $grid
             #
             smooth solution $smoothBeam
             number of smooths: $numberOfBeamSmooths
-            debug: 0
+            debug: $bdebug
+            #
+            $filename="Beam1".$probeFileName;
+            probe file name: $filename
+            save probe file 1
+            probe file save frequency: 10
+            #
           exit
           # ----
           boundary parameterization

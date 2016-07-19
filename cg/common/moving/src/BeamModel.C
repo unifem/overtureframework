@@ -3562,7 +3562,7 @@ setSurfaceVelocity(const real & t, const RealArray & x0, const RealArray & vSurf
   const  real * initialBeamNormal = dbase.get<real[2]>("initialBeamNormal");
   
   //Longfei 20160622:  make correctForSurfaceRotation=true
-  const bool correctForSurfaceRotation=true;  // *CHECK ME* 2015/06/02 
+  const bool correctForSurfaceRotation=false;  // *CHECK ME* 2015/06/02 20160713: turn off for now
   if( correctForSurfaceRotation )
     {
       // ---  Remove the surface rotation term "W" before projecting the velocity onto the beam reference line ----
@@ -4731,7 +4731,7 @@ predictor(real tnp1, real dt )
       vtilde = v2 + dt*(1.0-newmarkGamma)*a2;
 
       //Longfei 20160628: implicitNewmarkSolver need valid ghost values for dtilde,vtilde
-      // assignBoundaryConditions( tnp1,dtilde,vtilde,a3,f3);  // 20160711 turn this off for now
+      assignBoundaryConditions( tnp1,dtilde,vtilde,a3,f3); 
     }
 
   

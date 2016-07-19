@@ -39,6 +39,13 @@
             number of smooths: $numberOfBeamSmooths
             #
            debug: 0
+	    #
+            #
+            $filename="Beam2".$probeFileName;
+            probe file name: $filename
+            save probe file 1
+            probe file save frequency: 10
+            #
            exit
            # ----
            boundary parameterization

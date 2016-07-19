@@ -1,3 +1,39 @@
+
+***********************
+***** July 11, 2016
+test FDBeamModel:
+beamInAChannel:
+
+redo this to see if anything is damaged: (PID 29911) FAILED. 07/13/2016 try turn off assignBC for vtilde and dtilde 
+cgins -noplot multiBeamsInAChannel -BM=FEM -g=multiBeamsInAChannelGride8.order2.hdf -tf=20. -tp=.01 -rhoBeam=1. -E=20 -numElem=21 -outflowOption=neumann -nu=1.e-3  -addedMass=1 -ampProjectVelocity=1 -useApproximateAMPcondition=1 -numberOfCorrections=1 -show=twoFEMBeamsInAChannelRhos1E20G8.show -go=go > ! twoFEMBeamsInAChannelRhos1E20G8.out &
+
+same run with FD1 and beamSmoother: (PID 31205)
+cgins -noplot multiBeamsInAChannel -BM=FD -g=multiBeamsInAChannelGride8.order2.hdf -tf=20. -tp=.01 -rhoBeam=1. -E=20 -numElem=21 -outflowOption=neumann -nu=1.e-3  -addedMass=1 -ampProjectVelocity=1 -useApproximateAMPcondition=1 -numberOfCorrections=1 -smoothInterfaceVelocity=1 -nis=10 -smoothBeam=1 -numberOfBeamSmooths=10  -show=twoFD1BeamsInAChannelRhos1E20G8.show -go=go > ! twoFD1BeamsInAChannelRhos1E20G8.out &
+
+PBF:(OK at t=5)
+cgins beamInAChannel -g=beamInAChannelGridBiggere1.order2.hdf  -numElem=21 -tf=5. -tp=.1 -rhoBeam=1. -E=5. -Kt=0. -Kxxt=5e-3 -addedMass=1 -ampProjectVelocity=1  -useApproximateAMPcondition=1 -nu=.05 -ad2=1 -rampInflow=1 -cfls=3. -numberOfCorrections=1 -nis=6 -psolver=best -BM=FD 
+
+PBA:(OK at t=5)
+cgins beamInAChannel -g=beamInAChannelGridBiggere1.order2.hdf -numElem=21 -tf=.1 -tp=.1 -rhoBeam=1. -E=5. -Kt=0. -Kxxt=5e-3 -addedMass=1 -ampProjectVelocity=1 -useApproximateAMPcondition=0 -nu=.05 -ad2=1 -rampInflow=1 -cfls=3. -numberOfCorrections=1 -nis=6 -psolver=best -BM=FD
+
+multiBeamsInAChannel
+PBF+FD1: (OK at t=4)
+cgins  multiBeamsInAChannel -g=multiBeamsInAChannelGride1.order2.hdf -tf=5. -tp=.01 -rhoBeam=1. -E=20 -numElem=7 -outflowOption=neumann -nu=1.e-3 -addedMass=1 -ampProjectVelocity=1 -useApproximateAMPcondition=1 -numberOfCorrections=1 -BM=FD -cfls=1. -ps=newmark2Implicit -cs=newmarkCorrector -smoothBeam=1 -go=halt
+
+explicit (OK)
+cgins  multiBeamsInAChannel -g=multiBeamsInAChannelGride1.order2.hdf -tf=5. -tp=.01 -rhoBeam=1. -E=20 -numElem=7 -outflowOption=neumann -nu=1.e-3 -addedMass=1 -ampProjectVelocity=1 -useApproximateAMPcondition=1 -numberOfCorrections=1 -BM=FD -cfls=1. -ps=adamsBashforth2 -cs=adamsMoultonCorrector -smoothBeam=1 -go=halt 
+
+PBA+FD1: (OK at t=4)
+cgins  multiBeamsInAChannel -g=multiBeamsInAChannelGride1.order2.hdf -tf=5. -tp=.01 -rhoBeam=1. -E=20 -numElem=7 -outflowOption=neumann -nu=1.e-3 -addedMass=1 -ampProjectVelocity=1 -useApproximateAMPcondition=0 -numberOfCorrections=1 -BM=FD -cfls=1. -ps=newmark2Implicit -cs=newmarkCorrector -smoothBeam=1 -go=halt 
+
+PBF+FEM: 
+cgins  multiBeamsInAChannel -g=multiBeamsInAChannelGride1.order2.hdf -tf=5. -tp=.01 -rhoBeam=1. -E=20 -numElem=7 -outflowOption=neumann -nu=1.e-3 -addedMass=1 -ampProjectVelocity=1 -useApproximateAMPcondition=1 -numberOfCorrections=1 -BM=FEM -cfls=10. -ps=newmark2Implicit -cs=newmarkCorrector -go=halt 
+
+PBA+FEM: 
+cgins  multiBeamsInAChannel -g=multiBeamsInAChannelGride1.order2.hdf -tf=5. -tp=.01 -rhoBeam=1. -E=20 -numElem=7 -outflowOption=neumann -nu=1.e-3 -addedMass=1 -ampProjectVelocity=1 -useApproximateAMPcondition=0 -numberOfCorrections=1 -BM=FEM -cfls=10. -ps=newmark2Implicit -cs=newmarkCorrector -go=halt 
+
+
+
 ***********************
 ***** Nov 11, 2015
 
