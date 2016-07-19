@@ -415,9 +415,6 @@ BeamModel::~BeamModel()
   if( dbase.get<bool>("saveProbeFile") &&  dbase.get<FILE*>("probeFile")!=NULL )
     fclose(dbase.get<FILE*>("probeFile"));
 
-
-
-
 }
 
 
@@ -2961,8 +2958,8 @@ interpolateSolution(const RealArray& X,
       MappedGridOperators &op = *dbase.get<MappedGridOperators*>("operator");
       RealArray Xs=X; Xs=0.;
       op.derivative( MappedGridOperators::xDerivative,X,Xs,Range(elemNum,elemNum+1),0,0,0); 
-      Xslope[0]=X(elemNum,0,0,0);
-      Xslope[1]=X(elemNum+1,0,0,0);
+      Xslope[0]=Xs(elemNum,0,0,0); //Longfei 20160719: use Xs instead of X. It was wrong...
+      Xslope[1]=Xs(elemNum+1,0,0,0);
     }
 
 
@@ -2970,7 +2967,7 @@ interpolateSolution(const RealArray& X,
     sf[2]*Xsolution[1] +sf[3]*Xslope[1] ;
   slope = sfd[0]*Xsolution[0]+sfd[1]*Xslope[0]+
     sfd[2]*Xsolution[1] +sfd[3]*Xslope[1];
-  
+
 }
 
 
