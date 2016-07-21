@@ -3,7 +3,7 @@
 #
 # Usage:
 #    cgins [-noplot] movingDiskInDisk -g=<name> -tp=<f> -tp=<f> -density=<f> ...
-#         -bcOption=[walls|inflowOutflow|pressure] ...
+#         -bcOption=[walls|inflowOutflow|pressure] -option=[rotatingDisk|translatingDisk] ...
 #        -sep=<f> -vIn=<f> -forceLimit=<f> -bodyForce=[x|y|wz|none] -go[halt|go|og]
 #  
 #  -sep : separation distance for collisions
@@ -16,7 +16,7 @@
 #  cgins movingDiskInDisk.cmd -g=diskInDiskGride2.order2.hdf -tf=1. -tp=.05 -nu=.1 -density=1.25 -dtMax=.75e-3 -go=halt 
 # 
 #
-$model="ins"; $solver = "best"; $show=" "; $ts="pc"; $noplot=""; 
+$model="ins"; $solver = "best"; $show=" "; $ts="pc"; $noplot=""; $tz="none"; 
 $density=1.25; 
 $inertia=""; # set this to over-ride computed inertia
 $nu = .1; $dtMax=.05; $newts=0; $movingWall=0; 
@@ -34,6 +34,10 @@ $numberOfCorrections=1;
 $addedMass=0; $useTP=0;  $useProvidedAcceleration=1; 
 $addedDamping=0;  $addedDampingCoeff=1.; $scaleAddedDampingWithDt=0; $addedDampingProjectVelocity=0; 
 $omega=.5; $rtolc=1.e-4; $atolc=1.e-7; 
+#
+$innerRadius=1; $outerRadius=2; # for rotating disk exact solution
+$rigidBodyCheckFile="rigidDisk.check"; 
+$exitOnInstability=0; $instabilityErrorTol=.02; 
 # 
 $freqFullUpdate=10; # frequency for using full ogen update in moving grids 
 $cdv=1.; $cDt=.25; $ad2=1; $ad21=1; $ad22=1;  $ad4=0; $ad41=2.; $ad42=2.; 
@@ -69,7 +73,9 @@ GetOptions( "g=s"=>\$grid,"tf=f"=>\$tFinal,"model=s"=>\$model,"inflowVelocity=f"
  "inertia=f"=>\$inertia,"amp=f"=>\$amp,"freq=f"=>\$freq,"addedDamping=f"=>\$addedDamping,\
  "ampSinusoidalPressure=f"=>\$ampSinusoidalPressure,"freqSinusoidalPressure=f"=>\$freqSinusoidalPressure,\
  "bodyForce=s"=>\$bodyForce,"cdv=f"=>\$cdv,"cDt=f"=>\$cDt,"addedDampingCoeff=f"=>\$addedDampingCoeff,\
- "scaleAddedDampingWithDt=f"=>\$scaleAddedDampingWithDt,"addedDampingProjectVelocity=f"=>\$addedDampingProjectVelocity );
+ "scaleAddedDampingWithDt=f"=>\$scaleAddedDampingWithDt,"addedDampingProjectVelocity=f"=>\$addedDampingProjectVelocity,\
+ "outerRadius=f"=>\$outerRadius,"exitOnInstability=i"=>\$exitOnInstability,\
+ "instabilityErrorTol=f"=>\$instabilityErrorTol );
 # -------------------------------------------------------------------------------------------------
 if( $solver eq "best" ){ $solver="choose best iterative solver"; }
 if( $solver eq "mg" ){ $solver="multigrid"; }
@@ -105,7 +111,7 @@ $grid
     open
      $show
     frequency to flush
-      10
+      1
   exit  
   turn off twilight zone
 #************************************
@@ -113,6 +119,9 @@ $grid
   times to plot $tPlot
   cfl $cfl
   dtMax $dtMax 
+  # Generate past time grids: 
+  use new time-stepping startup 1
+  exit on instability $exitOnInstability
 #
   recompute dt every 10
 #
@@ -203,7 +212,12 @@ $grid
      if( $bodyForce eq "x" ){ $cmd="time function\n body force x time function...\n sinusoidal function\n sinusoid parameters: $amp, $freq,0 (b0,f0,t0)\n  exit"; }\
                         else{ $cmd="#"; }
      $cmd
-     # 
+     #  implicit-factor: 1=BE, .5 = TRAP
+     # $implicitFactor=.5-.025; # ********************** TEST 
+     ## $implicitFactor=.4; # default
+     $implicitFactor=.5; # default
+     implicitFactor: $implicitFactor
+     #
      $a0=0.; $a1=1.; 
      $a0=10.; $a1=0.; 
      $cmd="#"; 
@@ -212,6 +226,13 @@ $grid
      # ramp: 
      if( $bodyForce eq "wzRamp" ){ $cmd="time function\n body torque z time function...\n ramp function\n ramp end values: 0,$amp (start,end)\n ramp times: 0,1 (start,end)\n  ramp order: 3\n exit"; }
      #
+     $cmd
+     # -- useKnownSolution will set initial velocity and acceleration
+     if( $option eq "rotatingDisk" || $option eq "translatingDisk" ){ $useKnownSolution=1; }else{ $useKnownSolution=0; }
+     use known solution $useKnownSolution  
+     $cmd="#"; 
+     if( $option eq "rotatingDisk" ){ $cmd="initial angular velocity\n $amp"; }
+     if( $option eq "translatingDisk" ){ $cmd="initial velocity\n $amp"; }
      $cmd
      #
      moments of inertia
@@ -234,14 +255,35 @@ $grid
       torque relaxation parameter: $beta
       torque relative tol: $rtolc
       torque absolute tol: $atolc
+      # -- check files
+      save check file 1
+      check file: $rigidBodyCheckFile
+      exit on instability $exitOnInstability
+      instability error tol: $instabilityErrorTol
      done
       $dropName
+      # For testing we use one grid and set outer BC to be the exact solution:
+      # .. thus the outer boundary is not a face on the moving body:
+      if( $dropName eq "annulus" ){ $cmd="specify faces\n 1\n done"; }else{ $cmd="#"; }
+      $cmd 
     done
    #
   done
 #
+  $cmd="#"; 
+  if( $option eq "rotatingDisk" ){ $cmd="OBTZ:user defined known solution\n rotating disk in disk\n $amp $innerRadius $outerRadius\n done"; }
+  if( $option eq "translatingDisk" ){ $cmd="OBTZ:user defined known solution\n translating disk in disk\n $amp $innerRadius $outerRadius\n done"; }
+  $cmd
+#
   boundary conditions
     all=noSlipWall
+    # For testsing try this: -- doesn't seem to work
+    # annulus(1,1)=noSlipWall, userDefinedBoundaryData
+    #  known solution
+    # done
+    # For testing we use one grid and set ouer BC to be the exact solution:
+    if( $dropName eq "annulus" ){ $cmd="annulus(1,1)=dirichletBoundaryCondition"; }else{ $cmd="#"; }
+    $cmd
    done
 #
   maximum number of iterations for implicit interpolation
@@ -250,7 +292,7 @@ $grid
 #
   pressure solver options
    # $ogesDebug=$debug; 
-   $ogesSolver=$psolver; $ogesRtol=$rtolp; $ogesAtol=$atolp; $ogesIluLevels=$iluLevels;
+   $ogesSolver=$psolver; $ogesRtol=$rtolp; $ogesAtol=$atolp; $ogesIluLevels=$iluLevels; $ogesDtol=1e20; 
    include $ENV{CG}/ins/cmd/ogesOptions.h
   exit
 #
@@ -264,8 +306,13 @@ $grid
 $project
 # 
  initial conditions
-   uniform flow
-    p=1., u=0., v=0.
+  if( $restart eq "" ){ $iccmds = "uniform flow\n" . "p=1, u=0., v=0\n"; }\
+  else{ $iccmds = "OBIC:show file name $restart\n OBIC:solution number -1 \n OBIC:assign solution from show file"; }
+  if( $option eq "rotatingDisk" && $restart eq "" ) { $iccmds="OBIC:known solution"; }
+  if( $option eq "translatingDisk" && $restart eq "" ) { $iccmds="OBIC:known solution"; }
+  if( $tz ne "none" ){ $iccmds = "# TZ"; }
+  #
+  $iccmds
  exit
 #
   debug

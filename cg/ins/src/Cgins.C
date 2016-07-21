@@ -215,7 +215,19 @@ updateGeometryArrays(GridFunction & cgf)
   {
     if( !cgf.cg[grid].isRectangular() || twilightZoneFlow() || parameters.isAxisymmetric() ||
 	parameters.gridIsMoving(grid) )
+    {
       cgf.cg[grid].update(MappedGrid::THEcenter | MappedGrid::THEvertex );  
+
+	if( false )// ************** TEMP ********************
+	{
+	  realArray & x = cgf.cg[grid].vertex();
+	  int i1=0, i2=0, i3=0;
+          printF("--INS--updateGeom: grid=%i: t=%12.5e, point (i1=0,i2=0) (x,y)=(%20.12e,%20.12e)\n",
+		 grid,cgf.t,x(i1,i2,i3,0),x(i1,i2,i3,1));
+	}
+
+
+    }
   }
   parameters.dbase.get<RealArray>("timing")(parameters.dbase.get<int>("timeForUpdatePressureEquation"))+=getCPU()-cpu0;
 

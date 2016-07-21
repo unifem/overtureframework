@@ -46,6 +46,16 @@ advanceSOSUP(  int numberOfStepsTaken, int current, real t, real dt )
 
   const real cMax=max(cGrid);
 
+  const int dw = max(cg[0].discretizationWidth()); // discertization width
+
+  // -- We normally extrapolate interpolation neighbours for the upwind schemes since
+  //    the stencil is wider. This is not necessary if the grid was generated with more
+  //    layers of interpolation points. 
+  int & extrapolateInterpolationNeighbours = dbase.get<int>("extrapolateInterpolationNeighbours");
+  if( dw > orderOfAccuracyInSpace+1 )
+    extrapolateInterpolationNeighbours=false; // *wdh* added this check, June 15, 2016
+  else
+    extrapolateInterpolationNeighbours=true;
 
   sizeOfLocalArraysForAdvance=0.;
   int grid;
@@ -438,11 +448,28 @@ advanceSOSUP(  int numberOfStepsTaken, int current, real t, real dt )
     
   }
 
+  // ================================================================================
+  // ============== MATERIAL INTERFACES : STAGE I - BOUNDARY VALUES =================
+  // ================================================================================
+  for( int grid=0; grid<cg.numberOfComponentGrids(); grid++ )
+  {
+    realMappedGridFunction & fieldNext    =mgp!=NULL ? fields[next]    : cgfields[next][grid];
+    MappedGridOperators & mgop = mgp!=NULL ? *op : (*cgop)[grid];
+    fieldNext.setOperators(mgop);
+  }
+  
+  // ---- Assign values on the material interfaces BOUNDARY (but not ghost)------
+  bool assignInterfaceValues=true;
+  bool assignInterfaceGhostValues=false;
+  assignInterfaceBoundaryConditions( current, t+dt, dt,assignInterfaceValues,assignInterfaceGhostValues );
 
-  // ============= Boundary Conditions =============
+
+  // ======================================================================
+  // ====================== Boundary Conditions ===========================
+  // ======================================================================
 
   // -- for now we always extrapolate interpolation neighbours for the upwind schemes
-  dbase.get<int>("extrapolateInterpolationNeighbours")=true;
+  // dbase.get<int>("extrapolateInterpolationNeighbours")=true;
   dbase.get<int>("orderOfExtrapolationForInterpolationNeighbours")=orderOfAccuracyInSpace+1; // what should this be?
   // We need to increase the maximum allowable width to extrap interp neighbours
   GenericMappedGridOperators::setDefaultMaximumWidthForExtrapolateInterpolationNeighbours(
@@ -467,15 +494,15 @@ advanceSOSUP(  int numberOfStepsTaken, int current, real t, real dt )
     assignBoundaryConditions( option, grid, t+dt, dt, fieldNext, fieldCurrent,current );
 
     // Extrapolate neighbours of interpolation points for the wider upwind stencil
-    if( dbase.get<int>("extrapolateInterpolationNeighbours") ) 
+    if( extrapolateInterpolationNeighbours ) 
     {
       extrapParams.orderOfExtrapolation=dbase.get<int>("orderOfExtrapolationForInterpolationNeighbours");
       if( debug & 4 )
 	printf("***advSOSUP: orderOfExtrapolationForInterpolationNeighbours=%i\n",
 	       dbase.get<int>("orderOfExtrapolationForInterpolationNeighbours"));
     
-      MappedGridOperators & mgop = mgp!=NULL ? *op : (*cgop)[grid];
-      fieldNext.setOperators(mgop);
+      // MappedGridOperators & mgop = mgp!=NULL ? *op : (*cgop)[grid];
+      // fieldNext.setOperators(mgop);
       fieldNext.applyBoundaryCondition(Ca,BCTypes::extrapolateInterpolationNeighbours,BCTypes::allBoundaries,0.,t+dt,
 			       extrapParams,grid);
     }
@@ -524,8 +551,13 @@ advanceSOSUP(  int numberOfStepsTaken, int current, real t, real dt )
   }
 
 
-  // ---- assign values at material interfaces ------
-  assignInterfaceBoundaryConditions( current, t+dt, dt );  // is this the right place to do this?
+  // ================================================================================
+  // ================ MATERIAL INTERFACES : STAGE II - GHOST VALUES =================
+  // ================================================================================
+  assignInterfaceValues=false;      // do not project values on the interface
+  assignInterfaceGhostValues=true;  // assign ghost 
+  assignInterfaceBoundaryConditions( current, t+dt, dt,assignInterfaceValues,assignInterfaceGhostValues );  
+
   if( debug & 4 )
   {
     fPrintF(debugFile,"\n ******************* advanceSOSUP Errors after assignInterface t=%9.3e ********\n",t+dt);

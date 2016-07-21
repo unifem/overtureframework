@@ -254,7 +254,7 @@ computeRateOld( const int & n, const RealArray & h, const RealArray & e, real & 
 
 
 //==============================================================================
-//  Output results in the form of a latex table 
+/// \brief Output results in the form of a latex table 
 //==============================================================================
 int
 outputLatexTable( const std::vector<aString> gridName,
@@ -340,6 +340,357 @@ std::vector<int> component;
 };
 
 
+// ==============================================================================================================
+///  \brief read solutions from all files 
+//  ==============================================================================================================
+int readSolutions( int numberOfFiles, 
+                   CompositeGrid *cg, 
+                   realCompositeGridFunction *u,
+                   ShowFileReader *showFileReader, int *solutionNumber, 
+                   IntegerArray & frameSeries,
+                   aString *fileName,
+                   RealArray & time,
+                   IntegerArray &  numComponentsPerFile, 
+                   IntegerArray & componentsPerFile, 
+                   bool & closeShowAfterUse,
+                   FILE *& outFile, aString & outputFileName, 
+                   bool & timesMatch,
+                   real & maxTimeDiff )
+{
+  const int myid=max(0,Communication_Manager::My_Process_Number);
+
+  for( int i=0; i<numberOfFiles; i++ )
+  {
+    if( closeShowAfterUse )
+    {
+      int displayInfo=0; // do not print header info etc.
+      showFileReader[i].open(fileName[i],displayInfo);
+      if( i <= frameSeries.getBound(0) )
+	showFileReader[i].setCurrentFrameSeries(frameSeries(i));
+
+    }
+    real timea=getCPU();
+    if( solutionNumber[i]<=0 )
+    {
+      // solutionNumber[i] = -1 : means choose last solution
+      const int numberOfSolutions = showFileReader[i].getNumberOfSolutions();
+      solutionNumber[i]=numberOfSolutions;
+      printF("INFO: Setting solution=%i (last in file) since solutionNumber[i]<=0\n",solutionNumber[i]);
+    }
+	  
+    showFileReader[i].getASolution(solutionNumber[i],cg[i],u[i]);        // read in a grid and solution
+    timea=getCPU()-timea; timea=ParallelUtility::getMaxValue(timea);
+	
+    if( numComponentsPerFile.getLength(0)==numberOfFiles )
+    {
+      // User has specified a subset of components to use per file
+      // Make a new grid function with just these components. 
+      int nc = numComponentsPerFile(i);
+      Range all;
+      realCompositeGridFunction v(cg[i],all,all,all,nc);
+      for( int c=0; c<nc; c++ )
+      {
+	int cc=componentsPerFile(i,c);
+	if( cc<u[i].getComponentBase(0) || cc>u[i].getComponentBound(0) )
+	{
+	  printF("ERROR: component chosen is out of bounds: file=%i component=%i valid=[%i,%i]\n"
+		 "  Changing component to %i\n",
+		 i,cc,u[i].getComponentBase(0),u[i].getComponentBound(0),u[i].getComponentBound(0));
+	  cc=u[i].getComponentBound(0);
+	  componentsPerFile(i,c)=cc;
+	}
+	printF(" Choosing component %i for file %i\n",cc,i);
+	v.setName(u[i].getName(cc),c);
+      }
+	  
+      for( int grid=0; grid<cg[i].numberOfComponentGrids(); grid++ )
+      {
+        OV_GET_SERIAL_ARRAY(real,v[grid],vLocal);
+        OV_GET_SERIAL_ARRAY(real,u[i][grid],uLocal);
+
+	    
+	for( int c=0; c<nc; c++ )
+	{
+	  const int cc=componentsPerFile(i,c);
+	  assert( cc>=u[i].getComponentBase(0) && cc<=u[i].getComponentBound(0) );
+	  vLocal(all,all,all,c)=uLocal(all,all,all,cc);
+
+	}
+	    
+      }
+      u[i].destroy();
+      u[i].reference(v);
+          
+    }
+	
+
+
+    HDF_DataBase & db = *(showFileReader[i].getFrame());
+    db.get(time(i),"time");  
+    printF(" file[%i] solutionNumber=%i time=%20.12e (%8.2e(s) to read)\n",i,solutionNumber[i],time(i),timea);
+
+    if( outFile==NULL )
+    {
+      if( myid==0 )
+	outFile=fopen((const char*)outputFileName,"w" );
+      printF("Output being saved in file %s\n",(const char*)outputFileName);
+
+    }
+	
+
+    fPrintF(outFile,"Choosing solution %i, t=%9.3e,  from showFile=%s\n",solutionNumber[i],time(i),(const char*)fileName[i]);
+	
+
+    if( closeShowAfterUse )
+      showFileReader[i].close();
+
+    cg[i].update(MappedGrid::THEmask );
+    // cg[i].update(MappedGrid::THEmask | MappedGrid::THEcenter | MappedGrid::THEvertex |
+    //	     MappedGrid::THEinverseVertexDerivative);
+	
+  } // end for i<numberOfFiles
+      
+
+  // --------- check that times match -----------------------
+  timesMatch=true;
+  maxTimeDiff=0.;
+  for( int i=1; i<numberOfFiles; i++ )
+  {
+    if( fabs(time(i)-time(i-1)) > REAL_EPSILON*max(fabs(time(i)),fabs(time(i-1)))*100. )
+    {
+      timesMatch=false;
+
+      printF("***************ERROR: The times of the solutions do not match! ****************\n"
+	     "   times=");
+      for( int ii=0; ii<numberOfFiles; ii++ )
+      {
+	maxTimeDiff=max(maxTimeDiff,fabs(time(ii)-time(max(ii-1,0))));
+	    
+	printF("%12.6e, ",time(ii));
+      }
+          
+      printF("\n ***** Max difference in times = %8.2e ****\n",maxTimeDiff);
+      printF("\n *********************************************************************************\n");
+
+      break;
+    }
+  }
+  // -------------- end read solutions from all files --------
+  return 0;
+}
+	
+
+// ==================================================================================================
+/// \brief Compute the difference between the fine grid and coarse grid -- difference lives on the coarse grid.
+/// \param du[i] (output) :    du[i] = Interp(uFine) - uCoarse[i] 
+// ==================================================================================================
+int computeDifferences( int numberOfFiles, 
+                        CompositeGrid *cg, 
+                        realCompositeGridFunction *u,  
+                        realCompositeGridFunction *ud,
+                        int interpolationWidth,
+                        bool useOldWay, bool useNewWay,
+                        bool interpolateFromSameDomain )
+{
+  const int n =numberOfFiles-1;  // finest grid
+  
+  realCompositeGridFunction & vn = u[n];  // Here is the fine grid solution 
+  for( int i=0; i<n; i++ )
+  {
+
+
+    const realCompositeGridFunction & v = u[i];  // here is the coarse grid solution
+    ud[i].updateToMatchGridFunction(v);
+    ud[i]=0.;
+        
+    printF("\n >> Interpolate the fine grid solution onto the grid from file %i...\n",i);
+
+    if( interpolateFromSameDomain && cg[i].numberOfDomains()>1 && cg[n].numberOfDomains()==cg[i].numberOfDomains() )
+    {
+      // --- This is a multi-domain problem and we interpolate only from the same domain ----
+      //  printF("--COMP-- computeDifferences:INFO: file %i: numberOfDomains=%i\n",i,cg[i].numberOfDomains());
+      printF("--COMP-- computeDiff:INFO: This is a multi-domain solution numberOfDomains=%i, \n"
+             "   Solutions will be interpolated from the same domain.\n",
+              cg[i].numberOfDomains());
+
+      // APPROACH:
+      //   - Build new grid functions (GFs) that only live on a given domain
+      //   - Copy data from master GFs to domain GFs 
+      //   - Interpolate domain solutions
+      //   - copy interpolated values back to master differenecs ud[i]
+      cg[n].update(CompositeGrid::THEdomain);
+      cg[i].update(CompositeGrid::THEdomain);
+
+      if( true )
+      {
+	printF("INFO: File %i: Fine grid  : domainNumber=[",n);
+	for( int grid=0; grid<cg[n].numberOfComponentGrids(); grid++ ){ printF("%i,", cg[n].domainNumber(grid)); }
+	printF("]\n");
+
+	printF("INFO: File %i: Coarse grid: domainNumber=[",i);
+	for( int grid=0; grid<cg[i].numberOfComponentGrids(); grid++ ){ printF("%i,", cg[i].domainNumber(grid)); }
+	printF("]\n");
+      }
+      
+      
+      // ::display(cg[n].domainNumber(),"cg[n].domainNumber() (fine)");
+      // ::display(cg[i].domainNumber(),"cg[i].domainNumber() (coarse)");
+      // ::display(cg[n].gridNumber(),"cg[n].gridNumber()");
+
+
+      Range all, C(ud[i].getComponentBase(0),ud[i].getComponentBound(0));
+      // ----------------------------------------------------------------
+      // -------------- Interpolate domain by domain --------------------
+      // ----------------------------------------------------------------
+      for( int domain=0; domain<cg[i].numberOfDomains(); domain++ )
+      {
+	CompositeGrid & cgFine   = cg[n].domain[domain];
+	CompositeGrid & cgCoarse = cg[i].domain[domain];
+	
+	// compute the master grid number for FINE grid: 
+        //   cg[n][masterGrid(grid)] = cgFine[grid]
+	IntegerArray masterGrid(cgFine.numberOfComponentGrids());
+	int k=0;
+        for( int grid=0; grid<cg[n].numberOfComponentGrids(); grid++ )
+	{
+	  if( cg[n].domainNumber(grid)==domain )
+	  {
+            masterGrid(k)=grid; k++;   // this grid in master collection is in the current domain
+	  }
+	}
+        assert( k==cgFine.numberOfComponentGrids() );
+
+        // printF("---domain=%i\n",domain);
+	// ::display(masterGrid,"masterGrid for cg[n] (fine)");
+
+	// ::display(cgFine.domainNumber(),"cgFine.domainNumber()");
+        // ::display(cgFine.gridNumber(),"cgFine.gridNumber()");
+        // ::display(cgFine.baseGridNumber(),"cgFine.baseGridNumber()");
+        // ::display(cgFine.componentGridNumber(),"cgFine.componentGridNumber()");
+
+        realCompositeGridFunction uFine(cgFine,all,all,all,C);     uFine=0.;
+        realCompositeGridFunction uCoarse(cgCoarse,all,all,all,C); uCoarse=0.; 
+	
+        for( int grid=0; grid<cgFine.numberOfComponentGrids(); grid++ )
+	{
+          uFine[grid]=vn[masterGrid(grid)];  // copy fine grid solution from master to domain
+	}
+	
+
+	printF("\n +++++++++++ domain=[%s] InterpolatePointsOnAGrid, interpolationWidth=%i  +++++++++++++\n\n",
+	       (const char*)cg[n].getDomainName(domain),interpolationWidth );
+	InterpolatePointsOnAGrid interpolator;
+	interpolator.setInfoLevel( 1 );
+	interpolator.setInterpolationWidth(interpolationWidth);
+	// Set the number of valid ghost points that can be used when interpolating from a grid function: 
+	int numGhostToUse=1;
+	interpolator.setNumberOfValidGhostPoints( numGhostToUse );
+      
+	// Assign all points, extrapolate pts if necessary:
+	interpolator.setAssignAllPoints(true);
+
+	int numGhost=0;  // no need to interpolate ghost points
+
+	real time0=getCPU();
+	int num=interpolator.interpolateAllPoints( uFine,uCoarse,C,C,numGhost);    // interpolate uCoarse from fine
+	real time=getCPU()-time0;
+	time=ParallelUtility::getMaxValue(time);
+	printF(" ... time to interpolate = %8.2e(s)\n",time);
+
+	// compute the master grid number for COARSE grid: 
+        //   cg[i][masterGrid(grid)] = cgCoarse[grid]
+        masterGrid.redim(cgCoarse.numberOfComponentGrids());
+	k=0;
+        for( int grid=0; grid<cg[i].numberOfComponentGrids(); grid++ )
+	{
+	  if( cg[i].domainNumber(grid)==domain )
+	  {
+            masterGrid(k)=grid; k++;   // this grid in master collection is in the current domain
+	  }
+	}
+        assert( k==cgCoarse.numberOfComponentGrids() );
+
+	// ::display(masterGrid,"masterGrid for cg[i] (coarse)");
+
+        for( int grid=0; grid<cgCoarse.numberOfComponentGrids(); grid++ )
+	{
+          ud[i][masterGrid(grid)]=uCoarse[grid];  // copy interpolated values into ud[i] on master
+	}
+
+      } // end fo domain
+      
+
+    }
+    // This next call can be used to call the old or new method
+    else if( useOldWay )
+    {
+      printF("\n +++++++++++++++++++++ USE OLD INTERP ++++++++++++++++++++++\n\n");
+      bool useNewWay=false;
+      real time0=getCPU();
+      interpolateAllPoints( vn,ud[i],useNewWay );  // interpolate ud[i] from fine grid solution vn
+      real time=getCPU()-time0;
+      time=ParallelUtility::getMaxValue(time);
+      printF(" ... time to interpolate = %8.2e(s)\n",time);
+    }
+    else if( useNewWay )
+    {
+      // *new way*
+      printF("\n +++++++++++++++++++++ USE NEW INTERP ++++++++++++++++++++++\n\n");
+      InterpolatePoints interpPoints; 
+      interpPoints.setInfoLevel( 1 );
+      int numGhost=0;  // no need to interpolate ghost points
+      Range C(ud[i].getComponentBase(0),ud[i].getComponentBound(0));
+      real time0=getCPU();
+      interpPoints.interpolateAllPoints( vn,ud[i],C,C,numGhost );  // interpolate ud[i] from fine grid solution vn
+      real time=getCPU()-time0;
+      time=ParallelUtility::getMaxValue(time);
+      printF(" ... time to interpolate = %8.2e(s)\n",time);
+    }
+    else
+    {
+      // *newer way* 091126 
+      printF("\n +++++++++++ USE InterpolatePointsOnAGrid, interpolationWidth=%i  +++++++++++++\n\n",
+	     interpolationWidth );
+      InterpolatePointsOnAGrid interpolator;
+      interpolator.setInfoLevel( 1 );
+      interpolator.setInterpolationWidth(interpolationWidth);
+      // Set the number of valid ghost points that can be used when interpolating from a grid function: 
+      int numGhostToUse=1;
+      interpolator.setNumberOfValidGhostPoints( numGhostToUse );
+      
+      // Assign all points, extrapolate pts if necessary:
+      interpolator.setAssignAllPoints(true);
+
+      int numGhost=0;  // no need to interpolate ghost points
+      Range C(ud[i].getComponentBase(0),ud[i].getComponentBound(0));
+
+      real time0=getCPU();
+      int num=interpolator.interpolateAllPoints( vn,ud[i],C,C,numGhost);    // interpolate ud from vn
+      real time=getCPU()-time0;
+      time=ParallelUtility::getMaxValue(time);
+      printF(" ... time to interpolate = %8.2e(s)\n",time);
+    }
+	
+	
+    // ud[i] = u(coarse) - u(fine)
+    // ud[i]-=v;
+    for( int grid=0; grid<cg[i].numberOfComponentGrids(); grid++ )
+    {
+      realSerialArray uLocal; getLocalArrayWithGhostBoundaries(ud[i][grid],uLocal);
+      realSerialArray vLocal; getLocalArrayWithGhostBoundaries(    v[grid],vLocal);
+
+      // uLocal-=vLocal;  // *wdh* 110729 - make ud = coarse - fine
+      uLocal=vLocal-uLocal;
+    }
+	
+
+  } // end for( int i=0; i<n; i++ )
+  
+  return 0;
+}
+
+
+
 int 
 main(int argc, char *argv[])
 {
@@ -374,7 +725,7 @@ main(int argc, char *argv[])
 
   aString commandFileName="";
   if( argc > 1 )
-  { // look at arguments for "noplot" or some other name
+  { // look at arguments for "-noplot" or some other name
     aString line;
     for( int i=1; i<argc; i++ )
     {
@@ -421,12 +772,15 @@ main(int argc, char *argv[])
 
   // sigmaRate(c,norm) : convergence rate for a component c and norm
   RealArray sigmaRate; 
- 
+  int interpolationWidth=3;  // width for interpolation formula
+
   int extra=0;  // set to -1 to not check boundary
 
   // PlotStuff ps(plotOption,"comp");                      // create a PlotStuff object
   GenericGraphicsInterface & ps = *Overture::getGraphicsInterface("comp",plotOption,argc,argv);
 
+  GenericGraphicsInterface & gi = ps;
+  
   PlotStuffParameters psp;           // create an object that is used to pass parameters
     
   // By default start saving the command file called "comp.cmd"
@@ -437,8 +791,7 @@ main(int argc, char *argv[])
   aString outputFileName="comp.log";
   FILE *outFile = NULL;
   
-
-  ps.appendToTheDefaultPrompt("comp>");
+  aString outputShowFile = "comp.show";
 
   // read from a command file if given
   if( commandFileName!="" )
@@ -452,6 +805,9 @@ main(int argc, char *argv[])
   real maxTimeDiff=0.;
   // By default we do NOT assume the fine grid holds the exact solution:
   bool assumeFineGridHoldsExactSolution=false; 
+
+  // By default interpolate grids from the same domain only 
+  bool interpolateFromSameDomain=true;
   
   // We can define components to use from each file
   IntegerArray numComponentsPerFile, componentsPerFile;
@@ -463,38 +819,94 @@ main(int argc, char *argv[])
   std::vector<ComponentVector> componentVector;
 
 
-  aString answer,answer2;
-  aString menu[] = {"specify files (coarse to fine)",
+  // ---------------- Build the GUI -------------------
+  GUIState dialog;
+  dialog.setWindowTitle("compare show files");
+  dialog.setExitCommand("exit", "exit");
+
+  aString cmds[] = {"specify files",
                     "choose a solution",
                     "choose a solution for each file",
-                    "compute errors",
+		    "compute errors",
                     "plot solutions",
                     "plot differences",
                     "plot errors (max-norm rate)",
 		    "plot errors (l1-norm rate)",
 		    "plot errors (l2-norm rate)",
-                    "save differences to show files",
+                    "save differences to show file",
+		    "" };
+  int numberOfPushButtons=0;  // number of entries in cmds
+  while( cmds[numberOfPushButtons]!="" ){numberOfPushButtons++;}; // 
+  int numRows=(numberOfPushButtons+1)/2;
+  dialog.setPushButtons( cmds, cmds, numRows ); 
+
+  aString tbCommands[] = {"assume fine grid holds exact solution",
+                          "interpolate from same domain",
+                          ""};
+  int tbState[10];
+  tbState[0] = assumeFineGridHoldsExactSolution;
+  tbState[1] = interpolateFromSameDomain;
+  int numColumns=1;
+  dialog.setToggleButtons(tbCommands, tbCommands, tbState, numColumns);
+
+  const int numberOfTextStrings=15;  // max number allowed
+  aString textLabels[numberOfTextStrings];
+  aString textStrings[numberOfTextStrings];
+
+  int nt=0;
+  textLabels[nt] = "output file name:";  sPrintF(textStrings[nt],"%s",(const char*)outputFileName);  nt++; 
+  textLabels[nt] = "interpolation width:";  sPrintF(textStrings[nt],"%i",interpolationWidth);  nt++; 
+  textLabels[nt] = "output show file:";  sPrintF(textStrings[nt],"%s",(const char*)outputShowFile);  nt++; 
+
+  // null strings terminal list
+  textLabels[nt]="";   textStrings[nt]="";  assert( nt<numberOfTextStrings );
+  dialog.setTextBoxes(textLabels, textLabels, textStrings);
+
+
+  aString answer,answer2;
+  aString menu[] = {// "specify files (coarse to fine)",
+                    // "choose a solution",
+                    // "choose a solution for each file",
+                    // "compute errors",
+                    // "plot solutions",
+                    // "plot differences",
+                    // "plot errors (max-norm rate)",
+		    // "plot errors (l1-norm rate)",
+		    // "plot errors (l2-norm rate)",
+                    // "save differences to show files",
                     "define a vector component",
                     "delete all vector components",
-                    "interpolation width",
+                    // "interpolation width",
                     "enter components to use per file",
-                    "output file name",
+                    // "output file name",
                     "choose a frame series (domain) per file",
-                    "assume fine grid holds exact solution",
-                    "do not assume fine grid holds exact solution",
+                    // "assume fine grid holds exact solution",
+                    // "do not assume fine grid holds exact solution",
                     // "do not check boundaries (toggle)",
                     // "output ascii files",
                     // "output binary files",
 		    "exit",
                     "" };
+
+  dialog.buildPopup(menu);
+
+  dialog.addInfoLabel("See popup menu for more options.");
+
+  gi.pushGUI(dialog);
+  gi.appendToTheDefaultPrompt("comp>");
+
+
   char buff[80];
-  int interpolationWidth=3;
   
   for(;;)
   {
-    ps.getMenuItem(menu,answer);
-    if( answer=="specify files (coarse to fine)" )
+    // ps.getMenuItem(menu,answer);
+    gi.getAnswer(answer,"");  
+
+    if( answer=="specify files" ||
+        answer=="specify files (coarse to fine)" )
     {
+      printF("Specify names of show files (normally coarse grid to fine)\n");
       for( int i=0; i<maxNumberOfFiles; i++ )
       {
 	ps.inputString(fileName[numberOfFiles],"Enter the file name (`exit' to finish)");
@@ -511,6 +923,43 @@ main(int argc, char *argv[])
 	numberOfFiles++;
       }
     }
+    else if( dialog.getTextValue(answer,"output file name:","%s",outputFileName) ){}  //
+    else if( dialog.getTextValue(answer,"output show file:","%s",outputShowFile) ){}  //
+    else if( dialog.getTextValue(answer,"interpolation width:","%i",interpolationWidth) )
+    {
+      printF("Setting the interpolation width to %i\n",interpolationWidth);
+    }
+
+    else if( dialog.getToggleValue(answer,"assume fine grid holds exact solution",assumeFineGridHoldsExactSolution) )
+    {
+      if( assumeFineGridHoldsExactSolution )
+      {
+	printF("Assume the fine grid holds the exact solution when computing convergence rates.\n");
+      }
+      else
+      {
+	printF("Do not assume the fine grid holds the exact solution when computing convergence rates.\n");
+      }
+      
+    }
+    
+    else if( dialog.getToggleValue(answer,"interpolate from same domain",interpolateFromSameDomain) )
+    {
+      if( interpolateFromSameDomain )
+      {
+	printF("interpolateFromSameDomain=true : For multi-domain problems only interpolate from grids"
+               " on the same domain.\n");
+      }
+      else
+      {
+	printF("interpolateFromSameDomain=true : For multi-domain problems allow interpolation from all domains.\n");
+      }
+      
+    }
+    
+
+    // --- commands done the old way before dialog ---
+
     else if( answer=="choose a frame series (domain) per file" )
     {
       if( numberOfFiles<=0 )
@@ -606,123 +1055,11 @@ main(int argc, char *argv[])
       }
       
 
-      for( int i=0; i<numberOfFiles; i++ )
-      {
-        if( closeShowAfterUse )
-	{
-          int displayInfo=0; // do not print header info etc.
-	  showFileReader[i].open(fileName[i],displayInfo);
-          if( i <= frameSeries.getBound(0) )
-            showFileReader[i].setCurrentFrameSeries(frameSeries(i));
+      // -------------- read a solution from all files ---------------------
+      readSolutions( numberOfFiles, cg, u, showFileReader, solutionNumber, frameSeries, fileName, time,
+		     numComponentsPerFile, componentsPerFile, closeShowAfterUse, outFile, outputFileName, 
+		     timesMatch, maxTimeDiff );
 
-	}
-	real timea=getCPU();
-	if( solutionNumber[i]<=0 )
-	{
-          // solutionNumber[i] = -1 : means choose last solution
-	  const int numberOfSolutions = showFileReader[i].getNumberOfSolutions();
-	  solutionNumber[i]=numberOfSolutions;
-	  printF("INFO: Setting solution=%i (last in file) since solutionNumber[i]<=0\n",solutionNumber[i]);
-	}
-	  
-        showFileReader[i].getASolution(solutionNumber[i],cg[i],u[i]);        // read in a grid and solution
-        timea=getCPU()-timea; timea=ParallelUtility::getMaxValue(timea);
-	
-	if( numComponentsPerFile.getLength(0)==numberOfFiles )
-	{
-	  // User has specified a subset of components to use per file
-          // Make a new grid function with just these components. 
-          int nc = numComponentsPerFile(i);
-          Range all;
-	  realCompositeGridFunction v(cg[i],all,all,all,nc);
-	  for( int c=0; c<nc; c++ )
-	  {
-            int cc=componentsPerFile(i,c);
-	    if( cc<u[i].getComponentBase(0) || cc>u[i].getComponentBound(0) )
-	    {
-              printF("ERROR: component chosen is out of bounds: file=%i component=%i valid=[%i,%i]\n"
-                     "  Changing component to %i\n",
-		     i,cc,u[i].getComponentBase(0),u[i].getComponentBound(0),u[i].getComponentBound(0));
-              cc=u[i].getComponentBound(0);
-	      componentsPerFile(i,c)=cc;
-	    }
-            printF(" Choosing component %i for file %i\n",cc,i);
-	    v.setName(u[i].getName(cc),c);
-	  }
-	  
-	  for( int grid=0; grid<cg[i].numberOfComponentGrids(); grid++ )
-	  {
-            #ifdef USE_PPP
-	      realSerialArray vLocal; getLocalArrayWithGhostBoundaries(v[grid],vLocal);
-	      realSerialArray uLocal; getLocalArrayWithGhostBoundaries(u[i][grid],uLocal);
-	    #else
-	      realSerialArray &vLocal = v[grid];
-	      realSerialArray &uLocal = u[i][grid];
-            #endif
-	    
-            for( int c=0; c<nc; c++ )
-	    {
-              const int cc=componentsPerFile(i,c);
-              assert( cc>=u[i].getComponentBase(0) && cc<=u[i].getComponentBound(0) );
-	      vLocal(all,all,all,c)=uLocal(all,all,all,cc);
-
-	    }
-	    
-	  }
-          u[i].destroy();
-	  u[i].reference(v);
-          
-	}
-	
-
-
-        HDF_DataBase & db = *(showFileReader[i].getFrame());
-        db.get(time(i),"time");  
-        printF(" file[%i] solutionNumber=%i time=%20.12e (%8.2e(s) to read)\n",i,solutionNumber[i],time(i),timea);
-
-        if( outFile==NULL )
-	{
-	  if( myid==0 )
-	    outFile=fopen((const char*)outputFileName,"w" );
-	  printF("Output being saved in file %s\n",(const char*)outputFileName);
-
-	}
-	
-
-        fPrintF(outFile,"Choosing solution %i, t=%9.3e,  from showFile=%s\n",solutionNumber[i],time(i),(const char*)fileName[i]);
-	
-
-        if( closeShowAfterUse )
-	  showFileReader[i].close();
-
-        cg[i].update(MappedGrid::THEmask );
-        // cg[i].update(MappedGrid::THEmask | MappedGrid::THEcenter | MappedGrid::THEvertex |
-	//	     MappedGrid::THEinverseVertexDerivative);
-	
-      }
-      timesMatch=true;
-      maxTimeDiff=0.;
-      for( int i=1; i<numberOfFiles; i++ )
-      {
-        if( fabs(time(i)-time(i-1)) > REAL_EPSILON*max(fabs(time(i)),fabs(time(i-1)))*100. )
-	{
-          timesMatch=false;
-
-	  printF("***************ERROR: The times of the solutions do not match! ****************\n"
-		 "   times=");
-	  for( int ii=0; ii<numberOfFiles; ii++ )
-	  {
-            maxTimeDiff=max(maxTimeDiff,fabs(time(ii)-time(max(ii-1,0))));
-	    
-	    printF("%12.6e, ",time(ii));
-	  }
-          
-	  printF("\n ***** Max difference in times = %8.2e ****\n",maxTimeDiff);
-	  printF("\n *********************************************************************************\n");
-
-          break;
-	}
-      }
     }
     else if( answer=="assume fine grid holds exact solution" ||
              answer=="do not assume fine grid holds exact solution" )
@@ -852,79 +1189,14 @@ main(int argc, char *argv[])
       }
       fflush(outFile);
 
-      realCompositeGridFunction & vn = u[n];  // Here is the fine grid solution 
+      // ----------------- Compute differences -------------
+      //    du[i] = Interp(uFine) - uCoarse[i] 
+      computeDifferences( numberOfFiles, cg, u, ud, interpolationWidth, useOldWay, useNewWay,interpolateFromSameDomain );
+      
       for( int i=0; i<n; i++ )
       {
-	const realCompositeGridFunction & v = u[i];  // here is the coarse grid solution
-        ud[i].updateToMatchGridFunction(v);
-        ud[i]=0.;
-        
-        printF("\n >> Interpolate the fine grid solution onto the grid from file %i...\n",i);
-
-        // This next call can be used to call the old or new method
-	if( useOldWay )
-	{
-	  printF("\n +++++++++++++++++++++ USE OLD INTERP ++++++++++++++++++++++\n\n");
-	  bool useNewWay=false;
-          real time0=getCPU();
-	  interpolateAllPoints( vn,ud[i],useNewWay );  // interpolate ud[i] from fine grid solution vn
-	  real time=getCPU()-time0;
-	  time=ParallelUtility::getMaxValue(time);
-	  printF(" ... time to interpolate = %8.2e(s)\n",time);
-	}
-	else if( useNewWay )
-	{
-	  // *new way*
-	  printF("\n +++++++++++++++++++++ USE NEW INTERP ++++++++++++++++++++++\n\n");
-	  InterpolatePoints interpPoints; 
-	  interpPoints.setInfoLevel( 1 );
-          int numGhost=0;  // no need to interpolate ghost points
-          Range C(ud[i].getComponentBase(0),ud[i].getComponentBound(0));
-	  real time0=getCPU();
-	  interpPoints.interpolateAllPoints( vn,ud[i],C,C,numGhost );  // interpolate ud[i] from fine grid solution vn
-	  real time=getCPU()-time0;
-	  time=ParallelUtility::getMaxValue(time);
-	  printF(" ... time to interpolate = %8.2e(s)\n",time);
-	}
-	else
-	{
-	  // *newer way* 091126 
-	  printF("\n +++++++++++ USE InterpolatePointsOnAGrid, interpolationWidth=%i  +++++++++++++\n\n",
-              interpolationWidth );
-	  InterpolatePointsOnAGrid interpolator;
-	  interpolator.setInfoLevel( 1 );
-	  interpolator.setInterpolationWidth(interpolationWidth);
-	  // Set the number of valid ghost points that can be used when interpolating from a grid function: 
-          int numGhostToUse=1;
-	  interpolator.setNumberOfValidGhostPoints( numGhostToUse );
-      
-	  // Assign all points, extrapolate pts if necessary:
-	  interpolator.setAssignAllPoints(true);
-
-          int numGhost=0;  // no need to interpolate ghost points
-          Range C(ud[i].getComponentBase(0),ud[i].getComponentBound(0));
-
-	  real time0=getCPU();
-	  int num=interpolator.interpolateAllPoints( vn,ud[i],C,C,numGhost);    // interpolate ud from vn
-	  real time=getCPU()-time0;
-	  time=ParallelUtility::getMaxValue(time);
-	  printF(" ... time to interpolate = %8.2e(s)\n",time);
-	}
-	
-	
-        // ud[i] = u(coarse) - u(fine)
-        // ud[i]-=v;
-        for( int grid=0; grid<cg[i].numberOfComponentGrids(); grid++ )
-	{
-	  realSerialArray uLocal; getLocalArrayWithGhostBoundaries(ud[i][grid],uLocal);
-	  realSerialArray vLocal; getLocalArrayWithGhostBoundaries(    v[grid],vLocal);
-
-          // uLocal-=vLocal;  // *wdh* 110729 - make ud = coarse - fine
-          uLocal=vLocal-uLocal;
-	}
-	
-
-
+   
+      	const realCompositeGridFunction & v = u[i];  // here is the coarse grid solution
 	const int useAreaWeightedNorm=1;
         for( int c=v.getComponentBase(0); c<=v.getComponentBound(0); c++ )
 	{
@@ -1240,7 +1512,67 @@ main(int argc, char *argv[])
       
     }
     
-    else if( answer=="save differences to show files" )
+    else if( answer=="output differences to show file" )
+    {
+      printF("*** FINISH ME ****\n");
+
+    }
+    
+    else if( answer=="save differences to show file" )  // *new way* July 2, 2016
+    {
+      // --- save differences over time to a show file --
+      printF(" Save the difference between the fine grid and next finest grid into a show file\n");
+
+      printF("Saving differences in the show file: [%s]\n",(const char*)outputShowFile);
+      Ogshow show(outputShowFile);
+      show.saveGeneralComment("Difference computed with comp");
+
+      int nFine = numberOfFiles-1;  // fine grid 
+      for( int solution=1; solution<=maxSolution[nFine]; solution++ )
+      {
+      
+        for( int i=0; i<maxNumberOfFiles; i++ ) solutionNumber[i]=solution;
+
+	// -------------- read a solution from all files ---------------------
+	printF("Read solution %i...\n",solution);
+
+	readSolutions( numberOfFiles, cg, u, showFileReader, solutionNumber, frameSeries, fileName, time,
+		       numComponentsPerFile, componentsPerFile, closeShowAfterUse, outFile, outputFileName, 
+		       timesMatch, maxTimeDiff );
+
+	// ----------------- Compute differences -------------
+	//    du[i] = Interp(uFine) - uCoarse[i] 
+	computeDifferences( numberOfFiles, cg, u, ud, interpolationWidth, useOldWay, useNewWay, interpolateFromSameDomain );
+
+
+        printF("Saving solution %i to show file: t=%16.10e\n",solution,time(0));
+
+	show.startFrame();                                         // start a new frame
+
+	char buffer[80]; 
+	aString showFileTitle[5];
+
+        nt=0;
+	showFileTitle[0]=sPrintF(buffer,"(diff) t=%9.3e",time(0)); nt++;
+	// showFileTitle[1]=sPrintF(buffer,"t=%4.3f, dt=%8.2e",t,dt);
+	showFileTitle[nt]="";  // marks end of titles
+
+	for( int i=0; showFileTitle[i]!=""; i++ )
+	  show.saveComment(i,showFileTitle[i]);
+
+
+	// show.saveComment(0,sPrintF("u[%i]-u[%i]",i,numberOfFiles-1));  
+	// show.saveComment(1,sPrintF(" t=%16.10e ",time(i)));               
+        int iSave=nFine-1;   // save difference between fine and next finest 
+	show.saveSolution( ud[iSave] ); 
+
+      }
+      printF("...done saving to diff-show file [%s]\n",(const char*)outputShowFile);
+    }
+    
+
+
+    else if( answer=="save differences to show files" )  // *** OLD WAY ***
     {
       if( !errorsComputed )
       {

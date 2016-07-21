@@ -226,11 +226,11 @@ outputProbes( GridFunction & gf0, int stepNumber )
 /// \brief  Write information to the `check file' (used for regression tests)
 //=================================================================================
 int DeformingBodyMotion::
-writeCheckFile( FILE *file )
+writeCheckFile( real t, FILE *file )
 {
   if( pBeamModel!=NULL )
   {
-    pBeamModel->writeCheckFile(file);
+    pBeamModel->writeCheckFile(t, file);
   }
   return 0;
 }

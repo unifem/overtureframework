@@ -47,13 +47,13 @@ if( $option ne "" ){ $prefix = $option . "CurvedPipe"; }
 if( $rgd eq "fixed" ){ $prefix = $prefix . "Fixed"; }
 if( $name eq "" ){$name = "$prefix" . "$interp$factor" . $suffix . ".hdf";}
 # 
-if( $deltaRadius0 < 0 ){ $deltaRadius0=.175 +($order-2)*.1; }
 $pi=4.*atan2(1.,1.);
 #
 #
 # domain parameters:  
 $ds = .05/$factor; # target grid spacing
 #
+if( $deltaRadius0 < 0 ){ $deltaRadius0=.175 +($order-2)*.1; }
 #
 $bcInterface=100;  # bc for interfaces
 $ishare=100;
@@ -61,10 +61,12 @@ $ishare2=101;
 # 
 create mappings 
 #
-  if( $rgd eq "fixed" ){ $deltaRadius=$deltaRadius0; }else{$deltaRadius=$deltaRadius0/$factor;}
+  if( $rgd eq "fixed" ){ $deltaRadius=$deltaRadius0; }else{$deltaRadius=$deltaRadius0/$factor +$ds*$order;}
   $outerRadius=.4; $innerRadius=$outerRadius-$deltaRadius;
   $rad2=$outerRadius+.05; 
-  $extraAngle=($ng+1)*$ds/(2.*$pi*$outerRadius); # allow enough overlap for explicit interp. 
+  #  $extraAngle=($ng+1)*$ds/(2.*$pi*$outerRadius); # allow enough overlap for explicit interp. 
+  # grids do no align:
+  $extraAngle=($ng+1.25)*$ds/(2.*$pi*$outerRadius); # allow enough overlap for explicit interp. 
 # 
   annulus 
     mappingName 

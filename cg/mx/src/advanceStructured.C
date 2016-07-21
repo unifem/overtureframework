@@ -644,10 +644,21 @@ advanceNFDTD(  int numberOfStepsTaken, int current, real t, real dt )
     
   }
 
+  // ================================================================================
+  // ============== MATERIAL INTERFACES : STAGE I - BOUNDARY VALUES =================
+  // ================================================================================
 
-  // ============= Boundary Conditions =============
+  // ---- Assign values on the material interfaces BOUNDARY (but not ghost)------
+  bool assignInterfaceValues=true;
+  bool assignInterfaceGhostValues=false;
+  assignInterfaceBoundaryConditions( current, t+dt, dt,assignInterfaceValues,assignInterfaceGhostValues );
 
-  for( grid=0; grid<cg.numberOfComponentGrids(); grid++ )
+
+  // ======================================================================
+  // ====================== Boundary Conditions ===========================
+  // ======================================================================
+
+  for( int grid=0; grid<cg.numberOfComponentGrids(); grid++ )
   {
     realMappedGridFunction & fieldNext    =mgp!=NULL ? fields[next]    : cgfields[next][grid];
     realMappedGridFunction & fieldCurrent =mgp!=NULL ? fields[current] : cgfields[current][grid];
@@ -662,93 +673,21 @@ advanceNFDTD(  int numberOfStepsTaken, int current, real t, real dt )
     int option=0; // not used.
     assignBoundaryConditions( option, grid, t+dt, dt, fieldNext, fieldCurrent,current );
 
-    if( true )
-    {
-       real timeBC=getCPU();
+    // --------------- Update parallel ghost and periodic ----------------
+    real timeBC=getCPU();
+    #ifdef USE_PPP
+     if( orderOfAccuracyInSpace>2 )  // this doesn't seem to be needed for 2nd order ?
+     {
+       real timea=getCPU();
+       fieldNext.updateGhostBoundaries();
+       timing(timeForUpdateGhostBoundaries)+=getCPU()-timea;
+     }
+    #endif
 
-//        MappedGrid & mg = cg[grid];
+    fieldNext.periodicUpdate();
       
-//        MappedGridOperators & mgop = mgp!=NULL ? *op : (*cgop)[grid];
-//        BoundaryConditionParameters bcParams;
-//        bcParams.orderOfExtrapolation=orderOfAccuracyInSpace+1;
-
-     
-//        if( mg.numberOfDimensions()==2 )
-//        {
-//  	for( int side2=0; side2<=1; side2++ )
-//  	{
-//  	  for( int side1=0; side1<=1; side1++ )
-//  	  {
-//  	    if( mg.boundaryCondition(side1,0)==perfectElectricalConductor &&
-//  		mg.boundaryCondition(side2,1)==perfectElectricalConductor )
-//  	    {
-//  	      bcParams.setCornerBoundaryCondition(BoundaryConditionParameters::doNothingCorner,side1,side2);
-//  	    }
-//  	  }
-//  	}
-//        }
-//        else
-//        {
-//          int side1,side2,side3;
-//          // edges parallel to i3:
-//  	side3=-1;
-//  	for( side2=0; side2<=1; side2++ )
-//  	for( side1=0; side1<=1; side1++ )
-//  	  if( mg.boundaryCondition(side1,0)==perfectElectricalConductor &&
-//  	      mg.boundaryCondition(side2,1)==perfectElectricalConductor )
-//  	    bcParams.setCornerBoundaryCondition(BoundaryConditionParameters::doNothingCorner,side1,side2,side3);
-
-//          // edges parallel to i2:
-//  	side2=-1;
-//  	for( side3=0; side3<=1; side3++ )
-//  	for( side1=0; side1<=1; side1++ )
-//  	  if( mg.boundaryCondition(side1,0)==perfectElectricalConductor &&
-//  	      mg.boundaryCondition(side3,2)==perfectElectricalConductor )
-//  	    bcParams.setCornerBoundaryCondition(BoundaryConditionParameters::doNothingCorner,side1,side2,side3);
-
-//          // edges parallel to i1:
-//  	side1=-1;
-//  	for( side3=0; side3<=1; side3++ )
-//  	for( side2=0; side2<=1; side2++ )
-//  	  if( mg.boundaryCondition(side2,1)==perfectElectricalConductor &&
-//  	      mg.boundaryCondition(side3,2)==perfectElectricalConductor )
-//  	    bcParams.setCornerBoundaryCondition(BoundaryConditionParameters::doNothingCorner,side1,side2,side3);
-
-//          // corners
-//  	for( side3=0; side3<=1; side3++ )
-//  	for( side2=0; side2<=1; side2++ )
-//  	for( side1=0; side1<=1; side1++ )
-//  	  if( mg.boundaryCondition(side1,0)==perfectElectricalConductor &&
-//                mg.boundaryCondition(side2,1)==perfectElectricalConductor &&
-//  	      mg.boundaryCondition(side3,2)==perfectElectricalConductor )
-//  	    bcParams.setCornerBoundaryCondition(BoundaryConditionParameters::doNothingCorner,side1,side2,side3);
-
-//        }
-      
-      // *** mgop.finishBoundaryConditions(fieldNext,bcParams);
-      // ** No need to do any corners ***
-
-      #ifdef USE_PPP
-       if( orderOfAccuracyInSpace>2 )  // this doesn't seem to be needed for 2nd order ?
-       {
-	 real timea=getCPU();
-	 fieldNext.updateGhostBoundaries();
-	 timing(timeForUpdateGhostBoundaries)+=getCPU()-timea;
-       }
-      #endif
-
-      fieldNext.periodicUpdate();
-      
-      timing(timeForBoundaryConditions)+=getCPU()-timeBC;
-
-      // display(fieldNext,"fieldNext after finishBoundaryConditions","%7.4f ");
-    }
-    else if( cg.numberOfComponentGrids()==1 )
-    {
-      real timeBC=getCPU();
-      fieldNext.periodicUpdate(C);
-      timing(timeForBoundaryConditions)+=getCPU()-timeBC;
-    }
+    timing(timeForBoundaryConditions)+=getCPU()-timeBC;
+    // display(fieldNext,"fieldNext after finishBoundaryConditions","%7.4f ");
     
 
   }
@@ -760,21 +699,24 @@ advanceNFDTD(  int numberOfStepsTaken, int current, real t, real dt )
       cgfields[next].display(sPrintF("cgfields[next] after advanceNFDTD, t=%8.2e",t+dt),debugFile,"%8.2e ");
   }
   
-
   if( debug & 4 )
   {
-    fPrintF(debugFile,"\n ******************* advanceStructured Errors BEFORE assignInterface t=%9.3e ********\n",t+dt);
-    fprintf(pDebugFile,"\n ******************* advanceStructured Errors BEFORE assignInterface t=%9.3e ********\n",t+dt);
+    fPrintF(debugFile,"\n ***************** advanceStructured Errors BEFORE assignInterface t=%9.3e ********\n",t+dt);
+    fprintf(pDebugFile,"\n ***************** advanceStructured Errors BEFORE assignInterface t=%9.3e ********\n",t+dt);
     getErrors( next,t+dt,dt );
   }
 
+  // ================================================================================
+  // ================ MATERIAL INTERFACES : STAGE II - GHOST VALUES =================
+  // ================================================================================
+  assignInterfaceValues=false;      // do not project values on the interface
+  assignInterfaceGhostValues=true;  // assign ghost 
+  assignInterfaceBoundaryConditions( current, t+dt, dt,assignInterfaceValues,assignInterfaceGhostValues );  
 
-  // ---- assign values at material interfaces ------
-  assignInterfaceBoundaryConditions( current, t+dt, dt );  // is this the right place to do this?
   if( debug & 4 )
   {
-    fPrintF(debugFile,"\n ******************* advanceStructured Errors after assignInterface t=%9.3e ********\n",t+dt);
-    fprintf(pDebugFile,"\n ******************* advanceStructured Errors after assignInterface t=%9.3e ********\n",t+dt);
+    fPrintF(debugFile,"\n ***************** advanceStructured Errors after assignInterface t=%9.3e ********\n",t+dt);
+    fprintf(pDebugFile,"\n ***************** advanceStructured Errors after assignInterface t=%9.3e ********\n",t+dt);
     getErrors( next,t+dt,dt );
   }
   

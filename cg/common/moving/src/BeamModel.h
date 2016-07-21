@@ -477,8 +477,8 @@ public:
   const RealArray& velocity() const;
 
   // Write information to the `check file' 
-  int writeCheckFile( FILE *file );
-  
+
+  int writeCheckFile( real t,FILE *file );
 
   // Write information about the beam
   void writeParameterSummary( FILE *file= stdout );

@@ -95,11 +95,13 @@
 # Set default parameters: 
 $option="tg"; 
 $model="ins"; $dtMax=.1; $move=0; $kp=1.; 
-$tz="trig"; $bcn = "d"; $bcn="#"; $bc1="#"; $bc2="#"; $bc3="#"; $bc4="#"; $bc5="#"; $bc6="#"; 
+$tz="trig";
+$bcn="#"; $bc1="#"; $bc2="#"; $bc3="#"; $bc4="#"; $bc5="#"; $bc6="#"; 
 $en="max"; $ngStart=1; $ng=4; $tf=.5;  $tp=.1; $degreeX=2; $degreeT=2; $fx=1.; $order=2; $nd=2; $cfl=.9; 
 $numberOfParallelGhost=2; $amr=0; $nu=.05; $debug=0; $insDebug=3; $aftol=1.e-10; $axialAxis=2; 
 $cdv=1.; $solver="yale";  $rtol=1.e-4; $atol=1.e-6; $psolver="yale"; $rtolp=1.e-10; $atolp=1.e-10; 
 $useNewImp=0; $iv="viscous"; $nis=4; $cfls=1.; 
+$bodyDensity=1.; $dropName="innerDisk";
 $CGBUILDPREFIX=$ENV{CGBUILDPREFIX};
 $cginsCmd = "$CGBUILDPREFIX/ins/bin/cgins";  # command for cgins 
 $cmdDir="$ENV{CG}/ins/cmd"; 
@@ -109,6 +111,7 @@ $showAllComponents=1;  # set to 1 to include all components in the table.
 $saveVectorErrors=0; # if 1 then save "vector" errors only
 #
 $rhoBeam=10.; $E=1.; $tension=10.; $Kt=0.; 
+$addedDampingCoeff=1.; 
 #
 GetOptions( "option=s"=>\$option,"model=s"=>\$model,"cg=s"=>\$cg,"en=s"=>\$en,"mode=i"=>\$mode,"ng=i"=>\$ng,\
             "bcn=s"=>\$bcn,"ts=s"=>\$ts,"tf=f"=>\$tf,"tp=f"=>\$tp,"nu=f"=>\$nu,"tz=s"=>\$tz,"fx=f"=>\$fx,\
@@ -120,7 +123,10 @@ GetOptions( "option=s"=>\$option,"model=s"=>\$model,"cg=s"=>\$cg,"en=s"=>\$en,"m
             "cginsCmd=s"=>\$cginsCmd,"numberOfParallelGhost=i"=>\$numberOfParallelGhost,"ngStart=i"=>\$ngStart,\
             "aftol=f"=>\$aftol,"move=s"=>\$move,"saveVectorErrors=i"=>\$saveVectorErrors,\
             "axialAxis=i"=>\$axialAxis,"kp=f"=>\$kp,"rhoBeam=f"=>\$rhoBeam,"E=f"=>\$E,"tension=f"=>\$tension,\
-            "Kt=f"=>\$Kt,"cmdFile=s"=>\$cmdFile,"nis=i"=>\$nis );
+            "Kt=f"=>\$Kt,"cmdFile=s"=>\$cmdFile,"nis=i"=>\$nis,"bodyDensity=f"=>\$bodyDensity,\
+            "addedDampingCoeff=f"=>\$addedDampingCoeff,"dropName=s"=>\$dropName );
+#
+printf("option=[$option]\n");
 # 
 # Name of the check file created by cgins:
 $check="ins.check";
@@ -137,6 +143,39 @@ if( $option eq "steadyBeam" ){ \
   $extraName = "Rhos$rhoBeam"; $extraName =~ s/\./p/g; \
   $extraOptions ="-rhoBeam=$rhoBeam -E=$E -tension=$tension -thickness=.1 -Kt=$Kt -p0=1 -addedMass=1 -fluidOnTwoSides=1  -ampProjectVelocity=1 -projectNormalComponent=1 -nis=$nis -sideBC=slipWall -cfls=$cfls";\
  }
+# rigid body piston to test added mass algorithm
+if( $option eq "rigidBodyPiston" ){ \
+  $cmdFile = "../runs/piston/piston.cmd";\
+  $rigidBodyCheckFile = "piston.check";\
+  $extraName = "Bd$bodyDensity"; $extraName =~ s/\./p/g; \
+  $extraOptions ="-bodyDensity=$bodyDensity -inertia=.01 -relaxRigidBody=0 -numberOfCorrections=1 -omega=.2 -rtolc=1.e-3 -psolver=yale -addedMass=1  -addedDamping=1 -addedDampingCoeff=1. -scaleAddedDampingWithDt=1 -nu=.01 -useProvidedAcceleration=1 -gravity=0.";\
+ }
+# rigid body shear to test added-damping
+if( $option eq "shearBlock" ){ \
+  $cmdFile = "../runs/piston/slider.cmd";\
+  $rigidBodyCheckFile = "shearBlock.check";\
+  $extraName = "Bd$bodyDensity"; $extraName =~ s/\./p/g; \
+  $extraOptions ="-bodyDensity=$bodyDensity  -nu=$nu -ts=im -dtMax=.025 -option=shearBlock -amp=1 -relaxRigidBody=0 -numberOfCorrections=2 -addedDampingProjectVelocity=1 -omega=.2 -rtolc=1.e-3 -psolver=yale -addedMass=1 -addedDamping=1 -addedDampingCoeff=$addedDampingCoeff -scaleAddedDampingWithDt=1 -inertia=1e100 -useProvidedAcceleration=1 -gravity=0. ";\
+ }
+# rotating rigid body disk in a disk
+if( $option eq "rotatingDisk" ){ \
+  $cmdFile = "../runs/movingDiskInDisk/movingDiskInDisk.cmd";\
+  $rigidBodyCheckFile = "rigidDisk.check";\
+  $extraName = "Bd$bodyDensity"; $extraName =~ s/\./p/g; \
+  $solver="best"; $rtol=1.e-9; $atol=1.e-15; $psolver="best"; $rtolp=1.e-9; $atolp=1.e-15; \
+  $extraOptions ="-density=$bodyDensity -nu=$nu -ts=im  -dropName=$dropName -radius=1. -gravity=0. -amp=.1 -bodyForce=none -option=rotatingDisk -project=0 -numberOfCorrections=2 -addedDampingProjectVelocity=1 -omega=.2 -addedMass=1 -addedDamping=1 -addedDampingCoeff=$addedDampingCoeff -scaleAddedDampingWithDt=1 -useProvidedAcceleration=1 -useTP=0 -debug=3 -ad2=0";\
+ }
+# translating rigid body disk in a disk -- note solution is very small
+if( $option eq "translatingDisk" ){ \
+  $cmdFile = "../runs/movingDiskInDisk/movingDiskInDisk.cmd";\
+  $rigidBodyCheckFile = "rigidDisk.check";\
+  $extraName = "Bd$bodyDensity"; $extraName =~ s/\./p/g; \
+  $solver="best"; $rtol=1.e-9; $atol=1.e-15; $psolver="best"; $rtolp=1.e-9; $atolp=1.e-15; \
+  $extraOptions ="-density=$bodyDensity -nu=$nu -ts=im  -radius=1. -gravity=0. -amp=1.e-7 -bodyForce=none -option=translatingDisk -project=0 -numberOfCorrections=2 -addedDampingProjectVelocity=1 -omega=.2 -addedMass=1 -addedDamping=1 -addedDampingCoeff=$addedDampingCoeff -scaleAddedDampingWithDt=1 -useProvidedAcceleration=1 -useTP=0 -debug=3 -ad2=0";\
+ }
+#
+printf("exact.conv: cmdFile=[$cmdFile]\n");
+printf("exact.conv: rigidBodyCheckFile=[$rigidBodyCheckFile]\n");
 #
 $caseName="exact.$option$extraName.$ts.$cg.$model.order$order"; 
 if( $saveVectorErrors eq 1 ){ $caseName.= ".vector"; }
@@ -190,35 +229,10 @@ if( $saveVectorErrors eq 0 ){\
 }\
 }
 
-#----------- OLD: 
-#- # NOTE: in $nd component $nd+1 is the norm of the velocity components |\uv| 
-#- if( $model eq "ins" )\
-#- {\
-#-   if( $showAllComponents == 1 )\
-#-   { \
-#-     $numberOfComponents=$nd+1 +1+1;  \
-#-   }\
-#-   else\
-#-   { \
-#-     $numberOfComponents=1; $ignoreComponent[1]=1; \
-#-   }\
-#-   if( $numberOfComponents eq 1 )\
-#-   { \
-#-      $title ="grid  \& N \&  \$\\vert u \\vert\$   "; \
-#-      @componentName = ( "u" ); \
-#-   }\
-#-   elsif( $numberOfComponents eq 5 )\
-#-   { \
-#-      $title ="grid  \& N \& \$p\$ \&  \$v_1\$ \& \$v_2\$ \& \$\\uv\$ \& \$\\grad\\cdot\\uv\$  ";\
-#-      @componentName = ( "p", "u", "v", "uv" , "div" );\
-#-   }\
-#-   else{\
-#-     $title ="grid  \& N \&  \$p\$ \&  \$v_1\$ \& \$v_2\$ \& \$v_3\$ \& \$\\uv\$ \& \$\\grad\\cdot\\uv\$ ";\
-#-     @componentName = ( "p", "u", "v", "w" , "uv", "div" );\
-#-   }\
-#- }
+
 # 
-$caption= "\\caption\{Cgins, $option, $model, $name, ts=$ts, \$t=$tf\$, \$\\nu=$nu\$, dtMax=$dtMax, aftol=$aftol, axialAxis=$axialAxis, kp=$kp, $clabel, cfl=$cfl, $extraOptions, $date}\\label\{table:$name}"; 
+$caption= "\\caption\{\\captionFont Cgins, $option, $model, $name, ts=$ts, \$t=$tf\$, \$\\nu=$nu\$, dtMax=$dtMax, aftol=$aftol, axialAxis=$axialAxis, kp=$kp, $clabel, cfl=$cfl, $extraOptions, $date\}\\label\{table:$name}"; 
+printf("caption=[$caption]\n");
 $outputFile="$name" . ".ConvTable.tex"; 
 # 
 $options = "-option=$option -model=$model -nu=$nu -tf=$tf -tp=$tp -cfl=$cfl -ts=$ts -iv=$iv -tz=$tz -solver=$solver -rtol=$rtol -atol=$atol -psolver=$psolver -rtolp=$rtolp -atolp=$atolp -useNewImp=$useNewImp -cdv=$cdv -bcn=$bcn -bc1=$bc1 -bc2=$bc2 -bc3=$bc3 -bc4=$bc4 -bc5=$bc5 -bc6=$bc6 -dtMax=$dtMax -nd=$nd -aftol=$aftol -move=$move -kp=$kp -axialAxis=$axialAxis -debug=$insDebug $extraOptions -go=go"; 
@@ -313,12 +327,55 @@ $grid2="flexiblePartition2";  $gName2 = "flexiblePartitionGride2.order$order"; $
 $grid3="flexiblePartition4";  $gName3 = "flexiblePartitionGride4.order$order"; $numElem3=80;\
 $grid4="flexiblePartition8";  $gName4 = "flexiblePartitionGride8.order$order"; $numElem4=160;}
 #
+# -- piston problem
+if( $cg eq "plug" ){\
+$grid1="plug1"; $dtm=$dtMax;      $gName1 = "plug1 -dtMax=$dtm";\
+$grid2="plug2"; $dtm=$dtMax/2.;   $gName2 = "plug2 -dtMax=$dtm";\
+$grid3="plug4"; $dtm=$dtMax/4.;   $gName3 = "plug4 -dtMax=$dtm";\
+$grid4="plug8"; $dtm=$dtMax/8.;   $gName4 = "plug8 -dtMax=$dtm";\
+$grid5="plug16";$dtm=$dtMax/16.;  $gName5="plug16 -dtMax=$dtm";\
+$grid6="plug32";$dtm=$dtMax/32.;  $gName6="plug32 -dtMax=$dtm";}
+# -- sliding block problem
+if( $cg eq "shearBlock" ){\
+$grid1="shearBlock1"; $dtm=$dtMax;      $gName1 = "shearBlockGrid1.order$order -dtMax=$dtm";\
+$grid2="shearBlock2"; $dtm=$dtMax/2.;   $gName2 = "shearBlockGrid2.order$order -dtMax=$dtm";\
+$grid3="shearBlock4"; $dtm=$dtMax/4.;   $gName3 = "shearBlockGrid4.order$order -dtMax=$dtm";\
+$grid4="shearBlock8"; $dtm=$dtMax/8.;   $gName4 = "shearBlockGrid8.order$order -dtMax=$dtm";\
+$grid5="shearBlock16";$dtm=$dtMax/16.;  $gName5="shearBlockGrid16.order$order -dtMax=$dtm";\
+$grid6="shearBlock32";$dtm=$dtMax/32.;  $gName6="shearBlockGrid32.order$order -dtMax=$dtm";}
+#
+# --disk in a disk for rotating disk FSI problem
+if( $cg eq "diskInDisk" ){\
+$grid1="diskInDisk1";  $dtm=$dtMax;     $gName1 = "diskInDiskGridFixede1.order$order  -dtMax=$dtm";\
+$grid2="diskInDisk2";  $dtm=$dtMax/2.;  $gName2 = "diskInDiskGridFixede2.order$order  -dtMax=$dtm";\
+$grid3="diskInDisk4";  $dtm=$dtMax/4.;  $gName3 = "diskInDiskGridFixede4.order$order  -dtMax=$dtm";\
+$grid4="diskInDisk8";  $dtm=$dtMax/8.;  $gName4 = "diskInDiskGridFixede8.order$order  -dtMax=$dtm";\
+$grid5="diskInDisk16"; $dtm=$dtMax/16.; $gName5 = "diskInDiskGridFixede16.order$order -dtMax=$dtm";\
+$grid6="diskInDisk32"; $dtm=$dtMax/32.; $gName6 = "diskInDiskGridFixede32.order$order -dtMax=$dtm";}
+#
+# --disk in a disk (2 annular grids, no background) for rotating disk FSI problem
+if( $cg eq "diskInDiskHalf" ){\
+$grid1="diskInDiskHalf1";  $dtm=$dtMax;     $gName1 = "diskInDiskGridHalfe1.order$order  -dtMax=$dtm";\
+$grid2="diskInDiskHalf2";  $dtm=$dtMax/2.;  $gName2 = "diskInDiskGridHalfe2.order$order  -dtMax=$dtm";\
+$grid3="diskInDiskHalf4";  $dtm=$dtMax/4.;  $gName3 = "diskInDiskGridHalfe4.order$order  -dtMax=$dtm";\
+$grid4="diskInDiskHalf8";  $dtm=$dtMax/8.;  $gName4 = "diskInDiskGridHalfe8.order$order  -dtMax=$dtm";\
+$grid5="diskInDiskHalf16"; $dtm=$dtMax/16.; $gName5 = "diskInDiskGridHalfe16.order$order -dtMax=$dtm";}
+#
+# --single annulus grid for rotating disk FSI problem
+if( $cg eq "annulusGrid" ){\
+$grid1="annulusGrid1"; $dtm=$dtMax;    $gName1 = "annulusGrid1.order$order -dtMax=$dtm";\
+$grid2="annulusGrid2"; $dtm=$dtMax/2.; $gName2 = "annulusGrid2.order$order -dtMax=$dtm";\
+$grid3="annulusGrid4"; $dtm=$dtMax/4.; $gName3 = "annulusGrid4.order$order -dtMax=$dtm";\
+$grid4="annulusGrid8"; $dtm=$dtMax/8.; $gName4 = "annulusGrid8.order$order -dtMax=$dtm";\
+$grid5="annulusGrid16"; $dtm=$dtMax/16.; $gName5 = "annulusGrid16.order$order -dtMax=$dtm";}
+#
 # 
 if( $ngStart eq "1" ){ $grid=$grid1; $res=1; $cmd="$cginsCmd -noplot $cmdDir/$cmdFile $options -numElem=$numElem1 -g=$gName1"; }
 $grid=$grid2; $res=2; $cmd="$cginsCmd -noplot $cmdDir/$cmdFile $options -numElem=$numElem2 -g=$gName2";
 if( $ng > 2 ){ $grid=$grid3; $res=4; $cmd="$cginsCmd -noplot $cmdDir/$cmdFile $options -numElem=$numElem3 -g=$gName3";}
 if( $ng > 3 ){ $grid=$grid4; $res=8; $cmd="$cginsCmd -noplot $cmdDir/$cmdFile $options -numElem=$numElem4 -g=$gName4";}
 if( $ng > 4 ){ $grid=$grid5; $res=16; $cmd="$cginsCmd -noplot $cmdDir/$cmdFile $options -numElem=$numElem5 -g=$gName5";}
+if( $ng > 5 ){ $grid=$grid6; $res=32; $cmd="$cginsCmd -noplot $cmdDir/$cmdFile $options -numElem=$numElem6 -g=$gName6";}
 $closeFile="true";
 # -------------------------------------------------------------------------------
 exit

@@ -1297,6 +1297,17 @@ advanceImplicitMultiStep( real & t0, real & dt0, int & numberOfSubSteps, int & i
       	predictTimeIndependentVariables( numberOfTimeLevels,gfIndex );
             }
 
+            const bool addedDamping = (parameters.dbase.get<bool>("useAddedDampingAlgorithm") && 
+                                                                  parameters.dbase.get<bool>("addedDampingProjectVelocity") );
+      // **TEMP** June 9, 2016      
+            if( correction==2 && addedDamping )
+            {
+                  	printF("--IMS: skip pressure solve and moving grid correction step for AMP: correction=%i, t=%9.3e\n",
+                              correction,t0);
+      	break;  // break from corrections 
+            }
+
+
       // e.g. for variable density, update p eqn here     
             bool updateSolutionDependentEquations = correction==0;  
             solveForTimeIndependentVariables( gf[mNew],updateSolutionDependentEquations ); 
@@ -1309,15 +1320,20 @@ advanceImplicitMultiStep( real & t0, real & dt0, int & numberOfSubSteps, int & i
 
       // -- Correct for forces on moving bodies if we have more corrections --
 
-            const bool addedDamping = (parameters.dbase.get<bool>("useAddedDampingAlgorithm") && 
-                                                                  parameters.dbase.get<bool>("addedDampingProjectVelocity") );
-      // **TEMP** May 12, 2016      
-            if( correction==2 && addedDamping )
-            {
-                  	printF("--IMS: skip moving grid correction step for AMP: correction=%i, t=%9.3e\n",correction,t0);
-            }
-            else
-            {
+      // // **TEMP** May 12, 2016      
+      // const bool addedDamping = (parameters.dbase.get<bool>("useAddedDampingAlgorithm") && 
+      //                            parameters.dbase.get<bool>("addedDampingProjectVelocity") );
+      // if( correction==2 && addedDamping )
+      // {
+      // 	printF("--IMS: skip moving grid correction step for AMP: correction=%i, t=%9.3e\n",correction,t0);
+      // }
+      // else
+      // {
+      // 	correctForMovingGridsMacro(IMS);
+      // 	if( movingGridCorrectionsHaveConverged )
+      // 	  break;
+      // }
+
         // Correct for forces on moving bodies if we have more corrections.
                 bool movingGridCorrectionsHaveConverged = false;
                 real delta =0.; // holds relative correction when we are sub-cycling 
@@ -1363,9 +1379,9 @@ advanceImplicitMultiStep( real & t0, real & dt0, int & numberOfSubSteps, int & i
                 else 
                 {
                 }
-      	if( movingGridCorrectionsHaveConverged )
-        	  break;
-            }
+            if( movingGridCorrectionsHaveConverged )
+                break;
+
             
         } // end corrections
         

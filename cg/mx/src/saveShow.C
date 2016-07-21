@@ -228,8 +228,8 @@ saveShow( int current, real t, real dt )
   if( dbase.get<bool >("saveSequencesEveryTime") && showFile.isLastFrameInSubFile() )
   {  
 //    #ifndef USE_PPP
-      // fix me for parallel -- adding this causes the program to hang when closing the show file.
-      saveSequencesToShowFile();
+    // fix me for parallel -- adding this causes the program to hang when closing the show file.
+    saveSequencesToShowFile();
 //    #endif
   }
   showFile.endFrame();  
@@ -284,8 +284,8 @@ saveSequenceInfo( real t0, RealArray & sequenceData )
 //\end{MaxwellInclude.tex}  
 //=========================================================================================
 {
-   if( show==NULL )
-     return 0;
+  if( show==NULL )
+    return 0;
 
   if( sequenceCount >= timeSequence.getLength(0) )
   {
@@ -320,7 +320,7 @@ saveSequencesToShowFile()
   if( show==NULL || sequenceCount<=0 )
     return 0;
   
-   assert( cgp!=NULL );
+  assert( cgp!=NULL );
   CompositeGrid & cg= *cgp;
   const int numberOfDimensions = cg.numberOfDimensions();
  
@@ -378,9 +378,12 @@ saveSequencesToShowFile()
   
   // display(sequence(I,N),"saveSequencesToShowFile: sequence(I,N)");
   
-  printf("saveSequencesToShowFile() myid=%i sequenceCount=%i\n",myid,sequenceCount);
-  fflush(0);
-
+  if( false )
+  {
+    printf("saveSequencesToShowFile() myid=%i sequenceCount=%i\n",myid,sequenceCount);
+    fflush(0);
+  }
+  
 
   // NOTE: This function must be called by ALL processors in parallel
   show->saveSequence("errors",timeSequence(I),sequence(I,N),name);

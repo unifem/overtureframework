@@ -11,6 +11,7 @@
 #include "BoundaryLayerProfile.h"
 
 #define rotatingDiskSVK EXTERN_C_NAME(rotatingdisksvk)
+#define zeroin EXTERN_C_NAME(zeroin)
 
 extern "C"
 {
@@ -18,6 +19,103 @@ extern "C"
   void rotatingDiskSVK( const real & t, const int & numberOfGridPoints, real & uDisk, real & param,
                         const int & nrwk, real & rwk );
 }
+
+namespace
+{
+// These are for passing to the rotating disk function
+real innerRadius, outerRadius, inertiaTerm, massTerm;
+}
+
+
+extern "C"
+{
+  // zeroin: function to compute the zero of a function on an interval -- f is assumed to change sign
+  real zeroin(real & ax,real & bx, real (*f) (const real&), real & tol);
+
+ // A positive zero of this function defines the parameter "k" in the rotating disk FSI exact solution
+ real rotatingDiskFunction(const real & k )
+ { 
+   
+   real a=innerRadius, b=outerRadius;
+
+   const int n=1;
+   // jn(n,x) = Bessel function J of order n
+   // yn(n,x) = Bessel function Y of order n
+   real Ja = jn(n,k*a);  
+   real Jb = jn(n,k*b);  
+   real Jap = jn(0,k*a)-Ja/(k*a); // J1' = J0 - J1/x 
+   
+
+   real Ya = yn(n,k*a); 
+   real Yb = yn(n,k*b); 
+   real Yap = yn(0,k*a)-Ya/(k*a); // Y1' = Y0 - Y1/x 
+
+   real Ra = Ja*Yb-Jb*Ya;
+   real Rap = Jap*Yb - Jb*Yap; // R' 
+   
+   real value = k*Rap - (1./a - inertiaTerm*k*k)*Ra;  // look for a zero of this function
+
+   return value;
+   
+ }
+
+ // A positive zero of this function defines the parameter "k" in the shear-block FSI solution
+ real shearBlockFunction(const real & kH )
+ { 
+   // massTerm = bodyMass/(fluidDensity*height*length);   
+   real value = tan(kH)+massTerm*kH;
+
+   return value;
+   
+ }
+
+ // A positive zero of this function defines the parameter "k" in the translating disk FSI exact solution
+ // See stokesRB-notes.pdf by DWS. 
+ real translatingDiskFunction(const real & k )
+ { 
+   
+   real delta=massTerm; // massBody/(rho*Pi*a^2)
+
+   real a=innerRadius, b=outerRadius;
+   real alam=k, alam2=alam*alam;
+   real za=alam*a, za2=za*za;
+   real zb=alam*b;
+ 
+   real j0a =jn(0,za),         y0a =yn(0,za);
+   real j1a =jn(1,za),         y1a =yn(1,za);
+   real j1pa=j0a-j1a/za,       y1pa=y0a-y1a/za;
+
+   real j1ppa = -j1a - j0a/za + 2.*j1a/(za*za);   // J1''
+   real y1ppa = -y1a - y0a/za + 2.*y1a/(za*za);   // Y1''
+   
+
+   real j0b=jn(0,zb),          y0b=yn(0,zb);
+   real j1b=jn(1,zb),          y1b=yn(1,zb);
+
+   real a11=(Pi*b/(2*a))*(2*y1b-zb*y0b),   a12=(Pi*a/(2*b))*zb*y0b;
+   real a21=(Pi*b/(2*a))*(2*j1b-zb*j0b),   a22=(Pi*a/(2*b))*zb*j0b;
+
+   real c11=(a11*j1a-a21*y1a+1)/za2,         c12=(a12*j1a-a22*y1a-1)/za2;
+   real c21=((a11*j1pa-a21*y1pa)*za+1)/za2,  c22=((a12*j1pa-a22*y1pa)*za+1)/za2;
+
+   real determ=c11*c22-c12*c21;
+   real ahat=(c22-c12)/(determ*a*a);
+   real bhat=(c11-c21)/(determ);
+
+   real k1hat= (Pi*b/2)*((2*y1b-zb*y0b)*ahat/alam2+y0b*bhat/zb);
+   real k2hat=-(Pi*b/2)*((2*j1b-zb*j0b)*ahat/alam2+j0b*bhat/zb);
+
+   real coeff1 = -1 + a11*j1ppa - a21*y1ppa;
+   real coeff2 = -1 + a12*j1ppa - a22*y1ppa - 2/za2;
+   real value = delta*za2 + coeff1*ahat*a*a + coeff2*bhat; // look for a zero of this function
+   
+   return value;
+   
+ }
+
+}
+
+
 
 #define FOR_3D(i1,i2,i3,I1,I2,I3) \
 int I1Base =I1.getBase(),   I2Base =I2.getBase(),  I3Base =I3.getBase();  \
@@ -467,6 +565,308 @@ getUserDefinedKnownSolution(real t, CompositeGrid & cg, int grid, RealArray & ua
     
   }
 
+  else if( userKnownSolution=="shearBlock" )
+  {
+    // --- Shear block exact solution ---
+    //  FSI solution for a rigid body moving tangentially to a fluid channel.
+    //      u = amp*[cos(y-H)/cos(H)]*exp(-nu t)
+    //   Interface:  u(x,0,t) = ub(t) = amp*exp(-nu t) 
+    //   BC:   u.y(x,H,t)=0 
+    //  The fluid depth H must be chosen to satisfy:
+    //      tan(H)=-mass/(rho*L)
+
+
+    // -- we could avoid building the vertex array on Cartesian grids ---
+    mg.update(MappedGrid::THEvertex | MappedGrid::THEcenter);
+    OV_GET_SERIAL_ARRAY_CONST(real,mg.vertex(),xLocal);
+
+    const real & amp      = rpar[0];
+    const real & bodyMass = rpar[1];
+    const real & length   = rpar[2];
+    const real & height   = rpar[3];
+    const real & k        = rpar[4];
+
+    if( t <= dt )
+      printF("--UDKS-- Shear-block exact INS-RB solution at t=%9.3e, amp=%8.2e, H=%8.2e, bodyMass=%8.2e, k=%g"
+             " ntd=%i\n",
+	     t,amp,height,bodyMass,k,numberOfTimeDerivatives);
+
+    // --- evaluate the solution ----
+    // const real & fluidDensity = dbase.get<real >("fluidDensity");
+    const real nu = dbase.get<real >("nu");    
+
+    const real expnut=exp(-nu*k*k*t);
+   
+
+    int i1,i2,i3;
+    if( numberOfTimeDerivatives==0 )
+    {
+      const real aFactor = (amp/cos(k*height))*expnut;
+      FOR_3D(i1,i2,i3,I1,I2,I3)
+      {
+	const real y = xLocal(i1,i2,i3,1);
+
+	ua(i1,i2,i3,uc)=aFactor*cos(k*(y-height));
+	ua(i1,i2,i3,vc)=0.;
+
+        ua(i1,i2,i3,pc)=0.;
+
+	if( numberOfDimensions==3 ) ua(i1,i2,i3,wc)=0.;
+      }
+      
+    }
+    else if( numberOfTimeDerivatives==1 )
+    {
+      // return the time derivative of the solution
+      const real aFactor = (-nu*k*k)*(amp/cos(k*height))*expnut;
+
+      FOR_3D(i1,i2,i3,I1,I2,I3)
+      {
+
+	const real y = xLocal(i1,i2,i3,1);
+
+	ua(i1,i2,i3,uc)=aFactor*cos(k*(y-height));
+	ua(i1,i2,i3,vc)=0.;
+
+        ua(i1,i2,i3,pc)=0.;
+
+	if( numberOfDimensions==3 ) ua(i1,i2,i3,wc)=0.;
+
+      }
+    }
+    else
+    {
+      OV_ABORT("finish me");
+    }
+    
+  }
+  else if( userKnownSolution=="rotatingDiskInDisk" )
+  {
+    // --- Exact solution for a rigid-disk rotating in a disk of fluid -----
+
+
+    // -- we could avoid building the vertex array on Cartesian grids ---
+    mg.update(MappedGrid::THEvertex | MappedGrid::THEcenter);
+    OV_GET_SERIAL_ARRAY_CONST(real,mg.vertex(),xLocal);
+
+    OV_GET_SERIAL_ARRAY_CONST(int,mg.mask(),mask);
+
+    const real & amp         = rpar[0];
+    const real & a           = rpar[1];
+    const real & b           = rpar[2];
+    const real & k           = rpar[3];
+    const real & bodyDensity = rpar[4];
+    const real & fluidDensity = dbase.get<real >("fluidDensity");  
+
+    if( t <= 3.*dt )
+    {
+      printF("--UDKS-- rotating-disk-in-disk exact INS-RB solution at t=%9.3e, amp=%8.2e, a=%8.2e, b=%8.2e, k=%12.4e"
+             " numberOfTimeDerivatives=%i\n",
+	     t,amp,a,b,k,numberOfTimeDerivatives);
+      printF("    grid=%i I1=[%i,%i] I2=[%i,%i]\n",grid,I1.getBase(),I1.getBound(),I2.getBase(),I2.getBound());
+      
+    }
+    
+    if( false )
+    {
+      int i1=0, i2=0, i3=0;
+      printF("--UDKS--  grid=%i: t=%12.5e, point (i1=0,i2=0) (x,y)=(%20.12e,%20.12e)\n",
+	     grid,t,xLocal(i1,i2,i3,0),xLocal(i1,i2,i3,1));
+    }
+
+    // --- evaluate the solution ----
+    // const real & fluidDensity = dbase.get<real >("fluidDensity");
+    const real nu = dbase.get<real >("nu");    
+    const real expnukt=exp(-nu*k*k*t);
+    const int n=1;
+    const real Jna=jn(n,k*a), Yna=yn(n,k*a);
+    const real Jnb=jn(n,k*b), Ynb=yn(n,k*b);
+    const real scale = Jna*Ynb-Jnb*Yna;  // scale to make uTheta(r=a) = amp at t=0
+   
+
+    int i1,i2,i3;
+    if( numberOfTimeDerivatives==0 )
+    {
+      const real aFactor = amp*expnukt/scale;
+      const real pFactor = fluidDensity*(amp*expnukt)*(amp*expnukt);
+      FOR_3D(i1,i2,i3,I1,I2,I3)
+      {
+	if( mask(i1,i2,i3)!=0 ) // We need to avoid evaluating Yn at r=0 
+	{
+	  const real x = xLocal(i1,i2,i3,0);
+	  const real y = xLocal(i1,i2,i3,1);
+	  const real r = sqrt(x*x+y*y);
+        
+	  const real uTheta = aFactor*( jn(n,k*r)*Ynb - Jnb*yn(n,k*r) ); // angular velocity 
+
+	  // thetaHat = (-sin(theta),cos(theta)
+	  ua(i1,i2,i3,uc)=-uTheta*y/r;
+	  ua(i1,i2,i3,vc)= uTheta*x/r; 
+
+	  // Pressure satisfies p_r = rho*uTheta^2/r -- but assume amp is scaled to be small so p=0
+
+	  // Pressure is defined in a maple generated file:
+#include "rotatingDiskPressure.h"
+	  ua(i1,i2,i3,pc)=pFactor*pv;
+	  if( ua(i1,i2,i3,pc) != ua(i1,i2,i3,pc) )
+	  {
+	    printF("--UDKS-- ERROR: p=nan for (i1,i2,i3)=(%i,%i,%i) r=%g \n",i1,i2,i3,r);
+	    OV_ABORT("error");
+	  }
+	
+	}
+	else
+	{
+	  ua(i1,i2,i3,uc)=0.;
+	  ua(i1,i2,i3,vc)=0.;
+	  ua(i1,i2,i3,pc)=0.;
+	}
+        if( numberOfDimensions==3 ) ua(i1,i2,i3,wc)=0.;
+	
+      }
+      
+    }
+    else if( numberOfTimeDerivatives==1 )
+    {
+      // return the time derivative of the solution
+      const real aFactor = -nu*k*k*amp*expnukt/scale;
+      FOR_3D(i1,i2,i3,I1,I2,I3)
+      {
+	if( mask(i1,i2,i3)!=0 ) // We need to avoid evaluating Yn at r=0 
+	{
+	  const real x = xLocal(i1,i2,i3,0);
+	  const real y = xLocal(i1,i2,i3,1);
+	  const real r = sqrt(x*x+y*y);
+        
+	  const real uTheta = aFactor*( jn(n,k*r)*Ynb - Jnb*yn(n,k*r) ); // angular velocity 
+
+	  // thetaHat = (-sin(theta),cos(theta)
+	  ua(i1,i2,i3,uc)=-uTheta*y/r;
+	  ua(i1,i2,i3,vc)= uTheta*x/r; 
+
+	  ua(i1,i2,i3,pc)=0.;
+	}
+	else
+	{
+	  ua(i1,i2,i3,uc)=0.;
+	  ua(i1,i2,i3,vc)=0.;
+	  ua(i1,i2,i3,pc)=0.;
+	}
+	
+	if( numberOfDimensions==3 ) ua(i1,i2,i3,wc)=0.;
+      }
+    }
+    else
+    {
+      OV_ABORT("finish me");
+    }
+    
+  }
+
+  else if( userKnownSolution=="translatingDiskInDisk" )
+  {
+    // --- Exact solution for a rigid-disk translating in a disk of fluid -----
+
+
+    // -- we could avoid building the vertex array on Cartesian grids ---
+    mg.update(MappedGrid::THEvertex | MappedGrid::THEcenter);
+    OV_GET_SERIAL_ARRAY_CONST(real,mg.vertex(),xLocal);
+
+    OV_GET_SERIAL_ARRAY_CONST(int,mg.mask(),mask);
+
+    const real & amp         = rpar[0];
+    const real & a           = rpar[1];
+    const real & b           = rpar[2];
+    const real & k           = rpar[3];
+    const real & bodyDensity = rpar[4];
+    const real & fluidDensity = dbase.get<real >("fluidDensity");  
+
+    if( t <= dt )
+      printF("--UDKS-- rotating-disk-in-disk exact INS-RB solution at t=%9.3e, amp=%8.2e, a=%8.2e, b=%8.2e, k=%12.4e"
+             " numberOfTimeDerivatives=%i\n",
+	     t,amp,a,b,k,numberOfTimeDerivatives);
+
+    // --- evaluate the solution ----
+    // const real & fluidDensity = dbase.get<real >("fluidDensity");
+    const real nu = dbase.get<real >("nu");    
+    const real mu = nu*fluidDensity;
+    const real expnukt=exp(-nu*k*k*t);
+
+    const real alam=k, alam2=alam*alam;
+    const real za=alam*a, za2=za*za;
+    const real zb=alam*b;
+ 
+    const real j0a =jn(0,za),         y0a =yn(0,za);
+    const real j1a =jn(1,za),         y1a =yn(1,za);
+    const real j1pa=j0a-j1a/za,       y1pa=y0a-y1a/za;
+
+    const real j0b=jn(0,zb),          y0b=yn(0,zb);
+    const real j1b=jn(1,zb),          y1b=yn(1,zb);
+
+    const real a11=(Pi*b/(2*a))*(2*y1b-zb*y0b),   a12=(Pi*a/(2*b))*zb*y0b;
+    const real a21=(Pi*b/(2*a))*(2*j1b-zb*j0b),   a22=(Pi*a/(2*b))*zb*j0b;
+
+    const real c11=(a11*j1a-a21*y1a+1)/za2,         c12=(a12*j1a-a22*y1a-1)/za2;
+    const real c21=((a11*j1pa-a21*y1pa)*za+1)/za2,  c22=((a12*j1pa-a22*y1pa)*za+1)/za2;
+
+    const real determ=c11*c22-c12*c21;
+    const real ahat=(c22-c12)/(determ*a*a);
+    const real bhat=(c11-c21)/(determ);
+
+    const real k1hat= (Pi*b/2)*((2*y1b-zb*y0b)*ahat/alam2+y0b*bhat/zb);
+    const real k2hat=-(Pi*b/2)*((2*j1b-zb*j0b)*ahat/alam2+j0b*bhat/zb);
+
+    const real scale = 1.; // scale factor
+   
+
+    // -- scale the solution depending on which time derivative is needed ---
+    real aFactor=0.;
+    if( numberOfTimeDerivatives==0 )
+      aFactor = amp*expnukt/scale;
+    else if( numberOfTimeDerivatives==1 )
+      aFactor = -nu*k*k*amp*expnukt/scale;
+    else
+    {
+      OV_ABORT("error");
+    }
+    
+    int i1,i2,i3;
+    FOR_3D(i1,i2,i3,I1,I2,I3)
+    {
+      if( mask(i1,i2,i3)!=0 ) // We need to avoid evaluating Yn at r=0 
+      {
+	const real x = xLocal(i1,i2,i3,0);
+	const real y = xLocal(i1,i2,i3,1);
+	const real r = sqrt(x*x+y*y);
+	const real cosTheta=x/r, sinTheta=y/r;
+        
+	const real z=alam*r, z2=z*z;
+	const real j1=jn(1,z),         y1=yn(1,z);
+	const real j1p=jn(0,z)-j1/z,  y1p=yn(0,z)-y1/z;
+
+	const real uhat=(k1hat*j1+k2hat*y1)/r+ahat/alam2-bhat/z2;         // Q(r)/r
+	const real vhat=alam*(k1hat*j1p+k2hat*y1p)+ahat/alam2+bhat/z2;    //  Q'(r)
+	const real phat=ahat*r+bhat/r;
+
+        const real uRadial = uhat*aFactor*cosTheta;
+	const real uTheta  =-vhat*aFactor*sinTheta;
+
+	ua(i1,i2,i3,uc)= uRadial*cosTheta - uTheta*sinTheta;
+	ua(i1,i2,i3,vc)= uRadial*sinTheta + uTheta*cosTheta;
+
+	ua(i1,i2,i3,pc)= aFactor*mu*phat*cosTheta;  // note mu
+      }
+      else
+      {
+	ua(i1,i2,i3,uc)=0.;
+	ua(i1,i2,i3,vc)=0.;
+	ua(i1,i2,i3,pc)=0.;
+      }
+      if( numberOfDimensions==3 ) ua(i1,i2,i3,wc)=0.;
+    }
+    
+  }
+
   else 
   {
     // look for a solution in the base class
@@ -481,6 +881,226 @@ getUserDefinedKnownSolution(real t, CompositeGrid & cg, int grid, RealArray & ua
   //   OV_ABORT("ERROR");
   // }
   
+  return 0;
+}
+
+// ===================================================================================================================
+/// \brief Return properties of a known solution for rigid-body motions
+/// \param body (input) : body number
+/// \param t (input) : time
+// ===================================================================================================================
+int InsParameters::
+getUserDefinedKnownSolutionRigidBody( int body, real t, 
+				      RealArray & xCM      /* = Overture::nullRealArray() */, 
+				      RealArray & vCM      /* = Overture::nullRealArray() */,
+				      RealArray & aCM      /* = Overture::nullRealArray() */,
+				      RealArray & omega    /* = Overture::nullRealArray() */, 
+				      RealArray & omegaDot /* = Overture::nullRealArray() */ )
+{
+
+  if( ! dbase.get<DataBase >("modelData").has_key("userDefinedKnownSolutionData") )
+  {
+    printf("getUserDefinedKnownSolutionRigidBody:ERROR: sub-directory `userDefinedKnownSolutionData' not found!\n");
+    Overture::abort("error");
+  }
+  DataBase & db =  dbase.get<DataBase >("modelData").get<DataBase>("userDefinedKnownSolutionData");
+
+  const aString & userKnownSolution = db.get<aString>("userKnownSolution");
+
+  real *rpar = db.get<real[20]>("rpar");
+  int *ipar = db.get<int[20]>("ipar");
+  
+  const real nu = dbase.get<real>("nu");
+  const int pc = dbase.get<int >("pc");
+  const int uc = dbase.get<int >("uc");
+  const int vc = dbase.get<int >("vc");
+  const int wc = dbase.get<int >("wc");
+  const real dt = dbase.get<real>("dt");
+  
+  if( userKnownSolution=="rigidBodyPiston" )
+  {
+    // ---- Rigid Body Piston Solution ---
+    // FSI solution for a rigid body next to a fluid channel.
+    // The pressure on the open boundary is chosen to give a specified body motion.
+    //    xBody(t) = amp*sin(freq*2*pi*t)  : body displacement from initial position.
+
+    // ** NOTE this solution ALSO appears in userDefinedBoundaryValues.
+
+    const real & amp   = rpar[0];
+    const real & freq  = rpar[1];
+    const real & depth = rpar[2];
+    const real & bodyMass = rpar[3];
+
+    // --- evaluate the solution ----
+    real fluidDensity=1.;
+    real length = 1.5;   // initial length of fluid domain *FIX ME*
+
+    const real xBody =  amp*sin(freq*twoPi*t);                 // body offset 
+    const real vBody =  amp*freq*twoPi*cos(freq*twoPi*t);      // body velocity
+    const real aBody = -amp*SQR(freq*twoPi)*sin(freq*twoPi*t); // body acceleration
+
+    if( xCM.getLength(0)>=3 )
+    {
+      xCM=0.; xCM(0)= -1. + xBody;  // assume xCM(0)=-1 
+    }
+    if( vCM.getLength(0)>=3 )
+    {
+      vCM=0.; vCM(0)= vBody;
+    }
+    if( aCM.getLength(0)>=3 )
+    {
+      aCM=0.; aCM(0)= aBody; 
+    }
+    if( omega.getLength(0)>=3 )
+    {
+       omega=0.; 
+    }
+    if( omegaDot.getLength(0)>=3 )
+    {
+       omegaDot=0.; 
+    }
+
+  }
+  
+  else if( userKnownSolution=="shearBlock" )
+  {
+    // --- Shear block exact solution ---
+    //  FSI solution for a rigid body moving tangentially to a fluid channel.
+    //      u = amp*[cos(y-H)/cos(H)]*exp(-nu t)
+    //   Interface:  u(x,0,t) = ub(t) = amp*exp(-nu t) 
+    //   BC:   u.y(x,H,t)=0 
+    //  The fluid depth H must be chosen to satisfy:
+    //      tan(H)=-mass/(rho*L)
+
+
+    const real & amp      = rpar[0];
+    const real & bodyMass = rpar[1];
+    const real & length   = rpar[2];
+    const real & height   = rpar[3];
+    const real & k        = rpar[4];
+
+    if( t <= dt )
+      printF("--getUserDefinedKnownSolutionRigidBody-- Shear-block exact INS-RB solution at t=%9.3e, amp=%8.2e, "
+             "H=%8.2e, bodyMass=%8.2e, k=%g \n",t,amp,height,bodyMass,k);
+
+    // --- evaluate the solution ----
+    // const real & fluidDensity = dbase.get<real >("fluidDensity");
+    const real nu = dbase.get<real >("nu");    
+
+    const real nuk2 = nu*k*k;
+    const real expnut=exp(-nuk2*t);
+    if( xCM.getLength(0)>=3 )
+    {
+      xCM=0.; xCM(0)= (amp/nuk2)*(1.-expnut);  // offset from initial center of mass
+    }
+    if( vCM.getLength(0)>=3 )
+    {
+       vCM=0.; vCM(0)= amp*expnut;
+    }
+    if( aCM.getLength(0)>=3 )
+    {
+       aCM=0.; aCM(0)= -nuk2*amp*expnut;
+    }
+    if( omega.getLength(0)>=3 )
+    {
+       omega=0.; 
+    }
+    if( omegaDot.getLength(0)>=3 )
+    {
+       omegaDot=0.; 
+    }
+
+  }
+  else if( userKnownSolution=="rotatingDiskInDisk" )
+  {
+    // --- Exact solution for a rigid-disk rotating in a disk of fluid -----
+
+    const real & amp      = rpar[0];
+    const real & a        = rpar[1];
+    const real & b        = rpar[2];
+    const real & k        = rpar[3];
+
+    const real nu = dbase.get<real >("nu");    
+    const real expnukt=exp(-nu*k*k*t);
+    const int n=1;
+    const real Jna=jn(n,k*a), Yna=yn(n,k*a);
+    const real Jnb=jn(n,k*b), Ynb=yn(n,k*b);
+    const real scale = Jna*Ynb-Jnb*Yna;  // scale to make uTheta(r=a) = amp at t=0
+
+    const real uTheta = amp*expnukt; // angular velocity 
+
+    if( xCM.getLength(0)>=3 )
+    {
+      xCM=0.; 
+    }
+    if( vCM.getLength(0)>=3 )
+    {
+       vCM=0.; 
+    }
+    if( aCM.getLength(0)>=3 )
+    {
+       aCM=0.; 
+    }
+    if( omega.getLength(0)>=3 )
+    {
+      omega=0.;
+      omega(2)=uTheta; 
+    }
+    if( omegaDot.getLength(0)>=3 )
+    {
+      omegaDot=0.;
+      omegaDot(2)=(-nu*k*k)*uTheta; 
+    }
+  }
+  else if( userKnownSolution=="translatingDiskInDisk" )
+  {
+    // --- Exact solution for a rigid-disk translating in a disk of fluid -----
+
+    const real & amp      = rpar[0];
+    const real & a        = rpar[1];
+    const real & b        = rpar[2];
+    const real & k        = rpar[3];
+
+    const real nu = dbase.get<real >("nu");    
+    const real expnukt=exp(-nu*k*k*t);
+
+    const real scale = 1.;  
+
+    const real aFactor = amp*expnukt/scale;
+
+    if( xCM.getLength(0)>=3 )
+    {
+      xCM=0.;
+      xCM(0)=(amp/scale)*(expnukt-1.)/(-nu*k*k);  // assume: xCM = 0 at t=0 
+    }
+    if( vCM.getLength(0)>=3 )
+    {
+      vCM=0.;
+      vCM(0)=aFactor;
+    }
+    if( aCM.getLength(0)>=3 )
+    {
+      aCM=0.;
+      aCM(0)=(-nu*k*k)*aFactor;
+    }
+    if( omega.getLength(0)>=3 )
+    {
+      omega=0.;
+    }
+    if( omegaDot.getLength(0)>=3 )
+    {
+      omegaDot=0.;
+    }
+  } // end  translatingDiskinDisk
+
+  else
+  {
+
+    printF("InsParameters::getKnownSolutionRigidBody:ERROR: unknown userKnownSolution=%s\n",
+           (const char*)userKnownSolution);
+    OV_ABORT("ERROR");
+  }
+
   return 0;
 }
 
@@ -526,6 +1146,8 @@ updateUserDefinedKnownSolution(GenericGraphicsInterface & gi, CompositeGrid & cg
       "flat plate boundary layer",
       "beam piston", // FSI solution for a beam and one or two adjacent fluid domains.
       "rigid body piston",  // FSI solution for a rigid-body next to a fluid channel
+      "shear block",   // INS-Rigid body FSI solution for a shearing block
+      "rotating disk in disk", // INS-Rigid body FSI solution for a rotating disk in a disk
       "done",
       ""
     }; 
@@ -763,6 +1385,201 @@ updateUserDefinedKnownSolution(GenericGraphicsInterface & gi, CompositeGrid & cg
       bodyMass = body.getMass();
 
       printF("Rigid Body Piston: setting amp=%g, freq=%g, depth=%g, bodyMass=%g.\n",amp,freq,depth,bodyMass);
+
+    }
+    else if( answer=="shear block" )
+    {
+      userKnownSolution="shearBlock";
+      dbase.get<bool>("knownSolutionIsTimeDependent")=true;  // known solution IS time dependent
+
+      real & amp         = rpar[0];
+      real & bodyMass    = rpar[1];
+      real & length      = rpar[2];
+      real & height      = rpar[3];
+      real & k           = rpar[4];
+
+      printF("--- Shear block exact solution ---\n"
+             " FSI solution for a rigid body moving tangentially to a fluid channel.\n"
+             "     u = amp* [cos(k*(y-H))/cos(k*H)] *exp(-nu*k^2* t)\n"
+             "  Interface:  u(x,0,t) = ub(t) = amp*exp(-nu t) \n"
+             "  BC:   u.y(x,H,t)=0 \n"
+             "  Parameter k is chosen from an eigenvalue condition:\n"
+             "     tan(k*H)/(k*H) = -mass/(rho*L*H)\n"
+             );
+      gi.inputString(answer,"Enter amp, L, H (L, H = length and height of fluid-domain)");
+      sScanF(answer,"%e %e %e",&amp,&length,&height);
+
+      //-- get the mass of the rigid body
+      MovingGrids & movingGrids = dbase.get<MovingGrids >("movingGrids");
+      const int numberOfRigidBodies = movingGrids.getNumberOfRigidBodies();
+      assert( numberOfRigidBodies==1 );
+      const int b=0;
+      RigidBodyMotion & body = movingGrids.getRigidBody(b);
+      bodyMass = body.getMass();
+
+      const real & fluidDensity = dbase.get<real >("fluidDensity");
+      assert( fluidDensity>0. );
+      
+      // Solve for kH=k*H: 
+      // Look for the first root
+      // 
+      real kH0=.5*Pi+.05, kH1=1.5*Pi-.01;
+      real f0=shearBlockFunction(kH0), f1=shearBlockFunction(kH1);
+      if( f0*f1 > 0 )
+      {
+	printF("ERROR locating root for shear-block exact solution!\n");
+	OV_ABORT("error");
+      }
+     
+      printF("...look for a root on the interval k*H in [%g,%g], [f0,f1]=[%g,%g]\n",kH0,kH1,f0,f1);
+      real tol=1.e-14; // 
+      massTerm = bodyMass/(fluidDensity*height*length); // global variable passed to shearBlockFunction
+      real kH = zeroin(kH0,kH1,shearBlockFunction,tol);
+      k=kH/height;
+      
+      printF(" .. root found k=%20.14e\n",k);
+
+      // // Here is the height -- we could check the grid to see if it matches this height and length.
+      // height=Pi - atan2(bodyMass,fluidDensity*length);
+
+      printF("Shear block: setting amp=%g, L=%g, H=%g, k=%16.12e, bodyMass=%g fluidDensity=%g.\n",
+             amp,length,height,k, bodyMass,fluidDensity);
+    }
+    else if( answer=="rotating disk in disk" )
+    {
+      userKnownSolution="rotatingDiskInDisk";
+      dbase.get<bool>("knownSolutionIsTimeDependent")=true;  // known solution IS time dependent
+
+      real & amp      = rpar[0];
+      real & a        = rpar[1];
+      real & b        = rpar[2];
+      real & k        = rpar[3];
+      real & bodyDensity = rpar[4];
+
+      printF("--- Rotating disk exact solution ---\n"
+             " FSI solution for a rotating rigid disk in a disk of an incompressible fluid.\n"
+             "    v_theta = amp*( J1(k*r)*Y1(k*a) - J1(k*a)*Y1(k*r) )*exp( -nu*k^2 t ) \n"
+             " Parameters: \n"
+             " a,b: inner and outer radius\n"
+             );
+      gi.inputString(answer,"Enter amp, a, b (amplitude, inner and outer radius)");
+      sScanF(answer,"%e %e %e",&amp,&a,&b);
+
+      //-- get the moment of inertial of the rigid body
+      MovingGrids & movingGrids = dbase.get<MovingGrids >("movingGrids");
+      const int numberOfRigidBodies = movingGrids.getNumberOfRigidBodies();
+      assert( numberOfRigidBodies==1 );
+      const int bodyNumber=0;
+      RigidBodyMotion & body = movingGrids.getRigidBody(bodyNumber);
+      bodyDensity = body.getDensity();
+
+      // Moment of inertia: 
+      RealArray mI; mI= body.getMomentsOfInertia();
+      const real Iz = mI(2);
+
+      const real & fluidDensity = dbase.get<real >("fluidDensity");
+      assert( fluidDensity>0. );
+      
+      // Compute the parameter k that must satisfy the equation
+      // 
+      real bodyFluidMass = fluidDensity*Pi*a*a; // mass of displaced fluid
+
+      // These next 4 parameters are global variables passed to the function "rotatingDiskFunction"
+      innerRadius=a; outerRadius=b;
+      inertiaTerm= Iz/(2*bodyFluidMass*a); 
+      massTerm   = 1./a; 
+
+      // Look for the first root
+      real k0=.1, f0 = rotatingDiskFunction(k0);
+      real dk=.5;
+      real k1=k0+dk, f1=rotatingDiskFunction(k1);
+      const int maxIt=20;
+      for( int it=0; it<maxIt; it++ )
+      {
+	if( f0*f1 <= 0. ) break; // root is bracketed between [k0,k1]
+        k0=k1; f0=f1;
+        k1=k0+dk;
+        f1=rotatingDiskFunction(k1);
+      }
+      if( f0*f1 > 0 )
+      {
+	printF("ERROR locating root for exact solution!\n");
+	OV_ABORT("error");
+      }
+      printF("...look for a root on the interval [k0,k1]=[%g,%g] [f0,f1]=[%g,%g]\n",k0,k1,f0,f1);
+
+      real tol=1.e-14; // 
+      k = zeroin(k0,k1,rotatingDiskFunction,tol);
+
+      printF("Rotating disk in disk: setting amp=%g, a=%g, b=%g, Iz=%g, k=%20.12e, fluidDensity=%g.\n",
+              amp,a,b,Iz,k,fluidDensity);
+
+    }
+
+    else if( answer=="translating disk in disk" )
+    {
+      // **** FINISH ME *****
+      userKnownSolution="translatingDiskInDisk";
+      dbase.get<bool>("knownSolutionIsTimeDependent")=true;  // known solution IS time dependent
+
+      real & amp      = rpar[0];
+      real & a        = rpar[1];
+      real & b        = rpar[2];
+      real & k        = rpar[3];
+
+      printF("--- Translating solid disk inside a disk of fluid exact solution ---\n"
+             " Parameters: \n"
+             " amp : amplitude of the motion (solution only valid for small amp, e.g. amp=1e-4)\n"
+             " a,b: inner and outer radius\n"
+             );
+      gi.inputString(answer,"Enter amp, a, b (amplitude, inner and outer radius)");
+      sScanF(answer,"%e %e %e",&amp,&a,&b);
+
+      //  --- get the mass of the body: ---
+      MovingGrids & movingGrids = dbase.get<MovingGrids >("movingGrids");
+      const int numberOfRigidBodies = movingGrids.getNumberOfRigidBodies();
+      assert( numberOfRigidBodies==1 );
+      const int bodyNumber=0;
+      RigidBodyMotion & body = movingGrids.getRigidBody(bodyNumber);
+      real bodyMass = body.getMass();
+
+      const real & fluidDensity = dbase.get<real >("fluidDensity");
+      assert( fluidDensity>0. );
+      
+      // Compute the parameter k that must satisfy the equation
+      // 
+      real bodyFluidMass = fluidDensity*Pi*a*a; // mass of displaced fluid
+
+      // These next 3 parameters are global variables passed to the function "translatingDiskFunction"
+      innerRadius=a; outerRadius=b;
+      massTerm=bodyMass/bodyFluidMass;
+
+      // Look for the first root
+      real k0=.1, f0 = translatingDiskFunction(k0);
+      real dk=.5;
+      real k1=k0+dk, f1=translatingDiskFunction(k1);
+      const int maxIt=20;
+      for( int it=0; it<maxIt; it++ )
+      {
+	if( f0*f1 <= 0. ) break; // root is bracketed between [k0,k1]
+        k0=k1; f0=f1;
+        k1=k0+dk;
+        f1=translatingDiskFunction(k1);
+      }
+      if( f0*f1 > 0 )
+      {
+	printF("ERROR locating root for exact solution!\n");
+	OV_ABORT("error");
+      }
+      printF("...look for a root on the interval [k0,k1]=[%g,%g] [f0,f1]=[%g,%g]\n",k0,k1,f0,f1);
+
+      real tol=1.e-14; // 
+      k = zeroin(k0,k1,translatingDiskFunction,tol);
+
+      // k=k*1.1;
+      
+      printF("Translating disk in disk: setting amp=%g, a=%g, b=%g, delta=mb/(rho*pi*a^2)=%g, k=%20.12e.\n",
+              amp,a,b,massTerm,k);
 
     }
 

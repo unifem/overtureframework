@@ -111,6 +111,7 @@ c Helper function: Return minus the second time derivative
 ! ======================================================================
 
 
+! This formula must match the one in getInitialConditions.bC
 
 ! ===================================================================================
 ! --- Subtract/add the incident wave, before/after applying the non-reflecting BC ---
@@ -185,6 +186,9 @@ c Helper function: Return minus the second time derivative
       integer adjustForIncidentField,adjustThreeLevels
       logical adjustForBoundingBox
       real x,y,z
+
+      ! parameters for tanh() in smooth transition for IC bounding box:
+      real amp, beta, nv(0:2), xv0(0:2)
 
       ! boundary conditions parameters
 ! define BC parameters for fortran routines
@@ -264,6 +268,8 @@ c Helper function: Return minus the second time derivative
       numberLinesForPML    =ipar(26)
       adjustThreeLevels    =ipar(27)
 
+      halfWidth            =ipar(31) ! *new* June 20, 2016 *wdh*
+
       dx(0)                =rpar(0)
       dx(1)                =rpar(1)
       dx(2)                =rpar(2)
@@ -292,6 +298,15 @@ c Helper function: Return minus the second time derivative
       xa(0)                =rpar(26)  ! for rectangular grids
       xa(1)                =rpar(27)
       xa(2)                =rpar(28)
+
+      ! parameters for tanh() in smooth transition for IC bounding box:
+      beta = rpar(29)
+      nv(0)  =rpar(30)
+      nv(1)  =rpar(31)
+      nv(2)  =rpar(32)
+      xv0(0) =rpar(33)
+      xv0(1) =rpar(34)
+      xv0(2) =rpar(35)
 
       if( abs(pwc(0))+abs(pwc(1))+abs(pwc(2)) .eq. 0. )then
         ! sanity check
@@ -325,8 +340,9 @@ c Helper function: Return minus the second time derivative
              write(*,'(" adjust -: kx,ky,kz,eps,cc",5e10.3)') kx,ky,kz,
      & eps,cc
            end if
+           amp=1.
             ! adjust this many points near the boundary (needs to include width of extrapolation too!)
-            halfWidth = orderOfAccuracy/2
+            ! halfWidth = orderOfAccuracy/2 ** now passed in**
             ! restrict all bounds to fit in the array dimensions: 
             dim(0,0)=nd1a
             dim(1,0)=nd1b
@@ -407,30 +423,30 @@ c Helper function: Return minus the second time derivative
                  !  t0=planeWave2Dhz0(x,y,t-dt)
                  !  write(*,'("nrbc: adjust -: i=",2i3," Hz,true=",2e10.3)') i1,i2,u(i1,i2,i3,hz),t0
                  ! end if
-                 if( x.ge.icBoundingBox(0,0) .and. x.le.icBoundingBox(
-     & 1,0) .and. y.ge.icBoundingBox(0,1) .and. y.le.icBoundingBox(1,
-     & 1) )then
-                 u(i1,i2,i3,ex) = u(i1,i2,i3,ex) - sin(twoPi*(kx*(x)+
-     & ky*(y)-cc*(t-dt)))*pwc(0)
-                 u(i1,i2,i3,ey) = u(i1,i2,i3,ey) - sin(twoPi*(kx*(x)+
-     & ky*(y)-cc*(t-dt)))*pwc(1)
-                 u(i1,i2,i3,hz) = u(i1,i2,i3,hz) - sin(twoPi*(kx*(x)+
-     & ky*(y)-cc*(t-dt)))*pwc(5)
-                 un(i1,i2,i3,ex)=un(i1,i2,i3,ex) - sin(twoPi*(kx*(x)+
-     & ky*(y)-cc*(t)))*pwc(0)
-                 un(i1,i2,i3,ey)=un(i1,i2,i3,ey) - sin(twoPi*(kx*(x)+
-     & ky*(y)-cc*(t)))*pwc(1)
-                 un(i1,i2,i3,hz)=un(i1,i2,i3,hz) - sin(twoPi*(kx*(x)+
-     & ky*(y)-cc*(t)))*pwc(5)
+                 ! if( x.ge.icBoundingBox(0,0) .and. x.le.icBoundingBox(1,0) .and. !     y.ge.icBoundingBox(0,1) .and. y.le.icBoundingBox(1,1) )then
+                   amp = (.5*(1.-tanh(beta*twoPi*(nv(0)*((x)-xv0(0))+
+     & nv(1)*((y)-xv0(1))-cc*(t)))))
+                 u(i1,i2,i3,ex) = u(i1,i2,i3,ex) - amp*sin(twoPi*(kx*(
+     & x)+ky*(y)-cc*(t-dt)))*pwc(0)
+                 u(i1,i2,i3,ey) = u(i1,i2,i3,ey) - amp*sin(twoPi*(kx*(
+     & x)+ky*(y)-cc*(t-dt)))*pwc(1)
+                 u(i1,i2,i3,hz) = u(i1,i2,i3,hz) - amp*sin(twoPi*(kx*(
+     & x)+ky*(y)-cc*(t-dt)))*pwc(5)
+                 un(i1,i2,i3,ex)= un(i1,i2,i3,ex) - amp*sin(twoPi*(kx*(
+     & x)+ky*(y)-cc*(t)))*pwc(0)
+                 un(i1,i2,i3,ey)= un(i1,i2,i3,ey) - amp*sin(twoPi*(kx*(
+     & x)+ky*(y)-cc*(t)))*pwc(1)
+                 un(i1,i2,i3,hz)= un(i1,i2,i3,hz) - amp*sin(twoPi*(kx*(
+     & x)+ky*(y)-cc*(t)))*pwc(5)
                  if( adjustThreeLevels.eq.1 )then
-                  um(i1,i2,i3,ex) = um(i1,i2,i3,ex) - sin(twoPi*(kx*(x)
-     & +ky*(y)-cc*(t-2.*dt)))*pwc(0)
-                  um(i1,i2,i3,ey) = um(i1,i2,i3,ey) - sin(twoPi*(kx*(x)
-     & +ky*(y)-cc*(t-2.*dt)))*pwc(1)
-                  um(i1,i2,i3,hz) = um(i1,i2,i3,hz) - sin(twoPi*(kx*(x)
-     & +ky*(y)-cc*(t-2.*dt)))*pwc(5)
+                  um(i1,i2,i3,ex) = um(i1,i2,i3,ex) - amp*sin(twoPi*(
+     & kx*(x)+ky*(y)-cc*(t-2.*dt)))*pwc(0)
+                  um(i1,i2,i3,ey) = um(i1,i2,i3,ey) - amp*sin(twoPi*(
+     & kx*(x)+ky*(y)-cc*(t-2.*dt)))*pwc(1)
+                  um(i1,i2,i3,hz) = um(i1,i2,i3,hz) - amp*sin(twoPi*(
+     & kx*(x)+ky*(y)-cc*(t-2.*dt)))*pwc(5)
                  end if
-                 endif
+                 ! endif
                end do
                end do
                end do
@@ -484,8 +500,9 @@ c Helper function: Return minus the second time derivative
              write(*,'(" adjust -: kx,ky,kz,eps,cc",5e10.3)') kx,ky,kz,
      & eps,cc
            end if
+           amp=1.
             ! adjust this many points near the boundary (needs to include width of extrapolation too!)
-            halfWidth = orderOfAccuracy/2
+            ! halfWidth = orderOfAccuracy/2 ** now passed in**
             ! restrict all bounds to fit in the array dimensions: 
             dim(0,0)=nd1a
             dim(1,0)=nd1b
@@ -566,25 +583,25 @@ c Helper function: Return minus the second time derivative
                  !  t0=planeWave2Dhz0(x,y,t-dt)
                  !  write(*,'("nrbc: adjust -: i=",2i3," Hz,true=",2e10.3)') i1,i2,u(i1,i2,i3,hz),t0
                  ! end if
-                 u(i1,i2,i3,ex) = u(i1,i2,i3,ex) - sin(twoPi*(kx*(x)+
-     & ky*(y)-cc*(t-dt)))*pwc(0)
-                 u(i1,i2,i3,ey) = u(i1,i2,i3,ey) - sin(twoPi*(kx*(x)+
-     & ky*(y)-cc*(t-dt)))*pwc(1)
-                 u(i1,i2,i3,hz) = u(i1,i2,i3,hz) - sin(twoPi*(kx*(x)+
-     & ky*(y)-cc*(t-dt)))*pwc(5)
-                 un(i1,i2,i3,ex)=un(i1,i2,i3,ex) - sin(twoPi*(kx*(x)+
-     & ky*(y)-cc*(t)))*pwc(0)
-                 un(i1,i2,i3,ey)=un(i1,i2,i3,ey) - sin(twoPi*(kx*(x)+
-     & ky*(y)-cc*(t)))*pwc(1)
-                 un(i1,i2,i3,hz)=un(i1,i2,i3,hz) - sin(twoPi*(kx*(x)+
-     & ky*(y)-cc*(t)))*pwc(5)
+                 u(i1,i2,i3,ex) = u(i1,i2,i3,ex) - amp*sin(twoPi*(kx*(
+     & x)+ky*(y)-cc*(t-dt)))*pwc(0)
+                 u(i1,i2,i3,ey) = u(i1,i2,i3,ey) - amp*sin(twoPi*(kx*(
+     & x)+ky*(y)-cc*(t-dt)))*pwc(1)
+                 u(i1,i2,i3,hz) = u(i1,i2,i3,hz) - amp*sin(twoPi*(kx*(
+     & x)+ky*(y)-cc*(t-dt)))*pwc(5)
+                 un(i1,i2,i3,ex)= un(i1,i2,i3,ex) - amp*sin(twoPi*(kx*(
+     & x)+ky*(y)-cc*(t)))*pwc(0)
+                 un(i1,i2,i3,ey)= un(i1,i2,i3,ey) - amp*sin(twoPi*(kx*(
+     & x)+ky*(y)-cc*(t)))*pwc(1)
+                 un(i1,i2,i3,hz)= un(i1,i2,i3,hz) - amp*sin(twoPi*(kx*(
+     & x)+ky*(y)-cc*(t)))*pwc(5)
                  if( adjustThreeLevels.eq.1 )then
-                  um(i1,i2,i3,ex) = um(i1,i2,i3,ex) - sin(twoPi*(kx*(x)
-     & +ky*(y)-cc*(t-2.*dt)))*pwc(0)
-                  um(i1,i2,i3,ey) = um(i1,i2,i3,ey) - sin(twoPi*(kx*(x)
-     & +ky*(y)-cc*(t-2.*dt)))*pwc(1)
-                  um(i1,i2,i3,hz) = um(i1,i2,i3,hz) - sin(twoPi*(kx*(x)
-     & +ky*(y)-cc*(t-2.*dt)))*pwc(5)
+                  um(i1,i2,i3,ex) = um(i1,i2,i3,ex) - amp*sin(twoPi*(
+     & kx*(x)+ky*(y)-cc*(t-2.*dt)))*pwc(0)
+                  um(i1,i2,i3,ey) = um(i1,i2,i3,ey) - amp*sin(twoPi*(
+     & kx*(x)+ky*(y)-cc*(t-2.*dt)))*pwc(1)
+                  um(i1,i2,i3,hz) = um(i1,i2,i3,hz) - amp*sin(twoPi*(
+     & kx*(x)+ky*(y)-cc*(t-2.*dt)))*pwc(5)
                  end if
                end do
                end do
@@ -637,8 +654,9 @@ c Helper function: Return minus the second time derivative
              write(*,'(" adjust +: kx,ky,kz,eps,cc",5e10.3)') kx,ky,kz,
      & eps,cc
            end if
+           amp=1.
             ! adjust this many points near the boundary (needs to include width of extrapolation too!)
-            halfWidth = orderOfAccuracy/2
+            ! halfWidth = orderOfAccuracy/2 ** now passed in**
             ! restrict all bounds to fit in the array dimensions: 
             dim(0,0)=nd1a
             dim(1,0)=nd1b
@@ -719,30 +737,30 @@ c Helper function: Return minus the second time derivative
                  !  t0=planeWave2Dhz0(x,y,t-dt)
                  !  write(*,'("nrbc: adjust +: i=",2i3," Hz,true=",2e10.3)') i1,i2,u(i1,i2,i3,hz),t0
                  ! end if
-                 if( x.ge.icBoundingBox(0,0) .and. x.le.icBoundingBox(
-     & 1,0) .and. y.ge.icBoundingBox(0,1) .and. y.le.icBoundingBox(1,
-     & 1) )then
-                 u(i1,i2,i3,ex) = u(i1,i2,i3,ex) + sin(twoPi*(kx*(x)+
-     & ky*(y)-cc*(t-dt)))*pwc(0)
-                 u(i1,i2,i3,ey) = u(i1,i2,i3,ey) + sin(twoPi*(kx*(x)+
-     & ky*(y)-cc*(t-dt)))*pwc(1)
-                 u(i1,i2,i3,hz) = u(i1,i2,i3,hz) + sin(twoPi*(kx*(x)+
-     & ky*(y)-cc*(t-dt)))*pwc(5)
-                 un(i1,i2,i3,ex)=un(i1,i2,i3,ex) + sin(twoPi*(kx*(x)+
-     & ky*(y)-cc*(t)))*pwc(0)
-                 un(i1,i2,i3,ey)=un(i1,i2,i3,ey) + sin(twoPi*(kx*(x)+
-     & ky*(y)-cc*(t)))*pwc(1)
-                 un(i1,i2,i3,hz)=un(i1,i2,i3,hz) + sin(twoPi*(kx*(x)+
-     & ky*(y)-cc*(t)))*pwc(5)
+                 ! if( x.ge.icBoundingBox(0,0) .and. x.le.icBoundingBox(1,0) .and. !     y.ge.icBoundingBox(0,1) .and. y.le.icBoundingBox(1,1) )then
+                   amp = (.5*(1.-tanh(beta*twoPi*(nv(0)*((x)-xv0(0))+
+     & nv(1)*((y)-xv0(1))-cc*(t)))))
+                 u(i1,i2,i3,ex) = u(i1,i2,i3,ex) + amp*sin(twoPi*(kx*(
+     & x)+ky*(y)-cc*(t-dt)))*pwc(0)
+                 u(i1,i2,i3,ey) = u(i1,i2,i3,ey) + amp*sin(twoPi*(kx*(
+     & x)+ky*(y)-cc*(t-dt)))*pwc(1)
+                 u(i1,i2,i3,hz) = u(i1,i2,i3,hz) + amp*sin(twoPi*(kx*(
+     & x)+ky*(y)-cc*(t-dt)))*pwc(5)
+                 un(i1,i2,i3,ex)= un(i1,i2,i3,ex) + amp*sin(twoPi*(kx*(
+     & x)+ky*(y)-cc*(t)))*pwc(0)
+                 un(i1,i2,i3,ey)= un(i1,i2,i3,ey) + amp*sin(twoPi*(kx*(
+     & x)+ky*(y)-cc*(t)))*pwc(1)
+                 un(i1,i2,i3,hz)= un(i1,i2,i3,hz) + amp*sin(twoPi*(kx*(
+     & x)+ky*(y)-cc*(t)))*pwc(5)
                  if( adjustThreeLevels.eq.1 )then
-                  um(i1,i2,i3,ex) = um(i1,i2,i3,ex) + sin(twoPi*(kx*(x)
-     & +ky*(y)-cc*(t-2.*dt)))*pwc(0)
-                  um(i1,i2,i3,ey) = um(i1,i2,i3,ey) + sin(twoPi*(kx*(x)
-     & +ky*(y)-cc*(t-2.*dt)))*pwc(1)
-                  um(i1,i2,i3,hz) = um(i1,i2,i3,hz) + sin(twoPi*(kx*(x)
-     & +ky*(y)-cc*(t-2.*dt)))*pwc(5)
+                  um(i1,i2,i3,ex) = um(i1,i2,i3,ex) + amp*sin(twoPi*(
+     & kx*(x)+ky*(y)-cc*(t-2.*dt)))*pwc(0)
+                  um(i1,i2,i3,ey) = um(i1,i2,i3,ey) + amp*sin(twoPi*(
+     & kx*(x)+ky*(y)-cc*(t-2.*dt)))*pwc(1)
+                  um(i1,i2,i3,hz) = um(i1,i2,i3,hz) + amp*sin(twoPi*(
+     & kx*(x)+ky*(y)-cc*(t-2.*dt)))*pwc(5)
                  end if
-                 endif
+                 ! endif
                end do
                end do
                end do
@@ -796,8 +814,9 @@ c Helper function: Return minus the second time derivative
              write(*,'(" adjust +: kx,ky,kz,eps,cc",5e10.3)') kx,ky,kz,
      & eps,cc
            end if
+           amp=1.
             ! adjust this many points near the boundary (needs to include width of extrapolation too!)
-            halfWidth = orderOfAccuracy/2
+            ! halfWidth = orderOfAccuracy/2 ** now passed in**
             ! restrict all bounds to fit in the array dimensions: 
             dim(0,0)=nd1a
             dim(1,0)=nd1b
@@ -878,25 +897,25 @@ c Helper function: Return minus the second time derivative
                  !  t0=planeWave2Dhz0(x,y,t-dt)
                  !  write(*,'("nrbc: adjust +: i=",2i3," Hz,true=",2e10.3)') i1,i2,u(i1,i2,i3,hz),t0
                  ! end if
-                 u(i1,i2,i3,ex) = u(i1,i2,i3,ex) + sin(twoPi*(kx*(x)+
-     & ky*(y)-cc*(t-dt)))*pwc(0)
-                 u(i1,i2,i3,ey) = u(i1,i2,i3,ey) + sin(twoPi*(kx*(x)+
-     & ky*(y)-cc*(t-dt)))*pwc(1)
-                 u(i1,i2,i3,hz) = u(i1,i2,i3,hz) + sin(twoPi*(kx*(x)+
-     & ky*(y)-cc*(t-dt)))*pwc(5)
-                 un(i1,i2,i3,ex)=un(i1,i2,i3,ex) + sin(twoPi*(kx*(x)+
-     & ky*(y)-cc*(t)))*pwc(0)
-                 un(i1,i2,i3,ey)=un(i1,i2,i3,ey) + sin(twoPi*(kx*(x)+
-     & ky*(y)-cc*(t)))*pwc(1)
-                 un(i1,i2,i3,hz)=un(i1,i2,i3,hz) + sin(twoPi*(kx*(x)+
-     & ky*(y)-cc*(t)))*pwc(5)
+                 u(i1,i2,i3,ex) = u(i1,i2,i3,ex) + amp*sin(twoPi*(kx*(
+     & x)+ky*(y)-cc*(t-dt)))*pwc(0)
+                 u(i1,i2,i3,ey) = u(i1,i2,i3,ey) + amp*sin(twoPi*(kx*(
+     & x)+ky*(y)-cc*(t-dt)))*pwc(1)
+                 u(i1,i2,i3,hz) = u(i1,i2,i3,hz) + amp*sin(twoPi*(kx*(
+     & x)+ky*(y)-cc*(t-dt)))*pwc(5)
+                 un(i1,i2,i3,ex)= un(i1,i2,i3,ex) + amp*sin(twoPi*(kx*(
+     & x)+ky*(y)-cc*(t)))*pwc(0)
+                 un(i1,i2,i3,ey)= un(i1,i2,i3,ey) + amp*sin(twoPi*(kx*(
+     & x)+ky*(y)-cc*(t)))*pwc(1)
+                 un(i1,i2,i3,hz)= un(i1,i2,i3,hz) + amp*sin(twoPi*(kx*(
+     & x)+ky*(y)-cc*(t)))*pwc(5)
                  if( adjustThreeLevels.eq.1 )then
-                  um(i1,i2,i3,ex) = um(i1,i2,i3,ex) + sin(twoPi*(kx*(x)
-     & +ky*(y)-cc*(t-2.*dt)))*pwc(0)
-                  um(i1,i2,i3,ey) = um(i1,i2,i3,ey) + sin(twoPi*(kx*(x)
-     & +ky*(y)-cc*(t-2.*dt)))*pwc(1)
-                  um(i1,i2,i3,hz) = um(i1,i2,i3,hz) + sin(twoPi*(kx*(x)
-     & +ky*(y)-cc*(t-2.*dt)))*pwc(5)
+                  um(i1,i2,i3,ex) = um(i1,i2,i3,ex) + amp*sin(twoPi*(
+     & kx*(x)+ky*(y)-cc*(t-2.*dt)))*pwc(0)
+                  um(i1,i2,i3,ey) = um(i1,i2,i3,ey) + amp*sin(twoPi*(
+     & kx*(x)+ky*(y)-cc*(t-2.*dt)))*pwc(1)
+                  um(i1,i2,i3,hz) = um(i1,i2,i3,hz) + amp*sin(twoPi*(
+     & kx*(x)+ky*(y)-cc*(t-2.*dt)))*pwc(5)
                  end if
                end do
                end do

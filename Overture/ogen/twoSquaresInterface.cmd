@@ -40,6 +40,8 @@
 #    ogen -noplot twoSquaresInterface -factor=1 -order=2 -angle=45 -name="twoSquaresInterfaceRotated1.order2.hdf"
 #    ogen -noplot twoSquaresInterface -factor=1 -order=4 -angle=45 -name="twoSquaresInterfaceRotated1.order4.hdf"
 # 
+# nonSquares:
+#    ogen -noplot twoSquaresInterface -interp=e -angle=0. -prefix=twoNonSquaresInterface -order=4 -factor=2 
 # non-matching:
 #    ogen -noplot twoSquaresInterface -factor=1 -yFactor=.5 -yFactorRight=2. -name="twoSquaresInterface1to2.order2.hdf"
 #
@@ -48,13 +50,13 @@
 #    ogen -noplot twoSquaresInterface -factor=1 -yFactor=1 -refineLeft=1 -refineRight=1 -name="twoSquaresInterface1Refine.order2.hdf"
 # 
 #**************************************************************************
-$order=2;  $orderOfAccuracy = "second order";
+$order=2;  $orderOfAccuracy = "second order"; $prefix="twoSquaresInterface"; 
 $interp="i"; $interpType = "implicit for all grids";
 $order=2; $interp="i"; $name=""; $bc="d"; 
 $ml=0;  # to-do: add MG levels
 $numGhost=-1; # if >0 use this many ghost 
 $orderOfAccuracy = "second order"; $ng=2; $interpType = "implicit for all grids";
-$angle=0.;
+$angle=0;
 $factor=1; $yFactor=-1; 
 $xFactorRight=1;  # additional grid resolution factor for the right domain (for non-matching grid lines)
 $yFactorRight=1;  # additional grid resolution factor for the right domain (for non-matching grid lines)
@@ -64,7 +66,8 @@ $refineLeft=0; $refineRight=0;
 GetOptions("order=i"=>\$order,"factor=f"=> \$factor,"yFactor=f"=> \$yFactor,"interp=s"=> \$interp,\
            "outerRad=f"=> \$outerRad,"xa=f"=> \$xa,"xb=f"=> \$xb,"bc=s"=>\$bc,"angle=f"=> \$angle,\
            "name=s"=>\$name,"xFactorRight=f"=> \$xFactorRight,"yFactorRight=f"=> \$yFactorRight,\
-           "refineLeft=i"=>\$refineLeft,"refineRight=i"=>\$refineRight,"numGhost=i"=>\$numGhost,"ml=i"=>\$ml );
+           "refineLeft=i"=>\$refineLeft,"refineRight=i"=>\$refineRight,"numGhost=i"=>\$numGhost,\
+           "prefix=s"=>\$prefix,"ml=i"=>\$ml );
 # 
 if( $yFactor eq -1 ){ $yFactor=$factor; }
 #
@@ -77,14 +80,17 @@ $suffix = ".order$order";
 if( $numGhost ne -1 ){ $ng = $numGhost; } # overide number of ghost
 if( $numGhost ne -1 ){ $suffix .= ".ng$numGhost"; } 
 if( $ml ne 0 ){ $suffix .= ".ml$ml"; }
-if( $name eq "" ){ $name = "twoSquaresInterface" . "$interp$factor" . $suffix . ".hdf"; }
+if( $name eq "" ){ $name = $prefix . "$interp$factor" . $suffix . ".hdf"; }
 #
 # 
 #
-$bcLeft = "1 100  1  1"; 
-$bcRight= "100 1  1  1"; 
+# $bcLeft = "1 100  1  1"; 
+# $bcRight= "100 1  1  1"; 
+# *new* Sept. 17, 2016: 
+$bcLeft = "1 100  3  4"; 
+$bcRight= "100 6 7 8"; 
 # 
-if( $bc eq "p" ){ $bcLeft ="1 100 -1 -1"; $bcRight="100 1 -1 -1"; }
+if( $bc eq "p" ){ $bcLeft ="1 100 -1 -1"; $bcRight="100 6 -1 -1"; }
 #
 #**************************************************************************
 #
@@ -94,6 +100,9 @@ $dsx = .1/$factor; # target grid spacing in the x direction
 $dsy= .1/$yFactor;          # target grid spacing in the y direction
 #
 create mappings
+#
+if( $angle eq "0" ){ $leftSquareBase="leftSquare"; $leftSquareRotated="leftSquareRotated"; }else{ $leftSquareBase="leftSquare0";  $leftSquareRotated="leftSquare";}
+if( $angle eq "0" ){ $rightSquareBase="rightSquare"; $rightSquareRotated="rightSquareRotated"; }else{ $rightSquareBase="rightSquare0";  $rightSquareRotated="rightSquare";}
 #
 #  here is the left grid
 #
@@ -112,8 +121,9 @@ create mappings
  # for now interfaces are marked with share>=100 
       0 100 0 0
     mappingName
-      leftSquare0
-#*      leftSquare
+     $leftSquareBase 
+     #  leftSquare0
+     #*      leftSquare
   exit
 #
 #
@@ -134,33 +144,36 @@ create mappings
  # for now interfaces are marked with share>=100 
       100 0 0 0
     mappingName
-      rightSquare0
-#*      rightSquare
+      $rightSquareBase
+      # rightSquare0
+      #* rightSquare
   exit
 #
   rotate/scale/shift
     transform which mapping?
-      leftSquare0
+      $leftSquareBase
     rotate
      $angle
     0. .5 0.
     mappingName
-      leftSquare
+      $leftSquareRotated
     exit
 #
   rotate/scale/shift
     transform which mapping?
-      rightSquare0
+      $rightSquareBase
     rotate
      $angle
     0. .5 0.
     mappingName
-      rightSquare
+     $rightSquareRotated
+     # rightSquare
     exit
 #
   reparameterize
     transform which mapping?
-      leftSquare0
+      $leftSquareBase 
+      # leftSquare0
     set corners
       .5 1. .25 .75
     lines
@@ -178,7 +191,8 @@ create mappings
 #
   reparameterize
     transform which mapping?
-      rightSquare0
+      $rightSquareBase
+      # rightSquare0
     set corners
       .0 .5 .1 .6
     lines

@@ -1,4 +1,8 @@
 #
+#
+#  plotStuff plotDisk.cmd -show=transDiskG2.show
+#  plotStuff plotDisk.cmd -show=transDiskG4.show
+#
 #  plotStuff plotDisk.cmd -show=did2bd1.show
 #
 # rhos=100:
@@ -77,6 +81,10 @@ plot sequence:rigid body 0
   x1
   add v1
   add a1
+pause
+  a2
+  add wt3
+
 #   add f1
   if( $matlab ne "" ){ $cmd = "save results to a matlab file\n $matlab.m"; }else{ $cmd="#"; }
   $cmd

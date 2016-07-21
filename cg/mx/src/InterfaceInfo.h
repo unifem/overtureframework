@@ -28,6 +28,12 @@ int ndf1,ndf2;  // number of points on face1 and face2
 
 bool initialized; // set to true when interface has been initialized
 
+// statistics for interface iterations
+real totalInterfaceIterations; // counts total number of interface iterations
+real averageInterfaceConvergenceRate;  // accumulate average convergence rate here 
+real maxFinalResidual;  // save maximum of the final residual in interface equations
+real averageFinalResidual;  // accumulate average final residual in interface equations
+
 // work-space
 real *rwk;
 int *iwk;

@@ -956,10 +956,17 @@ assignInitialConditions(int current, real t, real dt )
 	    
 	    }
 	    else
-	    { // limit the plane wave initial condition to lie inside a bounding box: 
+	    { 
+              // ------------------------------------------------------------------
+              // ----------- initial conditions with a BOUNDING BOX ---------------
+              // ------------------------------------------------------------------
+
+              // limit the plane wave initial condition to lie inside a bounding box: 
 	      assert( method==nfdtd  || method==sosup );
 	      int i1,i2,i3;
-	      if( true )
+	      bool clipToBoundingBox=false;
+	      
+	      if( !clipToBoundingBox )  // *new* way 
 	      {
 		// In this version we smoothly damp the plane wave along the direction of the front
 
@@ -968,20 +975,40 @@ assignInitialConditions(int current, real t, real dt )
 		       initialConditionBoundingBox(0,1),initialConditionBoundingBox(1,1),
 		       initialConditionBoundingBox(0,2),initialConditionBoundingBox(1,2));
 
-		// Damp near the point (x0,y0) on the front
-		// do this for now : 
-		real kNorm = sqrt( kx*kx+ky*ky );
-		// real beta=10./(twoPi*kNorm); // ** fix me ***
-		// *wdh* 111129 real beta=2./twoPi; // ** fix me ***
+
+		// Damp the initial conditions along one face of the bounding box: (*wdh* July 2, 2016)
+		const int & side = dbase.get<int>("boundingBoxDecaySide");
+		const int & axis = dbase.get<int>("boundingBoxDecayAxis");
+
+                
+                real nv[2]={0.,0.};  // normal to decay direction
+		nv[axis]=2*side-1;
+
+		// Damp near the point xv0[] on the front
+                real xv0[2]={0.,0.};  // normal to decay direction
+		xv0[0] = .5*(initialConditionBoundingBox(1,0)+initialConditionBoundingBox(0,0));
+		xv0[1] = .5*(initialConditionBoundingBox(1,1)+initialConditionBoundingBox(0,1));
+                xv0[axis]=initialConditionBoundingBox(side,axis);
+
 		real beta=boundingBoxDecayExponent/twoPi;
-		real x0 = kx>=0 ? initialConditionBoundingBox(1,0) : initialConditionBoundingBox(0,0);
-		real y0 = ky>=0 ? initialConditionBoundingBox(1,1) : initialConditionBoundingBox(0,1);  
+
+		// // do this for now : 
+		// real kNorm = sqrt( kx*kx+ky*ky );
+		// // real beta=10./(twoPi*kNorm); // ** fix me ***
+		// // *wdh* 111129 real beta=2./twoPi; // ** fix me ***
+
+		// real beta=boundingBoxDecayExponent/twoPi;
+		// real x0 = kx>=0 ? initialConditionBoundingBox(1,0) : initialConditionBoundingBox(0,0);
+		// real y0 = ky>=0 ? initialConditionBoundingBox(1,1) : initialConditionBoundingBox(0,1);  
+
+
 		FOR_3D(i1,i2,i3,Ie1,Ie2,Ie3)
 		{
 		  real x,y;
 		  getCoordinates2d(i1,i2,i3,x,y,xe,ye);
 
-#define AMP2D(x,y,t) (.5*(1.-tanh(beta*twoPi*(kx*((x)-x0)+ky*((y)-y0)-cc*(t)))))
+// NOTE: this next formula must match the one used by adjustForIncident (nrbcUtil.bf)
+#define AMP2D(x,y,t) (.5*(1.-tanh(beta*twoPi*(nv[0]*((x)-xv0[0])+nv[1]*((y)-xv0[1])-cc*(t)))))
 
 		  real amp = AMP2D(x,y,t-dt);
 		  ume(i1,i2,i3,ex)=exTrue(x,y,t-dt)*amp;
@@ -1901,6 +1928,8 @@ assignInitialConditions(int current, real t, real dt )
 
   if( projectInitialConditions )
   {
+    printF("--MX-- project initial conditions: t-dt=%9.3e and t=%9.3e\n",t-dt,t);
+     
     project( numberOfStepsTaken-1, prev,    t-dt, dt );
 
     project( numberOfStepsTaken  , current, t   , dt );

@@ -45,7 +45,16 @@ applyBoundaryConditions(GridFunction & cgf,
   checkArrayIDs(" applyBoundaryConditions (before applyBC's)"); 
 
   Range G = grid_==-1 ? Range(0,cgf.cg.numberOfGrids()-1) : Range(grid_,grid_);
-  //kkc 070131 we should only have this done if we are using a known solution  if ( !parameters.dbase.get<realCompositeGridFunction* >("pKnownSolution")) parameters.updateKnownSolutionToMatchGrid(cgf.cg);
+
+  // *wdh* July 3, 2016 -- we need to update any known solution here before is it used grid-by-grid
+  const Parameters::KnownSolutionsEnum & knownSolution = 
+    parameters.dbase.get<Parameters::KnownSolutionsEnum >("knownSolution");
+  if( knownSolution!=Parameters::noKnownSolution )
+  {
+    parameters.updateKnownSolutionToMatchGrid(cgf.cg);
+  }
+   
+
 
   for( int grid=G.getBase(); grid<=G.getBound(); grid++ )
   {

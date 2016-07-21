@@ -1,3 +1,383 @@
+******************************
+******** Fri. July 1, 2016
+
+cgmx interface -g=twoSquaresInterfacee8.order4 -eps2=4. -kx=2 -ky=1 -tp=.1 -ic=pmic -diss=1. -bc=d -bc4=abcEM2 -bc8=abcEM2 -bc6=abcEM2
+
+Not so good at t=.5 -- div(E) large at interface-corner
+cgmx abcInterface -g=twoSquaresInterfacee8.order4 -eps2=.25 -diss=1 -tp=.05 -rbc=abcEM2 -y1=.7
+
+
+cgmx abcInterface -g=twoSquaresInterfacee8.order4 -eps2=.25 -diss=1 -tp=.05 -rbc=abcEM2
+
+
+******************************
+******** Thurs. June 30, 2016
+
+
+Revisit ABC+INTERFACE
+cgmx abcInterface -g=twoSquaresInterfacee8.order4 -eps2=.25 -diss=1 -tp=.05 -rbc=abcEM2
+
+
+cgmx interface -g=twoSquaresInterfacee8.order4 -eps2=.25 -kx=2 -ky=1 -tf=1 -tp=.1 -ic=pmic -diss=1. -bc=d
+
+
+
+CHECK WHETHER ITERATIONS ARE NEEDED FOR ORDER 4 BC's 
+
+cgmx interface -g=twoBoxesInterfacee222.order4 -eps2=4 -kx=1 -ic=pmic -bc=d -tp=.1 -tf=1. -left=leftBox -right=rightBox -debug=1 -interfaceIts=2 -interfaceOmega=1 -useImpedanceInterfaceProjection=1 -interfaceEquationOption=0
+
+
+******************************
+******** Wed. June 29, 2016
+
+TEST OLD-3D-ORDER=4 INTERFACE + NEW ITERATION
+cgmx interface -g=twoBoxesInterfacee444.order4 -eps2=4 -kx=1 -ic=pmic -bc=d -tp=.1 -tf=1. -left=leftBox -right=rightBox -debug=1 -interfaceIts=2 -interfaceOmega=1 -useImpedanceInterfaceProjection=1 -interfaceEquationOption=0
+
+
+
+TEST NEW IMPEDANCE INTERFRACE CONDITIONS --3D
+
+***************************** THREE-D ************************************
+
+QUESTION: SHOULD WE USE "new" 3D order=4 interface conditions: nterfaceEquationOption=1
+cgmx interface -g=twoBoxesInterfacee444.order4 -eps2=4 -kx=1 -ic=pmic -bc=d -tp=.1 -tf=1. -left=leftBox -right=rightBox -debug=1 -interfaceIts=10 -interfaceOmega=1 -useImpedanceInterfaceProjection=1 -interfaceEquationOption=1
+
+
+cgmx interface -g=twoBoxesInterfacee444.order4 -eps2=.25 -kx=1 -ic=pmic -bc=d -tp=.1 -tf=1. -left=leftBox -right=rightBox -debug=1 -interfaceIts=10 -interfaceOmega=.7 -useImpedanceInterfaceProjection=0
+
+IMPEDANCE
+>>> t=1.00e-01 dt=6.3e-03 max errors:[2.76e-08,4.82e-06,5.65e-09,], max (u):[2.76e-08,2.67e+00,5.65e-09,] (16 steps)
+
+NO-IMPEDANCE
+>>> t=1.00e-01 dt=6.3e-03 max errors:[2.76e-08,4.82e-06,5.65e-09,], max (u):[2.76e-08,2.67e+00,5.65e-09,] (16 steps)
+
+
+cgmx interface -g=twoBoxesInterfacee222.order4 -eps2=.25 -kx=1 -ic=pmic -bc=d -tp=.01 -tf=1. -left=leftBox -right=rightBox -debug=1
+
+cgmx interface -g=twoBoxesInterfacee111.order2 -eps2=.25 -kx=1 -ic=pmic -bc=d -tp=.01 -tf=1. -left=leftBox -right=rightBox -debug=1
+
+***************************** TWO-D ************************************
+
+cgmx interface -g=twoSquaresInterfacee8.order4 -eps2=.25 -kx=2 -ky=1 -tf=1 -tp=.1 -ic=pmic -diss=1. -bc=d 
+cgmx interface -g=twoSquaresInterfacee8.order4 -eps2=.25 -kx=2 -ky=1 -tf=1 -tp=.1 -ic=pmic -diss=1. -bc=d -useImpedanceInterfaceProjection=0
+
+IMPEDANCE
+>>> t=1.00e+00 dt=3.4e-03 max errors:[1.73e-03,1.46e-03,1.09e-03,], max (u):[3.58e+00,1.79e+00,2.00e+00,] (290 steps)
+
+NO-IMPEDANCE
+>>> t=1.00e+00 dt=3.4e-03 max errors:[1.72e-03,1.45e-03,1.09e-03,], max (u):[3.58e+00,1.79e+00,2.00e+00,] (290 steps)
+
+
+
+CHECK TZ 
+cgmx tzInterface -g=twoSquaresInterfacee1.order4 -eps2=.25 -tp=.01 -ic=tz -bc=d  -degreex=4 -degreet=4 [exact
+
+cgmx tzInterface -g=twoSquaresInterfacee1.order4 -eps2=.25 -tp=.01 -ic=tz -bc=d  -degreex=2 -degreet=2 [exact
+
+
+******************************
+******** June 28, 2016
+
+TEST NEW IMPEDANCE INTERFRACE CONDITIONS 
+
+**THIS WORKS NOW -- dis=16 **
+cgmx abcInterface -g=twoSquaresInterfacee8.order4 -eps2=.25 -diss=16 -tp=.05 -rbc=abcEM2
+
+
+Order=4 *OK* eps2=.25 and eps2=4 
+cgmx interface -g=twoSquaresInterfacee8.order4 -eps2=.25 -kx=2 -ky=1 -tp=.01 -ic=pmic -diss=1. -bc=d 
+
+--- IMPEDANCE ORDER=4 ----
+
+>>> Cgmx:FD: t=1.00e-02 dt=3.3e-03 TS=ME ad4=1.00 |div(E)|/|grad(E)|=1.17e-05 (=2.63e-04/2.25e+01) 3 steps mem=32.9(Mb) cpu=3.52e+00(s)
+>>> t=1.00e-02 dt=3.3e-03 max errors:[7.90e-07,2.26e-06,1.23e-06,], max (u):[3.58e+00,1.79e+00,2.00e+00,] (3 steps)
+>>> Cgmx:FD: t=2.00e-02 dt=3.3e-03 TS=ME ad4=1.00 |div(E)|/|grad(E)|=1.71e-05 (=3.86e-04/2.25e+01) 6 steps mem=33.5(Mb) cpu=1.10e+01(s)
+>>> t=2.00e-02 dt=3.3e-03 max errors:[2.37e-06,6.96e-06,4.29e-06,], max (u):[3.58e+00,1.79e+00,2.00e+00,] (6 steps)
+>>> Cgmx:FD: t=3.00e-02 dt=3.3e-03 TS=ME ad4=1.00 |div(E)|/|grad(E)|=2.43e-05 (=5.46e-04/2.25e+01) 9 steps mem=33.5(Mb) cpu=1.44e+01(s)
+>>> t=3.00e-02 dt=3.3e-03 max errors:[5.59e-06,1.18e-05,8.98e-06,], max (u):[3.58e+00,1.79e+00,2.00e+00,] (9 steps)
+>>> Cgmx:FD: t=4.00e-02 dt=3.3e-03 TS=ME ad4=1.00 |div(E)|/|grad(E)|=3.14e-05 (=7.06e-04/2.25e+01) 12 steps mem=33.5(Mb) cpu=1.74e+01(s)
+>>> t=4.00e-02 dt=3.3e-03 max errors:[9.79e-06,1.79e-05,1.52e-05,], max (u):[3.58e+00,1.79e+00,2.00e+00,] (12 steps)
+
+
+
+---NO IMPEDANCE : ORDER=4 ---
+>>> Cgmx:FD: t=1.00e-02 dt=3.3e-03 TS=ME ad4=1.00 |div(E)|/|grad(E)|=1.17e-05 (=2.63e-04/2.25e+01) 3 steps mem=32.9(Mb) cpu=2.95e+00(s)
+>>> t=1.00e-02 dt=3.3e-03 max errors:[5.53e-07,1.62e-06,1.21e-06,], max (u):[3.58e+00,1.79e+00,2.00e+00,] (3 steps)
+>>> Cgmx:FD: t=2.00e-02 dt=3.3e-03 TS=ME ad4=1.00 |div(E)|/|grad(E)|=1.71e-05 (=3.86e-04/2.25e+01) 6 steps mem=33.5(Mb) cpu=8.38e+00(s)
+>>> t=2.00e-02 dt=3.3e-03 max errors:[1.90e-06,6.02e-06,4.21e-06,], max (u):[3.58e+00,1.79e+00,2.00e+00,] (6 steps)
+>>> Cgmx:FD: t=3.00e-02 dt=3.3e-03 TS=ME ad4=1.00 |div(E)|/|grad(E)|=2.43e-05 (=5.46e-04/2.25e+01) 9 steps mem=33.6(Mb) cpu=9.40e+00(s)
+>>> t=3.00e-02 dt=3.3e-03 max errors:[3.99e-06,1.06e-05,8.90e-06,], max (u):[3.58e+00,1.79e+00,2.00e+00,] (9 steps)
+>>> Cgmx:FD: t=4.00e-02 dt=3.3e-03 TS=ME ad4=1.00 |div(E)|/|grad(E)|=3.14e-05 (=7.06e-04/2.25e+01) 12 steps mem=33.6(Mb) cpu=1.02e+01(s)
+>>> t=4.00e-02 dt=3.3e-03 max errors:[7.67e-06,1.63e-05,1.52e-05,], max (u):[3.58e+00,1.79e+00,2.00e+00,] (12 steps)
+
+Order=2
+cgmx interface -g=twoSquaresInterfacee8.order2 -eps2=.25 -kx=2 -ky=1 -tp=.01 -ic=pmic -diss=1. -bc=d 
+
+---NO IMPEDANCE : ORDER=2 ---
+>>> Cgmx:FD: t=1.00e-02 dt=3.3e-03 TS=ME ad2=1.00 |div(E)|/|grad(E)|=1.64e-03 (=3.68e-02/2.25e+01) 3 steps mem=32.6(Mb) cpu=2.66e+00(s)
+>>> t=1.00e-02 dt=3.3e-03 max errors:[4.66e-04,3.22e-04,2.60e-04,], max (u):[3.58e+00,1.79e+00,2.00e+00,] (3 steps)
+>>> Cgmx:FD: t=2.00e-02 dt=3.3e-03 TS=ME ad2=1.00 |div(E)|/|grad(E)|=1.89e-03 (=4.24e-02/2.25e+01) 6 steps mem=33(Mb) cpu=3.89e+00(s)
+>>> t=2.00e-02 dt=3.3e-03 max errors:[1.32e-03,1.07e-03,7.37e-04,], max (u):[3.58e+00,1.79e+00,2.00e+00,] (6 steps)
+
+
+
+******************************
+******** June 26-27, 2016
+
+========== ADD OPTION setDivergenceAtInterfaces ===============
+
+
+ORDER=4 SET DIV(E)=0 at interfaces: OK
+cgmx abcInterface -g=twoSquaresInterfacee8.order4 -eps2=.25 -kx=2 -tp=.05 -rbc=abcEM2 -setDivergenceAtInterfaces=1
+
+
+
+
+SOURCE + INTERFACE + ABC
+cgmx abcInterface -g=twoSquaresInterfacee8.order2 -eps2=.25 -kx=2 -tp=.05 -rbc=abcEM2 -setDivergenceAtInterfaces=1
+
+
+Order=4: 
+cgmx interface -g=twoSquaresInterfacee8.order4 -eps2=.25 -kx=2 -ky=1 -tp=.01 -ic=pmic -diss=1. -bc=d -setDivergenceAtInterfaces=1
+
+
+Order=2
+cgmx interface -g=twoSquaresInterfacee8.order2 -eps2=.25 -kx=2 -ky=1 -tp=.01 -ic=pmic -diss=1. -bc=d -setDivergenceAtInterfaces=1
+
+>>> t=1.00e-02 dt=3.3e-03 max errors:[4.66e-04,3.22e-04,2.60e-04,], max (u):[3.58e+00,1.79e+00,2.00e+00,] (3 steps)
+
+>>> Cgmx:FD: t=1.00e-01 dt=3.8e-03 TS=ME ad2=1.00 |div(E)|/|grad(E)|=5.23e-03 (=1.18e-01/2.25e+01) 26 steps mem=32.6(Mb) cpu=3.47e+02(s)
+>>> t=1.00e-01 dt=3.8e-03 max errors:[8.87e-03,6.60e-03,4.96e-03,], max (u):[3.58e+00,1.79e+00,2.00e+00,] (26 steps)
+
+
+
+
+
+*BUT* FAILS FOR DISS=16
+cgmx abcInterface -g=twoSquaresInterfacee8.order4 -eps2=.25 -diss=16 -tp=.05 -rbc=abcEM2
+
+SOURCE + INTERFACE + ABC -- Looks OK
+cgmx abcInterface -g=twoSquaresInterfacee8.order4 -eps2=.25 -kx=2 -tp=.05 -rbc=abcEM2
+
+JUMP: Test order=4 
+cgmx interface -g=twoSquaresInterfacee8.order4 -eps2=4. -kx=2 -ky=1 -tp=.1 -ic=pmic -diss=1. -bc=d -bc4=abcEM2 -bc8=abcEM2 -bc6=abcEM2
+
+JUMP: Test order=4 STABLE
+cgmx interface -g=twoSquaresInterfacee8.order4 -eps2=.25 -kx=2 -ky=1 -tp=.1 -ic=pmic -diss=1. -bc=d -bc4=abcEM2 -bc8=abcEM2 -bc6=abcEM2
+
+NO-JUMP: Test order=4 
+cgmx interface -g=twoSquaresInterfacee8.order4 -eps2=1. -kx=2 -ky=1 -tp=.1 -ic=pmic -diss=1. -bc=d -bc4=abcEM2 -bc8=abcEM2 -bc6=abcEM2
+
+
+cgmx interface -g=twoSquaresInterfacee8.order2 -eps2=.25 -kx=2 -ky=1 -tp=.1 -ic=pmic -diss=1. -bc=d -bc4=abcEM2 -bc8=abcEM2 -bc6=abcEM2
+
+NO-JUMP : TEST ABCEM2 - OK
+cgmx interface -g=twoSquaresInterfacee8.order2 -eps2=1. -kx=2 -ky=1 -tp=.1 -ic=pmic -diss=1. -bc=d -bc4=abcEM2 -bc8=abcEM2 -bc6=abcEM2
+
+
+
+******************************
+******** Sat June 25, 2016
+
+NOTE: DO NOT USE CARTESIAN VERSIONS OF FOURTH-ORDER INTERFACE -- ITERATIONS ARE NEEDED
+
+TEST ABCEM2
+cgmx interface -g=twoSquaresInterfacee8.order2 -eps2=.25 -kx=2 -ky=1 -tp=.1 -ic=pmic -diss=1. -bc=d -bc4=abcEM2 -bc8=abcEM2
+
+
+OK: diss=1
+cgmx interface -g=twoSquaresInterfacee16.order4 -eps2=.25 -kx=2 -tp=.1 -ic=pmic -diss=1. -bc=d 
+>>> t=1.00e+01 dt=1.9e-03 max errors:[1.27e-06,7.97e-05,2.14e-05,], max (u):[1.27e-06,2.67e+00,1.33e+00,] (5400 steps)
+
+cgmx interface -g=twoNonSquaresInterfacee16.order4 -eps2=.25 -kx=2 -tp=.1 -ic=pmic -bc=d 
+
+
+******************************
+******** Fri June 24, 2016
+
+RE-ORGANIZE MATERIAL INTERFACES -- TWO STAGES
+
+
+
+CHECK TZ FOR HZ--OK NOw, exact
+cgmx tzInterface -g=twoSquaresInterfacee1.order4 -eps2=.25 -tp=.01 -ic=tz -bc=d  -degreex=4 -degreet=4
+
+
+TEST real scattered wave solution
+
+Hz OK -- non-square
+cgmx interface -g=twoNonSquaresInterfacee16.order4 -eps2=.25 -kx=2 -tp=.1 -ic=pmic -bc=d 
+
+*** Hz *trouble
+cgmx interface -g=twoSquaresInterfacee16.order4 -eps2=.25 -kx=2 -tp=.1 -ic=pmic -bc=d 
+
+Hz - OK (nonSquare)
+cgmx interface -g=twoNonSquaresInterfacee4.order2 -eps2=.25 -kx=2 -tp=.1 -ic=pmic -bc=d 
+
+*** Hz *trouble ... ok
+cgmx interface -g=twoSquaresInterfacee4.order2 -eps2=.25 -kx=2 -tp=.1 -ic=pmic -bc=d 
+cgmx interface -g=twoSquaresInterfacee16.order2 -eps2=.25 -kx=2 -tp=.1 -ic=pmic -bc=d 
+
+
+
+
+EXACT: 
+cgmx tzInterface -g=twoNonSquaresInterfacee2.order4 -eps2=.25 -tp=.1 -ic=tz -bc=d  -degreex=4 -degreet=4
+
+EXACT: 
+cgmx tzInterface -g=twoSquaresInterfacee2.order4 -eps2=.25 -tp=.1 -ic=tz -bc=d  -degreex=4 -degreet=4
+
+******************************
+******** Thurs June 22, 2016
+
+RE-ORGANIZE MATERIAL INTERFACES -- TWO STAGES
+
+EXACT:
+cgmx tzInterface -g=twoNonSquaresInterfacee2.order2 -eps2=.25 -tp=.1 -ic=tz -bc=d  -degreex=2 -degreet=2 -debug=3 
+
+EXACT: 
+cgmx tzInterface -g=twoSquaresInterfacee2.order2 -eps2=.25 -tp=.1 -ic=tz -bc=d  -degreex=2 -degreet=2 -debug=3 
+
+******************************
+******** Wed June 22, 2016
+
+TEST TZ + Interface
+cgmx tzInterface -g=twoSquaresInterfacee2.order2 -eps2=.25 -tp=.1 -ic=tz -bc=d  -debug=3 
+
+
+cgmx abcInterface -g=twoSquaresInterfacee2.order2 -eps2=.25 -kx=2 -tp=.05 -rbc=abcEM2 -debug=3
+
+cgmx abcInterface -g=twoSquaresInterfacee2.order4 -eps2=.25 -kx=2 -tp=.05 -rbc=abcEM2
+
+******************************
+******** Tues June 21, 2016
+
+
+NON-SQUARES SOURCE + Interface + ORDER=4
+cgmx abcInterface -g=twoNonSquaresInterfacee4.order4 -eps2=.25 -kx=2 -tp=.05 -rbc=abcEM2
+cgmx abcInterface -g=twoSquaresInterfacee4.order4 -eps2=.25 -kx=2 -tp=.05 -rbc=abcEM2
+
+
+NON-SQUARES SOURCE + Interface + ORDER=2
+cgmx abcInterface -g=twoNonSquaresInterfacee8.order2 -eps2=.25 -kx=2 -tp=.05 -rbc=abcEM2
+
+cgmx abcInterface -g=twoSquaresInterfacee8.order2 -eps2=.25 -kx=2 -tp=.05 -rbc=abcEM2
+
+SOURCE + Interface + order4 *starts to work*
+cgmx abcInterface -g=twoSquaresInterfacee8.order4 -eps2=.25 -kx=2 -tp=.05 -rbc=abcEM2
+
+
+******************************
+******** Mon June 20, 2016
+
+
+ TEST ABC + TZ  **3D**
+cgmx tzInterface -g=box8.order2 -tp=.001 -ic=tz -bc=d -bc1=abcEM2 -bc2=abcEM2 -bc3=abcEM2 -bc4=abcEM2 -bc5=abcEM2 -bc6=abcEM2 -degreex=2 -degreet=1
+
+
+SOURCE + Interface + order4 *this is not working yet*
+cgmx abcInterface -g=twoSquaresInterfacee8.order4 -eps2=.25 -kx=2 -tp=.05 -rbc=abcEM2
+
+SOURCE + Interface *this sort of works*
+cgmx abcInterface -g=twoSquaresInterfacee8.order2 -eps2=.25 -kx=2 -tp=.05 -rbc=abcEM2
+
+
+******************************
+******** Sat/Sun June 18-19, 2016
+
+**** ADD ABC-EM + TZ *******
+
+SOURCE + Interface 
+cgmx abcInterface -g=twoSquaresInterfacee8.order2 -eps2=.25 -kx=2 -tp=.1 -rbc=abcEM2
+
+---- TZ + INTERFACE + ABC
+cgmx tzInterface -g=twoSquaresInterfacee1.order2 -eps2=1. -tp=.01 -ic=tz -bc=d -bc4=abcEM2 [exact
+
+cgmx tzInterface -g=twoSquaresInterfacee1.order2 -eps2=1. -tp=.01 -ic=tz -bc=d -bc4=abcEM2 -degreex=1 -degreet=1
+
+====
+ TEST ABC + TZ 
+cgmx tzInterface -g=square8.order2 -tp=.001 -ic=tz -bc=d -bc1=abcEM2 -bc2=abcEM2 -bc3=abcEM2 -bc4=abcEM2 -degreex=2 -degreet=1
+
+
+******************************
+******** Fri June 17, 2016
+
+WE NEED TZ for INTERFACE + ABC
+
+
+==== TEST ABC + TZ 
+cgmx tzInterface -g=square8.order2 -tp=.001 -ic=tz -bc=d -bc1=abcEM2 -bc2=abcEM2 -bc3=abcEM2 -bc4=abcEM2 -degreex=2 -degreet=2
+
+
+cgmx tzInterface -g=square8.order2 -tp=.01 -ic=tz -bc=d -bc1=abcEM2 
+
+---- TZ + INTERFACE + ABC
+cgmx tzInterface -g=twoSquaresInterfacee2.order2 -eps2=.25 -tp=.1 -ic=tz -bc=d -bc4=abcEM2 
+
+
+--- TZ + INTERFACE: OK!
+
+cgmx tzInterface -g=twoSquaresInterfacee2.order4 -eps2=.25 -tp=.1 -ic=tz -bc=d -degreex=4 -degreet=4  [EXACT
+
+cgmx tzInterface -g=twoSquaresInterfacee2.order2 -eps2=.25 -tp=.1 -ic=tz -bc=d  [EXACT
+
+
+cgmx abcInterface -g=twoSquaresInterfacee1.order2 -eps2=1. -kx=2 -tp=.1 -rbc=abcEM2
+
+ORDER 2, abcEM2 -- trouble at interface corner in div(E)
+cgmx abcInterface -g=twoSquaresInterfacee1.order2 -eps2=.25 -kx=2 -tp=.1 -rbc=abcEM2
+
+cgmx abcInterface -g=twoSquaresInterfacee2.order2 -eps2=.25 -kx=2 -tp=.1 -rbc=abcEM2
+
+
+******************************
+******** Fri June 10, 2016
+
+ORDER 4, abcEM2 -- trouble at interface corner in div(E)
+cgmx abcInterface -g=twoSquaresInterfacee16.order4 -eps2=.25 -kx=2 -tp=.1 -rbc=abcEM2
+
+ORDER 2, abcEM2 -- trouble at interface corner in div(E)
+cgmx abcInterface -g=twoSquaresInterfacee16.order2 -eps2=.25 -kx=2 -tp=.1 -rbc=abcEM2
+
+
+
+******************************
+******** June 8, 2016
+
+twoSquaresInterfaceGride4.order4.hdf
+
+Many ghost: 
+twoSquaresInterfaceGride4.order4.ng11.hdf
+
+PML: 
+cgmx abcInterface -g=twoSquaresInterfaceGride4.order4.ng11.hdf -eps2=.25 -kx=2 -tp=.1 -pmlWidth=5 -rbc=abcPML
+
+PML: 
+cgmx abcInterface -g=twoSquaresInterfaceGride4.order4.hdf -eps2=.25 -kx=2 -tp=.1 -pmlWidth=5 -rbc=abcPML
+
+
+
+ORDER 4, abcEM2 -- seems OK
+cgmx abcInterface -g=twoSquaresInterfacee16.order4 -eps2=.25 -kx=2 -tp=.1 -rbc=abcEM2
+
+
+PML -- trouble -- PML only implemented for Cartesian grids
+cgmx abcInterface -g=twoSquaresInterfacee16.order2 -eps2=.25 -kx=2 -tp=.1 -rbc=abcPML
+
+abcEM2 -- looks OK:
+cgmx abcInterface -g=twoSquaresInterfacee16.order2 -eps2=.25 -kx=2 -tp=.1 -rbc=abcEM2
+
+ADD source
+cgmx abcInterface -g=twoSquaresInterfacee16.order2 -eps2=.25 -kx=2 -tp=.1 -bc=d
+
+
+cgmx abcInterface -g=twoSquaresInterfacee16.order2 -eps2=.25 -kx=2 -tp=.1 -ic=pmic -bc=d
+
+
+
+
+
 *******************************
 ***** August 15, 2015
 

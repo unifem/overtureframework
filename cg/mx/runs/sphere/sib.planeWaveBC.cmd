@@ -4,7 +4,8 @@
 #   cgmx sib.planeWaveBC
 # Usage:
 #   
-#  cgmx [-noplot] sib.planeWaveBC -g=<name> -tf=<tFinal> -tp=<tPlot> -diss=<> -debug=<num> -cons=[0/1] -go=[run/halt/og]
+#  cgmx [-noplot] sib.planeWaveBC -g=<name> -tf=<tFinal> -tp=<tPlot> -diss=<> -debug=<num> -cons=[0/1] ...
+#                     -ic=[exact|zero] -go=[run/halt/og]
 #
 # Examples:
 #   cgmx sib.planeWaveBC -g=sib1.order4.hdf
@@ -31,14 +32,14 @@
 #================================================================================================
 # 
 $tFinal=10.; $tPlot=.1; $diss=.1; $dissOrder=4; $cfl=.9; $method="NFDTD";
-$grid="sib1.order4.hdf"; $bg="box"; 
+$grid="sib1.order4.hdf"; $bg="box"; $ic="exact"; 
 $radius=.5; 
 $cons=0; $go="halt"; 
 # ----------------------------- get command line arguments ---------------------------------------
 GetOptions( "g=s"=>\$grid,"tf=f"=>\$tFinal,"diss=f"=>\$diss,"tp=f"=>\$tPlot,"show=s"=>\$show,"debug=i"=>\$debug, \
- "cfl=f"=>\$cfl, "bg=s"=>\$backGround,"bcn=s"=>\$bcn,"go=s"=>\$go,"noplot=s"=>\$noplot,"bg=s"=>\$bg,\
+ "cfl=f"=>\$cfl, "bg=s"=>\$backGround,"bcn=s"=>\$bcn,"go=s"=>\$go,"bg=s"=>\$bg,\
   "dtMax=f"=>\$dtMax, "cons=i"=>\$cons,"method=s"=>\$method,"diss=f"=>\$diss,"dissOrder=i"=>\$dissOrder,\
-  "radius=f"=>\$radius );
+  "radius=f"=>\$radius,"ic=s"=>\$ic );
 # -------------------------------------------------------------------------------------------------
 if( $method eq "sosup" ){ $diss=0.; }
 if( $go eq "halt" ){ $go = "break"; }
@@ -54,12 +55,15 @@ $grid
 # 
 $method
 #
-#  Initial condition:
+# -- When we solve for the scattered field directly the PEC boundary conditions are
+#    changed to be inhomogeneous: 
+planeWaveBoundaryForcing
+# ====  Initial condition ====
 # zeroInitialCondition
 # planeWaveInitialCondition
-planeWaveBoundaryForcing
-# ====
-planeWaveScatteredFieldInitialCondition
+# planeWaveScatteredFieldInitialCondition
+if( $ic eq "exact" ){ $cmd="planeWaveScatteredFieldInitialCondition"; }else{ $cmd="zeroInitialCondition"; }
+$cmd
 # ====
 scatteringFromASphereKnownSolution
 #

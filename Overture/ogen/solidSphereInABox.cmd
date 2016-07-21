@@ -83,7 +83,7 @@ $sphereRadius=1.; $radiusDir=1;
 $xSphere=0.; $ySphere=0.; $zSphere=0.; 
 $gridNames="*"; 
 # 
-include solidSphereInABox.h
+include $ENV{Overture}/sampleGrids/solidSphereInABox.h
 #
 # Here is the box
 #
@@ -106,7 +106,7 @@ $southPoleName="innerSouthPole";
 $sphereShare=100;   # reset this so the inner sphere has the same corresponding share values
 $radiusDir=-1;
 # 
-include solidSphereInABox.h
+include $ENV{Overture}/sampleGrids/solidSphereInABox.h
 #
 # Here is the box
 #

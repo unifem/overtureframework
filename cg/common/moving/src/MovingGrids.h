@@ -224,7 +224,7 @@ int userDefinedGridAccelerationBC(const int & grid,
 int updateUserDefinedMotion(CompositeGrid & cg, GenericGraphicsInterface & gi);
 
 // Write information to the `check file' 
-int writeCheckFile( FILE *file );
+int writeCheckFile( real t, FILE *file );
 
 // Write information about the moving grids
 void writeParameterSummary( FILE *file= stdout );
@@ -270,6 +270,8 @@ real maximumAllowableForce, maximumAllowableTorque;
 
 bool correctionHasConverged;
 real maximumRelativeCorrection;
+
+bool recomputeGridVelocityOnCorrection;
 
 //..Deforming body information
 int numberOfDeformingBodies;

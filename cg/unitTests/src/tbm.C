@@ -290,7 +290,7 @@ getErrors( real t )
       // errMax=uvErr[0];
       //yNorm=uvNorm[0];
       // new way
-      beam.writeCheckFile(checkFile);
+      beam.writeCheckFile(t,checkFile);
       
     }
     else

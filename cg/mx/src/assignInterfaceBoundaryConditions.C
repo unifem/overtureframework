@@ -336,11 +336,19 @@ initializeInterfaces()
 
 
 void Maxwell::
-assignInterfaceBoundaryConditions( int current, real t, real dt )
+assignInterfaceBoundaryConditions( int current, real t, real dt, 
+                                                                      bool assignInterfaceValues,
+                                                                      bool assignInterfaceGhostValues )
 // =====================================================================================================
-//   /Description:
-//      Assign the boundary conditions at the interface between two different materials
-//   Values are assigned on the "next" grid function.
+/// \brief Assign the boundary conditions at the interface between two different materials
+///
+/// \param current (input) : current solution index, values are assigned on the "next" grid function.
+/// \param t (input) : new time
+/// \param dt (input) : current time-step
+/// \param assignInterfaceValues (input) : if true, assign values on the interface itself to satisfy the
+//                 jump conditions (this step is usually done as a first stage before assigning ghost values).
+/// \param assignInterfaceGhostValues (input) : if true, assign host values next to the interface (this step
+//     is usually done as a second stage, after assigning interface values). 
 // =====================================================================================================
 {
     if( !gridHasMaterialInterfaces ) return;
@@ -358,7 +366,7 @@ assignInterfaceBoundaryConditions( int current, real t, real dt )
         if( interfaceInfo.size()==0 )
             gridHasMaterialInterfaces=false;  // there are no material interfaces *wdh* 090425
     }
-    
+                		    
 
 //FILE *debugFile2 = debugFile;
 
@@ -378,6 +386,7 @@ assignInterfaceBoundaryConditions( int current, real t, real dt )
     bool interpolateThisDomain=false;  // set to true if we need to interpolate again after setting the interface values
     
     bool reduceOrderOfAccuracyForSosup=true;
+
 
     int bcOrderOfAccuracy=orderOfAccuracyInSpace;
     if( reduceOrderOfAccuracyForSosup && method==sosup && orderOfAccuracyInSpace==6 )
@@ -416,7 +425,6 @@ assignInterfaceBoundaryConditions( int current, real t, real dt )
         getBoundaryIndex(mg1.gridIndexRange(),side1,dir1,I1,I2,I3,extra);
         getBoundaryIndex(mg2.gridIndexRange(),side2,dir2,J1,J2,J3,extra);
     
-
     // check that the number of points in the tangential directions match -- eventually we will fix this
         for( int dir=1; dir<mg1.numberOfDimensions(); dir++ )
         {
@@ -444,26 +452,21 @@ assignInterfaceBoundaryConditions( int current, real t, real dt )
             {
       	interpolateThisDomain=true;
             }
-//       #ifdef USE_PPP
-//       if( bc1(0,dir1p)<0 || bc2(0,dir2p)<0 )
-//       {
-//         // the fortran interface routines do their own periodic update which will not work in parallel
-// 	printF("Cgmx::applyInterfaceBC:ERROR: The interface grid is periodic -- the interface routines\n"
-//                "  need to be fixed for this case in parallel.\n");
-// 	OV_ABORT("error");  // this prints the file and line number and calls Overture::abort. 
-//       }
-//       #endif
-        }
+        } // end for dir 
     
+
         intArray & mask1 = mg1.mask();
         intArray & mask2 = mg2.mask();
-        #ifdef USE_PPP
-          intSerialArray mask1Local; getLocalArrayWithGhostBoundaries(mask1,mask1Local);
-          intSerialArray mask2Local; getLocalArrayWithGhostBoundaries(mask2,mask2Local);
-        #else
-          intSerialArray & mask1Local = mask1;
-          intSerialArray & mask2Local = mask2;
-        #endif
+        OV_GET_SERIAL_ARRAY(int,mask1,mask1Local);
+        OV_GET_SERIAL_ARRAY(int,mask2,mask2Local);
+
+    // #ifdef USE_PPP
+    //  intSerialArray mask1Local; getLocalArrayWithGhostBoundaries(mask1,mask1Local);
+    //  intSerialArray mask2Local; getLocalArrayWithGhostBoundaries(mask2,mask2Local);
+    // #else
+    //  intSerialArray & mask1Local = mask1;
+    //  intSerialArray & mask2Local = mask2;
+    // #endif
 
         bool isRectangular1= mg1.isRectangular();
         real dx1[3]={0.,0.,0.}; //
@@ -475,10 +478,32 @@ assignInterfaceBoundaryConditions( int current, real t, real dt )
         if( isRectangular2 )
             mg2.getDeltaX(dx2);
 
-        if( true )
-        { // for testing -- make rectangular grids look curvilinear ***************************************
+
+        if( orderOfAccuracyInSpace >=4 && useNewInterfaceRoutines )
+        { 
+      // WARNING: Do not use the fourth-order rectangular grid interface conditions in interface3d.bf 
+      //   since these require iterations which have not been implemented
+
+            if( numberOfDimensions==3 && interfaceEquationsOption==0 && ( !isRectangular1 || !isRectangular2) )
+            {
+      	printF("--MX--assignInterface:WARNING: interfaceEquationsOption=0 is NOT recommended"
+                              " for order=4 in 3D (curvilinear)!! Use new routines: interfaceEquationsOption=1.\n");
+                if( numberOfIterationsForInterfaceBC !=1 ) 
+      	{
+        	  printF("--MX--assignInterface: ERROR numberOfIterationsForInterfaceBC=%i should be 1"
+             		 " for interfaceEquationsOption=0 (3D, order=4)\n",numberOfIterationsForInterfaceBC);
+                    printf("This is a fatal error to make sure that you really wanted to use interfaceEquationsOption=0 \n");
+        	  OV_ABORT("error");
+      	}
+      	
+            }
+
+            if( (isRectangular1 || isRectangular2) && t<= 1.5*dt  )
+      	printF("--MX-- assignInterfaceBC: INFO - using curvilinear version since iterations are required.\n");
+            
             isRectangular1=false;
             isRectangular2=false;
+
         }
         if( !isRectangular1 )
         {
@@ -780,55 +805,6 @@ assignInterfaceBoundaryConditions( int current, real t, real dt )
         #endif
 
         int ierr=0;
-//     int ipar[]={ //
-//       side1, dir1, grid1,
-//       n1a,n1b,n2a,n2b,n3a,n3b,
-//       side2, dir2, grid2,
-//       m1a,m1b,m2a,m2b,m3a,m3b,
-//       gridType,            
-//       orderOfAccuracyInSpace,    
-//       orderOfExtrapolation,
-//       useForcing,          
-//       ex,                  
-//       ey,                  
-//       ez,                  
-//       hx ,                 
-//       hy,                  
-//       hz,                  
-//       (int)solveForElectricField,          
-//       (int)solveForMagneticField,          
-//       useWhereMask,       
-//       debug,
-//       numberOfIterationsForInterfaceBC,
-//       materialInterfaceOption,
-//       (int)interface.initialized
-//     };
-              		  
-//     real rpar[]={ //
-//       dx1[0],
-//       dx1[1],
-//       dx1[2],
-//       mg1.gridSpacing(0),
-//       mg1.gridSpacing(1),
-//       mg1.gridSpacing(2),
-//       dx2[0],
-//       dx2[1],
-//       dx2[2],
-//       mg2.gridSpacing(0),
-//       mg2.gridSpacing(1),
-//       mg2.gridSpacing(2),
-//       t,    
-//       (real &)tz,  // twilight zone pointer
-//       dt,    
-//       epsGrid(grid1),
-//       muGrid(grid1),   
-//       cGrid(grid1),    
-//       epsGrid(grid2),  
-//       muGrid(grid2),   
-//       cGrid(grid2),
-//       omegaForInterfaceIteration
-//     };
-              		  
 
         if( bcOrderOfAccuracy<6 )
         { 
@@ -869,7 +845,12 @@ assignInterfaceBoundaryConditions( int current, real t, real dt )
                         myid,
                         parallel,
                         (int)forcingOption,
-                        interfaceEquationsOption
+                        interfaceEquationsOption,
+                        (int)assignInterfaceValues,
+                        (int)assignInterfaceGhostValues,
+                        dbase.get<int>("setDivergenceAtInterfaces"),
+                        dbase.get<int>("useImpedanceInterfaceProjection"),
+                        0   // numberOfInterfaceIterationsUsed : returned value ipar[43]
                     };
                 real rpar[]={ //
                     dx1[0],
@@ -893,7 +874,9 @@ assignInterfaceBoundaryConditions( int current, real t, real dt )
                     epsGrid(grid2),  
                     muGrid(grid2),   
                     cGrid(grid2),
-                    omegaForInterfaceIteration
+                    omegaForInterfaceIteration,
+                    0., // return value averageInterfaceConvergenceRate
+                    0.  // return value maxFinalResidual
                 };
         // work space: 
                 real *rwk=interface.rwk;
@@ -925,6 +908,7 @@ assignInterfaceBoundaryConditions( int current, real t, real dt )
                 }
                 if( mg1.numberOfDimensions()==2 && !useNewInterfaceRoutines )
                 {
+          // OLD interface routines
                     interfaceMaxwell( mg1.numberOfDimensions(), 
                                   		      u1Local.getBase(0),u1Local.getBound(0),
                                   		      u1Local.getBase(1),u1Local.getBound(1),
@@ -943,6 +927,7 @@ assignInterfaceBoundaryConditions( int current, real t, real dt )
                 }
                 else
                 {
+          // new interface routines -- 2D versions are done here too
                     interface3dMaxwell( mg1.numberOfDimensions(), 
                                     		        u1Local.getBase(0),u1Local.getBound(0),
                                     		        u1Local.getBase(1),u1Local.getBound(1),
@@ -959,6 +944,12 @@ assignInterfaceBoundaryConditions( int current, real t, real dt )
                                   		      rwk[pa2],rwk[pa4],rwk[pa8], iwk[pipvt2],iwk[pipvt4],iwk[pipvt8],
                                   		      ierr );
                 }
+        // sosup solves for E and E.t so we need to divide some counts by 2: 
+                const real numSolvesPerStep = method==sosup ? 2. : 1.;
+                interface.totalInterfaceIterations+=ipar[43]/numSolvesPerStep; // counts total number of interface iterations
+                interface.averageInterfaceConvergenceRate+=rpar[22]/numSolvesPerStep;
+                interface.maxFinalResidual=max(rpar[23],interface.maxFinalResidual);
+                interface.averageFinalResidual+=rpar[23]/numSolvesPerStep;  // keeps sums of residuals 
         	  if( method==sosup )
         	  { // for sosup we assign E.t
                         int ipar[]={ //
@@ -986,7 +977,12 @@ assignInterfaceBoundaryConditions( int current, real t, real dt )
                             myid,
                             parallel,
                             (int)forcingOption,
-                            interfaceEquationsOption
+                            interfaceEquationsOption,
+                            (int)assignInterfaceValues,
+                            (int)assignInterfaceGhostValues,
+                            dbase.get<int>("setDivergenceAtInterfaces"),
+                            dbase.get<int>("useImpedanceInterfaceProjection"),
+                            0   // numberOfInterfaceIterationsUsed : returned value ipar[43]
                         };
                     real rpar[]={ //
                         dx1[0],
@@ -1010,7 +1006,9 @@ assignInterfaceBoundaryConditions( int current, real t, real dt )
                         epsGrid(grid2),  
                         muGrid(grid2),   
                         cGrid(grid2),
-                        omegaForInterfaceIteration
+                        omegaForInterfaceIteration,
+                        0., // return value averageInterfaceConvergenceRate
+                        0.  // return value maxFinalResidual
                     };
           // work space: 
                     real *rwk=interface.rwk;
@@ -1042,6 +1040,7 @@ assignInterfaceBoundaryConditions( int current, real t, real dt )
                     }
                     if( mg1.numberOfDimensions()==2 && !useNewInterfaceRoutines )
                     {
+            // OLD interface routines
                         interfaceMaxwell( mg1.numberOfDimensions(), 
                                       		      u1Local.getBase(0),u1Local.getBound(0),
                                       		      u1Local.getBase(1),u1Local.getBound(1),
@@ -1060,6 +1059,7 @@ assignInterfaceBoundaryConditions( int current, real t, real dt )
                     }
                     else
                     {
+            // new interface routines -- 2D versions are done here too
                         interface3dMaxwell( mg1.numberOfDimensions(), 
                                         		        u1Local.getBase(0),u1Local.getBound(0),
                                         		        u1Local.getBase(1),u1Local.getBound(1),
@@ -1076,6 +1076,12 @@ assignInterfaceBoundaryConditions( int current, real t, real dt )
                                       		      rwk[pa2],rwk[pa4],rwk[pa8], iwk[pipvt2],iwk[pipvt4],iwk[pipvt8],
                                       		      ierr );
                     }
+          // sosup solves for E and E.t so we need to divide some counts by 2: 
+                    const real numSolvesPerStep = method==sosup ? 2. : 1.;
+                    interface.totalInterfaceIterations+=ipar[43]/numSolvesPerStep; // counts total number of interface iterations
+                    interface.averageInterfaceConvergenceRate+=rpar[22]/numSolvesPerStep;
+                    interface.maxFinalResidual=max(rpar[23],interface.maxFinalResidual);
+                    interface.averageFinalResidual+=rpar[23]/numSolvesPerStep;  // keeps sums of residuals 
         	  }
         	  if( debug & 16 )
                         ::display(u1Local,sPrintF("u1Local after assignOptInterface t=%8.2e",t),pDebugFile,"%5.2f ");
@@ -1108,7 +1114,12 @@ assignInterfaceBoundaryConditions( int current, real t, real dt )
                         myid,
                         parallel,
                         (int)forcingOption,
-                        interfaceEquationsOption
+                        interfaceEquationsOption,
+                        (int)assignInterfaceValues,
+                        (int)assignInterfaceGhostValues,
+                        dbase.get<int>("setDivergenceAtInterfaces"),
+                        dbase.get<int>("useImpedanceInterfaceProjection"),
+                        0   // numberOfInterfaceIterationsUsed : returned value ipar[43]
                     };
                 real rpar[]={ //
                     dx1[0],
@@ -1132,7 +1143,9 @@ assignInterfaceBoundaryConditions( int current, real t, real dt )
                     epsGrid(grid2),  
                     muGrid(grid2),   
                     cGrid(grid2),
-                    omegaForInterfaceIteration
+                    omegaForInterfaceIteration,
+                    0., // return value averageInterfaceConvergenceRate
+                    0.  // return value maxFinalResidual
                 };
         // work space: 
                 real *rwk=interface.rwk;
@@ -1164,6 +1177,7 @@ assignInterfaceBoundaryConditions( int current, real t, real dt )
                 }
                 if( mg1.numberOfDimensions()==2 && !useNewInterfaceRoutines )
                 {
+          // OLD interface routines
                     interfaceMaxwell( mg1.numberOfDimensions(), 
                                   		      u1bLocal.getBase(0),u1bLocal.getBound(0),
                                   		      u1bLocal.getBase(1),u1bLocal.getBound(1),
@@ -1182,6 +1196,7 @@ assignInterfaceBoundaryConditions( int current, real t, real dt )
                 }
                 else
                 {
+          // new interface routines -- 2D versions are done here too
                     interface3dMaxwell( mg1.numberOfDimensions(), 
                                     		        u1bLocal.getBase(0),u1bLocal.getBound(0),
                                     		        u1bLocal.getBase(1),u1bLocal.getBound(1),
@@ -1198,6 +1213,12 @@ assignInterfaceBoundaryConditions( int current, real t, real dt )
                                   		      rwk[pa2],rwk[pa4],rwk[pa8], iwk[pipvt2],iwk[pipvt4],iwk[pipvt8],
                                   		      ierr );
                 }
+        // sosup solves for E and E.t so we need to divide some counts by 2: 
+                const real numSolvesPerStep = method==sosup ? 2. : 1.;
+                interface.totalInterfaceIterations+=ipar[43]/numSolvesPerStep; // counts total number of interface iterations
+                interface.averageInterfaceConvergenceRate+=rpar[22]/numSolvesPerStep;
+                interface.maxFinalResidual=max(rpar[23],interface.maxFinalResidual);
+                interface.averageFinalResidual+=rpar[23]/numSolvesPerStep;  // keeps sums of residuals 
         	  if( method==sosup )
         	  { // for sosup we assign E.t
                         int ipar[]={ //
@@ -1225,7 +1246,12 @@ assignInterfaceBoundaryConditions( int current, real t, real dt )
                             myid,
                             parallel,
                             (int)forcingOption,
-                            interfaceEquationsOption
+                            interfaceEquationsOption,
+                            (int)assignInterfaceValues,
+                            (int)assignInterfaceGhostValues,
+                            dbase.get<int>("setDivergenceAtInterfaces"),
+                            dbase.get<int>("useImpedanceInterfaceProjection"),
+                            0   // numberOfInterfaceIterationsUsed : returned value ipar[43]
                         };
                     real rpar[]={ //
                         dx1[0],
@@ -1249,7 +1275,9 @@ assignInterfaceBoundaryConditions( int current, real t, real dt )
                         epsGrid(grid2),  
                         muGrid(grid2),   
                         cGrid(grid2),
-                        omegaForInterfaceIteration
+                        omegaForInterfaceIteration,
+                        0., // return value averageInterfaceConvergenceRate
+                        0.  // return value maxFinalResidual
                     };
           // work space: 
                     real *rwk=interface.rwk;
@@ -1281,6 +1309,7 @@ assignInterfaceBoundaryConditions( int current, real t, real dt )
                     }
                     if( mg1.numberOfDimensions()==2 && !useNewInterfaceRoutines )
                     {
+            // OLD interface routines
                         interfaceMaxwell( mg1.numberOfDimensions(), 
                                       		      u1bLocal.getBase(0),u1bLocal.getBound(0),
                                       		      u1bLocal.getBase(1),u1bLocal.getBound(1),
@@ -1299,6 +1328,7 @@ assignInterfaceBoundaryConditions( int current, real t, real dt )
                     }
                     else
                     {
+            // new interface routines -- 2D versions are done here too
                         interface3dMaxwell( mg1.numberOfDimensions(), 
                                         		        u1bLocal.getBase(0),u1bLocal.getBound(0),
                                         		        u1bLocal.getBase(1),u1bLocal.getBound(1),
@@ -1315,6 +1345,12 @@ assignInterfaceBoundaryConditions( int current, real t, real dt )
                                       		      rwk[pa2],rwk[pa4],rwk[pa8], iwk[pipvt2],iwk[pipvt4],iwk[pipvt8],
                                       		      ierr );
                     }
+          // sosup solves for E and E.t so we need to divide some counts by 2: 
+                    const real numSolvesPerStep = method==sosup ? 2. : 1.;
+                    interface.totalInterfaceIterations+=ipar[43]/numSolvesPerStep; // counts total number of interface iterations
+                    interface.averageInterfaceConvergenceRate+=rpar[22]/numSolvesPerStep;
+                    interface.maxFinalResidual=max(rpar[23],interface.maxFinalResidual);
+                    interface.averageFinalResidual+=rpar[23]/numSolvesPerStep;  // keeps sums of residuals 
         	  }
         	  if( debug & 16 )
                         ::display(u1Local,sPrintF("u2Local after assignOptInterface t=%8.2e",t),pDebugFile,"%5.2f ");
@@ -1346,7 +1382,12 @@ assignInterfaceBoundaryConditions( int current, real t, real dt )
                         myid,
                         parallel,
                         (int)forcingOption,
-                        interfaceEquationsOption
+                        interfaceEquationsOption,
+                        (int)assignInterfaceValues,
+                        (int)assignInterfaceGhostValues,
+                        dbase.get<int>("setDivergenceAtInterfaces"),
+                        dbase.get<int>("useImpedanceInterfaceProjection"),
+                        0   // numberOfInterfaceIterationsUsed : returned value ipar[43]
                     };
                 real rpar[]={ //
                     dx1[0],
@@ -1370,7 +1411,9 @@ assignInterfaceBoundaryConditions( int current, real t, real dt )
                     epsGrid(grid2),  
                     muGrid(grid2),   
                     cGrid(grid2),
-                    omegaForInterfaceIteration
+                    omegaForInterfaceIteration,
+                    0., // return value averageInterfaceConvergenceRate
+                    0.  // return value maxFinalResidual
                 };
         // work space: 
                 real *rwk=interface.rwk;
@@ -1402,6 +1445,7 @@ assignInterfaceBoundaryConditions( int current, real t, real dt )
                 }
                 if( mg1.numberOfDimensions()==2 && !useNewInterfaceRoutines )
                 {
+          // OLD interface routines
                     interfaceMaxwell( mg1.numberOfDimensions(), 
                                   		      u1Local.getBase(0),u1Local.getBound(0),
                                   		      u1Local.getBase(1),u1Local.getBound(1),
@@ -1417,6 +1461,7 @@ assignInterfaceBoundaryConditions( int current, real t, real dt )
                 }
                 else
                 {
+          // new interface routines -- 2D versions are done here too
                     interface3dMaxwell( mg1.numberOfDimensions(), 
                                     		        u1Local.getBase(0),u1Local.getBound(0),
                                     		        u1Local.getBase(1),u1Local.getBound(1),
@@ -1430,6 +1475,12 @@ assignInterfaceBoundaryConditions( int current, real t, real dt )
                                   		      rwk[pa2],rwk[pa4],rwk[pa8], iwk[pipvt2],iwk[pipvt4],iwk[pipvt8],
                                   		      ierr );
                 }
+        // sosup solves for E and E.t so we need to divide some counts by 2: 
+                const real numSolvesPerStep = method==sosup ? 2. : 1.;
+                interface.totalInterfaceIterations+=ipar[43]/numSolvesPerStep; // counts total number of interface iterations
+                interface.averageInterfaceConvergenceRate+=rpar[22]/numSolvesPerStep;
+                interface.maxFinalResidual=max(rpar[23],interface.maxFinalResidual);
+                interface.averageFinalResidual+=rpar[23]/numSolvesPerStep;  // keeps sums of residuals 
                 if( method==sosup )
       	{ // for sosup we assign E.t
           // printF("Assign interface values for sosup: E.t at t=%9.3e\n",t);
@@ -1458,7 +1509,12 @@ assignInterfaceBoundaryConditions( int current, real t, real dt )
                             myid,
                             parallel,
                             (int)forcingOption,
-                            interfaceEquationsOption
+                            interfaceEquationsOption,
+                            (int)assignInterfaceValues,
+                            (int)assignInterfaceGhostValues,
+                            dbase.get<int>("setDivergenceAtInterfaces"),
+                            dbase.get<int>("useImpedanceInterfaceProjection"),
+                            0   // numberOfInterfaceIterationsUsed : returned value ipar[43]
                         };
                     real rpar[]={ //
                         dx1[0],
@@ -1482,7 +1538,9 @@ assignInterfaceBoundaryConditions( int current, real t, real dt )
                         epsGrid(grid2),  
                         muGrid(grid2),   
                         cGrid(grid2),
-                        omegaForInterfaceIteration
+                        omegaForInterfaceIteration,
+                        0., // return value averageInterfaceConvergenceRate
+                        0.  // return value maxFinalResidual
                     };
           // work space: 
                     real *rwk=interface.rwk;
@@ -1514,6 +1572,7 @@ assignInterfaceBoundaryConditions( int current, real t, real dt )
                     }
                     if( mg1.numberOfDimensions()==2 && !useNewInterfaceRoutines )
                     {
+            // OLD interface routines
                         interfaceMaxwell( mg1.numberOfDimensions(), 
                                       		      u1Local.getBase(0),u1Local.getBound(0),
                                       		      u1Local.getBase(1),u1Local.getBound(1),
@@ -1529,6 +1588,7 @@ assignInterfaceBoundaryConditions( int current, real t, real dt )
                     }
                     else
                     {
+            // new interface routines -- 2D versions are done here too
                         interface3dMaxwell( mg1.numberOfDimensions(), 
                                         		        u1Local.getBase(0),u1Local.getBound(0),
                                         		        u1Local.getBase(1),u1Local.getBound(1),
@@ -1542,6 +1602,12 @@ assignInterfaceBoundaryConditions( int current, real t, real dt )
                                       		      rwk[pa2],rwk[pa4],rwk[pa8], iwk[pipvt2],iwk[pipvt4],iwk[pipvt8],
                                       		      ierr );
                     }
+          // sosup solves for E and E.t so we need to divide some counts by 2: 
+                    const real numSolvesPerStep = method==sosup ? 2. : 1.;
+                    interface.totalInterfaceIterations+=ipar[43]/numSolvesPerStep; // counts total number of interface iterations
+                    interface.averageInterfaceConvergenceRate+=rpar[22]/numSolvesPerStep;
+                    interface.maxFinalResidual=max(rpar[23],interface.maxFinalResidual);
+                    interface.averageFinalResidual+=rpar[23]/numSolvesPerStep;  // keeps sums of residuals 
       	}
       	
             #endif
@@ -1582,7 +1648,12 @@ assignInterfaceBoundaryConditions( int current, real t, real dt )
                     myid,
                     parallel,
                     (int)forcingOption,
-                    interfaceEquationsOption
+                    interfaceEquationsOption,
+                    (int)assignInterfaceValues,
+                    (int)assignInterfaceGhostValues,
+                    dbase.get<int>("setDivergenceAtInterfaces"),
+                    dbase.get<int>("useImpedanceInterfaceProjection"),
+                    0   // numberOfInterfaceIterationsUsed : returned value ipar[43]
                 };
             real rpar[]={ //
                 dx1[0],
@@ -1606,7 +1677,9 @@ assignInterfaceBoundaryConditions( int current, real t, real dt )
                 epsGrid(grid2),  
                 muGrid(grid2),   
                 cGrid(grid2),
-                omegaForInterfaceIteration
+                omegaForInterfaceIteration,
+                0., // return value averageInterfaceConvergenceRate
+                0.  // return value maxFinalResidual
             };
 
             newInterfaceMaxwell( mg1.numberOfDimensions(), 
@@ -1622,7 +1695,9 @@ assignInterfaceBoundaryConditions( int current, real t, real dt )
 
         }
               		  
-        interface.initialized=true;
+    // wait to set initialized=true until ghost values have been assigned the first time : 
+        if( assignInterfaceGhostValues )
+            interface.initialized=true;
         
     // In some cases we have an optimized periodic update implemented
         bool updatePeriodic = mg1.numberOfDimensions()==3; 
@@ -1714,7 +1789,7 @@ assignInterfaceBoundaryConditions( int current, real t, real dt )
     } // end for inter
     
 
-  // This code is partially dupliated from assignBoundaryConditions.bC 
+  // This code is partially duplicated from assignBoundaryConditions.bC 
     if( method==sosup )
     {
     // Extrapolate an extra ghost line for the wider upwind stencil in SOSUP
@@ -1726,6 +1801,8 @@ assignInterfaceBoundaryConditions( int current, real t, real dt )
     // first ghost line for sosup stencil: 
     //     ghostStart=2 for order=2
     //     ghostStart=3 for order>2   *fix me* when 6'th order BC's are implemented
+
+    // NORMAL: fourth-order: ghostStart=3 and ghostEnd=3 
         assert( !reduceOrderOfAccuracyForSosup || bcOrderOfAccuracy<=4 );
         int ghostStart= min(3,ghostEnd);              
         if( !reduceOrderOfAccuracyForSosup )
@@ -1746,8 +1823,8 @@ assignInterfaceBoundaryConditions( int current, real t, real dt )
             {
       	extrapParams.ghostLineToAssign=ghost;
       	if( debug & 4 )
-      	printF("assignInterface: sosup: extrap ghost-line %i to order %i\n",
-             	       extrapParams.ghostLineToAssign,extrapParams.orderOfExtrapolation);
+        	  printF("assignInterface: sosup: extrap ghost-line %i to order %i\n",
+             		 extrapParams.ghostLineToAssign,extrapParams.orderOfExtrapolation);
 
       	for( int axis=0; axis<mg.numberOfDimensions(); axis++ )
         	  for( int side=0; side<=1; side++ )

@@ -265,16 +265,40 @@ $grid
     # ramped velocity:
     #
     if( $bcOption eq "rampedVelocity" ){ \
-      $cmd="$channelName=noSlipWall\n" . \
-           "$channelName(0,1)=outflow , pressure(1.*p+0.*p.n=0.)\n" . \
-           "$channelName(1,1)=inflowWithVelocityGiven, parabolic(d=.2,p=1,v=$inflowVelocity), userDefinedBoundaryData\n" . \
+      $cmd="bcNumber3=outflow , pressure(1.*p+0.*p.n=0.)\n" . \
+           "bcNumber4=inflowWithVelocityGiven, parabolic(d=.2,p=1,v=$inflowVelocity), userDefinedBoundaryData\n" . \
            "time function option\n" . \
            " ramp function\n" . \
            "   ramp end values: 0,1 (start,end)\n". \
            "   ramp times: $taGravity,$tbGravity (start,end)\n" .\
            "   ramp order: 3\n" . \
            "  exit\n" . \
-           "done\n" };
+           "done\n"; };
+    #
+    if( $bcOption eq "rampedVelocityThreeSide" ){ \
+      $cmd="bcNumber3=outflow , pressure(1.*p+0.*p.n=0.)\n" . \
+           "bcNumber4=inflowWithVelocityGiven, parabolic(d=.2,p=1,v=$inflowVelocity), userDefinedBoundaryData\n" . \
+           "time function option\n" . \
+           " ramp function\n" . \
+           "   ramp end values: 0,1 (start,end)\n". \
+           "   ramp times: $taGravity,$tbGravity (start,end)\n" .\
+           "   ramp order: 3\n" . \
+           "  exit\n" . \
+           "done\n" . \
+           "time function option\n" . \
+           " ramp function\n" . \
+           "   ramp end values: 0,1 (start,end)\n". \
+           "   ramp times: $taGravity,$tbGravity (start,end)\n" .\
+           "   ramp order: 3\n" . \
+           "  exit\n" . \
+           "done\n" .  \
+           "time function option\n" . \
+           " ramp function\n" . \
+           "   ramp end values: 0,1 (start,end)\n". \
+           "   ramp times: $taGravity,$tbGravity (start,end)\n" .\
+           "   ramp order: 3\n" . \
+           "  exit\n" . \
+           "done\n"; };
     #
     $cmd 
     #

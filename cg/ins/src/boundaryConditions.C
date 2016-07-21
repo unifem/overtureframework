@@ -491,7 +491,9 @@ setPressureConstraintValues( GridFunction & gf0, realCompositeGridFunction & f )
       // ************* TESTING ***************
       // Compute force on body due to viscous stress
       RealArray bodyForceFromViscousStress, bodyTorqueFromViscousStress;
-      includeGravity = false; includeViscosity = true;
+      includeViscosity = true;
+      // includeGravity = false; 
+      includeGravity = true;  // ************* INCLUDE GRAVITY
       movingGrids.getForceOnRigidBodies( bodyForceFromViscousStress,bodyTorqueFromViscousStress, 
                                          gf0,includeGravity,includeViscosity );
       bodyForceFromViscousStress-=bodyForceFromPressure;
@@ -555,7 +557,37 @@ setPressureConstraintValues( GridFunction & gf0, realCompositeGridFunction & f )
 
           body.getAcceleration( t0, vDotPredicted  ); // predicted value for vDot
 
+          // **************** TEMP *********************
+	  //real bodyMass= body.getMass();
+	  //mvDot = bodyMass*vDotPredicted;
+          // ***************************************
+
           body.getAngularAcceleration( t0, omegaDotPredicted  ); // predicted value for omegaDot
+
+	  if( true )
+	  {
+	    printF("\n--INS--setPressConstrnt: t=%12.5e vDotPred=[%12.5e,%12.5e,%12.5e] omegaDotPred=[%12.5e,%12.5e,%12.5e]\n",
+		   t0,vDotPredicted(0),vDotPredicted(1),vDotPredicted(2),
+		   omegaDotPredicted(0),omegaDotPredicted(1),omegaDotPredicted(2));
+
+	    if( false )
+	    {
+	      Index I1,I2,I3;
+	      getIndex(cg[0].gridIndexRange(),I1,I2,I3);
+	      I2=Range(-1,1);
+	      realArray & u = gf0.u[0];
+	      const int uc = parameters.dbase.get<int >("uc");
+	      const int vc = parameters.dbase.get<int >("vc");
+	      ::display(u(I1,I2,I3,uc)," u[I1,-1:1] - solution near inner radius","%8.4f ");
+	      ::display(u(I1,I2,I3,vc)," v[I2,-1:1]","%8.4f ");
+	    }
+	    
+            // printF(" Viscous traction = [%12.5e,%12.5e]\n",bodyForceFromViscousStress(0,b),bodyForceFromViscousStress(1,b));
+            // realArray & u = gf0.u[0];
+            // printF(" u(i1=0,i2=[-1,0,1,2])=[%12.5e,%12.5e,%12.5e,%12.5e]\n",u(0,-1,0,uc),u(0,0,0,uc),u(0,1,0,uc),u(0,2,0,uc));
+	    
+	  }
+	  
 	}
 
         // Extra equations:
@@ -572,7 +604,18 @@ setPressureConstraintValues( GridFunction & gf0, realCompositeGridFunction & f )
           // CHECK ME: numberOfDenseExtraEquations: 
           int ival = totalNumberOfExtraEquations -extraEqn -1 -numberOfDenseExtraEquations;        // equations are stored in reverse order
 	  assert( ival<numberOfExtraEquations );
-	  value[ival] = mvDot(d) - bodyForceFromPressure(d,b);  // *** "+"
+
+	  if( false )
+	  {
+  	    value[ival] = mvDot(d) - bodyForceFromPressure(d,b);  // subtract off INT_B { -p nv } ds 
+	  }
+	  else
+	  {
+	    printF("--INS-SPC-- TESTING... use bodyForceFromViscousStress *CHECK GRAVITY*...\n");
+	    value[ival] =bodyForceFromViscousStress(d,b);  // this should match the above
+	  }
+	  
+
 	  if( useAddedDampingAlgorithm )
 	  {
 	    for( int dir2=0; dir2<3; dir2++ ) // note 3 for dimensions since AD tensor is always 3x3
@@ -584,8 +627,14 @@ setPressureConstraintValues( GridFunction & gf0, realCompositeGridFunction & f )
 	  
 
           if( (gf0.t<3.*dt) || (debug() & 4) )
-	    printF("--INS--setPressureConstraintValues: body=%i, d=%i, m*a=%9.2e, bodyForce: (pressure=%9.2e,viscous=%9.2e), value=%9.3e\n",
+	  {
+	    printF("--INS--setPressureConstraintValues: body=%i, d=%i, m*a=%9.2e, bodyForce: "
+                   "(pressure=%12.4e,viscous=%12.4e), value=%12.5e\n",
 		   b,d,mvDot(d),bodyForceFromPressure(d,b),bodyForceFromViscousStress(d,b),value[ival]);
+            printF(" dt=%9.3e, vDotPredicted=[%14.6e,%14.6e] addedDampingTensors(0,0,v,v)=%10.3e\n",
+		   dt,vDotPredicted(0),vDotPredicted(1),addedDampingTensors(0,0,vbc,vbc));
+
+	  }
 	  
 	}
 	const int numberOfAngularVelocities = numberOfDimensions==2 ? 1 : numberOfDimensions;
@@ -595,7 +644,15 @@ setPressureConstraintValues( GridFunction & gf0, realCompositeGridFunction & f )
           int ival = totalNumberOfExtraEquations -extraEqn -1 -numberOfDenseExtraEquations;        // equations are stored in reverse order
 	  assert( ival<numberOfExtraEquations );
           int dir = numberOfDimensions==2 ? 2 : d;                    // In 2D we use component 2 of the angular acceleration
-	  value[ival] = mOmegaDot(dir) - bodyTorqueFromPressure(dir,b);  
+	  if( false )
+	  {
+     	    value[ival] = mOmegaDot(dir) - bodyTorqueFromPressure(dir,b);  
+	  }
+	  else
+	  {
+	    printF("--INS-SPC-- TESTING... use bodyTorqueFromViscousStress *CHECK GRAVITY*...\n");
+	    value[ival] =bodyTorqueFromViscousStress(dir,b);  // this should match the above
+	  }
 
 	  if( useAddedDampingAlgorithm )
 	  {
@@ -621,7 +678,7 @@ setPressureConstraintValues( GridFunction & gf0, realCompositeGridFunction & f )
 	  }
 	  
 	  if( (gf0.t<3.*dt) || (debug() & 4) )
-	    printF("--INS--setPressureConstraintValues: body=%i, d=%i, A*w_t=%9.3e, bodyTorque (pressure=%9.3e,viscous=%9.3e), value=%9.3e\n",
+	    printF("--INS--setPressureConstraintValues: body=%i, d=%i, A*w_t=%9.3e, bodyTorque (pressure=%12.4e,viscous=%12.4e), value=%12.4e\n",
 		   b,dir,mOmegaDot(dir),bodyTorqueFromPressure(dir,b),bodyTorqueFromViscousStress(dir,b),  value[ival]);
 	}
       } // end for body b
@@ -700,11 +757,11 @@ setPressureConstraintValues( GridFunction & gf0, realCompositeGridFunction & f )
 	RealArray constraintValues;
 	poisson->getExtraEquationValues( constraintValues );
       
-	if( (cgf.t<3.*dt) || (debug() & 4) )
+	if( (cgf.t<5.*dt) || (debug() & 4) )
 	{
 	  for( int i=0; i<numberOfExtraEquations; i++ )
 	  { // NOTE constraintValues are in reverse order
-	    printF("--INS-STI-- After pressure solve: extraEquation: i=%i : constraint value=%12.5e\n",i,
+	    printF("--INS-STI-- t=%10.3e After pres. solve: extraEquation: i=%i : constraint value=%12.5e\n",cgf.t,i,
 		   constraintValues(numberOfExtraEquations-i-1));
 	  }
 	}

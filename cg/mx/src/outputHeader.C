@@ -1,6 +1,7 @@
 #include "Maxwell.h"
 #include "CompositeGridOperators.h"
 #include "Oges.h"
+#include "OgmgParameters.h"
 
 // =======================================================================================
 /// \brief Output the header banner with parameters and grid info.
@@ -32,6 +33,10 @@ outputHeader()
 	    "           Cgmx : Maxwell Solver                    \n"
 	    "           ---------------------                  \n");
 
+    fPrintF(file," tFinal=%f, dt=%9.3e, tPlot=%9.3e cfl=%3.2f adr=%3.2f, adc=%3.2f  \n",
+	    tFinal,deltaT,tPlot,cfl,artificialDissipation,artificialDissipationCurvilinear );
+
+    
     fPrintF(file," Using method %s\n",(const char *)methodName);
 
     if( timeSteppingMethod==modifiedEquationTimeStepping )
@@ -81,6 +86,11 @@ outputHeader()
       fPrintF(file," Project fields to satisfy divergence conditions, projection frequency=%i\n",
               frequencyToProjectFields);
     }
+    else
+    {
+      fPrintF(file," Do not project fields to satisfy divergence conditions\n");
+    }
+    
     
     if( projectFields && poisson!=NULL  )
     {
@@ -138,9 +148,14 @@ outputHeader()
     };
 
     if( initialConditionOption>=0 && initialConditionOption<numberOfInitialConditionNames )
-      fPrintF(file," initialConditionOption = %s\n",(const char*)initialConditionName[initialConditionOption]);
+      fPrintF(file,"\n initialConditionOption = %s\n",(const char*)initialConditionName[initialConditionOption]);
     else
       fPrintF(file," initialConditionOption = %i\n",(const int)initialConditionOption);
+
+    if( projectInitialConditions )
+      fPrintF(file," Project initial conditions to satisfy divergence constraint.\n");
+    else
+      fPrintF(file," Do not project initial conditions to satisfy divergence constraint.\n");
 
     const RealArray & icBox = initialConditionBoundingBox;
     if( (icBox(0,0) <= icBox(1,0)) && ( icBox(0,1) <= icBox(1,1) ) )
@@ -174,10 +189,15 @@ outputHeader()
     fPrintF(file," knownSolutionOption = %s\n",(const char*)knownSolutionName);
     // fPrintF(file," knownSolutionOption = %i\n",(const int)knownSolutionOption);
     
+    const int & setDivergenceAtInterfaces = dbase.get<int>("setDivergenceAtInterfaces");
+    const int & useImpedanceInterfaceProjection = dbase.get<int>("useImpedanceInterfaceProjection");
     fPrintF(file,"\n");
     fPrintF(file," materialInterfaceOption=%i (1=extrap ghost as initial guess)\n",materialInterfaceOption);
-    fPrintF(file," interfaceEquationsOption=%i (0=use extrap for 2nd ghost, 1=use equations for 3D order 4)\n",
+    fPrintF(file," interfaceEquationsOption=%i : 1=use equations for 3D order 4, 0=use extrap for 2nd ghost (old)\n",
             interfaceEquationsOption);
+    fPrintF(file," setDivergenceAtInterfaces = %i (0: set [div(E)]=0,  1: setdiv(E)=0)\n",setDivergenceAtInterfaces);
+    fPrintF(file," useImpedanceInterfaceProjection = %i\n",useImpedanceInterfaceProjection);
+
     fPrintF(file," number of interface interations=%i, omega=%5.2f, use new interface routines=%i \n",numberOfIterationsForInterfaceBC,
 	    omegaForInterfaceIteration,(int)useNewInterfaceRoutines);
 
@@ -202,21 +222,59 @@ outputHeader()
     }
     else
     {  // variableCoefficients
+      fPrintF(file," Material parameters:\n");
       for( int grid=0; grid<cg.numberOfComponentGrids(); grid++ )
       {
-        fPrintF(file," Grid %i : eps=%9.3e mu=%9.3e (name=%s)\n",grid,epsGrid(grid),muGrid(grid),
+        fPrintF(file,"  Grid %i : eps=%9.3e mu=%9.3e (name=%s)\n",grid,epsGrid(grid),muGrid(grid),
                       (const char*)cg[grid].getName());
       }
     }
 
+    fPrintF(file,"\n");
     if( method==sosup )
       fPrintF(file," sosup: orderOfExtrapolationForInterpolationNeighbours=%i (-1 means used orderOfAccuracy+1)\n",
 	      dbase.get<int>("orderOfExtrapolationForInterpolationNeighbours"));
 
-    fPrintF(file," tFinal=%f, dt=%9.3e, tPlot=%9.3e cfl=%3.2f adr=%3.2f, adc=%3.2f  \n",
-	    tFinal,deltaT,tPlot,cfl,artificialDissipation,artificialDissipationCurvilinear );
-
+    // -- output info about the projection Poisson solver 
+    if( poisson )
+    {
+      OgesParameters & params =poisson->parameters;
+      // If we have store initial paramerters separately then here they are: 
+      OgesParameters & poissonParams =poisson->parameters; // pressureSolverParameters
+      fPrintF(file,"\n Projection poisson solver: solver=%s, \n",(const char*)params.getSolverName());
+      if(  poisson->isSolverIterative() )
+      {
+	real rtol,atol;
+	int maximumNumberOfIterations;
+	if( poisson->parameters.getSolverType()!=OgesParameters::multigrid )
+	{
+	  poissonParams.get(OgesParameters::THErelativeTolerance,rtol);
+	  poissonParams.get(OgesParameters::THEabsoluteTolerance,atol);
+	  poissonParams.get(OgesParameters::THEmaximumNumberOfIterations,maximumNumberOfIterations);
+	}
+	else
+	{
+	  OgmgParameters* ogmgPar = poisson->parameters.getOgmgParameters();
+	  assert( ogmgPar!=NULL );
+	  ogmgPar->get(OgmgParameters::THEresidualTolerance,rtol);  // note: residual
+	  ogmgPar->get(OgmgParameters::THEabsoluteTolerance,atol);
+	  ogmgPar->get(OgmgParameters::THEmaximumNumberOfIterations,maximumNumberOfIterations);
+	}
+	fPrintF(file,"                         : rel-tol=%8.2e, abs-tol=%8.2e, max iterations=%i (0=choose default)\n",
+		rtol,atol,maximumNumberOfIterations);
+	if( params.getSolverType()==OgesParameters::multigrid )
+	{ // Here is the MG convergence criteria: 
+          fPrintF(file,"                         : convergence: max-defect < (rel-tol)*L2NormRHS + abs-tol.\n");
+	}
+	
+      }
+    }
+    else
+    {
+      fPrintF(file,"\n There is no poisson solver needed to project the fields.\n");
+    }
     
+
     int maxNameLength=3;
     int grid;
     for( grid=0; grid<cg.numberOfComponentGrids(); grid++ )

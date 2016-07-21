@@ -652,7 +652,7 @@ adjustPressureCoefficients(CompositeGrid & cg0, GridFunction & cgf  )
 	  Amd(2,2)+= dt*adt(2,2,wbc,wbc);
 	}
 	
-	if( (t < 3.*dt) || (debug() & 4) )
+	if( dt==0. || (t < 3.*dt) || (debug() & 4) )
 	{
 	  printF("--AdjustPressureCoefficients : dt=%9.2e, useAddedDampingAlgorithm=%i\n"
 		 "   Mass + dt(Added Damping) body=%i   \n"
@@ -664,6 +664,9 @@ adjustPressureCoefficients(CompositeGrid & cg0, GridFunction & cgf  )
 		 Amd(0,0),Amd(0,1),Amd(0,2),
 		 Amd(1,0),Amd(1,1),Amd(1,2),
 		 Amd(2,0),Amd(2,1),Amd(2,2));
+	  printF("  --APC-- dt=%9.3e, adt(0,0,vbc,vbc)=%12.5e, params.dt=%9.3e\n",dt,adt(0,0,vbc,vbc),
+                  parameters.dbase.get<real >("dt"));
+
 	}
 
 
@@ -819,6 +822,9 @@ adjustPressureCoefficients(CompositeGrid & cg0, GridFunction & cgf  )
 
 	    FOR_3IJD(i1,i2,i3,Ib1,Ib2,Ib3,j1,j2,j3,Ig1,Ig2,Ig3)
 	    {
+              // [i1,i2,i3] = index of point on the boundary
+              // [j1,j2,j3] = index of corresponding host point
+
     	      const int n=0; // component number
               // jeqn : equation number in sparse matrix for boundary pt (i1,i2,i3) on grid 
 	      const int jeqn = pSolver.equationNo( n,i1,i2,i3,grid ); 
@@ -829,11 +835,20 @@ adjustPressureCoefficients(CompositeGrid & cg0, GridFunction & cgf  )
 	      if( vbType==0 )
 	      {
                 // -- for RB linear velocity the coeff of p is the weight*normal
+                //  INCLUDE TERM:    INT_B p \nv 
+
+		if( false && dir==0 )
+		  printF(" --ADPC-- add INT{ p nv}ds term - dir=%i, w(j)=%10.3e [i1,i2]=[%i,%i] [j1,j2]=[%i,%i]\n",
+			 dir,weightsLocal(j1,j2,j3),i1,i2,j1,j2);
+		
+		// Note: surface integral weights are stored in the ghost points of weightsLocal
   	        a(nnz)= - weightsLocal(j1,j2,j3)*normal(i1,i2,i3,dir);  
 	      }
 	      else
 	      {
                 // -- for angular velocity the coeff of p is
+                //  INCLUDE TERM:    INT_B ( rv- xvb) X  (p nv)
+
                 //       - (x-xb) X nv 
 		real rv[3]; // holds x-xb
    	        for( int d=0; d<numberOfDimensions; d++ ){  rv[d]=xLocal(i1,i2,i3,d)-xb(d); } //             
@@ -841,6 +856,14 @@ adjustPressureCoefficients(CompositeGrid & cg0, GridFunction & cgf  )
 		{
                   // This looks correct (from ellipse case)
 		  a(nnz)= - weightsLocal(j1,j2,j3)*(normal(i1,i2,i3,1)*rv[0]-normal(i1,i2,i3,0)*rv[1]);
+
+		  if( fabs(a(nnz))>1.e-12  )
+		  {
+		    // this entry should be zero for a disk:
+		    printF(" --ADPC-- WARNING: t=%1.3e  dir=%i, weight*( nv X (rv-xvb)=%10.3e\n",
+			   t,dir,-a(nnz));
+		  }
+		    
 		}
 		else
 		{

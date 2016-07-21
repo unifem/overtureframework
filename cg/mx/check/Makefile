@@ -34,10 +34,17 @@ square20.order4.ng3.hdf:
 square20.order6.ng4.hdf:
 	$(Overture)/bin/ogen -noplot  $(Overture)/sampleGrids/squareArg -order=6 -nx=20 -numGhost=4
 
+solidSphereInABoxe2.order2.hdf:
+	$(Overture)/bin/ogen -noplot  $(Overture)/sampleGrids/solidSphereInABox -order=2 -interp=e -factor=2
+
+solidSphereInABoxe2.order4.ng3.hdf:
+	$(Overture)/bin/ogen -noplot  $(Overture)/sampleGrids/solidSphereInABox -order=4 -interp=e -numGhost=3 -factor=2
+
 
 # build grids that are used by the regression tests (and not already in Overture/sampleGrids)
 buildGrids: tube1.order4.hdf square16.order4.hdf cici1.order4.hdf box16.order4.hdf innerOuter4.order4.hdf \
-            twoBoxesInterfacee111.order4.hdf square20.order4.ng3.hdf square20.order6.ng4.hdf
+            twoBoxesInterfacee111.order4.hdf square20.order4.ng3.hdf square20.order6.ng4.hdf \
+            solidSphereInABoxe2.order2.hdf solidSphereInABoxe2.order4.ng3.hdf
 	touch buildGrids
 
 

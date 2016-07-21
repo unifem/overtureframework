@@ -61,7 +61,7 @@ $CGBUILDPREFIX=$ENV{CGBUILDPREFIX};
 $cgmx = "$CGBUILDPREFIX/mx/bin/cgmx";  # command for cgmx
 $cmdDir="$ENV{CG}/mx/runs/dielectricCyl"; 
 $tFinal=.5; $tp=.1; $order = "2"; $ng=3;  $kx=1.; $eps1=.25; $eps2=1.; $interp="i"; $fixed=""; $cfl=.9; 
-$diss=.5; $dissOrder=-1; $interit=3; 
+$diss=.5; $dissOrder=-1; $interit=5; 
 $errorNorm=0; $method="NFDTD"; 
 $cyl=0;  # 0=sphere, 1=cylinder
 $alwaysCompute=1;

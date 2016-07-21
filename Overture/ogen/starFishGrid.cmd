@@ -160,7 +160,7 @@ generate an overlapping grid
       $ng $ng $ng $ngp $ng $ng
   exit
 #  display intermediate results
-open graphics
+# open graphics
   compute overlap
 #*  display computed geometry
   exit

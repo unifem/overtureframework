@@ -531,100 +531,6 @@ assignPressureRHS( GridFunction & gf0, realCompositeGridFunction & f )
   //   (2) Rigid body added mass equations. 
     setPressureConstraintValues( gf0,f );
 
-  // {
-  //   // *************** THIS CODE MOVED TO THE ABOVE ROUTINE **************
-  //   // -----START
-
-  //   // --- check values at constraint equations for added-mass rigid body solve
-  //   const bool & useAddedMassAlgorithm = parameters.dbase.get<bool>("useAddedMassAlgorithm");
-  //   if( useAddedMassAlgorithm )
-  //   {
-  //     const int numberOfExtraEquations = poisson->numberOfExtraEquations;
-  //     if( numberOfExtraEquations>1 ) // RBINS AMP scheme will have more than 1 extra equation
-  //     {
-  // 	real *value= new real[numberOfExtraEquations];
-  // 	for( int i=0; i<numberOfExtraEquations; i++ ){ value[i]=0.; }  // NOTE constraintValues are in reverse order
-
-  // 	// RBINS-AMP FINISH ME: 
-  // 	// Compute rigid-body "internal force"  
-  // 	//     mb*a = Fi   (a=linear accleration)
-  // 	//     Mb*b = Ti   (b=angular acceleration)
-  // 	// Compute inviscid force and torque (from pressure only)
-  // 	// Set RHS to contraints:
-  // 	//   mb a - INT ( p nv) ds      =  Fi - Fp
-  // 	//   Mb b - INT ( r X p nv) ds  =  Ti - Tp
-
-
-  // 	poisson->setExtraEquationValues( f,value );
-
-  // 	delete [] value;
-  //     }
-  //   }
-    
-
-  //   if( poisson->getCompatibilityConstraint() )
-  //   { 
-  //     // ---- Set the value of the compatibility equation for the pressure ---
-
-  //     if( debug() & 4 ) 
-  // 	printF("))) assignPressureRHS: set compatibility constraint for singular problem solver=%s (((\n",
-  // 	       (const char*)getName() );
-
-  //     const int & pc = parameters.dbase.get<int >("pc");
-
-  //     real value=0.; // default value
-
-  //     const Parameters::KnownSolutionsEnum & knownSolution = 
-  // 	parameters.dbase.get<Parameters::KnownSolutionsEnum >("knownSolution");
-
-
-  //     if( twilightZoneFlow ||
-  // 	  knownSolution!=InsParameters::noKnownSolution )
-  //     {
-  // 	// For TZ: the RHS for the constraint equation is the dot product of the constraint equation
-  // 	//         with the exact solution
-  // 	Range all;
-  // 	realCompositeGridFunction ue(gf0.cg,all,all,all,Range(pc,pc));
-
-  // 	if( twilightZoneFlow )
-  // 	{
-  // 	  // --- evaluate the TZ solution for the pressure ---
-  // 	  parameters.dbase.get<OGFunction* >("exactSolution")->assignGridFunction(ue,t0);
-  // 	}
-  // 	else if( knownSolution!=InsParameters::noKnownSolution )
-  // 	{
-  // 	  // --- evaluate the known solution so we can set the pressure constraint --- *wdh* 2013/09/28 
-  // 	  realCompositeGridFunction & uKnown = parameters.getKnownSolution(cg,t0);
-  // 	  for( int grid=0; grid<cg.numberOfComponentGrids(); grid++ )
-  // 	  {
-  // 	    OV_GET_SERIAL_ARRAY(real,ue[grid],ueLocal);
-  // 	    OV_GET_SERIAL_ARRAY_CONST(real,uKnown[grid],uKnownLocal);
-        	  
-  // 	    ueLocal(all,all,all,pc)=uKnownLocal(all,all,all,pc);
-  // 	  }
-  // 	}
-  // 	else
-  // 	{
-  // 	  OV_ABORT("Unknown option");
-  // 	}
-            
-  // 	// real value2;
-  // 	poisson->evaluateExtraEquation(ue,value);
-  // 	// printF("assignPressureRHS: compatibility constraint: value=%g value2=%g diff=%g\n",value,value2,fabs(value-value2));
-  // 	if( debug() & 4 ) printF("assignPressureRHS: compatibility constraint: exact value=%14.9g \n",value);
-  //     }
-        
-  //     poisson->setExtraEquationValues(f,&value );  // new way
-
-  //     //     if( debug() & 4 )
-  //     //       fprintf(debugFile,"compatibility rhs f[%i](%i,%i,%i)= %14.10e \n",
-  //     //            gride,i1e,i2e,i3e,f[gride](i1e,i2e,i3e));
-
-  //   }
-
-  //   // ---- END
-  // }
-    
 
   //    if( debug() & 32 )
   //      f.display("assignPressureRHS and solve : here is the rhs for the pressure equation",
@@ -843,10 +749,9 @@ assignPressureRHS( const int grid, GridFunction & gf0, realCompositeGridFunction
     real thermalExpansivity=1.;
     parameters.dbase.get<ListOfShowFileParameters >("pdeParameters").getParameter("thermalExpansivity",thermalExpansivity);
     parameters.dbase.get<ListOfShowFileParameters >("pdeParameters").getParameter("adcBoussinesq",adcBoussinesq);
-    // const ArraySimpleFixed<real,3,1,1,1> &gravity=parameters.dbase.get<ArraySimpleFixed<real,3,1,1,1> >("gravity");
-    // get the gravity vector -- may be time dependent for a slow start
-    real gravity[3];
-    parameters.getGravityVector( gravity,gf0.t );
+    const ArraySimpleFixed<real,3,1,1,1> &gravity=parameters.dbase.get<ArraySimpleFixed<real,3,1,1,1> >("gravity");
+  //  const real *gravity=parameters.dbase.get<ArraySimpleFixed<real,3,1,1,1> >("gravity");
+    
     
     real surfaceTension=0.;
     parameters.dbase.get<ListOfShowFileParameters >("pdeParameters").getParameter("surfaceTension",surfaceTension);
@@ -868,7 +773,10 @@ assignPressureRHS( const int grid, GridFunction & gf0, realCompositeGridFunction
         c.update(MappedGrid::THEvertex | MappedGrid::THEcenter );
     }
         
-
+    if( !isRectangular )
+    {
+        c.update(MappedGrid::THEinverseVertexDerivative ); // *wdh* June 2, 2016 -- for moving grid startup
+    }
     const realArray & xy = vertexNeeded ? c.center() : u ;
     const realArray & rsxy = isRectangular ? u :  c.inverseVertexDerivative();
 

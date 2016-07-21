@@ -171,6 +171,7 @@
       bcOption             =ipar(26)
       symmetryOption       =ipar(27)
       myid                 =ipar(28)
+      numberOfGhostPoints  =ipar(30) ! *wdh* Sept. 6, 2016
       ! dx(0)                =rpar(0)
       ! dx(1)                =rpar(1)
       ! dx(2)                =rpar(2)
@@ -190,7 +191,8 @@
         stop 7732
       end if
       epsX=1.e-30 ! fix this ***
-      numberOfGhostPoints=orderOfAccuracy/2
+      ! We now pass in numberOfGhostPoints 
+      ! ** numberOfGhostPoints=orderOfAccuracy/2
       if( debug.gt.1 .and. t.le.dt .and. myid.eq.0 )then
         write(*,'("bcSymmetryEven: orderOfAccuracy,
      & numberOfGhostPoints=",2i3," t="e9.2)') orderOfAccuracy,
@@ -249,11 +251,14 @@
            end if
            axisp1=mod(axis+1,nd)
            axisp2=mod(axis+2,nd)
+       if( t.le.2*dt )then
+         write(*,'(" Apply bcSymmetry: grid,side,axis=",3i3," t,dt=",
+     & 2e12.3," ghost=",i2)') grid,side,axis,t,dt,numberOfGhostPoints
+       end if
        if( gridType.eq.rectangular )then
         ! ***********************************************
         ! ************rectangular grid*******************
         ! ***********************************************
-        ! write(*,'(" Apply bcSymmetry: grid,side,axis=",3i3," dt,c=",2e12.3)') grid,side,axis,dt,c
         en =ex + axis             ! normal component
         et1=ex + mod(axis+1,nd)   ! tangential component 1
         et2=ex + mod(axis+2,nd)   ! tangential component 2
@@ -903,6 +908,7 @@
       bcOption             =ipar(26)
       symmetryOption       =ipar(27)
       myid                 =ipar(28)
+      numberOfGhostPoints  =ipar(30) ! *wdh* Sept. 6, 2016
       ! dx(0)                =rpar(0)
       ! dx(1)                =rpar(1)
       ! dx(2)                =rpar(2)
@@ -923,7 +929,8 @@
         stop 7732
       end if
       epsX=1.e-30 ! fix this ***
-      numberOfGhostPoints=orderOfAccuracy/2
+      ! We now pass in numberOfGhostPoints 
+      ! ** numberOfGhostPoints=orderOfAccuracy/2
       if( debug.gt.1 .and. t.le.dt .and. myid.eq.0 )then
         write(*,'("bcSymmetryEvenOdd: orderOfAccuracy,
      & numberOfGhostPoints=",2i3," t="e9.2)') orderOfAccuracy,
@@ -982,11 +989,14 @@
            end if
            axisp1=mod(axis+1,nd)
            axisp2=mod(axis+2,nd)
+       if( t.le.2*dt )then
+         write(*,'(" Apply bcSymmetry: grid,side,axis=",3i3," t,dt=",
+     & 2e12.3," ghost=",i2)') grid,side,axis,t,dt,numberOfGhostPoints
+       end if
        if( gridType.eq.rectangular )then
         ! ***********************************************
         ! ************rectangular grid*******************
         ! ***********************************************
-        ! write(*,'(" Apply bcSymmetry: grid,side,axis=",3i3," dt,c=",2e12.3)') grid,side,axis,dt,c
         en =ex + axis             ! normal component
         et1=ex + mod(axis+1,nd)   ! tangential component 1
         et2=ex + mod(axis+2,nd)   ! tangential component 2

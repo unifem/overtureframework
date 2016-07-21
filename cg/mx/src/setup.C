@@ -152,7 +152,12 @@ computeTimeStep()
     
     // *finish me for 3D:*
     sosupPower3d[2]=1.35;  sosupLambda3d[2]=.605;   // 2nd order 3D
-    sosupPower3d[4]=2.175; sosupLambda3d[4]=1.075;  // 4th order 3D, beta = 1
+
+    // sosupPower3d[4]=2.175; sosupLambda3d[4]=1.075;  // 4th order 3D, beta = 1
+    // *wdh* July 1, 2016 -- reduced cfl seems to be needed (dieletric sphere G2)
+    // should be able to run at cfl=.95 with this: 
+    sosupPower3d[4]=2.175; sosupLambda3d[4]=1.075*.75;  // 4th order 3D, beta = 1 *wdh* reduce by .75 
+             
     //sosupPower3d[4]=1.6;   sosupLambda3d[4]=1.4;    // 4th order 3D, beta = 0.8
     //sosupPower3d[6]=1.6;   sosupLambda3d[6]=1.275;  // 6th order 3D
     sosupPower3d[6]=1.5;   sosupLambda3d[6]=1.55;  // 6th order 3D (Sept 2015)

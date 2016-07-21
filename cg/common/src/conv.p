@@ -5,7 +5,8 @@ if 0;
 # 
 # -conv= conv directory (and directory for output). .. So you can run the script outside the conv dir, e.g. for parallel
 # 
-#require "ctime.pl"; 
+
+## require "ctime.pl"; 
 
 use Getopt::Long; use Getopt::Std;
 
@@ -57,9 +58,9 @@ $cmd="";
 $alwaysCompute=0; # if 1 always compute errors, otherwise look for computed results in a saved check file.
 $outputFile=""; # name of final TeX file with errors and convergence rates
 $closeFile="false";
-#Longfei: ctime.pl is not supported in perl 5. use localtime() to get the date string
-#$date=&ctime(time);  chop($date);  # here is the date
-$date=localtime();  # new way to get $date
+## $date=&ctime(time);  chop($date);  # here is the date
+$date= localtime();   # here is the date
+printf("date=[$date]\n");
 
 @ignoreComponent = (); # specify any components to ignore by setting ignoreComponent[$component]=1; 
 
@@ -67,7 +68,6 @@ $date=localtime();  # new way to get $date
 # @resm[$count]             : resolution (h)
 
 printf("Using the conv file [$convDir/$convFile]\n");
-
 
 # The results file is passed to the convRate function to compute convergence rates
 $results="$convDir/results"; 
@@ -112,9 +112,14 @@ while( <FILE> )
   {
     if( $count == 0 )
     {
+      printf(" ------------------------- conv.p --------------------------------\n");
       printf(" numberOfComponents=$numberOfComponents\n");
       printf(" title=[$title]\n");
       printf(" caption=[$caption]\n");
+
+      if( $rigidBodyCheckFile ne "" ){ printf("Looking for rigidBodyCheckFile=$rigidBodyCheckFile\n"); }
+      printf(" -----------------------------------------------------------------\n");
+
 
       print RESULTS "$title\n";
     }
@@ -130,6 +135,15 @@ while( <FILE> )
 
     # $checkFileName="$caseName$count.check"; 
     $checkFileName="$convDir/$caseName.$grid.check"; 
+    if( $count eq 1 )
+    {
+      $baseGrid=$grid;
+      $baseGrid =~ s/[0123456789]*$//; # remove trailing $res
+
+      $masterCheckFileName="$convDir/$caseName.$baseGrid.master.check"; 
+
+      $rigidBodyCheckFileName="$convDir/$caseName.$baseGrid.$rigidBodyCheckFile"; 
+    }
 
     # ---If the check file is already there we use the values in it 
     if( $alwaysCompute eq 0 && (-e $checkFileName) )
@@ -156,8 +170,70 @@ while( <FILE> )
 
       printf("Saving check file as $checkFileName\n");
       system("cp $convDir/$check $checkFileName");
+
+      if( $rigidBodyCheckFile ne "" )
+      { 
+        printf("Saving rigid-body check file as $rigidBodyCheckFileName\n");
+        system("cp $convDir/$rigidBodyCheckFile $rigidBodyCheckFileName");
+      }
+
     }
 
+    # ======= SAVE MASTER SUMMARY CHECK FILE =========
+    if( $count eq "1" ){
+      open(MASTER,">$masterCheckFileName") || die "cannot open file $masterCheckFileName!" ;
+    }else{
+      open(MASTER,">>$masterCheckFileName") || die "cannot open file $masterCheckFileName!" ;
+    }
+
+    if( $count eq "1" ){ print MASTER "% $caption\n"; }
+
+
+    print MASTER ">>start grid=$grid res=$res\n";
+
+    # -- print component names 
+    print MASTER "% names: "; 
+    for( $j=0; $j<$numberOfComponents; $j++ )
+    {
+      if( $componentName[$j] eq "" ){ $componentName[$j] = "u$j"; }
+      print MASTER "$componentName[$j] ";
+    }
+    print MASTER "\n";
+
+    open(CHECKFILE,"$check") || die "cannot open file $check!" ;
+    while( <CHECKFILE> )
+    {
+      print MASTER $_;
+    }
+    close(CHECKFILE);
+
+    if( $rigidBodyCheckFile ne "" )
+    { 
+
+      printf("--conv.p-- Saving rigid-body check=[$rigidBodyCheckFileName] to master check file =[$masterCheckFileName]\n"); 
+
+      # print MASTER ">>start grid=$grid res=$res\n";
+
+      open(RBCHECK,"$convDir/$rigidBodyCheckFileName") || die "cannot open file $convDir/$rigidBodyCheckFileName!" ;
+      while( <RBCHECK> )
+      {
+        print MASTER $_;
+      }
+      close(RBCHECK);
+      # system("cat \"HEADER\" >! $masterCheckFileName");
+      # system("cat $convDir/$rigidBodyCheckFile >> $masterCheckFileName");
+      # system("cp $convDir/$rigidBodyCheckFile $masterCheckFileName");
+    }
+
+    print MASTER "<<end\n";
+    close(MASTER); 
+
+
+
+
+    # --------------------------------------------------------------------------------
+    # --------------------- PROCESS CURRENT CHECK FILE -------------------------------
+    # --------------------------------------------------------------------------------
     # NOTE: the cg check file is assumed to be in the current directory: 
     open(CHECKFILE,"$check") || die "cannot open file $check!" ;
 
@@ -193,6 +269,10 @@ while( <FILE> )
     }
     $time=$token[0];
     
+
+    # --------------------------------------------------------------------------------
+    # ------------ SAVE FINAL TIME RESULTS TO THE SUMMARY CHECK FILE -----------------
+    # --------------------------------------------------------------------------------
 
     print RESULTS "$grid \&  $res ";
     for( $j=0; $j<$numberOfComponents; $j++ )
@@ -292,6 +372,12 @@ while( <FILE> )
     close( MFILE );
     print "Matlab results written to file [$convDir/$mFile].\n";
 
+    printf("To compute a new table run [processCheckFiles.p -file=$masterCheckFileName]\n"); 
+
+    # if( $rigidBodyCheckFile ne "" )
+    # { 
+    #   printf("To see rigid-body results run [processCheckFiles.p -file=$rigidBodyCheckFileName]\n"); 
+    # }
     $count=0;
   }
 

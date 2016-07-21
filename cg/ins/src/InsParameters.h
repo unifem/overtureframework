@@ -101,6 +101,15 @@ getDerivedFunction( const aString & name, const realMappedGridFunction & u,
 virtual
 int getUserDefinedKnownSolution(real t, CompositeGrid & cg, int grid, RealArray & ua, 
 				const Index & I1, const Index &I2, const Index &I3, int numberOfTimeDerivatives = 0 );
+
+// Some known solutions include rigid-body motions
+virtual
+int getUserDefinedKnownSolutionRigidBody( int body, real t, 
+					  RealArray & xCM      = Overture::nullRealArray(), 
+					  RealArray & vCM      = Overture::nullRealArray(),
+					  RealArray & aCM      = Overture::nullRealArray(),
+					  RealArray & omega    = Overture::nullRealArray(), 
+					  RealArray & omegaDot = Overture::nullRealArray() );
 int 
 getViscoPlasticVariables( const aString & name, const GridFunction & cgf, realCompositeGridFunction & r, const int component );
 

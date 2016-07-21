@@ -94,7 +94,7 @@ setupGridFunctions()
 int Cgins::
 initializeSolution()
 {
-
+  printF("\n ****************** CGINS initializeSolution ********************\n");
   DomainSolver::initializeSolution();
 
   // -- compute the pressure on moving grids when the pressure and body accelerations are coupled --
@@ -142,6 +142,20 @@ projectInitialConditionsForMovingGrids(int gfIndex)
     printF("--INS--::projectInitialConditionsForMovingGrids: useMovingGridSubIterations=%i numberOfCorrections=%i\n",(int)useMovingGridSubIterations,
 	   numberOfCorrections);
 
+    // **TEST: 
+    const real & dt = parameters.dbase.get<real >("dt");
+    const bool & useAddedMassAlgorithm = parameters.dbase.get<bool>("useAddedMassAlgorithm");
+    const bool & useAddedDampingAlgorithm = parameters.dbase.get<bool>("useAddedDampingAlgorithm");
+
+    if( useAddedMassAlgorithm && useAddedDampingAlgorithm )
+    {
+      // For addedDamping, the pressure equation depends on dt so we need to update the
+      // pressure equaion here (NOTE: this was already done with dt=0 in Cgins::updateToMatchGrid)
+      printF("--INS-PIC-- regenerate the pressure matrix (for addedDamping terms) now that dt=%9.3e is known.\n",dt);
+      assert( dt>0. );
+      updatePressureEquation(gf[gfIndex].cg,gf[gfIndex]);
+    }
+    
     for( int correction=0; correction<numberOfCorrections; correction++ )
     {
       // define initial forces on moving bodies -- we really should iterate here since the 
@@ -158,7 +172,7 @@ projectInitialConditionsForMovingGrids(int gfIndex)
     
       // Evaluate the initial pressure field:
       if( correction==0 )
-	printF("--INS--::initializeSolution:Solve for the initial pressure field, dt=%9.3e (correction=%i) \n",
+	printF("--INS:PICMG--Solve for the initial pressure field, dt=%9.3e (correction=%i) \n",
 	       parameters.dbase.get<real >("dt"),correction);
       solveForTimeIndependentVariables( gf[gfIndex] );     
 

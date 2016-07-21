@@ -73,7 +73,28 @@ Maxwell()
   
   gridHasMaterialInterfaces=false;
   useNewInterfaceRoutines=true; // if true: 2D AND 3D interface routines found in interface3d.bd. old=interface.bf
+
+  // Fourth-order schemes require iterations to solve the coupled interface equations:
+  numberOfIterationsForInterfaceBC=5;
+  omegaForInterfaceIteration=.5; // under-relaxation parameter for interface iterations (3D order=4)
+
+  // relative tolerance for interface iterations: *FINISH ME*
+  // if( !dbase.has_key("rtolInterface") ) dbase.put<real>("rtolInterface")=1.e-2; 
+
+  materialInterfaceOption=1;  // 1=extrapolate as initial guess for material interface ghost values
+  // *new* default: -- use better interface conditions for 3D-order=4 *wdh* June 30, 2016
+  interfaceEquationsOption=1;  // 0=use extrapolation, 1=use centered approx. for 2nd ghost line (4th order)
+  // interfaceEquationsOption=0;  // 0=use extrapolation, 1=use centered approx. for 2nd ghost line (4th order)
+
+  // setDivergenceAtInterfaces = 0 : use default
+  //                           = 1: set div(E)=0 
+  if( !dbase.has_key("setDivergenceAtInterfaces") ) dbase.put<int>("setDivergenceAtInterfaces")=0; 
+
+  // useImpedanceInterfaceProjection = 1 : use impedance based interface projection *new* June 29, 2016
+  //                                 = 0 : use old, ad-hoc interface projection 
+  if( !dbase.has_key("useImpedanceInterfaceProjection") ) dbase.put<int>("useImpedanceInterfaceProjection")=1; 
   
+
   frequency=5.;
   checkErrors=true;
   radiusForCheckingErrors=-1;  // if >0 only check errors in a disk (sphere) of this radius  
@@ -83,7 +104,6 @@ Maxwell()
   
   maximumNumberOfIterationsForImplicitInterpolation=-1; // -1 : use default
 
-  numberOfIterationsForInterfaceBC=3;
   
   plotDivergence=true;
   plotErrors=true;
@@ -119,10 +139,6 @@ Maxwell()
   kx=1.; ky=kz=0.;
   pwc[0]=pwc[1]=pwc[2]=pwc[3]=pwc[4]=pwc[5]=0.;  // Plane wave coefficients
 
-  omegaForInterfaceIteration=1.;
-  materialInterfaceOption=1;  // 1=extrapolate as initial guess for material interface ghost values
-
-  interfaceEquationsOption=0;  // 0=use extrapolation, 1=use centered approx. for 2nd ghost line (4th order)
   
   solveForElectricField=true;
   solveForMagneticField=true;
@@ -199,6 +215,9 @@ Maxwell()
   initialConditionBoundingBox(0,all)= REAL_MAX*.1;
   initialConditionBoundingBox(1,all)=-REAL_MAX*.1;
   
+  // (side,axis) = (boundingBoxDecaySide,boundingBoxDecayAxis) - side of bounding box for smooth decay
+  dbase.put<int>("boundingBoxDecaySide")=1; 
+  dbase.put<int>("boundingBoxDecayAxis")=1; 
   boundingBoxDecayExponent=2.;  // initial condition has a smooth transition outside the bounding box
   
 
@@ -344,6 +363,7 @@ Maxwell()
 
   dbase.put<aString>("knownSolutionName")="noKnownSolution";
   dbase.put<bool>("knownSolutionIsTimeDependent")=true;
+
 
   // Time history of the forcing is stored here (when needed)
   //    forcingArray[numberOfForcingFunctions] 
@@ -998,10 +1018,30 @@ printStatistics(FILE *file /* = stdout */)
 		100.*aveTiming(i)/aveTiming(0),maxTiming(i),minTiming(i));
       
     }
+  
 
-    fPrintF(output,"-----------------------------------------------------------------------------------------\n");
+    fPrintF(output,"--------------------------------------------------------------------------------------------------------\n");
+    if( gridHasMaterialInterfaces ) 
+    {
+      for( int inter=0; inter < interfaceInfo.size(); inter++ )
+      {
+	InterfaceInfo & interface = interfaceInfo[inter]; 
+
+	const int & totalInterfaceIterations = interface.totalInterfaceIterations;
+	const real & averageInterfaceConvergenceRate = interface.averageInterfaceConvergenceRate;
+        const real & maxFinalResidual =  interface.maxFinalResidual;
+        const real & averageFinalResidual = interface.averageFinalResidual;
+
+	fPrintF(output," Interface %i (grid1,grid2)=(%i,%i) : ave-iterations/step =%4.1f, ave-CR-per-it=%5.2f,"
+                " residual (max,ave)=(%8.2e,%8.2e)\n",
+		inter,interface.grid1,interface.grid2,real(totalInterfaceIterations)/numberOfStepsTaken,
+		averageInterfaceConvergenceRate/numberOfStepsTaken,maxFinalResidual,
+                averageFinalResidual/numberOfStepsTaken);
+      }
+    }
+
     fPrintF(output," Memory usage: reals/grid-point = %6.2f.\n",realsPerGridPoint);
-    fPrintF(output,"-----------------------------------------------------------------------------------------\n");
+    fPrintF(output,"--------------------------------------------------------------------------------------------------------\n");
 
     cg.displayDistribution("Maxwell",output);
 
@@ -1141,6 +1181,7 @@ buildTimeSteppingOptionsDialog(DialogData & dialog )
                           "use divergence cleaning",
                           "project interpolation points",
                           "use new forcing method",
+                          "use impedance interface projection",
  			  ""};
   int tbState[15];
   tbState[0] = useConservative;
@@ -1156,6 +1197,9 @@ buildTimeSteppingOptionsDialog(DialogData & dialog )
   tbState[10]= useDivergenceCleaning;
   tbState[11]= projectInterpolation;
   tbState[12]= dbase.get<bool>("useNewForcingMethod");
+  tbState[13]= dbase.get<int>("setDivergenceAtInterfaces");
+  tbState[14]= dbase.get<int>("useImpedanceInterfaceProjection");
+  
 
   int numColumns=2;
   dialog.setToggleButtons(tbCommands, tbCommands, tbState, numColumns); 
@@ -1252,19 +1296,19 @@ buildTimeSteppingOptionsDialog(DialogData & dialog )
 
 
 int Maxwell::
-buildForcingOptionsDialog(DialogData & dialog )
+buildInitialConditionsOptionsDialog(DialogData & dialog )
 // ==========================================================================================
 // /Description:
-//   Build the forcing options dialog.
+//   Build the initial conditions options dialog.
 // ==========================================================================================
 {
 
   // ************** PUSH BUTTONS *****************
-  aString pushButtonCommands[] = {"set pml error checking offset",
-                                  "define embedded bodies",
-				  ""};
-  int numRows=2;
-  dialog.setPushButtons(pushButtonCommands,  pushButtonCommands, numRows ); 
+  // aString pushButtonCommands[] = {"set pml error checking offset",
+  //                                 "define embedded bodies",
+  // 				  ""};
+  // int numRows=2;
+  // dialog.setPushButtons(pushButtonCommands,  pushButtonCommands, numRows ); 
 
   dialog.setOptionMenuColumns(1);
 
@@ -1285,6 +1329,70 @@ buildForcingOptionsDialog(DialogData & dialog )
 
   dialog.addOptionMenu("initial conditions:", initialConditionOptionCommands, initialConditionOptionCommands, 
                             (int)initialConditionOption );
+
+  // ----- Text strings ------
+  const int numberOfTextStrings=30;
+  aString textCommands[numberOfTextStrings];
+  aString textLabels[numberOfTextStrings];
+  aString textStrings[numberOfTextStrings];
+
+  int nt=0;
+
+  textCommands[nt] = "kx,ky,kz";  textLabels[nt]=textCommands[nt]; sPrintF(textStrings[nt], "%g,%g,%g",kx,ky,kz);  nt++; 
+  textCommands[nt] = "plane wave coefficients";  textLabels[nt]=textCommands[nt]; 
+  const real epsPW=0., muPW=0.;  // eps and mu that define the plane wave
+  sPrintF(textStrings[nt], "%g,%g,%g, %g,%g",pwc[0],pwc[1],pwc[2],epsPW,muPW);  nt++; 
+
+  textCommands[nt] = "frequency";  textLabels[nt]=textCommands[nt]; sPrintF(textStrings[nt], "%g",frequency); nt++; 
+
+  textCommands[nt] = "Gaussian plane wave:";
+  textLabels[nt]=textCommands[nt]; sPrintF(textStrings[nt], "%g %g %g %g (beta,x0,y0,z0)",
+                   betaGaussianPlaneWave,x0GaussianPlaneWave,y0GaussianPlaneWave,z0GaussianPlaneWave); nt++; 
+
+  RealArray & icBox = initialConditionBoundingBox;
+  textCommands[nt] = "initial condition bounding box";  
+  textLabels[nt]=textCommands[nt]; sPrintF(textStrings[nt], "%8.2e,%8.2e, %8.2e,%8.2e, %8.2e,%8.2e (xa,xb,ya,yb...)",
+                                           icBox(0,0),icBox(1,0),
+                                           icBox(0,1),icBox(1,1),
+                                           icBox(0,2),icBox(1,2)); nt++; 
+
+  const int & boundingBoxDecaySide = dbase.get<int>("boundingBoxDecaySide");
+  const int & boundingBoxDecayAxis = dbase.get<int>("boundingBoxDecayAxis");
+  textCommands[nt] = "bounding box decay face";  
+  textLabels[nt]=textCommands[nt]; sPrintF(textStrings[nt], "%i, %i (side,axis)",boundingBoxDecaySide,boundingBoxDecayAxis); nt++;
+
+  textCommands[nt] = "bounding box decay exponent";  
+  textLabels[nt]=textCommands[nt]; sPrintF(textStrings[nt], "%8.2e",boundingBoxDecayExponent); nt++;
+
+
+  textCommands[nt] = "adjust boundaries for incident field";
+  textLabels[nt]=textCommands[nt]; sPrintF(textStrings[nt], "[0|1] [gridName|all]"); nt++; 
+
+  // null strings terminal list
+  assert( nt<numberOfTextStrings );
+  textCommands[nt]="";   textLabels[nt]="";   textStrings[nt]="";  
+  dialog.setTextBoxes(textCommands, textLabels, textStrings);
+
+  return 0;
+}
+
+int Maxwell::
+buildForcingOptionsDialog(DialogData & dialog )
+// ==========================================================================================
+// /Description:
+//   Build the forcing options dialog.
+// ==========================================================================================
+{
+
+  // ************** PUSH BUTTONS *****************
+  aString pushButtonCommands[] = {"set pml error checking offset",
+                                  "define embedded bodies",
+				  ""};
+  int numRows=2;
+  dialog.setPushButtons(pushButtonCommands,  pushButtonCommands, numRows ); 
+
+  dialog.setOptionMenuColumns(1);
+
 
   aString forcingOptionCommands[] = {"noForcing", 
                                      "magneticSinusoidalPointSource",
@@ -1348,19 +1456,8 @@ buildForcingOptionsDialog(DialogData & dialog )
   textCommands[nt] = "pml width,strength,power";
   textLabels[nt]=textCommands[nt]; sPrintF(textStrings[nt], "%i %4.1f %i ",numberLinesForPML,pmlLayerStrength,pmlPower); nt++; 
 
-  textCommands[nt] = "kx,ky,kz";  textLabels[nt]=textCommands[nt]; sPrintF(textStrings[nt], "%g,%g,%g",kx,ky,kz);  nt++; 
-  textCommands[nt] = "plane wave coefficients";  textLabels[nt]=textCommands[nt]; 
-  const real epsPW=0., muPW=0.;  // eps and mu that define the plane wave
-  sPrintF(textStrings[nt], "%g,%g,%g, %g,%g",pwc[0],pwc[1],pwc[2],epsPW,muPW);  nt++; 
-
-  textCommands[nt] = "frequency";  textLabels[nt]=textCommands[nt]; sPrintF(textStrings[nt], "%g",frequency); nt++; 
-
   textCommands[nt] = "slow start interval";  
   textLabels[nt]=textCommands[nt]; sPrintF(textStrings[nt], "%f",slowStartInterval); nt++; 
-
-  textCommands[nt] = "Gaussian plane wave:";
-  textLabels[nt]=textCommands[nt]; sPrintF(textStrings[nt], "%g %g %g %g (beta,x0,y0,z0)",
-                   betaGaussianPlaneWave,x0GaussianPlaneWave,y0GaussianPlaneWave,z0GaussianPlaneWave); nt++; 
 
   textCommands[nt] = "Gaussian source:";
   textLabels[nt]=textCommands[nt]; 
@@ -1403,20 +1500,6 @@ buildForcingOptionsDialog(DialogData & dialog )
   textLabels[nt]=textCommands[nt]; sPrintF(textStrings[nt], "%5.3f, %5.3f, %5.3f",
                                            x0PlaneMaterialInterface[0], x0PlaneMaterialInterface[1],
                                            x0PlaneMaterialInterface[2]); nt++; 
-
-  RealArray & icBox = initialConditionBoundingBox;
-  textCommands[nt] = "initial condition bounding box";  
-  textLabels[nt]=textCommands[nt]; sPrintF(textStrings[nt], "%8.2e,%8.2e, %8.2e,%8.2e, %8.2e,%8.2e (xa,xb,ya,yb...)",
-                                           icBox(0,0),icBox(1,0),
-                                           icBox(0,1),icBox(1,1),
-                                           icBox(0,2),icBox(1,2)); nt++; 
-
-  textCommands[nt] = "bounding box decay exponent";  
-  textLabels[nt]=textCommands[nt]; sPrintF(textStrings[nt], "%8.2e",boundingBoxDecayExponent); nt++;
-
-
-  textCommands[nt] = "adjust boundaries for incident field";
-  textLabels[nt]=textCommands[nt]; sPrintF(textStrings[nt], "[0|1] [gridName|all]"); nt++; 
 
   textCommands[nt] = "scattering radius";  textLabels[nt]=textCommands[nt]; sPrintF(textStrings[nt], "%g",
            dbase.get<real>("scatteringRadius")); nt++; 
@@ -1612,7 +1695,7 @@ buildPdeParametersDialog(DialogData & dialog )
 //   textLabels[nt]=textCommands[nt]; sPrintF(textStrings[nt], "%g",mu); nt++; 
 
   textCommands[nt] = "coefficients";  
-  textLabels[nt]=textCommands[nt]; sPrintF(textStrings[nt], "%g %g %s (eps,mu,grid-name)",eps,mu,"all"); nt++; 
+  textLabels[nt]=textCommands[nt]; sPrintF(textStrings[nt], "%g %g %s (eps,mu,grid/domain name)",eps,mu,"all"); nt++; 
 
   // null strings terminal list
   assert( nt<numberOfTextStrings );
@@ -1639,7 +1722,9 @@ interactiveUpdate(GL_GraphicsInterface &gi )
   CompositeGrid & cg= *cgp;
   const int numberOfComponentGrids = cg.numberOfComponentGrids();
 
-
+  int & setDivergenceAtInterfaces = dbase.get<int>("setDivergenceAtInterfaces");
+  int & useImpedanceInterfaceProjection = dbase.get<int>("useImpedanceInterfaceProjection");
+ 
   GUIState gui;
 
   DialogData & dialog=gui;
@@ -1654,6 +1739,7 @@ interactiveUpdate(GL_GraphicsInterface &gi )
   // ************** PUSH BUTTONS *****************
   aString pushButtonCommands[] = {"time stepping options...",
                                   "forcing options...",
+                                  "initial conditions options...",
                                   "plot options...",
                                   "input-output options...",
                                   "pde parameters...",
@@ -1694,6 +1780,12 @@ interactiveUpdate(GL_GraphicsInterface &gi )
   timeSteppingOptionsDialog.setExitCommand("close time stepping options", "close");
   buildTimeSteppingOptionsDialog(timeSteppingOptionsDialog);
 
+  // --- Build the sibling dialog for initial condition options ---
+  DialogData &initialConditionsOptionsDialog = gui.getDialogSibling();
+  initialConditionsOptionsDialog.setWindowTitle("MX Initial Conditions Options");
+  initialConditionsOptionsDialog.setExitCommand("close initial conditions options", "close");
+  buildInitialConditionsOptionsDialog(initialConditionsOptionsDialog);
+
   // --- Build the sibling dialog for forcing options ---
   DialogData &forcingOptionsDialog = gui.getDialogSibling();
   forcingOptionsDialog.setWindowTitle("MX Forcing Options");
@@ -1731,6 +1823,8 @@ interactiveUpdate(GL_GraphicsInterface &gi )
     }
   }
   real epsPW=0.,muPW=0.;
+  int & boundingBoxDecaySide = dbase.get<int>("boundingBoxDecaySide");
+  int & boundingBoxDecayAxis = dbase.get<int>("boundingBoxDecayAxis");
   
   gi.pushGUI(gui);
   aString answer,line;
@@ -1752,6 +1846,16 @@ interactiveUpdate(GL_GraphicsInterface &gi )
     {
       timeSteppingOptionsDialog.hideSibling();
     }
+
+    else if( answer=="initial conditions options..." )
+    {
+      initialConditionsOptionsDialog.showSibling();
+    }
+    else if( answer=="close initial conditions options" )
+    {
+      initialConditionsOptionsDialog.hideSibling();
+    }
+
     else if( answer=="forcing options..." )
     {
       forcingOptionsDialog.showSibling();
@@ -1760,6 +1864,7 @@ interactiveUpdate(GL_GraphicsInterface &gi )
     {
       forcingOptionsDialog.hideSibling();
     }
+
     else if( answer=="plot options..." )
     {
       plotOptionsDialog.showSibling();
@@ -1929,7 +2034,7 @@ interactiveUpdate(GL_GraphicsInterface &gi )
       
       
       forcingOptionsDialog.getOptionMenu("known solution:").setCurrentChoice((int)knownSolutionOption);
-      forcingOptionsDialog.getOptionMenu("initial conditions:").setCurrentChoice((int)initialConditionOption);
+      initialConditionsOptionsDialog.getOptionMenu("initial conditions:").setCurrentChoice((int)initialConditionOption);
     }
 
     else if( answer=="noForcing" ||
@@ -2068,7 +2173,7 @@ interactiveUpdate(GL_GraphicsInterface &gi )
       printF(" kx,ky,kz are used to define the plane wave and other true solutions.\n");
 	  
       sScanF(answer(len,answer.length()-1),"%e %e %e",&kx,&ky,&kz);
-      forcingOptionsDialog.setTextLabel("kx,ky,kz",sPrintF(line, "%g,%g,%g",kx,ky,kz));
+      initialConditionsOptionsDialog.setTextLabel("kx,ky,kz",sPrintF(line, "%g,%g,%g",kx,ky,kz));
     }
     else if( len=answer.matches("plane wave coefficients") )
     {
@@ -2078,7 +2183,7 @@ interactiveUpdate(GL_GraphicsInterface &gi )
              "      a1*kx + a2*ky + a3*kz = 0  ( a.k=0 )\n");
 
       sScanF(answer(len,answer.length()-1),"%e %e %e %e %e",&pwc[0],&pwc[1],&pwc[2],&epsPW,&muPW);
-      forcingOptionsDialog.setTextLabel("plane wave coefficients",sPrintF(line, "%g,%g,%g, %g,%g",pwc[0],pwc[1],pwc[2],epsPW,muPW));
+      initialConditionsOptionsDialog.setTextLabel("plane wave coefficients",sPrintF(line, "%g,%g,%g, %g,%g",pwc[0],pwc[1],pwc[2],epsPW,muPW));
     }
     else if( len=answer.matches("degreeSpace, degreeTime") )
     {
@@ -2118,12 +2223,25 @@ interactiveUpdate(GL_GraphicsInterface &gi )
       sScanF(answer(len,answer.length()-1),"%e %e %e %e %e %e ",&icBox(0,0),&icBox(1,0),
 	     &icBox(0,1),&icBox(1,1),
 	     &icBox(0,2),&icBox(1,2));
-      forcingOptionsDialog.setTextLabel("initial condition bounding box",
+      initialConditionsOptionsDialog.setTextLabel("initial condition bounding box",
                                         sPrintF("%8.2e,%8.2e, %8.2e,%8.2e, %8.2e,%8.2e (xa,xb,ya,yb...)",
 						icBox(0,0),icBox(1,0),
 						icBox(0,1),icBox(1,1),
 						icBox(0,2),icBox(1,2)));
     }
+    else if( len=answer.matches("bounding box decay face") )
+    {
+      sScanF(answer(len,answer.length()-1),"%i %i",&boundingBoxDecaySide,&boundingBoxDecayAxis);
+      printF("Setting bounding box decay (side,axis)=(%i,%i)\n"
+             "  The initial conditions will be ramped to zero along this face of the bounding box\n",
+	     boundingBoxDecaySide,boundingBoxDecayAxis);
+      initialConditionsOptionsDialog.setTextLabel("bounding box decay face",
+				    sPrintF("%i, %i (side,axis)",boundingBoxDecaySide,boundingBoxDecayAxis));
+    }
+      
+    else if( initialConditionsOptionsDialog.getTextValue(answer,"bounding box decay exponent","%f",boundingBoxDecayExponent) ){}//
+
+
     else if( len=answer.matches("adjust boundaries for incident field") )
     {
       char *buff = new char [answer.length()];
@@ -2166,10 +2284,11 @@ interactiveUpdate(GL_GraphicsInterface &gi )
     else if( dialog.getTextValue(answer,"tFinal","%g",tFinal) ){}//
     else if( dialog.getTextValue(answer,"tPlot","%g",tPlot) ){}//
 
-    else if( dialog.getTextValue(answer,"frequency","%g",frequency) ){}//
+
+    else if( initialConditionsOptionsDialog.getTextValue(answer,"frequency","%g",frequency) ){}//
+
 
     else if( forcingOptionsDialog.getTextValue(answer,"slow start interval","%f",slowStartInterval) ){}//
-    else if( forcingOptionsDialog.getTextValue(answer,"bounding box decay exponent","%f",boundingBoxDecayExponent) ){}//
 
     else if( forcingOptionsDialog.getTextValue(answer,"scattering radius","%f",dbase.get<real>("scatteringRadius")) ){}//
 
@@ -2202,6 +2321,19 @@ interactiveUpdate(GL_GraphicsInterface &gi )
 						      projectInterpolation) ){}//
     else if( timeSteppingOptionsDialog.getToggleValue(answer,"use charge density",useChargeDensity) ){}//
     else if( timeSteppingOptionsDialog.getToggleValue(answer,"use new interface routines",useNewInterfaceRoutines) ){}//
+    else if( timeSteppingOptionsDialog.getToggleValue(answer,"set divergence at interfaces",
+						      setDivergenceAtInterfaces) )
+    {
+      printF("setDivergenceAtInterfaces=%i : 0= set [div(E)]=0,  1=set div(E)=0 at interfaces\n",
+              setDivergenceAtInterfaces);
+    }
+    else if( timeSteppingOptionsDialog.getToggleValue(answer,"use impedance interface projection",
+						      useImpedanceInterfaceProjection) )
+    {
+      printF("useImpedanceInterfaceProjection=%i : 0=ad-hoc (old),  1=use impedance (new)\n",
+              useImpedanceInterfaceProjection);
+    }
+    
 
     else if( timeSteppingOptionsDialog.getToggleValue(answer,"use conservative divergence",
 						      useConservativeDivergence) ){}//
@@ -2293,7 +2425,7 @@ interactiveUpdate(GL_GraphicsInterface &gi )
     {
       sScanF(&answer[len],"%e %e %e %e %e",&betaGaussianPlaneWave,&x0GaussianPlaneWave,&y0GaussianPlaneWave,&z0GaussianPlaneWave);
       
-      forcingOptionsDialog.setTextLabel("Gaussian plane wave:",sPrintF(line,"%g %g %g %g (beta,x0,y0,z0)",
+      initialConditionsOptionsDialog.setTextLabel("Gaussian plane wave:",sPrintF(line,"%g %g %g %g (beta,x0,y0,z0)",
 								       betaGaussianPlaneWave,x0GaussianPlaneWave,y0GaussianPlaneWave,z0GaussianPlaneWave));
   
     }
@@ -2432,7 +2564,12 @@ interactiveUpdate(GL_GraphicsInterface &gi )
 	  if( !found )
 	  {
 	    printF("ERROR looking for the grid named [%s]\n",(const char*)gridName);
-	    gi.stopReadingCommandFile();
+            // This is a real error only if there are multiple domains *wdh* June 20, 2016
+            if( cg.numberOfDomains()>1 )
+	    {
+	      gi.stopReadingCommandFile();
+            }
+	    
 	    continue;
 	  }
 	}
@@ -2851,8 +2988,7 @@ setBoundaryCondition( aString & answer, GL_GraphicsInterface & gi, IntegerArray 
     }
     if( G.getBase()==-1  )
     {
-      printF("Unknown grid name = <%s> \n",(const char *)gridName);
-      gi.stopReadingCommandFile();
+      printF("--MX--setBoundaryCondition: WARNING: Unknown grid name = <%s>, skiiping... \n",(const char *)gridName);
       return 1;
     }
     // search for the name of the boundary condition

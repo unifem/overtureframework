@@ -66,8 +66,8 @@ getUserDefinedKnownSolution(real t, CompositeGrid & cg, int grid, realArray & ua
     }
   }
   // This macro defines the grid points for rectangular grids:
-  #undef XC
-  #define XC(iv,axis) (xab[0][axis]+dvx[axis]*(iv[axis]-iv0[axis]))
+#undef XC
+#define XC(iv,axis) (xab[0][axis]+dvx[axis]*(iv[axis]-iv0[axis]))
 
   
   if( userKnownSolution=="manufacturedPulse" )
@@ -83,12 +83,6 @@ getUserDefinedKnownSolution(real t, CompositeGrid & cg, int grid, realArray & ua
     const real cx  = rpar[5];
     const real cy  = rpar[6];
     const real cz  = rpar[7];
-
-    if( method==sosup )
-    {
-      OV_ABORT("finish me");
-    }
-
 
     real x,y,z;
     if( numberOfTimeDerivatives==0 )
@@ -112,6 +106,16 @@ getUserDefinedKnownSolution(real t, CompositeGrid & cg, int grid, realArray & ua
 	  uLocal(i1,i2,i3,ex) = -(y-y0-cy*t)*psi;    // Ex =  psi_y * const 
 	  uLocal(i1,i2,i3,ey) =  (x-x0-cx*t)*psi;    // Ey = -psi_x * const
 	  uLocal(i1,i2,i3,hz) =  psi;
+          if( method==sosup )
+	  {
+	    // supply time-derivatives for sosup scheme
+
+            // **check me**
+	    real psit = (2.*beta)*( cx*(x-x0-cx*t) + cy*(y-y0-cy*t) )*psi;
+	    uLocal(i1,i2,i3,ext) =  cy*psi  -(y-y0-cy*t)*psit;    
+	    uLocal(i1,i2,i3,eyt) = -cx*psi  +(x-x0-cx*t)*psit;    
+	    uLocal(i1,i2,i3,hzt) =  psit;
+	  }
 	}
       }
       else
@@ -135,6 +139,18 @@ getUserDefinedKnownSolution(real t, CompositeGrid & cg, int grid, realArray & ua
 	  uLocal(i1,i2,i3,ex) = ((z-z0-cz*t)-(y-y0-cy*t))*psi;    // Ex = ( psi_z - psi_y ) * const
 	  uLocal(i1,i2,i3,ey) = ((x-x0-cx*t)-(z-z0-cz*t))*psi;    // Ey = ( psi_x - psi_z ) * const
 	  uLocal(i1,i2,i3,ez) = ((y-y0-cy*t)-(x-x0-cx*t))*psi;    // Ez = ( psi_y - psi_x ) * const
+          if( method==sosup )
+	  {
+	    // supply time-derivatives for sosup scheme
+
+            // **check me**
+	    real psit = (2.*beta)*( cx*(x-x0-cx*t) + cy*(y-y0-cy*t) +cz*(z-z0-cz*t))*psi;
+	    uLocal(i1,i2,i3,ext) = (-cz+cy)*psi + ((z-z0-cz*t)-(y-y0-cy*t))*psit;    
+	    uLocal(i1,i2,i3,eyt) = (-cx+cz)*psi + ((x-x0-cx*t)-(z-z0-cz*t))*psit;    
+            uLocal(i1,i2,i3,ezt) = (-cy+cx)*psi + ((y-y0-cy*t)-(x-x0-cx*t))*psit;
+	  }	  
+	  
+
 	}
       }
     }

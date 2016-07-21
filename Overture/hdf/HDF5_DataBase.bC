@@ -679,7 +679,8 @@ mount(const aString & dataBaseFileName, const aString & flags )
 
       // Save the Overture version number 
       OvertureVersion = OVERTURE_VERSION;
-      printF("File created with %s\n",(const char*)OvertureVersion);
+      if( false )
+        printF("File created with %s\n",(const char*)OvertureVersion);
       put( OvertureVersion,"OvertureVersion" );
 
       // Save the parallelWriteMode : if we write with multipleFileIO then we must read with multipleFileIO

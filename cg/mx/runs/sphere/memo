@@ -1,3 +1,14 @@
+******************************
+****** July 9, 2016
+
+Test for Sergey -- scattering from a sphere , zero IC's
+
+
+cgmx -noplot sib.planeWaveBC -g=sibe4.order4.ng3.hdf -tp=.05 -go=og 
+
+
+
+
 ***************************************************************************************************
 **** 2015/07/02 -- tests scattering from SPHERE + SOSUP
 

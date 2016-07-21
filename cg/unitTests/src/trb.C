@@ -13,10 +13,10 @@
 
 #include "App.h"
 
-RealArray 
-mult( const RealArray & a, const RealArray & b );
-RealArray 
-trans( const RealArray &a );
+// RealArray 
+// mult( const RealArray & a, const RealArray & b );
+// RealArray 
+// trans( const RealArray &a );
 
 // #include <cmath>
 
@@ -1608,23 +1608,23 @@ main(int argc, char *argv[])
       
       for(int step=1; step<=numberOfSteps; step++) 
       {
-	// ok c = mult( a,b );
+	// ok c = RigidBodyMotion::mult( a,b );
 	// ok b = trans( a );
 	
-	// r(R) = omegavk + 5.*( -mult(Omegak,mult(Ak,omegavk)) );
+	// r(R) = omegavk + 5.*( -RigidBodyMotion::mult(Omegak,RigidBodyMotion::mult(Ak,omegavk)) );
         
 
 
-        // rk(R) = mass*(vvk-vv0) - adt*( -mult(A11,vvk) - mult(A12,omegavk) + fvnp1 );
+        // rk(R) = mass*(vvk-vv0) - adt*( -RigidBodyMotion::mult(A11,vvk) - RigidBodyMotion::mult(A12,omegavk) + fvnp1 );
 
         // NO LEAK: 
-	rk(R) = mult(Ak,evaluate(omegavk-omegav0)); 
+	rk(R) = RigidBodyMotion::mult(Ak,evaluate(omegavk-omegav0)); 
 
         // LEAK:
-	// rk(R) = mult(Ak,omegavk-omegav0) - adt*( -mult(Omegak,mult(Ak,omegavk)) -mult(A21,vvk) - mult(A22,omegavk) + gvnp1 );
+	// rk(R) = RigidBodyMotion::mult(Ak,omegavk-omegav0) - adt*( -RigidBodyMotion::mult(Omegak,RigidBodyMotion::mult(Ak,omegavk)) -RigidBodyMotion::mult(A21,vvk) - RigidBodyMotion::mult(A22,omegavk) + gvnp1 );
 
         // LEAK:
-	// rk(R+3) = mult(Ak,omegavk-omegav0) - adt*( -mult(Omegak,mult(Ak,omegavk)) -mult(A21,vvk) - mult(A22,omegavk) + gvnp1 );
+	// rk(R+3) = RigidBodyMotion::mult(Ak,omegavk-omegav0) - adt*( -RigidBodyMotion::mult(Omegak,RigidBodyMotion::mult(Ak,omegavk)) -RigidBodyMotion::mult(A21,vvk) - RigidBodyMotion::mult(A22,omegavk) + gvnp1 );
 	
 	if( (step % 100) == 0 )
 	{

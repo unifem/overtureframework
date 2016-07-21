@@ -1,3 +1,565 @@
+***********************************************
+*** July 17, 2016
+
+SHEAR Block
+
+cgins slider -g=shearBlockGrid4.order2 -ts=im -dtMax=.05 -bodyDensity=.1 -tf=5. -tp=.05 -option=shearBlock -amp=1 -relaxRigidBody=0 -numberOfCorrections=2 -addedDampingProjectVelocity=1 -omega=.2 -rtolc=1.e-3 -psolver=yale -addedMass=1 -addedDamping=1  -scaleAddedDampingWithDt=1 -inertia=1e100 -nu=.1 -useProvidedAcceleration=1 -gravity=0. -addedDampingCoeff=1 -go=halt
+
+
+REVISIT PISTON 
+
+
+cgins piston -g=plug4.hdf -ts=im -dtMax=.01 -bodyDensity=.01 -inertia=.01 -tf=2. -tp=.05 -relaxRigidBody=0 -numberOfCorrections=1 -omega=.2 -rtolc=1.e-3 -psolver=yale -addedMass=1  -addedDamping=1 -addedDampingCoeff=1. -scaleAddedDampingWithDt=1 -nu=.01 -useProvidedAcceleration=1 -gravity=0. -option=rigidBodyPiston -go=halt
+
+
+
+
+***********************************************
+*** July 9, 2016
+Look for stability bound of TP scheme:
+
+
+
+
+mBar=.2: 
+runCases.p -option=shearBlock -tf=10 -rhos=.01 -projectVelocity=0 -instabilityErrorTol=.1 -beta=0.1
+
+
+mBar=2: 
+runCases.p -option=shearBlock -tf=10 -rhos=.1 -projectVelocity=0 -instabilityErrorTol=.1 -beta=0.001 *stable
+
+
+
+
+Paper: Run special beta's  to show instability: 
+runCases.p -option=shearBlock -tf=10 -rhos=.001 -projectVelocity=0 -beta=1 -instabilityErrorTol=10
+runCases.p -option=shearBlock -tf=10 -rhos=.001 -projectVelocity=0 -beta=6 -instabilityErrorTol=10
+
+runCases.p -option=shearBlock -tf=10 -rhos=.001 -projectVelocity=0 -beta=5 -instabilityErrorTol=2.
+runCases.p -option=shearBlock -tf=10 -rhos=.001 -projectVelocity=0 -beta=1 -instabilityErrorTol=2.
+
+
+
+================================== NO PROJECT ======================================
+runCases.p -option=shearBlock -tf=10 -rhos=.001 -projectVelocity=0
+
+%------------ SUMMARY Option=[shearBlock] rhos=.001 tf=10 projectVelocity=0--------------
+%------------    dy=  2.5000e-02,  dnu=sqrt(.5*nu*dt)=  5.0000e-02,  delta=dy/dnu=  5.0000e-01,  mBar=  2.0000e-02 --------------
+%------------ instabilityErrorTol= 1.00e-01                                               ------------------
+ shearBlockNPVDelta=5.000000e-01;
+ shearBlockNPVMbar=2.000000e-02;
+ shearBlockNPVStab=[   0.540,   2.000,   3.000,   4.000,   5.000];
+ shearBlockNPVUnstab=[   0.200,   0.250,   0.300,   0.350,   0.400,   1.000,   1.000,   5.500,   6.000];
+
+
+***********************************************
+*** July 9, 2016
+
+Paper: Run special beta's  to show instability: 
+runCases.p -option=shearBlock -tf=10 -rhos=.001 -beta=0.3 -instabilityErrorTol=10
+runCases.p -option=shearBlock -tf=10 -rhos=.001 -beta=5 -instabilityErrorTol=2.
+runCases.p -option=shearBlock -tf=10 -rhos=.001 -beta=1 -instabilityErrorTol=2.
+
+***********************************************
+*** July 8, 2016
+
+---- Can we automatically run different beta and check for instabilities?
+
+================================== NO PROJECT ======================================
+runCases.p -option=shearBlock -tf=20 -rhos=.001 -projectVelocity=0
+
+
+runCases.p -option=shearBlock -tf=5 -rhos=.001 -projectVelocity=0
+
+------------ SUMMARY Option=[shearBlock] rhos=.001 tf=5 projectVelocity=0--------------
+------------    dy=0.025,  dnu=sqrt(.5*nu*dt)=0.05,  delta=dy/dnu=0.5,  mbar=0.02 --------------
+ addedDampingCoefficient= 0.20 : UNSTABLE ******
+ addedDampingCoefficient= 0.25 : UNSTABLE ******
+ addedDampingCoefficient= 0.40 : UNSTABLE ******
+ addedDampingCoefficient= 0.54 : stable.
+ addedDampingCoefficient= 1.00 : UNSTABLE ******
+ addedDampingCoefficient= 2.00 : stable.
+ addedDampingCoefficient= 3.00 : stable.
+ addedDampingCoefficient= 4.00 : stable.
+ addedDampingCoefficient= 5.00 : stable.
+ addedDampingCoefficient= 6.00 : UNSTABLE ******
+ addedDampingCoefficient=10.00 : UNSTABLE ******
+ shearBlockPVDelta=5.000000e-01
+ shearBlockPVMbar=2.000000e-02
+ shearBlockPVStab=[   0.540,   2.000,   3.000,   4.000,   5.000];
+ shearBlockPVUnstab=[   0.200,   0.250,   0.400,   1.000,   6.000,  10.000];
+
+
+================================== PROJECT ======================================
+runCases.p -option=shearBlock -tf=10 -rhos=.001
+
+------------ SUMMARY Option=[shearBlock] rhos=.001 tf=10 projectVelocity=1--------------
+------------    dy=0.025,  dnu=sqrt(.5*nu*dt)=0.05,  delta=dy/dnu=0.5,  mbar=0.02 --------------
+ addedDampingCoefficient= 0.20 : UNSTABLE ******
+ addedDampingCoefficient= 0.25 : UNSTABLE ******
+ addedDampingCoefficient= 0.40 : stable.
+ addedDampingCoefficient= 2.00 : stable.
+ addedDampingCoefficient= 3.00 : stable.
+ addedDampingCoefficient= 4.00 : stable.
+ addedDampingCoefficient= 5.00 : UNSTABLE ******
+ addedDampingCoefficient= 6.00 : UNSTABLE ******
+ addedDampingCoefficient=10.00 : UNSTABLE ******
+ shearBlockDelta=5.000000e-01
+ shearBlockMbar=2.000000e-02
+ shearBlockStab=[   0.400,   2.000,   3.000,   4.000];
+ shearBlockUnstab=[   0.200,   0.250,   5.000,   6.000,  10.000];
+
+
+
+
+cgins slider -g=shearBlockGrid4.order2 -ts=im -dtMax=.05 -bodyDensity=.1 -tf=5. -tp=.05 -option=shearBlock -amp=1 -relaxRigidBody=0 -numberOfCorrections=2 -addedDampingProjectVelocity=1 -omega=.2 -rtolc=1.e-3 -psolver=yale -addedMass=1 -addedDamping=1  -scaleAddedDampingWithDt=1 -inertia=1e100 -nu=.1 -useProvidedAcceleration=1 -gravity=0. -addedDampingCoeff=3 -go=halt
+
+***********************************************
+*** July 5-6, 2016
+
+
+REVISIT SHEAR BLOCK -- careful comparison to 
+
+COMPARE TO Matlab code shearBlock.m
+
+RHOS=.1
+
+
+cgins -noplot slider -g=shearBlockGrid4.order2 -ts=im -dtMax=.05 -bodyDensity=.1 -tf=5. -tp=.05 -option=shearBlock -amp=1 -relaxRigidBody=0 -numberOfCorrections=2 -addedDampingProjectVelocity=1 -omega=.2 -rtolc=1.e-3 -psolver=yale -addedMass=1 -addedDamping=1  -scaleAddedDampingWithDt=1 -inertia=1e100 -nu=.1 -useProvidedAcceleration=1 -gravity=0. -addedDampingCoeff=3 -go=og >! junk.out
+
+
+***** Even NEWER ***
+--INS-- determineErrors: t=5.000e-02, maxNorm errors: [p,u,v,T]=[0.00e+00,1.17e-05,0.00e+00,0.00e+00]
+     t    err(p)   err(u)   err(v)    div       uMax     dt       cpu    (1 steps)
+   0.050 0.00e+00 1.17e-05 0.00e+00 0.00e+00  9.98e-01 5.00e-02 6.52e+00 
+
+     t    err(p)   err(u)   err(v)    div       uMax     dt       cpu    (2 steps)
+   0.100 0.00e+00 2.32e-05 0.00e+00 0.00e+00  9.58e-01 5.00e-02 5.61e+00 
+
+
+******* NEWER ****
+**FIXED: allow negative time values for TRUE acceleration
+
+--INS-- determineErrors: t=1.000e-01, maxNorm errors: [p,u,v,T]=[0.00e+00,3.71e-04,0.00e+00,0.00e+00]
+     t    err(p)   err(u)   err(v)    div       uMax     dt       cpu    (2 steps)
+   0.100 0.00e+00 3.71e-04 0.00e+00 0.00e+00  9.58e-01 5.00e-02 6.07e+00 
+
+
+******* ORIGINAL ******
+
+--INS--setPressConstrnt: t=5.000e-02 vDotPred=[-8.195e-01,0.000e+00,0.000e+00] omegaDotPred=[0.000e+00,0.000e+00,0.000e+00]
+--INS--setPressureConstraintValues: body=0, d=0, m*a=-8.21e-02, bodyForce: (pressure= 0.00e+00,viscous=-7.73e-02), value=-2.756e-01
+--INS--setPressureConstraintValues: body=0, d=1, m*a= 0.00e+00, bodyForce: (pressure= 0.00e+00,viscous= 0.00e+00), value=0.000e+00
+--INS--setPressureConstraintValues: body=0, d=2, A*w_t=0.000e+00, bodyTorque (pressure=0.000e+00,viscous=7.726e-02), value=0.000e+00
+--INS-STI-- t= 5.000e-02 After pres. solve: extraEquation: i=0 : constraint value=-8.20040e-01
+--INS-STI-- t= 5.000e-02 After pres. solve: extraEquation: i=1 : constraint value= 0.00000e+00
+
+
+--INS-- determineErrors: t=1.000e-01, maxNorm errors: [p,u,v,T]=[0.00e+00,1.91e-03,0.00e+00,0.00e+00]
+     t    err(p)   err(u)   err(v)    div       uMax     dt       cpu    (2 steps)
+   0.100 0.00e+00 1.91e-03 0.00e+00 0.00e+00  9.58e-01 5.00e-02 9.94e+00 
+
+
+
+***********************************************
+*** July 4, 2016
+
+
+REVISIT SHEAR BLOCK -- careful comparison to Matlab code
+
+RHOS=0.1  ADC=1.5 unstable 
+cgins slider -g=shearBlockGrid4.order2 -ts=im -dtMax=.05 -bodyDensity=.1 -tf=5. -tp=.1 -option=shearBlock -amp=1 -relaxRigidBody=0 -numberOfCorrections=2 -addedDampingProjectVelocity=1 -omega=.2 -rtolc=1.e-3 -psolver=yale -addedMass=1 -addedDamping=1  -scaleAddedDampingWithDt=1 -inertia=1e100 -nu=.1 -useProvidedAcceleration=1 -gravity=0. -addedDampingCoeff=3 -go=halt
+
+
+***********************************************
+*** June 12, 2016
+
+Shear block eigenvalues:
+
+Shear block: setting amp=1, L=1, H=1, k=1.631994527215e+00, bodyMass=10 fluidDensity=1.
+Shear block: setting amp=1, L=1, H=1, k=2.028757838110e+00, bodyMass=1 fluidDensity=1.
+Shear block: setting amp=1, L=1, H=1, k=2.862772587515e+00, bodyMass=0.1 fluidDensity=1.
+Shear block: setting amp=1, L=1, H=1, k=3.110497702306e+00, bodyMass=0.01 fluidDensity=1.
+Shear block: setting amp=1, L=1, H=1, k=3.138454209685e+00, bodyMass=0.001 fluidDensity=1.
+Shear block: setting amp=1, L=1, H=1, k=3.141278525748e+00, bodyMass=0.0001 fluidDensity=1.
+
+cgins -noplot slider -g=shearBlockGrid4.order2 -ts=im -dtMax=.05 -bodyDensity=10 -tf=10. -tp=.1 -option=shearBlock -amp=1 -relaxRigidBody=0 -numberOfCorrections=1 -addedDampingProjectVelocity=0 -omega=.2 -rtolc=1.e-3 -psolver=yale -addedMass=0 -addedDamping=0  -scaleAddedDampingWithDt=1 -inertia=1e100 -nu=.1 -useProvidedAcceleration=0 -gravity=0. -addedDampingCoeff=2.5 -go=halt
+
+***********************************************
+*** June 9, 2016
+
+TEST TP scheme
+
+
+RHOS = .5 : unstable , .6=EDGE  [.8,1]=STABLE
+cgins -noplot slider -g=shearBlockGrid4.order2 -ts=im -dtMax=.05 -bodyDensity=.6 -tf=10. -tp=.1 -option=shearBlock -amp=1 -relaxRigidBody=0 -numberOfCorrections=1 -addedDampingProjectVelocity=0 -omega=.2 -rtolc=1.e-3 -psolver=yale -addedMass=0 -addedDamping=0  -scaleAddedDampingWithDt=1 -inertia=1e100 -nu=.1 -useProvidedAcceleration=0 -gravity=0. -show=shearBlockG4Bd0p01TP.show -addedDampingCoeff=2.5 -go=go >! shearBlockG4Bd0p01TP.out   
+
+
+***********************************************
+*** June 8, 2016
+
+SHEAR BLOCK -- allow vertical motion
+
+cgins -noplot slider -g=shearBlockGrid4.order2 -ts=im -dtMax=.05 -bodyDensity=.01 -tf=5. -tp=.1 -option=shearBlock -amp=1 -relaxRigidBody=0 -numberOfCorrections=2 -addedDampingProjectVelocity=1 -omega=.2 -rtolc=1.e-3 -psolver=yale -addedMass=1 -addedDamping=1  -scaleAddedDampingWithDt=1 -inertia=1e100 -nu=.1 -useProvidedAcceleration=1 -gravity=0. -show=shearBlockG4Bd0p01Ad4.show -addedDampingCoeff=4. -go=go >! shearBlockG4Bd0p01Ad4.out 
+
+
+***************
+*** June 6, 2016
+
+Runs for paper 
+
+cgins -noplot slider -g=shearBlockGrid4.order2 -ts=im -dtMax=.05 -bodyDensity=.01 -tf=5. -tp=.1 -option=shearBlock -amp=1 -relaxRigidBody=0 -numberOfCorrections=2 -addedDampingProjectVelocity=1 -omega=.2 -rtolc=1.e-3 -psolver=yale -addedMass=1 -addedDamping=1  -scaleAddedDampingWithDt=1 -inertia=1e100 -nu=.1 -useProvidedAcceleration=1 -gravity=0. -show=shearBlockG4Bd0p01Ad2p5.show -addedDampingCoeff=2.5 -go=go >! shearBlockG4Bd0p01Ad2p5.out 
+
+
+cgins -noplot slider -g=shearBlockGrid4.order2 -ts=im -dtMax=.05 -bodyDensity=.01 -tf=5. -tp=.1 -option=shearBlock -amp=1 -relaxRigidBody=0 -numberOfCorrections=2 -addedDampingProjectVelocity=1 -omega=.2 -rtolc=1.e-3 -psolver=yale -addedMass=1 -addedDamping=1  -scaleAddedDampingWithDt=1 -inertia=1e100 -nu=.1 -useProvidedAcceleration=1 -gravity=0. -show=shearBlockG4Bd0p01Ad8.show -addedDampingCoeff=8. -go=go >! shearBlockG4Bd0p01Ad8.out 
+
+
+cgins -noplot slider -g=shearBlockGrid4.order2 -ts=im -dtMax=.05 -bodyDensity=.01 -tf=5. -tp=.1 -option=shearBlock -amp=1 -relaxRigidBody=0 -numberOfCorrections=2 -addedDampingProjectVelocity=1 -omega=.2 -rtolc=1.e-3 -psolver=yale -addedMass=1 -addedDamping=1  -scaleAddedDampingWithDt=1 -inertia=1e100 -nu=.1 -useProvidedAcceleration=1 -gravity=0. -show=shearBlockG4Bd0p01Ad4.show -addedDampingCoeff=4. -go=go >! shearBlockG4Bd0p01Ad4.out 
+
+
+***************
+*** June 5, 2016
+
+===== NEW GRID LABELING
+
+BAD: HFW: AD=1,2 
+OK: AD= 1, 4 
+
+G4 = dy=1/40 
+cgins -noplot slider -g=shearBlockGrid4.order2 -ts=im -dtMax=.05 -bodyDensity=.01 -tf=5. -tp=.1 -option=shearBlock -amp=1 -relaxRigidBody=0 -numberOfCorrections=2 -addedDampingProjectVelocity=1 -omega=.2 -rtolc=1.e-3 -psolver=yale -addedMass=1 -addedDamping=1  -scaleAddedDampingWithDt=1 -inertia=1e100 -nu=.1 -useProvidedAcceleration=1 -gravity=0. -show=shearBlockG4.show -addedDampingCoeff=1. -go=go >! shearBlockG4.out 
+
+
+
+
+---- CHANGE SHEAR-BLOCK EXACT SOLUTION ----
+
+G64: 
+cgins -noplot slider -g=shearBlockGrid64.order2 -ts=im -dtMax=.025 -bodyDensity=.01 -tf=1. -tp=.1 -option=shearBlock -amp=1 -relaxRigidBody=0 -numberOfCorrections=2 -addedDampingProjectVelocity=1 -omega=.2 -rtolc=1.e-3 -psolver=yale -addedMass=1 -addedDamping=1 -addedDampingCoeff=4. -scaleAddedDampingWithDt=1 -inertia=1e100 -nu=.1 -useProvidedAcceleration=1 -gravity=0. -go=go >! shearBlock64.out
+
+G32: 
+cgins slider -g=shearBlockGrid32.order2 -ts=im -dtMax=.05 -bodyDensity=.01 -tf=1. -tp=.1 -option=shearBlock -amp=1 -relaxRigidBody=0 -numberOfCorrections=2 -addedDampingProjectVelocity=1 -omega=.2 -rtolc=1.e-3 -psolver=yale -addedMass=1 -addedDamping=1 -addedDampingCoeff=4. -scaleAddedDampingWithDt=1 -inertia=1e100 -nu=.1 -useProvidedAcceleration=1 -gravity=0. -go=halt
+
+     t    err(p)   err(u)   err(v)    div       uMax     dt       cpu    (20 steps)
+   1.000 2.91e-16 2.71e-04 5.48e-17 1.31e-15  3.80e-01 5.00e-02 2.10e+01 
+
+***************
+*** June 3, 2016
+
+G32
+cgins slider -g=shearBlockGrid32.order2 -ts=im -dtMax=.05 -bodyDensity=.01 -tf=1. -tp=.1 -option=shearBlock -amp=1 -relaxRigidBody=0 -numberOfCorrections=2 -addedDampingProjectVelocity=1 -omega=.2 -rtolc=1.e-3 -psolver=yale -addedMass=1 -addedDamping=1 -addedDampingCoeff=4. -scaleAddedDampingWithDt=1 -inertia=1e100 -nu=.1 -useProvidedAcceleration=1 -gravity=0. -go=halt
+
+
+
+=======================================================================================================
+=======================================================================================================
+REVISIT PISTON -- CHECK CONVERGENCE
+
+BD=.01 
+TP-SI omega= .025, .05=Better .1=Ok (.2=FAILS)
+cgins piston -g=plug4.hdf -ts=im -dtMax=.01 -bodyDensity=.1 -inertia=.1 -tf=2. -tp=.01 -relaxRigidBody=0 -numberOfCorrections=200 -omega=.05 -rtolc=1.e-5 -psolver=yale -useTP=1 -relaxRigidBody=1 -addedMass=0  -addedDamping=0 -addedDampingCoeff=1. -scaleAddedDampingWithDt=1 -nu=.01 -useProvidedAcceleration=1 -gravity=0. -option=rigidBodyPiston -debug=3 -go=halt
+
+
+BD=1 -- TP scheme --FAILS 
+TP-SI omega=.1 , .2 , .3, .5, .7  -- best=.3 ??
+cgins piston -g=plug4.hdf -ts=im -dtMax=.01 -bodyDensity=1 -inertia=1 -tf=2. -tp=.01 -relaxRigidBody=0 -numberOfCorrections=100 -omega=.1 -rtolc=1.e-5 -psolver=yale -useTP=1 -relaxRigidBody=1 -addedMass=0  -addedDamping=0 -addedDampingCoeff=1. -scaleAddedDampingWithDt=1 -nu=.01 -useProvidedAcceleration=1 -gravity=0. -option=rigidBodyPiston -debug=3 -go=halt
+
+TP: OK BD=5, BD=2=OK,  BD=1.5=BAD 
+cgins piston -g=plug4.hdf -ts=im -dtMax=.01 -bodyDensity=1.5 -inertia=1.5 -tf=2. -tp=.05 -relaxRigidBody=0 -numberOfCorrections=1 -omega=.2 -rtolc=1.e-3 -psolver=yale -addedMass=0  -addedDamping=0 -addedDampingCoeff=1. -scaleAddedDampingWithDt=1 -nu=.01 -useProvidedAcceleration=1 -gravity=0. -option=rigidBodyPiston -go=halt
+
+
+BD=10 -- TP scheme OK
+cgins piston -g=plug4.hdf -ts=im -dtMax=.01 -bodyDensity=10 -inertia=10 -tf=2. -tp=.05 -relaxRigidBody=0 -numberOfCorrections=1 -omega=.2 -rtolc=1.e-3 -psolver=yale -addedMass=0  -addedDamping=0 -addedDampingCoeff=1. -scaleAddedDampingWithDt=1 -nu=.01 -useProvidedAcceleration=1 -gravity=0. -option=rigidBodyPiston -go=halt
+
+     t    err(p)   err(u)   err(v)    div       uMax     dt       cpu    (40 steps)
+   0.400 2.12e-02 1.58e-03 5.44e-05 1.90e-02  6.59e+01 1.00e-02 3.07e+01 
+
+
+
+LIGHT: 
+cgins piston -g=plug4.hdf -ts=im -dtMax=.01 -bodyDensity=.01 -inertia=.01 -tf=2. -tp=.05 -relaxRigidBody=0 -numberOfCorrections=1 -omega=.2 -rtolc=1.e-3 -psolver=yale -addedMass=1  -addedDamping=1 -addedDampingCoeff=1. -scaleAddedDampingWithDt=1 -nu=.01 -useProvidedAcceleration=1 -gravity=0. -option=rigidBodyPiston -go=halt
+    t    err(p)   err(u)   err(v)    div       uMax     dt       cpu    (5 steps)
+   0.050 5.21e-04 1.47e-03 4.77e-05 3.13e-02  4.37e+00 1.00e-02 2.20e+00 
+    t    err(p)   err(u)   err(v)    div       uMax     dt       cpu    (10 steps)
+   0.100 8.96e-04 6.39e-04 5.11e-05 1.57e-02  7.91e+00 1.00e-02 1.13e+01 
+    t    err(p)   err(u)   err(v)    div       uMax     dt       cpu    (50 steps)
+   0.500 4.03e-05 1.36e-03 5.10e-06 1.62e-03  1.57e+00 1.00e-02 2.31e+01 
+
+
+PLUG4-IM:
+cgins piston -g=plug8.hdf -ts=im -dtMax=.005 -bodyDensity=1. -tf=2. -tp=.05 -relaxRigidBody=0 -numberOfCorrections=1 -omega=.2 -rtolc=1.e-3 -psolver=yale -addedMass=1  -addedDamping=1 -addedDampingCoeff=1. -scaleAddedDampingWithDt=1 -nu=.01 -useProvidedAcceleration=1 -gravity=0. -option=rigidBodyPiston -go=halt
+
+cgins piston -g=plug4.hdf -ts=im -dtMax=.01 -bodyDensity=1. -tf=2. -tp=.05 -relaxRigidBody=0 -numberOfCorrections=1 -omega=.2 -rtolc=1.e-3 -psolver=yale -addedMass=1  -addedDamping=1 -addedDampingCoeff=1. -scaleAddedDampingWithDt=1 -nu=.01 -useProvidedAcceleration=1 -gravity=0. -option=rigidBodyPiston -go=halt
+
+G8: 
+    t    err(p)   err(u)   err(v)    div       uMax     dt       cpu    (10 steps)
+   0.050 3.92e-03 1.73e-04 9.40e-06 6.02e-03  7.39e+00 5.00e-03 5.68e+00
+    t    err(p)   err(u)   err(v)    div       uMax     dt       cpu    (20 steps)
+   0.100 5.86e-04 6.74e-05 2.79e-06 9.50e-04  1.37e+01 5.00e-03 2.41e+01 
+     t    err(p)   err(u)   err(v)    div       uMax     dt       cpu    (40 steps)
+   0.200 7.38e-05 3.24e-05 3.89e-07 1.58e-04  2.12e+01 5.00e-03 3.70e+01 
+    t    err(p)   err(u)   err(v)    div       uMax     dt       cpu    (80 steps)
+   0.400 1.67e-06 2.14e-04 1.81e-07 6.03e-05  1.37e+01 5.00e-03 6.57e+01 
+
+
+G4: Turn on added-damping
+    t    err(p)   err(u)   err(v)    div       uMax     dt       cpu    (5 steps)
+   0.050 1.50e-02 1.34e-03 6.62e-05 3.80e-02  7.39e+00 1.00e-02 4.67e+01
+
+     t    err(p)   err(u)   err(v)    div       uMax     dt       cpu    (10 steps)
+   0.100 7.67e-03 7.47e-04 6.39e-05 1.88e-02  1.37e+01 1.00e-02 4.04e+00 
+    t    err(p)   err(u)   err(v)    div       uMax     dt       cpu    (25 steps)
+   0.250 1.52e-04 3.52e-04 1.23e-05 2.42e-03  2.22e+01 1.00e-02 1.36e+02 
+     t    err(p)   err(u)   err(v)    div       uMax     dt       cpu    (40 steps)
+   0.400 1.90e-04 8.59e-04 4.00e-06 4.39e-04  1.37e+01 1.00e-02 5.26e+00 
+
+--New
+    t    err(p)   err(u)   err(v)    div       uMax     dt       cpu    (5 steps)
+   0.050 1.50e-02 1.34e-03 6.62e-05 3.80e-02  7.39e+00 1.00e-02 2.84e+00 
+    t    err(p)   err(u)   err(v)    div       uMax     dt       cpu    (25 steps)
+   0.250 1.52e-04 3.52e-04 1.23e-05 2.42e-03  2.22e+01 1.00e-02 1.56e+01
+    t    err(p)   err(u)   err(v)    div       uMax     dt       cpu    (40 steps)
+   0.400 1.90e-04 8.59e-04 4.00e-06 4.39e-04  1.37e+01 1.00e-02 2.73e+01 
+
+-- OLD 
+     t    err(p)   err(u)   err(v)    div       uMax     dt       cpu    (25 steps)
+   0.250 1.52e-04 3.52e-04 1.23e-05 2.42e-03  2.22e+01 1.00e-02 1.16e+01 
+     t    err(p)   err(u)   err(v)    div       uMax     dt       cpu    (40 steps)
+   0.400 1.90e-04 8.59e-04 4.00e-06 4.39e-04  1.37e+01 1.00e-02 1.19e+01 
+
+
+
+
+
+***************
+*** May 31, 2016
+
+TEST POLY TZ:
+
+cgins slider -g=shearBlockGrid32.order2 -tz=poly -ts=im -dtMax=.05 -bodyDensity=.01 -tf=5. -tp=.05 -option=tz -amp=1 -relaxRigidBody=0 -numberOfCorrections=2 -addedDampingProjectVelocity=1 -omega=.2 -rtolc=1.e-3 -psolver=yale -addedMass=1 -addedDamping=1 -addedDampingCoeff=4. -scaleAddedDampingWithDt=1 -inertia=1e100 -nu=.1 -useProvidedAcceleration=1 -gravity=0. -go=halt
+
+
+
+
+
+********* NOTE -- time errors are small for shear-block since high derivatives scal like (nu)^p 
+
+TRY nu=1:
+
+G128
+cgins -noplot slider -g=shearBlockGrid128.order2 -ts=im -dtMax=.025 -bodyDensity=.01 -tf=2. -tp=.2 -option=shearBlock -amp=1 -relaxRigidBody=0 -numberOfCorrections=2 -addedDampingProjectVelocity=1 -omega=.2 -rtolc=1.e-3 -psolver=yale -addedMass=1 -addedDamping=1 -addedDampingCoeff=4. -scaleAddedDampingWithDt=1 -inertia=1e100 -nu=1. -useProvidedAcceleration=1 -gravity=0. -show=shearBlockG128.show -go=go >! shearBlockG128.out
+
+dt=.025
+--INS-- determineErrors: t=2.000e+00, maxNorm errors: [p,u,v,T]=[2.68e-15,1.83e-05,4.69e-17,0.00e+00]
+     t    err(p)   err(u)   err(v)    div       uMax     dt       cpu    (80 steps)
+   2.000 2.68e-15 1.83e-05 4.69e-17 2.14e-15  1.35e-01 2.50e-02 2.35e+00 
+
+dt=.05 
+--INS-- determineErrors: t=2.000e+00, maxNorm errors: [p,u,v,T]=[1.87e-15,2.64e-04,3.72e-17,0.00e+00]
+     t    err(p)   err(u)   err(v)    div       uMax     dt       cpu    (40 steps)
+   2.000 1.87e-15 2.64e-04 3.72e-17 1.79e-15  1.36e-01 5.00e-02 1.47e+00 
+
+G32
+cgins -noplot slider -g=shearBlockGrid32.order2 -ts=im -dtMax=.05 -bodyDensity=.01 -tf=2. -tp=.5 -option=shearBlock -amp=1 -relaxRigidBody=0 -numberOfCorrections=2 -addedDampingProjectVelocity=1 -omega=.2 -rtolc=1.e-3 -psolver=yale -addedMass=1 -addedDamping=1 -addedDampingCoeff=4. -scaleAddedDampingWithDt=1 -inertia=1e100 -nu=2. -useProvidedAcceleration=1 -gravity=0. -show=shearBlockG32.show -go=go >! shearBlockG32.out
+
+
+--INS-- determineErrors: t=2.000e+00, maxNorm errors: [p,u,v,T]=[3.56e-16,2.92e-04,1.12e-17,0.00e+00]
+     t    err(p)   err(u)   err(v)    div       uMax     dt       cpu    (22 steps)
+   2.000 3.56e-16 2.92e-04 1.12e-17 2.94e-16  1.36e-01 1.00e-01 5.85e-01 
+
+--INS-- determineErrors: t=2.000e+00, maxNorm errors: [p,u,v,T]=[2.03e-16,2.60e-04,1.33e-18,0.00e+00]
+     t    err(p)   err(u)   err(v)    div       uMax     dt       cpu    (40 steps)
+   2.000 2.03e-16 2.60e-04 1.33e-18 5.21e-17  1.86e-02 5.00e-02 8.53e-01 
+
+
+cgins -noplot slider -g=shearBlockGrid64.order2 -ts=im -dtMax=.025 -bodyDensity=.01 -tf=1. -tp=.1 -option=shearBlock -amp=1 -relaxRigidBody=0 -numberOfCorrections=2 -addedDampingProjectVelocity=1 -omega=.2 -rtolc=1.e-3 -psolver=yale -addedMass=1 -addedDamping=1 -addedDampingCoeff=4. -scaleAddedDampingWithDt=1 -inertia=1e100 -nu=.1 -useProvidedAcceleration=1 -gravity=0. -show=shearBlockG64.show -go=go >! shearBlockG64.out
+
+cgins slider -g=shearBlockGrid64.order2 -ts=im -dtMax=.025 -bodyDensity=.01 -tf=5. -tp=.1 -option=shearBlock -amp=1 -relaxRigidBody=0 -numberOfCorrections=2 -addedDampingProjectVelocity=1 -omega=.2 -rtolc=1.e-3 -psolver=yale -addedMass=1 -addedDamping=1 -addedDampingCoeff=4. -scaleAddedDampingWithDt=1 -inertia=1e100 -nu=.1 -useProvidedAcceleration=1 -gravity=0. -go=halt
+
+
+***************
+*** May 30, 2016
+
+--- ADD SHEAR-BLOCK EXACT SOLUTION ---
+
+========= CHECK CONVERGENCE========== 
+
+G256
+cgins -noplot slider -g=shearBlockGrid256.order2 -ts=im -dtMax=.0125 -bodyDensity=.01 -tf=1. -tp=.2 -option=shearBlock -amp=1 -relaxRigidBody=0 -numberOfCorrections=2 -addedDampingProjectVelocity=1 -omega=.2 -rtolc=1.e-3 -psolver=yale -addedMass=1 -addedDamping=1 -addedDampingCoeff=4. -scaleAddedDampingWithDt=1 -inertia=1e100 -nu=.1 -useProvidedAcceleration=1 -gravity=0. -show=shearBlockG256.show -go=go >! shearBlockG256.out
+
+dt=.0125 
+--INS-- determineErrors: t=1.000e+00, maxNorm errors: [p,u,v,T]=[5.43e-15,1.12e-06,1.08e-15,0.00e+00]
+     t    err(p)   err(u)   err(v)    div       uMax     dt       cpu    (80 steps)
+   1.000 5.43e-15 1.12e-06 1.08e-15 1.49e-14  9.05e-01 1.25e-02 3.46e+00 
+
+dt=.025
+--INS-- determineErrors: t=1.000e+00, maxNorm errors: [p,u,v,T]=[3.09e-15,1.08e-06,3.85e-16,0.00e+00]
+     t    err(p)   err(u)   err(v)    div       uMax     dt       cpu    (40 steps)
+   1.000 3.09e-15 1.08e-06 3.85e-16 8.33e-15  9.05e-01 2.50e-02 2.02e+00 
+
+dt=.05
+--INS-- determineErrors: t=1.000e+00, maxNorm errors: [p,u,v,T]=[2.05e-15,3.45e-06,2.81e-16,0.00e+00]
+     t    err(p)   err(u)   err(v)    div       uMax     dt       cpu    (20 steps)
+   1.000 2.05e-15 3.45e-06 2.81e-16 9.18e-15  9.05e-01 5.00e-02 1.26e+00 
+
+G128
+cgins -noplot slider -g=shearBlockGrid128.order2 -ts=im -dtMax=.05 -bodyDensity=.01 -tf=1. -tp=.2 -option=shearBlock -amp=1 -relaxRigidBody=0 -numberOfCorrections=2 -addedDampingProjectVelocity=1 -omega=.2 -rtolc=1.e-3 -psolver=yale -addedMass=1 -addedDamping=1 -addedDampingCoeff=4. -scaleAddedDampingWithDt=1 -inertia=1e100 -nu=.1 -useProvidedAcceleration=1 -gravity=0. -show=shearBlockG128.show -go=go >! shearBlockG128.out
+
+dt=.05 
+--INS-- determineErrors: t=1.000e+00, maxNorm errors: [p,u,v,T]=[8.66e-16,4.33e-06,9.67e-17,0.00e+00]
+     t    err(p)   err(u)   err(v)    div       uMax     dt       cpu    (20 steps)
+   1.000 8.66e-16 4.33e-06 9.67e-17 3.65e-15  9.05e-01 5.00e-02 1.03e+00 
+
+dt=.025 
+--INS-- determineErrors: t=1.000e+00, maxNorm errors: [p,u,v,T]=[1.67e-15,4.47e-06,2.89e-16,0.00e+00]
+     t    err(p)   err(u)   err(v)    div       uMax     dt       cpu    (40 steps)
+   1.000 1.67e-15 4.47e-06 2.89e-16 6.22e-15  9.05e-01 2.50e-02 1.53e+00
+
+dt=.0125
+--INS-- determineErrors: t=1.000e+00, maxNorm errors: [p,u,v,T]=[1.35e-15,4.50e-06,3.81e-16,0.00e+00]
+     t    err(p)   err(u)   err(v)    div       uMax     dt       cpu    (80 steps)
+   1.000 1.35e-15 4.50e-06 3.81e-16 4.77e-15  9.05e-01 1.25e-02 2.35e+00 
+
+G64
+cgins -noplot slider -g=shearBlockGrid64.order2 -ts=im -dtMax=.025 -bodyDensity=.01 -tf=1. -tp=.1 -option=shearBlock -amp=1 -relaxRigidBody=0 -numberOfCorrections=2 -addedDampingProjectVelocity=1 -omega=.2 -rtolc=1.e-3 -psolver=yale -addedMass=1 -addedDamping=1 -addedDampingCoeff=4. -scaleAddedDampingWithDt=1 -inertia=1e100 -nu=.1 -useProvidedAcceleration=1 -gravity=0. -show=shearBlockG64.show -go=go >! shearBlockG64.out
+
+--INS-- determineErrors: t=1.000e+00, maxNorm errors: [p,u,v,T]=[6.34e-16,1.80e-05,1.66e-16,0.00e+00]
+     t    err(p)   err(u)   err(v)    div       uMax     dt       cpu    (40 steps)
+   1.000 6.34e-16 1.80e-05 1.66e-16 3.52e-15  9.05e-01 2.50e-02 1.25e+00
+
+G32
+cgins -noplot slider -g=shearBlockGrid32.order2 -ts=im -dtMax=.05 -bodyDensity=.01 -tf=1. -tp=.1 -option=shearBlock -amp=1 -relaxRigidBody=0 -numberOfCorrections=2 -addedDampingProjectVelocity=1 -omega=.2 -rtolc=1.e-3 -psolver=yale -addedMass=1 -addedDamping=1 -addedDampingCoeff=4. -scaleAddedDampingWithDt=1 -inertia=1e100 -nu=.1 -useProvidedAcceleration=1 -gravity=0. -show=shearBlockG32.show -go=go >! shearBlockG32.out
+
+dt=.05 
+--INS-- determineErrors: t=1.000e+00, maxNorm errors: [p,u,v,T]=[1.67e-16,3.14e-04,3.73e-17,0.00e+00]
+     t    err(p)   err(u)   err(v)    div       uMax     dt       cpu    (20 steps)
+   1.000 1.67e-16 3.14e-04 3.73e-17 1.81e-15  9.05e-01 5.00e-02 9.15e-01 
+
+dt=.025
+--INS-- determineErrors: t=1.000e+00, maxNorm errors: [p,u,v,T]=[4.16e-16,5.67e-04,1.14e-16,0.00e+00]
+     t    err(p)   err(u)   err(v)    div       uMax     dt       cpu    (40 steps)
+   1.000 4.16e-16 5.67e-04 1.14e-16 3.88e-15  9.05e-01 2.50e-02 1.22e+00 
+
+===============================
+
+G64: rhos=.01
+
+AD=8 : unstable long wiggles
+
+AD=4,5,6 : OK
+
+AD=3 : unstable short wiggles. 
+
+AD=5, 6, OK, 
+cgins -noplot slider -g=shearBlockGrid64.order2 -ts=im -dtMax=.05 -bodyDensity=.01 -tf=10. -tp=.1 -option=shearBlock -amp=1 -relaxRigidBody=0 -numberOfCorrections=2 -addedDampingProjectVelocity=1 -omega=.2 -rtolc=1.e-3 -psolver=yale -addedMass=1 -addedDamping=1 -addedDampingCoeff=8. -scaleAddedDampingWithDt=1 -inertia=1e100 -nu=.1 -useProvidedAcceleration=1 -gravity=0. -show=shearBlockG64Ad.show -go=go >! shearBlockG64Ad.out
+
+
+
+AD=3 --NO PM wiggles
+cgins -noplot slider -g=shearBlockGrid64.order2 -ts=im -dtMax=.05 -bodyDensity=.01 -tf=10. -tp=.1 -option=shearBlock -amp=1 -relaxRigidBody=0 -numberOfCorrections=2 -addedDampingProjectVelocity=1 -omega=.2 -rtolc=1.e-3 -psolver=yale -addedMass=1 -addedDamping=1 -addedDampingCoeff=3. -scaleAddedDampingWithDt=1 -inertia=1e100 -nu=.1 -useProvidedAcceleration=1 -gravity=0. -show=shearBlockG64Ad3.show -go=go >! shearBlockG64Ad3.out
+
+AD4  -- OK 
+cgins -noplot slider -g=shearBlockGrid64.order2 -ts=im -dtMax=.05 -bodyDensity=.01 -tf=10. -tp=.1 -option=shearBlock -amp=1 -relaxRigidBody=0 -numberOfCorrections=2 -addedDampingProjectVelocity=1 -omega=.2 -rtolc=1.e-3 -psolver=yale -addedMass=1 -addedDamping=1 -addedDampingCoeff=4. -scaleAddedDampingWithDt=1 -inertia=1e100 -nu=.1 -useProvidedAcceleration=1 -gravity=0. -show=shearBlockG64Ad4.show -go=go >! shearBlockG64Ad4.out
+
+
+AD=4 : OK dt=.02 , dt=.05 
+cgins -noplot slider -g=shearBlockGrid64.order2 -ts=im -dtMax=.05 -bodyDensity=.01 -tf=5. -tp=.1 -option=shearBlock -amp=1 -relaxRigidBody=0 -numberOfCorrections=2 -addedDampingProjectVelocity=1 -omega=.2 -rtolc=1.e-3 -psolver=yale -addedMass=1 -addedDamping=1 -addedDampingCoeff=4. -scaleAddedDampingWithDt=1 -inertia=1e100 -nu=.1 -useProvidedAcceleration=1 -gravity=0. -show=shearBlock.show -go=go >! shearBlock.out
+
+NOTE: CONSTRAIN MOTION TO A LINE to stabilize TP scheme --> otherwise vertical motion
+TP: dt=.001 OK, dt=.002 NO
+cgins -noplot slider -g=shearBlockGrid64.order2 -ts=im -dtMax=.001 -bodyDensity=.01 -tf=5. -tp=.1 -option=shearBlock -amp=1 -relaxRigidBody=0 -numberOfCorrections=1 -addedDampingProjectVelocity=0 -omega=.2 -rtolc=1.e-3 -psolver=yale -addedMass=0 -addedDamping=0 -addedDampingCoeff=4. -scaleAddedDampingWithDt=0 -inertia=1e100 -nu=.1 -useProvidedAcceleration=0 -gravity=0. -show=shearBlockTP.show -go=go >! shearBlockTP.out
+
+cgins slider -g=shearBlockGrid64.order2 -ts=im -dtMax=.001 -bodyDensity=.01 -tf=10 -tp=.001 -option=shearBlock -amp=1 -relaxRigidBody=0 -numberOfCorrections=2 -addedDampingProjectVelocity=1 -omega=.2 -rtolc=1.e-3 -psolver=yale -addedMass=1 -addedDamping=1 -addedDampingCoeff=4. -scaleAddedDampingWithDt=1 -inertia=1e100 -nu=.1 -useProvidedAcceleration=1 -gravity=0. -go=halt
+
+RHOS=.01
+
+----NEW GRID ------
+
+AD=4 - OK 
+cgins -noplot slider -g=shearBlockGrid64.order2 -ts=im -dtMax=.05 -bodyDensity=.01 -tf=10 -tp=.5 -bodyForce=ramp -amp=.1 -relaxRigidBody=0 -numberOfCorrections=2 -addedDampingProjectVelocity=1 -omega=.2 -rtolc=1.e-3 -psolver=yale -addedMass=1 -addedDamping=1 -addedDampingCoeff=4. -scaleAddedDampingWithDt=1 -inertia=1e100 -nu=.1 -useProvidedAcceleration=1 -gravity=0.  -show="shearBlock64bd01Ad4.show" -go=go >! shearBlock64bd01Ad4.out
+
+
+
+
+***************
+*** May 29, 2016
+
+REVIST - SLIDING block for added damping 
+
+
+=== REDO  USE NEW scaling with 1-exp(-delta)
+
+--------- NO PROJECTION ------
+
+AD=6  low-freq wiggles growing 
+AD=4  low-freq wiggles decaying
+AD=3 : stable 
+AD=2.1, 2.2, 2.5  : stable
+AD=1.5, 2 : unstable , not +/- mode, but half-that frequency 
+AD=1 : unstable 
+
+
+AD=6
+cgins -noplot slider -g=sliderGrid64.order2 -ts=im -dtMax=.05 -bodyDensity=.01 -tf=5 -tp=.1 -bodyForce=ramp -amp=.1 -relaxRigidBody=0 -numberOfCorrections=1 -addedDampingProjectVelocity=0 -omega=.2 -rtolc=1.e-3 -psolver=yale -addedMass=1 -addedDamping=1 -addedDampingCoeff=6. -scaleAddedDampingWithDt=1 -inertia=1e100 -nu=.1 -useProvidedAcceleration=1 -gravity=0. -show="slider64bd01Ad6.show" -go=go >! slider64bd01Ad6.out
+
+AD=4
+cgins -noplot slider -g=sliderGrid64.order2 -ts=im -dtMax=.05 -bodyDensity=.01 -tf=5 -tp=.1 -bodyForce=ramp -amp=.1 -relaxRigidBody=0 -numberOfCorrections=1 -addedDampingProjectVelocity=0 -omega=.2 -rtolc=1.e-3 -psolver=yale -addedMass=1 -addedDamping=1 -addedDampingCoeff=4. -scaleAddedDampingWithDt=1 -inertia=1e100 -nu=.1 -useProvidedAcceleration=1 -gravity=0. -show="slider64bd01Ad4.show" -go=go >! slider64bd01Ad4.out
+
+AD=3
+cgins -noplot slider -g=sliderGrid64.order2 -ts=im -dtMax=.05 -bodyDensity=.01 -tf=5 -tp=.1 -bodyForce=ramp -amp=.1 -relaxRigidBody=0 -numberOfCorrections=1 -addedDampingProjectVelocity=0 -omega=.2 -rtolc=1.e-3 -psolver=yale -addedMass=1 -addedDamping=1 -addedDampingCoeff=3. -scaleAddedDampingWithDt=1 -inertia=1e100 -nu=.1 -useProvidedAcceleration=1 -gravity=0. -show="slider64bd01Ad3.show" -go=go >! slider64bd01Ad3.out
+
+AD=2
+cgins -noplot slider -g=sliderGrid64.order2 -ts=im -dtMax=.05 -bodyDensity=.01 -tf=5 -tp=.1 -bodyForce=ramp -amp=.1 -relaxRigidBody=0 -numberOfCorrections=1 -addedDampingProjectVelocity=0 -omega=.2 -rtolc=1.e-3 -psolver=yale -addedMass=1 -addedDamping=1 -addedDampingCoeff=2. -scaleAddedDampingWithDt=1 -inertia=1e100 -nu=.1 -useProvidedAcceleration=1 -gravity=0. -show="slider64bd01Ad2.show" -go=go >! slider64bd01Ad2.out
+
+
+AD=1.5
+cgins -noplot slider -g=sliderGrid64.order2 -ts=im -dtMax=.05 -bodyDensity=.01 -tf=2 -tp=.1 -bodyForce=ramp -amp=.1 -relaxRigidBody=0 -numberOfCorrections=1 -addedDampingProjectVelocity=0 -omega=.2 -rtolc=1.e-3 -psolver=yale -addedMass=1 -addedDamping=1 -addedDampingCoeff=1.5 -scaleAddedDampingWithDt=1 -inertia=1e100 -nu=.1 -useProvidedAcceleration=1 -gravity=0. -show="slider64bd01Ad1p5.show" -go=go >! slider64bd01Ad1p5.out
+
+AD=1 -- unstable
+cgins -noplot slider -g=sliderGrid64.order2 -ts=im -dtMax=.05 -bodyDensity=.01 -tf=2 -tp=.1 -bodyForce=ramp -amp=.1 -relaxRigidBody=0 -numberOfCorrections=1 -addedDampingProjectVelocity=0 -omega=.2 -rtolc=1.e-3 -psolver=yale -addedMass=1 -addedDamping=1 -addedDampingCoeff=1. -scaleAddedDampingWithDt=1 -inertia=1e100 -nu=.1 -useProvidedAcceleration=1 -gravity=0. -show="slider64bd01Ad1.show" -go=go >! slider64bd01Ad1.out
+
+
+AD=.5
+cgins -noplot slider -g=sliderGrid64.order2 -ts=im -dtMax=.05 -bodyDensity=.01 -tf=1 -tp=.1 -bodyForce=ramp -amp=.1 -relaxRigidBody=0 -numberOfCorrections=1 -addedDampingProjectVelocity=0 -omega=.2 -rtolc=1.e-3 -psolver=yale -addedMass=1 -addedDamping=1 -addedDampingCoeff=0.5 -scaleAddedDampingWithDt=1 -inertia=1e100 -nu=.1 -useProvidedAcceleration=1 -gravity=0. -show="slider64bd01Ad0p5.show" -go=go >! slider64bd01Ad0p5.out
+
+
+---------- WITH PROJECTION ------
+AD=8 : unstable: low-Freq wiggles, undamped 
+AD=5 : stable low-Freq wiggles, damped 
+AD=2, 3 : stable 
+AD=1.5 : unstable -- nearly +/- mode (more stable than 1.)
+AD=1 : unstable  +/- mode
+
+AD=8
+cgins -noplot slider -g=sliderGrid64.order2 -ts=im -dtMax=.05 -bodyDensity=.01 -tf=5 -tp=.1 -bodyForce=ramp -amp=.1 -relaxRigidBody=0 -numberOfCorrections=2 -addedDampingProjectVelocity=1 -omega=.2 -rtolc=1.e-3 -psolver=yale -addedMass=1 -addedDamping=1 -addedDampingCoeff=8. -scaleAddedDampingWithDt=1 -inertia=1e100 -nu=.1 -useProvidedAcceleration=1 -gravity=0. -show="slider64bd01Ad8pv.show" -go=go >! slider64bd01Ad8pv.out
+
+
+AD=5
+cgins -noplot slider -g=sliderGrid64.order2 -ts=im -dtMax=.05 -bodyDensity=.01 -tf=5 -tp=.1 -bodyForce=ramp -amp=.1 -relaxRigidBody=0 -numberOfCorrections=2 -addedDampingProjectVelocity=1 -omega=.2 -rtolc=1.e-3 -psolver=yale -addedMass=1 -addedDamping=1 -addedDampingCoeff=5. -scaleAddedDampingWithDt=1 -inertia=1e100 -nu=.1 -useProvidedAcceleration=1 -gravity=0. -show="slider64bd01Ad5pv.show" -go=go >! slider64bd01Ad5pv.out
+
+AD=3
+cgins -noplot slider -g=sliderGrid64.order2 -ts=im -dtMax=.05 -bodyDensity=.01 -tf=5 -tp=.1 -bodyForce=ramp -amp=.1 -relaxRigidBody=0 -numberOfCorrections=2 -addedDampingProjectVelocity=1 -omega=.2 -rtolc=1.e-3 -psolver=yale -addedMass=1 -addedDamping=1 -addedDampingCoeff=3. -scaleAddedDampingWithDt=1 -inertia=1e100 -nu=.1 -useProvidedAcceleration=1 -gravity=0. -show="slider64bd01Ad3pv.show" -go=go >! slider64bd01Ad3pv.out
+
+AD=2
+cgins -noplot slider -g=sliderGrid64.order2 -ts=im -dtMax=.05 -bodyDensity=.01 -tf=5 -tp=.1 -bodyForce=ramp -amp=.1 -relaxRigidBody=0 -numberOfCorrections=2 -addedDampingProjectVelocity=1 -omega=.2 -rtolc=1.e-3 -psolver=yale -addedMass=1 -addedDamping=1 -addedDampingCoeff=2. -scaleAddedDampingWithDt=1 -inertia=1e100 -nu=.1 -useProvidedAcceleration=1 -gravity=0. -show="slider64bd01Ad2pv.show" -go=go >! slider64bd01Ad2pv.out
+
+AD=1.5
+cgins -noplot slider -g=sliderGrid64.order2 -ts=im -dtMax=.05 -bodyDensity=.01 -tf=2.5 -tp=.1 -bodyForce=ramp -amp=.1 -relaxRigidBody=0 -numberOfCorrections=2 -addedDampingProjectVelocity=1 -omega=.2 -rtolc=1.e-3 -psolver=yale -addedMass=1 -addedDamping=1 -addedDampingCoeff=1.5 -scaleAddedDampingWithDt=1 -inertia=1e100 -nu=.1 -useProvidedAcceleration=1 -gravity=0. -show="slider64bd01Ad1p5pv.show" -go=go >! slider64bd01Adp51pv.out
+
+AD=1
+cgins -noplot slider -g=sliderGrid64.order2 -ts=im -dtMax=.05 -bodyDensity=.01 -tf=2 -tp=.1 -bodyForce=ramp -amp=.1 -relaxRigidBody=0 -numberOfCorrections=2 -addedDampingProjectVelocity=1 -omega=.2 -rtolc=1.e-3 -psolver=yale -addedMass=1 -addedDamping=1 -addedDampingCoeff=1. -scaleAddedDampingWithDt=1 -inertia=1e100 -nu=.1 -useProvidedAcceleration=1 -gravity=0. -show="slider64bd01Ad1pv.show" -go=go >! slider64bd01Ad1pv.out
+
+cgins -noplot slider -g=sliderGrid64.order2 -ts=im -dtMax=.05 -bodyDensity=.01 -tf=5. -tp=.1 -bodyForce=ramp -amp=.1 -relaxRigidBody=0 -numberOfCorrections=2 -addedDampingProjectVelocity=1 -omega=.2 -rtolc=1.e-3 -psolver=yale -addedMass=1 -addedDamping=1 -addedDampingCoeff=1. -scaleAddedDampingWithDt=1 -inertia=1e100 -nu=.1 -useProvidedAcceleration=1 -gravity=0. -go=og
+
+=== OLD: 
+G64: AD=.05 - NO 
+G64: AD=.1 -- OK 
+G64: AD=.5 -- undamped oscillations (low freq)
+
+G64: AD=.2 - oscillations (low freq, undamped)
+cgins -noplot slider -g=sliderGrid64.order2 -ts=im -dtMax=.05 -bodyDensity=.01 -tf=5. -tp=.5 -bodyForce=ramp -amp=.1 -relaxRigidBody=0 -numberOfCorrections=2 -addedDampingProjectVelocity=1 -omega=.2 -rtolc=1.e-3 -psolver=yale -addedMass=1 -addedDamping=1 -addedDampingCoeff=.2 -inertia=1e100 -nu=.1 -useProvidedAcceleration=1 -gravity=0. -show="slider64bd01Ad0p2pv.show" -go=go >! slider64bd01Ad0p2pv.out
+
+
+
 ***************
 *** May 13, 2016
 

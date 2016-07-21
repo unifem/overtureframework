@@ -118,6 +118,9 @@
 #     ogen -noplot cicArg -order=6 -interp=e -numGhost=4 -factor=4 
 #     ogen -noplot cicArg -order=6 -interp=e -numGhost=4 -factor=8 
 #
+#  -- specify discretization width to be different from the interpolation width:
+#     ogen -noplot cicArg -order=4 -dw=7 -iw=5 -interp=e -numGhost=3 -factor=2 
+#
 # -- parallel bug: holeWidth large: (np=1 ok, np=2 BAD, np=4 ok)
 #  mpirun -np 2 $ogenp -noplot cicArg -order=2 -interp=e -ml=2 -factor=2 -cx=-.5 -cy=.0
 #
@@ -130,7 +133,7 @@
 # srun -N 12 -n 96 -ppdebug $ogenp -noplot cicArg -order=2 -interp=e -factor=1000 (1.6B, 800M)
 # srun -N 12 -n 96 -ppdebug $ogenp -noplot cicArg -order=2 -interp=e -factor=1500 (all=3.6B, ave=1G, mx=2G ?, 83s)
 #
-$prefix="cic";  $rgd="var"; $bcSquare="d"; 
+$prefix="cic";  $rgd="var"; $bcSquare="d"; $dw=""; $iw=""; 
 $order=2; $factor=1; $interp="i"; $ml=0; # default values
 $orderOfAccuracy = "second order"; $ng=2; $interpType = "implicit for all grids";
 $name=""; $xa=-2.; $xb=2.; $ya=-2.; $yb=2.; 
@@ -142,7 +145,8 @@ $numGhost=-1;  # if this value is set, then use this number of ghost points
 # get command line arguments
 GetOptions( "order=i"=>\$order,"factor=f"=> \$factor,"xa=f"=>\$xa,"xb=f"=>\$xb,"ya=f"=>\$ya,"yb=f"=>\$yb,\
             "interp=s"=> \$interp,"name=s"=> \$name,"ml=i"=>\$ml,"blf=f"=> \$blf, "prefix=s"=> \$prefix,\
-            "cx=f"=>\$cx,"cy=f"=>\$cy,"rgd=s"=> \$rgd,"bcSquare=s"=>\$bcSquare,"numGhost=i"=>\$numGhost );
+            "cx=f"=>\$cx,"cy=f"=>\$cy,"rgd=s"=> \$rgd,"bcSquare=s"=>\$bcSquare,"numGhost=i"=>\$numGhost,\
+            "iw=i"=>\$iw,"dw=i"=>\$dw );
 # 
 if( $order eq 4 ){ $orderOfAccuracy="fourth order"; $ng=2; }\
 elsif( $order eq 6 ){ $orderOfAccuracy="sixth order"; $ng=3; }\
@@ -151,7 +155,8 @@ if( $interp eq "e" ){ $interpType = "explicit for all grids"; }
 # 
 if( $rgd eq "fixed" ){ $prefix = $prefix . "Fixed"; }
 if( $bcSquare eq "p" ){ $prefix = $prefix . "p"; }
-$suffix = ".order$order"; 
+if( $iw eq "" ){ $suffix = ".order$order"; }else{ $suffix = ".Iw$iw" . "Dw$dw" . "$bc"; }
+# $suffix = ".order$order"; 
 if( $numGhost ne -1 ){ $ng = $numGhost; } # overide number of ghost
 if( $numGhost ne -1 ){ $suffix .= ".ng$numGhost"; } 
 if( $blf ne 1 ){ $suffix .= ".s$blf"; }
@@ -161,7 +166,7 @@ if( $name eq "" ){$name = $prefix . "$interp$factor" . $suffix . ".hdf";}
 $ds=.1/$factor;
 $pi = 4.*atan2(1.,1.);
 # 
-$dw = $order+1; $iw=$order+1; 
+if( $dw eq "" ){ $dw = $order+1; $iw=$order+1; }
 # parallel ghost lines: for ogen we need at least:
 #       .5*( iw -1 )   : implicit interpolation 
 #       .5*( iw+dw-2 ) : explicit interpolation
@@ -244,8 +249,14 @@ generate an overlapping grid
     # choose implicit or explicit interpolation
     interpolation type
       $interpType
-    order of accuracy 
-      $orderOfAccuracy
+    #
+    # order of accuracy 
+    #   $orderOfAccuracy
+    # -- set the discretization width and interpolation width --
+    $cmd =" order of accuracy\n $orderOfAccuracy";
+    if( $dw ne "" ){ $cmd="discretization width\n all\n $dw $dw $dw\n interpolation width\n all\n all\n $iw $iw $iw"; }
+    $cmd
+    #
     ghost points
       all
       # $ngp = $ng+1;

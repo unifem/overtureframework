@@ -1,3 +1,152 @@
+******************************************
+******* Thurs July 30 29, 2016
+
+REVISIT dielectric-sphere + SOUPS44 trouble 
+
+****** TURN ON NEWER INTERFACE ITERATION 
+
+G8 FD44 
+cgmx -noplot dielectricCyl -cyl=0 -g=solidSphereInABoxe8.order4.ng3 -kx=1 -eps1=.25 -eps2=1. -method=nfdtd -tp=.1 -tf=5. -cfl=.8 -diss=2. -flushFrequency=2 -interit=5 -interfaceEquationOption=1 -interfaceOmega=.5 -show=dieSphere8FD.show -go=go >! dieSphere8FD.out
+
+TEST FD44 -- try diss=1 , *OK* to t=5
+cgmx -noplot dielectricCyl -cyl=0 -g=solidSphereInABoxe4.order4.ng3 -kx=1 -eps1=.25 -eps2=1. -method=nfdtd -tp=.05 -tf=5. -cfl=.8 -diss=1. -flushFrequency=2 -interit=5 -interfaceEquationOption=1 -interfaceOmega=.5 -show=dieSphere4FD.show -go=go >! dieSphere4FD.out
+
+>>> Cgmx:FD: t=5.00e+00 dt=3.3e-03 TS=ME ad4=1.00 |div(E)|/|grad(E)|=3.43e-03 (=2.84e-02/8.26e+00) 1500 steps mem=1.26e+03(Mb) cpu=2.97e+03(s)
+>>> t=5.00e+00 dt=3.3e-03 max errors:[4.56e-03,6.28e-03,1.66e-03,], max (u):[8.95e-01,1.53e+00,4.49e-01,] (1500 steps)
+
+
+
+NEW WAY -- SOSUP (see directory dielectricSphere)
+
+>>> t=7.00e-01 dt=4.5e-03 max errors:[2.08e-04,4.84e-04,8.00e-05,1.65e-03,3.74e-03,7.05e-04,], max (u):[9.54e-01,1.53e+00,4.72e-01,5.32e+00,9.62e+00,2.89e+00,] (154 steps)
+>>> Cgmx:SOSUP: t=7.00e-01 dt=4.5e-03 TS=ME |div(E)|/|grad(E)|=4.71e-04 (=3.90e-03/8.27e+00) 154 steps mem=2.03e+03(Mb) cpu=3.10e+03(s)
+
+
+RERUN OLD CASE: should go bad around t=.5:
+   -- no iterations, old interface routines
+nohup $cgmx -noplot dielectricCyl -cyl=0 -g=solidSphereInABoxe4.order4.ng3 -kx=1 -eps1=.25 -eps2=1. -method=sosup -tp=.05 -tf=.75 -cfl=.8 -flushFrequency=2  -interit=1 -interfaceEquationOption=0 -show=dieSphere4Sosup.show -go=go >! dieSphere4Sosup.out 
+
+**GOES BAD : 
+>>> Cgmx:SOSUP: t=7.00e-01 dt=4.5e-03 TS=ME |div(E)|/|grad(E)|=2.12e-01 (=1.75e+00/8.27e+00) 154 steps mem=2.03e+03(Mb) cpu=2.89e+03(s)
+>>> t=7.00e-01 dt=4.5e-03 max errors:[1.74e-02,1.19e-02,2.36e-02,3.36e+00,2.20e+00,4.47e+00,], max (u):[9.54e-01,1.53e+00,4.72e-01,6.21e+00,9.62e+00,4.55e+00,] (154 steps)
+
+
+      
+G2 SOSUP44: DIELECTRIC SPHERE
+cgmx dielectricCyl -cyl=0 -g=solidSphereInABoxe2.order4.ng3 -kx=1 -eps1=.25 -eps2=1. -method=sosup -tp=.05 -tf=5. -cfl=.8 -flushFrequency=2 -interit=5 -interfaceEquationOption=1 -interfaceOmega=.5 -go=halt
+
+G4 FD44: DIELECTRIC SPHERE
+cgmx dielectricCyl -cyl=0 -g=solidSphereInABoxe4.order4.ng3 -kx=1 -eps1=.25 -eps2=1. -method=nfdtd -tp=.05 -tf=5. -cfl=.8 -diss=2. -flushFrequency=2 -interit=5 -interfaceEquationOption=1 -interfaceOmega=.5 -go=halt
+
+G2 FD44: DIELECTRIC SPHERE
+cgmx dielectricCyl -cyl=0 -g=solidSphereInABoxe2.order4.ng3 -kx=1 -eps1=.25 -eps2=1. -method=nfdtd -tp=.05 -tf=5. -cfl=.8 -diss=1. -flushFrequency=2 -interit=5 -interfaceEquationOption=1 -interfaceOmega=.5 -go=halt
+
+
+
+******************************************
+******* Wed June 29, 2016
+
+REVISIT dielectric-sphere + SOUPS44 trouble 
+
+
+SOSUP44:  looks better, but may need more iterations ??
+
+*use new interface* omega=.7 too big , omega=5. OK
+cgmx dielectricCyl -cyl=0 -g=solidSphereInABoxe4.order4.ng3 -kx=1 -eps1=.25 -eps2=1. -method=sosup -tp=.05 -tf=5. -cfl=.8 -diss=2. -flushFrequency=2 -go=halt -interfaceEquationOption=1 -interfaceOmega=.4
+
+>>> Cgmx:SOSUP: t=5.00e-02 dt=4.5e-03 TS=ME |div(E)|/|grad(E)|=3.91e-04 (=3.23e-03/8.26e+00) 11 steps mem=1.99e+03(Mb) cpu=2.27e+02(s)
+>>> t=5.00e-02 dt=4.5e-03 max errors:[5.76e-05,1.37e-04,1.97e-05,1.58e-03,2.87e-03,5.87e-04,], max (u):[9.31e-01,1.53e+00,4.34e-01,5.52e+00,9.62e+00,3.01e+00,] (11 steps)
+
+>>> t=4.00e-01 dt=4.5e-03 max errors:[1.85e-04,3.39e-04,5.31e-05,1.69e-03,2.76e-03,1.68e-03,], max (u):[7.93e-01,1.53e+00,4.68e-01,6.05e+00,9.58e+00,2.90e+00,] (88 steps)
+>>> Cgmx:SOSUP: t=4.50e-01 dt=4.5e-03 TS=ME |div(E)|/|grad(E)|=4.66e-04 (=3.86e-03/8.27e+00) 99 steps mem=2.1e+03(Mb) cpu=1.87e+03(s)
+>>> t=4.50e-01 dt=4.5e-03 max errors:[1.82e-04,3.78e-04,5.84e-05,2.29e-03,4.35e-03,2.68e-03,], max (u):[8.46e-01,1.53e+00,4.60e-01,6.00e+00,9.60e+00,2.97e+00,] (99 steps)
+
+>>> Cgmx:SOSUP: t=1.10e+00 dt=4.5e-03 TS=ME |div(E)|/|grad(E)|=5.00e-03 (=4.13e-02/8.26e+00) 242 steps mem=2.11e+03(Mb) cpu=4.50e+03(s)
+>>> t=1.10e+00 dt=4.5e-03 max errors:[3.58e-04,5.67e-04,6.55e-04,4.46e-02,5.27e-02,7.48e-02,], max (u):[9.51e-01,1.52e+00,4.45e-01,5.12e+00,9.62e+00,2.99e+00,] (242 steps)
+>>> Cgmx:SOSUP: t=1.15e+00 dt=4.5e-03 TS=ME |div(E)|/|grad(E)|=6.34e-03 (=5.24e-02/8.26e+00) 253 steps mem=2.11e+03(Mb) cpu=4.71e+03(s)
+>>> t=1.15e+00 dt=4.5e-03 max errors:[4.85e-04,5.96e-04,9.16e-04,6.99e-02,6.29e-02,9.35e-02,], max (u):[9.63e-01,1.53e+00,4.62e-01,4.98e+00,9.63e+00,2.94e+00,] (253 steps)
+>>> Cgmx:SOSUP: t=1.20e+00 dt=4.5e-03 TS=ME |div(E)|/|grad(E)|=9.47e-03 (=7.83e-02/8.26e+00) 264 steps mem=2.11e+03(Mb) cpu=4.91e+03(s)
+>>> t=1.20e+00 dt=4.5e-03 max errors:[7.12e-04,7.83e-04,1.40e-03,8.15e-02,6.78e-02,1.45e-01,], max (u):[9.54e-01,1.53e+00,4.73e-01,5.32e+00,9.62e+00,2.89e+00,] (264 steps)
+>>> Cgmx:SOSUP: t=1.25e+00 dt=4.5e-03 TS=ME |div(E)|/|grad(E)|=1.20e-02 (=9.89e-02/8.27e+00) 275 steps mem=2.11e+03(Mb) cpu=5.12e+03(s)
+>>> t=1.25e+00 dt=4.5e-03 max errors:[8.16e-04,1.19e-03,1.59e-03,9.12e-02,1.08e-01,1.76e-01,], max (u):[9.26e-01,1.53e+00,4.78e-01,5.63e+00,9.61e+00,2.82e+00,] (275 steps)
+>>> Cgmx:SOSUP: t=1.30e+00 dt=4.5e-03 TS=ME |div(E)|/|grad(E)|=1.70e-02 (=1.41e-01/8.27e+00) 286 steps mem=2.11e+03(Mb) cpu=5.33e+03(s)
+>>> t=1.30e+00 dt=4.5e-03 max errors:[1.14e-03,1.35e-03,1.87e-03,1.56e-01,1.35e-01,2.67e-01,], max (u):[8.79e-01,1.53e+00,4.79e-01,5.85e+00,9.59e+00,2.73e+00,] (286 steps)
+
+
+
+   OLD  **FAILS ** t=.5 or so
+cgmx dielectricCyl -cyl=0 -g=solidSphereInABoxe4.order4.ng3 -kx=1 -eps1=.25 -eps2=1. -method=sosup -tp=.05 -tf=5. -cfl=.8 -diss=2. -flushFrequency=2 -go=halt
+
+
+
+******************************************
+******* Thurs June 23, 2016
+
+-- Add to regression tests
+
+cgmx dielectricCyl -cyl=0 -g=solidSphereInABoxe2.order4.ng3 -kx=1 -eps1=.25 -eps2=1. -method=sosup -tp=.01 -tf=.01 -go=halt
+
+cgmx dielectricCyl -cyl=0 -g=solidSphereInABoxe2.order4.ng3 -kx=1 -eps1=.25 -eps2=1. -method=fd -tp=.01 -tf=.01 -go=halt 
+
+
+cgmx dielectricCyl -cyl=0 -g=solidSphereInABoxe2.order2 -kx=1 -eps1=.25 -eps2=1. -method=sosup -tp=.01 -tf=.01 -go=halt 
+cgmx dielectricCyl -cyl=0 -g=solidSphereInABoxe2.order2 -kx=1 -eps1=.25 -eps2=1. -method=fd -tp=.01 -tf=.01 -go=halt 
+
+
+
+
+*************************************************************
+****** Wed. June 15, 2016  REVISIT INSTABILITY AT THE INTERFACE
+
+================== REVISIT SPLIT ANNULUS ===================
+
+*** OFFSET SPLIT ***
+************ CHANGE OFFSET GRIDS SO THEY DO NOT ALIGN
+
+
+FD44 -- OK
+cgmx dielectricCyl -g=innerOuterSplitGride8.order4.ng3 -kx=2 -eps1=.25 -eps2=1. -method=fd -tp=.1 -diss=2. -go=halt
+
+
+SOSUP44: G8 --OK
+cgmx dielectricCyl -g=innerOuterSplitGride8.order4.ng3 -kx=2 -eps1=.25 -eps2=1. -method=sosup -tp=.1 -go=halt
+
+SOSUP44: G4  --OK
+cgmx dielectricCyl -g=innerOuterSplitGride4.order4.ng3 -kx=2 -eps1=.25 -eps2=1. -method=sosup -tp=.1 -go=halt
+
+
+===========================================================
+
+
+G8 FD44 disss=8  --> longer
+cgmx -noplot dielectricCyl -cyl=0 -g=solidSphereInABoxe8.order4.ng3 -kx=1 -eps1=.25 -eps2=1. -method=nfdtd -tp=.05 -tf=10. -cfl=.8 -diss=8. -flushFrequency=2 -show=dieSphereG8FD44b.show -go=go >! dieSphereG8FD44b.out 
+
+
+G8 FD44: DIELECTRIC SPHERE -- **TROUBLE*** diss=4 --> t=.5 div(E) gets large 
+                                           diss=8 OK till t=1.
+cgmx -noplot dielectricCyl -cyl=0 -g=solidSphereInABoxe8.order4.ng3 -kx=1 -eps1=.25 -eps2=1. -method=nfdtd -tp=.01 -tf=1. -cfl=.8 -diss=8. -flushFrequency=2 -show=dieSphereG8FD44a.show -go=go >! dieSphereG8FD44a.out 
+
+G4 FD44: DIELECTRIC SPHERE --OK 
+cgmx -noplot dielectricCyl -cyl=0 -g=solidSphereInABoxe4.order4.ng3 -kx=1 -eps1=.25 -eps2=1. -method=nfdtd -tp=.05 -tf=5. -cfl=.8 -diss=2. -flushFrequency=2 -show=dieSphereG2FD44.show -go=go >! dieSphereG4FD44.out
+
+
+*************************************************************
+****** Tues. June 14, 2016  REVISIT INSTABILITY AT THE INTERFACE
+
+SOSUP44:  **FAILS ** t=.5 or so
+cgmx dielectricCyl -cyl=0 -g=solidSphereInABoxe4.order4.ng3 -kx=1 -eps1=.25 -eps2=1. -method=sosup -tp=.05 -tf=5. -cfl=.8 -diss=2. -flushFrequency=2 -go=halt
+
+
+
+G8 FD44: DIELECTRIC SPHERE -- **TROUBLE*** t=.5 div(E) gets large 
+cgmx -noplot dielectricCyl -cyl=0 -g=solidSphereInABoxe8.order4.ng3 -kx=1 -eps1=.25 -eps2=1. -method=nfdtd -tp=.05 -tf=10. -cfl=.8 -diss=4. -flushFrequency=2 -show=dieSphereG8FD44.show -go=go >! dieSphereG8FD44.out 
+
+G4 FD44: DIELECTRIC SPHERE -- OK to t=5 
+cgmx dielectricCyl -cyl=0 -g=solidSphereInABoxe4.order4.ng3 -kx=1 -eps1=.25 -eps2=1. -method=nfdtd -tp=.05 -tf=5. -cfl=.8 -diss=2. -flushFrequency=2 -go=halt
+
+>>> Cgmx:FD: t=5.00e+00 dt=2.5e-03 TS=ME ad4=2.00 |div(E)|/|grad(E)|=6.51e-03 (=5.38e-02/8.26e+00) 2000 steps mem=1.34e+03(Mb) cpu=2.48e+03(s)
+>>> t=5.00e+00 dt=2.5e-03 max errors:[8.99e-03,1.26e-02,3.30e-03,], max (u):[8.95e-01,1.52e+00,4.50e-01,] (2000 steps)
+
 
 *************************************************************
 ****** August 17, 2015 --   REVISIT INTERFACE CONDIIONS

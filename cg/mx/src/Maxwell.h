@@ -183,7 +183,6 @@ class Maxwell
   ~Maxwell();
   
 
-
   int addDissipation( int current, real t, real dt, realMappedGridFunction *fields, const Range & C );
 
   void addFilter( int current, real t, real dt );
@@ -214,7 +213,9 @@ class Maxwell
   
   void assignInitialConditions(int current, real t, real dt);
   
-  void assignInterfaceBoundaryConditions( int current, real t, real dt );
+  void assignInterfaceBoundaryConditions( int current, real t, real dt, 
+                                          bool assignInterfaceValues,
+                                          bool assignInterfaceGhostValues );
 
   int assignUserDefinedKnownSolutionInitialConditions(int current, real t, real dt );
 
@@ -350,6 +351,7 @@ class Maxwell
 protected:
   int buildTimeSteppingOptionsDialog(DialogData & dialog );
   int buildForcingOptionsDialog(DialogData & dialog );
+  int buildInitialConditionsOptionsDialog(DialogData & dialog );
   int buildPlotOptionsDialog(DialogData & dialog );
   int buildInputOutputOptionsDialog(DialogData & dialog );
   int buildPdeParametersDialog(DialogData & dialog);

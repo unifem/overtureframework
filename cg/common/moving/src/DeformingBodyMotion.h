@@ -219,7 +219,7 @@ int get( const GenericDataBase & dir, const aString & name);
 int put( GenericDataBase & dir, const aString & name) const;
 
 // Write information to the `check file' 
-int writeCheckFile( FILE *file );
+int writeCheckFile( real t, FILE *file );
 
 // Write information about the moving grids
 void writeParameterSummary( FILE *file= stdout );

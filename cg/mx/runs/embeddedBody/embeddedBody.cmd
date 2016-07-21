@@ -5,7 +5,8 @@
 #   
 #  cgmx [-noplot] embeddedBody -g=<name> -tf=<tFinal> -tp=<tPlot>  -method=[nfdtd|Yee|sosup] 
 #                      -theta=<degrees> -diss=<> -rbc=[abcEM2|abcPML] -debug=<num> -cons=[0/1] ...
-#                      -plotIntensity=[0|1] -go=[run/halt/og]
+#                      -plotIntensity=[0|1] -sidebc=[symmety|abcEM2] ...
+#                      -upperbc=[planeWaveBoundaryCondition|abcEM2|abcPML] -go=[run/halt/og]
 # Arguments:
 #  -angle : angle of incidence of plane wave from the vertical
 #      Incident wave is u(x,y,t) = F(2*pi*[ c*t - x*sin(theta) - y*cos(theta) ])
@@ -15,26 +16,32 @@
 #
 #================================================================================================
 # 
-$tFinal=10.; $tPlot=.1; $diss=1.; $cfl=.9; $plotIntensity=0;  $method="NFDTD"; $sidebc="symmetry"; 
-$projectFields=0; $projectionFrequency=5;  $projectInterp=0;
+$tFinal=10.; $tPlot=.1; $diss=1.; $cfl=.9; $plotIntensity=0;  $method="NFDTD"; 
+$sidebc="symmetry"; 
+$projectInitialConditions=0; $projectFields=0; $projectionFrequency=5;  $projectInterp=0;
 $theta=60; # angle of incidence of plane wave from the vertical
 $grid="embeddedBodyGride2.order2.hdf"; $backGround="square"; 
 $cons=0; $go="halt"; 
+#
+$planeWaveInitialCondition=0; # 1=use plane wave initial condition (inside bounding box)
+$upperbc="planeWaveBoundaryCondition"; 
 $ax=0.; $ay=0.; $az=0.; # plane wave coeffs. all zero -> use default
 $epsUpper=1.; $muUpper=1.;
 $epsLower=6.; $muLower=1.;
-$useNewInterface=1; 
-$interfaceIterations=3;
+$useNewInterface=1; $interfaceIterations=3;
 $xa=1.; $xb=100.; $ya=1.; $yb=100.; $za=-100.; $zb=100.;  # initial condition bounding box
+$xa=-100.; $xb=100.; $ya=1.001; $yb=100.; $za=-100.; $zb=100.;  # initial condition bounding box
 $rbc="abcEM2"; # radiation BC 
 $pmlLines=11; $pmlPower=6; $pmlStrength=50.; # pml parameters
 # ----------------------------- get command line arguments ---------------------------------------
 GetOptions( "g=s"=>\$grid,"tf=f"=>\$tFinal,"diss=f"=>\$diss,"tp=f"=>\$tPlot,"show=s"=>\$show,"debug=i"=>\$debug, \
  "cfl=f"=>\$cfl, "bg=s"=>\$backGround,"bcn=s"=>\$bcn,"go=s"=>\$go,"noplot=s"=>\$noplot,"method=s"=>\$method,\
-  "dtMax=f"=>\$dtMax,"theta=f"=>\$theta,"plotIntensity=i"=>\$plotIntensity, "cons=i"=>\$cons,\
+  "dtMax=f"=>\$dtMax,"theta=f"=>\$theta,"plotIntensity=i"=>\$plotIntensity,"cons=i"=>\$cons,\
   "rbc=s"=>\$rbc,"pmlLines=i"=>\$pmlLines,"pmlPower=i"=>\$pmlPower,"pmlStrength=f"=>\$pmlStrength,\
   "xa=f"=>\$xa,"ya=f"=>\$ya,"projectFields=i"=>\$projectFields,"projectionFrequency=i"=>\$projectionFrequency,\
-  "projectInterp=i"=>\$projectInterp,"sidebc=s"=>\$sidebc  );
+  "projectInterp=i"=>\$projectInterp,"sidebc=s"=>\$sidebc,"upperbc=s"=>\$upperbc,\
+  "planeWaveInitialCondition=i"=>\$planeWaveInitialCondition,\
+  "projectInitialConditions=i"=>\$projectInitialConditions  );
 # -------------------------------------------------------------------------------------------------
 if( $method eq "sosup" ){ $diss=0.; }
 if( $go eq "halt" ){ $go = "break"; }
@@ -49,14 +56,20 @@ $kz=0.;
 $grid
 #
 $method
+# -- if planeWaveInitialCondition==1 :
+#     - use a plane wave initial condition
+#     - set top BC to an ABC
+#     - adjust ABC boundaries for incident fields (plane wave) so abc applies to scattered field only
 #
-## planeWaveInitialCondition
-zeroInitialCondition
+if( $planeWaveInitialCondition eq 1 ){ $cmd="planeWaveInitialCondition"; }else{ $cmd="zeroInitialCondition"; }
+$cmd
 #
 $kya= abs($ky);
 # $ya = $yb - int( ($yb-$ya)*$kya +.5 )/$kya;   # we need to clip the plane wave on a period
 initial condition bounding box $xa $xb $ya $yb $za $zb
-$beta=10.; # exponent in tanh function for smooth transition to zero outside the bounding box
+#  damp initial conditions on the bottom of the box: 
+bounding box decay face 0 1 
+$beta=5.; # exponent in tanh function for smooth transition to zero outside the bounding box
 bounding box decay exponent $beta
 # 
 plane wave coefficients $ax $ay $az $epsUpper $muUpper
@@ -66,8 +79,8 @@ kx,ky,kz $kx $ky $kz
 # -- boundary conditions:
 #
 bc: all=$sidebc
-bc: upperHalfSpace(1,1)=planeWaveBoundaryCondition
-bc: upperHalfSpaceCoarse(1,1)=planeWaveBoundaryCondition
+bc: upperHalfSpace(1,1)=$upperbc
+bc: upperHalfSpaceCoarse(1,1)=$upperbc
 ## bc: upperHalfSpaceCoarse(1,0)=planeWaveBoundaryCondition
 bc: bodySquare=perfectElectricalConductor
 #
@@ -90,14 +103,15 @@ tPlot  $tPlot
 # 
 # -- we need to subtract out the incident field on the "inflow" boundary before
 #    applying the radiation boundary condition: 
-$adjustFields=0; 
+if( $planeWaveInitialCondition eq 1 ){ $adjustFields=1; }else{ $adjustFields=0;  }
 adjust boundaries for incident field 0 all
 adjust boundaries for incident field $adjustFields upperHalfSpace
 adjust boundaries for incident field $adjustFields upperHalfSpaceCoarse
 # 
 dissipation  $diss
 #
-# Optionall project the divergence
+# Optional project the divergence
+project initial conditions $projectInitialConditions
 project fields $projectFields
 projection frequency $projectionFrequency
 project interpolation points $projectInterp
