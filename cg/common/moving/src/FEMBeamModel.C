@@ -47,8 +47,6 @@ FEMBeamModel()
   FEMBeamCounter++;
   printF("-- BM%i -- construct an %s\n",getBeamID(),beamType.c_str());
 
-  // t = 0.0;  //Longfei: leave this for FEMBeamModel for now, since its too much tedius to change it
-
 
   //set some default parameters for FEMBeamModel
   dbase.get<int>("numberOfGhostPoints")=0; // numOfGhost on each side
