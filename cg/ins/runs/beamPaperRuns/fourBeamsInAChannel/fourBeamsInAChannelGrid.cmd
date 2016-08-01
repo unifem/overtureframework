@@ -20,6 +20,7 @@
 #      ogen -noplot fourBeamsInAChannelGrid -interp=e -factor=16 
 #      ogen -noplot fourBeamsInAChannelGrid -interp=e -factor=32
 # 
+#     Longer channel:
 #      ogen -noplot fourBeamsInAChannelGrid -xa=-2 -xc=14 -prefix=fourBeamsInALongerChannelGrid -inter=e -factor=2
 #
 #

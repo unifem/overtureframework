@@ -4,10 +4,10 @@
 test FDBeamModel:
 beamInAChannel:
 
-redo this to see if anything is damaged: (PID 29911) FAILED. 07/13/2016 try turn off assignBC for vtilde and dtilde 
+redo this to see if anything is damaged: (PID 29911) FAILED !!!!. 
 cgins -noplot multiBeamsInAChannel -BM=FEM -g=multiBeamsInAChannelGride8.order2.hdf -tf=20. -tp=.01 -rhoBeam=1. -E=20 -numElem=21 -outflowOption=neumann -nu=1.e-3  -addedMass=1 -ampProjectVelocity=1 -useApproximateAMPcondition=1 -numberOfCorrections=1 -show=twoFEMBeamsInAChannelRhos1E20G8.show -go=go > ! twoFEMBeamsInAChannelRhos1E20G8.out &
 
-same run with FD1 and beamSmoother: (PID 31205)
+same run with FD1 and beamSmoother: (PID 31205)  OK !!!!
 cgins -noplot multiBeamsInAChannel -BM=FD -g=multiBeamsInAChannelGride8.order2.hdf -tf=20. -tp=.01 -rhoBeam=1. -E=20 -numElem=21 -outflowOption=neumann -nu=1.e-3  -addedMass=1 -ampProjectVelocity=1 -useApproximateAMPcondition=1 -numberOfCorrections=1 -smoothInterfaceVelocity=1 -nis=10 -smoothBeam=1 -numberOfBeamSmooths=10  -show=twoFD1BeamsInAChannelRhos1E20G8.show -go=go > ! twoFD1BeamsInAChannelRhos1E20G8.out &
 
 PBF:(OK at t=5)

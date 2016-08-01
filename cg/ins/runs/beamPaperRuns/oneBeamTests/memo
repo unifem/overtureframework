@@ -1,3 +1,163 @@
+=======07/27/2016===========
+NBNB-FD1 (nis=4 Failed at t=3.8, OK for rho=10. for cfls=0.5 and rho=1, failed at t=14)
+cgins -abortOnEnd -noplot oneBeamInAChannel -BM1=FD -g=oneBeamInALongerChannelGride1.order2.hdf -tf=10. -tp=.01 -rhoBeam=10. -E=2. -numElem=7 -outflowOption=neumann -nu=1.e-3 -addedMass=1 -ampProjectVelocity=1 -useApproximateAMPcondition=0 -useSameStencilSize=1 -smoothBeam=0 -smoothInterfaceVelocity=1 -nis=4  -numberOfCorrections=1 -saveProbe=1 -cfls=1.  -ps=newmark2Implicit -cs=newmarkCorrector -go=go -show=aaFD.show > aaFD.out &
+
+NBNB-FEM (OK for both rho=1 and rho=10 at t=10)
+cgins -abortOnEnd -noplot oneBeamInAChannel -BM1=FEM -g=oneBeamInALongerChannelGride1.order2.hdf -tf=10. -tp=.01 -rhoBeam=1. -E=2. -numElem=7 -outflowOption=neumann -nu=1.e-3 -addedMass=1 -ampProjectVelocity=1 -useApproximateAMPcondition=0 -useSameStencilSize=1 -smoothBeam=0 -smoothInterfaceVelocity=1 -nis=4  -numberOfCorrections=1 -saveProbe=1 -cfls=1.  -ps=newmark2Implicit -cs=newmarkCorrector -go=go -show=aaFEM.show > aaFEM.out & 
+
+AB+AM+FD1 (failed, but is ok when rhoBeam=10)
+cgins -abortOnEnd -noplot oneBeamInAChannel -BM1=FD -g=oneBeamInALongerChannelGride1.order2.hdf -tf=10. -tp=.01 -rhoBeam=10. -E=2. -numElem=7 -outflowOption=neumann -nu=1.e-3 -addedMass=1 -ampProjectVelocity=1 -useApproximateAMPcondition=0 -useSameStencilSize=1 -smoothBeam=0 -smoothInterfaceVelocity=1 -nis=4  -numberOfCorrections=1 -saveProbe=1 -cfls=1.  -ps=adamsBashforth2 -cs=adamsMoultonCorrector -go=go -show=aa.show
+
+FAIL at t= 3.8 cfls=1;
+cgins -abortOnEnd -noplot oneBeamInAChannel -BM1=FD -g=oneBeamInALongerChannelGride1.order2.hdf -tf=10. -tp=.01 -rhoBeam=1. -E=2. -numElem=7 -outflowOption=neumann -nu=1.e-3 -addedMass=1 -ampProjectVelocity=1 -useApproximateAMPcondition=0 -useSameStencilSize=1 -smoothBeam=0 -smoothInterfaceVelocity=1 -nis=4 -numberOfCorrections=1 -saveProbe=1 -cfls=1 -ps=newmark2Implicit -cs=newmarkCorrector -go=go -show=aa -recomputeGVOnCorrection=1
+
+
+
+(OK at 10)
+NBNB-FD1 + smoother
+cgins -abortOnEnd -noplot oneBeamInAChannel -BM1=FD -g=oneBeamInALongerChannelGride1.order2.hdf -tf=10. -tp=.01 -rhoBeam=1. -E=2. -numElem=7 -outflowOption=neumann -nu=1.e-3 -addedMass=1 -ampProjectVelocity=1 -useApproximateAMPcondition=0 -useSameStencilSize=1 -smoothBeam=1 -numberOfBeamSmooths=4 -smoothInterfaceVelocity=1 -nis=4  -numberOfCorrections=1 -saveProbe=1 -cfls=1.  -ps=newmark2Implicit -cs=newmarkCorrector -go=go -show=aa.show
+
+========07/24/2016==========
+FIXED bug in  interpolateSolutions in FDBeamModel
+WDH added "recompute grid velocity on correction", try with and without this option:
+
+
+Number of runs = 16
+
+Sun Jul 24 12:04:56 2016
+Run 1
+==============================================
+cmd:
+/home/lil19/cg.g/ins/bin/cgins -abortOnEnd -noplot oneBeamInAChannel -BM1=FD  -g=oneBeamInALongerChannelGride1.order2.hdf -tf=3. -tp=.01 -rhoBeam=1. -E=10. -numElem=7 -outflowOption=neumann -nu=1.e-1  -addedMass=1 -ampProjectVelocity=1 -useApproximateAMPcondition=0 -useSameStencilSize=1 -numberOfCorrections=1 -saveProbe=1 -cfls=1. -ps=adamsBashforth2 -cs=adamsMoultonCorrector -smoothInterfaceVelocity=1 -nis=1 -smoothBeam=1 -numberOfBeamSmooths=1 -rampInflow=1  -recomputeGVOnCorrection=1 -show=rhos10_E10_Re10_vNBS_vNIS_AMP_FD1_ABAM_G1.show -go=go > rhos10_E10_Re10_vNBS_vNIS_AMP_FD1_ABAM_G1.out &
+executing cmd ------>
+==============================================
+
+Sun Jul 24 12:04:56 2016
+Run 2
+==============================================
+cmd:
+/home/lil19/cg.g/ins/bin/cgins -abortOnEnd -noplot oneBeamInAChannel -BM1=FD  -g=oneBeamInALongerChannelGride2.order2.hdf -tf=3. -tp=.01 -rhoBeam=1. -E=10. -numElem=14 -outflowOption=neumann -nu=1.e-1  -addedMass=1 -ampProjectVelocity=1 -useApproximateAMPcondition=0 -useSameStencilSize=1 -numberOfCorrections=1 -saveProbe=1 -cfls=1. -ps=adamsBashforth2 -cs=adamsMoultonCorrector -smoothInterfaceVelocity=1 -nis=2 -smoothBeam=1 -numberOfBeamSmooths=2 -rampInflow=1  -recomputeGVOnCorrection=1 -show=rhos10_E10_Re10_vNBS_vNIS_AMP_FD1_ABAM_G2.show -go=go > rhos10_E10_Re10_vNBS_vNIS_AMP_FD1_ABAM_G2.out &
+executing cmd ------>
+==============================================
+
+Sun Jul 24 12:04:56 2016
+Run 3
+==============================================
+cmd:
+/home/lil19/cg.g/ins/bin/cgins -abortOnEnd -noplot oneBeamInAChannel -BM1=FD  -g=oneBeamInALongerChannelGride4.order2.hdf -tf=3. -tp=.01 -rhoBeam=1. -E=10. -numElem=28 -outflowOption=neumann -nu=1.e-1  -addedMass=1 -ampProjectVelocity=1 -useApproximateAMPcondition=0 -useSameStencilSize=1 -numberOfCorrections=1 -saveProbe=1 -cfls=1. -ps=adamsBashforth2 -cs=adamsMoultonCorrector -smoothInterfaceVelocity=1 -nis=4 -smoothBeam=1 -numberOfBeamSmooths=4 -rampInflow=1  -recomputeGVOnCorrection=1 -show=rhos10_E10_Re10_vNBS_vNIS_AMP_FD1_ABAM_G4.show -go=go > rhos10_E10_Re10_vNBS_vNIS_AMP_FD1_ABAM_G4.out &
+executing cmd ------>
+==============================================
+
+Sun Jul 24 12:04:56 2016
+Run 4
+==============================================
+cmd:
+/home/lil19/cg.g/ins/bin/cgins -abortOnEnd -noplot oneBeamInAChannel -BM1=FD  -g=oneBeamInALongerChannelGride8.order2.hdf -tf=3. -tp=.01 -rhoBeam=1. -E=10. -numElem=56 -outflowOption=neumann -nu=1.e-1  -addedMass=1 -ampProjectVelocity=1 -useApproximateAMPcondition=0 -useSameStencilSize=1 -numberOfCorrections=1 -saveProbe=1 -cfls=1. -ps=adamsBashforth2 -cs=adamsMoultonCorrector -smoothInterfaceVelocity=1 -nis=8 -smoothBeam=1 -numberOfBeamSmooths=8 -rampInflow=1  -recomputeGVOnCorrection=1 -show=rhos10_E10_Re10_vNBS_vNIS_AMP_FD1_ABAM_G8.show -go=go > rhos10_E10_Re10_vNBS_vNIS_AMP_FD1_ABAM_G8.out &
+executing cmd ------>
+==============================================
+
+Sun Jul 24 12:04:56 2016
+Run 5
+==============================================
+cmd:
+/home/lil19/cg.g/ins/bin/cgins -abortOnEnd -noplot oneBeamInAChannel -BM1=FD  -g=oneBeamInALongerChannelGride1.order2.hdf -tf=3. -tp=.01 -rhoBeam=1. -E=10. -numElem=7 -outflowOption=neumann -nu=1.e-1  -addedMass=1 -ampProjectVelocity=1 -useApproximateAMPcondition=0 -useSameStencilSize=1 -numberOfCorrections=1 -saveProbe=1 -cfls=1. -ps=adamsBashforth2 -cs=adamsMoultonCorrector -smoothInterfaceVelocity=1 -nis=1 -smoothBeam=1 -numberOfBeamSmooths=1 -rampInflow=1  -recomputeGVOnCorrection=0 -show=rhos10_E10_Re10_vNBS_vNIS_AMP_FD1_ABAM_noRecomputeGVOnCorrection_G1.show -go=go > rhos10_E10_Re10_vNBS_vNIS_AMP_FD1_ABAM_noRecomputeGVOnCorrection_G1.out &
+executing cmd ------>
+==============================================
+
+Sun Jul 24 12:04:56 2016
+Run 6
+==============================================
+cmd:
+/home/lil19/cg.g/ins/bin/cgins -abortOnEnd -noplot oneBeamInAChannel -BM1=FD  -g=oneBeamInALongerChannelGride2.order2.hdf -tf=3. -tp=.01 -rhoBeam=1. -E=10. -numElem=14 -outflowOption=neumann -nu=1.e-1  -addedMass=1 -ampProjectVelocity=1 -useApproximateAMPcondition=0 -useSameStencilSize=1 -numberOfCorrections=1 -saveProbe=1 -cfls=1. -ps=adamsBashforth2 -cs=adamsMoultonCorrector -smoothInterfaceVelocity=1 -nis=2 -smoothBeam=1 -numberOfBeamSmooths=2 -rampInflow=1  -recomputeGVOnCorrection=0 -show=rhos10_E10_Re10_vNBS_vNIS_AMP_FD1_ABAM_noRecomputeGVOnCorrection_G2.show -go=go > rhos10_E10_Re10_vNBS_vNIS_AMP_FD1_ABAM_noRecomputeGVOnCorrection_G2.out &
+executing cmd ------>
+==============================================
+
+Sun Jul 24 12:04:56 2016
+Run 7
+==============================================
+cmd:
+/home/lil19/cg.g/ins/bin/cgins -abortOnEnd -noplot oneBeamInAChannel -BM1=FD  -g=oneBeamInALongerChannelGride4.order2.hdf -tf=3. -tp=.01 -rhoBeam=1. -E=10. -numElem=28 -outflowOption=neumann -nu=1.e-1  -addedMass=1 -ampProjectVelocity=1 -useApproximateAMPcondition=0 -useSameStencilSize=1 -numberOfCorrections=1 -saveProbe=1 -cfls=1. -ps=adamsBashforth2 -cs=adamsMoultonCorrector -smoothInterfaceVelocity=1 -nis=4 -smoothBeam=1 -numberOfBeamSmooths=4 -rampInflow=1  -recomputeGVOnCorrection=0 -show=rhos10_E10_Re10_vNBS_vNIS_AMP_FD1_ABAM_noRecomputeGVOnCorrection_G4.show -go=go > rhos10_E10_Re10_vNBS_vNIS_AMP_FD1_ABAM_noRecomputeGVOnCorrection_G4.out &
+executing cmd ------>
+==============================================
+
+Sun Jul 24 12:04:56 2016
+Run 8
+==============================================
+cmd:
+/home/lil19/cg.g/ins/bin/cgins -abortOnEnd -noplot oneBeamInAChannel -BM1=FD  -g=oneBeamInALongerChannelGride8.order2.hdf -tf=3. -tp=.01 -rhoBeam=1. -E=10. -numElem=56 -outflowOption=neumann -nu=1.e-1  -addedMass=1 -ampProjectVelocity=1 -useApproximateAMPcondition=0 -useSameStencilSize=1 -numberOfCorrections=1 -saveProbe=1 -cfls=1. -ps=adamsBashforth2 -cs=adamsMoultonCorrector -smoothInterfaceVelocity=1 -nis=8 -smoothBeam=1 -numberOfBeamSmooths=8 -rampInflow=1  -recomputeGVOnCorrection=0 -show=rhos10_E10_Re10_vNBS_vNIS_AMP_FD1_ABAM_noRecomputeGVOnCorrection_G8.show -go=go > rhos10_E10_Re10_vNBS_vNIS_AMP_FD1_ABAM_noRecomputeGVOnCorrection_G8.out &
+executing cmd ------>
+==============================================
+
+Sun Jul 24 12:04:56 2016
+Run 9
+==============================================
+cmd:
+/home/lil19/cg.g/ins/bin/cgins -abortOnEnd -noplot oneBeamInAChannel -BM1=FD  -g=oneBeamInALongerChannelGridFixede1.order2.hdf -tf=3. -tp=.01 -rhoBeam=1. -E=10. -numElem=7 -outflowOption=neumann -nu=1.e-1  -addedMass=1 -ampProjectVelocity=1 -useApproximateAMPcondition=0 -useSameStencilSize=1 -numberOfCorrections=1 -saveProbe=1 -cfls=1. -ps=adamsBashforth2 -cs=adamsMoultonCorrector -smoothInterfaceVelocity=1 -nis=1 -smoothBeam=1 -numberOfBeamSmooths=1 -rampInflow=1  -recomputeGVOnCorrection=1 -show=rhos10_E10_Re10_vNBS_vNIS_AMP_FD1_ABAM_Fixed_G1.show -go=go > rhos10_E10_Re10_vNBS_vNIS_AMP_FD1_ABAM_Fixed_G1.out &
+executing cmd ------>
+==============================================
+
+Sun Jul 24 12:04:56 2016
+Run 10
+==============================================
+cmd:
+/home/lil19/cg.g/ins/bin/cgins -abortOnEnd -noplot oneBeamInAChannel -BM1=FD  -g=oneBeamInALongerChannelGridFixede2.order2.hdf -tf=3. -tp=.01 -rhoBeam=1. -E=10. -numElem=14 -outflowOption=neumann -nu=1.e-1  -addedMass=1 -ampProjectVelocity=1 -useApproximateAMPcondition=0 -useSameStencilSize=1 -numberOfCorrections=1 -saveProbe=1 -cfls=1. -ps=adamsBashforth2 -cs=adamsMoultonCorrector -smoothInterfaceVelocity=1 -nis=2 -smoothBeam=1 -numberOfBeamSmooths=2 -rampInflow=1  -recomputeGVOnCorrection=1 -show=rhos10_E10_Re10_vNBS_vNIS_AMP_FD1_ABAM_Fixed_G2.show -go=go > rhos10_E10_Re10_vNBS_vNIS_AMP_FD1_ABAM_Fixed_G2.out &
+executing cmd ------>
+==============================================
+
+Sun Jul 24 12:04:56 2016
+Run 11
+==============================================
+cmd:
+/home/lil19/cg.g/ins/bin/cgins -abortOnEnd -noplot oneBeamInAChannel -BM1=FD  -g=oneBeamInALongerChannelGridFixede4.order2.hdf -tf=3. -tp=.01 -rhoBeam=1. -E=10. -numElem=28 -outflowOption=neumann -nu=1.e-1  -addedMass=1 -ampProjectVelocity=1 -useApproximateAMPcondition=0 -useSameStencilSize=1 -numberOfCorrections=1 -saveProbe=1 -cfls=1. -ps=adamsBashforth2 -cs=adamsMoultonCorrector -smoothInterfaceVelocity=1 -nis=4 -smoothBeam=1 -numberOfBeamSmooths=4 -rampInflow=1  -recomputeGVOnCorrection=1 -show=rhos10_E10_Re10_vNBS_vNIS_AMP_FD1_ABAM_Fixed_G4.show -go=go > rhos10_E10_Re10_vNBS_vNIS_AMP_FD1_ABAM_Fixed_G4.out &
+executing cmd ------>
+==============================================
+
+Sun Jul 24 12:04:56 2016
+Run 12
+==============================================
+cmd:
+/home/lil19/cg.g/ins/bin/cgins -abortOnEnd -noplot oneBeamInAChannel -BM1=FD  -g=oneBeamInALongerChannelGridFixede8.order2.hdf -tf=3. -tp=.01 -rhoBeam=1. -E=10. -numElem=56 -outflowOption=neumann -nu=1.e-1  -addedMass=1 -ampProjectVelocity=1 -useApproximateAMPcondition=0 -useSameStencilSize=1 -numberOfCorrections=1 -saveProbe=1 -cfls=1. -ps=adamsBashforth2 -cs=adamsMoultonCorrector -smoothInterfaceVelocity=1 -nis=8 -smoothBeam=1 -numberOfBeamSmooths=8 -rampInflow=1  -recomputeGVOnCorrection=1 -show=rhos10_E10_Re10_vNBS_vNIS_AMP_FD1_ABAM_Fixed_G8.show -go=go > rhos10_E10_Re10_vNBS_vNIS_AMP_FD1_ABAM_Fixed_G8.out &
+executing cmd ------>
+==============================================
+
+Sun Jul 24 12:04:56 2016
+Run 13
+==============================================
+cmd:
+/home/lil19/cg.g/ins/bin/cgins -abortOnEnd -noplot oneBeamInAChannel -BM1=FD  -g=oneBeamInALongerChannelGridFixede1.order2.hdf -tf=3. -tp=.01 -rhoBeam=1. -E=10. -numElem=7 -outflowOption=neumann -nu=1.e-1  -addedMass=1 -ampProjectVelocity=1 -useApproximateAMPcondition=0 -useSameStencilSize=1 -numberOfCorrections=1 -saveProbe=1 -cfls=1. -ps=adamsBashforth2 -cs=adamsMoultonCorrector -smoothInterfaceVelocity=1 -nis=1 -smoothBeam=1 -numberOfBeamSmooths=1 -rampInflow=1  -recomputeGVOnCorrection=0 -show=rhos10_E10_Re10_vNBS_vNIS_AMP_FD1_ABAM_Fixed_noRecomputeGVOnCorrection_G1.show -go=go > rhos10_E10_Re10_vNBS_vNIS_AMP_FD1_ABAM_Fixed_noRecomputeGVOnCorrection_G1.out &
+executing cmd ------>
+==============================================
+
+Sun Jul 24 12:04:56 2016
+Run 14
+==============================================
+cmd:
+/home/lil19/cg.g/ins/bin/cgins -abortOnEnd -noplot oneBeamInAChannel -BM1=FD  -g=oneBeamInALongerChannelGridFixede2.order2.hdf -tf=3. -tp=.01 -rhoBeam=1. -E=10. -numElem=14 -outflowOption=neumann -nu=1.e-1  -addedMass=1 -ampProjectVelocity=1 -useApproximateAMPcondition=0 -useSameStencilSize=1 -numberOfCorrections=1 -saveProbe=1 -cfls=1. -ps=adamsBashforth2 -cs=adamsMoultonCorrector -smoothInterfaceVelocity=1 -nis=2 -smoothBeam=1 -numberOfBeamSmooths=2 -rampInflow=1  -recomputeGVOnCorrection=0 -show=rhos10_E10_Re10_vNBS_vNIS_AMP_FD1_ABAM_Fixed_noRecomputeGVOnCorrection_G2.show -go=go > rhos10_E10_Re10_vNBS_vNIS_AMP_FD1_ABAM_Fixed_noRecomputeGVOnCorrection_G2.out &
+executing cmd ------>
+==============================================
+
+Sun Jul 24 12:04:56 2016
+Run 15
+==============================================
+cmd:
+/home/lil19/cg.g/ins/bin/cgins -abortOnEnd -noplot oneBeamInAChannel -BM1=FD  -g=oneBeamInALongerChannelGridFixede4.order2.hdf -tf=3. -tp=.01 -rhoBeam=1. -E=10. -numElem=28 -outflowOption=neumann -nu=1.e-1  -addedMass=1 -ampProjectVelocity=1 -useApproximateAMPcondition=0 -useSameStencilSize=1 -numberOfCorrections=1 -saveProbe=1 -cfls=1. -ps=adamsBashforth2 -cs=adamsMoultonCorrector -smoothInterfaceVelocity=1 -nis=4 -smoothBeam=1 -numberOfBeamSmooths=4 -rampInflow=1  -recomputeGVOnCorrection=0 -show=rhos10_E10_Re10_vNBS_vNIS_AMP_FD1_ABAM_Fixed_noRecomputeGVOnCorrection_G4.show -go=go > rhos10_E10_Re10_vNBS_vNIS_AMP_FD1_ABAM_Fixed_noRecomputeGVOnCorrection_G4.out &
+executing cmd ------>
+==============================================
+
+Sun Jul 24 12:04:56 2016
+Run 16
+==============================================
+cmd:
+/home/lil19/cg.g/ins/bin/cgins -abortOnEnd -noplot oneBeamInAChannel -BM1=FD  -g=oneBeamInALongerChannelGridFixede8.order2.hdf -tf=3. -tp=.01 -rhoBeam=1. -E=10. -numElem=56 -outflowOption=neumann -nu=1.e-1  -addedMass=1 -ampProjectVelocity=1 -useApproximateAMPcondition=0 -useSameStencilSize=1 -numberOfCorrections=1 -saveProbe=1 -cfls=1. -ps=adamsBashforth2 -cs=adamsMoultonCorrector -smoothInterfaceVelocity=1 -nis=8 -smoothBeam=1 -numberOfBeamSmooths=8 -rampInflow=1  -recomputeGVOnCorrection=0 -show=rhos10_E10_Re10_vNBS_vNIS_AMP_FD1_ABAM_Fixed_noRecomputeGVOnCorrection_G8.show -go=go > rhos10_E10_Re10_vNBS_vNIS_AMP_FD1_ABAM_Fixed_noRecomputeGVOnCorrection_G8.out &
+executing cmd ------>
+==============================================
+
+
+
+
+********************************************
+WRONG!!!!!!  old stuff
+
 ========07/08/2016==========
 Try fixed width grid for hyperbolic martching:
 PIDs:24699 24720 24741 24762
@@ -224,6 +384,6 @@ cgins oneBeamInAChannel -BM1=FD -g=oneBeamInAChannelGride1.order2.hdf -tf=2. -tp
 NBNB-FD0 (nis=2 OK)
 cgins oneBeamInAChannel -BM1=FD -g=oneBeamInAChannelGride1.order2.hdf -tf=2. -tp=.01 -rhoBeam=1. -E=2. -numElem=7 -outflowOption=neumann -nu=1.e-3 -addedMass=1 -ampProjectVelocity=1 -useApproximateAMPcondition=0 -useSameStencilSize=0 -smoothBeam=0 -smoothInterfaceVelocity=1 -nis=2  -numberOfCorrections=1 -saveProbe=1 -cfls=1.  -ps=newmark2Implicit -cs=newmarkCorrector
 
-NBNB-FD1 (nis=4 Failed)
+NBNB-FD1 (nis=4 Failed at t=3.8)
 cgins oneBeamInAChannel -BM1=FD -g=oneBeamInAChannelGride1.order2.hdf -tf=2. -tp=.01 -rhoBeam=1. -E=2. -numElem=7 -outflowOption=neumann -nu=1.e-3 -addedMass=1 -ampProjectVelocity=1 -useApproximateAMPcondition=0 -useSameStencilSize=1 -smoothBeam=0 -smoothInterfaceVelocity=1 -nis=4  -numberOfCorrections=1 -saveProbe=1 -cfls=1.  -ps=newmark2Implicit -cs=newmarkCorrector
 

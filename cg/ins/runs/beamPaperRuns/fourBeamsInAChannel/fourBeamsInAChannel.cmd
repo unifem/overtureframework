@@ -70,6 +70,8 @@ $beamProbeFileName4="probeBeam4";
 $probePosition=1.; # probe location in [0,1]
 *
 $rampInflow=0;
+# recompute grid velocity on corrections
+$recomputeGVOnCorrection=0;
 * ----------------------------- get command line arguments ---------------------------------------
 GetOptions( "g=s"=>\$grid,"tf=f"=>\$tFinal,"implicitFactor=f"=>\$implicitFactor, "model=s"=>\$model,\
  "tp=f"=>\$tPlot, "tz=s"=>\$tz, "show=s"=>\$show,"order=i"=>\$order,"refactorFrequency=i"=>\$refactorFrequency, \
@@ -89,7 +91,7 @@ GetOptions( "g=s"=>\$grid,"tf=f"=>\$tFinal,"implicitFactor=f"=>\$implicitFactor,
   "useTP=i"=>\$useTP,"addedMassRelaxation=f"=>\$addedMassRelaxation,"addedMassTol=f"=>\$addedMassTol,\
   "smoothBeam=i"=>\$smoothBeam,"numberOfBeamSmooths=i"=>\$numberOfBeamSmooths,"numElem=i"=>\$numElem,"E=f"=>\$E,\
   "BM1=s"=>\$BM1,"BM2=s"=>\$BM2,"BM3=s"=>\$BM3,"BM4=s"=>\$BM4,"bdebug=i"=>\$bdebug,"probePosition=f"=>\$probePosition,\
-  "saveProbe=i"=>\$saveProbe,"useSameStencilSize=i"=>\$useSameStencilSize,"ps=s"=>\$ps,"cs=s"=>\$cs);
+  "saveProbe=i"=>\$saveProbe,"useSameStencilSize=i"=>\$useSameStencilSize,"ps=s"=>\$ps,"cs=s"=>\$cs,"recomputeGVOnCorrection=i"=>\$recomputeGVOnCorrection);
 * -------------------------------------------------------------------------------------------------
 if( $solver eq "best" ){ $solver="choose best iterative solver"; }
 if( $solver eq "mg" ){ $solver="multigrid"; }
@@ -177,6 +179,7 @@ $grid
 *   
   turn on moving grids
   specify grids to move
+      recompute grid velocity on correction $recomputeGVOnCorrection
       # ----- BEAM 1 -----
       deforming body
         user defined deforming body
@@ -322,9 +325,9 @@ $grid
     bcNumber2=outflow, pressure(.1*p+$cpn*p.n=0.)
     bcNumber4=slipWall
   done
-* 
-  if($rampInflow eq 1){$uIn=0;}
-  if( $restart eq "" ){ $cmds = "uniform flow\n" . "p=$p0, u=$uIn, v=0, T=$T0\n"; }\
+*
+  if( $rampInflow eq 1 ){ $u0=0.; }else{ $u0=$uIn; } 
+  if( $restart eq "" ){ $cmds = "uniform flow\n" . "p=$p0, u=$u0, v=0, T=$T0\n"; }\
   else{ $cmds = "OBIC:show file name $restart\n OBIC:solution number -1 \n OBIC:assign solution from show file"; }
 #
   initial conditions

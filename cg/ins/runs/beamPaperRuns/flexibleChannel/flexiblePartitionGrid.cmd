@@ -41,7 +41,19 @@
 #     ogen -noplot flexiblePartitionGrid -option=top -interp=e -factor=8 
 #  -- very thin beam on top:
 #     ogen -noplot flexiblePartitionGrid -option=top -interp=e -thickness=1.e-6 -prefix="thinBeamOnTop" -factor=1
-# 
+#
+# -- zero thickness beam:
+#     ogen -noplot flexiblePartitionGrid -interp=e -factor=1 -thickness=0 -prefix=flexiblePartition0thicknessGrid
+#     ogen -noplot flexiblePartitionGrid -interp=e -factor=2 -thickness=0 -prefix=flexiblePartition0thicknessGrid
+#     ogen -noplot flexiblePartitionGrid -interp=e -factor=4 -thickness=0 -prefix=flexiblePartition0thicknessGrid
+#     ogen -noplot flexiblePartitionGrid -interp=e -factor=8 -thickness=0 -prefix=flexiblePartition0thicknessGrid
+#     ogen -noplot flexiblePartitionGrid -interp=e -factor=16 -thickness=0 -prefix=flexiblePartition0thicknessGrid
+## -- small thickness beam:
+#     ogen -noplot flexiblePartitionGrid -interp=e -factor=1 -thickness=1e-5 -prefix=flexiblePartitionsmallthicknessGrid
+#     ogen -noplot flexiblePartitionGrid -interp=e -factor=2 -thickness=1e-5 -prefix=flexiblePartitionsmallthicknessGrid
+#     ogen -noplot flexiblePartitionGrid -interp=e -factor=4 -thickness=1e-5 -prefix=flexiblePartitionsmallthicknessGrid
+#     ogen -noplot flexiblePartitionGrid -interp=e -factor=8 -thickness=1e-5 -prefix=flexiblePartitionsmallthicknessGrid
+#     ogen -noplot flexiblePartitionGrid -interp=e -factor=16 -thickness=1e-5 -prefix=flexiblePartitionsmallthicknessGrid
 #    -- coarse grid in x
 #     ogen -noplot flexiblePartitionGrid -option=top -interp=e -dsx=.5 -factor=1
 # -- periodic in x:
@@ -225,16 +237,16 @@ generate an overlapping grid
     # choose implicit or explicit interpolation
     interpolation type
       $interpType
-#     specify a domain
-#       lowerDomain
-#       lowerFluidBackGround
-#       lowerFluidInterface
-#       done
-#     specify a domain
-#       upperDomain
-#       upperFluidBackGround
-#       upperFluidInterface
-#       done
+    specify a domain
+      lowerDomain
+      lowerFluidBackGround
+      lowerFluidInterface
+      done
+    specify a domain
+      upperDomain
+      upperFluidBackGround
+      upperFluidInterface
+      done
     ghost points
       all
       2 2 2 2 2 2

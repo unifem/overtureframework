@@ -2913,6 +2913,8 @@ interpolateSolution(const RealArray& X,
   //Longfei 20160121: new way of handling parameters
   const real & le = dbase.get<real>("elementLength");
   const bool & isFEM = dbase.get<bool>("isCubicHermiteFEM");
+
+
   
   // Hermite Shape functions are
   //     f(y) = .25 * (1-y)^2 (y+2 )    : f(-1)=1,   f'(-1)=0,   f(1)=0,    f'(1)=0 
@@ -2954,12 +2956,17 @@ interpolateSolution(const RealArray& X,
       // FD solutions contains only x. We need to evalute its derivatives using FD schemes
       Xsolution[0]=X(elemNum,0,0,0);
       Xsolution[1]=X(elemNum+1,0,0,0);
+
+      const bool & useSameStencilSize = dbase.get<bool>("useSameStencilSize");
+      real delta = useSameStencilSize?1.:0.;
+      
       //evaluate the slope at grid points  elemNum and elemNum+1
-      MappedGridOperators &op = *dbase.get<MappedGridOperators*>("operator");
-      RealArray Xs=X; Xs=0.;
-      op.derivative( MappedGridOperators::xDerivative,X,Xs,Range(elemNum,elemNum+1),0,0,0); 
-      Xslope[0]=Xs(elemNum,0,0,0); //Longfei 20160719: use Xs instead of X. It was wrong...
-      Xslope[1]=Xs(elemNum+1,0,0,0);
+
+      //Longfei 20160719: use the approximated derivative instead of X. It was wrong before....CHECKME...
+      int i=elemNum;
+      Xslope[0]=(delta/12.*X(i-2,0,0,0)-(.5+delta/6.)*X(i-1,0,0,0)+(.5+delta/6.)*X(i+1,0,0,0)-(delta/12.)*X(i+2,0,0,0))/le;
+      i=elemNum+1;
+      Xslope[1]=(delta/12.*X(i-2,0,0,0)-(.5+delta/6.)*X(i-1,0,0,0)+(.5+delta/6.)*X(i+1,0,0,0)-(delta/12.)*X(i+2,0,0,0))/le;
     }
 
 
@@ -3298,6 +3305,7 @@ factorBlockTridiagonalSolver(const aString & tridiagonalSolverName)
 
 }
 
+// Longfei 20160731: this function looks like unused. Removed
 // ======================================================================================
 /// \brief Compute the third derivative, w'''(x), of the beam displacement w(x) at a given
 //// element # and coordinate
@@ -3307,28 +3315,28 @@ factorBlockTridiagonalSolver(const aString & tridiagonalSolverName)
 /// deriv3:  Third derivative, w'''(x) at this point
 ///
 // ======================================================================================
-void BeamModel::
-interpolateThirdDerivative(const RealArray& X,
-			   int& elemNum, real& eta,
-			   real& deriv3) 
-{
-  //Longfei 20160121: new way of handling parameters
-  const real & le = dbase.get<real>("elementLength");
+// void BeamModel::
+// interpolateThirdDerivative(const RealArray& X,
+// 			   int& elemNum, real& eta,
+// 			   real& deriv3) 
+// {
+//   //Longfei 20160121: new way of handling parameters
+//   const real & le = dbase.get<real>("elementLength");
 
   
-  // compute the shape functions.
-  real eta1 = 1.-eta;
-  real eta2 = 2.-eta;
-  real etap1 = eta+1.0;
-  real etap2 = eta+2.0;
+//   // compute the shape functions.
+//   real eta1 = 1.-eta;
+//   real eta2 = 2.-eta;
+//   real etap1 = eta+1.0;
+//   real etap2 = eta+2.0;
   
-  real sf[4] = {12.0/(le*le*le),6.0/(le*le), -12.0/ (le*le*le),6.0/(le*le)};
+//   real sf[4] = {12.0/(le*le*le),6.0/(le*le), -12.0/ (le*le*le),6.0/(le*le)};
 
 		
-  deriv3 = sf[0]*X(elemNum*2)+sf[1]*X(elemNum*2+1)+
-    sf[2]*X(elemNum*2+2) +sf[3]*X(elemNum*2+3) ;
+//   deriv3 = sf[0]*X(elemNum*2)+sf[1]*X(elemNum*2+1)+
+//     sf[2]*X(elemNum*2+2) +sf[3]*X(elemNum*2+3) ;
   
-}
+// }
 
 
 
@@ -3559,7 +3567,7 @@ setSurfaceVelocity(const real & t, const RealArray & x0, const RealArray & vSurf
   const  real * initialBeamNormal = dbase.get<real[2]>("initialBeamNormal");
   
   //Longfei 20160622:  make correctForSurfaceRotation=true
-  const bool correctForSurfaceRotation=false;  // *CHECK ME* 2015/06/02 20160713: turn off for now
+  const bool correctForSurfaceRotation=true;  // *CHECK ME* 2015/06/02 
   if( correctForSurfaceRotation )
     {
       // ---  Remove the surface rotation term "W" before projecting the velocity onto the beam reference line ----

@@ -533,10 +533,11 @@ public:
   virtual void initialize();
 
 
+  // Longfei 20160731: this functions looks like unused. Removed
   // Compute the third derivative, w'''(x), of the beam displacement w(x) at a given
-  void interpolateThirdDerivative(const RealArray& X,
-				  int& elemNum, real& eta,
-				  real& deriv3);
+  // void interpolateThirdDerivative(const RealArray& X,
+  // 				  int& elemNum, real& eta,
+  // 				  real& deriv3);
 
 
 

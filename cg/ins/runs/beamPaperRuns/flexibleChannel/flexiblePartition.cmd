@@ -67,6 +67,8 @@ $pMax=1; $tMax=.5;
 #
 $beamPlotScaleFactor=1.; # scale beam displacement for plotting 
 #
+# recompute grid velocity on corrections
+$recomputeGVOnCorrection=0;
 # ----------------------------- get command line arguments ---------------------------------------
 GetOptions( "g=s"=>\$grid,"tf=f"=>\$tFinal,"implicitFactor=f"=>\$implicitFactor, "model=s"=>\$model,\
  "tp=f"=>\$tPlot, "tz=s"=>\$tz, "show=s"=>\$show,"order=i"=>\$order,"refactorFrequency=i"=>\$refactorFrequency, \
@@ -86,7 +88,7 @@ GetOptions( "g=s"=>\$grid,"tf=f"=>\$tFinal,"implicitFactor=f"=>\$implicitFactor,
   "projectBeamVelocity=i"=>\$projectBeamVelocity,"numberOfCorrections=i"=>\$numberOfCorrections,\
   "useTP=i"=>\$useTP,"addedMassRelaxation=f"=>\$addedMassRelaxation,"addedMassTol=f"=>\$addedMassTol,"BM=s"=>\$BM,\
   "smoothBeam=i"=>\$smoothBeam,"numberOfBeamSmooths=i"=>\$numberOfBeamSmooths,"probePosition=f"=>\$probePosition,\
-  "useSameStencilSize=i"=>\$useSameStencilSize);
+  "useSameStencilSize=i"=>\$useSameStencilSize,"recomputeGVOnCorrection=i"=>\$recomputeGVOnCorrection);
 # -------------------------------------------------------------------------------------------------
 if( $solver eq "best" ){ $solver="choose best iterative solver"; }
 if( $solver eq "mg" ){ $solver="multigrid"; }
@@ -157,6 +159,8 @@ $grid
   $height=.5+$thickness*.5; 
   turn on moving grids
   specify grids to move
+      #Longfei 20160721: recompute grid velocity on corrections
+      recompute grid velocity on correction $recomputeGVOnCorrection
       deforming body
         user defined deforming body
           elastic beam

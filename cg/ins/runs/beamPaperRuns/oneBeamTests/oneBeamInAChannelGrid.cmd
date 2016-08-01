@@ -21,7 +21,10 @@
 #      ogen -noplot oneBeamInAChannelGrid -interp=e -factor=32
 #
 # Longer channel:
-#     ogen oneBeamInAChannelGrid -xb=5 -prefix=oneBeamInALongerChannelGrid -interp=e -factor=2
+#     ogen -noplot oneBeamInAChannelGrid -xb=5 -prefix=oneBeamInALongerChannelGrid -interp=e -factor=2
+#
+# fixed width
+#     ogen -noplot oneBeamInAChannelGrid -xb=5 -fixedRadius=0.3 -prefix=oneBeamInALongerChannelGrid -interp=e -factor=2
 #
 $beamLength=1.; $beamThickness=.2; 
 $factor=1; $name=""; $case=""; 

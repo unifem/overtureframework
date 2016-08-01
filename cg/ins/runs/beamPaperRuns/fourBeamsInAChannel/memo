@@ -1,3 +1,85 @@
+====== 07/29/2016 ===
+run on G1: show the coarse grids in beamPaper
+Number of runs = 2
+
+Fri Jul 29 11:48:23 2016
+Run 1
+==============================================
+cmd:
+/home/lil19/cg.g/ins/bin/cgins -abortOnEnd -noplot fourBeamsInAChannel -BM1=FEM -BM2=FEM -BM3=FEM -BM4=FEM -g=fourBeamsInALongerChannelGride1.order2.hdf -tf=20. -tp=.01 -rhoBeam1=1000  -rhoBeam2=10 -rhoBeam3=1 -rhoBeam4=100 -E1=30 -E2=10 -E3=20 -E4=30 -numElem=7 -outflowOption=neumann -uIn=2 -nu=0.001 -addedMass=1 -ampProjectVelocity=1 -useApproximateAMPcondition=0 -numberOfCorrections=1 -saveProbe=1 -cfls=1 -smoothBeam=0  -smoothInterfaceVelocity=1 -nis=10 -rampInflow=1 -recomputeGVOnCorrection=0 -show=FEM1234_LongerChannel_AMP_NB_G1.show -go=go  >  FEM1234_LongerChannel_AMP_NB_G1.out &
+executing cmd ------>
+==============================================
+
+Fri Jul 29 11:48:23 2016
+Run 2
+==============================================
+cmd:
+/home/lil19/cg.g/ins/bin/cgins  -abortOnEnd  -noplot fourBeamsInAChannel -BM1=FD -BM2=FD -BM3=FD -BM4=FD -useSameStencilSize=1 -g=fourBeamsInALongerChannelGride1.order2.hdf -tf=20. -tp=.01 -rhoBeam1=1000 -rhoBeam2=10 -rhoBeam3=1 -rhoBeam4=100 -E1=30 -E2=10 -E3=20 -E4=30 -numElem=7 -outflowOption=neumann -uIn=2 -nu=0.001 -addedMass=1 -ampProjectVelocity=1 -useApproximateAMPcondition=0 -numberOfCorrections=1 -saveProbe=1 -cfls=1 -smoothBeam=1 -numberOfBeamSmooths=10 -smoothInterfaceVelocity=1 -nis=10 -rampInflow=1 -recomputeGVOnCorrection=0 -show=FD1234_LongerChannel_AMP_NB_G1.show -go=go >  FD1234_LongerChannel_AMP_NB_G1.out &
+executing cmd ------>
+==============================================
+
+
+
+====== 07/28/2016 ===
+Try G4:
+
+Number of runs = 2
+
+Fri Jul 29 11:23:24 2016
+Run 1
+==============================================
+cmd:
+/home/lil19/cg.g/ins/bin/cgins -abortOnEnd -noplot fourBeamsInAChannel -BM1=FEM -BM2=FEM -BM3=FEM -BM4=FEM -g=fourBeamsInALongerChannelGride4.order2.hdf -tf=20. -tp=.01 -rhoBeam1=1000  -rhoBeam2=10 -rhoBeam3=1 -rhoBeam4=100 -E1=30 -E2=10 -E3=20 -E4=30 -numElem=28 -outflowOption=neumann -uIn=2 -nu=0.001 -addedMass=1 -ampProjectVelocity=1 -useApproximateAMPcondition=0 -numberOfCorrections=1 -saveProbe=1 -cfls=1 -smoothBeam=0  -smoothInterfaceVelocity=1 -nis=10 -rampInflow=1 -recomputeGVOnCorrection=0 -show=FEM1234_LongerChannel_AMP_NB_G4.show -go=go  >  FEM1234_LongerChannel_AMP_NB_G4.out &
+executing cmd ------>
+==============================================
+
+
+
+Thu Jul 28 17:26:16 2016
+Run 2
+==============================================
+cmd:
+/home/lil19/cg.g/ins/bin/cgins  -abortOnEnd  -noplot fourBeamsInAChannel -BM1=FD -BM2=FD -BM3=FD -BM4=FD -useSameStencilSize=1 -g=fourBeamsInALongerChannelGride4.order2.hdf -tf=20. -tp=.01 -rhoBeam1=1000 -rhoBeam2=10 -rhoBeam3=1 -rhoBeam4=100 -E1=30 -E2=10 -E3=20 -E4=30 -numElem=28 -outflowOption=neumann -uIn=2 -nu=0.001 -addedMass=1 -ampProjectVelocity=1 -useApproximateAMPcondition=0 -numberOfCorrections=1 -saveProbe=1 -cfls=1 -smoothBeam=1 -numberOfBeamSmooths=10 -smoothInterfaceVelocity=1 -nis=10 -rampInflow=1 -recomputeGVOnCorrection=0 -show=FD1234_LongerChannel_AMP_NB_G4.show -go=go >  FD1234_LongerChannel_AMP_NB_G4.out &
+executing cmd ------>
+==============================================
+
+
+
+======= 07/27/2016 ====
+FD on G1: OK at t=10 with -recomputeGVOnCorrection=0
+cgins fourBeamsInAChannel -BM1=FD -BM2=FD -BM3=FD -BM4=FD -useSameStencilSize=1 -g=fourBeamsInALongerChannelGride1.order2.hdf -tf=10. -tp=.01 -rhoBeam1=1000. -rhoBeam2=10. -rhoBeam3=1. -rhoBeam4=100. -E1=30 -E2=10 -E3=20 -E4=30 -numElem=7 -outflowOption=neumann -uIn=2. -nu=1.e-3 -addedMass=1 -ampProjectVelocity=1 -useApproximateAMPcondition=0 -numberOfCorrections=1 -saveProbe=1 -cfls=4. -smoothBeam=0 -smoothInterfaceVelocity=1 -nis=10 -rampInflow=1
+
+OK at t=10 FD -recomputeGVOnCorrection=1: 
+cgins -abortOnEnd -noplot fourBeamsInAChannel -BM1=FD -BM2=FD -BM3=FD -BM4=FD -useSameStencilSize=1 -g=fourBeamsInALongerChannelGride1.order2.hdf -tf=10. -tp=.01 -rhoBeam1=1000. -rhoBeam2=10. -rhoBeam3=1. -rhoBeam4=100. -E1=30 -E2=10 -E3=20 -E4=30 -numElem=7 -outflowOption=neumann -uIn=2. -nu=1.e-3 -addedMass=1 -ampProjectVelocity=1 -useApproximateAMPcondition=0 -numberOfCorrections=1 -saveProbe=1 -cfls=4. -smoothBeam=0 -smoothInterfaceVelocity=1 -nis=10 -rampInflow=1 -recomputeGVOnCorrection=1 -go=go -show=FDRGV > FDRGV.out
+
+OK at t=10:
+cgins -noplot  fourBeamsInAChannel -BM1=FEM -BM2=FEM -BM3=FEM -BM4=FEM -g=fourBeamsInALongerChannelGride1.order2.hdf -tf=10. -tp=.01 -rhoBeam=1. -E=5. -numElem=7 -outflowOption=neumann -nu=5.e-2 -addedMass=1 -ampProjectVelocity=1 -useApproximateAMPcondition=0 -numberOfCorrections=1 -saveProbe=1 -cfls=1. -smoothBeam=0 -numberOfBeamSmooths=10 -smoothInterfaceVelocity=1 -nis=1 -show=aa.show -go=go
+
+Same run on G8:
+
+Number of runs = 2
+
+Wed Jul 27 21:43:01 2016
+Run 1
+==============================================
+cmd:
+/home/lil19/cg.g/ins/bin/cgins -abortOnEnd -noplot fourBeamsInAChannel -BM1=FEM -BM2=FEM -BM3=FEM -BM4=FEM -g=fourBeamsInALongerChannelGride8.order2.hdf -tf=20. -tp=.01 -rhoBeam1=1000  -rhoBeam2=10 -rhoBeam3=1 -rhoBeam4=100 -E1=30 -E2=10 -E3=20 -E4=30 -numElem=56 -outflowOption=neumann -uIn=2 -nu=0.001 -addedMass=1 -ampProjectVelocity=1 -useApproximateAMPcondition=0 -numberOfCorrections=1 -saveProbe=1 -cfls=1 -smoothBeam=0  -smoothInterfaceVelocity=1 -nis=10 -rampInflow=1 -recomputeGVOnCorrection=0 -show=FEM1234_LongerChannel_AMP_NB_G8.show -go=go  >  FEM1234_LongerChannel_AMP_NB_G8.out &
+executing cmd ------>
+==============================================
+
+Wed Jul 27 21:43:01 2016
+Run 2
+==============================================
+cmd:
+/home/lil19/cg.g/ins/bin/cgins  -abortOnEnd  -noplot fourBeamsInAChannel -BM1=FD -BM2=FD -BM3=FD -BM4=FD -useSameStencilSize=1 -g=fourBeamsInALongerChannelGride8.order2.hdf -tf=20. -tp=.01 -rhoBeam1=1000 -rhoBeam2=10 -rhoBeam3=1 -rhoBeam4=100 -E1=30 -E2=10 -E3=20 -E4=30 -numElem=56 -outflowOption=neumann -uIn=2 -nu=0.001 -addedMass=1 -ampProjectVelocity=1 -useApproximateAMPcondition=0 -numberOfCorrections=1 -saveProbe=1 -cfls=1 -smoothBeam=1 -numberOfBeamSmooths=10 -smoothInterfaceVelocity=1 -nis=10 -rampInflow=1 -recomputeGVOnCorrection=0 -show=FD1234_LongerChannel_AMP_NB_G8.show -go=go >  FD1234_LongerChannel_AMP_NB_G8.out &
+executing cmd ------>
+==============================================
+
+
+
+
+*********************************old stuff**********************************
+
 
 ========7/12/2016======
 #todo: compare FEM and FD with smaller uIn=1.5:
