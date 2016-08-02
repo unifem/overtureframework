@@ -88,8 +88,13 @@ bool checkBeamInitialization();
 // Check the internal forcing routines in the Beam Model
 int checkInternalForce();
 
+// Longfei 20160801:   
+// check interpolateSolution:
+int checkInterpolateSolution(GenericGraphicsInterface & gi, GraphicsParameters & psp );
+
+  // Longfei 20160802: add plotting capability  
 // Check the velocity projection
-int checkVelocityProjection();
+int checkVelocityProjection(GenericGraphicsInterface & gi, GraphicsParameters & psp );
 
 int getErrors( real t );
 
@@ -1082,9 +1087,11 @@ checkInternalForce()
 /// \brief Check the velocity projection
 // ===========================================================================================
 int TestBeamModel::
-checkVelocityProjection()
+checkVelocityProjection(GenericGraphicsInterface & gi, GraphicsParameters & psp )
 {
-  // Longfei 20160116: member beam is replaced by its pointer pbeam.
+  //Longfei 20160802: add plot capability
+  
+  // Longfei 20160116: member1 beam is replaced by its pointer pbeam.
   // Create a reference named beam to avoid code changes.
   BeamModel &beam = *pbeam;
 
@@ -1201,6 +1208,174 @@ checkVelocityProjection()
     fPrintF(checkFile,"\n");
 
 
+    // Longfei 20160802: use dataPointMapping to plot the beam (xc,xs+,xs-) all together
+    DataPointMapping beamMap;
+
+    RealArray uPlot(Ib1,3,Rx);
+    for(int d=0;d<numberOfDimensions;d++){
+    uPlot(Ib1,0,d)=xsMinus(Ib1,0,0,d);
+    uPlot(Ib1,1,d)=xc(Ib1,0,0,d);
+    uPlot(Ib1,2,d)=xsPlus(Ib1,0,0,d);
+    }
+
+    beamMap.setDataPoints(uPlot,2,2);  
+
+    gi.erase();
+    real lineWidthSave;
+    psp.get(GraphicsParameters::lineWidth,lineWidthSave);  // default is 1
+    psp.set(GraphicsParameters::lineWidth,4);  
+    psp.set(GI_MAPPING_COLOUR,"BLUE");
+    psp.set(GI_PLOT_THE_OBJECT_AND_EXIT,true);
+    PlotIt::plot(gi, beamMap,psp);      
+    psp.set(GraphicsParameters::lineWidth,lineWidthSave); // reset  
+
+    
+
+
+  }
+  else if( beamModelType==nonlinearBeamModel )
+  {
+    OV_ABORT("ERROR: finish me!");
+  }
+  else
+  {
+    OV_ABORT("ERROR: unknown beam model");
+  }
+
+
+
+  return 0;
+}
+
+
+
+// Longfei 20160801: 
+// =======================================================================================
+/// \brief Check the interpolateSolution routine in the Beam Model
+// =======================================================================================
+int TestBeamModel::
+checkInterpolateSolution(GenericGraphicsInterface & gi, GraphicsParameters & psp )
+{
+  BeamModel &beam = *pbeam;
+  const aString &bType=beam.getBeamType();
+
+  const int numberOfDimensions=2;
+  
+  const int nElem=beam.getNumberOfElements();
+  int numElem=nElem;
+  real beamLength, dx;
+  beam.getParameter("length",beamLength);
+  beam.getParameter("elementLength",dx);
+
+  // beam domain [x0,x1]=[0,L];
+  real x0=0., x1=beamLength;
+  
+  if( beamModelType==linearBeamModel )
+  {
+
+    real tf=1.;  // time of the interpolation data
+    t=tf;
+
+    printF("---- check BeamModel::interpolateSolution for  %s -----\n",bType.c_str());
+
+    // --- given data:
+    // index 
+    Index I1,I2,I3,C;
+    beam.getSolutionArrayIndex(I1,I2,I3,C);
+    RealArray u,v,a;
+    beam.getExactSolution( tf, u,v,a ); //interpolation data
+    // grid index
+    Index Ig1,Ig2,Ig3;
+    Ig1=Range(0,numElem); Ig2=0; Ig3=0;
+    RealArray x(Ig1,Ig2,Ig3);  // beam axis (undeformed)
+    for( int i1 = Ig1.getBase(); i1<=Ig1.getBound(); i1++ )
+    {
+      x(i1,0,0,0) = i1*dx; 
+    }
+
+    if(beam.debug() &2 )
+      {
+	::display(x,"data are given on these grids\n","%9.2e ");
+      }
+
+    // sample grids
+    Index Is1,Is2,Is3;
+    //sample on finer grids:
+    Is1=Range(0,100*numElem); Is2=0; Is3=0;
+    real dxs= (x1-x0)/(100*numElem);
+    RealArray xs(Is1,Is2,Is3),uInterp(Is1,Is2,Is3,C),uxInterp(Is1,Is2,Is3,C);
+    real ys=0.; // y coordinate of the sampled points. This is needed by projectPoint
+    int elemNum;
+    real eta, halfThickness; //r: result, rs: result slope
+    for( int i1 = Is1.getBase(); i1<=Is1.getBound(); i1++ )
+      {
+	xs(i1,0,0,0) = i1*dxs;
+	beam.projectPoint( xs(i1,0,0,0),ys,elemNum,eta,halfThickness);
+	if(beam.debug()&2)
+	  {
+	    printF("projetPoint results: xs=%7.3f, elemNum=%i,eta=%7.3f,halfThickness=%7.3f\n",xs(i1,0,0,0),elemNum,eta,halfThickness);
+	  }
+	beam.interpolateSolution(u,elemNum,eta,uInterp(i1,0,0,0),uxInterp(i1,0,0,0));
+      }
+
+    
+    // ---- Compute the EXACT solutions on sample grids----
+    assert( beam.getExactSolutionOption()=="twilightZone" ) ;
+    
+    bool & twilightZone =  beam.dbase.get<bool>("twilightZone");
+    assert( twilightZone );
+    assert(  beam.dbase.get<OGFunction*>("exactPointer")!=NULL );
+    OGFunction & exact = * beam.dbase.get<OGFunction*>("exactPointer");
+
+    
+    RealArray ue(Is1,Is2,Is3,C), uxe(Is1,Is2,Is3,C);
+    const int isRectangular=0;
+    const int wc=0;
+    const int domainDimension=1;
+    exact.gd( ue    ,xs,domainDimension,isRectangular,0,0,0,0,Is1,Is2,Is3,wc,tf );
+    exact.gd( uxe  ,xs,domainDimension,isRectangular,0,1,0,0,Is1,Is2,Is3,wc,tf );
+
+    // compute errors
+    RealArray uErr, uxErr;
+    real uErrMax=0., uxErrMax=0.;
+    uErr=fabs(ue-uInterp);
+    uxErr=fabs(uxe-uxInterp);
+    uErrMax=max(uErr);
+    uxErrMax=max(uxErr);
+
+    int nPlot = 6; // number of components to plot
+    RealArray uPlot(Is1,nPlot);
+    uPlot(Is1,0)=uInterp(Is1,0,0,0);
+    uPlot(Is1,1)=uxInterp(Is1,0,0,0);
+    uPlot(Is1,2)=ue(Is1,0,0,0);
+    uPlot(Is1,3)=uxe(Is1,0,0,0);
+    uPlot(Is1,4)=uErr(Is1,0,0,0);
+    uPlot(Is1,5)=uxErr(Is1,0,0,0);
+    gi.erase();
+    //psp.set(GI_PLOT_THE_OBJECT_AND_EXIT,false);
+    psp.set(GI_TOP_LABEL,sPrintF("interpolate solution error"));
+    const aString xNames[]={"uInterp","uxInterp","ue","uxe","uErr","uxErr"};
+    PlotIt::plot(gi,xs,uPlot,"Hermite Interpolation","x",xNames,psp);
+
+    
+    // output results to the check file 
+    fPrintF(checkFile,"\\caption{tbm: test beam model: %s: %s, CHECK interpolateSolutions, numElem=%i}\n",
+     	    (beamModelType==linearBeamModel ? "linear beam model" : "nonlinear beam model"),bType.c_str(),numElem);
+
+    const int numberOfComponentsToOutput=2;
+    real fNorm=1.;
+    fPrintF(checkFile,"%9.2e %i  ",tf,numberOfComponentsToOutput);
+    fPrintF(checkFile,"%i %9.2e %10.3e ",0,uErrMax,fNorm);
+    fPrintF(checkFile,"%i %9.2e %10.3e ",1,uxErrMax,fNorm);
+    fPrintF(checkFile,"\n");
+
+    if(false) // use conv!
+      {
+	//for now:.....output errors in mFILE to check convergence rate:
+	FILE *mFILE=fopen("interpolateErrors.text","a"); //append for now..
+	fPrintF(mFILE,"%i %9.2e %9.2e \n",numElem,uErrMax,uxErrMax);
+	fclose(mFILE);
+      }
   }
   else if( beamModelType==nonlinearBeamModel )
   {
@@ -1346,8 +1521,8 @@ main(int argc, char *argv[])
   dialog.addOptionMenu( "Type:", opCommand2, opCommand2, testProblem );
   
   //Longfei 20160116: add option for spatial discretization
-  aString opCommand3[] = {"Finite Element",
-			  "Finite Difference",
+  aString opCommand3[] = {"FEMBeamModel",
+			  "FDBeamModel",
 			  ""};
 
   dialog.setOptionMenuColumns(1);
@@ -1359,6 +1534,7 @@ main(int argc, char *argv[])
                     "check force",
                     "check velocity projection",
                     "check internal force",
+		    "check interpolateSolution", 
                     "convergence rate",
                     "leak check",
                     "exit",
@@ -1523,14 +1699,21 @@ main(int argc, char *argv[])
 
       tbm.checkInternalForce();
     }
-
-    else if( answer=="check velocity projection" )
+    else if( answer=="check interpolateSolution" )
     {
       //Longfei 20160121: check if beam model is properly set up
       if(! tbm.checkBeamInitialization())
 	continue;
 
-      tbm.checkVelocityProjection();
+      tbm.checkInterpolateSolution(gi,psp);
+    }
+    else if( answer=="check velocity projection" )
+    {
+      //Longfei 20160121: check if beam model is properly set up
+      if(! tbm.checkBeamInitialization())
+	continue;
+      // Longfei 20160802: pass gi and psp for plotting
+      tbm.checkVelocityProjection(  gi,   psp );
     }
 
     else if( answer=="solve" )

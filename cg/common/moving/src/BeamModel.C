@@ -2933,10 +2933,16 @@ interpolateSolution(const RealArray& X,
 		0.25*etap1*etap1*eta2,
 		-0.125*le*eta1*etap1*etap1 };
 
-  real sfd[4] = {(-0.5*eta1*etap2+0.25*eta1*eta1)/le,
-		 -0.25*eta1*etap1+0.25*eta1*eta1,
-		 (0.5*etap1*eta2-0.25*etap1*etap1)/le,
-		 -0.25*etap1*eta1+0.25*etap1*etap1 };
+  //Longfei 20160802: this is wrong!!!
+  // real sfd[4] = {(-0.5*eta1*etap2+0.25*eta1*eta1)/le,
+  // 		 -0.25*eta1*etap1+0.25*eta1*eta1,
+  // 		 (0.5*etap1*eta2-0.25*etap1*etap1)/le,
+  // 		 -0.25*etap1*eta1+0.25*etap1*etap1 };
+  // new:  CHECKME.......THIS IS FIXED!
+    real sfd[4] = {(-0.5*eta1*etap2+0.25*eta1*eta1)*2./le,
+    		 -0.5*eta1*etap1+0.25*eta1*eta1,
+    		 (0.5*etap1*eta2-0.25*etap1*etap1)*2./le,
+    		 -0.5*etap1*eta1+0.25*etap1*etap1 };
 
 	
   //Longfei 20160308:
@@ -2962,7 +2968,7 @@ interpolateSolution(const RealArray& X,
       
       //evaluate the slope at grid points  elemNum and elemNum+1
 
-      //Longfei 20160719: use the approximated derivative instead of X. It was wrong before....CHECKME...
+      //Longfei 20160719: use the approximated derivative instead of X. It was wrong before. FIXED!
       int i=elemNum;
       Xslope[0]=(delta/12.*X(i-2,0,0,0)-(.5+delta/6.)*X(i-1,0,0,0)+(.5+delta/6.)*X(i+1,0,0,0)-(delta/12.)*X(i+2,0,0,0))/le;
       i=elemNum+1;
