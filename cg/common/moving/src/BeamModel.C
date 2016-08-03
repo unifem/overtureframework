@@ -2933,16 +2933,21 @@ interpolateSolution(const RealArray& X,
 		0.25*etap1*etap1*eta2,
 		-0.125*le*eta1*etap1*etap1 };
 
-  //Longfei 20160802: this is wrong!!!
-  // real sfd[4] = {(-0.5*eta1*etap2+0.25*eta1*eta1)/le,
-  // 		 -0.25*eta1*etap1+0.25*eta1*eta1,
-  // 		 (0.5*etap1*eta2-0.25*etap1*etap1)/le,
-  // 		 -0.25*etap1*eta1+0.25*etap1*etap1 };
-  // new:  CHECKME.......THIS IS FIXED!
-    real sfd[4] = {(-0.5*eta1*etap2+0.25*eta1*eta1)*2./le,
+
+  //Longfei 20160802: new:  CHECKME.......THIS IS FIXED!
+  real sfd[4] = {(-0.5*eta1*etap2+0.25*eta1*eta1)*2./le,
     		 -0.5*eta1*etap1+0.25*eta1*eta1,
     		 (0.5*etap1*eta2-0.25*etap1*etap1)*2./le,
     		 -0.5*etap1*eta1+0.25*etap1*etap1 };
+  // this is wrong!!!
+  if(debug()==-999){ //just to show the error
+    printF("-- BM%i -- WARNING: wrong shape functions slopes in BeamModel::interpolateSolution.\n"
+	   "this run is to demonstrate the bug we had before\n",getBeamID());
+    real sfd[4] = {(-0.5*eta1*etap2+0.25*eta1*eta1)/le,
+		   -0.25*eta1*etap1+0.25*eta1*eta1,
+		   (0.5*etap1*eta2-0.25*etap1*etap1)/le,
+		   -0.25*etap1*eta1+0.25*etap1*etap1 };
+  }
 
 	
   //Longfei 20160308:

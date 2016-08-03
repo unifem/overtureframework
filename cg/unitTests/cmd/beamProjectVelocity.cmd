@@ -5,6 +5,7 @@
 $degreex=2; $degreet=2; $orderOfProjection=2; 
 $thick=.1; $numElem=10;
 $BM="FEM";
+$debug=0;
 GetOptions( "g=s"=>\$grid,"tf=f"=>\$tFinal,"degreex=i"=>\$degreex, "degreet=i"=>\$degreet,\
  "tp=f"=>\$tPlot, "tz=s"=>\$tz, "show=s"=>\$show,"numElem=i"=>\$numElem,"orderOfProjection=i"=>\$orderOfProjection, \
  "thick=f"=>\$thick,"nu=f"=>\$nu,"cfl=f"=>\$cfl,"noplot=s"=>\$noplot,\
@@ -17,8 +18,10 @@ GetOptions( "g=s"=>\$grid,"tf=f"=>\$tFinal,"degreex=i"=>\$degreex, "degreet=i"=>
 #Longfei 20160116: new options added: FEM or FD:
 if($BM eq "FEM"){$beamModel="FEMBeamModel";}
 if($BM eq "FD")  {$beamModel="FDBeamModel";}
+$BM
 standing wave
 change beam parameters
+  debug: $debug
   number of elements: $numElem
   thickness: $thick
   fluid on two sides 1
@@ -41,7 +44,10 @@ change beam parameters
   show parameters
 exit
 check velocity projection
-exit
+$cmd="exit\n";
+if($go eq "halt"){$cmd="#";}
+$cmd
+
 
 
 
