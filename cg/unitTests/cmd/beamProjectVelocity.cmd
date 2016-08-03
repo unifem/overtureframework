@@ -5,10 +5,11 @@
 $degreex=2; $degreet=2; $orderOfProjection=2; 
 $thick=.1; $numElem=10;
 $BM="FEM";
-$debug=0;
+$fx=2.; $ft=2.;$debug=0;
+$tz="poly";
 GetOptions( "g=s"=>\$grid,"tf=f"=>\$tFinal,"degreex=i"=>\$degreex, "degreet=i"=>\$degreet,\
  "tp=f"=>\$tPlot, "tz=s"=>\$tz, "show=s"=>\$show,"numElem=i"=>\$numElem,"orderOfProjection=i"=>\$orderOfProjection, \
- "thick=f"=>\$thick,"nu=f"=>\$nu,"cfl=f"=>\$cfl,"noplot=s"=>\$noplot,\
+ "thick=f"=>\$thick,"nu=f"=>\$nu,"cfl=f"=>\$cfl,"noplot=s"=>\$noplot,"fx=f"=>\$fx,"ft=f"=>\$ft,\
  "go=s"=>\$go,"dtMax=f"=>\$dtMax,"cDt=f"=>\$cDt,"iv=s"=>\$implicitVariation,"Tin=f"=>\$Tin,"ad2=i"=>\$ad2,\
  "solver=s"=>\$solver,"psolver=s"=>\$psolver,"pc=s"=>\$pc,"outflowOption=s"=>\$outflowOption,"ad4=i"=>\$ad4,\
  "debug=i"=>\$debug,"pdebug=i"=>\$pdebug,"idebug=i"=>\$idebug,"project=i"=>\$project,"cfl=f"=>\$cfl,\
@@ -31,9 +32,11 @@ change beam parameters
   bc right:clamped
 #
   twilight-zone 1
-  Twilight-zone: polynomial
+  if( $tz eq "poly" ){ $cmd="Twilight-zone: polynomial"; }elsif( $tz eq "trig" ){ $cmd="Twilight-zone: trigonometric"; }else{ print("ERROR: tz=poly or trig only\n");$cmd=" "; }
+  $cmd
   degree in space: $degreex
   degree in time: $degreet
+  trig frequencies: $ft, $fx, $fx, $fx (ft,fx,fy,fz)
   exact solution...
     Exact solution:twilight zone
   exit 
