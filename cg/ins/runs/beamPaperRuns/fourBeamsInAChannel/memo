@@ -1,3 +1,112 @@
+
+===== 08/07/2016 ===
+100 is too big.....
+TRY CFLS=50: FAILED
+TRy CFLS=20 tooo big
+
+TRY cfls=10:
+Number of runs = 1
+
+Sun Aug  7 13:54:16 2016
+Run 1
+==============================================
+cmd:
+/home/lil19/cg.g/ins/bin/cgins  -abortOnEnd  -noplot fourBeamsInAChannel -BM1=FD -BM2=FD -BM3=FD -BM4=FD -useSameStencilSize=1 -g=fourBeamsInALongerChannelGride4.order2.hdf -tf=20. -tp=.01 -rhoBeam1=1000 -rhoBeam2=10 -rhoBeam3=1 -rhoBeam4=100 -E1=30 -E2=10 -E3=20 -E4=30 -numElem=28 -outflowOption=neumann -uIn=2 -nu=0.001 -addedMass=1 -ampProjectVelocity=1 -useApproximateAMPcondition=0 -numberOfCorrections=1 -saveProbe=1 -cfls=10 -smoothBeam=1 -numberOfBeamSmooths=50 -smoothInterfaceVelocity=1 -nis=50 -rampInflow=1 -recomputeGVOnCorrection=0  -psolver=best -rtolp=1.e-5 -atolp=1.e-6  -show=FD1234_cfls10_LongerChannel_AMP_NB_bestPSolver_G4.show -go=go >  FD1234_cfls10_LongerChannel_AMP_NB_bestPSolver_G4.out &
+executing cmd ------>
+==============================================
+
+
+===== 08/07/2016 ===
+100 is too big.....
+TRY CFLS=50: FAILED
+TRy CFLS=20
+
+Number of runs = 1
+
+Sun Aug  7 01:16:43 2016
+Run 1
+==============================================
+cmd:
+/home/lil19/cg.g/ins/bin/cgins  -abortOnEnd  -noplot fourBeamsInAChannel -BM1=FD -BM2=FD -BM3=FD -BM4=FD -useSameStencilSize=1 -g=fourBeamsInALongerChannelGride4.order2.hdf -tf=20. -tp=.01 -rhoBeam1=1000 -rhoBeam2=10 -rhoBeam3=1 -rhoBeam4=100 -E1=30 -E2=10 -E3=20 -E4=30 -numElem=28 -outflowOption=neumann -uIn=2 -nu=0.001 -addedMass=1 -ampProjectVelocity=1 -useApproximateAMPcondition=0 -numberOfCorrections=1 -saveProbe=1 -cfls=20 -smoothBeam=1 -numberOfBeamSmooths=50 -smoothInterfaceVelocity=1 -nis=50 -rampInflow=1 -recomputeGVOnCorrection=0  -psolver=best -rtolp=1.e-5 -atolp=1.e-6  -show=FD1234_cfls20_LongerChannel_AMP_NB_bestPSolver_G4.show -go=go >  FD1234_cfls20_LongerChannel_AMP_NB_bestPSolver_G4.out &
+executing cmd ------>
+==============================================
+
+
+
+
+===== 08/03/2016 ===
+100 is too big.....
+TRY CFLS=50: FAILED
+
+Number of runs = 1
+
+Fri Aug  5 16:46:44 2016
+Run 1
+==============================================
+cmd:
+/home/lil19/cg.g/ins/bin/cgins  -abortOnEnd  -noplot fourBeamsInAChannel -BM1=FD -BM2=FD -BM3=FD -BM4=FD -useSameStencilSize=1 -g=fourBeamsInALongerChannelGride4.order2.hdf -tf=20. -tp=.01 -rhoBeam1=1000 -rhoBeam2=10 -rhoBeam3=1 -rhoBeam4=100 -E1=30 -E2=10 -E3=20 -E4=30 -numElem=28 -outflowOption=neumann -uIn=2 -nu=0.001 -addedMass=1 -ampProjectVelocity=1 -useApproximateAMPcondition=0 -numberOfCorrections=1 -saveProbe=1 -cfls=50 -smoothBeam=1 -numberOfBeamSmooths=50 -smoothInterfaceVelocity=1 -nis=50 -rampInflow=1 -recomputeGVOnCorrection=0  -psolver=best -rtolp=1.e-5 -atolp=1.e-6  -show=FD1234_cfls50_LongerChannel_AMP_NB_bestPSolver_G4.show -go=go >  FD1234_cfls50_LongerChannel_AMP_NB_bestPSolver_G4.out &
+executing cmd ------>
+==============================================
+
+
+TRY: CFLS=100
+Number of runs = 1
+
+Fri Aug  5 16:08:04 2016
+Run 1
+==============================================
+cmd:
+/home/lil19/cg.g/ins/bin/cgins  -abortOnEnd  -noplot fourBeamsInAChannel -BM1=FD -BM2=FD -BM3=FD -BM4=FD -useSameStencilSize=1 -g=fourBeamsInALongerChannelGride4.order2.hdf -tf=20. -tp=.01 -rhoBeam1=1000 -rhoBeam2=10 -rhoBeam3=1 -rhoBeam4=100 -E1=30 -E2=10 -E3=20 -E4=30 -numElem=28 -outflowOption=neumann -uIn=2 -nu=0.001 -addedMass=1 -ampProjectVelocity=1 -useApproximateAMPcondition=0 -numberOfCorrections=1 -saveProbe=1 -cfls=100 -smoothBeam=1 -numberOfBeamSmooths=10 -smoothInterfaceVelocity=1 -nis=10 -rampInflow=1 -recomputeGVOnCorrection=0  -psolver=best -rtolp=1.e-5 -atolp=1.e-6  -show=FD1234_cfls100_LongerChannel_AMP_NB_bestPSolver_G4.show -go=go >  FD1234_cfls100_LongerChannel_AMP_NB_bestPSolver_G4.out &
+executing cmd ------>
+==============================================
+
+
+
+
+
+
+
+
+===== 08/03/2016 ===
+Run G8 with petsc solver:
+Wed Aug  3 23:35:37 2016
+Run 1
+==============================================
+cmd:
+/home/lil19/cg.g/ins/bin/cgins  -abortOnEnd  -noplot fourBeamsInAChannel -BM1=FD -BM2=FD -BM3=FD -BM4=FD -useSameStencilSize=1 -g=fourBeamsInALongerChannelGride8.order2.hdf -tf=20. -tp=.01 -rhoBeam1=1000 -rhoBeam2=10 -rhoBeam3=1 -rhoBeam4=100 -E1=30 -E2=10 -E3=20 -E4=30 -numElem=56 -outflowOption=neumann -uIn=2 -nu=0.001 -addedMass=1 -ampProjectVelocity=1 -useApproximateAMPcondition=0 -numberOfCorrections=1 -saveProbe=1 -cfls=1 -smoothBeam=1 -numberOfBeamSmooths=10 -smoothInterfaceVelocity=1 -nis=10 -rampInflow=1 -recomputeGVOnCorrection=0  -psolver=best -rtolp=1.e-5 -atolp=1.e-6  -show=FD1234_LongerChannel_AMP_NB_bestPSolver_G8.show -go=go >  FD1234_LongerChannel_AMP_NB_bestPSolver_G8.out &
+executing cmd ------>
+==============================================
+
+
+====== 08/02/2016 ===
+FIXED bug in BeamMdeol::interpolateSolution redo all the runs:
+umber of runs = 2
+
+Tue Aug  2 23:29:56 2016
+Run 1
+==============================================
+cmd:
+/home/lil19/cg.g/ins/bin/cgins -abortOnEnd -noplot fourBeamsInAChannel -BM1=FEM -BM2=FEM -BM3=FEM -BM4=FEM -g=fourBeamsInALongerChannelGride4.order2.hdf -tf=20. -tp=.01 -rhoBeam1=1000  -rhoBeam2=10 -rhoBeam3=1 -rhoBeam4=100 -E1=30 -E2=10 -E3=20 -E4=30 -numElem=28 -outflowOption=neumann -uIn=2 -nu=0.001 -addedMass=1 -ampProjectVelocity=1 -useApproximateAMPcondition=0 -numberOfCorrections=1 -saveProbe=1 -cfls=1 -smoothBeam=0  -smoothInterfaceVelocity=1 -nis=10 -rampInflow=1 -recomputeGVOnCorrection=0  -psolver=best -rtolp=1.e-5 -atolp=1.e-6  -show=FEM1234_LongerChannel_AMP_NB_bestPSolver_G4.show -go=go  >  FEM1234_LongerChannel_AMP_NB_bestPSolver_G4.out &
+executing cmd ------>
+==============================================
+
+Tue Aug  2 23:29:56 2016
+Run 2
+==============================================
+cmd:
+/home/lil19/cg.g/ins/bin/cgins  -abortOnEnd  -noplot fourBeamsInAChannel -BM1=FD -BM2=FD -BM3=FD -BM4=FD -useSameStencilSize=1 -g=fourBeamsInALongerChannelGride4.order2.hdf -tf=20. -tp=.01 -rhoBeam1=1000 -rhoBeam2=10 -rhoBeam3=1 -rhoBeam4=100 -E1=30 -E2=10 -E3=20 -E4=30 -numElem=28 -outflowOption=neumann -uIn=2 -nu=0.001 -addedMass=1 -ampProjectVelocity=1 -useApproximateAMPcondition=0 -numberOfCorrections=1 -saveProbe=1 -cfls=1 -smoothBeam=1 -numberOfBeamSmooths=10 -smoothInterfaceVelocity=1 -nis=10 -rampInflow=1 -recomputeGVOnCorrection=0  -psolver=best -rtolp=1.e-5 -atolp=1.e-6  -show=FD1234_LongerChannel_AMP_NB_bestPSolver_G4.show -go=go >  FD1234_LongerChannel_AMP_NB_bestPSolver_G4.out &
+executing cmd ------>
+==============================================
+
+
+
+
+
+
+
+
+
+*************************************************** old ****************
 ====== 07/29/2016 ===
 run on G1: show the coarse grids in beamPaper
 Number of runs = 2

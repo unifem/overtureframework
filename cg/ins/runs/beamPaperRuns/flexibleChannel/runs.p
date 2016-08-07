@@ -17,11 +17,11 @@ $verbose=0;
 @runCmds;
 
 #====================== beam thickness = 0.1 =====================================================================
-# $runName="beamUnderPressure_h0p1_EI0p2_Rhos0p1_CFLs1_AMP_FD1_NBNB";
-# push @runDirs,$runName;
-# push @runCmds,"cgins -abortOnEnd  -noplot flexiblePartition -g=flexiblePartitionGride2.order2.hdf -nu=.025 -tf=50. -tp=.01 -rhoBeam=.1 -E=.2 -tension=0. -thickness=.1 -Kt=1 -numElem=40 -p0=1 -addedMass=1 -useApproximateAMPcondition=0 -fluidOnTwoSides=1 -ampProjectVelocity=1 -projectNormalComponent=1 -option=beamUnderPressure -smoothInterfaceVelocity=1 -nis=4 -probePosition=.5  -cfls=1. -BM=FD -useSameStencilSize=1 -ps=newmark2Implicit -cs=newmarkCorrector -show=$runName.show -go=go > $runName.out &";
+$runName="beamUnderPressure_h0p1_EI0p2_Rhos0p1_CFLs1_AMP_FD1_NBNB";
+push @runDirs,$runName;
+push @runCmds,"cgins -abortOnEnd  -noplot flexiblePartition -g=flexiblePartitionGride2.order2.hdf -nu=.025 -tf=50. -tp=.01 -rhoBeam=.1 -E=.2 -tension=0. -thickness=.1 -Kt=1 -numElem=40 -p0=1 -addedMass=1 -useApproximateAMPcondition=0 -fluidOnTwoSides=1 -ampProjectVelocity=1 -projectNormalComponent=1 -option=beamUnderPressure -smoothInterfaceVelocity=1 -nis=4 -probePosition=.5  -cfls=1. -BM=FD -useSameStencilSize=1 -ps=newmark2Implicit -cs=newmarkCorrector -show=$runName.show -go=go > $runName.out &";
 
-# AMP+FD1+NBNB 1e-5 thickness
+# AMP+FD1+NBNB 1e-1 thickness
 # heavy beam first: rhos=1000
 $tf=5;
 for(my $i=1;$i<5;$i++)
@@ -34,87 +34,88 @@ for(my $i=1;$i<5;$i++)
 }
 
 
-# redone on 07/21/2016
+# below are thin beams beam thickness = 1e-5
+# redone on 08/02/2016 after fix a bug in BeamModel::interpolateSolution
 #=============================== AMP schemes ===============================================================
-# # AMP+FD0+NBNB
-# $runName="beamUnderPressure_EI0p2_Rhos0p1_CFLs1_AMP_FD0_NBNB";
-# push @runDirs,$runName;
-# push @runCmds,"cgins -abortOnEnd  -noplot flexiblePartition -g=flexiblePartitionsmallthicknessGride2.order2.hdf -nu=.025 -tf=50. -tp=.01 -rhoBeam=.1 -E=.2 -tension=0. -thickness=.1 -Kt=1 -numElem=40 -p0=1 -addedMass=1 -useApproximateAMPcondition=0 -fluidOnTwoSides=1 -ampProjectVelocity=1 -projectNormalComponent=1 -option=beamUnderPressure -smoothInterfaceVelocity=1 -nis=4 -probePosition=.5  -cfls=1. -BM=FD -useSameStencilSize=0 -ps=newmark2Implicit -cs=newmarkCorrector -show=$runName.show -go=go > $runName.out &";
+# AMP+FD0+NBNB
+$runName="beamUnderPressure_EI0p2_Rhos0p1_CFLs1_AMP_FD0_NBNB";
+push @runDirs,$runName;
+push @runCmds,"cgins -abortOnEnd  -noplot flexiblePartition -g=flexiblePartitionsmallthicknessGride2.order2.hdf -nu=.025 -tf=50. -tp=.01 -rhoBeam=.1 -E=.2 -tension=0. -thickness=.1 -Kt=1 -numElem=40 -p0=1 -addedMass=1 -useApproximateAMPcondition=0 -fluidOnTwoSides=1 -ampProjectVelocity=1 -projectNormalComponent=1 -option=beamUnderPressure -smoothInterfaceVelocity=1 -nis=4 -probePosition=.5  -cfls=1. -BM=FD -useSameStencilSize=0 -ps=newmark2Implicit -cs=newmarkCorrector -show=$runName.show -go=go > $runName.out &";
 
 
-# # AMP+FD0+ABAM 
-# $runName="beamUnderPressure_EI0p2_Rhos0p1_CFLs1_AMP_FD0_ABAM";
-# push @runDirs,$runName;
-# push @runCmds,"cgins -abortOnEnd  -noplot flexiblePartition -g=flexiblePartitionsmallthicknessGride2.order2.hdf -nu=.025 -tf=50. -tp=.01 -rhoBeam=.1 -E=.2 -tension=0. -thickness=.1 -Kt=1 -numElem=40 -p0=1 -addedMass=1 -useApproximateAMPcondition=0 -fluidOnTwoSides=1 -ampProjectVelocity=1 -projectNormalComponent=1 -option=beamUnderPressure -smoothInterfaceVelocity=1 -nis=4 -probePosition=.5  -cfls=1. -BM=FD -useSameStencilSize=0 -ps=adamsBashforth2 -cs=adamsMoultonCorrector -show=$runName.show -go=go > $runName.out &";
+# AMP+FD0+ABAM 
+$runName="beamUnderPressure_EI0p2_Rhos0p1_CFLs1_AMP_FD0_ABAM";
+push @runDirs,$runName;
+push @runCmds,"cgins -abortOnEnd  -noplot flexiblePartition -g=flexiblePartitionsmallthicknessGride2.order2.hdf -nu=.025 -tf=50. -tp=.01 -rhoBeam=.1 -E=.2 -tension=0. -thickness=.1 -Kt=1 -numElem=40 -p0=1 -addedMass=1 -useApproximateAMPcondition=0 -fluidOnTwoSides=1 -ampProjectVelocity=1 -projectNormalComponent=1 -option=beamUnderPressure -smoothInterfaceVelocity=1 -nis=4 -probePosition=.5  -cfls=1. -BM=FD -useSameStencilSize=0 -ps=adamsBashforth2 -cs=adamsMoultonCorrector -show=$runName.show -go=go > $runName.out &";
 
-# # AMP+FD1+NBNB
-# $runName="beamUnderPressure_EI0p2_Rhos0p1_CFLs1_AMP_FD1_NBNB";
-# push @runDirs,$runName;
-# push @runCmds,"cgins -abortOnEnd  -noplot flexiblePartition -g=flexiblePartitionsmallthicknessGride2.order2.hdf -nu=.025 -tf=50. -tp=.01 -rhoBeam=.1 -E=.2 -tension=0. -thickness=.1 -Kt=1 -numElem=40 -p0=1 -addedMass=1 -useApproximateAMPcondition=0 -fluidOnTwoSides=1 -ampProjectVelocity=1 -projectNormalComponent=1 -option=beamUnderPressure -smoothInterfaceVelocity=1 -nis=4 -probePosition=.5  -cfls=1. -BM=FD -useSameStencilSize=1 -ps=newmark2Implicit -cs=newmarkCorrector -show=$runName.show -go=go > $runName.out &";
+# AMP+FD1+NBNB
+$runName="beamUnderPressure_EI0p2_Rhos0p1_CFLs1_AMP_FD1_NBNB";
+push @runDirs,$runName;
+push @runCmds,"cgins -abortOnEnd  -noplot flexiblePartition -g=flexiblePartitionsmallthicknessGride2.order2.hdf -nu=.025 -tf=50. -tp=.01 -rhoBeam=.1 -E=.2 -tension=0. -thickness=.1 -Kt=1 -numElem=40 -p0=1 -addedMass=1 -useApproximateAMPcondition=0 -fluidOnTwoSides=1 -ampProjectVelocity=1 -projectNormalComponent=1 -option=beamUnderPressure -smoothInterfaceVelocity=1 -nis=4 -probePosition=.5  -cfls=1. -BM=FD -useSameStencilSize=1 -ps=newmark2Implicit -cs=newmarkCorrector -show=$runName.show -go=go > $runName.out &";
 
 
-# # AMP+FD1+ABAM 
-# $runName="beamUnderPressure_EI0p2_Rhos0p1_CFLs1_AMP_FD1_ABAM";
-# push @runDirs,$runName;
-# push @runCmds,"cgins -abortOnEnd  -noplot flexiblePartition -g=flexiblePartitionsmallthicknessGride2.order2.hdf -nu=.025 -tf=50. -tp=.01 -rhoBeam=.1 -E=.2 -tension=0. -thickness=.1 -Kt=1 -numElem=40 -p0=1 -addedMass=1 -useApproximateAMPcondition=0 -fluidOnTwoSides=1 -ampProjectVelocity=1 -projectNormalComponent=1 -option=beamUnderPressure -smoothInterfaceVelocity=1 -nis=4 -probePosition=.5  -cfls=1. -BM=FD -useSameStencilSize=1 -ps=adamsBashforth2 -cs=adamsMoultonCorrector -show=$runName.show -go=go > $runName.out &";
+# AMP+FD1+ABAM 
+$runName="beamUnderPressure_EI0p2_Rhos0p1_CFLs1_AMP_FD1_ABAM";
+push @runDirs,$runName;
+push @runCmds,"cgins -abortOnEnd  -noplot flexiblePartition -g=flexiblePartitionsmallthicknessGride2.order2.hdf -nu=.025 -tf=50. -tp=.01 -rhoBeam=.1 -E=.2 -tension=0. -thickness=.1 -Kt=1 -numElem=40 -p0=1 -addedMass=1 -useApproximateAMPcondition=0 -fluidOnTwoSides=1 -ampProjectVelocity=1 -projectNormalComponent=1 -option=beamUnderPressure -smoothInterfaceVelocity=1 -nis=4 -probePosition=.5  -cfls=1. -BM=FD -useSameStencilSize=1 -ps=adamsBashforth2 -cs=adamsMoultonCorrector -show=$runName.show -go=go > $runName.out &";
 
-# # AMP+FEM+NBNB
-# $runName="beamUnderPressure_EI0p2_Rhos0p1_CFLs1_AMP_FEM_NBNB";
-# push @runDirs,$runName;
-# push @runCmds,"cgins -abortOnEnd  -noplot flexiblePartition -g=flexiblePartitionsmallthicknessGride2.order2.hdf -nu=.025 -tf=50. -tp=.01 -rhoBeam=.1 -E=.2 -tension=0. -thickness=.1 -Kt=1 -numElem=40 -p0=1 -addedMass=1 -useApproximateAMPcondition=0 -fluidOnTwoSides=1 -ampProjectVelocity=1 -projectNormalComponent=1 -option=beamUnderPressure -smoothInterfaceVelocity=1 -nis=4 -probePosition=.5  -cfls=1. -BM=FEM -ps=newmark2Implicit -cs=newmarkCorrector -show=$runName.show -go=go > $runName.out &";
+# AMP+FEM+NBNB
+$runName="beamUnderPressure_EI0p2_Rhos0p1_CFLs1_AMP_FEM_NBNB";
+push @runDirs,$runName;
+push @runCmds,"cgins -abortOnEnd  -noplot flexiblePartition -g=flexiblePartitionsmallthicknessGride2.order2.hdf -nu=.025 -tf=50. -tp=.01 -rhoBeam=.1 -E=.2 -tension=0. -thickness=.1 -Kt=1 -numElem=40 -p0=1 -addedMass=1 -useApproximateAMPcondition=0 -fluidOnTwoSides=1 -ampProjectVelocity=1 -projectNormalComponent=1 -option=beamUnderPressure -smoothInterfaceVelocity=1 -nis=4 -probePosition=.5  -cfls=1. -BM=FEM -ps=newmark2Implicit -cs=newmarkCorrector -show=$runName.show -go=go > $runName.out &";
 
 #==================================================================================================================
 
 #=============================== TP schemes ===============================================================
-# #TP+FD1+NBNB 
-# $runName="beamUnderPressure_EI0p2_Rhos0p1_CFLs1_TP_FD1_NBNB";
-# push @runDirs,$runName;
-# push @runCmds,"cgins -abortOnEnd  -noplot flexiblePartition -g=flexiblePartitionsmallthicknessGride2.order2.hdf -nu=.025 -tf=10. -tp=.01 -rhoBeam=.1 -E=.2 -tension=0. -thickness=.1 -Kt=1 -numElem=40 -p0=1 -addedMass=0 -useTP=1 -addedMassRelaxation=0.01 -addedMassTol=1e-5 -numberOfCorrections=500 -useApproximateAMPcondition=0 -fluidOnTwoSides=1 -ampProjectVelocity=0 -projectNormalComponent=1 -option=beamUnderPressure -smoothInterfaceVelocity=1 -nis=4 -probePosition=.5  -cfls=1. -BM=FD -useSameStencilSize=1 -ps=newmark2Implicit -cs=newmarkCorrector -show=$runName.show -go=go > $runName.out &";
+#TP+FD1+NBNB 
+$runName="beamUnderPressure_EI0p2_Rhos0p1_CFLs1_TP_FD1_NBNB";
+push @runDirs,$runName;
+push @runCmds,"cgins -abortOnEnd  -noplot flexiblePartition -g=flexiblePartitionsmallthicknessGride2.order2.hdf -nu=.025 -tf=10. -tp=.01 -rhoBeam=.1 -E=.2 -tension=0. -thickness=.1 -Kt=1 -numElem=40 -p0=1 -addedMass=0 -useTP=1 -addedMassRelaxation=0.01 -addedMassTol=1e-5 -numberOfCorrections=500 -useApproximateAMPcondition=0 -fluidOnTwoSides=1 -ampProjectVelocity=0 -projectNormalComponent=1 -option=beamUnderPressure -smoothInterfaceVelocity=1 -nis=4 -probePosition=.5  -cfls=1. -BM=FD -useSameStencilSize=1 -ps=newmark2Implicit -cs=newmarkCorrector -show=$runName.show -go=go > $runName.out &";
 
-# #TP+FD1+ABAM
-# $runName="beamUnderPressure_EI0p2_Rhos0p1_CFLs1_TP_FD1_ABAM";
-# push @runDirs,$runName;
-# push @runCmds,"cgins -abortOnEnd  -noplot flexiblePartition -g=flexiblePartitionsmallthicknessGride2.order2.hdf -nu=.025 -tf=10. -tp=.01 -rhoBeam=.1 -E=.2 -tension=0. -thickness=.1 -Kt=1 -numElem=40 -p0=1 -addedMass=0 -useTP=1 -addedMassRelaxation=0.01 -addedMassTol=1e-5 -numberOfCorrections=500 -useApproximateAMPcondition=0 -fluidOnTwoSides=1 -ampProjectVelocity=0 -projectNormalComponent=1 -option=beamUnderPressure -smoothInterfaceVelocity=1 -nis=4 -probePosition=.5  -cfls=1. -BM=FD -useSameStencilSize=1 -ps=adamsBashforth2 -cs=adamsMoultonCorrector -show=$runName.show -go=go > $runName.out &";
+#TP+FD1+ABAM
+$runName="beamUnderPressure_EI0p2_Rhos0p1_CFLs1_TP_FD1_ABAM";
+push @runDirs,$runName;
+push @runCmds,"cgins -abortOnEnd  -noplot flexiblePartition -g=flexiblePartitionsmallthicknessGride2.order2.hdf -nu=.025 -tf=10. -tp=.01 -rhoBeam=.1 -E=.2 -tension=0. -thickness=.1 -Kt=1 -numElem=40 -p0=1 -addedMass=0 -useTP=1 -addedMassRelaxation=0.01 -addedMassTol=1e-5 -numberOfCorrections=500 -useApproximateAMPcondition=0 -fluidOnTwoSides=1 -ampProjectVelocity=0 -projectNormalComponent=1 -option=beamUnderPressure -smoothInterfaceVelocity=1 -nis=4 -probePosition=.5  -cfls=1. -BM=FD -useSameStencilSize=1 -ps=adamsBashforth2 -cs=adamsMoultonCorrector -show=$runName.show -go=go > $runName.out &";
 
 
-# #TP+FEM+NBNB 
-# $runName="beamUnderPressure_EI0p2_Rhos0p1_CFLs1_TP_FEM_NBNB";
-# push @runDirs,$runName;
-# push @runCmds,"cgins -abortOnEnd  -noplot flexiblePartition -g=flexiblePartitionsmallthicknessGride2.order2.hdf -nu=.025 -tf=10. -tp=.01 -rhoBeam=.1 -E=.2 -tension=0. -thickness=.1 -Kt=1 -numElem=40 -p0=1 -addedMass=0 -useTP=1 -addedMassRelaxation=0.01 -addedMassTol=1e-5 -numberOfCorrections=500 -useApproximateAMPcondition=0 -fluidOnTwoSides=1 -ampProjectVelocity=0 -projectNormalComponent=1 -option=beamUnderPressure -smoothInterfaceVelocity=1 -nis=4 -probePosition=.5  -cfls=1. -BM=FEM -ps=newmark2Implicit -cs=newmarkCorrector -show=$runName.show -go=go > $runName.out &";
+#TP+FEM+NBNB 
+$runName="beamUnderPressure_EI0p2_Rhos0p1_CFLs1_TP_FEM_NBNB";
+push @runDirs,$runName;
+push @runCmds,"cgins -abortOnEnd  -noplot flexiblePartition -g=flexiblePartitionsmallthicknessGride2.order2.hdf -nu=.025 -tf=10. -tp=.01 -rhoBeam=.1 -E=.2 -tension=0. -thickness=.1 -Kt=1 -numElem=40 -p0=1 -addedMass=0 -useTP=1 -addedMassRelaxation=0.01 -addedMassTol=1e-5 -numberOfCorrections=500 -useApproximateAMPcondition=0 -fluidOnTwoSides=1 -ampProjectVelocity=0 -projectNormalComponent=1 -option=beamUnderPressure -smoothInterfaceVelocity=1 -nis=4 -probePosition=.5  -cfls=1. -BM=FEM -ps=newmark2Implicit -cs=newmarkCorrector -show=$runName.show -go=go > $runName.out &";
 
-# #TP+FEM+NBNB+Kxxt0p01
-# $runName="beamUnderPressure_EI0p2_Rhos0p1_CFLs1_TP_FEM_NBNB_Kxxt0p01";
-# push @runDirs,$runName;
-# push @runCmds,"cgins -abortOnEnd  -noplot flexiblePartition -g=flexiblePartitionsmallthicknessGride2.order2.hdf -nu=.025 -tf=10. -tp=.01 -rhoBeam=.1 -E=.2 -tension=0. -thickness=.1 -Kt=1 -Kxxt=0.01 -numElem=40 -p0=1 -addedMass=0 -useTP=1 -addedMassRelaxation=0.01 -addedMassTol=1e-5 -numberOfCorrections=500 -useApproximateAMPcondition=0 -fluidOnTwoSides=1 -ampProjectVelocity=0 -projectNormalComponent=1 -option=beamUnderPressure -smoothInterfaceVelocity=1 -nis=4 -probePosition=.5  -cfls=1. -BM=FEM -ps=newmark2Implicit -cs=newmarkCorrector -show=$runName.show -go=go > $runName.out &";
+#TP+FEM+NBNB+Kxxt0p01
+$runName="beamUnderPressure_EI0p2_Rhos0p1_CFLs1_TP_FEM_NBNB_Kxxt0p01";
+push @runDirs,$runName;
+push @runCmds,"cgins -abortOnEnd  -noplot flexiblePartition -g=flexiblePartitionsmallthicknessGride2.order2.hdf -nu=.025 -tf=10. -tp=.01 -rhoBeam=.1 -E=.2 -tension=0. -thickness=.1 -Kt=1 -Kxxt=0.01 -numElem=40 -p0=1 -addedMass=0 -useTP=1 -addedMassRelaxation=0.01 -addedMassTol=1e-5 -numberOfCorrections=500 -useApproximateAMPcondition=0 -fluidOnTwoSides=1 -ampProjectVelocity=0 -projectNormalComponent=1 -option=beamUnderPressure -smoothInterfaceVelocity=1 -nis=4 -probePosition=.5  -cfls=1. -BM=FEM -ps=newmark2Implicit -cs=newmarkCorrector -show=$runName.show -go=go > $runName.out &";
 
 #=========================== FD TP scheme with beam smoother ====================================
-# #TP+FD1+NBNB_bSmoother 
-# $runName="beamUnderPressure_EI0p2_Rhos0p1_CFLs1_TP_FD1_NBNB_bSmoother";
-# push @runDirs,$runName;
-# push @runCmds,"cgins -abortOnEnd  -noplot flexiblePartition -g=flexiblePartitionsmallthicknessGride2.order2.hdf -nu=.025 -tf=10. -tp=.01 -rhoBeam=.1 -E=.2 -tension=0. -thickness=.1 -Kt=1 -numElem=40 -p0=1 -addedMass=0 -useTP=1 -addedMassRelaxation=0.01 -addedMassTol=1e-5 -numberOfCorrections=500 -useApproximateAMPcondition=0 -fluidOnTwoSides=1 -ampProjectVelocity=0 -projectNormalComponent=1 -option=beamUnderPressure -smoothInterfaceVelocity=1 -nis=4 -probePosition=.5  -cfls=1. -BM=FD -useSameStencilSize=1 -smoothBeam=1 -numberOfBeamSmooths=4 -ps=newmark2Implicit -cs=newmarkCorrector -show=$runName.show -go=go > $runName.out &";
+#TP+FD1+NBNB_bSmoother 
+$runName="beamUnderPressure_EI0p2_Rhos0p1_CFLs1_TP_FD1_NBNB_bSmoother";
+push @runDirs,$runName;
+push @runCmds,"cgins -abortOnEnd  -noplot flexiblePartition -g=flexiblePartitionsmallthicknessGride2.order2.hdf -nu=.025 -tf=10. -tp=.01 -rhoBeam=.1 -E=.2 -tension=0. -thickness=.1 -Kt=1 -numElem=40 -p0=1 -addedMass=0 -useTP=1 -addedMassRelaxation=0.01 -addedMassTol=1e-5 -numberOfCorrections=500 -useApproximateAMPcondition=0 -fluidOnTwoSides=1 -ampProjectVelocity=0 -projectNormalComponent=1 -option=beamUnderPressure -smoothInterfaceVelocity=1 -nis=4 -probePosition=.5  -cfls=1. -BM=FD -useSameStencilSize=1 -smoothBeam=1 -numberOfBeamSmooths=4 -ps=newmark2Implicit -cs=newmarkCorrector -show=$runName.show -go=go > $runName.out &";
 
-# #TP+FD1+ABAM_bSmoother 
-# $runName="beamUnderPressure_EI0p2_Rhos0p1_CFLs1_TP_FD1_ABAM_bSmoother";
-# push @runDirs,$runName;
-# push @runCmds,"cgins -abortOnEnd  -noplot flexiblePartition -g=flexiblePartitionsmallthicknessGride2.order2.hdf -nu=.025 -tf=10. -tp=.01 -rhoBeam=.1 -E=.2 -tension=0. -thickness=.1 -Kt=1 -numElem=40 -p0=1 -addedMass=0 -useTP=1 -addedMassRelaxation=0.01 -addedMassTol=1e-5 -numberOfCorrections=500 -useApproximateAMPcondition=0 -fluidOnTwoSides=1 -ampProjectVelocity=0 -projectNormalComponent=1 -option=beamUnderPressure -smoothInterfaceVelocity=1 -nis=4 -probePosition=.5  -cfls=1. -BM=FD -useSameStencilSize=1 -smoothBeam=1 -numberOfBeamSmooths=4  -ps=adamsBashforth2 -cs=adamsMoultonCorrector -show=$runName.show -go=go > $runName.out &";
-
-
-
-#=========================== self convergence test at t=1 ====================================
-# $tf=5;				
+#TP+FD1+ABAM_bSmoother 
+$runName="beamUnderPressure_EI0p2_Rhos0p1_CFLs1_TP_FD1_ABAM_bSmoother";
+push @runDirs,$runName;
+push @runCmds,"cgins -abortOnEnd  -noplot flexiblePartition -g=flexiblePartitionsmallthicknessGride2.order2.hdf -nu=.025 -tf=10. -tp=.01 -rhoBeam=.1 -E=.2 -tension=0. -thickness=.1 -Kt=1 -numElem=40 -p0=1 -addedMass=0 -useTP=1 -addedMassRelaxation=0.01 -addedMassTol=1e-5 -numberOfCorrections=500 -useApproximateAMPcondition=0 -fluidOnTwoSides=1 -ampProjectVelocity=0 -projectNormalComponent=1 -option=beamUnderPressure -smoothInterfaceVelocity=1 -nis=4 -probePosition=.5  -cfls=1. -BM=FD -useSameStencilSize=1 -smoothBeam=1 -numberOfBeamSmooths=4  -ps=adamsBashforth2 -cs=adamsMoultonCorrector -show=$runName.show -go=go > $runName.out &";
 
 
-# #===== small thickness beam ======
-# AMP+FD1+NBNB 1e-5 thickness
-# heavy beam first: rhos=1000
-# for(my $i=1;$i<5;$i++)
-# {
-#     $gridNumber=2**$i;
-#     $runName="beamUnderPressure_EI0p2_Rhos1000_hsmall_CFLs1_AMP_FD1_NBNB_G$gridNumber";
-#     $nElem=10*$gridNumber;
-#     push @runDirs,$runName;
-#     push @runCmds,"cgins -abortOnEnd  -noplot flexiblePartition -g=flexiblePartitionsmallthicknessGride$gridNumber.order2.hdf -nu=.025 -tf=$tf -tp=.01 -rhoBeam=1000 -E=.2 -tension=0. -thickness=.1 -Kt=1 -numElem=$nElem -p0=1 -addedMass=1 -useApproximateAMPcondition=0 -fluidOnTwoSides=1 -ampProjectVelocity=1 -projectNormalComponent=1 -option=beamUnderPressure -smoothInterfaceVelocity=1 -nis=4 -probePosition=.5  -cfls=1. -BM=FD -useSameStencilSize=1 -ps=newmark2Implicit -cs=newmarkCorrector -show=$runName.show -go=go > $runName.out &" ;
-# }
+
+#=========================== self convergence test at t=5 ====================================
+$tf=5;				
+
+
+#===== small thickness beam ======
+#AMP+FD1+NBNB 1e-5 thickness
+#heavy beam first: rhos=1000
+for(my $i=1;$i<5;$i++)
+{
+    $gridNumber=2**$i;
+    $runName="beamUnderPressure_EI0p2_Rhos1000_hsmall_CFLs1_AMP_FD1_NBNB_G$gridNumber";
+    $nElem=10*$gridNumber;
+    push @runDirs,$runName;
+    push @runCmds,"cgins -abortOnEnd  -noplot flexiblePartition -g=flexiblePartitionsmallthicknessGride$gridNumber.order2.hdf -nu=.025 -tf=$tf -tp=.01 -rhoBeam=1000 -E=.2 -tension=0. -thickness=.1 -Kt=1 -numElem=$nElem -p0=1 -addedMass=1 -useApproximateAMPcondition=0 -fluidOnTwoSides=1 -ampProjectVelocity=1 -projectNormalComponent=1 -option=beamUnderPressure -smoothInterfaceVelocity=1 -nis=4 -probePosition=.5  -cfls=1. -BM=FD -useSameStencilSize=1 -ps=newmark2Implicit -cs=newmarkCorrector -show=$runName.show -go=go > $runName.out &" ;
+}
 
 # # # AMP+FD1+NBNB 1e-5 thickness
 # # light beam first: rhos=1e-2

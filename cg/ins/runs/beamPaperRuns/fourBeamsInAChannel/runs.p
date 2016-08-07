@@ -17,9 +17,9 @@ $verbose=0;
 
 #============================= runs =============================================
 $tf=20.;
-$cfls=1.;
+$cfls=10.;
 $uIn=2.;
-$gn=1;  #G1
+$gn=4;
 $numElem=7*$gn;
 $E1=30.;$rho1=1000.;
 $E2=10.;$rho2=10.;
@@ -29,13 +29,32 @@ $nu=1e-3;
 $rampInflow=1;
 
 $grid="fourBeamsInALongerChannelGride$gn.order2.hdf";
-$runName="FEM1234_LongerChannel_AMP_NB_G$gn";
-push @runDirs,$runName;
-push @runCmds,"cgins -abortOnEnd -noplot fourBeamsInAChannel -BM1=FEM -BM2=FEM -BM3=FEM -BM4=FEM -g=$grid -tf=$tf. -tp=.01 -rhoBeam1=$rho1  -rhoBeam2=$rho2 -rhoBeam3=$rho3 -rhoBeam4=$rho4 -E1=$E1 -E2=$E2 -E3=$E3 -E4=$E4 -numElem=$numElem -outflowOption=neumann -uIn=$uIn -nu=$nu -addedMass=1 -ampProjectVelocity=1 -useApproximateAMPcondition=0 -numberOfCorrections=1 -saveProbe=1 -cfls=$cfls -smoothBeam=0  -smoothInterfaceVelocity=1 -nis=10 -rampInflow=$rampInflow -recomputeGVOnCorrection=0 -show=$runName.show -go=go  >  $runName.out &";
 
-$runName="FD1234_LongerChannel_AMP_NB_G$gn";
+# use yale solver (default)
+# $runName="FEM1234_LongerChannel_AMP_NB_G$gn";
+# push @runDirs,$runName;
+# push @runCmds,"cgins -abortOnEnd -noplot fourBeamsInAChannel -BM1=FEM -BM2=FEM -BM3=FEM -BM4=FEM -g=$grid -tf=$tf. -tp=.01 -rhoBeam1=$rho1  -rhoBeam2=$rho2 -rhoBeam3=$rho3 -rhoBeam4=$rho4 -E1=$E1 -E2=$E2 -E3=$E3 -E4=$E4 -numElem=$numElem -outflowOption=neumann -uIn=$uIn -nu=$nu -addedMass=1 -ampProjectVelocity=1 -useApproximateAMPcondition=0 -numberOfCorrections=1 -saveProbe=1 -cfls=$cfls -smoothBeam=0  -smoothInterfaceVelocity=1 -nis=10 -rampInflow=$rampInflow -recomputeGVOnCorrection=0 -show=$runName.show -go=go  >  $runName.out &";
+
+# $runName="FD1234_LongerChannel_AMP_NB_G$gn";
+# push @runDirs,$runName;
+# push @runCmds,"cgins  -abortOnEnd  -noplot fourBeamsInAChannel -BM1=FD -BM2=FD -BM3=FD -BM4=FD -useSameStencilSize=1 -g=$grid -tf=$tf. -tp=.01 -rhoBeam1=$rho1 -rhoBeam2=$rho2 -rhoBeam3=$rho3 -rhoBeam4=$rho4 -E1=$E1 -E2=$E2 -E3=$E3 -E4=$E4 -numElem=$numElem -outflowOption=neumann -uIn=$uIn -nu=$nu -addedMass=1 -ampProjectVelocity=1 -useApproximateAMPcondition=0 -numberOfCorrections=1 -saveProbe=1 -cfls=$cfls -smoothBeam=1 -numberOfBeamSmooths=10 -smoothInterfaceVelocity=1 -nis=10 -rampInflow=$rampInflow -recomputeGVOnCorrection=0 -show=$runName.show -go=go >  $runName.out &";
+
+# use best psolver
+# $runName="FEM1234_LongerChannel_AMP_NB_bestPSolver_G$gn";
+# push @runDirs,$runName;
+# push @runCmds,"cgins -abortOnEnd -noplot fourBeamsInAChannel -BM1=FEM -BM2=FEM -BM3=FEM -BM4=FEM -g=$grid -tf=$tf. -tp=.01 -rhoBeam1=$rho1  -rhoBeam2=$rho2 -rhoBeam3=$rho3 -rhoBeam4=$rho4 -E1=$E1 -E2=$E2 -E3=$E3 -E4=$E4 -numElem=$numElem -outflowOption=neumann -uIn=$uIn -nu=$nu -addedMass=1 -ampProjectVelocity=1 -useApproximateAMPcondition=0 -numberOfCorrections=1 -saveProbe=1 -cfls=$cfls -smoothBeam=0  -smoothInterfaceVelocity=1 -nis=10 -rampInflow=$rampInflow -recomputeGVOnCorrection=0  -psolver=best -rtolp=1.e-5 -atolp=1.e-6  -show=$runName.show -go=go  >  $runName.out &";
+
+# $runName="FD1234_LongerChannel_AMP_NB_bestPSolver_G$gn";
+# push @runDirs,$runName;
+# push @runCmds,"cgins  -abortOnEnd  -noplot fourBeamsInAChannel -BM1=FD -BM2=FD -BM3=FD -BM4=FD -useSameStencilSize=1 -g=$grid -tf=$tf. -tp=.01 -rhoBeam1=$rho1 -rhoBeam2=$rho2 -rhoBeam3=$rho3 -rhoBeam4=$rho4 -E1=$E1 -E2=$E2 -E3=$E3 -E4=$E4 -numElem=$numElem -outflowOption=neumann -uIn=$uIn -nu=$nu -addedMass=1 -ampProjectVelocity=1 -useApproximateAMPcondition=0 -numberOfCorrections=1 -saveProbe=1 -cfls=$cfls -smoothBeam=1 -numberOfBeamSmooths=10 -smoothInterfaceVelocity=1 -nis=10 -rampInflow=$rampInflow -recomputeGVOnCorrection=0  -psolver=best -rtolp=1.e-5 -atolp=1.e-6  -show=$runName.show -go=go >  $runName.out &";
+
+
+## try cfls=10 for FDBeamModel with more bSmoother
+$runName="FD1234_cfls10_LongerChannel_AMP_NB_bestPSolver_G$gn";
 push @runDirs,$runName;
-push @runCmds,"cgins  -abortOnEnd  -noplot fourBeamsInAChannel -BM1=FD -BM2=FD -BM3=FD -BM4=FD -useSameStencilSize=1 -g=$grid -tf=$tf. -tp=.01 -rhoBeam1=$rho1 -rhoBeam2=$rho2 -rhoBeam3=$rho3 -rhoBeam4=$rho4 -E1=$E1 -E2=$E2 -E3=$E3 -E4=$E4 -numElem=$numElem -outflowOption=neumann -uIn=$uIn -nu=$nu -addedMass=1 -ampProjectVelocity=1 -useApproximateAMPcondition=0 -numberOfCorrections=1 -saveProbe=1 -cfls=$cfls -smoothBeam=1 -numberOfBeamSmooths=10 -smoothInterfaceVelocity=1 -nis=10 -rampInflow=$rampInflow -recomputeGVOnCorrection=0 -show=$runName.show -go=go >  $runName.out &";
+push @runCmds,"cgins  -abortOnEnd  -noplot fourBeamsInAChannel -BM1=FD -BM2=FD -BM3=FD -BM4=FD -useSameStencilSize=1 -g=$grid -tf=$tf. -tp=.01 -rhoBeam1=$rho1 -rhoBeam2=$rho2 -rhoBeam3=$rho3 -rhoBeam4=$rho4 -E1=$E1 -E2=$E2 -E3=$E3 -E4=$E4 -numElem=$numElem -outflowOption=neumann -uIn=$uIn -nu=$nu -addedMass=1 -ampProjectVelocity=1 -useApproximateAMPcondition=0 -numberOfCorrections=1 -saveProbe=1 -cfls=$cfls -smoothBeam=1 -numberOfBeamSmooths=50 -smoothInterfaceVelocity=1 -nis=50 -rampInflow=$rampInflow -recomputeGVOnCorrection=0  -psolver=best -rtolp=1.e-5 -atolp=1.e-6  -show=$runName.show -go=go >  $runName.out &";
+
+
 
 
 
