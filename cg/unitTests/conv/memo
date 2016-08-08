@@ -1,3 +1,32 @@
+=== convergence study for beamPapaer
+**** 2016/08/07
+-------compute line20,40,80,160
+----------------- -useSameStencilSize=0
+--pinned BC
+conv.p tbm.conv -BM=FD -tz=trig -bcn=p -tf=1. -rhos=1. -cg=line -cfl=.9 -ngStart=2 -ng=4 -predictor=adamsBashforth2  -corrector=adamsMoultonCorrector  -useSameStencilSize=0
+--clamped BC
+conv.p tbm.conv -BM=FD -tz=trig -bcn=c -tf=1. -rhos=1. -cg=line -cfl=.9 -ngStart=2 -ng=4 -predictor=adamsBashforth2  -corrector=adamsMoultonCorrector  -useSameStencilSize=0
+--free BC
+conv.p tbm.conv -BM=FD -tz=trig -bcn=f -tf=1. -rhos=1. -cg=line -cfl=.9 -ngStart=2 -ng=4 -predictor=adamsBashforth2  -corrector=adamsMoultonCorrector  -useSameStencilSize=0
+--sliding BC
+conv.p tbm.conv -BM=FD -tz=trig -bcn=s -tf=1. -rhos=1. -cg=line -cfl=.9 -ngStart=2 -ng=4 -predictor=adamsBashforth2  -corrector=adamsMoultonCorrector  -useSameStencilSize=0
+
+
+----------------- -useSameStencilSize=1
+--pinned BC
+conv.p tbm.conv -BM=FD -tz=trig -bcn=p -tf=1. -rhos=1. -cg=line -cfl=.9 -ngStart=2 -ng=4 -predictor=adamsBashforth2  -corrector=adamsMoultonCorrector  -useSameStencilSize=1
+--clamped BC
+conv.p tbm.conv -BM=FD -tz=trig -bcn=c -tf=1. -rhos=1. -cg=line -cfl=.9 -ngStart=2 -ng=4 -predictor=adamsBashforth2  -corrector=adamsMoultonCorrector  -useSameStencilSize=1
+--free BC
+conv.p tbm.conv -BM=FD -tz=trig -bcn=f -tf=1. -rhos=1. -cg=line -cfl=.9 -ngStart=2 -ng=4 -predictor=adamsBashforth2  -corrector=adamsMoultonCorrector  -useSameStencilSize=1
+--sliding BC
+conv.p tbm.conv -BM=FD -tz=trig -bcn=s -tf=1. -rhos=1. -cg=line -cfl=.9 -ngStart=2 -ng=4 -predictor=adamsBashforth2  -corrector=adamsMoultonCorrector  -useSameStencilSize=1
+
+
+
+
+
+
 **** 2016/06/20  -- runs for the beamPaper
 conv.p tbm.conv -BM=FD -tz=trig -bcn=per -tf=1. -rhos=10. -cg=line -cfl=.9 -ng=4 -predictor=adamsBashforth2  -corrector=adamsMoultonCorrector  -useSameStencilSize=0
 
