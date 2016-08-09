@@ -118,14 +118,14 @@ contour
 #plot grid points (toggle)
 #ghost lines
 #2
-  uErr
-  add vErr
-  add aErr
+  # uErr
+  # add vErr
+  # add aErr
 #  add uxErr
 #  add vxErr
-#    u 
-#    add v
-#    add a
+   u 
+   add v
+   add a
 #  add ux
 #  add vx
 #  add ax

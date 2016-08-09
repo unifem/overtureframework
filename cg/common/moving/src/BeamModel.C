@@ -6047,7 +6047,7 @@ update(CompositeGrid & cg, GenericGraphicsInterface & gi )
   bool & useSecondOrderNewmarkPredictor = dbase.get<bool>("useSecondOrderNewmarkPredictor"); //keep this option for backward compatibility. predictor option is the new way
   //bool & useNewTridiagonalSolver = dbase.get<bool>("useNewTridiagonalSolver");
   bool & fluidOnTwoSides = dbase.get<bool>("fluidOnTwoSides");
-  int & orderOfGalerkinProjection = dbase.get<int>("orderOfGalerkinProjection");\
+  int & orderOfGalerkinProjection = dbase.get<int>("orderOfGalerkinProjection");
   bool & smoothSolution = dbase.get<bool>("smoothSolution");
   int & numberOfSmooths = dbase.get<int>("numberOfSmooths");
   int & smoothOrder     = dbase.get<int>("smoothOrder");
