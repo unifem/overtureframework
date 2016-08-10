@@ -19,6 +19,8 @@ $predictor="newmark2Implicit";
 $corrector="newmarkCorrector";
 $BM="FEM";
 $useSameStencilSize=1;
+$betta=0.25;
+$gamma=0.5;
 #
 #
 GetOptions( "nElem=i"=>\$nElem,"cfl=f"=>\$cfl,"Em=f"=>\$Em,"tension=f"=>\$tension,"degreet=i"=>\$degreet,\
@@ -26,7 +28,8 @@ GetOptions( "nElem=i"=>\$nElem,"cfl=f"=>\$cfl,"Em=f"=>\$Em,"tension=f"=>\$tensio
             "tf=f"=>\$tf,"tp=f"=>\$tp,"fx=f"=>\$fx,"ft=f"=>\$ft,"rhos=f"=>\$rhos,"hs=f"=>\$hs,"debug=i"=>\$debug,"thickness=f"=>\$hs,\
             "K0=f"=>\$K0,"Kt=f"=>\$Kt,"Kxxt=f"=>\$Kxxt,"orderOfProjection=i"=>\$orderOfProjection,"smooth=i"=>\$smooth,\
             "numberOfSmooths=i"=>\$numberOfSmooths,"smoothOrder=i"=>\$smoothOrder,"eigenmode=i"=>\$eigenmode, \
-	    "predictor=s"=>\$predictor, "corrector=s"=>\$corrector,"BM=s"=>\$BM,"useSameStencilSize=i"=>\$useSameStencilSize,"go=s"=>\$go );
+	    "predictor=s"=>\$predictor, "corrector=s"=>\$corrector,"BM=s"=>\$BM,"useSameStencilSize=i"=>\$useSameStencilSize,"go=s"=>\$go,\
+	    "betta=f"=>\$betta,  "gamma=f"=>\$gamma);
 # 
 if( $go eq "halt" ){ $go = "#"; }
 if( $go eq "og" ){ $go = "open graphics"; }
@@ -76,6 +79,8 @@ cfl:$cfl
 use new tridiagonal solver $useNewTri
 #
 order of Galerkin projection: $orderOfProjection
+Newmark beta: $betta
+Newmark gamma: $gamma
 #
 smooth solution $smooth
 number of smooths: $numberOfSmooths

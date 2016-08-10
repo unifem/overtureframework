@@ -4141,7 +4141,7 @@ getBoundaryValues( const real t, RealArray & g, const int ntd /* = 0 */   )
   // this reduce kinks in the ghost points (source of the wiggles in some situations)
 
   
-  if( g.getLength(0)==0 ) g.redim(4,2); 
+  if( g.getLength(0)==0 ) g.redim(5,2); 
   
   g=0.;
   
@@ -4174,7 +4174,7 @@ getBoundaryValues( const real t, RealArray & g, const int ntd /* = 0 */   )
 		  // --- give g0=exact.u ---
 		  if( twilightZone )
 		    {
-		      g(0,side) = exact.gd(ntd,0,0,0, x,y,z,wc,t);  // Give w 
+		      g(0,side) = exact.gd(ntd,0,0,0, x,y,z,wc,t);  // Give w
 		    }
 		  else
 		    {
@@ -4227,12 +4227,13 @@ getBoundaryValues( const real t, RealArray & g, const int ntd /* = 0 */   )
 			{
 			  //Longfei 20160308:  
 			  //give g3 from D0(D+D-)g, this reduces kinks in the ghost points
-			  const real & dx = dbase.get<real>("elementLength");
-			  const real & dx3=dx*dx*dx;
-			  g(3,side) =( -0.5*exact.gd(ntd,0,0,0, x-2*dx,y,z,wc,t)
-				       +exact.gd(ntd,0,0,0, x-dx,y,z,wc,t)
-				       -exact.gd(ntd,0,0,0, x+dx,y,z,wc,t)
-				       +0.5*exact.gd(ntd,0,0,0, x+2*dx,y,z,wc,t))/dx3;
+			  // const real & dx = dbase.get<real>("elementLength");
+			  // const real & dx3=dx*dx*dx;
+			  // g(3,side) =( -0.5*exact.gd(ntd,0,0,0, x-2*dx,y,z,wc,t)
+			  // 	       +exact.gd(ntd,0,0,0, x-dx,y,z,wc,t)
+			  // 	       -exact.gd(ntd,0,0,0, x+dx,y,z,wc,t)
+			  // 	       +0.5*exact.gd(ntd,0,0,0, x+2*dx,y,z,wc,t))/dx3;
+			   g(3,side) = exact.gd(ntd,3,0,0,  x,y,z,wc,t);   // Give EI*w_xxx
 			}
 		      // old: use exact u.xxx for all
 		      // g(3,side) = exact.gd(ntd,3,0,0,  x,y,z,wc,t);   // Give EI*w_xxx

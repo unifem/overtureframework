@@ -54,6 +54,10 @@ public:
   // modify the pentadiagonal matrix defined by at,...,et for extrapolation
   void modifyMatrixForExtrapolation(RealArray & at,RealArray & bt,RealArray & ct,RealArray & dt,RealArray &et, int ie, int side);
 
+
+  //  Return the time derivatives of the forces on the boundary
+  int getBoundaryForces( const real t, RealArray & f, const int ntd=0 );
+  
  // Return nodal force values on beam center-line
   virtual void getForceOnBeam( const real t, RealArray & force );
 

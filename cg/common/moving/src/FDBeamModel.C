@@ -325,7 +325,6 @@ computeAcceleration(const real t,
 		    real dt,
                     const aString & solverName )
 {
-  const real & EI = dbase.get<real>("EI");
   //const real & dx = dbase.get<real>("elementLength"); // seems dx is not needed here
   //const real & L = dbase.get<real>("length");
   //const real & T = dbase.get<real>("tension");
@@ -337,6 +336,13 @@ computeAcceleration(const real t,
   const BoundaryCondition & bcRight =  boundaryConditions[1];
   const bool & allowsFreeMotion = dbase.get<bool>("allowsFreeMotion");
   const real & Abar = dbase.get<real>("massPerUnitLength");
+  
+  // Longfei 20160809: these following parameters are needed by compatibility BC
+  const real & EI = dbase.get<real>("EI");
+  const real & K0 = dbase.get<real>("K0");
+  const real & T = dbase.get<real>("tension");
+  const real & Kt = dbase.get<real>("Kt");
+  const real & Kxxt = dbase.get<real>("Kxxt");
   
   if( debug() & 2 )
     printF("-- BM%i -- BeamModel::computeAcceleration, t=%8.2e, dt=%8.2e\n",getBeamID(),t,dt);
@@ -365,8 +371,8 @@ computeAcceleration(const real t,
     }
 
 
-  // apply bc for rhs
-  if( !allowsFreeMotion )
+  // apply bc for rhs (Longfei 20160810: for implicit solvers only)
+  if( !allowsFreeMotion && solverName!="explicitSolver" )
     {
       // --- Apply boundary conditions to rhs  ----
 
@@ -375,10 +381,19 @@ computeAcceleration(const real t,
 
       // Get two time derivatives of the boundary functions for "acceleration BC"
       RealArray gtt;
-      int ntd=2;  
-      getBoundaryValues( t, gtt, ntd );
+      getBoundaryValues( t, gtt, 2 );
 
-      // RealArray g;
+      // new this is needed by compatibility conditions
+      RealArray g,gt,gttt,gtttt;
+      getBoundaryValues( t, g,  0);
+      getBoundaryValues( t, gt,  1);
+      getBoundaryValues( t, gttt,  3);
+      getBoundaryValues( t, gtttt, 4 );
+
+      RealArray ftt;
+      getBoundaryForces(t,ftt,2);
+
+
       // getBoundaryValues( t, g );
       
     
@@ -406,7 +421,9 @@ computeAcceleration(const real t,
 	
 	      rhs(ib,0,0,0)=gtt(0,side)*accelerationScaleFactor;   // a=w_tt is given
 	      rhs(ib-is,0,0,0)=gtt(1,side)*accelerationScaleFactor;   // ax is given, this determines the first ghost line
-	      rhs(ib-2*is,0,0,0) = 0;                                 // use extrapolation for the second ghost line, so rhs=0
+	      //rhs(ib-2*is,0,0,0) = 0;                                 // use extrapolation for the second ghost line, so rhs=0
+	      //Longfei 20160809: use compatibility BC: EI*uttxxxx-T*uttxx = -rhos*bs*gtttt-K0*gtt -Kt*gttt+Kxxt*vttxx+ftt ignore the damping "Kxxt*vttxx" for now.. FIX ME
+	      rhs(ib-2*is,0,0,0) =(-Abar*gtttt(0,side)-K0*gtt(0,side)-Kt*gttt(0,side)+ftt(side))*accelerationScaleFactor;
 	    }
 	  else if( bc==pinned )
 	    {
@@ -421,6 +438,8 @@ computeAcceleration(const real t,
 		  if( debug() & 1 )	
 		    printF("-- BM%i -- set rhs for pinned BC axx = gtt(2,side)=%8.2e, EI=%g\n",getBeamID(),gtt(2,side),EI);
 		  rhs(ib-is,0,0,0) = gtt(2,side)*accelerationScaleFactor;   // axx is given, this determines the first ghost line
+		  //Longfei 20160809: use compatibility BC:  uttxxxx = (-rhos*bs*gtttt-K0*gtt+T*gtt2-Kt*gttt+Kxxt*gttt2+ftt)/EI
+		  rhs(ib-2*is,0,0,0) =((-Abar*gtttt(0,side)-K0*gtt(0,side)+T*gtt(2,side) -Kt*gttt(0,side)+Kxxt*gttt(2,side) +ftt(side))/EI)*accelerationScaleFactor;
 		}
 	    }
 	  else if( bc==slideBC )
@@ -622,6 +641,7 @@ factorTridiagonalSolver( const aString & tridiagonalSolverName)
 
   const real & Abar = dbase.get<real>("massPerUnitLength");
   const real & EI = dbase.get<real>("EI");
+  const real & T = dbase.get<real>("tension"); // Longfei 20160809: T is needed for compatibility condition
 
  
   if( isPeriodic ) 
@@ -805,11 +825,70 @@ factorTridiagonalSolver( const aString & tridiagonalSolverName)
 		  ct(ib-2*is,0,0)=.5/dx3;
 		}
 	    }
-	  else if(bc==pinned || bc== clamped)
+	  else if(bc==pinned )
 	    {
-	      // fill in second ghost with extrapolation. This value will not be used
-	      modifyMatrixForExtrapolation(at,bt,ct,dt,et,ib-2*is,side);
+	      // Longfei 20160809:
+	      if(EI!=0)
+		{
+		  //compactbility BC:  EI*uxxxx = -rhos*bs*gtt-K0*g+T*g2-Kt*gt+Kxxt*gt2+f		  
+		  // Replace eqn on second ghost line with  wxxxx_tt = 0
+		  real dx4=dx*dx*dx*dx;
+		  if(side==0)
+		    {
+		      ct(ib-2*is,0,0)=1./dx4;
+		      dt(ib-2*is,0,0)=-4./dx4;
+		      et(ib-2*is,0,0)=6./dx4;
+		      at(ib-2*is,0,0)=-4./dx4;
+		      bt(ib-2*is,0,0)=1./dx4;
+		    }
+		  else
+		    {
+		      dt(ib-2*is,0,0)=1./dx4;
+		      et(ib-2*is,0,0)=-4./dx4;
+		      at(ib-2*is,0,0)=6./dx4;
+		      bt(ib-2*is,0,0)=-4./dx4;
+		      ct(ib-2*is,0,0)=1./dx4;
+		    }
+		}
+	      else
+		{
+		  //fill in second ghost with extrapolation. This value will not be used
+		  modifyMatrixForExtrapolation(at,bt,ct,dt,et,ib-2*is,side);
+		}
 	    }
+	  else if(bc==clamped )
+	    {
+	      // Longfei 20160809:
+	      if(EI!=0)
+		{
+		  //compactbility BC:
+		  // EI*uxxxx-T*uxx = -rhos*bs*gtt-K0*g-Kt*gt+Kxxt*vxx+f
+		  // Replace eqn on second ghost line with  wxxxx_tt = 0
+		  real dx4=dx*dx*dx*dx, dx2=dx*dx;
+		  if(side==0)
+		    {
+		      ct(ib-2*is,0,0)=EI*1./dx4+T*(delta/12.)/dx2;
+		      dt(ib-2*is,0,0)=-EI*4./dx4-T*(1.+delta/3.)/dx2;
+		      et(ib-2*is,0,0)=EI*6./dx4+T*(2.+delta/2.)/dx2;
+		      at(ib-2*is,0,0)=-EI*4./dx4-T*(1.+delta/3.)/dx2;
+		      bt(ib-2*is,0,0)=EI*1./dx4+T*(delta/12.)/dx2;
+		    }
+		  else
+		    {
+		      dt(ib-2*is,0,0)=EI*1./dx4+T*(delta/12.)/dx2;
+		      et(ib-2*is,0,0)=-EI*4./dx4-T*(1.+delta/3.)/dx2;
+		      at(ib-2*is,0,0)=EI*6./dx4+T*(2.+delta/2.)/dx2;
+		      bt(ib-2*is,0,0)=-EI*4./dx4-T*(1.+delta/3.)/dx2;
+		      ct(ib-2*is,0,0)=EI*1./dx4+T*(delta/12.)/dx2;
+		    }
+		  
+		}
+	      else
+		{
+		  //fill in second ghost with extrapolation. This value will not be used
+		  modifyMatrixForExtrapolation(at,bt,ct,dt,et,ib-2*is,side);
+		}
+	    }	  
 	  else
 	    {
 	      OV_ABORT("Error: wrong BC conditions");
@@ -1007,7 +1086,7 @@ assignBoundaryConditions( real t, RealArray & u, RealArray & v, RealArray & a,co
 		  // Get ghost points for u:
 		  //compactbility BC:  EI*uxxxx = -rhos*bs*gtt-K0*g+T*g2-Kt*gt+Kxxt*gt2+f
 		  real uxxxx;
-		  uxxxx = (-Abar*gtt(0,side)-K0*g(0,side)+T*g(2,side) -Kt*gt(0,side)+Kxxt*gt(2,side) + f(ib))/EI;
+		  uxxxx = (-Abar*gtt(0,side)-K0*g(0,side)+T*g(2,side) -Kt*gt(0,side)+Kxxt*gt(2,side) + f(ib,0,0,0))/EI;
 		  if(useSameStencilSize)
 		    {
 		      // use higher order u.xx and compatibility BC to determine the first and second ghost line for u
@@ -1329,3 +1408,75 @@ getForceOnBeam( const real t, RealArray & force )
   
 }
 
+
+
+
+
+//Longfei 20160809: new function that computes the time derivatives of the external forcing on boundaries.
+// This is needed by compartibiltiy boundary conditions
+//  =========================================================================================
+/// \brief  Return the time derivatives of the forces on the boundary
+/// \param ntd (input) number of time derivatives 
+/// \param f(0:1) (output) : f(side), side=0,1 (left or right)
+/// /Note: Only some vaues apply, depending on the BC
+//  =========================================================================================
+int FDBeamModel::
+getBoundaryForces( const real t, RealArray & f, const int ntd /* = 0 */   )
+{
+  if( f.getLength(0)==0 ) f.redim(2); 
+  f=0.;
+
+  const int & numberOfTimeLevels = dbase.get<int>("numberOfTimeLevels");
+  const  int & current = dbase.get<int>("current");
+  const  RealArray & time = dbase.get<RealArray>("time");
+  
+   if( fabs(time(current)-t) > 1.e-10*(1.+t) )
+    {
+      printF("-- BM%i -- BeamModel::getBoundaryForces:ERROR: t=%10.3e is not equal to time(current)=%10.3e, current=%i\n",
+	     getBeamID(),t,time(current),current);
+      OV_ABORT("ERROR");
+    }
+
+   const int prev  = (current-1+numberOfTimeLevels)%numberOfTimeLevels;
+   const int prev2= ( prev -1 + numberOfTimeLevels)%numberOfTimeLevels;
+
+   const real dt = time(current)-time(prev);
+   const real dtPrev = time(prev)-time(prev2);
+
+   const std::vector<RealArray> & forces= dbase.get<std::vector<RealArray> >("f"); // force
+   const RealArray & f1 = forces[prev2];
+   const RealArray & f2 = forces[prev];
+   const RealArray & f3 = forces[current];
+
+
+   const int & numElem = dbase.get<int>("numElem");
+
+   if(ntd==0)
+     {
+       f(0)=f3(0,0,0,0);
+       f(1)=f3(numElem,0,0,0);       
+     }
+   else if(ntd==2)
+     {
+        if( t >= 1.5*dt ) 
+	  {
+	    // -- we have 2 old forces available: f(t-dt) and f(t-dt-dtPrev) --
+	    // use backward finite difference formula to evaluate second time derivative of the current force
+	    f(0)= (dt/dtPrev*f3(0,0,0,0)-(dt+dtPrev)/dt*f2(0,0,0,0)+f1(0,0,0,0))/(0.5*dtPrev*(dt+dtPrev));
+	    f(1)= (dt/dtPrev*f3(numElem,0,0,0)-(dt+dtPrev)/dt*f2(numElem,0,0,0)+f1(numElem,0,0,0))/(0.5*dtPrev*(dt+dtPrev));
+	  }
+	else
+	  {
+	    // just set it to be zero
+	    f(0)=0.;
+	    f(1)=0.;    
+	  }
+     }
+   
+
+   
+   
+   
+  
+   return 0;
+}

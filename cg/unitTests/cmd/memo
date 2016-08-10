@@ -1,3 +1,8 @@
+***** 2016/08/10
+tbm tzbeam.cmd -nElem=80 -tz=trig -Em=1. -tension=0. -tf=1. -tp=.1 -numberOfSmooths=1 -smoothOrder=6 -fx=2. -BM=FD -smooth=1 -bc=c -useSameStencilSize=1 -cfl=100
+
+
+
 ***** 2016/08/02
 -- to show bug in interpolateSolution:
 tbm beamProjectVelocity.cmd -BM=FD -numElem=20 -go=halt -tbm beamProjectVelocity.cmd -BM=FD -numElem=20 -go=halt -tz=poly -degreex=1 -debug=-999
