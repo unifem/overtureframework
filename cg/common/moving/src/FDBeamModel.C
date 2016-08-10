@@ -383,13 +383,12 @@ computeAcceleration(const real t,
       RealArray gtt;
       getBoundaryValues( t, gtt, 2 );
 
-      // new this is needed by compatibility conditions
+      //Longfei 20160809: new this is needed by compatibility conditions
       RealArray g,gt,gttt,gtttt;
       getBoundaryValues( t, g,  0);
       getBoundaryValues( t, gt,  1);
       getBoundaryValues( t, gttt,  3);
       getBoundaryValues( t, gtttt, 4 );
-
       RealArray ftt;
       getBoundaryForces(t,ftt,2);
 
@@ -1458,7 +1457,7 @@ getBoundaryForces( const real t, RealArray & f, const int ntd /* = 0 */   )
      }
    else if(ntd==2)
      {
-        if( t >= 1.5*dt ) 
+       if( t >= 1.5*dt && dt>0)  
 	  {
 	    // -- we have 2 old forces available: f(t-dt) and f(t-dt-dtPrev) --
 	    // use backward finite difference formula to evaluate second time derivative of the current force
