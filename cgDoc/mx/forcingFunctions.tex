@@ -1,0 +1,104 @@
+\section{Forcing functions} \label{sec:forcings}
+
+The forcing functions are added to the right-hand side of Maxwell's equations in
+second-order form,
+\begin{align}
+  \partial_t^2 \Ev &= c^2~ \Delta \Ev  + \Fv_\Ev(\xv,t), \\
+  \partial_t^2 \Hv &= c^2~ \Delta \Hv  + \Fv_\Hv(\xv,t).
+\end{align}
+
+
+\noindent The following forcing options are currently available with cgmx,
+\begin{description}
+  \item[noForcing]: the default is to have no forcing.
+ % \item[magneticSinusoidalPointSource]:
+  \item[gaussianSource]: See Section~\ref{sec:gaussianSource}.
+  \item[twilightZoneForcing]: The forcing to make the twilight-zone function an exact solution.
+  \item[planeWaveBoundaryForcing]: The scattered field from an incident plane wave can be computed directly using this forcing
+         which is added to the right-hand side of the PEC boundary condition.
+  \item[gaussianChargeSource]: See Section~\ref{sec:gaussianChargeSource}.
+  \item[userDefinedForcing] : See Section~\ref{sec:userDefinedForcing}.
+\end{description}
+
+
+
+% -----------------------------------------------------------------
+\subsection{Gaussian source} \label{sec:gaussianSource}
+
+The Gaussian source $\Fv_\Ev$ in three dimensions is defined by 
+\begin{align*}
+   g(\xv,t) & = \beta^2 \cos(2 \pi \omega(t-t_0)) ~\exp\{ -\beta |\xv-\xv_0|^2 \}, \\
+   F_{E_x} &= ((z-z_0) - (y-y_0) ) ~g(\xv,t), \\ 
+   F_{E_y} &= ((x-x_0) - (z-z_0) ) ~g(\xv,t), \\ 
+   F_{E_z} &= ((y-y_0) - (x-x_0) ) ~g(\xv,t). 
+\end{align*}
+Here $|\xv|$ denotes the usual length of a vector, $|\xv|^2= x_1^2 + x_2^2 + x_3^2$.
+
+\noindent The Gaussian source in two-dimensions is defined in a somewhat different fashion (for some reason?)
+\begin{align*}
+   g(\xv,t) & = 2 \beta \sin(2 \pi \omega(t-t_0)) ~\exp\{ -\beta |\xv-\xv_0|^2 \}, \\
+   F_{H_z} &= 2 \pi\omega \cos(2 \pi \omega(t-t_0)) ~\exp\{ -\beta |\xv-\xv_0|^2 \}, \\
+   F_{E_x} &= -(y-y_0)~g(\xv,t), \\ 
+   F_{E_y} &=  (x-x_0)~g(\xv,t) .
+\end{align*}
+
+
+% -----------------------------------------------------------------
+\subsection{Gaussian charge source} \label{sec:gaussianChargeSource}
+
+The Gaussian charge source is defined by a moving charge density 
+\begin{align}
+  \rho(\xv,t) &= a \exp\{ - \big[\beta| (\xv-\xv_0) - \vv t |\big]^p \}.
+\end{align}
+Here $\xv_0$ is the initial location of the charge, $\vv$ is the velocity of the charge, $a$ is the strength and $\beta$ and $p$ define the
+shape of the pulse in space.
+The forcing functions for Maxwell's equations are then defined from
+\begin{align}
+    \partial_t^2 \Ev &= c^2 [ \Delta \Ev - \grad(\rho/\eps) - \mu \Jv_t ], \\
+    \partial_t^2 \Hv &= c^2 [ \Delta \Hv + \grad\times\Jv ], \\
+     \Jv & = \rho \vv ,
+\end{align}
+which gives 
+\begin{align}
+   \Fv_\Ev &= c^2 [  - \grad(\rho/\eps) - \mu \Jv_t ].
+\end{align}
+
+% -----------------------------------------------------------------------
+\subsection{User defined forcing} \label{sec:userDefinedForcing}
+
+
+
+The file {\tt userDefinedForcing.C} can be used to define new forcing functions
+for use with Cgmx. Here are the steps to take to add your own forcing:
+\begin{enumerate}
+  \item Edit the file  {\tt cg/mx/src/userDefinedForcing.C}.
+  \item Add a new option to the function {\tt setupUserDefinedForcing()}. Follow one of the previous
+         examples. 
+  \item Implement the forcing option in the function {\tt userDefinedForcing(...)}.
+  \item Type {\em make} from the {\tt cg/mx} directory to recompile Cgmx.
+  \item Run Cgmx and choose the {\em userDefinedForcing} option from the {\em forcing options...} menu.
+    (see the example command file {\tt mx/cmd/userDefinedForcing.cmd}).
+\end{enumerate}
+
+{
+\begin{figure}[hbt]
+\newcommand{\figWidth}{7.5cm}
+\newcommand{\trimfig}[2]{\trimFig{#1}{#2}{0.1}{0.05}{.05}{.05}}
+\begin{center}
+\begin{tikzpicture}[scale=1]
+  \useasboundingbox (0,.5) rectangle (15,7.75);  % set the bounding box (so we have less surrounding white space)
+  \draw ( 0.0, 0) node[anchor=south west] {\trimfig{figures/userDefinedGaussianSourcesEx}{\figWidth}};
+  \draw ( 7.5, 0) node[anchor=south west] {\trimfig{figures/userDefinedGaussianSourcesEy}{\figWidth}};
+ % - labels
+ %   \draw (\txa,4.75) node[draw,fill=white,anchor=east] {\scriptsize $t=0.5$};
+ %   \draw (\txb,4.75) node[draw,fill=white,anchor=east] {\scriptsize $t=1.0$};
+ %   \draw (\txc,4.75) node[draw,fill=white,anchor=east] {\scriptsize $t=1.5$};
+%  \draw (current bounding box.south west) rectangle (current bounding box.north east);
+% grid:
+%  \draw[step=1cm,gray] (0,0) grid (17.0,5);
+\end{tikzpicture}
+\end{center}
+\caption{User defined forcing example showing results from specifying two Gaussian sources. Left $E_x$ and right $E_y$}
+\label{fig:userDefinedForcingGuassianSources}
+\end{figure}
+}
