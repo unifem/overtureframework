@@ -3591,7 +3591,15 @@ setOgesBoundaryConditions( GridFunction &cgf, IntegerArray & boundaryConditions,
 	  Overture::abort("implicit method not implemented for this BC");
 	  break;
 	case InsParameters::inflowWithPressureAndTangentialVelocityGiven:
-	  assert( isRectanglar && numberOfImplicitSolvers>0 );
+	  // assert( isRectanglar && numberOfImplicitSolvers>0 );
+	  assert( numberOfImplicitSolvers>0 );
+          // For now we require the grid to be rectangular, possibly stretched.
+          if( !isRectanglar )
+	  {
+	    printF("--INS--WARNING: implicitMatrix: BC=inflowWithPressureAndTangentialVelocityGiven"
+                   " grid=%i is not rectangular : this case only works if grid is a stretched rectangle\n",grid);
+	  }
+
 	  if( axis!=imp )
 	  {// The tangential component to a horizontal or vertical wall has a dirichlet BC
 	    boundaryConditions(side,axis,grid)=OgesParameters::dirichlet; 

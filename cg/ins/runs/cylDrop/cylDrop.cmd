@@ -21,7 +21,9 @@ $inertia="-1"; # set this to over-ride computed inertia, -1=auto-compute
 $nu = .1; $dtMax=.05; $newts=0; $movingWall=0; 
 # for nu=.005 the terminal velocity of one drop is about .9 -- for low Re the velocity is prop. to Re
 $inflowVelocity=.9;
-$tFinal=10.; $tPlot=.1; $cfl=.9; $debug=0; $go="halt"; $project=0; $refactorFrequency=100;
+$d=.2; # parabolic inflow distance 
+$tFinal=10.; $tPlot=.1; $cfl=.9; $debug=0; $go="halt"; $project=0; $refactorFrequency=100;  
+$recomputeDt=2; # 10 
 $sep=3.; $forceLimit=30.; $cdv=1.; $flush=5; $ad21=2.; $ad22=2.; 
 $restart=""; 
 #
@@ -54,7 +56,7 @@ $ampSinusoidalPressure=1.; $freqSinusoidalPressure=1.; # for sinusoidal pressure
 #
 # ----------------------------- get command line arguments ---------------------------------------
 GetOptions( "g=s"=>\$grid,"tf=f"=>\$tFinal,"model=s"=>\$model,"inflowVelocity=f"=>\$inflowVelocity,\
- "tp=f"=>\$tPlot,"solver=s"=>\$solver,"psolver=s"=>\$psolver,"show=s"=>\$show,"debug=i"=>\$debug, \
+ "tp=f"=>\$tPlot,"solver=s"=>\$solver,"psolver=s"=>\$psolver,"show=s"=>\$show,"debug=i"=>\$debug,"d=f"=>\$d, \
  "ts=s"=>\$ts,"nu=f"=>\$nu,"cfl=f"=>\$cfl,"go=s"=>\$go,"numDrops=i"=> \$numDrops,"newts=i"=> \$newts,\
  "noplot=s"=>\$noplot,"project=i"=>\$project,"rf=i"=> \$refactorFrequency,"bcOption=s"=>\$bcOption,\
  "dtMax=f"=>\$dtMax,"freqFullUpdate=i"=>\$freqFullUpdate,"density=f"=>\$density,"movingWall=i"=>\$movingWall,\
@@ -112,7 +114,7 @@ $grid
   cfl $cfl
   dtMax $dtMax 
 #
-  recompute dt every 10
+  recompute dt every $recomputeDt
 #
   plot and always wait
 #
@@ -145,6 +147,7 @@ $grid
   if( $bcOption eq "sinusoidalPressure" ){ $cmd = "use vector implicit system 1"; }else{ $cmd="#"; }
   $cmd
 # 
+  # useNewImplicitMethod 
   choose grids for implicit
      all=implicit
      ## *** TURN OFF for TESTING
@@ -230,8 +233,8 @@ $grid
   boundary conditions
     all=noSlipWall
     $cmd="#";
-    if( $bcOption eq "inflowOutflow" ){ $cmd="$channelName(0,1)=inflowWithVelocityGiven,  parabolic(d=.2,p=1,v=$vIn)\n $channelName(1,1)=outflow , pressure(1.*p+0.*p.n=0.)"; }
-    if( $option eq "horizontalDrop" ){ $cmd="$channelName(0,0)=inflowWithVelocityGiven,  parabolic(d=.2,p=1,u=$vIn)\n $channelName(1,0)=outflow , pressure(1.*p+0.*p.n=0.)"; }
+    if( $bcOption eq "inflowOutflow" ){ $cmd="$channelName(0,1)=inflowWithVelocityGiven,  parabolic(d=$d,p=1,v=$vIn)\n $channelName(1,1)=outflow , pressure(1.*p+0.*p.n=0.)"; }
+    if( $option eq "horizontalDrop" ){ $cmd="$channelName(0,0)=inflowWithVelocityGiven,  parabolic(d=$d,p=1,u=$vIn)\n $channelName(1,0)=outflow , pressure(1.*p+0.*p.n=0.)"; }
     #
     # Sinusoidal pressure option:
     #   f(t)=b0*sin(2.*Pi*f0*(t-t0));
@@ -262,11 +265,41 @@ $grid
            "  exit\n" . \
            "done\n" };
     #
+    # ramped pressure assuming three grids on inflow
+    #
+    # NOTE: set BC=inflowWithPressureAndTangentialVelocityGiven twice, first to give p value
+    if( $bcOption eq "rampedPressureThreeSide" ){ \
+      $cmd="bcNumber3=outflow , pressure(1.*p+0.*p.n=0.)\n" . \
+           "bcNumber4=inflowWithPressureAndTangentialVelocityGiven, uniform(u=0.,v=0.,p=1)\n" . \
+           "bcNumber4=inflowWithPressureAndTangentialVelocityGiven, userDefinedBoundaryData\n" . \
+           "time function option\n" . \
+           " ramp function\n" . \
+           "   ramp end values: 0,$inflowPressure (start,end)\n". \
+           "   ramp times: $taGravity,$tbGravity (start,end)\n" .\
+           "   ramp order: 3\n" . \
+           "  exit\n" . \
+           "done\n" . \
+           "time function option\n" . \
+           " ramp function\n" . \
+           "   ramp end values: 0,$inflowPressure (start,end)\n". \
+           "   ramp times: $taGravity,$tbGravity (start,end)\n" .\
+           "   ramp order: 3\n" . \
+           "  exit\n" . \
+           "done\n" .  \
+           "time function option\n" . \
+           " ramp function\n" . \
+           "   ramp end values: 0,$inflowPressure (start,end)\n". \
+           "   ramp times: $taGravity,$tbGravity (start,end)\n" .\
+           "   ramp order: 3\n" . \
+           "  exit\n" . \
+           "done\n"; };
+    #
+    #
     # ramped velocity:
     #
     if( $bcOption eq "rampedVelocity" ){ \
       $cmd="bcNumber3=outflow , pressure(1.*p+0.*p.n=0.)\n" . \
-           "bcNumber4=inflowWithVelocityGiven, parabolic(d=.2,p=1,v=$inflowVelocity), userDefinedBoundaryData\n" . \
+           "bcNumber4=inflowWithVelocityGiven, parabolic(d=$d,p=1,v=$inflowVelocity), userDefinedBoundaryData\n" . \
            "time function option\n" . \
            " ramp function\n" . \
            "   ramp end values: 0,1 (start,end)\n". \
@@ -277,7 +310,7 @@ $grid
     #
     if( $bcOption eq "rampedVelocityThreeSide" ){ \
       $cmd="bcNumber3=outflow , pressure(1.*p+0.*p.n=0.)\n" . \
-           "bcNumber4=inflowWithVelocityGiven, parabolic(d=.2,p=1,v=$inflowVelocity), userDefinedBoundaryData\n" . \
+           "bcNumber4=inflowWithVelocityGiven, parabolic(d=$d,p=1,v=$inflowVelocity), userDefinedBoundaryData\n" . \
            "time function option\n" . \
            " ramp function\n" . \
            "   ramp end values: 0,1 (start,end)\n". \
@@ -302,7 +335,7 @@ $grid
     #
     $cmd 
     #
-    # $channel(0,1)=inflowWithVelocityGiven,  parabolic(d=.2,p=1,v=$vIn)
+    # $channel(0,1)=inflowWithVelocityGiven,  parabolic(d=$d,p=1,v=$vIn)
     # $channel(0,1)=inflowWithVelocityGiven,  uniform(u=0.,v=$vIn)
     # $channel(1,1)=outflow , pressure(1.*p+0.*p.n=0.)
    done

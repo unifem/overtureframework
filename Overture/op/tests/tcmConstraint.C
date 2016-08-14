@@ -835,6 +835,14 @@ main(int argc, char *argv[])
        
   
 	u=0.;  // initial guess for iterative solvers
+
+        // Set initial guess for extra equations
+        real *initialValues= new real[numberOfExtraEquations];
+	for( int i=0; i<numberOfExtraEquations; i++ ){ initialValues[i]=1e3; } // 
+	    
+	if( true )
+	  solver.setExtraEquationValuesInitialGuess( initialValues );
+
 	real time0=CPU();
 	solver.solve( u,f );   // solve the equations
 	real time= ParallelUtility::getMaxValue(CPU()-time0);
@@ -880,7 +888,7 @@ main(int argc, char *argv[])
 	// ===== Get solutions to constraint equations =======
         real *constraintValues = new real [numberOfExtraEquations];
 	
-        solver.getExtraEquationValues( u, constraintValues );
+        solver.getExtraEquationValues( u, constraintValues, numberOfExtraEquations );
 	for( int i=0; i<solver.numberOfExtraEquations; i++ )
 	{
 	  printF(" extraEquationNumber(%i) : constraint value=%9.3e\n",i,constraintValues[i]);
@@ -1044,7 +1052,7 @@ main(int argc, char *argv[])
 	    solver.evaluateExtraEquation(ue,value[i],i);
 	  }
 	  
-	  solver.setExtraEquationValues(f,value );
+	  solver.setExtraEquationRightHandSideValues(f,value );
 
 	  delete [] value;
 	}

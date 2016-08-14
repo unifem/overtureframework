@@ -104,6 +104,14 @@ initialize()
   
   improveQualityOfInterpolation=false;
   qualityBound=2.;
+  // 
+  // qualityAlgorithm: choose different algorithms for improve quality of interpolation
+  //      0 : base quality on relative cell areas (original algorithm)
+  //      1 : base quality on areas and distance to boundaries
+  // 
+  if( !dbase.has_key("qualityAlgorithm") ){ dbase.put<int>("qualityAlgorithm")=0; }  // 
+
+
   minimizeTheOverlap=true;
   allowHangingInterpolation=false;
   allowBackupRules=false; // leave false for better error messages.
@@ -153,6 +161,7 @@ initialize()
   // these are normally on set when not running interactively
   outputGridOnFailure=false;  // save the grid in a file if the algorithm fails
   abortOnAlgorithmFailure=false;
+
 
   fflush(0);
   fprintf(plogFile,"Ogen: myid=%i initialize end\n",myid);

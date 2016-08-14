@@ -6,6 +6,10 @@
 #include "MappingInformation.h"
 #include "ExplicitHoleCutter.h"
 
+#define KK_DEBUG
+#include "DBase.hh"
+using namespace DBase;
+
 int 
 checkOverlappingGrid( const CompositeGrid & cg, const int & option=0, bool onlyCheckBaseGrids=true );
 
@@ -190,7 +194,8 @@ class Ogen
 				       const int iv[3]);
   real computeInterpolationQuality(CompositeGrid & cg, const int & grid,
                                    const int & i1, const int & i2, const int & i3,
-                                   real & qForward, real & qReverse );
+                                   real & qForward, real & qReverse, 
+                                   const int qualityAlgorithm );
   
   int markMaskAtGhost( CompositeGrid & cg );
 
@@ -253,6 +258,9 @@ class Ogen
   int defaultNumberOfGhostPoints;
   bool loadBalanceGrids;       // load balance cg when it is created
   bool doubleCheckInterpolation; // double check interpolation in checkOverlappingGrid
+
+  // This database contains the parameters and data for Ogen *new way* 
+  DataBase dbase;
 
  protected:
   // repeat some enumerators to simplify  

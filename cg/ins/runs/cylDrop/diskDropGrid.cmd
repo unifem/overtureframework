@@ -2,8 +2,19 @@
 #
 # Grid for a disk dropping in a channel
 #
-#             yb  +---------------------+
+#
+#             yc  +---------------------+
 #                 |                     |
+#                 |                     |
+#                 |                     |
+#                 |                     |
+#                 |  coarser inlet      |
+#                 |                     |
+#                 |                     |
+#                 |                     |
+#                 |                     |
+#                 |                     |
+#             yb  +---------------------+
 #                 |                     |
 #                 |                     |
 #                 |                     |
@@ -30,7 +41,7 @@
 #
 #  Usage:
 #     ogen [-noplot] diskDropGrid.cmd -factor=<i> -interp=[i|e] -ml=<i> -blf=<> -cx=<> -cy=<> -radius=<f> ...
-#          -xa=<f> -xb=<f> -ya=<f> -yb=<f> -ym=<f>
+#          -xa=<f> -xb=<f> -ya=<f> -yb=<f> -ym=<f> -improveQuality=[0|1] -addOutlet=[0|1] -addInlet=[0|1]
 #
 #  -radius : radius of the cylinder 
 #  -xa, -xb, -ya, -yb : bounds on the back ground grid
@@ -46,6 +57,9 @@
 #    ogen -noplot diskDropGrid.cmd -interp=e -cx=.5 -cy=.5 -factor=16
 #    ogen -noplot diskDropGrid.cmd -interp=e -cx=.5 -cy=.5 -factor=32
 #
+# Add inlet and outlet
+#   ogen -noplot diskDropGrid.cmd -interp=e -cx=.5 -cy=.5 -addInlet=1 -factor=2 
+#
 #   -- wider channel,, disk closer to wall:
 #    ogen -noplot diskDropGrid.cmd -interp=e -xa=-1.5 -xb=1.5 -cx=.9 -cy=.5 -prefix=risingDiskGrid -factor=2
 #    ogen -noplot diskDropGrid.cmd -interp=e -xa=-1.5 -xb=1.5 -cx=.9 -cy=.5 -prefix=risingDiskGrid -factor=4 
@@ -53,12 +67,13 @@
 #   -- shorter channel
 #    ogen -noplot diskDropGrid.cmd -interp=e -ym=-2 -ya=-6 -cx=.5 -cy=.5 -prefix=diskDropShortGrid -factor=2
 # ------------------------------------------------------------------------------------------------------
-$prefix="diskDropGrid";  $rgd="var";
+$prefix="diskDropGrid";  $rgd="var"; $improveQuality=0; 
 $order=2; $factor=1; $interp="i"; $ml=0; # default values
 $orderOfAccuracy = "second order"; $ng=2; $interpType = "implicit for all grids";
 $name=""; 
 $xa=-1.25; $xb=1.25; 
-$ya=-8.; $ym=-3.; $yb=2.; # bottom, mid top
+$ya=-8.; $ym=-3.; $yb=2.; $yc=6.; # bottom, mid, top, very-top
+$addOutlet=1; $addInlet=0; 
 $radius=.5; # radius of the cylinder
 $cx=0.; $cy=0.;  # center for the cylinder 
 $blf=3;  # grid lines are this much finer near the boundary
@@ -71,7 +86,8 @@ $numGhost=-1;  # if this value is set, then use this number of ghost points
 GetOptions( "order=i"=>\$order,"factor=f"=> \$factor,"xa=f"=>\$xa,"xb=f"=>\$xb,"ya=f"=>\$ya,"yb=f"=>\$yb,\
             "interp=s"=> \$interp,"name=s"=> \$name,"ml=i"=>\$ml,"blf=f"=> \$blf,"blfc=f"=> \$blfc,\
             "prefix=s"=> \$prefix,"wallStretchOption=i"=>\$wallStretchOption,"ym=f"=>\$ym,\
-            "radius=f"=>\$radius,"cx=f"=>\$cx,"cy=f"=>\$cy,"rgd=s"=> \$rgd,"numGhost=i"=>\$numGhost );
+            "radius=f"=>\$radius,"cx=f"=>\$cx,"cy=f"=>\$cy,"rgd=s"=> \$rgd,"numGhost=i"=>\$numGhost,\
+            "improveQuality=i"=>\$improveQuality,"yc=f"=>\$yc,"addInlet=i"=>\$addInlet,"addOutlet=i"=>\$addOutlet );
 # 
 if( $order eq 4 ){ $orderOfAccuracy="fourth order"; $ng=2; }\
 elsif( $order eq 6 ){ $orderOfAccuracy="sixth order"; $ng=3; }\
@@ -109,15 +125,55 @@ create mappings
 #
 $width=6*$ds; # width of boundary layer grid 
 #
+# coarse inlet
+# 
+$dsc=$ds*2; # coarser grid spacing
+rectangle
+  $xac=$xa; $xbc=$xb;  $yac=$yb-$dsc; $ybc=$yc;
+  set corners
+    $xac $xbc $yac $ybc 
+  $stretchFactor=1.75; # add more grid lines for stretcing in x-direction
+  lines
+    $nx = intmg( $stretchFactor*($xbc-$xac)/$dsc +1.5 ); 
+    $ny = intmg( ($ybc-$yac)/$dsc +1.5 ); 
+    $nx $ny
+  boundary conditions
+    1 2 0 4 
+  share 
+    1 2 0 0
+  mappingName
+   inletUnstretched
+exit
+#
+# -- stretch the grid lines on inlet
+#
+  stretch coordinates
+    transform which mapping?
+     inletUnstretched
+    Stretch r2:exp to linear
+    STP:stretch r2 expl: position 0.
+    STRT:multigrid levels $ml 
+    $dsMin = $ds; # grid spacing in the normal direction 
+    $farFieldSpacingFactor=8.; # WHAT SHOULD THIS BE ? propto distance ?
+    $dsMax = $farFieldSpacingFactor*$ds; # spacing at far-field boundary
+    STP:stretch r2 expl: linear weight 2
+    STP:stretch r2 expl: min dx, max dx $dsMin $dsMax
+    # stretch near walls
+    Stretch r1:itanh
+    STP:stretch r1 itanh: layer 0 1 5 0 (id>=0,weight,exponent,position)
+    STP:stretch r1 itanh: layer 1 1 5 1 (id>=0,weight,exponent,position)
+    STRT:name inlet
+    # open graphics
+   exit 
+#
 # coarse outlet
 # 
-$dsc=$ds*2; # coarser outlet 
 rectangle
   $xac=$xa; $xbc=$xb;  $yac=$ya; $ybc=$ym+$dsc; 
   set corners
     $xac $xbc $yac $ybc 
   lines
-    $nx = intmg( ($xbc-$xac)/$dsc +1.5 ); 
+    $nx = intmg( $stretchFactor*($xbc-$xac)/$dsc +1.5 ); 
     $ny = intmg( ($ybc-$yac)/$dsc +1.5 ); 
     $nx $ny
   boundary conditions
@@ -141,12 +197,17 @@ exit
     $dsMax = $farFieldSpacingFactor*$ds; # spacing at far-field boundary
     STP:stretch r2 expl: linear weight 2
     STP:stretch r2 expl: min dx, max dx $dsMin $dsMax
+    Stretch r1:itanh
+    STP:stretch r1 itanh: layer 0 1 5 0 (id>=0,weight,exponent,position)
+    STP:stretch r1 itanh: layer 1 1 5 1 (id>=0,weight,exponent,position)
     STRT:name outlet
     # open graphics
    exit 
 #
 # fine backGround 
 # 
+if( $addInlet eq 1 ){ $bcTop=0; }else{ $bcTop=4; }$bcT
+if( $addOutlet eq 1 ){ $bcBot=0; }else{ $bcBot=3; }$bcT
 rectangle
   $xab=$xa+$width-$ds; $xbb=$xb-$width+$ds; 
   $yab=$ym; $ybb=$yb; 
@@ -157,9 +218,9 @@ rectangle
     $ny = intmg( ($ybb-$yab)/$ds +1.5 ); 
     $nx $ny
   boundary conditions
-    0 0 0 4 
+    0 0 $bcBot $bcTop
   share 
-    0 0 0 4
+    0 0 $bcBot $bcTop
   mappingName
    backGround
 exit
@@ -176,9 +237,9 @@ rectangle
     $ny = intmg( ($ybw-$yaw)/$ds +1.5 ); 
     $nx $ny
   boundary conditions
-    1 0 0 4 
+    1 0 $bcBot $bcTop
   share 
-    1 0 0 4
+    1 0 $bcBot $bcTop
   mappingName
    leftWallUnstretched
 exit
@@ -195,9 +256,9 @@ rectangle
     $ny = intmg( ($ybw-$yaw)/$ds +1.5 ); 
     $nx $ny
   boundary conditions
-    0 2 0 4 
+    0 2 $bcBot $bcTop 
   share 
-    0 2 0 4
+    0 2 $bcBot $bcTop
   mappingName
    rightWallUnstretched
 exit
@@ -277,7 +338,10 @@ exit
 #
 exit
 generate an overlapping grid
-    outlet
+    if( $addInlet ){ $cmd="inlet"; }else{ $cmd="#"; }
+    $cmd
+    if( $addOutlet ){ $cmd="outlet"; }else{ $cmd="#"; }
+    $cmd
     backGround
     leftWall 
     rightWall
@@ -294,6 +358,7 @@ generate an overlapping grid
       # $ngp = $ng+1;
       $ngp = $ng;
       $ng $ng $ng $ngp $ng $ng
+    improve quality of interpolation $improveQuality
   exit
   #  display intermediate results
   # open graphics

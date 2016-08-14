@@ -15,6 +15,9 @@
 ! Here are macros that define the planeWave solution
 #Include "planeWave.h"
 
+! ----- Here are macros for the chirped-plane wave -----
+#Include "chirpedPlaneWave.h"
+
 ! -------------------------------------------------------------------------------------------------------
 ! Macro: third-order extrapolation:
 !    (j1,j2,j3)    : point to extrapolate
@@ -93,9 +96,16 @@
        tau1DotU = tau1DotU - ( tau1*u0 + tau2*v0 )/(tau1**2+tau2**2)
      #Elif #FORCING == "none"
      #Elif #FORCING == "planeWaveBoundaryForcing"
+       ! -- Boundary Forcing : if we solve for scattered field directly ----
        x0=xy(i1,i2,i3,0)
        y0=xy(i1,i2,i3,1)
-       if( fieldOption.eq.0 )then
+       if( .true. )then ! *new way*
+         numberOfTimeDerivatives=0+fieldOption
+         getBoundaryForcing2D(x0,y0,t,numberOfTimeDerivatives,ubv) 
+         u0 = -ubv(ex)
+         v0 = -ubv(ey)
+
+       else if( fieldOption.eq.0 )then ! *old way*
          u0=-planeWave2Dex(x0,y0,t)
          v0=-planeWave2Dey(x0,y0,t)
        else
@@ -139,9 +149,15 @@
      #Elif #FORCING == "none"
        u(i1,i2,i3,et1)=0.
      #Elif #FORCING == "planeWaveBoundaryForcing"
+       ! -- Boundary Forcing : if we solve for scattered field directly ----
        x0=xy(i1,i2,i3,0)
        y0=xy(i1,i2,i3,1)
-       if( fieldOption.eq.0 )then
+       if( .true. )then ! *new way*
+       
+         numberOfTimeDerivatives=0+fieldOption
+         getBoundaryForcing2D(x0,y0,t,numberOfTimeDerivatives,uv) 
+
+       else if( fieldOption.eq.0 )then
          uv(ex)=planeWave2Dex(x0,y0,t)
          uv(ey)=planeWave2Dey(x0,y0,t)
        else
@@ -191,11 +207,20 @@
        
      #Elif #FORCING == "none"
      #Elif #FORCING == "planeWaveBoundaryForcing"
+       ! -- Boundary Forcing : if we solve for scattered field directly ----
        ! set tangential components to a non zero value: 
        x0=xy(i1,i2,i3,0)
        y0=xy(i1,i2,i3,1)
        z0=xy(i1,i2,i3,2)
-       if( fieldOption.eq.0 )then
+       if( .true. )then ! *new way*
+       
+         numberOfTimeDerivatives=0+fieldOption
+         getBoundaryForcing3D(x0,y0,z0,t,numberOfTimeDerivatives,ubv) 
+         u0=-ubv(ex)
+         v0=-ubv(ey)
+         w0=-ubv(ez)
+
+       else if( fieldOption.eq.0 )then
          u0=-planeWave3Dex(x0,y0,z0,t)
          v0=-planeWave3Dey(x0,y0,z0,t)
          w0=-planeWave3Dez(x0,y0,z0,t)
@@ -241,7 +266,15 @@
        x0=xy(i1,i2,i3,0)
        y0=xy(i1,i2,i3,1)
        z0=xy(i1,i2,i3,2)
-       if( fieldOption.eq.0 )then
+       if( .true. )then ! *new way*
+       
+         numberOfTimeDerivatives=0+fieldOption
+         getBoundaryForcing3D(x0,y0,z0,t,numberOfTimeDerivatives,ubv) 
+         u0=-ubv(ex)
+         v0=-ubv(ey)
+         w0=-ubv(ez)
+
+       else if( fieldOption.eq.0 )then
          u0=-planeWave3Dex(x0,y0,z0,t)
          v0=-planeWave3Dey(x0,y0,z0,t)
          w0=-planeWave3Dez(x0,y0,z0,t)
@@ -294,10 +327,16 @@
        u(i1,i2,i3,et1)=0.
        u(i1,i2,i3,et2)=0.
      #Elif #FORCING == "planeWaveBoundaryForcing"
+       ! -- Boundary Forcing : if we solve for scattered field directly ----
        x0=xy(i1,i2,i3,0)
        y0=xy(i1,i2,i3,1)
        z0=xy(i1,i2,i3,2)
-       if( fieldOption.eq.0 )then
+       if( .true. )then ! *new way*
+       
+         numberOfTimeDerivatives=0+fieldOption
+         getBoundaryForcing3D(x0,y0,z0,t,numberOfTimeDerivatives,uv) 
+
+       else if( fieldOption.eq.0 )then
          uv(ex)=-planeWave3Dex(x0,y0,z0,t)
          uv(ey)=-planeWave3Dey(x0,y0,z0,t)
          uv(ez)=-planeWave3Dez(x0,y0,z0,t)
@@ -3700,11 +3739,11 @@
 
  integer is1,is2,is3,js1,js2,js3,ks1,ks2,ks3,ls1,ls2,ls3,orderOfAccuracy,gridType,debug,grid,\
         side,axis,useForcing,ex,ey,ez,hx,hy,hz,useWhereMask,side1,side2,side3,m1,m2,m3,bc1,bc2,\
-        forcingOption,fieldOption
+        forcingOption,fieldOption,boundaryForcingOption
 
  real dt,kx,ky,kz,eps,mu,c,cc,twoPi,slowStartInterval,ssf,ssft,ssftt,ssfttt,ssftttt,tt
 
- real dr(0:2), dx(0:2), t, uv(0:5), uvm(0:5), uv0(0:5), uvp(0:5), uvm2(0:5), uvp2(0:5) 
+ real dr(0:2), dx(0:2), t, uv(0:5), uvm(0:5), uv0(0:5), uvp(0:5), uvm2(0:5), uvp2(0:5), ubv(0:5) 
  real uvmm(0:2),uvzm(0:2),uvpm(0:2)
  real uvmz(0:2),uvzz(0:2),uvpz(0:2)
  real uvmp(0:2),uvzp(0:2),uvpp(0:2)
@@ -3863,6 +3902,24 @@
  real drb,dsb,dtb
  real ur0,us0,urr0,uss0,  urs0,vrs0,wrs0,urrs0,vrrs0,wrrs0,urss0,vrss0,wrss0
 
+ ! variables for the chirped-plane-wave (cpw)
+ real xi,xi0,phi,phip,phipp,chirp,cpwTa,cpwTb,cpwBeta,cpwAlpha,cpwAmp,cpwX0,cpwY0,cpwZ0,cpwTau,cpwxi
+ real amp,ampp,amppp, sinp,cosp, tanha,tanhap,tanhapp, tanhb,tanhbp,tanhbpp
+ real an1,an2,an3, aNormSqInverse
+ integer numberOfTimeDerivatives
+ real t1,t2,t3,t4,t5,t6,t7,t8,t9
+ real t10,t11,t12,t13,t14,t15,t16,t17,t18,t19
+ real t20,t21,t22,t23,t24,t25,t26,t27,t28,t29
+ real t30,t31,t32,t33,t34,t35,t36,t37,t38,t39
+ real t40,t41,t42,t43,t44,t45,t46,t47,t48,t49
+ real t50,t51,t52,t53,t54,t55,t56,t57,t58,t59
+ real t60,t61,t62,t63,t64,t65,t66,t67,t68,t69
+ real t70,t71,t72,t73,t74,t75,t76,t77,t78,t79
+ real t80,t81,t82,t83,t84,t85,t86,t87,t88,t89
+ real t90,t91,t92,t93,t94,t95,t96,t97,t98,t99
+ real t100,t101,t102,t103,t104,t105,t106,t107,t108,t109
+ real t110,t111,t112,t113,t114,t115,t116,t117,t118,t119
+
 !     --- start statement function ----
  integer kd,m,n
  real rx,ry,rz,sx,sy,sz,tx,ty,tz
@@ -3890,105 +3947,6 @@
 ! define derivatives of rsxy
 #Include "jacobianDerivatives.h"
 
-! rsxyr2(i1,i2,i3,m,n)=(rsxy(i1+1,i2,i3,m,n)-rsxy(i1-1,i2,i3,m,n))*d12(0)
-! rsxys2(i1,i2,i3,m,n)=(rsxy(i1,i2+1,i3,m,n)-rsxy(i1,i2-1,i3,m,n))*d12(1)
-!
-! rsxyx22(i1,i2,i3,m,n)= rx(i1,i2,i3)*rsxyr2(i1,i2,i3,m,n)+sx(i1,i2,i3)*rsxys2(i1,i2,i3,m,n)
-! rsxyy22(i1,i2,i3,m,n)= ry(i1,i2,i3)*rsxyr2(i1,i2,i3,m,n)+sy(i1,i2,i3)*rsxys2(i1,i2,i3,m,n)
-!
-! rsxyr4(i1,i2,i3,m,n)=(8.*(rsxy(i1+1,i2,i3,m,n)-rsxy(i1-1,i2,i3,m,n))\
-!                         -(rsxy(i1+2,i2,i3,m,n)-rsxy(i1-2,i2,i3,m,n)))*d14(0)
-! rsxys4(i1,i2,i3,m,n)=(8.*(rsxy(i1,i2+1,i3,m,n)-rsxy(i1,i2-1,i3,m,n))\
-!                         -(rsxy(i1,i2+2,i3,m,n)-rsxy(i1,i2-2,i3,m,n)))*d14(1)
-! rsxyt4(i1,i2,i3,m,n)=(8.*(rsxy(i1,i2,i3+1,m,n)-rsxy(i1,i2,i3-1,m,n))\
-!                         -(rsxy(i1,i2,i3+2,m,n)-rsxy(i1,i2,i3-2,m,n)))*d14(2)
-!
-! rsxyrr4(i1,i2,i3,m,n)=(-30.*rsxy(i1,i2,i3,m,n)+16.*(rsxy(i1+1,i2,i3,m,n)+rsxy(i1-1,i2,i3,m,n))\
-!                           -(rsxy(i1+2,i2,i3,m,n)+rsxy(i1-2,i2,i3,m,n)) )*d24(0)
-!
-! rsxyss4(i1,i2,i3,m,n)=(-30.*rsxy(i1,i2,i3,m,n)+16.*(rsxy(i1,i2+1,i3,m,n)+rsxy(i1,i2-1,i3,m,n))\
-!                           -(rsxy(i1,i2+2,i3,m,n)+rsxy(i1,i2-2,i3,m,n)) )*d24(1)
-!
-! rsxytt4(i1,i2,i3,m,n)=(-30.*rsxy(i1,i2,i3,m,n)+16.*(rsxy(i1,i2,i3+1,m,n)+rsxy(i1,i2,i3-1,m,n))\
-!                           -(rsxy(i1,i2,i3+2,m,n)+rsxy(i1,i2,i3-2,m,n)) )*d24(2)
-!
-! rsxyrs4(i1,i2,i3,m,n)=(8.*(rsxyr4(i1,i2+1,i3,m,n)-rsxyr4(i1,i2-1,i3,m,n))\
-!                          -(rsxyr4(i1,i2+2,i3,m,n)-rsxyr4(i1,i2-2,i3,m,n)))*d14(1)
-!
-! rsxyrt4(i1,i2,i3,m,n)=(8.*(rsxyr4(i1,i2,i3+1,m,n)-rsxyr4(i1,i2,i3-1,m,n))\
-!                          -(rsxyr4(i1,i2,i3+2,m,n)-rsxyr4(i1,i2,i3-2,m,n)))*d14(2)
-!
-! rsxyst4(i1,i2,i3,m,n)=(8.*(rsxys4(i1,i2,i3+1,m,n)-rsxys4(i1,i2,i3-1,m,n))\
-!                          -(rsxys4(i1,i2,i3+2,m,n)-rsxys4(i1,i2,i3-2,m,n)))*d14(2)
-!
-! rsxyx42(i1,i2,i3,m,n)= rx(i1,i2,i3)*rsxyr4(i1,i2,i3,m,n)+sx(i1,i2,i3)*rsxys4(i1,i2,i3,m,n)
-! rsxyy42(i1,i2,i3,m,n)= ry(i1,i2,i3)*rsxyr4(i1,i2,i3,m,n)+sy(i1,i2,i3)*rsxys4(i1,i2,i3,m,n)
-!
-!
-! ! check these again:
-! rsxyxr42(i1,i2,i3,m,n)= rsxyr4(i1,i2,i3,0,0)*rsxyr4(i1,i2,i3,m,n) + rx(i1,i2,i3)*rsxyrr4(i1,i2,i3,m,n)\
-!                        +rsxyr4(i1,i2,i3,1,0)*rsxys4(i1,i2,i3,m,n) + sx(i1,i2,i3)*rsxyrs4(i1,i2,i3,m,n)
-! rsxyxs42(i1,i2,i3,m,n)= rsxys4(i1,i2,i3,0,0)*rsxyr4(i1,i2,i3,m,n) + rx(i1,i2,i3)*rsxyrs4(i1,i2,i3,m,n)\
-!                        +rsxys4(i1,i2,i3,1,0)*rsxys4(i1,i2,i3,m,n) + sx(i1,i2,i3)*rsxyss4(i1,i2,i3,m,n)
-!
-! rsxyyr42(i1,i2,i3,m,n)= rsxyr4(i1,i2,i3,0,1)*rsxyr4(i1,i2,i3,m,n) + ry(i1,i2,i3)*rsxyrr4(i1,i2,i3,m,n)\
-!                        +rsxyr4(i1,i2,i3,1,1)*rsxys4(i1,i2,i3,m,n) + sy(i1,i2,i3)*rsxyrs4(i1,i2,i3,m,n)
-! rsxyys42(i1,i2,i3,m,n)= rsxys4(i1,i2,i3,0,1)*rsxyr4(i1,i2,i3,m,n) + ry(i1,i2,i3)*rsxyrs4(i1,i2,i3,m,n)\
-!                        +rsxys4(i1,i2,i3,1,1)*rsxys4(i1,i2,i3,m,n) + sy(i1,i2,i3)*rsxyss4(i1,i2,i3,m,n)
-!
-! ! 3d versions -- check these again
-! rsxyx43(i1,i2,i3,m,n)= rx(i1,i2,i3)*rsxyr4(i1,i2,i3,m,n)+sx(i1,i2,i3)*rsxys4(i1,i2,i3,m,n)\
-!                       +tx(i1,i2,i3)*rsxyt4(i1,i2,i3,m,n)
-! rsxyy43(i1,i2,i3,m,n)= ry(i1,i2,i3)*rsxyr4(i1,i2,i3,m,n)+sy(i1,i2,i3)*rsxys4(i1,i2,i3,m,n)\
-!                       +ty(i1,i2,i3)*rsxyt4(i1,i2,i3,m,n)
-! rsxyz43(i1,i2,i3,m,n)= rz(i1,i2,i3)*rsxyr4(i1,i2,i3,m,n)+sz(i1,i2,i3)*rsxys4(i1,i2,i3,m,n)\
-!                       +tz(i1,i2,i3)*rsxyt4(i1,i2,i3,m,n)
-!
-! rsxyxr43(i1,i2,i3,m,n)= rsxyr4(i1,i2,i3,0,0)*rsxyr4(i1,i2,i3,m,n) + rx(i1,i2,i3)*rsxyrr4(i1,i2,i3,m,n)\
-!                        +rsxyr4(i1,i2,i3,1,0)*rsxys4(i1,i2,i3,m,n) + sx(i1,i2,i3)*rsxyrs4(i1,i2,i3,m,n)\
-!                        +rsxyr4(i1,i2,i3,2,0)*rsxyt4(i1,i2,i3,m,n) + tx(i1,i2,i3)*rsxyrt4(i1,i2,i3,m,n)
-!
-! rsxyxs43(i1,i2,i3,m,n)= rsxys4(i1,i2,i3,0,0)*rsxyr4(i1,i2,i3,m,n) + rx(i1,i2,i3)*rsxyrs4(i1,i2,i3,m,n)\
-!                        +rsxys4(i1,i2,i3,1,0)*rsxys4(i1,i2,i3,m,n) + sx(i1,i2,i3)*rsxyss4(i1,i2,i3,m,n)\
-!                        +rsxys4(i1,i2,i3,2,0)*rsxyt4(i1,i2,i3,m,n) + tx(i1,i2,i3)*rsxyst4(i1,i2,i3,m,n)
-!
-! rsxyxt43(i1,i2,i3,m,n)= rsxyt4(i1,i2,i3,0,0)*rsxyr4(i1,i2,i3,m,n) + rx(i1,i2,i3)*rsxyrt4(i1,i2,i3,m,n)\
-!                        +rsxyt4(i1,i2,i3,1,0)*rsxys4(i1,i2,i3,m,n) + sx(i1,i2,i3)*rsxyst4(i1,i2,i3,m,n)\
-!                        +rsxyt4(i1,i2,i3,2,0)*rsxyt4(i1,i2,i3,m,n) + tx(i1,i2,i3)*rsxytt4(i1,i2,i3,m,n)
-!
-! rsxyyr43(i1,i2,i3,m,n)= rsxyr4(i1,i2,i3,0,1)*rsxyr4(i1,i2,i3,m,n) + ry(i1,i2,i3)*rsxyrr4(i1,i2,i3,m,n)\
-!                        +rsxyr4(i1,i2,i3,1,1)*rsxys4(i1,i2,i3,m,n) + sy(i1,i2,i3)*rsxyrs4(i1,i2,i3,m,n)\
-!                        +rsxyr4(i1,i2,i3,2,1)*rsxyt4(i1,i2,i3,m,n) + ty(i1,i2,i3)*rsxyrt4(i1,i2,i3,m,n)
-!
-! rsxyys43(i1,i2,i3,m,n)= rsxys4(i1,i2,i3,0,1)*rsxyr4(i1,i2,i3,m,n) + ry(i1,i2,i3)*rsxyrs4(i1,i2,i3,m,n)\
-!                        +rsxys4(i1,i2,i3,1,1)*rsxys4(i1,i2,i3,m,n) + sy(i1,i2,i3)*rsxyss4(i1,i2,i3,m,n)\
-!                        +rsxys4(i1,i2,i3,2,1)*rsxyt4(i1,i2,i3,m,n) + ty(i1,i2,i3)*rsxyst4(i1,i2,i3,m,n)
-!
-! rsxyyt43(i1,i2,i3,m,n)= rsxyt4(i1,i2,i3,0,1)*rsxyr4(i1,i2,i3,m,n) + ry(i1,i2,i3)*rsxyrt4(i1,i2,i3,m,n)\
-!                        +rsxyt4(i1,i2,i3,1,1)*rsxys4(i1,i2,i3,m,n) + sy(i1,i2,i3)*rsxyst4(i1,i2,i3,m,n)\
-!                        +rsxyt4(i1,i2,i3,2,1)*rsxyt4(i1,i2,i3,m,n) + ty(i1,i2,i3)*rsxytt4(i1,i2,i3,m,n)
-!
-! rsxyzr43(i1,i2,i3,m,n)= rsxyr4(i1,i2,i3,0,2)*rsxyr4(i1,i2,i3,m,n) + rz(i1,i2,i3)*rsxyrr4(i1,i2,i3,m,n)\
-!                        +rsxyr4(i1,i2,i3,1,2)*rsxys4(i1,i2,i3,m,n) + sz(i1,i2,i3)*rsxyrs4(i1,i2,i3,m,n)\
-!                        +rsxyr4(i1,i2,i3,2,2)*rsxyt4(i1,i2,i3,m,n) + tz(i1,i2,i3)*rsxyrt4(i1,i2,i3,m,n)
-!
-! rsxyzs43(i1,i2,i3,m,n)= rsxys4(i1,i2,i3,0,2)*rsxyr4(i1,i2,i3,m,n) + rz(i1,i2,i3)*rsxyrs4(i1,i2,i3,m,n)\
-!                        +rsxys4(i1,i2,i3,1,2)*rsxys4(i1,i2,i3,m,n) + sz(i1,i2,i3)*rsxyss4(i1,i2,i3,m,n)\
-!                        +rsxys4(i1,i2,i3,2,2)*rsxyt4(i1,i2,i3,m,n) + tz(i1,i2,i3)*rsxyst4(i1,i2,i3,m,n)
-!
-! rsxyzt43(i1,i2,i3,m,n)= rsxyt4(i1,i2,i3,0,2)*rsxyr4(i1,i2,i3,m,n) + rz(i1,i2,i3)*rsxyrt4(i1,i2,i3,m,n)\
-!                        +rsxyt4(i1,i2,i3,1,2)*rsxys4(i1,i2,i3,m,n) + sz(i1,i2,i3)*rsxyst4(i1,i2,i3,m,n)\
-!                        +rsxyt4(i1,i2,i3,2,2)*rsxyt4(i1,i2,i3,m,n) + tz(i1,i2,i3)*rsxytt4(i1,i2,i3,m,n)
-!
-
-!$$$ uxxx22r(i1,i2,i3,kd)=(-2.*(u(i1+1,i2,i3,kd)-u(i1-1,i2,i3,kd))+(u(i1+2,i2,i3,kd)-u(i1-2,i2,i3,kd)) )*h22(0)*h12(0)
-!$$$ uyyy22r(i1,i2,i3,kd)=(-2.*(u(i1,i2+1,i3,kd)-u(i1,i2-1,i3,kd))+(u(i1,i2+2,i3,kd)-u(i1,i2-2,i3,kd)) )*h22(1)*h12(1)
-!$$$
-!$$$ uxxxx22r(i1,i2,i3,kd)=(6.*u(i1,i2,i3,kd)-4.*(u(i1+1,i2,i3,kd)+u(i1-1,i2,i3,kd))\
-!$$$                         +(u(i1+2,i2,i3,kd)+u(i1-2,i2,i3,kd)) )/(dx(0)**4)
-!$$$
-!$$$ uyyyy22r(i1,i2,i3,kd)=(6.*u(i1,i2,i3,kd)-4.*(u(i1,i2+1,i3,kd)+u(i1,i2-1,i3,kd))\
-!$$$                         +(u(i1,i2+2,i3,kd)+u(i1,i2-2,i3,kd)) )/(dx(1)**4)
 
  urrrr2(i1,i2,i3,kd)=(6.*u(i1,i2,i3,kd)-4.*(u(i1+1,i2,i3,kd)+u(i1-1,i2,i3,kd))\
                          +(u(i1+2,i2,i3,kd)+u(i1-2,i2,i3,kd)) )/(dr(0)**4)
@@ -4048,6 +4006,7 @@
  forcingOption        =ipar(21)
 
  fieldOption          =ipar(29)  ! 0=assign field, 1=assign time derivatives
+ boundaryForcingOption=ipar(32)  ! option when solving for scattered field directly
 
  dx(0)                =rpar(0)
  dx(1)                =rpar(1)
@@ -4072,6 +4031,16 @@
  pwc(3)               =rpar(23)
  pwc(4)               =rpar(24)
  pwc(5)               =rpar(25)
+
+ ! variables for the chirped-plane-wave (cpw)
+ cpwTa                =rpar(29)   ! turn on chirp
+ cpwTb                =rpar(30)   ! turn off chirp
+ cpwAlpha             =rpar(31)   ! chirp-rate
+ cpwBeta              =rpar(32)   ! exponent in tanh
+ cpwAmp               =rpar(33)   ! amplitude 
+ cpwX0                =rpar(34)   ! x0
+ cpwY0                =rpar(35)   ! y0
+ cpwZ0                =rpar(36)   ! z0
 
  dxa=dx(0)
  dya=dx(1)
@@ -4099,7 +4068,7 @@ epsX = 1.e-30  ! epsilon used to avoid division by zero in the normal computatio
  extra=orderOfAccuracy/2  ! assign the extended boundary
  beginLoopOverSides(extra,numberOfGhostPoints)
    if( nd.eq.2 )then   
-     if( forcingOption.eq.planeWaveBoundaryForcing )then
+     if( boundaryForcingOption.ne.noBoundaryForcing )then
        ! write(*,'(" ***assign corners:planeWaveBoundaryForcing: twoPi=",f18.14," cc=",f10.7)') twoPi,cc
        assignBoundary2d(planeWaveBoundaryForcing)
      else if( useForcing.eq.0 )then
@@ -4109,7 +4078,7 @@ epsX = 1.e-30  ! epsilon used to avoid division by zero in the normal computatio
      end if
 
    else  
-     if( forcingOption.eq.planeWaveBoundaryForcing )then
+     if( boundaryForcingOption.ne.noBoundaryForcing )then
        ! write(*,'(" ***assign corners:planeWaveBoundaryForcing: twoPi=",f18.14," cc=",f10.7)') twoPi,cc
        assignBoundary3d(planeWaveBoundaryForcing)
      else if( useForcing.eq.0 )then

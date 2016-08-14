@@ -36,7 +36,10 @@ Changes:
    o 2015/12/18 - fixed the tolerance used to merge NurbsMapping's -- was too big in general.
                   New dialog GUI for the NurbsMapping with better plotting options.
    o 2016/06/16 - symmetry boundary conditions fixed in cgmx 
-
+   o 2016/07    - added option to "comp" code to take the difference between solutions
+                  in two sets of show files and save these differences to another show file.
+   o 2016/07/22 - fixed algorithm in ogen for improved quality interpolation.
+                  This should work better now.
 ==============================================================================================
 Overture.v26 - released August 1, 2015
 Changes:

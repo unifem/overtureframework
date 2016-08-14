@@ -1,4 +1,6 @@
+! *****************************************************
 ! *** Fourth order boundary conditions for Maxwell ****
+! *****************************************************
 
 
 ! These next include files will define the macros that will define the difference approximations
@@ -16,6 +18,10 @@
 
 ! Here are macros that define the planeWave solution
 #Include "planeWave.h"
+
+! ----- Here are macros for the chirped-plane wave -----
+#Include "chirpedPlaneWave.h"
+
 
 !===================================================================================
 !  Put the inner loop for the 4th-order BC here so we can repeat it for testing 
@@ -43,6 +49,9 @@
 !  FORCING: none, twilightZone
 ! ===================================================================================
 #beginMacro bcCurvilinear2dOrder4(FORCING)
+
+ ! assign values on boundary when there are boundary forcings
+ !! assignBoundaryForcingBoundaryValuesCurvilinear(2)
 
  ! Since is1 is +1 or -1 we need to flip the sign of dr in the derivative approximations
  dra = dr(axis)*(1-2*side)
@@ -209,8 +218,10 @@
  fw1=0.
  fw2=0.
 
- if( forcingOption.eq.planeWaveBoundaryForcing )then
-   ! In the plane wave forcing case we subtract out a plane wave incident field
+ if( boundaryForcingOption.ne.noBoundaryForcing )then
+   ! ------------ BOUNDARY FORCING 2D --------------
+
+   ! In the boundary forcing we subtract out a plane wave incident field
    ! This causes the BC to be 
    !           tau.u = - tau.uI
    !   and     tau.utt = -tau.uI.tt
@@ -218,10 +229,26 @@
    ! *** set RHS for (a1.u).r =  - Ds( a2.uv )
    Da1DotU = -(  a21s*uex+a22s*uey + a21*us+a22*vs )
 
+   ! Note minus sign since we are subtracting out the incident field
    x0=xy(i1,i2,i3,0)
    y0=xy(i1,i2,i3,1)
-   ! Note minus sign since we are subtracting out the incident field
-   if( fieldOption.eq.0 )then
+   if( .true. )then ! *new way*
+     numberOfTimeDerivatives=1+fieldOption
+     getBoundaryForcing2D(x0,y0,t,numberOfTimeDerivatives,ubv) 
+     ut0 = -ubv(ex)
+     vt0 = -ubv(ey)
+
+     numberOfTimeDerivatives=2+fieldOption
+     getBoundaryForcing2D(x0,y0,t,numberOfTimeDerivatives,ubv) 
+     utt00 = -ubv(ex)
+     vtt00 = -ubv(ey)
+
+     numberOfTimeDerivatives=3+fieldOption
+     getBoundaryForcing2D(x0,y0,t,numberOfTimeDerivatives,ubv) 
+     uttt0 = -ubv(ex)
+     vttt0 = -ubv(ey)
+
+   else if( fieldOption.eq.0 )then ! *old* way
      utt00=-planeWave2Dextt(x0,y0,t) 
      vtt00=-planeWave2Deytt(x0,y0,t)
      ut0  =-planeWave2Dext(x0,y0,t) 
@@ -246,7 +273,18 @@
 
    x0=xy(i1+js1,i2+js2,i3,0)
    y0=xy(i1+js1,i2+js2,i3,1)
-   if( fieldOption.eq.0 )then
+   if( .true. )then ! *new way*
+     numberOfTimeDerivatives=1+fieldOption
+     getBoundaryForcing2D(x0,y0,t,numberOfTimeDerivatives,ubv) 
+     utp1 = -ubv(ex)
+     vtp1 = -ubv(ey)
+
+     numberOfTimeDerivatives=2+fieldOption
+     getBoundaryForcing2D(x0,y0,t,numberOfTimeDerivatives,ubv) 
+     uttp1 = -ubv(ex)
+     vttp1 = -ubv(ey)
+
+   else if( fieldOption.eq.0 )then ! *old way*
      uttp1=-planeWave2Dextt(x0,y0,t) 
      vttp1=-planeWave2Deytt(x0,y0,t)
      utp1 =-planeWave2Dext(x0,y0,t) 
@@ -261,7 +299,18 @@
 
    x0=xy(i1-js1,i2-js2,i3,0)
    y0=xy(i1-js1,i2-js2,i3,1)
-   if( fieldOption.eq.0 )then
+   if( .true. )then ! *new way*
+     numberOfTimeDerivatives=1+fieldOption
+     getBoundaryForcing2D(x0,y0,t,numberOfTimeDerivatives,ubv) 
+     utm1 = -ubv(ex)
+     vtm1 = -ubv(ey)
+
+     numberOfTimeDerivatives=2+fieldOption
+     getBoundaryForcing2D(x0,y0,t,numberOfTimeDerivatives,ubv) 
+     uttm1 = -ubv(ex)
+     vttm1 = -ubv(ey)
+
+   else if( fieldOption.eq.0 )then ! *old way*
      uttm1=-planeWave2Dextt(x0,y0,t) 
      vttm1=-planeWave2Deytt(x0,y0,t)
      utm1 =-planeWave2Dext(x0,y0,t) 
@@ -276,7 +325,13 @@
 
    x0=xy(i1+2*js1,i2+2*js2,i3,0)
    y0=xy(i1+2*js1,i2+2*js2,i3,1)
-   if( fieldOption.eq.0 )then
+   if( .true. )then ! *new way*
+     numberOfTimeDerivatives=2+fieldOption
+     getBoundaryForcing2D(x0,y0,t,numberOfTimeDerivatives,ubv) 
+     uttp2 = -ubv(ex)
+     vttp2 = -ubv(ey)
+
+   else if( fieldOption.eq.0 )then ! *old way*
      uttp2=-planeWave2Dextt(x0,y0,t) 
      vttp2=-planeWave2Deytt(x0,y0,t)
    else
@@ -287,7 +342,13 @@
 
    x0=xy(i1-2*js1,i2-2*js2,i3,0)
    y0=xy(i1-2*js1,i2-2*js2,i3,1)
-   if( fieldOption.eq.0 )then
+   if( .true. )then ! *new way*
+     numberOfTimeDerivatives=2+fieldOption
+     getBoundaryForcing2D(x0,y0,t,numberOfTimeDerivatives,ubv) 
+     uttm2 = -ubv(ex)
+     vttm2 = -ubv(ey)
+
+   else if( fieldOption.eq.0 )then ! *old way*
      uttm2=-planeWave2Dextt(x0,y0,t) 
      vttm2=-planeWave2Deytt(x0,y0,t)
    else
@@ -2237,6 +2298,10 @@ end if
 
 ! ***** Step 1 : assign values using extrapolation of the normal component ***
 #beginMacro bcCurvilinear3dOrder4Step1(FORCING)
+
+ ! assign values on boundary when there are boundary forcings
+ !! assignBoundaryForcingBoundaryValuesCurvilinear(3)
+
  ! Since is1 is +1 or -1 we need to flip the sign of dr in the derivative approximations
  dra = dr(axis  )*(1-2*side)
  dsa = dr(axisp1)*(1-2*side)
@@ -2284,7 +2349,9 @@ end if
  gIVf1=0.
  gIVf2=0.
 
- if( forcingOption.eq.planeWaveBoundaryForcing )then
+ if( boundaryForcingOption.ne.noBoundaryForcing )then
+   ! -------------- BOUNDARY FORCING 3D ---------------
+
    ! In the plane wave forcing case we subtract out a plane wave incident field
    ! This causes the BC to be 
    !           tau.u = - tau.uI
@@ -2302,7 +2369,18 @@ end if
    Da1DotU = -(  a21s*uex+a22s*uey+a23s*uez + a21*us+a22*vs+a23*ws \
                + a31t*uex+a32t*uey+a33t*uez + a31*ut+a32*vt+a33*wt )
 
-   getMinusPlaneWave3Dtt(i1,i2,i3,t,udd,vdd,wdd)
+   if( .true. )then ! *new* way
+     x0=xy(i1,i2,i3,0)
+     y0=xy(i1,i2,i3,1)
+     z0=xy(i1,i2,i3,2)
+     numberOfTimeDerivatives=2+fieldOption
+     getBoundaryForcing3D(x0,y0,z0,t,numberOfTimeDerivatives,ubv)
+     udd=-ubv(ex)
+     vdd=-ubv(ey)
+     wdd=-ubv(ez)
+   else
+     getMinusPlaneWave3Dtt(i1,i2,i3,t,udd,vdd,wdd)
+   end if
 
    tau1DotUtt = tau11*udd+tau12*vdd+tau13*wdd
    tau2DotUtt = tau21*udd+tau22*vdd+tau23*wdd
@@ -2765,7 +2843,7 @@ else if( .FALSE. .and. mask(i1,i2,i3).lt.0 )then
   end if
  end if
 
- if( forcingOption.eq.planeWaveBoundaryForcing )then
+ if( boundaryForcingOption.ne.noBoundaryForcing )then
    ! In the plane wave forcing case we subtract out a plane wave incident field
    !   --->    tau.utt = -tau.uI.tt
 
@@ -2773,7 +2851,18 @@ else if( .FALSE. .and. mask(i1,i2,i3).lt.0 )then
    Da1DotU = -(  a21s*uex+a22s*uey+a23s*uez + a21*us+a22*vs+a23*ws \
                + a31t*uex+a32t*uey+a33t*uez + a31*ut+a32*vt+a33*wt )
 
-   getMinusPlaneWave3Dtt(i1,i2,i3,t,udd,vdd,wdd)
+   if( .true. )then ! *new* way
+     x0=xy(i1,i2,i3,0)
+     y0=xy(i1,i2,i3,1)
+     z0=xy(i1,i2,i3,2)
+     numberOfTimeDerivatives=2+fieldOption
+     getBoundaryForcing3D(x0,y0,z0,t,numberOfTimeDerivatives,ubv)
+     udd=-ubv(ex)
+     vdd=-ubv(ey)
+     wdd=-ubv(ez)
+   else ! old way
+     getMinusPlaneWave3Dtt(i1,i2,i3,t,udd,vdd,wdd)
+   end if
 
    tau1DotUtt = tau11*udd+tau12*vdd+tau13*wdd
    tau2DotUtt = tau21*udd+tau22*vdd+tau23*wdd
@@ -3063,7 +3152,7 @@ if( .true. )then
      +a12r*( c22*vss + c2*vs + c33*vtt + c3*vt ) \
      +a13r*( c22*wss + c2*ws + c33*wtt + c3*wt ) 
 
- if( forcingOption.eq.planeWaveBoundaryForcing )then
+ if( boundaryForcingOption.ne.noBoundaryForcing )then
    ! In the plane wave forcing case we subtract out a plane wave incident field
    a21s = DS4($A21D3J)
    a22s = DS4($A22D3J)
@@ -3082,17 +3171,68 @@ if( .true. )then
    ! (a1.Delta u).r + bf = 0
    ! bf = bf + (a2.utt).s + (a3.utt).t
 
-   getMinusPlaneWave3Dtt(i1,i2,i3,t,udd,vdd,wdd)
+   if( .true. )then ! *new* way
+     x0=xy(i1,i2,i3,0)
+     y0=xy(i1,i2,i3,1)
+     z0=xy(i1,i2,i3,2)
+     numberOfTimeDerivatives=2+fieldOption
+     getBoundaryForcing3D(x0,y0,z0,t,numberOfTimeDerivatives,ubv)
+     udd=-ubv(ex)
+     vdd=-ubv(ey)
+     wdd=-ubv(ez)
 
-   getMinusPlaneWave3Dtt(i1+js1,i2+js2,i3+js3,t,uddp1,vddp1,wddp1)
-   getMinusPlaneWave3Dtt(i1-js1,i2-js2,i3-js3,t,uddm1,vddm1,wddm1)
+     x0=xy(i1+js1,i2+js2,i3+js3,0)
+     y0=xy(i1+js1,i2+js2,i3+js3,1)
+     z0=xy(i1+js1,i2+js2,i3+js3,2)
+     numberOfTimeDerivatives=2+fieldOption
+     getBoundaryForcing3D(x0,y0,z0,t,numberOfTimeDerivatives,ubv)
+     uddp1=-ubv(ex)
+     vddp1=-ubv(ey)
+     wddp1=-ubv(ez)
+
+     x0=xy(i1-js1,i2-js2,i3-js3,0)
+     y0=xy(i1-js1,i2-js2,i3-js3,1)
+     z0=xy(i1-js1,i2-js2,i3-js3,2)
+     numberOfTimeDerivatives=2+fieldOption
+     getBoundaryForcing3D(x0,y0,z0,t,numberOfTimeDerivatives,ubv)
+     uddm1=-ubv(ex)
+     vddm1=-ubv(ey)
+     wddm1=-ubv(ez)
+
+   else ! old way
+     getMinusPlaneWave3Dtt(i1,i2,i3,t,udd,vdd,wdd)
+     getMinusPlaneWave3Dtt(i1+js1,i2+js2,i3+js3,t,uddp1,vddp1,wddp1)
+     getMinusPlaneWave3Dtt(i1-js1,i2-js2,i3-js3,t,uddm1,vddm1,wddm1)
+   end if
    ! 2nd-order here should be good enough:
    udds = (uddp1-uddm1)/(2.*dsa)
    vdds = (vddp1-vddm1)/(2.*dsa)
    wdds = (wddp1-wddm1)/(2.*dsa)
 
-   getMinusPlaneWave3Dtt(i1+ks1,i2+ks2,i3+ks3,t,uddp1,vddp1,wddp1)
-   getMinusPlaneWave3Dtt(i1-ks1,i2-ks2,i3-ks3,t,uddm1,vddm1,wddm1)
+   if( .true. )then ! *new* way
+     x0=xy(i1+ks1,i2+ks2,i3+ks3,0)
+     y0=xy(i1+ks1,i2+ks2,i3+ks3,1)
+     z0=xy(i1+ks1,i2+ks2,i3+ks3,2)
+     numberOfTimeDerivatives=2+fieldOption
+     getBoundaryForcing3D(x0,y0,z0,t,numberOfTimeDerivatives,ubv)
+     uddp1=-ubv(ex)
+     vddp1=-ubv(ey)
+     wddp1=-ubv(ez)
+
+     x0=xy(i1-ks1,i2-ks2,i3-ks3,0)
+     y0=xy(i1-ks1,i2-ks2,i3-ks3,1)
+     z0=xy(i1-ks1,i2-ks2,i3-ks3,2)
+     numberOfTimeDerivatives=2+fieldOption
+     getBoundaryForcing3D(x0,y0,z0,t,numberOfTimeDerivatives,ubv)
+     uddm1=-ubv(ex)
+     vddm1=-ubv(ey)
+     wddm1=-ubv(ez)
+
+   else ! old way
+     getMinusPlaneWave3Dtt(i1+ks1,i2+ks2,i3+ks3,t,uddp1,vddp1,wddp1)
+     getMinusPlaneWave3Dtt(i1-ks1,i2-ks2,i3-ks3,t,uddm1,vddm1,wddm1)
+   end if
+
    ! 2nd-order here should be good enough:
    uddt = (uddp1-uddm1)/(2.*dta)
    vddt = (vddp1-vddm1)/(2.*dta)

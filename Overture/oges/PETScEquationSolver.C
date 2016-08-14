@@ -638,6 +638,9 @@ getNumberOfIterations() const
 int PETScEquationSolver::
 solve(realCompositeGridFunction & u,
       realCompositeGridFunction & f)
+// ======================================================================================================
+/// \brief Solve the equations. 
+// ======================================================================================================
 {
 //  PetscFunctionBegin;
 
@@ -771,6 +774,44 @@ solve(realCompositeGridFunction & u,
     printF("NOTE 2: to avoid the divergence error '-4' you can set the Oges option 'maximum allowable increase in the residual' \n");
     // OV_ABORT("error");
 
+    if( true ) // July 28, 2016 -- try this --
+    {
+      if( reason==-3 || reason==-5 || reason==-6 )
+      {
+	printF("--PTSC-- KSP failed, try to solve again with zero initial guess...\n");
+        PetscBool flg=PETSC_FALSE;  // the initial guess is ZERO
+        ierr = KSPSetInitialGuessNonzero(ksp,flg); CHKERRQ(ierr); 
+
+        ierr = KSPSolve(ksp,brhs,xsol);CHKERRQ(ierr);
+
+	ierr = KSPGetConvergedReason(ksp,&reason);
+	if( reason<0 )
+	{
+	  printF("--PTSC--- SOLVE AGAIN: ERROR Solution diverged! reason=%i: \n",(int)reason);
+	  printF("     KSP_DIVERGED_NULL                = -2,\n"
+		 "     KSP_DIVERGED_ITS                 = -3,\n"
+		 "     KSP_DIVERGED_DTOL                = -4,\n"
+		 "     KSP_DIVERGED_BREAKDOWN           = -5,\n"
+		 "     KSP_DIVERGED_BREAKDOWN_BICG      = -6,\n"
+		 "     KSP_DIVERGED_NONSYMMETRIC        = -7,\n"
+		 "     KSP_DIVERGED_INDEFINITE_PC       = -8,\n"
+		 "     KSP_DIVERGED_NAN                  = -9,\n"
+		 "     KSP_DIVERGED_INDEFINITE_MAT      = -10\n");
+	  printF("NOTE 1: to see more information turn on the '-info' PETSc option (e.g. in your .petscrc)\n");
+	  printF("NOTE 2: to avoid the divergence error '-4' you can set the Oges option 'maximum allowable increase in the residual' \n");
+	}
+	else
+	{
+	  printF("--PTSC-- Solve again WORKED!\n");
+          	
+	}
+	
+      }
+      
+    }
+    
+
+
   }
   
 
@@ -846,6 +887,9 @@ solve(realCompositeGridFunction & u,
     for( int i=0; i<oges.numberOfExtraEquations; i++ )
     {
       extraEquationValues(i)=sol(oges.extraEquationNumber(i)-1);
+      // printF("--PETScEQ-- Extra equation %i: eqn=%d value=%12.4e\n",
+      //        i,oges.extraEquationNumber(i)-1,extraEquationValues(i));
+      
     }
   }
 
@@ -1181,6 +1225,9 @@ computeDiagScaling()
 int PETScEquationSolver::
 buildRhsAndSolVector(realCompositeGridFunction & u,
 		     realCompositeGridFunction & f)
+// ===========================================================================================================
+/// \brief Transfer the right-hand-side (f) and initial guess (u) to the PETSc vectors
+// ===========================================================================================================
 {
   if( Oges::debug & 2 )
     printF("PETScEquationSolver::buildRhsAndSolVector:START: rescaleRowNorms=%i, copyOfSolutionNeeded=%i\n",
@@ -1236,6 +1283,34 @@ buildRhsAndSolVector(realCompositeGridFunction & u,
 #endif
   }
   
+  // Insert initial guess for extra equations *wdh* July 29, 2016
+  if( oges.numberOfExtraEquations>0 )
+  {
+    if( oges.dbase.has_key("extraEquationInitialValues") )
+    {
+      RealArray & extraEquationInitialValues = oges.dbase.get<RealArray>("extraEquationInitialValues");
+      PetscScalar v;
+
+      for( int j=0; j<oges.numberOfExtraEquations; j++ )
+      {
+	v = extraEquationInitialValues(j);
+        int i = oges.extraEquationNumber(j)-1;  // **check me**
+	printF("--PES-- extra equation %i: set initial value: eqn=%i value=%12.4e [ovSol=%12.4e]\n",j,i,v,ovSol[i]);
+        ierr=VecSetValues(xsol,1,&i,&v,INSERT_VALUES); CHKERRQ(ierr);
+      }
+    }
+    else
+    {
+      for( int j=0; j<oges.numberOfExtraEquations; j++ )
+      {
+        int i = oges.extraEquationNumber(j)-1;  // **check me**
+	printF("--PES-- extra equation %i: eqn=%i guess in ovSol=%12.4e\n",j,i,ovSol[i]);
+      }
+    }
+    
+    
+  }
+
   ierr = VecAssemblyBegin(xsol); CHKERRQ(ierr);
   ierr = VecAssemblyBegin(brhs); CHKERRQ(ierr);
   ierr = VecAssemblyEnd(xsol);   CHKERRQ(ierr);

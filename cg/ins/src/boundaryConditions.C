@@ -451,7 +451,7 @@ setPressureConstraintValues( GridFunction & gf0, realCompositeGridFunction & f )
   { 
     // ---- Set the "mean" value of the pressure ----
     //   (if there are no extra constraint equations)
-    poisson->setExtraEquationValues(f,&pressureMeanValue );
+    poisson->setExtraEquationRightHandSideValues(f,&pressureMeanValue );
   }
   
 
@@ -537,8 +537,13 @@ setPressureConstraintValues( GridFunction & gf0, realCompositeGridFunction & f )
 	       "       ******FIX ME: Use latest predicted pressure ***\n",t0,numberOfExtraEquations,numberOfDenseExtraEquations,numberOfRigidBodies);
       }
       
+      // value[i] : holds RHS to constraint eqution
       real *value= new real[numberOfExtraEquations];
       for( int i=0; i<numberOfExtraEquations; i++ ){ value[i]=0.; }  // NOTE constraintValues are in reverse order
+
+      // We provide an initial guess for the constraint equations for iterative solvers
+      real *initialGuess= new real[numberOfExtraEquations];
+      for( int i=0; i<numberOfExtraEquations; i++ ){ initialGuess[i]=0.; }
 
       RealArray mvDot,mOmegaDot; // Holds body force and torque 
       RealArray addedDampingTensors(3,3,2,2);  // holds added damping Tensors - 4 3x3 matrices 
@@ -605,13 +610,15 @@ setPressureConstraintValues( GridFunction & gf0, realCompositeGridFunction & f )
           int ival = totalNumberOfExtraEquations -extraEqn -1 -numberOfDenseExtraEquations;        // equations are stored in reverse order
 	  assert( ival<numberOfExtraEquations );
 
+          initialGuess[ival]=vDotPredicted(d);
+	  
 	  if( false )
 	  {
   	    value[ival] = mvDot(d) - bodyForceFromPressure(d,b);  // subtract off INT_B { -p nv } ds 
 	  }
 	  else
 	  {
-	    printF("--INS-SPC-- TESTING... use bodyForceFromViscousStress *CHECK GRAVITY*...\n");
+	    // printF("--INS-SPC-- TESTING... use bodyForceFromViscousStress *CHECK GRAVITY*...\n");
 	    value[ival] =bodyForceFromViscousStress(d,b);  // this should match the above
 	  }
 	  
@@ -644,6 +651,9 @@ setPressureConstraintValues( GridFunction & gf0, realCompositeGridFunction & f )
           int ival = totalNumberOfExtraEquations -extraEqn -1 -numberOfDenseExtraEquations;        // equations are stored in reverse order
 	  assert( ival<numberOfExtraEquations );
           int dir = numberOfDimensions==2 ? 2 : d;                    // In 2D we use component 2 of the angular acceleration
+
+          initialGuess[ival]=omegaDotPredicted(dir);
+
 	  if( false )
 	  {
      	    value[ival] = mOmegaDot(dir) - bodyTorqueFromPressure(dir,b);  
@@ -689,9 +699,17 @@ setPressureConstraintValues( GridFunction & gf0, realCompositeGridFunction & f )
       }
 
       // --- Now assign the right-hand-side values for the RBINS AMP constraints on the acceleration ---
-      poisson->setExtraEquationValues( f,value );
+      poisson->setExtraEquationRightHandSideValues( f,value );
+
+      // --- Provide an initial guess for the constraint equations --- *wdh* July 29, 2016
+      if( poisson->getCompatibilityConstraint() )
+      {
+	initialGuess[0]=0.;  // initial guess for pressure mean unknown
+      }
+      poisson->setExtraEquationValuesInitialGuess( initialGuess );
 
       delete [] value;
+      delete [] initialGuess;
 
       } // end if numberOfRigidBodies
     
@@ -757,7 +775,7 @@ setPressureConstraintValues( GridFunction & gf0, realCompositeGridFunction & f )
 	RealArray constraintValues;
 	poisson->getExtraEquationValues( constraintValues );
       
-	if( (cgf.t<5.*dt) || (debug() & 4) )
+	if( true || (cgf.t<5.*dt) || (debug() & 4) )
 	{
 	  for( int i=0; i<numberOfExtraEquations; i++ )
 	  { // NOTE constraintValues are in reverse order

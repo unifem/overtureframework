@@ -5,6 +5,27 @@ Grids:
 
 ==================================================================================
 
+***********
+**** Aug 1, 2016
+
+TEST MANUFACTURED TEAR FILM 
+cgad eyeDeform -g=sice2.order2.hdf -motion=realDeformingEye -moveGrids=0 -dg=Annulus -S=1.e-2 -Gn=1. -h0=2. -he=.5 -tf=1 -tp=.0005 -tz=none -degreex=2 -degreet=0 -ic=manufacturedTearFilm -alphaPulse=80. -x0=-.5 -y0=-.05 -bc=n -ts=bdf -a=0.1 -b=0.0 -ampb=-.4 -implicitAdvection=1 -evalGridAsNurbs=1 -pde=thinFilm -show=eyeDeform.show -go=halt
+
+
+RUN--
+cgad eyeDeform -g=sice2.order2.hdf -motion=realDeformingEye -moveGrids=0 -dg=Annulus -S=1.e-2 -Gn=1. -h0=2. -he=.5 -tf=1 -tp=.0005 -tz=trig -degreex=2 -degreet=0 -ic=tz -alphaPulse=80. -x0=-.5 -y0=-.05 -bc=n -ts=bdf -a=0.1 -b=0.0 -ampb=-.4 -implicitAdvection=1 -evalGridAsNurbs=1 -pde=thinFilm -show=eyeDeform.show -go=halt
+
+
+
+RESTART--
+cgad eyeDeform -g=sice2.order2.hdf -motion=realDeformingEye -moveGrids=0 -dg=Annulus -kappa=.002 -tf=1 -tp=.0005 -tz=trig -degreex=2 -degreet=0 -ic=tz -alphaPulse=80. -x0=-.5 -y0=-.05 -bc=n -ts=bdf -a=0.1 -b=0.0 -ampb=-.4 -implicitAdvection=1 -evalGridAsNurbs=1 -pde=thinFilm -restart=eyeDeform.show -show=eyeDeformNew.show -go=halt
+
+
+RUN--
+cgad eyeDeform -g=sice2.order2.hdf -motion=realDeformingEye -moveGrids=0 -dg=Annulus -kappa=.002 -tf=1 -tp=.0005 -tz=trig -degreex=2 -degreet=0 -ic=tz -alphaPulse=80. -x0=-.5 -y0=-.05 -bc=n -ts=bdf -a=0.1 -b=0.0 -ampb=-.4 -implicitAdvection=1 -evalGridAsNurbs=1 -pde=thinFilm -show=eyeDeform.show -go=halt
+
+
+
 ********
 **** March 22, 2016
 

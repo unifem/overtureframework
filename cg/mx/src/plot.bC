@@ -552,7 +552,10 @@ getAugmentedSolution(int current, realCompositeGridFunction & v, const real t)
       vLocal(all,all,all,N2) = f2Local(all,all,all,N2);
     }
 
-    if( (plotScatteredField || plotTotalField) &&
+
+    const bool & solveForScatteredField = dbase.get<bool>("solveForScatteredField");
+    
+    if( ( solveForScatteredField && plotTotalField ) &&
 	cg.domainNumber(grid)==0 )  //   assumes domain 0 is the exterior domain
     {
       // *** NOTE: only add plane wave to the outer domain
@@ -561,9 +564,11 @@ getAugmentedSolution(int current, realCompositeGridFunction & v, const real t)
 	
       mg.update(MappedGrid::THEcenter | MappedGrid::THEvertex);  // *** fix for rectangular ***
 	
-      // subtract off or add on the the incident field
-      const real pm = plotScatteredField ? 1. : -1.;
+      // // subtract off or add on the the incident field
+      // const real pm = plotScatteredField ? 1. : -1.;
 
+      const real pm = 1.;  // add on the incident field
+      
       Index Iv[3], &I1=Iv[0], &I2=Iv[1], &I3=Iv[2];
       getIndex(mg.dimension(),I1,I2,I3);
       const int includeGhost=1;
@@ -1435,8 +1440,16 @@ plot(int current, real t, real dt )
         else if( plotOptionsDialog.getToggleValue(answer,"plot intensity",plotIntensity) ){}//
         else if( plotOptionsDialog.getToggleValue(answer,"plot harmonic E field",plotHarmonicElectricFieldComponents) ){}//
 	else if( plotOptionsDialog.getToggleValue(answer,"plot errors",plotErrors) ){replot=true;}//
-	else if( plotOptionsDialog.getToggleValue(answer,"plot scattered field",plotScatteredField) ){ replot=true; }//
-	else if( plotOptionsDialog.getToggleValue(answer,"plot total field",plotTotalField) ){ replot=true; }//
+	else if( plotOptionsDialog.getToggleValue(answer,"plot scattered field",plotScatteredField) )
+        { printF("plotScatteredField=%i\n",(int)plotScatteredField);
+          replot=true; 
+        }
+   
+	else if( plotOptionsDialog.getToggleValue(answer,"plot total field",plotTotalField) )
+        { printF("plotTotalField=%i\n",(int)plotTotalField);
+          replot=true; 
+        }
+
 	else if( plotOptionsDialog.getToggleValue(answer,"plot dissipation",plotDissipation) ){replot=true;}//
 	else if( plotOptionsDialog.getToggleValue(answer,"plot divergence",plotDivergence) ){replot=true;}//
 	else if( plotOptionsDialog.getToggleValue(answer,"check errors",checkErrors) ){replot=true;}//

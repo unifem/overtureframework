@@ -49,6 +49,13 @@ c To include derivatives of rx use OPTION=RX
 
 
 
+
+! ----------------------------------------------------------------------------------
+! Macro - loop over boundary points including extended boundary
+!   extra : extend the boundary by this many point 
+! ----------------------------------------------------------------------------------
+
+
 ! Tangent vectors (un-normalized)
         
 
@@ -154,6 +161,23 @@ c To include derivatives of rx use OPTION=RX
 
 
 
+! --------------------------------------------------------------------
+! Macro Evaluate the boundary forcing 2D
+! 
+!  x,y,t (input) : point to evaluate at 
+!  numberOfTimeDerivatives : evaluate this time derivative
+!  ubc(.)  (output) : ubc(ex), etc. 
+! --------------------------------------------------------------------
+
+! --------------------------------------------------------------------
+! Macro Evaluate the boundary forcing 3D
+! 
+!  x,y,z,t (input) : point to evaluate at 
+!  numberOfTimeDerivatives : evaluate this time derivative
+!  ubc(.)  (output) : ubc(ex), etc. 
+! --------------------------------------------------------------------
+
+
 
 !=====================================================================================
 ! Boundary conditions for a rectangular grid:
@@ -185,102 +209,208 @@ c To include derivatives of rx use OPTION=RX
 !**************************************************************************
 
 ! Here are macros that define the planeWave solution
-c **************************************************
-c Here are macros that define the:
-c      planeWave solution 
-c **************************************************
+! -*- mode: f90; -*-
 
-c ======================================================================
-c  Slow start function 
-c    tba = length of slow start interval (<0 mean no slow start)
-c ======================================================================
+! **************************************************
+! Here are macros that define the:
+!      planeWave solution 
+! **************************************************
 
-c cubic ramp
-c tba=max(REAL_EPSILON,tb-ta);
-c dta=t-ta;
+! ======================================================================
+!  Slow start function 
+!    tba = length of slow start interval (<0 mean no slow start)
+! ======================================================================
+
+! cubic ramp
+! tba=max(REAL_EPSILON,tb-ta);
+! dta=t-ta;
       
-c This (cubic) ramp has 1-derivative zero at t=0 and t=tba
+! This (cubic) ramp has 1-derivative zero at t=0 and t=tba
 
-c This ramp has 3-derivatives zero at t=0 and t=1
-c This is from ramp.maple
-c r=-84*t**5+35*t**4-20*t**7+70*t**6
-c rt=-420*t**4+140*t**3-140*t**6+420*t**5
-c rtt=-1680*t**3+420*t**2-840*t**5+2100*t**4
-c rttt=-5040*t**2+840*t-4200*t**4+8400*t**3
-
-
-c This ramp has 4-derivatives zero at t=0 and t=1
-c This is from ramp.maple
-c r=126*(t)**5-315*(t)**8+70*(t)**9-420*(t)**6+540*(t)**7
-c rt=630*(t)**4-2520*(t)**7+630*(t)**8-2520*(t)**5+3780*(t)**6
-c rtt=2520*(t)**3-17640*(t)**6+5040*(t)**7-12600*(t)**4+22680*(t)**5
-c rttt=7560*(t)**2-105840*(t)**5+35280*(t)**6-50400*(t)**3+113400*(t)**4
+! This ramp has 3-derivatives zero at t=0 and t=1
+! This is from ramp.maple
+! r=-84*t**5+35*t**4-20*t**7+70*t**6
+! rt=-420*t**4+140*t**3-140*t**6+420*t**5
+! rtt=-1680*t**3+420*t**2-840*t**5+2100*t**4
+! rttt=-5040*t**2+840*t-4200*t**4+8400*t**3
 
 
-c ============================================================
-c  Initialize parameters for the boundary forcing
-c   tba: slow start time interval -- no slow start if this is negative
-c ===========================================================
+! This ramp has 4-derivatives zero at t=0 and t=1
+! This is from ramp.maple
+! r=126*(t)**5-315*(t)**8+70*(t)**9-420*(t)**6+540*(t)**7
+! rt=630*(t)**4-2520*(t)**7+630*(t)**8-2520*(t)**5+3780*(t)**6
+! rtt=2520*(t)**3-17640*(t)**6+5040*(t)**7-12600*(t)**4+22680*(t)**5
+! rttt=7560*(t)**2-105840*(t)**5+35280*(t)**6-50400*(t)**3+113400*(t)**4
 
-c **************** Here is the new generic plane wave solution *******************
+
+! ============================================================
+!  Initialize parameters for the boundary forcing
+!   tba: slow start time interval -- no slow start if this is negative
+! ===========================================================
+
+! **************** Here is the new generic plane wave solution *******************
 
 ! component n=ex,ey,ez, hx,hy,hz (assumes ex=0)
 ! one time derivative:
 ! two time derivatives:
 ! three time derivatives:
 
-c *************** Here is the 2D planeWave solution ******************************
+! *************** Here is the 2D planeWave solution ******************************
 
 
-c one time derivative:
+! one time derivative:
 
-c two time derivatives:
+! two time derivatives:
 
-c three time derivatives:
+! three time derivatives:
 
-c four time derivatives:
+! four time derivatives:
 
-c Here are the slow start versions
+! Here are the slow start versions
 
-c one time derivative:
+! one time derivative:
 
-c two time derivatives:
+! two time derivatives:
 
-c three time derivatives:
+! three time derivatives:
 
-c four time derivatives:
-
-
-c **************** Here is the 3D planeWave solution ***************************************
+! four time derivatives:
 
 
-
-c one time derivative:
-
-
-c two time derivatives:
+! **************** Here is the 3D planeWave solution ***************************************
 
 
-c three time derivatives:
+
+! one time derivative:
 
 
-c four time derivatives:
+! two time derivatives:
 
 
-c Here are the slow start versions
+! three time derivatives:
 
 
-c one time derivative:
+! four time derivatives:
 
 
-c two time derivatives:
-
-c three time derivatives:
-
-c four time derivatives:
+! Here are the slow start versions
 
 
-c Helper function: Return minus the second time derivative
+! one time derivative:
+
+
+! two time derivatives:
+
+! three time derivatives:
+
+! four time derivatives:
+
+
+! -------------------------------------------------------------------
+! Helper function: Return minus the second time derivative
+! -------------------------------------------------------------------
+
+
+! --------------------------------------------------------------------
+! Evaluate the plane wave in 2D
+! 
+!  x,y,t (input) : point to evaluate at 
+!  numberOfTimeDerivatives : evaluate this time derivative
+!  ubc(.)  (output) : ubc(ex), etc. 
+! --------------------------------------------------------------------
+
+
+! --------------------------------------------------------------------
+! Evaluate the plane wave in 3D
+! 
+!  x,y,z,t (input) : point to evaluate at 
+!  numberOfTimeDerivatives : evaluate this time derivative
+!  ubc(.)  (output) : ubc(ex), etc. 
+! --------------------------------------------------------------------
+
+! ----- Here are macros for the chirped-plane wave -----
+! -*- mode: f90; -*-
+
+
+! ==============================================================================================
+! ======================  Macros for the chirped plane wave  ===================================
+! ==============================================================================================
+
+! ----------------------------------------------------------------------------------
+! Macro: Utility function used in computing zero or more derivatives of the chirp 
+! ---------------------------------------------------------------------------------
+!- #beginMacro getChirp( chirp )
+!-  ! phi = phase
+!-  phi = cc*xi + cpwAlpha*xi**2
+!- 
+!-  ! amplitude: approx. equal to 1 over the interval [ta,tb]
+!-  tanha = tanh(cpwBeta*(t-cpwTa)) 
+!-  tanhb = tanh(cpwBeta*(t-cpwTb)) 
+!-  amp = cpwAmp*.5*( tanha - tanhb )
+!- 
+!-  if( numberOfTimeDerivatives.eq.0 )then
+!- 
+!-    ! -- chirp function --
+!-    chirp = amp*sin(twoPi*phi)
+!- 
+!-  else if(  numberOfTimeDerivatives.eq.1 )then
+!-    ! get 1st time derivative  *check me*
+!- 
+!-    ! d(phi)/dt:  (plus a factor of twoPi)
+!-    phip = twoPi*(cc+2.*cpwAlpha*xi) 
+!-    ! d(amp)/dt: 
+!-    tanhap = cpwBeta*(1.-tanha**2) 
+!-    tanhbp = cpwBeta*(1.-tanhb**2) 
+!-    ampp =  cpwAmp*.5*( tanhap - tanhbp )
+!- 
+!-    ! -- d(chirp)/dt --
+!-    chirp = amp*phip*cos(twoPi*phi) + ampp*sin(twoPi*phi)
+!- 
+!-  else if(  numberOfTimeDerivatives.eq.2 )then
+!-    ! get 2nd time derivative  *check me*
+!- 
+!-    ! d(phi)/dt: 
+!-    phip = twoPi*(cc+2.*cpwAlpha*xi) 
+!-    ! d^2(phi)/dt^2 : 
+!-    phipp = twoPi*(2.*cpwAlpha) 
+!- 
+!-    ! d(amp)/dt: 
+!-    tanhap = cpwBeta*(1.-tanha**2) 
+!-    tanhbp = cpwBeta*(1.-tanhb**2) 
+!-    ampp =  cpwAmp*.5*( tanhap - tanhbp )
+!-   
+!-    ! d^2(amp)/dt^2: 
+!-    tanhapp = -2.*(cpwBeta**2)*tanha*tanhap
+!-    tanhbpp = -2.*(cpwBeta**2)*tanhb*tanhbp
+!-    amppp =  cpwAmp*.5*( tanhapp - tanhbpp )
+!- 
+!-    sinp=sin(twoPi*phi)
+!-    cosp=cos(twoPi*phi)
+!- 
+!-    ! -- d^2(chirp)/dt^2 --
+!-    chirp = amp*( -(phip**2)*sinp + phipp*cosp ) !-          + 2.*ampp*phip*cosp + amppp*sinp
+!- 
+!-  else
+!-    write(*,'(" getChirp:ERROR: too many derivatives requested")')
+!-    stop 4927
+!-  end if
+!- #endMacro 
+
+! --------------------------------------------------------------------
+! Evaluate the chirped plane wave in 2D
+! 
+!  x,y,t (input) : point to evaluate at 
+!  numberOfTimeDerivatives : evaluate this time derivative
+!  ubc(.)  (output) : ubc(ex), etc. 
+! --------------------------------------------------------------------
+
+! --------------------------------------------------------------------
+! Evaluate the chirped plane wave in 3D
+! 
+!  x,y,z,t (input) : point to evaluate at 
+!  numberOfTimeDerivatives : evaluate this time derivative
+!  ubc(.)  (output) : ubc(ex), etc. 
+! --------------------------------------------------------------------
 
 
 

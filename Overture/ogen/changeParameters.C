@@ -250,6 +250,8 @@ changeParameters( CompositeGrid & cg, MappingInformation *pMapInfo /* =NULL */ )
   const int numberOfBaseGrids = cg.numberOfBaseGrids();
   const int myid=max(0,Communication_Manager::My_Process_Number);
   
+  int & qualityAlgorithm = dbase.get<int>("qualityAlgorithm");
+
   GenericGraphicsInterface & gi = *ps;
   gi.appendToTheDefaultPrompt("change parameters>");
 
@@ -269,6 +271,28 @@ changeParameters( CompositeGrid & cg, MappingInformation *pMapInfo /* =NULL */ )
   int numberOfPushButtons=6;  // number of entries in cmds
   int numRows=(numberOfPushButtons+1)/2;
   dialog.setPushButtons( cmds, cmds, numRows ); 
+
+
+  aString tbCommands[] = {"improve quality of interpolation",
+			  ""};
+  int tbState[10];
+  tbState[0] = improveQualityOfInterpolation;
+  
+
+  int numColumns=1;
+  dialog.setToggleButtons(tbCommands, tbCommands, tbState, numColumns);
+
+  const int numberOfTextStrings=5;  // max number allowed
+  aString textLabels[numberOfTextStrings];
+  aString textStrings[numberOfTextStrings];
+
+  int nt=0;
+  textLabels[nt] = "improve quality algorithm:";  sPrintF(textStrings[nt],"%i [0=old,1=new]",qualityAlgorithm);  nt++; 
+
+
+  // null strings terminal list
+  textLabels[nt]="";   textStrings[nt]="";  assert( nt<numberOfTextStrings );
+  dialog.setTextBoxes(textLabels, textLabels, textStrings);
 
 
   aString menu[] = 
@@ -2539,7 +2563,8 @@ changeParameters( CompositeGrid & cg, MappingInformation *pMapInfo /* =NULL */ )
       cg.mayCutHoles=true;
       cg.mayInterpolate=true;
     }
-    else if( answer=="improve quality of interpolation" )
+
+    else if( answer=="improve quality of interpolation" )// *OLD* WAY
     {
       improveQualityOfInterpolation=!improveQualityOfInterpolation;
       if( improveQualityOfInterpolation )
@@ -2547,6 +2572,20 @@ changeParameters( CompositeGrid & cg, MappingInformation *pMapInfo /* =NULL */ )
       else
         printF("Improve quality of interpolation is now OFF\n");
     }
+    else if( dialog.getToggleValue(answer,"improve quality of interpolation",improveQualityOfInterpolation) )
+    {
+      if( improveQualityOfInterpolation )
+        printF("Improve quality of interpolation is now ON, qualityBound=%5.2e\n",qualityBound);
+      else
+        printF("Improve quality of interpolation is now OFF\n");
+    }
+
+    else if( dialog.getTextValue(answer,"improve quality algorithm:","%i",qualityAlgorithm) )
+    {
+      printF("Setting qualityAlgorithm=%i. 0=relative-area (old), 1=area+distance-to-boundary (new).\n",
+          qualityAlgorithm);
+    }
+
     else if (answer=="set quality bound" )
     {
       gi.inputString(answer2,sPrintF(buff,"Enter the quality bound (larger than 1.) (current=%5.2e)\n",

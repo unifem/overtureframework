@@ -25,6 +25,9 @@ outputHeader()
     numberOfComponents=(int(solveForElectricField)+int(solveForMagneticField))*3;
   }
 
+  const BoundaryForcingEnum & boundaryForcingOption =dbase.get<BoundaryForcingEnum>("boundaryForcingOption");
+  const bool & solveForScatteredField = dbase.get<bool>("solveForScatteredField");
+
   for( int fileio=0; fileio<2; fileio++ )
   {
     FILE *file = fileio==0 ? logFile : stdout; 
@@ -88,7 +91,7 @@ outputHeader()
     }
     else
     {
-      fPrintF(file," Do not project fields to satisfy divergence conditions\n");
+      fPrintF(file," Do not project fields to satisfy divergence conditions.\n");
     }
     
     
@@ -170,12 +173,38 @@ outputHeader()
       fPrintF(file," initialConditionBoundingBox is OFF.\n");
     }
     
+    if( solveForScatteredField )
+    {
+      assert( boundaryForcingOption != noBoundaryForcing );
+      printF(" Solve directly for the scattered field: boundaryForcing=");
+      if( boundaryForcingOption==planeWaveBoundaryForcing )
+	printf(" planeWaveBoundaryForcing.\n");
+      else if(  boundaryForcingOption==chirpedPlaneWaveBoundaryForcing )
+      {
+        const ChirpedArrayType & cpw = dbase.get<ChirpedArrayType >("chirpedParameters");
+        const real ta=cpw(0), tb=cpw(1), alpha=cpw(2);
+	const real bandWidth=2.*(tb-ta)*alpha;
+	
+	printf(" chirpedPlaneWaveBoundaryForcing\n"
+               "  Chirp parameters: [ta,tb]=[%g,%g] bandWidth=%g (alpha=%g), beta=%g, amp=%g [x0,y0,z0]=[%g,%g,%g]\n",
+	       cpw(0),cpw(1),bandWidth,cpw(2),cpw(3),cpw(4),cpw(5),cpw(6),cpw(7));
+      }
+      else
+      {
+	OV_ABORT("error");
+      }
+    }
+    else
+    {
+      printF(" Solve for total field directly.\n");
+    }
+    
     aString forcingName[numberOfForcingNames]={
       "noForcing",
       "magneticSinusoidalPointSource",
       "gaussianSource",
       "twilightZoneForcing",
-      "planeWaveBoundaryForcing",
+      // "planeWaveBoundaryForcing",
       "gaussianChargeSource",
       "userDefinedForcingOption"
     };

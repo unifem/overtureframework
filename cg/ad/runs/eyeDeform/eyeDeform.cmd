@@ -19,7 +19,9 @@ $pde="AD"; $tFinal=1.; $tPlot=.025; $cfl=.9; $kappa=.1; $kapVar="cons";  $kTherm
 $ts="pc2"; $noplot=""; $go="halt"; $a=1.; $b=1.; $c=0.;  
 $debug = 0;  $tPlot=.1; $dtMax=.05; $maxIterations=100; $tol=1.e-16; $atol=1.e-16; 
 $tz = "poly"; $degreex=2; $degreet=2; $fx=2.; $fy=2.; $fz=1.; $ft=2.;
-$order = 2; $ic="tz"; $bc="d"; $motion="sinusoid"; 
+$order = 2; $ic="tz"; $bc="d"; $motion="sinusoid"; $restart=""; 
+#
+$S=1.e-6; $Gn=0.; $h0=1.5; $he=0.; 
 # 
 $solver="yale"; $ogesDebug=0; $ksp="bcgs"; $pc="bjacobi"; $subksp="preonly"; $subpc="ilu"; $iluLevels=3;
 $rtol=1.e-3; $atol=1.e-5;    # tolerances for the implicit solver
@@ -47,7 +49,8 @@ GetOptions( "pde=s"=>\$pde, "g=s"=>\$grid,"tf=f"=>\$tFinal,"degreex=i"=>\$degree
   "dg=s"=>\$deformingGrid,"dt=s"=>\$deformationType,"ampx=f"=>\$ampx,"ampy=f"=>\$ampy,"ic=s"=>\$ic,"bc=s"=>\$bc,\
   "motion=s"=>\$motion,"ampPulse=f"=>\$ampPulse,"ue=f"=>\$ue,"x0=f"=>\$x0,"y0=f"=>\$y0,"ampb=f"=>\$ampb,\
   "rtol=f"=>\$rtol,"atol=f"=>\$atol,"alphaPulse=f"=>\$alphaPulse,"eyeOption=i"=>\$eyeOption,"bdfOrder=i"=>\$bdfOrder,\
-  "dtMax=f"=>\$dtMax,"implicitAdvection=i"=>\$implicitAdvection,"evalGridAsNurbs=i"=>\$evalGridAsNurbs,"nurbsDegree=i"=>\$nurbsDegree );
+  "dtMax=f"=>\$dtMax,"implicitAdvection=i"=>\$implicitAdvection,"evalGridAsNurbs=i"=>\$evalGridAsNurbs,\
+  "nurbsDegree=i"=>\$nurbsDegree,"restart=s"=>\$restart,"S=f"=>\$S,"Gn=f"=>\$Gn,"h0=f"=>\$h0,"he=f"=>\$he );
 # -------------------------------------------------------------------------------------------------
 if( $pde eq "AD" ){ $pdeName="advection diffusion"; }
 if( $pde eq "TF" || $pde eq "thinFilm" ){ $pdeName="thin film equations"; }
@@ -101,6 +104,10 @@ $grid
  # no plotting
 # 
   pde parameters
+    inverse capillary number $S
+    scaled Stokes number $Gn
+    thinFilm boundary thickness $h0
+    thinFilm lid thickness $he
     kappa $kappa
     a $a
     b $b
@@ -181,9 +188,15 @@ if( $move eq "rotate" ){ $cmd="turn on moving grids\n specify grids to move\n pa
   done
 # 
   initial conditions
-   $cmd="#";
-   if( $ic eq "pulse" && $tz eq "turn off twilight zone" ){ $cmd ="OBIC:user defined...\n  pulse\n $x0 $y0 $z0 $ampPulse $alphaPulse\n exit"; }
-   $cmd
+    $cmd="#";
+     #  
+     if( $ic eq "pulse" && $tz eq "turn off twilight zone" ){ $cmd ="OBIC:user defined...\n  pulse\n $x0 $y0 $z0 $ampPulse $alphaPulse\n exit"; }
+     # manufactured tear film: 
+     $H0=10.; $beta=10.; $yl=-1.; $Hm=1.; 
+     if( $ic eq "manufacturedTearFilm" && $tz eq "turn off twilight zone" ){ $cmd ="OBIC:user defined...\n manufactured tear film\n $H0 $beta $yl $Hm\n exit"; }
+#
+    if( $restart ne "" ){ $cmd="OBIC:read from a show file...\n OBIC:show file name $restart\n OBIC:solution number -1\n OBIC:assign solution from show file"; }
+     $cmd
   continue
 # 
   continue

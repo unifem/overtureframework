@@ -20,7 +20,7 @@
         real xy(nd1a:nd1b,nd2a:nd2b,nd3a:nd3b,0:nd-1)
         integer gridIndexRange(0:1,0:2),dimension(0:1,0:2)
         integer ipar(0:*),boundaryCondition(0:1,0:2)
-         real rpar(0:*),pwc(0:5)
+        real rpar(0:*),pwc(0:5)
        !     --- local variables ----
         integer md1a,md1b,md2a,md2b,md3a,md3b
         integer indexRange(0:1,0:2),isPeriodic(0:2) ! used in call to periodic update
@@ -31,9 +31,10 @@
         integer is1,is2,is3,js1,js2,js3,ks1,ks2,ks3,orderOfAccuracy,
      & gridType,debug,grid,side,axis,useForcing,ex,ey,ez,hx,hy,hz,
      & useWhereMask,side1,side2,side3,m1,m2,m3,bc1,bc2, js1a,js2a,
-     & js3a,ks1a,ks2a,ks3a,forcingOption,useChargeDensity,fieldOption
+     & js3a,ks1a,ks2a,ks3a,forcingOption,useChargeDensity,fieldOption,
+     & boundaryForcingOption
         real dr(0:2), dx(0:2), t, uv(0:5), uvm(0:5), uv0(0:5), uvp(0:5)
-     & , uvm2(0:5), uvp2(0:5)
+     & , uvm2(0:5), uvp2(0:5), ubv(0:5)
         real uvmm(0:2),uvzm(0:2),uvpm(0:2)
         real uvmz(0:2),uvzz(0:2),uvpz(0:2)
         real uvmp(0:2),uvzp(0:2),uvpp(0:2)
@@ -58,16 +59,23 @@
         ! forcing options
       ! forcingOptions -- these should match ForcingEnum in Maxwell.h 
       integer noForcing,magneticSinusoidalPointSource,gaussianSource,
-     & twilightZoneForcing,planeWaveBoundaryForcing, 
-     & gaussianChargeSource, userDefinedForcingOption
+     & twilightZoneForcing, gaussianChargeSource, 
+     & userDefinedForcingOption
+      integer noBoundaryForcing,planeWaveBoundaryForcing,
+     & chirpedPlaneWaveBoundaryForcing
       parameter(noForcing                =0,
      & magneticSinusoidalPointSource =1,gaussianSource                
-     & =2,twilightZoneForcing           =3,planeWaveBoundaryForcing   
-     &    =4,    gaussianChargeSource          =5,
-     & userDefinedForcingOption      =6 )
+     & =2,twilightZoneForcing           =3,    gaussianChargeSource   
+     &        =4,userDefinedForcingOption      =5 )
+      ! boundary forcing options when solved directly for the scattered field:
+      parameter( noBoundaryForcing              =0,   
+     & planeWaveBoundaryForcing       =1,
+     & chirpedPlaneWaveBoundaryForcing=2 )
         integer i1,i2,i3,j1,j2,j3,axisp1,axisp2,en1,et1,et2,hn1,ht1,
      & ht2,numberOfGhostPoints
         integer extra,extra1a,extra1b,extra2a,extra2b,extra3a,extra3b
+        integer nn1a,nn1b,nn2a,nn2b,nn3a,nn3b
+        integer nextra1a,nextra1b,nextra2a,nextra2b,nextra3a,nextra3b
         real det,dra,dsa,dta,dxa,dya,dza,drb,dsb,dtb
         real uttp1,uttp2,uttm1,uttm2, vttp1,vttp2,vttm1,vttm2, utts, 
      & vtts
@@ -172,6 +180,26 @@
         real udds,vdds,wdds,uddt,vddt,wddt
         real maxDivc,maxTauDotLapu,maxExtrap,maxDr3aDotU,dr3aDotU,
      & a1Doturss
+        ! variables for the chirped-plane-wave (cpw)
+        real xi,xi0,phi,phip,phipp,chirp,cpwTa,cpwTb,cpwBeta,cpwAlpha,
+     & cpwAmp,cpwX0,cpwY0,cpwZ0,cpwTau,cpwxi
+        real amp,ampp,amppp, sinp,cosp, tanha,tanhap,tanhapp, tanhb,
+     & tanhbp,tanhbpp
+        real an1,an2,an3, aNormSqInverse,nDotE,epsX
+        integer numberOfTimeDerivatives
+        real dteps,utDiff
+        real t1,t2,t3,t4,t5,t6,t7,t8,t9
+        real t10,t11,t12,t13,t14,t15,t16,t17,t18,t19
+        real t20,t21,t22,t23,t24,t25,t26,t27,t28,t29
+        real t30,t31,t32,t33,t34,t35,t36,t37,t38,t39
+        real t40,t41,t42,t43,t44,t45,t46,t47,t48,t49
+        real t50,t51,t52,t53,t54,t55,t56,t57,t58,t59
+        real t60,t61,t62,t63,t64,t65,t66,t67,t68,t69
+        real t70,t71,t72,t73,t74,t75,t76,t77,t78,t79
+        real t80,t81,t82,t83,t84,t85,t86,t87,t88,t89
+        real t90,t91,t92,t93,t94,t95,t96,t97,t98,t99
+        real t100,t101,t102,t103,t104,t105,t106,t107,t108,t109
+        real t110,t111,t112,t113,t114,t115,t116,t117,t118,t119
        ! real uxxx22r,uyyy22r,uxxx42r,uyyy42r,uxxxx22r,uyyyy22r, urrrr2,ussss2
         real urrrr2,ussss2
         real urrs4,urrt4,usst4,urss4,ustt4,urtt4
@@ -1601,6 +1629,7 @@ c===============================================================================
         forcingOption        =ipar(21)
         useChargeDensity     =ipar(24)
         fieldOption          =ipar(29)  ! 0=assign field, 1=assign time derivatives
+        boundaryForcingOption=ipar(32)  ! option when solving for scattered field directly
         dx(0)                =rpar(0)
         dx(1)                =rpar(1)
         dx(2)                =rpar(2)
@@ -1625,6 +1654,15 @@ c===============================================================================
         pwc(3)               =rpar(23)
         pwc(4)               =rpar(24)
         pwc(5)               =rpar(25)
+        ! variables for the chirped-plane-wave (cpw)
+        cpwTa                =rpar(29)   ! turn on chirp
+        cpwTb                =rpar(30)   ! turn off chirp
+        cpwAlpha             =rpar(31)   ! chirp-rate
+        cpwBeta              =rpar(32)   ! exponent in tanh
+        cpwAmp               =rpar(33)   ! amplitude
+        cpwX0                =rpar(34)   ! x0
+        cpwY0                =rpar(35)   ! y0
+        cpwZ0                =rpar(36)   ! z0
         if( abs(pwc(0))+abs(pwc(1))+abs(pwc(2)) .eq. 0. )then
           ! sanity check
           stop 12345
@@ -1632,6 +1670,7 @@ c===============================================================================
         dxa=dx(0)
         dya=dx(1)
         dza=dx(2)
+        epsX = 1.e-30  ! epsilon used to avoid division by zero in the normal computation -- should be REAL_MIN*100 ??
           ! In parallel the dimension may not be the same as the bounds nd1a,nd1b,...
         md1a=dimension(0,0)
         md1b=dimension(1,0)
@@ -1641,7 +1680,7 @@ c===============================================================================
         md3b=dimension(1,2)
         twoPi=8.*atan2(1.,1.)
         cc= c*sqrt( kx*kx+ky*ky+kz*kz )
-c write(*,'("initializeBoundaryForcing slowStartInterval=",e10.2)') slowStartInterval
+        ! write(*,'("initializeBoundaryForcing slowStartInterval=",e10.2)') slowStartInterval
         if( t.le.0 .and. slowStartInterval.gt.0. )then
           ssf = 0.
           ssft = 0.
@@ -1840,6 +1879,17 @@ c write(*,'("initializeBoundaryForcing slowStartInterval=",e10.2)') slowStartInt
                 write(*,'(" bc4r: **START** grid=",i4," side,axis=",
      & 2i2)') grid,side,axis
               end if
+              ! assign values on boundary when there are boundary forcings
+             ! **  assignBoundaryForcingBoundaryValues(3)
+              if( boundaryForcingOption.ne.noBoundaryForcing )then
+               ! For boundaryForcing we need to implement forced BCs
+               !    v = g(y,t)
+               !    v_xx = (1/c^2) ( g_tt ) - g_yy
+               ! etc. 
+               write(*,'(" bcOptMX:ERROR: boundaryForcingOption not 
+     & implemented for rectangular grids")')
+               stop 7734
+              end if
               do i3=n3a,n3b
               do i2=n2a,n2b
               do i1=n1a,n1b
@@ -1876,6 +1926,17 @@ c write(*,'("initializeBoundaryForcing slowStartInterval=",e10.2)') slowStartInt
               if( debug.gt.1 )then
                 write(*,'(" bc4r: **START** grid=",i4," side,axis=",
      & 2i2)') grid,side,axis
+              end if
+              ! assign values on boundary when there are boundary forcings
+             ! **  assignBoundaryForcingBoundaryValues(3)
+              if( boundaryForcingOption.ne.noBoundaryForcing )then
+               ! For boundaryForcing we need to implement forced BCs
+               !    v = g(y,t)
+               !    v_xx = (1/c^2) ( g_tt ) - g_yy
+               ! etc. 
+               write(*,'(" bcOptMX:ERROR: boundaryForcingOption not 
+     & implemented for rectangular grids")')
+               stop 7734
               end if
               do i3=n3a,n3b
               do i2=n2a,n2b

@@ -218,7 +218,12 @@ writeParameterSummary( FILE * file )
   }
   else if( pdeName=="thinFilmEquations" )
   {
-    fPrintF(file," thin film parameters: *finish me*\n");
+    const real & S  = parameters.dbase.get<real>("inverseCapillaryNumber");
+    const real & G  = parameters.dbase.get<real>("scaledStokesNumber");
+    const real & h0 = parameters.dbase.get<real>("thinFilmBoundaryThickness");
+    const real & he = parameters.dbase.get<real>("thinFilmLidThickness");
+
+    fPrintF(file," thin film parameters: S=%.2g G=%.2g, h0=%.2g, he=%.2g .\n",S,G,h0,he);
   }
   
   const bool & implicitAdvection = parameters.dbase.get<bool >("implicitAdvection");

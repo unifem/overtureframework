@@ -18,12 +18,13 @@
 # 
 $tFinal=10.; $tPlot=.1; $diss=1.; $cfl=.9; $plotIntensity=0;  $method="NFDTD"; 
 $sidebc="symmetry"; 
-$projectInitialConditions=0; $projectFields=0; $projectionFrequency=5;  $projectInterp=0;
+$projectInitialConditions=0; $projectFields=0; $projectionFrequency=1;  $projectInterp=0;
 $theta=60; # angle of incidence of plane wave from the vertical
 $grid="embeddedBodyGride2.order2.hdf"; $backGround="square"; 
 $cons=0; $go="halt"; 
 #
 $planeWaveInitialCondition=0; # 1=use plane wave initial condition (inside bounding box)
+$planeWaveBoundaryForcing=0; # 1=compute scattered field directly by forcing PEC BC
 $upperbc="planeWaveBoundaryCondition"; 
 $ax=0.; $ay=0.; $az=0.; # plane wave coeffs. all zero -> use default
 $epsUpper=1.; $muUpper=1.;
@@ -40,7 +41,7 @@ GetOptions( "g=s"=>\$grid,"tf=f"=>\$tFinal,"diss=f"=>\$diss,"tp=f"=>\$tPlot,"sho
   "rbc=s"=>\$rbc,"pmlLines=i"=>\$pmlLines,"pmlPower=i"=>\$pmlPower,"pmlStrength=f"=>\$pmlStrength,\
   "xa=f"=>\$xa,"ya=f"=>\$ya,"projectFields=i"=>\$projectFields,"projectionFrequency=i"=>\$projectionFrequency,\
   "projectInterp=i"=>\$projectInterp,"sidebc=s"=>\$sidebc,"upperbc=s"=>\$upperbc,\
-  "planeWaveInitialCondition=i"=>\$planeWaveInitialCondition,\
+  "planeWaveInitialCondition=i"=>\$planeWaveInitialCondition,"planeWaveBoundaryForcing=i"=>\$planeWaveBoundaryForcing,\
   "projectInitialConditions=i"=>\$projectInitialConditions  );
 # -------------------------------------------------------------------------------------------------
 if( $method eq "sosup" ){ $diss=0.; }
@@ -62,6 +63,11 @@ $method
 #     - adjust ABC boundaries for incident fields (plane wave) so abc applies to scattered field only
 #
 if( $planeWaveInitialCondition eq 1 ){ $cmd="planeWaveInitialCondition"; }else{ $cmd="zeroInitialCondition"; }
+$cmd
+#
+# planeWaveBoundaryForce: computed scattered field directly, PEC BC is inhomogeneous
+#
+if( $planeWaveBoundaryForcing eq 1 ){ $cmd="planeWaveBoundaryForcing"; }else{ $cmd="#"; }
 $cmd
 #
 $kya= abs($ky);

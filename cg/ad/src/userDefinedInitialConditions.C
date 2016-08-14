@@ -8,8 +8,12 @@
 #include "AdParameters.h"
 #include "GenericGraphicsInterface.h"
 #include "ParallelUtility.h"
+#include "ShowFileReader.h"
+#include "interpPoints.h"
 
-static real S = 6.92*pow(10.,-6);
+
+// static real S = 1.*pow(10.,-2);
+// static real h0= 1.5;
 
 //==============================================================================================
 /// \brief Assign user defined initial conditions.
@@ -49,9 +53,15 @@ userDefinedInitialConditions(CompositeGrid & cg, realCompositeGridFunction & u )
   const int & numberOfDimensions=parameters.dbase.get<int >("numberOfDimensions");
   const int & tc = parameters.dbase.get<int >("tc");
     
-    // Added by Kara to generate initial pressure profile
-    CompositeGridOperators op(cg);
-    u.setOperators(op);
+  const real & S  = parameters.dbase.get<real>("inverseCapillaryNumber");
+  const real & G  = parameters.dbase.get<real>("scaledStokesNumber");
+  const real & h0 = parameters.dbase.get<real>("thinFilmBoundaryThickness");
+  const real & he = parameters.dbase.get<real>("thinFilmLidThickness");
+
+  // Added by Kara to generate initial pressure profile
+  CompositeGridOperators op(cg);
+  u.setOperators(op);
+    
 
   // Loop over all grids and assign values to all components.
   for( int grid=0; grid<cg.numberOfComponentGrids(); grid++ )
@@ -90,26 +100,59 @@ userDefinedInitialConditions(CompositeGrid & cg, realCompositeGridFunction & u )
       printF(">>> Cgad:userDefinedInitialConditions: assign pulse initial conditions...\n");
       if( numberOfDimensions==2 )
       {
-	ug(I1,I2,I3,tc)=U2D(vertex(I1,I2,I3,0),vertex(I1,I2,I3,1),vertex(I1,I2,I3,2),t);
-        //Add by Kara to establish initial pressure, note that tc = 0
-        //  ug(I1,I2,I3,tc+1)= -S*u[grid].laplacian()(I1,I2,I3,t);
+          ug(I1,I2,I3,tc)=U2D(vertex(I1,I2,I3,0),vertex(I1,I2,I3,1),vertex(I1,I2,I3,2),t);
+          //Add by Kara to establish initial pressure, note that tc = 0
+          ug(I1,I2,I3,tc+1)= -S*u[grid].laplacian()(I1,I2,I3,t);
+          
+
+          ug(I1,I2,I3,tc)=h0;
+          ug(I1,I2,I3,tc+1) = 0;
+          
       }
       else if( numberOfDimensions==3 )
       {
 	// Displacements:
 	ug(I1,I2,I3,tc)=U3D(vertex(I1,I2,I3,0),vertex(I1,I2,I3,1),vertex(I1,I2,I3,2),t);
-        //  Add by Kara to establish initial pressure, note that tc = 0
-        // ug(I1,I2,I3,tc+1)= -S*u[grid].laplacian()(I1,I2,I3,t);
+            //Add by Kara to establish initial pressure, note that tc = 0
+    ug(I1,I2,I3,tc+1)= -S*u[grid].laplacian()(I1,I2,I3,t);
       }
     } // end pulse
+    else if( option=="tearFilm" )
+    {
+      // Formula : H0 * exp(-beta*(y-yl)) + Hm
+      //         H0 = height at lower lid, y=yl
+      //         Hm = height at the centre of the eye
+      RealArray & tearFilmParameters = db.get<RealArray>("tearFilmParameters");
+      const real & H0   = tearFilmParameters(0);
+      const real & beta = tearFilmParameters(1);
+      const real & yl   = tearFilmParameters(2);
+      const real & Hm   = tearFilmParameters(3);
+      
+      ug(I1,I2,I3,tc)=H0*exp(-beta*(vertex(I1,I2,I3,1)-yl)) + Hm;
+      ug(I1,I2,I3,tc+1)= -S*beta*beta*(ug(I1,I2,I3,tc)-Hm);
+    }
     else
     {
       printF("Cgad::userDefinedInitialConditions: Unknown option =[%s]",(const char*)option);
       OV_ABORT("error");
     }
-
+      
   }
+    
+    //Code to read in solution from a show file
+    // Ask Longfei
 
+    /*
+    int sol=10;
+    CompositeGrid cghold;
+    realCompositeGridFunction unew;
+    ShowFileReader showFileReader("initialEye.show");
+    showFileReader.getASolution(sol,cghold,unew);
+    interpolateAllPoints(unew,u);
+    */
+    
+    
+    
   return 0;
 }
 
@@ -144,6 +187,7 @@ setupUserDefinedInitialConditions()
   aString menu[]=  
   {
     "pulse",
+    "manufactured tear film",
     "exit",
     ""
   };
@@ -188,6 +232,29 @@ setupUserDefinedInitialConditions()
               pulseParameters(1),pulseParameters(2),pulseParameters(3),pulseParameters(4));
       
     }
+    else if( answer=="manufactured tear film" )
+    {
+      // -- Here is a manfactured tear film
+      option="tearFilm";
+      parameters.dbase.get<bool >("manufacturedTearFilm")=true;
+      
+      printF(" Formula : H0 * exp(-beta*(y-yl)) + Hm \n"
+             " H0 = height at lower lid, y=yl\n"
+             " Hm = height at the centre of the eye\n");
+
+      RealArray & tearFilmParameters = db.put<RealArray>("tearFilmParameters");
+      tearFilmParameters.redim(10);
+      tearFilmParameters=0.;
+
+      gi.inputString(answer2,"Enter H0,beta,yl,Hm");
+      sScanF(answer2,"%e %e %e %e",&tearFilmParameters(0),&tearFilmParameters(1),&tearFilmParameters(2),
+	     &tearFilmParameters(3));
+
+      printF(" Setting H0=%g, beta=%g, yl=%g, Hm=%g",tearFilmParameters(0),tearFilmParameters(1),tearFilmParameters(2),
+	     tearFilmParameters(3));
+
+    }
+    
     else 
     {
       printF("Unknown option =[%s]\n",(const char*)answer);

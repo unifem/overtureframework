@@ -259,11 +259,23 @@ getTimeStep(MappedGrid & mg,
     }
     else
     {
+
       // the stability region for the implicit method:
       // the stability region for 2nd order PECE: -2 on the Real axis, about 1.27 on the Im. axis
       // but there is a bit of a cusp on the Re axis so go for -1.9 instead
       dtNew= 1./SQRT( SQR(reLambda/1.8)+SQR(imLambda/1.27) );
     
+      // With 2 corrections the PECECE scheme has approximate bounds (see pcAbsoluteStability.m)
+      //    -1.48 on the real axis
+      //     1.7 on the Im axis 
+      // *wdh* July 20, 2016
+      // const int & numberOfCorrections =parameters.dbase.get<int>("numberOfPCcorrections"); 
+      // if( numberOfCorrections==2 )
+      // {
+      //   dtNew= 1./SQRT( SQR(reLambda/1.5)+SQR(imLambda/1.7) );
+      // }
+      
+
     }
   
     // * // the stability region for 2nd order AB: -1 on th Real axis, about .8 on the Im. axis

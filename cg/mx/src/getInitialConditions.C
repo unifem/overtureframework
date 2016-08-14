@@ -652,6 +652,8 @@ assignInitialConditions(int current, real t, real dt )
     CompositeGrid & cg = *cgp;
     const int numberOfDimensions=cg.numberOfDimensions();
 
+    const BoundaryForcingEnum & boundaryForcingOption =dbase.get<BoundaryForcingEnum>("boundaryForcingOption");
+
     if( forcingOption==twilightZoneForcing )
     {
         int numberOfComponents;
@@ -2940,7 +2942,7 @@ assignInitialConditions(int current, real t, real dt )
         	  }
 	  //            um(I1,I2,I3,ey)=0.;
 
-        	  if( forcingOption==planeWaveBoundaryForcing )
+        	  if( boundaryForcingOption==planeWaveBoundaryForcing )
         	  {//kkc XXX probably not working for DSI schemes yet
           	    printF("*** Set BC's for planeWaveBoundaryForcing on initial conditions...\n");
           	    realMappedGridFunction & fieldPrev    =mgp!=NULL ? fields[prev]    : cgfields[prev][grid];
@@ -3989,7 +3991,7 @@ assignInitialConditions(int current, real t, real dt )
           	    }
         	  
         	  }
-        	  if( forcingOption==planeWaveBoundaryForcing )
+        	  if( boundaryForcingOption==planeWaveBoundaryForcing )
         	  {
           	    printF("*** Set BC's for planeWaveBoundaryForcing on initial conditions...\n");
           	    realMappedGridFunction & fieldPrev    =mgp!=NULL ? fields[prev]    : cgfields[prev][grid];

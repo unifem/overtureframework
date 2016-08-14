@@ -13,7 +13,7 @@
 #             pressure : time dependent pressure on bottom
 #
 #
-$model="ins"; $solver = "best"; $show=" "; $ts="pc"; $noplot=""; 
+$model="ins"; $solver = "best"; $show=" "; $ts="pc"; $noplot=""; $frequencyToFlush=5; 
 $density=1.25; 
 $inertia="-1"; # set this to over-ride computed inertia, -1=auto-compute 
 $nu = .1; $dtMax=.05; $newts=0; $movingWall=0; 
@@ -21,7 +21,8 @@ $nu = .1; $dtMax=.05; $newts=0; $movingWall=0;
 $inflowVelocity=.9;
 $tFinal=10.; $tPlot=.1; $cfl=.9; $debug=0; $go="halt"; $project=0; $refactorFrequency=100;
 $detectCollisions=0; $sep=3.; $forceLimit=30.; $cdv=1.; $flush=5; $ad21=2.; $ad22=2.; 
-$restart=""; 
+$restart="";
+$improveQuality=0; # 1=improve quality of interpolation
 #
 $radius=.125; $fallingBody="fallingBody";
 $gravity = -1.; # acceleration due to gravity
@@ -66,10 +67,11 @@ GetOptions( "g=s"=>\$grid,"tf=f"=>\$tFinal,"model=s"=>\$model,"inflowVelocity=f"
  "numberOfCorrections=i"=>\$numberOfCorrections,"omega=f"=>\$omega,"addedMass=f"=>\$addedMass,"useTP=i"=>\$useTP,\
  "rtolc=f"=>\$rtolc,"atolc=f"=>\$atolc,"option=s"=>\$option,"useProvidedAcceleration=i"=>\$useProvidedAcceleration,\
  "inertia=f"=>\$inertia,"amp=f"=>\$amp,"freq=f"=>\$freq,"addedDamping=f"=>\$addedDamping,\
- "rampGravity=i"=>\$rampGravity,"implicitFactor=f"=>\$implicitFactor,\
+ "rampGravity=i"=>\$rampGravity,"implicitFactor=f"=>\$implicitFactor,"improveQuality=i"=>\$improveQuality,\
  "ampSinusoidalPressure=f"=>\$ampSinusoidalPressure,"freqSinusoidalPressure=f"=>\$freqSinusoidalPressure,\
  "bodyForce=s"=>\$bodyForce,"cdv=f"=>\$cdv,"cDt=f"=>\$cDt,"addedDampingCoeff=f"=>\$addedDampingCoeff,\
- "scaleAddedDampingWithDt=f"=>\$scaleAddedDampingWithDt,"addedDampingProjectVelocity=f"=>\$addedDampingProjectVelocity );
+ "scaleAddedDampingWithDt=f"=>\$scaleAddedDampingWithDt,"addedDampingProjectVelocity=f"=>\$addedDampingProjectVelocity,\
+ "frequencyToFlush=i"=>\$frequencyToFlush,"iluLevels=i"=>\$iluLevels );
 # -------------------------------------------------------------------------------------------------
 if( $solver eq "best" ){ $solver="choose best iterative solver"; }
 if( $solver eq "mg" ){ $solver="multigrid"; }
@@ -105,7 +107,7 @@ $grid
     open
      $show
     frequency to flush
-      10
+      $frequencyToFlush
   exit  
   turn off twilight zone
 #************************************
@@ -188,8 +190,12 @@ $grid
   specify grids to move
    # Moving grids debug:
    debug: $debug
+   # try turning this on - July 8, 2016
+   if( $improveQuality eq 1 ){ $cmd="improve quality of interpolation"; }else{ $cmd="#"; }
+   $cmd
+   #$quality=2.;  # default is 2
+   #interpolation quality: $quality
    #
-   #      improve quality of interpolation
    print moving body info 1
    # limit forces
    #  $forceLimit $forceLimit
@@ -197,8 +203,8 @@ $grid
  #
    rigid body
      log file: rigidBody.log
-     # mass
-     #   .25
+     #mass
+     #  -.001
      density
        $density
      #
@@ -255,7 +261,7 @@ $grid
   exit
 #
   implicit time step solver options
-   $ogesSolver=$solver; $ogesRtol=$rtol; $ogesAtol=$atol; 
+   $ogesSolver=$solver; $ogesRtol=$rtol; $ogesAtol=$atol; $ogesIluLevels=1; 
    include $ENV{CG}/ins/cmd/ogesOptions.h
   exit
 #

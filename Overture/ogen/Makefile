@@ -124,6 +124,9 @@ lastChance.C: lastChance.bC; bpp lastChance.bC
 
 movingUpdateNew.C: movingUpdateNew.bC; bpp movingUpdateNew.bC
 
+
+improveQuality.C: improveQuality.bC; bpp improveQuality.bC
+
 BPP = bpp
 %.C : %.bC
 	$(BPP) -quiet -clean  $<
@@ -132,7 +135,9 @@ CCFLAGSOGEN = $(CCFLAGSF)
 ## CCFLAGSOGEN = $(CCFLAGSG)
 # Here are ogen files we like to optimise
 # **NOTE** pipes.cmd gives a different answer depending on compiling classify.C with opt or not
+## classify.o: classify.C; $(CC) $(CCFLAGSG) -c classify.C
 classify.o: classify.C; $(CC) $(CCFLAGSOGEN) -c classify.C
+improveQuality.o: improveQuality.C; $(CC) $(CCFLAGSOGEN) -c improveQuality.C
 cutHoles.o: cutHoles.C; $(CC) $(CCFLAGSOGEN) -c cutHoles.C
 updateRefinement.o: updateRefinement.C; $(CC) $(CCFLAGSG) -c updateRefinement.C
 updateRefinementNew.o: updateRefinementNew.C; $(CC) $(CCFLAGSG) -c updateRefinementNew.C
@@ -157,6 +162,7 @@ ogen=    ogenDriver.o $(ogenFiles) ../mapping/stretchUpdate.o
 ogen=    ogenDriver.o $(ogenFiles) TridiagonalSolver.o TridiagonalFactor.o
 ogen=    ogenDriver.o $(ogenFiles) GridStretcher.o generateParallel.o DataPointMapping.o ../hype/update.o
 ogen=    ogenDriver.o $(ogenFiles) ../hype/update.o
+ogen=    ogenDriver.o $(ogenFiles)
 ogen: $(ogen) ; $(CC) $(CCFLAGS) -o $@ $(ogen) $(PETSC_LIBS) $(CLIBS) $(FLIBS) $(FORTRAN_LIBS_FORT77) $(GLIBS)  
 
 # **************************************************************************************

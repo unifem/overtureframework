@@ -25,11 +25,11 @@
         integer is1,is2,is3,js1,js2,js3,ks1,ks2,ks3,ls1,ls2,ls3,
      & orderOfAccuracy,gridType,debug,grid,side,axis,useForcing,ex,ey,
      & ez,hx,hy,hz,useWhereMask,side1,side2,side3,m1,m2,m3,bc1,bc2,
-     & forcingOption,fieldOption
+     & forcingOption,fieldOption,boundaryForcingOption
         real dt,kx,ky,kz,eps,mu,c,cc,twoPi,slowStartInterval,ssf,ssft,
      & ssftt,ssfttt,ssftttt,tt
         real dr(0:2), dx(0:2), t, uv(0:5), uvm(0:5), uv0(0:5), uvp(0:5)
-     & , uvm2(0:5), uvp2(0:5)
+     & , uvm2(0:5), uvp2(0:5), ubv(0:5)
         real uvmm(0:2),uvzm(0:2),uvpm(0:2)
         real uvmz(0:2),uvzz(0:2),uvpz(0:2)
         real uvmp(0:2),uvzp(0:2),uvpp(0:2)
@@ -53,13 +53,18 @@
         ! forcing options
       ! forcingOptions -- these should match ForcingEnum in Maxwell.h 
       integer noForcing,magneticSinusoidalPointSource,gaussianSource,
-     & twilightZoneForcing,planeWaveBoundaryForcing, 
-     & gaussianChargeSource, userDefinedForcingOption
+     & twilightZoneForcing, gaussianChargeSource, 
+     & userDefinedForcingOption
+      integer noBoundaryForcing,planeWaveBoundaryForcing,
+     & chirpedPlaneWaveBoundaryForcing
       parameter(noForcing                =0,
      & magneticSinusoidalPointSource =1,gaussianSource                
-     & =2,twilightZoneForcing           =3,planeWaveBoundaryForcing   
-     &    =4,    gaussianChargeSource          =5,
-     & userDefinedForcingOption      =6 )
+     & =2,twilightZoneForcing           =3,    gaussianChargeSource   
+     &        =4,userDefinedForcingOption      =5 )
+      ! boundary forcing options when solved directly for the scattered field:
+      parameter( noBoundaryForcing              =0,   
+     & planeWaveBoundaryForcing       =1,
+     & chirpedPlaneWaveBoundaryForcing=2 )
         integer i1,i2,i3,j1,j2,j3,axisp1,axisp2,en1,et1,et2,hn1,ht1,
      & ht2,numberOfGhostPoints
         integer ii1,ii2,ii3
@@ -205,6 +210,25 @@
         real drb,dsb,dtb
         real ur0,us0,urr0,uss0,  urs0,vrs0,wrs0,urrs0,vrrs0,wrrs0,
      & urss0,vrss0,wrss0
+        ! variables for the chirped-plane-wave (cpw)
+        real xi,xi0,phi,phip,phipp,chirp,cpwTa,cpwTb,cpwBeta,cpwAlpha,
+     & cpwAmp,cpwX0,cpwY0,cpwZ0,cpwTau,cpwxi
+        real amp,ampp,amppp, sinp,cosp, tanha,tanhap,tanhapp, tanhb,
+     & tanhbp,tanhbpp
+        real an1,an2,an3, aNormSqInverse
+        integer numberOfTimeDerivatives
+        real t1,t2,t3,t4,t5,t6,t7,t8,t9
+        real t10,t11,t12,t13,t14,t15,t16,t17,t18,t19
+        real t20,t21,t22,t23,t24,t25,t26,t27,t28,t29
+        real t30,t31,t32,t33,t34,t35,t36,t37,t38,t39
+        real t40,t41,t42,t43,t44,t45,t46,t47,t48,t49
+        real t50,t51,t52,t53,t54,t55,t56,t57,t58,t59
+        real t60,t61,t62,t63,t64,t65,t66,t67,t68,t69
+        real t70,t71,t72,t73,t74,t75,t76,t77,t78,t79
+        real t80,t81,t82,t83,t84,t85,t86,t87,t88,t89
+        real t90,t91,t92,t93,t94,t95,t96,t97,t98,t99
+        real t100,t101,t102,t103,t104,t105,t106,t107,t108,t109
+        real t110,t111,t112,t113,t114,t115,t116,t117,t118,t119
        !     --- start statement function ----
         integer kd,m,n
         real rx,ry,rz,sx,sy,sz,tx,ty,tz
@@ -1517,68 +1541,6 @@ c===============================================================================
      & rsxyt4(i1,i2,i3,2,2)*rsxyt4(i1,i2,i3,m,n) + tz(i1,i2,i3)*
      & rsxytt4(i1,i2,i3,m,n)
 
-       ! rsxyr2(i1,i2,i3,m,n)=(rsxy(i1+1,i2,i3,m,n)-rsxy(i1-1,i2,i3,m,n))*d12(0)
-       ! rsxys2(i1,i2,i3,m,n)=(rsxy(i1,i2+1,i3,m,n)-rsxy(i1,i2-1,i3,m,n))*d12(1)
-       !
-       ! rsxyx22(i1,i2,i3,m,n)= rx(i1,i2,i3)*rsxyr2(i1,i2,i3,m,n)+sx(i1,i2,i3)*rsxys2(i1,i2,i3,m,n)
-       ! rsxyy22(i1,i2,i3,m,n)= ry(i1,i2,i3)*rsxyr2(i1,i2,i3,m,n)+sy(i1,i2,i3)*rsxys2(i1,i2,i3,m,n)
-       !
-       ! rsxyr4(i1,i2,i3,m,n)=(8.*(rsxy(i1+1,i2,i3,m,n)-rsxy(i1-1,i2,i3,m,n))!                         -(rsxy(i1+2,i2,i3,m,n)-rsxy(i1-2,i2,i3,m,n)))*d14(0)
-       ! rsxys4(i1,i2,i3,m,n)=(8.*(rsxy(i1,i2+1,i3,m,n)-rsxy(i1,i2-1,i3,m,n))!                         -(rsxy(i1,i2+2,i3,m,n)-rsxy(i1,i2-2,i3,m,n)))*d14(1)
-       ! rsxyt4(i1,i2,i3,m,n)=(8.*(rsxy(i1,i2,i3+1,m,n)-rsxy(i1,i2,i3-1,m,n))!                         -(rsxy(i1,i2,i3+2,m,n)-rsxy(i1,i2,i3-2,m,n)))*d14(2)
-       !
-       ! rsxyrr4(i1,i2,i3,m,n)=(-30.*rsxy(i1,i2,i3,m,n)+16.*(rsxy(i1+1,i2,i3,m,n)+rsxy(i1-1,i2,i3,m,n))!                           -(rsxy(i1+2,i2,i3,m,n)+rsxy(i1-2,i2,i3,m,n)) )*d24(0)
-       !
-       ! rsxyss4(i1,i2,i3,m,n)=(-30.*rsxy(i1,i2,i3,m,n)+16.*(rsxy(i1,i2+1,i3,m,n)+rsxy(i1,i2-1,i3,m,n))!                           -(rsxy(i1,i2+2,i3,m,n)+rsxy(i1,i2-2,i3,m,n)) )*d24(1)
-       !
-       ! rsxytt4(i1,i2,i3,m,n)=(-30.*rsxy(i1,i2,i3,m,n)+16.*(rsxy(i1,i2,i3+1,m,n)+rsxy(i1,i2,i3-1,m,n))!                           -(rsxy(i1,i2,i3+2,m,n)+rsxy(i1,i2,i3-2,m,n)) )*d24(2)
-       !
-       ! rsxyrs4(i1,i2,i3,m,n)=(8.*(rsxyr4(i1,i2+1,i3,m,n)-rsxyr4(i1,i2-1,i3,m,n))!                          -(rsxyr4(i1,i2+2,i3,m,n)-rsxyr4(i1,i2-2,i3,m,n)))*d14(1)
-       !
-       ! rsxyrt4(i1,i2,i3,m,n)=(8.*(rsxyr4(i1,i2,i3+1,m,n)-rsxyr4(i1,i2,i3-1,m,n))!                          -(rsxyr4(i1,i2,i3+2,m,n)-rsxyr4(i1,i2,i3-2,m,n)))*d14(2)
-       !
-       ! rsxyst4(i1,i2,i3,m,n)=(8.*(rsxys4(i1,i2,i3+1,m,n)-rsxys4(i1,i2,i3-1,m,n))!                          -(rsxys4(i1,i2,i3+2,m,n)-rsxys4(i1,i2,i3-2,m,n)))*d14(2)
-       !
-       ! rsxyx42(i1,i2,i3,m,n)= rx(i1,i2,i3)*rsxyr4(i1,i2,i3,m,n)+sx(i1,i2,i3)*rsxys4(i1,i2,i3,m,n)
-       ! rsxyy42(i1,i2,i3,m,n)= ry(i1,i2,i3)*rsxyr4(i1,i2,i3,m,n)+sy(i1,i2,i3)*rsxys4(i1,i2,i3,m,n)
-       !
-       !
-       ! ! check these again:
-       ! rsxyxr42(i1,i2,i3,m,n)= rsxyr4(i1,i2,i3,0,0)*rsxyr4(i1,i2,i3,m,n) + rx(i1,i2,i3)*rsxyrr4(i1,i2,i3,m,n)!                        +rsxyr4(i1,i2,i3,1,0)*rsxys4(i1,i2,i3,m,n) + sx(i1,i2,i3)*rsxyrs4(i1,i2,i3,m,n)
-       ! rsxyxs42(i1,i2,i3,m,n)= rsxys4(i1,i2,i3,0,0)*rsxyr4(i1,i2,i3,m,n) + rx(i1,i2,i3)*rsxyrs4(i1,i2,i3,m,n)!                        +rsxys4(i1,i2,i3,1,0)*rsxys4(i1,i2,i3,m,n) + sx(i1,i2,i3)*rsxyss4(i1,i2,i3,m,n)
-       !
-       ! rsxyyr42(i1,i2,i3,m,n)= rsxyr4(i1,i2,i3,0,1)*rsxyr4(i1,i2,i3,m,n) + ry(i1,i2,i3)*rsxyrr4(i1,i2,i3,m,n)!                        +rsxyr4(i1,i2,i3,1,1)*rsxys4(i1,i2,i3,m,n) + sy(i1,i2,i3)*rsxyrs4(i1,i2,i3,m,n)
-       ! rsxyys42(i1,i2,i3,m,n)= rsxys4(i1,i2,i3,0,1)*rsxyr4(i1,i2,i3,m,n) + ry(i1,i2,i3)*rsxyrs4(i1,i2,i3,m,n)!                        +rsxys4(i1,i2,i3,1,1)*rsxys4(i1,i2,i3,m,n) + sy(i1,i2,i3)*rsxyss4(i1,i2,i3,m,n)
-       !
-       ! ! 3d versions -- check these again
-       ! rsxyx43(i1,i2,i3,m,n)= rx(i1,i2,i3)*rsxyr4(i1,i2,i3,m,n)+sx(i1,i2,i3)*rsxys4(i1,i2,i3,m,n)!                       +tx(i1,i2,i3)*rsxyt4(i1,i2,i3,m,n)
-       ! rsxyy43(i1,i2,i3,m,n)= ry(i1,i2,i3)*rsxyr4(i1,i2,i3,m,n)+sy(i1,i2,i3)*rsxys4(i1,i2,i3,m,n)!                       +ty(i1,i2,i3)*rsxyt4(i1,i2,i3,m,n)
-       ! rsxyz43(i1,i2,i3,m,n)= rz(i1,i2,i3)*rsxyr4(i1,i2,i3,m,n)+sz(i1,i2,i3)*rsxys4(i1,i2,i3,m,n)!                       +tz(i1,i2,i3)*rsxyt4(i1,i2,i3,m,n)
-       !
-       ! rsxyxr43(i1,i2,i3,m,n)= rsxyr4(i1,i2,i3,0,0)*rsxyr4(i1,i2,i3,m,n) + rx(i1,i2,i3)*rsxyrr4(i1,i2,i3,m,n)!                        +rsxyr4(i1,i2,i3,1,0)*rsxys4(i1,i2,i3,m,n) + sx(i1,i2,i3)*rsxyrs4(i1,i2,i3,m,n)!                        +rsxyr4(i1,i2,i3,2,0)*rsxyt4(i1,i2,i3,m,n) + tx(i1,i2,i3)*rsxyrt4(i1,i2,i3,m,n)
-       !
-       ! rsxyxs43(i1,i2,i3,m,n)= rsxys4(i1,i2,i3,0,0)*rsxyr4(i1,i2,i3,m,n) + rx(i1,i2,i3)*rsxyrs4(i1,i2,i3,m,n)!                        +rsxys4(i1,i2,i3,1,0)*rsxys4(i1,i2,i3,m,n) + sx(i1,i2,i3)*rsxyss4(i1,i2,i3,m,n)!                        +rsxys4(i1,i2,i3,2,0)*rsxyt4(i1,i2,i3,m,n) + tx(i1,i2,i3)*rsxyst4(i1,i2,i3,m,n)
-       !
-       ! rsxyxt43(i1,i2,i3,m,n)= rsxyt4(i1,i2,i3,0,0)*rsxyr4(i1,i2,i3,m,n) + rx(i1,i2,i3)*rsxyrt4(i1,i2,i3,m,n)!                        +rsxyt4(i1,i2,i3,1,0)*rsxys4(i1,i2,i3,m,n) + sx(i1,i2,i3)*rsxyst4(i1,i2,i3,m,n)!                        +rsxyt4(i1,i2,i3,2,0)*rsxyt4(i1,i2,i3,m,n) + tx(i1,i2,i3)*rsxytt4(i1,i2,i3,m,n)
-       !
-       ! rsxyyr43(i1,i2,i3,m,n)= rsxyr4(i1,i2,i3,0,1)*rsxyr4(i1,i2,i3,m,n) + ry(i1,i2,i3)*rsxyrr4(i1,i2,i3,m,n)!                        +rsxyr4(i1,i2,i3,1,1)*rsxys4(i1,i2,i3,m,n) + sy(i1,i2,i3)*rsxyrs4(i1,i2,i3,m,n)!                        +rsxyr4(i1,i2,i3,2,1)*rsxyt4(i1,i2,i3,m,n) + ty(i1,i2,i3)*rsxyrt4(i1,i2,i3,m,n)
-       !
-       ! rsxyys43(i1,i2,i3,m,n)= rsxys4(i1,i2,i3,0,1)*rsxyr4(i1,i2,i3,m,n) + ry(i1,i2,i3)*rsxyrs4(i1,i2,i3,m,n)!                        +rsxys4(i1,i2,i3,1,1)*rsxys4(i1,i2,i3,m,n) + sy(i1,i2,i3)*rsxyss4(i1,i2,i3,m,n)!                        +rsxys4(i1,i2,i3,2,1)*rsxyt4(i1,i2,i3,m,n) + ty(i1,i2,i3)*rsxyst4(i1,i2,i3,m,n)
-       !
-       ! rsxyyt43(i1,i2,i3,m,n)= rsxyt4(i1,i2,i3,0,1)*rsxyr4(i1,i2,i3,m,n) + ry(i1,i2,i3)*rsxyrt4(i1,i2,i3,m,n)!                        +rsxyt4(i1,i2,i3,1,1)*rsxys4(i1,i2,i3,m,n) + sy(i1,i2,i3)*rsxyst4(i1,i2,i3,m,n)!                        +rsxyt4(i1,i2,i3,2,1)*rsxyt4(i1,i2,i3,m,n) + ty(i1,i2,i3)*rsxytt4(i1,i2,i3,m,n)
-       !
-       ! rsxyzr43(i1,i2,i3,m,n)= rsxyr4(i1,i2,i3,0,2)*rsxyr4(i1,i2,i3,m,n) + rz(i1,i2,i3)*rsxyrr4(i1,i2,i3,m,n)!                        +rsxyr4(i1,i2,i3,1,2)*rsxys4(i1,i2,i3,m,n) + sz(i1,i2,i3)*rsxyrs4(i1,i2,i3,m,n)!                        +rsxyr4(i1,i2,i3,2,2)*rsxyt4(i1,i2,i3,m,n) + tz(i1,i2,i3)*rsxyrt4(i1,i2,i3,m,n)
-       !
-       ! rsxyzs43(i1,i2,i3,m,n)= rsxys4(i1,i2,i3,0,2)*rsxyr4(i1,i2,i3,m,n) + rz(i1,i2,i3)*rsxyrs4(i1,i2,i3,m,n)!                        +rsxys4(i1,i2,i3,1,2)*rsxys4(i1,i2,i3,m,n) + sz(i1,i2,i3)*rsxyss4(i1,i2,i3,m,n)!                        +rsxys4(i1,i2,i3,2,2)*rsxyt4(i1,i2,i3,m,n) + tz(i1,i2,i3)*rsxyst4(i1,i2,i3,m,n)
-       !
-       ! rsxyzt43(i1,i2,i3,m,n)= rsxyt4(i1,i2,i3,0,2)*rsxyr4(i1,i2,i3,m,n) + rz(i1,i2,i3)*rsxyrt4(i1,i2,i3,m,n)!                        +rsxyt4(i1,i2,i3,1,2)*rsxys4(i1,i2,i3,m,n) + sz(i1,i2,i3)*rsxyst4(i1,i2,i3,m,n)!                        +rsxyt4(i1,i2,i3,2,2)*rsxyt4(i1,i2,i3,m,n) + tz(i1,i2,i3)*rsxytt4(i1,i2,i3,m,n)
-       !
-       !$$$ uxxx22r(i1,i2,i3,kd)=(-2.*(u(i1+1,i2,i3,kd)-u(i1-1,i2,i3,kd))+(u(i1+2,i2,i3,kd)-u(i1-2,i2,i3,kd)) )*h22(0)*h12(0)
-       !$$$ uyyy22r(i1,i2,i3,kd)=(-2.*(u(i1,i2+1,i3,kd)-u(i1,i2-1,i3,kd))+(u(i1,i2+2,i3,kd)-u(i1,i2-2,i3,kd)) )*h22(1)*h12(1)
-       !$$$
-       !$$$ uxxxx22r(i1,i2,i3,kd)=(6.*u(i1,i2,i3,kd)-4.*(u(i1+1,i2,i3,kd)+u(i1-1,i2,i3,kd))!$$$                         +(u(i1+2,i2,i3,kd)+u(i1-2,i2,i3,kd)) )/(dx(0)**4)
-       !$$$
-       !$$$ uyyyy22r(i1,i2,i3,kd)=(6.*u(i1,i2,i3,kd)-4.*(u(i1,i2+1,i3,kd)+u(i1,i2-1,i3,kd))!$$$                         +(u(i1,i2+2,i3,kd)+u(i1,i2-2,i3,kd)) )/(dx(1)**4)
         urrrr2(i1,i2,i3,kd)=(6.*u(i1,i2,i3,kd)-4.*(u(i1+1,i2,i3,kd)+u(
      & i1-1,i2,i3,kd))+(u(i1+2,i2,i3,kd)+u(i1-2,i2,i3,kd)) )/(dr(0)**
      & 4)
@@ -1672,6 +1634,7 @@ c===============================================================================
         debug                =ipar(20)
         forcingOption        =ipar(21)
         fieldOption          =ipar(29)  ! 0=assign field, 1=assign time derivatives
+        boundaryForcingOption=ipar(32)  ! option when solving for scattered field directly
         dx(0)                =rpar(0)
         dx(1)                =rpar(1)
         dx(2)                =rpar(2)
@@ -1694,6 +1657,15 @@ c===============================================================================
         pwc(3)               =rpar(23)
         pwc(4)               =rpar(24)
         pwc(5)               =rpar(25)
+        ! variables for the chirped-plane-wave (cpw)
+        cpwTa                =rpar(29)   ! turn on chirp
+        cpwTb                =rpar(30)   ! turn off chirp
+        cpwAlpha             =rpar(31)   ! chirp-rate
+        cpwBeta              =rpar(32)   ! exponent in tanh
+        cpwAmp               =rpar(33)   ! amplitude
+        cpwX0                =rpar(34)   ! x0
+        cpwY0                =rpar(35)   ! y0
+        cpwZ0                =rpar(36)   ! z0
         dxa=dx(0)
         dya=dx(1)
         dza=dx(2)
@@ -1708,7 +1680,7 @@ c===============================================================================
         cc= c*sqrt( kx*kx+ky*ky+kz*kz )
         ! write(*,'(" ***assign corners: forcingOption=",i4," twoPi=",f18.14," cc=",f10.7)') forcingOption,twoPi,cc
         ! initialize parameters used in slow starts (e.g. for plane waves)
-c write(*,'("initializeBoundaryForcing slowStartInterval=",e10.2)') slowStartInterval
+        ! write(*,'("initializeBoundaryForcing slowStartInterval=",e10.2)') slowStartInterval
         if( t.le.0 .and. slowStartInterval.gt.0. )then
           ssf = 0.
           ssft = 0.
@@ -1856,7 +1828,7 @@ c write(*,'("initializeBoundaryForcing slowStartInterval=",e10.2)') slowStartInt
      & n3a,n3b
          end if
           if( nd.eq.2 )then
-            if( forcingOption.eq.planeWaveBoundaryForcing )then
+            if( boundaryForcingOption.ne.noBoundaryForcing )then
               ! write(*,'(" ***assign corners:planeWaveBoundaryForcing: twoPi=",f18.14," cc=",f10.7)') twoPi,cc
                ! Set the tangential component to zero
                if( gridType.eq.curvilinear )then
@@ -1867,9 +1839,231 @@ c write(*,'("initializeBoundaryForcing slowStartInterval=",e10.2)') slowStartInt
                    tau2=rsxy(i1,i2,i3,axisp1,1)
                    tau1DotU=(tau1*u(i1,i2,i3,ex)+tau2*u(i1,i2,i3,ey))/(
      & tau1**2+tau2**2)
+                     ! -- Boundary Forcing : if we solve for scattered field directly ----
                      x0=xy(i1,i2,i3,0)
                      y0=xy(i1,i2,i3,1)
-                     if( fieldOption.eq.0 )then
+                     if( .true. )then ! *new way*
+                       numberOfTimeDerivatives=0+fieldOption
+                         if( 
+     & boundaryForcingOption.eq.noBoundaryForcing )then
+                         else if( 
+     & boundaryForcingOption.eq.planeWaveBoundaryForcing )then
+                             if( numberOfTimeDerivatives==0 )then
+                               ubv(ex) = (ssf*sin(twoPi*(kx*(x0)+ky*(
+     & y0)-cc*(t)))*pwc(0))
+                               ubv(ey) = (ssf*sin(twoPi*(kx*(x0)+ky*(
+     & y0)-cc*(t)))*pwc(1))
+                               ubv(hz) = (ssf*sin(twoPi*(kx*(x0)+ky*(
+     & y0)-cc*(t)))*pwc(5))
+                             else if( numberOfTimeDerivatives==1 )then
+                               ubv(ex) = (ssf*(-twoPi*cc)*cos(twoPi*(
+     & kx*(x0)+ky*(y0)-cc*(t)))*pwc(0)+ssft*sin(twoPi*(kx*(x0)+ky*(y0)
+     & -cc*(t)))*pwc(0))
+                               ubv(ey) = (ssf*(-twoPi*cc)*cos(twoPi*(
+     & kx*(x0)+ky*(y0)-cc*(t)))*pwc(1)+ssft*sin(twoPi*(kx*(x0)+ky*(y0)
+     & -cc*(t)))*pwc(1))
+                               ubv(hz) = (ssf*(-twoPi*cc)*cos(twoPi*(
+     & kx*(x0)+ky*(y0)-cc*(t)))*pwc(5)+ssft*sin(twoPi*(kx*(x0)+ky*(y0)
+     & -cc*(t)))*pwc(5))
+                             else if( numberOfTimeDerivatives==2 )then
+                               ubv(ex) = (ssf*(-(twoPi*cc)**2*sin(
+     & twoPi*(kx*(x0)+ky*(y0)-cc*(t)))*pwc(0))+2.*ssft*(-twoPi*cc)*
+     & cos(twoPi*(kx*(x0)+ky*(y0)-cc*(t)))*pwc(0)+ssftt*sin(twoPi*(kx*
+     & (x0)+ky*(y0)-cc*(t)))*pwc(0))
+                               ubv(ey) = (ssf*(-(twoPi*cc)**2*sin(
+     & twoPi*(kx*(x0)+ky*(y0)-cc*(t)))*pwc(1))+2.*ssft*(-twoPi*cc)*
+     & cos(twoPi*(kx*(x0)+ky*(y0)-cc*(t)))*pwc(1)+ssftt*sin(twoPi*(kx*
+     & (x0)+ky*(y0)-cc*(t)))*pwc(1))
+                               ubv(hz) = (ssf*(-(twoPi*cc)**2*sin(
+     & twoPi*(kx*(x0)+ky*(y0)-cc*(t)))*pwc(5))+2.*ssft*(-twoPi*cc)*
+     & cos(twoPi*(kx*(x0)+ky*(y0)-cc*(t)))*pwc(5)+ssftt*sin(twoPi*(kx*
+     & (x0)+ky*(y0)-cc*(t)))*pwc(5))
+                             else if( numberOfTimeDerivatives==3 )then
+                               ubv(ex) = (ssf*((twoPi*cc)**3*cos(twoPi*
+     & (kx*(x0)+ky*(y0)-cc*(t)))*pwc(0))+3.*ssft*(-(twoPi*cc)**2*sin(
+     & twoPi*(kx*(x0)+ky*(y0)-cc*(t)))*pwc(0))+3.*ssftt*(-twoPi*cc)*
+     & cos(twoPi*(kx*(x0)+ky*(y0)-cc*(t)))*pwc(0)+ssfttt*sin(twoPi*(
+     & kx*(x0)+ky*(y0)-cc*(t)))*pwc(0))
+                               ubv(ey) = (ssf*((twoPi*cc)**3*cos(twoPi*
+     & (kx*(x0)+ky*(y0)-cc*(t)))*pwc(1))+3.*ssft*(-(twoPi*cc)**2*sin(
+     & twoPi*(kx*(x0)+ky*(y0)-cc*(t)))*pwc(1))+3.*ssftt*(-twoPi*cc)*
+     & cos(twoPi*(kx*(x0)+ky*(y0)-cc*(t)))*pwc(1)+ssfttt*sin(twoPi*(
+     & kx*(x0)+ky*(y0)-cc*(t)))*pwc(1))
+                               ubv(hz) = (ssf*((twoPi*cc)**3*cos(twoPi*
+     & (kx*(x0)+ky*(y0)-cc*(t)))*pwc(5))+3.*ssft*(-(twoPi*cc)**2*sin(
+     & twoPi*(kx*(x0)+ky*(y0)-cc*(t)))*pwc(5))+3.*ssftt*(-twoPi*cc)*
+     & cos(twoPi*(kx*(x0)+ky*(y0)-cc*(t)))*pwc(5)+ssfttt*sin(twoPi*(
+     & kx*(x0)+ky*(y0)-cc*(t)))*pwc(5))
+                             else if( numberOfTimeDerivatives==4 )then
+                               ubv(ex) = (ssf*((twoPi*cc)**4*sin(twoPi*
+     & (kx*(x0)+ky*(y0)-cc*(t)))*pwc(0))+4.*ssft*((twoPi*cc)**3*cos(
+     & twoPi*(kx*(x0)+ky*(y0)-cc*(t)))*pwc(0))+6.*ssftt*(-(twoPi*cc)**
+     & 2*sin(twoPi*(kx*(x0)+ky*(y0)-cc*(t)))*pwc(0))+4.*ssfttt*(-
+     & twoPi*cc)*cos(twoPi*(kx*(x0)+ky*(y0)-cc*(t)))*pwc(0)+ssftttt*
+     & sin(twoPi*(kx*(x0)+ky*(y0)-cc*(t)))*pwc(0))
+                               ubv(ey) = (ssf*((twoPi*cc)**4*sin(twoPi*
+     & (kx*(x0)+ky*(y0)-cc*(t)))*pwc(1))+4.*ssft*((twoPi*cc)**3*cos(
+     & twoPi*(kx*(x0)+ky*(y0)-cc*(t)))*pwc(1))+6.*ssftt*(-(twoPi*cc)**
+     & 2*sin(twoPi*(kx*(x0)+ky*(y0)-cc*(t)))*pwc(1))+4.*ssfttt*(-
+     & twoPi*cc)*cos(twoPi*(kx*(x0)+ky*(y0)-cc*(t)))*pwc(1)+ssftttt*
+     & sin(twoPi*(kx*(x0)+ky*(y0)-cc*(t)))*pwc(1))
+                               ubv(hz) = (ssf*((twoPi*cc)**4*sin(twoPi*
+     & (kx*(x0)+ky*(y0)-cc*(t)))*pwc(5))+4.*ssft*((twoPi*cc)**3*cos(
+     & twoPi*(kx*(x0)+ky*(y0)-cc*(t)))*pwc(5))+6.*ssftt*(-(twoPi*cc)**
+     & 2*sin(twoPi*(kx*(x0)+ky*(y0)-cc*(t)))*pwc(5))+4.*ssfttt*(-
+     & twoPi*cc)*cos(twoPi*(kx*(x0)+ky*(y0)-cc*(t)))*pwc(5)+ssftttt*
+     & sin(twoPi*(kx*(x0)+ky*(y0)-cc*(t)))*pwc(5))
+                             else
+                               stop 1738
+                             end if
+                         else if(  
+     & boundaryForcingOption.eq.chirpedPlaneWaveBoundaryForcing )then
+                            xi0 = .5*(cpwTa+cpwTb)
+                            xi = t - (kx*(x0-cpwX0)+ky*(y0-cpwY0))/cc -
+     & xi0
+                            cpwTau=cpwTb-cpwTa  ! tau = tb -ta
+                            ! include files generated by the maple code mx/codes/chirpedPlaneWave.maple 
+                            if( numberOfTimeDerivatives.eq.0 )then
+! File generated by overtureFramework/cg/mx/codes/chirpedPlaneWave.maple
+! Here is the 0-th time-derivative of the chirp function in 2D
+! chirp = cpwAmp*(1/2*tanh(cpwBeta*(xi+.5*cpwTau))-1/2*tanh(cpwBeta*(xi-.5*cpwTau)))*sin(twoPi*(xi^2*cpwAlpha+cc*xi))
+! chirp_t = cpwAmp*(1/2*tanh(cpwBeta*(xi+.5*cpwTau))-1/2*tanh(cpwBeta*(xi-.5*cpwTau)))*sin(twoPi*(xi^2*cpwAlpha+cc*xi))
+      t1 = .5*cpwTau
+      t4 = tanh(cpwBeta*(xi+t1))
+      t7 = tanh(cpwBeta*(xi-t1))
+      t11 = xi ** 2
+      t16 = sin(twoPi*(cc*xi+t11*cpwAlpha))
+      chirp = cpwAmp*(t4/2.-t7/2.)*t16
+
+                            else if(  numberOfTimeDerivatives.eq.1 )
+     & then
+! File generated by overtureFramework/cg/mx/codes/chirpedPlaneWave.maple
+! Here is the 1-th time-derivative of the chirp function in 2D
+! chirp = cpwAmp*(1/2*tanh(cpwBeta*(xi+.5*cpwTau))-1/2*tanh(cpwBeta*(xi-.5*cpwTau)))*sin(twoPi*(xi^2*cpwAlpha+cc*xi))
+! chirp_t = cpwAmp*(1/2*cpwBeta*(1-tanh(cpwBeta*(xi+.5*cpwTau))^2)-1/2*cpwBeta*(1-tanh(cpwBeta*(xi-.5*cpwTau))^2))*sin(twoPi*(xi^2*cpwAlpha+cc*xi))+cpwAmp*(1/2*tanh(cpwBeta*(xi+.5*cpwTau))-1/2*tanh(cpwBeta*(xi-.5*cpwTau)))*twoPi*(2*xi*cpwAlpha+cc)*cos(twoPi*(xi^2*cpwAlpha+cc*xi))
+      t1 = .5*cpwTau
+      t4 = tanh(cpwBeta*(xi+t1))
+      t5 = t4 ** 2
+      t10 = tanh(cpwBeta*(xi-t1))
+      t11 = t10 ** 2
+      t17 = xi ** 2
+      t21 = twoPi*(cc*xi+t17*cpwAlpha)
+      t22 = sin(t21)
+      t31 = cos(t21)
+      chirp = cpwAmp*(cpwBeta*(1.-t5)/2.-cpwBeta*(1.-t11)/2.)*t22+
+     & cpwAmp*(t4/2.-t10/2.)*twoPi*(2.*xi*cpwAlpha+cc)*t31
+
+                            else if(  numberOfTimeDerivatives.eq.2 )
+     & then
+! File generated by overtureFramework/cg/mx/codes/chirpedPlaneWave.maple
+! Here is the 2-th time-derivative of the chirp function in 2D
+! chirp = cpwAmp*(1/2*tanh(cpwBeta*(xi+.5*cpwTau))-1/2*tanh(cpwBeta*(xi-.5*cpwTau)))*sin(twoPi*(xi^2*cpwAlpha+cc*xi))
+! chirp_t = cpwAmp*(-cpwBeta^2*tanh(cpwBeta*(xi+.5*cpwTau))*(1-tanh(cpwBeta*(xi+.5*cpwTau))^2)+cpwBeta^2*tanh(cpwBeta*(xi-.5*cpwTau))*(1-tanh(cpwBeta*(xi-.5*cpwTau))^2))*sin(twoPi*(xi^2*cpwAlpha+cc*xi))+2*cpwAmp*(1/2*cpwBeta*(1-tanh(cpwBeta*(xi+.5*cpwTau))^2)-1/2*cpwBeta*(1-tanh(cpwBeta*(xi-.5*cpwTau))^2))*twoPi*(2*xi*cpwAlpha+cc)*cos(twoPi*(xi^2*cpwAlpha+cc*xi))+2*cpwAmp*(1/2*tanh(cpwBeta*(xi+.5*cpwTau))-1/2*tanh(cpwBeta*(xi-.5*cpwTau)))*twoPi*cpwAlpha*cos(twoPi*(xi^2*cpwAlpha+cc*xi))-cpwAmp*(1/2*tanh(cpwBeta*(xi+.5*cpwTau))-1/2*tanh(cpwBeta*(xi-.5*cpwTau)))*twoPi^2*(2*xi*cpwAlpha+cc)^2*sin(twoPi*(xi^2*cpwAlpha+cc*xi))
+      t1 = cpwBeta ** 2
+      t2 = .5*cpwTau
+      t5 = tanh(cpwBeta*(xi+t2))
+      t7 = t5 ** 2
+      t8 = 1.-t7
+      t12 = tanh(cpwBeta*(xi-t2))
+      t14 = t12 ** 2
+      t15 = 1.-t14
+      t19 = xi ** 2
+      t23 = twoPi*(cc*xi+t19*cpwAlpha)
+      t24 = sin(t23)
+      t33 = 2.*xi*cpwAlpha+cc
+      t35 = cos(t23)
+      t41 = cpwAmp*(t5/2.-t12/2.)
+      t46 = twoPi ** 2
+      t47 = t33 ** 2
+      chirp = cpwAmp*(t1*t12*t15-t1*t5*t8)*t24+2.*cpwAmp*(-cpwBeta*
+     & t15/2.+cpwBeta*t8/2.)*twoPi*t33*t35+2.*t41*twoPi*cpwAlpha*t35-
+     & t41*t46*t47*t24
+
+                            else if(  numberOfTimeDerivatives.eq.3 )
+     & then
+! File generated by overtureFramework/cg/mx/codes/chirpedPlaneWave.maple
+! Here is the 3-th time-derivative of the chirp function in 2D
+! chirp = cpwAmp*(1/2*tanh(cpwBeta*(xi+.5*cpwTau))-1/2*tanh(cpwBeta*(xi-.5*cpwTau)))*sin(twoPi*(xi^2*cpwAlpha+cc*xi))
+! chirp_t = cpwAmp*(-cpwBeta^3*(1-tanh(cpwBeta*(xi+.5*cpwTau))^2)^2+2*cpwBeta^3*tanh(cpwBeta*(xi+.5*cpwTau))^2*(1-tanh(cpwBeta*(xi+.5*cpwTau))^2)+cpwBeta^3*(1-tanh(cpwBeta*(xi-.5*cpwTau))^2)^2-2*cpwBeta^3*tanh(cpwBeta*(xi-.5*cpwTau))^2*(1-tanh(cpwBeta*(xi-.5*cpwTau))^2))*sin(twoPi*(xi^2*cpwAlpha+cc*xi))+3*cpwAmp*(-cpwBeta^2*tanh(cpwBeta*(xi+.5*cpwTau))*(1-tanh(cpwBeta*(xi+.5*cpwTau))^2)+cpwBeta^2*tanh(cpwBeta*(xi-.5*cpwTau))*(1-tanh(cpwBeta*(xi-.5*cpwTau))^2))*twoPi*(2*xi*cpwAlpha+cc)*cos(twoPi*(xi^2*cpwAlpha+cc*xi))+6*cpwAmp*(1/2*cpwBeta*(1-tanh(cpwBeta*(xi+.5*cpwTau))^2)-1/2*cpwBeta*(1-tanh(cpwBeta*(xi-.5*cpwTau))^2))*twoPi*cpwAlpha*cos(twoPi*(xi^2*cpwAlpha+cc*xi))-3*cpwAmp*(1/2*cpwBeta*(1-tanh(cpwBeta*(xi+.5*cpwTau))^2)-1/2*cpwBeta*(1-tanh(cpwBeta*(xi-.5*cpwTau))^2))*twoPi^2*(2*xi*cpwAlpha+cc)^2*sin(twoPi*(xi^2*cpwAlpha+cc*xi))-6*cpwAmp*(1/2*tanh(cpwBeta*(xi+.5*cpwTau))-1/2*tanh(cpwBeta*(xi-.5*cpwTau)))*twoPi^2*cpwAlpha*(2*xi*cpwAlpha+cc)*sin(twoPi*(xi^2*cpwAlpha+cc*xi))-cpwAmp*(1/2*tanh(cpwBeta*(xi+.5*cpwTau))-1/2*tanh(cpwBeta*(xi-.5*cpwTau)))*twoPi^3*(2*xi*cpwAlpha+cc)^3*cos(twoPi*(xi^2*cpwAlpha+cc*xi))
+      t1 = cpwBeta ** 2
+      t2 = t1*cpwBeta
+      t3 = .5*cpwTau
+      t6 = tanh(cpwBeta*(xi+t3))
+      t7 = t6 ** 2
+      t8 = 1.-t7
+      t9 = t8 ** 2
+      t16 = tanh(cpwBeta*(xi-t3))
+      t17 = t16 ** 2
+      t18 = 1.-t17
+      t19 = t18 ** 2
+      t26 = xi ** 2
+      t30 = twoPi*(cc*xi+t26*cpwAlpha)
+      t31 = sin(t30)
+      t41 = 2.*xi*cpwAlpha+cc
+      t43 = cos(t30)
+      t51 = cpwAmp*(-cpwBeta*t18/2.+cpwBeta*t8/2.)
+      t56 = twoPi ** 2
+      t57 = t41 ** 2
+      t64 = cpwAmp*(t6/2.-t16/2.)
+      chirp = cpwAmp*(-2.*t2*t17*t18+2.*t2*t7*t8+t2*t19-t2*t9)*t31+
+     & 0.3E1*cpwAmp*(t1*t16*t18-t1*t6*t8)*twoPi*t41*t43+6.*t51*twoPi*
+     & cpwAlpha*t43-0.3E1*t51*t56*t57*t31-6.*t64*t56*cpwAlpha*t41*t31-
+     & t64*t56*twoPi*t57*t41*t43
+
+                            else if(  numberOfTimeDerivatives.eq.4 )
+     & then
+! File generated by overtureFramework/cg/mx/codes/chirpedPlaneWave.maple
+! Here is the 4-th time-derivative of the chirp function in 2D
+! chirp = cpwAmp*(1/2*tanh(cpwBeta*(xi+.5*cpwTau))-1/2*tanh(cpwBeta*(xi-.5*cpwTau)))*sin(twoPi*(xi^2*cpwAlpha+cc*xi))
+! chirp_t = cpwAmp*(8*cpwBeta^4*(1-tanh(cpwBeta*(xi+.5*cpwTau))^2)^2*tanh(cpwBeta*(xi+.5*cpwTau))-4*cpwBeta^4*tanh(cpwBeta*(xi+.5*cpwTau))^3*(1-tanh(cpwBeta*(xi+.5*cpwTau))^2)-8*cpwBeta^4*(1-tanh(cpwBeta*(xi-.5*cpwTau))^2)^2*tanh(cpwBeta*(xi-.5*cpwTau))+4*cpwBeta^4*tanh(cpwBeta*(xi-.5*cpwTau))^3*(1-tanh(cpwBeta*(xi-.5*cpwTau))^2))*sin(twoPi*(xi^2*cpwAlpha+cc*xi))+4*cpwAmp*(-cpwBeta^3*(1-tanh(cpwBeta*(xi+.5*cpwTau))^2)^2+2*cpwBeta^3*tanh(cpwBeta*(xi+.5*cpwTau))^2*(1-tanh(cpwBeta*(xi+.5*cpwTau))^2)+cpwBeta^3*(1-tanh(cpwBeta*(xi-.5*cpwTau))^2)^2-2*cpwBeta^3*tanh(cpwBeta*(xi-.5*cpwTau))^2*(1-tanh(cpwBeta*(xi-.5*cpwTau))^2))*twoPi*(2*xi*cpwAlpha+cc)*cos(twoPi*(xi^2*cpwAlpha+cc*xi))+12*cpwAmp*(-cpwBeta^2*tanh(cpwBeta*(xi+.5*cpwTau))*(1-tanh(cpwBeta*(xi+.5*cpwTau))^2)+cpwBeta^2*tanh(cpwBeta*(xi-.5*cpwTau))*(1-tanh(cpwBeta*(xi-.5*cpwTau))^2))*twoPi*cpwAlpha*cos(twoPi*(xi^2*cpwAlpha+cc*xi))-6*cpwAmp*(-cpwBeta^2*tanh(cpwBeta*(xi+.5*cpwTau))*(1-tanh(cpwBeta*(xi+.5*cpwTau))^2)+cpwBeta^2*tanh(cpwBeta*(xi-.5*cpwTau))*(1-tanh(cpwBeta*(xi-.5*cpwTau))^2))*twoPi^2*(2*xi*cpwAlpha+cc)^2*sin(twoPi*(xi^2*cpwAlpha+cc*xi))-24*cpwAmp*(1/2*cpwBeta*(1-tanh(cpwBeta*(xi+.5*cpwTau))^2)-1/2*cpwBeta*(1-tanh(cpwBeta*(xi-.5*cpwTau))^2))*twoPi^2*cpwAlpha*(2*xi*cpwAlpha+cc)*sin(twoPi*(xi^2*cpwAlpha+cc*xi))-4*cpwAmp*(1/2*cpwBeta*(1-tanh(cpwBeta*(xi+.5*cpwTau))^2)-1/2*cpwBeta*(1-tanh(cpwBeta*(xi-.5*cpwTau))^2))*twoPi^3*(2*xi*cpwAlpha+cc)^3*cos(twoPi*(xi^2*cpwAlpha+cc*xi))-12*cpwAmp*(1/2*tanh(cpwBeta*(xi+.5*cpwTau))-1/2*tanh(cpwBeta*(xi-.5*cpwTau)))*twoPi^2*cpwAlpha^2*sin(twoPi*(xi^2*cpwAlpha+cc*xi))-12*cpwAmp*(1/2*tanh(cpwBeta*(xi+.5*cpwTau))-1/2*tanh(cpwBeta*(xi-.5*cpwTau)))*twoPi^3*cpwAlpha*(2*xi*cpwAlpha+cc)^2*cos(twoPi*(xi^2*cpwAlpha+cc*xi))+cpwAmp*(1/2*tanh(cpwBeta*(xi+.5*cpwTau))-1/2*tanh(cpwBeta*(xi-.5*cpwTau)))*twoPi^4*(2*xi*cpwAlpha+cc)^4*sin(twoPi*(xi^2*cpwAlpha+cc*xi))
+      t1 = cpwBeta ** 2
+      t2 = t1 ** 2
+      t3 = .5*cpwTau
+      t6 = tanh(cpwBeta*(xi+t3))
+      t7 = t6 ** 2
+      t8 = 1.-t7
+      t9 = t8 ** 2
+      t19 = tanh(cpwBeta*(xi-t3))
+      t20 = t19 ** 2
+      t21 = 1.-t20
+      t22 = t21 ** 2
+      t32 = xi ** 2
+      t36 = twoPi*(cc*xi+t32*cpwAlpha)
+      t37 = sin(t36)
+      t39 = t1*cpwBeta
+      t52 = 2.*xi*cpwAlpha+cc
+      t54 = cos(t36)
+      t63 = cpwAmp*(t1*t19*t21-t1*t6*t8)
+      t68 = twoPi ** 2
+      t69 = t52 ** 2
+      t78 = cpwAmp*(-cpwBeta*t21/2.+cpwBeta*t8/2.)
+      t84 = t68*twoPi
+      t92 = cpwAmp*(t6/2.-t19/2.)
+      t93 = cpwAlpha ** 2
+      t103 = t68 ** 2
+      t104 = t69 ** 2
+      chirp = cpwAmp*(4.*t2*t20*t19*t21-4.*t2*t7*t6*t8-8.*t2*t22*t19+
+     & 8.*t2*t9*t6)*t37+4.*cpwAmp*(-2.*t39*t20*t21+2.*t39*t7*t8+t39*
+     & t22-t39*t9)*twoPi*t52*t54+12.*t63*twoPi*cpwAlpha*t54-6.*t63*
+     & t68*t69*t37-0.24E2*t78*t68*cpwAlpha*t52*t37-4.*t78*t84*t69*t52*
+     & t54-12.*t92*t68*t93*t37-12.*t92*t84*cpwAlpha*t69*t54+t92*t103*
+     & t104*t37
+
+                            else
+                              write(*,'(" getChirp2D:ERROR: too many 
+     & derivatives requested")')
+                              stop 4927
+                            end if
+                            ubv(ex) = chirp*pwc(0)
+                            ubv(ey) = chirp*pwc(1)
+                            ubv(hz) = chirp*pwc(5)
+                         else
+                           write(*,'("getBndryForcing2D: Unknown 
+     & boundary forcing")')
+                         end if
+                       u0 = -ubv(ex)
+                       v0 = -ubv(ey)
+                     else if( fieldOption.eq.0 )then ! *old way*
                        u0=-(ssf*sin(twoPi*(kx*(x0)+ky*(y0)-cc*(t)))*
      & pwc(0))
                        v0=-(ssf*sin(twoPi*(kx*(x0)+ky*(y0)-cc*(t)))*
@@ -1909,9 +2103,229 @@ c write(*,'("initializeBoundaryForcing slowStartInterval=",e10.2)') slowStartInt
                  do i3=n3a,n3b
                  do i2=n2a,n2b
                  do i1=n1a,n1b
+                     ! -- Boundary Forcing : if we solve for scattered field directly ----
                      x0=xy(i1,i2,i3,0)
                      y0=xy(i1,i2,i3,1)
-                     if( fieldOption.eq.0 )then
+                     if( .true. )then ! *new way*
+                       numberOfTimeDerivatives=0+fieldOption
+                         if( 
+     & boundaryForcingOption.eq.noBoundaryForcing )then
+                         else if( 
+     & boundaryForcingOption.eq.planeWaveBoundaryForcing )then
+                             if( numberOfTimeDerivatives==0 )then
+                               uv(ex) = (ssf*sin(twoPi*(kx*(x0)+ky*(y0)
+     & -cc*(t)))*pwc(0))
+                               uv(ey) = (ssf*sin(twoPi*(kx*(x0)+ky*(y0)
+     & -cc*(t)))*pwc(1))
+                               uv(hz) = (ssf*sin(twoPi*(kx*(x0)+ky*(y0)
+     & -cc*(t)))*pwc(5))
+                             else if( numberOfTimeDerivatives==1 )then
+                               uv(ex) = (ssf*(-twoPi*cc)*cos(twoPi*(kx*
+     & (x0)+ky*(y0)-cc*(t)))*pwc(0)+ssft*sin(twoPi*(kx*(x0)+ky*(y0)-
+     & cc*(t)))*pwc(0))
+                               uv(ey) = (ssf*(-twoPi*cc)*cos(twoPi*(kx*
+     & (x0)+ky*(y0)-cc*(t)))*pwc(1)+ssft*sin(twoPi*(kx*(x0)+ky*(y0)-
+     & cc*(t)))*pwc(1))
+                               uv(hz) = (ssf*(-twoPi*cc)*cos(twoPi*(kx*
+     & (x0)+ky*(y0)-cc*(t)))*pwc(5)+ssft*sin(twoPi*(kx*(x0)+ky*(y0)-
+     & cc*(t)))*pwc(5))
+                             else if( numberOfTimeDerivatives==2 )then
+                               uv(ex) = (ssf*(-(twoPi*cc)**2*sin(twoPi*
+     & (kx*(x0)+ky*(y0)-cc*(t)))*pwc(0))+2.*ssft*(-twoPi*cc)*cos(
+     & twoPi*(kx*(x0)+ky*(y0)-cc*(t)))*pwc(0)+ssftt*sin(twoPi*(kx*(x0)
+     & +ky*(y0)-cc*(t)))*pwc(0))
+                               uv(ey) = (ssf*(-(twoPi*cc)**2*sin(twoPi*
+     & (kx*(x0)+ky*(y0)-cc*(t)))*pwc(1))+2.*ssft*(-twoPi*cc)*cos(
+     & twoPi*(kx*(x0)+ky*(y0)-cc*(t)))*pwc(1)+ssftt*sin(twoPi*(kx*(x0)
+     & +ky*(y0)-cc*(t)))*pwc(1))
+                               uv(hz) = (ssf*(-(twoPi*cc)**2*sin(twoPi*
+     & (kx*(x0)+ky*(y0)-cc*(t)))*pwc(5))+2.*ssft*(-twoPi*cc)*cos(
+     & twoPi*(kx*(x0)+ky*(y0)-cc*(t)))*pwc(5)+ssftt*sin(twoPi*(kx*(x0)
+     & +ky*(y0)-cc*(t)))*pwc(5))
+                             else if( numberOfTimeDerivatives==3 )then
+                               uv(ex) = (ssf*((twoPi*cc)**3*cos(twoPi*(
+     & kx*(x0)+ky*(y0)-cc*(t)))*pwc(0))+3.*ssft*(-(twoPi*cc)**2*sin(
+     & twoPi*(kx*(x0)+ky*(y0)-cc*(t)))*pwc(0))+3.*ssftt*(-twoPi*cc)*
+     & cos(twoPi*(kx*(x0)+ky*(y0)-cc*(t)))*pwc(0)+ssfttt*sin(twoPi*(
+     & kx*(x0)+ky*(y0)-cc*(t)))*pwc(0))
+                               uv(ey) = (ssf*((twoPi*cc)**3*cos(twoPi*(
+     & kx*(x0)+ky*(y0)-cc*(t)))*pwc(1))+3.*ssft*(-(twoPi*cc)**2*sin(
+     & twoPi*(kx*(x0)+ky*(y0)-cc*(t)))*pwc(1))+3.*ssftt*(-twoPi*cc)*
+     & cos(twoPi*(kx*(x0)+ky*(y0)-cc*(t)))*pwc(1)+ssfttt*sin(twoPi*(
+     & kx*(x0)+ky*(y0)-cc*(t)))*pwc(1))
+                               uv(hz) = (ssf*((twoPi*cc)**3*cos(twoPi*(
+     & kx*(x0)+ky*(y0)-cc*(t)))*pwc(5))+3.*ssft*(-(twoPi*cc)**2*sin(
+     & twoPi*(kx*(x0)+ky*(y0)-cc*(t)))*pwc(5))+3.*ssftt*(-twoPi*cc)*
+     & cos(twoPi*(kx*(x0)+ky*(y0)-cc*(t)))*pwc(5)+ssfttt*sin(twoPi*(
+     & kx*(x0)+ky*(y0)-cc*(t)))*pwc(5))
+                             else if( numberOfTimeDerivatives==4 )then
+                               uv(ex) = (ssf*((twoPi*cc)**4*sin(twoPi*(
+     & kx*(x0)+ky*(y0)-cc*(t)))*pwc(0))+4.*ssft*((twoPi*cc)**3*cos(
+     & twoPi*(kx*(x0)+ky*(y0)-cc*(t)))*pwc(0))+6.*ssftt*(-(twoPi*cc)**
+     & 2*sin(twoPi*(kx*(x0)+ky*(y0)-cc*(t)))*pwc(0))+4.*ssfttt*(-
+     & twoPi*cc)*cos(twoPi*(kx*(x0)+ky*(y0)-cc*(t)))*pwc(0)+ssftttt*
+     & sin(twoPi*(kx*(x0)+ky*(y0)-cc*(t)))*pwc(0))
+                               uv(ey) = (ssf*((twoPi*cc)**4*sin(twoPi*(
+     & kx*(x0)+ky*(y0)-cc*(t)))*pwc(1))+4.*ssft*((twoPi*cc)**3*cos(
+     & twoPi*(kx*(x0)+ky*(y0)-cc*(t)))*pwc(1))+6.*ssftt*(-(twoPi*cc)**
+     & 2*sin(twoPi*(kx*(x0)+ky*(y0)-cc*(t)))*pwc(1))+4.*ssfttt*(-
+     & twoPi*cc)*cos(twoPi*(kx*(x0)+ky*(y0)-cc*(t)))*pwc(1)+ssftttt*
+     & sin(twoPi*(kx*(x0)+ky*(y0)-cc*(t)))*pwc(1))
+                               uv(hz) = (ssf*((twoPi*cc)**4*sin(twoPi*(
+     & kx*(x0)+ky*(y0)-cc*(t)))*pwc(5))+4.*ssft*((twoPi*cc)**3*cos(
+     & twoPi*(kx*(x0)+ky*(y0)-cc*(t)))*pwc(5))+6.*ssftt*(-(twoPi*cc)**
+     & 2*sin(twoPi*(kx*(x0)+ky*(y0)-cc*(t)))*pwc(5))+4.*ssfttt*(-
+     & twoPi*cc)*cos(twoPi*(kx*(x0)+ky*(y0)-cc*(t)))*pwc(5)+ssftttt*
+     & sin(twoPi*(kx*(x0)+ky*(y0)-cc*(t)))*pwc(5))
+                             else
+                               stop 1738
+                             end if
+                         else if(  
+     & boundaryForcingOption.eq.chirpedPlaneWaveBoundaryForcing )then
+                            xi0 = .5*(cpwTa+cpwTb)
+                            xi = t - (kx*(x0-cpwX0)+ky*(y0-cpwY0))/cc -
+     & xi0
+                            cpwTau=cpwTb-cpwTa  ! tau = tb -ta
+                            ! include files generated by the maple code mx/codes/chirpedPlaneWave.maple 
+                            if( numberOfTimeDerivatives.eq.0 )then
+! File generated by overtureFramework/cg/mx/codes/chirpedPlaneWave.maple
+! Here is the 0-th time-derivative of the chirp function in 2D
+! chirp = cpwAmp*(1/2*tanh(cpwBeta*(xi+.5*cpwTau))-1/2*tanh(cpwBeta*(xi-.5*cpwTau)))*sin(twoPi*(xi^2*cpwAlpha+cc*xi))
+! chirp_t = cpwAmp*(1/2*tanh(cpwBeta*(xi+.5*cpwTau))-1/2*tanh(cpwBeta*(xi-.5*cpwTau)))*sin(twoPi*(xi^2*cpwAlpha+cc*xi))
+      t1 = .5*cpwTau
+      t4 = tanh(cpwBeta*(xi+t1))
+      t7 = tanh(cpwBeta*(xi-t1))
+      t11 = xi ** 2
+      t16 = sin(twoPi*(cc*xi+t11*cpwAlpha))
+      chirp = cpwAmp*(t4/2.-t7/2.)*t16
+
+                            else if(  numberOfTimeDerivatives.eq.1 )
+     & then
+! File generated by overtureFramework/cg/mx/codes/chirpedPlaneWave.maple
+! Here is the 1-th time-derivative of the chirp function in 2D
+! chirp = cpwAmp*(1/2*tanh(cpwBeta*(xi+.5*cpwTau))-1/2*tanh(cpwBeta*(xi-.5*cpwTau)))*sin(twoPi*(xi^2*cpwAlpha+cc*xi))
+! chirp_t = cpwAmp*(1/2*cpwBeta*(1-tanh(cpwBeta*(xi+.5*cpwTau))^2)-1/2*cpwBeta*(1-tanh(cpwBeta*(xi-.5*cpwTau))^2))*sin(twoPi*(xi^2*cpwAlpha+cc*xi))+cpwAmp*(1/2*tanh(cpwBeta*(xi+.5*cpwTau))-1/2*tanh(cpwBeta*(xi-.5*cpwTau)))*twoPi*(2*xi*cpwAlpha+cc)*cos(twoPi*(xi^2*cpwAlpha+cc*xi))
+      t1 = .5*cpwTau
+      t4 = tanh(cpwBeta*(xi+t1))
+      t5 = t4 ** 2
+      t10 = tanh(cpwBeta*(xi-t1))
+      t11 = t10 ** 2
+      t17 = xi ** 2
+      t21 = twoPi*(cc*xi+t17*cpwAlpha)
+      t22 = sin(t21)
+      t31 = cos(t21)
+      chirp = cpwAmp*(cpwBeta*(1.-t5)/2.-cpwBeta*(1.-t11)/2.)*t22+
+     & cpwAmp*(t4/2.-t10/2.)*twoPi*(2.*xi*cpwAlpha+cc)*t31
+
+                            else if(  numberOfTimeDerivatives.eq.2 )
+     & then
+! File generated by overtureFramework/cg/mx/codes/chirpedPlaneWave.maple
+! Here is the 2-th time-derivative of the chirp function in 2D
+! chirp = cpwAmp*(1/2*tanh(cpwBeta*(xi+.5*cpwTau))-1/2*tanh(cpwBeta*(xi-.5*cpwTau)))*sin(twoPi*(xi^2*cpwAlpha+cc*xi))
+! chirp_t = cpwAmp*(-cpwBeta^2*tanh(cpwBeta*(xi+.5*cpwTau))*(1-tanh(cpwBeta*(xi+.5*cpwTau))^2)+cpwBeta^2*tanh(cpwBeta*(xi-.5*cpwTau))*(1-tanh(cpwBeta*(xi-.5*cpwTau))^2))*sin(twoPi*(xi^2*cpwAlpha+cc*xi))+2*cpwAmp*(1/2*cpwBeta*(1-tanh(cpwBeta*(xi+.5*cpwTau))^2)-1/2*cpwBeta*(1-tanh(cpwBeta*(xi-.5*cpwTau))^2))*twoPi*(2*xi*cpwAlpha+cc)*cos(twoPi*(xi^2*cpwAlpha+cc*xi))+2*cpwAmp*(1/2*tanh(cpwBeta*(xi+.5*cpwTau))-1/2*tanh(cpwBeta*(xi-.5*cpwTau)))*twoPi*cpwAlpha*cos(twoPi*(xi^2*cpwAlpha+cc*xi))-cpwAmp*(1/2*tanh(cpwBeta*(xi+.5*cpwTau))-1/2*tanh(cpwBeta*(xi-.5*cpwTau)))*twoPi^2*(2*xi*cpwAlpha+cc)^2*sin(twoPi*(xi^2*cpwAlpha+cc*xi))
+      t1 = cpwBeta ** 2
+      t2 = .5*cpwTau
+      t5 = tanh(cpwBeta*(xi+t2))
+      t7 = t5 ** 2
+      t8 = 1.-t7
+      t12 = tanh(cpwBeta*(xi-t2))
+      t14 = t12 ** 2
+      t15 = 1.-t14
+      t19 = xi ** 2
+      t23 = twoPi*(cc*xi+t19*cpwAlpha)
+      t24 = sin(t23)
+      t33 = 2.*xi*cpwAlpha+cc
+      t35 = cos(t23)
+      t41 = cpwAmp*(t5/2.-t12/2.)
+      t46 = twoPi ** 2
+      t47 = t33 ** 2
+      chirp = cpwAmp*(t1*t12*t15-t1*t5*t8)*t24+2.*cpwAmp*(-cpwBeta*
+     & t15/2.+cpwBeta*t8/2.)*twoPi*t33*t35+2.*t41*twoPi*cpwAlpha*t35-
+     & t41*t46*t47*t24
+
+                            else if(  numberOfTimeDerivatives.eq.3 )
+     & then
+! File generated by overtureFramework/cg/mx/codes/chirpedPlaneWave.maple
+! Here is the 3-th time-derivative of the chirp function in 2D
+! chirp = cpwAmp*(1/2*tanh(cpwBeta*(xi+.5*cpwTau))-1/2*tanh(cpwBeta*(xi-.5*cpwTau)))*sin(twoPi*(xi^2*cpwAlpha+cc*xi))
+! chirp_t = cpwAmp*(-cpwBeta^3*(1-tanh(cpwBeta*(xi+.5*cpwTau))^2)^2+2*cpwBeta^3*tanh(cpwBeta*(xi+.5*cpwTau))^2*(1-tanh(cpwBeta*(xi+.5*cpwTau))^2)+cpwBeta^3*(1-tanh(cpwBeta*(xi-.5*cpwTau))^2)^2-2*cpwBeta^3*tanh(cpwBeta*(xi-.5*cpwTau))^2*(1-tanh(cpwBeta*(xi-.5*cpwTau))^2))*sin(twoPi*(xi^2*cpwAlpha+cc*xi))+3*cpwAmp*(-cpwBeta^2*tanh(cpwBeta*(xi+.5*cpwTau))*(1-tanh(cpwBeta*(xi+.5*cpwTau))^2)+cpwBeta^2*tanh(cpwBeta*(xi-.5*cpwTau))*(1-tanh(cpwBeta*(xi-.5*cpwTau))^2))*twoPi*(2*xi*cpwAlpha+cc)*cos(twoPi*(xi^2*cpwAlpha+cc*xi))+6*cpwAmp*(1/2*cpwBeta*(1-tanh(cpwBeta*(xi+.5*cpwTau))^2)-1/2*cpwBeta*(1-tanh(cpwBeta*(xi-.5*cpwTau))^2))*twoPi*cpwAlpha*cos(twoPi*(xi^2*cpwAlpha+cc*xi))-3*cpwAmp*(1/2*cpwBeta*(1-tanh(cpwBeta*(xi+.5*cpwTau))^2)-1/2*cpwBeta*(1-tanh(cpwBeta*(xi-.5*cpwTau))^2))*twoPi^2*(2*xi*cpwAlpha+cc)^2*sin(twoPi*(xi^2*cpwAlpha+cc*xi))-6*cpwAmp*(1/2*tanh(cpwBeta*(xi+.5*cpwTau))-1/2*tanh(cpwBeta*(xi-.5*cpwTau)))*twoPi^2*cpwAlpha*(2*xi*cpwAlpha+cc)*sin(twoPi*(xi^2*cpwAlpha+cc*xi))-cpwAmp*(1/2*tanh(cpwBeta*(xi+.5*cpwTau))-1/2*tanh(cpwBeta*(xi-.5*cpwTau)))*twoPi^3*(2*xi*cpwAlpha+cc)^3*cos(twoPi*(xi^2*cpwAlpha+cc*xi))
+      t1 = cpwBeta ** 2
+      t2 = t1*cpwBeta
+      t3 = .5*cpwTau
+      t6 = tanh(cpwBeta*(xi+t3))
+      t7 = t6 ** 2
+      t8 = 1.-t7
+      t9 = t8 ** 2
+      t16 = tanh(cpwBeta*(xi-t3))
+      t17 = t16 ** 2
+      t18 = 1.-t17
+      t19 = t18 ** 2
+      t26 = xi ** 2
+      t30 = twoPi*(cc*xi+t26*cpwAlpha)
+      t31 = sin(t30)
+      t41 = 2.*xi*cpwAlpha+cc
+      t43 = cos(t30)
+      t51 = cpwAmp*(-cpwBeta*t18/2.+cpwBeta*t8/2.)
+      t56 = twoPi ** 2
+      t57 = t41 ** 2
+      t64 = cpwAmp*(t6/2.-t16/2.)
+      chirp = cpwAmp*(-2.*t2*t17*t18+2.*t2*t7*t8+t2*t19-t2*t9)*t31+
+     & 0.3E1*cpwAmp*(t1*t16*t18-t1*t6*t8)*twoPi*t41*t43+6.*t51*twoPi*
+     & cpwAlpha*t43-0.3E1*t51*t56*t57*t31-6.*t64*t56*cpwAlpha*t41*t31-
+     & t64*t56*twoPi*t57*t41*t43
+
+                            else if(  numberOfTimeDerivatives.eq.4 )
+     & then
+! File generated by overtureFramework/cg/mx/codes/chirpedPlaneWave.maple
+! Here is the 4-th time-derivative of the chirp function in 2D
+! chirp = cpwAmp*(1/2*tanh(cpwBeta*(xi+.5*cpwTau))-1/2*tanh(cpwBeta*(xi-.5*cpwTau)))*sin(twoPi*(xi^2*cpwAlpha+cc*xi))
+! chirp_t = cpwAmp*(8*cpwBeta^4*(1-tanh(cpwBeta*(xi+.5*cpwTau))^2)^2*tanh(cpwBeta*(xi+.5*cpwTau))-4*cpwBeta^4*tanh(cpwBeta*(xi+.5*cpwTau))^3*(1-tanh(cpwBeta*(xi+.5*cpwTau))^2)-8*cpwBeta^4*(1-tanh(cpwBeta*(xi-.5*cpwTau))^2)^2*tanh(cpwBeta*(xi-.5*cpwTau))+4*cpwBeta^4*tanh(cpwBeta*(xi-.5*cpwTau))^3*(1-tanh(cpwBeta*(xi-.5*cpwTau))^2))*sin(twoPi*(xi^2*cpwAlpha+cc*xi))+4*cpwAmp*(-cpwBeta^3*(1-tanh(cpwBeta*(xi+.5*cpwTau))^2)^2+2*cpwBeta^3*tanh(cpwBeta*(xi+.5*cpwTau))^2*(1-tanh(cpwBeta*(xi+.5*cpwTau))^2)+cpwBeta^3*(1-tanh(cpwBeta*(xi-.5*cpwTau))^2)^2-2*cpwBeta^3*tanh(cpwBeta*(xi-.5*cpwTau))^2*(1-tanh(cpwBeta*(xi-.5*cpwTau))^2))*twoPi*(2*xi*cpwAlpha+cc)*cos(twoPi*(xi^2*cpwAlpha+cc*xi))+12*cpwAmp*(-cpwBeta^2*tanh(cpwBeta*(xi+.5*cpwTau))*(1-tanh(cpwBeta*(xi+.5*cpwTau))^2)+cpwBeta^2*tanh(cpwBeta*(xi-.5*cpwTau))*(1-tanh(cpwBeta*(xi-.5*cpwTau))^2))*twoPi*cpwAlpha*cos(twoPi*(xi^2*cpwAlpha+cc*xi))-6*cpwAmp*(-cpwBeta^2*tanh(cpwBeta*(xi+.5*cpwTau))*(1-tanh(cpwBeta*(xi+.5*cpwTau))^2)+cpwBeta^2*tanh(cpwBeta*(xi-.5*cpwTau))*(1-tanh(cpwBeta*(xi-.5*cpwTau))^2))*twoPi^2*(2*xi*cpwAlpha+cc)^2*sin(twoPi*(xi^2*cpwAlpha+cc*xi))-24*cpwAmp*(1/2*cpwBeta*(1-tanh(cpwBeta*(xi+.5*cpwTau))^2)-1/2*cpwBeta*(1-tanh(cpwBeta*(xi-.5*cpwTau))^2))*twoPi^2*cpwAlpha*(2*xi*cpwAlpha+cc)*sin(twoPi*(xi^2*cpwAlpha+cc*xi))-4*cpwAmp*(1/2*cpwBeta*(1-tanh(cpwBeta*(xi+.5*cpwTau))^2)-1/2*cpwBeta*(1-tanh(cpwBeta*(xi-.5*cpwTau))^2))*twoPi^3*(2*xi*cpwAlpha+cc)^3*cos(twoPi*(xi^2*cpwAlpha+cc*xi))-12*cpwAmp*(1/2*tanh(cpwBeta*(xi+.5*cpwTau))-1/2*tanh(cpwBeta*(xi-.5*cpwTau)))*twoPi^2*cpwAlpha^2*sin(twoPi*(xi^2*cpwAlpha+cc*xi))-12*cpwAmp*(1/2*tanh(cpwBeta*(xi+.5*cpwTau))-1/2*tanh(cpwBeta*(xi-.5*cpwTau)))*twoPi^3*cpwAlpha*(2*xi*cpwAlpha+cc)^2*cos(twoPi*(xi^2*cpwAlpha+cc*xi))+cpwAmp*(1/2*tanh(cpwBeta*(xi+.5*cpwTau))-1/2*tanh(cpwBeta*(xi-.5*cpwTau)))*twoPi^4*(2*xi*cpwAlpha+cc)^4*sin(twoPi*(xi^2*cpwAlpha+cc*xi))
+      t1 = cpwBeta ** 2
+      t2 = t1 ** 2
+      t3 = .5*cpwTau
+      t6 = tanh(cpwBeta*(xi+t3))
+      t7 = t6 ** 2
+      t8 = 1.-t7
+      t9 = t8 ** 2
+      t19 = tanh(cpwBeta*(xi-t3))
+      t20 = t19 ** 2
+      t21 = 1.-t20
+      t22 = t21 ** 2
+      t32 = xi ** 2
+      t36 = twoPi*(cc*xi+t32*cpwAlpha)
+      t37 = sin(t36)
+      t39 = t1*cpwBeta
+      t52 = 2.*xi*cpwAlpha+cc
+      t54 = cos(t36)
+      t63 = cpwAmp*(t1*t19*t21-t1*t6*t8)
+      t68 = twoPi ** 2
+      t69 = t52 ** 2
+      t78 = cpwAmp*(-cpwBeta*t21/2.+cpwBeta*t8/2.)
+      t84 = t68*twoPi
+      t92 = cpwAmp*(t6/2.-t19/2.)
+      t93 = cpwAlpha ** 2
+      t103 = t68 ** 2
+      t104 = t69 ** 2
+      chirp = cpwAmp*(4.*t2*t20*t19*t21-4.*t2*t7*t6*t8-8.*t2*t22*t19+
+     & 8.*t2*t9*t6)*t37+4.*cpwAmp*(-2.*t39*t20*t21+2.*t39*t7*t8+t39*
+     & t22-t39*t9)*twoPi*t52*t54+12.*t63*twoPi*cpwAlpha*t54-6.*t63*
+     & t68*t69*t37-0.24E2*t78*t68*cpwAlpha*t52*t37-4.*t78*t84*t69*t52*
+     & t54-12.*t92*t68*t93*t37-12.*t92*t84*cpwAlpha*t69*t54+t92*t103*
+     & t104*t37
+
+                            else
+                              write(*,'(" getChirp2D:ERROR: too many 
+     & derivatives requested")')
+                              stop 4927
+                            end if
+                            uv(ex) = chirp*pwc(0)
+                            uv(ey) = chirp*pwc(1)
+                            uv(hz) = chirp*pwc(5)
+                         else
+                           write(*,'("getBndryForcing2D: Unknown 
+     & boundary forcing")')
+                         end if
+                     else if( fieldOption.eq.0 )then
                        uv(ex)=(ssf*sin(twoPi*(kx*(x0)+ky*(y0)-cc*(t)))*
      & pwc(0))
                        uv(ey)=(ssf*sin(twoPi*(kx*(x0)+ky*(y0)-cc*(t)))*
@@ -2018,7 +2432,7 @@ c write(*,'("initializeBoundaryForcing slowStartInterval=",e10.2)') slowStartInt
                end if
             end if
           else
-            if( forcingOption.eq.planeWaveBoundaryForcing )then
+            if( boundaryForcingOption.ne.noBoundaryForcing )then
               ! write(*,'(" ***assign corners:planeWaveBoundaryForcing: twoPi=",f18.14," cc=",f10.7)') twoPi,cc
                ! Set the tangential components to zero
                if( gridType.eq.curvilinear )then
@@ -2043,11 +2457,241 @@ c write(*,'("initializeBoundaryForcing slowStartInterval=",e10.2)') slowStartInt
                      u(i1,i2,i3,ex) = nDotE*an(0)
                      u(i1,i2,i3,ey) = nDotE*an(1)
                      u(i1,i2,i3,ez) = nDotE*an(2)
+                     ! -- Boundary Forcing : if we solve for scattered field directly ----
                      ! set tangential components to a non zero value: 
                      x0=xy(i1,i2,i3,0)
                      y0=xy(i1,i2,i3,1)
                      z0=xy(i1,i2,i3,2)
-                     if( fieldOption.eq.0 )then
+                     if( .true. )then ! *new way*
+                       numberOfTimeDerivatives=0+fieldOption
+                         if( 
+     & boundaryForcingOption.eq.noBoundaryForcing )then
+                         else if( 
+     & boundaryForcingOption.eq.planeWaveBoundaryForcing )then
+                             if( numberOfTimeDerivatives==0 )then
+                               ubv(ex) = (ssf*sin(twoPi*(kx*(x0)+ky*(
+     & y0)+kz*(z0)-cc*(t)))*pwc(0))
+                               ubv(ey) = (ssf*sin(twoPi*(kx*(x0)+ky*(
+     & y0)+kz*(z0)-cc*(t)))*pwc(1))
+                               ubv(ez) = (ssf*sin(twoPi*(kx*(x0)+ky*(
+     & y0)+kz*(z0)-cc*(t)))*pwc(2))
+                             else if( numberOfTimeDerivatives==1 )then
+                               ubv(ex) = (ssf*(-twoPi*cc)*cos(twoPi*(
+     & kx*(x0)+ky*(y0)+kz*(z0)-cc*(t)))*pwc(0)+ssft*sin(twoPi*(kx*(x0)
+     & +ky*(y0)+kz*(z0)-cc*(t)))*pwc(0))
+                               ubv(ey) = (ssf*(-twoPi*cc)*cos(twoPi*(
+     & kx*(x0)+ky*(y0)+kz*(z0)-cc*(t)))*pwc(1)+ssft*sin(twoPi*(kx*(x0)
+     & +ky*(y0)+kz*(z0)-cc*(t)))*pwc(1))
+                               ubv(ez) = (ssf*(-twoPi*cc)*cos(twoPi*(
+     & kx*(x0)+ky*(y0)+kz*(z0)-cc*(t)))*pwc(2)+ssft*sin(twoPi*(kx*(x0)
+     & +ky*(y0)+kz*(z0)-cc*(t)))*pwc(2))
+                             else if( numberOfTimeDerivatives==2 )then
+                               ubv(ex) = (ssf*(-(twoPi*cc)**2*sin(
+     & twoPi*(kx*(x0)+ky*(y0)+kz*(z0)-cc*(t)))*pwc(0))+2.*ssft*(-
+     & twoPi*cc)*cos(twoPi*(kx*(x0)+ky*(y0)+kz*(z0)-cc*(t)))*pwc(0)+
+     & ssftt*sin(twoPi*(kx*(x0)+ky*(y0)+kz*(z0)-cc*(t)))*pwc(0))
+                               ubv(ey) = (ssf*(-(twoPi*cc)**2*sin(
+     & twoPi*(kx*(x0)+ky*(y0)+kz*(z0)-cc*(t)))*pwc(1))+2.*ssft*(-
+     & twoPi*cc)*cos(twoPi*(kx*(x0)+ky*(y0)+kz*(z0)-cc*(t)))*pwc(1)+
+     & ssftt*sin(twoPi*(kx*(x0)+ky*(y0)+kz*(z0)-cc*(t)))*pwc(1))
+                               ubv(ez) = (ssf*(-(twoPi*cc)**2*sin(
+     & twoPi*(kx*(x0)+ky*(y0)+kz*(z0)-cc*(t)))*pwc(2))+2.*ssft*(-
+     & twoPi*cc)*cos(twoPi*(kx*(x0)+ky*(y0)+kz*(z0)-cc*(t)))*pwc(2)+
+     & ssftt*sin(twoPi*(kx*(x0)+ky*(y0)+kz*(z0)-cc*(t)))*pwc(2))
+                             else if( numberOfTimeDerivatives==3 )then
+                               ubv(ex) = (ssf*((twoPi*cc)**3*cos(twoPi*
+     & (kx*(x0)+ky*(y0)+kz*(z0)-cc*(t)))*pwc(0))+3.*ssft*(-(twoPi*cc)*
+     & *2*sin(twoPi*(kx*(x0)+ky*(y0)+kz*(z0)-cc*(t)))*pwc(0))+3.*
+     & ssftt*(-twoPi*cc)*cos(twoPi*(kx*(x0)+ky*(y0)+kz*(z0)-cc*(t)))*
+     & pwc(0)+ssfttt*sin(twoPi*(kx*(x0)+ky*(y0)+kz*(z0)-cc*(t)))*pwc(
+     & 0))
+                               ubv(ey) = (ssf*((twoPi*cc)**3*cos(twoPi*
+     & (kx*(x0)+ky*(y0)+kz*(z0)-cc*(t)))*pwc(1))+3.*ssft*(-(twoPi*cc)*
+     & *2*sin(twoPi*(kx*(x0)+ky*(y0)+kz*(z0)-cc*(t)))*pwc(1))+3.*
+     & ssftt*(-twoPi*cc)*cos(twoPi*(kx*(x0)+ky*(y0)+kz*(z0)-cc*(t)))*
+     & pwc(1)+ssfttt*sin(twoPi*(kx*(x0)+ky*(y0)+kz*(z0)-cc*(t)))*pwc(
+     & 1))
+                               ubv(ez) = (ssf*((twoPi*cc)**3*cos(twoPi*
+     & (kx*(x0)+ky*(y0)+kz*(z0)-cc*(t)))*pwc(2))+3.*ssft*(-(twoPi*cc)*
+     & *2*sin(twoPi*(kx*(x0)+ky*(y0)+kz*(z0)-cc*(t)))*pwc(2))+3.*
+     & ssftt*(-twoPi*cc)*cos(twoPi*(kx*(x0)+ky*(y0)+kz*(z0)-cc*(t)))*
+     & pwc(2)+ssfttt*sin(twoPi*(kx*(x0)+ky*(y0)+kz*(z0)-cc*(t)))*pwc(
+     & 2))
+                             else if( numberOfTimeDerivatives==4 )then
+                               ubv(ex) = (ssf*((twoPi*cc)**4*sin(twoPi*
+     & (kx*(x0)+ky*(y0)+kz*(z0)-cc*(t)))*pwc(0))+4.*ssft*((twoPi*cc)**
+     & 3*cos(twoPi*(kx*(x0)+ky*(y0)+kz*(z0)-cc*(t)))*pwc(0))+6.*ssftt*
+     & (-(twoPi*cc)**2*sin(twoPi*(kx*(x0)+ky*(y0)+kz*(z0)-cc*(t)))*
+     & pwc(0))+4.*ssfttt*(-twoPi*cc)*cos(twoPi*(kx*(x0)+ky*(y0)+kz*(
+     & z0)-cc*(t)))*pwc(0)+ssftttt*sin(twoPi*(kx*(x0)+ky*(y0)+kz*(z0)-
+     & cc*(t)))*pwc(0))
+                               ubv(ey) = (ssf*((twoPi*cc)**4*sin(twoPi*
+     & (kx*(x0)+ky*(y0)+kz*(z0)-cc*(t)))*pwc(1))+4.*ssft*((twoPi*cc)**
+     & 3*cos(twoPi*(kx*(x0)+ky*(y0)+kz*(z0)-cc*(t)))*pwc(1))+6.*ssftt*
+     & (-(twoPi*cc)**2*sin(twoPi*(kx*(x0)+ky*(y0)+kz*(z0)-cc*(t)))*
+     & pwc(1))+4.*ssfttt*(-twoPi*cc)*cos(twoPi*(kx*(x0)+ky*(y0)+kz*(
+     & z0)-cc*(t)))*pwc(1)+ssftttt*sin(twoPi*(kx*(x0)+ky*(y0)+kz*(z0)-
+     & cc*(t)))*pwc(1))
+                               ubv(ez) = (ssf*((twoPi*cc)**4*sin(twoPi*
+     & (kx*(x0)+ky*(y0)+kz*(z0)-cc*(t)))*pwc(2))+4.*ssft*((twoPi*cc)**
+     & 3*cos(twoPi*(kx*(x0)+ky*(y0)+kz*(z0)-cc*(t)))*pwc(2))+6.*ssftt*
+     & (-(twoPi*cc)**2*sin(twoPi*(kx*(x0)+ky*(y0)+kz*(z0)-cc*(t)))*
+     & pwc(2))+4.*ssfttt*(-twoPi*cc)*cos(twoPi*(kx*(x0)+ky*(y0)+kz*(
+     & z0)-cc*(t)))*pwc(2)+ssftttt*sin(twoPi*(kx*(x0)+ky*(y0)+kz*(z0)-
+     & cc*(t)))*pwc(2))
+                             else
+                               stop 1739
+                             end if
+                         else if(  
+     & boundaryForcingOption.eq.chirpedPlaneWaveBoundaryForcing )then
+                            ! xi = kx*(x0)+ky*(y0)-cc*(t) - xi0 
+                            xi0 = .5*(cpwTa+cpwTb)
+                            xi = t - (kx*(x0-cpwX0)+ky*(y0-cpwY0)+kz*(
+     & z0-cpwZ0))/cc -xi0
+                            cpwTau=cpwTb-cpwTa  ! tau = tb -ta
+                            ! include files generated by the maple code mx/codes/chirpedPlaneWave.maple 
+                            if( numberOfTimeDerivatives.eq.0 )then
+! File generated by overtureFramework/cg/mx/codes/chirpedPlaneWave.maple
+! Here is the 0-th time-derivative of the chirp function in 3D
+! chirp = cpwAmp*(1/2*tanh(cpwBeta*(xi+.5*cpwTau))-1/2*tanh(cpwBeta*(xi-.5*cpwTau)))*sin(twoPi*(xi^2*cpwAlpha+cc*xi))
+! chirp_t = cpwAmp*(1/2*tanh(cpwBeta*(xi+.5*cpwTau))-1/2*tanh(cpwBeta*(xi-.5*cpwTau)))*sin(twoPi*(xi^2*cpwAlpha+cc*xi))
+      t1 = .5*cpwTau
+      t4 = tanh(cpwBeta*(xi+t1))
+      t7 = tanh(cpwBeta*(xi-t1))
+      t11 = xi ** 2
+      t16 = sin(twoPi*(cc*xi+t11*cpwAlpha))
+      chirp = cpwAmp*(t4/2.-t7/2.)*t16
+
+                            else if(  numberOfTimeDerivatives.eq.1 )
+     & then
+! File generated by overtureFramework/cg/mx/codes/chirpedPlaneWave.maple
+! Here is the 1-th time-derivative of the chirp function in 3D
+! chirp = cpwAmp*(1/2*tanh(cpwBeta*(xi+.5*cpwTau))-1/2*tanh(cpwBeta*(xi-.5*cpwTau)))*sin(twoPi*(xi^2*cpwAlpha+cc*xi))
+! chirp_t = cpwAmp*(1/2*cpwBeta*(1-tanh(cpwBeta*(xi+.5*cpwTau))^2)-1/2*cpwBeta*(1-tanh(cpwBeta*(xi-.5*cpwTau))^2))*sin(twoPi*(xi^2*cpwAlpha+cc*xi))+cpwAmp*(1/2*tanh(cpwBeta*(xi+.5*cpwTau))-1/2*tanh(cpwBeta*(xi-.5*cpwTau)))*twoPi*(2*xi*cpwAlpha+cc)*cos(twoPi*(xi^2*cpwAlpha+cc*xi))
+      t1 = .5*cpwTau
+      t4 = tanh(cpwBeta*(xi+t1))
+      t5 = t4 ** 2
+      t10 = tanh(cpwBeta*(xi-t1))
+      t11 = t10 ** 2
+      t17 = xi ** 2
+      t21 = twoPi*(cc*xi+t17*cpwAlpha)
+      t22 = sin(t21)
+      t31 = cos(t21)
+      chirp = cpwAmp*(cpwBeta*(1.-t5)/2.-cpwBeta*(1.-t11)/2.)*t22+
+     & cpwAmp*(t4/2.-t10/2.)*twoPi*(2.*xi*cpwAlpha+cc)*t31
+
+                            else if(  numberOfTimeDerivatives.eq.2 )
+     & then
+! File generated by overtureFramework/cg/mx/codes/chirpedPlaneWave.maple
+! Here is the 2-th time-derivative of the chirp function in 3D
+! chirp = cpwAmp*(1/2*tanh(cpwBeta*(xi+.5*cpwTau))-1/2*tanh(cpwBeta*(xi-.5*cpwTau)))*sin(twoPi*(xi^2*cpwAlpha+cc*xi))
+! chirp_t = cpwAmp*(-cpwBeta^2*tanh(cpwBeta*(xi+.5*cpwTau))*(1-tanh(cpwBeta*(xi+.5*cpwTau))^2)+cpwBeta^2*tanh(cpwBeta*(xi-.5*cpwTau))*(1-tanh(cpwBeta*(xi-.5*cpwTau))^2))*sin(twoPi*(xi^2*cpwAlpha+cc*xi))+2*cpwAmp*(1/2*cpwBeta*(1-tanh(cpwBeta*(xi+.5*cpwTau))^2)-1/2*cpwBeta*(1-tanh(cpwBeta*(xi-.5*cpwTau))^2))*twoPi*(2*xi*cpwAlpha+cc)*cos(twoPi*(xi^2*cpwAlpha+cc*xi))+2*cpwAmp*(1/2*tanh(cpwBeta*(xi+.5*cpwTau))-1/2*tanh(cpwBeta*(xi-.5*cpwTau)))*twoPi*cpwAlpha*cos(twoPi*(xi^2*cpwAlpha+cc*xi))-cpwAmp*(1/2*tanh(cpwBeta*(xi+.5*cpwTau))-1/2*tanh(cpwBeta*(xi-.5*cpwTau)))*twoPi^2*(2*xi*cpwAlpha+cc)^2*sin(twoPi*(xi^2*cpwAlpha+cc*xi))
+      t1 = cpwBeta ** 2
+      t2 = .5*cpwTau
+      t5 = tanh(cpwBeta*(xi+t2))
+      t7 = t5 ** 2
+      t8 = 1.-t7
+      t12 = tanh(cpwBeta*(xi-t2))
+      t14 = t12 ** 2
+      t15 = 1.-t14
+      t19 = xi ** 2
+      t23 = twoPi*(cc*xi+t19*cpwAlpha)
+      t24 = sin(t23)
+      t33 = 2.*xi*cpwAlpha+cc
+      t35 = cos(t23)
+      t41 = cpwAmp*(t5/2.-t12/2.)
+      t46 = twoPi ** 2
+      t47 = t33 ** 2
+      chirp = cpwAmp*(t1*t12*t15-t1*t5*t8)*t24+2.*cpwAmp*(-cpwBeta*
+     & t15/2.+cpwBeta*t8/2.)*twoPi*t33*t35+2.*t41*twoPi*cpwAlpha*t35-
+     & t41*t46*t47*t24
+
+                            else if(  numberOfTimeDerivatives.eq.3 )
+     & then
+! File generated by overtureFramework/cg/mx/codes/chirpedPlaneWave.maple
+! Here is the 3-th time-derivative of the chirp function in 3D
+! chirp = cpwAmp*(1/2*tanh(cpwBeta*(xi+.5*cpwTau))-1/2*tanh(cpwBeta*(xi-.5*cpwTau)))*sin(twoPi*(xi^2*cpwAlpha+cc*xi))
+! chirp_t = cpwAmp*(-cpwBeta^3*(1-tanh(cpwBeta*(xi+.5*cpwTau))^2)^2+2*cpwBeta^3*tanh(cpwBeta*(xi+.5*cpwTau))^2*(1-tanh(cpwBeta*(xi+.5*cpwTau))^2)+cpwBeta^3*(1-tanh(cpwBeta*(xi-.5*cpwTau))^2)^2-2*cpwBeta^3*tanh(cpwBeta*(xi-.5*cpwTau))^2*(1-tanh(cpwBeta*(xi-.5*cpwTau))^2))*sin(twoPi*(xi^2*cpwAlpha+cc*xi))+3*cpwAmp*(-cpwBeta^2*tanh(cpwBeta*(xi+.5*cpwTau))*(1-tanh(cpwBeta*(xi+.5*cpwTau))^2)+cpwBeta^2*tanh(cpwBeta*(xi-.5*cpwTau))*(1-tanh(cpwBeta*(xi-.5*cpwTau))^2))*twoPi*(2*xi*cpwAlpha+cc)*cos(twoPi*(xi^2*cpwAlpha+cc*xi))+6*cpwAmp*(1/2*cpwBeta*(1-tanh(cpwBeta*(xi+.5*cpwTau))^2)-1/2*cpwBeta*(1-tanh(cpwBeta*(xi-.5*cpwTau))^2))*twoPi*cpwAlpha*cos(twoPi*(xi^2*cpwAlpha+cc*xi))-3*cpwAmp*(1/2*cpwBeta*(1-tanh(cpwBeta*(xi+.5*cpwTau))^2)-1/2*cpwBeta*(1-tanh(cpwBeta*(xi-.5*cpwTau))^2))*twoPi^2*(2*xi*cpwAlpha+cc)^2*sin(twoPi*(xi^2*cpwAlpha+cc*xi))-6*cpwAmp*(1/2*tanh(cpwBeta*(xi+.5*cpwTau))-1/2*tanh(cpwBeta*(xi-.5*cpwTau)))*twoPi^2*cpwAlpha*(2*xi*cpwAlpha+cc)*sin(twoPi*(xi^2*cpwAlpha+cc*xi))-cpwAmp*(1/2*tanh(cpwBeta*(xi+.5*cpwTau))-1/2*tanh(cpwBeta*(xi-.5*cpwTau)))*twoPi^3*(2*xi*cpwAlpha+cc)^3*cos(twoPi*(xi^2*cpwAlpha+cc*xi))
+      t1 = cpwBeta ** 2
+      t2 = t1*cpwBeta
+      t3 = .5*cpwTau
+      t6 = tanh(cpwBeta*(xi+t3))
+      t7 = t6 ** 2
+      t8 = 1.-t7
+      t9 = t8 ** 2
+      t16 = tanh(cpwBeta*(xi-t3))
+      t17 = t16 ** 2
+      t18 = 1.-t17
+      t19 = t18 ** 2
+      t26 = xi ** 2
+      t30 = twoPi*(cc*xi+t26*cpwAlpha)
+      t31 = sin(t30)
+      t41 = 2.*xi*cpwAlpha+cc
+      t43 = cos(t30)
+      t51 = cpwAmp*(-cpwBeta*t18/2.+cpwBeta*t8/2.)
+      t56 = twoPi ** 2
+      t57 = t41 ** 2
+      t64 = cpwAmp*(t6/2.-t16/2.)
+      chirp = cpwAmp*(-2.*t2*t17*t18+2.*t2*t7*t8+t2*t19-t2*t9)*t31+
+     & 0.3E1*cpwAmp*(t1*t16*t18-t1*t6*t8)*twoPi*t41*t43+6.*t51*twoPi*
+     & cpwAlpha*t43-0.3E1*t51*t56*t57*t31-6.*t64*t56*cpwAlpha*t41*t31-
+     & t64*t56*twoPi*t57*t41*t43
+
+                            else if(  numberOfTimeDerivatives.eq.4 )
+     & then
+! File generated by overtureFramework/cg/mx/codes/chirpedPlaneWave.maple
+! Here is the 4-th time-derivative of the chirp function in 3D
+! chirp = cpwAmp*(1/2*tanh(cpwBeta*(xi+.5*cpwTau))-1/2*tanh(cpwBeta*(xi-.5*cpwTau)))*sin(twoPi*(xi^2*cpwAlpha+cc*xi))
+! chirp_t = cpwAmp*(8*cpwBeta^4*(1-tanh(cpwBeta*(xi+.5*cpwTau))^2)^2*tanh(cpwBeta*(xi+.5*cpwTau))-4*cpwBeta^4*tanh(cpwBeta*(xi+.5*cpwTau))^3*(1-tanh(cpwBeta*(xi+.5*cpwTau))^2)-8*cpwBeta^4*(1-tanh(cpwBeta*(xi-.5*cpwTau))^2)^2*tanh(cpwBeta*(xi-.5*cpwTau))+4*cpwBeta^4*tanh(cpwBeta*(xi-.5*cpwTau))^3*(1-tanh(cpwBeta*(xi-.5*cpwTau))^2))*sin(twoPi*(xi^2*cpwAlpha+cc*xi))+4*cpwAmp*(-cpwBeta^3*(1-tanh(cpwBeta*(xi+.5*cpwTau))^2)^2+2*cpwBeta^3*tanh(cpwBeta*(xi+.5*cpwTau))^2*(1-tanh(cpwBeta*(xi+.5*cpwTau))^2)+cpwBeta^3*(1-tanh(cpwBeta*(xi-.5*cpwTau))^2)^2-2*cpwBeta^3*tanh(cpwBeta*(xi-.5*cpwTau))^2*(1-tanh(cpwBeta*(xi-.5*cpwTau))^2))*twoPi*(2*xi*cpwAlpha+cc)*cos(twoPi*(xi^2*cpwAlpha+cc*xi))+12*cpwAmp*(-cpwBeta^2*tanh(cpwBeta*(xi+.5*cpwTau))*(1-tanh(cpwBeta*(xi+.5*cpwTau))^2)+cpwBeta^2*tanh(cpwBeta*(xi-.5*cpwTau))*(1-tanh(cpwBeta*(xi-.5*cpwTau))^2))*twoPi*cpwAlpha*cos(twoPi*(xi^2*cpwAlpha+cc*xi))-6*cpwAmp*(-cpwBeta^2*tanh(cpwBeta*(xi+.5*cpwTau))*(1-tanh(cpwBeta*(xi+.5*cpwTau))^2)+cpwBeta^2*tanh(cpwBeta*(xi-.5*cpwTau))*(1-tanh(cpwBeta*(xi-.5*cpwTau))^2))*twoPi^2*(2*xi*cpwAlpha+cc)^2*sin(twoPi*(xi^2*cpwAlpha+cc*xi))-24*cpwAmp*(1/2*cpwBeta*(1-tanh(cpwBeta*(xi+.5*cpwTau))^2)-1/2*cpwBeta*(1-tanh(cpwBeta*(xi-.5*cpwTau))^2))*twoPi^2*cpwAlpha*(2*xi*cpwAlpha+cc)*sin(twoPi*(xi^2*cpwAlpha+cc*xi))-4*cpwAmp*(1/2*cpwBeta*(1-tanh(cpwBeta*(xi+.5*cpwTau))^2)-1/2*cpwBeta*(1-tanh(cpwBeta*(xi-.5*cpwTau))^2))*twoPi^3*(2*xi*cpwAlpha+cc)^3*cos(twoPi*(xi^2*cpwAlpha+cc*xi))-12*cpwAmp*(1/2*tanh(cpwBeta*(xi+.5*cpwTau))-1/2*tanh(cpwBeta*(xi-.5*cpwTau)))*twoPi^2*cpwAlpha^2*sin(twoPi*(xi^2*cpwAlpha+cc*xi))-12*cpwAmp*(1/2*tanh(cpwBeta*(xi+.5*cpwTau))-1/2*tanh(cpwBeta*(xi-.5*cpwTau)))*twoPi^3*cpwAlpha*(2*xi*cpwAlpha+cc)^2*cos(twoPi*(xi^2*cpwAlpha+cc*xi))+cpwAmp*(1/2*tanh(cpwBeta*(xi+.5*cpwTau))-1/2*tanh(cpwBeta*(xi-.5*cpwTau)))*twoPi^4*(2*xi*cpwAlpha+cc)^4*sin(twoPi*(xi^2*cpwAlpha+cc*xi))
+      t1 = cpwBeta ** 2
+      t2 = t1 ** 2
+      t3 = .5*cpwTau
+      t6 = tanh(cpwBeta*(xi+t3))
+      t7 = t6 ** 2
+      t8 = 1.-t7
+      t9 = t8 ** 2
+      t19 = tanh(cpwBeta*(xi-t3))
+      t20 = t19 ** 2
+      t21 = 1.-t20
+      t22 = t21 ** 2
+      t32 = xi ** 2
+      t36 = twoPi*(cc*xi+t32*cpwAlpha)
+      t37 = sin(t36)
+      t39 = t1*cpwBeta
+      t52 = 2.*xi*cpwAlpha+cc
+      t54 = cos(t36)
+      t63 = cpwAmp*(t1*t19*t21-t1*t6*t8)
+      t68 = twoPi ** 2
+      t69 = t52 ** 2
+      t78 = cpwAmp*(-cpwBeta*t21/2.+cpwBeta*t8/2.)
+      t84 = t68*twoPi
+      t92 = cpwAmp*(t6/2.-t19/2.)
+      t93 = cpwAlpha ** 2
+      t103 = t68 ** 2
+      t104 = t69 ** 2
+      chirp = cpwAmp*(4.*t2*t20*t19*t21-4.*t2*t7*t6*t8-8.*t2*t22*t19+
+     & 8.*t2*t9*t6)*t37+4.*cpwAmp*(-2.*t39*t20*t21+2.*t39*t7*t8+t39*
+     & t22-t39*t9)*twoPi*t52*t54+12.*t63*twoPi*cpwAlpha*t54-6.*t63*
+     & t68*t69*t37-0.24E2*t78*t68*cpwAlpha*t52*t37-4.*t78*t84*t69*t52*
+     & t54-12.*t92*t68*t93*t37-12.*t92*t84*cpwAlpha*t69*t54+t92*t103*
+     & t104*t37
+
+                            else
+                              write(*,'(" getChirp3D:ERROR: too many 
+     & derivatives requested")')
+                              stop 4927
+                            end if
+                            ubv(ex) = chirp*pwc(0)
+                            ubv(ey) = chirp*pwc(1)
+                            ubv(ez) = chirp*pwc(2)
+                         else
+                           write(*,'("getBndryForcing3D:Unknown 
+     & boundary forcing")')
+                         end if
+                       u0=-ubv(ex)
+                       v0=-ubv(ey)
+                       w0=-ubv(ez)
+                     else if( fieldOption.eq.0 )then
                        u0=-(ssf*sin(twoPi*(kx*(x0)+ky*(y0)+kz*(z0)-cc*(
      & t)))*pwc(0))
                        v0=-(ssf*sin(twoPi*(kx*(x0)+ky*(y0)+kz*(z0)-cc*(
@@ -2095,7 +2739,236 @@ c write(*,'("initializeBoundaryForcing slowStartInterval=",e10.2)') slowStartInt
                      x0=xy(i1,i2,i3,0)
                      y0=xy(i1,i2,i3,1)
                      z0=xy(i1,i2,i3,2)
-                     if( fieldOption.eq.0 )then
+                     if( .true. )then ! *new way*
+                       numberOfTimeDerivatives=0+fieldOption
+                         if( 
+     & boundaryForcingOption.eq.noBoundaryForcing )then
+                         else if( 
+     & boundaryForcingOption.eq.planeWaveBoundaryForcing )then
+                             if( numberOfTimeDerivatives==0 )then
+                               ubv(ex) = (ssf*sin(twoPi*(kx*(x0)+ky*(
+     & y0)+kz*(z0)-cc*(t)))*pwc(0))
+                               ubv(ey) = (ssf*sin(twoPi*(kx*(x0)+ky*(
+     & y0)+kz*(z0)-cc*(t)))*pwc(1))
+                               ubv(ez) = (ssf*sin(twoPi*(kx*(x0)+ky*(
+     & y0)+kz*(z0)-cc*(t)))*pwc(2))
+                             else if( numberOfTimeDerivatives==1 )then
+                               ubv(ex) = (ssf*(-twoPi*cc)*cos(twoPi*(
+     & kx*(x0)+ky*(y0)+kz*(z0)-cc*(t)))*pwc(0)+ssft*sin(twoPi*(kx*(x0)
+     & +ky*(y0)+kz*(z0)-cc*(t)))*pwc(0))
+                               ubv(ey) = (ssf*(-twoPi*cc)*cos(twoPi*(
+     & kx*(x0)+ky*(y0)+kz*(z0)-cc*(t)))*pwc(1)+ssft*sin(twoPi*(kx*(x0)
+     & +ky*(y0)+kz*(z0)-cc*(t)))*pwc(1))
+                               ubv(ez) = (ssf*(-twoPi*cc)*cos(twoPi*(
+     & kx*(x0)+ky*(y0)+kz*(z0)-cc*(t)))*pwc(2)+ssft*sin(twoPi*(kx*(x0)
+     & +ky*(y0)+kz*(z0)-cc*(t)))*pwc(2))
+                             else if( numberOfTimeDerivatives==2 )then
+                               ubv(ex) = (ssf*(-(twoPi*cc)**2*sin(
+     & twoPi*(kx*(x0)+ky*(y0)+kz*(z0)-cc*(t)))*pwc(0))+2.*ssft*(-
+     & twoPi*cc)*cos(twoPi*(kx*(x0)+ky*(y0)+kz*(z0)-cc*(t)))*pwc(0)+
+     & ssftt*sin(twoPi*(kx*(x0)+ky*(y0)+kz*(z0)-cc*(t)))*pwc(0))
+                               ubv(ey) = (ssf*(-(twoPi*cc)**2*sin(
+     & twoPi*(kx*(x0)+ky*(y0)+kz*(z0)-cc*(t)))*pwc(1))+2.*ssft*(-
+     & twoPi*cc)*cos(twoPi*(kx*(x0)+ky*(y0)+kz*(z0)-cc*(t)))*pwc(1)+
+     & ssftt*sin(twoPi*(kx*(x0)+ky*(y0)+kz*(z0)-cc*(t)))*pwc(1))
+                               ubv(ez) = (ssf*(-(twoPi*cc)**2*sin(
+     & twoPi*(kx*(x0)+ky*(y0)+kz*(z0)-cc*(t)))*pwc(2))+2.*ssft*(-
+     & twoPi*cc)*cos(twoPi*(kx*(x0)+ky*(y0)+kz*(z0)-cc*(t)))*pwc(2)+
+     & ssftt*sin(twoPi*(kx*(x0)+ky*(y0)+kz*(z0)-cc*(t)))*pwc(2))
+                             else if( numberOfTimeDerivatives==3 )then
+                               ubv(ex) = (ssf*((twoPi*cc)**3*cos(twoPi*
+     & (kx*(x0)+ky*(y0)+kz*(z0)-cc*(t)))*pwc(0))+3.*ssft*(-(twoPi*cc)*
+     & *2*sin(twoPi*(kx*(x0)+ky*(y0)+kz*(z0)-cc*(t)))*pwc(0))+3.*
+     & ssftt*(-twoPi*cc)*cos(twoPi*(kx*(x0)+ky*(y0)+kz*(z0)-cc*(t)))*
+     & pwc(0)+ssfttt*sin(twoPi*(kx*(x0)+ky*(y0)+kz*(z0)-cc*(t)))*pwc(
+     & 0))
+                               ubv(ey) = (ssf*((twoPi*cc)**3*cos(twoPi*
+     & (kx*(x0)+ky*(y0)+kz*(z0)-cc*(t)))*pwc(1))+3.*ssft*(-(twoPi*cc)*
+     & *2*sin(twoPi*(kx*(x0)+ky*(y0)+kz*(z0)-cc*(t)))*pwc(1))+3.*
+     & ssftt*(-twoPi*cc)*cos(twoPi*(kx*(x0)+ky*(y0)+kz*(z0)-cc*(t)))*
+     & pwc(1)+ssfttt*sin(twoPi*(kx*(x0)+ky*(y0)+kz*(z0)-cc*(t)))*pwc(
+     & 1))
+                               ubv(ez) = (ssf*((twoPi*cc)**3*cos(twoPi*
+     & (kx*(x0)+ky*(y0)+kz*(z0)-cc*(t)))*pwc(2))+3.*ssft*(-(twoPi*cc)*
+     & *2*sin(twoPi*(kx*(x0)+ky*(y0)+kz*(z0)-cc*(t)))*pwc(2))+3.*
+     & ssftt*(-twoPi*cc)*cos(twoPi*(kx*(x0)+ky*(y0)+kz*(z0)-cc*(t)))*
+     & pwc(2)+ssfttt*sin(twoPi*(kx*(x0)+ky*(y0)+kz*(z0)-cc*(t)))*pwc(
+     & 2))
+                             else if( numberOfTimeDerivatives==4 )then
+                               ubv(ex) = (ssf*((twoPi*cc)**4*sin(twoPi*
+     & (kx*(x0)+ky*(y0)+kz*(z0)-cc*(t)))*pwc(0))+4.*ssft*((twoPi*cc)**
+     & 3*cos(twoPi*(kx*(x0)+ky*(y0)+kz*(z0)-cc*(t)))*pwc(0))+6.*ssftt*
+     & (-(twoPi*cc)**2*sin(twoPi*(kx*(x0)+ky*(y0)+kz*(z0)-cc*(t)))*
+     & pwc(0))+4.*ssfttt*(-twoPi*cc)*cos(twoPi*(kx*(x0)+ky*(y0)+kz*(
+     & z0)-cc*(t)))*pwc(0)+ssftttt*sin(twoPi*(kx*(x0)+ky*(y0)+kz*(z0)-
+     & cc*(t)))*pwc(0))
+                               ubv(ey) = (ssf*((twoPi*cc)**4*sin(twoPi*
+     & (kx*(x0)+ky*(y0)+kz*(z0)-cc*(t)))*pwc(1))+4.*ssft*((twoPi*cc)**
+     & 3*cos(twoPi*(kx*(x0)+ky*(y0)+kz*(z0)-cc*(t)))*pwc(1))+6.*ssftt*
+     & (-(twoPi*cc)**2*sin(twoPi*(kx*(x0)+ky*(y0)+kz*(z0)-cc*(t)))*
+     & pwc(1))+4.*ssfttt*(-twoPi*cc)*cos(twoPi*(kx*(x0)+ky*(y0)+kz*(
+     & z0)-cc*(t)))*pwc(1)+ssftttt*sin(twoPi*(kx*(x0)+ky*(y0)+kz*(z0)-
+     & cc*(t)))*pwc(1))
+                               ubv(ez) = (ssf*((twoPi*cc)**4*sin(twoPi*
+     & (kx*(x0)+ky*(y0)+kz*(z0)-cc*(t)))*pwc(2))+4.*ssft*((twoPi*cc)**
+     & 3*cos(twoPi*(kx*(x0)+ky*(y0)+kz*(z0)-cc*(t)))*pwc(2))+6.*ssftt*
+     & (-(twoPi*cc)**2*sin(twoPi*(kx*(x0)+ky*(y0)+kz*(z0)-cc*(t)))*
+     & pwc(2))+4.*ssfttt*(-twoPi*cc)*cos(twoPi*(kx*(x0)+ky*(y0)+kz*(
+     & z0)-cc*(t)))*pwc(2)+ssftttt*sin(twoPi*(kx*(x0)+ky*(y0)+kz*(z0)-
+     & cc*(t)))*pwc(2))
+                             else
+                               stop 1739
+                             end if
+                         else if(  
+     & boundaryForcingOption.eq.chirpedPlaneWaveBoundaryForcing )then
+                            ! xi = kx*(x0)+ky*(y0)-cc*(t) - xi0 
+                            xi0 = .5*(cpwTa+cpwTb)
+                            xi = t - (kx*(x0-cpwX0)+ky*(y0-cpwY0)+kz*(
+     & z0-cpwZ0))/cc -xi0
+                            cpwTau=cpwTb-cpwTa  ! tau = tb -ta
+                            ! include files generated by the maple code mx/codes/chirpedPlaneWave.maple 
+                            if( numberOfTimeDerivatives.eq.0 )then
+! File generated by overtureFramework/cg/mx/codes/chirpedPlaneWave.maple
+! Here is the 0-th time-derivative of the chirp function in 3D
+! chirp = cpwAmp*(1/2*tanh(cpwBeta*(xi+.5*cpwTau))-1/2*tanh(cpwBeta*(xi-.5*cpwTau)))*sin(twoPi*(xi^2*cpwAlpha+cc*xi))
+! chirp_t = cpwAmp*(1/2*tanh(cpwBeta*(xi+.5*cpwTau))-1/2*tanh(cpwBeta*(xi-.5*cpwTau)))*sin(twoPi*(xi^2*cpwAlpha+cc*xi))
+      t1 = .5*cpwTau
+      t4 = tanh(cpwBeta*(xi+t1))
+      t7 = tanh(cpwBeta*(xi-t1))
+      t11 = xi ** 2
+      t16 = sin(twoPi*(cc*xi+t11*cpwAlpha))
+      chirp = cpwAmp*(t4/2.-t7/2.)*t16
+
+                            else if(  numberOfTimeDerivatives.eq.1 )
+     & then
+! File generated by overtureFramework/cg/mx/codes/chirpedPlaneWave.maple
+! Here is the 1-th time-derivative of the chirp function in 3D
+! chirp = cpwAmp*(1/2*tanh(cpwBeta*(xi+.5*cpwTau))-1/2*tanh(cpwBeta*(xi-.5*cpwTau)))*sin(twoPi*(xi^2*cpwAlpha+cc*xi))
+! chirp_t = cpwAmp*(1/2*cpwBeta*(1-tanh(cpwBeta*(xi+.5*cpwTau))^2)-1/2*cpwBeta*(1-tanh(cpwBeta*(xi-.5*cpwTau))^2))*sin(twoPi*(xi^2*cpwAlpha+cc*xi))+cpwAmp*(1/2*tanh(cpwBeta*(xi+.5*cpwTau))-1/2*tanh(cpwBeta*(xi-.5*cpwTau)))*twoPi*(2*xi*cpwAlpha+cc)*cos(twoPi*(xi^2*cpwAlpha+cc*xi))
+      t1 = .5*cpwTau
+      t4 = tanh(cpwBeta*(xi+t1))
+      t5 = t4 ** 2
+      t10 = tanh(cpwBeta*(xi-t1))
+      t11 = t10 ** 2
+      t17 = xi ** 2
+      t21 = twoPi*(cc*xi+t17*cpwAlpha)
+      t22 = sin(t21)
+      t31 = cos(t21)
+      chirp = cpwAmp*(cpwBeta*(1.-t5)/2.-cpwBeta*(1.-t11)/2.)*t22+
+     & cpwAmp*(t4/2.-t10/2.)*twoPi*(2.*xi*cpwAlpha+cc)*t31
+
+                            else if(  numberOfTimeDerivatives.eq.2 )
+     & then
+! File generated by overtureFramework/cg/mx/codes/chirpedPlaneWave.maple
+! Here is the 2-th time-derivative of the chirp function in 3D
+! chirp = cpwAmp*(1/2*tanh(cpwBeta*(xi+.5*cpwTau))-1/2*tanh(cpwBeta*(xi-.5*cpwTau)))*sin(twoPi*(xi^2*cpwAlpha+cc*xi))
+! chirp_t = cpwAmp*(-cpwBeta^2*tanh(cpwBeta*(xi+.5*cpwTau))*(1-tanh(cpwBeta*(xi+.5*cpwTau))^2)+cpwBeta^2*tanh(cpwBeta*(xi-.5*cpwTau))*(1-tanh(cpwBeta*(xi-.5*cpwTau))^2))*sin(twoPi*(xi^2*cpwAlpha+cc*xi))+2*cpwAmp*(1/2*cpwBeta*(1-tanh(cpwBeta*(xi+.5*cpwTau))^2)-1/2*cpwBeta*(1-tanh(cpwBeta*(xi-.5*cpwTau))^2))*twoPi*(2*xi*cpwAlpha+cc)*cos(twoPi*(xi^2*cpwAlpha+cc*xi))+2*cpwAmp*(1/2*tanh(cpwBeta*(xi+.5*cpwTau))-1/2*tanh(cpwBeta*(xi-.5*cpwTau)))*twoPi*cpwAlpha*cos(twoPi*(xi^2*cpwAlpha+cc*xi))-cpwAmp*(1/2*tanh(cpwBeta*(xi+.5*cpwTau))-1/2*tanh(cpwBeta*(xi-.5*cpwTau)))*twoPi^2*(2*xi*cpwAlpha+cc)^2*sin(twoPi*(xi^2*cpwAlpha+cc*xi))
+      t1 = cpwBeta ** 2
+      t2 = .5*cpwTau
+      t5 = tanh(cpwBeta*(xi+t2))
+      t7 = t5 ** 2
+      t8 = 1.-t7
+      t12 = tanh(cpwBeta*(xi-t2))
+      t14 = t12 ** 2
+      t15 = 1.-t14
+      t19 = xi ** 2
+      t23 = twoPi*(cc*xi+t19*cpwAlpha)
+      t24 = sin(t23)
+      t33 = 2.*xi*cpwAlpha+cc
+      t35 = cos(t23)
+      t41 = cpwAmp*(t5/2.-t12/2.)
+      t46 = twoPi ** 2
+      t47 = t33 ** 2
+      chirp = cpwAmp*(t1*t12*t15-t1*t5*t8)*t24+2.*cpwAmp*(-cpwBeta*
+     & t15/2.+cpwBeta*t8/2.)*twoPi*t33*t35+2.*t41*twoPi*cpwAlpha*t35-
+     & t41*t46*t47*t24
+
+                            else if(  numberOfTimeDerivatives.eq.3 )
+     & then
+! File generated by overtureFramework/cg/mx/codes/chirpedPlaneWave.maple
+! Here is the 3-th time-derivative of the chirp function in 3D
+! chirp = cpwAmp*(1/2*tanh(cpwBeta*(xi+.5*cpwTau))-1/2*tanh(cpwBeta*(xi-.5*cpwTau)))*sin(twoPi*(xi^2*cpwAlpha+cc*xi))
+! chirp_t = cpwAmp*(-cpwBeta^3*(1-tanh(cpwBeta*(xi+.5*cpwTau))^2)^2+2*cpwBeta^3*tanh(cpwBeta*(xi+.5*cpwTau))^2*(1-tanh(cpwBeta*(xi+.5*cpwTau))^2)+cpwBeta^3*(1-tanh(cpwBeta*(xi-.5*cpwTau))^2)^2-2*cpwBeta^3*tanh(cpwBeta*(xi-.5*cpwTau))^2*(1-tanh(cpwBeta*(xi-.5*cpwTau))^2))*sin(twoPi*(xi^2*cpwAlpha+cc*xi))+3*cpwAmp*(-cpwBeta^2*tanh(cpwBeta*(xi+.5*cpwTau))*(1-tanh(cpwBeta*(xi+.5*cpwTau))^2)+cpwBeta^2*tanh(cpwBeta*(xi-.5*cpwTau))*(1-tanh(cpwBeta*(xi-.5*cpwTau))^2))*twoPi*(2*xi*cpwAlpha+cc)*cos(twoPi*(xi^2*cpwAlpha+cc*xi))+6*cpwAmp*(1/2*cpwBeta*(1-tanh(cpwBeta*(xi+.5*cpwTau))^2)-1/2*cpwBeta*(1-tanh(cpwBeta*(xi-.5*cpwTau))^2))*twoPi*cpwAlpha*cos(twoPi*(xi^2*cpwAlpha+cc*xi))-3*cpwAmp*(1/2*cpwBeta*(1-tanh(cpwBeta*(xi+.5*cpwTau))^2)-1/2*cpwBeta*(1-tanh(cpwBeta*(xi-.5*cpwTau))^2))*twoPi^2*(2*xi*cpwAlpha+cc)^2*sin(twoPi*(xi^2*cpwAlpha+cc*xi))-6*cpwAmp*(1/2*tanh(cpwBeta*(xi+.5*cpwTau))-1/2*tanh(cpwBeta*(xi-.5*cpwTau)))*twoPi^2*cpwAlpha*(2*xi*cpwAlpha+cc)*sin(twoPi*(xi^2*cpwAlpha+cc*xi))-cpwAmp*(1/2*tanh(cpwBeta*(xi+.5*cpwTau))-1/2*tanh(cpwBeta*(xi-.5*cpwTau)))*twoPi^3*(2*xi*cpwAlpha+cc)^3*cos(twoPi*(xi^2*cpwAlpha+cc*xi))
+      t1 = cpwBeta ** 2
+      t2 = t1*cpwBeta
+      t3 = .5*cpwTau
+      t6 = tanh(cpwBeta*(xi+t3))
+      t7 = t6 ** 2
+      t8 = 1.-t7
+      t9 = t8 ** 2
+      t16 = tanh(cpwBeta*(xi-t3))
+      t17 = t16 ** 2
+      t18 = 1.-t17
+      t19 = t18 ** 2
+      t26 = xi ** 2
+      t30 = twoPi*(cc*xi+t26*cpwAlpha)
+      t31 = sin(t30)
+      t41 = 2.*xi*cpwAlpha+cc
+      t43 = cos(t30)
+      t51 = cpwAmp*(-cpwBeta*t18/2.+cpwBeta*t8/2.)
+      t56 = twoPi ** 2
+      t57 = t41 ** 2
+      t64 = cpwAmp*(t6/2.-t16/2.)
+      chirp = cpwAmp*(-2.*t2*t17*t18+2.*t2*t7*t8+t2*t19-t2*t9)*t31+
+     & 0.3E1*cpwAmp*(t1*t16*t18-t1*t6*t8)*twoPi*t41*t43+6.*t51*twoPi*
+     & cpwAlpha*t43-0.3E1*t51*t56*t57*t31-6.*t64*t56*cpwAlpha*t41*t31-
+     & t64*t56*twoPi*t57*t41*t43
+
+                            else if(  numberOfTimeDerivatives.eq.4 )
+     & then
+! File generated by overtureFramework/cg/mx/codes/chirpedPlaneWave.maple
+! Here is the 4-th time-derivative of the chirp function in 3D
+! chirp = cpwAmp*(1/2*tanh(cpwBeta*(xi+.5*cpwTau))-1/2*tanh(cpwBeta*(xi-.5*cpwTau)))*sin(twoPi*(xi^2*cpwAlpha+cc*xi))
+! chirp_t = cpwAmp*(8*cpwBeta^4*(1-tanh(cpwBeta*(xi+.5*cpwTau))^2)^2*tanh(cpwBeta*(xi+.5*cpwTau))-4*cpwBeta^4*tanh(cpwBeta*(xi+.5*cpwTau))^3*(1-tanh(cpwBeta*(xi+.5*cpwTau))^2)-8*cpwBeta^4*(1-tanh(cpwBeta*(xi-.5*cpwTau))^2)^2*tanh(cpwBeta*(xi-.5*cpwTau))+4*cpwBeta^4*tanh(cpwBeta*(xi-.5*cpwTau))^3*(1-tanh(cpwBeta*(xi-.5*cpwTau))^2))*sin(twoPi*(xi^2*cpwAlpha+cc*xi))+4*cpwAmp*(-cpwBeta^3*(1-tanh(cpwBeta*(xi+.5*cpwTau))^2)^2+2*cpwBeta^3*tanh(cpwBeta*(xi+.5*cpwTau))^2*(1-tanh(cpwBeta*(xi+.5*cpwTau))^2)+cpwBeta^3*(1-tanh(cpwBeta*(xi-.5*cpwTau))^2)^2-2*cpwBeta^3*tanh(cpwBeta*(xi-.5*cpwTau))^2*(1-tanh(cpwBeta*(xi-.5*cpwTau))^2))*twoPi*(2*xi*cpwAlpha+cc)*cos(twoPi*(xi^2*cpwAlpha+cc*xi))+12*cpwAmp*(-cpwBeta^2*tanh(cpwBeta*(xi+.5*cpwTau))*(1-tanh(cpwBeta*(xi+.5*cpwTau))^2)+cpwBeta^2*tanh(cpwBeta*(xi-.5*cpwTau))*(1-tanh(cpwBeta*(xi-.5*cpwTau))^2))*twoPi*cpwAlpha*cos(twoPi*(xi^2*cpwAlpha+cc*xi))-6*cpwAmp*(-cpwBeta^2*tanh(cpwBeta*(xi+.5*cpwTau))*(1-tanh(cpwBeta*(xi+.5*cpwTau))^2)+cpwBeta^2*tanh(cpwBeta*(xi-.5*cpwTau))*(1-tanh(cpwBeta*(xi-.5*cpwTau))^2))*twoPi^2*(2*xi*cpwAlpha+cc)^2*sin(twoPi*(xi^2*cpwAlpha+cc*xi))-24*cpwAmp*(1/2*cpwBeta*(1-tanh(cpwBeta*(xi+.5*cpwTau))^2)-1/2*cpwBeta*(1-tanh(cpwBeta*(xi-.5*cpwTau))^2))*twoPi^2*cpwAlpha*(2*xi*cpwAlpha+cc)*sin(twoPi*(xi^2*cpwAlpha+cc*xi))-4*cpwAmp*(1/2*cpwBeta*(1-tanh(cpwBeta*(xi+.5*cpwTau))^2)-1/2*cpwBeta*(1-tanh(cpwBeta*(xi-.5*cpwTau))^2))*twoPi^3*(2*xi*cpwAlpha+cc)^3*cos(twoPi*(xi^2*cpwAlpha+cc*xi))-12*cpwAmp*(1/2*tanh(cpwBeta*(xi+.5*cpwTau))-1/2*tanh(cpwBeta*(xi-.5*cpwTau)))*twoPi^2*cpwAlpha^2*sin(twoPi*(xi^2*cpwAlpha+cc*xi))-12*cpwAmp*(1/2*tanh(cpwBeta*(xi+.5*cpwTau))-1/2*tanh(cpwBeta*(xi-.5*cpwTau)))*twoPi^3*cpwAlpha*(2*xi*cpwAlpha+cc)^2*cos(twoPi*(xi^2*cpwAlpha+cc*xi))+cpwAmp*(1/2*tanh(cpwBeta*(xi+.5*cpwTau))-1/2*tanh(cpwBeta*(xi-.5*cpwTau)))*twoPi^4*(2*xi*cpwAlpha+cc)^4*sin(twoPi*(xi^2*cpwAlpha+cc*xi))
+      t1 = cpwBeta ** 2
+      t2 = t1 ** 2
+      t3 = .5*cpwTau
+      t6 = tanh(cpwBeta*(xi+t3))
+      t7 = t6 ** 2
+      t8 = 1.-t7
+      t9 = t8 ** 2
+      t19 = tanh(cpwBeta*(xi-t3))
+      t20 = t19 ** 2
+      t21 = 1.-t20
+      t22 = t21 ** 2
+      t32 = xi ** 2
+      t36 = twoPi*(cc*xi+t32*cpwAlpha)
+      t37 = sin(t36)
+      t39 = t1*cpwBeta
+      t52 = 2.*xi*cpwAlpha+cc
+      t54 = cos(t36)
+      t63 = cpwAmp*(t1*t19*t21-t1*t6*t8)
+      t68 = twoPi ** 2
+      t69 = t52 ** 2
+      t78 = cpwAmp*(-cpwBeta*t21/2.+cpwBeta*t8/2.)
+      t84 = t68*twoPi
+      t92 = cpwAmp*(t6/2.-t19/2.)
+      t93 = cpwAlpha ** 2
+      t103 = t68 ** 2
+      t104 = t69 ** 2
+      chirp = cpwAmp*(4.*t2*t20*t19*t21-4.*t2*t7*t6*t8-8.*t2*t22*t19+
+     & 8.*t2*t9*t6)*t37+4.*cpwAmp*(-2.*t39*t20*t21+2.*t39*t7*t8+t39*
+     & t22-t39*t9)*twoPi*t52*t54+12.*t63*twoPi*cpwAlpha*t54-6.*t63*
+     & t68*t69*t37-0.24E2*t78*t68*cpwAlpha*t52*t37-4.*t78*t84*t69*t52*
+     & t54-12.*t92*t68*t93*t37-12.*t92*t84*cpwAlpha*t69*t54+t92*t103*
+     & t104*t37
+
+                            else
+                              write(*,'(" getChirp3D:ERROR: too many 
+     & derivatives requested")')
+                              stop 4927
+                            end if
+                            ubv(ex) = chirp*pwc(0)
+                            ubv(ey) = chirp*pwc(1)
+                            ubv(ez) = chirp*pwc(2)
+                         else
+                           write(*,'("getBndryForcing3D:Unknown 
+     & boundary forcing")')
+                         end if
+                       u0=-ubv(ex)
+                       v0=-ubv(ey)
+                       w0=-ubv(ez)
+                     else if( fieldOption.eq.0 )then
                        u0=-(ssf*sin(twoPi*(kx*(x0)+ky*(y0)+kz*(z0)-cc*(
      & t)))*pwc(0))
                        v0=-(ssf*sin(twoPi*(kx*(x0)+ky*(y0)+kz*(z0)-cc*(
@@ -2144,10 +3017,234 @@ c write(*,'("initializeBoundaryForcing slowStartInterval=",e10.2)') slowStartInt
                  do i3=n3a,n3b
                  do i2=n2a,n2b
                  do i1=n1a,n1b
+                     ! -- Boundary Forcing : if we solve for scattered field directly ----
                      x0=xy(i1,i2,i3,0)
                      y0=xy(i1,i2,i3,1)
                      z0=xy(i1,i2,i3,2)
-                     if( fieldOption.eq.0 )then
+                     if( .true. )then ! *new way*
+                       numberOfTimeDerivatives=0+fieldOption
+                         if( 
+     & boundaryForcingOption.eq.noBoundaryForcing )then
+                         else if( 
+     & boundaryForcingOption.eq.planeWaveBoundaryForcing )then
+                             if( numberOfTimeDerivatives==0 )then
+                               uv(ex) = (ssf*sin(twoPi*(kx*(x0)+ky*(y0)
+     & +kz*(z0)-cc*(t)))*pwc(0))
+                               uv(ey) = (ssf*sin(twoPi*(kx*(x0)+ky*(y0)
+     & +kz*(z0)-cc*(t)))*pwc(1))
+                               uv(ez) = (ssf*sin(twoPi*(kx*(x0)+ky*(y0)
+     & +kz*(z0)-cc*(t)))*pwc(2))
+                             else if( numberOfTimeDerivatives==1 )then
+                               uv(ex) = (ssf*(-twoPi*cc)*cos(twoPi*(kx*
+     & (x0)+ky*(y0)+kz*(z0)-cc*(t)))*pwc(0)+ssft*sin(twoPi*(kx*(x0)+
+     & ky*(y0)+kz*(z0)-cc*(t)))*pwc(0))
+                               uv(ey) = (ssf*(-twoPi*cc)*cos(twoPi*(kx*
+     & (x0)+ky*(y0)+kz*(z0)-cc*(t)))*pwc(1)+ssft*sin(twoPi*(kx*(x0)+
+     & ky*(y0)+kz*(z0)-cc*(t)))*pwc(1))
+                               uv(ez) = (ssf*(-twoPi*cc)*cos(twoPi*(kx*
+     & (x0)+ky*(y0)+kz*(z0)-cc*(t)))*pwc(2)+ssft*sin(twoPi*(kx*(x0)+
+     & ky*(y0)+kz*(z0)-cc*(t)))*pwc(2))
+                             else if( numberOfTimeDerivatives==2 )then
+                               uv(ex) = (ssf*(-(twoPi*cc)**2*sin(twoPi*
+     & (kx*(x0)+ky*(y0)+kz*(z0)-cc*(t)))*pwc(0))+2.*ssft*(-twoPi*cc)*
+     & cos(twoPi*(kx*(x0)+ky*(y0)+kz*(z0)-cc*(t)))*pwc(0)+ssftt*sin(
+     & twoPi*(kx*(x0)+ky*(y0)+kz*(z0)-cc*(t)))*pwc(0))
+                               uv(ey) = (ssf*(-(twoPi*cc)**2*sin(twoPi*
+     & (kx*(x0)+ky*(y0)+kz*(z0)-cc*(t)))*pwc(1))+2.*ssft*(-twoPi*cc)*
+     & cos(twoPi*(kx*(x0)+ky*(y0)+kz*(z0)-cc*(t)))*pwc(1)+ssftt*sin(
+     & twoPi*(kx*(x0)+ky*(y0)+kz*(z0)-cc*(t)))*pwc(1))
+                               uv(ez) = (ssf*(-(twoPi*cc)**2*sin(twoPi*
+     & (kx*(x0)+ky*(y0)+kz*(z0)-cc*(t)))*pwc(2))+2.*ssft*(-twoPi*cc)*
+     & cos(twoPi*(kx*(x0)+ky*(y0)+kz*(z0)-cc*(t)))*pwc(2)+ssftt*sin(
+     & twoPi*(kx*(x0)+ky*(y0)+kz*(z0)-cc*(t)))*pwc(2))
+                             else if( numberOfTimeDerivatives==3 )then
+                               uv(ex) = (ssf*((twoPi*cc)**3*cos(twoPi*(
+     & kx*(x0)+ky*(y0)+kz*(z0)-cc*(t)))*pwc(0))+3.*ssft*(-(twoPi*cc)**
+     & 2*sin(twoPi*(kx*(x0)+ky*(y0)+kz*(z0)-cc*(t)))*pwc(0))+3.*ssftt*
+     & (-twoPi*cc)*cos(twoPi*(kx*(x0)+ky*(y0)+kz*(z0)-cc*(t)))*pwc(0)+
+     & ssfttt*sin(twoPi*(kx*(x0)+ky*(y0)+kz*(z0)-cc*(t)))*pwc(0))
+                               uv(ey) = (ssf*((twoPi*cc)**3*cos(twoPi*(
+     & kx*(x0)+ky*(y0)+kz*(z0)-cc*(t)))*pwc(1))+3.*ssft*(-(twoPi*cc)**
+     & 2*sin(twoPi*(kx*(x0)+ky*(y0)+kz*(z0)-cc*(t)))*pwc(1))+3.*ssftt*
+     & (-twoPi*cc)*cos(twoPi*(kx*(x0)+ky*(y0)+kz*(z0)-cc*(t)))*pwc(1)+
+     & ssfttt*sin(twoPi*(kx*(x0)+ky*(y0)+kz*(z0)-cc*(t)))*pwc(1))
+                               uv(ez) = (ssf*((twoPi*cc)**3*cos(twoPi*(
+     & kx*(x0)+ky*(y0)+kz*(z0)-cc*(t)))*pwc(2))+3.*ssft*(-(twoPi*cc)**
+     & 2*sin(twoPi*(kx*(x0)+ky*(y0)+kz*(z0)-cc*(t)))*pwc(2))+3.*ssftt*
+     & (-twoPi*cc)*cos(twoPi*(kx*(x0)+ky*(y0)+kz*(z0)-cc*(t)))*pwc(2)+
+     & ssfttt*sin(twoPi*(kx*(x0)+ky*(y0)+kz*(z0)-cc*(t)))*pwc(2))
+                             else if( numberOfTimeDerivatives==4 )then
+                               uv(ex) = (ssf*((twoPi*cc)**4*sin(twoPi*(
+     & kx*(x0)+ky*(y0)+kz*(z0)-cc*(t)))*pwc(0))+4.*ssft*((twoPi*cc)**
+     & 3*cos(twoPi*(kx*(x0)+ky*(y0)+kz*(z0)-cc*(t)))*pwc(0))+6.*ssftt*
+     & (-(twoPi*cc)**2*sin(twoPi*(kx*(x0)+ky*(y0)+kz*(z0)-cc*(t)))*
+     & pwc(0))+4.*ssfttt*(-twoPi*cc)*cos(twoPi*(kx*(x0)+ky*(y0)+kz*(
+     & z0)-cc*(t)))*pwc(0)+ssftttt*sin(twoPi*(kx*(x0)+ky*(y0)+kz*(z0)-
+     & cc*(t)))*pwc(0))
+                               uv(ey) = (ssf*((twoPi*cc)**4*sin(twoPi*(
+     & kx*(x0)+ky*(y0)+kz*(z0)-cc*(t)))*pwc(1))+4.*ssft*((twoPi*cc)**
+     & 3*cos(twoPi*(kx*(x0)+ky*(y0)+kz*(z0)-cc*(t)))*pwc(1))+6.*ssftt*
+     & (-(twoPi*cc)**2*sin(twoPi*(kx*(x0)+ky*(y0)+kz*(z0)-cc*(t)))*
+     & pwc(1))+4.*ssfttt*(-twoPi*cc)*cos(twoPi*(kx*(x0)+ky*(y0)+kz*(
+     & z0)-cc*(t)))*pwc(1)+ssftttt*sin(twoPi*(kx*(x0)+ky*(y0)+kz*(z0)-
+     & cc*(t)))*pwc(1))
+                               uv(ez) = (ssf*((twoPi*cc)**4*sin(twoPi*(
+     & kx*(x0)+ky*(y0)+kz*(z0)-cc*(t)))*pwc(2))+4.*ssft*((twoPi*cc)**
+     & 3*cos(twoPi*(kx*(x0)+ky*(y0)+kz*(z0)-cc*(t)))*pwc(2))+6.*ssftt*
+     & (-(twoPi*cc)**2*sin(twoPi*(kx*(x0)+ky*(y0)+kz*(z0)-cc*(t)))*
+     & pwc(2))+4.*ssfttt*(-twoPi*cc)*cos(twoPi*(kx*(x0)+ky*(y0)+kz*(
+     & z0)-cc*(t)))*pwc(2)+ssftttt*sin(twoPi*(kx*(x0)+ky*(y0)+kz*(z0)-
+     & cc*(t)))*pwc(2))
+                             else
+                               stop 1739
+                             end if
+                         else if(  
+     & boundaryForcingOption.eq.chirpedPlaneWaveBoundaryForcing )then
+                            ! xi = kx*(x0)+ky*(y0)-cc*(t) - xi0 
+                            xi0 = .5*(cpwTa+cpwTb)
+                            xi = t - (kx*(x0-cpwX0)+ky*(y0-cpwY0)+kz*(
+     & z0-cpwZ0))/cc -xi0
+                            cpwTau=cpwTb-cpwTa  ! tau = tb -ta
+                            ! include files generated by the maple code mx/codes/chirpedPlaneWave.maple 
+                            if( numberOfTimeDerivatives.eq.0 )then
+! File generated by overtureFramework/cg/mx/codes/chirpedPlaneWave.maple
+! Here is the 0-th time-derivative of the chirp function in 3D
+! chirp = cpwAmp*(1/2*tanh(cpwBeta*(xi+.5*cpwTau))-1/2*tanh(cpwBeta*(xi-.5*cpwTau)))*sin(twoPi*(xi^2*cpwAlpha+cc*xi))
+! chirp_t = cpwAmp*(1/2*tanh(cpwBeta*(xi+.5*cpwTau))-1/2*tanh(cpwBeta*(xi-.5*cpwTau)))*sin(twoPi*(xi^2*cpwAlpha+cc*xi))
+      t1 = .5*cpwTau
+      t4 = tanh(cpwBeta*(xi+t1))
+      t7 = tanh(cpwBeta*(xi-t1))
+      t11 = xi ** 2
+      t16 = sin(twoPi*(cc*xi+t11*cpwAlpha))
+      chirp = cpwAmp*(t4/2.-t7/2.)*t16
+
+                            else if(  numberOfTimeDerivatives.eq.1 )
+     & then
+! File generated by overtureFramework/cg/mx/codes/chirpedPlaneWave.maple
+! Here is the 1-th time-derivative of the chirp function in 3D
+! chirp = cpwAmp*(1/2*tanh(cpwBeta*(xi+.5*cpwTau))-1/2*tanh(cpwBeta*(xi-.5*cpwTau)))*sin(twoPi*(xi^2*cpwAlpha+cc*xi))
+! chirp_t = cpwAmp*(1/2*cpwBeta*(1-tanh(cpwBeta*(xi+.5*cpwTau))^2)-1/2*cpwBeta*(1-tanh(cpwBeta*(xi-.5*cpwTau))^2))*sin(twoPi*(xi^2*cpwAlpha+cc*xi))+cpwAmp*(1/2*tanh(cpwBeta*(xi+.5*cpwTau))-1/2*tanh(cpwBeta*(xi-.5*cpwTau)))*twoPi*(2*xi*cpwAlpha+cc)*cos(twoPi*(xi^2*cpwAlpha+cc*xi))
+      t1 = .5*cpwTau
+      t4 = tanh(cpwBeta*(xi+t1))
+      t5 = t4 ** 2
+      t10 = tanh(cpwBeta*(xi-t1))
+      t11 = t10 ** 2
+      t17 = xi ** 2
+      t21 = twoPi*(cc*xi+t17*cpwAlpha)
+      t22 = sin(t21)
+      t31 = cos(t21)
+      chirp = cpwAmp*(cpwBeta*(1.-t5)/2.-cpwBeta*(1.-t11)/2.)*t22+
+     & cpwAmp*(t4/2.-t10/2.)*twoPi*(2.*xi*cpwAlpha+cc)*t31
+
+                            else if(  numberOfTimeDerivatives.eq.2 )
+     & then
+! File generated by overtureFramework/cg/mx/codes/chirpedPlaneWave.maple
+! Here is the 2-th time-derivative of the chirp function in 3D
+! chirp = cpwAmp*(1/2*tanh(cpwBeta*(xi+.5*cpwTau))-1/2*tanh(cpwBeta*(xi-.5*cpwTau)))*sin(twoPi*(xi^2*cpwAlpha+cc*xi))
+! chirp_t = cpwAmp*(-cpwBeta^2*tanh(cpwBeta*(xi+.5*cpwTau))*(1-tanh(cpwBeta*(xi+.5*cpwTau))^2)+cpwBeta^2*tanh(cpwBeta*(xi-.5*cpwTau))*(1-tanh(cpwBeta*(xi-.5*cpwTau))^2))*sin(twoPi*(xi^2*cpwAlpha+cc*xi))+2*cpwAmp*(1/2*cpwBeta*(1-tanh(cpwBeta*(xi+.5*cpwTau))^2)-1/2*cpwBeta*(1-tanh(cpwBeta*(xi-.5*cpwTau))^2))*twoPi*(2*xi*cpwAlpha+cc)*cos(twoPi*(xi^2*cpwAlpha+cc*xi))+2*cpwAmp*(1/2*tanh(cpwBeta*(xi+.5*cpwTau))-1/2*tanh(cpwBeta*(xi-.5*cpwTau)))*twoPi*cpwAlpha*cos(twoPi*(xi^2*cpwAlpha+cc*xi))-cpwAmp*(1/2*tanh(cpwBeta*(xi+.5*cpwTau))-1/2*tanh(cpwBeta*(xi-.5*cpwTau)))*twoPi^2*(2*xi*cpwAlpha+cc)^2*sin(twoPi*(xi^2*cpwAlpha+cc*xi))
+      t1 = cpwBeta ** 2
+      t2 = .5*cpwTau
+      t5 = tanh(cpwBeta*(xi+t2))
+      t7 = t5 ** 2
+      t8 = 1.-t7
+      t12 = tanh(cpwBeta*(xi-t2))
+      t14 = t12 ** 2
+      t15 = 1.-t14
+      t19 = xi ** 2
+      t23 = twoPi*(cc*xi+t19*cpwAlpha)
+      t24 = sin(t23)
+      t33 = 2.*xi*cpwAlpha+cc
+      t35 = cos(t23)
+      t41 = cpwAmp*(t5/2.-t12/2.)
+      t46 = twoPi ** 2
+      t47 = t33 ** 2
+      chirp = cpwAmp*(t1*t12*t15-t1*t5*t8)*t24+2.*cpwAmp*(-cpwBeta*
+     & t15/2.+cpwBeta*t8/2.)*twoPi*t33*t35+2.*t41*twoPi*cpwAlpha*t35-
+     & t41*t46*t47*t24
+
+                            else if(  numberOfTimeDerivatives.eq.3 )
+     & then
+! File generated by overtureFramework/cg/mx/codes/chirpedPlaneWave.maple
+! Here is the 3-th time-derivative of the chirp function in 3D
+! chirp = cpwAmp*(1/2*tanh(cpwBeta*(xi+.5*cpwTau))-1/2*tanh(cpwBeta*(xi-.5*cpwTau)))*sin(twoPi*(xi^2*cpwAlpha+cc*xi))
+! chirp_t = cpwAmp*(-cpwBeta^3*(1-tanh(cpwBeta*(xi+.5*cpwTau))^2)^2+2*cpwBeta^3*tanh(cpwBeta*(xi+.5*cpwTau))^2*(1-tanh(cpwBeta*(xi+.5*cpwTau))^2)+cpwBeta^3*(1-tanh(cpwBeta*(xi-.5*cpwTau))^2)^2-2*cpwBeta^3*tanh(cpwBeta*(xi-.5*cpwTau))^2*(1-tanh(cpwBeta*(xi-.5*cpwTau))^2))*sin(twoPi*(xi^2*cpwAlpha+cc*xi))+3*cpwAmp*(-cpwBeta^2*tanh(cpwBeta*(xi+.5*cpwTau))*(1-tanh(cpwBeta*(xi+.5*cpwTau))^2)+cpwBeta^2*tanh(cpwBeta*(xi-.5*cpwTau))*(1-tanh(cpwBeta*(xi-.5*cpwTau))^2))*twoPi*(2*xi*cpwAlpha+cc)*cos(twoPi*(xi^2*cpwAlpha+cc*xi))+6*cpwAmp*(1/2*cpwBeta*(1-tanh(cpwBeta*(xi+.5*cpwTau))^2)-1/2*cpwBeta*(1-tanh(cpwBeta*(xi-.5*cpwTau))^2))*twoPi*cpwAlpha*cos(twoPi*(xi^2*cpwAlpha+cc*xi))-3*cpwAmp*(1/2*cpwBeta*(1-tanh(cpwBeta*(xi+.5*cpwTau))^2)-1/2*cpwBeta*(1-tanh(cpwBeta*(xi-.5*cpwTau))^2))*twoPi^2*(2*xi*cpwAlpha+cc)^2*sin(twoPi*(xi^2*cpwAlpha+cc*xi))-6*cpwAmp*(1/2*tanh(cpwBeta*(xi+.5*cpwTau))-1/2*tanh(cpwBeta*(xi-.5*cpwTau)))*twoPi^2*cpwAlpha*(2*xi*cpwAlpha+cc)*sin(twoPi*(xi^2*cpwAlpha+cc*xi))-cpwAmp*(1/2*tanh(cpwBeta*(xi+.5*cpwTau))-1/2*tanh(cpwBeta*(xi-.5*cpwTau)))*twoPi^3*(2*xi*cpwAlpha+cc)^3*cos(twoPi*(xi^2*cpwAlpha+cc*xi))
+      t1 = cpwBeta ** 2
+      t2 = t1*cpwBeta
+      t3 = .5*cpwTau
+      t6 = tanh(cpwBeta*(xi+t3))
+      t7 = t6 ** 2
+      t8 = 1.-t7
+      t9 = t8 ** 2
+      t16 = tanh(cpwBeta*(xi-t3))
+      t17 = t16 ** 2
+      t18 = 1.-t17
+      t19 = t18 ** 2
+      t26 = xi ** 2
+      t30 = twoPi*(cc*xi+t26*cpwAlpha)
+      t31 = sin(t30)
+      t41 = 2.*xi*cpwAlpha+cc
+      t43 = cos(t30)
+      t51 = cpwAmp*(-cpwBeta*t18/2.+cpwBeta*t8/2.)
+      t56 = twoPi ** 2
+      t57 = t41 ** 2
+      t64 = cpwAmp*(t6/2.-t16/2.)
+      chirp = cpwAmp*(-2.*t2*t17*t18+2.*t2*t7*t8+t2*t19-t2*t9)*t31+
+     & 0.3E1*cpwAmp*(t1*t16*t18-t1*t6*t8)*twoPi*t41*t43+6.*t51*twoPi*
+     & cpwAlpha*t43-0.3E1*t51*t56*t57*t31-6.*t64*t56*cpwAlpha*t41*t31-
+     & t64*t56*twoPi*t57*t41*t43
+
+                            else if(  numberOfTimeDerivatives.eq.4 )
+     & then
+! File generated by overtureFramework/cg/mx/codes/chirpedPlaneWave.maple
+! Here is the 4-th time-derivative of the chirp function in 3D
+! chirp = cpwAmp*(1/2*tanh(cpwBeta*(xi+.5*cpwTau))-1/2*tanh(cpwBeta*(xi-.5*cpwTau)))*sin(twoPi*(xi^2*cpwAlpha+cc*xi))
+! chirp_t = cpwAmp*(8*cpwBeta^4*(1-tanh(cpwBeta*(xi+.5*cpwTau))^2)^2*tanh(cpwBeta*(xi+.5*cpwTau))-4*cpwBeta^4*tanh(cpwBeta*(xi+.5*cpwTau))^3*(1-tanh(cpwBeta*(xi+.5*cpwTau))^2)-8*cpwBeta^4*(1-tanh(cpwBeta*(xi-.5*cpwTau))^2)^2*tanh(cpwBeta*(xi-.5*cpwTau))+4*cpwBeta^4*tanh(cpwBeta*(xi-.5*cpwTau))^3*(1-tanh(cpwBeta*(xi-.5*cpwTau))^2))*sin(twoPi*(xi^2*cpwAlpha+cc*xi))+4*cpwAmp*(-cpwBeta^3*(1-tanh(cpwBeta*(xi+.5*cpwTau))^2)^2+2*cpwBeta^3*tanh(cpwBeta*(xi+.5*cpwTau))^2*(1-tanh(cpwBeta*(xi+.5*cpwTau))^2)+cpwBeta^3*(1-tanh(cpwBeta*(xi-.5*cpwTau))^2)^2-2*cpwBeta^3*tanh(cpwBeta*(xi-.5*cpwTau))^2*(1-tanh(cpwBeta*(xi-.5*cpwTau))^2))*twoPi*(2*xi*cpwAlpha+cc)*cos(twoPi*(xi^2*cpwAlpha+cc*xi))+12*cpwAmp*(-cpwBeta^2*tanh(cpwBeta*(xi+.5*cpwTau))*(1-tanh(cpwBeta*(xi+.5*cpwTau))^2)+cpwBeta^2*tanh(cpwBeta*(xi-.5*cpwTau))*(1-tanh(cpwBeta*(xi-.5*cpwTau))^2))*twoPi*cpwAlpha*cos(twoPi*(xi^2*cpwAlpha+cc*xi))-6*cpwAmp*(-cpwBeta^2*tanh(cpwBeta*(xi+.5*cpwTau))*(1-tanh(cpwBeta*(xi+.5*cpwTau))^2)+cpwBeta^2*tanh(cpwBeta*(xi-.5*cpwTau))*(1-tanh(cpwBeta*(xi-.5*cpwTau))^2))*twoPi^2*(2*xi*cpwAlpha+cc)^2*sin(twoPi*(xi^2*cpwAlpha+cc*xi))-24*cpwAmp*(1/2*cpwBeta*(1-tanh(cpwBeta*(xi+.5*cpwTau))^2)-1/2*cpwBeta*(1-tanh(cpwBeta*(xi-.5*cpwTau))^2))*twoPi^2*cpwAlpha*(2*xi*cpwAlpha+cc)*sin(twoPi*(xi^2*cpwAlpha+cc*xi))-4*cpwAmp*(1/2*cpwBeta*(1-tanh(cpwBeta*(xi+.5*cpwTau))^2)-1/2*cpwBeta*(1-tanh(cpwBeta*(xi-.5*cpwTau))^2))*twoPi^3*(2*xi*cpwAlpha+cc)^3*cos(twoPi*(xi^2*cpwAlpha+cc*xi))-12*cpwAmp*(1/2*tanh(cpwBeta*(xi+.5*cpwTau))-1/2*tanh(cpwBeta*(xi-.5*cpwTau)))*twoPi^2*cpwAlpha^2*sin(twoPi*(xi^2*cpwAlpha+cc*xi))-12*cpwAmp*(1/2*tanh(cpwBeta*(xi+.5*cpwTau))-1/2*tanh(cpwBeta*(xi-.5*cpwTau)))*twoPi^3*cpwAlpha*(2*xi*cpwAlpha+cc)^2*cos(twoPi*(xi^2*cpwAlpha+cc*xi))+cpwAmp*(1/2*tanh(cpwBeta*(xi+.5*cpwTau))-1/2*tanh(cpwBeta*(xi-.5*cpwTau)))*twoPi^4*(2*xi*cpwAlpha+cc)^4*sin(twoPi*(xi^2*cpwAlpha+cc*xi))
+      t1 = cpwBeta ** 2
+      t2 = t1 ** 2
+      t3 = .5*cpwTau
+      t6 = tanh(cpwBeta*(xi+t3))
+      t7 = t6 ** 2
+      t8 = 1.-t7
+      t9 = t8 ** 2
+      t19 = tanh(cpwBeta*(xi-t3))
+      t20 = t19 ** 2
+      t21 = 1.-t20
+      t22 = t21 ** 2
+      t32 = xi ** 2
+      t36 = twoPi*(cc*xi+t32*cpwAlpha)
+      t37 = sin(t36)
+      t39 = t1*cpwBeta
+      t52 = 2.*xi*cpwAlpha+cc
+      t54 = cos(t36)
+      t63 = cpwAmp*(t1*t19*t21-t1*t6*t8)
+      t68 = twoPi ** 2
+      t69 = t52 ** 2
+      t78 = cpwAmp*(-cpwBeta*t21/2.+cpwBeta*t8/2.)
+      t84 = t68*twoPi
+      t92 = cpwAmp*(t6/2.-t19/2.)
+      t93 = cpwAlpha ** 2
+      t103 = t68 ** 2
+      t104 = t69 ** 2
+      chirp = cpwAmp*(4.*t2*t20*t19*t21-4.*t2*t7*t6*t8-8.*t2*t22*t19+
+     & 8.*t2*t9*t6)*t37+4.*cpwAmp*(-2.*t39*t20*t21+2.*t39*t7*t8+t39*
+     & t22-t39*t9)*twoPi*t52*t54+12.*t63*twoPi*cpwAlpha*t54-6.*t63*
+     & t68*t69*t37-0.24E2*t78*t68*cpwAlpha*t52*t37-4.*t78*t84*t69*t52*
+     & t54-12.*t92*t68*t93*t37-12.*t92*t84*cpwAlpha*t69*t54+t92*t103*
+     & t104*t37
+
+                            else
+                              write(*,'(" getChirp3D:ERROR: too many 
+     & derivatives requested")')
+                              stop 4927
+                            end if
+                            uv(ex) = chirp*pwc(0)
+                            uv(ey) = chirp*pwc(1)
+                            uv(ez) = chirp*pwc(2)
+                         else
+                           write(*,'("getBndryForcing3D:Unknown 
+     & boundary forcing")')
+                         end if
+                     else if( fieldOption.eq.0 )then
                        uv(ex)=-(ssf*sin(twoPi*(kx*(x0)+ky*(y0)+kz*(z0)-
      & cc*(t)))*pwc(0))
                        uv(ey)=-(ssf*sin(twoPi*(kx*(x0)+ky*(y0)+kz*(z0)-

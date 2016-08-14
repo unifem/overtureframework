@@ -1,3 +1,22 @@
+***************************
+**** Aug 5, 2016
+
+Run for contour plots in paper
+
+G4 
+cgins -noplot movingDiskInDisk.cmd -g=diskInDiskGridFixede4.order2.hdf -tf=1. -tp=.1 -nu=.1 -ts=im -density=.001 -radius=1. -gravity=0. -amp=1.e-7 -bodyForce=none -option=translatingDisk -dtMax=.05 -project=0 -numberOfCorrections=2 -addedDampingProjectVelocity=1 -omega=.2 -addedMass=1 -addedDamping=1 -scaleAddedDampingWithDt=1 -useProvidedAcceleration=1 -useTP=0 -debug=3 -solver=best -rtol=1.e-9 -atol=1.e-15  -psolver=best -rtolp=1.e-9 -atolp=1.e-15  -ad2=0 -addedDampingCoeff=1 -show=transDisk4Bd0p001Adc1.show -go=go >! transDisk4Bd0p001Adc1.out
+
+
+
+******************************
+****** Mon Aug 1, 2016
+
+Run for paper 
+G4:
+cgins -noplot movingDiskInDisk.cmd -g=diskInDiskGridFixede4.order2.hdf -tf=1. -tp=.1 -nu=.1 -ts=im -density=.01 -radius=1. -gravity=0. -amp=.1 -bodyForce=none -option=rotatingDisk -dtMax=.025 -project=0 -numberOfCorrections=2 -addedDampingProjectVelocity=1 -omega=.2 -addedMass=1 -addedDamping=1 -scaleAddedDampingWithDt=1 -useProvidedAcceleration=1 -useTP=0 -debug=3  -solver=best -rol=1.e-5 -atol=1.e-7  -psolver=best -rtolp=1.e-5 -atolp=1.e-7 -ad2=0 -show=shearDiskG4Bd0p01Ad1.show  -addedDampingCoeff=1. -go=go >!  shearDiskG4Bd0p01Ad1.out
+
+
+
 *********************
 ****** Sun July 11, 2016
 

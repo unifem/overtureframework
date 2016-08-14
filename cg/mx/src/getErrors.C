@@ -1733,8 +1733,6 @@ getErrors( int current, real t, real dt )
             erre(Ie1,Ie2,Ie3,Ce)=ue(Ie1,Ie2,Ie3,Ce) - urLocal(Ie1,Ie2,Ie3,Ce);
         }
 
-//     else if (forcingOption==planeWaveBoundaryForcing ||
-// 	     initialConditionOption==planeWaveScatteredFieldInitialCondition )
         else if( knownSolutionOption==scatteringFromADiskKnownSolution ||
                           knownSolutionOption==scatteringFromADielectricDiskKnownSolution ||
                           knownSolutionOption==scatteringFromASphereKnownSolution ||

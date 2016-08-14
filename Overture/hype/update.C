@@ -5317,8 +5317,8 @@ update( MappingInformation & mapInfo,
     }
     else 
     {
-      gi.outputString( sPrintF(line,"Unknown response=%s",(const char*)answer) );
-      printf("Unknown response=%s \n",(const char*)answer);
+      gi.outputString( sPrintF(line,"Unknown response=[%s]",(const char*)answer) );
+      printF("Unknown response=[%s] \n",(const char*)answer);
       gi.stopReadingCommandFile();
     }
 

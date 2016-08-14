@@ -121,6 +121,10 @@ advance(real & tFinal )
 
     RealArray & timing = parameters.dbase.get<RealArray>("timing");
 
+    const real & cfl    = parameters.dbase.get<real>("cfl");
+    const real & cflMin = parameters.dbase.get<real>("cflMin");
+    const real & cflMax = parameters.dbase.get<real>("cflMax");
+    
     real & tPrint = parameters.dbase.get<real >("tPrint");
     const int & myid = parameters.dbase.get<int >("myid");
     FILE * debugFile = parameters.dbase.get<FILE* >("debugFile");
@@ -300,15 +304,13 @@ advance(real & tFinal )
             real ratio=dt/dtNew;
             if( step==0 || 
                     implicitMethod==Parameters::approximateFactorization || // *wdh* always change time step for AF scheme 2011/09/06
-                    ratio < parameters.dbase.get<real >("cflMin")/parameters.dbase.get<real >("cfl") || 
-                    ratio > parameters.dbase.get<real >("cflMax")/parameters.dbase.get<real >("cfl") )
+                    ratio < cflMin/cfl || 
+                    ratio > cflMax/cfl )
             {
                 dt=dtNew;
                 if( debug() & 1 ) 
                     printF(" ****** time step is being changed for the implicit method, dt/dtNew=%8.2e "
-                                  "(cflMin=%5.2f, cfl=%5.2f, cflMax=%5.2f)*****\n",
-                                  ratio,parameters.dbase.get<real >("cflMin"),parameters.dbase.get<real >("cfl"),
-                                  parameters.dbase.get<real >("cflMax"));
+                                  "(cflMin=%5.2f, cfl=%5.2f, cflMax=%5.2f)*****\n",ratio,cflMin,cfl,cflMax);
             }
             else
             {

@@ -13,7 +13,6 @@
 #include "Oges.h"
 #include "ParallelUtility.h"
 
-
 aString Maxwell::
 bcName[numberOfBCNames]={
   "periodic",
@@ -364,6 +363,24 @@ Maxwell()
   dbase.put<aString>("knownSolutionName")="noKnownSolution";
   dbase.put<bool>("knownSolutionIsTimeDependent")=true;
 
+  // // boundaryForcingOption: used when we solve directl;y for the scattered field and add a RHS to the PEC BC
+  dbase.put<BoundaryForcingEnum>("boundaryForcingOption")=noBoundaryForcing;
+
+  // solveForScatteredField = true if we are directly solving for the scattered field. 
+  dbase.put<bool>("solveForScatteredField")=false;
+
+  // parameters for the chirped plane wave (dimension to 10 for future parameters)
+  // ArraySimpleFixed<real,10,1,1,1> & chirpedParameters = dbase.put<ArraySimpleFixed<real,10,1,1,1> >("chirpedParameters");
+  ChirpedArrayType & chirpedParameters = dbase.put<ChirpedArrayType>("chirpedParameters");
+  chirpedParameters(0)=.5;  // ta
+  chirpedParameters(1)=2.;  // tb
+  chirpedParameters(2)=1.;  // alpha  ! chirp-rate:  omega0*t + alpha*t^2 
+  chirpedParameters(3)=10.; // beta  - exponent in tanh 
+  chirpedParameters(4)=1.;  // amplitude
+  chirpedParameters(5)=0.;  // x0
+  chirpedParameters(6)=0.;  // y0
+  chirpedParameters(7)=0.;  // z0
+   
 
   // Time history of the forcing is stored here (when needed)
   //    forcingArray[numberOfForcingFunctions] 
@@ -519,11 +536,37 @@ forcingIsOn() const
 bool Maxwell::
 vertexArrayIsNeeded( int grid ) const
 {
-
+  assert( cgp!=NULL );
+  CompositeGrid & cg = *cgp;
+  MappedGrid & mg = cg[grid];
+  
+  const int numberOfDimensions=cg.numberOfDimensions();
+  
   // from assignBC: 
   const int useForcing = forcingOption==twilightZoneForcing;
+  const BoundaryForcingEnum & boundaryForcingOption =dbase.get<BoundaryForcingEnum>("boundaryForcingOption");
+  
+  // --- vertex array is currently needed if we have boundary forcing on PEC boundaries ----
+  // -- this check for PEC boundaries added Aug 11, 2016 *wdh*
+  bool vertexNeededForBoundaryForcing=false;
+  if(  boundaryForcingOption!=noBoundaryForcing )
+  {
+    for( int axis=0; axis<numberOfDimensions; axis++ )
+    {
+      for( int side=0; side<=1; side++ )
+      {
+	if( mg.boundaryCondition(side,axis)==perfectElectricalConductor )
+	{
+	  vertexNeededForBoundaryForcing=true;
+	  break;
+	}
+      }
+    }
+  }
+  
+
   const bool centerNeeded=(useForcing || 
-                           forcingOption==planeWaveBoundaryForcing ||  // **************** fix this 
+                           vertexNeededForBoundaryForcing ||  // **************** fix this 
                            initialConditionOption==gaussianPlaneWave || 
                            (initialConditionOption==planeWaveInitialCondition 
 			      && method!=nfdtd  && method!=sosup  ) ||  // for ABC + incident field fix 
@@ -535,13 +578,13 @@ vertexArrayIsNeeded( int grid ) const
     return true;
 
   // -- now check for cases that depend on whether the grid is rectangular (i.e. Cartesian)
-  assert( cgp!=NULL );
-  CompositeGrid & cg = *cgp;
   const bool isRectangular = cg[grid].isRectangular();
 
   // from forcing: 
   const bool buildCenter = !( isRectangular &&
-			      ( initialConditionOption==squareEigenfunctionInitialCondition ||
+			      ( 
+                                initialConditionOption==zeroInitialCondition ||  // *wdh* Aug 11, 2016
+                                initialConditionOption==squareEigenfunctionInitialCondition ||
 				initialConditionOption==gaussianPulseInitialCondition ||
 				(forcingOption==gaussianChargeSource && initialConditionOption==defaultInitialCondition)
 				|| initialConditionOption==userDefinedKnownSolutionInitialCondition 
@@ -1383,6 +1426,7 @@ buildForcingOptionsDialog(DialogData & dialog )
 //   Build the forcing options dialog.
 // ==========================================================================================
 {
+  const BoundaryForcingEnum & boundaryForcingOption =dbase.get<BoundaryForcingEnum>("boundaryForcingOption");
 
   // ************** PUSH BUTTONS *****************
   aString pushButtonCommands[] = {"set pml error checking offset",
@@ -1398,12 +1442,20 @@ buildForcingOptionsDialog(DialogData & dialog )
                                      "magneticSinusoidalPointSource",
                                      "gaussianSource",
                                      "twilightZone",
-                                     "planeWaveBoundaryForcing",
+                                     // "planeWaveBoundaryForcing",
                                      "gaussianChargeSource",
                                      "userDefinedForcing",
                                      "" };
 
   dialog.addOptionMenu("forcing:", forcingOptionCommands, forcingOptionCommands, (int)forcingOption );
+
+  aString boundaryForcingOptionCommands[] = {"noBoundaryForcing", 
+					     "planeWaveBoundaryForcing",
+					     "chirpedPlaneWaveBoundaryForcing",
+					     "" };
+
+  dialog.addOptionMenu("boundary forcing:", boundaryForcingOptionCommands, boundaryForcingOptionCommands, 
+                       (int)boundaryForcingOption );
 
   aString twilightZoneOptionCommands[] = {"polynomial", 
 					  "trigonometric",
@@ -1504,6 +1556,10 @@ buildForcingOptionsDialog(DialogData & dialog )
   textCommands[nt] = "scattering radius";  textLabels[nt]=textCommands[nt]; sPrintF(textStrings[nt], "%g",
            dbase.get<real>("scatteringRadius")); nt++; 
 
+  const ChirpedArrayType & cpw = dbase.get<ChirpedArrayType>("chirpedParameters");
+  textCommands[nt] = "chirp parameters";  
+  textLabels[nt]=textCommands[nt]; sPrintF(textStrings[nt], "%g, %g, %g, %g, %g, %g, %g, %g (ta,tb,alpha,beta,amp,x0,y0,z0)",
+                                           cpw(0),cpw(1),cpw(2),cpw(3),cpw(4),cpw(5),cpw(6),cpw(7)); nt++; 
   // null strings terminal list
   assert( nt<numberOfTextStrings );
   textCommands[nt]="";   textLabels[nt]="";   textStrings[nt]="";  
@@ -1724,7 +1780,10 @@ interactiveUpdate(GL_GraphicsInterface &gi )
 
   int & setDivergenceAtInterfaces = dbase.get<int>("setDivergenceAtInterfaces");
   int & useImpedanceInterfaceProjection = dbase.get<int>("useImpedanceInterfaceProjection");
- 
+  BoundaryForcingEnum & boundaryForcingOption =dbase.get<BoundaryForcingEnum>("boundaryForcingOption");
+  bool & solveForScatteredField = dbase.get<bool>("solveForScatteredField");
+  ChirpedArrayType & cpw = dbase.get<ChirpedArrayType>("chirpedParameters");
+  
   GUIState gui;
 
   DialogData & dialog=gui;
@@ -2041,14 +2100,14 @@ interactiveUpdate(GL_GraphicsInterface &gi )
              answer=="magneticSinusoidalPointSource" ||
              answer=="gaussianSource" ||
              answer=="twilightZone" ||
-             answer=="planeWaveBoundaryForcing" ||
+             // answer=="planeWaveBoundaryForcing" ||
              answer=="gaussianChargeSource" ||
              answer=="userDefinedForcing" )
     {
       forcingOption=(answer=="magneticSinusoidalPointSource" ? magneticSinusoidalPointSource :
 		     answer=="gaussianSource"                ? gaussianSource : 
                      answer=="twilightZone"                  ? twilightZoneForcing :
-                     answer=="planeWaveBoundaryForcing"      ? planeWaveBoundaryForcing :
+		     //  answer=="planeWaveBoundaryForcing"      ? planeWaveBoundaryForcing :
                      answer=="gaussianChargeSource"          ? gaussianChargeSource :
                      answer=="userDefinedForcing"            ? userDefinedForcingOption :
 		     noForcing);
@@ -2073,6 +2132,39 @@ interactiveUpdate(GL_GraphicsInterface &gi )
 
       forcingOptionsDialog.getOptionMenu("forcing:").setCurrentChoice((int)forcingOption);
     }
+
+    else if( answer=="noBoundaryForcing" ||
+             answer=="planeWaveBoundaryForcing" ||
+             answer=="chirpedPlaneWaveBoundaryForcing" )
+    {
+      boundaryForcingOption=(answer=="noBoundaryForcing" ? noBoundaryForcing :
+			     answer=="planeWaveBoundaryForcing"      ? planeWaveBoundaryForcing :
+			     answer=="chirpedPlaneWaveBoundaryForcing"      ? chirpedPlaneWaveBoundaryForcing :
+			     noBoundaryForcing);
+
+      if( boundaryForcingOption==noBoundaryForcing )
+      {
+	printF("boundaryForcingOption=noBoundaryForcing, do not solve directly for the scattered field\n");
+	solveForScatteredField=false;
+      }
+      else if( boundaryForcingOption==planeWaveBoundaryForcing )
+      {
+	printF("boundaryForcingOption=planeWaveBoundaryForcing: solve directly for the scattered field\n");
+	solveForScatteredField=true;
+      }
+      else if( boundaryForcingOption==chirpedPlaneWaveBoundaryForcing )
+      {
+	printF("boundaryForcingOption=chirpedPlaneWaveBoundaryForcing: solve directly for the scattered field\n");
+	solveForScatteredField=true;
+      }
+      else
+      {
+	OV_ABORT("error -- this should not happen");
+      }
+
+      forcingOptionsDialog.getOptionMenu("boundary forcing:").setCurrentChoice((int)boundaryForcingOption);
+    }
+
     else if( answer=="noKnownSolution" ||
              answer=="twilightZoneKnownSolution" ||
 	     answer=="planeWaveKnownSolution" ||
@@ -2216,6 +2308,30 @@ interactiveUpdate(GL_GraphicsInterface &gi )
 						x0PlaneMaterialInterface[0], x0PlaneMaterialInterface[1],
 						x0PlaneMaterialInterface[2]));
     }
+
+    else if( len=answer.matches("chirp parameters") )
+    {
+//      real ta,tb,alpha,beta,amp,x0,y0=cpw(6),z0=cpw(7);
+      sScanF(answer(len,answer.length()-1),"%e %e %e %e %e %e %e %e",&(cpw(0)),&(cpw(1)),&(cpw(2)),&(cpw(3)),&(cpw(4)),&(cpw(5)),&(cpw(6)),&(cpw(7)));
+//      cpw(0)=ta; cpw(1)=tb; cpw(2)=alpha; cpw(3)=beta; cpw(4)=amp; cpw(5)=x0; cpw(6)=y0; cpw(7)=z0;   // 
+      
+      printF(" The chirped plane wave: (uses the same (kx,ky,kz) from the plane wave) \n"
+             "     chirp(s) = amp* .5*[ tanh(beta*(s-ta))-tanh(beta*(s-tb)) ] * sin(2*pi*phi(s)) \n"
+             "       phi(s) = omega*s + alpha*s^2 \n"
+             "       s = t - (kx*(x-x0) + ky*(y-y0) + kz*(z-z0))\n"
+             " depends on the parameters\n"
+             "  [ta,tb]    : chirp duration\n"
+             "  alpha      : chirp rate\n"
+             "  beta       : exponent in the smoothed indicator function\n"
+             "  amp        : amplitiude\n"
+             "  [x0,y0,z0] : origin in space for chirp\n");
+      
+      printF(" Setting [ta,tb]=[%g,%g] alpha=%g, beta=%g, amp=g, [x0,y0,z0]=[%g,%g,%g]\n",
+                cpw(0),cpw(1),cpw(2),cpw(3),cpw(4),cpw(5),cpw(6),cpw(7));
+      forcingOptionsDialog.setTextLabel("chirp parameters",sPrintF("%g, %g, %g, %g, %g, %g, %g, %g (ta,tb,alpha,beta,amp)",
+								   cpw(0),cpw(1),cpw(2),cpw(3),cpw(4),cpw(5),cpw(6),cpw(7)));
+    }
+    
     else if( len=answer.matches("initial condition bounding box") )
     {
       RealArray & icBox = initialConditionBoundingBox;

@@ -997,23 +997,42 @@ setEquations( int neq, IntegerArray & eqn, IntegerArray & ia, IntegerArray & ja,
   return 0;
 }
 
+int Oges::setExtraEquationValuesInitialGuess( real *value )
+// =============================================================================================
+/// \brief assign initial guess to extra equation values (for iterative solvers)
+/// /param values (input) : initial values for extra equations.
+// =============================================================================================
+{
+  assert( equationSolver[parameters.solver]!=NULL );
+
+  return equationSolver[parameters.solver]->setExtraEquationValuesInitialGuess(value);
+}
+
+
+
+int Oges::
+setExtraEquationRightHandSideValues( realCompositeGridFunction & f, real *value )
+//==================================================================================
+/// \brief Assign values to the right-hand-side for the extra equations
+///
+/// \param f (input/output) : fill in rhs values here
+/// \param value[i] (input) : values for each extra equation, i=0,1,2,...,
+/// 
+//==================================================================================
+{
+  assert( equationSolver[parameters.solver]!=NULL );
+  return equationSolver[parameters.solver]->setExtraEquationRightHandSideValues(f,value);
+}
 
 int Oges::
 setExtraEquationValues( realCompositeGridFunction & f, real *value )
 //==================================================================================
-// /Description:
-//   Assign values to the right-hand-side for the extra equations
-//
-// /f (input/output) : fill in rhs values here
-// /value[i] (input) : values for each extra equation, i=0,1,2,...,
-// 
-// /Return values: 0=success
-// /Author: wdh
-//\end{OgesInclude.tex} 
+//  **OLD WAY** use setExtraEquationRightHandSideValues instead
 //==================================================================================
 {
+  printF("--OGES--WARNING : setExtraEquationValues called (old way) use setExtraEquationRightHandSideValues instead.\n");
   assert( equationSolver[parameters.solver]!=NULL );
-  return equationSolver[parameters.solver]->setExtraEquationValues(f,value);
+  return equationSolver[parameters.solver]->setExtraEquationRightHandSideValues(f,value);
 }
 
 int Oges::
