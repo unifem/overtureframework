@@ -718,6 +718,7 @@ locateFramesInFiles()
     }
     frame=numFrames;
   }
+  return 0;
 }
 
 

@@ -56,7 +56,7 @@ userDefinedForcing( realArray & f, int iparam[], real rparam[] )
   const int & grid = iparam[0];  // Here is the grid we are on 
   const int & current = iparam[1];
   
-  if( false )
+  if( t<= 2.*dt  )
   {
     printF("userDefinedForcing: t=%9.3e option=[%s]\n",t,(const char*)option);
   }

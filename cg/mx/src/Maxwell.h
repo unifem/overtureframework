@@ -22,6 +22,9 @@ class ShowFileReader;
 class RadiationBoundaryCondition;
 class Oges;
 
+// Define the type of array we stored the chirped parameters in
+typedef ArraySimpleFixed<real,10,1,1,1> ChirpedArrayType;
+
 class Maxwell
 {
  public:
@@ -109,10 +112,17 @@ class Maxwell
     magneticSinusoidalPointSource,
     gaussianSource,
     twilightZoneForcing,
-    planeWaveBoundaryForcing,
+    // planeWaveBoundaryForcing, // moved below, 2016/08/07 
     gaussianChargeSource,
     userDefinedForcingOption,
     numberOfForcingNames
+  };
+
+  enum BoundaryForcingEnum
+  {
+    noBoundaryForcing=0,
+    planeWaveBoundaryForcing,
+    chirpedPlaneWaveBoundaryForcing
   };
 
   enum TwlightZoneForcingEnum

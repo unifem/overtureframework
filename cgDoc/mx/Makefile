@@ -1,4 +1,4 @@
-# Makefile for the Maxwell Solver documentation
+#g Makefile for the Maxwell Solver documentation
 
 
 all = CgmxUsersGuide

@@ -301,7 +301,7 @@ intersectTwoSurfaces(CompositeSurface &model, CompositeSurface &deletedSurfaces,
 	else if (nTrim > 0)
 	{
 	  printf("Sorry, but the last trim curve (#%d) is a %s. Can't add the intersection curve!\n",
-		 SC trim_->trimCurves[nTrim-1]->getClassName());
+		 nTrim,SC trim_->trimCurves[nTrim-1]->getClassName());
 	  rc = false;
 	}
 	else

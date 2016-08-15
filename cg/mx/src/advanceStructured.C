@@ -62,6 +62,7 @@ advanceNFDTD(  int numberOfStepsTaken, int current, real t, real dt )
   const int next = (current+1) % numberOfTimeLevels;
 
   const real cMax=max(cGrid);
+  const BoundaryForcingEnum & boundaryForcingOption =dbase.get<BoundaryForcingEnum>("boundaryForcingOption");
 
  // *** add higher order dissipation that requires interpolation:
 //  bool useComputeArtificialDissipation=(artificialDissipation>0. || artificialDissipationCurvilinear>0. ) && 
@@ -169,7 +170,7 @@ advanceNFDTD(  int numberOfStepsTaken, int current, real t, real dt )
 
     
 
-    const bool addForcing = forcingOption!=noForcing && forcingOption!=planeWaveBoundaryForcing;
+    const bool addForcing = forcingOption!=noForcing; //  && boundaryForcingOption!=planeWaveBoundaryForcing;
 
     bool useCurvilinearOpt=true && !isRectangular;   // use advOpt to advance curvilinear grids given the RHS
 

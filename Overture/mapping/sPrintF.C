@@ -230,6 +230,22 @@ getLine( char s[], int lim)
   for(i=0; i<lim-1 && (c=fgetc(stdin))!=EOF && c!='\n'; ++i)  // use fgetc instead of getchar for linux!
     s[i]=c;
   s[i]='\0';
+    
+  // printF("getLine: i=%i lim=%i s=[%s] c=[%c]\n",i,lim,s,c);
+  // if( i==0 || ferror(stdin) !=0 )
+
+  // *wdh* July 21, 2016 
+  // When running in the background (using the system command from perl) and trying to read from the terminal it could
+  // be that no chars are read -- this leads to an infinite loop -- we can check for this
+  // as follows:  ( ferror(stdin) returns no error)
+  if( i==0 )
+  {  
+    printF("getLine:ERROR return from fgetc(stdin) -- no characters read!\n");
+    printF("This could happen when running in the background and trying to read from the terminal.\n");
+    printf("Error occured in file %s, function %s, line %d.\n",__FILE__,__func__,__LINE__);
+    abort();
+  }
+  
   return i;
 }
 

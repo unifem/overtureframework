@@ -43,5 +43,7 @@ operator=(const OgesExtraEquations & x)
   ia=x.ia;
   ja=x.ja;
   a=x.a;
+
+  return *this;
 }
 

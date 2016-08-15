@@ -318,22 +318,6 @@ solve(GL_GraphicsInterface &gi )
   assert( cgp!=NULL );
   CompositeGrid & cg= *cgp;
 
-  // ************** move this to setup ****************************
-#if 0
-  checkErrors= checkErrors &&
-             (
-               (initialConditionOption==planeWaveInitialCondition&&bcOption==useAllDirichletBoundaryConditions) || 
-               (initialConditionOption==planeWaveInitialCondition&&bcOption==useAllPeriodicBoundaryConditions) ||
-	       
-	       forcingOption==twilightZoneForcing ||
-	       forcingOption==planeWaveBoundaryForcing ||
-	       initialConditionOption==gaussianPlaneWave ||
-               initialConditionOption==squareEigenfunctionInitialCondition ||
-               initialConditionOption==annulusEigenfunctionInitialCondition ||
-               compareToReferenceShowFile );
-#endif
-  // printF("\n ****** solve: checkErrors=%i *****\n",checkErrors);
-  
   if( mgp!=NULL )
   {
 

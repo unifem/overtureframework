@@ -491,6 +491,8 @@ assignBoundaryConditions( int option, int grid, real t, real dt, realMappedGridF
     
     const int useForcing = forcingOption==twilightZoneForcing;
 
+    const BoundaryForcingEnum & boundaryForcingOption =dbase.get<BoundaryForcingEnum>("boundaryForcingOption");
+
   // Do we need the grid points: 
   // const bool centerNeeded=(useForcing || forcingOption==planeWaveBoundaryForcing ||  // **************** fix this 
   //                          initialConditionOption==gaussianPlaneWave || 
@@ -501,18 +503,18 @@ assignBoundaryConditions( int option, int grid, real t, real dt, realMappedGridF
   //                          method==dsi );
     bool centerNeeded = vertexArrayIsNeeded( grid );
 
-  // if( initialConditionOption==planeWaveInitialCondition && adjustFarFieldBoundariesForIncidentField(grid) )
-  // {
-  //   centerNeeded=true; // *FIX ME* 
-  // }
-    
-
     if( centerNeeded )
     {
-        if( debug & 1 && t<2.*dt ) 
+        if( (true || debug & 1) && t<2.*dt ) 
             printF("\n --MX-BC--  CREATE VERTEX grid=%i ---\n\n",grid);
         mg.update(MappedGrid::THEcenter | MappedGrid::THEvertex );
     }
+    else
+    {
+        if( (true || debug & 1) && t<2.*dt ) 
+            printF("\n --MX-BC--  VERTEX ARRAY NOT NEEDED grid=%i ---\n\n",grid);
+    }
+    
 
     const realArray & x = mg.center();
 
@@ -1173,7 +1175,7 @@ assignBoundaryConditions( int option, int grid, real t, real dt, realMappedGridF
             	      uLocal(I1,I2,I3,ex)=uLocal(I1,I2,I3,hz)*(-ky/(eps*cc));
             	      uLocal(I1,I2,I3,ey)=uLocal(I1,I2,I3,hz)*( kx/(eps*cc));
           	    }
-                        else if( forcingOption==planeWaveBoundaryForcing ||
+                        else if( boundaryForcingOption==planeWaveBoundaryForcing ||
                                           initialConditionOption==planeWaveScatteredFieldInitialCondition )
           	    {
               // --- Assign the dirichlet (i.e. exact solution) BC for a plane wave or plane wave scattered field ---
@@ -1278,6 +1280,10 @@ assignBoundaryConditions( int option, int grid, real t, real dt, realMappedGridF
         	  
         	  else if( mg.boundaryCondition(side,axis)==perfectElectricalConductor )
         	  {
+            // =================================================================================
+            // =========== NOTE: PEC BOUNDARY CONDITIONS ARE ASSIGNED IN MXCORNERS =============
+            // =================================================================================
+
                         assert( useOpt );
           	    
         	  }
@@ -1749,6 +1755,7 @@ assignBoundaryConditions( int option, int grid, real t, real dt, realMappedGridF
                 if( orderOfAccuracyInSpace>2 )
                     widthForAdjustFieldsForIncident+=1;  // *wdh* ABC 4th-order corners needs 1 more 
                 ipar[31]=widthForAdjustFieldsForIncident;
+                ipar[32]=boundaryForcingOption;
                 rpar[0]=dx[0];       // for Cartesian grids          
                 rpar[1]=dx[1];                
                 rpar[2]=dx[2];                
@@ -1777,6 +1784,16 @@ assignBoundaryConditions( int option, int grid, real t, real dt, realMappedGridF
                 rpar[26]=xab[0][0];   // for Cartesian grids     
                 rpar[27]=xab[0][1];
                 rpar[28]=xab[0][2];
+        // Chirped plane-wave parameters
+                const ChirpedArrayType & cpw = dbase.get<ChirpedArrayType>("chirpedParameters");
+                rpar[29]=cpw(0); // ta 
+                rpar[30]=cpw(1); // tb 
+                rpar[31]=cpw(2); // alpha
+                rpar[32]=cpw(3); // beta
+                rpar[33]=cpw(4); // amp
+                rpar[34]=cpw(5); // x0
+                rpar[35]=cpw(6); // y0
+                rpar[36]=cpw(7); // z0
         // fprintf(pDebugFile,"**** pu= %i, %i...\n",&u,pu);
             #ifdef USE_PPP 
                 realSerialArray uu;    getLocalArrayWithGhostBoundaries(u,uu);
@@ -2277,6 +2294,7 @@ assignBoundaryConditions( int option, int grid, real t, real dt, realMappedGridF
                     if( orderOfAccuracyInSpace>2 )
                         widthForAdjustFieldsForIncident+=1;  // *wdh* ABC 4th-order corners needs 1 more 
                     ipar[31]=widthForAdjustFieldsForIncident;
+                    ipar[32]=boundaryForcingOption;
                     rpar[0]=dx[0];       // for Cartesian grids          
                     rpar[1]=dx[1];                
                     rpar[2]=dx[2];                
@@ -2305,6 +2323,16 @@ assignBoundaryConditions( int option, int grid, real t, real dt, realMappedGridF
                     rpar[26]=xab[0][0];   // for Cartesian grids     
                     rpar[27]=xab[0][1];
                     rpar[28]=xab[0][2];
+          // Chirped plane-wave parameters
+                    const ChirpedArrayType & cpw = dbase.get<ChirpedArrayType>("chirpedParameters");
+                    rpar[29]=cpw(0); // ta 
+                    rpar[30]=cpw(1); // tb 
+                    rpar[31]=cpw(2); // alpha
+                    rpar[32]=cpw(3); // beta
+                    rpar[33]=cpw(4); // amp
+                    rpar[34]=cpw(5); // x0
+                    rpar[35]=cpw(6); // y0
+                    rpar[36]=cpw(7); // z0
           // fprintf(pDebugFile,"**** pu= %i, %i...\n",&u,pu);
                 #ifdef USE_PPP 
                     realSerialArray uu;    getLocalArrayWithGhostBoundaries(u,uu);

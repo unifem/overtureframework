@@ -31,11 +31,24 @@
 #  plotStuff plotFallingBody.cmd -show=fallingBodyG8d0p1amp.show -matlab=fallingBodyG8d0p1amp [dt=.04
 #  plotStuff plotFallingBody.cmd -show=fallingBodyG8d0p1ampA.show -matlab=fallingBodyG8d0p1ampA [dt=.02
 # 
-# For paper:  Light: rhob=0.1 
+# Light: rhob=0.1 
+#  plotStuff plotFallingBody.cmd -show=fallingBodyG4d0p1ampAD0p1.show -matlab=fallingBodyG4d0p1ampAD0p1 [ AD=0.1
 #  plotStuff plotFallingBody.cmd -show=fallingBodyG4d0p1ampAD1.show -matlab=fallingBodyG4d0p1ampAD1 [ AD=1
 #  plotStuff plotFallingBody.cmd -show=fallingBodyG8d0p1ampAD1.show -matlab=fallingBodyG8d0p1ampAD1 [ AD=1
 #  plotStuff plotFallingBody.cmd -show=fallingBodyG16d0p1ampAD1.show -matlab=fallingBodyG16d0p1ampAD1 [ AD=1
+#  ts=PC: 
+#  plotStuff plotFallingBody.cmd -show=fallingBodyG4d0p1ampAD1pc.show
 # 
+# -- Paper:rising:
+#  plotStuff plotFallingBody.cmd -show=risingBodyG2.show -matlab=risingBodyG2
+#  plotStuff plotFallingBody.cmd -show=risingBodyG4.show -matlab=risingBodyG4
+#  plotStuff plotFallingBody.cmd -show=risingBodyG8.show -matlab=risingBodyG8
+#  plotStuff plotFallingBody.cmd -show=risingBodyG16.show -matlab=risingBodyG16
+#  plotStuff plotFallingBody.cmd -show=risingBodyG32.show -matlab=risingBodyG32
+# 
+#  plotStuff plotFallingBody.cmd -show=risingBodyG4tp.show -matlab=risingBodyG4tp [TP-SI 
+#  plotStuff plotFallingBody.cmd -show=risingBodyG4u.show -matlab=risingBodyG4u [ unstable case
+#
 $show="fallingBody2.show";
 $vorMin=-50; $vorMax=25.; $option=""; $name="fallingBody"; $matlab="fallingBody"; 
 # 
@@ -97,6 +110,60 @@ sub plotContours\
    "hardcopy file name:0 $plotName\n" . \
    "hardcopy save:0\n"; \
 }
+#
+plotContours(3,"2p0"); 
+$cmds
+pause
+#
+plotContours(4,"3p0"); 
+$cmds
+pause
+#
+plotContours(5,"4p0"); 
+$cmds
+pause
+#
+plotContours(11,"10p0"); 
+$cmds
+pause
+# 
+#
+plotContours(13,"12p0"); 
+$cmds
+
+# 
+# ------------------- plot grids ----------
+sub plotGrid\
+{ local($num,$label)=@_; \
+  $plotName = $matlab . "t$label" . "Grid.ps"; \
+  $cmds = "erase\n solution: $num \n"; \
+  $cmds .= "grid\n" . \
+   "DISPLAY SQUARES:0 0\n" . \
+   "line width scale factor:0 4\n" . \
+   "hardcopy vertical resolution:0 2048\n" . \
+   "hardcopy horizontal resolution:0 2048\n" . \
+   "hardcopy file name:0 $plotName\n" . \
+   "plot interpolation points 1\n" . \
+   "hardcopy save:0\n" . \
+   "exit this menu\n"; \
+}
+#
+plotGrid(3,"2p0"); 
+$cmds
+pause
+#
+plotGrid(4,"3p0"); 
+$cmds
+pause
+#
+plotGrid(5,"4p0"); 
+$cmds
+pause
+#
+plotGrid(11,"10p0"); 
+$cmds
+
+
 #
 plotContours(21,"2p0"); 
 $cmds

@@ -1,3 +1,13 @@
+============================
+==== July 29, 2016
+
+Test new constraint
+
+tcmConstraint square8.order2.hdf -solver=petsc
+
+
+tcmConstraint square8.order2.hdf -neumann
+
 ****** Oct 11-12, 14 2015.
 
 --- Neumann:

@@ -49,7 +49,10 @@ class EquationSolver
   virtual int printStatistics( FILE *file = stdout ) const;   // output any relevant statistics 
 
   // assign values to rhs for the the extra equations 
-  virtual int setExtraEquationValues( realCompositeGridFunction & f, real *value );
+  virtual int setExtraEquationRightHandSideValues( realCompositeGridFunction & f, real *value );
+
+  // assign initial guess to extra equation values (for iterative solvers)
+  virtual int setExtraEquationValuesInitialGuess( real *value );
 
   // return solution values from the extra equations
   virtual int getExtraEquationValues( RealArray & values ) const;

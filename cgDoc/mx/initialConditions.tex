@@ -1,0 +1,115 @@
+\section{Initial conditions} \label{sec:ic}
+
+\noindent The following initial conditions are currently available with cgmx,
+\begin{description}
+  \item[planeWaveInitialCondition]: See Section~\ref{sec:planeWaveIC}. 
+  \item[gaussianPlaneWave]:
+  \item[gaussianPulseInitialCondition]:
+  \item[squareEigenfunctionInitialCondition]:  
+  \item[annulusEigenfunctionInitialCondition]:
+  \item[zeroInitialCondition]:
+  \item[planeWaveScatteredFieldInitialCondition]:
+  \item[planeMaterialInterfaceInitialCondition]:
+  \item[gaussianIntegralInitialCondition]:   from Tom Hagstrom
+  \item[twilightZoneInitialCondition]: for use with twilight-zone forcing. 
+  \item[userDefinedInitialConditions] : see Section~\ref{sec:userDefinedInitialConditions}
+\end{description}
+
+{\bf To do:} The file {\tt userDefinedInitialConditions.C} can be used to define new initial conditions
+for use with cgmx. 
+
+% ------------------------------------------------------------------
+\subsection{The plane-wave initial condition} \label{sec:planeWaveIC}
+
+The plane wave initial condition is defined from the plane wave solution
+\begin{align}
+  \Ev &= \sin( 2\pi (\kv\cdot\xv - \omega t ))~\av, \label{eq:planeWaveE} \\
+  \Hv &= \sin( 2\pi (\kv\cdot\xv - \omega t ))~\bv, \label{eq:planeWaveH} \\
+  \omega & = c_m \vert \kv \vert, \\
+  c_m &= { 1 \over \sqrt{ \epsilon \mu}}   \qquad \text{(speed of light in the material)} ~.
+\end{align}
+where $\kv=(k_x,k_y,k_z)$, $\vert \kv \vert = \sqrt{ k_x^2 + k_y^2 + k_z^2 }$,
+$\av=(a_x,a_y,a_z)$, and $\bv=(b_x,b_y,b_z)$ satisfy 
+\begin{align}
+  \kv\cdot\av &=0, ~~\kv\cdot\bv=0, ~~\mbox{(from $\grad\cdot\Ev=0$ and $\grad\cdot\Hv=0$)}, \\
+  \bv &= \sqrt{\frac{\epsilon}{\mu}}~{\kv\times\av \over \vert \kv \vert}, 
+       ~~\mbox{(from $\mu \Hv_t = -\grad\times\Ev$)} .  \label{eq:bvFromav} 
+\end{align}
+Thus given $\av$ with $\kv\cdot\av =0$, $\bv$ is determined by~\eqref{eq:bvFromav}.
+% 
+% The plane wave initial condition is defined from the plane wave solution
+% \begin{align}
+%     \Ev_{\rm pw}(\xv,t) &= \av \sin( \kv\cdot\xv - c_{\rm pw} t ),  \label{eq:planeWaveE} \\
+%     \Hv_{\rm pw}(\xv,t) &= \bv \sin( \kv\cdot\xv - c_{\rm pw} t )   \label{eq:planeWaveH}
+% \end{align}
+% The coefficient $\av$ should satisfy $\kv\cdot\av=0$. Given $\av$, $\bv$ can be determined from
+% Maxwell's equations.
+The parameters in the plane wave initial condition can be set with the commands:
+\begin{verbatim}
+  kx,ky,kz $kx $ky $kz
+  plane wave coefficients $ax $ay $az $epsPW $muPW
+\end{verbatim}
+Here {\tt epsPW} and {\tt muPW} (which could be different from the values of $\eps$ and $\mu$ used
+for the simulation) are used to define $c_{\rm pw}=1/\sqrt{ \eps_{\rm pw}\cdot \eps_{\rm pw}}$.
+
+% -------------------------------------------------------------------
+\subsection{The initial condition bounding box}
+
+The initial condition bounding box can be used to restrict the region where the initial 
+condition is assigned (see the example in Section~\ref{sec:knifeEdge2d}).
+The command to define the box is 
+\begin{verbatim}
+  initial condition bounding box $xa $xb $ya $yb $za $zb
+\end{verbatim}
+This bounding box may only currently work with the plane wave initial condition.
+
+The plane-wave initial conditions are turned off in a smooth way at the boundary of the box using the
+function
+\begin{align}
+  g(\xv) = \half(1-\tanh(\beta 2\pi(k_x(x-x_0)+k_y(y-y_0)))).
+\end{align}
+where $x_0$ or $y_0$ a point on the edge of the box (usually the transition only happens on one face of the box and
+it is assumed here that the  plane wave is parallel to this face). 
+The coefficient $\beta$ in this function can be set with the command
+\begin{verbatim}
+  bounding box decay exponent $beta
+\end{verbatim} // $
+
+% -----------------------------------------------------------------------
+\subsection{User defined initial conditions} \label{sec:userDefinedInitialConditions}
+
+The file {\tt userDefinedInitialConditions.C} can be used to define new initial conditions
+for use with Cgmx. Here are the steps to take to add your own initial conditions:
+\begin{enumerate}
+  \item Edit the file  {\tt cg/mx/src/userDefinedInitialConditions.C}.
+  \item Add a new option to the function {\tt setupUserDefinedInitialConditions()}. Follow one of the previous
+         examples. 
+  \item Implement the initial condition option in the function {\tt userDefinedInitialConditions(...)}.
+  \item Type {\em make} from the {\tt cg/mx} directory to recompile Cgmx.
+  \item Run Cgmx and choose the {\em userDefinedInitalConditions} option from the {\em forcing options...} menu.
+    (see the example command file {\tt mx/cmd/userDefinedInitialConditions.cmd}).
+\end{enumerate}
+
+{
+\begin{figure}[hbt]
+\newcommand{\figWidth}{5.5cm}
+\newcommand{\trimfig}[2]{\trimFig{#1}{#2}{0.1}{0.05}{.05}{.05}}
+\begin{center}
+\begin{tikzpicture}[scale=1]
+  \useasboundingbox (0,.5) rectangle (17,5.75);  % set the bounding box (so we have less surrounding white space)
+  \draw ( 0.0, 0) node[anchor=south west] {\trimfig{figures/userDefinedInitialConditionGaussianPulsesBoxEx}{\figWidth}};
+  \draw ( 5.7, 0) node[anchor=south west] {\trimfig{figures/userDefinedInitialConditionGaussianPulsesBoxEy}{\figWidth}};
+  \draw (11.4, 0) node[anchor=south west] {\trimfig{figures/userDefinedInitialConditionGaussianPulsesBoxEz}{\figWidth}};
+ % - labels
+ %   \draw (\txa,4.75) node[draw,fill=white,anchor=east] {\scriptsize $t=0.5$};
+ %   \draw (\txb,4.75) node[draw,fill=white,anchor=east] {\scriptsize $t=1.0$};
+ %   \draw (\txc,4.75) node[draw,fill=white,anchor=east] {\scriptsize $t=1.5$};
+ %  \draw (current bounding box.south west) rectangle (current bounding box.north east);
+% grid:
+%  \draw[step=1cm,gray] (0,0) grid (17.0,5);
+\end{tikzpicture}
+\end{center}
+\caption{User defined initial conditions. Results for two Gaussian pulses in a box.}
+\label{fig:userDefinedInitialConditionsGaussianPulses}
+\end{figure}
+}

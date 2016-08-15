@@ -1,4 +1,90 @@
 ***************************
+********* Aug 13-14, 2016
+
+-- check chirped plane wave
+processCheckFiles.p -file=./chirpedNFDTDnonSquarenpOrder2maxNorm.nonSquarenp.master.check -c=1,2
+
+================== 3D BOX  =======================
+
+SOSUP44
+conv.p exact.conv -option=chirped -method=sosup -cg=nonBoxnpp -tf=1.5 -tp=.1 -order=4 -ng=3
+
+SOSUP22
+conv.p exact.conv -option=chirped -method=sosup -cg=nonBoxnpp -tf=1.5 -tp=.1 -order=2 -ng=3
+
+FD44
+conv.p exact.conv -option=chirped -cg=nonBoxnpp -tf=1.5 -tp=.1 -order=2 -order=4 -ng=3
+
+FD22
+processCheckFiles.p -file=./chirpedNFDTDnonBoxnppOrder2maxNorm.nonBoxnpp.master.check
+conv.p exact.conv -option=chirped -cg=nonBoxnpp -tf=1.5 -tp=.1 -order=2 -ng=3
+
+                grid  & N &  $E_x$ & r &  $E_y$ & r & $H_z$ & r & $\grad\cdot\Ev/\grad\Ev$& r 
+          nonBoxnpp1 &     1 & 0.00e+00 &      & 3.11e-02 &      & 0.00e+00 &      & 0.00e+00 &      
+          nonBoxnpp2 &     2 & 0.00e+00 &  0.0 & 9.46e-03 &  3.3 & 0.00e+00 &  0.0 & 0.00e+00 &  0.0 
+          nonBoxnpp4 &     4 & 0.00e+00 &  0.0 & 2.40e-03 &  3.9 & 0.00e+00 &  0.0 & 0.00e+00 &  0.0 
+
+
+================== 2D SQUARE  =======================
+
+SOSUP22
+processCheckFiles.p -file=./chirpedsosupnonSquarenpOrder2maxNorm.nonSquarenp.master.check -c=1,2,4,5
+conv.p exact.conv -option=chirped -method=sosup -cg=nonSquarenp -ta=1. -tb=1.5 -tf=1.5 -tp=.1 -order=2 -ng=3
+
+SOSUP44  -- NEED TO INCREASE ta
+conv.p exact.conv -option=chirped -method=sosup -cg=nonSquarenp -ta=1. -tb=1.5 -tf=1.5 -tp=.1 -order=4 -ng=5
+               grid  & N &  $E_x$ & r &  $E_y$ & r & $H_z$ & r &  $Ex_t$ & r &  $Ey_t$ & r & $Hz_t$ & r & $\grad\cdot\Ev/\grad\Ev$& r 
+        nonSquarenp1 &     1 & 0.00e+00 &      & 4.41e-02 &      & 4.67e-02 &      & 0.00e+00 &      & 1.33e+00 &      & 1.35e+00 &      & 0.00e+00 &      
+        nonSquarenp2 &     2 & 0.00e+00 &  0.0 & 1.75e-02 &  2.5 & 1.92e-02 &  2.4 & 0.00e+00 &  0.0 & 4.73e-01 &  2.8 & 5.00e-01 &  2.7 & 0.00e+00 &  0.0 
+        nonSquarenp4 &     4 & 0.00e+00 &  0.0 & 3.27e-03 &  5.4 & 3.53e-03 &  5.4 & 0.00e+00 &  0.0 & 9.95e-02 &  4.8 & 1.04e-01 &  4.8 & 0.00e+00 &  0.0 
+        nonSquarenp8 &     8 & 0.00e+00 &  0.0 & 3.08e-04 & 10.6 & 3.23e-04 & 10.9 & 0.00e+00 &  0.0 & 1.03e-02 &  9.7 & 1.07e-02 &  9.7 & 0.00e+00 &  0.0 
+       nonSquarenp16 &    16 & 0.00e+00 &  0.0 & 2.23e-05 & 13.8 & 2.29e-05 & 14.1 & 0.00e+00 &  0.0 & 7.72e-04 & 13.3 & 7.88e-04 & 13.6 & 0.00e+00 &  0.0 
+Convergence rates: c0=-nan c1=2.77 c2=2.79 c3=-nan c4=2.70 c5=2.70 c6=-nan 
+
+ ****Output written to ./chirpedsosupnonSquarenpOrder4maxNormConvTable.tex *****
+
+
+
+--SOSUP22
+conv.p exact.conv -option=chirped -method=sosup -cg=nonSquarenp -ta=.5 -tb=1. -tf=1 -tp=.1 -order=2 -ng=5
+               grid  & N &  $E_x$ & r &  $E_y$ & r & $H_z$ & r &  $Ex_t$ & r &  $Ey_t$ & r & $Hz_t$ & r & $\grad\cdot\Ev/\grad\Ev$& r 
+        nonSquarenp1 &     1 & 0.00e+00 &      & 1.22e-01 &      & 3.64e-01 &      & 0.00e+00 &      & 2.05e+00 &      & 1.84e+00 &      & 0.00e+00 &      
+        nonSquarenp2 &     2 & 0.00e+00 &  0.0 & 7.09e-02 &  1.7 & 6.23e-02 &  5.8 & 0.00e+00 &  0.0 & 1.15e+00 &  1.8 & 2.11e+00 &  0.9 & 0.00e+00 &  0.0 
+        nonSquarenp4 &     4 & 0.00e+00 &  0.0 & 2.86e-02 &  2.5 & 2.62e-02 &  2.4 & 0.00e+00 &  0.0 & 4.81e-01 &  2.4 & 6.32e-01 &  3.3 & 0.00e+00 &  0.0 
+        nonSquarenp8 &     8 & 0.00e+00 &  0.0 & 8.71e-03 &  3.3 & 8.08e-03 &  3.2 & 0.00e+00 &  0.0 & 1.68e-01 &  2.9 & 1.59e-01 &  4.0 & 0.00e+00 &  0.0 
+       nonSquarenp16 &    16 & 0.00e+00 &  0.0 & 2.28e-03 &  3.8 & 2.14e-03 &  3.8 & 0.00e+00 &  0.0 & 4.59e-02 &  3.7 & 4.22e-02 &  3.8 & 0.00e+00 &  0.0 
+Convergence rates: c0=-nan c1=1.45 c2=1.78 c3=-nan c4=1.37 c5=1.46 c6=-nan 
+
+
+
+FD44  -- NEED TO INCREASE ta
+conv.p exact.conv -option=chirped -cg=nonSquarenp -ta=1. -tb=1.5 -tf=1.5 -tp=.1 -order=4 -ng=5
+               grid  & N &  $E_x$ & r &  $E_y$ & r & $H_z$ & r & $\grad\cdot\Ev/\grad\Ev$& r 
+        nonSquarenp1 &     1 & 0.00e+00 &      & 3.06e-02 &      & 4.93e-02 &      & 0.00e+00 &      
+        nonSquarenp2 &     2 & 0.00e+00 &  0.0 & 8.87e-03 &  3.4 & 9.47e-03 &  5.2 & 0.00e+00 &  0.0 
+        nonSquarenp4 &     4 & 0.00e+00 &  0.0 & 1.06e-03 &  8.4 & 1.13e-03 &  8.4 & 0.00e+00 &  0.0 
+        nonSquarenp8 &     8 & 0.00e+00 &  0.0 & 6.76e-05 & 15.7 & 7.04e-05 & 16.1 & 0.00e+00 &  0.0 
+       nonSquarenp16 &    16 & 0.00e+00 &  0.0 & 4.08e-06 & 16.6 & 4.18e-06 & 16.8 & 0.00e+00 &  0.0 
+Convergence rates: c0=-nan c1=3.28 c2=3.41 c3=-nan 
+
+
+processCheckFiles.p -c=1,2 -file=./chirpedNFDTDnonSquarenpOrder2maxNorm.nonSquarenp.master.check
+
+ORDER=2
+conv.p exact.conv -option=chirped -cg=nonSquarenp -tf=1.5 -tp=.1 -order=2 -ng=5
+
+               grid  & N &  $E_x$ & r &  $E_y$ & r & $H_z$ & r & $\grad\cdot\Ev/\grad\Ev$& r 
+        nonSquarenp1 &     1 & 0.00e+00 &      & 8.99e-02 &      & 3.00e-01 &      & 0.00e+00 &      
+        nonSquarenp2 &     2 & 0.00e+00 &  0.0 & 4.11e-02 &  2.2 & 8.05e-02 &  3.7 & 0.00e+00 &  0.0 
+        nonSquarenp4 &     4 & 0.00e+00 &  0.0 & 1.38e-02 &  3.0 & 1.96e-02 &  4.1 & 0.00e+00 &  0.0 
+        nonSquarenp8 &     8 & 0.00e+00 &  0.0 & 3.31e-03 &  4.2 & 4.76e-03 &  4.1 & 0.00e+00 &  0.0 
+       nonSquarenp16 &    16 & 0.00e+00 &  0.0 & 7.81e-04 &  4.2 & 1.16e-03 &  4.1 & 0.00e+00 &  0.0 
+Convergence rates: c0=-nan c1=1.73 c2=2.01 c3=-nan 
+
+ ****Output written to ./chirpedNFDTDnonSquarenpOrder2maxNormConvTable.tex *****
+
+
+***************************
 ********* July 5, 2016
 
 

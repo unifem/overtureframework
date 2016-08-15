@@ -161,6 +161,144 @@ getUserDefinedKnownSolution(real t, CompositeGrid & cg, int grid, realArray & ua
     }
     
   }
+  else if( userKnownSolution=="chirpedPlaneWave" )
+  {
+    // -------------------------------------------
+    // ---------- Chirped plane wave  -------------
+    // -------------------------------------------
+
+    // Chirped plane-wave parameters
+    const ChirpedArrayType & cpw = dbase.get<ChirpedArrayType >("chirpedParameters");
+    const real cpwTa   =cpw(0); // ta 
+    const real cpwTb   =cpw(1); // tb 
+    const real cpwAlpha=cpw(2); // alpha
+    const real cpwBeta =cpw(3); // beta
+    const real cpwAmp  =cpw(4); // amp
+    const real cpwX0   =cpw(5); // x0
+    const real cpwY0   =cpw(6); // y0
+    const real cpwZ0   =cpw(7); // z0
+
+    const real xi0 = .5*(cpwTa+cpwTb);
+    const real cpwTau= cpwTb-cpwTa;    // tau=tb-ta
+    
+    printF("--UDKS-- eval chirped plane wave at t=%10.3e, [ta,tb]=[%g,%g]\n",t,cpwTa,cpwTb);
+
+    c = cGrid(grid);
+    const real cc= c*sqrt( kx*kx+ky*ky+kz*kz);
+
+    // For checking the scattering from a planar PEC boundary we change the
+    // sign of the solution to be that for for scattered field.
+    const bool & solveForScatteredField = dbase.get<bool>("solveForScatteredField");
+    const real signForField = solveForScatteredField ? -1. : 1.;
+
+    real x,y,z;
+    if( numberOfTimeDerivatives==0 )
+    {
+      if( numberOfDimensions==2 )
+      {
+        // ----------- 2D --------------
+	FOR_3D(i1,i2,i3,I1,I2,I3)
+	{
+	  if( !isRectangular )
+	  {
+	   x= xLocal(i1,i2,i3,0);
+	   y= xLocal(i1,i2,i3,1);
+	  }
+	  else
+	  {
+            x=XC(iv,0);
+            y=XC(iv,1);
+	  }
+ 	  
+          real xi = t - (kx*(x-cpwX0)+ky*(y-cpwY0))/cc - xi0;
+
+	  real tanha = tanh(cpwBeta*(xi+.5*cpwTau));
+	  real tanhb = tanh(cpwBeta*(xi-.5*cpwTau));
+	  real amp = cpwAmp*.5*( tanha - tanhb );
+
+	  real phi = cc*xi + cpwAlpha*xi*xi;
+          real sinPhi = sin(twoPi*phi);
+
+	  real  chirp = signForField*amp*sinPhi;
+	  
+	  uLocal(i1,i2,i3,ex) = chirp*pwc[0];
+	  uLocal(i1,i2,i3,ey) = chirp*pwc[1];
+	  uLocal(i1,i2,i3,hz) = chirp*pwc[5];
+          if( method==sosup )
+	  {
+	    // supply time-derivatives for sosup scheme
+            
+            // tanh' = 1 - tanh^2
+            real damp= cpwAmp*.5*cpwBeta*( -tanha*tanha + tanhb*tanhb );
+            real dphi = cc + 2.*cpwAlpha*xi;
+
+            chirp = signForField*( damp*sinPhi + amp*twoPi*dphi*cos(twoPi*phi) );
+
+	    uLocal(i1,i2,i3,ext) = chirp*pwc[0];
+	    uLocal(i1,i2,i3,eyt) = chirp*pwc[1];
+	    uLocal(i1,i2,i3,hzt) = chirp*pwc[5];
+	  }
+	}
+      }
+      else
+      {
+        // ----------- 3D --------------
+	FOR_3D(i1,i2,i3,I1,I2,I3)
+	{
+	  if( !isRectangular )
+	  {
+	    x= xLocal(i1,i2,i3,0);
+	    y= xLocal(i1,i2,i3,1);
+	    z= xLocal(i1,i2,i3,2);
+	  }
+	  else
+	  {
+	    x=XC(iv,0);
+	    y=XC(iv,1);
+	    z=XC(iv,2);
+	  }
+
+          real xi = t - (kx*(x-cpwX0)+ky*(y-cpwY0))/cc - xi0;
+
+          // these next formulae are the same as in 2D
+	  real tanha = tanh(cpwBeta*(xi+.5*cpwTau));
+	  real tanhb = tanh(cpwBeta*(xi-.5*cpwTau));
+	  real amp = cpwAmp*.5*( tanha - tanhb );
+
+	  real phi = cc*xi + cpwAlpha*xi*xi;
+          real sinPhi = sin(twoPi*phi);
+
+	  real  chirp = signForField*amp*sinPhi;
+	  
+	  uLocal(i1,i2,i3,ex) =  chirp*pwc[0];
+	  uLocal(i1,i2,i3,ey) =  chirp*pwc[1];
+	  uLocal(i1,i2,i3,ez) =  chirp*pwc[2];
+          if( method==sosup )
+	  {
+	    // supply time-derivatives for sosup scheme
+            // tanh' = 1 - tanh^2
+            real damp= cpwAmp*.5*cpwBeta*( -tanha*tanha + tanhb*tanhb );
+            real dphi = cc + 2.*cpwAlpha*xi;
+
+            chirp = signForField*( damp*sinPhi + amp*twoPi*dphi*cos(twoPi*phi) );
+
+	    uLocal(i1,i2,i3,ext) = chirp*pwc[0];
+	    uLocal(i1,i2,i3,eyt) = chirp*pwc[1];
+	    uLocal(i1,i2,i3,ezt) = chirp*pwc[2];
+
+	  }	  
+	  
+
+	}
+      }
+    }
+    else
+    {
+      OV_ABORT("finish me: numberOfTimeDerivatives1=0");
+      
+    }
+    
+  }
   
   else
   {
@@ -202,6 +340,7 @@ updateUserDefinedKnownSolution(GenericGraphicsInterface & gi, CompositeGrid & cg
     {
       "no known solution",
       "manufactured pulse",
+      "chirped plane wave",
       "done",
       ""
     }; 
@@ -242,6 +381,16 @@ updateUserDefinedKnownSolution(GenericGraphicsInterface & gi, CompositeGrid & cg
       sScanF(answer,"%e %e %e %e %e %e %e %e",&rpar[0],&rpar[1],&rpar[2],&rpar[3],&rpar[4],&rpar[5],&rpar[6],&rpar[7]);
       printF(" Setting amp=%g, beta=%g, [x0,y0,z0]=[%g,%g,%g] [cx,cy,cz]=[%g,%g,%g]\n",
 	     rpar[0],rpar[1],rpar[2],rpar[3],rpar[4],rpar[5],rpar[6],rpar[7]);
+      
+    }
+    else if( answer=="chirped plane wave" ) 
+    {
+      userKnownSolution="chirpedPlaneWave";
+      dbase.get<bool>("knownSolutionIsTimeDependent")=true;  // known solution depends on time
+      
+
+      printF("The chirped plane wave is defined by ...\n");
+      
       
     }
     

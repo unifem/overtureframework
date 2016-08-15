@@ -1,4 +1,44 @@
 ***********************************************
+*** July 20, 2016
+
+SHEAR Block
+
+REVISIT --
+
+
+runCases.p -option=shearBlock -tf=20 -rhos=.001 -beta=5 -instabilityErrorTol=.1
+
+
+************* INCLUDE EXTRA PRESSURE SOLVE ********
+
+RESULTS ARE DIFFERENT
+
+BUT bea=6 --> unstable for longer
+
+runCases.p -option=shearBlock -tf=10 -rhos=.001
+
+%------------ SUMMARY Option=[shearBlock] rhos=.001 tf=10 projectVelocity=1--------------
+%------------    dy=  2.5000e-02,  dnu=sqrt(.5*nu*dt)=  5.0000e-02,  delta=dy/dnu=  5.0000e-01,  mBar=  2.0000e-02 --------------
+%------------ instabilityErrorTol= 1.00e-01                                               ------------------
+ shearBlockPVDelta=5.000000e-01;
+ shearBlockPVMbar=2.000000e-02;
+ shearBlockPVStab=[   1.000,   2.000,   3.000,   4.000,   5.000,   5.500,   6.000];
+ shearBlockPVUnstab=[   0.200,   0.250,   0.300,   0.350,   0.400];
+
+
+***************** OLD WAY ************
+runCases.p -option=shearBlock -tf=10 -rhos=.001
+
+%------------ SUMMARY Option=[shearBlock] rhos=.001 tf=10 projectVelocity=1--------------
+%------------    dy=  2.5000e-02,  dnu=sqrt(.5*nu*dt)=  5.0000e-02,  delta=dy/dnu=  5.0000e-01,  mBar=  2.0000e-02 --------------
+%------------ instabilityErrorTol= 1.00e-01                                               ------------------
+ shearBlockPVDelta=5.000000e-01;
+ shearBlockPVMbar=2.000000e-02;
+ shearBlockPVStab=[   0.350,   0.400,   1.000,   2.000,   3.000,   4.000];
+ shearBlockPVUnstab=[   0.200,   0.250,   0.300,   5.000,   5.500,   6.000];
+
+
+***********************************************
 *** July 17, 2016
 
 SHEAR Block

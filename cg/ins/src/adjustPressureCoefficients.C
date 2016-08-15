@@ -857,7 +857,7 @@ adjustPressureCoefficients(CompositeGrid & cg0, GridFunction & cgf  )
                   // This looks correct (from ellipse case)
 		  a(nnz)= - weightsLocal(j1,j2,j3)*(normal(i1,i2,i3,1)*rv[0]-normal(i1,i2,i3,0)*rv[1]);
 
-		  if( fabs(a(nnz))>1.e-12  )
+		  if( false && fabs(a(nnz))>1.e-12  )
 		  {
 		    // this entry should be zero for a disk:
 		    printF(" --ADPC-- WARNING: t=%1.3e  dir=%i, weight*( nv X (rv-xvb)=%10.3e\n",

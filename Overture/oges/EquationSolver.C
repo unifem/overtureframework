@@ -151,8 +151,32 @@ setEquationAndBoundaryConditions( OgesParameters::EquationEnum equation, Composi
   return -1;
 }
 
+int EquationSolver::setExtraEquationValuesInitialGuess( real *value )
+// =============================================================================================
+/// \brief assign initial guess to extra equation values (for iterative solvers)
+/// /param values (input) : initial values for extra equations.
+/// wdh July 29, 2016
+// =============================================================================================
+{
+  if( ! oges.dbase.has_key("extraEquationInitialValues") )
+  {
+    // save RHS values here too, in case the user wants to know them
+    oges.dbase.put<RealArray>("extraEquationInitialValues");
+  }
+  RealArray & extraEquationInitialValues = oges.dbase.get<RealArray>("extraEquationInitialValues");
+  extraEquationInitialValues.redim(oges.numberOfExtraEquations);
+  extraEquationInitialValues=0.;
+  for( int i=0; i<oges.numberOfExtraEquations; i++ )
+  {
+    extraEquationInitialValues(i)=value[i];
+  }
+  
+
+  return 0;
+}
+
 int EquationSolver::
-setExtraEquationValues( realCompositeGridFunction & f, real *value )
+setExtraEquationRightHandSideValues( realCompositeGridFunction & f, real *value )
 //==================================================================================
 // /Description:
 //   Assign values to the right-hand-side for the extra equations

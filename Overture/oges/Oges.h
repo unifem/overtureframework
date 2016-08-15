@@ -132,11 +132,17 @@ class Oges
   int getNumberOfExtraEquations() const;
   int setNumberOfExtraEquations( int numExtra );
 
-  // Set extra equations and over-ride other equations (using compressed row format)
+  // Set new extra equations into the matrix and over-ride other equations (using compressed row format)
   int setEquations( int neq, IntegerArray & eqn, IntegerArray & ia, IntegerArray & ja, RealArray & a );
 
-  // assign values to rhs for the the extra equations
+  // assign values to rhs for the the extra equations *new way*
+  int setExtraEquationRightHandSideValues( realCompositeGridFunction & f, real *value );
+
+  // **OLD WAY** deprecated: 
   int setExtraEquationValues( realCompositeGridFunction & f, real *value );
+
+  // assign initial guess to extra equation values (for iterative solvers)
+  int setExtraEquationValuesInitialGuess( real *value );
 
   // return solution values from the extra equations
   int getExtraEquationValues( RealArray & values ) const;

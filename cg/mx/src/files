@@ -159,7 +159,7 @@ src/advMxDiss.f: src/advMxDiss.bf
 	      @cd src; $(BPP) -clean -quiet -I$(Overture)/include advMxDiss.bf
 
 src/bcMaxwellCorners.f: src/bcMaxwellCorners.bf src/bcOptMaxwellMacros.h src/jacobianDerivatives.h \
-                        src/bcExtended3d4.h src/planeWave.h src/bcDefineFortranInclude.h
+                        src/bcExtended3d4.h src/planeWave.h  src/chirpedPlaneWave.h src/bcDefineFortranInclude.h
 			@cd src; $(BPP) -quiet -I$(Overture)/include -clean bcMaxwellCorners.bf
 
 src/cornersMxOrder2.f : src/bcMaxwellCorners.f
@@ -168,14 +168,14 @@ src/cornersMxOrder6.f : src/bcMaxwellCorners.f
 src/cornersMxOrder8.f : src/bcMaxwellCorners.f
 
 src/bcOptMaxwell.f: src/bcOptMaxwell.bf src/bcOptMaxwellMacros.h src/jacobianDerivatives.h \
-                    src/bcdivMaxwell.h src/planeWave.h src/bcDefineFortranInclude.h src/forcingDefineFortranInclude.h 
+                    src/bcdivMaxwell.h src/planeWave.h src/chirpedPlaneWave.h src/bcDefineFortranInclude.h src/forcingDefineFortranInclude.h 
 		    @cd src; $(BPP) -clean -quiet -I$(Overture)/include bcOptMaxwell.bf
 
 src/bcOptMaxwell2dOrder2.f : src/bcOptMaxwell.f
 
 src/bcOptMaxwell4.f: src/bcOptMaxwellMacros.h src/jacobianDerivatives.h src/bcOptMaxwell4.bf \
                      src/bc4Maxwell.h src/bc4eMaxwell.h src/bcExtended4Maxwell.h src/bcdiv3dMaxwell.h \
-                     src/bcHzExtended4Maxwell.h src/bc4Maxwell3d.h src/planeWave.h \
+                     src/bcHzExtended4Maxwell.h src/bc4Maxwell3d.h src/planeWave.h  src/chirpedPlaneWave.h \
                      src/bcDefineFortranInclude.h src/forcingDefineFortranInclude.h 
 		     @cd src; $(BPP) -clean -quiet -I$(Overture)/include bcOptMaxwell4.bf
 

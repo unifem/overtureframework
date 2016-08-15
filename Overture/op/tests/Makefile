@@ -412,6 +412,7 @@ tcmge: $(tcmge)
 
 # Test coefficent matrices with user defined constraints 
 tcmConstraint = tcmConstraint.o Checker.o $(PETSC) Oges.o generateMatrix.o formMatrix.o OgesExtraEquations.o ogesFiles.o
+tcmConstraint = tcmConstraint.o Checker.o $(PETSC) 
 tcmConstraint: $(tcmConstraint) 
 	$(CC) $(CCFLAGS) -o tcmConstraint $(tcmConstraint) \
          $(CLIBS) $(PETSC_LIBS) $(FLIBS) $(GLIBS)

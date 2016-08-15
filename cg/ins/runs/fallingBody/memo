@@ -1,22 +1,281 @@
+===============================================================================
 Falling body examples to test added mass and added damping
+=================================================================================
+
+*************************************
+****** July 30, 2016
+
+========== REDO - TWO FALLING BODIES 
+
+
+G4: TP-SI omega=.3 too big 
+nohup $cgins -noplot twoFallingBodies.cmd -g=twoFallingBodiesGridi4.order2 -tf=15. -tp=.5 -nu=.05 -ts=im -radius=1. -gravity=-1.  -rampGravity=1 -amp=.1 -dtMax=.025 -project=0 -numberOfCorrections=1000 -omega=.2 -addedMass=0 -addedDamping=0 -addedDampingCoeff=1. -scaleAddedDampingWithDt=0 -addedDampingProjectVelocity=0 -useProvidedAcceleration=0 -useTP=1 -debug=3 -solver=best -psolver=best -rtolp=1.e-6 -atolp=1.e-10 -rtol=1.e-6 -atol=1.e-9 -ad2=0 -density1=1.5 -density2=0.5 -show=twoFallingBodiesG4TP.show -go=go >! twoFallingBodiesG4TP.out &
+
+
+G16:
+nohup $cgins -noplot twoFallingBodies.cmd -g=twoFallingBodiesGridi16.order2 -tf=15. -tp=.5 -nu=.05 -ts=im -radius=1. -gravity=-1.  -rampGravity=1 -amp=.1 -dtMax=.00625 -project=0 -numberOfCorrections=2 -omega=.2 -addedMass=1 -addedDamping=1 -addedDampingCoeff=1. -scaleAddedDampingWithDt=1 -addedDampingProjectVelocity=1 -useProvidedAcceleration=1 -useTP=0 -debug=3 -solver=best -psolver=best -rtolp=1.e-8 -atolp=1.e-10 -rtol=1.e-8 -atol=1.e-9 -ad2=0 -density1=1.5 -density2=0.5 -show=twoFallingBodiesG16.show -go=go >! twoFallingBodiesG16.out &
+
+G8: 
+nohup $cgins -noplot twoFallingBodies.cmd -g=twoFallingBodiesGridi8.order2 -tf=15. -tp=.5 -nu=.05 -ts=im -radius=1. -gravity=-1.  -rampGravity=1 -amp=.1 -dtMax=.0125 -project=0 -numberOfCorrections=2 -omega=.2 -addedMass=1 -addedDamping=1 -addedDampingCoeff=1. -scaleAddedDampingWithDt=1 -addedDampingProjectVelocity=1 -useProvidedAcceleration=1 -useTP=0 -debug=3 -solver=best -psolver=best -rtolp=1.e-7 -atolp=1.e-10 -rtol=1.e-7 -atol=1.e-9 -ad2=0 -density1=1.5 -density2=0.5 -show=twoFallingBodiesG8.show -go=go >! twoFallingBodiesG8.out &
+
+
+G4:
+nohup $cgins -noplot twoFallingBodies.cmd -g=twoFallingBodiesGridi4.order2 -tf=15. -tp=.5 -nu=.05 -ts=im -radius=1. -gravity=-1.  -rampGravity=1 -amp=.1 -dtMax=.025 -project=0 -numberOfCorrections=2 -omega=.2 -addedMass=1 -addedDamping=1 -addedDampingCoeff=1. -scaleAddedDampingWithDt=1 -addedDampingProjectVelocity=1 -useProvidedAcceleration=1 -useTP=0 -debug=3 -solver=best -psolver=best -rtolp=1.e-6 -atolp=1.e-10 -rtol=1.e-6 -atol=1.e-9 -ad2=0 -density1=1.5 -density2=0.5 -show=twoFallingBodiesG4.show -go=go >! twoFallingBodiesG4.out &
+
+G2: dt=.05=ds 
+cgins -noplot twoFallingBodies.cmd -g=twoFallingBodiesGridi2.order2 -tf=15. -tp=.5 -nu=.05 -ts=im -radius=1. -gravity=-1.  -rampGravity=1 -amp=.1 -dtMax=.05 -project=0 -numberOfCorrections=2 -omega=.2 -addedMass=1 -addedDamping=1 -addedDampingCoeff=1. -scaleAddedDampingWithDt=1 -addedDampingProjectVelocity=1 -useProvidedAcceleration=1 -useTP=0 -debug=3 -solver=best -psolver=best -rtolp=1.e-5 -atolp=1.e-10 -rtol=1.e-5 -atol=1.e-9 -ad2=0 -density1=1.5 -density2=0.5 -show=twoFallingBodiesG2.show -go=go >! twoFallingBodiesG2.out
+
+
+========================
+=== REDO rising body ===
+
+
+G32: NU=.025 
+nohup $cgins -noplot fallingBody.cmd -g=risingBodyGride32.order2 -tf=12. -tp=1. -nu=.025 -ts=im -density=.001 -radius=1. -gravity=-1. -amp=.1 -dtMax=.0125 -project=0 -numberOfCorrections=2 -omega=.2 -addedMass=1 -addedDamping=1 -addedDampingCoeff=1 -scaleAddedDampingWithDt=1 -addedDampingProjectVelocity=1 -useProvidedAcceleration=1 -useTP=0 -debug=3 -solver=best -psolver=best -rtolp=1.e-8 -atolp=1.e-10 -rtol=1.e-8 -atol=1.e-9 -ad2=0 -freqFullUpdate=1 -improveQuality=1 -show=risingBodyG32.show -frequencyToFlush=1 -go=go >! risingBodyG32.out
+
+
+G16: NU=.025 
+cgins -noplot fallingBody.cmd -g=risingBodyGride16.order2 -tf=12. -tp=1. -nu=.025 -ts=im -density=.001 -radius=1. -gravity=-1. -amp=.1 -dtMax=.025 -project=0 -numberOfCorrections=2 -omega=.2 -addedMass=1 -addedDamping=1 -addedDampingCoeff=1 -scaleAddedDampingWithDt=1 -addedDampingProjectVelocity=1 -useProvidedAcceleration=1 -useTP=0 -debug=3 -solver=best -psolver=best -rtolp=1.e-7 -atolp=1.e-9 -rtol=1.e-7 -atol=1.e-8 -ad2=0 -freqFullUpdate=1 -improveQuality=1 -show=risingBodyG16.show -go=go >! risingBodyG16.out
+
+
+G8: NU=.025 
+cgins -noplot fallingBody.cmd -g=risingBodyGride8.order2 -tf=12. -tp=1. -nu=.025 -ts=im -density=.001 -radius=1. -gravity=-1. -amp=.1 -dtMax=.05 -project=0 -numberOfCorrections=2 -omega=.2 -addedMass=1 -addedDamping=1 -addedDampingCoeff=1 -scaleAddedDampingWithDt=1 -addedDampingProjectVelocity=1 -useProvidedAcceleration=1 -useTP=0 -debug=3 -solver=best -psolver=best -rtolp=1.e-6 -atolp=1.e-8 -rtol=1.e-6 -atol=1.e-8 -ad2=0 -freqFullUpdate=1 -improveQuality=1 -show=risingBodyG8.show -go=go >! risingBodyG8.out
+
+G4: 
+cgins -noplot fallingBody.cmd -g=risingBodyGride4.order2 -tf=12. -tp=1. -nu=.025 -ts=im -density=.001 -radius=1. -gravity=-1. -amp=.1 -dtMax=.1 -project=0 -numberOfCorrections=2 -omega=.2 -addedMass=1 -addedDamping=1 -addedDampingCoeff=1 -scaleAddedDampingWithDt=1 -addedDampingProjectVelocity=1 -useProvidedAcceleration=1 -useTP=0 -debug=3 -solver=best -psolver=best -rtolp=1.e-5 -atolp=1.e-7 -rtol=1.e-5 -atol=1.e-5 -ad2=0  -freqFullUpdate=1 -improveQuality=1 -show=risingBodyG4.show -go=go >! risingBodyG4.out
+
+
+G2: 
+cgins -noplot fallingBody.cmd -g=risingBodyGride2.order2 -tf=12. -tp=1. -nu=.025 -ts=im -density=.001 -radius=1. -gravity=-1. -amp=.1 -dtMax=.2 -project=0 -numberOfCorrections=2 -omega=.2 -addedMass=1 -addedDamping=1 -addedDampingCoeff=1 -scaleAddedDampingWithDt=1 -addedDampingProjectVelocity=1 -useProvidedAcceleration=1 -useTP=0 -debug=3 -solver=best -psolver=best -rtolp=1.e-5 -atolp=1.e-7 -rtol=1.e-5 -atol=1.e-5 -ad2=0  -freqFullUpdate=1 -improveQuality=1 -show=risingBodyG2.show -go=go >! risingBodyG2.out
+
+
+
+*************************************
+****** July 29, 2016
+
+=====> assign INITIAL GUESS for constraint equations
+
+-- assign current guess: 
+cgins -noplot fallingBody.cmd -g=risingBodyGride16.order2 -tf=12. -tp=1. -nu=.025 -ts=im -density=.001 -radius=1. -gravity=-1. -amp=.1 -dtMax=.025 -project=0 -numberOfCorrections=2 -omega=.2 -addedMass=1 -addedDamping=1 -addedDampingCoeff=1 -scaleAddedDampingWithDt=1 -addedDampingProjectVelocity=1 -useProvidedAcceleration=1 -useTP=0 -debug=3 -solver=best -psolver=best -rtolp=1.e-8 -atolp=1.e-9 -rtol=1.e-7 -atol=1.e-8 -ad2=0 -freqFullUpdate=1 -improveQuality=1 -show=risingBodyG16c.show -go=go >! risingBodyG16c.out
+
+
+-- first print current guess
+cgins -noplot fallingBody.cmd -g=risingBodyGride16.order2 -tf=12. -tp=1. -nu=.025 -ts=im -density=.001 -radius=1. -gravity=-1. -amp=.1 -dtMax=.025 -project=0 -numberOfCorrections=2 -omega=.2 -addedMass=1 -addedDamping=1 -addedDampingCoeff=1 -scaleAddedDampingWithDt=1 -addedDampingProjectVelocity=1 -useProvidedAcceleration=1 -useTP=0 -debug=3 -solver=best -psolver=best -rtolp=1.e-8 -atolp=1.e-9 -rtol=1.e-7 -atol=1.e-8 -ad2=0 -freqFullUpdate=1 -improveQuality=1 -show=risingBodyG16b.show -go=go >! risingBodyG16b.out
+
+
+Looks OK: -- re-solve with zero IC's works
+
+cgins -noplot fallingBody.cmd -g=risingBodyGride16.order2 -tf=12. -tp=1. -nu=.025 -ts=im -density=.001 -radius=1. -gravity=-1. -amp=.1 -dtMax=.025 -project=0 -numberOfCorrections=2 -omega=.2 -addedMass=1 -addedDamping=1 -addedDampingCoeff=1 -scaleAddedDampingWithDt=1 -addedDampingProjectVelocity=1 -useProvidedAcceleration=1 -useTP=0 -debug=3 -solver=best -psolver=best -rtolp=1.e-8 -atolp=1.e-9 -rtol=1.e-7 -atol=1.e-8 -ad2=0 -freqFullUpdate=1 -improveQuality=1 -show=risingBodyG16a.show -go=go >! risingBodyG16a.out
+
+
+
+*************************************
+****** July 24, 2016
+
+QUESTION -- are blips in acceleraton due to changes in dt??
+
+TROUBLE WITH PRESSURE SOLVE -- "diverging 
+
+RERUN: 
+G32: NU=.025  --fix dt , increase iluLevels
+nohup $cgins -noplot fallingBody.cmd -g=risingBodyGride32.order2 -tf=12. -tp=1. -nu=.025 -ts=im -density=.001 -radius=1. -gravity=-1. -amp=.1 -dtMax=.005 -project=0 -numberOfCorrections=2 -omega=.2 -addedMass=1 -addedDamping=1 -addedDampingCoeff=1 -scaleAddedDampingWithDt=1 -addedDampingProjectVelocity=1 -useProvidedAcceleration=1 -useTP=0 -debug=3 -solver=best -psolver=best -iluLevels=3 -rtolp=1.e-9 -atolp=1.e-10 -rtol=1.e-8 -atol=1.e-9 -ad2=0 -freqFullUpdate=1 -improveQuality=1 -show=risingBodyG32.show -frequencyToFlush=1 -go=go >! risingBodyG32.out
+
+
+
+
+
+G32: NU=.025  increase iluLevels, old dtMax --> small blips 
+nohup $cgins -noplot fallingBody.cmd -g=risingBodyGride32.order2 -tf=3. -tp=.5 -nu=.025 -ts=im -density=.001 -radius=1. -gravity=-1. -amp=.1 -dtMax=.0125 -project=0 -numberOfCorrections=2 -omega=.2 -addedMass=1 -addedDamping=1 -addedDampingCoeff=1 -scaleAddedDampingWithDt=1 -addedDampingProjectVelocity=1 -useProvidedAcceleration=1 -useTP=0 -debug=3 -solver=best -psolver=best -iluLevels=3 -rtolp=1.e-9 -atolp=1.e-10 -rtol=1.e-8 -atol=1.e-9 -ad2=0 -freqFullUpdate=1 -improveQuality=1 -show=risingBodyG32b.show -frequencyToFlush=1 -go=go >! risingBodyG32b.out
+
+
+G32: NU=.025  --fix dt , increase iluLevels --> no blips
+nohup $cgins -noplot fallingBody.cmd -g=risingBodyGride32.order2 -tf=3. -tp=.5 -nu=.025 -ts=im -density=.001 -radius=1. -gravity=-1. -amp=.1 -dtMax=.005 -project=0 -numberOfCorrections=2 -omega=.2 -addedMass=1 -addedDamping=1 -addedDampingCoeff=1 -scaleAddedDampingWithDt=1 -addedDampingProjectVelocity=1 -useProvidedAcceleration=1 -useTP=0 -debug=3 -solver=best -psolver=best -iluLevels=3 -rtolp=1.e-9 -atolp=1.e-10 -rtol=1.e-8 -atol=1.e-9 -ad2=0 -freqFullUpdate=1 -improveQuality=1 -show=risingBodyG32a.show -frequencyToFlush=1 -go=go >! risingBodyG32a.out
+
+
+
+*************************************
+****** July 22, 2016
+
+Test new improveQuality Ogen algorithm 
+
+***NOTE DECREASE rtolp to remove wiggles in acceleration
+
+G32: NU=.025 
+nohup $cgins -noplot fallingBody.cmd -g=risingBodyGride32.order2 -tf=12. -tp=1. -nu=.025 -ts=im -density=.001 -radius=1. -gravity=-1. -amp=.1 -dtMax=.0125 -project=0 -numberOfCorrections=2 -omega=.2 -addedMass=1 -addedDamping=1 -addedDampingCoeff=1 -scaleAddedDampingWithDt=1 -addedDampingProjectVelocity=1 -useProvidedAcceleration=1 -useTP=0 -debug=3 -solver=best -psolver=best -rtolp=1.e-9 -atolp=1.e-10 -rtol=1.e-8 -atol=1.e-9 -ad2=0 -freqFullUpdate=1 -improveQuality=1 -show=risingBodyG32.show -frequencyToFlush=1 -go=go >! risingBodyG32.out
+
+
+G16: NU=.025 
+cgins -noplot fallingBody.cmd -g=risingBodyGride16.order2 -tf=12. -tp=1. -nu=.025 -ts=im -density=.001 -radius=1. -gravity=-1. -amp=.1 -dtMax=.025 -project=0 -numberOfCorrections=2 -omega=.2 -addedMass=1 -addedDamping=1 -addedDampingCoeff=1 -scaleAddedDampingWithDt=1 -addedDampingProjectVelocity=1 -useProvidedAcceleration=1 -useTP=0 -debug=3 -solver=best -psolver=best -rtolp=1.e-8 -atolp=1.e-9 -rtol=1.e-7 -atol=1.e-8 -ad2=0 -freqFullUpdate=1 -improveQuality=1 -show=risingBodyG16.show -go=go >! risingBodyG16.out
+
+
+IMPROVE QUALITY
+G8: NU=.025 
+cgins -noplot fallingBody.cmd -g=risingBodyGride8.order2 -tf=12. -tp=1. -nu=.025 -ts=im -density=.001 -radius=1. -gravity=-1. -amp=.1 -dtMax=.05 -project=0 -numberOfCorrections=2 -omega=.2 -addedMass=1 -addedDamping=1 -addedDampingCoeff=1 -scaleAddedDampingWithDt=1 -addedDampingProjectVelocity=1 -useProvidedAcceleration=1 -useTP=0 -debug=3 -solver=best -psolver=best -rtolp=1.e-7 -atolp=1.e-8 -rtol=1.e-7 -atol=1.e-8 -ad2=0 -freqFullUpdate=1 -improveQuality=1 -show=risingBodyG8.show -go=go >! risingBodyG8.out
+
+
+IMPROVE QUALITY G4 
+cgins -noplot fallingBody.cmd -g=risingBodyGride4.order2 -tf=12. -tp=1. -nu=.025 -ts=im -density=.001 -radius=1. -gravity=-1. -amp=.1 -dtMax=.1 -project=0 -numberOfCorrections=2 -omega=.2 -addedMass=1 -addedDamping=1 -addedDampingCoeff=1 -scaleAddedDampingWithDt=1 -addedDampingProjectVelocity=1 -useProvidedAcceleration=1 -useTP=0 -debug=3 -solver=best -psolver=best -rtolp=1.e-6 -atolp=1.e-7 -rtol=1.e-6 -atol=1.e-5 -ad2=0  -freqFullUpdate=1 -improveQuality=1 -show=risingBodyG4.show -go=go >! risingBodyG4.out 
+
+
+
+
+G4I: NU=.025 
+cgins fallingBody.cmd -g=risingBodyGridi4.order2 -tf=10. -tp=.05 -nu=.025 -ts=im -density=.001 -radius=1. -gravity=-1. -amp=.1 -dtMax=.1 -project=0 -numberOfCorrections=2 -omega=.2 -addedMass=1 -addedDamping=1 -addedDampingCoeff=1 -scaleAddedDampingWithDt=1 -addedDampingProjectVelocity=1 -useProvidedAcceleration=1 -useTP=0 -debug=3 -solver=best -psolver=best -rtolp=1.e-5 -atolp=1.e-7 -rtol=1.e-5 -atol=1.e-5 -ad2=0  -freqFullUpdate=1 -improveQuality=1 -show=risingBodyG4.show -go=halt
+
+
+NO IMPROVE QUALITY
+G8: NU=.025 
+cgins -noplot fallingBody.cmd -g=risingBodyGride8.order2 -tf=10. -tp=1. -nu=.025 -ts=im -density=.001 -radius=1. -gravity=-1. -amp=.1 -dtMax=.05 -project=0 -numberOfCorrections=2 -omega=.2 -addedMass=1 -addedDamping=1 -addedDampingCoeff=1 -scaleAddedDampingWithDt=1 -addedDampingProjectVelocity=1 -useProvidedAcceleration=1 -useTP=0 -debug=3 -solver=best -psolver=best -rtolp=1.e-5 -atolp=1.e-7 -rtol=1.e-5 -atol=1.e-5 -ad2=0 -show=risingBodyG8.show -go=go >! risingBodyG8.out
+
+
+IMPROVE QUALITY  Ge4
+cgins -noplot fallingBody.cmd -g=risingBodyGride4.order2 -tf=10. -tp=.5 -nu=.025 -ts=im -density=.001 -radius=1. -gravity=-1. -amp=.1 -dtMax=.1 -project=0 -numberOfCorrections=2 -omega=.2 -addedMass=1 -addedDamping=1 -addedDampingCoeff=1 -scaleAddedDampingWithDt=1 -addedDampingProjectVelocity=1 -useProvidedAcceleration=1 -useTP=0 -debug=3 -solver=best -psolver=best -rtolp=1.e-5 -atolp=1.e-7 -rtol=1.e-5 -atol=1.e-5 -ad2=0  -freqFullUpdate=1 -improveQuality=1 -show=risingBodyG4eq.show -go=go >! risingBodyG4eq.out 
+
+IMPROVE QUALITY Gi4 
+cgins -noplot fallingBody.cmd -g=risingBodyGridi4.order2 -tf=10. -tp=.5 -nu=.025 -ts=im -density=.001 -radius=1. -gravity=-1. -amp=.1 -dtMax=.1 -project=0 -numberOfCorrections=2 -omega=.2 -addedMass=1 -addedDamping=1 -addedDampingCoeff=1 -scaleAddedDampingWithDt=1 -addedDampingProjectVelocity=1 -useProvidedAcceleration=1 -useTP=0 -debug=3 -solver=best -psolver=best -rtolp=1.e-5 -atolp=1.e-7 -rtol=1.e-5 -atol=1.e-5 -ad2=0  -freqFullUpdate=1 -improveQuality=1 -show=risingBodyG4iq.show -go=go >! risingBodyG4iq.out 
+
+NO IMPROVE QUALITY
+cgins -noplot fallingBody.cmd -g=risingBodyGridi4.order2 -tf=10. -tp=.5 -nu=.025 -ts=im -density=.001 -radius=1. -gravity=-1. -amp=.1 -dtMax=.1 -project=0 -numberOfCorrections=2 -omega=.2 -addedMass=1 -addedDamping=1 -addedDampingCoeff=1 -scaleAddedDampingWithDt=1 -addedDampingProjectVelocity=1 -useProvidedAcceleration=1 -useTP=0 -debug=3 -solver=best -psolver=best -rtolp=1.e-5 -atolp=1.e-7 -rtol=1.e-5 -atol=1.e-5 -ad2=0  -freqFullUpdate=1 -improveQuality=0 -show=risingBodyG4.show -go=go >! risingBodyG4.out 
+
+
+G4E: NU=.025 
+cgins fallingBody.cmd -g=risingBodyGride4.order2 -tf=10. -tp=1. -nu=.025 -ts=im -density=.001 -radius=1. -gravity=-1. -amp=.1 -dtMax=.1 -project=0 -numberOfCorrections=2 -omega=.2 -addedMass=1 -addedDamping=1 -addedDampingCoeff=1 -scaleAddedDampingWithDt=1 -addedDampingProjectVelocity=1 -useProvidedAcceleration=1 -useTP=0 -debug=3 -solver=best -psolver=best -rtolp=1.e-5 -atolp=1.e-7 -rtol=1.e-5 -atol=1.e-5 -ad2=0  -freqFullUpdate=1 -improveQuality=1 -show=risingBodyG4.show -go=halt
+
+
+G4: dt=.04 
+cgins fallingBody.cmd -g=fallingBodyGride4.order2 -tf=10. -tp=.05 -nu=.01 -ts=im -density=.1 -radius=1. -gravity=1. -amp=.1 -dtMax=.04 -project=0 -numberOfCorrections=2 -omega=.2 -addedMass=1 -addedDamping=1 -addedDampingCoeff=1 -scaleAddedDampingWithDt=1 -addedDampingProjectVelocity=1 -useProvidedAcceleration=1 -useTP=0 -debug=3 -solver=best -psolver=best -rtolp=1.e-5 -atolp=1.e-7 -rtol=1.e-5 -atol=1.e-5 -ad2=0 -freqFullUpdate=1 -improveQuality=1 -show=fallingBodyG4d0p1ampAD1.show -go=halt
+
+*************************************
+****** July 19, 2016
+
+NOTE: NEED TO SET -improveQuality=1 NOW 
+
+
+==== RISING BODY 
+
+--  TP-SI scheme:
+G4: NU=.025 
+
+
+RHOB=.001 -- OK omega=.0005
+cgins -noplot fallingBody.cmd -g=risingBodyGride4.order2 -tf=10. -tp=.1 -nu=.025 -ts=im -density=.001 -radius=1. -gravity=-1. -amp=.1 -dtMax=.05 -project=0 -numberOfCorrections=1000 -omega=.00025 -rtolc=1.e-5 -addedMass=0 -addedDamping=0 -addedDampingCoeff=1 -scaleAddedDampingWithDt=1 -addedDampingProjectVelocity=0 -useProvidedAcceleration=0 -useTP=1 -debug=3 -solver=best -psolver=best -rtolp=1.e-5 -atolp=1.e-7 -rtol=1.e-5 -atol=1.e-5 -ad2=0 -show=risingBodyG4tp.show -go=go >! risingBodyG4tp.out 
+
+RHOB=.01 -- OK omega=.005 OK 
+cgins fallingBody.cmd -g=risingBodyGride4.order2 -tf=10. -tp=.05 -nu=.025 -ts=im -density=.01 -radius=1. -gravity=-1. -amp=.1 -dtMax=.05 -project=0 -numberOfCorrections=500 -omega=.005 -rtolc=1.e-5 -addedMass=0 -addedDamping=0 -addedDampingCoeff=1 -scaleAddedDampingWithDt=1 -addedDampingProjectVelocity=0 -useProvidedAcceleration=0 -useTP=1 -debug=3 -solver=best -psolver=best -rtolp=1.e-5 -atolp=1.e-7 -rtol=1.e-5 -atol=1.e-5 -ad2=0 -go=halt
+
+RHOB=.05 -- OK oemga=.025
+cgins fallingBody.cmd -g=risingBodyGride4.order2 -tf=10. -tp=.05 -nu=.025 -ts=im -density=.05 -radius=1. -gravity=-1. -amp=.1 -dtMax=.05 -project=0 -numberOfCorrections=500 -omega=.025 -rtolc=1.e-5 -addedMass=0 -addedDamping=0 -addedDampingCoeff=1 -scaleAddedDampingWithDt=1 -addedDampingProjectVelocity=0 -useProvidedAcceleration=0 -useTP=1 -debug=3 -solver=best -psolver=best -rtolp=1.e-5 -atolp=1.e-7 -rtol=1.e-5 -atol=1.e-5 -ad2=0 -go=halt
+
+
+RHOB=.1 -- OK omega=.05 
+cgins fallingBody.cmd -g=risingBodyGride4.order2 -tf=10. -tp=.05 -nu=.025 -ts=im -density=.1 -radius=1. -gravity=-1. -amp=.1 -dtMax=.05 -project=0 -numberOfCorrections=500 -omega=.05 -rtolc=1.e-5 -addedMass=0 -addedDamping=0 -addedDampingCoeff=1 -scaleAddedDampingWithDt=1 -addedDampingProjectVelocity=0 -useProvidedAcceleration=0 -useTP=1 -debug=3 -solver=best -psolver=best -rtolp=1.e-5 -atolp=1.e-7 -rtol=1.e-5 -atol=1.e-5 -ad2=0 -go=halt
+
+
+RHOB=.9 -- OK
+cgins fallingBody.cmd -g=risingBodyGride4.order2 -tf=10. -tp=.05 -nu=.025 -ts=im -density=.9 -radius=1. -gravity=-1. -amp=.1 -dtMax=.05 -project=0 -numberOfCorrections=500 -omega=.1 -rtolc=1.e-5 -addedMass=0 -addedDamping=0 -addedDampingCoeff=1 -scaleAddedDampingWithDt=1 -addedDampingProjectVelocity=0 -useProvidedAcceleration=0 -useTP=1 -debug=3 -solver=best -psolver=best -rtolp=1.e-5 -atolp=1.e-7 -rtol=1.e-5 -atol=1.e-5 -ad2=0 -go=halt
+
+RHOB=1.1 -- OK
+cgins fallingBody.cmd -g=risingBodyGride4.order2 -tf=10. -tp=.02 -nu=.025 -ts=im -density=1.1 -radius=1. -gravity=-1. -amp=.1 -dtMax=.02 -project=0 -numberOfCorrections=500 -omega=.1 -rtolc=1.e-5 -addedMass=0 -addedDamping=0 -addedDampingCoeff=1 -scaleAddedDampingWithDt=1 -addedDampingProjectVelocity=0 -useProvidedAcceleration=0 -useTP=1 -debug=3 -solver=best -psolver=best -rtolp=1.e-5 -atolp=1.e-7 -rtol=1.e-5 -atol=1.e-5 -ad2=0 -go=halt
+
+
+RHOB=2 -- looks OK:
+cgins fallingBody.cmd -g=risingBodyGride4.order2 -tf=10. -tp=.01 -nu=.025 -ts=im -density=2 -radius=1. -gravity=-1. -amp=.1 -dtMax=.01 -project=0 -numberOfCorrections=500 -omega=.1 -rtolc=1.e-5 -addedMass=0 -addedDamping=0 -addedDampingCoeff=1 -scaleAddedDampingWithDt=1 -addedDampingProjectVelocity=0 -useProvidedAcceleration=0 -useTP=1 -debug=3 -solver=best -psolver=best -rtolp=1.e-5 -atolp=1.e-7 -rtol=1.e-5 -atol=1.e-5 -ad2=0 -go=halt
+
+
+G32: NU=.025 
+cgins -noplot fallingBody.cmd -g=risingBodyGride32.order2 -tf=10. -tp=1. -nu=.025 -ts=im -density=.001 -radius=1. -gravity=-1. -amp=.1 -dtMax=.0125 -project=0 -numberOfCorrections=2 -omega=.2 -addedMass=1 -addedDamping=1 -addedDampingCoeff=1 -scaleAddedDampingWithDt=1 -addedDampingProjectVelocity=1 -useProvidedAcceleration=1 -useTP=0 -debug=3 -solver=best -psolver=best -rtolp=1.e-6 -atolp=1.e-8 -rtol=1.e-6 -atol=1.e-6 -ad2=0 -show=risingBodyG32.show -go=go >! risingBodyG32.out
+
+G16: NU=.025 
+cgins -noplot fallingBody.cmd -g=risingBodyGride16.order2 -tf=10. -tp=1. -nu=.025 -ts=im -density=.001 -radius=1. -gravity=-1. -amp=.1 -dtMax=.025 -project=0 -numberOfCorrections=2 -omega=.2 -addedMass=1 -addedDamping=1 -addedDampingCoeff=1 -scaleAddedDampingWithDt=1 -addedDampingProjectVelocity=1 -useProvidedAcceleration=1 -useTP=0 -debug=3 -solver=best -psolver=best -rtolp=1.e-5 -atolp=1.e-7 -rtol=1.e-5 -atol=1.e-5 -ad2=0 -show=risingBodyG16.show -go=go >! risingBodyG16.out
+
+G8: NU=.025 
+cgins -noplot fallingBody.cmd -g=risingBodyGride8.order2 -tf=10. -tp=1. -nu=.025 -ts=im -density=.001 -radius=1. -gravity=-1. -amp=.1 -dtMax=.05 -project=0 -numberOfCorrections=2 -omega=.2 -addedMass=1 -addedDamping=1 -addedDampingCoeff=1 -scaleAddedDampingWithDt=1 -addedDampingProjectVelocity=1 -useProvidedAcceleration=1 -useTP=0 -debug=3 -solver=best -psolver=best -rtolp=1.e-5 -atolp=1.e-7 -rtol=1.e-5 -atol=1.e-5 -ad2=0 -show=risingBodyG8.show -go=go >! risingBodyG8.out
+
+G4: NU=.025 
+cgins -noplot fallingBody.cmd -g=risingBodyGride4.order2 -tf=10. -tp=1. -nu=.025 -ts=im -density=.001 -radius=1. -gravity=-1. -amp=.1 -dtMax=.1 -project=0 -numberOfCorrections=2 -omega=.2 -addedMass=1 -addedDamping=1 -addedDampingCoeff=1 -scaleAddedDampingWithDt=1 -addedDampingProjectVelocity=1 -useProvidedAcceleration=1 -useTP=0 -debug=3 -solver=best -psolver=best -rtolp=1.e-5 -atolp=1.e-7 -rtol=1.e-5 -atol=1.e-5 -ad2=0 -show=risingBodyG4.show -go=go >! risingBodyG4.out
+
+G8: NU=.025 -> AD=.001 unstable ? Yes 
+cgins -noplot fallingBody.cmd -g=risingBodyGride8.order2 -tf=2. -tp=.1 -nu=.025 -ts=im -density=.001 -radius=1. -gravity=-1. -amp=.1 -dtMax=.05 -project=0 -numberOfCorrections=2 -omega=.2 -addedMass=1 -addedDamping=.5 -addedDampingCoeff=1 -scaleAddedDampingWithDt=1 -addedDampingProjectVelocity=1 -useProvidedAcceleration=1 -useTP=0 -debug=3 -solver=best -psolver=best -rtolp=1.e-5 -atolp=1.e-7 -rtol=1.e-5 -atol=1.e-5 -ad2=0 -show=risingBodyG8u.show -go=go >! risingBodyG8u.out
+
+NU=.025 -> AD=.001 unstable ? yes -
+cgins -noplot fallingBody.cmd -g=risingBodyGride4.order2 -tf=2. -tp=.1 -nu=.025 -ts=im -density=.001 -radius=1. -gravity=-1. -amp=.1 -dtMax=.1 -project=0 -numberOfCorrections=2 -omega=.2 -addedMass=1 -addedDamping=.5 -addedDampingCoeff=1 -scaleAddedDampingWithDt=1 -addedDampingProjectVelocity=1 -useProvidedAcceleration=1 -useTP=0 -debug=3 -solver=best -psolver=best -rtolp=1.e-5 -atolp=1.e-7 -rtol=1.e-5 -atol=1.e-5 -ad2=0 -show=risingBodyG4u.show -go=go >! risingBodyG4u.out
+
+G4 NU=.05 RHOB=0.001 -- unstable for ADC=.01
+cgins -noplot fallingBody.cmd -g=risingBodyGride4.order2 -tf=30. -tp=.5 -nu=.05 -ts=im -density=.001 -radius=1. -gravity=-1. -amp=.1 -dtMax=.1 -project=0 -numberOfCorrections=2 -omega=.2 -addedMass=1 -addedDamping=1 -addedDampingCoeff=1 -scaleAddedDampingWithDt=1 -addedDampingProjectVelocity=1 -useProvidedAcceleration=1 -useTP=0 -debug=3 -solver=best -psolver=best -rtolp=1.e-5 -atolp=1.e-7 -rtol=1.e-5 -atol=1.e-5 -ad2=0 -freqFullUpdate=1 -show=risingBodyG4.show -go=go >! risingBodyG4.out
+
+
+======================
+
+G4 - nu=0.1 ADC=0.1 
+cgins -noplot fallingBody.cmd -g=fallingBodyGride4.order2 -tf=20. -tp=.1 -nu=.1 -ts=im -density=.1 -radius=1. -gravity=1. -amp=.1 -dtMax=.08 -project=0 -numberOfCorrections=2 -omega=.2 -addedMass=1 -addedDamping=1 -addedDampingCoeff=.1 -scaleAddedDampingWithDt=1 -addedDampingProjectVelocity=1 -useProvidedAcceleration=1 -useTP=0 -debug=3 -solver=best -psolver=best -rtolp=1.e-5 -atolp=1.e-7 -rtol=1.e-5 -atol=1.e-5 -ad2=0 -improveQuality=1 -freqFullUpdate=1 -show=fallingBodyG4d0p1Nu0p1AD0p1.show -go=go >! fallingBodyG4d0p1Nu0p1AD0p1.out
+
+
+G4 - nu=0.1 NOTE: dt
+cgins -noplot fallingBody.cmd -g=fallingBodyGride4.order2 -tf=50. -tp=1. -nu=.1 -ts=im -density=.1 -radius=1. -gravity=1. -amp=.1 -dtMax=.2 -project=0 -numberOfCorrections=2 -omega=.2 -addedMass=1 -addedDamping=1 -addedDampingCoeff=1 -scaleAddedDampingWithDt=1 -addedDampingProjectVelocity=1 -useProvidedAcceleration=1 -useTP=0 -debug=3 -solver=best -psolver=best -rtolp=1.e-5 -atolp=1.e-7 -rtol=1.e-5 -atol=1.e-5 -ad2=0 -improveQuality=1 -freqFullUpdate=1 -show=fallingBodyG4d0p1Nu0p1AD1.show -go=go >! fallingBodyG4d0p1Nu0p1AD1.out
+
+
+
+nu=.05 ?  -- hard to tell
+cgins -noplot fallingBody.cmd -g=fallingBodyGride4.order2 -tf=10. -tp=.1 -nu=.05 -ts=im -density=.1 -radius=1. -gravity=1. -amp=.1 -dtMax=.04 -project=0 -numberOfCorrections=2 -omega=.2 -addedMass=1 -addedDamping=1 -addedDampingCoeff=0.01 -scaleAddedDampingWithDt=1 -addedDampingProjectVelocity=1 -useProvidedAcceleration=1 -useTP=0 -debug=3 -solver=best -psolver=best -rtolp=1.e-5 -atolp=1.e-7 -rtol=1.e-5 -atol=1.e-5 -ad2=0 -improveQuality=1 -freqFullUpdate=1 -show=fallingBodyG4d0p1Nu0p05AD0p01.show -go=go >! fallingBodyG4d0p1Nu0p05AD0p01.out
+
 
 *************************************
 ****** July 18, 2016
 
 REVISIT FALLING BODY
 
+======== RERUN, NEW GRIDS, IMPROVE-INTERPOLATION, START AT y=0 
+
+FOR NOW: USE -freqFullUpdate=1
+
+IS ADDED-DAMPING NEEDED? YES FOR nu=.1 
+cgins -noplot fallingBody.cmd -g=fallingBodyGride4.order2 -tf=10. -tp=.1 -nu=.1 -ts=im -density=.1 -radius=1. -gravity=1. -amp=.1 -dtMax=.04 -project=0 -numberOfCorrections=2 -omega=.2 -addedMass=1 -addedDamping=1 -addedDampingCoeff=0.001 -scaleAddedDampingWithDt=1 -addedDampingProjectVelocity=1 -useProvidedAcceleration=1 -useTP=0 -debug=3 -solver=best -psolver=best -rtolp=1.e-5 -atolp=1.e-7 -rtol=1.e-5 -atol=1.e-5 -ad2=0 -freqFullUpdate=1 -show=fallingBodyG4d0p1ampAD0p001.show -go=go >! fallingBodyG4d0p1AD0p001.out
+
+
+G16: dt=.01
+cgins -noplot fallingBody.cmd -g=fallingBodyGride16.order2 -tf=10. -tp=.1 -nu=.01 -ts=im -density=.1 -radius=1. -gravity=1. -amp=.1 -dtMax=.01 -project=0 -numberOfCorrections=2 -omega=.2 -addedMass=1 -addedDamping=1 -addedDampingCoeff=1 -scaleAddedDampingWithDt=1 -addedDampingProjectVelocity=1 -useProvidedAcceleration=1 -useTP=0 -debug=3 -solver=best -psolver=best -rtolp=1.e-7 -atolp=1.e-8 -rtol=1.e-7 -atol=1.e-8 -ad2=0 -freqFullUpdate=1 -show=fallingBodyG16d0p1ampAD1.show -go=go >! fallingBodyG16d0p1AD1.out
+
+G8: dt=.02 
+cgins -noplot fallingBody.cmd -g=fallingBodyGride8.order2 -tf=10. -tp=.1 -nu=.01 -ts=im -density=.1 -radius=1. -gravity=1. -amp=.1 -dtMax=.02 -project=0 -numberOfCorrections=2 -omega=.2 -addedMass=1 -addedDamping=1 -addedDampingCoeff=1 -scaleAddedDampingWithDt=1 -addedDampingProjectVelocity=1 -useProvidedAcceleration=1 -useTP=0 -debug=3 -solver=best -psolver=best -rtolp=1.e-6 -atolp=1.e-7 -rtol=1.e-6 -atol=1.e-7 -ad2=0 -freqFullUpdate=1 -show=fallingBodyG8d0p1ampAD1.show -go=go >! fallingBodyG8d0p1AD1.out
+
+
+G4: dt=.04 
+cgins -noplot fallingBody.cmd -g=fallingBodyGride4.order2 -tf=10. -tp=.1 -nu=.01 -ts=im -density=.1 -radius=1. -gravity=1. -amp=.1 -dtMax=.04 -project=0 -numberOfCorrections=2 -omega=.2 -addedMass=1 -addedDamping=1 -addedDampingCoeff=1 -scaleAddedDampingWithDt=1 -addedDampingProjectVelocity=1 -useProvidedAcceleration=1 -useTP=0 -debug=3 -solver=best -psolver=best -rtolp=1.e-5 -atolp=1.e-7 -rtol=1.e-5 -atol=1.e-5 -ad2=0 -freqFullUpdate=1 -show=fallingBodyG4d0p1ampAD1.show -go=go >! fallingBodyG4d0p1AD1.out
+
+
+
+
+************** CHECK BLIPS IN FORCE AND ACCEL
+
+improve quality of interpolation
+cgins -noplot fallingBody.cmd -g=fallingBodyGride4.order2 -tf=5. -tp=.1 -nu=.01 -ts=im -density=.1 -radius=1. -gravity=1. -amp=.1 -dtMax=.04 -project=0 -numberOfCorrections=2 -omega=.2 -addedMass=1 -addedDamping=1 -addedDampingCoeff=1 -scaleAddedDampingWithDt=1 -addedDampingProjectVelocity=1 -useProvidedAcceleration=1 -useTP=0 -debug=3 -solver=best -psolver=best -rtolp=1.e-5 -atolp=1.e-7 -rtol=1.e-5 -atol=1.e-5 -ad2=0 -show=fallingBodyG4d0p1ampAD1q.show -go=go >! fallingBodyG4d0p1AD1q.out
+
+
+cgins fallingBody.cmd -g=fallingBodyGride4.order2 -tf=5. -tp=.1 -nu=.01 -ts=im -density=.1 -radius=1. -gravity=1. -amp=.1 -dtMax=.04 -project=0 -numberOfCorrections=4 -omega=.2 -addedMass=1 -addedDamping=1 -addedDampingCoeff=1 -scaleAddedDampingWithDt=1 -addedDampingProjectVelocity=1 -useProvidedAcceleration=1 -useTP=0 -debug=3 -solver=best -psolver=best -rtolp=1.e-5 -atolp=1.e-7 -rtol=1.e-5 -atol=1.e-5 -ad2=0  -go=halt
+
+cgins -noplot fallingBody.cmd -g=fallingBodyGride4.order2 -tf=5. -tp=.1 -nu=.1 -ts=im -density=.1 -radius=1. -gravity=1. -amp=.1 -dtMax=.04 -project=0 -numberOfCorrections=2 -omega=.2 -addedMass=1 -addedDamping=1 -addedDampingCoeff=1 -scaleAddedDampingWithDt=1 -addedDampingProjectVelocity=1 -useProvidedAcceleration=1 -useTP=0 -debug=3 -solver=best -psolver=best -rtolp=1.e-5 -atolp=1.e-7 -rtol=1.e-5 -atol=1.e-5 -ad2=0 -show=fallingBodyG4d0p1ampAD1b.show -go=go >! fallingBodyG4d0p1AD1b.out
+
+Backward Euler + 4 corrections -- still blips
+cgins -noplot fallingBody.cmd -g=fallingBodyGride4.order2 -tf=5. -tp=.1 -nu=.01 -ts=im -density=.1 -radius=1. -gravity=1. -amp=.1 -dtMax=.04 -project=0 -numberOfCorrections=4 -omega=.2 -addedMass=1 -addedDamping=1 -addedDampingCoeff=1 -scaleAddedDampingWithDt=1 -addedDampingProjectVelocity=1 -useProvidedAcceleration=1 -useTP=0 -debug=3 -solver=best -psolver=best -rtolp=1.e-5 -atolp=1.e-7 -rtol=1.e-5 -atol=1.e-5 -ad2=0 -implicitFactor=1. -show=fallingBodyG4d0p1ampAD1BE.show -go=go >! fallingBodyG4d0p1AD1BE.out
+
+MORE CORRECTIONS -- still blips
+cgins -noplot fallingBody.cmd -g=fallingBodyGride4.order2 -tf=5. -tp=.1 -nu=.01 -ts=im -density=.1 -radius=1. -gravity=1. -amp=.1 -dtMax=.04 -project=0 -numberOfCorrections=4 -omega=.2 -addedMass=1 -addedDamping=1 -addedDampingCoeff=1 -scaleAddedDampingWithDt=1 -addedDampingProjectVelocity=1 -useProvidedAcceleration=1 -useTP=0 -debug=3 -solver=best -psolver=best -rtolp=1.e-5 -atolp=1.e-7 -rtol=1.e-5 -atol=1.e-5 -ad2=0 -show=fallingBodyG4d0p1ampAD1nc4.show -go=go >! fallingBodyG4d0p1AD1nc4.out
+
+
 ------------------------- LIGHT RHOB=0.01 ---------------------------
 
 G16: *TO-DO*
-cgins -noplot fallingBody.cmd -g=fallingBodyGride16.order2 -tf=10. -tp=.1 -nu=.01 -ts=im -density=.1 -radius=1. -gravity=1. -amp=.1 -dtMax=.04 -project=0 -numberOfCorrections=2 -omega=.2 -addedMass=1 -addedDamping=1 -addedDampingCoeff=1 -scaleAddedDampingWithDt=1 -addedDampingProjectVelocity=1 -useProvidedAcceleration=1 -useTP=0 -debug=3 -solver=best -psolver=best -rtolp=1.e-6 -atolp=1.e-8 -rtol=1.e-6 -atol=1.e-7 -ad2=0 -show=fallingBodyG16d0p1ampAD1.show -go=go >! fallingBodyG16d0p1AD1.out
+cgins -noplot fallingBody.cmd -g=fallingBodyGride16.order2 -tf=10. -tp=.1 -nu=.01 -ts=im -density=.1 -radius=1. -gravity=1. -amp=.1 -dtMax=.04 -project=0 -numberOfCorrections=2 -omega=.2 -addedMass=1 -addedDamping=1 -addedDampingCoeff=1 -scaleAddedDampingWithDt=1 -addedDampingProjectVelocity=1 -useProvidedAcceleration=1 -useTP=0 -debug=3 -solver=best -psolver=best -rtolp=1.e-7 -atolp=1.e-9 -rtol=1.e-6 -atol=1.e-7 -ad2=0 -show=fallingBodyG16d0p1ampAD1.show -go=go >! fallingBodyG16d0p1AD1.out
 
 G8
 cgins -noplot fallingBody.cmd -g=fallingBodyGride8.order2 -tf=10. -tp=.1 -nu=.01 -ts=im -density=.1 -radius=1. -gravity=1. -amp=.1 -dtMax=.04 -project=0 -numberOfCorrections=2 -omega=.2 -addedMass=1 -addedDamping=1 -addedDampingCoeff=1 -scaleAddedDampingWithDt=1 -addedDampingProjectVelocity=1 -useProvidedAcceleration=1 -useTP=0 -debug=3 -solver=best -psolver=best -rtolp=1.e-6 -atolp=1.e-8 -rtol=1.e-6 -atol=1.e-7 -ad2=0 -show=fallingBodyG8d0p1ampAD1.show -go=go >! fallingBodyG8d0p1AD1.out
 
 
+G4: TEST explicit time-stepping
+cgins -noplot fallingBody.cmd -g=fallingBodyGride4.order2 -tf=10. -tp=.1 -nu=.01 -ts=pc -density=.1 -radius=1. -gravity=1. -amp=.1 -dtMax=.04 -project=0 -numberOfCorrections=2 -omega=.2 -addedMass=1 -addedDamping=1 -addedDampingCoeff=1 -scaleAddedDampingWithDt=1 -addedDampingProjectVelocity=1 -useProvidedAcceleration=1 -useTP=0 -debug=3 -solver=best -psolver=best -rtolp=1.e-5 -atolp=1.e-7 -rtol=1.e-5 -atol=1.e-5 -ad2=0 -show=fallingBodyG4d0p1ampAD1pc.show -go=go >! fallingBodyG4d0p1AD1pc.out
 
-NEW: Looks OK, very small wigggles in a2, w3 on order of tol
-G4: OLD: GRAVITY=1, RHOS=.1 -- OK , AD=1: some wiggles in a2, w3 --> AD=4 : wiggles growing 
+==> NEW: Looks OK, very small wigggles in a2, w3 on order of tol
+** OLD: G4: OLD: GRAVITY=1, RHOS=.1 -- OK , AD=1: some wiggles in a2, w3 --> AD=4 : wiggles growing 
 cgins -noplot fallingBody.cmd -g=fallingBodyGride4.order2 -tf=10. -tp=.1 -nu=.01 -ts=im -density=.1 -radius=1. -gravity=1. -amp=.1 -dtMax=.04 -project=0 -numberOfCorrections=2 -omega=.2 -addedMass=1 -addedDamping=1 -addedDampingCoeff=1 -scaleAddedDampingWithDt=1 -addedDampingProjectVelocity=1 -useProvidedAcceleration=1 -useTP=0 -debug=3 -solver=best -psolver=best -rtolp=1.e-5 -atolp=1.e-7 -rtol=1.e-5 -atol=1.e-5 -ad2=0 -show=fallingBodyG4d0p1ampAD1.show -go=go >! fallingBodyG4d0p1AD1.out
 
 

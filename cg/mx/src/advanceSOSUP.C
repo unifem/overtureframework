@@ -45,6 +45,7 @@ advanceSOSUP(  int numberOfStepsTaken, int current, real t, real dt )
   const int next = (current+1) % numberOfTimeLevels;
 
   const real cMax=max(cGrid);
+  const BoundaryForcingEnum & boundaryForcingOption =dbase.get<BoundaryForcingEnum>("boundaryForcingOption");
 
   const int dw = max(cg[0].discretizationWidth()); // discertization width
 
@@ -133,7 +134,7 @@ advanceSOSUP(  int numberOfStepsTaken, int current, real t, real dt )
     //  ::display(lap,"lap","%8.1e ");
 
     realArray f; // *** SAVE FORCING HERE ***
-    const bool addForcing = forcingOption!=noForcing && forcingOption!=planeWaveBoundaryForcing;
+    const bool addForcing = forcingOption!=noForcing && boundaryForcingOption!=planeWaveBoundaryForcing;
 
     if( addForcing )
     {

@@ -22,6 +22,9 @@
 ! Here are macros that define the planeWave solution
 #Include "planeWave.h"
 
+! ----- Here are macros for the chirped-plane wave -----
+#Include "chirpedPlaneWave.h"
+
 ! -------------------------------------------------------------------------------------------------------
 ! Macro: third-order extrapolation:
 ! -------------------------------------------------------------------------------------------------------
@@ -43,6 +46,10 @@
 !  FORCING: none, twilightZone
 !========================================================================================
 #beginMacro bcCurvilinear2dOrder2(FORCING)
+
+ ! assign values on boundary when there are boundary forcings
+ !! assignBoundaryForcingBoundaryValuesCurvilinear(2)
+
  dra = dr(axis)*(1-2*side)
  dsa = dr(axisp1)*(1-2*side)
  beginLoops()
@@ -90,23 +97,45 @@
         -(a21zm1*u(i1-js1,i2-js2,i3,ex)+a22zm1*u(i1-js1,i2-js2,i3,ey)) )*dra/dsa
 
 
-   if( forcingOption.eq.planeWaveBoundaryForcing )then
-     ! *** for planeWaveBoundaryForcing we need to use: u.t=w.y and v.t=-w.x =>
-     ! *****  (n1,n2).(w.x,w.y) = -n1*v.t + n2*u.t
-     !  OR    (rx,ry).(w.x,w.y) = -rx*v.t + ry*u.t
-     !   (rx**2+ry**2) w.r + (rx*sx+ry*sy)*ws = -rx*vt + ry*ut 
+   if( boundaryForcingOption.ne.noBoundaryForcing )then
+     ! ---- compute RHS for HZ ----
+     ! --- add boundary forcing when we are directly computing the scattered field ---
 
-     x0=xy(i1,i2,i3,0)
-     y0=xy(i1,i2,i3,1)
-     ! Note minus sign since we are subtracting out the incident field
-     if( fieldOption.eq.0 )then
-       u0t=-planeWave2Dext(x0,y0,t) 
-       v0t=-planeWave2Deyt(x0,y0,t)
-     else
-       ! we are assigning time derivatives (sosup)
-       u0t=-planeWave2Dextt(x0,y0,t) 
-       v0t=-planeWave2Deytt(x0,y0,t)
-     endif
+     if( .true. )then
+       ! *new way* 2016/08/08
+       numberOfTimeDerivatives=fieldOption+1
+       x0=xy(i1,i2,i3,0)
+       y0=xy(i1,i2,i3,1)
+       getBoundaryForcing2D(x0,y0,t,numberOfTimeDerivatives,ubv)
+       u0t=-ubv(ex)
+       v0t=-ubv(ey)
+       if( .false. )then
+         ! check time derivative by differences
+         numberOfTimeDerivatives=0
+         dteps=1.e-4
+         getBoundaryForcing2D(x0,y0,t,numberOfTimeDerivatives,uv)
+         getBoundaryForcing2D(x0,y0,t-dteps,numberOfTimeDerivatives,uvm)
+         utDiff = (uv(ey)-uvm(ey))/dteps
+         write(*,'(" Ey_t, Ey_t(diff) err=",3e12.3)') ubv(ey),utDiff,ubv(ey)-utDiff
+       end if
+     else if( boundaryForcingOption.eq.planeWaveBoundaryForcing )then 
+       ! *old way*
+       ! *** for planeWaveBoundaryForcing we need to use: u.t=w.y and v.t=-w.x =>
+       ! *****  (n1,n2).(w.x,w.y) = -n1*v.t + n2*u.t
+       !  OR    (rx,ry).(w.x,w.y) = -rx*v.t + ry*u.t
+       !   (rx**2+ry**2) w.r + (rx*sx+ry*sy)*ws = -rx*vt + ry*ut 
+       x0=xy(i1,i2,i3,0)
+       y0=xy(i1,i2,i3,1)
+       ! Note minus sign since we are subtracting out the incident field
+       if( fieldOption.eq.0 )then
+         u0t=-planeWave2Dext(x0,y0,t) 
+         v0t=-planeWave2Deyt(x0,y0,t)
+       else
+         ! we are assigning time derivatives (sosup)
+         u0t=-planeWave2Dextt(x0,y0,t) 
+         v0t=-planeWave2Deytt(x0,y0,t)
+       endif
+     end if
 
      g2a=(2.*dra)*( \
               (rsxy(i1,i2,i3,axis,0)*rsxy(i1,i2,i3,axisp1,0)+rsxy(i1,i2,i3,axis,1)*rsxy(i1,i2,i3,axisp1,1))* \
@@ -218,6 +247,10 @@
 ! These formulae are from maxwell/bc.maple
 ! =============================================================================================
 #beginMacro bcCurvilinear3dOrder2(FORCING)
+
+ ! assign values on boundary when there are boundary forcings
+ !! assignBoundaryForcingBoundaryValuesCurvilinear(3)
+
  ! Since is1 is +1 or -1 we need to flip the sign of dr in the derivative approximations
  dra = dr(axis  )*(1-2*side)
  dsa = dr(axisp1)*(1-2*side)
@@ -284,7 +317,7 @@
 
    ! g1 = RHS for divergence equation  a1.u(-1) = g1
    ! Use this next option always (needed for TZ too) *wdh* 2015/05/31
-   if( .true. .or. forcingOption.eq.planeWaveBoundaryForcing )then
+   if( .true. .or. boundaryForcingOption.eq.planeWaveBoundaryForcing )then
     ! include a2,a3 terms in case tangential components are non-zero:
     a21zp1=A21D3(i1+js1,i2+js2,i3+js3)
     a22zp1=A22D3(i1+js1,i2+js2,i3+js3)
@@ -381,7 +414,7 @@
   end if
 
  endLoops()
- if( .false. .and. forcingOption.eq.planeWaveBoundaryForcing )then
+ if( .false. .and. boundaryForcingOption.eq.planeWaveBoundaryForcing )then
   beginLoops()
 
    jac=1./RXDET(i1-is1,i2-is2,i3-is3)

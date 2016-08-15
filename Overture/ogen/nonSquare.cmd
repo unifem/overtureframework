@@ -45,7 +45,7 @@ elsif( $order eq 6 ){ $orderOfAccuracy="sixth order"; $ng=4; }\
 elsif( $order eq 8 ){ $orderOfAccuracy="eighth order"; $ng=6; }
 # 
 $lines = $nx;
-suffix= "";
+$suffix= "";
 if( $periodic eq "p" ){ $suffix = "p"; }
 if( $periodic eq "np" ){ $suffix = "np"; }
 if( $periodic eq "pn" ){ $suffix = "pn"; }

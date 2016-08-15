@@ -54,7 +54,14 @@ AdParameters(const int & numberOfDimensions0) : Parameters(numberOfDimensions0)
   }
   registerBC((int)mixedBoundaryCondition,"mixedBoundaryCondition");
 
- if( !dbase.has_key("implicitAdvection") ) dbase.put<bool>("implicitAdvection")=false;
+  if( !dbase.has_key("implicitAdvection") ) dbase.put<bool>("implicitAdvection")=false;
+
+  if( !dbase.has_key("inverseCapillaryNumber") )    dbase.put<real>("inverseCapillaryNumber")=1.e-6;
+  if( !dbase.has_key("scaledStokesNumber") )        dbase.put<real>("scaledStokesNumber")=0.;
+  if( !dbase.has_key("thinFilmBoundaryThickness") ) dbase.put<real>("thinFilmBoundaryThickness")=1.5;
+  if( !dbase.has_key("thinFilmLidThickness") )      dbase.put<real>("thinFilmLidThickness")=0.;
+
+ if( !dbase.has_key("manufacturedTearFilm") ) dbase.put<bool >("manufacturedTearFilm")=false;
 
   // initialize the items that we time: 
   initializeTimings();
@@ -98,6 +105,12 @@ setParameters(const int & numberOfDimensions0 /* =2 */,const aString & reactionN
   dbase.get<Reactions* >("reactions")=NULL;
   dbase.get<int >("numberOfSpecies")=0;
   
+  const real & S  = dbase.get<real>("inverseCapillaryNumber");
+  const real & G  = dbase.get<real>("scaledStokesNumber");
+  const real & h0 = dbase.get<real>("thinFilmBoundaryThickness");
+  const real & he = dbase.get<real>("thinFilmLidThickness");
+
+
   int s, i;
   //...set component index'es, showVariables, etc. that are equation-specific
 
@@ -196,6 +209,12 @@ setTwilightZoneFunction(const TwilightZoneChoice & choice_,
   int & numberOfComponents     = dbase.get<int>("numberOfComponents");
   const int numberOfDimensions = dbase.get<int >("numberOfDimensions");
   
+  const real & S  = dbase.get<real>("inverseCapillaryNumber");
+  const real & G  = dbase.get<real>("scaledStokesNumber");
+  const real & h0 = dbase.get<real>("thinFilmBoundaryThickness");
+  const real & he = dbase.get<real>("thinFilmLidThickness");
+
+
   //TODO: add TZ for passive scalar=passivec
   if( choice!=polynomial && choice!=trigonometric && choice!=pulse )
   {
@@ -292,7 +311,7 @@ setTwilightZoneFunction(const TwilightZoneChoice & choice_,
     {
       // ***hard code this for now ***
   
-      static real S = 6.92*pow(10.,-6);
+      //  static real S = 1.*pow(10.,-2);
 
       amplitude = 1.; amplitude(1) = 2*S*pow(twoPi,2.);  //would be nice to pass this information
       cc = 2.; cc(1) = 0.; //would be nice to pass this information
@@ -415,6 +434,11 @@ setPdeParameters(CompositeGrid & cg, const aString & command /* = nullString */,
 
   real & thermalConductivity = dbase.get<real>("thermalConductivity");
   
+  real & inverseCapillaryNumber   = dbase.get<real>("inverseCapillaryNumber");
+  real & scaledStokesNumber       = dbase.get<real>("scaledStokesNumber");
+  real & thinFilmBoundaryThickness= dbase.get<real>("thinFilmBoundaryThickness");
+  real & thinFilmLidThickness     = dbase.get<real>("thinFilmLidThickness");
+
   aString answer,line;
   char buff[100];
 //  const int numberOfDimensions = cg.numberOfDimensions();
@@ -439,7 +463,7 @@ setPdeParameters(CompositeGrid & cg, const aString & command /* = nullString */,
     dialog.setPushButtons( cmd, pbCommands, numRows ); 
 
 
-    const int numberOfTextStrings=5+1;
+    const int numberOfTextStrings=9+1;
     aString textLabels[numberOfTextStrings];
     aString textStrings[numberOfTextStrings];
 
@@ -456,6 +480,12 @@ setPdeParameters(CompositeGrid & cg, const aString & command /* = nullString */,
     }
     
     textLabels[nt] = "thermal conductivity";  sPrintF(textStrings[nt], "%g",thermalConductivity);  nt++; 
+
+    textLabels[nt] = "inverse capillary number";  sPrintF(textStrings[nt], "%g",inverseCapillaryNumber);  nt++; 
+    textLabels[nt] = "scaled Stokes number";  sPrintF(textStrings[nt], "%g",scaledStokesNumber);  nt++; 
+    textLabels[nt] = "thinFilm boundary thickness";  sPrintF(textStrings[nt], "%g",thinFilmBoundaryThickness);  nt++; 
+    textLabels[nt] = "thinFilm lid thickness";  sPrintF(textStrings[nt], "%g",thinFilmLidThickness);  nt++; 
+
  
     // null strings terminal list
     textLabels[nt]="";   textStrings[nt]="";  assert( nt<numberOfTextStrings );
@@ -549,6 +579,25 @@ setPdeParameters(CompositeGrid & cg, const aString & command /* = nullString */,
     {
       printF("INFO: The thermalConductivity=%g is used for flux interfaces between domains\n",thermalConductivity);
     }
+
+    // --- thin film parameters ----
+    else if( dialog.getTextValue(answer,"inverse capillary number","%e",inverseCapillaryNumber) )
+    {
+      printF("INFO: inverseCapillaryNumber=%g  (thin film S).\n",inverseCapillaryNumber);
+    }
+    else if( dialog.getTextValue(answer,"scaled Stokes number","%e",scaledStokesNumber) )
+    {
+      printF("INFO: scaledStokesNumberr=%g  (thin film G).\n",scaledStokesNumber);
+    }
+    else if( dialog.getTextValue(answer,"thinFilm boundary thickness","%e",thinFilmBoundaryThickness) )
+    {
+      printF("INFO: thinFilmBoundaryThickness=%g  (thin film h0).\n",thinFilmBoundaryThickness);
+    }
+    else if( dialog.getTextValue(answer,"thinFilm lid thickness","%e",thinFilmLidThickness) )
+    {
+      printF("INFO: thinFilmLidThickness=%g  (thin film he).\n",thinFilmLidThickness);
+    }
+
     else if( dialog.getToggleValue(answer,"variable diffusivity", dbase.get<bool >("variableDiffusivity")) ){}//
     else if( dialog.getToggleValue(answer,"variable advection", dbase.get<bool >("variableAdvection")) ){}//
     else if( dialog.getToggleValue(answer,"treat advection implicitly",implicitAdvection) )

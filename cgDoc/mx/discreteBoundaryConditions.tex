@@ -1,0 +1,831 @@
+\section{Discrete Boundary Conditions}
+
+\newcommand{\pra}{\partial_{r_1}}
+\newcommand{\prb}{\partial_{r_2}}
+\newcommand{\prc}{\partial_{r_3}}
+
+For perfect electrical conductors (PEC) the boundary conditions for the electric field are
+\begin{align}
+  \nv\times\Ev & = 0
+\end{align}
+If we let $\tauv_m$, $m=1,d-1$ denote the tangent vectors at the boundary then
+\[
+  \tauv_m\cdot\Ev=0
+\]
+Since $\grad\cdot\Ev=0$ we can also use the condition
+\[
+  {1\over J}\left\{ \pra( \av_1\cdot\Ev) + \prb( \av_2\cdot\Ev) + \prc( \av_3\cdot\Ev) \right\} =0
+\]
+Recall that
+\begin{align*}
+   \av_m &= J \grad_{\xv} r_m
+\end{align*}
+Now $\av_1$ is always proportional to the normal to the boundary $r=\mbox{constant}$. 
+On an orthogonal grid $\av_2$ and $\av_3$ lie in the tangent plane and thus
+$\av_2\cdot\Ev$ and $\av_3\cdot\Ev$ can be written as linear combinations of the
+tangential tangential components of $\Ev$, (on a boundary $r=\mbox{constant}$) then
+the divergence condition becomes
+\[
+  \pra( \av_1\cdot\Ev ) =0 \qquad \mbox{at $r=0$}.
+\]
+
+\subsection{Boundary conditions for the magnetic field}
+
+In two-dimensions we have the equations
+\begin{align*}
+\partial_t E_x - {1\over \eps} \partial_y H_z &=0 \\
+\partial_t E_y + {1\over \eps} \partial_x H_z &=0 \\
+\partial_t H_z + {1\over \mu } \left[ \partial_x E_y - \partial_y E_x \right] &=0 
+\end{align*}
+Taking the dot product of the tangent with the first two equations gives
+\begin{align*}
+  \eps (\tau\cdot(E_x,E_y))_t & = ( \tau\cdot(\partial_y H_z,-\partial_x H_z) ) \\
+                              & = \partial_n H_z
+\end{align*}
+Thus we have the PEC boundary condition for the magnetic field
+\[
+   \partial_n H_z = 0 
+\]
+
+In the general three-dimensional case we have
+\begin{align*}
+  \eps (\nv\times\Ev)_t &= \nv\times(\grad\times\Hv) \\
+                   &= \nv\cdot(\grad\Hv) - (\nv\cdot\grad)\Hv \\
+                   &= n_j \partial_i H_j - n_j \partial_j H_i \qquad\mbox{(component form)}
+                   &= \tau_m\cdot(\grad\times\Hv) \qquad\mbox{($\tau_m$ is a tangent vector)}
+\end{align*}
+We also have
+\begin{align*}
+ \mu \nv\cdot\Hv_t & = -\nv\cdot(\grad\times\Ev) \\
+                   &= \grad\cdot(\nv\times\Ev) - \Ev\cdot(\grad\times\nv) \\
+                   &= {1\over J}\sum_m \partial_{r_m}\big\{ \av_m\cdot(\nv\times\Ev)\big\}
+                                                  - \Ev\cdot(\grad\times\nv) \\
+\end{align*}
+
+Thus in 3D the boundary conditions for $\Hv$ are
+\begin{align*} 
+  \nv\cdot\Hv &= 0 \\
+  \nv\cdot(\grad\Hv) - \partial_n \Hv &= 0
+\end{align*}
+or 
+\begin{align*} 
+  n_j H_j  &= 0 \\
+  n_j \partial_i H_j - n_j \partial_j H_i &= 0 \\
+\end{align*}
+
+\subsection{Second-order accurate boundary conditions}
+
+For a second-order accurate scheme we can use (at the boundary $i=0$)
+\begin{align*}
+    \tauv_m\cdot\Ev_{0,j}  &=0  \\
+     (\av_1\cdot\Ev)_{-1,j} &= (\av_1\cdot\Ev)_{+1,j} \\
+    \tauv_m\cdot\Ev_{-1,j} &= \tauv_m \cdot (I-D_+^2)\Ev_{-1,j} \equiv g_m   \qquad\mbox{(extrapolate)}\\
+     w_{-1,j} &= w_{+1,j}
+\end{align*}
+We use the extrapolation, $\tauv_m\cdot D_+^2\Ev_{-1,j}=$, since this is consistent with the
+tangential component being an odd function and thus the second-derivative (second-difference)
+is expected to be zero.
+
+With our assumption of an orthogonal grid is thus follows that electric field a the 
+ghost point is given by
+\begin{align*}
+\Ev_{-1,j} &= (\av_1\cdot\Ev)_{+1,j} ~{\av_1\over \| \av_1 \|^2} + g_m \tauv_m
+\end{align*}
+
+
+\subsection{Fourth-order accurate boundary conditions}
+
+Since $\tauv_m\cdot \Ev=0$ along the boundary it follows that $\tauv_m\cdot \Ev_{tt}=0$ and thus
+\[
+   \tauv_m \cdot\Delta \Ev = 0 \quad\mbox{on the boundary}
+\]
+Taking two time derivatives of the divergence equation
+\[
+  \pra\big(\av_1\cdot \Ev_{tt} \big) + \prb\big(\av_2\cdot \Ev_{tt}\big) + \prc\big(\av_3\cdot \Ev_{tt}  \big) =0 
+\]
+And using the fact that $\prb\big(\av_2\cdot \Ev_{tt}\big)$ and 
+$\prc\big(\av_3\cdot \Ev_{tt}\big)$ are zero on the boundary
+(If $\av_m$, $m=2,3$ are in the tangent plane, which is true on an orthogonal grid) it follows that
+the following condition holds on the boundary,
+\begin{equation}
+  \partial_r\big(\av_1\cdot \Delta\Ev \big) (0,r_2,r_3) =0   \label{eq:divtt}
+\end{equation}
+Now on an orthogonal grid the Laplacian can be written as
+\begin{align}
+   \Delta  &= \sum_{m,n=1}^d  c_{mn} \partial_{r_m}\partial_{r_n} + \sum c_m \partial_{r_m} \\
+           &= c_{11} \pra^2 + c_{22}\prb^2 + c_{33}\prc  + 
+              c_{12} \pra\prb + c_{13}\pra\prc + c_{23}\prb\prc  +
+              c_{1} \pra + c_{2} \prb+ c_{3} \prc
+\end{align}
+(where we have neglected the term $c_{12}\partial_r\partial_s$).
+Whence equation~(\ref{eq:divtt}) can be written out in detail as
+\begin{align}
+   \partial_r\big(\av_1\cdot \Delta\Ev \big) &= 
+  \av_1\cdot\Big( \sum_{m,n=1}^d  c_{mn} \partial_r\partial_{r_m}\partial_{r_n} 
+                   + \sum c_m \partial_r\partial_{r_m} \label{eq:DrADotuv} \\
+ ~~~&+ \sum_{m,n=1}^d  \partial_r(c_{mn}) \partial_{r_m}\partial_{r_n} + \sum \partial_r(c_m) \partial_{r_m} \Big) 
+   +  \partial_r\av_1\cdot \Delta\uv \\
+=  \av_1\cdot\Big( &c_{11} \uv_{rrr} + c_{22}\uv_{rss} + c_{33}\uv_{r\rc\rc} 
+             + c_{1}\uv_{rr} + c_{2}\uv_{rs} + c_{3}\uv_{r\rc}  \label{eq:divtte}\\
+                  &\partial_r c_{11} \uv_{rr} + \partial_r c_{22}\uv_{ss} + \partial_r c_{33}\uv_{\rc\rc} 
+                   + \partial_r c_{10}\uv_{r} + \partial_r c_{01}\uv_{s}+ \partial_r c_{3}\uv_{\rc} \Big) \\
+   &  + \partial_r\av_1\cdot \Delta\uv = 0 \qquad\mbox{(on the boundary, $r=0$)}
+\end{align}
+We wish to avoid a numerical boundary that includes mixed derivative terms such as those involving
+$\uv_{rs}$ or $\uv_{rss}$ in the above expression. These mixed derivatives would make the 
+boundary condition non-local by coupling adjacent points. We can, however, find expressions
+for these mixed derivative expressions in terms of non-mixed derivatives.
+
+\subsubsection{Two dimensions}
+
+First consider the two-dimensional case.
+Taking the $r$- and $s$-derivatives of the divergence equation gives
+\begin{align*}
+   \partial_r^2(\av_1\cdot\uv) + \partial_r\partial_s(\av_2\cdot\uv) &=0 \\
+   \partial_r\partial_s(\av_1\cdot\uv) + \partial_s^2(\av_2\cdot\uv) &=0
+\end{align*}
+or
+\begin{align*}
+ \av_2\cdot\uv_{rs} &= -\big\{ \partial_r^2(\av_1\cdot\uv) + \partial_r\partial_s(\av_2)\uv 
+                  + \partial_r(\av_2)\uv_s + \partial_s(\av_2)\uv_r\big\}   \\
+ \av_1\cdot\uv_{rs} &= -\big\{ \partial_s^2(\av_2\cdot\uv) + \partial_r\partial_s(\av_1)\uv 
+                     + \partial_r(\av_1)\uv_s + \partial_s(\av_1)\uv_r  \big\} 
+\end{align*}
+Since $\av_1\cdot\av_2\ne 0$, we can solve these expressions for $\uv_{rs}$,
+\begin{equation}
+   \uv_{rs} = \Fv_1(\uv_r,\uv_s,\uv_{rr},\uv_{ss})  \label{eq:urs}
+\end{equation}
+
+Now $\partial_s(\grad\cdot\uv)=0$ implies
+\[
+   \av_1 \cdot \uv_{rs} = -\Big( \partial_s\av_1\cdot\uv_r +
+       \partial_s( \partial_r\av_1\cdot\uv) + \partial_s^2(\av_2\cdot\uv)+ \partial_s\prc(\av_3\cdot\uv) \Big)
+\]
+This last expression can be differentiated with respect to $s$ to give an equation
+for 
+\begin{equation}
+\av_1 \cdot \uv_{rss} =  -\Big( \partial_s\av_1\cdot\uv_{rs} + \partial_s^2\av_1\cdot\uv_{r} +
+       \partial_s^2( \partial_r\av_1\cdot\uv) + \partial_s^3(\av_2\cdot\uv)
+           + \partial_s^2\prc(\av_3\cdot\uv) \Big)  \label{eq:urss}
+\end{equation}
+
+Combining equations~(\ref{eq:divtte}), (\ref{eq:urs}), and (\ref{eq:urss}) allows us to rewrite
+the boundary condition~(\ref{eq:divtte}) without any mixed derivatives,
+\begin{equation}
+  \partial_r\big(\av_1\cdot \Delta\Ev \big) =
+    \bv_3\cdot\uv_{rrr} + \bv_2\cdot\uv_{rr} + \bv_1\cdot\uv_{r} = G(\uv_s,\uv_{ss},\uv_{sss})
+\end{equation}
+
+\noindent{\bf Magnetic field in two dimensions}:
+
+In two-dimensions the boundary condition for the magnetic field, $w$, is
+\begin{align*}
+    \partial_n w & = \nv\cdot(\grad w) \\
+                 & = (n_1,n_2)\cdot(r_x w_r + s_x w_s, r_y w_r + s_y w_s ) \\
+                 & = (n_1 r_x + n_2 r_y ) w_r + (n_1 s_x + n_2 s_y ) w_s 
+\end{align*}
+On a boundary $r=0$, $\nv=\grad_\xv r/\| \grad_\xv r \|$ and then
+\begin{align*}
+  \partial_n w & = {(r_x^2 + r_y^2) \over \| \grad_\xv r \|} w_r + {(r_x s_x + r_y s_y )\over \| \grad_\xv r \|}  w_s 
+\end{align*}
+Thus the Neumann boundary condition for $w$ can be written as 
+\begin{align*}
+  w_r &= - {\grad_\xv r\cdot\grad_\xv s \over   \| \grad_\xv r \|^2 } w_s 
+\end{align*}
+On an orthogonal grid the right-hand-side is zero.
+Assume now that the grid is orthogonal and $w_r(0,s)=0$, then 
+\begin{align*}
+  \partial_t^2 w_r &= \partial_r\Delta w \\
+   &= \partial_r\big\{ c_{11} \partial_r^2 w+ c_{22}\partial_s^2 w+ c_{10} \partial_r w+ c_{01} \partial_s w\big\}\\
+   &= c_{11} \partial_r^3 w+ c_{22}\partial_r\partial_s^2 w+ c_{10} \partial_r^2 w+ c_{01} \partial_r\partial_s w \\
+   &~~+ (\partial_r c_{11}) \partial_r^2 w+ (\partial_r c_{22})\partial_s^2 w
+      + (\partial_r c_{10}) \partial_r w+ (\partial_r c_{01}) \partial_s w
+\end{align*}
+giving the BC
+\begin{align*}
+c_{11} \partial_r^3 w + (c_{10}+\partial_r c_{11})\partial_r^2 w &=
+   -\big\{ (\partial_r c_{22})\partial_s^2 w + (\partial_r c_{01}) \partial_s w \big\} \qquad\mbox{at $r=0$}
+\end{align*}
+
+
+
+We are thus led to the discrete boundary conditions for the fourth-order accurate scheme
+\begin{align*}
+    \big(\tauv_m\cdot\Ev\big)_{0,j}  &=0  \\
+ \tauv_m\cdot\Delta_{2h} \Ev_{0,j}  &=0  \\
+ \tauv_m\cdot\Ev_{-2,j} &= \tauv_m \cdot (I-D_+^4)\Ev_{-2,j} \equiv g_m   \quad\mbox{(extrapolate)} \\
+  D_{0r}\big(1- (\Delta r)^2/6 D_{+r}D_{-r}\big) \big(\av_1\cdot\Ev\big)_{0,j} &= 0 \\
+%  (D_{0r}D_{+r}D_{-r}~\av_1\cdot \Ev)_{0,j} + (\bv\cdot D_{0r}\Ev)_{0,j} &= G_1(\uv_s,\uv_{ss},\uv_{sss})
+  \bv_3\cdot(D_{0r}D_{+r}D_{-r}~\Ev) + \bv_2\cdot\uv_{rr} + \bv_1\cdot\uv_{r} &= G(\uv_s,\uv_{ss},\uv_{sss})\\
+%  D_{0r} (\av_1\cdot \Delta_{2h}\Ev )_{0,j} &= 0 
+  D_{0r}\big(1- (\Delta r)^2/6 D_{+r}D_{-r}\big) w_{0,j} &= 0 \\
+  c_{11}~D_{0r}D_{+r}D_{-r}~w + (c_{10}+\partial_r c_{11})D_{+r}D_{-r}~w &=
+        -\big\{ (\partial_r c_{22})D_{+s}D_{-s}~w + (\partial_r c_{01})D_{0s}~w \big\}       
+\end{align*}
+% where $\Delta_{2h}$ is a second order accurate approximation to the Laplacian operator.
+
+
+\subsubsection{Three dimensions}
+
+Now consider the three-dimensional situation which is more complicated.
+We need expressions for the mixed derivatives taht appear in the expression for $\pra(\av_1\cdot\Delta\uv)=0$,
+equation~(\ref{eq:DrADotuv}),
+\begin{align}
+   &\av_1\cdot\uv_{rs}, \\
+   &\av_1\cdot\uv_{r\rc}, \\
+   &\av_1\cdot\uv_{rss}, \\
+   &\av_1\cdot\uv_{r\rc\rc},
+\end{align}
+
+The divergence equation implies
+\[
+  \av_1\cdot\uv_r = -\big\{ (\partial_r\av_1)\cdot\uv + \prb(\av_2\cdot\uv)+\prc(\av_3\cdot\uv) \big\}
+\]
+
+Taking the $r$, $s$, and $\rc$ -derivatives of the divergence equation gives
+\begin{align*}
+   \partial_r^2(\av_1\cdot\uv) + \partial_r\partial_s(\av_2\cdot\uv)+ \partial_r\partial_\rc(\av_3\cdot\uv) &=0 \\
+   \partial_r\partial_s(\av_1\cdot\uv) + \partial_s^2(\av_2\cdot\uv)+ \partial_s\prc(\av_3\cdot\uv) &=0 \\
+   \partial_r\prc(\av_1\cdot\uv) + \partial_s\prc(\av_2\cdot\uv)+ \prc^2(\av_3\cdot\uv) &=0
+\end{align*}
+In this 3d case the first equation only gives a relation for 
+\begin{align*}
+  \av_2\cdot\uv_{rs} + \av_3\cdot\uv_{r\rc} &= -\big\{ \partial_r^2(\av_1\cdot\uv) + ... \big\} 
+\end{align*}
+as opposed to the 2d case where this equation determined the tangential component of $\uv_{rs}$. This means
+the 3d case is more involved.
+
+From $\prb(\grad\cdot\uv)=0$ and $\prc(\grad\cdot\uv)=0$ we get the normal components of the
+mixed derivatives,
+\begin{align*}
+  \av_1\cdot\uv_{rs} &= -\big\{ \prb\av_1\cdot\uv_r + \prb( (\partial_r\av_1)\cdot\uv )
+                + \prb^2(\av_2\cdot\uv)+\prb\prc(\av_3\cdot\uv)\big\} \\
+  \av_1\cdot\uv_{r\rc} &= -\big\{ \prc\av_1\cdot\uv_r + \prc( (\partial_r\av_1)\cdot\uv )
+               + \prb\prc(\av_2\cdot\uv)+\prc^2(\av_3\cdot\uv)\big\} \\
+\end{align*}
+and thus we have $\av_1\cdot\uv_{rs}$ and $\av_1\cdot\uv_{r\rc}$ defined in terms of tangential derivatives.
+
+From $\prb^2(\grad\cdot\uv)=0$ and $\prc^2(\grad\cdot\uv)=0$ we also get 
+\begin{align*}
+  \av_1\cdot\uv_{rss} &= -\big\{ \prb\av_1\cdot\uv_{rs} +
+            \prb\big( \prb\av_1\cdot\uv_r + \prb( (\partial_r\av_1)\cdot\uv )
+                  + \prb^2(\av_2\cdot\uv)+\prb\prc(\av_3\cdot\uv) \big) \big\} \\
+  \av_1\cdot\uv_{r\rc\rc} &= -\big\{ \prc\av_1\cdot\uv_{r\rc} +
+                \prc\big(  \prc\av_1\cdot\uv_r + \prc( (\partial_r\av_1)\cdot\uv )
+                   + \prb\prc(\av_2\cdot\uv)+\prc^2(\av_3\cdot\uv) \big) \big\} \\
+\end{align*}
+The only difficult terms on the RHS of these
+ last two expressions are $\prb\av_1\cdot\uv_{rs}$ and $\prc\av_1\cdot\uv_{r\rc}$.
+
+In two-dimensions we could solve explicitly for $\uv_{rs}$ just from the divergence equation and it's derivatives.
+In three-dimensions we need more information. Since we know $\av_1\cdot\uv_{rs}$ we can compute
+$\uv_{rs}$ if we know $\tauv_m\cdot\uv_{rs}$ for $m=1,2$.
+
+Now letting $\tauv=\tauv_m$ then
+\begin{align*}
+   \tauv\cdot\uv_{rs} &= (\tauv\cdot\uv_r)_s - \tauv_s\cdot\uv_r
+\end{align*}
+The boundary conditions for $\tauv\cdot\uv$ will allow us to compute $\tauv\cdot\uv_r(r,s,\rc)$
+on the boundary and at all ghost points  and thus we
+can determine an approximation to $(\tauv\cdot\uv_r)_s$. For example a second-order approximation
+should be sufficient,
+\begin{align*}
+  (\tauv\cdot\uv_r)_s(0,\rb,\rc) &:= G^{rs}(s,\rc) \\
+                                &\approx D_{0s}\big( \tauv_\iv\cdot (D_{0r}\Uv_\iv) \big)
+\end{align*}
+% For example, a second-order approximation 
+% \begin{align*}
+%   \tauv\cdot\uv(\dra,s,\rc) &= \tauv\cdot\uv(0,s,\rc) + \dra \tauv\cdot\uv_r(0,s,\rc) 
+%                      + {\dra^2\over2} \tauv\cdot\uv_{rr}(0,s,\rc) + O(\dra^3)
+% \end{align*}
+% implies
+% \begin{align*}
+% \tauv\cdot\uv_r(0,s,\rc) &= {\tauv\cdot\uv(\dra,s,\rc) - \tauv\cdot\uv(0,s,\rc) \over \dra} 
+%                - {\dra\over2} \tauv\cdot\uv_{rr}(0,s,\rc)  + O(\dra^2)
+% \end{align*}
+Thus by first computing the tangential components we then can determine $(\tauv\cdot\uv_r)_s(0,s,\rc)$ and thus
+we can assume that we know $\tauv\cdot\uv_{rs}$ in terms of $\tauv_s\cdot\uv_r$ and a known function:
+\begin{align*}
+\tauv\cdot\uv_{rs} &= - \tauv_s\cdot\uv_r + G^{rs} \\
+                 G^{rs}(s,\rc) &= (\tauv\cdot\uv_r)_s(0,s,\rc) \quad\mbox{(known) from tangential components}
+\end{align*}
+Similiary we get
+\begin{align*}
+\tauv\cdot\uv_{r\rc} &= - \tauv_\rc\cdot\uv_r + G^{r\rc} \\
+                 G^{r\rc}(s,\rc) &= (\tauv\cdot\uv_r)_\rc(0,s,\rc) \quad\mbox{(known) from tangential components}
+\end{align*}
+
+Combining these results allows us to rewrite
+the boundary condition~(\ref{eq:divtte}) in the form 
+\begin{equation}
+  \partial_r\big(\av_1\cdot \Delta\Ev \big) =
+    \bv_3\cdot\uv_{rrr} + \bv_2\cdot\uv_{rr} + \bv_1\cdot\uv_{r} 
+        = G(\uv_s,\uv_{ss},\uv_\rc,\uv_{\rc\rc},\uv_{s\rc}, (\tauv\cdot\uv_r)_s, (\tauv\cdot\uv_r)_\rc)
+\end{equation}
+
+
+We are thus led to the discrete boundary conditions for the fourth-order accurate scheme in three-dimensions
+\begin{align}
+    \big(\tauv_m\cdot\Ev\big)_{0,j}  &=0 \quad m=1,2 \\
+ \tauv_m\cdot\Delta_{2h} \Ev_{0,j}  &=0 \quad m=1,2 \\
+ \tauv_m\cdot\Ev_{-2,j} &= \tauv_m \cdot (I-D_+^4)\Ev_{-2,j} \equiv g_m , \quad m=1,2  \quad\mbox{(extrapolate)} \\
+  D_{0r}\big(1- (\Delta r)^2/6 D_{+r}D_{-r}\big) \big(\av_1\cdot\Ev\big)_{0,j} &= 0 \\
+  \bv_3\cdot(D_{0r}D_{+r}D_{-r}~\Ev) + \bv_2\cdot\uv_{rr} + \bv_1\cdot\uv_{r} 
+                &= G(\uv_s,\uv_{ss},\uv_{\rc},\uv_{\rc\rc},\uv_{s\rc},(\tauv\cdot\uv_r)_s, (\tauv\cdot\uv_r)_\rc)
+\end{align}
+To summarize, the first three equations can be used to determine the tangential components
+ on the boundary and two ghost lines,
+\[
+    \tauv_m\cdot\Ev_{i_1,i_2,i_3} \qquad \i_1=0,-1,-2
+\]
+The last two equations then determine the normal components on the two ghost lines,
+\[
+    \av_1\cdot\Ev_{i_1,i_2,i_3} \qquad \i_1=-1,-2
+\]
+
+
+
+% This last expression can be differentiated with respect to $s$ to give
+% \begin{equation}
+%    \uv_{rss} = \Fv_2(\uv_r,\uv_s,\uv_{rr},\uv_{ss})  \label{eq:urs}
+% \end{equation}
+
+% 
+% For fourth order accuracy we 
+% combine the boundary conditions with $\Ev_{tt} = c^2 \Delta \Ev$ to give the addition conditions.
+% Differentiation of the boundary conditions twice with respect to time gives
+% \begin{align*}
+%    \big(\tauv_m\cdot \Ev_{tt}\big)_{0,j} &=0 \\
+%    \partial_r\big(\av_1\cdot \Ev_{tt} \big)_{0,j} &= 0
+% \end{align*}
+% which implies
+% \begin{align*}
+%   \tauv_m\cdot\Delta \Ev_{0,j}  &=0  \\
+%   \partial_r(\av_1\cdot \Delta\Ev )_{0,j} &= 0
+% \end{align*}
+% 
+% 
+% These conditions can be simplified to make them more tractable for numerical computations.
+% \begin{align*}
+%     \big(\tauv_m\cdot\Ev\big)_{0,j}  &=0  \\
+%  \tauv_m\cdot\Delta_{2h} \Ev_{0,j}  &=0  \\
+%  \tauv_m\cdot\Ev_{-2,j} &= \tauv_m \cdot (I-D_+^4)\Ev_{-2,j} \equiv g_m   \quad\mbox{(extrapolate)} \\
+%   D_{0r}\big(1- (\Delta r)^2/6 D_{+r}D_{-r}\big) \big(\av_1\cdot\Ev\big)_{0,j} &= 0 \\
+%   D_{0r} (\av_1\cdot \Delta_{2h}Ev )_{0,j} &= 0 
+% \end{align*}
+% 
+% 
+% 
+% 
+% Rather than discretize directly this last equation we can instead take two $r-$derivatives
+% of the divergenec equation,
+% \[
+%    \partial_r^3( \av_1\cdot\uv) + \partial_r^2\partial_s( \av_2\cdot\uv ) =0
+% \]
+% Then 
+% \begin{align}
+% \partial_r^3( \av_1\cdot\uv) &= - \partial_r^2\partial_s( \av_2\cdot\uv ) \\
+%                              &:= - G \\
+%   G & := \av_2\cdot\uv_{rrs} + ... + \partial_r^2\partial_s(\av_2)\cdot\uv
+% \end{align}
+% We can determine $G$ using the interior equation. 
+% 
+% Now,
+% \begin{align}
+%   \uv_{rr}  &= -\big\{ c_1\uv_r +  c_{22}\uv_{ss} + c_2 \uv_{s} + \uv_{tt} \big\} c_{11}^{-1}
+% \end{align}
+% and thus 
+% \begin{align*}
+%   \uv_{rrs} &= -\big\{ (\partial_s c_1)\uv_r + c_1\uv_{rs} 
+%                      + (\partial_s c_{22}) \uv_{ss} + c_{22}\uv_{sss}
+%                      + (\partial_s c_2) \uv_{s} + c_2 \uv_{ss} + \uv_{stt}
+%                     + \big\} c_{11}^{-1}   \\
+%             &\quad + \big\{ c_1\uv_r +  c_{22}\uv_{ss} + c_2 \uv_{s} + \uv_{tt} \big\} (\partial_s c_{11}) c_{11}^{-2}
+% \end{align*}
+% In this expression we need to determine $\uv_{rs}$. We get these mixed derivatives by
+% taking derivative of the divergence equation,
+% \begin{align*}
+%    \partial_r^2(\av_1\cdot\uv) + \partial_r\partial_s(\av_2\cdot\uv) &=0 \\
+%    \partial_r\partial_s(\av_1\cdot\uv) + \partial_s^2(\av_2\cdot\uv) &=0 \\
+% \end{align*}
+% We solve these last two equations to give the mixed derivatives in terms of the unmixed derivatives.
+% \begin{equation}
+%   \uv_{rs} = F_3(\uv_r,\uv_s,\uv_{rr},\uv_{ss}) \label{eq:mixedDerivatives}
+% \end{equation}
+% % In particular, in 2D we have
+% % \begin{align*}
+% %   u_{rs}& ={\frac {{{\it a12}}^{2}{\it vrr}-{{\it a22}}^{2}{\it vss}-{\it a11rs}\,u{\it a22}-{\it a11r}\,{\it us}\,{\it a22}-{\it a12s}\,{\it vr
+% % }\,{\it a22}-{\it a22ss}\,v{\it a22}-{\it a21ss}\,u{\it a22}-2\,{\it a21s}\,{\it us}\,{\it a22}-{\it a21}\,{\it uss}\,{\it a22}-2\,{
+% % \it a22s}\,{\it vs}\,{\it a22}-{\it a12rs}\,v{\it a22}-{\it a12r}\,{\it vs}\,{\it a22}+2\,{\it a12}\,{\it a11r}\,{\it ur}+{\it a12}\,
+% % {\it a11rr}\,u+{\it a12}\,{\it a11}\,{\it urr}+2\,{\it a12}\,{\it a12r}\,{\it vr}+{\it a12}\,{\it a12rr}\,v+{\it a12}\,{\it a22r}\,{
+% % \it vs}+{\it a12}\,{\it a22s}\,{\it vr}+{\it a12}\,{\it a22rs}\,v+{\it a12}\,{\it a21r}\,{\it us}+{\it a12}\,{\it a21s}\,{\it ur}+{
+% % \it a12}\,{\it a21rs}\,u-{\it a11s}\,{\it ur}\,{\it a22}}{-{\it a21}\,{\it a12}+{\it a11}\,{\it a22}}} \\
+% %   v_{rs} &=-{\frac {{\it a11}\,{\it a12}\,{\it vrr}+{\it a11}\,{\it a22r}\,{\it vs}+{\it a11}\,{\it a22s}\,{\it vr}+{\it a11}\,{\it a22rs}\,v+{
+% % \it a11}\,{\it a21r}\,{\it us}+{\it a11}\,{\it a21s}\,{\it ur}+{\it a11}\,{\it a21rs}\,u+2\,{\it a11}\,{\it a12r}\,{\it vr}-{\it a21}
+% % \,{\it a11s}\,{\it ur}-{\it a21}\,{\it a11r}\,{\it us}-{\it a21}\,{\it a11rs}\,u-{\it a21}\,{\it a22}\,{\it vss}-2\,{\it a21}\,{\it
+% % a22s}\,{\it vs}-2\,{\it a21}\,{\it a21s}\,{\it us}+{\it a11}\,{\it a12rr}\,v-{\it a21}\,{\it a21ss}\,u-{\it a21}\,{\it a22ss}\,v-{
+% % \it a21}\,{\it a12s}\,{\it vr}-{\it a21}\,{\it a12r}\,{\it vs}-{\it a21}\,{\it a12rs}\,v+{{\it a11}}^{2}{\it urr}+2\,{\it a11}\,{\it
+% % a11r}\,{\it ur}-{{\it a21}}^{2}{\it uss}+{\it a11}\,{\it a11rr}\,u}{-{\it a21}\,{\it a12}+{\it a11}\,{\it a22}}}
+% % \end{align*}
+% 
+% 
+% We thus have expressions
+% \begin{align*}
+%   \uv_{rrs} &= F_1(\uv_r,\uv_s,\uv_{rr},\uv_{rs},\uv_{ss},\uv_{rrs},\uv_{sss}) \\
+%   \uv_{rr} &= F_2(\uv_r,\uv_s,\uv_{ss}) \\
+%   \uv_{rs} &= F_3(\uv_r,\uv_s,\uv_{rr},\uv_{ss})
+% \end{align*}
+% which allows us to convert $\uv_{rrs}$, $\uv_{rr}$ and $\uv_{rs}$ to depend on $\uv_r$ and $s-$derivatives.
+% 
+%  Therefore we can write $G$ as
+% \begin{align*}
+%    G &= -\bv\cdot\uv_r + G_1(\uv_s,\uv_{ss},\uv_{sss})
+% \end{align*}
+% whence
+% \begin{align*}
+% \partial_r^3( \av_1\cdot\uv) + \bv\cdot\uv_r &= G_1(\uv_s,\uv_{ss},\uv_{sss})
+% \end{align*}
+% is a boundary condition we can use to determine $\av_1\cdot\uv$ for $r<0$.
+
+
+
+\subsection{Sixth- and higher-order accurate boundary conditions}
+
+For sixth and higher order accurate boundary conditions we proceed in the same fashion
+as for the fourth order case. 
+
+By differentiating the boundary conditions $2m$ times with respect to time and using the 
+interior PDE, 
+is follows that for $m=0,1,2,3\ldots$,
+\begin{align*}
+  \tauv\cdot\Delta^m \Ev_{0,j}  &=0  \\
+  \partial_r(\av_1\cdot \Delta^m\Ev )_{0,j} &= 0
+\end{align*}
+
+
+The Laplacian squared is
+\begin{align*}
+   \Delta^2  &= \Big(c_{11} \partial_r^2 + c_{22}\partial_s^2  + c_{10} \partial_r + c_{01} \partial_s \Big)^2 \\
+          &= d_{1111}\partial_r^4 + d_{2222}\partial_s^4
+             + d_{1122} \partial_r^2\partial_s^2
+             + d_{1112} \partial_r^3\partial_s + d_{1222} \partial_r\partial_s^3 \\
+        &   + d_{111}\partial_r^3 + d_{222}\partial_s^3
+             + d_{112} \partial_r^2\partial_s + d_{122} \partial_r\partial_s^2 \\
+    &  +d_{11} \partial_r^2 +d_{12} \partial_r\partial_s + d_{22}\partial_s^2  + d_{10} \partial_r + d_{01} \partial_s 
+ + c_{10} \partial_r + c_{01} \partial_s 
+\end{align*}
+We would like to determine expressions at $r=0$ for the mixed-derivatives that appear in this equation.
+We already know $\uv_{rs}$.
+
+We make use of 
+\[
+ \partial_s\big(\tauv\cdot\uv_{tt}\big)(0,s) = 0  
+\]
+to give
+\begin{align*}
+  \partial_s\big(\tauv\cdot\uv_{tt}\big)(0,s) &= \partial_s\big(\tauv\cdot\Delta\uv\big)(0,s) \\
+     &= \tauv\cdot\Big\{ c_{11} \uv_{rrs} +  c_{10} \uv_{rs}  + c_{22}\partial_s^3\uv  + c_{01} \partial_s^2\uv  \\
+     &~~+  \partial_s(c_{11})\partial_r^2\uv + \partial_s(c_{22})\partial_s^2\uv  + 
+         \partial_s(c_{10})\partial_r\uv + \partial_s(c_{01}) \partial_s \uv \Big\}
+\end{align*}
+Whence we know
+\begin{equation}
+  \tauv\cdot\uv_{rrs} = F_{112}( \uv_{rr}, \uv_{r}, \uv_{sss}, \uv_{ss}, \uv_s) \label{eq:rrs}
+\end{equation}
+In the same manner, from $\partial_s^2\big(\tauv\cdot\uv_{tt}\big)(0,s) = 0 $
+we can determine
+ \begin{equation}
+  \tauv\cdot\uv_{rrss} = F_{1122}( \uv_{rr}, \uv_{r}, \uv_{ssss}, \uv_{sss}, \uv_{ss}, \uv_s)  \label{eq:rrss}
+\end{equation}
+We also need $\tauv\cdot\partial_r^3\partial_s\uv$ and $\tauv\cdot\partial_r\partial_s^2\uv$
+
+To get $\tauv\cdot\partial_r^3\partial_s\uv$ we use the divergence condition (cf. $v_{xxxy}=-u_{xxxx}$),
+\begin{align*}
+  \partial_r^3(\delta) &= \partial_r^4(\av_1\cdot\uv) +\partial_r^3\partial_s(\av_2\cdot\uv) \\
+   \partial_r^2\partial_s(\delta) &= \partial_r^3\partial_s(\av_1\cdot\uv) +\partial_r^2\partial_s^2(\av_2\cdot\uv)
+\end{align*}
+gives
+\begin{align*}
+\av_2\cdot(\partial_r^3\partial_s\uv) &= -\big\{ \partial_r^4(\av_1\cdot\uv) +\partial_r^3\partial_s(\av_2)\uv
+                         +\partial_s(\av_2)\partial_r^3\uv + \ldots \big\} \\
+\av_1\cdot(\partial_r^3\partial_s\uv) &= -\big\{ \partial_r^2\partial_s^2(\av_2\cdot\uv)
+               \partial_r^3\partial_s(\av_1)\uv + \partial_r^3 (\av_1)\partial_s\uv + \ldots    \big\}
+\end{align*}
+giving
+\begin{align*}
+\partial_r^3\partial_s\uv &= \Fv_{1112}(\partial_r\uv,\partial_s\uv, \ldots)
+\end{align*}
+
+
+
+
+
+Discrete boundary conditions for the sixth-order accurate scheme are
+\begin{align*}
+    \big(\tauv_m\cdot\Ev\big)_{0,j}  &=0  \\
+ \tauv_m\cdot\Delta_{4h} \Ev_{0,j}  &=0  \\
+ \tauv_m\cdot\Delta_{2h}^2 \Ev_{0,j}  &=0  \\
+  \tauv_m\cdot\Ev_{-3,j} &= \tauv_m \cdot (I-D_+^7)\Ev_{-3,j} \equiv g_m   \quad\mbox{(extrapolate)}\\
+  D_{0r}\big(1- {(\Delta r)^2\over 6} D_{+r}D_{-r}  
+                  \pm {(\Delta r)^4\over 120} D_{+r}^2D_{-r}^2 \big)
+                          \big(\av_1\cdot\Ev\big)_{0,j} &= 0 \\
+  D_{0r}\big(\av_1\cdot \Delta_{4h}Ev \big)_{0,j}
+    -{(\Delta r)^2\over 6} D_{+r}D_{-r}\big( \av_1\cdot \Delta_{2h}Ev\big)_{0,j} &= 0 \\
+  D_{0r} (\av_1\cdot \Delta_{2h}^2 Ev )_{0,j} &= 0 
+\end{align*}
+where $\Delta_{2h}$ is a second order accurate approximation to the Laplacian operator.
+
+\subsection{Boundary conditions for the magnetic field}
+For the magnetic field we have
+\begin{align*}
+  \nv\cdot\Hv &= 0 \\
+  \grad\cdot\Hv &=0 \\
+\end{align*}
+
+\clearpage
+\subsection{Extended boundaries in two-dimensions}
+
+Consider a corner on a two-dimensional orthogonal curvilinear grid at $\rv=0$.
+We need to determine values along the extended boundaries (i.e. $s=0$, $r<0$ and $r=0$, $s<0$).
+
+
+We have
+\begin{align*}
+  \av_1\cdot\uv(r,0,t) &= 0,  \quad\mbox{(tangential component on $s=0$)}\\
+  \av_2\cdot\uv(0,s,t) &= 0,  \quad\mbox{(tangential component on $r=0$)}\\
+  \uv(0,0,t)=\partial_t^m\uv(0,0,t) &= 0, \quad\mbox{(all time derivatives are zero at $\rv=0$, $m=0,1,2,\ldots$)} \\
+  \Delta\uv(0,0,t) & =0
+\end{align*}
+where as usual $\av_1=J \grad_\xv r$ and $\av_2=J \grad_\xv s$.
+
+For second-order we can thus solve the four equations 
+\begin{align*}
+  c_{11} D_{+r}D_{-r} \Uv_\iv + c_{22} D_{+s}D_{-s} \Uv_\iv + c_{1} D_{0r} \Uv_\iv + c_{2} D_{0s} \Uv_\iv &= 0 \\
+  (\av_1\cdot\Uv)_{-1,0} &= 0 \\
+  (\av_2\cdot\Uv)_{0,-1} &= 0 
+\end{align*}
+to determine the four unknown components of the vectors $\Uv_{-1,0}$ and $\Uv_{0,-1}$.
+
+Note that for the second-order approximation, since $\Uv_{0,0}=0$ the extended boundary points are
+not even used. The question is whether the above second-order approximation is good enough
+for the fourth-order accurate method.
+
+\clearpage
+\subsection{Corners in two-dimensions}
+
+
+Given the values on the extended boundaries we can then determine the 
+values at the ghost points that lie outside corners.
+\newcommand{\trunc}{O(|\rv|^6)}%
+\newcommand{\truncb}{O(|\rv|^4)}%
+\newcommand{\trunca}{O(|\rv|^2)}%
+By Taylor series
+\begin{align*}
+  u(\ra,\rb)&= u(0,0) + \Ds_1(\ra,\rb) + \Ds_2(\ra,\rb) + \Ds_3(\ra,\rb) + \Ds_4(\ra,\rb) + \trunc
+\end{align*}
+where
+\begin{align*}
+  \Ds_1(\ra,\rb) &= (\ra \partial_\ra + \rb \partial_\rb ) u(0,0) \\
+  \Ds_2(\ra,\rb) &= {1\over2}( \ra^2\partial_\ra^2+\rb^2\partial_\rb^2+ 2\ra\rb\partial_\ra\partial_\rb  )u(0,0)  \\
+  \Ds_3(\ra,\rb) &= {1\over3!}( \ra^3\partial_r^3 + \rb^3\partial_\rb^3 
+                   +3\ra^2\rb\partial_\ra^2\partial_\rb 
+                   + 3\ra\rb^2\partial_\ra\partial_\rb^2 
+                   + \rb^3\partial_\rb^3  )u(0,0)                    \\
+  \Ds_4(\ra,\rb) &= {1\over4!}( \ra^4\partial_r^4
+                   +4\ra^3\rb\partial_\ra^3\partial_\rb 
+                   +6\ra^2\rb^2\partial_\ra^2\partial_\rb^2 
+                   +4\ra\rb^3\partial_\ra\partial_\rb^3 
+                   + \rb^4\partial_\rb^4   )u(0,0)  
+\end{align*}
+Whence
+\begin{align}
+ u(-\ra,-\rb) &= 2 u(0,0) - u(\ra,\rb) + 2\Ds_2(\ra,\rb) + 2\Ds_4(\ra,\rb)+ \trunc \label{taylor1} \\
+\end{align}
+
+For second order at the corner we use the approximation
+\begin{align}
+   u(-\ra,-\rb) &\approx 2 u(0,0) - u(\ra,\rb) + 2\Ds_2(\ra,\rb) + \truncb \\
+\Ds_2(\ra,\rb) &= {1\over2}( \ra^2\partial_\ra^2+\rb^2\partial_\rb^2+ 2\ra\rb\partial_\ra\partial_\rb )u(0,0)
+\end{align}
+where the mixed derivatives, $\partial_\ra\partial_\rb u(0,0) $,
+are obtained from equation~(\ref{eq:mixedDerivatives}). 
+
+
+For fourth-order accuracy we use
+\begin{align}
+   u(-\ra,-\rb) &\approx 2 u(0,0) - u(\ra,\rb) + 2\Ds_2(\ra,\rb) + 2\Ds_4(\ra,\rb) + \trunc \\
+\end{align}
+All non-mixed derivatives, $\partial_r^3 u$, $\partial_s^3 u$ etc. can be computed from the boundary
+values whcih are assumed known at this point.
+
+The mixed derivatives $\partial_\ra\partial_\rb u(0,0) $,
+are obtained from equation~(\ref{eq:mixedDerivatives}). 
+
+We also need approximations for $\partial_\ra^3\partial_\rb u$,
+ $\partial_\ra^2\partial_\rb^2 u$ and $\partial_\ra\partial_\rb^3 u$.
+
+
+
+\clearpage
+\subsection{Extended boundaries in three-dimensions}
+
+Consider the edge $\rv=(0,0,\rc)$, $\rc\in[0.1]$ of an orthogonal grid in three dimensions. 
+
+We need to determine values of the ghost points along the 
+extended boundaries (i.e. $\rb=0$, $\ra<0$ and $\ra=0$, $\rb<0$).
+
+
+The following conditions hold on a PEC boundary
+\begin{align*}
+  \av_1\cdot\uv(r,0,0,\tc)=\av_3\cdot\uv(r,0,0,\tc) &= 0,  \quad\mbox{(tangential component on $\rb=0$)}\\
+  \av_2\cdot\uv(0,s,0,\tc)=\av_3\cdot\uv(0,s,0,\tc) &= 0,  \quad\mbox{(tangential component on $\ra=0$)}\\
+  \av_1\cdot\partial_t^m\uv(0,0,t) &= 0, \quad\mbox{($m=0,1,2,\ldots$)} \\
+  \av_2\cdot\partial_t^m\uv(0,0,t) &= 0, \quad\mbox{($m=0,1,2,\ldots$)} 
+\end{align*}
+
+For second-order accuracy we can thus solve the six equations 
+\begin{align*}
+  \av_1\cdot L_h^{(2)} \Uv_{0,0,i_3} &= 0 \\
+  \av_2\cdot L_h^{(2)} \Uv_{0,0,i_3} &=0 \\
+  (\av_1\cdot\Uv)_{-1,0,i_3} &= 0 \quad,\quad (\av_3\cdot\Uv)_{-1,0,i_3} = 0 \\
+  (\av_2\cdot\Uv)_{0,-1,i_3} &= 0 \quad,\quad (\av_3\cdot\Uv)_{0,-1,i_3} = 0 
+\end{align*}
+to determine the six unknown components of the vectors $\Uv_{-1,0,i_3}$ and $\Uv_{0,-1,i_3}$.
+Here $L_h^{(2)}$ is a second-order accurate approximation to the Laplacian,
+\begin{align*}
+  L_h^{(2)} \Uv_\iv &= \big(c_{11} D_{+r}D_{-r} \Uv_\iv + c_{22} D_{+s}D_{-s} \Uv_\iv + c_{33} D_{+t}D_{-t} \Uv_\iv \\
+          &~~ + c_{1} D_{0r} \Uv_\iv + c_{2} D_{0s}\big) + c_{3} D_{0t}\Uv_\iv \big) 
+\end{align*}
+
+For fourth-order accuracy we use a fourth-order approximation to the equation and extrapolate 
+\begin{align*}
+  \av_1\cdot L_h^{(4)} \Uv_{0,0,i_3} &=0 \\
+  \av_2\cdot L_h^{(4)} \Uv_{0,0,i_3} &=0 \\
+  (\av_1\cdot\Uv)_{i_1,0,i_3} &= (\av_3\cdot\Uv)_{i_1,0,i_3} = 0 \quad i_1=-1,-2\\
+  \Delta_{+r}^4(\av_2\cdot\Uv)_{-2,0,i_3} &= 0  \\
+  (\av_2\cdot\Uv)_{0,i_2,i_3} &= (\av_3\cdot\Uv)_{0,i_2,i_3} = 0  \quad i_2=-1,-2\\
+  \Delta_{+s}^4(\av_1\cdot\Uv)_{0,-2,i_3} &= 0  \\
+\end{align*}
+These 12 equations determine the 12 unknown components of the 
+vectors $\Uv_{-1,0,i_3}$, $\Uv_{-2,0,i_3}$, $\Uv_{0,-1,i_3}$ and $\Uv_{0,-2,i_3}$.
+Since the ``tangential components'' are known, these 12 equations can be reduced to
+the solution of 4 equations for the unknown ``normal'' components.
+
+
+\clearpage
+\subsection{Ghost points outside edges in three-dimensions}
+By Taylor series in $\ra$ and $\rb$ (leaving $\rc$ fixed) gives
+\begin{align*}
+  u(\ra,\rb,\rc)&= u(0,0,\rc) + \Ds_1(u,\ra,\rb,\rc) + \Ds_2(u,\ra,\rb,\rc) 
+             + \Ds_3(u,\ra,\rb,\rc) + \Ds_4(u,\ra,\rb,\rc) + \trunc
+\end{align*}
+where
+\begin{align*}
+  \Ds_1(u,\ra,\rb,\rc) &= (\ra \partial_\ra + \rb \partial_\rb ) u(0,0,\rc) \\
+  \Ds_2(u,\ra,\rb,\rc) &= {1\over2}( \ra^2\partial_\ra^2
+                            + 2\ra\rb\partial_\ra\partial_\rb +\rb^2\partial_\rb^2 )u(0,0,\rc)  \\
+  \Ds_3(u,\ra,\rb,\rc) &= {1\over3!}( \ra^3\partial_r^3 + \rb^3\partial_\rb^3 
+                   +3\ra^2\rb\partial_\ra^2\partial_\rb 
+                   + 3\ra\rb^2\partial_\ra\partial_\rb^2 
+                   + \rb^3\partial_\rb^3  )u(0,0)                    \\
+  \Ds_4(u,\ra,\rb,\rc) &= {1\over4!}( \ra^4\partial_r^4
+                   +4\ra^3\rb\partial_\ra^3\partial_\rb 
+                   +6\ra^2\rb^2\partial_\ra^2\partial_\rb^2 
+                   +4\ra\rb^3\partial_\ra\partial_\rb^3 
+                   + \rb^4\partial_\rb^4   )u(0,0,\rc)  
+\end{align*}
+
+We can thus derive the following two formulae for the ghost points,
+\begin{align}
+ u(-\ra,-\rb,\rc) &= 2 u(0,0,\rc) - u(\ra,\rb,\rc) + 2\Ds_2(u,\ra,\rb,\rc) 
+                         + 2\Ds_4(u,\ra,\rb,\rc)+ \trunc \label{eq:taylorOdd} \\
+ u(-\ra,-\rb,\rc) &= u(\ra,\rb,\rc) - 2\Ds_1(u,\ra,\rb,\rc) - 2\Ds_3(u,\ra,\rb,\rc) 
+                       + {O(|\rv|^5)} \label{eq:taylorEven}
+\end{align}
+The first formula, equation~(\ref{eq:taylorOdd}) is appropriate for odd functions and the
+second is appropriate for even functions.
+
+Consider an edge $\rv=(0,0,\rc)$. On a rectangular grid (perhaps rotated) the components 
+$\av_1\cdot\uv$ and $\av_2\cdot\uv$ will be odd functions while the component
+$\av_3\cdot\uv$ will be even. 
+It is thus appropriate to use equation~(\ref{eq:taylorOdd}) for $\av_1\cdot\uv$ and $\av_2\cdot\uv$ but
+use equation~(\ref{eq:taylorEven}) for $\av_3\cdot\uv$.
+
+% At the edge $\rc=0$, the components $\av_1\cdot\uv$ and $\av_2\cdot\uv$ will behave like odd functions
+% while the component $\av_3\cdot\uv$ will behave like an even function in the sense that on a rectangular
+% grid $\av_1\cdot\uv$ and $\av_2\cdot\uv$ will be odd while $\av_3\cdot\uv$ will be even.
+
+For second order at the ghost points outside the edge parallel to $\rc$ we use the approximation
+\begin{align}
+   \av_m\cdot\uv(-\ra,-\rb,\rc) &\approx 2 \av_m\cdot\uv(0,0,\rc) - \av_m\cdot\uv(\ra,\rb,\rc)  \quad m=1,2 \\
+   \av_3\cdot\uv(-\ra,-\rb,\rc) &\approx \av_3\cdot\uv(\ra,\rb,\rc) - \av_3\cdot\Ds_1(\uv,\ra,\rb,\rc) 
+\end{align}
+Along the edge $\rv=(0,0,\rc)$ all the derivatives of $\av_3\cdot\uv$ are zero and thus
+$\av_3\cdot\uv_r = (\av_3\cdot\uv)_r - (\partial_r\av_3)\cdot\uv = 0 $.
+This implies $\av_3\cdot\Ds_1(\uv,\ra,\rb,\rc)$ is zero on the edge and thus 
+we may more simply use
+\begin{align}
+   \av_3\cdot\uv(-\ra,-\rb,\rc) &\approx \av_3\cdot\uv(\ra,\rb,\rc) 
+\end{align}
+
+For fourth-order accuracy  we use the approximations
+\begin{align}
+  \av_m\cdot\uv(-\ra,-\rb,\rc) &\approx 2 \av_m\cdot\uv(0,0,\rc) - \av_m\cdot\uv(\ra,\rb,\rc) 
+                          + 2\av_m\cdot\Ds_2(\uv,\ra,\rb,\rc) \quad m=1,2 \\
+  \av_3\cdot\uv(-\ra,-\rb,\rc) &\approx \av_3\cdot\uv(\ra,\rb,\rc) - 2\av_3\cdot\Ds_1(\uv,\ra,\rb,\rc) 
+                     - 2\av_3\cdot\Ds_3(\uv,\ra,\rb,\rc) 
+% \Ds_2(\ra,\rb,\rc) &= {1\over2}( \ra^2\partial_\ra^2+ 2\ra\rb\partial_\ra\partial_\rb+\rb^2\partial_\rb^2 )u(0,0,\rc)
+\end{align}
+
+
+The mixed derivatives $\av_1\cdot\uv_{rs}$ and $\av_2\cdot\uv_{rs}$ can be obtained from the
+divergence equation
+\begin{align}
+  \av_1\cdot\uv_{rs} &= -\big\{ \big\} \\
+  \av_2\cdot\uv_{rs} &= -\big\{ \big\} 
+\end{align}
+
+The mixed derivatives $\av_3\cdot\uv_{rrs}$ and $\av_3\cdot\uv_{rss}$ are also needed.
+From the equation we have
+\begin{align}
+    c_{11} \uv_{rrs} & = - \partial_s\big\{ c_{22} \uv_{ss} + c_{33} \uv_{tt} 
+                       + c_{1} \uv_{r} + c_{2} \uv_{s} + c_{3} \uv_{t} \big\} \\
+                     &= -\{ ... c_{1} \uv_{rs} + ... \} \\
+  c_{22} \uv_{rss} &  = - \partial_r\big\{ c_{11} \uv_{rr} + c_{33} \uv_{tt} 
+                       + c_{1} \uv_{r} + c_{2} \uv_{s} + c_{3} \uv_{t} \big\} \\
+                     &= -\{ ... c_{2} \uv_{rs} + ... \} \\
+\end{align}
+This gives $\av_3\cdot\uv_{rrs}$ but requires $\av_3\cdot\uv_{rs}$.
+We *could* use a first order approximation for $\av_3\cdot\uv_{rs}$:
+\begin{align}
+  \av_3\cdot\uv_{rs} &\approx \av_3\cdot D_{+r}D_{+s} \Uv_{0,0,i_3}
+\end{align}
+% or use a centered approximation with extrapolation for $\av_3\cdot\Uv_{-1,0,i_3}$, $\av_3\cdot\Uv_{0,-1,i_3}$
+% and $\av_3\cdot\Uv_{-1,-1,i_3}$
+OR we could use the second order approximation
+\begin{align*}
+  u_{rs}(r,s) &= \big\{ 8 u(r,s) - u(2r,2s) - 7 u(0,0) - 6( ru_r+ su_s) -2( r^2 u_{rr} + s^s u_{ss} )
+                     \big\} /(4 r s) + O( r^2 )
+\end{align*}
+
+
+
+ANOTHER way: First compute $\av_3\cdot\Uv_{-1,0,i_3}$ from a second order
+approximation to
+\begin{align}
+  \av_3\cdot\big\{ c_{11} \uv_{rr} + c_1 \uv_r\big\}  &= - av_3\cdot\big\{ c_{22} \uv_{ss} + c_{33} \uv_{tt} 
+                        + c_{2} \uv_{s} + c_{3} \uv_{t} \big\} \\
+\end{align}
+and compute $\av_3\cdot\Uv_{0,-1,i_3}$ from a second order
+approximation to
+\begin{align}
+  \av_3\cdot\big\{ c_{22} \uv_{ss} + c_2 \uv_s\big\}  &= - av_3\cdot\big\{ c_{11} \uv_{ss} + c_{33} \uv_{tt} 
+                       + c_{1} \uv_{r}  + c_{3} \uv_{t} \big\} \\
+\end{align}
+Then we can approximate $\av_3\cdot\uv_{rrs}$ and $\av_3\cdot\uv_{rss}$ to second order
+\begin{align}
+   \av_3\cdot\uv_{rrs} &\approx \av_3\cdot D_{+r}^2D_{+s} \Uv_{0,0,i_3}
+\end{align}
+This last equation contains the unknown value $\av_3\cdot\Uv_{-1,-1,i_3}$ which we need to move to
+the left hand side...
+
+% where the mixed derivatives, $\partial_\ra\partial_\rb u(0,0,\rc) $,
+% are obtained ??  % from equation~(\ref{eq:mixedDerivatives}). 
+
+\clearpage
+\subsection{Corners in three-dimensions}
+
+
+Given the values on the extended boundaries we can then determine the 
+values at the ghost points that lie outside corners (i.e. the vertices of the unit cube).
+By Taylor series
+\begin{align*}
+  u(\ra,\rb,\rc)&= u(0,0) + \Ds_1(\ra,\rb,\rc) + \Ds_2(\ra,\rb,\rc) + \Ds_3(\ra,\rb,\rc) + \Ds_4(\ra,\rb,\rc) + \trunc
+\end{align*}
+where
+\begin{align*}
+  \Ds_1(\ra,\rb,\rc) &= (\ra \partial_\ra + \rb \partial_\rb + \rc \partial_\rc ) u(0,0) \\
+  \Ds_2(\ra,\rb,\rc) &= {1\over2!}( \ra^2\partial_\ra^2+\rb^2\partial_\rb^2 +\rc^2\partial_\rc^2
+                         + 2\ra\rb\partial_\ra\partial_\rb 
+                         + 2\ra\rc\partial_\ra\partial_\rc + 2\rb\rc\partial_\rb\partial_\rc 
+                     )u(0,0)  \\
+\end{align*}
+Whence we derive the expression
+\begin{align}
+ u(-\ra,-\rb,-\rc) &= 2 u(0,0,0) - u(\ra,\rb,\rc) + 2\Ds_2(\ra,\rb\rc) + 2\Ds_4(\ra,\rb\rc)+ \trunc \label{taylor1} \\
+\end{align}
+On a rectangular grid, all components of $\uv$ are odd functions about the corner and thus
+the above formula is the appropriate one to use since it reduces to the condition
+$u(-\ra,-\rb,-\rc) = 2 u(0,0,0) - u(\ra,\rb,\rc)$ on a rectangular grid.
+
+For second-order accuracy at the corner we use the approximation
+\begin{align}
+   u(-\ra,-\rb,-\rc) &\approx 2 u(0,0,0) - u(\ra,\rb,\rc) + \trunca \\
+\end{align}
+% where the mixed derivatives, $\partial_\ra\partial_\rb u(0,0) $,
+
+For fourth-order accuracy  at the corner we use the approximation
+\begin{align}
+   u(-\ra,-\rb,-\rc) &\approx 2 u(0,0,0) - u(\ra,\rb,\rc) + 2\Ds_2(\ra,\rb,\rc) + \truncb \\
+\end{align}
+where all the second derivatives in $\Ds_2$ can be computed from the values on the extended boundaries.

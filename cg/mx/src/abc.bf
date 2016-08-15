@@ -946,6 +946,13 @@ end do
       tp=t-dt ! previous time
       tm=t-.5*dt ! midpoint in time
 
+      ! -----------------------------------------
+      ! ------- In 3D we just set hz=ez ---------
+      ! -----------------------------------------
+      if( nd.eq.3 )then
+        hz=ez
+      end if
+
       ! For fourth order, when we set div(E)=0 on the face we can change the first or second ghost point: 
       ! NOTE: for the mx/cmd/abc.cmd test of square128.order4, the errors in div(E) are 5 times smaller with projectDivLine=1
       !   *** thus just stick with this ***

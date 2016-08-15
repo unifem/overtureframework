@@ -1,0 +1,81 @@
+\section{Boundary forcing functions for direct computation of the scattered field} \label{sec:boundaryForcings}
+
+
+
+In some cases on can directly compute the scattered field due to a known incident field.
+The total field is written as a sum of the incident field and scattered field,
+\[
+     \Ev_T(\xv,t) = \Ev_I(\xv,t) + \Ev_s(\xv,t),
+\]
+and thus the scattered field is given by
+\[
+     \Ev_s(\xv,t) = \Ev_T(\xv,t) -\Ev_I(\xv,t). 
+\]
+To compute the scattered field directly we must adjust the PEC boundary conditions $\tv_m\cdot\Ev_T=0$ to
+become inhomogeneous conditions, 
+\[
+    \tv_m\cdot \Ev_s(\xv,t) =  - \tv_m\cdot\Ev_I(\xv,t), \quad\text{(PEC BC for the scattered field)}. 
+\]
+
+\noindent The following boundary forcing options are currently available with cgmx,
+\begin{description}
+  \item[noBoundaryForcing]: (default).
+  \item[planeWaveBoundaryForcing]: Incident field is a plane wave, see Section~\ref{sec:planeWaveBoundaryForcing}.
+  \item[chirpedPlaneWaveBoundaryForcing]: Incident field is a chirped plane wave, see Section~\ref{sec:chirpedPlaneWaveBoundaryForcing}.
+\end{description}
+
+
+% ----------------------------------------------------------------------------
+\subsection{Plane wave boundary forcing} \label{sec:planeWaveBoundaryForcing}
+
+Choose the boundary forcing option to be {\tt planeWaveBoundaryForcing} to directly compute the 
+scattered field due to plane wave. The parameters defining the plane wave are described
+in Section~\ref{sec:planeWaveIC}.
+
+
+% ----------------------------------------------------------------------------
+\subsection{Chirped plane wave boundary forcing}\label{sec:chirpedPlaneWaveBoundaryForcing}
+
+
+Choose the boundary forcing option to be {\tt chirpedPlaneWaveBoundaryForcing} to directly compute the 
+scattered field due to {\em chirped} plane wave. A {\em chirped} wave has wavelength that
+varies over time. The parameters defining the plane wave (defining the carrier frequency below) 
+are described in Section~\ref{sec:planeWaveIC}. 
+The chirp is defined by the parameters
+\begin{align*}
+   [t_a,t_b] \quad & \text{: interval of chirp}, \\
+   \kv      \quad & \text{: incident wave vector}, \\
+   \omega_0 = c \, \kv \quad & \text{: main carrier frequency}, \\
+   B         \quad & \text{: band-width}, \\
+   \alpha    \quad & \text{: amplitude}, \\
+   \beta     \quad & \text{: parameter in $\tanh$ function that ramps the chirp on and off.}
+\end{align*}
+
+\input chirpFunctionFigure
+
+The {\em chirped} plane wave with wave vector $\kv$ moving in direction $\av$ is defined by
+\begin{align*}
+  & \Ev_c(x,t) = \alpha \, \hat\av~ P(\xi), \\
+  & \xi \defeq t - \frac{\hat{\kv}}{c}\cdot\xv -\xi_0, \quad
+   \hat{\kv} \defeq \frac{\kv}{\| \kv \|}, \quad \kv\cdot\hat\av=0, \quad
+  \xi_0 \defeq \frac{t_a+t_b}{2}, \\
+\end{align*}
+where 
+\begin{align*}
+  & P(\xi) \defeq \chi(\xi,\tau) e^{-i \phi(\xi) } , \\
+  & \phi(\xi) \defeq \omega_0 \xi +  \frac{B}{2\tau} \xi^2,  \\
+  & \chi(\xi) = \frac{1}{2}\Big[ \tanh(\beta(\xi+\tau/2) -\tanh(\beta(\xi-\tau/2) \Big], \\
+  & \tau \eqdef \frac{t_b-t_a}{2} \quad \omega_0 = c \, \hat{\kv} .
+\end{align*}
+
+Note that since $\Ev_c(\xv,t) \propto P(\xi)$ is a function only of $\xi$ it follows that $\Ev_c(\xv,t)$ will be a solution to
+the wave equation for any choice of $P(\xi)$.
+
+The instantaneous frequency is
+\begin{align*}
+&  \phi'(\xi) = \omega_0 + \frac{B}{\tau} \xi \qquad \text{ for $\xi\in[-\tau/2,\tau/2]$}, \\
+&  \phi'(\xi) \in [\omega_0 - B/2, \omega_0 + B/2], 
+\end{align*}
+and varies linearly along the chirp (hence a {\em linear chirp}). 
+
+

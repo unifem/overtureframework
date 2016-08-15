@@ -565,12 +565,25 @@ setPlotTitle(const real &t, const real &dt)
   // psp.set(GI_TOP_LABEL,sPrintF(buff,"%s: t=%6.2e,",(const char*)name,orderOfAccuracyInTime,orderOfAccuracy,t));
 
   // psp.set(GI_TOP_LABEL,sPrintF(buff,"convectionDiffusion: t=%6.2e ",t));
-  if( parameters.dbase.get<int>("numberOfDimensions")==2 )
-    psp.set(GI_TOP_LABEL_SUB_1,sPrintF(buff,"a=%4.1g, b=%4.1g, kappa=%6.1g, dt=%4.1g",
-				       a[0],b[0],kappa[0],dt));
+  if( pdeName=="thinFilmEquations" )
+  {
+    const real & S  = parameters.dbase.get<real>("inverseCapillaryNumber");
+    const real & G  = parameters.dbase.get<real>("scaledStokesNumber");
+    const real & h0 = parameters.dbase.get<real>("thinFilmBoundaryThickness");
+    const real & he = parameters.dbase.get<real>("thinFilmLidThickness");
+
+    psp.set(GI_TOP_LABEL_SUB_1,sPrintF(buff,"S=%.2g, G=%.2g, h0=%.2g, he=%.2g, dt=%.1e",
+				       S,G,h0,he,dt));
+  }
   else
-    psp.set(GI_TOP_LABEL_SUB_1,sPrintF(buff,"a=%4.1g, b=%4.1g, c=%4.1g, kappa=%6.1g, dt=%4.1g",
-				       a[0],b[0],c[0],kappa[0],dt));
+  {
+    if( parameters.dbase.get<int>("numberOfDimensions")==2 )
+      psp.set(GI_TOP_LABEL_SUB_1,sPrintF(buff,"a=%4.1g, b=%4.1g, kappa=%6.1g, dt=%4.1g",
+					 a[0],b[0],kappa[0],dt));
+    else
+      psp.set(GI_TOP_LABEL_SUB_1,sPrintF(buff,"a=%4.1g, b=%4.1g, c=%4.1g, kappa=%6.1g, dt=%4.1g",
+					 a[0],b[0],c[0],kappa[0],dt));
+  }
   
   return 0;
 }

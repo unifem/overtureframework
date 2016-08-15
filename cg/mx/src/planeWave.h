@@ -1,41 +1,43 @@
-c **************************************************
-c Here are macros that define the:
-c      planeWave solution 
-c **************************************************
+! -*- mode: f90; -*-
 
-c ======================================================================
-c  Slow start function 
-c    tba = length of slow start interval (<0 mean no slow start)
-c ======================================================================
+! **************************************************
+! Here are macros that define the:
+!      planeWave solution 
+! **************************************************
 
-c cubic ramp
-c tba=max(REAL_EPSILON,tb-ta);
-c dta=t-ta;
+! ======================================================================
+!  Slow start function 
+!    tba = length of slow start interval (<0 mean no slow start)
+! ======================================================================
+
+! cubic ramp
+! tba=max(REAL_EPSILON,tb-ta);
+! dta=t-ta;
 	  
-c This (cubic) ramp has 1-derivative zero at t=0 and t=tba
+! This (cubic) ramp has 1-derivative zero at t=0 and t=tba
 #defineMacro ramp3(t,tba)  (t)*(t)*( -(t)/3.+.5*tba )*6./(tba*tba*tba)
 #defineMacro ramp3t(t,tba) (t)*( -(t) + tba )*6./(tba*tba*tba)
 #defineMacro ramp3tt(t,tba) ( -2.*(t) + tba )*6./(tba*tba*tba)
 #defineMacro ramp3ttt(t,tba) ( -2. )*6./(tba*tba*tba)
 
-c This ramp has 3-derivatives zero at t=0 and t=1
-c This is from ramp.maple
-c r=-84*t**5+35*t**4-20*t**7+70*t**6
-c rt=-420*t**4+140*t**3-140*t**6+420*t**5
-c rtt=-1680*t**3+420*t**2-840*t**5+2100*t**4
-c rttt=-5040*t**2+840*t-4200*t**4+8400*t**3
+! This ramp has 3-derivatives zero at t=0 and t=1
+! This is from ramp.maple
+! r=-84*t**5+35*t**4-20*t**7+70*t**6
+! rt=-420*t**4+140*t**3-140*t**6+420*t**5
+! rtt=-1680*t**3+420*t**2-840*t**5+2100*t**4
+! rttt=-5040*t**2+840*t-4200*t**4+8400*t**3
 
 #defineMacro ramp(t)    ( -84*(t)**5+35*(t)**4-20*(t)**7+70*(t)**6 )
 #defineMacro rampt(t)   ( -420*(t)**4+140*(t)**3-140*(t)**6+420*(t)**5 )
 #defineMacro ramptt(t)  ( -1680*(t)**3+420*(t)**2-840*(t)**5+2100*(t)**4 )
 #defineMacro rampttt(t) ( -5040*(t)**2+840*(t)-4200*(t)**4+8400*(t)**3 )
 
-c This ramp has 4-derivatives zero at t=0 and t=1
-c This is from ramp.maple
-c r=126*(t)**5-315*(t)**8+70*(t)**9-420*(t)**6+540*(t)**7
-c rt=630*(t)**4-2520*(t)**7+630*(t)**8-2520*(t)**5+3780*(t)**6
-c rtt=2520*(t)**3-17640*(t)**6+5040*(t)**7-12600*(t)**4+22680*(t)**5
-c rttt=7560*(t)**2-105840*(t)**5+35280*(t)**6-50400*(t)**3+113400*(t)**4
+! This ramp has 4-derivatives zero at t=0 and t=1
+! This is from ramp.maple
+! r=126*(t)**5-315*(t)**8+70*(t)**9-420*(t)**6+540*(t)**7
+! rt=630*(t)**4-2520*(t)**7+630*(t)**8-2520*(t)**5+3780*(t)**6
+! rtt=2520*(t)**3-17640*(t)**6+5040*(t)**7-12600*(t)**4+22680*(t)**5
+! rttt=7560*(t)**2-105840*(t)**5+35280*(t)**6-50400*(t)**3+113400*(t)**4
 
 #defineMacro ramp4(t)    ( 126*(t)**5-315*(t)**8+70*(t)**9-420*(t)**6+540*(t)**7 )              
 #defineMacro ramp4t(t)   ( 630*(t)**4-2520*(t)**7+630*(t)**8-2520*(t)**5+3780*(t)**6 )         
@@ -43,12 +45,12 @@ c rttt=7560*(t)**2-105840*(t)**5+35280*(t)**6-50400*(t)**3+113400*(t)**4
 #defineMacro ramp4ttt(t) ( 7560*(t)**2-105840*(t)**5+35280*(t)**6-50400*(t)**3+113400*(t)**4 )
 #defineMacro ramp4tttt(t) ( 15120*(t)-529200*(t)**4+211680*(t)**5-151200*(t)**2+453600*(t)**3 )
 
-c ============================================================
-c  Initialize parameters for the boundary forcing
-c   tba: slow start time interval -- no slow start if this is negative
-c ===========================================================
+! ============================================================
+!  Initialize parameters for the boundary forcing
+!   tba: slow start time interval -- no slow start if this is negative
+! ===========================================================
 #beginMacro initializeBoundaryForcing(t,tba)
-c write(*,'("initializeBoundaryForcing tba=",e10.2)') tba
+! write(*,'("initializeBoundaryForcing tba=",e10.2)') tba
 if( t.le.0 .and. tba.gt.0. )then
   ssf = 0.
   ssft = 0. 
@@ -80,7 +82,7 @@ else if( t.lt.tba )then
 end if
 #endMacro
 
-c **************** Here is the new generic plane wave solution *******************
+! **************** Here is the new generic plane wave solution *******************
 
 ! component n=ex,ey,ez, hx,hy,hz (assumes ex=0)
 #defineMacro planeWave0(x,y,z,t,n) sin(twoPi*(kx*(x)+ky*(y)+kz*(z)-cc*(t)))*pwc(n)
@@ -91,43 +93,43 @@ c **************** Here is the new generic plane wave solution *****************
 ! three time derivatives:
 #defineMacro planeWave3ttt0(x,y,z,t,n) ((twoPi*cc)**3*cos(twoPi*(kx*(x)+ky*(y)+kz*(z)-cc*(t)))*pwc(n))
 
-c *************** Here is the 2D planeWave solution ******************************
+! *************** Here is the 2D planeWave solution ******************************
 
 #defineMacro planeWave2Dex0(x,y,t) sin(twoPi*(kx*(x)+ky*(y)-cc*(t)))*pwc(0)
 #defineMacro planeWave2Dey0(x,y,t) sin(twoPi*(kx*(x)+ky*(y)-cc*(t)))*pwc(1)
 #defineMacro planeWave2Dhz0(x,y,t) sin(twoPi*(kx*(x)+ky*(y)-cc*(t)))*pwc(5)
 
-c one time derivative:
+! one time derivative:
 #defineMacro planeWave2Dext0(x,y,t) (-twoPi*cc)*cos(twoPi*(kx*(x)+ky*(y)-cc*(t)))*pwc(0)
 #defineMacro planeWave2Deyt0(x,y,t) (-twoPi*cc)*cos(twoPi*(kx*(x)+ky*(y)-cc*(t)))*pwc(1)
 #defineMacro planeWave2Dhzt0(x,y,t) (-twoPi*cc)*cos(twoPi*(kx*(x)+ky*(y)-cc*(t)))*pwc(5)
 
-c two time derivatives:
+! two time derivatives:
 #defineMacro planeWave2Dextt0(x,y,t) (-(twoPi*cc)**2*sin(twoPi*(kx*(x)+ky*(y)-cc*(t)))*pwc(0))
 #defineMacro planeWave2Deytt0(x,y,t) (-(twoPi*cc)**2*sin(twoPi*(kx*(x)+ky*(y)-cc*(t)))*pwc(1))
 #defineMacro planeWave2Dhztt0(x,y,t) (-(twoPi*cc)**2*sin(twoPi*(kx*(x)+ky*(y)-cc*(t)))*pwc(5))
 
-c three time derivatives:
+! three time derivatives:
 #defineMacro planeWave2Dexttt0(x,y,t) ((twoPi*cc)**3*cos(twoPi*(kx*(x)+ky*(y)-cc*(t)))*pwc(0))
 #defineMacro planeWave2Deyttt0(x,y,t) ((twoPi*cc)**3*cos(twoPi*(kx*(x)+ky*(y)-cc*(t)))*pwc(1))
 #defineMacro planeWave2Dhzttt0(x,y,t) ((twoPi*cc)**3*cos(twoPi*(kx*(x)+ky*(y)-cc*(t)))*pwc(5))
 
-c four time derivatives:
+! four time derivatives:
 #defineMacro planeWave2Dextttt0(x,y,t) ((twoPi*cc)**4*sin(twoPi*(kx*(x)+ky*(y)-cc*(t)))*pwc(0))
 #defineMacro planeWave2Deytttt0(x,y,t) ((twoPi*cc)**4*sin(twoPi*(kx*(x)+ky*(y)-cc*(t)))*pwc(1))
 #defineMacro planeWave2Dhztttt0(x,y,t) ((twoPi*cc)**4*sin(twoPi*(kx*(x)+ky*(y)-cc*(t)))*pwc(5))
 
-c Here are the slow start versions
+! Here are the slow start versions
 #defineMacro planeWave2Dex(x,y,t) (ssf*planeWave2Dex0(x,y,t))
 #defineMacro planeWave2Dey(x,y,t) (ssf*planeWave2Dey0(x,y,t))
 #defineMacro planeWave2Dhz(x,y,t) (ssf*planeWave2Dhz0(x,y,t))
 
-c one time derivative:
+! one time derivative:
 #defineMacro planeWave2Dext(x,y,t) (ssf*planeWave2Dext0(x,y,t)+ssft*planeWave2Dex0(x,y,t))
 #defineMacro planeWave2Deyt(x,y,t) (ssf*planeWave2Deyt0(x,y,t)+ssft*planeWave2Dey0(x,y,t))
 #defineMacro planeWave2Dhzt(x,y,t) (ssf*planeWave2Dhzt0(x,y,t)+ssft*planeWave2Dhz0(x,y,t))
 
-c two time derivatives:
+! two time derivatives:
 #defineMacro planeWave2Dextt(x,y,t) (ssf*planeWave2Dextt0(x,y,t)+2.*ssft*planeWave2Dext0(x,y,t)\
                                  +ssftt*planeWave2Dex0(x,y,t))
 #defineMacro planeWave2Deytt(x,y,t) (ssf*planeWave2Deytt0(x,y,t)+2.*ssft*planeWave2Deyt0(x,y,t)\
@@ -135,7 +137,7 @@ c two time derivatives:
 #defineMacro planeWave2Dhztt(x,y,t) (ssf*planeWave2Dhztt0(x,y,t)+2.*ssft*planeWave2Dhzt0(x,y,t)\
                                  +ssftt*planeWave2Dhz0(x,y,t))
 
-c three time derivatives:
+! three time derivatives:
 #defineMacro planeWave2Dexttt(x,y,t) (ssf*planeWave2Dexttt0(x,y,t)+3.*ssft*planeWave2Dextt0(x,y,t)\
                                  +3.*ssftt*planeWave2Dext0(x,y,t)+ssfttt*planeWave2Dex0(x,y,t))
 #defineMacro planeWave2Deyttt(x,y,t) (ssf*planeWave2Deyttt0(x,y,t)+3.*ssft*planeWave2Deytt0(x,y,t)\
@@ -143,7 +145,7 @@ c three time derivatives:
 #defineMacro planeWave2Dhzttt(x,y,t) (ssf*planeWave2Dhzttt0(x,y,t)+3.*ssft*planeWave2Dhztt0(x,y,t)\
                                  +3.*ssftt*planeWave2Dhzt0(x,y,t)+ssfttt*planeWave2Dhz0(x,y,t))
 
-c four time derivatives:
+! four time derivatives:
 #defineMacro planeWave2Dextttt(x,y,t) (ssf*planeWave2Dextttt0(x,y,t)+4.*ssft*planeWave2Dexttt0(x,y,t)\
                                  +6.*ssftt*planeWave2Dextt0(x,y,t)+4.*ssfttt*planeWave2Dext0(x,y,t)+ssftttt*planeWave2Dex0(x,y,t))
 #defineMacro planeWave2Deytttt(x,y,t) (ssf*planeWave2Deytttt0(x,y,t)+4.*ssft*planeWave2Deyttt0(x,y,t)\
@@ -152,7 +154,7 @@ c four time derivatives:
                                  +6.*ssftt*planeWave2Dhztt0(x,y,t)+4.*ssfttt*planeWave2Dhzt0(x,y,t)+ssftttt*planeWave2Dhz0(x,y,t))
 
 
-c **************** Here is the 3D planeWave solution ***************************************
+! **************** Here is the 3D planeWave solution ***************************************
 
 #defineMacro planeWave3Dex0(x,y,z,t) sin(twoPi*(kx*(x)+ky*(y)+kz*(z)-cc*(t)))*pwc(0)
 #defineMacro planeWave3Dey0(x,y,z,t) sin(twoPi*(kx*(x)+ky*(y)+kz*(z)-cc*(t)))*pwc(1)
@@ -162,7 +164,7 @@ c **************** Here is the 3D planeWave solution ***************************
 #defineMacro planeWave3Dhy0(x,y,z,t) sin(twoPi*(kx*(x)+ky*(y)+kz*(z)-cc*(t)))*pwc(4)
 #defineMacro planeWave3Dhz0(x,y,z,t) sin(twoPi*(kx*(x)+ky*(y)+kz*(z)-cc*(t)))*pwc(5)
 
-c one time derivative:
+! one time derivative:
 #defineMacro planeWave3Dext0(x,y,z,t) (-twoPi*cc)*cos(twoPi*(kx*(x)+ky*(y)+kz*(z)-cc*(t)))*pwc(0)
 #defineMacro planeWave3Deyt0(x,y,z,t) (-twoPi*cc)*cos(twoPi*(kx*(x)+ky*(y)+kz*(z)-cc*(t)))*pwc(1)
 #defineMacro planeWave3Dezt0(x,y,z,t) (-twoPi*cc)*cos(twoPi*(kx*(x)+ky*(y)+kz*(z)-cc*(t)))*pwc(2)
@@ -171,7 +173,7 @@ c one time derivative:
 #defineMacro planeWave3Dhyt0(x,y,z,t) (-twoPi*cc)*cos(twoPi*(kx*(x)+ky*(y)+kz*(z)-cc*(t)))*pwc(4)
 #defineMacro planeWave3Dhzt0(x,y,z,t) (-twoPi*cc)*cos(twoPi*(kx*(x)+ky*(y)+kz*(z)-cc*(t)))*pwc(5)
 
-c two time derivatives:
+! two time derivatives:
 #defineMacro planeWave3Dextt0(x,y,z,t) (-(twoPi*cc)**2*sin(twoPi*(kx*(x)+ky*(y)+kz*(z)-cc*(t)))*pwc(0))
 #defineMacro planeWave3Deytt0(x,y,z,t) (-(twoPi*cc)**2*sin(twoPi*(kx*(x)+ky*(y)+kz*(z)-cc*(t)))*pwc(1))
 #defineMacro planeWave3Deztt0(x,y,z,t) (-(twoPi*cc)**2*sin(twoPi*(kx*(x)+ky*(y)+kz*(z)-cc*(t)))*pwc(2))
@@ -180,7 +182,7 @@ c two time derivatives:
 #defineMacro planeWave3Dhytt0(x,y,z,t) (-(twoPi*cc)**2*sin(twoPi*(kx*(x)+ky*(y)+kz*(z)-cc*(t)))*pwc(4))
 #defineMacro planeWave3Dhztt0(x,y,z,t) (-(twoPi*cc)**2*sin(twoPi*(kx*(x)+ky*(y)+kz*(z)-cc*(t)))*pwc(5))
 
-c three time derivatives:
+! three time derivatives:
 #defineMacro planeWave3Dexttt0(x,y,z,t) ((twoPi*cc)**3*cos(twoPi*(kx*(x)+ky*(y)+kz*(z)-cc*(t)))*pwc(0))
 #defineMacro planeWave3Deyttt0(x,y,z,t) ((twoPi*cc)**3*cos(twoPi*(kx*(x)+ky*(y)+kz*(z)-cc*(t)))*pwc(1))
 #defineMacro planeWave3Dezttt0(x,y,z,t) ((twoPi*cc)**3*cos(twoPi*(kx*(x)+ky*(y)+kz*(z)-cc*(t)))*pwc(2))
@@ -189,7 +191,7 @@ c three time derivatives:
 #defineMacro planeWave3Dhyttt0(x,y,z,t) ((twoPi*cc)**3*cos(twoPi*(kx*(x)+ky*(y)+kz*(z)-cc*(t)))*pwc(4))
 #defineMacro planeWave3Dhzttt0(x,y,z,t) ((twoPi*cc)**3*cos(twoPi*(kx*(x)+ky*(y)+kz*(z)-cc*(t)))*pwc(5))
 
-c four time derivatives:
+! four time derivatives:
 #defineMacro planeWave3Dextttt0(x,y,z,t) ((twoPi*cc)**4*sin(twoPi*(kx*(x)+ky*(y)+kz*(z)-cc*(t)))*pwc(0))
 #defineMacro planeWave3Deytttt0(x,y,z,t) ((twoPi*cc)**4*sin(twoPi*(kx*(x)+ky*(y)+kz*(z)-cc*(t)))*pwc(1))
 #defineMacro planeWave3Deztttt0(x,y,z,t) ((twoPi*cc)**4*sin(twoPi*(kx*(x)+ky*(y)+kz*(z)-cc*(t)))*pwc(2))
@@ -198,7 +200,7 @@ c four time derivatives:
 #defineMacro planeWave3Dhytttt0(x,y,z,t) ((twoPi*cc)**4*sin(twoPi*(kx*(x)+ky*(y)+kz*(z)-cc*(t)))*pwc(4))
 #defineMacro planeWave3Dhztttt0(x,y,z,t) ((twoPi*cc)**4*sin(twoPi*(kx*(x)+ky*(y)+kz*(z)-cc*(t)))*pwc(5))
 
-c Here are the slow start versions
+! Here are the slow start versions
 #defineMacro planeWave3Dex(x,y,z,t) (ssf*planeWave3Dex0(x,y,z,t))
 #defineMacro planeWave3Dey(x,y,z,t) (ssf*planeWave3Dey0(x,y,z,t))
 #defineMacro planeWave3Dez(x,y,z,t) (ssf*planeWave3Dez0(x,y,z,t))
@@ -207,7 +209,7 @@ c Here are the slow start versions
 #defineMacro planeWave3Dhy(x,y,z,t) (ssf*planeWave3Dhy0(x,y,z,t))
 #defineMacro planeWave3Dhz(x,y,z,t) (ssf*planeWave3Dhz0(x,y,z,t))
 
-c one time derivative:
+! one time derivative:
 #defineMacro planeWave3Dext(x,y,z,t) (ssf*planeWave3Dext0(x,y,z,t)+ssft*planeWave3Dex0(x,y,z,t))
 #defineMacro planeWave3Deyt(x,y,z,t) (ssf*planeWave3Deyt0(x,y,z,t)+ssft*planeWave3Dey0(x,y,z,t))
 #defineMacro planeWave3Dezt(x,y,z,t) (ssf*planeWave3Dezt0(x,y,z,t)+ssft*planeWave3Dez0(x,y,z,t))
@@ -216,7 +218,7 @@ c one time derivative:
 #defineMacro planeWave3Dhyt(x,y,z,t) (ssf*planeWave3Deyt0(x,y,z,t)+ssft*planeWave3Dhy0(x,y,z,t))
 #defineMacro planeWave3Dhzt(x,y,z,t) (ssf*planeWave3Dezt0(x,y,z,t)+ssft*planeWave3Dhz0(x,y,z,t))
 
-c two time derivatives:
+! two time derivatives:
 #defineMacro planeWave3Dextt(x,y,z,t) (ssf*planeWave3Dextt0(x,y,z,t)+2.*ssft*planeWave3Dext0(x,y,z,t)\
                                  +ssftt*planeWave3Dex0(x,y,z,t))
 #defineMacro planeWave3Deytt(x,y,z,t) (ssf*planeWave3Deytt0(x,y,z,t)+2.*ssft*planeWave3Deyt0(x,y,z,t)\
@@ -224,7 +226,7 @@ c two time derivatives:
 #defineMacro planeWave3Deztt(x,y,z,t) (ssf*planeWave3Deztt0(x,y,z,t)+2.*ssft*planeWave3Dezt0(x,y,z,t)\
                                  +ssftt*planeWave3Dez0(x,y,z,t))
 
-c three time derivatives:
+! three time derivatives:
 #defineMacro planeWave3Dexttt(x,y,z,t) (ssf*planeWave3Dexttt0(x,y,z,t)+3.*ssft*planeWave3Dextt0(x,y,z,t)\
                                  +3.*ssftt*planeWave3Dext0(x,y,z,t)+ssfttt*planeWave3Dex0(x,y,z,t))
 #defineMacro planeWave3Deyttt(x,y,z,t) (ssf*planeWave3Deyttt0(x,y,z,t)+3.*ssft*planeWave3Deytt0(x,y,z,t)\
@@ -232,7 +234,7 @@ c three time derivatives:
 #defineMacro planeWave3Dezttt(x,y,z,t) (ssf*planeWave3Dezttt0(x,y,z,t)+3.*ssft*planeWave3Deztt0(x,y,z,t)\
                                  +3.*ssftt*planeWave3Dezt0(x,y,z,t)+ssfttt*planeWave3Dez0(x,y,z,t))
 
-c four time derivatives:
+! four time derivatives:
 #defineMacro planeWave3Dextttt(x,y,z,t) (ssf*planeWave3Dextttt0(x,y,z,t)+4.*ssft*planeWave3Dexttt0(x,y,z,t)\
                                  +6.*ssftt*planeWave3Dextt0(x,y,z,t)+4.*ssfttt*planeWave3Dext0(x,y,z,t)+ssftttt*planeWave3Dex0(x,y,z,t))
 #defineMacro planeWave3Deytttt(x,y,z,t) (ssf*planeWave3Deytttt0(x,y,z,t)+4.*ssft*planeWave3Deyttt0(x,y,z,t)\
@@ -241,7 +243,9 @@ c four time derivatives:
                                  +6.*ssftt*planeWave3Deztt0(x,y,z,t)+4.*ssfttt*planeWave3Dezt0(x,y,z,t)+ssftttt*planeWave3Dez0(x,y,z,t))
 
 
-c Helper function: Return minus the second time derivative
+! -------------------------------------------------------------------
+! Helper function: Return minus the second time derivative
+! -------------------------------------------------------------------
 #beginMacro getMinusPlaneWave3Dtt(i1,i2,i3,t,udd,vdd,wdd)
  x00=xy(i1,i2,i3,0)
  y00=xy(i1,i2,i3,1)
@@ -260,3 +264,72 @@ c Helper function: Return minus the second time derivative
 #endMacro
 
 
+! --------------------------------------------------------------------
+! Evaluate the plane wave in 2D
+! 
+!  x,y,t (input) : point to evaluate at 
+!  numberOfTimeDerivatives : evaluate this time derivative
+!  ubc(.)  (output) : ubc(ex), etc. 
+! --------------------------------------------------------------------
+#beginMacro getPlaneWave2D(x,y,t,numberOfTimeDerivatives,ubv)
+
+  if( numberOfTimeDerivatives==0 )then
+    ubv(ex) = planeWave2Dex(x,y,t)
+    ubv(ey) = planeWave2Dey(x,y,t)
+    ubv(hz) = planeWave2Dhz(x,y,t)
+  else if( numberOfTimeDerivatives==1 )then
+    ubv(ex) = planeWave2Dext(x,y,t)
+    ubv(ey) = planeWave2Deyt(x,y,t)
+    ubv(hz) = planeWave2Dhzt(x,y,t)
+  else if( numberOfTimeDerivatives==2 )then
+    ubv(ex) = planeWave2Dextt(x,y,t)
+    ubv(ey) = planeWave2Deytt(x,y,t)
+    ubv(hz) = planeWave2Dhztt(x,y,t)
+  else if( numberOfTimeDerivatives==3 )then
+    ubv(ex) = planeWave2Dexttt(x,y,t)
+    ubv(ey) = planeWave2Deyttt(x,y,t)
+    ubv(hz) = planeWave2Dhzttt(x,y,t)
+  else if( numberOfTimeDerivatives==4 )then
+    ubv(ex) = planeWave2Dextttt(x,y,t)
+    ubv(ey) = planeWave2Deytttt(x,y,t)
+    ubv(hz) = planeWave2Dhztttt(x,y,t)
+  else
+    stop 1738
+  end if
+#endMacro
+
+
+! --------------------------------------------------------------------
+! Evaluate the plane wave in 3D
+! 
+!  x,y,z,t (input) : point to evaluate at 
+!  numberOfTimeDerivatives : evaluate this time derivative
+!  ubc(.)  (output) : ubc(ex), etc. 
+! --------------------------------------------------------------------
+#beginMacro getPlaneWave3D(x,y,z,t,numberOfTimeDerivatives,ubv)
+
+  if( numberOfTimeDerivatives==0 )then
+    ubv(ex) = planeWave3Dex(x,y,z,t)
+    ubv(ey) = planeWave3Dey(x,y,z,t)
+    ubv(ez) = planeWave3Dez(x,y,z,t)
+  else if( numberOfTimeDerivatives==1 )then
+    ubv(ex) = planeWave3Dext(x,y,z,t)
+    ubv(ey) = planeWave3Deyt(x,y,z,t)
+    ubv(ez) = planeWave3Dezt(x,y,z,t)
+  else if( numberOfTimeDerivatives==2 )then
+    ubv(ex) = planeWave3Dextt(x,y,z,t)
+    ubv(ey) = planeWave3Deytt(x,y,z,t)
+    ubv(ez) = planeWave3Deztt(x,y,z,t)
+  else if( numberOfTimeDerivatives==3 )then
+    ubv(ex) = planeWave3Dexttt(x,y,z,t)
+    ubv(ey) = planeWave3Deyttt(x,y,z,t)
+    ubv(ez) = planeWave3Dezttt(x,y,z,t)
+  else if( numberOfTimeDerivatives==4 )then
+    ubv(ex) = planeWave3Dextttt(x,y,z,t)
+    ubv(ey) = planeWave3Deytttt(x,y,z,t)
+    ubv(ez) = planeWave3Deztttt(x,y,z,t)
+  else
+    stop 1739
+  end if
+
+#endMacro

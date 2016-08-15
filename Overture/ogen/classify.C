@@ -1071,7 +1071,8 @@ markPointsReallyNeededForInterpolation( CompositeGrid & cg )
     RealArray & interpolationOverlap = cg.interpolationOverlap;
 
     Index I1,I2,I3;
-    getIndex(c.extendedIndexRange(),I1,I2,I3); 
+    int extra=0; 
+    getIndex(c.extendedIndexRange(),I1,I2,I3,extra); 
     int axis;
     int iv[3];
     int & i1 = iv[0];
@@ -1099,7 +1100,7 @@ markPointsReallyNeededForInterpolation( CompositeGrid & cg )
 	      int m=mask(i1,i2,i3);
 	      if( isOnInterpolationBoundary(c,iv)  ) // or it is needed for discretisation...
 	      {
-                printf("markReallyNeeded: point (%i,%i) on grid %i is really needed\n",i1,i2,grid);
+                // printf("markReallyNeeded: point (%i,%i) on grid %i is really needed\n",i1,i2,grid);
 		
 		// mark the interpolee points as needed
 		MappedGrid & g2 = cg[grid2];
@@ -1239,7 +1240,8 @@ updateCanInterpolate( CompositeGrid & cg, CompositeGrid & cg0, RealArray & remov
   realArray rr(1,3),x(1,3);
   
   rr=-1.;
-  Range Rx(0,cg.numberOfDimensions()-1);
+  const int numberOfDimensions=cg.numberOfDimensions();
+  Range Rx(0,numberOfDimensions-1);
   
   for( int grid=numberOfBaseGrids-1; grid>=0; grid-- )
   {
@@ -1251,14 +1253,26 @@ updateCanInterpolate( CompositeGrid & cg, CompositeGrid & cg0, RealArray & remov
     realArray & rI = cg.inverseCoordinates[grid];
     Mapping & map = cg[grid].mapping().getMapping();
 
+    // -- To save space we do not create the array of grid vertices on rectangular grids -- *wdh* 2016/07/22
+    real dvx[3]={1.,1.,1.}, xab[2][3]={{0.,0.,0.},{0.,0.,0.}};
+    int iv0[3]={0,0,0}; //
+    const bool isRectangular = c.isRectangular();
+    if( isRectangular )
+    {
+      c.getRectangularGridParameters( dvx, xab );
+      for( int dir=0; dir<numberOfDimensions; dir++ )
+      {
+	iv0[dir]=c.gridIndexRange(0,dir);
+	if( c.isAllCellCentered() )
+	  xab[0][dir]+=.5*dvx[dir];  // offset for cell centered
+      }
+    }
+    // This macro defines the grid points for rectangular grids:
+#define XCV(iv,axis) (xab[0][axis]+dvx[axis]*(iv[axis]-iv0[axis]))
+
     Index I1,I2,I3;
     getIndex(c.extendedIndexRange(),I1,I2,I3); 
-    int axis;
-    int iv[3];
-    int & i1 = iv[0];
-    int & i2 = iv[1];
-    int & i3 = iv[2];
-    // int l =0;  // multigrid level
+    int iv[3],  &i1 = iv[0], &i2 = iv[1], & i3 = iv[2];
 
     for( i3=I3.getBase(); i3<=I3.getBound(); i3++ )
     {
@@ -1272,7 +1286,7 @@ updateCanInterpolate( CompositeGrid & cg, CompositeGrid & cg0, RealArray & remov
 	    assert( grid2>=0 && grid2<numberOfBaseGrids ); //  && grid2!=grid );
 
             bool checkThisPoint=TRUE;
-	    for( axis=0; axis<c.numberOfDimensions(); axis++ )
+	    for( int axis=0; axis<numberOfDimensions; axis++ )
 	    {
 	      rr(0,axis)=rI(i1,i2,i3,axis);
               if( rr(0,axis) < removedPointBound(Start,axis,grid2) || 
@@ -1312,8 +1326,18 @@ updateCanInterpolate( CompositeGrid & cg, CompositeGrid & cg0, RealArray & remov
 		if( map.intersects(map2,-1,-1,-1,-1,.1) )
 		{
 
-		  for( axis=0; axis<c.numberOfDimensions(); axis++ )
-		    x(0,axis)=vertex(i1,i2,i3,axis);
+		  for( int axis=0; axis<numberOfDimensions; axis++ )
+		  {
+		    if( isRectangular )
+		    {
+  		      x(0,axis)=XCV(iv,axis);  // *wdh* July 22, 2016 -- added rectangular grid case
+		    }
+		    else
+		    {
+  		      x(0,axis)=vertex(i1,i2,i3,axis);
+		    }
+		  }
+		  
 		  if( useBoundaryAdjustment )
 		    adjustBoundary(cg,grid,grid2,ia,x(0,Rx)); 
 
@@ -1322,7 +1346,7 @@ updateCanInterpolate( CompositeGrid & cg, CompositeGrid & cg0, RealArray & remov
                   // If the r values are outside [0,1] but within [-eps1,1+eps2] where eps1 and eps2 
                   // are determined by the shared boundary tolerance then project r back into [0,1]
 		  const RealArray & shareTol = cg[grid2].sharedBoundaryTolerance();
-		  for( axis=0; axis<c.numberOfDimensions(); axis++ )
+		  for( int axis=0; axis<numberOfDimensions; axis++ )
 		  {
 		    if( rr(0,axis)<0. && rr(0,axis)>= -shareTol(Start,axis)*cg[grid2].gridSpacing()(axis) )
 		    {
@@ -1340,7 +1364,7 @@ updateCanInterpolate( CompositeGrid & cg, CompositeGrid & cg0, RealArray & remov
                   if( interpolates(0) )
 		  {
 		    inverseGrid(i1,i2,i3)=grid2;
-		    for( axis=0; axis<c.numberOfDimensions(); axis++ )
+		    for( int axis=0; axis<numberOfDimensions; axis++ )
 		      rI(i1,i2,i3,axis)=rr(0,axis);
 		    
                     break;
@@ -1364,7 +1388,20 @@ updateCanInterpolate( CompositeGrid & cg, CompositeGrid & cg0, RealArray & remov
 		//   mask(i1,i2,i3)=0;
 		else
 		{ // ***** should force the points we removed to be put back in.
-		  printf("updateCanInterpolate:ERROR: point (%i,%i,%i) on grid %i cannot discretize\n",i1,i2,i3,grid);
+                  int isNeeded=0;
+                  if( mask(i1,i2,i3) & ISneededPoint ){ isNeeded=1; } 
+		  printf("updateCanInterpolate:WARNING: point (%i,%i,%i) on grid %i cannot discretize, isNeeded=%i,\n"
+                         " We may have removed a needed pt, inverseGrid=%i, rI=[%e,%e]\n"
+                         " This could also be a point not needed that is removed later ... keep going.\n",
+			 i1,i2,i3,grid,isNeeded, inverseGrid(i1,i2,i3),rI(i1,i2,i3,0),rI(i1,i2,i3,1));
+
+                  printf(" ... isNeeded=%i\n",isNeeded);
+
+                  // 
+		  
+
+		  // OV_ABORT("ERROR -- fix me");
+		  
 		}
 	      }
 	    }
@@ -3096,6 +3133,7 @@ classifyPoints(CompositeGrid & cg,
     if( info & 2 ) 
       printF(" time to compute all interpolation points.................%e (total=%e)\n",time-time0,time-totalTime);
     timeAllInterpolation=time-time0;
+
     if( info & 2 )
       Overture::printMemoryUsage("classifyPoints (after all)");
 
@@ -3122,22 +3160,22 @@ classifyPoints(CompositeGrid & cg,
 
     if( improveQualityOfInterpolation )
     {
-/* ----
-   for( grid=0; grid<numberOfBaseGrids; grid++ )
-   {
-   // mark points on higher priority grids needed by lower priority grids
-   markPointsReallyNeededForInterpolation( cg );
-   }
-   ---- */
-
-      for( grid=0; grid<numberOfBaseGrids; grid++ )
+      // mark points on higher priority grids needed by lower priority grids
+      //  July 20, 2016
+      markPointsReallyNeededForInterpolation( cg );
+      
+      const int & qualityAlgorithm = dbase.get<int>("qualityAlgorithm");
+      if( FALSE  ) // new algorithm does not need vertex array
       {
-	if( cg[grid].isRectangular() )
+	for( grid=0; grid<numberOfBaseGrids; grid++ )
 	{
-	  // *** fix this Bill! ***
-	  printf("*** WARNING *** improveQuality: creating the vertex array"
-		 " for a rectangular grid\n");
-	  cg[grid].update(MappedGrid::THEvertex | MappedGrid::THEcenter);
+	  if( cg[grid].isRectangular() )
+	  {
+	    // *** fix this Bill! ***
+	    printf("*** WARNING *** improveQuality: creating the vertex array"
+		   " for a rectangular grid\n");
+	    cg[grid].update(MappedGrid::THEvertex | MappedGrid::THEcenter);
+	  }
 	}
       }
       
