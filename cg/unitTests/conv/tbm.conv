@@ -42,13 +42,16 @@ $predictor="newmark2Implicit";
 $corrector="newmarkCorrector";
 $BM="FEM";
 $useSameStencilSize=1;
+$betta=0.25;
+$gamma=0.50;
 #
 GetOptions( "model=s"=>\$model,"BM=s"=>\$BM,"en=s"=>\$en,"ng=i"=>\$ng,"bcn=s"=>\$bcn,"cg=s"=>\$cg,"tf=f"=>\$tf,"tp=f"=>\$tp,\
             "Em=f"=>\$Em,"T=f"=>\$T,"tz=s"=>\$tz,"fx=f"=>\$fx,"ft=f"=>\$ft,"order=i"=>\$order,"alwaysCompute=i"=>\$alwaysCompute,\
             "showAllComponents=i"=>\$showAllComponents,"orderOfProjection=i"=>\$orderOfProjection,"useSameStencilSize=i"=>\$useSameStencilSize,\
             "cfl=f"=>\$cfl,"degreeX=f"=>\$degreeX,"degreeT=f"=>\$degreeT,"debug=i"=>\$debug,\
             "tbmCmd=s"=>\$tbmCmd,"ngStart=i"=>\$ngStart,"rhos=f"=>\$rhos,"suffix=s"=>\$suffix,"predictor=s"=>\$predictor, "corrector=s"=>\$corrector,"Kxxt=f"=>\$Kxxt,\
-	    "smooth=i"=>\$smooth,"smoothOrder=i"=>\$smoothOrder,"numberOfSmooths=i"=>\$numberOfSmooths );
+	    "smooth=i"=>\$smooth,"smoothOrder=i"=>\$smoothOrder,"numberOfSmooths=i"=>\$numberOfSmooths,\
+	    "betta=f"=>\$betta,  "gamma=f"=>\$gamma);
 # 
 # Name of the check file created by tbm:
 $check="tbm.check";
@@ -71,7 +74,7 @@ $smoothLabel = "smooth=$smooth, smoothOrder=$smoothOrder, numberOfSmooths=$numbe
 $caption= "\\caption\{tbm, $model, $name, bcn=$bcn, \$ t=$tf\$, \$ E=$Em\$, \$ rhos=$rhos\$, \$ T=$T\$,  orderOfProjection=$orderOfProjection, $smoothLable, $tzLabel, cfl=$cfl, $date}\\label\{table:$name}"; 
 $outputFile="$name" . ".ConvTable.tex"; 
 # 
-$options = "-BM=$BM -predictor=$predictor  -corrector=$corrector -useSameStencilSize=$useSameStencilSize -tz=$tz -degreex=$degreeX -degreet=$degreeT -bc=$bcn -Em=$Em -tension=$T -rhos=$rhos -fx=$fx -ft=$ft -tf=$tf -tp=$tp -orderOfProjection=$orderOfProjection -cfl=$cfl -Kxxt=$Kxxt -smooth=$smooth  -smoothOrder=$smoothOrder  -numberOfSmooths=$numberOfSmooths  -go=go";
+$options = "-BM=$BM -predictor=$predictor  -corrector=$corrector -useSameStencilSize=$useSameStencilSize -tz=$tz -degreex=$degreeX -degreet=$degreeT -bc=$bcn -Em=$Em -tension=$T -rhos=$rhos -fx=$fx -ft=$ft -tf=$tf -tp=$tp -orderOfProjection=$orderOfProjection -cfl=$cfl -Kxxt=$Kxxt -smooth=$smooth  -smoothOrder=$smoothOrder  -numberOfSmooths=$numberOfSmooths -betta=$betta -gamma=$gamma  -go=go";
 if( $cg eq "line" ){\
 $grid1="Line10"; $gName1 = "Line10";\
 $grid2="Line20"; $gName2 = "Line20";\

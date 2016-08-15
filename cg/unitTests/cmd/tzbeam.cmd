@@ -20,7 +20,7 @@ $corrector="newmarkCorrector";
 $BM="FEM";
 $useSameStencilSize=1;
 $betta=0.25;
-$gamma=0.5;
+$gamma=0.50;
 #
 #
 GetOptions( "nElem=i"=>\$nElem,"cfl=f"=>\$cfl,"Em=f"=>\$Em,"tension=f"=>\$tension,"degreet=i"=>\$degreet,\

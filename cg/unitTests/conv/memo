@@ -1,135 +1,138 @@
 === convergence study for beamPapaer
-**** 2016/08/07
+**** 2016/08/10
+
 
 Number of runs = 16
 
-Tue Aug  9 00:16:26 2016
-Run 1
+Wed Aug 10 16:32:52 2016
+Run 1                   
 ==============================================
-cmd:
-/home/lil19/overtureframework/cg/unitTests/conv/conv.p tbm.conv -BM=FD -tz=trig -fx=1.1 -bcn=p -tf=1. -rhos=1. -cg=line -cfl=.9 -ngStart=2 -ng=4 -predictor=adamsBashforth2  -corrector=adamsMoultonCorrector  -useSameStencilSize=0 > FD0_Trig_fx1p1_ABAM_pp.out &
-executing cmd ------>
+cmd:                                          
+/home/lil19/overtureframework/cg/unitTests/conv/conv.p tbm.conv -BM=FD -tz=trig -fx=1.1 -bcn=p -tf=1. -rhos=1. -cg=line -cfl=.9 -ngStart=2 -ng=4 -predictor=adamsBashforth2  -corrector=adamsMoultonCorrector  -useSameStencilSize=0 > FD0_Trig_fx1p1_ABAM_pp.out &                                                                         
+executing cmd ------>                                                                                                                                                 
+==============================================                                                                                                                        
+
+Wed Aug 10 16:32:52 2016
+Run 2                   
+==============================================
+cmd:                                          
+/home/lil19/overtureframework/cg/unitTests/conv/conv.p tbm.conv -BM=FD -tz=trig -fx=1.1 -bcn=c -tf=1. -rhos=1. -cg=line -cfl=.9 -ngStart=2 -ng=4 -predictor=adamsBashforth2  -corrector=adamsMoultonCorrector  -useSameStencilSize=0 > FD0_Trig_fx1p1_ABAM_cc.out &                                                                         
+executing cmd ------>                                                                                                                                                 
+==============================================                                                                                                                        
+
+Wed Aug 10 16:32:52 2016
+Run 3                   
+==============================================
+cmd:                                          
+/home/lil19/overtureframework/cg/unitTests/conv/conv.p tbm.conv -BM=FD -tz=trig -fx=1.1 -bcn=f -tf=1. -rhos=1. -cg=line -cfl=.9 -ngStart=2 -ng=4 -predictor=adamsBashforth2  -corrector=adamsMoultonCorrector  -useSameStencilSize=0 > FD0_Trig_fx1p1_ABAM_ff.out &                                                                         
+executing cmd ------>                                                                                                                                                 
+==============================================                                                                                                                        
+
+Wed Aug 10 16:32:52 2016
+Run 4                   
+==============================================
+cmd:                                          
+/home/lil19/overtureframework/cg/unitTests/conv/conv.p tbm.conv -BM=FD -tz=trig -fx=1.1 -bcn=s -tf=1. -rhos=1. -cg=line -cfl=.9 -ngStart=2 -ng=4 -predictor=adamsBashforth2  -corrector=adamsMoultonCorrector  -useSameStencilSize=0 > FD0_Trig_fx1p1_ABAM_ss.out &                                                                         
+executing cmd ------>                                                                                                                                                 
+==============================================                                                                                                                        
+
+Wed Aug 10 16:32:52 2016
+Run 5                   
+==============================================
+cmd:                                          
+/home/lil19/overtureframework/cg/unitTests/conv/conv.p tbm.conv -BM=FD -tz=trig -fx=1.1 -bcn=p -tf=1. -rhos=1. -cg=line -cfl=.9 -ngStart=2 -ng=4 -predictor=newmark2Implicit  -corrector=newmarkCorrector -betta=0.5 -gamma=1   -useSameStencilSize=0 > FD0_Trig_fx1p1_NBNBnew_pp.out &                                                     
+executing cmd ------>                                                                                                                                                 
+==============================================                                                                                                                        
+
+Wed Aug 10 16:32:52 2016
+Run 6                   
+==============================================
+cmd:                                          
+/home/lil19/overtureframework/cg/unitTests/conv/conv.p tbm.conv -BM=FD -tz=trig -fx=1.1 -bcn=c -tf=1. -rhos=1. -cg=line -cfl=.9 -ngStart=2 -ng=4 -predictor=newmark2Implicit  -corrector=newmarkCorrector -betta=0.5 -gamma=1   -useSameStencilSize=0 > FD0_Trig_fx1p1_NBNBnew_cc.out &                                                     
+executing cmd ------>                                                                                                                                                 
+==============================================                                                                                                                        
+
+Wed Aug 10 16:32:52 2016
+Run 7                   
+==============================================
+cmd:                                          
+/home/lil19/overtureframework/cg/unitTests/conv/conv.p tbm.conv -BM=FD -tz=trig -fx=1.1 -bcn=f -tf=1. -rhos=1. -cg=line -cfl=.9 -ngStart=2 -ng=4 -predictor=newmark2Implicit  -corrector=newmarkCorrector -betta=0.5 -gamma=1   -useSameStencilSize=0 > FD0_Trig_fx1p1_NBNBnew_ff.out &                                                     
+executing cmd ------>                                                                                                                                                 
+==============================================                                                                                                                        
+
+Wed Aug 10 16:32:52 2016
+Run 8                   
+==============================================
+cmd:                                          
+/home/lil19/overtureframework/cg/unitTests/conv/conv.p tbm.conv -BM=FD -tz=trig -fx=1.1 -bcn=s -tf=1. -rhos=1. -cg=line -cfl=.9 -ngStart=2 -ng=4 -predictor=newmark2Implicit  -corrector=newmarkCorrector -betta=0.5 -gamma=1   -useSameStencilSize=0 > FD0_Trig_fx1p1_NBNBnew_ss.out &                                                     
+executing cmd ------>                                                                                                                                                 
+==============================================                                                                                                                        
+
+Wed Aug 10 16:32:52 2016
+Run 9                   
+==============================================
+cmd:                                          
+/home/lil19/overtureframework/cg/unitTests/conv/conv.p tbm.conv -BM=FD -tz=trig -fx=1.1 -bcn=p -tf=1. -rhos=1. -cg=line -cfl=.9 -ngStart=2 -ng=4 -predictor=adamsBashforth2  -corrector=adamsMoultonCorrector  -useSameStencilSize=1 > FD1_Trig_fx1p1_ABAM_pp.out &                                                                         
+executing cmd ------>                                                                                                                                                 
+==============================================                                                                                                                        
+
+Wed Aug 10 16:32:52 2016
+Run 10                  
+==============================================
+cmd:                                          
+/home/lil19/overtureframework/cg/unitTests/conv/conv.p tbm.conv -BM=FD -tz=trig -fx=1.1 -bcn=c -tf=1. -rhos=1. -cg=line -cfl=.9 -ngStart=2 -ng=4 -predictor=adamsBashforth2  -corrector=adamsMoultonCorrector  -useSameStencilSize=1 > FD1_Trig_fx1p1_ABAM_cc.out &                                                                         
+executing cmd ------>                                                                                                                                                 
+==============================================                                                                                                                        
+
+Wed Aug 10 16:32:52 2016
+Run 11                  
+==============================================
+cmd:                                          
+/home/lil19/overtureframework/cg/unitTests/conv/conv.p tbm.conv -BM=FD -tz=trig -fx=1.1 -bcn=f -tf=1. -rhos=1. -cg=line -cfl=.9 -ngStart=2 -ng=4 -predictor=adamsBashforth2  -corrector=adamsMoultonCorrector  -useSameStencilSize=1 > FD1_Trig_fx1p1_ABAM_ff.out &                                                                         
+executing cmd ------>                                                                                                                                                 
+==============================================                                                                                                                        
+
+Wed Aug 10 16:32:52 2016
+Run 12                  
+==============================================
+cmd:                                          
+/home/lil19/overtureframework/cg/unitTests/conv/conv.p tbm.conv -BM=FD -tz=trig -fx=1.1 -bcn=s -tf=1. -rhos=1. -cg=line -cfl=.9 -ngStart=2 -ng=4 -predictor=adamsBashforth2  -corrector=adamsMoultonCorrector  -useSameStencilSize=1 > FD1_Trig_fx1p1_ABAM_ss.out &                                                                         
+executing cmd ------>                                                                                                                                                 
 ==============================================
 
-Tue Aug  9 00:16:26 2016
-Run 2
-==============================================
-cmd:
-/home/lil19/overtureframework/cg/unitTests/conv/conv.p tbm.conv -BM=FD -tz=trig -fx=1.1 -bcn=c -tf=1. -rhos=1. -cg=line -cfl=.9 -ngStart=2 -ng=4 -predictor=adamsBashforth2  -corrector=adamsMoultonCorrector  -useSameStencilSize=0 > FD0_Trig_fx1p1_ABAM_cc.out &
-executing cmd ------>
-==============================================
-
-Tue Aug  9 00:16:26 2016
-Run 3
-==============================================
-cmd:
-/home/lil19/overtureframework/cg/unitTests/conv/conv.p tbm.conv -BM=FD -tz=trig -fx=1.1 -bcn=f -tf=1. -rhos=1. -cg=line -cfl=.9 -ngStart=2 -ng=4 -predictor=adamsBashforth2  -corrector=adamsMoultonCorrector  -useSameStencilSize=0 > FD0_Trig_fx1p1_ABAM_ff.out &
-executing cmd ------>
-==============================================
-
-Tue Aug  9 00:16:26 2016
-Run 4
-==============================================
-cmd:
-/home/lil19/overtureframework/cg/unitTests/conv/conv.p tbm.conv -BM=FD -tz=trig -fx=1.1 -bcn=s -tf=1. -rhos=1. -cg=line -cfl=.9 -ngStart=2 -ng=4 -predictor=adamsBashforth2  -corrector=adamsMoultonCorrector  -useSameStencilSize=0 > FD0_Trig_fx1p1_ABAM_ss.out &
-executing cmd ------>
-==============================================
-
-Tue Aug  9 00:16:26 2016
-Run 5
-==============================================
-cmd:
-/home/lil19/overtureframework/cg/unitTests/conv/conv.p tbm.conv -BM=FD -tz=trig -fx=1.1 -bcn=p -tf=1. -rhos=1. -cg=line -cfl=.9 -ngStart=2 -ng=4 -predictor=newmark2Implicit  -corrector=newmarkCorrector  -useSameStencilSize=0 > FD0_Trig_fx1p1_NBNB_pp.out &
-executing cmd ------>
-==============================================
-
-Tue Aug  9 00:16:26 2016
-Run 6
-==============================================
-cmd:
-/home/lil19/overtureframework/cg/unitTests/conv/conv.p tbm.conv -BM=FD -tz=trig -fx=1.1 -bcn=c -tf=1. -rhos=1. -cg=line -cfl=.9 -ngStart=2 -ng=4 -predictor=newmark2Implicit  -corrector=newmarkCorrector  -useSameStencilSize=0 > FD0_Trig_fx1p1_NBNB_cc.out &
-executing cmd ------>
-==============================================
-
-Tue Aug  9 00:16:26 2016
-Run 7
-==============================================
-cmd:
-/home/lil19/overtureframework/cg/unitTests/conv/conv.p tbm.conv -BM=FD -tz=trig -fx=1.1 -bcn=f -tf=1. -rhos=1. -cg=line -cfl=.9 -ngStart=2 -ng=4 -predictor=newmark2Implicit  -corrector=newmarkCorrector  -useSameStencilSize=0 > FD0_Trig_fx1p1_NBNB_ff.out &
-executing cmd ------>
-==============================================
-
-Tue Aug  9 00:16:26 2016
-Run 8
-==============================================
-cmd:
-/home/lil19/overtureframework/cg/unitTests/conv/conv.p tbm.conv -BM=FD -tz=trig -fx=1.1 -bcn=s -tf=1. -rhos=1. -cg=line -cfl=.9 -ngStart=2 -ng=4 -predictor=newmark2Implicit  -corrector=newmarkCorrector  -useSameStencilSize=0 > FD0_Trig_fx1p1_NBNB_ss.out &
-executing cmd ------>
-==============================================
-
-Tue Aug  9 00:16:26 2016
-Run 9
-==============================================
-cmd:
-/home/lil19/overtureframework/cg/unitTests/conv/conv.p tbm.conv -BM=FD -tz=trig -fx=1.1 -bcn=p -tf=1. -rhos=1. -cg=line -cfl=.9 -ngStart=2 -ng=4 -predictor=adamsBashforth2  -corrector=adamsMoultonCorrector  -useSameStencilSize=1 > FD1_Trig_fx1p1_ABAM_pp.out &
-executing cmd ------>
-==============================================
-
-Tue Aug  9 00:16:26 2016
-Run 10
-==============================================
-cmd:
-/home/lil19/overtureframework/cg/unitTests/conv/conv.p tbm.conv -BM=FD -tz=trig -fx=1.1 -bcn=c -tf=1. -rhos=1. -cg=line -cfl=.9 -ngStart=2 -ng=4 -predictor=adamsBashforth2  -corrector=adamsMoultonCorrector  -useSameStencilSize=1 > FD1_Trig_fx1p1_ABAM_cc.out &
-executing cmd ------>
-==============================================
-
-Tue Aug  9 00:16:26 2016
-Run 11
-==============================================
-cmd:
-/home/lil19/overtureframework/cg/unitTests/conv/conv.p tbm.conv -BM=FD -tz=trig -fx=1.1 -bcn=f -tf=1. -rhos=1. -cg=line -cfl=.9 -ngStart=2 -ng=4 -predictor=adamsBashforth2  -corrector=adamsMoultonCorrector  -useSameStencilSize=1 > FD1_Trig_fx1p1_ABAM_ff.out &
-executing cmd ------>
-==============================================
-
-Tue Aug  9 00:16:26 2016
-Run 12
-==============================================
-cmd:
-/home/lil19/overtureframework/cg/unitTests/conv/conv.p tbm.conv -BM=FD -tz=trig -fx=1.1 -bcn=s -tf=1. -rhos=1. -cg=line -cfl=.9 -ngStart=2 -ng=4 -predictor=adamsBashforth2  -corrector=adamsMoultonCorrector  -useSameStencilSize=1 > FD1_Trig_fx1p1_ABAM_ss.out &
-executing cmd ------>
-==============================================
-
-Tue Aug  9 00:16:26 2016
+Wed Aug 10 16:32:52 2016
 Run 13
 ==============================================
 cmd:
-/home/lil19/overtureframework/cg/unitTests/conv/conv.p tbm.conv -BM=FD -tz=trig -fx=1.1 -bcn=p -tf=1. -rhos=1. -cg=line -cfl=.9 -ngStart=2 -ng=4 -predictor=newmark2Implicit  -corrector=newmarkCorrector  -useSameStencilSize=1 > FD1_Trig_fx1p1_NBNB_pp.out &
+/home/lil19/overtureframework/cg/unitTests/conv/conv.p tbm.conv -BM=FD -tz=trig -fx=1.1 -bcn=p -tf=1. -rhos=1. -cg=line -cfl=.9 -ngStart=2 -ng=4 -predictor=newmark2Implicit  -corrector=newmarkCorrector -betta=0.5 -gamma=1   -useSameStencilSize=1 > FD1_Trig_fx1p1_NBNBnew_pp.out &
 executing cmd ------>
 ==============================================
 
-Tue Aug  9 00:16:26 2016
+Wed Aug 10 16:32:52 2016
 Run 14
 ==============================================
 cmd:
-/home/lil19/overtureframework/cg/unitTests/conv/conv.p tbm.conv -BM=FD -tz=trig -fx=1.1 -bcn=c -tf=1. -rhos=1. -cg=line -cfl=.9 -ngStart=2 -ng=4 -predictor=newmark2Implicit  -corrector=newmarkCorrector  -useSameStencilSize=1 > FD1_Trig_fx1p1_NBNB_cc.out &
+/home/lil19/overtureframework/cg/unitTests/conv/conv.p tbm.conv -BM=FD -tz=trig -fx=1.1 -bcn=c -tf=1. -rhos=1. -cg=line -cfl=.9 -ngStart=2 -ng=4 -predictor=newmark2Implicit  -corrector=newmarkCorrector -betta=0.5 -gamma=1   -useSameStencilSize=1 > FD1_Trig_fx1p1_NBNBnew_cc.out &
 executing cmd ------>
 ==============================================
 
-Tue Aug  9 00:16:26 2016
+Wed Aug 10 16:32:52 2016
 Run 15
 ==============================================
 cmd:
-/home/lil19/overtureframework/cg/unitTests/conv/conv.p tbm.conv -BM=FD -tz=trig -fx=1.1 -bcn=f -tf=1. -rhos=1. -cg=line -cfl=.9 -ngStart=2 -ng=4 -predictor=newmark2Implicit  -corrector=newmarkCorrector  -useSameStencilSize=1 > FD1_Trig_fx1p1_NBNB_ff.out &
+/home/lil19/overtureframework/cg/unitTests/conv/conv.p tbm.conv -BM=FD -tz=trig -fx=1.1 -bcn=f -tf=1. -rhos=1. -cg=line -cfl=.9 -ngStart=2 -ng=4 -predictor=newmark2Implicit  -corrector=newmarkCorrector -betta=0.5 -gamma=1   -useSameStencilSize=1 > FD1_Trig_fx1p1_NBNBnew_ff.out &
 executing cmd ------>
 ==============================================
 
-Tue Aug  9 00:16:26 2016
+Wed Aug 10 16:32:52 2016
 Run 16
 ==============================================
 cmd:
-/home/lil19/overtureframework/cg/unitTests/conv/conv.p tbm.conv -BM=FD -tz=trig -fx=1.1 -bcn=s -tf=1. -rhos=1. -cg=line -cfl=.9 -ngStart=2 -ng=4 -predictor=newmark2Implicit  -corrector=newmarkCorrector  -useSameStencilSize=1 > FD1_Trig_fx1p1_NBNB_ss.out &
+/home/lil19/overtureframework/cg/unitTests/conv/conv.p tbm.conv -BM=FD -tz=trig -fx=1.1 -bcn=s -tf=1. -rhos=1. -cg=line -cfl=.9 -ngStart=2 -ng=4 -predictor=newmark2Implicit  -corrector=newmarkCorrector -betta=0.5 -gamma=1   -useSameStencilSize=1 > FD1_Trig_fx1p1_NBNBnew_ss.out &
 executing cmd ------>
 ==============================================
+
+
 
 
 

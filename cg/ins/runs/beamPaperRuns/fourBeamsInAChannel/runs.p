@@ -8,7 +8,7 @@ $cleanResults=1; # delete all existing results
 $runTheCommand=1; # runs the cmds or just print out the cmds
 $verbose=0; 
 # create symbolic links for this files in runDir
-@files=("fourBeamsInAChannel.cmd","beam2.h","beam3.h","beam4.h","fourBeamsInALongerChannelGride1.order2.hdf","fourBeamsInALongerChannelGride2.order2.hdf","fourBeamsInALongerChannelGride4.order2.hdf","fourBeamsInALongerChannelGride8.order2.hdf");
+@files=("fourBeamsInAChannel.cmd","beam2.h","beam3.h","beam4.h","fourBeamsInALongerChannelGride1.order2.hdf","fourBeamsInALongerChannelGride2.order2.hdf","fourBeamsInALongerChannelGride4.order2.hdf","fourBeamsInALongerChannelGride8.order2.hdf","fourBeamsInALongerChannelGride16.order2.hdf");
 
 
 @runDirs;
@@ -19,7 +19,7 @@ $verbose=0;
 $tf=20.;
 $cfls=100.;
 $uIn=2.;
-$gn=4;
+$gn=16;
 $numElem=7*$gn;
 $E1=30.;$rho1=1000.;
 $E2=10.;$rho2=10.;

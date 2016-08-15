@@ -62,6 +62,8 @@ $fluidOnTwoSides=1;  # beam has fluid on two sides
 $orderOfProjection=4; # order of accuracy for beam element integrals
 $beamProbeFileName="beamProbe.text"; 
 $probePosition=1.; # probe location in [0,1]
+$betta=0.25; # newmark betta
+$gamma=0.5; # newmark gamma
 # 
 $pMax=1; $tMax=.5;  
 #
@@ -88,7 +90,8 @@ GetOptions( "g=s"=>\$grid,"tf=f"=>\$tFinal,"implicitFactor=f"=>\$implicitFactor,
   "projectBeamVelocity=i"=>\$projectBeamVelocity,"numberOfCorrections=i"=>\$numberOfCorrections,\
   "useTP=i"=>\$useTP,"addedMassRelaxation=f"=>\$addedMassRelaxation,"addedMassTol=f"=>\$addedMassTol,"BM=s"=>\$BM,\
   "smoothBeam=i"=>\$smoothBeam,"numberOfBeamSmooths=i"=>\$numberOfBeamSmooths,"probePosition=f"=>\$probePosition,\
-  "useSameStencilSize=i"=>\$useSameStencilSize,"recomputeGVOnCorrection=i"=>\$recomputeGVOnCorrection);
+  "useSameStencilSize=i"=>\$useSameStencilSize,"recomputeGVOnCorrection=i"=>\$recomputeGVOnCorrection,\
+  "betta=f"=>\$betta,  "gamma=f"=>\$gamma);
 # -------------------------------------------------------------------------------------------------
 if( $solver eq "best" ){ $solver="choose best iterative solver"; }
 if( $solver eq "mg" ){ $solver="multigrid"; }
@@ -201,6 +204,8 @@ $grid
             plotting scale factor: $beamPlotScaleFactor
             debug: $bdebug
             #
+            Newmark beta: $betta
+            Newmark gamma: $gamma
             order of Galerkin projection: $orderOfProjection
             fluid on two sides $fluidOnTwoSides
             #
