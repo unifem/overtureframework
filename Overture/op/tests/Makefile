@@ -341,6 +341,7 @@ tcm3 = tcm3.o Checker.o $(PETSC) formMatrix.o
 tcm3 = tcm3.o Checker.o $(PETSC)  ../../grid/MappedGridGeometry2.o
 tcm3 = tcm3.o Checker.o $(PETSC) LoadBalancer.o ../../oges/OgesParameters.o
 tcm3 = tcm3.o Checker.o $(PETSC) ../../oges/OgesParameters.o 
+tcm3 = tcm3.o Checker.o $(PETSC) laplacianFDCoefficients.o Oges.o
 tcm3 = tcm3.o Checker.o $(PETSC) 
 tcm3: $(tcm3) 
 	$(CC) $(CCFLAGS) -o tcm3 $(tcm3) \

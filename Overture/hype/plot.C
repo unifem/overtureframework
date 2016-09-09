@@ -524,6 +524,9 @@ plotInvertedCells(GenericGraphicsInterface & gi,
                   GraphicsParameters & parameters )
 {
 
+#ifndef USE_PPP
+
+
   // Draw cells with a negative jacobian in red
   // We draw the edges of the cell in red
   // RealArray & x = xHyper;
@@ -779,6 +782,11 @@ plotInvertedCells(GenericGraphicsInterface & gi,
     parameters.set(GraphicsParameters::curveLineWidth,oldCurveLineWidth);
   }
       
+#else
+  printF("--HYPE--plotInvertedCells: fix me for parallel\n");
+
+#endif
+
 
   return 0;
 }

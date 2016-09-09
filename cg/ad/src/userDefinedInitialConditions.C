@@ -102,8 +102,9 @@ userDefinedInitialConditions(CompositeGrid & cg, realCompositeGridFunction & u )
       {
           ug(I1,I2,I3,tc)=U2D(vertex(I1,I2,I3,0),vertex(I1,I2,I3,1),vertex(I1,I2,I3,2),t);
           //Add by Kara to establish initial pressure, note that tc = 0
+          #ifndef USE_PPP
           ug(I1,I2,I3,tc+1)= -S*u[grid].laplacian()(I1,I2,I3,t);
-          
+          #endif
 
           ug(I1,I2,I3,tc)=h0;
           ug(I1,I2,I3,tc+1) = 0;
@@ -114,7 +115,10 @@ userDefinedInitialConditions(CompositeGrid & cg, realCompositeGridFunction & u )
 	// Displacements:
 	ug(I1,I2,I3,tc)=U3D(vertex(I1,I2,I3,0),vertex(I1,I2,I3,1),vertex(I1,I2,I3,2),t);
             //Add by Kara to establish initial pressure, note that tc = 0
-    ug(I1,I2,I3,tc+1)= -S*u[grid].laplacian()(I1,I2,I3,t);
+
+        #ifndef USE_PPP
+        ug(I1,I2,I3,tc+1)= -S*u[grid].laplacian()(I1,I2,I3,t);
+        #endif
       }
     } // end pulse
     else if( option=="tearFilm" )

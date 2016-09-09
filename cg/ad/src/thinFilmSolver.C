@@ -124,6 +124,7 @@ int
 fillInCoeffBoundaryConditions( realCompositeGridFunction & coeffcg, realCompositeGridFunction & newtCur ,
                                Parameters & parameters )
 {
+#ifndef USE_PPP
     CompositeGrid & cg = *coeffcg.getCompositeGrid();
     const int numberOfDimensions = cg.numberOfDimensions();
     int numberOfComponents = 2;
@@ -378,6 +379,7 @@ fillInCoeffBoundaryConditions( realCompositeGridFunction & coeffcg, realComposit
         
     }
     
+#endif
     return 0;
 }
 
@@ -392,6 +394,7 @@ int evaluateThinFilmFunction( realCompositeGridFunction & rhs,
                               GridFunction *gf, realCompositeGridFunction & newtCur,
                               int mNew, int mCur, int mOld, real t0, real dt0, Parameters & parameters )
 {
+#ifndef USE_PPP
   OGFunction & exact = *(parameters.dbase.get<OGFunction* >("exactSolution"));
 
   const real & S  = parameters.dbase.get<real>("inverseCapillaryNumber");
@@ -793,6 +796,7 @@ int evaluateThinFilmFunction( realCompositeGridFunction & rhs,
     }//end of else for grid moving
   }//end of for grid
 
+#endif
 
   return 0;
   
@@ -814,7 +818,7 @@ int evaluateThinFilmFunction( realCompositeGridFunction & rhs,
 int Cgad::
 thinFilmSolver(  real & t0, real & dt0, int correction, AdvanceOptions & advanceOptions )
 {
-  
+#ifndef USE_PPP
     
     const real & S  = parameters.dbase.get<real>("inverseCapillaryNumber");
     const real & G  = parameters.dbase.get<real>("scaledStokesNumber");
@@ -1422,7 +1426,8 @@ thinFilmSolver(  real & t0, real & dt0, int correction, AdvanceOptions & advance
     // printF(" +++ ims: gf[mNew].t=%9.3e --> change to t0+dt0=%9.3e +++\n",gf[mNew].t,t0+dt0);
     gf[mNew].t=t0+dt0;  // gf[mNew] now lives at this time
   }
-    
+
+#endif    
   return 0;
 }
 

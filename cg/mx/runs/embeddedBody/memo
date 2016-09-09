@@ -1,6 +1,26 @@
 
 ====== Body embedded in a dielectric =======
 
+*****************************************
+****** Tues Aug. 16, 2016
+
+
+-- ORDER=4
+cgmx chirped -g=nonSquare128np.order4.hdf -bg=square -ta=1. -tb=1.5 -tf=1.5 -tp=.1 
+cgmx chirped -g=nonSquare64np.order4.hdf -bg=square -ta=1. -tb=1.5 -tf=1.5 -tp=.1 
+
+G128>>> t=1.50e+00 dt=4.8e-03 max errors:[0.00e+00,4.08e-06,4.18e-06,], max (u):[0.00e+00,8.32e-01,8.32e-01,] (315 steps)
+
+G64>>> t=1.50e+00 dt=9.1e-03 max errors:[0.00e+00,6.76e-05,7.04e-05,], max (u):[0.00e+00,8.32e-01,8.32e-01,] (165 steps)
+
+
+-- ORDER=2
+cgmx chirped -g=nonSquare128np.order2.hdf -bg=square -ta=1. -tb=1.5 -tf=1.5 -tp=.1 
+cgmx chirped -g=nonSquare64np.order2.hdf -bg=square -ta=1. -tb=1.5 -tf=1.5 -tp=.1 
+
+G128 >>> t=1.50e+00 dt=4.8e-03 max errors:[0.00e+00,7.82e-04,1.19e-03,], max (u):[0.00e+00,8.32e-01,8.33e-01,] (315 steps)
+G64: >>> t=1.50e+00 dt=9.1e-03 max errors:[0.00e+00,3.32e-03,4.80e-03,], max (u):[0.00e+00,8.32e-01,8.36e-01,] (165 steps)
+
 
 *****************************************
 ****** Sun Aug. 14, 2016

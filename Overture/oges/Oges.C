@@ -357,6 +357,11 @@ setEquationAndBoundaryConditions( OgesParameters::EquationEnum equation,
   const int width = orderOfAccuracy+1;  // 3 or 5
   stencilSize=int( pow(width,cg.numberOfDimensions())+1 );
 
+  if( orderOfAccuracy!=2 && orderOfAccuracy!=4 && orderOfAccuracy!=6 )
+  {
+    printF("--OGES--setEquationAndBoundaryConditions: ERROR: orderOfAccuracy=%i not supported\n",orderOfAccuracy);
+    OV_ABORT("error");
+  }
 
   constantCoefficients=constantCoeff;
   if( equationSolver[parameters.solver]==NULL )
@@ -366,14 +371,15 @@ setEquationAndBoundaryConditions( OgesParameters::EquationEnum equation,
   {
     // The multigrid solver knows how to handle this
     equationSolver[parameters.solver]->setEquationAndBoundaryConditions(equation,op,boundaryConditions_,bcData,
-                          constantCoeff,varCoeff);
+									constantCoeff,varCoeff);
   }
   else
   {
     // build the coeff matrix for the predefined equations here.
 
+    // For now we only support up to 6th order
     const int numberOfGhostLines=(width-1)/2;
-    assert( numberOfGhostLines==1 || numberOfGhostLines==2 );
+    assert( numberOfGhostLines==1 || numberOfGhostLines==2 || numberOfGhostLines==3 );
 
     Range all;
     coeff.updateToMatchGrid(cg,stencilSize,all,all,all);
@@ -429,86 +435,90 @@ setEquationAndBoundaryConditions( OgesParameters::EquationEnum equation,
       if( equation==OgesParameters::laplaceEquation ||
           equation==OgesParameters::heatEquationOperator )
       {
-         op[grid].coefficients(MappedGridOperators::laplacianOperator,coeff[grid]);
+        op[grid].coefficients(MappedGridOperators::laplacianOperator,coeff[grid]);
 
-         if( parameters.isAxisymmetric )
-	 {
-	   // add on corrections for a cylindrically symmetric problem
-	   // Delta p = p.xx + p.yy + (1/y) p.y
-	   // note that p.y=0 on y=0 and p.y/y = p.yy at r=0
+          // // --- do this for now for higher order --- 
+          // coeff[grid]=op[grid].laplacianCoefficients(); 
+	  // assert( ! parameters.isAxisymmetric );
 
-           const bool isRectangular = c.isRectangular();
+	if( parameters.isAxisymmetric )
+	{
+	  // add on corrections for a cylindrically symmetric problem
+	  // Delta p = p.xx + p.yy + (1/y) p.y
+	  // note that p.y=0 on y=0 and p.y/y = p.yy at r=0
+
+	  const bool isRectangular = c.isRectangular();
 	   
-           #ifdef USE_PPP
-  	     intSerialArray maskLocal;   getLocalArrayWithGhostBoundaries(c.mask(),maskLocal);
-	     realSerialArray coeffLocal; getLocalArrayWithGhostBoundaries(coeff[grid],coeffLocal);
-	     realSerialArray xLocal; if( !isRectangular ) getLocalArrayWithGhostBoundaries(c.vertex(),xLocal);
-	   #else
-             const intSerialArray & maskLocal = c.mask();
-             const realSerialArray & coeffLocal = coeff[grid];
-             const realSerialArray & xLocal = c.vertex();
-           #endif
+#ifdef USE_PPP
+	  intSerialArray maskLocal;   getLocalArrayWithGhostBoundaries(c.mask(),maskLocal);
+	  realSerialArray coeffLocal; getLocalArrayWithGhostBoundaries(coeff[grid],coeffLocal);
+	  realSerialArray xLocal; if( !isRectangular ) getLocalArrayWithGhostBoundaries(c.vertex(),xLocal);
+#else
+	  const intSerialArray & maskLocal = c.mask();
+	  const realSerialArray & coeffLocal = coeff[grid];
+	  const realSerialArray & xLocal = c.vertex();
+#endif
 	   
-	   getIndex(c.dimension(),I1,I2,I3);
-           bool ok = ParallelUtility::getLocalArrayBounds(c.mask(),maskLocal,I1,I2,I3);
-	   if( ok )
-	   {
-	     realSerialArray radiusInverse(I1,I2,I3);  
-	     if( c.isRectangular() )
-	     {
-	       real dx[3],xab[2][3];
-               #define YY(i2) (xab[0][1]+dx[1]*(i2-i2a))
-	       c.getRectangularGridParameters( dx, xab );
-	       const int i2a=c.gridIndexRange(0,1);
-	       for( int i2=I2.getBase(); i2<=I2.getBound(); i2++ )
-	       {
-		 radiusInverse(I1,i2,I3)=1./max(REAL_MIN,YY(i2));
-	       }
-               #undef YY
-	     }
-	     else
-	     {
-	       radiusInverse=1./max(REAL_MIN,xLocal(I1,I2,I3,axis2));  
-	     }
-	     ForBoundary(side,axis)
-	     {
-	       if( boundaryConditions(side,axis,grid)==OgesParameters::axisymmetric )
-	       {
-		 if( debug & 2 ) 
-		   printF("***Oges: predefined axisymmetric boundary grid,side,axis=%3i %2i %2i \n",grid,side,axis);
+	  getIndex(c.dimension(),I1,I2,I3);
+	  bool ok = ParallelUtility::getLocalArrayBounds(c.mask(),maskLocal,I1,I2,I3);
+	  if( ok )
+	  {
+	    realSerialArray radiusInverse(I1,I2,I3);  
+	    if( c.isRectangular() )
+	    {
+	      real dx[3],xab[2][3];
+#define YY(i2) (xab[0][1]+dx[1]*(i2-i2a))
+	      c.getRectangularGridParameters( dx, xab );
+	      const int i2a=c.gridIndexRange(0,1);
+	      for( int i2=I2.getBase(); i2<=I2.getBound(); i2++ )
+	      {
+		radiusInverse(I1,i2,I3)=1./max(REAL_MIN,YY(i2));
+	      }
+#undef YY
+	    }
+	    else
+	    {
+	      radiusInverse=1./max(REAL_MIN,xLocal(I1,I2,I3,axis2));  
+	    }
+	    ForBoundary(side,axis)
+	    {
+	      if( boundaryConditions(side,axis,grid)==OgesParameters::axisymmetric )
+	      {
+		if( debug & 2 ) 
+		  printF("***Oges: predefined axisymmetric boundary grid,side,axis=%3i %2i %2i \n",grid,side,axis);
 	    
-		 getBoundaryIndex( c.gridIndexRange(),side,axis,Ib1,Ib2,Ib3); 
-		 bool ok = ParallelUtility::getLocalArrayBounds(c.mask(),maskLocal,Ib1,Ib2,Ib3);
-		 if( ok )
-		 {
-		   realSerialArray yyCoeff(M,Ib1,Ib2,Ib3);
-		   yyCoeff=0.;
-		   op[grid].assignCoefficients(MappedGridOperators::yyDerivative,yyCoeff,Ib1,Ib2,Ib3,0,0);
-		   // coeff[grid](M,Ib1,Ib2,Ib3)+=op[grid].yyCoefficients(Ib1,Ib2,Ib3)(M,Ib1,Ib2,Ib3); // add p.yy on axis
-		   coeffLocal(M,Ib1,Ib2,Ib3)+=yyCoeff;   // add p.yy on axis
-		   radiusInverse(Ib1,Ib2,Ib3)=0.;  // this will remove p.y/y term below from boundary
-		 }
-	       }
-	     }
-	     // add p.y/y term
+		getBoundaryIndex( c.gridIndexRange(),side,axis,Ib1,Ib2,Ib3); 
+		bool ok = ParallelUtility::getLocalArrayBounds(c.mask(),maskLocal,Ib1,Ib2,Ib3);
+		if( ok )
+		{
+		  realSerialArray yyCoeff(M,Ib1,Ib2,Ib3);
+		  yyCoeff=0.;
+		  op[grid].assignCoefficients(MappedGridOperators::yyDerivative,yyCoeff,Ib1,Ib2,Ib3,0,0);
+		  // coeff[grid](M,Ib1,Ib2,Ib3)+=op[grid].yyCoefficients(Ib1,Ib2,Ib3)(M,Ib1,Ib2,Ib3); // add p.yy on axis
+		  coeffLocal(M,Ib1,Ib2,Ib3)+=yyCoeff;   // add p.yy on axis
+		  radiusInverse(Ib1,Ib2,Ib3)=0.;  // this will remove p.y/y term below from boundary
+		}
+	      }
+	    }
+	    // add p.y/y term
 
-	     // ::display(coeff[grid],"Oges: coeff before adding Dy/y","%6.2f ");
+	    // ::display(coeff[grid],"Oges: coeff before adding Dy/y","%6.2f ");
 
-	     realSerialArray yCoeff(M,I1,I2,I3);
-	     yCoeff=0.;
-	     op[grid].assignCoefficients(MappedGridOperators::yDerivative,yCoeff,I1,I2,I3,0,0);
-	     radiusInverse.reshape(1,I1,I2,I3);
-	     // *wdh* 040228 for( int m=M.getBase(); m<=M.getBound()-1; m++ )
-	     for( int m=M.getBase(); m<=M.getBound(); m++ )
-	       yCoeff(m,I1,I2,I3)*=radiusInverse(0,I1,I2,I3);
+	    realSerialArray yCoeff(M,I1,I2,I3);
+	    yCoeff=0.;
+	    op[grid].assignCoefficients(MappedGridOperators::yDerivative,yCoeff,I1,I2,I3,0,0);
+	    radiusInverse.reshape(1,I1,I2,I3);
+	    // *wdh* 040228 for( int m=M.getBase(); m<=M.getBound()-1; m++ )
+	    for( int m=M.getBase(); m<=M.getBound(); m++ )
+	      yCoeff(m,I1,I2,I3)*=radiusInverse(0,I1,I2,I3);
 
-	     coeffLocal(M,I1,I2,I3)+=yCoeff;
+	    coeffLocal(M,I1,I2,I3)+=yCoeff;
 	
-	     // ::display(yCoeff,"Oges: Dy/y before BC","%6.2f ");
-	     // ::display(coeff[grid],"Oges: coeff before BC","%6.2f ");
+	    // ::display(yCoeff,"Oges: Dy/y before BC","%6.2f ");
+	    // ::display(coeff[grid],"Oges: coeff before BC","%6.2f ");
 
-	   }
-	 } // end if isAxisymmetric
+	  }
+	}  // end if isAxisymmetric
 
       }
       
@@ -718,27 +728,33 @@ setEquationAndBoundaryConditions( OgesParameters::EquationEnum equation,
 	  Overture::abort("error");
 	}
 
-        // *** assign the 2nd ghost line **** *wdh* 051017
-	if( orderOfAccuracy==4 )
+        // *** assign ghost line 2 and higher for higher-order schemes ****
+        // -- for now we extrapolate --
+	if( orderOfAccuracy>=4 )
 	{
-          extrapParams.ghostLineToAssign=2;
-          if( boundaryConditions(side,axis,grid)==OgesParameters::dirichletAndEvenSymmetry )
+	  int numGhost= orderOfAccuracy/2; // 
+	  for( int ghost=2; ghost<=numGhost; ghost++ )  // assign ghost lines 2,3,..
 	  {
-	    coeff[grid].applyBoundaryConditionCoefficients(0,0,BCTypes::evenSymmetry,BCTypes::boundary1+side+2*axis,
-							   extrapParams);
-	  }
-	  else if( boundaryConditions(side,axis,grid)==OgesParameters::dirichletAndOddSymmetry )
-	  {
-	    coeff[grid].applyBoundaryConditionCoefficients(0,0,BCTypes::oddSymmetry,BCTypes::boundary1+side+2*axis,
-							   extrapParams);
-	  }
-	  else
-	  {
-	    coeff[grid].applyBoundaryConditionCoefficients(0,0,BCTypes::extrapolate,BCTypes::boundary1+side+2*axis,
-							   extrapParams);
-	  }
-	  extrapParams.ghostLineToAssign=1;
+	    extrapParams.ghostLineToAssign=ghost;
 
+	    if( boundaryConditions(side,axis,grid)==OgesParameters::dirichletAndEvenSymmetry )
+	    {
+	      coeff[grid].applyBoundaryConditionCoefficients(0,0,BCTypes::evenSymmetry,BCTypes::boundary1+side+2*axis,
+		 extrapParams);
+	    }
+	    else if( boundaryConditions(side,axis,grid)==OgesParameters::dirichletAndOddSymmetry )
+	    {
+	      coeff[grid].applyBoundaryConditionCoefficients(0,0,BCTypes::oddSymmetry,BCTypes::boundary1+side+2*axis,
+		 extrapParams);
+	    }
+	    else
+	    {
+	      coeff[grid].applyBoundaryConditionCoefficients(0,0,BCTypes::extrapolate,BCTypes::boundary1+side+2*axis,
+		 extrapParams);
+	    }
+	    extrapParams.ghostLineToAssign=1; // reset 
+	  }
+	  
 	}
 	
       }  // end ForBoundary

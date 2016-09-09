@@ -34,6 +34,8 @@ if( $machine eq "help" || $machine eq "-help" || $machine eq "--help" )
   printf(" options: (any combinations of) \n");
   printf("   opt     : compile with optimization (by default most important files are compiled opt). \n");
   printf("   debug   : compile with all files with debug.\n");
+# To finish: 
+#  printf("   petsc   : compile with the PETSc solvers (the PETSc environmental variables should be set). \n");
   printf("   distribution=[blank|ubuntu] : specify the Linux distribution (currently only needed for Ubuntu). \n");
   printf("   debugFlag=<value> : specify the flag to use for compiling with debugging. \n");
   printf("   CC=<value>  : use this C++ compiler (instead of the default). e.g. CC=g++, CC=xlC, CC=mpiCC \n");
