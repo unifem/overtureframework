@@ -1,3 +1,76 @@
+
+=======09/13/2016===========
+compare FD0, FD1 and FEM with and without bSmoother for 
+very light beam rhob*A=0.01 on G4
+
+
+Number of runs = 4
+
+Wed Sep 14 16:04:16 2016
+Run 1
+==============================================
+cmd:
+/home/lil19/cg.g/ins/bin/cgins -abortOnEnd -noplot oneBeamInAChannel -uIn==1.5 -BM1=FD  -g=oneBeamInALongerChannelGridFixede8.order2.hdf -tf=10  -tp=.01 -rhoBeam=0.1 -E=20 -numElem=56 -outflowOption=neumann -nu=1.e-3  -addedMass=1 -ampProjectVelocity=1 -useApproximateAMPcondition=0 -useSameStencilSize=1  -numberOfCorrections=1 -saveProbe=1 -cfls=100. -ps=newmark2Implicit -cs=newmarkCorrector -smoothInterfaceVelocity=1 -nis=16 -smoothBeam=1 -numberOfBeamSmooths=16 -rampInflow=1  -recomputeGVOnCorrection=0 -ff=1 -show=FD1_rhob0p01_bSmoother_NBNB_CFLs100_G8.show -go=go > FD1_rhob0p01_bSmoother_NBNB_CFLs100_G8.out &
+executing cmd ------>
+==============================================
+
+Wed Sep 14 16:04:16 2016
+Run 2
+==============================================
+cmd:
+/home/lil19/cg.g/ins/bin/cgins -abortOnEnd -noplot oneBeamInAChannel -uIn=1.5 -BM1=FD  -g=oneBeamInALongerChannelGridFixede8.order2.hdf -tf=10  -tp=.01 -rhoBeam=0.1 -E=20 -numElem=56 -outflowOption=neumann -nu=1.e-3  -addedMass=1 -ampProjectVelocity=1 -useApproximateAMPcondition=0 -useSameStencilSize=0  -numberOfCorrections=1 -saveProbe=1 -cfls=100. -ps=newmark2Implicit -cs=newmarkCorrector -smoothInterfaceVelocity=1 -nis=16 -smoothBeam=1 -numberOfBeamSmooths=16 -rampInflow=1  -recomputeGVOnCorrection=0 -ff=1 -show=FD0_rhob0p01_bSmoother_NBNB_CFLs100_G8.show -go=go > FD0_rhob0p01_bSmoother_NBNB_CFLs100_G8.out &
+executing cmd ------>
+==============================================
+
+Wed Sep 14 16:04:16 2016
+Run 3
+==============================================
+cmd:
+/home/lil19/cg.g/ins/bin/cgins -abortOnEnd -noplot oneBeamInAChannel -uIn=1.5 -BM1=FD  -g=oneBeamInALongerChannelGridFixede8.order2.hdf -tf=10  -tp=.01 -rhoBeam=0.1 -E=20 -numElem=56 -outflowOption=neumann -nu=1.e-3  -addedMass=1 -ampProjectVelocity=1 -useApproximateAMPcondition=0 -useSameStencilSize=1  -numberOfCorrections=1 -saveProbe=1 -cfls=100. -ps=newmark2Implicit -cs=newmarkCorrector -smoothInterfaceVelocity=1 -nis=16 -smoothBeam=0  -rampInflow=1  -recomputeGVOnCorrection=0 -ff=1 -show=FD1_rhob0p01_nobSmoother_NBNB_CFLs100_G8.show -go=go > FD1_rhob0p01_nobSmoother_NBNB_CFLs100_G8.out &
+executing cmd ------>
+==============================================
+
+Wed Sep 14 16:04:16 2016
+Run 4
+==============================================
+cmd:
+/home/lil19/cg.g/ins/bin/cgins -abortOnEnd -noplot oneBeamInAChannel -uIn=1.5 -BM1=FEM  -g=oneBeamInALongerChannelGridFixede8.order2.hdf -tf=10  -tp=.01 -rhoBeam=0.1 -E=20 -numElem=56 -outflowOption=neumann -nu=1.e-3  -addedMass=1 -ampProjectVelocity=1 -useApproximateAMPcondition=0 -numberOfCorrections=1 -saveProbe=1 -cfls=100. -ps=newmark2Implicit -cs=newmarkCorrector -smoothInterfaceVelocity=1 -nis=16 -smoothBeam=0  -rampInflow=1  -recomputeGVOnCorrection=0 -ff=1 -show=FEM_rhob0p01_nobSmoother_NBNB_CFLs100_G8.show -go=go > FEM_rhob0p01_nobSmoother_NBNB_CFLs100_G8.out &
+executing cmd ------>
+==============================================
+
+
+
+
+
+
+
+
+=======09/08/2016===========
+compare FD0 and FD1 for light beam. FD0 fails while FD1 OK
+
+Number of runs = 2
+
+Thu Sep  8 21:56:08 2016
+Run 1
+==============================================
+cmd:
+/home/lil19/cg.g/ins/bin/cgins -abortOnEnd -noplot oneBeamInAChannel -BM1=FD  -g=oneBeamInALongerChannelGridFixede4.order2.hdf -tf=10  -tp=.01 -rhoBeam=0.1 -E=2 -numElem=28 -outflowOption=neumann -nu=1.e-3  -addedMass=1 -ampProjectVelocity=1 -useApproximateAMPcondition=0 -useSameStencilSize=1 -useSameStencilSize=1  -numberOfCorrections=1 -saveProbe=1 -cfls=100. -ps=newmark2Implicit -cs=newmarkCorrector -smoothInterfaceVelocity=1 -nis=4 -smoothBeam=1 -numberOfBeamSmooths=4 -rampInflow=1  -recomputeGVOnCorrection=0 -show=FD1_NBNB_CFLs100_G4.show -go=go > FD1_NBNB_CFLs100_G4.out &
+executing cmd ------>
+==============================================
+
+Thu Sep  8 21:56:08 2016
+Run 2
+==============================================
+cmd:
+/home/lil19/cg.g/ins/bin/cgins -abortOnEnd -noplot oneBeamInAChannel -BM1=FD  -g=oneBeamInALongerChannelGridFixede4.order2.hdf -tf=10  -tp=.01 -rhoBeam=0.1 -E=2 -numElem=28 -outflowOption=neumann -nu=1.e-3  -addedMass=1 -ampProjectVelocity=1 -useApproximateAMPcondition=0 -useSameStencilSize=1 -useSameStencilSize=0  -numberOfCorrections=1 -saveProbe=1 -cfls=100. -ps=newmark2Implicit -cs=newmarkCorrector -smoothInterfaceVelocity=1 -nis=4 -smoothBeam=1 -numberOfBeamSmooths=4 -rampInflow=1  -recomputeGVOnCorrection=0 -show=FD0_NBNB_CFLs100_G4.show -go=go > FD0_NBNB_CFLs100_G4.out &
+executing cmd ------>
+==============================================
+
+
+
+
+
+
 =======07/27/2016===========
 NBNB-FD1 (nis=4 Failed at t=3.8, OK for rho=10. for cfls=0.5 and rho=1, failed at t=14)
 cgins -abortOnEnd -noplot oneBeamInAChannel -BM1=FD -g=oneBeamInALongerChannelGride1.order2.hdf -tf=10. -tp=.01 -rhoBeam=10. -E=2. -numElem=7 -outflowOption=neumann -nu=1.e-3 -addedMass=1 -ampProjectVelocity=1 -useApproximateAMPcondition=0 -useSameStencilSize=1 -smoothBeam=0 -smoothInterfaceVelocity=1 -nis=4  -numberOfCorrections=1 -saveProbe=1 -cfls=1.  -ps=newmark2Implicit -cs=newmarkCorrector -go=go -show=aaFD.show > aaFD.out &

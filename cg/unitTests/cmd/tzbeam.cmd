@@ -21,6 +21,7 @@ $BM="FEM";
 $useSameStencilSize=1;
 $betta=0.25;
 $gamma=0.50;
+$plotError=0; # plot error if true plot solutions otherwise
 #
 #
 GetOptions( "nElem=i"=>\$nElem,"cfl=f"=>\$cfl,"Em=f"=>\$Em,"tension=f"=>\$tension,"degreet=i"=>\$degreet,\
@@ -29,7 +30,7 @@ GetOptions( "nElem=i"=>\$nElem,"cfl=f"=>\$cfl,"Em=f"=>\$Em,"tension=f"=>\$tensio
             "K0=f"=>\$K0,"Kt=f"=>\$Kt,"Kxxt=f"=>\$Kxxt,"orderOfProjection=i"=>\$orderOfProjection,"smooth=i"=>\$smooth,\
             "numberOfSmooths=i"=>\$numberOfSmooths,"smoothOrder=i"=>\$smoothOrder,"eigenmode=i"=>\$eigenmode, \
 	    "predictor=s"=>\$predictor, "corrector=s"=>\$corrector,"BM=s"=>\$BM,"useSameStencilSize=i"=>\$useSameStencilSize,"go=s"=>\$go,\
-	    "betta=f"=>\$betta,  "gamma=f"=>\$gamma);
+	    "betta=f"=>\$betta,  "gamma=f"=>\$gamma,"plotError=i"=>\$plotError);
 # 
 if( $go eq "halt" ){ $go = "#"; }
 if( $go eq "og" ){ $go = "open graphics"; }
@@ -120,17 +121,19 @@ solve
 #
 plot beam 0 
 contour
+if($plotError){$cmd="uErr\n add vErr\n add aErr\n";}else{$cmd="u\n add v\n add a\n";}
 #plot grid points (toggle)
 #ghost lines
 #2
+$cmd
   # uErr
   # add vErr
   # add aErr
 #  add uxErr
 #  add vxErr
-   u 
-   add v
-   add a
+   # u 
+   # add v
+   # add a
 #  add ux
 #  add vx
 #  add ax

@@ -15,49 +15,39 @@ $verbose=0;
 
 
 
-$tf=3;
+$tf=10;
+$gridNumber=8;
+$rhob=0.1;
+$E=20.;
+$uIn=1.5;
+$ff=1; #frequency to flush
+$nSmooths=2*$gridNumber;
+#FD1_rhob0p01_bSmoother_NBNB_CFLs100
+$runName="FD1_rhob0p01_bSmoother_NBNB_CFLs100_G$gridNumber";
+$nElem=7*$gridNumber;
+push @runDirs,$runName;
+push @runCmds,"cgins -abortOnEnd -noplot oneBeamInAChannel -uIn==$uIn -BM1=FD  -g=oneBeamInALongerChannelGridFixede$gridNumber.order2.hdf -tf=$tf  -tp=.01 -rhoBeam=$rhob -E=$E -numElem=$nElem -outflowOption=neumann -nu=1.e-3  -addedMass=1 -ampProjectVelocity=1 -useApproximateAMPcondition=0 -useSameStencilSize=1  -numberOfCorrections=1 -saveProbe=1 -cfls=100. -ps=newmark2Implicit -cs=newmarkCorrector -smoothInterfaceVelocity=1 -nis=$nSmooths -smoothBeam=1 -numberOfBeamSmooths=$nSmooths -rampInflow=1  -recomputeGVOnCorrection=0 -ff=$ff -show=$runName.show -go=go > $runName.out &";
 
-#FD1_ABAM Re=10, recomputeGVOnCorrection  
-for(my $i=0;$i<4;$i++)
-{
-    $gridNumber=2**$i;
-    $runName="rhos10_E10_Re10_vNBS_vNIS_AMP_FD1_ABAM_G$gridNumber";
-    $nElem=7*$gridNumber;
-    push @runDirs,$runName;
-    push @runCmds,"cgins -abortOnEnd -noplot oneBeamInAChannel -BM1=FD  -g=oneBeamInALongerChannelGride$gridNumber.order2.hdf -tf=$tf. -tp=.01 -rhoBeam=1. -E=10. -numElem=$nElem -outflowOption=neumann -nu=1.e-1  -addedMass=1 -ampProjectVelocity=1 -useApproximateAMPcondition=0 -useSameStencilSize=1 -numberOfCorrections=1 -saveProbe=1 -cfls=1. -ps=adamsBashforth2 -cs=adamsMoultonCorrector -smoothInterfaceVelocity=1 -nis=$gridNumber -smoothBeam=1 -numberOfBeamSmooths=$gridNumber -rampInflow=1  -recomputeGVOnCorrection=1 -show=$runName.show -go=go > $runName.out &" ;
-}
 
-#FD1_ABAM Re=10, do not recomputeGVOnCorrection 
-for(my $i=0;$i<4;$i++)
-{
-    $gridNumber=2**$i;
-    $runName="rhos10_E10_Re10_vNBS_vNIS_AMP_FD1_ABAM_noRecomputeGVOnCorrection_G$gridNumber";
-    $nElem=7*$gridNumber;
-    push @runDirs,$runName;
-    push @runCmds,"cgins -abortOnEnd -noplot oneBeamInAChannel -BM1=FD  -g=oneBeamInALongerChannelGride$gridNumber.order2.hdf -tf=$tf. -tp=.01 -rhoBeam=1. -E=10. -numElem=$nElem -outflowOption=neumann -nu=1.e-1  -addedMass=1 -ampProjectVelocity=1 -useApproximateAMPcondition=0 -useSameStencilSize=1 -numberOfCorrections=1 -saveProbe=1 -cfls=1. -ps=adamsBashforth2 -cs=adamsMoultonCorrector -smoothInterfaceVelocity=1 -nis=$gridNumber -smoothBeam=1 -numberOfBeamSmooths=$gridNumber -rampInflow=1  -recomputeGVOnCorrection=0 -show=$runName.show -go=go > $runName.out &";
-}
+#FD0_rhob0p01_bSmoother_NBNB_CFLs100
+$runName="FD0_rhob0p01_bSmoother_NBNB_CFLs100_G$gridNumber";
+$nElem=7*$gridNumber;
+push @runDirs,$runName;
+push @runCmds,"cgins -abortOnEnd -noplot oneBeamInAChannel -uIn=$uIn -BM1=FD  -g=oneBeamInALongerChannelGridFixede$gridNumber.order2.hdf -tf=$tf  -tp=.01 -rhoBeam=$rhob -E=$E -numElem=$nElem -outflowOption=neumann -nu=1.e-3  -addedMass=1 -ampProjectVelocity=1 -useApproximateAMPcondition=0 -useSameStencilSize=0  -numberOfCorrections=1 -saveProbe=1 -cfls=100. -ps=newmark2Implicit -cs=newmarkCorrector -smoothInterfaceVelocity=1 -nis=$nSmooths -smoothBeam=1 -numberOfBeamSmooths=$nSmooths -rampInflow=1  -recomputeGVOnCorrection=0 -ff=$ff -show=$runName.show -go=go > $runName.out &";
 
-## fixed width (fixedRadius=0.3) for hyperbolic grid generation
-# #FD1_ABAM_Fixed Re=10, recomputeGVOnCorrection 
-for(my $i=0;$i<4;$i++)
-{
-    $gridNumber=2**$i;
-    $runName="rhos10_E10_Re10_vNBS_vNIS_AMP_FD1_ABAM_Fixed_G$gridNumber";
-    $nElem=7*$gridNumber;
-    push @runDirs,$runName;
-    push @runCmds,"cgins -abortOnEnd -noplot oneBeamInAChannel -BM1=FD  -g=oneBeamInALongerChannelGridFixede$gridNumber.order2.hdf -tf=$tf. -tp=.01 -rhoBeam=1. -E=10. -numElem=$nElem -outflowOption=neumann -nu=1.e-1  -addedMass=1 -ampProjectVelocity=1 -useApproximateAMPcondition=0 -useSameStencilSize=1 -numberOfCorrections=1 -saveProbe=1 -cfls=1. -ps=adamsBashforth2 -cs=adamsMoultonCorrector -smoothInterfaceVelocity=1 -nis=$gridNumber -smoothBeam=1 -numberOfBeamSmooths=$gridNumber -rampInflow=1  -recomputeGVOnCorrection=1 -show=$runName.show -go=go > $runName.out &" ;
-}
 
-#FD1_ABAM_Fixed Re=10, do not recomputeGVOnCorrection 
-for(my $i=0;$i<4;$i++)
-{
-    $gridNumber=2**$i;
-    $runName="rhos10_E10_Re10_vNBS_vNIS_AMP_FD1_ABAM_Fixed_noRecomputeGVOnCorrection_G$gridNumber";
-    $nElem=7*$gridNumber;
-    push @runDirs,$runName;
-    push @runCmds,"cgins -abortOnEnd -noplot oneBeamInAChannel -BM1=FD  -g=oneBeamInALongerChannelGridFixede$gridNumber.order2.hdf -tf=$tf. -tp=.01 -rhoBeam=1. -E=10. -numElem=$nElem -outflowOption=neumann -nu=1.e-1  -addedMass=1 -ampProjectVelocity=1 -useApproximateAMPcondition=0 -useSameStencilSize=1 -numberOfCorrections=1 -saveProbe=1 -cfls=1. -ps=adamsBashforth2 -cs=adamsMoultonCorrector -smoothInterfaceVelocity=1 -nis=$gridNumber -smoothBeam=1 -numberOfBeamSmooths=$gridNumber -rampInflow=1  -recomputeGVOnCorrection=0 -show=$runName.show -go=go > $runName.out &";
-}
 
+#FD1_rhob0p01_nobSmoother_NBNB_CFLs100
+$runName="FD1_rhob0p01_nobSmoother_NBNB_CFLs100_G$gridNumber";
+$nElem=7*$gridNumber;
+push @runDirs,$runName;
+push @runCmds,"cgins -abortOnEnd -noplot oneBeamInAChannel -uIn=$uIn -BM1=FD  -g=oneBeamInALongerChannelGridFixede$gridNumber.order2.hdf -tf=$tf  -tp=.01 -rhoBeam=$rhob -E=$E -numElem=$nElem -outflowOption=neumann -nu=1.e-3  -addedMass=1 -ampProjectVelocity=1 -useApproximateAMPcondition=0 -useSameStencilSize=1  -numberOfCorrections=1 -saveProbe=1 -cfls=100. -ps=newmark2Implicit -cs=newmarkCorrector -smoothInterfaceVelocity=1 -nis=$nSmooths -smoothBeam=0  -rampInflow=1  -recomputeGVOnCorrection=0 -ff=$ff -show=$runName.show -go=go > $runName.out &";
+
+#FEM_rhob0p01_nobSmoother_NBNB_CFLs100
+$runName="FEM_rhob0p01_nobSmoother_NBNB_CFLs100_G$gridNumber";
+$nElem=7*$gridNumber;
+push @runDirs,$runName;
+push @runCmds,"cgins -abortOnEnd -noplot oneBeamInAChannel -uIn=$uIn -BM1=FEM  -g=oneBeamInALongerChannelGridFixede$gridNumber.order2.hdf -tf=$tf  -tp=.01 -rhoBeam=$rhob -E=$E -numElem=$nElem -outflowOption=neumann -nu=1.e-3  -addedMass=1 -ampProjectVelocity=1 -useApproximateAMPcondition=0 -numberOfCorrections=1 -saveProbe=1 -cfls=100. -ps=newmark2Implicit -cs=newmarkCorrector -smoothInterfaceVelocity=1 -nis=$nSmooths -smoothBeam=0  -rampInflow=1  -recomputeGVOnCorrection=0 -ff=$ff -show=$runName.show -go=go > $runName.out &";
 
 
 
