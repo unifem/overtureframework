@@ -59,7 +59,7 @@ GetOptions( "g=s"=>\$grid,"tf=f"=>\$tFinal,"implicitFactor=f"=>\$implicitFactor,
  "solver=s"=>\$solver,"psolver=s"=>\$psolver,"pc=s"=>\$pc,"outflowOption=s"=>\$outflowOption,"ad4=i"=>\$ad4,\
  "debug=i"=>\$debug,"pdebug=i"=>\$pdebug,"idebug=i"=>\$idebug,"project=i"=>\$project,"cfl=f"=>\$cfl,\
  "restart=s"=>\$restart,"useNewImp=i"=>\$useNewImp,"p0=f"=>\$p0,"rhoBeam=f"=>\$rhoBeam,\
-  "ampProjectVelocity=i"=>\$ampProjectVelocity,"addedMass=i"=>\$addedMass,\
+  "ampProjectVelocity=i"=>\$ampProjectVelocity,"addedMass=i"=>\$addedMass,"bdebug=i"=>\$bdebug,\
   "projectNormalComponent=i"=>\$projectNormalComponent,"smoothInterfaceVelocity=i"=>\$smoothInterfaceVelocity,\
   "nis=i"=>\$numberOfInterfaceVelocitySmooths,"fluidOnTwoSides=i"=>\$fluidOnTwoSides,\
   "orderOfProjection=i"=>\$orderOfProjection,"projectVelocityOnBeamEnds=i"=>\$projectVelocityOnBeamEnds,\
