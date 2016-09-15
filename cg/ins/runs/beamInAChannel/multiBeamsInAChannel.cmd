@@ -50,6 +50,9 @@ $useTP=0; # set to 1 to iterate with TP scheme
 $addedMassRelaxation=1.; # 1=no-relaxation
 $addedMassTol=1.e-3;
 $numberOfCorrections=100; 
+#
+#
+$ff=4; #frequency to flush
 *
 * ----------------------------- get command line arguments ---------------------------------------
 GetOptions( "g=s"=>\$grid,"tf=f"=>\$tFinal,"implicitFactor=f"=>\$implicitFactor, "model=s"=>\$model,\
@@ -57,14 +60,14 @@ GetOptions( "g=s"=>\$grid,"tf=f"=>\$tFinal,"implicitFactor=f"=>\$implicitFactor,
  "ts=s"=>\$ts,"nu=f"=>\$nu,"cfl=f"=>\$cfl,"noplot=s"=>\$noplot,\
  "go=s"=>\$go,"dtMax=f"=>\$dtMax,"cDt=f"=>\$cDt,"iv=s"=>\$implicitVariation,"Tin=f"=>\$Tin,"ad2=i"=>\$ad2,\
  "solver=s"=>\$solver,"psolver=s"=>\$psolver,"pc=s"=>\$pc,"outflowOption=s"=>\$outflowOption,"ad4=i"=>\$ad4,\
- "debug=i"=>\$debug,"pdebug=i"=>\$pdebug,"idebug=i"=>\$idebug,"project=i"=>\$project,"cfl=f"=>\$cfl,\
+ "debug=i"=>\$debug,"pdebug=i"=>\$pdebug,"idebug=i"=>\$idebug,"project=i"=>\$project,"cfl=f"=>\$cfl,"cfls=f"=>\$cfls,\
  "restart=s"=>\$restart,"useNewImp=i"=>\$useNewImp,"p0=f"=>\$p0,"rhoBeam=f"=>\$rhoBeam,\
   "ampProjectVelocity=i"=>\$ampProjectVelocity,"addedMass=i"=>\$addedMass,\
   "projectNormalComponent=i"=>\$projectNormalComponent,"smoothInterfaceVelocity=i"=>\$smoothInterfaceVelocity,\
   "nis=i"=>\$numberOfInterfaceVelocitySmooths,"fluidOnTwoSides=i"=>\$fluidOnTwoSides,\
   "orderOfProjection=i"=>\$orderOfProjection,"projectVelocityOnBeamEnds=i"=>\$projectVelocityOnBeamEnds,\
   "projectBeamVelocity=i"=>\$projectBeamVelocity,"numberOfCorrections=i"=>\$numberOfCorrections,\
-  "useApproximateAMPcondition=i"=>\$useApproximateAMPcondition,"rampInflow=i"=>\$rampInflow,\
+  "useApproximateAMPcondition=i"=>\$useApproximateAMPcondition,"rampInflow=i"=>\$rampInflow,"ff=i"=>\$ff,\
   "useTP=i"=>\$useTP,"addedMassRelaxation=f"=>\$addedMassRelaxation,"addedMassTol=f"=>\$addedMassTol,\
   "smoothBeam=i"=>\$smoothBeam,"numberOfBeamSmooths=i"=>\$numberOfBeamSmooths,"numElem=i"=>\$numElem,"E=f"=>\$E,\
   "ps=s"=>\$ps,"cs=s"=>\$cs,"BM=s"=>\$BM );
@@ -241,7 +244,7 @@ $grid
       open
       $show
     frequency to flush
-      4
+      $ff
     exit
 ***
 #
