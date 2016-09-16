@@ -53,6 +53,7 @@ $numberOfCorrections=100;
 #
 #
 $ff=4; #frequency to flush
+$recomputeGVOnCorrection=0; # recompute grid velocity on correction
 *
 * ----------------------------- get command line arguments ---------------------------------------
 GetOptions( "g=s"=>\$grid,"tf=f"=>\$tFinal,"implicitFactor=f"=>\$implicitFactor, "model=s"=>\$model,\
@@ -141,6 +142,8 @@ $grid
 *   
   turn on moving grids
   specify grids to move
+      #Longfei 20160721: recompute grid velocity on corrections
+      recompute grid velocity on correction $recomputeGVOnCorrection
       # ----- BEAM 1 -----
       deforming body
         user defined deforming body
