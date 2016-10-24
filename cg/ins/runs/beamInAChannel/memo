@@ -1,6 +1,6 @@
-cgins -noplot multiBeamsInAChannel -BM=FEM -g=multiBeamsInAChannelGride2.order2.hdf -tf=20. -tp=.01 -cfls=100 -rhoBeam=1. -E=20 -numElem=21 -outflowOption=neumann -nu=1.e-3  -addedMass=1 -ampProjectVelocity=1 -useApproximateAMPcondition=0 -numberOfCorrections=1 -show=twoFEMBeamsInAChannelRhos1E20G2.show -go=go > ! twoFEMBeamsInAChannelRhos1E20G2.out &
+cgins -noplot multiBeamsInAChannel -BM=FEM -g=multiBeamsInAChannelGride2.order2.hdf -tf=20. -tp=.01 -cfls=100 -rhoBeam=1. -E=20 -numElem=7 -outflowOption=neumann -nu=1.e-3  -addedMass=1 -ampProjectVelocity=1 -useApproximateAMPcondition=0 -numberOfCorrections=1 -show=twoFEMBeamsInAChannelRhos1E20G2.show -go=go > ! twoFEMBeamsInAChannelRhos1E20G2.out &
 
-cgins -noplot multiBeamsInAChannel -BM=FD -g=multiBeamsInAChannelGride2.order2.hdf -tf=20. -tp=.01 -cfls=100 -rhoBeam=1. -E=20 -numElem=21 -outflowOption=neumann -nu=1.e-3  -addedMass=1 -ampProjectVelocity=1 -useApproximateAMPcondition=1 -numberOfCorrections=1 -smoothInterfaceVelocity=1 -nis=10 -smoothBeam=1 -numberOfBeamSmooths=10 -show=twoFD1BeamsInAChannelRhos1E20G2.show -go=go > ! twoFD1BeamsInAChannelRhos1E20G2.out &
+cgins -noplot multiBeamsInAChannel -BM=FD -g=multiBeamsInAChannelGride2.order2.hdf -tf=20. -tp=.01 -cfls=100 -rhoBeam=1. -E=20 -numElem=7 -outflowOption=neumann -nu=1.e-3  -addedMass=1 -ampProjectVelocity=1 -useApproximateAMPcondition=0 -numberOfCorrections=1 -smoothInterfaceVelocity=1 -nis=10 -smoothBeam=1 -numberOfBeamSmooths=10 -show=twoFD1BeamsInAChannelRhos1E20G2.show -go=go > ! twoFD1BeamsInAChannelRhos1E20G2.out &
 
 ***********************
 ***** September 15, 2016

@@ -54,6 +54,12 @@ $runName="FD1234_cfls100_refactorFrequency${refactorFrequency}_LongerChannel_AMP
 push @runDirs,$runName;
 push @runCmds,"cgins  -abortOnEnd  -noplot fourBeamsInAChannel -BM1=FD -BM2=FD -BM3=FD -BM4=FD -useSameStencilSize=1 -g=$grid -tf=$tf. -tp=.01 -rhoBeam1=$rho1 -rhoBeam2=$rho2 -rhoBeam3=$rho3 -rhoBeam4=$rho4 -E1=$E1 -E2=$E2 -E3=$E3 -E4=$E4 -numElem=$numElem -outflowOption=neumann -uIn=$uIn -nu=$nu -addedMass=1 -ampProjectVelocity=1 -useApproximateAMPcondition=0 -numberOfCorrections=1 -saveProbe=1 -cfls=$cfls -smoothBeam=1 -numberOfBeamSmooths=50 -smoothInterfaceVelocity=1 -nis=50 -rampInflow=$rampInflow -recomputeGVOnCorrection=0  -psolver=best -rtolp=1.e-5 -atolp=1.e-6 -refactorFrequency=$refactorFrequency  -show=$runName.show -go=go >  $runName.out &";
 
+## cfls=100 for FEMBeamModel with  nobSmoother with refactorFrequency=50
+# $runName="FEM1234_cfls100_refactorFrequency${refactorFrequency}_LongerChannel_AMP_NB_bestPSolver_G$gn";
+# push @runDirs,$runName;
+# push @runCmds,"cgins  -abortOnEnd  -noplot fourBeamsInAChannel -BM1=FEM -BM2=FEM -BM3=FEM -BM4=FEM -useSameStencilSize=1 -g=$grid -tf=$tf. -tp=.01 -rhoBeam1=$rho1 -rhoBeam2=$rho2 -rhoBeam3=$rho3 -rhoBeam4=$rho4 -E1=$E1 -E2=$E2 -E3=$E3 -E4=$E4 -numElem=$numElem -outflowOption=neumann -uIn=$uIn -nu=$nu -addedMass=1 -ampProjectVelocity=1 -useApproximateAMPcondition=0 -numberOfCorrections=1 -saveProbe=1 -cfls=$cfls -smoothBeam=0 -numberOfBeamSmooths=50 -smoothInterfaceVelocity=1 -nis=50 -rampInflow=$rampInflow -recomputeGVOnCorrection=0  -psolver=best -rtolp=1.e-5 -atolp=1.e-6 -refactorFrequency=$refactorFrequency  -show=$runName.show -go=go >  $runName.out &";
+
+
 
 
 

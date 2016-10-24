@@ -15,36 +15,36 @@ $verbose=0;
 
 
 
-$tf=10;
-$gridNumber=8;
+$tf=20;
+$gridNumber=16;
 $rhob=0.1;
-$E=20.;
+$E=2.;
 $uIn=1.5;
 $ff=1; #frequency to flush
-$nSmooths=2*$gridNumber;
-#FD1_rhob0p01_bSmoother_NBNB_CFLs100
-$runName="FD1_rhob0p01_bSmoother_NBNB_CFLs100_G$gridNumber";
-$nElem=7*$gridNumber;
+$nSmooths=20*$gridNumber;
+#FD1_bSmoother_NBNB_CFLs100
+$runName="FD1_bSmoother_NBNB_CFLs100_G$gridNumber";
+$nElem=21;#7*$gridNumber;
 push @runDirs,$runName;
 push @runCmds,"cgins -abortOnEnd -noplot oneBeamInAChannel -uIn==$uIn -BM1=FD  -g=oneBeamInALongerChannelGridFixede$gridNumber.order2.hdf -tf=$tf  -tp=.01 -rhoBeam=$rhob -E=$E -numElem=$nElem -outflowOption=neumann -nu=1.e-3  -addedMass=1 -ampProjectVelocity=1 -useApproximateAMPcondition=0 -useSameStencilSize=1  -numberOfCorrections=1 -saveProbe=1 -cfls=100. -ps=newmark2Implicit -cs=newmarkCorrector -smoothInterfaceVelocity=1 -nis=$nSmooths -smoothBeam=1 -numberOfBeamSmooths=$nSmooths -rampInflow=1  -recomputeGVOnCorrection=0 -ff=$ff -show=$runName.show -go=go > $runName.out &";
 
 
-#FD0_rhob0p01_bSmoother_NBNB_CFLs100
-$runName="FD0_rhob0p01_bSmoother_NBNB_CFLs100_G$gridNumber";
+#FD0_bSmoother_NBNB_CFLs100
+$runName="FD0_bSmoother_NBNB_CFLs100_G$gridNumber";
 $nElem=7*$gridNumber;
 push @runDirs,$runName;
 push @runCmds,"cgins -abortOnEnd -noplot oneBeamInAChannel -uIn=$uIn -BM1=FD  -g=oneBeamInALongerChannelGridFixede$gridNumber.order2.hdf -tf=$tf  -tp=.01 -rhoBeam=$rhob -E=$E -numElem=$nElem -outflowOption=neumann -nu=1.e-3  -addedMass=1 -ampProjectVelocity=1 -useApproximateAMPcondition=0 -useSameStencilSize=0  -numberOfCorrections=1 -saveProbe=1 -cfls=100. -ps=newmark2Implicit -cs=newmarkCorrector -smoothInterfaceVelocity=1 -nis=$nSmooths -smoothBeam=1 -numberOfBeamSmooths=$nSmooths -rampInflow=1  -recomputeGVOnCorrection=0 -ff=$ff -show=$runName.show -go=go > $runName.out &";
 
 
 
-#FD1_rhob0p01_nobSmoother_NBNB_CFLs100
-$runName="FD1_rhob0p01_nobSmoother_NBNB_CFLs100_G$gridNumber";
+#FD1_nobSmoother_NBNB_CFLs100
+$runName="FD1_nobSmoother_NBNB_CFLs100_G$gridNumber";
 $nElem=7*$gridNumber;
 push @runDirs,$runName;
 push @runCmds,"cgins -abortOnEnd -noplot oneBeamInAChannel -uIn=$uIn -BM1=FD  -g=oneBeamInALongerChannelGridFixede$gridNumber.order2.hdf -tf=$tf  -tp=.01 -rhoBeam=$rhob -E=$E -numElem=$nElem -outflowOption=neumann -nu=1.e-3  -addedMass=1 -ampProjectVelocity=1 -useApproximateAMPcondition=0 -useSameStencilSize=1  -numberOfCorrections=1 -saveProbe=1 -cfls=100. -ps=newmark2Implicit -cs=newmarkCorrector -smoothInterfaceVelocity=1 -nis=$nSmooths -smoothBeam=0  -rampInflow=1  -recomputeGVOnCorrection=0 -ff=$ff -show=$runName.show -go=go > $runName.out &";
 
-#FEM_rhob0p01_nobSmoother_NBNB_CFLs100
-$runName="FEM_rhob0p01_nobSmoother_NBNB_CFLs100_G$gridNumber";
+#FEM_nobSmoother_NBNB_CFLs100
+$runName="FEM_nobSmoother_NBNB_CFLs100_G$gridNumber";
 $nElem=7*$gridNumber;
 push @runDirs,$runName;
 push @runCmds,"cgins -abortOnEnd -noplot oneBeamInAChannel -uIn=$uIn -BM1=FEM  -g=oneBeamInALongerChannelGridFixede$gridNumber.order2.hdf -tf=$tf  -tp=.01 -rhoBeam=$rhob -E=$E -numElem=$nElem -outflowOption=neumann -nu=1.e-3  -addedMass=1 -ampProjectVelocity=1 -useApproximateAMPcondition=0 -numberOfCorrections=1 -saveProbe=1 -cfls=100. -ps=newmark2Implicit -cs=newmarkCorrector -smoothInterfaceVelocity=1 -nis=$nSmooths -smoothBeam=0  -rampInflow=1  -recomputeGVOnCorrection=0 -ff=$ff -show=$runName.show -go=go > $runName.out &";
