@@ -1,4 +1,90 @@
 ============================
+==== Aug 27, 2016
+
+----- TEST NEW opt version of 6th-order Laplacian ----
+
+mpiexec -n 4 tcm3 -g=square64p.order6.hdf -trig -neumann -order=6 -predefined -solver=petsc -tol=1.e-12
+ grid=0 (square) max. rel. err=1.599507e-09 (1.599616e-09 with ghost)
+
+mpiexec -n 2 tcm3 -g=square32p.order6.hdf -trig -neumann -order=6 -predefined -solver=petsc
+ grid=0 (square) max. rel. err=1.035096e-07 (1.035096e-07 with ghost)
+
+
+tcm3 -g=square32p.order6.hdf -trig -neumann -order=6 -predefined
+
+grid=0 (square) max. rel. err=1.017155e-07 (1.017155e-07 with ghost)
+
+
+--- TEST predefined and 6th order --
+
+mpiexec -n 2 xterm -e gdb --args tcm3 -g=square32p.order6.hdf -trig -neumann -order=6 -predefined -solver=petsc
+
+
+mpirun -np 2 tcm3 -g=square32p.order6.hdf -trig -neumann -order=6 -predefined -solver=petsc
+
+
+
+mpirun -np 1 tcm3 -g=square32p.order6.hdf -trig -neumann -order=6 -predefined -solver=petsc
+ grid=0 (square) max. rel. err=1.123300e-07 (1.123300e-07 with ghost)
+
+============================
+==== Aug 18, 2016
+
+--- TEST predefined and 6th order --
+
+
+tcm3 -g=square32p.order6.hdf -trig -neumann -order=6 -predefined
+ grid=0 (square) max. rel. err=1.017155e-07 (1.017155e-07 with ghost)
+
+tcm3 -g=square64p.order6.hdf -trig -neumann -order=6 -predefined
+ grid=0 (square) max. rel. err=1.596434e-09 (1.596434e-09 with ghost)
+
+tcm3 -g=square128p.order6.hdf -trig -neumann -order=6 -predefined
+ grid=0 (square) max. rel. err=2.472844e-11 (2.472844e-11 with ghost)
+
+
+
+
+tcm3 -g=square64p.order6.hdf -trig -neumann -order=6
+ grid=0 (square) max. rel. err=1.596434e-09 (1.596434e-09 with ghost)
+
+============================
+==== Aug 17, 2016
+
+TEST sixth-order for Jeff
+
+*FIXED* laplacianFDCoefficients>c (old style)
+
+Looks OK -- ratio 64
+tcm3 -g=square64p.order6.hdf -trig -neumann -order=6
+tcm3 -g=square32p.order6.hdf -trig -neumann -order=6
+G32: grid=0 (square) max. rel. err=1.017155e-07 (1.017155e-07 with ghost)
+G64: grid=0 (square) max. rel. err=1.596434e-09 (1.596434e-09 with ghost)
+G128:grid=0 (square) max. rel. err=2.472844e-11 (2.472844e-11 with ghost)
+
+
+ORDER=6  -- but results are only 4th-order
+tcm3 -g=square32p.order6.hdf -trig -neumann -order=6
+G32: grid=0 (square) max. rel. err=1.645847e-05 (1.645847e-05 with ghost)
+G64: grid=0 (square) max. rel. err=1.031297e-06 (1.031297e-06 with ghost)
+G128:grid=0 (square) max. rel. err=6.449760e-08 (6.449760e-08 with ghost)
+
+
+tcm3 -g=square8p.order6.hdf -trig -neumann -order=6
+
+
+
+ORDER=4
+tcm3 -g=square32p.order4.hdf -trig -neumann -order=4
+grid=0 (square) max. rel. err=1.645847e-05 (1.645847e-05 with ghost)
+
+
+-- periodic order 2
+tcm3 -g=square32p.order2.hdf -trig -neumann
+grid=0 (square) max. rel. err=3.218964e-03 (3.218964e-03 with ghost)
+
+
+============================
 ==== July 29, 2016
 
 Test new constraint

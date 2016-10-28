@@ -1,3 +1,16 @@
+*********************************
+************ Aug 18, 2016
+
+1. Generate grid:
+ogen -noplot $Overture/sampleGrids/cicArg -order=4 -interp=e -factor=4 
+
+2. run cgmx
+cgmx $cg/mx/runs/scattering/scattering -g=cice4.order4.hdf  -bg=square -rbc=abcPML -boundaryForcing=1 -tf=1 -show=scat.show -go=go
+
+3. plotStuff scat.show
+
+
+
 ************************
 **** Nov 3, 2015
 

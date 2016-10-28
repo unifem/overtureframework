@@ -883,7 +883,7 @@ solve(realCompositeGridFunction & u,
 
     RealArray & extraEquationValues = oges.dbase.get<RealArray>("extraEquationValues");
     extraEquationValues.redim(oges.numberOfExtraEquations);
-    realArray & sol = oges.sol;
+    RealArray & sol = oges.sol;
     for( int i=0; i<oges.numberOfExtraEquations; i++ )
     {
       extraEquationValues(i)=sol(oges.extraEquationNumber(i)-1);

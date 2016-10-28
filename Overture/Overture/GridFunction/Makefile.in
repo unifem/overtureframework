@@ -145,7 +145,16 @@ fortran_files = coeff.f xFDeriv.f yFDeriv.f zFDeriv.f xxFDeriv.f xyFDeriv.f xzFD
                 assignOptNeumann.f assignOptGenDiv.f assignOptNormalDer.f assignOptNormalComponent.f assignOptADotGradU.f \
                 findInterpolationNeighbours.f findInterpNeighbours.f standardDerivative.f normOpt.f ncarfft.f \
                 extrapolateOpt.f assignCornersOpt.f fixBCOptEdge1.f fixBCOptEdge2.f fixBCOptEdge3.f \
-                fixBCOptVerticies.f div.f assignOptTangentialComponent.f
+                fixBCOptVerticies.f div.f assignOptTangentialComponent.f \
+                divScalarGradCoeff2.f \
+                xCoeff4.f yCoeff4.f zCoeff4.f xxCoeff4.f xyCoeff4.f xzCoeff4.f yyCoeff4.f yzCoeff4.f zzCoeff4.f \
+                laplacianCoeff4.f divScalarGradCoeff4.f identityCoeff4.f derivativeScalarDerivativeNC.f \
+                rCoeff2.f sCoeff2.f tCoeff2.f rrCoeff2.f rsCoeff2.f rtCoeff2.f ssCoeff2.f stCoeff2.f ttCoeff2.f \
+                rCoeff4.f sCoeff4.f tCoeff4.f rrCoeff4.f rsCoeff4.f rtCoeff4.f ssCoeff4.f stCoeff4.f ttCoeff4.f \
+                laplacianCoeff6.f divScalarGradCoeff6.f identityCoeff6.f \
+                xCoeff6.f yCoeff6.f zCoeff6.f xxCoeff6.f xyCoeff6.f xzCoeff6.f yyCoeff6.f yzCoeff6.f zzCoeff6.f \
+                rCoeff6.f sCoeff6.f tCoeff6.f rrCoeff6.f rsCoeff6.f rtCoeff6.f ssCoeff6.f stCoeff6.f ttCoeff6.f 
+                
 
 coeff.o :              ${@:.o=.f}; $(FC) $(FFLAGSGO) -c ${@:.o=.f}
 xFDeriv.o :            ${@:.o=.f}; $(FC) $(FFLAGSGO) -c ${@:.o=.f}
@@ -179,17 +188,6 @@ dsgc4.o :                       ${@:.o=.f}; $(FC) $(FFLAGSGO) -c ${@:.o=.f}
 dsgc6.o :                       ${@:.o=.f}; $(FC) $(FFLAGSGO) -c ${@:.o=.f}
 laplaceNC.o :                   ${@:.o=.f}; $(FC) $(FFLAGSGO) -c ${@:.o=.f}
 divScalarGradNC.o :             ${@:.o=.f}; $(FC) $(FFLAGSGO) -c ${@:.o=.f}
-xCoeff2.o :                     ${@:.o=.f}; $(FC) $(FFLAGSGO) -c ${@:.o=.f}
-yCoeff2.o :                     ${@:.o=.f}; $(FC) $(FFLAGSGO) -c ${@:.o=.f}
-zCoeff2.o :                     ${@:.o=.f}; $(FC) $(FFLAGSGO) -c ${@:.o=.f}
-xxCoeff2.o :                    ${@:.o=.f}; $(FC) $(FFLAGSGO) -c ${@:.o=.f}
-xyCoeff2.o :                    ${@:.o=.f}; $(FC) $(FFLAGSGO) -c ${@:.o=.f}
-xzCoeff2.o :                    ${@:.o=.f}; $(FC) $(FFLAGSGO) -c ${@:.o=.f}
-yyCoeff2.o :                    ${@:.o=.f}; $(FC) $(FFLAGSGO) -c ${@:.o=.f}
-yzCoeff2.o :                    ${@:.o=.f}; $(FC) $(FFLAGSGO) -c ${@:.o=.f}
-zzCoeff2.o :                    ${@:.o=.f}; $(FC) $(FFLAGSGO) -c ${@:.o=.f}
-laplacianCoeff2.o :             ${@:.o=.f}; $(FC) $(FFLAGSGO) -c ${@:.o=.f}
-identityCoeff2.o :              ${@:.o=.f}; $(FC) $(FFLAGSGO) -c ${@:.o=.f}
 opcoeff.o :                     ${@:.o=.f}; $(FC) $(FFLAGSGO) -c ${@:.o=.f}
 assignBoundaryConditions.o :    ${@:.o=.f}; $(FC) $(FFLAGSGO) -c ${@:.o=.f}
 assignOptNeumann.o :            ${@:.o=.f}; $(FC) $(FFLAGSGO) -c ${@:.o=.f}
@@ -203,68 +201,112 @@ fixBCOptEdge2.o :               ${@:.o=.f}; $(FC) $(FFLAGSGO) -c ${@:.o=.f}
 fixBCOptEdge3.o :               ${@:.o=.f}; $(FC) $(FFLAGSGO) -c ${@:.o=.f}
 fixBCOptVerticies.o :           ${@:.o=.f}; $(FC) $(FFLAGSGO) -c ${@:.o=.f}
 findInterpolationNeighbours.o : ${@:.o=.f}; $(FC) $(FFLAGSGO) -c ${@:.o=.f}
+findInterpNeighbours.o :        ${@:.o=.f}; $(FC) $(FFLAGSGO) -c ${@:.o=.f}
 standardDerivative.o :          ${@:.o=.f}; $(FC) $(FFLAGSGO) -c ${@:.o=.f}
 div.o :                         ${@:.o=.f}; $(FC) $(FFLAGSGO) -c ${@:.o=.f}
 assignOptTangentialComponent.o :${@:.o=.f}; $(FC) $(FFLAGSGO) -c ${@:.o=.f}
 
+# order 2 coefficient operators
+divScalarGradCoeff2.o :         ${@:.o=.f}; $(FC) $(FFLAGSGO) -c ${@:.o=.f}
+rCoeff2.o :                     ${@:.o=.f}; $(FC) $(FFLAGSGO) -c ${@:.o=.f}
+sCoeff2.o :                     ${@:.o=.f}; $(FC) $(FFLAGSGO) -c ${@:.o=.f}
+tCoeff2.o :                     ${@:.o=.f}; $(FC) $(FFLAGSGO) -c ${@:.o=.f}
+rrCoeff2.o :                    ${@:.o=.f}; $(FC) $(FFLAGSGO) -c ${@:.o=.f}
+rsCoeff2.o :                    ${@:.o=.f}; $(FC) $(FFLAGSGO) -c ${@:.o=.f}
+rtCoeff2.o :                    ${@:.o=.f}; $(FC) $(FFLAGSGO) -c ${@:.o=.f}
+ssCoeff2.o :                    ${@:.o=.f}; $(FC) $(FFLAGSGO) -c ${@:.o=.f}
+stCoeff2.o :                    ${@:.o=.f}; $(FC) $(FFLAGSGO) -c ${@:.o=.f}
+ttCoeff2.o :                    ${@:.o=.f}; $(FC) $(FFLAGSGO) -c ${@:.o=.f}
+xCoeff2.o :                     ${@:.o=.f}; $(FC) $(FFLAGSGO) -c ${@:.o=.f}
+yCoeff2.o :                     ${@:.o=.f}; $(FC) $(FFLAGSGO) -c ${@:.o=.f}
+zCoeff2.o :                     ${@:.o=.f}; $(FC) $(FFLAGSGO) -c ${@:.o=.f}
+xxCoeff2.o :                    ${@:.o=.f}; $(FC) $(FFLAGSGO) -c ${@:.o=.f}
+xyCoeff2.o :                    ${@:.o=.f}; $(FC) $(FFLAGSGO) -c ${@:.o=.f}
+xzCoeff2.o :                    ${@:.o=.f}; $(FC) $(FFLAGSGO) -c ${@:.o=.f}
+yyCoeff2.o :                    ${@:.o=.f}; $(FC) $(FFLAGSGO) -c ${@:.o=.f}
+yzCoeff2.o :                    ${@:.o=.f}; $(FC) $(FFLAGSGO) -c ${@:.o=.f}
+zzCoeff2.o :                    ${@:.o=.f}; $(FC) $(FFLAGSGO) -c ${@:.o=.f}
+laplacianCoeff2.o :             ${@:.o=.f}; $(FC) $(FFLAGSGO) -c ${@:.o=.f}
+identityCoeff2.o :              ${@:.o=.f}; $(FC) $(FFLAGSGO) -c ${@:.o=.f}
+
+
+# order 4 coefficient operators
+rCoeff4.o :                      ${@:.o=.f}; $(FC) $(FFLAGSGO) -c ${@:.o=.f}
+sCoeff4.o :                      ${@:.o=.f}; $(FC) $(FFLAGSGO) -c ${@:.o=.f}
+tCoeff4.o :                      ${@:.o=.f}; $(FC) $(FFLAGSGO) -c ${@:.o=.f}
+rrCoeff4.o :                     ${@:.o=.f}; $(FC) $(FFLAGSGO) -c ${@:.o=.f}
+rsCoeff4.o :                     ${@:.o=.f}; $(FC) $(FFLAGSGO) -c ${@:.o=.f}
+rtCoeff4.o :                     ${@:.o=.f}; $(FC) $(FFLAGSGO) -c ${@:.o=.f}
+ssCoeff4.o :                     ${@:.o=.f}; $(FC) $(FFLAGSGO) -c ${@:.o=.f}
+stCoeff4.o :                     ${@:.o=.f}; $(FC) $(FFLAGSGO) -c ${@:.o=.f}
+ttCoeff4.o :                     ${@:.o=.f}; $(FC) $(FFLAGSGO) -c ${@:.o=.f}
+xCoeff4.o :                      ${@:.o=.f}; $(FC) $(FFLAGSGO) -c ${@:.o=.f}
+yCoeff4.o :                      ${@:.o=.f}; $(FC) $(FFLAGSGO) -c ${@:.o=.f}
+zCoeff4.o :                      ${@:.o=.f}; $(FC) $(FFLAGSGO) -c ${@:.o=.f}
+xxCoeff4.o :                     ${@:.o=.f}; $(FC) $(FFLAGSGO) -c ${@:.o=.f}
+xyCoeff4.o :                     ${@:.o=.f}; $(FC) $(FFLAGSGO) -c ${@:.o=.f}
+xzCoeff4.o :                     ${@:.o=.f}; $(FC) $(FFLAGSGO) -c ${@:.o=.f}
+yyCoeff4.o :                     ${@:.o=.f}; $(FC) $(FFLAGSGO) -c ${@:.o=.f}
+yzCoeff4.o :                     ${@:.o=.f}; $(FC) $(FFLAGSGO) -c ${@:.o=.f}
+zzCoeff4.o :                     ${@:.o=.f}; $(FC) $(FFLAGSGO) -c ${@:.o=.f}
+laplacianCoeff4.o :              ${@:.o=.f}; $(FC) $(FFLAGSGO) -c ${@:.o=.f}
+divScalarGradCoeff4.o :          ${@:.o=.f}; $(FC) $(FFLAGSGO) -c ${@:.o=.f}
+identityCoeff4.o :               ${@:.o=.f}; $(FC) $(FFLAGSGO) -c ${@:.o=.f}
+
+# order 6 coefficient operators
+rCoeff6.o :                      ${@:.o=.f}; $(FC) $(FFLAGSGO) -c ${@:.o=.f}
+sCoeff6.o :                      ${@:.o=.f}; $(FC) $(FFLAGSGO) -c ${@:.o=.f}
+tCoeff6.o :                      ${@:.o=.f}; $(FC) $(FFLAGSGO) -c ${@:.o=.f}
+rrCoeff6.o :                     ${@:.o=.f}; $(FC) $(FFLAGSGO) -c ${@:.o=.f}
+rsCoeff6.o :                     ${@:.o=.f}; $(FC) $(FFLAGSGO) -c ${@:.o=.f}
+rtCoeff6.o :                     ${@:.o=.f}; $(FC) $(FFLAGSGO) -c ${@:.o=.f}
+ssCoeff6.o :                     ${@:.o=.f}; $(FC) $(FFLAGSGO) -c ${@:.o=.f}
+stCoeff6.o :                     ${@:.o=.f}; $(FC) $(FFLAGSGO) -c ${@:.o=.f}
+ttCoeff6.o :                     ${@:.o=.f}; $(FC) $(FFLAGSGO) -c ${@:.o=.f}
+yCoeff6.o :                      ${@:.o=.f}; $(FC) $(FFLAGSGO) -c ${@:.o=.f}
+xCoeff6.o :                      ${@:.o=.f}; $(FC) $(FFLAGSGO) -c ${@:.o=.f}
+zCoeff6.o :                      ${@:.o=.f}; $(FC) $(FFLAGSGO) -c ${@:.o=.f}
+xxCoeff6.o :                     ${@:.o=.f}; $(FC) $(FFLAGSGO) -c ${@:.o=.f}
+xyCoeff6.o :                     ${@:.o=.f}; $(FC) $(FFLAGSGO) -c ${@:.o=.f}
+xzCoeff6.o :                     ${@:.o=.f}; $(FC) $(FFLAGSGO) -c ${@:.o=.f}
+yyCoeff6.o :                     ${@:.o=.f}; $(FC) $(FFLAGSGO) -c ${@:.o=.f}
+yzCoeff6.o :                     ${@:.o=.f}; $(FC) $(FFLAGSGO) -c ${@:.o=.f}
+zzCoeff6.o :                     ${@:.o=.f}; $(FC) $(FFLAGSGO) -c ${@:.o=.f}
+laplacianCoeff6.o :              ${@:.o=.f}; $(FC) $(FFLAGSGO) -c ${@:.o=.f}
+divScalarGradCoeff6.o :          ${@:.o=.f}; $(FC) $(FFLAGSGO) -c ${@:.o=.f}
+identityCoeff6.o :               ${@:.o=.f}; $(FC) $(FFLAGSGO) -c ${@:.o=.f}
+
 GridFunction4_date: ${fortran_files:.f=.o}
 	  touch $@
 
+# wdh: Aug 27, 2016 -- try compiling these optimized
 # These files are not always compiled optimized to save time when compiling.
 #  note: divScalarGradCoeff2.f and derivativeScalarDerivativeNC.f take a long time to compile optimised
-fortran_files2 = divScalarGradCoeff2.f \
-                xCoeff4.f yCoeff4.f zCoeff4.f xxCoeff4.f xyCoeff4.f xzCoeff4.f yyCoeff4.f yzCoeff4.f zzCoeff4.f \
-                laplacianCoeff4.f divScalarGradCoeff4.f identityCoeff4.f derivativeScalarDerivativeNC.f \
-                rCoeff2.f sCoeff2.f tCoeff2.f rrCoeff2.f rsCoeff2.f rtCoeff2.f ssCoeff2.f stCoeff2.f ttCoeff2.f \
-                rCoeff4.f sCoeff4.f tCoeff4.f rrCoeff4.f rsCoeff4.f rtCoeff4.f ssCoeff4.f stCoeff4.f ttCoeff4.f
+# fortran_files2 = divScalarGradCoeff2.f \
+#                xCoeff4.f yCoeff4.f zCoeff4.f xxCoeff4.f xyCoeff4.f xzCoeff4.f yyCoeff4.f yzCoeff4.f zzCoeff4.f \
+#                laplacianCoeff4.f divScalarGradCoeff4.f identityCoeff4.f derivativeScalarDerivativeNC.f \
+#                rCoeff2.f sCoeff2.f tCoeff2.f rrCoeff2.f rsCoeff2.f rtCoeff2.f ssCoeff2.f stCoeff2.f ttCoeff2.f \
+#                rCoeff4.f sCoeff4.f tCoeff4.f rrCoeff4.f rsCoeff4.f rtCoeff4.f ssCoeff4.f stCoeff4.f ttCoeff4.f
+
 # make separate targest since some compilers have trouble doing all files at once
 
 # ** The intel compiler takes forever to compile with -g but -O is fast !! (cf. laplaceCoeff4.f)
 # The pgf compiler has trouble with derivativeScalarDerivativeNC.f and -O
 #ifort FFLAGS = $(FFLAGSGO)
 
-xCoeff4.o :                      ${@:.o=.f}; $(FC) $(FFLAGS) -c ${@:.o=.f}
-divScalarGradCoeff2.o :          ${@:.o=.f}; $(FC) $(FFLAGS) -c ${@:.o=.f}
-yCoeff4.o :                      ${@:.o=.f}; $(FC) $(FFLAGS) -c ${@:.o=.f}
-zCoeff4.o :                      ${@:.o=.f}; $(FC) $(FFLAGS) -c ${@:.o=.f}
-xxCoeff4.o :                     ${@:.o=.f}; $(FC) $(FFLAGS) -c ${@:.o=.f}
-xyCoeff4.o :                     ${@:.o=.f}; $(FC) $(FFLAGS) -c ${@:.o=.f}
-xzCoeff4.o :                     ${@:.o=.f}; $(FC) $(FFLAGS) -c ${@:.o=.f}
-yyCoeff4.o :                     ${@:.o=.f}; $(FC) $(FFLAGS) -c ${@:.o=.f}
-yzCoeff4.o :                     ${@:.o=.f}; $(FC) $(FFLAGS) -c ${@:.o=.f}
-zzCoeff4.o :                     ${@:.o=.f}; $(FC) $(FFLAGS) -c ${@:.o=.f}
-laplacianCoeff4.o :              ${@:.o=.f}; $(FC) $(FFLAGS) -c ${@:.o=.f}
-divScalarGradCoeff4.o :          ${@:.o=.f}; $(FC) $(FFLAGS) -c ${@:.o=.f}
-identityCoeff4.o :               ${@:.o=.f}; $(FC) $(FFLAGS) -c ${@:.o=.f}
 derivativeScalarDerivativeNC.o : ${@:.o=.f}; $(FC) $(FFLAGS) -c ${@:.o=.f}
-rCoeff2.o :                      ${@:.o=.f}; $(FC) $(FFLAGS) -c ${@:.o=.f}
-sCoeff2.o :                      ${@:.o=.f}; $(FC) $(FFLAGS) -c ${@:.o=.f}
-tCoeff2.o :                      ${@:.o=.f}; $(FC) $(FFLAGS) -c ${@:.o=.f}
-rrCoeff2.o :                     ${@:.o=.f}; $(FC) $(FFLAGS) -c ${@:.o=.f}
-rsCoeff2.o :                     ${@:.o=.f}; $(FC) $(FFLAGS) -c ${@:.o=.f}
-rtCoeff2.o :                     ${@:.o=.f}; $(FC) $(FFLAGS) -c ${@:.o=.f}
-ssCoeff2.o :                     ${@:.o=.f}; $(FC) $(FFLAGS) -c ${@:.o=.f}
-stCoeff2.o :                     ${@:.o=.f}; $(FC) $(FFLAGS) -c ${@:.o=.f}
-ttCoeff2.o :                     ${@:.o=.f}; $(FC) $(FFLAGS) -c ${@:.o=.f}
-rCoeff4.o :                      ${@:.o=.f}; $(FC) $(FFLAGS) -c ${@:.o=.f}
-sCoeff4.o :                      ${@:.o=.f}; $(FC) $(FFLAGS) -c ${@:.o=.f}
-tCoeff4.o :                      ${@:.o=.f}; $(FC) $(FFLAGS) -c ${@:.o=.f}
-rrCoeff4.o :                     ${@:.o=.f}; $(FC) $(FFLAGS) -c ${@:.o=.f}
-rsCoeff4.o :                     ${@:.o=.f}; $(FC) $(FFLAGS) -c ${@:.o=.f}
-rtCoeff4.o :                     ${@:.o=.f}; $(FC) $(FFLAGS) -c ${@:.o=.f}
-ssCoeff4.o :                     ${@:.o=.f}; $(FC) $(FFLAGS) -c ${@:.o=.f}
-stCoeff4.o :                     ${@:.o=.f}; $(FC) $(FFLAGS) -c ${@:.o=.f}
-ttCoeff4.o :                     ${@:.o=.f}; $(FC) $(FFLAGS) -c ${@:.o=.f}
+
+
 
                         
-# GridFunction5_date: $(fortran_files2)
+# GridFunction5_date: $(fortran_files6)
 # 	$(FC) $(FFLAGS) -c $?
 #	  touch $@
 
-GridFunction5_date: $(fortran_files2:.f=.o)
-	  touch $@
+# GridFunction5_date: $(fortran_files2:.f=.o)
+#	  touch $@
 
-GridFunction_date:GridFunction4_date GridFunction5_date GridFunction1_date GridFunction2_date GridFunction_Opt_date
+GridFunction_date:GridFunction4_date GridFunction1_date GridFunction2_date GridFunction_Opt_date
 	touch $@
 
 Source = $(Source1) $(Source2) $(filesOpt) $(files) ${pppFiles}

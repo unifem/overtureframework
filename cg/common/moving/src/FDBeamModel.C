@@ -258,7 +258,7 @@ computeInternalForce(const RealArray& u, const RealArray& v, RealArray& f)
   Index I1,I2,I3;
   getIndex(mg.dimension(),I1,I2,I3);  // interior,boundary and ghost points
 
-  realArray uxx(I1,I2,I3,1), uxxxx(I1,I2,I3,1);
+  RealArray uxx(I1,I2,I3,1), uxxxx(I1,I2,I3,1);
   op.derivative( MappedGridOperators::xxDerivative,u,uxx,I1,I2,I3,0); 
   op.derivative( MappedGridOperators::xxDerivative,uxx,uxxxx,I1,I2,I3,0);  // note that only values on interior and boundary points are valid
 

@@ -618,8 +618,9 @@ laplaceFDerivCoefficients(RealDistributedArray & derivative,
       }
 
     }
-    else   // ====== 4th order =======
+    else if( orderOfAccuracy==4 ) 
     {
+      // ====== 4th order =======
       real h42c[3];
 #define h42(n) h42c[n]
       for( int axis=0; axis<3; axis++ )
@@ -664,6 +665,81 @@ laplaceFDerivCoefficients(RealDistributedArray & derivative,
 	derivative(MCE( 0,  , 1),I1,I2,I3)=                                  16.*h42(axis3);
 	derivative(MCE( 0, 0, 2),I1,I2,I3)=                                     -h42(axis3);
       }
+    }
+    else if( orderOfAccuracy==6 )
+    {
+      // ====== 6th order ======= 
+      printF(" ***laplaceFDerivCoefficients: orderOfAccuracy=%i *********\n",orderOfAccuracy);
+      real h62c[3];
+#define h62(n) h62c[n]
+      for( int axis=0; axis<3; axis++ )
+	h62(axis)=1./(180.*SQR(mgop.dx[axis]));
+      if( numberOfDimensions==1 )
+      {
+        derivative(MCE(-3, 0, 0),I1,I2,I3)=   2.*h62(axis1);
+        derivative(MCE(-2, 0, 0),I1,I2,I3)= -27.*h62(axis1);
+        derivative(MCE(-1, 0, 0),I1,I2,I3)= 270.*h62(axis1);
+        derivative(MCE( 0, 0, 0),I1,I2,I3)=-490.*h62(axis1);
+        derivative(MCE(+1, 0, 0),I1,I2,I3)= 270.*h62(axis1);
+        derivative(MCE(+2, 0, 0),I1,I2,I3)= -27.*h62(axis1);
+        derivative(MCE(+3, 0, 0),I1,I2,I3)=   2.*h62(axis1);
+      }
+      else if( numberOfDimensions==2 )
+      {
+	Range M(0,48);
+	derivative(M+CE(c0,e0),I1,I2,I3)=0;
+
+	derivative(MCE( 0,-3, 0),I1,I2,I3)=                    2.*h62(axis2);
+	derivative(MCE( 0,-2, 0),I1,I2,I3)=                  -27.*h62(axis2);
+	derivative(MCE( 0,-1, 0),I1,I2,I3)=                  270.*h62(axis2);
+
+	derivative(MCE(-3, 0, 0),I1,I2,I3)=   2.*h62(axis1);
+	derivative(MCE(-2, 0, 0),I1,I2,I3)= -27.*h62(axis1);
+	derivative(MCE(-1, 0, 0),I1,I2,I3)= 270.*h62(axis1);
+	derivative(MCE( 0, 0, 0),I1,I2,I3)=-490.*(h62(axis1)     +h62(axis2));
+	derivative(MCE( 1, 0, 0),I1,I2,I3)= 270.*h62(axis1);
+	derivative(MCE( 2, 0, 0),I1,I2,I3)= -27.*h62(axis1);
+	derivative(MCE( 3, 0, 0),I1,I2,I3)=   2.*h62(axis1);
+
+	derivative(MCE(  , 1, 0),I1,I2,I3)=                 270.*h62(axis2);
+	derivative(MCE( 0, 2, 0),I1,I2,I3)=                 -27.*h62(axis2);
+	derivative(MCE( 0, 3, 0),I1,I2,I3)=                   2.*h62(axis2);
+      }
+      else  // ======= 3D ================
+      {
+	Range M(0,342);
+	derivative(M+CE(c0,e0),I1,I2,I3)=0;
+
+	derivative(MCE( 0, 0,-3),I1,I2,I3)=                                   2.*h62(axis3);
+	derivative(MCE( 0, 0,-2),I1,I2,I3)=                                 -27.*h62(axis3);
+	derivative(MCE( 0, 0,-1),I1,I2,I3)=                                 270.*h62(axis3);
+
+	derivative(MCE( 0,-3, 0),I1,I2,I3)=                   2.*h62(axis2);
+	derivative(MCE( 0,-2, 0),I1,I2,I3)=                 -27.*h62(axis2);
+	derivative(MCE( 0,-1, 0),I1,I2,I3)=                 270.*h62(axis2);
+
+	derivative(MCE(-3, 0, 0),I1,I2,I3)=   2.*h62(axis1);
+	derivative(MCE(-2, 0, 0),I1,I2,I3)= -27.*h62(axis1);
+	derivative(MCE(-1, 0, 0),I1,I2,I3)= 270.*h62(axis1);
+	derivative(MCE( 0, 0, 0),I1,I2,I3)=-490.*(h62(axis1)     +h62(axis2)     +h62(axis3));
+	derivative(MCE( 1, 0, 0),I1,I2,I3)= 270.*h62(axis1);
+	derivative(MCE( 2, 0, 0),I1,I2,I3)= -27.*h62(axis1);
+	derivative(MCE( 3, 0, 0),I1,I2,I3)=   2.*h62(axis1);
+
+	derivative(MCE( 0, 1, 0),I1,I2,I3)=                 270.*h62(axis2);
+	derivative(MCE( 0, 2, 0),I1,I2,I3)=                 -27.*h62(axis2);
+	derivative(MCE( 0, 3, 0),I1,I2,I3)=                   2.*h62(axis2);
+
+	derivative(MCE( 0, 0, 1),I1,I2,I3)=                                 270.*h62(axis3);
+	derivative(MCE( 0, 0, 2),I1,I2,I3)=                                 -27.*h62(axis3);
+	derivative(MCE( 0, 0, 3),I1,I2,I3)=                                   2.*h62(axis3);
+
+      }
+    }
+    else
+    {
+      printF("laplaceFDerivCoefficients:ERROR: orderOfAccuracy=%i not implemented\n",orderOfAccuracy);
+      OV_ABORT("error");
     }
 
   }

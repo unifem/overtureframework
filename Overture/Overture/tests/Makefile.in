@@ -52,7 +52,8 @@ ifneq ($(strip $(usePPP)),)
  # Here are links to the Hypre solver -- you will need to edit the paths
  # HYPRE_LIBS = -Wl,-rpath,/home/henshaw.0/petsc/petsc-2.3.2-mpi/externalpackages/hypre-1.11.1b/linux-gnu-opt/lib -L/home/henshaw.0/petsc/petsc-2.3.2-mpi/externalpackages/hypre-1.11.1b/linux-gnu-opt/lib -lHYPRE_DistributedMatrix -lHYPRE_DistributedMatrixPilutSolver -lHYPRE_Euclid -lHYPRE_IJ_mv -lHYPRE_LSI -lHYPRE_MatrixMatrix -lHYPRE_ParaSails -lHYPRE_krylov -lHYPRE_parcsr_ls -lHYPRE_parcsr_mv -lHYPRE_seq_mv -lHYPRE_sstruct_ls -lHYPRE_sstruct_mv -lHYPRE_struct_ls -lHYPRE_struct_mv
  # LAPACK = -Wl,-rpath,/nfs/apps/pgi/6.1-3/linux86-64/6.1/lib -L/nfs/apps/pgi/6.1-3/linux86-64/6.1/lib -llapack -lblas
- PETSC_LIBS = -L$(PETSC_LIB) -lpetscksp -lpetscdm -lpetscmat -lpetscvec -lpetsc $(HYPRE_LIBS) -L$(LAPACK) -llapack -lblas
+ # PETSC_LIBS = -L$(PETSC_LIB) -lpetscksp -lpetscdm -lpetscmat -lpetscvec -lpetsc $(HYPRE_LIBS) -L$(LAPACK) -llapack -lblas
+ PETSC_LIBS = -L$(PETSC_LIB) -lpetsc $(HYPRE_LIBS) -L$(LAPACK) -llapack -lblas
 endif
 
 CCFLAGSP = $(CCFLAGS) $(PETSC_INCLUDE)

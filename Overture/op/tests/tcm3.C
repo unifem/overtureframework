@@ -311,9 +311,9 @@ main(int argc, char *argv[])
    // This macro will initialize the PETSc solver if OVERTURE_USE_PETSC is defined.
   INIT_PETSC_SOLVER();
 
-  printF("Usage: tcm3 [<gridName>] [-solver=[yale][harwell][slap][petsc][mg]] [-debug=<value>][-outputMatrix]\n" 
+  printF("Usage: tcm3 -g=gridName [-solver=[yale][harwell][slap][petsc][mg]] [-debug=<value>][-outputMatrix]\n" 
                      "[-noTiming] [-check] [-trig] [-tol=<value>] [-order=<value>] [-plot] [-ilu=] [-gmres] \n"
-                     "[-freq=<value>] [-dirichlet] [-neumann] [-mixed] [-testCommunicator] [-hypre] \n");
+                     "[-freq=<value>] [-dirichlet] [-neumann] [-mixed] [-testCommunicator] [-hypre] [-predefined]\n");
 
   const int maxNumberOfGridsToTest=3;
   int numberOfGridsToTest=maxNumberOfGridsToTest;
@@ -339,6 +339,7 @@ main(int argc, char *argv[])
   int problemsToSolve=1+2;  // solve dirichlet=1 and neumann=2
   bool outputMatrix=false;
   bool testCommunicator=false;  // set to true to test PETSc when using only a subset of the processors.
+  bool usePredefined=false;
   
   real fx=2., fy=2., fz=2.; // frequencies for trig TZ
   
@@ -403,10 +404,10 @@ main(int argc, char *argv[])
       else if( (len=arg.matches("-order=")) )
       {
 	sScanF(arg(len,arg.length()-1),"%i",&orderOfAccuracy);
-	if( orderOfAccuracy!=2 && orderOfAccuracy!=4 )
+	if( orderOfAccuracy!=2 && orderOfAccuracy!=4 && orderOfAccuracy!=6 )
 	{
-	  printF("ERROR: orderOfAccuracy should be 2 or 4!\n");
-	  Overture::abort();
+	  printF("ERROR: orderOfAccuracy should be 2, 4 or 6!\n");
+	  OV_ABORT("ERROR");
 	}
 	printF("Setting orderOfAccuracy=%i\n",orderOfAccuracy);
       }
@@ -450,6 +451,17 @@ main(int argc, char *argv[])
       {
 	twilightZoneOption=1;
       }
+      else if( (len=arg.matches("-predefined")) )
+      {
+	usePredefined=true; // use predefined equations
+	printF("Setting usePredfined=true: define problems from Oges predefined equations\n");
+      }
+      else if( (len=arg.matches("-g=")) ) // *new way*
+      {
+	numberOfGridsToTest=1;
+	gridName[0]=arg(len,arg.length()-1);
+	printF("Use grid=[%s]\n",(const char*)gridName[0]);
+      }
       else
       {
 	numberOfGridsToTest=1;
@@ -471,7 +483,10 @@ main(int argc, char *argv[])
   printF("=================================================================================\n"
          " --- tcm3 --- test coefficient matrices: scalar problem on an overlapping grid   \n"
          " \n"
-         "  Equation: Poisson.\n");
+         "  Equation: Poisson.\n"
+         "  order of accuracy=%i.\n"
+         "  usePredefined=%i.\n"
+         ,orderOfAccuracy,(int)usePredefined);
   if( twilightZoneOption==0 )
     printF(" TwilightZone: polynomial, degree=%i.\n",orderOfAccuracy);
   else
@@ -652,46 +667,11 @@ main(int argc, char *argv[])
       f.setOperators(op); // for apply the BC
       coeff.setOperators(op);
   
+      BoundaryConditionParameters bcParams;
+
       // cout << "op.laplacianCoefficients().className: " << (op.laplacianCoefficients()).getClassName() << endl;
       // cout << "-op.laplacianCoefficients().className: " << (-op.laplacianCoefficients()).getClassName() << endl;
     
-      if( false )
-      {
-	coeff=op.laplacianCoefficients();       // get the coefficients for the Laplace operator
-      }
-      else
-      { // new way for parallel -- this avoids all communication
-	for( int grid=0; grid<cg.numberOfComponentGrids(); grid++ )
-	{
-	  getIndex(cg[grid].gridIndexRange(),I1,I2,I3);
-	  op[grid].coefficients(MappedGridOperators::laplacianOperator,coeff[grid],I1,I2,I3);
-	}
-      }
-
-      // fill in the coefficients for the boundary conditions
-      coeff.applyBoundaryConditionCoefficients(0,0,dirichlet,  allBoundaries);
-      coeff.applyBoundaryConditionCoefficients(0,0,extrapolate,allBoundaries);
-      BoundaryConditionParameters bcParams;
-      if( orderOfAccuracy==4 )
-      {
-	bcParams.ghostLineToAssign=2;
-	coeff.applyBoundaryConditionCoefficients(0,0,extrapolate,allBoundaries,bcParams); // extrap 2nd ghost line
-      }
-      coeff.finishBoundaryConditions();
-      // coeff.display("Here is coeff after finishBoundaryConditions");
-
-      if( false )
-      {
-	for( int grid=0; grid<cg.numberOfComponentGrids(); grid++ )
-	{
-	  displayCoeff(coeff[grid],sPrintF("Coeff matrix for grid %i",grid));
-	  
-	  // coeff[grid].sparse->classify.display("the classify matrix after applying finishBoundaryConditions()");
-	  //	  coeff[grid].display("this is the coefficient matrix");
-	}
-      }
-    
-
       Oges solver( cg );                     // create a solver
       
       #ifdef USE_PPP
@@ -703,6 +683,68 @@ main(int argc, char *argv[])
       #endif 
       
       solver.set(OgesParameters::THEsolverType,solverType); 
+
+
+      if( usePredefined )
+      {
+	// ------- use predefined equations ------
+
+	IntegerArray boundaryConditions(2,3,cg.numberOfComponentGrids());
+	RealArray bcData(2,2,3,cg.numberOfComponentGrids());
+	boundaryConditions=OgesParameters::dirichlet;
+	bcData=0.;
+        solver.setEquationAndBoundaryConditions( OgesParameters::laplaceEquation,op,boundaryConditions,bcData);
+      }
+      else
+      {
+	// ----------- Define equations -----------
+
+	if( false  )
+	{
+	  // Do this for now -- optimized coeff's currently only for 4th order  *wdh* 2016/08/17
+	  coeff=op.laplacianCoefficients();       // get the coefficients for the Laplace operator
+	}
+	else
+	{ // new way for parallel -- this avoids all communication
+	  for( int grid=0; grid<cg.numberOfComponentGrids(); grid++ )
+	  {
+	    getIndex(cg[grid].gridIndexRange(),I1,I2,I3);
+	    op[grid].coefficients(MappedGridOperators::laplacianOperator,coeff[grid],I1,I2,I3);
+	  }
+	}
+
+	// fill in the coefficients for the boundary conditions
+	coeff.applyBoundaryConditionCoefficients(0,0,dirichlet,  allBoundaries);
+	coeff.applyBoundaryConditionCoefficients(0,0,extrapolate,allBoundaries);
+	bcParams.orderOfExtrapolation=orderOfAccuracy+1; // *wdh* 2016/08/17 -- check me
+	if( orderOfAccuracy>=4 )
+	{
+	  bcParams.ghostLineToAssign=2;
+	  coeff.applyBoundaryConditionCoefficients(0,0,extrapolate,allBoundaries,bcParams); // extrap 2nd ghost line
+	  bcParams.ghostLineToAssign=1;  // reset *wdh* 2016/08/17
+	}
+	if( orderOfAccuracy>=6 )
+	{
+	  // do this for now: *wdh* 2016/08/17
+	  bcParams.ghostLineToAssign=3;
+	  coeff.applyBoundaryConditionCoefficients(0,0,extrapolate,allBoundaries,bcParams); // extrap 3rd ghost line
+	  bcParams.ghostLineToAssign=1;  // reset *wdh* 2016/08/17
+	}
+	coeff.finishBoundaryConditions();
+	// coeff.display("Here is coeff after finishBoundaryConditions");
+
+	if( false )
+	{
+	  for( int grid=0; grid<cg.numberOfComponentGrids(); grid++ )
+	  {
+	    displayCoeff(coeff[grid],sPrintF("Coeff matrix for grid %i",grid));
+	  
+	    // coeff[grid].sparse->classify.display("the classify matrix after applying finishBoundaryConditions()");
+	    //	  coeff[grid].display("this is the coefficient matrix");
+	  }
+	}
+      } 
+      
 
       
       if( outputMatrix )
@@ -770,7 +812,9 @@ main(int argc, char *argv[])
       if( problemsToSolve % 2 ==1 )
       {
 
-	solver.setCoefficientArray( coeff );   // supply coefficients
+	if( !usePredefined )
+  	  solver.setCoefficientArray( coeff );   // supply coefficients
+
 	// Assign the right-hand-side f  
 	assignForcing( 0,cg,f,exact );
        
@@ -834,72 +878,113 @@ main(int argc, char *argv[])
         bool neumannBCs =(problemsToSolve/2) % 2 ==1;
         bool mixedBCs   =(problemsToSolve/4) % 2 ==1;
 	aString optionName = neumannBCs ? "neumann" : "mixed";
-
-	coeff=0.;
-	for( int grid=0; grid<cg.numberOfComponentGrids(); grid++ )
-	{
-	  getIndex(cg[grid].gridIndexRange(),I1,I2,I3);
-	  op[grid].coefficients(MappedGridOperators::laplacianOperator,coeff[grid],I1,I2,I3);
-	}
-
-	// fill in the coefficients for the boundary conditions
         RealArray *varCoeff=NULL;  // holds variable coefficients
-	if( neumannBCs )
+
+	if( usePredefined )
 	{
-  	  coeff.applyBoundaryConditionCoefficients(0,0,neumann,allBoundaries);
+	// ------- use predefined equations ------
+
+	  IntegerArray boundaryConditions(2,3,cg.numberOfComponentGrids());
+	  RealArray bcData(2,2,3,cg.numberOfComponentGrids());
+	  boundaryConditions=OgesParameters::neumann;
+	  bcData=0.;
+	  solver.setEquationAndBoundaryConditions( OgesParameters::laplaceEquation,op,boundaryConditions,bcData);
+
 	}
 	else
 	{
-          // -- mixed BC's with variable coefficients --
+	  // ----------- Define equations -----------
 
-	  bcParams.setVariableCoefficientOption(  BoundaryConditionParameters::spatiallyVaryingCoefficients );
-	  varCoeff = new RealArray [cg.numberOfComponentGrids()];
-	  for( int grid=0; grid<cg.numberOfComponentGrids(); grid++ )
+
+	  coeff=0.;
+	  if( false && orderOfAccuracy>= 6  )
 	  {
-	    MappedGrid & mg = cg[grid];
-            int numGhost=1;
-	    getIndex(mg.gridIndexRange(),I1,I2,I3,numGhost);
-            realArray & vertex = mg.vertex();
-	    OV_GET_SERIAL_ARRAY_CONST(real,vertex,x);
-	    int includeGhost=1;
-	    bool ok = ParallelUtility::getLocalArrayBounds(vertex,x,I1,I2,I3,includeGhost);
-	    if( ok ) 
-	    {
-	      // varCoeff only needs to be allocated on the boundary allocate on entire grid 
-              // so we can assign all boundaries in one call (below)
-	      RealArray & vc = varCoeff[grid];
-	      vc.redim(I1,I2,I3,2);  // holds variable coefficients
-	      bcParams.setVariableCoefficientsArray( &vc );        
-
-	      // coeff of u 
-	      vc(I1,I2,I3,0)=1.+ .025*SQR(x(I1,I2,I3,0)) + .03*SQR(x(I1,I2,I3,1));   
-	      // coeff of u.n : (this value must not be zero)
-	      vc(I1,I2,I3,1)=2. + .1*SQR(x(I1,I2,I3,0)) + .05*SQR(x(I1,I2,I3,1)); 
-	    }
-	    
-	    coeff[grid].applyBoundaryConditionCoefficients(0,0,mixed,allBoundaries,bcParams);
-
-	    // reset:
-	    bcParams.setVariableCoefficientsArray( NULL ); 
+	    // Do this for now -- optimized coeff's currently only for 4th order  *wdh* 2016/08/17
+	    coeff=op.laplacianCoefficients();       // get the coefficients for the Laplace operator
 	  }
-          // reset: 
-          bcParams.setVariableCoefficientOption( BoundaryConditionParameters::spatiallyConstantCoefficients );
+	  else
+	  {
+	    // optimized way
+	    for( int grid=0; grid<cg.numberOfComponentGrids(); grid++ )
+	    {
+	      getIndex(cg[grid].gridIndexRange(),I1,I2,I3);
+	      op[grid].coefficients(MappedGridOperators::laplacianOperator,coeff[grid],I1,I2,I3);
+	    }
+	  }
+	
+	  // fill in the coefficients for the boundary conditions
+	  if( neumannBCs )
+	  {
+	    coeff.applyBoundaryConditionCoefficients(0,0,neumann,allBoundaries);
+	  }
+	  else
+	  {
+	    // -- mixed BC's with variable coefficients --
+
+	    bcParams.setVariableCoefficientOption(  BoundaryConditionParameters::spatiallyVaryingCoefficients );
+	    varCoeff = new RealArray [cg.numberOfComponentGrids()];
+	    for( int grid=0; grid<cg.numberOfComponentGrids(); grid++ )
+	    {
+	      MappedGrid & mg = cg[grid];
+	      int numGhost=1;
+	      getIndex(mg.gridIndexRange(),I1,I2,I3,numGhost);
+	      realArray & vertex = mg.vertex();
+	      OV_GET_SERIAL_ARRAY_CONST(real,vertex,x);
+	      int includeGhost=1;
+	      bool ok = ParallelUtility::getLocalArrayBounds(vertex,x,I1,I2,I3,includeGhost);
+	      if( ok ) 
+	      {
+		// varCoeff only needs to be allocated on the boundary allocate on entire grid 
+		// so we can assign all boundaries in one call (below)
+		RealArray & vc = varCoeff[grid];
+		vc.redim(I1,I2,I3,2);  // holds variable coefficients
+		bcParams.setVariableCoefficientsArray( &vc );        
+
+		// coeff of u 
+		vc(I1,I2,I3,0)=1.+ .025*SQR(x(I1,I2,I3,0)) + .03*SQR(x(I1,I2,I3,1));   
+		// coeff of u.n : (this value must not be zero)
+		vc(I1,I2,I3,1)=2. + .1*SQR(x(I1,I2,I3,0)) + .05*SQR(x(I1,I2,I3,1)); 
+	      }
+	    
+	      coeff[grid].applyBoundaryConditionCoefficients(0,0,mixed,allBoundaries,bcParams);
+
+	      // reset:
+	      bcParams.setVariableCoefficientsArray( NULL ); 
+	    }
+	    // reset: 
+	    bcParams.setVariableCoefficientOption( BoundaryConditionParameters::spatiallyConstantCoefficients );
 	  
-	}
+	  }
 	
-	if( orderOfAccuracy==4 )
-	  coeff.applyBoundaryConditionCoefficients(0,0,extrapolate,allBoundaries,bcParams); // extrap 2nd ghost line
+	  if( orderOfAccuracy>=4 )
+	  {
+	    bcParams.ghostLineToAssign=2;
+	    coeff.applyBoundaryConditionCoefficients(0,0,extrapolate,allBoundaries,bcParams); // extrap 2nd ghost line
+	    bcParams.ghostLineToAssign=1;  // reset
 
-	coeff.finishBoundaryConditions();
-	if( false )
-	{
-	  for( int grid=0; grid<cg.numberOfComponentGrids(); grid++ )
-	    ::displayCoeff(coeff[grid],sPrintF("coeff on grid=%i",grid));
-	}
+	  }
+	
+	  if( orderOfAccuracy>=6 )
+	  {
+	    // do this for now *wdh* 2016/08/17
+	    bcParams.ghostLineToAssign=3;
+	    coeff.applyBoundaryConditionCoefficients(0,0,extrapolate,allBoundaries,bcParams); // extrap 2nd ghost line
+	    bcParams.ghostLineToAssign=1;  // reset
+
+	  }
+	
+	  coeff.finishBoundaryConditions();
+	  if( false )
+	  {
+	    for( int grid=0; grid<cg.numberOfComponentGrids(); grid++ )
+	      ::displayCoeff(coeff[grid],sPrintF("coeff on grid=%i",grid));
+	  }
 	
 
-        solver.setCoefficientArray( coeff );   // supply coefficients
+	  solver.setCoefficientArray( coeff );   // supply coefficients
 
+	} // end if !usePredefined 
+	
 	bool singularProblem=neumannBCs; 
 	// for( int grid=0; grid<cg.numberOfComponentGrids(); grid++ )
 	// { // this loop does nothing for now 

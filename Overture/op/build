@@ -52,8 +52,10 @@ cp fortranDeriv/{fixBCOptEdge1,fixBCOptEdge2,fixBCOptEdge3,fixBCOptVerticies}.f 
 cp fortranCoeff/{coeff,opcoeff}.f                                                      $gff
 cp fortranCoeff/{x,y,z,xx,xy,xz,yy,yz,zz,laplacian,divScalarGrad,identity}Coeff2.f     $gff
 cp fortranCoeff/{x,y,z,xx,xy,xz,yy,yz,zz,laplacian,divScalarGrad,identity}Coeff4.f     $gff
+cp fortranCoeff/{x,y,z,xx,xy,xz,yy,yz,zz,laplacian,divScalarGrad,identity}Coeff6.f     $gff
 cp fortranCoeff/{r,s,t,rr,rs,rt,ss,st,tt}Coeff2.f                                      $gff
 cp fortranCoeff/{r,s,t,rr,rs,rt,ss,st,tt}Coeff4.f                                      $gff
+cp fortranCoeff/{r,s,t,rr,rs,rt,ss,st,tt}Coeff6.f                                      $gff
 cp fortranCoeff/{opcoeff}.bf                                                           $gff
 
 cp deriv/{x,y,z,xx,xy,xz,yy,yz,zz,div,grad,identity,laplace,vorticity}FDerivative.C    $gff
