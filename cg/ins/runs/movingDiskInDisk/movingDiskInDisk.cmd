@@ -207,6 +207,9 @@ $grid
      #   .25
      density
        $density
+     # set centre of mass for splitgrid *wdh* 2016/10/29
+     initial centre of mass
+       0. 0. 0.
      # rigid body force: 
      #   f(t)=b0*sin(2.*Pi*f0*(t-t0));
      if( $bodyForce eq "x" ){ $cmd="time function\n body force x time function...\n sinusoidal function\n sinusoid parameters: $amp, $freq,0 (b0,f0,t0)\n  exit"; }\
@@ -261,6 +264,7 @@ $grid
       exit on instability $exitOnInstability
       instability error tol: $instabilityErrorTol
      done
+      if( $dropName="share" ){ $dropName="choose grids by share flag\n  5"; }
       $dropName
       # For testing we use one grid and set outer BC to be the exact solution:
       # .. thus the outer boundary is not a face on the moving body:
@@ -306,7 +310,7 @@ $grid
 $project
 # 
  initial conditions
-  if( $restart eq "" ){ $iccmds = "uniform flow\n" . "p=1, u=0., v=0\n"; }\
+  if( $restart eq "" ){ $iccmds = "uniform flow\n" . "p=0, u=0., v=0\n"; }\
   else{ $iccmds = "OBIC:show file name $restart\n OBIC:solution number -1 \n OBIC:assign solution from show file"; }
   if( $option eq "rotatingDisk" && $restart eq "" ) { $iccmds="OBIC:known solution"; }
   if( $option eq "translatingDisk" && $restart eq "" ) { $iccmds="OBIC:known solution"; }

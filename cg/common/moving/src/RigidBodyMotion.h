@@ -146,6 +146,11 @@ enum PositionConstraintEnum
 
   real getMass() const;
 
+  // return the "total force" on the body 
+  int getMassTimesAcceleration( real t,
+       		                RealArray & mvDot,
+			        RealArray & mOmegaDot );
+
   real getMaximumRelativeCorrection();
 
   // return principal axes of inertia:
@@ -165,22 +170,21 @@ enum PositionConstraintEnum
 				    RealArray & rDotRt  = Overture::nullRealArray(),
 				    RealArray & rDotDotRt = Overture::nullRealArray() ) const ;
 
-  real getTimeStepEstimate() const;
-
-  // Return the name of the time stepping method as a string.
-  aString getTimeSteppingMethodName() const;
-
-  int getVelocity( real t, RealArray & vCM  ) const;
-
   int getRotationMatrix(real t, 
                         RealArray & r,                     
                         RealArray & rDot = Overture::nullRealArray(),
                         RealArray & rDotDot = Overture::nullRealArray() ) const;
   
-  // return the "total force" on the body 
-  int getMassTimesAcceleration( real t,
-       		                RealArray & mvDot,
-			        RealArray & mOmegaDot );
+  real getTimeStepEstimate() const;
+
+  // Return the name of the time stepping method as a string.
+  aString getTimeSteppingMethodName() const;
+
+
+  int getVelocity( real t, RealArray & vCM  ) const;
+
+  // return the volume of the body     
+  real getVolume() const;
 
   // Indicate whether added mass matrices will be used (and provided by the user)
   int includeAddedMass( bool trueOrFalse = true );
@@ -269,6 +273,8 @@ enum PositionConstraintEnum
 
   // choose the time stepping method
   int setTimeSteppingMethod( const TimeSteppingMethodEnum method, int orderOfAccuracy=defaultOrderOfAccuracy );
+
+  void setVolume( real volume );
 
   int update( GenericGraphicsInterface & gi );
 

@@ -361,7 +361,7 @@ $project
 # 
  initial conditions
    uniform flow
-    p=1., u=0., v=$vIn
+    p=0., u=0., v=$vIn
  exit
 #  initial conditions
 #     read from a show file

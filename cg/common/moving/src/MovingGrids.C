@@ -1869,6 +1869,41 @@ correctGrids(const real t1,
   
 }
 
+//=================================================================================
+/// \brief Return the mass of the fluid that would be contained in rigid body "b"
+//=================================================================================
+real MovingGrids::
+getFluidMassOfBody( int b ) const
+{
+  real fluidMass=0.;
+  const real fluidDensity = parameters.dbase.get<real >("fluidDensity");
+    
+  if( fluidDensity!=0. )
+  {
+    const real bodyMass    =  body[b]->getMass();
+    const real bodyDensity =  body[b]->getDensity();
+    real bodyVolume        =  body[b]->getVolume();
+
+    if( bodyVolume<0. && bodyDensity>0. && bodyMass>0. )
+    {
+      // bodyVolume has not been set but body density and mass are known:
+      bodyVolume= bodyMass/bodyDensity;
+    }
+
+    if( bodyVolume>0. )
+    {
+      fluidMass = fluidDensity*bodyVolume; 
+
+    }
+    else
+    {
+      printF("--MVG-- getFluidMassOfBody::ERROR: The fluid density is not zero but the "
+	     "body volume is unknown for body b=%i.\n",b);
+    }
+  }
+  return fluidMass;
+}
+
 
 //=================================================================================
 /// \brief Return the integrated fluid force and torques on the rigid bodies.
@@ -2020,31 +2055,46 @@ getForceOnRigidBodies( RealArray & force, RealArray & torque, GridFunction & gf0
       
       if( maxGravity>0. ) // gravity is on 
       {
+        
 	const real bodyMass = body[b]->getMass();
-	real fluidMass=0.;
-	const real fluidDensity = parameters.dbase.get<real >("fluidDensity");
-    
-	if( fluidDensity!=0. )
-	{
-	  const real bodyDensity =  body[b]->getDensity();
-	  if( bodyDensity>0. )
-	  {
-	    assert( bodyMass!=0. );
-	    real volume = bodyMass/bodyDensity;
-	    fluidMass = fluidDensity*volume; 
+	const real fluidMass = getFluidMassOfBody( b );
 
-	    const real dt = parameters.dbase.get<real >("dt");
-	    if( (debug() & 2) && gf0.t< 2.*dt ) 
-	      printF("--MVG-- getForceOnRigidBodies: body b=%i: bodyMass=%8.2e, fluidMass=%8.2e, volume=%9.3e\n",
-		     b,bodyMass,fluidMass,volume);
-	  }
-	  else
-	  {
-	    printF("--MVG-- getForceOnRigidBodies::ERROR: The fluid density is not zero but the "
-                   "body density is unknown.\n"
-		   " Thus the volume of the body b=%i cannot be computed! \n",b);
-	  }
+	const real dt = parameters.dbase.get<real >("dt");
+	if( (debug() & 2) && gf0.t< 2.*dt ) 
+	{
+	  printF("--MVG-- getForceOnRigidBodies: body b=%i: bodyMass=%8.2e, fluidMass=%8.2e\n",
+		 b,bodyMass,fluidMass);
 	}
+	
+	// real fluidMass=0.;
+	// const real fluidDensity = parameters.dbase.get<real >("fluidDensity");
+    
+	// if( fluidDensity!=0. )
+	// {
+	//   const real bodyDensity =  body[b]->getDensity();
+	//   const real bodyVolume  =  body[b]->getVolume();
+
+        //   if( bodyVolume<0. && bodyDensity>0. && bodyMass>0. )
+	//   {
+        //     // bodyVolume has not been set but body density and mass are known:
+        //     bodyVolume= bodyMass/bodyDensity;
+	//   }
+
+	//   if( bodyVolume>0. )
+	//   {
+	//     fluidMass = fluidDensity*bodyVolume; 
+
+	//     const real dt = parameters.dbase.get<real >("dt");
+	//     if( (debug() & 2) && gf0.t< 2.*dt ) 
+	//       printF("--MVG-- getForceOnRigidBodies: body b=%i: bodyMass=%8.2e, fluidMass=%8.2e, bodyVolume=%9.3e\n",
+	// 	     b,bodyMass,fluidMass,bodyVolume);
+	//   }
+	//   else
+	//   {
+	//     printF("--MVG-- getForceOnRigidBodies::ERROR: The fluid density is not zero but the "
+        //            "body volume is unknown for body b=%i.\n",b);
+	//   }
+	// }
 
 	for( int d=0; d<cg.numberOfDimensions(); d++ )
 	  force(d,b) += gravity[d]*(bodyMass-fluidMass);  // add weight: mass*g 
@@ -2793,7 +2843,7 @@ gridAccelerationBC(const int grid, const int side, const int axis,
       // Direct-projection AMP scheme: do NOT include the acceleration terms as these are 
       // incorporated into the pressure BC
 
-      if( TRUE ) // This can be turned off I think 
+      if( FALSE ) // TURNED OFF -- *wdh* Sept 25, 2016
       {
 	// TEMPORARY FUDGE
 	// RealArray bodyForce(3), bodyTorque(3);
@@ -2813,25 +2863,27 @@ gridAccelerationBC(const int grid, const int side, const int axis,
 	// for( int d=0; d<c.numberOfDimensions(); d++ )
 	// 	aCM(d)=(bodyForce(d)+gravity[d]*(bodyMass-fluidMass))/bodyMass;  // remove pressure term from acceleration 
 
-	real fluidMass=0.;
-	real fluidDensity =  parameters.dbase.get<real >("fluidDensity");
-	assert( fluidDensity!=0. );
-	if( body[b]->getDensity()>0. )
-	{
-	  assert( bodyMass!=0. );
-	  real volume = bodyMass/body[b]->getDensity();
-	  fluidMass = parameters.dbase.get<real >("fluidDensity")*volume; 
+        const real fluidMass = getFluidMassOfBody( b );
 
-	  const real dt = parameters.dbase.get<real >("dt");
-	  if( (debug() & 2) && t0< 2.*dt ) 
-	    printF(" --- body b=%i: bodyMass=%8.2e, fluidMass=%8.2e, volume=%9.3e\n",b,bodyMass,fluidMass,volume);
+	// real fluidMass=0.;
+	// real fluidDensity =  parameters.dbase.get<real >("fluidDensity");
+	// assert( fluidDensity!=0. );
+	// if( body[b]->getDensity()>0. )
+	// {
+	//   assert( bodyMass!=0. );
+	//   real volume = bodyMass/body[b]->getDensity();
+	//   fluidMass = parameters.dbase.get<real >("fluidDensity")*volume; 
 
-	}
-	else
-	{
-	  printF("MovingGrids:ERROR: The fluid density is not zero but the body density is unknown.\n"
-		 " Thus the volume of the body b=%i cannot be computed! \n",b);
-	}
+	//   const real dt = parameters.dbase.get<real >("dt");
+	//   if( (debug() & 2) && t0< 2.*dt ) 
+	//     printF(" --- body b=%i: bodyMass=%8.2e, fluidMass=%8.2e, volume=%9.3e\n",b,bodyMass,fluidMass,volume);
+
+	// }
+	// else
+	// {
+	//   printF("MovingGrids:ERROR: The fluid density is not zero but the body density is unknown.\n"
+	// 	 " Thus the volume of the body b=%i cannot be computed! \n",b);
+	// }
 
 	if( debug() & 64 )
 	{
@@ -3952,26 +4004,28 @@ rigidBodyMotion(const real & t1,
     // add weight after limiting *wdh* 040916 : subtract off the fluid density
     // first compute the mass of the displaced fluid
     const real bodyMass = body[b]->getMass();
-    real fluidMass=0.;
-    if( parameters.dbase.get<real >("fluidDensity")!=0. )
-    {
-      if( body[b]->getDensity()>0. )
-      {
-        assert( bodyMass!=0. );
-        real volume = bodyMass/body[b]->getDensity();
-	fluidMass = parameters.dbase.get<real >("fluidDensity")*volume; 
+    const real fluidMass = getFluidMassOfBody( b );
 
-        const real dt = parameters.dbase.get<real >("dt");
-        if( (debug() & 2) && t2< 2.*dt ) 
-          printF(" --- body b=%i: bodyMass=%8.2e, fluidMass=%8.2e, volume=%9.3e\n",b,bodyMass,fluidMass,volume);
+    // real fluidMass=0.;
+    // if( parameters.dbase.get<real >("fluidDensity")!=0. )
+    // {
+    //   if( body[b]->getDensity()>0. )
+    //   {
+    //     assert( bodyMass!=0. );
+    //     real volume = bodyMass/body[b]->getDensity();
+    // 	fluidMass = parameters.dbase.get<real >("fluidDensity")*volume; 
 
-      }
-      else
-      {
-	printF("MovingGrids:ERROR: The fluid density is not zero but the body density is unknown.\n"
-               " Thus the volume of the body b=%i cannot be computed! \n",b);
-      }
-    }
+    //     const real dt = parameters.dbase.get<real >("dt");
+    //     if( (debug() & 2) && t2< 2.*dt ) 
+    //       printF(" --- body b=%i: bodyMass=%8.2e, fluidMass=%8.2e, volume=%9.3e\n",b,bodyMass,fluidMass,volume);
+
+    //   }
+    //   else
+    //   {
+    // 	printF("MovingGrids:ERROR: The fluid density is not zero but the body density is unknown.\n"
+    //            " Thus the volume of the body b=%i cannot be computed! \n",b);
+    //   }
+    // }
     
 
     // get the gravity vector -- may be time dependent for a slow start
@@ -4826,7 +4880,7 @@ computeRigidBodyProperties( const int bodyNumber, CompositeGrid & cg )
     rigidBody.setInitialCentreOfMass(x0);
   }
 
-  if( !(rigidBody.massHasBeenInitialized()) && rigidBody.getDensity()>0   )
+  if( !(rigidBody.massHasBeenInitialized()) && rigidBody.getDensity()>=0   )
   {
     // If the mass has not been given but the density has, we compute the mass
 
@@ -4877,7 +4931,7 @@ computeRigidBodyProperties( const int bodyNumber, CompositeGrid & cg )
     real bodyVolume = fabs( integrate->surfaceIntegral(f,bodyNumber) );
     printF("--MVG--CRBP-- INFO: Body %i volume from surface-integral = %10.4e \n",bodyNumber,bodyVolume);
 	
-    if( numberOfFaces==1 )
+    if( numberOfFaces==1 ) // -- check the result for an Annulus ---
     {
       int side=-1,axis,grid;
       int face=0;
@@ -4896,6 +4950,8 @@ computeRigidBodyProperties( const int bodyNumber, CompositeGrid & cg )
       }
     }
 
+    rigidBody.setVolume(bodyVolume); // *wdh* Sept 25, 2016
+
     real density=rigidBody.getDensity();
     real mass= bodyVolume*density;
     rigidBody.setMass(mass);
@@ -4908,7 +4964,7 @@ computeRigidBodyProperties( const int bodyNumber, CompositeGrid & cg )
   
 
   if( !(rigidBody.momentsOfInertiaHaveBeenInitialized()) && 
-      rigidBody.getDensity()>0   )
+      rigidBody.getDensity()>=0   )
   {
     // --- Compute the  moments of inertia given the density -----
 
@@ -4968,8 +5024,8 @@ computeRigidBodyProperties( const int bodyNumber, CompositeGrid & cg )
 	int includeGhost=1;
 	bool ok = ParallelUtility::getLocalArrayBounds(f[grid],fLocal,Ib1,Ib2,Ib3,includeGhost);
 
-        // **NOTE** There are many choices for converting the colume integral to the surface integral
-        // Some choices are probebly better conditioned than others *check me*
+        // **NOTE** There are many choices for converting the volume integral to the surface integral
+        // Some choices are probably better conditioned than others *check me*
 
 	// int_V x^2 + y^2 dV = int_V div.(x^3,y^3,0)/3  dV = int_S (1/3)*(x^3,y^3,0).nv dS
 #define CUBE(x) ((x)*(x)*(x))

@@ -707,6 +707,7 @@ getUserDefinedKnownSolution(real t, CompositeGrid & cg, int grid, RealArray & ua
 
 	  // Pressure is defined in a maple generated file:
 #include "rotatingDiskPressure.h"
+
 	  ua(i1,i2,i3,pc)=pFactor*pv;
 	  if( ua(i1,i2,i3,pc) != ua(i1,i2,i3,pc) )
 	  {
@@ -782,7 +783,7 @@ getUserDefinedKnownSolution(real t, CompositeGrid & cg, int grid, RealArray & ua
     const real & fluidDensity = dbase.get<real >("fluidDensity");  
 
     if( t <= dt )
-      printF("--UDKS-- rotating-disk-in-disk exact INS-RB solution at t=%9.3e, amp=%8.2e, a=%8.2e, b=%8.2e, k=%12.4e"
+      printF("--UDKS-- translating-disk-in-disk exact INS-RB solution at t=%9.3e, amp=%8.2e, a=%8.2e, b=%8.2e, k=%12.4e"
              " numberOfTimeDerivatives=%i\n",
 	     t,amp,a,b,k,numberOfTimeDerivatives);
 

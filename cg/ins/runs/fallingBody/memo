@@ -3,6 +3,45 @@ Falling body examples to test added mass and added damping
 =================================================================================
 
 *************************************
+****** Oct 26, 2016
+
+=========== COMP SELF CONVERGENCE =============
+
+
+
+
+
+
+*************************************
+****** Sept 26, 2016
+
+*Bug fixed* set p=0 for IC's in fallingBody.cmd
+
+--- density=0 OK now 
+
+density=1e-10 OK 
+
+cgins -noplot fallingBody.cmd -g=risingBodyGride4.order2 -tf=12. -tp=.1 -nu=.025 -ts=im -density=0 -radius=1. -gravity=-1. -rampGravity=1  -amp=.1 -dtMax=.1 -project=0 -numberOfCorrections=2 -omega=.2 -addedMass=1 -addedDamping=1 -addedDampingCoeff=1 -scaleAddedDampingWithDt=1 -addedDampingProjectVelocity=1 -useProvidedAcceleration=1 -useTP=0 -debug=3 -solver=yale -psolver=yale -rtolp=1.e-5 -atolp=1.e-7 -rtol=1.e-5 -atol=1.e-5 -ad2=0  -freqFullUpdate=1 -improveQuality=1 -go=og
+
+
+
+*************************************
+****** Sept 25, 2016
+
+---- CHECK density=0 
+
+density=1.e-5 : OK 
+
+gravity=0 -- trouble : predicted vDot at t=0
+cgins -noplot fallingBody.cmd -g=risingBodyGride4.order2 -tf=12. -tp=.1 -nu=.025 -ts=im -density=1.e-10 -radius=1. -gravity=0. -rampGravity=1  -amp=.1 -dtMax=.1 -project=0 -numberOfCorrections=2 -omega=.2 -addedMass=1 -addedDamping=1 -addedDampingCoeff=1 -scaleAddedDampingWithDt=1 -addedDampingProjectVelocity=1 -useProvidedAcceleration=1 -useTP=0 -debug=3 -solver=yale -psolver=yale -rtolp=1.e-5 -atolp=1.e-7 -rtol=1.e-5 -atol=1.e-5 -ad2=0  -freqFullUpdate=1 -improveQuality=1 -go=og
+
+cgins -noplot fallingBody.cmd -g=risingBodyGride4.order2 -tf=12. -tp=.1 -nu=.025 -ts=im -density=1.e-10 -radius=1. -gravity=-1. -rampGravity=1  -amp=.1 -dtMax=.1 -project=0 -numberOfCorrections=2 -omega=.2 -addedMass=1 -addedDamping=1 -addedDampingCoeff=1 -scaleAddedDampingWithDt=1 -addedDampingProjectVelocity=1 -useProvidedAcceleration=1 -useTP=0 -debug=3 -solver=yale -psolver=yale -rtolp=1.e-5 -atolp=1.e-7 -rtol=1.e-5 -atol=1.e-5 -ad2=0  -freqFullUpdate=1 -improveQuality=1 -go=og
+
+
+cgins -noplot fallingBody.cmd -g=risingBodyGride4.order2 -tf=12. -tp=1. -nu=.025 -ts=im -density=.001 -radius=1. -gravity=-1. -amp=.1 -dtMax=.1 -project=0 -numberOfCorrections=2 -omega=.2 -addedMass=1 -addedDamping=1 -addedDampingCoeff=1 -scaleAddedDampingWithDt=1 -addedDampingProjectVelocity=1 -useProvidedAcceleration=1 -useTP=0 -debug=3 -solver=best -psolver=best -rtolp=1.e-5 -atolp=1.e-7 -rtol=1.e-5 -atol=1.e-5 -ad2=0  -freqFullUpdate=1 -improveQuality=1 -go=og
+
+
+*************************************
 ****** July 30, 2016
 
 ========== REDO - TWO FALLING BODIES 
