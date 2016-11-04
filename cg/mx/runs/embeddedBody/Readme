@@ -1,3 +1,29 @@
+--- Scattering from embedded body in annular domain
+(1)  
+*
+cd farBoundary
+
+(2) 
+*Make annular grids
+make annulusGrids 
+* Some grids made by the Makefile may not work correctly. Not all have been tested
+
+
+(3) Run:
+* Run CGFD scheme annular domain with far-field boundaries
+* diss is dissipation coefficient. Higher dissipation may be needed for finer grids
+* sidebc is boundary condition for outer wall. abcEM2 in Engquist-Majda order 2 
+* set -show to save a show file to later plot stuff
+cgmx embeddedBodyChirp.cmd -g=embeddedBodyGridAnnulusi8.order4.hdf -diss=2.  -sidebc=abcEM2 -show=ebG8Order4.show
+
+* Run SOSUP scheme annular domain with far-field boundaries
+* upwind scheme 
+* no dissipation necessary. 
+cgmx embeddedBodyChirp.cmd -g=embeddedBodyGridAnnulusi8.order2.hdf -method=sosup -sidebc=abcEM2 
+* higher order needs more ghost points on the grid 
+cgmx embeddedBodyChirp.cmd -g=embeddedBodyGridAnnulusi8.order4.ng3.hdf -method=sosup -sidebc=abcEM2 
+
+
 --- Plane wave scattering off a body embedded in a dielectric
 
 (1) Generate some grids:
