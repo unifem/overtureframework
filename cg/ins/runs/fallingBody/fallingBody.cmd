@@ -271,7 +271,7 @@ $project
 # 
  initial conditions
    uniform flow
-    p=1., u=0., v=0.
+    p=0., u=0., v=0.
  exit
 #
   debug

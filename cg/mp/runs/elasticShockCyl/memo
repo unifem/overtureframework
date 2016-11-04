@@ -1,4 +1,21 @@
+*************************************************************
+************* sept 30, 2016
 
+Re-run shock hitting two cyl's for grid movie
+
+--- for movie of deforming grids
+$cgmp -noplot shockMultiDisk -method=cns -cnsVariation=godunov -smVariation=g -g="multiDiskDeformGridi2" -scf=5. -tp=.01 -tf=2. -nc=1 -fic=shock -pOffset=.71440 -lambdaSolid=4. -muSolid=2. -diss=5. -cnsGodunovOrder=1 -debug=1 -show="shockMultiDisk2m.show" -flushFrequency=50 -go=go >! shockMultiDisk2m.out 
+
+$cgmp -noplot shockMultiDisk -method=cns -cnsVariation=godunov -smVariation=g -g="multiDiskDeformGridi2" -scf=5. -tp=.1 -tf=2. -nc=1 -fic=shock -pOffset=.71440 -lambdaSolid=4. -muSolid=2. -diss=5. -cnsGodunovOrder=1 -debug=1 -show="shockMultiDisk2i.show" -flushFrequency=50 -go=halt
+
+
+
+$cgmp shockCyl -method=cns -cnsVariation=godunov -smVariation=g  -g=diskDeformBig2e -scf=2. -tp=.1 -tf=2.5 -nc=1 -d1="outerDomain" -d2="innerDomain" -fic=shock -pOffset=.71440 -lambdaSolid=1. -muSolid=1. -diss=5. -cnsGodunovOrder=1 -debug=1 -show="shockCyl2.show" -flushFrequency=50 -pi=1 -multiDomainAlgorithm=1  -go=halt
+
+
+
+
+*****************************************************************************
 
 MEDIUM SOLID: scf=1, interface projection
 nohup $mp/bin/cgmp -noplot elasticShockCyl -method=cns -cnsVariation=godunov -smVariation=g -g=diskDeformBig4e -scf=1. -tp=.1 -tf=1.5 -nc=1 -fic=shock -pOffset=0.714285714286 -lambdaSolid=1. -muSolid=1. -diss=0. -cnsGodunovOrder=2 -debug=1 -pi=1 -multiDomainAlgorithm=1 -xShock=-10.0000000000001 -uShock=0. -ap=.1 -flushFrequency=2 -bcOption=4 -stressRelaxation=4 -show="elasticShockCyl4Rho1p0.show" -go=go >! elasticShockCyl4Rho1p0.out &

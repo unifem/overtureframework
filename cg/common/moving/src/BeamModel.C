@@ -2475,7 +2475,7 @@ getSurfaceInternalForce( const real t0, const RealArray & x0, RealArray & fs,
 
   if( fabs(time(current)-t) > 1.e-10*(1.+t) )
     {
-      printF("-- BM%i -- FEMBeamModel::getSurfaceInternalForce:ERROR: t=%10.3e != time(current)=%10.3e, current=%i\n",
+      printF("-- BM%i -- BeamModel::getSurfaceInternalForce:ERROR: t=%10.3e != time(current)=%10.3e, current=%i\n",
 	     getBeamID(),t,time(current),current);
       OV_ABORT("ERROR");
     }

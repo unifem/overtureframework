@@ -1,4 +1,23 @@
 ***********************************************
+***  Sept 25, 2016
+
+==== determine if we can run with rhos=0 ====
+
+
+Piston: rhos=0 OK 
+
+cgins -noplot piston -g=plug4.hdf -ts=im -dtMax=.01 -bodyDensity=.0 -inertia=.0 -tf=2. -tp=.05 -relaxRigidBody=0 -numberOfCorrections=1 -omega=.2 -rtolc=1.e-3 -psolver=yale -addedMass=1  -addedDamping=1 -addedDampingCoeff=1. -scaleAddedDampingWithDt=1 -nu=.01 -useProvidedAcceleration=1 -gravity=0. -option=rigidBodyPiston -go=og
+
+
+
+SHEAR Block
+
+rhos=.0 OK: 
+
+cgins -noplot slider -g=shearBlockGrid4.order2 -ts=im -dtMax=.05 -bodyDensity=0 -tf=5. -tp=.05 -option=shearBlock -amp=1 -relaxRigidBody=0 -numberOfCorrections=2 -addedDampingProjectVelocity=1 -omega=.2 -rtolc=1.e-3 -psolver=yale -addedMass=1 -addedDamping=1  -scaleAddedDampingWithDt=1 -inertia=1e100 -nu=.1 -useProvidedAcceleration=1 -gravity=0. -addedDampingCoeff=1 -go=og
+
+
+***********************************************
 *** July 20, 2016
 
 SHEAR Block

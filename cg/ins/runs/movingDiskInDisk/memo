@@ -1,4 +1,147 @@
 ******************************
+****** Fri Oct 28,29 20i6
+
+Rotating disk in disk with overlapping grids on the disk
+
+SPLIT-DISK
+
+*BUG FOUND* -- set the center of mass explicitly
+
+*TROUBLE* INITIAL PRESSURE ERROR IS NOT DECREASING 
+
+TURN OFF ADDED-DAMPING -- still bad
+cgins -noplot movingDiskInDisk.cmd -g=splitDiskInDiskGridFixede8.order2.hdf -dropName=share -tf=1. -tp=.1 -nu=.1 -ts=im -density=0.1 -radius=1. -gravity=0. -amp=1. -bodyForce=none -option=rotatingDisk -dtMax=.005 -project=0 -numberOfCorrections=2 -addedDampingProjectVelocity=1 -omega=.2 -addedMass=1 -addedDamping=0 -scaleAddedDampingWithDt=1 -useProvidedAcceleration=1 -useTP=0 -debug=3  -solver=best -rol=1.e-8 -atol=1.e-9  -psolver=best -rtolp=1.e-8 -atolp=1.e-9 -ad2=0  -addedDampingCoeff=1. -go=og
+     t    err(p)   err(u)   err(v)    div       uMax     dt       cpu    (0 steps)
+   0.000 1.82e-03 5.70e-07 5.70e-07 9.30e-05  1.22e+00 5.00e-03 5.46e-04 
+
+
+G8 - TP --> BETTER
+cgins -noplot movingDiskInDisk.cmd -g=splitDiskInDiskGridFixede8.order2.hdf -dropName=share -tf=1. -tp=.1 -nu=.1 -ts=im -density=0.1 -radius=1. -gravity=0. -amp=1. -bodyForce=none -option=rotatingDisk -dtMax=.005 -project=0 -numberOfCorrections=2 -addedDampingProjectVelocity=0 -omega=.2 -addedMass=0 -addedDamping=0 -scaleAddedDampingWithDt=1 -useProvidedAcceleration=0 -useTP=0 -debug=3  -solver=best -rol=1.e-8 -atol=1.e-9  -psolver=best -rtolp=1.e-8 -atolp=1.e-9 -ad2=0  -addedDampingCoeff=1. -go=og
+     t    err(p)   err(u)   err(v)    div       uMax     dt       cpu    (0 steps)
+   0.000 1.44e-04 5.70e-07 5.70e-07 9.30e-05  1.22e+00 5.00e-03 5.56e-04 
+
+G8 -AMP
+cgins -noplot movingDiskInDisk.cmd -g=splitDiskInDiskGridFixede8.order2.hdf -dropName=share -tf=1. -tp=.1 -nu=.1 -ts=im -density=0.1 -radius=1. -gravity=0. -amp=1. -bodyForce=none -option=rotatingDisk -dtMax=.005 -project=0 -numberOfCorrections=2 -addedDampingProjectVelocity=1 -omega=.2 -addedMass=1 -addedDamping=1 -scaleAddedDampingWithDt=1 -useProvidedAcceleration=1 -useTP=0 -debug=3  -solver=best -rol=1.e-8 -atol=1.e-9  -psolver=best -rtolp=1.e-8 -atolp=1.e-9 -ad2=0  -addedDampingCoeff=1. -go=og 
+
+--INS--setPressureConstraintValues: body=0, d=0, m*a= 0.00e+00, bodyForce: (pressure= -9.3904e-04,viscous= -1.0575e-04), value=-1.05746e-04
+ dt=5.000e-03, vDotPredicted=[  0.000000e+00,  0.000000e+00] addedDampingTensors(0,0,v,v)= 1.432e+01
+--INS--setPressureConstraintValues: body=0, d=1, m*a= 0.00e+00, bodyForce: (pressure=  5.9445e-03,viscous= -1.6705e-05), value=-1.67046e-05
+ dt=5.000e-03, vDotPredicted=[  0.000000e+00,  0.000000e+00] addedDampingTensors(0,0,v,v)= 1.432e+01
+--INS-SPC-- TESTING... use bodyTorqueFromViscousStress *CHECK GRAVITY*...
+--INS--setPressureConstraintValues: body=0, d=2, A*w_t=-1.616e-01, bodyTorque (pressure=  4.7493e-18,viscous= -8.0007e-02), value= -1.5271e-01
+
+     t    err(p)   err(u)   err(v)    div       uMax     dt       cpu    (0 steps)
+   0.000 1.79e-03 5.70e-07 5.70e-07 9.30e-05  1.22e+00 5.00e-03 5.81e-04 
+
+
+G4
+cgins -noplot movingDiskInDisk.cmd -g=splitDiskInDiskGridFixede4.order2.hdf -dropName=share -tf=1. -tp=.1 -nu=.1 -ts=im -density=0.1 -radius=1. -gravity=0. -amp=1. -bodyForce=none -option=rotatingDisk -dtMax=.01 -project=0 -numberOfCorrections=2 -addedDampingProjectVelocity=1 -omega=.2 -addedMass=1 -addedDamping=1 -scaleAddedDampingWithDt=1 -useProvidedAcceleration=1 -useTP=0 -debug=3  -solver=best -rol=1.e-6 -atol=1.e-8  -psolver=best -rtolp=1.e-6 -atolp=1.e-8 -ad2=0  -addedDampingCoeff=1. -go=og 
+
+--INS--setPressureConstraintValues: body=0, d=0, m*a= 0.00e+00, bodyForce: (pressure= -1.1474e-03,viscous= -1.2676e-04), value=-1.26756e-04
+ dt=1.000e-02, vDotPredicted=[  0.000000e+00,  0.000000e+00] addedDampingTensors(0,0,v,v)= 9.076e+00
+--INS--setPressureConstraintValues: body=0, d=1, m*a= 0.00e+00, bodyForce: (pressure=  7.1264e-03,viscous= -2.0408e-05), value=-2.04083e-05
+ dt=1.000e-02, vDotPredicted=[  0.000000e+00,  0.000000e+00] addedDampingTensors(0,0,v,v)= 9.076e+00
+--INS-SPC-- TESTING... use bodyTorqueFromViscousStress *CHECK GRAVITY*...
+--INS--setPressureConstraintValues: body=0, d=2, A*w_t=-1.629e-01, bodyTorque (pressure= -1.5749e-17,viscous= -8.0349e-02), value= -1.7283e-01
+
+     t    err(p)   err(u)   err(v)    div       uMax     dt       cpu    (0 steps)
+   0.000 1.86e-03 3.42e-06 3.41e-06 3.69e-04  1.22e+00 1.00e-02 5.64e-04 
+     t    err(p)   err(u)   err(v)    div       uMax     dt       cpu    (10 steps)
+   0.100 8.93e-03 2.03e-02 2.03e-02 2.71e-03  1.11e+00 1.00e-02 2.91e+01 
+
+G2
+cgins -noplot movingDiskInDisk.cmd -g=splitDiskInDiskGridFixede2.order2.hdf -dropName=share -tf=1. -tp=.1 -nu=.1 -ts=im -density=0.1 -radius=1. -gravity=0. -amp=1. -bodyForce=none -option=rotatingDisk -dtMax=.02 -project=0 -numberOfCorrections=2 -addedDampingProjectVelocity=1 -omega=.2 -addedMass=1 -addedDamping=1 -scaleAddedDampingWithDt=1 -useProvidedAcceleration=1 -useTP=0 -debug=3  -solver=best -rol=1.e-6 -atol=1.e-8  -psolver=best -rtolp=1.e-6 -atolp=1.e-8 -ad2=0  -addedDampingCoeff=1. -go=og 
+
+     t    err(p)   err(u)   err(v)    div       uMax     dt       cpu    (0 steps)
+   0.000 1.65e-03 1.39e-05 1.39e-05 1.67e-03  1.22e+00 2.00e-02 6.36e-04
+     t    err(p)   err(u)   err(v)    div       uMax     dt       cpu    (5 steps)
+   0.100 1.15e-03 4.11e-04 4.35e-04 1.52e-03  1.10e+00 2.00e-02 1.60e+01 
+
+
+cgins -noplot movingDiskInDisk.cmd -g=splitDiskInDiskGride4.order2.hdf -dropName=share -tf=1. -tp=.025 -nu=.1 -ts=im -density=0.1 -radius=1. -gravity=0. -amp=1. -bodyForce=none -option=rotatingDisk -dtMax=.0125 -project=0 -numberOfCorrections=2 -addedDampingProjectVelocity=1 -omega=.2 -addedMass=1 -addedDamping=1 -scaleAddedDampingWithDt=1 -useProvidedAcceleration=1 -useTP=0 -debug=3  -solver=best -rol=1.e-6 -atol=1.e-8  -psolver=best -rtolp=1.e-6 -atolp=1.e-8 -ad2=0  -addedDampingCoeff=1. -go=og 
+
+
+     t    err(p)   err(u)   err(v)    div       uMax     dt       cpu    (0 steps)
+   0.000 2.13e-03 7.97e-06 7.97e-06 5.18e-04  1.22e+00 1.25e-02 6.46e-04 
+    t    err(p)   err(u)   err(v)    div       uMax     dt       cpu    (2 steps)
+   0.025 2.92e-03 2.01e-04 2.43e-04 5.24e-03  1.19e+00 1.25e-02 2.71e+01 
+     t    err(p)   err(u)   err(v)    div       uMax     dt       cpu    (8 steps)
+   0.100 4.70e-03 7.84e-03 7.91e-03 3.70e-03  1.11e+00 1.25e-02 5.95e+01 
+
+cgins -noplot movingDiskInDisk.cmd -g=splitDiskInDiskGride2.order2.hdf -dropName=share -tf=1. -tp=.025 -nu=.1 -ts=im -density=0.1 -radius=1. -gravity=0. -amp=1. -bodyForce=none -option=rotatingDisk -dtMax=.025 -project=0 -numberOfCorrections=2 -addedDampingProjectVelocity=1 -omega=.2 -addedMass=1 -addedDamping=1 -scaleAddedDampingWithDt=1 -useProvidedAcceleration=1 -useTP=0 -debug=3  -solver=best -rol=1.e-5 -atol=1.e-7  -psolver=best -rtolp=1.e-5 -atolp=1.e-7 -ad2=0  -addedDampingCoeff=1. -go=og
+
+
+
+TROUBLE: t=0: BC on disk is not exact ??
+cgins movingDiskInDisk.cmd -g=splitDiskInDiskGride2.order2.hdf -dropName=share -tf=1. -tp=.025 -nu=.1 -ts=im -density=0.1 -radius=1. -gravity=0. -amp=1. -bodyForce=none -option=rotatingDisk -dtMax=.025 -project=0 -numberOfCorrections=2 -addedDampingProjectVelocity=1 -omega=.2 -addedMass=1 -addedDamping=1 -scaleAddedDampingWithDt=1 -useProvidedAcceleration=1 -useTP=0 -debug=3  -solver=best -rol=1.e-5 -atol=1.e-7  -psolver=best -rtolp=1.e-5 -atolp=1.e-7 -ad2=0  -addedDampingCoeff=1. -go=halt
+
+
+TP
+cgins movingDiskInDisk.cmd -g=splitDiskInDiskGride2.order2.hdf -dropName=share -tf=1. -tp=.025 -nu=.1 -ts=im -density=0.1 -radius=1. -gravity=0. -amp=1. -bodyForce=none -option=rotatingDisk -dtMax=.025 -project=0 -numberOfCorrections=2 -addedDampingProjectVelocity=0 -omega=.2 -addedMass=0 -addedDamping=0 -scaleAddedDampingWithDt=0 -useProvidedAcceleration=0 -useTP=0 -debug=3  -solver=best -rol=1.e-5 -atol=1.e-7  -psolver=best -rtolp=1.e-5 -atolp=1.e-7 -ad2=0  -addedDampingCoeff=1. -go=halt
+
+
+
+
+cgins movingDiskInDisk.cmd -g=diskInDiskGridFixede2.order2.hdf -tf=1. -tp=.025 -nu=.1 -ts=im -density=0.1 -radius=1. -gravity=0. -amp=1. -bodyForce=none -option=rotatingDisk -dtMax=.025 -project=0 -numberOfCorrections=2 -addedDampingProjectVelocity=1 -omega=.2 -addedMass=1 -addedDamping=1 -scaleAddedDampingWithDt=1 -useProvidedAcceleration=1 -useTP=0 -debug=3  -solver=best -rol=1.e-5 -atol=1.e-7  -psolver=best -rtolp=1.e-5 -atolp=1.e-7 -ad2=0  -addedDampingCoeff=1. -go=halt 
+
+
+
+FIXED-WIDTH GRID
+cgins -noplot movingDiskInDisk.cmd -g=splitDiskInDiskGridFixede4.order2.hdf -dropName=share -tf=1. -tp=.025 -nu=.1 -ts=im -density=0.1 -radius=1. -gravity=0. -amp=1. -bodyForce=none -option=rotatingDisk -dtMax=.0125 -project=0 -numberOfCorrections=2 -addedDampingProjectVelocity=1 -omega=.2 -addedMass=1 -addedDamping=1 -scaleAddedDampingWithDt=1 -useProvidedAcceleration=1 -useTP=0 -debug=3  -solver=best -rol=1.e-6 -atol=1.e-8  -psolver=best -rtolp=1.e-6 -atolp=1.e-8 -ad2=0  -addedDampingCoeff=1. -go=og 
+
+     t    err(p)   err(u)   err(v)    div       uMax     dt       cpu    (0 steps)
+   0.000 7.17e-03 1.58e-03 2.54e-04 3.73e-02  1.22e+00 1.25e-02 5.70e-04 
+
+cgins -noplot movingDiskInDisk.cmd -g=splitDiskInDiskGride4.order2.hdf -dropName=share -tf=1. -tp=.025 -nu=.1 -ts=im -density=0.1 -radius=1. -gravity=0. -amp=1. -bodyForce=none -option=rotatingDisk -dtMax=.0125 -project=0 -numberOfCorrections=2 -addedDampingProjectVelocity=1 -omega=.2 -addedMass=1 -addedDamping=1 -scaleAddedDampingWithDt=1 -useProvidedAcceleration=1 -useTP=0 -debug=3  -solver=best -rol=1.e-6 -atol=1.e-8  -psolver=best -rtolp=1.e-6 -atolp=1.e-8 -ad2=0  -addedDampingCoeff=1. -go=og 
+
+     t    err(p)   err(u)   err(v)    div       uMax     dt       cpu    (0 steps)
+   0.000 6.40e-03 1.67e-03 1.02e-04 3.35e-02  1.22e+00 1.25e-02 6.49e-04 
+     t    err(p)   err(u)   err(v)    div       uMax     dt       cpu    (2 steps)
+   0.025 3.23e-03 1.34e-03 3.74e-04 2.49e-02  1.19e+00 1.25e-02 1.56e+01 
+     t    err(p)   err(u)   err(v)    div       uMax     dt       cpu    (8 steps)
+   0.100 2.10e-03 4.86e-04 3.57e-04 3.39e-03  1.10e+00 1.25e-02 3.82e+01 
+
+cgins -noplot movingDiskInDisk.cmd -g=splitDiskInDiskGride2.order2.hdf -dropName=share -tf=1. -tp=.025 -nu=.1 -ts=im -density=0.1 -radius=1. -gravity=0. -amp=1. -bodyForce=none -option=rotatingDisk -dtMax=.025 -project=0 -numberOfCorrections=2 -addedDampingProjectVelocity=1 -omega=.2 -addedMass=1 -addedDamping=1 -scaleAddedDampingWithDt=1 -useProvidedAcceleration=1 -useTP=0 -debug=3  -solver=best -rol=1.e-5 -atol=1.e-7  -psolver=best -rtolp=1.e-5 -atolp=1.e-7 -ad2=0  -addedDampingCoeff=1. -go=og 
+
+     t    err(p)   err(u)   err(v)    div       uMax     dt       cpu    (0 steps)
+   0.000 1.22e-03 5.77e-04 6.48e-05 5.79e-03  1.22e+00 2.50e-02 6.27e-04 
+
+     t    err(p)   err(u)   err(v)    div       uMax     dt       cpu    (1 steps)
+   0.025 2.54e-03 6.84e-04 3.62e-04 6.23e-03  1.19e+00 2.50e-02 1.36e+02 
+
+     t    err(p)   err(u)   err(v)    div       uMax     dt       cpu    (4 steps)
+   0.100 1.65e-03 2.82e-04 2.30e-04 2.31e-03  1.10e+00 2.50e-02 9.83e+00 
+
+cgins -noplot movingDiskInDisk.cmd -g=diskInDiskGridFixede4.order2.hdf -tf=1. -tp=.025 -nu=.1 -ts=im -density=0.1 -radius=1. -gravity=0. -amp=1. -bodyForce=none -option=rotatingDisk -dtMax=.025 -project=0 -numberOfCorrections=2 -addedDampingProjectVelocity=1 -omega=.2 -addedMass=1 -addedDamping=1 -scaleAddedDampingWithDt=1 -useProvidedAcceleration=1 -useTP=0 -debug=3  -solver=best -rol=1.e-5 -atol=1.e-7  -psolver=best -rtolp=1.e-5 -atolp=1.e-7 -ad2=0  -addedDampingCoeff=1. -go=og 
+
+     t    err(p)   err(u)   err(v)    div       uMax     dt       cpu    (2 steps)
+   0.025 1.60e-03 3.72e-04 2.19e-04 4.68e-03  1.19e+00 1.25e-02 8.22e+00 
+
+
+******************************
+****** Sun Sept 25, 2016
+
+CHECK FOR ZERO BODY DENSITY
+
+----- translating
+
+density=0 OK
+density=1e-10 : OK
+
+cgins -noplot movingDiskInDisk.cmd -g=diskInDiskGridFixede4.order2.hdf -tf=1. -tp=.1 -nu=.1 -ts=im -density=0 -radius=1. -gravity=0. -amp=1.e-7 -bodyForce=none -option=translatingDisk -dtMax=.05 -project=0 -numberOfCorrections=2 -addedDampingProjectVelocity=1 -omega=.2 -addedMass=1 -addedDamping=1 -scaleAddedDampingWithDt=1 -useProvidedAcceleration=1 -useTP=0 -debug=3 -solver=best -rtol=1.e-9 -atol=1.e-15  -psolver=best -rtolp=1.e-9 -atolp=1.e-15  -ad2=0 -addedDampingCoeff=1 -go=og
+
+
+
+----------- rotating:
+
+density=0 : -- need to fix script density=0 => use specified mass
+
+density=1e-10 OK
+
+cgins -noplot movingDiskInDisk.cmd -g=diskInDiskGridFixede4.order2.hdf -tf=1. -tp=.025 -nu=.1 -ts=im -density=0 -radius=1. -gravity=0. -amp=1. -bodyForce=none -option=rotatingDisk -dtMax=.025 -project=0 -numberOfCorrections=2 -addedDampingProjectVelocity=1 -omega=.2 -addedMass=1 -addedDamping=1 -scaleAddedDampingWithDt=1 -useProvidedAcceleration=1 -useTP=0 -debug=3  -solver=best -rol=1.e-5 -atol=1.e-7  -psolver=best -rtolp=1.e-5 -atolp=1.e-7 -ad2=0  -addedDampingCoeff=1. -go=og 
+
+
+******************************
 ****** Mon Aug 23, 2016
 
 Re-Run for paper  -- amp=1

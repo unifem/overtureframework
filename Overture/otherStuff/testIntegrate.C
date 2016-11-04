@@ -49,7 +49,7 @@ main(int argc, char **argv)
 {
   Overture::start(argc,argv);  // initialize Overture
 
-  printF("Usage: `testIntegrate -grid=<gridName> -tz=trig -hybrid -surfOnly -interactive -amr -debug=<> -checkDataBase' \n");
+  printF("Usage: `testIntegrate -grid=<gridName> -tz=trig -hybrid -surfOnly -interactive -amr -debug=<> -checkDataBase -surfaceArea=<f> -volume=<f>' \n");
 
   const int maxNumberOfGridsToTest=4;
   int numberOfGridsToTest=maxNumberOfGridsToTest;
@@ -61,6 +61,10 @@ main(int argc, char **argv)
   bool interactiveStitching=false; // true;
   bool amr=false;
   bool checkDataBase=false;        // if true then saving and reading Integrate to a file.
+  
+  // The user may supply the exact values for comparison
+  real exactSurfaceArea=-1.;
+  real exactVolume=-1.;
   
   
   Integrate::debug=0;
@@ -99,6 +103,16 @@ main(int argc, char **argv)
       {
 	sScanF(line(len,line.length()-1),"%i",&Integrate::debug);
 	printF("Setting Integrate::debug=%i\n",Integrate::debug);
+      }
+      else if( len=line.matches("-surfaceArea=") )
+      {
+	sScanF(line(len,line.length()-1),"%e",&exactSurfaceArea);
+	printF("Setting exactSurfaceArea=%16.8e\n",exactSurfaceArea);
+      }
+      else if( len=line.matches("-volume=") )
+      {
+	sScanF(line(len,line.length()-1),"%e",&exactVolume);
+	printF("Setting exactVolume=%16.8e\n",exactVolume);
       }
       else if( len=line.matches("-grid=") )
       {
@@ -501,12 +515,19 @@ main(int argc, char **argv)
            " -------------- testIntegrate results for grid %s ---------------\n",
            (const char*)nameOfOGFile);
 
-    printF("surfaceArea =%e before any volume integrals\n",surfaceArea);
+    if( exactSurfaceArea>0. )
+      printF("surfaceArea =%e before any volume integrals, error=%12.4e\n",surfaceArea,surfaceArea-exactSurfaceArea);
+    else
+      printF("surfaceArea =%e before any volume integrals\n",surfaceArea);
     
     if( checkVolumes )
     {
       volume = integrate.volumeIntegral(u);
-      printF("volume = %e \n",volume);
+
+      if( exactVolume>0. )
+	printF("volume = %e, error=%12.4e \n",volume,volume-exactVolume);
+      else
+	printF("volume = %e \n",volume);
 
       surfaceArea = integrate.surfaceIntegral(u);
 

@@ -58,6 +58,8 @@ $probePosition=1.; # probe location in [0,1]
 #
 # recompute grid velocity on corrections
 $recomputeGVOnCorrection=0;
+#frequency to flush for output showfile
+$ff=10;
 * ----------------------------- get command line arguments ---------------------------------------
 GetOptions( "g=s"=>\$grid,"tf=f"=>\$tFinal,"implicitFactor=f"=>\$implicitFactor, "model=s"=>\$model,\
  "tp=f"=>\$tPlot, "tz=s"=>\$tz, "show=s"=>\$show,"order=i"=>\$order,"refactorFrequency=i"=>\$refactorFrequency, \
@@ -75,7 +77,7 @@ GetOptions( "g=s"=>\$grid,"tf=f"=>\$tFinal,"implicitFactor=f"=>\$implicitFactor,
   "useTP=i"=>\$useTP,"addedMassRelaxation=f"=>\$addedMassRelaxation,"addedMassTol=f"=>\$addedMassTol,\
   "smoothBeam=i"=>\$smoothBeam,"numberOfBeamSmooths=i"=>\$numberOfBeamSmooths,"numElem=i"=>\$numElem,"E=f"=>\$E,\
   "BM1=s"=>\$BM1,"bdebug=i"=>\$bdebug,"probePosition=f"=>\$probePosition,"recomputeGVOnCorrection=i"=>\$recomputeGVOnCorrection,\
-  "saveProbe=i"=>\$saveProbe,"useSameStencilSize=i"=>\$useSameStencilSize,"ps=s"=>\$ps,"cs=s"=>\$cs);
+  "saveProbe=i"=>\$saveProbe,"useSameStencilSize=i"=>\$useSameStencilSize,"ps=s"=>\$ps,"cs=s"=>\$cs,"ff=i"=>\$ff,"uIn=f"=>\$uIn);
 * -------------------------------------------------------------------------------------------------
 if( $solver eq "best" ){ $solver="choose best iterative solver"; }
 if( $solver eq "mg" ){ $solver="multigrid"; }
@@ -257,7 +259,7 @@ $grid
       open
       $show
     frequency to flush
-      10
+      $ff
     exit
 ***
 #

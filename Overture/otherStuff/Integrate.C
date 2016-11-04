@@ -1672,7 +1672,7 @@ computeWeights()
     solver->updateToMatchGrid(cg);
   
   bool useIterativeSolver= numberOfDimensions==3; // *************
-  if( true || useIterativeSolver )
+  if( false || useIterativeSolver )
   {
     solver->set(OgesParameters::THEbestIterativeSolver); // *************
     // solver->set(OgesParameters::PETSc);

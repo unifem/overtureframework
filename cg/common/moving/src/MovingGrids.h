@@ -70,6 +70,9 @@ virtual int getBoundaryAcceleration( MappedGrid & c, realSerialArray & gtt, int 
 
 bool getCorrectionHasConverged();
 
+// return the mass of the fluid that would be contained in body b.
+real getFluidMassOfBody( int b ) const;
+
 // Return the integrated fluid force and torque on a rigid body
 int getForceOnRigidBodies( RealArray & force, RealArray & torque, GridFunction & gf0,
 			   bool includeGravity = true, 
