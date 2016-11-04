@@ -16,6 +16,7 @@
 #     ogen -noplot splitDiskInDiskGrid -order=2 -interp=e -factor=2
 #     ogen -noplot splitDiskInDiskGrid -order=2 -interp=e -factor=4
 #     ogen -noplot splitDiskInDiskGrid -order=2 -interp=e -factor=8
+#     ogen -noplot splitDiskInDiskGrid -order=2 -interp=e -factor=16
 #
 # -- fixed radius of annular grids
 #     ogen -noplot splitDiskInDiskGrid -order=2 -interp=e -rgd=fixed -factor=2
@@ -23,6 +24,10 @@
 #     ogen -noplot splitDiskInDiskGrid -order=2 -interp=e -rgd=fixed -factor=8
 #     ogen -noplot splitDiskInDiskGrid -order=2 -interp=e -rgd=fixed -factor=16
 #
+# -- order=4
+#     ogen -noplot splitDiskInDiskGrid -order=4 -interp=e -rgd=fixed -factor=4
+#     ogen -noplot splitDiskInDiskGrid -order=4 -interp=e -rgd=fixed -factor=8
+# 
 # -- Grid using only annular grids (no background)
 #     ogen -noplot splitDiskInDiskGrid -order=2 -interp=e -rgd=half -factor=2
 # 

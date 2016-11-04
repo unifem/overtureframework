@@ -1,0 +1,49 @@
+==== 2012/05/03 -- CHECK FOR INVALID READ in bcoptedge3.f
+
+mpirun -np 1 -dbg=valgrind /home/henshaw.0/cgp/ins/bin/cgins -noplot /home/henshaw.0/runs/cgins/cyl3d/cyl3d -g=cylinderInAChannele2.order4.ml2 -nu=1.e-4 -tp=.01 -tf=.01 -move=0 -amp=.25 -rotationFreq=.0 -cfl=3. -psolver=mg -ts=afs -ad2=0 -ad4=1 -debug=1 -project=0 -freqFullUpdate=1 -numberOfParallelGhost=6 -go=go
+
+
+
+valgrindebug $ins/bin/cgins -noplot cyl3d -g=cylinderInAChannele2.order4.ml2 -nu=1.e-4 -tp=.01 -tf=.01 -move=0 -amp=.25 -rotationFreq=.0 -cfl=3. -psolver=mg -ts=afs -ad2=0 -ad4=1 -debug=1 -project=0 -freqFullUpdate=1 -numberOfParallelGhost=6 -go=go
+
+INVALID READ in fixbcoptedge3.f line 965
+srun -N4 -n48 -ppdebug memcheck_all $cginsp -noplot cyl3d -g=cylinderInAChannele2.order4.ml2 -nu=1.e-4 -tp=.01 -tf=.01 -move=0 -amp=.25 -rotationFreq=.0 -cfl=3. -psolver=mg -ts=afs -ad2=0 -ad4=1 -debug=1 -project=0 -freqFullUpdate=1 -numberOfParallelGhost=6 -go=go
+
+
+==== 2012/05/01 -- look at AFS22 with 3D stir:
+
+
+cgins cyl3d -g=stir3d1e3.order2.s4.ml1 -box=backGround -cylinder=stir1 -nu=1.e-2 -tp=.02 -tf=.2 -move=1 -amp=.25 -rotationFreq=.0 -cfl=5. -psolver=mg -ts=afs -ad2=1 -ad4=0 -debug=1 -go=halt
+
+cgins cyl3d -g=stir3d1e2.order2.s4.ml1 -box=backGround -cylinder=stir1 -nu=1.e-2 -tp=.02 -tf=.2 -move=1 -amp=.25 -rotationFreq=.0 -cfl=5. -psolver=mg -ts=afs -ad2=1 -ad4=0 -debug=1 -go=halt
+
+==== 2012/04/29
+
+valgrindebug $ins/bin/cgins -noplot cyl3d -g=cylinderInAChannele1.order4.ml1 -nu=1.e-3 -tp=.1 -tf=.1 -move=1 -amp=.25 -rotationFreq=.0 -cfl=5. -psolver=mg -ts=afs -ad2=0 -ad4=1 -debug=1 -freqFullUpdate=1 -numberOfParallelGhost=6 -go=go
+
+OK: 
+cgins -noplot cyl3d -g=cylinderInAChannele1.order4.ml1 -nu=1.e-3 -tp=.1 -tf=.2 -move=1 -amp=.25 -rotationFreq=.0 -cfl=5. -psolver=mg -ts=afs -ad2=0 -ad4=1 -debug=1 -freqFullUpdate=1 -numberOfParallelGhost=6 -go=go
+
+valgrindebug $ins/bin/cgins cyl3d -noplot -g=cylinderInAChannele1.order4.ml1 -nu=1.e-3 -tp=.1 -tf=.2 -move=1 -amp=.25 -rotationFreq=.0 -cfl=4. -psolver=mg -ts=afs -ad2=0 -ad4=1 -freqFullUpdate=1 -debug=3 -go=go 
+
+
+==== 2012/04/04 - 3D (moving) cylinder in a channel
+
+Parallel: pitch : OK: 
+mpirun -np 4 $cginsp cyl3d -g=cylinderInAChannele1.order4.ml1 -nu=1.e-3 -tp=.1 -tf=10. -move=1 -amp=.25 -rotationFreq=.0 -cfl=5. -psolver=mg -ts=afs -ad2=0 -ad4=1 -debug=2 -freqFullUpdate=1 -numberOfParallelGhost=4 -go=halt
+
+Paralle l ROTATE : OK
+mpirun -np 2 $cginsp cyl3d -g=cylinderInAChannele1.order4.ml1 -nu=1.e-3 -tp=.1 -tf=10. -move=1 -amp=0. -rotationFreq=.5 -cfl=5. -psolver=mg -ts=afs -ad2=0 -ad4=1 -debug=2 -freqFullUpdate=1 -numberOfParallelGhost=4 -go=halt
+
+
+ROTATE ONLY:
+cgins cyl3d -g=cylinderInAChannele1.order4.ml1 -nu=1.e-3 -tp=.1 -tf=10. -move=1 -amp=0. -rotationFreq=.5 -cfl=5. -psolver=mg -ts=afs -ad2=0 -ad4=1 -debug=3 -go=halt
+
+
+NOTE: reduce amplitude of motion for this coarse grid
+-- AFS: up and down motion: OK for some steps -- but then trouble with grid gen!
+cgins cyl3d -g=cylinderInAChannele1.order4.ml1 -nu=1.e-3 -tp=.1 -tf=10. -move=1 -freq=.25 -amp=.25 -cfl=4. -psolver=mg -ts=afs -ad2=0 -ad4=1 -debug=3 -go=halt
+
+-- AFS, non-moving, order=4: WHY does slip wall work?
+cgins cyl3d -g=cylinderInAChannele1.order4.ml1 -nu=1.e-3 -tp=.1 -tf=10. -move=0 -cfl=4. -psolver=mg -ts=afs -ad2=0 -ad4=1 -debug=3 -go=halt
+
