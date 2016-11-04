@@ -16,7 +16,7 @@
 #                          cx
 #
 # Usage:
-#   ogen [-noplot] fallingBodyGrid interp=[i|e] -order=[2|4|6] -factor=<i> ...
+#   ogen [-noplot] fallingBodyGrid interp=[i|e] -order=[2|4|6] -factor=<i> -rgd=[fixed|var] ...
 #        -shape=[rectangle|trapezoid] -addBottomRefinement=[0|1] -addTopRefinement=[0|1] -improveQuality=[0|1]
 #
 # Examples:
@@ -25,8 +25,13 @@
 #    ogen -noplot fallingBodyGrid -cy=-.25 -interp=e -order=2 -factor=8
 #    ogen -noplot fallingBodyGrid -cy=-.25 -interp=e -order=2 -factor=16
 #
+#
+#
 #  Top -refinement:
 #     ogen -noplot fallingBodyGrid -addBottomRefinement=0 -addTopRefinement=1 -prefix=risingBodyGrid -interp=e -order=2 -factor=2
+# 
+# -- fixed with grids:
+#    ogen -noplot fallingBodyGrid -addBottomRefinement=0 -addTopRefinement=1 -prefix=risingBodyGrid  -rgd=fixed -interp=e -order=2 -factor=2
 # 
 #  Rotated:
 #    ogen -noplot fallingBodyGrid -interp=e -order=2 -angle=45 -prefix=fallingBodyGridAngle45 -factor=2 
@@ -36,7 +41,7 @@
 #    -- rotated by 90 degrees:
 #   ogen -noplot fallingBodyGrid -interp=e -order=2 -addBottomRefinement=0 -angle=90 -shape=trapezoid -prefix=fallingTrapezoidGridAngle90 -factor=2 
 # 
-$prefix=""; $shape="rectangle"; $addBottomRefinement=1; $addTopRefinement=0; 
+$prefix=""; $shape="rectangle"; $addBottomRefinement=1; $addTopRefinement=0; $rgd="var";
 $order=2; $factor=1; $interp="i"; $ml=0; # default values
 $orderOfAccuracy = "second order"; $ng=2; $interpType = "implicit for all grids";
 $xa =-1.; $xb=1.; $ya=-1.; $yb=1.; 
@@ -58,6 +63,7 @@ GetOptions( "order=i"=>\$order,"factor=f"=> \$factor,"xa=f"=>\$xa,"xb=f"=>\$xb,"
 #
 if( $prefix eq "" && $shape eq "trapezoid" ){ $prefix = "fallingTrapezoidGrid"; }
 if( $prefix eq "" ){ $prefix="fallingBodyGrid"; }
+if( $rgd eq "fixed" ){ $prefix = $prefix . "Fixed"; }
 # 
 if( $order eq 4 ){ $orderOfAccuracy="fourth order"; $ng=2; }\
 elsif( $order eq 6 ){ $orderOfAccuracy="sixth order"; $ng=4; }\
@@ -212,6 +218,7 @@ SmoothedPolygon
   n-dist
     fixed normal distance
     $nDist = ($nr-5)*$ds; 
+    if( $rgd eq "fixed" ){ $nDist=.15; $nr=intmg( $nDist/$ds + 4.5 ); }
     -$nDist
   periodicity
     2

@@ -2,6 +2,34 @@
 Falling body examples to test added mass and added damping
 =================================================================================
 
+========================
+=== NOV 4 -- REDO rising body with fixed dt
+
+************** FIX DT ,   INCREASE nu , DO NOT IMPROVE QUALITY
+
+
+G32: NU=.05 dt=.0066
+nohup $cgins -noplot fallingBodyGrid.cmd -g=risingBodyGridFixede32.order2 -tf=2. -tp=.1 -nu=.05 -ts=im -density=.5 -radius=1. -gravity=-1. -amp=.1 -dtMax=.00025 -project=0 -numberOfCorrections=2 -omega=.2 -addedMass=1 -addedDamping=1 -addedDampingCoeff=1 -scaleAddedDampingWithDt=1 -addedDampingProjectVelocity=1 -useProvidedAcceleration=1 -useTP=0 -debug=3 -solver=best -psolver=best -rtolp=1.e-8 -atolp=1.e-10 -rtol=1.e-8 -atol=1.e-9 -ad2=0 -freqFullUpdate=1 -improveQuality=0 -show=risingBodyG32a.show -frequencyToFlush=1 -go=go >! risingBodyG32a.out
+
+
+G16: NU=.05 dt=.0125 
+cgins -noplot fallingBody.cmd -g=risingBodyGridFixede16.order2 -tf=2. -tp=.1 -nu=.05 -ts=im -density=.5 -radius=1. -gravity=-1. -amp=.1 -dtMax=.005 -project=0 -numberOfCorrections=2 -omega=.2 -addedMass=1 -addedDamping=1 -addedDampingCoeff=1 -scaleAddedDampingWithDt=1 -addedDampingProjectVelocity=1 -useProvidedAcceleration=1 -useTP=0 -debug=3 -solver=best -psolver=best -rtolp=1.e-7 -atolp=1.e-9 -rtol=1.e-7 -atol=1.e-8 -ad2=0 -freqFullUpdate=1 -improveQuality=0 -show=risingBodyG16a.show -go=go >! risingBodyG16a.out
+
+
+G8: NU=.05 dt=.022
+cgins -noplot fallingBody.cmd -g=risingBodyGridFixede8.order2 -tf=2. -tp=.1 -nu=.05 -ts=im -density=.5 -radius=1. -gravity=-1. -amp=.1 -dtMax=.01 -project=0 -numberOfCorrections=2 -omega=.2 -addedMass=1 -addedDamping=1 -addedDampingCoeff=1 -scaleAddedDampingWithDt=1 -addedDampingProjectVelocity=1 -useProvidedAcceleration=1 -useTP=0 -debug=3 -solver=best -psolver=best -rtolp=1.e-6 -atolp=1.e-8 -rtol=1.e-6 -atol=1.e-8 -ad2=0 -freqFullUpdate=1 -improveQuality=0 -show=risingBodyG8a.show -go=go >! risingBodyG8a.out
+
+G4: dt=.035 
+cgins -noplot fallingBody.cmd -g=risingBodyGridFixede4.order2 -tf=2. -tp=.1 -nu=.05 -ts=im -density=.5 -radius=1. -gravity=-1. -amp=.1 -dtMax=.02 -project=0 -numberOfCorrections=2 -omega=.2 -addedMass=1 -addedDamping=1 -addedDampingCoeff=1 -scaleAddedDampingWithDt=1 -addedDampingProjectVelocity=1 -useProvidedAcceleration=1 -useTP=0 -debug=3 -solver=best -psolver=best -rtolp=1.e-5 -atolp=1.e-7 -rtol=1.e-5 -atol=1.e-5 -ad2=0  -freqFullUpdate=1 -improveQuality=0 -show=risingBodyG4a.show -go=go >! risingBodyG4a.out
+
+
+G2: dtMax=.057 
+cgins -noplot fallingBody.cmd -g=risingBodyGridFixede2.order2 -tf=2. -tp=.1 -nu=.05 -ts=im -density=.5 -radius=1. -gravity=-1. -amp=.1 -dtMax=.04 -project=0 -numberOfCorrections=2 -omega=.2 -addedMass=1 -addedDamping=1 -addedDampingCoeff=1 -scaleAddedDampingWithDt=1 -addedDampingProjectVelocity=1 -useProvidedAcceleration=1 -useTP=0 -debug=3 -solver=best -psolver=best -rtolp=1.e-5 -atolp=1.e-7 -rtol=1.e-5 -atol=1.e-5 -ad2=0  -freqFullUpdate=1 -improveQuality=0 -show=risingBodyG2a.show -go=go >! risingBodyG2a.out
+
+
+
+
+
 *************************************
 ****** Oct 26, 2016
 

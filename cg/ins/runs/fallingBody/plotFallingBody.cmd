@@ -40,6 +40,13 @@
 #  plotStuff plotFallingBody.cmd -show=fallingBodyG4d0p1ampAD1pc.show
 # 
 # -- Paper:rising:
+#  plotStuff plotFallingBody.cmd -show=risingBodyG2a.show -matlab=risingBodyG2a
+#  plotStuff plotFallingBody.cmd -show=risingBodyG4a.show -matlab=risingBodyG4a
+#  plotStuff plotFallingBody.cmd -show=risingBodyG8a.show -matlab=risingBodyG8a
+#  plotStuff plotFallingBody.cmd -show=risingBodyG16a.show -matlab=risingBodyG16a
+#  plotStuff plotFallingBody.cmd -show=risingBodyG32a.show -matlab=risingBodyG32a
+#
+# -- Paper:rising: OLD
 #  plotStuff plotFallingBody.cmd -show=risingBodyG2.show -matlab=risingBodyG2
 #  plotStuff plotFallingBody.cmd -show=risingBodyG4.show -matlab=risingBodyG4
 #  plotStuff plotFallingBody.cmd -show=risingBodyG8.show -matlab=risingBodyG8

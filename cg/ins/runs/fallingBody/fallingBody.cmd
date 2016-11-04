@@ -26,7 +26,7 @@ $improveQuality=0; # 1=improve quality of interpolation
 #
 $radius=.125; $fallingBody="fallingBody";
 $gravity = -1.; # acceleration due to gravity
-$rampGravity=1; 
+$rampGravity=1;    $taGravity=0.1; $tbGravity=1.1; 
 $bodyForce=""; 
 $implicitFactor=.5; # for RB corrector. 1=BE, .5=TRap
 #
@@ -168,7 +168,6 @@ $grid
    gravity
      $gravityVector
    # optionally ramp gravity 
-   $taGravity=0; $tbGravity=1.; 
    if( $rampGravity eq 1 ){ $cmd ="OBPDE:set gravity time dependence\n ramp end values: 0,1 (start,end)\n ramp times: $taGravity,$tbGravity (start,end)\n ramp order: 3\n ramp function\n   exit"; }else{ $cmd="#"; }
    $cmd
    #  turn on 2nd-order AD here:
@@ -207,6 +206,8 @@ $grid
      #  -.001
      density
        $density
+     initial center of mass
+       0. 0. 0.
      #
       # moment of inertia of a rectangle: (M/12)*( w^2 + d^2) = (rhos*w*d/12)*(  w^2 + d^2 )
       $width=1.; $depth=.5; # do this for now 

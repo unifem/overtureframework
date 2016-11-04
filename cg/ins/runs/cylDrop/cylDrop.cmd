@@ -253,10 +253,10 @@ $grid
     #    Inflow pressure : $inflowPressure
     #    Outflow pressure = 0
     if( $bcOption eq "rampedPressure" ){ \
-      $cmd="$channelName=noSlipWall\n" . \
-           "$channelName(0,1)=outflow , pressure(1.*p+0.*p.n=0.)\n" . \
-           "$channelName(1,1)=inflowWithPressureAndTangentialVelocityGiven, uniform(u=0.,v=0.,p=1)\n" . \
-           "$channelName(1,1)=inflowWithPressureAndTangentialVelocityGiven, userDefinedBoundaryData\n" . \
+      $cmd="all=noSlipWall\n" . \
+           "bcNumber3=outflow , pressure(1.*p+0.*p.n=0.)\n" . \
+           "bcNumber4=inflowWithPressureAndTangentialVelocityGiven, uniform(u=0.,v=0.,p=1)\n" . \
+           "bcNumber4=inflowWithPressureAndTangentialVelocityGiven, userDefinedBoundaryData\n" . \
            "time function option\n" . \
            " ramp function\n" . \
            "   ramp end values: 0,$inflowPressure (start,end)\n". \

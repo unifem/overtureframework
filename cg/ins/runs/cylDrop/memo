@@ -1,4 +1,42 @@
 ********************************
+*****  Nov 4, 2016
+
+
+TRY RAMPED PRESSURE
+
+
+cgins -noplot cylDrop -g=risingDropGride1.order2.s3.hdf -tf=2. -tp=.1 -nu=.1 -ad2=0 -ts=im -density=0 -radius=.5 -dropName=drop -channelName=channel -bcOption=rampedPressure -inflowPressure=5 -d=1.25 -gravity=-10. -rampGravity=1 -dtMax=.1 -project=0 -numberOfCorrections=2 -omega=.1 -addedMass=1  -useProvidedAcceleration=1 -addedDamping=1 -addedDampingCoeff=1. -addedDampingProjectVelocity=1  -scaleAddedDampingWithDt=1 -useTP=0 -debug=3  -solver=best -psolver=best -rtolp=1.e-5 -atolp=1.e-12 -rtol=1.e-5 -atol=1.e-10 -freqFullUpdate=1 -show=risingDropG1b.show -go=go >! risingDropG1b.out
+
+cgins cylDrop -g=risingDropGride1.order2.s3.hdf -tf=2. -tp=.1 -nu=.1 -ad2=0 -ts=im -density=0 -radius=.5 -dropName=drop -channelName=channel -bcOption=rampedPressure -inflowPressure=8.25 -d=1.25 -gravity=-10. -rampGravity=1 -dtMax=.1 -project=0 -numberOfCorrections=2 -omega=.1 -addedMass=1  -useProvidedAcceleration=1 -addedDamping=1 -addedDampingCoeff=1. -addedDampingProjectVelocity=1  -scaleAddedDampingWithDt=1 -useTP=0 -debug=3  -solver=best -psolver=best -rtolp=1.e-5 -atolp=1.e-12 -rtol=1.e-5 -atol=1.e-10 -freqFullUpdate=1 -go=halt
+
+
+*** RERUN CYL-DROP WITH PARABOLIC INFLOW ***
+-- INCREASE inflow parabolic width
+
+
+G16 dt = .00625 = ds 
+nohup $cgins -noplot cylDrop -g=risingDropGride16.order2.s3.hdf -tf=2. -tp=.1 -nu=.1 -ad2=0 -ts=im -density=.0 -radius=.5 -dropName=drop -channelName=channel -bcOption=rampedVelocity -inflowVelocity=-1.15 -d=1.25 -gravity=-10. -rampGravity=1 -dtMax=.00625 -project=0 -numberOfCorrections=2 -omega=.1 -addedMass=1  -useProvidedAcceleration=1 -addedDamping=1 -addedDampingCoeff=1. -addedDampingProjectVelocity=1 -scaleAddedDampingWithDt=1 -useTP=0 -debug=3  -solver=best -psolver=best -rtolp=1.e-8 -atolp=1.e-12 -rtol=1.e-8 -atol=1.e-10 -freqFullUpdate=1 -flushFrequency=2 -show=risingDropG16a.show -go=go >! risingDropG16a.out &
+
+G8 dt = .0125 = ds 
+nohup $cgins -noplot cylDrop -g=risingDropGride8.order2.s3.hdf -tf=2. -tp=.1 -nu=.1 -ad2=0 -ts=im -density=.0 -radius=.5 -dropName=drop -channelName=channel -bcOption=rampedVelocity -inflowVelocity=-1.15 -d=1.25 -gravity=-10. -rampGravity=1 -dtMax=.0125 -project=0 -numberOfCorrections=2 -omega=.1 -addedMass=1  -useProvidedAcceleration=1 -addedDamping=1 -addedDampingCoeff=1. -addedDampingProjectVelocity=1 -scaleAddedDampingWithDt=1  -useTP=0 -debug=3  -solver=best -psolver=best -rtolp=1.e-7 -atolp=1.e-12 -rtol=1.e-7 -atol=1.e-10 -freqFullUpdate=1  -flushFrequency=2 -show=risingDropG8a.show -go=go >! risingDropG8a.out
+
+G4 dt = .025 = ds 
+cgins -noplot cylDrop -g=risingDropGride4.order2.s3.hdf -tf=2. -tp=.1 -nu=.1 -ad2=0 -ts=im -density=.0 -radius=.5 -dropName=drop -channelName=channel -bcOption=rampedVelocity -inflowVelocity=-1.15 -d=1.25 -gravity=-10. -rampGravity=1 -dtMax=.025 -project=0 -numberOfCorrections=2 -omega=.1 -addedMass=1  -useProvidedAcceleration=1 -addedDamping=1 -addedDampingCoeff=1. -addedDampingProjectVelocity=1  -scaleAddedDampingWithDt=1 -useTP=0 -debug=3  -solver=best -psolver=best -rtolp=1.e-6 -atolp=1.e-12 -rtol=1.e-6 -atol=1.e-10 -freqFullUpdate=1 -show=risingDropG4a.show -go=go >! risingDropG4a.out
+
+G2 - -d=.75 --> 4  inflow=-1.1
+cgins -noplot cylDrop -g=risingDropGride2.order2.s3.hdf -tf=2. -tp=.1 -nu=.1 -ad2=0 -ts=im -density=.0 -radius=.5 -dropName=drop -channelName=channel -bcOption=rampedVelocity -inflowVelocity=-1.15 -d=1.25 -gravity=-10. -rampGravity=1 -dtMax=.05 -project=0 -numberOfCorrections=2 -omega=.1 -addedMass=1  -useProvidedAcceleration=1 -addedDamping=1 -addedDampingCoeff=1. -addedDampingProjectVelocity=1  -scaleAddedDampingWithDt=1 -useTP=0 -debug=3  -solver=best -psolver=best -rtolp=1.e-5 -atolp=1.e-12 -rtol=1.e-5 -atol=1.e-10 -freqFullUpdate=1 -show=risingDropG2a.show -go=go >! risingDropG2a.out
+
+
+G1
+cgins -noplot cylDrop -g=risingDropGride1.order2.s3.hdf -tf=2. -tp=.1 -nu=.1 -ad2=0 -ts=im -density=0 -radius=.5 -dropName=drop -channelName=channel -bcOption=rampedVelocity -inflowVelocity=-1.15 -d=1.25 -gravity=-10. -rampGravity=1 -dtMax=.1 -project=0 -numberOfCorrections=2 -omega=.1 -addedMass=1  -useProvidedAcceleration=1 -addedDamping=1 -addedDampingCoeff=1. -addedDampingProjectVelocity=1  -scaleAddedDampingWithDt=1 -useTP=0 -debug=3  -solver=best -psolver=best -rtolp=1.e-5 -atolp=1.e-12 -rtol=1.e-5 -atol=1.e-10 -freqFullUpdate=1 -show=risingDropG1a.show -go=go >! risingDropG1a.out
+
+
+
+
+cgins cylDrop -g=risingDropGride2.order2.s3.hdf -tf=10. -tp=.05 -nu=.1 -ad2=0 -ts=im -density=.001 -radius=.5 -dropName=drop -channelName=channel -bcOption=rampedVelocity -inflowVelocity=-1.15 -d=1.25 -gravity=-10. -rampGravity=1 -dtMax=.05 -project=0 -numberOfCorrections=2 -omega=.1 -addedMass=1  -useProvidedAcceleration=1 -addedDamping=1 -addedDampingCoeff=1. -addedDampingProjectVelocity=1  -scaleAddedDampingWithDt=1 -useTP=0 -debug=3  -solver=best -psolver=best -rtolp=1.e-5 -atolp=1.e-12 -rtol=1.e-5 -atol=1.e-10 -freqFullUpdate=1 -go=halt
+
+
+********************************
 *****  October 28, 2016
 
 Rerun TP-SI to count average sub-iterations 
