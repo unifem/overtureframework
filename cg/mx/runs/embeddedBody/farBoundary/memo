@@ -1,0 +1,11 @@
+* Some grids made by the Makefile may not work correctly. Not all have been tested
+
+* Run FDTD scheme annular domain with far-field boundaries
+cgmx embeddedBodyChirp.cmd -g=embeddedBodyGridAnnulusi8.order4.hdf -diss=2.  -sidebc=abcEM2
+
+
+* Run SOSUP scheme annular domain with far-field boundaries
+cgmx embeddedBodyChirp.cmd -g=embeddedBodyGridAnnulusi8.order2.hdf -method=sosup -sidebc=abcEM2 
+
+*Make annular grids
+make annulusGrids
