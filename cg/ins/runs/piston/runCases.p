@@ -16,7 +16,7 @@ if ($numberOfParameters eq 0)
   
   printf("\n");
   printf("================================================================================\n");
-  printf("This perl script will run differnt cases...\n");
+  printf("This perl script will run different cases...\n");
   printf("  Usage: \n");
   printf("    runCases.p -option=[shearBlock|shearDisk|transDisk] -tf=<f> -rhos=<f> -projectVelocity=[0|1] ... \n");
   printf("               -instabilityErrorTol=<f> -beta=<f> \n");

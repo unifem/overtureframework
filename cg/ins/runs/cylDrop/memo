@@ -1,11 +1,32 @@
 ********************************
+*****  Nov 5, 2016
+
+TRY EASIER: need to test ramped gravity
+
+TRADITIONAL SCHEME with falling disk
+
+   ogen -noplot cylDropGrid.cmd -interp=e -radius=.25 -yb=2. -cx=1. -cy=1. -prefix=cylGridSmall -factor=2
+   ogen -noplot cylDropGrid.cmd -interp=e -radius=.25 -yb=2. -cx=1. -cy=1. -prefix=cylGridSmall -factor=4
+
+runCases.p -option=cylDrop -tf=0.5 -ng=3 -numResolutions=3
+
+
+
+cylGridSmalle2.order2.s3.hdf
+
+cgins -noplot cylDrop -g=cylGridSmalle2.order2.s3.hdf -tf=2. -tp=.1  -dtMax=.05  -nu=.1 -ad2=0 -ts=im -density=5 -radius=.25 -dropName=drop -channelName=channel -bcOption=walls -gravity=-1. -rampGravity=1 -project=0 -numberOfCorrections=2 -omega=.1 -addedMass=0  -useProvidedAcceleration=0 -addedDamping=0 -addedDampingCoeff=1. -addedDampingProjectVelocity=0  -scaleAddedDampingWithDt=0 -useTP=0 -debug=3  -solver=best -psolver=best -rtolp=1.e-5 -atolp=1.e-12 -rtol=1.e-5 -atol=1.e-10 -freqFullUpdate=1 -show=fallingDropG2.show -go=go >! fallingDropG2.out
+
+cgins -noplot cylDrop -g=cylGridSmalle2.order2.s3.hdf -tf=1. -tp=.1  -dtMax=.05 -nu=.1 -ad2=0 -ts=im -density=5 -radius=.25 -dropName=drop -channelName=channel -bcOption=walls -gravity=-1. -rampGravity=1-project=0 -numberOfCorrections=2 -omega=.1 -addedMass=0  -useProvidedAcceleration=0 -addedDamping=0 -addedDampingCoeff=1. -addedDampingProjectVelocity=0  -scaleAddedDampingWithDt=0 -useTP=0 -debug=3  -solver=best -psolver=best -rtolp=1.e-5 -atolp=1.e-12 -rtol=1.e-5 -atol=1.e-10 -freqFullUpdate=1 -show=fallingDropG2.show -go=og
+
+cgins -noplot cylDrop -g=cylGridSmalle2.order2.s3.hdf -tf=1. -tp=.1  -dtMax=.05 -nu=.1 -ad2=0 -ts=im -density=5 -radius=.25 -dropName=drop -channelName=channel  -bcOption=rampedPressure -inflowPressure=1. -gravity=0. -rampGravity=0 -project=0 -numberOfCorrections=2 -omega=.1 -addedMass=0  -useProvidedAcceleration=0 -addedDamping=0 -addedDampingCoeff=1. -addedDampingProjectVelocity=0  -scaleAddedDampingWithDt=0 -useTP=0 -debug=3  -solver=best -psolver=best -rtolp=1.e-5 -atolp=1.e-12 -rtol=1.e-5 -atol=1.e-10 -freqFullUpdate=1  -go=og
+
+********************************
 *****  Nov 4, 2016
 
 
-TRY RAMPED PRESSURE
+TRY RAMPED PRESSURE --- finish me ...
 
 
-cgins -noplot cylDrop -g=risingDropGride1.order2.s3.hdf -tf=2. -tp=.1 -nu=.1 -ad2=0 -ts=im -density=0 -radius=.5 -dropName=drop -channelName=channel -bcOption=rampedPressure -inflowPressure=5 -d=1.25 -gravity=-10. -rampGravity=1 -dtMax=.1 -project=0 -numberOfCorrections=2 -omega=.1 -addedMass=1  -useProvidedAcceleration=1 -addedDamping=1 -addedDampingCoeff=1. -addedDampingProjectVelocity=1  -scaleAddedDampingWithDt=1 -useTP=0 -debug=3  -solver=best -psolver=best -rtolp=1.e-5 -atolp=1.e-12 -rtol=1.e-5 -atol=1.e-10 -freqFullUpdate=1 -show=risingDropG1b.show -go=go >! risingDropG1b.out
 
 cgins cylDrop -g=risingDropGride1.order2.s3.hdf -tf=2. -tp=.1 -nu=.1 -ad2=0 -ts=im -density=0 -radius=.5 -dropName=drop -channelName=channel -bcOption=rampedPressure -inflowPressure=8.25 -d=1.25 -gravity=-10. -rampGravity=1 -dtMax=.1 -project=0 -numberOfCorrections=2 -omega=.1 -addedMass=1  -useProvidedAcceleration=1 -addedDamping=1 -addedDampingCoeff=1. -addedDampingProjectVelocity=1  -scaleAddedDampingWithDt=1 -useTP=0 -debug=3  -solver=best -psolver=best -rtolp=1.e-5 -atolp=1.e-12 -rtol=1.e-5 -atol=1.e-10 -freqFullUpdate=1 -go=halt
 

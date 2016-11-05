@@ -19,8 +19,8 @@
 #    ogen -noplot cylDropGrid.cmd -interp=e -factor=8 -ml=3
 #
 # -- bigger cylinder, small domain for testing 
-#    ogen -noplot cylDropGrid.cmd -interp=e -radius=.25 -yb=2. -cx=1. -cy=1. -prefix=cylGridSmall -factor=2
-#    ogen -noplot cylDropGrid.cmd -interp=e -radius=.25 -yb=2. -cx=1. -cy=1. -prefix=cylGridSmall -factor=4
+#    ogen -noplot cylDropGrid.cmd -interp=e -radius=.25 -ya=-1. -yb=2. -cx=1. -cy=1. -prefix=cylGridSmall -factor=2
+#    ogen -noplot cylDropGrid.cmd -interp=e -radius=.25 -ya=-1. -yb=2. -cx=1. -cy=1. -prefix=cylGridSmall -factor=4
 #
 # -- bigger cylinder, small domain. stretch backGround
 #    ogen -noplot cylDropGrid.cmd -interp=e -radius=.25 -yb=2. -cx=1. -cy=1. -blfc=3. -prefix=cylGridSmallStretched -factor=2

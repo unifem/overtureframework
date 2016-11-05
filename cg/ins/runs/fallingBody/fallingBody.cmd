@@ -26,7 +26,7 @@ $improveQuality=0; # 1=improve quality of interpolation
 #
 $radius=.125; $fallingBody="fallingBody";
 $gravity = -1.; # acceleration due to gravity
-$rampGravity=1;    $taGravity=0.1; $tbGravity=1.1; 
+$rampGravity=1;  $taGravity=0.; $tbGravity=1.; 
 $bodyForce=""; 
 $implicitFactor=.5; # for RB corrector. 1=BE, .5=TRap
 #

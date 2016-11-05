@@ -1,0 +1,27 @@
+***************************************************
+********* Nov 5, 2016
+
+Try specified deformation
+
+nohup $cgins -noplot cylinderDeform -g=deformingCylinderInAChannelGride2.order2.hdf -nu=.02 -tp=.1 -tf=1. -move=1 -cfl=.9 -psolver=best -ts=im -ad2=1 -ad4=0 -debug=3 -show=cylDeformG2.show -go=go >! cylDeformG2.out
+
+
+nohup $cgins -noplot cylinderDeform -g=deformingCylinderInAChannelGride1.order2.hdf -nu=.05 -tp=.1 -tf=4. -move=1 -cfl=.9 -psolver=best -ts=im -ad2=1 -ad4=0 -debug=3 -show=cylDeformG1.show -go=go >! cylDeformG1.out
+
+
+OK:
+cgins -noplot cylinderDeform -g=deformingCylinderInAChannelGride1.order2.hdf -nu=.05 -tp=.01 -tf=10. -move=1 -cfl=.9 -psolver=best -ts=im -ad2=1 -ad4=0 -debug=3 -go=og
+
+
+***************************************************
+********* Nov 4, 2016
+
+Create 3d grid for a deforming cylinder.
+
+Initial run:
+cgins -noplot cylinderDeform -g=deformingCylinderInAChannelGride1.order2.hdf -nu=.05 -tp=.01 -tf=10. -move=0 -cfl=.9 -psolver=best -ts=im -ad2=1 -ad4=0 -debug=3 -go=og
+
+
+ogen -noplot deformingCylinderInAChannelGrid -factor=1
+ogen -noplot deformingCylinderInAChannelGrid -factor=2
+

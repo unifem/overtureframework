@@ -169,7 +169,8 @@ $grid
      # 0. $gravity 0.
    # optionally ramp gravity 
    $taGravity=0; $tbGravity=1.; 
-   if( $rampGravity eq 1 ){ $cmd ="OBPDE:set gravity time dependence\n ramp end values: 0,1 (start,end)\n ramp times: $taGravity,$tbGravity (start,end)\n ramp order: 3\n ramp function\n   exit"; }else{ $cmd="#"; }
+   $rampOrder=3; 
+   if( $rampGravity eq 1 ){ $cmd ="OBPDE:set gravity time dependence\n ramp end values: 0,1 (start,end)\n ramp times: $taGravity,$tbGravity (start,end)\n ramp order: $rampOrder\n ramp function\n   exit"; }else{ $cmd="#"; }
    $cmd
    #  turn on 2nd-order AD here:
    OBPDE:second-order artificial diffusion $ad2
@@ -179,6 +180,11 @@ $grid
    OBPDE:divergence damping  $cdv
    # OBPDE:check for inflow at outflow
    # OBPDE:expect inflow at outflow
+   # Nov. 5, 2016:  *wdh*
+   $outflowOption="neumann";
+   if( $outflowOption eq "neumann" ){ $cmd = "use Neumann BC at outflow"; }else{ $cmd="use extrapolate BC at outflow"; }
+   $cmd
+#
   done
 #*************************************
   turn on moving grids
@@ -254,7 +260,7 @@ $grid
     #    Outflow pressure = 0
     if( $bcOption eq "rampedPressure" ){ \
       $cmd="all=noSlipWall\n" . \
-           "bcNumber3=outflow , pressure(1.*p+0.*p.n=0.)\n" . \
+           "bcNumber3=outflow , pressure(.1*p+1*p.n=0.)\n" . \
            "bcNumber4=inflowWithPressureAndTangentialVelocityGiven, uniform(u=0.,v=0.,p=1)\n" . \
            "bcNumber4=inflowWithPressureAndTangentialVelocityGiven, userDefinedBoundaryData\n" . \
            "time function option\n" . \

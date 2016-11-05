@@ -44,7 +44,8 @@ enum UserDefinedDeformingBodyMotionEnum
   nonlinearBeam,
   interfaceDeform,
   userDeformingSurface,  // deforming surface is defined by the function: userDefinedDeformingSurface
-  linearDeform // for testing the elastic piston problem 
+  linearDeform, // for testing the elastic piston problem 
+  cylDeform // beam cylinder
 }; 
  
 }
@@ -1343,6 +1344,37 @@ initialize( CompositeGrid & cg, real t /* = 0. */ )
         x0.reshape(I1,I2,numberOfDimensions);
 
       }
+
+      else if( userDefinedDeformingBodyMotionOption==cylDeform )
+      {
+        // deforming cylinder for testing 
+
+
+	Mapping & map = cg[gridToMove].mapping().getMapping();
+	assert( map.getClassName()=="HyperbolicMapping" );
+	HyperbolicMapping & hype = (HyperbolicMapping&)map;
+
+        Mapping *pStartSurface = (Mapping*)hype.getSurface();
+        assert( pStartSurface!=NULL );
+        Mapping & startSurface = *pStartSurface;
+
+        NurbsMapping & surf = *((NurbsMapping*)surface[face]);
+
+        int degree=3;
+        surf.interpolate(startSurface,degree,NurbsMapping::parameterizeByIndex);
+
+        realArray surfGrid; surfGrid = surf.getGrid();
+        #ifdef USE_PPP
+	  getLocalArrayWithGhostBoundaries( surfGrid, x0 );
+        #else
+	  x0.reference(surfGrid);
+        #endif 
+        Index I1=x0.dimension(0), I2=x0.dimension(1);
+        x0.reshape(I1,I2,numberOfDimensions);
+
+      }
+
+
       else if( userDefinedDeformingBodyMotionOption==freeSurface ||
                userDefinedDeformingBodyMotionOption==interfaceDeform )
       {
@@ -4876,6 +4908,7 @@ regenerateComponentGrids( const real newT, CompositeGrid & cg)
                                  (NurbsMapping::ParameterizationTypeEnum)boundaryParameterization);
         #endif
       }
+
       else  if( userDefinedDeformingBodyMotionOption==sphereDeform )
       {
         // Here is a sphere that expands to an ellipse
@@ -4920,6 +4953,49 @@ regenerateComponentGrids( const real newT, CompositeGrid & cg)
                                  (NurbsMapping::ParameterizationTypeEnum)boundaryParameterization);
         #endif
       }
+
+
+      else  if( userDefinedDeformingBodyMotionOption==cylDeform )
+      {
+        // Here is a deforming cylinder
+
+        // -- The array x0(i1,i2,0:2) holds the grid points on the original surface --
+
+        // -- fix me: these should be optional parameters:
+        real omega=sin(deformationFrequency*Pi*newT);  // omega varies in the interval [-1,1]
+
+        real ampx=.1;   // amplitude of motion in x-direction
+        real ampy=.0;   // amplitude of motion in y-direction
+        real ampz=.1;   // amplitude of motion in z-direction
+
+        // realArray x0;
+	// x0= startCurve.getGrid();
+        Index I1=x0.dimension(0), I2=x0.dimension(1);
+        // x0.reshape(I1,I2,3);
+        RealArray x1(I1,I2,cg.numberOfDimensions());
+        int i1,i2,i3;
+	for( int i2=I2.getBase(); i2<=I2.getBound(); i2++ )
+	for( int i1=I1.getBase(); i1<=I1.getBound(); i1++ )
+	{
+	  real x = x0(i1,i2,0), y=x0(i1,i2,1), z=x0(i1,i2,2);
+	  
+          // This motion assumes the cylinder is initiall parallel to the y-axis: 
+          x1(i1,i2,0) = x + ampx*.5*(1+cos(Pi*y))*omega;
+          x1(i1,i2,1) = y + ampy*.5*(1+cos(Pi*y))*omega;
+          x1(i1,i2,2) = z + ampz*.5*(1+cos(Pi*y))*omega;
+	  
+
+	}
+        #ifdef USE_PPP
+  	  Overture::abort("fix me");
+        #else
+          int option=0, degree=3;
+          const int boundaryParameterization = deformingBodyDataBase.get<int>("boundaryParameterization");
+          startCurve.interpolate(x1,option,Overture::nullRealDistributedArray(),degree,
+                                 (NurbsMapping::ParameterizationTypeEnum)boundaryParameterization);
+        #endif
+      }
+
       else if( userDefinedDeformingBodyMotionOption==freeSurface ||
                userDefinedDeformingBodyMotionOption==interfaceDeform ||
                userDefinedDeformingBodyMotionOption==elasticShell ||
@@ -5961,6 +6037,7 @@ update(CompositeGrid & cg, GenericGraphicsInterface & gi )
         "interface deform",
         "user defined deforming surface",
         "linear deform",  // for testing the elastic piston problem
+        "cyl deform", // deforming cylinder
       "<>parameters",
         "debug",
         "deformation frequency",
@@ -6055,6 +6132,11 @@ update(CompositeGrid & cg, GenericGraphicsInterface & gi )
     {
       userDefinedDeformingBodyMotionOption=sphereDeform;
     }
+    else if( answer=="cyl deform" )
+    {
+      userDefinedDeformingBodyMotionOption=cylDeform;
+    }
+
     else if( answer=="interface deform" )
     {
       userDefinedDeformingBodyMotionOption=interfaceDeform;
