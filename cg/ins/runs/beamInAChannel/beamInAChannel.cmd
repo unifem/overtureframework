@@ -48,7 +48,7 @@ $smoothBeam=0; $numnberOfBeamSmooths=2;
 $useTP=0; # set to 1 to iterate with TP scheme
 $addedMassRelaxation=1.; # 1=no-relaxation
 $addedMassTol=1.e-3;
-$numberOfCorrections=100; 
+$numberOfCorrections=1; 
 #
 $newmarkBeta=.25; $newMarkGamma=.5; # second-order, BE: set beta=.5 gamma=1
 $probeFileName="beamTipFile.txt"; 
