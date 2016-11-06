@@ -261,6 +261,7 @@ outputLatexTable( const std::vector<aString> gridName,
 		  const std::vector<aString> cName, 
 		  const RealArray & cErr, 
 		  const RealArray & cSigma,  
+                  const RealArray & timeArray,
                   const int norm=-1,
 		  FILE *file=stdout,
                   const bool assumeFineGridHoldsExactSolution=false )
@@ -323,8 +324,9 @@ outputLatexTable( const std::vector<aString> gridName,
   aString dateString = ctime(tp);
   delete tp;
     
-  fprintf(file,"\\caption{%s-norm self convergence results, %s. }\n",
-	  (norm==0 ? "Max" : norm==1 ? "L2" : "L1"),(const char*)dateString(0,dateString.length()-2) );   // caption
+  fprintf(file,"\\caption{%s-norm self convergence results, t=%12.6e, %s. }\n",
+	  (norm==0 ? "Max" : norm==1 ? "L2" : "L1"),timeArray(0),
+          (const char*)dateString(0,dateString.length()-2) );   // caption
 
   fprintf(file,"\\end{center}\n");
   fprintf(file,"\\end{table}\n");
@@ -1382,7 +1384,7 @@ main(int argc, char *argv[])
 	  for( int io=0; io<=1; io++ )
 	  {
 	    FILE *file = io==0 ? stdout : outFile;
-	    outputLatexTable( gridName, cName, cErr, cSigma, norm, file, assumeFineGridHoldsExactSolution );
+	    outputLatexTable( gridName, cName, cErr, cSigma, time, norm, file, assumeFineGridHoldsExactSolution );
 	  }
 
 

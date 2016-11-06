@@ -15,7 +15,7 @@
 #  cgins cylDrop -g=cylDropGride2.order2.s3.hdf -tf=1. -tp=.05 -nu=.1 -density=1.25 -dtMax=.75e-3 -go=halt 
 # 
 #
-$model="ins"; $solver = "best"; $show=" "; $ts="pc"; $noplot=""; 
+$model="ins"; $solver = "best"; $show=" "; $ts="pc"; $noplot=""; $move=1; 
 $density=1.25; 
 $inertia="-1"; # set this to over-ride computed inertia, -1=auto-compute 
 $nu = .1; $dtMax=.05; $newts=0; $movingWall=0; 
@@ -55,7 +55,7 @@ $freqFullUpdate=10; $flushFrequency=10;
 $ampSinusoidalPressure=1.; $freqSinusoidalPressure=1.; # for sinusoidal pressure option
 #
 # ----------------------------- get command line arguments ---------------------------------------
-GetOptions( "g=s"=>\$grid,"tf=f"=>\$tFinal,"model=s"=>\$model,"inflowVelocity=f"=>\$inflowVelocity,\
+GetOptions( "g=s"=>\$grid,"tf=f"=>\$tFinal,"model=s"=>\$model,"inflowVelocity=f"=>\$inflowVelocity,"move=i"=>\$move,\
  "tp=f"=>\$tPlot,"solver=s"=>\$solver,"psolver=s"=>\$psolver,"show=s"=>\$show,"debug=i"=>\$debug,"d=f"=>\$d, \
  "ts=s"=>\$ts,"nu=f"=>\$nu,"cfl=f"=>\$cfl,"go=s"=>\$go,"numDrops=i"=> \$numDrops,"newts=i"=> \$newts,\
  "noplot=s"=>\$noplot,"project=i"=>\$project,"rf=i"=> \$refactorFrequency,"bcOption=s"=>\$bcOption,\
@@ -187,7 +187,8 @@ $grid
 #
   done
 #*************************************
-  turn on moving grids
+  if( $move eq 1 ){ $cmd="turn on moving grids"; } else{ $cmd="#"; }
+  $cmd
 #*************************
   detect collisions 1
   minimum separation for collisions $sep

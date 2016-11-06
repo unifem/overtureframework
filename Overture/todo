@@ -21,6 +21,9 @@
 
 --------- Things to do: -----------
 
+2016: add dialog for "line plots" in contour function
+
+
 2015 : fix Block PARTI function datamove.c -- no need to send messages in blocks of processors.
        c.f. study by Jeff B. for Loki
 
@@ -39,6 +42,9 @@
 *****************************************
 
 --------- Things to do: -----------
+
+2016: add option to "comp" for potting rates over time
+
 
 0802: Add option to InterpolatePoints to also extrap pts that are outside the domain
       as the old interpolatePoints used to do. Test Interpolate points more -- esp. optimized version. 

@@ -19,8 +19,8 @@
 #    ogen -noplot cylDropGrid.cmd -interp=e -factor=8 -ml=3
 #
 # -- bigger cylinder, small domain for testing 
-#    ogen -noplot cylDropGrid.cmd -interp=e -radius=.25 -ya=-1. -yb=2. -cx=1. -cy=1. -prefix=cylGridSmall -factor=2
-#    ogen -noplot cylDropGrid.cmd -interp=e -radius=.25 -ya=-1. -yb=2. -cx=1. -cy=1. -prefix=cylGridSmall -factor=4
+#    ogen -noplot cylDropGrid.cmd -interp=e -radius=.25 -yb=2. -cx=1. -cy=1. -prefix=cylGridSmall -factor=2
+#    ogen -noplot cylDropGrid.cmd -interp=e -radius=.25 -yb=2. -cx=1. -cy=1. -prefix=cylGridSmall -factor=4
 #
 # -- bigger cylinder, small domain. stretch backGround
 #    ogen -noplot cylDropGrid.cmd -interp=e -radius=.25 -yb=2. -cx=1. -cy=1. -blfc=3. -prefix=cylGridSmallStretched -factor=2
@@ -50,7 +50,7 @@ $numGhost=-1;  # if this value is set, then use this number of ghost points
 # get command line arguments
 GetOptions( "order=i"=>\$order,"factor=f"=> \$factor,"xa=f"=>\$xa,"xb=f"=>\$xb,"ya=f"=>\$ya,"yb=f"=>\$yb,\
             "interp=s"=> \$interp,"name=s"=> \$name,"ml=i"=>\$ml,"blf=f"=> \$blf,"blfc=f"=> \$blfc,\
-            "prefix=s"=> \$prefix,"wallStretchOption=i"=>\$wallStretchOption,\
+            "prefix=s"=> \$prefix,"wallStretchOption=i"=>\$wallStretchOption,"deltaRadius0=f"=> \$deltaRadius0,\
             "radius=f"=>\$radius,"cx=f"=>\$cx,"cy=f"=>\$cy,"rgd=s"=> \$rgd,"numGhost=i"=>\$numGhost );
 # 
 if( $order eq 4 ){ $orderOfAccuracy="fourth order"; $ng=2; }\
