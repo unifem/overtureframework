@@ -1,0 +1,425 @@
+% Falling disk settling onto a bottom wall
+% \newcommand{\Gcrd}{\Gc_{\rm rd}}% Grid 
+%\clearpage
+\definecolor{jwbGreen}{rgb}{0, .6, 0}
+\newcommand{\ampRB}{AMP-RB}% name of scheme
+\newcommand{\old}[1]{{\color{red}old: #1}}
+\newcommand{\jwb}[1]{{\color{jwbGreen}#1}}
+\newcommand{\Gcrd}{\Gc_{\rm{rd}}}% grid for the rotating disk 
+\newlength{\ycbTop}% For colour bar
+\newlength{\ycbMid}%
+\newcommand{\channelWidth}{{x_c}}
+\newcommand{\profileWidth}{{x_p}}
+\newcommand{\channelBottom}{{y_0}}
+\newcommand{\channelTop}{{y_1}}
+\newcommand{\diskRadius}{{R_b}}
+\newcommand{\rampFunction}{{\cal R}}
+\newcommand{\f}[2]{\frac{#1}{#2}}% \frac short form
+\newcommand{\fvbe}{\fv_e}% extranal force on body
+\newcommand{\gvbe}{\gv_e}% external torque on body
+
+
+\subsection{Rising disk in a counter-flow} \label{sec:diskDrop}
+
+\noindent{\blue Note: this section was dropped from the rbins paper.}
+\medskip
+
+Now consider a buoyant and light rigid disk translating and rotating in a vertical channel.
+This problem is used to evaluate the~\ampRB~scheme for a light solid
+undergoing significant translation and 
+rotation. Due to these motions both added-mass and added-damping
+effects are present, and their relative importance changes as the flow field evolves.
+ A downward flow is imposed
+to keep the disk close to the central portion of the computational domain over an extended period of time.
+
+% ------------------ GRID FIGURE ----
+\input tex/risingDiskGridFig
+% ---------- STREAM LINES -------
+\input tex/risingDiskStreamlinesFig
+
+
+\input tex/risingDiskCurvesFig
+
+
+The geometry of the problem is shown in Figure~\ref{fig:risingDiskGrid}.  The fluid channel
+covers the rectangular domain $[-\channelWidth,\channelWidth]\times[\channelBottom,\channelTop]$,
+where $\channelWidth=5/4$, $\channelBottom=-8$ and $\channelTop=6$.  
+The solid disk, with radius $\diskRadius=1/2$, is initially centred at $(x,y)=(.5,.5)$. 
+% The radius of the
+% solid disk is $\diskRadius=1/2$ and it is centred at $(x,y)=(1/2,1/2)$ initially.
+The flow in the channel and the motion of the solid disk are initiated from
+rest by smoothly turning on a downward flow at the top of the channel and  smoothly turning on a body
+force on the solid due to gravity.
+%To avoid a non-smooth impulsive start (which would likely result in at best first-order accurate results), 
+%the initial conditions are taken as zero for all variables and
+%gravity and the inflow conditions are smoothly ramped
+%over time using the ramp function~\eqref{eq:ramp}. 
+At the top of the channel, a parabolic-like inflow profile is
+specified as
+\begin{align*}
+    u(x,\channelTop,t)=0,\qquad 
+    v(x,\channelTop,t) = V_0\,\rampFunction(t)\,
+                \begin{cases} 
+                    \f{(x+\channelWidth)^2}{(\channelWidth-\profileWidth)^2},   & \text{for $x\in[-\channelWidth,-\profileWidth]$}, \\
+                    1    ,                      & \text{for $|x|< \profileWidth$}, \\
+                    \f{(x-\channelWidth)^2}{(\channelWidth-\profileWidth)^2},   & \text{for $x\in[\profileWidth,\channelWidth]$},
+                 \end{cases}
+\end{align*}
+where $\profileWidth=1/2$ measures the width of the uniform-velocity core of the profile, $\rampFunction(t)$ is the ramp function given in~\eqref{eq:ramp}, and the downward
+velocity at inflow is taken as $V_0=-1.15$. 
+No-slip boundary conditions are taken on the left and right sides of the channel, and on
+the surface of the solid disk.  
+An outflow boundary condition is taken at the bottom boundary of the channel, with the
+pressure set to zero and the tangential components of the velocity extrapolated.
+The fluid density and viscosity are taken to be $\rho=1$ and $\mu=1$, respectively, and the
+density of the solid disk is $\rhob=0.001$.  The body force due to gravity is given by
+\[
+\fvbe(t)=\pi\diskRadius\sp2(\rho_b-\rho) \, \gv \, \rampFunction(t),
+\]
+where the acceleration due to gravity is taken to be $\gv=[0,\,-10]\sp{T}$ for the present simulation.
+%For the simulations shown, gravity is downward with a magnitude of $g=10$. The viscosity 
+%is taken as $\nu=1$, the fluid densiy is $\rho=1$ and the body density is $\rhob=10^{-3}$. 
+
+
+
+The composite grid for the problem at $t=0$ is shown in Figure~\ref{fig:risingDiskGrid}.
+The grid with resolution factor~$j$ is denoted by~$\Gcrd^{(j)}$, and 
+consists of six component grids. Portions of the inlet and outlet regions
+of the fluid domain are covered with coarser grids that span the channel.
+These grids have grid points clustered near the vertical side walls, and they are also stretched
+in the vertical direction to coarsen the grid away from the central portion of the computational domain.
+Finer grids are used near the disk and they consist of two boundary layer grids,
+a Cartesian background grid, and a stretched annular grid around the disk.  This latter
+component grid translates and rotates with the solid disk.
+
+
+
+Figure~\ref{fig:risingDiskStreamLines} shows (instantaneous) streamlines of the solution at a sequence
+of times and the evolution of the centre of the solid disk.  This figure is complemented by the plots in Figure~\ref{fig:risingDropCurves} which show the position, velocity and acceleration of the body over time.
+At early times, the disk experiences a torque due to the larger downward velocity in the central portion of the channel
+and the resulting larger viscous shear on the surface of the disk.  This torque causes the disk to spin in a
+counter-clockwise direction at early times as shown by the angular displacement in the top plot of Figure~\ref{fig:risingDropCurves}.  The fluid pressure is greater near the wall, and this tends to push the solid towards
+the centre of the channel.  The upward force on the body due to its buoyancy approximately balances the viscous drag on
+the disk so that it remains close to its initial vertical position.  It is interesting to observe that the body
+experiences a decaying oscillation in both the horizontal position and its angular displacement (see Figure~\ref{fig:risingDropCurves}).
+%and beings to spin in a counter-clockwise directon.
+%At the same time, the disk beings to rise and move toward the centre of the channel. 
+%Eventually the disk begins to move slowly upward as indicated by $y_b$ (recall that there is a downward flow), with a slight
+%vertical oscillation (see $v_{b2}$). 
+%The disk also settles into a slowly decaying left-right oscillation about the centre of the channel as indicated by $x_b$ and $v_{b1}$. 
+
+
+% Figure~\ref{fig:risingDropPositionCurves}, \ref{fig:risingDropVelocityCurves}, and~\ref{fig:risingDropAccelerationCurves}.
+
+%The plots of position, velocity and acceleration in Figure~\ref{fig:risingDropCurves}).
+The plots of position, velocity and acceleration in Figure~\ref{fig:risingDropCurves}, and their corresponding
+enlarged views, indicate the
+convergence behaviour of the solutions computed using the composite grids, $\Gcrd^{(j)}$, $j=1$, 2, 4, 8 and~16.
+%The results of a grid convergence study on the rigid-body variables are presented in Figure~\ref{fig:risingDropCurves}.
+For all variables plotted, 
+As noted previously for the rising rectangular solid in Section~\ref{sec:fallingBody}, the curves for acceleration are not as smooth as those for the position and velocity.
+This is due to perturbations introduced by changes in the connectivity of the composite grid and by abrupt change in the time-step.  The amplitude of these perturbations decrease as the grid is refined.
+It is noted that for later times, the vertical position of the disk, $y_b$, converges  slowly.
+The vertical position is not strongly constrained by the geometry and it can slowly drift at later times due to small errors
+at earlier times. 
+
+% ------- compare to TP-SI ----------------
+\input tex/risingDiskCompareTPFig
+
+
+% \dws{(I am wondering whether this last plot is needed since we showed in the previous section that
+% the results of the two schemes agree.  The value here just reconfirms the earlier result, although
+% the 2000 sub-iteration is amusing.)}
+
+Figure~\ref{fig:risingLightDiskCompareTP} compares results from the~\ampRB~scheme with the TP-RB~scheme
+for the grid $\Gcrd^{(4)}$.  The results are nearly
+identical. These results again confirm that the additional terms introduced into the~\ampRB~scheme, such as the added-damping tensors,
+correctly represent the physics of the problem. This is quite a difficult case for the TP-RB~scheme, requiring a small relaxation parameter and
+an average of 2000 sub-time-step iterations per step.
+%(2000 iterations 
+%Tris he TP-SI scheme required,  on average, more than 2000 sub-iterations per time-step in this simulation.
+
+
+% --------------------------------------------------------------------------------------------------------------------
+% --------------------------------------------------------------------------------------------------------------------
+% \subsubsection{*NEWER* inlet-outlet grids $\rhob=.001$, $\nu=.1$}
+
+
+
+
+
+%- % --------------------------------------------------------------------------------------------------------------
+%- %----------------------------------OLD newer  -----------------------------------------------------------------
+%- % --------------------------------------------------------------------------------------------------------------
+%- \clearpage
+%- \subsubsection{*NEW* $\rhob=.001$, $\nu=.1$}
+%- 
+%- {% ------ BODY CURVES  THETA, XB, YB ------
+%- \newcommand{\figWidth}{10.cm}
+%- \newcommand{\trimfig}[2]{\trimFig{#1}{#2}{.0}{.0}{.0}{.0}}
+%- % zoom: 
+%- \newcommand{\figWidthz}{5.5cm}
+%- \newcommand{\trimfigz}[2]{\trimFig{#1}{#2}{.0}{.0}{.0}{.0}}
+%- \begin{figure}[htb]
+%- \begin{centre}
+%- \begin{tikzpicture}[scale=1]
+%-   \useasboundingbox (0.0,.25) rectangle (16.,9);  % set the bounding box (so we have less surrounding white space)
+%- %
+%-   \draw(0.0,0.0) node[anchor=south west,xshift=-4pt,yshift=+0pt] {\trimfig{diskDrop/risingLightDiskPosition}{\figWidth}};
+%-   \draw(10.5,-.5) node[anchor=south west,xshift=-4pt,yshift=+0pt] {\trimfigz{diskDrop/risingLightDiskThetaZoom}{\figWidthz}};
+%-   \draw(10.5,4.0) node[anchor=south west,xshift=-4pt,yshift=+0pt] {\trimfigz{diskDrop/risingLightDiskXbZoom}{\figWidthz}};
+%- %
+%- %
+%- % grid:
+%- % \draw[step=1cm,gray] (0,0) grid (16,9);
+%- \end{tikzpicture}
+%- \end{centre}
+%-   \caption{Rising light disk in a counter flow. Body position and rotation.
+%-    % Results for grid G4 are in colour. Results for grid G8 are in black. 
+%- %    Horizontal components of the displacement, $x_1$, velocity $v_1$ and acceleration $a_1$ of the rigid body.
+%- %     Grid $\Gc^{(2)}$. 
+%-      }
+%-   \label{fig:risingLightDiskPositionCurves}
+%- \end{figure}
+%- }
+%- 
+%- {% ------ BODY VELOCITY CURVES ------
+%- \newcommand{\figWidth}{8.cm}
+%- \newcommand{\trimfig}[2]{\trimFig{#1}{#2}{.0}{.0}{.0}{.0}}
+%- % zoom: 
+%- \newcommand{\figWidthz}{8cm}
+%- \newcommand{\trimfigz}[2]{\trimFig{#1}{#2}{.0}{.0}{.0}{.0}}
+%- \begin{figure}[htb]
+%- \begin{centre}
+%- \begin{tikzpicture}[scale=1]
+%-   \useasboundingbox (0.0,.5) rectangle (16.,7);  % set the bounding box (so we have less surrounding white space)
+%- %
+%-   \draw(0.0,0.0) node[anchor=south west,xshift=-4pt,yshift=+0pt] {\trimfig{diskDrop/risingLightDiskVelocity}{\figWidth}};
+%-   \draw(8.5,0) node[anchor=south west,xshift=-4pt,yshift=+0pt] {\trimfigz{diskDrop/risingLightDiskVelocityZoom}{\figWidthz}};
+%- %
+%- %
+%- % grid:
+%- % \draw[step=1cm,gray] (0,0) grid (16,7);
+%- \end{tikzpicture}
+%- \end{centre}
+%-   \caption{Rising light disk in a counter flow. Body velocities.
+%-    % Results for grid G4 are in colour. Results for grid G8 are in black. 
+%- %    Horizontal components of the displacement, $x_1$, velocity $v_1$ and acceleration $a_1$ of the rigid body.
+%- %     Grid $\Gc^{(2)}$. 
+%-      }
+%-   \label{fig:risingLightDiskVelocityCurves}
+%- \end{figure}
+%- }
+%- {% ------ BODY ACCELERATION CURVES ------
+%- \newcommand{\figWidth}{8.cm}
+%- \newcommand{\trimfig}[2]{\trimFig{#1}{#2}{.0}{.0}{.0}{.0}}
+%- % zoom: 
+%- \newcommand{\figWidthz}{8cm}
+%- \newcommand{\trimfigz}[2]{\trimFig{#1}{#2}{.0}{.0}{.0}{.0}}
+%- \begin{figure}[htb]
+%- \begin{centre}
+%- \begin{tikzpicture}[scale=1]
+%-   \useasboundingbox (0.0,.5) rectangle (16.,7);  % set the bounding box (so we have less surrounding white space)
+%- %
+%-   \draw(0.0,0.0) node[anchor=south west,xshift=-4pt,yshift=+0pt] {\trimfig{diskDrop/risingLightDiskAcceleration}{\figWidth}};
+%-   \draw(8.5,0) node[anchor=south west,xshift=-4pt,yshift=+0pt] {\trimfigz{diskDrop/risingLightDiskAccelerationZoom}{\figWidthz}};
+%- %
+%- %
+%- % grid:
+%- % \draw[step=1cm,gray] (0,0) grid (16,7);
+%- \end{tikzpicture}
+%- \end{centre}
+%-   \caption{Rising light disk in a counter flow. Body accelerations. BLIPS in G8 dues to bug in changing $\dt$ FIX ME.
+%-    % Results for grid G4 are in colour. Results for grid G8 are in black. 
+%- %    Horizontal components of the displacement, $x_1$, velocity $v_1$ and acceleration $a_1$ of the rigid body.
+%- %     Grid $\Gc^{(2)}$. 
+%-      }
+%-   \label{fig:risingLightDiskAccelerationCurves}
+%- \end{figure}
+%- }
+%- 
+%- {% ------ BODY COMPARE TO TP ------
+%- \newcommand{\figWidth}{7.5cm}
+%- \newcommand{\trimfig}[2]{\trimFigb{#1}{#2}{.0}{.0}{.0}{.0}}
+%- \begin{figure}[htb]
+%- \begin{centre}
+%- \begin{tikzpicture}[scale=1]
+%-   \useasboundingbox (0.0,.5) rectangle (16.,13);  % set the bounding box (so we have less surrounding white space)
+%- %
+%-   \draw(0.0,6.5) node[anchor=south west,xshift=-4pt,yshift=+0pt] {\trimfig{diskDrop/risingLightDiskPositionCompareTP}{\figWidth}};
+%-   \draw(8.0,6.5) node[anchor=south west,xshift=-4pt,yshift=+0pt] {\trimfig{diskDrop/risingLightDiskVelocityCompareTP}{\figWidth}};
+%-   \draw(4.,0) node[anchor=south west,xshift=-4pt,yshift=+0pt] {\trimfig{diskDrop/risingLightDiskAccelerationCompareTP}{\figWidth}};
+%- %
+%- %
+%- % grid:
+%- % \draw[step=1cm,gray] (0,0) grid (16,13);
+%- \end{tikzpicture}
+%- \end{centre}
+%-   \caption{Rising light disk in a counter flow. Comparison to TP-SI scheme for G4.
+%-    % Results for grid G4 are in colour. Results for grid G8 are in black. 
+%- %    Horizontal components of the displacement, $x_1$, velocity $v_1$ and acceleration $a_1$ of the rigid body.
+%- %     Grid $\Gc^{(2)}$. 
+%-      }
+%-   \label{fig:risingLightDiskCompareTP}
+%- \end{figure}
+%- }
+%- 
+%- {% ------ BODY CURVES  ------
+%- \newcommand{\figWidth}{8.cm}
+%- \newcommand{\trimfig}[2]{\trimFig{#1}{#2}{.0}{.0}{.0}{.0}}
+%- % zoom: 
+%- \newcommand{\figWidthz}{5.cm}
+%- \newcommand{\trimfigz}[2]{\trimFig{#1}{#2}{.0}{.0}{.0}{.0}}
+%- \begin{figure}[htb]
+%- \begin{centre}
+%- \begin{tikzpicture}[scale=1]
+%-   \useasboundingbox (0.0,.75) rectangle (16.,20.5);  % set the bounding box (so we have less surrounding white space)
+%- %
+%-   \draw(8.0,14) node[anchor=south west,xshift=-4pt,yshift=+0pt] {\trimfig{diskDrop/risingLightDiskAnimationCase4}{\figWidth}};
+%- %
+%-   \draw(0.0,7) node[anchor=south west,xshift=-4pt,yshift=+0pt] {\trimfig{diskDrop/risingLightDiskPosition}{\figWidth}};
+%-   \draw(8.5,6.5) node[anchor=south west,xshift=-4pt,yshift=+0pt] {\trimfigz{diskDrop/risingLightDiskThetaZoom}{\figWidthz}};
+%-   \draw(8.5,10.5) node[anchor=south west,xshift=-4pt,yshift=+0pt] {\trimfigz{diskDrop/risingLightDiskXbZoom}{\figWidthz}};
+%- %
+%-   \draw(0.0,0) node[anchor=south west,xshift=-4pt,yshift=+0pt] {\trimfig{diskDrop/risingLightDiskAcceleration}{\figWidth}};
+%-   \draw(8.0,0) node[anchor=south west,xshift=-4pt,yshift=+0pt] {\trimfig{diskDrop/risingLightDiskVelocity}{\figWidth}};
+%- %
+%- % grid:
+%-  \draw[step=1cm,gray] (0,0) grid (16,20);
+%- \end{tikzpicture}
+%- \end{centre}
+%-   \caption{Rising light disk in a counter flow. 
+%-    % Results for grid G4 are in colour. Results for grid G8 are in black. 
+%- %    Horizontal components of the displacement, $x_1$, velocity $v_1$ and acceleration $a_1$ of the rigid body.
+%- %     Grid $\Gc^{(2)}$. 
+%-      }
+%-   \label{fig:risingLightDiskCurves}
+%- \end{figure}
+%- }
+
+
+%- % -----------------------------------------------------------------
+%- \clearpage
+%- \subsubsection{CASE III $\nu=.1$}
+%- 
+%- 
+%- {% ------ BODY CURVES  ------
+%- \newcommand{\figWidth}{8.cm}
+%- \newcommand{\figWidthA}{12.cm}
+%- \newcommand{\trimfig}[2]{\trimFig{#1}{#2}{.0}{.0}{.0}{.0}}
+%- \begin{figure}[htb]
+%- \begin{centre}
+%- \begin{tikzpicture}[scale=1]
+%-   \useasboundingbox (0.0,.75) rectangle (16.,20.5);  % set the bounding box (so we have less surrounding white space)
+%- %
+%- %%  \draw(8,14) node[anchor=south,xshift=-4pt,yshift=+0pt] {\trimfig{settlingDisk/settlingCylinderAnimationCase2}{\figWidthA}};
+%- %
+%-   \draw(0.0,7) node[anchor=south west,xshift=-4pt,yshift=+0pt] {\trimfig{diskDrop/risingDiskNu0p1Position}{\figWidth}};
+%- %  \draw(8.0,7) node[anchor=south west,xshift=-4pt,yshift=+0pt] {\trimfig{diskDrop/risingDiskNu0p1AnimationCase1}{\figWidth}};
+%- %
+%- %  \draw(0.0,0) node[anchor=south west,xshift=-4pt,yshift=+0pt] {\trimfig{diskDrop/risingDiskNu0p1Acceleration}{\figWidth}};
+%- %  \draw(8.0,0) node[anchor=south west,xshift=-4pt,yshift=+0pt] {\trimfig{diskDrop/risingDiskNu0p1Velocity}{\figWidth}};
+%- %
+%- % grid:
+%- % \draw[step=1cm,gray] (0,0) grid (16,7.5);
+%- \end{tikzpicture}
+%- \end{centre}
+%-   \caption{Rising disk in a counter flow. Case 3, $\nu=0.1$. 
+%- %    Horizontal components of the displacement, $x_1$, velocity $v_1$ and acceleration $a_1$ of the rigid body.
+%- %     Grid $\Gc^{(2)}$. 
+%-      }
+%-   \label{fig:risingDiskCaseIII}
+%- \end{figure}
+%- }
+%- 
+
+
+%- 
+%- 
+%- \clearpage
+%- 
+%- Figure~\ref{fig:settlingDiskCurves} shows results for $\rhos=2$. 
+%- The disk initially accelerates downward. The downward speed increases to about $\vs_2\approx -.15$ ?? at time $t=1.8$ ??
+%- and then gradually slows down as the disk approaches the bottom wall. 
+%- The bottom of the disk slowly settles to the bottom wall *but* numerically will reach a finite distance based
+%- due to the finite grid spacing. 
+%- 
+%- \noindent{\bf NOTES:}
+%- \begin{itemize}
+%-   \item For $\rhos=2$ the mass of the disk is $\ms=\pi a^2 \approx 1.571$
+%- 
+%-   \item The force due to gravity is normalized to $\gv = -1 \hat{y}$. 
+%- 
+%-   \item With no surrounding fluid the initial acceleration of the disk would be $\gv/\ms \approx -.6366 \hat{y}$.
+%-     The actual initial acceleration is about $-0.3$ due to the initial pressure field.
+%- 
+%-   \item The TP scheme was unstable without sub-iterations.
+%- 
+%-   \item The TPSI scheme required on average 4? iterations while dropping and 17? when close to the bottom wall (G2). Could
+%- maybe plot iterations over time?
+%- 
+%-   \item The AMP scheme had some trouble if the implicit time-step was too large. There is probably some time-step
+%- restriction that arises in the AMP scheme dues to the predicted velocity used as a BC.
+%- 
+%-   \item The AMP and TP-SI have exactly the same blips in the acceleration {\bf WHY?} 
+%- \end{itemize}
+
+%- {% ------ BODY CURVES  ------
+%- \newcommand{\figWidth}{8.cm}
+%- \newcommand{\figWidthA}{12.cm}
+%- \newcommand{\trimfig}[2]{\trimFig{#1}{#2}{.0}{.0}{.0}{.0}}
+%- \begin{figure}[htb]
+%- \begin{centre}
+%- \begin{tikzpicture}[scale=1]
+%-   \useasboundingbox (0.0,.75) rectangle (16.,20.5);  % set the bounding box (so we have less surrounding white space)
+%- %
+%- %%  \draw(8,14) node[anchor=south,xshift=-4pt,yshift=+0pt] {\trimfig{settlingDisk/settlingCylinderAnimationCase2}{\figWidthA}};
+%- %
+%-   \draw(0.0,7) node[anchor=south west,xshift=-4pt,yshift=+0pt] {\trimfig{diskDrop/diskDropPosition}{\figWidth}};
+%-   \draw(8.0,7) node[anchor=south west,xshift=-4pt,yshift=+0pt] {\trimfig{diskDrop/diskDropAnimationCase1}{\figWidth}};
+%- %
+%-   \draw(0.0,0) node[anchor=south west,xshift=-4pt,yshift=+0pt] {\trimfig{diskDrop/diskDropAcceleration}{\figWidth}};
+%-   \draw(8.0,0) node[anchor=south west,xshift=-4pt,yshift=+0pt] {\trimfig{diskDrop/diskDropVelocity}{\figWidth}};
+%- %
+%- % grid:
+%- % \draw[step=1cm,gray] (0,0) grid (16,7.5);
+%- \end{tikzpicture}
+%- \end{centre}
+%-   \caption{Rising disk in a counter flow. Results for grid G4 are in colour. Results for grid G8 are in black. 
+%- %    Horizontal components of the displacement, $x_1$, velocity $v_1$ and acceleration $a_1$ of the rigid body.
+%- %     Grid $\Gc^{(2)}$. 
+%-      }
+%-   \label{fig:diskDropCurves}
+%- \end{figure}
+%- }
+%- 
+%- {% ------ BODY CURVES - WIDER CHANNEL  ------
+%- \newcommand{\figWidth}{8.cm}
+%- \newcommand{\figWidthA}{12.cm}
+%- \newcommand{\trimfig}[2]{\trimFig{#1}{#2}{.0}{.0}{.0}{.0}}
+%- \begin{figure}[htb]
+%- \begin{centre}
+%- \begin{tikzpicture}[scale=1]
+%-   \useasboundingbox (0.0,.75) rectangle (16.,20.5);  % set the bounding box (so we have less surrounding white space)
+%- %
+%- %%  \draw(8,14) node[anchor=south,xshift=-4pt,yshift=+0pt] {\trimfig{settlingDisk/settlingCylinderAnimationCase2}{\figWidthA}};
+%- %
+%-   \draw(0.0,7) node[anchor=south west,xshift=-4pt,yshift=+0pt] {\trimfig{diskDrop/risingDiskPosition}{\figWidth}};
+%-   \draw(8.0,7) node[anchor=south west,xshift=-4pt,yshift=+0pt] {\trimfig{diskDrop/risingDiskAnimationCase2}{\figWidth}};
+%- %
+%-   \draw(0.0,0) node[anchor=south west,xshift=-4pt,yshift=+0pt] {\trimfig{diskDrop/risingDiskAcceleration}{\figWidth}};
+%-   \draw(8.0,0) node[anchor=south west,xshift=-4pt,yshift=+0pt] {\trimfig{diskDrop/risingDiskVelocity}{\figWidth}};
+%- %
+%- % grid:
+%- % \draw[step=1cm,gray] (0,0) grid (16,7.5);
+%- \end{tikzpicture}
+%- \end{centre}
+%-   \caption{WIDER CHANNEL. Rising disk in a counter flow. Results for grid G4 are in colour. Results for grid G8 are in black. 
+%- %    Horizontal components of the displacement, $x_1$, velocity $v_1$ and acceleration $a_1$ of the rigid body.
+%- %     Grid $\Gc^{(2)}$. 
+%-      }
+%-   \label{fig:risingDiskCurves}
+%- \end{figure}
+%- }
+%- 
+

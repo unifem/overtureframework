@@ -1,0 +1,29 @@
+{% ------ BODY COMPARE TO TP ------
+\newcommand{\figWidth}{7.cm}
+\newcommand{\trimfig}[2]{\trimw{#1}{#2}{.0}{.0}{.0}{.0}}
+\begin{figure}[htb]
+\begin{center}
+\resizebox{14cm}{!}{% START resize box
+\begin{tikzpicture}[scale=1]
+  \useasboundingbox (0.0,1) rectangle (16.,5.75);  % set the bounding box (so we have less surrounding white space)
+%
+   \draw(0.0,0) node[anchor=south west,xshift=-4pt,yshift=+0pt] {\trimfig{fig/risingDropPositionCompareTP}{\figWidth}};
+   \draw(8.0,0) node[anchor=south west,xshift=-4pt,yshift=+0pt] {\trimfig{fig/risingDropVelocityCompareTP}{\figWidth}};
+%%   \draw(4.,0) node[anchor=south west,xshift=-4pt,yshift=+0pt] {\trimfig{fig/risingDropAccelerationCompareTP}{\figWidth}};
+%
+%
+% grid:
+% \draw[step=1cm,gray] (0,0) grid (16,6);
+\end{tikzpicture}
+}% END resize box
+\end{center}
+  \caption{Rising disk in a counter-flow. Comparison of the position (left) and velocity (right) of solutions
+  computed using the~\ampRB~scheme and the TP-RB scheme (with sub-time-step iterations) for the grid $\Gcrd^{(4)}$.
+   % Results for grid G4 are in colour. Results for grid G8 are in black. 
+%    Horizontal components of the displacement, $x_1$, velocity $v_1$ and acceleration $a_1$ of the rigid body.
+%     Grid $\Gc^{(2)}$. 
+% \dws{(As before, I suggest changing $\nu=1$ to $\mu=1$, $\theta_3$ to $\theta_b$ and $\omega_3$ to $\omega_b$ to be consistent with earlier changes.)}
+     }
+  \label{fig:risingLightDiskCompareTP}
+\end{figure}
+}

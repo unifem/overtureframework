@@ -18,6 +18,8 @@
 \usepackage[lmargin=.75in,rmargin=.75in,tmargin=.75in,bmargin=.75in]{geometry}
 
 % \input homeHenshaw
+\newcommand{\CgTexDir}{../../../common/tex}% Here are some common tex files
+
 \newcommand{\grad}{\nabla}
 \newcommand{\citeCount}[1]{}% for citation counts papers
 
@@ -43,12 +45,19 @@
 
 \usepackage{tikz}
 % \usepackage{pgfplots}
-\input trimFig.tex
+\input \CgTexDir/trimFig.tex
 
 
 % ---- we have lemmas and theorems in this paper ----
-\newtheorem{assumption}{Assumption}
-\newtheorem{definition}{Definition}
+%\newtheorem{assumption}{Assumption}
+%\newtheorem{definition}{Definition}
+
+\usepackage{listings}
+\lstset{
+basicstyle=\small\ttfamily,
+columns=flexible,
+breaklines=true
+}
 
 % \newcommand{\homeHenshaw}{/home/henshaw.0}
 
@@ -76,9 +85,11 @@
 
 \begin{document}
 
-\input wdhDefinitions.tex
+\input \CgTexDir/wdhDefinitions.tex
 
 \newcommand{\dt}{{\Delta t}}
+\newcommand{\rhos}{{\rho_b}}
+\newcommand{\rhob}{{\rho_b}}
 
 \newcommand{\Bc}{{\mathcal B}}
 \newcommand{\Dc}{{\mathcal D}}
@@ -100,12 +111,12 @@
 \begin{flushleft}
 {\LARGE
 Notes on a cylinder dropping in a channel \\
-Using Overture's Cgins Solver\\
 }
 \vspace{2\baselineskip}
 William D. Henshaw, \\
 % 
-\vspace{2\baselineskip}
+\smallskip
+% \vspace{1\baselineskip}
 % 
 Department of Mathematical Sciences, \\
 Rensselaer Polytechnic Institute (RPI), \\
@@ -117,7 +128,8 @@ Troy, NY, USA, 12180. \\
 
 \noindent{\bf\large Abstract:}
 
-This document describes results for simulating a cylinder dropping in a channel.
+This document describes results for simulating a cylinder dropping in a channel using the Cgins solver
+from Overture. Self convergence results are provided. 
 
 \end{flushleft}
 
@@ -126,18 +138,203 @@ This document describes results for simulating a cylinder dropping in a channel.
 % \listoffigures
 
 \clearpage
+% ================================================================================================================
+\section{Introduction}
+
+This document describes results for simulating a cylinder dropping in a channel using the Cgins solver
+from Overture. 
+
+% rising disk in a counter flow
+\input tex/diskDrop
 
 
-\section{Non-moving grid: self-convergence results}
+% ================================================================================================================
+\section{Cylinder in a short channel}
 
-\section{Moving grid: self-convergence results}
+Build grids with variable-width boundary grids:
+\begin{lstlisting}
+ogen -noplot cylDropGrid.cmd -interp=e -radius=.25 -ya=-1. -yb=2. -cx=1. -cy=1. -prefix=cylGridSmall -factor=2
+\end{lstlisting}
 
-Build grids:
-{\footnotesize
-\begin{verbatim}
+Build grids with fixed-width boundary grids:
+\begin{lstlisting}
 ogen -noplot cylDropGrid.cmd -interp=e -radius=.25 -ya=-1. -yb=2. -cx=1. -cy=1. -rgd=fixed -deltaRadius0=.2 -prefix=cylGridSmall -factor=2
-\end{verbatim}
+\end{lstlisting}
+{
+\begin{figure}[hbt]
+\newcommand{\figWidth}{7cm}
+\newcommand{\trimfig}[2]{\trimh{#1}{#2}{0.2}{.2}{.05}{.1}}
+% \newcommand{\figWidtha}{5.5cm}
+% \newcommand{\trimfiga}[2]{\trimFigb{#1}{#2}{0.0}{.0}{.0}{.0}}
+\begin{center}\small
+% ------------------------------------------------------------------------------------------------
+\begin{tikzpicture}[scale=1]
+  \useasboundingbox (0,0.25) rectangle (16,7.);  % set the bounding box (so we have less surrounding white space)
+  \draw ( 0, 0) node[anchor=south west,xshift=-4pt,yshift=-4pt] {\trimfig{fig/cylDropGridSmallFixede2}{\figWidth}};
+  \draw ( 5, 0) node[anchor=south west,xshift=-4pt,yshift=-4pt] {\trimfig{fig/cylDropGridSmallFixede4}{\figWidth}};
+%   \draw (10.5, 0) node[anchor=south west,xshift=-4pt,yshift=-4pt] {\trimfiga{\backStepDir/fig/backStepGridZoom}{\figWidtha}};
+%  \draw[step=1cm,gray] (0,0) grid (16,7.);
+\end{tikzpicture}
+% ----------------------------------------------------------------------------------------
+\caption{
+Overlapping grids for the dropping cylinder in a short channel, grids $\Gc^{(2)}$ and $\Gc^{(4)}$
+(fixed-width boundary grids).
 }
+\label{fig:cylDropGrid}
+\end{center}
+\end{figure}
+}
+
+
+% --------------------------------------------------------------------------------------------------------
+\subsection{Non-moving grid: self-convergence results - fixed width grids}
+
+{
+\begin{figure}[hbt]
+\newcommand{\figWidth}{6.25cm}
+\newcommand{\trimfig}[2]{\trimh{#1}{#2}{0.2}{.0}{.0}{.0}}
+\begin{center}\small
+% ------------------------------------------------------------------------------------------------
+\begin{tikzpicture}[scale=1]
+  \useasboundingbox (0.5,0.25) rectangle (15.5,6.25);  % set the bounding box (so we have less surrounding white space)
+  \draw ( 0, 0) node[anchor=south west,xshift=-4pt,yshift=-4pt] {\trimfig{fig/fallingDropG8NonMovingRampedPressuret2p0pressure}{\figWidth}};
+  \draw (5., 0) node[anchor=south west,xshift=-4pt,yshift=-4pt] {\trimfig{fig/fallingDropG8NonMovingRampedPressuret2p0u}{\figWidth}};
+  \draw (10, 0) node[anchor=south west,xshift=-4pt,yshift=-4pt] {\trimfig{fig/fallingDropG8NonMovingRampedPressuret2p0v}{\figWidth}};
+ % \draw[step=1cm,gray] (0,0) grid (15.5,6.25);
+\end{tikzpicture}
+% ----------------------------------------------------------------------------------------
+\caption{
+Non-moving cylinder with ramped pressure inflow.
+}
+\label{fig:cylDropNonMovingRampedPressure}
+\end{center}
+\end{figure}
+}
+
+Run cases and run {\tt comp} to compute self-convergence rates
+\begin{lstlisting}
+  runCases.p -option=cylDrop -rgd=fixed -bcOption=rampedPressure -move=0 -dt0=.02 -tf=2 -numResolutions=3
+  comp compFallingDrop -logFile=compCylDropNonMovingFixedWidthRampPressure.log
+\end{lstlisting}
+
+
+% -------------- max norm results -------------
+\begin{table}[hbt]\tableFont % you should set \tableFont to \footnotesize or other size
+% \newcommand{\num}[2]{#1e{#2}} % use this command to set the format of numbers in the table.
+% \newcommand{\errFormat}[1]{#1}} % use this command to set the format of the error label.
+\begin{center}
+\begin{tabular}{|l|c|c|c|c|c|c|} \hline 
+   grid              & \errFormat{p} &  r   & \errFormat{u} &  r   & \errFormat{v} &  r  \\ \hline
+ fallingDropG2 & \num{1.9}{-3} &      & \num{3.4}{-4} &      & \num{7.8}{-4} &      \\ \hline
+ fallingDropG4 & \num{2.7}{-4} &  7.0 & \num{5.3}{-5} &  6.5 & \num{1.4}{-4} &  5.6 \\ \hline
+ fallingDropG8 & \num{3.9}{-5} &  7.0 & \num{8.2}{-6} &  6.5 & \num{2.5}{-5} &  5.6 \\ \hline
+                      &     2.81      &      &     2.69      &      &     2.48      &     \\ \hline
+\end{tabular}
+\caption{Max-norm self convergence results, t=2.000000e+00, Sun Nov  6 10:40:41 2016. }
+\end{center}
+\end{table}
+
+% -------------- l2 norm results -------------
+\begin{table}[hbt]\tableFont % you should set \tableFont to \footnotesize or other size
+% \newcommand{\num}[2]{#1e{#2}} % use this command to set the format of numbers in the table.
+% \newcommand{\errFormat}[1]{#1}} % use this command to set the format of the error label.
+\begin{center}
+\begin{tabular}{|l|c|c|c|c|c|c|} \hline 
+   grid              & \errFormat{p} &  r   & \errFormat{u} &  r   & \errFormat{v} &  r  \\ \hline
+ fallingDropG2 & \num{7.6}{-4} &      & \num{1.4}{-4} &      & \num{2.5}{-4} &      \\ \hline
+ fallingDropG4 & \num{1.4}{-4} &  5.5 & \num{2.4}{-5} &  5.7 & \num{4.6}{-5} &  5.5 \\ \hline
+ fallingDropG8 & \num{2.5}{-5} &  5.5 & \num{4.2}{-6} &  5.7 & \num{8.4}{-6} &  5.5 \\ \hline
+                      &     2.46      &      &     2.52      &      &     2.45      &     \\ \hline
+\end{tabular}
+\caption{L2-norm self convergence results, t=2.000000e+00, Sun Nov  6 10:40:41 2016. }
+\end{center}
+\end{table}
+
+
+% --------------------------------------------------------------------------------------------------------
+\subsection{Non-moving grid: self-convergence results - variable width grids}
+
+Here are results for {\em variable width boundary grids} where the number of grid points in the normal direction
+for the boundary conforming grids are kept fixed. As can be seen, the convergence rates are
+not close to the expected second-order accuracy. This behaviour is often found in practice:  the rates may be worse of better
+depending on the example. The reason for this behaviour is that the grid around the cylinder changes as the
+mesh is refined and thus the interpolation points are located in different parts of the flow as the
+mesh is refined. 
+
+\begin{lstlisting}
+runCases.p -option=cylDrop -rgd=var -bcOption=rampedPressure -move=0 -dt0=.02 -tf=2 -numResolutions=3
+comp compFallingDrop -logFile=compCylDropNonMovingVarWidthRampPressure.log
+\end{lstlisting}
+
+
+% -------------- max norm results -------------
+\begin{table}[hbt]\tableFont % you should set \tableFont to \footnotesize or other size
+% \newcommand{\num}[2]{#1e{#2}} % use this command to set the format of numbers in the table.
+% \newcommand{\errFormat}[1]{#1}} % use this command to set the format of the error label.
+\begin{center}
+\begin{tabular}{|l|c|c|c|c|c|c|} \hline 
+   grid              & \errFormat{p} &  r   & \errFormat{u} &  r   & \errFormat{v} &  r  \\ \hline
+ fallingDropG2 & \num{1.4}{-3} &      & \num{2.1}{-4} &      & \num{4.7}{-4} &      \\ \hline
+ fallingDropG4 & \num{8.3}{-4} &  1.6 & \num{6.3}{-5} &  3.3 & \num{2.0}{-4} &  2.4 \\ \hline
+ fallingDropG8 & \num{5.1}{-4} &  1.6 & \num{1.9}{-5} &  3.3 & \num{8.2}{-5} &  2.4 \\ \hline
+                      &     0.71      &      &     1.72      &      &     1.26      &     \\ \hline
+\end{tabular}
+\caption{Max-norm self convergence results, t=2.000000e+00, Sun Nov  6 12:10:30 2016. }
+\end{center}
+\end{table}
+
+
+
+% --------------------------------------------------------------------------------------------------------
+\subsection{Moving rigid body: self-convergence results}
+
+Here are results using the traditional scheme, $\rhob=5$. 
+
+
+{
+\begin{figure}[hbt]
+\newcommand{\figWidth}{6.25cm}
+\newcommand{\trimfig}[2]{\trimh{#1}{#2}{0.2}{.0}{.0}{.0}}
+\begin{center}\small
+% ------------------------------------------------------------------------------------------------
+\begin{tikzpicture}[scale=1]
+  \useasboundingbox (0.5,0.25) rectangle (15.5,6.25);  % set the bounding box (so we have less surrounding white space)
+  \draw ( 0, 0) node[anchor=south west,xshift=-4pt,yshift=-4pt] {\trimfig{fig/fallingDropG8MovingRampedPressuret4p0pressure}{\figWidth}};
+  \draw (5., 0) node[anchor=south west,xshift=-4pt,yshift=-4pt] {\trimfig{fig/fallingDropG8MovingRampedPressuret4p0u}{\figWidth}};
+  \draw (10, 0) node[anchor=south west,xshift=-4pt,yshift=-4pt] {\trimfig{fig/fallingDropG8MovingRampedPressuret4p0v}{\figWidth}};
+ % \draw[step=1cm,gray] (0,0) grid (15.5,6.25);
+\end{tikzpicture}
+% ----------------------------------------------------------------------------------------
+\caption{
+Moving rigid body with ramped pressure inflow, $\rhos=5$, $\Gc^{(8)}$, $t=4$.
+}
+\label{fig:cylDropNonMovingRampedPressure}
+\end{center}
+\end{figure}
+}
+
+
+Run cases:
+\begin{lstlisting}
+runCases.p -option=cylDrop  -rgd=fixed -bcOption=rampedPressure -move=1 -dt0=.02 -tf=4 -numResolutions=3
+\end{lstlisting}
+
+% -------------- max norm results -------------
+\begin{table}[hbt]\tableFont % you should set \tableFont to \footnotesize or other size
+% \newcommand{\num}[2]{#1e{#2}} % use this command to set the format of numbers in the table.
+% \newcommand{\errFormat}[1]{#1}} % use this command to set the format of the error label.
+\begin{center}
+\begin{tabular}{|l|c|c|c|c|c|c|} \hline 
+   grid              & \errFormat{p} &  r   & \errFormat{u} &  r   & \errFormat{v} &  r  \\ \hline
+ fallingDropG2 & \num{4.9}{-4} &      & \num{1.5}{-4} &      & \num{2.3}{-4} &      \\ \hline
+ fallingDropG4 & \num{9.0}{-5} &  5.5 & \num{3.3}{-5} &  4.6 & \num{4.3}{-5} &  5.4 \\ \hline
+ fallingDropG8 & \num{1.6}{-5} &  5.5 & \num{7.3}{-6} &  4.6 & \num{8.0}{-6} &  5.4 \\ \hline
+                      &     2.45      &      &     2.19      &      &     2.42      &     \\ \hline
+\end{tabular}
+\caption{Max-norm self convergence results, t=4.000000e+00, Sun Nov  6 07:58:24 2016. }
+\end{center}
+\end{table}
+
 
 \begin{table}[hbt]\tableFont % you should set \tableFont to \footnotesize or other size
 % \newcommand{\num}[2]{#1e{#2}} % use this command to set the format of numbers in the table.
@@ -154,6 +351,802 @@ ogen -noplot cylDropGrid.cmd -interp=e -radius=.25 -ya=-1. -yb=2. -cx=1. -cy=1. 
 \end{center}
 \end{table}
 
+%----------------------------------------------------------------------------------------------------
+%----------------------------------------------------------------------------------------------------
+% --------------------------------------------------------------------------------------------------------
+\clearpage
+\subsection{Moving rigid body with AMP, ramped pressure inflow, $\rhob=5$: self-convergence results}
+
+Here are results using the AMP scheme, $\rhob=5$. 
+
+Run cases:
+\begin{lstlisting}
+ runCases.p -option=cylDrop  -rgd=fixed -bcOption=rampedPressure -move=1 -amp=1 -dt0=.02 -tf=.5 -show=fallingDropAmpRhob5RampedPressure -numResolutions=3
+
+comp compFallingDrop -show=fallingDropAmpRhob5RampedPressure -logFile=compCylDropAmpRhobRampedPressure.log
+\end{lstlisting}
+
+
+% -------------- max norm results -------------
+\begin{table}[hbt]\tableFont % you should set \tableFont to \footnotesize or other size
+% \newcommand{\num}[2]{#1e{#2}} % use this command to set the format of numbers in the table.
+% \newcommand{\errFormat}[1]{#1}} % use this command to set the format of the error label.
+\begin{center}
+\begin{tabular}{|l|c|c|c|c|c|c|} \hline 
+   grid              & \errFormat{p} &  r   & \errFormat{u} &  r   & \errFormat{v} &  r  \\ \hline
+ fallingDropAmpRhob5RampedPressureG2 & \num{9.7}{-5} &      & \num{1.1}{-5} &      & \num{2.6}{-5} &      \\ \hline
+ fallingDropAmpRhob5RampedPressureG4 & \num{1.8}{-5} &  5.3 & \num{2.6}{-6} &  4.4 & \num{6.0}{-6} &  4.3 \\ \hline
+ fallingDropAmpRhob5RampedPressureG8 & \num{3.5}{-6} &  5.3 & \num{5.8}{-7} &  4.4 & \num{1.4}{-6} &  4.3 \\ \hline
+                      &     2.41      &      &     2.15      &      &     2.12      &     \\ \hline
+\end{tabular}
+\caption{Max-norm self convergence results, t=5.000000e-01, Sun Nov  6 14:09:54 2016. }
+\end{center}
+\end{table}
+
+% -------------- l2 norm results -------------
+\begin{table}[hbt]\tableFont % you should set \tableFont to \footnotesize or other size
+% \newcommand{\num}[2]{#1e{#2}} % use this command to set the format of numbers in the table.
+% \newcommand{\errFormat}[1]{#1}} % use this command to set the format of the error label.
+\begin{center}
+\begin{tabular}{|l|c|c|c|c|c|c|} \hline 
+   grid              & \errFormat{p} &  r   & \errFormat{u} &  r   & \errFormat{v} &  r  \\ \hline
+ fallingDropAmpRhob5RampedPressureG2 & \num{5.2}{-5} &      & \num{3.0}{-6} &      & \num{1.1}{-5} &      \\ \hline
+ fallingDropAmpRhob5RampedPressureG4 & \num{8.6}{-6} &  6.0 & \num{7.0}{-7} &  4.3 & \num{2.5}{-6} &  4.3 \\ \hline
+ fallingDropAmpRhob5RampedPressureG8 & \num{1.4}{-6} &  6.0 & \num{1.6}{-7} &  4.3 & \num{6.0}{-7} &  4.3 \\ \hline
+                      &     2.59      &      &     2.09      &      &     2.09      &     \\ \hline
+\end{tabular}
+\caption{L2-norm self convergence results, t=5.000000e-01, Sun Nov  6 14:09:54 2016. }
+\end{center}
+\end{table}
+
+%----------------------------------------------------------------------------------------------------
+%----------------------------------------------------------------------------------------------------
+%----------------------------------------------------------------------------------------------------
+\clearpage
+\subsection{Moving rigid body with AMP, ramped pressure inflow, $\rhob=2$: self-convergence results}
+
+Here are results using the AMP scheme, $\rhob=2$. 
+
+% -------------- max norm results -------------
+\begin{table}[hbt]\tableFont % you should set \tableFont to \footnotesize or other size
+% \newcommand{\num}[2]{#1e{#2}} % use this command to set the format of numbers in the table.
+% \newcommand{\errFormat}[1]{#1}} % use this command to set the format of the error label.
+\begin{center}
+\begin{tabular}{|l|c|c|c|c|c|c|} \hline 
+   grid              & \errFormat{p} &  r   & \errFormat{u} &  r   & \errFormat{v} &  r  \\ \hline
+ fallingDropAmpRhob2RampedPressureG2 & \num{5.8}{-4} &      & \num{1.8}{-4} &      & \num{2.4}{-4} &      \\ \hline
+ fallingDropAmpRhob2RampedPressureG4 & \num{1.4}{-4} &  4.1 & \num{4.4}{-5} &  4.1 & \num{5.5}{-5} &  4.4 \\ \hline
+ fallingDropAmpRhob2RampedPressureG8 & \num{3.4}{-5} &  4.1 & \num{1.1}{-5} &  4.1 & \num{1.2}{-5} &  4.4 \\ \hline
+                      &     2.04      &      &     2.05      &      &     2.14      &     \\ \hline
+\end{tabular}
+\caption{Max-norm self convergence results, t=4.000000e+00, Sun Nov  6 14:54:48 2016. }
+\end{center}
+\end{table}
+% -------------- l2 norm results -------------
+\begin{table}[hbt]\tableFont % you should set \tableFont to \footnotesize or other size
+% \newcommand{\num}[2]{#1e{#2}} % use this command to set the format of numbers in the table.
+% \newcommand{\errFormat}[1]{#1}} % use this command to set the format of the error label.
+\begin{center}
+\begin{tabular}{|l|c|c|c|c|c|c|} \hline 
+   grid              & \errFormat{p} &  r   & \errFormat{u} &  r   & \errFormat{v} &  r  \\ \hline
+ fallingDropAmpRhob2RampedPressureG2 & \num{2.6}{-4} &      & \num{5.3}{-5} &      & \num{6.8}{-5} &      \\ \hline
+ fallingDropAmpRhob2RampedPressureG4 & \num{5.7}{-5} &  4.5 & \num{1.2}{-5} &  4.4 & \num{1.5}{-5} &  4.5 \\ \hline
+ fallingDropAmpRhob2RampedPressureG8 & \num{1.3}{-5} &  4.5 & \num{2.8}{-6} &  4.4 & \num{3.4}{-6} &  4.5 \\ \hline
+                      &     2.17      &      &     2.13      &      &     2.17      &     \\ \hline
+\end{tabular}
+\caption{L2-norm self convergence results, t=4.000000e+00, Sun Nov  6 14:54:48 2016. }
+\end{center}
+\end{table}
+
+
+%----------------------------------------------------------------------------------------------------
+%----------------------------------------------------------------------------------------------------
+%----------------------------------------------------------------------------------------------------
+\clearpage
+\subsection{Moving rigid body with AMP, ramped pressure inflow, $\rhob=0.1$: self-convergence results}
+
+Here are results using the AMP scheme, $\rhob=0.1$.
+
+% -------------- max norm results -------------
+\begin{table}[hbt]\tableFont % you should set \tableFont to \footnotesize or other size
+% \newcommand{\num}[2]{#1e{#2}} % use this command to set the format of numbers in the table.
+% \newcommand{\errFormat}[1]{#1}} % use this command to set the format of the error label.
+\begin{center}
+\begin{tabular}{|l|c|c|c|c|c|c|} \hline 
+   show file         & \errFormat{p} &  r   & \errFormat{u} &  r   & \errFormat{v} &  r  \\ \hline
+ fallingDropAmpRhob0p1RampedPressureG2 & \num{7.5}{-4} &      & \num{2.1}{-4} &      & \num{2.6}{-4} &      \\ \hline
+ fallingDropAmpRhob0p1RampedPressureG4 & \num{2.0}{-4} &  3.8 & \num{5.4}{-5} &  3.9 & \num{6.7}{-5} &  3.9 \\ \hline
+ fallingDropAmpRhob0p1RampedPressureG8 & \num{5.2}{-5} &  3.8 & \num{1.4}{-5} &  3.9 & \num{1.7}{-5} &  3.9 \\ \hline
+                      &     1.93      &      &     1.97      &      &     1.97      &     \\ \hline
+\end{tabular}
+\caption{Max-norm self convergence results, t=4.000000e+00, Sun Nov  6 15:37:57 2016. }
+\end{center}
+\end{table}
+
+% -------------- l2 norm results -------------
+\begin{table}[hbt]\tableFont % you should set \tableFont to \footnotesize or other size
+% \newcommand{\num}[2]{#1e{#2}} % use this command to set the format of numbers in the table.
+% \newcommand{\errFormat}[1]{#1}} % use this command to set the format of the error label.
+\begin{center}
+\begin{tabular}{|l|c|c|c|c|c|c|} \hline 
+   show file         & \errFormat{p} &  r   & \errFormat{u} &  r   & \errFormat{v} &  r  \\ \hline
+ fallingDropAmpRhob0p1RampedPressureG2 & \num{3.6}{-4} &      & \num{6.4}{-5} &      & \num{8.1}{-5} &      \\ \hline
+ fallingDropAmpRhob0p1RampedPressureG4 & \num{9.2}{-5} &  3.9 & \num{1.6}{-5} &  4.1 & \num{2.1}{-5} &  3.9 \\ \hline
+ fallingDropAmpRhob0p1RampedPressureG8 & \num{2.3}{-5} &  3.9 & \num{3.8}{-6} &  4.1 & \num{5.2}{-6} &  3.9 \\ \hline
+                      &     1.98      &      &     2.04      &      &     1.97      &     \\ \hline
+\end{tabular}
+\caption{L2-norm self convergence results, t=4.000000e+00, Sun Nov  6 15:37:57 2016. }
+\end{center}
+\end{table}
+
+%----------------------------------------------------------------------------------------------------
+%----------------------------------------------------------------------------------------------------
+%----------------------------------------------------------------------------------------------------
+\clearpage
+\subsection{Moving rigid body with AMP, ramped pressure inflow, $\rhob=0.01$: self-convergence results}
+
+Here are results using the AMP scheme, $\rhob=0.01$.
+
+
+% -------------- max norm results -------------
+\begin{table}[hbt]\tableFont % you should set \tableFont to \footnotesize or other size
+% \newcommand{\num}[2]{#1e{#2}} % use this command to set the format of numbers in the table.
+% \newcommand{\errFormat}[1]{#1}} % use this command to set the format of the error label.
+\begin{center}
+\begin{tabular}{|l|c|c|c|c|c|c|} \hline 
+   show file         & \errFormat{p} &  r   & \errFormat{u} &  r   & \errFormat{v} &  r  \\ \hline
+ fallingDropAmpRhob0p01RampedPressureG2 & \num{7.5}{-4} &      & \num{2.1}{-4} &      & \num{2.6}{-4} &      \\ \hline
+ fallingDropAmpRhob0p01RampedPressureG4 & \num{2.0}{-4} &  3.7 & \num{5.4}{-5} &  4.0 & \num{6.8}{-5} &  3.9 \\ \hline
+ fallingDropAmpRhob0p01RampedPressureG8 & \num{5.3}{-5} &  3.7 & \num{1.3}{-5} &  4.0 & \num{1.7}{-5} &  3.9 \\ \hline
+                      &     1.90      &      &     1.99      &      &     1.96      &     \\ \hline
+\end{tabular}
+\caption{Max-norm self convergence results, t=4.000000e+00, Sun Nov  6 16:10:13 2016. }
+\end{center}
+\end{table}
+
+% -------------- l2 norm results -------------
+\begin{table}[hbt]\tableFont % you should set \tableFont to \footnotesize or other size
+% \newcommand{\num}[2]{#1e{#2}} % use this command to set the format of numbers in the table.
+% \newcommand{\errFormat}[1]{#1}} % use this command to set the format of the error label.
+\begin{center}
+\begin{tabular}{|l|c|c|c|c|c|c|} \hline 
+   show file         & \errFormat{p} &  r   & \errFormat{u} &  r   & \errFormat{v} &  r  \\ \hline
+ fallingDropAmpRhob0p01RampedPressureG2 & \num{3.6}{-4} &      & \num{6.5}{-5} &      & \num{8.1}{-5} &      \\ \hline
+ fallingDropAmpRhob0p01RampedPressureG4 & \num{9.3}{-5} &  3.8 & \num{1.6}{-5} &  4.1 & \num{2.1}{-5} &  3.9 \\ \hline
+ fallingDropAmpRhob0p01RampedPressureG8 & \num{2.4}{-5} &  3.8 & \num{3.9}{-6} &  4.1 & \num{5.4}{-6} &  3.9 \\ \hline
+                      &     1.94      &      &     2.03      &      &     1.96      &     \\ \hline
+\end{tabular}
+\caption{L2-norm self convergence results, t=4.000000e+00, Sun Nov  6 16:10:13 2016. }
+\end{center}
+\end{table}
+
+
+
+%----------------------------------------------------------------------------------------------------
+%----------------------------------------------------------------------------------------------------
+%----------------------------------------------------------------------------------------------------
+\clearpage
+\subsection{Moving rigid body with AMP, ramped pressure inflow, $\rhob=0$: self-convergence results}
+
+Here are results using the AMP scheme, $\rhob=0$.
+% -------------- max norm results -------------
+\begin{table}[hbt]\tableFont % you should set \tableFont to \footnotesize or other size
+% \newcommand{\num}[2]{#1e{#2}} % use this command to set the format of numbers in the table.
+% \newcommand{\errFormat}[1]{#1}} % use this command to set the format of the error label.
+\begin{center}
+\begin{tabular}{|l|c|c|c|c|c|c|} \hline 
+   show file         & \errFormat{p} &  r   & \errFormat{u} &  r   & \errFormat{v} &  r  \\ \hline
+ fallingDropAmpRhob0p0RampedPressureG2 & \num{7.4}{-4} &      & \num{2.1}{-4} &      & \num{2.6}{-4} &      \\ \hline
+ fallingDropAmpRhob0p0RampedPressureG4 & \num{2.0}{-4} &  3.8 & \num{5.4}{-5} &  4.0 & \num{6.8}{-5} &  3.9 \\ \hline
+ fallingDropAmpRhob0p0RampedPressureG8 & \num{5.2}{-5} &  3.8 & \num{1.3}{-5} &  4.0 & \num{1.7}{-5} &  3.9 \\ \hline
+                      &     1.91      &      &     1.99      &      &     1.95      &     \\ \hline
+\end{tabular}
+\caption{Max-norm self convergence results, t=4.000000e+00, Sun Nov  6 16:50:01 2016. }
+\end{center}
+\end{table}
+
+% -------------- l2 norm results -------------
+\begin{table}[hbt]\tableFont % you should set \tableFont to \footnotesize or other size
+% \newcommand{\num}[2]{#1e{#2}} % use this command to set the format of numbers in the table.
+% \newcommand{\errFormat}[1]{#1}} % use this command to set the format of the error label.
+\begin{center}
+\begin{tabular}{|l|c|c|c|c|c|c|} \hline 
+   show file         & \errFormat{p} &  r   & \errFormat{u} &  r   & \errFormat{v} &  r  \\ \hline
+ fallingDropAmpRhob0p0RampedPressureG2 & \num{3.5}{-4} &      & \num{6.5}{-5} &      & \num{8.1}{-5} &      \\ \hline
+ fallingDropAmpRhob0p0RampedPressureG4 & \num{9.1}{-5} &  3.9 & \num{1.6}{-5} &  4.1 & \num{2.1}{-5} &  3.9 \\ \hline
+ fallingDropAmpRhob0p0RampedPressureG8 & \num{2.4}{-5} &  3.9 & \num{3.9}{-6} &  4.1 & \num{5.4}{-6} &  3.9 \\ \hline
+                      &     1.95      &      &     2.03      &      &     1.96      &     \\ \hline
+\end{tabular}
+\caption{L2-norm self convergence results, t=4.000000e+00, Sun Nov  6 16:50:01 2016. }
+\end{center}
+\end{table}
+
+
+%----------------------------------------------------------------------------------------------------
+%----------------------------------------------------------------------------------------------------
+%----------------------------------------------------------------------------------------------------
+\clearpage
+\subsection{Moving rigid body, TP, ramped pressure inflow, ramped gravity, $\rhob=5$: self-convergence results}
+
+Gravity $\gv=[0,0.1,0]$ is up. Body slowly falls. 
+
+% -------------- max norm results -------------
+\begin{table}[hbt]\tableFont % you should set \tableFont to \footnotesize or other size
+% \newcommand{\num}[2]{#1e{#2}} % use this command to set the format of numbers in the table.
+% \newcommand{\errFormat}[1]{#1}} % use this command to set the format of the error label.
+\begin{center}
+\begin{tabular}{|l|c|c|c|c|c|c|} \hline 
+   show file         & \errFormat{p} &  r   & \errFormat{u} &  r   & \errFormat{v} &  r  \\ \hline
+ fallingDropRhob5RampedPandGG2 & \num{5.4}{-4} &      & \num{2.7}{-4} &      & \num{5.8}{-4} &      \\ \hline
+ fallingDropRhob5RampedPandGG4 & \num{1.2}{-4} &  4.4 & \num{5.0}{-5} &  5.5 & \num{6.6}{-5} &  8.8 \\ \hline
+ fallingDropRhob5RampedPandGG8 & \num{2.8}{-5} &  4.4 & \num{9.0}{-6} &  5.5 & \num{7.5}{-6} &  8.8 \\ \hline
+                      &     2.13      &      &     2.47      &      &     3.13      &     \\ \hline
+\end{tabular}
+\caption{Max-norm self convergence results, t=4.000000e+00, Sun Nov  6 17:34:26 2016. }
+\end{center}
+\end{table}
+
+% -------------- l2 norm results -------------
+\begin{table}[hbt]\tableFont % you should set \tableFont to \footnotesize or other size
+% \newcommand{\num}[2]{#1e{#2}} % use this command to set the format of numbers in the table.
+% \newcommand{\errFormat}[1]{#1}} % use this command to set the format of the error label.
+\begin{center}
+\begin{tabular}{|l|c|c|c|c|c|c|} \hline 
+   show file         & \errFormat{p} &  r   & \errFormat{u} &  r   & \errFormat{v} &  r  \\ \hline
+ fallingDropRhob5RampedPandGG2 & \num{1.8}{-4} &      & \num{5.8}{-5} &      & \num{1.1}{-4} &      \\ \hline
+ fallingDropRhob5RampedPandGG4 & \num{4.0}{-5} &  4.5 & \num{1.7}{-5} &  3.3 & \num{2.8}{-5} &  3.8 \\ \hline
+ fallingDropRhob5RampedPandGG8 & \num{9.0}{-6} &  4.5 & \num{5.2}{-6} &  3.3 & \num{7.3}{-6} &  3.8 \\ \hline
+                      &     2.17      &      &     1.74      &      &     1.94      &     \\ \hline
+\end{tabular}
+\caption{L2-norm self convergence results, t=4.000000e+00, Sun Nov  6 17:34:26 2016. }
+\end{center}
+\end{table}
+
+%----------------------------------------------------------------------------------------------------
+%----------------------------------------------------------------------------------------------------
+%----------------------------------------------------------------------------------------------------
+\clearpage
+\subsection{Moving rigid body, AMP, ramped pressure inflow, ramped gravity, $\rhob=5$: self-convergence results}
+
+Gravity $\gv=[0,0.1,0]$ is up. Body slowly falls. 
+
+% -------------- max norm results -------------
+\begin{table}[hbt]\tableFont % you should set \tableFont to \footnotesize or other size
+% \newcommand{\num}[2]{#1e{#2}} % use this command to set the format of numbers in the table.
+% \newcommand{\errFormat}[1]{#1}} % use this command to set the format of the error label.
+\begin{center}
+\begin{tabular}{|l|c|c|c|c|c|c|} \hline 
+   show file         & \errFormat{p} &  r   & \errFormat{u} &  r   & \errFormat{v} &  r  \\ \hline
+ fallingDropAmpRhob5RampedPandGG2 & \num{5.4}{-4} &      & \num{2.7}{-4} &      & \num{5.8}{-4} &      \\ \hline
+ fallingDropAmpRhob5RampedPandGG4 & \num{1.2}{-4} &  4.4 & \num{5.0}{-5} &  5.5 & \num{6.6}{-5} &  8.8 \\ \hline
+ fallingDropAmpRhob5RampedPandGG8 & \num{2.8}{-5} &  4.4 & \num{9.0}{-6} &  5.5 & \num{7.5}{-6} &  8.8 \\ \hline
+                      &     2.13      &      &     2.47      &      &     3.13      &     \\ \hline
+\end{tabular}
+\caption{Max-norm self convergence results, t=4.000000e+00, Sun Nov  6 18:18:49 2016. }
+\end{center}
+\end{table}
+
+% -------------- l2 norm results -------------
+\begin{table}[hbt]\tableFont % you should set \tableFont to \footnotesize or other size
+% \newcommand{\num}[2]{#1e{#2}} % use this command to set the format of numbers in the table.
+% \newcommand{\errFormat}[1]{#1}} % use this command to set the format of the error label.
+\begin{center}
+\begin{tabular}{|l|c|c|c|c|c|c|} \hline 
+   show file         & \errFormat{p} &  r   & \errFormat{u} &  r   & \errFormat{v} &  r  \\ \hline
+ fallingDropAmpRhob5RampedPandGG2 & \num{1.8}{-4} &      & \num{5.8}{-5} &      & \num{1.1}{-4} &      \\ \hline
+ fallingDropAmpRhob5RampedPandGG4 & \num{4.0}{-5} &  4.5 & \num{1.7}{-5} &  3.3 & \num{2.8}{-5} &  3.8 \\ \hline
+ fallingDropAmpRhob5RampedPandGG8 & \num{9.0}{-6} &  4.5 & \num{5.2}{-6} &  3.3 & \num{7.3}{-6} &  3.8 \\ \hline
+                      &     2.17      &      &     1.74      &      &     1.94      &     \\ \hline
+\end{tabular}
+\caption{L2-norm self convergence results, t=4.000000e+00, Sun Nov  6 18:18:49 2016. }
+\end{center}
+\end{table}
+
+%----------------------------------------------------------------------------------------------------
+%----------------------------------------------------------------------------------------------------
+%----------------------------------------------------------------------------------------------------
+\clearpage
+\subsection{Moving rigid body, AMP, ramped pressure inflow, ramped gravity, $\rhob=0.1$: self-convergence results}
+
+Gravity $\gv=[0,-1,0]$ is down. Body slowly falls. 
+
+Rates vary a bit from time to time.
+
+May need a longer domain?
+
+
+% -------------- max norm results -------------
+\begin{table}[hbt]\tableFont % you should set \tableFont to \footnotesize or other size
+% \newcommand{\num}[2]{#1e{#2}} % use this command to set the format of numbers in the table.
+% \newcommand{\errFormat}[1]{#1}} % use this command to set the format of the error label.
+\begin{center}
+\begin{tabular}{|l|c|c|c|c|c|c|} \hline 
+   show file         & \errFormat{p} &  r   & \errFormat{u} &  r   & \errFormat{v} &  r  \\ \hline
+ fallingDropAmpRhob0p1RampedPandGG2 & \num{1.1}{-3} &      & \num{7.7}{-4} &      & \num{1.3}{-3} &      \\ \hline
+ fallingDropAmpRhob0p1RampedPandGG4 & \num{1.5}{-4} &  7.6 & \num{4.1}{-5} & 18.7 & \num{1.1}{-4} & 11.4 \\ \hline
+ fallingDropAmpRhob0p1RampedPandGG8 & \num{2.0}{-5} &  7.6 & \num{2.2}{-6} & 18.7 & \num{9.6}{-6} & 11.4 \\ \hline
+                      &     2.92      &      &     4.23      &      &     3.51      &     \\ \hline
+\end{tabular}
+\caption{Max-norm self convergence results, t=4.000000e+00, Sun Nov  6 18:45:38 2016. }
+\end{center}
+\end{table}
+
+% -------------- l2 norm results -------------
+\begin{table}[hbt]\tableFont % you should set \tableFont to \footnotesize or other size
+% \newcommand{\num}[2]{#1e{#2}} % use this command to set the format of numbers in the table.
+% \newcommand{\errFormat}[1]{#1}} % use this command to set the format of the error label.
+\begin{center}
+\begin{tabular}{|l|c|c|c|c|c|c|} \hline 
+   show file         & \errFormat{p} &  r   & \errFormat{u} &  r   & \errFormat{v} &  r  \\ \hline
+ fallingDropAmpRhob0p1RampedPandGG2 & \num{2.8}{-4} &      & \num{1.1}{-4} &      & \num{1.7}{-4} &      \\ \hline
+ fallingDropAmpRhob0p1RampedPandGG4 & \num{6.0}{-5} &  4.8 & \num{1.9}{-5} &  5.4 & \num{4.8}{-5} &  3.5 \\ \hline
+ fallingDropAmpRhob0p1RampedPandGG8 & \num{1.2}{-5} &  4.8 & \num{3.6}{-6} &  5.4 & \num{1.4}{-5} &  3.5 \\ \hline
+                      &     2.25      &      &     2.43      &      &     1.82      &     \\ \hline
+\end{tabular}
+\caption{L2-norm self convergence results, t=4.000000e+00, Sun Nov  6 18:45:38 2016. }
+\end{center}
+\end{table}
+
+% -------------- max norm results -------------
+\begin{table}[hbt]\tableFont % you should set \tableFont to \footnotesize or other size
+% \newcommand{\num}[2]{#1e{#2}} % use this command to set the format of numbers in the table.
+% \newcommand{\errFormat}[1]{#1}} % use this command to set the format of the error label.
+\begin{center}
+\begin{tabular}{|l|c|c|c|c|c|c|} \hline 
+   show file         & \errFormat{p} &  r   & \errFormat{u} &  r   & \errFormat{v} &  r  \\ \hline
+ fallingDropAmpRhob0p1RampedPandGG2 & \num{7.3}{-4} &      & \num{4.0}{-4} &      & \num{8.7}{-4} &      \\ \hline
+ fallingDropAmpRhob0p1RampedPandGG4 & \num{3.0}{-4} &  2.5 & \num{4.5}{-5} &  8.9 & \num{1.2}{-4} &  7.3 \\ \hline
+ fallingDropAmpRhob0p1RampedPandGG8 & \num{1.2}{-4} &  2.5 & \num{5.1}{-6} &  8.9 & \num{1.6}{-5} &  7.3 \\ \hline
+                      &     1.30      &      &     3.15      &      &     2.87      &     \\ \hline
+\end{tabular}
+\caption{Max-norm self convergence results, t=2.000000e+00, Sun Nov  6 19:18:21 2016. }
+\end{center}
+\end{table}
+
+%----------------------------------------------------------------------------------------------------
+%----------------------------------------------------------------------------------------------------
+%----------------------------------------------------------------------------------------------------
+\clearpage
+\subsection{Moving rigid body, AMP, ramped gravity, $\rhob=0.1$: self-convergence results}
+
+Ramped gravity in a closed box. 
+
+Pressure levels may cause troubles with L2-norm -- may need to project out the 
+constant. 
+
+
+% -------------- max norm results -------------
+\begin{table}[hbt]\tableFont % you should set \tableFont to \footnotesize or other size
+% \newcommand{\num}[2]{#1e{#2}} % use this command to set the format of numbers in the table.
+% \newcommand{\errFormat}[1]{#1}} % use this command to set the format of the error label.
+\begin{center}
+\begin{tabular}{|l|c|c|c|c|c|c|} \hline 
+   show file         & \errFormat{p} &  r   & \errFormat{u} &  r   & \errFormat{v} &  r  \\ \hline
+ fallingDropAmpRhob5RampedGG2 & \num{2.6}{-3} &      & \num{2.1}{-4} &      & \num{5.6}{-4} &      \\ \hline
+ fallingDropAmpRhob5RampedGG4 & \num{7.1}{-4} &  3.7 & \num{2.5}{-5} &  8.5 & \num{8.9}{-5} &  6.3 \\ \hline
+ fallingDropAmpRhob5RampedGG8 & \num{1.9}{-4} &  3.7 & \num{3.0}{-6} &  8.5 & \num{1.4}{-5} &  6.3 \\ \hline
+                      &     1.89      &      &     3.08      &      &     2.65      &     \\ \hline
+\end{tabular}
+\caption{Max-norm self convergence results, t=5.000000e-01, Mon Nov  7 08:38:35 2016. }
+\end{center}
+\end{table}
+
+\begin{table}[hbt]\tableFont % you should set \tableFont to \footnotesize or other size
+% \newcommand{\num}[2]{#1e{#2}} % use this command to set the format of numbers in the table.
+% \newcommand{\errFormat}[1]{#1}} % use this command to set the format of the error label.
+\begin{center}
+\begin{tabular}{|l|c|c|c|c|c|c|} \hline 
+   show file         & \errFormat{p} &  r   & \errFormat{u} &  r   & \errFormat{v} &  r  \\ \hline
+ fallingDropAmpRhob5RampedGG2 & \num{1.5}{-3} &      & \num{6.2}{-5} &      & \num{7.1}{-5} &      \\ \hline
+ fallingDropAmpRhob5RampedGG4 & \num{8.7}{-4} &  1.7 & \num{7.1}{-6} &  8.8 & \num{1.0}{-5} &  7.1 \\ \hline
+ fallingDropAmpRhob5RampedGG8 & \num{5.2}{-4} &  1.7 & \num{8.0}{-7} &  8.8 & \num{1.4}{-6} &  7.1 \\ \hline
+                      &     0.74      &      &     3.14      &      &     2.82      &     \\ \hline
+\end{tabular}
+\caption{L2-norm self convergence results, t=5.000000e-01, Mon Nov  7 08:38:35 2016. }
+\end{center}
+\end{table}
+
+%----------------------------------------------------------------------------------------------------
+%----------------------------------------------------------------------------------------------------
+%----------------------------------------------------------------------------------------------------
+\clearpage
+\subsection{Fixed body, ramped velocity, $\rhob=5$: self-convergence results}
+
+
+Run cases:
+\begin{lstlisting}
+runCases.p -option=cylDrop  -rgd=fixed -bcOption=rampedVelocity -inflowVelocity=-1 -d=1. -move=0 -rampGravity=0 -amp=0 -rhob=5 -dt0=.02 -tf=2 -show=fallingDropRhob5RampedV -numResolutions=3
+
+comp compFallingDrop -show=fallingDropRhob5RampedV
+\end{lstlisting}
+
+
+Inflow velocity profile is a flat profile with parabolic ends. 
+
+Outflow : $p=0$, Neumann for v. 
+
+Note: Trouble with pressure convergence at inflow  at the transition to a flat profile...
+make the profile parabolic. 
+
+
+
+% -------------- max norm results -------------
+\begin{table}[hbt]\tableFont % you should set \tableFont to \footnotesize or other size
+% \newcommand{\num}[2]{#1e{#2}} % use this command to set the format of numbers in the table.
+% \newcommand{\errFormat}[1]{#1}} % use this command to set the format of the error label.
+\begin{center}
+\begin{tabular}{|l|c|c|c|c|c|c|} \hline 
+   show file         & \errFormat{p} &  r   & \errFormat{u} &  r   & \errFormat{v} &  r  \\ \hline
+ fallingDropRhob5RampedVG2 & \num{3.3}{-2} &      & \num{6.4}{-3} &      & \num{1.1}{-2} &      \\ \hline
+ fallingDropRhob5RampedVG4 & \num{5.0}{-3} &  6.5 & \num{1.1}{-3} &  5.9 & \num{1.9}{-3} &  6.1 \\ \hline
+ fallingDropRhob5RampedVG8 & \num{7.6}{-4} &  6.5 & \num{1.8}{-4} &  5.9 & \num{3.0}{-4} &  6.1 \\ \hline
+                      &     2.71      &      &     2.56      &      &     2.61      &     \\ \hline
+\end{tabular}
+\caption{Max-norm self convergence results, t=2.000000e+00, Mon Nov  7 14:02:18 2016. }
+\end{center}
+\end{table}
+
+% -------------- l2 norm results -------------
+\begin{table}[hbt]\tableFont % you should set \tableFont to \footnotesize or other size
+% \newcommand{\num}[2]{#1e{#2}} % use this command to set the format of numbers in the table.
+% \newcommand{\errFormat}[1]{#1}} % use this command to set the format of the error label.
+\begin{center}
+\begin{tabular}{|l|c|c|c|c|c|c|} \hline 
+   show file         & \errFormat{p} &  r   & \errFormat{u} &  r   & \errFormat{v} &  r  \\ \hline
+ fallingDropRhob5RampedVG2 & \num{4.1}{-3} &      & \num{1.9}{-3} &      & \num{2.4}{-3} &      \\ \hline
+ fallingDropRhob5RampedVG4 & \num{9.0}{-4} &  4.5 & \num{3.4}{-4} &  5.5 & \num{4.4}{-4} &  5.5 \\ \hline
+ fallingDropRhob5RampedVG8 & \num{2.0}{-4} &  4.5 & \num{6.1}{-5} &  5.5 & \num{7.9}{-5} &  5.5 \\ \hline
+                      &     2.18      &      &     2.46      &      &     2.46      &     \\ \hline
+\end{tabular}
+\caption{L2-norm self convergence results, t=2.000000e+00, Mon Nov  7 14:02:18 2016. }
+\end{center}
+\end{table}
+
+
+%----------------------------------------------------------------------------------------------------
+%----------------------------------------------------------------------------------------------------
+%----------------------------------------------------------------------------------------------------
+\clearpage
+\subsection{Moving Body, ramped velocity, $\rhob=5$: self-convergence results}
+
+Inflow velocity profile is parabolic.
+
+$v_{\rm inflow}=-.5$
+
+
+Note -- u-errors are getting larger at outflow (bottom) -- may neeed a longer domain 
+
+$t=1$ results for p are poor.
+
+
+% -------------- max norm results -------------
+\begin{table}[hbt]\tableFont % you should set \tableFont to \footnotesize or other size
+% \newcommand{\num}[2]{#1e{#2}} % use this command to set the format of numbers in the table.
+% \newcommand{\errFormat}[1]{#1}} % use this command to set the format of the error label.
+\begin{center}
+\begin{tabular}{|l|c|c|c|c|c|c|} \hline 
+   show file         & \errFormat{p} &  r   & \errFormat{u} &  r   & \errFormat{v} &  r  \\ \hline
+ fallingDropAmpRhob5RampedVG2 & \num{8.4}{-4} &      & \num{2.7}{-4} &      & \num{4.1}{-4} &      \\ \hline
+ fallingDropAmpRhob5RampedVG4 & \num{1.6}{-4} &  5.4 & \num{5.8}{-5} &  4.6 & \num{1.6}{-4} &  2.6 \\ \hline
+ fallingDropAmpRhob5RampedVG8 & \num{2.9}{-5} &  5.4 & \num{1.2}{-5} &  4.6 & \num{6.2}{-5} &  2.6 \\ \hline
+                      &     2.42      &      &     2.21      &      &     1.37      &     \\ \hline
+\end{tabular}
+\caption{Max-norm self convergence results, t=2.000000e+00, Mon Nov  7 14:35:48 2016. }
+\end{center}
+\end{table}
+
+% -------------- l2 norm results -------------
+\begin{table}[hbt]\tableFont % you should set \tableFont to \footnotesize or other size
+% \newcommand{\num}[2]{#1e{#2}} % use this command to set the format of numbers in the table.
+% \newcommand{\errFormat}[1]{#1}} % use this command to set the format of the error label.
+\begin{center}
+\begin{tabular}{|l|c|c|c|c|c|c|} \hline 
+   show file         & \errFormat{p} &  r   & \errFormat{u} &  r   & \errFormat{v} &  r  \\ \hline
+ fallingDropAmpRhob5RampedVG2 & \num{3.2}{-4} &      & \num{8.2}{-5} &      & \num{1.2}{-4} &      \\ \hline
+ fallingDropAmpRhob5RampedVG4 & \num{3.2}{-5} &  9.8 & \num{2.5}{-5} &  3.3 & \num{3.7}{-5} &  3.2 \\ \hline
+ fallingDropAmpRhob5RampedVG8 & \num{3.3}{-6} &  9.8 & \num{7.7}{-6} &  3.3 & \num{1.2}{-5} &  3.2 \\ \hline
+                      &     3.29      &      &     1.70      &      &     1.67      &     \\ \hline
+\end{tabular}
+\caption{L2-norm self convergence results, t=2.000000e+00, Mon Nov  7 14:35:48 2016. }
+\end{center}
+\end{table}
+
+% -------------- max norm results -------------
+\begin{table}[hbt]\tableFont % you should set \tableFont to \footnotesize or other size
+% \newcommand{\num}[2]{#1e{#2}} % use this command to set the format of numbers in the table.
+% \newcommand{\errFormat}[1]{#1}} % use this command to set the format of the error label.
+\begin{center}
+\begin{tabular}{|l|c|c|c|c|c|c|} \hline 
+   show file         & \errFormat{p} &  r   & \errFormat{u} &  r   & \errFormat{v} &  r  \\ \hline
+ fallingDropAmpRhob5RampedVG2 & \num{2.0}{-3} &      & \num{3.5}{-4} &      & \num{1.1}{-3} &      \\ \hline
+ fallingDropAmpRhob5RampedVG4 & \num{7.9}{-4} &  2.6 & \num{8.9}{-5} &  3.9 & \num{2.6}{-4} &  4.0 \\ \hline
+ fallingDropAmpRhob5RampedVG8 & \num{3.1}{-4} &  2.6 & \num{2.3}{-5} &  3.9 & \num{6.6}{-5} &  4.0 \\ \hline
+                      &     1.36      &      &     1.96      &      &     2.01      &     \\ \hline
+\end{tabular}
+\caption{Max-norm self convergence results, t=1.000000e+00, Mon Nov  7 14:39:04 2016. }
+\end{center}
+\end{table}
+
+% -------------- l2 norm results -------------
+\begin{table}[hbt]\tableFont % you should set \tableFont to \footnotesize or other size
+% \newcommand{\num}[2]{#1e{#2}} % use this command to set the format of numbers in the table.
+% \newcommand{\errFormat}[1]{#1}} % use this command to set the format of the error label.
+\begin{center}
+\begin{tabular}{|l|c|c|c|c|c|c|} \hline 
+   show file         & \errFormat{p} &  r   & \errFormat{u} &  r   & \errFormat{v} &  r  \\ \hline
+ fallingDropAmpRhob5RampedVG2 & \num{9.9}{-4} &      & \num{1.2}{-4} &      & \num{3.6}{-4} &      \\ \hline
+ fallingDropAmpRhob5RampedVG4 & \num{3.6}{-4} &  2.8 & \num{3.8}{-5} &  3.2 & \num{7.8}{-5} &  4.6 \\ \hline
+ fallingDropAmpRhob5RampedVG8 & \num{1.3}{-4} &  2.8 & \num{1.2}{-5} &  3.2 & \num{1.7}{-5} &  4.6 \\ \hline
+                      &     1.48      &      &     1.68      &      &     2.19      &     \\ \hline
+\end{tabular}
+\caption{L2-norm self convergence results, t=1.000000e+00, Mon Nov  7 14:39:04 2016. }
+\end{center}
+\end{table}
+
+% ================================================================================================================
+% ================================================================================================================
+% ================================================================================================================
+\clearpage
+\section{Offset cylinder in a channel}
+
+
+
+% -------------------------------------------------------------------------
+\subsection{Falling offset cylinder, $\rhob=5$, TP}
+
+% -------------- max norm results -------------
+\begin{table}[hbt]\tableFont % you should set \tableFont to \footnotesize or other size
+% \newcommand{\num}[2]{#1e{#2}} % use this command to set the format of numbers in the table.
+% \newcommand{\errFormat}[1]{#1}} % use this command to set the format of the error label.
+\begin{center}
+\begin{tabular}{|l|c|c|c|c|c|c|} \hline 
+   grid              & \errFormat{p} &  r   & \errFormat{u} &  r   & \errFormat{v} &  r  \\ \hline
+ offsetDropRhob5RampedPG2 & \num{4.4}{-3} &      & \num{2.0}{-3} &      & \num{2.4}{-3} &      \\ \hline
+ offsetDropRhob5RampedPG4 & \num{9.3}{-4} &  4.8 & \num{4.3}{-4} &  4.7 & \num{4.6}{-4} &  5.1 \\ \hline
+ offsetDropRhob5RampedPG8 & \num{1.9}{-4} &  4.8 & \num{9.0}{-5} &  4.7 & \num{9.1}{-5} &  5.1 \\ \hline
+                      &     2.26      &      &     2.24      &      &     2.35      &     \\ \hline
+\end{tabular}
+\caption{Max-norm self convergence results, Tue Nov  8 11:46:06 2016. }
+\end{center}
+\end{table}
+
+% -------------- l2 norm results -------------
+\begin{table}[hbt]\tableFont % you should set \tableFont to \footnotesize or other size
+% \newcommand{\num}[2]{#1e{#2}} % use this command to set the format of numbers in the table.
+% \newcommand{\errFormat}[1]{#1}} % use this command to set the format of the error label.
+\begin{center}
+\begin{tabular}{|l|c|c|c|c|c|c|} \hline 
+   grid              & \errFormat{p} &  r   & \errFormat{u} &  r   & \errFormat{v} &  r  \\ \hline
+ offsetDropRhob5RampedPG2 & \num{5.8}{-4} &      & \num{3.3}{-4} &      & \num{4.9}{-4} &      \\ \hline
+ offsetDropRhob5RampedPG4 & \num{1.2}{-4} &  4.8 & \num{7.1}{-5} &  4.6 & \num{1.1}{-4} &  4.6 \\ \hline
+ offsetDropRhob5RampedPG8 & \num{2.5}{-5} &  4.8 & \num{1.6}{-5} &  4.6 & \num{2.3}{-5} &  4.6 \\ \hline
+                      &     2.28      &      &     2.20      &      &     2.21      &     \\ \hline
+\end{tabular}
+\caption{L2-norm self convergence results, Tue Nov  8 11:46:06 2016. }
+\end{center}
+\end{table}
+
+
+
+% -------------------------------------------------------------------------
+\clearpage
+\subsection{Falling offset cylinder, $\rhob=2$, AMP}
+
+% -------------- max norm results -------------
+\begin{table}[hbt]\tableFont % you should set \tableFont to \footnotesize or other size
+% \newcommand{\num}[2]{#1e{#2}} % use this command to set the format of numbers in the table.
+% \newcommand{\errFormat}[1]{#1}} % use this command to set the format of the error label.
+\begin{center}
+\begin{tabular}{|l|c|c|c|c|c|c|} \hline 
+   grid              & \errFormat{p} &  r   & \errFormat{u} &  r   & \errFormat{v} &  r  \\ \hline
+ offsetDropAmpRhob2RampedPG2 & \num{4.1}{-3} &      & \num{1.7}{-3} &      & \num{2.0}{-3} &      \\ \hline
+ offsetDropAmpRhob2RampedPG4 & \num{8.1}{-4} &  5.1 & \num{4.0}{-4} &  4.1 & \num{4.5}{-4} &  4.5 \\ \hline
+ offsetDropAmpRhob2RampedPG8 & \num{1.6}{-4} &  5.1 & \num{9.9}{-5} &  4.1 & \num{1.0}{-4} &  4.5 \\ \hline
+                      &     2.34      &      &     2.03      &      &     2.16      &     \\ \hline
+\end{tabular}
+\caption{Max-norm self convergence results, Tue Nov  8 11:55:18 2016. }
+\end{center}
+\end{table}
+
+% -------------- l2 norm results -------------
+\begin{table}[hbt]\tableFont % you should set \tableFont to \footnotesize or other size
+% \newcommand{\num}[2]{#1e{#2}} % use this command to set the format of numbers in the table.
+% \newcommand{\errFormat}[1]{#1}} % use this command to set the format of the error label.
+\begin{center}
+\begin{tabular}{|l|c|c|c|c|c|c|} \hline 
+   grid              & \errFormat{p} &  r   & \errFormat{u} &  r   & \errFormat{v} &  r  \\ \hline
+ offsetDropAmpRhob2RampedPG2 & \num{6.4}{-4} &      & \num{3.0}{-4} &      & \num{4.8}{-4} &      \\ \hline
+ offsetDropAmpRhob2RampedPG4 & \num{1.2}{-4} &  5.4 & \num{6.9}{-5} &  4.4 & \num{1.1}{-4} &  4.5 \\ \hline
+ offsetDropAmpRhob2RampedPG8 & \num{2.2}{-5} &  5.4 & \num{1.6}{-5} &  4.4 & \num{2.4}{-5} &  4.5 \\ \hline
+                      &     2.42      &      &     2.14      &      &     2.17      &     \\ \hline
+\end{tabular}
+\caption{L2-norm self convergence results, Tue Nov  8 11:55:18 2016. }
+\end{center}
+\end{table}
+
+% -------------------------------------------------------------------------
+\clearpage
+\subsection{Falling offset cylinder, $\rhob=0.1$, AMP}
+
+% -------------- max norm results -------------
+\begin{table}[hbt]\tableFont % you should set \tableFont to \footnotesize or other size
+% \newcommand{\num}[2]{#1e{#2}} % use this command to set the format of numbers in the table.
+% \newcommand{\errFormat}[1]{#1}} % use this command to set the format of the error label.
+\begin{center}
+\begin{tabular}{|l|c|c|c|c|c|c|} \hline 
+   grid              & \errFormat{p} &  r   & \errFormat{u} &  r   & \errFormat{v} &  r  \\ \hline
+ offsetDropAmpRhob0p1RampedPG2 & \num{4.6}{-3} &      & \num{2.5}{-3} &      & \num{1.9}{-3} &      \\ \hline
+ offsetDropAmpRhob0p1RampedPG4 & \num{1.2}{-3} &  4.0 & \num{5.1}{-4} &  4.9 & \num{4.9}{-4} &  3.9 \\ \hline
+ offsetDropAmpRhob0p1RampedPG8 & \num{2.9}{-4} &  4.0 & \num{1.0}{-4} &  4.9 & \num{1.3}{-4} &  3.9 \\ \hline
+                      &     2.00      &      &     2.29      &      &     1.97      &     \\ \hline
+\end{tabular}
+\caption{Max-norm self convergence results, Tue Nov  8 15:13:16 2016. }
+\end{center}
+\end{table}
+
+% -------------- l2 norm results -------------
+\begin{table}[hbt]\tableFont % you should set \tableFont to \footnotesize or other size
+% \newcommand{\num}[2]{#1e{#2}} % use this command to set the format of numbers in the table.
+% \newcommand{\errFormat}[1]{#1}} % use this command to set the format of the error label.
+\begin{center}
+\begin{tabular}{|l|c|c|c|c|c|c|} \hline 
+   grid              & \errFormat{p} &  r   & \errFormat{u} &  r   & \errFormat{v} &  r  \\ \hline
+ offsetDropAmpRhob0p1RampedPG2 & \num{6.2}{-4} &      & \num{3.0}{-4} &      & \num{4.9}{-4} &      \\ \hline
+ offsetDropAmpRhob0p1RampedPG4 & \num{1.4}{-4} &  4.5 & \num{7.1}{-5} &  4.2 & \num{1.1}{-4} &  4.5 \\ \hline
+ offsetDropAmpRhob0p1RampedPG8 & \num{3.1}{-5} &  4.5 & \num{1.7}{-5} &  4.2 & \num{2.4}{-5} &  4.5 \\ \hline
+                      &     2.17      &      &     2.07      &      &     2.18      &     \\ \hline
+\end{tabular}
+\caption{L2-norm self convergence results, Tue Nov  8 15:13:16 2016. }
+\end{center}
+\end{table}
+
+
+% -------------------------------------------------------------------------
+\clearpage
+\subsection{Falling offset cylinder, $\rhob=0$, AMP}
+
+**CHECK wiggles in $a_1$ .... these decrease as mesh is refined, probably just due
+to grid overlap changing. 
+
+
+
+% -------------- max norm results -------------
+\begin{table}[hbt]\tableFont % you should set \tableFont to \footnotesize or other size
+% \newcommand{\num}[2]{#1e{#2}} % use this command to set the format of numbers in the table.
+% \newcommand{\errFormat}[1]{#1}} % use this command to set the format of the error label.
+\begin{center}
+\begin{tabular}{|l|c|c|c|c|c|c|} \hline 
+   grid              & \errFormat{p} &  r   & \errFormat{u} &  r   & \errFormat{v} &  r  \\ \hline
+ offsetDropAmpRhob0RampedPG2 & \num{4.8}{-3} &      & \num{2.5}{-3} &      & \num{2.0}{-3} &      \\ \hline
+ offsetDropAmpRhob0RampedPG4 & \num{1.2}{-3} &  4.1 & \num{5.1}{-4} &  4.9 & \num{4.9}{-4} &  4.0 \\ \hline
+ offsetDropAmpRhob0RampedPG8 & \num{2.9}{-4} &  4.1 & \num{1.0}{-4} &  4.9 & \num{1.2}{-4} &  4.0 \\ \hline
+                      &     2.04      &      &     2.30      &      &     2.01      &     \\ \hline
+\end{tabular}
+\caption{Max-norm self convergence results, Tue Nov  8 12:58:49 2016. }
+\end{center}
+\end{table}
+
+% -------------- l2 norm results -------------
+\begin{table}[hbt]\tableFont % you should set \tableFont to \footnotesize or other size
+% \newcommand{\num}[2]{#1e{#2}} % use this command to set the format of numbers in the table.
+% \newcommand{\errFormat}[1]{#1}} % use this command to set the format of the error label.
+\begin{center}
+\begin{tabular}{|l|c|c|c|c|c|c|} \hline 
+   grid              & \errFormat{p} &  r   & \errFormat{u} &  r   & \errFormat{v} &  r  \\ \hline
+ offsetDropAmpRhob0RampedPG2 & \num{6.1}{-4} &      & \num{3.0}{-4} &      & \num{5.0}{-4} &      \\ \hline
+ offsetDropAmpRhob0RampedPG4 & \num{1.4}{-4} &  4.3 & \num{7.1}{-5} &  4.2 & \num{1.1}{-4} &  4.6 \\ \hline
+ offsetDropAmpRhob0RampedPG8 & \num{3.4}{-5} &  4.3 & \num{1.7}{-5} &  4.2 & \num{2.4}{-5} &  4.6 \\ \hline
+                      &     2.10      &      &     2.07      &      &     2.19      &     \\ \hline
+\end{tabular}
+\caption{L2-norm self convergence results, Tue Nov  8 12:58:49 2016. }
+\end{center}
+\end{table}
+
+
+% -------------- max norm results -------------
+\begin{table}[hbt]\tableFont % you should set \tableFont to \footnotesize or other size
+% \newcommand{\num}[2]{#1e{#2}} % use this command to set the format of numbers in the table.
+% \newcommand{\errFormat}[1]{#1}} % use this command to set the format of the error label.
+\begin{center}
+\begin{tabular}{|l|c|c|c|c|c|c|} \hline 
+   grid              & \errFormat{p} &  r   & \errFormat{u} &  r   & \errFormat{v} &  r  \\ \hline
+ offsetDropAmpRhob0RampedPG2 & \num{4.8}{-3} &      & \num{2.2}{-3} &      & \num{1.8}{-3} &      \\ \hline
+ offsetDropAmpRhob0RampedPG4 & \num{1.2}{-3} &  4.1 & \num{5.4}{-4} &  4.1 & \num{5.2}{-4} &  3.4 \\ \hline
+ offsetDropAmpRhob0RampedPG8 & \num{2.8}{-4} &  4.1 & \num{1.3}{-4} &  4.1 & \num{1.5}{-4} &  3.4 \\ \hline
+ offsetDropAmpRhob0RampedPG16 & \num{6.7}{-5} &  4.1 & \num{3.1}{-5} &  4.1 & \num{4.4}{-5} &  3.4 \\ \hline
+                      &     2.05      &      &     2.05      &      &     1.78      &     \\ \hline
+\end{tabular}
+\caption{Max-norm self convergence results, Wed Nov  9 06:48:02 2016. }
+\end{center}
+\end{table}
+
+% -------------- l2 norm results -------------
+\begin{table}[hbt]\tableFont % you should set \tableFont to \footnotesize or other size
+% \newcommand{\num}[2]{#1e{#2}} % use this command to set the format of numbers in the table.
+% \newcommand{\errFormat}[1]{#1}} % use this command to set the format of the error label.
+\begin{center}
+\begin{tabular}{|l|c|c|c|c|c|c|} \hline 
+   grid              & \errFormat{p} &  r   & \errFormat{u} &  r   & \errFormat{v} &  r  \\ \hline
+ offsetDropAmpRhob0RampedPG2 & \num{5.8}{-4} &      & \num{2.8}{-4} &      & \num{4.5}{-4} &      \\ \hline
+ offsetDropAmpRhob0RampedPG4 & \num{1.5}{-4} &  3.9 & \num{7.5}{-5} &  3.7 & \num{1.1}{-4} &  3.9 \\ \hline
+ offsetDropAmpRhob0RampedPG8 & \num{3.8}{-5} &  3.9 & \num{2.0}{-5} &  3.7 & \num{2.9}{-5} &  3.9 \\ \hline
+ offsetDropAmpRhob0RampedPG16 & \num{9.7}{-6} &  3.9 & \num{5.4}{-6} &  3.7 & \num{7.5}{-6} &  3.9 \\ \hline
+                      &     1.97      &      &     1.89      &      &     1.97      &     \\ \hline
+\end{tabular}
+\caption{L2-norm self convergence results, Wed Nov  9 06:48:02 2016. }
+\end{center}
+\end{table}
+
+% -------------------------------------------------------------------------
+\clearpage
+\subsection{Falling offset cylinder, $\rhob=0$, AMP, ramped pressure inflow, ramped gravity}
+
+With gravity we can run for a longer time. 
+
+
+% -------------- max norm results -------------
+\begin{table}[hbt]\tableFont % you should set \tableFont to \footnotesize or other size
+% \newcommand{\num}[2]{#1e{#2}} % use this command to set the format of numbers in the table.
+% \newcommand{\errFormat}[1]{#1}} % use this command to set the format of the error label.
+\begin{center}
+\begin{tabular}{|l|c|c|c|c|c|c|} \hline 
+   grid              & \errFormat{p} &  r   & \errFormat{u} &  r   & \errFormat{v} &  r  \\ \hline
+ offsetDropAmpRhob0RampedPGG2 & \num{5.9}{-2} &      & \num{2.6}{-2} &      & \num{3.6}{-2} &      \\ \hline
+ offsetDropAmpRhob0RampedPGG4 & \num{6.3}{-3} &  9.4 & \num{4.0}{-3} &  6.6 & \num{3.2}{-3} & 11.2 \\ \hline
+ offsetDropAmpRhob0RampedPGG8 & \num{6.7}{-4} &  9.4 & \num{6.0}{-4} &  6.6 & \num{2.9}{-4} & 11.2 \\ \hline
+                      &     3.23      &      &     2.73      &      &     3.49      &     \\ \hline
+\end{tabular}
+\caption{Max-norm self convergence results, Wed Nov  9 07:49:17 2016. }
+\end{center}
+\end{table}
+
+% -------------- l2 norm results -------------
+\begin{table}[hbt]\tableFont % you should set \tableFont to \footnotesize or other size
+% \newcommand{\num}[2]{#1e{#2}} % use this command to set the format of numbers in the table.
+% \newcommand{\errFormat}[1]{#1}} % use this command to set the format of the error label.
+\begin{center}
+\begin{tabular}{|l|c|c|c|c|c|c|} \hline 
+   grid              & \errFormat{p} &  r   & \errFormat{u} &  r   & \errFormat{v} &  r  \\ \hline
+ offsetDropAmpRhob0RampedPGG2 & \num{4.7}{-3} &      & \num{2.9}{-3} &      & \num{3.1}{-3} &      \\ \hline
+ offsetDropAmpRhob0RampedPGG4 & \num{5.2}{-4} &  9.1 & \num{3.7}{-4} &  7.8 & \num{3.7}{-4} &  8.4 \\ \hline
+ offsetDropAmpRhob0RampedPGG8 & \num{5.7}{-5} &  9.1 & \num{4.8}{-5} &  7.8 & \num{4.4}{-5} &  8.4 \\ \hline
+                      &     3.18      &      &     2.96      &      &     3.07      &     \\ \hline
+\end{tabular}
+\caption{L2-norm self convergence results, Wed Nov  9 07:49:17 2016. }
+\end{center}
+\end{table}
+
+% -------------- max norm results -------------
+\begin{table}[hbt]\tableFont % you should set \tableFont to \footnotesize or other size
+% \newcommand{\num}[2]{#1e{#2}} % use this command to set the format of numbers in the table.
+% \newcommand{\errFormat}[1]{#1}} % use this command to set the format of the error label.
+\begin{center}
+\begin{tabular}{|l|c|c|c|c|c|c|} \hline 
+   show file         & \errFormat{p} &  r   & \errFormat{u} &  r   & \errFormat{v} &  r  \\ \hline
+ offsetDropAmpRhob0RampedPGG2 & \num{8.9}{-2} &      & \num{4.9}{-2} &      & \num{3.8}{-2} &      \\ \hline
+ offsetDropAmpRhob0RampedPGG4 & \num{8.7}{-3} & 10.1 & \num{5.9}{-3} &  8.3 & \num{4.6}{-3} &  8.2 \\ \hline
+ offsetDropAmpRhob0RampedPGG8 & \num{8.6}{-4} & 10.1 & \num{7.1}{-4} &  8.3 & \num{5.6}{-4} &  8.2 \\ \hline
+                      &     3.34      &      &     3.06      &      &     3.04      &     \\ \hline
+\end{tabular}
+\caption{Max-norm self convergence results, t=6.000000e+00, Wed Nov  9 08:28:32 2016. }
+\end{center}
+\end{table}
+
+% -------------- l2 norm results -------------
+\begin{table}[hbt]\tableFont % you should set \tableFont to \footnotesize or other size
+% \newcommand{\num}[2]{#1e{#2}} % use this command to set the format of numbers in the table.
+% \newcommand{\errFormat}[1]{#1}} % use this command to set the format of the error label.
+\begin{center}
+\begin{tabular}{|l|c|c|c|c|c|c|} \hline 
+   show file         & \errFormat{p} &  r   & \errFormat{u} &  r   & \errFormat{v} &  r  \\ \hline
+ offsetDropAmpRhob0RampedPGG2 & \num{7.5}{-3} &      & \num{4.6}{-3} &      & \num{4.6}{-3} &      \\ \hline
+ offsetDropAmpRhob0RampedPGG4 & \num{8.8}{-4} &  8.5 & \num{5.2}{-4} &  8.7 & \num{5.2}{-4} &  9.0 \\ \hline
+ offsetDropAmpRhob0RampedPGG8 & \num{1.0}{-4} &  8.5 & \num{6.0}{-5} &  8.7 & \num{5.8}{-5} &  9.0 \\ \hline
+                      &     3.09      &      &     3.13      &      &     3.16      &     \\ \hline
+\end{tabular}
+\caption{L2-norm self convergence results, t=6.000000e+00, Wed Nov  9 08:28:32 2016. }
+\end{center}
+\end{table}
 
 % \clearpage
 % \bibliography{henshaw,henshawPapers}

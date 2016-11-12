@@ -1,0 +1,83 @@
+{% ------ STREAMLINES ------
+\newcommand{\drawContour}[7]{%
+%
+%
+\begin{scope}[#1]
+\draw(0.0,0) node[anchor=south west,xshift=-4pt,yshift=+0pt] {\trimfig{fig/#2}{\figWidth}};
+  % \draw(.5,5.75) node[draw,fill=white,anchor=west,xshift=2pt,yshift=0pt] {\scriptsize #3};
+  % \draw(0,0.0) node[draw,fill=white,anchor=south west,xshift=12pt,yshift=12pt] {\scriptsize #4};
+  \draw(.5,5.75) node[draw,fill=white,anchor=west,xshift=2pt,yshift=-1pt] {\scriptsize #5};
+ % colour bar:
+\begin{scope}[xshift=-3pt,yshift=-2pt]
+  \draw (\xcb,\ycb) node[anchor=south west,xshift=0.cm,yshift=.5cm,rotate=-90] {\trimfigcb{fig/colourBarLines}{\cbWidth}{\cbHeight}};
+  \draw (.8,0) node[anchor=north,xshift=+3pt,yshift=+2pt] {\scriptsize $#6$};
+  \draw (3.7,0) node[anchor=north,xshift=+0pt,yshift=+2pt] {\scriptsize $#7$};
+\end{scope}
+% \draw (\xcb,\ycb) node[anchor=south west,xshift= +8pt,yshift=+1pt] {\scriptsize $#6$};
+% \draw (\xcb,\ycbTop) node[anchor=south west,xshift= +8pt,yshift=-6pt] {\scriptsize $#7$};
+\end{scope}
+}
+% -- for colour bar ----
+\newcommand{\cbWidth}{.2cm}% colour bar width
+\newcommand{\cbHeight}{3.3cm}% colour bar height
+\newcommand{\xcb}{.5cm}% colour bar lower left corner
+\newcommand{\ycb}{-.2cm}% colour bar lower left corner
+\setlength{\ycbTop}{\ycb+\cbHeight}% colour bar top label position
+\setlength{\ycbMid}{\ycb+\cbHeight*\real{.5}}% colour bar top label position
+% \newcommand{\xLabel}{6.5cm}% label position
+% \newcommand{\yLabel}{6.5cm}% label position
+\newcommand{\trimfigcb}[3]{\includegraphics[width=#2, height=#3, clip, trim=17cm 2.35cm 1.65cm 2.35cm]{#1}}
+%
+% ============================ DRAW ===================================
+\newcommand{\figWidth}{3.5cm}
+\newcommand{\trimfig}[2]{\trimw{#1}{#2}{.245}{.25}{.075}{.08}}
+\newcommand{\figWidtha}{4.25cm}
+\newcommand{\trimfiga}[2]{\trimFig{#1}{#2}{.57}{.425}{.0}{.17}}
+\begin{figure}[htb]
+\begin{center}
+\resizebox{12cm}{!}{% START resize box
+\begin{tikzpicture}[scale=1]
+  \useasboundingbox (0.0,.25) rectangle (16.,13.);  % set the bounding box (so we have less surrounding white space)
+% 
+%  top row: 
+\begin{scope}[yshift=6.75cm]
+ \drawContour{xshift= 0.0cm,yshift=0.0cm}{diskDropG8Bd00p1nu0p1t0p7streamLines}{$p$}{$p$}{$t=0.7$}{0.0}{1.30};
+ \drawContour{xshift= 4.0cm,yshift=0.0cm}{diskDropG8Bd00p1nu0p1t1p3streamLines}{$p$}{$p$}{$t=1.3$}{0.0}{2.54};
+ \drawContour{xshift= 8.0cm,yshift=0.0cm}{diskDropG8Bd00p1nu0p1t1p6streamLines}{$p$}{$p$}{$t=1.6$}{0.0}{2.84};
+ \drawContour{xshift=12.0cm,yshift=0.0cm}{diskDropG8Bd00p1nu0p1t2p0streamLines}{$p$}{$p$}{$t=2.0$}{0.0}{3.00};
+\end{scope}
+%  bottom row: 
+ \drawContour{xshift= 0.0cm,yshift=0.0cm}{diskDropG8Bd00p1nu0p1t2p5streamLines}{$p$}{$p$}{$t=2.5$}{0.0}{2.45};
+ \drawContour{xshift= 4.0cm,yshift=0.0cm}{diskDropG8Bd00p1nu0p1t3p0streamLines}{$p$}{$p$}{$t=3.0$}{0.0}{2.58};
+ \drawContour{xshift= 8.0cm,yshift=0.0cm}{diskDropG8Bd00p1nu0p1t10p0streamLines}{$p$}{$p$}{$t=10.$}{0.0}{2.74};
+%  \drawContour{xshift=12.0cm,yshift=0.0cm}{diskDropG8Bd00p1nu0p1t1p6streamLines}{$p$}{$p$}{$t=7.5$}{-.076}{.232};
+% 
+% -- animation: 
+ \begin{scope}[xshift=12.2cm,yshift=-.25cm]
+   \draw(0,-.35) node[anchor=south west,xshift=-4pt,yshift=+0pt] {\trimfiga{fig/risingDropAnimationCase5}{\figWidtha}};
+   \begin{scope}[xshift=4.5cm,yshift=.375cm]
+     \draw [->,very thick] (0,0) -- (0,5.75);
+     \draw (0,2.75) node[xshift=10pt] {$t$};
+     %
+     \draw (0,.28) node[xshift=10pt] {$0$};
+     \draw[-,thick] (-.075,.28) -- (.075,.28); 
+     % 
+     \draw (0,5.37) node[xshift=10pt] {$10$};
+     \draw[-,thick] (-.075,5.37) -- (.075,5.37); 
+   \end{scope}
+ \end{scope}
+% ---------------
+% grid:
+% \draw[step=1cm,gray] (0,0) grid (16,13.);
+\end{tikzpicture}
+}% end resize box
+\end{center}
+  \caption{Rising disk in a counter-flow. Computed streamlines (coloured by the flow speed) at selected times for a solid-disk with $\rhob=0.001$ using the composite grid $\Gcrd^{(8)}$.  
+   Lower right: time-evolution (vertical axis) of the motion of the disk depicted with rotated arrows. 
+ % \dws{(I suggest including labels on the vertical axis for this lower-right plot)}
+%   The red fluid grid adjacent to the
+%    rigid disk (solid red) moves in time. The blue and green fluid grids do not move.
+}
+  \label{fig:risingDiskStreamLines}
+\end{figure}
+}

@@ -1,0 +1,202 @@
+% -------------------------------------------------------------------------------------
+%
+% Trim a figure: **NEW VERSION**
+%  In this new version we hard code the original width of the plot to match an Overture figure.
+%  The clipping parameters then denote fractions of this width (width=7.5 in = 19.05 cm)
+%
+%  \trimPlot{file}{width}{xa}{xb}{ya}{yb}
+% Trim a figure and show the bounding box:
+%  \trimPlotb{file}{width}{xa}{xb}{ya}{yb}
+% 
+%  file = name of the graphics file for includegraphics : .eps or pdf or ...
+%  width : final width (after trimming) of the figure e.g. 5cm
+%  xa,xb,ya,yb : trim this fraction of the width from the left, right, bottom and top
+% 
+% -----------------------------------------------------------------------------------------
+\newlength{\tfwidth}
+\newlength{\tfheight}
+\newlength{\tfxa}
+\newlength{\tfxb}
+\newlength{\tfya}
+\newlength{\tfyb}
+% 
+\newcommand{\trimPlotWithBox}[6]{%
+\setlength\fboxsep{0pt}%
+\setlength\fboxrule{1.0pt}% border thickness
+\fbox{\includegraphics[width=#2, clip, trim=#3 #4 #5 #6]{#1}}%
+}
+\newcommand{\trimPlotNoBox}[6]{%
+\setlength\fboxsep{1pt}% note: make this 1pt and rule thickness zero so box size matches that below
+\setlength\fboxrule{0.0pt}% border thickness
+\fbox{\includegraphics[width=#2, clip, trim=#3 #4 #5 #6]{#1}}%
+% \includegraphics[width=#2, clip, trim=#3 #4 #5 #6]{#1}
+}
+% Trim a figure and draw the bounding box 
+% Overture figures are 7.5 inches wide (8.5 - .5 -.5) = 19.05 cm
+\newcommand{\trimPlotb}[6]{%
+\setlength{\tfwidth}{19.05cm}%   % width of un-clipped fig
+\setlength{\tfxa}{\tfwidth*\real{#3}}%
+\setlength{\tfxb}{\tfwidth*\real{#4}}%
+\setlength{\tfya}{\tfwidth*\real{#5}}%
+\setlength{\tfyb}{\tfwidth*\real{#6}}%
+% trim=l b r t
+\trimPlotWithBox{#1}{#2}{\tfxa}{\tfya}{\tfxb}{\tfyb}%
+% \trimPlotWithBox{#1}{#2}{#3}{#4}{#5}{#6}%
+}
+% Trim a figure 
+% 
+\newcommand{\trimPlot}[6]{%
+\setlength{\tfwidth}{19.05cm}%   % width of un-clipped fig
+\setlength{\tfxa}{\tfwidth*\real{#3}}%
+\setlength{\tfxb}{\tfwidth*\real{#4}}%
+\setlength{\tfya}{\tfwidth*\real{#5}}%
+\setlength{\tfyb}{\tfwidth*\real{#6}}%
+% trim=l b r t
+\trimPlotNoBox{#1}{#2}{\tfxa}{\tfya}{\tfxb}{\tfyb}%
+}
+% ----------------------------------------------------------------------------------------------
+% -------------------------------------------------------------------------------------
+%
+% Trim a figure: 
+%  \trimFig{file}{width}{xa}{xb}{ya}{yb}
+% Trim a figure and show the bounding box:
+%  \trimFigb{file}{width}{xa}{xb}{ya}{yb}
+% 
+%  file = name of the graphics file for includegraphics : .eps or pdf or ...
+%  width : final width (after trimming) of the figure e.g. 5cm
+%  xa,xb,ya,yb : trim this fraction of the width from the left, right, bottom and top
+% 
+% -----------------------------------------------------------------------------------------
+\newcommand{\trimFigWithBox}[6]{%
+\setlength\fboxsep{0pt}%
+\setlength\fboxrule{1.0pt}% border thickness
+\fbox{\includegraphics[width=#2, clip, trim=#3 #4 #5 #6]{#1}}%
+}
+% -----------------------------------------------------------------------------------------
+\newcommand{\trimFigNoBox}[6]{%
+\setlength\fboxsep{1pt}% note: make this 1pt and rule thickness zero so box size matches that below
+\setlength\fboxrule{0.0pt}% border thickness
+\fbox{\includegraphics[width=#2, clip, trim=#3 #4 #5 #6]{#1}}%
+% \includegraphics[width=#2, clip, trim=#3 #4 #5 #6]{#1}
+}
+% ---------- Set height -----
+\newcommand{\trimFigHeightWithBox}[6]{%
+\setlength\fboxsep{0pt}%
+\setlength\fboxrule{1.0pt}% border thickness
+\fbox{\includegraphics[height=#2, clip, trim=#3 #4 #5 #6]{#1}}%
+}
+% ---------- Set height -----
+\newcommand{\trimFigHeightNoBox}[6]{%
+\setlength\fboxsep{1pt}% note: make this 1pt and rule thickness zero so box size matches that below
+\setlength\fboxrule{0.0pt}% border thickness
+\fbox{\includegraphics[height=#2, clip, trim=#3 #4 #5 #6]{#1}}%
+% \includegraphics[width=#2, clip, trim=#3 #4 #5 #6]{#1}
+}
+% Trim a figure and draw the bounding box 
+\newcommand{\trimFigb}[6]{%
+\setlength{\tfwidth}{(#2+#2*\real{#3})+#2*\real{#4}}%   % width of un-clipped fig
+\setlength{\tfheight}{(#2+#2*\real{#5})+#2*\real{#6}}%
+\setlength{\tfxa}{\tfwidth*\real{#3}}%
+\setlength{\tfxb}{\tfwidth*\real{#4}}%
+\setlength{\tfya}{\tfheight*\real{#5}}%
+\setlength{\tfyb}{\tfheight*\real{#6}}%
+% trim=l b r t
+\trimFigWithBox{#1}{#2}{\tfxa}{\tfya}{\tfxb}{\tfyb}%
+}
+% Trim a figure 
+% 
+\newcommand{\trimFig}[6]{%
+\setlength{\tfwidth}{(#2+#2*\real{#3})+#2*\real{#4}}%   % width of un-clipped fig
+\setlength{\tfheight}{(#2+#2*\real{#5})+#2*\real{#6}}%
+\setlength{\tfxa}{\tfwidth*\real{#3}}%
+\setlength{\tfxb}{\tfwidth*\real{#4}}%
+\setlength{\tfya}{\tfheight*\real{#5}}%
+\setlength{\tfyb}{\tfheight*\real{#6}}%
+% trim=l b r t
+\trimFigNoBox{#1}{#2}{\tfxa}{\tfya}{\tfxb}{\tfyb}%
+}
+
+%%%%%%%%%%%%%% TRIMW : trim and set width %%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%% THIS VERSION WORKS PROPERLY %%%%%%%%%%%%%%%%%%
+%  Thanks to Longfei Li
+% New:
+% Trim a figure (working) 
+%  trims #3 #4 #5 #6 percent of left, right, bottom, top of the original figure
+\newsavebox\figBox
+
+\newcommand{\trimw}[6]{%
+%20160728 use \sbox to save one include graphics
+\sbox\figBox{\includegraphics{#1}}
+\setlength{\tfwidth}{\the\wd\figBox}
+\setlength{\tfheight}{\the\ht\figBox}
+\setlength{\tfxa}{\tfwidth*\real{#3}}%
+\setlength{\tfxb}{\tfwidth*\real{#4}}%
+\setlength{\tfya}{\tfheight*\real{#5}}%
+\setlength{\tfyb}{\tfheight*\real{#6}}%
+\trimFigNoBox{#1}{#2}{\tfxa}{\tfya}{\tfxb}{\tfyb}%
+}
+
+% ----------------------------------------------------------------------------------------------
+%%%%%%%%%%%%%% TRIMWB : trim and set width %%%%%%%%%%%%%%%%%%
+%%%%%%%%%%   Version of trim that also draws the bounding box %%%%%%%%%%%%
+\newcommand{\trimwb}[6]{%
+%old: 
+%\setlength{\tfwidth}{(#2+#2*\real{#3})+#2*\real{#4}}%   % width of un-clipped fig
+%\setlength{\tfheight}{(#2+#2*\real{#5})+#2*\real{#6}}%
+%new: Longfei 20160727: we should get the size of the original picture:
+%\settowidth\tfwidth{\includegraphics{#1}}
+%\settoheight\tfheight{\includegraphics{#1}}
+
+%20160728 use \sbox to save one include graphics
+\sbox\figBox{\includegraphics{#1}}
+\setlength{\tfwidth}{\the\wd\figBox}
+\setlength{\tfheight}{\the\ht\figBox}
+\setlength{\tfxa}{\tfwidth*\real{#3}}%
+\setlength{\tfxb}{\tfwidth*\real{#4}}%
+\setlength{\tfya}{\tfheight*\real{#5}}%
+\setlength{\tfyb}{\tfheight*\real{#6}}%
+\trimFigWithBox{#1}{#2}{\tfxa}{\tfya}{\tfxb}{\tfyb}%
+}
+
+% ----------------------------------------------------------------------------------------------
+%%%%%%%%%%%%%% TRIMH : trim and set height %%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%% THIS VERSION WORKS PROPERLY %%%%%%%%%%%%%%%%%%
+%  Thanks to Longfei Li
+% New:
+% Trim a figure (working) 
+%  trims #3 #4 #5 #6 percent of left, right, bottom, top of the original figure
+\newcommand{\trimh}[6]{%
+%20160728 use \sbox to save one include graphics
+\sbox\figBox{\includegraphics{#1}}
+\setlength{\tfwidth}{\the\wd\figBox}
+\setlength{\tfheight}{\the\ht\figBox}
+\setlength{\tfxa}{\tfwidth*\real{#3}}%
+\setlength{\tfxb}{\tfwidth*\real{#4}}%
+\setlength{\tfya}{\tfheight*\real{#5}}%
+\setlength{\tfyb}{\tfheight*\real{#6}}%
+\trimFigHeightNoBox{#1}{#2}{\tfxa}{\tfya}{\tfxb}{\tfyb}%
+}
+
+% ----------------------------------------------------------------------------------------------
+%%%%%%%%%%%%%% TRIMWB : trim and set height %%%%%%%%%%%%%%%%%%
+%%%%%%%%%%   Version of trim that also draws the bounding box %%%%%%%%%%%%
+\newcommand{\trimhb}[6]{%
+%old: 
+%\setlength{\tfwidth}{(#2+#2*\real{#3})+#2*\real{#4}}%   % width of un-clipped fig
+%\setlength{\tfheight}{(#2+#2*\real{#5})+#2*\real{#6}}%
+%new: Longfei 20160727: we should get the size of the original picture:
+%\settowidth\tfwidth{\includegraphics{#1}}
+%\settoheight\tfheight{\includegraphics{#1}}
+
+%20160728 use \sbox to save one include graphics
+\sbox\figBox{\includegraphics{#1}}
+\setlength{\tfwidth}{\the\wd\figBox}
+\setlength{\tfheight}{\the\ht\figBox}
+\setlength{\tfxa}{\tfwidth*\real{#3}}%
+\setlength{\tfxb}{\tfwidth*\real{#4}}%
+\setlength{\tfya}{\tfheight*\real{#5}}%
+\setlength{\tfyb}{\tfheight*\real{#6}}%
+\trimFigHeightWithBox{#1}{#2}{\tfxa}{\tfya}{\tfxb}{\tfyb}%
+}
+% ----------------------------------------------------------------------------------------------
+% 
