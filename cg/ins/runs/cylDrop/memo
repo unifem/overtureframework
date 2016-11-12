@@ -1,11 +1,387 @@
-********************************
-*****  Nov 6, 2016
 
+
+
+++++ GRIDS ++++
+
+--- cylinder at (1,1)
 ogen -noplot cylDropGrid.cmd -interp=e -radius=.25 -ya=-1. -yb=2. -cx=1. -cy=1. -rgd=fixed -deltaRadius0=.2 -prefix=cylGridSmall -factor=2
 
 
+--- cylinder at (.5,0) .... -ya=-2 --> -ya=-3
+ogen -noplot cylDropGrid.cmd -interp=e -radius=.2 -xa=-1 -xb=1 -ya=-3. -yb=1. -cx=.5 -cy=0. -rgd=fixed -deltaRadius0=.2 -prefix=cylOffsetGrid -factor=2
+
+********************************
+*****  Nov 11, 2016
+
+
+
+comp compFallingDrop -show=offsetDropAmpRhob0RampedPG -numGrids=4 -solution=41
+
+
+
+********************************
+*****  Nov 10, 2016
+
+LENGTHEN DOMAIN --> inflow pressure OLD:  pressure-gradient=1/(1-(-2))=1/3  NEW press-grad = p0/(1-(-3))=p0/4 ==> p0=4/3 -> 1.25 
+
+t=6, nr=4
+runCases.p -option=offsetDrop -amp=1 -rgd=fixed -bcOption=rampedPressure -inflowPressure=1.25 -cp0=1. -cpn=0. -move=1 -rampGravity=1 -gravity=-4 -rhob=0  -dt0=.02 -tf=6 -show=offsetDropAmpRhob0RampedPG -numResolutions=4
+
+t=4, nr=4
+runCases.p -option=offsetDrop -amp=1 -rgd=fixed -bcOption=rampedPressure -cp0=1. -cpn=0. -move=1 -rampGravity=1 -gravity=-4 -rhob=0  -dt0=.02 -tf=4 -show=offsetDropAmpRhob0RampedPG -numResolutions=4
+
+comp compFallingDrop -show=offsetDropAmpRhob0RampedPG -numGrids=4 
+
+
+comp compFallingDrop -show=offsetDropAmpRhob0RampedPG -numGrids=3 -solution=41
+comp compFallingDrop -show=offsetDropAmpRhob0RampedPG -numGrids=4 -solution=41
+
+********************************
+*****  Nov 9, 2016
+
+
+Test save matlab files
+
+
+  runCases.p -option=offsetDrop -amp=1 -rgd=fixed -bcOption=rampedPressure -cp0=1. -cpn=0. -move=1 -rampGravity=1 -gravity=-4 -rhob=0  -dt0=.02 -tf=6 -show=offsetDropAmpRhob0RampedPG -numResolutions=3
+
+
+
+
+  runCases.p -option=offsetDrop -amp=1 -rgd=fixed -bcOption=rampedPressure -cp0=1. -cpn=0. -move=1 -rampGravity=1 -gravity=-4 -rhob=0  -dt0=.02 -tf=2 -show=offsetDropAmpRhob0RampedPG -numResolutions=3
+
+
+runCases.p -option=offsetDrop -amp=1 -rgd=fixed -bcOption=rampedPressure -cp0=1. -cpn=0. -move=1 -rhob=0.1  -dt0=.02 -tf=.1 -show=offsetDropAmpRhob0p1RampedP -numResolutions=3
+
+********************************
+*****  Nov 8, 2016
+
+OFFSET-CYL + GRAVITY
+---- rhob=0 -- AMP
+
+  runCases.p -option=offsetDrop -amp=1 -rgd=fixed -bcOption=rampedPressure -cp0=1. -cpn=0. -move=1 -rampGravity=1 -gravity=-4 -rhob=0  -dt0=.02 -tf=6 -show=offsetDropAmpRhob0RampedPG -numResolutions=3
+
+comp compFallingDrop -show=offsetDropAmpRhob0RampedPG -numGrids=3
+
+plotStuff -noplot plotRigidBody.cmd -name=offsetDropAmpRhob0RampedPG4
+
+********************************
+*****  Nov 8, 2016
+
+OFFSET-CYL  
+
+Some troubles with mixed BC at outflow.
+*** SET p=0 at outflow ***
+
+---- rhob=0 -- AMP
+
+  runCases.p -option=offsetDrop -amp=1 -rgd=fixed -bcOption=rampedPressure -cp0=1. -cpn=0. -move=1 -rhob=0  -dt0=.02 -tf=2 -show=offsetDropAmpRhob0RampedP -numResolutions=4
+
+comp compFallingDrop -show=offsetDropAmpRhob0RampedP -numGrids=4
+
+
+
+
+---- rhob=0.1 -- AMP
+
+--- small wiggles in a1 here too -- may just be overset grid 
+
+  runCases.p -option=offsetDrop -amp=1 -rgd=fixed -bcOption=rampedPressure -cp0=1. -cpn=0. -move=1 -rhob=0.1  -dt0=.02 -tf=2 -show=offsetDropAmpRhob0p1RampedP -numResolutions=3
+
+comp compFallingDrop -show=offsetDropAmpRhob0p1RampedP
+
+---- rhob=2 -- AMP
+
+  runCases.p -option=offsetDrop -amp=1 -rgd=fixed -bcOption=rampedPressure -cp0=1. -cpn=0. -move=1 -rhob=2  -dt0=.02 -tf=2 -show=offsetDropAmpRhob2RampedP -numResolutions=3
+
+comp compFallingDrop -show=offsetDropAmpRhob2RampedP
+
+
+
+---- rhob=5 -- TP 
+
+  runCases.p -option=offsetDrop  -rgd=fixed -bcOption=rampedPressure -cp0=1. -cpn=0. -move=1 -rhob=5  -dt0=.02 -tf=2 -show=offsetDropRhob5RampedP -numResolutions=3
+
+comp compFallingDrop -show=offsetDropRhob5RampedP
+
+
+********************************
+*****  Nov 7, 2016
+
+
+TEST RAMPED VELOCITY
+  ---> parabolic inflow has trouble in p near transition to flat profile
+
+
+
+
+=== AMP + move : 
+runCases.p -option=cylDrop  -rgd=fixed -bcOption=rampedVelocity -inflowVelocity=-.5 -d=1. -move=1 -rampGravity=0 -amp=1 -rhob=5 -dt0=.02 -tf=2 -show=fallingDropAmpRhob5RampedV -numResolutions=3
+
+comp compFallingDrop -show=fallingDropAmpRhob5RampedV
+
+
+=== TP: 
+runCases.p -option=cylDrop  -rgd=fixed -bcOption=rampedVelocity -inflowVelocity=-1 -d=1. -move=0 -rampGravity=0 -amp=0 -rhob=5 -dt0=.02 -tf=2 -show=fallingDropRhob5RampedV -numResolutions=3
+
+comp compFallingDrop -show=fallingDropRhob5RampedV
+
+*** Rates are poor -- pressure blips at inflow where parabolic inflow switches
+
+
+% -------------- max norm results -------------
+\begin{table}[hbt]\tableFont % you should set \tableFont to \footnotesize or other size
+% \newcommand{\num}[2]{#1e{#2}} % use this command to set the format of numbers in the table.
+% \newcommand{\errFormat}[1]{#1}} % use this command to set the format of the error label.
+\begin{center}
+\begin{tabular}{|l|c|c|c|c|c|c|} \hline 
+   show file         & \errFormat{p} &  r   & \errFormat{u} &  r   & \errFormat{v} &  r  \\ \hline
+ fallingDropRhob5RampedVG2 & \num{5.8}{-2} &      & \num{6.7}{-3} &      & \num{7.0}{-3} &      \\ \hline
+ fallingDropRhob5RampedVG4 & \num{2.3}{-2} &  2.5 & \num{2.2}{-3} &  3.1 & \num{1.5}{-3} &  4.6 \\ \hline
+ fallingDropRhob5RampedVG8 & \num{9.1}{-3} &  2.5 & \num{7.1}{-4} &  3.1 & \num{3.3}{-4} &  4.6 \\ \hline
+                      &     1.33      &      &     1.61      &      &     2.21      &     \\ \hline
+\end{tabular}
+\caption{Max-norm self convergence results, t=5.000000e-01, Mon Nov  7 09:31:03 2016. }
+\end{center}
+\end{table}
+
+% -------------- l2 norm results -------------
+\begin{table}[hbt]\tableFont % you should set \tableFont to \footnotesize or other size
+% \newcommand{\num}[2]{#1e{#2}} % use this command to set the format of numbers in the table.
+% \newcommand{\errFormat}[1]{#1}} % use this command to set the format of the error label.
+\begin{center}
+\begin{tabular}{|l|c|c|c|c|c|c|} \hline 
+   show file         & \errFormat{p} &  r   & \errFormat{u} &  r   & \errFormat{v} &  r  \\ \hline
+ fallingDropRhob5RampedVG2 & \num{1.3}{-2} &      & \num{1.5}{-3} &      & \num{1.5}{-3} &      \\ \hline
+ fallingDropRhob5RampedVG4 & \num{3.4}{-3} &  3.7 & \num{2.2}{-4} &  6.9 & \num{2.3}{-4} &  6.6 \\ \hline
+ fallingDropRhob5RampedVG8 & \num{9.2}{-4} &  3.7 & \num{3.2}{-5} &  6.9 & \num{3.5}{-5} &  6.6 \\ \hline
+                      &     1.89      &      &     2.78      &      &     2.73      &     \\ \hline
+\end{tabular}
+\caption{L2-norm self convergence results, t=5.000000e-01, Mon Nov  7 09:31:03 2016. }
+\end{center}
+\end{table}
+
+% -------------- l1 norm results -------------
+\begin{table}[hbt]\tableFont % you should set \tableFont to \footnotesize or other size
+% \newcommand{\num}[2]{#1e{#2}} % use this command to set the format of numbers in the table.
+% \newcommand{\errFormat}[1]{#1}} % use this command to set the format of the error label.
+\begin{center}
+\begin{tabular}{|l|c|c|c|c|c|c|} \hline 
+   show file         & \errFormat{p} &  r   & \errFormat{u} &  r   & \errFormat{v} &  r  \\ \hline
+ fallingDropRhob5RampedVG2 & \num{8.4}{-3} &      & \num{1.0}{-3} &      & \num{1.1}{-3} &      \\ \hline
+ fallingDropRhob5RampedVG4 & \num{2.7}{-3} &  3.1 & \num{1.5}{-4} &  6.8 & \num{1.6}{-4} &  7.0 \\ \hline
+ fallingDropRhob5RampedVG8 & \num{8.6}{-4} &  3.1 & \num{2.3}{-5} &  6.8 & \num{2.3}{-5} &  7.0 \\ \hline
+                      &     1.64      &      &     2.75      &      &     2.81      &     \\ \hline
+\end{tabular}
+\caption{L1-norm self convergence results, t=5.000000e-01, Mon Nov  7 09:31:03 2016. }
+
+
+
+
+TEST RAMPED GRAVITY IN A BOX 
+
+--> trouble converging in pressure, is pressure level messed up ? 
+--> max norm OK 
+
+runCases.p -option=cylDrop  -rgd=fixed -bcOption=walls -move=1 -rampGravity=1 -gravity=-1 -amp=1 -rhob=5 -dt0=.02 -tf=.5 -show=fallingDropAmpRhob5RampedG -numResolutions=3
+
+comp compFallingDrop -show=fallingDropAmpRhob5RampedG 
+
+% -------------- max norm results -------------
+\begin{table}[hbt]\tableFont % you should set \tableFont to \footnotesize or other size
+% \newcommand{\num}[2]{#1e{#2}} % use this command to set the format of numbers in the table.
+% \newcommand{\errFormat}[1]{#1}} % use this command to set the format of the error label.
+\begin{center}
+\begin{tabular}{|l|c|c|c|c|c|c|} \hline 
+   show file         & \errFormat{p} &  r   & \errFormat{u} &  r   & \errFormat{v} &  r  \\ \hline
+ fallingDropAmpRhob5RampedGG2 & \num{2.6}{-3} &      & \num{2.1}{-4} &      & \num{5.6}{-4} &      \\ \hline
+ fallingDropAmpRhob5RampedGG4 & \num{7.1}{-4} &  3.7 & \num{2.5}{-5} &  8.5 & \num{8.9}{-5} &  6.3 \\ \hline
+ fallingDropAmpRhob5RampedGG8 & \num{1.9}{-4} &  3.7 & \num{3.0}{-6} &  8.5 & \num{1.4}{-5} &  6.3 \\ \hline
+                      &     1.89      &      &     3.08      &      &     2.65      &     \\ \hline
+\end{tabular}
+\caption{Max-norm self convergence results, t=5.000000e-01, Mon Nov  7 08:38:35 2016. }
+\end{center}
+\end{table}
+
+\begin{table}[hbt]\tableFont % you should set \tableFont to \footnotesize or other size
+% \newcommand{\num}[2]{#1e{#2}} % use this command to set the format of numbers in the table.
+% \newcommand{\errFormat}[1]{#1}} % use this command to set the format of the error label.
+\begin{center}
+\begin{tabular}{|l|c|c|c|c|c|c|} \hline 
+   show file         & \errFormat{p} &  r   & \errFormat{u} &  r   & \errFormat{v} &  r  \\ \hline
+ fallingDropAmpRhob5RampedGG2 & \num{1.5}{-3} &      & \num{6.2}{-5} &      & \num{7.1}{-5} &      \\ \hline
+ fallingDropAmpRhob5RampedGG4 & \num{8.7}{-4} &  1.7 & \num{7.1}{-6} &  8.8 & \num{1.0}{-5} &  7.1 \\ \hline
+ fallingDropAmpRhob5RampedGG8 & \num{5.2}{-4} &  1.7 & \num{8.0}{-7} &  8.8 & \num{1.4}{-6} &  7.1 \\ \hline
+                      &     0.74      &      &     3.14      &      &     2.82      &     \\ \hline
+\end{tabular}
+\caption{L2-norm self convergence results, t=5.000000e-01, Mon Nov  7 08:38:35 2016. }
+\end{center}
+\end{table}
+
+
+
+********************************
+*****  Nov 6, 2016
+
+
+++++ GRIDS ++++
+ogen -noplot cylDropGrid.cmd -interp=e -radius=.25 -ya=-1. -yb=2. -cx=1. -cy=1. -rgd=fixed -deltaRadius0=.2 -prefix=cylGridSmall -factor=2
+
+
+=============== MOVING RAMP PRESSURE AND GRAVITY  ===================
+
+
+=== RHOS=0.1  AMP -- gravity down 
+runCases.p -option=cylDrop  -rgd=fixed -bcOption=rampedPressure -move=1 -rampGravity=1 -gravity=-1 -amp=1 -rhob=0.1 -dt0=.02 -tf=4 -show=fallingDropAmpRhob0p1RampedPandG -numResolutions=3
+
+comp compFallingDrop -show=fallingDropAmpRhob0p1RampedPandG -logFile=compFallingDropAmpRhob0p1RampedPandG.log
+
+
+=== RHOS=5  AMP -- gravity is up 
+runCases.p -option=cylDrop  -rgd=fixed -bcOption=rampedPressure -move=1 -rampGravity=1 -gravity=.1 -amp=1 -rhob=5.0 -dt0=.02 -tf=4 -show=fallingDropAmpRhob5RampedPandG -numResolutions=3
+
+comp compFallingDrop -show=fallingDropAmpRhob5RampedPandG -logFile=compFallingDropAmpRhob5RampedPandG.log
+
+
+=== RHOS=5  TP -- gravity is up 
+runCases.p -option=cylDrop  -rgd=fixed -bcOption=rampedPressure -move=1 -rampGravity=1 -gravity=.1 -amp=0 -rhob=5.0 -dt0=.02 -tf=4 -show=fallingDropRhob5RampedPandG -numResolutions=3
+
+comp compFallingDrop -show=fallingDropRhob5RampedPandG -logFile=compFallingDropRhob5RampedPandG.log
+% -------------- max norm results -------------
+\begin{table}[hbt]\tableFont % you should set \tableFont to \footnotesize or other size
+% \newcommand{\num}[2]{#1e{#2}} % use this command to set the format of numbers in the table.
+% \newcommand{\errFormat}[1]{#1}} % use this command to set the format of the error label.
+\begin{center}
+\begin{tabular}{|l|c|c|c|c|c|c|} \hline 
+   show file         & \errFormat{p} &  r   & \errFormat{u} &  r   & \errFormat{v} &  r  \\ \hline
+ fallingDropRhob5RampedPressureGravityG2 & \num{1.6}{-4} &      & \num{1.7}{-5} &      & \num{7.2}{-5} &      \\ \hline
+ fallingDropRhob5RampedPressureGravityG4 & \num{2.1}{-5} &  7.6 & \num{2.3}{-6} &  7.4 & \num{1.2}{-5} &  6.0 \\ \hline
+ fallingDropRhob5RampedPressureGravityG8 & \num{2.7}{-6} &  7.6 & \num{3.0}{-7} &  7.4 & \num{2.0}{-6} &  6.0 \\ \hline
+                      &     2.93      &      &     2.89      &      &     2.58      &     \\ \hline
+\end{tabular}
+\caption{Max-norm self convergence results, t=5.000000e-01, Sun Nov  6 17:05:55 2016. }
+\end{center}
+\end{table}
+
+
+cgins -noplot cylDrop -g=cylGridSmallFixede2.order2.s3.hdf -tf=.5 -tp=.1 -dtMax=0.01 -nu=.1 -ad2=0 -ts=im -density=5.0 -radius=.25 -move=1 -dropName=drop -channelName=channel -bcOption=rampedPressure -inflowPressure=1 -gravity=1 -rampGravity=1 -project=0 -numberOfCorrections=2 -omega=.1 -addedMass=0 -useProvidedAcceleration=0 -addedDamping=0 -addedDampingCoeff=1. -addedDampingProjectVelocity=0  -scaleAddedDampingWithDt=0 -useTP=0 -debug=3  -solver=best -psolver=best -rtolp=2.5e-09 -atolp=1e-14 -rtol=2.5e-07 -atol=1e-14 -freqFullUpdate=1 -go=og
+
+=============== MOVING AMP -- RAMP PRESSURE  ===================
+
+=== RHOS=.0:
+runCases.p -option=cylDrop  -rgd=fixed -bcOption=rampedPressure -move=1 -amp=1 -rhob=0.0 -dt0=.02 -tf=4 -show=fallingDropAmpRhob0p0RampedPressure -numResolutions=3
+
+comp compFallingDrop -show=fallingDropAmpRhob0p0RampedPressure -logFile=compCylDropAmpRhob0p0RampedPressure.log
+
+
+=== RHOS=.01:
+runCases.p -option=cylDrop  -rgd=fixed -bcOption=rampedPressure -move=1 -amp=1 -rhob=0.01 -dt0=.02 -tf=4 -show=fallingDropAmpRhob0p01RampedPressure -numResolutions=3
+
+comp compFallingDrop -show=fallingDropAmpRhob0p01RampedPressure -logFile=compCylDropAmpRhob0p01RampedPressure.log
+
+
+
+
+
+=== RHOS=.1:
+runCases.p -option=cylDrop  -rgd=fixed -bcOption=rampedPressure -move=1 -amp=1 -rhob=0.1 -dt0=.02 -tf=4 -show=fallingDropAmpRhob0p1RampedPressure -numResolutions=3
+
+comp compFallingDrop -show=fallingDropAmpRhob0p1RampedPressure -logFile=compCylDropAmpRhob0p1RampedPressure.log
+
+
+
+
+=== RHOS=2:
+runCases.p -option=cylDrop  -rgd=fixed -bcOption=rampedPressure -move=1 -amp=1 -rhob=2 -dt0=.02 -tf=4 -show=fallingDropAmpRhob2RampedPressure -numResolutions=3
+
+comp compFallingDrop -show=fallingDropAmpRhob2RampedPressure -logFile=compCylDropAmpRhob2RampedPressure.log
+
+
+
+=== RHOS=5
+  runCases.p -option=cylDrop  -rgd=fixed -bcOption=rampedPressure -move=1 -amp=1 -dt0=.02 -tf=4 -show=fallingDropAmpRhob5RampedPressure -numResolutions=3
+
+comp compFallingDrop -show=fallingDropAmpRhob5RampedPressure -logFile=compCylDropAmpRhob5RampedPressure.log
+
+% -------------- max norm results -------------
+\begin{table}[hbt]\tableFont % you should set \tableFont to \footnotesize or other size
+% \newcommand{\num}[2]{#1e{#2}} % use this command to set the format of numbers in the table.
+% \newcommand{\errFormat}[1]{#1}} % use this command to set the format of the error label.
+\begin{center}
+\begin{tabular}{|l|c|c|c|c|c|c|} \hline 
+   grid              & \errFormat{p} &  r   & \errFormat{u} &  r   & \errFormat{v} &  r  \\ \hline
+ fallingDropAmpRhob5RampedPressureG2 & \num{9.7}{-5} &      & \num{1.1}{-5} &      & \num{2.6}{-5} &      \\ \hline
+ fallingDropAmpRhob5RampedPressureG4 & \num{1.8}{-5} &  5.3 & \num{2.6}{-6} &  4.4 & \num{6.0}{-6} &  4.3 \\ \hline
+ fallingDropAmpRhob5RampedPressureG8 & \num{3.5}{-6} &  5.3 & \num{5.8}{-7} &  4.4 & \num{1.4}{-6} &  4.3 \\ \hline
+                      &     2.41      &      &     2.15      &      &     2.12      &     \\ \hline
+\end{tabular}
+\caption{Max-norm self convergence results, t=5.000000e-01, Sun Nov  6 14:09:54 2016. }
+\end{center}
+\end{table}
+
+% -------------- l2 norm results -------------
+\begin{table}[hbt]\tableFont % you should set \tableFont to \footnotesize or other size
+% \newcommand{\num}[2]{#1e{#2}} % use this command to set the format of numbers in the table.
+% \newcommand{\errFormat}[1]{#1}} % use this command to set the format of the error label.
+\begin{center}
+\begin{tabular}{|l|c|c|c|c|c|c|} \hline 
+   grid              & \errFormat{p} &  r   & \errFormat{u} &  r   & \errFormat{v} &  r  \\ \hline
+ fallingDropAmpRhob5RampedPressureG2 & \num{5.2}{-5} &      & \num{3.0}{-6} &      & \num{1.1}{-5} &      \\ \hline
+ fallingDropAmpRhob5RampedPressureG4 & \num{8.6}{-6} &  6.0 & \num{7.0}{-7} &  4.3 & \num{2.5}{-6} &  4.3 \\ \hline
+ fallingDropAmpRhob5RampedPressureG8 & \num{1.4}{-6} &  6.0 & \num{1.6}{-7} &  4.3 & \num{6.0}{-7} &  4.3 \\ \hline
+                      &     2.59      &      &     2.09      &      &     2.09      &     \\ \hline
+\end{tabular}
+\caption{L2-norm self convergence results, t=5.000000e-01, Sun Nov  6 14:09:54 2016. }
+\end{center}
+\end{table}
+
+
+
+RERUN: 
+
+=========== NON MOVING =====
+
+
+runCases.p -option=cylDrop -rgd=fixed -bcOption=rampedPressure -move=0 -dt0=.02 -tf=2 -show=fallingDropNonMovingRampedPressure -numResolutions=3
+comp compFallingDrop -show=fallingDropNonMovingRampedPressure -logFile=compCylDropNonMovingFixedWidthRampPressure.log
+
+% -------------- l1 norm results -------------
+\begin{table}[hbt]\tableFont % you should set \tableFont to \footnotesize or other size
+% \newcommand{\num}[2]{#1e{#2}} % use this command to set the format of numbers in the table.
+% \newcommand{\errFormat}[1]{#1}} % use this command to set the format of the error label.
+\begin{center}
+\begin{tabular}{|l|c|c|c|c|c|c|} \hline 
+   grid              & \errFormat{p} &  r   & \errFormat{u} &  r   & \errFormat{v} &  r  \\ \hline
+ fallingDropNonMovingRampedPressureG2 & \num{6.5}{-4} &      & \num{1.1}{-4} &      & \num{1.6}{-4} &      \\ \hline
+ fallingDropNonMovingRampedPressureG4 & \num{1.2}{-4} &  5.5 & \num{2.0}{-5} &  5.3 & \num{3.0}{-5} &  5.5 \\ \hline
+ fallingDropNonMovingRampedPressureG8 & \num{2.2}{-5} &  5.5 & \num{3.8}{-6} &  5.3 & \num{5.4}{-6} &  5.5 \\ \hline
+                      &     2.46      &      &     2.41      &      &     2.46      &     \\ \hline
+\end{tabular}
+\caption{L1-norm self convergence results, t=2.000000e+00, Sun Nov  6 13:42:02 2016. }
+\end{center}
+\end{table}
+
+VAR-WIDTH 
+runCases.p -option=cylDrop -rgd=var -bcOption=rampedPressure -move=0 -dt0=.02 -tf=2 -numResolutions=3
+comp compFallingDrop -logFile=compCylDropNonMovingVarWidthRampPressure.log
+
+
+
+
+
 =============== MOVING ===================
-  runCases.p -option=cylDrop -move=1 -dt0=.02 -tf=4 -numResolutions=3ropG8
+  runCases.p -option=cylDrop  -rgd=fixed -bcOption=rampedPressure -move=1 -dt0=.02 -tf=4 -numResolutions=3
+comp compFallingDrop -logFile=compCylDropMovingFixedWidthRampPressure.log
+
+\begin{tabular}{|l|c|c|c|c|c|c|} \hline 
+   grid              & \errFormat{p} &  r   & \errFormat{u} &  r   & \errFormat{v} &  r  \\ \hline
+ fallingDropG2 & \num{1.7}{-4} &      & \num{2.7}{-5} &      & \num{4.1}{-5} &      \\ \hline
+ fallingDropG4 & \num{2.2}{-5} &  7.5 & \num{7.1}{-6} &  3.8 & \num{9.2}{-6} &  4.5 \\ \hline
+ fallingDropG8 & \num{2.9}{-6} &  7.5 & \num{1.9}{-6} &  3.8 & \num{2.1}{-6} &  4.5 \\ \hline
+                      &     2.92      &      &     1.94      &      &     2.16      &     \\ \hline
+\end{tabular}
+\caption{L1-norm self convergence results, t=4.000000e+00, Sun Nov  6 07:58:24 2016. }
+
 
 
  runCases.p -option=cylDrop -move=1 -dt0=.02 -tf=2 -numResolutions=3

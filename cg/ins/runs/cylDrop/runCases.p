@@ -18,7 +18,10 @@ if ($numberOfParameters eq 0)
   printf("================================================================================\n");
   printf("This perl script will run different cases...\n");
   printf("  Usage: \n");
-  printf("    runCases.p -option=[cylDrop] -tf=<f> -rhos=<f> -numResolutions=<i>\n");
+  printf("   runCases.p -option=[cylDrop|offsetDrop] -tf=<f> -rhos=<f> -numResolutions=<i> -rgd=[var|fixed] ...\n");
+  printf("              -bcOption=[rampedPressure] -amp=[0|1] \n");
+  printf(" Options:\n");
+  printf("     -rgd : fixed=fixed-with boundary grids, var=variable-width boundary grids  \n");
   printf("    \n");
   printf("==============================================================================\n\n");
   exit;
@@ -27,12 +30,23 @@ if ($numberOfParameters eq 0)
 
 $option="cylDrop";
 $tf=1.; 
-$rhos=.01; 
-$projectVelocity=1;
+$rhob=5.; 
 $numResolutions=2; 
 $move=1; 
 $dt0=-1; 
 $ts="im"; 
+$rgd="var";
+$bcOption="rampedPressure"; 
+$show="fallingDrop"; 
+$amp=0; 
+$rampGravity=0;
+$gravity=0.; 
+$inflowVelocity=0;
+$d=.1; # parabolic inflow width
+$nu=.1; 
+$cp0=.1; $cpn=1.; # coefficients in pressure outflow BC
+$inflowPressure=1.; 
+$rtol0=1.e-6; $rtolp0=1.e-8; # tol's for coarse grid
 
 foreach $arg ( @ARGV )
 {
@@ -45,9 +59,9 @@ foreach $arg ( @ARGV )
   {
     $tf=$1; printf("Setting tf=[%g]\n",$tf);
   }
-  elsif( $arg =~ /-rhos=(.*)/ )
+  elsif( $arg =~ /-rhob=(.*)/ )
   {
-    $rhos=$1;  printf("Setting rhos=[%g]\n",$rhos);
+    $rhob=$1;  printf("Setting rhob=[%g]\n",$rhob);
   }
   elsif( $arg =~ /-dt0=(.*)/ )
   {
@@ -61,27 +75,76 @@ foreach $arg ( @ARGV )
   {
     $move=$1;  printf("Setting move=[$move]\n");
   }
+  elsif( $arg =~ /-rgd=(.*)/ )
+  {
+    $rgd=$1;  printf("Setting rgd=[$rgd]\n");
+  }
+  elsif( $arg =~ /-show=(.*)/ )
+  {
+    $show=$1;  printf("Setting show=[$show]\n");
+  }
+  elsif( $arg =~ /-bcOption=(.*)/ )
+  {
+    $bcOption=$1;  printf("Setting bcOption=[$bcOption]\n");
+  }
+  elsif( $arg =~ /-rampGravity=(.*)/ )
+  {
+    $rampGravity=$1;  printf("Setting rampGravity=[$rampGravity]\n");
+  }
+  elsif( $arg =~ /-gravity=(.*)/ )
+  {
+    $gravity=$1;  printf("Setting gravity=[$gravity]\n");
+  }
+  elsif( $arg =~ /-inflowVelocity=(.*)/ )
+  {
+    $inflowVelocity=$1;  printf("Setting inflowVelocity=[$inflowVelocity]\n");
+  }
   elsif( $arg =~ /-ts=(.*)/ )
   {
-    $ts=$1;  printf("Setting ts=[$pc]\n");
+    $ts=$1;  printf("Setting ts=[$ts]\n");
   }
-  elsif( $arg =~ /-instabilityErrorTol=(.*)/ )
+  elsif( $arg =~ /-d=(.*)/ )
   {
-    $instabilityErrorTol=$1;  printf("Setting instabilityErrorTol=[%g]\n",$instabilityErrorTol);
+    $d=$1;  printf("Setting d=[$d]\n");
   }
-  elsif( $arg =~ /-projectVelocity=(.*)/ )
+  elsif( $arg =~ /-amp=(.*)/ )
   {
-    $projectVelocity=$1; printf("Setting projectVelocity=[%d]\n",$projectVelocity);
+    $amp=$1;  printf("Setting amp=[$amp]\n");
+  }
+  elsif( $arg =~ /-nu=(.*)/ )
+  {
+    $nu=$1;  printf("Setting nu=[$nu]\n");
+  }
+  elsif( $arg =~ /-cp0=(.*)/ )
+  {
+    $cp0=$1;  printf("Setting cp0=[$cp0]\n");
+  }
+  elsif( $arg =~ /-cpn=(.*)/ )
+  {
+    $cpn=$1;  printf("Setting cpn=[$cpn]\n");
+  }
+  elsif( $arg =~ /-rtol0=(.*)/ )
+  {
+    $rtol0=$1;  printf("Setting rtol0=[$rtol0]\n");
+  }
+  elsif( $arg =~ /-rtolp0=(.*)/ )
+  {
+    $rtolp0=$1;  printf("Setting rtolp0=[$rtolp0]\n");
+  }
+  elsif( $arg =~ /-inflowPressure=(.*)/ )
+  {
+    $inflowPressure=$1;  printf("Setting inflowPressure=[$inflowPressure]\n");
   }
 }
 
+$show .= "G"; 
+
 $debug=0; # set to 1 for debug info 
 
-# printf("------------ Option=[$option] rhos=$rhos tf=$tf projectVelocity=$projectVelocity--------------\n");
-# printf("------------ instabilityErrorTol=[$instabilityErrorTol]                          --------------\n");
 $CGBUILDPREFIX=$ENV{CGBUILDPREFIX};
 $cginsCmd = "$CGBUILDPREFIX/ins/bin/cgins";  # command for cgins 
-
+$OVERTURE=$ENV{Overture};
+$plotStuff = "$OVERTURE/bin/plotStuff";  # command for plotStuff
 
 
 for( $i=1; $i <= $numResolutions; $i++ )
@@ -89,21 +152,28 @@ for( $i=1; $i <= $numResolutions; $i++ )
 
   $factor=2**$i; 
 
-  if( $option eq "cylDrop" )
+  $showFileName="$show$factor";
+
+  if( $option eq "cylDrop" || $option eq "offsetDrop" )
   {
     if( $dt0 < 0.  ){ $dt0=.05; }
     #    $dtMax=.05/$factor; 
     $dtMax=$dt0/$factor; 
     $fact = $factor**2; 
-    $rtolp=1.e-8/$fact; $atolp=1.e-14; 
-    $rtol =1.e-6/$fact; $atol=1.e-14; 
+    $rtolp=$rtolp0/$fact; $atolp=1.e-14; 
+    $rtol =$rtol0/$fact;  $atol=1.e-14; 
 
-    $rampGravity=1;
+    # $rampGravity=1;
 
-   # $cmd = "$cginsCmd -noplot cylDrop -g=cylGridSmalle$factor.order2.s3.hdf -tf=$tf -tp=.1  -dtMax=$dtMax -nu=.1 -ad2=0 -ts=$ts -density=5 -radius=.25 -dropName=drop -channelName=channel -bcOption=walls -gravity=-1. -rampGravity=$rampGravity -project=0 -numberOfCorrections=2 -omega=.1 -addedMass=0  -useProvidedAcceleration=0 -addedDamping=0 -addedDampingCoeff=1. -addedDampingProjectVelocity=0  -scaleAddedDampingWithDt=0 -useTP=0 -debug=3  -solver=best -psolver=best -rtolp=$rtolp -atolp=$atolp -rtol=$rtol -atol=$atol -freqFullUpdate=1 -show=fallingDropG$factor.show -go=go >! fallingDropG$factor.out";
+    # -- ramped pressure inflow  
+    if( $option eq "cylDrop" ){
+      if( $rgd eq "var" ) { $baseGrid="cylGridSmalle"; }else{ $baseGrid="cylGridSmallFixede"; }
+    }  
+    else{
+      if( $rgd eq "var" ) { $baseGrid="cylOffsetGride"; }else{ $baseGrid="cylOffsetGridFixede"; }
+    }
 
-    # -- ramped pressure inflow 
-    $cmd = "$cginsCmd -noplot cylDrop -g=cylGridSmallFixede$factor.order2.s3.hdf -tf=$tf -tp=.1 -dtMax=$dtMax -nu=.1 -ad2=0 -ts=$ts -density=5 -radius=.25 -move=$move -dropName=drop -channelName=channel -bcOption=rampedPressure -inflowPressure=1 -gravity=0. -rampGravity=0 -project=0 -numberOfCorrections=2 -omega=.1 -addedMass=0  -useProvidedAcceleration=0 -addedDamping=0 -addedDampingCoeff=1. -addedDampingProjectVelocity=0  -scaleAddedDampingWithDt=0 -useTP=0 -debug=3  -solver=best -psolver=best -rtolp=$rtolp -atolp=$atolp -rtol=$rtol -atol=$atol -freqFullUpdate=1 -show=fallingDropG$factor.show -go=go >! fallingDropG$factor.out";
+    $cmd = "$cginsCmd -noplot cylDrop -g=$baseGrid$factor.order2.s3.hdf -tf=$tf -tp=.1 -dtMax=$dtMax -nu=$nu -ad2=0 -ts=$ts -density=$rhob -radius=.25 -move=$move -dropName=drop -channelName=channel -bcOption=$bcOption -d=$d -inflowPressure=$inflowPressure -inflowVelocity=$inflowVelocity -gravity=$gravity -rampGravity=$rampGravity -cp0=$cp0 -cpn=$cpn -project=0 -numberOfCorrections=2 -omega=.1 -addedMass=$amp -useProvidedAcceleration=$amp -addedDamping=$amp -addedDampingCoeff=1. -addedDampingProjectVelocity=$amp  -scaleAddedDampingWithDt=$amp -useTP=0 -debug=3  -solver=best -psolver=best -rtolp=$rtolp -atolp=$atolp -rtol=$rtol -atol=$atol -freqFullUpdate=1 -show=$showFileName.show -go=go >! $show$factor.out";
 
   }
   elsif( $option eq "shearDisk" )
@@ -116,7 +186,7 @@ for( $i=1; $i <= $numResolutions; $i++ )
   }
   # printf("pi=$pi\n");
 
-  printf("--------------- option=$option factor=$factor -------------------\n");
+  printf("------------- option=$option factor=$factor bcOption=$bcOption move=$move rgd=$rgd amp=$amp rhob=$rhob gravity=$gravity ----------------\n");
   printf(">> run [$cmd]\n");
   $startTime=time();
 
@@ -129,6 +199,24 @@ for( $i=1; $i <= $numResolutions; $i++ )
   {
     printf(" *****  ERROR running this case, returnValue=$returnValue **********\n");
   }
+  else
+  {
+    # --- save matlab file with rigid body variables -----
+    $cmd = "$plotStuff -noplot plotRigidBody.cmd -name=$showFileName >! junk.out ";
+    printf(">> run [$cmd]\n");
+    $returnValue = system("csh -f -c 'nohup $cmd'"); 
+    if( $returnValue ne 0 )
+    {
+      printf(" *****  ERROR generating matlab file, returnValue=$returnValue **********\n");
+    }
+    else
+    {
+      printf("Matlab file with rigid body variables saved to file=[$showFileName.m].\n");
+    }
+  }
+
+
+
 }
 
 

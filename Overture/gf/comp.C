@@ -101,6 +101,7 @@ computeRate( const int & n, const RealArray & h, const RealArray & e, real & sig
       if( eRatio>0. )
       {
         s= log( eRatio )/log( r1 );
+        s=max(.01,s);  // cap rate at a small value for tables
       }
       else
       {
@@ -288,7 +289,7 @@ outputLatexTable( const std::vector<aString> gridName,
     fprintf(file,"c|c|");
   fprintf(file,"} \\hline \n");
 
-  fprintf(file,"   grid             ");
+  fprintf(file,"   show file        ");
   for( int c=0; c<cName.size(); c++ )
     fprintf(file," & \\errFormat{%s} &  r  ",(const char*)cName[c]);
   fprintf(file,"\\\\ \\hline\n");
@@ -692,7 +693,9 @@ int computeDifferences( int numberOfFiles,
 }
 
 
-
+// =============================================================================================
+// ============================= COMP MAIN =====================================================
+// =============================================================================================
 int 
 main(int argc, char *argv[])
 {
@@ -1390,6 +1393,7 @@ main(int argc, char *argv[])
 
 	}  // end for norm 
 	fflush(outFile);
+	printF("Output written to file %s\n",(const char*)outputFileName);
 	
       }
       if( !timesMatch )
@@ -1602,7 +1606,6 @@ main(int argc, char *argv[])
     }
   }
 
-  printF("Output written to file %s\n",(const char*)outputFileName);
   if( myid==0 )
     fclose(outFile);
 

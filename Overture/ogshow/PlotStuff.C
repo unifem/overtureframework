@@ -25,8 +25,9 @@ plot(GenericGraphicsInterface &gi,
 //\end{PlotItInclude.tex}  
 //=============================================================================
 {
-  if( !gi.isGraphicsWindowOpen() )
-    return;
+  // *wdh* 2016/11/09 -- fall thru to contour 
+  // if( !gi.isGraphicsWindowOpen() )
+  // return;
  
   // ::display(t,"PlotIt::plot (line) t");
 

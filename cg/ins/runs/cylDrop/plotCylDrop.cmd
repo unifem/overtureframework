@@ -27,9 +27,12 @@
 #  plotStuff plotCylDrop.cmd -show=cylDrop2b.show  
 #  plotStuff plotCylDrop.cmd -show=cylDrop2r1b.show    [ density=1
 #
+# -- self convergence plot
+#  plotStuff plotCylDrop.cmd -show=fallingDropG8.show -name=fallingDropG8NonMoving
+#
 #
 $show="cic.show";
-$vorMin=-50; $vorMax=25.; $option=""; $name="bic"; 
+$vorMin=-50; $vorMax=25.; $option=""; $name="bic"; $solution=-1; 
 # 
 * ----------------------------- get command line arguments ---------------------------------------
 GetOptions( "show=s"=>\$show, "name=s"=>\$name,"solution=i"=>\$solution,"vorMin=f"=>\$vorMin,"vorMax=f"=>\$vorMax,\
@@ -37,6 +40,9 @@ GetOptions( "show=s"=>\$show, "name=s"=>\$name,"solution=i"=>\$solution,"vorMin=
 #
 $show
 # 
+if( $option eq "SL" ){ $cmd="previous\n stream lines\n pause; }else{ $cmd="#"; }
+$cmd
+#
 plot sequence:rigid body 0
   x2
   add v2
@@ -49,6 +55,11 @@ exit
 # 
 contour
 exit
+solution: $solution
+
+
+
+
 # contour plots
 DISPLAY AXES:0 0
 set view:0 -0.0969789 -0.00302115 0 1.02795 1 0 0 0 1 0 0 0 1
@@ -56,7 +67,7 @@ hardcopy vertical resolution:0 1024
 hardcopy horizontal resolution:0 1024
 solution: 46
 plot:p
-$plotName = $matlab . "t2p25pressure.ps"; 
+$plotName = $matlab . "pressure.ps"; 
 hardcopy file name:0 $plotName
 hardcopy save:0
 #

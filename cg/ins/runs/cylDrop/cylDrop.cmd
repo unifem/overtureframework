@@ -49,6 +49,7 @@ $filter=0; $filterFrequency=1; $filterOrder=6; $filterStages=2;
 $vIn=.0;
 $bcOption="walls"; 
 $inflowPressure=.1; # inflow pressure for $bcOption eq "rampedPressure"
+$cp0=.1; $cpn=1.; # coefficients in pressure outflow BC
 $option=""; 
 $freqFullUpdate=10; $flushFrequency=10; 
 #
@@ -69,7 +70,8 @@ GetOptions( "g=s"=>\$grid,"tf=f"=>\$tFinal,"model=s"=>\$model,"inflowVelocity=f"
  "inertia=f"=>\$inertia,"ampSinusoidalPressure=f"=>\$ampSinusoidalPressure,"inflowPressure=f"=>\$inflowPressure,\
  "freqSinusoidalPressure=f"=>\$freqSinusoidalPressure, "flushFrequency=f"=>\$flushFrequency,\
  "addedDamping=f"=>\$addedDamping,"addedDampingCoeff=f"=>\$addedDampingCoeff,"rampGravity=i"=>\$rampGravity,\
- "scaleAddedDampingWithDt=f"=>\$scaleAddedDampingWithDt,"addedDampingProjectVelocity=f"=>\$addedDampingProjectVelocity  );
+ "scaleAddedDampingWithDt=f"=>\$scaleAddedDampingWithDt,"addedDampingProjectVelocity=f"=>\$addedDampingProjectVelocity,\
+ "cp0=f"=>\$cp0,"cpn=f"=>\$cpn  );
 # -------------------------------------------------------------------------------------------------
 if( $solver eq "best" ){ $solver="choose best iterative solver"; }
 if( $solver eq "mg" ){ $solver="multigrid"; }
@@ -261,7 +263,7 @@ $grid
     #    Outflow pressure = 0
     if( $bcOption eq "rampedPressure" ){ \
       $cmd="all=noSlipWall\n" . \
-           "bcNumber3=outflow , pressure(.1*p+1*p.n=0.)\n" . \
+           "bcNumber3=outflow , pressure($cp0*p+$cpn*p.n=0.)\n" . \
            "bcNumber4=inflowWithPressureAndTangentialVelocityGiven, uniform(u=0.,v=0.,p=1)\n" . \
            "bcNumber4=inflowWithPressureAndTangentialVelocityGiven, userDefinedBoundaryData\n" . \
            "time function option\n" . \
