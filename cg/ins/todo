@@ -4,6 +4,8 @@
 
 --------- Things to do: -----------
 
+2016/11/18 -- document free surface capabilities
+
 2013/01/12 - fix advect passive scalar 
 
 2012/11/26 - ins/src/addForcing.C -- line 1004 : fix TZ forcing for parallel (AFS)

@@ -151,6 +151,8 @@ $halfH=0.2; $cpn=1.;
 $bc = "all=noSlipWall\n  bcNumber1=inflowWithVelocityGiven, parabolic(d=$halfH, p=1.,u=$u0,T=1.), ramp(ta=0.,tb=1.,ua=0,ub=$u0)\n bcNumber2=outflow, pressure(10.*p+$cpn*p.n=0.)\n bcNumber100=noSlipWall\n bcNumber100=tractionInterface";
 ## $bc = "all=noSlipWall\n  bcNumber1=inflowWithVelocityGiven, ramp(ta=1.,tb=2.,ua=0,ub=$u0)\n bcNumber2=outflow, pressure(10.*p+$cpn*p.n=0.)\n bcNumber100=noSlipWall\n bcNumber100=tractionInterface";
 $ktc=$ktcFluid; $rtolp=1.e-4; $atolp=1.e-6; 
+$checkForInflowAtOutflow=1; $useNeumannAtOutflow=1; 
+$ad2=1; 
 if( $method eq "ins" ){ $cmd = "include $ENV{CG}/mp/cmd/insDomain.h"; }else{ $cmd ="*"; };
 $cmd
 #

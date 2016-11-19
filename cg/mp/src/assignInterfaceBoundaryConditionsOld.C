@@ -1463,7 +1463,7 @@ getInterfaceResidualsOld( real t, real dt, std::vector<int> & gfIndex, std::vect
 	    id.t=t;
 	    id.f=ui;
 
-	    if( true )
+	    if( false )
 	    {
 	      aString label = saveInterfaceValues==saveInterfaceTimeHistoryValues ? "HISTORY" : "ITERATE";
 	      aString buff;

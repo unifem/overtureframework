@@ -20,7 +20,9 @@
 #   $projectInitialConditions : 
 #   $numberOfTimeStepCorrections : numnber of correction steps for predictor-corrector time-stepping
 #   $extraCmds : extra commands
-# 
+#   $checkForInflowAtOutflow = [0|1]   
+#   $useNeumannAtOutflow = [0|1]
+#
 # ------- start new domain ----------
 if( $thermalExpansivity eq "" ){ $thermalExpansivity=1.; }
 if( $modelNameINS eq "" ){ $modelNameINS="Boussinesq model"; }elsif( $modelNameINS eq "none" ){ $modelNameINS="#"; } #
@@ -51,6 +53,8 @@ if( $implicitVariation eq "" ){ $implicitVariation = "implicitViscous"; }
 if( $projectInitialConditions eq "" ){ $projectInitialConditions="#";} 
 if( $extraCmds eq "" ){ $extraCmds="#"; }
 if( $moveCmds eq "" ){ $moveCmds="#"; }
+if( $checkForInflowAtOutflow eq "" ){ $checkForInflowAtOutflow=0; }
+if( $useNeumannAtOutflow eq "" ){ $useNeumannAtOutflow=0; }
 # 
 setup $domainName
  set solver Cgins
@@ -91,6 +95,10 @@ setup $domainName
     thermal conductivity $ktc
     gravity
       $gravity
+    if( $checkForInflowAtOutflow eq "1" ){ $cmd="OBPDE:check for inflow at outflow"; }else{ $cmd="#"; }
+    $cmd 
+    if( $useNeumannAtOutflow eq "1" ){ $cmd = "use Neumann BC at outflow"; }else{ $cmd="#"; }
+    $cmd 
    done
 # 
     OBPDE:second-order artificial diffusion $ad2

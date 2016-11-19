@@ -18,6 +18,9 @@
 #    ogen -noplot solidBeamInAChannelGrid -interp=e -sharpness=20 -factor=8
 #    ogen -noplot solidBeamInAChannelGrid -interp=e -sharpness=20 -factor=16
 # 
+# Longer channel:
+#    ogen -noplot solidBeamInAChannelGrid -interp=e -sharpness=20 -xb=4 -prefix=solidBeamInALongChannelGrid -factor=8 
+#
 #   Fine grid with sharper corners:
 #      ogen -noplot solidBeamInAChannelGrid -interp=e -sharpness=30 -factor=8
 #      ogen -noplot solidBeamInAChannelGrid -interp=e -sharpness=30 -factor=16 

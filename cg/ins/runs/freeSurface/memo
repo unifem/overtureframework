@@ -1,0 +1,110 @@
+**** 2014/12/24 -- initial 3D free surface
+
+*** GRIDS: 
+ogen -noplot freeSurfaceGrid3d -interp=e -factor=1
+ogen -noplot freeSurfaceGrid3d -interp=e -factor=2
+ogen -noplot freeSurfaceGrid3d -interp=e -factor=4
+
+
+*** finer
+nohup $cginsx -noplot freeSurface3d -g=freeSurfaceGrid3de4.order2.hdf -nu=.005 -tf=2. -tp=.05 -model=ins -surfaceTension=.0 -pGrad=-5. -ad2=1 -show="fs3d4.show"  -go=go >! fs3d4.out 
+
+
+cgins freeSurface3d -g=freeSurfaceGrid3de2.order2.hdf -nu=.02 -tf=2. -tp=.01 -model=ins -surfaceTension=.0 -pGrad=-5. -ad2=1 -go=halt
+
+
+*** gravity:
+
+cgins freeSurface3d -g=freeSurfaceGrid3de1.order2.hdf -nu=.05 -tf=2. -tp=.01 -model=ins -surfaceTension=.0 -pGrad=-5. -ad2=1 -go=halt
+
+OK: 
+cgins freeSurface3d -g=freeSurfaceGrid3de1.order2.hdf -nu=.05 -tf=2. -tp=.01 -model=ins -ad2=1  -surfaceTension=.0 -go=halt
+
+
+
+*** 2104/12/23 -- revisit free surface -- add traction force to surface
+
+-- flat free surface:
+freeSurfaceGrid2dFlate4.order2.ml1.hdf
+
+cgins freeSurface2d -g=freeSurfaceGrid2dFlate4.order2.ml1 -dg="share=100" -nu=.01 -tf=10. -tp=.01 -model=ins -go=halt -surfaceTension=.001 -pGrad=-5. -ad2=1 -freeSurfaceOption=tractionForce
+
+
+first rerun:
+cgins freeSurface2d -g=freeSurfaceGrid2de8.order2.ml2 -dg="share=100" -nu=.01 -tf=10. -tp=.01 -model=ins -go=halt -surfaceTension=.001 -pGrad=-5. -ad2=1
+
+
+**** 2014/11/27 -- clean up the free surface
+
+Finer grid:
+cgins -noplot submergedCylinder -g=submergedCylinderGride4.order2.ml1.hdf -dg="share=100" -nu=.005 -tf=50. -tp=.1 -model=ins -numberOfSurfaceSmooths=5 -surfaceTension=.005 -pGrad=-5. -go=go -project=1 -ad2=1 -show="submergedCylb.show"   >! submergedCylb.out &
+
+Longer: pGrad=.5 
+cgins -noplot submergedCylinder -g=submergedCylinderGride2.order2.ml1.hdf -dg="share=100" -nu=.005 -tf=50. -tp=.1 -model=ins -numberOfSurfaceSmooths=5 -surfaceTension=.005 -pGrad=-5. -go=go -project=1 -ad2=1 -show="submergedCyla.show"   >! submergedCyla.out &
+
+
+
+
+cgins submergedCylinder -g=submergedCylinderGride2.order2.ml1.hdf -dg="share=100" -nu=.005 -tf=40. -tp=.1 -model=ins -numberOfSurfaceSmooths=5 -surfaceTension=.005 -pGrad=-4.-project=1 -ad2=1  -go=halt
+
+
+**** 2014/11/24 -- more free surface
+
+Longer: 
+cgins -noplot submergedCylinder -g=submergedCylinderGride2.order2.ml1.hdf -dg="share=100" -nu=.005 -tf=40. -tp=.1 -model=ins -numberOfSurfaceSmooths=5 -surfaceTension=.005 -pGrad=-4. -go=go -project=1 -ad2=1 -show="submergedCyld.show"   >! submergedCyld.out &
+
+
+**** 2014/11/21 -- revisit free surface
+
+NOTES: freeSurface BC Currently a Neumann BC in insBC  FIX ME
+NOTES: cmd files below use "advect-body" motion FIX ME 
+
+
+
+---SUBMERGED CYLINDER 
+
+
+
+FIXED PROJECTION
+
+cgins -noplot submergedCylinder -g=submergedCylinderGride2.order2.ml1.hdf -dg="share=100" -nu=.005 -tf=20. -tp=.1 -model=ins -numberOfSurfaceSmooths=5 -surfaceTension=.005 -pGrad=-4. -go=go -project=1 -ad2=1 -show="submergedCylc.show"   >! submergedCylc.out &
+
+
+*OR* increase surface smoothing
+cgins -noplot submergedCylinder -g=submergedCylinderGride2.order2.ml1.hdf -dg="share=100" -nu=.005 -tf=20. -tp=.1 -model=ins -numberOfSurfaceSmooths=5 -surfaceTension=.005 -pGrad=-4. -go=go -project=0 -ad2=1 -show="submergedCylb.show"   >! submergedCylb.out &
+
+
+INCREASE surface tension for lower Froude -- 
+cgins -noplot submergedCylinder -g=submergedCylinderGride2.order2.ml1.hdf -dg="share=100" -nu=.005 -tf=20. -tp=.1 -model=ins -surfaceTension=.005 -pGrad=-5. -go=go -project=0 -ad2=1 -show="submergedCyla.show"   >! submergedCyla.out &
+
+
+Larger Froude: (smaller g)
+cgins submergedCylinder -g=submergedCylinderGride2.order2.ml1.hdf -dg="share=100" -nu=.005 -tf=20. -tp=.1 -model=ins -surfaceTension=.001 -pGrad=-5. -go=halt -project=0 -ad2=1 -show="submergedCyla.show"
+
+OK- added Neumann BC: 
+cgins submergedCylinder -g=submergedCylinderGride2.order2.ml1.hdf -dg="share=100" -nu=.005 -tf=20. -tp=.1 -model=ins -surfaceTension=.001 -pGrad=-6. -go=halt -project=0 -ad2=1 -show="submergedCyl.show"
+
+
+
+cgins submergedCylinder -g=submergedCylinderGride2.order2.ml1.hdf -dg="share=100" -nu=.005 -tf=10. -tp=.1 -model=ins -surfaceTension=.001 -pGrad=-6. -go=halt -project=0 -ad2=1
+
+cgins submergedCylinder -g=submergedCylinderGride4.order2.ml1.hdf -dg="share=100" -nu=.005 -tf=10. -tp=.1 -model=ins -surfaceTension=.001 -pGrad=-5. -go=halt -project=0
+
+Gravity? -- use pressure profile at outflow TURN OFF PROJECTION (WHY?)
+cgins submergedCylinder -g=submergedCylinderGride2.order2.ml1.hdf -dg="share=100" -nu=.05 -tf=10. -tp=.1 -model=ins -surfaceTension=.001 -pGrad=-5. -go=halt -project=0
+
+
+Does pAtmosphere matter? -- Yes
+cgins submergedCylinder -g=submergedCylinderGride2.order2.ml1.hdf -dg="share=100" -nu=.05 -tf=10. -tp=.1 -model=ins -pAtmosphere=1. -go=halt -project=1
+
+
+cgins submergedCylinder -g=submergedCylinderGride2.order2.ml1.hdf -dg="share=100" -nu=.05 -tf=10. -tp=.1 -model=ins -surfaceTension=1. -go=halt -project=1
+
+
+=== FREE SURFACE ====
+ -- turn on "gravity" : 
+cgins freeSurface2d -g=freeSurfaceGrid2de8.order2.ml2 -dg="share=100" -nu=.01 -tf=10. -tp=.01 -model=ins -go=halt -surfaceTension=.001 -pGrad=-5. -ad2=1
+
+cgins freeSurface2d -g=freeSurfaceGrid2de4.order2.ml1 -dg="share=100" -nu=.02 -tf=10. -tp=.01 -model=ins -go=halt -surfaceTension=.01 -pGrad=-5. -ad2=1
+
+cgins freeSurface2d -g=freeSurfaceGrid2de2.order2.ml1 -dg="share=100" -nu=.05 -tf=10. -tp=.01 -model=ins -go=halt 

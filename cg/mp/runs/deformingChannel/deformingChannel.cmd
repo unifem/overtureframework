@@ -4,7 +4,8 @@
 # Usage:
 #    cgmp [-noplot] elasticCyl -g=<name> -method=[ins|cns] -nu=<> -mu=<> -kappa=<num> -tf=<tFinal> -tp=<tPlot> ...
 #           -solver=[yale|best] -psolver=[yale|best] -ktcFluid=<> -ktcFluid=<> -tz=[poly/trig/none] -bg=<backGroundGrid> ...
-#           -degreex=<num> -degreet=<num> -ts=[fe|be|im|pc] -nc=[] -d1=<> -d2=<> -smVariation=[nc|c|g|h]
+#           -degreex=<num> -degreet=<num> -ts=[fe|be|im|pc] -nc=[] -d1=<> -d2=<> -smVariation=[nc|c|g|h] ...
+#           -sideBC=[noSlipWall|slipWall]
 # 
 #  -ktcFluid -ktcSolid : thermal conductivities 
 #  -ts = time-stepping-method, be=backward-Euler, fe=forward-Euler, im=implicit-multistep
@@ -156,8 +157,10 @@ $domainName=$domain2; $solverName="solid";
 # $bcCommands="all=displacementBC\n bcNumber100=tractionBC\n bcNumber100=tractionInterface"; 
 # $bcCommands="all=displacementBC\n bcNumber2=slipWall\n bcNumber100=tractionBC\n bcNumber100=tractionInterface"; 
 $bcCommands="all=tractionBC\n bcNumber1=displacementBC\n bcNumber2=displacementBC\n bcNumber100=tractionBC\n bcNumber100=tractionInterface"; 
-# -- slipWall on sides and displacementon top:
+# -- slipWall on sides and displacement on top:
 $bcCommands="all=displacementBC\n bcNumber1=slipWall\n bcNumber2=slipWall\n bcNumber100=tractionBC\n bcNumber100=tractionInterface"; 
+#  -- for noSlipWall's we use displacement on sides of solid
+if( $sideBC eq "noSlipWall" ){ $bcCommands="all=displacementBC\n  bcNumber100=tractionBC\n bcNumber100=tractionInterface"; }
 $exponent=10.; $x0=.5; $y0=.5; $z0=.5;  $rhoSolid=$rhoSolid*$scf; $lambda=$lambdaSolid*$scf; $mu=$muSolid*$scf; 
 # $initialConditionCommands="gaussianPulseInitialCondition\n Gaussian pulse: 10 2 $exponent $x0 $y0 $z0 (beta,scale,exponent,x0,y0,z0)";
 $initialConditionCommands="zeroInitialCondition";

@@ -9,6 +9,7 @@ addForcing.C:
 
 adjustPressureCoefficients.C:
   - adjustPressureCoefficients(CompositeGrid & cg0, GridFunction & cgf  )
+          : Make adjustments to the pressure coefficient matrix (e.g. for the added mass algorithm).
 
 boundaryConditions.C
   - gridAccelerationBC(const int & grid, ... )

@@ -1,5 +1,25 @@
+*************************************
+******* Nov 12, 2016
+
+REVISIT INS + SM 
+
+
+---- no-slip walls on ends to pin ends 
+$cgmpx -noplot deformingChannel -method=ins -g=deformingChannelGrid4.order2 -scf=1. -u0=0. -nu=.01 -tp=.2 -tf=20 -nc=1 -pOffset=0. -smVariation=g -rhoSolid=100. -lambdaSolid=5. -muSolid=5. -debug=1 -pi=0 -multiDomainAlgorithm=1 -uShock=0. -ap=.1 -flushFrequency=2 -bcOption=4 -debug=3 -sideBC=noSlipWall -show=dcPinnedG4.show -go=go >! dcPinnedG4.out
+
+  -show=dcG4.show -go=go >! dcG4.out
+
+--- Elastic -piston:
+
+OK: scf=1 and rhos=100 to get a large deformation
+$cgmpx -noplot deformingChannel -method=ins -g=deformingChannelGrid4.order2 -scf=1. -u0=0. -nu=.01 -tp=.2 -tf=20 -nc=1 -pOffset=0. -smVariation=g -rhoSolid=100. -lambdaSolid=1. -muSolid=1. -debug=1 -pi=0 -multiDomainAlgorithm=1 -uShock=0. -ap=.1 -flushFrequency=2 -bcOption=4 -debug=3 -sideBC=slipWall -show=dcG4.show -go=go >! dcG4.out
+
+
+
+
+
 *****************
-***** Sept 25, ans Oct 3, 2015
+***** Sept 25, and Oct 3, 2015
 
 TAKE STEP BACK -- first implement a "projectInitialConditions" for INS + SM
 

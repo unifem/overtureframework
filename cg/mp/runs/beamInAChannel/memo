@@ -1,4 +1,41 @@
 **************************
+*** Nov 13, 2015
+
+THIN BEAM
+$cgmp -noplot solidBeamInAChannel -method=ins -smVariation=g  -g=thinSolidBeamInAChannelGride16.order2 -scf=100. -tp=.1 -tf=10. -nc=1 -d1="fluidDomain" -d2="solidDomain" -nu=.005 -pOffset=.0 -rhoSolid=100. -lambdaSolid=5. -muSolid=5. -diss=4. -relaxAlpha=1. -relaxDelta=1. -tangentialDissipationSolid=1. -debug=1 -rampedInflow=1 -flushFrequency=4 -godunovType=0 -pi=0 -piGhostOption=3 -multiDomainAlgorithm=1  -cfl=.9 -show=tbilcInsG16.show -go=go >! tbilcInsG16.out
+
+$cgmp solidBeamInAChannel -method=ins -smVariation=g  -g=thinSolidBeamInAChannelGride16.order2 -scf=100. -tp=.1 -tf=10. -nc=1 -d1="fluidDomain" -d2="solidDomain" -nu=.005 -pOffset=.0 -rhoSolid=100. -lambdaSolid=5. -muSolid=5. -diss=4. -relaxAlpha=1. -relaxDelta=1. -tangentialDissipationSolid=1. -debug=1 -rampedInflow=1 -flushFrequency=4 -godunovType=0 -pi=1 -piGhostOption=3 -multiDomainAlgorithm=1  -cfl=.9 -show=bilcInsG16.show -go=halt
+
+
+OK: 
+$cgmp -noplot solidBeamInAChannel -method=ins -smVariation=g  -g=solidBeamInALongChannelGride8.order2.hdf -scf=100. -tp=.1 -tf=10. -nc=1 -d1="fluidDomain" -d2="solidDomain" -nu=.01 -pOffset=.0 -rhoSolid=100. -lambdaSolid=5. -muSolid=5. -diss=4. -relaxAlpha=1. -relaxDelta=1. -tangentialDissipationSolid=1. -debug=1 -rampedInflow=1 -flushFrequency=4 -godunovType=0 -pi=1 -piGhostOption=3 -multiDomainAlgorithm=1  -cfl=.9 -show=bilcInsG8.show -go=go >! bilcInsG8.out
+
+
+**************************
+*** Nov 12, 2015
+
+
+START ON INS + SM (FIBR)
+
+WATCH OUT FOR INFLOW AT OUTFLOW
+
+Longer channel:
+
+$cgmp -noplot solidBeamInAChannel -method=ins -smVariation=g  -g=solidBeamInALongChannelGride8.order2.hdf -scf=100. -tp=.1 -tf=10. -nc=1 -d1="fluidDomain" -d2="solidDomain" -nu=.05 -pOffset=.0 -rhoSolid=100. -lambdaSolid=5. -muSolid=5. -diss=4. -relaxAlpha=1. -relaxDelta=1. -tangentialDissipationSolid=1. -debug=1 -rampedInflow=1 -flushFrequency=4 -godunovType=0 -pi=1 -piGhostOption=3 -multiDomainAlgorithm=1  -cfl=.9 -show=bilcInsG8.show -go=go >! bilcInsG8.out
+
+$cgmp solidBeamInAChannel -method=ins -smVariation=g  -g=solidBeamInALongChannelGride8.order2.hdf -scf=100. -tp=.05 -tf=10. -nc=1 -d1="fluidDomain" -d2="solidDomain" -nu=.02 -pOffset=.0 -rhoSolid=100. -lambdaSolid=5. -muSolid=5. -diss=4. -relaxAlpha=1. -relaxDelta=1. -tangentialDissipationSolid=1. -debug=1 -rampedInflow=1 -flushFrequency=4 -godunovType=0 -pi=1 -piGhostOption=3 -multiDomainAlgorithm=1  -cfl=.9 -show=bilcInsG8.show -go=halt
+
+
+OK
+ $cgmp -noplot solidBeamInAChannel -method=ins -smVariation=g  -g=solidBeamInAChannelGride8.order2 -scf=100. -tp=.1 -tf=20. -nc=1 -d1="fluidDomain" -d2="solidDomain" -nu=.01 -pOffset=.0 -rhoSolid=10. -lambdaSolid=1. -muSolid=1. -diss=4. -relaxAlpha=1. -relaxDelta=1. -tangentialDissipationSolid=1. -debug=1 -rampedInflow=1 -flushFrequency=4 -godunovType=0 -pi=1 -piGhostOption=3 -multiDomainAlgorithm=1  -cfl=.9 -show=bicInsG8.show -go=go >! bicInsG8.out 
+
+# no--
+$cgmp solidBeamInAChannel -method=ins -smVariation=g  -g=solidBeamInAChannelGride8.order2 -scf=10. -tp=.001 -tf=20. -nc=1 -d1="fluidDomain" -d2="solidDomain" -nu=.01 -pOffset=.0 -rhoSolid=100. -lambdaSolid=5. -muSolid=5. -diss=4. -relaxAlpha=1. -relaxDelta=1. -tangentialDissipationSolid=1. -debug=1 -rampedInflow=1 -flushFrequency=4 -godunovType=0 -pi=0 -piGhostOption=3 -multiDomainAlgorithm=1  -cfl=.9 -go=halt
+
+
+
+
+**************************
 *** July 31, 2015
 
 CHECK RECOVERY OF FILES

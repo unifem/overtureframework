@@ -212,8 +212,7 @@ readPlot3d(MappingInformation & mapInfo,
 {
   GenericGraphicsInterface *giPointer = Overture::getGraphicsInterface();
   assert(giPointer!=NULL);
-// AP: Could get the graphics interface pointer from Overture::getGraphicsInterface()
-  GenericGraphicsInterface & graphicsInterface = *giPointer; 
+  GenericGraphicsInterface & gi = *giPointer; 
     
 
   FILE *fp=NULL;
@@ -222,20 +221,20 @@ readPlot3d(MappingInformation & mapInfo,
   if( plot3dFileName!="" && plot3dFileName!=" " )
     fileName=plot3dFileName;
   else
-    graphicsInterface.inputString(fileName,"Enter the name of the plot3d file");
+    gi.inputString(fileName,"Enter the name of the plot3d file");
 
   fp=fopen((const char*)fileName,"r");
 
   int attempts=0;
   while( fp==NULL && attempts<5 )
   {
-    graphicsInterface.inputString(fileName,"File not found, enter another name for the plot3d file");
+    gi.inputString(fileName,"File not found, enter another name for the plot3d file");
     fp=fopen((const char*)fileName,"r");
     attempts++;
   }
   if( attempts>=5 )
   {
-    graphicsInterface.outputString("Too many tries");
+    gi.outputString("Too many tries");
     return 1;
   }
   int numberOfBytes=0;
@@ -430,6 +429,17 @@ readPlot3d(MappingInformation & mapInfo,
     
   }
   
+  int length=fileName.length();
+  // printf(" fileName(length-5,length-1)=[%s]\n", (const char*)fileName(length-5,length-1));
+  if( length>5 && fileName.substr(length-5,length-1)==".surf" )
+  {
+    // --- check for .surf files --- *wdh* 2016/11/16 
+    printF("This appears to be a surface grid file since fileName ends in [.surf], setting rangeDimension==3.\n");
+    numberOfDimensionsInFile=3;
+  }
+  
+
+
   char buff[80];
   IntegerArray dimensions(2,3);
 //  if( unformatted && numberOfBytes < sizeof(double)*ng*nx(0,0)*nx(0,1)*nx(0,2)*numberOfDimensionsInFile )
@@ -457,7 +467,7 @@ readPlot3d(MappingInformation & mapInfo,
     char buff[80];
     aString answer;
 	     
-    graphicsInterface.inputString(answer,
+    gi.inputString(answer,
 				  sPrintF(buff,"There are %i grids in this file. Enter one to use 0,...,%i",ng,ng-1));
     gridToUse=0;
     sScanF(answer,"%i",&gridToUse);
@@ -807,7 +817,7 @@ readIngrid(UnstructuredMapping &map, const aString &gridFileName /* =  nullStrin
 {
   GenericGraphicsInterface *giPointer = Overture::getGraphicsInterface("",false);
   assert(giPointer!=NULL || gridFileName!=nullString);
-  GenericGraphicsInterface & graphicsInterface = *giPointer;
+  GenericGraphicsInterface & gi = *giPointer;
     
 
   FILE *fp=NULL;
@@ -816,20 +826,20 @@ readIngrid(UnstructuredMapping &map, const aString &gridFileName /* =  nullStrin
   if( gridFileName!="" && gridFileName!=" " )
     fileName=gridFileName;
   else
-    graphicsInterface.inputString(fileName,"Enter the name of the ingrid file");
+    gi.inputString(fileName,"Enter the name of the ingrid file");
 
   fp=fopen((const char*)fileName,"r");
 
   int attempts=0;
   while( fp==NULL && attempts<5 )
   {
-    graphicsInterface.inputString(fileName,"File not found, enter another name for the ingrid file");
+    gi.inputString(fileName,"File not found, enter another name for the ingrid file");
     fp=fopen((const char*)fileName,"r");
     attempts++;
   }
   if( attempts>=5 )
   {
-    graphicsInterface.outputString("Too many tries");
+    gi.outputString("Too many tries");
     return 1;
   }
   int numberOfBytes=0;
@@ -886,7 +896,7 @@ readTecplot(ListOfMappingRC &mList, const aString &gridFileName /* =  nullString
 {
   GenericGraphicsInterface *giPointer = Overture::getGraphicsInterface();
   assert(giPointer!=NULL || gridFileName!=nullString);
-  GenericGraphicsInterface & graphicsInterface = *giPointer;
+  GenericGraphicsInterface & gi = *giPointer;
     
   FILE *fp=NULL;
   aString fileName;
@@ -894,21 +904,21 @@ readTecplot(ListOfMappingRC &mList, const aString &gridFileName /* =  nullString
   if( gridFileName!="" && gridFileName!=" " )
     fileName=gridFileName;
   else
-    graphicsInterface.inputFileName(fileName, "Enter the name of the tecplot file", "dat");
+    gi.inputFileName(fileName, "Enter the name of the tecplot file", "dat");
 
   fp=fopen((const char*)fileName,"r");
 
   int attempts=0;
   while( fp==NULL && attempts<5 )
   {
-    graphicsInterface.inputFileName(fileName,"File not found, enter another name for the tecplot file", 
+    gi.inputFileName(fileName,"File not found, enter another name for the tecplot file", 
 				    "dat");
     fp=fopen((const char*)fileName,"r");
     attempts++;
   }
   if( attempts>=5 )
   {
-    graphicsInterface.outputString("Too many tries");
+    gi.outputString("Too many tries");
     return 1;
   }
 
@@ -1073,7 +1083,7 @@ readCart3dTri(ListOfMappingRC &mList, const aString &gridFileName /* =  nullStri
 {
   GenericGraphicsInterface *giPointer = Overture::getGraphicsInterface();
   assert(giPointer!=NULL || gridFileName!=nullString);
-  GenericGraphicsInterface & graphicsInterface = *giPointer;
+  GenericGraphicsInterface & gi = *giPointer;
     
   FILE *fp=NULL;
   aString fileName;
@@ -1081,21 +1091,21 @@ readCart3dTri(ListOfMappingRC &mList, const aString &gridFileName /* =  nullStri
   if( gridFileName!="" && gridFileName!=" " )
     fileName=gridFileName;
   else
-    graphicsInterface.inputFileName(fileName, "Enter the name of the Cart3d tri-file", "tri");
+    gi.inputFileName(fileName, "Enter the name of the Cart3d tri-file", "tri");
 
   fp=fopen((const char*)fileName,"r");
 
   int attempts=0;
   while( fp==NULL && attempts<5 )
   {
-    graphicsInterface.inputFileName(fileName,"File not found, enter another name for the Cart3d tri-file", 
+    gi.inputFileName(fileName,"File not found, enter another name for the Cart3d tri-file", 
 				    "tri");
     fp=fopen((const char*)fileName,"r");
     attempts++;
   }
   if( attempts>=5 )
   {
-    graphicsInterface.outputString("Too many tries");
+    gi.outputString("Too many tries");
     return 1;
   }
 
@@ -1191,7 +1201,7 @@ readPly(UnstructuredMapping &map, const aString &gridFileName /* =  nullString *
 {
   GenericGraphicsInterface *giPointer = Overture::getGraphicsInterface();
   assert(giPointer!=NULL || gridFileName!=nullString);
-  GenericGraphicsInterface & graphicsInterface = *giPointer;
+  GenericGraphicsInterface & gi = *giPointer;
     
   FILE *fp=NULL;
   aString fileName;
@@ -1199,20 +1209,20 @@ readPly(UnstructuredMapping &map, const aString &gridFileName /* =  nullString *
   if( gridFileName!="" && gridFileName!=" " )
     fileName=gridFileName;
   else
-    graphicsInterface.inputString(fileName,"Enter the name of the PLY file");
+    gi.inputString(fileName,"Enter the name of the PLY file");
 
   fp=fopen((const char*)fileName,"r");
 
   int attempts=0;
   while( fp==NULL && attempts<5 )
   {
-    graphicsInterface.inputString(fileName,"File not found, enter another name for the PLY file");
+    gi.inputString(fileName,"File not found, enter another name for the PLY file");
     fp=fopen((const char*)fileName,"r");
     attempts++;
   }
   if( attempts>=5 )
   {
-    graphicsInterface.outputString("Too many tries");
+    gi.outputString("Too many tries");
     return 1;
   }
   int numberOfBytes=0;
@@ -1490,14 +1500,14 @@ writeIngrid(Mapping & map,
 {  
   GenericGraphicsInterface *giPointer = Overture::getGraphicsInterface();
   assert(giPointer!=NULL || gridFileName!=nullString);
-  GenericGraphicsInterface & graphicsInterface = *giPointer;
+  GenericGraphicsInterface & gi = *giPointer;
 
   aString fileName=nullString;
 
   if( gridFileName!="" && gridFileName!=" " )
     fileName=gridFileName;
   else
-    graphicsInterface.inputString(fileName,"Enter the name of the ingrid file");
+    gi.inputString(fileName,"Enter the name of the ingrid file");
 
   UnstructuredMapping *umap;
 

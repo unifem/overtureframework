@@ -29,6 +29,13 @@ projectInitialConditions( real t, real dt, std::vector<int> & gfIndex )
 {
     if( !gridHasMaterialInterfaces ) return 0;
 
+    if( true )
+    {
+        printF("Cgmp:projectInitialConditions: finish me. Skipping for now...\n");
+        return 0;
+    }
+    
+
     const bool & twilightZoneFlow = parameters.dbase.get<bool >("twilightZoneFlow");
     if( twilightZoneFlow )
     { // we do not project IC's for TZ flow

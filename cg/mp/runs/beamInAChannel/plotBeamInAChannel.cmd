@@ -1,6 +1,11 @@
 #
 # Plot results from the solid beam in a channel
 #
+# -- INS+SM
+#    plotStuff plotBeamInAChannel -show=bicInsG8.show
+#    plotStuff plotBeamInAChannel -show=bilcInsG8.show  [ long channel
+#    plotStuff plotBeamInAChannel -show=tbilcInsG16.show  [ thin beam
+#
 # -- Linear-elasticity
 #   plotStuff plotBeamInAChannel -show=sbicLE8.show
 #   plotStuff plotBeamInAChannel -show=sbicLE16.show

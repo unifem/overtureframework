@@ -558,7 +558,7 @@ interfaceRightHandSide( InterfaceOptionsEnum option,
 	// old: f(I1,I2,I3,V)=traction(I1,I2,I3,D);
       	f(I1,I2,I3,Ct)=traction(I1,I2,I3,D);
 
-      	if( true )
+      	if( false )
       	{
         	  fprintf(pDebugFile,"-- interfaceRHS: interface data at t=%8.2e --\n",t);
         	  ::display(f(I1,I2,I3,Ct),"--INS-- traction f",pDebugFile,"%9.3e ");
@@ -765,26 +765,31 @@ interfaceRightHandSide( InterfaceOptionsEnum option,
             
                             f(I1,I2,I3,Ctr)= l0t*f0(I1,I2,I3,Ct) +l1t*f1(I1,I2,I3,Ct) + l2t*f2(I1,I2,I3,Ct);
 
-            	      if( true || debug() & 2 )
+            	      if( TRUE )  // ********* TEMP 
             	      {
-            		printF(" EXTRAP traction-rate to first-order : *TEMP*\n");
-                                real l1 = (t-t2)/(t1-t2);
+                                if( t0 < 3.*dt0 )
+              		  printF(" ********** EXTRAP traction-rate to first-order : *TEMP* *************\n");
+
+            		real l1 = (t-t2)/(t1-t2);
             		real l2 = (t-t1)/(t2-t1);
-                // f(I1,I2,I3,Ctr)= l1*f1(I1,I2,I3,Ctr) + l2*f2(I1,I2,I3,Ctr); // ******************** TEMP *************
-                                f(I1,I2,I3,Ctr)= f1(I1,I2,I3,Ctr);
+		// f(I1,I2,I3,Ctr)= l1*f1(I1,I2,I3,Ctr) + l2*f2(I1,I2,I3,Ctr); // ******************** TEMP *************
+            		f(I1,I2,I3,Ctr)= f1(I1,I2,I3,Ctr);
 
-            		fprintf(pDebugFile,"Cgins::interfaceRHS: get d(traction)/dt (2nd order): t=%9.3e, t0=%9.3e, dt0=%9.3e "
-                  			"gfIndex=%i gf[gfIndex].t=%9.3e, prev=%i, t1=%9.3e, im2=%i t2=%9.3e, "
-                  			" l0t*dt0=%4.2f l1t*dt0=%4.2f l2t*dt0=%4.2f\n",
-                  			t,t0,dt0,gfIndex,gf[gfIndex].t,prev,t1,im2,t2,l0t*dt0,l1t*dt0,l2t*dt0);   
-                    		::display(f(I1,I2,I3,Ctr),"traction-rate",pDebugFile,"%9.3e ");
-            		::display(f0(I1,I2,I3,Ct),"f0 traction (t0)",pDebugFile,"%9.3e ");
-            		::display(f1(I1,I2,I3,Ct),"f1 traction (tp)",pDebugFile,"%9.3e ");
-            		::display(f2(I1,I2,I3,Ct),"f2 traction (t2)",pDebugFile,"%9.3e ");
+                                if( debug() & 4 )
+            		{
+              		  fprintf(pDebugFile,"Cgins::interfaceRHS: get d(traction)/dt (2nd order): t=%9.3e, t0=%9.3e, dt0=%9.3e "
+                    			  "gfIndex=%i gf[gfIndex].t=%9.3e, prev=%i, t1=%9.3e, im2=%i t2=%9.3e, "
+                    			  " l0t*dt0=%4.2f l1t*dt0=%4.2f l2t*dt0=%4.2f\n",
+                    			  t,t0,dt0,gfIndex,gf[gfIndex].t,prev,t1,im2,t2,l0t*dt0,l1t*dt0,l2t*dt0);   
+              		  ::display(f(I1,I2,I3,Ctr),"traction-rate",pDebugFile,"%9.3e ");
+              		  ::display(f0(I1,I2,I3,Ct),"f0 traction (t0)",pDebugFile,"%9.3e ");
+              		  ::display(f1(I1,I2,I3,Ct),"f1 traction (tp)",pDebugFile,"%9.3e ");
+              		  ::display(f2(I1,I2,I3,Ct),"f2 traction (t2)",pDebugFile,"%9.3e ");
 
-            		::display(f1(I1,I2,I3,Ctr),sPrintF("f1 traction-rate (t1=%9.3e)",t1),pDebugFile,"%9.3e ");
-            		::display(f2(I1,I2,I3,Ctr),sPrintF("f2 traction-rate (t2=%9.3e)",t2),pDebugFile,"%9.3e ");
-
+              		  ::display(f1(I1,I2,I3,Ctr),sPrintF("f1 traction-rate (t1=%9.3e)",t1),pDebugFile,"%9.3e ");
+              		  ::display(f2(I1,I2,I3,Ctr),sPrintF("f2 traction-rate (t2=%9.3e)",t2),pDebugFile,"%9.3e ");
+            		}
+            		
             	      }
           	    }
           	    
