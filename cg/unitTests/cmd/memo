@@ -5,10 +5,10 @@ tbm tzbeam.cmd -nElem=80 -tz=trig -Em=1. -tension=0. -tf=1. -tp=.1 -numberOfSmoo
 
 ***** 2016/08/02
 -- to show bug in interpolateSolution:
-tbm beamProjectVelocity.cmd -BM=FD -numElem=20 -go=halt -tbm beamProjectVelocity.cmd -BM=FD -numElem=20 -go=halt -tz=poly -degreex=1 -debug=-999
+tbm beamProjectVelocity.cmd -BM=FD -numElem=20 -go=halt -tz=poly -degreex=1 -debug=-999
 
 after fix:
-tbm beamProjectVelocity.cmd -BM=FD -numElem=20 -go=halt -tbm beamProjectVelocity.cmd -BM=FD -numElem=20 -go=halt -tz=poly -degreex=1
+tbm beamProjectVelocity.cmd -BM=FD -numElem=20 -go=halt -tz=poly -degreex=1
 
 
 
