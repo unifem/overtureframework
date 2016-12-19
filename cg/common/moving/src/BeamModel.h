@@ -44,14 +44,17 @@ public:
   // Longfei 20160114:
   // do we need a parameter class to handle all the parameters???
   // do this for now ...
-  enum beamModelTypeEnum
+
+  // Supported or (to be supported) Beam Models
+  enum BeamModelEnum
     {
       unknownBeamModel=-1,
-      linearBeamModel=0,
-      nonlinearBeamModel
+      eulerBernoulliBeamModel=0,
+      timoshenkoBeamModel,
+      kirchhoffBeamModel
     };
 
-  enum spacialDiscretizationEnum
+  enum SpacialDiscretizationEnum
     {
       unknownSpacialDiscretization=-1,
       finiteElement=0,
