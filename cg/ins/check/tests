@@ -60,3 +60,18 @@ tzAFS2Dpenalty.cic.check ../cmd/tz.cmd -g=cic -nu=1e-2 -tf=.2 -dtMax=0.01 -model
 #
 # nonlinear beam:
 turek_hron_fsi2.check ../runs/TurekHronFSI2/turek_hron_fsi2_run.cmd -g=turek_hron_fsi2e2.hdf -tf=2e-3 -tp=1e-3 -cfl=.5 -go=go
+#
+#
+# Longfei 20161219: new tests for beamins2d
+# beam in a channel (bic) tests:
+# AMP FD
+bic2dAMPFD.check ../runs/beamPaperRuns/oneBeamTests/oneBeamInAChannel.cmd -g=bicFixede1.order2.hdf -uIn=1.5 -BM1=FD  -tf=.01  -tp=.01 -rhoBeam=100 -E=2 -numElem=7 -outflowOption=neumann -nu=1.e-1  -addedMass=1 -ampProjectVelocity=1 -useApproximateAMPcondition=0 -useSameStencilSize=1  -numberOfCorrections=1 -saveProbe=1 -cfls=100. -ps=newmark2Implicit -cs=newmarkCorrector -smoothInterfaceVelocity=1 -nis=5 -smoothBeam=1 -numberOfBeamSmooths=5 -rampInflow=1  -recomputeGVOnCorrection=0 -saveProbe=0 -go=go
+# TP FD
+bic2dTPFD.check ../runs/beamPaperRuns/oneBeamTests/oneBeamInAChannel.cmd -g=bicFixede1.order2.hdf -uIn=1.5 -BM1=FD  -tf=.01  -tp=.01 -rhoBeam=100 -E=2 -numElem=7 -outflowOption=neumann -nu=1.e-1 -addedMass=0 -useTP=1 -addedMassRelaxation=0.1 -addedMassTol=1e-5 -numberOfCorrections=500 -useSameStencilSize=1  -saveProbe=1 -cfls=100. -ps=newmark2Implicit -cs=newmarkCorrector -smoothInterfaceVelocity=1 -nis=5 -smoothBeam=1 -numberOfBeamSmooths=5 -rampInflow=1  -recomputeGVOnCorrection=0 -ff=10 -show=testTPG1_check.show -saveProbe=0 -go=go
+# AMP FEM
+bic2dAMPFEM.check ../runs/beamPaperRuns/oneBeamTests/oneBeamInAChannel.cmd -g=bicFixede1.order2.hdf -uIn=1.5 -BM1=FEM  -tf=.01  -tp=.01 -rhoBeam=100 -E=2 -numElem=7 -outflowOption=neumann -nu=1.e-1  -addedMass=1 -ampProjectVelocity=1 -useApproximateAMPcondition=0 -useSameStencilSize=1  -numberOfCorrections=1 -saveProbe=1 -cfls=100. -ps=newmark2Implicit -cs=newmarkCorrector -smoothInterfaceVelocity=1 -nis=5 -smoothBeam=1 -numberOfBeamSmooths=5 -rampInflow=1  -recomputeGVOnCorrection=0 -saveProbe=0 -go=go
+# TP FEM
+bic2dTPFEM.check ../runs/beamPaperRuns/oneBeamTests/oneBeamInAChannel.cmd -g=bicFixede1.order2.hdf -uIn=1.5 -BM1=FEM  -tf=.01  -tp=.01 -rhoBeam=100 -E=2 -numElem=7 -outflowOption=neumann -nu=1.e-1 -addedMass=0 -useTP=1 -addedMassRelaxation=0.1 -addedMassTol=1e-5 -numberOfCorrections=500 -useSameStencilSize=1  -saveProbe=1 -cfls=100. -ps=newmark2Implicit -cs=newmarkCorrector -smoothInterfaceVelocity=1 -nis=5 -smoothBeam=1 -numberOfBeamSmooths=5 -rampInflow=1  -recomputeGVOnCorrection=0 -ff=10 -show=testTPG1_check.show -saveProbe=0 -go=go
+
+
+

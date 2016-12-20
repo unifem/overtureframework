@@ -30,6 +30,10 @@ box10.order4.hdf:
 turek_hron_fsi2e2.hdf:
 	${Overture}/bin/ogen -noplot ../runs/TurekHronFSI2/turek_hron_fsi2_grid -interp=e -factor=2
 
+bicFixede1.order2.hdf:
+	${Overture}/bin/ogen -noplot ../runs/beamPaperRuns/oneBeamTests/oneBeamInAChannelGrid -xb=5 -fixedRadius=0.3 -prefix=bic -interp=e -factor=1
+
+
 square.cmd: 
 	ln -sf ${Overture}/sampleGrids/square.cmd $@
 
@@ -44,6 +48,6 @@ cylinder.cmd:
 
 # build grids that are used by the regression tests (and not already in Overture/sampleGrids)
 buildGrids: shortHalfCylinder.hdf slideri1.order2.hdf box.cmd square.cmd annulus.cmd cylinder.cmd \
-            square10.order4.hdf box10.order4.hdf turek_hron_fsi2e2.hdf
+            square10.order4.hdf box10.order4.hdf turek_hron_fsi2e2.hdf bicFixede1.order2.hdf
 
 
