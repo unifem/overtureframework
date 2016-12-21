@@ -88,7 +88,7 @@ getStandingWave( real t, RealArray & u, RealArray & v, RealArray & a ) const
   // Longfei 20160118:
   // dimension should be updated  already!
   assert(u.getLength(0)!=0 && v.getLength(0)!=0 && a.getLength(0)!=0);
-  assert(dbase.get<int>("numberOfMotionDirections")==1); //StandingWave exact solution works for beam moving  in 1 direction
+  assert(dbase.get<int>("numberOfSolutionComponents")==1); //StandingWave exact solution works for beam moving  in 1 direction
   
   // Longfei 20160121: new way of handling parameters
   const real & beamLength = dbase.get<real>("length");
@@ -160,7 +160,7 @@ getBeamEigenmode( real t, RealArray & u, RealArray & v, RealArray & a ) const
   // Longfei 20160118:
   // dimension should be updated  already!
   assert(u.getLength(0)!=0 && v.getLength(0)!=0 && a.getLength(0)!=0);
-  assert(dbase.get<int>("numberOfMotionDirections")==1); //BeamEigenmode exact solution works for beam moving  in 1 direction
+  assert(dbase.get<int>("numberOfSolutionComponents")==1); //BeamEigenmode exact solution works for beam moving  in 1 direction
 
 
   const int & eigenMode = dbase.get<int>("eigenMode");
@@ -174,9 +174,9 @@ getBeamEigenmode( real t, RealArray & u, RealArray & v, RealArray & a ) const
   // Longfei 20160121: new way of handling parameters
   //real beamLength=L;  // old way
   const  real &  beamLength= dbase.get<real>("length");
-  const BoundaryCondition * boundaryConditions = dbase.get<BoundaryCondition[2]>("boundaryConditions");
-  const BoundaryCondition & bcLeft =  boundaryConditions[0];
-  const BoundaryCondition & bcRight =  boundaryConditions[1];
+  const BoundaryConditionEnum * boundaryConditions = dbase.get<BoundaryConditionEnum[2]>("boundaryConditions");
+  const BoundaryConditionEnum & bcLeft =  boundaryConditions[0];
+  const BoundaryConditionEnum & bcRight =  boundaryConditions[1];
 
   // --- eigenvalues computed with cgDoc/moving/codes/beam/beamModes.maple ---
 
@@ -322,7 +322,7 @@ getTravelingWaveFSI( real t, RealArray & u, RealArray & v, RealArray & a ) const
   // Longfei 20160118:
   // dimension should be updated  already!
   assert(u.getLength(0)!=0 && v.getLength(0)!=0 && a.getLength(0)!=0);
-  assert(dbase.get<int>("numberOfMotionDirections")==1); //BeamEigenmode exact solution works for beam moving  in 1 direction
+  assert(dbase.get<int>("numberOfSolutionComponents")==1); //BeamEigenmode exact solution works for beam moving  in 1 direction
 
  
 
@@ -397,7 +397,7 @@ getBeamPiston( real t, RealArray & u, RealArray & v, RealArray & a ) const
   // Longfei 20160118:
   // dimension should be updated  already!
   assert(u.getLength(0)!=0 && v.getLength(0)!=0 && a.getLength(0)!=0);
-  assert(dbase.get<int>("numberOfMotionDirections")==1); //BeamEigenmode exact solution works for beam moving  in 1 direction
+  assert(dbase.get<int>("numberOfSolutionComponents")==1); //BeamEigenmode exact solution works for beam moving  in 1 direction
 
 
   // ** NOTE this solution appears in userDefinedKnownSolution.C and beamInitialConditions.C ***
@@ -481,7 +481,7 @@ getBeamUnderPressure( real t, RealArray & u, RealArray & v, RealArray & a ) cons
   // Longfei 20160118:
   // dimension should be updated  already!
   assert(u.getLength(0)!=0 && v.getLength(0)!=0 && a.getLength(0)!=0);
-  assert(dbase.get<int>("numberOfMotionDirections")==1); //BeamEigenmode exact solution works for beam moving  in 1 direction
+  assert(dbase.get<int>("numberOfSolutionComponents")==1); //BeamEigenmode exact solution works for beam moving  in 1 direction
 
  
 

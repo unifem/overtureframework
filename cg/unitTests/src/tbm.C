@@ -64,8 +64,8 @@ aString testProblemName[]=
 // void setParameters(real momOfIntertia, real E, 
 // 			 real rho,real beamLength,
 // 			 real thickness,real pnorm,
-// 			 int nElem,BoundaryCondition bcleft,
-// 			 BoundaryCondition bcright, 
+// 			 int nElem,BoundaryConditionEnum bcleft,
+// 			 BoundaryConditionEnum bcright, 
 // 			 real x0, real y0,
 // 			 bool useExactSolution);
 class TestBeamModel
@@ -405,16 +405,16 @@ solve(GenericGraphicsInterface & gi, GraphicsParameters & psp )
   // Create a reference named beam to avoid code changes.
   BeamModel &beam = *pbeam;
 
-  BeamModel::BoundaryCondition bcLeft=BeamModel::pinned, bcRight=BeamModel::pinned;
-  // BeamModel::BoundaryCondition bcLeft=BeamModel::Periodic, bcRight=BeamModel::Periodic;
+  //BeamModel::BoundaryConditionEnum bcLeft=BeamModel::pinned, bcRight=BeamModel::pinned;
+  // BeamModel::BoundaryConditionEnum bcLeft=BeamModel::Periodic, bcRight=BeamModel::Periodic;
   bool useExactSolution=false;
 
-  if( beamModelType==linearBeamModel )
-    {
-      // beam.setParameter("cfl",cfl);
+  // if( beamModelType==linearBeamModel )
+  //   {
+  //     // beam.setParameter("cfl",cfl);
 
-      //beam.writeParameterSummary();
-    }
+  //     //beam.writeParameterSummary();
+  //   }
   
 
   if( beamModelType==nonlinearBeamModel )

@@ -21,7 +21,6 @@ FDBeamModel()
   
   //set some default parameters for FDBeamModel
   dbase.get<int>("numberOfGhostPoints")=2; // numOfGhost on each side
-  dbase.get<int>("numberOfMotionDirections")=1; // FEMBeamModel can only move in 1 direction....FOR NOW
   dbase.get<bool>("isCubicHermiteFEM")=false;  // Hermite FEM needs x derivatives, this controls the type of solution structure
 
   dbase.put<int>("stencilSize")=5; 
@@ -157,8 +156,8 @@ initialize()
 
 
 
-  const TimeSteppingMethod & predictorMethod = dbase.get<TimeSteppingMethod>("predictorMethod");
-  const TimeSteppingMethod & correctorMethod = dbase.get<TimeSteppingMethod>("correctorMethod");
+  const TimeSteppingMethodEnum & predictorMethod = dbase.get<TimeSteppingMethodEnum>("predictorMethod");
+  const TimeSteppingMethodEnum & correctorMethod = dbase.get<TimeSteppingMethodEnum>("correctorMethod");
   // initialize finite difference coefficients.
   // initialize the coefficient matrices for the implicit methods only
   if(predictorMethod==newmark2Implicit || correctorMethod==newmarkCorrector)
@@ -249,9 +248,9 @@ computeInternalForce(const RealArray& u, const RealArray& v, RealArray& f)
   const int & numOfGhost = dbase.get<int>("numberOfGhostPoints");
   assert(numOfGhost==2); // Longfei: we have 2 ghost points for now, we might need more for higher order method
 
-  const BoundaryCondition * boundaryConditions = dbase.get<BoundaryCondition[2]>("boundaryConditions");
-  const BoundaryCondition & bcLeft =  boundaryConditions[0];
-  const BoundaryCondition & bcRight =  boundaryConditions[1];
+  const BoundaryConditionEnum * boundaryConditions = dbase.get<BoundaryConditionEnum[2]>("boundaryConditions");
+  const BoundaryConditionEnum & bcLeft =  boundaryConditions[0];
+  const BoundaryConditionEnum & bcRight =  boundaryConditions[1];
 
   MappedGrid & mg= dbase.get<MappedGrid>("beamGrid");
   MappedGridOperators &op = *dbase.get<MappedGridOperators*>("operator");
@@ -331,9 +330,9 @@ computeAcceleration(const real t,
   //const real & Kxxt = dbase.get<real>("Kxxt");
 
   const int & numElem = dbase.get<int>("numElem");
-  const BoundaryCondition * boundaryConditions = dbase.get<BoundaryCondition[2]>("boundaryConditions");
-  const BoundaryCondition & bcLeft =  boundaryConditions[0];
-  const BoundaryCondition & bcRight =  boundaryConditions[1];
+  const BoundaryConditionEnum * boundaryConditions = dbase.get<BoundaryConditionEnum[2]>("boundaryConditions");
+  const BoundaryConditionEnum & bcLeft =  boundaryConditions[0];
+  const BoundaryConditionEnum & bcRight =  boundaryConditions[1];
   const bool & allowsFreeMotion = dbase.get<bool>("allowsFreeMotion");
   const real & Abar = dbase.get<real>("massPerUnitLength");
   
@@ -398,7 +397,7 @@ computeAcceleration(const real t,
     
       for( int side=0; side<=1; side++ )
 	{
-	  BoundaryCondition bc = side==0 ? bcLeft : bcRight;
+	  BoundaryConditionEnum bc = side==0 ? bcLeft : bcRight;
 	  const int ib = side==0 ? 0 : numElem;              // boundary node
 	  const int is = 1-2*side;   // ib-is is the first ghost line, ib-2*is is the second ghost line
 	  
@@ -533,9 +532,9 @@ solveTridiagonal(const RealArray& f, RealArray& u, const aString & tridiagonalSo
   const int & numElem = dbase.get<int>("numElem");
   const int & numOfGhost = dbase.get<int>("numberOfGhostPoints");
 
-  const BoundaryCondition * boundaryConditions = dbase.get<BoundaryCondition[2]>("boundaryConditions");
-  const BoundaryCondition & bcLeft = boundaryConditions[0];
-  const BoundaryCondition & bcRight = boundaryConditions[1];
+  const BoundaryConditionEnum * boundaryConditions = dbase.get<BoundaryConditionEnum[2]>("boundaryConditions");
+  const BoundaryConditionEnum & bcLeft = boundaryConditions[0];
+  const BoundaryConditionEnum & bcRight = boundaryConditions[1];
   const bool & allowsFreeMotion = dbase.get<bool>("allowsFreeMotion");
 
   const bool isPeriodic = bcLeft==periodic;
@@ -626,9 +625,9 @@ factorTridiagonalSolver( const aString & tridiagonalSolverName)
   TridiagonalSolver & tri = *pTri;
 
 
-  const BoundaryCondition * boundaryConditions = dbase.get<BoundaryCondition[2]>("boundaryConditions");
-  const BoundaryCondition & bcLeft =  boundaryConditions[0];
-  const BoundaryCondition & bcRight =  boundaryConditions[1];
+  const BoundaryConditionEnum * boundaryConditions = dbase.get<BoundaryConditionEnum[2]>("boundaryConditions");
+  const BoundaryConditionEnum & bcLeft =  boundaryConditions[0];
+  const BoundaryConditionEnum & bcRight =  boundaryConditions[1];
  
   const bool isPeriodic = bcLeft==periodic;
   const bool addDampingMatrix = dbase.get<real>("Kt")!=0. || dbase.get<real>("Kxxt")!=0.;
@@ -722,7 +721,7 @@ factorTridiagonalSolver( const aString & tridiagonalSolverName)
       // Adjust the matrix for essential BC's -- these will set the DOF's at boundaries
       for( int side=0; side<=1; side++ )
     	{
-    	  BoundaryCondition bc = side==0 ? bcLeft : bcRight;
+    	  BoundaryConditionEnum bc = side==0 ? bcLeft : bcRight;
     	  const int ib = side==0 ? 0 : numElem;    // boundary node
 	  const int is = 1-2*side;        // ib-is is the first ghost line, ib-2*is is the second ghost line
 
@@ -965,9 +964,9 @@ assignBoundaryConditions( real t, RealArray & u, RealArray & v, RealArray & a,co
 {  
   const real & L = dbase.get<real>("length");
   const int & numElem = dbase.get<int>("numElem");
-  const BoundaryCondition * boundaryConditions = dbase.get<BoundaryCondition[2]>("boundaryConditions");
-  const BoundaryCondition & bcLeft =  boundaryConditions[0];
-  const BoundaryCondition & bcRight =  boundaryConditions[1];
+  const BoundaryConditionEnum * boundaryConditions = dbase.get<BoundaryConditionEnum[2]>("boundaryConditions");
+  const BoundaryConditionEnum & bcLeft =  boundaryConditions[0];
+  const BoundaryConditionEnum & bcRight =  boundaryConditions[1];
   const bool & allowsFreeMotion = dbase.get<bool>("allowsFreeMotion");
   const bool & useExactSolution =  dbase.get<bool>("useExactSolution");
   const real & dx = dbase.get<real>("elementLength");
@@ -996,7 +995,7 @@ assignBoundaryConditions( real t, RealArray & u, RealArray & v, RealArray & a,co
 
       for( int side=0; side<=1; side++ )
 	{
-	  BoundaryCondition bc = side==0 ? bcLeft : bcRight;
+	  BoundaryConditionEnum bc = side==0 ? bcLeft : bcRight;
     	  const int ib = side==0 ? 0 : numElem;    // boundary node
 	  const int is = 1-2*side;        // ib-is is the first ghost line, ib-2*is is the second ghost line
 
@@ -1239,9 +1238,9 @@ smooth( const real t, RealArray & w, const aString & label )
 {
   const int & numElem = dbase.get<int>("numElem");
   const bool & smoothSolution = dbase.get<bool>("smoothSolution");
-  const BoundaryCondition * bc = dbase.get<BoundaryCondition[2]>("boundaryConditions");
-  const BoundaryCondition & bcLeft =  bc[0];
-  const BoundaryCondition & bcRight =  bc[1];
+  const BoundaryConditionEnum * bc = dbase.get<BoundaryConditionEnum[2]>("boundaryConditions");
+  const BoundaryConditionEnum & bcLeft =  bc[0];
+  const BoundaryConditionEnum & bcRight =  bc[1];
 
   if( !smoothSolution )
     return;

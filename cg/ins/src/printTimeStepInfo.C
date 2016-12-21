@@ -339,6 +339,14 @@ printTimeStepInfo( const int & step, const real & t, const real & cpuTime )
     }
     fprintf(checkFile,"\n");
 
+    //Longfei 20161219: write checks to the ins checkFile for real run too
+    if( parameters.isMovingGridProblem() )
+    {
+      // append the check file with check file info from moving grids (e.g. BeamModel)  *wdh* 2015/06/11
+      parameters.dbase.get<MovingGrids >("movingGrids").writeCheckFile(t, checkFile);
+    }
+    
+    
   }
 
 

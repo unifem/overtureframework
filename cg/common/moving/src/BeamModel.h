@@ -61,7 +61,7 @@ public:
       finiteDifference
     };
 
-  enum TimeSteppingMethod
+  enum TimeSteppingMethodEnum
     {
       unknownTimeStepping=-1,
       //avaiblable predictor methods
@@ -76,7 +76,7 @@ public:
     };
 
    
-  enum BoundaryCondition
+  enum BoundaryConditionEnum
     { 
       unknownBC=-1, 
       pinned = 1 , 
@@ -218,16 +218,19 @@ public:
 
 
   // convert BoundaryCondition to its name in a string
-  aString getBCName(const BoundaryCondition & bc) const;
+  aString getBCName(const BoundaryConditionEnum & bc) const;
 
+  // convert BeamModelEnum to its name in a string
+  aString getBMName(const BeamModelEnum & bm) const;
+  
   // Longfei 20160115: applies to all derived beam models. 
   // make it non-virtual for now.
   // Return the current force of the structure.
   //renamed force() to getCurrentForce()
   const RealArray& getCurrentForce() const;
 
-    // convert TimeSteppingMethod to its name in a string
-  aString getTSName(const TimeSteppingMethod & ts) const;
+    // convert TimeSteppingMethodEnum to its name in a string
+  aString getTSName(const TimeSteppingMethodEnum & ts) const;
 
   // for public access of beamID (read only)
   // Return the beam ID (a unique ID for this beam)
@@ -489,10 +492,10 @@ public:
 
 
 
-  // allow TestBeamModel to access dbase
+  // allow TestBeamModel to access everything
   friend class TestBeamModel; 
 
-  // Longfei 20160115: make everything public for now... 
+  // Longfei 20160115: make everything public for now...
   //  ---------------------------------- PRIVATE ---------------------------------------------------------
   //private:
 
@@ -527,6 +530,10 @@ public:
   void interpolateSolution(const RealArray& X,
 				   int& elemNum, real& eta,
 				   real& displacement, real& slope);
+
+
+  // Longfei 20161220: new function to determine the number of solution components needed for a particular beam model
+  int initNumberOfSolutionComponents();
 
   // initialize TZ
   int initTwilightZone();
@@ -667,8 +674,8 @@ public:
   // void setParameters(real momOfIntertia, real E, 
   // 		     real rho,real beamLength,
   // 		     real thickness,real pnorm,
-  // 		     int nElem,BoundaryCondition bcleft,
-  // 		     BoundaryCondition bcright, 
+  // 		     int nElem,BoundaryConditionEnum bcleft,
+  // 		     BoundaryConditionEnum bcright, 
   // 		     real x0, real y0,
   // 		     bool useExactSolution);
 
@@ -811,7 +818,7 @@ public:
 
   // Boundary conditions on the left and right of the beam.  see above
   //
-  //BoundaryCondition bcLeft, bcRight;
+  //BoundaryConditionEnum bcLeft, bcRight;
 
   // True if the simulation is being done using the exact analytical
   // solution from the documentation

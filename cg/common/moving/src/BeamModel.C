@@ -66,15 +66,20 @@ BeamModel::BeamModel()
 {
   cout << "Constructing BeamModel\n";
   
-  beamType = "genericBeamModel";
+  beamType = "genericBeamModel"; // class name
 
   globalBeamCounter++;
   
   dbase.put<int>("debug")=1; 
-  dbase.put<int>("domainDimension")=1; 
-  dbase.put<int>("rangeDimension")=2;  
+  dbase.put<int>("domainDimension")=1;   //Longfei: For now this cannot be changed. We might need to add this to gui update if we decide use the beam class for shell in the future
+           
+  dbase.put<int>("rangeDimension")=2;              // 2 or 3 dimenional problems
+  dbase.put<bool>("allowAxialDeformation")=false; // Longfei 20161220: add this flag to control number of deformation varibles
+  dbase.put<bool>("allowTwist")=false;            // we might need add twist into the model in the future
+
   dbase.put<int>("beamID")=globalBeamCounter; //  a unique ID 
   dbase.put<aString>("name")="none";
+  dbase.put<BeamModelEnum>("beamModel")=eulerBernoulliBeamModel; // set default to be eulerBernoulliBeamModel
 
 
   // parameters can be changed in BeamModel::update()
@@ -98,9 +103,9 @@ BeamModel::BeamModel()
   dbase.put<real>("beamInitialAngle") = 0.0;  // angle of undeformed beam 
   dbase.put<real>("newmarkBeta") = 0.25;
   dbase.put<real>("newmarkGamma") = 0.5;
-  dbase.put<BoundaryCondition[2]>("boundaryConditions");
-  dbase.get<BoundaryCondition[2]>("boundaryConditions")[0]=pinned; //initialize bcLeft
-  dbase.get<BoundaryCondition[2]>("boundaryConditions")[1]=pinned; //initialize bcRight
+  dbase.put<BoundaryConditionEnum[2]>("boundaryConditions");
+  dbase.get<BoundaryConditionEnum[2]>("boundaryConditions")[0]=pinned; //initialize bcLeft
+  dbase.get<BoundaryConditionEnum[2]>("boundaryConditions")[1]=pinned; //initialize bcRight
   dbase.put<aString>("initialConditionOption")="none";
   dbase.put<aString>("exactSolutionOption")="none";
   //dbase.put<bool>("useNewTridiagonalSolver")=true;  //Longfei 20160219: removed. Only new triSolver is used. No longer need this flag
@@ -129,7 +134,7 @@ BeamModel::BeamModel()
 
   // parameters will be modeified in derived classes
   dbase.put<int>("numberOfGhostPoints")= 0; // number of ghost points on each side, a beam is assumed to have 2 sides 
-  dbase.put<int>("numberOfMotionDirections")=0; // number of directions beam allowed to move: could be 1,2,3. Only 1 for FEMBeamModel 
+  dbase.put<int>("numberOfSolutionComponents")=0; // number of solution components could include (u1,u2,u3,phi,... depending on the model). Only 1 for FEMBeamModel 
   dbase.put<bool>("isCubicHermiteFEM")=false; // this flag indicates the data structure of solutions; Hermite FEM solves u and ux at the same time
 
 
@@ -165,8 +170,8 @@ BeamModel::BeamModel()
   // The variable refactor is set to true when the implicit system chenges (e.g. when dt changes)
   if( !dbase.has_key("refactor") ) dbase.put<bool>("refactor")=true;
   //Longfei 20160131: new time stepping  parameters added
-  dbase.put<TimeSteppingMethod>("predictorMethod")=newmark2Implicit; // default ts: 2nd order implicit newmark predictor
-  dbase.put<TimeSteppingMethod>("correctorMethod")=newmarkCorrector; // default newmarkCorrector
+  dbase.put<TimeSteppingMethodEnum>("predictorMethod")=newmark2Implicit; // default ts: 2nd order implicit newmark predictor
+  dbase.put<TimeSteppingMethodEnum>("correctorMethod")=newmarkCorrector; // default newmarkCorrector
  
 
 
@@ -270,17 +275,22 @@ BeamModel::BeamModel()
   //output parameters
   if( !dbase.has_key("saveProfileFile") ) 
     dbase.put<bool>("saveProfileFile")=false;
-
+  
   if( !dbase.has_key("saveProbeFile") ) 
     dbase.put<bool>("saveProbeFile")=false;
 
   // File to which the probe data (e.g. tip displacement, velocity etc.) is written
   dbase.put<FILE*>("probeFile")=NULL;
-  dbase.put<aString>("probeFileName")="beamProbeFile.text";
-  
+  // Longfei 20161219: include beamID to the default filename to avoid multiple beams write into a same file if a fileName is not provided from GUI or cmd File
+  dbase.put<aString>("probeFileName")=sPrintF("beamProbeFile%i.text",getBeamID());
+
+
+  //Longfei 20161219: do not open checkfile here. Open when needed later.
   // check file:
-  FILE *& checkFile = dbase.put<FILE*>("checkFile");
-  checkFile = fopen("BeamModel.check","w" );   // Here is the check file for regression tests
+  //FILE *& checkFile = dbase.put<FILE*>("checkFile");
+  //checkFile = fopen("BeamModel.check","w" );   // Here is the check file for regression tests
+  dbase.put<FILE*>("checkFile")=NULL;
+  dbase.put<aString>("checkFileName")=sPrintF("BeamModel%i.check",getBeamID()); // this is the default checkFile name. Use this file unless other checkFile is provided such as ins.check for FSI problems
 
 
   // useSmallDeformationApproximation : adjust the beam surface acceleration and surface "internal force"
@@ -849,7 +859,7 @@ writeParameterSummary( FILE *file /* = stdout */ )
   fPrintF(file,"---------------------------------------------------------------------\n");
   fPrintF(file,"                        Beam %i  \n",getBeamID());
   fPrintF(file,"---------------------------------------------------------------------\n");
-  fPrintF(file,"Euler-Bernoulli beam: Type=%s\n",(const char*)beamType);
+  fPrintF(file," Type = %s\n",(const char*)beamType);
   fPrintF(file,"(density*thickness*b)*w_tt = -K0 w + T w_xx - EI w_xxxx -Kt w_t + Kxxt w_xxt \n");
   fPrintF(file,"---------------------------------------------------------------------\n");
 
@@ -886,7 +896,7 @@ writeParameterSummary( FILE *file /* = stdout */ )
   // const real & beamInitialAngle = dbase.get<real>("beamInitialAngle");
   // const real & newmarkBeta = dbase.get<real>("newmarkBeta");
   // const real & newmarkGamma = dbase.get<real>("newmarkGamma");
-  // const BoundaryCondition * boundaryConditions = dbase.get<BoundaryCondition[2]>("boundaryConditions");
+  // const BoundaryConditionEnum * boundaryConditions = dbase.get<BoundaryConditionEnum[2]>("boundaryConditions");
   // const bool & allowsFreeMotion = dbase.get<bool>("allowsFreeMotion");
   // const aString & initialConditionOption = dbase.get<aString>("initialConditionOption");
   // const aString & exactSolutionOption = dbase.get<aString>("exactSolutionOption");
@@ -925,9 +935,9 @@ writeParameterSummary( FILE *file /* = stdout */ )
   // aString bcName;
   // for( int side=0; side<=1; side++ )
   // {
-  //   // BoundaryCondition bc = side==0 ? bcLeft : bcRight;
+  //   // BoundaryConditionEnum bc = side==0 ? bcLeft : bcRight;
   //   //Longfei 20160122: new way
-  //  const  BoundaryCondition bc = boundaryConditions[side];
+  //  const  BoundaryConditionEnum bc = boundaryConditions[side];
   //   bcName = (bc==pinned ? "pinned" : 
   //             bc==clamped ? "clamped" :
   //             bc==slideBC ? "slide" :
@@ -990,7 +1000,9 @@ initialize()
   const real & pressureNorm = dbase.get<real>("pressureNorm");
   const aString & exactSolutionOption=dbase.get<aString>("exactSolutionOption");
   const int & numOfGhost = dbase.get<int>("numberOfGhostPoints");
-  
+
+
+
   // initialize other parameters
   dbase.get<real>("EI") = elasticModulus*areaMomentOfInertia;
   dbase.get<real>("massPerUnitLength") = density*thickness*breadth;
@@ -1006,7 +1018,10 @@ initialize()
 					 exactSolutionOption=="beamUnderPressure"  ? true : 
 					 exactSolutionOption=="eigenmode"                ? true :
 					 false);
-
+  
+  //Longfei 20161220: initialize numberOfSolutionComponents based on the model
+  initNumberOfSolutionComponents();
+  
 
   // initialize FEM element matrices
   // Do this here, since both derived class needs mass matrix to project values on 
@@ -1129,6 +1144,38 @@ initialize()
   dbase.get<real>("dt") = getTimeStep(); 
  
   dbase.get<bool>("initialized")=true;
+}
+
+// Longfei 20161220: new function to determine the number of solution components needed for a particular beam model
+// ====================================================================================================
+/// \brief Initialize numberOfSolutionComponents
+// ====================================================================================================
+int BeamModel::
+initNumberOfSolutionComponents()
+{
+  const bool & allowAxialDeformation = dbase.get<bool>("allowAxialDeformation");
+  const bool & allowTwist = dbase.get<bool>("allowTwist");
+  const int & rangeDimension = dbase.get<int>("rangeDimension");
+  const BeamModelEnum & beamModel = dbase.get<BeamModelEnum>("beamModel");
+
+  int & numberOfSolutionComponents = dbase.get<int>("numberOfSolutionComponents");
+  
+  numberOfSolutionComponents = rangeDimension;  // displacement in each dimension
+  if(!allowAxialDeformation) numberOfSolutionComponents--; // no displacement in the x direction
+  if(allowTwist) numberOfSolutionComponents++; // add one component for twist angle
+  
+  if(beamModel==eulerBernoulliBeamModel){}
+  else if(beamModel==timoshenkoBeamModel)
+    {
+      OV_ABORT("timoshenkoBeamModel not implemented yet. Finish me...\n");
+    }
+  else if(beamModel==kirchhoffBeamModel)
+    {
+      OV_ABORT("kirchhoffBeamModel not implemented yet. Finish me...\n");
+    }
+  else {OV_ABORT("Unknown beamModel");}
+
+  return 0;
 }
 
 // ====================================================================================================
@@ -1285,8 +1332,8 @@ initTwilightZone()
 // setParameters(real momOfInertia, real E, 
 // 	      real rho,real beamLength,
 // 	      real thickness_,real pnorm,
-// 	      int nElem,BoundaryCondition bcl,
-// 	      BoundaryCondition bcr,
+// 	      int nElem,BoundaryConditionEnum bcl,
+// 	      BoundaryConditionEnum bcr,
 // 	      real x0, real y0,
 // 	      bool useExactSolution_ ) 
 // {
@@ -1435,13 +1482,13 @@ getExplicitTimeStep() const
 
       // Guess: explicit stability region goes to a on the real axis and b on the imaginary within a superellipse.
       real a=1., b=1., n=2.;
-      if( dbase.get<TimeSteppingMethod>("correctorMethod")==adamsMoultonCorrector)
+      if( dbase.get<TimeSteppingMethodEnum>("correctorMethod")==adamsMoultonCorrector)
 	{
-	  if(dbase.get<TimeSteppingMethod>("predictorMethod")==leapFrog )
+	  if(dbase.get<TimeSteppingMethodEnum>("predictorMethod")==leapFrog )
 	    {
 	      a = 1.; b = 1.3; n=1.5;
 	    }
-	  else if(dbase.get<TimeSteppingMethod>("predictorMethod")==adamsBashforth2 )
+	  else if(dbase.get<TimeSteppingMethodEnum>("predictorMethod")==adamsBashforth2 )
 	    {
 	      a = 1.; b = 1.3; n=1.5;
 	    }
@@ -1791,7 +1838,7 @@ getSurface( const real t, const RealArray & x0,  const RealArray & xs,
       // **FIX ME if beam has overlapping grids on a single side ***
       // int boundaryCondition[2] = { bcLeft, bcRight}; // old way
       //Longfei 20160122: new way
-      const BoundaryCondition * boundaryConditions = dbase.get<BoundaryCondition[2]>("boundaryConditions");
+      const BoundaryConditionEnum * boundaryConditions = dbase.get<BoundaryConditionEnum[2]>("boundaryConditions");
 
       for( int side=0; side<=1; side++ )
 	{
@@ -2288,7 +2335,7 @@ getSurfaceAcceleration( const real t, const RealArray & x0, RealArray & as, cons
       // **FIX ME if beam has overlapping grids on a single side ***
       //int boundaryCondition[2] = { bcLeft, bcRight}; // old way
       // Longfei 20160122: new way
-      const BoundaryCondition * boundaryConditions = dbase.get<BoundaryCondition[2]>("boundaryConditions");
+      const BoundaryConditionEnum * boundaryConditions = dbase.get<BoundaryConditionEnum[2]>("boundaryConditions");
 
       for( int side=0; side<=1; side++ )
 	{
@@ -2362,7 +2409,7 @@ getSurfaceVelocity( const real t, const RealArray & x0,  const RealArray & vs,
       // **FIX ME if beam has overlapping grids on a single side ***
       // int boundaryCondition[2] = { bcLeft, bcRight}; //
       // Longfei 20160122: new way
-      const BoundaryCondition * boundaryConditions = dbase.get<BoundaryCondition[2]>("boundaryConditions");
+      const BoundaryConditionEnum * boundaryConditions = dbase.get<BoundaryConditionEnum[2]>("boundaryConditions");
       const  real * initialBeamTangent = dbase.get<real[2]>("initialBeamTangent");
       const  real * initialBeamNormal = dbase.get<real[2]>("initialBeamNormal");
     
@@ -2440,9 +2487,9 @@ getSurfaceInternalForce( const real t0, const RealArray & x0, RealArray & fs,
   const real & Abar = dbase.get<real>("massPerUnitLength");
   const bool & isFEM = dbase.get<bool>("isCubicHermiteFEM");
 
-  BoundaryCondition * boundaryConditions = dbase.get<BoundaryCondition[2]>("boundaryConditions");
-  BoundaryCondition & bcLeft = boundaryConditions[0];
-  BoundaryCondition & bcRight = boundaryConditions[1];
+  BoundaryConditionEnum * boundaryConditions = dbase.get<BoundaryConditionEnum[2]>("boundaryConditions");
+  BoundaryConditionEnum & bcLeft = boundaryConditions[0];
+  BoundaryConditionEnum & bcRight = boundaryConditions[1];
   
   int & current = dbase.get<int>("current"); 
 
@@ -2523,11 +2570,11 @@ getSurfaceInternalForce( const real t0, const RealArray & x0, RealArray & fs,
     
   // ---- Boundary Conditions ----boundaryConditions
   // old way:
-  //  BoundaryCondition bcLeftSave =bcLeft;  // save current 
-  // BoundaryCondition bcRightSave=bcRight;
+  //  BoundaryConditionEnum bcLeftSave =bcLeft;  // save current 
+  // BoundaryConditionEnum bcRightSave=bcRight;
   // Longfei 20160122: new way
-  BoundaryCondition bcLeftSave =boundaryConditions[0];  // save current 
-  BoundaryCondition bcRightSave=boundaryConditions[1];
+  BoundaryConditionEnum bcLeftSave =boundaryConditions[0];  // save current 
+  BoundaryConditionEnum bcRightSave=boundaryConditions[1];
 
   
   // NOTE: When the forcing is included we can use the regular BC's for u
@@ -3011,9 +3058,9 @@ solveBlockTridiagonal(const RealArray& f, RealArray& u, const aString & tridiago
 
 
   const int & numElem = dbase.get<int>("numElem");
-  const BoundaryCondition * boundaryConditions = dbase.get<BoundaryCondition[2]>("boundaryConditions");
-  const BoundaryCondition & bcLeft = boundaryConditions[0];
-  const BoundaryCondition & bcRight = boundaryConditions[1];
+  const BoundaryConditionEnum * boundaryConditions = dbase.get<BoundaryConditionEnum[2]>("boundaryConditions");
+  const BoundaryConditionEnum & bcLeft = boundaryConditions[0];
+  const BoundaryConditionEnum & bcRight = boundaryConditions[1];
 
   const bool isPeriodic = bcLeft==periodic;
 
@@ -3085,9 +3132,9 @@ factorBlockTridiagonalSolver(const aString & tridiagonalSolverName)
 
   assert( pTri!=NULL );
 
-  const BoundaryCondition * boundaryConditions = dbase.get<BoundaryCondition[2]>("boundaryConditions");
-  const BoundaryCondition & bcLeft =  boundaryConditions[0];
-  const BoundaryCondition & bcRight =  boundaryConditions[1];
+  const BoundaryConditionEnum * boundaryConditions = dbase.get<BoundaryConditionEnum[2]>("boundaryConditions");
+  const BoundaryConditionEnum & bcLeft =  boundaryConditions[0];
+  const BoundaryConditionEnum & bcRight =  boundaryConditions[1];
  
   TridiagonalSolver & tri = *pTri;
   const bool isPeriodic = bcLeft==periodic;
@@ -3254,7 +3301,7 @@ factorBlockTridiagonalSolver(const aString & tridiagonalSolverName)
       // Adjust the matrix for essential BC's -- these will set the DOF's at boundaries
       for( int side=0; side<=1; side++ )
 	{
-	  BoundaryCondition bc = side==0 ? bcLeft : bcRight;
+	  BoundaryConditionEnum bc = side==0 ? bcLeft : bcRight;
 	  int ia = side==0 ? 0 : numElem;
 
 	  // Special case when EI=0 : (we only have 1 BC for clamped instead of 2)
@@ -3379,11 +3426,11 @@ resetForce()
   if( !dbase.has_key("surfaceForce") )
     {
       const int & numElem = dbase.get<int>("numElem");
-      const int numMotionDirections = dbase.get<int>("numberOfMotionDirections");
+      const int numberOfSolutionComponents = dbase.get<int>("numberOfSolutionComponents");
       Index I1,I2,I3,C;
       I1 = Range(2*numElem+2); // each node i has 2 solutions,i.e. ui and uxi
       I2 = 0; I3=0; // Beam Domain is assumed to be 1D
-      C = Range(numMotionDirections);
+      C = Range(numberOfSolutionComponents);
       RealArray & surfaceForce = dbase.put<RealArray>("surfaceForce");
       surfaceForce.redim(I1,I2,I3,C);
    
@@ -3546,11 +3593,11 @@ resetSurfaceVelocity()
   if( !dbase.has_key("surfaceVelocity") )
     {
       const int & numElem = dbase.get<int>("numElem");
-      const int numMotionDirections = dbase.get<int>("numberOfMotionDirections");
+      const int numberOfSolutionComponents = dbase.get<int>("numberOfSolutionComponents");
       Index I1,I2,I3,C;
       I1 = Range(2*numElem+2); // each node i has 2 solutions,i.e. ui and uxi
       I2 = 0; I3=0; // Beam Domain is assumed to be 1D
-      C = Range(numMotionDirections);
+      C = Range(numberOfSolutionComponents);
       RealArray & surfaceVelocity = dbase.put<RealArray>("surfaceVelocity");
       surfaceVelocity.redim(I1,I2,I3,C);
     
@@ -4150,11 +4197,11 @@ getBoundaryValues( const real t, RealArray & g, const int ntd /* = 0 */   )
       const real y=0, z=0;
       const int wc=0;
       // Longfei 20160122: new way
-      const BoundaryCondition * boundaryConditions = dbase.get<BoundaryCondition[2]>("boundaryConditions");
+      const BoundaryConditionEnum * boundaryConditions = dbase.get<BoundaryConditionEnum[2]>("boundaryConditions");
       for( int side=0; side<=1; side++ )
 	{
-	  //BoundaryCondition bc = side==0 ? bcLeft : bcRight;
-	  const  BoundaryCondition bc = boundaryConditions[side];
+	  //BoundaryConditionEnum bc = side==0 ? bcLeft : bcRight;
+	  const  BoundaryConditionEnum bc = boundaryConditions[side];
 	  //int ia = side==0 ? 0 : numElem*2;
 	  real x = side==0 ? 0 : L;
 
@@ -4270,9 +4317,9 @@ assignBoundaryConditions( real t, RealArray & u, RealArray & v, RealArray & a, c
   const real & EI = dbase.get<real>("EI");
   const real & L = dbase.get<real>("length");
   const int & numElem = dbase.get<int>("numElem");
-  const BoundaryCondition * boundaryConditions = dbase.get<BoundaryCondition[2]>("boundaryConditions");
-  const BoundaryCondition & bcLeft =  boundaryConditions[0];
-  const BoundaryCondition & bcRight =  boundaryConditions[1];
+  const BoundaryConditionEnum * boundaryConditions = dbase.get<BoundaryConditionEnum[2]>("boundaryConditions");
+  const BoundaryConditionEnum & bcLeft =  boundaryConditions[0];
+  const BoundaryConditionEnum & bcRight =  boundaryConditions[1];
   const bool & allowsFreeMotion = dbase.get<bool>("allowsFreeMotion");
   const aString & exactSolutionOption = dbase.get<aString>("exactSolutionOption");
   
@@ -4289,7 +4336,7 @@ assignBoundaryConditions( real t, RealArray & u, RealArray & v, RealArray & a, c
 
       for( int side=0; side<=1; side++ )
 	{
-	  BoundaryCondition bc = side==0 ? bcLeft : bcRight;
+	  BoundaryConditionEnum bc = side==0 ? bcLeft : bcRight;
 	  int ia = side==0 ? 0 : numElem*2;
 
 	  // Special case when EI=0 : (we only have 1 BC for clamped instead of 2)
@@ -4330,7 +4377,7 @@ assignBoundaryConditions( real t, RealArray & u, RealArray & v, RealArray & a, c
       const int wc=0;
       for( int side=0; side<=1; side++ )
 	{
-	  BoundaryCondition bc = side==0 ? bcLeft : bcRight;
+	  BoundaryConditionEnum bc = side==0 ? bcLeft : bcRight;
 	  int ia = side==0 ? 0 : numElem*2;
 	  real x = side==0 ? 0 : L;
 
@@ -4374,9 +4421,9 @@ addInternalForces( const real t, RealArray & f )
   const int & numElem = dbase.get<int>("numElem");
   const int & numOfGhost = dbase.get<int>("numberOfGhostPoints");
   const real & buoyantMassPerUnitLength = dbase.get<real>("buoyantMassPerUnitLength");
-  // const BoundaryCondition * boundaryConditions = dbase.get<BoundaryCondition[2]>("boundaryConditions");
-  // const BoundaryCondition & bcLeft = boundaryConditions[0];
-  // const BoundaryCondition & bcRight = boundaryConditions[1];
+  // const BoundaryConditionEnum * boundaryConditions = dbase.get<BoundaryConditionEnum[2]>("boundaryConditions");
+  // const BoundaryConditionEnum & bcLeft = boundaryConditions[0];
+  // const BoundaryConditionEnum & bcRight = boundaryConditions[1];
   const real & projectedBodyForce= dbase.get<real>("projectedBodyForce");
   const aString & exactSolutionOption = dbase.get<aString>("exactSolutionOption");
   const bool & isFEM = dbase.get<bool>("isCubicHermiteFEM");
@@ -4583,13 +4630,13 @@ predictor(real tnp1, real dt )
   const real & beamZ0 = beamXYZ[2];
   const real & newmarkBeta = dbase.get<real>("newmarkBeta");
   const real & newmarkGamma = dbase.get<real>("newmarkGamma");
-  const BoundaryCondition * boundaryConditions = dbase.get<BoundaryCondition[2]>("boundaryConditions");
-  const BoundaryCondition & bcLeft = boundaryConditions[0];
-  const BoundaryCondition & bcRight = boundaryConditions[1];
+  const BoundaryConditionEnum * boundaryConditions = dbase.get<BoundaryConditionEnum[2]>("boundaryConditions");
+  const BoundaryConditionEnum & bcLeft = boundaryConditions[0];
+  const BoundaryConditionEnum & bcRight = boundaryConditions[1];
   // const bool & useSecondOrderNewmarkPredictor = dbase.get<bool>("useSecondOrderNewmarkPredictor"); // old way for time stepping
   // Longfei 20160131: new way for timestepping:
-  const TimeSteppingMethod & predictorMethod = dbase.get<TimeSteppingMethod>("predictorMethod");
-  const TimeSteppingMethod & correctorMethod = dbase.get<TimeSteppingMethod>("correctorMethod");
+  const TimeSteppingMethodEnum & predictorMethod = dbase.get<TimeSteppingMethodEnum>("predictorMethod");
+  const TimeSteppingMethodEnum & correctorMethod = dbase.get<TimeSteppingMethodEnum>("correctorMethod");
   const bool & twilightZone = dbase.get<bool>("twilightZone");
   // const bool & useImplicitPredictor = dbase.get<bool>("useImplicitPredictor"); // Longfei: removed, old way
   const bool & relaxForce = dbase.get<bool>("relaxForce");
@@ -5123,7 +5170,7 @@ corrector(real tnp1, real dt )
 
   // Longfei 20160205: new way
   const bool & smoothSolution = dbase.get<bool>("smoothSolution");
-  const TimeSteppingMethod & correctorMethod = dbase.get<TimeSteppingMethod>("correctorMethod");
+  const TimeSteppingMethodEnum & correctorMethod = dbase.get<TimeSteppingMethodEnum>("correctorMethod");
 
   //Longfei 20160210: 
   //In some cases, corrector is called first, make sure the beamModel knows what the dt is now. 
@@ -5800,11 +5847,12 @@ getErrors( const real t, const RealArray & u, const RealArray & v, const RealArr
     }
   
   // -- THIS SHOULD BE MOVED : check file is called too many times --  //???Longfei 20160301: where should I put this?
-  if( file !=NULL )
-    {
-      FILE *checkFile = dbase.get<FILE*>("checkFile");
-      writeCheckFile( t, checkFile );
-    }
+  // Longfei 20161219: removed this
+  // if( file !=NULL )
+  //   {
+  //     FILE *checkFile = dbase.get<FILE*>("checkFile");
+  //     writeCheckFile( t, checkFile );
+  //   }
 
   // const int myid=max(0,Communication_Manager::My_Process_Number);
   // if( checkFile!=NULL && myid==0 )
@@ -5833,6 +5881,15 @@ getErrors( const real t, const RealArray & u, const RealArray & v, const RealArr
 int BeamModel::
 writeCheckFile( real t, FILE *file )
 {
+  //Longfei 20161219: open the default checkFile if no other file is provided:
+  if(file==NULL)
+    {
+      FILE *& file = dbase.get<FILE*>("checkFile");
+      aString checkFileName=dbase.get<aString>("checkFileName");
+      file = fopen((const char*)checkFileName,"w");
+    }
+  assert(file!=NULL);
+  
   const int myid=max(0,Communication_Manager::My_Process_Number);
   if( file!=NULL && myid==0 )
     {
@@ -6031,6 +6088,13 @@ plot( real t, GenericGraphicsInterface & gi, GraphicsParameters & psp , const aS
 int BeamModel::
 update(CompositeGrid & cg, GenericGraphicsInterface & gi )
 {
+  //parameters to setup the dimension of the problem
+  int & rangeDimension=dbase.get<int>("rangeDimension");
+  bool & allowAxialDeformation=dbase.get<bool>("allowAxialDeformation");
+  bool & allowTwist=dbase.get<bool>("allowTwist");
+  BeamModelEnum & beamModel = dbase.get<BeamModelEnum>("beamModel");
+
+  
   // the parameters to be updated:
   real & density = dbase.get<real>("density");
   real & elasticModulus = dbase.get<real>("elasticModulus");
@@ -6079,13 +6143,13 @@ update(CompositeGrid & cg, GenericGraphicsInterface & gi )
   real & beamInitialAngle = dbase.get<real>("beamInitialAngle");
   real & newmarkBeta = dbase.get<real>("newmarkBeta");
   real & newmarkGamma = dbase.get<real>("newmarkGamma");
-  BoundaryCondition & bcLeft = dbase.get<BoundaryCondition[2]>("boundaryConditions")[0];
-  BoundaryCondition & bcRight = dbase.get<BoundaryCondition[2]>("boundaryConditions")[1];
+  BoundaryConditionEnum & bcLeft = dbase.get<BoundaryConditionEnum[2]>("boundaryConditions")[0];
+  BoundaryConditionEnum & bcRight = dbase.get<BoundaryConditionEnum[2]>("boundaryConditions")[1];
   bool & useExactSolution = dbase.get<bool>("useExactSolution");
   aString & name = dbase.get<aString>("name");
   //Longfei 20160131: new way to specify time stepping methods
-  TimeSteppingMethod & predictorMethod = dbase.get<TimeSteppingMethod>("predictorMethod");
-  TimeSteppingMethod & correctorMethod = dbase.get<TimeSteppingMethod>("correctorMethod");
+  TimeSteppingMethodEnum & predictorMethod = dbase.get<TimeSteppingMethodEnum>("predictorMethod");
+  TimeSteppingMethodEnum & correctorMethod = dbase.get<TimeSteppingMethodEnum>("correctorMethod");
 
   //Longfei 20160303: option to test same order vs. same stencil size for FDBeamModel
   bool & useSameStencilSize = dbase.get<bool>("useSameStencilSize");
@@ -6109,6 +6173,17 @@ update(CompositeGrid & cg, GenericGraphicsInterface & gi )
       const int numColumns=2;
 
       dialog.setOptionMenuColumns(numColumns);
+
+      //Longfei 20161220: add new option menus to chose beam models
+      aString bmOptions[] = { "eulerBernoulliBeamModel",
+			      "timoshenkoBeamModel",
+			      "kirchhoffBeamModel",
+			      "" };
+    
+      GUIState::addPrefix(bmOptions,"beam model: ",cmd,maxCommands);
+      dialog.addOptionMenu("beam model:",cmd,bmOptions,0 );  // default is eulerBernoulliBeamModel
+
+      
     
       aString tsOptions[] = { "leapFrog",
 			      "adamsBashforth2",
@@ -6187,6 +6262,9 @@ update(CompositeGrid & cg, GenericGraphicsInterface & gi )
 			      "use Aitken acceleration",
 			      "smooth solution",
 			      "use same stencil size for FD",
+			      // Longfei 20161220: add two tb options: allowAxialDeformation and allowTwist
+			      "allow axial deformation",
+			      "allow twist",
 			      ""};
       int tbState[15];
       tbState[0] = useExactSolution;
@@ -6203,6 +6281,9 @@ update(CompositeGrid & cg, GenericGraphicsInterface & gi )
       tbState[8] = useAitkenAcceleration;
       tbState[9] = smoothSolution;
       tbState[10] = useSameStencilSize;
+      tbState[11] = allowAxialDeformation;
+      tbState[12] = allowTwist;
+
     
       dialog.setToggleButtons(tbCommands, tbCommands, tbState, numColumns); 
 
@@ -6212,7 +6293,8 @@ update(CompositeGrid & cg, GenericGraphicsInterface & gi )
       aString textStrings[numberOfTextStrings];
 
       int nt=0;
-    
+
+      textLabels[nt] = "range dimension:"; sPrintF(textStrings[nt], "%i (2 or 3)",rangeDimension);  nt++; 
       textLabels[nt] = "name:"; sPrintF(textStrings[nt], "%s",(const char*)name);  nt++; 
       textLabels[nt] = "number of elements:"; sPrintF(textStrings[nt], "%i",numElem);  nt++; 
       textLabels[nt] = "cfl:"; sPrintF(textStrings[nt], "%g",cfl);  nt++; 
@@ -6300,6 +6382,9 @@ update(CompositeGrid & cg, GenericGraphicsInterface & gi )
 	}
       else if( answer=="show parameters" )
 	{
+	  //Longfei 20161220: some parameters are computed in initialize().
+	  // make sure its initialized  before showing the parameters.
+	  if( !dbase.get<bool>("initialized")) initialize(); 
 	  writeParameterSummary();
 	}
       else if( answer=="exact solution..." )
@@ -6321,6 +6406,15 @@ update(CompositeGrid & cg, GenericGraphicsInterface & gi )
       
 	}
     
+      else if( dialog.getTextValue(answer,"range dimension:","%i",rangeDimension) )
+	{
+	  printF("-- BM%i -- set range dimension to %i\n",getBeamID(),rangeDimension);
+	  if(rangeDimension!=2 && rangeDimension !=3) 
+	    {
+	      printF("           Warning: range dimension can only be 2 or 3.\n");
+	      printF("           Input is ignored and use the default range dimension: 2.\n");
+	    }
+	} //
       else if( dialog.getTextValue(answer,"debug:","%i",dbg) ){} //
       else if( dialog.getTextValue(answer,"name:","%s",name) ){} //
       else if( dialog.getTextValue(answer,"probe position:","%g",probePosition) )
@@ -6429,7 +6523,7 @@ update(CompositeGrid & cg, GenericGraphicsInterface & gi )
 	    }
       
 	  bcOption = answer(len,answer.length()-1);
-	  BoundaryCondition & bcValue = side==0 ? bcLeft : bcRight;
+	  BoundaryConditionEnum & bcValue = side==0 ? bcLeft : bcRight;
       
 	  bcValue= (bcOption=="clamped"  ? clamped :
 		    bcOption=="cantilever"  ? clamped : // for backward compatibility
@@ -6564,7 +6658,8 @@ update(CompositeGrid & cg, GenericGraphicsInterface & gi )
 	      printF("-- BM%i -- Warning: use same order for FD approximations. This is only to show same order is bad. DO NOT USE THIS OPTION FOR REAL RUNS\n",getBeamID());
 	    }
 	}//
-
+      else if( dialog.getToggleValue(answer,"allow axial deformation",allowAxialDeformation) ){}//
+      else if( dialog.getToggleValue(answer,"allow twist",allowTwist) ){}//
       else if( len=answer.matches("Twilight-zone: ") )
 	{
 	  aString name=answer(len,answer.length()-1);
@@ -6656,7 +6751,29 @@ update(CompositeGrid & cg, GenericGraphicsInterface & gi )
 	  dialog.getOptionMenu("corrector:").setCurrentChoice(name);
 	  printF("-- BM%i --  setting corrector=[%s]\n",getBeamID(),(const char*)name);
 	}
-        
+      
+      //Longfei 20161221: new OptionMenu for beam model 
+      else if( len=answer.matches("beam model: ") )  
+	{
+
+	  aString name=answer(len,answer.length()-1);
+	  beamModel = (name=="eulerBernoulliBeamModel" ? eulerBernoulliBeamModel:
+		       name=="timoshenkoBeamModel"? timoshenkoBeamModel:
+		       name=="kirchhoffBeamModel"?kirchhoffBeamModel:
+		       unknownBeamModel);
+      
+	  if(beamModel==unknownBeamModel)
+	    {
+	      printF("-- BM%i -- Error: unknown beam model=[%s]\n",getBeamID(),(const char*)name);
+	      gi.stopReadingCommandFile();
+	      continue;
+	    }
+
+	  dialog.getOptionMenu("beam model:").setCurrentChoice(name);
+	  printF("-- BM%i --  setting  beam model=[%s]\n",getBeamID(),(const char*)name);
+
+	}
+
       else
 	{
 	  printF("-- BM%i -- BeamModel::update:ERROR:unknown response=[%s]\n",getBeamID(),(const char*)answer);
@@ -6770,11 +6887,13 @@ update(CompositeGrid & cg, GenericGraphicsInterface & gi )
     
     }
     
-  // -- initialize the beam model given the current parameters --
-  initialize();
 
   gi.popGUI();
   gi.unAppendTheDefaultPrompt();
+
+  // -- initialize the beam model given the current parameters --
+  initialize();
+
 
   if( true )
     {
@@ -6801,9 +6920,16 @@ getSolutionArrayIndex(Index & I1, Index &I2, Index & I3, Index &C) const
 {
 
   const int & numElem = dbase.get<int>("numElem");
-  const int numOfGhost = dbase.get<int>("numberOfGhostPoints");
-  const int numMotionDirections = dbase.get<int>("numberOfMotionDirections");
-  const bool xd =  dbase.get<bool>("isCubicHermiteFEM");
+  const int & numOfGhost = dbase.get<int>("numberOfGhostPoints");
+  // Longfei 20161220: replaced numberOfMotionDirections with numberOfSolutionComponents
+  //const int numMotionDirections = dbase.get<int>("numberOfMotionDirections");
+  const int & numberOfSolutionComponents =  dbase.get<int>("numberOfSolutionComponents"); 
+  const int & domainDimension =  dbase.get<int>("domainDimension"); 
+
+  const bool & xd =  dbase.get<bool>("isCubicHermiteFEM");
+
+
+
   if(xd)
     {
       assert(numOfGhost==0);  // no ghost points needed for FEM method
@@ -6814,7 +6940,8 @@ getSolutionArrayIndex(Index & I1, Index &I2, Index & I3, Index &C) const
       I1 = Range(-numOfGhost,numElem+numOfGhost);
     }
   I2 = 0; I3=0; // Beam Domain is assumed to be 1D
-  C = Range(numMotionDirections);
+  assert(domainDimension==1);
+  C = Range(numberOfSolutionComponents);
 
   return 0;
 }
@@ -6841,9 +6968,9 @@ redimSolutionArray(RealArray & u, RealArray & v, RealArray & a ) const
       printF("Check Index in BeamModel::redimSolutionArray:\n");
       const int & numElem = dbase.get<int>("numElem");
       const int &numOfGhost =  dbase.get<int>("numberOfGhostPoints");
-      const int &numMotionDirections =  dbase.get<int>("numberOfMotionDirections");
+      const int &numberOfSolutionComponents =  dbase.get<int>("numberOfSolutionComponents");
 
-      printF("numElem = %3d, numOfGhost = %3d, numMotionDirections = %3d\n",numElem,numOfGhost,numMotionDirections);
+      printF("numElem = %3d, numOfGhost = %3d, numberOfSolutionComponents = %3d\n",numElem,numOfGhost,numberOfSolutionComponents);
       I1.display("I1");
       I2.display("I2");
       I3.display("I3");
@@ -6910,18 +7037,18 @@ getCurrentTime() const
 
 // make this  for now.
 aString BeamModel::
-getBCName(const BoundaryCondition & bc) const
+getBCName(const BoundaryConditionEnum & bc) const
 {
   return (bc==pinned ? "pinned" : 
 	  bc==clamped ? "clamped" :
 	  bc==slideBC ? "slide" :
 	  bc==periodic ? "periodic" : 
 	  bc==freeBC ? "free" :
-	  "unknown");
+	  "unknownBC");
 }
 
 aString BeamModel::
-getTSName(const TimeSteppingMethod & ts) const
+getTSName(const TimeSteppingMethodEnum & ts) const
 {
   return (ts==leapFrog ? "leapFrog" : 
 	  ts==adamsBashforth2 ? "adamsBashforth2" :
@@ -6930,9 +7057,18 @@ getTSName(const TimeSteppingMethod & ts) const
 	  ts==newmark2Implicit ? "newmark2Implicit" :
 	  ts==newmarkCorrector ? "newmarkCorrector" :
 	  ts==adamsMoultonCorrector ? "adamsMoultonCorrector" :
-	  "unknown");
+	  "unknownTimeStepping");
 }
 
+aString BeamModel::
+getBMName(const BeamModelEnum & bm) const
+{
+  return (bm==eulerBernoulliBeamModel?"eulerBernoulliBeamModel":
+	  bm==timoshenkoBeamModel?"timoshenkoBeamModel":
+	  bm==kirchhoffBeamModel?"kirchhoffBeamModel":
+	  "unknownBeamModel");
+
+}
 
 
 // Longfei 20160127: new way to writeParameterSummary
@@ -6997,15 +7133,20 @@ displayDBase(FILE *file /*=stdout*/ )
 	{  
 	  fPrintF(file,"MappedGrid\n");
 	}
-      else if( DBase::can_cast_entry<BoundaryCondition[2]>(entry) )
+      else if( DBase::can_cast_entry<BoundaryConditionEnum[2]>(entry) )
 	{
-	  const BoundaryCondition *value=cast_entry<BoundaryCondition[2]>(entry); 
+	  const BoundaryConditionEnum *value=cast_entry<BoundaryConditionEnum[2]>(entry); 
 	  fPrintF(file,"[%s,%s]\n",(const char*)getBCName(value[0]),(const char*)getBCName(value[1]));
 	}
-      else if( DBase::can_cast_entry<TimeSteppingMethod>(entry) )
+      else if( DBase::can_cast_entry<TimeSteppingMethodEnum>(entry) )
 	{
-	  const TimeSteppingMethod value=cast_entry<TimeSteppingMethod>(entry); 
+	  const TimeSteppingMethodEnum value=cast_entry<TimeSteppingMethodEnum>(entry); 
 	  fPrintF(file,"%s\n",(const char*)getTSName(value));
+	}
+      else if( DBase::can_cast_entry<BeamModelEnum>(entry) )
+	{
+	  const BeamModelEnum value=cast_entry<BeamModelEnum>(entry); 
+	  fPrintF(file,"%s\n",(const char*)getBMName(value));
 	}
       else if( DBase::can_cast_entry<std::vector<RealArray> >(entry) ) 
 	{

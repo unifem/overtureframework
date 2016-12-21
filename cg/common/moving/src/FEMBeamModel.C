@@ -44,7 +44,6 @@ FEMBeamModel()
 
   //set some default parameters for FEMBeamModel
   dbase.get<int>("numberOfGhostPoints")=0; // numOfGhost on each side
-  dbase.get<int>("numberOfMotionDirections")=1; // FEMBeamModel can only move in 1 direction....FOR NOW
   dbase.get<bool>("isCubicHermiteFEM")=true;  // Hermite FEM needs x derivatives
 
 
@@ -641,9 +640,9 @@ computeInternalForce(const RealArray& u, const RealArray& v, RealArray& f)
   const int & numElem = dbase.get<int>("numElem");
   const RealArray & elementK = *dbase.get<RealArray*>("elementK");
   const RealArray & elementB = *dbase.get<RealArray*>("elementB");
-  const BoundaryCondition * boundaryConditions = dbase.get<BoundaryCondition[2]>("boundaryConditions");
-  const BoundaryCondition & bcLeft =  boundaryConditions[0];
-  const BoundaryCondition & bcRight =  boundaryConditions[1];
+  const BoundaryConditionEnum * boundaryConditions = dbase.get<BoundaryConditionEnum[2]>("boundaryConditions");
+  const BoundaryConditionEnum & bcLeft =  boundaryConditions[0];
+  const BoundaryConditionEnum & bcRight =  boundaryConditions[1];
 
   RealArray elementU(4);
   RealArray elementForce(4);
@@ -776,9 +775,9 @@ multiplyByMassMatrix(const RealArray& w, RealArray& Mw)
 //   const real & buoyantMass= dbase.get<real>("buoyantMass"); 
 //   const real & totalMass=  dbase.get<real>("totalMass");
 //   const real & totalInertia=  dbase.get<real>("totalInertia");
-//   const BoundaryCondition * boundaryConditions = dbase.get<BoundaryCondition[2]>("boundaryConditions");
-//   const BoundaryCondition & bcLeft =  boundaryConditions[0];
-//   const BoundaryCondition & bcRight =  boundaryConditions[1];
+//   const BoundaryConditionEnum * boundaryConditions = dbase.get<BoundaryConditionEnum[2]>("boundaryConditions");
+//   const BoundaryConditionEnum & bcLeft =  boundaryConditions[0];
+//   const BoundaryConditionEnum & bcRight =  boundaryConditions[1];
 //   const bool & allowsFreeMotion = dbase.get<bool>("allowsFreeMotion");
 
   
@@ -835,7 +834,7 @@ multiplyByMassMatrix(const RealArray& w, RealArray& Mw)
     
 //       for( int side=0; side<=1; side++ )
 // 	{
-// 	  BoundaryCondition bc = side==0 ? bcLeft : bcRight;
+// 	  BoundaryConditionEnum bc = side==0 ? bcLeft : bcRight;
 // 	  const int ia = side==0 ? 0 : numElem*2;
 // 	  const int ib = side==0 ? ia+2 : ia-2;
 // 	  const int is = 1-2*side;
@@ -1160,9 +1159,9 @@ computeAcceleration(const real t,
   const real & buoyantMass= dbase.get<real>("buoyantMass"); 
   const real & totalMass=  dbase.get<real>("totalMass");
   const real & totalInertia=  dbase.get<real>("totalInertia");
-  const BoundaryCondition * boundaryConditions = dbase.get<BoundaryCondition[2]>("boundaryConditions");
-  const BoundaryCondition & bcLeft =  boundaryConditions[0];
-  const BoundaryCondition & bcRight =  boundaryConditions[1];
+  const BoundaryConditionEnum * boundaryConditions = dbase.get<BoundaryConditionEnum[2]>("boundaryConditions");
+  const BoundaryConditionEnum & bcLeft =  boundaryConditions[0];
+  const BoundaryConditionEnum & bcRight =  boundaryConditions[1];
   const bool & allowsFreeMotion = dbase.get<bool>("allowsFreeMotion");
   const real & Abar = dbase.get<real>("massPerUnitLength");
 
@@ -1228,7 +1227,7 @@ computeAcceleration(const real t,
     
       for( int side=0; side<=1; side++ )
 	{
-	  BoundaryCondition bc = side==0 ? bcLeft : bcRight;
+	  BoundaryConditionEnum bc = side==0 ? bcLeft : bcRight;
 	  const int ia = side==0 ? 0 : numElem*2;
 	  const int ib = side==0 ? ia+2 : ia-2;
 	  const int is = 1-2*side;
@@ -1543,9 +1542,9 @@ getForceOnBeam( const real t, RealArray & force )
   //real le = L / numElem;
   const int & numElem = dbase.get<int>("numElem");
   const int & Abar = dbase.get<real>("massPerUnitLength");
-  BoundaryCondition * boundaryConditions = dbase.get<BoundaryCondition[2]>("boundaryConditions");
-  BoundaryCondition & bcLeft = boundaryConditions[0];
-  BoundaryCondition & bcRight = boundaryConditions[1];
+  BoundaryConditionEnum * boundaryConditions = dbase.get<BoundaryConditionEnum[2]>("boundaryConditions");
+  BoundaryConditionEnum & bcLeft = boundaryConditions[0];
+  BoundaryConditionEnum & bcRight = boundaryConditions[1];
   
   
   const int & current = dbase.get<int>("current"); 
@@ -1586,8 +1585,8 @@ getForceOnBeam( const real t, RealArray & force )
   // elementMass(3,2) = elementMass(2,3) = -11./210.*le2;
 
   // ---- Boundary Conditions ----
-  BoundaryCondition bcLeftSave =bcLeft;  // save current 
-  BoundaryCondition bcRightSave=bcRight;
+  BoundaryConditionEnum bcLeftSave =bcLeft;  // save current 
+  BoundaryConditionEnum bcRightSave=bcRight;
 
   // We want no boundary conditions to be applied so set:
   // Longfei 20160209:
@@ -1643,9 +1642,9 @@ getForceOnBeam( const real t, RealArray & force )
 //   bool & refactor = dbase.get<bool>("refactor");
 //   const real & EI = dbase.get<real>("EI");
 //   const int & numElem = dbase.get<int>("numElem");
-//   const BoundaryCondition * boundaryConditions = dbase.get<BoundaryCondition[2]>("boundaryConditions");
-//   const BoundaryCondition & bcLeft = boundaryConditions[0];
-//   const BoundaryCondition & bcRight = boundaryConditions[1];
+//   const BoundaryConditionEnum * boundaryConditions = dbase.get<BoundaryConditionEnum[2]>("boundaryConditions");
+//   const BoundaryConditionEnum & bcLeft = boundaryConditions[0];
+//   const BoundaryConditionEnum & bcRight = boundaryConditions[1];
 //   const bool & allowsFreeMotion = dbase.get<bool>("allowsFreeMotion");
   
 
@@ -1783,7 +1782,7 @@ getForceOnBeam( const real t, RealArray & force )
 // 	      // Adjust the matrix for essential BC's -- these will set the DOF's at boundaries
 // 	      for( int side=0; side<=1; side++ )
 // 		{
-// 		  BoundaryCondition bc = side==0 ? bcLeft : bcRight;
+// 		  BoundaryConditionEnum bc = side==0 ? bcLeft : bcRight;
 // 		  int ia = side==0 ? 0 : numElem;
 
 // 		  // Special case when EI=0 : (we only have 1 BC for clamped instead of 2)
@@ -1927,7 +1926,7 @@ getForceOnBeam( const real t, RealArray & force )
 // 	{
 // 	  // --- Boundary conditions ---
 // 	  //const real EI = elasticModulus*areaMomentOfInertia;
-// 	  BoundaryCondition bc = bcLeft;
+// 	  BoundaryConditionEnum bc = bcLeft;
 // 	  if( bc==clamped && EI==0. ) bc=pinned;
 
 // 	  if( bc == BeamModel::clamped )
@@ -2080,9 +2079,9 @@ addInternalForces( const real t, RealArray & f )
   const int & orderOfGalerkinProjection = dbase.get<int>("orderOfGalerkinProjection");
   const aString & exactSolutionOption = dbase.get<aString>("exactSolutionOption");
   const int & numElem = dbase.get<int>("numElem");
-  const BoundaryCondition * boundaryConditions = dbase.get<BoundaryCondition[2]>("boundaryConditions");
-  const BoundaryCondition & bcLeft = boundaryConditions[0];
-  const BoundaryCondition & bcRight = boundaryConditions[1];
+  const BoundaryConditionEnum * boundaryConditions = dbase.get<BoundaryConditionEnum[2]>("boundaryConditions");
+  const BoundaryConditionEnum & bcLeft = boundaryConditions[0];
+  const BoundaryConditionEnum & bcRight = boundaryConditions[1];
   
   // convert nodal values to FEM load vector:
   RealArray lt(4); // local traction
@@ -2124,9 +2123,9 @@ addInternalForces( const real t, RealArray & f )
   // const real & thickness = dbase.get<real>("thickness");
   // const int & numElem = dbase.get<int>("numElem");
   // const real & buoyantMassPerUnitLength = dbase.get<real>("buoyantMassPerUnitLength");
-  // const BoundaryCondition * boundaryConditions = dbase.get<BoundaryCondition[2]>("boundaryConditions");
-  // const BoundaryCondition & bcLeft = boundaryConditions[0];
-  // const BoundaryCondition & bcRight = boundaryConditions[1];
+  // const BoundaryConditionEnum * boundaryConditions = dbase.get<BoundaryConditionEnum[2]>("boundaryConditions");
+  // const BoundaryConditionEnum & bcLeft = boundaryConditions[0];
+  // const BoundaryConditionEnum & bcRight = boundaryConditions[1];
   // const real & projectedBodyForce= dbase.get<real>("projectedBodyForce");
   // const aString & exactSolutionOption = dbase.get<aString>("exactSolutionOption");
   
@@ -2310,9 +2309,9 @@ smooth( const real t, RealArray & w, const aString & label )
 {
   const int & numElem = dbase.get<int>("numElem");
   const bool & smoothSolution = dbase.get<bool>("smoothSolution");
-  const BoundaryCondition * bc = dbase.get<BoundaryCondition[2]>("boundaryConditions");
-  const BoundaryCondition & bcLeft =  bc[0];
-  const BoundaryCondition & bcRight =  bc[1];
+  const BoundaryConditionEnum * bc = dbase.get<BoundaryConditionEnum[2]>("boundaryConditions");
+  const BoundaryConditionEnum & bcLeft =  bc[0];
+  const BoundaryConditionEnum & bcRight =  bc[1];
   
   if( !smoothSolution )
     return;
@@ -2432,9 +2431,9 @@ smoothBoundaryConditions( RealArray & w1, int base, int bound,
 {
     
   // -- boundary conditions --
-  const BoundaryCondition * bc = dbase.get<BoundaryCondition[2]>("boundaryConditions");
-  const BoundaryCondition & bcLeft =  bc[0];
-  const BoundaryCondition & bcRight =  bc[1];
+  const BoundaryConditionEnum * bc = dbase.get<BoundaryConditionEnum[2]>("boundaryConditions");
+  const BoundaryConditionEnum & bcLeft =  bc[0];
+  const BoundaryConditionEnum & bcRight =  bc[1];
   const bool isPeriodic = bcLeft==periodic;
   Range R2(0,1);
 
