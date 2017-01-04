@@ -81,7 +81,10 @@ BeamModel::BeamModel()
   dbase.put<aString>("name")="none";
   dbase.put<BeamModelEnum>("beamModel")=eulerBernoulliBeamModel; // set default to be eulerBernoulliBeamModel
 
+  //Longfei 20170101: new option to indicate which normal to use when integrate the surface force/velocity
+  dbase.put<aString>("normalOption")="currentFluidNormal";  //"currentFluidNormal" or "initialBeamNormal" or "currentBeamNormal" TODO: put this in gui!!!
 
+  
   // parameters can be changed in BeamModel::update()
   dbase.put<real>("density")=1.;
   dbase.put<real>("length") = 1.;  // total beam length: L
@@ -765,11 +768,16 @@ addToElementIntegral( const real & tf,
       //       x0,pa,pax,x1,pb,pbx,a,b);
     
       Index idx(i*2,4);
-      if( addToForce && t1 > 0 ) // t1 = halfThickness
-	{ // Flip sign of force to account for the normal 
-	  pa = -pa; pax = -pax;
-	  pb = -pb; pbx = -pbx;
-	}
+
+      // 20170101: DO NOT FLIP sign for normalOption == currentBeamNormal or initialBeamNormal
+      // 20170103: Do not need this anymore. signs for the currentFluidNormal option is taken care of in 
+      //           the new function getCurrentNormalForProjection();
+      // const aString & normalOption = dbase.get<aString>("normalOption"); 
+      // if( addToForce && t1 > 0 && normalOption=="currentFluidNormal" ) // t1 = halfThickness
+      // 	{ // Flip sign of force to account for the normal of the top surface only
+      // 	  pa = -pa; pax = -pax;
+      // 	  pb = -pb; pbx = -pbx;
+      // 	}
     
       
       //std::cout << elem1 << " " << elem2 << " " << eta1 << " " << eta2 << " " << 
@@ -779,7 +787,7 @@ addToElementIntegral( const real & tf,
 	printF("-- BM%i -- addToElementIntegral: x1=[%g,%g] x2=[_%g,%g] pa=%g, pax=%g, pb=%g, pbx=%g a=%g b=%g f1=%g f1x=%g f2=%g f2x=%g\n",
 	       getBeamID(),x0_1,y0_1, x0_2,y0_2,pa,pax,pb,pbx,a,b,f1,f1x,f2,f2x );
 
-      if (fabs(b-a) > 1.0e-10)  // *WDH* FIX ME -- is this needed?
+      if (fabs(b-a) > 1.0e-10)  // *WDH* FIX ME -- is this needed? //Longfei: yes, this is needed to exclude contribution from beam tip.
 	{
 	  // -- compute (N,p)_[a,b] = int_a^b N(xi) p(xi) J dxi 
 	  if( orderOfGalerkinProjection==2 )
@@ -1020,7 +1028,8 @@ initialize()
 					 false);
   
   //Longfei 20161220: initialize numberOfSolutionComponents based on the model
-  initNumberOfSolutionComponents();
+  // 20170104: moved this inside of getSolutionArrayIndex()
+  //initNumberOfSolutionComponents();
   
 
   // initialize FEM element matrices
@@ -1146,37 +1155,38 @@ initialize()
   dbase.get<bool>("initialized")=true;
 }
 
+// 20170104: this function is moved inside of getSolutionArrayIndex()
 // Longfei 20161220: new function to determine the number of solution components needed for a particular beam model
 // ====================================================================================================
 /// \brief Initialize numberOfSolutionComponents
 // ====================================================================================================
-int BeamModel::
-initNumberOfSolutionComponents()
-{
-  const bool & allowAxialDeformation = dbase.get<bool>("allowAxialDeformation");
-  const bool & allowTwist = dbase.get<bool>("allowTwist");
-  const int & rangeDimension = dbase.get<int>("rangeDimension");
-  const BeamModelEnum & beamModel = dbase.get<BeamModelEnum>("beamModel");
+// int BeamModel::
+// initNumberOfSolutionComponents()
+// {
+//   const bool & allowAxialDeformation = dbase.get<bool>("allowAxialDeformation");
+//   const bool & allowTwist = dbase.get<bool>("allowTwist");
+//   const int & rangeDimension = dbase.get<int>("rangeDimension");
+//   const BeamModelEnum & beamModel = dbase.get<BeamModelEnum>("beamModel");
 
-  int & numberOfSolutionComponents = dbase.get<int>("numberOfSolutionComponents");
+//   int & numberOfSolutionComponents = dbase.get<int>("numberOfSolutionComponents");
   
-  numberOfSolutionComponents = rangeDimension;  // displacement in each dimension
-  if(!allowAxialDeformation) numberOfSolutionComponents--; // no displacement in the x direction
-  if(allowTwist) numberOfSolutionComponents++; // add one component for twist angle
+//   numberOfSolutionComponents = rangeDimension;  // displacement in each dimension
+//   if(!allowAxialDeformation) numberOfSolutionComponents--; // no displacement in the x direction
+//   if(allowTwist) numberOfSolutionComponents++; // add one component for twist angle
   
-  if(beamModel==eulerBernoulliBeamModel){}
-  else if(beamModel==timoshenkoBeamModel)
-    {
-      OV_ABORT("timoshenkoBeamModel not implemented yet. Finish me...\n");
-    }
-  else if(beamModel==kirchhoffBeamModel)
-    {
-      OV_ABORT("kirchhoffBeamModel not implemented yet. Finish me...\n");
-    }
-  else {OV_ABORT("Unknown beamModel");}
+//   if(beamModel==eulerBernoulliBeamModel){}
+//   else if(beamModel==timoshenkoBeamModel)
+//     {
+//       OV_ABORT("timoshenkoBeamModel not implemented yet. Finish me...\n");
+//     }
+//   else if(beamModel==kirchhoffBeamModel)
+//     {
+//       OV_ABORT("kirchhoffBeamModel not implemented yet. Finish me...\n");
+//     }
+//   else {OV_ABORT("Unknown beamModel");}
 
-  return 0;
-}
+//   return 0;
+// }
 
 // ====================================================================================================
 /// \brief Initialize the twilight zone 
@@ -2054,7 +2064,22 @@ projectAcceleration(const real t,
   int elemNum;
   real eta, halfThickness;
   
-  projectPoint(x0,y0, elemNum, eta,halfThickness);
+  //projectPoint(x0,y0, elemNum, eta,halfThickness);
+  //==================================================================
+  //Longfei 20161222: velocity for beam tip was wrong. Try fix it
+  // displacement outside the domain is obtained by extending in the tangent direction.
+  // So the velocity and acceleration should also account for the tangent direction extension.
+  
+  // Compute the half-thickness at this point (needed for rounded ends)
+  bool clipToBounds=false;
+  projectPoint(x0,y0, elemNum, eta,halfThickness, clipToBounds);
+
+  real eta0=eta;    // may be outside [-1,1] if clipToBounds=false
+  if( !clipToBounds )
+    eta=max(-1.,min(1.,eta));  // evaluate the displacement and slope on clipped bounds 
+  //==================================================================
+
+
 
   //std::cout << x0 << " " << y0 << " " << elemNum << " " << eta << " " << halfThickness << std::endl;
   
@@ -2066,6 +2091,22 @@ projectAcceleration(const real t,
 
   real DDdisplacement, DDslope;
   interpolateSolution(ac, elemNum, eta, DDdisplacement, DDslope);
+
+  //==================================================================
+  //Longfei 20161222: acceleration for beam tip was wrong. Try fix it
+  // displacement outside the domain is obtained by extending in the tangent direction.
+  // So the velocity and acceleration should also account for the tangent direction extension.
+  if( !clipToBounds && eta!=eta0 )
+    { // If point is off the end of the beam then adjust the acceleration on the beam ends by the constant acceleration slope at the end
+      // Note: evaluating the solution at points outside [0,L] did not work well
+
+      //Longfei 20160121: new way of handling parameters
+      //const real dx = L/numElem;
+      const real & dx = dbase.get<real>("elementLength");
+      DDdisplacement += DDslope*.5*(eta0-eta)*dx;
+    }
+  //==================================================================
+
 
   if( debug() & 2 )
     printF(" -- BM%i -- projectAcceleration: x=(%g,%g) DDdisplacement=%g (beam accel)\n",getBeamID(),x0,y0,DDdisplacement);
@@ -2764,15 +2805,47 @@ projectVelocity( const real t, const real& x0, const real& y0, real& vx, real& v
   int elemNum;
   real eta, halfThickness;
   
-  projectPoint(x0,y0, elemNum, eta,halfThickness);  // halfThickness will be computed here
 
+  //projectPoint(x0,y0, elemNum, eta,halfThickness);  // halfThickness will be computed here
+  //==================================================================
+  //Longfei 20161222: velocity for beam tip was wrong. Try fix it
+  // displacement outside the domain is obtained by extending in the tangent direction.
+  // So the velocity and acceleration should also account for the tangent direction extension.
+  
+  // Compute the half-thickness at this point (needed for rounded ends)
+  bool clipToBounds=false;
+  projectPoint(x0,y0, elemNum, eta,halfThickness, clipToBounds);
+
+  real eta0=eta;    // may be outside [-1,1] if clipToBounds=false
+  if( !clipToBounds )
+    eta=max(-1.,min(1.,eta));  // evaluate the displacement and slope on clipped bounds 
+  //==================================================================
+
+  
   //std::cout << x0 << " " << y0 << " " << elemNum << " " << eta << " " << halfThickness << std::endl;
   
   real displacement, slope;
   interpolateSolution(uc, elemNum, eta, displacement, slope);       // displacement=u, slope = u_x 
 
   real Ddisplacement, Dslope;
-  interpolateSolution(vc, elemNum, eta, Ddisplacement, Dslope);     //  Ddisplacement = v, Dslope=v_x 
+  interpolateSolution(vc, elemNum, eta, Ddisplacement, Dslope);     //  Ddisplacement = v, Dslope=v_x
+
+
+  //==================================================================
+  //Longfei 20161222: velocity for beam tip was wrong. Try fix it
+  // displacement outside the domain is obtained by extending in the tangent direction.
+  // So the velocity and acceleration should also account for the tangent direction extension.
+  if( !clipToBounds && eta!=eta0 )
+    { // If point is off the end of the beam then adjust the velocity on the beam ends by the constant velocity slope at the end
+      // Note: evaluating the solution at points outside [0,L] did not work well
+
+      //Longfei 20160121: new way of handling parameters
+      //const real dx = L/numElem;
+      const real & dx = dbase.get<real>("elementLength");
+      Ddisplacement += Dslope*.5*(eta0-eta)*dx;
+    }
+  //==================================================================
+
 
   if( debug() & 2 )
     printF(" -- BM%i -- projectVelocity: x=(%g,%g) Ddisplacement=%g (beam velocity)\n",getBeamID(),x0,y0,Ddisplacement);
@@ -3468,8 +3541,19 @@ setSurfaceForce(const real & t, const RealArray & x0, const RealArray & traction
   // NOTE: we could alternatively have used:
   //              (1) current beam normal
   //              (2) initial beam normal
-  fDotN(Ib1,Ib2,Ib3)= (traction(Ib1,Ib2,Ib3,0)*normal(Ib1,Ib2,Ib3,0)+
-		       traction(Ib1,Ib2,Ib3,1)*normal(Ib1,Ib2,Ib3,1) );
+  // Longfei 20170101: implement different normal options via a new function getCurrentNormalForProjection
+  const aString & normalOption = dbase.get<aString>("normalOption"); 
+
+  // make a copy of the fluid normal (dimension is needed and the quantity is needed for currentFluidNormal option). 
+  // normal2 will hold the results, i.e., the normal component used for projection ect.
+  // do not pass "normal" directly. Since "normal" is a reference from the grid, change it will change 
+  // the vertexBoundaryNormalArray associated with the grid. So we make a copy here.
+  RealArray normal2=normal;
+  getCurrentNormalForProjection(t,x0,normal2,Ib1,Ib2,Ib3,normalOption);
+ 
+  fDotN(Ib1,Ib2,Ib3)= (traction(Ib1,Ib2,Ib3,0)*normal2(Ib1,Ib2,Ib3,0)+
+		       traction(Ib1,Ib2,Ib3,1)*normal2(Ib1,Ib2,Ib3,1) );
+ 
   if( false )
     {
       ::display(traction(Ib1,Ib2,Ib3,Range(0,1)),sPrintF("-- BM -- addForce: input traction t=%9.3e",t),"%9.2e ");
@@ -3687,7 +3771,7 @@ setSurfaceVelocity(const real & t, const RealArray & x0, const RealArray & vSurf
 	    }
 
 	  if( !allowsFreeMotion ) 
-	    { // -- subtract off "w"
+	    { // -- subtract off "w"g
 	      for( int axis=0; axis<rangeDimension; axis++ )
 		{
 		  // Longfei 20160623:
@@ -6919,11 +7003,44 @@ int BeamModel::
 getSolutionArrayIndex(Index & I1, Index &I2, Index & I3, Index &C) const
 {
 
+  //Longfei 20170104: determine the numberOfSolution Components (unkowns for the beam model)
+  const bool & allowAxialDeformation = dbase.get<bool>("allowAxialDeformation");
+  const bool & allowTwist = dbase.get<bool>("allowTwist");
+  const int & rangeDimension = dbase.get<int>("rangeDimension");
+  const BeamModelEnum & beamModel = dbase.get<BeamModelEnum>("beamModel");
+  int & numberOfSolutionComponents = dbase.get<int>("numberOfSolutionComponents"); // all the variables of the beam model
+
+  // Longfei 20170104: new entries in dbase to track the  numberOfDisplacementVaribles and numberOfAngularVaribles of all the varibles in the beam model
+  // numberOfDisplacementVaribles+numberOfAngularVaribles = numberOfSolutionComponents
+  if( !dbase.has_key("numberOfDisplacementVaribles") ) dbase.put<int>("numberOfDisplacementVaribles")=0;
+  if( !dbase.has_key("numberOfAngularVaribles") ) dbase.put<int>("numberOfAngularVaribles")=0;
+  int & nDisplacement = dbase.get<int>("numberOfDisplacementVaribles");
+  int & nAngle = dbase.get<int>("numberOfAngularVaribles");
+
+
+  if(beamModel==eulerBernoulliBeamModel)
+    {
+      nDisplacement = rangeDimension;  // displacement in each dimension
+      if(!allowAxialDeformation) nDisplacement--; // no displacement in the x direction
+      if(allowTwist) nAngle++; // add one component for twist angle
+    }
+  else if(beamModel==timoshenkoBeamModel)
+    {
+      OV_ABORT("timoshenkoBeamModel not implemented yet. Finish me...\n");
+    }
+  else if(beamModel==kirchhoffBeamModel)
+    {
+      OV_ABORT("kirchhoffBeamModel not implemented yet. Finish me...\n");
+    }
+  else {OV_ABORT("Unknown beamModel");}
+
+  numberOfSolutionComponents=nDisplacement+nAngle;  // store all the solution varibles as different components in one RealArray
+
+
   const int & numElem = dbase.get<int>("numElem");
   const int & numOfGhost = dbase.get<int>("numberOfGhostPoints");
   // Longfei 20161220: replaced numberOfMotionDirections with numberOfSolutionComponents
   //const int numMotionDirections = dbase.get<int>("numberOfMotionDirections");
-  const int & numberOfSolutionComponents =  dbase.get<int>("numberOfSolutionComponents"); 
   const int & domainDimension =  dbase.get<int>("domainDimension"); 
 
   const bool & xd =  dbase.get<bool>("isCubicHermiteFEM");
@@ -6964,7 +7081,7 @@ redimSolutionArray(RealArray & u, RealArray & v, RealArray & a ) const
 
   if(false)
     {
-      // check index
+      // check index67
       printF("Check Index in BeamModel::redimSolutionArray:\n");
       const int & numElem = dbase.get<int>("numElem");
       const int &numOfGhost =  dbase.get<int>("numberOfGhostPoints");
@@ -7035,7 +7152,6 @@ getCurrentTime() const
 }
 
 
-// make this  for now.
 aString BeamModel::
 getBCName(const BoundaryConditionEnum & bc) const
 {
@@ -7166,7 +7282,117 @@ displayDBase(FILE *file /*=stdout*/ )
 
 }
 
+/// \param xs (output) : current position of beam boundary 
+/// /param adjustEnds (input) : if true then adjust the ends of the beam surface for 
+///     clamped/pinned end conditions so that the end points on the beam surface do not move --
+///     This is needed if we are generating a fluid grid exterior to the beam.
 
+// Longfei 20170103: get the "normal" for the beam surface point that is used for
+// projection. We can choose from 3 options: currentFluidNormal, initialBeamNormal, currentBeamNormal
+// =================================================================================================
+/// \brief  get the "normal" for the beam surface point that is used for projection. 
+///         We can choose from 3 options: currentFluidNormal, initialBeamNormal, currentBeamNormal
+/// \param t (input) : current time.
+/// \param x0 (input) : initial positions of the points on the beam surface. 
+/// \param normal (output/input) :(output) normal at the surface used for projection.
+///               (intput):fluid outward normal; used only for the option currentFluidNormal 
+/// \param Ib1,Ib2,Ib3 (input) : index of points on the boundary
+/// \param normalOption (input) : option: currentFluidNormal, initialBeamNormal, currentBeamNormal
+// =================================================================================================
+int BeamModel::
+getCurrentNormalForProjection(const real t, const RealArray & x0,  RealArray & normal, 
+			   const Index & Ib1, const Index & Ib2,  const Index & Ib3, 
+			   const aString & normalOption)
+{
+  // check consistency of time
+  const int & current = dbase.get<int>("current");
+  RealArray & time = dbase.get<RealArray>("time");
+  if( fabs(time(current)-t) > 1.e-10*(1.+t) )
+    {
+      printF("-- BM%i -- BeamModel::setSurfaceForce:ERROR: t=%10.3e is not equal to time(current)=%10.3e, current=%i\n",
+	     getBeamID(),t,time(current),current);
+      OV_ABORT("ERROR");
+    }
+
+
+  //get dimension of the normal
+  const int dim =  normal.getLength(3);
+  
+  assert(dim==2); // FIX ME for 3d
+
+  if(normalOption=="currentFluidNormal")
+    {
+      // in this case the normal passed in is the outward normal of fluid. We need to flip its sign
+      // for the top part:
+      int i1,i2,i3;
+      FOR_3D(i1,i2,i3,Ib1,Ib2,Ib3)
+	{
+	  int elemNum;
+	  real eta, halfThickness;
+	  /// Compute the half-thickness at this point (needed for rounded ends)
+	  projectPoint(x0(i1,i2,i3,0),x0(i1,i2,i3,1), elemNum, eta,halfThickness);
+	  if(halfThickness>0)
+	    {
+	      //flip the sign of the top normal for all components
+	      for(int d=0;d<dim;d++)
+		{
+		  normal(i1,i2,i3,d) *=-1.;
+		}
+	    }
+	}
+    }
+  else if(normalOption=="initialBeamNormal")
+    {
+      const  real * initialBeamNormal = dbase.get<real[2]>("initialBeamNormal");
+      //set normal to the initialBeamNormal;
+      for(int d=0;d<dim;d++)
+	{
+	  normal(Ib1,Ib2,Ib3,d)=initialBeamNormal[d];
+	}
+
+    }
+  else if(normalOption=="currentBeamNormal")
+    {
+      // compute the current beam normal (centerline normal)
+      const  real * initialBeamNormal = dbase.get<real[2]>("initialBeamNormal");
+      const  real * initialBeamTangent= dbase.get<real[2]>("initialBeamTangent");
+
+      std::vector<RealArray> & u = dbase.get<std::vector<RealArray> >("u"); // displacement DOF
+
+      RealArray & uc = u[current];  // current displacement DOF
+      int i1,i2,i3;
+      FOR_3D(i1,i2,i3,Ib1,Ib2,Ib3)
+	{
+	  int elemNum;
+	  real eta, halfThickness;
+	  /// Compute the half-thickness at this point (needed for rounded ends)
+	  projectPoint(x0(i1,i2,i3,0),x0(i1,i2,i3,1), elemNum, eta,halfThickness);
+	  real displacement, slope;
+	  interpolateSolution(uc, elemNum, eta, displacement, slope);       // displacement=u, slope = u_x 
+	  real omag = 1./sqrt(slope*slope+1.0);
+	  real normall[2] = {-slope*omag, omag};  // normal to beam center-line
+	  real currentBeamNormal[2]; // normal in physical space
+	  currentBeamNormal[0]=initialBeamTangent[0]*normall[0] + initialBeamNormal[0]*normall[1];
+	  currentBeamNormal[1]=initialBeamTangent[1]*normall[0] + initialBeamNormal[1]*normall[1];
+	  //set normal to the currentBeamNormal;
+	  for(int d=0;d<dim;d++)
+	    {
+	      normal(i1,i2,i3,d)=currentBeamNormal[d];
+	    }
+	}
+    }
+  else
+    {
+      OV_ABORT("Wrong normalOption\n");
+    }
+
+  if( debug() & 2 )
+    {
+      ::display(normal,normalOption,"%10.2e");
+    }
+
+  return 0;
+}
 
 
 

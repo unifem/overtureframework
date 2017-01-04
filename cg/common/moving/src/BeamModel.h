@@ -310,6 +310,12 @@ public:
   real getMaximumRelativeCorrection() const;
 
 
+  // Longfei 20170103: get the "normal" for the beam surface point that is used for
+  // projection. We can choose from 3 options: currentFluidNormal, initialBeamNormal, currentBeamNormal
+  int getCurrentNormalForProjection(const real t, const RealArray & x0,  RealArray & normal, 
+			     const Index & Ib1, const Index & Ib2,  const Index & Ib3, 
+			     const aString & normalOption);
+  
 
   // Longfei 20160120: this should apply to all beam models
   // return the number of elements
@@ -532,8 +538,7 @@ public:
 				   real& displacement, real& slope);
 
 
-  // Longfei 20161220: new function to determine the number of solution components needed for a particular beam model
-  int initNumberOfSolutionComponents();
+
 
   // initialize TZ
   int initTwilightZone();
