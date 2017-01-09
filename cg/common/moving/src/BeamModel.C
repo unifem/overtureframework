@@ -2066,7 +2066,7 @@ projectAcceleration(const real t,
   
   //projectPoint(x0,y0, elemNum, eta,halfThickness);
   //==================================================================
-  //Longfei 20161222: velocity for beam tip was wrong. Try fix it
+  //Longfei 20161222: accelerationfor beam tip was wrong. Try fix it
   // displacement outside the domain is obtained by extending in the tangent direction.
   // So the velocity and acceleration should also account for the tangent direction extension.
   
@@ -2219,6 +2219,8 @@ projectInternalForce(const RealArray & internalForce,
   // Longfei 20160121: new way of handling parameters
   const real & density = dbase.get<real>("density");
   const real & L = dbase.get<real>("length");
+  const real & Abar = dbase.get<real>("massPerUnitLength");
+
   const real * beamXYZ = dbase.get<real[3]>("beamXYZ");
   const real & beamX0 = beamXYZ[0];
   const real & beamY0 = beamXYZ[1];
@@ -2242,13 +2244,26 @@ projectInternalForce(const RealArray & internalForce,
   std::vector<RealArray> & a = dbase.get<std::vector<RealArray> >("a"); // acceleration DOF
   RealArray & uc = u[current];  // current displacement 
   RealArray & vc = v[current];  // current velocity 
-  // RealArray & ac = a[current];  // current acceleration
+  RealArray & ac = a[current];  // current acceleration
 
 
   int elemNum;
   real eta, halfThickness;
   
-  projectPoint(x0,y0, elemNum, eta,halfThickness);
+  //projectPoint(x0,y0, elemNum, eta,halfThickness);
+  //==================================================================
+  //Longfei 20161222: internalForcer for beam tip was wrong. Try fix it
+  // displacement outside the domain is obtained by extending in the tangent direction.
+  // So the internalForcer should also account for the tangent direction extension.
+  
+  // Compute the half-thickness at this point (needed for rounded ends)
+  bool clipToBounds=false;
+  projectPoint(x0,y0, elemNum, eta,halfThickness, clipToBounds);
+
+  real eta0=eta;    // may be outside [-1,1] if clipToBounds=false
+  if( !clipToBounds )
+    eta=max(-1.,min(1.,eta));  // evaluate the displacement and slope on clipped bounds 
+  //==================================================================
 
   //std::cout << x0 << " " << y0 << " " << elemNum << " " << eta << " " << halfThickness << std::endl;
   
@@ -2261,21 +2276,59 @@ projectInternalForce(const RealArray & internalForce,
   real DDdisplacement, DDslope;
 
   // *** Here is the only difference between projectAcceleration and projectInternalForce ***
+  // Longfei 20170107: NOTE: the DDdisplacement is actually the internalForce at the point 
+  // s=elemNum*dx+ 0.5*(eta+1)*dx, and DDslope is actually the slope of internalForce at that point.
+  // We shouldn't use the slope of internalForce to compute normaldd, instead we should use the DDslope obtained from interpolate the acceleration.
   interpolateSolution(internalForce, elemNum, eta, DDdisplacement, DDslope);
   // interpolateSolution(ac, elemNum, eta, DDdisplacement, DDslope);
 
+  //Longfei 20170106====debug for useApproximateAMPcondition=1====
+  if(debug() & 32)
+    {
+      const int & numElem = dbase.get<int>("numElem");
+      if(elemNum==numElem-1 || elemNum==0) //check beam ends
+	{
+	  ::display(internalForce,"internalForce","%10.2e");
+	  printF("x0=%10.2e, y0=%10.2e, elemNum=%d, eta=%10.2e, DDdisplacement=%10.2e, DDslope=%10.2e\n",x0,y0, elemNum, eta, DDdisplacement, DDslope);
+	}
+    }
+  //====debug====
+
   
+  //==================================================================
+  //Longfei 20161222: internalForce for beam tip was wrong. Try fix it
+  // displacement outside the domain is obtained by extending in the tangent direction.
+  // So the internalForce  should also account for the tangent direction extension.
+  if( !clipToBounds && eta!=eta0 )
+    { // If point is off the end of the beam then adjust the internalForce on the beam ends by the constant internalForce slope at the end
+      // Note: evaluating the solution at points outside [0,L] did not work well
+      //Longfei 20160121: new way of handling parameters
+      //const real dx = L/numElem;
+      const real & dx = dbase.get<real>("elementLength");
+      DDdisplacement += DDslope*.5*(eta0-eta)*dx; // Here we extrapolate the internalForce along its tangent direction at the end if the point is outside of the beam domain (i.e., tip)
+    }
+  //==================================================================
+
   // *************************************************
   // **************** CHECK ME ***********************
   // *************************************************
+  // Longfei 20170107: TRY THIS FIX ...........
+  // I think we should use DDslope obtained from interpolating ac to compute the normals. CHECK
+  real aTemp;
+  interpolateSolution(ac, elemNum, eta, aTemp, DDslope); // use this DDslope to compute noramaldd
 
 
   // --- compute the correction for finite thickness ---
   //   correction is 
-  //            +density*hs*hs/2 * n_tt 
+  //            \pm density*hs*hs/2 * n_tt 
   // Note the extra factor of density*hs compared to projectAcceleration 
 
-  const real thicknessFactor = density*(2.*halfThickness)*halfThickness;
+
+  // Longfei 20170105: the halfthickness is a signed quantity. For mass, we should use its abs value
+  // const real thicknessFactor = density*(2.*halfThickness)*halfThickness;
+  // const real thicknessFactor = density*(2.*abs(halfThickness))*halfThickness;
+  // Longfei 20170107: throughout this code, we used the massPerUnitLength as constant. So Here we should us Abar rather than density*(2.*abs(halfThickness)). using density*(2.*abs(halfThickness)) could potentially cause trouble at the tip since halfThickness might be small there!
+  const real thicknessFactor = Abar*halfThickness;
 
   real omag = 1./sqrt(slope*slope+1.0);
   real omag3 = omag*omag*omag;
@@ -2355,7 +2408,7 @@ getSurfaceAcceleration( const real t, const RealArray & x0, RealArray & as, cons
     {
       // *wdh* 2015/01/05 *new* way
       const bool addExternalForcing=true;
-      getSurfaceInternalForce(t, x0, as, normal, Ib1,Ib2,Ib3,addExternalForcing );
+      getSurfaceInternalForce(t, x0, as, normal, Ib1,Ib2,Ib3,addExternalForcing ); 
 
       const real &Abar = dbase.get<real>("massPerUnitLength");
       as *= 1./Abar;
@@ -2642,18 +2695,27 @@ getSurfaceInternalForce( const real t0, const RealArray & x0, RealArray & fs,
   // bool & refactor = dbase.get<bool>("refactor");
   // refactor=true; //Longfei 20160209: no longer need to refactor solvers
   
+  aString tridiagonalSolverName= "explicitSolver";
   if(addExternalForcing)
     { 
-      // Longfei 20160701: recompute ac. The velocity is changed after projecting the beam and fluid velocities at the interface
-      computeAcceleration( t, xc,vc,fe, ac, centerOfMassAcceleration, angularAcceleration, dt,"explicitSolver" );
-      internalForce=Abar*ac;
-      
+      // Longfei 20160701: need to recompute acceleration since the velocity is changed after projecting the beam and fluid velocities at the interface
+      //                   let internalForce to store the acceleration for now. Will multiply mass Abar to scale it back to force
+      computeAcceleration( t, xc,vc,fe, internalForce, centerOfMassAcceleration, angularAcceleration, dt,tridiagonalSolverName );
+      internalForce*=Abar;
     }
   else
     {
-      aString tridiagonalSolverName= isFEM? "massMatrixSolverNoBC" : "explicitSolver";
+      if(isFEM){tridiagonalSolverName= "massMatrixSolverNoBC";}
       computeAcceleration( t, xc,vc,fe, internalForce, centerOfMassAcceleration, angularAcceleration, dt,tridiagonalSolverName );
+      // here we dont need to scale internalForce with Abar, since the internalForceBC will tell computeAcceleration we are computing a
+      // force not an acceleration.
+      if(false)
+	{
+	  ::display(internalForce,"Hello","%10.3e");
+	}
     }
+  
+
   
   if( debug() & 16 && false )
     {
@@ -2663,9 +2725,10 @@ getSurfaceInternalForce( const real t0, const RealArray & x0, RealArray & fs,
 
 
   // refactor=true;          
-
-  bcLeft =bcLeftSave;   // reset 
-  bcRight=bcRightSave; 
+  
+  // Longfei 20170109: projectInternalForce will need this information now. Reset it after projectInternalForce is caled
+  // bcLeft =bcLeftSave;   // reset 
+  // bcRight=bcRightSave; 
 
   if( FALSE && !addExternalForcing ) 
     {
@@ -2689,6 +2752,11 @@ getSurfaceInternalForce( const real t0, const RealArray & x0, RealArray & fs,
       // NOTE: this function will add the rotation term due to finite thickness
       projectInternalForce( internalForce, t, x0(i1,i2,i3,0),x0(i1,i2,i3,1),fs(i1,i2,i3,0),fs(i1,i2,i3,1) );
     }
+
+  //Longfei 20170109: reset saved bc after projectInternalForce
+  bcLeft =bcLeftSave;   // reset 
+  bcRight=bcRightSave; 
+
 
   if( false )
     ::display(fs,"-- BM -- getSurfaceInternalForce : fs after projectInternalForce","%8.2e ");
@@ -3099,8 +3167,8 @@ interpolateSolution(const RealArray& X,
       real delta = useSameStencilSize?1.:0.;
       
       //evaluate the slope at grid points  elemNum and elemNum+1
-
       //Longfei 20160719: use the approximated derivative instead of X. It was wrong before. FIXED!
+      //Longfei 20170107: do we need higher-order fd scheme to approximate the slope here???
       int i=elemNum;
       Xslope[0]=(delta/12.*X(i-2,0,0,0)-(.5+delta/6.)*X(i-1,0,0,0)+(.5+delta/6.)*X(i+1,0,0,0)-(delta/12.)*X(i+2,0,0,0))/le;
       i=elemNum+1;
@@ -3187,8 +3255,8 @@ solveBlockTridiagonal(const RealArray& f, RealArray& u, const aString & tridiago
 ///\brief factor the tridiangnal solver 
 /// \param tridiagonalSolverName (input) : name of the tridiagonal solver
 // output: factor the solver with matrix Ae
-// if(tridiagonalSolverName==newmarkSolver)  Ae =  elementM+alpha*elementK+alphB*elementB
-// if(tridiagonalSolverName==massMatrixSolver)  Ae = elementM/Abar
+// if(tridiagonalSolverName==newmarkSolver)  Ae =  Abar*elementM+alpha*elementK+alphB*elementB
+// if(tridiagonalSolverName==massMatrixSolver)  Ae = elementM
 //================================================================================
 int BeamModel::
 factorBlockTridiagonalSolver(const aString & tridiagonalSolverName)
@@ -3709,6 +3777,12 @@ setSurfaceVelocity(const real & t, const RealArray & x0, const RealArray & vSurf
 
   // *new way* 2015/01/13
 
+  // Longfei 20170104: use consistent normal directions for all projections
+  const aString & normalOption = dbase.get<aString>("normalOption"); 
+  RealArray normal2=normal;
+  getCurrentNormalForProjection(t,x0,normal2,Ib1,Ib2,Ib3,normalOption);
+ 
+
   // Transfer the normal component of the velocity, stored here:
   RealArray vDotN(Ib1,Ib2,Ib3);
 
@@ -3759,7 +3833,7 @@ setSurfaceVelocity(const real & t, const RealArray & x0, const RealArray & vSurf
 	  real omag3 = omag*omag*omag;
 	  real normald[2] = {-Dslope*omag3,-slope*Dslope*omag3};
       
-	  //Longfei 20160623: normald after rotation
+	  //Longfei 20160623: use normald after rotation (i.e. normal in physical space)
 	  real normaldRot[2];
 	  normaldRot[0]=initialBeamTangent[0]*normald[0] + initialBeamNormal[0]*normald[1];
 	  normaldRot[1]=initialBeamTangent[1]*normald[0] + initialBeamNormal[1]*normald[1];
@@ -3787,19 +3861,24 @@ setSurfaceVelocity(const real & t, const RealArray & x0, const RealArray & vSurf
 	    }
       
 	}
+      // Longfei 20170104: use consistent normal directions for all projections
       // Transfer the normal component of the velocity: (this needs to be fixed when beam supports motion
       //   in two directions)
-      vDotN(Ib1,Ib2,Ib3)= (vBeam(Ib1,Ib2,Ib3,0)*initialBeamNormal[0] +
-			   vBeam(Ib1,Ib2,Ib3,1)*initialBeamNormal[1] );
+      // vDotN(Ib1,Ib2,Ib3)= (vBeam(Ib1,Ib2,Ib3,0)*initialBeamNormal[0] +
+      // 			   vBeam(Ib1,Ib2,Ib3,1)*initialBeamNormal[1] );
+      vDotN(Ib1,Ib2,Ib3)= (vBeam(Ib1,Ib2,Ib3,0)*normal2(Ib1,Ib2,Ib3,0)+vBeam(Ib1,Ib2,Ib3,1)*normal2(Ib1,Ib2,Ib3,1));
+      
 
     }
   else
     {
       // -- no correction for surface rotation
 
+      // Longfei 20170104: use consistent normal directions for all projections
       // we transfer the normal component of the velocity -- here we use the initial beam normal vector *IS THIS RIGHT ?? **
-      vDotN(Ib1,Ib2,Ib3)= (vSurface(Ib1,Ib2,Ib3,0)*initialBeamNormal[0] +
-			   vSurface(Ib1,Ib2,Ib3,1)*initialBeamNormal[1] );
+      // vDotN(Ib1,Ib2,Ib3)= (vSurface(Ib1,Ib2,Ib3,0)*initialBeamNormal[0] +
+      // 			   vSurface(Ib1,Ib2,Ib3,1)*initialBeamNormal[1] );
+      vDotN(Ib1,Ib2,Ib3)= (vSurface(Ib1,Ib2,Ib3,0)*normal2(Ib1,Ib2,Ib3,0)+vSurface(Ib1,Ib2,Ib3,1)*normal2(Ib1,Ib2,Ib3,1));  
     }
   
   RealArray & surfaceVelocity = dbase.get<RealArray>("surfaceVelocity");

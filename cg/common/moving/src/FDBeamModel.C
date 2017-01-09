@@ -286,7 +286,9 @@ computeInternalForce(const RealArray& u, const RealArray& v, RealArray& f)
   
  const bool isPeriodic = bcLeft==periodic;
  if(isPeriodic)
-   {
+   { 
+     assert(bcRight==periodic);
+
      // -- assign values on the right boundary node
      u(numElem,0,0,0) = u(0,0,0,0);
 	      
@@ -296,7 +298,17 @@ computeInternalForce(const RealArray& u, const RealArray& v, RealArray& f)
      f(numElem+1,0,0,0) = f(1,0,0,0);
      f(numElem+2,0,0,0) = f(2,0,0,0);
    }
+ 
+ // Longfei 20170106: try directly compute fx and use that to fill in ghost points
+ if(bcRight==internalForceBC)
+   {
+     assert(bcLeft==internalForceBC);
+     f(-2,0,0,0)=0.;
+     f(numElem+2,0,0,0) =0;
+   }
 
+
+ 
 }
 
 
@@ -1193,7 +1205,32 @@ assignBoundaryConditions( real t, RealArray & u, RealArray & v, RealArray & a,co
 	   }
 	 else if( bc==internalForceBC )
 	   {
-	     // do nothing here for FDBeamModel
+	     // Longfei 20170106: fill in the ghost point using extrapolation for internalForce.
+	     //           the ghost point value is needed as we are using hermite interpolant to evalute internalForce
+	     //           interpolateSolution(internalForce, elemNum, eta, DDdisplacement, DDslope); where nodal values and slopes are needed.
+	     //           for FDBeamModel, we use centered finite difference to evaluate nodal slope, so at the beam ends, valid ghost values are needed.
+	     // NOTE: In this case, "a" represents the internalForce f
+
+	     //NOTE: this is better than direct extrapolation. But still not good enough! I will try directly evaluate fx inside of FDBeamModel::computeInternalForce()
+	     // We first extrapolate fx at the boudary and then compute the ghost from fx
+	     real fxm1, fx0,fx1,fx2,fx3;
+	     // (delta/12.*X(i-2,0,0,0)-(.5+delta/6.)*X(i-1,0,0,0)+(.5+delta/6.)*X(i+1,0,0,0)-(delta/12.)*X(i+2,0,0,0))/(is*dx);
+	     fx1 =( -a(ib,0,0,0)+a(ib+2*is,0,0,0))/(is*2.*dx);
+	     fx2 =( -a(ib+1*is,0,0,0)+a(ib+3*is,0,0,0))/(is*2.*dx);
+	     fx3 =( -a(ib+2*is,0,0,0)+a(ib+4*is,0,0,0))/(is*2.*dx);
+
+	     fx0= 3.*fx1-3.*fx2+fx3;
+	     fxm1= 3.*fx0-3.*fx1+fx2;
+	     
+	     a(ib-is,0,0,0) = a(ib+is,0,0,0)-is*2.*dx*fx0;  // ax is approximated by fx0, this determines the first ghost line
+	     a(ib-2*is,0,0,0) = a(ib,0,0,0)-is*2.*dx*fxm1;
+
+	     // CAN WE DO BETTER HERE???????????
+	     
+	     //TRIED THESE. NOTE: Direct Extrapolation for ghost was not good enough. 
+	     //a(ib-is,0,0,0)=3.*a(ib,0,0,0)-3.*a(ib+is,0,0,0)+a(ib+2*is,0,0,0);
+	     //a(ib-2*is,0,0,0)=3.*a(ib-is,0,0,0)-3.*a(ib,0,0,0)+a(ib+is,0,0,0);  
+	     
 	   }
 
 	      

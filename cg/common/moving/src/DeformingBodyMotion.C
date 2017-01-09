@@ -953,7 +953,7 @@ getAccelerationBC( const real time0, const int grid, const int side, const int a
 	if( useApproximateAMPcondition )
 	  addExternalForcing=false;  // for approx. AMP only compute Ls(eta)
 	else
-          addExternalForcing=true;   // for adjusted AMP include external forcing : Ls(eta) + f 
+          addExternalForcing=true;   // for adjusted AMP include external forcing : Ls(eta) + f = Abar*a
 
 	pBeamModel->getSurfaceInternalForce(time0, x0, bcAcceleration, normal, I1,I2,I3,addExternalForcing );
 
