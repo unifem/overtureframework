@@ -82,7 +82,7 @@ BeamModel::BeamModel()
   dbase.put<BeamModelEnum>("beamModel")=eulerBernoulliBeamModel; // set default to be eulerBernoulliBeamModel
 
   //Longfei 20170101: new option to indicate which normal to use when integrate the surface force/velocity
-  dbase.put<aString>("normalOption")="currentFluidNormal";  //"currentFluidNormal" or "initialBeamNormal" or "currentBeamNormal" TODO: put this in gui!!!
+  dbase.put<aString>("normalOption")="initialBeamNormal";  //"currentFluidNormal" or "initialBeamNormal" or "currentBeamNormal" TODO: put this in gui!!!
 
   
   // parameters can be changed in BeamModel::update()
@@ -2282,17 +2282,22 @@ projectInternalForce(const RealArray & internalForce,
   interpolateSolution(internalForce, elemNum, eta, DDdisplacement, DDslope);
   // interpolateSolution(ac, elemNum, eta, DDdisplacement, DDslope);
 
-  //Longfei 20170106====debug for useApproximateAMPcondition=1====
-  if(debug() & 32)
-    {
-      const int & numElem = dbase.get<int>("numElem");
-      if(elemNum==numElem-1 || elemNum==0) //check beam ends
-	{
-	  ::display(internalForce,"internalForce","%10.2e");
-	  printF("x0=%10.2e, y0=%10.2e, elemNum=%d, eta=%10.2e, DDdisplacement=%10.2e, DDslope=%10.2e\n",x0,y0, elemNum, eta, DDdisplacement, DDslope);
-	}
-    }
-  //====debug====
+  
+  // Longfei 20170109:
+  // ******* TEST piecewise linear interpolation for internalForce, i.e., L(eta) **********
+  // BoundaryConditionEnum * boundaryConditions = dbase.get<BoundaryConditionEnum[2]>("boundaryConditions");
+  // BoundaryConditionEnum & bcLeft = boundaryConditions[0];
+  // BoundaryConditionEnum & bcRight = boundaryConditions[1];
+  // if(bcLeft==internalForceBC)
+  //   {
+  //     assert(bcRight==internalForceBC);
+  //     printF("-- BM%i -- use piecewise linear interpolation for L(eta)\n", getBeamID());
+  //     bool useLinearInterp=true; //use piece wise linear interpolation to avoid the need of (L(eta))_x
+  //     interpolateSolution(internalForce, elemNum, eta, DDdisplacement, DDslope,useLinearInterp);
+  //   }
+
+
+
 
   
   //==================================================================
@@ -2308,6 +2313,18 @@ projectInternalForce(const RealArray & internalForce,
       DDdisplacement += DDslope*.5*(eta0-eta)*dx; // Here we extrapolate the internalForce along its tangent direction at the end if the point is outside of the beam domain (i.e., tip)
     }
   //==================================================================
+
+
+  //Longfei 20170106====debug for useApproximateAMPcondition=1====
+  if(debug() & 32)
+    {
+      const int & numElem = dbase.get<int>("numElem");
+      if(elemNum==numElem-1 || elemNum==0 ) //check beam ends
+	{
+	  printF("x0=%10.2e, y0=%10.2e, elemNum=%d, eta0=%10.2e, eta=%10.2e, DDdisplacement=%10.2e, DDslope=%10.2e\n",x0,y0, elemNum, eta0, eta, DDdisplacement, DDslope);
+	}
+    }
+  //====debug====
 
   // *************************************************
   // **************** CHECK ME ***********************
@@ -2701,7 +2718,7 @@ getSurfaceInternalForce( const real t0, const RealArray & x0, RealArray & fs,
       // Longfei 20160701: need to recompute acceleration since the velocity is changed after projecting the beam and fluid velocities at the interface
       //                   let internalForce to store the acceleration for now. Will multiply mass Abar to scale it back to force
       computeAcceleration( t, xc,vc,fe, internalForce, centerOfMassAcceleration, angularAcceleration, dt,tridiagonalSolverName );
-      internalForce*=Abar;
+      internalForce=Abar*internalForce;
     }
   else
     {
@@ -2709,9 +2726,9 @@ getSurfaceInternalForce( const real t0, const RealArray & x0, RealArray & fs,
       computeAcceleration( t, xc,vc,fe, internalForce, centerOfMassAcceleration, angularAcceleration, dt,tridiagonalSolverName );
       // here we dont need to scale internalForce with Abar, since the internalForceBC will tell computeAcceleration we are computing a
       // force not an acceleration.
-      if(false)
+      if(debug()&32)
 	{
-	  ::display(internalForce,"Hello","%10.3e");
+	  ::display(internalForce,"internalForce","%10.2e");
 	}
     }
   
@@ -3095,7 +3112,8 @@ projectPoint(const real& x0,const real& y0,
 void BeamModel::
 interpolateSolution(const RealArray& X,
 		    int& elemNum, real& eta,
-		    real& displacement, real& slope) 
+		    real& displacement, real& slope,
+		    bool useLinearInterp/*=false*/ ) 
 {
 
   //Longfei 20160121: new way of handling parameters
@@ -3175,12 +3193,22 @@ interpolateSolution(const RealArray& X,
       Xslope[1]=(delta/12.*X(i-2,0,0,0)-(.5+delta/6.)*X(i-1,0,0,0)+(.5+delta/6.)*X(i+1,0,0,0)-(delta/12.)*X(i+2,0,0,0))/le;
     }
 
+  //Longfei 20170109: add an option to use piecewise linear interp
+  if(!useLinearInterp)
+    {
+      displacement = sf[0]*Xsolution[0]+sf[1]*Xslope[0]+
+	sf[2]*Xsolution[1] +sf[3]*Xslope[1] ;
+      slope = sfd[0]*Xsolution[0]+sfd[1]*Xslope[0]+
+	sfd[2]*Xsolution[1] +sfd[3]*Xslope[1];
+    }
+  else
+    {  
+      real lf[2] = {-0.5*(eta-1),0.5*(eta+1)};     //linear basis functions
+      real lfd[2]= {-0.5,0.5};     // slope of basis functions 
 
-  displacement = sf[0]*Xsolution[0]+sf[1]*Xslope[0]+
-    sf[2]*Xsolution[1] +sf[3]*Xslope[1] ;
-  slope = sfd[0]*Xsolution[0]+sfd[1]*Xslope[0]+
-    sfd[2]*Xsolution[1] +sfd[3]*Xslope[1];
-
+      displacement = lf[0]*Xsolution[0] + lf[1]*Xsolution[1];
+      slope =  lfd[0]*Xsolution[0] + lfd[1]*Xsolution[1];
+    }
 }
 
 

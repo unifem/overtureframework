@@ -1538,8 +1538,11 @@ initialize( CompositeGrid & cg, real t /* = 0. */ )
         x0=vertex(Ib1,Ib2,Ib3,Rx);
 
 	if( debug & 3 )
-	  ::display(x0,"--DBM-- initialize: elasticBeam: x0 (initial state)","%8.2e ");
-
+	  {
+	    printF("Ib1.getBase()=%d,Ib1.getBound()=%d,Ib2.getBase()=%d,Ib2.getBound()=%d, Ib3.getBase()=%d,Ib3.getBound()=%d\n",
+		   Ib1.getBase(),Ib1.getBound(), Ib2.getBase(),Ib2.getBound(), Ib3.getBase(),Ib3.getBound());
+	    ::display(x0,"--DBM-- initialize: elasticBeam: x0 (initial state)","%8.2e ");
+	  }
 
         assert( pBeamModel!=NULL );
 
@@ -4561,7 +4564,7 @@ buildBeamFluidInterfaceData( CompositeGrid & cg )
              " You could shorten the length of the beam to lie inside the fluid grid\n"
            ,sMin,sMax);
 
-      OV_ABORT("ERROR");
+      //      OV_ABORT("ERROR");
       
     }
     

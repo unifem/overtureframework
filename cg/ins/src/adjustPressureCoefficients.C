@@ -10,6 +10,7 @@
 #include "Integrate.h"
 #include "RigidBodyMotion.h"
 
+#include "BeamModel.h"
 // ==================================================================================================
 /// \brief Return the equation number in the sparse matrix of a particular "extra equation"
 // ==================================================================================================
@@ -179,7 +180,7 @@ adjustPressureCoefficients(CompositeGrid & cg0, GridFunction & cgf  )
 	  intArray & equationNumber0 = sparse0.equationNumber;
 	  intArray & classify0 = sparse0.classify;
 
-	  MappedGrid & mg0 = cg0[grid0];
+	  MappedGrid & mg0 = cg0[grid0]; // grid of the current boundary point
 	  const IntegerArray & gid0 = mg0.gridIndexRange();
 
 	  for( int axis=0; axis<3; axis++ ){ iv[axis]=gid0(0,axis); } //
@@ -205,7 +206,7 @@ adjustPressureCoefficients(CompositeGrid & cg0, GridFunction & cgf  )
 	    intArray & equationNumber1 = sparse1.equationNumber;
 	    intArray & classify1 = sparse1.classify;
 
-	    MappedGrid & mg1 = cg0[grid1];
+	    MappedGrid & mg1 = cg0[grid1];  // grid of donor
 
 	    // loop over points with the same donor grid
 	    for( ; i<=I0.getBound(); i++ ) // NOTE: this increments "i" from the outer loop
@@ -253,6 +254,63 @@ adjustPressureCoefficients(CompositeGrid & cg0, GridFunction & cgf  )
 	      coeff0(me,i1m,i2m,i3m)=-1.;
 	      equationNumber0(me,i1m,i2m,i3m)=equationNumber1(md,j1m,j2m,j3m);  // -1 multiplies eqn1
 	    
+	      // Longfei 20170110: try fix the PBF method: 
+	      // The AMP condition for this case is
+	      // n^T n0 n2^T(p*n+p_d*nd)+ (rhos*hs/rho)*p.n = rhs,
+	      // where n is the normal of the current boundary point, nd is the normal of its donor
+	      // and n0 is the initial beam normal and n2 is the normal used to project the fluid force onto the beam centerline
+	      // So the coeff of p is nDotn0*n2Dotn
+	      // and the coeff of p_d is nDotn0*n2Dotnd
+	      const bool & useApproximateAMPcondition = parameters.dbase.get<bool>("useApproximateAMPcondition");
+	      bool fixCoeff=false;  
+	      if( useApproximateAMPcondition && fixCoeff ) // PBF method
+		{
+		  cout << "--adjustPressureCoefficients--: use the fix for useApproximateAMPcondition\n";
+		  //NOTE: for convience, I put everything needed here. It might not be efficient. 
+		  
+		  realSerialArray & normal = mg0.vertexBoundaryNormal(side0,axis0);
+		  realSerialArray & normalDonor = mg1.vertexBoundaryNormal(side1,axis1);
+
+		  DeformingBodyMotion & deform = movingGrids.getDeformingBody(body);
+		  BeamModel & beamModel = deform.getBeamModel();
+		  DataBase & beamDbase = beamModel.dbase;
+
+		  vector<RealArray*> & surfaceArray = deformingBodyDataBase.get<vector<RealArray*> >("surfaceArray");
+		  assert( face<surfaceArray.size() );
+		  RealArray *px = surfaceArray[face];
+		  RealArray &x0 = px[0], &x1 = px[1], &x2=px[2];
+		  
+		  Index Ib1,Ib2,Ib3;
+		  getGhostIndex( mg0.extendedIndexRange(),side0,axis0,Ib1 ,Ib2 ,Ib3 ,0);     // boundary line
+		  RealArray normal2=normal; // normal used for project the force onto the beam centerline
+		  const aString & normalOption = beamDbase.get<aString>("normalOption"); 
+		  beamModel.getCurrentNormalForProjection(cgf.t,x0,normal2,Ib1,Ib2,Ib3,normalOption);
+		  const real *initialBeamNormal = beamDbase.get<real[2]>("initialBeamNormal");
+		  
+		  // overwrites the coeficient of p. It was 1 so subtract 1 and add the new coeff: n^T n_0 n2^T*n
+		  // NOTE the fluid normal are always at the boundary points (i1,i2,i3), donorNormal is at (j1,j2,j3)
+		  real nDotn0 = normal(i1,i2,i3,0)*initialBeamNormal[0]+ normal(i1,i2,i3,1)*initialBeamNormal[1]; 
+		  real n2Dotn = normal2(i1,i2,i3,0)*normal(i1,i2,i3,0)+normal2(i1,i2,i3,1)*normal(i1,i2,i3,1);
+		  real n2Dotnd= normal2(i1,i2,i3,0)*normalDonor(j1,j2,j3,0)+normal2(i1,i2,i3,1)*normalDonor(j1,j2,j3,1);
+		  //coeff of p
+		  
+		  if(false)
+		    {
+		      printF("x=%10.2e,y=%10.2e,nDotn0=%10.2e,n2Dotn=%10.2e,n2Dotnd=%10.2e\n",x0(i1,i2,i3,0),x0(i1,i2,i3,1),nDotn0,n2Dotn,n2Dotnd);
+		  
+		      cout<<"before overwrite: coeff0(md,i1m,i2m,i3m)=" << coeff0(md,i1m,i2m,i3m) << endl;
+		      cout<<"before overwrite: coeff0(me,i1m,i2m,i3m)=" << coeff0(me,i1m,i2m,i3m) << endl;
+
+		      coeff0(md,i1m,i2m,i3m) = coeff0(md,i1m,i2m,i3m)-1.+nDotn0*n2Dotn;
+
+		      //coeeff of p_d (the donor)
+		      coeff0(me,i1m,i2m,i3m)= coeff0(me,i1m,i2m,i3m)+1.+nDotn0*n2Dotnd;
+		      cout<<"after overwrite: coeff0(md,i1m,i2m,i3m)=" << coeff0(md,i1m,i2m,i3m) << endl;
+		      cout<<"after overwrite: coeff0(me,i1m,i2m,i3m)=" << coeff0(me,i1m,i2m,i3m) << endl;
+		    }
+		}
+	      
+
 	      // // add a "-1" coefficient to the AMP Robin BC on grid1
 	      // assert( coeff1(me,j1m,j2m,j3m)==0. );
 	      // coeff1(me,j1m,j2m,j3m)=-1.;

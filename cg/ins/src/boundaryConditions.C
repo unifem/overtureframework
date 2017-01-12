@@ -177,8 +177,8 @@ gridAccelerationBC(const int & grid,
 	    
 	    if(false){::display( fLocal(I1g,I2g,I3g),"before adding opposite contribution:","%10.2e");}
 
-	    bool addOppositeContribution=true;
-	    if(addOppositeContribution)
+	    bool addDonorContribution=true;
+	    if(addDonorContribution)
 	    {
 	      // *NEW WAY*
 
@@ -244,7 +244,7 @@ gridAccelerationBC(const int & grid,
 				  int i1m=i1-is1, i2m=i2-is2, i3m=i3-is3; //  ghost point is (i1m,i2m,i3m)
 				  fLocal(i1m,i2m,i3m) -= (normal(i1,i2,i3,0)*stressLocal(j1,j2,j3,0) +  
 							  normal(i1,i2,i3,1)*stressLocal(j1,j2,j3,1) ) 
-				    +fluidDensity*uLocal(j1,j2,j3,pc);
+				    -fluidDensity*uLocal(j1,j2,j3,pc)*(normal(i1,i2,i3,0)*normal(j1,j2,j3,0)+normal(i1,i2,i3,1)*normal(j1,j2,j3,1));
 				  if(false)
 				    {
 				      printF("i1m=%d, i2m=%d, i3m=%d, i1=%d, i2=%d, i3=%d, j1=%d, j2=%d, j3=%d\n",i1m,i2m,i3m,i1,i2,i3,j1,j2,j3);
@@ -425,7 +425,10 @@ gridAccelerationBC(const int & grid,
 	}
       
       } // end else adjusted AMP
-      
+      if(false)
+	{
+	  ::display( fLocal(I1g,I2g,I3g),sPrintF("rhs of AMP pressure bc (useApproximateAMPcondition=%i)",useApproximateAMPcondition),"%10.2e");
+	}
     } // end if useAddedMass
     
     

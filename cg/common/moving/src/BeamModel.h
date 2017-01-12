@@ -500,6 +500,7 @@ public:
 
   // allow TestBeamModel to access everything
   friend class TestBeamModel; 
+  friend class Cgins; // allow Cgins to access dbase
 
   // Longfei 20160115: make everything public for now...
   //  ---------------------------------- PRIVATE ---------------------------------------------------------
@@ -533,9 +534,11 @@ public:
   // displacement: displacement at this point [out]
   // slope:        slope at this point [out]
   //
+  // Longfei 20170109: add a default flag useLinearInterp
   void interpolateSolution(const RealArray& X,
-				   int& elemNum, real& eta,
-				   real& displacement, real& slope);
+			   int& elemNum, real& eta,
+			   real& displacement, real& slope, 
+			   bool useLinearInterp=false);
 
 
 
