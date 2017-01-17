@@ -826,7 +826,7 @@ getVelocityBC( const real time0, const int grid, MappedGrid & mg, const Index &I
     UserDefinedDeformingBodyMotionEnum & userDefinedDeformingBodyMotionOption = 
       deformingBodyDataBase.get<UserDefinedDeformingBodyMotionEnum>("userDefinedDeformingBodyMotionOption");
 
-    if( userDefinedDeformingBodyMotionOption==elasticBeam )
+    if( userDefinedDeformingBodyMotionOption==elasticBeam)
     {
       // printF("-- DBM --- DeformingBodyMotion::getVelocityBC for the elasticBeam t=%9.3e\n",time0);
 
@@ -842,6 +842,7 @@ getVelocityBC( const real time0, const int grid, MappedGrid & mg, const Index &I
 	
       const bool adjustEnds=true; // adjust ends of pinned/clamped boundaries so they don't move
       pBeamModel->getSurfaceVelocity( time0,x0,bcVelocity, I1,I2,I3, adjustEnds );
+
 
       return 0;
     }
@@ -2983,7 +2984,13 @@ advanceElasticBeam(real t1, real t2, real t3,
     }
     else if( numberOfDimensions==3)
     {
-      OV_ABORT("DBM : ERROR - finish me for 3D");
+      //OV_ABORT("DBM : ERROR - finish me for 3D");
+      //Longfei 20170112: we donot pass surface force to the beam for now.
+      //                  we try to use a TZBeam, so that the fluid and Beam are decoupled for now....
+      printF("DBM : Warning!!!! For  now zero surface force is passed to the beam model for 3D case! We use a tzbeam so that fluid and beam are decoupled for now!!!\n");
+      printF("DBM : COME BACK FINISH ME!!!!!!!\n");
+      stressLocal*=0.;
+      pBeamModel->setSurfaceForce( tForce,x0,stressLocal,normal2,Ib1,Ib2,Ib3 );
     }
     
   } // end for face
@@ -3005,58 +3012,54 @@ advanceElasticBeam(real t1, real t2, real t3,
   // --- Update start curves for hyperbolic mappings ---
   // ---------------------------------------------------
   for( int face=0; face<numberOfFaces; face++ )
-  {
-    int sideToMove=boundaryFaces(0,face);
-    int axisToMove=boundaryFaces(1,face);
-    int gridToMove=boundaryFaces(2,face); 
-
-    // Here is the start curve for the hyperbolic mapping:
-    assert( face<surface.size() );
-    NurbsMapping & startCurve = *((NurbsMapping*)surface[face]);
-
-    // The undeformed surface, x0,  is stored here: 
-    assert( face<surfaceArray.size() );
-    RealArray *px = surfaceArray[face];
-    RealArray &x0 = px[0];
-    assert( face<surfaceArrayTime.size() );
-    real & tx0= surfaceArrayTime[face][0];
-
-
-    // --- The current surface position and velocity are stored in the GridFunction data-base here:
-    sPrintF(beamDirName,"beam%iFace%i",beamID,face);
-
-    // --- FIRST time through allocate space for the arrays: ----
-    const int numGhost=0;  // include ghost points 
-    for( int m=0; m<3; m++ )
     {
-      GridFunction & gf = m==0 ? cgf1 : m==1 ? cgf2 : cgf3;
-      if( !gf.dbase.has_key(beamDirName) )
-      {
-        gf.dbase.put<DataBase>(beamDirName);  // save beam arrays here 
-        DataBase & beamDataBase = gf.dbase.get<DataBase>(beamDirName);
-	// note: include ghost points:
-	getBoundaryIndex(cgf1.cg[gridToMove].gridIndexRange(),sideToMove,axisToMove,Ib1,Ib2,Ib3,numGhost);
+      int sideToMove=boundaryFaces(0,face);
+      int axisToMove=boundaryFaces(1,face);
+      int gridToMove=boundaryFaces(2,face); 
 
-	beamDataBase.put<RealArray>("beamBoundaryLocation");
-	RealArray & xbb = beamDataBase.get<RealArray>("beamBoundaryLocation");
-	xbb = x0;  // initial values -- this will dimension xbb
-      }
-    }
+      // Here is the start curve for the hyperbolic mapping:
+      assert( face<surface.size() );
+      NurbsMapping & startCurve = *((NurbsMapping*)surface[face]);
 
-    getBoundaryIndex(cgf1.cg[gridToMove].gridIndexRange(),sideToMove,axisToMove,Ib1,Ib2,Ib3);
+      // The undeformed surface, x0,  is stored here: 
+      assert( face<surfaceArray.size() );
+      RealArray *px = surfaceArray[face];
+      RealArray &x0 = px[0];
+      assert( face<surfaceArrayTime.size() );
+      real & tx0= surfaceArrayTime[face][0];
 
-    Range Rx=numberOfDimensions;
 
-    RealArray & xbb = cgf2.dbase.get<DataBase>(beamDirName).get<RealArray>("beamBoundaryLocation");
-    RealArray & xbb3 = cgf3.dbase.get<DataBase>(beamDirName).get<RealArray>("beamBoundaryLocation");
-    xbb3 = xbb;    
+      // --- The current surface position and velocity are stored in the GridFunction data-base here:
+      sPrintF(beamDirName,"beam%iFace%i",beamID,face);
 
-    if( numberOfDimensions==2 )
-    {
+      // --- FIRST time through allocate space for the arrays: ----
+      const int numGhost=0;  // include ghost points 
+      for( int m=0; m<3; m++ )
+	{
+	  GridFunction & gf = m==0 ? cgf1 : m==1 ? cgf2 : cgf3;
+	  if( !gf.dbase.has_key(beamDirName) )
+	    {
+	      gf.dbase.put<DataBase>(beamDirName);  // save beam arrays here 
+	      DataBase & beamDataBase = gf.dbase.get<DataBase>(beamDirName);
+	      // note: include ghost points:
+	      getBoundaryIndex(cgf1.cg[gridToMove].gridIndexRange(),sideToMove,axisToMove,Ib1,Ib2,Ib3,numGhost);
 
-      assert( uc>=0 && vc>=0 && pc>=0 );
-      int axisp = (axisToMove + 1) % numberOfDimensions;  // axis in the tangential direction 
-      assert(axisp != 2);
+	      beamDataBase.put<RealArray>("beamBoundaryLocation");
+	      RealArray & xbb = beamDataBase.get<RealArray>("beamBoundaryLocation");
+	      xbb = x0;  // initial values -- this will dimension xbb
+	    }
+	}
+
+      getBoundaryIndex(cgf1.cg[gridToMove].gridIndexRange(),sideToMove,axisToMove,Ib1,Ib2,Ib3);
+
+      Range Rx=numberOfDimensions;
+
+      RealArray & xbb = cgf2.dbase.get<DataBase>(beamDirName).get<RealArray>("beamBoundaryLocation");
+      RealArray & xbb3 = cgf3.dbase.get<DataBase>(beamDirName).get<RealArray>("beamBoundaryLocation");
+      xbb3 = xbb;    
+
+
+      // Longfei 20170113: made changes for 3d
 
       // Determine the current location of a point on the beam surface (not the neutral axis)
       //  x0 (input) :  location of surface point on the undeformed beam 
@@ -3064,9 +3067,24 @@ advanceElasticBeam(real t1, real t2, real t3,
       const bool adjustEnds=true; // adjust ends of pinned/clamped boundaries so they don't move
       pBeamModel->getSurface( t3, x0, xbb, Ib1,Ib2,Ib3,adjustEnds );
 
-      int xxx =xbb.dimension(axisp).length();
-      xbb.reshape(xbb.dimension(axisp),Rx);
-	
+      if( numberOfDimensions==2 )
+	{
+	  assert( uc>=0 && vc>=0 && pc>=0 );
+	  int axisp = (axisToMove + 1) % numberOfDimensions;  // axis in the tangential direction 
+	  assert(axisp != 2);
+
+	  // int xxx =xbb.dimension(axisp).length(); // Longfei 20170115: xxx seems unused. Removed
+	  xbb.reshape(xbb.dimension(axisp),Rx); // reshape to define startCurve
+	}
+      else if( numberOfDimensions==3)
+	{
+	  // Longfei 20170116:
+	  int axisp1 = (axisToMove + 1) % numberOfDimensions;  
+	  int axisp2 = (axisToMove + 2) % numberOfDimensions;  
+	  xbb.reshape(xbb.dimension(axisp1),xbb.dimension(axisp2),Rx);
+	}
+
+
 #ifdef USE_PPP
       Overture::abort("fix me");
 #else
@@ -3081,16 +3099,11 @@ advanceElasticBeam(real t1, real t2, real t3,
       getBoundaryIndex(cgf1.cg[gridToMove].gridIndexRange(),sideToMove,axisToMove,Ib1,Ib2,Ib3,numGhost);
       xbb.reshape(Ib1,Ib2,Ib3,Rx);
 
-    }
-    else if( numberOfDimensions==3)
-    {
-      OV_ABORT("DBM : ERROR - finish me for 3D");
-    }
 	
-    tx0=t3; // x0 points now live at this time
+      tx0=t3; // x0 points now live at this time
 
     
-  } // end for face
+    } // end for face
   
   return ierr;
 }

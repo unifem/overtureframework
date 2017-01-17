@@ -140,6 +140,11 @@ public:
   // assign initial conditions
   int assignInitialConditions( real t, RealArray & u, RealArray & v, RealArray & a );
 
+
+  // Longfei 20170113: new function to build beam reference frame (i.e., setup initialBeamtangent, normal, binormal if 3d)
+  int buildBeamReferenceFrame(); 
+  
+  
   // Longfei 20160115: applies to all derived beam models. 
   // make it non-virtual for now.
   // choose an exact solution
@@ -268,6 +273,13 @@ public:
   // Longfei 20160127: get current time
   real getCurrentTime() const;
 
+  
+  // Longfei 20170103: get the "normal" for the beam surface point that is used for
+  // projection. We can choose from 3 options: currentFluidNormal, initialBeamNormal, currentBeamNormal
+  int getCurrentNormalForProjection(const real t, const RealArray & x0,  RealArray & normal, 
+			     const Index & Ib1, const Index & Ib2,  const Index & Ib3, 
+			     const aString & normalOption);
+  
 
   // Longfei 20160117: applies to all derived beam models. 
   // make it non-virtual for now.
@@ -310,12 +322,6 @@ public:
   real getMaximumRelativeCorrection() const;
 
 
-  // Longfei 20170103: get the "normal" for the beam surface point that is used for
-  // projection. We can choose from 3 options: currentFluidNormal, initialBeamNormal, currentBeamNormal
-  int getCurrentNormalForProjection(const real t, const RealArray & x0,  RealArray & normal, 
-			     const Index & Ib1, const Index & Ib2,  const Index & Ib3, 
-			     const aString & normalOption);
-  
 
   // Longfei 20160120: this should apply to all beam models
   // return the number of elements
@@ -332,6 +338,10 @@ public:
   // return the value of a real  parameter
   int getParameter( const aString & name, real & value ) const;
 
+  // Longfei 20170115:
+  int getRotationMatrix3D( RealArray & R, real * u, real * uslope, const real t, 
+			   const RealArray& X, const real* X0, const int ntd);
+  
   // Longfei 20160117: this should apply to all beam models. modifications are made for FDBeamModel
   // evaluate the standing wave solution.
   int getStandingWave( real t, RealArray & u, RealArray & v, RealArray & a ) const;
@@ -400,6 +410,12 @@ public:
   void projectDisplacement(const real t, const RealArray& X, const real& x0, const real& y0, real& x, real& y,
 			   bool clipToBounds=true   );
 
+  //Longfei 20170113: 3D version
+  // Return the displacement (position) of the point on the surface (not the neutral axis)
+  // of the beam of the point whose undeformed location is (x0,y0,z0).
+  void projectDisplacement3D(const real t, const RealArray& X, const real& x0, const real& y0, const real& z0,
+			   real& x, real& y,real& z, bool clipToBounds=true   );
+  
   // Return the acceleration of the point on the surface (not the neutral axis)
   // of the beam of the point whose undeformed location is (x0,y0).
   void projectAcceleration(const real t, const real& x0, const real& y0, real& ax, real& ay);
@@ -562,10 +578,13 @@ public:
   real norm( RealArray & u ) const;
 
   // Return the element, thickness, and natural coordinate for
-  // a point (x0,y0) on the undeformed SURFACE of the beam
+  // a point x0[d] on the undeformed SURFACE of the beam
   void projectPoint(const real& x0,const real& y0,
-		    int& elemNum, real& eta, real& halfThickness,
+  		    int& elemNum, real& eta, real& halfThickness,
                     bool clipToBounds=true);
+
+  // Longfei 20170113: 
+  void projectPoint3D(const real* x0, int& elemNum, real& eta, bool clipToBounds=true);
 
   
   // For internal use with free motion.  Recomputes the normal and tangent vectors

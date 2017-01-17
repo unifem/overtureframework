@@ -322,7 +322,7 @@ getTravelingWaveFSI( real t, RealArray & u, RealArray & v, RealArray & a ) const
   // Longfei 20160118:
   // dimension should be updated  already!
   assert(u.getLength(0)!=0 && v.getLength(0)!=0 && a.getLength(0)!=0);
-  assert(dbase.get<int>("numberOfSolutionComponents")==1); //BeamEigenmode exact solution works for beam moving  in 1 direction
+  //assert(dbase.get<int>("numberOfSolutionComponents")==1); //BeamEigenmode exact solution works for beam moving  in 1 direction
 
  
 

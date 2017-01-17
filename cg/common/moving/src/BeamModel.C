@@ -72,10 +72,12 @@ BeamModel::BeamModel()
   
   dbase.put<int>("debug")=1; 
   dbase.put<int>("domainDimension")=1;   //Longfei: For now this cannot be changed. We might need to add this to gui update if we decide use the beam class for shell in the future
-           
+
+  // parameters determine the number of solution components
   dbase.put<int>("rangeDimension")=2;              // 2 or 3 dimenional problems
   dbase.put<bool>("allowAxialDeformation")=false; // Longfei 20161220: add this flag to control number of deformation varibles
   dbase.put<bool>("allowTwist")=false;            // we might need add twist into the model in the future
+  
 
   dbase.put<int>("beamID")=globalBeamCounter; //  a unique ID 
   dbase.put<aString>("name")="none";
@@ -100,15 +102,16 @@ BeamModel::BeamModel()
   dbase.put<real>("Kxxt")=0.;     //  coefficient of w_{xxt} 
   dbase.put<real>("ADxxt")=0.;    //  artificial dissipation coefficient
   dbase.put<real>("cfl")=10.;  // scale explicit dt by this cfl number (scheme is implicit)
-  dbase.put<real[3]>("beamXYZ");  //[beamX0,beamY0,beamZ0]
-  real *beamXYZ = dbase.get<real[3]>("beamXYZ"); 
-  for( int i=0; i<3; i++ ){ beamXYZ[i]=0.; } //initialize to be [0,0,0]
-  dbase.put<real>("beamInitialAngle") = 0.0;  // angle of undeformed beam 
+  dbase.put<vector<real> >("beamXYZ");  //[beamX0,beamY0,beamZ0]
+  vector<real> & beamXYZ = dbase.get<vector<real> >("beamXYZ"); 
+  for( int i=0; i<3; i++ ){ beamXYZ.push_back(0.); } //initialize to be [0,0,0]
+  dbase.put<real>("beamInitialAngle") = -99999.99;  // angle of undeformed beam (rad) //Longfei 20170113: this variable is replaced by specifying initial tangent vector. Kept here for backward compatibility
   dbase.put<real>("newmarkBeta") = 0.25;
   dbase.put<real>("newmarkGamma") = 0.5;
-  dbase.put<BoundaryConditionEnum[2]>("boundaryConditions");
-  dbase.get<BoundaryConditionEnum[2]>("boundaryConditions")[0]=pinned; //initialize bcLeft
-  dbase.get<BoundaryConditionEnum[2]>("boundaryConditions")[1]=pinned; //initialize bcRight
+  dbase.put<vector<BoundaryConditionEnum> >("boundaryConditions");
+  vector<BoundaryConditionEnum> & boundaryConditions =  dbase.get<vector<BoundaryConditionEnum> >("boundaryConditions");
+  boundaryConditions.push_back(pinned); //initialize bcLeft
+  boundaryConditions.push_back(pinned); //initialize bcRight
   dbase.put<aString>("initialConditionOption")="none";
   dbase.put<aString>("exactSolutionOption")="none";
   //dbase.put<bool>("useNewTridiagonalSolver")=true;  //Longfei 20160219: removed. Only new triSolver is used. No longer need this flag
@@ -194,17 +197,42 @@ BeamModel::BeamModel()
 
   // Longfei 20160122:
   // these parameters needs to be modified for 3D problems. Will be back...
-  dbase.put<real[2]>("initialBeamTangent");
-  dbase.put<real[2]>("initialBeamNormal");
-  real * initialBeamTangent = dbase.get<real[2]>("initialBeamTangent");
-  initialBeamTangent[0]=1.0;      // -- beam is by default horizontal --
-  initialBeamTangent[1] = 0.0;
-  real * initialBeamNormal = dbase.get<real[2]>("initialBeamNormal");
-  initialBeamNormal[0]=0.0;      // -- beam is by default horizontal --
-  initialBeamNormal[1] = 1.0;
-  dbase.put<real[2]>("bodyForce");
-  real * bodyForce =  dbase.get<real[2]>("bodyForce");
-  bodyForce[0] = bodyForce[1] = 0.0;
+  // Longfei 20170113: use vector to hold the initialBeamTangent, initialBeamNormal
+  // new:
+  dbase.put<vector<real> >("initialBeamTangent"); 
+  dbase.put<vector<real> >("initialBeamNormal");
+  dbase.put<vector<real> >("initialBeamBinormal");   // this is needed by 3d problem. By default set it to be zero
+
+  vector<real> & initialBeamTangent = dbase.get<vector<real> >("initialBeamTangent");
+  vector<real> & initialBeamNormal = dbase.get<vector<real> >("initialBeamNormal");
+  vector<real> & initialBeamBinormal = dbase.get<vector<real> >("initialBeamBinormal");
+
+   // -- beam is by default horizontal in xy plane --
+  // T=[1,0,0]; N=[0,1,0]; B=[0,0,0];
+  initialBeamTangent.push_back(1.0);
+  initialBeamTangent.push_back(0.0);
+  initialBeamTangent.push_back(0.0);
+  
+  initialBeamNormal.push_back(0.0);
+  initialBeamNormal.push_back(1.0);
+  initialBeamNormal.push_back(0.0);
+  
+  initialBeamBinormal.push_back(0.0);
+  initialBeamBinormal.push_back(0.0);
+  initialBeamBinormal.push_back(0.0);
+
+
+  // old:
+  // real * initialBeamTangent = dbase.get<real[2]>("initialBeamTangent");
+  // initialBeamTangent[0]=1.0;      // -- beam is by default horizontal --
+  // initialBeamTangent[1] = 0.0;
+  // real * initialBeamNormal = dbase.get<real[2]>("initialBeamNormal");
+  // initialBeamNormal[0]=0.0;      // -- beam is by default horizontal --
+  // initialBeamNormal[1] = 1.0;
+  
+  dbase.put<vector<real> >("bodyForce");
+  vector<real> & bodyForce =  dbase.get<vector<real> >("bodyForce");
+  for(int i=0;i<3;i++){bodyForce.push_back(0.);}
   dbase.put<real>("signForNormal") = 1.;  // flip sign of normal using this parameter
 
 
@@ -254,7 +282,7 @@ BeamModel::BeamModel()
   dbase.put<real>("smoothOmega")=1.;  // parameter in filter, normaLLY <= 1
 
   // For initial conditions: 
-  dbase.put<real>("amplitude")=0.1;
+  dbase.put<real>("amplitude")=0.1; // tz trig
   dbase.put<real>("waveNumber")=1.0;
 
   // For scaling displacement when plotting
@@ -269,9 +297,14 @@ BeamModel::BeamModel()
   if( !dbase.has_key("twilightZoneOption") ) dbase.put<int>("twilightZoneOption")=0;
 
   // Frequencies for trig TZ: 
-  if( !dbase.has_key("trigFreq") ) dbase.put<real[4]>("trigFreq");   // ft, fx, fy, [fz]
-  real *trigFreq = dbase.get<real[4]>("trigFreq");
-  for( int i=0; i<4; i++ ){ trigFreq[i]=2.;  }
+  if( !dbase.has_key("trigFreq") ) dbase.put<vector<real> >("trigFreq");   // ft, fx, fy, [fz]
+  vector<real> &trigFreq = dbase.get<vector<real> >("trigFreq");
+  for( int i=0; i<4; i++ ){ trigFreq.push_back(2.);  }
+
+  // Longfei 20170115: shifts for trig TZ:
+  if( !dbase.has_key("trigShift") ) dbase.put<vector<real> >("trigShift");   // gt, gx, gy, [gz]
+  vector<real> &trigShift = dbase.get<vector<real> >("trigShift");
+  for( int i=0; i<4; i++ ){ trigShift.push_back(0.);  }
 
   dbase.put<real>("standingWaveTimeOffset")=0.; // time offset for standing wave solution
 
@@ -315,7 +348,6 @@ BeamModel::BeamModel()
 
 
   // projectedBodyForce = 0.0;
-
   for (int k = 0; k < 2; ++k) {
 
     normal[k] = initialBeamNormal[k];
@@ -619,12 +651,15 @@ addToElementIntegral( const real & tf,
   const real & le = dbase.get<real>("elementLength");
   const real & L = dbase.get<real>("length");
   const real & pressureNorm = dbase.get<real>("pressureNorm");
-  const real * beamXYZ = dbase.get<real[3]>("beamXYZ");
+  const vector<real> & beamXYZ = dbase.get<vector<real> >("beamXYZ");
   const real & beamX0 = beamXYZ[0];
   const real & beamY0 = beamXYZ[1];
   const real & beamZ0 = beamXYZ[2];
-  const  real * initialBeamTangent = dbase.get<real[2]>("initialBeamTangent");
-  const  real * initialBeamNormal = dbase.get<real[2]>("initialBeamNormal");
+  //Longfei 20170113: initialBeamTangent and initialBeamNormal are now represented using vector
+  //const  real * initialBeamTangent = dbase.get<real[2]>("initialBeamTangent");
+  //const  real * initialBeamNormal = dbase.get<real[2]>("initialBeamNormal");
+  const  vector<real> & initialBeamTangent = dbase.get< vector<real> >("initialBeamTangent");
+  const  vector<real> & initialBeamNormal = dbase.get<  vector<real> >("initialBeamNormal");
   
   real x0_1=x1[0], y0_1=x1[1], p1=f1, p1x=f1x;
   real x0_2=x2[0], y0_2=x2[1], p2=f2, p2x=f2x;
@@ -1009,6 +1044,10 @@ initialize()
   const aString & exactSolutionOption=dbase.get<aString>("exactSolutionOption");
   const int & numOfGhost = dbase.get<int>("numberOfGhostPoints");
 
+  
+  //Longfei 20170113: new function to build beam reference frame (initialBeam tangent, normal, binormal if 3d)
+  buildBeamReferenceFrame(); 
+  
 
 
   // initialize other parameters
@@ -1131,7 +1170,7 @@ initialize()
       u.push_back(RealArray(I1,I2,I3,C)); 
       v.push_back(RealArray(I1,I2,I3,C)); 
       a.push_back(RealArray(I1,I2,I3,C)); 
-      f.push_back(RealArray(I1,I2,I3,C));
+      f.push_back(RealArray(I1,I2,I3,C)); 
       u.back()=0.;
       v.back()=0.;
       a.back()=0.;
@@ -1221,12 +1260,15 @@ initTwilightZone()
     {
       // printF("-- BM -- TwilightZone: trigonometric.\n");
 
-      real *trigFreq = dbase.get<real[4]>("trigFreq");  // ft, fx, fy, [fz]
+      vector<real> &trigFreq = dbase.get<vector<real> >("trigFreq");  // ft, fx, fy, [fz]
       const real omega[4]={trigFreq[1],trigFreq[2],trigFreq[3],trigFreq[0]};
+      // Longfei 20170116: add trigShift to get more control of the tztrig function
+      vector<real> &trigShift = dbase.get<vector<real> >("trigShift");  // gt, gx, gy, [gz]
+      const real gamma[4]={trigShift[1],trigShift[2],trigShift[3],trigShift[0]};
+
 
       RealArray fx( numberOfTZComponents),fy( numberOfTZComponents),fz( numberOfTZComponents),ft( numberOfTZComponents);
       RealArray gx( numberOfTZComponents),gy( numberOfTZComponents),gz( numberOfTZComponents),gt( numberOfTZComponents);
-      gx=0.; gy=0.; gz=0.; gt=0.;
       RealArray amplitude( numberOfTZComponents), cc( numberOfTZComponents);
       amplitude= dbase.get<real>("amplitude");
       cc=0.;
@@ -1235,6 +1277,13 @@ initTwilightZone()
       fy = domainDimension>1 ?  omega[1] : 0.;
       fz = domainDimension>2 ?  omega[2] : 0.;
       ft = omega[3];
+
+      // Longfei 20170116: trigShift:
+      gx = gamma[0];
+      gy = domainDimension>1 ?  gamma[1] : 0.;
+      gz = domainDimension>2 ?  gamma[2] : 0.;
+      gt = gamma[3];
+
 
       exactPointer = new OGTrigFunction(fx,fy,fz,ft);
       OGTrigFunction & trig = (OGTrigFunction&)(*exactPointer);
@@ -1670,7 +1719,7 @@ setupFreeMotion(real x0,real y0, real angle0)
 void BeamModel::
 addBodyForce(const real bf[2]) 
 {
-  real * bodyForce =  dbase.get<real[2]>("bodyForce");
+  vector<real> & bodyForce =  dbase.get<vector<real> >("bodyForce");
 
   bodyForce[0] = bf[0];
   bodyForce[1] = bf[1];
@@ -1711,12 +1760,20 @@ getCenterLine( RealArray & xc, bool scaleDisplacementForPlotting /* =false */ ) 
   //Longfei 20160121: new way of handling paramters
   const real & L = dbase.get<real>("length"); 
   const int & numElem = dbase.get<int>("numElem");
-  const real * beamXYZ = dbase.get<real[3]>("beamXYZ");
+  const vector<real> & beamXYZ = dbase.get<vector<real> >("beamXYZ");
   const real & beamX0 = beamXYZ[0];
   const real & beamY0 = beamXYZ[1];
   const real & beamZ0 = beamXYZ[2];
-  const  real * initialBeamTangent = dbase.get<real[2]>("initialBeamTangent");
-  const  real * initialBeamNormal = dbase.get<real[2]>("initialBeamNormal");
+  //old:
+  // const  real * initialBeamTangent = dbase.get<real[2]>("initialBeamTangent");
+  // const  real * initialBeamNormal = dbase.get<real[2]>("initialBeamNormal");
+  //20170113 new: use vector
+  const  vector<real> & initialBeamTangent = dbase.get<vector<real> >("initialBeamTangent");
+  const  vector<real> & initialBeamNormal = dbase.get<vector<real> >("initialBeamNormal");
+  const  vector<real> & initialBeamBinormal = dbase.get<vector<real> >("initialBeamBinormal");
+
+  const int & rangeDimension = dbase.get<int>("rangeDimension");
+  
   const bool & isFEM = dbase.get<bool>("isCubicHermiteFEM");
   
   const int & current = dbase.get<int>("current"); 
@@ -1728,19 +1785,29 @@ getCenterLine( RealArray & xc, bool scaleDisplacementForPlotting /* =false */ ) 
   if( scaleDisplacementForPlotting )
     scaleFactor= dbase.get<real>("displacementScaleFactorForPlotting");
 
-  xc.redim(numElem+1,2);
+  xc.redim(numElem+1,rangeDimension);
   for( int i=0; i<=numElem; i++ ) 
     {
       // (xl,yl) = beam position (un-rotated)
       real xl = ((real)i /numElem) *  L;       // position along neutral axis
 
       int si  = isFEM? 2*i:i;    // Longfei 20160216: solution index at node i is 2*i for FEM, i otherwise
-      real yl = uc(si)*scaleFactor;           // displacement 
+      real yl = uc(si,0,0,0)*scaleFactor;           // displacement 
 
       // *wdh* 2018/02/28 xc(i,0) = beamX0 + initialBeamTangent[0]*xl - initialBeamTangent[1]*yl;
       // *wdh* 2018/02/28 xc(i,1) = beamY0 - initialBeamNormal [0]*xl + initialBeamNormal [1]*yl;
       xc(i,0) = beamX0 + initialBeamTangent[0]*xl + initialBeamNormal[0]*yl;
       xc(i,1) = beamY0 + initialBeamTangent[1]*xl + initialBeamNormal[1]*yl;
+      
+      if(rangeDimension==3)
+	{
+	  //FINISH ME .....
+	  real zl = 0.;//uc(si,0,0,1); We dont have z displacement yet
+	  xc(i,0) +=  initialBeamBinormal[0]*zl;
+	  xc(i,1) +=  initialBeamBinormal[1]*zl;
+	  xc(i,2) =  beamZ0+ initialBeamTangent[2]*xl + initialBeamNormal[2]*yl+initialBeamBinormal[2]*zl;
+	}
+
     }
 
 }
@@ -1817,8 +1884,10 @@ getSurface( const real t, const RealArray & x0,  const RealArray & xs,
 	    const Index & Ib1, const Index & Ib2,  const Index & Ib3,
             const bool adjustEnds /* = false */ )
 {
-  const  real * initialBeamTangent = dbase.get<real[2]>("initialBeamTangent");
-  const  real * initialBeamNormal = dbase.get<real[2]>("initialBeamNormal");
+  const int & rangeDimension = dbase.get<int>("rangeDimension");
+
+  const  vector<real> & initialBeamTangent = dbase.get<vector<real> >("initialBeamTangent");
+  const  vector<real> & initialBeamNormal = dbase.get<vector<real> >("initialBeamNormal");
   
   const int & current = dbase.get<int>("current"); 
   std::vector<RealArray> & u = dbase.get<std::vector<RealArray> >("u"); // displacement DOF 
@@ -1839,7 +1908,19 @@ getSurface( const real t, const RealArray & x0,  const RealArray & xs,
   int i1,i2,i3;
   FOR_3D(i1,i2,i3,Ib1,Ib2,Ib3)
     {
-      projectDisplacement(t, uc, x0(i1,i2,i3,0),x0(i1,i2,i3,1),xs(i1,i2,i3,0),xs(i1,i2,i3,1),clipToBounds);
+      // Longfei 20170116: modification for 3d
+      if(rangeDimension==2)
+	{
+	  projectDisplacement(t, uc, x0(i1,i2,i3,0),x0(i1,i2,i3,1),xs(i1,i2,i3,0),xs(i1,i2,i3,1),clipToBounds);
+	}
+      else if(rangeDimension==3)
+	{
+	  projectDisplacement3D(t, uc, x0(i1,i2,i3,0),x0(i1,i2,i3,1),x0(i1,i2,i3,2),xs(i1,i2,i3,0),xs(i1,i2,i3,1),xs(i1,i2,i3,2),clipToBounds);
+	}
+      else
+	{
+	  OV_ABORT("--BM-- ERROR: wrong rangeDimension\n");
+	}
     }
 
   if( adjustEnds )
@@ -1848,7 +1929,7 @@ getSurface( const real t, const RealArray & x0,  const RealArray & xs,
       // **FIX ME if beam has overlapping grids on a single side ***
       // int boundaryCondition[2] = { bcLeft, bcRight}; // old way
       //Longfei 20160122: new way
-      const BoundaryConditionEnum * boundaryConditions = dbase.get<BoundaryConditionEnum[2]>("boundaryConditions");
+      const vector<BoundaryConditionEnum> & boundaryConditions = dbase.get<vector<BoundaryConditionEnum> >("boundaryConditions");
 
       for( int side=0; side<=1; side++ )
 	{
@@ -1862,6 +1943,9 @@ getSurface( const real t, const RealArray & x0,  const RealArray & xs,
 	      // -- force the end points of the beam surface to remain fixed -- **COULD DO BETTER**
 	      xs(i1,i2,i3,0)=x0(i1,i2,i3,0); // set ends equal to initial position
 	      xs(i1,i2,i3,1)=x0(i1,i2,i3,1);
+	      //Longfei 20170116:
+	      if (rangeDimension==3)  xs(i1,i2,i3,2)=x0(i1,i2,i3,2);
+
 	    }
 	  else if( bc==slideBC )
 	    {
@@ -1916,14 +2000,14 @@ void BeamModel::
 projectDisplacement(const real t, const RealArray& X, const real& x0, const real& y0, real& wx, real& wy,
                     bool clipToBounds /* =true */ ) 
 {
-  const real * beamXYZ = dbase.get<real[3]>("beamXYZ");
+  const vector<real> & beamXYZ = dbase.get<vector<real> >("beamXYZ");
   const real & beamX0 = beamXYZ[0];
   const real & beamY0 = beamXYZ[1];
   const real & beamZ0 = beamXYZ[2];
   const bool & allowsFreeMotion = dbase.get<bool>("allowsFreeMotion");
   const aString & exactSolutionOption = dbase.get<aString>("exactSolutionOption");
-  const  real * initialBeamTangent = dbase.get<real[2]>("initialBeamTangent");
-  const  real * initialBeamNormal = dbase.get<real[2]>("initialBeamNormal");
+  const  vector<real> & initialBeamTangent = dbase.get<vector<real> >("initialBeamTangent");
+  const  vector<real> & initialBeamNormal = dbase.get<vector<real> >("initialBeamNormal");
   
   int elemNum;
   real eta, halfThickness;
@@ -2017,6 +2101,76 @@ projectDisplacement(const real t, const RealArray& X, const real& x0, const real
 }
 
 
+// Longfei 20170113: 3D version of projectDisplacement
+// ====================================================================================
+/// \brief Determine points on the beam surface
+/// Return the displacement of the point on the surface (not the neutral axis)
+/// of the beam of the point whose undeformed location is (x0,y0).
+/// This function is used to update the boundary of the CFD grid.
+/// \param X:       current beam solution vector
+/// \param x0:      undeformed location of the point on the surface of the beam (x)
+/// \param y0:      undeformed location of the point on the surface of the beam (y)
+/// \param z0:      undeformed location of the point on the surface of the beam (z)
+/// \param wx [out]: deformed location of the point on the surface of the beam (x)
+/// \param wy [out]: deformed location of the point on the surface of the beam (y)
+/// \param wz [out]: deformed location of the point on the surface of the beam (z)
+/// \param clipToBounds (input) : if true, clip points to the beam length [0,L]
+// ====================================================================================
+void BeamModel::
+projectDisplacement3D(const real t, const RealArray& X, const real& x0, const real& y0,const real& z0,
+		      real& wx, real& wy,real& wz,bool clipToBounds /* =true */ ) 
+{
+  const vector<real> & beamXYZ = dbase.get<vector<real> >("beamXYZ");
+  const real & beamX0 = beamXYZ[0];
+  const real & beamY0 = beamXYZ[1];
+  const real & beamZ0 = beamXYZ[2];
+  const bool & allowsFreeMotion = dbase.get<bool>("allowsFreeMotion");
+  const aString & exactSolutionOption = dbase.get<aString>("exactSolutionOption");
+  const  vector<real> & initialBeamTangent = dbase.get<vector<real> >("initialBeamTangent");
+  const  vector<real> & initialBeamNormal = dbase.get<vector<real> >("initialBeamNormal");
+  const  vector<real> & initialBeamBinormal = dbase.get<vector<real> >("initialBeamBinormal");
+  const int & rangeDimension = dbase.get<int>("rangeDimension");
+
+  // Compute the reference coordinate of the point on the beam1
+  const real X0[]={x0,y0,z0};
+  int ntd=0; // number of time derivative
+  RealArray R(3,3); // 3x3 rotation matrix
+  // centerline displacment and its slope in each dimemsion at the projected point of X0 
+  real u[rangeDimension], uslope[rangeDimension]; 
+  getRotationMatrix3D(R,u,uslope, t, X, X0, ntd);
+
+  // get the coordinates of X0 in the beam reference frame
+  real xr=0,yr=0,zr=0;
+  for(int d=0;d<3;d++)
+    {
+      xr+=(X0[d]-beamXYZ[d])*initialBeamTangent[d];
+      yr+=(X0[d]-beamXYZ[d])*initialBeamNormal[d];
+      zr+=(X0[d]-beamXYZ[d])*initialBeamBinormal[d];
+    }
+
+
+  // given the current centerline displacement u, we know the current position of the point X0 is 
+  // wx        0       u[0]+xr
+  // wy  =  R  yr  +   u[1]
+  // wz        zr      u[2]
+  
+  // note (xl,yl,zl) is in beam reference frame
+  real xl = R(0,0)*0+R(0,1)*yr+R(0,2)*zr+u[0]+xr;
+  real yl = R(1,0)*0+R(1,1)*yr+R(1,2)*zr+u[1];
+  real zl = R(2,0)*0+R(2,1)*yr+R(2,2)*zr+u[2];
+
+  // convert back to physical frame
+  wx = beamX0 + xl*initialBeamTangent[0]   + yl*initialBeamNormal[0] + zl*initialBeamBinormal[0];
+  wy = beamY0 + xl*initialBeamTangent[1]   + yl*initialBeamNormal[1] + zl*initialBeamBinormal[1];
+  wz = beamZ0 + xl*initialBeamTangent[2]   + yl*initialBeamNormal[2] + zl*initialBeamBinormal[2];
+  
+
+
+
+}
+
+
+
 
 // ==============================================================================================
 /// /brief Return the acceleration of the point on the surface (not the neutral axis)
@@ -2035,14 +2189,14 @@ projectAcceleration(const real t,
 {
   //Longfei 20160121: new way of handling parameters
   const real & L = dbase.get<real>("length");
-  const real * beamXYZ = dbase.get<real[3]>("beamXYZ");
+  const vector<real> & beamXYZ = dbase.get<vector<real> >("beamXYZ");
   const real & beamX0 = beamXYZ[0];
   const real & beamY0 = beamXYZ[1];
   const real & beamZ0 = beamXYZ[2];
   const bool & allowsFreeMotion = dbase.get<bool>("allowsFreeMotion");
   const aString & exactSolutionOption = dbase.get<aString>("exactSolutionOption");
-  const  real * initialBeamTangent = dbase.get<real[2]>("initialBeamTangent");
-  const  real * initialBeamNormal = dbase.get<real[2]>("initialBeamNormal");
+  const  vector<real> & initialBeamTangent = dbase.get<vector<real> >("initialBeamTangent");
+  const  vector<real> & initialBeamNormal = dbase.get<vector<real> >("initialBeamNormal");
   // A point on the beam surface is equal to the point on the neutral surface plus an offset in the normal direction
   //       p  = x(eta) + (0,w) + nv(eta)*halfThickness
 
@@ -2221,13 +2375,13 @@ projectInternalForce(const RealArray & internalForce,
   const real & L = dbase.get<real>("length");
   const real & Abar = dbase.get<real>("massPerUnitLength");
 
-  const real * beamXYZ = dbase.get<real[3]>("beamXYZ");
+  const vector<real> & beamXYZ = dbase.get<vector<real> >("beamXYZ");
   const real & beamX0 = beamXYZ[0];
   const real & beamY0 = beamXYZ[1];
   const real & beamZ0 = beamXYZ[2];
   const bool & allowsFreeMotion = dbase.get<bool>("allowsFreeMotion");
-  const  real * initialBeamTangent = dbase.get<real[2]>("initialBeamTangent");
-  const  real * initialBeamNormal = dbase.get<real[2]>("initialBeamNormal");
+  const  vector<real> & initialBeamTangent = dbase.get<vector<real> >("initialBeamTangent");
+  const  vector<real> & initialBeamNormal = dbase.get<vector<real> >("initialBeamNormal");
   
   // A point on the beam surface is equal to the point on the neutral surface plus an offset in the normal direction
   //       p  = x(eta) + (0,w) + nv(eta)*halfThickness   (NOTE: halfThickness here is THE half halfThickness)
@@ -2418,8 +2572,8 @@ getSurfaceAcceleration( const real t, const RealArray & x0, RealArray & as, cons
   const real & density = dbase.get<real>("density");
   const real & thickness = dbase.get<real>("thickness");
   const real & breadth = dbase.get<real>("breadth");
-  const  real * initialBeamTangent = dbase.get<real[2]>("initialBeamTangent");
-  const  real * initialBeamNormal = dbase.get<real[2]>("initialBeamNormal");
+  const  vector<real> & initialBeamTangent = dbase.get<vector<real> >("initialBeamTangent");
+  const  vector<real> & initialBeamNormal = dbase.get<vector<real> >("initialBeamNormal");
 
   if( true )
     {
@@ -2446,7 +2600,7 @@ getSurfaceAcceleration( const real t, const RealArray & x0, RealArray & as, cons
       // **FIX ME if beam has overlapping grids on a single side ***
       //int boundaryCondition[2] = { bcLeft, bcRight}; // old way
       // Longfei 20160122: new way
-      const BoundaryConditionEnum * boundaryConditions = dbase.get<BoundaryConditionEnum[2]>("boundaryConditions");
+      const vector<BoundaryConditionEnum> & boundaryConditions = dbase.get<vector<BoundaryConditionEnum> >("boundaryConditions");
 
       for( int side=0; side<=1; side++ )
 	{
@@ -2508,11 +2662,26 @@ getSurfaceVelocity( const real t, const RealArray & x0,  const RealArray & vs,
                     const bool adjustEnds /* = false */ )
 {
 
+  const int & rangeDimension = dbase.get<int>("rangeDimension");
   
   int i1,i2,i3;
   FOR_3D(i1,i2,i3,Ib1,Ib2,Ib3)
     {
-      projectVelocity(t, x0(i1,i2,i3,0),x0(i1,i2,i3,1),vs(i1,i2,i3,0),vs(i1,i2,i3,1) );
+      // Longfei 20170116: modification for 3d
+      if(rangeDimension==2)
+	{
+	  projectVelocity(t, x0(i1,i2,i3,0),x0(i1,i2,i3,1),vs(i1,i2,i3,0),vs(i1,i2,i3,1) );
+	}
+      else if(rangeDimension==3)
+	{
+	  vs(i1,i2,i3,0)=0;vs(i1,i2,i3,1)=0; vs(i1,i2,i3,2)=0; 
+	  //projectVelocity3D(t, x0(i1,i2,i3,0),x0(i1,i2,i3,1),x0(i1,i2,i3,2),vs(i1,i2,i3,0),vs(i1,i2,i3,1),vs(i1,i2,i3,2)  );
+		
+	}
+      else
+	{
+	  OV_ABORT("--BM-- ERROR: wrong rangeDimension\n");
+	}
     }
 
   if( adjustEnds )
@@ -2520,9 +2689,9 @@ getSurfaceVelocity( const real t, const RealArray & x0,  const RealArray & vs,
       // **FIX ME if beam has overlapping grids on a single side ***
       // int boundaryCondition[2] = { bcLeft, bcRight}; //
       // Longfei 20160122: new way
-      const BoundaryConditionEnum * boundaryConditions = dbase.get<BoundaryConditionEnum[2]>("boundaryConditions");
-      const  real * initialBeamTangent = dbase.get<real[2]>("initialBeamTangent");
-      const  real * initialBeamNormal = dbase.get<real[2]>("initialBeamNormal");
+      const vector<BoundaryConditionEnum> & boundaryConditions = dbase.get<vector<BoundaryConditionEnum> >("boundaryConditions");
+      const  vector<real> & initialBeamTangent = dbase.get<vector<real> >("initialBeamTangent");
+      const  vector<real> & initialBeamNormal = dbase.get<vector<real> >("initialBeamNormal");
     
       for( int side=0; side<=1; side++ )
 	{
@@ -2536,6 +2705,8 @@ getSurfaceVelocity( const real t, const RealArray & x0,  const RealArray & vs,
 	      // -- force the end points of the beam surface to remain fixed -- **COULD DO BETTER**
 	      vs(i1,i2,i3,0)=0.;
 	      vs(i1,i2,i3,1)=0.;
+	      if(rangeDimension==3)  vs(i1,i2,i3,2)=0.;
+
 	    }
 	  else if( bc==slideBC )
 	    {
@@ -2588,17 +2759,17 @@ getSurfaceInternalForce( const real t0, const RealArray & x0, RealArray & fs,
 {
 
   //const int & numElem = dbase.get<int>("numElem");
-  const real * beamXYZ = dbase.get<real[3]>("beamXYZ");
+  const vector<real> & beamXYZ = dbase.get<vector<real> >("beamXYZ");
   const real & beamX0 = beamXYZ[0];
   const real & beamY0 = beamXYZ[1];
   const real & beamZ0 = beamXYZ[2];
   const aString & exactSolutionOption = dbase.get<aString>("exactSolutionOption");
-  const  real * initialBeamTangent = dbase.get<real[2]>("initialBeamTangent");
-  const  real * initialBeamNormal = dbase.get<real[2]>("initialBeamNormal");
+  const  vector<real> & initialBeamTangent = dbase.get<vector<real> >("initialBeamTangent");
+  const  vector<real> & initialBeamNormal = dbase.get<vector<real> >("initialBeamNormal");
   const real & Abar = dbase.get<real>("massPerUnitLength");
   const bool & isFEM = dbase.get<bool>("isCubicHermiteFEM");
 
-  BoundaryConditionEnum * boundaryConditions = dbase.get<BoundaryConditionEnum[2]>("boundaryConditions");
+  vector<BoundaryConditionEnum> & boundaryConditions = dbase.get<vector<BoundaryConditionEnum> >("boundaryConditions");
   BoundaryConditionEnum & bcLeft = boundaryConditions[0];
   BoundaryConditionEnum & bcRight = boundaryConditions[1];
   
@@ -2879,8 +3050,8 @@ projectVelocity( const real t, const real& x0, const real& y0, real& vx, real& v
   const int & current = dbase.get<int>("current");
   const bool & allowsFreeMotion = dbase.get<bool>("allowsFreeMotion");
   const aString & exactSolutionOption = dbase.get<aString>("exactSolutionOption");
-  const  real * initialBeamTangent = dbase.get<real[2]>("initialBeamTangent");
-  const  real * initialBeamNormal = dbase.get<real[2]>("initialBeamNormal");
+  const  vector<real> & initialBeamTangent = dbase.get<vector<real> >("initialBeamTangent");
+  const  vector<real> & initialBeamNormal = dbase.get<vector<real> >("initialBeamNormal");
   
   std::vector<RealArray> & u = dbase.get<std::vector<RealArray> >("u"); // displacement DOF 
   std::vector<RealArray> & v = dbase.get<std::vector<RealArray> >("v"); // velocity DOF
@@ -3004,20 +3175,25 @@ projectVelocity( const real t, const real& x0, const real& y0, real& vx, real& v
 void BeamModel::
 setDeclination(real dec) 
 {
-  real & beamInitialAngle = dbase.get<real>("beamInitialAngle");
-  real * initialBeamTangent = dbase.get<real[2]>("initialBeamTangent");
-  real * initialBeamNormal = dbase.get<real[2]>("initialBeamNormal");
+  //Longfei 20170113: this is for 2d beam only
+  assert(dbase.get<int>("rangeDimension")==2);
   
-  beamInitialAngle = dec;
+  vector<real> & initialBeamTangent = dbase.get<vector<real> >("initialBeamTangent");
+  vector<real> & initialBeamNormal = dbase.get<vector<real> >("initialBeamNormal");
+  
 
   const real & signForNormal = dbase.get<real>("signForNormal");  // flip sign of normal using this parameter
   initialBeamNormal[0] = -sin(dec) *signForNormal;
   initialBeamNormal[1] =  cos(dec) *signForNormal;
+  initialBeamNormal[2] =  0.;
 
+  
   initialBeamTangent[0] = cos(dec);
   initialBeamTangent[1] = sin(dec);
+  initialBeamTangent[2] = 0.;
 
 
+  // free motion stuff! NOT WORKING !!!!
   for (int k = 0; k < 2; ++k) {
 
     normal[k] = initialBeamNormal[k];
@@ -3026,6 +3202,90 @@ setDeclination(real dec)
 }
 
 
+
+//Longfei 20170113: new function to build beam reference frame (initialBeam tangent, normal, binormal if 3d)
+int BeamModel::
+buildBeamReferenceFrame()
+{
+  const int & rangeDimension = dbase.get<int>("rangeDimension");
+  const real & beamInitialAngle = dbase.get<real>("beamInitialAngle");
+
+  if(beamInitialAngle > -99999.99)  // if beamInitialAngle is specified, this is for backward compatibility. We used to specify beamInitialAngle
+    {
+      printF("-- BM%i -- buildBeamReferenceFrame() using beam initial angle (old backward compatibility.)\n", getBeamID());
+      setDeclination(beamInitialAngle);  // this will set initialBeamNormal and initialBeamTanREgent
+
+      return 0;
+    }
+
+
+  // now we specify initialBeanTangent. We need to determine initialBeamNormal and initialBeamBinormal if 3d
+  // we always follow the right hand rule to build the beam reference frame: t-n-n2
+  printF("-- BM%i -- buildBeamReferenceFrame() using beam initial tangent\n", getBeamID());
+
+  
+  vector<real> & T = dbase.get<vector<real> >("initialBeamTangent");
+  vector<real> & N = dbase.get<vector<real> >("initialBeamNormal");
+  vector<real> & B = dbase.get<vector<real> >("initialBeamBinormal");
+
+
+  if(rangeDimension==2)
+    {
+      assert(T[2]==0.);
+      
+      N[0] = -T[1];
+      N[1] = T[0];
+      N[2] = 0.;
+    }
+  else if(rangeDimension==3)
+    {
+      //Just pick any vector that is perpendicular to the tangent as normal
+      // Strategy 1:a) project the tangent vector T onto the coordinate plane between which T has the least distance
+      //            b) rotate the projected vector counterclockwisely for 90 degrees in that plane
+      //            c) the resulted vector is a normal to T
+      //            d) the Binormal is then B=TxN
+      int d=0;
+      for(int j=1;j<3;j++)
+	{
+	  if( abs(T[j])<=abs(T[d]) ){d=j;}
+	}
+      N[d]=0.; 
+      N[(d+1)%3]=-T[(d+2)%3];
+      N[(d+2)%3]=T[(d+1)%3];
+
+      B[0] = T[1]*N[2]-T[2]*N[1]; 
+      B[1] = T[2]*N[0]-T[0]*N[2];
+      B[2] = T[0]*N[1]-T[1]*N[0];
+    }
+
+  real normT = sqrt(T[0]*T[0]+T[1]*T[1]+T[2]*T[2]);
+  real normN = sqrt(N[0]*N[0]+N[1]*N[1]+N[2]*N[2]);
+  real normB = sqrt(B[0]*B[0]+B[1]*B[1]+B[2]*B[2]);
+
+  if(normT < 1e-5){OV_ABORT("the normal of the  input tangent vector is too small. Tell me a bigger one\n");} // norm of input vector can't be too small  
+  // normalize vectors
+  for(int d=0; d<3;d++)
+    {
+      T[d]/=normT;
+      N[d]/=normN;
+      if(rangeDimension==3)
+	{
+	  B[d]/=normB;
+	}
+    }
+
+  printF("-- BM%i -- Reference frame: T=(%g,%g,%g), N=(%g,%g,%g), B=(%g,%g,%g)\n", getBeamID(), T[0],
+	 T[1], T[2],N[0],N[1],N[2], B[0], B[1], B[2]);
+
+  
+
+  
+  return 0;
+}
+
+
+
+// 2d version:
 // =================================================================================
 /// \brief Return the element, half-thickness, and natural coordinate for
 /// a point (x0,y0) on the undeformed SURFACE of the beam
@@ -3050,12 +3310,12 @@ projectPoint(const real& x0,const real& y0,
   //Longfei 20160121: new way of handling parameters
   const real & le = dbase.get<real>("elementLength");
   const int & numElem = dbase.get<int>("numElem");
-  const real * beamXYZ = dbase.get<real[3]>("beamXYZ");
+  const vector<real> & beamXYZ = dbase.get<vector<real> >("beamXYZ");
   const real & beamX0 = beamXYZ[0];
   const real & beamY0 = beamXYZ[1];
   const real & beamZ0 = beamXYZ[2];
-  const  real * initialBeamTangent = dbase.get<real[2]>("initialBeamTangent");
-  const  real * initialBeamNormal = dbase.get<real[2]>("initialBeamNormal");
+  const  vector<real> & initialBeamTangent = dbase.get<vector<real> >("initialBeamTangent");
+  const  vector<real> & initialBeamNormal = dbase.get<vector<real> >("initialBeamNormal");
   
   //                  x0
 
@@ -3098,6 +3358,74 @@ projectPoint(const real& x0,const real& y0,
   
   halfThickness = yl;  // signed distance
 }
+
+
+// Longfei 20170113: 3d version
+// =================================================================================
+/// \brief Return the element, and natural coordinate for
+/// a point x0[dimension] on the undeformed SURFACE of the beam
+/// 
+/// \param x0[dimension]:        undeformed location of the point on the surface of the beam
+/// \param elemNum:   element corresponding to this point (closest node <= x0) [out]
+/// \param eta:       natural (element) coordinate corresponding to this point: 
+///                  eta is in [-1,1] on element elemNum [out]
+/// \param clipToBounds (input) : if true, clip points to the beam length [0,L]
+//
+/// \note: Points off the end of the beam are pointed onto the end if clipToBounds=true .
+// =================================================================================
+void BeamModel::
+projectPoint3D(const real* x0,  int& elemNum, real& eta, bool clipToBounds /* =true */) 
+{
+
+  //Longfei 20160121: new way of handling parameters
+  const real & le = dbase.get<real>("elementLength");
+  const int & numElem = dbase.get<int>("numElem");
+  const vector<real> & beamXYZ = dbase.get<vector<real> >("beamXYZ"); // origin of the beam reference frame
+  const  vector<real> & initialBeamTangent = dbase.get<vector<real> >("initialBeamTangent");
+  const int & rangeDimension = dbase.get<int>("rangeDimension");
+  assert(rangeDimension==3);  
+  //                  x0
+
+  //   x--------------|--------------   beam surface
+  //   
+  //   +-----+-----+--|----+-----+
+  //   0     1     2       3   
+  // 
+  //               +--|----+
+  //              -1  eta  1
+
+  real xl=0.;
+  for(int d=0; d<rangeDimension;d++)
+    {
+      // real xll = x0-beamX0;
+      // real yll = y0-beamY0;
+
+      // // Compute position along beam: 
+      // //    xl = (x0,y0)*tangent
+      // //    yl = (x0,y0)*normal
+      // real xl = xll*initialBeamTangent[0] + yll*initialBeamTangent[1];
+      // real yl = xll* initialBeamNormal[0] + yll*initialBeamNormal[1];
+      
+      xl +=(x0[d]- beamXYZ[d])*initialBeamTangent[d];
+    }
+  //std::cout << "(" << x0 << ", " << y0 << ") " << xl << "--" << yl << " " << le << std::endl;
+
+  // elemNum : closest node less than point xl:
+  elemNum = min(numElem-1,max(0, (int)(xl / le)));  // closest active node 
+  eta = 2.0*(xl-le*elemNum)/le-1.0;
+
+  // Project points off the end back onto the end-point:
+  if( clipToBounds )
+    {
+      if (eta < -1.0)
+	eta = -1.0;
+      else if (eta > 1.0)
+	eta = 1.0;
+    }
+
+}
+
+
 
 
 // ================================================================================
@@ -3227,7 +3555,7 @@ solveBlockTridiagonal(const RealArray& f, RealArray& u, const aString & tridiago
 
 
   const int & numElem = dbase.get<int>("numElem");
-  const BoundaryConditionEnum * boundaryConditions = dbase.get<BoundaryConditionEnum[2]>("boundaryConditions");
+  const vector<BoundaryConditionEnum> & boundaryConditions = dbase.get<vector<BoundaryConditionEnum> >("boundaryConditions");
   const BoundaryConditionEnum & bcLeft = boundaryConditions[0];
   const BoundaryConditionEnum & bcRight = boundaryConditions[1];
 
@@ -3301,7 +3629,7 @@ factorBlockTridiagonalSolver(const aString & tridiagonalSolverName)
 
   assert( pTri!=NULL );
 
-  const BoundaryConditionEnum * boundaryConditions = dbase.get<BoundaryConditionEnum[2]>("boundaryConditions");
+  const vector<BoundaryConditionEnum> & boundaryConditions = dbase.get<vector<BoundaryConditionEnum> >("boundaryConditions");
   const BoundaryConditionEnum & bcLeft =  boundaryConditions[0];
   const BoundaryConditionEnum & bcRight =  boundaryConditions[1];
  
@@ -3646,9 +3974,13 @@ setSurfaceForce(const real & t, const RealArray & x0, const RealArray & traction
   // the vertexBoundaryNormalArray associated with the grid. So we make a copy here.
   RealArray normal2=normal;
   getCurrentNormalForProjection(t,x0,normal2,Ib1,Ib2,Ib3,normalOption);
- 
+
+
   fDotN(Ib1,Ib2,Ib3)= (traction(Ib1,Ib2,Ib3,0)*normal2(Ib1,Ib2,Ib3,0)+
 		       traction(Ib1,Ib2,Ib3,1)*normal2(Ib1,Ib2,Ib3,1) );
+
+  const int & rangeDimension = dbase.get<int>("rangeDimension");
+  if(rangeDimension==3) return; //Longfei: for now, we do not att surface force to the beam. FIX ME!!!!!!
  
   if( false )
     {
@@ -3814,8 +4146,8 @@ setSurfaceVelocity(const real & t, const RealArray & x0, const RealArray & vSurf
   // Transfer the normal component of the velocity, stored here:
   RealArray vDotN(Ib1,Ib2,Ib3);
 
-  const  real * initialBeamTangent = dbase.get<real[2]>("initialBeamTangent");
-  const  real * initialBeamNormal = dbase.get<real[2]>("initialBeamNormal");
+  const  vector<real> & initialBeamTangent = dbase.get<vector<real> >("initialBeamTangent");
+  const  vector<real> & initialBeamNormal = dbase.get<vector<real> >("initialBeamNormal");
   
   //Longfei 20160622:  make correctForSurfaceRotation=true
   const bool correctForSurfaceRotation=true;  // *CHECK ME* 2015/06/02 
@@ -4388,7 +4720,7 @@ getBoundaryValues( const real t, RealArray & g, const int ntd /* = 0 */   )
       const real y=0, z=0;
       const int wc=0;
       // Longfei 20160122: new way
-      const BoundaryConditionEnum * boundaryConditions = dbase.get<BoundaryConditionEnum[2]>("boundaryConditions");
+      const vector<BoundaryConditionEnum> & boundaryConditions = dbase.get<vector<BoundaryConditionEnum> >("boundaryConditions");
       for( int side=0; side<=1; side++ )
 	{
 	  //BoundaryConditionEnum bc = side==0 ? bcLeft : bcRight;
@@ -4508,7 +4840,7 @@ assignBoundaryConditions( real t, RealArray & u, RealArray & v, RealArray & a, c
   const real & EI = dbase.get<real>("EI");
   const real & L = dbase.get<real>("length");
   const int & numElem = dbase.get<int>("numElem");
-  const BoundaryConditionEnum * boundaryConditions = dbase.get<BoundaryConditionEnum[2]>("boundaryConditions");
+  const vector<BoundaryConditionEnum> & boundaryConditions = dbase.get<vector<BoundaryConditionEnum> >("boundaryConditions");
   const BoundaryConditionEnum & bcLeft =  boundaryConditions[0];
   const BoundaryConditionEnum & bcRight =  boundaryConditions[1];
   const bool & allowsFreeMotion = dbase.get<bool>("allowsFreeMotion");
@@ -4597,7 +4929,7 @@ assignBoundaryConditions( real t, RealArray & u, RealArray & v, RealArray & a, c
 // =========================================================================================
 /// \brief Add internal forces such as buoyancy and TZ forces
 ///
-/// Compute the nodal values of the forces, for FEM beam, the x derivatives of the forces are computed as well
+/// Compute the nodal values of the forces. For FEM beam, the x derivatives of the forces are computed as well
 // =========================================================================================
 void BeamModel::
 addInternalForces( const real t, RealArray & f )
@@ -4612,7 +4944,7 @@ addInternalForces( const real t, RealArray & f )
   const int & numElem = dbase.get<int>("numElem");
   const int & numOfGhost = dbase.get<int>("numberOfGhostPoints");
   const real & buoyantMassPerUnitLength = dbase.get<real>("buoyantMassPerUnitLength");
-  // const BoundaryConditionEnum * boundaryConditions = dbase.get<BoundaryConditionEnum[2]>("boundaryConditions");
+  // const vector<BoundaryConditionEnum> & boundaryConditions = dbase.get<BoundaryConditionEnum[2]>("boundaryConditions");
   // const BoundaryConditionEnum & bcLeft = boundaryConditions[0];
   // const BoundaryConditionEnum & bcRight = boundaryConditions[1];
   const real & projectedBodyForce= dbase.get<real>("projectedBodyForce");
@@ -4815,13 +5147,13 @@ predictor(real tnp1, real dt )
   // const RealArray & elementK = *dbase.get<RealArray*>("elementK");
   // const RealArray & elementM = *dbase.get<RealArray*>("elementM");
   // const RealArray & elementB = *dbase.get<RealArray*>("elementB");
-  const real * beamXYZ = dbase.get<real[3]>("beamXYZ");
+  const vector<real> & beamXYZ = dbase.get<vector<real> >("beamXYZ");
   const real & beamX0 = beamXYZ[0];
   const real & beamY0 = beamXYZ[1];
   const real & beamZ0 = beamXYZ[2];
   const real & newmarkBeta = dbase.get<real>("newmarkBeta");
   const real & newmarkGamma = dbase.get<real>("newmarkGamma");
-  const BoundaryConditionEnum * boundaryConditions = dbase.get<BoundaryConditionEnum[2]>("boundaryConditions");
+  const vector<BoundaryConditionEnum> & boundaryConditions = dbase.get<vector<BoundaryConditionEnum> >("boundaryConditions");
   const BoundaryConditionEnum & bcLeft = boundaryConditions[0];
   const BoundaryConditionEnum & bcRight = boundaryConditions[1];
   // const bool & useSecondOrderNewmarkPredictor = dbase.get<bool>("useSecondOrderNewmarkPredictor"); // old way for time stepping
@@ -5447,7 +5779,7 @@ corrector(real tnp1, real dt )
   if( FALSE &&    // *wdh* 2015/03/10 
       numberOfTimeSteps == 1 )  // *wdh* -- what is this ?
     {
-      const real * bodyForce=dbase.get<real[2]>("bodyForce");
+      const vector<real> & bodyForce=dbase.get<vector<real> >("bodyForce");
       correctionHasConverged = true;
       centerOfMassAcceleration[0] = buoyantMass / totalMass * bodyForce[0];
       centerOfMassAcceleration[1] = buoyantMass / totalMass * bodyForce[1];
@@ -5785,12 +6117,12 @@ outputProbes( real t, int stepNumber )
 
   //Longfei 20160121: new way of handling parameters
   const real & L = dbase.get<real>("length");
-  const real * beamXYZ = dbase.get<real[3]>("beamXYZ");
+  const vector<real> & beamXYZ = dbase.get<vector<real> >("beamXYZ");
   const real & beamX0 = beamXYZ[0];
   const real & beamY0 = beamXYZ[1];
   const real & beamZ0 = beamXYZ[2];
-  const  real * initialBeamTangent = dbase.get<real[2]>("initialBeamTangent");
-  const  real * initialBeamNormal = dbase.get<real[2]>("initialBeamNormal");
+  const  vector<real> & initialBeamTangent = dbase.get<vector<real> >("initialBeamTangent");
+  const  vector<real> & initialBeamNormal = dbase.get<vector<real> >("initialBeamNormal");
 
   // --- Output to the probe file ---
   const int & probeFileSaveFrequency = dbase.get<int>("probeFileSaveFrequency");
@@ -6316,7 +6648,9 @@ update(CompositeGrid & cg, GenericGraphicsInterface & gi )
   int & twilightZoneOption = dbase.get<int>("twilightZoneOption");
   int & degreeInTime = dbase.get<int>("degreeInTime");
   int & degreeInSpace = dbase.get<int>("degreeInSpace");
-  real *trigFreq = dbase.get<real[4]>("trigFreq");
+  vector<real> &trigFreq = dbase.get<vector<real> >("trigFreq");
+  vector<real> &trigShift = dbase.get<vector<real> >("trigShift"); // Longfei 20170116
+
   real & displacementScaleFactorForPlotting =  dbase.get<real>("displacementScaleFactorForPlotting");
   aString & probeFileName = dbase.get<aString>("probeFileName");
   int & probeFileSaveFrequency = dbase.get<int>("probeFileSaveFrequency");
@@ -6327,15 +6661,17 @@ update(CompositeGrid & cg, GenericGraphicsInterface & gi )
   real & addedMassRelaxationFactor = dbase.get<real>("addedMassRelaxationFactor");
   bool & useAitkenAcceleration = dbase.get<bool>("useAitkenAcceleration");
   //bool & useImplicitPredictor = dbase.get<bool>("useImplicitPredictor"); // Longfei: removed. Replaced with new time stepping optionMenu
-  real * beamXYZ = dbase.get<real[3]>("beamXYZ");
+  vector<real> & beamXYZ = dbase.get<vector<real> >("beamXYZ");
   real & beamX0 = beamXYZ[0];
   real & beamY0 = beamXYZ[1];
   real & beamZ0 = beamXYZ[2];
   real & beamInitialAngle = dbase.get<real>("beamInitialAngle");
+  vector<real> & initialBeamTangent = dbase.get<vector<real> >("initialBeamTangent");
+
   real & newmarkBeta = dbase.get<real>("newmarkBeta");
   real & newmarkGamma = dbase.get<real>("newmarkGamma");
-  BoundaryConditionEnum & bcLeft = dbase.get<BoundaryConditionEnum[2]>("boundaryConditions")[0];
-  BoundaryConditionEnum & bcRight = dbase.get<BoundaryConditionEnum[2]>("boundaryConditions")[1];
+  BoundaryConditionEnum & bcLeft = dbase.get<vector<BoundaryConditionEnum> >("boundaryConditions")[0];
+  BoundaryConditionEnum & bcRight = dbase.get<vector<BoundaryConditionEnum> >("boundaryConditions")[1];
   bool & useExactSolution = dbase.get<bool>("useExactSolution");
   aString & name = dbase.get<aString>("name");
   //Longfei 20160131: new way to specify time stepping methods
@@ -6499,8 +6835,11 @@ update(CompositeGrid & cg, GenericGraphicsInterface & gi )
       textLabels[nt] = "density:"; sPrintF(textStrings[nt], "%g",density);  nt++; 
       textLabels[nt] = "thickness:"; sPrintF(textStrings[nt], "%g",thickness);  nt++; 
       textLabels[nt] = "length:"; sPrintF(textStrings[nt], "%g",L);  nt++; 
-      textLabels[nt] = "pressure norm:"; sPrintF(textStrings[nt], "%g",pressureNorm);  nt++; 
-      textLabels[nt] = "initial declination:"; sPrintF(textStrings[nt], "%g (degrees)",beamInitialAngle*180./Pi);  nt++; 
+      textLabels[nt] = "pressure norm:"; sPrintF(textStrings[nt], "%g",pressureNorm);  nt++;
+      //Longfei 20170113: old: 
+      //textLabels[nt] = "initial declination:"; sPrintF(textStrings[nt], "%g (degrees)",beamInitialAngle*180./Pi);  nt++;
+      //new: take the initial tangent as the input. This determines the direction of the initial undeformed centerline in the physical space. For backward compatibility, initial declination from cmd files will still be acceptible for 2d beam
+      textLabels[nt] = "initial beam tangent:";sPrintF(textStrings[nt], "%g, %g, %g (tangent vector)", initialBeamTangent[0], initialBeamTangent[1], initialBeamTangent[2]);  nt++;
       textLabels[nt] = "position:"; sPrintF(textStrings[nt], "%g, %g, %g (x0,y0,z0)",beamX0,beamY0,beamZ0);  nt++; 
 
       textLabels[nt] = "sign for normal:"; sPrintF(textStrings[nt], "%g (+1 or -1)",signForNormal);  nt++; 
@@ -6516,6 +6855,8 @@ update(CompositeGrid & cg, GenericGraphicsInterface & gi )
       textLabels[nt] = "degree in time:";  sPrintF(textStrings[nt],"%i",degreeInTime);  nt++; 
       textLabels[nt] = "trig frequencies:";  sPrintF(textStrings[nt],"%g, %g, %g, %g (ft,fx,fy,fz)",
 						     trigFreq[0],trigFreq[1],trigFreq[2],trigFreq[3]); nt++;
+      textLabels[nt] = "trig shifts:";  sPrintF(textStrings[nt],"%g, %g, %g, %g (gt,gx,gy,gz)",
+						trigShift[0],trigShift[1],trigShift[2],trigShift[3]); nt++;  // Longfei 20170116
 
       textLabels[nt] = "plotting scale factor:"; sPrintF(textStrings[nt], "%g",displacementScaleFactorForPlotting);  nt++; 
 
@@ -6645,7 +6986,7 @@ update(CompositeGrid & cg, GenericGraphicsInterface & gi )
 	      signForNormal=-1.;
 	      printF("Setting signForNormal=%g (left-handed coordinate system: tangent X normal = -zHat\n",signForNormal);
 	    }
-	  setDeclination(beamInitialAngle);  // recompute normal etc.
+	  // setDeclination(beamInitialAngle);  // recompute normal etc. 20170113: moved into buildBeamReferenceFrame();
 	}
       else if( dialog.getTextValue(answer,"order of Galerkin projection:","%i",orderOfGalerkinProjection) )
 	{
@@ -6680,9 +7021,12 @@ update(CompositeGrid & cg, GenericGraphicsInterface & gi )
 	}
 
       else if( dialog.getTextValue(answer,"initial declination:","%g",beamInitialAngle) )
-	{  
-	  setDeclination(beamInitialAngle*Pi/180.);
-	  printF("INFO: The beam will be inclined %8.4f degrees from the left end\n",beamInitialAngle*180./Pi);
+	{
+	  beamInitialAngle*=Pi/180.; // gui input is degree, beamInitialAngle is stored in rad. 
+	  // setDeclination(beamInitialAngle*Pi/180.); moved to buildBeamReferenceFrame()
+	  printF("-- BM%i -- Warning: initial declination option is removed. It is accepted here for backward compatibility. Specify the initial tangent vector instead from now on.\n",getBeamID());
+
+	  printF("-- BM%i -- INFO: The beam will be inclined %8.4f degrees from the left end\n",getBeamID(),beamInitialAngle*180./Pi);
 	  dialog.setTextLabel("initial declination:",sPrintF(buff,"%g, (degrees)",beamInitialAngle*180./Pi));
 	} 
 
@@ -6691,6 +7035,13 @@ update(CompositeGrid & cg, GenericGraphicsInterface & gi )
       else if( dialog.getTextValue(answer,"smooth order:","%i",smoothOrder) ){} // 
       else if( dialog.getTextValue(answer,"smooth omega:","%e",smoothOmega) ){} // 
 
+      else if( (len=answer.matches("initial beam tangent:")) )
+	{
+	  sScanF(answer(len,answer.length()-1),"%e %e %e",&(initialBeamTangent[0]),&(initialBeamTangent[1]),&(initialBeamTangent[2]));
+	  printF("-- BM%i -- INFO: Setting the beam initial tangent vector to (%e,%e,%e)\n",getBeamID(),initialBeamTangent[0],initialBeamTangent[1],initialBeamTangent[2]);
+	  dialog.setTextLabel("initial beam tangent:",sPrintF(buff,"%g, %g, %g (tangent vector)",initialBeamTangent[0],initialBeamTangent[1],initialBeamTangent[2]));
+	}    
+      
       else if( (len=answer.matches("position:")) )
 	{
 	  sScanF(answer(len,answer.length()-1),"%e %e %e",&beamX0,&beamY0,&beamZ0);
@@ -6793,8 +7144,8 @@ update(CompositeGrid & cg, GenericGraphicsInterface & gi )
 	      time(tp);
 	      // tm *ptm=localtime(tp);
 	      const char *dateString = ctime(tp);
-	      const  real * initialBeamTangent = dbase.get<real[2]>("initialBeamTangent");
-	      const  real * initialBeamNormal = dbase.get<real[2]>("initialBeamNormal");
+	      const  vector<real> & initialBeamTangent = dbase.get<vector<real> >("initialBeamTangent");
+	      const  vector<real> & initialBeamNormal = dbase.get<vector<real> >("initialBeamNormal");
 	      const real ss = probePosition*L;
 	      const real xp0 = beamX0 + ss*initialBeamTangent[0];
 	      const real yp0 = beamY0 + ss*initialBeamTangent[1];
@@ -6897,6 +7248,15 @@ update(CompositeGrid & cg, GenericGraphicsInterface & gi )
 	  dialog.setTextLabel("trig frequencies:",sPrintF(buff,"%g, %g, %g, %g (ft,fx,fy,fz)",
 							  trigFreq[0],trigFreq[1],trigFreq[2],trigFreq[3]));
 	}
+        else if( len=answer.matches("trig shifts:") )
+	{
+	  sScanF(answer(len,answer.length()-1),"%e %e %e %e",&trigShift[0],&trigShift[1],&trigShift[2],&trigShift[3]);
+	  printF("-- BM%i --  Setting trigonometric TZ shifts to gt=%g, gx=%g, gy=%g, gz=%g.\n",
+		 getBeamID(),trigShift[0],trigShift[1],trigShift[2],trigShift[3]);
+
+	  dialog.setTextLabel("trig shifts:",sPrintF(buff,"%g, %g, %g, %g (ft,fx,fy,fz)",
+							  trigShift[0],trigShift[1],trigShift[2],trigShift[3]));
+	}    
       else if( dialog.getTextValue(answer,"degree in space:","%i",degreeInSpace) ){} //
       else if( dialog.getTextValue(answer,"degree in time:","%i",degreeInTime) ){} //
 
@@ -7119,10 +7479,10 @@ getSolutionArrayIndex(Index & I1, Index &I2, Index & I3, Index &C) const
 
   // Longfei 20170104: new entries in dbase to track the  numberOfDisplacementVaribles and numberOfAngularVaribles of all the varibles in the beam model
   // numberOfDisplacementVaribles+numberOfAngularVaribles = numberOfSolutionComponents
-  if( !dbase.has_key("numberOfDisplacementVaribles") ) dbase.put<int>("numberOfDisplacementVaribles")=0;
-  if( !dbase.has_key("numberOfAngularVaribles") ) dbase.put<int>("numberOfAngularVaribles")=0;
-  int & nDisplacement = dbase.get<int>("numberOfDisplacementVaribles");
-  int & nAngle = dbase.get<int>("numberOfAngularVaribles");
+  if( !dbase.has_key("numberOfDisplacementVariables") ) dbase.put<int>("numberOfDisplacementVariables")=0;
+  if( !dbase.has_key("numberOfAngularVariables") ) dbase.put<int>("numberOfAngularVariables")=0;
+  int & nDisplacement = dbase.get<int>("numberOfDisplacementVariables");
+  int & nAngle = dbase.get<int>("numberOfAngularVariables");
 
 
   if(beamModel==eulerBernoulliBeamModel)
@@ -7166,6 +7526,7 @@ getSolutionArrayIndex(Index & I1, Index &I2, Index & I3, Index &C) const
   I2 = 0; I3=0; // Beam Domain is assumed to be 1D
   assert(domainDimension==1);
   C = Range(numberOfSolutionComponents);
+  C = Range(1); //Longfei: FIX ME......Currently our beam model has only 1 solution components
 
   return 0;
 }
@@ -7337,28 +7698,21 @@ displayDBase(FILE *file /*=stdout*/ )
 	{
 	  fPrintF(file,"FILE*\n");
 	}
-      else if( DBase::can_cast_entry<Real[2]>(entry) )
+      else if( DBase::can_cast_entry<vector<real> >(entry) )
 	{
-	  const Real *value=cast_entry<Real[2]>(entry);  
-	  fPrintF(file,"[%9.3e,%9.3e]\n",value[0],value[1]);
-	}
-      else if( DBase::can_cast_entry<Real[3]>(entry) )
-	{
-	  const Real *value=cast_entry<Real[3]>(entry);  
-	  fPrintF(file,"[%9.3e,%9.3e,%9.3e]\n",value[0],value[1],value[2]);
-	}
-      else if( DBase::can_cast_entry<Real[4]>(entry) )
-	{
-	  const Real *value=cast_entry<Real[4]>(entry);  
-	  fPrintF(file,"[%9.3e,%9.3e,%9.3e,%9.3e]\n",value[0],value[1],value[2],value[3]);
+	  const vector<real> &value=cast_entry<vector<real> >(entry);
+	  fPrintF(file,"[");
+	  for(vector<real>::size_type i=0;i<value.size()-1;i++){fPrintF(file,"%10.2e,",value[i]);}
+	  fPrintF(file,"%10.2e]\n",value.back());
+
 	}
       else if( DBase::can_cast_entry<MappedGrid>(entry) )
 	{  
 	  fPrintF(file,"MappedGrid\n");
 	}
-      else if( DBase::can_cast_entry<BoundaryConditionEnum[2]>(entry) )
+      else if( DBase::can_cast_entry<vector<BoundaryConditionEnum> >(entry) )
 	{
-	  const BoundaryConditionEnum *value=cast_entry<BoundaryConditionEnum[2]>(entry); 
+	  const vector<BoundaryConditionEnum> & value=cast_entry<vector<BoundaryConditionEnum> >(entry); 
 	  fPrintF(file,"[%s,%s]\n",(const char*)getBCName(value[0]),(const char*)getBCName(value[1]));
 	}
       else if( DBase::can_cast_entry<TimeSteppingMethodEnum>(entry) )
@@ -7389,10 +7743,6 @@ displayDBase(FILE *file /*=stdout*/ )
 
 }
 
-/// \param xs (output) : current position of beam boundary 
-/// /param adjustEnds (input) : if true then adjust the ends of the beam surface for 
-///     clamped/pinned end conditions so that the end points on the beam surface do not move --
-///     This is needed if we are generating a fluid grid exterior to the beam.
 
 // Longfei 20170103: get the "normal" for the beam surface point that is used for
 // projection. We can choose from 3 options: currentFluidNormal, initialBeamNormal, currentBeamNormal
@@ -7423,9 +7773,10 @@ getCurrentNormalForProjection(const real t, const RealArray & x0,  RealArray & n
 
 
   //get dimension of the normal
-  const int dim =  normal.getLength(3);
+  const int dim =  normal.getLength(3); // this is the dimension of the physical space
   
-  assert(dim==2); // FIX ME for 3d
+  assert(dim==dbase.get<int>("rangeDimension")); // make sure the beam rangeDimension == physical dimension
+  //assert(dim==2); // FIX ME for 3d
 
   if(normalOption=="currentFluidNormal")
     {
@@ -7450,7 +7801,7 @@ getCurrentNormalForProjection(const real t, const RealArray & x0,  RealArray & n
     }
   else if(normalOption=="initialBeamNormal")
     {
-      const  real * initialBeamNormal = dbase.get<real[2]>("initialBeamNormal");
+      const  vector<real> & initialBeamNormal = dbase.get<vector<real> >("initialBeamNormal");
       //set normal to the initialBeamNormal;
       for(int d=0;d<dim;d++)
 	{
@@ -7461,8 +7812,8 @@ getCurrentNormalForProjection(const real t, const RealArray & x0,  RealArray & n
   else if(normalOption=="currentBeamNormal")
     {
       // compute the current beam normal (centerline normal)
-      const  real * initialBeamNormal = dbase.get<real[2]>("initialBeamNormal");
-      const  real * initialBeamTangent= dbase.get<real[2]>("initialBeamTangent");
+      const  vector<real> & initialBeamNormal = dbase.get<vector<real> >("initialBeamNormal");
+      const  vector<real> & initialBeamTangent= dbase.get<vector<real> >("initialBeamTangent");
 
       std::vector<RealArray> & u = dbase.get<std::vector<RealArray> >("u"); // displacement DOF
 
@@ -7499,6 +7850,65 @@ getCurrentNormalForProjection(const real t, const RealArray & x0,  RealArray & n
     }
 
   return 0;
+}
+
+
+// Longfei 20170115: 
+// =================================================================================================
+/// \brief get the rotation matrix with time derivative ntd
+/// \param R (output) : the ntd time derivative of the rotation matrix 
+/// \param u (output) : the ntd time derivative of the displacement at the projected point
+/// \param uslope (output) : the slope of u
+/// \param t (input) : current time.
+/// \param  X (input) : beam solution vector
+/// \param  X0 (input) :  undeformed location of the point on the surface of the beam
+/// \param ntd(input): number of time derivative
+// =================================================================================================
+int BeamModel::
+getRotationMatrix3D( RealArray & R, real * u, real * uslope, const real t, const RealArray& X, const real* X0, const int ntd)
+{
+  // get the coordinate of X0 on the beam reference frame
+  bool clipToBounds=true; 
+  int elemNum; 
+  real eta;
+  projectPoint3D(X0, elemNum, eta, clipToBounds); // if X0 is out of bound, we use the rotation matrix at the end
+
+  const int & nDisplacement = dbase.get<int>("numberOfDisplacementVariables");
+  const bool & allowAxialDeformation = dbase.get<bool>("allowAxialDeformation");
+  if(ntd==0)
+    {  // compute the rotation matrix using soluiton X. Do not check time here since this is also called by getPastTimeState      
+      
+ 
+      // FINISH ME. CURRENTLY WE HAVE DISPALCEMENT IN y direction only!!!!!
+      u[0]=0.;u[2]=0.;
+      interpolateSolution(X, elemNum, eta, u[1], uslope[1]);       // displacement=u, slope = u_x 
+      uslope[0]=0.;uslope[2]=0.;
+
+      // tangent vector here is (1+uslope[0],uslope[1],uslope[2])
+      real nn=sqrt((1+uslope[0])*(1+uslope[0])+uslope[1]*uslope[1]+uslope[2]*uslope[2]);   // norm of the tangent vector
+      real a,b,c; // coordinates of the  normalized tangent vector
+      a = (1+uslope[0])/nn; b = uslope[1]/nn; c=uslope[2]/nn;
+
+      // Rotation matrix with no twist:
+      R(0,0)=a; R(0,1)=-b;            R(0,2)=-c;
+      R(1,0)=b; R(1,1)=a+c*c/(1+a);   R(1,2)=-b*c/(1+a);
+      R(2,0)=c; R(2,1)=-b*c/(1+a);    R(2,2)=a+b*b/(1+a);
+      
+      
+    }
+  else if (ntd==1)
+    {
+      OV_ABORT("FINISH ME");
+    }
+  else if (ntd==2)
+    {
+      OV_ABORT("FINISH ME");
+    }
+  else
+    {
+      OV_ABORT("Error: we only need Rotation matrix with ntd=0,1,2\n");
+    }
+
 }
 
 

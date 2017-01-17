@@ -248,7 +248,7 @@ computeInternalForce(const RealArray& u, const RealArray& v, RealArray& f)
   const int & numOfGhost = dbase.get<int>("numberOfGhostPoints");
   assert(numOfGhost==2); // Longfei: we have 2 ghost points for now, we might need more for higher order method
 
-  const BoundaryConditionEnum * boundaryConditions = dbase.get<BoundaryConditionEnum[2]>("boundaryConditions");
+  const vector<BoundaryConditionEnum> & boundaryConditions = dbase.get<vector<BoundaryConditionEnum> >("boundaryConditions");
   const BoundaryConditionEnum & bcLeft =  boundaryConditions[0];
   const BoundaryConditionEnum & bcRight =  boundaryConditions[1];
 
@@ -272,7 +272,7 @@ computeInternalForce(const RealArray& u, const RealArray& v, RealArray& f)
     }
   
   f = 0.0;
-  f = -K0*u+T*uxx-EI*uxxxx;
+  f(I1,I2,I3,0) = -K0*u+T*uxx-EI*uxxxx;
 
 
   if( Kt!=0. || Kxxt!=0. )
@@ -280,7 +280,7 @@ computeInternalForce(const RealArray& u, const RealArray& v, RealArray& f)
       // add damping terms to internal force
       // reuse uxx for vxx to save space
       op.derivative( MappedGridOperators::xxDerivative,v,uxx,I1,I2,I3,0); 
-      f += -Kt*v+Kxxt*uxx;
+      f(I1,I2,I3,0) += -Kt*v+Kxxt*uxx;
 
     }
   
@@ -342,7 +342,7 @@ computeAcceleration(const real t,
   //const real & Kxxt = dbase.get<real>("Kxxt");
 
   const int & numElem = dbase.get<int>("numElem");
-  const BoundaryConditionEnum * boundaryConditions = dbase.get<BoundaryConditionEnum[2]>("boundaryConditions");
+  const vector<BoundaryConditionEnum> & boundaryConditions = dbase.get<vector<BoundaryConditionEnum> >("boundaryConditions");
   const BoundaryConditionEnum & bcLeft =  boundaryConditions[0];
   const BoundaryConditionEnum & bcRight =  boundaryConditions[1];
   const bool & allowsFreeMotion = dbase.get<bool>("allowsFreeMotion");
@@ -544,7 +544,7 @@ solveTridiagonal(const RealArray& f, RealArray& u, const aString & tridiagonalSo
   const int & numElem = dbase.get<int>("numElem");
   const int & numOfGhost = dbase.get<int>("numberOfGhostPoints");
 
-  const BoundaryConditionEnum * boundaryConditions = dbase.get<BoundaryConditionEnum[2]>("boundaryConditions");
+  const vector<BoundaryConditionEnum> & boundaryConditions = dbase.get<vector<BoundaryConditionEnum> >("boundaryConditions");
   const BoundaryConditionEnum & bcLeft = boundaryConditions[0];
   const BoundaryConditionEnum & bcRight = boundaryConditions[1];
   const bool & allowsFreeMotion = dbase.get<bool>("allowsFreeMotion");
@@ -637,7 +637,7 @@ factorTridiagonalSolver( const aString & tridiagonalSolverName)
   TridiagonalSolver & tri = *pTri;
 
 
-  const BoundaryConditionEnum * boundaryConditions = dbase.get<BoundaryConditionEnum[2]>("boundaryConditions");
+  const vector<BoundaryConditionEnum> & boundaryConditions = dbase.get<vector<BoundaryConditionEnum> >("boundaryConditions");
   const BoundaryConditionEnum & bcLeft =  boundaryConditions[0];
   const BoundaryConditionEnum & bcRight =  boundaryConditions[1];
  
@@ -976,7 +976,7 @@ assignBoundaryConditions( real t, RealArray & u, RealArray & v, RealArray & a,co
 {  
   const real & L = dbase.get<real>("length");
   const int & numElem = dbase.get<int>("numElem");
-  const BoundaryConditionEnum * boundaryConditions = dbase.get<BoundaryConditionEnum[2]>("boundaryConditions");
+  const vector<BoundaryConditionEnum> & boundaryConditions = dbase.get<vector<BoundaryConditionEnum> >("boundaryConditions");
   const BoundaryConditionEnum & bcLeft =  boundaryConditions[0];
   const BoundaryConditionEnum & bcRight =  boundaryConditions[1];
   const bool & allowsFreeMotion = dbase.get<bool>("allowsFreeMotion");
@@ -1275,7 +1275,7 @@ smooth( const real t, RealArray & w, const aString & label )
 {
   const int & numElem = dbase.get<int>("numElem");
   const bool & smoothSolution = dbase.get<bool>("smoothSolution");
-  const BoundaryConditionEnum * bc = dbase.get<BoundaryConditionEnum[2]>("boundaryConditions");
+  const vector<BoundaryConditionEnum> & bc = dbase.get<vector<BoundaryConditionEnum> >("boundaryConditions");
   const BoundaryConditionEnum & bcLeft =  bc[0];
   const BoundaryConditionEnum & bcRight =  bc[1];
 
