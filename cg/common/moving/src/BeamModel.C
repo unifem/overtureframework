@@ -1940,12 +1940,24 @@ getSurface( const real t, const RealArray & x0,  const RealArray & xs,
       
 	  if( bc == pinned || bc == clamped )
 	    {
-	      // -- force the end points of the beam surface to remain fixed -- **COULD DO BETTER**
-	      xs(i1,i2,i3,0)=x0(i1,i2,i3,0); // set ends equal to initial position
-	      xs(i1,i2,i3,1)=x0(i1,i2,i3,1);
 	      //Longfei 20170116:
-	      if (rangeDimension==3)  xs(i1,i2,i3,2)=x0(i1,i2,i3,2);
-
+	      if(rangeDimension==2)
+		{
+		  // -- force the end points of the beam surface to remain fixed -- **COULD DO BETTER**
+		  xs(i1,i2,i3,0)=x0(i1,i2,i3,0); // set ends equal to initial position
+		  xs(i1,i2,i3,1)=x0(i1,i2,i3,1);
+		}
+	      else if (rangeDimension==3)
+		{
+		  // temperay fix........ what is the general way to find the boundary????
+		  xs(Ib1,i2,Ib3,0)=x0(Ib1,i2,Ib3,0);
+		  xs(Ib1,i2,Ib3,1)=x0(Ib1,i2,Ib3,1);
+		  xs(Ib1,i2,Ib3,2)=x0(Ib1,i2,Ib3,2);
+		}
+	      else
+		{
+		  OV_ABORT("-- BM -- Error: Wrong rangeDimension");
+		}
 	    }
 	  else if( bc==slideBC )
 	    {
@@ -2139,31 +2151,37 @@ projectDisplacement3D(const real t, const RealArray& X, const real& x0, const re
   real u[rangeDimension], uslope[rangeDimension]; 
   getRotationMatrix3D(R,u,uslope, t, X, X0, ntd);
 
-  // get the coordinates of X0 in the beam reference frame
-  real xr=0,yr=0,zr=0;
-  for(int d=0;d<3;d++)
+  if (!allowsFreeMotion) 
     {
-      xr+=(X0[d]-beamXYZ[d])*initialBeamTangent[d];
-      yr+=(X0[d]-beamXYZ[d])*initialBeamNormal[d];
-      zr+=(X0[d]-beamXYZ[d])*initialBeamBinormal[d];
+      // get the coordinates of X0 in the beam reference frame
+      real xr=0,yr=0,zr=0;
+      for(int d=0;d<3;d++)
+	{
+	  xr+=(X0[d]-beamXYZ[d])*initialBeamTangent[d];
+	  yr+=(X0[d]-beamXYZ[d])*initialBeamNormal[d];
+	  zr+=(X0[d]-beamXYZ[d])*initialBeamBinormal[d];
+	}
+
+
+      // given the current centerline displacement u, we know the current position of the point X0 is 
+      // wx        0       u[0]+xr
+      // wy  =  R  yr  +   u[1]
+      // wz        zr      u[2]
+  
+      // note (xl,yl,zl) is in beam reference frame
+      real xl = R(0,0)*0+R(0,1)*yr+R(0,2)*zr+u[0]+xr;
+      real yl = R(1,0)*0+R(1,1)*yr+R(1,2)*zr+u[1];
+      real zl = R(2,0)*0+R(2,1)*yr+R(2,2)*zr+u[2];
+
+      // convert back to physical frame
+      wx = beamX0 + xl*initialBeamTangent[0]   + yl*initialBeamNormal[0] + zl*initialBeamBinormal[0];
+      wy = beamY0 + xl*initialBeamTangent[1]   + yl*initialBeamNormal[1] + zl*initialBeamBinormal[1];
+      wz = beamZ0 + xl*initialBeamTangent[2]   + yl*initialBeamNormal[2] + zl*initialBeamBinormal[2];
     }
-
-
-  // given the current centerline displacement u, we know the current position of the point X0 is 
-  // wx        0       u[0]+xr
-  // wy  =  R  yr  +   u[1]
-  // wz        zr      u[2]
-  
-  // note (xl,yl,zl) is in beam reference frame
-  real xl = R(0,0)*0+R(0,1)*yr+R(0,2)*zr+u[0]+xr;
-  real yl = R(1,0)*0+R(1,1)*yr+R(1,2)*zr+u[1];
-  real zl = R(2,0)*0+R(2,1)*yr+R(2,2)*zr+u[2];
-
-  // convert back to physical frame
-  wx = beamX0 + xl*initialBeamTangent[0]   + yl*initialBeamNormal[0] + zl*initialBeamBinormal[0];
-  wy = beamY0 + xl*initialBeamTangent[1]   + yl*initialBeamNormal[1] + zl*initialBeamBinormal[1];
-  wz = beamZ0 + xl*initialBeamTangent[2]   + yl*initialBeamNormal[2] + zl*initialBeamBinormal[2];
-  
+  else
+    {
+      OV_ABORT("DOES NOT SUPPORT FREE MOTION YET");
+    }
 
 
 
@@ -2674,9 +2692,7 @@ getSurfaceVelocity( const real t, const RealArray & x0,  const RealArray & vs,
 	}
       else if(rangeDimension==3)
 	{
-	  vs(i1,i2,i3,0)=0;vs(i1,i2,i3,1)=0; vs(i1,i2,i3,2)=0; 
-	  //projectVelocity3D(t, x0(i1,i2,i3,0),x0(i1,i2,i3,1),x0(i1,i2,i3,2),vs(i1,i2,i3,0),vs(i1,i2,i3,1),vs(i1,i2,i3,2)  );
-		
+	  projectVelocity3D(t, x0(i1,i2,i3,0),x0(i1,i2,i3,1),x0(i1,i2,i3,2),vs(i1,i2,i3,0),vs(i1,i2,i3,1),vs(i1,i2,i3,2)  );	     
 	}
       else
 	{
@@ -2702,10 +2718,20 @@ getSurfaceVelocity( const real t, const RealArray & x0,  const RealArray & vs,
       
 	  if( bc == pinned || bc == clamped )
 	    {
-	      // -- force the end points of the beam surface to remain fixed -- **COULD DO BETTER**
-	      vs(i1,i2,i3,0)=0.;
-	      vs(i1,i2,i3,1)=0.;
-	      if(rangeDimension==3)  vs(i1,i2,i3,2)=0.;
+	      // Longfei 20170116: made changes for 3d
+	      if(rangeDimension==2)
+		{
+		  // -- force the end points of the beam surface to remain fixed -- **COULD DO BETTER**
+		  vs(i1,i2,i3,0)=0.;
+		  vs(i1,i2,i3,1)=0.;
+		}
+	      else if(rangeDimension==3)
+		{
+		  // temperay fix........ what is the general way to find the boundary????
+		  vs(Ib1,i2,Ib3,0)=0.;
+		  vs(Ib1,i2,Ib3,1)=0.;
+		  vs(Ib1,i2,Ib3,2)=0.;
+		}
 
 	    }
 	  else if( bc==slideBC )
@@ -3164,6 +3190,82 @@ projectVelocity( const real t, const real& x0, const real& y0, real& vx, real& v
     }
 
 }
+
+
+
+// ==============================================================================================
+/// /brief Return the velocity of the point on the surface (not the neutral axis) 3D version
+/// of the beam of the point whose undeformed location is (x0,y0,z0).
+/// x0:       undeformed location of the point on the surface of the beam (x)
+/// y0:       undeformed location of the point on the surface of the beam (y)
+/// z0:       undeformed location of the point on the surface of the beam (z)
+/// vx [out]: velocity of the point on the surface of the beam (x)
+/// vy [out]: velocity of the point on the surface of the beam (y)
+/// vz [out]: velocity of the point on the surface of the beam (z)
+///
+/// /author Longfei
+// ==============================================================================================
+void BeamModel::
+projectVelocity3D( const real t, const real& x0, const real& y0, const real& z0, real& vx, real& vy, real& vz ) 
+{
+
+  const bool & allowsFreeMotion = dbase.get<bool>("allowsFreeMotion");
+  const aString & exactSolutionOption = dbase.get<aString>("exactSolutionOption");
+  const  vector<real> & initialBeamTangent = dbase.get<vector<real> >("initialBeamTangent");
+  const  vector<real> & initialBeamNormal = dbase.get<vector<real> >("initialBeamNormal");
+  const  vector<real> & initialBeamBinormal = dbase.get<vector<real> >("initialBeamBinormal");
+
+  const int & rangeDimension = dbase.get<int>("rangeDimension");
+  const int & current = dbase.get<int>("current");
+  const vector<real> & beamXYZ = dbase.get<vector<real> >("beamXYZ");
+
+
+  // Compute the reference coordinate of the point on the beam1
+  const real X0[]={x0,y0,z0};
+  int ntd=1; // number of time derivative
+  RealArray Rd(3,3); // 3x3 rotation matrix
+  // centerline velocity and its slope in each dimemsion at the projected point of X0 
+  real v[rangeDimension], vSlope[rangeDimension];
+  std::vector<RealArray> & u = dbase.get<std::vector<RealArray> >("u"); // velocity DOF
+  RealArray & uc = u[current];  // current displacement DOF
+  getRotationMatrix3D(Rd,v,vSlope, t, uc, X0, ntd);
+
+  if (!allowsFreeMotion) 
+    {
+      // get the coordinates of X0 in the beam reference frame
+      real xr=0,yr=0,zr=0;
+      for(int d=0;d<3;d++)
+	{
+	  xr+=(X0[d]-beamXYZ[d])*initialBeamTangent[d];
+	  yr+=(X0[d]-beamXYZ[d])*initialBeamNormal[d];
+	  zr+=(X0[d]-beamXYZ[d])*initialBeamBinormal[d];
+	}
+
+
+      // given the current centerline velocity v, we know the current velocity of the point X0 is 
+      // vx            0        v[0]
+      // vy  =  Rd  yr  +   v[1]
+      // vz            zr       v[2]
+  
+      // note (vxl,vyl,vzl) is in beam reference frame
+      real vxl = Rd(0,0)*0+Rd(0,1)*yr+Rd(0,2)*zr+v[0];
+      real vyl = Rd(1,0)*0+Rd(1,1)*yr+Rd(1,2)*zr+v[1];
+      real vzl = Rd(2,0)*0+Rd(2,1)*yr+Rd(2,2)*zr+v[2];
+
+      // convert back to physical frame
+      vx =  vxl*initialBeamTangent[0]   + vyl*initialBeamNormal[0] + vzl*initialBeamBinormal[0];
+      vy =  vxl*initialBeamTangent[1]   + vyl*initialBeamNormal[1] + vzl*initialBeamBinormal[1];
+      vz =  vxl*initialBeamTangent[2]   + vyl*initialBeamNormal[2] + vzl*initialBeamBinormal[2];
+    }
+  else
+    {
+      OV_ABORT("DOES NOT SUPPORT FREE MOTION YET");
+    }
+
+
+
+}
+
 
 
 
@@ -7857,15 +7959,15 @@ getCurrentNormalForProjection(const real t, const RealArray & x0,  RealArray & n
 // =================================================================================================
 /// \brief get the rotation matrix with time derivative ntd
 /// \param R (output) : the ntd time derivative of the rotation matrix 
-/// \param u (output) : the ntd time derivative of the displacement at the projected point
-/// \param uslope (output) : the slope of u
+/// \param sol (output) : the ntd time derivative of the displacement at the projected point
+/// \param solSlope (output) : the slope of sol
 /// \param t (input) : current time.
 /// \param  X (input) : beam solution vector
 /// \param  X0 (input) :  undeformed location of the point on the surface of the beam
 /// \param ntd(input): number of time derivative
 // =================================================================================================
 int BeamModel::
-getRotationMatrix3D( RealArray & R, real * u, real * uslope, const real t, const RealArray& X, const real* X0, const int ntd)
+getRotationMatrix3D( RealArray & R, real * sol, real * solSlope, const real t, const RealArray& X, const real* X0, const int ntd)
 {
   // get the coordinate of X0 on the beam reference frame
   bool clipToBounds=true; 
@@ -7875,39 +7977,85 @@ getRotationMatrix3D( RealArray & R, real * u, real * uslope, const real t, const
 
   const int & nDisplacement = dbase.get<int>("numberOfDisplacementVariables");
   const bool & allowAxialDeformation = dbase.get<bool>("allowAxialDeformation");
+
+ 
+  // FINISH ME. CURRENTLY WE HAVE DISPALCEMENT IN y direction only!!!!!
+  real u[3], uSlope[3]; 
+  u[0]=0.;u[2]=0.;
+  interpolateSolution(X, elemNum, eta, u[1], uSlope[1]);       // displacement=u, slope = u_x 
+  uSlope[0]=0.;uSlope[2]=0.;
+
+  // tangent vector here is (1+uSlope[0],uSlope[1],uSlope[2])
+  real nn=sqrt((1+uSlope[0])*(1+uSlope[0])+uSlope[1]*uSlope[1]+uSlope[2]*uSlope[2]);   // norm of the tangent vector
+  real t1,t2,t3; // coordinates of the  normalized tangent vector
+  t1 = (1+uSlope[0])/nn; t2 = uSlope[1]/nn; t3=uSlope[2]/nn;
+  
   if(ntd==0)
     {  // compute the rotation matrix using soluiton X. Do not check time here since this is also called by getPastTimeState      
       
- 
-      // FINISH ME. CURRENTLY WE HAVE DISPALCEMENT IN y direction only!!!!!
-      u[0]=0.;u[2]=0.;
-      interpolateSolution(X, elemNum, eta, u[1], uslope[1]);       // displacement=u, slope = u_x 
-      uslope[0]=0.;uslope[2]=0.;
-
-      // tangent vector here is (1+uslope[0],uslope[1],uslope[2])
-      real nn=sqrt((1+uslope[0])*(1+uslope[0])+uslope[1]*uslope[1]+uslope[2]*uslope[2]);   // norm of the tangent vector
-      real a,b,c; // coordinates of the  normalized tangent vector
-      a = (1+uslope[0])/nn; b = uslope[1]/nn; c=uslope[2]/nn;
-
+      // outputs:
       // Rotation matrix with no twist:
-      R(0,0)=a; R(0,1)=-b;            R(0,2)=-c;
-      R(1,0)=b; R(1,1)=a+c*c/(1+a);   R(1,2)=-b*c/(1+a);
-      R(2,0)=c; R(2,1)=-b*c/(1+a);    R(2,2)=a+b*b/(1+a);
+      R(0,0)=t1; R(0,1)=-t2;                    R(0,2)=-t3;
+      R(1,0)=t2; R(1,1)=t1+t3*t3/(1+t1);   R(1,2)=-t2*t3/(1+t1);
+      R(2,0)=t3; R(2,1)=-t2*t3/(1+t1);       R(2,2)=t1+t2*t2/(1+t1);
+      // solution and its slope
+      sol[0]=u[0];sol[1]=u[1];sol[2]=u[2];
+      solSlope[0]=uSlope[0];solSlope[1]=uSlope[1];solSlope[2]=uSlope[2];
+    }
+  else 
+    {
+      const int & current = dbase.get<int>("current");
+      std::vector<RealArray> & vv = dbase.get<std::vector<RealArray> >("v"); // velocity DOF
+      RealArray & vc = vv[current];  // current velocity DOF
+      RealArray & time = dbase.get<RealArray>("time");
+      // check time here to make sure its consistent
+      if( fabs(time(current)-t) > 1.e-10*(1.+t) )
+	{
+	  printF("-- BM%i -- BeamModel::getRotationMatrix3D:ERROR: t=%10.3e is not equal to time(current)=%10.3e, current=%i\n",
+		 getBeamID(),t,time(current),current);
+	  OV_ABORT("ERROR");
+	}
+
+       
+      // FINISH ME. CURRENTLY WE HAVE DISPALCEMENT IN y direction only!!!!!
+      real v[3], vSlope[3];      
+      v[0]=0.;v[2]=0.;
+      interpolateSolution(vc, elemNum, eta, v[1], vSlope[1]);       // displacement=u, slope = u_x 
+      vSlope[0]=0.;vSlope[2]=0.;
+
+      real t1d,t2d,t3d; //time derivative of t1,t2,t3
+      real nn3 = nn*nn*nn; 
+      real omeg = (2.*(1.+uSlope[0]))*(vSlope[0])+2.*uSlope[1]*(vSlope[1])+2.*uSlope[2]*(vSlope[2])/nn3;
+
+
+      t1d=vSlope[0]/nn - 0.5*(1.+uSlope[0])*omeg;
+      t2d=vSlope[1]/nn - 0.5*uSlope[1]*omeg;
+      t3d=vSlope[2]/nn - 0.5*uSlope[2]*omeg; 
       
-      
+
+      if (ntd==1)
+	{
+	  // outputs: 
+	  // time derivative of rotation matrix
+	  R(0,0)= t1d;   R(0,1)= -t2d ;  R(0,2)= -t3d;
+	  R(1,0)= t2d;   R(1,1)= t1d + 2*t3*t3d/(1+t1)-t3*t3*t1d/((1+t1)*(1+t1)) ;  R(1,2)=-t2d*t3/(1+t1)-t2*t3d/(1+t1)+t2*t3*t1d/((1+t1)*(1+t1));
+	  R(2,0)= t3d;   R(2,1)=-t2d*t3/(1+t1)-t2*t3d/(1+t1)+t2*t3*t1d/((1+t1)*(1+t1)) ;  R(2,2)=t1d + 2*t2*t2d/(1+t1)-t2*t2*t1d/((1+t1)*(1+t1));
+	  // solution and its slope
+	  sol[0]=v[0];sol[1]=v[1];sol[2]=v[2];
+	  solSlope[0]=vSlope[0];solSlope[1]=vSlope[1];solSlope[2]=vSlope[2];
+
+	}
+      else if (ntd==2)
+	{
+	  OV_ABORT("FINISH ME");
+	}
+      else
+	{
+	  OV_ABORT("Error: we only need Rotation matrix with ntd=0,1,2\n");
+	} 
+   
     }
-  else if (ntd==1)
-    {
-      OV_ABORT("FINISH ME");
-    }
-  else if (ntd==2)
-    {
-      OV_ABORT("FINISH ME");
-    }
-  else
-    {
-      OV_ABORT("Error: we only need Rotation matrix with ntd=0,1,2\n");
-    }
+
 
 }
 

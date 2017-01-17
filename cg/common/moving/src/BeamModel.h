@@ -339,7 +339,7 @@ public:
   int getParameter( const aString & name, real & value ) const;
 
   // Longfei 20170115:
-  int getRotationMatrix3D( RealArray & R, real * u, real * uslope, const real t, 
+  int getRotationMatrix3D( RealArray & R, real * sol, real * solSlope, const real t, 
 			   const RealArray& X, const real* X0, const int ntd);
   
   // Longfei 20160117: this should apply to all beam models. modifications are made for FDBeamModel
@@ -428,7 +428,8 @@ public:
 
   // Return the velocity of the point on the surface (not the neutral axis)
   void projectVelocity( const real t, const real& x0, const real& y0, real& vx, real& vy );
-
+  // Longfei 20170116: 3d version
+  void projectVelocity3D( const real t, const real& x0, const real& y0, const real& z0 ,real& vx, real& vy, real& vz );
 
   // Predict the structural state at t^{n+1} = t + dt, using the Newmark beta predictor.
   void predictor(real tnp1, real dt );
