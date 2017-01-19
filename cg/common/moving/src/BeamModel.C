@@ -10,6 +10,12 @@
 #include "MappedGridOperators.h"
 #include "TridiagonalSolver.h"
 
+// Longfei 20170118
+// use the maple generated file to define macros for
+// GET_R(R); GET_RD(R); GET_RDD(R);
+// which are the rotiation matrix and its time derivatives
+#include "RotationMatrixMacros.h"
+
 #include <sstream>
 
 
@@ -7984,20 +7990,12 @@ getRotationMatrix3D( RealArray & R, real * sol, real * solSlope, const real t, c
   u[0]=0.;u[2]=0.;
   interpolateSolution(X, elemNum, eta, u[1], uSlope[1]);       // displacement=u, slope = u_x 
   uSlope[0]=0.;uSlope[2]=0.;
-
-  // tangent vector here is (1+uSlope[0],uSlope[1],uSlope[2])
-  real nn=sqrt((1+uSlope[0])*(1+uSlope[0])+uSlope[1]*uSlope[1]+uSlope[2]*uSlope[2]);   // norm of the tangent vector
-  real t1,t2,t3; // coordinates of the  normalized tangent vector
-  t1 = (1+uSlope[0])/nn; t2 = uSlope[1]/nn; t3=uSlope[2]/nn;
   
   if(ntd==0)
     {  // compute the rotation matrix using soluiton X. Do not check time here since this is also called by getPastTimeState      
       
       // outputs:
-      // Rotation matrix with no twist:
-      R(0,0)=t1; R(0,1)=-t2;                    R(0,2)=-t3;
-      R(1,0)=t2; R(1,1)=t1+t3*t3/(1+t1);   R(1,2)=-t2*t3/(1+t1);
-      R(2,0)=t3; R(2,1)=-t2*t3/(1+t1);       R(2,2)=t1+t2*t2/(1+t1);
+      GET_R(R);
       // solution and its slope
       sol[0]=u[0];sol[1]=u[1];sol[2]=u[2];
       solSlope[0]=uSlope[0];solSlope[1]=uSlope[1];solSlope[2]=uSlope[2];
@@ -8023,23 +8021,11 @@ getRotationMatrix3D( RealArray & R, real * sol, real * solSlope, const real t, c
       interpolateSolution(vc, elemNum, eta, v[1], vSlope[1]);       // displacement=u, slope = u_x 
       vSlope[0]=0.;vSlope[2]=0.;
 
-      real t1d,t2d,t3d; //time derivative of t1,t2,t3
-      real nn3 = nn*nn*nn; 
-      real omeg = (2.*(1.+uSlope[0]))*(vSlope[0])+2.*uSlope[1]*(vSlope[1])+2.*uSlope[2]*(vSlope[2])/nn3;
-
-
-      t1d=vSlope[0]/nn - 0.5*(1.+uSlope[0])*omeg;
-      t2d=vSlope[1]/nn - 0.5*uSlope[1]*omeg;
-      t3d=vSlope[2]/nn - 0.5*uSlope[2]*omeg; 
-      
-
       if (ntd==1)
 	{
 	  // outputs: 
 	  // time derivative of rotation matrix
-	  R(0,0)= t1d;   R(0,1)= -t2d ;  R(0,2)= -t3d;
-	  R(1,0)= t2d;   R(1,1)= t1d + 2*t3*t3d/(1+t1)-t3*t3*t1d/((1+t1)*(1+t1)) ;  R(1,2)=-t2d*t3/(1+t1)-t2*t3d/(1+t1)+t2*t3*t1d/((1+t1)*(1+t1));
-	  R(2,0)= t3d;   R(2,1)=-t2d*t3/(1+t1)-t2*t3d/(1+t1)+t2*t3*t1d/((1+t1)*(1+t1)) ;  R(2,2)=t1d + 2*t2*t2d/(1+t1)-t2*t2*t1d/((1+t1)*(1+t1));
+	  GET_RD(R);	  
 	  // solution and its slope
 	  sol[0]=v[0];sol[1]=v[1];sol[2]=v[2];
 	  solSlope[0]=vSlope[0];solSlope[1]=vSlope[1];solSlope[2]=vSlope[2];
@@ -8047,7 +8033,21 @@ getRotationMatrix3D( RealArray & R, real * sol, real * solSlope, const real t, c
 	}
       else if (ntd==2)
 	{
-	  OV_ABORT("FINISH ME");
+	  std::vector<RealArray> & aa = dbase.get<std::vector<RealArray> >("a"); // velocity DOF
+	  RealArray & ac = vv[current];  // current velocity DOF
+	  // FINISH ME. CURRENTLY WE HAVE DISPALCEMENT IN y direction only!!!!!
+	  real a[3], aSlope[3];      
+	  a[0]=0.;a[2]=0.;
+	  interpolateSolution(ac, elemNum, eta, a[1], aSlope[1]);       // displacement=u, slope = u_x 
+	  aSlope[0]=0.;aSlope[2]=0.;
+
+	  // outputs: 
+	  // time derivative of rotation matrix
+	  GET_RDD(R);	  
+	  // solution and its slope
+	  sol[0]=a[0];sol[1]=a[1];sol[2]=a[2];
+	  solSlope[0]=aSlope[0];solSlope[1]=aSlope[1];solSlope[2]=aSlope[2];
+
 	}
       else
 	{
