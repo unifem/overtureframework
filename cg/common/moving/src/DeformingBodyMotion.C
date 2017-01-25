@@ -1652,7 +1652,12 @@ initialize( CompositeGrid & cg, real t /* = 0. */ )
 
   }
   
-
+  //Longfei 20170119: buildBeamFluidInterfaceData here (moved from  Cgins::adjustPressureCoefficients)
+  if( deformingBodyType==userDefinedDeformingBody &&
+      deformingBodyDataBase.get<UserDefinedDeformingBodyMotionEnum>("userDefinedDeformingBodyMotionOption")==elasticBeam )
+    {
+      buildBeamFluidInterfaceData( cg );
+    }
 
   initializeGrid( cg,t );  // *wdh* 080221
 
@@ -4453,6 +4458,15 @@ projectInterfaceVelocity( GridFunction & cgf )
 /// \brief: Construct the beam-fluid grid interface data needed by the AMP algorithm
 /// \details : The AMP algorithm for beams with fluid on two sides needs to know 
 ///     where points on one side are located on the opposite side.
+//
+/// Modified by Longfei on 20170119:
+///    Calling of this function is moved from Cgins::adjustPressureCoefficients to 
+///    DeformingBodyMotion::initialize(). 
+///    The code is regrouped according to numberOfDimensions
+///    For 2D, the existing code is used to build donorInfo, weightArray ect. needed by AMP.
+///    For 3D, a new function buildBeamFluidInterfaceData3D is called to build the needed
+///    beam-fluid interface data
+//
 // ===================================================================================
 int DeformingBodyMotion::
 buildBeamFluidInterfaceData( CompositeGrid & cg )
@@ -4464,263 +4478,366 @@ buildBeamFluidInterfaceData( CompositeGrid & cg )
     return 0;
   }
 
-  const int & numberOfFaces = deformingBodyDataBase.get<int>("numberOfFaces");
-  const IntegerArray & boundaryFaces = deformingBodyDataBase.get<IntegerArray>("boundaryFaces");
-
-  const bool hasFluidOnTwoSides = pBeamModel->hasFluidOnTwoSides();
-  if( numberOfFaces==0 || !hasFluidOnTwoSides )
-  {
-    return 0;
-  }
-
-
-  if( !deformingBodyDataBase.has_key("beamFluidInterfaceData") )
-  {
-    //-- Create the data structure that holds the beam-fluid interface data --
-
-    BeamFluidInterfaceData &  beamFluidInterfaceData = 
-                              deformingBodyDataBase.put<BeamFluidInterfaceData>("beamFluidInterfaceData");
-    beamFluidInterfaceData.dbase.put<RealArray*>("s0Array")              =new RealArray[numberOfFaces];
-    beamFluidInterfaceData.dbase.put<RealArray*>("signedDistanceArray")  =new RealArray[numberOfFaces];
-    beamFluidInterfaceData.dbase.put<IntegerArray*>("elementNumberArray")=new IntegerArray[numberOfFaces];
-    beamFluidInterfaceData.dbase.put<IntegerArray*>("donorInfoArray")    =new IntegerArray[numberOfFaces];
-
-    // The weight function is used to turn off the velocity projection on the beam ends
-    // weight(i1,i2,i3) = 0  : at ends of the beam
-    //                  = 1  : in the interior of the beam
-    beamFluidInterfaceData.dbase.put<RealArray*>("weightArray")         =new RealArray[numberOfFaces];
-    
-  }
-  else
-  {
-    // ONLY need to build interface data on first pass
-    return 0;
-  }
-  
-  if( false )
-    printF("--DBM-- ENTERING buildBeamFluidInterfaceData, hasFluidOnTwoSides=%i\n",(int)hasFluidOnTwoSides);
-
-  BeamFluidInterfaceData &  beamFluidInterfaceData = 
-    deformingBodyDataBase.get<BeamFluidInterfaceData>("beamFluidInterfaceData");
-  RealArray *& s0Array               = beamFluidInterfaceData.dbase.get<RealArray*>("s0Array");
-  RealArray *& signedDistanceArray   = beamFluidInterfaceData.dbase.get<RealArray*>("signedDistanceArray");
-  IntegerArray *& elementNumberArray = beamFluidInterfaceData.dbase.get<IntegerArray*>("elementNumberArray");
-  IntegerArray *& donorInfoArray     = beamFluidInterfaceData.dbase.get<IntegerArray*>("donorInfoArray");
-  RealArray *& weightArray           = beamFluidInterfaceData.dbase.get<RealArray*>("weightArray");
-  
+  // Longfei 20170119:  the  code is regrouped according to numberOfDimensions
+  // since BeamFluidInterfaceData needed are different  for 2D and 3D problems.
   const int numberOfDimensions = cg.numberOfDimensions();
-  int iv[3], &i1=iv[0], &i2=iv[1], &i3=iv[2];
-
-  Index Ibv[3], &Ib1=Ibv[0], &Ib2=Ibv[1], &Ib3=Ibv[2];
-  // Index Jbv[3], &Jb1=Jbv[0], &Jb2=Jbv[1], &Jb3=Jbv[2];
-  // int i1,i2,i3, j1,j2,j3, i1m,i2m,i3m, j1m,j2m,j3m, m1,m2,m3;
-  // int isv[3], &is1=isv[0], &is2=isv[1], &is3=isv[2];
-  // int jsv[3], &js1=jsv[0], &js2=jsv[1], &js3=jsv[2];
-
-  vector<RealArray*> & surfaceArray = deformingBodyDataBase.get<vector<RealArray*> >("surfaceArray");
-
-  real sMin=REAL_MAX, sMax=-.1*sMin;
-  for( int face=0; face<numberOfFaces; face++ )
-  {
-    int sideToMove=boundaryFaces(0,face);
-    int axisToMove=boundaryFaces(1,face);
-    int gridToMove=boundaryFaces(2,face); 
-
-    assert( face<surfaceArray.size() );
-    RealArray *px = surfaceArray[face];
-    RealArray &x0 = px[0];  //  undeformed surface, x0,
-
-    // MappedGrid & mg = cg[gridToMove];
-    // getBoundaryIndex(mg.gridIndexRange(),sideToMove,axisToMove,Ib1,Ib2,Ib3); // boundary index's for mg0
-
-    // Compute: 
-    // s0(i) : NORMALIZED beam reference line coordinates for points x0
-    // direction(i) : +1 or -1 indicates which side of the beam the point is on
-
-    Range I0=x0.dimension(0);
-    RealArray & s0 = s0Array[face];                          s0.redim(I0);
-    RealArray & signedDistance = signedDistanceArray[face];  signedDistance.redim(I0);
-    IntegerArray & elementNumber= elementNumberArray[face];  elementNumber.redim(I0);
-    IntegerArray & donorInfo=  donorInfoArray[face];         donorInfo.redim(I0,6);
-
-    pBeamModel->getBeamReferenceCoordinates( x0, s0, elementNumber, signedDistance );
-
-    sMin = min(sMin,min(s0));
-    sMax = max(sMax,max(s0));
-    
-    if( false )
+  if(numberOfDimensions==2)
     {
-      ::display(x0,sPrintF("x0 for face=%i, (grid,side,axis)=(%i,%i,%i)",face,gridToMove,sideToMove,axisToMove),
-		"%5.3f ");
-      ::display(s0,sPrintF("s0 for face=%i, (grid,side,axis)=(%i,%i,%i)",face,gridToMove,sideToMove,axisToMove),
-		"%5.3f ");
-      ::display(signedDistance,sPrintF("signedDistance for face=%i, (grid,side,axis)=(%i,%i,%i)",
-				       face,gridToMove,sideToMove,axisToMove),"%8.2e ");
-      ::display(elementNumber,sPrintF("elementNumber for face=%i, (grid,side,axis)=(%i,%i,%i)",
-				      face,gridToMove,sideToMove,axisToMove),"%3i ");
-    }
+      const int & numberOfFaces = deformingBodyDataBase.get<int>("numberOfFaces");
+      const IntegerArray & boundaryFaces = deformingBodyDataBase.get<IntegerArray>("boundaryFaces");
+
+      const bool hasFluidOnTwoSides = pBeamModel->hasFluidOnTwoSides();
+
+      const bool & useAddedMassAlgorithm = parameters.dbase.get<bool>("useAddedMassAlgorithm");
+      const bool & projectAddedMassVelocity = parameters.dbase.get<bool>("projectAddedMassVelocity");
+      // Longfei 20170119: BeamFluidInterfaceData is only needed for useAddedMassAlgorithm in 2D case
+      if( numberOfFaces==0 || !hasFluidOnTwoSides || !useAddedMassAlgorithm) 
+	{
+	  return 0;
+	}
+
+
+      if( !deformingBodyDataBase.has_key("beamFluidInterfaceData") )
+	{
+	  //-- Create the data structure that holds the beam-fluid interface data --
+
+	  BeamFluidInterfaceData &  beamFluidInterfaceData = 
+	    deformingBodyDataBase.put<BeamFluidInterfaceData>("beamFluidInterfaceData");
+	  beamFluidInterfaceData.dbase.put<RealArray*>("s0Array")              =new RealArray[numberOfFaces];
+	  beamFluidInterfaceData.dbase.put<RealArray*>("signedDistanceArray")  =new RealArray[numberOfFaces];
+	  beamFluidInterfaceData.dbase.put<IntegerArray*>("elementNumberArray")=new IntegerArray[numberOfFaces];
+	  beamFluidInterfaceData.dbase.put<IntegerArray*>("donorInfoArray")    =new IntegerArray[numberOfFaces];
+
+	  // The weight function is used to turn off the velocity projection on the beam ends
+	  // weight(i1,i2,i3) = 0  : at ends of the beam
+	  //                  = 1  : in the interior of the beam
+	  beamFluidInterfaceData.dbase.put<RealArray*>("weightArray")         =new RealArray[numberOfFaces];
     
-  }
+	}
+      else
+	{
+	  // ONLY need to build interface data on first pass
+	  return 0;
+	}
+  
+      if( false )
+	printF("--DBM-- ENTERING buildBeamFluidInterfaceData, hasFluidOnTwoSides=%i\n",(int)hasFluidOnTwoSides);
 
-  printF("--DBM-- buildBeamFluidInterfaceData fluid grid pts span beam : [sMin,sMax]=[%9.3e,%9.3e]\n",sMin,sMax);
-    const bool & useAddedMassAlgorithm = parameters.dbase.get<bool>("useAddedMassAlgorithm");
-    const bool & projectAddedMassVelocity = parameters.dbase.get<bool>("projectAddedMassVelocity");
-  if( useAddedMassAlgorithm && projectAddedMassVelocity )
-  {
-    const real eps=1.e-4;
-    if( sMin>eps || sMax < 1.-eps )
-    {
-      printF("--DBM-- buildBeamFluidInterfaceData ERROR: fluid grid pts span beam : [sMin,sMax]=[%9.3e,%9.3e.]\n"
-             " The beam centerline is longer than the fluid grid. This can cause failure of the AMP algorithm\n"
-             " when there is a free end of the beam (e.g. beam behind a cylinder) and the velocity is\n"
-             " projected -- the free end of the beam may not move.\n"
-             " You could shorten the length of the beam to lie inside the fluid grid\n"
-           ,sMin,sMax);
+      BeamFluidInterfaceData &  beamFluidInterfaceData = 
+	deformingBodyDataBase.get<BeamFluidInterfaceData>("beamFluidInterfaceData");
+      RealArray *& s0Array               = beamFluidInterfaceData.dbase.get<RealArray*>("s0Array");
+      RealArray *& signedDistanceArray   = beamFluidInterfaceData.dbase.get<RealArray*>("signedDistanceArray");
+      IntegerArray *& elementNumberArray = beamFluidInterfaceData.dbase.get<IntegerArray*>("elementNumberArray");
+      IntegerArray *& donorInfoArray     = beamFluidInterfaceData.dbase.get<IntegerArray*>("donorInfoArray");
+      RealArray *& weightArray           = beamFluidInterfaceData.dbase.get<RealArray*>("weightArray");
+  
+      int iv[3], &i1=iv[0], &i2=iv[1], &i3=iv[2];
 
-      //      OV_ABORT("ERROR");
+      Index Ibv[3], &Ib1=Ibv[0], &Ib2=Ibv[1], &Ib3=Ibv[2];
+      // Index Jbv[3], &Jb1=Jbv[0], &Jb2=Jbv[1], &Jb3=Jbv[2];
+      // int i1,i2,i3, j1,j2,j3, i1m,i2m,i3m, j1m,j2m,j3m, m1,m2,m3;
+      // int isv[3], &is1=isv[0], &is2=isv[1], &is3=isv[2];
+      // int jsv[3], &js1=jsv[0], &js2=jsv[1], &js3=jsv[2];
+
+      vector<RealArray*> & surfaceArray = deformingBodyDataBase.get<vector<RealArray*> >("surfaceArray");
+
+      real sMin=REAL_MAX, sMax=-.1*sMin;
+      for( int face=0; face<numberOfFaces; face++ )
+	{
+	  int sideToMove=boundaryFaces(0,face);
+	  int axisToMove=boundaryFaces(1,face);
+	  int gridToMove=boundaryFaces(2,face); 
+
+	  assert( face<surfaceArray.size() );
+	  RealArray *px = surfaceArray[face];
+	  RealArray &x0 = px[0];  //  undeformed surface, x0,
+
+	  // MappedGrid & mg = cg[gridToMove];
+	  // getBoundaryIndex(mg.gridIndexRange(),sideToMove,axisToMove,Ib1,Ib2,Ib3); // boundary index's for mg0
+
+	  // Compute: 
+	  // s0(i) : NORMALIZED beam reference line coordinates for points x0
+	  // direction(i) : +1 or -1 indicates which side of the beam the point is on
+
+	  Range I0=x0.dimension(0);
+	  RealArray & s0 = s0Array[face];                          s0.redim(I0);
+	  RealArray & signedDistance = signedDistanceArray[face];  signedDistance.redim(I0);
+	  IntegerArray & elementNumber= elementNumberArray[face];  elementNumber.redim(I0);
+	  IntegerArray & donorInfo=  donorInfoArray[face];         donorInfo.redim(I0,6);
+
+	  pBeamModel->getBeamReferenceCoordinates( x0, s0, elementNumber, signedDistance );
+
+	  sMin = min(sMin,min(s0));
+	  sMax = max(sMax,max(s0));
+    
+	  if( false )
+	    {
+	      ::display(x0,sPrintF("x0 for face=%i, (grid,side,axis)=(%i,%i,%i)",face,gridToMove,sideToMove,axisToMove),
+			"%5.3f ");
+	      ::display(s0,sPrintF("s0 for face=%i, (grid,side,axis)=(%i,%i,%i)",face,gridToMove,sideToMove,axisToMove),
+			"%5.3f ");
+	      ::display(signedDistance,sPrintF("signedDistance for face=%i, (grid,side,axis)=(%i,%i,%i)",
+					       face,gridToMove,sideToMove,axisToMove),"%8.2e ");
+	      ::display(elementNumber,sPrintF("elementNumber for face=%i, (grid,side,axis)=(%i,%i,%i)",
+					      face,gridToMove,sideToMove,axisToMove),"%3i ");
+	    }
+    
+	}
+
+      printF("--DBM-- buildBeamFluidInterfaceData fluid grid pts span beam : [sMin,sMax]=[%9.3e,%9.3e]\n",sMin,sMax);
+
+      if( useAddedMassAlgorithm && projectAddedMassVelocity )
+	{
+	  const real eps=1.e-4;
+	  if( sMin>eps || sMax < 1.-eps )
+	    {
+	      printF("--DBM-- buildBeamFluidInterfaceData ERROR: fluid grid pts span beam : [sMin,sMax]=[%9.3e,%9.3e.]\n"
+		     " The beam centerline is longer than the fluid grid. This can cause failure of the AMP algorithm\n"
+		     " when there is a free end of the beam (e.g. beam behind a cylinder) and the velocity is\n"
+		     " projected -- the free end of the beam may not move.\n"
+		     " You could shorten the length of the beam to lie inside the fluid grid\n"
+		     ,sMin,sMax);
+
+	      //      OV_ABORT("ERROR");
       
-    }
+	    }
     
-  }
+	}
   
 
 
-  // -- The added mass algorithm needs the closest point on the opposite side of the beam --
-  for( int face=0; face<numberOfFaces; face++ )
-  {
-    int sideToMove=boundaryFaces(0,face);
-    int axisToMove=boundaryFaces(1,face);
-    int gridToMove=boundaryFaces(2,face); 
+      // -- The added mass algorithm needs the closest point on the opposite side of the beam --
+      for( int face=0; face<numberOfFaces; face++ )
+	{
+	  int sideToMove=boundaryFaces(0,face);
+	  int axisToMove=boundaryFaces(1,face);
+	  int gridToMove=boundaryFaces(2,face); 
     
-    const RealArray & s0 = s0Array[face];                         
-    const RealArray & signedDistance = signedDistanceArray[face]; 
-    const IntegerArray & elementNumber= elementNumberArray[face]; 
-    const IntegerArray & donorInfo= donorInfoArray[face]; 
+	  const RealArray & s0 = s0Array[face];                         
+	  const RealArray & signedDistance = signedDistanceArray[face]; 
+	  const IntegerArray & elementNumber= elementNumberArray[face]; 
+	  const IntegerArray & donorInfo= donorInfoArray[face]; 
 
-    Range I0=s0.dimension(0);
+	  Range I0=s0.dimension(0);
 
-    for( int i=I0.getBase(); i<=I0.getBound(); i++ )
-    {
-      const real si = s0(i);
-      const real signedDistancei = signedDistance(i);  // signed distance to beam reference line
+	  for( int i=I0.getBase(); i<=I0.getBound(); i++ )
+	    {
+	      const real si = s0(i);
+	      const real signedDistancei = signedDistance(i);  // signed distance to beam reference line
       
-      // -- find the closest point on the opposite side:
-      real distMin=REAL_MAX, sMin=REAL_MAX;
-      int faceMin=-1, iMin=-1;
-      // loop over ALL other faces (including "face" since grid could wrap around to other side)
-      for( int face2=0; face2<numberOfFaces; face2++ ) 
-      {
-	// --- WE COULD USE A FASTER SEARCH
-	RealArray & s2 = s0Array[face2];
-	RealArray & signedDistance2= signedDistanceArray[face2];
-        Range I2=s2.dimension(0);
-	for( int i2=I2.getBase(); i2<=I2.getBound(); i2++ )
-	{
-	  if( signedDistance2(i2)*signedDistancei<0.  && fabs(si-s2(i2))<distMin )
-	  {
-	    // point i2 is on the opposite side nnd closer
-            faceMin=face2; iMin=i2; sMin=s2(i2); distMin=fabs(si-s2(i2));
-	  }
-	}
-      }
-      // NOTE: avoid adjust stencil with a point in the same stencil: faceMin==face && abs(i-iMin)<=1
-      if( faceMin<0 || (faceMin==face && abs(i-iMin)<=1) )
-      {
-        // An opposite point was not found or was equal to the same point -- skip this point
-        // It must be on the tip of the beam
-	printF("buildBeamFluidInterfaceData:INFO: point face=%i i=%3i s0=%6.3f signedDistancei=%8.2e "
-	       "must be on the beam tip. No OPPOSITE POINT FOUND or donor is too close to source.\n",
-	       face,i,si, signedDistancei);
-	donorInfo(i,0)=-1;
-	donorInfo(i,1)=-1;
-	donorInfo(i,2)=-1;
-	donorInfo(i,3)=-1;
-	donorInfo(i,4)=-1;
-	donorInfo(i,5)=-1;
-      }
-      else
-      {
-	assert( faceMin>=0 && faceMin<numberOfFaces );
-	bool printInfo=false;
-	if( printInfo )
-	{
-	  printF("buildBeamFluidInterfaceData: face=%i i=%3i s0=%6.3f : closest pt opposite : "
-		 "face2=%i i2=%3i s2=%6.3f, s-dist=%8.2e",
-		 face,i,si, faceMin,iMin,sMin,distMin);
-	}
+	      // -- find the closest point on the opposite side:
+	      real distMin=REAL_MAX, sMin=REAL_MAX;
+	      int faceMin=-1, iMin=-1;
+	      // loop over ALL other faces (including "face" since grid could wrap around to other side)
+	      for( int face2=0; face2<numberOfFaces; face2++ ) 
+		{
+		  // --- WE COULD USE A FASTER SEARCH
+		  RealArray & s2 = s0Array[face2];
+		  RealArray & signedDistance2= signedDistanceArray[face2];
+		  Range I2=s2.dimension(0);
+		  for( int i2=I2.getBase(); i2<=I2.getBound(); i2++ )
+		    {
+		      if( signedDistance2(i2)*signedDistancei<0.  && fabs(si-s2(i2))<distMin )
+			{
+			  // point i2 is on the opposite side nnd closer
+			  faceMin=face2; iMin=i2; sMin=s2(i2); distMin=fabs(si-s2(i2));
+			}
+		    }
+		}
+	      // NOTE: avoid adjust stencil with a point in the same stencil: faceMin==face && abs(i-iMin)<=1
+	      if( faceMin<0 || (faceMin==face && abs(i-iMin)<=1) )
+		{
+		  // An opposite point was not found or was equal to the same point -- skip this point
+		  // It must be on the tip of the beam
+		  printF("buildBeamFluidInterfaceData:INFO: point face=%i i=%3i s0=%6.3f signedDistancei=%8.2e "
+			 "must be on the beam tip. No OPPOSITE POINT FOUND or donor is too close to source.\n",
+			 face,i,si, signedDistancei);
+		  donorInfo(i,0)=-1;
+		  donorInfo(i,1)=-1;
+		  donorInfo(i,2)=-1;
+		  donorInfo(i,3)=-1;
+		  donorInfo(i,4)=-1;
+		  donorInfo(i,5)=-1;
+		}
+	      else
+		{
+		  assert( faceMin>=0 && faceMin<numberOfFaces );
+		  bool printInfo=false;
+		  if( printInfo )
+		    {
+		      printF("buildBeamFluidInterfaceData: face=%i i=%3i s0=%6.3f : closest pt opposite : "
+			     "face2=%i i2=%3i s2=%6.3f, s-dist=%8.2e",
+			     face,i,si, faceMin,iMin,sMin,distMin);
+		    }
 	
-	// --- compute and save the donor info ---
-	const int donorSide = boundaryFaces(0,faceMin);
-	const int donorAxis = boundaryFaces(1,faceMin);
-	const int donorGrid = boundaryFaces(2,faceMin);  // donor grid
-	MappedGrid & mgDonor = cg[donorGrid];
-	const IntegerArray & gid = mgDonor.gridIndexRange();
-	for( int axis=0; axis<3; axis++ ){ iv[axis]=gid(0,axis); } // 
-	iv[donorAxis]=gid(donorSide,donorAxis);
-	const int axisp1= (donorAxis +1) % numberOfDimensions;
-	iv[axisp1]= gid(0,axisp1) + iMin;
-	donorInfo(i,0)=donorGrid;
-	donorInfo(i,1)=donorSide;
-	donorInfo(i,2)=donorAxis;
-	donorInfo(i,3)=i1;                       // donor index - closest point 
-	donorInfo(i,4)=i2;
-	donorInfo(i,5)=i3;
-	if( printInfo )
-	   printF(" donorInfo: (grid,i1,i2,i3)=(%i,%3i,%3i,%3i)\n",donorGrid,i1,i2,i3);
-      }
+		  // --- compute and save the donor info ---
+		  const int donorSide = boundaryFaces(0,faceMin);
+		  const int donorAxis = boundaryFaces(1,faceMin);
+		  const int donorGrid = boundaryFaces(2,faceMin);  // donor grid
+		  MappedGrid & mgDonor = cg[donorGrid];
+		  const IntegerArray & gid = mgDonor.gridIndexRange();
+		  for( int axis=0; axis<3; axis++ ){ iv[axis]=gid(0,axis); } // 
+		  iv[donorAxis]=gid(donorSide,donorAxis);
+		  const int axisp1= (donorAxis +1) % numberOfDimensions;
+		  iv[axisp1]= gid(0,axisp1) + iMin;
+		  donorInfo(i,0)=donorGrid;
+		  donorInfo(i,1)=donorSide;
+		  donorInfo(i,2)=donorAxis;
+		  donorInfo(i,3)=i1;                       // donor index - closest point 
+		  donorInfo(i,4)=i2;
+		  donorInfo(i,5)=i3;
+		  if( printInfo )
+		    printF(" donorInfo: (grid,i1,i2,i3)=(%i,%3i,%3i,%3i)\n",donorGrid,i1,i2,i3);
+		}
       
-    }
-  }
+	    }
+	}
   
-  // The weight function is used to turn off the velocity projection on the beam ends
-  // weight(i1,i2,i3) = 0  : at ends of the beam
-  //                  = 1  : in the interior of the beam
-  // -- Compute the weight function for turning off the velocity project at the ends ---
-  for( int face=0; face<numberOfFaces; face++ )
-  {
-    int side=boundaryFaces(0,face);
-    int axis=boundaryFaces(1,face);
-    int grid=boundaryFaces(2,face); 
+      // The weight function is used to turn off the velocity projection on the beam ends
+      // weight(i1,i2,i3) = 0  : at ends of the beam
+      //                  = 1  : in the interior of the beam
+      // -- Compute the weight function for turning off the velocity project at the ends ---
+      for( int face=0; face<numberOfFaces; face++ )
+	{
+	  int side=boundaryFaces(0,face);
+	  int axis=boundaryFaces(1,face);
+	  int grid=boundaryFaces(2,face); 
 
-    MappedGrid & mg = cg[grid];
-    const IntegerArray & gid = mg.gridIndexRange();
+	  MappedGrid & mg = cg[grid];
+	  const IntegerArray & gid = mg.gridIndexRange();
     
-    const RealArray & s0 = s0Array[face]; 
-    RealArray & weight = weightArray[face];   
+	  const RealArray & s0 = s0Array[face]; 
+	  RealArray & weight = weightArray[face];   
 
-    getBoundaryIndex(gid,side,axis,Ib1,Ib2,Ib3);
-    weight.redim(Ib1,Ib2,Ib3);
+	  getBoundaryIndex(gid,side,axis,Ib1,Ib2,Ib3);
+	  weight.redim(Ib1,Ib2,Ib3);
 
-    for( int dir=0; dir<3; dir++ ){ iv[dir]=gid(0,dir); } // initialize (i1,i2,i3)
-    const int axisp1= (axis +1) % numberOfDimensions;
+	  for( int dir=0; dir<3; dir++ ){ iv[dir]=gid(0,dir); } // initialize (i1,i2,i3)
+	  const int axisp1= (axis +1) % numberOfDimensions;
 
-    Range I0=s0.dimension(0);
-    for( int i=I0.getBase(); i<=I0.getBound(); i++ )
-    {
-      real ss = s0(i);
-      iv[axisp1]=i+gid(0,axisp1); // index that varies along the interface of grid
+	  Range I0=s0.dimension(0);
+	  for( int i=I0.getBase(); i<=I0.getBound(); i++ )
+	    {
+	      real ss = s0(i);
+	      iv[axisp1]=i+gid(0,axisp1); // index that varies along the interface of grid
 
-      // -- step function: (*fix me* smooth this out)
-      if( fabs(ss-.5)<.4 )
-        weight(i1,i2,i3)=1.;   //  [.1,.9] 
-      else
-        weight(i1,i2,i3)=0.;
+	      // -- step function: (*fix me* smooth this out)
+	      if( fabs(ss-.5)<.4 )
+		weight(i1,i2,i3)=1.;   //  [.1,.9] 
+	      else
+		weight(i1,i2,i3)=0.;
+	    }
+
+	  // weight=1.;  // ********* TEST ****
+    
+	  if( false )
+	    {
+	      ::display(weight,sPrintF("weight for face=%i, (grid,side,axis)=(%i,%i,%i)",face,grid,side,axis),"%5.3f ");
+	    }
+    
+	}
     }
-
-    // weight=1.;  // ********* TEST ****
-    
-    if( false )
+  // Longfei 20170119: call the 3D version to build needed BeamFluidInterFaceData
+  else if(numberOfDimensions==3)
     {
-      ::display(weight,sPrintF("weight for face=%i, (grid,side,axis)=(%i,%i,%i)",face,grid,side,axis),"%5.3f ");
+      buildBeamFluidInterfaceData3D(cg);
     }
-    
-  }
+  else
+    {
+      OV_ABORT("DBM: Error: numberOfDimensions of the grid is wrong.\n");
+    }
   
   return 0;
   
 }
 
 //........Access routines 
+
+
+// Longfei 20170119: 3D version
+int DeformingBodyMotion::
+buildBeamFluidInterfaceData3D( CompositeGrid & cg )
+{
+  const int & numberOfFaces = deformingBodyDataBase.get<int>("numberOfFaces");
+  const IntegerArray & boundaryFaces = deformingBodyDataBase.get<IntegerArray>("boundaryFaces");
+  const int numberOfDimensions = cg.numberOfDimensions();
+  assert(numberOfDimensions==3);
+
+  if( numberOfFaces==0) 
+    {
+      return 0;
+    }
+
+
+  // for now, we assume each deforming beam consists of a single grid
+  assert(numberOfFaces==1);
+  
+
+  if( !deformingBodyDataBase.has_key("beamFluidInterfaceData") )
+    {
+      //-- Create the data structure that holds the beam-fluid interface data --
+      BeamFluidInterfaceData &  beamFluidInterfaceData = 
+	deformingBodyDataBase.put<BeamFluidInterfaceData>("beamFluidInterfaceData");
+
+      // What interfaceData do we need for 3D problem???
+      beamFluidInterfaceData.dbase.put<IntegerArray>("surfaceGridDirections");
+      beamFluidInterfaceData.dbase.put<IntegerArray*>("physicalBeamEnds") = new IntegerArray[numberOfFaces];
+    }
+  else
+    {
+      // ONLY need to build interface data on first pass
+      return 0;
+    }
+  
+  BeamFluidInterfaceData &  beamFluidInterfaceData = 
+    deformingBodyDataBase.get<BeamFluidInterfaceData>("beamFluidInterfaceData");
+  BcArray & boundaryCondition = deformingBodyDataBase.get<BcArray>("boundaryCondition");
+  IntegerArray & surfaceGridDirections = beamFluidInterfaceData.dbase.get<IntegerArray>("surfaceGridDirections");
+  surfaceGridDirections.redim(2,numberOfFaces);//(0,face)=periodicDir,(1,face)=axialDir
+
+  IntegerArray*& physicalBeamEnds =  beamFluidInterfaceData.dbase.get<IntegerArray*>("physicalBeamEnds");
+  
+
+   for( int face=0; face<numberOfFaces; face++ )
+	{
+	  int sideToMove=boundaryFaces(0,face);
+	  int axisToMove=boundaryFaces(1,face);
+	  int gridToMove=boundaryFaces(2,face); 
+	  
+
+	  const int axisp1= (axisToMove +1) % numberOfDimensions;
+	  const int axisp2= (axisToMove +2) % numberOfDimensions;
+
+	  MappedGrid & mg = cg[gridToMove];
+	  const IntegerArray & bc = mg.boundaryCondition();
+
+
+	  if(bc(0,axisp1)<0 && bc(1,axisp1)<0)
+	    {
+	      surfaceGridDirections(0,face)=axisp1;// periodicDirection
+	      surfaceGridDirections(1,face)=axisp2;// axialDirection
+	    }
+	  else if(bc(0,axisp2)<0 && bc(1,axisp2)<0)
+	    {
+	      surfaceGridDirections(0,face)=axisp2;// periodicDirection
+	      surfaceGridDirections(1,face)=axisp1;// axialDirection
+	    }
+	  else
+	    {
+	      OV_ABORT("DBM: ERROR: WE DON'T HAVE PERIODIC BC ON THIS FACE.");
+	    }
+
+		  
+
+	}
+  
+  
+
+  return 0;
+}
+
+
+
 
 // ===================================================================================
 /// \brief: Set the deforming body type. 

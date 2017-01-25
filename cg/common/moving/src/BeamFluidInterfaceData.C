@@ -16,6 +16,7 @@ BeamFluidInterfaceData()
 BeamFluidInterfaceData::
 ~BeamFluidInterfaceData()
 {
+  // delete interfaceData for 2d case
   if( dbase.has_key("s0Array") )
   {
    delete [] dbase.get<RealArray*>("s0Array");
@@ -23,5 +24,8 @@ BeamFluidInterfaceData::
    delete [] dbase.get<IntegerArray*>("elementNumberArray");
    delete [] dbase.get<IntegerArray*>("donorInfo");
   }
+
+  // delete interfaceData for 3d case
+
 }
 

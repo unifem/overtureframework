@@ -128,11 +128,12 @@ adjustPressureCoefficients(CompositeGrid & cg0, GridFunction & cgf  )
     
     // -- construct the beam-fluid interface data needed for the AMP scheme for two-sided beams  --
     // *** THIS ONLY NEEDS TO BE DONE ONCE ***
-    for( int body=0; body<numberOfDeformingBodies; body++ )
-    {
-      DeformingBodyMotion & deformingBody = movingGrids.getDeformingBody(body);
-      deformingBody.buildBeamFluidInterfaceData( cg0 );
-    }
+    // Longfei 20170119: moved to DeformingBodyMotion::initialize()
+    // for( int body=0; body<numberOfDeformingBodies; body++ )
+    // {
+    //   DeformingBodyMotion & deformingBody = movingGrids.getDeformingBody(body);
+    //   deformingBody.buildBeamFluidInterfaceData( cg0 );
+    // }
 
     realCompositeGridFunction & coeff = poisson->coeff;
 

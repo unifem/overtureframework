@@ -89,6 +89,8 @@ int advanceInterfaceDeform( real t1, real t2, real t3,
 			    int option  );
 
 int buildBeamFluidInterfaceData( CompositeGrid & cg );
+// Longfei 20170119: 
+int buildBeamFluidInterfaceData3D( CompositeGrid & cg );
 
 int buildElasticShellOptionsDialog(DialogData & dialog );
 
