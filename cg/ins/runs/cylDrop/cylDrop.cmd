@@ -162,7 +162,7 @@ $grid
    nu  $nu
    #   -- specify the fluid density
    fluid density
-     1.
+     1. 
    #  turn on gravity
    $gravityVector="0. $gravity 0.";
    if( $option eq "horizontalDrop" ){ $gravityVector="$gravity 0. 0."; }
@@ -257,6 +257,13 @@ $grid
            "    sinusoidal function\n" . \
            "  exit\n" . \
            "done\n" };
+    #
+    # inflow with Pressure given   
+    #    Inflow pressure : $inflowPressure
+    #    Outflow pressure = 0
+    if( $bcOption eq "inflowGivenPressure" ){ \
+      $cmd="bcNumber4=inflowWithPressureAndTangentialVelocityGiven, uniform(u=0.,v=0.,p=$inflowPressure)\n";}
+    #
     #
     # Ramped pressure   
     #    Inflow pressure : $inflowPressure

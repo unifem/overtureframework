@@ -580,7 +580,7 @@ int MovingGrids::getRigidBodyAddedDampingTensors( const int bodyNumber, RealArra
   // if scaleAddedDampingWithDt==1 then adjust the added-damping tensors by an addtional factor of
   //     1 - exp(-delta) 
   //  where 
-  //    delta = dy/sqrt(nu*alpha*dt)  (alpha=/1/2 for Trapezoidal rule)
+  //    delta = dy/sqrt(nu*alpha*dt)  (alpha=1/2 for Trapezoidal rule)
   //    
   const bool & scaleAddedDampingWithDt = parameters.dbase.get<bool>("scaleAddedDampingWithDt");
 
@@ -606,7 +606,7 @@ int MovingGrids::getRigidBodyAddedDampingTensors( const int bodyNumber, RealArra
       const real addedDampingScaleFactor = body.getAddedDampingScaleFactor(); 
       printF("--MVG--getRigidBodyAddedDampingTensors:addedDampingScaleFactor=ADC*mu/dy=%8.2e\n",
               addedDampingScaleFactor);
-      
+
       const real dy = mu*addedDampingCoefficient/addedDampingScaleFactor; // minGridSpacing 
 
       const real alpha = .5;                // weight for Trapezoidal rule 
@@ -628,7 +628,6 @@ int MovingGrids::getRigidBodyAddedDampingTensors( const int bodyNumber, RealArra
   // ---- Compute the added damping tensors ----
   // -------------------------------------------
   addedDampingTensors=0.;
-
 
   real dn =0.;
   if( scaleAddedDampingWithDt && dt<=0. )
@@ -692,7 +691,7 @@ int MovingGrids::getRigidBodyAddedDampingTensors( const int bodyNumber, RealArra
     // Save boundary data for added damping tensors here:
     ListOfRealArray addedDampingMatrixList;  
     // numberOfAddedDampingMatrixEntries : total number of entries we need to compute through surface integrals
-    const int numberOfAddedDampingMatrixEntries=numberOfDimensions==2 ? 6 : 12;
+    const int numberOfAddedDampingMatrixEntries=numberOfDimensions==2 ? 6 : 21;
 
     RealArray xCM(3);
     body.getPosition( t,xCM );  // ** need time corresponding to the grid so integrals are correct
@@ -700,6 +699,7 @@ int MovingGrids::getRigidBodyAddedDampingTensors( const int bodyNumber, RealArra
     Index Ib1,Ib2,Ib3;
 
     const int vbc=0, wbc=1; // component numbers of v and omega in addedDampingTensors
+    int iLocal, jLocal, kLocal;
 
 
     assert( integrate!=NULL );
@@ -729,7 +729,6 @@ int MovingGrids::getRigidBodyAddedDampingTensors( const int bodyNumber, RealArra
 
       if( numberOfDimensions==2 )
       {
-        
         // normal = [n0 n1 0] 
         // tangent = [-n1 n0 0] 
 	RealArray temp(Ib1,Ib2,Ib3);
@@ -756,15 +755,56 @@ int MovingGrids::getRigidBodyAddedDampingTensors( const int bodyNumber, RealArra
 	adm(Ib1,Ib2,Ib3,1) = -normalLocal(Ib1,Ib2,Ib3,1)*normalLocal(Ib1,Ib2,Ib3,0);  // Dvv(0,1)=Dvv(1,0)
 	adm(Ib1,Ib2,Ib3,2) =  normalLocal(Ib1,Ib2,Ib3,0)*normalLocal(Ib1,Ib2,Ib3,0);  // Dvv(1,1)
 
-        adm(Ib1,Ib2,Ib3,3) = -normalLocal(Ib1,Ib2,Ib3,1)*yCrossT(Ib1,Ib2,Ib3);        // Dvw(2,0)=Dwv(0,2)
-        adm(Ib1,Ib2,Ib3,4) =  normalLocal(Ib1,Ib2,Ib3,0)*yCrossT(Ib1,Ib2,Ib3);        // Dvw(2,1)=Dwv(1,2)
+        adm(Ib1,Ib2,Ib3,3) = -normalLocal(Ib1,Ib2,Ib3,1)*yCrossT(Ib1,Ib2,Ib3);        // Dvw(0,2)=Dwv(2,0)
+        adm(Ib1,Ib2,Ib3,4) =  normalLocal(Ib1,Ib2,Ib3,0)*yCrossT(Ib1,Ib2,Ib3);        // Dvw(1,2)=Dwv(2,1)
 
-	adm(Ib1,Ib2,Ib3,5) = yCrossT(Ib1,Ib2,Ib3)*yCrossT(Ib1,Ib2,Ib3);               // Dww(2,)
+	adm(Ib1,Ib2,Ib3,5) = yCrossT(Ib1,Ib2,Ib3)*yCrossT(Ib1,Ib2,Ib3);               // Dww(2,2)
 
       }
       else
       {
-	OV_ABORT("finish me for 3D");
+        // normal = [n0 n1 n2] 
+	// Compute [x-xb]_x  (6 nonzero entry in 3D)
+        //   [ 0        -(x-xb)_2     (x-xb)_1 ]
+        //   [ (x-xb)_2  0           -(x-xb)_0 ]
+        //   [-(x-xb)_1  (x-xb)_0            0 ]
+	RealArray xFace(Ib1,Ib2,Ib3,3);
+	xFace(Ib1,Ib2,Ib3,0) = xLocal(Ib1,Ib2,Ib3,0)-xCM(0);
+	xFace(Ib1,Ib2,Ib3,1) = xLocal(Ib1,Ib2,Ib3,1)-xCM(1);
+	xFace(Ib1,Ib2,Ib3,2) = xLocal(Ib1,Ib2,Ib3,2)-xCM(2);
+
+	// -- save added-damping matrix entries ( without mu/dn)  ---
+        //  Dvv =  Int (mu/dn) (I-nv nv^t) ds 
+        //  Dvw =  Int (mu/dn) (I-nv nv^t)R^t ds
+        //  Dwv =  Dvw^T 
+        //  Dww =  Int (mu/dn) R(I-nv nv^t)R^t ds 
+
+	// Dvv
+	adm(Ib1,Ib2,Ib3,0) =1.-normalLocal(Ib1,Ib2,Ib3,0)*normalLocal(Ib1,Ib2,Ib3,0);  // Dvv(0,0)
+	adm(Ib1,Ib2,Ib3,1) =  -normalLocal(Ib1,Ib2,Ib3,1)*normalLocal(Ib1,Ib2,Ib3,0);  // Dvv(0,1)=Dvv(1,0)
+	adm(Ib1,Ib2,Ib3,2) =  -normalLocal(Ib1,Ib2,Ib3,2)*normalLocal(Ib1,Ib2,Ib3,0);  // Dvv(0,2)=Dvv(2,0)
+        adm(Ib1,Ib2,Ib3,3) =1.-normalLocal(Ib1,Ib2,Ib3,1)*normalLocal(Ib1,Ib2,Ib3,1);  // Dvv(1,1)
+        adm(Ib1,Ib2,Ib3,4) =  -normalLocal(Ib1,Ib2,Ib3,2)*normalLocal(Ib1,Ib2,Ib3,1);  // Dvv(1,2)=Dvv(2,1)
+	adm(Ib1,Ib2,Ib3,5) =1.-normalLocal(Ib1,Ib2,Ib3,2)*normalLocal(Ib1,Ib2,Ib3,2);  // Dvv(2,2)
+
+	// Dvw
+	adm(Ib1,Ib2,Ib3,6) =-adm(Ib1,Ib2,Ib3,1)*xFace(Ib1,Ib2,Ib3,2)+adm(Ib1,Ib2,Ib3,2)*xFace(Ib1,Ib2,Ib3,1);  // Dvw(0,0)
+	adm(Ib1,Ib2,Ib3,7) = adm(Ib1,Ib2,Ib3,0)*xFace(Ib1,Ib2,Ib3,2)-adm(Ib1,Ib2,Ib3,2)*xFace(Ib1,Ib2,Ib3,0);  // Dvw(0,1)
+	adm(Ib1,Ib2,Ib3,8) =-adm(Ib1,Ib2,Ib3,0)*xFace(Ib1,Ib2,Ib3,1)+adm(Ib1,Ib2,Ib3,1)*xFace(Ib1,Ib2,Ib3,0);  // Dvw(0,2)
+        adm(Ib1,Ib2,Ib3,9) =-adm(Ib1,Ib2,Ib3,3)*xFace(Ib1,Ib2,Ib3,2)+adm(Ib1,Ib2,Ib3,4)*xFace(Ib1,Ib2,Ib3,1);  // Dvw(1,0)
+        adm(Ib1,Ib2,Ib3,10)= adm(Ib1,Ib2,Ib3,1)*xFace(Ib1,Ib2,Ib3,2)-adm(Ib1,Ib2,Ib3,4)*xFace(Ib1,Ib2,Ib3,0);  // Dvw(1,1)
+	adm(Ib1,Ib2,Ib3,11)=-adm(Ib1,Ib2,Ib3,1)*xFace(Ib1,Ib2,Ib3,1)+adm(Ib1,Ib2,Ib3,3)*xFace(Ib1,Ib2,Ib3,0);  // Dvw(1,2)
+	adm(Ib1,Ib2,Ib3,12)=-adm(Ib1,Ib2,Ib3,4)*xFace(Ib1,Ib2,Ib3,2)+adm(Ib1,Ib2,Ib3,5)*xFace(Ib1,Ib2,Ib3,1);  // Dvw(2,0)
+	adm(Ib1,Ib2,Ib3,13)= adm(Ib1,Ib2,Ib3,2)*xFace(Ib1,Ib2,Ib3,2)-adm(Ib1,Ib2,Ib3,5)*xFace(Ib1,Ib2,Ib3,0);  // Dvw(2,1)
+	adm(Ib1,Ib2,Ib3,14)=-adm(Ib1,Ib2,Ib3,2)*xFace(Ib1,Ib2,Ib3,1)+adm(Ib1,Ib2,Ib3,4)*xFace(Ib1,Ib2,Ib3,0);  // Dvw(2,2)
+
+ 	// Dww
+	adm(Ib1,Ib2,Ib3,15)= adm(Ib1,Ib2,Ib3,12)*xFace(Ib1,Ib2,Ib3,1)-adm(Ib1,Ib2,Ib3, 9)*xFace(Ib1,Ib2,Ib3,2);  // Dww(0,0)
+        adm(Ib1,Ib2,Ib3,16)=-adm(Ib1,Ib2,Ib3,10)*xFace(Ib1,Ib2,Ib3,2)+adm(Ib1,Ib2,Ib3,13)*xFace(Ib1,Ib2,Ib3,1);  // Dww(0,1)
+	adm(Ib1,Ib2,Ib3,17)=-adm(Ib1,Ib2,Ib3,11)*xFace(Ib1,Ib2,Ib3,2)+adm(Ib1,Ib2,Ib3,14)*xFace(Ib1,Ib2,Ib3,1);  // Dww(0,2)
+	adm(Ib1,Ib2,Ib3,18)=-adm(Ib1,Ib2,Ib3,13)*xFace(Ib1,Ib2,Ib3,0)+adm(Ib1,Ib2,Ib3, 7)*xFace(Ib1,Ib2,Ib3,2);  // Dww(1,1)
+	adm(Ib1,Ib2,Ib3,19)=-adm(Ib1,Ib2,Ib3,14)*xFace(Ib1,Ib2,Ib3,0)+adm(Ib1,Ib2,Ib3, 8)*xFace(Ib1,Ib2,Ib3,2);  // Dww(1,2)
+	adm(Ib1,Ib2,Ib3,20)= adm(Ib1,Ib2,Ib3,11)*xFace(Ib1,Ib2,Ib3,0)-adm(Ib1,Ib2,Ib3, 8)*xFace(Ib1,Ib2,Ib3,1);  // Dww(2,2)
       }
     } // end for face
     
@@ -790,12 +830,12 @@ int MovingGrids::getRigidBodyAddedDampingTensors( const int bodyNumber, RealArra
         RealArray & adm = addedDampingMatrixList[face];
 
         getBoundaryIndex(cg[grid].gridIndexRange(),side,axis,Ib1,Ib2,Ib3); // boundary line 
-	addedDampingCoeffLocal(Ib1,Ib2,Ib3,0)=adm(Ib1,Ib2,Ib3,ma);
+		addedDampingCoeffLocal(Ib1,Ib2,Ib3,0)=adm(Ib1,Ib2,Ib3,ma);
       }
       
       // --- integrate the components of the added mass matrix -----
       RealArray adc(1);  // answer goes here for added damping integral
-      Range R(0,0); // components to integrate
+      Range R(0,0); // components to integrate 
       adc=0.;
 
       Interpolant & interpolant = *(cgf.u.getInterpolant());
@@ -803,35 +843,79 @@ int MovingGrids::getRigidBodyAddedDampingTensors( const int bodyNumber, RealArra
 	
       integrate->surfaceIntegral(addedDampingCoeff,R,adc,bodyNumber);
       
-      if( ma==0 )
-      {
-        addedDampingTensors(0,0,vbc,vbc)=adc(0);                                 // Dvv(0,0)
-      }
-	
-      else if( ma==1 )
-      {
-        addedDampingTensors(0,1,vbc,vbc)=addedDampingTensors(1,0,vbc,vbc)=adc(0);  // Dvv(0,1)=Dvv(1,0)
-      }
-      else if( ma==2 )
-      {
-        addedDampingTensors(1,1,vbc,vbc)=adc(0);                                 // Dvv(1,1)
-      }
-      else if( ma==3 )
-      {
-        addedDampingTensors(2,0,vbc,wbc)=addedDampingTensors(0,2,wbc,vbc)=adc(0);  // Dvw(2,0)=Dwv(0,2)
-      }
-      else if( ma==4 )
-      {
-        addedDampingTensors(2,1,vbc,wbc)=addedDampingTensors(1,2,wbc,vbc)=adc(0);  // Dvw(2,1)=Dwv(1,2)
-      }
-      else if( ma==5 )
-        addedDampingTensors(2,2,wbc,wbc)=adc(0);                                 // Dww(3,3)   
-      else
-      {
-	OV_ABORT("error");
-      }
-      
-
+      if( numberOfDimensions==2 )
+	{
+	      if( ma==0 )
+	      {
+	        addedDampingTensors(0,0,vbc,vbc)=adc(0);                                 // Dvv(0,0)
+	      }
+	      else if( ma==1 )
+	      {
+	        addedDampingTensors(0,1,vbc,vbc)=addedDampingTensors(1,0,vbc,vbc)=adc(0);  // Dvv(0,1)=Dvv(1,0)
+	      }
+	      else if( ma==2 )
+	      {
+	        addedDampingTensors(1,1,vbc,vbc)=adc(0);                                 // Dvv(1,1)
+	      }
+	      else if( ma==3 )
+	      {
+	        addedDampingTensors(0,2,vbc,wbc)=addedDampingTensors(2,0,wbc,vbc)=adc(0);  // Dvw(0,2)=Dwv(2,0)
+	      }
+	      else if( ma==4 )
+	      {
+	        addedDampingTensors(1,2,vbc,wbc)=addedDampingTensors(2,1,wbc,vbc)=adc(0);  // Dvw(1,2)=Dwv(2,1)
+	      }
+	      else if( ma==5 )
+	        addedDampingTensors(2,2,wbc,wbc)=adc(0);                                 // Dww(3,3)   
+	      else
+	      {
+		OV_ABORT("error");
+	      }
+	}
+	  else 
+      	{
+	      OV_ABORT("check it -QT");
+	      if( ma==0 || ma==15 )
+	      {
+		kLocal=ma<6 ? vbc:wbc;
+	        addedDampingTensors(0,0,kLocal,kLocal)=adc(0);						// Dvv(0,0) or Dww
+	      }
+	      else if( ma==1 || ma==16)
+	      {
+		kLocal=ma<6 ? vbc:wbc;
+	        addedDampingTensors(0,1,kLocal,kLocal)=addedDampingTensors(1,0,kLocal,kLocal)=adc(0);	// Dvv(0,1)=Dvv(1,0) or Dww
+	      }
+	      else if( ma==2 || ma==17)
+	      {
+		kLocal=ma<6 ? vbc:wbc;
+	        addedDampingTensors(0,2,kLocal,kLocal)=addedDampingTensors(2,0,kLocal,kLocal)=adc(0);   // Dvv(0,2)=Dvv(2,0) or Dww
+	      }
+	      else if( ma==3 || ma==18 )
+	      {
+		kLocal=ma<6 ? vbc:wbc;
+	        addedDampingTensors(1,1,kLocal,kLocal)=adc(0);						// Dvv(1,1) or Dww
+	      }      
+	      else if( ma==4 || ma==19)
+	      {
+		kLocal=ma<6 ? vbc:wbc;
+	        addedDampingTensors(1,2,kLocal,kLocal)=addedDampingTensors(2,1,kLocal,kLocal)=adc(0);   // Dvv(1,2)=Dvv(2,1) or Dww
+	      } 		  
+	      else if( ma==5 || ma==20)
+	      {
+		kLocal=ma<6 ? vbc:wbc;
+	        addedDampingTensors(2,2,kLocal,kLocal)=adc(0);						// Dvv(2,2) or Dww
+	      }     	  
+	      else if( ma>5 && ma<15)
+	      {
+		jLocal=(ma-6) % 3;
+		iLocal=(ma-6-jLocal)/3;
+	        addedDampingTensors(iLocal,jLocal,vbc,wbc)=addedDampingTensors(jLocal,iLocal,wbc,vbc)=adc(0);  // Dvw(i,j)=Dwv(j,i)
+	      }
+	      else
+	      {
+		OV_ABORT("error");
+	      }
+		}
     } // end for ma, loop over different added mass coefficients
     
     // if( true )  // ****************** TEST ***************************************************** TEMP 
@@ -876,7 +960,6 @@ int MovingGrids::getRigidBodyAddedDampingTensors( const int bodyNumber, RealArra
       printF("--MVG--getRigidBodyAddedDampingTensors : body=%i, dn=%8.2e mu=%8.2e "
 	     "scaled-Dww=%12.5e scaled-Dww/(2pi)=%12.5e, Dww=%12.5e (disk=%12.5e)\n",
 	     bodyNumber,dn,mu, adc,adc/twoPi, DwwFromIntegral, DwwDisk);
-
 
       // OV_ABORT("stop here for now");
     }
@@ -2918,8 +3001,8 @@ gridAccelerationBC(const int grid, const int side, const int axis,
       if( TRUE )
       {
         // --- do this for now --- (later: no need to evaluate RB values at all)
-	aCM=0.;
-	// rttri=0.;
+		aCM=0.;
+		// rttri=0.;
       }
       
     } // end if direct projection
@@ -4983,6 +5066,7 @@ computeRigidBodyProperties( const int bodyNumber, CompositeGrid & cg )
 
     const int numberOfInertiaEntries = numberOfDimensions==2 ? 1 : 6;
 
+
     RealArray xCM(3);
     real t0=parameters.dbase.get<real>("tInitial");
     rigidBody.getPosition( t0,xCM );  // ** need time corresponding to the grid so integrals are correct
@@ -5137,8 +5221,6 @@ computeRigidBodyProperties( const int bodyNumber, CompositeGrid & cg )
     if( numberOfDimensions==3 )
     {
       // compute eigenvalues and eigenvectors of Inertia matrix:
-
-      //  
       OV_ABORT("finish me for 3D");
     }
     else

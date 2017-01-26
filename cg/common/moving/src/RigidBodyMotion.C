@@ -1151,23 +1151,23 @@ int RigidBodyMotion::displayAddedDampingTensors( const aString & label,
 	  " Dwv = [ %12.4e %12.4e %12.4e ]  Dww = [ %12.4e %12.4e %12.4e ]\n"
 	  "       [ %12.4e %12.4e %12.4e ]        [ %12.4e %12.4e %12.4e ]\n",
 	  addedDampingScaleFactor,t,(const char*)bodyName,
-	  adt(0,0,vbc,vbc),adt(1,0,vbc,vbc),adt(2,0,vbc,vbc),
-	  adt(0,0,vbc,wbc),adt(1,0,vbc,wbc),adt(2,0,vbc,wbc),
+	  adt(0,0,vbc,vbc),adt(0,1,vbc,vbc),adt(0,2,vbc,vbc),
+	  adt(0,0,vbc,wbc),adt(0,1,vbc,wbc),adt(0,2,vbc,wbc),
 
-	  adt(0,1,vbc,vbc),adt(1,1,vbc,vbc),adt(2,1,vbc,vbc),
-	  adt(0,1,vbc,wbc),adt(1,1,vbc,wbc),adt(2,1,vbc,wbc),
+	  adt(1,0,vbc,vbc),adt(1,1,vbc,vbc),adt(1,2,vbc,vbc),
+	  adt(1,0,vbc,wbc),adt(1,1,vbc,wbc),adt(1,2,vbc,wbc),
 
-	  adt(0,2,vbc,vbc),adt(1,2,vbc,vbc),adt(2,2,vbc,vbc),
-	  adt(0,2,vbc,wbc),adt(1,2,vbc,wbc),adt(2,2,vbc,wbc),
+	  adt(2,0,vbc,vbc),adt(2,1,vbc,vbc),adt(2,2,vbc,vbc),
+	  adt(2,0,vbc,wbc),adt(2,1,vbc,wbc),adt(2,2,vbc,wbc),
 
-	  adt(0,0,wbc,vbc),adt(1,0,wbc,vbc),adt(2,0,wbc,vbc),
-	  adt(0,0,wbc,wbc),adt(1,0,wbc,wbc),adt(2,0,wbc,wbc),
+	  adt(0,0,wbc,vbc),adt(0,1,wbc,vbc),adt(0,2,wbc,vbc),
+	  adt(0,0,wbc,wbc),adt(0,1,wbc,wbc),adt(0,2,wbc,wbc),
 
-	  adt(0,1,wbc,vbc),adt(1,1,wbc,vbc),adt(2,1,wbc,vbc),
-	  adt(0,1,wbc,wbc),adt(1,1,wbc,wbc),adt(2,1,wbc,wbc),
+	  adt(1,0,wbc,vbc),adt(1,1,wbc,vbc),adt(1,2,wbc,vbc),
+	  adt(1,0,wbc,wbc),adt(1,1,wbc,wbc),adt(1,2,wbc,wbc),
 
-	  adt(0,2,wbc,vbc),adt(1,2,wbc,vbc),adt(2,2,wbc,vbc),
-	  adt(0,2,wbc,wbc),adt(1,2,wbc,wbc),adt(2,2,wbc,wbc));
+	  adt(2,0,wbc,vbc),adt(2,1,wbc,vbc),adt(2,2,wbc,vbc),
+	  adt(2,0,wbc,wbc),adt(2,1,wbc,wbc),adt(2,2,wbc,wbc));
   return 0;
 }
 
