@@ -76,7 +76,7 @@ while( <FILE> )
   if( /^parallel=parallel/ ){ $parallel="parallel";}
 }
 close(FILE);
-print "*** precision=$precision, parallel=$parallel ****\n";
+# print "*** precision=$precision, parallel=$parallel ****\n";
 
 $tol=1.e-5; # error tolerance for comparing files -- this could vary with each test
 
