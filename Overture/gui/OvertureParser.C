@@ -10,7 +10,7 @@ extern "C"
 }
 #endif
 
-int OvertureParser::debug=1;
+int OvertureParser::debug=0;
 
 OvertureParser::
 OvertureParser(int argc, char **argv) : parserPointer(0) // kkc 031230 added ctor initializer to prevent seg fault on linux (gcc 3.3.2) machines in destructor (?!)

@@ -24,7 +24,7 @@
 * 
 * --- set default values for parameters ---
 * 
-$tFinal=1.; $cfl=.9; 
+$tFinal=1.; $cfl=.9; $pv="g"; 
 $noplot=""; $backGround="rectangle"; $grid="rectangle80.ar10"; $mu=1.; $lambda=1.; $rho=1.; 
 $debug = 0;  $tPlot=.1; $diss=0.; $dissOrder=2; $bcn="d"; $cons=1; $flushFrequency=10;
 $order = 2; $go="run"; 

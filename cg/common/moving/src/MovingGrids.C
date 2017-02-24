@@ -1941,7 +1941,8 @@ correctGrids(const real t1,
   {
     // --- re-compute the grid velocity ---// *new* *wdh* July 5, 2016
 
-    printF("--MVG--correctGrids INFO : t=%9.3e Update the grid velocity!!! ***NEW***\n",cgf2.t);
+    if( debug() & 4 )
+      printF("--MVG--correctGrids INFO : t=%9.3e Update the grid velocity!!! ***NEW***\n",cgf2.t);
     
     //  FORCE getGridVelocity to recompute the grid velocity by 
     //     making sure cgf2.gridVelocityTime != cgf2.t

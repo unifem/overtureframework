@@ -18,13 +18,18 @@
 #
 # Examples:
 #
+#  ogen -noplot submergedCylinderGrid -interp=e -factor=1
 #  ogen -noplot submergedCylinderGrid -interp=e -factor=2 -ml=1
 #  ogen -noplot submergedCylinderGrid -interp=e -factor=4 -ml=1
 #  ogen -noplot submergedCylinderGrid -interp=e -factor=8 -ml=2
 #  ogen -noplot submergedCylinderGrid -interp=e -factor=16 -ml=3
 #  ogen -noplot submergedCylinderGrid -interp=e -factor=32 -ml=3
 #
-#
+# Longer domain 
+#  ogen -noplot submergedCylinderGrid -interp=e -xa=-4 -xb=9 -factor=1
+#  ogen -noplot submergedCylinderGrid -interp=e -xa=-4 -xb=9 -factor=2 -ml=1
+#  ogen -noplot submergedCylinderGrid -interp=e -xa=-4 -xb=9 -factor=4 -ml=1
+#  
 #
 $amp=.0; $freq=1.; $periodic="n"; 
 $factor=1; $name="";  $ml=0; 

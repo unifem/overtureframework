@@ -131,11 +131,20 @@
       end if
       r=(c(0,0,0,n))*time
 ! endLoops()
-      else
+      else if( laplace.eq.1 )then
 ! beginLoops(time=0.)
-      time=0.
-      r=0.
+       time=0.
+        r=0.
 ! endLoops()
+      else if( dx.gt.0 .or. dy.gt.0 .or. dz.gt.0 )then
+! beginLoops(time=0.)
+       time=0.
+        r=0.
+! endLoops()
+      else
+       write(*,*) 'polyFunction:ERROR derivative not implemented'
+       write(*,*) 'dx,dy,dz=',dx,dy,dz
+       stop 6543
       end if
 ! #If "1D0" eq "3D5" || "1D0" eq "3D6"
       return
@@ -386,11 +395,20 @@ c
       end if
       r=(c(1,0,0,n))*time
 ! endLoops()
-      else
+      else if( laplace.eq.1 )then
 ! beginLoops(time=0.)
-      time=0.
-      r=0.
+       time=0.
+        r=0.
 ! endLoops()
+      else if( dx.gt.1 .or. dy.gt.1 .or. dz.gt.1 )then
+! beginLoops(time=0.)
+       time=0.
+        r=0.
+! endLoops()
+      else
+       write(*,*) 'polyFunction:ERROR derivative not implemented'
+       write(*,*) 'dx,dy,dz=',dx,dy,dz
+       stop 6543
       end if
 ! #If "1D1" eq "3D5" || "1D1" eq "3D6"
       return
@@ -869,11 +887,15 @@ c
       end if
       r=(+c(2,0,0,n)*2.)*time
 ! endLoops()
-      else
+      else if( dx.gt.2 .or. dy.gt.2 .or. dz.gt.2 )then
 ! beginLoops(time=0.)
-      time=0.
-      r=0.
+       time=0.
+        r=0.
 ! endLoops()
+      else
+       write(*,*) 'polyFunction:ERROR derivative not implemented'
+       write(*,*) 'dx,dy,dz=',dx,dy,dz
+       stop 6543
       end if
 ! #If "1D2" eq "3D5" || "1D2" eq "3D6"
       return
@@ -1469,11 +1491,15 @@ c
 c
       r=(+c(2,0,0,n)*2.+c(3,0,0,n)*x1*6.)*time
 ! endLoops()
-      else
+      else if( dx.gt.3 .or. dy.gt.3 .or. dz.gt.3 )then
 ! beginLoops(time=0.)
-      time=0.
-      r=0.
+       time=0.
+        r=0.
 ! endLoops()
+      else
+       write(*,*) 'polyFunction:ERROR derivative not implemented'
+       write(*,*) 'dx,dy,dz=',dx,dy,dz
+       stop 6543
       end if
 ! #If "1D3" eq "3D5" || "1D3" eq "3D6"
       return
@@ -2189,11 +2215,15 @@ c
       x2=x1*x1
       r=(+c(2,0,0,n)*2.+c(3,0,0,n)*x1*6.+c(4,0,0,n)*x2*12.)*time
 ! endLoops()
-      else
+      else if( dx.gt.4 .or. dy.gt.4 .or. dz.gt.4 )then
 ! beginLoops(time=0.)
-      time=0.
-      r=0.
+       time=0.
+        r=0.
 ! endLoops()
+      else
+       write(*,*) 'polyFunction:ERROR derivative not implemented'
+       write(*,*) 'dx,dy,dz=',dx,dy,dz
+       stop 6543
       end if
 ! #If "1D4" eq "3D5" || "1D4" eq "3D6"
       return
@@ -2917,11 +2947,15 @@ c
       r=(+c(2,0,0,n)*2.+c(3,0,0,n)*x1*6.+c(4,0,0,n)*x2*12.+c(5,0,0,n)*
      & x3*20.)*time
 ! endLoops()
-      else
+      else if( dx.gt.5 .or. dy.gt.5 .or. dz.gt.5 )then
 ! beginLoops(time=0.)
-      time=0.
-      r=0.
+       time=0.
+        r=0.
 ! endLoops()
+      else
+       write(*,*) 'polyFunction:ERROR derivative not implemented'
+       write(*,*) 'dx,dy,dz=',dx,dy,dz
+       stop 6543
       end if
 ! #If "1D5" eq "3D5" || "1D5" eq "3D6"
       return
@@ -3652,11 +3686,15 @@ c
       r=(+c(2,0,0,n)*2.+c(3,0,0,n)*x1*6.+c(4,0,0,n)*x2*12.+c(5,0,0,n)*
      & x3*20.+c(6,0,0,n)*x4*30.)*time
 ! endLoops()
-      else
+      else if( dx.gt.6 .or. dy.gt.6 .or. dz.gt.6 )then
 ! beginLoops(time=0.)
-      time=0.
-      r=0.
+       time=0.
+        r=0.
 ! endLoops()
+      else
+       write(*,*) 'polyFunction:ERROR derivative not implemented'
+       write(*,*) 'dx,dy,dz=',dx,dy,dz
+       stop 6543
       end if
 ! #If "1D6" eq "3D5" || "1D6" eq "3D6"
       return

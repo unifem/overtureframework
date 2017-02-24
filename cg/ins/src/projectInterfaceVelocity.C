@@ -76,7 +76,9 @@ projectInterfaceVelocity(const real & t, realMappedGridFunction & u,
 	  real alpha=-1.;
 	  if( deform.isBeamModel() )
 	  {
-                 
+	    // ************ BEAM MODEL ******************                
+ 
+
 	    BeamModel & beamModel = deform.getBeamModel();
 
 	    real beamMassPerUnitLength=-1.;
@@ -91,10 +93,19 @@ projectInterfaceVelocity(const real & t, realMappedGridFunction & u,
 		     alpha,beamMassPerUnitLength,fluidDensity,fluidAddedMassLengthScale);
 	      
 	  }
+	  else if( deform.isBulkSolidModel() )
+	  {
+	    if( t<=0. )
+	      printF("--PIV-- SKIPPING INTERFACE VELOCITY PROJECTION FOR BULK SOLID MODEL\n");
+
+	    continue;
+	  }
 	  else
 	  {
 	    OV_ABORT("finish me");
 	  }
+
+
 	  assert( alpha>=0. );
 	  getBoundaryIndex(mg.gridIndexRange(),side,axis,Ib1,Ib2,Ib3);
 	  Range Rx=numberOfDimensions;
@@ -216,7 +227,7 @@ projectInterfaceVelocity(const real & t, realMappedGridFunction & u,
 		    gridVelocityLocal(Ib1,Ib2,Ib3,dir) = nDotV*normal(Ib1,Ib2,Ib3,dir);
 		}
 	      }
-	      else
+	      else // ** FALSE ***
 	      {
 		// new way
 		RealArray vp(Ib1,Ib2,Ib3,Rx), nDotV(Ib1,Ib2,Ib3);

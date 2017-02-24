@@ -61,7 +61,8 @@ constructor(int & argc, char *argv[])
   useParser=true;
   parser = new OvertureParser(argc,argv);
   
-  infoLevel=2;  // by default we output the maximum info. 0=expert, 1=intermediate, 2=novice
+  infoLevel=2;  // level of output:  0=expert, 1=intermediate, 2=novice
+  echoToTerminal=1;  // echo commands to the terminal (e.g.. when reading a command file)
 
   abortProgramIfCommandFileEnds=false; // if true, abort if we stop reading command files.
   

@@ -191,7 +191,7 @@ initializeInterfaces(std::vector<int> & gfIndex)
   assert( interfaceList.size()==0 );
 
   
-  fPrintF(interfaceFile,"\n ------- Initialize Interfaces: Here are the input domains ----------\n");
+  fPrintF(interfaceFile,"\n ------- Cgmp::initializeInterfaces: Here are the input domains ----------\n");
   ForDomain(dm)
   {
     const IntegerArray & originalBoundaryCondition = 

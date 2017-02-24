@@ -37,6 +37,14 @@ setupGridFunctions()
     
   }
     
+  // -- Assign the default upwind order here ---
+  int & upwindOrder =parameters.dbase.get<int>("upwindOrder");
+  if( upwindOrder==-1 )
+  {
+    upwindOrder=parameters.dbase.get<int >("orderOfAccuracy");
+  }
+  
+
 
   poisson = new Oges;
 

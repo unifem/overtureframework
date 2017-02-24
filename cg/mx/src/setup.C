@@ -9,6 +9,7 @@
 #include "UnstructuredMapping.h"
 #include "ParallelUtility.h"
 #include "GridStatistics.h"
+#include "DispersiveMaterialParameters.h"
 
 #include "ULink.h"
 
@@ -1019,7 +1020,7 @@ setupGrids()
     }
     else
     {
-      throw "error";
+      OV_ABORT("error");
     }
     // display(x,"Data points for DPM");
 
@@ -1560,6 +1561,17 @@ setupGrids()
   cGrid.redim(numberOfComponentGrids);   cGrid=c;
   sigmaEGrid.redim(numberOfComponentGrids);  sigmaEGrid=0.;
   sigmaHGrid.redim(numberOfComponentGrids);  sigmaHGrid=0.;
+
+  // Dispersive material parameters may vary from grid to grid (usually domain to domain)
+  std::vector<DispersiveMaterialParameters> & dispersiveMaterialParameters = 
+    dbase.get<std::vector<DispersiveMaterialParameters> >("dispersiveMaterialParameters");
+
+  dispersiveMaterialParameters.resize(numberOfComponentGrids);
+  // while( dispersiveMaterialParameters.size()< numberOfComponentGrids)
+  // {
+  //   dispersiveMaterialParameters.push_back(DispersiveMaterialParameters());
+  // }
+ 
 
  // subtract out the incident field before apply NRBC's
   adjustFarFieldBoundariesForIncidentField.redim(numberOfComponentGrids);

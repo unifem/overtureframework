@@ -1061,7 +1061,7 @@ getTextValue( const aString & answer, const aString & label, const aString & for
     aString line;
     sScanF(answer.substr(len,answer.length()-len),"%e",&target); 
     setTextLabel(label,sPrintF(line,format.c_str(),target));
-    printF(" getTextValue: answer found: [%s %s]\n",(const char*)label.c_str(),(const char*)sPrintF(line,format.c_str(),target).c_str());
+    // printF(" getTextValue: answer found: [%s %s]\n",(const char*)label.c_str(),(const char*)sPrintF(line,format.c_str(),target).c_str());
     return true;
   }
   return false;
@@ -1090,7 +1090,7 @@ getTextValue( const aString & answer, const aString & label, const aString & for
     aString line;
     sScanF(answer.substr(len,answer.length()-len),"%i",&target); 
     setTextLabel(label,sPrintF(line,format.c_str(),target));
-    printF(" getTextValue: answer found: [%s %s]\n",(const char*)label.c_str(),(const char*)sPrintF(line,format.c_str(),target).c_str());
+    // printF(" getTextValue: answer found: [%s %s]\n",(const char*)label.c_str(),(const char*)sPrintF(line,format.c_str(),target).c_str());
     return true;
   }
   return false;
@@ -1125,7 +1125,7 @@ getTextValue( const aString & answer, const aString & label, const aString & for
     target=target.substr(i,target.length()-i);
 
     setTextLabel(label,target);
-    printF(" getTextValue: answer found: [%s %s]\n",(const char*)label.c_str(),(const char*)target.c_str());
+    // printF(" getTextValue: answer found: [%s %s]\n",(const char*)label.c_str(),(const char*)target.c_str());
     return true;
   }
   return false;

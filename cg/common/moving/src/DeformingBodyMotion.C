@@ -115,7 +115,7 @@ DeformingBodyMotion( Parameters & params,
   //  we should parameterize by index so the grid points match)
   deformingBodyDataBase.put<int>("boundaryParameterization");
   deformingBodyDataBase.get<int>("boundaryParameterization")=NurbsMapping::parameterizeByChordLength; 
-  deformingBodyDataBase.put<bool>("evalGridAsNurbs")=false; //  if ttrue, evaluate the Hyperbolic grid as a NURBS
+  deformingBodyDataBase.put<bool>("evalGridAsNurbs")=false; //  if true, evaluate the Hyperbolic grid as a NURBS
   deformingBodyDataBase.put<int>("nurbsDegree")=3;
   
   // order of accuracy for the acceleration computation: 
@@ -142,6 +142,9 @@ DeformingBodyMotion( Parameters & params,
   deformingBodyDataBase.put<real>("sub iteration convergence tolerance",1.0e-3);
 
   deformingBodyDataBase.put<real>("added mass relaxation factor",1.0);
+
+  // Specifies whether the deforming body is defined by a bulk solid model (e.g. Cgsm).
+  deformingBodyDataBase.put<int>("isBulkSolidModel")=0; 
 
   pElasticFilament = NULL;  //.. zero the physics objects
 
@@ -300,6 +303,61 @@ isBeamModel() const
 
   return returnValue;
 }
+
+// ============================================================================================
+/// \brief return true if the deforming body is a bulk solid model
+// ============================================================================================
+bool DeformingBodyMotion::
+isBulkSolidModel() const
+{
+  return (bool)deformingBodyDataBase.get<int>("isBulkSolidModel");
+}
+
+// ============================================================================================
+/// \brief return bulk solid parameters ** DO THIS FOR NOW **
+// ============================================================================================
+int DeformingBodyMotion::
+getBulkSolidParameters( real & impedance )
+{
+  int returnValue=1;
+
+  // --- Now look up parameters from the bulk solid: **DO THIS FOR NOW**
+  DomainSolver *pCgmp = parameters.dbase.get<DomainSolver*>("multiDomainSolver");
+  
+  assert( pCgmp!=NULL );
+  printF("--DBM--getBulkSolidParameters: This is a multi-domain problem\n");
+  
+	
+  // Here is info about the interfaces: 
+  // InterfaceList & interfaceList = pCgmp->parameters.dbase.get<InterfaceList>("interfaceList");     
+
+  for( int d=0; d<pCgmp->domainSolver.size(); d++ )
+  {
+    assert( pCgmp->domainSolver[d]!=NULL );
+    
+    aString className = pCgmp->domainSolver[d]->getClassName();
+    printF("domain d=%i: className=[%s]\n",d,(const char*)className);
+    if( className=="Cgsm" )
+    {
+      Parameters & par =  pCgmp->domainSolver[d]->parameters;
+      const real rho    = par.dbase.get<real>("rho");
+      const real lambda = par.dbase.get<real>("lambda");
+      const real mu     = par.dbase.get<real>("mu");
+
+      const real cp = sqrt( (lambda+2.*mu)/rho );
+      impedance = rho*cp;
+      
+      printF("Domain d=%i : Cgsm domain: rho=%g, lambda=%g, mu=%g, cp=%g, zp=%g\n",d,rho,lambda,mu,cp,impedance);
+
+      returnValue=0;
+      break;
+    }
+  }
+
+  return returnValue;
+}
+
+
 
 // ============================================================================================
 /// \brief return true if this is a beam model with fluid on two sides
@@ -6080,6 +6138,7 @@ update(CompositeGrid & cg, GenericGraphicsInterface & gi )
                                "elastic beam",
                                "nonlinear beam",
                                "free surface",
+                               "bulk solid",
                                "user defined deforming body",
                                "unknown",
 			       "" };
@@ -6302,6 +6361,25 @@ update(CompositeGrid & cg, GenericGraphicsInterface & gi )
       userDefinedDeformingBodyMotionOption=userDeformingSurface;
       // -- choose user defined deforming surface and set parameters ---
       parameters.userDefinedDeformingSurfaceSetup( *this );
+    }
+
+    else if( answer=="bulk solid" )
+    {
+      printF("bulk solid: setting\n"
+             "  isBulkSolidModel=true, \n"
+             "  deformingBodyType=userDefinedDeformingBody,\n"
+             "  userDefinedDeformingBodyMotionOption=interfaceDeform,\n"
+             "  boundaryParameterization=parameterizeByIndex.\n" );
+
+      deformingBodyDataBase.get<int>("isBulkSolidModel")=true; 
+      
+      deformingBodyType=userDefinedDeformingBody; 
+      userDefinedDeformingBodyMotionOption=interfaceDeform;
+
+      int & boundaryParameterization = deformingBodyDataBase.get<int>("boundaryParameterization");
+      boundaryParameterization=NurbsMapping::NurbsMapping::parameterizeByIndex;
+
+
     }
     else if( answer=="deformation frequency" )
     {
@@ -6987,6 +7065,7 @@ get( const GenericDataBase & dir, const aString & name)
   
   getValueDeformingBody<real>(subDir,"added mass relaxation factor",deformingBodyDataBase);
 
+  getValueDeformingBody<int>(subDir,"isBulkSolidModel",deformingBodyDataBase);
 
   switch (deformingBodyDataBase.get<DeformingBodyType>("deformingBodyType")) {
   case userDefinedDeformingBody: {
@@ -7070,6 +7149,7 @@ put( GenericDataBase & dir, const aString & name) const
   
   putValueDeformingBody<real>(subDir,"added mass relaxation factor",deformingBodyDataBase);
 
+  putValueDeformingBody<int>(subDir,"isBulkSolidModel",deformingBodyDataBase);
 
   switch (deformingBodyDataBase.get<DeformingBodyType>("deformingBodyType")) {
   case userDefinedDeformingBody: {

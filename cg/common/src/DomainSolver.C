@@ -1210,6 +1210,9 @@ writeParameterSummary( FILE * file )
 
   Parameters::TimeSteppingMethod &timeSteppingMethod = parameters.dbase.get<Parameters::TimeSteppingMethod>("timeSteppingMethod");
 
+  const Parameters::ImplicitMethod & implicitMethod = 
+                parameters.dbase.get<Parameters::ImplicitMethod >("implicitMethod");
+
   if( parameters.dbase.get<Parameters::TurbulenceModel >("turbulenceModel")!=Parameters::noTurbulenceModel )
   {
     fPrintF(file," Turbulence Model : %s\n",
@@ -1231,11 +1234,13 @@ writeParameterSummary( FILE * file )
 	  (const char*)parameters.getTimeSteppingName());
   
 
-  if( parameters.dbase.get<Parameters::ImplicitMethod >("implicitMethod")==Parameters::approximateFactorization )
+  if( implicitMethod==Parameters::approximateFactorization )
     fPrintF(file," Approximate factorization scheme.\n");
-  else if( parameters.dbase.get<Parameters::ImplicitMethod >("implicitMethod")==Parameters::backwardDifferentiationFormula )
+  else if( implicitMethod==Parameters::backwardDifferentiationFormula )
     fPrintF(file," Backward differentiation formula scheme, order=%i (BDF%i).\n",
 	    parameters.dbase.get<int>("orderOfBDF"), parameters.dbase.get<int>("orderOfBDF"));
+  else if( implicitMethod==Parameters::implicitExplicitMultistep )
+    fPrintF(file," Implicit-Explicit Multistep method (AB-BDF).\n");
   else
     fPrintF(file,"\n");
   
@@ -1321,8 +1326,22 @@ writeParameterSummary( FILE * file )
   }
   if( timeSteppingMethod==Parameters::implicit )
   {
-    fPrintF(file,"\nImplicit time stepping. Order of predictor corrector=%i\n",parameters.dbase.get<int >("orderOfPredictorCorrector"));
-    fPrintF(file,"   implicit factor = %4.2f, (.5=Crank-Nicolson, 1.=Backward Euler)\n",parameters.dbase.get<real >("implicitFactor"));
+    if( implicitMethod==Parameters::crankNicolson )
+    {
+      fPrintF(file,"\nImplicit time stepping. IMEX AB-CN scheme. Order of predictor corrector=%i\n",
+              parameters.dbase.get<int >("orderOfPredictorCorrector"));
+      fPrintF(file,"   implicit factor = %4.2f, (.5=Crank-Nicolson, 1.=Backward Euler)\n",
+              parameters.dbase.get<real >("implicitFactor"));
+    }
+    else if( implicitMethod==Parameters::implicitExplicitMultistep )
+    {
+      fPrintF(file,"\nImplicit time stepping. IMEX AB-BDF scheme.\n");
+    }
+    else
+    {
+      fPrintF(file,"\nImplicit time stepping.\n");
+    }
+    
     if( implicitTimeStepSolverParameters.getSolverName()!="yale" )
     {
       real rtol,atol;

@@ -12,6 +12,7 @@
 #include "OgesParameters.h"
 #include "AdamsPCData.h"
 #include "gridFunctionNorms.h"
+#include "CyclicIndex.h"
 
 //==================================================================
 //            Implicit Multi-step Method
@@ -38,7 +39,7 @@ static bool useNewExposedPoints=true;
 // ===============================================================================
 ///  MACRO:  Perform the initialization step for the PC method
 ///
-///  \METHOD (input) : name of the method: adamsPC or implicitPC
+///  \METHOD (input) : name of the method: e.g. adamsPC or implicitPC
 ///  Parameters:
 ///   numberOfPastTimes (input) : method needs u(t-dt), ... u(t-n*dt), n=numberOfPastTimes  
 ///   numberOfPastTimeDerivatives (input) : method needs u_t(t-dt), ..., u_t(t-m*dt) m=numberOfPastTimeDerivatives
@@ -72,12 +73,19 @@ static bool useNewExposedPoints=true;
 
 // This next declaration also appears in advance.bC
 #define updateOpt EXTERN_C_NAME(updateopt)
+#define updateOptNew EXTERN_C_NAME(updateoptnew)
 extern "C"
 {
       void updateOpt(const int &nd1a,const int &nd1b,const int &nd2a,const int &nd2b,
                                     const int &nd3a,const int &nd3b,const int &nd4a,const int &nd4b, 		  const int &mask,real &u1, const real&u2,  
                                     const real&ut1, const real&ut2, const real&ut3, const real&ut4, 
                                     const int &ipar, const real& rpar, int & ierr );
+
+      void updateOptNew(const int &nd1a,const int &nd1b,const int &nd2a,const int &nd2b,
+                                          const int &nd3a,const int &nd3b,const int &nd4a,const int &nd4b, 		     const int &mask,real & uNew,
+                         	             const real&u1, const real&u2, const real&u3, const real&u4, const real&u5,
+                         	             const real&u6, const real&u7, const real&u8, const real&u9, const real&u10,
+                                          const int &ipar, const real& rpar, int & ierr );
 }
 
 
@@ -137,14 +145,19 @@ implicitSolve(const real & dt0,
     
     printF("DomainSolver::implicitSolve:ERROR: base class function called! This function should\n"
                   "              be re-written by a derived class!\n");
-    Overture::abort("error");
+    OV_ABORT("error");
 
 }
 
 // ===========================================================================================
 //      *** Time-step update macro ***
 // 
-//         u1 <- u0 + AB1*UA0 + AB2*UB0 [ + DTI*UTIMPLICIT ]  (add last terms for implicit grids)
+//  IMEX-CN
+//    u1 <- u0 + AB1*UA0 + AB2*UB0 [ + DTI*UTIMPLICIT ]  (add last terms for implicit grids)
+//
+//  IMEX-BDF2
+//    u1 = (4/3)*uCur + (-1/3)*uOld + (4/3)*dt*utCur + (-2/3)*dt*utOld + (2/3)*dt*utImplicit
+//
 // ===========================================================================================
 
 
@@ -192,33 +205,39 @@ advanceImplicitMultiStep( real & t0, real & dt0, int & numberOfSubSteps, int & i
     if( debug() & 4 )
         printF(" $$$$$$ DomainSolver::advanceImplicitMultiStep $$$$$$$$\n");
 
-    assert( parameters.dbase.get<Parameters::TimeSteppingMethod >("timeSteppingMethod")==Parameters::implicit );
+    const Parameters::TimeSteppingMethod & timeSteppingMethod =
+        parameters.dbase.get<Parameters::TimeSteppingMethod >("timeSteppingMethod")=Parameters::implicit;
+    
+    assert( timeSteppingMethod==Parameters::implicit );
+
+    const Parameters::ImplicitMethod & implicitMethod = 
+                                parameters.dbase.get<Parameters::ImplicitMethod >("implicitMethod");
+    assert( implicitMethod==Parameters::crankNicolson ||
+                    implicitMethod==Parameters::implicitExplicitMultistep );
+
+    const int & numberOfSolutionLevels = parameters.dbase.get<int>("numberOfSolutionLevels");
+    const int & numberOfTimeDerivativeLevels = parameters.dbase.get<int>("numberOfTimeDerivativeLevels");
 
     assert( parameters.dbase.get<int >("orderOfPredictorCorrector")==2 );  // for now we just have 2nd-order in time
 
-//  bool init=false;
     if( !parameters.dbase.get<DataBase >("modelData").has_key("AdamsPCData") )
     {
     // this must be the initial call to this routine
-//    init=true;
         parameters.dbase.get<DataBase >("modelData").put<AdamsPCData>("AdamsPCData");
     }
-//  if( init!=init_ )
-//  {
-//    printF("**** advanceImplicitMultiStep;WARNING: init!=init_ !! *************\n");
-//    init=init_;  // do this for now
-//  }
-    
 
     AdamsPCData & adamsData = parameters.dbase.get<DataBase >("modelData").get<AdamsPCData>("AdamsPCData");
     
     real & dtb=adamsData.dtb;
-    int &mab0 =adamsData.mab0, &mab1=adamsData.mab1, &mab2=adamsData.mab2;
+  // int &mab0 =adamsData.mab0, &mab1=adamsData.mab1, &mab2=adamsData.mab2;
+    int &mab0 =adamsData.mab0;
     int &nab0 =adamsData.nab0, &nab1=adamsData.nab1, &nab2=adamsData.nab2, &nab3=adamsData.nab3;
     int &ndt0=adamsData.ndt0;
     real *dtp = adamsData.dtp;
 
     const int orderOfAccuracy = parameters.dbase.get<int >("orderOfAccuracy");
+    const int orderOfTimeAccuracy = parameters.dbase.get<int >("orderOfTimeAccuracy");
+    
     int & predictorOrder = parameters.dbase.get<int>("predictorOrder");
     if( predictorOrder==0 )
         predictorOrder=2; // default
@@ -235,46 +254,110 @@ advanceImplicitMultiStep( real & t0, real & dt0, int & numberOfSubSteps, int & i
         printF("advanceImplicitMultiStep:INFO: predictorOrder=%i ( =0 -> use default, order=2)\n",predictorOrder);
     }
     
-    int numberOfCorrections;
-    if( parameters.dbase.get<Parameters::TimeSteppingMethod >("timeSteppingMethod")==Parameters::adamsBashforth2 )
-        numberOfCorrections=0; //kkc 060301 given the assertion above, this should never happen, right?
-    else
-        numberOfCorrections=parameters.dbase.get<int>("numberOfPCcorrections"); 
+    int numberOfCorrections=parameters.dbase.get<int>("numberOfPCcorrections"); 
 
   // If we check a convergence tolerance when correcting (e.g. for moving grids) then this is
   // the minimum number of corrector steps we must take:
     const int minimumNumberOfPCcorrections = parameters.dbase.get<int>("minimumNumberOfPCcorrections");
     
       
-    if( debug() & 2 )
-        fprintf(debugFile," *** Entering advanceImplicitMultiStep: t0=%e, dt0=%e *** \n",t0,dt0);
-  
     
+    
+  // ***** NOTE *********
+  // **** For moving grids we need to keep gf[OLD] in addition to fn[OLD] since we need the mask
+  // **** for computing exposed points
+  // ********************
+
   // For moving grids we keep gf[mab0], gf[mab1] and gf[mab2]
   // For non-moving grids we keep gf[mab0], gf[mab1] and we set mab2==mab1
 
-    const int numberOfGridFunctions =  movingGridProblem() ? 3 : 2; 
+  // *wdh* 2017/01/29 const int numberOfGridFunctions =  movingGridProblem() ? 3 : 2; 
+    const int numberOfGridFunctions =  numberOfGridFunctionsToUse; // assigned in setupGridFunctions
 
-    mab2 = (mab0 -1 + numberOfGridFunctions) % numberOfGridFunctions;
+  // Make a reverse cyclic index to match mab0: 
+    CyclicIndex mgfi(numberOfSolutionLevels,ovmod(-mab0,numberOfSolutionLevels),false);
+    CyclicIndex nfni(numberOfTimeDerivativeLevels,ovmod(-nab0,numberOfTimeDerivativeLevels),false);
+    if( (true || implicitMethod==Parameters::implicitExplicitMultistep) && t0<5.*dt0 )
+    {
+        printF(" mgfi[1]=%i mgfi[0]=%i mgfi[-1]=%i mgfi[-2]=%i mgfi[-3]=%i\n", 
+                          mgfi[1],mgfi[0],mgfi[-1],mgfi[-2],mgfi[-3]);
+        printF(" nfni[1]=%i nfni[0]=%i nfni[-1]=%i nfni[-2]=%i nfni[-3]=%i\n", 
+                          nfni[1],nfni[0],nfni[-1],nfni[-2],nfni[-3]);
 
-  // 
-    int mNew = mab2;    // new     : gf[mNew] : will hold u(t+dt)
-    int mCur = mab0;    // current : gf[mCur] : holds u(t) 
-    int mOld = mab1;    // old     : gf[mOld] : holds u(t-dt) if numberOfGridFunctions==3 otherwise mOld=mNew
+    // mgfi.shift();
+    // printF(" mgfi[2]=%i mgfi[1]=%i mgfi[0]=%i mgfi[-1]=%i mgfi[-2]=%i (after shift)\n", mgfi[2],mgfi[1],mgfi[0],mgfi[-1]
+    //	   ,mgfi[-2]);
+    }
     
+  // Cyclic indexes for gf[.]
+    int mNew = mgfi[ 1];    // new     : gf[mNew] : will hold u(t+dt)
+    int mCur = mgfi[ 0];    // current : gf[mCur] : holds u(t) 
+    int mOld = mgfi[-1];    // old     : gf[mOld] : holds u(t-dt) if numberOfGridFunctions==3 otherwise mOld=mNew
 
-    Parameters::ImplicitOption & implicitOption = parameters.dbase.get<Parameters::ImplicitOption >("implicitOption");
-    
-    implicitOption=Parameters::doNotComputeImplicitTerms; // no need to compute during initialization
-    parameters.dbase.get<Parameters::ImplicitMethod >("implicitMethod")=Parameters::crankNicolson;
-    int iparam[10];
-    real rparam[10];
 
-    RealCompositeGridFunction & uti = fn[2];   // ****
+  // Index's into fn[.]
+    int nNew=nfni[1];
+    int nCur=nfni[0];
+    int nOld=nfni[-1];
+
+
+  // // *** WHAT IS THIS ??? *WDH* 2017
+  // mab2 = (mab0 -1 + numberOfGridFunctions) % numberOfGridFunctions;
+
+
+  // int mNew = mab2;    // new     : gf[mNew] : will hold u(t+dt)
+  // int mCur = mab0;    // current : gf[mCur] : holds u(t) 
+  // int mOld = mab1;    // old     : gf[mOld] : holds u(t-dt) if numberOfGridFunctions==3 otherwise mOld=mNew
+
     
     if( debug() & 2 )
     {
         fprintf(debugFile," *** Entering advanceImplicitMultiStep: t0=%e, dt0=%e *** \n",t0,dt0);
+  
+        if( implicitMethod==Parameters::implicitExplicitMultistep && t0<5.*dt0 )
+        {
+            printF("____-> IMEX AB-BDF scheme: numberOfCorrections=%i numberOfSolutionLevels=%i "
+                          "numberOfTimeDerivativeLevels=%i numberOfGridFunctions=%i numberOfExtraFunctionsToUse=%i\n",
+                          numberOfCorrections,numberOfSolutionLevels,numberOfTimeDerivativeLevels,numberOfGridFunctions,
+                          numberOfExtraFunctionsToUse);
+
+        }
+        else
+        {
+            printF("____-> IM scheme: numberOfCorrections=%i numberOfSolutionLevels=%i "
+                          "numberOfTimeDerivativeLevels=%i numberOfGridFunctions=%i numberOfExtraFunctionsToUse=%i\n",
+                          numberOfCorrections,numberOfSolutionLevels,numberOfTimeDerivativeLevels,numberOfGridFunctions,
+                          numberOfExtraFunctionsToUse);
+        }
+    // printF("____-> [mab0,mab1,mab2]=[%i,%i,%i] [nab0,nab1,nab2]=[%i,%i,%i] [mNew,mCur,mOld]=[%i,%i,%i]\n",
+    //       mab0,mab1,mab2, nab0,nab1,nab2, mNew,mCur,mOld);
+
+        printF("____-> [mab0]=[%i,%i,%i] [nab0,nab1,nab2]=[%i,%i,%i] [mNew,mCur,mOld]=[%i,%i,%i]\n",
+                    mab0, nab0,nab1,nab2, mNew,mCur,mOld);
+        
+
+
+    }
+
+
+
+    Parameters::ImplicitOption & implicitOption = parameters.dbase.get<Parameters::ImplicitOption >("implicitOption");
+    
+    implicitOption=Parameters::doNotComputeImplicitTerms; // no need to compute during initialization
+
+  // parameters.dbase.get<Parameters::ImplicitMethod >("implicitMethod")=Parameters::crankNicolson;
+
+    int iparam[10];
+    real rparam[10];
+
+  // uti : holds the implicit part of the operator at the current time "n" used in C.N. for example.
+    RealCompositeGridFunction & uti = fn[numberOfExtraFunctionsToUse-1];  // *wdh* 2017/02/03 Was [2]
+  // RealCompositeGridFunction & uti = fn[2];   // **** Holds du/dt(t) for implicit part of operator I think..
+    
+    if( debug() & 2 )
+    {
+        printF(" *** Entering advanceImplicitMultiStep: t0=%e, dt0=%e dtb=%e*** \n",t0,dt0,dtb);
+        fprintf(debugFile," *** Entering advanceImplicitMultiStep: t0=%e, dt0=%e dtb=%e *** \n",t0,dt0,dtb);
     }
   
     
@@ -297,11 +380,21 @@ advanceImplicitMultiStep( real & t0, real & dt0, int & numberOfSubSteps, int & i
     // **** To initialize the method we need to compute du/dt at times t and t-dt *****
 
     // this is a macro (pcMacros.h):
-        const int numberOfPastTimes=1;                            // PC needs u(t-dt)
-        const int numberOfPastTimeDerivatives=orderOfAccuracy-1;  // PC needs u_t(t-dt), u_t(t-2*dt), ...
+    // PC22 needs 
+    //   numberOfPastTimes=1 : u(t-dt)
+    //   numberOfPastTimeDerivatives=1 : u_t(t-dt)
+    // BDF4 needs
+    //  numberOfPastTimes=3 : u(n-1) u(n-2) u(n-3)
+    // numberOfPastTimeDerivatives=3 : u_t(n-1) u_t(n-2) u_t(n-3)
+        const int numberOfPastTimes=orderOfTimeAccuracy-1;
+        const int numberOfPastTimeDerivatives=orderOfTimeAccuracy-1;
+    // *old* -- *wdh* Feb 3, 2017
+    // *old* int numberOfPastTimes=1;                            // PC needs u(t-dt)
+    // *old* int numberOfPastTimeDerivatives=orderOfAccuracy-1;  // PC needs u_t(t-dt), u_t(t-2*dt), ...
+
         const int orderOfPredictorCorrector = parameters.dbase.get<int >("orderOfPredictorCorrector");
         const int orderOfTimeExtrapolationForPressure = parameters.dbase.get<int >("orderOfTimeExtrapolationForPressure");
-        printF("--implicitPC-- initializePredictorCorrector: mCur=%i, mOld=%i \n",mCur,mOld);
+        printF("--implicitPC-- initializePredictorCorrector: mCur=%i, mOld=%i gf[mCur].t=%9.2e\n",mCur,mOld,gf[mCur].t);
         if( movingGridProblem() )
         { 
             getGridVelocity( gf[mCur],t0 );
@@ -532,38 +625,83 @@ advanceImplicitMultiStep( real & t0, real & dt0, int & numberOfSubSteps, int & i
             updateStateVariables(gf[mOld]); // *wdh* 080204 
             if( parameters.useConservativeVariables() )
                 gf[mOld].primitiveToConservative();
-      // For BDF schemes we need more past solutions
+      // For BDF or IMEX-BDF schemes we need more past solutions
             for( int kgf=2; kgf<=numberOfPastTimes; kgf++ )
             {
-                  const int mgf = (mCur - kgf + numberOfGridFunctions) % numberOfGridFunctions;
+           // PC and IMEX-BDF scheme grid index counts forward for past time 
+                      const int mgf = (mCur + kgf + numberOfGridFunctions) % numberOfGridFunctions;
                   const real tgf = t0-dt0*kgf;
                   if( true )
-                      printF("--implicitPC-- init past time solution at t=%9.3e\n",tgf);
+                      printF("--implicitPC-- init past time solution gf[mgf=%i] at t=%9.3e numberOfGridFunctions=%i " 
+                                    "numberOfPastTimes=%i orderOfTimeAccuracy=%i\n",
+                                    mgf,tgf,numberOfGridFunctions,numberOfPastTimes,orderOfTimeAccuracy);
                   if( movingGridProblem() )
                   {
            // **CHECK ME: dt0*kgf ? or -dt0*kgf
            // Note: on input gf[mgf].t=0 indicates the initial grid in gf[mgf] is located at t=0
                       moveGrids( t0,t0,tgf,dt0*kgf,gf[mCur],gf[mCur],gf[mgf] );// this will set gf[mgf].t=tgf
                   }
+                  else
+                  {
+                      gf[mgf].t=tgf;
+                  }
                   gf[mgf].u.updateToMatchGrid(gf[mgf].cg); 
                   e.assignGridFunction( gf[mgf].u,tgf );
                   updateStateVariables(gf[mgf]); 
                   if( parameters.useConservativeVariables() )
                       gf[mgf].primitiveToConservative();
+                  if( false )
+                  {
+                      ::display(gf[mgf].u[0],sPrintF("--implicitPC-- past time solution gf[mgf=%i].u t=%9.3e",mgf,tgf),"%6.3f ");
+                  }
             }
-            if( numberOfPastTimeDerivatives>0 )
+      // For IMEX-BDF schemes we need more past time-derivatives
+            if( true && implicitMethod==Parameters::implicitExplicitMultistep  ) // *wdh* Feb. 3, 2017
             {
-        // -- evaluate du/dt(t-dt) --
-                for( int grid=0; grid<gf[mCur].cg.numberOfComponentGrids(); grid++ )
+                for( int kgf=1; kgf<=numberOfPastTimeDerivatives; kgf++ )
                 {
-                    rparam[0]=gf[mOld].t;
-                    rparam[1]=gf[mOld].t; // tforce
-                    rparam[2]=gf[mCur].t-gf[mOld].t; // tImplicit  *************** check me 090806 **********************
-                    iparam[0]=grid;
-                    iparam[1]=gf[mOld].cg.refinementLevelNumber(grid);
-                    iparam[2]=numberOfStepsTaken;
-                    getUt(gf[mOld].u[grid],gf[mOld].getGridVelocity(grid),fn[nab1][grid],iparam,rparam,
-                  	    uti[grid],&gf[mOld].cg[grid]);
+                    const int mgf = (mCur + kgf + numberOfGridFunctions) % numberOfGridFunctions;
+                    const int ngf = (nab0 + kgf + numberOfTimeDerivativeLevels) % numberOfTimeDerivativeLevels;
+                    const real tgf = t0-dt0*kgf;
+                    gf[mgf].t=tgf;
+                    if( true )
+              	printF("--implicitPC-- init past time du/dt at t=%9.3e (gf[mgf=%i].t=%9.3e) fn[ngf=%i]\n",
+                              tgf,mgf,gf[mgf].t,ngf);
+          // -- evaluate du/dt(t-dt) --
+                    for( int grid=0; grid<gf[mCur].cg.numberOfComponentGrids(); grid++ )
+                    {
+              	rparam[0]=gf[mgf].t;
+              	rparam[1]=gf[mgf].t; // tforce
+              	rparam[2]=gf[mCur].t-gf[mgf].t; // tImplicit  *************** check me 090806 **********************
+              	iparam[0]=grid;
+              	iparam[1]=gf[mgf].cg.refinementLevelNumber(grid);
+              	iparam[2]=numberOfStepsTaken;
+              	getUt(gf[mgf].u[grid],gf[mgf].getGridVelocity(grid),fn[ngf][grid],iparam,rparam,
+                    	      uti[grid],&gf[mgf].cg[grid]);
+              	if( false )
+              	{
+                	  ::display(fn[ngf][grid],sPrintF("--implicitPC-- past time du/dt fn[ngf=%i] t=%9.3e",ngf,tgf),"%6.3f ");
+              	}
+                    }
+                }
+            }
+            else
+            {
+        // *old* 
+                if( numberOfPastTimeDerivatives>0 )
+                {
+          // -- evaluate du/dt(t-dt) --
+                    for( int grid=0; grid<gf[mCur].cg.numberOfComponentGrids(); grid++ )
+                    {
+              	rparam[0]=gf[mOld].t;
+              	rparam[1]=gf[mOld].t; // tforce
+              	rparam[2]=gf[mCur].t-gf[mOld].t; // tImplicit  *************** check me 090806 **********************
+              	iparam[0]=grid;
+              	iparam[1]=gf[mOld].cg.refinementLevelNumber(grid);
+              	iparam[2]=numberOfStepsTaken;
+              	getUt(gf[mOld].u[grid],gf[mOld].getGridVelocity(grid),fn[nab1][grid],iparam,rparam,
+                    	      uti[grid],&gf[mOld].cg[grid]);
+                    }
                 }
             }
       // display(fn[nab1][0],sPrintF("ut(t-dt) from getUt at t=%e\n",gf[mOld].t),debugFile,"%5.2f ");
@@ -767,6 +905,16 @@ advanceImplicitMultiStep( real & t0, real & dt0, int & numberOfSubSteps, int & i
         realCompositeGridFunction & ua = fn[nab0];   // pointer to du/dt
         realCompositeGridFunction & ub = fn[nab1];   // pointer to du(t-dt)/dt or du/dt(t+dt)
         
+    // -- new way : *wdh* 2017/02/05
+    // Index's into fn[.]
+        nNew=nfni[1];
+        nCur=nfni[0];
+        nOld=nfni[-1];
+
+        realCompositeGridFunction & fNew = fn[nNew];   // pointer to du/dt(t+dt)
+        realCompositeGridFunction & fCur = fn[nCur];   // pointer to du/dt
+        realCompositeGridFunction & fOld = fn[nOld];   // pointer to du/dt(t-dt)
+
         real ab1,ab2;
         if( predictorOrder==1 )
         { // first order predictor
@@ -811,18 +959,18 @@ advanceImplicitMultiStep( real & t0, real & dt0, int & numberOfSubSteps, int & i
       //  correction==0 :
       //       ---Adams-Bashforth Predictor
       //           u(*) <- u(t) + ab1*du/dt +ab2*du(t-dtb)/dt
-      //  i.e.     gf[1]<- gf[mCur]+ ab1*ua    +ab2*ub
+      //  i.e.     gf[1]<- gf[mCur]+ ab1*fCur    +ab2*fOld
       //      
       //            The constants ab1 and ab2 are
       //                 ab1 = dt*( 1.+dt/(2*dtb) )   = (3/2)*dt if dtb=dt
       //                 ab2 = -dt*(  dt/(2*dtb) )    =-(1/2)*dt if dtb=dt
       //            Determined by extrapolation to time t+dt/2 from the
-      //            times of ua and ub
+      //            times of fCur and fOld
       //
       // correction>0 :
       //       ---Adams Moulton Corrector
       //          u(t+dt) <- u(t) + dt* ( (1/2) du(*)/dt + (1/2) du(t)/dt )
-      //          gf[mNew]  gf[mCur]              ub               ua
+      //          gf[mNew]  gf[mCur]              fNew             fCur
 
       // We only need to compute the "explicit" part of the implicit terms once for correction==0: 
       // These values are stored in utImplicit 
@@ -838,12 +986,12 @@ advanceImplicitMultiStep( real & t0, real & dt0, int & numberOfSubSteps, int & i
       	bool useNew=false;
       	bool gridWasAdapted=false;
 
-	// moveTheGridsMacro(adamsPC,uti); // *wdh* 090804 
-
                 real tb=gf[mCur].t-dtb, tc=tb-dtb, td=tc-dtb; // tc,td not used
                 assert( predictorOrder<=2 );
                 const int numberOfPastTimes=0;
                 const int numberOfPastTimeDerivatives=predictorOrder-1; 
+        // Fill in exposed points on (tb,ub), ...
+        // **FIX ME FOR HIGHER ORDER -- fill in exposed for more past time u's and f's
                 if( movingGridProblem() )
                 {
                     checkArrays(" adamsPC : before move grids"); 
@@ -935,7 +1083,7 @@ advanceImplicitMultiStep( real & t0, real & dt0, int & numberOfSubSteps, int & i
               // --- fixup du/dt(t-dt) ---
               // -------------------------
               // NOTE: we CANNOT directly interpolate points on du/dt since for moving grids
-              // du/dt includes the -gDot.grad(u) term 
+              // du/dt includes the -gDot.grad(u) term which differs from grid to grid 
               // Current procedure: 
               //   1. Interpolate exposed points on u(t-dt)
               //   2. Recompute du/dt(t-dt) 
@@ -1045,7 +1193,7 @@ advanceImplicitMultiStep( real & t0, real & dt0, int & numberOfSubSteps, int & i
       	formMatrixForImplicitSolve(dt0,gf[mNew], gf[mCur] );
 
             const int maba = correction==0 ? mCur : mNew;
-            const int naba = correction==0 ? nab0 : nab1;
+            const int naba = correction==0 ? nCur : nNew;
 
       // --- Compute: fn[nab0] <- du/dt(t0)  or fn[nab1] <- du/dt(t+dt0) ---
 
@@ -1072,17 +1220,40 @@ advanceImplicitMultiStep( real & t0, real & dt0, int & numberOfSubSteps, int & i
             {
       	for( grid=0; grid<gf[mCur].cg.numberOfComponentGrids(); grid++ )
       	{
-        	  display(ua[grid],"\n ****ua: du/dt(t)",debugFile);
-        	  display(ub[grid],"\n ****ub: du/dt(t-dt)",debugFile);
+        	  display(fCur[grid],"\n ****fCur: du/dt(t)",debugFile);
+        	  if( correction==0 )
+                	    display(fOld[grid],"\n ****fOld: du/dt(t-dt)",debugFile);
+                    else
+                	    display(fNew[grid],"\n ****fNew: du/dt(t+dt)",debugFile);
       	}
             }
+            if( FALSE )
+            {
+                ::display(fn[naba][0],sPrintF(" du/dt t=%9.2e fn[naba=%i]",gf[maba].t,naba),"%5.2f ");
+            }
+            
             if( debug() & 16 )
             {
-      	aString label = sPrintF(" ImplicitMS: errors in ut (ua) at t=%e, correction=%i \n",t0,correction);
-      	determineErrors( ua,gf[mCur].gridVelocity, t0, 1, error,label );
-                real tub = correction==0 ? t0-dtb : t0+dt0;
-      	label = sPrintF(" ImplicitMS: errors in ut (ub) at t=%e, correction=%i \n",tub,correction);
-      	determineErrors( ub,gf[mNew].gridVelocity, tub, 1, error,label );
+      	aString label;
+                label = sPrintF(" ImplicitMS: errors in u at t=%e, correction=%i maba=%i gf[maba].t=%9.2e\n",
+                  			t0,correction,maba,gf[maba].t);
+      	determineErrors( gf[maba].u,gf[mCur].gridVelocity, t0, 0, error,label );
+
+      	label = sPrintF(" ImplicitMS: errors in ut fCur at t=%e, correction=%i \n",t0,correction);
+      	determineErrors( fCur,gf[mCur].gridVelocity, t0, 1, error,label );
+      	if( correction==0 )
+      	{
+        	  real tub = t0-dtb;
+        	  label = sPrintF(" ImplicitMS: errors in ut (fOld) at t=%e, correction=%i \n",tub,correction);
+        	  determineErrors( fOld,gf[mNew].gridVelocity, tub, 1, error,label );
+      	}
+      	else
+      	{
+        	  real tub = t0+dt0;
+        	  label = sPrintF(" ImplicitMS: errors in ut (fNew) at t=%e, correction=%i \n",tub,correction);
+        	  determineErrors( fNew,gf[mNew].gridVelocity, tub, 1, error,label );
+      	}
+      	
             }
 
       //  --------------------------------------------------------
@@ -1090,26 +1261,32 @@ advanceImplicitMultiStep( real & t0, real & dt0, int & numberOfSubSteps, int & i
       //  --------------------------------------------------------
             for( grid=0; grid<gf[mNew].cg.numberOfComponentGrids(); grid++ )
             {
-        // const real dti = dt0; 
+
                 const real dti = (1.-parameters.dbase.get<real >("implicitFactor"))*dt0;
 
       	if( correction==0 )
       	{ // u1 <- u0 + ab1*ua0 + ab2*ub0 [ + dti*utImplicit ]  (add last terms for implicit grids)
-                #ifdef USE_PPP
-                    RealArray u1;  getLocalArrayWithGhostBoundaries(gf[mNew].u[grid],u1);
-                    RealArray u0;  getLocalArrayWithGhostBoundaries(gf[mCur].u[grid],u0);
-                    RealArray ua0; getLocalArrayWithGhostBoundaries(ua[grid],ua0);
-                    RealArray ub0; getLocalArrayWithGhostBoundaries(ub[grid],ub0);
-                    RealArray utImplicit; getLocalArrayWithGhostBoundaries(uti[grid],utImplicit);
-                    const intSerialArray & mask1 = gf[mNew].cg[grid].mask().getLocalArray();
-                #else
-                    RealDistributedArray & u1 = gf[mNew].u[grid];
-                    RealDistributedArray & u0 = gf[mCur].u[grid];
-                    RealDistributedArray & ua0 = ua[grid];
-                    RealDistributedArray & ub0 = ub[grid];
-                    RealDistributedArray & utImplicit = uti[grid];
-                    const intSerialArray & mask1 = gf[mNew].cg[grid].mask(); 
-                #endif
+                  OV_GET_SERIAL_ARRAY(real,gf[mNew].u[grid],u1);
+                  OV_GET_SERIAL_ARRAY(real,gf[mCur].u[grid],u0);
+                  OV_GET_SERIAL_ARRAY(real,ua[grid],ua0);
+                  OV_GET_SERIAL_ARRAY(real,ub[grid],ub0);
+                  OV_GET_SERIAL_ARRAY(real,uti[grid],utImplicit);
+                  OV_GET_SERIAL_ARRAY(int,gf[mNew].cg[grid].mask(),mask1);
+        // #ifdef USE_PPP
+        //   RealArray u1;  getLocalArrayWithGhostBoundaries(gf[mNew].u[grid],u1);
+        //   RealArray u0;  getLocalArrayWithGhostBoundaries(gf[mCur].u[grid],u0);
+        //   RealArray ua0; getLocalArrayWithGhostBoundaries(ua[grid],ua0);
+        //   RealArray ub0; getLocalArrayWithGhostBoundaries(ub[grid],ub0);
+        //   RealArray utImplicit; getLocalArrayWithGhostBoundaries(uti[grid],utImplicit);
+        //   const intSerialArray & mask1 = gf[mNew].cg[grid].mask().getLocalArray();
+        // #else
+        //   RealDistributedArray & u1 = gf[mNew].u[grid];
+        //   RealDistributedArray & u0 = gf[mCur].u[grid];
+        //   RealDistributedArray & ua0 = ua[grid];
+        //   RealDistributedArray & ub0 = ub[grid];
+        //   RealDistributedArray & utImplicit = uti[grid];
+        //   const intSerialArray & mask1 = gf[mNew].cg[grid].mask(); 
+        // #endif
                     getIndex(gf[mNew].cg[grid].extendedIndexRange(),I1,I2,I3);
                     int n1a,n1b,n2a,n2b,n3a,n3b;
                     bool ok = ParallelUtility::getLocalArrayBounds(gf[mCur].u[grid],u0,I1,I2,I3,n1a,n1b,n2a,n2b,n3a,n3b);
@@ -1118,41 +1295,302 @@ advanceImplicitMultiStep( real & t0, real & dt0, int & numberOfSubSteps, int & i
                     int ierr=0;
                     const int maskOption=0; // assign pts where mask>0
                     int ipar[]={0,maskOption,n1a,n1b,n2a,n2b,n3a,n3b,N.getBase(),N.getBound()}; //
-                    real rpar[5]={0.,0.,0.,0.,0.};
+                    real rpar[15]={0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.};
                     real *ut1p, *ut2p, *ut3p, *ut4p;
-                    if( parameters.getGridIsImplicit(grid) )
-                        ipar[0]=3;  // add three extra "ut" terms if grid is advanced implicitly
-                    else    
-                        ipar[0]=2;  // add two extra "ut" terms
-                    rpar[0]=ab1; rpar[1]=ab2; rpar[2]=dti;
-                    ut1p=ua0.getDataPointer();
-                    ut2p=ub0.getDataPointer();
-                    ut3p=utImplicit.getDataPointer();
-                    ut4p=ut3p;
-                    updateOpt(u0.getBase(0),u0.getBound(0),u0.getBase(1),u0.getBound(1),
-                          	    u0.getBase(2),u0.getBound(2),u0.getBase(3),u0.getBound(3),
-                          	    *mask1.getDataPointer(),  
-                          	    *u0.getDataPointer(),*u1.getDataPointer(), 
-                          	    *ut1p, *ut2p, *ut3p, *ut4p, 
-                          	    ipar[0], rpar[0], ierr );
+                    if( implicitMethod==Parameters::crankNicolson )
+                    {
+            // --- IMEX: ab2+CN ---
+                        if( parameters.getGridIsImplicit(grid) )
+                            ipar[0]=3;  // add three extra "ut" terms if grid is advanced implicitly
+                        else    
+                            ipar[0]=2;  // add two extra "ut" terms
+                        rpar[0]=ab1; rpar[1]=ab2; rpar[2]=dti;
+                        ut1p=fCur[grid].getDataPointer();
+                        ut2p=fOld[grid].getDataPointer();
+                        ut3p=utImplicit.getDataPointer();
+                        ut4p=ut3p;
+                        updateOpt(u0.getBase(0),u0.getBound(0),u0.getBase(1),u0.getBound(1),
+                            	      u0.getBase(2),u0.getBound(2),u0.getBase(3),u0.getBound(3),
+                            	      *mask1.getDataPointer(),  
+                            	      *u0.getDataPointer(),*u1.getDataPointer(), 
+                            	      *ut1p, *ut2p, *ut3p, *ut4p, 
+                            	      ipar[0], rpar[0], ierr );
+                    }
+                    else if( implicitMethod==Parameters::implicitExplicitMultistep )
+                    {
+            // --------------
+            // ---- IMEX ----
+            // --------------
+                        assert( parameters.getGridIsImplicit(grid) );  // fix me when some grids are explicit
+                        if( orderOfTimeAccuracy==2 )
+                        {
+              // --- 2nd-order IMEX-BDF ----
+                            OV_GET_SERIAL_ARRAY(real,gf[mOld].u[grid],uOld);
+              // **fix me for variable dt**
+                            if( fabs(dt0/dtb-1.) > 1.e-12 )
+                            {
+                      	printF("IMEX-BDF WARNING, dt has changed but formula assume constant dt, dt/dtOld=%8.2e\n",dt0/dtb);
+                            }
+                            if( correction==0 )
+                            {
+                                printF("IMEX BDF2 updateOptNew predictor mNew=%i mCur=%i mOld=%i...\n",mNew,mCur,mOld);
+        	// --- PREDICTOR   (last term is already in the matrix)
+        	//    u1 = (4/3)*uCur + (-1/3)*uOld + (4/3)*dt*utCur + (-2/3)*dt*utOld  [ + (2/3)*dt*utImplicit ]
+        	// BDF weights for variable time-step
+        	// **FINISH ME***
+        	// -- ISSUES:
+        	// -->   If dt changes then matrix coefficient will also change (ok for moving grids, sibnce matrix changes evry step)
+        	// --> for non-moving grids we could alter BDF a bit to use (2/3)*dt*f_I^{n+1} + gamma*dt f_I^n 
+                /* ---
+                      const real dtRatio = dtb/dt0;
+                      real alpha = -1./(dtRatio*(2.+dtRatio));  // -1/3 if dtRatio=1
+                      real beta = (1.+dtRatio)/(2.+dtRatio);     // 2/3 if dtRatio=1
+           //const real c1=4./3., c2=-1./3, c3=(4./3.)*dt0, c4=-(2./3.)*dt0;
+                      real c1 = 1.-alpha, c2=alpha, c3=2.*beta*dt0, c4=-beta*dt0;
+                      --- */      
+                // This assumes a constant dt: 
+                                const real c1=4./3., c2=-1./3, c3=(4./3.)*dt0, c4=-(2./3.)*dt0;
+                      	rpar[0]=c1;
+                      	rpar[1]=c2;
+                      	rpar[2]=c3;
+                      	rpar[3]=c4;
+                      	int option=4;  // 4 terms on the RHS
+                      	ipar[0]=option;
+                              	real *puNew, *pu1, *pu2, *pu3, *pu4;
+                                puNew=u1.getDataPointer();    // uNew
+                      	pu1  =u0.getDataPointer();    // uCur
+                      	pu2  =uOld.getDataPointer();  // uOld
+                      	pu3  =fCur[grid].getDataPointer();   // fCur
+                      	pu4  =fOld[grid].getDataPointer();   // fOld
+                      	updateOptNew(u0.getBase(0),u0.getBound(0),u0.getBase(1),u0.getBound(1),
+                                 		     u0.getBase(2),u0.getBound(2),u0.getBase(3),u0.getBound(3),
+                                 		     *mask1.getDataPointer(),  
+                                 		     *puNew,
+                                 		     *pu1,*pu2,*pu3,*pu4, *pu2,*pu2,*pu2,*pu2,*pu2,*pu2, // only first 4 arguments are used
+                                 		     ipar[0], rpar[0], ierr );
+                            }
+                            else
+                            {
+                                printF("IMEX BDF2 updateOptNew corrector mNew=%i mCur=%i mOld=%i...\n",mNew,mCur,mOld);
+        	// ---- CORRECTOR   (last term is already in the matrix)
+                // u1 = (4/3)*uCur + (-1/3)*uOld + (2/3)*dt*utNew   [ + (2/3)*dt*utImplicit ] 
+                // This assumes a constant dt: 
+                                const real c1=4./3., c2=-1./3, c3=(2./3.)*dt0;  
+                      	rpar[0]=c1;
+                      	rpar[1]=c2;
+                      	rpar[2]=c3;
+                      	int option=3;  // 3 terms on the RHS
+                      	ipar[0]=option;
+                      	real *puNew, *pu1, *pu2, *pu3, *pu4;
+                                puNew=u1.getDataPointer();    // uNew
+                      	pu1  =u0.getDataPointer();    // uCur
+                      	pu2  =uOld.getDataPointer();  // uOld
+                      	pu3  =fCur[grid].getDataPointer();   // fNew
+        	// pu3  = fn[naba][grid].getDataPointer(); // fCur[grid].getDataPointer();   // fNew
+                      	updateOptNew(u0.getBase(0),u0.getBound(0),u0.getBase(1),u0.getBound(1),
+                                 		     u0.getBase(2),u0.getBound(2),u0.getBase(3),u0.getBound(3),
+                                 		     *mask1.getDataPointer(),  
+                                 		     *puNew,
+                                 		     *pu1,*pu2,*pu3,  *pu1, *pu1,*pu1,*pu1,*pu1,*pu1,*pu1, // only first 3 arguments are used
+                                 		     ipar[0], rpar[0], ierr );
+                            }
+                        }
+                        else if( orderOfTimeAccuracy==4 )
+                        {
+              // -----------------------------
+              // ---- 4th-order IMEX-BDF -----
+              // -----------------------------
+                            OV_GET_SERIAL_ARRAY(real,gf[mOld].u[grid],uOld); // u(t-dt)
+                            int mu;
+                            mu = (mCur + 2 + numberOfGridFunctions) % numberOfGridFunctions;
+                            OV_GET_SERIAL_ARRAY(real,gf[mu].u[grid],uOld2);  // u(t-2*dt)
+                            mu = (mCur + 3 + numberOfGridFunctions) % numberOfGridFunctions;
+                            OV_GET_SERIAL_ARRAY(real,gf[mu].u[grid],uOld3); // u(t-3*dt)
+              // **fix me for variable dt**
+                            if( fabs(dt0/dtb-1.) > 1.e-12 )
+                            {
+                      	printF("IMEX-BDF4 WARNING, dt has changed but formula assume constant dt, dt/dtOld=%8.2e\n",dt0/dtb);
+                            }
+                            if( correction==0 )
+                            {
+                                printF("IMEX BDF4 updateOptNew predictor mNew=%i mCur=%i mOld=%i, "
+                                              "numberOfGridFunctions=%i numberOfTimeDerivativeLevels=%i\n",
+                                              mNew,mCur,mOld,numberOfGridFunctions,numberOfTimeDerivativeLevels);
+                                int nfeCur, nfeOld, nfeOld2, nfeOld3;
+                                int mf;
+                      	mf = (nab0 + 0 + numberOfTimeDerivativeLevels ) % numberOfTimeDerivativeLevels; 
+                                nfeCur=mf;
+                      	OV_GET_SERIAL_ARRAY(real,fn[mf][grid],feCur);  // F_E(t)
+                      	mf = (nab0 + 1 + numberOfTimeDerivativeLevels ) % numberOfTimeDerivativeLevels;
+                                nfeOld=mf;
+                      	OV_GET_SERIAL_ARRAY(real,fn[mf][grid],feOld);  // F_E(t-dt)
+                      	mf = (nab0 + 2 + numberOfTimeDerivativeLevels ) % numberOfTimeDerivativeLevels;
+                                nfeOld2=mf;
+                      	OV_GET_SERIAL_ARRAY(real,fn[mf][grid],feOld2);  // F_E(t-2*dt)
+                      	mf = (nab0 + 3 + numberOfTimeDerivativeLevels ) % numberOfTimeDerivativeLevels;
+                                nfeOld3=mf;
+                      	OV_GET_SERIAL_ARRAY(real,fn[mf][grid],feOld3);  // F_E(t-3*dt)
+                      	if( false )
+                      	{
+                        	  ::display(u0,"u0=uCur","%6.3f ");
+                        	  ::display(uOld,"uOld","%6.3f ");
+                        	  ::display(uOld2,"uOld2","%6.3f ");
+                        	  ::display(uOld3,"uOld3","%6.3f ");
+                        	  ::display(feCur,sPrintF("feCur fn[nf=%i]",nfeCur),"%6.3f ");
+                        	  ::display(feOld,sPrintF("feOld fn[nf=%i]",nfeOld),"%6.3f ");
+                        	  ::display(feOld2,sPrintF("feOld2 fn[nf=%i]",nfeOld2),"%6.3f ");
+                        	  ::display(feOld3,sPrintF("feOld3 fn[nf=%i]",nfeOld3),"%6.3f ");
+                      	}
+        	// --- PREDICTOR   (last term is already in the matrix)
+                // (25/12)*u(n+1) = 4*U(n) -3*u(n-1) + (4/3)*u(n-2) - (1/4)*u(n-3) +
+                //                  dt*( 4*fe(n) - 6*fe(n-1) + 4*fe(n-2) - fe(n-3) [+ fI(n+1)] )
+                // This assumes a constant dt: 
+                                const real c0=25./12., c1=4./c0, c2=-3./c0, c3=(4./3.)/c0, c4=-(1./4.)/c0;
+                      	const real c5=(4./c0)*dt0, c6=(-6./c0)*dt0, c7 = (4./c0)*dt0, c8=(-1./c0)*dt0;
+                      	rpar[0]=c1;
+                      	rpar[1]=c2;
+                      	rpar[2]=c3;
+                      	rpar[3]=c4;
+                      	rpar[4]=c5;
+                      	rpar[5]=c6;
+                      	rpar[6]=c7;
+                      	rpar[7]=c8;
+                      	int option=8;  // option = number of terms on the RHS
+                      	ipar[0]=option;
+                              	real *puNew, *pu1, *pu2, *pu3, *pu4, *pu5, *pu6, *pu7, *pu8;
+                                puNew=u1.getDataPointer();    // uNew
+                      	pu1  =u0.getDataPointer();    // uCur
+                      	pu2  =uOld.getDataPointer();  // u(t-dt)
+                      	pu3  =uOld2.getDataPointer(); // u(t-2*dt)
+                      	pu4  =uOld3.getDataPointer(); // u(t-3*dt)
+                      	pu5  =feCur.getDataPointer();  // fe(t)
+                      	pu6  =feOld.getDataPointer();  // fe(t-dt)
+                      	pu7  =feOld2.getDataPointer(); // fe(t-2*dt)
+                      	pu8  =feOld3.getDataPointer(); // fe(t-3*dt)
+                      	updateOptNew(u0.getBase(0),u0.getBound(0),u0.getBase(1),u0.getBound(1),
+                                 		     u0.getBase(2),u0.getBound(2),u0.getBase(3),u0.getBound(3),
+                                 		     *mask1.getDataPointer(),  
+                                 		     *puNew,
+                                 		     *pu1,*pu2,*pu3,*pu4, *pu5,*pu6,*pu7,*pu8, *pu8,*pu8, // only first 8 arguments are used
+                                 		     ipar[0], rpar[0], ierr );
+                      	if( true )
+                      	{
+                        	  printF("\n___ IMEX-BDF4 : predictor after updateOptNew:\n");
+                                    OGFunction & e = *(parameters.dbase.get<OGFunction* >("exactSolution"));
+                        	  const int & uc = parameters.dbase.get<int >("uc");
+                        	  int i1=1,i2=1,i3=0;
+                                    real x=0., y=0., z=0.;
+                                    real ue[5], uet[5];
+                        	  for( int k=0; k<5; k++ ){ ue[k]=e(x,y,x,uc,t0-k*dt0); uet[k]=e.t(x,y,x,uc,t0-k*dt0); }  // 
+                        	  real ueNew = e(x,y,x,uc,t0+dt0);
+                                    real uBDF = (12./25)*( 4.*ue[0]-3.*ue[1]+(4./3.)*ue[2]-(1./4.)*ue[3] )
+                          	    +(12./25.)*dt*( 4.*uet[0]-6.*uet[1]+4.*uet[2]-1.*uet[3]);
+                                    real *puv[4] ={pu1,pu2,pu3,pu4};
+                        	  for( int k=0; k<4; k++ )
+                        	  {
+                                        realArray &ugf = gf[mgfi[-k]].u[grid];
+                                        real uk = ugf(i1,i2,i3,uc);
+                          	    printF(" t=%9.2e u =%12.5e ue =%12.5e err=%9.2e\n",t0-k*dt0,uk,ue[k],uk-ue[k]);
+                                        real utk = fn[nfni[-k]][grid](i1,i2,i3,uc);
+                          	    printF(" t=%9.2e ut=%12.5e uet=%12.5e err=%9.2e\n",t0-k*dt0,utk,uet[k],utk-uet[k]);
+                        	  }
+                                    printF(" uNew=%12.5e ue=%12.5e err=%9.2e\n",u1(i1,i2,i3,uc),ueNew,u1(i1,i2,i3,uc)-ueNew);
+                                    printF(" uBDF=%12.5e ue=%12.5e err=%9.2e\n",uBDF,ueNew,uBDF-ueNew);
+                      	}
+                            }
+                            else
+                            {
+                                printF("IMEX BDF4 updateOptNew corrector mNew=%i mCur=%i mOld=%i...\n",mNew,mCur,mOld);
+                                int mf;
+                      	mf = (nab3 + numberOfTimeDerivativeLevels ) % numberOfTimeDerivativeLevels;       // **CHECK nab3 ***
+                      	OV_GET_SERIAL_ARRAY(real,fn[mf][grid],feNew);  // F_E(t+dt) (from predictor)
+        	// ---- CORRECTOR   (last term is already in the matrix)
+                // (25/12)*u(n+1) = 4*U(n) -3*u(n-1) + (4/3)*u(n-2) - (1/4)*u(n-3) +
+                //                  dt*( fe(predictor) [+ fI(n+1)] )
+                // This assumes a constant dt: 
+                                const real c0=25./12., c1=4./c0, c2=-3./c0, c3=(4./3.)/c0, c4=-(1./4.)/c0;
+                      	const real c5=(1./c0)*dt0;
+                      	rpar[0]=c1;
+                      	rpar[1]=c2;
+                      	rpar[2]=c3;
+                      	rpar[3]=c4;
+                      	rpar[4]=c5;
+                      	int option=5;  // option = number of terms on the RHS
+                      	ipar[0]=option;
+                              	real *puNew, *pu1, *pu2, *pu3, *pu4, *pu5, *pu6, *pu7, *pu8;
+                                puNew=u1.getDataPointer();    // uNew
+                      	pu1  =u0.getDataPointer();    // uCur
+                      	pu2  =uOld.getDataPointer();  // u(t-dt)
+                      	pu3  =uOld2.getDataPointer(); // u(t-2*dt)
+                      	pu4  =uOld3.getDataPointer(); // u(t-3*dt)
+                      	pu5  =feNew.getDataPointer();  // fe(t+dt) from predictor 
+                      	updateOptNew(u0.getBase(0),u0.getBound(0),u0.getBase(1),u0.getBound(1),
+                                 		     u0.getBase(2),u0.getBound(2),u0.getBase(3),u0.getBound(3),
+                                 		     *mask1.getDataPointer(),  
+                                 		     *puNew,
+                                 		     *pu1,*pu2,*pu3,*pu4,*pu5, *pu5,*pu5,*pu5,*pu5,*pu5, // only first 5 arguments are used
+                                 		     ipar[0], rpar[0], ierr );
+                      	if( true )
+                      	{
+                        	  printF("\n___ IMEX-BDF4 corrector: after updateOptNew:\n");
+                                    OGFunction & e = *(parameters.dbase.get<OGFunction* >("exactSolution"));
+                        	  const int & uc = parameters.dbase.get<int >("uc");
+                        	  int i1=1,i2=1,i3=0;
+                                    real x=0., y=0., z=0.;
+                                    real ue[5], uet;
+                        	  for( int k=0; k<5; k++ ){ ue[k]=e(x,y,x,uc,t0-k*dt0);  }  // 
+                                    uet = e.t(x,y,x,uc,t0+dt0);
+                        	  real ueNew = e(x,y,x,uc,t0+dt0);
+                                    real uBDF = (12./25)*( 4.*ue[0]-3.*ue[1]+(4./3.)*ue[2]-(1./4.)*ue[3] )
+                          	    +(12./25.)*dt*( uet );
+                                    real *puv[4] ={pu1,pu2,pu3,pu4};
+                        	  for( int k=0; k<4; k++ )
+                        	  {
+                                        realArray &ugf = gf[mgfi[-k]].u[grid];
+                                        real uk = ugf(i1,i2,i3,uc);
+                          	    printF(" t=%9.2e u=%12.5e ue=%12.5e err=%9.2e\n",t0-k*dt0,uk,ue[k],uk-ue[k]);
+                        	  }
+                        	  real utk = fn[nfni[1]][grid](i1,i2,i3,uc);
+                        	  printF(" t=%9.2e ut=%12.5e uet=%12.5e err=%9.2e mf=%i nfni[1]=%i\n",t0+dt0,utk,uet,utk-uet,mf,nfni[1]);
+                                    printF(" uNew=%12.5e ue=%12.5e err=%9.2e\n",u1(i1,i2,i3,uc),ueNew,u1(i1,i2,i3,uc)-ueNew);
+                                    printF(" uBDF=%12.5e ue=%12.5e err=%9.2e\n",uBDF,ueNew,uBDF-ueNew);
+                      	}
+                            }
+                        }
+                        else
+                        {
+                            printF("IMEX-BDF:ERROR: unexpected orderOfTimeAccuracy=%i\n",orderOfTimeAccuracy);
+                            OV_ABORT("ERROR unexpected orderOfTimeAccuracy");
+                        }
+                    }
+                    else
+                    {
+                        OV_ABORT("unexpected implicitMethod");
+                    }
       	}
       	else
       	{ // u1 <- u0 + am1*ub0 + am2*ua0 [ + dti*utImplicit ] (add last terms for implicit grids)
-                #ifdef USE_PPP
-                    RealArray u1;  getLocalArrayWithGhostBoundaries(gf[mNew].u[grid],u1);
-                    RealArray u0;  getLocalArrayWithGhostBoundaries(gf[mCur].u[grid],u0);
-                    RealArray ua0; getLocalArrayWithGhostBoundaries(ua[grid],ua0);
-                    RealArray ub0; getLocalArrayWithGhostBoundaries(ub[grid],ub0);
-                    RealArray utImplicit; getLocalArrayWithGhostBoundaries(uti[grid],utImplicit);
-                    const intSerialArray & mask1 = gf[mNew].cg[grid].mask().getLocalArray();
-                #else
-                    RealDistributedArray & u1 = gf[mNew].u[grid];
-                    RealDistributedArray & u0 = gf[mCur].u[grid];
-                    RealDistributedArray & ua0 = ua[grid];
-                    RealDistributedArray & ub0 = ub[grid];
-                    RealDistributedArray & utImplicit = uti[grid];
-                    const intSerialArray & mask1 = gf[mNew].cg[grid].mask(); 
-                #endif
+                  OV_GET_SERIAL_ARRAY(real,gf[mNew].u[grid],u1);
+                  OV_GET_SERIAL_ARRAY(real,gf[mCur].u[grid],u0);
+                  OV_GET_SERIAL_ARRAY(real,ua[grid],ua0);
+                  OV_GET_SERIAL_ARRAY(real,ub[grid],ub0);
+                  OV_GET_SERIAL_ARRAY(real,uti[grid],utImplicit);
+                  OV_GET_SERIAL_ARRAY(int,gf[mNew].cg[grid].mask(),mask1);
+        // #ifdef USE_PPP
+        //   RealArray u1;  getLocalArrayWithGhostBoundaries(gf[mNew].u[grid],u1);
+        //   RealArray u0;  getLocalArrayWithGhostBoundaries(gf[mCur].u[grid],u0);
+        //   RealArray ua0; getLocalArrayWithGhostBoundaries(ua[grid],ua0);
+        //   RealArray ub0; getLocalArrayWithGhostBoundaries(ub[grid],ub0);
+        //   RealArray utImplicit; getLocalArrayWithGhostBoundaries(uti[grid],utImplicit);
+        //   const intSerialArray & mask1 = gf[mNew].cg[grid].mask().getLocalArray();
+        // #else
+        //   RealDistributedArray & u1 = gf[mNew].u[grid];
+        //   RealDistributedArray & u0 = gf[mCur].u[grid];
+        //   RealDistributedArray & ua0 = ua[grid];
+        //   RealDistributedArray & ub0 = ub[grid];
+        //   RealDistributedArray & utImplicit = uti[grid];
+        //   const intSerialArray & mask1 = gf[mNew].cg[grid].mask(); 
+        // #endif
                     getIndex(gf[mNew].cg[grid].extendedIndexRange(),I1,I2,I3);
                     int n1a,n1b,n2a,n2b,n3a,n3b;
                     bool ok = ParallelUtility::getLocalArrayBounds(gf[mCur].u[grid],u0,I1,I2,I3,n1a,n1b,n2a,n2b,n3a,n3b);
@@ -1161,23 +1599,278 @@ advanceImplicitMultiStep( real & t0, real & dt0, int & numberOfSubSteps, int & i
                     int ierr=0;
                     const int maskOption=0; // assign pts where mask>0
                     int ipar[]={0,maskOption,n1a,n1b,n2a,n2b,n3a,n3b,N.getBase(),N.getBound()}; //
-                    real rpar[5]={0.,0.,0.,0.,0.};
+                    real rpar[15]={0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.};
                     real *ut1p, *ut2p, *ut3p, *ut4p;
-                    if( parameters.getGridIsImplicit(grid) )
-                        ipar[0]=3;  // add three extra "ut" terms if grid is advanced implicitly
-                    else    
-                        ipar[0]=2;  // add two extra "ut" terms
-                    rpar[0]=am1; rpar[1]=am2; rpar[2]=dti;
-                    ut1p=ub0.getDataPointer();
-                    ut2p=ua0.getDataPointer();
-                    ut3p=utImplicit.getDataPointer();
-                    ut4p=ut3p;
-                    updateOpt(u0.getBase(0),u0.getBound(0),u0.getBase(1),u0.getBound(1),
-                          	    u0.getBase(2),u0.getBound(2),u0.getBase(3),u0.getBound(3),
-                          	    *mask1.getDataPointer(),  
-                          	    *u0.getDataPointer(),*u1.getDataPointer(), 
-                          	    *ut1p, *ut2p, *ut3p, *ut4p, 
-                          	    ipar[0], rpar[0], ierr );
+                    if( implicitMethod==Parameters::crankNicolson )
+                    {
+            // --- IMEX: am2+CN ---
+                        if( parameters.getGridIsImplicit(grid) )
+                            ipar[0]=3;  // add three extra "ut" terms if grid is advanced implicitly
+                        else    
+                            ipar[0]=2;  // add two extra "ut" terms
+                        rpar[0]=am1; rpar[1]=am2; rpar[2]=dti;
+                        ut1p=fNew[grid].getDataPointer();
+                        ut2p=fCur[grid].getDataPointer();
+                        ut3p=utImplicit.getDataPointer();
+                        ut4p=ut3p;
+                        updateOpt(u0.getBase(0),u0.getBound(0),u0.getBase(1),u0.getBound(1),
+                            	      u0.getBase(2),u0.getBound(2),u0.getBase(3),u0.getBound(3),
+                            	      *mask1.getDataPointer(),  
+                            	      *u0.getDataPointer(),*u1.getDataPointer(), 
+                            	      *ut1p, *ut2p, *ut3p, *ut4p, 
+                            	      ipar[0], rpar[0], ierr );
+                    }
+                    else if( implicitMethod==Parameters::implicitExplicitMultistep )
+                    {
+            // --------------
+            // ---- IMEX ----
+            // --------------
+                        assert( parameters.getGridIsImplicit(grid) );  // fix me when some grids are explicit
+                        if( orderOfTimeAccuracy==2 )
+                        {
+              // --- 2nd-order IMEX-BDF ----
+                            OV_GET_SERIAL_ARRAY(real,gf[mOld].u[grid],uOld);
+              // **fix me for variable dt**
+                            if( fabs(dt0/dtb-1.) > 1.e-12 )
+                            {
+                      	printF("IMEX-BDF WARNING, dt has changed but formula assume constant dt, dt/dtOld=%8.2e\n",dt0/dtb);
+                            }
+                            if( correction==0 )
+                            {
+                                printF("IMEX BDF2 updateOptNew predictor mNew=%i mCur=%i mOld=%i...\n",mNew,mCur,mOld);
+        	// --- PREDICTOR   (last term is already in the matrix)
+        	//    u1 = (4/3)*uCur + (-1/3)*uOld + (4/3)*dt*utCur + (-2/3)*dt*utOld  [ + (2/3)*dt*utImplicit ]
+        	// BDF weights for variable time-step
+        	// **FINISH ME***
+        	// -- ISSUES:
+        	// -->   If dt changes then matrix coefficient will also change (ok for moving grids, sibnce matrix changes evry step)
+        	// --> for non-moving grids we could alter BDF a bit to use (2/3)*dt*f_I^{n+1} + gamma*dt f_I^n 
+                /* ---
+                      const real dtRatio = dtb/dt0;
+                      real alpha = -1./(dtRatio*(2.+dtRatio));  // -1/3 if dtRatio=1
+                      real beta = (1.+dtRatio)/(2.+dtRatio);     // 2/3 if dtRatio=1
+           //const real c1=4./3., c2=-1./3, c3=(4./3.)*dt0, c4=-(2./3.)*dt0;
+                      real c1 = 1.-alpha, c2=alpha, c3=2.*beta*dt0, c4=-beta*dt0;
+                      --- */      
+                // This assumes a constant dt: 
+                                const real c1=4./3., c2=-1./3, c3=(4./3.)*dt0, c4=-(2./3.)*dt0;
+                      	rpar[0]=c1;
+                      	rpar[1]=c2;
+                      	rpar[2]=c3;
+                      	rpar[3]=c4;
+                      	int option=4;  // 4 terms on the RHS
+                      	ipar[0]=option;
+                              	real *puNew, *pu1, *pu2, *pu3, *pu4;
+                                puNew=u1.getDataPointer();    // uNew
+                      	pu1  =u0.getDataPointer();    // uCur
+                      	pu2  =uOld.getDataPointer();  // uOld
+                      	pu3  =fNew[grid].getDataPointer();   // fCur
+                      	pu4  =fCur[grid].getDataPointer();   // fOld
+                      	updateOptNew(u0.getBase(0),u0.getBound(0),u0.getBase(1),u0.getBound(1),
+                                 		     u0.getBase(2),u0.getBound(2),u0.getBase(3),u0.getBound(3),
+                                 		     *mask1.getDataPointer(),  
+                                 		     *puNew,
+                                 		     *pu1,*pu2,*pu3,*pu4, *pu2,*pu2,*pu2,*pu2,*pu2,*pu2, // only first 4 arguments are used
+                                 		     ipar[0], rpar[0], ierr );
+                            }
+                            else
+                            {
+                                printF("IMEX BDF2 updateOptNew corrector mNew=%i mCur=%i mOld=%i...\n",mNew,mCur,mOld);
+        	// ---- CORRECTOR   (last term is already in the matrix)
+                // u1 = (4/3)*uCur + (-1/3)*uOld + (2/3)*dt*utNew   [ + (2/3)*dt*utImplicit ] 
+                // This assumes a constant dt: 
+                                const real c1=4./3., c2=-1./3, c3=(2./3.)*dt0;  
+                      	rpar[0]=c1;
+                      	rpar[1]=c2;
+                      	rpar[2]=c3;
+                      	int option=3;  // 3 terms on the RHS
+                      	ipar[0]=option;
+                      	real *puNew, *pu1, *pu2, *pu3, *pu4;
+                                puNew=u1.getDataPointer();    // uNew
+                      	pu1  =u0.getDataPointer();    // uCur
+                      	pu2  =uOld.getDataPointer();  // uOld
+                      	pu3  =fNew[grid].getDataPointer();   // fNew
+        	// pu3  = fn[naba][grid].getDataPointer(); // fNew[grid].getDataPointer();   // fNew
+                      	updateOptNew(u0.getBase(0),u0.getBound(0),u0.getBase(1),u0.getBound(1),
+                                 		     u0.getBase(2),u0.getBound(2),u0.getBase(3),u0.getBound(3),
+                                 		     *mask1.getDataPointer(),  
+                                 		     *puNew,
+                                 		     *pu1,*pu2,*pu3,  *pu1, *pu1,*pu1,*pu1,*pu1,*pu1,*pu1, // only first 3 arguments are used
+                                 		     ipar[0], rpar[0], ierr );
+                            }
+                        }
+                        else if( orderOfTimeAccuracy==4 )
+                        {
+              // -----------------------------
+              // ---- 4th-order IMEX-BDF -----
+              // -----------------------------
+                            OV_GET_SERIAL_ARRAY(real,gf[mOld].u[grid],uOld); // u(t-dt)
+                            int mu;
+                            mu = (mCur + 2 + numberOfGridFunctions) % numberOfGridFunctions;
+                            OV_GET_SERIAL_ARRAY(real,gf[mu].u[grid],uOld2);  // u(t-2*dt)
+                            mu = (mCur + 3 + numberOfGridFunctions) % numberOfGridFunctions;
+                            OV_GET_SERIAL_ARRAY(real,gf[mu].u[grid],uOld3); // u(t-3*dt)
+              // **fix me for variable dt**
+                            if( fabs(dt0/dtb-1.) > 1.e-12 )
+                            {
+                      	printF("IMEX-BDF4 WARNING, dt has changed but formula assume constant dt, dt/dtOld=%8.2e\n",dt0/dtb);
+                            }
+                            if( correction==0 )
+                            {
+                                printF("IMEX BDF4 updateOptNew predictor mNew=%i mCur=%i mOld=%i, "
+                                              "numberOfGridFunctions=%i numberOfTimeDerivativeLevels=%i\n",
+                                              mNew,mCur,mOld,numberOfGridFunctions,numberOfTimeDerivativeLevels);
+                                int nfeCur, nfeOld, nfeOld2, nfeOld3;
+                                int mf;
+                      	mf = (nab0 + 0 + numberOfTimeDerivativeLevels ) % numberOfTimeDerivativeLevels; 
+                                nfeCur=mf;
+                      	OV_GET_SERIAL_ARRAY(real,fn[mf][grid],feCur);  // F_E(t)
+                      	mf = (nab0 + 1 + numberOfTimeDerivativeLevels ) % numberOfTimeDerivativeLevels;
+                                nfeOld=mf;
+                      	OV_GET_SERIAL_ARRAY(real,fn[mf][grid],feOld);  // F_E(t-dt)
+                      	mf = (nab0 + 2 + numberOfTimeDerivativeLevels ) % numberOfTimeDerivativeLevels;
+                                nfeOld2=mf;
+                      	OV_GET_SERIAL_ARRAY(real,fn[mf][grid],feOld2);  // F_E(t-2*dt)
+                      	mf = (nab0 + 3 + numberOfTimeDerivativeLevels ) % numberOfTimeDerivativeLevels;
+                                nfeOld3=mf;
+                      	OV_GET_SERIAL_ARRAY(real,fn[mf][grid],feOld3);  // F_E(t-3*dt)
+                      	if( false )
+                      	{
+                        	  ::display(u0,"u0=uCur","%6.3f ");
+                        	  ::display(uOld,"uOld","%6.3f ");
+                        	  ::display(uOld2,"uOld2","%6.3f ");
+                        	  ::display(uOld3,"uOld3","%6.3f ");
+                        	  ::display(feCur,sPrintF("feCur fn[nf=%i]",nfeCur),"%6.3f ");
+                        	  ::display(feOld,sPrintF("feOld fn[nf=%i]",nfeOld),"%6.3f ");
+                        	  ::display(feOld2,sPrintF("feOld2 fn[nf=%i]",nfeOld2),"%6.3f ");
+                        	  ::display(feOld3,sPrintF("feOld3 fn[nf=%i]",nfeOld3),"%6.3f ");
+                      	}
+        	// --- PREDICTOR   (last term is already in the matrix)
+                // (25/12)*u(n+1) = 4*U(n) -3*u(n-1) + (4/3)*u(n-2) - (1/4)*u(n-3) +
+                //                  dt*( 4*fe(n) - 6*fe(n-1) + 4*fe(n-2) - fe(n-3) [+ fI(n+1)] )
+                // This assumes a constant dt: 
+                                const real c0=25./12., c1=4./c0, c2=-3./c0, c3=(4./3.)/c0, c4=-(1./4.)/c0;
+                      	const real c5=(4./c0)*dt0, c6=(-6./c0)*dt0, c7 = (4./c0)*dt0, c8=(-1./c0)*dt0;
+                      	rpar[0]=c1;
+                      	rpar[1]=c2;
+                      	rpar[2]=c3;
+                      	rpar[3]=c4;
+                      	rpar[4]=c5;
+                      	rpar[5]=c6;
+                      	rpar[6]=c7;
+                      	rpar[7]=c8;
+                      	int option=8;  // option = number of terms on the RHS
+                      	ipar[0]=option;
+                              	real *puNew, *pu1, *pu2, *pu3, *pu4, *pu5, *pu6, *pu7, *pu8;
+                                puNew=u1.getDataPointer();    // uNew
+                      	pu1  =u0.getDataPointer();    // uCur
+                      	pu2  =uOld.getDataPointer();  // u(t-dt)
+                      	pu3  =uOld2.getDataPointer(); // u(t-2*dt)
+                      	pu4  =uOld3.getDataPointer(); // u(t-3*dt)
+                      	pu5  =feCur.getDataPointer();  // fe(t)
+                      	pu6  =feOld.getDataPointer();  // fe(t-dt)
+                      	pu7  =feOld2.getDataPointer(); // fe(t-2*dt)
+                      	pu8  =feOld3.getDataPointer(); // fe(t-3*dt)
+                      	updateOptNew(u0.getBase(0),u0.getBound(0),u0.getBase(1),u0.getBound(1),
+                                 		     u0.getBase(2),u0.getBound(2),u0.getBase(3),u0.getBound(3),
+                                 		     *mask1.getDataPointer(),  
+                                 		     *puNew,
+                                 		     *pu1,*pu2,*pu3,*pu4, *pu5,*pu6,*pu7,*pu8, *pu8,*pu8, // only first 8 arguments are used
+                                 		     ipar[0], rpar[0], ierr );
+                      	if( true )
+                      	{
+                        	  printF("\n___ IMEX-BDF4 : predictor after updateOptNew:\n");
+                                    OGFunction & e = *(parameters.dbase.get<OGFunction* >("exactSolution"));
+                        	  const int & uc = parameters.dbase.get<int >("uc");
+                        	  int i1=1,i2=1,i3=0;
+                                    real x=0., y=0., z=0.;
+                                    real ue[5], uet[5];
+                        	  for( int k=0; k<5; k++ ){ ue[k]=e(x,y,x,uc,t0-k*dt0); uet[k]=e.t(x,y,x,uc,t0-k*dt0); }  // 
+                        	  real ueNew = e(x,y,x,uc,t0+dt0);
+                                    real uBDF = (12./25)*( 4.*ue[0]-3.*ue[1]+(4./3.)*ue[2]-(1./4.)*ue[3] )
+                          	    +(12./25.)*dt*( 4.*uet[0]-6.*uet[1]+4.*uet[2]-1.*uet[3]);
+                                    real *puv[4] ={pu1,pu2,pu3,pu4};
+                        	  for( int k=0; k<4; k++ )
+                        	  {
+                                        realArray &ugf = gf[mgfi[-k]].u[grid];
+                                        real uk = ugf(i1,i2,i3,uc);
+                          	    printF(" t=%9.2e u =%12.5e ue =%12.5e err=%9.2e\n",t0-k*dt0,uk,ue[k],uk-ue[k]);
+                                        real utk = fn[nfni[-k]][grid](i1,i2,i3,uc);
+                          	    printF(" t=%9.2e ut=%12.5e uet=%12.5e err=%9.2e\n",t0-k*dt0,utk,uet[k],utk-uet[k]);
+                        	  }
+                                    printF(" uNew=%12.5e ue=%12.5e err=%9.2e\n",u1(i1,i2,i3,uc),ueNew,u1(i1,i2,i3,uc)-ueNew);
+                                    printF(" uBDF=%12.5e ue=%12.5e err=%9.2e\n",uBDF,ueNew,uBDF-ueNew);
+                      	}
+                            }
+                            else
+                            {
+                                printF("IMEX BDF4 updateOptNew corrector mNew=%i mCur=%i mOld=%i...\n",mNew,mCur,mOld);
+                                int mf;
+                      	mf = (nab3 + numberOfTimeDerivativeLevels ) % numberOfTimeDerivativeLevels;       // **CHECK nab3 ***
+                      	OV_GET_SERIAL_ARRAY(real,fn[mf][grid],feNew);  // F_E(t+dt) (from predictor)
+        	// ---- CORRECTOR   (last term is already in the matrix)
+                // (25/12)*u(n+1) = 4*U(n) -3*u(n-1) + (4/3)*u(n-2) - (1/4)*u(n-3) +
+                //                  dt*( fe(predictor) [+ fI(n+1)] )
+                // This assumes a constant dt: 
+                                const real c0=25./12., c1=4./c0, c2=-3./c0, c3=(4./3.)/c0, c4=-(1./4.)/c0;
+                      	const real c5=(1./c0)*dt0;
+                      	rpar[0]=c1;
+                      	rpar[1]=c2;
+                      	rpar[2]=c3;
+                      	rpar[3]=c4;
+                      	rpar[4]=c5;
+                      	int option=5;  // option = number of terms on the RHS
+                      	ipar[0]=option;
+                              	real *puNew, *pu1, *pu2, *pu3, *pu4, *pu5, *pu6, *pu7, *pu8;
+                                puNew=u1.getDataPointer();    // uNew
+                      	pu1  =u0.getDataPointer();    // uCur
+                      	pu2  =uOld.getDataPointer();  // u(t-dt)
+                      	pu3  =uOld2.getDataPointer(); // u(t-2*dt)
+                      	pu4  =uOld3.getDataPointer(); // u(t-3*dt)
+                      	pu5  =feNew.getDataPointer();  // fe(t+dt) from predictor 
+                      	updateOptNew(u0.getBase(0),u0.getBound(0),u0.getBase(1),u0.getBound(1),
+                                 		     u0.getBase(2),u0.getBound(2),u0.getBase(3),u0.getBound(3),
+                                 		     *mask1.getDataPointer(),  
+                                 		     *puNew,
+                                 		     *pu1,*pu2,*pu3,*pu4,*pu5, *pu5,*pu5,*pu5,*pu5,*pu5, // only first 5 arguments are used
+                                 		     ipar[0], rpar[0], ierr );
+                      	if( true )
+                      	{
+                        	  printF("\n___ IMEX-BDF4 corrector: after updateOptNew:\n");
+                                    OGFunction & e = *(parameters.dbase.get<OGFunction* >("exactSolution"));
+                        	  const int & uc = parameters.dbase.get<int >("uc");
+                        	  int i1=1,i2=1,i3=0;
+                                    real x=0., y=0., z=0.;
+                                    real ue[5], uet;
+                        	  for( int k=0; k<5; k++ ){ ue[k]=e(x,y,x,uc,t0-k*dt0);  }  // 
+                                    uet = e.t(x,y,x,uc,t0+dt0);
+                        	  real ueNew = e(x,y,x,uc,t0+dt0);
+                                    real uBDF = (12./25)*( 4.*ue[0]-3.*ue[1]+(4./3.)*ue[2]-(1./4.)*ue[3] )
+                          	    +(12./25.)*dt*( uet );
+                                    real *puv[4] ={pu1,pu2,pu3,pu4};
+                        	  for( int k=0; k<4; k++ )
+                        	  {
+                                        realArray &ugf = gf[mgfi[-k]].u[grid];
+                                        real uk = ugf(i1,i2,i3,uc);
+                          	    printF(" t=%9.2e u=%12.5e ue=%12.5e err=%9.2e\n",t0-k*dt0,uk,ue[k],uk-ue[k]);
+                        	  }
+                        	  real utk = fn[nfni[1]][grid](i1,i2,i3,uc);
+                        	  printF(" t=%9.2e ut=%12.5e uet=%12.5e err=%9.2e mf=%i nfni[1]=%i\n",t0+dt0,utk,uet,utk-uet,mf,nfni[1]);
+                                    printF(" uNew=%12.5e ue=%12.5e err=%9.2e\n",u1(i1,i2,i3,uc),ueNew,u1(i1,i2,i3,uc)-ueNew);
+                                    printF(" uBDF=%12.5e ue=%12.5e err=%9.2e\n",uBDF,ueNew,uBDF-ueNew);
+                      	}
+                            }
+                        }
+                        else
+                        {
+                            printF("IMEX-BDF:ERROR: unexpected orderOfTimeAccuracy=%i\n",orderOfTimeAccuracy);
+                            OV_ABORT("ERROR unexpected orderOfTimeAccuracy");
+                        }
+                    }
+                    else
+                    {
+                        OV_ABORT("unexpected implicitMethod");
+                    }
       	}
             }
 
@@ -1254,7 +1947,7 @@ advanceImplicitMultiStep( real & t0, real & dt0, int & numberOfSubSteps, int & i
             {
         // *wdh* for fourth-order we may need to extrapolate p in time at ghost points
       	const int orderOfExtrapolation = 3;
-      	boundaryConditionPredictor( predictPressure,adamsData,orderOfExtrapolation, mNew,mCur,mOld,&ua,&ub );
+      	boundaryConditionPredictor( predictPressure,adamsData,orderOfExtrapolation, mNew,mCur,mOld,&fCur,&fOld );
             }
             
             if( debug() & 64 ) 
@@ -1383,29 +2076,64 @@ advanceImplicitMultiStep( real & t0, real & dt0, int & numberOfSubSteps, int & i
             
         } // end corrections
         
-    // permute (mab0,mab1,mab2) 
-        mab0 = (mab0-1 + numberOfGridFunctions) % numberOfGridFunctions;
-        mab1 = (mab1-1 + numberOfGridFunctions) % numberOfGridFunctions;
-    // mab2 is always 1 "ahead" of mab0 
-        mab2 = (mab0-1 + numberOfGridFunctions) % numberOfGridFunctions;
-    // XXX     ^ should that be a 2 ?? kkc 060301  -- this is ok *wdh* 071121
-        mNew=mab2;
-        mCur=mab0;
-        mOld=mab1;
-
-        if( parameters.dbase.get<int >("orderOfPredictorCorrector")==2 )
+    // -----------------------------------------------
+    // --- Shift cyclic indices for next sub-step ----
+    // -----------------------------------------------
+    // Shift cyclic indices for next sub-step
+        nfni.shift();
+        mgfi.shift();
+        
+        if( true )
         {
-            nab0 = (nab0+1) % 2;
-            nab1 = (nab1+1) % 2;
+      // *new way Feb 9, 2017 
+            mNew=mgfi[1];
+            mCur=mgfi[0];
+            mOld=mgfi[-1];
+            
+      // mab2=mNew;
+            mab0=mCur;
+      // mab1=mOld;
+            
+            nab0=nfni[ 0];
+            nab1=nfni[-1];
+            nab2=nfni[-2];
+            nab3=nfni[-3];
         }
         else
         {
-            nab0 = (nab0-1 +4) % 4;
-            nab1 = (nab1-1 +4) % 4;
-            nab2 = (nab2-1 +4) % 4;
-            nab3 = (nab3-1 +4) % 4;
-        }
+/* ----
+      // *old way*
 
+      // permute (mab0,mab1,mab2) 
+            mab0 = (mab0-1 + numberOfGridFunctions) % numberOfGridFunctions;
+            mab1 = (mab1-1 + numberOfGridFunctions) % numberOfGridFunctions;
+
+      // mab2 is always 1 "ahead" of mab0 
+            mab2 = (mab0-1 + numberOfGridFunctions) % numberOfGridFunctions;
+
+      // mab2=mgfi[1];
+
+      // XXX     ^ should that be a 2 ?? kkc 060301  -- this is ok *wdh* 071121
+            mNew=mab2;
+            mCur=mab0;
+            mOld=mab1;
+
+      // *** FIX ME ***
+            if( parameters.dbase.get<int >("orderOfPredictorCorrector")==2 )
+            {
+      	nab0 = (nab0+1) % 2;
+      	nab1 = (nab1+1) % 2;
+            }
+            else
+            {
+      	nab0 = (nab0-1 +4) % 4;
+      	nab1 = (nab1-1 +4) % 4;
+      	nab2 = (nab2-1 +4) % 4;
+      	nab3 = (nab3-1 +4) % 4;
+            }
+        --- */
+        }
+        
         ndt0=(ndt0-1 +5)%5;  // for dtp[]
 //      // switch mab0 <-> mab1
 //      mab0 = (mab0+1) % 2;

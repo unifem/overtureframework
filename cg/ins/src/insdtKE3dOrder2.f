@@ -2,15 +2,15 @@
         subroutine insdtKE3dOrder2(nd,n1a,n1b,n2a,n2b,n3a,n3b,nd1a,
      & nd1b,nd2a,nd2b,nd3a,nd3b,nd4a,nd4b,mask,xy,rsxy,radiusInverse, 
      &  u,uu, ut,uti,gv,dw,  bc, ipar, rpar, ierr )
-c======================================================================
-c   Compute du/dt for the incompressible NS on rectangular grids
-c     OPTIMIZED version for rectangular grids.
-c nd : number of space dimensions
-c
-c gv : gridVelocity for moving grids
-c uu : for moving grids uu is a workspace to hold u-gv, otherwise uu==u
-c dw : distance to the wall for some turbulence models
-c======================================================================
+       !======================================================================
+       !   Compute du/dt for the incompressible NS on rectangular grids
+       !     OPTIMIZED version for rectangular grids.
+       ! nd : number of space dimensions
+       !
+       ! gv : gridVelocity for moving grids
+       ! uu : for moving grids uu is a workspace to hold u-gv, otherwise uu==u
+       ! dw : distance to the wall for some turbulence models
+       !======================================================================
         implicit none
         integer nd, n1a,n1b,n2a,n2b,n3a,n3b,nd1a,nd1b,nd2a,nd2b,nd3a,
      & nd3b,nd4a,nd4b
@@ -39,6 +39,8 @@ c======================================================================
         real ad21,ad22,ad41,ad42,cd22,cd42,adc
         real ad21n,ad22n,ad41n,ad42n,cd22n,cd42n
         real yy,ri
+        integer materialFormat
+        real t
         integer gridType
         integer rectangular,curvilinear
         parameter( rectangular=0, curvilinear=1 )
@@ -51,6 +53,12 @@ c======================================================================
      & viscoPlasticModel,twoPhaseFlowModel
         parameter( standardModel=0,BoussinesqModel=1,
      & viscoPlasticModel=2,twoPhaseFlowModel=3 )
+        integer upwindOrder,debug
+        integer advectionOption, centeredAdvection,upwindAdvection,
+     & bwenoAdvection
+        parameter( centeredAdvection=0, upwindAdvection=1, 
+     & bwenoAdvection=2 )
+        real au,agu(0:5,0:5) ! for holdings upwind approximations to (a.grad)u
         integer computeAllTerms,doNotComputeImplicitTerms,
      & computeImplicitTermsSeparately,computeAllWithWeightedImplicit
         parameter( computeAllTerms=0,doNotComputeImplicitTerms=1,
@@ -288,7 +296,7 @@ c======================================================================
         tx(i1,i2,i3)=rsxy(i1,i2,i3,2,0)
         ty(i1,i2,i3)=rsxy(i1,i2,i3,2,1)
         tz(i1,i2,i3)=rsxy(i1,i2,i3,2,2)
-c     The next macro call will define the difference approximation statement functions
+       !     The next macro call will define the difference approximation statement functions
         d12(kd) = 1./(2.*dr(kd))
         d22(kd) = 1./(dr(kd)**2)
         ur2(i1,i2,i3,kd)=(u(i1+1,i2,i3,kd)-u(i1-1,i2,i3,kd))*d12(0)
@@ -699,23 +707,23 @@ c===============================================================================
      & i2  ,i3+1,kd)+u(i1,i2  ,i3-1,kd))   +2.*(u(i1,i2+1,i3+1,kd)+u(
      & i1,i2-1,i3+1,kd)+u(i1,i2+1,i3-1,kd)+u(i1,i2-1,i3-1,kd)) )/(dx(
      & 1)**2*dx(2)**2)
-c    --- For 2nd order 2D artificial diffusion ---
+       !    --- For 2nd order 2D artificial diffusion ---
         delta22(c)=    (u(i1+1,i2,i3,c)-4.*u(i1,i2,i3,c)+u(i1-1,i2,i3,
      & c)  +u(i1,i2+1,i3,c)                 +u(i1,i2-1,i3,c))
-c    --- For 2nd order 3D artificial diffusion ---
+       !    --- For 2nd order 3D artificial diffusion ---
         delta23(c)= (u(i1+1,i2,i3,c)-6.*u(i1,i2,i3,c)+u(i1-1,i2,i3,c)  
      &  +u(i1,i2+1,i3,c)                   +u(i1,i2-1,i3,c)  +u(i1,i2,
      & i3+1,c)                   +u(i1,i2,i3-1,c))
-c     ---For fourth-order artificial diffusion in 2D
+       !     ---For fourth-order artificial diffusion in 2D
         delta42(c)= (   -u(i1+2,i2,i3,c)-u(i1-2,i2,i3,c)   -u(i1,i2+2,
      & i3,c)-u(i1,i2-2,i3,c)   +4.*(u(i1+1,i2,i3,c)+u(i1-1,i2,i3,c)   
      & +u(i1,i2+1,i3,c)+u(i1,i2-1,i3,c))  -12.*u(i1,i2,i3,c) )
-c     ---For fourth-order artificial diffusion in 3D
+       !     ---For fourth-order artificial diffusion in 3D
         delta43(c)= (   -u(i1+2,i2,i3,c)-u(i1-2,i2,i3,c)  -u(i1,i2+2,
      & i3,c)-u(i1,i2-2,i3,c)  -u(i1,i2,i3+2,c)-u(i1,i2,i3-2,c)  +4.*(
      & u(i1+1,i2,i3,c)+u(i1-1,i2,i3,c)  +u(i1,i2+1,i3,c)+u(i1,i2-1,i3,
      & c)  +u(i1,i2,i3+1,c)+u(i1,i2,i3-1,c)) -18.*u(i1,i2,i3,c) )
-c     --- end statement functions
+       !     --- end statement functions
         ierr=0
         ! write(*,'("Inside insdt: gridType=",i2)') gridType
         pc                 =ipar(0)
@@ -741,6 +749,10 @@ c     --- end statement functions
         pdeModel           =ipar(20)
         vsc                =ipar(21)
         rc                 =ipar(22)
+        debug              =ipar(23)
+        materialFormat     =ipar(24)
+        advectionOption    =ipar(25)  ! *new* 2017/01/27
+        upwindOrder        =ipar(26)
         dr(0)             =rpar(0)
         dr(1)             =rpar(1)
         dr(2)             =rpar(2)
@@ -758,7 +770,14 @@ c     --- end statement functions
         ad22n             =rpar(14)
         ad41n             =rpar(15)
         ad42n             =rpar(16)
-        ! nuVP              =rpar(24)  ! for visco-plastic
+       !       gravity(0)        =rpar(18)
+       !      gravity(1)        =rpar(19)
+       !      gravity(2)        =rpar(20)
+       !      thermalExpansivity=rpar(21)
+       !      adcBoussinesq     =rpar(22) ! coefficient of artificial diffusion for Boussinesq T equation 
+       !      kThermal          =rpar(23)
+        t                 =rpar(24)
+       ! nuVP              =rpar(24)  ! for visco-plastic
         ! etaVP             =rpar(25)
         ! yieldStressVP     =rpar(26)
         ! exponentVP        =rpar(27)
@@ -779,15 +798,15 @@ c     --- end statement functions
           write(*,'("insdt:ERROR uc,vc,ws=",3i6)') uc,vc,wc
           stop 4
         end if
-c      write(*,'("insdt: turbulenceModel=",2i6)') turbulenceModel
-c      write(*,'("insdt: nd,uc,vc,wc,kc=",2i6)') nd,uc,vc,wc,kc
+       !      write(*,'("insdt: turbulenceModel=",2i6)') turbulenceModel
+       !      write(*,'("insdt: nd,uc,vc,wc,kc=",2i6)') nd,uc,vc,wc,kc
         if( turbulenceModel.eq.kEpsilon .and. (kc.lt.uc+nd .or. 
      & kc.gt.1000) )then
           write(*,'("insdt:ERROR in kc: nd,uc,vc,wc,kc=",2i6)') nd,uc,
      & vc,wc,kc
           stop 5
         end if
-c ** these are needed by self-adjoint terms **fix**
+       ! ** these are needed by self-adjoint terms **fix**
         dxi=1./dx(0)
         dyi=1./dx(1)
         dzi=1./dx(2)
@@ -813,124 +832,195 @@ c ** these are needed by self-adjoint terms **fix**
         adc=adcPassiveScalar ! coefficient of linear artificial diffusion
         cd22=ad22/(nd**2)
         cd42=ad42/(nd**2)
-c     *********************************      
-c     ********MAIN LOOPS***************      
-c     *********************************      
+       !     *********************************      
+       !     ********MAIN LOOPS***************      
+       !     *********************************      
         if( gridType.eq.rectangular )then
          if( isAxisymmetric.eq.0 )then
           if( gridIsImplicit.eq.0 )then
-           ! explicit
-           if( useWhereMask.ne.0 )then
-            do i3=n3a,n3b
-            do i2=n2a,n2b
-            do i1=n1a,n1b
-             if( mask(i1,i2,i3).gt.0 )then
-               ! INS with k-epsilon turbulence model
-                u0x=ux23r(i1,i2,i3,uc)
-                u0y=uy23r(i1,i2,i3,uc)
-                v0x=ux23r(i1,i2,i3,vc)
-                v0y=uy23r(i1,i2,i3,vc)
-                u0z=uz23r(i1,i2,i3,uc)
-                v0z=uz23r(i1,i2,i3,vc)
-                w0x=ux23r(i1,i2,i3,wc)
-                w0y=uy23r(i1,i2,i3,wc)
-                w0z=uz23r(i1,i2,i3,wc)
-                k0=u(i1,i2,i3,kc)
-                e0=u(i1,i2,i3,ec)
-                nuT = cMu*k0**2/e0
-                nuP=nu+nuT
-                k0x=ux23r(i1,i2,i3,kc)
-                e0x=ux23r(i1,i2,i3,ec)
-                nuTx=cMu*k0*( 2.*k0x*e0 - k0*e0x )/e0**2
-                k0y=uy23r(i1,i2,i3,kc)
-                e0y=uy23r(i1,i2,i3,ec)
-                nuTy=cMu*k0*( 2.*k0y*e0 - k0*e0y )/e0**2
-                prod = nuT*( 2.*(u0x**2+v0y**2+w0z**2) +(v0x+u0y)**2 +(
-     & w0y+v0z)**2 +(u0z+w0x)**2  )
-                k0z=uz23r(i1,i2,i3,kc)
-                 e0z=uz23r(i1,i2,i3,ec)
-                 nuTz=cMu*k0*( 2.*k0z*e0 - k0*e0z )/e0**2
-                ut(i1,i2,i3,uc)= -uu(i1,i2,i3,uc)*u0x-uu(i1,i2,i3,vc)*
-     & u0y-uu(i1,i2,i3,wc)*u0z-ux23r(i1,i2,i3,pc)+nuP*ulaplacian23r(
-     & i1,i2,i3,uc)+nuTx*(2.*u0x    ) +nuTy*(u0y+v0x) +nuTz*(u0z+w0x)
-                ut(i1,i2,i3,vc)= -uu(i1,i2,i3,uc)*v0x-uu(i1,i2,i3,vc)*
-     & v0y-uu(i1,i2,i3,wc)*v0z-uy23r(i1,i2,i3,pc)+nuP*ulaplacian23r(
-     & i1,i2,i3,vc)+nuTx*(u0y+v0x) +nuTy*(2.*v0y) +nuTz*(v0z+w0y)
-                ut(i1,i2,i3,wc)= -uu(i1,i2,i3,uc)*w0x-uu(i1,i2,i3,vc)*
-     & w0y-uu(i1,i2,i3,wc)*w0z-uz23r(i1,i2,i3,pc)+nuP*ulaplacian23r(
-     & i1,i2,i3,wc)+nuTx*(u0z+w0x) +nuTy*(v0z+w0y) +nuTz*(2.*w0z)
-                ut(i1,i2,i3,kc)= -uu(i1,i2,i3,uc)*k0x-uu(i1,i2,i3,vc)*
-     & k0y-uu(i1,i2,i3,wc)*k0z+prod -u(i1,i2,i3,ec)+(nu+sigmaKI*nuT)*
-     & ulaplacian23r(i1,i2,i3,kc)+sigmaKI*(nuTx*k0x+nuTy*k0y+nuTz*k0z)
-                ut(i1,i2,i3,ec)= -uu(i1,i2,i3,uc)*e0x-uu(i1,i2,i3,vc)*
-     & e0y-uu(i1,i2,i3,wc)*e0z+cEps1*(u(i1,i2,i3,ec)/u(i1,i2,i3,kc))*
-     & prod-cEps2*(u(i1,i2,i3,ec)**2/u(i1,i2,i3,kc))+(nu+sigmaEpsI*
-     & nuT)*ulaplacian23r(i1,i2,i3,ec)+sigmaEpsI*(nuTx*e0x+nuTy*e0y+
-     & nuTz*e0z)
-              ! end NO eq NO: 
-             end if
-            end do
-            end do
-            end do
-           else
-            do i3=n3a,n3b
-            do i2=n2a,n2b
-            do i1=n1a,n1b
-              ! INS with k-epsilon turbulence model
-               u0x=ux23r(i1,i2,i3,uc)
-               u0y=uy23r(i1,i2,i3,uc)
-               v0x=ux23r(i1,i2,i3,vc)
-               v0y=uy23r(i1,i2,i3,vc)
-               u0z=uz23r(i1,i2,i3,uc)
-               v0z=uz23r(i1,i2,i3,vc)
-               w0x=ux23r(i1,i2,i3,wc)
-               w0y=uy23r(i1,i2,i3,wc)
-               w0z=uz23r(i1,i2,i3,wc)
-               k0=u(i1,i2,i3,kc)
-               e0=u(i1,i2,i3,ec)
-               nuT = cMu*k0**2/e0
-               nuP=nu+nuT
-               k0x=ux23r(i1,i2,i3,kc)
-               e0x=ux23r(i1,i2,i3,ec)
-               nuTx=cMu*k0*( 2.*k0x*e0 - k0*e0x )/e0**2
-               k0y=uy23r(i1,i2,i3,kc)
-               e0y=uy23r(i1,i2,i3,ec)
-               nuTy=cMu*k0*( 2.*k0y*e0 - k0*e0y )/e0**2
-               prod = nuT*( 2.*(u0x**2+v0y**2+w0z**2) +(v0x+u0y)**2 +(
-     & w0y+v0z)**2 +(u0z+w0x)**2  )
-               k0z=uz23r(i1,i2,i3,kc)
-                e0z=uz23r(i1,i2,i3,ec)
-                nuTz=cMu*k0*( 2.*k0z*e0 - k0*e0z )/e0**2
-               ut(i1,i2,i3,uc)= -uu(i1,i2,i3,uc)*u0x-uu(i1,i2,i3,vc)*
-     & u0y-uu(i1,i2,i3,wc)*u0z-ux23r(i1,i2,i3,pc)+nuP*ulaplacian23r(
-     & i1,i2,i3,uc)+nuTx*(2.*u0x    ) +nuTy*(u0y+v0x) +nuTz*(u0z+w0x)
-               ut(i1,i2,i3,vc)= -uu(i1,i2,i3,uc)*v0x-uu(i1,i2,i3,vc)*
-     & v0y-uu(i1,i2,i3,wc)*v0z-uy23r(i1,i2,i3,pc)+nuP*ulaplacian23r(
-     & i1,i2,i3,vc)+nuTx*(u0y+v0x) +nuTy*(2.*v0y) +nuTz*(v0z+w0y)
-               ut(i1,i2,i3,wc)= -uu(i1,i2,i3,uc)*w0x-uu(i1,i2,i3,vc)*
-     & w0y-uu(i1,i2,i3,wc)*w0z-uz23r(i1,i2,i3,pc)+nuP*ulaplacian23r(
-     & i1,i2,i3,wc)+nuTx*(u0z+w0x) +nuTy*(v0z+w0y) +nuTz*(2.*w0z)
-               ut(i1,i2,i3,kc)= -uu(i1,i2,i3,uc)*k0x-uu(i1,i2,i3,vc)*
-     & k0y-uu(i1,i2,i3,wc)*k0z+prod -u(i1,i2,i3,ec)+(nu+sigmaKI*nuT)*
-     & ulaplacian23r(i1,i2,i3,kc)+sigmaKI*(nuTx*k0x+nuTy*k0y+nuTz*k0z)
-               ut(i1,i2,i3,ec)= -uu(i1,i2,i3,uc)*e0x-uu(i1,i2,i3,vc)*
-     & e0y-uu(i1,i2,i3,wc)*e0z+cEps1*(u(i1,i2,i3,ec)/u(i1,i2,i3,kc))*
-     & prod-cEps2*(u(i1,i2,i3,ec)**2/u(i1,i2,i3,kc))+(nu+sigmaEpsI*
-     & nuT)*ulaplacian23r(i1,i2,i3,ec)+sigmaEpsI*(nuTx*e0x+nuTy*e0y+
-     & nuTz*e0z)
-             ! end NO eq NO: 
-            end do
-            end do
-            end do
-           end if
-          else ! gridIsImplicit
-           ! ***** implicit *******
-           if( implicitOption .eq.computeImplicitTermsSeparately )then
+           ! --- explicit time-stepping ---
+           if( advectionOption.eq.centeredAdvection )then
              if( useWhereMask.ne.0 )then
               do i3=n3a,n3b
               do i2=n2a,n2b
               do i1=n1a,n1b
                if( mask(i1,i2,i3).gt.0 )then
+                 ! INS with k-epsilon turbulence model
+                  u0x=ux23r(i1,i2,i3,uc)
+                  u0y=uy23r(i1,i2,i3,uc)
+                  v0x=ux23r(i1,i2,i3,vc)
+                  v0y=uy23r(i1,i2,i3,vc)
+                  u0z=uz23r(i1,i2,i3,uc)
+                  v0z=uz23r(i1,i2,i3,vc)
+                  w0x=ux23r(i1,i2,i3,wc)
+                  w0y=uy23r(i1,i2,i3,wc)
+                  w0z=uz23r(i1,i2,i3,wc)
+                  k0=u(i1,i2,i3,kc)
+                  e0=u(i1,i2,i3,ec)
+                  nuT = cMu*k0**2/e0
+                  nuP=nu+nuT
+                  k0x=ux23r(i1,i2,i3,kc)
+                  e0x=ux23r(i1,i2,i3,ec)
+                  nuTx=cMu*k0*( 2.*k0x*e0 - k0*e0x )/e0**2
+                  k0y=uy23r(i1,i2,i3,kc)
+                  e0y=uy23r(i1,i2,i3,ec)
+                  nuTy=cMu*k0*( 2.*k0y*e0 - k0*e0y )/e0**2
+                  prod = nuT*( 2.*(u0x**2+v0y**2+w0z**2) +(v0x+u0y)**2 
+     & +(w0y+v0z)**2 +(u0z+w0x)**2  )
+                  k0z=uz23r(i1,i2,i3,kc)
+                   e0z=uz23r(i1,i2,i3,ec)
+                   nuTz=cMu*k0*( 2.*k0z*e0 - k0*e0z )/e0**2
+                  ut(i1,i2,i3,uc)= -uu(i1,i2,i3,uc)*u0x-uu(i1,i2,i3,vc)
+     & *u0y-uu(i1,i2,i3,wc)*u0z-ux23r(i1,i2,i3,pc)+nuP*ulaplacian23r(
+     & i1,i2,i3,uc)+nuTx*(2.*u0x    ) +nuTy*(u0y+v0x) +nuTz*(u0z+w0x)
+                  ut(i1,i2,i3,vc)= -uu(i1,i2,i3,uc)*v0x-uu(i1,i2,i3,vc)
+     & *v0y-uu(i1,i2,i3,wc)*v0z-uy23r(i1,i2,i3,pc)+nuP*ulaplacian23r(
+     & i1,i2,i3,vc)+nuTx*(u0y+v0x) +nuTy*(2.*v0y) +nuTz*(v0z+w0y)
+                  ut(i1,i2,i3,wc)= -uu(i1,i2,i3,uc)*w0x-uu(i1,i2,i3,vc)
+     & *w0y-uu(i1,i2,i3,wc)*w0z-uz23r(i1,i2,i3,pc)+nuP*ulaplacian23r(
+     & i1,i2,i3,wc)+nuTx*(u0z+w0x) +nuTy*(v0z+w0y) +nuTz*(2.*w0z)
+                  ut(i1,i2,i3,kc)= -uu(i1,i2,i3,uc)*k0x-uu(i1,i2,i3,vc)
+     & *k0y-uu(i1,i2,i3,wc)*k0z+prod -u(i1,i2,i3,ec)+(nu+sigmaKI*nuT)*
+     & ulaplacian23r(i1,i2,i3,kc)+sigmaKI*(nuTx*k0x+nuTy*k0y+nuTz*k0z)
+                  ut(i1,i2,i3,ec)= -uu(i1,i2,i3,uc)*e0x-uu(i1,i2,i3,vc)
+     & *e0y-uu(i1,i2,i3,wc)*e0z+cEps1*(u(i1,i2,i3,ec)/u(i1,i2,i3,kc))*
+     & prod-cEps2*(u(i1,i2,i3,ec)**2/u(i1,i2,i3,kc))+(nu+sigmaEpsI*
+     & nuT)*ulaplacian23r(i1,i2,i3,ec)+sigmaEpsI*(nuTx*e0x+nuTy*e0y+
+     & nuTz*e0z)
+                ! end NO eq NO: 
+               end if
+              end do
+              end do
+              end do
+             else
+              do i3=n3a,n3b
+              do i2=n2a,n2b
+              do i1=n1a,n1b
+                ! INS with k-epsilon turbulence model
+                 u0x=ux23r(i1,i2,i3,uc)
+                 u0y=uy23r(i1,i2,i3,uc)
+                 v0x=ux23r(i1,i2,i3,vc)
+                 v0y=uy23r(i1,i2,i3,vc)
+                 u0z=uz23r(i1,i2,i3,uc)
+                 v0z=uz23r(i1,i2,i3,vc)
+                 w0x=ux23r(i1,i2,i3,wc)
+                 w0y=uy23r(i1,i2,i3,wc)
+                 w0z=uz23r(i1,i2,i3,wc)
+                 k0=u(i1,i2,i3,kc)
+                 e0=u(i1,i2,i3,ec)
+                 nuT = cMu*k0**2/e0
+                 nuP=nu+nuT
+                 k0x=ux23r(i1,i2,i3,kc)
+                 e0x=ux23r(i1,i2,i3,ec)
+                 nuTx=cMu*k0*( 2.*k0x*e0 - k0*e0x )/e0**2
+                 k0y=uy23r(i1,i2,i3,kc)
+                 e0y=uy23r(i1,i2,i3,ec)
+                 nuTy=cMu*k0*( 2.*k0y*e0 - k0*e0y )/e0**2
+                 prod = nuT*( 2.*(u0x**2+v0y**2+w0z**2) +(v0x+u0y)**2 +
+     & (w0y+v0z)**2 +(u0z+w0x)**2  )
+                 k0z=uz23r(i1,i2,i3,kc)
+                  e0z=uz23r(i1,i2,i3,ec)
+                  nuTz=cMu*k0*( 2.*k0z*e0 - k0*e0z )/e0**2
+                 ut(i1,i2,i3,uc)= -uu(i1,i2,i3,uc)*u0x-uu(i1,i2,i3,vc)*
+     & u0y-uu(i1,i2,i3,wc)*u0z-ux23r(i1,i2,i3,pc)+nuP*ulaplacian23r(
+     & i1,i2,i3,uc)+nuTx*(2.*u0x    ) +nuTy*(u0y+v0x) +nuTz*(u0z+w0x)
+                 ut(i1,i2,i3,vc)= -uu(i1,i2,i3,uc)*v0x-uu(i1,i2,i3,vc)*
+     & v0y-uu(i1,i2,i3,wc)*v0z-uy23r(i1,i2,i3,pc)+nuP*ulaplacian23r(
+     & i1,i2,i3,vc)+nuTx*(u0y+v0x) +nuTy*(2.*v0y) +nuTz*(v0z+w0y)
+                 ut(i1,i2,i3,wc)= -uu(i1,i2,i3,uc)*w0x-uu(i1,i2,i3,vc)*
+     & w0y-uu(i1,i2,i3,wc)*w0z-uz23r(i1,i2,i3,pc)+nuP*ulaplacian23r(
+     & i1,i2,i3,wc)+nuTx*(u0z+w0x) +nuTy*(v0z+w0y) +nuTz*(2.*w0z)
+                 ut(i1,i2,i3,kc)= -uu(i1,i2,i3,uc)*k0x-uu(i1,i2,i3,vc)*
+     & k0y-uu(i1,i2,i3,wc)*k0z+prod -u(i1,i2,i3,ec)+(nu+sigmaKI*nuT)*
+     & ulaplacian23r(i1,i2,i3,kc)+sigmaKI*(nuTx*k0x+nuTy*k0y+nuTz*k0z)
+                 ut(i1,i2,i3,ec)= -uu(i1,i2,i3,uc)*e0x-uu(i1,i2,i3,vc)*
+     & e0y-uu(i1,i2,i3,wc)*e0z+cEps1*(u(i1,i2,i3,ec)/u(i1,i2,i3,kc))*
+     & prod-cEps2*(u(i1,i2,i3,ec)**2/u(i1,i2,i3,kc))+(nu+sigmaEpsI*
+     & nuT)*ulaplacian23r(i1,i2,i3,ec)+sigmaEpsI*(nuTx*e0x+nuTy*e0y+
+     & nuTz*e0z)
+               ! end NO eq NO: 
+              end do
+              end do
+              end do
+             end if
+           else if( advectionOption.eq.upwindAdvection )then
+             ! --- upwind ---
+             if( useWhereMask.ne.0 )then
+              do i3=n3a,n3b
+              do i2=n2a,n2b
+              do i1=n1a,n1b
+               if( mask(i1,i2,i3).gt.0 )then
+                  stop 6666
+               end if
+              end do
+              end do
+              end do
+             else
+              do i3=n3a,n3b
+              do i2=n2a,n2b
+              do i1=n1a,n1b
+                 stop 6666
+              end do
+              end do
+              end do
+             end if
+           else if( advectionOption.eq.bwenoAdvection )then
+             ! --- bweno ---
+             if( useWhereMask.ne.0 )then
+              do i3=n3a,n3b
+              do i2=n2a,n2b
+              do i1=n1a,n1b
+               if( mask(i1,i2,i3).gt.0 )then
+                  stop 6666
+               end if
+              end do
+              end do
+              end do
+             else
+              do i3=n3a,n3b
+              do i2=n2a,n2b
+              do i1=n1a,n1b
+                 stop 6666
+              end do
+              end do
+              end do
+             end if
+           else
+             write(*,'(" unknown advectionOption")')
+             stop 1010
+           end if
+          else ! gridIsImplicit
+           ! ---- implicit time-stepping ---
+           if( advectionOption.eq.centeredAdvection )then
+            if( implicitOption .eq.computeImplicitTermsSeparately )then
+              if( useWhereMask.ne.0 )then
+               do i3=n3a,n3b
+               do i2=n2a,n2b
+               do i1=n1a,n1b
+                if( mask(i1,i2,i3).gt.0 )then
+                  ! explicit terms only, no diffusion
+                   ut(i1,i2,i3,uc)= -uu(i1,i2,i3,uc)*ux23r(i1,i2,i3,uc)
+     & -uu(i1,i2,i3,vc)*uy23r(i1,i2,i3,uc)-uu(i1,i2,i3,wc)*uz23r(i1,
+     & i2,i3,uc)-ux23r(i1,i2,i3,pc)
+                   ut(i1,i2,i3,vc)= -uu(i1,i2,i3,uc)*ux23r(i1,i2,i3,vc)
+     & -uu(i1,i2,i3,vc)*uy23r(i1,i2,i3,vc)-uu(i1,i2,i3,wc)*uz23r(i1,
+     & i2,i3,vc)-uy23r(i1,i2,i3,pc)
+                   ut(i1,i2,i3,wc)= -uu(i1,i2,i3,uc)*ux23r(i1,i2,i3,wc)
+     & -uu(i1,i2,i3,vc)*uy23r(i1,i2,i3,wc)-uu(i1,i2,i3,wc)*uz23r(i1,
+     & i2,i3,wc)-uz23r(i1,i2,i3,pc)
+                  ! include implicit terms - diffusion
+                   uti(i1,i2,i3,uc)= nu*ulaplacian23r(i1,i2,i3,uc)
+                   uti(i1,i2,i3,vc)= nu*ulaplacian23r(i1,i2,i3,vc)
+                   uti(i1,i2,i3,wc)= nu*ulaplacian23r(i1,i2,i3,wc)
+                 ! end NO eq NO: 
+                end if
+               end do
+               end do
+               end do
+              else
+               do i3=n3a,n3b
+               do i2=n2a,n2b
+               do i1=n1a,n1b
                  ! explicit terms only, no diffusion
                   ut(i1,i2,i3,uc)= -uu(i1,i2,i3,uc)*ux23r(i1,i2,i3,uc)-
      & uu(i1,i2,i3,vc)*uy23r(i1,i2,i3,uc)-uu(i1,i2,i3,wc)*uz23r(i1,i2,
@@ -946,39 +1036,35 @@ c     *********************************
                   uti(i1,i2,i3,vc)= nu*ulaplacian23r(i1,i2,i3,vc)
                   uti(i1,i2,i3,wc)= nu*ulaplacian23r(i1,i2,i3,wc)
                 ! end NO eq NO: 
-               end if
-              end do
-              end do
-              end do
-             else
-              do i3=n3a,n3b
-              do i2=n2a,n2b
-              do i1=n1a,n1b
-                ! explicit terms only, no diffusion
-                 ut(i1,i2,i3,uc)= -uu(i1,i2,i3,uc)*ux23r(i1,i2,i3,uc)-
-     & uu(i1,i2,i3,vc)*uy23r(i1,i2,i3,uc)-uu(i1,i2,i3,wc)*uz23r(i1,i2,
-     & i3,uc)-ux23r(i1,i2,i3,pc)
-                 ut(i1,i2,i3,vc)= -uu(i1,i2,i3,uc)*ux23r(i1,i2,i3,vc)-
-     & uu(i1,i2,i3,vc)*uy23r(i1,i2,i3,vc)-uu(i1,i2,i3,wc)*uz23r(i1,i2,
-     & i3,vc)-uy23r(i1,i2,i3,pc)
-                 ut(i1,i2,i3,wc)= -uu(i1,i2,i3,uc)*ux23r(i1,i2,i3,wc)-
-     & uu(i1,i2,i3,vc)*uy23r(i1,i2,i3,wc)-uu(i1,i2,i3,wc)*uz23r(i1,i2,
-     & i3,wc)-uz23r(i1,i2,i3,pc)
-                ! include implicit terms - diffusion
-                 uti(i1,i2,i3,uc)= nu*ulaplacian23r(i1,i2,i3,uc)
-                 uti(i1,i2,i3,vc)= nu*ulaplacian23r(i1,i2,i3,vc)
-                 uti(i1,i2,i3,wc)= nu*ulaplacian23r(i1,i2,i3,wc)
-               ! end NO eq NO: 
-              end do
-              end do
-              end do
-             end if
-           else if( implicitOption.eq.doNotComputeImplicitTerms )then
-             if( useWhereMask.ne.0 )then
-              do i3=n3a,n3b
-              do i2=n2a,n2b
-              do i1=n1a,n1b
-               if( mask(i1,i2,i3).gt.0 )then
+               end do
+               end do
+               end do
+              end if
+            else if( implicitOption.eq.doNotComputeImplicitTerms )then
+              if( useWhereMask.ne.0 )then
+               do i3=n3a,n3b
+               do i2=n2a,n2b
+               do i1=n1a,n1b
+                if( mask(i1,i2,i3).gt.0 )then
+                  ! explicit terms only, no diffusion
+                   ut(i1,i2,i3,uc)= -uu(i1,i2,i3,uc)*ux23r(i1,i2,i3,uc)
+     & -uu(i1,i2,i3,vc)*uy23r(i1,i2,i3,uc)-uu(i1,i2,i3,wc)*uz23r(i1,
+     & i2,i3,uc)-ux23r(i1,i2,i3,pc)
+                   ut(i1,i2,i3,vc)= -uu(i1,i2,i3,uc)*ux23r(i1,i2,i3,vc)
+     & -uu(i1,i2,i3,vc)*uy23r(i1,i2,i3,vc)-uu(i1,i2,i3,wc)*uz23r(i1,
+     & i2,i3,vc)-uy23r(i1,i2,i3,pc)
+                   ut(i1,i2,i3,wc)= -uu(i1,i2,i3,uc)*ux23r(i1,i2,i3,wc)
+     & -uu(i1,i2,i3,vc)*uy23r(i1,i2,i3,wc)-uu(i1,i2,i3,wc)*uz23r(i1,
+     & i2,i3,wc)-uz23r(i1,i2,i3,pc)
+                 ! end NO eq NO: 
+                end if
+               end do
+               end do
+               end do
+              else
+               do i3=n3a,n3b
+               do i2=n2a,n2b
+               do i1=n1a,n1b
                  ! explicit terms only, no diffusion
                   ut(i1,i2,i3,uc)= -uu(i1,i2,i3,uc)*ux23r(i1,i2,i3,uc)-
      & uu(i1,i2,i3,vc)*uy23r(i1,i2,i3,uc)-uu(i1,i2,i3,wc)*uz23r(i1,i2,
@@ -990,6 +1076,172 @@ c     *********************************
      & uu(i1,i2,i3,vc)*uy23r(i1,i2,i3,wc)-uu(i1,i2,i3,wc)*uz23r(i1,i2,
      & i3,wc)-uz23r(i1,i2,i3,pc)
                 ! end NO eq NO: 
+               end do
+               end do
+               end do
+              end if
+            else
+             write(*,*)'insdt: Unknown implicitOption=',implicitOption
+             stop 5
+            end if  ! end implicitOption
+           else if( advectionOption.eq.upwindAdvection )then
+             ! --- upwind ---
+            if( implicitOption .eq.computeImplicitTermsSeparately )then
+              if( useWhereMask.ne.0 )then
+               do i3=n3a,n3b
+               do i2=n2a,n2b
+               do i1=n1a,n1b
+                if( mask(i1,i2,i3).gt.0 )then
+                   stop 6666
+                end if
+               end do
+               end do
+               end do
+              else
+               do i3=n3a,n3b
+               do i2=n2a,n2b
+               do i1=n1a,n1b
+                  stop 6666
+               end do
+               end do
+               end do
+              end if
+            else if( implicitOption.eq.doNotComputeImplicitTerms )then
+              if( useWhereMask.ne.0 )then
+               do i3=n3a,n3b
+               do i2=n2a,n2b
+               do i1=n1a,n1b
+                if( mask(i1,i2,i3).gt.0 )then
+                   stop 6666
+                end if
+               end do
+               end do
+               end do
+              else
+               do i3=n3a,n3b
+               do i2=n2a,n2b
+               do i1=n1a,n1b
+                  stop 6666
+               end do
+               end do
+               end do
+              end if
+            else
+             write(*,*)'insdt: Unknown implicitOption=',implicitOption
+             stop 6
+            end if  ! end implicitOption
+           else if( advectionOption.eq.bwenoAdvection )then
+             ! --- bweno ---
+            if( implicitOption .eq.computeImplicitTermsSeparately )then
+              if( useWhereMask.ne.0 )then
+               do i3=n3a,n3b
+               do i2=n2a,n2b
+               do i1=n1a,n1b
+                if( mask(i1,i2,i3).gt.0 )then
+                   stop 6666
+                end if
+               end do
+               end do
+               end do
+              else
+               do i3=n3a,n3b
+               do i2=n2a,n2b
+               do i1=n1a,n1b
+                  stop 6666
+               end do
+               end do
+               end do
+              end if
+            else if( implicitOption.eq.doNotComputeImplicitTerms )then
+              if( useWhereMask.ne.0 )then
+               do i3=n3a,n3b
+               do i2=n2a,n2b
+               do i1=n1a,n1b
+                if( mask(i1,i2,i3).gt.0 )then
+                   stop 6666
+                end if
+               end do
+               end do
+               end do
+              else
+               do i3=n3a,n3b
+               do i2=n2a,n2b
+               do i1=n1a,n1b
+                  stop 6666
+               end do
+               end do
+               end do
+              end if
+            else
+             write(*,*)'insdt: Unknown implicitOption=',implicitOption
+             stop 7
+            end if  ! end implicitOption
+           else
+             write(*,'(" unknown advectionOption")')
+             stop 1010
+           end if
+          end if
+         else if( isAxisymmetric.eq.1 )then
+          if( advectionOption.ne.centeredAdvection )then
+            write(*,*) 'insdt.h : finish me for axisymmetric'
+            stop 2020
+          end if
+         else
+           stop 88733
+         end if
+        else if( gridType.eq.curvilinear )then
+         if( isAxisymmetric.eq.0 )then
+          if( gridIsImplicit.eq.0 )then
+           ! --- explicit time-stepping ---
+           if( advectionOption.eq.centeredAdvection )then
+             if( useWhereMask.ne.0 )then
+              do i3=n3a,n3b
+              do i2=n2a,n2b
+              do i1=n1a,n1b
+               if( mask(i1,i2,i3).gt.0 )then
+                 ! INS with k-epsilon turbulence model
+                  u0x=ux23(i1,i2,i3,uc)
+                  u0y=uy23(i1,i2,i3,uc)
+                  v0x=ux23(i1,i2,i3,vc)
+                  v0y=uy23(i1,i2,i3,vc)
+                  u0z=uz23(i1,i2,i3,uc)
+                  v0z=uz23(i1,i2,i3,vc)
+                  w0x=ux23(i1,i2,i3,wc)
+                  w0y=uy23(i1,i2,i3,wc)
+                  w0z=uz23(i1,i2,i3,wc)
+                  k0=u(i1,i2,i3,kc)
+                  e0=u(i1,i2,i3,ec)
+                  nuT = cMu*k0**2/e0
+                  nuP=nu+nuT
+                  k0x=ux23(i1,i2,i3,kc)
+                  e0x=ux23(i1,i2,i3,ec)
+                  nuTx=cMu*k0*( 2.*k0x*e0 - k0*e0x )/e0**2
+                  k0y=uy23(i1,i2,i3,kc)
+                  e0y=uy23(i1,i2,i3,ec)
+                  nuTy=cMu*k0*( 2.*k0y*e0 - k0*e0y )/e0**2
+                  prod = nuT*( 2.*(u0x**2+v0y**2+w0z**2) +(v0x+u0y)**2 
+     & +(w0y+v0z)**2 +(u0z+w0x)**2  )
+                  k0z=uz23(i1,i2,i3,kc)
+                   e0z=uz23(i1,i2,i3,ec)
+                   nuTz=cMu*k0*( 2.*k0z*e0 - k0*e0z )/e0**2
+                  ut(i1,i2,i3,uc)= -uu(i1,i2,i3,uc)*u0x-uu(i1,i2,i3,vc)
+     & *u0y-uu(i1,i2,i3,wc)*u0z-ux23(i1,i2,i3,pc)+nuP*ulaplacian23(i1,
+     & i2,i3,uc)+nuTx*(2.*u0x    ) +nuTy*(u0y+v0x) +nuTz*(u0z+w0x)
+                  ut(i1,i2,i3,vc)= -uu(i1,i2,i3,uc)*v0x-uu(i1,i2,i3,vc)
+     & *v0y-uu(i1,i2,i3,wc)*v0z-uy23(i1,i2,i3,pc)+nuP*ulaplacian23(i1,
+     & i2,i3,vc)+nuTx*(u0y+v0x) +nuTy*(2.*v0y) +nuTz*(v0z+w0y)
+                  ut(i1,i2,i3,wc)= -uu(i1,i2,i3,uc)*w0x-uu(i1,i2,i3,vc)
+     & *w0y-uu(i1,i2,i3,wc)*w0z-uz23(i1,i2,i3,pc)+nuP*ulaplacian23(i1,
+     & i2,i3,wc)+nuTx*(u0z+w0x) +nuTy*(v0z+w0y) +nuTz*(2.*w0z)
+                  ut(i1,i2,i3,kc)= -uu(i1,i2,i3,uc)*k0x-uu(i1,i2,i3,vc)
+     & *k0y-uu(i1,i2,i3,wc)*k0z+prod -u(i1,i2,i3,ec)+(nu+sigmaKI*nuT)*
+     & ulaplacian23(i1,i2,i3,kc)+sigmaKI*(nuTx*k0x+nuTy*k0y+nuTz*k0z)
+                  ut(i1,i2,i3,ec)= -uu(i1,i2,i3,uc)*e0x-uu(i1,i2,i3,vc)
+     & *e0y-uu(i1,i2,i3,wc)*e0z+cEps1*(u(i1,i2,i3,ec)/u(i1,i2,i3,kc))*
+     & prod-cEps2*(u(i1,i2,i3,ec)**2/u(i1,i2,i3,kc))+(nu+sigmaEpsI*
+     & nuT)*ulaplacian23(i1,i2,i3,ec)+sigmaEpsI*(nuTx*e0x+nuTy*e0y+
+     & nuTz*e0z)
+                ! end NO eq NO: 
                end if
               end do
               end do
@@ -998,145 +1250,131 @@ c     *********************************
               do i3=n3a,n3b
               do i2=n2a,n2b
               do i1=n1a,n1b
-                ! explicit terms only, no diffusion
-                 ut(i1,i2,i3,uc)= -uu(i1,i2,i3,uc)*ux23r(i1,i2,i3,uc)-
-     & uu(i1,i2,i3,vc)*uy23r(i1,i2,i3,uc)-uu(i1,i2,i3,wc)*uz23r(i1,i2,
-     & i3,uc)-ux23r(i1,i2,i3,pc)
-                 ut(i1,i2,i3,vc)= -uu(i1,i2,i3,uc)*ux23r(i1,i2,i3,vc)-
-     & uu(i1,i2,i3,vc)*uy23r(i1,i2,i3,vc)-uu(i1,i2,i3,wc)*uz23r(i1,i2,
-     & i3,vc)-uy23r(i1,i2,i3,pc)
-                 ut(i1,i2,i3,wc)= -uu(i1,i2,i3,uc)*ux23r(i1,i2,i3,wc)-
-     & uu(i1,i2,i3,vc)*uy23r(i1,i2,i3,wc)-uu(i1,i2,i3,wc)*uz23r(i1,i2,
-     & i3,wc)-uz23r(i1,i2,i3,pc)
+                ! INS with k-epsilon turbulence model
+                 u0x=ux23(i1,i2,i3,uc)
+                 u0y=uy23(i1,i2,i3,uc)
+                 v0x=ux23(i1,i2,i3,vc)
+                 v0y=uy23(i1,i2,i3,vc)
+                 u0z=uz23(i1,i2,i3,uc)
+                 v0z=uz23(i1,i2,i3,vc)
+                 w0x=ux23(i1,i2,i3,wc)
+                 w0y=uy23(i1,i2,i3,wc)
+                 w0z=uz23(i1,i2,i3,wc)
+                 k0=u(i1,i2,i3,kc)
+                 e0=u(i1,i2,i3,ec)
+                 nuT = cMu*k0**2/e0
+                 nuP=nu+nuT
+                 k0x=ux23(i1,i2,i3,kc)
+                 e0x=ux23(i1,i2,i3,ec)
+                 nuTx=cMu*k0*( 2.*k0x*e0 - k0*e0x )/e0**2
+                 k0y=uy23(i1,i2,i3,kc)
+                 e0y=uy23(i1,i2,i3,ec)
+                 nuTy=cMu*k0*( 2.*k0y*e0 - k0*e0y )/e0**2
+                 prod = nuT*( 2.*(u0x**2+v0y**2+w0z**2) +(v0x+u0y)**2 +
+     & (w0y+v0z)**2 +(u0z+w0x)**2  )
+                 k0z=uz23(i1,i2,i3,kc)
+                  e0z=uz23(i1,i2,i3,ec)
+                  nuTz=cMu*k0*( 2.*k0z*e0 - k0*e0z )/e0**2
+                 ut(i1,i2,i3,uc)= -uu(i1,i2,i3,uc)*u0x-uu(i1,i2,i3,vc)*
+     & u0y-uu(i1,i2,i3,wc)*u0z-ux23(i1,i2,i3,pc)+nuP*ulaplacian23(i1,
+     & i2,i3,uc)+nuTx*(2.*u0x    ) +nuTy*(u0y+v0x) +nuTz*(u0z+w0x)
+                 ut(i1,i2,i3,vc)= -uu(i1,i2,i3,uc)*v0x-uu(i1,i2,i3,vc)*
+     & v0y-uu(i1,i2,i3,wc)*v0z-uy23(i1,i2,i3,pc)+nuP*ulaplacian23(i1,
+     & i2,i3,vc)+nuTx*(u0y+v0x) +nuTy*(2.*v0y) +nuTz*(v0z+w0y)
+                 ut(i1,i2,i3,wc)= -uu(i1,i2,i3,uc)*w0x-uu(i1,i2,i3,vc)*
+     & w0y-uu(i1,i2,i3,wc)*w0z-uz23(i1,i2,i3,pc)+nuP*ulaplacian23(i1,
+     & i2,i3,wc)+nuTx*(u0z+w0x) +nuTy*(v0z+w0y) +nuTz*(2.*w0z)
+                 ut(i1,i2,i3,kc)= -uu(i1,i2,i3,uc)*k0x-uu(i1,i2,i3,vc)*
+     & k0y-uu(i1,i2,i3,wc)*k0z+prod -u(i1,i2,i3,ec)+(nu+sigmaKI*nuT)*
+     & ulaplacian23(i1,i2,i3,kc)+sigmaKI*(nuTx*k0x+nuTy*k0y+nuTz*k0z)
+                 ut(i1,i2,i3,ec)= -uu(i1,i2,i3,uc)*e0x-uu(i1,i2,i3,vc)*
+     & e0y-uu(i1,i2,i3,wc)*e0z+cEps1*(u(i1,i2,i3,ec)/u(i1,i2,i3,kc))*
+     & prod-cEps2*(u(i1,i2,i3,ec)**2/u(i1,i2,i3,kc))+(nu+sigmaEpsI*
+     & nuT)*ulaplacian23(i1,i2,i3,ec)+sigmaEpsI*(nuTx*e0x+nuTy*e0y+
+     & nuTz*e0z)
                ! end NO eq NO: 
               end do
               end do
               end do
              end if
-           else
-            write(*,*)'insdt: Unknown implicitOption=',implicitOption
-            stop 5
-           end if  ! end implicitOption
-          end if
-         else if( isAxisymmetric.eq.1 )then
-         else
-           stop 88733
-         end if
-        else if( gridType.eq.curvilinear )then
-         if( isAxisymmetric.eq.0 )then
-          if( gridIsImplicit.eq.0 )then
-           ! explicit
-           if( useWhereMask.ne.0 )then
-            do i3=n3a,n3b
-            do i2=n2a,n2b
-            do i1=n1a,n1b
-             if( mask(i1,i2,i3).gt.0 )then
-               ! INS with k-epsilon turbulence model
-                u0x=ux23(i1,i2,i3,uc)
-                u0y=uy23(i1,i2,i3,uc)
-                v0x=ux23(i1,i2,i3,vc)
-                v0y=uy23(i1,i2,i3,vc)
-                u0z=uz23(i1,i2,i3,uc)
-                v0z=uz23(i1,i2,i3,vc)
-                w0x=ux23(i1,i2,i3,wc)
-                w0y=uy23(i1,i2,i3,wc)
-                w0z=uz23(i1,i2,i3,wc)
-                k0=u(i1,i2,i3,kc)
-                e0=u(i1,i2,i3,ec)
-                nuT = cMu*k0**2/e0
-                nuP=nu+nuT
-                k0x=ux23(i1,i2,i3,kc)
-                e0x=ux23(i1,i2,i3,ec)
-                nuTx=cMu*k0*( 2.*k0x*e0 - k0*e0x )/e0**2
-                k0y=uy23(i1,i2,i3,kc)
-                e0y=uy23(i1,i2,i3,ec)
-                nuTy=cMu*k0*( 2.*k0y*e0 - k0*e0y )/e0**2
-                prod = nuT*( 2.*(u0x**2+v0y**2+w0z**2) +(v0x+u0y)**2 +(
-     & w0y+v0z)**2 +(u0z+w0x)**2  )
-                k0z=uz23(i1,i2,i3,kc)
-                 e0z=uz23(i1,i2,i3,ec)
-                 nuTz=cMu*k0*( 2.*k0z*e0 - k0*e0z )/e0**2
-                ut(i1,i2,i3,uc)= -uu(i1,i2,i3,uc)*u0x-uu(i1,i2,i3,vc)*
-     & u0y-uu(i1,i2,i3,wc)*u0z-ux23(i1,i2,i3,pc)+nuP*ulaplacian23(i1,
-     & i2,i3,uc)+nuTx*(2.*u0x    ) +nuTy*(u0y+v0x) +nuTz*(u0z+w0x)
-                ut(i1,i2,i3,vc)= -uu(i1,i2,i3,uc)*v0x-uu(i1,i2,i3,vc)*
-     & v0y-uu(i1,i2,i3,wc)*v0z-uy23(i1,i2,i3,pc)+nuP*ulaplacian23(i1,
-     & i2,i3,vc)+nuTx*(u0y+v0x) +nuTy*(2.*v0y) +nuTz*(v0z+w0y)
-                ut(i1,i2,i3,wc)= -uu(i1,i2,i3,uc)*w0x-uu(i1,i2,i3,vc)*
-     & w0y-uu(i1,i2,i3,wc)*w0z-uz23(i1,i2,i3,pc)+nuP*ulaplacian23(i1,
-     & i2,i3,wc)+nuTx*(u0z+w0x) +nuTy*(v0z+w0y) +nuTz*(2.*w0z)
-                ut(i1,i2,i3,kc)= -uu(i1,i2,i3,uc)*k0x-uu(i1,i2,i3,vc)*
-     & k0y-uu(i1,i2,i3,wc)*k0z+prod -u(i1,i2,i3,ec)+(nu+sigmaKI*nuT)*
-     & ulaplacian23(i1,i2,i3,kc)+sigmaKI*(nuTx*k0x+nuTy*k0y+nuTz*k0z)
-                ut(i1,i2,i3,ec)= -uu(i1,i2,i3,uc)*e0x-uu(i1,i2,i3,vc)*
-     & e0y-uu(i1,i2,i3,wc)*e0z+cEps1*(u(i1,i2,i3,ec)/u(i1,i2,i3,kc))*
-     & prod-cEps2*(u(i1,i2,i3,ec)**2/u(i1,i2,i3,kc))+(nu+sigmaEpsI*
-     & nuT)*ulaplacian23(i1,i2,i3,ec)+sigmaEpsI*(nuTx*e0x+nuTy*e0y+
-     & nuTz*e0z)
-              ! end NO eq NO: 
-             end if
-            end do
-            end do
-            end do
-           else
-            do i3=n3a,n3b
-            do i2=n2a,n2b
-            do i1=n1a,n1b
-              ! INS with k-epsilon turbulence model
-               u0x=ux23(i1,i2,i3,uc)
-               u0y=uy23(i1,i2,i3,uc)
-               v0x=ux23(i1,i2,i3,vc)
-               v0y=uy23(i1,i2,i3,vc)
-               u0z=uz23(i1,i2,i3,uc)
-               v0z=uz23(i1,i2,i3,vc)
-               w0x=ux23(i1,i2,i3,wc)
-               w0y=uy23(i1,i2,i3,wc)
-               w0z=uz23(i1,i2,i3,wc)
-               k0=u(i1,i2,i3,kc)
-               e0=u(i1,i2,i3,ec)
-               nuT = cMu*k0**2/e0
-               nuP=nu+nuT
-               k0x=ux23(i1,i2,i3,kc)
-               e0x=ux23(i1,i2,i3,ec)
-               nuTx=cMu*k0*( 2.*k0x*e0 - k0*e0x )/e0**2
-               k0y=uy23(i1,i2,i3,kc)
-               e0y=uy23(i1,i2,i3,ec)
-               nuTy=cMu*k0*( 2.*k0y*e0 - k0*e0y )/e0**2
-               prod = nuT*( 2.*(u0x**2+v0y**2+w0z**2) +(v0x+u0y)**2 +(
-     & w0y+v0z)**2 +(u0z+w0x)**2  )
-               k0z=uz23(i1,i2,i3,kc)
-                e0z=uz23(i1,i2,i3,ec)
-                nuTz=cMu*k0*( 2.*k0z*e0 - k0*e0z )/e0**2
-               ut(i1,i2,i3,uc)= -uu(i1,i2,i3,uc)*u0x-uu(i1,i2,i3,vc)*
-     & u0y-uu(i1,i2,i3,wc)*u0z-ux23(i1,i2,i3,pc)+nuP*ulaplacian23(i1,
-     & i2,i3,uc)+nuTx*(2.*u0x    ) +nuTy*(u0y+v0x) +nuTz*(u0z+w0x)
-               ut(i1,i2,i3,vc)= -uu(i1,i2,i3,uc)*v0x-uu(i1,i2,i3,vc)*
-     & v0y-uu(i1,i2,i3,wc)*v0z-uy23(i1,i2,i3,pc)+nuP*ulaplacian23(i1,
-     & i2,i3,vc)+nuTx*(u0y+v0x) +nuTy*(2.*v0y) +nuTz*(v0z+w0y)
-               ut(i1,i2,i3,wc)= -uu(i1,i2,i3,uc)*w0x-uu(i1,i2,i3,vc)*
-     & w0y-uu(i1,i2,i3,wc)*w0z-uz23(i1,i2,i3,pc)+nuP*ulaplacian23(i1,
-     & i2,i3,wc)+nuTx*(u0z+w0x) +nuTy*(v0z+w0y) +nuTz*(2.*w0z)
-               ut(i1,i2,i3,kc)= -uu(i1,i2,i3,uc)*k0x-uu(i1,i2,i3,vc)*
-     & k0y-uu(i1,i2,i3,wc)*k0z+prod -u(i1,i2,i3,ec)+(nu+sigmaKI*nuT)*
-     & ulaplacian23(i1,i2,i3,kc)+sigmaKI*(nuTx*k0x+nuTy*k0y+nuTz*k0z)
-               ut(i1,i2,i3,ec)= -uu(i1,i2,i3,uc)*e0x-uu(i1,i2,i3,vc)*
-     & e0y-uu(i1,i2,i3,wc)*e0z+cEps1*(u(i1,i2,i3,ec)/u(i1,i2,i3,kc))*
-     & prod-cEps2*(u(i1,i2,i3,ec)**2/u(i1,i2,i3,kc))+(nu+sigmaEpsI*
-     & nuT)*ulaplacian23(i1,i2,i3,ec)+sigmaEpsI*(nuTx*e0x+nuTy*e0y+
-     & nuTz*e0z)
-             ! end NO eq NO: 
-            end do
-            end do
-            end do
-           end if
-          else ! gridIsImplicit
-           ! ***** implicit *******
-           if( implicitOption .eq.computeImplicitTermsSeparately )then
+           else if( advectionOption.eq.upwindAdvection )then
+             ! --- upwind ---
              if( useWhereMask.ne.0 )then
               do i3=n3a,n3b
               do i2=n2a,n2b
               do i1=n1a,n1b
                if( mask(i1,i2,i3).gt.0 )then
+                  stop 6666
+               end if
+              end do
+              end do
+              end do
+             else
+              do i3=n3a,n3b
+              do i2=n2a,n2b
+              do i1=n1a,n1b
+                 stop 6666
+              end do
+              end do
+              end do
+             end if
+           else if( advectionOption.eq.bwenoAdvection )then
+             ! --- bweno ---
+             if( useWhereMask.ne.0 )then
+              do i3=n3a,n3b
+              do i2=n2a,n2b
+              do i1=n1a,n1b
+               if( mask(i1,i2,i3).gt.0 )then
+                  stop 6666
+               end if
+              end do
+              end do
+              end do
+             else
+              do i3=n3a,n3b
+              do i2=n2a,n2b
+              do i1=n1a,n1b
+                 stop 6666
+              end do
+              end do
+              end do
+             end if
+           else
+             write(*,'(" unknown advectionOption")')
+             stop 1010
+           end if
+          else ! gridIsImplicit
+           ! ---- implicit time-stepping ---
+           if( advectionOption.eq.centeredAdvection )then
+            if( implicitOption .eq.computeImplicitTermsSeparately )then
+              if( useWhereMask.ne.0 )then
+               do i3=n3a,n3b
+               do i2=n2a,n2b
+               do i1=n1a,n1b
+                if( mask(i1,i2,i3).gt.0 )then
+                  ! explicit terms only, no diffusion
+                   ut(i1,i2,i3,uc)= -uu(i1,i2,i3,uc)*ux23(i1,i2,i3,uc)-
+     & uu(i1,i2,i3,vc)*uy23(i1,i2,i3,uc)-uu(i1,i2,i3,wc)*uz23(i1,i2,
+     & i3,uc)-ux23(i1,i2,i3,pc)
+                   ut(i1,i2,i3,vc)= -uu(i1,i2,i3,uc)*ux23(i1,i2,i3,vc)-
+     & uu(i1,i2,i3,vc)*uy23(i1,i2,i3,vc)-uu(i1,i2,i3,wc)*uz23(i1,i2,
+     & i3,vc)-uy23(i1,i2,i3,pc)
+                   ut(i1,i2,i3,wc)= -uu(i1,i2,i3,uc)*ux23(i1,i2,i3,wc)-
+     & uu(i1,i2,i3,vc)*uy23(i1,i2,i3,wc)-uu(i1,i2,i3,wc)*uz23(i1,i2,
+     & i3,wc)-uz23(i1,i2,i3,pc)
+                  ! include implicit terms - diffusion
+                   uti(i1,i2,i3,uc)= nu*ulaplacian23(i1,i2,i3,uc)
+                   uti(i1,i2,i3,vc)= nu*ulaplacian23(i1,i2,i3,vc)
+                   uti(i1,i2,i3,wc)= nu*ulaplacian23(i1,i2,i3,wc)
+                 ! end NO eq NO: 
+                end if
+               end do
+               end do
+               end do
+              else
+               do i3=n3a,n3b
+               do i2=n2a,n2b
+               do i1=n1a,n1b
                  ! explicit terms only, no diffusion
                   ut(i1,i2,i3,uc)= -uu(i1,i2,i3,uc)*ux23(i1,i2,i3,uc)-
      & uu(i1,i2,i3,vc)*uy23(i1,i2,i3,uc)-uu(i1,i2,i3,wc)*uz23(i1,i2,
@@ -1152,39 +1390,35 @@ c     *********************************
                   uti(i1,i2,i3,vc)= nu*ulaplacian23(i1,i2,i3,vc)
                   uti(i1,i2,i3,wc)= nu*ulaplacian23(i1,i2,i3,wc)
                 ! end NO eq NO: 
-               end if
-              end do
-              end do
-              end do
-             else
-              do i3=n3a,n3b
-              do i2=n2a,n2b
-              do i1=n1a,n1b
-                ! explicit terms only, no diffusion
-                 ut(i1,i2,i3,uc)= -uu(i1,i2,i3,uc)*ux23(i1,i2,i3,uc)-
+               end do
+               end do
+               end do
+              end if
+            else if( implicitOption.eq.doNotComputeImplicitTerms )then
+              if( useWhereMask.ne.0 )then
+               do i3=n3a,n3b
+               do i2=n2a,n2b
+               do i1=n1a,n1b
+                if( mask(i1,i2,i3).gt.0 )then
+                  ! explicit terms only, no diffusion
+                   ut(i1,i2,i3,uc)= -uu(i1,i2,i3,uc)*ux23(i1,i2,i3,uc)-
      & uu(i1,i2,i3,vc)*uy23(i1,i2,i3,uc)-uu(i1,i2,i3,wc)*uz23(i1,i2,
      & i3,uc)-ux23(i1,i2,i3,pc)
-                 ut(i1,i2,i3,vc)= -uu(i1,i2,i3,uc)*ux23(i1,i2,i3,vc)-
+                   ut(i1,i2,i3,vc)= -uu(i1,i2,i3,uc)*ux23(i1,i2,i3,vc)-
      & uu(i1,i2,i3,vc)*uy23(i1,i2,i3,vc)-uu(i1,i2,i3,wc)*uz23(i1,i2,
      & i3,vc)-uy23(i1,i2,i3,pc)
-                 ut(i1,i2,i3,wc)= -uu(i1,i2,i3,uc)*ux23(i1,i2,i3,wc)-
+                   ut(i1,i2,i3,wc)= -uu(i1,i2,i3,uc)*ux23(i1,i2,i3,wc)-
      & uu(i1,i2,i3,vc)*uy23(i1,i2,i3,wc)-uu(i1,i2,i3,wc)*uz23(i1,i2,
      & i3,wc)-uz23(i1,i2,i3,pc)
-                ! include implicit terms - diffusion
-                 uti(i1,i2,i3,uc)= nu*ulaplacian23(i1,i2,i3,uc)
-                 uti(i1,i2,i3,vc)= nu*ulaplacian23(i1,i2,i3,vc)
-                 uti(i1,i2,i3,wc)= nu*ulaplacian23(i1,i2,i3,wc)
-               ! end NO eq NO: 
-              end do
-              end do
-              end do
-             end if
-           else if( implicitOption.eq.doNotComputeImplicitTerms )then
-             if( useWhereMask.ne.0 )then
-              do i3=n3a,n3b
-              do i2=n2a,n2b
-              do i1=n1a,n1b
-               if( mask(i1,i2,i3).gt.0 )then
+                 ! end NO eq NO: 
+                end if
+               end do
+               end do
+               end do
+              else
+               do i3=n3a,n3b
+               do i2=n2a,n2b
+               do i1=n1a,n1b
                  ! explicit terms only, no diffusion
                   ut(i1,i2,i3,uc)= -uu(i1,i2,i3,uc)*ux23(i1,i2,i3,uc)-
      & uu(i1,i2,i3,vc)*uy23(i1,i2,i3,uc)-uu(i1,i2,i3,wc)*uz23(i1,i2,
@@ -1196,35 +1430,116 @@ c     *********************************
      & uu(i1,i2,i3,vc)*uy23(i1,i2,i3,wc)-uu(i1,i2,i3,wc)*uz23(i1,i2,
      & i3,wc)-uz23(i1,i2,i3,pc)
                 ! end NO eq NO: 
-               end if
-              end do
-              end do
-              end do
-             else
-              do i3=n3a,n3b
-              do i2=n2a,n2b
-              do i1=n1a,n1b
-                ! explicit terms only, no diffusion
-                 ut(i1,i2,i3,uc)= -uu(i1,i2,i3,uc)*ux23(i1,i2,i3,uc)-
-     & uu(i1,i2,i3,vc)*uy23(i1,i2,i3,uc)-uu(i1,i2,i3,wc)*uz23(i1,i2,
-     & i3,uc)-ux23(i1,i2,i3,pc)
-                 ut(i1,i2,i3,vc)= -uu(i1,i2,i3,uc)*ux23(i1,i2,i3,vc)-
-     & uu(i1,i2,i3,vc)*uy23(i1,i2,i3,vc)-uu(i1,i2,i3,wc)*uz23(i1,i2,
-     & i3,vc)-uy23(i1,i2,i3,pc)
-                 ut(i1,i2,i3,wc)= -uu(i1,i2,i3,uc)*ux23(i1,i2,i3,wc)-
-     & uu(i1,i2,i3,vc)*uy23(i1,i2,i3,wc)-uu(i1,i2,i3,wc)*uz23(i1,i2,
-     & i3,wc)-uz23(i1,i2,i3,pc)
-               ! end NO eq NO: 
-              end do
-              end do
-              end do
-             end if
+               end do
+               end do
+               end do
+              end if
+            else
+             write(*,*)'insdt: Unknown implicitOption=',implicitOption
+             stop 5
+            end if  ! end implicitOption
+           else if( advectionOption.eq.upwindAdvection )then
+             ! --- upwind ---
+            if( implicitOption .eq.computeImplicitTermsSeparately )then
+              if( useWhereMask.ne.0 )then
+               do i3=n3a,n3b
+               do i2=n2a,n2b
+               do i1=n1a,n1b
+                if( mask(i1,i2,i3).gt.0 )then
+                   stop 6666
+                end if
+               end do
+               end do
+               end do
+              else
+               do i3=n3a,n3b
+               do i2=n2a,n2b
+               do i1=n1a,n1b
+                  stop 6666
+               end do
+               end do
+               end do
+              end if
+            else if( implicitOption.eq.doNotComputeImplicitTerms )then
+              if( useWhereMask.ne.0 )then
+               do i3=n3a,n3b
+               do i2=n2a,n2b
+               do i1=n1a,n1b
+                if( mask(i1,i2,i3).gt.0 )then
+                   stop 6666
+                end if
+               end do
+               end do
+               end do
+              else
+               do i3=n3a,n3b
+               do i2=n2a,n2b
+               do i1=n1a,n1b
+                  stop 6666
+               end do
+               end do
+               end do
+              end if
+            else
+             write(*,*)'insdt: Unknown implicitOption=',implicitOption
+             stop 6
+            end if  ! end implicitOption
+           else if( advectionOption.eq.bwenoAdvection )then
+             ! --- bweno ---
+            if( implicitOption .eq.computeImplicitTermsSeparately )then
+              if( useWhereMask.ne.0 )then
+               do i3=n3a,n3b
+               do i2=n2a,n2b
+               do i1=n1a,n1b
+                if( mask(i1,i2,i3).gt.0 )then
+                   stop 6666
+                end if
+               end do
+               end do
+               end do
+              else
+               do i3=n3a,n3b
+               do i2=n2a,n2b
+               do i1=n1a,n1b
+                  stop 6666
+               end do
+               end do
+               end do
+              end if
+            else if( implicitOption.eq.doNotComputeImplicitTerms )then
+              if( useWhereMask.ne.0 )then
+               do i3=n3a,n3b
+               do i2=n2a,n2b
+               do i1=n1a,n1b
+                if( mask(i1,i2,i3).gt.0 )then
+                   stop 6666
+                end if
+               end do
+               end do
+               end do
+              else
+               do i3=n3a,n3b
+               do i2=n2a,n2b
+               do i1=n1a,n1b
+                  stop 6666
+               end do
+               end do
+               end do
+              end if
+            else
+             write(*,*)'insdt: Unknown implicitOption=',implicitOption
+             stop 7
+            end if  ! end implicitOption
            else
-            write(*,*)'insdt: Unknown implicitOption=',implicitOption
-            stop 5
-           end if  ! end implicitOption
+             write(*,'(" unknown advectionOption")')
+             stop 1010
+           end if
           end if
          else if( isAxisymmetric.eq.1 )then
+          if( advectionOption.ne.centeredAdvection )then
+            write(*,*) 'insdt.h : finish me for axisymmetric'
+            stop 2020
+          end if
          else
            stop 88733
          end if

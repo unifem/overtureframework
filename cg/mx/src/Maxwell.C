@@ -12,6 +12,7 @@
 #include "RadiationKernel.h"
 #include "Oges.h"
 #include "ParallelUtility.h"
+#include "DispersiveMaterialParameters.h"
 
 aString Maxwell::
 bcName[numberOfBCNames]={
@@ -64,6 +65,9 @@ Maxwell()
   checkFile   = fopen("mx.check","w" );        // for regression and convergence tests
   
   method=defaultMethod;
+  dispersionModel=noDispersion;
+  dbase.put<aString>("dispersionModelName")="none";
+  
   bcOption=useGeneralBoundaryConditions; // *wdh* 040109 useAllPeriodicBoundaryConditions;
 
   initialConditionOption=defaultInitialCondition;
@@ -158,6 +162,9 @@ Maxwell()
   hz11=4;   
   numberOfComponentsCurvilinearGrid=5;
 
+  // component numbers for Q, R, C (dispersive models)
+  // default = -1 : not used
+  pxc=pyc=pzc=qxc=qyc=qzc=rxc=ryc=rzc=-1; 
 
   artificialDissipation=0.;
   artificialDissipationCurvilinear=-1.; // set to non-negative to use this instead of the above
@@ -382,6 +389,10 @@ Maxwell()
   chirpedParameters(7)=0.;  // z0
    
 
+  // Dispersive material parameters (may vary from grid to grid)
+  dbase.put<std::vector<DispersiveMaterialParameters> >("dispersiveMaterialParameters");
+
+
   // Time history of the forcing is stored here (when needed)
   //    forcingArray[numberOfForcingFunctions] 
   //    forcingArray[fCurrent]  : current forcing
@@ -509,6 +520,16 @@ Maxwell::
 }
 
 // =====================================================================================
+/// \brief Return dispersive materialparameters for a given grid.
+// =====================================================================================
+DispersiveMaterialParameters & 
+Maxwell::getDispersiveMaterialParameters( const int grid )
+{
+  return  dbase.get<std::vector<DispersiveMaterialParameters> >("dispersiveMaterialParameters")[grid];
+}
+
+
+// =====================================================================================
 /// \brief Return true if the equations are forced (external forcing)
 // =====================================================================================
 bool Maxwell::
@@ -570,6 +591,7 @@ vertexArrayIsNeeded( int grid ) const
                            initialConditionOption==gaussianPlaneWave || 
                            (initialConditionOption==planeWaveInitialCondition 
 			      && method!=nfdtd  && method!=sosup  ) ||  // for ABC + incident field fix 
+                           (initialConditionOption==planeWaveInitialCondition && checkErrors ) || // *wdh* 2017/01/07
                            initialConditionOption==planeMaterialInterfaceInitialCondition ||
                            initialConditionOption==annulusEigenfunctionInitialCondition  ||
                            method==yee || 
@@ -1195,6 +1217,9 @@ buildTimeSteppingOptionsDialog(DialogData & dialog )
 
   aString methodCommands[] = {"default", "Yee", "DSI", "new DSI", "DSI-MatVec", "NFDTD", "SOSUP", "" };
   dialog.addOptionMenu("method:", methodCommands, methodCommands, (int)method );
+
+  aString dispersionModelCommands[] = {"no dispersion", "Drude", "" };
+  dialog.addOptionMenu("dispersion model:", dispersionModelCommands, dispersionModelCommands, (int)dispersionModel );
 
   aString timeSteppingMethodCommands[] = {"defaultTimeStepping", 
 					  "adamsBashforthSymmetricThirdOrder",
@@ -1999,6 +2024,29 @@ interactiveUpdate(GL_GraphicsInterface &gi )
 	timeSteppingOptionsDialog.getOptionMenu("time stepping:").setCurrentChoice((int)timeSteppingMethod);
       }
     }
+    else if( answer=="no dispersion" ||
+             answer=="Drude" )
+    {
+      aString & dispersionModelName=dbase.get<aString>("dispersionModelName");
+
+      if( answer=="Drude" )
+      {
+	dispersionModel=drude;
+	dispersionModelName="Drude";
+      }
+      else if( answer=="no dispersion" )
+      {
+	dispersionModel=noDispersion;
+	dispersionModelName="none";
+      }
+      else
+      {
+	OV_ABORT("ERROR: unknown dispersion model: this should not happen!");
+      }
+      printF("Setting dispersion model=[%s]\n",(const char*)dispersionModelName);
+      timeSteppingOptionsDialog.getOptionMenu("dispersion model:").setCurrentChoice((int)dispersionModel);
+    }
+
     else if( answer=="defaultInitialCondition" ||
              answer=="planeWaveInitialCondition" ||
              answer=="gaussianPlaneWave" ||
@@ -3195,3 +3243,4 @@ Maxwell::getCGField(Maxwell::FieldEnum f, int tn)
   
   return cgfields[tn];
 }
+

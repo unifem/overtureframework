@@ -5383,7 +5383,7 @@ c      end if
 
       getRealParameter(rho)
 
-      if( debug.gt.2 )then
+      if( debug.gt.3 )then
         write(*,'(" bcOptSmFOS: grid=",i5," applyInterfaceBoundaryConditions=",i2," numToPin=",i3)') grid,applyInterfaceBoundaryConditions,numToPin
       end if
 

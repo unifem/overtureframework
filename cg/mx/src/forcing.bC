@@ -1,4 +1,5 @@
 #include "Maxwell.h"
+#include "DispersiveMaterialParameters.h"
 #include "CompositeGridOperators.h"
 #include "display.h"
 #include "UnstructuredMapping.h"
@@ -387,22 +388,17 @@ getForcing(int current, int grid, realArray & u , real t, real dt, int option /*
   {
     
     // we always need the center array for TZ forcing, otherwise not needed for rectangular grids:
-    const realArray & x = (isRectangular && forcingOption!=twilightZoneForcing) ? u : mg.center();
+    realArray & x = (isRectangular && forcingOption!=twilightZoneForcing) ? u : mg.center();
 
-    #ifdef USE_PPP
-      const realSerialArray & uLocal  =  u.getLocalArrayWithGhostBoundaries();
-      const realSerialArray & xLocal  =  x.getLocalArrayWithGhostBoundaries();
-    #else
-      const realSerialArray & uLocal  =  u;
-      const realSerialArray & xLocal  =  x;
-    #endif
+    OV_GET_SERIAL_ARRAY(real,u,uLocal);
+    OV_GET_SERIAL_ARRAY(real,x,xLocal);
 
     real *up = uLocal.Array_Descriptor.Array_View_Pointer3;
     const int uDim0=uLocal.getRawDataSize(0);
     const int uDim1=uLocal.getRawDataSize(1);
     const int uDim2=uLocal.getRawDataSize(2);
-    #undef U
-    #define U(i0,i1,i2,i3) up[i0+uDim0*(i1+uDim1*(i2+uDim2*(i3)))]
+#undef U
+#define U(i0,i1,i2,i3) up[i0+uDim0*(i1+uDim1*(i2+uDim2*(i3)))]
 
     //      real *xp = xLocal.Array_Descriptor.Array_View_Pointer3;
     //       const int xDim0=xLocal.getRawDataSize(0);
@@ -434,10 +430,162 @@ getForcing(int current, int grid, realArray & u , real t, real dt, int option /*
 
 
       bool useScalarLoops=false;
-      #ifdef USE_PPP
-	  useScalarLoops=true;
-      #endif 
-      if( useScalarLoops || method==dsiMatVec || method==dsi )
+#ifdef USE_PPP
+      useScalarLoops=true;
+#endif 
+
+      if( TRUE && method==nfdtd )
+      {
+        if( t<= 2.*dt )
+	  printF("--MX-FORCE-- add TZ forcing (*new opt way*) option=%i orderOfAccuracyInSpace=%i\n",option,
+                 orderOfAccuracyInSpace);
+
+	// *********** NEW WAY -- JAN 2017 ***********
+        // This should be more efficient
+        const bool isRectangular = false; // ** do this for now ** mg.isRectangular();
+
+	if( option==1 )
+	{
+	  uLocal(I1,I2,I3,C)=0.;
+	}
+	Range E(ex,ex+numberOfDimensions-1); // electric field components
+	RealArray utt(I1,I2,I3,C), uxx(I1,I2,I3,C), uyy(I1,I2,I3,C);
+	  
+	e.gd( utt ,xLocal,numberOfDimensions,isRectangular,2,0,0,0,I1,I2,I3,C,t);
+	e.gd( uxx ,xLocal,numberOfDimensions,isRectangular,0,2,0,0,I1,I2,I3,C,t);
+	e.gd( uyy ,xLocal,numberOfDimensions,isRectangular,0,0,2,0,I1,I2,I3,C,t);
+
+        if( numberOfDimensions==2 )
+	{
+	  uLocal(I1,I2,I3,C) += utt - csq*(uxx+uyy);
+	}
+	else
+	{
+          RealArray uzz(I1,I2,I3,C);
+	  e.gd( uzz ,xLocal,numberOfDimensions,isRectangular,0,0,0,2,I1,I2,I3,C,t);
+
+	  uLocal(I1,I2,I3,C) += utt - csq*(uxx+uyy+uzz);
+	}
+	if( orderOfAccuracyInSpace>=4 )
+	{
+          // --- add on forcing corrections for modified equation time-stepping ----
+          //
+          //       u_tt = c^2 Delta u + f
+          // Modified equation:
+          //    D+tD-t U = u_tt + (dt^2)/12* u_tttt + ...
+          //             = c^2 Delta u + (dt^2)/12*( c^4 (Delta)^2 u ) + F 
+          // where 
+          //     F = f + (dt^2)/12*( c^2 Delta f + f_tt )
+	  // 
+          //    u_tt = c^2 Delta u + f
+          //    u_tttt = (c^2 Delta u + f)_tt = c^2 Delta u_tt + f_tt
+          //           = c^4 (Delta)^2 u + c^2 Delta f + f_tt
+          // TZ forcing:
+          //     f = w_tt - c^2 Delta w   where w=TZ solution 
+          // Total forcing
+          //     F = w_tt - c^2 Delta w + (dt^2/12)*[ c^2 Delta w_tt - (c^2 Delta)^2 w + w_tttt - c^2 Delta w_tt ]
+          //       = w_tt - c^2 Delta w + (dt^2/12)*[ w_tttt - (c^2 Delta)^2 w ]
+
+	  const real csq2=csq*csq;
+	  /// RealArray &utttt=utt, &uxxxx=uxx, &uyyyy=uyy, uxxyy(I1,I2,I3,C);
+  	  RealArray utttt(I1,I2,I3,C), uxxxx(I1,I2,I3,C), uyyyy(I1,I2,I3,C), uxxyy(I1,I2,I3,C);
+	  
+	  e.gd( utttt ,xLocal,numberOfDimensions,isRectangular,4,0,0,0,I1,I2,I3,C,t);
+	  e.gd( uxxxx ,xLocal,numberOfDimensions,isRectangular,0,4,0,0,I1,I2,I3,C,t);
+	  e.gd( uxxyy ,xLocal,numberOfDimensions,isRectangular,0,2,2,0,I1,I2,I3,C,t);
+	  e.gd( uyyyy ,xLocal,numberOfDimensions,isRectangular,0,0,4,0,I1,I2,I3,C,t);
+	  // e.gd( uyyyy ,xLocal,numberOfDimensions,isRectangular,0,0,4,0,I1,I2,I3,C,t);
+
+          uLocal(I1,I2,I3,C) += ( utttt - (csq2)*( uxxxx + 2.*uxxyy + uyyyy) )*dtsqby12;
+
+          // ::display(uxxxx,"uxxxx");
+          // ::display(e.gd(0,4,0,0,mg,I1,I2,I3,C,t),"e.gd(0,4,0,0,mg,I1,I2,I3,C,t)");
+          // ::display(uyyyy,"uyyyy");
+          // ::display(e.gd(0,0,4,0,mg,I1,I2,I3,C,t),"e.gd(0,0,4,0,mg,I1,I2,I3,C,t)");
+	  
+
+	  // u(I1,I2,I3,C)+= (utttt
+	  // 		   - (csq*csq)*(uxxxx
+	  // 				+e.gd(0,0,4,0,mg,I1,I2,I3,C,t)
+	  // 				+2.*uxxyy ) )*dtsqby12;
+
+	  // u(I1,I2,I3,C)+= (e.gd(4,0,0,0,mg,I1,I2,I3,C,t) 
+	  // 		   - (csq*csq)*(e.gd(0,4,0,0,mg,I1,I2,I3,C,t)
+	  // 				+e.gd(0,0,4,0,mg,I1,I2,I3,C,t)
+	  // 				+2.*e.gd(0,2,2,0,mg,I1,I2,I3,C,t) ) )*dtsqby12;
+	  if( numberOfDimensions==3 )
+	  {
+	    RealArray &uxxzz=utt, &uyyzz=uxx, &uzzzz=uyy;
+
+	    e.gd( uxxzz ,xLocal,numberOfDimensions,isRectangular,0,2,0,2,I1,I2,I3,C,t);
+	    e.gd( uyyzz ,xLocal,numberOfDimensions,isRectangular,0,0,2,2,I1,I2,I3,C,t);
+	    e.gd( uzzzz ,xLocal,numberOfDimensions,isRectangular,0,0,0,4,I1,I2,I3,C,t);
+
+	    uLocal(I1,I2,I3,C) += (-csq2*dtsqby12)*( 2.*(uxxzz + uyyzz) + uzzzz);
+	  }
+	  
+	  if( orderOfAccuracyInSpace>=6 ) 
+	  {
+	    const real dt4by360=dt*dt*dt*dt/360.;
+            const real csq3 = csq*csq*csq;
+     	    RealArray &utttttt=utt, &uxxxxxx=uxx, &uyyyyyy=uyy, uxxxxyy(I1,I2,I3,C), uxxyyyy(I1,I2,I3,C);
+	    
+	    e.gd( utttttt ,xLocal,numberOfDimensions,isRectangular,6,0,0,0,I1,I2,I3,C,t);
+	    e.gd( uxxxxxx ,xLocal,numberOfDimensions,isRectangular,0,6,0,0,I1,I2,I3,C,t);
+	    e.gd( uxxxxyy ,xLocal,numberOfDimensions,isRectangular,0,4,2,0,I1,I2,I3,C,t);
+	    e.gd( uxxyyyy ,xLocal,numberOfDimensions,isRectangular,0,2,4,0,I1,I2,I3,C,t);
+	    e.gd( uyyyyyy ,xLocal,numberOfDimensions,isRectangular,0,0,6,0,I1,I2,I3,C,t);
+
+	    uLocal(I1,I2,I3,C) += ( utttttt - csq3*( uxxxxxx + 3.*(uxxxxyy+uxxyyyy) + uyyyyyy) )*dt4by360;
+
+	    if( numberOfDimensions==3 )
+	    {
+	      RealArray &uxxxxzz=utt, &uyyyyzz=uxx, &uzzzzzz=uyy, &uxxzzzz=uxxxxyy, &uyyzzzz=uxxyyyy, uxxyyzz(I1,I2,I3,C);
+
+	      e.gd( uxxxxzz ,xLocal,numberOfDimensions,isRectangular,0,4,0,2,I1,I2,I3,C,t);
+	      e.gd( uyyyyzz ,xLocal,numberOfDimensions,isRectangular,0,0,4,2,I1,I2,I3,C,t);
+	      e.gd( uxxzzzz ,xLocal,numberOfDimensions,isRectangular,0,2,0,4,I1,I2,I3,C,t);
+	      e.gd( uyyzzzz ,xLocal,numberOfDimensions,isRectangular,0,0,2,4,I1,I2,I3,C,t);
+	      e.gd( uzzzzzz ,xLocal,numberOfDimensions,isRectangular,0,0,0,6,I1,I2,I3,C,t);
+	      e.gd( uxxyyzz ,xLocal,numberOfDimensions,isRectangular,0,2,2,2,I1,I2,I3,C,t);
+
+	      e.gd( uxxyyzz ,xLocal,numberOfDimensions,isRectangular,0,2,2,2,I1,I2,I3,C,t);
+
+	      uLocal(I1,I2,I3,C) += (-csq3*dt4by360)*( 3.*(uxxxxzz + uyyyyzz+ uxxzzzz + uyyzzzz) +6.*uxxyyzz + uzzzzzz );
+	    }
+
+	  }
+	  
+	}
+	
+	if( dispersionModel != noDispersion )
+	{
+	  // -- Dispersion model --
+          const DispersiveMaterialParameters & dmp = getDispersiveMaterialParameters(grid);
+	  const real eps=epsGrid(grid), gamma=dmp.gamma, omegap=dmp.omegap; 
+
+	  Range P(pxc,pxc+numberOfDimensions-1);
+	    
+	  if( option==1 )
+	  {
+	    uLocal(I1,I2,I3,P)=0.;
+	  }
+
+	  RealArray ptt(I1,I2,I3,P), pt(I1,I2,I3,P);
+          RealArray &ue=utt; // reuse space 
+
+	  e.gd( ptt ,xLocal,numberOfDimensions,isRectangular,2,0,0,0,I1,I2,I3,P,t);  // P_tt
+	  e.gd( pt  ,xLocal,numberOfDimensions,isRectangular,1,0,0,0,I1,I2,I3,P,t);  // P_t 
+	  e.gd( ue  ,xLocal,numberOfDimensions,isRectangular,0,0,0,0,I1,I2,I3,E,t);  // E
+
+	  uLocal(I1,I2,I3,E) += (1./eps)*ptt;
+	  uLocal(I1,I2,I3,P) += ptt + gamma*pt - (omegap*omegap)*ue(I1,I2,I3,E);
+	}
+
+      }
+
+
+      else if( useScalarLoops || method==dsiMatVec || method==dsi )
       {
 	// ********************** this is slow -- fix *****************
 
@@ -589,6 +737,12 @@ getForcing(int current, int grid, realArray & u , real t, real dt, int option /*
       }
       else // ** Old way **
       {
+        if( t<= dt )
+         printF("--MX-FORCE-- add TZ forcing (array version)\n");
+    
+
+
+
 	Index Ch = cg.numberOfDimensions()==2 ? Range(hz,hz) : Range(hx,hz);
 	Index Ce = cg.numberOfDimensions()==2 ? Range(ex,ey) : Range(ex,ez);
 	

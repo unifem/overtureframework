@@ -102,6 +102,10 @@ setupDomainSolverParameters( int domain, std::vector<aString> & modelNames )
 
 	// Set the grid file name for all domains to be the same file as that supplied to Cgmp
 	domainSolver[domain]->setNameOfGridFile(parameters.dbase.get<aString>("nameOfGridFile"));
+
+        // Assign the domain number: 
+        domainSolver[domain]->parameters.dbase.get<int>("domainNumber")=domain;
+
       }
     }
     else if( answer=="solver parameters" )

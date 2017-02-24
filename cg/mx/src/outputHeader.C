@@ -42,6 +42,8 @@ outputHeader()
     
     fPrintF(file," Using method %s\n",(const char *)methodName);
 
+    fPrintF(file," Dispersion model: %s\n",(const char*)dbase.get<aString>("dispersionModelName"));
+
     if( timeSteppingMethod==modifiedEquationTimeStepping )
       fPrintF(file," Time stepping method is modifiedEquation\n");
     

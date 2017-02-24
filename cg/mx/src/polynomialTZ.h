@@ -1,136 +1,8 @@
 
- // ********** initialize3DPolyTW is a bpp macro that sets up the E and H polynomial tw function
-  
+// ===============================================================================================
+//  Macro: initialize3DPolyTW is a bpp macro that sets up the E and H polynomial tw function
+// ===============================================================================================
 #beginMacro initialize3DPolyTW(ux,uy,uz)
-
-  //-   if( false && (degreeSpaceX==0 || degreeSpaceY==0 || degreeSpaceZ==0) 
-  //-       && (degreeSpaceX!=0 || degreeSpaceY!=0 || degreeSpaceZ!=0)  )
-  //-   {
-  //-     // For testing we can set the TZ function in 3D to equal that of the 2D function
-  //- 
-  //-     int e1,e2;
-  //-     if( degreeSpaceX==0 )
-  //-     { // here we rotate about the y-axis so (x->z, y->y)
-  //-       e1=uz; e2=uy;
-  //-     }
-  //-     else if( degreeSpaceY==0 )
-  //-     { // here we rotate about the x-axis  (y->z x->x
-  //-       e1=ux; e2=uz;
-  //-     }
-  //-     else
-  //-     {
-  //-       e1=ux; e2=uy;
-  //-     }
-  //-     int degreeSpace2=max(degreeSpaceX,degreeSpaceY,degreeSpaceZ);
-  //- 
-  //-     if( degreeSpace2==1 )
-  //-     {
-  //-       spatialCoefficientsForTZ(0,0,0,e1)=1.;      // u=1+x+y
-  //-       spatialCoefficientsForTZ(1,0,0,e1)=1.;
-  //-       spatialCoefficientsForTZ(0,1,0,e1)=1.;
-  //- 
-  //-       spatialCoefficientsForTZ(0,0,0,e2)= 2.;      // v=2+x-y
-  //-       spatialCoefficientsForTZ(1,0,0,e2)= 1.;
-  //-       spatialCoefficientsForTZ(0,1,0,e2)=-1.;
-  //- 
-  //-     }
-  //-     else if( degreeSpace2==2 )
-  //-     {
-  //-       spatialCoefficientsForTZ(2,0,0,e1)=1.;      // u=x^2 + 2xy + y^2 
-  //-       spatialCoefficientsForTZ(1,1,0,e1)=2.;
-  //-       spatialCoefficientsForTZ(0,2,0,e1)=1.;
-  //- 
-  //-       spatialCoefficientsForTZ(2,0,0,e2)= 1.;      // v=x^2 -2xy - y^2 
-  //-       spatialCoefficientsForTZ(1,1,0,e2)=-2.;
-  //-       spatialCoefficientsForTZ(0,2,0,e2)=-1.;
-  //-     }
-  //-     else if( degreeSpace2==3 )
-  //-     {
-  //-       spatialCoefficientsForTZ(2,0,0,e1)=1.;      // u=x^2 + 2xy + y^2 + .5*y^3 + .25*x^2*y + .2*x^3  - .3*x*y^2
-  //-       spatialCoefficientsForTZ(1,1,0,e1)=2.;
-  //-       spatialCoefficientsForTZ(0,2,0,e1)=1.;
-  //-       spatialCoefficientsForTZ(0,3,0,e1)=.5;
-  //-       spatialCoefficientsForTZ(2,1,0,e1)=.25;
-  //-       spatialCoefficientsForTZ(3,0,0,0,e1)=.2;
-  //-       spatialCoefficientsForTZ(1,2,0,0,e1)=-.3;
-  //- 
-  //-       spatialCoefficientsForTZ(2,0,0,e2)= 1.;      // v=x^2 -2xy - y^2 -.5*x^3 -.25*x*y^2  -.6*x^2*y + .1*y^3
-  //-       spatialCoefficientsForTZ(1,1,0,e2)=-2.;
-  //-       spatialCoefficientsForTZ(0,2,0,e2)=-1.;
-  //-       spatialCoefficientsForTZ(3,0,0,e2)=-.5;
-  //-       spatialCoefficientsForTZ(1,2,0,e2)=-.25;
-  //-       spatialCoefficientsForTZ(2,1,0,e2)=-.6;
-  //-       spatialCoefficientsForTZ(0,3,0,e2)= .1;
-  //- 
-  //-     }
-  //-     else if( degreeSpace2==4 ) 
-  //-     {
-  //-       if( degreeSpaceZ==0 )
-  //-       {
-  //- 	spatialCoefficientsForTZ(2,0,0,e1)=1.;      // u=x^2 + 2xy + y^2 + .2*x^4 + .5*y^4 + xy^3
-  //- 	spatialCoefficientsForTZ(1,1,0,e1)=2.;
-  //- 	spatialCoefficientsForTZ(0,2,0,e1)=1.;
-  //- 
-  //- 	spatialCoefficientsForTZ(4,0,0,e1)=.2;   
-  //- 	spatialCoefficientsForTZ(0,4,0,e1)=.5;   
-  //- 	spatialCoefficientsForTZ(1,3,0,e1)=1.;   
-  //- 
-  //- 
-  //- 	spatialCoefficientsForTZ(2,0,0,e2)= 1.;      // v=x^2 -2xy - y^2 +.125*x^4 -.25*y^4 -.8*x^3 y
-  //- 	spatialCoefficientsForTZ(1,1,0,e2)=-2.;
-  //- 	spatialCoefficientsForTZ(0,2,0,e2)=-1.;
-  //- 
-  //- 	spatialCoefficientsForTZ(4,0,0,e2)=.125;
-  //- 	spatialCoefficientsForTZ(0,4,0,e2)=-.25;
-  //- 	spatialCoefficientsForTZ(3,1,0,e2)=-.8;
-  //-       }
-  //-       else if( degreeSpaceX==0 )// degreeSpaceX==0
-  //-       {
-  //-               
-  //- 	// switch x->z
-  //- 	spatialCoefficientsForTZ(0,0,2,e1)=1.;      // u=x^2 + 2xy + y^2 + .2*x^4 + .5*y^4 + xy^3
-  //- 	spatialCoefficientsForTZ(0,1,1,e1)=2.;
-  //- 	spatialCoefficientsForTZ(0,2,0,e1)=1.;
-  //- 
-  //- 	spatialCoefficientsForTZ(0,0,4,e1)=.2;   
-  //- 	spatialCoefficientsForTZ(0,4,0,e1)=.5;   
-  //- 	spatialCoefficientsForTZ(0,3,1,e1)=1.;   
-  //- 
-  //- 
-  //- 	spatialCoefficientsForTZ(0,0,2,e2)= 1.;      // v=x^2 -2xy - y^2 +.125*x^4 -.25*y^4 -.8*x^3 y
-  //- 	spatialCoefficientsForTZ(0,1,1,e2)=-2.;
-  //- 	spatialCoefficientsForTZ(0,2,0,e2)=-1.;
-  //- 
-  //- 	spatialCoefficientsForTZ(0,0,4,e2)=.125;
-  //- 	spatialCoefficientsForTZ(0,4,0,e2)=-.25;
-  //- 	spatialCoefficientsForTZ(0,1,3,e2)=-.8;
-  //-       }
-  //-       else  // degreeY==0   
-  //-       {
-  //- 	spatialCoefficientsForTZ(2,0,0,e1)=1.;      // u=x^2 + 2xy + y^2 + .2*x^4 + .5*y^4 + xy^3
-  //- 	spatialCoefficientsForTZ(1,0,1,e1)=2.;
-  //- 	spatialCoefficientsForTZ(0,0,2,e1)=1.;
-  //- 
-  //- 	spatialCoefficientsForTZ(4,0,0,e1)=.2;   
-  //- 	spatialCoefficientsForTZ(0,0,4,e1)=.5;   
-  //- 	spatialCoefficientsForTZ(1,0,3,e1)=1.;   
-  //- 
-  //- 
-  //- 	spatialCoefficientsForTZ(2,0,0,e2)= 1.;      // v=x^2 -2xy - y^2 +.125*x^4 -.25*y^4 -.8*x^3 y
-  //- 	spatialCoefficientsForTZ(1,0,1,e2)=-2.;
-  //- 	spatialCoefficientsForTZ(0,0,2,e2)=-1.;
-  //- 
-  //- 	spatialCoefficientsForTZ(4,0,0,e2)=.125;
-  //- 	spatialCoefficientsForTZ(0,0,4,e2)=-.25;
-  //- 	spatialCoefficientsForTZ(3,0,1,e2)=-.8;
-  //-       }
-  //- 	    
-  //-     }
-  //-     else
-  //-     {
-  //-       Overture::abort("unimplemented values of degreeSpace");
-  //-     }
-  //-   }
 
   // -----------------------------------------------------------------------------
   // --------------------- DEFINE POLYNOMIAL TZ SOLUTIONS ------------------------
@@ -350,9 +222,9 @@
 #endMacro
   
 
-// ********************************************************
-// *** This macro defines the polynomial TZ functions *****
-// ********************************************************
+// ===============================================================================================
+// *** Macro: This macro defines the polynomial TZ functions 
+// ===============================================================================================
 #beginMacro definePolynomialTZMacro()
 
 tz = new OGPolyFunction(degreeSpace,numberOfDimensions,numberOfComponentsForTZ,degreeTime);
@@ -383,6 +255,23 @@ if( numberOfDimensions==2 )
     spatialCoefficientsForTZ(0,0,0,ex)=1.;      // u=1
     spatialCoefficientsForTZ(0,0,0,ey)= 2.;      // v=2
     spatialCoefficientsForTZ(0,0,0,hz)=-1.;      // w=-1
+    // -- dispersion components: 
+    if( pxc>=0 )
+    {
+      spatialCoefficientsForTZ(0,0,0,pxc)=1.; 
+      spatialCoefficientsForTZ(0,0,0,pyc)=2.; 
+    }
+    if( qxc>=0 )
+    {
+      spatialCoefficientsForTZ(0,0,0,qxc)=3.; 
+      spatialCoefficientsForTZ(0,0,0,qyc)=4.; 
+    }
+    if( rxc>=0 )
+    {
+      spatialCoefficientsForTZ(0,0,0,rxc)=5.; 
+      spatialCoefficientsForTZ(0,0,0,ryc)=6.; 
+    }
+    
   }
   else if( degreeSpace==1 )
   {
@@ -404,6 +293,24 @@ if( numberOfDimensions==2 )
 
     spatialCoefficientsForTZ(1,0,0,muc )=mu*.015;   // x
     spatialCoefficientsForTZ(0,1,0,muc )=mu*.0125;  // y
+
+    // -- dispersion components: 
+    // ** FINISH ME **
+    if( pxc>=0 )
+    {
+      spatialCoefficientsForTZ(0,0,0,pxc)=1.; 
+      spatialCoefficientsForTZ(0,0,0,pyc)=2.; 
+    }
+    if( qxc>=0 )
+    {
+      spatialCoefficientsForTZ(0,0,0,qxc)=3.; 
+      spatialCoefficientsForTZ(0,0,0,qyc)=4.; 
+    }
+    if( rxc>=0 )
+    {
+      spatialCoefficientsForTZ(0,0,0,rxc)=5.; 
+      spatialCoefficientsForTZ(0,0,0,ryc)=6.; 
+    }
 
   }
   else if( degreeSpace==2 )
@@ -432,6 +339,32 @@ if( numberOfDimensions==2 )
     spatialCoefficientsForTZ(2,0,0,muc )=mu*.125;   // x^2
     spatialCoefficientsForTZ(0,2,0,muc )=mu*.15;    // y^2
 
+    // -- dispersion components: 
+    // ** FINISH ME **
+    if( pxc>=0 )
+    {
+      spatialCoefficientsForTZ(0,0,0,pxc)=1.; 
+      spatialCoefficientsForTZ(1,0,0,pxc)=.1; 
+      spatialCoefficientsForTZ(0,1,0,pxc)=.1; 
+      spatialCoefficientsForTZ(2,0,0,pxc)=.1; 
+      spatialCoefficientsForTZ(0,2,0,pxc)=.1; 
+
+      spatialCoefficientsForTZ(0,0,0,pyc)=2.; 
+      spatialCoefficientsForTZ(1,0,0,pyc)=.1; 
+      spatialCoefficientsForTZ(0,1,0,pyc)=.2; 
+      spatialCoefficientsForTZ(2,0,0,pyc)=-.1; 
+      spatialCoefficientsForTZ(0,2,0,pyc)=.1; 
+    }
+    if( qxc>=0 )
+    {
+      spatialCoefficientsForTZ(0,0,0,qxc)=3.; 
+      spatialCoefficientsForTZ(0,0,0,qyc)=4.; 
+    }
+    if( rxc>=0 )
+    {
+      spatialCoefficientsForTZ(0,0,0,rxc)=5.; 
+      spatialCoefficientsForTZ(0,0,0,ryc)=6.; 
+    }
   }
   else if( degreeSpace==3 )
   {
@@ -458,6 +391,23 @@ if( numberOfDimensions==2 )
     spatialCoefficientsForTZ(3,0,0,hz)= .25;
     spatialCoefficientsForTZ(0,3,0,hz)=-.25;
 
+    // -- dispersion components: 
+    // ** FINISH ME **
+    if( pxc>=0 )
+    {
+      spatialCoefficientsForTZ(0,0,0,pxc)=1.; 
+      spatialCoefficientsForTZ(0,0,0,pyc)=2.; 
+    }
+    if( qxc>=0 )
+    {
+      spatialCoefficientsForTZ(0,0,0,qxc)=3.; 
+      spatialCoefficientsForTZ(0,0,0,qyc)=4.; 
+    }
+    if( rxc>=0 )
+    {
+      spatialCoefficientsForTZ(0,0,0,rxc)=5.; 
+      spatialCoefficientsForTZ(0,0,0,ryc)=6.; 
+    }
   }
   else if( degreeSpace==4 || degreeSpace==5 )
   {
@@ -490,6 +440,23 @@ if( numberOfDimensions==2 )
     spatialCoefficientsForTZ(0,4,0,ey)=-.25;
     spatialCoefficientsForTZ(3,1,0,ey)=-.8;
 
+    // -- dispersion components: 
+    // ** FINISH ME **
+    if( pxc>=0 )
+    {
+      spatialCoefficientsForTZ(0,0,0,pxc)=1.; 
+      spatialCoefficientsForTZ(0,0,0,pyc)=2.; 
+    }
+    if( qxc>=0 )
+    {
+      spatialCoefficientsForTZ(0,0,0,qxc)=3.; 
+      spatialCoefficientsForTZ(0,0,0,qyc)=4.; 
+    }
+    if( rxc>=0 )
+    {
+      spatialCoefficientsForTZ(0,0,0,rxc)=5.; 
+      spatialCoefficientsForTZ(0,0,0,ryc)=6.; 
+    }
   }
   else if( degreeSpace>=6 )
   {
@@ -557,6 +524,23 @@ if( numberOfDimensions==2 )
     spatialCoefficientsForTZ(0,6,0,ey)=.1;
     spatialCoefficientsForTZ(5,1,0,ey)=-.6;
 
+    // -- dispersion components: 
+    // ** FINISH ME **
+    if( pxc>=0 )
+    {
+      spatialCoefficientsForTZ(0,0,0,pxc)=1.; 
+      spatialCoefficientsForTZ(0,0,0,pyc)=2.; 
+    }
+    if( qxc>=0 )
+    {
+      spatialCoefficientsForTZ(0,0,0,qxc)=3.; 
+      spatialCoefficientsForTZ(0,0,0,qyc)=4.; 
+    }
+    if( rxc>=0 )
+    {
+      spatialCoefficientsForTZ(0,0,0,rxc)=5.; 
+      spatialCoefficientsForTZ(0,0,0,ryc)=6.; 
+    }
 
   }
   else
@@ -571,7 +555,8 @@ if( numberOfDimensions==2 )
 else if( numberOfDimensions==3 )
 {
   // ** finish me -- make the E and H poly's be different
-  printF("*** initTZ functions: solveForElectricField=%i solveForMagneticField=%i\n",solveForElectricField,solveForMagneticField);
+  printF("*** initTZ functions: solveForElectricField=%i solveForMagneticField=%i\n",
+         solveForElectricField,solveForMagneticField);
 
   if ( solveForElectricField )
   {
@@ -582,12 +567,26 @@ else if( numberOfDimensions==3 )
   {
     initialize3DPolyTW(hx,hy,hz);
   }
+
+  // -- dispersion components: 
+  if( pxc>=0 ) 
+  {
+    initialize3DPolyTW(pxc,pyc,pzc);
+  }
+  if( qxc>=0 ) 
+  {
+    initialize3DPolyTW(qxc,qyc,qzc);
+  }
+  if( rxc>=0 ) 
+  {
+    initialize3DPolyTW(rxc,ryc,rzc);
+  }
   
   
 }
 else
 {
-  Overture::abort("ERROR:unimplemented number of dimensions");
+  OV_ABORT("ERROR:unimplemented number of dimensions");
 }
 
 

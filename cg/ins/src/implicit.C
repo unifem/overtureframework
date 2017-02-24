@@ -328,7 +328,9 @@ formMatrixForImplicitSolve(const real & dt0,
   // numberOfImplicitVelocitySolvers : counts the number of separate Oges solvers needs to solve for (u,v,w)
   int & numberOfImplicitVelocitySolvers = parameters.dbase.get<int>("numberOfImplicitVelocitySolvers");
   int & implicitSolverForTemperature = parameters.dbase.get<int>("implicitSolverForTemperature");
-  
+  const Parameters::ImplicitMethod & implicitMethod = 
+             parameters.dbase.get<Parameters::ImplicitMethod >("implicitMethod");  
+
   assert( implicitSolver!=NULL );
 
   // *******************************************
@@ -453,8 +455,34 @@ formMatrixForImplicitSolve(const real & dt0,
 	    printF(" ***Cgins::formMatrix: form matrix for Temperature equation kThermal=%f\n",diffusionCoefficent);
 	}
 	    
-	real nuDt = parameters.dbase.get<real >("implicitFactor")*diffusionCoefficent*dt0;
-
+	real nuDt;
+	if( implicitMethod==Parameters::crankNicolson )
+	{
+          nuDt = parameters.dbase.get<real >("implicitFactor")*diffusionCoefficent*dt0;
+	}
+	else if( implicitMethod==Parameters::implicitExplicitMultistep )
+	{
+          // IMEX: uses BDF for implicit part by default
+	  const int orderOfTimeAccuracy=parameters.dbase.get<int >("orderOfTimeAccuracy");
+	  real bdfFactor;
+          if( orderOfTimeAccuracy==2 )
+            bdfFactor=2./3.;
+	  else if( orderOfTimeAccuracy==4 )
+            bdfFactor=12./25;
+	  else
+	  {
+            OV_ABORT(" BDF - finish me");
+	  }
+	  printF("__formMatrixForImplicitSolve: form implicit matrix for BDF -- bdfFactor=%9.3e\n",bdfFactor);
+	  
+          nuDt= bdfFactor*diffusionCoefficent*dt0;
+	}
+	else
+	{
+	  OV_ABORT("implicit: unexpected implicitMethod");
+	}
+	
+	
 	equationCoefficients(0,G)= 1.;  // for heat equation solve I - nuDt* Delta
 
 	for( int grid=0; grid<cg.numberOfComponentGrids(); grid++ ) // *wdh* 040910 
@@ -1119,6 +1147,8 @@ insImplicitMatrix(InsParameters::InsImplicitMatrixOptionsEnum option,
   InsParameters::PDEModel & pdeModel = parameters.dbase.get<InsParameters::PDEModel >("pdeModel");
   const bool computeTemperature = (pdeModel==InsParameters::BoussinesqModel ||
 				   pdeModel==InsParameters::viscoPlasticModel);
+  const Parameters::ImplicitMethod & implicitMethod = 
+             parameters.dbase.get<Parameters::ImplicitMethod >("implicitMethod");  
 
   int numberOfComponentsForCoefficients = 0;
   int numberOfGhostLines = 0;
@@ -1436,7 +1466,24 @@ insImplicitMatrix(InsParameters::InsImplicitMatrixOptionsEnum option,
 
     // *wdh* 090716 -- bug found : insimp does not fill in just the identity for grids that
     // are explicit !  
-    real implicitFactor = parameters.dbase.get<real >("implicitFactor");
+    real implicitFactor;
+    if( implicitMethod==Parameters::crankNicolson || 
+        implicitMethod==Parameters::notImplicit )
+    {
+      implicitFactor = parameters.dbase.get<real >("implicitFactor");
+    }
+    else if( implicitMethod==Parameters::implicitExplicitMultistep )
+    {
+      // IMEX: uses BDF for implicit part by default
+      real bdfFactor=2./3.;
+      assert( parameters.dbase.get<int >("orderOfAccuracy")==2 ); // finish me
+      implicitFactor= bdfFactor;
+    }
+    else
+    {
+      OV_ABORT("implicit: unexpected implicitMethod");
+    }
+
     if( !parameters.getGridIsImplicit(grid) )
     {
       implicitFactor=0.;   // *wdh* 090716   *** do this for now =========== fix me =============

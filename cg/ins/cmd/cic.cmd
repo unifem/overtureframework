@@ -5,7 +5,8 @@
 #   cgins [-noplot] cic -g=<name> -tf=<> -tp=<> -nu=<> -ts=[pc|im|afs] -iv=[viscous|full] -tm=[les] ...
 #          -solver=[best|yale|mg] -project=[0|1] -model=[ins|boussinesq] ...
 #         -psolver=[best|yale|mg] -pc=[ilu|lu] -inflow=[uniform|parabolic|control|pressure|radial] -oscillate=[0|1] ...
-#         -wall=[noSlip|slip] -cyl=[noSlip|slip] -restart=<showFile> -cgSolver=[best|hypre] ...
+#         -wall=[noSlip|slip] -cyl=[noSlip|slip] -ao=[centered|upwind|bweno] 
+#         -restart=<showFile> -cgSolver=[best|hypre] ...
 #
 # Options:
 #  -project : 1=project initial conditions
@@ -17,6 +18,7 @@
 #  -oscillate : =1 to use an oscillating inflow 
 #  -wall : boundary condition for the top and bottom walls 
 #  -cyl : boundary condition for the cylinder
+#  -ao : advection option
 #
 # Examples:
 #   cgins cic -g=cice2.order2 
@@ -105,6 +107,8 @@ $Prandtl=.72; $thermalExpansivity=.1; $Tin=1.;
 #
 $append=0; # set to "1" to append to an existing show file 
 #
+$ao="centered"; $upwindOrder=-1;
+#
 $cgSolver="best"; # coarse grid solver for MG 
 # -- for Kyle's AF scheme:
 $afit = 10;  # max iterations for AFS
@@ -122,7 +126,8 @@ GetOptions( "g=s"=>\$grid,"tf=f"=>\$tFinal,"tp=f"=>\$tPlot,"nu=f"=>\$nu,"recompu
             "iv=s"=>\$iv,"newts=i"=>\$newts,"cfl=f"=>\$cfl, "model=s"=>\$model,"oscillate=i"=>\$oscillate,\
             "restart=s"=>\$restart,"Kp=f"=>\$Kp,"Ki=f"=>\$Ki,"Kd=f"=>\$Kd,"uInflow=f"=>\$uInflow,\
             "fullImplicitSystem=i"=>\$fullImplicitSystem,"cgSolver=s"=>\$cgSolver,"append=i"=>\$append,\
-            "slowStartCFL=f"=>\$slowStartCFL,"slowStartSteps=i"=>\$slowStartSteps,"slowStartRecomputeDt=i"=>\$slowStartRecomputeDt );
+            "slowStartCFL=f"=>\$slowStartCFL,"slowStartSteps=i"=>\$slowStartSteps,\
+            "slowStartRecomputeDt=i"=>\$slowStartRecomputeDt,"ao=s"=>\$ao,"upwindOrder=i"=>\$upwindOrder );
 #
 $kThermal=$nu/$Prandtl;
 if( $model eq "ins" ){ $model = "incompressible Navier Stokes"; }\
@@ -142,6 +147,9 @@ if( $ts eq "mid"){ $ts="midpoint"; }
 if( $ts eq "afs"){ $ts="approximate factorization"; $newts = 1;}
 if( $iv eq "full" ){ $iv = "useNewImplicitMethod\n use full implicit system 1\n implicitFullLinearized"; }else{ $iv="#"; }
 if( $order eq "2" ){ $order = "second order accurate"; }elsif( $order eq "4" ){ $order = "fourth order accurate"; }else{ $order="#"; }
+if( $ao eq "centered" ){ $ao="centered advection"; }
+if( $ao eq "upwind" ){ $ao="upwind advection"; }
+if( $ao eq "bweno" ){ $ao="bweno advection"; }
 if( $go eq "halt" ){ $go = "break"; }
 if( $go eq "og" ){ $go = "open graphics"; }
 if( $go eq "run" || $go eq "go" ){ $go = "movie mode\n finish"; }
@@ -179,6 +187,9 @@ $order
 # choose the time stepping:
   $ts
   $newts
+  # advection option:
+  $ao
+  upwind order: $upwindOrder
   # fullImplicitSystem=1: do not use multiple scalar systems for implicit solves, even if possible
   use full implicit system $fullImplicitSystem
   # -- for the AFS scheme:
@@ -272,6 +283,7 @@ $iv
    $cmd
   done
 #
+echo to terminal 0
   pressure solver options
    $ogesSolver=$psolver; $ogesRtol=$rtolp; $ogesAtol=$atolp; $ogesPC=$pc; $ogesDebug=$pdebug;
    # ******* TEMP: 
@@ -285,6 +297,7 @@ $iv
    $ogesSolver=$solver; $ogesRtol=$rtoli; $ogesAtol=$atoli; $ogesPC=$pc; $ogesDebug=$idebug;
    include $ENV{CG}/ins/cmd/ogesOptions.h
   exit
+echo to terminal 1
 # 
 # initial conditions: uniform flow or restart from a solution in a show file 
 if( $restart eq "" ){ $cmds = "uniform flow\n u=$uInflow, v=0., p=1., T=0."; }\

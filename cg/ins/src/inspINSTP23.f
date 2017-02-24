@@ -3408,34 +3408,65 @@ c===============================================================================
               ! printf("**apply mixed BC on pressure rhs...\n");
               ! if( addBoundaryForcing(side,axis).ne.0 .and. initialConditionsAreBeingProjected.eq.0 )then ! *wdh* 2013/12/01
               ! *wdh* 2014/11/21 - turn off RHS when projecting initial conditions:
-              if( addBoundaryForcing(side,axis).ne.0 .and. 
-     & initialConditionsAreBeingProjected.eq.0 )then
-               ! write(*,'("inspf:INFO: set pressure profile at outflow")')
-               if( useWhereMask.ne.0 )then
-                 do i3=n3a,n3b
-                 do i2=n2a,n2b
-                 do i1=n1a,n1b
-                   if( mask(i1,i2,i3).ne.0 )then
-                     f(i1+is1,i2+is2,i3+is3)=bcf(side,axis,i1,i2,i3,pc)
+              ! *wdh* 2016/11/25 -- make sure to use zero RHS when projecting initial conditions:
+              ! if( addBoundaryForcing(side,axis).ne.0 .and. initialConditionsAreBeingProjected.eq.0 )then 
+              if( addBoundaryForcing(side,axis).ne.0 )then
+                if( initialConditionsAreBeingProjected.eq.0 )then
+                 ! write(*,'("inspf:INFO: set pressure profile at outflow")')
+                 if( useWhereMask.ne.0 )then
+                   do i3=n3a,n3b
+                   do i2=n2a,n2b
+                   do i1=n1a,n1b
+                     if( mask(i1,i2,i3).ne.0 )then
+                       f(i1+is1,i2+is2,i3+is3)=bcf(side,axis,i1,i2,i3,
+     & pc)
 
 
 
-                   end if
-                 end do
-                 end do
-                 end do
-               else
-                 do i3=n3a,n3b
-                 do i2=n2a,n2b
-                 do i1=n1a,n1b
-                     f(i1+is1,i2+is2,i3+is3)=bcf(side,axis,i1,i2,i3,pc)
+                     end if
+                   end do
+                   end do
+                   end do
+                 else
+                   do i3=n3a,n3b
+                   do i2=n2a,n2b
+                   do i1=n1a,n1b
+                       f(i1+is1,i2+is2,i3+is3)=bcf(side,axis,i1,i2,i3,
+     & pc)
 
 
 
-                 end do
-                 end do
-                 end do
-               end if
+                   end do
+                   end do
+                   end do
+                 end if
+                else
+                 if( useWhereMask.ne.0 )then
+                   do i3=n3a,n3b
+                   do i2=n2a,n2b
+                   do i1=n1a,n1b
+                     if( mask(i1,i2,i3).ne.0 )then
+                       f(i1+is1,i2+is2,i3+is3)=0.
+
+
+
+                     end if
+                   end do
+                   end do
+                   end do
+                 else
+                   do i3=n3a,n3b
+                   do i2=n2a,n2b
+                   do i1=n1a,n1b
+                       f(i1+is1,i2+is2,i3+is3)=0.
+
+
+
+                   end do
+                   end do
+                   end do
+                 end if
+                end if
               else
                if( useWhereMask.ne.0 )then
                  do i3=n3a,n3b
@@ -3467,34 +3498,63 @@ c===============================================================================
               ! dirichlet :
               ! if( addBoundaryForcing(side,axis).ne.0 )then ! *wdh* 2013/12/01
               ! *wdh* 2014/11/21 - turn off RHS when projecting initial conditions:
-              if( addBoundaryForcing(side,axis).ne.0 .and. 
-     & initialConditionsAreBeingProjected.eq.0 )then
-               ! write(*,'("inspf:INFO: set pressure profile at outflow")')
-               if( useWhereMask.ne.0 )then
-                 do i3=n3a,n3b
-                 do i2=n2a,n2b
-                 do i1=n1a,n1b
-                   if( mask(i1,i2,i3).ne.0 )then
-                     f(i1,i2,i3)=bcf(side,axis,i1,i2,i3,pc)
+              ! *wdh* 2016/11/25 -- make sure to use zero RHS when projecting initial conditions:
+              ! if( addBoundaryForcing(side,axis).ne.0 .and. initialConditionsAreBeingProjected.eq.0 )then 
+              if( addBoundaryForcing(side,axis).ne.0 )then
+                if( initialConditionsAreBeingProjected.eq.0 )then
+                 ! write(*,'("inspf:INFO: set pressure profile at outflow")')
+                 if( useWhereMask.ne.0 )then
+                   do i3=n3a,n3b
+                   do i2=n2a,n2b
+                   do i1=n1a,n1b
+                     if( mask(i1,i2,i3).ne.0 )then
+                       f(i1,i2,i3)=bcf(side,axis,i1,i2,i3,pc)
 
 
 
-                   end if
-                 end do
-                 end do
-                 end do
-               else
-                 do i3=n3a,n3b
-                 do i2=n2a,n2b
-                 do i1=n1a,n1b
-                     f(i1,i2,i3)=bcf(side,axis,i1,i2,i3,pc)
+                     end if
+                   end do
+                   end do
+                   end do
+                 else
+                   do i3=n3a,n3b
+                   do i2=n2a,n2b
+                   do i1=n1a,n1b
+                       f(i1,i2,i3)=bcf(side,axis,i1,i2,i3,pc)
 
 
 
-                 end do
-                 end do
-                 end do
-               end if
+                   end do
+                   end do
+                   end do
+                 end if
+                else
+                 if( useWhereMask.ne.0 )then
+                   do i3=n3a,n3b
+                   do i2=n2a,n2b
+                   do i1=n1a,n1b
+                     if( mask(i1,i2,i3).ne.0 )then
+                       f(i1,i2,i3)=0.
+
+
+
+                     end if
+                   end do
+                   end do
+                   end do
+                 else
+                   do i3=n3a,n3b
+                   do i2=n2a,n2b
+                   do i1=n1a,n1b
+                       f(i1,i2,i3)=0.
+
+
+
+                   end do
+                   end do
+                   end do
+                 end if
+                end if
               else
                if( useWhereMask.ne.0 )then
                  do i3=n3a,n3b

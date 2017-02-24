@@ -10,7 +10,7 @@ buildTimeSteppingDialog(DialogData & dialog )
 {
   // Add the "method" dialog so it appears first
 
-  const int maxNumberOfTimeSteppingMethods=Parameters::numberOfTimeSteppingMethods+11; // kkc 100113 added for af schemes
+  const int maxNumberOfTimeSteppingMethods=Parameters::numberOfTimeSteppingMethods+12; 
   aString *cmd = new aString [maxNumberOfTimeSteppingMethods];
 
   int nt=0;
@@ -25,6 +25,7 @@ buildTimeSteppingDialog(DialogData & dialog )
   cmd[nt]="steady state RK";  nt++;
   cmd[nt]="steady state RK-line";  nt++;
   cmd[nt]="approximate factorization";  nt++;
+  cmd[nt]="implicit explicit multistep";  nt++;
 
 
   assert( nt<maxNumberOfTimeSteppingMethods );
@@ -54,6 +55,9 @@ buildTimeSteppingDialog(DialogData & dialog )
 
   aString discretizationOptionCommands[] = { "standard finite difference","compact finite difference",""};
   dialog.addOptionMenu("discretization",discretizationOptionCommands,discretizationOptionCommands,parameters.dbase.get<InsParameters::DiscretizationOptions>("discretizationOption"));
+
+  aString advectionOptionCommands[] = { "centered advection","upwind advection","bweno advection",""};
+  dialog.addOptionMenu("advection",advectionOptionCommands,advectionOptionCommands,parameters.dbase.get<InsParameters::AdvectionOptions>("advectionOption"));
 
   // build all the generic options now
   DomainSolver::buildTimeSteppingDialog(dialog);
@@ -190,12 +194,17 @@ getTimeSteppingOption(const aString & answer,
 
   }
   // *** ecLC
-  else if( answer=="implicit" )
+  else if( answer=="implicit" ||
+           answer=="implicit explicit multistep" )
   {
     parameters.dbase.get<Parameters::TimeSteppingMethod >("timeSteppingMethod")=Parameters::implicit;
     parameters.dbase.get<int >("orderOfPredictorCorrector")=2;
 
-    parameters.dbase.get<Parameters::ImplicitMethod >("implicitMethod")=Parameters::crankNicolson;
+    if( answer=="implicit" )
+      parameters.dbase.get<Parameters::ImplicitMethod >("implicitMethod")=Parameters::crankNicolson;
+    else
+      parameters.dbase.get<Parameters::ImplicitMethod >("implicitMethod")=Parameters::implicitExplicitMultistep;
+
     parameters.setGridIsImplicit();  // by default all grids are implicit for the implicit time stepping method
 
     parameters.dbase.get<int >("orderOfTimeAccuracy")=2;  // *wdh* 111127
@@ -243,6 +252,18 @@ getTimeSteppingOption(const aString & answer,
   else if ( answer=="compact finite difference" )
   {
     parameters.dbase.get<InsParameters::DiscretizationOptions>("discretizationOption") = InsParameters::compactDifference;
+  }
+  else if ( answer=="centered advection" )
+  {
+    parameters.dbase.get<InsParameters::AdvectionOptions>("advectionOption")=InsParameters::centeredAdvection;
+  }
+  else if ( answer=="upwind advection" )
+  {
+    parameters.dbase.get<InsParameters::AdvectionOptions>("advectionOption")=InsParameters::upwindAdvection;
+  }
+  else if ( answer=="bweno advection" )
+  {
+    parameters.dbase.get<InsParameters::AdvectionOptions>("advectionOption")=InsParameters::bwenoAdvection;
   }
   else 
   {

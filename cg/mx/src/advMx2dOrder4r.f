@@ -2,17 +2,17 @@
         subroutine advMx2dOrder4r(nd,n1a,n1b,n2a,n2b,n3a,n3b,nd1a,nd1b,
      & nd2a,nd2b,nd3a,nd3b,nd4a,nd4b,mask,rsxy,  um,u,un,f,fa, v,vvt2,
      & ut3,vvt4,ut5,ut6,ut7, bc, dis, varDis, ipar, rpar, ierr )
-c======================================================================
-c   Advance a time step for Maxwells equations
-c     OPTIMIZED version for rectangular grids.
-c nd : number of space dimensions
-c
-c ipar(0)  = option : option=0 - Maxwell+Artificial diffusion
-c                           =1 - AD only
-c
-c  dis(i1,i2,i3) : temp space to hold artificial dissipation
-c  varDis(i1,i2,i3) : coefficient of the variable artificial dissipation
-c======================================================================
+       !======================================================================
+       !   Advance a time step for Maxwells equations
+       !     OPTIMIZED version for rectangular grids.
+       ! nd : number of space dimensions
+       !
+       ! ipar(0)  = option : option=0 - Maxwell+Artificial diffusion
+       !                           =1 - AD only
+       !
+       !  dis(i1,i2,i3) : temp space to hold artificial dissipation
+       !  varDis(i1,i2,i3) : coefficient of the variable artificial dissipation
+       !======================================================================
         implicit none
         integer nd, n1a,n1b,n2a,n2b,n3a,n3b,nd1a,nd1b,nd2a,nd2b,nd3a,
      & nd3b,nd4a,nd4b
@@ -35,7 +35,7 @@ c======================================================================
         integer bc(0:1,0:2),ierr
         integer ipar(0:*)
         real rpar(0:*)
-c     ---- local variables -----
+       !     ---- local variables -----
         integer c,i1,i2,i3,n,gridType,orderOfAccuracy,orderInTime
         integer addForcing,orderOfDissipation,option
         integer useWhereMask,useWhereMaskSave,solveForE,solveForH,grid,
@@ -79,7 +79,10 @@ c     ---- local variables -----
         parameter(defaultTimeStepping=0,adamsSymmetricOrder3=1,
      & rungeKuttaFourthOrder=2,stoermerTimeStepping=3,
      & modifiedEquationTimeStepping=4)
-c...........start statement function
+        ! Dispersion models
+        integer noDispersion,drude
+        parameter( noDispersion=0, drude=1 )
+       !...........start statement function
         integer kd,m
         real rx,ry,rz,sx,sy,sz,tx,ty,tz
          real d12
@@ -966,7 +969,7 @@ c...........start statement function
         real mxdc2d4cConsEx,mxdc2d4cConsEy,mxdc2d4cConsEz
         real mxdc3d4Ex,mxdc3d4Ey,mxdc3d4Ez,mxdc3d4Hx,mxdc3d4Hy,
      & mxdc3d4Hz
-c real vr2,vs2,vrr2,vss2,vrs2,vLaplacian22
+       ! real vr2,vs2,vrr2,vss2,vrs2,vLaplacian22
         real cdt4by360,cdt6by20160
         real lap2d2,lap3d2,lap2d4,lap3d4,lap2d6,lap3d6,lap2d8,lap3d8,
      & lap2d2Pow2,lap3d2Pow2,lap2d2Pow3,lap3d2Pow3,lap2d2Pow4,
@@ -982,8 +985,10 @@ c real vr2,vs2,vrr2,vss2,vrs2,vLaplacian22
      & cdcHdx,cdcHdy,cdcHdz,cdcf
         real cdcE,cdcELap,cdcELapsq,cdcELapm,cdcHzxLap,cdcHzyLap
         real cdcH,cdcHLap,cdcHLapsq,cdcHLapm
-c real unxx22r,unyy22r,unxy22r,unx22r
-c.......statement functions for jacobian
+        ! dispersion
+        integer dispersionModel,pxc,pyc,pzc,qxc,qyc,qzc,rxc,ryc,rzc
+       ! real unxx22r,unyy22r,unxy22r,unx22r
+       !.......statement functions for jacobian
         rx(i1,i2,i3)=rsxy(i1,i2,i3,0,0)
         ry(i1,i2,i3)=rsxy(i1,i2,i3,0,1)
         rz(i1,i2,i3)=rsxy(i1,i2,i3,0,2)
@@ -993,7 +998,7 @@ c.......statement functions for jacobian
         tx(i1,i2,i3)=rsxy(i1,i2,i3,2,0)
         ty(i1,i2,i3)=rsxy(i1,i2,i3,2,1)
         tz(i1,i2,i3)=rsxy(i1,i2,i3,2,2)
-c     The next macro will define the difference approximation statement functions
+       !     The next macro will define the difference approximation statement functions
         d12(kd) = 1./(2.*dr(kd))
         d22(kd) = 1./(dr(kd)**2)
         ur2(i1,i2,i3,kd)=(u(i1+1,i2,i3,kd)-u(i1-1,i2,i3,kd))*d12(0)
@@ -3199,7 +3204,7 @@ c===============================================================================
      & i1,i2,i3-1,c))+2.*(lap3d2Pow2(i1,i2+1,i3+1,c)+lap3d2Pow2(i1,i2-
      & 1,i3+1,c)+lap3d2Pow2(i1,i2+1,i3-1,c)+lap3d2Pow2(i1,i2-1,i3-1,c)
      & ))*dydzi2
-c    ** 4th order ****
+       !    ** 4th order ****
         lap2d4(i1,i2,i3,c)=( -30.*u(i1,i2,i3,c)     +16.*(u(i1+1,i2,i3,
      & c)+u(i1-1,i2,i3,c))     -(u(i1+2,i2,i3,c)+u(i1-2,i2,i3,c)) )*
      & dxsq12i + ( -30.*u(i1,i2,i3,c)     +16.*(u(i1,i2+1,i3,c)+u(i1,
@@ -3233,7 +3238,7 @@ c    ** 4th order ****
      & i1,i2-2,i3,c)))*dysq12i+(-30.*lap3d4Pow2(i1,i2,i3,c)+16.*(
      & lap3d4Pow2(i1,i2,i3+1,c)+lap3d4Pow2(i1,i2,i3-1,c))-(lap3d4Pow2(
      & i1,i2,i3+2,c)+lap3d4Pow2(i1,i2,i3-2,c)))*dzsq12i
-c     *** 6th order ***
+       !     *** 6th order ***
         lap2d6(i1,i2,i3,c)= c00lap2d6*u(i1,i2,i3,c)     +c10lap2d6*(u(
      & i1+1,i2,i3,c)+u(i1-1,i2,i3,c)) +c01lap2d6*(u(i1,i2+1,i3,c)+u(
      & i1,i2-1,i3,c)) +c20lap2d6*(u(i1+2,i2,i3,c)+u(i1-2,i2,i3,c)) +
@@ -3265,7 +3270,7 @@ c     *** 6th order ***
      & c300lap3d6*(lap3d6(i1+3,i2,i3,c)+lap3d6(i1-3,i2,i3,c))+
      & c030lap3d6*(lap3d6(i1,i2+3,i3,c)+lap3d6(i1,i2-3,i3,c))+
      & c003lap3d6*(lap3d6(i1,i2,i3+3,c)+lap3d6(i1,i2,i3-3,c))
-c     *** 8th order ***
+       !     *** 8th order ***
         lap2d8(i1,i2,i3,c)=c00lap2d8*u(i1,i2,i3,c)      +c10lap2d8*(u(
      & i1+1,i2,i3,c)+u(i1-1,i2,i3,c))     +c01lap2d8*(u(i1,i2+1,i3,c)+
      & u(i1,i2-1,i3,c)) +c20lap2d8*(u(i1+2,i2,i3,c)+u(i1-2,i2,i3,c))  
@@ -3283,21 +3288,21 @@ c     *** 8th order ***
      & i1,i2,i3+3,c)+u(i1,i2,i3-3,c)) +c400lap3d8*(u(i1+4,i2,i3,c)+u(
      & i1-4,i2,i3,c))  +c040lap3d8*(u(i1,i2+4,i3,c)+u(i1,i2-4,i3,c)) +
      & c004lap3d8*(u(i1,i2,i3+4,c)+u(i1,i2,i3-4,c))
-c ******* artificial dissipation ******
+       ! ******* artificial dissipation ******
         du(i1,i2,i3,c)=u(i1,i2,i3,c)-um(i1,i2,i3,c)
-c      (2nd difference)
+       !      (2nd difference)
         fd22d(i1,i2,i3,c)= (     ( du(i1-1,i2,i3,c)+du(i1+1,i2,i3,c)+
      & du(i1,i2-1,i3,c)+du(i1,i2+1,i3,c) ) -4.*du(i1,i2,i3,c) )
-c
+       !
         fd23d(i1,i2,i3,c)=(     ( du(i1-1,i2,i3,c)+du(i1+1,i2,i3,c)+du(
      & i1,i2-1,i3,c)+du(i1,i2+1,i3,c)+du(i1,i2,i3-1,c)+du(i1,i2,i3+1,
      & c) ) -6.*du(i1,i2,i3,c) )
-c     -(fourth difference)
+       !     -(fourth difference)
         fd42d(i1,i2,i3,c)= (    -( du(i1-2,i2,i3,c)+du(i1+2,i2,i3,c)+
      & du(i1,i2-2,i3,c)+du(i1,i2+2,i3,c) ) +4.*( du(i1-1,i2,i3,c)+du(
      & i1+1,i2,i3,c)+du(i1,i2-1,i3,c)+du(i1,i2+1,i3,c) ) -12.*du(i1,
      & i2,i3,c) )
-c
+       !
         fd43d(i1,i2,i3,c)=(    -( du(i1-2,i2,i3,c)+du(i1+2,i2,i3,c)+du(
      & i1,i2-2,i3,c)+du(i1,i2+2,i3,c)+du(i1,i2,i3-2,c)+du(i1,i2,i3+2,
      & c) ) +4.*( du(i1-1,i2,i3,c)+du(i1+1,i2,i3,c)+du(i1,i2-1,i3,c)+
@@ -3381,14 +3386,14 @@ c
         max2dc44me(i1,i2,i3,n)=2.*u(i1,i2,i3,n)-um(i1,i2,i3,n)+cdtsq*
      & uLaplacian42(i1,i2,i3,n)+cdtsq12*uLapSq(n)
         ! This version for the 2-stage computation:
-c$$$ vr2(i1,i2,i3,kd)=(v(i1+1,i2,i3,kd)-v(i1-1,i2,i3,kd))*d12(0)
-c$$$ vs2(i1,i2,i3,kd)=(v(i1,i2+1,i3,kd)-v(i1,i2-1,i3,kd))*d12(1)
-c$$$
-c$$$ vrr2(i1,i2,i3,kd)=(-2.*v(i1,i2,i3,kd)+(v(i1+1,i2,i3,kd)+v(i1-1,i2,i3,kd)) )*d22(0)
-c$$$ vss2(i1,i2,i3,kd)=(-2.*v(i1,i2,i3,kd)+(v(i1,i2+1,i3,kd)+v(i1,i2-1,i3,kd)) )*d22(1)
-c$$$ vrs2(i1,i2,i3,kd)=(vr2(i1,i2+1,i3,kd)-vr2(i1,i2-1,i3,kd))*d12(1)
-c$$$
-c$$$ vlaplacian22(i1,i2,i3,kd)=(rx(i1,i2,i3)**2+ry(i1,i2,i3)**2)*c$$$      vrr2(i1,i2,i3,kd)+2.*(rx(i1,i2,i3)*sx(i1,i2,i3)+ ry(i1,i2,i3)*c$$$      sy(i1,i2,i3))*vrs2(i1,i2,i3,kd)+(sx(i1,i2,i3)**2+sy(i1,i2,i3)**c$$$      2)*vss2(i1,i2,i3,kd)+(rxx22(i1,i2,i3)+ryy22(i1,i2,i3))*vr2(i1,c$$$      i2,i3,kd)+(sxx22(i1,i2,i3)+syy22(i1,i2,i3))*vs2(i1,i2,i3,kd)
+       !$$$ vr2(i1,i2,i3,kd)=(v(i1+1,i2,i3,kd)-v(i1-1,i2,i3,kd))*d12(0)
+       !$$$ vs2(i1,i2,i3,kd)=(v(i1,i2+1,i3,kd)-v(i1,i2-1,i3,kd))*d12(1)
+       !$$$
+       !$$$ vrr2(i1,i2,i3,kd)=(-2.*v(i1,i2,i3,kd)+(v(i1+1,i2,i3,kd)+v(i1-1,i2,i3,kd)) )*d22(0)
+       !$$$ vss2(i1,i2,i3,kd)=(-2.*v(i1,i2,i3,kd)+(v(i1,i2+1,i3,kd)+v(i1,i2-1,i3,kd)) )*d22(1)
+       !$$$ vrs2(i1,i2,i3,kd)=(vr2(i1,i2+1,i3,kd)-vr2(i1,i2-1,i3,kd))*d12(1)
+       !$$$
+       !$$$ vlaplacian22(i1,i2,i3,kd)=(rx(i1,i2,i3)**2+ry(i1,i2,i3)**2)*!$$$      vrr2(i1,i2,i3,kd)+2.*(rx(i1,i2,i3)*sx(i1,i2,i3)+ ry(i1,i2,i3)*!$$$      sy(i1,i2,i3))*vrs2(i1,i2,i3,kd)+(sx(i1,i2,i3)**2+sy(i1,i2,i3)**!$$$      2)*vss2(i1,i2,i3,kd)+(rxx22(i1,i2,i3)+ryy22(i1,i2,i3))*vr2(i1,!$$$      i2,i3,kd)+(sxx22(i1,i2,i3)+syy22(i1,i2,i3))*vs2(i1,i2,i3,kd)
         max2dc44me2(i1,i2,i3,n)=2.*u(i1,i2,i3,n)-um(i1,i2,i3,n)+cdtsq*
      & uLaplacian42(i1,i2,i3,n)+cdtsq12*vLaplacian22(i1,i2,i3,n)
         max3dc44me(i1,i2,i3,n)=2.*u(i1,i2,i3,n)-um(i1,i2,i3,n)+cdtsq*
@@ -3422,7 +3427,7 @@ c$$$ vlaplacian22(i1,i2,i3,kd)=(rx(i1,i2,i3)**2+ry(i1,i2,i3)**2)*c$$$      vrr2(
      & +cdcELap*uLaplacian42(i1,i2,i3,ey)+cdcELapsq*vLaplacian22(i1,
      & i2,i3,ey)-cdcE*ux42(i1,i2,i3,hz)+cdcELapm*( umLaplacian22(i1,
      & i2,i3,ey) )
-c...........end   statement functions
+       !...........end   statement functions
         ! write(*,*) 'Inside advMaxwell...'
         cc    =rpar(0)  ! this is c
         dt    =rpar(1)
@@ -3471,6 +3476,16 @@ c...........end   statement functions
         useNewForcingMethod           =ipar(21)
         numberOfForcingFunctions      =ipar(22)
         fcur                          =ipar(23)
+        dispersionModel     =ipar(24)
+        pxc                 =ipar(25)
+        pyc                 =ipar(26)
+        pzc                 =ipar(27)
+        qxc                 =ipar(28)
+        qyc                 =ipar(29)
+        qzc                 =ipar(30)
+        rxc                 =ipar(31)
+        ryc                 =ipar(32)
+        rzc                 =ipar(33)
         fprev = mod(fcur-1+numberOfForcingFunctions,max(1,
      & numberOfForcingFunctions))
         fnext = mod(fcur+1                         ,max(1,
@@ -3505,6 +3520,10 @@ c...........end   statement functions
         dzi4=1./(dz**4)
         dxdzi2=1./(dx(0)*dx(0)*dz*dz)
         dydzi2=1./(dy*dy*dz*dz)
+        if( t.eq.0. .and. dispersionModel.ne.noDispersion )then
+           write(*,'("--advOpt-- dispersionModel=",i4," px,py,pz=",3i2)
+     & ') dispersionModel,pxc,pyc,pzc
+        end if
         if( useDivergenceCleaning.eq.1 )then
           ! Here are the coefficients that define the div cleaning formulae
           !    D+tD-t( E ) + alpha*( D0t E ) = c^2 Delta(E) + alpha*( (1/eps) Curl ( H ) )
@@ -3623,8 +3642,8 @@ c...........end   statement functions
           c64=( 109./240.)*dtsq
           c65=( -18./240.)*dtsq
         else if( orderInTime.eq.8 )then
-c     g := 1/60480 (236568 fv[4] + 88324 fv[0] - 121797 fv[1] + 245598 fv[2] 
-c     + 33190 fv[6] - 4125 fv[7] - 300227 fv[3] - 117051 fv[5])
+       !     g := 1/60480 (236568 fv[4] + 88324 fv[0] - 121797 fv[1] + 245598 fv[2] 
+       !     + 33190 fv[6] - 4125 fv[7] - 300227 fv[3] - 117051 fv[5])
           c80=(  88324./60480.)*dtsq ! from stoermer.maple
           c81=(-121797./60480.)*dtsq
           c82=( 245598./60480.)*dtsq
@@ -3664,7 +3683,7 @@ c     + 33190 fv[6] - 4125 fv[7] - 300227 fv[3] - 117051 fv[5])
         if( option.eq.1 ) then
           return
         end if
-c write(*,'(" advMaxwell: timeSteppingMethod=",i2)') timeSteppingMethod
+       ! write(*,'(" advMaxwell: timeSteppingMethod=",i2)') timeSteppingMethod
         if( timeSteppingMethod.eq.defaultTimeStepping )then
          write(*,'(" advMaxwell:ERROR: 
      & timeSteppingMethod=defaultTimeStepping -- this should be set")
@@ -3673,9 +3692,9 @@ c write(*,'(" advMaxwell: timeSteppingMethod=",i2)') timeSteppingMethod
          stop 83322
         end if
         if( gridType.eq.rectangular )then
-c       **********************************************
-c       *************** rectangular ******************
-c       **********************************************
+       !       **********************************************
+       !       *************** rectangular ******************
+       !       **********************************************
           ! ======================================================================================
           ! ==================   4th order in space and 4th order in time: =======================
           ! ======================================================================================
@@ -3728,7 +3747,7 @@ c       **********************************************
                    end if
                  else if( addForcing.ne.0 .and. .not.addDissipation )
      & then
-c add forcing to the first 3 equations
+                 ! add forcing to the first 3 equations
                    if( useWhereMask.ne.0 )then
                     do i3=n3a,n3b
                     do i2=n2a,n2b
@@ -3771,7 +3790,7 @@ c add forcing to the first 3 equations
                     end do
                    end if
                  else if( addForcing.eq.0 .and. addDissipation )then
-c add dissipation to the first 3 equations
+                 ! add dissipation to the first 3 equations
                    if( useWhereMask.ne.0 )then
                     do i3=n3a,n3b
                     do i2=n2a,n2b
@@ -3814,7 +3833,7 @@ c add dissipation to the first 3 equations
                     end do
                    end if
                  else
-c  add forcing and dissipation
+                 !  add forcing and dissipation
                    if( useWhereMask.ne.0 )then
                     do i3=n3a,n3b
                     do i2=n2a,n2b
@@ -3904,7 +3923,7 @@ c  add forcing and dissipation
                     end do
                    end if
                  else
-c add forcing to the first 3 equations
+                 ! add forcing to the first 3 equations
                    if( useWhereMask.ne.0 )then
                     do i3=n3a,n3b
                     do i2=n2a,n2b
@@ -3987,7 +4006,7 @@ c add forcing to the first 3 equations
                   end do
                  end if
                else if( addForcing.ne.0 .and. .not.addDissipation )then
-c add forcing to the first 3 equations
+               ! add forcing to the first 3 equations
                  if( useWhereMask.ne.0 )then
                   do i3=n3a,n3b
                   do i2=n2a,n2b
@@ -4030,7 +4049,7 @@ c add forcing to the first 3 equations
                   end do
                  end if
                else if( addForcing.eq.0 .and. addDissipation )then
-c add dissipation to the first 3 equations
+               ! add dissipation to the first 3 equations
                  if( useWhereMask.ne.0 )then
                   do i3=n3a,n3b
                   do i2=n2a,n2b
@@ -4073,7 +4092,7 @@ c add dissipation to the first 3 equations
                   end do
                  end if
                else
-c  add forcing and dissipation
+               !  add forcing and dissipation
                  if( useWhereMask.ne.0 )then
                   do i3=n3a,n3b
                   do i2=n2a,n2b
@@ -4161,7 +4180,7 @@ c  add forcing and dissipation
                   end do
                  end if
                else
-c add forcing to the first 3 equations
+               ! add forcing to the first 3 equations
                  if( useWhereMask.ne.0 )then
                   do i3=n3a,n3b
                   do i2=n2a,n2b
@@ -4253,7 +4272,7 @@ c add forcing to the first 3 equations
                   end if
                 else if( addForcing.ne.0 .and. .not.addDissipation )
      & then
-c add forcing to the first 3 equations
+                ! add forcing to the first 3 equations
                   if( useWhereMask.ne.0 )then
                    do i3=n3a,n3b
                    do i2=n2a,n2b
@@ -4296,7 +4315,7 @@ c add forcing to the first 3 equations
                    end do
                   end if
                 else if( addForcing.eq.0 .and. addDissipation )then
-c add dissipation to the first 3 equations
+                ! add dissipation to the first 3 equations
                   if( useWhereMask.ne.0 )then
                    do i3=n3a,n3b
                    do i2=n2a,n2b
@@ -4339,7 +4358,7 @@ c add dissipation to the first 3 equations
                    end do
                   end if
                 else
-c  add forcing and dissipation
+                !  add forcing and dissipation
                   if( useWhereMask.ne.0 )then
                    do i3=n3a,n3b
                    do i2=n2a,n2b
@@ -4427,7 +4446,7 @@ c  add forcing and dissipation
                   end if
                 else if( addForcing.ne.0 .and. .not.addDissipation )
      & then
-c add forcing to the first 3 equations
+                ! add forcing to the first 3 equations
                   if( useWhereMask.ne.0 )then
                    do i3=n3a,n3b
                    do i2=n2a,n2b
@@ -4470,7 +4489,7 @@ c add forcing to the first 3 equations
                    end do
                   end if
                 else if( addForcing.eq.0 .and. addDissipation )then
-c add dissipation to the first 3 equations
+                ! add dissipation to the first 3 equations
                   if( useWhereMask.ne.0 )then
                    do i3=n3a,n3b
                    do i2=n2a,n2b
@@ -4513,7 +4532,7 @@ c add dissipation to the first 3 equations
                    end do
                   end if
                 else
-c  add forcing and dissipation
+                !  add forcing and dissipation
                   if( useWhereMask.ne.0 )then
                    do i3=n3a,n3b
                    do i2=n2a,n2b
@@ -4597,7 +4616,7 @@ c  add forcing and dissipation
                  end do
                 end if
               else
-c add forcing to the first 3 equations
+              ! add forcing to the first 3 equations
                 if( useWhereMask.ne.0 )then
                  do i3=n3a,n3b
                  do i2=n2a,n2b

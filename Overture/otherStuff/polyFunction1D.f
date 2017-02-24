@@ -150,19 +150,36 @@
       end do
       end do
       end do
-      else
+      else if( laplace.eq.1 )then
 ! beginLoops(time=0.)
-      do n=nca,ncb
-      time=0.
-      do i3=nta,ntb
-      do i2=nsa,nsb
-      do i1=nra,nrb
-      r(i1,i2,i3,n)=0.
+       do n=nca,ncb
+       time=0.
+       do i3=nta,ntb
+       do i2=nsa,nsb
+       do i1=nra,nrb
+        r(i1,i2,i3,n)=0.
 ! endLoops()
-      end do
-      end do
-      end do
-      end do
+       end do
+       end do
+       end do
+       end do
+      else if( dx.gt.0 .or. dy.gt.0 .or. dz.gt.0 )then
+! beginLoops(time=0.)
+       do n=nca,ncb
+       time=0.
+       do i3=nta,ntb
+       do i2=nsa,nsb
+       do i1=nra,nrb
+        r(i1,i2,i3,n)=0.
+! endLoops()
+       end do
+       end do
+       end do
+       end do
+      else
+       write(*,*) 'polyFunction:ERROR derivative not implemented'
+       write(*,*) 'dx,dy,dz=',dx,dy,dz
+       stop 6543
       end if
       return
       end
@@ -439,19 +456,36 @@
       end do
       end do
       end do
-      else
+      else if( laplace.eq.1 )then
 ! beginLoops(time=0.)
-      do n=nca,ncb
-      time=0.
-      do i3=nta,ntb
-      do i2=nsa,nsb
-      do i1=nra,nrb
-      r(i1,i2,i3,n)=0.
+       do n=nca,ncb
+       time=0.
+       do i3=nta,ntb
+       do i2=nsa,nsb
+       do i1=nra,nrb
+        r(i1,i2,i3,n)=0.
 ! endLoops()
-      end do
-      end do
-      end do
-      end do
+       end do
+       end do
+       end do
+       end do
+      else if( dx.gt.1 .or. dy.gt.1 .or. dz.gt.1 )then
+! beginLoops(time=0.)
+       do n=nca,ncb
+       time=0.
+       do i3=nta,ntb
+       do i2=nsa,nsb
+       do i1=nra,nrb
+        r(i1,i2,i3,n)=0.
+! endLoops()
+       end do
+       end do
+       end do
+       end do
+      else
+       write(*,*) 'polyFunction:ERROR derivative not implemented'
+       write(*,*) 'dx,dy,dz=',dx,dy,dz
+       stop 6543
       end if
       return
       end
@@ -972,19 +1006,23 @@
       end do
       end do
       end do
-      else
+      else if( dx.gt.2 .or. dy.gt.2 .or. dz.gt.2 )then
 ! beginLoops(time=0.)
-      do n=nca,ncb
-      time=0.
-      do i3=nta,ntb
-      do i2=nsa,nsb
-      do i1=nra,nrb
-      r(i1,i2,i3,n)=0.
+       do n=nca,ncb
+       time=0.
+       do i3=nta,ntb
+       do i2=nsa,nsb
+       do i1=nra,nrb
+        r(i1,i2,i3,n)=0.
 ! endLoops()
-      end do
-      end do
-      end do
-      end do
+       end do
+       end do
+       end do
+       end do
+      else
+       write(*,*) 'polyFunction:ERROR derivative not implemented'
+       write(*,*) 'dx,dy,dz=',dx,dy,dz
+       stop 6543
       end if
       return
       end
@@ -1631,19 +1669,23 @@
       end do
       end do
       end do
-      else
+      else if( dx.gt.3 .or. dy.gt.3 .or. dz.gt.3 )then
 ! beginLoops(time=0.)
-      do n=nca,ncb
-      time=0.
-      do i3=nta,ntb
-      do i2=nsa,nsb
-      do i1=nra,nrb
-      r(i1,i2,i3,n)=0.
+       do n=nca,ncb
+       time=0.
+       do i3=nta,ntb
+       do i2=nsa,nsb
+       do i1=nra,nrb
+        r(i1,i2,i3,n)=0.
 ! endLoops()
-      end do
-      end do
-      end do
-      end do
+       end do
+       end do
+       end do
+       end do
+      else
+       write(*,*) 'polyFunction:ERROR derivative not implemented'
+       write(*,*) 'dx,dy,dz=',dx,dy,dz
+       stop 6543
       end if
       return
       end
@@ -2419,19 +2461,23 @@
       end do
       end do
       end do
-      else
+      else if( dx.gt.4 .or. dy.gt.4 .or. dz.gt.4 )then
 ! beginLoops(time=0.)
-      do n=nca,ncb
-      time=0.
-      do i3=nta,ntb
-      do i2=nsa,nsb
-      do i1=nra,nrb
-      r(i1,i2,i3,n)=0.
+       do n=nca,ncb
+       time=0.
+       do i3=nta,ntb
+       do i2=nsa,nsb
+       do i1=nra,nrb
+        r(i1,i2,i3,n)=0.
 ! endLoops()
-      end do
-      end do
-      end do
-      end do
+       end do
+       end do
+       end do
+       end do
+      else
+       write(*,*) 'polyFunction:ERROR derivative not implemented'
+       write(*,*) 'dx,dy,dz=',dx,dy,dz
+       stop 6543
       end if
       return
       end
@@ -3214,19 +3260,23 @@
       end do
       end do
       end do
-      else
+      else if( dx.gt.5 .or. dy.gt.5 .or. dz.gt.5 )then
 ! beginLoops(time=0.)
-      do n=nca,ncb
-      time=0.
-      do i3=nta,ntb
-      do i2=nsa,nsb
-      do i1=nra,nrb
-      r(i1,i2,i3,n)=0.
+       do n=nca,ncb
+       time=0.
+       do i3=nta,ntb
+       do i2=nsa,nsb
+       do i1=nra,nrb
+        r(i1,i2,i3,n)=0.
 ! endLoops()
-      end do
-      end do
-      end do
-      end do
+       end do
+       end do
+       end do
+       end do
+      else
+       write(*,*) 'polyFunction:ERROR derivative not implemented'
+       write(*,*) 'dx,dy,dz=',dx,dy,dz
+       stop 6543
       end if
       return
       end
@@ -4016,19 +4066,23 @@
       end do
       end do
       end do
-      else
+      else if( dx.gt.6 .or. dy.gt.6 .or. dz.gt.6 )then
 ! beginLoops(time=0.)
-      do n=nca,ncb
-      time=0.
-      do i3=nta,ntb
-      do i2=nsa,nsb
-      do i1=nra,nrb
-      r(i1,i2,i3,n)=0.
+       do n=nca,ncb
+       time=0.
+       do i3=nta,ntb
+       do i2=nsa,nsb
+       do i1=nra,nrb
+        r(i1,i2,i3,n)=0.
 ! endLoops()
-      end do
-      end do
-      end do
-      end do
+       end do
+       end do
+       end do
+       end do
+      else
+       write(*,*) 'polyFunction:ERROR derivative not implemented'
+       write(*,*) 'dx,dy,dz=',dx,dy,dz
+       stop 6543
       end if
       return
       end

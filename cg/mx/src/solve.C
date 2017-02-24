@@ -372,10 +372,30 @@ solve(GL_GraphicsInterface &gi )
 	
 	if( cg.numberOfDimensions()==2 )
 	{
-	  assert( numberOfComponents==3 );
 	  cgerrp->setName("Ex error",ex);
 	  cgerrp->setName("Ey error",ey);
 	  cgerrp->setName("Hz error",hz);
+	  if( dispersionModel==noDispersion )
+	  {
+   	    assert( numberOfComponents==3 );
+	  }
+	  else
+	  {
+            // -- dispersion components --
+	    cgerrp->setName("Px error",pxc);
+	    cgerrp->setName("Py error",pyc);
+	    if( orderOfAccuracyInSpace==4 )
+	    {
+	      cgerrp->setName("Qx error",qxc);
+	      cgerrp->setName("Qy error",qyc);
+	    }
+	    else if( orderOfAccuracyInSpace==6 )
+	    {
+	      cgerrp->setName("Rx error",rxc);
+	      cgerrp->setName("Ry error",ryc);
+	    }
+	  }
+	  
 	}
 	else
 	{
@@ -390,6 +410,25 @@ solve(GL_GraphicsInterface &gi )
 	    cgerrp->setName("Hx error",hx);
 	    cgerrp->setName("Hy error",hy);
 	    cgerrp->setName("Hz error",hz);
+	  }
+	  if( dispersionModel!=noDispersion )
+	  {
+            // -- dispersion components --
+	    cgerrp->setName("Px error",pxc);
+	    cgerrp->setName("Py error",pyc);
+	    cgerrp->setName("Pz error",pzc);
+	    if( orderOfAccuracyInSpace==4 )
+	    {
+	      cgerrp->setName("Qx error",qxc);
+	      cgerrp->setName("Qy error",qyc);
+	      cgerrp->setName("Qz error",qzc);
+	    }
+	    else if( orderOfAccuracyInSpace==6 )
+	    {
+	      cgerrp->setName("Rx error",rxc);
+	      cgerrp->setName("Ry error",ryc);
+	      cgerrp->setName("Rz error",rzc);
+	    }
 	  }
 	      
 	}

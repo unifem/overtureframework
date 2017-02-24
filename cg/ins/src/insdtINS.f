@@ -1,19 +1,20 @@
 ! This file automatically generated from insdtINS.bf with bpp.
-c ===========================================================================
-c   Incompressible Navier-Stokes : explicit discretization 
-c ===========================================================================
+! ===========================================================================
+!   Incompressible Navier-Stokes : explicit discretization 
+! ===========================================================================
 
 
-c ===============================================================================
-c This file is included by
-c     insdtINS.bf 
-c     insdtKE.bf
-c     insdtSPAL.bf
-c     insdtVP.bf
-c ==============================================================================
+!  -*- mode: F90 -*-
+! ===============================================================================
+! This file is included by
+!     insdtINS.bf 
+!     insdtKE.bf
+!     insdtSPAL.bf
+!     insdtVP.bf
+! ==============================================================================
 
-c These next include files will define the macros that will define the difference approximations
-c The actual macro is called below
+! These next include files will define the macros that will define the difference approximations
+! The actual macro is called below
 c Use this next macro to declare the statement functions that are defined below
 c To include derivatives of rx use OPTION=RX
 
@@ -68,58 +69,112 @@ c================================================================
 
 
 
-c Define the artificial diffusion coefficients
-c gt should be R or C (gridType is Rectangular or Curvilinear)
-c tb should be blank or SA  (SA=Spalart-Allamras turbulence model)
+! Define the artificial diffusion coefficients
+! gt should be R or C (gridType is Rectangular or Curvilinear)
+! tb should be blank or SA  (SA=Spalart-Allamras turbulence model)
 
-c Define macros for the derivatives based on the dimension, order of accuracy and grid-type
-
-
-c =============================================================
-c Compute derivatives of u,v,w 
-c =============================================================
+! Define macros for the derivatives based on the dimension, order of accuracy and grid-type
 
 
-
-
-
-c***************************************************************
-c  Define the equations for EXPLICIT time stepping
-c
-c ORDER: 2,4
-c DIM: 2,3
-c GRIDTYPE: rectangular, curvilinear
-c
-c***************************************************************
-
-
-
-c====================================================================================
-c
-c====================================================================================
-
-
-c======================================================================================
-c Define the subroutine to compute du/dt
-c
-c======================================================================================
-
-c 
-c : empty version for linking when we do not want an option
-c
+! =============================================================
+! Compute derivatives of u,v,w 
+! =============================================================
 
 
 
 
 
+!***************************************************************
+!  Define the equations for EXPLICIT time stepping
+!
+! ORDER: 2,4
+! DIM: 2,3
+! GRIDTYPE: rectangular, curvilinear
+!
+!***************************************************************
 
-c====================================================================
-c This macro will build the statements that form the body of the loop
-c
-c IMPEXP: EXPLICIT, EXPLICIT_ONLY, BOTH
-c SCALAR: NONE
-c         PASSIVE - include equations for a passive scalar
-c AXISYMMETRIC : YES or NO
-c====================================================================
+
+
+!====================================================================================
+!
+!====================================================================================
+
+
+!======================================================================================
+! Define the subroutine to compute du/dt
+!
+!======================================================================================
+
+! 
+! : empty version for linking when we do not want an option
+!
+
+
+
+
+
+!  -*- mode: F90 -*-
+! Define macros to evaluate an advection term (a.grad) u
+!
+
+
+
+! --------------------------------------------------------------------------------
+!  Macro: getUpwindAdvection
+! 
+! --------------------------------------------------------------------------------
+
+
+! --------------------------------------------------------------------------------
+!  Macro: getBwenoAdvection
+! --------------------------------------------------------------------------------
+
+
+! --------------------------------------------------------------------------------
+!  Macro: getAdvection
+! 
+! u(i1,i2,i3,.) (input) : current solution
+! (i1,i2,i3) (input) : get advection terms solution at this point
+! advectionOption (input) : 
+! SCALAR: NONE
+!         PASSIVE - include equations for a passive scalar
+!
+! DIM,ORDER,GRIDTYPE (input) :
+! UPWIND (input) : CENTERED, UPWIND or BWENO
+! 
+!  agu(m,n) (output) : m=0,1,nd, n=0,1,nd
+!     agu(0,0) : u*ux 
+!     agu(1,0) : v*uy
+!     agu(2,0) : w*uz 
+!
+!     agu(0,1) : u*vx 
+!     agu(1,1) : v*vy
+!     agu(2,1) : w*vz 
+!
+!     agu(0,2) : u*wx 
+!     agu(1,2) : v*wy
+!     agu(2,2) : w*wz 
+! --------------------------------------------------------------------------------
+
+!====================================================================
+! This macro will build the statements that form the body of the loop
+!
+! IMPEXP: EXPLICIT, EXPLICIT_ONLY, BOTH
+! SCALAR: NONE
+!         PASSIVE - include equations for a passive scalar
+! AXISYMMETRIC : YES or NO
+! UPWIND : CENTERED, UPWIND or BWENO
+!====================================================================
+
+ !====================================================================
+ ! *OLD*
+ ! This macro will build the statements that form the body of the loop
+ !
+ ! IMPEXP: EXPLICIT, EXPLICIT_ONLY, BOTH
+ ! SCALAR: NONE
+ !         PASSIVE - include equations for a passive scalar
+ ! AXISYMMETRIC : YES or NO
+ !====================================================================
+
 
 

@@ -70,9 +70,9 @@ SRC = tz.C OGFunction.C OGPolyFunction.C OGTrigFunction.C OGPulseFunction.C \
 BodyForce.C : BodyForce.bC; $(BPP) -quiet -clean $<
 
 # 
-polyFunction1D.f : polyFunction.bf; $(BPP) polyFunction.bf
+polyFunction1D.f : polyFunction.bf polyFunction.h; $(BPP) polyFunction.bf
 
-polyEvaluate1D.F : polyFunction.bf; $(BPP) polyFunction.bf
+polyEvaluate1D.F : polyFunction.bf polyFunction.h; $(BPP) polyFunction.bf
 OGPolyFunction.C : OGPolyFunction.bC; $(BPP) OGPolyFunction.bC
 displayMask.C    : displayMask.bC; $(BPP) displayMask.bC
 

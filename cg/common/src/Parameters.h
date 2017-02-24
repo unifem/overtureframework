@@ -188,7 +188,8 @@ enum ImplicitMethod
   lineImplicit,
   trapezoidal,
   approximateFactorization,
-  backwardDifferentiationFormula
+  backwardDifferentiationFormula,
+  implicitExplicitMultistep  // Implicit-Explicit multistep method 
 };
 
 enum ImplicitOption

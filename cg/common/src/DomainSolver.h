@@ -873,7 +873,7 @@ void writeParameterSummary( FILE * file );
 enum Dimensions
 {
   maximumNumberOfGridFunctionsToUse=5,
-  maximumNumberOfExtraFunctionsToUse=4
+  maximumNumberOfExtraFunctionsToUse=5
 };    
 
 real dt;

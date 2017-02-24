@@ -121,7 +121,57 @@ interfaceRightHandSide( InterfaceOptionsEnum option,
                                                 GridFaceDescriptor & gfd, 
                   			int gfIndex, real t )
 {
-  // return DomainSolver::interfaceRightHandSide(option,interfaceDataOptions,info,gfIndex,t);
+
+    if( gfIndex==-1 )
+    {
+    // Find the solution that matches time=t
+        const int & currentGF = parameters.dbase.get<int>("currentGF");
+        const int & nextGF    = parameters.dbase.get<int>("nextGF");
+
+        assert( current>=0 );
+        if( gf[current].t == t )
+        {
+            gfIndex=current;
+        }
+        else if( currentGF<0 )   // do this for now
+        {
+            gfIndex=current;
+            printF("Cgsm: interfaceRightHandSide:WARNING cannot find gfIndex to match t=%9.3e, using current...\n",t);
+        }
+        else
+        {
+        
+            if( !(currentGF>=0 && nextGF>=0) )
+            {
+      	printF("Cgsm: interfaceRightHandSide:ERROR: t=%9.2e, current=%i gf[current].t=%9.2e, currentGF=%i, nextGF=%i\n",
+             	       t,current,gf[current].t,currentGF,nextGF);
+      	OV_ABORT("FIX ME");
+            }
+
+            if( gf[currentGF].t == t )
+            {
+      	gfIndex=currentGF;
+            }
+            else if( gf[nextGF].t == t )
+            {
+      	gfIndex=nextGF;
+            }
+            else 
+            {
+	// ************** FIX ME ************
+      	printF("Cgsm: interfaceRightHandSide:WARNING cannot find gfIndex to match t=%9.3e\n"
+             	       "      currentGF=%i, gf[currentGF].t=%9.3e, nextGF=%i, gf[nextGF].t=%9.3e\n",
+             	       t,currentGF,gf[currentGF].t,nextGF,gf[nextGF].t);
+      	if( fabs(gf[currentGF].t-t) <  fabs(gf[nextGF].t-t) )
+        	  gfIndex=currentGF; 
+      	else
+        	  gfIndex=nextGF; 
+	// OV_ABORT("fix me");
+            }
+        }
+        
+    }
+    
 
   // *wdh* 081212 CompositeGrid & cg = gf[0].cg;
     CompositeGrid & cg = gf[gfIndex].cg;
@@ -411,18 +461,19 @@ interfaceRightHandSide( InterfaceOptionsEnum option,
             }
         
         }
+
         else if( option==getInterfaceRightHandSide )
         {
 
-      // -----------------------------------
-      // ---- Return the interface data ----
-      // -----------------------------------
+      // ****************************************************************************
+      // *********************Return the interface data******************************
+      // ****************************************************************************
 
-            if( !(interfaceDataOptions & Parameters::positionInterfaceData) )
-            {
-      	printP("interfaceRightHandSide:get:ERROR: interfaceDataOptions does not include positionInterfaceData??\n");
-      	OV_ABORT("error");
-            }
+      // if( !(interfaceDataOptions & Parameters::positionInterfaceData) )
+      // {
+      // 	printP("interfaceRightHandSide:get:ERROR: interfaceDataOptions does not include positionInterfaceData??\n");
+      // 	OV_ABORT("error");
+      // }
             
             realMappedGridFunction & u = gf[gfIndex].u[grid];
             OV_GET_SERIAL_ARRAY(real,u,uLocal);
@@ -519,11 +570,71 @@ interfaceRightHandSide( InterfaceOptionsEnum option,
             if( interfaceDataOptions & Parameters::tractionInterfaceData )
             {
 	// -- save the interface traction --
-      	if( debug() & 2 )
-        	  printP("Cgsm:interfaceRightHandSide: Save the interface traction.  FINISH ME \n");
-
       	C=Range(numSaved,numSaved+numberOfDimensions-1);   // save traction in these components of f
 
+      	if( true || debug() & 2 )
+        	  printP(">>>Cgsm:interfaceRHS: Save interface traction.. t=%9.3e in C=[%i,%i] <<<\n",
+                                    t,C.getBase(),C.getBound());
+
+
+                assert( pdeVariation == SmParameters::godunov );
+                const int pdeTypeForGodunovMethod = parameters.dbase.get<int >("pdeTypeForGodunovMethod");
+                assert( pdeTypeForGodunovMethod==0 ); // linear-elasticity
+
+        // ------ get the traction  --------
+                const int s11c = parameters.dbase.get<int >("s11c"); assert( s11c>=0 );
+                const int s12c = parameters.dbase.get<int >("s12c"); assert( s12c>=0 );
+                const int s22c = parameters.dbase.get<int >("s22c"); assert( s22c>=0 );
+
+        // -- here is the normal to the un-deformed surface -- do this for now
+      	mg.update(MappedGrid::THEvertexBoundaryNormal);
+                #ifdef USE_PPP
+                    realSerialArray & normal = mg.vertexBoundaryNormalArray(side,axis);
+                #else
+                    realSerialArray & normal = mg.vertexBoundaryNormal(side,axis);
+                #endif
+
+        // 
+        // traction:  nv^T sigma
+        // We need the normal and Cauchy stress tensor
+                if( numberOfDimensions==2 )
+      	{
+          	    
+        	  int c0=numSaved, c1=c0+1;
+        	  f(I1,I2,I3,c0)=( normal(I1,I2,I3,0)*uLocal(I1,I2,I3,s11c) +
+                      		 	   normal(I1,I2,I3,1)*uLocal(I1,I2,I3,s12c) );
+      	
+        	  f(I1,I2,I3,c1)=( normal(I1,I2,I3,0)*uLocal(I1,I2,I3,s12c) +
+                     			   normal(I1,I2,I3,1)*uLocal(I1,I2,I3,s22c) );
+      	}
+      	else
+      	{
+        	  OV_ABORT("finish me for 3D");
+      	}
+      	
+
+//- // compute the solid normal (n1s,n2s)
+//- #beginMacro getSolidNormal()
+//-  rx2=rsxy2(j1,j2,j3,axis2,0)
+//-  ry2=rsxy2(j1,j2,j3,axis2,1)
+//-  r2Norm=normalSign2*max(epsx,sqrt(rx2**2+ry2**2))
+//-  n1s=rx2/r2Norm
+//-  n2s=ry2/r2Norm
+//- #endMacro
+//- 
+//-         // -- linear elasticity: 
+//- 	s11s =u2(j1,j2,j3,s11c);
+//- 	s12s =u2(j1,j2,j3,s12c);
+//- 	s22s =u2(j1,j2,j3,s22c);
+//-         // compute the solid normal (n1s,n2s)
+//- 	getSolidNormal();
+//-         //  solid traction is ns.sigmas:
+//-         traction1 = n1s*s11s + n2s*s12s  
+//-         traction2 = n1s*s12s + n2s*s22s
+
+
+        // OV_ABORT("Finish me: save the traction");
+      	
 	// f(I1,I2,I3,C)=uLocal(I1,I2,I3,V);
 
       	numSaved+=numberOfDimensions;

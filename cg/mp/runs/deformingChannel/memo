@@ -1,4 +1,70 @@
 *************************************
+******* Nov 27, 2016
+
+
+COARSE GRID
+$cgmpx deformingChannel -method=ins -g=deformingChannelGridX51.order2 -addedMass=1 -scf=1. -u0=0. -nu=.01 -tp=.1 -tf=20 -nc=1 -pOffset=0. -smVariation=g -rhoSolid=100. -lambdaSolid=1. -muSolid=1. -debug=1 -pi=0 -multiDomainAlgorithm=1 -uShock=0. -ap=.1 -flushFrequency=2 -bcOption=4 -debug=3 -sideBC=slipWall -go=halt
+
+
+*************************************
+******* Nov 23-24-25-26, 2016
+
+
+AMP PRELIM WORK
+
+COmpare AMP to TP
+
+AMP
+$cgmpx deformingChannel -method=ins -g=deformingChannelGrid2.order2 -addedMass=1 -scf=1. -u0=0. -nu=.01 -tp=.2 -tf=20 -nc=1 -pOffset=0. -smVariation=g -rhoSolid=100. -lambdaSolid=1. -muSolid=1. -debug=1 -pi=0 -multiDomainAlgorithm=1 -uShock=0. -ap=.1 -flushFrequency=2 -bcOption=4 -debug=3 -sideBC=slipWall -go=halt
+
+---NO -AMP 
+$cgmpx deformingChannel -method=ins -g=deformingChannelGrid2.order2 -addedMass=0 -scf=1. -u0=0. -nu=.01 -tp=.2 -tf=20 -nc=1 -pOffset=0. -smVariation=g -rhoSolid=100. -lambdaSolid=1. -muSolid=1. -debug=1 -pi=0 -multiDomainAlgorithm=1 -uShock=0. -ap=.1 -flushFrequency=2 -bcOption=4 -debug=3 -sideBC=slipWall -go=halt
+
+
+
+TURN ON AMP:
+
+Lighter and stiffer: 
+$cgmpx deformingChannel -method=ins -g=deformingChannelGrid2.order2 -addedMass=1 -scf=1. -u0=0. -nu=.01 -tp=.1 -tf=20 -nc=1 -pOffset=0. -smVariation=g -rhoSolid=20. -lambdaSolid=10. -muSolid=10. -debug=1 -pi=0 -multiDomainAlgorithm=1 -uShock=0. -ap=.1 -flushFrequency=2 -bcOption=4 -debug=3 -sideBC=slipWall -go=halt
+
+stiffer solid --OK 
+$cgmpx deformingChannel -method=ins -g=deformingChannelGrid2.order2 -addedMass=1 -scf=1. -u0=0. -nu=.01 -tp=.2 -tf=20 -nc=1 -pOffset=0. -smVariation=g -rhoSolid=100. -lambdaSolid=10. -muSolid=10. -debug=1 -pi=0 -multiDomainAlgorithm=1 -uShock=0. -ap=.1 -flushFrequency=2 -bcOption=4 -debug=3 -sideBC=slipWall -go=halt
+
+
+
+
+**** STARTs to work
+
+
+COARSE GRID
+$cgmpx deformingChannel -method=ins -g=deformingChannelGridX51.order2 -addedMass=1 -scf=1. -u0=0. -nu=.01 -tp=.2 -tf=20 -nc=1 -pOffset=0. -smVariation=g -rhoSolid=100. -lambdaSolid=1. -muSolid=1. -debug=1 -pi=0 -multiDomainAlgorithm=1 -uShock=0. -ap=.1 -flushFrequency=2 -bcOption=4 -debug=3 -sideBC=slipWall -go=halt
+
+
+$cgmpx deformingChannel -method=ins -g=deformingChannelGrid2.order2 -addedMass=1 -scf=1. -u0=0. -nu=.01 -tp=.2 -tf=20 -nc=1 -pOffset=0. -smVariation=g -rhoSolid=100. -lambdaSolid=1. -muSolid=1. -debug=1 -pi=0 -multiDomainAlgorithm=1 -uShock=0. -ap=.1 -flushFrequency=2 -bcOption=4 -debug=3 -sideBC=slipWall -go=halt
+
+
+$cgmpx -noplot deformingChannel -method=ins -g=deformingChannelGrid2.order2 -addedMass=1 -scf=1. -u0=0. -nu=.01 -tp=.2 -tf=20 -nc=1 -pOffset=0. -smVariation=g -rhoSolid=100. -lambdaSolid=1. -muSolid=1. -debug=1 -pi=0 -multiDomainAlgorithm=1 -uShock=0. -ap=.1 -flushFrequency=2 -bcOption=4 -debug=3 -sideBC=slipWall -go=halt
+
+---NO -AMP 
+$cgmpx deformingChannel -method=ins -g=deformingChannelGrid2.order2 -addedMass=0 -scf=1. -u0=0. -nu=.01 -tp=.2 -tf=20 -nc=1 -pOffset=0. -smVariation=g -rhoSolid=100. -lambdaSolid=1. -muSolid=1. -debug=1 -pi=0 -multiDomainAlgorithm=1 -uShock=0. -ap=.1 -flushFrequency=2 -bcOption=4 -debug=3 -sideBC=slipWall -go=halt
+
+
+*************************************
+******* Nov 12, 2016
+
+START AMP FOR INS+SM
+
+
+
+ADDED-MASS:
+$cgmpx deformingChannel -method=ins -g=deformingChannelGrid4.order2 -addedMass=1 -scf=1. -u0=0. -nu=.01 -tp=.2 -tf=20 -nc=1 -pOffset=0. -smVariation=g -rhoSolid=100. -lambdaSolid=1. -muSolid=1. -debug=1 -pi=0 -multiDomainAlgorithm=1 -uShock=0. -ap=.1 -flushFrequency=2 -bcOption=4 -debug=3 -sideBC=slipWall -go=halt
+
+
+NO-ADDED-MASS
+$cgmpx deformingChannel -method=ins -g=deformingChannelGrid4.order2 -scf=1. -u0=0. -nu=.01 -tp=.2 -tf=20 -nc=1 -pOffset=0. -smVariation=g -rhoSolid=100. -lambdaSolid=1. -muSolid=1. -debug=1 -pi=0 -multiDomainAlgorithm=1 -uShock=0. -ap=.1 -flushFrequency=2 -bcOption=4 -debug=3 -sideBC=slipWall -go=halt
+
+
+*************************************
 ******* Nov 12, 2016
 
 REVISIT INS + SM 

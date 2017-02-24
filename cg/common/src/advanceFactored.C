@@ -40,7 +40,7 @@ const int CG_ApproximateFactorization::parallelBC = -31415;
 // ===============================================================================
 ///  MACRO:  Perform the initialization step for the PC method
 ///
-///  \METHOD (input) : name of the method: adamsPC or implicitPC
+///  \METHOD (input) : name of the method: e.g. adamsPC or implicitPC
 ///  Parameters:
 ///   numberOfPastTimes (input) : method needs u(t-dt), ... u(t-n*dt), n=numberOfPastTimes  
 ///   numberOfPastTimeDerivatives (input) : method needs u_t(t-dt), ..., u_t(t-m*dt) m=numberOfPastTimeDerivatives

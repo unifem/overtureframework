@@ -359,6 +359,7 @@ initializeTimeSteppingBDF( real & t0, real & dt0 )
   real *dtp = adamsData.dtp;
 
   const int orderOfAccuracy = parameters.dbase.get<int >("orderOfAccuracy");
+  const int orderOfTimeAccuracy = parameters.dbase.get<int >("orderOfTimeAccuracy");
   const int & predictorOrder = parameters.dbase.get<int>("predictorOrder");
   if( predictorOrder<0 || predictorOrder>2 )
   {
@@ -415,6 +416,8 @@ initializeTimeSteppingBDF( real & t0, real & dt0 )
   // **** To initialize the method we need to compute du/dt at times t and t-dt *****
 
   // this is a macro (pcMacros.h):
+  const int & numberOfSolutionLevels = parameters.dbase.get<int>("numberOfSolutionLevels");
+  const int & numberOfTimeDerivativeLevels = parameters.dbase.get<int>("numberOfTimeDerivativeLevels");
   int numberOfExtraPressureTimeLevels=0;
   const int numberOfPastTimes=orderOfBDF-1;      // BDF needs u(t-dt), ... u(t-n*dt), n=numberOfPastTimes  
   const int numberOfPastTimeDerivatives=0;       // BDF needs no past u_t

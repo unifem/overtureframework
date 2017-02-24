@@ -315,7 +315,9 @@ writeParameterSummary( FILE * file )
              parameters.dbase.get<Parameters::TimeSteppingMethod>("timeSteppingMethod");
 
   fPrintF(file,"\n");
-  fPrintF(file," nu=%e, cdv=%g, cDt=%g, dtMax=%g\n",parameters.dbase.get<real >("nu"),
+  fPrintF(file," nu=%e, density=%g, cdv=%g, cDt=%g, dtMax=%g\n",
+          parameters.dbase.get<real >("nu"),
+          parameters.dbase.get<real >("fluidDensity"),
 	  parameters.dbase.get<real >("cdv"),parameters.dbase.get<real >("cDt"),
           parameters.dbase.get<real >("dtMax"));
       
@@ -395,6 +397,15 @@ writeParameterSummary( FILE * file )
     fPrintF(file," Project the initial conditions.\n");
   else
     fPrintF(file," Do NOT project the initial conditions.\n");
+
+  const InsParameters::AdvectionOptions advectionOption= 
+                  parameters.dbase.get<InsParameters::AdvectionOptions>("advectionOption");
+  fPrintF(file," Advection option = %s,",
+	  (advectionOption==InsParameters::centeredAdvection ? "centered advection" :
+           advectionOption==InsParameters::upwindAdvection ? "upwind advection" :
+           advectionOption==InsParameters::bwenoAdvection ? "bweno advection" : "unknown"));
+  const int upwindOrder = parameters.dbase.get<int>("upwindOrder");
+  fPrintF(file," upwindOrder=%i.\n",upwindOrder);
 
   if( timeSteppingMethod==Parameters::implicit )
   {

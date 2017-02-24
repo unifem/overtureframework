@@ -1458,6 +1458,22 @@ processSpecialMenuItems(aString & answer)
 //  else if( answer.substr(0,5)=="MOVIE" )
 //    movieCommands(answer, win_number);
   //                      01234567890
+
+  else if( answer.substr(0,10)=="info level" )
+  {
+    // Nov. 20, 2016 -- *wdh*
+    int iValue=int(value+.5);
+    printF("Setting infoLevel=%i (0=expert, 1=intermediate, 2=novice)\n",iValue);
+    setInfoLevel(iValue);
+  }
+  //                             1234567890123456                        
+  else if( answer.substr(0,16)=="echo to terminal" )
+  {
+    // Nov. 20, 2016 -- *wdh*
+    int iValue=int(value+.5);
+    printF("Setting echoToTerminal=%i (0=off, 1=on)\n",iValue);
+    echoToTerminal=iValue;
+  }
   else if(answer.substr(0,7)=="DISPLAY")
   {
     optionCommands(answer, win_number);

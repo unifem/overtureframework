@@ -145,7 +145,7 @@ $grid
   boundary conditions
     all=noSlipWall
     bcNumber1=inflowWithVelocityGiven, parabolic(d=$parabolicWidth,p=1,u=1.)
-    if( $bcTop ne "outflow" ){ $cmd="bcNumber4=$bcTop; }else{ $cmd="#"; }
+    if( $bcTop ne "outflow" ){ $cmd="bcNumber4=$bcTop"; }else{ $cmd="#"; }
     $cmd
     # bcNumber4=slipWall
     # Right boundary: outflow

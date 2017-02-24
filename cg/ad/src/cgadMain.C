@@ -111,13 +111,14 @@ main(int argc, char *argv[])
   Interpolant & interpolant = *new Interpolant(cg); interpolant.incrementReferenceCount();
   interpolant.setImplicitInterpolationMethod(Interpolant::iterateToInterpolate);
 
-  #ifdef USE_PPP
-  if( !interpolant.interpolationIsExplicit() )
-  {
-    printf("cgad:ERROR: The parallel composite grid interpolator needs explicit interpolation ****\n");
-    Overture::abort();
-  }
-  #endif
+  // *wdh* 2017/02/23 -- this should be OK now: 
+  // #ifdef USE_PPP
+  // if( !interpolant.interpolationIsExplicit() )
+  // {
+  //   printf("cgad:ERROR: The parallel composite grid interpolator needs explicit interpolation ****\n");
+  //   Overture::abort();
+  // }
+  // #endif
 
   // cout << "cgad: numberOfGrids = " << cg.numberOfGrids() << endl;
   // cout << "cgad: numberOfComponentGrids = " << cg.numberOfComponentGrids() << endl;

@@ -86,9 +86,12 @@ getUt(const realMappedGridFunction & v,
   const int level=iparam[1];
   const int numberOfStepsTaken = iparam[2];
   
-  if( debug() & 8 )
+  if( debug() & 4 )
+  {
     printF("Cgins::getUtINS: t=%9.3e, pde = %s \n",t,(const char*)parameters.pdeName);
-
+    fPrintF(debugFile,"Cgins::getUtINS: t=%9.3e, pde = %s \n",t,(const char*)parameters.pdeName);
+  }
+  
   MappedGrid & mg = *(v.getMappedGrid());
 
   const int numberOfDimensions = mg.numberOfDimensions();
@@ -120,8 +123,8 @@ getUt(const realMappedGridFunction & v,
   {
     if( debug() & 4 )
     {
-      printF(" ***** Cgins::getUt --> call insimp to eval the RHS ***********\n");
-      fPrintF(debugFile," ***** Cgins::getUt --> call insimp to eval the RHS ***********\n");
+      printF(" ***** Cgins::getUt --> call insimp to eval the RHS t=%9.3e ***********\n",t);
+      fPrintF(debugFile," ***** Cgins::getUt --> call insimp to eval the RHS t=%9.3e ***********\n",t);
 
       ::display(v,sPrintF("getUt: v BEFORE insimp for grid=%i",grid),pDebugFile,"%4.2f ");
     
@@ -155,6 +158,8 @@ getUt(const realMappedGridFunction & v,
 
     return 0;
   }
+
+
 
   if( debug() & 4 )
     printF(" ***** Cgins::getUt --> use old evaluation ***********\n");
@@ -403,7 +408,9 @@ getUt(const realMappedGridFunction & v,
                  parameters.dbase.get<int >("vsc"), // 21 
                  parameters.dbase.get<int >("rc"),   // 22
                  debug(),
-                 materialFormat
+                 materialFormat,
+                 (int)parameters.dbase.get<InsParameters::AdvectionOptions >("advectionOption"),
+                 (int)parameters.dbase.get<int>("upwindOrder")
     };
 
     // get the gravity vector -- may be time dependent for a slow start

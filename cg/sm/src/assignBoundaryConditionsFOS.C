@@ -1555,7 +1555,7 @@ assignBoundaryConditionsFOS( int option, int grid, real t, real dt, realMappedGr
      // *new way* 091123 -- MappedGridOperators uses new AssignInterpNeighbours class
 
      // -- See op/tests/testExtrapInterpNeighbours for proper way to apply --
-          if( debug & 2 )
+          if( debug & 4 )
               printF("assignBC-FOS: Use new extrapolateInterpolationNeighbours at t=%g\n",t);
 
           extrapParams.orderOfExtrapolation=parameters.dbase.get<int >("orderOfExtrapolationForInterpolationNeighbours");

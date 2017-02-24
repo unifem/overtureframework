@@ -162,6 +162,21 @@ floorDiv(int numer, int denom )
     return (numer-denom+1)/denom;
 }
    
+// =================================================================
+/// \brief Overture modulus function: returns mod(a,b) with the 
+///   result between 0 and b-1 (i.e. always positive unlike a % b)
+/// \details This function assumes b>0 
+// ================================================================
+inline int ovmod (int a, int b)
+{
+   int ret = a % b;
+   if(ret < 0)
+     ret+=b;
+   return ret;
+}
+
+
+
 #ifndef NO_APP
 #define ARRAY_GET_DATA_POINTER(type,aType) \
 inline type* getDataPointer(const aType ## Array & u)  \

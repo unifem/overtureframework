@@ -135,6 +135,11 @@ startTimeStep( real & t0, real & dt0, int & currentGF, int & nextGF, AdvanceOpti
         Overture::abort("error");
     }
 
+  // save grid-function current and next: 
+    parameters.dbase.get<int>("currentGF")=currentGF;
+    parameters.dbase.get<int>("nextGF")   =nextGF;
+    
+
     if( parameters.dbase.get<int>("multiDomainProblem") )
     { // for multi-domain problems we need to increment the timings
         RealArray & timing = parameters.dbase.get<RealArray>("timing");

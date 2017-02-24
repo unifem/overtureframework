@@ -48,6 +48,13 @@ enum DiscretizationOptions // compact or non-compact
   compactDifference
 };
 
+enum AdvectionOptions  // options to treat the advection term
+{
+  centeredAdvection=0,
+  upwindAdvection,
+  bwenoAdvection
+};
+
 static aString PDEModelName[InsParameters::numberOfPDEModels+1];
 
 InsParameters(const int & numberOfDimensions0=3);

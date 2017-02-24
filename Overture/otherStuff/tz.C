@@ -63,6 +63,11 @@
 OGFunction *ep;
 
 
+// ============================================================================================
+//  Compute errors in TZ array generated values d by comparing to pointwise values 
+//
+//  Special case : ntd=-1 : check laplacian
+// ============================================================================================
 real
 computeError( MappedGrid & c, const realArray & d, const int & n, const real & t,
               const int & ntd, const int & nxd, const int & nyd, const int & nzd )
@@ -81,12 +86,30 @@ computeError( MappedGrid & c, const realArray & d, const int & n, const real & t
     for( int i2=I2.getBase(); i2<=I2.getBound(); i2++ )
       for( int i1=I1.getBase(); i1<=I1.getBound(); i1++ )
       {
-	if( c.numberOfDimensions()==1 )
-	  de(i1,i2,i3)=e.gd(ntd,nxd,nyd,nzd,center(i1,i2,i3,0),0.,0.,n,t);
-	else if( c.numberOfDimensions()==2 )
-	  de(i1,i2,i3)=e.gd(ntd,nxd,nyd,nzd,center(i1,i2,i3,0),center(i1,i2,i3,1),0.,n,t);
+	if( ntd!=-1 )
+	{
+	  if( c.numberOfDimensions()==1 )
+	    de(i1,i2,i3)=e.gd(ntd,nxd,nyd,nzd,center(i1,i2,i3,0),0.,0.,n,t);
+	  else if( c.numberOfDimensions()==2 )
+	    de(i1,i2,i3)=e.gd(ntd,nxd,nyd,nzd,center(i1,i2,i3,0),center(i1,i2,i3,1),0.,n,t);
+	  else
+	    de(i1,i2,i3)=e.gd(ntd,nxd,nyd,nzd,center(i1,i2,i3,0),center(i1,i2,i3,1),center(i1,i2,i3,2),n,t);
+	}
 	else
-	  de(i1,i2,i3)=e.gd(ntd,nxd,nyd,nzd,center(i1,i2,i3,0),center(i1,i2,i3,1),center(i1,i2,i3,2),n,t);
+	{
+           // special case -- check laplacian
+	  if( c.numberOfDimensions()==1 )
+	    de(i1,i2,i3)=e.gd(0,2,0,0,center(i1,i2,i3,0),0.,0.,n,t);
+	  else if( c.numberOfDimensions()==2 )
+	    de(i1,i2,i3)=e.gd(0,2,0,0,center(i1,i2,i3,0),center(i1,i2,i3,1),0.,n,t)+
+                         e.gd(0,0,2,0,center(i1,i2,i3,0),center(i1,i2,i3,1),0.,n,t);
+	  else
+	    de(i1,i2,i3)=e.gd(0,2,0,0,center(i1,i2,i3,0),center(i1,i2,i3,1),center(i1,i2,i3,2),n,t)+
+                         e.gd(0,0,2,0,center(i1,i2,i3,0),center(i1,i2,i3,1),center(i1,i2,i3,2),n,t)+
+                         e.gd(0,0,0,2,center(i1,i2,i3,0),center(i1,i2,i3,1),center(i1,i2,i3,2),n,t);
+
+	}
+	
       }
 
   real error=max(fabs(d-de));
@@ -234,16 +257,18 @@ main(int argc, char **argv)
     int grid,n;
     real t=.2;
     
-//  for( int test=0; test<=2; test++ )
-    for( int test=2; test<=2; test++ )
+    for( int test=0; test<=2; test++ )
+//    for( int test=2; test<=2; test++ )
 //    for( int test=0; test<=0; test++ )
     {
+      printF("\n+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++\n");
       if( test==0 )
-	cout << " ++++++++++++++++++ testing OGPolyFunction +++++++++++++++++++\n";
+        printF("++++++++++++++++++ testing OGPolyFunction +++++++++++++++++++\n");
       else if( test==1 )
-	cout << " ++++++++++++++++++ testing OGTrigFunction +++++++++++++++++++\n";
+	printF(" ++++++++++++++++++ testing OGTrigFunction +++++++++++++++++++\n");
       else 
-	cout << " ++++++++++++++++++ testing OGPulseFunction +++++++++++++++++++\n";
+	printF(" ++++++++++++++++++ testing OGPulseFunction +++++++++++++++++++\n");
+      printF("+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++\n");
 
 	
       OGFunction & e = test==0 ? (OGFunction&)polyTZ : test==1 ? (OGFunction&)trigTZ : 
@@ -272,7 +297,7 @@ main(int argc, char **argv)
       real x=.3, y=.7, z= cg.numberOfDimensions()!=3 ? 0. : .4;
       for( n=0; n<3; n++ )
       {
-	cout << "----------------------------------------------------------------\n";
+	printF("--------------------- Test e.AB(x,y,z,n,t) component n=%i ------------------------------------\n",n);
 
 	real t=.1;
 	error=fabs(e.t(x,y,z,n,t)-( 
@@ -297,7 +322,7 @@ main(int argc, char **argv)
 	maxError=max(maxError,error);
 	cout << "Error in e.tt(" << n << ")= " << error <<endl;
 
-	if( true )
+	if( false )
 	{
           real t0=0., x0=0., y0=0., z0=0.;
           x0=REAL_MIN*1000.; y0=2.*x0, z0=0.;
@@ -539,7 +564,7 @@ main(int argc, char **argv)
     
 	for( n=0; n<3; n++ )
 	{
-	  cout << "----------------------------------------------------------------\n";
+	  printF("----------------test e.AA(mg,I1,I2,I3,n,t) component n=%i --------------------------------\n",n);
     
 	  error=computeError(c,e(c,I1,I2,I3,n,t),n,t, 0,0,0,0);
 	  maxError=max(maxError,error);
@@ -556,6 +581,11 @@ main(int argc, char **argv)
 	  error=computeError(c,e.y(c,I1,I2,I3,n,t),n,t, 0,0,1,0);
 	  maxError=max(maxError,error);
 	  cout << "Error in e.y(" << n << ")= " << error <<endl;
+
+	  error=computeError(c,e.laplacian(c,I1,I2,I3,n,t),n,t, -1,0,0,0);
+	  maxError=max(maxError,error);
+	  cout << "Error in e.laplacian(" << n << ")= " << error <<endl;
+	  // OV_ABORT("finish me...");
 
 
 	  error=computeError(c,e.gd(0,1,0,0, c,I1,I2,I3,n,t),n,t, 0,1,0,0);
@@ -579,7 +609,44 @@ main(int argc, char **argv)
 	    cout << "Error in e.gd(1,1,1,0,n=" << n << ")= " << error <<endl;
 	  }
 	  
+	} // end for n 
+ 
+	if( test==0 || test==1 ) // Pulse function has limited derivatives 
+	{
+          // --- Test newer optimized calls ---
+	  OV_GET_SERIAL_ARRAY(real,c.center(),xLocal);
+	  const bool isRectangular = false; // ** do this for now ** mg.isRectangular();
+          Range C=3;
+	  RealArray ux(I1,I2,I3,C);
+	  
+	  const int numDeriv=4;  // check this many derivatives 
+	  const int numDerivZ = numberOfDimensions==3 ? numDeriv : 0;
+	  // int ntd=0,nxd=0,nyd=3,nzd=0;
+	  for( int nzd=0; nzd<=numDerivZ; nzd++ )
+	  for( int nyd=0; nyd<=numDeriv; nyd++ )
+	  for( int nxd=0; nxd<=numDeriv; nxd++ )
+	  for( int ntd=0; ntd<=numDeriv; ntd++ )
+	  {
+	    
+	    e.gd( ux ,xLocal,numberOfDimensions,isRectangular,ntd,nxd,nyd,nzd,I1,I2,I3,C,t);
+	    for( n=0; n<3; n++ )
+	    {
+	      error=computeError(c,ux(I1,I2,I3,n),n,t, ntd,nxd,nyd,nzd);
+	      maxError=max(maxError,error);
+	      printF("__ Error in e.gd( ux,xLocal,..., ntd=%i,nxd=%i,nyd=%i,nzd=%i...) ,n=%d = %9.2e\n",
+		     ntd,nxd,nyd,nzd,n,error);
+	    }
+	  
+	    const real errTol=1.e-3;
+	    if( fabs(error)>errTol ) 
+	    {
+	      OV_ABORT("TROUBLE -- large error!");
+	    }
+	  }
+	  
 	}
+	
+
       }
 
     }  // end poly/trig loop

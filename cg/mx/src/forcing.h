@@ -261,7 +261,7 @@ if( buildCenter )
 }
 
 const realArray & center = buildCenter ? mg.center() : emptyArray;
-realSerialArray uLocal;
+realSerialArray uLocal, umLocal;
 
 real dtb2=dt*.5;
 real tE = t, tH = t;
@@ -291,11 +291,11 @@ if( method==nfdtd || method==sosup )
 
   #ifdef USE_PPP
     getLocalArrayWithGhostBoundaries(uall,uLocal);
-    realSerialArray umLocal; getLocalArrayWithGhostBoundaries(umall,umLocal);
+    getLocalArrayWithGhostBoundaries(umall,umLocal);
     realSerialArray unLocal; getLocalArrayWithGhostBoundaries(unall,unLocal);
   #else
     uLocal.reference(uall);
-    realSerialArray & umLocal = umall;
+    umLocal.reference(umall);
     realSerialArray & unLocal = unall;
   #endif
 

@@ -32,11 +32,15 @@ $grid="halfCylinder.hdf"; $backGround="backGround"; $bcn="noSlipWall"; $pGrad=0.
 $deformingGrid="ice"; $deformFrequency=2.; $deformAmplitude=1.; $deformationType="advect body"; 
 $tFinal=1.; $tPlot=.1; $cfl=.9; $nu=.05; $Prandtl=.72; $thermalExpansivity=.1; 
 $gravity = "0. 0. 0."; 
-$model="ins"; $ts="adams PC"; $noplot=""; $implicitVariation="full"; $refactorFrequency=100; 
+$model="ins"; $ts="adams PC"; $noplot=""; $implicitVariation="viscous"; $refactorFrequency=100; 
 $debug = 0;   $maxIterations=100; $tol=1.e-16; $atol=1.e-16; 
 $tz = "none"; $degreex=2; $degreet=2; $fx=1.; $fy=1.; $fz=1.; $ft=1.; $dtMax=.5; 
 $order = 2; $fullSystem=0; $go="halt"; 
-$solver="yale"; $rtol=1.e-4; $atol=1.e-6; $ogesDebug=0; $project=0; $cdv=1.; $ad2=0; $ad22=2.; 
+$ogesDebug=0; $project=0; $cdv=1.; $ad2=0; $ad22=2.; 
+$psolver="yale"; $solver="yale"; 
+$iluLevels=1; $ogesDebug=0; 
+$rtolp=1.e-4; $atolp=1.e-5;  # tolerances for the pressure solve
+$rtol=1.e-4; $atol=1.e-5;    # tolerances for the implicit solver
 $bc="a"; 
 $surfaceTension=.1; $pAtmosphere=0.;
 $smoothSurface=1; $numberOfSurfaceSmooths=3;
@@ -45,17 +49,22 @@ $freeSurfaceOption="none";
 #
 # ----------------------------- get command line arguments ---------------------------------------
 GetOptions( "g=s"=>\$grid,"tf=f"=>\$tFinal,"degreex=i"=>\$degreex, "degreet=i"=>\$degreet, "model=s"=>\$model,\
- "tp=f"=>\$tPlot, "solver=s"=>\$solver, "tz=s"=>\$tz, "show=s"=>\$show,"order=i"=>\$order,"debug=i"=>\$debug, \
+ "tp=f"=>\$tPlot, "solver=s"=>\$solver, "psolver=s"=>\$psolver,"tz=s"=>\$tz, "show=s"=>\$show,\
+  "order=i"=>\$order,"debug=i"=>\$debug, \
  "ts=s"=>\$ts,"nu=f"=>\$nu,"cfl=f"=>\$cfl, "bg=s"=>\$backGround,"fullSystem=i"=>\$fullSystem, "go=s"=>\$go,\
  "noplot=s"=>\$noplot,"dtMax=f"=>\$dtMax,"project=i"=>\$project,"rf=i"=> \$refactorFrequency,"bcn=s"=>\$bcn,\
  "iv=s"=>\$implicitVariation,"dtMax=f"=>\$dtMax,"ad2=i"=>\$ad2,"ad22=f"=>\$ad22,"imp=f"=>\$implicitFactor,\
   "bc=s"=>\$bc,"dg=s"=>\$deformingGrid,"dt=s"=>\$deformationType,"da=f"=>\$deformAmplitude,"df=f"=>\$deformFrequency,\
   "surfaceTension=f"=>\$surfaceTension,"pAtmosphere=f"=>\$pAtmosphere,"pGrad=f"=>\$pGrad,\
   "smoothSurface=i"=>\$smoothSurface,"numberOfSurfaceSmooths=i"=>\$numberOfSurfaceSmooths,\
-  "freeSurfaceOption=s"=>\$freeSurfaceOption );
+  "freeSurfaceOption=s"=>\$freeSurfaceOption,"rtol=f"=>\$rtol,"atol=f"=>\$atol,"rtolp=f"=>\$rtolp,"atolp=f"=>\$atolp );
 # -------------------------------------------------------------------------------------------------
 $kThermal=$nu/$Prandtl; 
 if( $solver eq "best" ){ $solver="choose best iterative solver"; }
+if( $solver eq "mg" ){ $solver="multigrid"; }
+if( $psolver eq "best" ){ $psolver="choose best iterative solver"; }
+if( $psolver eq "mg" ){ $psolver="multigrid"; }
+#
 if( $tz eq "none" ){ $tz="turn off twilight zone"; }
 if( $tz eq "poly" ){ $tz="turn on twilight zone\n turn on polynomial"; $cdv=0.; }
 if( $tz eq "trig" ){ $tz="turn on twilight zone\n turn on trigonometric"; $cdv=0.; }
@@ -146,20 +155,26 @@ $cmds
     OBPDE:ad21,ad22  $ad22, $ad22
     OBPDE:divergence damping  $cdv 
   done
+#
+  maximum number of iterations for implicit interpolation
+     10 
+#***************************************************
+#
+  # turn off echo of command file to the terminal:
+  echo to terminal 0
   pressure solver options
-     $solver
-     relative tolerance
-       $rtol
-     absolute tolerance
-       $atol
-    exit
+   # $ogesDebug=$debug; 
+   $ogesSolver=$psolver; $ogesRtol=$rtolp; $ogesAtol=$atolp; $ogesIluLevels=$iluLevels; $ogesDtol=1e20; 
+   include $ENV{CG}/ins/cmd/ogesOptions.h
+  exit
+#
   implicit time step solver options
-     $solver
-     relative tolerance
-       $rtol
-     absolute tolerance
-       $atol 
-    exit
+   $ogesSolver=$solver; $ogesRtol=$rtol; $ogesAtol=$atol; $ogesIluLevels=1; 
+   include $ENV{CG}/ins/cmd/ogesOptions.h
+  exit
+  echo to terminal 1
+#
+#***************************************************
 # 
   boundary conditions
     $u=.0; $T=1.; 
@@ -168,10 +183,11 @@ $cmds
     all=$bcn, uniform(T=$T)
     #     all=slipWall, uniform(T=$T)
     # $backGround=slipWall
-    bcNumber4=freeSurfaceBoundaryCondition
+   bcNumber4=freeSurfaceBoundaryCondition
 # 
      # pressure pulse: p = .5*pMax*[ 1 - cos(2*pi*t/tMax) ],  for 0 <=t<=tMax, p=0 other-wise
-    if( $freeSurfaceOption eq "tractionForce" ){ $cmd="bcNumber4=freeSurfaceBoundaryCondition, userDefinedBoundaryData\n pressure pulse\n   .1 1 \n  done"; }else{ $cmd="#"; }
+    $pMax=.1; # =.1; 
+    if( $freeSurfaceOption eq "tractionForce" ){ $cmd="bcNumber4=freeSurfaceBoundaryCondition, userDefinedBoundaryData\n pressure pulse\n   $pMax 1 \n  done"; }else{ $cmd="bcNumber4=freeSurfaceBoundaryCondition"; }
     $cmd
 # 
     # bcNumber1=inflowWithVelocityGiven, uniform(u=$u,T=0.)
@@ -180,7 +196,7 @@ $cmds
     # bcNumber2=symmetry
     bcNumber1=slipWall
     bcNumber2=slipWall
-    ## bcNumber3=inflowWithPressureAndTangentialVelocityGiven, uniform(p=0.)
+    # bcNumber3=inflowWithPressureAndTangentialVelocityGiven, uniform(p=0.)
   done
 # 
   initial conditions

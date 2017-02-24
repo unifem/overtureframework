@@ -5,10 +5,19 @@
 #include "BeamFluidInterfaceData.h"
 #include "Oges.h"
 #include "RigidBodyMotion.h"
+#include "Interface.h"  
 
 #define mixedRHS(component,side,axis,grid)         bcData(component+numberOfComponents*(0),side,axis,grid)
 #define mixedCoeff(component,side,axis,grid)       bcData(component+numberOfComponents*(1),side,axis,grid)
 #define mixedNormalCoeff(component,side,axis,grid) bcData(component+numberOfComponents*(2),side,axis,grid)
+
+// --- put this forward declaration here for now ---
+int
+getInterfaceData( real t, int grid, int side, int axis, 
+		  int interfaceDataOptions,
+		  RealArray & data,
+                  Parameters & parameters );
+
 
 // void Cgins::
 // gridAccelerationBC(const int & grid,
@@ -52,15 +61,15 @@ gridAccelerationBC(const int & grid,
 
   OV_GET_SERIAL_ARRAY(real,f,fLocal);
   OV_GET_SERIAL_ARRAY(real,gridVelocity,gridVelocityLocal);
-  #ifdef USE_PPP
-    realSerialArray & normal = c.vertexBoundaryNormalArray(side,axis);
-    // realSerialArray gridVelocityLocal; getLocalArrayWithGhostBoundaries(gridVelocity,gridVelocityLocal);
-    // realSerialArray fLocal; getLocalArrayWithGhostBoundaries(f,fLocal);
-  #else
-    realSerialArray & normal = c.vertexBoundaryNormal(side,axis);
-    // realSerialArray & gridVelocityLocal=gridVelocity;
-    // realArray & fLocal = f;
-  #endif
+#ifdef USE_PPP
+  realSerialArray & normal = c.vertexBoundaryNormalArray(side,axis);
+  // realSerialArray gridVelocityLocal; getLocalArrayWithGhostBoundaries(gridVelocity,gridVelocityLocal);
+  // realSerialArray fLocal; getLocalArrayWithGhostBoundaries(f,fLocal);
+#else
+  realSerialArray & normal = c.vertexBoundaryNormal(side,axis);
+  // realSerialArray & gridVelocityLocal=gridVelocity;
+  // realArray & fLocal = f;
+#endif
 
   const int numberOfDimensions = c.numberOfDimensions();
   const int numberOfComponentGrids = gf0.cg.numberOfComponentGrids();
@@ -86,6 +95,7 @@ gridAccelerationBC(const int & grid,
     const int numberOfRigidBodies= movingGrids.getNumberOfRigidBodies();
 
     const bool & useAddedMassAlgorithm = parameters.dbase.get<bool>("useAddedMassAlgorithm");
+    bool isAmpBeamModel=false, isAmpBulkSolidModel=false;
     if( useAddedMassAlgorithm && numberOfDeformingBodies>0 )
     {
       // -------- DEFORMING BODY AMP STAGE I  --------------
@@ -97,80 +107,150 @@ gridAccelerationBC(const int & grid,
       // mixedNormalCoeff(pc,side,axis,grid)=beamMassPerUnitLength[side][axis]/fluidDensity;
       const int & numberOfComponents = parameters.dbase.get<int >("numberOfComponents");
       RealArray & bcData = parameters.dbase.get<RealArray>("bcData");      
+      
       if( deformingBodyNumber[side][axis]>=0 &&   // -- this is an interface --
           mixedCoeff(pc,side,axis,grid)==1. )  
       {
-	if( debug() & 4 && t0 <= dt )
-	  printF("--INS-- gridAccelerationBC: t=%8.2e, scale pressure BC by rhos*As/rho =%8.2e grid=%i, (side,axis)=(%i,%i:  mixedCoeff=%8.2e )\n",
-		 t0,mixedNormalCoeff(pc,side,axis,grid),grid,side,axis, mixedCoeff(pc,side,axis,grid));
-	f(I1g,I2g,I3g) *= mixedNormalCoeff(pc,side,axis,grid);
-	
+	const int body =  deformingBodyNumber[side][axis];
+	assert( body>=0 && body<movingGrids.getNumberOfDeformingBodies() );
+	DeformingBodyMotion & deform = movingGrids.getDeformingBody(body);
+	if( deform.isBeamModel() )
+	{
+	  isAmpBeamModel=true;
+
+	  if( (true || debug() & 4) && t0 <= 2.*dt )
+	    printF("--INS-- gridAccelerationBC: t=%8.2e, BEAM: scale pressure BC by rhos*As/rho =%8.2e grid=%i,"
+                   " (side,axis)=(%i,%i:  mixedCoeff=%8.2e )\n",
+		   t0,mixedNormalCoeff(pc,side,axis,grid),grid,side,axis, mixedCoeff(pc,side,axis,grid));
+	}
+	else if( deform.isBulkSolidModel() )
+	{
+	  isAmpBulkSolidModel=true;
+
+	  if( (true || debug() & 4) && t0 <= 2.*dt )
+	    printF("\n--INS-- gridAccelerationBC: t=%8.2e, BULK-SOLID scale pressure BC by zp*dt/rho =%8.2e grid=%i, "
+                   "(side,axis)=(%i,%i:  mixedCoeff=%8.2e )\n",
+		   t0,mixedNormalCoeff(pc,side,axis,grid),grid,side,axis, mixedCoeff(pc,side,axis,grid));
+	}
+	else
+	{
+	  OV_ABORT("Unknown deforming body type");
+	}
       }
       // ----------- END DEFORMING BODY AMP STAGE I  ------------
     }
     
+    if( isAmpBeamModel )
+    { // do not scale the grid acceleration term for the AMP beam model:
+      const int & numberOfComponents = parameters.dbase.get<int >("numberOfComponents");
+      RealArray & bcData = parameters.dbase.get<RealArray>("bcData");      
+      f(I1g,I2g,I3g) *= mixedNormalCoeff(pc,side,axis,grid);
+    }
 
     // ----------------------------------------------
     // ------ Get the grid acceleration term --------
     // ----------------------------------------------
     movingGrids.gridAccelerationBC(grid,side,axis,t0,c,u,f,gridVelocity,normal,I1,I2,I3,I1g,I2g,I3g);
 
+    if( isAmpBulkSolidModel )
+    {
+      // scale the acceleration term too for the AMP bulk-solid model
+      const int & numberOfComponents = parameters.dbase.get<int >("numberOfComponents");
+      RealArray & bcData = parameters.dbase.get<RealArray>("bcData");      
+      f(I1g,I2g,I3g) *= mixedNormalCoeff(pc,side,axis,grid);
+    }
 
     if( useAddedMassAlgorithm && numberOfDeformingBodies>0 )
     {
-      // -------- DEFORMING BODY AMP STAGE II ----------------
+      const int (&deformingBodyNumber)[2][3] = bd.dbase.get<int[2][3]>("deformingBodyNumber");
+      const int body =  deformingBodyNumber[side][axis];
 
-      const bool & useApproximateAMPcondition = parameters.dbase.get<bool>("useApproximateAMPcondition");
-      if( useApproximateAMPcondition )
+      if( body>=0 )  // this grid face lies on a deforming body
       {
-	// ------------------------------------
-	// --- APPROXIMATE AMP PRESSURE BC ----
-	// ------------------------------------
-	// DeformingBodyMotion & deformingBody = movingGrids.getDeformingBody(body);
-	const int (&deformingBodyNumber)[2][3] = bd.dbase.get<int[2][3]>("deformingBodyNumber");
+	// -------- DEFORMING BODY AMP STAGE II ----------------
 
-	const int & numberOfComponents = parameters.dbase.get<int >("numberOfComponents");
-	RealArray & bcData = parameters.dbase.get<RealArray>("bcData");      
-	const int & pc = parameters.dbase.get<int >("pc");
-	if( deformingBodyNumber[side][axis]>=0 &&   // -- this is an interface --
-	    mixedCoeff(pc,side,axis,grid)==1. )
+	assert( body>=0 && body<movingGrids.getNumberOfDeformingBodies() );
+	DeformingBodyMotion & deform = movingGrids.getDeformingBody(body);
+
+	if( deform.isBulkSolidModel() )
 	{
-	  if( t0 < 5.*dt )
-	    printF("--INS-- Approx. AMP BC: Add on traction term from AMP BC t=%9.3e\n",t0);
+	  // ====================================================
+	  // =================BULK SOLID MODEL===================
+	  // ====================================================
+
+
+	  // AMP-RHS = 
+	  //     (zp*dt)*[ nu*Delta u ]     (check factors of rho in code -- mixed BC coeff is:  zp*dt/rho, not zp*dt)
+	  //    +  nv.tauv.nv
+	  //    -  nv.sigmaSolid.nv
+	  //    - (zp*dt) nv.d(vSolid)/dt 
 
 	  // Add on traction term  from AMP BC
 	  // For two sided beams there are contributions from both sides
 	  // f +=  [ nv^T( tau ) nv]_+^-   //Longfei 20170105: FIX ME..... The other side not included!!!!!
+          // ---------------------------------------------------------------------------
+          // --- the traction interface data is set in Cgins::interfaceRightHandSide ---
+          // ---------------------------------------------------------------------------
 
+	  aString tractionDataName;
+	  sPrintF(tractionDataName,"tractionG%iS%iA%i",grid,side,axis);
+	  if( !parameters.dbase.has_key(tractionDataName) )
+	  {
+            // -- At t=0 the interfaceData may not have been set yet, in this case call getInterfaceData
+
+	    printF("WARNING: interface data: [%s] not found, t0=%9.3e!\n",(const char*)tractionDataName,t0);
+
+	    InterfaceData & interfaceData = parameters.dbase.put<InterfaceData>(tractionDataName);
+	    Range C=numberOfDimensions;
+	    interfaceData.u.redim(I1,I2,I3,C);
+	    interfaceData.t=t0;
+	    interfaceData.u=0;
+
+	    // RealArray solidTraction(I1,I2,I3,C);
+	    int interfaceDataOptions = Parameters::tractionInterfaceData;
+	  
+	    getInterfaceData( t0, grid, side, axis, 
+			      interfaceDataOptions,
+			      interfaceData.u,
+			      parameters );
+	    // OV_ABORT("fix me");
+	  }
+
+	  InterfaceData & interfaceData = parameters.dbase.get<InterfaceData>(tractionDataName);
+	  aString buff;
+	  ::display(interfaceData.u,sPrintF(buff,"--GABC-- interface traction [%s] at ti=%9.3e (t0=%9.3e)",
+					    (const char*)tractionDataName,interfaceData.t,t0),"%6.3f ");
+          RealArray & solidTraction=interfaceData.u;
+
+	  assert( fabs(interfaceData.t-t0) <= fabs(t0)*REAL_EPSILON*10. );
+	  
 	  // --- compute the forces on the surface ---
+	  // stressLocal = fluid-traction = p*normal - mu*( ... )
 	  int ipar[] = {grid,side,axis,gf0.form}; // 
 	  real rpar[] = { t0 }; // 
 	  RealArray stressLocal(I1,I2,I3,numberOfDimensions);
 	  parameters.getNormalForce( gf0.u,stressLocal,ipar,rpar );
 
+	  // ::display(solidTraction,"--GABC-- Here is the solid traction","%6.3f ");
+	  ::display(stressLocal(I1,I2,I3,1),"--GABC-- Here is the fluid stress stressLocal(I1,I2,I3,1)","%6.3f ");
+
 	  const real fluidDensity = parameters.dbase.get<real>("fluidDensity")!=0. ? parameters.dbase.get<real>("fluidDensity") : 1.;
 	  OV_GET_SERIAL_ARRAY(real,u,uLocal);
 
+          // --- NOTE: solid traction uses solid normal which has opposite sign of fluid
 	  if( numberOfDimensions==2 )
 	  {
-	    // ADD viscous traction term (remove the pressure component)
-	    // AMP:   p + (rhos*hs)/rho p.n = L   + n^T tau n    (plus sign)
-	    if( t0 < 10.*dt  )
-	    {
-	      // Longfei 20170104: note that this is -nTaun;
-	      RealArray nTaun(I1,I2,I3);
-	      nTaun=(normal(I1,I2,I3,0)*stressLocal(I1,I2,I3,0) +  
-		     normal(I1,I2,I3,1)*stressLocal(I1,I2,I3,1) ) 
-		-fluidDensity*uLocal(I1,I2,I3,pc);
 
-	      printF("--INS-- Approx. AMP BC: (side,axis,grid)=(%i,%i,%i) t=%9.3e |n.taun|=%8.2e\n",side,axis,grid,t0,max(fabs(nTaun)));
-	    }
+	    // ADD viscous traction term (remove the pressure component) and solid-traction
+	    // AMP:   p + (zp*dt)/rho p.n =  n.tau.n - n.sigmaSolid.n + (zp*dt)*[ nu*n.Delta(v) -accel ] 
 	  
-	    if(false){::display( fLocal(I1g,I2g,I3g),"before add the stress:","%10.2e");}
+            // **** CHECK SIGNS HERE OF VISCOUS STRESS ****
 
-	    // Longfei 20170104 change to -=  since what we computed is actually -nTaun (it was +=)
-	    fLocal(I1g,I2g,I3g) -= (normal(I1,I2,I3,0)*stressLocal(I1,I2,I3,0) +  
-				    normal(I1,I2,I3,1)*stressLocal(I1,I2,I3,1) ) 
+            // stressLocal  = - sigma.n !
+            // solidTraction = sigmaSolid.nSolid = - sigmaSolid.nFluid
+
+	    fLocal(I1g,I2g,I3g) -= (normal(I1,I2,I3,0)*(stressLocal(I1,I2,I3,0)-solidTraction(I1,I2,I3,0)) +  
+				    normal(I1,I2,I3,1)*(stressLocal(I1,I2,I3,1)-solidTraction(I1,I2,I3,1)) ) 
 	      -fluidDensity*uLocal(I1,I2,I3,pc);
 	    
 	    // Longfei 20170106: // For two sided beams we need to adjust the opposite side 
@@ -272,163 +352,248 @@ gridAccelerationBC(const int & grid,
 	  }
 	  else
 	  {
-	    // Longfei 20170104 change to -=  since what we computed is actually -nTaun (it was +=)
-	    fLocal(I1g,I2g,I3g) -= (normal(I1,I2,I3,0)*stressLocal(I1,I2,I3,0) +  
-				    normal(I1,I2,I3,1)*stressLocal(I1,I2,I3,1) + 
-				    normal(I1,I2,I3,2)*stressLocal(I1,I2,I3,2) ) 
+	    fLocal(I1g,I2g,I3g) -= (normal(I1,I2,I3,0)*(stressLocal(I1,I2,I3,0)-solidTraction(I1,I2,I3,0)) +  
+				    normal(I1,I2,I3,1)*(stressLocal(I1,I2,I3,1)-solidTraction(I1,I2,I3,1)) + 
+				    normal(I1,I2,I3,2)*(stressLocal(I1,I2,I3,2)-solidTraction(I1,I2,I3,2)) ) 
 	      -fluidDensity*uLocal(I1,I2,I3,pc);
 	  }
-	
-	
+
+	  // ::display(fLocal,"--GABC-- Here is flocal","%5.2f ");
+	  
+
+	  // OV_ABORT("--INS GABC -- BULK SOLID MODEL finish me");
+
 	}
-
-      }
-      else
-      {
-	// ------------------------------------
-	// --- ADJUSTED AMP PRESSURE BC ----
-	// ------------------------------------
-
-	// subtract off the current guess for sigma*n : *wdh* 2015/01/04 
-	const int (&deformingBodyNumber)[2][3] = bd.dbase.get<int[2][3]>("deformingBodyNumber");
-
-	// mixedNormalCoeff(pc,side,axis,grid)=beamMassPerUnitLength[side][axis]/fluidDensity;
-	const int & numberOfComponents = parameters.dbase.get<int >("numberOfComponents");
-	RealArray & bcData = parameters.dbase.get<RealArray>("bcData");      
-	const int & pc = parameters.dbase.get<int >("pc");
-	if( TRUE &&
-	    deformingBodyNumber[side][axis]>=0 &&   // -- this is an interface --
-	    mixedCoeff(pc,side,axis,grid)==1. )
+	else if( deform.isBeamModel() )
 	{
-	  if( (true || debug() & 4) && t0 <= dt )
-	    printF("--INS-- gridAccelerationBC: t=%8.2e, ADD p to grid acceleration RHS: grid=%i, (side,axis)=(%i,%i)\n",
-		   t0,grid,side,axis);
-	  if( (false ||  debug() & 4) && t0 <= dt )
+	  // ====================================================
+	  // ==================== BEAM MODEL ====================
+	  // ====================================================
+
+	  const bool & useApproximateAMPcondition = parameters.dbase.get<bool>("useApproximateAMPcondition");
+	  if( useApproximateAMPcondition )
 	  {
-	    ::display(u(I1,I2,I3,pc),sPrintF("--INS-- gridAccelerationBC: pressure p at t=%g (grid,side,axis)=(%i,%i,%i)",t0,grid,side,axis),"%9.2e ");
-	    ::display(f(I1g,I2g,I3g),sPrintF("--INS-- gridAccelerationBC: f=gDot at t=%g (grid,side,axis)=(%i,%i,%i)",t0,grid,side,axis),"%9.2e "); 
-	  }
-	
-	  f(I1g,I2g,I3g) += u(I1,I2,I3,pc) ; 
+	    // ------------------------------------
+	    // --- APPROXIMATE AMP PRESSURE BC ----
+	    // ------------------------------------
+	    // DeformingBodyMotion & deformingBody = movingGrids.getDeformingBody(body);
 
-	  // For two sided beams we need to adjust the opposite side 
-	  if( true ) 
-	  {
-	    // *NEW WAY*
-
-	    int iv[3], &i1=iv[0], &i2=iv[1], &i3=iv[2];
-	    int isv[3], &is1=isv[0], &is2=isv[1], &is3=isv[2];
-
-	    MappedGrid & mg = gf0.cg[grid];
-	    const IntegerArray & gid = mg.gridIndexRange();
-	    for( int dir=0; dir<3; dir++ ){ iv[dir]=gid(0,dir); } //
-	    const int axisp1= (axis +1) % numberOfDimensions;
-	  
-	    for( int body=0; body<numberOfDeformingBodies; body++ ) // *FIX* We know the body number from above ***
+	    const int & numberOfComponents = parameters.dbase.get<int >("numberOfComponents");
+	    RealArray & bcData = parameters.dbase.get<RealArray>("bcData");      
+	    const int & pc = parameters.dbase.get<int >("pc");
+	    if( deformingBodyNumber[side][axis]>=0 &&   // -- this is an interface --
+		mixedCoeff(pc,side,axis,grid)==1. )
 	    {
-	      DeformingBodyMotion & deformingBody = movingGrids.getDeformingBody(body);
-	      if( !deformingBody.beamModelHasFluidOnTwoSides() )
-	      { // this is NOT a beam model with fluid on two sides.
-		continue;   
-	      }
+	      if( t0 < 5.*dt )
+		printF("--INS-- Approx. AMP BC: Add on traction term from AMP BC t=%9.3e\n",t0);
 
-	      DataBase & deformingBodyDataBase = deformingBody.deformingBodyDataBase;
-	      const int & numberOfFaces = deformingBodyDataBase.get<int>("numberOfFaces");
-	      const IntegerArray & boundaryFaces = deformingBodyDataBase.get<IntegerArray>("boundaryFaces");
+	      // Add on traction term  from AMP BC
+	      // For two sided beams there are contributions from both sides
+	      // f +=  [ nv^T( tau ) nv]_+^- 
 
-	      // --- beam-fluid interface data is stored here:
-	      BeamFluidInterfaceData &  beamFluidInterfaceData = 
-		deformingBodyDataBase.get<BeamFluidInterfaceData>("beamFluidInterfaceData");
-	      IntegerArray *& donorInfoArray = beamFluidInterfaceData.dbase.get<IntegerArray*>("donorInfoArray");
+	      // --- compute the forces on the surface ---
+	      int ipar[] = {grid,side,axis,gf0.form}; // 
+	      real rpar[] = { t0 }; // 
+	      RealArray stressLocal(I1,I2,I3,numberOfDimensions);
+	      parameters.getNormalForce( gf0.u,stressLocal,ipar,rpar );
 
-	      is1=is2=is3=0;
-	      isv[axis]=1-2*side;
+	      const real fluidDensity = parameters.dbase.get<real>("fluidDensity")!=0. ? parameters.dbase.get<real>("fluidDensity") : 1.;
+	      OV_GET_SERIAL_ARRAY(real,u,uLocal);
 
-	      for( int face=0; face<numberOfFaces; face++ )
+	      if( numberOfDimensions==2 )
 	      {
-		const int side0=boundaryFaces(0,face);
-		const int axis0=boundaryFaces(1,face);
-		const int grid0=boundaryFaces(2,face); 
-		if( grid0==grid && side0==side && axis0==axis )  // beam face is found
+		// ADD viscous traction term (remove the pressure component)
+		// AMP:   p + (rhos*hs)/rho p.n = L   + n^T tau n    (plus sign)
+		if( t0 < 10.*dt  )
 		{
-		  const IntegerArray & donorInfo= donorInfoArray[face]; 
-		  Range I0=donorInfo.dimension(0);
-		  for( int i=I0.getBase(); i<=I0.getBound(); i++ )  // NOTE: loop index i is incremented below
-		  {
-		    // Here is the donor on the opposite face of the beam:
-		    const int grid1 = donorInfo(i,0), side1=donorInfo(i,1), axis1=donorInfo(i,2);
+		  RealArray nTaun(I1,I2,I3);
+		  nTaun=(normal(I1,I2,I3,0)*stressLocal(I1,I2,I3,0) +  
+			 normal(I1,I2,I3,1)*stressLocal(I1,I2,I3,1) ) 
+		    -fluidDensity*uLocal(I1,I2,I3,pc);
 
-		    if( grid1<0 )  // This means there is do opposite grid point -- could be the end of the beam
-		      continue;
-
-		    assert( grid1>=0 && grid1<numberOfComponentGrids );
-		  
-		    const realArray & u1 = gf0.u[grid1];
-		    for( ; i<=I0.getBound(); i++ ) // NOTE: this increments "i" from the outer loop
-		    {
-		      if( donorInfo(i,0)!=grid1 )
-		      {
-			i--;
-			break;
-		      }
-		      // closest grid pt on opposite side:
-		      const int j1=donorInfo(i,3), j2=donorInfo(i,4), j3=donorInfo(i,5); 
-
-		      iv[axisp1]=i+gid(0,axisp1); // index that varies along the interface of grid
-		      int i1m=i1-is1, i2m=i2-is2, i3m=i3-is3; //  ghost point is (i1m,i2m,i3m)
-
-		      f(i1m,i2m,i3m) -= u1(j1,j2,j3,pc) ;
-		    }
-		  }
+		  printF("--INS-- Approx. AMP BC: (side,axis,grid)=(%i,%i,%i) t=%9.3e |n.taun|=%8.2e\n",side,axis,grid,t0,max(fabs(nTaun)));
 		}
-	      }
-	    }
 	  
+                // **** CHECK SIGNS HERE OF VISCOUS STRESS**** *WDH* Nov 25, 2016
+  	        // Longfei 20170104 change to -=  since what we computed is actually -nTaun (it was +=)
+	        fLocal(I1g,I2g,I3g) -= (normal(I1,I2,I3,0)*stressLocal(I1,I2,I3,0) +  
+				        normal(I1,I2,I3,1)*stressLocal(I1,I2,I3,1) ) 
+		                        -fluidDensity*uLocal(I1,I2,I3,pc);
+
+                // old:
+		// fLocal(I1g,I2g,I3g) += (normal(I1,I2,I3,0)*stressLocal(I1,I2,I3,0) +  
+		// 			normal(I1,I2,I3,1)*stressLocal(I1,I2,I3,1) ) 
+		//   -fluidDensity*uLocal(I1,I2,I3,pc);
+	      }
+	      else
+	      {
+                // **** CHECK SIGNS HERE OF VISCOUS STRESS**** *WDH* Nov 25, 2016
+		fLocal(I1g,I2g,I3g) -= (normal(I1,I2,I3,0)*stressLocal(I1,I2,I3,0) +  
+					normal(I1,I2,I3,1)*stressLocal(I1,I2,I3,1) + 
+					normal(I1,I2,I3,2)*stressLocal(I1,I2,I3,2) ) 
+		                        -fluidDensity*uLocal(I1,I2,I3,pc);
+
+                // old: 
+		// fLocal(I1g,I2g,I3g) += (normal(I1,I2,I3,0)*stressLocal(I1,I2,I3,0) +  
+		// 			normal(I1,I2,I3,1)*stressLocal(I1,I2,I3,1) + 
+		// 			normal(I1,I2,I3,2)*stressLocal(I1,I2,I3,2) ) 
+		//   -fluidDensity*uLocal(I1,I2,I3,pc);
+	      }
+	
+	
+	    }
+
 	  }
 	  else
 	  {
-	    const int bodyNumber=deformingBodyNumber[side][axis];
-	    for( int grid2=0; grid2<numberOfComponentGrids; grid2++ )
-	    {
-	      if( grid2!=grid && parameters.gridIsMoving(grid2) )
-	      {
-		// **FIX ME** this will only work for deforming bodies.
-		BoundaryData & bd2 = boundaryDataArray[grid2];
-		const int (&deformingBodyNumber2)[2][3] = bd2.dbase.get<int[2][3]>("deformingBodyNumber");
-		for( int dir2=0; dir2<numberOfDimensions; dir2++ )
-		{
-		  for( int side2=0; side2<=1; side2++ )
-		  {
-		    if( deformingBodyNumber2[side2][dir2]==bodyNumber )
-		    {
-		      realMappedGridFunction & u2 = gf0.u[grid2];
-		      // Here we assume that the gridlines match *FIX ME*
-		      Index Jb1,Jb2,Jb3;
-		      getGhostIndex( gf0.cg[grid2].extendedIndexRange(),side2,dir2,Jb1,Jb2,Jb3,0);     // boundary line
-		      if( !( I1==Jb1 && I2==Jb2 && I3==Jb3 ) )
-		      {
-			OV_ABORT("finish me");
-		      }
-		   
-		      f(I1g,I2g,I3g) -= u2(Jb1,Jb2,Jb3,pc) ;
+	    // ------------------------------------
+	    // --- ADJUSTED AMP PRESSURE BC ----
+	    // ------------------------------------
 
-		      if( debug() & 4 || t0 <= dt )
-			printF("--INS-- gridAccelerationBC: t=%8.2e, SUBTRACT p on grid2=%i from grid acceleration RHS: grid=%i, (side,axis)=(%i,%i)\n",
-			       t0,grid2,grid,side,axis);
+	    // subtract off the current guess for sigma*n : *wdh* 2015/01/04 
+	    const int (&deformingBodyNumber)[2][3] = bd.dbase.get<int[2][3]>("deformingBodyNumber");
+
+	    // mixedNormalCoeff(pc,side,axis,grid)=beamMassPerUnitLength[side][axis]/fluidDensity;
+	    const int & numberOfComponents = parameters.dbase.get<int >("numberOfComponents");
+	    RealArray & bcData = parameters.dbase.get<RealArray>("bcData");      
+	    const int & pc = parameters.dbase.get<int >("pc");
+	    if( TRUE &&
+		deformingBodyNumber[side][axis]>=0 &&   // -- this is an interface --
+		mixedCoeff(pc,side,axis,grid)==1. )
+	    {
+	      if( (true || debug() & 4) && t0 <= dt )
+		printF("--INS-- gridAccelerationBC: t=%8.2e, ADD p to grid acceleration RHS: grid=%i, (side,axis)=(%i,%i)\n",
+		       t0,grid,side,axis);
+	      if( (false ||  debug() & 4) && t0 <= dt )
+	      {
+		::display(u(I1,I2,I3,pc),sPrintF("--INS-- gridAccelerationBC: pressure p at t=%g (grid,side,axis)=(%i,%i,%i)",t0,grid,side,axis),"%9.2e ");
+		::display(f(I1g,I2g,I3g),sPrintF("--INS-- gridAccelerationBC: f=gDot at t=%g (grid,side,axis)=(%i,%i,%i)",t0,grid,side,axis),"%9.2e "); 
+	      }
+	
+	      f(I1g,I2g,I3g) += u(I1,I2,I3,pc) ; 
+
+	      // For two sided beams we need to adjust the opposite side 
+	      if( true ) 
+	      {
+		// *NEW WAY*
+
+		int iv[3], &i1=iv[0], &i2=iv[1], &i3=iv[2];
+		int isv[3], &is1=isv[0], &is2=isv[1], &is3=isv[2];
+
+		MappedGrid & mg = gf0.cg[grid];
+		const IntegerArray & gid = mg.gridIndexRange();
+		for( int dir=0; dir<3; dir++ ){ iv[dir]=gid(0,dir); } //
+		const int axisp1= (axis +1) % numberOfDimensions;
+	  
+		for( int body=0; body<numberOfDeformingBodies; body++ ) // *FIX* We know the body number from above ***
+		{
+		  DeformingBodyMotion & deformingBody = movingGrids.getDeformingBody(body);
+		  if( !deformingBody.beamModelHasFluidOnTwoSides() )
+		  { // this is NOT a beam model with fluid on two sides.
+		    continue;   
+		  }
+
+		  DataBase & deformingBodyDataBase = deformingBody.deformingBodyDataBase;
+		  const int & numberOfFaces = deformingBodyDataBase.get<int>("numberOfFaces");
+		  const IntegerArray & boundaryFaces = deformingBodyDataBase.get<IntegerArray>("boundaryFaces");
+
+		  // --- beam-fluid interface data is stored here:
+		  BeamFluidInterfaceData &  beamFluidInterfaceData = 
+		    deformingBodyDataBase.get<BeamFluidInterfaceData>("beamFluidInterfaceData");
+		  IntegerArray *& donorInfoArray = beamFluidInterfaceData.dbase.get<IntegerArray*>("donorInfoArray");
+
+		  is1=is2=is3=0;
+		  isv[axis]=1-2*side;
+
+		  for( int face=0; face<numberOfFaces; face++ )
+		  {
+		    const int side0=boundaryFaces(0,face);
+		    const int axis0=boundaryFaces(1,face);
+		    const int grid0=boundaryFaces(2,face); 
+		    if( grid0==grid && side0==side && axis0==axis )  // beam face is found
+		    {
+		      const IntegerArray & donorInfo= donorInfoArray[face]; 
+		      Range I0=donorInfo.dimension(0);
+		      for( int i=I0.getBase(); i<=I0.getBound(); i++ )  // NOTE: loop index i is incremented below
+		      {
+			// Here is the donor on the opposite face of the beam:
+			const int grid1 = donorInfo(i,0), side1=donorInfo(i,1), axis1=donorInfo(i,2);
+
+			if( grid1<0 )  // This means there is do opposite grid point -- could be the end of the beam
+			  continue;
+
+			assert( grid1>=0 && grid1<numberOfComponentGrids );
+		  
+			const realArray & u1 = gf0.u[grid1];
+			for( ; i<=I0.getBound(); i++ ) // NOTE: this increments "i" from the outer loop
+			{
+			  if( donorInfo(i,0)!=grid1 )
+			  {
+			    i--;
+			    break;
+			  }
+			  // closest grid pt on opposite side:
+			  const int j1=donorInfo(i,3), j2=donorInfo(i,4), j3=donorInfo(i,5); 
+
+			  iv[axisp1]=i+gid(0,axisp1); // index that varies along the interface of grid
+			  int i1m=i1-is1, i2m=i2-is2, i3m=i3-is3; //  ghost point is (i1m,i2m,i3m)
+
+			  f(i1m,i2m,i3m) -= u1(j1,j2,j3,pc) ;
+			}
+		      }
+		    }
+		  }
+		}
+	  
+	      }
+	      else
+	      {
+		const int bodyNumber=deformingBodyNumber[side][axis];
+		for( int grid2=0; grid2<numberOfComponentGrids; grid2++ )
+		{
+		  if( grid2!=grid && parameters.gridIsMoving(grid2) )
+		  {
+		    // **FIX ME** this will only work for deforming bodies.
+		    BoundaryData & bd2 = boundaryDataArray[grid2];
+		    const int (&deformingBodyNumber2)[2][3] = bd2.dbase.get<int[2][3]>("deformingBodyNumber");
+		    for( int dir2=0; dir2<numberOfDimensions; dir2++ )
+		    {
+		      for( int side2=0; side2<=1; side2++ )
+		      {
+			if( deformingBodyNumber2[side2][dir2]==bodyNumber )
+			{
+			  realMappedGridFunction & u2 = gf0.u[grid2];
+			  // Here we assume that the gridlines match *FIX ME*
+			  Index Jb1,Jb2,Jb3;
+			  getGhostIndex( gf0.cg[grid2].extendedIndexRange(),side2,dir2,Jb1,Jb2,Jb3,0);     // boundary line
+			  if( !( I1==Jb1 && I2==Jb2 && I3==Jb3 ) )
+			  {
+			    OV_ABORT("finish me");
+			  }
+		   
+			  f(I1g,I2g,I3g) -= u2(Jb1,Jb2,Jb3,pc) ;
+
+			  if( debug() & 4 || t0 <= dt )
+			    printF("--INS-- gridAccelerationBC: t=%8.2e, SUBTRACT p on grid2=%i from grid acceleration RHS: grid=%i, (side,axis)=(%i,%i)\n",
+				   t0,grid2,grid,side,axis);
               
+			}
+		      }
 		    }
 		  }
 		}
 	      }
 	    }
-	  }
-	}
       
-      } // end else adjusted AMP
-      if(false)
-	{
-	  ::display( fLocal(I1g,I2g,I3g),sPrintF("rhs of AMP pressure bc (useApproximateAMPcondition=%i)",useApproximateAMPcondition),"%10.2e");
-	}
+	  } // end else adjusted AMP
+	  if(false)
+	  {
+	    ::display( fLocal(I1g,I2g,I3g),sPrintF("rhs of AMP pressure bc (useApproximateAMPcondition=%i)",useApproximateAMPcondition),"%10.2e");
+	  }
+      
+	} // END IF BEAM MODEL 
+      } // end if body >=0 
+      
     } // end if useAddedMass
     
     
@@ -445,7 +610,10 @@ gridAccelerationBC(const int & grid,
       const int uc=parameters.dbase.get<int >("uc");
       const int vc=parameters.dbase.get<int >("vc");
       const int wc=parameters.dbase.get<int >("wc");
-      // printf("gridAccelerationBC: add acceleration BC to grid=%i, side=%i, axis=%i\n",grid,side,axis);
+
+      if( true )
+	printF("+++++gridAccelerationBC: add acceleration BC to grid=%i, side=%i, axis=%i\n\n",grid,side,axis);
+
       if( parameters.dbase.get<IntegerArray>("variableBoundaryData")(grid) )
       {
         RealArray & bd = parameters.getBoundaryData(side,axis,grid,c); 
@@ -968,9 +1136,11 @@ setPressureConstraintValues( GridFunction & gf0, realCompositeGridFunction & f )
       // real constraintValue; // ** FIX ME: -- May 12, 2016 : No longer correct 
       // poisson->getExtraEquationValues(pressureRightHandSide, &constraintValue );
 
-      // Get the current value for the righ-hand-side of the pressure constraint *new way* *wdh* May 13, 2016
+      // Get the current value for the right-hand-side of the pressure constraint *new way* *wdh* May 13, 2016
       RealArray extraEquationRightHandSideValues;
       poisson->getExtraEquationRightHandSideValues(extraEquationRightHandSideValues);
+      assert( extraEquationRightHandSideValues.getLength(0)>0 );
+      
       real constraintValue=extraEquationRightHandSideValues(0);
           
       if( debug() & 4 )

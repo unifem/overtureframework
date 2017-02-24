@@ -1,4 +1,5 @@
 #include "Maxwell.h"
+#include "DispersiveMaterialParameters.h"
 #include "GenericGraphicsInterface.h"
 #include "ParallelUtility.h"
 
@@ -300,6 +301,117 @@ getUserDefinedKnownSolution(real t, CompositeGrid & cg, int grid, realArray & ua
     
   }
   
+  else if( userKnownSolution=="dispersivePlaneWave" )
+  {
+    // -----------------------------------------------
+    // ---------- Dispersive plane wave  -------------
+    // -----------------------------------------------
+
+    assert( dispersionModel!=noDispersion );
+
+    DispersiveMaterialParameters & dmp = getDispersiveMaterialParameters(grid);
+
+    // evaluate the dispersion relation,  exp(i(k*x-omega*t))
+    //    omega is complex 
+    const real kk = twoPi*sqrt( kx*kx+ky*ky+kz*kz); // true wave-number (note factor of twoPi)
+    real omegaDpwRe, omegaDpwIm;
+    dmp.computeDispersivePlaneWaveParameters( c,eps,mu,kk, omegaDpwRe, omegaDpwIm );
+
+    printF("--UDKS:DPW-- t=%10.3e, omegar=%g, omegai=%g\n",t,omegaDpwRe, omegaDpwIm );
+
+    const real dpwExp =exp(omegaDpwIm*t);
+    
+    const real c = cGrid(grid);
+    const real cc= c*sqrt( kx*kx+ky*ky+kz*kz);
+
+    const real eps = epsGrid(grid);
+    const real mu  = muGrid(grid);
+    const real ck2 = SQR(c*kk);
+
+    // compute coefficients of P :   s = sr+I*si = -I*omega = -I*( omegar + I omegai) = omegai - I*omegar
+    real sr = omegaDpwIm, si=-omegaDpwRe;
+    real sNorm2=sr*sr+si*si, sNorm4=sNorm2*sNorm2;
+    real pc = -eps*( -2.*sr*si*ck2/sNorm4 );
+    real ps = -eps*( 1. + ck2*(sr*sr-si*si)/sNorm4 );
+
+    //  mu * (Hz)_t = (Ex)_y - (Ey)_x
+    //  Hz = [hc*cos(xi) + hs*sin(xi) ]*exp(omegai*t)
+    // *check me*
+    real factor = twoPi*( kx*pwc[1] - ky*pwc[0] )/mu;  // (kx*Ey - ky*Ex )/mu
+    real omegaNorm2=SQR(omegaDpwRe)+SQR(omegaDpwIm);
+    real hs =  factor*omegaDpwRe/omegaNorm2;
+    real hc = -factor*omegaDpwIm/omegaNorm2;
+    
+
+    printF("--UDKS:DPW-- ck2=%10.3e, pc=%g, ps=%g, sr=%g, si=%g, hc=%g hs=%g\n",ck2,pc,ps,sr,si,hc,hs);
+
+    real x,y,z;
+    if( numberOfTimeDerivatives==0 )
+    {
+      if( numberOfDimensions==2 )
+      {
+        // ----------- 2D --------------
+	FOR_3D(i1,i2,i3,I1,I2,I3)
+	{
+	  if( !isRectangular )
+	  {
+	   x= xLocal(i1,i2,i3,0);
+	   y= xLocal(i1,i2,i3,1);
+	  }
+	  else
+	  {
+            x=XC(iv,0);
+            y=XC(iv,1);
+	  }
+ 	  real xi=twoPi*(kx*x+ky*y) -omegaDpwRe*t;
+	  real sinxi=sin(xi), cosxi=cos(xi);
+
+	  uLocal(i1,i2,i3,ex) = sinxi*pwc[0]*dpwExp;
+	  uLocal(i1,i2,i3,ey) = sinxi*pwc[1]*dpwExp;
+	  uLocal(i1,i2,i3,hz) = (hc*cosxi+hs*sinxi)*dpwExp;
+
+          // -- polarization vector --
+          uLocal(i1,i2,i3,pxc) = (pc*cosxi+ps*sinxi)*pwc[0]*dpwExp;
+          uLocal(i1,i2,i3,pyc) = (pc*cosxi+ps*sinxi)*pwc[1]*dpwExp;
+
+          if( method==sosup )
+	  {
+	    // supply time-derivatives for sosup scheme
+            OV_ABORT("finish me");
+	  }
+	}
+      }
+      else
+      {
+        // ----------- 3D --------------
+	FOR_3D(i1,i2,i3,I1,I2,I3)
+	{
+	  if( !isRectangular )
+	  {
+	    x= xLocal(i1,i2,i3,0);
+	    y= xLocal(i1,i2,i3,1);
+	    z= xLocal(i1,i2,i3,2);
+	  }
+	  else
+	  {
+	    x=XC(iv,0);
+	    y=XC(iv,1);
+	    z=XC(iv,2);
+	  }
+
+	  OV_ABORT("finish me");
+      
+	}
+      }
+    }
+    else
+    {
+      OV_ABORT("finish me: numberOfTimeDerivatives1=0");
+
+    }
+    
+  }
+  
   else
   {
     printF("getUserDefinedKnownSolution:ERROR: unknown value for userDefinedKnownSolution=%s\n",
@@ -341,6 +453,7 @@ updateUserDefinedKnownSolution(GenericGraphicsInterface & gi, CompositeGrid & cg
       "no known solution",
       "manufactured pulse",
       "chirped plane wave",
+      "dispersive plane wave",
       "done",
       ""
     }; 
@@ -390,6 +503,20 @@ updateUserDefinedKnownSolution(GenericGraphicsInterface & gi, CompositeGrid & cg
       
 
       printF("The chirped plane wave is defined by ...\n");
+      
+      
+    }
+    
+    else if( answer=="dispersive plane wave" ) 
+    {
+      userKnownSolution="dispersivePlaneWave";
+      dbase.get<bool>("knownSolutionIsTimeDependent")=true;  // known solution depends on time
+      
+
+      printF("The dispersive plane wave is defined by: \n"
+             "    E = a*sin( k*x - omegar*t)*exp(omegai*t)\n"
+             "    P = [b*cos( k*x - omegar*t) + c*sin( k*x - omegar*t) ]*exp(omegai*t)\n"
+            );
       
       
     }

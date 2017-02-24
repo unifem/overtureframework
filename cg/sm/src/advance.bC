@@ -96,6 +96,9 @@ advance(  int current, real t, real dt )
   const int prev = (current-1+numberOfTimeLevels) % numberOfTimeLevels;
   const int next = (current+1) % numberOfTimeLevels;
 
+  parameters.dbase.get<int>("currentGF")=current;
+  parameters.dbase.get<int>("nextGF")=next;
+
   real & rho=parameters.dbase.get<real>("rho");
   real & mu = parameters.dbase.get<real>("mu");
   real & lambda = parameters.dbase.get<real>("lambda");
