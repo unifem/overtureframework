@@ -214,7 +214,12 @@ updatePressureEquation(CompositeGrid & cg0, GridFunction & cgf )
 	{
 	  // ----- Mixed-BC for AMP scheme with a BEAM ------
 
-	  assert( beamMassPerUnitLength[side][axis]>=0. );
+	  if( beamMassPerUnitLength[side][axis]<0. )
+	  {
+	    printF("--UPE-- ERROR:  beamMassPerUnitLength[side=%i][axis=%i] = %9.2e, grid=%i\n",side,axis,
+		   beamMassPerUnitLength[side][axis],grid);
+	    OV_ABORT("ERROR");
+	  }
 
 	  const real & fluidDensity = parameters.dbase.get<real >("fluidDensity");
 	  assert( fluidDensity>0. );
