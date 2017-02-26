@@ -121,7 +121,7 @@ updatePressureEquation(CompositeGrid & cg0, GridFunction & cgf )
     real beamMassPerUnitLength[2][3]={-1.,-1.,-1.,-1.,-1.,-1.};  // For beam models
     real solidImpedance=-1;  // ** FIX ME**
 
-    DeformingBodyModelEnum deformingBodyModel[2][3];
+    DeformingBodyModelEnum deformingBodyModel[2][3]={noModel,noModel,noModel,noModel,noModel,noModel};
 
     if( useAddedMassAlgorithm && parameters.gridIsMoving(grid) )
     {
