@@ -741,7 +741,12 @@ checkForce()
     //Longfei 20160621: modification made to tackle both FD and FEM beam
     Index I=Range(0,nElem);
     if(beamType=="FEMBeamModel")
-      I=2*I;
+    {
+      // *wdh* 2016/09/25 -- Longfei: what did you mean by this?
+      // I=2*I;
+      I=Range(0,2*nElem); // ?? is this correct ?? *wdh*
+    }
+    
     ::display(force(I),"Top (element) force","%8.2e ");
     ::display(fe,"Exact force","%8.2e ");
 

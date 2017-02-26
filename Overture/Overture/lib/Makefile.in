@@ -21,6 +21,9 @@ Ogmg=         ../Ogmg
 .SUFFIXES:.C .o
 .C.o:; $(CC) $(CCFLAGS) -c $*.C
 
+# Here is the full path for use with the library installed name
+OvertureLibPath="`pwd`"
+
 #buildOgmg LIB_TARGETS := $(LIB_TARGETS) libOgmg_date
 
 # wdh 100124 -- do not build libRapsodi anymore, just use libOverture 
@@ -45,6 +48,8 @@ RAP_DYNAMIC_LIBRARY = libRapsodi.so
 # are embedded in the dynamic lib apparently
 SO_LIB_DEPENDENCIES = 
 #darwin SO_LIB_DEPENDENCIES = lib_date
+# On the mac we set the install name so we do not need to include the lib path in DYLIB_LIBRARY_PATH
+#darwin OV_LIB_INSTALL_NAME = -install_name $(OvertureLibPath)/libOverture.dylib
 
 # Here is the dynamic library
 libso_date: $(SO_LIB_DEPENDENCIES) $(DataBase)/DataBase_date \
@@ -59,7 +64,7 @@ libso_date: $(SO_LIB_DEPENDENCIES) $(DataBase)/DataBase_date \
 	  $(mapUtil)/mapUtil_date
 	  $(LD) -o $(DYNAMIC_LIBRARY) $(SOFLAGS) $(DataBase)/*.o $(GridFunction)/*.o $(templates)/*.o \
              $(Grid)/*.o $(Mapping)/*.o $(Oges)/*.o  $(GridGenerator)/*.o $(Ogshow)/*.o $(mapUtil)/*.o \
-	     $(otherStuff)/*.o $(LIBLIBS) 
+	     $(otherStuff)/*.o $(LIBLIBS) $(OV_LIB_INSTALL_NAME)
 	  rm -rf libOverture.so.1.0
 	  ln -s $(DYNAMIC_LIBRARY) libOverture.so.1.0
 	  touch $@
@@ -106,10 +111,12 @@ OGMG_DYNAMIC_LIBRARY = libOgmg.so
 #hpux OGMG_DYNAMIC_LIBRARY = libOgmg.sl
 #darwin OGMG_DYNAMIC_LIBRARY = libOgmg.dylib
 OGMG_EXTRA_LIBS = 
-#darwin OGMG_EXTRA_LIBS = $(LDFLAGS)$(Overture)/lib -lOverture -lOverture_static
+#darwin OGMG_EXTRA_LIBS = $(LDFLAGS)$(Overture)/lib -lOverture -lOverture_static  
+# On the mac we set the install name so we do not need to include the lib path in DYLIB_LIBRARY_PATH
+#darwin OGMG_LIB_INSTALL_NAME = -install_name $(OvertureLibPath)/libOgmg.dylib
 
 libOgmg_date: lib_date libso_date $(Ogmg)/Ogmg_date
-	  $(LD) -o $(OGMG_DYNAMIC_LIBRARY) $(SOFLAGS) $(Ogmg)/*.o $(LIBLIBS) $(OGMG_EXTRA_LIBS)
+	  $(LD) -o $(OGMG_DYNAMIC_LIBRARY) $(SOFLAGS) $(Ogmg)/*.o $(LIBLIBS) $(OGMG_EXTRA_LIBS) $(OGMG_LIB_INSTALL_NAME)
 	  rm -rf libOgmg.so.1.0
 	  ln -s $(OGMG_DYNAMIC_LIBRARY) libOgmg.so.1.0
 	  touch $@

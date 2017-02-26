@@ -32,7 +32,8 @@ profile:=off
 FC90 = $(FC)
 
 # -- fix this:
-LAPACK_LIBRARIES =  -llapack -lblas -Wl-framework,Accelerate 
+# 2016/09/25 LAPACK_LIBRARIES =  -llapack -lblas -Wl-framework,Accelerate 
+LAPACK_LIBRARIES =  -llapack -lblas
 
 # This is not always needed:
 CHEMKIN_LIBRARIES=  $(CHEMKIN)/cklib.o $(CHEMKIN)/tranlib.o
@@ -75,7 +76,7 @@ ifneq ($(FC),fort77)
 else
   FC_FLAGS_DBG =
 endif
-FC_FLAGS_OPT = -O 
+FC_FLAGS_OPT = -O3
 FC_FLAGS_PROF = -pg 
 
 ## ## Fortran Compiler options (compiled without auto double)
@@ -87,7 +88,7 @@ ifneq ($(FC),fort77)
 else
   FC_FLAGSS_DBG =
 endif
-FC_FLAGSS_OPT = -O 
+FC_FLAGSS_OPT = -O3
 FC_FLAGSS_PROF = -pg 
 
 

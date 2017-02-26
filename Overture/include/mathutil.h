@@ -127,14 +127,17 @@ inline double pow(int x1,int x2 ){ return x2>0 ? rounder(pow(double(x1),double(x
 inline double sqrt(int x) { return sqrt(double(x)); }
 #endif
 
-#ifndef __KCC
-inline float atan2( float  x1, float  x2 ){ return atan2(double(x1),double(x2)); } 
-#endif
+// #ifndef __KCC
+// inline float atan2( float  x1, float  x2 ){ return atan2(double(x1),double(x2)); } 
+// #endif
+// 2016/09/25 -- these not needed for gcc 6.1
+#ifndef __GNUC__
 inline float atan2(double x1, float  x2 ){ return atan2(double(x1),double(x2)); } 
 inline float atan2( float  x1,double x2 ){ return atan2(double(x1),double(x2)); } 
 inline float fmod( float  x1, float  x2 ){ return fmod(double(x1),double(x2)); } 
 inline float fmod(double x1, float  x2 ){ return fmod(double(x1),double(x2)); } 
 inline float fmod( float  x1,double x2 ){ return fmod(double(x1),double(x2)); } 
+#endif
   
 inline int sign(int    x ) { return x>0 ? 1 : ( x<0 ? -1 : 0);}
 inline int sign(float  x ) { return x>0 ? 1 : ( x<0 ? -1 : 0);}
