@@ -1,4 +1,4 @@
-! This file automatically generated from advOptNew.bf with bpp.
+! This file automatically generated from advOpt.bf with bpp.
         subroutine advMx2dOrder2r(nd,n1a,n1b,n2a,n2b,n3a,n3b,nd1a,nd1b,
      & nd2a,nd2b,nd3a,nd3b,nd4a,nd4b,mask,rsxy,  um,u,un,f,fa, v,vvt2,
      & ut3,vvt4,ut5,ut6,ut7, bc, dis, varDis, ipar, rpar, ierr )
@@ -987,9 +987,6 @@
         real cdcH,cdcHLap,cdcHLapsq,cdcHLapm
         ! dispersion
         integer dispersionModel,pxc,pyc,pzc,qxc,qyc,qzc,rxc,ryc,rzc
-        integer ec,pc
-        real gamma,omegap
-        real gammaDt,omegapDtSq,ptt, fe,fp
        ! real unxx22r,unyy22r,unxy22r,unx22r
        !.......statement functions for jacobian
         rx(i1,i2,i3)=rsxy(i1,i2,i3,0,0)
@@ -3452,9 +3449,6 @@ c===============================================================================
         divergenceCleaningCoefficient=rpar(17)
         t     =rpar(18)
         rpar(20)=0.  ! return the time used for adding dissipation
-        ! Drude-Lorentz dispersion model:
-        gamma= rpar(21)
-        omegap=rpar(22)
         dy=dx(1)  ! Are these needed?
         dz=dx(2)
         ! timeForArtificialDissipation=rpar(6) ! return value
@@ -3526,8 +3520,6 @@ c===============================================================================
         dzi4=1./(dz**4)
         dxdzi2=1./(dx(0)*dx(0)*dz*dz)
         dydzi2=1./(dy*dy*dz*dz)
-        gammaDt=gamma*dt
-        omegapDtSq=(omegap*dt)**2
         if( t.eq.0. .and. dispersionModel.ne.noDispersion )then
            write(*,'("--advOpt-- dispersionModel=",i4," px,py,pz=",3i2)
      & ') dispersionModel,pxc,pyc,pzc
@@ -3706,39 +3698,25 @@ c===============================================================================
            if( dispersionModel.ne.noDispersion )then
              ! --dispersion model --
              write(*,'("--advOpt-- advance 2D dispersive model")')
-             fp=0
-             fe=0.
                do i3=n3a,n3b
                do i2=n2a,n2b
                do i1=n1a,n1b
                  if( mask(i1,i2,i3).gt.0 )then
                ! scheme from Jeff: 
-               do m=0,1
-                pc=pxc+m
-                ec=ex+m
-                if( addForcing.ne.0 )then
-                  fp = dtsq*f(i1,i2,i3,pc)
-                  fe = dtsq*f(i1,i2,i3,ec)
-                end if
-                un(i1,i2,i3,pc)=( 2.*u(i1,i2,i3,pc)- (1.-gammaDt*.5)*
-     & um(i1,i2,i3,pc) + omegapDtSq*u(i1,i2,i3,ec) + fp )/(1.+gammaDt*
-     & .5);
-                ptt = un(i1,i2,i3,pc)-2.*u(i1,i2,i3,pc)+um(i1,i2,i3,pc)
-                ! write(*,'(" ptt=",e10.2)') ptt
-                un(i1,i2,i3,ec)=maxwell2dr(i1,i2,i3,ec)+ fe - ptt/eps
-               end do
-               ! un(i1,i2,i3,ex)=maxwell2dr(i1,i2,i3,ex)+dtsq*f(i1,i2,i3,ex) 
-               ! un(i1,i2,i3,ey)=maxwell2dr(i1,i2,i3,ey)+dtsq*f(i1,i2,i3,ey)
-               ! FINISH ME for Hz 
-               !   H_tt = c^2 Delta(H) + c^2 curl( P_t)  -- equation for H , *check me*
-               if( addForcing.eq.0 )then
-                 un(i1,i2,i3,hz)=maxwell2dr(i1,i2,i3,hz)
-               else
-                 un(i1,i2,i3,hz)=maxwell2dr(i1,i2,i3,hz)+dtsq*f(i1,i2,
-     & i3,hz)
-               end if
-               ! un(i1,i2,i3,pxc)=2.*u(i1,i2,i3,pxc)-um(i1,i2,i3,pxc)
-               ! un(i1,i2,i3,pyc)=2.*u(i1,i2,i3,pyc)-um(i1,i2,i3,pyc)
+       !         g = gamma
+       !         un(i1,i2,i3,pxc)=(2.*u(i1,i2,i3,pxc)-um(i1,i2,i3,pxc)+g*dt/2.*um(i1,i2,i3,pxc)+omegaSq*dtSq*u(i1,i2,i3,ex))/(1.+g*dt/2.);
+       ! 
+       !         Ptt = un(i1,i2,i3,pxc)-2.*u(i1,i2,i3,pxc)+um(i1,i2,i3,pxc)
+       ! 
+       !        un(i1,i2,i3,ex)=maxwell2dr(i1,i2,i3,ex)+dtsq*f(i1,i2,i3,ex) - Ptt/epsilon
+               un(i1,i2,i3,ex)=maxwell2dr(i1,i2,i3,ex)+dtsq*f(i1,i2,i3,
+     & ex)
+               un(i1,i2,i3,ey)=maxwell2dr(i1,i2,i3,ey)+dtsq*f(i1,i2,i3,
+     & ey)
+               un(i1,i2,i3,hz)=maxwell2dr(i1,i2,i3,hz)+dtsq*f(i1,i2,i3,
+     & hz)
+               un(i1,i2,i3,pxc)=2.*u(i1,i2,i3,pxc)-um(i1,i2,i3,pxc)
+               un(i1,i2,i3,pyc)=2.*u(i1,i2,i3,pyc)-um(i1,i2,i3,pyc)
                  end if
                end do
                end do

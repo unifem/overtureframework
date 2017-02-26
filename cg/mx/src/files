@@ -119,10 +119,12 @@ src/evalDispersionRelation.f : src/evalDispersionRelation.bf; $(BPP) -quiet -cle
 src/advOpt.f: src/advOpt.bf 
 	      @cd src; $(BPP) -clean -quiet -I$(Overture)/include advOpt.bf
 # TEMP new version for dispersive materials: 
-src/advOptNew.f: src/advOptNew.bf 
-	      @cd src; $(BPP) -clean -quiet -I$(Overture)/include advOptNew.bf
+# src/advOptNew.f: src/advOptNew.bf 
+# 	      @cd src; $(BPP) -clean -quiet -I$(Overture)/include advOptNew.bf
 
-src/advMx2dOrder2r.f : src/advOptNew.f
+# src/advMx2dOrder2r.f : src/advOptNew.f
+
+src/advMx2dOrder2r.f : src/advOpt.f
 src/advMx3dOrder2r.f : src/advOpt.f
 src/advMx2dOrder4r.f : src/advOpt.f
 src/advMx3dOrder4r.f : src/advOpt.f
