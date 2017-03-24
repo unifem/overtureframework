@@ -221,9 +221,10 @@ MovingGrids::
     for( int b=0; b<numberOfDeformingBodies; b++ )
     {
       parameters.userDefinedDeformingSurfaceCleanup( *deformingBodyList[b] );
+      delete deformingBodyList[b]; //Longfei 20170220: we should also delete the deformingBody created in line 5669
     }
   }
-  
+ 
   delete [] deformingBodyList;
 
 }
@@ -4629,18 +4630,30 @@ saveToShowFile( ) const
   if( debug() & 2 )
     printF("***** MovingGrids::saveToShowFile ***\n");
   if( parameters.dbase.get<Ogshow* >("show")!=NULL && numberOfRigidBodies>0 && rigidBodyInfoCount>0 )
-  {
-    if( debug() & 2 )
-      printF("***** MovingGrids::saveToShowFile: save a sequence ***\n");
-    
-    Range all,N(0,rigidBodyInfoCount-1);
-    char buff[40];
-    for( int b=0; b<numberOfRigidBodies; b++ )
     {
-      parameters.dbase.get<Ogshow* >("show")->saveSequence( sPrintF(buff,"rigid body %i",b),rigidBodyInfoTime(N),rigidBodyInfo(N,all,b),
-				 rigidBodyInfoName);
+      if( debug() & 2 )
+	printF("***** MovingGrids::saveToShowFile: save a sequence ***\n");
+    
+      Range all,N(0,rigidBodyInfoCount-1);
+      char buff[40];
+      for( int b=0; b<numberOfRigidBodies; b++ )
+	{
+	  parameters.dbase.get<Ogshow* >("show")->saveSequence( sPrintF(buff,"rigid body %i",b),rigidBodyInfoTime(N),rigidBodyInfo(N,all,b),
+								rigidBodyInfoName);
+	}
     }
-  }
+  
+  // Longfei 20170220: save a separate show file for each deforming body
+  if( parameters.dbase.get<Ogshow* >("show")!=NULL && numberOfDeformingBodies>0)
+    {
+      if( debug() & 2 )
+	printF("***** MovingGrids::saveToShowFile: save a separate showfile for each deformingBody ***\n");
+
+      for( int b=0; b<numberOfDeformingBodies; b++ )
+	{
+	  deformingBodyList[b]->saveShow();
+	} 
+    }
   return 0;
 }
 

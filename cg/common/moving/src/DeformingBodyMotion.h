@@ -194,6 +194,9 @@ int regenerateComponentGrids( const real newT, CompositeGrid & cg);
 
 void registerDeformingComponentGrid( const int grid, CompositeGrid & cg);
 
+// Longfei 20170220:
+int saveShow();
+
 // set the order of accuracy used to compute the acceleration
 int setAccelerationOrderOfAccuracy( int order );
 

@@ -174,7 +174,7 @@ getBeamEigenmode( real t, RealArray & u, RealArray & v, RealArray & a ) const
   // Longfei 20160121: new way of handling parameters
   //real beamLength=L;  // old way
   const  real &  beamLength= dbase.get<real>("length");
-  const BoundaryConditionEnum * boundaryConditions = dbase.get<BoundaryConditionEnum[2]>("boundaryConditions");
+  const vector<BoundaryConditionEnum> & boundaryConditions = dbase.get<vector<BoundaryConditionEnum> >("boundaryConditions");
   const BoundaryConditionEnum & bcLeft =  boundaryConditions[0];
   const BoundaryConditionEnum & bcRight =  boundaryConditions[1];
 
@@ -747,8 +747,10 @@ assignInitialConditions( real t, RealArray & u, RealArray & v, RealArray & a )
       OV_ABORT("error");
     }
   
-
-  // assignBoundaryConditions(t,u,v,a );
+  // Longfei 20170224: should we apply BC here?
+  // RealArray f=u;f=0.;
+  // addInternalForces(t,f); 
+  // assignBoundaryConditions(t,u,v,a ,f);
 
   // if( t==0. )
   // {

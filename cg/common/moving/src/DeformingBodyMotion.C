@@ -181,8 +181,19 @@ DeformingBodyMotion::
 
   vector<Mapping*> & surface = deformingBodyDataBase.get<vector<Mapping*> >("surface");
   for( int i=0; i<surface.size(); i++ )
-    delete surface[i];
-
+    {
+      if(true){
+	int rc=surface[i]->getReferenceCount();
+	printF("-- DBM -- before trying to delete surface[%i], its reference count=%i\n",i,rc);
+      }
+      //Longfei 20170220: the refenceCounting for surface mappings is funny. Some one else has increasemented it.
+      //Note: the refenceCount was not incremented when surface is newed. Is it correct to decrement it here???
+      //DO THIS FOR NOW.....
+      if(surface[i]->decrementReferenceCount()==0) 
+	{
+	  delete surface[i];
+	}
+    }
   vector<RealArray*> & surfaceArray = deformingBodyDataBase.get<vector<RealArray*> >("surfaceArray");
   vector<real*> & surfaceArrayTime = deformingBodyDataBase.get<vector<real*> >("surfaceArrayTime"); 
   for( int i=0; i<surfaceArray.size(); i++ )
@@ -197,7 +208,7 @@ DeformingBodyMotion::
 
   if (pBeamModel)
     delete pBeamModel;
-
+    
   if (pNonlinearBeamModel)
     delete pNonlinearBeamModel;
 }
@@ -4781,7 +4792,7 @@ buildBeamFluidInterfaceData3D( CompositeGrid & cg )
 
       // What interfaceData do we need for 3D problem???
       beamFluidInterfaceData.dbase.put<IntegerArray>("surfaceGridDirections");
-      beamFluidInterfaceData.dbase.put<IntegerArray*>("physicalBeamEnds") = new IntegerArray[numberOfFaces];
+      // beamFluidInterfaceData.dbase.put<vector<IntegerArray>*>("physicalBeamEnds") = new vector<IntegerArray>[numberOfFaces];
     }
   else
     {
@@ -4795,7 +4806,6 @@ buildBeamFluidInterfaceData3D( CompositeGrid & cg )
   IntegerArray & surfaceGridDirections = beamFluidInterfaceData.dbase.get<IntegerArray>("surfaceGridDirections");
   surfaceGridDirections.redim(2,numberOfFaces);//(0,face)=periodicDir,(1,face)=axialDir
 
-  IntegerArray*& physicalBeamEnds =  beamFluidInterfaceData.dbase.get<IntegerArray*>("physicalBeamEnds");
   
 
    for( int face=0; face<numberOfFaces; face++ )
@@ -4804,14 +4814,14 @@ buildBeamFluidInterfaceData3D( CompositeGrid & cg )
 	  int axisToMove=boundaryFaces(1,face);
 	  int gridToMove=boundaryFaces(2,face); 
 	  
-
+	  
 	  const int axisp1= (axisToMove +1) % numberOfDimensions;
 	  const int axisp2= (axisToMove +2) % numberOfDimensions;
 
 	  MappedGrid & mg = cg[gridToMove];
 	  const IntegerArray & bc = mg.boundaryCondition();
 
-
+	  // find the periodic direction
 	  if(bc(0,axisp1)<0 && bc(1,axisp1)<0)
 	    {
 	      surfaceGridDirections(0,face)=axisp1;// periodicDirection
@@ -4827,7 +4837,21 @@ buildBeamFluidInterfaceData3D( CompositeGrid & cg )
 	      OV_ABORT("DBM: ERROR: WE DON'T HAVE PERIODIC BC ON THIS FACE.");
 	    }
 
-		  
+	  // // find the physical ends of current face
+	  // vector<IngetgerArray> & BE = pBE[face]; // beam ends of the current face
+	  // Index I1,I2,I3;// index of the current face
+	  // getBoundaryIndex(cg[gridToMove].gridIndexRange(),sideToMove,axisToMove,I1,I2,I3);
+
+	  // if(bc(0,axisp1)>0)
+	  //   {
+	  //     BE.push_back(IntegerArray(2,3));
+	  //     BE.back()(0,0)=gridToMove;
+	  //     BE.back()(1,0)=gridToMove;
+	  //     BE.back()(0,1)=gridToMove;
+	  //     BE.back()(1,1)=gridToMove;
+	  //     BE.back()(0,2)=gridToMove;
+	  //     BE.back()(1,2)=gridToMove;
+	  //   }
 
 	}
   
@@ -7149,6 +7173,22 @@ plot(GenericGraphicsInterface & gi, GridFunction & cgf, GraphicsParameters & psp
 
   }
   
+
+  return 0;
+}
+
+
+// Longfei 20170220:
+// =================================================================================================
+/// \brief save a separate show file for each deforming body. This function /// is called by MovingGrids::saveToShowFile(). 
+// =================================================================================================
+int DeformingBodyMotion::
+saveShow()
+{
+  if( pBeamModel!=NULL )
+    {
+      pBeamModel->saveShow();
+    }
 
   return 0;
 }

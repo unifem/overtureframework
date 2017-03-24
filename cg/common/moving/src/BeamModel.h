@@ -449,6 +449,10 @@ public:
   // Set the surface velocity to zero. (used to project the velocity) 
   void resetSurfaceVelocity();
 
+  // Longfei 20170217: save a show file for the beam centerline solutions 
+  void saveShow();
+  
+
   // Set the relaxation parameter used in the fixed point iteration
   // used to alleviate the added mass effect
   // omega: relaxation factor (default is 1.0)
@@ -535,8 +539,8 @@ public:
   virtual void computeInternalForce( const RealArray& u, const RealArray& v, RealArray& f )=0;
 
 
-
-
+  //  Create the solution at current time for plotting.
+  int  getAugmentedSolution(real t, realMappedGridFunction & w);
 
   //  Return the RHS values for the boundary conditions.
   int getBoundaryValues( const real t, RealArray & g, const int ntd=0 );

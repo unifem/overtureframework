@@ -288,7 +288,6 @@ adjustPressureCoefficients(CompositeGrid & cg0, GridFunction & cgf  )
 		  beamModel.getCurrentNormalForProjection(cgf.t,x0,normal2,Ib1,Ib2,Ib3,normalOption);
 		  const real *initialBeamNormal = beamDbase.get<real[2]>("initialBeamNormal");
 		  
-		  // overwrites the coeficient of p. It was 1 so subtract 1 and add the new coeff: n^T n_0 n2^T*n
 		  // NOTE the fluid normal are always at the boundary points (i1,i2,i3), donorNormal is at (j1,j2,j3)
 		  real nDotn0 = normal(i1,i2,i3,0)*initialBeamNormal[0]+ normal(i1,i2,i3,1)*initialBeamNormal[1]; 
 		  real n2Dotn = normal2(i1,i2,i3,0)*normal(i1,i2,i3,0)+normal2(i1,i2,i3,1)*normal(i1,i2,i3,1);
@@ -301,14 +300,20 @@ adjustPressureCoefficients(CompositeGrid & cg0, GridFunction & cgf  )
 		  
 		      cout<<"before overwrite: coeff0(md,i1m,i2m,i3m)=" << coeff0(md,i1m,i2m,i3m) << endl;
 		      cout<<"before overwrite: coeff0(me,i1m,i2m,i3m)=" << coeff0(me,i1m,i2m,i3m) << endl;
+		    }
+		      
+		  
+		  // overwrites the coeficient of p. It was 1 so subtract 1 and add the new coeff: n^T n_0 n2^T*n
+		  coeff0(md,i1m,i2m,i3m) = coeff0(md,i1m,i2m,i3m)-1.+nDotn0*n2Dotn;
+		  // overwrites the coeficient of the donor. It was -1 so add 1 and add the new coeff: 
+		  coeff0(me,i1m,i2m,i3m)= coeff0(me,i1m,i2m,i3m)+1.+nDotn0*n2Dotnd;
 
-		      coeff0(md,i1m,i2m,i3m) = coeff0(md,i1m,i2m,i3m)-1.+nDotn0*n2Dotn;
-
-		      //coeeff of p_d (the donor)
-		      coeff0(me,i1m,i2m,i3m)= coeff0(me,i1m,i2m,i3m)+1.+nDotn0*n2Dotnd;
+		  if(false)
+		    {
 		      cout<<"after overwrite: coeff0(md,i1m,i2m,i3m)=" << coeff0(md,i1m,i2m,i3m) << endl;
 		      cout<<"after overwrite: coeff0(me,i1m,i2m,i3m)=" << coeff0(me,i1m,i2m,i3m) << endl;
 		    }
+		  
 		}
 	      
 

@@ -9,6 +9,7 @@
 #include "LineMapping.h"
 #include "MappedGridOperators.h"
 #include "TridiagonalSolver.h"
+#include "Ogshow.h"  
 
 // Longfei 20170118
 // use the maple generated file to define macros for
@@ -159,8 +160,7 @@ BeamModel::BeamModel()
   dbase.put<real>("initialResidual")=0.;
   dbase.put<real>("projectedBodyForce") = 0.0;
   dbase.put<bool>("allowsFreeMotion") = false;
-  dbase.put<MappedGrid>("beamGrid"); 
-
+  dbase.put<MappedGrid>("beamGrid");
 
   // --- variables for time stepping ---
   int numberOfTimeLevels  = 3;
@@ -340,6 +340,13 @@ BeamModel::BeamModel()
   dbase.put<bool>("useSmallDeformationApproximation")=true;
 
 
+
+  // Longfei 20170217: add the capability to save beam solutions in show file 
+  dbase.put<bool>("saveShow")=false;
+  dbase.put<int>("showFileFlushFrequency")=10;
+  dbase.put<Ogshow*>("showFile")=NULL;
+  dbase.put<aString>("showFileName")=sPrintF("beam%i.show",getBeamID());
+
   
 
 
@@ -465,6 +472,12 @@ BeamModel::~BeamModel()
 
   if( dbase.get<bool>("saveProbeFile") &&  dbase.get<FILE*>("probeFile")!=NULL )
     fclose(dbase.get<FILE*>("probeFile"));
+
+  if (dbase.get<Ogshow*>("showFile")!=NULL)
+    {
+      dbase.get<Ogshow*>("showFile")->close();
+      delete dbase.get<Ogshow*>("showFile");
+    }
 
 }
 
@@ -6237,7 +6250,37 @@ outputProbes( real t, int stepNumber )
   if( dbase.get<bool>("saveProbeFile") && 
       (stepNumber % probeFileSaveFrequency)==0 )
     {
-      FILE *probeFile = dbase.get<FILE*>("probeFile");
+
+      const real & probePosition =  dbase.get<real>("probePosition");
+
+      // Longfei 20170216: create probeFile in the first pass
+      FILE * & probeFile = dbase.get<FILE*>("probeFile");
+      if(probeFile==NULL)
+	{
+
+	  if(probePosition>1 || probePosition<0)
+	    {
+	      printF("--BM-- ERROR: The specified probePosition=%12.5e (normalized coordinates) is not in [0,1]\n",probePosition);
+	      OV_ABORT("--BM-- ABORT");
+	    }
+	  
+	  const  aString & probeFileName = dbase.get<aString>("probeFileName");
+	  probeFile = fopen((const char*)probeFileName,"w");
+	  printF("-- BM%i --  BeamModel: info of the probed position will be saved to file '%s'\n",getBeamID(),(const char*)probeFileName);
+
+	  // Probe file header info:
+	  // Get the current date
+	  time_t *tp= new time_t;
+	  time(tp);
+	  // tm *ptm=localtime(tp);
+	  const char *dateString = ctime(tp);
+	  
+	  fPrintF(probeFile,"%% Probe file written from the BeamModel class: %s"
+		  "%% Probe location: %12.5e (normalized coordinates in [0,1])\n"
+		  "%%       t       displacement       velocity      acceleration\n",probePosition,dateString);
+	
+	  delete tp;
+	}
       assert( probeFile!=NULL );
 
       // const int & numberOfTimeLevels = dbase.get<int>("numberOfTimeLevels");
@@ -6260,7 +6303,6 @@ outputProbes( real t, int stepNumber )
 	}
 
       // *new* 2015/06/04
-      const real & probePosition =  dbase.get<real>("probePosition");
       const real ss = probePosition*L;
       const real xp0 = beamX0 + ss*initialBeamTangent[0];
       const real yp0 = beamY0 + ss*initialBeamTangent[1];
@@ -6512,12 +6554,16 @@ getErrors( const real t, const RealArray & u, const RealArray & v, const RealArr
 int BeamModel::
 writeCheckFile( real t, FILE *file )
 {
-  //Longfei 20161219: open the default checkFile if no other file is provided:
+  //Longfei 20161219: write to the default checkFile if no other file is provided:
   if(file==NULL)
     {
-      FILE *& file = dbase.get<FILE*>("checkFile");
-      aString checkFileName=dbase.get<aString>("checkFileName");
-      file = fopen((const char*)checkFileName,"w");
+      FILE *& checkFile = dbase.get<FILE*>("checkFile");
+      if(checkFile==NULL)
+	{
+	  aString checkFileName=dbase.get<aString>("checkFileName");
+	  checkFile = fopen((const char*)checkFileName,"w");
+	}
+      file=checkFile;
     }
   assert(file!=NULL);
   
@@ -6575,31 +6621,23 @@ printTimeStepInfo( FILE *file /*= stdout */ )
   
 }
 
+// Longfei 20170217: 
 // ========================================================================================
-/// \brief plot the beam solution and errors.
+/// \brief Create the solution for plotting. for plotting or show file.
 ///
-/// \param t (input) : time to plot
+/// \param w (output) : realMappedGridFunction to store the results for plotting at current time
 ///
 // ========================================================================================
 int BeamModel::
-plot( real t, GenericGraphicsInterface & gi, GraphicsParameters & psp , const aString & label )
+getAugmentedSolution(real t, realMappedGridFunction & w)
 {
-  //Longfei 20160128: label is not used here. we might need it to pass some info to display on the plot
-   
-  //Longfei 20160121: new way of handling parameters
-  const real & L = dbase.get<real>("length");
   const int & numElem = dbase.get<int>("numElem");
   const int & numOfGhost = dbase.get<int>("numberOfGhostPoints");
   const aString & exactSolutionOption = dbase.get<aString>("exactSolutionOption");
-  
-  const int & numberOfTimeLevels = dbase.get<int>("numberOfTimeLevels");
   const int & current = dbase.get<int>("current"); 
+  const RealArray & time = dbase.get<RealArray>("time");
 
-  RealArray & time = dbase.get<RealArray>("time");
-  std::vector<RealArray> & u = dbase.get<std::vector<RealArray> >("u"); // displacement 
-  std::vector<RealArray> & v = dbase.get<std::vector<RealArray> >("v"); // velocity
-  std::vector<RealArray> & a = dbase.get<std::vector<RealArray> >("a"); // acceleration
-
+  // check if t is current time
   if( fabs(time(current)-t) > 1.e-10*(1.+t) )
     {
       printF("BeamModel::plot:ERROR: t=%10.3e is not equal to time(current)=%10.3e, current=%i\n",
@@ -6607,35 +6645,34 @@ plot( real t, GenericGraphicsInterface & gi, GraphicsParameters & psp , const aS
       OV_ABORT("ERROR");
     }
 
+
+
+
+  std::vector<RealArray> & u = dbase.get<std::vector<RealArray> >("u"); // displacement 
+  std::vector<RealArray> & v = dbase.get<std::vector<RealArray> >("v"); // velocity
+  std::vector<RealArray> & a = dbase.get<std::vector<RealArray> >("a"); // acceleration
+  std::vector<RealArray> & f = dbase.get<std::vector<RealArray> >("f"); // force
+
+  
   RealArray & uc = u[current];
   RealArray & vc = v[current];
   RealArray & ac = a[current];
+  RealArray & fc = f[current];
 
 
-  // old way:
-  // realArray x(1,numNodes);
-  // for( int i=0; i<=numElem; i++ ) 
-  //   x(0,i)=((real)i /numElem) *  L;       // position along neutral axis 
-  // DataPointMapping line;
-  // line.setDataPoints(x,0,1);  // 0=position of coordinates, 1=domain dimension
-  // MappedGrid c(line);   // a grid
-  // c.update(MappedGrid::THEvertex | MappedGrid::THEmask);
-  
-  // Longfei 20160126: new way to get beam grid
-  MappedGrid &c =dbase.get<MappedGrid>("beamGrid");
 
   bool plotErrors=exactSolutionOption!="none";
 
   const bool & xd = dbase.get<bool>("isCubicHermiteFEM");
   // number of components: 
-  int nv=3;    // [u,v,a]
+  int nv=4;    // [u,v,a,f]
   if(xd) nv*=2;  // + [ux,vx,ax]
   if( plotErrors ) nv*=2;  // doulbe number of components for errors
 
-  
+  MappedGrid &c =dbase.get<MappedGrid>("beamGrid");
   Range all;
   // *fix me for parallel* : 
-  realMappedGridFunction w(c,all,all,all,nv); // holds things to plot 
+  w.updateToMatchGrid(c,all,all,all,nv); // holds things to plot 
 
   OV_GET_SERIAL_ARRAY(real,w,wLocal);
   wLocal=0.;
@@ -6648,7 +6685,7 @@ plot( real t, GenericGraphicsInterface & gi, GraphicsParameters & psp , const aS
     J= I;   //[0,1,2,....,numElem] for FD results
 
   
-  w.setName("w");
+  w.setName("beam");
   int nc = 0;
   w.setName("u",nc);
   wLocal(I,0,0, nc++)= uc(J,0,0,0);   // u at nodes
@@ -6656,6 +6693,8 @@ plot( real t, GenericGraphicsInterface & gi, GraphicsParameters & psp , const aS
   wLocal(I,0,0, nc++)= vc(J,0,0,0);
   w.setName("a",nc);
   wLocal(I,0,0, nc++)= ac(J,0,0,0);
+  w.setName("f",nc);
+  wLocal(I,0,0, nc++)= fc(J,0,0,0);
   if(xd)
     {
       w.setName("ux",nc);
@@ -6664,6 +6703,8 @@ plot( real t, GenericGraphicsInterface & gi, GraphicsParameters & psp , const aS
       wLocal(I,0,0, nc++)= vc(J+1,0,0,0);  // vx at nodes
       w.setName("ax",nc);
       wLocal(I,0,0, nc++)= ac(J+1,0,0,0);
+      w.setName("fx",nc);
+      wLocal(I,0,0, nc++)= fc(J+1,0,0,0);
     }
   
   if( plotErrors )
@@ -6689,6 +6730,124 @@ plot( real t, GenericGraphicsInterface & gi, GraphicsParameters & psp , const aS
   assert(nc == nv); 
   
 
+  return 0;
+}
+
+
+// ========================================================================================
+/// \brief plot the beam solution and errors.
+///
+/// \param t (input) : time to plot
+///
+// ========================================================================================
+int BeamModel::
+plot( real t, GenericGraphicsInterface & gi, GraphicsParameters & psp , const aString & label )
+{
+  //Longfei 20160128: label is not used here. we might need it to pass some info to display on the plot
+   
+
+
+  // Longfei 20170217: new
+  realMappedGridFunction w;
+  getAugmentedSolution(t,w);
+  //  old: 
+  // //Longfei 20160121: new way of handling parameters
+  // const real & L = dbase.get<real>("length");
+  // const int & numElem = dbase.get<int>("numElem");
+  // const int & numOfGhost = dbase.get<int>("numberOfGhostPoints");
+  // const aString & exactSolutionOption = dbase.get<aString>("exactSolutionOption");
+  
+  // const int & numberOfTimeLevels = dbase.get<int>("numberOfTimeLevels");
+  // const int & current = dbase.get<int>("current"); 
+
+  // RealArray & time = dbase.get<RealArray>("time");
+  // std::vector<RealArray> & u = dbase.get<std::vector<RealArray> >("u"); // displacement 
+  // std::vector<RealArray> & v = dbase.get<std::vector<RealArray> >("v"); // velocity
+  // std::vector<RealArray> & a = dbase.get<std::vector<RealArray> >("a"); // acceleration
+
+
+  // RealArray & uc = u[current];
+  // RealArray & vc = v[current];
+  // RealArray & ac = a[current];
+
+
+  // // old way:
+  // // realArray x(1,numNodes);
+  // // for( int i=0; i<=numElem; i++ ) 
+  // //   x(0,i)=((real)i /numElem) *  L;       // position along neutral axis 
+  // // DataPointMapping line;
+  // // line.setDataPoints(x,0,1);  // 0=position of coordinates, 1=domain dimension
+  // // MappedGrid c(line);   // a grid
+  // // c.update(MappedGrid::THEvertex | MappedGrid::THEmask);
+  
+  // // Longfei 20160126: new way to get beam grid
+  // MappedGrid &c =dbase.get<MappedGrid>("beamGrid");
+
+  // bool plotErrors=exactSolutionOption!="none";
+
+  // const bool & xd = dbase.get<bool>("isCubicHermiteFEM");
+  // // number of components: 
+  // int nv=3;    // [u,v,a]
+  // if(xd) nv*=2;  // + [ux,vx,ax]
+  // if( plotErrors ) nv*=2;  // doulbe number of components for errors
+
+  
+  // Range all;
+  // // *fix me for parallel* : 
+  // realMappedGridFunction w(c,all,all,all,nv); // holds things to plot 
+
+  // OV_GET_SERIAL_ARRAY(real,w,wLocal);
+  // wLocal=0.;
+
+  // Index I=Range(-numOfGhost,numElem+numOfGhost); // [0,1,2,.....,numElem]
+  // Index J;
+  // if(xd)
+  //   J = 2*I;  // [0,2,4,...,2*numElem]  for Cubic Hermite FEM results
+  // else
+  //   J= I;   //[0,1,2,....,numElem] for FD results
+
+  
+  // w.setName("w");
+  // int nc = 0;
+  // w.setName("u",nc);
+  // wLocal(I,0,0, nc++)= uc(J,0,0,0);   // u at nodes
+  // w.setName("v",nc);
+  // wLocal(I,0,0, nc++)= vc(J,0,0,0);
+  // w.setName("a",nc);
+  // wLocal(I,0,0, nc++)= ac(J,0,0,0);
+  // if(xd)
+  //   {
+  //     w.setName("ux",nc);
+  //     wLocal(I,0,0, nc++)= uc(J+1,0,0,0);  // ux at nodes
+  //     w.setName("vx",nc);
+  //     wLocal(I,0,0, nc++)= vc(J+1,0,0,0);  // vx at nodes
+  //     w.setName("ax",nc);
+  //     wLocal(I,0,0, nc++)= ac(J+1,0,0,0);
+  //   }
+  
+  // if( plotErrors )
+  //   {
+  //     RealArray ue, ve, ae;
+  //     getExactSolution( t, ue, ve, ae );
+  //     w.setName("uErr",nc);
+  //     wLocal(I,0,0, nc++)= uc(J,0,0,0)-ue(J,0,0,0);   // u-error at nodes
+  //     w.setName("vErr",nc);
+  //     wLocal(I,0,0, nc++)= vc(J,0,0,0)-ve(J,0,0,0);
+  //     w.setName("aErr",nc);
+  //     wLocal(I,0,0, nc++)= ac(J,0,0,0)-ae(J,0,0,0);
+  //     if(xd)
+  // 	{
+  // 	  w.setName("uxErr",nc);
+  // 	  wLocal(I,0,0, nc++)= uc(J+1,0,0,0)-ue(J+1,0,0,0);   // ux-error at nodes
+  // 	  w.setName("vxErr",nc);
+  // 	  wLocal(I,0,0,nc++)= vc(J+1,0,0,0)-ve(J+1,0,0,0);
+  // 	  w.setName("axErr",nc);
+  // 	  wLocal(I,0,0,nc++)= ac(J+1,0,0,0)-ae(J+1,0,0,0);
+  // 	}
+  //   }
+  // assert(nc == nv); 
+  
+
   // ** TODO ** we could eval the Hermite interpolant on a finer grid **
 
   
@@ -6711,6 +6870,50 @@ plot( real t, GenericGraphicsInterface & gi, GraphicsParameters & psp , const aS
   return 0;
   
 }
+
+// Longfei 20170217:
+// ========================================================================================
+/// \brief save the beam solution and errors to show file
+///
+///
+// ========================================================================================
+void BeamModel::
+saveShow()
+{
+  const bool & saveShow = dbase.get<bool>("saveShow");
+  if(!saveShow)
+    return;
+
+  Ogshow *& show = dbase.get<Ogshow*>("showFile");
+  if(show==NULL)
+    {
+      const aString &showFileName = dbase.get<aString>("showFileName");
+      const int &showFileFlushFrequency = dbase.get<int>("showFileFlushFrequency");
+
+      show = new Ogshow(showFileName);
+      //show->saveGeneralComment("Beam Centerline Solutions");
+      show->setFlushFrequency(showFileFlushFrequency);
+    }
+
+
+  const int & current = dbase.get<int>("current"); 
+  const RealArray & time = dbase.get<RealArray>("time");
+  aString buff;
+  
+  real t = time(current);
+
+  realMappedGridFunction w;
+  getAugmentedSolution(t,w);
+  
+  show->startFrame();
+  show->saveComment(0,sPrintF(buff,"t=%9.2e,",t));
+  printF("-- BM%i -- Save beam centerline solutions at t=%9.2e in a separate show file\n",getBeamID(),t);
+  show->saveSolution( w );
+  show->endFrame();
+
+  return;
+}
+
 
 
 // =================================================================================================
@@ -6789,6 +6992,14 @@ update(CompositeGrid & cg, GenericGraphicsInterface & gi )
   //Longfei 20160303: option to test same order vs. same stencil size for FDBeamModel
   bool & useSameStencilSize = dbase.get<bool>("useSameStencilSize");
   int & dbg = dbase.get<int>("debug");
+
+  //Longfei 20170217: showFile options
+ bool & saveShow= dbase.get<bool>("saveShow");
+ int & showFileFlushFrequency=dbase.get<int>("showFileFlushFrequency");
+ aString & showFileName = dbase.get<aString>("showFileName");
+
+  
+  
   
   GUIState gui;
   gui.setWindowTitle("Beam Model");
@@ -6900,6 +7111,7 @@ update(CompositeGrid & cg, GenericGraphicsInterface & gi )
 			      // Longfei 20161220: add two tb options: allowAxialDeformation and allowTwist
 			      "allow axial deformation",
 			      "allow twist",
+			      "save show file",
 			      ""};
       int tbState[15];
       tbState[0] = useExactSolution;
@@ -6918,6 +7130,7 @@ update(CompositeGrid & cg, GenericGraphicsInterface & gi )
       tbState[10] = useSameStencilSize;
       tbState[11] = allowAxialDeformation;
       tbState[12] = allowTwist;
+      tbState[13] = saveShow;
 
     
       dialog.setToggleButtons(tbCommands, tbCommands, tbState, numColumns); 
@@ -6966,16 +7179,18 @@ update(CompositeGrid & cg, GenericGraphicsInterface & gi )
       textLabels[nt] = "trig shifts:";  sPrintF(textStrings[nt],"%g, %g, %g, %g (gt,gx,gy,gz)",
 						trigShift[0],trigShift[1],trigShift[2],trigShift[3]); nt++;  // Longfei 20170116
 
-      textLabels[nt] = "plotting scale factor:"; sPrintF(textStrings[nt], "%g",displacementScaleFactorForPlotting);  nt++; 
-
+      textLabels[nt] = "probe position:"; sPrintF(textStrings[nt], "%g (in [0,1])",probePosition);  nt++;
       textLabels[nt] = "probe file name:"; sPrintF(textStrings[nt], "%s",(const char*)probeFileName);  nt++; 
       textLabels[nt] = "probe file save frequency:"; sPrintF(textStrings[nt], "%i",probeFileSaveFrequency);  nt++; 
 
+      textLabels[nt] = "show file name:"; sPrintF(textStrings[nt], "%s",(const char*)showFileName);  nt++; 
+      textLabels[nt] = "show file flush frequency:"; sPrintF(textStrings[nt], "%i",showFileFlushFrequency);  nt++; 
+      
       textLabels[nt] = "number of smooths:"; sPrintF(textStrings[nt], "%i",numberOfSmooths);  nt++; 
       textLabels[nt] = "smooth order:"; sPrintF(textStrings[nt], "%i",smoothOrder);  nt++; 
       textLabels[nt] = "smooth omega:"; sPrintF(textStrings[nt], "%e",smoothOmega);  nt++; 
       textLabels[nt] = "debug:"; sPrintF(textStrings[nt], "%i",dbg);  nt++; 
-      textLabels[nt] = "probe position:"; sPrintF(textStrings[nt], "%g (in [0,1])",probePosition);  nt++; 
+      textLabels[nt] = "plotting scale factor:"; sPrintF(textStrings[nt], "%g",displacementScaleFactorForPlotting);  nt++; 
 
 
       // null strings terminal list
@@ -7064,6 +7279,9 @@ update(CompositeGrid & cg, GenericGraphicsInterface & gi )
       else if( dialog.getTextValue(answer,"probe file name:","%s",probeFileName) ){} //
       else if( dialog.getTextValue(answer,"probe file save frequency:","%i",probeFileSaveFrequency) ){} //
 
+      else if( dialog.getTextValue(answer,"show file name:","%s",showFileName) ){} //
+      else if( dialog.getTextValue(answer,"show file flush frequency:","%i",showFileFlushFrequency) ){} //
+      
       else if( dialog.getTextValue(answer,"number of elements:","%i",numElem) ){} //
       else if( dialog.getTextValue(answer,"cfl:","%g",cfl) ){} //
 
@@ -7237,32 +7455,37 @@ update(CompositeGrid & cg, GenericGraphicsInterface & gi )
 	{
 	  if( dbase.get<bool>("saveProbeFile") )
 	    {
-	      FILE *& probeFile = dbase.get<FILE*>("probeFile");
+	      // Longfei 20170216: probeFile should be created outside of getAnswers because,
+	      // if probeFileName is specificed after saveProbeFile, then this information is missed since the probeFile is already
+	      // created here. So I moved this to outputProbes. probeFile will be created when outputProbes is called for the first time.
+
+	      // old: 
+	      // FILE *& probeFile = dbase.get<FILE*>("probeFile");
 
 	      // 	aString tipFileName = sPrintF(buff,"%sTip.text",(const char*)name);
 
-	      probeFile = fopen((const char*)probeFileName,"w");
-	      assert( probeFile!=NULL );
+	      // probeFile = fopen((const char*)probeFileName,"w");
+	      // assert( probeFile!=NULL );
 
-	      printF("-- BM%i --  BeamModel: info of the probed position will be saved to file '%s'\n",getBeamID(),(const char*)probeFileName);
+	      // printF("-- BM%i --  BeamModel: info of the probed position will be saved to file '%s'\n",getBeamID(),(const char*)probeFileName);
 
-	      // Probe file header info:
-	      // Get the current date
-	      time_t *tp= new time_t;
-	      time(tp);
-	      // tm *ptm=localtime(tp);
-	      const char *dateString = ctime(tp);
-	      const  vector<real> & initialBeamTangent = dbase.get<vector<real> >("initialBeamTangent");
-	      const  vector<real> & initialBeamNormal = dbase.get<vector<real> >("initialBeamNormal");
-	      const real ss = probePosition*L;
-	      const real xp0 = beamX0 + ss*initialBeamTangent[0];
-	      const real yp0 = beamY0 + ss*initialBeamTangent[1];
+	      // // Probe file header info:
+	      // // Get the current date
+	      // time_t *tp= new time_t;
+	      // time(tp);
+	      // // tm *ptm=localtime(tp);
+	      // const char *dateString = ctime(tp);
+	      // const  vector<real> & initialBeamTangent = dbase.get<vector<real> >("initialBeamTangent");
+	      // const  vector<real> & initialBeamNormal = dbase.get<vector<real> >("initialBeamNormal");
+	      // const real ss = probePosition*L;
+	      // const real xp0 = beamX0 + ss*initialBeamTangent[0];
+	      // const real yp0 = beamY0 + ss*initialBeamTangent[1];
 
-	      fPrintF(probeFile,"%% Probe file written from the BeamModel class: %s"
-		      "%% Probe location = (%12.5e,%12.5e)  (normalized coordinates: %12.5e in [0,1])\n"
-		      "%%       t       displacement       velocity      acceleration\n",xp0,yp0,probePosition,dateString);
+	      // fPrintF(probeFile,"%% Probe file written from the BeamModel class: %s"
+	      // 	      "%% Probe location = (%12.5e,%12.5e)  (normalized coordinates: %12.5e in [0,1])\n"
+	      // 	      "%%       t       displacement       velocity      acceleration\n",xp0,yp0,probePosition,dateString);
 	
-	      delete tp;
+	      // delete tp;
 	    }
       
 	}
@@ -7310,6 +7533,8 @@ update(CompositeGrid & cg, GenericGraphicsInterface & gi )
 	}//
       else if( dialog.getToggleValue(answer,"allow axial deformation",allowAxialDeformation) ){}//
       else if( dialog.getToggleValue(answer,"allow twist",allowTwist) ){}//
+      else if( dialog.getToggleValue(answer,"save show file",saveShow) ){}//
+
       else if( len=answer.matches("Twilight-zone: ") )
 	{
 	  aString name=answer(len,answer.length()-1);

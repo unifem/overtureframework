@@ -548,8 +548,10 @@ solve(GenericGraphicsInterface & gi, GraphicsParameters & psp )
 	      psp.set(GI_USE_PLOT_BOUNDS,false);
 	      aString label="laal";
 	      if( beamModelType==linearBeamModel )
-		beam.plot( t, gi,psp,label );
-
+		{
+		  beam.plot( t, gi,psp,label );
+		  beam.saveShow(); // Longfei 20170217
+		}
 	      gi.redraw(true);
 	    }
       

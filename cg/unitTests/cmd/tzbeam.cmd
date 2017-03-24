@@ -76,7 +76,12 @@ thickness: $hs
 length: 1
 debug: $debug
 cfl:$cfl
-#
+#############
+# Longfei 20170217: save show file options:
+save show file 1
+show file name: aaa.show
+show file flush frequency: 2
+#############
 use new tridiagonal solver $useNewTri
 #
 order of Galerkin projection: $orderOfProjection
