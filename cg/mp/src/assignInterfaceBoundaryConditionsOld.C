@@ -107,9 +107,14 @@ assignInterfaceRightHandSideOld( int d, real t, real dt, int correct, std::vecto
 
   if( !gridHasMaterialInterfaces ) return 0;
   
-  if( debug() & 2 )
-    printF("***  USE OLD assignInterfaceRightHandSide ***\n");
+  FILE *& interfaceFile =parameters.dbase.get<FILE* >("interfaceFile");
 
+  if( t<2.*dt || debug() & 2 )
+  {
+    printF("*** USE OLD assignInterfaceRightHandSide t=%9.3e, d=%i, correct=%i ***\n",t,d,correct);
+    fPrintF(interfaceFile,"*** USE OLD assignInterfaceRightHandSide  t=%9.3e, d=%i, correct=%i ***\n",t,d,correct);
+  }
+  
   InterfaceList & interfaceList = parameters.dbase.get<InterfaceList>("interfaceList");
   
   if( interfaceList.size()==0 )
@@ -131,7 +136,6 @@ assignInterfaceRightHandSideOld( int d, real t, real dt, int correct, std::vecto
   const int numberOfDomains=domainSolver.size();
   int numberOfInterfaceHistoryValuesToSave = parameters.dbase.get<int>("numberOfInterfaceHistoryValuesToSave");
   int numberOfInterfaceIterateValuesToSave = parameters.dbase.get<int>("numberOfInterfaceIterateValuesToSave");
-  FILE *& interfaceFile =parameters.dbase.get<FILE* >("interfaceFile");
   std::vector<real> & maxResidual = parameters.dbase.get<std::vector<real> >("maxResidual");
   
   // real & omega = parameters.dbase.get<real>("interfaceOmega");
@@ -915,9 +919,7 @@ getInterfaceResidualsOld( real t, real dt, std::vector<int> & gfIndex, std::vect
 {
 
 
-  if( t<2.*dt )
-    printF("\n****** Entering *OLD* getInterfaceResidualsOld ********\n");
-
+  
   real cpu0=getCPU();
 
   // ************* Much of this code is duplicated from assignInterfaceBoundaryConditions: FIX THIS *********
@@ -933,6 +935,13 @@ getInterfaceResidualsOld( real t, real dt, std::vector<int> & gfIndex, std::vect
   FILE *& debugFile =parameters.dbase.get<FILE* >("debugFile");
   FILE *& pDebugFile =parameters.dbase.get<FILE* >("pDebugFile");
   FILE *& interfaceFile =parameters.dbase.get<FILE* >("interfaceFile");
+
+  if( t<2.*dt )
+  {
+    printF("\n****** Entering *OLD* getInterfaceResidualsOld ********\n");
+    fPrintF(interfaceFile,"\n****** Entering *OLD* getInterfaceResidualsOld t=%9.3e saveInterfaceValues=%i********\n",
+	    t,(int)saveInterfaceValues);
+  }
 
   const int numberOfDomains=domainSolver.size();
 
@@ -1420,9 +1429,9 @@ getInterfaceResidualsOld( real t, real dt, std::vector<int> & gfIndex, std::vect
 	  if( true || debug() & 4 )
 	  {
 	    if( saveInterfaceValues==saveInterfaceTimeHistoryValues )
-	      fPrintF(interfaceFile,"Cgmp::getInterfaceResiduals: saving time history of traction: interface=%i, t=%9.3e\n",inter,t);
+	      fPrintF(interfaceFile,"Cgmp::getInterfaceResidualsOld: saving time history of traction: interface=%i, t=%9.3e\n",inter,t);
             else
-	      fPrintF(interfaceFile,"Cgmp::getInterfaceResiduals: saving interface iterate of traction: interface=%i, t=%9.3e\n",inter,t);
+	      fPrintF(interfaceFile,"Cgmp::getInterfaceResidualsOld: saving interface iterate of traction: interface=%i, t=%9.3e\n",inter,t);
 	  }
 	  
 	  for( int iface=0; iface<=1; iface++ )

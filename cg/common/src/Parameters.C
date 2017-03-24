@@ -140,6 +140,9 @@ Parameters(const int & numberOfDimensions0) : pdeName("unknown"), numberOfBCName
   /// \li <b> detectCollisions (bool) </b> : if true detect collisions between bodies.
   if (!dbase.has_key("detectCollisions")) dbase.put<bool>("detectCollisions");
 
+  /// \li <b> domainNumber (int) </b> : domain number for multi-domain problems (set by Cgmp)
+  if( !dbase.has_key("domainNumber") ) dbase.put<int>("domainNumber")=-1;
+
   /// \li <b> globalStepNumber (int) </b> : global step number for time-stepping or iterations
   if (!dbase.has_key("globalStepNumber")) dbase.put<int>("globalStepNumber",-1);
 
@@ -226,6 +229,11 @@ Parameters(const int & numberOfDimensions0) : pdeName("unknown"), numberOfBCName
   if (!dbase.has_key("prandtlNumber")) dbase.put<real>("prandtlNumber");
   if (!dbase.has_key("truncationErrorCoefficient")) dbase.put<real>("truncationErrorCoefficient");
 
+
+  // numberOfSolutionsLevels = number of time levels of u used in the time-stepping
+  // numberOfTimeDerivativeLevels = number of time levels of du/dt used in the time-stepping
+  if (!dbase.has_key("numberOfSolutionLevels")) dbase.put<int>("numberOfSolutionLevels")=-1;
+  if (!dbase.has_key("numberOfTimeDerivativeLevels")) dbase.put<int>("numberOfTimeDerivativeLevels")=-1;
 
   if (!dbase.has_key("minimumNumberOfGrids")) dbase.put<real>("minimumNumberOfGrids");
   if (!dbase.has_key("maximumNumberOfGrids")) dbase.put<real>("maximumNumberOfGrids");
@@ -497,6 +505,10 @@ Parameters(const int & numberOfDimensions0) : pdeName("unknown"), numberOfBCName
   // By default we adjust the (TZ) forcing for implicit time stepping:
   if (!dbase.has_key("adjustForcingForImplicit")) dbase.put<int>("adjustForcingForImplicit");
   dbase.get<int>("adjustForcingForImplicit")=1;
+
+  // Grid-function index for current and next ( gf[currentGF] = current-grid function) -- set in startTimeStep
+  if (!dbase.has_key("currentGF") ) dbase.put<int>("currentGF")=-1;
+  if (!dbase.has_key("nextGF") ) dbase.put<int>("nextGF")=-1;
 
   if (!dbase.has_key("predictorOrder")) dbase.put<int>("predictorOrder");
   dbase.get<int>("predictorOrder")=0; // 0 means use default order

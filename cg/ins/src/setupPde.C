@@ -610,6 +610,8 @@ setPlotTitle(const real &t, const real &dt)
   const Parameters::ImplicitMethod implicitMethod = 
     parameters.dbase.get<Parameters::ImplicitMethod >("implicitMethod");  
 
+  aString buff;
+
   aString name="INS";
   if( timeSteppingMethod==Parameters::implicit )
   {
@@ -623,19 +625,40 @@ setPlotTitle(const real &t, const real &dt)
       else
 	name = name + "S"; // standard finite difference
     }
+    else if( implicitMethod==Parameters::implicitExplicitMultistep )
+    {
+      name += "-IMEX";
+    }
+    else if( implicitMethod==Parameters::backwardDifferentiationFormula )
+    {
+      // name += sPrintF(buff,"-IM-BDF",parameters.dbase.get<int>("orderOfBDF"));
+      name += "-BDF";
+    }
     else
       name = name + "-IM";
 
   }
-  
 
-  aString buff;
+
+  // ----Advection Option-----
+  const InsParameters::AdvectionOptions & advectionOption=
+               parameters.dbase.get<InsParameters::AdvectionOptions>("advectionOption");
+  aString advectionName="";
+  const int upwindOrder = parameters.dbase.get<int>("upwindOrder");
+  if( advectionOption==InsParameters::upwindAdvection )
+    advectionName = sPrintF(buff,"-UP%i",upwindOrder);
+  else if(  advectionOption==InsParameters::bwenoAdvection ) 
+    advectionName = sPrintF(buff,"-BW%i",upwindOrder);
+
   if( !parameters.isSteadyStateSolver() )
-    psp.set(GI_TOP_LABEL,sPrintF(buff,"%s%i%i: t=%6.2e,",(const char*)name,orderOfTimeAccuracy,orderOfAccuracy,t));
+    psp.set(GI_TOP_LABEL,sPrintF(buff,"%s%i%i%s: t=%6.2e,",(const char*)name,orderOfTimeAccuracy,orderOfAccuracy,
+				 (const char*)advectionName,t));
   else
-    psp.set(GI_TOP_LABEL,sPrintF(buff,"%s%i: it=%i,",(const char*)name,orderOfAccuracy,parameters.dbase.get<int >("globalStepNumber")+1));
+    psp.set(GI_TOP_LABEL,sPrintF(buff,"%s%i%s: it=%i,",(const char*)name,orderOfAccuracy,(const char*)advectionName,
+              parameters.dbase.get<int >("globalStepNumber")+1));
   aString label2;
 
+  
   if( pdeModel==InsParameters::viscoPlasticModel )
     label2+="VP: ";
   else if( pdeModel!=InsParameters::standardModel )
@@ -644,9 +667,9 @@ setPlotTitle(const real &t, const real &dt)
   if( turbulenceModel!=Parameters::noTurbulenceModel )
   {
     label2+= turbulenceModel==Parameters::BaldwinLomax ? "TM=BL, " :
-      turbulenceModel==Parameters::kEpsilon     ? "TM=KE, " :
-      turbulenceModel==Parameters::kOmega       ? "TM=KW, " :
-      turbulenceModel==Parameters::SpalartAllmaras ? "TM=SA, " : 
+      turbulenceModel==Parameters::kEpsilon     ?        "TM=KE, " :
+      turbulenceModel==Parameters::kOmega       ?        "TM=KW, " :
+      turbulenceModel==Parameters::SpalartAllmaras ?     "TM=SA, " : 
       turbulenceModel==Parameters::LargeEddySimulation ? "TM=LES, " : "TM=??, ";
   }
   if( parameters.isAxisymmetric() )

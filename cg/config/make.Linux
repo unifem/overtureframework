@@ -92,7 +92,8 @@ else
 endif
 # *wdh* NOTE: gcc 4.4.7 has trouble with -O3 and advMx3dOrder4r.f
 # *wdh* 2014/05/16: FC_FLAGS_OPT = -O3 
-FC_FLAGS_OPT = -O
+# *wdh* 2017/01/27 FC_FLAGS_OPT = -O
+FC_FLAGS_OPT = -O3
 FC_FLAGS_PROF = -pg 
 
 ## ## Fortran Compiler options (compiled without auto double)

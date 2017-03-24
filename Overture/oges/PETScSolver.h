@@ -69,7 +69,7 @@ int fillInterpolationCoefficients(realCompositeGridFunction & uu);
 
 
 // assign values to rhs for the the extra equations 
-virtual int setExtraEquationValues( realCompositeGridFunction & f, real *value );
+virtual int setExtraEquationRightHandSideValues( realCompositeGridFunction & f, real *value );
 
 // return solution values from the extra equations
 // Old way:

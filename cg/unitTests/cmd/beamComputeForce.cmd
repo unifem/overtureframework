@@ -18,7 +18,7 @@ GetOptions( "g=s"=>\$grid,"tf=f"=>\$tFinal,"degreeX=i"=>\$degreeX, "degreeT=i"=>
  "restart=s"=>\$restart,"useNewImp=i"=>\$useNewImp,"p0=f"=>\$p0,"addedMass=i"=>\$addedMass,"rhoBeam=f"=>\$rhoBeam,\
  "bdebug=i"=>\$bdebug,"ampProjectVelocity=i"=>\$ampProjectVelocity,"dsBeam=f"=>\$dsBeam,\
  "option=s"=>\$option,"E=f"=>\$E,"Kt=f"=>\$Kt,"K0=f"=>\$K0,"Kxxt=f"=>\$Kxxt,"tension=f"=>\$tension,\
- "thickness=f"=>\$thickness,  "BM=f"=>\$BM );
+ "thickness=f"=>\$thickness,  "BM=s"=>\$BM );
 # ------------------------------------------------------------------------------------------------------------------------
 #
 if($BM eq "FEM"){$beamModel="FEMBeamModel";}

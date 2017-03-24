@@ -166,9 +166,9 @@ gridGenExample = gridGenExample.o
 gridGenExample: $(gridGenExample) 
 	$(CC) $(CCFLAGS) -o gridGenExample $(gridGenExample) $(CLIBS) $(FLIBS) $(GLIBS)
 
-# gridGenExample2 = gridGenExample2.o 
-# gridGenExample2: $(gridGenExample2) 
-# 	$(CC) $(CCFLAGS) -o gridGenExample2 $(gridGenExample2) $(CLIBS) $(FLIBS) $(GLIBS)
+gridGenExample2 = gridGenExample2.o 
+gridGenExample2: $(gridGenExample2) 
+	$(CC) $(CCFLAGS) -o gridGenExample2 $(gridGenExample2) $(CLIBS) $(FLIBS) $(GLIBS)
 
 gridGenExample_backup = gridGenExample_backup.o 
 gridGenExample_backup: $(gridGenExample_backup) 

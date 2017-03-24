@@ -1,10 +1,31 @@
-c
-c Optimized advance routines for cgmx
-c
-c These next include files will define the macros that will define the difference approximations
-c The actual macro is called below
+!
+! Optimized advance routines for cgmx
+!
+! These next include files will define the macros that will define the difference approximations
+! The actual macro is called below
 #Include "defineDiffOrder2f.h"
 #Include "defineDiffOrder4f.h"
+
+
+! ---------------------------------------------------------------------------
+! Macro : beginLoopsMask
+! ---------------------------------------------------------------------------
+#beginMacro beginLoopsMask(i1,i2,i3,n1a,n1b,n2a,n2b,n3a,n3b)
+  do i3=n3a,n3b
+  do i2=n2a,n2b
+  do i1=n1a,n1b
+    if( mask(i1,i2,i3).gt.0 )then
+#endMacro
+
+! ---------------------------------------------------------------------------
+! Macro : endLoopsMask
+! ---------------------------------------------------------------------------
+#beginMacro endLoopsMask()
+    end if
+  end do
+  end do
+  end do
+#endMacro
 
 
 #beginMacro loopse6(e1,e2,e3,e4,e5,e6)
@@ -135,7 +156,7 @@ end if
 #endMacro
 
 
-c This macro is used for variable dissipation in 2D
+! This macro is used for variable dissipation in 2D
 #beginMacro loopse6VarDis(e1,e2,e3,e4,e5,e6)
 if( useWhereMask.ne.0 )then
   do i3=n3a,n3b
@@ -145,8 +166,8 @@ if( useWhereMask.ne.0 )then
       e1
       e2
       e3
-c     write(*,'(" i=",3i3," varDis=",e10.2," diss=",3e10.2)') i1,i2,i3,varDis(i1,i2,i3),dis(i1,i2,i3,ex),\
-c         dis(i1,i2,i3,ey),dis(i1,i2,i3,ez)
+!     write(*,'(" i=",3i3," varDis=",e10.2," diss=",3e10.2)') i1,i2,i3,varDis(i1,i2,i3),dis(i1,i2,i3,ex),\
+!         dis(i1,i2,i3,ey),dis(i1,i2,i3,ez)
     else
       e4
       e5
@@ -174,7 +195,7 @@ else
 end if
 #endMacro
 
-c This macro is used for variable dissipation in 3D
+! This macro is used for variable dissipation in 3D
 #beginMacro loopse12VarDis(e1,e2,e3,e4,e5,e6,e7,e8,e9,e10,e11,e12)
 if( useWhereMask.ne.0 )then
   do i3=n3a,n3b
@@ -223,7 +244,7 @@ else
 end if
 #endMacro
 
-c This macro is used for variable dissipation in 3D
+! This macro is used for variable dissipation in 3D
 #beginMacro loopsVarDis3D(e1,e2,e3,e4,e5,e6,h1,h2,h3,h4,h5,h6)
 
  if( solveForE.ne.0 .and. solveForH.ne.0 )then
@@ -238,18 +259,18 @@ c This macro is used for variable dissipation in 3D
 
 
 
-c Optionally add the forcing terms
+! Optionally add the forcing terms
 #beginMacro loopsF2D(f1,f2,f3,e1,e2,e3,e4,e5,e6,e7,e8,e9)
 if( addForcing.eq.0 )then
   loopse9(e1,e2,e3,e4,e5,e6,e7,e8,e9)
 else
-c add forcing to the first 3 equations
+! add forcing to the first 3 equations
   loopse9(e1+f1,e2+f2,e3+f3,e4,e5,e6,e7,e8,e9)
 end if
 #endMacro
 
-c Optionally add the forcing terms
-c Optionally solve for E or H or both
+! Optionally add the forcing terms
+! Optionally solve for E or H or both
 #beginMacro loopsF3D(fe1,fe2,fe3,e1,e2,e3,e4,e5,e6,e7,e8,e9,fh1,fh2,fh3,h1,h2,h3,h4,h5,h6,h7,h8,h9)
 if( addForcing.eq.0 )then
 
@@ -262,7 +283,7 @@ if( addForcing.eq.0 )then
   end if
 
 else
-c add forcing to the equations
+! add forcing to the equations
 
   if( solveForE.ne.0 .and. solveForH.ne.0 )then
     loopse18(e1+fe1,e2+fe2,e3+fe3,e4,e5,e6,e7,e8,e9,h1+fh1,h2+fh2,h3+fh3,h4,h5,h6,h7,h8,h9)
@@ -276,25 +297,25 @@ end if
 #endMacro
 
 
-c Optionally add the dissipation and or forcing terms
+! Optionally add the dissipation and or forcing terms
 #beginMacro loopsF2DD(f1,f2,f3,e1,e2,e3,e4,e5,e6,e7,e8,e9)
 if( addForcing.eq.0 .and. .not.addDissipation )then
   loopse9(e1,e2,e3,e4,e5,e6,e7,e8,e9)
 else if( addForcing.ne.0 .and. .not.addDissipation )then
-c add forcing to the first 3 equations
+! add forcing to the first 3 equations
   loopse9(e1+f1,e2+f2,e3+f3,e4,e5,e6,e7,e8,e9)
 else if( addForcing.eq.0 .and. addDissipation )then
-c add dissipation to the first 3 equations
+! add dissipation to the first 3 equations
   loopse9(e1+dis(i1,i2,i3,ex),e2+dis(i1,i2,i3,ey),e3+dis(i1,i2,i3,hz),e4,e5,e6,e7,e8,e9)
 else
-c  add forcing and dissipation
+!  add forcing and dissipation
   loopse9(e1+f1+dis(i1,i2,i3,ex),e2+f2+dis(i1,i2,i3,ey),e3+f3+dis(i1,i2,i3,hz),e4,e5,e6,e7,e8,e9)  
 end if
 #endMacro
 
 
-c Optionally add the dissipation and or forcing terms
-c Optionally solve for E or H or both
+! Optionally add the dissipation and or forcing terms
+! Optionally solve for E or H or both
 #beginMacro loopsF3DD(fe1,fe2,fe3,e1,e2,e3,e4,e5,e6,e7,e8,e9,fh1,fh2,fh3,h1,h2,h3,h4,h5,h6,h7,h8,h9)
 if( addForcing.eq.0 .and. .not.addDissipation )then
 
@@ -305,11 +326,11 @@ if( addForcing.eq.0 .and. .not.addDissipation )then
     loopse9(e1,e2,e3,e4,e5,e6,e7,e8,e9)
   else
     stop 9987
-c***    loopse9(h1,h2,h3,h4,h5,h6,h7,h8,h9)
+!***    loopse9(h1,h2,h3,h4,h5,h6,h7,h8,h9)
   end if
 
 else if( addForcing.ne.0 .and. .not.addDissipation )then
-c add forcing to the equations
+! add forcing to the equations
 
   if( solveForE.ne.0 .and. solveForH.ne.0 )then
    ! stop 6654
@@ -318,11 +339,11 @@ c add forcing to the equations
     loopse9(e1+fe1,e2+fe2,e3+fe3,e4,e5,e6,e7,e8,e9)
   else
     stop 9987
-c***    loopse9(h1+fh1,h2+fh2,h3+fh3,h4,h5,h6,h7,h8,h9)
+!***    loopse9(h1+fh1,h2+fh2,h3+fh3,h4,h5,h6,h7,h8,h9)
   end if
 
 else if( addForcing.eq.0 .and. addDissipation )then
-c add dissipation to the equations
+! add dissipation to the equations
 
   if( solveForE.ne.0 .and. solveForH.ne.0 )then
     ! stop 6654
@@ -331,11 +352,11 @@ c add dissipation to the equations
     loopse9(e1+dis(i1,i2,i3,ex),e2+dis(i1,i2,i3,ey),e3+dis(i1,i2,i3,ez),e4,e5,e6,e7,e8,e9)
   else
     stop 6654
-c***    loopse9(h1+dis(i1,i2,i3,hx),h2+dis(i1,i2,i3,hy),h3+dis(i1,i2,i3,hz),h4,h5,h6,h7,h8,h9)
+!***    loopse9(h1+dis(i1,i2,i3,hx),h2+dis(i1,i2,i3,hy),h3+dis(i1,i2,i3,hz),h4,h5,h6,h7,h8,h9)
   end if
 
 else
-c add dissipation and forcing to the equations
+! add dissipation and forcing to the equations
 
   if( solveForE.ne.0 .and. solveForH.ne.0 )then
     ! stop 6654
@@ -344,7 +365,7 @@ c add dissipation and forcing to the equations
     loopse9(e1+fe1+dis(i1,i2,i3,ex),e2+fe2+dis(i1,i2,i3,ey),e3+fe3+dis(i1,i2,i3,ez),e4,e5,e6,e7,e8,e9)
   else
     stop 6654
-c****    loopse9(h1+fh1+dis(i1,i2,i3,hx),h2+fh2+dis(i1,i2,i3,hy),h3+fh3+dis(i1,i2,i3,hz),h4,h5,h6,h7,h8,h9)
+!****    loopse9(h1+fh1+dis(i1,i2,i3,hx),h2+fh2+dis(i1,i2,i3,hy),h3+fh3+dis(i1,i2,i3,hz),h4,h5,h6,h7,h8,h9)
   end if
 
 end if
@@ -523,7 +544,7 @@ end if
               +c003lap3d6*(U(i1,i2,i3+3,c)+U(i1,i2,i3-3,c))
 
 
-c ** evaluate the laplacian on the 9 points centred at (i1,i2,i3)
+! ** evaluate the laplacian on the 9 points centred at (i1,i2,i3)
 #beginMacro getLapValues2dOrder2(n)
  uLap(-1,-1,n) = uLaplacian22(i1-1,i2-1,i3,n)
  uLap( 0,-1,n) = uLaplacian22(i1  ,i2-1,i3,n)
@@ -539,7 +560,7 @@ c ** evaluate the laplacian on the 9 points centred at (i1,i2,i3)
 #endMacro
 
 
-c ** evaluate the square of the Laplacian for a component ****
+! ** evaluate the square of the Laplacian for a component ****
 #beginMacro evalLapSq2dOrder2(n)
  getLapValues2dOrder2(n)
  uLaprr2 = (uLap(+1, 0,n)-2.*uLap( 0, 0,n)+uLap(-1, 0,n))/(dr(0)**2)
@@ -556,7 +577,7 @@ c ** evaluate the square of the Laplacian for a component ****
  ! write(*,'(" n : uLaprr2,uLapss2,uLaprs2,uLapr2,uLaps2=",5f6.2)') uLaprr2,uLapss2,uLaprs2,uLapr2,uLaps2
 #endMacro
 
-c ** evaluate the square of the Laplacian for [ex,ey,hz] ****
+! ** evaluate the square of the Laplacian for [ex,ey,hz] ****
 #beginMacro getLapSq2dOrder2()
  evalLapSq2dOrder2(ex)
  evalLapSq2dOrder2(ey)
@@ -564,36 +585,36 @@ c ** evaluate the square of the Laplacian for [ex,ey,hz] ****
  ! write(*,'("addForcing,adc=",i2,f5.2,", uLapSq(n)=",3e9.2)') addForcing,adc,uLapSq(ex),uLapSq(ey),uLapSq(hz)
 #endMacro
 
-c ==== loops for curvilinear, with forcing, dissipation in 2D
-c Optionally add the dissipation and or forcing terms
+! ==== loops for curvilinear, with forcing, dissipation in 2D
+! Optionally add the dissipation and or forcing terms
 #beginMacro loopsFCD2D(expr0,f1,f2,f3,expr1,expr2,expr3)
 if( addForcing.eq.0 .and. .not.addDissipation )then
  loopse9(expr0,expr1,expr2,expr3,,,,,)
 else if( addForcing.ne.0 .and. .not.addDissipation )then
-c add forcing to the first 3 equations
+! add forcing to the first 3 equations
  loopse9(expr0,expr1+f1,expr2+f2,expr3+f3,,,,,)
 else if( addForcing.eq.0 .and. addDissipation )then
-c add dissipation to the first 3 equations
+! add dissipation to the first 3 equations
  loopse9(expr0,expr1+dis(i1,i2,i3,ex),expr2+dis(i1,i2,i3,ey),expr3+dis(i1,i2,i3,hz),,,,,)
 else
-c  add forcing and dissipation
+!  add forcing and dissipation
  loopse9(expr0,expr1+f1+dis(i1,i2,i3,ex),expr2+f2+dis(i1,i2,i3,ey)+dis(i1,i2,i3,hz),expr3+f3,,,,,)  
 end if
 #endMacro
 
-c ==== loops for curvilinear, with forcing, dissipation in 2D
-c Optionally add the dissipation and or forcing terms
+! ==== loops for curvilinear, with forcing, dissipation in 2D
+! Optionally add the dissipation and or forcing terms
 #beginMacro loopsFCD2DA(expr0,f1,expr1)
 if( addForcing.eq.0 .and. .not.addDissipation )then
  loopse9(expr0,expr1,,,,,,,)
 else if( addForcing.ne.0 .and. .not.addDissipation )then
-c add forcing to the first 3 equations
+! add forcing to the first 3 equations
  loopse9(expr0,expr1+f1,,,,,,,)
 else if( addForcing.eq.0 .and. addDissipation )then
-c add dissipation to the first 3 equations
+! add dissipation to the first 3 equations
  loopse9(expr0,expr1+dis(i1,i2,i3,ex),,,,,,,)
 else
-c  add forcing and dissipation
+!  add forcing and dissipation
  loopse9(expr0,expr1+f1+dis(i1,i2,i3,ex),,,,,,,)  
 end if
 #endMacro
@@ -608,17 +629,17 @@ end if
 #beginMacro ADV_MAXWELL(NAME,DIM,ORDER,GRIDTYPE)
  subroutine NAME(nd,n1a,n1b,n2a,n2b,n3a,n3b,nd1a,nd1b,nd2a,nd2b,nd3a,nd3b,nd4a,nd4b,\
                  mask,rsxy,  um,u,un,f,fa, v,vvt2,ut3,vvt4,ut5,ut6,ut7, bc, dis, varDis, ipar, rpar, ierr )
-c======================================================================
-c   Advance a time step for Maxwells equations
-c     OPTIMIZED version for rectangular grids.
-c nd : number of space dimensions
-c
-c ipar(0)  = option : option=0 - Maxwell+Artificial diffusion
-c                           =1 - AD only
-c
-c  dis(i1,i2,i3) : temp space to hold artificial dissipation
-c  varDis(i1,i2,i3) : coefficient of the variable artificial dissipation
-c======================================================================
+!======================================================================
+!   Advance a time step for Maxwells equations
+!     OPTIMIZED version for rectangular grids.
+! nd : number of space dimensions
+!
+! ipar(0)  = option : option=0 - Maxwell+Artificial diffusion
+!                           =1 - AD only
+!
+!  dis(i1,i2,i3) : temp space to hold artificial dissipation
+!  varDis(i1,i2,i3) : coefficient of the variable artificial dissipation
+!======================================================================
  implicit none
  integer nd, n1a,n1b,n2a,n2b,n3a,n3b,nd1a,nd1b,nd2a,nd2b,nd3a,nd3b,nd4a,nd4b
 
@@ -644,7 +665,7 @@ c======================================================================
  integer ipar(0:*)
  real rpar(0:*)
       
-c     ---- local variables -----
+!     ---- local variables -----
  integer c,i1,i2,i3,n,gridType,orderOfAccuracy,orderInTime
  integer addForcing,orderOfDissipation,option
  integer useWhereMask,useWhereMaskSave,solveForE,solveForH,grid,useVariableDissipation
@@ -689,9 +710,11 @@ c     ---- local variables -----
          stoermerTimeStepping,modifiedEquationTimeStepping
  parameter(defaultTimeStepping=0,adamsSymmetricOrder3=1,\
            rungeKuttaFourthOrder=2,stoermerTimeStepping=3,modifiedEquationTimeStepping=4)
+ ! Dispersion models
+ integer noDispersion,drude
+ parameter( noDispersion=0, drude=1 )
 
-
-c...........start statement function
+!...........start statement function
  integer kd,m
  real rx,ry,rz,sx,sy,sz,tx,ty,tz
 
@@ -718,7 +741,7 @@ c...........start statement function
  real mxdc2d4cConsEx,mxdc2d4cConsEy,mxdc2d4cConsEz
  real mxdc3d4Ex,mxdc3d4Ey,mxdc3d4Ez,mxdc3d4Hx,mxdc3d4Hy,mxdc3d4Hz
 
-c real vr2,vs2,vrr2,vss2,vrs2,vLaplacian22
+! real vr2,vs2,vrr2,vss2,vrs2,vLaplacian22
 
  real cdt4by360,cdt6by20160
 
@@ -735,9 +758,12 @@ c real vr2,vs2,vrr2,vss2,vrs2,vLaplacian22
  real cdcE,cdcELap,cdcELapsq,cdcELapm,cdcHzxLap,cdcHzyLap
  real cdcH,cdcHLap,cdcHLapsq,cdcHLapm
 
-c real unxx22r,unyy22r,unxy22r,unx22r
+ ! dispersion
+ integer dispersionModel,pxc,pyc,pzc,qxc,qyc,qzc,rxc,ryc,rzc
 
-c.......statement functions for jacobian
+! real unxx22r,unyy22r,unxy22r,unx22r
+
+!.......statement functions for jacobian
  rx(i1,i2,i3)=rsxy(i1,i2,i3,0,0)
  ry(i1,i2,i3)=rsxy(i1,i2,i3,0,1)
  rz(i1,i2,i3)=rsxy(i1,i2,i3,0,2)
@@ -748,7 +774,7 @@ c.......statement functions for jacobian
  ty(i1,i2,i3)=rsxy(i1,i2,i3,2,1)
  tz(i1,i2,i3)=rsxy(i1,i2,i3,2,2)
 
-c     The next macro will define the difference approximation statement functions
+!     The next macro will define the difference approximation statement functions
  defineDifferenceOrder2Components1(u,RX)
  defineDifferenceOrder4Components1(u,RX)
 
@@ -963,7 +989,7 @@ c     The next macro will define the difference approximation statement function
  lap2d2Pow4(i1,i2,i3,c)=LAP2D2POW2(lap2d2Pow2,i1,i2,i3,c)
  lap3d2Pow4(i1,i2,i3,c)=LAP3D2POW2(lap3d2Pow2,i1,i2,i3,c)
  
-c    ** 4th order ****
+!    ** 4th order ****
 
  lap2d4(i1,i2,i3,c)=( -30.*u(i1,i2,i3,c)     \
    +16.*(u(i1+1,i2,i3,c)+u(i1-1,i2,i3,c))     \
@@ -983,7 +1009,7 @@ c    ** 4th order ****
  lap2d4Pow3(i1,i2,i3,c)=LAP2D4(lap2d4Pow2,i1,i2,i3,c)
  lap3d4Pow3(i1,i2,i3,c)=LAP3D4(lap3d4Pow2,i1,i2,i3,c)
 
-c     *** 6th order ***
+!     *** 6th order ***
 
  lap2d6(i1,i2,i3,c)= \
           c00lap2d6*u(i1,i2,i3,c)     \
@@ -1010,7 +1036,7 @@ c     *** 6th order ***
  lap3d6Pow2(i1,i2,i3,c)=LAP3D6(lap3d6,i1,i2,i3,c)
 
 
-c     *** 8th order ***
+!     *** 8th order ***
 
  lap2d8(i1,i2,i3,c)=c00lap2d8*u(i1,i2,i3,c)      \
           +c10lap2d8*(u(i1+1,i2,i3,c)+u(i1-1,i2,i3,c))     \
@@ -1036,24 +1062,24 @@ c     *** 8th order ***
           +c040lap3d8*(u(i1,i2+4,i3,c)+u(i1,i2-4,i3,c)) \
           +c004lap3d8*(u(i1,i2,i3+4,c)+u(i1,i2,i3-4,c))
 
-c ******* artificial dissipation ******
+! ******* artificial dissipation ******
  du(i1,i2,i3,c)=u(i1,i2,i3,c)-um(i1,i2,i3,c)
 
-c      (2nd difference)
+!      (2nd difference)
  fd22d(i1,i2,i3,c)= \
  (     ( du(i1-1,i2,i3,c)+du(i1+1,i2,i3,c)+du(i1,i2-1,i3,c)+du(i1,i2+1,i3,c) ) \
   -4.*du(i1,i2,i3,c) )
-c
+!
  fd23d(i1,i2,i3,c)=\
  (     ( du(i1-1,i2,i3,c)+du(i1+1,i2,i3,c)+du(i1,i2-1,i3,c)+du(i1,i2+1,i3,c)+du(i1,i2,i3-1,c)+du(i1,i2,i3+1,c) ) \
    -6.*du(i1,i2,i3,c) )
 
-c     -(fourth difference)
+!     -(fourth difference)
  fd42d(i1,i2,i3,c)= \
  (    -( du(i1-2,i2,i3,c)+du(i1+2,i2,i3,c)+du(i1,i2-2,i3,c)+du(i1,i2+2,i3,c) ) \
    +4.*( du(i1-1,i2,i3,c)+du(i1+1,i2,i3,c)+du(i1,i2-1,i3,c)+du(i1,i2+1,i3,c) ) \
   -12.*du(i1,i2,i3,c) )
-c
+!
  fd43d(i1,i2,i3,c)=\
  (    -( du(i1-2,i2,i3,c)+du(i1+2,i2,i3,c)+du(i1,i2-2,i3,c)+du(i1,i2+2,i3,c)+du(i1,i2,i3-2,c)+du(i1,i2,i3+2,c) ) \
    +4.*( du(i1-1,i2,i3,c)+du(i1+1,i2,i3,c)+du(i1,i2-1,i3,c)+du(i1,i2+1,i3,c)+du(i1,i2,i3-1,c)+du(i1,i2,i3+1,c) ) \
@@ -1141,18 +1167,18 @@ f3dcme44(i1,i2,i3,n) = fa(i1,i2,i3,n,fcur)+cdtSqBy12*ffLaplacian23(i1,i2,i3,n) \
 
  ! This version for the 2-stage computation:
 
-c$$$ vr2(i1,i2,i3,kd)=(v(i1+1,i2,i3,kd)-v(i1-1,i2,i3,kd))*d12(0)
-c$$$ vs2(i1,i2,i3,kd)=(v(i1,i2+1,i3,kd)-v(i1,i2-1,i3,kd))*d12(1)
-c$$$
-c$$$ vrr2(i1,i2,i3,kd)=(-2.*v(i1,i2,i3,kd)+(v(i1+1,i2,i3,kd)+v(i1-1,i2,i3,kd)) )*d22(0)
-c$$$ vss2(i1,i2,i3,kd)=(-2.*v(i1,i2,i3,kd)+(v(i1,i2+1,i3,kd)+v(i1,i2-1,i3,kd)) )*d22(1)
-c$$$ vrs2(i1,i2,i3,kd)=(vr2(i1,i2+1,i3,kd)-vr2(i1,i2-1,i3,kd))*d12(1)
-c$$$
-c$$$ vlaplacian22(i1,i2,i3,kd)=(rx(i1,i2,i3)**2+ry(i1,i2,i3)**2)*\
-c$$$      vrr2(i1,i2,i3,kd)+2.*(rx(i1,i2,i3)*sx(i1,i2,i3)+ ry(i1,i2,i3)*\
-c$$$      sy(i1,i2,i3))*vrs2(i1,i2,i3,kd)+(sx(i1,i2,i3)**2+sy(i1,i2,i3)**\
-c$$$      2)*vss2(i1,i2,i3,kd)+(rxx22(i1,i2,i3)+ryy22(i1,i2,i3))*vr2(i1,\
-c$$$      i2,i3,kd)+(sxx22(i1,i2,i3)+syy22(i1,i2,i3))*vs2(i1,i2,i3,kd)
+!$$$ vr2(i1,i2,i3,kd)=(v(i1+1,i2,i3,kd)-v(i1-1,i2,i3,kd))*d12(0)
+!$$$ vs2(i1,i2,i3,kd)=(v(i1,i2+1,i3,kd)-v(i1,i2-1,i3,kd))*d12(1)
+!$$$
+!$$$ vrr2(i1,i2,i3,kd)=(-2.*v(i1,i2,i3,kd)+(v(i1+1,i2,i3,kd)+v(i1-1,i2,i3,kd)) )*d22(0)
+!$$$ vss2(i1,i2,i3,kd)=(-2.*v(i1,i2,i3,kd)+(v(i1,i2+1,i3,kd)+v(i1,i2-1,i3,kd)) )*d22(1)
+!$$$ vrs2(i1,i2,i3,kd)=(vr2(i1,i2+1,i3,kd)-vr2(i1,i2-1,i3,kd))*d12(1)
+!$$$
+!$$$ vlaplacian22(i1,i2,i3,kd)=(rx(i1,i2,i3)**2+ry(i1,i2,i3)**2)*\
+!$$$      vrr2(i1,i2,i3,kd)+2.*(rx(i1,i2,i3)*sx(i1,i2,i3)+ ry(i1,i2,i3)*\
+!$$$      sy(i1,i2,i3))*vrs2(i1,i2,i3,kd)+(sx(i1,i2,i3)**2+sy(i1,i2,i3)**\
+!$$$      2)*vss2(i1,i2,i3,kd)+(rxx22(i1,i2,i3)+ryy22(i1,i2,i3))*vr2(i1,\
+!$$$      i2,i3,kd)+(sxx22(i1,i2,i3)+syy22(i1,i2,i3))*vs2(i1,i2,i3,kd)
 
  max2dc44me2(i1,i2,i3,n)=2.*u(i1,i2,i3,n)-um(i1,i2,i3,n)+cdtsq*uLaplacian42(i1,i2,i3,n)\
                                                        +cdtsq12*vLaplacian22(i1,i2,i3,n)
@@ -1260,7 +1286,7 @@ c$$$      i2,i3,kd)+(sxx22(i1,i2,i3)+syy22(i1,i2,i3))*vs2(i1,i2,i3,kd)
             +cdcHLapm*( lap3d2m(i1,i2,i3,ez) )
 
 #End
-c...........end   statement functions
+!...........end   statement functions
 
 
  ! write(*,*) 'Inside advMaxwell...'
@@ -1316,6 +1342,16 @@ c...........end   statement functions
  useNewForcingMethod           =ipar(21)
  numberOfForcingFunctions      =ipar(22)
  fcur                          =ipar(23) 
+ dispersionModel     =ipar(24)
+ pxc                 =ipar(25)
+ pyc                 =ipar(26)
+ pzc                 =ipar(27)
+ qxc                 =ipar(28)
+ qyc                 =ipar(29)
+ qzc                 =ipar(30)
+ rxc                 =ipar(31)
+ ryc                 =ipar(32)
+ rzc                 =ipar(33)
 
  fprev = mod(fcur-1+numberOfForcingFunctions,max(1,numberOfForcingFunctions))
  fnext = mod(fcur+1                         ,max(1,numberOfForcingFunctions))
@@ -1360,6 +1396,10 @@ c...........end   statement functions
  dzi4=1./(dz**4)
  dxdzi2=1./(dx(0)*dx(0)*dz*dz)
  dydzi2=1./(dy*dy*dz*dz)
+
+ if( t.eq.0. .and. dispersionModel.ne.noDispersion )then
+    write(*,'("--advOpt-- dispersionModel=",i4," px,py,pz=",3i2)') dispersionModel,pxc,pyc,pzc
+ end if
 
 
  if( useDivergenceCleaning.eq.1 )then
@@ -1488,8 +1528,8 @@ c...........end   statement functions
    c65=( -18./240.)*dtsq
  else if( orderInTime.eq.8 )then 
 
-c     g := 1/60480 (236568 fv[4] + 88324 fv[0] - 121797 fv[1] + 245598 fv[2] 
-c     + 33190 fv[6] - 4125 fv[7] - 300227 fv[3] - 117051 fv[5])
+!     g := 1/60480 (236568 fv[4] + 88324 fv[0] - 121797 fv[1] + 245598 fv[2] 
+!     + 33190 fv[6] - 4125 fv[7] - 300227 fv[3] - 117051 fv[5])
 
    c80=(  88324./60480.)*dtsq ! from stoermer.maple
    c81=(-121797./60480.)*dtsq
@@ -1535,7 +1575,7 @@ c     + 33190 fv[6] - 4125 fv[7] - 300227 fv[3] - 117051 fv[5])
  end if
 
 
-c write(*,'(" advMaxwell: timeSteppingMethod=",i2)') timeSteppingMethod
+! write(*,'(" advMaxwell: timeSteppingMethod=",i2)') timeSteppingMethod
  if( timeSteppingMethod.eq.defaultTimeStepping )then
   write(*,'(" advMaxwell:ERROR: timeSteppingMethod=defaultTimeStepping -- this should be set")')
     ! '
@@ -1546,14 +1586,37 @@ c write(*,'(" advMaxwell: timeSteppingMethod=",i2)') timeSteppingMethod
 
  #If #GRIDTYPE eq "rectangular"
 
-c       **********************************************
-c       *************** rectangular ******************
-c       **********************************************
+!       **********************************************
+!       *************** rectangular ******************
+!       **********************************************
 
  #If #ORDER eq "2" 
 
    #If #DIM eq "2"
-    if( useDivergenceCleaning.eq.0 )then
+    if( dispersionModel.ne.noDispersion )then
+      ! --dispersion model --
+      write(*,'("--advOpt-- advance 2D dispersive model")') 
+
+      beginLoopsMask(i1,i2,i3,n1a,n1b,n2a,n2b,n3a,n3b)
+ 
+        ! scheme from Jeff: 
+!         g = gamma
+!         un(i1,i2,i3,pxc)=(2.*u(i1,i2,i3,pxc)-um(i1,i2,i3,pxc)+g*dt/2.*um(i1,i2,i3,pxc)+omegaSq*dtSq*u(i1,i2,i3,ex))/(1.+g*dt/2.);
+! 
+!         Ptt = un(i1,i2,i3,pxc)-2.*u(i1,i2,i3,pxc)+um(i1,i2,i3,pxc)
+! 
+!        un(i1,i2,i3,ex)=maxwell2dr(i1,i2,i3,ex)+dtsq*f(i1,i2,i3,ex) - Ptt/epsilon
+
+        un(i1,i2,i3,ex)=maxwell2dr(i1,i2,i3,ex)+dtsq*f(i1,i2,i3,ex) 
+        un(i1,i2,i3,ey)=maxwell2dr(i1,i2,i3,ey)+dtsq*f(i1,i2,i3,ey)
+        un(i1,i2,i3,hz)=maxwell2dr(i1,i2,i3,hz)+dtsq*f(i1,i2,i3,hz)
+
+        un(i1,i2,i3,pxc)=2.*u(i1,i2,i3,pxc)-um(i1,i2,i3,pxc)
+        un(i1,i2,i3,pyc)=2.*u(i1,i2,i3,pyc)-um(i1,i2,i3,pyc)
+
+      endLoopsMask()
+
+    else if( useDivergenceCleaning.eq.0 )then
      loopsF2DD(dtsq*f(i1,i2,i3,ex),dtsq*f(i1,i2,i3,ey),dtsq*f(i1,i2,i3,hz),\
               un(i1,i2,i3,ex)=maxwell2dr(i1,i2,i3,ex),\
               un(i1,i2,i3,ey)=maxwell2dr(i1,i2,i3,ey),\
@@ -1742,7 +1805,7 @@ c       **********************************************
                un(i1,i2,i3,hy)=mxdc3d4Hy(i1,i2,i3),\
                un(i1,i2,i3,hz)=mxdc3d4Hz(i1,i2,i3),,,,,,)
          else
-c         ! 4th order modified equation and dissipation in one loop
+!         ! 4th order modified equation and dissipation in one loop
           loopsF3D(dtsq*f(i1,i2,i3,ex),dtsq*f(i1,i2,i3,ey),dtsq*f(i1,i2,i3,ez),\
                un(i1,i2,i3,ex)=mxdc3d4Ex(i1,i2,i3)+adcdt*fd43d(i1,i2,i3,ex),\
                un(i1,i2,i3,ey)=mxdc3d4Ey(i1,i2,i3)+adcdt*fd43d(i1,i2,i3,ey),\
@@ -1774,26 +1837,26 @@ c         ! 4th order modified equation and dissipation in one loop
        ! 4th order in space and 4th order Stoermer
        stop 55555
        ! comment this ou to shorten the code
-c$$$       loopsF3D(f(i1,i2,i3,ex),f(i1,i2,i3,ey),f(i1,i2,i3,ez),\
-c$$$              lap(ex)=csq*lap3d4(i1,i2,i3,ex),\
-c$$$              lap(ey)=csq*lap3d4(i1,i2,i3,ey),\
-c$$$              lap(ez)=csq*lap3d4(i1,i2,i3,ez),\
-c$$$              un(i1,i2,i3,ex)=maxwellr44(i1,i2,i3,ex),\
-c$$$              un(i1,i2,i3,ey)=maxwellr44(i1,i2,i3,ey),\
-c$$$              un(i1,i2,i3,ez)=maxwellr44(i1,i2,i3,ez),\
-c$$$              ut3(i1,i2,i3,ex)=lap(ex),\
-c$$$              ut3(i1,i2,i3,ey)=lap(ey),\
-c$$$              ut3(i1,i2,i3,ez)=lap(ez),\
-c$$$              f(i1,i2,i3,hx),f(i1,i2,i3,hy),f(i1,i2,i3,hz),\
-c$$$              lap(hx)=csq*lap3d4(i1,i2,i3,hx),\
-c$$$              lap(hy)=csq*lap3d4(i1,i2,i3,hy),\
-c$$$              lap(hz)=csq*lap3d4(i1,i2,i3,hz),\
-c$$$              un(i1,i2,i3,hx)=maxwellr44(i1,i2,i3,hx),\
-c$$$              un(i1,i2,i3,hy)=maxwellr44(i1,i2,i3,hy),\
-c$$$              un(i1,i2,i3,hz)=maxwellr44(i1,i2,i3,hz),\
-c$$$              ut3(i1,i2,i3,hx)=lap(hx),\
-c$$$              ut3(i1,i2,i3,hy)=lap(hy),\
-c$$$              ut3(i1,i2,i3,hz)=lap(hz))
+!$$$       loopsF3D(f(i1,i2,i3,ex),f(i1,i2,i3,ey),f(i1,i2,i3,ez),\
+!$$$              lap(ex)=csq*lap3d4(i1,i2,i3,ex),\
+!$$$              lap(ey)=csq*lap3d4(i1,i2,i3,ey),\
+!$$$              lap(ez)=csq*lap3d4(i1,i2,i3,ez),\
+!$$$              un(i1,i2,i3,ex)=maxwellr44(i1,i2,i3,ex),\
+!$$$              un(i1,i2,i3,ey)=maxwellr44(i1,i2,i3,ey),\
+!$$$              un(i1,i2,i3,ez)=maxwellr44(i1,i2,i3,ez),\
+!$$$              ut3(i1,i2,i3,ex)=lap(ex),\
+!$$$              ut3(i1,i2,i3,ey)=lap(ey),\
+!$$$              ut3(i1,i2,i3,ez)=lap(ez),\
+!$$$              f(i1,i2,i3,hx),f(i1,i2,i3,hy),f(i1,i2,i3,hz),\
+!$$$              lap(hx)=csq*lap3d4(i1,i2,i3,hx),\
+!$$$              lap(hy)=csq*lap3d4(i1,i2,i3,hy),\
+!$$$              lap(hz)=csq*lap3d4(i1,i2,i3,hz),\
+!$$$              un(i1,i2,i3,hx)=maxwellr44(i1,i2,i3,hx),\
+!$$$              un(i1,i2,i3,hy)=maxwellr44(i1,i2,i3,hy),\
+!$$$              un(i1,i2,i3,hz)=maxwellr44(i1,i2,i3,hz),\
+!$$$              ut3(i1,i2,i3,hx)=lap(hx),\
+!$$$              ut3(i1,i2,i3,hy)=lap(hy),\
+!$$$              ut3(i1,i2,i3,hz)=lap(hz))
 
      #End
    end if
@@ -1948,9 +2011,9 @@ c$$$              ut3(i1,i2,i3,hz)=lap(hz))
 
  #If #GRIDTYPE eq "curvilinear"
 
-c       **********************************************
-c       *************** curvilinear ******************
-c       **********************************************
+!       **********************************************
+!       *************** curvilinear ******************
+!       **********************************************
 
    if( useCurvilinearOpt.eq.1 .and. useConservative.eq.0 )then
 
@@ -1960,14 +2023,14 @@ c       **********************************************
 
     #If #ORDER eq "2" 
 
-c$$$     loopsFCD(un(i1,i2,i3,ex)=maxwellc22(i1,i2,i3,ex),\
-c$$$              un(i1,i2,i3,ey)=maxwellc22(i1,i2,i3,ey),\
-c$$$              un(i1,i2,i3,ez)=maxwellc22(i1,i2,i3,ez),\
-c$$$               ,,,\
-c$$$              un(i1,i2,i3,hx)=maxwellc22(i1,i2,i3,hx),\
-c$$$              un(i1,i2,i3,hy)=maxwellc22(i1,i2,i3,hy),\
-c$$$              un(i1,i2,i3,hz)=maxwellc22(i1,i2,i3,hz),\
-c$$$              ,,)
+!$$$     loopsFCD(un(i1,i2,i3,ex)=maxwellc22(i1,i2,i3,ex),\
+!$$$              un(i1,i2,i3,ey)=maxwellc22(i1,i2,i3,ey),\
+!$$$              un(i1,i2,i3,ez)=maxwellc22(i1,i2,i3,ez),\
+!$$$               ,,,\
+!$$$              un(i1,i2,i3,hx)=maxwellc22(i1,i2,i3,hx),\
+!$$$              un(i1,i2,i3,hy)=maxwellc22(i1,i2,i3,hy),\
+!$$$              un(i1,i2,i3,hz)=maxwellc22(i1,i2,i3,hz),\
+!$$$              ,,)
 
      stop 88044
 
@@ -1986,25 +2049,25 @@ c$$$              ,,)
 
       #If #DIM eq "2"
 
-c$$$ loopsFCD2D($$getLapSq2dOrder2(),\
-c$$$                  dtsq*f(i1,i2,i3,ex),dtsq*f(i1,i2,i3,ey),dtsq*f(i1,i2,i3,hz),\
-c$$$                  un(i1,i2,i3,ex)=max2dc44me(i1,i2,i3,ex),\
-c$$$                  un(i1,i2,i3,ey)=max2dc44me(i1,i2,i3,ey),\
-c$$$                  un(i1,i2,i3,hz)=max2dc44me(i1,i2,i3,hz))
+!$$$ loopsFCD2D($$getLapSq2dOrder2(),\
+!$$$                  dtsq*f(i1,i2,i3,ex),dtsq*f(i1,i2,i3,ey),dtsq*f(i1,i2,i3,hz),\
+!$$$                  un(i1,i2,i3,ex)=max2dc44me(i1,i2,i3,ex),\
+!$$$                  un(i1,i2,i3,ey)=max2dc44me(i1,i2,i3,ey),\
+!$$$                  un(i1,i2,i3,hz)=max2dc44me(i1,i2,i3,hz))
 
        ! do one at a time -- is this faster ? NO
 
-c$$$ loopsFCD2DA($$evalLapSq2dOrder2(ex),\
-c$$$             dtsq*f(i1,i2,i3,ex),\
-c$$$             un(i1,i2,i3,ex)=max2dc44me(i1,i2,i3,ex))
-c$$$
-c$$$ loopsFCD2DA($$evalLapSq2dOrder2(ey),\
-c$$$             dtsq*f(i1,i2,i3,ey),\
-c$$$             un(i1,i2,i3,ey)=max2dc44me(i1,i2,i3,ey))
-c$$$
-c$$$ loopsFCD2DA($$evalLapSq2dOrder2(hz),\
-c$$$             dtsq*f(i1,i2,i3,hz),\
-c$$$             un(i1,i2,i3,hz)=max2dc44me(i1,i2,i3,hz))
+!$$$ loopsFCD2DA($$evalLapSq2dOrder2(ex),\
+!$$$             dtsq*f(i1,i2,i3,ex),\
+!$$$             un(i1,i2,i3,ex)=max2dc44me(i1,i2,i3,ex))
+!$$$
+!$$$ loopsFCD2DA($$evalLapSq2dOrder2(ey),\
+!$$$             dtsq*f(i1,i2,i3,ey),\
+!$$$             un(i1,i2,i3,ey)=max2dc44me(i1,i2,i3,ey))
+!$$$
+!$$$ loopsFCD2DA($$evalLapSq2dOrder2(hz),\
+!$$$             dtsq*f(i1,i2,i3,hz),\
+!$$$             un(i1,i2,i3,hz)=max2dc44me(i1,i2,i3,hz))
 
 
         ! first evaluate Laplacian to 2nd-order
@@ -2066,20 +2129,20 @@ c$$$             un(i1,i2,i3,hz)=max2dc44me(i1,i2,i3,hz))
        useWhereMask=0
        if( solveForE.ne.0 .and. solveForH.ne.0 )then
          stop 6666
-c$$$        loopse9(v(i1,i2,i3,ex)=uLaplacian23(i1,i2,i3,ex),\
-c$$$                v(i1,i2,i3,ey)=uLaplacian23(i1,i2,i3,ey),\
-c$$$                v(i1,i2,i3,ez)=uLaplacian23(i1,i2,i3,ez),\
-c$$$                v(i1,i2,i3,hx)=uLaplacian23(i1,i2,i3,hx),\
-c$$$                v(i1,i2,i3,hy)=uLaplacian23(i1,i2,i3,hy),\
-c$$$                v(i1,i2,i3,hz)=uLaplacian23(i1,i2,i3,hz),,,)
+!$$$        loopse9(v(i1,i2,i3,ex)=uLaplacian23(i1,i2,i3,ex),\
+!$$$                v(i1,i2,i3,ey)=uLaplacian23(i1,i2,i3,ey),\
+!$$$                v(i1,i2,i3,ez)=uLaplacian23(i1,i2,i3,ez),\
+!$$$                v(i1,i2,i3,hx)=uLaplacian23(i1,i2,i3,hx),\
+!$$$                v(i1,i2,i3,hy)=uLaplacian23(i1,i2,i3,hy),\
+!$$$                v(i1,i2,i3,hz)=uLaplacian23(i1,i2,i3,hz),,,)
        else if( solveForE.ne.0 )then
         loopse9(v(i1,i2,i3,ex)=uLaplacian23(i1,i2,i3,ex),\
                 v(i1,i2,i3,ey)=uLaplacian23(i1,i2,i3,ey),\
                 v(i1,i2,i3,ez)=uLaplacian23(i1,i2,i3,ez),,,,,,)        
        else
-c$$$        loopse9(v(i1,i2,i3,hx)=uLaplacian23(i1,i2,i3,hx),\
-c$$$                v(i1,i2,i3,hy)=uLaplacian23(i1,i2,i3,hy),\
-c$$$                v(i1,i2,i3,hz)=uLaplacian23(i1,i2,i3,hz),,,,,,)        
+!$$$        loopse9(v(i1,i2,i3,hx)=uLaplacian23(i1,i2,i3,hx),\
+!$$$                v(i1,i2,i3,hy)=uLaplacian23(i1,i2,i3,hy),\
+!$$$                v(i1,i2,i3,hz)=uLaplacian23(i1,i2,i3,hz),,,,,,)        
        end if
 
        ! write(*,*) 'advOpt: 2d, rect, modified equation'
@@ -2386,21 +2449,21 @@ c$$$                v(i1,i2,i3,hz)=uLaplacian23(i1,i2,i3,hz),,,,,,)
 
 
 
-c build an empty version of high order files so we do not have to compile the full version
+! build an empty version of high order files so we do not have to compile the full version
 #beginMacro ADV_MAXWELL_NULL(NAME,DIM,ORDER,GRIDTYPE)
  subroutine NAME(nd,n1a,n1b,n2a,n2b,n3a,n3b,nd1a,nd1b,nd2a,nd2b,nd3a,nd3b,nd4a,nd4b,\
                  mask,rsxy,  um,u,un,f,fa, v,vvt2,ut3,vvt4,ut5,ut6,ut7, bc, dis, varDis, ipar, rpar, ierr )
-c======================================================================
-c   Advance a time step for Maxwells eqution
-c     OPTIMIZED version for rectangular grids.
-c nd : number of space dimensions
-c
-c ipar(0)  = option : option=0 - Maxwell+Artificial diffusion
-c                           =1 - AD only
-c
-c  dis(i1,i2,i3) : temp space to hold artificial dissipation
-c  varDis(i1,i2,i3) : coefficient of the variable artificial dissipation
-c======================================================================
+!======================================================================
+!   Advance a time step for Maxwells eqution
+!     OPTIMIZED version for rectangular grids.
+! nd : number of space dimensions
+!
+! ipar(0)  = option : option=0 - Maxwell+Artificial diffusion
+!                           =1 - AD only
+!
+!  dis(i1,i2,i3) : temp space to hold artificial dissipation
+!  varDis(i1,i2,i3) : coefficient of the variable artificial dissipation
+!======================================================================
   write(*,'("ERROR: null version of NAME called")')
   stop 9922
   return
@@ -2430,14 +2493,14 @@ c======================================================================
 
       subroutine advMaxwell(nd,n1a,n1b,n2a,n2b,n3a,n3b,nd1a,nd1b,nd2a,nd2b,nd3a,nd3b,nd4a,nd4b,\
                             mask,rx,  um,u,un,f,fa, v,vvt2,ut3,vvt4,ut5,ut6,ut7, bc, dis, varDis, ipar, rpar, ierr )
-c======================================================================
-c   Advance a time step for Maxwells eqution
-c     OPTIMIZED version for rectangular grids.
-c nd : number of space dimensions
-c
-c ipar(0)  = option : option=0 - Maxwell+Artificial diffusion
-c                           =1 - AD only
-c======================================================================
+!======================================================================
+!   Advance a time step for Maxwells eqution
+!     OPTIMIZED version for rectangular grids.
+! nd : number of space dimensions
+!
+! ipar(0)  = option : option=0 - Maxwell+Artificial diffusion
+!                           =1 - AD only
+!======================================================================
       implicit none
       integer nd, n1a,n1b,n2a,n2b,n3a,n3b,
      & nd1a,nd1b,nd2a,nd2b,nd3a,nd3b,nd4a,nd4b
@@ -2464,7 +2527,7 @@ c======================================================================
       integer ipar(0:*)
       real rpar(0:*)
       
-c     ---- local variables -----
+!     ---- local variables -----
       integer c,i1,i2,i3,n,gridType,orderOfAccuracy,orderInTime
       integer addForcing,orderOfDissipation,option
       integer useWhereMask,solveForE,solveForH,grid
@@ -2472,7 +2535,7 @@ c     ---- local variables -----
 
       integer rectangular,curvilinear
       parameter( rectangular=0, curvilinear=1 )
-c...........end   statement functions
+!...........end   statement functions
 
 
       ! write(*,*) 'Inside advMaxwell...'
@@ -2515,7 +2578,7 @@ c...........end   statement functions
          stop 8843
        end if
 
-c
+!
       else if( orderOfAccuracy.eq.6 ) then
         if( nd.eq.2 .and. gridType.eq.rectangular )then
           call advMx2dOrder6r(nd,n1a,n1b,n2a,n2b,n3a,n3b,nd1a,nd1b,nd2a,nd2b,nd3a,nd3b,nd4a,nd4b,\

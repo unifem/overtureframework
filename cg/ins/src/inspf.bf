@@ -1771,9 +1771,15 @@ defineDerivativeMacros(DIM,ORDER,GRIDTYPE)
        ! printf("**apply mixed BC on pressure rhs...\n");
        ! if( addBoundaryForcing(side,axis).ne.0 .and. initialConditionsAreBeingProjected.eq.0 )then ! *wdh* 2013/12/01
        ! *wdh* 2014/11/21 - turn off RHS when projecting initial conditions:
-       if( addBoundaryForcing(side,axis).ne.0 .and. initialConditionsAreBeingProjected.eq.0 )then 
-        ! write(*,'("inspf:INFO: set pressure profile at outflow")')
-        loopse4(f(i1+is1,i2+is2,i3+is3)=bcf(side,axis,i1,i2,i3,pc),,,)
+       ! *wdh* 2016/11/25 -- make sure to use zero RHS when projecting initial conditions:
+       ! if( addBoundaryForcing(side,axis).ne.0 .and. initialConditionsAreBeingProjected.eq.0 )then 
+       if( addBoundaryForcing(side,axis).ne.0 )then
+         if( initialConditionsAreBeingProjected.eq.0 )then 
+          ! write(*,'("inspf:INFO: set pressure profile at outflow")')
+          loopse4(f(i1+is1,i2+is2,i3+is3)=bcf(side,axis,i1,i2,i3,pc),,,)
+         else
+          loopse4(f(i1+is1,i2+is2,i3+is3)=0.,,,)
+         end if
        else 
         loopse4(f(i1+is1,i2+is2,i3+is3)=bcData(pc,side,axis),,,)
        end if
@@ -1781,9 +1787,15 @@ defineDerivativeMacros(DIM,ORDER,GRIDTYPE)
        ! dirichlet :
        ! if( addBoundaryForcing(side,axis).ne.0 )then ! *wdh* 2013/12/01
        ! *wdh* 2014/11/21 - turn off RHS when projecting initial conditions:
-       if( addBoundaryForcing(side,axis).ne.0 .and. initialConditionsAreBeingProjected.eq.0 )then 
-        ! write(*,'("inspf:INFO: set pressure profile at outflow")')
-        loopse4(f(i1,i2,i3)=bcf(side,axis,i1,i2,i3,pc),,,)
+       ! *wdh* 2016/11/25 -- make sure to use zero RHS when projecting initial conditions:
+       ! if( addBoundaryForcing(side,axis).ne.0 .and. initialConditionsAreBeingProjected.eq.0 )then 
+       if( addBoundaryForcing(side,axis).ne.0 )then
+         if( initialConditionsAreBeingProjected.eq.0 )then 
+          ! write(*,'("inspf:INFO: set pressure profile at outflow")')
+          loopse4(f(i1,i2,i3)=bcf(side,axis,i1,i2,i3,pc),,,)
+         else
+          loopse4(f(i1,i2,i3)=0.,,,)
+         end if
        else
         loopse4(f(i1,i2,i3)=bcData(pc,side,axis),,,)
        end if

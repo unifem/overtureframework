@@ -1133,6 +1133,13 @@ getTimeSteppingLabel( real dt, aString & label ) const
     else
         label+="TS=??, ";
 
+  // -- label for dispersion model ---
+    if( dispersionModel!=noDispersion )
+    {
+        aString & dispersionModelName=dbase.get<aString>("dispersionModelName");
+        label+=" " + dispersionModelName;
+    }
+    
   // if( twilightZoneOption==polynomialTwilightZone )
   //   label+=sPrintF(buff," order(X,T)=(%i,%i)",
   // 		   orderOfAccuracyInSpace,orderOfAccuracyInTime);

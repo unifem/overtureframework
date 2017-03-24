@@ -65,6 +65,7 @@ chooseUserDefinedBoundaryValues(int side, int axis, int grid, CompositeGrid & cg
     "traction from data points",
     "pressure from data points",
     "superseismic shock",
+    "known solution",
     "done",
     ""
   };
@@ -344,7 +345,16 @@ chooseUserDefinedBoundaryValues(int side, int axis, int grid, CompositeGrid & cg
       parameters.setUserBoundaryConditionParameters(side,axis,grid,values);
 
     }
-    
+    else if( answer=="known solution" )  // ** FINISH ME **
+    {
+      // parameters.setUserBcType(side,axis,grid,knownSolutionValues);    // set the bcType to be a unique value.
+      userDefinedBoundaryValue = "knownSolutionValues";
+      
+      parameters.setBcIsTimeDependent(side,axis,grid,true);            // *FIX* ME 
+
+      printF("--SM--userDefinedBoundaryValues:set values according to the known solution\n");
+      
+    }    
     else
     {
       printF("Unknown answer =[%s]\n",(const char*)answer2);

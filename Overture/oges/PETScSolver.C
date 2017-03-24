@@ -2705,7 +2705,7 @@ fillInterpolationCoefficients(realCompositeGridFunction & uu)
 }
   
 int PETScSolver::
-setExtraEquationValues( realCompositeGridFunction & f, real *value )
+setExtraEquationRightHandSideValues( realCompositeGridFunction & f, real *value )
 //==================================================================================
 // /Description:
 //   Assign values to the right-hand-side for the extra equations
@@ -2739,6 +2739,17 @@ setExtraEquationValues( realCompositeGridFunction & f, real *value )
   }
   if( Oges::debug & 4 )
     printF("PETScSolver::setExtraEquationValues: f[%i](%i,%i,%i,n=%i)= %14.10e \n",grid,i1,i2,i3,n,value[0]);
+
+  if( ! oges.dbase.has_key("extraEquationRightHandSideValues") )
+  {
+    // save RHS values here too, in case the user wants to know them
+    oges.dbase.put<RealArray>("extraEquationRightHandSideValues");
+  }
+
+  RealArray & extraEquationRightHandSideValues = oges.dbase.get<RealArray>("extraEquationRightHandSideValues");
+  int numberOfExtraEquations=1; // ** FIX ME for more user defined equations ***
+  extraEquationRightHandSideValues.redim(numberOfExtraEquations);
+  extraEquationRightHandSideValues=value[0];
 
   return 0;
 }

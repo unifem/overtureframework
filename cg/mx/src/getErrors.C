@@ -1,5 +1,6 @@
 // This file automatically generated from getErrors.bC with bpp.
 #include "Maxwell.h"
+#include "DispersiveMaterialParameters.h"
 #include "CompositeGridOperators.h"
 #include "display.h"
 #include "UnstructuredMapping.h"
@@ -208,6 +209,19 @@ extern "C"
  // -- transmitted wave ---
  //  --- time derivative of transmitted wave ---
 
+// -- dispersive plane wave solution
+//        w = wr + i wi   (complex dispersion relation)
+// You should define: 
+//    dpwExp := exp( wi* t )
+#define exDpw(x,y,t,dpwExp) sin(twoPi*(kx*(x)+ky*(y))-omegaDpwRe*(t))*(pwc[0]*(dpwExp))
+#define eyDpw(x,y,t,dpwExp) sin(twoPi*(kx*(x)+ky*(y))-omegaDpwRe*(t))*(pwc[1]*(dpwExp))
+#define hzDpw(x,y,t,dpwExp) sin(twoPi*(kx*(x)+ky*(y)-cc*(t)))*pwc[5]
+
+// ** FIX ME -- THIS IS WRONG
+// #define extDpw(x,y,t,dpwExp) (-twoPi*omegaDpwRe)*cos(twoPi*(kx*(x)+ky*(y)-omegaDpwRe*(t)))*(pwc[0]*(dpwExp))
+// #define eytDpw(x,y,t,dpwExp) (-twoPi*omegaDpwRe)*cos(twoPi*(kx*(x)+ky*(y)-omegaDpwRe*(t)))*(pwc[1]*(dpwExp))
+// #define hztDpw(x,y,t,dpwExp) (-twoPi*cc)*cos(twoPi*(kx*(x)+ky*(y)-cc*(t)))*pwc[5]
+
 //! local function to compute errors for the staggered grid DSI schemes
 void
 computeDSIErrors( Maxwell &mx, MappedGrid &mg, realArray &uh, realArray &uhp, realArray &ue, realArray &uep,
@@ -374,20 +388,17 @@ getErrors( int current, real t, real dt )
     const int numberOfComponentGrids = cg.numberOfComponentGrids();
     const int numberOfDimensions = cg.numberOfDimensions();
 
-    
+  // Range C(ex,hz);
+    const int numberOfComponents= cgfields[0][0].getLength(3);
+    Range  C=numberOfComponents;
+    solutionNorm.redim(numberOfComponents);  
 
-
-    Range C(ex,hz);
     maximumError.redim(numberOfSequences); 
     if( method==nfdtd || method==yee )
     {
-        solutionNorm.redim(C);  // for nfdtd
     }
     else if( method==sosup )
     {
-        const int numberOfComponents= cgfields[0][0].getLength(3);
-        C=numberOfComponents;
-        solutionNorm.redim(numberOfComponents);  
     }
     else
     {
@@ -501,7 +512,7 @@ getErrors( int current, real t, real dt )
             mg.update(MappedGrid::THEcenter | MappedGrid::THEvertex);
         }
         const realArray & center = buildCenter ? mg.center() : emptyArray;
-        realSerialArray uLocal;
+        realSerialArray uLocal, umLocal;
         real dtb2=dt*.5;
         real tE = t, tH = t;
         getIndex(mg.dimension(),I1,I2,I3);
@@ -519,11 +530,11 @@ getErrors( int current, real t, real dt )
             realMappedGridFunction & unall = mgp==NULL ? getCGField(HField,next)[grid] : fields[next];
             #ifdef USE_PPP
                 getLocalArrayWithGhostBoundaries(uall,uLocal);
-                realSerialArray umLocal; getLocalArrayWithGhostBoundaries(umall,umLocal);
+                getLocalArrayWithGhostBoundaries(umall,umLocal);
                 realSerialArray unLocal; getLocalArrayWithGhostBoundaries(unall,unLocal);
             #else
                 uLocal.reference(uall);
-                realSerialArray & umLocal = umall;
+                umLocal.reference(umall);
                 realSerialArray & unLocal = unall;
             #endif
             if ( cg.numberOfDimensions()==2 ) 
@@ -994,9 +1005,9 @@ getErrors( int current, real t, real dt )
         const real ya=xab[0][1], dy0=dx[1];
         const real za=xab[0][2], dz0=dx[2];
 
-        #define X0(i0,i1,i2) (xa+dx0*(i0-i0a))
-        #define X1(i0,i1,i2) (ya+dy0*(i1-i1a))
-        #define X2(i0,i1,i2) (za+dz0*(i2-i2a))
+#define X0(i0,i1,i2) (xa+dx0*(i0-i0a))
+#define X1(i0,i1,i2) (ya+dy0*(i1-i1a))
+#define X2(i0,i1,i2) (za+dz0*(i2-i2a))
 
         const int numberOfGhost=method==nfdtd ? orderOfAccuracyInSpace/2 : 0;
             
@@ -1022,11 +1033,35 @@ getErrors( int current, real t, real dt )
 // 	      err(I1,I2,I3,ex)=u(I1,I2,I3,ex)-exTrue(x,y,t);
 // 	      err(I1,I2,I3,ey)=u(I1,I2,I3,ey)-eyTrue(x,y,t);
 // 	      err(I1,I2,I3,hz)=u(I1,I2,I3,hz)-hzTrue(x,y,t);
-      	
-      	erre(Ie1,Ie2,Ie3,ex)  = ue(Ie1,Ie2,Ie3,ex)-exTrue(xe(Ie1,Ie2,Ie3),ye(Ie1,Ie2,Ie3),tE);
-      	erre(Ie1,Ie2,Ie3,ey)  = ue(Ie1,Ie2,Ie3,ey)-eyTrue(xe(Ie1,Ie2,Ie3),ye(Ie1,Ie2,Ie3),tE);
-      	errh(Ih1,Ih2,Ih3,hz)  = uh(Ih1,Ih2,Ih3,hz)-hzTrue(xh(Ih1,Ih2,Ih3),yh(Ih1,Ih2,Ih3),tH);
+      	if( dispersionModel == noDispersion )
+      	{
+        	  erre(Ie1,Ie2,Ie3,ex)  = ue(Ie1,Ie2,Ie3,ex)-exTrue(xe(Ie1,Ie2,Ie3),ye(Ie1,Ie2,Ie3),tE);
+        	  erre(Ie1,Ie2,Ie3,ey)  = ue(Ie1,Ie2,Ie3,ey)-eyTrue(xe(Ie1,Ie2,Ie3),ye(Ie1,Ie2,Ie3),tE);
+        	  errh(Ih1,Ih2,Ih3,hz)  = uh(Ih1,Ih2,Ih3,hz)-hzTrue(xh(Ih1,Ih2,Ih3),yh(Ih1,Ih2,Ih3),tH);
+      	}
+      	else
+      	{
+	  // --- dispersive plane wave ---
+	  // Dispersive material parameters
+        	  DispersiveMaterialParameters & dmp = getDispersiveMaterialParameters(grid);
 
+	  // evaluate the dispersion relation,  exp(i(k*x-omega*t))
+	  //    omega is complex 
+        	  const real kk = twoPi*sqrt( kx*kx+ky*ky+kz*kz);
+        	  real omegaDpwRe, omegaDpwIm;
+        	  dmp.computeDispersivePlaneWaveParameters( c,eps,mu,kk, omegaDpwRe, omegaDpwIm );
+
+        	  printF("++++ getErrors: dispersion relation: omegar=%g, omegai=%g\n",omegaDpwRe, omegaDpwIm );
+
+                    OV_ABORT("Finish me -- add eval of Px and Py");
+
+        	  const real dpwExp =exp(omegaDpwIm*tE);
+        	  erre(Ie1,Ie2,Ie3,ex)  = ue(Ie1,Ie2,Ie3,ex)-exDpw(xe(Ie1,Ie2,Ie3),ye(Ie1,Ie2,Ie3),tE,dpwExp);
+        	  erre(Ie1,Ie2,Ie3,ey)  = ue(Ie1,Ie2,Ie3,ey)-eyDpw(xe(Ie1,Ie2,Ie3),ye(Ie1,Ie2,Ie3),tE,dpwExp);
+        	  errh(Ih1,Ih2,Ih3,hz)  = uh(Ih1,Ih2,Ih3,hz)-hzDpw(xh(Ih1,Ih2,Ih3),yh(Ih1,Ih2,Ih3),tH,dpwExp);
+
+      	}
+      	
       	if( method==sosup )
       	{
                     realSerialArray errLocal; getLocalArrayWithGhostBoundaries((*cgerrp)[grid],errLocal);
@@ -1131,6 +1166,37 @@ getErrors( int current, real t, real dt )
         	  real y0 = XHP(i1,i2,i3,1);
         	  ERRHZ(i1,i2,i3)=UHZ(i1,i2,i3)-e(x0,y0,0.,hz,tH);
       	}
+
+      	if( dispersionModel != noDispersion )
+      	{         
+          // --- error in dispersion variables ---
+                    realSerialArray errLocal; getLocalArrayWithGhostBoundaries((*cgerrp)[grid],errLocal);
+        	  FOR_3D(i1,i2,i3,J1,J2,J3)
+        	  {
+          	    real x0 = XEP(i1,i2,i3,0);
+          	    real y0 = XEP(i1,i2,i3,1);
+          	    if( pxc>=0 )
+          	    {
+            	      errLocal(i1,i2,i3,pxc) = uLocal(i1,i2,i3,pxc)- e(x0,y0,0.,pxc,tE);
+            	      errLocal(i1,i2,i3,pyc) = uLocal(i1,i2,i3,pyc)- e(x0,y0,0.,pyc,tE);
+          	    }
+          	    if( qxc>=0 )
+          	    {
+            	      errLocal(i1,i2,i3,qxc) = uLocal(i1,i2,i3,qxc)- e(x0,y0,0.,qxc,tE);
+            	      errLocal(i1,i2,i3,qyc) = uLocal(i1,i2,i3,qyc)- e(x0,y0,0.,qyc,tE);
+          	    }
+          	    if( rxc>=0 )
+          	    {
+            	      errLocal(i1,i2,i3,rxc) = uLocal(i1,i2,i3,rxc)- e(x0,y0,0.,rxc,tE);
+            	      errLocal(i1,i2,i3,ryc) = uLocal(i1,i2,i3,ryc)- e(x0,y0,0.,ryc,tE);
+          	    }
+          	    
+        	  }
+
+      	}
+      	
+
+
             }
             else // 3D
             {
@@ -1193,6 +1259,39 @@ getErrors( int current, real t, real dt )
             	      errLocal(i1,i2,i3,hzt) = uLocal(i1,i2,i3,hzt)- e(x0,y0,z0,hzt,tH);
           	    }
         	  }
+      	}
+
+      	if( dispersionModel != noDispersion )
+      	{         
+          // --- error in dispersion variables ---
+                    realSerialArray errLocal; getLocalArrayWithGhostBoundaries((*cgerrp)[grid],errLocal);
+        	  FOR_3D(i1,i2,i3,J1,J2,J3)
+        	  {
+          	    real x0 = XEP(i1,i2,i3,0);
+          	    real y0 = XEP(i1,i2,i3,1);
+          	    real z0 = XEP(i1,i2,i3,2);
+
+          	    if( pxc>=0 )
+          	    {
+            	      errLocal(i1,i2,i3,pxc) = uLocal(i1,i2,i3,pxc)- e(x0,y0,z0,pxc,tE);
+            	      errLocal(i1,i2,i3,pyc) = uLocal(i1,i2,i3,pyc)- e(x0,y0,z0,pyc,tE);
+            	      errLocal(i1,i2,i3,pzc) = uLocal(i1,i2,i3,pzc)- e(x0,y0,z0,pzc,tE);
+          	    }
+          	    if( qxc>=0 )
+          	    {
+            	      errLocal(i1,i2,i3,qxc) = uLocal(i1,i2,i3,qxc)- e(x0,y0,z0,qxc,tE);
+            	      errLocal(i1,i2,i3,qyc) = uLocal(i1,i2,i3,qyc)- e(x0,y0,z0,qyc,tE);
+            	      errLocal(i1,i2,i3,qzc) = uLocal(i1,i2,i3,qzc)- e(x0,y0,z0,qzc,tE);
+          	    }
+          	    if( rxc>=0 )
+          	    {
+            	      errLocal(i1,i2,i3,rxc) = uLocal(i1,i2,i3,rxc)- e(x0,y0,z0,rxc,tE);
+            	      errLocal(i1,i2,i3,ryc) = uLocal(i1,i2,i3,ryc)- e(x0,y0,z0,ryc,tE);
+            	      errLocal(i1,i2,i3,rzc) = uLocal(i1,i2,i3,rzc)- e(x0,y0,z0,rzc,tE);
+          	    }
+          	    
+        	  }
+
       	}
 
             }

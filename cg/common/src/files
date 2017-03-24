@@ -3,6 +3,7 @@ SRC_FILES += GridMaterialProperties.C bodyForcing.C defineVariableBoundaryValues
 SRC_FILES += boundaryConditionPredictor.C Parameters.C readFromAShowFile.C ProbeInfo.C Moving.C getBounds.C LineSolve.C
 SRC_FILES += ProjectVelocity.C ogf.C boundaryDistance.C SurfaceEquation.C initialConditionsFromAProfile.C 
 SRC_FILES += memory.C chemistryPhoneyFiles.C applyFilter.C ExternalBoundaryData.C outputProbes.C
+SRC_FILES += getInterfaceData.C CyclicIndex.C
 
 SRC_FILES += FlowSolutions.C BoundaryLayerProfile.C
 

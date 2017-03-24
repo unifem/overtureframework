@@ -127,6 +127,7 @@ adjustPressureCoefficients(CompositeGrid & cg0, GridFunction & cgf  )
     // ======================================================================
     
     // -- construct the beam-fluid interface data needed for the AMP scheme for two-sided beams  --
+
     // *** THIS ONLY NEEDS TO BE DONE ONCE ***
     // Longfei 20170119: moved to DeformingBodyMotion::initialize()
     // for( int body=0; body<numberOfDeformingBodies; body++ )
@@ -269,8 +270,13 @@ adjustPressureCoefficients(CompositeGrid & cg0, GridFunction & cgf  )
 		  cout << "--adjustPressureCoefficients--: use the fix for useApproximateAMPcondition\n";
 		  //NOTE: for convience, I put everything needed here. It might not be efficient. 
 		  
-		  realSerialArray & normal = mg0.vertexBoundaryNormal(side0,axis0);
-		  realSerialArray & normalDonor = mg1.vertexBoundaryNormal(side1,axis1);
+                  #ifdef USE_PPP
+		    const realSerialArray & normal = mg0.vertexBoundaryNormalArray(side0,axis0);
+		    const realSerialArray & normalDonor = mg1.vertexBoundaryNormalArray(side1,axis1);
+                  #else
+		    const realSerialArray & normal = mg0.vertexBoundaryNormal(side0,axis0);
+		    const realSerialArray & normalDonor = mg1.vertexBoundaryNormal(side1,axis1);
+                  #endif
 
 		  DeformingBodyMotion & deform = movingGrids.getDeformingBody(body);
 		  BeamModel & beamModel = deform.getBeamModel();
@@ -327,137 +333,265 @@ adjustPressureCoefficients(CompositeGrid & cg0, GridFunction & cgf  )
 	} // end for face
       } // end for body
     } // end if   
+
     else // **OLD WAY**
     {
-      
-      std::vector<BoundaryData> & boundaryDataArray =parameters.dbase.get<std::vector<BoundaryData> >("boundaryData");
-      // first locate any boundaries that lie on the beam
-      const int maxFaces=10;  // fix me 
-      int sideBody[maxFaces], axisBody[maxFaces], gridBody[maxFaces]; 
-      int numFaces=0;
-      for( int grid=0; grid<cg0.numberOfComponentGrids(); grid++ )
+     int iv[3], &i1=iv[0], &i2=iv[1], &i3=iv[2];
+      const int numberOfComponentGrids = cg0.numberOfComponentGrids();
+      const int numberOfDimensions = cg0.numberOfDimensions();
+      for( int body=0; body<numberOfDeformingBodies; body++ )
       {
-	if( parameters.gridIsMoving(grid) )
+	DeformingBodyMotion & deformingBody = movingGrids.getDeformingBody(body);
+	if(  !deformingBody.isBeamModel()  ||
+	     !deformingBody.beamModelHasFluidOnTwoSides() )
+	{ // this is NOT a beam model with fluid on two sides.
+	  continue;   
+	}
+
+	DataBase & deformingBodyDataBase = deformingBody.deformingBodyDataBase;
+	const int & numberOfFaces = deformingBodyDataBase.get<int>("numberOfFaces");
+	const IntegerArray & boundaryFaces = deformingBodyDataBase.get<IntegerArray>("boundaryFaces");
+
+	BeamFluidInterfaceData &  beamFluidInterfaceData = 
+	  deformingBodyDataBase.get<BeamFluidInterfaceData>("beamFluidInterfaceData");
+	IntegerArray *& donorInfoArray = beamFluidInterfaceData.dbase.get<IntegerArray*>("donorInfoArray");
+
+	for( int face=0; face<numberOfFaces; face++ )
 	{
-	  BoundaryData & bd = boundaryDataArray[grid];
+	  const int side0=boundaryFaces(0,face);
+	  const int axis0=boundaryFaces(1,face);
+	  const int grid0=boundaryFaces(2,face); 
+    
+	  realMappedGridFunction & coeff0 = coeff[grid0];
+    
+	  assert( coeff0.sparse!=NULL );
+	  SparseRepForMGF & sparse0 = *coeff0.sparse;
+	  const int equationOffset0=sparse0.equationOffset;
+	  const int numberOfComponentsForCoefficients0 = sparse0.numberOfComponents;  // size of the system of equations
+	  const int numberOfGhostLines0 = sparse0.numberOfGhostLines;
+	  const int stencilSize0 = sparse0.stencilSize;
+	  const int stencilDim0=stencilSize0*numberOfComponentsForCoefficients0; // number of coefficients per equation
 
-	  if( bd.dbase.has_key("deformingBodyNumber") )
+	  intArray & equationNumber0 = sparse0.equationNumber;
+	  intArray & classify0 = sparse0.classify;
+
+	  MappedGrid & mg0 = cg0[grid0];
+	  const IntegerArray & gid0 = mg0.gridIndexRange();
+
+	  for( int axis=0; axis<3; axis++ ){ iv[axis]=gid0(0,axis); } //
+
+	  const int axisp1= (axis0 +1) % numberOfDimensions;
+
+	  const IntegerArray & donorInfo= donorInfoArray[face]; 
+	  Range I0=donorInfo.dimension(0);
+	  for( int i=I0.getBase(); i<=I0.getBound(); i++ )  // NOTE: loop index i is incremented below
 	  {
-	    // --- this grid has a face attached to a deforming body ---
+	    // Here is the donor on the opposite face of the beam:
+	    const int grid1 = donorInfo(i,0), side1=donorInfo(i,1), axis1=donorInfo(i,2);
 
-	    int (&deformingBodyNumber)[2][3] = bd.dbase.get<int[2][3]>("deformingBodyNumber");
-	    for( int side=0; side<=1; side++ )
+	    if( grid1<0 )  // This means there is no opposite grid point -- could be the end of the beam
+	      continue;
+
+	    assert( grid1>=0 && grid1<numberOfComponentGrids );
+
+	    realMappedGridFunction & coeff1 = coeff[grid1];
+	    assert( coeff1.sparse!=NULL );
+	    SparseRepForMGF & sparse1 = *coeff1.sparse;
+	    const int equationOffset1=sparse1.equationOffset;
+	    intArray & equationNumber1 = sparse1.equationNumber;
+	    intArray & classify1 = sparse1.classify;
+
+	    MappedGrid & mg1 = cg0[grid1];
+
+	    // loop over points with the same donor grid
+	    for( ; i<=I0.getBound(); i++ ) // NOTE: this increments "i" from the outer loop
 	    {
-	      for( int axis=0; axis<cg0.numberOfDimensions(); axis++ )
+	      const int donor = donorInfo(i,0);
+	      if( donor <0 )  // This means there is no opposite grid point -- could be the end of the beam
+		continue;
+
+	      if( donor!=grid1 )
 	      {
-		if( deformingBodyNumber[side][axis]>=0 )
-		{
-		  int body=deformingBodyNumber[side][axis];
-		  gridBody[numFaces]=grid;
-		  sideBody[numFaces]=side;
-		  axisBody[numFaces]=axis;
-		  numFaces++;
-		  if( debug()& 4 || cgf.t <= 0. )
-		    printF("--APC-- body=%i  has face (grid,side,axis)=(%i,%i,%i)\n",body,grid,side,axis);
-		}
+		i--;
+		break;
+	      }
+	    
+	      iv[axisp1]=i+gid0(0,axisp1); // index that varies along the interface of grid0
+
+	      is1=is2=is3=0;
+	      isv[axis0]=1-2*side0;
+
+	      js1=js2=js3=0;
+	      jsv[axis1]=1-2*side1;
+
+	      // closest grid pt on opposite side:
+	      const int j1=donorInfo(i,3), j2=donorInfo(i,4), j3=donorInfo(i,5); 
+	    
+	      if( grid0==grid1 && i1==j1 && i2==j2 && i3==j3)
+	      {
+		OV_ABORT("ERROR - donor = source point for AMP pressure BC!");
+	      }
 	    
 
-	      }
+	      i1m=i1-is1, i2m=i2-is2, i3m=i3-is3; //  ghost point is (i1m,i2m,i3m)
+	      j1m=j1-js1, j2m=j2-js2, j3m=j3-js3; //  ghost point is (j1m,j2m,j3m)
+	      // coeff(mm,i1m,i2m,i3m)
+	      // add the extra equations:
+	      //   p0 + (rhos*hs/rho)*p0.n  - p1 =     (add -p1 to this Robin BC)
+	      //   p1 + (rhos*hs/rho)*p1.n  - p0 =     (add -p0 to this Robin BC)
+
+	      int me = stencilDim0-1;  // "extra" equation goes here at end of the coefficients
+	      int md=4;  // hard code for now -- this should "diagonal" entry
+
+	      // add a "-1" coefficient to the AMP Robin BC on grid0
+	      assert( coeff0(me,i1m,i2m,i3m)==0. );
+	      // if( i<13 || i>15 )
+	      coeff0(me,i1m,i2m,i3m)=-1.;
+	      equationNumber0(me,i1m,i2m,i3m)=equationNumber1(md,j1m,j2m,j3m);  // -1 multiplies eqn1
+	    
+	      // // add a "-1" coefficient to the AMP Robin BC on grid1
+	      // assert( coeff1(me,j1m,j2m,j3m)==0. );
+	      // coeff1(me,j1m,j2m,j3m)=-1.;
+	      // equationNumber1(me,j1m,j2m,j3m)=equationNumber0(md,i1m,i2m,i3m);
+
 	    }
-	  }
-      
-	}
-      }
-
-      if( numFaces>1 )  // There are multiple grids adjacent to the beam
-      {
-	assert( numFaces==2 ); // do this case for now
-    
-	int grid0 = gridBody[0], side0=sideBody[0], axis0=axisBody[0];
-	int grid1 = gridBody[1], side1=sideBody[1], axis1=axisBody[1];
-    
-	realMappedGridFunction & coeff0 = coeff[grid0];
-	realMappedGridFunction & coeff1 = coeff[grid1];
-    
-	assert( coeff0.sparse!=NULL );
-	SparseRepForMGF & sparse0 = *coeff0.sparse;
-	const int equationOffset0=sparse0.equationOffset;
-	const int numberOfComponentsForCoefficients0 = sparse0.numberOfComponents;  // size of the system of equations
-	const int numberOfGhostLines0 = sparse0.numberOfGhostLines;
-	const int stencilSize0 = sparse0.stencilSize;
-	const int stencilDim0=stencilSize0*numberOfComponentsForCoefficients0; // number of coefficients per equation
-
-	intArray & equationNumber0 = sparse0.equationNumber;
-	intArray & classify0 = sparse0.classify;
-    
-	MappedGrid & mg0 = cg0[grid0];
-	OV_GET_SERIAL_ARRAY_CONST(real,mg0.center(),xy0Local);
-	getBoundaryIndex(mg0.gridIndexRange(),side0,axis0,Ib1,Ib2,Ib3); // boundary index's for mg0
-
-	assert( coeff1.sparse!=NULL );
-	SparseRepForMGF & sparse1 = *coeff1.sparse;
-	const int equationOffset1=sparse1.equationOffset;
-	intArray & equationNumber1 = sparse1.equationNumber;
-	intArray & classify1 = sparse1.classify;
-
-	MappedGrid & mg1 = cg0[grid1];
-	OV_GET_SERIAL_ARRAY_CONST(real,mg1.center(),xy1Local);
-
-	getBoundaryIndex(mg1.gridIndexRange(),side1,axis1,Jb1,Jb2,Jb3);  // boundary index's for mg1 
-
-	is1=is2=is3=0;
-	isv[axis0]=1-2*side0;
-
-	js1=js2=js3=0;
-	jsv[axis1]=1-2*side1;
-
-	Range all;
-
-	bool gridPointsMatch = true;
-	if( gridPointsMatch )
-	{
-	  // --- CASE I: Separate grids and grid points match on both sides of the beam ----
-	  FOR_3IJD(i1,i2,i3,Ib1,Ib2,Ib3,j1,j2,j3,Jb1,Jb2,Jb3) // loop over points on the boundary 
-	  {
-	    i1m=i1-is1, i2m=i2-is2, i3m=i3-is3; //  ghost point is (i1m,i2m,i3m)
-	    j1m=j1-js1, j2m=j2-js2, j3m=j3-js3; //  ghost point is (j1m,j2m,j3m)
-	    // coeff(mm,i1m,i2m,i3m)
-	    // add the extra equations:
-	    //   p0 + (rhos*hs/rho)*p0.n  - p1 =     (add -p1 to this Robin BC)
-	    //   p1 + (rhos*hs/rho)*p1.n  - p0 =     (add -p0 to this Robin BC)
-
-	    int me = stencilDim0-1;  // "extra" equation goes here at end of the coefficients
-	    int md=4;  // hard code for now -- this should "diagonal" entry
-
-	    // add a "-1" coefficient to the AMP Robin BC on grid0
-	    assert( coeff0(me,i1m,i2m,i3m)==0. );
-	    coeff0(me,i1m,i2m,i3m)=-1.;
-	    equationNumber0(me,i1m,i2m,i3m)=equationNumber1(md,j1m,j2m,j3m);  // -1 multiplies eqn1
-
-	    // add a "-1" coefficient to the AMP Robin BC on grid1
-	    assert( coeff1(me,j1m,j2m,j3m)==0. );
-	    coeff1(me,j1m,j2m,j3m)=-1.;
-	    equationNumber1(me,j1m,j2m,j3m)=equationNumber0(md,i1m,i2m,i3m);
-      
-	    if( debug() & 8 && cgf.t <= 0. )
-	    {
-	      printF(" grid0=%i (i1m,i2m)=(%i,%i) x=(%9.3e,%9.3e)\n",grid0,i1m,i2m,xy0Local(i1m,i2m,i3m,0),xy0Local(i1m,i2m,i3m,1));
-	      printF(" grid1=%i (j1m,j2m)=(%i,%i) x=(%9.3e,%9.3e)\n",grid1,j1m,j2m,xy1Local(j1m,j2m,j3m,0),xy1Local(j1m,j2m,j3m,1));
-      
-	      ::display(coeff0(all,i1m,i2m,i3m),sPrintF("coeff on ghost point (%i,%i) of grid=%i",i1m,i2m,grid0),"%8.2e ");
-	      ::display(equationNumber0(all,i1m,i2m,i3m),sPrintF("equationNumber on ghost point (%i,%i) of grid=%i",i1m,i2m,grid0),"%8i ");
-
-	      ::display(coeff1(all,j1m,j2m,j3m),sPrintF("coeff on ghost point (%i,%i) of grid=%i",j1m,j2m,grid1),"%8.2e ");
-	      ::display(equationNumber1(all,j1m,j2m,j3m),sPrintF("equationNumber on ghost point (%i,%i) of grid=%i",j1m,j2m,grid1),"%8i ");
-	    }
-      
-
-	  }
-    
-	}
-    
-      }
+	  } // end for i 
+	} // end for face
+      } // end for body
     }
+    
+    // else // **OLD WAY**
+    // {
+      
+    //   std::vector<BoundaryData> & boundaryDataArray =parameters.dbase.get<std::vector<BoundaryData> >("boundaryData");
+    //   // first locate any boundaries that lie on the beam
+    //   const int maxFaces=10;  // fix me 
+    //   int sideBody[maxFaces], axisBody[maxFaces], gridBody[maxFaces]; 
+    //   int numFaces=0;
+    //   for( int grid=0; grid<cg0.numberOfComponentGrids(); grid++ )
+    //   {
+    // 	if( parameters.gridIsMoving(grid) )
+    // 	{
+    // 	  BoundaryData & bd = boundaryDataArray[grid];
+
+    // 	  if( bd.dbase.has_key("deformingBodyNumber") )
+    // 	  {
+    // 	    // --- this grid has a face attached to a deforming body ---
+
+    // 	    int (&deformingBodyNumber)[2][3] = bd.dbase.get<int[2][3]>("deformingBodyNumber");
+    // 	    for( int side=0; side<=1; side++ )
+    // 	    {
+    // 	      for( int axis=0; axis<cg0.numberOfDimensions(); axis++ )
+    // 	      {
+    // 		if( deformingBodyNumber[side][axis]>=0 )
+    // 		{
+    // 		  int body=deformingBodyNumber[side][axis];
+    // 		  gridBody[numFaces]=grid;
+    // 		  sideBody[numFaces]=side;
+    // 		  axisBody[numFaces]=axis;
+    // 		  numFaces++;
+    // 		  if( debug()& 4 || cgf.t <= 0. )
+    // 		    printF("--APC-- body=%i  has face (grid,side,axis)=(%i,%i,%i)\n",body,grid,side,axis);
+    // 		}
+	    
+
+    // 	      }
+    // 	    }
+    // 	  }
+      
+    // 	}
+    //   }
+
+    //   if( numFaces>1 )  // There are multiple grids adjacent to the beam
+    //   {
+    // 	assert( numFaces==2 ); // do this case for now
+    
+    // 	int grid0 = gridBody[0], side0=sideBody[0], axis0=axisBody[0];
+    // 	int grid1 = gridBody[1], side1=sideBody[1], axis1=axisBody[1];
+    
+    // 	realMappedGridFunction & coeff0 = coeff[grid0];
+    // 	realMappedGridFunction & coeff1 = coeff[grid1];
+    
+    // 	assert( coeff0.sparse!=NULL );
+    // 	SparseRepForMGF & sparse0 = *coeff0.sparse;
+    // 	const int equationOffset0=sparse0.equationOffset;
+    // 	const int numberOfComponentsForCoefficients0 = sparse0.numberOfComponents;  // size of the system of equations
+    // 	const int numberOfGhostLines0 = sparse0.numberOfGhostLines;
+    // 	const int stencilSize0 = sparse0.stencilSize;
+    // 	const int stencilDim0=stencilSize0*numberOfComponentsForCoefficients0; // number of coefficients per equation
+
+    // 	intArray & equationNumber0 = sparse0.equationNumber;
+    // 	intArray & classify0 = sparse0.classify;
+    
+    // 	MappedGrid & mg0 = cg0[grid0];
+    // 	OV_GET_SERIAL_ARRAY_CONST(real,mg0.center(),xy0Local);
+    // 	getBoundaryIndex(mg0.gridIndexRange(),side0,axis0,Ib1,Ib2,Ib3); // boundary index's for mg0
+
+    // 	assert( coeff1.sparse!=NULL );
+    // 	SparseRepForMGF & sparse1 = *coeff1.sparse;
+    // 	const int equationOffset1=sparse1.equationOffset;
+    // 	intArray & equationNumber1 = sparse1.equationNumber;
+    // 	intArray & classify1 = sparse1.classify;
+
+    // 	MappedGrid & mg1 = cg0[grid1];
+    // 	OV_GET_SERIAL_ARRAY_CONST(real,mg1.center(),xy1Local);
+
+    // 	getBoundaryIndex(mg1.gridIndexRange(),side1,axis1,Jb1,Jb2,Jb3);  // boundary index's for mg1 
+
+    // 	is1=is2=is3=0;
+    // 	isv[axis0]=1-2*side0;
+
+    // 	js1=js2=js3=0;
+    // 	jsv[axis1]=1-2*side1;
+
+    // 	Range all;
+
+    // 	bool gridPointsMatch = true;
+    // 	if( gridPointsMatch )
+    // 	{
+    // 	  // --- CASE I: Separate grids and grid points match on both sides of the beam ----
+    // 	  FOR_3IJD(i1,i2,i3,Ib1,Ib2,Ib3,j1,j2,j3,Jb1,Jb2,Jb3) // loop over points on the boundary 
+    // 	  {
+    // 	    i1m=i1-is1, i2m=i2-is2, i3m=i3-is3; //  ghost point is (i1m,i2m,i3m)
+    // 	    j1m=j1-js1, j2m=j2-js2, j3m=j3-js3; //  ghost point is (j1m,j2m,j3m)
+    // 	    // coeff(mm,i1m,i2m,i3m)
+    // 	    // add the extra equations:
+    // 	    //   p0 + (rhos*hs/rho)*p0.n  - p1 =     (add -p1 to this Robin BC)
+    // 	    //   p1 + (rhos*hs/rho)*p1.n  - p0 =     (add -p0 to this Robin BC)
+
+    // 	    int me = stencilDim0-1;  // "extra" equation goes here at end of the coefficients
+    // 	    int md=4;  // hard code for now -- this should "diagonal" entry
+
+    // 	    // add a "-1" coefficient to the AMP Robin BC on grid0
+    // 	    assert( coeff0(me,i1m,i2m,i3m)==0. );
+    // 	    coeff0(me,i1m,i2m,i3m)=-1.;
+    // 	    equationNumber0(me,i1m,i2m,i3m)=equationNumber1(md,j1m,j2m,j3m);  // -1 multiplies eqn1
+
+    // 	    // add a "-1" coefficient to the AMP Robin BC on grid1
+    // 	    assert( coeff1(me,j1m,j2m,j3m)==0. );
+    // 	    coeff1(me,j1m,j2m,j3m)=-1.;
+    // 	    equationNumber1(me,j1m,j2m,j3m)=equationNumber0(md,i1m,i2m,i3m);
+      
+    // 	    if( debug() & 8 && cgf.t <= 0. )
+    // 	    {
+    // 	      printF(" grid0=%i (i1m,i2m)=(%i,%i) x=(%9.3e,%9.3e)\n",grid0,i1m,i2m,xy0Local(i1m,i2m,i3m,0),xy0Local(i1m,i2m,i3m,1));
+    // 	      printF(" grid1=%i (j1m,j2m)=(%i,%i) x=(%9.3e,%9.3e)\n",grid1,j1m,j2m,xy1Local(j1m,j2m,j3m,0),xy1Local(j1m,j2m,j3m,1));
+      
+    // 	      ::display(coeff0(all,i1m,i2m,i3m),sPrintF("coeff on ghost point (%i,%i) of grid=%i",i1m,i2m,grid0),"%8.2e ");
+    // 	      ::display(equationNumber0(all,i1m,i2m,i3m),sPrintF("equationNumber on ghost point (%i,%i) of grid=%i",i1m,i2m,grid0),"%8i ");
+
+    // 	      ::display(coeff1(all,j1m,j2m,j3m),sPrintF("coeff on ghost point (%i,%i) of grid=%i",j1m,j2m,grid1),"%8.2e ");
+    // 	      ::display(equationNumber1(all,j1m,j2m,j3m),sPrintF("equationNumber on ghost point (%i,%i) of grid=%i",j1m,j2m,grid1),"%8i ");
+    // 	    }
+      
+
+    // 	  }
+    
+    // 	}
+    
+    //   }
+    // } // end if old way
+    
   
   } // end deforming bodies
   

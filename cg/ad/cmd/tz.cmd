@@ -43,7 +43,7 @@
 #  cgad noplot tz -g=square5 -degreex=2 -degreet=0 -tp=.01 -tf=.05 -ts=adi -go=go -a=0. -b=0. -debug=15
 # 
 # ---- BDF ----
-#  cgad -noplot tz -g=square5 -degreex=2 -degreet=2 -kappa=.1 -ts=bdf -tp=.01 -tf=.05 -go=og
+#  cgad -noplot tz -g=square5 -degreex=2 -degreet=2 -kappa=.1 -ts=bdf -implicitAdvection=1 -tp=.01 -tf=.05 -go=og
 #
 # --- set default values for parameters ---
 # 

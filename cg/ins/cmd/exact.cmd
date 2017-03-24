@@ -8,7 +8,7 @@
 # Usage:
 #    cgins [-noplot] exact -g=<gridName> -option=[pipe|rotating|tg] -ts=[pc|im] -tf=<> -tp=<> -nu=<> ...
 #            -solver=[best|yale|mg] -psolver=[best|yale|mg] -model=[ins|boussinesq] -tm=[les] ...
-#            -move=[0|rotate|shift] -pipeAxis=[0|1|2] -axialAxis=[0|1|2]
+#            -move=[0|rotate|shift] -pipeAxis=[0|1|2] -axialAxis=[0|1|2] -bc=[d|noSlip]
 # 
 # Parameters:  
 #  -option : "pipe" = Poiseuille flow (2d) or Hagen-Poiseuille flow (3d)
@@ -38,6 +38,7 @@
 $option="pipe"; $nd=2; # set nd=3 for 3D
 $tFinal=30.; $tPlot=.1; $nu=.1; $show=" "; $debug=0; $ogesDebug=0; $debugmg=0; $dtMax=.02; $order=2; $newts=0;
 $restart=""; $restartSolution=-1; $outflowOption="neumann";
+$bc=""; 
 # 
 $slowStartSteps=-1; $slowStartCFL=.5; $slowStartRecomputeDt=100; $slowStartTime=-1.; $recomputeDt=10000;
 #
@@ -77,7 +78,7 @@ GetOptions( "g=s"=>\$grid,"tf=f"=>\$tFinal,"tp=f"=>\$tPlot,"u0=f"=>\$u0,"u1=f"=>
  "imp=f"=>\$implicitFactor,"rtol=f"=>\$rtol,"atol=f"=>\$atol,"rtolp=f"=>\$rtolp,"atolp=f"=>\$atolp,\
   "restart=s"=>\$restart,"move=s"=>\$move,"debugmg=i"=>\$debugmg,"nullVector=s"=>\$nullVector,\
   "impFactor=f"=>\$impFactor,"freqFullUpdate=i"=>\$freqFullUpdate,"outflowOption=s"=>\$outflowOption,\
-  "bg=s"=>\$bg,"gridToMove=s"=>\$gridToMove,"bcTop=s"=>\$bcTop,"ogesDebug=i"=>\$ogesDebug,"rate=f"=>\$rate,\
+  "bg=s"=>\$bg,"gridToMove=s"=>\$gridToMove,"bc=s"=>\$bc,"bcTop=s"=>\$bcTop,"ogesDebug=i"=>\$ogesDebug,"rate=f"=>\$rate,\
   "slowStartCFL=f"=>\$slowStartCFL,"axialAxis=i"=>\$axialAxis,"pipeAxis=i"=>\$pipeAxis,\
   "slowStartTime=f"=>\$slowStartTime,"ogmgCoarseGridSolver=s"=>\$ogmgCoarseGridSolver,"aftol=f"=>\$aftol,\
   "recomputeDt=i"=>\$recomputeDt,"slowStartSteps=i"=>\$slowStartSteps,"slowStartRecomputeDt=i"=>\$slowStartRecomputeDt,\
@@ -97,6 +98,7 @@ if( $ts eq "fe" ){ $ts="forward Euler";  }
 if( $ts eq "be" ){ $ts="backward Euler"; }
 if( $ts eq "im" ){ $ts="implicit";       }
 if( $ts eq "pc" ){ $ts="adams PC";       }
+if( $ts eq "pc4" ){ $ts="adams PC order 4";}
 if( $ts eq "mid"){ $ts="midpoint";       }  
 if( $ts eq "afs"){ $ts="approximate factorization"; $newts=1;}
 if( $newts eq "1" ){ $newts = "use new advanceSteps versions"; }else{ $newts = "#"; }
@@ -260,6 +262,8 @@ $cmd
 #
 #************************************
 #
+# turn off echo of command file to the terminal:
+echo to terminal 0
   pressure solver options
    # $ogmgAutoChoose=1;
    $ogesSolver=$psolver; $ogesRtol=$rtolp; $ogesAtol=$atolp; $ogesIluLevels=$iluLevels; $ogmgDebug=$ogesDebug;  $ogmgRtolcg=$rtolp; $ogmgAtolcg=$atolp;
@@ -270,11 +274,14 @@ $cmd
    $ogesSolver=$solver; $ogesRtol=$rtol; $ogesAtol=$atol; $ogmgOpav=0; $ogmgRtolcg=1.e-6;
    include $ENV{CG}/ins/cmd/ogesOptions.h
   exit
+echo to terminal 1
 #
   boundary conditions
 #
-  all=dirichletBoundaryCondition
-  all=noSlipWall
+  #all=dirichletBoundaryCondition
+  #all=noSlipWall
+  if( $bc eq "d" ){ $cmd=" all=dirichletBoundaryCondition"; }else{ $cmd="all=noSlipWall"; }
+  $cmd
 #  $cmd="#"; 
 #  if( $option eq "rotating" ){ $cmd="all=dirichletBoundaryCondition\n bcNumber1=dirichletBoundaryCondition\n bcNumber2=dirichletBoundaryCondition"; }
 #

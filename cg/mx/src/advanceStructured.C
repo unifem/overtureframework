@@ -3,6 +3,7 @@
 #include "CompositeGridOperators.h"
 #include "ParallelUtility.h"
 #include "ParallelGridUtility.h"
+#include "DispersiveMaterialParameters.h"
 
 #define advMaxwell EXTERN_C_NAME(advmaxwell)
 #define mxFilter EXTERN_C_NAME(mxfilter)
@@ -58,6 +59,8 @@ advanceNFDTD(  int numberOfStepsTaken, int current, real t, real dt )
 
   Index Iv[3], &I1=Iv[0], &I2=Iv[1], &I3=Iv[2];
   Range C(ex,hz);
+  const int numberOfComponents=cgfields[0][0].getLength(3);
+  Range Ca = numberOfComponents; // includes dispersion variables 
   const int prev = (current-1+numberOfTimeLevels) % numberOfTimeLevels;
   const int next = (current+1) % numberOfTimeLevels;
 
@@ -126,6 +129,7 @@ advanceNFDTD(  int numberOfStepsTaken, int current, real t, real dt )
     c = cGrid(grid);
     eps = epsGrid(grid);
     mu = muGrid(grid);
+    
     if( numberOfStepsTaken<1 ) 
       printF(" advanceNFDTD:INFO eps,mu,c=%8.2e %8.2e %8.2e for grid=%i (%s) \n",eps,mu,c,grid,
          (const char*)cg[grid].getName());
@@ -187,7 +191,7 @@ advanceNFDTD(  int numberOfStepsTaken, int current, real t, real dt )
       Index D1,D2,D3;
       getIndex(mg.dimension(),D1,D2,D3);
       f.partition(mg.getPartition());
-      f.redim(D1,D2,D3,C);  // could use some other array for work space ??
+      f.redim(D1,D2,D3,Ca);  // could use some other array for work space ??
 
     }
     
@@ -347,7 +351,10 @@ advanceNFDTD(  int numberOfStepsTaken, int current, real t, real dt )
 		(int)useDivergenceCleaning, 
                 (int)useNewForcingMethod,
                 numberOfForcingFunctions,
-                fCurrent };  //
+                fCurrent,
+                dispersionModel,
+                pxc,pyc,pzc, qxc,qyc,qzc, rxc,ryc,rzc
+                };  //
 
     real dx[3]={1.,1.,1.};
     if( isRectangular )
@@ -375,6 +382,12 @@ advanceNFDTD(  int numberOfStepsTaken, int current, real t, real dt )
     rpar[18]=t;
 
     rpar[20]=0.;  // return cpu for dissipation
+
+    // Dispersive material parameters
+    const DispersiveMaterialParameters & dispersiveMaterialParameters = getDispersiveMaterialParameters(grid);
+    rpar[21]=dispersiveMaterialParameters.gamma;
+    rpar[22]=dispersiveMaterialParameters.omegap;
+    
 
     int ierr=0;
 
@@ -471,7 +484,8 @@ advanceNFDTD(  int numberOfStepsTaken, int current, real t, real dt )
       rxptr = rxLocal.getDataPointer();
     }
       
-    int *maskptr = useWhereMask ? maskLocal.getDataPointer() : ipar;
+    // int *maskptr = useWhereMask ? maskLocal.getDataPointer() : ipar;
+    int *maskptr = maskLocal.getDataPointer(); // *wdh* Jan 5, 2017 -- do this always
 
     realSerialArray *dis = NULL;
     real *pdis=uptr;
@@ -525,8 +539,6 @@ advanceNFDTD(  int numberOfStepsTaken, int current, real t, real dt )
       
     timing(timeForDissipation)+=rpar[20];
 
-
-    
 
     if( isRectangular )   
       timing(timeForAdvanceRectangularGrids)+=getCPU()-time0;

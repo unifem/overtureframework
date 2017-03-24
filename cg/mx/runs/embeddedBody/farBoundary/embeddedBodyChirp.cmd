@@ -37,6 +37,7 @@ $rbc="abcEM2"; # radiation BC
 $pmlLines=11; $pmlPower=6; $pmlStrength=50.; # pml parameters
 # chirp parameters
 $ta=.5; $tb=20.; $bandWidth=2.; $beta=10.; $amp=1.; $x0=0.; $y0=0.; $z0=0.; 
+$k0=10; # base wave number 
 # ----------------------------- get command line arguments ---------------------------------------
 GetOptions( "g=s"=>\$grid,"tf=f"=>\$tFinal,"diss=f"=>\$diss,"tp=f"=>\$tPlot,"show=s"=>\$show,"debug=i"=>\$debug, \
  "cfl=f"=>\$cfl, "bg=s"=>\$backGround,"bcn=s"=>\$bcn,"go=s"=>\$go,"noplot=s"=>\$noplot,"method=s"=>\$method,\
@@ -45,7 +46,7 @@ GetOptions( "g=s"=>\$grid,"tf=f"=>\$tFinal,"diss=f"=>\$diss,"tp=f"=>\$tPlot,"sho
   "xa=f"=>\$xa,"ya=f"=>\$ya,"projectFields=i"=>\$projectFields,"projectionFrequency=i"=>\$projectionFrequency,\
   "projectInterp=i"=>\$projectInterp,"sidebc=s"=>\$sidebc,"upperbc=s"=>\$upperbc,\
   "planeWaveInitialCondition=i"=>\$planeWaveInitialCondition,"planeWaveBoundaryForcing=i"=>\$planeWaveBoundaryForcing,\
-  "projectInitialConditions=i"=>\$projectInitialConditions  );
+  "projectInitialConditions=i"=>\$projectInitialConditions,"k0=f"=>\$k0  );
 # -------------------------------------------------------------------------------------------------
 if( $method eq "sosup" ){ $diss=0.; }
 if( $go eq "halt" ){ $go = "break"; }
@@ -53,8 +54,8 @@ if( $go eq "og" ){ $go = "open graphics"; }
 if( $go eq "run" || $go eq "go" ){ $go = "movie mode\n finish"; }
 #
 $pi=4.*atan2(1.,1.);
-$kx = -sqrt(10)*sin($theta*$pi/180.); 
-$ky = -sqrt(10)*cos($theta*$pi/180.); 
+$kx = -sqrt($k0)*sin($theta*$pi/180.); 
+$ky = -sqrt($k0)*cos($theta*$pi/180.); 
 $kz=0.; 
 #
 $grid

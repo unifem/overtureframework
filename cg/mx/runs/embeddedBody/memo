@@ -1,6 +1,25 @@
 
 ====== Body embedded in a dielectric =======
 
+***************************************************
+**** Dec 3, 2016
+
+-- run some of Jordan's test cases
+
+ogen -noplot embeddedBodyGridAnnulus -interp=e -order=4 -factor=4
+ogen -noplot embeddedBodyGridAnnulus -interp=e -order=4 -factor=8
+ogen -noplot embeddedBodyGridAnnulus -interp=e -order=4 -factor=16
+ogen -noplot embeddedBodyGridAnnulus -interp=e -order=4 -factor=32
+
+nohup $cgmx -noplot embeddedBodyChirp.cmd -g=embeddedBodyGridAnnuluse32.order4.hdf -tf=8. -tp=.5 -diss=4. -sidebc=abcEM2 -k0=40 -show=ebG32k40.show -go=go >! ebG32k40 &
+
+cgmx -noplot embeddedBodyChirp.cmd -g=embeddedBodyGridAnnuluse16.order4.hdf -tf=4. -tp=.5 -diss=4. -sidebc=abcEM2 -k0=40 -show=ebG16k40.show -go=go >! ebG16k40.out 
+
+
+cgmx embeddedBodyChirp.cmd -g=embeddedBodyGridAnnuluse8.order4.hdf -diss=2. -sidebc=abcEM2 -show=ebG8Order4.show -go=hal
+t
+
+
 *****************************************
 ****** Tues Aug. 16, 2016
 

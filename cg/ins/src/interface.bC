@@ -42,18 +42,22 @@ getInterfaceDataOptions( GridFaceDescriptor & info, int & interfaceDataOptions )
   }
   else if( interfaceType(side,axis,grid)==Parameters::tractionInterface ) 
   {
+    // projectInterface : not sure if this is currently used
     const bool projectInterface = parameters.dbase.get<bool>("projectInterface");
 
-    // Boundary condition on the interrface: 
+    // useAddedMassAlgorithm=true : coupling to an elastic solid
+    const bool useAddedMassAlgorithm = parameters.dbase.get<bool>("useAddedMassAlgorithm");
+
+    // Boundary condition on the interface: 
     //   Use this to decide if the boundary is a velocity BC or a traction BC.
     const int bc = gf[0].cg[grid].boundaryCondition(side,axis);
     
     if( debug() & 2 )
       printP("*** Cgins:getInterfaceDataOptions: projectInterface = %i ***\n",projectInterface);
 
-    if( !projectInterface )
+    if( !projectInterface && !useAddedMassAlgorithm )
     {
-      // No interface projection:
+      // -- no added-mass algorithm or interface projection-----
 
       if( bc==InsParameters::noSlipWall ||
 	  bc==InsParameters::slipWall )
@@ -72,12 +76,51 @@ getInterfaceDataOptions( GridFaceDescriptor & info, int & interfaceDataOptions )
 	if( TRUE )
 	  printP("*** Cgins:getInterfaceDataOptions: (grid,side,axis)=(%i,%i,%i) bc=%i (traction or freeSurface)\n",grid,side,axis,bc);
 
-	interfaceDataOptions=Parameters::Parameters::tractionInterfaceData;
+	interfaceDataOptions=Parameters::tractionInterfaceData;
 	numberOfItems+=numberOfDimensions;
       }
       else
       {
 	printP(" --Cgins-- getInterfaceDataOptions: ERROR: unexpected BC=%i for a traction interface\n",bc);
+      }
+      
+    }
+    else if( useAddedMassAlgorithm )
+    {
+      // *wdh* Nov. 20, 2016
+      // For the addedMass algorithm (coupling INS to an elastic solid) we need the following interface data: 
+      //  - position  ?
+      //  - velocity
+      //  - traction 
+      //  - acceleration 
+      //  - traction-rate  : d(traction)/dt  ?
+
+      if( true )
+	printP("*** Cgins:getInterfaceDataOptions: (grid,side,axis)=(%i,%i,%i) bc=%i useAddedMassAlgorithm=%i\n"
+               "       ---> request position,velocity,traction,acceleration from the solid\n"
+	       ,grid,side,axis,bc,(int)useAddedMassAlgorithm);
+      if( true )
+      {
+	// do this for now:
+	interfaceDataOptions=Parameters::positionInterfaceData |
+			     Parameters::tractionInterfaceData;
+	numberOfItems+=2*numberOfDimensions;
+      }
+      else if( true )
+      {
+	// do this for now:
+	interfaceDataOptions=Parameters::positionInterfaceData;
+	numberOfItems+=numberOfDimensions;
+      }
+      else
+      {
+	interfaceDataOptions = ( Parameters::positionInterfaceData     |
+				 Parameters::velocityInterfaceData     |
+				 Parameters::tractionInterfaceData     |
+				 Parameters::accelerationInterfaceData
+	  );
+
+	numberOfItems+=4*numberOfDimensions;
       }
       
     }
@@ -217,6 +260,21 @@ interfaceRightHandSide( InterfaceOptionsEnum option,
 
       int numSaved=0; // keeps track of how many things we have saved in f 
 
+      // this did not work:
+      // if( FALSE && interfaceDataOptions & Parameters::tractionInterfaceData )
+      // {
+      // 	// make sure there is space for the traction
+      // 	if( bd.getLength(3)< 2*numberOfDimensions+1 )
+      // 	{
+      // 	  int numComponents=2*numberOfDimensions+1;
+      // 	  bd.redim(bd.dimension(0),bd.dimension(1),bd.dimension(2),Range(0,numComponents-1));
+      // 	  // bd.redim(bd.dimension(0),bd.dimension(1),bd.dimension(2),numberOfDimensions+1);
+
+      // 	}
+	
+      // }
+      
+
       bd=0.;  // boundary data is filled into this array
 
 
@@ -233,29 +291,12 @@ interfaceRightHandSide( InterfaceOptionsEnum option,
 	numSaved+=numberOfDimensions;
       }
       
-      if( false ) // **************** TEMP ************************
-      {
-        DataBase & db = parameters.dbase.get<DataBase >("modelData").get<DataBase>("userDefinedKnownSolutionData");
-	UserDefinedKnownSolutionEnum & userKnownSolution = db.get<UserDefinedKnownSolutionEnum>("userKnownSolution");
-	
-	if( userKnownSolution==specifiedPiston )
-	{
-	  real ap=1., pp=4;
-	  real ff = -(ap/pp)*pow(t,pp);
-	  printP(" elasticPiston: t=%9.3e: F(t)=[%9.3e,%9.3e] (computed) true=%9.3e\n",t,max(bd(I1,I2,I3,uc)),min(bd(I1,I2,I3,uc)),ff);
-
-          // printP(" elasticPiston: ************* SET INTERFACE POSITION TO EXACT *************\n");
-          // bd(I1,I2,I3,uc)=ff; // ******************
-	}
-	
-      }
-      
       if( interfaceDataOptions & Parameters::velocityInterfaceData )
       {
         // --- interface velocity is given ---
 	C=Range(numSaved,numSaved+numberOfDimensions-1);
         if( debug() & 4 )
-	  printP("Cgins:interfaceRightHandSide: interface velocity provided t=%9.3e in C=[%i,%i]\n",t,C.getBase(),C.getBound());
+	  printP("Cgins:interfaceRHS: interface velocity provided t=%9.3e in C=[%i,%i]\n",t,C.getBase(),C.getBound());
 
 
         // the interface velocity is currently not used.
@@ -281,12 +322,28 @@ interfaceRightHandSide( InterfaceOptionsEnum option,
       if( interfaceDataOptions & Parameters::tractionInterfaceData )
       {
         // --- interface traction is given ---
-        if( debug() & 4 )
-	  printP("Cgins:interfaceRightHandSide: interface traction provided t=%9.3e\n",t);
-
 	C=Range(numSaved,numSaved+numberOfDimensions-1);
+        if( true || debug() & 4 )
+	{
+	  printP(">>> --INS-- interfaceRHS: interface traction provided t=%9.3e  in C=[%i,%i]<<<\n",
+                 t,C.getBase(),C.getBound());
+          printF(" #### bd array component dimensions: [base3,bound3]=[%i,%i] ####\n",bd.getBase(3),bd.getBound(3));
+	}
+	
+	// -- for now save the traction data in the dbase
+        aString tractionDataName;
+	sPrintF(tractionDataName,"tractionG%iS%iA%i",grid,side,axis);
+	if( !parameters.dbase.has_key(tractionDataName) )
+	{
+	  InterfaceData & interfaceData = parameters.dbase.put<InterfaceData>(tractionDataName);
+	  interfaceData.u.redim(bd.dimension(0),bd.dimension(1),bd.dimension(2),numberOfDimensions);
+	  interfaceData.u=0;
+	}
+	InterfaceData & interfaceData = parameters.dbase.get<InterfaceData>(tractionDataName);
+	interfaceData.t=t;
+	Range Rx=numberOfDimensions;
+	interfaceData.u(I1,I2,I3,Rx)=f(I1,I2,I3,C);  
 
-        // the interface acceleration is currently not used.
 	// bd(I1,I2,I3,Dc)=f(I1,I2,I3,C);    // where should we put this?
 
         numSaved+=numberOfDimensions;
@@ -580,7 +637,7 @@ interfaceRightHandSide( InterfaceOptionsEnum option,
 
 	      f(I1,I2,I3,Ctr)= (f(I1,I2,I3,Ct) - f1(I1,I2,I3,Ct))/dt;
 
-	      if( true )
+	      if( debug() & 8 )
 		::display(f(I1,I2,I3,Ctr),"traction-rate",pDebugFile,"%9.3e ");
 	      
 

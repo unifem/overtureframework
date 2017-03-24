@@ -1,13 +1,14 @@
-c ===============================================================================
-c This file is included by
-c     insdtINS.bf 
-c     insdtKE.bf
-c     insdtSPAL.bf
-c     insdtVP.bf
-c ==============================================================================
+!  -*- mode: F90 -*-
+! ===============================================================================
+! This file is included by
+!     insdtINS.bf 
+!     insdtKE.bf
+!     insdtSPAL.bf
+!     insdtVP.bf
+! ==============================================================================
 
-c These next include files will define the macros that will define the difference approximations
-c The actual macro is called below
+! These next include files will define the macros that will define the difference approximations
+! The actual macro is called below
 #Include "defineDiffOrder2f.h"
 #Include "defineDiffOrder4f.h"
 
@@ -147,9 +148,9 @@ end if
 
 
 
-c Define the artificial diffusion coefficients
-c gt should be R or C (gridType is Rectangular or Curvilinear)
-c tb should be blank or SA  (SA=Spalart-Allamras turbulence model)
+! Define the artificial diffusion coefficients
+! gt should be R or C (gridType is Rectangular or Curvilinear)
+! tb should be blank or SA  (SA=Spalart-Allamras turbulence model)
 #beginMacro defineArtificialDiffusionCoefficients(dim,gt,tb)
   #If #dim == "2" 
     cdmz=admz ## gt ## tb(i1  ,i2  ,i3)
@@ -169,7 +170,7 @@ c tb should be blank or SA  (SA=Spalart-Allamras turbulence model)
   #End
 #endMacro
 
-c Define macros for the derivatives based on the dimension, order of accuracy and grid-type
+! Define macros for the derivatives based on the dimension, order of accuracy and grid-type
 #beginMacro defineDerivativeMacros(DIM,ORDER,GRIDTYPE)
 
 #defineMacro U(cc) u(i1,i2,i3,cc)
@@ -265,9 +266,9 @@ c Define macros for the derivatives based on the dimension, order of accuracy an
 #endMacro 
 
 
-c =============================================================
-c Compute derivatives of u,v,w 
-c =============================================================
+! =============================================================
+! Compute derivatives of u,v,w 
+! =============================================================
 #beginMacro setupDerivatives(DIM)
  u0x=UX(uc)
  u0y=UY(uc)
@@ -286,14 +287,14 @@ c =============================================================
 
 
 
-c***************************************************************
-c  Define the equations for EXPLICIT time stepping
-c
-c ORDER: 2,4
-c DIM: 2,3
-c GRIDTYPE: rectangular, curvilinear
-c
-c***************************************************************
+!***************************************************************
+!  Define the equations for EXPLICIT time stepping
+!
+! ORDER: 2,4
+! DIM: 2,3
+! GRIDTYPE: rectangular, curvilinear
+!
+!***************************************************************
 #beginMacro fillEquations(DIM,ORDER,GRIDTYPE)
 
 defineDerivativeMacros(DIM,ORDER,GRIDTYPE)
@@ -301,25 +302,71 @@ defineDerivativeMacros(DIM,ORDER,GRIDTYPE)
 if( isAxisymmetric.eq.0 )then
 
  if( gridIsImplicit.eq.0 )then
-  ! explicit
+  ! --- explicit time-stepping ---
 
-  loopse1($buildEquations(EXPLICIT,NONE,DIM,ORDER,GRIDTYPE,NO))
+  if( advectionOption.eq.centeredAdvection )then
+    loopse1($buildEquations(EXPLICIT,NONE,DIM,ORDER,GRIDTYPE,NO))
+
+  else if( advectionOption.eq.upwindAdvection )then  
+    ! --- upwind ---
+    loopse1($buildEquationsUpwind(EXPLICIT,NONE,DIM,ORDER,GRIDTYPE,NO,UPWIND))
+
+  else if( advectionOption.eq.bwenoAdvection )then  
+    ! --- bweno ---
+    loopse1($buildEquationsUpwind(EXPLICIT,NONE,DIM,ORDER,GRIDTYPE,NO,BWENO))
+
+  else
+    write(*,'(" unknown advectionOption")')
+    stop 1010
+  end if
 
  else ! gridIsImplicit
-  ! ***** implicit *******
+  ! ---- implicit time-stepping ---
+  if( advectionOption.eq.centeredAdvection )then
+   if( implicitOption .eq.computeImplicitTermsSeparately )then
+     loopse1($buildEquations(BOTH,NONE,DIM,ORDER,GRIDTYPE,NO))
+   else if( implicitOption.eq.doNotComputeImplicitTerms )then
+     loopse1($buildEquations(EXPLICIT_ONLY,NONE,DIM,ORDER,GRIDTYPE,NO))
+   else
+    write(*,*)'insdt: Unknown implicitOption=',implicitOption
+    stop 5
+   end if  ! end implicitOption
 
-  if( implicitOption .eq.computeImplicitTermsSeparately )then
-    loopse1($buildEquations(BOTH,NONE,DIM,ORDER,GRIDTYPE,NO))
-  else if( implicitOption.eq.doNotComputeImplicitTerms )then
-    loopse1($buildEquations(EXPLICIT_ONLY,NONE,DIM,ORDER,GRIDTYPE,NO))
+  else if( advectionOption.eq.upwindAdvection )then  
+    ! --- upwind ---
+   if( implicitOption .eq.computeImplicitTermsSeparately )then
+     loopse1($buildEquationsUpwind(BOTH,NONE,DIM,ORDER,GRIDTYPE,NO,UPWIND))
+   else if( implicitOption.eq.doNotComputeImplicitTerms )then
+     loopse1($buildEquationsUpwind(EXPLICIT_ONLY,NONE,DIM,ORDER,GRIDTYPE,NO,UPWIND))
+   else
+    write(*,*)'insdt: Unknown implicitOption=',implicitOption
+    stop 6
+   end if  ! end implicitOption
+
+  else if( advectionOption.eq.bwenoAdvection )then  
+    ! --- bweno ---
+   if( implicitOption .eq.computeImplicitTermsSeparately )then
+     loopse1($buildEquationsUpwind(BOTH,NONE,DIM,ORDER,GRIDTYPE,NO,BWENO))
+   else if( implicitOption.eq.doNotComputeImplicitTerms )then
+     loopse1($buildEquationsUpwind(EXPLICIT_ONLY,NONE,DIM,ORDER,GRIDTYPE,NO,BWENO))
+   else
+    write(*,*)'insdt: Unknown implicitOption=',implicitOption
+    stop 7
+   end if  ! end implicitOption
+
   else
-   write(*,*)'insdt: Unknown implicitOption=',implicitOption
-   stop 5
-  end if  ! end implicitOption
+    write(*,'(" unknown advectionOption")')
+    stop 1010
+  end if
 
  end if
 
 else if( isAxisymmetric.eq.1 )then
+
+ if( advectionOption.ne.centeredAdvection )then
+   write(*,*) 'insdt.h : finish me for axisymmetric'
+   stop 2020
+ end if
 
  #If (#DIM == "2") 
  ! **** axisymmetric case ****
@@ -351,9 +398,9 @@ end if
 
 
 
-c====================================================================================
-c
-c====================================================================================
+!====================================================================================
+!
+!====================================================================================
 #beginMacro assignEquations(DIM,ORDER)
 if( gridType.eq.rectangular )then
  fillEquations(DIM,ORDER,rectangular)
@@ -365,22 +412,22 @@ end if
 #endMacro
 
 
-c======================================================================================
-c Define the subroutine to compute du/dt
-c
-c======================================================================================
+!======================================================================================
+! Define the subroutine to compute du/dt
+!
+!======================================================================================
 #beginMacro INSDT(NAME,DIM,ORDER)
  subroutine NAME(nd,n1a,n1b,n2a,n2b,n3a,n3b,nd1a,nd1b,nd2a,nd2b,nd3a,nd3b,nd4a,nd4b,\
          mask,xy,rsxy,radiusInverse,  u,uu, ut,uti,gv,dw,  bc, ipar, rpar, ierr )
-c======================================================================
-c   Compute du/dt for the incompressible NS on rectangular grids
-c     OPTIMIZED version for rectangular grids.
-c nd : number of space dimensions
-c
-c gv : gridVelocity for moving grids
-c uu : for moving grids uu is a workspace to hold u-gv, otherwise uu==u
-c dw : distance to the wall for some turbulence models
-c======================================================================
+!======================================================================
+!   Compute du/dt for the incompressible NS on rectangular grids
+!     OPTIMIZED version for rectangular grids.
+! nd : number of space dimensions
+!
+! gv : gridVelocity for moving grids
+! uu : for moving grids uu is a workspace to hold u-gv, otherwise uu==u
+! dw : distance to the wall for some turbulence models
+!======================================================================
  implicit none
  integer nd, n1a,n1b,n2a,n2b,n3a,n3b,nd1a,nd1b,nd2a,nd2b,nd3a,nd3b,nd4a,nd4b
 
@@ -410,6 +457,10 @@ c======================================================================
  real ad21n,ad22n,ad41n,ad42n,cd22n,cd42n
  real yy,ri
 
+
+ integer materialFormat
+ real t
+
  integer gridType
  integer rectangular,curvilinear
  parameter( rectangular=0, curvilinear=1 )
@@ -420,6 +471,11 @@ c======================================================================
 
  integer pdeModel,standardModel,BoussinesqModel,viscoPlasticModel,twoPhaseFlowModel
  parameter( standardModel=0,BoussinesqModel=1,viscoPlasticModel=2,twoPhaseFlowModel=3 )
+
+ integer upwindOrder,debug
+ integer advectionOption, centeredAdvection,upwindAdvection,bwenoAdvection
+ parameter( centeredAdvection=0, upwindAdvection=1, bwenoAdvection=2 )
+ real au,agu(0:5,0:5) ! for holdings upwind approximations to (a.grad)u
 
  integer computeAllTerms,\
      doNotComputeImplicitTerms,\
@@ -474,7 +530,7 @@ c======================================================================
  ty(i1,i2,i3)=rsxy(i1,i2,i3,2,1)
  tz(i1,i2,i3)=rsxy(i1,i2,i3,2,2)
 
-c     The next macro call will define the difference approximation statement functions
+!     The next macro call will define the difference approximation statement functions
 #If #ORDER == "2"
  defineDifferenceOrder2Components1(u,RX)
 #End
@@ -482,22 +538,22 @@ c     The next macro call will define the difference approximation statement fun
  defineDifferenceOrder4Components1(u,RX)
 #End
 
-c    --- For 2nd order 2D artificial diffusion ---
+!    --- For 2nd order 2D artificial diffusion ---
  delta22(c)=    (u(i1+1,i2,i3,c)-4.*u(i1,i2,i3,c)+u(i1-1,i2,i3,c)  \
                 +u(i1,i2+1,i3,c)                 +u(i1,i2-1,i3,c))
-c    --- For 2nd order 3D artificial diffusion ---
+!    --- For 2nd order 3D artificial diffusion ---
  delta23(c)= \
    (u(i1+1,i2,i3,c)-6.*u(i1,i2,i3,c)+u(i1-1,i2,i3,c)   \
    +u(i1,i2+1,i3,c)                   +u(i1,i2-1,i3,c)  \
    +u(i1,i2,i3+1,c)                   +u(i1,i2,i3-1,c)) 
-c     ---For fourth-order artificial diffusion in 2D
+!     ---For fourth-order artificial diffusion in 2D
  delta42(c)= \
    (   -u(i1+2,i2,i3,c)-u(i1-2,i2,i3,c)   \
        -u(i1,i2+2,i3,c)-u(i1,i2-2,i3,c)   \
    +4.*(u(i1+1,i2,i3,c)+u(i1-1,i2,i3,c)   \
        +u(i1,i2+1,i3,c)+u(i1,i2-1,i3,c))  \
     -12.*u(i1,i2,i3,c) ) 
-c     ---For fourth-order artificial diffusion in 3D
+!     ---For fourth-order artificial diffusion in 3D
  delta43(c)= \
    (   -u(i1+2,i2,i3,c)-u(i1-2,i2,i3,c)  \
        -u(i1,i2+2,i3,c)-u(i1,i2-2,i3,c)  \
@@ -507,7 +563,7 @@ c     ---For fourth-order artificial diffusion in 3D
        +u(i1,i2,i3+1,c)+u(i1,i2,i3-1,c)) \
     -18.*u(i1,i2,i3,c) )
 
-c     --- end statement functions
+!     --- end statement functions
 
  ierr=0
  ! write(*,'("Inside insdt: gridType=",i2)') gridType
@@ -535,6 +591,10 @@ c     --- end statement functions
  pdeModel           =ipar(20)
  vsc                =ipar(21)
  rc                 =ipar(22)
+ debug              =ipar(23)
+ materialFormat     =ipar(24)
+ advectionOption    =ipar(25)  ! *new* 2017/01/27
+ upwindOrder        =ipar(26)
 
  dr(0)             =rpar(0)
  dr(1)             =rpar(1)
@@ -554,7 +614,15 @@ c     --- end statement functions
  ad41n             =rpar(15)
  ad42n             =rpar(16)
 
- ! nuVP              =rpar(24)  ! for visco-plastic
+!       gravity(0)        =rpar(18)
+!      gravity(1)        =rpar(19)
+!      gravity(2)        =rpar(20)
+!      thermalExpansivity=rpar(21)
+!      adcBoussinesq     =rpar(22) ! coefficient of artificial diffusion for Boussinesq T equation 
+!      kThermal          =rpar(23)
+ t                 =rpar(24)
+
+! nuVP              =rpar(24)  ! for visco-plastic
  ! etaVP             =rpar(25)
  ! yieldStressVP     =rpar(26)
  ! exponentVP        =rpar(27)
@@ -578,8 +646,8 @@ c     --- end statement functions
    stop 4
  end if
 
-c      write(*,'("insdt: turbulenceModel=",2i6)') turbulenceModel
-c      write(*,'("insdt: nd,uc,vc,wc,kc=",2i6)') nd,uc,vc,wc,kc
+!      write(*,'("insdt: turbulenceModel=",2i6)') turbulenceModel
+!      write(*,'("insdt: nd,uc,vc,wc,kc=",2i6)') nd,uc,vc,wc,kc
 
  if( turbulenceModel.eq.kEpsilon .and. (kc.lt.uc+nd .or. kc.gt.1000) )then
    write(*,'("insdt:ERROR in kc: nd,uc,vc,wc,kc=",2i6)') nd,uc,vc,wc,kc
@@ -587,7 +655,7 @@ c      write(*,'("insdt: nd,uc,vc,wc,kc=",2i6)') nd,uc,vc,wc,kc
  end if
 
 
-c ** these are needed by self-adjoint terms **fix**
+! ** these are needed by self-adjoint terms **fix**
  dxi=1./dx(0)
  dyi=1./dx(1)
  dzi=1./dx(2)
@@ -618,32 +686,32 @@ c ** these are needed by self-adjoint terms **fix**
  cd22=ad22/(nd**2)
  cd42=ad42/(nd**2)
 
-c     *********************************      
-c     ********MAIN LOOPS***************      
-c     *********************************      
+!     *********************************      
+!     ********MAIN LOOPS***************      
+!     *********************************      
  assignEquations(DIM,ORDER)
 
  return
  end
 #endMacro
 
-c 
-c : empty version for linking when we do not want an option
-c
+! 
+! : empty version for linking when we do not want an option
+!
 #beginMacro INSDT_NULL(NAME,DIM,ORDER)
  subroutine NAME(nd,n1a,n1b,n2a,n2b,n3a,n3b,nd1a,nd1b,nd2a,nd2b,nd3a,nd3b,nd4a,nd4b,\
          mask,xy,rsxy,radiusInverse,  u,uu, ut,uti,gv,dw,  bc, ipar, rpar, ierr )
-c======================================================================
-c       EMPTY VERSION for Linking without this Capability
-c
-c   Compute du/dt for the incompressible NS on rectangular grids
-c     OPTIMIZED version for rectangular grids.
-c nd : number of space dimensions
-c
-c gv : gridVelocity for moving grids
-c uu : for moving grids uu is a workspace to hold u-gv, otherwise uu==u
-c dw : distance to the wall for some turbulence models
-c======================================================================
+!======================================================================
+!       EMPTY VERSION for Linking without this Capability
+!
+!   Compute du/dt for the incompressible NS on rectangular grids
+!     OPTIMIZED version for rectangular grids.
+! nd : number of space dimensions
+!
+! gv : gridVelocity for moving grids
+! uu : for moving grids uu is a workspace to hold u-gv, otherwise uu==u
+! dw : distance to the wall for some turbulence models
+!======================================================================
  implicit none
  integer nd, n1a,n1b,n2a,n2b,n3a,n3b,nd1a,nd1b,nd2a,nd2b,nd3a,nd3b,nd4a,nd4b
 

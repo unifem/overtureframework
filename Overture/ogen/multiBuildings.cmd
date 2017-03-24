@@ -330,7 +330,7 @@ generate an overlapping grid
       all
       2 2 2 2 2 2
   exit
-* pause
+ pause
   compute overlap 
 * pause
   exit

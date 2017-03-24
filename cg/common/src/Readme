@@ -20,9 +20,10 @@ advance.bC : interpolateAndApplyBoundaryConditions
 computeSteps.C
   computeNumberOfStepsAndAdjustTheTimeStep( ... )
 
-DomainSolver.C: prints header info, writeParameterSummary
-  outputHeader() -  output initial header banner
-  getResidualInfo(..)
+DomainSolver.C: 
+  outputHeader() -  output initial header banner, calls writeParameterSummary:
+  writeParameterSummary( FILE * file ) - prints header info,
+  getResidualInfo(..) - 
   setup(..)  - setup routine called after setting parameters interactively
     -> calls initialize()
              initializeSolution()

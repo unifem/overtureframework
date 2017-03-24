@@ -3,16 +3,17 @@ c ==============================================================================
 c  Incompressible NS Visco-Plastic explicit discretization
 c ==============================================================================
 
-c ===============================================================================
-c This file is included by
-c     insdtINS.bf 
-c     insdtKE.bf
-c     insdtSPAL.bf
-c     insdtVP.bf
-c ==============================================================================
+!  -*- mode: F90 -*-
+! ===============================================================================
+! This file is included by
+!     insdtINS.bf 
+!     insdtKE.bf
+!     insdtSPAL.bf
+!     insdtVP.bf
+! ==============================================================================
 
-c These next include files will define the macros that will define the difference approximations
-c The actual macro is called below
+! These next include files will define the macros that will define the difference approximations
+! The actual macro is called below
 c Use this next macro to declare the statement functions that are defined below
 c To include derivatives of rx use OPTION=RX
 
@@ -67,45 +68,45 @@ c================================================================
 
 
 
-c Define the artificial diffusion coefficients
-c gt should be R or C (gridType is Rectangular or Curvilinear)
-c tb should be blank or SA  (SA=Spalart-Allamras turbulence model)
+! Define the artificial diffusion coefficients
+! gt should be R or C (gridType is Rectangular or Curvilinear)
+! tb should be blank or SA  (SA=Spalart-Allamras turbulence model)
 
-c Define macros for the derivatives based on the dimension, order of accuracy and grid-type
-
-
-c =============================================================
-c Compute derivatives of u,v,w 
-c =============================================================
+! Define macros for the derivatives based on the dimension, order of accuracy and grid-type
 
 
+! =============================================================
+! Compute derivatives of u,v,w 
+! =============================================================
 
 
 
-c***************************************************************
-c  Define the equations for EXPLICIT time stepping
-c
-c ORDER: 2,4
-c DIM: 2,3
-c GRIDTYPE: rectangular, curvilinear
-c
-c***************************************************************
+
+
+!***************************************************************
+!  Define the equations for EXPLICIT time stepping
+!
+! ORDER: 2,4
+! DIM: 2,3
+! GRIDTYPE: rectangular, curvilinear
+!
+!***************************************************************
 
 
 
-c====================================================================================
-c
-c====================================================================================
+!====================================================================================
+!
+!====================================================================================
 
 
-c======================================================================================
-c Define the subroutine to compute du/dt
-c
-c======================================================================================
+!======================================================================================
+! Define the subroutine to compute du/dt
+!
+!======================================================================================
 
-c 
-c : empty version for linking when we do not want an option
-c
+! 
+! : empty version for linking when we do not want an option
+!
 
 
 
@@ -115,6 +116,7 @@ c =============================================================================
 c Evaluate the coefficients of the visco-plastic model
 c ============================================================================
 
+! ----------- FINISH ME : upwind advection ------
 
 c====================================================================
 c This macro will build the statements that form the body of the loop

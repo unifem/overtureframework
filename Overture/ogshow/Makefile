@@ -119,10 +119,10 @@ OvertureParser.o : OvertureParser.C
 	$(CC) $(CCFLAGS) -I$(PERLIB) -c OvertureParser.C
 
 # These files need to include the perl directory
-getAnswer.o : getAnswer.C
-	$(CC) $(CCFLAGS) -I$(PERLIB) -c getAnswer.C
-textGetMenu.o : textGetMenu.C
-	$(CC) $(CCFLAGS) -I$(PERLIB) -c textGetMenu.C
+# getAnswer.o : getAnswer.C
+#	$(CC) $(CCFLAGS) -I$(PERLIB) -c getAnswer.C
+# textGetMenu.o : textGetMenu.C
+# 	$(CC) $(CCFLAGS) -I$(PERLIB) -c textGetMenu.C
 GenericGraphicsInterface.o : GenericGraphicsInterface.C
 	$(CC) $(CCFLAGS) -I$(PERLIB) -c GenericGraphicsInterface.C
 
@@ -265,7 +265,7 @@ mogl.o: mogl.C
 	$(CC) $(CCFLAGS)  -I$(Overture)/static -c $*.C
 
 
-# Main test routine
+# ********************* Main test routine ********************************
 
 # pl = pl.o contour.o contourOpt.o contour3d.o contour3dOpt.o grid.o gridOpt.o grid3d.o ../gui/getAnswer.o \
 #          ../grid/CompositeGrid.o ../grid/GridCollection.o 
@@ -281,6 +281,7 @@ pl = pl.o contour.o contour3d.o contour3dOpt.o grid3d.o gridOpt.o
 pl = pl.o contour3d.o contour3dOpt.o grid.o gridOpt.o
 pl = pl.o contour.o contour3dNew.o contour3d.o contour3dOpt.o contour3dOptNew.o
 pl = pl.o plotMapping.o plotStructured.o 
+pl = pl.o getAnswer.o textGetMenu.o
 pl: $(pl) 
 	$(CC) $(CCFLAGS) -o $@ $(pl) \
         $(CLIBS) $(FLIBS) $(GLIBS)   

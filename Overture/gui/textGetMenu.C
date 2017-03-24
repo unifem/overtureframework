@@ -647,10 +647,16 @@ readLineFromCommandFile(aString & answer )
 // AP 020807
     if( answer.length()!=0 ) // *wdh* 030901
     {
-      if ( answer[0 ]== '*' || answer[0]=='#' )  // echo comments in the command window, hash added by kkc 080822
-	outputString( answer );
-      else       // *** output line to the screen ***
-	cout << answer << endl;
+      if( echoToTerminal==1 ) // *wdh* Nov 20, 2016 -- turn off echo of command line if echoToScreen==0
+      {
+    	// printF("readLineFromCommandFile: echoToTerminal=%i, echo answer...\n",echoToTerminal);
+	if ( answer[0 ]== '*' || answer[0]=='#' )  // echo comments in the command window, hash added by kkc 080822
+	  outputString( answer );
+	else       // *** output line to the screen ***
+	{
+	  cout << answer << endl;
+	}
+      }
     }
     if( answer.length()==0 || (answer[0]!='*' && answer[0]!='#'))  // skip comments, hash added by kkc 080822
       break;

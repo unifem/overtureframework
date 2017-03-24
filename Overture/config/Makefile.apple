@@ -23,7 +23,7 @@ endif
 # *wdh* here is a version we can see from the lc machines
 SPARSEKIT_LIB = -L/usr/casc/overture/Overture/sparsekit/SPARSKIT2.intel -lskit
 
-LAPACK_LIBRARIES = -llapack -lblas
+LAPACK_LIBRARIES = -L$(LAPACK) -llapack -lblas
 
 
 A++ = $(APlusPlus)
@@ -101,10 +101,15 @@ ifeq ($(FC),pgf77)
 endif
 ifeq ($(FC),gfortran)
   FORTRAN_LIBS = -L/usr/local/gfortran/lib -lgfortran
+  FORTRAN_LIBS = -L/opt/local/lib -lgfortran
 endif
 LIB_TARGETS= lib_date libso_date
 LIB_DEPENDENCIES= ../lib/lib_date
 TEMPLATES=  
+
+# PETSc 
+PETSC_INCLUDE = -I$(PETSC_DIR)/include  -I$(PETSC_DIR)/$(PETSC_ARCH)/include -I$(PETSC_DIR)/include/petsc/mpiuni -DOVERTURE_USE_PETSC -I$(PETSC_LIB)/include -I$(PETSC_DIR)/include/mpiuni
+PETSC_LIBS = -Wl,-rpath,$(PETSC_LIB) -L$(PETSC_LIB) -lpetsc
 
 # The KCC compiler should be used to build the static library (for templates)
 AR = ar
@@ -130,6 +135,7 @@ GLIBS=  $(OV_PERL_LIBRARIES) -Wl,-rpath,$(OpenGL)/$(LIB64) -L$(OpenGL)/$(LIB64) 
 #
 #
 CLIBS=   $(LDFLAGS) -L$(Overture)/lib $(LibOverture) -Wl,-rpath,$(HDF)/lib -L$(HDF)/lib $(HDF_LIBS)
+CLIBS_NoOgmg =   $(LDFLAGS)  -L$(Overture)/lib $(LibOverture) $(OV_COMPILER_LIBS) -Wl,-rpath,$(HDF)/lib -L$(HDF)/lib $(HDF_LIBS)
 FLIBS=   $(AppLibraries) $(FORTRAN_LIBS) 
 
 .SUFFIXES:

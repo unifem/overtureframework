@@ -158,6 +158,12 @@ InsParameters(const int & numberOfDimensions0) : Parameters(numberOfDimensions0)
 
   if (!dbase.has_key("discretizationOption")) dbase.put<InsParameters::DiscretizationOptions>("discretizationOption",InsParameters::standardFiniteDifference);
 
+  if (!dbase.has_key("advectionOption")) 
+    dbase.put<InsParameters::AdvectionOptions>("advectionOption")=centeredAdvection;
+
+  if (!dbase.has_key("upwindOrder")) 
+    dbase.put<int>("upwindOrder")=-1; // -1 : use default order for upwinding
+
   // initialize the items that we time: 
   initializeTimings();
 }
@@ -1454,7 +1460,7 @@ setPdeParameters(CompositeGrid & cg, const aString & command /* = nullString */,
       textLabels[nt] = "SA scale factor";  sPrintF(textStrings[nt], "%g",spalartAllmarasScaleFactor);  nt++; 
       textLabels[nt] = "SA distance scale";  sPrintF(textStrings[nt], "%g",spalartAllmarasDistanceScale);  nt++; 
     }
-    if(  dbase.get<int >("tc")>=0 )
+    if(  true || dbase.get<int >("tc")>=0 )
     {
       textLabels[nt] = "kThermal";  sPrintF(textStrings[nt], "%g", dbase.get<real >("kThermal"));  nt++; 
       textLabels[nt] = "thermal conductivity";  sPrintF(textStrings[nt], "%g",thermalConductivity);  nt++; 

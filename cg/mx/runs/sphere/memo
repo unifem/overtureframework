@@ -1,4 +1,13 @@
 ******************************
+****** Nov 23, 2016
+
+Test for Jordan:
+
+ogen -noplot sphereInABox -order=2 -factor=1 -interp=e
+
+
+
+******************************
 ****** July 9, 2016
 
 Test for Sergey -- scattering from a sphere , zero IC's

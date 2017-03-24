@@ -26,9 +26,9 @@
 ! ****** degree 5 *********
 ! ****** degree 6 *********
 
-c ************************************************************************************
-c  Here are the versions for evaluating many points at a time
-c ************************************************************************************
+! ************************************************************************************
+!  Here are the versions for evaluating many points at a time
+! ************************************************************************************
 
 
 ! --- evaluate time derivatives of the polynomial ---
@@ -54,6 +54,7 @@ c ******************************************************************************
 ! appendFile(polyFunction2D.f,2D2)
 ! appendFile(polyFunction2D.f,2D3)
 ! appendFile(polyFunction2D.f,2D4)
+
 ! buildFile(polyFunction2D5.f,2D5)
 ! buildFile(polyFunction2D6.f,2D6)
 
@@ -61,6 +62,7 @@ c ******************************************************************************
 ! appendFile(polyFunction3D.f,3D1)
 ! appendFile(polyFunction3D.f,3D2)
 ! appendFile(polyFunction3D.f,3D3)
+
 ! buildFile(polyFunction3D4.f,3D4)
 ! buildFile(polyFunction3D5.f,3D5)
 ! buildFile(polyFunction3D6.f,3D6)

@@ -19,7 +19,6 @@ CSRCO += insFactors.C
 SRC_FILES += inscr4.f getIntCgins.f
 
 # files from insdt.bf and insdts.bf: 
-SRC_FILES += insdtINS2dOrder2.f insdtINS3dOrder2.f  insdtINS2dOrder4.f insdtINS3dOrder4.f
 SRC_FILES += insdts.f insdtsINS.f 
 SRC_FILES += inspf.f inspINS43.f 
 
@@ -31,6 +30,8 @@ FNSRCO += ins_merged_factors_opt.f90
 
 
 # --- fortran files that we always compile optimized ---
+
+FSRCO += insdtINS2dOrder2.f insdtINS3dOrder2.f  insdtINS2dOrder4.f insdtINS3dOrder4.f
 
 FSRCO += insad2dr.f insad2dc.f insad3dr.f insad3dc.f 
 
@@ -122,10 +123,12 @@ src/bcOptTemperature.f : src//bcOptTemperature.bf; $(BPP) -quiet -clean -I$(Over
 
 src/insdt.f : src/insdt.bf; $(BPP) -quiet -clean -I$(Overture)/include $<
 
-src/insdtINS2dOrder2.f : src/insdtINS.bf src/insdt.h; $(BPP) -quiet -clean -I$(Overture)/include src/insdtINS.bf
-src/insdtINS2dOrder4.f : src/insdtINS.bf src/insdt.h; $(BPP) -quiet -clean -I$(Overture)/include src/insdtINS.bf
-src/insdtINS3dOrder2.f : src/insdtINS.bf src/insdt.h; $(BPP) -quiet -clean -I$(Overture)/include src/insdtINS.bf
-src/insdtINS3dOrder4.f : src/insdtINS.bf src/insdt.h; $(BPP) -quiet -clean -I$(Overture)/include src/insdtINS.bf
+# src/insdtINS.bf : src/insdt.h src/advectionMacros.h; $(BPP) -quiet -clean -I$(Overture)/include src/insdtINS.bf
+
+src/insdtINS2dOrder2.f : src/insdtINS.bf src/insdt.h src/advectionMacros.h; $(BPP) -quiet -clean -I$(Overture)/include src/insdtINS.bf
+src/insdtINS2dOrder4.f : src/insdtINS.bf src/insdt.h src/advectionMacros.h; $(BPP) -quiet -clean -I$(Overture)/include src/insdtINS.bf
+src/insdtINS3dOrder2.f : src/insdtINS.bf src/insdt.h src/advectionMacros.h; $(BPP) -quiet -clean -I$(Overture)/include src/insdtINS.bf
+src/insdtINS3dOrder4.f : src/insdtINS.bf src/insdt.h src/advectionMacros.h; $(BPP) -quiet -clean -I$(Overture)/include src/insdtINS.bf
 
 src/insdtKE2dOrder2.f : src/insdtKE.bf src/insdt.h; $(BPP) -quiet -clean -I$(Overture)/include src/insdtKE.bf
 src/insdtKE2dOrder4.f : src/insdtKE.bf src/insdt.h; $(BPP) -quiet -clean -I$(Overture)/include src/insdtKE.bf

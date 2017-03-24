@@ -203,6 +203,13 @@ c================================================================
       parameter( standardModel=0,BoussinesqModel=1,viscoPlasticModel=2,
      & twoPhaseFlowModel=3 )
 
+      integer upwindOrder
+      integer advectionOption, centeredAdvection,upwindAdvection,
+     & bwenoAdvection
+      parameter( centeredAdvection=0, upwindAdvection=1, 
+     & bwenoAdvection=2 )
+      real agu(0:5,0:5) ! for holdings upwind approximations to (a.grad)u
+
       real cdmz,cdpz,cdzm,cdzp,cdmzz,cdpzz,cdzmz,cdzpz,cdzzm,cdzzp,
      & cdDiag,cdm,cdp
       real uxmzzR,uymzzR,uzmzzR,uxzmzR,uyzmzR,uzzmzR,uxzzmR,uyzzmR,
@@ -1634,7 +1641,7 @@ c===============================================================================
       wc                 =ipar(3)
       nc                 =ipar(4)
       sc                 =ipar(5)
-      tc                 =ipar(6)  ! **new**
+      tc                 =ipar(6)
       grid               =ipar(7)
       orderOfAccuracy    =ipar(8)
       gridIsMoving       =ipar(9)
@@ -1648,11 +1655,13 @@ c===============================================================================
       advectPassiveScalar=ipar(17)
       gridType           =ipar(18)
       turbulenceModel    =ipar(19)
-      pdeModel           =ipar(20)  ! **new**
+      pdeModel           =ipar(20)
       vsc                =ipar(21)
       ! rc               =ipar(22)
       debug              =ipar(23)
       materialFormat     =ipar(24)
+      advectionOption    =ipar(25)  ! *new* 2017/01/27
+      upwindOrder        =ipar(26)
 
       dr(0)             =rpar(0)
       dr(1)             =rpar(1)
@@ -1706,6 +1715,12 @@ c===============================================================================
         stop 5
       end if
 
+      if( advectionOption.ne.centeredAdvection .and. t.le.0. )then
+        write(*,'(" insdt: advectionOption=",i2," (0=Centered,1=Upwind,
+     & 2=Bweno)")') advectionOption
+        write(*,'(" insdt: upwindOrder=",i2, " (-1=default)")') 
+     & upwindOrder
+      end if
       ! --- Output rho, Cp and kThermal t=0 for testing ---
       if( materialFormat.ne.0 .and. t.le.0 .and. (nd1b-nd1a)*(nd2b-
      & nd2a).lt. 1000 )then

@@ -743,7 +743,12 @@ checkForce()
     //Longfei 20160621: modification made to tackle both FD and FEM beam
     Index I=Range(0,nElem);
     if(beamType=="FEMBeamModel")
-      I=2*I;
+    {
+      // *wdh* 2016/09/25 -- Longfei: what did you mean by this?
+      // I=2*I;
+      I=Range(0,2*nElem); // ?? is this correct ?? *wdh*
+    }
+    
     ::display(force(I),"Top (element) force","%8.2e ");
     ::display(fe,"Exact force","%8.2e ");
 
@@ -1220,8 +1225,11 @@ checkVelocityProjection(GenericGraphicsInterface & gi, GraphicsParameters & psp 
     uPlot(Ib1,2,d)=xsPlus(Ib1,0,0,d);
     }
 
-    beamMap.setDataPoints(uPlot,2,2);  
-
+    #ifndef USE_PPP
+      beamMap.setDataPoints(uPlot,2,2);  
+    #else
+      OV_ABORT("fix me for parallel");
+    #endif
     gi.erase();
     real lineWidthSave;
     psp.get(GraphicsParameters::lineWidth,lineWidthSave);  // default is 1
@@ -1357,7 +1365,11 @@ checkInterpolateSolution(GenericGraphicsInterface & gi, GraphicsParameters & psp
     //psp.set(GI_PLOT_THE_OBJECT_AND_EXIT,false);
     psp.set(GI_TOP_LABEL,sPrintF("interpolate solution error"));
     const aString xNames[]={"uInterp","uxInterp","ue","uxe","uErr","uxErr"};
-    PlotIt::plot(gi,xs,uPlot,"Hermite Interpolation","x",xNames,psp);
+    #ifndef USE_PPP
+      PlotIt::plot(gi,xs,uPlot,"Hermite Interpolation","x",xNames,psp);
+    #else
+      OV_ABORT("fix me for parallel");
+    #endif
 
     
     // output results to the check file 

@@ -621,6 +621,8 @@ setTwilightZoneFunction(const TwilightZoneChoice & choice_,
 //\end{SmParametersInclude.tex}
 // =============================================================================================
 {
+  const int & debug = dbase.get<int>("debug");
+  
   const int & numberOfDimensions = dbase.get<int >("numberOfDimensions");
   const int & numberOfComponents = dbase.get<int >("numberOfComponents");
   const int & uc =  dbase.get<int >("uc");
@@ -678,12 +680,15 @@ setTwilightZoneFunction(const TwilightZoneChoice & choice_,
 
     const int ndp=max(max(5,tzDegreeSpace+1),degreeTime+1);
     
-    printF("\n $$$$$$$ setTwilightZoneFunction: tzDegreeSpace=%i, degreeTime=%i ndp=%i $$$$\n",
-	   tzDegreeSpace,degreeTime,ndp);
-    printF(" $$$$$$$ setTwilightZoneFunction: numberOfDimensions=%i, numberOfTZComponents=%i"
-           " numberOfMaterialProperties=%i\n",numberOfDimensions,
-           numberOfTZComponents,numberOfMaterialProperties);
-
+    if( debug & 4 )
+    {
+      printF("\n $$$$$$$ setTwilightZoneFunction: tzDegreeSpace=%i, degreeTime=%i ndp=%i $$$$\n",
+	     tzDegreeSpace,degreeTime,ndp);
+      printF(" $$$$$$$ setTwilightZoneFunction: numberOfDimensions=%i, numberOfTZComponents=%i"
+	     " numberOfMaterialProperties=%i\n",numberOfDimensions,
+	     numberOfTZComponents,numberOfMaterialProperties);
+    }
+    
     RealArray spatialCoefficientsForTZ(ndp,ndp,ndp,numberOfTZComponents);  
     spatialCoefficientsForTZ=0.;
     RealArray timeCoefficientsForTZ(ndp,numberOfTZComponents);      

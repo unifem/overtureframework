@@ -5,8 +5,9 @@
 #   
 #  cgmx [-noplot] tz -g=<name> -tz=<poly/trig> -degreex=<> -degreet=<> -tf=<tFinal> -tp=<tPlot> ...
 #                    -bcn=[pec|d|s] -diss=<> -order=<2/4> -debug=<num> -bg=<backGround> -cons=[0/1] ...
-#                    -method=[nfdtd|Yee|sosup]  -go=[run/halt/og]
+#                    -method=[nfdtd|Yee|sosup] -dm=[none|drude] -go=[run/halt/og]
 # 
+#  -dm : dispersion model
 #  -diss : coeff of artificial diffusion 
 #  -bcn : d=dirichlet, pec=perfect electrical conductor, s=symmetry
 #  -go : run, halt, og=open graphics
@@ -79,7 +80,7 @@
 # --- set default values for parameters ---
 # 
 $noplot=""; $backGround="square"; $grid="square10"; $mu=1.; $lambda=1.;$method="NFDTD"; 
-$debug = 0;  $tPlot=.1; $diss=.1; $dissOrder=2; $bcn="pec"; $cons=0; 
+$debug = 0;  $tPlot=.1; $diss=.1; $dissOrder=2; $bcn="pec"; $cons=0; $dm="none"; 
 $tz = "poly"; $degreex=2; $degreet=2; $fx=.5; $fy=$fx; $fz=$fx; $ft=$fx; $useTZmaterials=0;
 $order = 2; $go="run"; 
 $tFinal=1.; $cfl=.9; 
@@ -89,7 +90,7 @@ GetOptions( "g=s"=>\$grid,"tf=f"=>\$tFinal,"degreex=i"=>\$degreex, "degreet=i"=>
  "tp=f"=>\$tPlot, "tz=s"=>\$tz, "show=s"=>\$show,"order=i"=>\$order,"debug=i"=>\$debug,"dissOrder=i"=>\$dissOrder, \
  "cfl=f"=>\$cfl, "bg=s"=>\$backGround,"bcn=s"=>\$bcn,"go=s"=>\$go,"noplot=s"=>\$noplot,\
   "mu=f"=>\$mu,"lambda=f"=>\$lambda,"dtMax=f"=>\$dtMax, "cons=i"=>\$cons,"method=s"=>\$method,\
-  "useTZmaterials=i"=>\$useTZmaterials,"fx=f"=>\$fx,"fy=f"=>\$fy,"fz=f"=>\$fz,"ft=f"=>\$ft );
+  "useTZmaterials=i"=>\$useTZmaterials,"fx=f"=>\$fx,"fy=f"=>\$fy,"fz=f"=>\$fz,"ft=f"=>\$ft,"dm=s"=>\$dm );
 # -------------------------------------------------------------------------------------------------
 if( $solver eq "best" ){ $solver="choose best iterative solver"; }
 if( $tz eq "poly" ){ $tz="polynomial"; }else{ $tz="trigonometric"; }
@@ -100,11 +101,16 @@ if( $bcn eq "pec" ){ $bcn = "bc: all=perfectElectricalConductor"; }
 if( $bcn eq "s" ){ $bcn = "bc: all=symmetry"; }
 if( $go eq "halt" ){ $go = "break"; }
 if( $go eq "og" ){ $go = "open graphics"; }
+#
+if( $dm eq "none" ){ $dm="no dispersion"; }
+if( $dm eq"drude" || $dm eq "Drude" ){ $dm="Drude"; }
 if( $go eq "run" || $go eq "go" ){ $go = "movie mode\n finish"; }
 #
 $grid
 # 
 $method
+# dispersion model:
+$dm
 #
 #* twilightZoneInitialCondition
 twilightZone

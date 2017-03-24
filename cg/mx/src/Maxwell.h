@@ -21,6 +21,7 @@ class DialogData;
 class ShowFileReader;
 class RadiationBoundaryCondition;
 class Oges;
+class DispersiveMaterialParameters;
 
 // Define the type of array we stored the chirped parameters in
 typedef ArraySimpleFixed<real,10,1,1,1> ChirpedArrayType;
@@ -189,6 +190,14 @@ class Maxwell
   } timeSteppingMethod;
 
 
+  enum DispersionModelEnum
+  {
+    noDispersion=0,
+    drude,
+  } dispersionModel;
+
+  
+
   Maxwell();
   ~Maxwell();
   
@@ -264,6 +273,8 @@ class Maxwell
   void getChargeDensity( int current, real t, realCompositeGridFunction &u, int component=0 );
 
   void getChargeDensity( real t, realMappedGridFunction & u, int component =0 );
+
+  DispersiveMaterialParameters & getDispersiveMaterialParameters( const int grid );
 
   void getEnergy( int current, real t, real dt );
 
@@ -384,6 +395,8 @@ public: //  should be protected:
 
   int ex,ey,ez,hx,hy,hz;  // component numbers for Ex, Ey, Ez, Hx, ...
   int ext,eyt,ezt,hxt,hyt,hzt;  // component numbers for Ext, Eyt, Ezt, Hxt, ...
+  int pxc,pyc,pzc,qxc,qyc,qzc,rxc,ryc,rzc; // component numbers for Q, R, C (dispersive models)
+
   int rc;                 // component number for rho (in TZ functions)
   int epsc,muc,sigmaEc,sigmaHc;    // components for eps, mu, sigmaE and sigmaH in TZ functions
   int numberOfComponentsRectangularGrid;

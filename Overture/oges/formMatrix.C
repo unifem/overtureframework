@@ -283,7 +283,46 @@ initialize( )
       coefficientsOfDenseExtraEquations =NULL;
     }
   }
-  
+  else if( parameters.solver==OgesParameters::PETScNew )
+  {
+    if( true )
+    {
+      // *wdh* 2017/02/24
+      printF("\n _____ formMatrix: PETScNew: parameters.compatibilityConstraint=%i, numberOfExtraEquations=%i\n",
+	     (int)parameters.compatibilityConstraint,numberOfExtraEquations);
+
+      // ** In parallel the PETScSolver will generate the null vector directly ***
+      // ** FIX ME if there are 
+      if( parameters.userSuppliedEquations )
+      {
+	OV_ABORT("Oges::finish me for parallel Bill!");
+      }
+      
+
+      if( parameters.compatibilityConstraint ||
+	  parameters.userSuppliedEquations   ||   // *wdh* 2015/10/11
+	  numberOfExtraEquations>0 )              // *wdh* 2015/10/11
+      {
+	int userSuppliedConstraint = 0; // kkc 090903, check for a user defined constraints
+	get(OgesParameters::THEuserSuppliedCompatibilityConstraint,userSuppliedConstraint);
+
+	// kkc 090903 the following if statement checks to see if 
+	//   a) the number of extra equations has been defined (if not, assume one extra equation), and
+	//   b) if a user defined constraint has been set, if not one extra equation will be built
+	if( numberOfExtraEquations>0 && ( userSuppliedConstraint || parameters.userSuppliedEquations ) )
+	{
+	}
+	else
+	{
+	  numberOfExtraEquations = 1;
+	}
+	// PETScSolver also finds the location of the extra equation
+
+      }
+    }
+    
+  }
+
   initialized         = FALSE;
   shouldBeInitialized = FALSE;
   return(errorNumber);

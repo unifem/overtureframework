@@ -1663,8 +1663,17 @@ update( GenericGraphicsInterface & gi, CompositeGrid & cGrid )
     }
     else if( answer=="yale" )
     {
-      solver=yale;
-      printF("solver type = yale\n");
+      #ifndef USE_PPP
+        solver=yale;
+        printF("solver type = yale\n");
+      #else
+        // *wdh* added 2017/02/23
+        printF("OgesParameters::WARNING: Yale solver not available in parallel.\n"
+               "                Using 'best' iterative solver instead:\n");
+	
+        set(THEbestIterativeSolver);
+        printF("Choosing: %s\n",(const char*)getSolverName());
+      #endif
     }
     else if( answer=="harwell" )
     {

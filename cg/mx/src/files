@@ -2,8 +2,8 @@
 #  Cgmx files
 #   Use:  setenv COMPILE [dbg/opt/optdbg]
 
-# buildHigherOrder = off
-buildHigherOrder = on
+buildHigherOrder = off
+# buildHigherOrder = on
 
 # C++ source files:
 SRC_FILES += Maxwell.C userDefinedInitialConditions.C userDefinedForcing.C  \
@@ -13,7 +13,7 @@ SRC_FILES += Maxwell.C userDefinedInitialConditions.C userDefinedForcing.C  \
      DSICoeff.C checkGridFunction.C getEnergy.C InterfaceInfo.C project.C   \
      advanceFDTD.C defineRegionsAndBodies.C outputHeader.C advanceSOSUP.C \
      userDefinedKnownSolution.C assignUserDefinedKnownSolutionInitialConditions.C \
-     printTimeStepInfo.C
+     printTimeStepInfo.C DispersiveMaterialParameters.C
 
 # Include Kyle's dbase functions with cgmx
 # SRC_FILES += dbAccess.C dbFunctions.f kk_ptr.cc
@@ -63,7 +63,7 @@ FSRCO += advSOSUP.f \
 
 # bc files
 FSRCO +=  bcOptMaxwell.f bcOptMaxwell2dOrder2.f bcOptMaxwell3dOrder2.f cornersMxOrder2.f \
-          bcOptMaxwell2dOrder4.f bcOptMaxwell3dOrder4.f cornersMxOrder4.f 
+          bcOptMaxwell2dOrder4.f bcOptMaxwell3dOrder4.f cornersMxOrder4.f evalDispersionRelation.f
 
 FSRCO +=interface3d.f interface3dOrder4.f
 
@@ -103,19 +103,26 @@ endif
 forcing.C : forcing.h annulusEigenFunction.h planeMaterialInterface.h
 plot.C : forcing.h
 
-src/getInitialConditions.C : src/getInitialConditions.bC forcing.h annulusEigenFunction.h gaussianPulse.h polynomialTZ.h trigonometricTZ.h planeMaterialInterface.h ; $(BPP) -quiet -clean $<
+src/getInitialConditions.C : src/getInitialConditions.bC forcing.h annulusEigenFunction.h gaussianPulse.h polynomialTZ.h trigonometricTZ.h planeMaterialInterface.h  dispersivePlaneWave.h; $(BPP) -quiet -clean $<
 
 src/assignBoundaryConditions.C : src/assignBoundaryConditions.bC forcing.h planeMaterialInterface.h; $(BPP) -quiet -clean $<
 src/assignInterfaceBoundaryConditions.C : src/assignInterfaceBoundaryConditions.bC; $(BPP) -quiet -clean -I$(Overture)/include $<
 
-src/getErrors.C : src/getErrors.bC forcing.h annulusEigenFunction.h planeMaterialInterface.h; $(BPP) -quiet -clean $<
+src/getErrors.C : src/getErrors.bC forcing.h annulusEigenFunction.h planeMaterialInterface.h dispersivePlaneWave.h; $(BPP) -quiet -clean $<
 
 src/divergence.C : src/divergence.bC; $(BPP) -quiet -clean $<
+
+src/evalDispersionRelation.f : src/evalDispersionRelation.bf; $(BPP) -quiet -clean $<
 
 # we need to add these explicitly since the implicit rule for %.bf doesn't work for some reason (?)
 # we need to do it this way so that all the files created with bpp are put in the src directory: 
 src/advOpt.f: src/advOpt.bf 
 	      @cd src; $(BPP) -clean -quiet -I$(Overture)/include advOpt.bf
+# TEMP new version for dispersive materials: 
+# src/advOptNew.f: src/advOptNew.bf 
+# 	      @cd src; $(BPP) -clean -quiet -I$(Overture)/include advOptNew.bf
+
+# src/advMx2dOrder2r.f : src/advOptNew.f
 
 src/advMx2dOrder2r.f : src/advOpt.f
 src/advMx3dOrder2r.f : src/advOpt.f

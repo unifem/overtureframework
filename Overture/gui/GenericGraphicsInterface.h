@@ -847,6 +847,8 @@ parseAnswer(aString & answer );
 protected:
 
 int infoLevel;
+int echoToTerminal;
+
 int abortProgramIfCommandFileEnds;
 
 void 

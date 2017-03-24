@@ -125,6 +125,8 @@ int getBodyVolumeAndSurfaceArea( CompositeGrid & cg, real & volume, real & area 
 // Return the beamModel (if it exists)
 BeamModel& getBeamModel();
 
+int getBulkSolidParameters( real & impedance );
+
 int getElasticShellOption(const aString & answer, DialogData & dialog );
 
 int getElasticBeamOption(const aString & answer, DialogData & dialog );
@@ -167,6 +169,9 @@ int initializePast( real time00, real dt00, CompositeGrid & cg);
 
 // return true if the deforming body is a beam model
 bool isBeamModel() const;
+
+// return true if the deforming body is a bulk solid model
+bool isBulkSolidModel() const;
 
 // return true if this is a beam model with fluid on two sides
 bool beamModelHasFluidOnTwoSides() const;

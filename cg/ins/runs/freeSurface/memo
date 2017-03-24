@@ -1,3 +1,67 @@
+
+ $cgins -noplot submergedCylinder -g=submergedCylinderGride4.order2.ml1.hdf -dg="share=100" -nu=.005 -tf=30. -tp=.1 -model=ins -numberOfSurfaceSmooths=5 -surfaceTension=.005 -pGrad=-5. -project=1 -ad2=1 -psolver=mg -solver=mg -go=halt
+
+*******************************
+****** Nov 20, 2016
+
+pGrad=-5: 
+nohup $cgins -noplot submergedCylinder -g=submergedCylinderGride4.order2.ml1.hdf -dg="share=100" -nu=.005 -tf=30. -tp=.1 -model=ins -numberOfSurfaceSmooths=5 -surfaceTension=.005 -pGrad=-5. -project=1 -ad2=1 -psolver=mg -solver=mg -show="submergedCylgm5.show" -go=go  >! submergedCylgm5.out
+
+RE-DO -- -Use "Dirichlet BC at outflow --- looks OK 
+nohup $cgins -noplot submergedCylinder -g=submergedCylinderGride4.order2.ml1.hdf -dg="share=100" -nu=.005 -tf=50. -tp=.1 -model=ins -numberOfSurfaceSmooths=5 -surfaceTension=.005 -pGrad=-10. -project=1 -ad2=1 -psolver=mg -solver=mg -show="submergedCylf.show" -go=go  >! submergedCylf.out
+
+*******************************
+****** Nov 20, 2016
+
+--- pGrad=-5 OK  (TROUBLE pGrad=-4)
+nohup $cgins -noplot freeSurface2d -g=freeSurfaceGrid2de8.order2.ml2 -dg="share=100" -nu=.01 -tf=3. -tp=.1 -model=ins -go=halt -surfaceTension=.001 -pGrad=-5. -ad2=1 -psolver=mg -show="surfaceWavesG8.show" -go=go >! surfaceWavesG8.out
+
+cgins freeSurface2d -g=freeSurfaceGrid2de4.order2.ml1 -dg="share=100" -nu=.01 -tf=10. -tp=.01 -model=ins -go=halt -surfaceTension=.001 -pGrad=-5. -ad2=1
+
+--- What was this all about: ??
+cgins freeSurface2d -g=freeSurfaceGrid2dFlate4.order2.ml1 -dg="share=100" -nu=.01 -tf=10. -tp=.01 -model=ins -go=halt -surfaceTension=.001 -pGrad=-5. -ad2=1 -freeSurfaceOption=tractionForce
+
+run for figures in the documentation : freeSurface.tex
+nohup $cgins -noplot submergedCylinder -g=submergedCylinderGride4.order2.ml1.hdf -dg="share=100" -nu=.005 -tf=10. -tp=.1 -model=ins -numberOfSurfaceSmooths=5 -surfaceTension=.005 -pGrad=-5. -project=1 -ad2=1 -psolver=mg -solver=mg -show="submergedCylG4.show" -go=go  >! submergedCylG4.out
+
+
+*******************************
+****** Nov 19, 2016
+
+     --- revisit free-surface : write up some documentation
+
+Re-run with longer domain 
+ogen -noplot submergedCylinderGrid -interp=e -xa=-4 -xb=9 -factor=1
+ogen -noplot submergedCylinderGrid -interp=e -xa=-4 -xb=9 -factor=2 -ml=1
+ogen -noplot submergedCylinderGrid -interp=e -xa=-4 -xb=9 -factor=4 -ml=1
+
+
+============== Free surface DROP ======
+
+ogen -noplot freeSurfaceDropGrid -interp=e -radx=1. -rady=1.25 -factor=2 -ml=1
+
+cgins -noplot freeSurface2d -g=freeSurfaceDropGride2.order2.p.ml1 -dg="share=100" -nu=.05 -tf=30. -tp=.2 -model=ins -go=halt -surfaceTension=.1 -pGrad=0 -ad2=1 -show=dropDeformG2.show -go=go >! dropDeformG2.show
+
+
+
+
+
+G4: 
+nohup $cgins -noplot submergedCylinder -g=submergedCylinderGride4.order2.ml1.hdf -dg="share=100" -nu=.005 -tf=50. -tp=.1 -model=ins -numberOfSurfaceSmooths=5 -surfaceTension=.005 -pGrad=-10. -project=1 -ad2=1 -psolver=mg -solver=mg -show="submergedCylf.show" -go=go  >! submergedCylf.out
+
+G4: ts=IM, solver=MG 
+cgins submergedCylinder -g=submergedCylinderGride4.order2.ml1.hdf -dg="share=100" -ts=im -nu=.005 -tf=50. -tp=.1 -model=ins -numberOfSurfaceSmooths=5 -surfaceTension=.005 -pGrad=-4. -project=1 -ad2=1 -psolver=mg -solver=mg  -go=halt
+
+
+
+Test implicit-TS --OK
+cgins submergedCylinder -g=submergedCylinderGride2.order2.ml1.hdf -dg="share=100" -ts=im -nu=.005 -tf=50. -tp=.1 -model=ins -numberOfSurfaceSmooths=5 -surfaceTension=.005 -pGrad=-4. -project=1 -ad2=1  -go=halt
+
+
+OK
+cgins -noplot submergedCylinder -g=submergedCylinderGride2.order2.ml1.hdf -dg="share=100" -nu=.005 -tf=50. -tp=.1 -model=ins -numberOfSurfaceSmooths=5 -surfaceTension=.005 -pGrad=-4. -go=go -project=1 -ad2=1 -show="submergedCyle.show"   >! submergedCyle.out &
+
+
 **** 2014/12/24 -- initial 3D free surface
 
 *** GRIDS: 
@@ -39,7 +103,7 @@ cgins freeSurface2d -g=freeSurfaceGrid2de8.order2.ml2 -dg="share=100" -nu=.01 -t
 Finer grid:
 cgins -noplot submergedCylinder -g=submergedCylinderGride4.order2.ml1.hdf -dg="share=100" -nu=.005 -tf=50. -tp=.1 -model=ins -numberOfSurfaceSmooths=5 -surfaceTension=.005 -pGrad=-5. -go=go -project=1 -ad2=1 -show="submergedCylb.show"   >! submergedCylb.out &
 
-Longer: pGrad=.5 
+Longer: pGrad=-5. 
 cgins -noplot submergedCylinder -g=submergedCylinderGride2.order2.ml1.hdf -dg="share=100" -nu=.005 -tf=50. -tp=.1 -model=ins -numberOfSurfaceSmooths=5 -surfaceTension=.005 -pGrad=-5. -go=go -project=1 -ad2=1 -show="submergedCyla.show"   >! submergedCyla.out &
 
 

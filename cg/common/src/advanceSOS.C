@@ -39,7 +39,7 @@ checkForSymmetry(realCompositeGridFunction & u, Parameters & parameters, const a
 // ===============================================================================
 ///  MACRO:  Perform the initialization step for the PC method
 ///
-///  \METHOD (input) : name of the method: adamsPC or implicitPC
+///  \METHOD (input) : name of the method: e.g. adamsPC or implicitPC
 ///  Parameters:
 ///   numberOfPastTimes (input) : method needs u(t-dt), ... u(t-n*dt), n=numberOfPastTimes  
 ///   numberOfPastTimeDerivatives (input) : method needs u_t(t-dt), ..., u_t(t-m*dt) m=numberOfPastTimeDerivatives
@@ -108,6 +108,11 @@ advanceSecondOrderSystem( real & t0, real & dt0, int & numberOfSubSteps, int & i
 {
     FILE *& debugFile = parameters.dbase.get<FILE* >("debugFile");
 
+    const int & numberOfSolutionLevels = parameters.dbase.get<int>("numberOfSolutionLevels");
+    const int & numberOfTimeDerivativeLevels = parameters.dbase.get<int>("numberOfTimeDerivativeLevels");
+    const Parameters::ImplicitMethod & implicitMethod = 
+                                parameters.dbase.get<Parameters::ImplicitMethod >("implicitMethod");
+
     if( !parameters.dbase.get<DataBase >("modelData").has_key("AdvanceSOSData") )
         parameters.dbase.get<DataBase >("modelData").put<AdamsPCData>("AdvanceSOSData");
     AdamsPCData & sosData = parameters.dbase.get<DataBase >("modelData").get<AdamsPCData>("AdvanceSOSData");
@@ -129,6 +134,7 @@ advanceSecondOrderSystem( real & t0, real & dt0, int & numberOfSubSteps, int & i
                     parameters.dbase.get<int >("orderOfPredictorCorrector")==4 );
 
     const int orderOfAccuracy = parameters.dbase.get<int >("orderOfAccuracy"); 
+    const int orderOfTimeAccuracy = parameters.dbase.get<int >("orderOfTimeAccuracy");
     const int predictorOrder = parameters.dbase.get<int >("orderOfPredictorCorrector"); // is this correct? 
 
     if( parameters.dbase.get<Parameters::TimeSteppingMethod >("timeSteppingMethod")==Parameters::adamsBashforth2 )
@@ -188,7 +194,7 @@ advanceSecondOrderSystem( real & t0, real & dt0, int & numberOfSubSteps, int & i
         const int numberOfPastTimeDerivatives=orderOfAccuracy-1;  // PC needs u_t(t-dt), u_t(t-2*dt), ...
         const int orderOfPredictorCorrector = parameters.dbase.get<int >("orderOfPredictorCorrector");
         const int orderOfTimeExtrapolationForPressure = parameters.dbase.get<int >("orderOfTimeExtrapolationForPressure");
-        printF("--adamsPC-- initializePredictorCorrector: mCur=%i, mOld=%i \n",mCur,mOld);
+        printF("--adamsPC-- initializePredictorCorrector: mCur=%i, mOld=%i gf[mCur].t=%9.2e\n",mCur,mOld,gf[mCur].t);
         if( movingGridProblem() )
         { 
             getGridVelocity( gf[mCur],t0 );
@@ -419,38 +425,83 @@ advanceSecondOrderSystem( real & t0, real & dt0, int & numberOfSubSteps, int & i
             updateStateVariables(gf[mOld]); // *wdh* 080204 
             if( parameters.useConservativeVariables() )
                 gf[mOld].primitiveToConservative();
-      // For BDF schemes we need more past solutions
+      // For BDF or IMEX-BDF schemes we need more past solutions
             for( int kgf=2; kgf<=numberOfPastTimes; kgf++ )
             {
-                  const int mgf = (mCur - kgf + numberOfGridFunctions) % numberOfGridFunctions;
+           // PC and IMEX-BDF scheme grid index counts forward for past time 
+                      const int mgf = (mCur + kgf + numberOfGridFunctions) % numberOfGridFunctions;
                   const real tgf = t0-dt0*kgf;
                   if( true )
-                      printF("--adamsPC-- init past time solution at t=%9.3e\n",tgf);
+                      printF("--adamsPC-- init past time solution gf[mgf=%i] at t=%9.3e numberOfGridFunctions=%i " 
+                                    "numberOfPastTimes=%i orderOfTimeAccuracy=%i\n",
+                                    mgf,tgf,numberOfGridFunctions,numberOfPastTimes,orderOfTimeAccuracy);
                   if( movingGridProblem() )
                   {
            // **CHECK ME: dt0*kgf ? or -dt0*kgf
            // Note: on input gf[mgf].t=0 indicates the initial grid in gf[mgf] is located at t=0
                       moveGrids( t0,t0,tgf,dt0*kgf,gf[mCur],gf[mCur],gf[mgf] );// this will set gf[mgf].t=tgf
                   }
+                  else
+                  {
+                      gf[mgf].t=tgf;
+                  }
                   gf[mgf].u.updateToMatchGrid(gf[mgf].cg); 
                   e.assignGridFunction( gf[mgf].u,tgf );
                   updateStateVariables(gf[mgf]); 
                   if( parameters.useConservativeVariables() )
                       gf[mgf].primitiveToConservative();
+                  if( false )
+                  {
+                      ::display(gf[mgf].u[0],sPrintF("--adamsPC-- past time solution gf[mgf=%i].u t=%9.3e",mgf,tgf),"%6.3f ");
+                  }
             }
-            if( numberOfPastTimeDerivatives>0 )
+      // For IMEX-BDF schemes we need more past time-derivatives
+            if( true && implicitMethod==Parameters::implicitExplicitMultistep  ) // *wdh* Feb. 3, 2017
             {
-        // -- evaluate du/dt(t-dt) --
-                for( int grid=0; grid<gf[mCur].cg.numberOfComponentGrids(); grid++ )
+                for( int kgf=1; kgf<=numberOfPastTimeDerivatives; kgf++ )
                 {
-                    rparam[0]=gf[mOld].t;
-                    rparam[1]=gf[mOld].t; // tforce
-                    rparam[2]=gf[mCur].t-gf[mOld].t; // tImplicit  *************** check me 090806 **********************
-                    iparam[0]=grid;
-                    iparam[1]=gf[mOld].cg.refinementLevelNumber(grid);
-                    iparam[2]=numberOfStepsTaken;
-                    getUt(gf[mOld].u[grid],gf[mOld].getGridVelocity(grid),fn[nab1][grid],iparam,rparam,
-                  	    gf[mab0].u[grid],&gf[mOld].cg[grid]);
+                    const int mgf = (mCur + kgf + numberOfGridFunctions) % numberOfGridFunctions;
+                    const int ngf = (nab0 + kgf + numberOfTimeDerivativeLevels) % numberOfTimeDerivativeLevels;
+                    const real tgf = t0-dt0*kgf;
+                    gf[mgf].t=tgf;
+                    if( true )
+              	printF("--adamsPC-- init past time du/dt at t=%9.3e (gf[mgf=%i].t=%9.3e) fn[ngf=%i]\n",
+                              tgf,mgf,gf[mgf].t,ngf);
+          // -- evaluate du/dt(t-dt) --
+                    for( int grid=0; grid<gf[mCur].cg.numberOfComponentGrids(); grid++ )
+                    {
+              	rparam[0]=gf[mgf].t;
+              	rparam[1]=gf[mgf].t; // tforce
+              	rparam[2]=gf[mCur].t-gf[mgf].t; // tImplicit  *************** check me 090806 **********************
+              	iparam[0]=grid;
+              	iparam[1]=gf[mgf].cg.refinementLevelNumber(grid);
+              	iparam[2]=numberOfStepsTaken;
+              	getUt(gf[mgf].u[grid],gf[mgf].getGridVelocity(grid),fn[ngf][grid],iparam,rparam,
+                    	      gf[mab0].u[grid],&gf[mgf].cg[grid]);
+              	if( false )
+              	{
+                	  ::display(fn[ngf][grid],sPrintF("--adamsPC-- past time du/dt fn[ngf=%i] t=%9.3e",ngf,tgf),"%6.3f ");
+              	}
+                    }
+                }
+            }
+            else
+            {
+        // *old* 
+                if( numberOfPastTimeDerivatives>0 )
+                {
+          // -- evaluate du/dt(t-dt) --
+                    for( int grid=0; grid<gf[mCur].cg.numberOfComponentGrids(); grid++ )
+                    {
+              	rparam[0]=gf[mOld].t;
+              	rparam[1]=gf[mOld].t; // tforce
+              	rparam[2]=gf[mCur].t-gf[mOld].t; // tImplicit  *************** check me 090806 **********************
+              	iparam[0]=grid;
+              	iparam[1]=gf[mOld].cg.refinementLevelNumber(grid);
+              	iparam[2]=numberOfStepsTaken;
+              	getUt(gf[mOld].u[grid],gf[mOld].getGridVelocity(grid),fn[nab1][grid],iparam,rparam,
+                    	      gf[mab0].u[grid],&gf[mOld].cg[grid]);
+                    }
                 }
             }
       // display(fn[nab1][0],sPrintF("ut(t-dt) from getUt at t=%e\n",gf[mOld].t),debugFile,"%5.2f ");
@@ -963,7 +1014,7 @@ advanceSecondOrderSystem( real & t0, real & dt0, int & numberOfSubSteps, int & i
           // --- fixup du/dt(t-dt) ---
           // -------------------------
           // NOTE: we CANNOT directly interpolate points on du/dt since for moving grids
-          // du/dt includes the -gDot.grad(u) term 
+          // du/dt includes the -gDot.grad(u) term which differs from grid to grid 
           // Current procedure: 
           //   1. Interpolate exposed points on u(t-dt)
           //   2. Recompute du/dt(t-dt) 

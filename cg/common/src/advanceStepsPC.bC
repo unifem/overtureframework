@@ -130,7 +130,8 @@ initializeTimeSteppingPC( real & t0, real & dt0 )
 
   FILE *& debugFile =parameters.dbase.get<FILE* >("debugFile");
   FILE *& pDebugFile =parameters.dbase.get<FILE* >("pDebugFile");
-
+  const Parameters::ImplicitMethod & implicitMethod = 
+                parameters.dbase.get<Parameters::ImplicitMethod >("implicitMethod");
   if( debug() & 4 )
     printF(" ====== DomainSolver::initializeTimeSteppingPC ======\n");
   if( debug() & 2 )
@@ -156,6 +157,7 @@ initializeTimeSteppingPC( real & t0, real & dt0 )
    real *dtp = adamsData.dtp;
 
   const int orderOfAccuracy = parameters.dbase.get<int >("orderOfAccuracy");
+  const int orderOfTimeAccuracy = parameters.dbase.get<int >("orderOfTimeAccuracy");
   int & predictorOrder = parameters.dbase.get<int>("predictorOrder");
   if( predictorOrder==0 )
     predictorOrder=2; // default
@@ -203,6 +205,8 @@ initializeTimeSteppingPC( real & t0, real & dt0 )
   }
   
   // this is a macro (pcMacros.h):
+  const int & numberOfSolutionLevels = parameters.dbase.get<int>("numberOfSolutionLevels");
+  const int & numberOfTimeDerivativeLevels = parameters.dbase.get<int>("numberOfTimeDerivativeLevels");
   const int numberOfPastTimes=1;                            // PC needs u(t-dt)
   const int numberOfPastTimeDerivatives=orderOfAccuracy-1;  // PC needs u_t(t-dt), u_t(t-2*dt), ...
   initializePredictorCorrector(adamsPC,gf[mab0].u);

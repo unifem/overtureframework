@@ -26,7 +26,13 @@ setupGridFunctions()
   
   CompositeGrid & cg = *solution.u.getCompositeGrid();
   const int numberOfDimensions = cg.numberOfDimensions();
-  
+  const int orderOfTimeAccuracy = parameters.dbase.get<int >("orderOfTimeAccuracy");
+  // numberOfSolutionsLevels = number of time levels of u used in the time-stepping
+  // numberOfTimeDerivativeLevels = number of time levels of du/dt used in the time-stepping
+  int & numberOfSolutionLevels = parameters.dbase.get<int>("numberOfSolutionLevels");
+  int & numberOfTimeDerivativeLevels = parameters.dbase.get<int>("numberOfTimeDerivativeLevels");
+
+
   variableDt.redim(cg.numberOfComponentGrids());
   variableDt=0.;
   int numberOfTimeLevels=3;  // *** fix this ****
@@ -55,60 +61,117 @@ setupGridFunctions()
   case Parameters::trapezoidal:
   case Parameters::midPoint:
   case Parameters::forwardEuler:
-    numberOfGridFunctionsToUse=2; // *wdh* 010923 Only 2 needed,  3;
+    numberOfGridFunctionsToUse=2; 
     numberOfExtraFunctionsToUse=1;
+    numberOfSolutionLevels = 2;
+    numberOfTimeDerivativeLevels = 1;
     // these are used for temporary space in the time steppers: 
     fn[0].updateToMatchGridFunction(solution.u); assign(fn[0],0.);  
     break;
+
+  // --- 2nd order ADAMS METHODS ---
   case Parameters::adamsBashforth2:
   case Parameters::adamsPredictorCorrector2:
   case Parameters::variableTimeStepAdamsPredictorCorrector:
+    numberOfTimeDerivativeLevels = 2;
+
     numberOfGridFunctionsToUse=2; 
+    // For moving grids we need to keep uOld so that we have the mask for exposed points
     if( parameters.isMovingGridProblem() )
       numberOfGridFunctionsToUse=3;  // use one extra for moving grids *wdh* 040827
-
+    numberOfSolutionLevels = numberOfGridFunctionsToUse;
+    
     numberOfExtraFunctionsToUse=2;
     fn[0].updateToMatchGridFunction(solution.u); assign(fn[0],0.);   // work space
     fn[1].updateToMatchGridFunction(solution.u); assign(fn[1],0.); 
     break;
+
+  // --- 4th order ADAMS METHODS ---
   case Parameters::adamsPredictorCorrector4:
+    numberOfTimeDerivativeLevels = 4;
+
     numberOfGridFunctionsToUse=2; 
+    // For moving grids we need to keep uOld so that we have the mask for exposed points
     if( parameters.isMovingGridProblem() )
       numberOfGridFunctionsToUse=3;  // use one extra for moving grids *wdh* 040827
+    numberOfSolutionLevels = numberOfGridFunctionsToUse;
+
     numberOfExtraFunctionsToUse=4;
     for( int m=0; m<numberOfExtraFunctionsToUse; m++ )
     {
       fn[m].updateToMatchGridFunction(solution.u); assign(fn[m],0.);   // work space
     }
     break;
+
+  // -- implicit time-stepping (IMEX) or steady-state Newton ---
   case Parameters::implicit:
   case Parameters::steadyStateNewton:
 
     numberOfGridFunctionsToUse=2; 
-
-    if( implicitMethod==Parameters::backwardDifferentiationFormula )
+    numberOfSolutionLevels=2;
+    
+    if( implicitMethod==Parameters::backwardDifferentiationFormula ||
+        implicitMethod==Parameters::implicitExplicitMultistep )
     {
       numberOfGridFunctionsToUse=orderOfBDF+1;  // check me 
+      numberOfSolutionLevels =orderOfBDF+1;  // check me 
     }
     else if( parameters.isMovingGridProblem() || 
 	     implicitMethod==Parameters::approximateFactorization )
+    {
       // use one extra for moving grids *wdh* 040827 and one extra of factored scheme kkc 100104
       numberOfGridFunctionsToUse=3;  
+      numberOfSolutionLevels = numberOfGridFunctionsToUse;
+    }
 
     if( implicitMethod==Parameters::backwardDifferentiationFormula )
     {  
       numberOfExtraFunctionsToUse=1; 
+      numberOfTimeDerivativeLevels=1;
       fn[0].updateToMatchGridFunction(solution.u); assign(fn[0],0.);  // work space
     }
     else if( implicitMethod==Parameters::approximateFactorization )
     {
       numberOfExtraFunctionsToUse=2;
+      numberOfTimeDerivativeLevels=2;
       fn[0].updateToMatchGridFunction(solution.u); assign(fn[0],0.);  // work space
       fn[1].updateToMatchGridFunction(solution.u); assign(fn[1],0.);  // work space
     }
+    else if( implicitMethod==Parameters::implicitExplicitMultistep )
+    {
+      if( orderOfTimeAccuracy==2 )
+      {
+	
+	numberOfExtraFunctionsToUse=3;  // we need f(t), f(t-dt), fI(t)
+        numberOfTimeDerivativeLevels=2; // we need f(t), f(t-dt)
+	fn[0].updateToMatchGridFunction(solution.u); assign(fn[0],0.);  // work space
+	fn[1].updateToMatchGridFunction(solution.u); assign(fn[1],0.);  // work space
+	fn[2].updateToMatchGridFunction(solution.u); assign(fn[2],0.);  // work space
+      }
+      else if( orderOfTimeAccuracy==4 )
+      {
+        // we need f(n), f(n-1), f(n-2), f(n-3) and fI 
+	numberOfExtraFunctionsToUse=5;  // we need f(n), f(n-1), f(n-2), f(n-3) and fI 
+        numberOfTimeDerivativeLevels=4; // we need f(n), f(n-1), f(n-2), f(n-3)
+        assert( numberOfExtraFunctionsToUse<=maximumNumberOfExtraFunctionsToUse );
+	
+	for( int m=0; m<numberOfExtraFunctionsToUse; m++ )
+	{
+  	  fn[m].updateToMatchGridFunction(solution.u); assign(fn[m],0.);  // work space
+	}
+	
+      }
+      else
+      {
+	OV_ABORT("finish me");
+      }
+      
+    }    
     else
     {
       numberOfExtraFunctionsToUse=3;
+      numberOfTimeDerivativeLevels=2;
+      
       fn[0].updateToMatchGridFunction(solution.u); assign(fn[0],0.);  // work space
       fn[1].updateToMatchGridFunction(solution.u); assign(fn[1],0.); 
       fn[2].updateToMatchGridFunction(solution.u); assign(fn[2],0.);   // holds explicit part of implicit terms
@@ -117,17 +180,24 @@ setupGridFunctions()
   case Parameters::steadyStateRungeKutta:
     numberOfGridFunctionsToUse=2; 
     numberOfExtraFunctionsToUse=1;
+    numberOfSolutionLevels=2;
+    numberOfTimeDerivativeLevels=1;
     fn[0].updateToMatchGridFunction(solution.u); assign(fn[0],0.);
     break;
   case Parameters::rKutta:
     numberOfGridFunctionsToUse=3; 
     numberOfExtraFunctionsToUse=2;
+    numberOfSolutionLevels=3;  // check me 
+    numberOfTimeDerivativeLevels=2; // check me 
     fn[0].updateToMatchGridFunction(solution.u); assign(fn[0],0.);
     fn[1].updateToMatchGridFunction(solution.u); assign(fn[1],0.); 
     break;
   case Parameters::implicitAllSpeed:
     numberOfGridFunctionsToUse=2; 
-    numberOfExtraFunctionsToUse=3;
+    numberOfExtraFunctionsToUse=4;
+
+    numberOfSolutionLevels=2;   // check me 
+    numberOfTimeDerivativeLevels=2;  // check me 
     fn[0].updateToMatchGridFunction(solution.u); assign(fn[0],0.);  // work space
     fn[1].updateToMatchGridFunction(solution.u); assign(fn[1],0.); 
     fn[2].updateToMatchGridFunction(solution.u); assign(fn[2],0.); 
@@ -142,11 +212,16 @@ setupGridFunctions()
     break;
   case Parameters::adi:
     numberOfGridFunctionsToUse=1; 
+
+    numberOfSolutionLevels=2;   // check me 
+    numberOfTimeDerivativeLevels=0;  // check me 
+
+
     break;
   default:
     printf("DomainSolver::initialize:ERROR: unknown time stepping method %i\n",
           parameters.dbase.get<Parameters::TimeSteppingMethod >("timeSteppingMethod"));
-    Overture::abort();
+    OV_ABORT("unexpected error");
     break;
   }
 
@@ -273,6 +348,9 @@ setupGridFunctions()
     PlotIt::plot(gi,gf[current].cg.refinementLevel[1],psp);
     psp.set(GI_PLOT_THE_OBJECT_AND_EXIT,true);
   }
+
+  assert( numberOfSolutionLevels >= 0 );
+  assert( numberOfTimeDerivativeLevels>= 0 );
 
   return 0;
 }

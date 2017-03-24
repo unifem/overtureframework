@@ -446,7 +446,8 @@ RealArray RigidBodyMotion::
 mult( const RealArray & a, const RealArray & b )
 {
   // arguments should not be temporaries -- or else there is a leak
-  assert( !a.isTemporary() && !b.isTemporary() );  
+  // Turn off for Mac and gdb -- caused run-time error with symbol not found
+ // assert( !a.isTemporary() && !b.isTemporary() );  
 
   // c(m,n) = a(m,l)*b(l,n)
   const int m=a.getLength(0), l=a.getLength(1), n=b.getLength(1);

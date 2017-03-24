@@ -1761,7 +1761,7 @@ userDefinedBoundaryValues(const real & t,
 	  
 	}
 	
-	if( false && ( (debug() & 2 && t <= tMax) || t <= dt ) )
+	if( true && ( (debug() & 2 && t <= tMax) || t <= dt ) )
 	  printF("--UBV-- pressure pulse: t=%8.2e, assign (side,axis,grid)=(%i,%i,%i)  forceType=%i, "
 		 " pMax=%f, tMax=%f, p=%9.3e\n",t,side,axis,grid,(int)forcingType,pMax,tMax,factor);
 

@@ -1,4 +1,7 @@
-   # Parallel regression tests:
+# Parallel regression tests:
+$CGBUILDPREFIX = $ENV{"CGBUILDPREFIX"};
+$program = "$CGBUILDPREFIX/cns/bin/cgcns"; 
+
 @cmdFiles=(
  	     "squarej.cns",    # compressible, Jameson with TZ
  	     "squarej.cns", 

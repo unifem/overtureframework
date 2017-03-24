@@ -2,6 +2,10 @@
 # plotStuff plotEmbedded.cmd -show=ebG4Order4Angle60.show -name=ebG4Order4Angle60  [ G4
 # plotStuff plotEmbedded.cmd -show=ebG8Order4Angle60.show -name=ebG8Order4Angle60  [ G8
 #
+# -- annular far field:
+#  plotStuff plotEmbedded.cmd -show=ebG16k40.show
+#  plotStuff plotEmbedded.cmd -show=ebG32k40.show
+#
 # -- plot difference show file:
 #  plotStuff plotEmbedded.cmd -show=ebG8Theta45diff.show
 #  plotStuff plotEmbedded.cmd -show=ebG4Theta45diff.show
@@ -19,11 +23,22 @@ $show
 # 
 x-:0
 previous
+derived types
+ E field norm
+exit
 contour
+  plot:eFieldNorm
+  min max 0 0.5
   plot contour lines (toggle)
   vertical scale factor 0.
-pause
+  coarsening factor 1 (<0 : adaptive)
+  # pause
 exit
+DISPLAY COLOUR BAR:0 0
+DISPLAY LABELS:0 0
+set view:0 -0.0317347 0.0601882 0 2.65834 1 0 0 0 1 0 0 0 1
+
+
 #
 # -- movie of Ex
 solution: 1

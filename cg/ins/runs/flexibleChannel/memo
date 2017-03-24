@@ -29,6 +29,15 @@ ogen -noplot flexiblePartitionGrid -option=top -interp=e -factor=1
 ==============================================================================================================
 
 ***************************************************************
+*********** Nov 23, 2016
+
+re-run beam cases while adding bulk-solid AMP
+
+PBA: 
+cgins flexiblePartition -g=flexiblePartitionGride2.order2.hdf -nu=.025 -tf=5. -tp=.05 -rhoBeam=.1 -E=.2 -tension=0. -thickness=.1 -Kt=1 -numElem=40 -p0=1 -addedMass=1 -useApproximateAMPcondition=0 -fluidOnTwoSides=1 -ampProjectVelocity=1 -projectNormalComponent=1 -option=beamUnderPressure -smoothInterfaceVelocity=1 -nis=4 -probePosition=.5 -beamProbeFileName=beamUnderPressure.text -cfls=1. -go=halt
+
+
+***************************************************************
 *********** June 30, 2016
 
 cgins flexiblePartition -g=flexiblePartitionGride2.order2.hdf -nu=.025 -tf=5. -tp=.01 -rhoBeam=.1 -E=.2 -tension=0. -thickness=.1 -Kt=1 -numElem=40 -p0=1 -useTP=1 -addedMassRelaxation=.01 -addedMass=0 -useApproximateAMPcondition=0 -fluidOnTwoSides=1 -ampProjectVelocity=0 -projectNormalComponent=1 -option=beamUnderPressure -smoothInterfaceVelocity=1 -addedMassTol=1.e-5 -numberOfCorrections=1000  -probePosition=.5 -beamProbeFileName=beamUnderPressure_EI0p2_Rhos0p1_TP.text -cfls=2 -go=halt
@@ -83,7 +92,7 @@ TRY NIS=4, CFLS=1
 nohup $cgins -noplot flexiblePartition -g=flexiblePartitionGride2.order2.hdf -nu=.025 -tf=5. -tp=.05 -rhoBeam=.1 -E=.2 -tension=0. -thickness=.1 -Kt=1 -numElem=40 -p0=1 -addedMass=1 -useApproximateAMPcondition=1 -fluidOnTwoSides=1 -ampProjectVelocity=1 -projectNormalComponent=1 -option=beamUnderPressure -smoothInterfaceVelocity=1 -nis=4 -probePosition=.5 -beamProbeFileName=beamUnderPressure_EI0p2_Rhos0p1_AMP_PBF.text -cfls=1. -show=pbf.show -go=go >! beamUnderPressure_EI0p2_Rhos0p1_AMP_PBF.out &
 
 PBA: 
-nohup $cgins -noplot flexiblePartition -g=flexiblePartitionGride2.order2.hdf -nu=.025 -tf=5. -tp=.05 -rhoBeam=.1 -E=.2 -tension=0. -thickness=.1 -Kt=1 -numElem=40 -p0=1 -addedMass=1 -useApproximateAMPcondition=0 -fluidOnTwoSides=1 -ampProjectVelocity=1 -projectNormalComponent=1 -option=beamUnderPressure -smoothInterfaceVelocity=1 -nis=4 -probePosition=.5 -beamProbeFileName=beamUnderPressure_EI0p2_Rhos0p1_AMP_PBA.text -cfls=1. -show=pba.show -go=go >! beamUnderPressure_EI0p2_Rhos0p1_AMP_PBA.out &
+nohup $cgins -noplot flexiblePartition -g=flexiblePartitionGride2.order2.hdf -nu=.025 -tf=5. -tp=.05 -rhoBeam=.1 -E=.2 -tension=0. -thickness=.1 -Kt=1 -numElem=40 -p0=1 -addedMass=1 -useApproximateAMPcondition=0 -fluidOnTwoSides=1 -ampProjectVelocity=1 -projectNormalComponent=1 -option=beamUnderPressure -smoothInterfaceVelocity=1 -nis=4 -probePosition=.5 -beamProbeFileName=beamUnderPressure_EI0p2_Rhos0p1_AMP_PBA.text -cfls=1. -show=pba.show -go=go >! beamUnderPressure_EI0p2_Rhos0p1_AMP_PBA.out &w
 
 
 VERY LIGHT: PBF: -- looks OK to t=1.75

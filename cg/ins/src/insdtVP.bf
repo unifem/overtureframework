@@ -16,6 +16,10 @@ c ============================================================================
  #End
 #endMacro
 
+! ----------- FINISH ME : upwind advection ------
+#beginMacro buildEquationsUpwind(IMPEXP,SCALAR,DIM,ORDER,GRIDTYPE,AXISYMMETRIC,UPWIND)
+  stop 6666
+#endMacro
 
 c====================================================================
 c This macro will build the statements that form the body of the loop

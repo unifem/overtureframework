@@ -51,10 +51,11 @@ main(int argc, char *argv[])
   {
     if( i % 40 == 0 )  // save solution every 40 steps
     {
-      show.startFrame();                                         // start a new frame
+      show.startFrame();                                             // start a new frame
       show.saveComment(0,sPrintF(buffer,"Here is solution %i",i));   // comment 0 (shown on plot)
       show.saveComment(1,sPrintF(buffer,"  t=%e ",t));               // comment 1 (shown on plot)
       show.saveSolution( u );                                        // save the current grid function
+      show.endFrame();                                               // end the frame
     }
     u+=dt*( -a*u.x() - b*u.y() + viscosity*(u.xx() + u.yy())); // take a time step with Euler's method
     t+=dt;

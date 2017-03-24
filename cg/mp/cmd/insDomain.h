@@ -55,6 +55,9 @@ if( $extraCmds eq "" ){ $extraCmds="#"; }
 if( $moveCmds eq "" ){ $moveCmds="#"; }
 if( $checkForInflowAtOutflow eq "" ){ $checkForInflowAtOutflow=0; }
 if( $useNeumannAtOutflow eq "" ){ $useNeumannAtOutflow=0; }
+if( $fluidDensity eq "" ){ $fluidDensity=1.; }
+if( $addedMass eq "" ){ $addedMass=0; }
+if( $ogesDtol eq "" ){ $ogesDtol=1e20; }
 # 
 setup $domainName
  set solver Cgins
@@ -86,6 +89,10 @@ setup $domainName
 # 
   dtMax $dtMax
   debug $debug 
+#
+  use added mass algorithm $addedMass
+  # for now we let the solver know that the added mass algorithm needed predicted values for the pressure:
+  predicted pressure needed $addedMass
 # 
   $moveCmds
 # 
@@ -93,6 +100,8 @@ setup $domainName
     nu  $nu
     kThermal $kThermal
     thermal conductivity $ktc
+    fluid density
+      $fluidDensity
     gravity
       $gravity
     if( $checkForInflowAtOutflow eq "1" ){ $cmd="OBPDE:check for inflow at outflow"; }else{ $cmd="#"; }
@@ -123,6 +132,8 @@ $setAxi="";
       $rtolp
      absolute tolerance
       $atolp
+    maximum allowable increase in the residual
+       $ogesDtol
      debug 
        $pdebug
     exit

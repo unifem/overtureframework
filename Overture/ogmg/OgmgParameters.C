@@ -268,7 +268,7 @@ chooseGoodMultigridParameters(CompositeGrid & cg, int maxLevels /* =useLevelsInG
     }
   }
   
-  int info=3;
+  int info=Ogmg::debug; // 3;
   
   if( info & 1 )
     printF(" ------------- Automatically Choosing Good Multigrid Parameters -----------------\n");

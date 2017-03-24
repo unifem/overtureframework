@@ -6,5 +6,8 @@ ad.check
 sq.tz
 cic
 imp.tz
-
-
+#
+# BDF --
+#
+square5BDF2.check ../cmd/tz.cmd -g=square5 -degreex=2 -degreet=2 -kappa=.1 -ts=bdf -bdfOrder=2 -implicitAdvection=1 -tp=.01 -tf=.05 -go=go
+square5BDF4.check ../cmd/tz.cmd -g=square5 -degreex=2 -degreet=4 -kappa=.1 -ts=bdf -bdfOrder=4 -implicitAdvection=1 -tp=.01 -tf=.05 -go=go

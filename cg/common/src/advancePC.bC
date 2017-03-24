@@ -138,6 +138,10 @@ advanceAdamsPredictorCorrector( real & t0, real & dt0, int & numberOfSubSteps, i
    FILE *& debugFile = parameters.dbase.get<FILE* >("debugFile");
    FILE *& pDebugFile = parameters.dbase.get<FILE* >("pDebugFile");
   
+  const int & numberOfSolutionLevels = parameters.dbase.get<int>("numberOfSolutionLevels");
+  const int & numberOfTimeDerivativeLevels = parameters.dbase.get<int>("numberOfTimeDerivativeLevels");
+  const Parameters::ImplicitMethod & implicitMethod = 
+                parameters.dbase.get<Parameters::ImplicitMethod >("implicitMethod");
 
    if( !parameters.dbase.get<DataBase >("modelData").has_key("AdamsPCData") )
      parameters.dbase.get<DataBase >("modelData").put<AdamsPCData>("AdamsPCData");
@@ -156,6 +160,7 @@ advanceAdamsPredictorCorrector( real & t0, real & dt0, int & numberOfSubSteps, i
 
   const int numberOfDimensions = parameters.dbase.get<int >("numberOfDimensions");;
   const int orderOfAccuracy = parameters.dbase.get<int >("orderOfAccuracy");
+  const int orderOfTimeAccuracy = parameters.dbase.get<int >("orderOfTimeAccuracy");
   const int orderOfPredictorCorrector = parameters.dbase.get<int >("orderOfPredictorCorrector");
   const Parameters::TimeSteppingMethod timeSteppingMethod=
     parameters.dbase.get<Parameters::TimeSteppingMethod >("timeSteppingMethod");
@@ -173,8 +178,12 @@ advanceAdamsPredictorCorrector( real & t0, real & dt0, int & numberOfSubSteps, i
 
   int & predictorOrder = parameters.dbase.get<int>("predictorOrder");
   if( predictorOrder==0 )
-    predictorOrder=2; // default
-  if( predictorOrder<0 || predictorOrder>2 )
+  {
+    // predictorOrder=2; // default
+    predictorOrder=orderOfPredictorCorrector; // *wdh* fixed for PC44  Dec 22, 2016
+  }
+  
+  if( predictorOrder<0 || predictorOrder>orderOfPredictorCorrector )
   {
     if( init )
       printF("advancePC: ERROR: predictorOrder=%i!",predictorOrder);
@@ -197,8 +206,8 @@ advanceAdamsPredictorCorrector( real & t0, real & dt0, int & numberOfSubSteps, i
   {
     if( init )
     {
-      printF(" advanceAdamsPredictorCorrector: predictorOrder=%i numberOfCorrections=%i\n",
-             predictorOrder, numberOfCorrections);
+      printF(" advanceAdamsPredictorCorrector: orderOfPredictorCorrector=%i predictorOrder=%i numberOfCorrections=%i\n",
+             orderOfPredictorCorrector,predictorOrder, numberOfCorrections);
     }
     fPrintF(debugFile," *** Entering advanceAdamsPredictorCorrector: t0=%e, dt0=%e *** \n",t0,dt0);
   }

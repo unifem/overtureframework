@@ -45,6 +45,20 @@ BODy + FARFIELD GRIDS
 
 ==============================================================================
 
+********************
+*********  Nov 30, 2016
+
+test restart
+**************************************
+************ Sept 14, 2015
+
+-- check restart
+
+$cgins backStep -g=backStepInChannelGride4.order4.ml1 -nu=1.e-3 -parabolicWidth=.0125 -bcTop=noSlipWall -ad4=1 -ad41=2. -ad42=1. -cfl=3. -ts=afs -psolver=mg -rtolp=1.e-4 -atolp=1.e-4  -dtMax=.01 -tf=2. -tp=.1 -debug=3 -restart=backStepInChannel4.show -go=halt
+
+
+$cgins -noplot backStep -g=backStepInChannelGride4.order4.ml1 -nu=1.e-3 -parabolicWidth=.0125 -bcTop=noSlipWall -ad4=1 -ad41=2. -ad42=1. -cfl=3. -ts=afs -psolver=mg -rtolp=1.e-4 -atolp=1.e-4  -dtMax=.01 -tf=1. -tp=.1 -debug=3 -show=backStepInChannel4.show -go=go
+
 *******************
 ****** Test 3D:
 

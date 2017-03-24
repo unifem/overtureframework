@@ -81,6 +81,13 @@ updatePressureEquation(CompositeGrid & cg0, GridFunction & cgf )
   cgop.setStencilSize(stencilSize);
   cgop.setNumberOfComponentsForCoefficients(1); // set to 1 for the pressure equation
 
+  enum DeformingBodyModelEnum
+  {
+    noModel=0,
+    isBeamModel,
+    isBulkSolidModel
+   };
+  
   int grid,side,axis;
   for( grid=0; grid<cg0.numberOfComponentGrids(); grid++ )
   {
@@ -107,8 +114,15 @@ updatePressureEquation(CompositeGrid & cg0, GridFunction & cgf )
       pde = equationDomain.getPDE();
     }
 
+    // ---------------------------------------------------
+    // -- extract parameters from any deforming solids ---
+    // ---------------------------------------------------
 
     real beamMassPerUnitLength[2][3]={-1.,-1.,-1.,-1.,-1.,-1.};  // For beam models
+    real solidImpedance=-1;  // ** FIX ME**
+
+    DeformingBodyModelEnum deformingBodyModel[2][3]={noModel,noModel,noModel,noModel,noModel,noModel};
+
     if( useAddedMassAlgorithm && parameters.gridIsMoving(grid) )
     {
       if( cgf.t <= dt )
@@ -118,12 +132,10 @@ updatePressureEquation(CompositeGrid & cg0, GridFunction & cgf )
       std::vector<BoundaryData> & boundaryDataArray =parameters.dbase.get<std::vector<BoundaryData> >("boundaryData");
       BoundaryData & bd = boundaryDataArray[grid];
       
-      // -- extract parameters from any deforming solids ---
 
       MovingGrids & movingGrids = parameters.dbase.get<MovingGrids >("movingGrids");
       
       // printF("--UPE-- grid=%i has_key  deformingBodyNumber = %i\n",grid,(int)bd.dbase.has_key("deformingBodyNumber"));
-      
       if( bd.dbase.has_key("deformingBodyNumber") )
       {
 	int (&deformingBodyNumber)[2][3] = bd.dbase.get<int[2][3]>("deformingBodyNumber");
@@ -133,6 +145,8 @@ updatePressureEquation(CompositeGrid & cg0, GridFunction & cgf )
 	  {
             // printF("--UPE- deformingBodyNumber[side=%i][axis=%i]=%i\n",side,axis,deformingBodyNumber[side][axis]);
 	    
+	    deformingBodyModel[side][axis]=noModel;
+
 	    if( deformingBodyNumber[side][axis]>=0 )
 	    {
               int body=deformingBodyNumber[side][axis];
@@ -142,13 +156,23 @@ updatePressureEquation(CompositeGrid & cg0, GridFunction & cgf )
 	      DeformingBodyMotion & deform = movingGrids.getDeformingBody(body);
 	      if( deform.isBeamModel() )
 	      {
-                 
+		deformingBodyModel[side][axis]=isBeamModel;
+		
 		BeamModel & beamModel = deform.getBeamModel();
 
 		real rhosHs=-1.;
 		beamModel.getMassPerUnitLength( beamMassPerUnitLength[side][axis] );
   	        if( cgf.t <= dt )
 		  printF("--UPE-- AMP: BeamModel: beamMassPerUnitLength = %8.2e\n",beamMassPerUnitLength[side][axis]);
+
+	      }
+	      else if( deform.isBulkSolidModel() )
+	      {
+		deformingBodyModel[side][axis]=isBulkSolidModel;
+
+                deform.getBulkSolidParameters( solidImpedance );
+
+		printF("INSP: This is a deforming grid for a bulk solid model: solid impedance=%g.\n",solidImpedance);
 
 	      }
 	      
@@ -186,8 +210,17 @@ updatePressureEquation(CompositeGrid & cg0, GridFunction & cgf )
       case Parameters::noSlipWall:
       case Parameters::slipWall:
       {
-	if( useAddedMassAlgorithm && beamMassPerUnitLength[side][axis]>=0. )
+	if( useAddedMassAlgorithm && deformingBodyModel[side][axis]==isBeamModel )
 	{
+	  // ----- Mixed-BC for AMP scheme with a BEAM ------
+
+	  if( beamMassPerUnitLength[side][axis]<0. )
+	  {
+	    printF("--UPE-- ERROR:  beamMassPerUnitLength[side=%i][axis=%i] = %9.2e, grid=%i\n",side,axis,
+		   beamMassPerUnitLength[side][axis],grid);
+	    OV_ABORT("ERROR");
+	  }
+
 	  const real & fluidDensity = parameters.dbase.get<real >("fluidDensity");
 	  assert( fluidDensity>0. );
 	  
@@ -208,6 +241,33 @@ updatePressureEquation(CompositeGrid & cg0, GridFunction & cgf )
 	  boundaryConditionData(1,side,axis,grid)=mixedNormalCoeff(pc,side,axis,grid);
 	  singularPressureEquation=false;
 	}
+	else if( useAddedMassAlgorithm && deformingBodyModel[side][axis]==isBulkSolidModel )
+	{
+	  // ----- Mixed-BC for AMP scheme with a BULK SOLID ------
+
+	  const real & fluidDensity = parameters.dbase.get<real >("fluidDensity");
+	  assert( fluidDensity>0. );
+	  
+	  if( cgf.t <= dt )
+	  {
+		
+	    printF("--UPE-- grid=%i (side,axis)=(%i,%i) Apply AMP pressure BC, t=%8.2e\n",grid,side,axis,cgf.t);
+	    printF("--UPE-- Boundary is a bulk-solid, solidImpedance = %8.2e. fluidDensity=%8.2e, zp*dt/rho=%g\n",
+		   solidImpedance,fluidDensity,solidImpedance*dt/fluidDensity);
+	  }
+	  
+	  assert( dt>0. );
+	  
+	  boundaryConditions(side,axis,grid)=OgesParameters::mixed;  
+	  mixedNormalCoeff(pc,side,axis,grid)=solidImpedance*dt/fluidDensity;
+	  mixedCoeff(pc,side,axis,grid)=1.;
+
+	  boundaryConditionData(0,side,axis,grid)=mixedCoeff(pc,side,axis,grid);
+	  boundaryConditionData(1,side,axis,grid)=mixedNormalCoeff(pc,side,axis,grid);
+	  singularPressureEquation=false;
+
+	}
+	
 
         // *** Is this next option used??
         if( (parameters.gridIsMoving(grid) && (bool)parameters.dbase.get<int>("movingBodyPressureBC")) ||

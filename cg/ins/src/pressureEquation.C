@@ -1020,6 +1020,9 @@ assignPressureRHS( const int grid, GridFunction & gf0, realCompositeGridFunction
             }
         }
 
+        if( debug() & 16 )
+            display(f,sPrintF("assignPressureRHS: rhs f, grid=%i, BEFORE assignOPT",grid),debugFile,"%12.9f ");
+
 
         assignPressureRHSOpt(c.numberOfDimensions(),
                    			 I1.getBase(),I1.getBound(),
@@ -1045,8 +1048,9 @@ assignPressureRHS( const int grid, GridFunction & gf0, realCompositeGridFunction
     if( debug() & 16 )
     {
         display(u,sPrintF("assignPressureRHS: sol u  grid=%i, after assignOPT",grid),debugFile,"%12.9f ");
-        display(f,sPrintF("assignPressureRHS: rhs f, grid=%i, after assignOPT",grid),debugFile,"%12.9f ");
     }
+    if( debug() & 16 )
+        display(f,sPrintF("assignPressureRHS: rhs f, grid=%i, after assignOPT",grid),debugFile,"%12.9f ");
       
     bool boundaryConditionsAreTimeDependent=false;
     ForBoundary(side,axis)

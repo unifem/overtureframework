@@ -55,6 +55,8 @@ $ksp="bcgs"; $pc="bjacobi"; $subksp="preonly"; $subpc="ilu"; $iluLevels=3;
 # -- p-wave strength: don't make too big or else solid may become inverted in the deformed space
 $ap=.01; 
 $append=0; 
+# ------------------------- turn on added mass here ----------------
+$addedMass=0; 
 #
 # ----------------------------- get command line arguments ---------------------------------------
 GetOptions( "g=s"=>\$grid,"tf=f"=>\$tFinal,"nu=f"=>\$nu,"muFluid=f"=>\$muFluid,"kappa=f"=>\$kappa, "bg=s"=>\$backGround,\
@@ -71,7 +73,7 @@ GetOptions( "g=s"=>\$grid,"tf=f"=>\$tFinal,"nu=f"=>\$nu,"muFluid=f"=>\$muFluid,"
    "useNewInterfaceTransfer=i"=>\$useNewInterfaceTransfer,"multiDomainAlgorithm=i"=>\$multiDomainAlgorithm,\
    "pi=i"=>\$pi,"xShock=f"=>\$xShock,"uShock=f"=>\$uShock,"ap=f"=>\$ap,"bcOption=i"=>\$bcOption,"option=s"=>\$option,\
    "stressRelaxation=f"=>\$stressRelaxation,"relaxAlpha=f"=>\$relaxAlpha,"relaxDelta=f"=>\$relaxDelta,\
-   "p0=f"=>\$p0,"sideBC=s"=>\$sideBC,"iOmega=f"=>\$iOmega,"iTol=f"=>\$iTol,\
+   "p0=f"=>\$p0,"sideBC=s"=>\$sideBC,"iOmega=f"=>\$iOmega,"iTol=f"=>\$iTol,"addedMass=f"=>\$addedMass,\
    "projectInitialConditions=f"=>\$projectInitialConditions,"restart=s"=>\$restart,"append=i"=>\$append,\
    "projectMultiDomainInitialConditions=f"=>\$projectMultiDomainInitialConditions );
 # -------------------------------------------------------------------------------------------------
@@ -115,6 +117,18 @@ $moveCmds = \
   "         100 \n" . \
   "   done\n" . \
   "done";
+# **** NEW WAY TO SPECIFY DEFORMING BODY FOR A BULK SOLID 
+$moveCmds = \
+  "turn on moving grids\n" . \
+  "specify grids to move\n" . \
+  "    deforming body\n" . \
+  "      bulk solid\n" . \
+  "        debug\n $debug \n" . \
+  "     done\n" . \
+  "     choose grids by share flag\n" . \
+  "        100 \n" . \
+  "   done\n" . \
+  "done";
 # 
 #$probeFileName = $probeFile . "Fluid.dat";
 #$extraCmds = \
@@ -147,10 +161,12 @@ $bc = "all=$sideBC\n bcNumber100=noSlipWall uniform(u=.0,T=$T0)\n bcNumber100=tr
 if( $option ne "beamUnderPressure" ){ $cmdRamp = "bcNumber3=outflow, pressure(1.*p+0.*p.n=$p0)"; }
 $bc = $bc . "\n" . $cmdRamp;
 #
-$ic="uniform flow\n" . "p=1., u=$u0, T=$T0";
+$ic="uniform flow\n" . "p=0., u=$u0, T=$T0";
 #
+echo to terminal 0
 include $ENV{CG}/mp/cmd/insDomain.h
 $extraCmds="#"; 
+echo to terminal 1
 # 
 # ------- specify elastic solid domain ----------
 $domainName=$domain2; $solverName="solid"; 
@@ -165,7 +181,9 @@ $exponent=10.; $x0=.5; $y0=.5; $z0=.5;  $rhoSolid=$rhoSolid*$scf; $lambda=$lambd
 # $initialConditionCommands="gaussianPulseInitialCondition\n Gaussian pulse: 10 2 $exponent $x0 $y0 $z0 (beta,scale,exponent,x0,y0,z0)";
 $initialConditionCommands="zeroInitialCondition";
 # 
+echo to terminal 0
 include $ENV{CG}/mp/cmd/smDomain.h
+echo to terminal 1
 # 
 continue
 #
@@ -208,12 +226,14 @@ continue
         erase
         plot domain: fluid
         contour
- # ghost lines 1
-          plot:p
-         ##  wire frame
+          vertical scale factor 0.
+           # ghost lines 1
+           plot:p
+           ##  wire frame
           exit
         plot domain: solid
         contour
+          vertical scale factor 0.
           adjust grid for displacement 1
         exit
         plot:solid : v2

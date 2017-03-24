@@ -1,6 +1,7 @@
 #
 # cgins -- test the twilightzone
 #
+echo to terminal 0
 # Usage:
 #   
 #  cgins [-noplot] tz -g=<name> -tz=<poly/trig> -degreex=<> -degreet=<> -tf=<tFinal> -tp=<tPlot> -debug=<> ...
@@ -8,9 +9,9 @@
 #        -solver=[yale|best] -rtol=<> -atol=<>  
 #        -psolver=[yale|best] -rtolp=<> -atolp=<> 
 #        -order=[-1|2|4|6|8] -model=[ins|boussinesq|tp|vp] ...
-#        -ts=<pc|pc4|im|fe> -debug=<num> -bg=<backGround> -fullSystem -imp=<val> ...
+#        -ts=[pc|pc4|im|fe|bdf|imex] -debug=<num> -bg=<backGround> -fullSystem -imp=<val> ...
 #        -newts[0|1] -go=[run/halt/og] -do=[fd|compact] -move=[0|shift|rotate] -checkErrOnGhost=[0|1|2] ...
-#        -bc[1|2|3|4]=[noSlip|slip|inflow|outflow|pinflow] -varMat=[0|1]
+#        -bc[1|2|3|4]=[noSlip|slip|inflow|outflow|pinflow] -varMat=[0|1] -orderInTime=[]
 # 
 #  -model=bp : Boussinesq + passive scalar
 #  -bc[1|2|3|4]= set the boundary conditions for grids with a face with bc=1,2,..,
@@ -176,9 +177,10 @@
 # 
 # --- set default values for parameters ---
 # 
+echo to terminal 1
 $model="ins"; $noplot=""; $backGround="square"; $show=" "; $newts=0; $project=0;  $varMat=0;
-$ts="adams PC"; $implicitVariation="full"; $implicitFactor=.5; $cdv=1.; $refactorFrequency=100;
-$numberOfCorrections=1; 
+$ts="adams PC"; $implicitVariation="viscous"; $implicitFactor=.5; $cdv=1.; $refactorFrequency=100;
+$numberOfCorrections=1; $orderInTime=-1;
 $cp0=.1;  # coeff of p in the mxied BC for outflow
 $debug = 0;  $tPlot=.1; $maxIterations=100; 
 $rtol=1.e-16; $atol=1.e-16; $rtolp=1.e-16; $atolp=1.e-16; 
@@ -224,7 +226,8 @@ GetOptions( "g=s"=>\$grid,"gf=s"=>\$gridCmdFileName,"tf=f"=>\$tFinal,"degreex=i"
   "lesPar1=f"=>\$lesPar1,"bc1=s"=>\$bc1,"bc2=s"=>\$bc2,"bc3=s"=>\$bc3,"bc4=s"=>\$bc4,"bc5=s"=>\$bc5,"bc6=s"=>\$bc6,\
   "checkErrOnGhost=i"=>\$checkErrOnGhost,"mbpbc=i"=>\$mbpbc,"mbpbcc=f"=>\$mbpbcc,"nc=i"=>\$numberOfCorrections,\
   "aftol=f"=>\$aftol, "afit=i"=>\$afit,"project=i"=>\$project,"cp0=f"=>\$cp0,"varMat=i"=>\$varMat,\
-  "thermalConductivity=i"=>\$thermalConductivity,"xshift=f"=>\$xshift,"yshift=f"=>\$yshift,"zshift=f"=>\$zshift,"uplot=s"=>\$uplot );
+  "thermalConductivity=i"=>\$thermalConductivity,"xshift=f"=>\$xshift,"yshift=f"=>\$yshift,"zshift=f"=>\$zshift,\
+  "uplot=s"=>\$uplot, "orderInTime=i"=>\$orderInTime );
 # -------------------------------------------------------------------------------------------------
 if( $solver eq "best" ){ $solver="choose best iterative solver"; }
 if( $solver eq "mg" ){ $solver="multigrid"; }
@@ -244,10 +247,12 @@ if( $tm eq "les" ){ $tm ="LargeEddySimulation"; }
 if( $ts eq "fe" ){ $ts="forward Euler";}
 if( $ts eq "be" ){ $ts="backward Euler"; }
 if( $ts eq "im" ){ $ts="implicit"; }
+if( $ts eq "bdf" ){ $ts="implicit BDF"; }
+if( $ts eq "imex" ){ $ts="implicit explicit multistep"; }
 if( $ts eq "pc" ){ $ts="adams PC"; }
 if( $ts eq "pc4" ){ $ts="adams PC order 4"; $useNewImp=0; } # NOTE: turn off new implicit for fourth order
 if( $ts eq "mid"){ $ts="midpoint"; }  
-if( $ts eq "afs"){ $ts="approximate factorization"; $newts=1;}
+if( $ts eq "afs"){ $ts="approximate factorization"; $newts=1;  $implicitVariation="full"; }
 #
 if( $useNewImp eq 1 ){ $useNewImp ="useNewImplicitMethod"; }else{ $useNewImp="#"; }
 #
@@ -347,6 +352,11 @@ $grid
 # -- order of accuracy: 
 $order 
 # 
+# Choose the time-stepping method:
+  $ts
+  if( $orderInTime eq 4 ){ $cmd="fourth order accurate in time\n BDF order 4"; }else{ $cmd="#"; }
+  $cmd
+#
 # 
   show file options
     compressed
@@ -388,11 +398,9 @@ $order
    use Neumann BC at outflow
   done
 # 
-# Choose the time-stepping method:
-  $ts
   OBPDE:use new fourth order boundary conditions 1
-OBPDE:use boundary dissipation in AF scheme 0
-OBPDE:stabilize high order boundary conditions 0
+  OBPDE:use boundary dissipation in AF scheme 0
+  OBPDE:stabilize high order boundary conditions 0
 # **************************************
 #  first order predictor
  number of PC corrections $numberOfCorrections
@@ -427,6 +435,7 @@ $cmd
   done
 #
 #
+echo to terminal 0
   pressure solver options
    $ogesSolver=$psolver; $ogesRtol=$rtolp; $ogesAtol=$atolp; $ogesIluLevels=$iluLevels; $ogmgDebug=$ogesDebug; $ogmgCoarseGridSolver="best"; $ogmgRtolcg=$rtolp; $ogmgAtolcg=$atolp; $ogmgCmd = "maximum number of iterations\n$ogmgMaxIts"
    #$ogmgOpav=0;
@@ -441,6 +450,7 @@ $cmd
    $ogesSolver=$solver; $ogesRtol=$rtol; $ogesAtol=$atol; $ogmgOpav=0; $ogmgRtolcg=1.e-6;
    include $ENV{CG}/ins/cmd/ogesOptions.h
   exit
+echo to terminal 1
 #
   boundary conditions...
    order of extrap for outflow 3 (-1=default)

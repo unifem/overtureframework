@@ -2,17 +2,17 @@
         subroutine insdtVP2dOrder4(nd,n1a,n1b,n2a,n2b,n3a,n3b,nd1a,
      & nd1b,nd2a,nd2b,nd3a,nd3b,nd4a,nd4b,mask,xy,rsxy,radiusInverse, 
      &  u,uu, ut,uti,gv,dw,  bc, ipar, rpar, ierr )
-c======================================================================
-c       EMPTY VERSION for Linking without this Capability
-c
-c   Compute du/dt for the incompressible NS on rectangular grids
-c     OPTIMIZED version for rectangular grids.
-c nd : number of space dimensions
-c
-c gv : gridVelocity for moving grids
-c uu : for moving grids uu is a workspace to hold u-gv, otherwise uu==u
-c dw : distance to the wall for some turbulence models
-c======================================================================
+       !======================================================================
+       !       EMPTY VERSION for Linking without this Capability
+       !
+       !   Compute du/dt for the incompressible NS on rectangular grids
+       !     OPTIMIZED version for rectangular grids.
+       ! nd : number of space dimensions
+       !
+       ! gv : gridVelocity for moving grids
+       ! uu : for moving grids uu is a workspace to hold u-gv, otherwise uu==u
+       ! dw : distance to the wall for some turbulence models
+       !======================================================================
         implicit none
         integer nd, n1a,n1b,n2a,n2b,n3a,n3b,nd1a,nd1b,nd2a,nd2b,nd3a,
      & nd3b,nd4a,nd4b

@@ -5,12 +5,14 @@
 #   
 #  cgmx [-noplot] planeWave  -g=<name> -tf=<tFinal> -tp=<tPlot> -kx=<num> -ky=<num> -kz=<num> -show=<name> ...
 #        -plotIntensity=[0|1] -eps1=<> -eps2=<> -interit=<> -diss=<> -filter=[0|1] -debug=<num> -cons=[0/1] ...
-#        -method=[nfdtd|Yee|sosup] -bcn=[default|d|abc] -plotHarmonicComponents=[0|1] -go=[run/halt/og]
+#        -method=[nfdtd|Yee|sosup] -bcn=[default|d|abc] -plotHarmonicComponents=[0|1] ] -dm=[none|drude]
+#        -go=[run/halt/og]
 # Arguments:
 #  -kx= -ky= -kz= : integer wave numbers of the incident wave
 #  -interit : number of iterations to solve the interface equations 
 #  -filter=1 : add the high order filter
 #  -plotHarmonicComponents : plot the harmonic components of the E field
+#  -dm : dispersion model
 #
 # Examples: 
 #   cgmx planeWave -g=square10 -kx=1 -go=halt
@@ -110,7 +112,7 @@
 #  mpirun -np 2 $cgmxp noplot planeWave -g=square10 -kx=1 -show="planeWave.show" -tf=.1 -go=go
 #================================================================================================
 # 
-$tFinal=2.; $tPlot=.1;  $show=" "; $method="NFDTD"; $bcn="default"; $matRegion=0; $bg="square"; 
+$tFinal=2.; $tPlot=.1;  $show=" "; $method="NFDTD"; $bcn="default"; $matRegion=0; $bg="square";  $dm="none"; 
 $cfl = .9; $diss=.5; $dissOrder=-1; $filter=0; $divClean=0; $divCleanCoeff=1; $solveForH=0; $projectInterp=0;
 $debug=0; $divDamping=.0; $plotIntensity=0; $intensityOption=0; $abcDir=0; $abcSide=1; $plotHarmonicComponents=0; 
 $cyl=1;   # set to 0 for a sphere 
@@ -133,8 +135,12 @@ GetOptions( "g=s"=>\$grid,"tf=f"=>\$tFinal,"diss=f"=>\$diss,"tp=f"=>\$tPlot,"sho
     "abcDir=i"=>\$abcDir,"abcSide=i"=>\$abcSide,"dissOrder=i"=>\$dissOrder,"filter=i"=>\$filter,\
     "divClean=i"=>\$divClean,"divCleanCoeff=f"=>\$divCleanCoeff,"solveForH=i"=>\$solveForH,\
     "projectInterp=i"=>\$projectInterp,"plotHarmonicComponents=i"=>\$plotHarmonicComponents,\
-    "checkErrors=i"=>\$checkErrors );
+    "checkErrors=i"=>\$checkErrors,"dm=s"=>\$dm );
 # -------------------------------------------------------------------------------------------------
+#
+if( $dm eq "none" ){ $dm="no dispersion"; }
+if( $dm eq"drude" || $dm eq "Drude" ){ $dm="Drude"; }
+#
 if( $go eq "halt" ){ $go = "break"; }
 if( $go eq "og" ){ $go = "open graphics"; }
 if( $go eq "run" || $go eq "go" ){ $go = "movie mode\n finish"; }
@@ -143,6 +149,8 @@ if( $go eq "run" || $go eq "go" ){ $go = "movie mode\n finish"; }
 $grid
 #
 $method
+# dispersion model:
+$dm
 # 
 planeWaveInitialCondition
 planeWaveKnownSolution

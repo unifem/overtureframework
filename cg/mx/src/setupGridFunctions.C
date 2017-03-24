@@ -279,7 +279,7 @@ setupGridFunctions()
       // With sosup we also advance/store the time-derivative of the fields
       numberOfComponents*= 2;
     }
-    
+
 
     //kkc 040304 ops apparently needed now for all schemes
     MappedGridOperators *ops = new MappedGridOperators(mg);
@@ -522,13 +522,33 @@ setupGridFunctions()
 	numberOfComponents=(int(solveForElectricField)+int(solveForMagneticField))*3;
       }
 	
+      if( dispersionModel!=noDispersion )
+      {
+	// -- add components for the dispersion model ---
+
+        // second-order : we store P (vector)
+        // fourth-order : store P and Q (vectors)
+        // sixth-order  : store P,Q,R (vectors)
+	const int numberOfDispersiveFields = orderOfAccuracyInSpace/2;
+	if( dispersionModel==drude )
+	{
+	  numberOfComponents+= numberOfDimensions*numberOfDispersiveFields;
+	}
+	else
+	{
+	  OV_ABORT("Unexpected dispersion model -- finish me");
+	}
+      
+
+      }
+
       if( method==sosup )
       {
 	// With sosup we also advance/store the time-derivative of the fields
 	numberOfComponents*= 2;
       }
 
-      if( method==yee || method==sosup )
+      if( true || method==yee || method==sosup )
 	printF("\n *********** setupGridFunctions: numberOfComponents=%i numberOfTimeLevels=%i\n\n",numberOfComponents,
 	       numberOfTimeLevels);
 
@@ -541,6 +561,7 @@ setupGridFunctions()
 	cgfields[n].updateToMatchGrid(cg,all,all,all,numberOfComponents);
 	cgfields[n]=0.;
 	    
+        int c=0; // counts components
 	if( method!=sosup )
 	{
           //  --- set field component names for nfdtd or Yee ---
@@ -548,11 +569,12 @@ setupGridFunctions()
 	  
 	  if( numberOfDimensions==2 )
 	  {
-	    if( numberOfComponents==3 )
+	    if(  method!=dsiMatVec )
 	    {
 	      cgfields[n].setName("Ex",ex);
 	      cgfields[n].setName("Ey",ey);
 	      cgfields[n].setName("Hz",hz);
+	      c+=3;
 	    }
 	    else
 	    {
@@ -561,11 +583,11 @@ setupGridFunctions()
 	      cgfields[n].setName("Ex01",ex01);
 	      cgfields[n].setName("Ey01",ey01);
 	      cgfields[n].setName("Hz",hz11);
+	      c+=5;
 	    }
 	  }
 	  else
 	  {
-	    int c=0;
 	    if( solveForElectricField )
 	    {
 	      ex=c; cgfields[n].setName("Ex",ex); c++;
@@ -587,7 +609,6 @@ setupGridFunctions()
 	  assert( method==sosup );
 	  if( numberOfDimensions==2 )
 	  {
-	    int c=0; 
 	    ex=c;  cgfields[n].setName("Ex",ex); c++;
 	    ey=c;  cgfields[n].setName("Ey",ey); c++;
 	    hz=c;  cgfields[n].setName("Hz",hz); c++;
@@ -598,7 +619,6 @@ setupGridFunctions()
 	  }
 	  else
 	  {
-	    int c=0;
 	    if( solveForElectricField )
 	    {
 	      ex=c;  cgfields[n].setName("Ex",ex);   c++;
@@ -629,8 +649,38 @@ setupGridFunctions()
 	    }
 	  }
 	}
+	if( dispersionModel!=noDispersion )
+	{
+          // --- assign dispersion component names ---
+          pxc=c; cgfields[n].setName("Px",pxc);   c++;
+          pyc=c; cgfields[n].setName("Py",pyc);   c++;
+	  if( numberOfDimensions==3 )
+	  {
+	    pzc=c; cgfields[n].setName("Pz",pzc);   c++;
+	  }
+	  if( orderOfAccuracyInSpace==4 )
+	  {
+	    qxc=c; cgfields[n].setName("Qx",qxc);   c++;
+	    qyc=c; cgfields[n].setName("Qy",qyc);   c++;
+	    if( numberOfDimensions==3 )
+	    {
+	      qzc=c; cgfields[n].setName("Qz",qzc);   c++;
+	    }
+	  }
+	  if( orderOfAccuracyInSpace==6 )
+	  {
+	    rxc=c; cgfields[n].setName("Rx",rxc);   c++;
+	    ryc=c; cgfields[n].setName("Ry",ryc);   c++;
+	    if( numberOfDimensions==3 )
+	    {
+	      rzc=c; cgfields[n].setName("Rz",rzc);   c++;
+	    }
+	  }
+	  
+	}
 	
-      }
+      } // end for n
+      
 	
       // *wdh* Do this as needed in computeDissipation
 //  	if( artificialDissipation>0. )
@@ -980,7 +1030,10 @@ setupGridFunctions()
 
       Index I1,I2,I3;
       getIndex(mg.dimension(),I1,I2,I3);
-      Range C(ex,hz);
+
+      // *wdh* Jan 6, 2017 Range C(ex,hz);
+      const int numberOfComponents=cgfields[0][0].getLength(3);
+      Range C = numberOfComponents;
       #define FN(m) fn[m+numberOfFunctions*(grid)]
       for( int m=0; m<numberOfFunctions; m++ )
       {

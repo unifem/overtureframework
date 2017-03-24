@@ -134,7 +134,8 @@ if( $parallel eq "" || !( -e "parallel_tests.pm") )
 else
 {
     # the following will find and import the variables in parallel_tests.pm (cmdFiles and numProcs)
-    eval("use parallel_tests");
+  print "check.p: Looking in file `parallel_tests.pm for tests...\n";
+  eval("use parallel_tests");
 }
 
 $numberOfErrors = 0;

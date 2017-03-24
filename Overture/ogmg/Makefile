@@ -35,7 +35,9 @@ LAPACK_LIBS = -L$(LAPACK) -llapack -lblas
 FLIBS=   $(FORTRAN_LIBS) $(AppLibraries) 
 ifeq ($(VENDOR),apple)
   # MAC: 
-  FLIBS=   -llapack -lblas $(FORTRAN_LIBS) $(AppLibraries) -Wl-framework,Accelerate  -L/usr/local/gfortran/lib -lgfortran 
+  FLIBS=  -L$(LAPACK) -llapack -lblas $(FORTRAN_LIBS) $(AppLibraries) -Wl-framework,Accelerate  -L/usr/local/gfortran/lib -lgfortran 
+  FLIBS=  -lflapack -lfblas $(FORTRAN_LIBS) $(AppLibraries) -L/opt/local/lib -lgfortran 
+  FLIBS=  $(FORTRAN_LIBS) $(AppLibraries) -L/opt/local/lib -lgfortran 
 endif
 
 # apple:
@@ -73,6 +75,12 @@ Oges = ../oges
 # # apple: no petsc for now
 # # PETSC_LIBS =
 # # OGES_PETSC =
+
+OGES_PETSC := buildEquationSolvers.o \
+              PETScEquationSolver.o  \
+              MultigridEquationSolver.o 
+
+
 
 all = linkFiles ogmgt
 all: $(all);

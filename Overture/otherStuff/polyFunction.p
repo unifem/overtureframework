@@ -26,10 +26,10 @@ $laplace="";
 @lapX = ();
 @assignX = ();
 
-# only compute first and second derivatives here
-# except we also want uxxx and uxxxx
+# ----- compute up till fourth-derivatives in x, y, and z *wdh* Feb 2, 2017 ----
 $maxXDerivative=4; if( $maxXDerivative>$degree ){ $maxXDerivative=$degree; }
-$maxDerivative=2; if( $maxDerivative>$degree ){ $maxDerivative=$degree; }
+$maxDerivative=4; if( $maxDerivative>$degree ){ $maxDerivative=$degree; }
+# old $maxDerivative=2; if( $maxDerivative>$degree ){ $maxDerivative=$degree; }
 
 for( $dx=0; $dx<=$maxXDerivative; $dx++ ) # x derivatives
 {
@@ -245,12 +245,23 @@ if( $laplace ne "" )
  printf(FILE "rrr=($laplace\)*time\n");
  printf(FILE "endLoops()\n");
 }
+else
+{  # No $laplace is set if degree<2
+ printf(FILE "else if( laplace.eq.1 )then\n");
+ printf(FILE " beginLoops(time=0.)\n");
+ printf(FILE "  rrr=0.\n");
+ printf(FILE " endLoops()\n");
+}
+
+# ---- end loops ---
+printf(FILE "else if( dx.gt.$degree .or. dy.gt.$degree .or. dz.gt.$degree )then\n");
+printf(FILE " beginLoops(time=0.)\n");
+printf(FILE "  rrr=0.\n");
+printf(FILE " endLoops()\n");
 printf(FILE "else\n");
-printf(FILE "beginLoops(time=0.)\n");
-printf(FILE "rrr=0.\n");
-printf(FILE "endLoops()\n");
-
-
+printf(FILE " write(*,*) 'polyFunction:ERROR derivative not implemented'\n");
+printf(FILE " write(*,*) 'dx,dy,dz=',dx,dy,dz\n");
+printf(FILE " stop 6543\n");
 printf(FILE "end if\n");
 printf(FILE "#endMacro\n");
 

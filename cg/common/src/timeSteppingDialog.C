@@ -198,7 +198,6 @@ buildTimeSteppingDialog(DialogData & dialog )
   tbState[ntb]=parameters.dbase.get<bool>("exitOnInstablity");
   ntb++;
 
-
   assert( ntb<maxNumberOfToggleButtons );
   tbCommands[ntb]="";  // null termination string
 
@@ -206,7 +205,7 @@ buildTimeSteppingDialog(DialogData & dialog )
   dialog.setToggleButtons(tbCommands, tbCommands, tbState, numColumns);
 
   // ----- Text strings ------
-  const int numberOfTextStrings=30;
+  const int numberOfTextStrings=31;
   aString textCommands[numberOfTextStrings];
   aString textLabels[numberOfTextStrings];
   aString textStrings[numberOfTextStrings];
@@ -279,7 +278,15 @@ buildTimeSteppingDialog(DialogData & dialog )
   textCommands[nt] = "added damping coefficient:"; textLabels[nt] =textCommands[nt];
   sPrintF(textStrings[nt],"%e",parameters.dbase.get<real>("addedDampingCoefficient")); nt++;
 
-  // null strings terminal list
+  if( parameters.dbase.has_key("upwindOrder") )  // order of upwinding (INS)
+  {
+    textCommands[nt] = "upwind order:"; textLabels[nt] =textCommands[nt];
+    sPrintF(textStrings[nt],"%i (-1=default)",parameters.dbase.get<int>("upwindOrder")); nt++;
+  }
+ 
+
+
+ // null strings terminal list
   textCommands[nt]="";   textLabels[nt]="";   textStrings[nt]="";  assert( nt<numberOfTextStrings );
   dialog.setTextBoxes(textCommands, textLabels, textStrings);
 
@@ -321,6 +328,7 @@ getTimeSteppingOption(const aString & answer,
   bool & useMovingGridSubIterations = parameters.dbase.get<bool>("useMovingGridSubIterations");
   bool & useFullSystemForImplicitTimeStepping = parameters.dbase.get<bool>("useFullSystemForImplicitTimeStepping");
   bool & exitOnInstablity = parameters.dbase.get<bool>("exitOnInstablity");
+  int upwindOrder=-1;
   
   int found=true; 
   char buff[180];
@@ -790,6 +798,20 @@ getTimeSteppingOption(const aString & answer,
            parameters.dbase.get<real>("addedDampingCoefficient"));
   }
   
+  else if( dialog.getTextValue(answer,"upwind order:", "%i",upwindOrder) )
+  {
+    if( parameters.dbase.has_key("upwindOrder") )  // order of upwinding (INS)
+    {
+      parameters.dbase.get<int>("upwindOrder")=upwindOrder;
+      printF("Setting upwinding order to [%i] (for Cgins)\n",upwindOrder);
+    }
+    else
+    {
+      printf("WARNING: Not setting upwindOrder as this option is not valid for this solver\n");
+    }
+    
+  }
+    
 
   else if( dialog.getToggleValue(answer,"predicted pressure needed",parameters.dbase.get<bool>("predictedPressureNeeded")) ){}  // 
   
