@@ -31,11 +31,11 @@ FNSRCO += ins_merged_factors_opt.f90
 
 # --- fortran files that we always compile optimized ---
 
-FSRCO += insdtINS2dOrder2.f insdtINS3dOrder2.f  insdtINS2dOrder4.f insdtINS3dOrder4.f
+FSRCO += insdt.f insdtINS.f insdtINS2dOrder2.f insdtINS3dOrder2.f  insdtINS2dOrder4.f insdtINS3dOrder4.f
 
 FSRCO += insad2dr.f insad2dc.f insad3dr.f insad3dc.f 
 
-FSRCO += insdt.f lineSolveINS.f inspINS22.f inspINS23.f inspINS42.f insbcOpt4.f insLineSolve.f insLineSolveNew.f
+FSRCO += lineSolveINS.f inspINS22.f inspINS23.f inspINS42.f insbcOpt4.f insLineSolve.f insLineSolveNew.f
 
 FSRCO += bcOptTemperature.f
 
@@ -121,14 +121,19 @@ src/inscr4.f : src/inscr4.bf; $(BPP) -quiet -clean -I$(Overture)/include $<
 
 src/bcOptTemperature.f : src//bcOptTemperature.bf; $(BPP) -quiet -clean -I$(Overture)/include $<
 
-src/insdt.f : src/insdt.bf; $(BPP) -quiet -clean -I$(Overture)/include $<
+src/insdt.f : src/insdt.bf src/advectionMacros.h; $(BPP) -quiet -clean -I$(Overture)/include src/insdt.bf
 
-# src/insdtINS.bf : src/insdt.h src/advectionMacros.h; $(BPP) -quiet -clean -I$(Overture)/include src/insdtINS.bf
+src/insdtINS.f : src/insdtINS.bf src/insdt.h src/advectionMacros.h; $(BPP) -quiet -clean -I$(Overture)/include src/insdtINS.bf
 
-src/insdtINS2dOrder2.f : src/insdtINS.bf src/insdt.h src/advectionMacros.h; $(BPP) -quiet -clean -I$(Overture)/include src/insdtINS.bf
-src/insdtINS2dOrder4.f : src/insdtINS.bf src/insdt.h src/advectionMacros.h; $(BPP) -quiet -clean -I$(Overture)/include src/insdtINS.bf
-src/insdtINS3dOrder2.f : src/insdtINS.bf src/insdt.h src/advectionMacros.h; $(BPP) -quiet -clean -I$(Overture)/include src/insdtINS.bf
-src/insdtINS3dOrder4.f : src/insdtINS.bf src/insdt.h src/advectionMacros.h; $(BPP) -quiet -clean -I$(Overture)/include src/insdtINS.bf
+src/insdtINS2dOrder2.f : src/insdtINS.f 
+src/insdtINS2dOrder4.f : src/insdtINS.f 
+src/insdtINS3dOrder2.f : src/insdtINS.f
+src/insdtINS3dOrder4.f : src/insdtINS.f 
+
+# src/insdtINS2dOrder2.f : src/insdtINS.bf src/insdt.h src/advectionMacros.h; $(BPP) -quiet -clean -I$(Overture)/include src/insdtINS.bf
+# src/insdtINS2dOrder4.f : src/insdtINS.bf src/insdt.h src/advectionMacros.h; $(BPP) -quiet -clean -I$(Overture)/include src/insdtINS.bf
+# src/insdtINS3dOrder2.f : src/insdtINS.bf src/insdt.h src/advectionMacros.h; $(BPP) -quiet -clean -I$(Overture)/include src/insdtINS.bf
+# src/insdtINS3dOrder4.f : src/insdtINS.bf src/insdt.h src/advectionMacros.h; $(BPP) -quiet -clean -I$(Overture)/include src/insdtINS.bf
 
 src/insdtKE2dOrder2.f : src/insdtKE.bf src/insdt.h; $(BPP) -quiet -clean -I$(Overture)/include src/insdtKE.bf
 src/insdtKE2dOrder4.f : src/insdtKE.bf src/insdt.h; $(BPP) -quiet -clean -I$(Overture)/include src/insdtKE.bf
