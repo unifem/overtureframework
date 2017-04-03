@@ -246,7 +246,7 @@ FEMBeamModel::
 // }
 
 
-// Longfei 20160621: new addForce() to add the surface velocity to the current force
+// Longfei 20160621: new addForce() to add the surface force to the current force
 void FEMBeamModel::
 addForce( )
 {

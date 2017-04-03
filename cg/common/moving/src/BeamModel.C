@@ -4063,7 +4063,7 @@ resetForce()
 
 // Longfei 20160330: new function that sets the surface force:
 // ================================================================================
-/// \brief  Set the surface velocity (used to project the beam velocity) 
+/// \brief  Set the surface force (used to project the beam force) 
 ///         results are load vector of the force(traction) on beam neutral line.
 ///         The load vector is stored in dbase.get<RealArray>("surfaceForece")
 /// \param t (input) : set velocity at this time.
@@ -6666,8 +6666,10 @@ getAugmentedSolution(real t, realMappedGridFunction & w)
   const bool & xd = dbase.get<bool>("isCubicHermiteFEM");
   // number of components: 
   int nv=4;    // [u,v,a,f]
-  if(xd) nv*=2;  // + [ux,vx,ax]
-  if( plotErrors ) nv*=2;  // doulbe number of components for errors
+  int compFactor=1;
+  if(xd) compFactor=2;  // x derivatives of solutions, i.e. [ux,vx,ax,fx]
+  nv *= compFactor;
+  if( plotErrors ) nv+=3*compFactor;  // add components for errors (erru,errv,erra) and their x derivatives if any
 
   MappedGrid &c =dbase.get<MappedGrid>("beamGrid");
   Range all;
