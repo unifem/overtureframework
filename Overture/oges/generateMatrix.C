@@ -308,6 +308,13 @@ generateMatrix( int & errorNumber )
                 if( isparse==1 ) IA(ii)=ieqn;
 		JA(ii)=jaExtra(kk);
 		A(ii)=aExtra(kk);
+
+	  	if( true )
+		{
+		  printF("  Extra eqn=%i kk=%5i : (i,j,a)=(%i,%i,%12.4e)\n",iExtraEquation,kk,ieqn,jaExtra(kk),aExtra(kk));
+		}
+	  
+
 	      }
 	      iExtraEquation++;
 	    }

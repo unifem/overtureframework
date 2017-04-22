@@ -59,14 +59,25 @@ class WindowProperties
 {
 public:
 // constructor
-WindowProperties(){commandWindowWidth=-1; commandWindowHeight=-1; graphicsWindowWidth=-1; 
- graphicsWindowHeight=-1; foregroundColour=""; backgroundColour=""; showRubberBandBox=true;
- preferDirectRendering=true; showCommandHistory=true; showPrompt=true; }
+WindowProperties(){
+  commandWindowWidth=-1; commandWindowHeight=-1; commandWindowNx=-1; commandWindowNy=-1;
+  graphicsWindowWidth=-1; graphicsWindowHeight=-1; graphicsWindowNx=-1; graphicsWindowNy=-1;
+  dialogNx=-1; dialogNy=-1;
+  dialogOffsetNx=10; dialogOffsetNy=0;  // shift new dialogs by this amount 
+  foregroundColour=""; backgroundColour=""; showRubberBandBox=true;
+  preferDirectRendering=true; showCommandHistory=true; showPrompt=true; }
 // data
 int commandWindowWidth;
 int commandWindowHeight;
+int commandWindowNx, commandWindowNy;  // x,y location for upper left corner of command window
+
 int graphicsWindowWidth;
 int graphicsWindowHeight;
+int graphicsWindowNx, graphicsWindowNy;  // x,y location for upper left corner of graphics window
+
+int dialogNx, dialogNy;  // x,y location for upper left corner of dialog window
+int dialogOffsetNx, dialogOffsetNy;  // shift new dialogs by this amount 
+
 aString foregroundColour;
 aString backgroundColour;
 bool showRubberBandBox;

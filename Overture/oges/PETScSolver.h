@@ -40,7 +40,9 @@ virtual int solve( realCompositeGridFunction & u, realCompositeGridFunction & f 
 
 int destroy();
 
-int buildGlobalIndexing(CompositeGrid & cg, realCompositeGridFunction & uu );
+int buildGlobalIndexing(CompositeGrid & cg );
+
+int buildGlobalIndexingOld(CompositeGrid & cg, realCompositeGridFunction & uu );
 
 // Return the current memory usage in Mb:
 static real getCurrentMemoryUsage();
@@ -67,6 +69,8 @@ int buildSolver();
 
 int fillInterpolationCoefficients(realCompositeGridFunction & uu);
 
+// Find the locations for extra equations: 
+virtual int findExtraEquations();
 
 // assign values to rhs for the the extra equations 
 virtual int setExtraEquationRightHandSideValues( realCompositeGridFunction & f, real *value );
@@ -74,6 +78,12 @@ virtual int setExtraEquationRightHandSideValues( realCompositeGridFunction & f, 
 // return solution values from the extra equations
 // Old way:
 virtual int getExtraEquationValues( const realCompositeGridFunction & u, real *value, const int maxNumberToReturn=1 );
+
+// Convert an Equation Number to a point on a grid (inverse of equationNo)
+virtual void equationToIndex( const int eqnNo0, int & n, int & i1, int & i2, int & i3, int & grid );
+
+// convert a component and grid point into an equation number
+virtual int equationNo( const int n, const int i1, const int i2, const int i3, const int grid );
 
 // evaluate the dot product of an extra equation times u 
 virtual int evaluateExtraEquation( const realCompositeGridFunction & u, real & value, int extraEquation=0 );
@@ -122,6 +132,8 @@ SingularProblemEnum problemIsSingular;
 
 bool initialized;
 bool reInitialize;
+
+bool globalIndexingIsComputed;
 
 bool useDiagonalScaling;
 bool adjustPeriodicCoefficients;

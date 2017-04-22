@@ -8,6 +8,7 @@
 #include "PETScSolver.h"
 #include "display.h"
 #include "SparseRep.h"
+#include "OgesExtraEquations.h"
 
 // =============================================================================
 //  \brief Here is the function that Overture::finish() calls to shutdown PETSc
@@ -76,11 +77,15 @@ static int NUM_KSP_CONVERGED_ITS_ERRORS=0;  // counts number of these errors
     for(i2=I2Base; i2<=I2Bound; i2++) \
     for(i1=I1Base; i1<=I1Bound; i1++)
 
+// ========================================================================================
+/// \brief Constructor for the parallel PETSc solver 
+// ========================================================================================
 PETScSolver::
 PETScSolver(Oges & oges_) : EquationSolver(oges_) 
 {
   initialized=false;
   reInitialize=false;
+  globalIndexingIsComputed=false;
   
   pnab=NULL;
   pnoffset=NULL;
@@ -416,6 +421,92 @@ getGlobalIndex( int n, int *iv, int grid, realArray & ug ) const
 	  iv[2]-nab(0,axis3,p,grid))) + noffset(p,grid) ); 
 }
 
+//=============================================================================
+// Convert an Equation Number to a point on a grid (Inverse of equationNo)
+// input -
+//  eqnNo0 : equation number
+// Output
+//  n : component number ( n=0,1,..,numberOfComponents-1 )
+//  i1,i2,i3 : grid indices
+//  grid : component grid number (grid=0,1,2..,numberOfCompoentGrids-1)   
+//=============================================================================
+void PETScSolver::
+equationToIndex( const int eqnNo0, int & n, int & i1, int & i2, int & i3, int & grid )
+{
+  assert( pnab!=NULL ); // remove assert for performance after testing
+
+  CompositeGrid & cg = oges.cg;
+  const int numberOfComponentGrids=cg.numberOfComponentGrids();
+
+  // -- find the processor and grid that contains this equation ---
+  // *FIX ME* we could do a binary search on "k" if we reordered the entries in noffset to be 
+  //           k= grid + ng*( p-1) , k=0,1,2,3...
+  int p=-1;
+  grid=-1;
+  bool found=false;
+  for( int proc=0; proc<numberOfProcessors && !found; proc++ )
+  {
+    for( int g=0; g<numberOfComponentGrids; g++ )
+    {
+  
+      if( eqnNo0 < noffset(proc,g) )
+      {
+	found=true;
+	break;
+      }
+      p=proc;
+      grid=g;
+    }
+  }
+  assert( p>=0 && grid >=0 );
+
+  // eqn= n + numberOfComponents*(
+  //    (iv[0]-nab(0,axis1,p,grid))+ndab(0,p,grid)*(
+  //     iv[1]-nab(0,axis2,p,grid) +ndab(1,p,grid)*(
+  //     iv[2]-nab(0,axis3,p,grid))) + noffset(p,grid) ); 
+
+
+  int eqn=eqnNo0-noffset(p,grid);
+  n = eqn % numberOfComponents;
+  eqn /= numberOfComponents;
+
+  i1=(eqn % ndab(0,p,grid))+nab(0,axis1,p,grid);
+  eqn /= ndab(0,p,grid);
+  
+  i2=(eqn % ndab(1,p,grid))+nab(0,axis2,p,grid);
+  eqn/=ndab(1,p,grid);
+  
+  i3=(eqn % ndab(2,p,grid))+nab(0,axis3,p,grid);
+
+    
+  // n=0;
+  // i1=i2=i3=grid=0;
+  // printF("PETScSolver::equationToIndex:ERROR: finish me.\n");
+  // // OV_ABORT("error");
+}
+
+//=============================================================================
+/// \brief Return the equation number for given indices
+/// \param  n (input) : component number ( n=0,1,..,numberOfComponents-1 )
+/// \param i1,i2,i3 (input) : grid indices
+/// \param grid (input) : component grid number (grid=0,1,2..,numberOfCompoentGrids-1)   
+//=============================================================================
+int PETScSolver::
+equationNo( const int n, const int i1, const int i2, const int i3, const int grid )
+{
+  int iv[3]={i1,i2,i3}; // 
+  intArray & mask = oges.cg[grid].mask();
+  int p= mask.Array_Descriptor.findProcNum( iv );  // processor number
+  // printF("--PETSc::equationNo: point (i1,i2,i3,grid)=(%i,%i,%i,grid) lives on proc=%i, noffset(p,grid)=%i\n",
+  // 	 i1,i2,i3,grid,p,noffset(p,grid));
+  
+  return  n + numberOfComponents*(
+         (iv[0]-nab(0,axis1,p,grid))+ndab(0,p,grid)*(
+          iv[1]-nab(0,axis2,p,grid) +ndab(1,p,grid)*(
+	  iv[2]-nab(0,axis3,p,grid))) + noffset(p,grid) ); 
+}
+
+
 // =====================================================================================
 // \brief Return the maximum residual.
 // =====================================================================================
@@ -451,18 +542,214 @@ getNumberOfIterations() const
 } 
 
 
+// =============================================================================================
+/// \brief Find the locations for extra equations: 
+///
+/// \note: For now only a special parallel version is implemented in PETScSolver, 
+///        in serial we still use Oges version.
+/// =============================================================================================
+int PETScSolver::findExtraEquations()
+{
+  CompositeGrid & cg = oges.cg;
+
+  // --- make sure the global indxing is constructed ---  
+  buildGlobalIndexing( cg );
+
+  int & numberOfExtraEquations = oges.numberOfExtraEquations;
+  
+  if( numberOfExtraEquations <= 0 )
+    return 0;
+
+  // **** This code is the parallel version of the one in ogeslFiles.C: Oges:findExtraEquations() ***
+  const int myid=Communication_Manager::My_Process_Number;
+
+  if( pnab==NULL )
+  {
+    OV_ABORT("PETScSolver::findExtraEquations:ERROR: global indexing has not been built!");
+  }
+  
+
+  IntegerArray & extraEquationNumber = oges.extraEquationNumber;
+  extraEquationNumber.redim(numberOfExtraEquations);
+  extraEquationNumber=0;
+  
+
+  // --- For now we assume there are enough unused points located at the ---
+  //     end of the last grid where we can locate the extra equations.
+  int extraEqn=0; // counts extra equations
+  const int grid=cg.numberOfComponentGrids()-1;  // last grid
+  const IntegerArray & d = cg[grid].dimension();
+  MappedGrid & c = cg[grid];
+  IntegerDistributedArray & classifyX = oges.coeff[grid].sparse->classify;
+  OV_GET_SERIAL_ARRAY(int,classifyX,classifyXLocal);
+
+  int iv[3], &i1=iv[0], &i2=iv[1], &i3=iv[2]; 
+  i1=d(1,0), i2=d(1,1), i3=d(1,2);   // last grid point
+  const int n=numberOfComponents-1; // component number of extra equation
+  const int p= classifyX.Array_Descriptor.findProcNum( iv );  // processor number
+ 
+  const int startingExtraEquationClassifyValue=10;
+
+  if( myid==p ) // all extra equations must be on this processor for now
+  {
+    while( extraEqn<numberOfExtraEquations && i1 >=classifyXLocal.getBase(0) )
+    {
+      // check this point to make sure it is unused: 
+
+      // Note: classify already may have an extra eqn in it if, for example, initialize was called twice
+      if( (classifyXLocal(i1,i2,i3,n)==SparseRepForMGF::unused 
+	   || classifyXLocal(i1,i2,i3,n) >= startingExtraEquationClassifyValue) && extraEqn<numberOfExtraEquations )
+	// if( classifyXLocal(i1,i2,i3,n)==SparseRepForMGF::unused )
+      {
+
+	extraEquationNumber(extraEqn)=getGlobalIndex( n, iv, grid, p );  // get the global index
+        classifyXLocal(i1,i2,i3,n)=startingExtraEquationClassifyValue+extraEqn;
+	if( true )
+	{
+	  printf("PETScSolver::findExtraEquations: p=%i extraEqn=%i grid=%i (i1,i2,i3,n)=(%i,%i,%i,%i) globalIndex=%i\n",
+		 p,extraEqn,grid,i1,i2,i3,n,extraEquationNumber(extraEqn));
+	}
+	
+	extraEqn++;
+      }
+      i1--;  // next point to check 
+      
+    } // end while
+  }
+
+  extraEqn=ParallelUtility::getMaxValue(extraEqn); // brodcast number found to all processors
+  if( extraEqn != numberOfExtraEquations )
+  {
+    printF("Oges::PETScSolverfindExtraEquations:ERROR unable to find locations for extra equations\n"
+           "  This application is requesting numberOfExtraEquations =%i\n"
+           "  Extra equations are placed at unused points at the LAST point on the LAST grid.\n"
+           "  You could add an extra ghostline to the LAST grid.\n",
+	   numberOfExtraEquations);
+    OV_ABORT("ERROR");
+  }
+
+  // broadcast a serial array to all processors in a communicator
+  // void broadCast( intSerialArray & buff, const int & fromProcessor=0, MPI_Comm comm=MPI_COMM_WORLD );
+  broadCast( extraEquationNumber, p );
+
+  // --- this also works: 
+  // //  static void getSums(int *value, int *sum, int n, int processor=-1, MPI_Comm comm=MPI_COMM_WORLD);  
+  // int *sum= new int [numberOfExtraEquations];
+  // ParallelUtility::getSums( extraEquationNumber.getDataPointer(), sum, numberOfExtraEquations );
+  // for( int i=0; i<numberOfExtraEquations; i++ ){ extraEquationNumber(i)=sum[i]; } // 
+  // delete [] sum;
+
+  printF("PETScSolver::findExtraEquations: extra equations are at global indices =[");
+  for( int i=0; i<numberOfExtraEquations; i++ )
+    printF("%i ",extraEquationNumber(i));
+  printF("]\n");
+
+  return 0;
+}
+
 
 
 
 int PETScSolver::
-buildGlobalIndexing(CompositeGrid & cg, realCompositeGridFunction & uu )
+buildGlobalIndexing(CompositeGrid & cg )
 // ============================================================================
 //  Build the arrays needed for defining the global indexing scheme
 //
 //   nab(side,axis,p,grid) : bounds of grid on processor p.
 // ============================================================================
 {
- if( !processorIsActive )
+
+  if( globalIndexingIsComputed )
+    return 0;
+  
+  globalIndexingIsComputed=true;  // *wdh* What happens if the number of grids or grid points changes??
+
+  if( !processorIsActive )
+    return 0;
+
+  const int myid=max(0,Communication_Manager::My_Process_Number);
+
+  int iv[3], &i1=iv[0], &i2=iv[1], &i3=iv[2]; 
+  int jv[3], &j1=jv[0], &j2=jv[1], &j3=jv[2]; 
+
+  const int nabDimension=2*3*numberOfProcessors*cg.numberOfComponentGrids();
+  delete [] pnab;  // *wdh* 091128 -- for refactor
+  pnab = new int[nabDimension];  
+  delete [] pnoffset; // *wdh* 091128 -- for refactor
+  pnoffset = new int [numberOfProcessors*cg.numberOfComponentGrids()]; 
+
+
+  numberOfGridPoints=0;
+  numberOfGridPointsThisProcessor=0;
+
+  int grid;
+  for( grid=0; grid<cg.numberOfComponentGrids(); grid++ )
+  {
+    intArray & ug= cg[grid].mask();
+    // realArray & ug= uu[grid];
+      
+    int nd1a = ug.getBase(0), nd1b=ug.getBound(0);
+    int nd2a = ug.getBase(1), nd2b=ug.getBound(1);
+    int nd3a = ug.getBase(2), nd3b=ug.getBound(2);
+
+    IndexBox uBox;
+    for( int p=0; p<numberOfProcessors; p++ )
+    {
+      CopyArray::getLocalArrayBox( p, ug, uBox ); // find the array bounds on proc. p (no ghost)
+      for( int axis=0; axis<3; axis++ )
+      {
+	nab(0,axis,p,grid)=uBox.base(axis);
+	nab(1,axis,p,grid)=uBox.bound(axis);
+      }
+      if( debug & 1 )
+	printF("PETScSolver::NEW: grid=%i p=%i local bounds=[%i,%i][%i,%i][%i,%i] \n",grid,p,
+	       nab(0,axis1,p,grid),nab(1,axis1,p,grid),
+	       nab(0,axis2,p,grid),nab(1,axis2,p,grid),
+	       nab(0,axis3,p,grid),nab(1,axis3,p,grid));
+    }
+    
+    numberOfGridPointsThisProcessor+=ndab(0,myid,grid)*ndab(1,myid,grid)*ndab(2,myid,grid);
+    numberOfGridPoints+= (nd1b-nd1a+1)*(nd2b-nd2a+1)*(nd3b-nd3a+1);   
+  } // end for grid
+
+
+  int offset=0;
+  for( int p=0; p<numberOfProcessors; p++ )
+  {
+    for( grid=0; grid<cg.numberOfComponentGrids(); grid++ )
+    {
+      noffset(p,grid)=offset;
+      offset+=ndab(0,p,grid)*ndab(1,p,grid)*ndab(2,p,grid);  // add number of pts on this local array
+    }
+  }
+  
+  if( debug & 4 )
+  {
+    printf(" >>>>>>>>>>> myid=%i numberOfGridPointsThisProcessor=%i, numberOfGridPoints=%i<<<<<<<<<<<<<<<<<<<\n",
+	   myid,numberOfGridPointsThisProcessor,numberOfGridPoints);
+    fflush(0);
+  }
+  
+  return 0;
+}
+
+int PETScSolver::
+buildGlobalIndexingOld(CompositeGrid & cg, realCompositeGridFunction & uu )
+// ============================================================================
+// ***** OLD VERSION ***
+//
+//  Build the arrays needed for defining the global indexing scheme
+//
+//   nab(side,axis,p,grid) : bounds of grid on processor p.
+// ============================================================================
+{
+
+  if( globalIndexingIsComputed )
+    return 0;
+  
+  globalIndexingIsComputed=true;  // *wdh* What happens if the number of grids or grid points changes??
+
+  if( !processorIsActive )
     return 0;
 
   const int myid=max(0,Communication_Manager::My_Process_Number);
@@ -636,8 +923,11 @@ buildMatrix( realCompositeGridFunction & coeff, realCompositeGridFunction & uu )
     }
   }
   
-
-  buildGlobalIndexing( cg,uu );
+  // The global indexing may have already been built from findExtraEquations
+  if( !globalIndexingIsComputed )
+   buildGlobalIndexing( cg );
+  
+  // buildGlobalIndexing( cg,uu );
 
   pCoeff=&coeff;  // save this -- we need the classify array in solve
 
@@ -807,18 +1097,65 @@ buildMatrix( realCompositeGridFunction & coeff, realCompositeGridFunction & uu )
   }
   
 
-  int extraEquation=-1;
-  if( problemIsSingular==addExtraEquation )
+    
+  // Here is where the user has defined extra equations of over-ridden existing equations:
+  const bool & userSuppliedEquations = parameters.userSuppliedEquations;
+  OgesExtraEquations & extraEquations = oges.dbase.get<OgesExtraEquations>("extraEquations");
+  assert( (userSuppliedEquations && extraEquations.neq>0) || (!userSuppliedEquations && extraEquations.neq<=0 ) );
+    
+  const IntegerArray & eqnExtra =extraEquations.eqn;  // equation numbers for extra user eqn's (not dense)
+  // ::display(eqnExtra,"--OGES--PETScSolver-- eqnExtra");
+  const IntegerArray & iaExtra =extraEquations.ia;
+  const IntegerArray & jaExtra =extraEquations.ja;
+  const RealArray & aExtra =extraEquations.a;
+
+  const int & numberOfExtraEquations = oges.numberOfExtraEquations;
+  const IntegerArray & extraEquationNumber = oges.extraEquationNumber;
+
+  // If we have have extra equations and we rescale row norms then we need to save
+  // the scale factors for the extra equations:
+  if( !oges.dbase.has_key("extraEquationScaleFactor") )
   {
-    // find a spot to put the extra equation
-    int grid=cg.numberOfComponentGrids()-1;
-    const IntegerArray & d = cg[grid].dimension();
+    oges.dbase.put<RealArray>("extraEquationScaleFactor");
+  }
+  if( parameters.rescaleRowNorms )
+  {
+    RealArray & extraEquationScaleFactor = oges.dbase.get<RealArray>("extraEquationScaleFactor");
+    extraEquationScaleFactor.redim(numberOfExtraEquations);
+    extraEquationScaleFactor=1.;
+  }
+  
 
-    i1=d(1,0), i2=d(1,1), i3=d(1,2); 
-    int p= uu[grid].Array_Descriptor.findProcNum( iv );  // processor number
-    int n=numberOfComponents-1;
-    extraEquation=getGlobalIndex( n, iv, grid, p );  // get the global index
+  // ****** find dense extra equations *****
+  // **fix me for multiple dense equations**
+  int denseExtraEquation=-1;
+  if( true )
+  { 
+    // *new* way
+    if( problemIsSingular==addExtraEquation )
+    {
+      denseExtraEquation= extraEquationNumber(0);
+    }
+    
+  }
+  else
+  {
+    // *** OLD WAY ***
+    // -- this is now done in PETScSolver:: findExtraEquations ---
+    if( problemIsSingular==addExtraEquation )
+    {
+      // find a spot to put the extra equation
+      int grid=cg.numberOfComponentGrids()-1;
+      const IntegerArray & d = cg[grid].dimension();
 
+      i1=d(1,0), i2=d(1,1), i3=d(1,2); 
+      int p= uu[grid].Array_Descriptor.findProcNum( iv );  // processor number
+      int n=numberOfComponents-1;
+      denseExtraEquation=getGlobalIndex( n, iv, grid, p );  // get the global index
+
+      // --- for now this should be true I think: 
+      assert( denseExtraEquation == extraEquationNumber(0) );
+    }
   }
   
 
@@ -921,7 +1258,7 @@ buildMatrix( realCompositeGridFunction & coeff, realCompositeGridFunction & uu )
 	// unused
 	int jg=ig;
 	v=1.;      // eqn at unused pts is the identity
-        if( ig!=extraEquation )
+        if( ig!=denseExtraEquation )
 	{
 	  ierr = MatSetValues(A,1,&ig,1,&jg,&v,INSERT_VALUES);CHKERRQ(ierr);
 	}
@@ -934,7 +1271,9 @@ buildMatrix( realCompositeGridFunction & coeff, realCompositeGridFunction & uu )
           dScale=0.;
 	  for( int m=0; m<stencilDim; m++ )
 	  {
-	    dScale=max(dScale,fabs(COEFF(m,n,i1,i2,i3)));
+            // Change row scaling to 1-norm to match serial PETScEquationSolver *wdh* April 1, 2017
+	    // dScale=max(dScale,fabs(COEFF(m,n,i1,i2,i3)));
+	    dScale += fabs(COEFF(m,n,i1,i2,i3));
 	  }
           if( dScale>eps )
             dScale=1./dScale;
@@ -1047,8 +1386,8 @@ buildMatrix( realCompositeGridFunction & coeff, realCompositeGridFunction & uu )
 	  {
 	    // add entries to this row and to the extra equation
 	    v=1.;
-	    ierr = MatSetValues(A,1,&ig,1,&extraEquation,&v,INSERT_VALUES);CHKERRQ(ierr);
-	    ierr = MatSetValues(A,1,&extraEquation,1,&ig,&v,INSERT_VALUES);CHKERRQ(ierr);
+	    ierr = MatSetValues(A,1,&ig,1,&denseExtraEquation,&v,INSERT_VALUES);CHKERRQ(ierr);
+	    ierr = MatSetValues(A,1,&denseExtraEquation,1,&ig,&v,INSERT_VALUES);CHKERRQ(ierr);
 	  }
 
 	}
@@ -1060,6 +1399,73 @@ buildMatrix( realCompositeGridFunction & coeff, realCompositeGridFunction & uu )
   fillInterpolationCoefficients(uu); 
 
   
+  // --- User supplied extra equations ----
+  // *wdh* March 19, 2017
+  if( extraEquations.neq >0  )
+  {
+    RealArray & extraEquationScaleFactor = oges.dbase.get<RealArray>("extraEquationScaleFactor");
+
+    for( int iExtraEquation=0; iExtraEquation<extraEquations.neq; iExtraEquation++ )
+    // for( int iExtraEquation=extraEquations.neq-1; iExtraEquation>=0; iExtraEquation-- )// add in reverse order
+    {
+      // int ieqn = extraEquationNumber(iExtraEquation); // row for this extra equation
+      int ieqn = eqnExtra(iExtraEquation); // row for this user supplied extra equation
+      if( true )
+	printF("--PETScSolver--: Add user supplied extra eqn %i to row %i\n",iExtraEquation,ieqn);
+      
+      real dScale=1.;
+      if( parameters.rescaleRowNorms )
+      {
+        // scale row by 1-norm 
+	dScale=0.;
+	for( int kk=iaExtra(iExtraEquation); kk<=iaExtra(iExtraEquation+1)-1; kk++ )
+	{
+	  dScale+=fabs(aExtra(kk));
+	}
+        // const real eps=REAL_MIN*1000.;
+	if( dScale>eps )
+	  dScale=1./dScale;
+	else
+	  dScale=1.;  // all coefficients are small, just scale by 1.
+          
+        // save inverse of the scale factor (needed to scale RHS)
+
+        // We need to find the index for the extra equation in the main list of extra equations  
+        //    Do this for now, not very efficient ****** FIX ME ****
+	int extra=-1;
+	for( int jj=0; jj<oges.numberOfExtraEquations; jj++ )
+	{
+	  if( ieqn==extraEquationNumber(jj) )
+	  {
+	    extra=jj;
+	    break;
+	  }
+	}
+	assert( extra>=0 );
+	
+        // extraEquationScaleFactor(iExtraEquation)=dScale;
+        extraEquationScaleFactor(extra)=dScale; // put scale factor here
+
+      }
+      
+      for( int kk=iaExtra(iExtraEquation); kk<=iaExtra(iExtraEquation+1)-1; kk++ )
+      {
+	// *optimize me* -- add all entries in this row at once: 
+        v= aExtra(kk)*dScale;
+	
+        ierr = MatSetValues(A, 1,&ieqn, 1,&jaExtra(kk), &v,INSERT_VALUES);CHKERRQ(ierr);
+	if( true )
+	{
+	  printF("  Extra eqn=%i kk=%5i : (i,j,a)=(%i,%i,%12.4e) scale=%8.2e a/scale=%12.4e\n",
+                 iExtraEquation,kk,ieqn,jaExtra(kk),aExtra(kk),dScale,v);
+	}
+	
+      }
+    }
+
+    // OV_ABORT("PETScSolver:: user supplied exra equations -- stop here for now");
+  }
+
   /* 
      Assemble matrix, using the 2-step process:
        MatAssemblyBegin(), MatAssemblyEnd()
@@ -2140,7 +2546,10 @@ solve( realCompositeGridFunction & uu, realCompositeGridFunction & f )
   int iv[3], &i1=iv[0], &i2=iv[1], &i3=iv[2]; 
   int grid;
 
-  int gride=cg.numberOfComponentGrids()-1;  // for the extra eqution
+  const IntegerArray & extraEquationNumber = oges.extraEquationNumber;
+
+
+  int gride=cg.numberOfComponentGrids()-1;  // for the extra eqution  *** THIS WLL GO AWAY**
 
 
   // optimized version for filling in the RHS
@@ -2236,26 +2645,81 @@ solve( realCompositeGridFunction & uu, realCompositeGridFunction & f )
       ig++;
     } // end FOR3N
 
-    if( grid==gride && problemIsSingular==addExtraEquation )
+      
+    if( FALSE ) // this is done below now
     {
-      // fill in the RHS for the extra equation
-      int grid=cg.numberOfComponentGrids()-1;
-      const IntegerArray & d = cg[grid].dimension();
-      i1=d(1,0), i2=d(1,1), i3=d(1,2); 
-      int p= uu[grid].Array_Descriptor.findProcNum( iv );  // processor number
-      if( myid==p )
+      // **OLD WAY **
+      if( grid==gride && problemIsSingular==addExtraEquation )
       {
-	int n=numberOfComponents-1;
-	int extraEquation=getGlobalIndex( n, iv, grid, p );  // get the global index
-	assert( extraEquation>=Istart && extraEquation<=Iend );
-        // NOTE: no diagonal scaling on this equation
-        bv[extraEquation-Istart]=fLocal(i1,i2,i3,n+nb);
-        // printf("PETScSolver: Assign RHS for constraint : value=%g\n",bv[extraEquation-Istart]);
+	// fill in the RHS for the extra equation
+	int grid=cg.numberOfComponentGrids()-1;
+	const IntegerArray & d = cg[grid].dimension();
+	i1=d(1,0), i2=d(1,1), i3=d(1,2); 
+	int p= uu[grid].Array_Descriptor.findProcNum( iv );  // processor number
+	if( myid==p )
+	{
+	  int n=numberOfComponents-1;
+	  int extraEquation=getGlobalIndex( n, iv, grid, p );  // get the global index
+	  assert( extraEquation>=Istart && extraEquation<=Iend );
+	  // NOTE: no diagonal scaling on this equation
+	  bv[extraEquation-Istart]=fLocal(i1,i2,i3,n+nb);
+	  // printf("PETScSolver: Assign RHS for constraint : value=%g\n",bv[extraEquation-Istart]);
+	}
       }
     }
+    
+  } // end for grid 
+  
+
+  if( oges.numberOfExtraEquations>0 )
+  {
+    // *new way* March 19, 2017
+    const RealArray & extraEquationRightHandSideValues = oges.dbase.get<RealArray>("extraEquationRightHandSideValues");
+    const RealArray & extraEquationScaleFactor = oges.dbase.get<RealArray>("extraEquationScaleFactor");
+    assert( extraEquationRightHandSideValues.getLength(0)>=oges.numberOfExtraEquations);
+    if( parameters.rescaleRowNorms )
+    {
+      assert( extraEquationScaleFactor.getLength(0)>=oges.numberOfExtraEquations);
+    }
+    
+    for( int extra=0; extra<oges.numberOfExtraEquations; extra++ )
+    {
+      int extraEqn = extraEquationNumber(extra);
+      if( extraEqn>=Istart && extraEqn<=Iend )
+      {
+        // scale RHS if the equations are scaled.
+        const real dScale=  parameters.rescaleRowNorms ? extraEquationScaleFactor(extra) : 1.;
+
+	if( true )
+	  printf("--PETSc-- solve: set RHS for extra eqn=%i eqnNumber=%i value=%9.3e scale=%9.2e myid=%i\n",
+		 extra,extraEqn,extraEquationRightHandSideValues(extra),dScale,myid);
+	  
+	bv[extraEqn-Istart]=extraEquationRightHandSideValues(extra)*dScale;
+
+      }
+	
+    }
+    if( oges.dbase.has_key("extraEquationInitialValues") )
+    {
+      // assign initial values for extra equations
+      const RealArray & extraEquationInitialValues = oges.dbase.get<RealArray>("extraEquationInitialValues");
+      for( int extra=0; extra<oges.numberOfExtraEquations; extra++ )
+      {
+	int extraEqn = extraEquationNumber(extra);
+	if( extraEqn>=Istart && extraEqn<=Iend )
+	{
+	  if( true )
+	    printf("--PETSc-- solve: set initial condition for extra eqn=%i eqnNumber=%i value=%9.3e myid=%i\n",
+		   extra,extraEqn,extraEquationInitialValues(extra),myid);
+	  
+	  xv[extraEqn-Istart]=extraEquationInitialValues(extra);
+	}
+      }
+    }
+    
+    
   }
-
-
+  
   VecRestoreArray(b,&bv);
   VecRestoreArray(x,&xv);
 
@@ -2412,6 +2876,46 @@ solve( realCompositeGridFunction & uu, realCompositeGridFunction & f )
       display(uu[grid],sPrintF("Solution: uu[%i]",grid),"%6.3f ");
   }
   
+
+  // Save values from the extra equations *wdh* March 19, 2017
+  if( oges.numberOfExtraEquations>0 )
+  {
+    if( !oges.dbase.has_key("extraEquationValues") )
+    {
+      oges.dbase.put<RealArray>("extraEquationValues");
+    }
+    const IntegerArray & extraEquationNumber = oges.extraEquationNumber;
+
+    RealArray & extraEquationValues = oges.dbase.get<RealArray>("extraEquationValues");
+    extraEquationValues.redim(oges.numberOfExtraEquations);
+    real *extraValues = new real[oges.numberOfExtraEquations];
+
+    for( int i=0; i<oges.numberOfExtraEquations; i++ )
+    {
+      int iExtra = extraEquationNumber(i);
+      if( iExtra>=Istart && iExtra<=Iend )
+      {
+        // extra value is stored on this processor
+	extraValues[i]=xv[iExtra-Istart];
+
+	if( true ) printf(" --PETSc-- fill in extraEqn values after solve: myid=%i: iExtra=%i xv[iExtra]=%6.4f\n",
+                          myid,iExtra,extraValues[i]);
+      }
+      else
+      {
+	extraValues[i]=0.;
+      }
+      
+    }
+
+    // Do this for now to copy values to all processors: (*optimized me*)
+    // -- just sum all values since value will be zero on all proc's but one
+    ParallelUtility::getSums(extraValues, extraEquationValues.getDataPointer(), oges.numberOfExtraEquations ); 
+
+    delete [] extraValues;
+  }
+
+
   VecRestoreArray(x,&xv);
 
   if( debug & 4 )
@@ -2716,30 +3220,6 @@ setExtraEquationRightHandSideValues( realCompositeGridFunction & f, real *value 
 // /Return values: 0=success
 //==================================================================================
 {
-  const int myid=max(0,Communication_Manager::My_Process_Number);
-
-//  assert( problemIsSingular==addExtraEquation );
-//  assert( oges.numberOfExtraEquations==1 );  // we only do this case so far
-
-  CompositeGrid & cg = *f.getCompositeGrid();
-  // find a spot to put the extra equation
-  int grid=cg.numberOfComponentGrids()-1;
-  const IntegerArray & d = cg[grid].dimension();
-
-  int iv[3], &i1=iv[0], &i2=iv[1], &i3=iv[2]; 
-  i1=d(1,0), i2=d(1,1), i3=d(1,2); 
-  int n=numberOfComponents-1;
-
-  int p= f[grid].Array_Descriptor.findProcNum( iv );  // processor number
-
-  const realSerialArray & fLocal = f[grid].getLocalArray();
-  if( p==myid )
-  {
-    fLocal(i1,i2,i3,n)=value[0];
-  }
-  if( Oges::debug & 4 )
-    printF("PETScSolver::setExtraEquationValues: f[%i](%i,%i,%i,n=%i)= %14.10e \n",grid,i1,i2,i3,n,value[0]);
-
   if( ! oges.dbase.has_key("extraEquationRightHandSideValues") )
   {
     // save RHS values here too, in case the user wants to know them
@@ -2747,10 +3227,52 @@ setExtraEquationRightHandSideValues( realCompositeGridFunction & f, real *value 
   }
 
   RealArray & extraEquationRightHandSideValues = oges.dbase.get<RealArray>("extraEquationRightHandSideValues");
-  int numberOfExtraEquations=1; // ** FIX ME for more user defined equations ***
-  extraEquationRightHandSideValues.redim(numberOfExtraEquations);
-  extraEquationRightHandSideValues=value[0];
+    
+  if( true )
+  {
+    // *new* March 19, 2017
+    // -- just fill in the extraEquationRightHandSideValues array -- this will be used in solve ---
+    extraEquationRightHandSideValues.redim(oges.numberOfExtraEquations);
 
+    for( int extra=0; extra<oges.numberOfExtraEquations; extra++ )
+    {
+      extraEquationRightHandSideValues(extra)=value[extra];
+    }
+    
+  }
+  else
+  {
+    // *** OLD WAY ***
+
+    const int myid=max(0,Communication_Manager::My_Process_Number);
+
+//  assert( problemIsSingular==addExtraEquation );
+//  assert( oges.numberOfExtraEquations==1 );  // we only do this case so far
+
+    CompositeGrid & cg = *f.getCompositeGrid();
+    // find a spot to put the extra equation
+    int grid=cg.numberOfComponentGrids()-1;
+    const IntegerArray & d = cg[grid].dimension();
+
+    int iv[3], &i1=iv[0], &i2=iv[1], &i3=iv[2]; 
+    i1=d(1,0), i2=d(1,1), i3=d(1,2); 
+    int n=numberOfComponents-1;
+
+    int p= f[grid].Array_Descriptor.findProcNum( iv );  // processor number
+
+    const realSerialArray & fLocal = f[grid].getLocalArray();
+    if( p==myid )
+    {
+      fLocal(i1,i2,i3,n)=value[0];
+    }
+    if( Oges::debug & 4 )
+      printF("PETScSolver::setExtraEquationValues: f[%i](%i,%i,%i,n=%i)= %14.10e \n",grid,i1,i2,i3,n,value[0]);
+
+    int numberOfExtraEquations=1; // ** FIX ME for more user defined equations ***
+    extraEquationRightHandSideValues.redim(numberOfExtraEquations);
+    extraEquationRightHandSideValues=value[0];
+  }
+  
   return 0;
 }
 
@@ -2765,6 +3287,8 @@ getExtraEquationValues( const realCompositeGridFunction & u, real *value, const 
 //
 //==================================================================================
 {
+  // ** THIS IS THE OLD WAY ***
+
   const int myid=max(0,Communication_Manager::My_Process_Number);
 
 //  assert( problemIsSingular==addExtraEquation );

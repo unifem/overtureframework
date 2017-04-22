@@ -1,3 +1,83 @@
+***********************
+**** March 29, 2017
+
+
+SIMPLIFY...
+
+PARALLEL AMP
+mpirun -np 1 $cginsp cylDrop -g=cice1.order2 -bcOption=inflowOutflow -dropName=Annulus -channelName=square -tf=.05 -tp=.001 -nu=.1 -density=10 -freqFullUpdate=1 -addedMass=1  -useProvidedAcceleration=1 -addedDamping=1 -addedDampingCoeff=1. -addedDampingProjectVelocity=1  -scaleAddedDampingWithDt=1 -useTP=0  -rtolp=1.e-12 -atolp=1.e-14 -go=halt >! cylDropParallel1.out
+
+
+SERIAL AMP:
+cgins cylDrop -g=cice1.order2 -bcOption=inflowOutflow -dropName=Annulus -channelName=square -tf=.05 -tp=.001 -nu=.1 -density=10 -freqFullUpdate=1 -addedMass=1  -useProvidedAcceleration=1 -addedDamping=1 -addedDampingCoeff=1. -addedDampingProjectVelocity=1  -scaleAddedDampingWithDt=1 -useTP=0 -rtolp=1.e-12 -atolp=1.e-14 -go=halt > cylDropSerial1.out
+
+
+***********************
+**** March 27, 2017
+
+
+****  TEST AMP IN PARALLEL ******
+
+mpirun -np 1 $cginsp cylDrop -g=cice2.order2 -bcOption=inflowOutflow -dropName=Annulus -channelName=square -tf=.05 -tp=.001 -nu=.1 -density=10 -freqFullUpdate=1 -addedMass=1  -useProvidedAcceleration=1 -addedDamping=1 -addedDampingCoeff=1. -addedDampingProjectVelocity=1  -scaleAddedDampingWithDt=1 -useTP=0  -rtolp=1.e-12 -atolp=1.e-14 -go=halt >! cylDropParallel.out
+
+
+
+TP scheme: -- looks OK
+
+mpirun -np 1 $cginsp cylDrop -g=cice2.order2 -bcOption=inflowOutflow -dropName=Annulus -channelName=square -tf=.05 -tp=.01 -nu=.1 -density=10 -freqFullUpdate=1 -useTP=0 -go=halt
+
+
+SERIAL AMP:
+cgins cylDrop -g=cice2.order2 -bcOption=inflowOutflow -dropName=Annulus -channelName=square -tf=.05 -tp=.001 -nu=.1 -density=10 -freqFullUpdate=1 -addedMass=1  -useProvidedAcceleration=1 -addedDamping=1 -addedDampingCoeff=1. -addedDampingProjectVelocity=1  -scaleAddedDampingWithDt=1 -useTP=0 -rtolp=1.e-8 -atolp=1.e-9 -go=halt > cylDropSerial.out
+
+
+
+
+
+***********************
+**** March 10, 2017
+
+TEST PARALLEL
+
+
+****  TEST AMP IN PARALLEL ******
+
+**TROUBLE : 
+Error occured in file formMatrix.C, function initialize, line 299.
+Oges::finish me for parallel Bill!
+ 
+mpirun -np 1 $cginsp cylDrop -g=cice2.order2 -bcOption=inflowOutflow -dropName=Annulus -channelName=square -tf=.05 -tp=.01 -nu=.1 -density=10 -freqFullUpdate=1 -addedMass=1  -useProvidedAcceleration=1 -addedDamping=1 -addedDampingCoeff=1. -addedDampingProjectVelocity=1  -scaleAddedDampingWithDt=1 -useTP=0 -go=halt
+
+
+************************************************************************
+NP=1,2,4: ,8 OK
+
+TS=IM:
+mpirun -np 4 $cginsp cylDrop -g=cice2.order2 -ts=im -bcOption=inflowOutflow -dropName=Annulus -channelName=square -tf=.05 -tp=.01 -nu=.1 -density=10 -freqFullUpdate=1 -go=halt
+
+
+mpirun -np 4 $cginsp cylDrop -g=cice4.order2 -bcOption=inflowOutflow -dropName=Annulus -channelName=square -tf=.05 -tp=.01 -nu=.1 -density=10 -freqFullUpdate=1 -go=halt
+
+mpirun -np 8 $cginsp cylDrop -g=cice2.order2 -bcOption=inflowOutflow -dropName=Annulus -channelName=square -tf=.05 -tp=.01 -nu=.1 -density=10 -freqFullUpdate=1 -go=halt
+
+
+***********************
+**** March 10, 2017
+
+TEST parallel
+
+
+Simpler:
+mpirun -np  1 $cginsp oneDrop -freqFullUpdate=1 -g=oneDrope.hdf -go=halt 
+
+
+
+TROUBLE:
+mpirun -np 1 $cginsp cylDrop -g=cylDropGride2.order2.s3.hdf -tf=1. -tp=.05 -nu=.1 -density=1.25 -dtMax=.75e-3 -go=halt 
+
+
+
+
 ++++ GRIDS ++++
 
 --- cylinder at (1,1)

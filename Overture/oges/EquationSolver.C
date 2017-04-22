@@ -20,7 +20,7 @@ EquationSolver::
 
 
 // =====================================================================================
-// \brief Return the maximum residual.
+/// \brief Return the maximum residual.
 // =====================================================================================
 real EquationSolver::
 getMaximumResidual()
@@ -29,7 +29,7 @@ getMaximumResidual()
 } 
 
 // =====================================================================================
-// \brief Return the number of iterations used in the last solve.
+/// \brief Return the number of iterations used in the last solve.
 // =====================================================================================
 int EquationSolver::
 getNumberOfIterations() const
@@ -43,6 +43,46 @@ const aString & EquationSolver::
 getName() const
 {
   return name;
+}
+
+// =====================================================================================
+/// \brief Initialize solver when the equations have changed.
+// =====================================================================================
+int EquationSolver::initialize()
+{
+  // *** This function was added as an option on March 18, 2017 but currently not used ****
+  return 0;
+}
+
+
+//=============================================================================
+// Convert an Equation Number to a point on a grid (Inverse of equationNo)
+// input -
+//  eqnNo0 : equation number
+// Output
+//  n : component number ( n=0,1,..,numberOfComponents-1 )
+//  i1,i2,i3 : grid indices
+//  grid : component grid number (grid=0,1,2..,numberOfCompoentGrids-1)   
+//=============================================================================
+void EquationSolver::
+equationToIndex( const int eqnNo0, int & n, int & i1, int & i2, int & i3, int & grid )
+{
+  printF("EquationSolver::equationToIndex:ERROR: base class function called\n");
+  OV_ABORT("error");
+}
+
+
+//=============================================================================
+/// \brief Return the equation number for given indices
+/// \param  n (input) : component number ( n=0,1,..,numberOfComponents-1 )
+/// \param i1,i2,i3 (input) : grid indices
+/// \param grid (input) : component grid number (grid=0,1,2..,numberOfCompoentGrids-1)   
+//=============================================================================
+int EquationSolver::
+equationNo( const int n, const int i1, const int i2, const int i3, const int grid )
+{
+  printF("EquationSolver::equationNo:ERROR: base class function called\n");
+  OV_ABORT("error");
 }
 
 
@@ -151,6 +191,20 @@ setEquationAndBoundaryConditions( OgesParameters::EquationEnum equation, Composi
   return -1;
 }
 
+// =============================================================================================
+/// \brief Find the locations for extra equations: 
+///
+/// \note: For now only a special parallel version is implemented in PETScSolver, 
+///        in serial we still use Oges version.
+/// =============================================================================================
+int EquationSolver::findExtraEquations()
+{
+  printF("EquationSolver::findExtraEquations:ERROR: base class function called\n");
+  return -1;
+}
+
+
+
 int EquationSolver::setExtraEquationValuesInitialGuess( real *value )
 // =============================================================================================
 /// \brief assign initial guess to extra equation values (for iterative solvers)
@@ -209,7 +263,7 @@ setExtraEquationRightHandSideValues( realCompositeGridFunction & f, real *value 
     oges.equationToIndex( oges.extraEquationNumber(i),ne,i1e,i2e,i3e,gride);
     f[gride](i1e,i2e,i3e,ne)=value[i];
 
-    if( Oges::debug & 4 )
+    if( true || Oges::debug & 4 )
       printF("EquationSolver::setExtraEquationValues: f[%i](%i,%i,%i,%i)= %14.10e (eqn-number=%i)\n",
 	     gride,i1e,i2e,i3e,ne,f[gride](i1e,i2e,i3e,ne),oges.extraEquationNumber(i));
 

@@ -5,7 +5,7 @@
 #   cgins [-noplot] cic -g=<name> -tf=<> -tp=<> -nu=<> -ts=[pc|im|afs] -iv=[viscous|full] -tm=[les] ...
 #          -solver=[best|yale|mg] -project=[0|1] -model=[ins|boussinesq] ...
 #         -psolver=[best|yale|mg] -pc=[ilu|lu] -inflow=[uniform|parabolic|control|pressure|radial] -oscillate=[0|1] ...
-#         -wall=[noSlip|slip] -cyl=[noSlip|slip] -ao=[centered|upwind|bweno] 
+#         -wall=[noSlip|slip] -cyl=[noSlip|slip] -ao=[centered|upwind|bweno] -upwindOrder=[1|2|...]
 #         -restart=<showFile> -cgSolver=[best|hypre] ...
 #
 # Options:
@@ -18,7 +18,8 @@
 #  -oscillate : =1 to use an oscillating inflow 
 #  -wall : boundary condition for the top and bottom walls 
 #  -cyl : boundary condition for the cylinder
-#  -ao : advection option
+#  -ao : advection option - centered, upwind, bweno
+#  -upwindOrder : order of upwind or bweno scheme
 #
 # Examples:
 #   cgins cic -g=cice2.order2 
@@ -68,6 +69,9 @@
 #   cgins cic -g=cice2.order2 -ts=pc -tm=les -nu=.05 -lesOption=1 -lesPar1=.001 -go=halt
 #     -- les+implicit : finish me...
 #   cgins cic -g=cice2.order2 -ts=im -tm=les -lesOption=0 -nu=.05 -go=halt
+#
+#  -- test upwind scheme (*new* -- finish me)
+# cgins cic -g=cice2.order2 -ao=upwind -upwindOrder=1 -cfl=.5 -wall=slip -tp=.01 -tf=.5 -ad2=0 -nu=.01 -debug=1 -ts=pc -go=halt
 #
 # --- Parallel
 # mpirun -np 2 $cginsp cic -g=cice2.order2.ml2 -nu=.01 -solver=best -psolver=best -recomputeDt=200 -debug=3 [ok]

@@ -9,12 +9,54 @@ class EquationSolver
  public:
   EquationSolver(Oges & oges_);
   virtual ~EquationSolver();
-  virtual int solve(realCompositeGridFunction & u,
-		    realCompositeGridFunction & f)=0;
+
+  virtual int allocateMatrix(int,int,int,int);
+
+  virtual int displayMatrix();
+
+  // Convert an Equation Number to a point on a grid (inverse of equationNo)
+  virtual void equationToIndex( const int eqnNo0, int & n, int & i1, int & i2, int & i3, int & grid );
+
+  // convert a component and grid point into an equation number
+  virtual int equationNo( const int n, const int i1, const int i2, const int i3, const int grid );
+
+  // evaluate the dot product of an extra equation times u 
+  virtual int evaluateExtraEquation( const realCompositeGridFunction & u, real & value, int extraEquation=0 );
+
+  virtual int evaluateExtraEquation( const realCompositeGridFunction & u, real & value, 
+                                     real & sumOfExtraEquationCoefficients, int extraEquation=0 );
+  // Find the locations for extra equations: 
+  virtual int findExtraEquations();
+
+
+  // return solution values from the extra equations
+  virtual int getExtraEquationValues( RealArray & values ) const;
+  // Old way: 
+  virtual int getExtraEquationValues( const realCompositeGridFunction & u, real *value, const int maxNumberToReturn=1 );
+
+  // return right-hand side values from the extra equations
+  int getExtraEquationRightHandSideValues( RealArray & values ) const;
+
+  virtual real getMaximumResidual(); 
+
+  const aString & getName() const;
+
+  virtual int getNumberOfIterations() const; 
+
+  // initialize solver when the equations have changed.
+  virtual int initialize();
+
+  // -- print a description of the solver and options used
+  virtual int printSolverDescription( const aString & label, FILE *file = stdout ) const; 
+
+  virtual int printStatistics( FILE *file = stdout ) const;   // output any relevant statistics 
 
   virtual int saveBinaryMatrix(aString filename00,
 			       realCompositeGridFunction & u,
 			       realCompositeGridFunction & f);
+
+  // Set the MultigridCompositeGrid to use: (for use with Ogmg)
+  virtual int set( MultigridCompositeGrid & mgcg );
 
   // new way to set coefficients:
   virtual int setCoefficientsAndBoundaryConditions( realCompositeGridFunction & coeff,
@@ -31,52 +73,22 @@ class EquationSolver
                                                 RealArray & constantCoeff = Overture::nullRealArray(),
                                                 realCompositeGridFunction *variableCoeff=NULL );
 
-  // call this function when the grid changes (and before setCoefficientsAndBoundaryConditions)
-  virtual int setGrid( CompositeGrid & cg );
-
-  // Set the MultigridCompositeGrid to use: (for use with Ogmg)
-  virtual int set( MultigridCompositeGrid & mgcg );
-
-  const aString & getName() const;
-
-  virtual real getMaximumResidual(); 
-
-  virtual int getNumberOfIterations() const; 
-
-  // -- print a description of the solver and options used
-  virtual int printSolverDescription( const aString & label, FILE *file = stdout ) const; 
-
-  virtual int printStatistics( FILE *file = stdout ) const;   // output any relevant statistics 
-
   // assign values to rhs for the the extra equations 
   virtual int setExtraEquationRightHandSideValues( realCompositeGridFunction & f, real *value );
 
   // assign initial guess to extra equation values (for iterative solvers)
   virtual int setExtraEquationValuesInitialGuess( real *value );
 
-  // return solution values from the extra equations
-  virtual int getExtraEquationValues( RealArray & values ) const;
-  // Old way: 
-  virtual int getExtraEquationValues( const realCompositeGridFunction & u, real *value, const int maxNumberToReturn=1 );
+  // call this function when the grid changes (and before setCoefficientsAndBoundaryConditions)
+  virtual int setGrid( CompositeGrid & cg );
 
-  // return right-hand side values from the extra equations
-  int getExtraEquationRightHandSideValues( RealArray & values ) const;
-
-  // evaluate the dot product of an extra equation times u 
-  virtual int evaluateExtraEquation( const realCompositeGridFunction & u, real & value, int extraEquation=0 );
-
-  virtual int evaluateExtraEquation( const realCompositeGridFunction & u, real & value, 
-                                     real & sumOfExtraEquationCoefficients, int extraEquation=0 );
-
-  virtual int allocateMatrix(int,int,int,int);
   virtual int setMatrixElement(int,int,int,real);
-  virtual int displayMatrix();
-
-// So far a common data structure is used by all vector types, so there is no need to have these:
-//  virtual void setRHSVectorElement(int,real);
-//  virtual void setSolVectorElement(int,real);
 
   virtual real sizeOf( FILE *file=NULL ); // return number of bytes allocated 
+
+  // solve the equations
+  virtual int solve(realCompositeGridFunction & u,
+		    realCompositeGridFunction & f)=0;
 
  protected:
 
@@ -96,6 +108,7 @@ class EquationSolver
   int matrixOrdering;
   int numberOfIncompleteLULevels;
   int gmresRestartLength;
+
 };
 
 

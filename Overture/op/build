@@ -97,12 +97,12 @@ cp tests/{Checker}.h   $Overture/include
 # copy routines to the tests and examples directory
 
 cp tests/{smartDiff.p,checkop.p}                                                $tests
-cp tests/{tderivatives,tbc,tbcc,tcm,tcm2,tcm3,tcm4,tcmge}.C                     $tests
+cp tests/{tderivatives,tbc,tbcc,tcm,tcm2,tcm3,tcm4,tcmge,tcmConstraint}.C       $tests
 cp tests/{tderivatives.bC,tbcc.bC}                                              $tests
 cp tests/{tmgo,tcgo,tcmOrder4,testSpectral,testExtrapInterpNeighbours}.C        $tests
 
 # check files
-cp tests/{tderivatives,tbcc,tbc,tcm3,tcm4}.{sp,dp}.check                        $tests
+cp tests/{tderivatives,tbcc,tbc,tcm3,tcm4,tcmConstraint}.{sp,dp}.check          $tests
 
 
 # cp {tmgo,tcgo,ps}.C   $examples

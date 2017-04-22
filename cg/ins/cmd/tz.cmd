@@ -11,7 +11,8 @@ echo to terminal 0
 #        -order=[-1|2|4|6|8] -model=[ins|boussinesq|tp|vp] ...
 #        -ts=[pc|pc4|im|fe|bdf|imex] -debug=<num> -bg=<backGround> -fullSystem -imp=<val> ...
 #        -newts[0|1] -go=[run/halt/og] -do=[fd|compact] -move=[0|shift|rotate] -checkErrOnGhost=[0|1|2] ...
-#        -bc[1|2|3|4]=[noSlip|slip|inflow|outflow|pinflow] -varMat=[0|1] -orderInTime=[]
+#        -bc[1|2|3|4]=[noSlip|slip|inflow|outflow|pinflow] -varMat=[0|1] -orderInTime=[] ...
+#        -ao=[centered|upwind|bweno] -upwindOrder=[1|2|...]
 # 
 #  -model=bp : Boussinesq + passive scalar
 #  -bc[1|2|3|4]= set the boundary conditions for grids with a face with bc=1,2,..,
@@ -19,6 +20,8 @@ echo to terminal 0
 #  -psolver, rtolp, atolp : pressure solver and convergence tolerances
 #  -newts : =1 : use the new advanceSteps time stepping routines 
 #  -varMat : 1=variable material properties, 0=constant
+#  -ao : advection option - centered, upwind, bweno
+#  -upwindOrder : order of upwind or bweno scheme
 #  -go : run, halt, og=open graphics
 # 
 # Examples:
@@ -62,6 +65,9 @@ echo to terminal 0
 # 
 # -- variable material Boussinesq:
 #   cgins tz -g=square10.order2 -degreex=1 -degreet=1 -ts=pc -model=boussinesq -varMat=1
+#
+#  --- Test upwind: 
+#  cgins -noplot tz -g=square10.order2 -degreex=1 -degreet=1 -ts=pc  -useNewImp=0 -ao=upwind -upwindOrder=1 -cfl=.5 -bcn=d -tp=.05 -tf=.1 -go=go
 #
 # =========== BAD CASE:
 #
@@ -201,6 +207,8 @@ $tm = "#"; # turbulence model
 $checkErrOnGhost=0; # check errors on this many ghost lines
 $useNewImp=1; # use the new implicit method 
 $xshift=1.; $yshift=0.; $zshift=0.; # for moving grids, shift option
+#
+$ao="centered"; $upwindOrder=-1;
 # 
 $ksp="bcgs"; $pc="bjacobi"; $subksp="preonly"; $subpc="ilu"; $iluLevels=3;
 #
@@ -227,7 +235,7 @@ GetOptions( "g=s"=>\$grid,"gf=s"=>\$gridCmdFileName,"tf=f"=>\$tFinal,"degreex=i"
   "checkErrOnGhost=i"=>\$checkErrOnGhost,"mbpbc=i"=>\$mbpbc,"mbpbcc=f"=>\$mbpbcc,"nc=i"=>\$numberOfCorrections,\
   "aftol=f"=>\$aftol, "afit=i"=>\$afit,"project=i"=>\$project,"cp0=f"=>\$cp0,"varMat=i"=>\$varMat,\
   "thermalConductivity=i"=>\$thermalConductivity,"xshift=f"=>\$xshift,"yshift=f"=>\$yshift,"zshift=f"=>\$zshift,\
-  "uplot=s"=>\$uplot, "orderInTime=i"=>\$orderInTime );
+  "uplot=s"=>\$uplot, "orderInTime=i"=>\$orderInTime,"ao=s"=>\$ao,"upwindOrder=i"=>\$upwindOrder );
 # -------------------------------------------------------------------------------------------------
 if( $solver eq "best" ){ $solver="choose best iterative solver"; }
 if( $solver eq "mg" ){ $solver="multigrid"; }
@@ -317,6 +325,10 @@ if( $bc6 eq "noSlip" ){ $bc6="bcNumber6=noSlipWall"; }\
 # 
 if( $newts eq "1" ){ $newts = "use new advanceSteps versions"; }else{ $newts = "*"; }
 # 
+if( $ao eq "centered" ){ $ao="centered advection"; }
+if( $ao eq "upwind" ){ $ao="upwind advection"; }
+if( $ao eq "bweno" ){ $ao="bweno advection"; }
+# 
 if( $go eq "halt" ){ $go = "break"; }
 if( $go eq "og" ){ $go = "open graphics"; }
 if( $go eq "run" || $go eq "go" ){ $go = "movie mode\n finish"; }
@@ -356,6 +368,9 @@ $order
   $ts
   if( $orderInTime eq 4 ){ $cmd="fourth order accurate in time\n BDF order 4"; }else{ $cmd="#"; }
   $cmd
+  # advection option:
+  $ao
+  upwind order: $upwindOrder
 #
 # 
   show file options

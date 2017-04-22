@@ -1,6 +1,21 @@
 
 ====== Body embedded in a dielectric =======
 
+
+***************************************************
+**** March 20, 2017
+
+TEST -- Jordan has trouble with ABC at interface corners
+
+SOSUP44: -- OK till t=20
+ ogen -noplot embeddedBodyGridAnnulus -interp=e -numGhost=3 -order=4 -factor=8
+cgmx embeddedBodyChirp.cmd -g=embeddedBodyGridAnnuluse8.order4.ng3.hdf -method=sosup -tf=20 -diss=2. -sidebc=abcEM2 -show=ebG8Order4sosup.show -go=halt
+
+
+FD44 -- ok till t=20
+cgmx embeddedBodyChirp.cmd -g=embeddedBodyGridAnnuluse8.order4.hdf -tf=20 -diss=2. -sidebc=abcEM2 -show=ebG8Order4.show -go=halt
+
+
 ***************************************************
 **** Dec 3, 2016
 

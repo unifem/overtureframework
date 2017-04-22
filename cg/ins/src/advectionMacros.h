@@ -154,6 +154,10 @@
 #Elif #UPWIND == "UPWIND" 
 
   ! --- upwind scheme ---
+  ! for testing output this next message:
+  if( t.le. 0. )then
+    write(*,'(" getAdvection upwind scheme (7)")') 
+  end if
   getUpwindAdvection(u,i1,i2,i3,SCALAR,DIM,ORDER,GRIDTYPE, agu)
 
 #Elif #UPWIND == "BWENO" 

@@ -1266,6 +1266,9 @@ buildRhsAndSolVector(realCompositeGridFunction & u,
 
       v=ovRhs[i]*dscale[i]; // SCALE rhs as the matrix!!
       ierr=VecSetValues(brhs,1,&i,&v,INSERT_VALUES); CHKERRQ(ierr);
+      // if( true )
+      //  printF("--PES-- RHS: i=%6i, ovRhs=%9.2e scale=%9.2e b=%9.2e\n",i,ovRhs[i],dscale[i],v);
+      
     }
   }
   else

@@ -1789,7 +1789,9 @@ createSurface(int surface,
     
     mapPointer = new NurbsMapping;
     mapPointer->incrementReferenceCount();
+
     ((NurbsMapping *) mapPointer)->readFromIgesFile(iges,surface);
+
     ((NurbsMapping *) mapPointer)->setDomainInterval(0.,1.,0.,1.);
     mapPointer->setName(Mapping::mappingName,sPrintF(buff,"nurbs %i",surface));
    
@@ -2032,7 +2034,8 @@ createSurface(int surface,
 
   int matrix=iges.matrix(surface);
   if( matrix!=0 )
-    cout<<"WARNING : there was an ignored matrix transform!"<<endl;
+    printF("createSurface:WARNING : there was an ignored matrix transform! surface=%i matrix=%i\n",surface,matrix);
+  
 
   timeForCreateSurface+=getCPU()-time0;
   
@@ -4735,6 +4738,28 @@ createBoundedSurface(int entity, IgesReader &iges, Mapping *&mapPointer)
       return 1;
     }
 
+  if( true )
+    printF("**createBoundedSurface: entity=%i  entity name  =%s\n",entity,
+	   (const char*)iges.entityName(iges.entity(entity)));
+
+  int matrix=iges.matrix(entity);
+  if( matrix!=0 )
+  {
+      printF("**createBoundedSurface: matrixTransform!=0 for a boundedSurface\n");
+
+      // *wdh* 2017/04/05 -- read the transform  *** FINISH ME ***
+      RealArray matrixTransform(3,3), translation(3);
+      printF("--CBS-- entity=%i  matrix=iges.matrix(entity)=trans_mtr=%i\n",entity,iges.matrix(entity));
+      
+      printF("--CBS-- entity name  =%s\n",(const char*)iges.entityName(iges.entity(entity)));
+      printF("--CBS-- matrix-name=%s\n",(const char*)iges.entityName(iges.entity(matrix)));
+      matrix=iges.sequenceToItem(matrix);
+      printF("--CBS-- matrix-name=%s\n",(const char*)iges.entityName(iges.entity(matrix)));
+  }
+  
+  
+
+
   int surface = iges.sequenceToItem(untrimmedSurf);
 
   
@@ -4856,20 +4881,29 @@ createBoundedSurface(int entity, IgesReader &iges, Mapping *&mapPointer)
       boundaryEntities[ent]->setRangeSpace(Mapping::parameterSpace);
       boundaryEntities[ent]->parametricCurve((NurbsMapping &)*nurbs);
       if ( ent!=outerCurveNum )
-	{
-	  innerCurves[i_ent] = boundaryEntities[ent];
-	  innerCurves[i_ent]->incrementReferenceCount();
-	  i_ent++;
-	}
+      {
+	innerCurves[i_ent] = boundaryEntities[ent];
+	innerCurves[i_ent]->incrementReferenceCount();
+	i_ent++;
+      }
+
       if ( boundaryEntities[ent]->getClassName()=="NurbsMapping" )
+      {
+        // for ( int ent_sub=0; ent_sub<((NurbsMapping *)boundaryEntities[ent])->numberOfSubCurves(); ent_sub++ )
+
+        // *wdh* April 5, 2017	***CHECK THIS TO MAKE SURE NOTHING ELSE IS BROKEN***
+        const int numberOfSubCurves=((NurbsMapping *)boundaryEntities[ent])->numberOfSubCurves();
+	if( numberOfSubCurves>1 )
 	{
-	  for ( int ent_sub=0; ent_sub<((NurbsMapping *)boundaryEntities[ent])->numberOfSubCurves(); ent_sub++ )
-	    {
-	      Mapping & subcurve = ( (NurbsMapping *)boundaryEntities[ent])->subCurve(ent_sub);
-	      if ( subcurve.getClassName()=="NurbsMapping" )
-		((NurbsMapping &)subcurve).parametricCurve((NurbsMapping &)*nurbs);
-	    }
+	  for ( int ent_sub=0; ent_sub<numberOfSubCurves; ent_sub++ )
+	  {
+	    Mapping & subcurve = ( (NurbsMapping *)boundaryEntities[ent])->subCurve(ent_sub);
+	    if ( subcurve.getClassName()=="NurbsMapping" )
+	      ((NurbsMapping &)subcurve).parametricCurve((NurbsMapping &)*nurbs);
+	  }
 	}
+	
+      }
       //scaleCurve(* boundaryEntities[ent], *nurbs, surfaceParameterScale);
     }
 

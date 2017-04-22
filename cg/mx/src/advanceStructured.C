@@ -255,13 +255,13 @@ advanceNFDTD(  int numberOfStepsTaken, int current, real t, real dt )
 
           mgop.setOrderOfAccuracy(orderOfAccuracyInSpace-2);
 	  
-	  mgop.derivative(MappedGridOperators::laplacianOperator,u,f,J1,J2,J3);  // *** use f as a temporary
+	  mgop.derivative(MappedGridOperators::laplacianOperator,u,f,J1,J2,J3,C);  // *** use f as a temporary
           #ifdef USE_PPP
   	    f.updateGhostBoundaries();
           #endif
 	  // display(f,sPrintF("f=lap(order=2) t=%e processor=%i",t,myid),debugFile,"%6.2f ");
 
-	  mgop.derivative(MappedGridOperators::laplacianOperator,f,lapSq,I1,I2,I3);
+	  mgop.derivative(MappedGridOperators::laplacianOperator,f,lapSq,I1,I2,I3,C);
 
           mgop.setOrderOfAccuracy(orderOfAccuracyInSpace);
           
@@ -273,9 +273,16 @@ advanceNFDTD(  int numberOfStepsTaken, int current, real t, real dt )
 	}
 
 	// compute laplacian for curvilinear grids
-        mgop.derivative(MappedGridOperators::laplacianOperator,u,f,I1,I2,I3);
+        mgop.derivative(MappedGridOperators::laplacianOperator,u,f,I1,I2,I3,C);
+        // * mgop.derivative(MappedGridOperators::laplacianOperator,u,f,I1,I2,I3);
         f(I1,I2,I3,C)*=csq;
 
+	if( dispersionModel != noDispersion )
+	{ // set f for dispersive modes to zero 
+	  Range P(pxc,pxc+numberOfDimensions-1);
+	  f(I1,I2,I3,P)=0.;
+	}
+	
         // display(f,sPrintF("lap*csq t=%e processor=%i",t,myid),debugFile,"%6.2f ");
 
 	//f = csq*f + (csq*cdt*cdt/12.)*lapSq;  // put all into f

@@ -1330,120 +1330,184 @@ destroyWindow(int win_number)
   return 0;
 }  
 
-
+// =========================================================================================================
+/// \brief Read the overture configuation file (normally .overturerc)
+// =========================================================================================================
 bool GL_GraphicsInterface::
 readOvertureRC()
 {
-  char *home = getenv("HOME");
-  if (home)
+  // --- first look for the overture config file from the ENV variable OV_CONFIG_FILE
+  aString fileName;
+  char *ovConfigFile = getenv("OV_CONFIG_FILE");
+  if( ovConfigFile )
   {
-//    printF("HOME=`%s'\n", home);
-    char fileName[200];
-    sprintf(fileName, "%s/.overturerc", home);
-//    printf("Filename: `%s'\n", fileName);
-    FILE *overtureRC = fopen(fileName, "r");
-    // if we don't find .overturec in the home directory then look for one in the Overture directory
+    // User has provided a file:
+    fileName=ovConfigFile;
+  }
+  else
+  {
+    // ---- otherwise look for $HOME/.overturerc 
+    char *home = getenv("HOME");
+    //    printF("HOME=`%s'\n", home);
+    if (home)
+    {
+      // look for $HOME/.overturerc
+      // char fileName[200];
+      sPrintF(fileName, "%s/.overturerc", home);
+      //    
+    }
+  }
+    
+  printf("Look for Overture configuration file=[%s]\n",(const char*)fileName);
+     
+  FILE *overtureRC = fopen(fileName, "r");
+  // if we don't find .overturec in the home directory then look for one in the Overture directory
+  if( !overtureRC )
+  {
+    char *ov = getenv("Overture");
+    sPrintF(fileName, "%s/.overturerc",ov);
+    overtureRC = fopen(fileName, "r");
     if( !overtureRC )
     {
-      char *ov = getenv("Overture");
-      sprintf(fileName, "%s/.overturerc",ov);
+      sPrintF(fileName, "%s/overturerc",ov);  // file with no "." -- new way
       overtureRC = fopen(fileName, "r");
     }
-    if (overtureRC)
-    {
-      printF("Successfully opened %s for reading\n", fileName);
-      char buffert[201];
-      char keyword[201];
-      char *crest, * colour;
-      while (fgets(buffert, 200, overtureRC))
-      {
-// get the keyword from the buffert (the keyword is ended with :)
-	int colon=strcspn(buffert,":"), firstAlpha=0, lastAlpha=0;
-	strncpy(keyword, buffert, colon); keyword[colon]='\0';
-	crest = &buffert[colon+1];
-//	printF("keyword=`%s', crest=`%s'\n", keyword, crest);
-	if (!strcmp(keyword, "commandwindow*width"))
-	{
-	  sScanF(crest, "%d", &wProp.commandWindowWidth);
-	}
-	else if (!strcmp(keyword, "commandwindow*height"))
-	{
-	  sScanF(crest, "%d", &wProp.commandWindowHeight);
-	}
-	else if (!strcmp(keyword, "graphicswindow*width"))
-	{
-	  sScanF(crest, "%d", &wProp.graphicsWindowWidth);
-	}
-	else if (!strcmp(keyword, "graphicswindow*height"))
-	{
-	  sScanF(crest, "%d", &wProp.graphicsWindowHeight);
-	}
-	else if (!strcmp(keyword, "foregroundcolour"))
-	{
-	  firstAlpha = strspn(crest, " \t");
-	  colour = &crest[firstAlpha];
-	  lastAlpha = strcspn(colour, " \t\n");
-	  colour[lastAlpha] = '\0';
-//	  printF("foregroundcolour: firstAlpha=%i, lastAlpha=%i, colour=`%s'\n", firstAlpha, lastAlpha, colour);
-	  wProp.foregroundColour = colour;
-	}
-	else if (!strcmp(keyword, "backgroundcolour"))
-	{
-	  firstAlpha = strspn(crest, " \t");
-	  colour = &crest[firstAlpha];
-	  lastAlpha = strcspn(colour, " \t\n");
-	  colour[lastAlpha] = '\0';
-//	  printF("backgroundcolour: firstAlpha=%i, lastAlpha=%i, colour=`%s'\n", firstAlpha, lastAlpha, colour);
-	  wProp.backgroundColour = colour;
-	}
-	else if( !strcmp(keyword, "showRubberBandBox") )
-	{
-          int value=1;
-	  sScanF(crest, "%d", &value);
-	  wProp.showRubberBandBox=(bool)value;
-          // printF(" showRubberBandBox=%i\n",(int)wProp.showRubberBandBox);
-	}
-	else if( !strcmp(keyword, "showCommandHistory") )
-	{
-          int value=1;
-	  sScanF(crest, "%d", &value);
-	  wProp.showCommandHistory=(bool)value;
-	}
-	else if( !strcmp(keyword, "showPrompt") )
-	{
-          int value=1;
-	  sScanF(crest, "%d", &value);
-	  wProp.showPrompt=(bool)value;
-	}
-	else
-	{
-	  printF("Unknown keyword `%s' in the .overturerc file.\n", keyword);
-	}
-	
-      } // end while...
       
-      fclose(overtureRC);
-    }
-    else
-    {
-      printF("Did not find or could not open the file %s\n", fileName);
-      return false;
-    }
-    
-    
-    if( false )
-    {
-      printF("commandWindowHeight=%i, commandWindowWidth=%i\n", wProp.commandWindowHeight, 
-	     wProp.commandWindowWidth);
-      printF("graphicsWindowHeight=%i, graphicsWindowWidth=%i\n", wProp.graphicsWindowHeight, 
-	     wProp.graphicsWindowWidth);
-      printF("foregroundColour=%s, backgroundColour=%s\n", CS wProp.foregroundColour.c_str(), 
-	     CS wProp.backgroundColour.c_str());
-    }
-    
-    return true;
   }
-  return false;
+
+  if( overtureRC )
+  {
+    printF("Successfully opened %s for reading\n", (const char*)fileName);
+    char buffert[201];
+    char keyword[201];
+    char *crest, * colour;
+    while (fgets(buffert, 200, overtureRC))
+    {
+// get the keyword from the buffert (the keyword is ended with :)
+      int colon=strcspn(buffert,":"), firstAlpha=0, lastAlpha=0;
+      strncpy(keyword, buffert, colon); keyword[colon]='\0';
+      crest = &buffert[colon+1];
+//	printF("keyword=`%s', crest=`%s'\n", keyword, crest);
+      if (!strcmp(keyword, "commandwindow*width"))
+      {
+	sScanF(crest, "%d", &wProp.commandWindowWidth);
+      }
+      else if (!strcmp(keyword, "commandwindow*height"))
+      {
+	sScanF(crest, "%d", &wProp.commandWindowHeight);
+      }
+      else if (!strcmp(keyword, "commandwindow*Nx"))
+      {
+	sScanF(crest, "%d", &wProp.commandWindowNx);  // x location for upper left corner of command window
+      }
+      else if (!strcmp(keyword, "commandwindow*Ny"))
+      {
+	sScanF(crest, "%d", &wProp.commandWindowNy);  // y location for upper left corner of command window
+	// printF("--GLG-- setting commandWindowNy=%d\n",wProp.commandWindowNy);
+      }
+
+      else if (!strcmp(keyword, "graphicswindow*width"))
+      {
+	sScanF(crest, "%d", &wProp.graphicsWindowWidth);
+      }
+      else if (!strcmp(keyword, "graphicswindow*height"))
+      {
+	sScanF(crest, "%d", &wProp.graphicsWindowHeight);
+      }
+
+      else if (!strcmp(keyword, "graphicswindow*Nx"))
+      {
+	sScanF(crest, "%d", &wProp.graphicsWindowNx);  // x location for upper left corner of graphics window
+      }
+      else if (!strcmp(keyword, "graphicswindow*Ny"))
+      {
+	sScanF(crest, "%d", &wProp.graphicsWindowNy);  // y location for upper left corner of graphics window
+        // printF("--GLG-- setting graphicsWindowNy=%d\n",wProp.graphicsWindowNy);
+      }
+
+      else if (!strcmp(keyword, "dialog*Nx"))
+      {
+	sScanF(crest, "%d", &wProp.dialogNx);  // x location for upper left corner of dialog window
+      }
+      else if (!strcmp(keyword, "dialog*Ny"))
+      {
+	sScanF(crest, "%d", &wProp.dialogNy);  // y location for upper left corner of dialog window
+      }
+      else if (!strcmp(keyword, "dialog*offsetNx"))
+      {
+	sScanF(crest, "%d", &wProp.dialogOffsetNx);  // x location for upper left corner of dialog window
+      }
+      else if (!strcmp(keyword, "dialog*offsetNy"))
+      {
+	sScanF(crest, "%d", &wProp.dialogOffsetNy);  // y location for upper left corner of dialog window
+	// printF("--GLG-- setting dialogOffsetNy=%d\n",wProp.dialogOffsetNy);
+      }
+
+      else if (!strcmp(keyword, "foregroundcolour"))
+      {
+	firstAlpha = strspn(crest, " \t");
+	colour = &crest[firstAlpha];
+	lastAlpha = strcspn(colour, " \t\n");
+	colour[lastAlpha] = '\0';
+//	  printF("foregroundcolour: firstAlpha=%i, lastAlpha=%i, colour=`%s'\n", firstAlpha, lastAlpha, colour);
+	wProp.foregroundColour = colour;
+      }
+      else if (!strcmp(keyword, "backgroundcolour"))
+      {
+	firstAlpha = strspn(crest, " \t");
+	colour = &crest[firstAlpha];
+	lastAlpha = strcspn(colour, " \t\n");
+	colour[lastAlpha] = '\0';
+//	  printF("backgroundcolour: firstAlpha=%i, lastAlpha=%i, colour=`%s'\n", firstAlpha, lastAlpha, colour);
+	wProp.backgroundColour = colour;
+      }
+      else if( !strcmp(keyword, "showRubberBandBox") )
+      {
+	int value=1;
+	sScanF(crest, "%d", &value);
+	wProp.showRubberBandBox=(bool)value;
+	// printF(" showRubberBandBox=%i\n",(int)wProp.showRubberBandBox);
+      }
+      else if( !strcmp(keyword, "showCommandHistory") )
+      {
+	int value=1;
+	sScanF(crest, "%d", &value);
+	wProp.showCommandHistory=(bool)value;
+      }
+      else if( !strcmp(keyword, "showPrompt") )
+      {
+	int value=1;
+	sScanF(crest, "%d", &value);
+	wProp.showPrompt=(bool)value;
+      }
+      else
+      {
+	printF("Unknown keyword `%s' in the .overturerc file.\n", keyword);
+      }
+	
+    } // end while...
+      
+    fclose(overtureRC);
+  }
+  else
+  {
+    printF("INFO: Did not find the Overture config file=[%s].\n", (const char*)fileName);
+    return false;
+  }
+    
+    
+  if( false )
+  {
+    printF("commandWindowHeight=%i, commandWindowWidth=%i\n", wProp.commandWindowHeight, 
+	   wProp.commandWindowWidth);
+    printF("graphicsWindowHeight=%i, graphicsWindowWidth=%i\n", wProp.graphicsWindowHeight, 
+	   wProp.graphicsWindowWidth);
+    printF("foregroundColour=%s, backgroundColour=%s\n", CS wProp.foregroundColour.c_str(), 
+	   CS wProp.backgroundColour.c_str());
+  }
+    
+  return true;
+
 }
 
 

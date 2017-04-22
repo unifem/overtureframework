@@ -1,0 +1,6 @@
+<<yale/square5///dirichlet: error>>                                                             : err = 0.0e+00
+<<yale/square5///neumann: error>>                                                               : err = 0.0e+00
+<<yale/cic///dirichlet: error>>                                                                 : err = 0.0e+00
+<<yale/cic///neumann: error>>                                                                   : err = 0.0e+00
+<<yale/sib///dirichlet: error>>                                                                 : err = 0.0e+00
+<<yale/sib///neumann: error>>                                                                   : err = 0.0e+00

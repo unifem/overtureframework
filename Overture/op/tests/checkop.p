@@ -11,17 +11,18 @@ printf("  Usage: \n");
 printf("    checkop.p [<application>]  (or `perl checkop.p') \n");
 printf("  Notes: \n");
 printf(" Applications:                                                                \n");
-printf("     tderivatives    : tests derivatives in the operators.          \n");
-printf("     tbcc            : tests boundary conditions for coefficient matrices.   \n");
+printf("     tderivatives    : tests derivatives in the operators.                    \n");
+printf("     tbcc            : tests boundary conditions for coefficient matrices.    \n");
 printf("     tbc             : tests explicit boundary conditions.                    \n");
-printf("     tcm3            : tests coefficient matrix solver on a CompositeGrid    \n");
+printf("     tcm3            : tests coefficient matrix solver on a CompositeGrid     \n");
 # printf("     tgf             : tests grids and grid functions.                        \n");
-# printf("     cellFace        : test cell/face centred grid functions.           \n");
+# printf("     cellFace        : test cell/face centred grid functions.                 \n");
 # printf("     tz              : tests twilight-zone functions.                         \n");
-# printf("     testInterpolant : tests the overlapping grid interpolation.    \n");
+# printf("     testInterpolant : tests the overlapping grid interpolation.              \n");
 # printf("     tcm             : tests coefficient matrix solver on a MappedGrid.      \n");
 # printf("     tcm2            : tests coefficient matrix solver (systems) on a MappedGrid.  \n");
-printf("     tcm4            : tests coefficient matrix solver  (systems) on a CompositeGrid    \n");
+printf("     tcm4            : tests coefficient matrix solver  (systems) on a CompositeGrid \n");
+printf("     tcmConstraint   : tests coefficient matrix solver wit constraints        \n");
 printf("==============================================================================\n\n");
 
 
@@ -65,7 +66,8 @@ else
 #             "testInterpolant",
 #             "tcm",
 #             "tcm2",
-           "tcm4"
+           "tcm4",
+           "tcmConstraint"  # *wdh* April 2, 2017 -- test of user supplied constraints for Oges
           );
 
 if( $parallel eq "parallel" )

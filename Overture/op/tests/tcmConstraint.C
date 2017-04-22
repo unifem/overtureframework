@@ -319,7 +319,7 @@ main(int argc, char *argv[])
   aString solverName="yale";
   aString iterativeSolverType="bi-cg";
   bool check=false;
-  real tol=1.e-8;
+  real tol=1.e-12;
   int orderOfAccuracy=2;
   int plot=0;
   int iluLevels=-1; // -1 : use default
@@ -476,6 +476,10 @@ main(int argc, char *argv[])
     extrapolate         = BCTypes::extrapolate,
     allBoundaries       = BCTypes::allBoundaries; 
 
+  const int np=max(1,Communication_Manager::Number_Of_Processors);
+  const int myid=max(0,Communication_Manager::My_Process_Number);
+
+
   bool communicatorWasNewed=false;
   int pStart=-1, pEnd=-1;  // Use to distribute the grids in the CompositeGrid when we define a communicator
 #ifdef USE_PPP
@@ -485,9 +489,6 @@ main(int argc, char *argv[])
     // Here we test the PETSc solver when only some processors are involved in the parallel solve.
     // We build an MPI communicator that only includes some processors.
     communicatorWasNewed=true;
-
-    const int np=max(1,Communication_Manager::Number_Of_Processors);
-    const int myid=max(0,Communication_Manager::My_Process_Number);
 
     MPI_Group worldGroup, myGroup;
     MPI_Comm_group( MPI_COMM_WORLD,&worldGroup ); //get world group
@@ -757,6 +758,9 @@ main(int argc, char *argv[])
       if( problemsToSolve % 2 ==1 )
       {
 
+	printF("\n +++++++++++++++++++ DIRICHLET with two user contraints +++++++++++++++\n\n");
+
+
 	solver.setCoefficientArray( coeff );   // supply coefficients
 
         // ================================================
@@ -764,6 +768,9 @@ main(int argc, char *argv[])
         // ================================================
 
 	int numberOfExtraEquations=2;
+        RealArray extraEquationRightHandSide(numberOfExtraEquations);
+        RealArray extraEquationSolution(numberOfExtraEquations); // holds TZ solution for extra equation
+
 	solver.setNumberOfExtraEquations(numberOfExtraEquations);
 
         // --- user supplied equations:
@@ -789,11 +796,13 @@ main(int argc, char *argv[])
 	{
           int n,i1,i2,i3,grid;
 
-          // NOTE: extraEquationNumber(i) is in decreasing order so reverse this :
-	  int eqn = solver.extraEquationNumber(numberOfExtraEquations-i-1);
+          // ***** NOTE: extraEquationNumber(i) is in decreasing order so reverse this : ****
+          const int extra = numberOfExtraEquations-i-1;
+
+	  int eqn = solver.extraEquationNumber(extra);
           solver.equationToIndex( eqn, n,i1,i2,i3,grid);
 
-	  printF("--TCMC-- extraEquationNumber(%i)=%i :  (n,i1,i2,i3,grid)=(%i,%i,%i,%i,%i)\n",
+	  printF("--TCMC-- extraEquationNumber(%i)=%i --> (n,i1,i2,i3,grid)=(%i,%i,%i,%i,%i)\n",
 		 i,eqn, n,i1,i2,i3,grid);
 
           // // --- set constraint equation to the identity: 
@@ -803,21 +812,59 @@ main(int argc, char *argv[])
           // -- equation is stored in sparse row format ---
           //    i=equation(m), (ja(k),a(k), k=ia(m),...,ia(m+1)-1)  : a(i,j) values
 
+	  extraEquationSolution(extra)=1.+extra;  // here is the "exact" solution
+	  extraEquationRightHandSide(extra)=0.;   // accumulate RHS here 
+
           equation(i)=eqn;
 	  ia(i)=nnz;   // index into ja and a
 
           // Set value of extra unknown to the value of u at some interior point
 	  ja(nnz)=eqn;
 	  a(nnz)=10.+i; 
+          extraEquationRightHandSide(extra)+= a(nnz)*extraEquationSolution(extra);
 	  nnz++;
 
           // find the equation number for an interior point: 
-          n=0; i1=1; i2=1; i3=0; grid=0;
+          n=0; i1=1+i; i2=1; i3=0; grid=0;
           int jeqn = solver.equationNo( n,i1,i2,i3,grid );
+          printF("--TCMC-- point :  (n,i1,i2,i3,grid)=(%i,%i,%i,%i,%i) --> eqnNo=%i\n",
+		  n,i1,i2,i3,grid,jeqn);
+
+          // ---- find the exact solution for point (i1,i2,i3,grid) ---
+	  int iv[3]={i1,i2,i3}; // 
+	  intArray & mask = cg[grid].mask();
+          #ifdef USE_PPP
+    	    int p= mask.Array_Descriptor.findProcNum( iv );  // processor number
+          #else
+	    int p=0;
+          #endif
+          real ue;
+	  if( myid==p )
+	  {
+	    OV_GET_SERIAL_ARRAY(real,cg[grid].center(),xLocal);
+            real x=xLocal(i1,i2,i3,0), y=xLocal(i1,i2,i3,1);
+	    real z= cg.numberOfDimensions()==2 ? 0. : xLocal(i1,i2,i3,2);
+	    ue = exact(x,y,z,n,0.);
+	  }
+	  broadCast(ue,p);
+	  
+          if( true )
+	  {
+             // check:
+	    int nj,j1,j2,j3,gridj;
+	    solver.equationToIndex( jeqn, nj,j1,j2,j3,gridj);
+	    printF("--TCMC-- check: eqn=%i --> (n,i1,i2,i3,grid)=(%i,%i,%i,%i,%i) ue=%10.3e\n",
+		   jeqn, nj,j1,j2,j3,gridj,ue);
+
+	  }
+	  
 
           ja(nnz)=jeqn;
 	  a(nnz)=-(10.+i);
+          extraEquationRightHandSide(extra)+= a(nnz)*ue;
 	  nnz++;
+
+	  // extraEquationRightHandSide(i)=2.+i;
 
 	}
         ia(numberOfExtraEquations)=nnz;
@@ -825,23 +872,47 @@ main(int argc, char *argv[])
         // Tell Oges about the extra equations 
         solver.setEquations( numberOfExtraEquations, equation,ia,ja,a );
 
-        // ================================================
-        // ================================================
-
-
 
 	// Assign the right-hand-side f  
 	assignForcing( 0,cg,f,exact );
        
   
+        // Set RHS values for the extra equations
+	real *value= new real[solver.numberOfExtraEquations];
+	for( int i=0; i<solver.numberOfExtraEquations; i++ )
+        { 
+          int extra=solver.numberOfExtraEquations-i-1;
+          // value[extra]=2.+i;
+          value[extra]=extraEquationRightHandSide(extra);
+        }
+
+	solver.setExtraEquationRightHandSideValues(f,value );
+
+        delete [] value;
+
+        // ================================================
+        // ================================================
+
+
 	u=0.;  // initial guess for iterative solvers
 
         // Set initial guess for extra equations
         real *initialValues= new real[numberOfExtraEquations];
-	for( int i=0; i<numberOfExtraEquations; i++ ){ initialValues[i]=1e3; } // 
+	for( int i=0; i<numberOfExtraEquations; i++ )
+        { 
+          const int extra = numberOfExtraEquations-i-1;
+	  initialValues[extra]=123.+i;
+        } // 
 	    
 	if( true )
 	  solver.setExtraEquationValuesInitialGuess( initialValues );
+
+	if( false )
+	{
+	  ::display(f[0],"RHS f before solve","%6.2f ");
+	}
+	
+	  
 
 	real time0=CPU();
 	solver.solve( u,f );   // solve the equations
@@ -883,17 +954,55 @@ main(int argc, char *argv[])
 	computeTheError( 0,cg,u,err,exact, error );
 	worstError=max(worstError,error);
 
-	checker.setCutOff(errorBound[it][precision][0]); checker.printMessage("dirichlet: error",error,time);
   
 	// ===== Get solutions to constraint equations =======
-        real *constraintValues = new real [numberOfExtraEquations];
-	
-        solver.getExtraEquationValues( u, constraintValues, numberOfExtraEquations );
+        // real *constraintValues = new real [numberOfExtraEquations];
+        // solver.getExtraEquationValues( u, constraintValues, numberOfExtraEquations );
+
+        // *new way**       
+	RealArray constraintValues(numberOfExtraEquations);
+        solver.getExtraEquationValues( constraintValues );
 	for( int i=0; i<solver.numberOfExtraEquations; i++ )
 	{
-	  printF(" extraEquationNumber(%i) : constraint value=%9.3e\n",i,constraintValues[i]);
+	  
+          const int extra = solver.numberOfExtraEquations-i-1;
+	  
+	  real err = fabs(constraintValues(extra)-extraEquationSolution(extra) );
+	  worstError=max(worstError,err);
+
+	  printF("--TCMC-- i=%i extra=%i extraEquationNumber(%i) : constraint value=%6.3f true=%6.3f err=%8.2e",
+	       i,extra,constraintValues(extra),extraEquationSolution(extra),err);
+
+	  if( false )
+	  {
+	  // Check residual in extra equations
+	  int ieqn = equation(i); // row for this user supplied extra equation
+
+	  int nj,j1,j2,j3,gridj;
+	  solver.equationToIndex( ieqn, nj,j1,j2,j3,gridj);
+	  u[gridj](j1,j2,j3,nj)=constraintValues(extra);  // do this for now
+	   
+	  real res=extraEquationRightHandSide(extra);
+	  for( int kk=ia(i); kk<=ia(i+1)-1; kk++ )
+	  {
+  	    int jeqn=ja(kk);
+	     
+	    // *** FIX FOR PARALLEL *** extra values my not be in u[gridj](...)
+
+	    solver.equationToIndex( jeqn, nj,j1,j2,j3,gridj);
+	    res=res - a(kk)*u[gridj](j1,j2,j3,nj);
+  	  }
+	  printF(" residual=%9.2e\n",res);
+   	  }
+	  else
+	  { 
+	     printF("\n");
+   	  }
+	  
 	}
-        delete [] constraintValues;
+        // delete [] constraintValues;
+
+	checker.setCutOff(errorBound[it][precision][0]); checker.printMessage("dirichlet: error",error,time);
 
         // ====================================================
 
@@ -903,7 +1012,7 @@ main(int argc, char *argv[])
 	  plotResults( ps,solver,u,err );
 	}
 	
-	if( true )
+	if( false )
 	{
           // Trouble doing both Dirichlet and Neumann --> initialize callled twice -> createNullVector
 	  OV_ABORT("Finish here for now");
@@ -923,6 +1032,12 @@ main(int argc, char *argv[])
         bool neumannBCs =(problemsToSolve/2) % 2 ==1;
         bool mixedBCs   =(problemsToSolve/4) % 2 ==1;
 	aString optionName = neumannBCs ? "neumann" : "mixed";
+
+	if( neumannBCs )  
+  	  printF("\n +++++++++++++++++++ NEUMANN BCs with dense contraint and 1 user equation +++++++++++++++\n\n");
+	else
+
+  	  printF("\n +++++++++++++++++++ MIXED BCs  +++++++++++++++\n\n");
 
 	coeff=0.;
 	for( int grid=0; grid<cg.numberOfComponentGrids(); grid++ )
@@ -990,23 +1105,6 @@ main(int argc, char *argv[])
         solver.setCoefficientArray( coeff );   // supply coefficients
 
 	bool singularProblem=neumannBCs; 
-	// for( int grid=0; grid<cg.numberOfComponentGrids(); grid++ )
-	// { // this loop does nothing for now 
-	//   MappedGrid & mg = cg[grid];
-	//   ForBoundary(side,axis)
-	//   {
-	//     if( mg.boundaryCondition(side,axis) > 0  )
-	//     { 
-	//     }
-	//     else if( mg.boundaryCondition(side,axis) ==inflow ||  mg.boundaryCondition(side,axis) ==outflow )
-	//     {
-	//       singularProblem=false;
-	//     }
-	//   }
-	// }
-
-
-
 
 	// Assign the right-hand-side f  
 	const int option = neumannBCs ? 1 : 2;
@@ -1035,13 +1133,17 @@ main(int argc, char *argv[])
         int totalNumberOfExtraEquations=numberOfDenseExtraEquatons+numberOfExtraEquations;
 	solver.setNumberOfExtraEquations(totalNumberOfExtraEquations);
 
+        RealArray extraEquationRightHandSide(totalNumberOfExtraEquations);
+        RealArray extraEquationSolution(totalNumberOfExtraEquations); // holds TZ solution for extra equation
+
         // NO solver.set(OgesParameters::THEuserSuppliedCompatibilityConstraint,true);
 
 
-	if( singularProblem )
+        // we need to first initialize the solver before we can fill in the rhs for the compatibility equation
+        solver.initialize();
+
+	if( singularProblem ) // this is not correct if not singular but we have user defined equations
 	{
-	  // we need to first initialize the solver before we can fill in the rhs for the compatibility equation
-	  solver.initialize();
 	  realCompositeGridFunction ue(cg);
 	  exact.assignGridFunction(ue,0.);
 	  real *value= new real[totalNumberOfExtraEquations];
@@ -1050,9 +1152,22 @@ main(int argc, char *argv[])
 	  for( int i=0; i<numberOfDenseExtraEquatons; i++ )
 	  { // eval RHS for compatibility integral
 	    solver.evaluateExtraEquation(ue,value[i],i);
+
+	    if( true )
+	    {
+	      // dense extra equations -- is this correct for numberOfDenseExtraEquatons>1
+	      int n,i1,i2,i3,grid;
+	      int eqn = solver.extraEquationNumber(i);  
+	      solver.equationToIndex( eqn, n,i1,i2,i3,grid);
+	      printF("--TCMC-- dense extra eqn %i : eqn=%i :  (n,i1,i2,i3,grid)=(%i,%i,%i,%i,%i)\n",
+		     i,eqn, n,i1,i2,i3,grid);
+	    }
+
+            extraEquationRightHandSide(i)=value[i];
+
 	  }
-	  
-	  solver.setExtraEquationRightHandSideValues(f,value );
+
+	  // solver.setExtraEquationRightHandSideValues(f,value );
 
 	  delete [] value;
 	}
@@ -1070,11 +1185,16 @@ main(int argc, char *argv[])
           int n,i1,i2,i3,grid;
 
           // NOTE: extraEquationNumber(i) is in decreasing order so reverse this :
-	  int eqn = solver.extraEquationNumber(totalNumberOfExtraEquations-i-1);
+          // NOTE: the dense extra equatin is "i=0"
+          const int extra=totalNumberOfExtraEquations-i-1;
+	  int eqn = solver.extraEquationNumber(extra);
           solver.equationToIndex( eqn, n,i1,i2,i3,grid);
 
-	  printF("--TCMC-- extraEquationNumber(%i)=%i :  (n,i1,i2,i3,grid)=(%i,%i,%i,%i,%i)\n",
-		 i,eqn, n,i1,i2,i3,grid);
+	  printF("--TCMC-- user eqn %i: extraEquationNumber(%i)=%i : (n,i1,i2,i3,grid)=(%i,%i,%i,%i,%i)\n",
+		 i,extra,eqn, n,i1,i2,i3,grid);
+
+	  extraEquationSolution(extra)=10.+extra;  // here is the "exact" solution
+	  extraEquationRightHandSide(extra)=0.;   // accumulate RHS here 
 
           // // --- set constraint equation to the identity: 
           // for( int j=0; j<solver.numberOfExtraEquations; j++ )
@@ -1089,14 +1209,34 @@ main(int argc, char *argv[])
           // Set value of extra unknown to the value of u at some interior point
 	  ja(nnz)=eqn;
 	  a(nnz)=10.+i; 
+          extraEquationRightHandSide(extra)+= a(nnz)*extraEquationSolution(extra);
 	  nnz++;
 
           // find the equation number for an interior point: 
           n=0; i1=1; i2=1; i3=0; grid=0;
           int jeqn = solver.equationNo( n,i1,i2,i3,grid );
 
+          // ---- find the exact solution for point (i1,i2,i3,grid) ---
+	  int iv[3]={i1,i2,i3}; // 
+	  intArray & mask = cg[grid].mask();
+          #ifdef USE_PPP
+    	    int p= mask.Array_Descriptor.findProcNum( iv );  // processor number
+          #else
+	    int p=0;
+          #endif
+          real ue;
+	  if( myid==p )
+	  {
+	    OV_GET_SERIAL_ARRAY(real,cg[grid].center(),xLocal);
+            real x=xLocal(i1,i2,i3,0), y=xLocal(i1,i2,i3,1);
+	    real z= cg.numberOfDimensions()==2 ? 0. : xLocal(i1,i2,i3,2);
+	    ue = exact(x,y,z,n,0.);
+	  }
+	  broadCast(ue,p);
+	  
           ja(nnz)=jeqn;
 	  a(nnz)=-(10.+i);
+          extraEquationRightHandSide(extra)+= a(nnz)*ue;
 	  nnz++;
 
 	}
@@ -1105,12 +1245,21 @@ main(int argc, char *argv[])
         // Tell Oges about the extra equations 
         solver.setEquations( numberOfExtraEquations, equation,ia,ja,a );
 
+       // Set RHS values for the extra equations
+	real *value= new real[solver.numberOfExtraEquations];
+	for( int i=0; i<solver.numberOfExtraEquations; i++ )
+        { 
+          int extra=solver.numberOfExtraEquations-i-1;
+          // value[extra]=2.+i;
+          value[extra]=extraEquationRightHandSide(extra);
+        }
+
+	solver.setExtraEquationRightHandSideValues(f,value );
+
+        delete [] value;
+
         // ================================================
         // ================================================
-
-
-
-
 
 
 
@@ -1135,21 +1284,37 @@ main(int argc, char *argv[])
 
 	worstError=max(worstError,error);
       
+      
+	// ===== Get solutions to constraint equations =======
+        // *new way**       
+	RealArray constraintValues(solver.numberOfExtraEquations);
+        solver.getExtraEquationValues( constraintValues );
+	for( int i=0; i<solver.numberOfExtraEquations; i++ )
+	{
+          const int extra = solver.numberOfExtraEquations-i-1;
+	  
+	  real err = fabs(constraintValues(extra)-extraEquationSolution(extra) );
+	  worstError=max(worstError,err);
+	  
+	  printF("--TCMC-- i=%i extra=%i extraEquationNumber(%i) : constraint value=%6.3f true=%6.3f err=%8.2e\n",
+	       i,extra,constraintValues(extra),extraEquationSolution(extra),err);
+
+	  // printF("--TCMC-- extraEquationNumber(%i) : constraint value=%9.3e\n",i,constraintValues(i));
+	}
+
+        // real *constraintValues = new real [solver.numberOfExtraEquations];
+	
+        // solver.getExtraEquationValues( u, constraintValues,solver.numberOfExtraEquations );
+	// for( int i=0; i<solver.numberOfExtraEquations; i++ )
+	// {
+	//   printF("--TCMC-- extraEquationNumber(%i) : constraint value=%9.3e\n",i,constraintValues[i]);
+	// }
+        // delete [] constraintValues;
+        // ====================================================
+
 	checker.setCutOff(errorBound[it][precision][1]);
 	aString buff;
 	checker.printMessage(sPrintF(buff,"%s: error",(const char*)optionName),error,time);
-      
-	// ===== Get solutions to constraint equations =======
-        real *constraintValues = new real [numberOfExtraEquations];
-	
-        solver.getExtraEquationValues( u, constraintValues );
-	for( int i=0; i<solver.numberOfExtraEquations; i++ )
-	{
-	  printF(" extraEquationNumber(%i) : constraint value=%9.3e\n",i,constraintValues[i]);
-	}
-        delete [] constraintValues;
-        // ====================================================
-
       }
       
       if( plot )

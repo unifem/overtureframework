@@ -1,4 +1,4 @@
-! This file automatically generated from advOpt.bf with bpp.
+! This file automatically generated from advOptNew.bf with bpp.
         subroutine advMx2dOrder2c(nd,n1a,n1b,n2a,n2b,n3a,n3b,nd1a,nd1b,
      & nd2a,nd2b,nd3a,nd3b,nd4a,nd4b,mask,rsxy,  um,u,un,f,fa, v,vvt2,
      & ut3,vvt4,ut5,ut6,ut7, bc, dis, varDis, ipar, rpar, ierr )
@@ -987,6 +987,9 @@
         real cdcH,cdcHLap,cdcHLapsq,cdcHLapm
         ! dispersion
         integer dispersionModel,pxc,pyc,pzc,qxc,qyc,qzc,rxc,ryc,rzc
+        integer ec,pc
+        real gamma,omegap
+        real gammaDt,omegapDtSq,ptt, fe,fp
        ! real unxx22r,unyy22r,unxy22r,unx22r
        !.......statement functions for jacobian
         rx(i1,i2,i3)=rsxy(i1,i2,i3,0,0)
@@ -3449,6 +3452,9 @@ c===============================================================================
         divergenceCleaningCoefficient=rpar(17)
         t     =rpar(18)
         rpar(20)=0.  ! return the time used for adding dissipation
+        ! Drude-Lorentz dispersion model:
+        gamma= rpar(21)
+        omegap=rpar(22)
         dy=dx(1)  ! Are these needed?
         dz=dx(2)
         ! timeForArtificialDissipation=rpar(6) ! return value
@@ -3520,6 +3526,8 @@ c===============================================================================
         dzi4=1./(dz**4)
         dxdzi2=1./(dx(0)*dx(0)*dz*dz)
         dydzi2=1./(dy*dy*dz*dz)
+        gammaDt=gamma*dt
+        omegapDtSq=(omegap*dt)**2
         if( t.eq.0. .and. dispersionModel.ne.noDispersion )then
            write(*,'("--advOpt-- dispersionModel=",i4," px,py,pz=",3i2)
      & ') dispersionModel,pxc,pyc,pzc
@@ -3713,7 +3721,44 @@ c===============================================================================
             ! **************** CONSERVATIVE DIFFERENCE *****************
             !  The Lapacian and Laplacian squared have already been computed by the calling program 
           ! In these cases we are given the Laplacian on input
-           if( useDivergenceCleaning.eq.0 )then
+           if( dispersionModel.ne.noDispersion )then
+             ! --dispersive model --
+             write(*,'("--advOpt-- advance 2D curvilinear: dispersive 
+     & model")')
+             if( addDissipation )then
+               write(*,'(" -- finish me : dissipation")')
+               stop 8256
+             end if
+             fp=0
+             fe=0.
+               do i3=n3a,n3b
+               do i2=n2a,n2b
+               do i1=n1a,n1b
+                 if( mask(i1,i2,i3).gt.0 )then
+               ! scheme from Jeff: 
+               do m=0,1
+                pc=pxc+m
+                ec=ex+m
+                if( addForcing.ne.0 )then ! forcing in E equation already added to f
+                  fp = dtsq*f(i1,i2,i3,pc)
+                end if
+                un(i1,i2,i3,pc)=( 2.*u(i1,i2,i3,pc)- (1.-gammaDt*.5)*
+     & um(i1,i2,i3,pc) + omegapDtSq*u(i1,i2,i3,ec) + fp )/(1.+gammaDt*
+     & .5)
+                ptt = un(i1,i2,i3,pc)-2.*u(i1,i2,i3,pc)+um(i1,i2,i3,pc)
+                ! write(*,'(" ptt=",e10.2)') ptt
+                un(i1,i2,i3,ec)=maxwellc22(i1,i2,i3,ec) - ptt/eps
+                ! test: un(i1,i2,i3,ec)=maxwellc22(i1,i2,i3,ec) 
+               end do
+               ! FINISH ME for Hz 
+               !   H_tt = c^2 Delta(H) + c^2 curl( P_t)  -- equation for H , *check me*
+               un(i1,i2,i3,hz)=maxwellc22(i1,i2,i3,hz)
+                 end if
+               end do
+               end do
+               end do
+           else if( useDivergenceCleaning.eq.0 )then
+              ! --- non-dispersive ---
             if( .not.addDissipation )then
              if( nd.eq.2 )then
               ! This next line assumes we solve for ex,ey and hz
