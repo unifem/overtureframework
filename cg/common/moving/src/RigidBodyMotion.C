@@ -741,8 +741,106 @@ getBodyForces( const real t, RealArray & bodyForce, RealArray & bodyTorque ) con
 	printF("RigidBodyMotion::getBodyForces: %s : t=%9.3e, torque=%9.3e\n",timeFunctionName,t,g);
       }
     }
-    
 
+  }
+  else if( bodyForceType==restrictAngle )
+  {
+    //input: deltaAngle1, epsilonAngle1, theta1 (input being degree) 
+    //old way:
+    // real deltaAngle=1.e-2;
+    // real epsilonAngle=1.e-3;
+    //real theta1=-0.05, theta2=1.0;
+    //
+    // the angles:
+    // 65/180*Pi=1.134464014
+    // 30/180*Pi=0.5235987758
+
+    real g=0., theta, wCurrent;
+    bodyForce(R) = 0.;
+    bodyTorque(R) = 0.;
+
+    if (FALSE) // need to fix the reverse of the angle!
+    {
+        theta=asin(e(0,1,current)); 
+        if (theta>theta2-deltaAngle2)
+        {
+            if (theta<theta2)
+                g=pow((theta-theta2+deltaAngle2)/deltaAngle2, 2.0)/epsilonAngle2;
+            else 
+                g = 1./epsilonAngle2;
+            bodyTorque(2) = g;
+        }
+        else if (theta<theta1+deltaAngle1)
+        {
+            if (theta>theta1)
+                g=-pow((theta-theta1-deltaAngle1)/deltaAngle1, 2.0)/epsilonAngle1;
+            else
+                g=-1./epsilonAngle1;
+            bodyTorque(2) = g;
+        }   
+    }
+    else //fix the angle
+    {
+        if (current==-1)
+        {
+            theta=0.;
+            wCurrent=0.;
+        }
+        else
+        {
+            theta=asin(e(1,0,current)); 
+            wCurrent=w(2,current);
+        }
+        if (theta>theta2-deltaAngle2)
+        {
+            if (TRUE)
+            {
+            if (theta<theta2)
+                g=(-1./epsilonAngle2-damp2*wCurrent)*SQR((theta-theta2+deltaAngle2)/deltaAngle2);
+            else 
+                g= -1./epsilonAngle2-damp2*wCurrent;
+            }
+            else
+            {
+            if (theta<theta2)
+                g=(-1./epsilonAngle2*(max(wCurrent,0.0))-damp2*wCurrent)*SQR((theta-theta2+deltaAngle2)/deltaAngle2);
+            else 
+                g= -1./epsilonAngle2*(max(wCurrent,0.0))-damp2*wCurrent;
+            }
+            
+            //g=-pow((theta-theta2+deltaAngle2)/deltaAngle2, 2.0)/epsilonAngle2;
+            bodyTorque(2) = g;
+        }
+        else if (theta<theta1+deltaAngle1)
+        {
+            if (TRUE)
+            {
+            if (theta>theta1)
+                g=(1./epsilonAngle1-damp1*wCurrent)*SQR((theta-theta1-deltaAngle1)/deltaAngle1);
+            else
+                g= 1./epsilonAngle1-damp1*wCurrent;
+            }
+            else
+            {
+            if (theta>theta1)
+                g=(1./epsilonAngle1*(max(-wCurrent,0.0))-damp1*wCurrent)*SQR((theta-theta1-deltaAngle1)/deltaAngle1);
+            else
+                g= 1./epsilonAngle1*(max(-wCurrent,0.0))-damp1*wCurrent;
+            }
+
+            //g= pow((theta-theta1-deltaAngle1)/deltaAngle1, 2.0)/epsilonAngle1;
+            bodyTorque(2) = g;
+        }    
+    }
+    
+    if( logFile!=NULL )
+        fPrintF(logFile,"RigidBodyMotion::getBodyForces: t=%9.3e, theta=%9.3e, w=%9.3e, torqueRepulsive=%9.3e\n",
+                t,theta,wCurrent,g);
+
+    //if( debug & 2 )
+        printF("RigidBodyMotion::getBodyForces: t=%9.3e, theta=%9.3e, w=%9.3e, torqueRepulsive=%9.3e\n",
+                t,theta,wCurrent,g);
+    //::display(e,"e");
   }
   else
   {
@@ -2161,7 +2259,7 @@ integrate(real t0,
   }
   if( logFile!=NULL )
   {
-    fPrintF(logFile," integrate: t0=%9.3e, t=t=%9.3e, x(next)=(%8.2e,%8.2e,%8.2e) v(next)=(%8.2e,%8.2e,%8.2e), cur=%i next=%i\n"
+    fPrintF(logFile," integrate: t0=%9.3e, t=%9.3e, x(next)=(%8.2e,%8.2e,%8.2e) v(next)=(%8.2e,%8.2e,%8.2e), cur=%i next=%i\n"
 	    "     w(next)=(%8.2e,%8.2e,%8.2e) force=(%8.2e,%8.2e,%8.2e) torque=(%8.2e,%8.2e,%8.2e)\n"
 	    "     bodyForce=(%8.2e,%8.2e,%8.2e), bodyTorque=(%8.2e,%8.2e,%8.2e)\n"
 	    "     f(cur)=(%8.2e,%8.2e,%8.2e), f(next)=(%8.2e,%8.2e,%8.2e)\n"
@@ -2654,6 +2752,8 @@ takeStepLeapFrog( const real t0, const real dt )
 	     t,t0,timeProvided(current),
 	     vDotProvided(0,current),vDotProvided(1,current),vDotProvided(2,current),
 	     vDotProvided(3,current),vDotProvided(4,current),vDotProvided(5,current));
+     printF("--RBM-LF-- mI(2)=%8.4e, totalTorque(2)=%8.4e\n",
+	     mI(2),mI(2)*vDotProvided(5,current)); 
     }
     
     vDot(R)=vDotProvided(R,current);
@@ -5227,6 +5327,12 @@ getCoordinates( real t,
                 ipp1,timeProvided(ipp1),ip,timeProvided(ip),1-beta,beta);
       }
       
+     if( debug & 3  )
+      {
+	printF("--RBM-- getOmegaDot: t=%8.2e, use provided: wDot=(%6.2e,%6.2e,%6.2e), mI=(%8.2e,%8.2e,%8.2e) (ipp1,t)=(%i,%8.2e), (ip,t)=(%i,%8.2e) weights=[%g,%g] \n",
+		t,omegaDot(0),omegaDot(1),omegaDot(2),mI(0),mI(1),mI(2),
+                ipp1,timeProvided(ipp1),ip,timeProvided(ip),1-beta,beta);
+      }     
     }
     else  if( FALSE && overRideAcceleration ) // *wdh* Dec 1, 2015.
     {
@@ -5825,6 +5931,32 @@ getBodyForceOption(const aString & answer,
     GenericGraphicsInterface & gi = *Overture::getGraphicsInterface();
     printF("Edit the time funcion %s...\n",(const char*)timeFunctionName);
     timeFunction.update(gi);
+  }
+  else if( answer.matches("restrict angle:") || answer.matches("restrict angle and damp:"))
+  { 
+    bodyForceType= restrictAngle;
+    if( answer.matches("restrict angle:"))
+    {
+        len=15;
+        sScanF(answer(len,answer.length()-1),"%e %e %e %e %e %e",
+            &theta1,&deltaAngle1,&epsilonAngle1,&theta2,&deltaAngle2,&epsilonAngle2);
+        damp1=0.;
+        damp2=0.;
+        printF("Body force: restrict angle theta1=%g, delta=%g, epsilon=%g, theta2=%g, delta=%g, epsilon=%g\n",
+	       theta1, deltaAngle1, epsilonAngle1, theta2, deltaAngle2, epsilonAngle2 );
+    }
+    else
+    {
+        len=24;
+        sScanF(answer(len,answer.length()-1),"%e %e %e %e %e %e %e %e",
+            &theta1,&deltaAngle1,&epsilonAngle1,&damp1, 
+            &theta2,&deltaAngle2,&epsilonAngle2,&damp2);
+        printF("Body force: restrict angle theta1=%g, delta=%g, epsilon=%g, damp=%g\n"
+               "Body force: restrict angle theta2=%g, delta=%g, epsilon=%g, damp=%g\n",
+	       theta1, deltaAngle1, epsilonAngle1,damp1, 
+               theta2, deltaAngle2, epsilonAngle2,damp2);
+    }
+
   }
   else if( answer=="help body force" )
   {

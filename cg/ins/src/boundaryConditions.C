@@ -757,17 +757,17 @@ setPressureConstraintValues( GridFunction & gf0, realCompositeGridFunction & f )
       //             using the current guess for the pressure.
 
       RealArray bodyForceFromPressure, bodyTorqueFromPressure;
-      bool includeGravity = false, includeViscosity = false;
-      movingGrids.getForceOnRigidBodies( bodyForceFromPressure,bodyTorqueFromPressure, gf0,includeGravity,includeViscosity );
+      bool includeExternal = false, includeViscosity = false;
+      movingGrids.getForceOnRigidBodies( bodyForceFromPressure,bodyTorqueFromPressure, gf0,includeExternal,includeViscosity );
 
       // ************* TESTING ***************
       // Compute force on body due to viscous stress
       RealArray bodyForceFromViscousStress, bodyTorqueFromViscousStress;
       includeViscosity = true;
-      // includeGravity = false; 
-      includeGravity = true;  // ************* INCLUDE GRAVITY
+      // includeExternal = false; 
+      includeExternal = true;  // ************* INCLUDE ALL EXTERNAL FORCES
       movingGrids.getForceOnRigidBodies( bodyForceFromViscousStress,bodyTorqueFromViscousStress, 
-                                         gf0,includeGravity,includeViscosity );
+                                         gf0,includeExternal,includeViscosity );
       bodyForceFromViscousStress-=bodyForceFromPressure;
       bodyTorqueFromViscousStress-=bodyTorqueFromPressure;
 

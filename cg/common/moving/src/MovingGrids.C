@@ -874,7 +874,6 @@ int MovingGrids::getRigidBodyAddedDampingTensors( const int bodyNumber, RealArra
 	}
 	  else 
       	{
-	      OV_ABORT("check it -QT");
 	      if( ma==0 || ma==15 )
 	      {
 		kLocal=ma<6 ? vbc:wbc;
@@ -949,7 +948,6 @@ int MovingGrids::getRigidBodyAddedDampingTensors( const int bodyNumber, RealArra
       real addedDampingScaleFactor=1.;
       body.setAddedDampingTensors( addedDampingTensors,t, addedDampingScaleFactor );
       body.displayAddedDampingTensors("--MVG--getRigidBodyAddedDampingTensors (Computed from surface integrals, no scaling by mu/dn) :",t);
-
     }
     
     if( true )
@@ -1996,7 +1994,7 @@ getFluidMassOfBody( int b ) const
 /// \param torque(0:2,b) (output) : integrated torque on body b, b=0,1,..,numberOfRigidBodies-1
 ///        Note that in 2D the only torque component is torque(2,b) . 
 /// \param gf0 (input) : holds fluid solution (for pressure and viscous stresses)
-/// \param includeGravity (input) : if true, include gravitation force (buoyancy)
+/// \param includeExternal (input) : if true, include external forces including gravitation force (buoyancy)
 /// \param includeViscosity (input) : if true, include viscous tractions in force.
 //
 // Note: This code originally appeared in MovingGrids::rigidBodyMotion
@@ -2004,7 +2002,7 @@ getFluidMassOfBody( int b ) const
 //=================================================================================
 int MovingGrids::
 getForceOnRigidBodies( RealArray & force, RealArray & torque, GridFunction & gf0,
-                       bool includeGravity /*= true */, 
+                       bool includeExternal /*= true */, 
                        bool includeViscosity /* = true */ )
 {
   if( numberOfRigidBodies<=0 )
@@ -2123,8 +2121,8 @@ getForceOnRigidBodies( RealArray & force, RealArray & torque, GridFunction & gf0
     else
       torque(T,b) = forceTorque(T+torquec);
     
-    // --- Add gravity buoyancy force ---
-    if( includeGravity )
+    // --- Add external forces including gravity buoyancy force ---
+    if( includeExternal )
     {
       // ArraySimpleFixed<real,3,1,1,1> & gravity = parameters.dbase.get<ArraySimpleFixed<real,3,1,1,1> >("gravity");
 
@@ -2183,8 +2181,24 @@ getForceOnRigidBodies( RealArray & force, RealArray & torque, GridFunction & gf0
 	for( int d=0; d<cg.numberOfDimensions(); d++ )
 	  force(d,b) += gravity[d]*(bodyMass-fluidMass);  // add weight: mass*g 
       }
-      
-    } // end include gravity 
+
+       //add body force -QT
+       RealArray bodyForce(3), bodyTorque(3);
+       body[b]->getBodyForces( gf0.t,bodyForce,bodyTorque );
+    
+       force(F,b) +=bodyForce(F);
+       if( numberOfDimensions==2 )
+           torque(2,b)+=bodyTorque(torquec);  // in 2D there is only one component of the torque
+       else
+           torque(T,b)+=bodyTorque(T);
+
+       if( (debug() & 2) && TRUE ) 
+       {
+       printF("--MVG-- getForceOnRigidBodies: body b=%i: bodyTorque(2)=%8.4e\n",
+             b,bodyTorque(2));
+       }
+
+    } // end include external forces
     
   } // end for body 
   
@@ -3011,13 +3025,14 @@ gridAccelerationBC(const int grid, const int side, const int axis,
     
     if( parameters.dbase.get<bool>("printMovingBodyInfo") || debug() & 2 )
     {
-      RealArray vCM(3),w(3);
+      RealArray vCM(3),w(3),omegaDot(3);
       body[b]->getVelocity( t0,vCM  );
       body[b]->getAngularVelocities( t0,w );
+      body[b]->getAngularAcceleration( t0, omegaDot  );
       if( c.numberOfDimensions()==2 )
 	printF("--MVG--::gridAccelBC: t0=%9.2e, xCM=(%9.2e,%9.2e), vCM=(%9.2e,%9.2e), aCM=(%9.2e,%9.2e), "
-               "wCM=(0,0,%9.2e) \n",
-	       t0,xCM(0),xCM(1),vCM(0),vCM(1),aCM(0),aCM(1),w(2));
+               "wCM=(0,0,%9.2e),wDot=(0,0,%9.2e)\n",
+	       t0,xCM(0),xCM(1),vCM(0),vCM(1),aCM(0),aCM(1),w(2),omegaDot(2));
       else
 	printF("--MVG--::gridAccelBC: t0=%9.2e, vCM=(%9.2e,%9.2e,%9.2e), aCM=(%9.2e,%9.2e,%9.2e), wCM=(%9.2e,%9.2e,%9.2e) \n",
 	       t0,vCM(0),vCM(1),vCM(2),aCM(0),aCM(1),aCM(2),w(0),w(1),w(2));
@@ -3981,7 +3996,7 @@ rigidBodyMotion(const real & t1,
     
     const bool directProjectionAddedMass = body[b]->getDirectProjectionAddedMass();
     if( directProjectionAddedMass || debug() & 1 )
-	printF("--MVG:RB-- body %i : t2=%6.2e fCM=(%6.2e,%6.2e,%6.2e)"
+	printF("--MVG:RB-- body %i : t2=%8.4e fCM=(%6.2e,%6.2e,%6.2e)"
 		" torque=(%6.2e,%6.2e,%6.2e)\n",b,t2,f(0),f(1),f(2),g(0),g(1),g(2));
     // g=0.; 
     // integrate->surfaceIntegral(torque,T,g,b);

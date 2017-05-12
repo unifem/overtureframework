@@ -637,7 +637,7 @@ chooseUserDefinedBoundaryValues(int side, int axis, int grid, CompositeGrid & cg
 
       parameters.setBcIsTimeDependent(side,axis,grid,true);      // this condition is time dependent
 
-      printF("The pressure pulse is p = .5*pMax*[ 1 - cos(2*pi*t/tMax) ],  for 0 <=t<=tMax, p=0 other-wise\n");
+      printF("The pressure pulse is p = pMax*sin(pi*t/tMax),  for 0 <=t<=tMax, p=0 other-wise\n");
       gi.inputString(answer2,"Enter pMax, tMax");
       real pMax=1., tMax=1.;
       if( answer2!="" )
@@ -653,6 +653,31 @@ chooseUserDefinedBoundaryValues(int side, int axis, int grid, CompositeGrid & cg
       // save the parameters to be used when evaluating the time dependent BC's:
       parameters.setUserBoundaryConditionParameters(side,axis,grid,values);
 
+    }    
+    else if( answer=="cardiac cycle" )
+    {
+      userDefinedBoundaryValue = "cardiacCycle";
+
+      parameters.setBcIsTimeDependent(side,axis,grid,true);      // this condition is time dependent
+
+      printF("The pressure is p = pMax*sin(pi*t/tP1),  for 0<=t<=tP1, p = pMin*sin(pi*(t-tP1)/tP2) for tP1<=t<=tP1+tP2/2,"
+              "p=-pMin other-wise\n"); //note there is only one half period for the second period
+      gi.inputString(answer2,"Enter pMax, tP1, pMin, tP2");
+      real pMax=1., tP1=1., pMin=-1, tP2=1.;
+      if( answer2!="" )
+      {
+	sScanF(answer2,"%e %e %e %e",&pMax,&tP1,&pMin,&tP2);
+      }
+      printF("***userDefinedBoundaryValues: cardiac cycle: setting pMax=%8.2e, tP1=%8.2e, pMin=%8.2e, tP2=%8.2e"
+             "for (side,axis,grid)=(%i,%i,%i)\n",pMax,tP1,pMin,tP2,side,axis,grid);
+
+      RealArray values(4);
+      values(0)=pMax;
+      values(1)=tP1;
+      values(2)=pMin;
+      values(3)=tP2;
+      // save the parameters to be used when evaluating the time dependent BC's:
+      parameters.setUserBoundaryConditionParameters(side,axis,grid,values);
     }    
     else if( answer=="polynomial inflow profile" )
     {
@@ -1774,11 +1799,57 @@ userDefinedBoundaryValues(const real & t,
 	bd(Ib1,Ib2,Ib3,vc)=0.;
 	if( numberOfDimensions>2 )
 	  bd(Ib1,Ib2,Ib3,wc)=0.;
-
-	  
-	//	}
       }
 
+      else if( userDefinedBoundaryValue=="cardiacCycle" )
+      {
+
+        RealArray values(4);
+	parameters.getUserBoundaryConditionParameters(side,axis,grid,values);
+	real pMax=values(0);
+	real tP1 =values(1);
+	real pMin=values(2);
+	real tP2 =values(3);
+
+        getBoundaryIndex(mg.gridIndexRange(),side,axis,Ib1,Ib2,Ib3);
+	
+	bool ok=ParallelUtility::getLocalArrayBounds(u,uLocal,Ib1,Ib2,Ib3,includeGhost);
+	if( !ok ) continue;  // no points on this processor
+
+        // -- we could avoid building the vertex array on Cartesian grids ---
+	mg.update(MappedGrid::THEvertex | MappedGrid::THEcenter);
+        OV_GET_SERIAL_ARRAY_CONST(real,mg.vertex(),x);
+
+	numberOfSidesAssigned++;
+
+	RealArray & bd = parameters.getBoundaryData(side,axis,grid,mg);
+        real factor=0.;
+	if( forcingType==computeForcing )
+	{
+          if( t>=0. && t<=tP1 )
+	    factor=pMax*sin(Pi*t/tP1);
+          else if (t>tP1 && t<=tP1+tP2/2.)
+	    factor=pMin*sin(Pi*(t-tP1)/tP2);
+          else if (t>tP1+tP2/2.)
+            factor=pMin;
+          //let factor=0 if t<0
+	}
+	else 
+	{
+	    OV_ABORT("***userDefinedBoundaryValues: cardiac cycle: Why pdot is needed?");
+	}
+	
+	if( true && ( (debug() & 2 && t <= tP1+tP2/2.) || t <= dt ) )
+	  printF("--UBV-- cardiac cycle: t=%8.2e, assign (side,axis,grid)=(%i,%i,%i)  forceType=%i, "
+		 " pMax=%f, tP1=%f, pMin=%f, tP2=%f, p=%9.3e\n",
+                 t,side,axis,grid,(int)forcingType,pMax,tP1,pMin,tP2,factor);
+
+        bd(Ib1,Ib2,Ib3,pc)= factor;  // pressure 	
+	bd(Ib1,Ib2,Ib3,uc)=0.;
+	bd(Ib1,Ib2,Ib3,vc)=0.;
+	if( numberOfDimensions>2 )
+	  bd(Ib1,Ib2,Ib3,wc)=0.;	  
+      }
       else if( userDefinedBoundaryValue=="polynomialInflowProfile" )
       {
 	// -- define an inflow profile --

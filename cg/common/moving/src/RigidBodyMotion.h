@@ -51,7 +51,8 @@ enum PositionConstraintEnum
   enum BodyForceTypeEnum
   {
     timePolynomialBodyForce=0,
-    timeFunctionBodyForce
+    timeFunctionBodyForce,
+    restrictAngle
   };
 
   enum
@@ -371,6 +372,8 @@ enum PositionConstraintEnum
   RealArray time;   // arrays of times for which we know data.
 
   RealArray bodyForceCoeff, bodyTorqueCoeff; // coefficients in the body force
+
+  real  theta1, theta2, deltaAngle1, epsilonAngle1, deltaAngle2, epsilonAngle2, damp1, damp2; // coefficients in restrict angle through body force
 
   const Range R;          // R=Range(0,2) 
 

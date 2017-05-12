@@ -781,12 +781,12 @@ adjustPressureCoefficients(CompositeGrid & cg0, GridFunction & cgf  )
       //    A(3,3)*b3 + INT n_1 r_2 - n_2 r_1 ds + dt*Dwv(3,1)*a1 + D3v(3,2)*a2+  dt*Dww(3,3)*b3 = ...    
       //
       // --- 3D: AMP constraint equations are: ( e1=[1 0 0],  e2=[0 1 0], e3= [ 0 0 1] )
-      //    mb*a1 + INT p n_1 ds + dt*Dvv(1,1)*a1 = ...
-      //    mb*a2 + INT p n_2 ds = ...
-      //    mb*a3 + INT p n_3 ds = ...
-      //    A(1,1)*b1 + A(1,2)*b2 + A(1,3)*b3 + INT e1 . rv X (p nv) ds = ...
-      //    A(2,1)*b1 + A(2,2)*b2 + A(2,3)*b3 + INT e2 . rv X (p nv) ds = ... 
-      //    A(3,1)*b1 + A(3,2)*b2 + A(3,3)*b3 + INT e3 . rv X (p nv) ds = ...
+      //                        mb*a1 - INT p n_1 ds +    [     |     ][ a1 ]  = ...
+      //                        mb*a2 - INT p n_2 ds +    [ Dvv | Dvw ][ a2 ]  = ...
+      //                        mb*a3 - INT p n_3 ds + dt*[_____|_____][ a3 ]  = ...
+      //   [       ][ b1 ] - INT e1 . rv X (p nv) ds +    [     |     ][ b1 ]  = ...
+      //   [   A   ][ b2 ] - INT e2 . rv X (p nv) ds +    [ Dwv | Dww ][ b2 ]  = ... 
+      //   [       ][ b3 ] - INT e3 . rv X (p nv) ds +    [     |     ][ b3 ]  = ...
       //
       // -------------------------------------------------------------------------------------
 
@@ -890,7 +890,33 @@ adjustPressureCoefficients(CompositeGrid & cg0, GridFunction & cgf  )
 	  }
 	}
 	
-        OV_ABORT("**check me**");
+        if (false)
+        {	
+            ::display(adt,"--APC-- addedDamping =");
+        }
+
+        if( dt==0. || (t < 3.*dt) || (debug() & 4) )
+	{
+	  printF("--AdjustPressureCoefficients : dt=%9.2e, useAddedDampingAlgorithm=%i\n"
+		 "   Mass + dt(Added Damping) body=%i   \n"
+		 " -------------------------------------\n"
+		 "       [ %12.4e %12.4e %12.4e %12.4e %12.4e %12.4e] \n"
+		 "       [ %12.4e %12.4e %12.4e %12.4e %12.4e %12.4e] \n"
+		 " Amd = [ %12.4e %12.4e %12.4e %12.4e %12.4e %12.4e] \n"
+		 "       [ %12.4e %12.4e %12.4e %12.4e %12.4e %12.4e] \n"
+		 "       [ %12.4e %12.4e %12.4e %12.4e %12.4e %12.4e] \n"
+		 "       [ %12.4e %12.4e %12.4e %12.4e %12.4e %12.4e] \n",
+		 dt,(int)useAddedDampingAlgorithm,b,
+		 Amd(0,0),Amd(0,1),Amd(0,2),Amd(0,3),Amd(0,4),Amd(0,5),
+		 Amd(1,0),Amd(1,1),Amd(1,2),Amd(1,3),Amd(1,4),Amd(1,5),
+		 Amd(2,0),Amd(2,1),Amd(2,2),Amd(2,3),Amd(2,4),Amd(2,5), 
+		 Amd(3,0),Amd(3,1),Amd(3,2),Amd(3,3),Amd(3,4),Amd(3,5), 
+		 Amd(4,0),Amd(4,1),Amd(4,2),Amd(4,3),Amd(4,4),Amd(4,5), 
+		 Amd(5,0),Amd(5,1),Amd(5,2),Amd(5,3),Amd(5,4),Amd(5,5)) ;
+	  printF("  --APC-- dt=%9.3e, adt(0,0,vbc,vbc)=%12.5e, params.dt=%9.3e\n",dt,adt(0,0,vbc,vbc),
+                  parameters.dbase.get<real >("dt"));
+
+	}
       }
 
 
@@ -1062,10 +1088,14 @@ adjustPressureCoefficients(CompositeGrid & cg0, GridFunction & cgf  )
 		{
                   const int dirp1 = (dir+1) % numberOfDimensions;
      		  const int dirp2 = (dir+2) % numberOfDimensions;
-                  // *CHECK ME*
                   a(nnz)= - weightsLocal(j1,j2,j3)*(normal(i1,i2,i3,dirp2)*rv[dirp1]-normal(i1,i2,i3,dirp1)*rv[dirp2]);
 
-                  OV_ABORT("finish me");
+		  if( false && fabs(a(nnz))>1.e-7 )
+		  {
+		    // this entry should be zero for a sphere as well:
+		    printF(" --APC-- : t=%1.3e  dir=%i, weight*( nv X (rv-xvb)=%10.3e\n",
+                            t,dir,-a(nnz));
+		  }
 		}
 	      }
 	      
