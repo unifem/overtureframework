@@ -569,6 +569,7 @@ solve( const RealArray & a, const RealArray & b )
   if( m!=a.getLength(1) )
   {
     printF("solve:ERROR: the array a is not square!\n");
+
     OV_ABORT("ERROR");
   }
   if( m!=b.getLength(0) )
@@ -754,6 +755,13 @@ getBodyForces( const real t, RealArray & bodyForce, RealArray & bodyTorque ) con
     // the angles:
     // 65/180*Pi=1.134464014
     // 30/180*Pi=0.5235987758
+    
+    real  theta1, theta2, deltaAngle1, epsilonAngle1, deltaAngle2, epsilonAngle2, damp1, damp2; // coefficients in restrict angle through body force
+
+    theta1=       bodyTorqueCoeff(0,0); deltaAngle1=bodyTorqueCoeff(0,1); 
+    epsilonAngle1=bodyTorqueCoeff(0,2); damp1      =bodyTorqueCoeff(0,3);
+    theta2=       bodyTorqueCoeff(1,0); deltaAngle2=bodyTorqueCoeff(2,1); 
+    epsilonAngle2=bodyTorqueCoeff(1,2); damp2      =bodyTorqueCoeff(2,3);
 
     real g=0., theta, wCurrent;
     bodyForce(R) = 0.;
@@ -781,6 +789,9 @@ getBodyForces( const real t, RealArray & bodyForce, RealArray & bodyTorque ) con
     }
     else //fix the angle
     {
+        if( fabs(epsilonAngle1)<REAL_EPSILON*10. ||  fabs(epsilonAngle2)<REAL_EPSILON*10. )
+            OV_ABORT("RigidBodyMotion::getBodyForces:ERROR: repulsive force is huge");
+
         if (current==-1)
         {
             theta=0.;
@@ -838,9 +849,12 @@ getBodyForces( const real t, RealArray & bodyForce, RealArray & bodyTorque ) con
                 t,theta,wCurrent,g);
 
     //if( debug & 2 )
-        printF("RigidBodyMotion::getBodyForces: t=%9.3e, theta=%9.3e, w=%9.3e, torqueRepulsive=%9.3e\n",
+    printF("RigidBodyMotion::getBodyForces: t=%9.3e, theta=%9.3e, w=%9.3e, torqueRepulsive=%9.3e\n",
                 t,theta,wCurrent,g);
-    //::display(e,"e");
+
+    if (false)
+        printF("damp1=%9.3e, damp2=%9.3e,theta1=%9.3e, theta2=%9.3e,epsilon1=%9.3e, epsilon2=%9.3e, delta1=%9.3e, delta2=%9.3e\n",
+            damp1,damp2,theta1,theta2,epsilonAngle1,epsilonAngle2,deltaAngle1,deltaAngle2);
   }
   else
   {
@@ -1136,8 +1150,12 @@ int RigidBodyMotion::getAddedDampingTensors( RealArray & addedDampingTensors, co
   
   real & addedDampingTensorTime = dbase.get<real>("addedDampingTensorTime");
 
-  // --- for now we assume that the added-dampng tensor was saved at t=0 ---
+  // --- for now we assume that the added-dampng tensor was saved at t=0 --- 
+  // note addedDampingTenorTime is not used for now -QT
   assert( addedDampingTensorTime==0. );
+
+  if (false)
+    printF("--RBM-- getAddedDampingTensors:addedDampingTensorTime=%9.4e\n",addedDampingTensorTime);
   
   // Here is ADT(0) : added damping tensor at time t=addedDampingTensorTime 
   RealArray & adt = dbase.get<RealArray>("addedDampingTensors");
@@ -5587,6 +5605,7 @@ get( const GenericDataBase & dir, const aString & name)
 
   subDir.get(mass,"mass"); 
   subDir.get(density,"density"); 
+  subDir.get(dbase.get<real>("volume"),"volume"); 
   subDir.get(numberOfDimensions,"numberOfDimensions"); 
   subDir.get(current,"current"); 
   subDir.get(numberOfSteps,"numberOfSteps"); 
@@ -5638,6 +5657,31 @@ get( const GenericDataBase & dir, const aString & name)
       dbase.put<RealArray>("AddedMass");
     subDir.get(dbase.get<RealArray>("AddedMass"),"AddedMass");  // time history of the added mass matrices
   }
+  bool addedDampingExists=false; // this is true if the addedDampingTensors exists 
+  subDir.get(addedDampingExists,"addedDampingExists");
+  if( addedDampingExists )
+  {
+    if( !dbase.has_key("addedDampingTensors" ) )
+    {
+        dbase.put<RealArray>("addedDampingTensors");
+        dbase.put<real>("addedDampingTensorTime");
+        dbase.put<real>("addedDampingScaleFactor");
+    }
+    subDir.get(dbase.get<RealArray>("addedDampingTensors"),"addedDampingTensors");  // get the added damping tensors
+    subDir.get(dbase.get<real>("addedDampingScaleFactor"),"addedDampingScaleFactor");  // get the added damping tensors
+
+    if ( false )
+    {
+        printF("--RBM-- get:added Damping detected\n");
+        printF("--RBM-- get:addedDampingTensorTime=%9.4e\n",dbase.get<real>("addedDampingTensorTime"));
+        printF("--RBM-- get:addedDampingScaleFactor=%9.4e\n",dbase.get<real>("addedDampingScaleFactor"));
+    }
+
+    subDir.get(dbase.get<real>("addedDampingTensorTime"),"addedDampingTensorTime");  // get the added damping tensors
+
+    if (false) 
+        ::display(dbase.get<RealArray>("addedDampingTensors"),"--RBM--get:addedDampingTensors");
+  }
   
   subDir.get(dbase.get<real>("toleranceNewton"),"toleranceNewton");
   subDir.get(dbase.get<int>("numberOfPastTimeValues"),"numberOfPastTimeValues");
@@ -5647,7 +5691,7 @@ get( const GenericDataBase & dir, const aString & name)
   
   subDir.get(dbase.get<bool>("accelerationComputedByDifferencingVelocity"),
                              "accelerationComputedByDifferencingVelocity");
-  
+ 
   subDir.get(temp,"bodyForceType");   bodyForceType=(BodyForceTypeEnum)temp;
 
   subDir.get(temp,"timeSteppingMethod");   timeSteppingMethod=(TimeSteppingMethodEnum)temp;
@@ -5667,8 +5711,20 @@ get( const GenericDataBase & dir, const aString & name)
     }
     subDir.get( dbase.get<RealArray>("timeProvided"),"timeProvided");
     subDir.get( dbase.get<RealArray>("vDotProvided"),"vDotProvided");
+
+    if( !dbase.has_key("vDotOld") ) dbase.put<RealArray>("vDotOld").redim(3);
+    if( !dbase.has_key("wDotOld") ) dbase.put<RealArray>("wDotOld").redim(3);
+    if( !dbase.has_key("eDotOld") ) dbase.put<RealArray>("eDotOld").redim(3,3);
+    subDir.get( dbase.get<RealArray>("vDotOld"),"vDotOld");
+    subDir.get( dbase.get<RealArray>("wDotOld"),"wDotOld");
+    subDir.get( dbase.get<RealArray>("eDotOld"),"eDotOld");
+
+    subDir.get( dbase.get<int>("numberProvided"),"numberProvided");
+    if (false)
+        printF("--RBM-- get:numberProvided=%i\n",dbase.get<int>("numberProvided"));
   }
 
+  subDir.get( dbase.get<bool>("directProjectionAddedMass"),"directProjectionAddedMass");
 
   // printf(" >>>RigidBodyMotion::get: current=%i\n",current);
 
@@ -5694,6 +5750,7 @@ put( GenericDataBase & dir, const aString & name) const
 
   subDir.put(mass,"mass"); 
   subDir.put(density,"density"); 
+  subDir.put(dbase.get<real>("volume"),"volume");
   subDir.put(numberOfDimensions,"numberOfDimensions"); 
   subDir.put(current,"current"); 
   subDir.put(numberOfSteps,"numberOfSteps"); 
@@ -5737,10 +5794,30 @@ put( GenericDataBase & dir, const aString & name) const
 
   subDir.put(dbase.get<int>("orderOfAccuracy"),"orderOfAccuracy");
   subDir.put(dbase.get<bool>("includeAddedMass"),"includeAddedMass");
+
   const bool addedMassExists=dbase.has_key("AddedMass");
   subDir.put(addedMassExists,"addedMassExists");
   if( addedMassExists )
     subDir.put(dbase.get<RealArray>("AddedMass"),"AddedMass");  // time history of the added mass matrices
+  const bool addedDampingExists=dbase.has_key("addedDampingTensors");
+  subDir.put(addedDampingExists,"addedDampingExists");
+  if( addedDampingExists )
+    {
+    subDir.put(dbase.get<RealArray>("addedDampingTensors"),"addedDampingTensors");  // the added damping tensors
+    subDir.put(dbase.get<real>("addedDampingScaleFactor"),"addedDampingScaleFactor");
+    subDir.put(dbase.get<real>("addedDampingTensorTime"),"addedDampingTensorTime");  
+
+    if ( false )
+    {
+        printF("--RBM-- put:added Damping detected\n");
+        printF("--RBM-- put:addedDampingTensorTime=%9.4e\n",dbase.get<real>("addedDampingTensorTime"));
+        printF("--RBM-- put:addedDampingScaleFactor=%9.4e\n",dbase.get<real>("addedDampingScaleFactor"));
+    }
+
+    if ( false )
+        ::display(dbase.get<RealArray>("addedDampingTensors"),"--RBM--get:addedDampingTensors");
+    }
+
   subDir.put(dbase.get<real>("toleranceNewton"),"toleranceNewton");
   subDir.put(dbase.get<int>("numberOfPastTimeValues"),"numberOfPastTimeValues");
 
@@ -5774,7 +5851,20 @@ put( GenericDataBase & dir, const aString & name) const
 
     subDir.put( dbase.get<RealArray>("timeProvided"),"timeProvided");
     subDir.put( dbase.get<RealArray>("vDotProvided"),"vDotProvided");
+
+    if( !dbase.has_key("vDotOld") ) dbase.put<RealArray>("vDotOld").redim(3);
+    if( !dbase.has_key("wDotOld") ) dbase.put<RealArray>("wDotOld").redim(3);
+    if( !dbase.has_key("eDotOld") ) dbase.put<RealArray>("eDotOld").redim(3,3);
+    subDir.put( dbase.get<RealArray>("vDotOld"),"vDotOld");
+    subDir.put( dbase.get<RealArray>("wDotOld"),"wDotOld");
+    subDir.put( dbase.get<RealArray>("eDotOld"),"eDotOld");
+
+    subDir.put( dbase.get<int>("numberProvided"),"numberProvided");
+    if (false)
+        printF("--RBM-- put:numberProvided=%i\n",dbase.get<int>("numberProvided"));
   }
+
+  subDir.put( dbase.get<bool>("directProjectionAddedMass"),"directProjectionAddedMass");
 
   delete &subDir;
   return 0;  
@@ -5934,14 +6024,16 @@ getBodyForceOption(const aString & answer,
   }
   else if( answer.matches("restrict angle:") || answer.matches("restrict angle and damp:"))
   { 
+    //use bodyTorqueCoeff to pass parameters
     bodyForceType= restrictAngle;
+
+    real  theta1, theta2, deltaAngle1, epsilonAngle1, deltaAngle2, epsilonAngle2, damp1, damp2; // coefficients in restrict angle through body force
     if( answer.matches("restrict angle:"))
     {
         len=15;
         sScanF(answer(len,answer.length()-1),"%e %e %e %e %e %e",
             &theta1,&deltaAngle1,&epsilonAngle1,&theta2,&deltaAngle2,&epsilonAngle2);
-        damp1=0.;
-        damp2=0.;
+        damp1=0.; damp2=0.;
         printF("Body force: restrict angle theta1=%g, delta=%g, epsilon=%g, theta2=%g, delta=%g, epsilon=%g\n",
 	       theta1, deltaAngle1, epsilonAngle1, theta2, deltaAngle2, epsilonAngle2 );
     }
@@ -5956,7 +6048,10 @@ getBodyForceOption(const aString & answer,
 	       theta1, deltaAngle1, epsilonAngle1,damp1, 
                theta2, deltaAngle2, epsilonAngle2,damp2);
     }
-
+    bodyTorqueCoeff(0,0)=theta1;        bodyTorqueCoeff(0,1)=deltaAngle1; 
+    bodyTorqueCoeff(0,2)=epsilonAngle1; bodyTorqueCoeff(0,3)=damp1;
+    bodyTorqueCoeff(1,0)=theta2;        bodyTorqueCoeff(2,1)=deltaAngle2; 
+    bodyTorqueCoeff(1,2)=epsilonAngle2; bodyTorqueCoeff(2,3)=damp2;
   }
   else if( answer=="help body force" )
   {
