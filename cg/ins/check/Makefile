@@ -16,7 +16,7 @@ cgins:
 
 
 shortHalfCylinder.hdf:
-	${Overture}/bin/ogen -noplot ${Overture}/sampleGrids/halfCylinder -name="shortHalfCylinder" -xa=-2.5 -xb=2.5 -factor=.5 -stretch=2.
+	${Overture}/bin/ogen -noplot ${Overture}/sampleGrids/halfCylinder -name="shortHalfCylinder" -xa=-2.5 -xb=2.5 -factor=.5 -stretch=2.0
 
 slideri1.order2.hdf:
 	${Overture}/bin/ogen -noplot ${Overture}/sampleGrids/slider -factor=1
