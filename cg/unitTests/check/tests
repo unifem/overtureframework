@@ -20,7 +20,7 @@ lbeamTWFSI.check    ../cmd/tzbeam.cmd -BM=FEM -nElem=5 -tz=twfsi -bc=per -Em=0 -
 lbeamCheckVelocityProjection2.check ../cmd/beamProjectVelocity.cmd -BM=FEM -thick=1.e-2 -degreex=1 -degreet=1 -orderOfprojection=2
 lbeamCheckVelocityProjection4.check ../cmd/beamProjectVelocity.cmd -BM=FEM -thick=1.e-2 -degreex=3 -degreet=1 -orderOfprojection=4
 # check internal force evaluation (beam operator)
-lbeamCheckInternalForce.check ../cmd/beamComputeForce.cmd -BM=FEM -E=1.0 -tension=1.0 -orderOfProjection=4 -option=internalForce -thickness=1.e-7 -numElem=10 -degreeX=3 -K0=1.0 -Kt=1.0 -Kxxt=1.0
+lbeamCheckInternalForce.check ../cmd/beamComputeForce.cmd -BM=FEM -E=1.0 -tension=1.0 -orderOfProjection=4 -option=internalForce -thickness=1e-7 -numElem=10 -degreeX=3 -K0=1.0 -Kt=1.0 -Kxxt=1.0
 #
 #
 #

@@ -11,4 +11,4 @@ aaTwoBox
 iaTwoSquare      # INS+AD in two domains
 # fluid-solid TZ with explicit and implicit time stepping
 twoSquareAdInsExp.check ../cmd/twoDomain.cmd -g=twoSquaresInterfacee1.order2.hdf -kappa1=1.0 -ktc1=1.0 -kappa2=.1 -ktc2=.1 -tf=.1 -tp=.05 -ts=pc -coupled=1 -tz=poly -degreet1=2 -degreet2=2 -debug=1 -method2=ins -go=go
-twoSquareAdInsImp.check ../cmd/twoDomain.cmd -g=twoSquaresInterfacee1.order2.hdf -kappa1=1.0 -ktc1=1.0 -kappa2=.1 -ktc2=.1 -tf=.1 -tp=.02 -dtMax=.02 -ts=im -nc=5 -coupled=0 -tz=poly -degreet1=2 -degreet2=2 -iTol=1.e-9 -debug=1 -method2=ins -go=go
+twoSquareAdInsImp.check ../cmd/twoDomain.cmd -g=twoSquaresInterfacee1.order2.hdf -kappa1=1.0 -ktc1=1.0 -kappa2=.1 -ktc2=.1 -tf=.1 -tp=.02 -dtMax=.02 -ts=im -nc=5 -coupled=0 -tz=poly -degreet1=2 -degreet2=2 -iTol=1e-9 -debug=1 -method2=ins -go=go
