@@ -97,6 +97,7 @@ cp slac2.distribute.cmd                                                         
 
 # here are some more grids we use for cg
 cp {cic3,cic4,circle2}.cmd                                                                             $sampleGrids    
+cp plug.cmd                                                                                            $sampleGrids
 
 cp {move1.C}                                              $OverturePrimer
 cp {move1.C}                                              ../primer

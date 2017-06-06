@@ -72,5 +72,13 @@ bic2dTPFD.check ../runs/beamPaperRuns/oneBeamTests/oneBeamInAChannel.cmd -g=bicF
 bic2dAMPFEM.check ../runs/beamPaperRuns/oneBeamTests/oneBeamInAChannel.cmd -g=bicFixede1.order2.hdf -uIn=1.5 -BM1=FEM  -tf=.01  -tp=.01 -rhoBeam=100 -E=2 -numElem=7 -outflowOption=neumann -nu=1e-1  -addedMass=1 -ampProjectVelocity=1 -useApproximateAMPcondition=0 -useSameStencilSize=1  -numberOfCorrections=1 -saveProbe=1 -cfls=100.0 -ps=newmark2Implicit -cs=newmarkCorrector -smoothInterfaceVelocity=1 -nis=5 -smoothBeam=1 -numberOfBeamSmooths=5 -rampInflow=1  -recomputeGVOnCorrection=0 -saveProbe=0 -go=go
 # TP FEM
 bic2dTPFEM.check ../runs/beamPaperRuns/oneBeamTests/oneBeamInAChannel.cmd -g=bicFixede1.order2.hdf -uIn=1.5 -BM1=FEM  -tf=.01  -tp=.01 -rhoBeam=100 -E=2 -numElem=7 -outflowOption=neumann -nu=1e-1 -addedMass=0 -useTP=1 -addedMassRelaxation=0.1 -addedMassTol=1e-5 -numberOfCorrections=500 -useSameStencilSize=1  -saveProbe=1 -cfls=100.0 -ps=newmark2Implicit -cs=newmarkCorrector -smoothInterfaceVelocity=1 -nis=5 -smoothBeam=1 -numberOfBeamSmooths=5 -rampInflow=1  -recomputeGVOnCorrection=0 -ff=10 -show=testTPG1_check.show -saveProbe=0 -go=go
+#
+# AMP-RB tests
+piston.ins.check ../runs/piston/piston.cmd -g=plug4.hdf -ts=im -dtMax=.01 -bodyDensity=.0 -inertia=.0 -tf=.15 -tp=.05 -relaxRigidBody=0 -numberOfCorrections=1 -psolver=yale -addedMass=1 -addedDamping=1 -addedDampingCoeff=1 -scaleAddedDampingWithDt=1 -nu=.01 -useProvidedAcceleration=1 -gravity=0 -option=rigidBodyPiston -go=go
+#
+slider.ins.check ../runs/piston/slider.cmd -g=shearBlock4.order2 -ts=im -dtMax=.05 -bodyDensity=0 -tf=.15 -tp=.05 -option=shearBlock -amp=1 -relaxRigidBody=0 -numberOfCorrections=2 -addedDampingProjectVelocity=1 -psolver=yale -addedMass=1 -addedDamping=1 -scaleAddedDampingWithDt=1 -inertia=1e100 -nu=.1 -useProvidedAcceleration=1 -gravity=0 -addedDampingCoeff=1 -go=go
+#
+cylDrop.ins.check ../runs/cylDrop/cylDrop.cmd -g=cylOffsetGridFixede2.order2.s3.hdf -tf=.3 -tp=.1 -dtMax=0.01 -nu=0.1 -ad2=0 -ts=im -density=0 -radius=.25 -bcOption=rampedPressure -d=0.1 -inflowPressure=1.25 -gravity=-4 -rampGravity=1 -cp0=1 -cpn=0 -numberOfCorrections=2 -addedMass=1 -useProvidedAcceleration=1 -addedDamping=1 -addedDampingCoeff=1 -addedDampingProjectVelocity=1 -scaleAddedDampingWithDt=1 -solver=yale -psolver=yale -go=go 
+
 
 
