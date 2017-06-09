@@ -670,6 +670,39 @@ getUserDefinedKnownSolutionRigidBody( int body, real t,
 }
 
 
+// ==========================================================================================
+/// \brief Return the state of a known solution for a deforming body
+/// 
+/// \param body (input) : body number
+/// \param stateOption (input) : specify which information to return
+/// \param time (input) : time to evaluate the solution at 
+/// \param grid, mg, I1,I2,I3 (input) : 
+/// \param state (output) : return results here
+// ==========================================================================================
+int Parameters::
+getUserDefinedDeformingBodyKnownSolution( 
+  int body,
+  DeformingBodyStateOptionEnum stateOption, 
+  const real time, const int grid, MappedGrid & mg, const Index &I1, const Index &I2, const Index &I3, 
+  realSerialArray & state )
+{
+  if( ! dbase.get<DataBase >("modelData").has_key("userDefinedKnownSolutionData") )
+  {
+    printf("getUserDefinedDeformingBodyKnownSolution:ERROR: sub-directory `userDefinedKnownSolutionData' not found!\n");
+    OV_ABORT("error");
+  }
+  DataBase & db =  dbase.get<DataBase >("modelData").get<DataBase>("userDefinedKnownSolutionData");
+
+  const aString & userKnownSolution = db.get<aString>("userKnownSolution");
+
+  printF("Parameters::getUserDefinedDeformingBodyKnownSolution:ERROR: unknown userKnownSolution=[%s]\n",
+         (const char*)userKnownSolution);
+
+  OV_ABORT("ERROR");
+  return 0;
+}
+
+
 
 //\begin{>>MovingGridsSolverInclude.tex}{\subsection{updateUserDefinedMotion}} 
 int Parameters::

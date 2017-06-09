@@ -322,6 +322,10 @@ eulerStep(const real & t1, const real & t2, const real & t3, const real & dt0,
 void 
 extrapolateInterpolationNeighbours( GridFunction & gf, const Range & C );
 
+// -- return true if the face (side,axis) of a grid is parallel to an x, y or z coordinate plane
+bool 
+faceIsACoordinatePlane(const int side, const int axis, int grid, CompositeGrid & cg, int & normalAxis );
+
 virtual int
 fixupUnusedPoints( realCompositeGridFunction & u );
 
@@ -579,8 +583,10 @@ output( GridFunction & gf0, int stepNumber );
 virtual void 
 outputHeader();
 
-virtual int 
-outputProbes( GridFunction & gf0, int stepNumber, std::vector<real> *regionProbeValues=NULL );
+// virtual int 
+// outputProbes( GridFunction & gf0, int stepNumber, std::vector<real> *regionProbeValues=NULL );
+static int
+outputProbes( Parameters & parameters, GridFunction & gf0, int stepNumber, std::vector<real> *regionProbeValues=NULL );
 
 virtual void 
 outputSolution( realCompositeGridFunction & u, const real & t,

@@ -68,7 +68,7 @@ FF_FLAGS = -fPIC
 # turn off warnings from intel f95 compiler
 #ifc FF_FLAGS = -fPIC -w
 
-# these next values will may be changed by the configure script
+# these next values may be changed by the configure script
 C_OPTIMIZATION_FLAG = -O
 CPP_OPTIMIZATION_FLAG = -O
 FORTRAN_OPTIMIZATION_FLAG = -g

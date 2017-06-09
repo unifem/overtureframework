@@ -4,4 +4,12 @@ include ../common/make
 
 INCLUDES := -I./src $(INCLUDES)
 
+ifneq ($(OV_RPATH),)
+LIBS := $(OV_RPATH)$(CGBUILDPREFIX)common/lib -L$(CGBUILDPREFIX)common/lib $(CgCommonStaticLib) -lCgCommon \
+        $(LIBS)
+else
+LIBS := -L$(CGBUILDPREFIX)common/lib $(CgCommonStaticLib) -lCgCommon \
+        $(LIBS)
+endif
+
 # LIBS := $(LIBS)

@@ -88,8 +88,8 @@ getUt(const realMappedGridFunction & v,
   
   if( debug() & 4 )
   {
-    printF("Cgins::getUtINS: t=%9.3e, pde = %s \n",t,(const char*)parameters.pdeName);
-    fPrintF(debugFile,"Cgins::getUtINS: t=%9.3e, pde = %s \n",t,(const char*)parameters.pdeName);
+    printF("Cgins::getUtINS: t=%9.3e, grid=%i pde = %s \n",t,grid,(const char*)parameters.pdeName);
+    fPrintF(debugFile,"Cgins::getUtINS: t=%9.3e, grid=%i pde = %s \n",t,grid,(const char*)parameters.pdeName);
   }
   
   MappedGrid & mg = *(v.getMappedGrid());

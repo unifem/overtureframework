@@ -2,7 +2,7 @@
 //  Coefficient Matrix Example
 //    Using Oges to solve Poisson's equation on a CompositeGrid
 //
-// Usage: `tcm3 [<gridName>] [-solver=[yale][harwell][slap][petsc][mg]] [-debug=<value>] [-outputMatrix] ...
+// Usage: `tcm3 [-g=<gridName>] [-solver=[yale][harwell][slap][petsc][mg]] [-debug=<value>] [-outputMatrix] ...
 //              [-noTiming] [-check] [-plot] [-trig] [-tol=<value>] [-freq=<value>] [-dirichlet] [-neumann]' 
 //
 //   The -check option is used for regression testing -- it will test various solvers on a few grids
@@ -285,7 +285,7 @@ computeTheError( int option, CompositeGrid & cg, realCompositeGridFunction & u,
     printF(" grid=%i (%s) max. rel. err=%e (%e with ghost)\n",grid,(const char*)cg[grid].getName(),
 	   gridErr,gridErrWithGhost);
 
-    if( Oges::debug & 8 )
+    if( Oges::debug & 4 )
     {
       display(u[grid],"solution u");
       display(err[grid],"abs(error on indexRange +1)");
@@ -1025,7 +1025,14 @@ main(int argc, char *argv[])
 	  real value=0.;
 	  solver.evaluateExtraEquation(ue,value);
 
+	  if( Oges::debug & 4 )
+	    printF(" Neumann: RHS for singular equation=%10.3e\n",value);
+	  
 	  solver.setExtraEquationValues(f,&value );
+	}
+	if( Oges::debug & 4 )
+	{
+	  f.display("RHS before solve");
 	}
 	
 	u=0.;  // initial guess for iterative solvers
@@ -1044,6 +1051,17 @@ main(int argc, char *argv[])
 	time= ParallelUtility::getMaxValue(CPU()-time0);
 	printF("\n*** residual=%8.2e, time for 2nd solve of the %s problem = %8.2e (iterations=%i)\n\n",
 	       solver.getMaximumResidual(),(const char*)optionName, time,solver.getNumberOfIterations());
+
+	if( outputMatrix )
+	{
+	  printF("tcm3:INFO: save the matrix to file tcm3Matrix.out (using writeMatrixToFile). \n");
+	  solver.writeMatrixToFile("tcm3MatrixNeumann.out");
+
+	  aString fileName = "sparseMatrixNeumann.dat";
+	  printF("tcm3:INFO: save the matrix to file %s (using outputSparseMatrix)\n",(const char*)fileName);
+	  solver.outputSparseMatrix( fileName );
+	}
+      
 
 	computeTheError( option,cg,u,err,exact, error );
 

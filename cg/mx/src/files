@@ -6,14 +6,14 @@ buildHigherOrder = off
 # buildHigherOrder = on
 
 # C++ source files:
-SRC_FILES += Maxwell.C userDefinedInitialConditions.C userDefinedForcing.C  \
+SRC_FILES += Maxwell.C MxParameters.C userDefinedInitialConditions.C userDefinedForcing.C  \
      advance.C setup.C setupGridFunctions.C solve.C plot.C advanceUnstructured.C \
      advanceStructured.C assignBoundaryConditions.C  \
      updateShowFile.C saveShow.C variableDissipation.C  assignInterfaceBoundaryConditions.C \
      DSICoeff.C checkGridFunction.C getEnergy.C InterfaceInfo.C project.C   \
      advanceFDTD.C defineRegionsAndBodies.C outputHeader.C advanceSOSUP.C \
      userDefinedKnownSolution.C assignUserDefinedKnownSolutionInitialConditions.C \
-     printTimeStepInfo.C DispersiveMaterialParameters.C
+     printTimeStepInfo.C DispersiveMaterialParameters.C 
 
 # Include Kyle's dbase functions with cgmx
 # SRC_FILES += dbAccess.C dbFunctions.f kk_ptr.cc
@@ -62,8 +62,8 @@ FSRCO += advSOSUP.f \
 
 
 # bc files
-FSRCO +=  bcOptMaxwell.f bcOptMaxwell2dOrder2.f bcOptMaxwell3dOrder2.f cornersMxOrder2.f \
-          bcOptMaxwell2dOrder4.f bcOptMaxwell3dOrder4.f cornersMxOrder4.f evalDispersionRelation.f
+FSRCO +=  bcOptMaxwell.f bcOptMaxwell2dOrder2.f bcOptMaxwell3dOrder2.f \
+          bcOptMaxwell2dOrder4.f bcOptMaxwell3dOrder4.f cornersMxOrder2.f cornersMxOrder4.f evalDispersionRelation.f
 
 FSRCO +=interface3d.f interface3dOrder4.f
 
@@ -103,16 +103,18 @@ endif
 forcing.C : forcing.h annulusEigenFunction.h planeMaterialInterface.h
 plot.C : forcing.h
 
-src/getInitialConditions.C : src/getInitialConditions.bC forcing.h annulusEigenFunction.h gaussianPulse.h polynomialTZ.h trigonometricTZ.h planeMaterialInterface.h  dispersivePlaneWave.h; $(BPP) -quiet -clean $<
+src/getInitialConditions.C : src/getInitialConditions.bC forcing.h annulusEigenFunction.h boxEigenFunction.h gaussianPulse.h polynomialTZ.h trigonometricTZ.h planeMaterialInterface.h dispersionMacros.h; $(BPP) -quiet -clean $<
 
-src/assignBoundaryConditions.C : src/assignBoundaryConditions.bC forcing.h planeMaterialInterface.h; $(BPP) -quiet -clean $<
+src/assignBoundaryConditions.C : src/assignBoundaryConditions.bC forcing.h planeMaterialInterface.h dispersionMacros.h; $(BPP) -quiet -clean $<
 src/assignInterfaceBoundaryConditions.C : src/assignInterfaceBoundaryConditions.bC; $(BPP) -quiet -clean -I$(Overture)/include $<
 
-src/getErrors.C : src/getErrors.bC forcing.h annulusEigenFunction.h planeMaterialInterface.h dispersivePlaneWave.h; $(BPP) -quiet -clean $<
+src/getErrors.C : src/getErrors.bC forcing.h annulusEigenFunction.h boxEigenFunction.h planeMaterialInterface.h dispersionMacros.h; $(BPP) -quiet -clean $<
 
 src/divergence.C : src/divergence.bC; $(BPP) -quiet -clean $<
 
 src/evalDispersionRelation.f : src/evalDispersionRelation.bf; $(BPP) -quiet -clean $<
+
+src/advanceStructured.C : src/advanceStructured.bC;  $(BPP) -quiet -clean -I$(Overture)/include $<
 
 # we need to add these explicitly since the implicit rule for %.bf doesn't work for some reason (?)
 # we need to do it this way so that all the files created with bpp are put in the src directory: 
@@ -125,7 +127,7 @@ src/advOptNew.f: src/advOptNew.bf
 src/advMx2dOrder2r.f : src/advOptNew.f
 # src/advMx2dOrder2r.f : src/advOpt.f
 src/advMx3dOrder2r.f : src/advOpt.f
-src/advMx2dOrder4r.f : src/advOpt.f
+src/advMx2dOrder4r.f : src/advOptNew.f
 src/advMx3dOrder4r.f : src/advOpt.f
 src/advMx2dOrder6r.f : src/advOpt.f
 src/advMx3dOrder6r.f : src/advOpt.f
@@ -166,16 +168,18 @@ src/advMxDiss.f: src/advMxDiss.bf
 	      @cd src; $(BPP) -clean -quiet -I$(Overture)/include advMxDiss.bf
 
 src/bcMaxwellCorners.f: src/bcMaxwellCorners.bf src/bcOptMaxwellMacros.h src/jacobianDerivatives.h \
-                        src/bcExtended3d4.h src/planeWave.h  src/chirpedPlaneWave.h src/bcDefineFortranInclude.h
+                        src/bcExtended3d4.h src/planeWave.h  src/chirpedPlaneWave.h src/dispersivePlaneWave.h \
+                        src/bcDefineFortranInclude.h src/dispersionFortranInclude.h
 			@cd src; $(BPP) -quiet -I$(Overture)/include -clean bcMaxwellCorners.bf
 
-src/cornersMxOrder2.f : src/bcMaxwellCorners.f
+src/cornersMxOrder2.f : src/bcMaxwellCorners.f 
 src/cornersMxOrder4.f : src/bcMaxwellCorners.f
 src/cornersMxOrder6.f : src/bcMaxwellCorners.f
 src/cornersMxOrder8.f : src/bcMaxwellCorners.f
 
 src/bcOptMaxwell.f: src/bcOptMaxwell.bf src/bcOptMaxwellMacros.h src/jacobianDerivatives.h \
-                    src/bcdivMaxwell.h src/planeWave.h src/chirpedPlaneWave.h src/bcDefineFortranInclude.h src/forcingDefineFortranInclude.h 
+                    src/bcdivMaxwell.h src/planeWave.h src/chirpedPlaneWave.h src/dispersivePlaneWave.h \
+                    src/bcDefineFortranInclude.h src/forcingDefineFortranInclude.h src/dispersionFortranInclude.h
 		    @cd src; $(BPP) -clean -quiet -I$(Overture)/include bcOptMaxwell.bf
 
 src/bcOptMaxwell2dOrder2.f : src/bcOptMaxwell.f
@@ -183,7 +187,7 @@ src/bcOptMaxwell2dOrder2.f : src/bcOptMaxwell.f
 src/bcOptMaxwell4.f: src/bcOptMaxwellMacros.h src/jacobianDerivatives.h src/bcOptMaxwell4.bf \
                      src/bc4Maxwell.h src/bc4eMaxwell.h src/bcExtended4Maxwell.h src/bcdiv3dMaxwell.h \
                      src/bcHzExtended4Maxwell.h src/bc4Maxwell3d.h src/planeWave.h  src/chirpedPlaneWave.h \
-                     src/bcDefineFortranInclude.h src/forcingDefineFortranInclude.h 
+                     src/bcDefineFortranInclude.h src/forcingDefineFortranInclude.h src/dispersionFortranInclude.h 
 		     @cd src; $(BPP) -clean -quiet -I$(Overture)/include bcOptMaxwell4.bf
 
 src/bcOptMaxwell2dOrder4.f : src/bcOptMaxwell4.f

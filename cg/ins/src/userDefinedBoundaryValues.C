@@ -1618,6 +1618,10 @@ userDefinedBoundaryValues(const real & t,
       {
 	// -- assign boundary values from the known solution ----
 
+	if( debug() & 4 || t<2*dt )
+	  printF("--UBV-- userDefinedBoundaryValues:knownSolutionValues: eval solution: t=%8.2e (side,axis,grid)=(%i,%i,%i) forcingType=%i\n",t,
+		 side,axis,grid,(int)forcingType);
+
         // -- we could avoid building the vertex array on Cartesian grids ---
 	mg.update(MappedGrid::THEvertex | MappedGrid::THEcenter);
         OV_GET_SERIAL_ARRAY_CONST(real,mg.vertex(),x);
@@ -1636,9 +1640,6 @@ userDefinedBoundaryValues(const real & t,
 	
         RealArray & bd = parameters.getBoundaryData(side,axis,grid,mg);
 
-	if( debug() & 4 || t<2*dt )
-	  printF("--UBV-- userDefinedBoundaryValues:knownSolutionValues: eval solution: t=%8.2e (side,axis,grid)=(%i,%i,%i) forcingType=%i\n",t,
-		 side,axis,grid,(int)forcingType);
 
 	if( forcingType==computeForcing )
 	{

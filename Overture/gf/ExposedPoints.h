@@ -78,7 +78,7 @@ ExposedPointTypeEnum exposedPointType;
 int isInitialized;  // is set to 1 after initialization.
 int ipogIsInitialized;  // set to 1 when the ipog object is initialized
 
-int numberOfExposedPoints;
+int numberOfExposedPoints, totalNumberOfExposedPoints; 
 int assumeInterpolationNeighboursAreAssigned; // default for stencilWidth=5
 int interpolationWidth;
 int numberOfValidGhostPoints;
@@ -88,7 +88,7 @@ InterpolatePointsOnAGrid *ipog;  // new way for parallel
 IntegerArray periodicUpdateNeeded;
 
 IntegerArray ia_;
-IntegerArray numberPerGrid;
+IntegerArray numberPerGrid, totalNumberPerGrid;
 RealArray x_;
 
 int *numDonor;

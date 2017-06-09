@@ -418,6 +418,10 @@ tcmConstraint: $(tcmConstraint)
 	$(CC) $(CCFLAGS) -o tcmConstraint $(tcmConstraint) \
          $(CLIBS) $(PETSC_LIBS) $(FLIBS) $(GLIBS)
 
+# make parallel version and rename
+tcmp: tcmConstraint
+	mv tcmConstraint tcmConstraintp
+
 
 # linearized INS
 lins = lins.o BoundaryOperators.o applyBCC.o

@@ -117,6 +117,13 @@ int getUserDefinedKnownSolutionRigidBody( int body, real t,
 					  RealArray & aCM      = Overture::nullRealArray(),
 					  RealArray & omega    = Overture::nullRealArray(), 
 					  RealArray & omegaDot = Overture::nullRealArray() );
+virtual int 
+getUserDefinedDeformingBodyKnownSolution( 
+  int body,
+  DeformingBodyStateOptionEnum stateOption, 
+  const real time, const int grid, MappedGrid & mg, const Index &I1, const Index &I2, const Index &I3, 
+  realSerialArray & state );
+
 int 
 getViscoPlasticVariables( const aString & name, const GridFunction & cgf, realCompositeGridFunction & r, const int component );
 

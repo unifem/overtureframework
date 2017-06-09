@@ -295,21 +295,29 @@ if( numberOfDimensions==2 )
     spatialCoefficientsForTZ(0,1,0,muc )=mu*.0125;  // y
 
     // -- dispersion components: 
-    // ** FINISH ME **
     if( pxc>=0 )
     {
       spatialCoefficientsForTZ(0,0,0,pxc)=1.; 
+      spatialCoefficientsForTZ(1,0,0,pxc)=.5;
+      spatialCoefficientsForTZ(0,1,0,pxc)=.4;
+
       spatialCoefficientsForTZ(0,0,0,pyc)=2.; 
+      spatialCoefficientsForTZ(1,0,0,pyc)=-.5;
+      spatialCoefficientsForTZ(0,1,0,pyc)=.5;
     }
     if( qxc>=0 )
     {
       spatialCoefficientsForTZ(0,0,0,qxc)=3.; 
       spatialCoefficientsForTZ(0,0,0,qyc)=4.; 
+      spatialCoefficientsForTZ(1,0,0,qxc)=.25;
+      spatialCoefficientsForTZ(0,1,0,qxc)=.35;
     }
     if( rxc>=0 )
     {
       spatialCoefficientsForTZ(0,0,0,rxc)=5.; 
       spatialCoefficientsForTZ(0,0,0,ryc)=6.; 
+      spatialCoefficientsForTZ(1,0,0,rxc)=.55;
+      spatialCoefficientsForTZ(0,1,0,rxc)=.45;
     }
 
   }
@@ -340,30 +348,59 @@ if( numberOfDimensions==2 )
     spatialCoefficientsForTZ(0,2,0,muc )=mu*.15;    // y^2
 
     // -- dispersion components: 
-    // ** FINISH ME **
+
     if( pxc>=0 )
     {
-      spatialCoefficientsForTZ(0,0,0,pxc)=1.; 
-      spatialCoefficientsForTZ(1,0,0,pxc)=.1; 
-      spatialCoefficientsForTZ(0,1,0,pxc)=.1; 
-      spatialCoefficientsForTZ(2,0,0,pxc)=.1; 
-      spatialCoefficientsForTZ(0,2,0,pxc)=.1; 
+      // Corner extrapolation may assume that div(E)=0 
+      spatialCoefficientsForTZ(2,0,0,pxc)=1.*.5;      // px=(x^2 + 2xy + y^2)*.5
+      spatialCoefficientsForTZ(1,1,0,pxc)=2.*.5;
+      spatialCoefficientsForTZ(0,2,0,pxc)=1.*.5;
 
-      spatialCoefficientsForTZ(0,0,0,pyc)=2.; 
-      spatialCoefficientsForTZ(1,0,0,pyc)=.1; 
-      spatialCoefficientsForTZ(0,1,0,pyc)=.2; 
-      spatialCoefficientsForTZ(2,0,0,pyc)=-.1; 
-      spatialCoefficientsForTZ(0,2,0,pyc)=.1; 
+      spatialCoefficientsForTZ(2,0,0,pyc)= 1.*.5;      // py=(x^2 -2xy - y^2)*.5
+      spatialCoefficientsForTZ(1,1,0,pyc)=-2.*.5;
+      spatialCoefficientsForTZ(0,2,0,pyc)=-1.*.5;
+
+      // spatialCoefficientsForTZ(0,0,0,pxc)=1.; 
+      // spatialCoefficientsForTZ(1,0,0,pxc)=.1; 
+      // spatialCoefficientsForTZ(0,1,0,pxc)=.3; 
+      // spatialCoefficientsForTZ(2,0,0,pxc)=.1; 
+      // spatialCoefficientsForTZ(0,2,0,pxc)=-.1; 
+
+      // spatialCoefficientsForTZ(0,0,0,pyc)=2.; 
+      // spatialCoefficientsForTZ(1,0,0,pyc)=.1; 
+      // spatialCoefficientsForTZ(0,1,0,pyc)=.2; 
+      // spatialCoefficientsForTZ(2,0,0,pyc)=-.1; 
+      // spatialCoefficientsForTZ(0,2,0,pyc)=.1; 
     }
     if( qxc>=0 )
     {
+      // *** FIX ME: Make div(q)=0 ****
       spatialCoefficientsForTZ(0,0,0,qxc)=3.; 
+      spatialCoefficientsForTZ(1,0,0,qxc)=-.1; 
+      spatialCoefficientsForTZ(0,1,0,qxc)=.2; 
+      spatialCoefficientsForTZ(2,0,0,qxc)=.2; 
+      spatialCoefficientsForTZ(0,2,0,qxc)=-.15; 
+
       spatialCoefficientsForTZ(0,0,0,qyc)=4.; 
+      spatialCoefficientsForTZ(1,0,0,qyc)=.2; 
+      spatialCoefficientsForTZ(0,1,0,qyc)=-.3; 
+      spatialCoefficientsForTZ(2,0,0,qyc)=.2; 
+      spatialCoefficientsForTZ(0,2,0,qyc)=-.1; 
     }
     if( rxc>=0 )
     {
+      // *** FIX ME: Make div(r)=0 ****
       spatialCoefficientsForTZ(0,0,0,rxc)=5.; 
+      spatialCoefficientsForTZ(1,0,0,rxc)=-.1; 
+      spatialCoefficientsForTZ(0,1,0,rxc)=.2; 
+      spatialCoefficientsForTZ(2,0,0,rxc)=.1; 
+      spatialCoefficientsForTZ(0,2,0,rxc)=-.1; 
+
       spatialCoefficientsForTZ(0,0,0,ryc)=6.; 
+      spatialCoefficientsForTZ(1,0,0,ryc)=.1; 
+      spatialCoefficientsForTZ(0,1,0,ryc)=-.2; 
+      spatialCoefficientsForTZ(2,0,0,ryc)=-.1; 
+      spatialCoefficientsForTZ(0,2,0,ryc)=.1; 
     }
   }
   else if( degreeSpace==3 )

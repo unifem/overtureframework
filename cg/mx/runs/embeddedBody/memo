@@ -1,6 +1,11 @@
 
 ====== Body embedded in a dielectric =======
 
+****************************************
+******** June 7, 2017 
+
+ogen -noplot embeddedBodyGrid -prefix=embeddedBodySharpGrid -interp=e -order=2 -factor=8 -sharp=60.
+
 
 ***************************************************
 **** March 20, 2017

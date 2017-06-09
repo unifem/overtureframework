@@ -330,8 +330,8 @@ initialize( )
     
   }
 
-  initialized         = FALSE;
-  shouldBeInitialized = FALSE;
+  initialized         = false;
+  shouldBeInitialized = false;
   return(errorNumber);
 }
 

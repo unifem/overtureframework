@@ -6,16 +6,15 @@
 !  Input:
 !      c0,eps,gam,omegap,k : 
 ! Output:
-!      omegar,omegai 
+!      reS,imS
 !
-      subroutine evalDispersionRelation( c0,eps,gam,omegap,k, omegar,
-     & omegai )
+      subroutine evalDispersionRelation( c0,eps,gam,omegap,k, reS,imS )
 
 
       implicit none
 
       real c0,eps,gam,omegap,k, ck2, epsi, om2, det
-      real omegar,omegai
+      real reS,imS
       complex*16 ai, c, s
 
       ck2=(c0*k)**2
@@ -51,9 +50,8 @@
       write(*,'(" dispersion: eps=",e12.4," gam=",e12.4," |det|=",
      & e12.4)') eps,gam,det
 
-      ! ss = -i*omega = -i*( omegar + i omegai ) = omegai - i*oemgar 
-      omegar= aimag(s) ! flip sign for right traveling
-      omegai= real(s)
+      reS= real(s)
+      imS= aimag(s)
 
       return
       end

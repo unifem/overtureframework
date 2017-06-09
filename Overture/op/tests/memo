@@ -1,4 +1,156 @@
 ***************************************************************************
+****** June 3,4 2017
+
+*** CHANGED PETSC-SOLVER TO USE OGES EQUATION NUMBERING TOO
+
+
+*NEW*
+mpirun -np 1 $tcmcp square8.order2.hdf -solver=petsc -predefined > tc.np1.out
+mpirun -np 2 $tcmcp square8.order2.hdf -solver=petsc -predefined > tc.np2.out
+mpirun -np 3 $tcmcp square8.order2.hdf -solver=petsc -predefined > tc.np3.out
+mpirun -np 4 $tcmcp square8.order2.hdf -solver=petsc -predefined > tc.np4.out
+
+
+OLD:
+mpirun -np 1 $tcmcp square8.order2.hdf -solver=petsc -predefined > tcmc.np1.out
+mpirun -np 2 $tcmcp square8.order2.hdf -solver=petsc -predefined > tcmc.np2.out
+mpirun -np 3 $tcmcp square8.order2.hdf -solver=petsc -predefined > tcmc.np3.out
+mpirun -np 4 $tcmcp square8.order2.hdf -solver=petsc -predefined > tcmc.np4.out
+
+
+*** CHANGE PETScSOLVER to put extra equations at the end of the matrix 
+
+
+mpirun -np 1 $tcmcp square8.order2.hdf -solver=petsc -predefined > tc.np1.out
+
+
+
+
+set tcmcp = $op/tests/tcmConstraintp 
+mpirun -np 1 $tcmcp sliderRefineGride2.order2 -solver=petsc -predefined -trig
+
+Maximum relative error with dirichlet bc's= 8.996811e-03 (8.996811e-03 with ghost)
+--TCMC-- i=0 extra=1 extraEquationNumber(0) : constraint value= 1.958 true= 2.000 err=4.24e-02
+--TCMC-- i=1 extra=0 extraEquationNumber(1) : constraint value= 0.938 true= 1.000 err=6.25e-02
+
+Maximum relative error with neumann bc's= 8.375221e-03
+--TCMC-- i=0 extra=1 extraEquationNumber(0) : constraint value=11.005 true=11.000 err=4.51e-03
+--TCMC-- i=1 extra=0 extraEquationNumber(1) : constraint value=-0.000 true= 0.000 err=6.54e-13
+
+
+
+***************************************************************************
+****** June 2, 2017
+
+
+TEST TCMCONSTRAINT ON overset grid
+
+
+**** SLIDER GRID IS PERIODIC IN X ***
+
+set tcmcp = $op/tests/tcmConstraintp 
+mpirun -np 1 $tcmcp sliderRefineGride2.order2 -solver=petsc -predefined 
+
+SERIAL: NOT EXACT **WHY**
+$tcmcs sliderRefineGride2.order2 -solver=petsc -predefined  > sr.serial.out
+
+WORKS NOW: 
+mpirun -np 1 $tcmcp plug2.hdf -solver=petsc -predefined > plug.np1.out
+mpirun -np 1 $tcmcp plug1.hdf -solver=petsc -predefined > plug1.np1.out
+SERIAL PLUG -- exact 
+$tcmcs plug2.hdf -solver=petsc -predefined  > plug.serial.out
+$tcmcs plug1.hdf -solver=petsc -predefined  > plug1.serial.out
+
+mpirun -np 1 $tcmcp square8.order2.hdf -solver=petsc -predefined > tcmc.np1.out
+
+
+
+***************************************************************************
+****** June 1, 2017
+
+**CHANGES TO USER SUPPLIED EQUATIONS IN PARALLEL***
+
+*NEW* TEST:
+
+  
+WORKS: 
+mpirun -np 3 valgrind --log-file=tc.out.np%p $tcmcp square8.order2.hdf -solver=petsc -predefined
+mpirun -np 2 valgrind --log-file=tc.out.np%p $tcmcp square8.order2.hdf -solver=petsc -predefined
+
+mpirun -np 1 valgrind $tcmcp square8.order2.hdf -solver=petsc -predefined
+
+-- looks OK, check valgrind
+mpirun -np 1 $tcmcp square8.order2.hdf -solver=petsc -predefined > tcmc.np1.out
+mpirun -np 2 $tcmcp square8.order2.hdf -solver=petsc -predefined > tcmc.np2.out
+mpirun -np 3 $tcmcp square8.order2.hdf -solver=petsc -predefined > tcmc.np3.out
+mpirun -np 4 $tcmcp square8.order2.hdf -solver=petsc -predefined > tcmc.np4.out
+
+
+
+set tcmcp = $op/tests/tcmConstraintp 
+set tcmcs = $op/tests/tcmConstraints
+
+$tcmcp square8.order2.hdf -solver=petsc -predefined
+$tcmcs square8.order2.hdf -solver=petsc -predefined
+
+
+
+
+***************************************************************************
+****** May 23, 2017
+
+ANOTHER BUG -- Shift equationNumber base in PETScSolver to eqnBase=1
+
+$tcmcp square8.order2.hdf -solver=petsc -predefined > ! tcmcParallelpNew.out
+
+tcm3p -g=shearBlockCoarseGrid2.order2.hdf -solver=petsc -debug=15 > ! matParallelNew.out
+
+
+
+***************************************************************************
+****** May 21-22, 2017
+
+** ANOTHER BUG FOUND with predefined and user-defined equations
+
+**BUG FOUND WITH PARALLEL and PREDEFINED -- constraint equation bad
+
+
+CHECK tcmConstraint + predefined:
+
+set tcmcp = $op/tests/tcmConstraintp 
+set tcmcs = $op/tests/tcmConstraints
+
+$tcmcp square8.order2.hdf -solver=petsc -predefined > ! tcmcParallelp.out
+$tcmcs square8.order2.hdf -solver=petsc -predefined > ! tcmcSerials.out
+
+
+
+! These match now:
+tcm3p -g=shearBlockCoarseGrid2.order2.hdf -solver=petsc -predefined > ! matParallelp.out
+tcm3s -g=shearBlockCoarseGrid2.order2.hdf -solver=petsc -predefined > ! matSerialp.out
+
+! These match now:
+tcm3p -g=shearBlockCoarseGrid2.order2.hdf -solver=petsc -debug=7 > ! matParallel.out
+tcm3s -g=shearBlockCoarseGrid2.order2.hdf -solver=petsc -debug=7 > ! matSerial.out
+
+***************************************************************************
+****** May 21, 2017
+
+
+Tracking down bug with parallel AMP:
+
+alias tcm3p $op/tests/tcm3p
+alias tcm3s $op/tests/tcm3s
+
+tcm3p -g=shearBlockCoarseGrid2.order2.hdf -solver=petsc > ! matParallel.out
+
+tcm3 -g=shearBlockCoarseGrid2.order2.hdf -solver=petsc > ! matSerial.out
+
+
+tcm3 -g=shearBlockCoarseGrid2.order2.hdf -solver=petsc -neumann -outputMatrix
+
+
+***************************************************************************
 ****** April 1-2, 2017
 
 

@@ -5,6 +5,8 @@
 #include "ArraySimple.h"
 #include "UnstructuredMapping.h"
 #include "InterfaceInfo.h"
+#include "MxParameters.h"
+#include "GridFunction.h"
 
 // #include OV_STD_INCLUDE(map)
 #define KK_DEBUG
@@ -274,6 +276,8 @@ class Maxwell
 
   void getChargeDensity( real t, realMappedGridFunction & u, int component =0 );
 
+  DispersiveMaterialParameters & getDomainDispersiveMaterialParameters( const int domain );
+
   DispersiveMaterialParameters & getDispersiveMaterialParameters( const int grid );
 
   void getEnergy( int current, real t, real dt );
@@ -338,7 +342,10 @@ class Maxwell
 
   int setBoundaryCondition( aString & answer, GL_GraphicsInterface & gi, IntegerArray & originalBoundaryCondition );
 
+  int setDispersionParameters( GL_GraphicsInterface &gi );
+
   int setupGrids();
+
   int setupGridFunctions();
 
   int setupUserDefinedForcing();
@@ -383,6 +390,8 @@ protected:
   int saveSequencesToShowFile();
 
 public: //  should be protected:
+
+  MxParameters parameters;  // parameters class
 
   // The database is the new place to store parameters
   mutable DataBase dbase; 
@@ -560,6 +569,8 @@ public: //  should be protected:
   CompositeGrid *cgp;
   CompositeGridOperators *cgop;
   int numberOfFields;
+  GridFunction *gf;  // new way to store fields 
+
   realCompositeGridFunction *cgfields;
   realCompositeGridFunction *cgdissipation,*e_cgdissipation;
   realCompositeGridFunction *cgerrp;

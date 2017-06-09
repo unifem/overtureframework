@@ -125,6 +125,7 @@ const int orderOfPredictorCorrector = parameters.dbase.get<int >("orderOfPredict
 const int orderOfTimeExtrapolationForPressure = parameters.dbase.get<int >("orderOfTimeExtrapolationForPressure");
 
 printF("--METHOD-- initializePredictorCorrector: mCur=%i, mOld=%i gf[mCur].t=%9.2e\n",mCur,mOld,gf[mCur].t);
+fPrintF(debugFile,"--METHOD-- initializePredictorCorrector: mCur=%i, mOld=%i gf[mCur].t=%9.2e\n",mCur,mOld,gf[mCur].t);
 
 if( movingGridProblem() )
 { 
@@ -141,9 +142,6 @@ if( orderOfTimeExtrapolationForPressure!=-1 )
   // *wdh* 2015/01/26: we may need past time pressure for other reasons:
   const bool & predictedPressureNeeded = parameters.dbase.get<bool>("predictedPressureNeeded");
   const bool predictPressure = predictedPressureNeeded || (poisson!=NULL && poisson->isSolverIterative());
-  printF("--METHOD-- orderOfPredictorCorrector=%i, orderOfTimeExtrapolationForPressure=%i, predictPressure=%i\n",
-	 orderOfPredictorCorrector,orderOfTimeExtrapolationForPressure,(int)predictPressure);
-  
   if( orderOfPredictorCorrector==2 && orderOfTimeExtrapolationForPressure>1 && predictPressure )
   {
     // orderOfTimeExtrapolationForPressure==1 :  p(t+dt) = 2*p(t) - p(t-dt)
@@ -162,6 +160,11 @@ if( orderOfTimeExtrapolationForPressure!=-1 )
     }
   }
   
+  printF("--METHOD-- orderOfPredictorCorrector=%i, orderOfTimeExtrapolationForPressure=%i, predictPressure=%i\n",
+         "           numberOfExtraPressureTimeLevels=%i\n",
+	 orderOfPredictorCorrector,orderOfTimeExtrapolationForPressure,(int)predictPressure,numberOfExtraPressureTimeLevels);
+  
+
 }
 
 fn[nab0]=0.; 
@@ -182,7 +185,7 @@ if( parameters.dbase.get<bool >("twilightZoneFlow") )
     int grid;
     for( int m=0; m<numberOfPreviousValuesOfPressureToSave; m++ )
     {
-
+      // *** FIX ME: 4 -> numberOfExtraFunctionsToUse
       const int nab=(nab2+m) % 4; // save du/dt in fn[nab] 
       real tp=t0-(m+2)*dt0;       // move grid to this previous time
 
@@ -232,9 +235,9 @@ if( parameters.dbase.get<bool >("twilightZoneFlow") )
       // save past time values of p and ghost u for the 4th order method
       // NOTE: PAST time values are saved in a funny place:
       // save p for use when extrapolating in time
-      //    ua(.,.,.,pc)= p(t-2*dt)  (for 2nd/4th order)
-      //    ub(.,.,.,pc)= p(t-3*dt)  (for 4th order)
-      //    uc(.,.,.,pc)= p(t-4*dt)  (for 4th order)
+      //   ua(.,.,.,pc)= p(t-2*dt) : needed for 3rd order extrapolation: uCur(t), uOld(t-dt), ua(t-2*dt)
+      //   ub(.,.,.,pc)= p(t-3*dt) : needed for 4th-order extrapolation: uCur(t), uOld(t-dt), ua(t-2*dt), ub(t-3*dt)
+      //   uc(.,.,.,pc)= p(t-4*dt) : needed for 5th-order extrapolation: uCur(t), uOld(t-dt), ua(t-2*dt), ub(t-3*dt), ub(t-4*dt)
       assert( nab0==0 );
       const int nabPastTime=(nab0+m);
       savePressureAndGhostVelocity(tp,nabPastTime);
@@ -330,7 +333,7 @@ if( parameters.dbase.get<bool >("twilightZoneFlow") )
      #End
      const real tgf = t0-dt0*kgf;
      if( true )
-       printF("--METHOD-- init past time solution gf[mgf=%i] at t=%9.3e numberOfGridFunctions=%i " 
+       printF("\n --METHOD-- init past time solution gf[mgf=%i] at t=%9.3e numberOfGridFunctions=%i " 
               "numberOfPastTimes=%i orderOfTimeAccuracy=%i\n",
               mgf,tgf,numberOfGridFunctions,numberOfPastTimes,orderOfTimeAccuracy);
      
@@ -390,6 +393,15 @@ if( parameters.dbase.get<bool >("twilightZoneFlow") )
 	  ::display(fn[ngf][grid],sPrintF("--METHOD-- past time du/dt fn[ngf=%i] t=%9.3e",ngf,tgf),"%6.3f ");
 	}
       }
+      // *wdh* *new* June 7, 2017 **CHECK ME**
+      // save past time values of p and ghost u for the 4th order method
+      // NOTE: PAST time values are saved in a funny place:
+      // save p for use when extrapolating in time
+      //    ua(.,.,.,pc)= p(t-2*dt)  (for 2nd/4th order)
+      //    ub(.,.,.,pc)= p(t-3*dt)  (for 4th order)
+      //    uc(.,.,.,pc)= p(t-4*dt)  (for 4th order)
+      // *** savePressureAndGhostVelocity(tgf,ngf);
+
     }
   }
   else
@@ -504,12 +516,20 @@ if( parameters.dbase.get<bool >("twilightZoneFlow") )
 }
 else  
 {
-  // ****** Initialize for NOT twilightZoneFlow ***********
+
+  // **************************************************************************
+  // ************************ REAL RUN ****************************************
+  // ****************** Initialize for NOT twilightZoneFlow *******************
+  // **************************************************************************
 
   // printF(" **************** METHOD: still need correct initial values for du/dt(t-dt)  ****** \n");
   // printF(" **************** use values from du/dt(t)                                  ****** \n");
-  printF("--METHOD-- Initialize past time values for scheme ---\n");
-  
+  printF("\n--METHOD-- Initialize past time values for scheme, numberOfPastTimes=%i"
+         " numberOfPastTimeDerivatives=%i ---\n",numberOfPastTimes,numberOfPastTimeDerivatives);
+  if( debug() & 2 )
+    fPrintF(debugFile,"--METHOD-- Initialize past time values for scheme, numberOfPastTimes=%i"
+            " numberOfPastTimeDerivatives=%i ---\n",numberOfPastTimes,numberOfPastTimeDerivatives);
+
   if( parameters.useConservativeVariables() )
     gf[mCur].primitiveToConservative();
  
@@ -527,11 +547,29 @@ else
   
   if( !parameters.dbase.get<bool>("useNewTimeSteppingStartup") )
   {
-    assign(gf[mOld].u,gf[mCur].u);  // 990903 give initial values to avoid NAN's at ghost points for CNS
+    printF(" -- METHOD-- USE OLD STARTUP, Set past time solutions to t=0 solution \n");
+    if( numberOfPastTimes==1 )
+    {
+      // uOld=uCur 
+      assign(gf[mOld].u,gf[mCur].u); 
+      gf[mOld].form=gf[mCur].form;
+    }
+    else
+    { // June 8, 2017 *wdh*
+      for( int kgf=1; kgf<=numberOfPastTimes; kgf++ )
+      {
+	const int mgf = (mCur + kgf + numberOfGridFunctions) % numberOfGridFunctions;
+        assign(gf[mgf].u,gf[mCur].u); 
+        gf[mgf].t=t0-dt0*kgf;
+        gf[mgf].form=gf[mCur].form;
+      }
+    }
+    
   }
   else
   {
     // *new* way to initialize past time solution  // *wdh* 2014/06/28 
+    printF(" -- METHOD-- USE NEW STARTUP numberOfPastTimes=%i mCur=%i mOld=%i\n",numberOfPastTimes,mCur,mOld);
     if( numberOfPastTimes==1 )
     {
       gf[mOld].t=t0-dt0;
@@ -545,8 +583,10 @@ else
       int *previous = new int[numberOfPastTimes];
       for( int kgf=1; kgf<=numberOfPastTimes; kgf++ )
       {
-	const int mgf = (mCur - kgf + numberOfGridFunctions) % numberOfGridFunctions;
+	// const int mgf = (mCur - kgf + numberOfGridFunctions) % numberOfGridFunctions; // *wdh* June 7, 2017
+	const int mgf = (mCur + kgf + numberOfGridFunctions) % numberOfGridFunctions;
         gf[mgf].t=t0-dt0*kgf;
+        gf[mgf].form=gf[mCur].form;
 	previous[kgf-1]=mgf;
       }
       getPastTimeSolutions( mCur, numberOfPastTimes, previous  );
@@ -555,45 +595,111 @@ else
     
   }
   
-  gf[mOld].form=gf[mCur].form;
+  // gf[mOld].form=gf[mCur].form;
  
-  if( numberOfPastTimeDerivatives>0 )
+  // For IMEX-BDF schemes we need more past time-derivatives
+  if( true && implicitMethod==Parameters::implicitExplicitMultistep )
   {
-    for( int grid=0; grid<gf[mCur].cg.numberOfComponentGrids(); grid++ )
+    // ** THIS SECTION IS REPEATED FROM ABOVE -- *FIX ME*
+
+    for( int kgf=1; kgf<=numberOfPastTimeDerivatives; kgf++ )
     {
-      rparam[0]=gf[mOld].t;
-      rparam[1]=gf[mOld].t; // tforce
-      // *wdh* 090806 : what was this? rparam[2]=gf[mCur].t-gf[mOld].t; // tImplicit
-      rparam[2]=gf[mCur].t; // tImplicit = apply forcing for implicit time stepping at this time
-      iparam[0]=grid;
-      iparam[1]=gf[mOld].cg.refinementLevelNumber(grid);
-      iparam[2]=numberOfStepsTaken;
-      getUt(gf[mOld].u[grid],gf[mOld].getGridVelocity(grid),fn[nab1][grid],iparam,rparam,
-	    utImplicit[grid],&gf[mOld].cg[grid]);
+      const int mgf = (mCur + kgf + numberOfGridFunctions) % numberOfGridFunctions;
+      const int ngf = (nab0 + kgf + numberOfTimeDerivativeLevels) % numberOfTimeDerivativeLevels;
+      const real tgf = t0-dt0*kgf;
+      gf[mgf].t=tgf;
+      
+      if( true )
+	printF("--METHOD-- init past time du/dt at t=%9.3e (gf[mgf=%i].t=%9.3e) fn[ngf=%i]\n",
+           tgf,mgf,gf[mgf].t,ngf);
+
+      // -- evaluate du/dt(t-dt) --
+      for( int grid=0; grid<gf[mCur].cg.numberOfComponentGrids(); grid++ )
+      {
+         
+	rparam[0]=gf[mgf].t;
+	rparam[1]=gf[mgf].t; // tforce
+	rparam[2]=gf[mCur].t-gf[mgf].t; // tImplicit  *************** check me 090806 **********************
+	iparam[0]=grid;
+	iparam[1]=gf[mgf].cg.refinementLevelNumber(grid);
+	iparam[2]=numberOfStepsTaken;
+	getUt(gf[mgf].u[grid],gf[mgf].getGridVelocity(grid),fn[ngf][grid],iparam,rparam,
+	      utImplicit[grid],&gf[mgf].cg[grid]);
+
+	if( false )
+	{
+	  ::display(fn[ngf][grid],sPrintF("--METHOD-- past time du/dt fn[ngf=%i] t=%9.3e",ngf,tgf),"%6.3f ");
+	}
+      }
     }
   }
-  
-  if( debug() & 4 )
+  else
   {
-    determineErrors( fn[nab1],gf[mOld].gridVelocity, gf[mOld].t, 1, error,
-   		   sPrintF(" PC:init: du/dt at past time t=%e \n",gf[mOld].t) );
-  }
+    // *********** OLD WAY *******
+            
+    if( numberOfPastTimeDerivatives>0 )
+    {
+      if( debug() & 2 )
+        fPrintF(debugFile,"--METHOD-- get past time du/dt at t=%9.3e...\n",gf[mOld].t);
+
+      for( int grid=0; grid<gf[mCur].cg.numberOfComponentGrids(); grid++ )
+      {
+        rparam[0]=gf[mOld].t;
+        rparam[1]=gf[mOld].t; // tforce
+        // *wdh* 090806 : what was this? rparam[2]=gf[mCur].t-gf[mOld].t; // tImplicit
+        rparam[2]=gf[mCur].t; // tImplicit = apply forcing for implicit time stepping at this time
+        iparam[0]=grid;
+        iparam[1]=gf[mOld].cg.refinementLevelNumber(grid);
+        iparam[2]=numberOfStepsTaken;
+        getUt(gf[mOld].u[grid],gf[mOld].getGridVelocity(grid),fn[nab1][grid],iparam,rparam,
+              utImplicit[grid],&gf[mOld].cg[grid]);
+      }
+    }
   
-  for( int grid=0; grid<gf[mOld].cg.numberOfComponentGrids(); grid++ )
-  {
-    MappedGrid & c = gf[mOld].cg[grid];
-    getIndex(c.dimension(),I1,I2,I3);
-    // fn[nab1][grid](I1,I2,I3,N)=fn[nab0][grid](I1,I2,I3,N);
+    if( debug() & 4 )
+    {
+      determineErrors( fn[nab1],gf[mOld].gridVelocity, gf[mOld].t, 1, error,
+                       sPrintF(" PC:init: du/dt at past time t=%e \n",gf[mOld].t) );
+    }
+  
+    for( int grid=0; grid<gf[mOld].cg.numberOfComponentGrids(); grid++ )
+    {
+      MappedGrid & c = gf[mOld].cg[grid];
+      getIndex(c.dimension(),I1,I2,I3);
+      // fn[nab1][grid](I1,I2,I3,N)=fn[nab0][grid](I1,I2,I3,N);
+      if( orderOfPredictorCorrector==4 )
+      {
+        for( int m=0; m<=1; m++ )
+        {
+          const int nab=(mOld+m+1) % 4;
+
+          // *** WE COULD DO BETTER HERE ***
+          assign(fn[nab][grid],fn[nab0][grid],I1,I2,I3,N);
+
+        }
+      }
+    }
+    // *wdh* *new* June 7, 2017 **CHECK ME**
     if( orderOfPredictorCorrector==4 )
     {
       for( int m=0; m<=1; m++ )
       {
-	const int nab=(mOld+m+1) % 4;
-	// *wdh* 050319 fn[nab][grid](I1,I2,I3,N)=fn[nab0][grid](I1,I2,I3,N);
-	assign(fn[nab][grid],fn[nab0][grid],I1,I2,I3,N);
+        // save past time values of p and ghost u for the 4th order method
+        // NOTE: PAST time values are saved in a funny place:
+        // save p for use when extrapolating in time
+        //    ua(.,.,.,pc)= p(t-2*dt)  (for 2nd/4th order)
+        //    ub(.,.,.,pc)= p(t-3*dt)  (for 4th order)
+        //    uc(.,.,.,pc)= p(t-4*dt)  (for 4th order)
+        assert( nab0==0 );
+        const int nabPastTime=(nab0+m);
+        real tp=t0-(m+2)*dt0;     
+        savePressureAndGhostVelocity(tp,nabPastTime);
       }
     }
-  }
+    
+
+  } // end OLD WAY
+  
  
 }
      
@@ -639,7 +745,10 @@ if( movingGridProblem() )
   checkArrays(" METHOD : before move grids"); 
 
   if( debug() & 8 )
-    printf(" METHOD: before moveTheGridsMacro: t0=%9.3e, gf[mNew].t=%9.3e, gf[mNew].gridVelocityTime=%9.3e\n",
+    printF(" METHOD: before moveTheGridsMacro: t0=%9.3e, gf[mNew].t=%9.3e, gf[mNew].gridVelocityTime=%9.3e\n",
+	   t0,gf[mNew].t,gf[mNew].gridVelocityTime);
+  if( debug() & 4 )
+    fPrintF(debugFile," METHOD: before moveTheGridsMacro: t0=%9.3e, gf[mNew].t=%9.3e, gf[mNew].gridVelocityTime=%9.3e\n",
 	   t0,gf[mNew].t,gf[mNew].gridVelocityTime);
 
   // generate gf[mNew] from gf[mCur] (compute grid velocity on gf[mCur] and gf[mNew]
@@ -724,6 +833,7 @@ if( movingGridProblem() )
     exposedPoints.initialize(gf[mCur].cg,gf[mNew].cg,parameters.dbase.get<int >("stencilWidthForExposedPoints"));
     exposedPoints.interpolate(gf[mCur].u,(twilightZoneFlow() ? parameters.dbase.get<OGFunction* >("exactSolution") : NULL),t0);
 
+    
     // Added for BDF: *wdh* 2015/04/05
     for( int kp=1; kp<=numberOfPastTimes; kp++ )
     {
@@ -771,10 +881,21 @@ if( movingGridProblem() )
       //            
       // exposedPoints.setExposedPointType(ExposedPoints::exposedDiscretization);
 
-      exposedPoints.setAssumeInterpolationNeighboursAreAssigned(parameters.dbase.get<int >("extrapolateInterpolationNeighbours"));
+      const int extrapolateInterpolationNeighbours=parameters.dbase.get<int >("extrapolateInterpolationNeighbours");
+      const int stencilWidthForExposedPoints=parameters.dbase.get<int >("stencilWidthForExposedPoints");
+      
+      if( debug() & 4 )
+      {
+        fPrintF(debugFile," ---- compute exposed for du/dt(t-dt), extrapolateInterpolationNeighbours=%i, "
+                "stencilWidthForExposedPoints=%i\n",extrapolateInterpolationNeighbours,stencilWidthForExposedPoints);
+      }
+      
 
-      exposedPoints.initialize(gf[mOld].cg,gf[mNew].cg,parameters.dbase.get<int >("stencilWidthForExposedPoints"));
-      exposedPoints.interpolate(gf[mOld].u,(twilightZoneFlow() ? parameters.dbase.get<OGFunction* >("exactSolution") : NULL),gf[mOld].t);
+      exposedPoints.setAssumeInterpolationNeighboursAreAssigned(extrapolateInterpolationNeighbours);
+
+      exposedPoints.initialize(gf[mOld].cg,gf[mNew].cg,stencilWidthForExposedPoints);
+      exposedPoints.interpolate(gf[mOld].u,(twilightZoneFlow() ? 
+                                parameters.dbase.get<OGFunction* >("exactSolution") : NULL),gf[mOld].t);
 	  
       // For now recompute du/dt(t-dt) using the mask values from cg(t+dt)
       for( int grid=0; grid<gf[mOld].cg.numberOfComponentGrids(); grid++ )
@@ -783,9 +904,13 @@ if( movingGridProblem() )
 	if( gridWasAdapted || exposedPoints.getNumberOfExposedPoints(grid)>0 )
 	{
           if( debug() & 2 )
-	    printf(" ---- METHOD: recompute du/dt(t-dt) for grid=%i t-dt = %9.3e  (%i exposed)-----\n",grid,gf[mOld].t,
+          {
+	    printF(" ---- METHOD: recompute du/dt(t-dt) for grid=%i t-dt = %9.3e  (%i exposed)-----\n",grid,gf[mOld].t,
 		   exposedPoints.getNumberOfExposedPoints(grid));
-
+            fPrintF(debugFile," ---- METHOD: recompute du/dt(t-dt) for grid=%i t-dt = %9.3e  (%i exposed)-----\n",
+                   grid,gf[mOld].t,exposedPoints.getNumberOfExposedPoints(grid));
+          }
+          
 	  // This is only necesssary if there are exposed points on this grid
 	  rparam[0]=gf[mOld].t;
 	  rparam[1]=gf[mOld].t;
@@ -798,6 +923,17 @@ if( movingGridProblem() )
 		utImplicit[grid],&gf[mNew].cg[grid]);
 	      
 	}
+        else
+        {
+          if( debug() & 2 )
+          {
+	    printF(" ---- METHOD: fixp du/dt(t-dt) for grid=%i t-dt = %9.3e  (%i exposed) ...ok -----\n",
+                   grid,gf[mOld].t,exposedPoints.getNumberOfExposedPoints(grid));
+            fPrintF(debugFile," ---- METHOD: fixp du/dt(t-dt) for grid=%i t-dt = %9.3e  (%i exposed) ...ok -----\n",
+                   grid,gf[mOld].t,exposedPoints.getNumberOfExposedPoints(grid));
+          }
+        }
+        
       }
       if( debug() & 4 )
       {	

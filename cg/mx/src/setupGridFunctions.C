@@ -554,10 +554,18 @@ setupGridFunctions()
 
       numberOfFields=2;
 	
-      cgfields = new realCompositeGridFunction [numberOfTimeLevels];
+      // *new* Store grid functions in array gf[] -- to transition to a DomainSolver 
+      gf = new GridFunction [numberOfTimeLevels]; //  *new* way 2017/05/18
+
+      cgfields = new realCompositeGridFunction [numberOfTimeLevels]; // old way
 	
       for( int n=0; n<numberOfTimeLevels; n++ )
       {
+        // do this for now: (keep cgfields array for now)
+        gf[n].cg.reference(cg);
+        gf[n].u.reference(cgfields[n]);
+        gf[n].setParameters(parameters);
+
 	cgfields[n].updateToMatchGrid(cg,all,all,all,numberOfComponents);
 	cgfields[n]=0.;
 	    
@@ -916,7 +924,7 @@ setupGridFunctions()
   }
   else
   {
-    printF("Cgmx:: No negative volumes were found\n.");
+    printF("Cgmx:: No negative volumes were found.\n");
   }
 
   const int numberOfComponentGrids = cg.numberOfComponentGrids();
@@ -1049,6 +1057,56 @@ setupGridFunctions()
     
   }
   
+
+  if( method==nfdtd )
+  {
+    // -- generate geometry arrays ---
+    for( int grid=0; grid<cg.numberOfComponentGrids(); grid++ )
+    {
+      MappedGrid & mg=cg[grid];
+      const bool isRectangular=mg.isRectangular();
+      if( !isRectangular )
+      {
+        if( useConservative )
+        {
+  	  // The conservative operators need the jacobian
+	   mg.update( MappedGrid::THEinverseVertexDerivative | 
+                     MappedGrid::THEinverseCenterDerivative | MappedGrid::THEcenterJacobian );
+        }
+        else
+        {
+    	  mg.update( MappedGrid::THEinverseVertexDerivative | 
+                   MappedGrid::THEinverseCenterDerivative );
+        }
+      }
+    }
+  }
+
+  const int & useSosupDissipation = parameters.dbase.get<int>("useSosupDissipation");
+  if( method==sosup || (method==nfdtd && useSosupDissipation) )
+  {
+    // Sosup requires an extra ghost line  -- check there are enough
+
+    const int minGhostNeeded = orderOfAccuracyInSpace/2 +1;
+    Range Rx=cg.numberOfDimensions();
+    for( int grid=0; grid<cg.numberOfComponentGrids(); grid++ )
+    {
+      MappedGrid & mg=cg[grid];
+      const IntegerArray & numberOfGhostPoints = mg.numberOfGhostPoints();
+      int numGhost = min(numberOfGhostPoints(Range(0,1),Rx));
+      if( numGhost < minGhostNeeded )
+      {
+        printF("--MX-- setupGridFunctions: ERROR: the grid does not have enough ghost points for sosup dissipation.\n"
+	"   orderOfAccuracy=%i requires at least %i ghost points.\n"
+	"   You could remake the grid with more ghost points to fix this error.\n",
+	orderOfAccuracyInSpace,minGhostNeeded);
+	OV_ABORT("ERROR");
+	
+      } 
+    }
+  }
+  
+   
 
   timing(timeForInitialize)+=getCPU()-time0;
 

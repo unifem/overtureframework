@@ -313,6 +313,9 @@ printTimeStepInfo( const int & step, const real & t, const real & cpuTime );
 int 
 project( int numberOfStepsTaken, int current, real t, real dt );
 
+int 
+projectInterface( int grid, real dt, int current );
+
 //int 
 // saveParametersToShowFile();
 

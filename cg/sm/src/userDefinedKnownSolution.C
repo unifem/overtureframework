@@ -45,7 +45,8 @@ getUserDefinedKnownSolution(real t, CompositeGrid & cg, int grid, RealArray & ua
 
   real *rpar = db.get<real[20]>("rpar");
   int *ipar = db.get<int[20]>("ipar");
-  
+
+  const real dt = dbase.get<real>("dt");
   const real & rho    = dbase.get<real>("rho");
   const real & mu     = dbase.get<real>("mu");
   const real & lambda = dbase.get<real>("lambda");
@@ -251,19 +252,49 @@ getUserDefinedKnownSolution(real t, CompositeGrid & cg, int grid, RealArray & ua
     }   
   }
 
-  else if( userKnownSolution=="elasticPiston" )
+  else if( userKnownSolution=="bulkSolidPiston" )
   {
-    // ---- return the exact solution for the elastic piston ---
+    // ---- return the exact solution for the FSI INS+elastic piston ---
 
-    const int & option = ipar[0];
-    const real & amp   = rpar[0];
-    const real & freq  = rpar[1];
+    // assert( v1c>=0 && u1c>=0 && s22c >=0 );
 
-    const real omega=twoPi*freq;
+    const real & amp      = rpar[0];
+    const real & k        = rpar[1];
+    const real & phase    = rpar[2];
+    const real & H        = rpar[3];
+    const real & Hbar     = rpar[4];
+    const real & rhoFluid = rpar[5];
+    const real & rhoBar   = rpar[6];
+    const real & lambdaBar= rpar[7];
+    const real & muBar    = rpar[8];
+
+    const real cp2 = sqrt((lambdaBar+2.*muBar)/rhoBar);
+    assert( cp==cp2 );
     
-    printF(" userDefinedKnownSolution: elasticPiston, option=%i, amp=%g, freq=%g, t=%9.3e\n",option,amp,freq,t);
+    const real sint = sin(cp*k*t + twoPi*phase);
+    const real cost = cos(cp*k*t + twoPi*phase);
 
-    assert( v1c>=0 && u1c>=0 && s22c >=0 );
+    if( t<= 2.*dt )
+    {
+      printF("--SM-- userDefinedKnownSolution: bulkSolidPiston, amp=%g, k=%g, phase=%g, t=%9.3e\n",amp,k,phase,t);
+      printF("--SM-- cp=%g, k*hBar=%g, amp*cp*k*sin(k*hBar)=%g\n",cp,k*Hbar,amp*cp*k*sin(k*Hbar));
+    }
+    
+   
+    assert( lambda==lambdaBar && mu==muBar && rho==rhoBar );
+
+    assert( numberOfTimeDerivatives==0 );
+
+    // for fluid 
+    // const real sinkHbar = sin(k*Hbar);
+    // const real pI = -amp*(lambdaBar+2.*muBar)*cp*k*sinkHbar*cost;
+    // const real yI =  amp*         sinkHbar*cost;    // interface position
+    // const real vI = -amp*cp*k*    sinkHbar*sint;    // interface velocity
+    // const real aI = -amp*SQR(cp*k)*sinkHbar*cost;   // interface acceleration
+    // const real p0 = pI - rhoFluid*H*aI*(1.-yI)/H;        // fluid pressure at y=H 
+    // const real pAmp = (p0-pI)/(H-yI);
+
+
 
     MappedGrid & mg = cg[grid];
     mg.update(MappedGrid::THEvertex | MappedGrid::THEcenter);
@@ -275,36 +306,31 @@ getUserDefinedKnownSolution(real t, CompositeGrid & cg, int grid, RealArray & ua
     FOR_3D(i1,i2,i3,I1,I2,I3)
     {
       // Reference coordinates:
-      real x= center(i1,i2,i3,0);
-      real y= center(i1,i2,i3,1);
+      // real x= center(i1,i2,i3,0);
+      const real y= center(i1,i2,i3,1);
 
-      if( option==0 )
+      const real sinky = sin(k*(y+Hbar));
+
+      // displacement
+      u(i1,i2,i3,u1c)=0.;
+      u(i1,i2,i3,u2c)= amp * sinky * cost;
+
+      // velocities
+      if( assignVelocity )
       {
-	// --- This is a fake -- do this for now --
-	// displacement
-	u(i1,i2,i3,u1c)=0.;
-	u(i1,i2,i3,u2c)=amp*sin(omega*(y-cp*t));
-
-	// velocities
-	if( assignVelocity )
-	{
-	  u(i1,i2,i3,v1c)=0.;
-	  u(i1,i2,i3,v2c)=-amp*omega*cp*cos(omega*(y-cp*t));
-	}
-      
-	// stresses
-	if( assignStress )
-	{
-          real v2y = amp*omega*cos(omega*(y-cp*t));  
-	  u(i1,i2,i3,s11c)=lambda*v2y;
-	  u(i1,i2,i3,s12c)=0.;
-	  u(i1,i2,i3,s21c)=0.;
-	  u(i1,i2,i3,s22c)=(lambda+2.*mu)*v2y;
-	}
+	u(i1,i2,i3,v1c)=0.;
+	u(i1,i2,i3,v2c)= -amp*cp*k*sinky*sint;
       }
-      else
+      
+      // stresses
+      if( assignStress )
       {
-	OV_ABORT("finish me : option");
+	real u2y = amp * k*cos(k*(y+Hbar)) * cost;
+
+	u(i1,i2,i3,s11c)=lambda*u2y;
+	u(i1,i2,i3,s12c)=0.;
+	u(i1,i2,i3,s21c)=0.;
+	u(i1,i2,i3,s22c)=(lambda+2.*mu)*u2y;
       }
       
     }
@@ -363,7 +389,7 @@ updateUserDefinedKnownSolution(GenericGraphicsInterface & gi, CompositeGrid & cg
       "no known solution",
       "rotating disk",  // for cgsm SVK model
       "linear beam exact solution",
-      "elastic piston",  // for INS+SM exact solution
+      "bulk solid piston",  // for INS+SM exact solution
       "choose a common known solution",
       "done",
       ""
@@ -461,45 +487,37 @@ updateUserDefinedKnownSolution(GenericGraphicsInterface & gi, CompositeGrid & cg
       gi.inputString(answer,"Enter omega");
       sScanF(answer,"%e",&omega);
     }
-    else if( answer=="elastic piston" )
-    {
-      // One-dimensional exact solution (independent of x)
-      //   A force is applied to one end, y=b, of a solid block.
-      //   The other end has a specified displacement, e.g. zero
-      //
-      // Domain: 
-      //         +-------------------------+ <- force(t) 
-      //        y=a                       y=b
-      // 
-      //  Initial conditions (often zero)
-      //     u(y,0)=u0(y), v(y,0)=v0(y)
-      //  Boundary conditions
-      //     u(a,t)=ga(t),    traction(b,t)=gb(t)
- 
 
-      userKnownSolution="elasticPiston";
+    else if( answer=="bulk solid piston" )
+    {
+      userKnownSolution="bulkSolidPiston";
       dbase.get<bool>("knownSolutionIsTimeDependent")=true;  // known solution IS time dependent
 
-      // Prompt for input:
-      printF("--- Elastic piston exact solution ---        \n"
-             " option = solution option                    \n"
-             "        = 0 : u= amp*sin(2*pi*freq*(y- cp*t))\n");
-      
-      // Defaults:
-      int option=0;
-      real amp=0.1;
-      real freq=1.;
-      
-      gi.inputString(answer,"Enter option,amp,freq");
-      sScanF(answer,"%i %e %e",&option,&amp,&freq);
+      real & amp      = rpar[0];
+      real & k        = rpar[1];
+      real & phase    = rpar[2];
+      real & H        = rpar[3];
+      real & Hbar     = rpar[4];
+      real & rho      = rpar[5];
+      real & rhoBar   = rpar[6];
+      real & lambdaBar= rpar[7];
+      real & muBar    = rpar[8];
 
-      printF("elasticPiston: option=%i, amp=%g, freq=%g\n",option,amp,freq);
-      ipar[0]=option;
-      rpar[0]=amp;
-      rpar[1]=freq;
+      printF("--- Exact solution for a bulk elastic solid adjacent to a fluid chamber ---\n"
+             "   y_I(t) = A sin(k Hbar) * cos( cp*k*t + 2*pi*phase )\n"
+             " Parameters: \n"
+             " amp : amplitude of the interface motion \n"
+             " k: wave number in solid domain (y-direction)\n"
+             " H,Hbar: Height of fluid and solid domains\n"
+             " phase: phase for time dependence\n"
+             " rhoBar,lambaBar,muBar : solid density and Lame parameters\n"
+	);
+      gi.inputString(answer,"Enter amp, k,phase,H,Hbar,rho,lambdaBar,muBar,rhoBar");
+      sScanF(answer,"%e %e %e %e %e %e %e %e %e",&amp,&k,&phase,&H,&Hbar,&rho,&rhoBar,&lambdaBar,&muBar);
+      printF("Setting amp=%g, k=%g,phase=%g,H=%g,Hbar=%g,rho=%g,lambdaBar=%g,muBar=%g,rhoBar=%g\n",
+                  amp,k,phase,H,Hbar,rho,rhoBar,lambdaBar,muBar);
 
     }
-
     else
     {
       printF("unknown response=[%s]\n",(const char*)answer);

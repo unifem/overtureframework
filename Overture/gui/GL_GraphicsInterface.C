@@ -1358,7 +1358,7 @@ readOvertureRC()
     }
   }
     
-  printf("Look for Overture configuration file=[%s]\n",(const char*)fileName);
+  printF("Look for Overture configuration file=[%s]\n",(const char*)fileName);
      
   FILE *overtureRC = fopen(fileName, "r");
   // if we don't find .overturec in the home directory then look for one in the Overture directory

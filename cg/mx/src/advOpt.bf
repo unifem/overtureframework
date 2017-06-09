@@ -1,6 +1,7 @@
 !
 ! Optimized advance routines for cgmx
 !
+
 ! These next include files will define the macros that will define the difference approximations
 ! The actual macro is called below
 #Include "defineDiffOrder2f.h"
@@ -2017,11 +2018,13 @@ f3dcme44(i1,i2,i3,n) = fa(i1,i2,i3,n,fcur)+cdtSqBy12*ffLaplacian23(i1,i2,i3,n) \
 
    if( useCurvilinearOpt.eq.1 .and. useConservative.eq.0 )then
 
-    ! **************************************************
-    ! *************** NON-CONSERVATIVE *****************    
-    ! **************************************************
+    ! ****************************************************************************
+    ! *************** OPTIMIZED-CURVILINEAR AND NON-CONSERVATIVE *****************    
+    ! ****************************************************************************
 
     #If #ORDER eq "2" 
+
+      ! --- Todo: non-conservative operators could be inlined here ---
 
 !$$$     loopsFCD(un(i1,i2,i3,ex)=maxwellc22(i1,i2,i3,ex),\
 !$$$              un(i1,i2,i3,ey)=maxwellc22(i1,i2,i3,ey),\
@@ -2191,19 +2194,19 @@ f3dcme44(i1,i2,i3,n) = fa(i1,i2,i3,n,fcur)+cdtSqBy12*ffLaplacian23(i1,i2,i3,n) \
 
 
    else
-     ! *****************************************************
-     ! ****************Old way******************************
-     ! *****************************************************
+     ! **********************************************************************************
+     ! **************** USE PRE-COMPUTED SPATIAL OPERATORS ******************************
+     ! **********************************************************************************
 
-     ! **************** CONSERVATIVE DIFFERENCE *****************
-     !  The Lapacian and Laplacian squared have already been computed by the calling program 
-
-   ! In these cases we are given the Laplacian on input
-
+     !  --> The Laplacian and Laplacian squared have already been computed by the calling program 
+     !  --> For example, mainly when using conservative operators
+  
 
    #If #ORDER eq "2" 
 
     if( useDivergenceCleaning.eq.0 )then
+
+     ! --- currently 2nd-order conservative and non-conservative opertaors are done here ---
      loopsFCD(un(i1,i2,i3,ex)=maxwellc22(i1,i2,i3,ex),\
               un(i1,i2,i3,ey)=maxwellc22(i1,i2,i3,ey),\
               un(i1,i2,i3,ez)=maxwellc22(i1,i2,i3,ez),\
@@ -2212,6 +2215,7 @@ f3dcme44(i1,i2,i3,n) = fa(i1,i2,i3,n,fcur)+cdtSqBy12*ffLaplacian23(i1,i2,i3,n) \
               un(i1,i2,i3,hy)=maxwellc22(i1,i2,i3,hy),\
               un(i1,i2,i3,hz)=maxwellc22(i1,i2,i3,hz),\
               ,,)
+
     else
        ! 2D, 2nd-order, curvilinear, div cleaning:
        !    D+tD-t( E ) + alpha*( D0t E ) = c^2 Delta(E) + alpha*( (1/eps) Curl ( H ) )
@@ -2421,16 +2425,18 @@ f3dcme44(i1,i2,i3,n) = fa(i1,i2,i3,n,fcur)+cdtSqBy12*ffLaplacian23(i1,i2,i3,n) \
 #endFile
 #endMacro
 
-      buildFile(advMx2dOrder2r,2,2,rectangular)
+! some newer version of these are created in advOpt.bf
+
+!      buildFile(advMx2dOrder2r,2,2,rectangular)
       buildFile(advMx3dOrder2r,3,2,rectangular)
 
-      buildFile(advMx2dOrder2c,2,2,curvilinear)
+!      buildFile(advMx2dOrder2c,2,2,curvilinear)
       buildFile(advMx3dOrder2c,3,2,curvilinear)
 
-      buildFile(advMx2dOrder4r,2,4,rectangular)
+!      buildFile(advMx2dOrder4r,2,4,rectangular)
       buildFile(advMx3dOrder4r,3,4,rectangular)
 
-      buildFile(advMx2dOrder4c,2,4,curvilinear)
+!      buildFile(advMx2dOrder4c,2,4,curvilinear)
       buildFile(advMx3dOrder4c,3,4,curvilinear)
 
       buildFile(advMx2dOrder6r,2,6,rectangular)

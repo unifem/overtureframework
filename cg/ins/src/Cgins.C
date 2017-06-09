@@ -529,7 +529,18 @@ writeParameterSummary( FILE * file )
     }
     
   }
-
+  else
+  {
+    const bool & useAddedMassAlgorithm = parameters.dbase.get<bool>("useAddedMassAlgorithm");
+    fPrintF(file,"\n");
+    fPrintF(file," useAddedMassAlgorithm=%i,\n"
+	    " predicted pressure needed=%i,\n",
+	    (int)useAddedMassAlgorithm,
+	    (int)parameters.dbase.get<bool>("predictedPressureNeeded")
+      );
+    fPrintF(file,"\n");
+  }
+  
 }
 
 

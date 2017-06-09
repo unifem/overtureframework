@@ -9,7 +9,7 @@
 #include "display.h"
 #include "CgSolverUtil.h"
 #include "Oges.h"
-
+#include "LoadBalancer.h"
 
 int 
 getLineFromFile( FILE *file, char s[], int lim);
@@ -132,8 +132,41 @@ main(int argc, char *argv[])
   aString nameOfShowFile;
   CompositeGrid cg;
   aString nameOfGridFile="";
-  nameOfGridFile = readOrBuildTheGrid(ps, cg, loadBalance, numberOfParallelGhost);
+  LoadBalancer *pLoadBalancer=NULL;
+  if( loadBalance )
+  {
+    // TESTING:  -- choose a different load balancer
+    // *** MAKE THIS A DIFFERENT "readOrBuildTheGrid" that create a load balancer with a given type?
+    aString nameOfOGFile;
+    ps.inputString(nameOfOGFile,"Enter the name of an (old) overlapping grid file or type 'ogen' to generate a grid:");
+    // create and read in a CompositeGrid
+    #ifdef USE_PPP
+      // On Parallel machines always add at least this many ghost lines on local arrays
+      MappedGrid::setMinimumNumberOfDistributedGhostLines(numberOfParallelGhost);
+    #endif
+    int maxWidthExtrapInterpNeighbours=3;
+    GenericMappedGridOperators::setDefaultMaximumWidthForExtrapolateInterpolationNeighbours(maxWidthExtrapInterpNeighbours);
 
+    printF("--CGINS-- Setting LOAD BALANCER TO ALL-TO-ALL\n");
+    pLoadBalancer=new LoadBalancer;
+    pLoadBalancer->setLoadBalancer(LoadBalancer::allToAll);
+    int rt = getFromADataBase(cg,nameOfOGFile,*pLoadBalancer);
+    if( rt!=0 )
+    {
+      printF("--CGINS:ERROR return from getFromADataBase\n");
+      OV_ABORT("error");
+    }
+    
+    if( Communication_Manager::Number_Of_Processors >1 )
+    { // display the parallel distribution
+      cg.displayDistribution("readOrBuildTheGrid",stdout);
+    }
+  }
+  else
+  {
+    nameOfGridFile = readOrBuildTheGrid(ps, cg, loadBalance, numberOfParallelGhost);
+  }
+  
   // Interpolant interpolant(cg); 
   Interpolant & interpolant = *new Interpolant(cg); interpolant.incrementReferenceCount();
   // Interpolant & interpolant = *new Interpolant; interpolant.incrementReferenceCount();
@@ -184,6 +217,7 @@ main(int argc, char *argv[])
     printF("cginsMain: delete Interpolant\n");
     delete &interpolant;
   }
+  delete pLoadBalancer;
   
   Overture::finish();          
   if( smartRelease )

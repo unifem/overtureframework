@@ -980,6 +980,7 @@ buildPetscMatrix()
   bool allocateSpace = TRUE;
   bool factorMatrixInPlace = FALSE; // allocate space for matrix only
 
+
   if( matrixFormat==Oges::other )
   {
     // in this case formMatrix will directly supply PETSc with the matrix elements
@@ -1099,6 +1100,9 @@ buildPetscMatrix()
     PetscScalar  v;
     // real rownorm;
 
+    const real coeffScale=1.;  // fix this 
+    real eps= parameters.rescaleRowNorms ? coeffScale*REAL_EPSILON*100. : 0.;  // cutoff tolerance for keeping coefficients
+
     if( Oges::debug & 2 )
       cout << "+++(PetscOverture)Building the Petsc matrix...\n";
     for( irowm1=0; irowm1<neq; irowm1++ ) {
@@ -1107,6 +1111,8 @@ buildPetscMatrix()
       for( j=ia_[irowm1]; j<=ia_[irowm1+1]-1; j++ ) 
       {
 	v=dsc*aval[ j-1 ];
+	if( fabs(v) <eps ) continue;   // *wdh* May 23, 2015 -- to catch small user supplied eqn coeffs
+	
 	jcolm1=ja_[ j-1 ]-1;
 	// rownorm = rownorm+ fabs(v);
 	// To matrix Amx, Insert row=irow, col=jcol, INSERT (NEW) VALUE 
@@ -1304,8 +1310,9 @@ buildRhsAndSolVector(realCompositeGridFunction & u,
 
       v=ovRhs[i]*dscale[i]; // SCALE rhs as the matrix!!
       ierr=VecSetValues(brhs,1,&i,&v,INSERT_VALUES); CHKERRQ(ierr);
-      // if( true )
-      //  printF("--PES-- RHS: i=%6i, ovRhs=%9.2e scale=%9.2e b=%9.2e\n",i,ovRhs[i],dscale[i],v);
+
+      if( Oges::debug & 2 )
+        printF("--PES-- RHS: i=%6i, ovRhs=%11.4e scale=%9.2e b=%11.4e\n",i,ovRhs[i],dscale[i],v);
       
     }
   }

@@ -11,12 +11,12 @@
 
 ! This version can optionally eval time-derivative:
 #beginMacro OGF3DFO(i1,i2,i3,t,u0,v0,w0)
-  call ogf3dfo(ep,fieldOption,xy(i1,i2,i3,0),xy(i1,i2,i3,1),xy(i1,i2,i3,2),t,u0,v0,w0)
+  call ogf3dfo(ep,ex,ey,ez,fieldOption,xy(i1,i2,i3,0),xy(i1,i2,i3,1),xy(i1,i2,i3,2),t,u0,v0,w0)
 #endMacro
 
 ! This version can optionally eval time-derivative:
 #beginMacro OGF2DFO(i1,i2,i3,t,u0,v0,w0)
- call ogf2dfo(ep,fieldOption,xy(i1,i2,i3,0),xy(i1,i2,i3,1),t,u0,v0,w0)
+ call ogf2dfo(ep,ex,ey,hz,fieldOption,xy(i1,i2,i3,0),xy(i1,i2,i3,1),t,u0,v0,w0)
 #endMacro
 
 #beginMacro OGDERIV3D(ntd,nxd,nyd,nzd,i1,i2,i3,t,ux,vx,wx)
@@ -514,7 +514,11 @@ do i1=nn1a,nn1b
 #beginMacro getBoundaryForcing2D(x,y,t,numberOfTimeDerivatives,ubv)
   if( boundaryForcingOption.eq.noBoundaryForcing )then
   else if( boundaryForcingOption.eq.planeWaveBoundaryForcing )then
-    getPlaneWave2D(x,y,t,numberOfTimeDerivatives,ubv)
+    if( dispersionModel.eq.noDispersion )then
+      getPlaneWave2D(x,y,t,numberOfTimeDerivatives,ubv)
+    else
+      getDispersivePlaneWave2D(x,y,t,numberOfTimeDerivatives,ubv)
+    end if
   else if(  boundaryForcingOption.eq.chirpedPlaneWaveBoundaryForcing )then
     getChirpedPlaneWave2D(x,y,t,numberOfTimeDerivatives,ubv)
   else
@@ -532,7 +536,11 @@ do i1=nn1a,nn1b
 #beginMacro getBoundaryForcing3D(x,y,z,t,numberOfTimeDerivatives,ubv)
   if( boundaryForcingOption.eq.noBoundaryForcing )then
   else if( boundaryForcingOption.eq.planeWaveBoundaryForcing )then
-    getPlaneWave3D(x,y,z,t,numberOfTimeDerivatives,ubv)
+    if( dispersionModel.eq.noDispersion )then
+      getPlaneWave3D(x,y,z,t,numberOfTimeDerivatives,ubv)
+    else
+      getDispersivePlaneWave3D(x,y,z,t,numberOfTimeDerivatives,ubv)
+    end if
   else if(  boundaryForcingOption.eq.chirpedPlaneWaveBoundaryForcing )then
     getChirpedPlaneWave3D(x,y,z,t,numberOfTimeDerivatives,ubv)
   else
@@ -866,13 +874,18 @@ do i1=nn1a,nn1b
                   ndf1a,ndf1b,ndf2a,ndf2b,ndf3a,ndf3b,\
                   gridIndexRange,dimension,u,f,mask,rsxy, xy,\
                   bc, boundaryCondition, ipar, rpar, ierr )
-! ===================================================================================
-!  Optimised Boundary conditions for Maxwell's Equations. '
+! ===============================================================================================
+!  Optimised Boundary conditions for Maxwells Equations.
 !
 !  gridType : 0=rectangular, 1=curvilinear
 !  useForcing : 1=use f for RHS to BC
 !  side,axis : 0:1 and 0:2
-! ===================================================================================
+!
+! fieldOption = 0 : apply boundary conditions to the field variables
+!             = 1 : apply boundary conditions to the time-derivatives of the field variables
+! polarizationOption = 0 : no polarization
+!                    = 1 : apply BCs to polarization vector
+! ===============================================================================================
 
  implicit none
 
@@ -901,6 +914,7 @@ do i1=nn1a,nn1b
  integer is1,is2,is3,js1,js2,js3,ks1,ks2,ks3,orderOfAccuracy,gridType,debug,grid,\
    side,axis,useForcing,ex,ey,ez,hx,hy,hz,useWhereMask,side1,side2,side3,m1,m2,m3,bc1,bc2, \
   js1a,js2a,js3a,ks1a,ks2a,ks3a,forcingOption,useChargeDensity,fieldOption,boundaryForcingOption
+ integer polarizationOption,dispersionModel
 
  real dr(0:2), dx(0:2), t, uv(0:5), uvm(0:5), uv0(0:5), uvp(0:5), uvm2(0:5), uvp2(0:5), ubv(0:5)
  real uvmm(0:2),uvzm(0:2),uvpm(0:2)
@@ -1069,6 +1083,8 @@ do i1=nn1a,nn1b
  real urrs4,urrt4,usst4,urss4,ustt4,urtt4
  real urrs2,urrt2,usst2,urss2,ustt2,urtt2
 
+#Include "dispersionFortranInclude.h"
+
 #Include "declareJacobianDerivatives.h"
 
 !     --- start statement function ----
@@ -1167,6 +1183,8 @@ do i1=nn1a,nn1b
 
  fieldOption          =ipar(29)  ! 0=assign field, 1=assign time derivatives
  boundaryForcingOption=ipar(32)  ! option when solving for scattered field directly
+ polarizationOption   =ipar(33)
+ dispersionModel      =ipar(34)
 
  dx(0)                =rpar(0)
  dx(1)                =rpar(1)
@@ -1204,6 +1222,14 @@ do i1=nn1a,nn1b
  cpwY0                =rpar(35)   ! y0
  cpwZ0                =rpar(36)   ! z0
 
+ ! variables for dispersive plane wave
+ sr                   =rpar(37)  ! Re(s)
+ si                   =rpar(38)  ! Im(s) 
+ ! P equation is : P_tt + ap*P_t + bp*P = cp*E
+ ap                   =rpar(39)
+ bp                   =rpar(40)
+ cp                   =rpar(41)
+
  if( abs(pwc(0))+abs(pwc(1))+abs(pwc(2)) .eq. 0. )then
    ! sanity check
    stop 12345
@@ -1228,6 +1254,20 @@ do i1=nn1a,nn1b
 
  initializeBoundaryForcing(t,slowStartInterval)
 
+ ! initialize dispersive plane wave parameters
+ if( dispersionModel .ne. noDispersion )then
+   initializeDispersivePlaneWave()
+ end if
+
+ if( fieldOption.ne.0 .and. fieldOption.ne.1 )then
+   write(*,'("bcOptMax: error: fieldOption=",i6)') fieldOption
+   stop 3956
+ end if
+
+ if( polarizationOption.ne.0 .and. t.le.2.*dt )then
+   write(*,'(" bcOpt: t=",e10.2," polarizationOption=",i2," ex,ey,hz=",3i3)') t,polarizationOption,ex,ey,hz
+   write(*,'("      : dispersionModel=",i2)') dispersionModel
+ end if
  ! ****
  ! write(*,'(" bcOpt: t=",e10.2," fieldOption=",i2," ex,ey,hz=",3i3)') t,fieldOption,ex,ey,hz
 

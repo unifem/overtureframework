@@ -2,6 +2,7 @@
 #include "CompositeGridOperators.h"
 #include "Oges.h"
 #include "OgmgParameters.h"
+#include "DispersiveMaterialParameters.h"
 
 // =======================================================================================
 /// \brief Output the header banner with parameters and grid info.
@@ -27,6 +28,10 @@ outputHeader()
 
   const BoundaryForcingEnum & boundaryForcingOption =dbase.get<BoundaryForcingEnum>("boundaryForcingOption");
   const bool & solveForScatteredField = dbase.get<bool>("solveForScatteredField");
+  const int & useSosupDissipation = parameters.dbase.get<int>("useSosupDissipation");
+  const real & sosupParameter = parameters.dbase.get<real>("sosupParameter");    // scaling of sosup dissipation
+  const int & sosupDissipationOption = parameters.dbase.get<int>("sosupDissipationOption"); 
+  const int & sosupDissipationFrequency = parameters.dbase.get<int>("sosupDissipationFrequency"); 
 
   for( int fileio=0; fileio<2; fileio++ )
   {
@@ -49,8 +54,22 @@ outputHeader()
     
 
     fPrintF(file," order of accuracy: space=%i, time=%i\n",orderOfAccuracyInSpace,orderOfAccuracyInTime);
-    fPrintF(file," artificial diffusion: order=%i, coefficient=%8.2e (rectangular grids), coefficient=%8.2e (curvilinear grids)\n",
-            orderOfArtificialDissipation,artificialDissipation,artificialDissipationCurvilinear);
+    if( !useSosupDissipation )
+    {
+      fPrintF(file," artificial diffusion: order=%i, coefficient=%8.2e (rectangular grids), coefficient=%8.2e (curvilinear grids)\n",
+	      orderOfArtificialDissipation,artificialDissipation,artificialDissipationCurvilinear);
+    }
+    else
+    {
+      fPrintF(file," Use SOSUP dissipation, scaled by a factor %g (uses wider stencil and 1/h coefficient).\n",
+                    sosupParameter);
+      fPrintF(file," sosupDissipationOption=%i: 0=apply dissipation with update,"
+                   " 1=apply dissipation in separate stage.\n",sosupDissipationOption);
+      
+      fPrintF(file," sosupDissipationFrequency=%i: apply sosup dissipation every this many steps.",
+                   sosupDissipationFrequency);
+    }
+    
     if( applyFilter )
       fPrintF(file," apply high order filter, order=%i, frequency=%i, iterations=%i, coefficient=%g\n",
                      orderOfFilter,filterFrequency,numberOfFilterIterations,filterCoefficient);
@@ -169,6 +188,12 @@ outputHeader()
 	      icBox(0,0),icBox(1,0),
 	      icBox(0,1),icBox(1,1),
 	      icBox(0,2),icBox(1,2)); 
+     const int & smoothBoundingBox = dbase.get<int>("smoothBoundingBox");
+     if( smoothBoundingBox !=0 )
+       fPrintF(file,"   : smooth initial condition at bounding box, decay exponent=%g\n",boundingBoxDecayExponent);
+     else
+       fPrintF(file,"   : chop initial condition at bounding box (smooth is off)\n");
+       
     }
     else
     {
@@ -260,7 +285,26 @@ outputHeader()
                       (const char*)cg[grid].getName());
       }
     }
-
+    if( dispersionModel!=noDispersion )
+    { 
+      // --- output dispersive material parameters ---
+      if( cg.numberOfDomains()==1 )
+      {
+	const DispersiveMaterialParameters & dmp = getDomainDispersiveMaterialParameters(0);
+	fPrintF(file," Drude parameters: gamma=%9.3e, omegap=%9.3e\n",dmp.gamma,dmp.omegap);
+      }
+      else
+      {
+	for( int domain=0; domain<cg.numberOfDomains(); domain++ )
+	{
+  	  const DispersiveMaterialParameters & dmp = getDomainDispersiveMaterialParameters(domain);
+	  fPrintF(file," Domain %i: Drude parameters: gamma=%9.3e, omegap=%9.3e (name=%s)\n",domain,
+		  dmp.gamma,dmp.omegap,(const char*)cg.getDomainName(domain) );
+	}
+      }
+    }
+    
+    
     fPrintF(file,"\n");
     if( method==sosup )
       fPrintF(file," sosup: orderOfExtrapolationForInterpolationNeighbours=%i (-1 means used orderOfAccuracy+1)\n",

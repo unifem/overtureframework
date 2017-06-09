@@ -3756,9 +3756,9 @@ c===============================================================================
        !       *************** curvilinear ******************
        !       **********************************************
           if( useCurvilinearOpt.eq.1 .and. useConservative.eq.0 )then
-           ! **************************************************
-           ! *************** NON-CONSERVATIVE *****************    
-           ! **************************************************
+           ! ****************************************************************************
+           ! *************** OPTIMIZED-CURVILINEAR AND NON-CONSERVATIVE *****************    
+           ! ****************************************************************************
             if( timeSteppingMethod.eq.modifiedEquationTimeStepping )
      & then
               ! ----------------------------------------------------------
@@ -4284,12 +4284,11 @@ c===============================================================================
            ! *************** conservative *****************    
            stop 94422
           else
-            ! *****************************************************
-            ! ****************Old way******************************
-            ! *****************************************************
-            ! **************** CONSERVATIVE DIFFERENCE *****************
-            !  The Lapacian and Laplacian squared have already been computed by the calling program 
-          ! In these cases we are given the Laplacian on input
+            ! **********************************************************************************
+            ! **************** USE PRE-COMPUTED SPATIAL OPERATORS ******************************
+            ! **********************************************************************************
+            !  --> The Laplacian and Laplacian squared have already been computed by the calling program 
+            !  --> For example, mainly when using conservative operators
             if( timeSteppingMethod.eq.modifiedEquationTimeStepping )
      & then
               ! ******* 4th order in space and 4th order in time ********

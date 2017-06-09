@@ -207,6 +207,8 @@ setParameters(const int & numberOfDimensions0 /* =2 */ ,
   int & numberOfDimensions=dbase.get<int >("numberOfDimensions");
   int & numberOfComponents = dbase.get<int >("numberOfComponents");
   int & numberOfSpecies = dbase.get<int >("numberOfSpecies");
+  int & numberOfExtraVariables = dbase.get<int >("numberOfExtraVariables");
+  
   int & rc = dbase.get<int >("rc");
   int & uc = dbase.get<int >("uc");
   int & vc = dbase.get<int >("vc");
@@ -342,6 +344,8 @@ setParameters(const int & numberOfDimensions0 /* =2 */ ,
     vsc= numberOfComponents++;      // save the coefficient of viscosity 
   }
   
+  numberOfComponents += numberOfExtraVariables;  
+
   // component numbers for material properties (for TZ)
   dbase.get<int>("rhoc")   =numberOfComponents;
   dbase.get<int>("Cpc")    =numberOfComponents+1;
@@ -461,12 +465,12 @@ setParameters(const int & numberOfDimensions0 /* =2 */ ,
   
   if( sec>=0 )  componentName[sec]="Tb";
 
-  if( dbase.get<int >("numberOfExtraVariables")>0 )
+  if( numberOfExtraVariables>0 )
   {
     aString buff;
-    for( int e=0; e< dbase.get<int >("numberOfExtraVariables"); e++ )
+    for( int e=0; e< numberOfExtraVariables; e++ )
     {
-      int n= numberOfComponents- dbase.get<int >("numberOfExtraVariables")+e;
+      int n= numberOfComponents- numberOfExtraVariables+e;
       componentName[n]=sPrintF(buff,"Var%i",e);
       addShowVariable(  componentName[n],n );
     }

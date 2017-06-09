@@ -3756,9 +3756,9 @@ c===============================================================================
        !       *************** curvilinear ******************
        !       **********************************************
           if( useCurvilinearOpt.eq.1 .and. useConservative.eq.0 )then
-           ! **************************************************
-           ! *************** NON-CONSERVATIVE *****************    
-           ! **************************************************
+           ! ****************************************************************************
+           ! *************** OPTIMIZED-CURVILINEAR AND NON-CONSERVATIVE *****************    
+           ! ****************************************************************************
             write(*,'("MX: advOpt: curv-grid order=6 not implemeted")')
             stop 11155
           else if( useCurvilinearOpt.eq.1 .and. useConservative.eq.1 )
@@ -3766,12 +3766,11 @@ c===============================================================================
            ! *************** conservative *****************    
            stop 94422
           else
-            ! *****************************************************
-            ! ****************Old way******************************
-            ! *****************************************************
-            ! **************** CONSERVATIVE DIFFERENCE *****************
-            !  The Lapacian and Laplacian squared have already been computed by the calling program 
-          ! In these cases we are given the Laplacian on input
+            ! **********************************************************************************
+            ! **************** USE PRE-COMPUTED SPATIAL OPERATORS ******************************
+            ! **********************************************************************************
+            !  --> The Laplacian and Laplacian squared have already been computed by the calling program 
+            !  --> For example, mainly when using conservative operators
             ! 6th order in space and 6th order in time:
             ! write(*,*) 'Inside advMaxwell order=6...'
             if( timeSteppingMethod.eq.modifiedEquationTimeStepping )

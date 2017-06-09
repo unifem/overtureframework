@@ -1136,7 +1136,7 @@ c======================================================================
 c     ---- local variables -----
       integer c,e,i1,i2,i3,m1,m2,m3,j1,j2,j3,ghostLine,n,i1m,i2m,i3m,
      & i1p,i2p,i3p,ndu
-      integer side,axis,is1,is2,is3,mm,eqnTemp,debug,ntdc
+      integer side,axis,is1,is2,is3,mm,eqnTemp,debug,ntdc,normalAxis
       integer kd,kd3,orderOfAccuracy,gridIsMoving,orderOfExtrap,
      & orderOfExtrapolation,orderOfExtrapolationForOutflow
       integer numberOfComponentsForCoefficients,stencilSize
@@ -1150,7 +1150,7 @@ c     ---- local variables -----
       real dxi,dyi,dzi,dri,dsi,dti,dr2i,ds2i,dt2i
       real ad21,ad22,ad41,ad42,cd22,cd42,adc,adCoeff,adCoeffl
       real ad21n,ad22n,ad41n,ad42n,cd22n,cd42n
-      real yy,yEps, epsX
+      real yy,yEps, epsX, normalTol
       real an(0:2),anNorm, advectionCoefficient
       integer checkForInflowAtOutFlow, outflowOption
       integer ok,getInt,getReal
@@ -2050,6 +2050,7 @@ c     ---- local variables -----
       adcBoussinesq     =rpar(24) ! coefficient of artificial diffusion for Boussinesq T equation
       kThermal          =rpar(25)
       epsX = 1.e-30  ! epsilon used to avoid division by zero in the normal computation -- should be REAL_MIN*100 ??
+      normalTol=1.e-10  ! tolerance for a face being flat
       ncc=numberOfComponentsForCoefficients ! number of components for coefficients
       ok = getInt(pdb,'checkForInflowAtOutFlow',
      & checkForInflowAtOutFlow)

@@ -177,6 +177,14 @@ enum UserDefinedKnownSolutionEnum
 };
 }
 
+// ==================================================================================================
+// Macro: compute the traction by extrapolation nearby value in time (extrapolation or interpolation)
+// ==================================================================================================
+
+// ==================================================================================================
+// Macro: compute the traction-rate by differencing traction values in time
+// ==================================================================================================
+
 
 // ===========================================================================
 /// \brief Set or get the right-hand-side for an interface boundary condition.
@@ -530,11 +538,7 @@ interfaceRightHandSide( InterfaceOptionsEnum option,
 
       // We could optimize this for rectangular grids 
             mg.update(MappedGrid::THEvertexBoundaryNormal);
-            #ifdef USE_PPP
-                const realSerialArray & normal = mg.vertexBoundaryNormalArray(side,axis);
-            #else
-                const realSerialArray & normal = mg.vertexBoundaryNormal(side,axis);
-            #endif
+            OV_GET_VERTEX_BOUNDARY_NORMAL(mg,side,axis,normal);
 
             Range Rx(0,numberOfDimensions-1);                // vertex components 
 
@@ -636,8 +640,8 @@ interfaceRightHandSide( InterfaceOptionsEnum option,
             if( interfaceDataOptions & Parameters::tractionRateInterfaceData )
             {
 	// -- save the interface traction rate --
-      	if( debug() & 4 )
-        	  printP("Cgins:interfaceRightHandSide: Save the interface traction rate.\n");
+      	if( t<= 2.*dt || debug() & 4 )
+        	  printP("--INS--Cgins:interfaceRightHandSide: Save the interface traction-rate, t=%9.3e.\n",t);
 
                 C=Range(numSaved,numSaved+numberOfDimensions-1);
                 Ctr=C;
@@ -656,7 +660,8 @@ interfaceRightHandSide( InterfaceOptionsEnum option,
         // A time history of interface values is saved here in the master list gfd: 
                 InterfaceDataHistory & idh = gfd.interfaceDataHistory;
                 InterfaceDataHistory & idi = gfd.interfaceDataIterates; // iterates of interface values from the predictor corrector 
-                if( idh.current>=0 && idh.current<idh.interfaceDataList.size() )
+        // *wdh* May 28, 2017 if( idh.current>=0 && idh.current<idh.interfaceDataList.size() )
+                if(dt>0. &&  idh.current>=0 && idh.current<idh.interfaceDataList.size() )
       	{
 
                     const int numberOfInterfaceHistoryValuesToSave=idh.interfaceDataList.size();
@@ -683,72 +688,58 @@ interfaceRightHandSide( InterfaceOptionsEnum option,
         	  }
 
         	  if( tractionTimeDiffers )
-        	  {
-	    // --- We need the traction at a time that differs from the current solution time  ---
-	    // We can use the time history values and extrap/interp in time
-
-	    // If there are no previous time history values we fill some appropriate values in.
-	    //   -- for TZ : evaluate the exact solution
-	    //   -- for real : just assume constant ? 
-
-          	    
-                        RealArray & f0 = idh.interfaceDataList[prev].f;  // here is the RHS a time tp
-            // f(t) = (t-tp)/(t0-tp) *f(t0) + (t0-t)/(t0-tp) *f(tp)
-                        real cex1 = dt==0. ? 1. : (t-tp)/dt;
-          	    real cex2 = dt==0. ? 0. : (t0-t)/dt;
-          	    if( true || debug() & 2 )
-            	      fprintf(pDebugFile,"Cgins::interfaceRHS: Extrapolate traction in time: t=%9.3e t0=%9.3e, tp=%9.3e, cex1=%9.3e cex2=%9.3e\n",
-                  		      t,t0,tp,cex1,cex2);
-          	    
-          	    if( !(parameters.dbase.get<bool >("twilightZoneFlow") && dt==0.) ) 
-          	    {
-            	      if( true ) 
-            		f(I1,I2,I3,Ct)= cex1*traction(I1,I2,I3,D)+cex2*f0(I1,I2,I3,Ct);
-            	      else
-            	      {
-            		printF(" EXTRAP traction-rate to first-order : *TEMP*\n");
-            		f(I1,I2,I3,Ct)= traction(I1,I2,I3,D);
-            	      }
-            	      
-          	    }
-          	    else
-          	    {
-	      // this does not work exactly anyway since the grid is not at the new time!
-
-              // special case: TZ and no previous values:
-              // do this for now: set to exact 
-
-                            printP("Cgins::interfaceRHS: **** Setting traction at t=%9.3e to exact for TZ ****\n",t);
-
-                            OGFunction & e = *(parameters.dbase.get<OGFunction* >("exactSolution"));
-                            const bool isRectangular = false; // ** do this for now ** mg.isRectangular();
-
-            	      mg.update(MappedGrid::THEcenter);
-
-            	      realArray & x= mg.center();
-                            #ifdef USE_PPP
-              	        realSerialArray xLocal; 
-              	        if( !isRectangular ) 
-                	  	  getLocalArrayWithGhostBoundaries(x,xLocal);
-                            #else
-              	        const realSerialArray & xLocal = x;
-                            #endif
-
-            	      const int pc=parameters.dbase.get<int >("pc");
-                            const real & nu = parameters.dbase.get<real >("nu");
-          	    
-            	      realSerialArray pe(I1,I2,I3);
-            	      e.gd( pe ,xLocal,numberOfDimensions,isRectangular,0,0,0,0,I1,I2,I3,pc,t);  // p exact solution 
-
-            	      if( nu>0. )
-            	      {
-            		printP("interface:ERROR: nu>0 but TZ traction forcing does not include viscous terms. Finish me!\n");
-            	      }
-	      // The sign is correct here: normalForce = p*normal 
-            	      for( int axis=0; axis<numberOfDimensions; axis++ )
-            		f(I1,I2,I3,Ct.getBase()+axis) = pe(I1,I2,I3)*normal(I1,I2,I3,axis);           
-
-          	    }
+        	  { // compute the traction from nearby value in time (extrapolation or interpolation)
+              // --- We need the traction at a time that differs from the current solution time  ---
+              // We can use the time history values and extrap/interp in time
+              // If there are no previous time history values we fill some appropriate values in.
+              //   -- for TZ : evaluate the exact solution
+              //   -- for real : just assume constant ? 
+                            RealArray & f0 = idh.interfaceDataList[prev].f;  // here is the RHS a time tp
+              // f(t) = (t-tp)/(t0-tp) *f(t0) + (t0-t)/(t0-tp) *f(tp)
+                            real cex1 = dt==0. ? 1. : (t-tp)/dt;
+                            real cex2 = dt==0. ? 0. : (t0-t)/dt;
+                            if( true || debug() & 2 )
+                                fprintf(pDebugFile,"Cgins::interfaceRHS: Extrapolate traction in time: t=%9.3e t0=%9.3e, tp=%9.3e, cex1=%9.3e cex2=%9.3e\n",
+                                    	  t,t0,tp,cex1,cex2);
+                            if( !(parameters.dbase.get<bool >("twilightZoneFlow") && dt==0.) ) 
+                            {
+                                if( true ) 
+                                    f(I1,I2,I3,Ct)= cex1*traction(I1,I2,I3,D)+cex2*f0(I1,I2,I3,Ct);
+                                else
+                                {
+                                    printF(" EXTRAP traction to first-order : *TEMP*\n");
+                                    f(I1,I2,I3,Ct)= traction(I1,I2,I3,D);
+                                }
+                            }
+                            else
+                            {
+                // this does not work exactly anyway since the grid is not at the new time!
+                // special case: TZ and no previous values:
+                // do this for now: set to exact 
+                                printP("Cgins::interfaceRHS: **** Setting traction at t=%9.3e to exact for TZ ****\n",t);
+                                OGFunction & e = *(parameters.dbase.get<OGFunction* >("exactSolution"));
+                                const bool isRectangular = false; // ** do this for now ** mg.isRectangular();
+                                mg.update(MappedGrid::THEcenter);
+                                realArray & x= mg.center();
+                                #ifdef USE_PPP
+                                    realSerialArray xLocal; 
+                                    if( !isRectangular ) 
+                                        getLocalArrayWithGhostBoundaries(x,xLocal);
+                                #else
+                                    const realSerialArray & xLocal = x;
+                                #endif
+                                const int pc=parameters.dbase.get<int >("pc");
+                                const real & nu = parameters.dbase.get<real >("nu");
+                                realSerialArray pe(I1,I2,I3);
+                                e.gd( pe ,xLocal,numberOfDimensions,isRectangular,0,0,0,0,I1,I2,I3,pc,t);  // p exact solution 
+                                if( nu>0. )
+                                {
+                                    printP("interface:ERROR: nu>0 but TZ traction forcing does not include viscous terms. Finish me!\n");
+                                }
+                // The sign is correct here: normalForce = p*normal 
+                                for( int axis=0; axis<numberOfDimensions; axis++ )
+                                    f(I1,I2,I3,Ct.getBase()+axis) = pe(I1,I2,I3)*normal(I1,I2,I3,axis);           
+                        }
         	  }
         	  
 
@@ -757,122 +748,138 @@ interfaceRightHandSide( InterfaceOptionsEnum option,
             // ---------------------------------------------------
             // --- return the time derivative of the traction: ---
             // ---------------------------------------------------
-          	    if( dt==0. )
-          	    {
-                            dt=1.;   // do this for now -- time derivative is zero
-          	    }
-                        const int orderOfAccuracyTractionRate=2; // *****************************************************
 
-          	    RealArray & f1 = idh.interfaceDataList[prev].f;         // here is the RHS a time tp
-          	    
-            // for 2nd-order accuracy we need two previous levels;
-                        int im2=-1;
-                        if( orderOfAccuracyTractionRate==2 )
-          	    {
-                            im2 = ( prev -1 + numberOfInterfaceHistoryValuesToSave ) %  numberOfInterfaceHistoryValuesToSave;
-            	      if( idh.interfaceDataList[im2 ].t >= tp )
-                                im2=-1;  // there is no past value before prev
-          	    }
+                            if( t<2.*dt )
+                            {
+                                printP("--INS-- interfaceRHS: save traction-rate at t=%9.2e\n,",gf[gfIndex].t);
+                            }
+                            if( dt==0. )
+                            {
+                                printP("\n --INS-- interfaceRHS-- WARNING dt=0 for traction-rate t=%9.3e !! FIX ME *********\n\n",
+                                 	   gf[gfIndex].t);
+                                dt=1.;   // do this for now -- time derivative is zero
+                            }
+                            const int orderOfAccuracyTractionRate=2; // *****************************************************
+                            RealArray & f1 = idh.interfaceDataList[prev].f;         // here is the RHS a time tp
+              // for 2nd-order accuracy we need two previous levels;
+                            int im2=-1;
+                            if( orderOfAccuracyTractionRate==2 )
+                            {
+                                im2 = ( prev -1 + numberOfInterfaceHistoryValuesToSave ) %  numberOfInterfaceHistoryValuesToSave;
+                                if( idh.interfaceDataList[im2 ].t >= tp )
+                                    im2=-1;  // there is no past value before prev
+                            }
+                            if( orderOfAccuracyTractionRate==1 || im2==-1 )
+                            {
+                                if( debug() & 2 )
+                                    printP("Cgins::interfaceRHS: get d(traction)/dt (1st order): t=%9.3e, "
+                                   	     "gfIndex=%i gf[gfIndex].t=%9.3e, prev=%i, tp=%9.3e\n",t,gfIndex,gf[gfIndex].t,prev,tp);
+                                f(I1,I2,I3,Ctr)= (f(I1,I2,I3,Ct) - f1(I1,I2,I3,Ct))/dt;
+                                if( debug() & 8 )
+                                    ::display(f(I1,I2,I3,Ctr),"traction-rate",pDebugFile,"%9.3e ");
+                            }
+                            else 
+                            {
+                // Compute the traction-rate to second order accuracy 
+                                assert( im2>=0 );
+                                RealArray & f0 = f;                               // f(t0)
+                                RealArray & f1 = idh.interfaceDataList[prev].f;   // f(t1)
+                                RealArray & f2 = idh.interfaceDataList[im2 ].f;   // f(t2)
+                                const real t1 = idh.interfaceDataList[prev].t;
+                                const real t2 = idh.interfaceDataList[im2 ].t;
+                                real dt0= t0-t1;
+                                real dt1= t1-t2;
+                                if( dt0<=0. || dt1<=0. )
+                                {
+                                    printP("Cgins::interfaceRHS:ERROR: computing traction-rate: t0=%9.3e, prev=%i, tp=%9.3e, "
+                                   	     "im2=%i, t2=%9.3e\n",t0,prev,tp,im2,t2);
+                                    OV_ABORT("error");
+                                }
+                                assert( dt0>0. && dt1>0. );
+                // Compute the time derivative of the Lagrange polynomial: 
+                //    f(t) = l0(t)*f0 + l1(t)*f1 + l2(t)*f2 
+                // where 
+                //   l0 = (t-t1)*(t-t2)/( (t0-t1)*(t0-t2) );
+                //   l1 = (t-t2)*(t-t0)/( (t1-t2)*(t1-t0) );
+                //   l2 = (t-t0)*(t-t1)/( (t2-t0)*(t2-t1) );
+                                real l0t = (2.*t-(t1+t2))/( (t0-t1)*(t0-t2) );
+                                real l1t = (2.*t-(t2+t0))/( (t1-t2)*(t1-t0) );
+                                real l2t = (2.*t-(t0+t1))/( (t2-t0)*(t2-t1) );
+                                f(I1,I2,I3,Ctr)= l0t*f0(I1,I2,I3,Ct) +l1t*f1(I1,I2,I3,Ct) + l2t*f2(I1,I2,I3,Ct);
+                                if( TRUE )  // ********* TEMP 
+                                {
+                                    if( t0 < 3.*dt0 )
+                              	printF(" ********** EXTRAP traction-rate to first-order : *TEMP* *************\n");
+                                    real l1 = (t-t2)/(t1-t2);
+                                    real l2 = (t-t1)/(t2-t1);
+                  // f(I1,I2,I3,Ctr)= l1*f1(I1,I2,I3,Ctr) + l2*f2(I1,I2,I3,Ctr); // ******************** TEMP *************
+                                    f(I1,I2,I3,Ctr)= f1(I1,I2,I3,Ctr);
+                                    if( debug() & 4 )
+                                    {
+                              	fprintf(pDebugFile,"Cgins::interfaceRHS: get d(traction)/dt (2nd order): t=%9.3e, t0=%9.3e, dt0=%9.3e "
+                                    		"gfIndex=%i gf[gfIndex].t=%9.3e, prev=%i, t1=%9.3e, im2=%i t2=%9.3e, "
+                                    		" l0t*dt0=%4.2f l1t*dt0=%4.2f l2t*dt0=%4.2f\n",
+                                    		t,t0,dt0,gfIndex,gf[gfIndex].t,prev,t1,im2,t2,l0t*dt0,l1t*dt0,l2t*dt0);   
+                              	::display(f(I1,I2,I3,Ctr),"traction-rate",pDebugFile,"%9.3e ");
+                              	::display(f0(I1,I2,I3,Ct),"f0 traction (t0)",pDebugFile,"%9.3e ");
+                              	::display(f1(I1,I2,I3,Ct),"f1 traction (tp)",pDebugFile,"%9.3e ");
+                              	::display(f2(I1,I2,I3,Ct),"f2 traction (t2)",pDebugFile,"%9.3e ");
+                              	::display(f1(I1,I2,I3,Ctr),sPrintF("f1 traction-rate (t1=%9.3e)",t1),pDebugFile,"%9.3e ");
+                              	::display(f2(I1,I2,I3,Ctr),sPrintF("f2 traction-rate (t2=%9.3e)",t2),pDebugFile,"%9.3e ");
+                                    }
+                                }
+                            }
+                            if( debug() & 8 )
+                            {
+                                ::display(f1(I1,I2,I3,Ct),sPrintF("Cgins::interfaceRHS: old traction at tp=%9.3e",tp),"%8.2e ");
+                                ::display(f(I1,I2,I3,Ct),sPrintF("Cgins::interfaceRHS: new traction at t=%9.3e ",t),"%8.2e ");
+                                ::display(f(I1,I2,I3,Ctr),sPrintF("Cgins::interfaceRHS: time derivative of the traction, t=%9.3e",t),"%8.2e ");
+                            }
 
-          	    if( orderOfAccuracyTractionRate==1 || im2==-1 )
-          	    {
-
-            	      if( debug() & 2 )
-            		printP("Cgins::interfaceRHS: get d(traction)/dt (1st order): t=%9.3e, "
-                   		       "gfIndex=%i gf[gfIndex].t=%9.3e, prev=%i, tp=%9.3e\n",t,gfIndex,gf[gfIndex].t,prev,tp);
-
-            	      f(I1,I2,I3,Ctr)= (f(I1,I2,I3,Ct) - f1(I1,I2,I3,Ct))/dt;
-
-            	      if( debug() & 8 )
-            		::display(f(I1,I2,I3,Ctr),"traction-rate",pDebugFile,"%9.3e ");
-            	      
-
-          	    }
-          	    else 
-          	    {
-              // Compute the traction-rate to second order accuracy 
-                            assert( im2>=0 );
-
-                            RealArray & f0 = f;                               // f(t0)
-                            RealArray & f1 = idh.interfaceDataList[prev].f;   // f(t1)
-                            RealArray & f2 = idh.interfaceDataList[im2 ].f;   // f(t2)
-
-            	      const real t1 = idh.interfaceDataList[prev].t;
-                            const real t2 = idh.interfaceDataList[im2 ].t;
-            	      real dt0= t0-t1;
-            	      real dt1= t1-t2;
-            	      if( dt0<=0. || dt1<=0. )
-            	      {
-            		printP("Cgins::interfaceRHS:ERROR: computing traction rate: t0=%9.3e, prev=%i, tp=%9.3e, "
-                                              "im2=%i, t2=%9.3e\n",t0,prev,tp,im2,t2);
-            		OV_ABORT("error");
-            	      }
-            	      assert( dt0>0. && dt1>0. );
-
-	      // Compute the time derivative of the Lagrange polynomial: 
-	      //    f(t) = l0(t)*f0 + l1(t)*f1 + l2(t)*f2 
-	      // where 
-	      //   l0 = (t-t1)*(t-t2)/( (t0-t1)*(t0-t2) );
-	      //   l1 = (t-t2)*(t-t0)/( (t1-t2)*(t1-t0) );
-	      //   l2 = (t-t0)*(t-t1)/( (t2-t0)*(t2-t1) );
-            
-            	      real l0t = (2.*t-(t1+t2))/( (t0-t1)*(t0-t2) );
-            	      real l1t = (2.*t-(t2+t0))/( (t1-t2)*(t1-t0) );
-            	      real l2t = (2.*t-(t0+t1))/( (t2-t0)*(t2-t1) );
-            
-                            f(I1,I2,I3,Ctr)= l0t*f0(I1,I2,I3,Ct) +l1t*f1(I1,I2,I3,Ct) + l2t*f2(I1,I2,I3,Ct);
-
-            	      if( TRUE )  // ********* TEMP 
-            	      {
-                                if( t0 < 3.*dt0 )
-              		  printF(" ********** EXTRAP traction-rate to first-order : *TEMP* *************\n");
-
-            		real l1 = (t-t2)/(t1-t2);
-            		real l2 = (t-t1)/(t2-t1);
-		// f(I1,I2,I3,Ctr)= l1*f1(I1,I2,I3,Ctr) + l2*f2(I1,I2,I3,Ctr); // ******************** TEMP *************
-            		f(I1,I2,I3,Ctr)= f1(I1,I2,I3,Ctr);
-
-                                if( debug() & 4 )
-            		{
-              		  fprintf(pDebugFile,"Cgins::interfaceRHS: get d(traction)/dt (2nd order): t=%9.3e, t0=%9.3e, dt0=%9.3e "
-                    			  "gfIndex=%i gf[gfIndex].t=%9.3e, prev=%i, t1=%9.3e, im2=%i t2=%9.3e, "
-                    			  " l0t*dt0=%4.2f l1t*dt0=%4.2f l2t*dt0=%4.2f\n",
-                    			  t,t0,dt0,gfIndex,gf[gfIndex].t,prev,t1,im2,t2,l0t*dt0,l1t*dt0,l2t*dt0);   
-              		  ::display(f(I1,I2,I3,Ctr),"traction-rate",pDebugFile,"%9.3e ");
-              		  ::display(f0(I1,I2,I3,Ct),"f0 traction (t0)",pDebugFile,"%9.3e ");
-              		  ::display(f1(I1,I2,I3,Ct),"f1 traction (tp)",pDebugFile,"%9.3e ");
-              		  ::display(f2(I1,I2,I3,Ct),"f2 traction (t2)",pDebugFile,"%9.3e ");
-
-              		  ::display(f1(I1,I2,I3,Ctr),sPrintF("f1 traction-rate (t1=%9.3e)",t1),pDebugFile,"%9.3e ");
-              		  ::display(f2(I1,I2,I3,Ctr),sPrintF("f2 traction-rate (t2=%9.3e)",t2),pDebugFile,"%9.3e ");
-            		}
-            		
-            	      }
-          	    }
-          	    
-          	    
-          	    if( debug() & 8 )
-          	    {
-            	      ::display(f1(I1,I2,I3,Ct),sPrintF("Cgins::interfaceRHS: old traction at tp=%9.3e",tp),"%8.2e ");
-            	      ::display(f(I1,I2,I3,Ct),sPrintF("Cgins::interfaceRHS: new traction at t=%9.3e ",t),"%8.2e ");
-            	      ::display(f(I1,I2,I3,Ctr),sPrintF("Cgins::interfaceRHS: time derivative of the traction, t=%9.3e",t),"%8.2e ");
-          	    }
-        	  }
+        	  } // end compute traction-rate
+        	  
         	  
       	}
       	else
       	{
-        	  printP("Cgins::interfaceRightHandSide:traction: t=%9.3e There is NO time history. "
-                                  "idh.current=%i, size=%i\n",t,idh.current,idh.interfaceDataList.size());
-
+	  // -- there is no time history available to compute the traction rate --
         	  if( interfaceDataOptions & Parameters::tractionRateInterfaceData )
         	  {
-          	    f(I1,I2,I3,Ct+numberOfDimensions)=0.;
+          	    if( FALSE && (t<=0. || dt==0.) )
+          	    {
+              // ** FINISH ME ***
+            	      const Parameters::KnownSolutionsEnum & knownSolution = 
+            		parameters.dbase.get<Parameters::KnownSolutionsEnum >("knownSolution"); 
+            	      if( knownSolution==Parameters::userDefinedKnownSolution )
+            	      {
+            		printF("--INS--interfaceRHS **INFO* Setting traction-rate from known solution at t=%8.2e\n",t);
+            		f(I1,I2,I3,Ctr)=0.;
+                                int s22c = Ctr.getBound();
+            		f(I1,I2,I3,s22c)=0.;
+            	      }
+            	      else
+            	      {
+            		printF("--INS--interfaceRightHandSide **WARNING** Setting traction-rate=0 at t=%8.2e\n",t);
+            		
+            		f(I1,I2,I3,Ctr)=0.;
+            	      }
+            	      
+          	    }
+          	    else
+          	    {
+            	      printP("Cgins::interfaceRightHandSide:traction-rate: t=%9.3e **WARNING**There is NO time history. "
+                 		     "idh.current=%i, size=%i. Setting traction-rate=0\n",t,idh.current,idh.interfaceDataList.size());
+
+            	      
+            	      f(I1,I2,I3,Ctr)=0.;
+          	    }
+          	    
         	  }
         	  
       	}
       	
             }
+            
             
 
 

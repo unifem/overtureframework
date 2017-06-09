@@ -111,7 +111,7 @@ enum WeightOptionEnum
 
 
 int DomainSolver::
-outputProbes( GridFunction & gf0, int stepNumber, std::vector<real> *regionProbeValues )
+outputProbes( Parameters & parameters, GridFunction & gf0, int stepNumber, std::vector<real> *regionProbeValues )
 // ============================================================================================================
 /// \brief Output probe information at a given time.
 /// 
@@ -150,6 +150,8 @@ outputProbes( GridFunction & gf0, int stepNumber, std::vector<real> *regionProbe
 
     std::vector<ProbeInfo*> & probeList = parameters.dbase.get<std::vector<ProbeInfo*> >("probeList");
 
+    const int & debug = parameters.dbase.get<int >("debug");
+
     const int myid = parameters.dbase.get<int >("myid");
     FILE *pDebugFile = parameters.dbase.get<FILE* >("pDebugFile");
     
@@ -180,6 +182,21 @@ outputProbes( GridFunction & gf0, int stepNumber, std::vector<real> *regionProbe
     std::vector<int> probeWasEvaluated(probeList.size());
 
   // std::vector<int> probeRegionMeasureType(probeList.size());
+
+    aString domainName,domainClassName;
+    DomainSolver *& domainSolver=  parameters.dbase.get<DomainSolver*>("domainSolver");
+    if( domainSolver !=NULL )
+    {
+        domainName = domainSolver->getName();
+        domainClassName = domainSolver->getClassName();
+    }
+    else
+    {
+    // This must be the Maxwell solver which isn't derived from a DomainSolver yet
+        domainName="electromagnetics";
+        domainClassName="Maxwell";
+    }
+    
 
     for( int i=0; i<probeList.size(); i++ )
     {
@@ -250,7 +267,7 @@ outputProbes( GridFunction & gf0, int stepNumber, std::vector<real> *regionProbe
 
             if( file==NULL )
             {
-      	if( debug() & 2 )
+      	if( debug & 2 )
             	  fprintf(pDebugFile,"Open probe file %s on myid=%i\n",(const char*)probe.fileName,myid);
 
       	file = fopen((const char*)probe.fileName,"w");
@@ -270,18 +287,19 @@ outputProbes( GridFunction & gf0, int stepNumber, std::vector<real> *regionProbe
       	{
           // --- header for grid-point probe ---
           // Note: this is the title on the matlab plot
-            	  fprintf(file,"%s, %s, probe %i on grid=%i, point (%i,%i,%i)\n",(const char*)getClassName(),
-              		  (const char*)getName(),i,grid,i1,i2,i3);
+            	  fprintf(file,"%s, %s, probe %i, name=%s, on grid=%i, point (%i,%i,%i)\n",(const char*)domainClassName,
+              		  (const char*)domainName,i,(const char*)probe.dbase.get<aString>("probeName"),grid,i1,i2,i3);
       	}
                 else
       	{
           // --- header for location probe ---
           // Note: this is the title on the matlab plot
-            	  fprintf(file,"%s, %s, probe %i, xProbe=(%g,%g,%g)\n",(const char*)getClassName(),
-              		  (const char*)getName(),i,probe.xv[0],probe.xv[1],probe.xv[2]);
+            	  fprintf(file,"%s, %s, probe %i, name=%s, xProbe=(%g,%g,%g)\n",(const char*)domainClassName,
+              		  (const char*)domainName,i,(const char*)probe.dbase.get<aString>("probeName"),
+                                    probe.xv[0],probe.xv[1],probe.xv[2]);
 
-  	  // fprintf(file,"%s, %s, probe %i, xProbe=(%g,%g,%g), interpolated from donor=%i, il=(%i,%i,%i)\n",(const char*)getClassName(),
-  	  // 	  (const char*)getName(),i,probe.xv[0],probe.xv[1],probe.xv[2],grid,i1,i2,i3);
+  	  // fprintf(file,"%s, %s, probe %i, xProbe=(%g,%g,%g), interpolated from donor=%i, il=(%i,%i,%i)\n",(const char*)domainClassName,
+  	  // 	  (const char*)domainName,i,probe.xv[0],probe.xv[1],probe.xv[2],grid,i1,i2,i3);
       	}
       	
       	fprintf(file,"This file can be read with the matlab script plotProbes.m, using >plotProbes %s\n",(const char*)probe.fileName);
@@ -652,7 +670,7 @@ outputProbes( GridFunction & gf0, int stepNumber, std::vector<real> *regionProbe
 
 	// line 1 holds the number-of-header lines and the number of columns 
       	fprintf(file,"%i %i    (number-of-header-lines number-of-columns)\n",numHeader,numColumns);
-      	fprintf(file,"%s region probes\n",(const char*)className);  // title on matlab plot
+      	fprintf(file,"%s region probes\n",(const char*)domainClassName);  // title on matlab plot
       	for( int j=0; j<numberOfProbeRegions; j++ )
       	{
         	  if( probeRegionFileNumber[j]==pf )
@@ -931,7 +949,7 @@ outputProbes( GridFunction & gf0, int stepNumber, std::vector<real> *regionProbe
                                   const real & xa = xab(0,0), &xb = xab(1,0);
                                   const real & ya = xab(0,1), &yb = xab(1,1);
                                   const real & za = xab(0,2), &zb = xab(1,2);
-                                  if( debug() & 4 )
+                                  if( debug & 4 )
                                       printF("probeRegion: pr=%i, box bounds = [%e,%e]x[%e,%e][%e,%e]\n",pr,xa,xb,ya,yb,za,zb);
                                   real weight=1.;
                                   FOR_3D(i1,i2,i3,I1,I2,I3)
@@ -1225,7 +1243,7 @@ outputProbes( GridFunction & gf0, int stepNumber, std::vector<real> *regionProbe
                                   const real & xa = xab(0,0), &xb = xab(1,0);
                                   const real & ya = xab(0,1), &yb = xab(1,1);
                                   const real & za = xab(0,2), &zb = xab(1,2);
-                                  if( debug() & 4 )
+                                  if( debug & 4 )
                                       printF("probeRegion: pr=%i, box bounds = [%e,%e]x[%e,%e][%e,%e]\n",pr,xa,xb,ya,yb,za,zb);
                                   real weight=1.;
                                   FOR_3D(i1,i2,i3,I1,I2,I3)
@@ -1541,7 +1559,7 @@ outputProbes( GridFunction & gf0, int stepNumber, std::vector<real> *regionProbe
 // 	  const real & ya = xab(0,1), &yb = xab(1,1);
 // 	  const real & za = xab(0,2), &zb = xab(1,2);
         
-// 	  // if( debug() & 4 )
+// 	  // if( debug & 4 )
 // 	  //   printF("probeRegion: box bounds = [%e,%e]x[%e,%e][%e,%e]\n",xa,xb,ya,yb,za,zb);
 
 // 	  FOR_3D(i1,i2,i3,I1,I2,I3)
@@ -2157,7 +2175,7 @@ checkProbes()
 
             int stepNumber=0;
             std::vector<real> regionProbeValues;
-            outputProbes( gf, stepNumber, &regionProbeValues );
+            outputProbes( parameters, gf, stepNumber, &regionProbeValues );
         
             real radius=.5;
             real circumference = 2.*Pi*radius;
@@ -2167,7 +2185,7 @@ checkProbes()
 
             measureType="volume weighted sum";
             stepNumber+=parameters.dbase.get<int>("probeFileFrequency");
-            outputProbes( gf, stepNumber, &regionProbeValues );
+            outputProbes(  parameters, gf, stepNumber, &regionProbeValues );
             printF("checkProbes: grid=cic: prode=boundary annulus : regionProbeValues[0]=%10.3e [exact=%10.3e, err=%7.1e]"
                           " (area weighted sum of T=1 on annulus = 2*pi*radius).\n",
            	     regionProbeValues[0],circumference,fabs(regionProbeValues[0]-circumference));
@@ -2215,7 +2233,7 @@ checkProbes()
       // T = 1 + x^2 + y^2 : 
       // Heat flux = - 2*K*r^2*( 2 Pi )
             stepNumber+=parameters.dbase.get<int>("probeFileFrequency");
-            outputProbes( gf, stepNumber, &regionProbeValues );
+            outputProbes( parameters, gf, stepNumber, &regionProbeValues );
             real exactHeatFlux = -4.*Pi*ktc*radius*radius;
             printF("checkProbes: grid=cic: prode=boundary annulus : regionProbeValues[0]=%10.3e [exact=%10.3e, err=%7.1e]"
                           " (heat flux on annulus for T=1+x^2+y^2).\n",
@@ -2235,7 +2253,7 @@ checkProbes()
             bpar[4]=za; bpar[5]=zb; 
 
             stepNumber+=parameters.dbase.get<int>("probeFileFrequency");
-            outputProbes( gf, stepNumber, &regionProbeValues );
+            outputProbes( parameters, gf, stepNumber, &regionProbeValues );
       // Exact = int( 1 + x^2 + y^2 ) dx dy 
             real exactValue = (xb-xa)*(yb-ya) + (1./3.)*(pow(xb,3)-pow(xa,3))*(yb-ya) 
                                                                                 + (1./3.)*(pow(yb,3)-pow(ya,3))*(xb-xa);

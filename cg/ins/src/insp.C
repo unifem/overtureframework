@@ -248,15 +248,26 @@ updatePressureEquation(CompositeGrid & cg0, GridFunction & cgf )
 	  const real & fluidDensity = parameters.dbase.get<real >("fluidDensity");
 	  assert( fluidDensity>0. );
 	  
-	  if( cgf.t <= dt )
+	  if( dt<=0. ) // *wdh* May 26, 2017
+	  {
+	    dt=1.e-3;  // ** FIX ME **
+	    parameters.dbase.get<real>("dt")=dt;
+	    printF("\n --UPE-- WARNING: dt<= 0 ... setting dt=%9.3e, t=%9.3e. *** FIX ME***\n\n",dt,cgf.t);
+	  }
+	  else if( cgf.t<= 2.*dt )
+	  {
+	    printF("\n --UPE-- INFO: update pressure equation t=%9.3e, dt=%9.3e\n",cgf.t,dt);
+	  }
+	  
+
+	  if( cgf.t <= 2.*dt )
 	  {
 		
 	    printF("--UPE-- grid=%i (side,axis)=(%i,%i) Apply AMP pressure BC, t=%8.2e\n",grid,side,axis,cgf.t);
-	    printF("--UPE-- Boundary is a bulk-solid, solidImpedance = %8.2e. fluidDensity=%8.2e, zp*dt/rho=%g\n",
+	    printF("--UPE-- Boundary is a bulk-solid, solidImpedance = %8.2e. fluidDensity=%8.2e, "
+                   " mixedNormalCoeff=zp*dt/rho=%12.5e\n",
 		   solidImpedance,fluidDensity,solidImpedance*dt/fluidDensity);
 	  }
-	  
-	  assert( dt>0. );
 	  
 	  boundaryConditions(side,axis,grid)=OgesParameters::mixed;  
 	  mixedNormalCoeff(pc,side,axis,grid)=solidImpedance*dt/fluidDensity;

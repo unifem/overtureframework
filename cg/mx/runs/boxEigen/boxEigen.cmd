@@ -4,7 +4,8 @@
 # Usage:
 #   
 #  cgmx [-noplot] boxEigen -g=<name> -tf=<tFinal> -tp=<tPlot> -mx=<num> -my=<num> -mz=<num> ...
-#                          -method=[nfdtd|Yee|sosup] -diss=<> -debug=<num> -cons=[0/1] -go=[run/halt/og]
+#                          -method=[nfdtd|Yee|sosup] -diss=<> -debug=<num> -cons=[0/1] ...
+#                          -dm=[none|drude] -go=[run/halt/og]
 # Arguments:
 #  -mx= -my= -mz= : integer mode numbers defining the eigenfunction 
 #
@@ -45,13 +46,19 @@ $tFinal=1.; $tPlot=.1; $diss=.0; $cfl=.95; $dissOrder=-1; $filter=0; $divClean=0
 $grid="box32.order4.hdf"; $method="NFDTD"; 
 $cons=0; $go="halt"; 
 $mx=1; $my=1; $mz=1; $x0=0.; $y0=0.; $z0=0.;  # defines the eigenfunction 
+$dm="none"; $gamma=0.; $omegap=0.;  # (gamma,omegap) for Drude model
 # ----------------------------- get command line arguments ---------------------------------------
 GetOptions( "g=s"=>\$grid,"tf=f"=>\$tFinal,"diss=f"=>\$diss,"tp=f"=>\$tPlot,"show=s"=>\$show,"debug=i"=>\$debug, \
  "cfl=f"=>\$cfl, "bg=s"=>\$backGround,"bcn=s"=>\$bcn,"go=s"=>\$go,"noplot=s"=>\$noplot,\
   "dtMax=f"=>\$dtMax,"mx=f"=>\$mx,"my=f"=>\$my,"mz=f"=>\$mz, "cons=i"=>\$cons,"dissOrder=i"=>\$dissOrder,\
   "filter=i"=>\$filter,"divClean=i"=>\$divClean,"divCleanCoeff=f"=>\$divCleanCoeff,\
-  "x0=f"=>\$x0,"y0=f"=>\$y0,"z0=f"=>\$z0,"projectInterp=i"=>\$projectInterp,"method=s"=>\$method );
+  "x0=f"=>\$x0,"y0=f"=>\$y0,"z0=f"=>\$z0,"projectInterp=i"=>\$projectInterp,"method=s"=>\$method,\
+  "dm=s"=>\$dm,"gamma=f"=>\$gamma,"omegap=f"=>\$omegap );
 # -------------------------------------------------------------------------------------------------
+#
+if( $dm eq "none" ){ $dm="no dispersion"; }
+if( $dm eq"drude" || $dm eq "Drude" ){ $dm="Drude"; }
+#
 if( $go eq "halt" ){ $go = "break"; }
 if( $go eq "og" ){ $go = "open graphics"; }
 if( $go eq "run" || $go eq "go" ){ $go = "movie mode\n finish"; }
@@ -64,9 +71,13 @@ $grid
 # modifiedEquationTimeStepping
 #
 $method
+# dispersion model:
+$dm
 #**
 solve for magnetic field 0
 #**
+# 
+Drude params $gamma $omegap all (gamma,omegap,domain-name)
 #
 #***
 bc: all=perfectElectricalConductor

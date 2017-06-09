@@ -15,9 +15,9 @@
 
 extern "C"
 {
-  // rotating disk (SVK) exact solution:
-  void rotatingDiskSVK( const real & t, const int & numberOfGridPoints, real & uDisk, real & param,
-                        const int & nrwk, real & rwk );
+// rotating disk (SVK) exact solution:
+void rotatingDiskSVK( const real & t, const int & numberOfGridPoints, real & uDisk, real & param,
+		      const int & nrwk, real & rwk );
 }
 
 namespace
@@ -29,104 +29,113 @@ real innerRadius, outerRadius, inertiaTerm, massTerm;
 
 extern "C"
 {
-  // zeroin: function to compute the zero of a function on an interval -- f is assumed to change sign
-  real zeroin(real & ax,real & bx, real (*f) (const real&), real & tol);
+// zeroin: function to compute the zero of a function on an interval -- f is assumed to change sign
+real zeroin(real & ax,real & bx, real (*f) (const real&), real & tol);
 
- // A positive zero of this function defines the parameter "k" in the rotating disk FSI exact solution
- real rotatingDiskFunction(const real & k )
- { 
+// A positive zero of this function defines the parameter "k" in the rotating disk FSI exact solution
+real rotatingDiskFunction(const real & k )
+{ 
    
-   real a=innerRadius, b=outerRadius;
+  real a=innerRadius, b=outerRadius;
 
-   const int n=1;
-   // jn(n,x) = Bessel function J of order n
-   // yn(n,x) = Bessel function Y of order n
-   real Ja = jn(n,k*a);  
-   real Jb = jn(n,k*b);  
-   real Jap = jn(0,k*a)-Ja/(k*a); // J1' = J0 - J1/x 
+  const int n=1;
+  // jn(n,x) = Bessel function J of order n
+  // yn(n,x) = Bessel function Y of order n
+  real Ja = jn(n,k*a);  
+  real Jb = jn(n,k*b);  
+  real Jap = jn(0,k*a)-Ja/(k*a); // J1' = J0 - J1/x 
    
 
-   real Ya = yn(n,k*a); 
-   real Yb = yn(n,k*b); 
-   real Yap = yn(0,k*a)-Ya/(k*a); // Y1' = Y0 - Y1/x 
+  real Ya = yn(n,k*a); 
+  real Yb = yn(n,k*b); 
+  real Yap = yn(0,k*a)-Ya/(k*a); // Y1' = Y0 - Y1/x 
 
-   real Ra = Ja*Yb-Jb*Ya;
-   real Rap = Jap*Yb - Jb*Yap; // R' 
+  real Ra = Ja*Yb-Jb*Ya;
+  real Rap = Jap*Yb - Jb*Yap; // R' 
    
-   real value = k*Rap - (1./a - inertiaTerm*k*k)*Ra;  // look for a zero of this function
+  real value = k*Rap - (1./a - inertiaTerm*k*k)*Ra;  // look for a zero of this function
 
-   return value;
+  return value;
    
- }
+}
 
- // A positive zero of this function defines the parameter "k" in the shear-block FSI solution
- real shearBlockFunction(const real & kH )
- { 
-   // massTerm = bodyMass/(fluidDensity*height*length);   
-   real value = tan(kH)+massTerm*kH;
+// A positive zero of this function defines the parameter "k" in the shear-block FSI solution
+real shearBlockFunction(const real & kH )
+{ 
+  // massTerm = bodyMass/(fluidDensity*height*length);   
+  real value = tan(kH)+massTerm*kH;
 
-   return value;
+  return value;
    
- }
+}
 
- // A positive zero of this function defines the parameter "k" in the translating disk FSI exact solution
- // See stokesRB-notes.pdf by DWS. 
- real translatingDiskFunction(const real & k )
- { 
+// A positive zero of this function defines the parameter "k" in the translating disk FSI exact solution
+// See stokesRB-notes.pdf by DWS. 
+real translatingDiskFunction(const real & k )
+{ 
    
-   real delta=massTerm; // massBody/(rho*Pi*a^2)
+  real delta=massTerm; // massBody/(rho*Pi*a^2)
 
-   real a=innerRadius, b=outerRadius;
-   real alam=k, alam2=alam*alam;
-   real za=alam*a, za2=za*za;
-   real zb=alam*b;
+  real a=innerRadius, b=outerRadius;
+  real alam=k, alam2=alam*alam;
+  real za=alam*a, za2=za*za;
+  real zb=alam*b;
  
-   real j0a =jn(0,za),         y0a =yn(0,za);
-   real j1a =jn(1,za),         y1a =yn(1,za);
-   real j1pa=j0a-j1a/za,       y1pa=y0a-y1a/za;
+  real j0a =jn(0,za),         y0a =yn(0,za);
+  real j1a =jn(1,za),         y1a =yn(1,za);
+  real j1pa=j0a-j1a/za,       y1pa=y0a-y1a/za;
 
-   real j1ppa = -j1a - j0a/za + 2.*j1a/(za*za);   // J1''
-   real y1ppa = -y1a - y0a/za + 2.*y1a/(za*za);   // Y1''
+  real j1ppa = -j1a - j0a/za + 2.*j1a/(za*za);   // J1''
+  real y1ppa = -y1a - y0a/za + 2.*y1a/(za*za);   // Y1''
    
 
-   real j0b=jn(0,zb),          y0b=yn(0,zb);
-   real j1b=jn(1,zb),          y1b=yn(1,zb);
+  real j0b=jn(0,zb),          y0b=yn(0,zb);
+  real j1b=jn(1,zb),          y1b=yn(1,zb);
 
-   real a11=(Pi*b/(2*a))*(2*y1b-zb*y0b),   a12=(Pi*a/(2*b))*zb*y0b;
-   real a21=(Pi*b/(2*a))*(2*j1b-zb*j0b),   a22=(Pi*a/(2*b))*zb*j0b;
+  real a11=(Pi*b/(2*a))*(2*y1b-zb*y0b),   a12=(Pi*a/(2*b))*zb*y0b;
+  real a21=(Pi*b/(2*a))*(2*j1b-zb*j0b),   a22=(Pi*a/(2*b))*zb*j0b;
 
-   real c11=(a11*j1a-a21*y1a+1)/za2,         c12=(a12*j1a-a22*y1a-1)/za2;
-   real c21=((a11*j1pa-a21*y1pa)*za+1)/za2,  c22=((a12*j1pa-a22*y1pa)*za+1)/za2;
+  real c11=(a11*j1a-a21*y1a+1)/za2,         c12=(a12*j1a-a22*y1a-1)/za2;
+  real c21=((a11*j1pa-a21*y1pa)*za+1)/za2,  c22=((a12*j1pa-a22*y1pa)*za+1)/za2;
 
-   real determ=c11*c22-c12*c21;
-   real ahat=(c22-c12)/(determ*a*a);
-   real bhat=(c11-c21)/(determ);
+  real determ=c11*c22-c12*c21;
+  real ahat=(c22-c12)/(determ*a*a);
+  real bhat=(c11-c21)/(determ);
 
-   real k1hat= (Pi*b/2)*((2*y1b-zb*y0b)*ahat/alam2+y0b*bhat/zb);
-   real k2hat=-(Pi*b/2)*((2*j1b-zb*j0b)*ahat/alam2+j0b*bhat/zb);
+  real k1hat= (Pi*b/2)*((2*y1b-zb*y0b)*ahat/alam2+y0b*bhat/zb);
+  real k2hat=-(Pi*b/2)*((2*j1b-zb*j0b)*ahat/alam2+j0b*bhat/zb);
 
-   real coeff1 = -1 + a11*j1ppa - a21*y1ppa;
-   real coeff2 = -1 + a12*j1ppa - a22*y1ppa - 2/za2;
-   real value = delta*za2 + coeff1*ahat*a*a + coeff2*bhat; // look for a zero of this function
+  real coeff1 = -1 + a11*j1ppa - a21*y1ppa;
+  real coeff2 = -1 + a12*j1ppa - a22*y1ppa - 2/za2;
+  real value = delta*za2 + coeff1*ahat*a*a + coeff2*bhat; // look for a zero of this function
    
-   return value;
+  return value;
    
- }
+}
 
 }
 
 
 
-#define FOR_3D(i1,i2,i3,I1,I2,I3) \
-int I1Base =I1.getBase(),   I2Base =I2.getBase(),  I3Base =I3.getBase();  \
+#define FOR_3D(i1,i2,i3,I1,I2,I3)					\
+int I1Base =I1.getBase(),   I2Base =I2.getBase(),  I3Base =I3.getBase(); \
 int I1Bound=I1.getBound(),  I2Bound=I2.getBound(), I3Bound=I3.getBound(); \
-for(i3=I3Base; i3<=I3Bound; i3++) \
-for(i2=I2Base; i2<=I2Bound; i2++) \
-for(i1=I1Base; i1<=I1Bound; i1++)
+for(i3=I3Base; i3<=I3Bound; i3++)					\
+  for(i2=I2Base; i2<=I2Bound; i2++)					\
+    for(i1=I1Base; i1<=I1Bound; i1++)
+
+
+// Macro to get the vertex array
+#define GET_VERTEX_ARRAY(x)\
+    mg.update(MappedGrid::THEvertex | MappedGrid::THEcenter);\
+    OV_GET_SERIAL_ARRAY_CONST(real,mg.vertex(),x);\
+    if( !thisProcessorHasPoints )\
+      return 0; // no points on this processor
+
 
 int InsParameters::
 getUserDefinedKnownSolution(real t, CompositeGrid & cg, int grid, RealArray & ua, 
-			    const Index & I1, const Index &I2, const Index &I3, 
+			    const Index & I1_, const Index &I2_, const Index &I3_, 
                             int numberOfTimeDerivatives /* = 0 */ )
 // ==========================================================================================
 ///  \brief Evaluate a user defined known solution.
@@ -136,12 +145,19 @@ getUserDefinedKnownSolution(real t, CompositeGrid & cg, int grid, RealArray & ua
   MappedGrid & mg = cg[grid];
   const int numberOfDimensions = mg.numberOfDimensions();
     
+  // Adjust index bounds for parallel *wdh* 2017/05/31 
+  Index I1=I1_, I2=I2_, I3=I3_;
+  
+  OV_GET_SERIAL_ARRAY_CONST(int,mg.mask(),mask);
+  int includeGhost=1;
+  bool thisProcessorHasPoints=ParallelUtility::getLocalArrayBounds(mg.mask(),mask,I1,I2,I3,includeGhost);
+  
   // printF("--INSPAR-- getUserDefinedKnownSolution: START---\n");
 
   if( ! dbase.get<DataBase >("modelData").has_key("userDefinedKnownSolutionData") )
   {
     printf("getUserDefinedKnownSolution:ERROR: sub-directory `userDefinedKnownSolutionData' not found!\n");
-    Overture::abort("error");
+    OV_ABORT("error");
   }
   DataBase & db =  dbase.get<DataBase >("modelData").get<DataBase>("userDefinedKnownSolutionData");
 
@@ -176,8 +192,7 @@ getUserDefinedKnownSolution(real t, CompositeGrid & cg, int grid, RealArray & ua
 	     pInflow,pOutflow,radius,s0,length,axialAxis,t);
 
     // -- we could avoid building the vertex array on Cartesian grids ---
-    mg.update(MappedGrid::THEvertex | MappedGrid::THEcenter);
-    OV_GET_SERIAL_ARRAY_CONST(real,mg.vertex(),x);
+    GET_VERTEX_ARRAY(x);
 
     const int axisp1 = (axialAxis+1)%3, axisp2=(axialAxis+2)%3;
     const int uca=uc+axialAxis, ucb=uc + (axialAxis+1)%3, ucc=uc + (axialAxis+2)%3;
@@ -209,8 +224,7 @@ getUserDefinedKnownSolution(real t, CompositeGrid & cg, int grid, RealArray & ua
     const int & axialAxis = ipar[3];
     
     // -- we could avoid building the vertex array on Cartesian grids ---
-    mg.update(MappedGrid::THEvertex | MappedGrid::THEcenter);
-    OV_GET_SERIAL_ARRAY_CONST(real,mg.vertex(),x);
+    GET_VERTEX_ARRAY(x);
 
     // ua(I1,I2,I3,pc)=pInflow + ((pOutflow-pInflow)/length)*(x(I1,I2,I3,0)-x0);
     RealArray r(I1,I2,I3), uTheta(I1,I2,I3);
@@ -243,16 +257,15 @@ getUserDefinedKnownSolution(real t, CompositeGrid & cg, int grid, RealArray & ua
   }
   else if( userKnownSolution=="TaylorGreenVortex" )
   {
-      const real & kp = rpar[0];
-      const int & axialAxis = ipar[0];
+    const real & kp = rpar[0];
+    const int & axialAxis = ipar[0];
 //       printF("--- Taylor Green vortex is an exact solution ---\n"
 //              " u = sin(k x) cos(k y) F(t)\n"
 //              " v =-cos(k x) sin(k y) F(t)\n"
 //              " p = (rho/4)*( cos(2 k x) + cos(2 k y) ) F(t)*F(t)\n"
 //              "   where F(t) = exp( -2 nu k^2 t )\n");
     // -- we could avoid building the vertex array on Cartesian grids ---
-    mg.update(MappedGrid::THEvertex | MappedGrid::THEcenter);
-    OV_GET_SERIAL_ARRAY_CONST(real,mg.vertex(),x);
+    GET_VERTEX_ARRAY(x);
 
     const real k= kp*twoPi;
     const real f = exp(-2.*nu*k*k*t);
@@ -292,6 +305,8 @@ getUserDefinedKnownSolution(real t, CompositeGrid & cg, int grid, RealArray & ua
     const int wc = dbase.get<int >("wc");
 
     assert( pc>=0 && uc>=0 && vc>=0 );
+    if( !thisProcessorHasPoints )
+      return 0; // no points on this processor
     
     ua(I1,I2,I3,pc)=0.;
     ua(I1,I2,I3,uc)=1.+t;
@@ -305,9 +320,7 @@ getUserDefinedKnownSolution(real t, CompositeGrid & cg, int grid, RealArray & ua
   {
  
     MappedGrid & mg = cg[grid];
-    mg.update(MappedGrid::THEvertex | MappedGrid::THEcenter);
-
-    OV_GET_SERIAL_ARRAY_CONST(real,mg.vertex(),vertex);
+    GET_VERTEX_ARRAY(vertex);
 
     RealArray & u = ua;
 
@@ -366,8 +379,7 @@ getUserDefinedKnownSolution(real t, CompositeGrid & cg, int grid, RealArray & ua
     const real & nuBL = rpar[2];
     
     // -- we could avoid building the vertex array on Cartesian grids ---
-    mg.update(MappedGrid::THEvertex | MappedGrid::THEcenter);
-    OV_GET_SERIAL_ARRAY_CONST(real,mg.vertex(),xLocal);
+    GET_VERTEX_ARRAY(xLocal);
 
     if( !db.has_key("BoundaryLayerProfile") )
     {
@@ -398,8 +410,7 @@ getUserDefinedKnownSolution(real t, CompositeGrid & cg, int grid, RealArray & ua
     // ---- Beam Piston : beam adjacent to one or two fluid domains ----
 
     // -- we could avoid building the vertex array on Cartesian grids ---
-    mg.update(MappedGrid::THEvertex | MappedGrid::THEcenter);
-    OV_GET_SERIAL_ARRAY_CONST(real,mg.vertex(),xLocal);
+    GET_VERTEX_ARRAY(xLocal);
 
     // ** NOTE this solution appears in userDefinedKnownSolution.C and beamInitialConditions.C ***
     const real & ya          = rpar[0];    
@@ -491,9 +502,7 @@ getUserDefinedKnownSolution(real t, CompositeGrid & cg, int grid, RealArray & ua
     //    xBody(t) = amp*sin(freq*2*pi*t)  : body displacement from initial position.
 
     // -- we could avoid building the vertex array on Cartesian grids ---
-    mg.update(MappedGrid::THEvertex | MappedGrid::THEcenter);
-    OV_GET_SERIAL_ARRAY_CONST(real,mg.vertex(),xLocal);
-
+    GET_VERTEX_ARRAY(xLocal);
 
     // ** NOTE this solution ALSO appears in userDefinedBoundaryValues.
 
@@ -577,8 +586,7 @@ getUserDefinedKnownSolution(real t, CompositeGrid & cg, int grid, RealArray & ua
 
 
     // -- we could avoid building the vertex array on Cartesian grids ---
-    mg.update(MappedGrid::THEvertex | MappedGrid::THEcenter);
-    OV_GET_SERIAL_ARRAY_CONST(real,mg.vertex(),xLocal);
+    GET_VERTEX_ARRAY(xLocal);
 
     const real & amp      = rpar[0];
     const real & bodyMass = rpar[1];
@@ -646,10 +654,7 @@ getUserDefinedKnownSolution(real t, CompositeGrid & cg, int grid, RealArray & ua
 
 
     // -- we could avoid building the vertex array on Cartesian grids ---
-    mg.update(MappedGrid::THEvertex | MappedGrid::THEcenter);
-    OV_GET_SERIAL_ARRAY_CONST(real,mg.vertex(),xLocal);
-
-    OV_GET_SERIAL_ARRAY_CONST(int,mg.mask(),mask);
+    GET_VERTEX_ARRAY(xLocal);
 
     const real & amp         = rpar[0];
     const real & a           = rpar[1];
@@ -768,12 +773,9 @@ getUserDefinedKnownSolution(real t, CompositeGrid & cg, int grid, RealArray & ua
   {
     // --- Exact solution for a rigid-disk translating in a disk of fluid -----
 
-
     // -- we could avoid building the vertex array on Cartesian grids ---
-    mg.update(MappedGrid::THEvertex | MappedGrid::THEcenter);
-    OV_GET_SERIAL_ARRAY_CONST(real,mg.vertex(),xLocal);
+    GET_VERTEX_ARRAY(xLocal);
 
-    OV_GET_SERIAL_ARRAY_CONST(int,mg.mask(),mask);
 
     const real & amp         = rpar[0];
     const real & a           = rpar[1];
@@ -866,6 +868,74 @@ getUserDefinedKnownSolution(real t, CompositeGrid & cg, int grid, RealArray & ua
       if( numberOfDimensions==3 ) ua(i1,i2,i3,wc)=0.;
     }
     
+  }
+
+  else if( userKnownSolution=="bulkSolidPiston" )
+  {
+    // ---- return the exact solution for the FSI INS+elastic piston ---
+
+    // **** CHECK ME ****
+    assert( numberOfTimeDerivatives==0 );
+
+    // -- we could avoid building the vertex array on Cartesian grids ---
+    GET_VERTEX_ARRAY(xLocal);
+
+    const real & amp      = rpar[0];
+    const real & k        = rpar[1];
+    const real & phase    = rpar[2];
+    const real & H        = rpar[3];
+    const real & Hbar     = rpar[4];
+    const real & rho      = rpar[5];
+    const real & rhoBar   = rpar[6];
+    const real & lambdaBar= rpar[7];
+    const real & muBar    = rpar[8];
+
+
+
+    const real cp = sqrt((lambdaBar+2.*muBar)/rhoBar);
+  
+    const real sint = sin(cp*k*t+twoPi*phase);
+    const real cost = cos(cp*k*t+twoPi*phase);
+    const real coskHbar = cos(k*Hbar);
+    const real sinkHbar = sin(k*Hbar);
+
+    
+    const real pI = -amp*(lambdaBar+2.*muBar)*cp*k*coskHbar*cost;
+    
+    const real yI =  amp*         sinkHbar*cost;    // interface position
+    const real vI = -amp*cp*k*    sinkHbar*sint;    // interface velocity
+    const real aI = -amp*SQR(cp*k)*sinkHbar*cost;   // interface acceleration
+    const real p0 = pI - rho*H*aI*(1.-yI/H);        // fluid pressure at y=H 
+    const real pAmp = (p0-pI)/(H-yI);
+
+    if( t <= 2.*dt )
+    {
+      // Traction rate is - d(pAmp)/dt
+      real yIt = vI;
+      real pIt = amp*(lambdaBar+2.*muBar)*SQR(cp*k)*coskHbar*sint;
+      real aIt = amp*SQR(cp*k)*cp*k*sinkHbar*sint;
+      real p0t = pIt -rho*H*( aIt*(1.-yI/H) + aI*(-yIt/H) );
+      
+      real pAmpt = (p0t-pIt)/(H-yI) + yIt*pAmp/(H-yI);
+      real s22t = -( p0t - pAmpt*H ); // s22_t = - p_t 
+
+      printF("--INS-- userDefinedKnownSolution: bulkSolidPiston, amp=%g, k=%g, t=%9.3e\n",amp,k,t);
+      printF("--INS-- vI=%g, p0=%g, pAmp=%g, pAmpt=%g, s22t=%12.6e\n",vI,p0,pAmp,pAmpt,s22t);
+    }
+    
+
+    int i1,i2,i3;
+    FOR_3D(i1,i2,i3,I1,I2,I3)
+    {
+      // const real x = xLocal(i1,i2,i3,0);
+      const real y = xLocal(i1,i2,i3,1);
+
+      ua(i1,i2,i3,uc) = 0.;
+      ua(i1,i2,i3,vc) = vI;
+      ua(i1,i2,i3,pc) = p0 - pAmp*(H-y);
+
+    }
+      
   }
 
   else 
@@ -1107,10 +1177,116 @@ getUserDefinedKnownSolutionRigidBody( int body, real t,
 
 
 
+// ==========================================================================================
+/// \brief Return the state of a known solution for a deforming body
+/// 
+/// \param body (input) : body number
+/// \param stateOption (input) : specify which information to return
+/// \param t (input) : time to evaluate the solution at 
+/// \param grid, mg, I1,I2,I3 (input) : 
+/// \param state (output) : return results here
+// ==========================================================================================
+int InsParameters::
+getUserDefinedDeformingBodyKnownSolution( 
+  int body,
+  DeformingBodyStateOptionEnum stateOption, 
+  const real t, const int grid, MappedGrid & mg, const Index &I1_, const Index &I2_, const Index &I3_, 
+  realSerialArray & state )
+{
+  const int numberOfDimensions = mg.numberOfDimensions();
+  if( ! dbase.get<DataBase >("modelData").has_key("userDefinedKnownSolutionData") )
+  {
+    printf("getUserDefinedKnownSolution:ERROR: sub-directory `userDefinedKnownSolutionData' not found!\n");
+    OV_ABORT("error");
+  }
+  DataBase & db =  dbase.get<DataBase >("modelData").get<DataBase>("userDefinedKnownSolutionData");
+
+  const aString & userKnownSolution = db.get<aString>("userKnownSolution");
+  const real dt = dbase.get<real>("dt");
+  
+  real *rpar = db.get<real[20]>("rpar");
+  int *ipar = db.get<int[20]>("ipar");
+
+  // Adjust index bounds for parallel *wdh* 2017/05/31 
+  OV_GET_SERIAL_ARRAY_CONST(int,mg.mask(),mask);
+  Index I1=I1_, I2=I2_, I3=I3_;
+  int includeGhost=1;
+  bool thisProcessorHasPoints=ParallelUtility::getLocalArrayBounds(mg.mask(),mask,I1,I2,I3,includeGhost);
+
+  if( userKnownSolution=="bulkSolidPiston" )
+  {
+    // -- we could avoid building the vertex array on Cartesian grids ---
+    GET_VERTEX_ARRAY(xLocal);
+
+    const real & amp      = rpar[0];
+    const real & k        = rpar[1];
+    const real & phase    = rpar[2];
+    const real & H        = rpar[3];
+    const real & Hbar     = rpar[4];
+    const real & rho      = rpar[5];
+    const real & rhoBar   = rpar[6];
+    const real & lambdaBar= rpar[7];
+    const real & muBar    = rpar[8];
+
+    const real cp = sqrt((lambdaBar+2.*muBar)/rhoBar);
+  
+    const real sint = sin(cp*k*t+twoPi*phase);
+    const real cost = cos(cp*k*t+twoPi*phase);
+    const real coskHbar = cos(k*Hbar);
+    const real sinkHbar = sin(k*Hbar);
+    
+    const real pI = -amp*(lambdaBar+2.*muBar)*cp*k*coskHbar*cost;
+    
+    const real yI =  amp*         sinkHbar*cost;    // interface position
+    const real vI = -amp*cp*k*    sinkHbar*sint;    // interface velocity
+    const real aI = -amp*SQR(cp*k)*sinkHbar*cost;   // interface acceleration
+    const real p0 = pI - rho*H*aI*(1.-yI/H);        // fluid pressure at y=H 
+    const real pAmp = (p0-pI)/(H-yI);
+
+    if( t <= 2.*dt )
+    {
+      printF("--INS-- getUserDefinedDeformingBodyKnownSolution: bulkSolidPiston, amp=%g, k=%g, t=%9.3e\n",amp,k,t);
+      printF("--INS-- vI=%g, p0=%g, pAmp=%g\n",vI,p0,pAmp);
+    }
+    
+
+
+    if( stateOption==boundaryPosition )
+    {
+      state(I1,I2,I3,0)=xLocal(I1,I2,I3,0);
+      state(I1,I2,I3,1)=yI;
+    }
+    else if( stateOption==boundaryVelocity )
+    {
+      state(I1,I2,I3,0)=0.;
+      state(I1,I2,I3,1)=vI;
+    }
+    else if( stateOption==boundaryAcceleration )
+    {
+      state(I1,I2,I3,0)=0.;
+      state(I1,I2,I3,1)=aI;
+    }
+    else
+    {
+      OV_ABORT("Unknown state option");
+    }
+
+  }
+  else
+  {
+    printF("InsParameters::getUserDefinedDeformingBodyKnownSolution:ERROR: unknown userKnownSolution=[%s]\n",
+	   (const char*)userKnownSolution);
+    OV_ABORT("error");
+  }
+  
+  return 0;
+}
+
+
 int InsParameters::
 updateUserDefinedKnownSolution(GenericGraphicsInterface & gi, CompositeGrid & cg)
 // ==========================================================================================
-/// \brief This function is called to set the user defined know solution.
+/// \brief This function is called to set the user defined known solution.
 /// 
 /// \return   >0 : known solution was chosen, 0 : no known solution was chosen
 ///
@@ -1149,6 +1325,7 @@ updateUserDefinedKnownSolution(GenericGraphicsInterface & gi, CompositeGrid & cg
       "rigid body piston",  // FSI solution for a rigid-body next to a fluid channel
       "shear block",   // INS-Rigid body FSI solution for a shearing block
       "rotating disk in disk", // INS-Rigid body FSI solution for a rotating disk in a disk
+      "bulk solid piston", // FSI solution for a bulk solid adjacent to a fluid channel
       "done",
       ""
     }; 
@@ -1583,7 +1760,35 @@ updateUserDefinedKnownSolution(GenericGraphicsInterface & gi, CompositeGrid & cg
               amp,a,b,massTerm,k);
 
     }
+    else if( answer=="bulk solid piston" )
+    {
+      userKnownSolution="bulkSolidPiston";
+      dbase.get<bool>("knownSolutionIsTimeDependent")=true;  // known solution IS time dependent
 
+      real & amp      = rpar[0];
+      real & k        = rpar[1];
+      real & phase    = rpar[2];
+      real & H        = rpar[3];
+      real & Hbar     = rpar[4];
+      real & rho      = rpar[5];
+      real & rhoBar   = rpar[6];
+      real & lambdaBar= rpar[7];
+      real & muBar    = rpar[8];
+
+      printF("--- Exact solution for a bulk elastic solid adjacent to a fluid chamber ---\n"
+             "   y_I(t) = A sin(k Hbar) * cos( cp*k*t + 2*pi*phase )\n"
+             " Parameters: \n"
+             " amp : amplitude of the interface motion \n"
+             " k: wave number in solid domain (y-direction)\n"
+             " H,Hbar: Height of fluid and solid domains\n"
+             " phase: phase for time dependence\n"
+             " rhoBar,lambaBar,muBar : solid density and Lame parameters\n"
+	);
+      gi.inputString(answer,"Enter amp, k,phase,H,Hbar,rho,lambdaBar,muBar,rhoBar");
+      sScanF(answer,"%e %e %e %e %e %e %e %e %e",&amp,&k,&phase,&H,&Hbar,&rho,&rhoBar,&lambdaBar,&muBar);
+
+    }
+    
     else
     {
       printF("unknown response=[%s]\n",(const char*)answer);

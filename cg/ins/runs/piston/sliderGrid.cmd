@@ -31,7 +31,7 @@
 $prefix="sliderGrid"; $order=2; $factor=1; # default values
 $orderOfAccuracy = "second order"; $ng=2; $periodic=""; 
 $xa=0.; $xb=1.; $ya=0; $yb=1; 
-$bodyMass=""; $ny=""; 
+$bodyMass=""; $ny=""; $nx=""; 
 # 
 # get command line arguments
 GetOptions( "order=i"=>\$order,"factor=i"=> \$factor,"periodic=s"=>\$periodic,"prefix=s"=>\$prefix,\

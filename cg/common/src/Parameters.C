@@ -474,7 +474,7 @@ Parameters(const int & numberOfDimensions0) : pdeName("unknown"), numberOfBCName
   if (!dbase.has_key("plotIterations")) dbase.put<int>("plotIterations");
   if (!dbase.has_key("checkFile")) dbase.put<FILE*>("checkFile");
   if (!dbase.has_key("applyExplicitBCsToImplicitGrids")) dbase.put<bool>("applyExplicitBCsToImplicitGrids");
-  if (!dbase.has_key("pKnownSolution")) dbase.put<realCompositeGridFunction*>("pKnownSolution");
+  if (!dbase.has_key("pKnownSolution")){ dbase.put<realCompositeGridFunction*>("pKnownSolution")=NULL; } // 
   if (!dbase.has_key("recomputeDTEveryStep")) dbase.put<bool>("recomputeDTEveryStep",false);
   if (!dbase.has_key("timeStepDataIsPrecomputed")) dbase.put<bool>("timeStepDataIsPrecomputed",false);
   if (!dbase.has_key("useLineSolver")) dbase.put<bool>("useLineSolver",false);
@@ -541,6 +541,9 @@ Parameters(const int & numberOfDimensions0) : pdeName("unknown"), numberOfBCName
 
   // multiDomainSolver - pointer to the multiDomainSolver Cgmp (for multi-domain solvers)
   if (!dbase.has_key("multiDomainSolver")){ dbase.put<DomainSolver*>("multiDomainSolver")=NULL; } // 
+
+  // domainSolver - pointer to the domain solver associated with this class
+  if (!dbase.has_key("domainSolver")){ dbase.put<DomainSolver*>("domainSolver")=NULL; } // 
 
   if (!dbase.has_key("referenceFrame")) dbase.put<ReferenceFrameEnum>("referenceFrame");
   dbase.get<ReferenceFrameEnum>("referenceFrame")=fixedReferenceFrame; 
@@ -1200,12 +1203,19 @@ initializeTimings()
 Parameters::
 ~Parameters()
 {
-  fclose( dbase.get<FILE* >("debugFile"));
+  if( dbase.get<FILE* >("debugFile")!=NULL ) 
+    fclose( dbase.get<FILE* >("debugFile"));
   if( Communication_Manager::numberOfProcessors()>1 )
-    fclose( dbase.get<FILE* >("pDebugFile"));
-  fclose( dbase.get<FILE* >("checkFile"));
-  fclose( dbase.get<FILE* >("logFile"));
-  fclose( dbase.get<FILE* >("moveFile"));
+  {
+    if( dbase.get<FILE* >("pDebugFile")!=NULL )
+      fclose( dbase.get<FILE* >("pDebugFile"));
+  }
+  if( dbase.get<FILE* >("checkFile")!=NULL )
+    fclose( dbase.get<FILE* >("checkFile"));
+  if(  dbase.get<FILE* >("logFile")!=NULL )
+    fclose( dbase.get<FILE* >("logFile"));
+  if( dbase.get<FILE* >("moveFile")!=NULL )
+    fclose( dbase.get<FILE* >("moveFile"));
   
   delete  dbase.get<OGFunction* >("exactSolution");
   delete []  dbase.get<aString* >("componentName");

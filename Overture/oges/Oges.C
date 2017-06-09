@@ -993,6 +993,10 @@ getExtraEquationNumbers() const
 ///        j=ja(k)
 ///        a_ij=a(k) 
 ///
+/// \note: In PARALLEL the equations are assumed to be distributed: the number of equations
+///    is the same across all processors but the entries in each equation only correspond to
+///    unknowns that live on the current processor
+///
 //===========================================================================================
 int Oges::
 setEquations( int neq, IntegerArray & eqn, IntegerArray & ia, IntegerArray & ja, RealArray & a )
@@ -2053,15 +2057,15 @@ equationNo( const int n, const int i1, const int i2, const int i3,
 /// \param grid (input) : component grid number (grid=0,1,2..,numberOfCompoentGrids-1)   
 //=============================================================================
 {
-  #ifdef USE_PPP
-    assert( parameters.solver==OgesParameters::PETScNew );
-    return equationSolver[parameters.solver]->equationNo( n,i1,i2,i3,grid );
-  #else  
+  // #ifdef USE_PPP
+  //   assert( parameters.solver==OgesParameters::PETScNew );
+  //  return equationSolver[parameters.solver]->equationNo( n,i1,i2,i3,grid );
+  // #else  
   return n+1+   numberOfComponents*(i1-cg[grid].dimension(Start,axis1)+
-	(cg[grid].dimension(End,axis1)-cg[grid].dimension(Start,axis1)+1)*(i2-cg[grid].dimension(Start,axis2)+
+        (cg[grid].dimension(End,axis1)-cg[grid].dimension(Start,axis1)+1)*(i2-cg[grid].dimension(Start,axis2)+
         (cg[grid].dimension(End,axis2)-cg[grid].dimension(Start,axis2)+1)*(i3-cg[grid].dimension(Start,axis3)
-							 ))) + gridEquationBase(grid);
-  #endif
+        						 ))) + gridEquationBase(grid);
+  // #endif
 }
 
 
@@ -2079,11 +2083,11 @@ equationToIndex( const int eqnNo0, int & n, int & i1, int & i2, int & i3, int & 
   //  grid : component grid number (grid=0,1,2..,numberOfCompoentGrids-1)   
   //=============================================================================
 {
-  #ifdef USE_PPP
-    assert( parameters.solver==OgesParameters::PETScNew );
-    equationSolver[parameters.solver]->equationToIndex( eqnNo0, n,i1,i2,i3,grid );
-    return;
-  #endif
+  // #ifdef USE_PPP
+  //   assert( parameters.solver==OgesParameters::PETScNew );
+  //   equationSolver[parameters.solver]->equationToIndex( eqnNo0, n,i1,i2,i3,grid );
+  //   return;
+  // #endif
 
   int eqn=eqnNo0;
   grid=numberOfGrids-1;

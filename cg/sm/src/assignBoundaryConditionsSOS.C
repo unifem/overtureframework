@@ -615,7 +615,7 @@ assignBoundaryConditionsSOS( int option, int grid, real t, real dt, realMappedGr
           getLocalArrayWithGhostBoundaries(state0,state0Local);
 
     #else
-      const realSerialArray & uLocal = u;
+      realSerialArray & uLocal = u;
       const realSerialArray & xLocal = x;
       const realSerialArray & det = mg.centerJacobian();
       realSerialArray & state0Local = *pstate0;
@@ -1489,6 +1489,11 @@ assignBoundaryConditionsSOS( int option, int grid, real t, real dt, realMappedGr
                               OV_ABORT("getPistonMotion:ERROR: finish me for 3D");
                           }
                       }
+         	   }
+         	   else if( specialInitialConditionOption == "knownSolutionInitialCondition" )
+         	   {
+	     // Assign dirichlet BC from know solution *wdh* 2014/01/09 
+           	     parameters.getUserDefinedKnownSolution(t,cg, grid, uLocal, I1,I2,I3 );
          	   }
          	   else
          	   {

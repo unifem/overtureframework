@@ -102,7 +102,7 @@ setupGridFunctions()
 int Cgins::
 initializeSolution()
 {
-  printF("\n ****************** CGINS initializeSolution ********************\n");
+  printF("\n--INS-- ****************** CGINS initializeSolution ********************\n");
   DomainSolver::initializeSolution();
 
   // -- compute the pressure on moving grids when the pressure and body accelerations are coupled --

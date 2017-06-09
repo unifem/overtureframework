@@ -1189,8 +1189,12 @@ plot(int current, real t, real dt )
     GenericGraphicsInterface & ps = *pps;
 
     char buff[100];
-    psp.set(GI_TOP_LABEL,sPrintF(buff,"Maxwell %s%i%i: t=%6.2e ",(const char *)methodName,
-                    orderOfAccuracyInSpace,orderOfAccuracyInTime,t));
+    int & useSosupDissipation = parameters.dbase.get<int>("useSosupDissipation");
+    aString suffix="";
+    if( useSosupDissipation )
+        suffix="s";  // name = FD22s, FD44s etc. for sosup dissipation
+    psp.set(GI_TOP_LABEL,sPrintF(buff,"Maxwell %s%i%i%s: t=%6.2e ",(const char *)methodName,
+                    orderOfAccuracyInSpace,orderOfAccuracyInTime,(const char *)suffix,t));
     aString label;
     getTimeSteppingLabel( dt,label );
     

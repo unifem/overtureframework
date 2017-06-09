@@ -58,7 +58,7 @@ DomainSolver(Parameters & par,
   name="generic";
   pdeName="unknown PDE";
 
-
+  parameters.dbase.get<DomainSolver*>("domainSolver")=this;
   parameters.dbase.get<GenericGraphicsInterface* >("ps")=ps;
   parameters.dbase.get<Ogshow* >("show")=show;
   if( plotOption_==0 )
@@ -1420,6 +1420,11 @@ writeParameterSummary( FILE * file )
     }
     
   }
+
+  const int & numberOfSolutionLevels = parameters.dbase.get<int>("numberOfSolutionLevels");
+  fPrintF(file,"\n Storage: numberOfGridFunctionsToUse=%i (numberOfSolutionLevels=%i), (holds u at different times)\n"
+	  "          numberOfExtraFunctionsToUse=%i (Holds RHS f = du/dt)\n\n",
+	  numberOfGridFunctionsToUse,numberOfSolutionLevels,numberOfExtraFunctionsToUse);
 
   if( parameters.dbase.get<bool >("readRestartFile") )
     fPrintF(file," Read a restart file, restartFileName=%s \n",(const char *)parameters.dbase.get<aString >("restartFileName"));

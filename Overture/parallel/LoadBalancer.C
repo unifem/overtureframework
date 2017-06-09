@@ -71,6 +71,7 @@ setLoadBalancer(LoadBalancerTypeEnum loadBalancer_ )
 ///    KernighanLin,
 ///    sequentialAssignment, // grid g is placed on processor p= g % np;
 ///    randomAssignment,     // grid g is placed in a random processor -- this is used for testing
+///    allToAll,             // grid g is given all processors
 ///    userDefined
 ///  }
 // 

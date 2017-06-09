@@ -1,10 +1,12 @@
 #
 #  Solid sphere in a box (two-domain problem, sphere covered by 3 patches)
 #
-# usage: ogen [noplot] solidSphereInABox -factor=<num> -order=[2/4/6/8] -interp=[e/i] -nrExtra=<> -rgd=[fixed|var]
+# usage: ogen [-noplot] solidSphereInABox -factor=<num> -order=[2/4/6/8] -interp=[e/i] -nrExtra=<> ...
+#         -rgd=[fixed|var] -outerBC=[dirichlet|yzPeriodic]
 #
 #  nrExtra: extra lines to add in the radial direction on the sphere grids 
 #  -rgd : var=variable : decrease radial grid distance as grids are refined. fixed=fix radial grid distance
+#  -outerBC : 
 # 
 # examples:
 #     ogen noplot solidSphereInABox -order=2 -factor=1 
@@ -32,22 +34,25 @@
 #     ogen noplot solidSphereInABox -order=4 -interp=e -factor=8 -nrMin=15 -name="solidSphereInABoxe8nrMin15.order4.hdf"
 #     ogen noplot solidSphereInABox -order=4 -interp=e -factor=8 -nrMin=11 -name="solidSphereInABoxe8nrMin11.order4.hdf"
 # 
+$prefix="solidSphereInABox";
 $xa=-2.; $xb=2.; $ya=-2.; $yb=2.; $za=-2.; $zb=2.; $nrMin=3; $nrExtra=0; $rgd="var"; $name=""; 
 $order=2; $factor=1; $interp="i"; # default values
 $orderOfAccuracy = "second order"; $ng=2; $interpType = "implicit for all grids"; $dse=0.; 
 $deltaRadius0=.3; # do not make larger than .3 or troubles with cgmx
 $numGhost=-1;  # if this value is set, then use this number of ghost points
+$outerBC="dirichlet"; 
 # 
 # get command line arguments
 GetOptions( "order=i"=>\$order,"factor=i"=> \$factor,"nrExtra=i"=>\$nrExtra,"nrMin=i"=>\$nrMin,\
-            "interp=s"=> \$interp,"rgd=s"=> \$rgd,"deltaRadius0=f"=>\$deltaRadius0,"name=s"=>\$name,"numGhost=i"=>\$numGhost );
+            "xa=f"=>\$xa,"xb=f"=>\$xb,"ya=f"=>\$ya,"yb=f"=>\$yb,"za=f"=>\$za,"zb=f"=>\$zb,\
+            "interp=s"=> \$interp,"rgd=s"=> \$rgd,"deltaRadius0=f"=>\$deltaRadius0,"name=s"=>\$name,\
+            "numGhost=i"=>\$numGhost,"outerBC=s"=>\$outerBC,"prefix=s"=>\$prefix );
 # 
 if( $order eq 4 ){ $orderOfAccuracy="fourth order"; $ng=2; }\
 elsif( $order eq 6 ){ $orderOfAccuracy="sixth order"; $ng=4; }\
 elsif( $order eq 8 ){ $orderOfAccuracy="eighth order"; $ng=6; }
 if( $interp eq "e" ){ $interpType = "explicit for all grids"; $dse=1.; }
 # 
-$prefix="solidSphereInABox";
 if( $rgd eq "fixed" ){ $prefix = $prefix . "Fixed"; }
 $suffix = ".order$order"; 
 if( $numGhost ne -1 ){ $ng = $numGhost; } # overide number of ghost
@@ -95,6 +100,10 @@ Box
     $ny = int( ($yb-$ya)/$ds +1.5);
     $nz = int( ($zb-$za)/$ds +1.5);
     $nx $ny $nz
+  boundary conditions
+    $cmd="1 2 3 4 5 6";
+    if( $outerBC eq "yzPeriodic"){ $cmd="1 2 -1 -1 -1 -1"; } # periodic BC in y and z 
+    $cmd
   mappingName
     outerBox
   exit

@@ -5,7 +5,7 @@
 #include "ParallelUtility.h"
 #include "App.h"
 #include "Ogshow.h"
-
+#include "DomainSolver.h"
 
 
 void Maxwell::
@@ -138,7 +138,13 @@ outputResultsAfterEachTimeStep( int current, real t, real dt, int stepNumber, re
 {
   const bool okToOutput = myid<=0;
   
-  if( probes.size(1)>0 && (stepNumber % frequencyToSaveProbes)==0 )
+  // **NEW WAY**
+  // output to any probe files
+  DomainSolver::outputProbes( parameters, gf[current], stepNumber );
+
+  // **OLD WAY FOR PROBES: 
+  const int & probeFileFrequency = parameters.dbase.get<int>("probeFileFrequency");
+  if( probes.size(1)>0 && (stepNumber % probeFileFrequency)==0 )
   {
     assert( cgp!=NULL );
     CompositeGrid & cg= *cgp;
@@ -652,8 +658,11 @@ solve(GL_GraphicsInterface &gi )
       }
       else
       {
-	throw "error";
+	OV_ABORT("CGMX: ERROR: unknown method");
       }
+
+      gf[current].t=t;
+
       t+=dt;
       current = next;
       next= (next+1) % numberOfTimeLevels;

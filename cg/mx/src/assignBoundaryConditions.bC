@@ -1,4 +1,5 @@
 #include "Maxwell.h"
+#include "DispersiveMaterialParameters.h"
 #include "CompositeGridOperators.h"
 #include "display.h"
 #include "UnstructuredMapping.h"
@@ -139,6 +140,9 @@ for(i1=I1Base; i1<=I1Bound; i1++)
 // Macros for the plane material interface:
 #Include "planeMaterialInterface.h"
  definePlaneMaterialInterfaceMacros(C)
+
+// Macros for dispersive waves
+#Include "dispersionMacros.h"
 
 // =============================================================================================================
 // /Description:
@@ -555,8 +559,9 @@ adjustBoundsForPML( MappedGrid & mg, Index Iv[3], int extra /* =0 */ )
 // =============================================================================================
 // Macro to apply optimized versions of BC's
 //
-// OPTION: OPTION==field : apply BC's to the fied variables Ex, Ey, ...
+// OPTION: OPTION==field           : apply BC's to the fied variables Ex, Ey, ...
 //         OPTION==timeDerivatives : apply BCs to the time-derivatives of the field (for SOSUP) 
+//         OPTION==polarization    : apply BC's to the polarization vectors
 // =============================================================================================
 #beginMacro optimizedBoundaryConditionsMacro(OPTION)
 
@@ -570,7 +575,7 @@ if( ok && useOpt )
 {
   // use optimised boundary conditions
   int ipar[40];
-  real rpar[40];
+  real rpar[50];
 
   int gridType = isRectangular ? 0 : 1;
   int orderOfExtrapolation=orderOfAccuracyInSpace+1;  // not used
@@ -621,7 +626,7 @@ if( ok && useOpt )
     ipar[15]=hx;
     ipar[16]=hy;
     ipar[17]=hz;
-  #Else
+  #Elif #OPTION eq "timeDerivatives"
     // apply BCs to time-derivatives
     ipar[12]=ext;
     ipar[13]=eyt;
@@ -629,6 +634,19 @@ if( ok && useOpt )
     ipar[15]=hxt;
     ipar[16]=hyt;
     ipar[17]=hzt;
+  #Elif #OPTION eq "polarization"
+    // apply BCs to polarization vectors
+    ipar[12]=pxc;
+    ipar[13]=pyc;
+    ipar[14]=pzc;
+    ipar[15]=qxc;
+    ipar[16]=qyc;
+    if( numberOfDimensions==2 )
+      ipar[17]=hz;  // for now apply BCs to Hz again here 
+    else
+      ipar[17]=qzc;
+  #Else
+    OV_ABORT("ERROR -- unknown option=OPTION");
   #End
   ipar[18]=useWhereMask;
   ipar[19]=grid;
@@ -651,15 +669,15 @@ if( ok && useOpt )
   ipar[27]= bcSymmetryOption;
   ipar[28]=myid;
 
-  #If #OPTION eq "field"
-    // apply BCs to field variables
-    ipar[29]=0;  // fieldOption
-  #Else
-    // apply BCs to time-derivatives
-    ipar[29]=1;  // fieldOption
+  // -- fieldOption: used for SOSUP to apply BCs to the field or its time-derivative  
+  int fieldOption=0;  // apply BCs to field variables
+  #If #OPTION eq "timeDerivatives"
+    fieldOption=1; // apply BCs to time-derivatives
   #End
+  ipar[29]=fieldOption;
+
   int numberOfGhostLines = orderOfAccuracyInSpace/2;
-  if( method==sosup ) numberOfGhostLines++;  // sosup uses one extra ghost line
+  if( addedExtraGhostLine ) numberOfGhostLines++;  // sosup uses one extra ghost line
   ipar[30]=numberOfGhostLines;  // for symmetry BC in bcSymmetry
 
   // field we subtract off the incident field over this many points next to the boundary.
@@ -672,6 +690,15 @@ if( ok && useOpt )
   ipar[31]=widthForAdjustFieldsForIncident;
   
   ipar[32]=boundaryForcingOption;
+
+  // supply polarizationOption for dispersive models *wdh* May 29, 2017
+  int polarizationOption=0;
+  #If #OPTION eq "polarization"
+    polarizationOption=1; // apply BCs to the polarization vector
+  #End
+  ipar[33]=polarizationOption;
+  ipar[34]=dispersionModel;
+  ipar[35]=dbase.get<int>("smoothBoundingBox"); // 1= smooth the IC at the bounding box edge
 
   rpar[0]=dx[0];       // for Cartesian grids          
   rpar[1]=dx[1];                
@@ -716,6 +743,26 @@ if( ok && useOpt )
   rpar[35]=cpw(6); // y0
   rpar[36]=cpw(7); // z0
   
+  // Dispersion parameters:
+  real sr=0.,si=0.;  // Re(s), Im(s) in exp(s*t) 
+  real ap=0., bp=0., cp=0.;
+  if( dispersionModel !=noDispersion )
+  {
+    DispersiveMaterialParameters & dmp = getDispersiveMaterialParameters(grid);
+    const real kk = twoPi*sqrt( kx*kx+ky*ky+kz*kz); // true wave-number (note factor of twoPi)
+    dmp.computeDispersionRelation( c,eps,mu,kk, sr,si );
+    // P equation is P_t + ap*P_t + bp*P = cp*E 
+    ap=dmp.gamma;
+    bp=0.;
+    cp=eps*SQR(dmp.omegap);
+  }
+  rpar[37]=sr;
+  rpar[38]=si;
+  rpar[39]=ap;
+  rpar[40]=bp;
+  rpar[41]=cp;
+  
+
   
   // fprintf(pDebugFile,"**** pu= %i, %i...\n",&u,pu);
 
@@ -867,8 +914,8 @@ if( ok && useOpt )
     nv[axis]=2*side-1;
     // Damp near the point xv0[] on the front
     real xv0[3]={0.,0.,0.};  // normal to decay direction
-    xv0[0] = .5*(initialConditionBoundingBox(1,0)+initialConditionBoundingBox(0,0));
-    xv0[1] = .5*(initialConditionBoundingBox(1,1)+initialConditionBoundingBox(0,1));
+    for( int dir=0; dir<numberOfDimensions; dir++ )
+      xv0[dir] = .5*(initialConditionBoundingBox(1,dir)+initialConditionBoundingBox(0,dir));
     xv0[axis]=initialConditionBoundingBox(side,axis);
 
     rpar[29]=beta;
@@ -1038,6 +1085,9 @@ assignBoundaryConditions( int option, int grid, real t, real dt, realMappedGridF
 
   const BoundaryForcingEnum & boundaryForcingOption =dbase.get<BoundaryForcingEnum>("boundaryForcingOption");
 
+  const int & useSosupDissipation = parameters.dbase.get<int>("useSosupDissipation");
+  bool addedExtraGhostLine = method==sosup || (method==nfdtd && useSosupDissipation);
+  
   // Do we need the grid points: 
   // const bool centerNeeded=(useForcing || forcingOption==planeWaveBoundaryForcing ||  // **************** fix this 
   //                          initialConditionOption==gaussianPlaneWave || 
@@ -1192,7 +1242,7 @@ assignBoundaryConditions( int option, int grid, real t, real dt, realMappedGridF
               // printF("method==nfdtd:applyBC dirichlet to (side,axis)=(%i,%i) t=%e\n",side,axis,t);
 	    
 	    int numberOfGhostLines = orderOfAccuracyInSpace/2;
-            if( method==sosup ) numberOfGhostLines++;  // sosup uses one extra ghost line
+            if( addedExtraGhostLine ) numberOfGhostLines++;  // sosup uses one extra ghost line
 	    
 	    int extra=numberOfGhostLines;
 	    getBoundaryIndex(mg.gridIndexRange(),side,axis,I1,I2,I3,extra);
@@ -1428,10 +1478,43 @@ assignBoundaryConditions( int option, int grid, real t, real dt, realMappedGridF
 
   	      const real cc0= cGrid(0)*sqrt( kx*kx+ky*ky ); // NOTE: use grid 0 values for multi-materials
 
-	      const real cost = cos(-twoPi*cc0*t);
-	      const real sint = sin(-twoPi*cc0*t);
-	      const real dcost =  twoPi*cc0*sint;  // d(sin(..))/dt 
-	      const real dsint = -twoPi*cc0*cost;  // d(sin(..))/dt 	    
+	      // const real cost = cos(-twoPi*cc0*t);
+	      // const real sint = sin(-twoPi*cc0*t);
+	      // const real dcost =  twoPi*cc0*sint;  // d(sin(..))/dt 
+	      // const real dsint = -twoPi*cc0*cost;  // d(sin(..))/dt 	    
+
+              getKnownSolutionTimeCoefficients();
+
+              // // NOTE: This next section is repeated in getInitialConditions.bC,
+              // //        getErrors.bC and assignBoundaryConditions.bC *FIX ME*
+              // real cost,sint,dcost,dsint;
+	      // if( dispersionModel==noDispersion )
+	      // {
+	      // 	cost = cos(-twoPi*cc0*t); 
+	      // 	sint = sin(-twoPi*cc0*t); 
+	      // 	dcost =  twoPi*cc0*sint;  // d(sin(..))/dt 
+	      // 	dsint = -twoPi*cc0*cost;  // d(sin(..))/dt 
+	      // }
+	      // else
+	      // {
+	      // 	// -- dispersive model --  *CHECK ME*
+
+	      // 	// Evaluate the dispersion relation for "s"
+	      // 	DispersiveMaterialParameters & dmp = getDispersiveMaterialParameters(grid);
+	      // 	const real kk = twoPi*cc0;  // Parameter in dispersion relation **check me**
+	      // 	real reS, imS;
+	      // 	dmp.computeDispersionRelation( c,eps,mu,kk, reS, imS );
+	      // 	real expS = exp(reS*t), expSm=exp(reS*(t-dt));
+	      // 	imS=-imS;  // flip sign 
+	      // 	printF("--ER-- scatCyl imS=%g, Im(s)/(twoPi*cc0)=%g reS=%g\n",imS,imS/twoPi*cc0,reS);
+
+	      // 	cost = cos( imS*t )*expS;      // "cos(t)" for dispersive model 
+	      // 	sint = sin( imS*t )*expS;
+
+	      // 	dcost = -imS*sint + reS*cost;  //  d/dt of "cost" 
+	      // 	dsint =  imS*cost + reS*sint;  //  d/dt of "cost" 
+	    
+	      // }
 
               if( debug & 4 ) printF("Set Dirichlet BC from known solution, grid,side,axis=%i,%i,%i\n",grid,side,axis);
 	      
@@ -1465,7 +1548,15 @@ assignBoundaryConditions( int option, int grid, real t, real dt, realMappedGridF
 		    U(i1,i2,i3,eyt)=UG(i1,i2,i3,ey)*dsint+UG(i1,i2,i3,ey+3)*dcost;
 		    U(i1,i2,i3,hzt)=UG(i1,i2,i3,hz)*dsint+UG(i1,i2,i3,hz+3)*dcost;
 		  }
-		  
+		}
+		// -- dispersion model components --
+		if( dispersionModel!=noDispersion )
+		{
+		  FOR_3D(i1,i2,i3,I1,I2,I3)
+		  {
+		    U(i1,i2,i3,pxc)  = UG(i1,i2,i3,ex)*phiPs + UG(i1,i2,i3,ex+3)*phiPc;
+		    U(i1,i2,i3,pyc)  = UG(i1,i2,i3,ey)*phiPs + UG(i1,i2,i3,ey+3)*phiPc;
+		  }
 		}
 	      }
               else
@@ -1485,6 +1576,18 @@ assignBoundaryConditions( int option, int grid, real t, real dt, realMappedGridF
 		    }
 		  
 		  }
+
+		  // -- dispersion model components --
+		  if( dispersionModel!=noDispersion )
+		  {
+		    FOR_3D(i1,i2,i3,I1,I2,I3)
+		    {
+		      U(i1,i2,i3,pxc)  = UG(i1,i2,i3,ex)*phiPs + UG(i1,i2,i3,ex+3)*phiPc;
+		      U(i1,i2,i3,pyc)  = UG(i1,i2,i3,ey)*phiPs + UG(i1,i2,i3,ey+3)*phiPc;
+		      U(i1,i2,i3,pzc)  = UG(i1,i2,i3,ez)*phiPs + UG(i1,i2,i3,ez+3)*phiPc;
+		    }
+		  }
+
 		}
 		if( solveForMagneticField )
 		{
@@ -1925,6 +2028,12 @@ assignBoundaryConditions( int option, int grid, real t, real dt, realMappedGridF
         // -- apply BCs to the time derivatives of the field --
         optimizedBoundaryConditionsMacro(timeDerivatives);
       }
+
+      if( dispersionModel != noDispersion )
+      {
+        // -- apply BCs to the polarization vector
+        optimizedBoundaryConditionsMacro(polarization);
+      }
       
       if( debugGhost && grid==1 )
 	  fprintf(debugFile,"\n --DBG--- AFter optBC: u[1](-1,-1,0,ey)=%8.2e\n",uLocal(-1,-1,0,ey));
@@ -1937,7 +2046,7 @@ assignBoundaryConditions( int option, int grid, real t, real dt, realMappedGridF
   }
 
 
-  if( method==sosup )
+  if( addedExtraGhostLine )
   {
     // Extrapolate an extra ghost line for the wider upwind stencil in SOSUP
     BoundaryConditionParameters extrapParams;

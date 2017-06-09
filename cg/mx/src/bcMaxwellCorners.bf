@@ -18,6 +18,9 @@
 ! ----- Here are macros for the chirped-plane wave -----
 #Include "chirpedPlaneWave.h"
 
+! ----- Here are macros for the dispersive plane wave -----
+#Include "dispersivePlaneWave.h"
+
 ! -------------------------------------------------------------------------------------------------------
 ! Macro: third-order extrapolation:
 !    (j1,j2,j3)    : point to extrapolate
@@ -92,7 +95,7 @@
      tau1DotU=(tau1*u(i1,i2,i3,ex)+tau2*u(i1,i2,i3,ey))/(tau1**2+tau2**2)
 
      #If #FORCING == "twilightZone"
-       call ogf2dfo(ep,fieldOption,xy(i1    ,i2    ,i3,0),xy(i1    ,i2    ,i3,1),t, u0,v0,w0)
+       call ogf2dfo(ep,ex,ey,hz,fieldOption,xy(i1    ,i2    ,i3,0),xy(i1    ,i2    ,i3,1),t, u0,v0,w0)
        tau1DotU = tau1DotU - ( tau1*u0 + tau2*v0 )/(tau1**2+tau2**2)
      #Elif #FORCING == "none"
      #Elif #FORCING == "planeWaveBoundaryForcing"
@@ -142,7 +145,7 @@
 
    beginLoops()
      #If #FORCING == "twilightZone"
-       call ogf2dfo(ep,fieldOption,xy(i1    ,i2    ,i3,0),xy(i1    ,i2    ,i3,1),t, u0,v0,w0)
+       call ogf2dfo(ep,ex,ey,hz,fieldOption,xy(i1    ,i2    ,i3,0),xy(i1    ,i2    ,i3,1),t, u0,v0,w0)
        uv(ex)=u0
        uv(ey)=v0
        u(i1,i2,i3,et1)=uv(et1)
@@ -199,7 +202,7 @@
        !       tn . E = tn . E0
        ! then set
        !     E(new) = E(old) + E0 - (n.E0) n 
-       call ogf3dfo(ep,fieldOption,xy(i1,i2,i3,0),xy(i1,i2,i3,1),xy(i1,i2,i3,2),t, u0,v0,w0)
+       call ogf3dfo(ep,ex,ey,ez,fieldOption,xy(i1,i2,i3,0),xy(i1,i2,i3,1),xy(i1,i2,i3,2),t, u0,v0,w0)
        nDotE0 = an(0)*u0 + an(1)*v0 + an(2)*w0
        u(i1,i2,i3,ex) = u(i1,i2,i3,ex) + u0 - nDotE0*an(0)
        u(i1,i2,i3,ey) = u(i1,i2,i3,ey) + v0 - nDotE0*an(1)
@@ -258,7 +261,7 @@
      tau2DotU=(tau21*u(i1,i2,i3,ex)+tau22*u(i1,i2,i3,ey)+tau23*u(i1,i2,i3,ez))/(tau21**2+tau22**2+tau23**2)
 
      #If #FORCING == "twilightZone"
-       call ogf3dfo(ep,fieldOption,xy(i1,i2,i3,0),xy(i1,i2,i3,1),xy(i1,i2,i3,2),t, u0,v0,w0)
+       call ogf3dfo(ep,ex,ey,ez,fieldOption,xy(i1,i2,i3,0),xy(i1,i2,i3,1),xy(i1,i2,i3,2),t, u0,v0,w0)
        tau1DotU = tau1DotU - ( tau11*u0 + tau12*v0 + tau13*w0 )/(tau11**2+tau12**2+tau13**2)
        tau2DotU = tau2DotU - ( tau21*u0 + tau22*v0 + tau23*w0 )/(tau21**2+tau22**2+tau23**2)
      #Elif #FORCING == "none"
@@ -317,7 +320,7 @@
 
    beginLoops()
      #If #FORCING == "twilightZone"
-       call ogf3dfo(ep,fieldOption,xy(i1,i2,i3,0),xy(i1,i2,i3,1),xy(i1,i2,i3,2),t, u0,v0,w0)
+       call ogf3dfo(ep,ex,ey,ez,fieldOption,xy(i1,i2,i3,0),xy(i1,i2,i3,1),xy(i1,i2,i3,2),t, u0,v0,w0)
        uv(ex)=u0
        uv(ey)=v0
        uv(ez)=w0
@@ -3542,8 +3545,8 @@
        aDotUp=(a11*u(i1,i2+js2,i3,ex)+a12*u(i1,i2+js2,i3,ey))
 
        #If #FORCING == "twilightZone"
-         call ogf2dfo(ep,fieldOption,xy(i1,i2-js2,i3,0),xy(i1,i2-js2,i3,1),t, um,vm,wm)
-         call ogf2dfo(ep,fieldOption,xy(i1,i2+js2,i3,0),xy(i1,i2+js2,i3,1),t, up,vp,wp)
+         call ogf2dfo(ep,ex,ey,hz,fieldOption,xy(i1,i2-js2,i3,0),xy(i1,i2-js2,i3,1),t, um,vm,wm)
+         call ogf2dfo(ep,ex,ey,hz,fieldOption,xy(i1,i2+js2,i3,0),xy(i1,i2+js2,i3,1),t, up,vp,wp)
          aDotUp=aDotUp - ( a11*up + a12*vp ) 
          aDotUm=aDotUm - ( a11*um + a12*vm ) 
          g2a=wm-wp
@@ -3573,8 +3576,8 @@
        aDotUp=(a11*u(i1+js1,i2,i3,ex)+a12*u(i1+js1,i2,i3,ey))
 
        #If #FORCING == "twilightZone"
-         call ogf2dfo(ep,fieldOption,xy(i1-js1,i2,i3,0),xy(i1-js1,i2,i3,1),t, um,vm,wm)
-         call ogf2dfo(ep,fieldOption,xy(i1+js1,i2,i3,0),xy(i1+js1,i2,i3,1),t, up,vp,wp)
+         call ogf2dfo(ep,ex,ey,hz,fieldOption,xy(i1-js1,i2,i3,0),xy(i1-js1,i2,i3,1),t, um,vm,wm)
+         call ogf2dfo(ep,ex,ey,hz,fieldOption,xy(i1+js1,i2,i3,0),xy(i1+js1,i2,i3,1),t, up,vp,wp)
          aDotUp=aDotUp - ( a11*up + a12*vp ) 
          aDotUm=aDotUm - ( a11*um + a12*vm ) 
          g2a=wm-wp
@@ -3592,10 +3595,10 @@
       #Elif #GRIDTYPE == "rectangular"
 
        #If #FORCING == "twilightZone"
-         call ogf2dfo(ep,fieldOption,xy(i1,i2,i3,0),xy(i1,i2,i3,1),t, u0,v0,w0)
+         call ogf2dfo(ep,ex,ey,hz,fieldOption,xy(i1,i2,i3,0),xy(i1,i2,i3,1),t, u0,v0,w0)
 
-         call ogf2dfo(ep,fieldOption,xy(i1,i2-js2,i3,0),xy(i1,i2-js2,i3,1),t, um,vm,wm)
-         call ogf2dfo(ep,fieldOption,xy(i1,i2+js2,i3,0),xy(i1,i2+js2,i3,1),t, up,vp,wp)
+         call ogf2dfo(ep,ex,ey,hz,fieldOption,xy(i1,i2-js2,i3,0),xy(i1,i2-js2,i3,1),t, um,vm,wm)
+         call ogf2dfo(ep,ex,ey,hz,fieldOption,xy(i1,i2+js2,i3,0),xy(i1,i2+js2,i3,1),t, up,vp,wp)
          g1=um-2.*u0+up
          g2=vm-vp
          g3=wm-wp
@@ -3605,8 +3608,8 @@
          u(i1,i2-js2,i3,hz)=u(i1,i2+js2,i3,hz)+g3
 
 
-         call ogf2dfo(ep,fieldOption,xy(i1-js1,i2,i3,0),xy(i1-js1,i2,i3,1),t, um,vm,wm)
-         call ogf2dfo(ep,fieldOption,xy(i1+js1,i2,i3,0),xy(i1+js1,i2,i3,1),t, up,vp,wp)
+         call ogf2dfo(ep,ex,ey,hz,fieldOption,xy(i1-js1,i2,i3,0),xy(i1-js1,i2,i3,1),t, um,vm,wm)
+         call ogf2dfo(ep,ex,ey,hz,fieldOption,xy(i1+js1,i2,i3,0),xy(i1+js1,i2,i3,1),t, up,vp,wp)
          g1=um-up
          g2=vm-2.*v0+vp
          g3=wm-wp
@@ -3740,6 +3743,7 @@
  integer is1,is2,is3,js1,js2,js3,ks1,ks2,ks3,ls1,ls2,ls3,orderOfAccuracy,gridType,debug,grid,\
         side,axis,useForcing,ex,ey,ez,hx,hy,hz,useWhereMask,side1,side2,side3,m1,m2,m3,bc1,bc2,\
         forcingOption,fieldOption,boundaryForcingOption
+ integer polarizationOption,dispersionModel
 
  real dt,kx,ky,kz,eps,mu,c,cc,twoPi,slowStartInterval,ssf,ssft,ssftt,ssfttt,ssftttt,tt
 
@@ -3920,6 +3924,8 @@
  real t100,t101,t102,t103,t104,t105,t106,t107,t108,t109
  real t110,t111,t112,t113,t114,t115,t116,t117,t118,t119
 
+ #Include "dispersionFortranInclude.h"
+
 !     --- start statement function ----
  integer kd,m,n
  real rx,ry,rz,sx,sy,sz,tx,ty,tz
@@ -4007,6 +4013,8 @@
 
  fieldOption          =ipar(29)  ! 0=assign field, 1=assign time derivatives
  boundaryForcingOption=ipar(32)  ! option when solving for scattered field directly
+ polarizationOption   =ipar(33)
+ dispersionModel      =ipar(34)
 
  dx(0)                =rpar(0)
  dx(1)                =rpar(1)
@@ -4042,6 +4050,10 @@
  cpwY0                =rpar(35)   ! y0
  cpwZ0                =rpar(36)   ! z0
 
+ ! variables for dispersive plane wave
+ sr                   =rpar(37)  ! Re(s)
+ si                   =rpar(38)  ! Im(s) 
+
  dxa=dx(0)
  dya=dx(1)
  dza=dx(2)
@@ -4060,8 +4072,21 @@ epsX = 1.e-30  ! epsilon used to avoid division by zero in the normal computatio
  cc= c*sqrt( kx*kx+ky*ky+kz*kz )
  ! write(*,'(" ***assign corners: forcingOption=",i4," twoPi=",f18.14," cc=",f10.7)') forcingOption,twoPi,cc
 
+ if( fieldOption.ne.0 .and. fieldOption.ne.1 )then
+   write(*,'("bcMxCorners: error: fieldOption=",i6)') fieldOption
+   stop 1673
+ end if
+ if( polarizationOption.ne.0 .and. t.le.2.*dt )then
+   write(*,'(" ***assign corners: polarizationOption=",i2,"ex,ey,hz=",3i2)') polarizationOption,ex,ey,hz
+ end if
+
  ! initialize parameters used in slow starts (e.g. for plane waves)
  initializeBoundaryForcing(t,slowStartInterval)
+
+ ! initialize dispersive plane wave parameters
+ if( dispersionModel .ne. noDispersion )then
+   initializeDispersivePlaneWave()
+ end if
 
  numberOfGhostPoints=orderOfAccuracy/2
 

@@ -4222,8 +4222,9 @@ changeNormal(Widget widget, XtPointer clinet_data, XtPointer call_data )
 }
 
 // =====================================================================================
-/// \brief call-back function to position a dialog on the scree
+/// \brief call-back function to position a dialog on the screen
 /// \details The location of the dialog can be set from the .overturerc file.
+///   One can also set how much a new dialog is shifted from the previous.
 // =====================================================================================
 void
 positionDialog(Widget dialog, XtPointer client_data, XtPointer call_data )
@@ -4260,6 +4261,8 @@ positionDialog(Widget dialog, XtPointer client_data, XtPointer call_data )
     currentDialogNy += dialogOffsetNy;
     if( currentDialogNy>height-300 ) currentDialogNy=0;
     
+    // printF("--MOGL-- positionDialog: currentDialogNx=%i currentDialogNy=%i\n",currentDialogNx,currentDialogNy);
+
     XtVaSetValues(dialog,
 		  XmNx, xPosition,
 		  XmNy, yPosition,
@@ -4270,6 +4273,8 @@ positionDialog(Widget dialog, XtPointer client_data, XtPointer call_data )
 
 }
 
+// =====================================================================================
+// =====================================================================================
 void
 clippingPlanesDialog(Widget pb, XtPointer client_data, XtPointer call_data)
 {
@@ -5558,13 +5563,16 @@ viewCharacteristicsDialog(Widget pb, XtPointer client_data, XtPointer call_data)
   OGLWindowList[viewChar_->win_number]->viewCharOpen = 1;
 }
 
+// =====================================================================================
+/// \brief Destroy a user dialog 
+// =====================================================================================
 static void 
 destroyUserDialog( Widget w, XtPointer client_data, XtPointer call_data)
 {
-// Note that the dialog window is closed by calling closeDialog from the application.
+  // Note that the dialog window is closed by calling closeDialog from the application.
   DialogData & dialogSpec = *((DialogData *)client_data);
   
-// break out of the eventloop. 
+  // break out of the eventloop. 
   setMenuNameChosen(SC dialogSpec.getExitCommand().c_str());
   menuItemChosen=(dialogSpec.getBuiltInDialog())? -1:1;
   exitEventLoop=TRUE;
@@ -6004,12 +6012,15 @@ setSensitive(bool trueOrFalse, WidgetTypeEnum widgetType, const aString & label)
 }
 
 
+// ===============================================================================================
+/// \brief Close a dialog
+// ===============================================================================================
 void DialogData::
 closeDialog()
 {
   int i;
   
-  if (dialogWindow)
+  if( dialogWindow )
   {
 
     // *wdh* 100712 -- clean up these other objects: 
@@ -6017,12 +6028,23 @@ closeDialog()
     deleteToggleButtons();
     deleteInfoLabels();
 
+    if(XtIsManaged((Widget)dialogWindow) ) // this dialog is open 
+    {
+      // -- shift the current location for the dialog backward ---
+      currentDialogNx -= dialogOffsetNx;  
+      currentDialogNy -= dialogOffsetNy;
+      // printF("--MOGL-- closeDialog: currentDialogNx=%i currentDialogNy=%i\n",currentDialogNx,currentDialogNy);
+    }
+    
+
     for (i=0; i<n_text; i++)
     {
       XtDestroyWidget((Widget)textBoxes[i].textWidget);
       textBoxes[i].textWidget = NULL;
     }
     XtDestroyWidget((Widget)dialogWindow); // make sure it isn't closed twice!
+
+
   }
   
   dialogWindow = NULL; // remember that the dialog window now is closed
@@ -6627,6 +6649,11 @@ hideSibling()
   Widget d = (Widget) dialogWindow;
   if (d && XtIsManaged(d))
   {
+    // -- shift the current location for the dialog backward ---
+    currentDialogNx -= dialogOffsetNx;  
+    currentDialogNy -= dialogOffsetNy;
+    // printF("--MOGL-- hideSibling: currentDialogNx=%i currentDialogNy=%i\n",currentDialogNx,currentDialogNy);
+
     XtUnmanageChild(d);
     return 1;
   }

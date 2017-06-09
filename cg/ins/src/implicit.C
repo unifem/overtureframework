@@ -62,6 +62,8 @@ void insimp(const int&nd,const int&nd1a,const int&nd1b,const int&nd2a,const int&
 #define UZ(c)   uz(I1,I2,I3,c)
 
 
+
+
 void Cgins::
 buildImplicitSolvers(CompositeGrid & cg)
 // ==========================================================================================
@@ -137,14 +139,38 @@ buildImplicitSolvers(CompositeGrid & cg)
 	      if( bc==Parameters::slipWall ||
                   bc==InsParameters::inflowWithPressureAndTangentialVelocityGiven ) // *wdh* 090725
 	      {
-		if( cg[grid].isRectangular() && 
-                    !parameters.gridIsMoving(grid) ) // added check or moving grid *wdh* 2015/11/28
+		// if( cg[grid].isRectangular() && 
+                //     !parameters.gridIsMoving(grid) ) // added check or moving grid *wdh* 2015/11/28
+
+		int normalAxis=-1;
+		if( faceIsACoordinatePlane(side, axis, grid, cg, normalAxis ) ) // *new* May 13, 2017
 		{
+		  if( !cg[grid].isRectangular() )
+		  {
+                    // -- Save the info about this face : used later when setting Oges boundary conditions --
+                    if( !parameters.dbase.has_key("specialBoundaryInfo") )
+		    {
+		      IntegerArray & specialBoundaryInfo = parameters.dbase.put<IntegerArray>("specialBoundaryInfo");
+                      specialBoundaryInfo.redim(1,2,3,cg.numberOfComponentGrids());
+		      specialBoundaryInfo=-1;
+		    }
+		    IntegerArray & specialBoundaryInfo = parameters.dbase.get<IntegerArray>("specialBoundaryInfo");
+                    specialBoundaryInfo(0,side,axis,grid)=normalAxis;
+
+		    printF("--buildImplicitSolvers--INFO: face (side,axis,grid,name)=(%i,%i,%i,%s) was found to be a"
+                           "flat-face parallel to coordinate plane normalAxis=%i => Implicit solvers are de-coupled.\n",
+			   side,axis,grid,(const char*)cg[grid].getName(),normalAxis);
+		  }
+		  
 		  // BC's are not the same but they are decoupled -- we can use multiple scalar solvers.
 		  numberOfImplicitSolversNeeded=cg.numberOfDimensions();
 		}
 		else
 		{
+		    printF("--buildImplicitSolvers--INFO: face (side,axis,grid,name)=(%i,%i,%i,%s) was a slipWall\n"
+                           "  or inflowWithPressureAndTangentialVelocityGiven => Implicit solvers are COUPLED.\n",
+                            side,axis,grid,(const char*)cg[grid].getName());
+
 		  numberOfImplicitSolversNeeded=1;
 		  scalarSystemForImplicitTimeStepping=false;
                   useFullSystemForImplicitTimeStepping=true;  // *wdh* 110318
@@ -3591,30 +3617,46 @@ setOgesBoundaryConditions( GridFunction &cgf, IntegerArray & boundaryConditions,
 	switch( mg.boundaryCondition(side,axis) )
 	{
 	case Parameters::slipWall:
+	{
+	  int normalAxis=axis;
 	  if( !(isRectanglar && numberOfImplicitSolvers>0) && !useFullSystemForImplicitTimeStepping )
 	  {
-	    printF("Cgins::setOgesBoundaryConditions:ERROR:A slip wall BC cannot be treated with scalar\n"
-                   " implicit system on a grid that is not Cartesian since the boundary conditions \n"
-                   " do not decouple. This case should not happen!\n");
-            printF(" numberOfImplicitSolvers=%i\n"
-                   " numberOfImplicitVelocitySolvers=%i \n"
-                   " useFullSystemForImplicitTimeStepping=%i\n"
-                   " scalarSystemForImplicitTimeStepping=%i\n",
-                   numberOfImplicitSolvers,numberOfImplicitVelocitySolvers,
-                   useFullSystemForImplicitTimeStepping,(int)scalarSystemForImplicitTimeStepping);
+            // -- this may be a face on a non-rectangular grid -- we have detemrined previously if this
+            //   face is parallel to a coordinate plane.
+	    normalAxis=-1; // assume invalid face
+            if( parameters.dbase.has_key("specialBoundaryInfo") )
+	    {
+	      IntegerArray & specialBoundaryInfo = parameters.dbase.get<IntegerArray>("specialBoundaryInfo");
+	      normalAxis=specialBoundaryInfo(0,side,axis,grid);
+	    }
 	    
-	    OV_ABORT("error");
+	    if( normalAxis<0 )
+	    {
+	      printF("Cgins::setOgesBoundaryConditions:ERROR:A slip wall BC cannot be treated with scalar\n"
+		     " implicit system on a grid that is not Cartesian since the boundary conditions \n"
+		     " do not decouple. This case should not happen!\n");
+	      printF(" numberOfImplicitSolvers=%i\n"
+		     " numberOfImplicitVelocitySolvers=%i \n"
+		     " useFullSystemForImplicitTimeStepping=%i\n"
+		     " scalarSystemForImplicitTimeStepping=%i\n",
+		     numberOfImplicitSolvers,numberOfImplicitVelocitySolvers,
+		     useFullSystemForImplicitTimeStepping,(int)scalarSystemForImplicitTimeStepping);
+	    
+	      OV_ABORT("error");
+	    }
 	  }
 	  
-	  if( axis==imp )
+	  if( normalAxis==imp )
 	  { // The normal component to a horizontal or vertical wall has a dirichlet BC
 	    boundaryConditions(side,axis,grid)=OgesParameters::dirichlet; 
 	  }
 	  else
-	  {
+	  { // tangential components of velocity have Neumann BCs
 	    boundaryConditions(side,axis,grid)=OgesParameters::neumann;  
 	  }
 	  break;
+	}
+	
 	case Parameters::noSlipWall:
 	case InsParameters::inflowWithVelocityGiven:
 	case Parameters::dirichletBoundaryCondition:
@@ -3638,24 +3680,43 @@ setOgesBoundaryConditions( GridFunction &cgf, IntegerArray & boundaryConditions,
 	  Overture::abort("implicit method not implemented for this BC");
 	  break;
 	case InsParameters::inflowWithPressureAndTangentialVelocityGiven:
+	{
 	  // assert( isRectanglar && numberOfImplicitSolvers>0 );
 	  assert( numberOfImplicitSolvers>0 );
           // For now we require the grid to be rectangular, possibly stretched.
+
+	  int normalAxis=axis;
           if( !isRectanglar )
 	  {
-	    printF("--INS--WARNING: implicitMatrix: BC=inflowWithPressureAndTangentialVelocityGiven"
-                   " grid=%i is not rectangular : this case only works if grid is a stretched rectangle\n",grid);
+           // -- this may be a face on a non-rectangular grid -- we have detemrined previously if this
+            //   face is parallel to a coordinate plane.
+	    normalAxis=-1; // assume invalid face
+            if( parameters.dbase.has_key("specialBoundaryInfo") )
+	    {
+	      IntegerArray & specialBoundaryInfo = parameters.dbase.get<IntegerArray>("specialBoundaryInfo");
+	      normalAxis=specialBoundaryInfo(0,side,axis,grid);
+	    }
+	    
+	    if( normalAxis<0 )
+	    {
+	      printF("--INS--WARNING: implicitMatrix: BC=inflowWithPressureAndTangentialVelocityGiven"
+		     " grid=%i is not rectangular : this case only works if grid is a stretched rectangle\n",grid);
+	      OV_ABORT("ERROR");
+	    }
 	  }
 
-	  if( axis!=imp )
+	  if( normalAxis!=imp )
 	  {// The tangential component to a horizontal or vertical wall has a dirichlet BC
 	    boundaryConditions(side,axis,grid)=OgesParameters::dirichlet; 
 	  }
 	  else
 	  {
+            // normal component is Neumann
 	    boundaryConditions(side,axis,grid)=OgesParameters::neumann;  
 	  }
 	  break;
+	}
+	
 	case InsParameters::outflow:
 	case InsParameters::tractionFree:
 	case InsParameters::convectiveOutflow:

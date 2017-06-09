@@ -841,6 +841,8 @@ update( CompositeGrid & cg, GenericGraphicsInterface & gi )
       IntegerArray il(1,4); il=0; // holds (donor,i1,i2,i3)
       RealArray ci(1,3);    ci=0.;
 
+      cg.update(MappedGrid::THEmask); 
+      
       InterpolatePointsOnAGrid::findNearestValidGridPoint( cg, x, il, ci );
 
       grid = il(0,0);  // donor grid 

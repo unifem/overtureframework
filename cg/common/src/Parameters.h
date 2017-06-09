@@ -324,6 +324,13 @@ enum KnownSolutionsEnum
 //  supersonicFlowInAnExpandingChannel  // put this here for now -- add this to userDefined ---
 };
 
+enum DeformingBodyStateOptionEnum
+{
+  boundaryPosition=0,
+  boundaryVelocity,
+  boundaryAcceleration
+};
+
 
 // public functions
 Parameters(const int & numberOfDimensions0=3);
@@ -516,7 +523,12 @@ int getUserDefinedKnownSolutionRigidBody( int body, real t,
 					  RealArray & aCM      = Overture::nullRealArray(),
 					  RealArray & omega    = Overture::nullRealArray(), 
 					  RealArray & omegaDot = Overture::nullRealArray() );
-
+virtual int 
+getUserDefinedDeformingBodyKnownSolution( 
+  int body,
+  DeformingBodyStateOptionEnum stateOption, 
+  const real time, const int grid, MappedGrid & mg, const Index &I1, const Index &I2, const Index &I3, 
+  realSerialArray & state );
 
 virtual
 bool gridIsMoving(int grid) const;

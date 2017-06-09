@@ -59,24 +59,26 @@ ogf2d(OGFunction *&ep, const real &x, const real &y, const real & t, real & u, r
 
 /* return (u,v,w) = (Ex,Ey,Hz) if fieldOption=0 or (u,v,w) = (Ex_t,Ey_t,Hz_t) if fieldOption=1 */
 void
-ogf2dfo(OGFunction *&ep, const int & fieldOption, const real &x, const real &y, const real & t, real & u, real & v, real & w )
+ogf2dfo(OGFunction *&ep, const int &ex, const int &ey, const int &hz, const int & fieldOption, 
+                const real &x, const real &y, const real & t, real & u, real & v, real & w )
 {
-    /* assumes ex=0, ey=1, hz=2 */
     if( fieldOption==0 )
     {
-        u=(*ep)(x,y,0.,0,t);
-        v=(*ep)(x,y,0.,1,t);
-        w=(*ep)(x,y,0.,2,t);
+        u=(*ep)(x,y,0.,ex,t);
+        v=(*ep)(x,y,0.,ey,t);
+        w=(*ep)(x,y,0.,hz,t);
     }
     else if( fieldOption==1 )
     {
-        u=(*ep)(x,y,0.,3,t);
-        v=(*ep)(x,y,0.,4,t);
-        w=(*ep)(x,y,0.,5,t);
+        /* assumes ex=0, ext=3 */
+        u=(*ep)(x,y,0.,ex+3,t);
+        v=(*ep)(x,y,0.,ex+4,t);
+        w=(*ep)(x,y,0.,ex+5,t);
     }
     else
     {
         printf("ogf2dfo:ERROR - fieldOption=%i\n",fieldOption);
+        OV_ABORT("error");
     }
     
 }
@@ -112,20 +114,22 @@ ogf3d(OGFunction *&ep, const real &x, const real &y, const real &z, const real &
 
 /* return (u,v,w) = (Ex,Ey,Ez) if fieldOption==0, return (u,v,w) = (Ex_t,Ey_t,Ez_t) if fieldOption==1 */
 void
-ogf3dfo(OGFunction *&ep, const int & fieldOption, const real &x, const real &y, const real &z, const real & t, real & u, real & v, real & w )
+ogf3dfo(OGFunction *&ep, const int &ex, const int &ey, const int &ez, const int & fieldOption, 
+                const real &x, const real &y, const real &z, const real & t, real & u, real & v, real & w )
 {
     /* assumes ex=0, ey=1, ez=2 */
     if( fieldOption==0 )
     {
-        u=(*ep)(x,y,z,0,t);
-        v=(*ep)(x,y,z,1,t);
-        w=(*ep)(x,y,z,2,t);
+        u=(*ep)(x,y,z,ex,t);
+        v=(*ep)(x,y,z,ey,t);
+        w=(*ep)(x,y,z,ez,t);
     }
     else if( fieldOption==1 )
     {
-        u=(*ep)(x,y,z,3,t);
-        v=(*ep)(x,y,z,4,t);
-        w=(*ep)(x,y,z,5,t);
+        /* assumes ex=0, ext=3 */
+        u=(*ep)(x,y,z,ex+3,t);
+        v=(*ep)(x,y,z,ex+4,t);
+        w=(*ep)(x,y,z,ex+5,t);
     }
     else
     {

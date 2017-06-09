@@ -331,6 +331,8 @@ getUserDefinedKnownSolution(real t, CompositeGrid & cg, int grid, realArray & ua
     const real ck2 = SQR(c*kk);
 
     // compute coefficients of P :   s = sr+I*si = -I*omega = -I*( omegar + I omegai) = omegai - I*omegar
+    //     s^2 E = -(c*k)^2 E - (s^2/eps) * P 
+    // ->  P = -eps*( 1 + (c*k/s)^2 ) E 
     real sr = omegaDpwIm, si=-omegaDpwRe;
     real sNorm2=sr*sr+si*si, sNorm4=sNorm2*sNorm2;
     real pc = -eps*( -2.*sr*si*ck2/sNorm4 );

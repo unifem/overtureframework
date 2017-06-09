@@ -1364,14 +1364,91 @@ else if( bc0.eq.slipWall )then
  endLoops()
 
 else if( bc0.eq.inflowWithPandTV )then
-  ! -- pressure and tangential velocity given --
+
+  ! ------------------------------------------------
+  ! ---- pressure and tangential velocity given ----
+  ! ------------------------------------------------
 
  write(*,'("insImpINS: fill in BC pressure and tangential velocity ** check me** ")') 
- write(*,'(" fillCoefficientsScalarSystem=",i4)') fillCoefficientsScalarSystem
  if( fillCoefficientsScalarSystem.ge.fillCoeffU .and. fillCoefficientsScalarSystem.le.fillCoeffW )then
-   write(*,'(" insImpINS: bc0.eq.inflowWithPandTV not finished for scalar systems")')
-   stop 8140
- end if
+
+  write(*,'(" fillCoefficientsScalarSystem=",i4)') fillCoefficientsScalarSystem
+
+  ! --- fill coefficients for scalar systems ---
+  ! This only works if the boundary face is on a plane x=constant, y=constant or z=constant 
+  ! Added May 13, 2017 *wdh*
+  beginLoopsMixedBoundary()
+ 
+   opEvalJacobianDerivatives(aj,1)
+   getCoeff(identity, iCoeff,aj)
+
+   getNormalForCurvilinearGrid(side,axis,i1,i2,i3)
+   ! -- The grid face should be in a coordinate direction,
+   !   normalAxis = 0,1, or 2 indicates this direction
+   if( abs(abs(an(0))-1.) .lt. normalTol )then
+    normalAxis=0
+   else if( abs(abs(an(1))-1.) .lt. normalTol )then
+    normalAxis=1
+   else if(  abs(abs(an(2))-1.) .lt. normalTol )then
+    normalAxis=2
+   else
+     write(*,'(" insImpINS: ERROR: inflowWithPandTV, scalar systems but normals funny")')
+     write(*,'("  --> the normals should be in a coordinate direction")')
+     stop 1287
+   end if
+
+   !  --- equations for u ---
+   if( fillCoefficientsScalarSystem.eq.fillCoeffU )then
+     if( normalAxis.eq.0 )then 
+      ! boundary face is x=constant:
+      !  Give u.n = 0 
+      getNormalForCurvilinearGrid(side,axis,i1,i2,i3)
+      fillMatrixNeumann(coeff, cmpu,eqnu, i1,i2,i3, an,0.,1. )  ! Neuman: U_r = 
+     else
+      ! boundary face is y=constant, or z=constant : give u=0 
+      zeroMatrixCoefficients( coeff,eqnu,eqnu, i1,i2,i3 )  ! set u eqn coeffs to zero
+      setCoeff1(cmpu,eqnu,coeff,iCoeff)                    ! dirichlet: U= 
+      fillMatrixExtrapolation(coeff,cmpu,eqnu,i1,i2,i3,orderOfExtrapolation,1)  ! extrap ghost for U 
+     end if
+
+   !  --- equations for v ---
+   else if( fillCoefficientsScalarSystem.eq.fillCoeffV )then
+     if( normalAxis.eq.1 )then
+      ! boundary face is y=constant:
+      !  Give v.n = 0 
+      getNormalForCurvilinearGrid(side,axis,i1,i2,i3)
+      fillMatrixNeumann(coeff, cmpv,eqnv, i1,i2,i3, an,0.,1. )  ! Neuman: V_r = 
+     else
+      ! boundary face is x=constant, or z=constant : give v=0 
+      zeroMatrixCoefficients( coeff,eqnv,eqnv, i1,i2,i3 )  ! set v eqn coeffs to zero
+      setCoeff1(cmpv,eqnv,coeff,iCoeff)                    ! dirichlet: V= 
+      fillMatrixExtrapolation(coeff,cmpv,eqnv,i1,i2,i3,orderOfExtrapolation,1)  ! extrap ghost for V 
+     end if
+
+   !  --- equations for w ---
+   else if( fillCoefficientsScalarSystem.eq.fillCoeffW )then
+     if( normalAxis.eq.2 )then
+      ! boundary face is z=constant:
+      !  Give w.n = 0 
+      getNormalForCurvilinearGrid(side,axis,i1,i2,i3)
+      fillMatrixNeumann(coeff, cmpw,eqnw, i1,i2,i3, an,0.,1. )  ! Neuman: W_r = 
+     else
+      ! boundary face is x=constant, or y=constant : give w=0 
+      zeroMatrixCoefficients( coeff,eqnw,eqnw, i1,i2,i3 )  ! set w eqn coeffs to zero
+      setCoeff1(cmpw,eqnw,coeff,iCoeff)                    ! dirichlet: W= 
+      fillMatrixExtrapolation(coeff,cmpw,eqnw,i1,i2,i3,orderOfExtrapolation,1)  ! extrap ghost for W 
+     end if
+
+   else
+     write(*,'(" insImpINS: bc0.eq.inflowWithPandTV -- unknown option")')
+     stop 8141
+   end if
+ 
+  endLoops()
+
+
+else
+  ! ****** inflowWithPandTV: vector system *********
 
  getCoeff(identity, iCoeff,aj)
 
@@ -1422,6 +1499,8 @@ else if( bc0.eq.inflowWithPandTV )then
 
  endLoops()
 
+end if  ! end vector system 
+
 else if( bc0.eq.axisymmetric )then
 
  if( fillCoefficientsScalarSystem.eq.fillCoeffU )then
@@ -1436,7 +1515,7 @@ else if( bc0.eq.axisymmetric )then
    ! getCoeff(identity, iCoeff,aj)
    !zeroMatrixCoefficients( coeff,eqnv,eqnv, i1,i2,i3 )  ! set v eqn coeffs to zero
    !setCoeff1(cmpv,eqnv,coeff,iCoeff)                ! dirichlet: V= 
-   !fillMatrixExtrapolation(coeff,cmpv,eqnv,i1,i2,i3,orderOfExtrapolation,1)  ! extrap ghost for V 
+   !fillMatrixExtrapolation(coe<ff,cmpv,eqnv,i1,i2,i3,orderOfExtrapolation,1)  ! extrap ghost for V 
  
    getNormalForCurvilinearGrid(side,axis,i1,i2,i3)
    fillMatrixNeumann(coeff, cmpu,eqnu, i1,i2,i3, an,0.,1. )  ! Neuman: U_r = 

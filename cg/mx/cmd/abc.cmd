@@ -69,11 +69,13 @@
 $tFinal=10.; $tPlot=.1; $diss=.0; $cfl=.9; $x0=0.5; $y0=0.5; $z0=0.; $kx=1; $ky=0; $kz=0.; 
 $grid="sib1.order4.hdf"; $ic="gs"; $ks="none"; $pmlLines=11; $pmlPower=6; $pmlStrength=50.; 
 $cons=0; $go="halt"; $rbc="abcEM2"; $bcn="debug $debug"; 
+$beta=100.; $omega=5.; # Gaussian souce
 * ----------------------------- get command line arguments ---------------------------------------
 GetOptions( "g=s"=>\$grid,"tf=f"=>\$tFinal,"diss=f"=>\$diss,"tp=f"=>\$tPlot,"show=s"=>\$show,"debug=i"=>\$debug, \
  "cfl=f"=>\$cfl, "bg=s"=>\$backGround,"bcn=s"=>\$bcn,"go=s"=>\$go,"noplot=s"=>\$noplot,"ic=s"=>\$ic,"bc=s"=>\$bc,\
   "dtMax=f"=>\$dtMax, "cons=i"=>\$cons,"x0=f"=>\$x0,"y0=f"=>\$y0,"z0=f"=>\$z0,"kx=i"=>\$kx,"ky=i"=>\$ky,"kz=i"=>\$kz,\
-   "ks=s"=>\$ks,"rbc=s"=>\$rbc,"pmlLines=i"=>\$pmlLines,"pmlPower=i"=>\$pmlPower,"pmlStrength=f"=>\$pmlStrength );
+   "ks=s"=>\$ks,"rbc=s"=>\$rbc,"pmlLines=i"=>\$pmlLines,"pmlPower=i"=>\$pmlPower,"pmlStrength=f"=>\$pmlStrength,\
+   "beta=f"=>\$beta,"omega=f"=>\$omega );
 * -------------------------------------------------------------------------------------------------
 if( $go eq "halt" ){ $go = "break"; }
 if( $go eq "og" ){ $go = "open graphics"; }
@@ -105,7 +107,7 @@ $ks
 kx,ky,kz $kx $ky $kz
 * gaussianPlaneWave
 * nx,ny 41 41
-Gaussian source: 100. 5. $x0 $y0 $z0
+Gaussian source: $beta $omega $x0 $y0 $z0
 Gaussian plane wave: 30. $x0 $y0 $z0
 tFinal $tFinal
 tPlot $tPlot

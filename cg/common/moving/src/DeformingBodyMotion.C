@@ -83,7 +83,7 @@ DeformingBodyMotion( Parameters & params,
     printF("\nDeformingBodyMotion -- Constructor called\n");
 
   // new way: add parameters to the data-base:
-  deformingBodyDataBase.put<int>("numberOfDeformingGrids",0);
+  deformingBodyDataBase.put<int>("numberOfDeformingGrids")=0;
 
   deformingBodyDataBase.put<int>("numberOfFaces",0);
   deformingBodyDataBase.put<IntegerArray>("boundaryFaces");
@@ -145,6 +145,9 @@ DeformingBodyMotion( Parameters & params,
 
   // Specifies whether the deforming body is defined by a bulk solid model (e.g. Cgsm).
   deformingBodyDataBase.put<int>("isBulkSolidModel")=0; 
+
+  // Use known solution for setting initial and past time conditions
+  deformingBodyDataBase.put<bool>("useKnownSolutionForInitialConditions")=false;
 
   pElasticFilament = NULL;  //.. zero the physics objects
 
@@ -251,6 +254,31 @@ writeParameterSummary( FILE *file /* =stdout */ )
   {
     pBeamModel->writeParameterSummary(file);
   }
+  else
+  {
+    const DeformingBodyType & deformingBodyType = deformingBodyDataBase.get<DeformingBodyType>("deformingBodyType");
+    const int & numberOfDeformingGrids = deformingBodyDataBase.get<int>("numberOfDeformingGrids");
+    const int & numberOfFaces = deformingBodyDataBase.get<int>("numberOfFaces");
+    const int & generatePastHistory = deformingBodyDataBase.get<int>("generatePastHistory");
+    const int & numberOfPastTimeLevels = deformingBodyDataBase.get<int>("numberOfPastTimeLevels");
+    const bool & useKnownSolutionForInitialConditions = 
+      deformingBodyDataBase.get<bool>("useKnownSolutionForInitialConditions");
+
+    // ** FINISH ME**
+    fPrintF(file,"----------------Deforming Body Parameters  -------------------------\n");
+    aString deformingBodyTypeName= (deformingBodyType==elasticFilament ? "elastic filament" :
+				    deformingBodyType==elasticBody ? "elastic body" :
+				    deformingBodyType==userDefinedDeformingBody ? "user defined deforming body" : 
+                                    "unknown type" );
+    
+    fPrintF(file," deformingBodyType=%s\n",(const char*)deformingBodyTypeName);
+    fPrintF(file," numberOfDeformingGrids=%i, numberOfFaces=%i\n",numberOfDeformingGrids,numberOfFaces);
+    fPrintF(file," generatePastHistory=%i, numberOfPastTimeLevels=%i\n",generatePastHistory,numberOfPastTimeLevels);
+    fPrintF(file," useKnownSolutionForInitialConditions=%i\n",(int)useKnownSolutionForInitialConditions);
+    fPrintF(file,"--------------------------------------------------------------------\n");
+    
+  }
+  
 }
 
 
@@ -566,8 +594,6 @@ getBoundaryFaces() const
 /// \brief return the initial state (e.g. position, velocity, acceleration)
 /// \details return the initial state of the deforming grid.
 // ===============================================================================================
-
-// return the initial state (position, velocity, acceleration)
 int DeformingBodyMotion::
 getInitialState( InitialStateOptionEnum stateOption, 
 		 const real time, const int grid, MappedGrid & mg,
@@ -578,6 +604,9 @@ getInitialState( InitialStateOptionEnum stateOption,
                   deformingBodyDataBase.get<DeformingBodyType>("deformingBodyType");
   const UserDefinedDeformingBodyMotionEnum & userDefinedDeformingBodyMotionOption = 
       deformingBodyDataBase.get<UserDefinedDeformingBodyMotionEnum>("userDefinedDeformingBodyMotionOption");
+  const bool & useKnownSolutionForInitialConditions = deformingBodyDataBase.get<bool>("useKnownSolutionForInitialConditions");
+
+  const Parameters::KnownSolutionsEnum & knownSolution = parameters.dbase.get<Parameters::KnownSolutionsEnum >("knownSolution");  
 
   if( true || debug & 2 ) 
     printF("-- DBM-- DeformingBodyMotion::getInitialState: stateOption=%i, grid=%i, t=%9.3e\n",(int)stateOption,grid,time);
@@ -586,7 +615,8 @@ getInitialState( InitialStateOptionEnum stateOption,
   Range Rx=numberOfDimensions;
   if( deformingBodyType==elasticFilament )
   {
-    if( stateOption==initialVelocity || stateOption==initialAcceleration )
+    if( stateOption==initialVelocity     || stateOption==initialBoundaryVelocity ||
+        stateOption==initialAcceleration || stateOption==initialBoundaryAcceleration )
     {
       state(I1,I2,I3,Rx)=0.;
     }
@@ -597,7 +627,7 @@ getInitialState( InitialStateOptionEnum stateOption,
   }
   else if( deformingBodyType==userDefinedDeformingBody )
   {
-    if( stateOption==initialVelocity )
+    if( stateOption==initialVelocity  ||  stateOption==initialBoundaryVelocity )
     {
       if( userDefinedDeformingBodyMotionOption==elasticBeam )
       {
@@ -643,37 +673,80 @@ getInitialState( InitialStateOptionEnum stateOption,
       else
       {
         // -- for now we only support constant initial grid velocity and grid acceleration --
-
-	if( !deformingBodyDataBase.has_key("initialVelocity") )
+	if( useKnownSolutionForInitialConditions )
 	{
-	  deformingBodyDataBase.put<real [3]>("initialVelocity");
-	  real *v0 = deformingBodyDataBase.get<real [3]>("initialVelocity");
-	  v0[0]=v0[1]=v0[2]=0.;
-	}
-	real *v0 = deformingBodyDataBase.get<real [3]>("initialVelocity");
-	if( true || debug & 2 )
-	  printF("-- DBM-- DeformingBodyMotion::getInitialState: Setting grid velocity to (%9.3e,%9.3e,%9.3e) at t=%9.3e.\n",v0[0],v0[1],v0[2],time);
+	  printF("-- DBM-- DeformingBodyMotion::getInitialState: knownSolution=%i\n",(int)knownSolution);
+	  int bodyNumber=0; // fix me for multiple deforming bodies
+	    
+	  parameters.getUserDefinedDeformingBodyKnownSolution( 
+	    bodyNumber,
+	    Parameters::boundaryVelocity, 
+	    time, grid, mg,I1,I2,I3,state );
 
-	for( int axis=0; axis<numberOfDimensions; axis++ )
-	  state(I1,I2,I3,axis)=v0[axis];
+	  if( true || debug & 2 )
+	  {
+	    printF("-- DBM-- DeformingBodyMotion::getInitialState: Setting velocity from known solution"
+		   " at t=%9.3e.\n",time);
+	    ::display(state(I1,I2,I3,Range(0,numberOfDimensions-1)),"velocity","%5.3f ");
+	  }
+	    
+	}
+	else
+	{
+
+	  if( !deformingBodyDataBase.has_key("initialVelocity") )
+	  {
+	    deformingBodyDataBase.put<real [3]>("initialVelocity");
+	    real *v0 = deformingBodyDataBase.get<real [3]>("initialVelocity");
+	    v0[0]=v0[1]=v0[2]=0.;
+	  }
+	  real *v0 = deformingBodyDataBase.get<real [3]>("initialVelocity");
+
+	  if( true || debug & 2 )
+	    printF("-- DBM-- DeformingBodyMotion::getInitialState: Setting grid velocity to (%9.3e,%9.3e,%9.3e) at t=%9.3e.\n",v0[0],v0[1],v0[2],time);
+
+	  for( int axis=0; axis<numberOfDimensions; axis++ )
+	    state(I1,I2,I3,axis)=v0[axis];
+	}
       }
       
     }
-    else if( stateOption==initialAcceleration )
+    else if( stateOption==initialAcceleration || stateOption==initialBoundaryAcceleration )
     {
-      if( !deformingBodyDataBase.has_key("initialAcceleration") )
+      if( useKnownSolutionForInitialConditions )
       {
-	deformingBodyDataBase.put<real [3]>("initialAcceleration");
-	real *a0 = deformingBodyDataBase.get<real [3]>("initialAcceleration");
-	a0[0]=a0[1]=a0[2]=0.;
+	printF("-- DBM-- DeformingBodyMotion::getInitialState: knownSolution=%i\n",(int)knownSolution);
+	int bodyNumber=0; // fix me for multiple deforming bodies
+	    
+	parameters.getUserDefinedDeformingBodyKnownSolution( 
+	  bodyNumber,
+	  Parameters::boundaryAcceleration, 
+	  time, grid, mg,I1,I2,I3,state );
+
+	if( true || debug & 2 )
+	{
+	  printF("-- DBM-- DeformingBodyMotion::getInitialState: Setting acceleration from known solution"
+		 " at t=%9.3e.\n",time);
+	  ::display(state(I1,I2,I3,Range(0,numberOfDimensions-1)),"acceleration","%5.3f ");
+	}
+	    
       }
-      real *a0 = deformingBodyDataBase.get<real [3]>("initialAcceleration");
-      for( int axis=0; axis<numberOfDimensions; axis++ )
-        state(I1,I2,I3,axis)=a0[axis];
+      else
+      {
+	if( !deformingBodyDataBase.has_key("initialAcceleration") )
+	{
+	  deformingBodyDataBase.put<real [3]>("initialAcceleration");
+	  real *a0 = deformingBodyDataBase.get<real [3]>("initialAcceleration");
+	  a0[0]=a0[1]=a0[2]=0.;
+	}
+	real *a0 = deformingBodyDataBase.get<real [3]>("initialAcceleration");
+	for( int axis=0; axis<numberOfDimensions; axis++ )
+	  state(I1,I2,I3,axis)=a0[axis];
 
-      if( true || debug & 2 )
-	printF("-- DBM-- DeformingBodyMotion::getInitialState: Setting grid acceleration to (%9.3e,%9.3e,%9.3e) at t=%9.3e.\n",a0[0],a0[1],a0[2],time);
-
+	if( true || debug & 2 )
+	  printF("-- DBM-- DeformingBodyMotion::getInitialState: Setting grid acceleration to (%9.3e,%9.3e,%9.3e) at t=%9.3e.\n",a0[0],a0[1],a0[2],time);
+      }
+      
     }
     else
     {
@@ -918,7 +991,11 @@ getVelocityBC( const real time0, const int grid, MappedGrid & mg, const Index &I
 
       if( time0<=0 ) 
       {
-	if( face>=0 && face<gridEvolution.size() && gridEvolution[face]->getNumberOfTimeLevels()>1 )
+        const bool & useKnownSolutionForInitialConditions = 
+                    deformingBodyDataBase.get<bool>("useKnownSolutionForInitialConditions");
+
+	if( face>=0 && face<gridEvolution.size() && gridEvolution[face]->getNumberOfTimeLevels()>1 &&
+            !useKnownSolutionForInitialConditions ) // *wdh* May 27, 2017
 	{
 	  printF("DeformingBodyMotion::getVelocityBC:INFO: the velocity can be computed at t=%9.3e since we have\n"
 		 " a past history of grids, face=%i, grid=%i, numberOfTimeLevels=%i\n",time0,face,grid,
@@ -928,7 +1005,7 @@ getVelocityBC( const real time0, const int grid, MappedGrid & mg, const Index &I
 	else
 	{
 	  // For initial times, if we don't have a past history of grids,  we use the following function: 
-	  getInitialState( initialVelocity,time0,grid,mg, I1,I2,I3,bcVelocity);
+	  getInitialState( initialBoundaryVelocity,time0,grid,mg, I1,I2,I3,bcVelocity);
 	}
       
       }
@@ -1076,7 +1153,11 @@ getAccelerationBC( const real time0, const int grid, const int side, const int a
     
     if( time0<=0 ) 
     {
-      if( face>=0 && face<gridEvolution.size() && gridEvolution[face]->getNumberOfTimeLevels()>2 )
+      const bool & useKnownSolutionForInitialConditions = 
+	deformingBodyDataBase.get<bool>("useKnownSolutionForInitialConditions");
+
+      if( face>=0 && face<gridEvolution.size() && gridEvolution[face]->getNumberOfTimeLevels()>2 &&
+          !useKnownSolutionForInitialConditions ) // *wdh* May 27, 2017
       {
         printF("DeformingBodyMotion::getAccelerationBC:INFO: the acceleration can be computed at t=%9.3e since we have\n"
                " a past history of grids, face=%i, grid=%i, numberOfTimeLevels=%i\n",time0,face,grid,
@@ -1086,7 +1167,7 @@ getAccelerationBC( const real time0, const int grid, const int side, const int a
       else
       {
 	// For initial times, if we don't have a past history of grids,  we use the following function:
-	getInitialState( initialAcceleration,time0,grid,mg, I1,I2,I3,bcAcceleration );
+	getInitialState( initialBoundaryAcceleration,time0,grid,mg, I1,I2,I3,bcAcceleration );
       }
       
     }
@@ -1897,7 +1978,7 @@ initializePast( real time00, real dt00, CompositeGrid & cg)
   DeformingBodyType & deformingBodyType = 
                   deformingBodyDataBase.get<DeformingBodyType>("deformingBodyType");
 
-  if( true ) printF("DeformingBodyMotion::initializePast:INFO: time=%8.2e\n",time00);
+  if( true ) printF("DeformingBodyMotion::initializePast:INFO: time=%8.2e, dt=%9.2e\n",time00,dt00);
 
   if( deformingBodyDataBase.get<int>("providePastHistory") )
   {
@@ -2063,78 +2144,108 @@ initializePast( real time00, real dt00, CompositeGrid & cg)
 	  }
           else if( userDefinedDeformingBodyMotionOption==interfaceDeform )
 	  {
-            // ** Here is a fudge **
-            const Parameters::KnownSolutionsEnum & knownSolution = parameters.dbase.get<Parameters::KnownSolutionsEnum >("knownSolution");  
-            if( knownSolution==Parameters::userDefinedKnownSolution )
+	    const bool & useKnownSolutionForInitialConditions = 
+                        deformingBodyDataBase.get<bool>("useKnownSolutionForInitialConditions");
+	    const Parameters::KnownSolutionsEnum & knownSolution = 
+                    parameters.dbase.get<Parameters::KnownSolutionsEnum >("knownSolution");  
+
+            if( useKnownSolutionForInitialConditions )
 	    {
-	      if( !parameters.dbase.get<DataBase >("modelData").has_key("userDefinedKnownSolutionData") )
+              // --- Get the position of the interface from a known solution ---
+
+	      printF("--DBM-- DeformingBodyMotion::initializePast: knownSolution=%i\n",(int)knownSolution);
+
+	      MappedGrid & mg = cg[gridToMove];
+              numGhost=0;
+              Index Ib1,Ib2,Ib3;
+	      getBoundaryIndex(mg.gridIndexRange(),sideToMove,axisToMove,Ib1,Ib2,Ib3,numGhost);
+	      xPast.redim(Ib1,Ib2,Ib3,numberOfDimensions);
+
+	      int bodyNumber=0; // fix me for multiple deforming bodies
+
+	      parameters.getUserDefinedDeformingBodyKnownSolution( 
+		bodyNumber,Parameters::boundaryPosition, pastTime, gridToMove, mg,Ib1,Ib2,Ib3,xPast );
+
+	      if( true || debug & 2 )
 	      {
-		printf("--DBM-- getInitialState: ERROR: sub-directory `userDefinedKnownSolutionData' not found!\n");
-		OV_ABORT("error");
+		printF("--DBM-- DeformingBodyMotion::initializePast: Setting position of interface at"
+		       " pastTime=%9.3e from KNOWN SOLUTION.\n",pastTime);
+		::display(xPast,"xPast","%9.2e ");
 	      }
-	      DataBase & db =  parameters.dbase.get<DataBase >("modelData").get<DataBase>("userDefinedKnownSolutionData");
 
-	      const aString & userKnownSolution = db.get<aString>("userKnownSolution");
-	      if( userKnownSolution=="travelingWaveFSIfluid" )
-	      {    
-		printF("--DBM-- getInitialState: userKnownSolution=[%s]\n",(const char*)userKnownSolution);
+	    }
+	    else // ******** OLD WAY ******
+	    {
 
-                numGhost=0;  //   -- no ghost   *wdh* 2014/07/12
+	      // ** Here is a fudge **
+	      if( knownSolution==Parameters::userDefinedKnownSolution )
+	      {
+		if( !parameters.dbase.get<DataBase >("modelData").has_key("userDefinedKnownSolutionData") )
+		{
+		  printf("--DBM-- getInitialState: ERROR: sub-directory `userDefinedKnownSolutionData' not found!\n");
+		  OV_ABORT("error");
+		}
+		DataBase & db =  parameters.dbase.get<DataBase >("modelData").get<DataBase>("userDefinedKnownSolutionData");
 
-                 // -- evaluate the FSI traveling wave solution ---
-		TravelingWaveFsi & travelingWaveFsi = *parameters.dbase.get<TravelingWaveFsi*>("travelingWaveFsi");
+		const aString & userKnownSolution = db.get<aString>("userKnownSolution");
+		if( userKnownSolution=="travelingWaveFSIfluid" )
+		{    
+		  printF("--DBM-- getInitialState: userKnownSolution=[%s]\n",(const char*)userKnownSolution);
 
-                // Only compute u1c and u2c in the solid: 
-		travelingWaveFsi.dbase.get<int>("u1c")=0;
-		travelingWaveFsi.dbase.get<int>("u2c")=1;
+		  numGhost=0;  //   -- no ghost   *wdh* 2014/07/12
 
-                Index Ib1,Ib2,Ib3;
-                MappedGrid & mg = cg[gridToMove];
-                getBoundaryIndex(mg.gridIndexRange(),sideToMove,axisToMove,Ib1,Ib2,Ib3,numGhost);
-		xPast.redim(Ib1,Ib2,Ib3,numberOfDimensions);
+		  // -- evaluate the FSI traveling wave solution ---
+		  TravelingWaveFsi & travelingWaveFsi = *parameters.dbase.get<TravelingWaveFsi*>("travelingWaveFsi");
+
+		  // Only compute u1c and u2c in the solid: 
+		  travelingWaveFsi.dbase.get<int>("u1c")=0;
+		  travelingWaveFsi.dbase.get<int>("u2c")=1;
+
+		  Index Ib1,Ib2,Ib3;
+		  MappedGrid & mg = cg[gridToMove];
+		  getBoundaryIndex(mg.gridIndexRange(),sideToMove,axisToMove,Ib1,Ib2,Ib3,numGhost);
+		  xPast.redim(Ib1,Ib2,Ib3,numberOfDimensions);
 		
-		travelingWaveFsi.getExactSolidSolution( xPast, pastTime, mg, Ib1, Ib2, Ib3, 0 );
+		  travelingWaveFsi.getExactSolidSolution( xPast, pastTime, mg, Ib1, Ib2, Ib3, 0 );
 
-                // const real fluidHeight = travelingWaveFsi.dbase.get<real>("height"); // ************* FIX ME ********
-                // xPast(Ib1,Ib2,Ib3,1) += fluidHeight;
-                Range Rx=numberOfDimensions;
-		if( numberOfDimensions==2 )
-		{
-		  for( int dir=0; dir<numberOfDimensions; dir++ )
-		    xPast(Ib1,Ib2,Ib3,dir) += x0(Ib1,dir);  // is this correct 
+		  // const real fluidHeight = travelingWaveFsi.dbase.get<real>("height"); // ************* FIX ME ********
+		  // xPast(Ib1,Ib2,Ib3,1) += fluidHeight;
+		  Range Rx=numberOfDimensions;
+		  if( numberOfDimensions==2 )
+		  {
+		    for( int dir=0; dir<numberOfDimensions; dir++ )
+		      xPast(Ib1,Ib2,Ib3,dir) += x0(Ib1,dir);  // is this correct 
+		  }
+		  else
+		  {
+		    for( int dir=0; dir<numberOfDimensions; dir++ )
+		      xPast(Ib1,Ib2,Ib3,dir) += x0(Ib1,Ib2,dir);
+		  }
+		  // ::display(xPast,sPrintF("--DBM-- initializePast: xPast from travelingWaveFsi at t=%9.3e",pastTime),"%9.3e ");
+
+		  // OV_ABORT("TRAVELING WAVE - FINISH ME");
+
 		}
-                else
+		else
 		{
-		  for( int dir=0; dir<numberOfDimensions; dir++ )
-		    xPast(Ib1,Ib2,Ib3,dir) += x0(Ib1,Ib2,dir);
+		  OV_ABORT("--DBM-- getInitialState: ERROR - unknown userKnownSolution, finish me");
 		}
-                // ::display(xPast,sPrintF("--DBM-- initializePast: xPast from travelingWaveFsi at t=%9.3e",pastTime),"%9.3e ");
 
-		// OV_ABORT("TRAVELING WAVE - FINISH ME");
-
-	      }
-	      else
-	      {
-		OV_ABORT("--DBM-- getInitialState: ERROR - unknown userKnownSolution, finish me");
-	      }
 	      
-	    }
-	    else
-	    {
-	      OV_ABORT("FINISH ME");
-	    }
+	      } // end if  knownSolution==userDefined
 	    
+	    } // end OLD WAY
+
 	  }
-	  else
+	  else  // not elastic beam or interfaceDeform
 	  {
 	    printF("--DBM-- WARNING : setting the past time grid to the grid at t=0 since `getPastTimeState' \n"
                    " is not available for this type of deforming grid. *fix me*\n");
 	    xPast=x0;
 	  }
-	  
 
-          int axisp = (axisToMove + 1) % numberOfDimensions;  // axis in the tangential direction 
-          Range Rx=numberOfDimensions;
+    	  int axisp = (axisToMove + 1) % numberOfDimensions;  // axis in the tangential direction 
+	  Range Rx=numberOfDimensions;
 	  xPast.reshape(xPast.dimension(axisp),Rx);
 	
 #ifdef USE_PPP
@@ -2202,12 +2313,13 @@ initializePast( real time00, real dt00, CompositeGrid & cg)
 	  }
 
 
-	}
+	} // end if userDefinedDeformingBody
 	else
 	{
 	  OV_ABORT("error: finish me");
 	}
 
+      
       }  // end for face
     } // end for step
     
@@ -6096,6 +6208,8 @@ update(CompositeGrid & cg, GenericGraphicsInterface & gi )
   real & pastTimeDt = deformingBodyDataBase.get<real>("pastTimeDt");    
   bool & evalGridAsNurbs = deformingBodyDataBase.get<bool>("evalGridAsNurbs");
   int & nurbsDegree = deformingBodyDataBase.get<int>("nurbsDegree");
+  bool & useKnownSolutionForInitialConditions = deformingBodyDataBase.get<bool>("useKnownSolutionForInitialConditions");
+
   // -- Boundary conditions ---
   if( !deformingBodyDataBase.has_key("boundaryCondition") )
   {
@@ -6153,6 +6267,7 @@ update(CompositeGrid & cg, GenericGraphicsInterface & gi )
                             "generate past history",
                             "regenerate initial grid",
                             "evaluate grid as Nurbs",
+                            "use known solution for initial conditions",
 			    ""};
     int tbState[10];
     tbState[0] = smoothSurface;
@@ -6160,6 +6275,8 @@ update(CompositeGrid & cg, GenericGraphicsInterface & gi )
     tbState[2] = generatePastHistory;
     tbState[3] = regenerateInitialGrid;
     tbState[3] = evalGridAsNurbs;
+    tbState[4] = useKnownSolutionForInitialConditions;
+    
     int numColumns=1;
     dialog.setToggleButtons(tbCommands, tbCommands, tbState, numColumns); 
 
@@ -6289,6 +6406,7 @@ update(CompositeGrid & cg, GenericGraphicsInterface & gi )
 
 	deformingBodyDataBase.put<aString>("surfaceGridMotion","free motion");
       }
+      dialog.getOptionMenu("Type:").setCurrentChoice("free surface"); 
 
     }
     else if( answer=="user defined deforming body" )
@@ -6338,6 +6456,7 @@ update(CompositeGrid & cg, GenericGraphicsInterface & gi )
     {
       deformingBodyType=userDefinedDeformingBody; 
       userDefinedDeformingBodyMotionOption=elasticShell;
+      dialog.getOptionMenu("Type:").setCurrentChoice("elastic shell"); 
     }
     else if( answer=="elastic beam" )
     {
@@ -6345,10 +6464,13 @@ update(CompositeGrid & cg, GenericGraphicsInterface & gi )
       userDefinedDeformingBodyMotionOption=elasticBeam;
       
       if( pBeamModel==NULL )
-	{
-	  //Longfei 20160331: use the sibling window to specify derived beamModel class
-	  elasticBeamOptionsDialog.showSibling();
-	}
+      {
+	//Longfei 20160331: use the sibling window to specify derived beamModel class
+	elasticBeamOptionsDialog.showSibling();
+      }
+
+      dialog.getOptionMenu("Type:").setCurrentChoice("elastic beam"); 
+
     }
     else if( answer=="nonlinear beam" )
     {
@@ -6379,6 +6501,7 @@ update(CompositeGrid & cg, GenericGraphicsInterface & gi )
       int & boundaryParameterization = deformingBodyDataBase.get<int>("boundaryParameterization");
       boundaryParameterization=NurbsMapping::NurbsMapping::parameterizeByIndex;
 
+      dialog.getOptionMenu("Type:").setCurrentChoice("bulk solid"); 
 
     }
     else if( answer=="deformation frequency" )
@@ -6799,6 +6922,14 @@ update(CompositeGrid & cg, GenericGraphicsInterface & gi )
     {
       if( evalGridAsNurbs )
         printF("INFO: The hyeprbolic surface grid will be evaluated using a Nurbs mapping. Set the `nurbs degree' as well.\n");
+    }
+
+    else if( dialog.getToggleValue(answer,"use known solution for initial conditions",useKnownSolutionForInitialConditions) )
+    {
+      if( useKnownSolutionForInitialConditions )
+        printF("INFO: Use known solution for initial conditions (if a known solution has been specified).\n");
+      else
+        printF("INFO: Do NOT use known solution for initial conditions (even if a known solution has been specified).\n");
     }
 
     else if( dialog.getTextValue(answer,"number of surface smooths:","%i",numberOfSurfaceSmooths) ){}// 
