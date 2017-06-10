@@ -4,7 +4,7 @@
 #include "FluidPiston.h"
 #include "PistonMotion.h"
 #include "ParallelUtility.h"
-
+#include "TimeFunction.h"
 
 #include "BeamModel.h"
 
@@ -294,7 +294,13 @@ getUserDefinedKnownSolution(real t, CompositeGrid & cg, int grid, RealArray & ua
     // const real p0 = pI - rhoFluid*H*aI*(1.-yI)/H;        // fluid pressure at y=H 
     // const real pAmp = (p0-pI)/(H-yI);
 
-
+    // *new way*
+    //   u2(y,t) = F(y+H) * F( cp*t ) (which satisfies the wave eqaution w_tt = cp^2 w_yy )
+    bool useNew=true;
+    TimeFunction & bsp = db.get<TimeFunction>("timeFunctionBSP");
+    real ft,ftp;
+    bsp.eval( cp*t, ft,ftp );  // ft = F(cp*t), ftp = d(ft)/dt
+    ftp *=cp;
 
     MappedGrid & mg = cg[grid];
     mg.update(MappedGrid::THEvertex | MappedGrid::THEcenter);
@@ -311,22 +317,51 @@ getUserDefinedKnownSolution(real t, CompositeGrid & cg, int grid, RealArray & ua
 
       const real sinky = sin(k*(y+Hbar));
 
+      real fs,fsp;
+      bsp.eval( y+Hbar, fs,fsp );  // fs = F(y+H), fsp = d(fs)/dy
+
       // displacement
-      u(i1,i2,i3,u1c)=0.;
-      u(i1,i2,i3,u2c)= amp * sinky * cost;
+      if( useNew )
+      {
+        u(i1,i2,i3,u1c)=0.;
+        u(i1,i2,i3,u2c)= fs*ft;
+      }
+      else
+      {
+        u(i1,i2,i3,u1c)=0.;
+        u(i1,i2,i3,u2c)= amp * sinky * cost;
+      }
+      
 
       // velocities
       if( assignVelocity )
       {
-	u(i1,i2,i3,v1c)=0.;
-	u(i1,i2,i3,v2c)= -amp*cp*k*sinky*sint;
+        if( useNew )
+        {
+          u(i1,i2,i3,v1c)=0.;
+          u(i1,i2,i3,v2c)=fs*ftp;
+        }
+        else
+        {
+          u(i1,i2,i3,v1c)=0.;
+          u(i1,i2,i3,v2c)= -amp*cp*k*sinky*sint;
+        }
+        
       }
       
       // stresses
+      real u2y;
       if( assignStress )
       {
-	real u2y = amp * k*cos(k*(y+Hbar)) * cost;
-
+        if( useNew )
+        {
+          u2y = fsp*ft;
+        }
+        else
+        {
+          u2y = amp * k*cos(k*(y+Hbar)) * cost;
+        }
+        
 	u(i1,i2,i3,s11c)=lambda*u2y;
 	u(i1,i2,i3,s12c)=0.;
 	u(i1,i2,i3,s21c)=0.;
@@ -516,6 +551,18 @@ updateUserDefinedKnownSolution(GenericGraphicsInterface & gi, CompositeGrid & cg
       sScanF(answer,"%e %e %e %e %e %e %e %e %e",&amp,&k,&phase,&H,&Hbar,&rho,&rhoBar,&lambdaBar,&muBar);
       printF("Setting amp=%g, k=%g,phase=%g,H=%g,Hbar=%g,rho=%g,lambdaBar=%g,muBar=%g,rhoBar=%g\n",
                   amp,k,phase,H,Hbar,rho,rhoBar,lambdaBar,muBar);
+
+      // The waveform for the exact solution is defined through a TimeFunction:
+      if( !db.has_key("timeFunctionBSP") )
+        db.put<TimeFunction>("timeFunctionBSP");
+
+      TimeFunction & timeFunction = db.get<TimeFunction>("timeFunctionBSP");
+      real rampStart=0., rampEnd=1.; // Ramp from 0 to 1,
+      real rampStartTime=.1, rampEndTime=.6;
+      int rampOrder=3;
+      timeFunction.setRampFunction( rampStart,rampEnd,rampStartTime,rampEndTime,rampOrder );
+
+      // ** FINISH ME**  
 
     }
     else

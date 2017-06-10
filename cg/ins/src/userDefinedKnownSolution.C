@@ -6,9 +6,9 @@
 #include "ParallelUtility.h"
 #include "DeformingBodyMotion.h"
 #include "RigidBodyMotion.h"
-
 #include "BeamModel.h"
 #include "BoundaryLayerProfile.h"
+#include "TimeFunction.h"
 
 #define rotatingDiskSVK EXTERN_C_NAME(rotatingdisksvk)
 #define zeroin EXTERN_C_NAME(zeroin)
@@ -1786,6 +1786,18 @@ updateUserDefinedKnownSolution(GenericGraphicsInterface & gi, CompositeGrid & cg
 	);
       gi.inputString(answer,"Enter amp, k,phase,H,Hbar,rho,lambdaBar,muBar,rhoBar");
       sScanF(answer,"%e %e %e %e %e %e %e %e %e",&amp,&k,&phase,&H,&Hbar,&rho,&rhoBar,&lambdaBar,&muBar);
+
+      // The waveform for the exact solution is defined through a TimeFunction:
+      if( !db.has_key("timeFunctionBSP") )
+        db.put<TimeFunction>("timeFunctionBSP");
+
+      TimeFunction & timeFunction = db.get<TimeFunction>("timeFunctionBSP");
+      real rampStart=0., rampEnd=1.; // Ramp from 0 to 1,
+      real rampStartTime=.1, rampEndTime=.6;
+      int rampOrder=3;
+      timeFunction.setRampFunction( rampStart,rampEnd,rampStartTime,rampEndTime,rampOrder );
+
+      // ** FINISH ME**      
 
     }
     

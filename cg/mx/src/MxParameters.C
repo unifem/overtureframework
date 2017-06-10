@@ -6,6 +6,8 @@
 #include "PlotStuff.h"
 #include "ProbeInfo.h"
 
+// ******* FINISH ME -- This is not used yet May, 2017 *wdh* *********
+
 int
 addPrefix(const aString label[], const aString & prefix, aString cmd[], const int maxCommands);
 
