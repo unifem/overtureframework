@@ -5,7 +5,7 @@
 *   
 *  cgmx [-noplot] abc -g=<name> -tf=<tFinal> -tp=<tPlot> -diss=<> -debug=<num> -cons=[0/1] ...
 *                     -rbc=[abcEM2|rbcNonLocal|abcPML] -ic=[gs|pw|tz|gpw] -ks=[pw|dd|gpw|none] ...
-*                     -pmlLines=<> -pmlPower=<> -pmlStrength=<>  -go=[run/halt/og]
+*                     -method=[nfdtd|sosup]  -pmlLines=<> -pmlPower=<> -pmlStrength=<>  -go=[run/halt/og]
 *
 *  -ic : initial condition: gs=Gausian-source, pw=plane-wave, tz=TZ, gpw=Gaussian-plane-wave
 *  -ks : known solution: pw=plane-wave, dd=scattering-from-a-disk, gpw=Gaussian-plane-wave
@@ -68,14 +68,14 @@
 * 
 $tFinal=10.; $tPlot=.1; $diss=.0; $cfl=.9; $x0=0.5; $y0=0.5; $z0=0.; $kx=1; $ky=0; $kz=0.; 
 $grid="sib1.order4.hdf"; $ic="gs"; $ks="none"; $pmlLines=11; $pmlPower=6; $pmlStrength=50.; 
-$cons=0; $go="halt"; $rbc="abcEM2"; $bcn="debug $debug"; 
+$cons=0; $go="halt"; $rbc="abcEM2"; $bcn="debug $debug";  $method="NFDTD";
 $beta=100.; $omega=5.; # Gaussian souce
 * ----------------------------- get command line arguments ---------------------------------------
 GetOptions( "g=s"=>\$grid,"tf=f"=>\$tFinal,"diss=f"=>\$diss,"tp=f"=>\$tPlot,"show=s"=>\$show,"debug=i"=>\$debug, \
  "cfl=f"=>\$cfl, "bg=s"=>\$backGround,"bcn=s"=>\$bcn,"go=s"=>\$go,"noplot=s"=>\$noplot,"ic=s"=>\$ic,"bc=s"=>\$bc,\
   "dtMax=f"=>\$dtMax, "cons=i"=>\$cons,"x0=f"=>\$x0,"y0=f"=>\$y0,"z0=f"=>\$z0,"kx=i"=>\$kx,"ky=i"=>\$ky,"kz=i"=>\$kz,\
    "ks=s"=>\$ks,"rbc=s"=>\$rbc,"pmlLines=i"=>\$pmlLines,"pmlPower=i"=>\$pmlPower,"pmlStrength=f"=>\$pmlStrength,\
-   "beta=f"=>\$beta,"omega=f"=>\$omega );
+   "beta=f"=>\$beta,"omega=f"=>\$omega,"method=s"=>\$method );
 * -------------------------------------------------------------------------------------------------
 if( $go eq "halt" ){ $go = "break"; }
 if( $go eq "og" ){ $go = "open graphics"; }
@@ -83,22 +83,24 @@ if( $go eq "run" || $go eq "go" ){ $go = "movie mode\n finish"; }
 if( $ic eq "gs" ){ $ic="gaussianSource"; }\
 elsif( $ic eq "pw" ){ $ic="planeWaveInitialCondition"; }\
 elsif( $ic eq "gpw" ){ $ic="gaussianPlaneWave"; }\
+elsif( $ic eq "zero" ){ $ic="zeroInitialCondition"; }\
 else{ $ic="twilightZone"; }
 if( $ks eq "pw" ){ $ks="planeWaveKnownSolution"; }\
 elsif( $ks eq "gpw" ){ $ks="gaussianPlaneWaveKnownSolution"; }\
 elsif( $ks eq "dd" ){ $ks="scatteringFromADielectricDiskKnownSolution"; }\
 else{ $ks="noKnownSolution"; }
+if( $method eq "sosup" ){ $diss=0.; }
 *
 *
 $grid
-NFDTD
+$method
 * --- initial condition: 
 $ic 
 ** planeWaveBoundaryForcing
 ** planeWaveScatteredFieldInitialCondition
 * 
 * -- specify known solution here:
-$ks 
+$ks
 * 
 * gaussianSource
 * twilightZone
@@ -138,6 +140,8 @@ exit
 ***********************************
 *compare to reference show file 1
 *plot errors 1
+plot errors 0
+check errors 0
 **********************************
 continue
 plot:Hz

@@ -450,7 +450,7 @@ advanceImplicitMultiStep( real & t0, real & dt0, int & numberOfSubSteps, int & i
                 int grid;
                 for( int m=0; m<numberOfPreviousValuesOfPressureToSave; m++ )
                 {
-          // *** FIX ME: 4 - numberOfExtraFunctionsToUse
+          // *** FIX ME: 4 -> numberOfExtraFunctionsToUse
                     const int nab=(nab2+m) % 4; // save du/dt in fn[nab] 
                     real tp=t0-(m+2)*dt0;       // move grid to this previous time
                     if( movingGridProblem() )
@@ -2187,11 +2187,16 @@ advanceImplicitMultiStep( real & t0, real & dt0, int & numberOfSubSteps, int & i
             if( correction==0 )
             {
         // --- For fourth-order in space we need to extrapolate p in time at ghost points --
+        //    We extrapolate in time using 
+        //               uCur : t
+        //               uOld : t-dt
+        //               fCur : t-2*dt   (holds boundary p and u in unuesd ghost points)
+        //               fOld : t-3*dt   (holds boundary p and u in unused ghost points)
                 if( true )
                 {
           // *new* way June 7, 2017 -- extrapolate in time to higher order ---
-          // int orderOfExtrapolation = orderOfTimeAccuracy==2 ? 3 : 4;
-                    int orderOfExtrapolation = orderOfTimeAccuracy==2 ? 3 : 5;
+                    int orderOfExtrapolation = orderOfTimeAccuracy==2 ? 3 : 4;
+          // int orderOfExtrapolation = orderOfTimeAccuracy==2 ? 3 : 5;
                     boundaryConditionPredictor( predictPressure,adamsData,orderOfExtrapolation, 
                                                                             mNew,mCur,mOld,&fCur,&fOld,&fOld2,&fOld3 );
                 }

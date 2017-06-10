@@ -1,6 +1,18 @@
 
 ====== Body embedded in a dielectric =======
 
+***************************************
+******** June 9, 2017
+
+REVISIT CHIRPED -- Jordan has a problem with abcEM2 at corners
+
+
+
+cgmx chirped -g=cice8.order4.ng3.hdf -option=cyl -x0=-.5 -ta=.5 -tb=4 -kx=2 -bandWidth=2  -method=sosup  -tf=5 -tp=.5
+cgmx chirped -g=cice8.order4.hdf -option=cyl -x0=-.5 -ta=.5 -tb=4 -kx=2 -bandWidth=2  -tf=5 -tp=.5
+
+
+
 ****************************************
 ******** June 7, 2017 
 

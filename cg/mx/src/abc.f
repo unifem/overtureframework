@@ -295,7 +295,7 @@ c To include derivatives of rx use OPTION=RX
       real dxa,dya,dza
       integer axisp1,axisp2,i1,i2,i3,is1,is2,is3,js1,js2,js3,ks1,ks2,
      & ks3,is,j1,j2,j3,m1,m2,m3,mSum
-      integer ip1,ip2,ip3,ig1,ig2,ig3,ghost1,ghost2,ghost3
+      integer ip1,ip2,ip3,ig1,ig2,ig3,ghost1,ghost2,ghost3,mm
       integer extra,extra1a,extra1b,extra2a,extra2b,extra3a,extra3b,
      & numberOfGhostPoints
       integer edgeDirection,sidea,sideb,sidec,bc1,bc2,bc3
@@ -310,7 +310,8 @@ c To include derivatives of rx use OPTION=RX
       real unx0,uny0,unz0, unxx0,unyy0,unzz0
       real t0,t1,t2
       real x,y,z,eyTrue
-      real forcex(0:2),forcey(0:2),forcez(0:2),forcep(0:2),forcef(0:2)
+      real forcex(0:11),forcey(0:11),forcez(0:11),forcep(0:11),forcef(
+     & 0:11)
       real tp,tm,tf,utx,uty,utz,uxx,uyy,uzz
 
       integer ksv(0:2)
@@ -2332,6 +2333,7 @@ c===============================================================================
         hz=ez
       end if
 
+
       ! For fourth order, when we set div(E)=0 on the face we can change the first or second ghost point: 
       ! NOTE: for the mx/cmd/abc.cmd test of square128.order4, the errors in div(E) are 5 times smaller with projectDivLine=1
       !   *** thus just stick with this ***
@@ -2552,16 +2554,13 @@ c===============================================================================
 
       ! -- initialize for forcing:
       z=0.
-      forcex(0)=0.
-      forcex(1)=0.
-      forcex(2)=0.
-      forcey(0)=0.
-      forcey(1)=0.
-      forcey(2)=0.
-      forcez(0)=0.
-      forcez(1)=0.
-      forcez(2)=0.
-
+      do mm=0,11
+        forcex(mm)=0.
+        forcey(mm)=0.
+        forcez(mm)=0.
+        forcep(mm)=0.
+        forcef(mm)=0.
+      end do
       ! ------------------------------------------------------------------------
       ! ------------------Corners-----------------------------------------------
       ! ------------------------------------------------------------------------

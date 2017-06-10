@@ -260,7 +260,7 @@ initializeTimeSteppingIM( real & t0, real & dt0 )
             int grid;
             for( int m=0; m<numberOfPreviousValuesOfPressureToSave; m++ )
             {
-        // *** FIX ME: 4 - numberOfExtraFunctionsToUse
+        // *** FIX ME: 4 -> numberOfExtraFunctionsToUse
                 const int nab=(nab2+m) % 4; // save du/dt in fn[nab] 
                 real tp=t0-(m+2)*dt0;       // move grid to this previous time
                 if( movingGridProblem() )

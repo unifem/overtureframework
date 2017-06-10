@@ -68,8 +68,8 @@ FSRCO +=  bcOptMaxwell.f bcOptMaxwell2dOrder2.f bcOptMaxwell3dOrder2.f \
 FSRCO +=interface3d.f interface3dOrder4.f
 
 # misc. fortran files
-FSRCO += advOpt.f pml.f dsimv.f lscoeff.f interfaceNew.f interfaceDerivatives.f \
-         abc.f forcingOpt.f linpack.f scatCyl.f scatSphere.f rjbesl.f rybesl.f gamma.f nrbcUtil.f \
+FSRCO += advOpt.f abc.f pml.f dsimv.f lscoeff.f interfaceNew.f interfaceDerivatives.f \
+         forcingOpt.f linpack.f scatCyl.f scatSphere.f rjbesl.f rybesl.f gamma.f nrbcUtil.f \
          bcSymmetry.f mxYee.f mxFilter.f mxProjectInterp.f advMxDiss.f bcAdjacent.f
 
 # interface.f is too much for xlf, do not compile opt.
