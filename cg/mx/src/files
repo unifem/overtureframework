@@ -13,7 +13,7 @@ SRC_FILES += Maxwell.C MxParameters.C userDefinedInitialConditions.C userDefined
      DSICoeff.C checkGridFunction.C getEnergy.C InterfaceInfo.C project.C   \
      advanceFDTD.C defineRegionsAndBodies.C outputHeader.C advanceSOSUP.C \
      userDefinedKnownSolution.C assignUserDefinedKnownSolutionInitialConditions.C \
-     printTimeStepInfo.C DispersiveMaterialParameters.C 
+     printTimeStepInfo.C DispersiveMaterialParameters.C MxParameters.C
 
 # Include Kyle's dbase functions with cgmx
 # SRC_FILES += dbAccess.C dbFunctions.f kk_ptr.cc
