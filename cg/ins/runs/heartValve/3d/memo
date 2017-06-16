@@ -1,0 +1,13 @@
+++++++GRIDS++++++
+ogen -noplot heartValveGrid.cmd -interp=e -theta1=-20 -factor=1
+
+ONE LEAFLET
+ogen -noplot heartValveGrid.cmd -interp=e -theta1=-20 -factor=1 -leaflets=1
+
+++++++PLOTS and RUNS++++++
+$cgins -noplot heartValveMoving3d -g=heartValveGride1.order2.hdf -tf=1 -tp=.1 -dtMax=.025 -nu=.1 -mass=1e5 -inertia=.001 -xyinertia=1e5 -move=1 -bcOption=inflowGivenPressure -inflowPressure=10 -numberOfCorrections=2 -addedMass=1 -useProvidedAcceleration=1 -addedDamping=1 -addedDampingCoeff=1.0 -addedDampingProjectVelocity=1 -scaleAddedDampingWithDt=1 -solver=best -psolver=best -rtolp=1.e-5 -atolp=1.e-7 -rtol=1.e-7 -atol=1.e-9 -freqFullUpdate=1 -ycenter=0.15 -bodyForce=restrictAngleDamp -theta10=-1.05 -theta20=0.1 -delta1=0.1 -epsilon1=5.e-2 -delta2=0.1 -epsilon2=5.e-3 -damp1=20 -damp2=20 -show=heartValveG1.show -go=go -flushFrequency=2 > heartValveG1.out
+
+plotStuff plotMove -show=heartValveG1.show
+
+6/16
+heartValveGrid.cmd is heartValveGridFine.cmd on cge; it is a better grid for lower resolutions (to avoid some funny ogen errors)
