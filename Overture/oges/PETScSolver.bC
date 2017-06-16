@@ -960,7 +960,8 @@ printSolverDescription( const aString & label, FILE *file /* = stdout */ ) const
   int jg,p;
   if( eqn<equationBounds(0,grid) || eqn>equationBounds(1,grid) )
   {
-    printF("--PS-- INFO: ig=%i, eqn=%i is out of bounds=[%i,%i] for pt(i1,i2,i3,grid)=(%i,%i,%i%i)\n",
+    if (false)
+        printF("--PS-- INFO: ig=%i, eqn=%i is out of bounds=[%i,%i] for pt(i1,i2,i3,grid)=(%i,%i,%i%i)\n",
            ig,eqn,equationBounds(0,grid),equationBounds(1,grid),i1,i2,i3,grid);
 
     // The point for this entry lies on a different grid. Locate which grid: 
@@ -1561,7 +1562,7 @@ buildMatrix( realCompositeGridFunction & coeff, realCompositeGridFunction & uu )
       // Overture numbers equations with base eqnBase=1, shift to base=0: 
       const int ieqn = eqnExtra(iExtraEquation)-eqnBase; // row for this user supplied extra equation
 
-      if( true )
+      if( false )
 	printF("--PETScSolver--: Add user supplied extra eqn %i to row %i\n",iExtraEquation,ieqn);
       
       real dScale=1.;
@@ -1619,7 +1620,7 @@ buildMatrix( realCompositeGridFunction & coeff, realCompositeGridFunction & uu )
 	assert( extra>=0 );
 	
         // extraEquationScaleFactor(iExtraEquation)=dScale;
-	if( true )
+	if( false )
 	  printF("--PETSc-- iExtraEquation=%i ieqn=%i extra=%i  extraEquationScaleFactor(%i)=%12.3e\n",
 		 iExtraEquation,ieqn,extra,extra,dScale);
 	
@@ -1648,7 +1649,7 @@ buildMatrix( realCompositeGridFunction & coeff, realCompositeGridFunction & uu )
         
 	// *old* const int jg = jaExtra(kk)-eqnBase;
         ierr = MatSetValues(A, 1,&ig, 1,&jg, &v,INSERT_VALUES);CHKERRQ(ierr);
-	if( true )
+	if( false )
 	{
 	  printF("  Extra eqn=%i kk=%5i : (i,j,a)=(%i,%i,%12.4e) scale=%8.2e a/scale=%12.4e\n",
                  iExtraEquation,kk,ig,jg,aExtra(kk),dScale,v);
@@ -1844,7 +1845,7 @@ buildMatrix( realCompositeGridFunction & coeff, realCompositeGridFunction & uu )
   
   delete [] eqnBound;
 
-  if( Oges::debug & 2 )
+  if( Oges::debug & 1 )
   {
     time=ParallelUtility::getMaxValue(getCPU()-time,-1,OGES_COMM);
     printF("PETScSolver:: ... done build matrix, cpu=%8.2e\n",time);
@@ -2893,7 +2894,7 @@ solve( realCompositeGridFunction & uu, realCompositeGridFunction & f )
         // scale RHS if the equations are scaled.
         const real dScale=  parameters.rescaleRowNorms ? extraEquationScaleFactor(extra) : 1.;
 
-	if( true )
+	if( false )
 	  printf("--PETSc-- solve: set RHS for extra eqn=%i eqnNumber=%i value=%9.3e scale=%9.2e myid=%i\n",
 		 extra,extraEquationNumber(extra),extraEquationRightHandSideValues(extra),dScale,myid);
 	  
@@ -2919,7 +2920,7 @@ solve( realCompositeGridFunction & uu, realCompositeGridFunction & f )
 
 	if( extraEqn>=Istart && extraEqn<=Iend )
 	{
-	  if( true )
+	  if( false )
 	    printf("--PETSc-- solve: set initial condition for extra eqn=%i eqnNumber=%i value=%9.3e myid=%i\n",
 		   extra,extraEquationNumber(extra),extraEquationInitialValues(extra),myid);
 	  
@@ -3004,6 +3005,39 @@ solve( realCompositeGridFunction & uu, realCompositeGridFunction & f )
     printF("NOTE: to see more information turn on the '-info' PETSc option (e.g. in your .petscrc)\n");
     printF("NOTE 2: to avoid the divergence error '-4' you can set the Oges option 'maximum allowable increase in the residual' \n");
 
+    if( true ) // This can help in some cases
+    {
+      if( reason==-3 || reason==-4 || reason==-5 || reason==-6 )
+      {
+	printF("--PTSC-- KSP failed, try to solve again with zero initial guess...\n");
+        ierr = KSPSetInitialGuessNonzero(ksp,PETSC_FALSE); CHKERRQ(ierr); 
+
+        ierr = KSPSolve(ksp,b,x);CHKERRQ(ierr);
+
+	ierr = KSPGetConvergedReason(ksp,&reason);
+	if( reason<0 )
+	{
+	  printF("--PTSC--- SOLVE AGAIN: ERROR Solution diverged! reason=%i: \n",(int)reason);
+	  printF("     KSP_DIVERGED_NULL                = -2,\n"
+		 "     KSP_DIVERGED_ITS                 = -3,\n"
+		 "     KSP_DIVERGED_DTOL                = -4,\n"
+		 "     KSP_DIVERGED_BREAKDOWN           = -5,\n"
+		 "     KSP_DIVERGED_BREAKDOWN_BICG      = -6,\n"
+		 "     KSP_DIVERGED_NONSYMMETRIC        = -7,\n"
+		 "     KSP_DIVERGED_INDEFINITE_PC       = -8,\n"
+		 "     KSP_DIVERGED_NAN                  = -9,\n"
+		 "     KSP_DIVERGED_INDEFINITE_MAT      = -10\n");
+	  printF("NOTE 1: to see more information turn on the '-info' PETSc option (e.g. in your .petscrc)\n");
+	  printF("NOTE 2: to avoid the divergence error '-4' you can set the Oges option 'maximum allowable increase in the residual' \n");
+	}
+	else
+	{
+	  printF("--PTSC-- Solve again WORKED!\n");
+          	
+	}
+	
+      }
+    }
     if( reason==-3 )
       NUM_KSP_CONVERGED_ITS_ERRORS++;
     if( NUM_KSP_CONVERGED_ITS_ERRORS>=10 )
@@ -3117,7 +3151,7 @@ solve( realCompositeGridFunction & uu, realCompositeGridFunction & f )
         // extra value is stored on this processor
 	extraValues[i]=xv[iExtra-Istart];
 
-	if( true ) printf(" --PETSc-- fill in extraEqn values after solve: myid=%i: iExtra=%i xv[iExtra]=%6.4f\n",
+	if( false ) printf(" --PETSc-- fill in extraEqn values after solve: myid=%i: iExtra=%i xv[iExtra]=%6.4f\n",
                           myid,iExtra,extraValues[i]);
       }
       else
