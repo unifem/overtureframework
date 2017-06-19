@@ -1,3 +1,71 @@
+************************************
+****** May 9, 2017
+
+CLEAN UP DISPERSIVE STUFF
+
+
+G32 >>> t=1.00e-01 dt=2.0e-02 max errors:[8.57e-06,8.57e-06,3.20e-04,4.51e-07,4.51e-07,], max (u):[1.24e-01,1.24e-01,1.40e-01,1.61e-03,1.61e-03,] (5 steps)
+G64 >>> t=1.00e-01 dt=1.0e-02 max errors:[2.20e-06,2.20e-06,1.13e-04,1.20e-07,1.20e-07,], max (u):[1.24e-01,1.24e-01,1.40e-01,1.62e-03,1.62e-03,] (10 steps)
+G128>>> t=1.00e-01 dt=5.0e-03 max errors:[5.54e-07,5.54e-07,3.24e-05,3.07e-08,3.07e-08,], max (u):[1.24e-01,1.24e-01,1.40e-01,1.62e-03,1.62e-03,] (20 steps)
+
+************************************
+****** May 8, 2017
+
+SQUARE - FDTD22 Drude
+cgmx -noplot boxEigen -g=square32.order2 -mx=2 -my=2 -tf=.5 -dm=drude -gamma=.5 -omegap=1. -go=og 
+cgmx -noplot boxEigen -g=square64.order2 -mx=2 -my=2 -tf=.5 -dm=drude -gamma=.5 -omegap=1. -go=og 
+
+
+G32 >>> t=1.00e-01 dt=2.0e-02 max errors:[8.57e-06,8.57e-06,1.21e-03,4.51e-07,4.51e-07,], max (u):[1.24e-01,1.24e-01,1.41e-01,1.61e-03,1.61e-03,] (5 steps)
+
+
+G64:>>> t=1.00e-01 dt=1.0e-02 max errors:[2.20e-06,2.20e-06,1.07e-03,1.20e-07,1.20e-07,], max (u):[1.24e-01,1.24e-01,1.41e-01,1.62e-03,1.62e-03,] (10 steps)
+ 
+G128>>> t=1.00e-01 dt=5.0e-03 max errors:[5.54e-07,5.54e-07,1.01e-03,3.07e-08,3.07e-08,], max (u):[1.24e-01,1.24e-01,1.41e-01,1.62e-03,1.62e-03,] (20 steps)
+************************************
+****** May 7, 2017
+
+START ON 
+    - dispersive eigenmodes of a square 
+
+SQUARE - FDTD22 Drude
+cgmx -noplot boxEigen -g=square32.order2 -mx=2 -my=2 -tf=.5 -dm=drude -gamma=0. -omegap=0. -go=og 
+>>> t=1.00e-01 dt=2.0e-02 max errors:[9.63e-06,1.24e-01,2.41e-04,0.00e+00,0.00e+00,], max (u):[1.24e-01,1.24e-01,6.31e-01,0.00e+00,0.00e+00,] (5 steps)
+
+
+SQUARE - FDTD22
+cgmx -noplot boxEigen -g=square32.order2 -mx=2 -my=2 -tf=.5 -go=og
+>>> t=1.00e-01 dt=2.0e-02 max errors:[4.28e-05,4.28e-05,2.41e-04,], max (u):[5.49e-01,5.49e-01,6.31e-01,] (5 steps)
+
+************************************
+****** April 30, 2017
+
+START -- dispersive Maxwell -- eigenfunctions
+
+Box -- SOSUP44
+cgmx -noplot boxEigen -g=box16.order4.ng3 -mx=2 -my=2  -method=sosup -tp=.01 -tf=.01 -go=go
+>>> Cgmx:SOSUP: t=1.00e-02 dt=2.5e-03 TS=ME |div(E)|/|grad(E)|=3.72e-08 (=7.40e-08/1.99e+00) 4 steps mem=1.37e+03(Mb) cpu=1.99e+01(s)
+>>> t=1.00e-02 dt=2.5e-03 max errors:[7.42e-11,1.48e-10,1.48e-10,1.57e-08,3.13e-08,3.13e-08,], max (u):[1.58e-01,3.17e-01,3.17e-01,1.41e-01,2.82e-01,2.82e-01,] (4 steps)
+
+Box - FDTD44
+cgmx -noplot boxEigen -g=box16.order4 -mx=2 -my=2 -tf=.1 -go=go
+>>> Cgmx:FD: t=1.00e-01 dt=3.3e-03 TS=ME |div(E)|/|grad(E)|=3.72e-08 (=4.37e-08/1.18e+00) 30 steps mem=703(Mb) cpu=6.92e+00(s)
+>>> t=1.00e-01 dt=3.3e-03 max errors:[4.39e-10,8.78e-10,8.78e-10,], max (u):[9.35e-02,1.87e-01,1.87e-01,] (30 steps)
+
+
+
+
+SQUARE -- SOSUP44
+cgmx -noplot boxEigen -g=square32.order4.ng3 -mx=2 -my=2  -method=sosup -tf=.5 -go=go
+
+>>> t=5.00e-01 dt=2.0e-02 max errors:[1.33e-05,1.33e-05,1.62e-04,9.95e-04,9.95e-04,8.24e-04,], max (u):[6.82e-01,6.82e-01,2.66e-01,1.67e+00,1.67e+00,8.56e+00,] (25 steps)
+
+SQUARE - FDTD44
+cgmx -noplot boxEigen -g=square32.order4 -mx=2 -my=2 -tf=.5 -go=go
+
+>>> t=5.00e-01 dt=2.0e-02 max errors:[1.93e-07,1.93e-07,5.29e-06,], max (u):[6.82e-01,6.82e-01,2.66e-01,] (25 steps)
+
+
 *******************************
 ****** Jan 22-23, 2016
 

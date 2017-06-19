@@ -3756,9 +3756,10 @@ c===============================================================================
        !       *************** curvilinear ******************
        !       **********************************************
           if( useCurvilinearOpt.eq.1 .and. useConservative.eq.0 )then
-           ! **************************************************
-           ! *************** NON-CONSERVATIVE *****************    
-           ! **************************************************
+           ! ****************************************************************************
+           ! *************** OPTIMIZED-CURVILINEAR AND NON-CONSERVATIVE *****************    
+           ! ****************************************************************************
+             ! --- Todo: non-conservative operators could be inlined here ---
        !$$$     loopsFCD(un(i1,i2,i3,ex)=maxwellc22(i1,i2,i3,ex),!$$$              un(i1,i2,i3,ey)=maxwellc22(i1,i2,i3,ey),!$$$              un(i1,i2,i3,ez)=maxwellc22(i1,i2,i3,ez),!$$$               ,,,!$$$              un(i1,i2,i3,hx)=maxwellc22(i1,i2,i3,hx),!$$$              un(i1,i2,i3,hy)=maxwellc22(i1,i2,i3,hy),!$$$              un(i1,i2,i3,hz)=maxwellc22(i1,i2,i3,hz),!$$$              ,,)
             stop 88044
           else if( useCurvilinearOpt.eq.1 .and. useConservative.eq.1 )
@@ -3766,13 +3767,13 @@ c===============================================================================
            ! *************** conservative *****************    
            stop 94422
           else
-            ! *****************************************************
-            ! ****************Old way******************************
-            ! *****************************************************
-            ! **************** CONSERVATIVE DIFFERENCE *****************
-            !  The Lapacian and Laplacian squared have already been computed by the calling program 
-          ! In these cases we are given the Laplacian on input
+            ! **********************************************************************************
+            ! **************** USE PRE-COMPUTED SPATIAL OPERATORS ******************************
+            ! **********************************************************************************
+            !  --> The Laplacian and Laplacian squared have already been computed by the calling program 
+            !  --> For example, mainly when using conservative operators
            if( useDivergenceCleaning.eq.0 )then
+            ! --- currently 2nd-order conservative and non-conservative opertaors are done here ---
             if( .not.addDissipation )then
              if( nd.eq.2 )then
               ! This next line assumes we solve for ex,ey and hz

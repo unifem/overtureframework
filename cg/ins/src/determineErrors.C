@@ -155,7 +155,7 @@ determineErrors(realCompositeGridFunction & u,
       sPrintF(norm,"l%i-norm",parameters.dbase.get<int >("errorNorm"));
     else
       norm="maxNorm";
-    printf("--INS-- determineErrors: t=%9.3e, %s errors%s: [p,u,v,T]=[%8.2e,%8.2e,%8.2e,%8.2e]\n",t,
+    printF("--INS-- determineErrors: t=%9.3e, %s errors%s: [p,u,v,T]=[%8.2e,%8.2e,%8.2e,%8.2e]\n",t,
            (const char*)norm,(const char*)dlabel,err(0),err(1),err(2),err(3));
     fPrintF(parameters.dbase.get<FILE* >("debugFile"),"--INS-- determineErrors: t=%9.3e, %s "
             "errors%s: [p,u,v,T]=[%8.2e,%8.2e,%8.2e,%8.2e]\n",t,(const char*)norm,(const char*)dlabel,err(0),err(1),err(2),err(3));

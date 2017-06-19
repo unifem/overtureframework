@@ -1,0 +1,14 @@
+commandwindow*width: 1000
+commandwindow*height:  120   # 150 175 200
+commandwindow*Nx: 100        # x location of command window (offset from upper right of screen)
+commandwindow*Ny: 600        # y location of command window (offset from upper right of screen)
+graphicswindow*width:  410   # 410 610 820 
+graphicswindow*height: 400   # 400 600 800
+graphicswindow*Nx: 100       # x location of graphics window (offset from upper right of screen)
+graphicswindow*Ny: 0         # y location of graphics window (offset from upper right of screen)
+dialog*Nx: 550               # x location of dialog (offset from upper right of screen)
+dialog*Ny: 0                 # y location of dialog (offset from upper right of screen)
+dialog*offsetNx: 50          # offset for a new dialog 
+dialog*offsetNy: 50
+showRubberBandBox: 0         # turn off the rubber band zoom
+showCommandHistory: 0    # set to 0 if interactive scripts are slow to display

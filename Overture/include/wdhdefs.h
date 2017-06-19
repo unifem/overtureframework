@@ -190,12 +190,16 @@ helpOverture( const aString & documentPrefix, const aString & label );
 #define OV_GET_SERIAL_ARRAY_CONDITIONAL(TYPE,U,ULOCAL,CONDITION) \
 TYPE ## SerialArray ULOCAL; if( CONDITION ) getLocalArrayWithGhostBoundaries(U,ULOCAL);
 
+#define OV_GET_VERTEX_BOUNDARY_NORMAL(mg,side,axis,NLOCAL) const realSerialArray & NLOCAL = mg.vertexBoundaryNormalArray(side,axis);
+
 #else
 
 #define OV_GET_SERIAL_ARRAY(TYPE,U,ULOCAL) TYPE ## SerialArray & ULOCAL = U;
 #define OV_GET_SERIAL_ARRAY_CONST(TYPE,U,ULOCAL) const TYPE ## SerialArray & ULOCAL = U;
 
 #define OV_GET_SERIAL_ARRAY_CONDITIONAL(TYPE,U,ULOCAL,CONDITION) TYPE ## SerialArray & ULOCAL = U;
+
+#define OV_GET_VERTEX_BOUNDARY_NORMAL(mg,side,axis,NLOCAL) const realSerialArray & NLOCAL = mg.vertexBoundaryNormal(side,axis);
 
 #endif
 

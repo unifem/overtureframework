@@ -38,8 +38,14 @@ Changes:
    o 2016/06/16 - symmetry boundary conditions fixed in cgmx 
    o 2016/07    - added option to "comp" code to take the difference between solutions
                   in two sets of show files and save these differences to another show file.
-   o 2016/07/22 - fixed algorithm in ogen for improved quality interpolation.
-                  This should work better now.
+   o 2017/04/21 - New options have been added to position the command, graphics and dialog 
+                  windows. See the file Overture.v27/overturec file for an example. Currently
+                  Overture will look for a $HOME/.overturerc file or the Overture.v27/overturec file. 
+                  To specify a different configuration file use, for example,
+                      setenv OV_CONFIG_FILE $HOME/bin/overturerc
+
+                  
+   
 ==============================================================================================
 Overture.v26 - released August 1, 2015
 Changes:

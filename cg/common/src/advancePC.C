@@ -247,6 +247,7 @@ advanceAdamsPredictorCorrector( real & t0, real & dt0, int & numberOfSubSteps, i
         const int orderOfPredictorCorrector = parameters.dbase.get<int >("orderOfPredictorCorrector");
         const int orderOfTimeExtrapolationForPressure = parameters.dbase.get<int >("orderOfTimeExtrapolationForPressure");
         printF("--adamsPC-- initializePredictorCorrector: mCur=%i, mOld=%i gf[mCur].t=%9.2e\n",mCur,mOld,gf[mCur].t);
+        fPrintF(debugFile,"--adamsPC-- initializePredictorCorrector: mCur=%i, mOld=%i gf[mCur].t=%9.2e\n",mCur,mOld,gf[mCur].t);
         if( movingGridProblem() )
         { 
             getGridVelocity( gf[mCur],t0 );
@@ -258,8 +259,6 @@ advanceAdamsPredictorCorrector( real & t0, real & dt0, int & numberOfSubSteps, i
       // *wdh* 2015/01/26: we may need past time pressure for other reasons:
             const bool & predictedPressureNeeded = parameters.dbase.get<bool>("predictedPressureNeeded");
             const bool predictPressure = predictedPressureNeeded || (poisson!=NULL && poisson->isSolverIterative());
-            printF("--adamsPC-- orderOfPredictorCorrector=%i, orderOfTimeExtrapolationForPressure=%i, predictPressure=%i\n",
-               	 orderOfPredictorCorrector,orderOfTimeExtrapolationForPressure,(int)predictPressure);
             if( orderOfPredictorCorrector==2 && orderOfTimeExtrapolationForPressure>1 && predictPressure )
             {
         // orderOfTimeExtrapolationForPressure==1 :  p(t+dt) = 2*p(t) - p(t-dt)
@@ -275,6 +274,9 @@ advanceAdamsPredictorCorrector( real & t0, real & dt0, int & numberOfSubSteps, i
                     previousPressure[i].updateToMatchGrid(gf[mCur].cg);
                 }
             }
+            printF("--adamsPC-- orderOfPredictorCorrector=%i, orderOfTimeExtrapolationForPressure=%i, predictPressure=%i\n",
+                          "           numberOfExtraPressureTimeLevels=%i\n",
+               	 orderOfPredictorCorrector,orderOfTimeExtrapolationForPressure,(int)predictPressure,numberOfExtraPressureTimeLevels);
         }
         fn[nab0]=0.; 
         if( numberOfPastTimeDerivatives>0 )
@@ -290,6 +292,7 @@ advanceAdamsPredictorCorrector( real & t0, real & dt0, int & numberOfSubSteps, i
                 int grid;
                 for( int m=0; m<numberOfPreviousValuesOfPressureToSave; m++ )
                 {
+          // *** FIX ME: 4 -> numberOfExtraFunctionsToUse
                     const int nab=(nab2+m) % 4; // save du/dt in fn[nab] 
                     real tp=t0-(m+2)*dt0;       // move grid to this previous time
                     if( movingGridProblem() )
@@ -326,9 +329,9 @@ advanceAdamsPredictorCorrector( real & t0, real & dt0, int & numberOfSubSteps, i
           // save past time values of p and ghost u for the 4th order method
           // NOTE: PAST time values are saved in a funny place:
           // save p for use when extrapolating in time
-          //    ua(.,.,.,pc)= p(t-2*dt)  (for 2nd/4th order)
-          //    ub(.,.,.,pc)= p(t-3*dt)  (for 4th order)
-          //    uc(.,.,.,pc)= p(t-4*dt)  (for 4th order)
+          //   ua(.,.,.,pc)= p(t-2*dt) : needed for 3rd order extrapolation: uCur(t), uOld(t-dt), ua(t-2*dt)
+          //   ub(.,.,.,pc)= p(t-3*dt) : needed for 4th-order extrapolation: uCur(t), uOld(t-dt), ua(t-2*dt), ub(t-3*dt)
+          //   uc(.,.,.,pc)= p(t-4*dt) : needed for 5th-order extrapolation: uCur(t), uOld(t-dt), ua(t-2*dt), ub(t-3*dt), ub(t-4*dt)
                     assert( nab0==0 );
                     const int nabPastTime=(nab0+m);
                     if( orderOfAccuracy==4 )
@@ -484,7 +487,7 @@ advanceAdamsPredictorCorrector( real & t0, real & dt0, int & numberOfSubSteps, i
                       const int mgf = (mCur + kgf + numberOfGridFunctions) % numberOfGridFunctions;
                   const real tgf = t0-dt0*kgf;
                   if( true )
-                      printF("--adamsPC-- init past time solution gf[mgf=%i] at t=%9.3e numberOfGridFunctions=%i " 
+                      printF("\n --adamsPC-- init past time solution gf[mgf=%i] at t=%9.3e numberOfGridFunctions=%i " 
                                     "numberOfPastTimes=%i orderOfTimeAccuracy=%i\n",
                                     mgf,tgf,numberOfGridFunctions,numberOfPastTimes,orderOfTimeAccuracy);
                   if( movingGridProblem() )
@@ -535,6 +538,14 @@ advanceAdamsPredictorCorrector( real & t0, real & dt0, int & numberOfSubSteps, i
                 	  ::display(fn[ngf][grid],sPrintF("--adamsPC-- past time du/dt fn[ngf=%i] t=%9.3e",ngf,tgf),"%6.3f ");
               	}
                     }
+          // *wdh* *new* June 7, 2017 **CHECK ME**
+          // save past time values of p and ghost u for the 4th order method
+          // NOTE: PAST time values are saved in a funny place:
+          // save p for use when extrapolating in time
+          //    ua(.,.,.,pc)= p(t-2*dt)  (for 2nd/4th order)
+          //    ub(.,.,.,pc)= p(t-3*dt)  (for 4th order)
+          //    uc(.,.,.,pc)= p(t-4*dt)  (for 4th order)
+          // *** savePressureAndGhostVelocity(tgf,ngf);
                 }
             }
             else
@@ -635,10 +646,17 @@ advanceAdamsPredictorCorrector( real & t0, real & dt0, int & numberOfSubSteps, i
         }
         else  
         {
-      // ****** Initialize for NOT twilightZoneFlow ***********
+      // **************************************************************************
+      // ************************ REAL RUN ****************************************
+      // ****************** Initialize for NOT twilightZoneFlow *******************
+      // **************************************************************************
       // printF(" **************** adamsPC: still need correct initial values for du/dt(t-dt)  ****** \n");
       // printF(" **************** use values from du/dt(t)                                  ****** \n");
-            printF("--adamsPC-- Initialize past time values for scheme ---\n");
+            printF("\n--adamsPC-- Initialize past time values for scheme, numberOfPastTimes=%i"
+                          " numberOfPastTimeDerivatives=%i ---\n",numberOfPastTimes,numberOfPastTimeDerivatives);
+            if( debug() & 2 )
+                fPrintF(debugFile,"--adamsPC-- Initialize past time values for scheme, numberOfPastTimes=%i"
+                                " numberOfPastTimeDerivatives=%i ---\n",numberOfPastTimes,numberOfPastTimeDerivatives);
             if( parameters.useConservativeVariables() )
                 gf[mCur].primitiveToConservative();
       // if( parameters.isAdaptiveGridProblem() )
@@ -652,11 +670,28 @@ advanceAdamsPredictorCorrector( real & t0, real & dt0, int & numberOfSubSteps, i
             }
             if( !parameters.dbase.get<bool>("useNewTimeSteppingStartup") )
             {
-                assign(gf[mOld].u,gf[mCur].u);  // 990903 give initial values to avoid NAN's at ghost points for CNS
+                printF(" -- adamsPC-- USE OLD STARTUP, Set past time solutions to t=0 solution \n");
+                if( numberOfPastTimes==1 )
+                {
+          // uOld=uCur 
+                    assign(gf[mOld].u,gf[mCur].u); 
+                    gf[mOld].form=gf[mCur].form;
+                }
+                else
+                { // June 8, 2017 *wdh*
+                    for( int kgf=1; kgf<=numberOfPastTimes; kgf++ )
+                    {
+              	const int mgf = (mCur + kgf + numberOfGridFunctions) % numberOfGridFunctions;
+                        assign(gf[mgf].u,gf[mCur].u); 
+                        gf[mgf].t=t0-dt0*kgf;
+                        gf[mgf].form=gf[mCur].form;
+                    }
+                }
             }
             else
             {
         // *new* way to initialize past time solution  // *wdh* 2014/06/28 
+                printF(" -- adamsPC-- USE NEW STARTUP numberOfPastTimes=%i mCur=%i mOld=%i\n",numberOfPastTimes,mCur,mOld);
                 if( numberOfPastTimes==1 )
                 {
                     gf[mOld].t=t0-dt0;
@@ -669,50 +704,189 @@ advanceAdamsPredictorCorrector( real & t0, real & dt0, int & numberOfSubSteps, i
                     int *previous = new int[numberOfPastTimes];
                     for( int kgf=1; kgf<=numberOfPastTimes; kgf++ )
                     {
-              	const int mgf = (mCur - kgf + numberOfGridFunctions) % numberOfGridFunctions;
+    	// const int mgf = (mCur - kgf + numberOfGridFunctions) % numberOfGridFunctions; // *wdh* June 7, 2017
+              	const int mgf = (mCur + kgf + numberOfGridFunctions) % numberOfGridFunctions;
                         gf[mgf].t=t0-dt0*kgf;
+                        gf[mgf].form=gf[mCur].form;
               	previous[kgf-1]=mgf;
                     }
                     getPastTimeSolutions( mCur, numberOfPastTimes, previous  );
                     delete [] previous;
                 }
             }
-            gf[mOld].form=gf[mCur].form;
-            if( numberOfPastTimeDerivatives>0 )
+      // gf[mOld].form=gf[mCur].form;
+      // For IMEX-BDF schemes we need more past time-derivatives
+            if( true && implicitMethod==Parameters::implicitExplicitMultistep )
             {
-                for( int grid=0; grid<gf[mCur].cg.numberOfComponentGrids(); grid++ )
+        // ** THIS SECTION IS REPEATED FROM ABOVE -- *FIX ME*
+                for( int kgf=1; kgf<=numberOfPastTimeDerivatives; kgf++ )
                 {
-                    rparam[0]=gf[mOld].t;
-                    rparam[1]=gf[mOld].t; // tforce
-          // *wdh* 090806 : what was this? rparam[2]=gf[mCur].t-gf[mOld].t; // tImplicit
-                    rparam[2]=gf[mCur].t; // tImplicit = apply forcing for implicit time stepping at this time
-                    iparam[0]=grid;
-                    iparam[1]=gf[mOld].cg.refinementLevelNumber(grid);
-                    iparam[2]=numberOfStepsTaken;
-                    getUt(gf[mOld].u[grid],gf[mOld].getGridVelocity(grid),fn[nab1][grid],iparam,rparam,
-                  	    gf[mab0].u[grid],&gf[mOld].cg[grid]);
+                    const int mgf = (mCur + kgf + numberOfGridFunctions) % numberOfGridFunctions;
+                    const int ngf = (nab0 + kgf + numberOfTimeDerivativeLevels) % numberOfTimeDerivativeLevels;
+                    const real tgf = t0-dt0*kgf;
+                    gf[mgf].t=tgf;
+                    if( true )
+              	printF("--adamsPC-- init past time du/dt at t=%9.3e (gf[mgf=%i].t=%9.3e) fn[ngf=%i]\n",
+                              tgf,mgf,gf[mgf].t,ngf);
+          // -- evaluate du/dt(t-dt) --
+                    for( int grid=0; grid<gf[mCur].cg.numberOfComponentGrids(); grid++ )
+                    {
+              	rparam[0]=gf[mgf].t;
+              	rparam[1]=gf[mgf].t; // tforce
+              	rparam[2]=gf[mCur].t-gf[mgf].t; // tImplicit  *************** check me 090806 **********************
+              	iparam[0]=grid;
+              	iparam[1]=gf[mgf].cg.refinementLevelNumber(grid);
+              	iparam[2]=numberOfStepsTaken;
+              	getUt(gf[mgf].u[grid],gf[mgf].getGridVelocity(grid),fn[ngf][grid],iparam,rparam,
+                    	      gf[mab0].u[grid],&gf[mgf].cg[grid]);
+              	if( false )
+              	{
+                	  ::display(fn[ngf][grid],sPrintF("--adamsPC-- past time du/dt fn[ngf=%i] t=%9.3e",ngf,tgf),"%6.3f ");
+              	}
+                    }
                 }
             }
-            if( debug() & 4 )
+            else
             {
-                determineErrors( fn[nab1],gf[mOld].gridVelocity, gf[mOld].t, 1, error,
-                             		   sPrintF(" PC:init: du/dt at past time t=%e \n",gf[mOld].t) );
-            }
-            for( int grid=0; grid<gf[mOld].cg.numberOfComponentGrids(); grid++ )
-            {
-                MappedGrid & c = gf[mOld].cg[grid];
-                getIndex(c.dimension(),I1,I2,I3);
-        // fn[nab1][grid](I1,I2,I3,N)=fn[nab0][grid](I1,I2,I3,N);
+        // *********** OLD WAY *******
+                if( numberOfPastTimeDerivatives>0 )
+                {
+                    if( debug() & 2 )
+                        fPrintF(debugFile,"--adamsPC-- get past time du/dt at t=%9.3e...\n",gf[mOld].t);
+                    for( int grid=0; grid<gf[mCur].cg.numberOfComponentGrids(); grid++ )
+                    {
+                        rparam[0]=gf[mOld].t;
+                        rparam[1]=gf[mOld].t; // tforce
+            // *wdh* 090806 : what was this? rparam[2]=gf[mCur].t-gf[mOld].t; // tImplicit
+                        rparam[2]=gf[mCur].t; // tImplicit = apply forcing for implicit time stepping at this time
+                        iparam[0]=grid;
+                        iparam[1]=gf[mOld].cg.refinementLevelNumber(grid);
+                        iparam[2]=numberOfStepsTaken;
+                        getUt(gf[mOld].u[grid],gf[mOld].getGridVelocity(grid),fn[nab1][grid],iparam,rparam,
+                                    gf[mab0].u[grid],&gf[mOld].cg[grid]);
+                    }
+                }
+                if( debug() & 4 )
+                {
+                    determineErrors( fn[nab1],gf[mOld].gridVelocity, gf[mOld].t, 1, error,
+                                                      sPrintF(" PC:init: du/dt at past time t=%e \n",gf[mOld].t) );
+                }
+                for( int grid=0; grid<gf[mOld].cg.numberOfComponentGrids(); grid++ )
+                {
+                    MappedGrid & c = gf[mOld].cg[grid];
+                    getIndex(c.dimension(),I1,I2,I3);
+          // fn[nab1][grid](I1,I2,I3,N)=fn[nab0][grid](I1,I2,I3,N);
+                    if( orderOfPredictorCorrector==4 )
+                    {
+                        for( int m=0; m<=1; m++ )
+                        {
+                            const int nab=(mOld+m+1) % 4;
+              // *** WE COULD DO BETTER HERE ***
+                            assign(fn[nab][grid],fn[nab0][grid],I1,I2,I3,N);
+                        }
+                    }
+                }
+        // *wdh* *new* June 7, 2017 **CHECK ME**
                 if( orderOfPredictorCorrector==4 )
                 {
                     for( int m=0; m<=1; m++ )
                     {
-              	const int nab=(mOld+m+1) % 4;
-    	// *wdh* 050319 fn[nab][grid](I1,I2,I3,N)=fn[nab0][grid](I1,I2,I3,N);
-              	assign(fn[nab][grid],fn[nab0][grid],I1,I2,I3,N);
+            // save past time values of p and ghost u for the 4th order method
+            // NOTE: PAST time values are saved in a funny place:
+            // save p for use when extrapolating in time
+            //    ua(.,.,.,pc)= p(t-2*dt)  (for 2nd/4th order)
+            //    ub(.,.,.,pc)= p(t-3*dt)  (for 4th order)
+            //    uc(.,.,.,pc)= p(t-4*dt)  (for 4th order)
+                        assert( nab0==0 );
+                        const int nabPastTime=(nab0+m);
+                        real tp=t0-(m+2)*dt0;     
+                        if( orderOfAccuracy==4 )
+                        {
+                            const int uc = parameters.dbase.get<int >("uc");
+                            const int pc = parameters.dbase.get<int >("pc");
+                            OGFunction & e = *(parameters.dbase.get<OGFunction* >("exactSolution"));
+                            const int numberOfDimensions=cg.numberOfDimensions();
+                            const int numberOfGhostLines=2;
+                            Range V(uc,uc+numberOfDimensions-1);
+                            for( int grid=0; grid<gf[mOld].cg.numberOfComponentGrids(); grid++ )
+                            {
+                                MappedGrid & c = gf[mOld].cg[grid];
+                                realArray & fng = fn[nabPastTime][grid];
+                                realArray & uOld = gf[mOld].u[grid];
+                        #ifdef USE_PPP
+                                realSerialArray fnLocal; getLocalArrayWithGhostBoundaries(fng,fnLocal);
+                                realSerialArray uOldLocal; getLocalArrayWithGhostBoundaries(uOld,uOldLocal);
+                        #else
+                                realSerialArray & fnLocal = fng;
+                                realSerialArray & uOldLocal = uOld;
+                        #endif
+                                OV_GET_SERIAL_ARRAY_CONST(real,c.vertex(),xLocal);
+                                const int isRectangular=false; // for e.gd(..)
+                                const IntegerArray & gridIndexRange = c.gridIndexRange();
+                                getIndex(c.dimension(),I1,I2,I3);
+                // save p for use when extrapolating in time
+                //    ua(.,.,.,pc)= p(t-2*dt)  (for 2nd/4th order)
+                //    ub(.,.,.,pc)= p(t-3*dt)  (for 4th order)
+                //    uc(.,.,.,pc)= p(t-4*dt)  (for 4th order)
+                                if( parameters.dbase.get<bool >("twilightZoneFlow") )
+                                {
+                  // *wdh* 050416 fn[nabPastTime][grid](I1,I2,I3,pc)=e(c,I1,I2,I3,pc,tp);  
+                  //  fn[nabPastTime][grid](I1,I2,I3,pc)=e(c,I1,I2,I3,pc,tp);
+                  // e.gd(fn[nabPastTime][grid],0,0,0,0,I1,I2,I3,pc,tp);
+                                    e.gd(fnLocal,xLocal,numberOfDimensions,isRectangular,0,0,0,0,I1,I2,I3,pc,tp);
+                  //  display(fn[nabPastTime][grid],"fn[nabPastTime][grid] after assigning for fourth order",debugFile,"%5.2f ");
+                                    fprintf(debugFile,"savePressureAndGhostVelocity: Set p at old time for fourth-order: nabPastTime=%i, t=%9.3e\n",nabPastTime,tp);
+                                    if( debug() & 4 )
+                                    {
+                              	display(xLocal,"savePressureAndGhostVelocity: xLocal from gf[mOld] ",debugFile,"%6.3f ");
+                              	display(fn[nabPastTime][grid],"savePressureAndGhostVelocity: fn[nabPastTime][grid] after assigning p for fourth order",debugFile,"%6.3f ");
+                                    }
+                                }
+                                else
+                                {
+                                    bool ok = ParallelUtility::getLocalArrayBounds(fng,fnLocal,I1,I2,I3);
+                                    if( ok )
+                              	fnLocal(I1,I2,I3,pc)=uOldLocal(I1,I2,I3,pc); // *** fix this ****
+                                }
+                // We also extrapolate, in time, the ghost values of u -- used in the BC's
+                                getIndex(gridIndexRange,I1,I2,I3,numberOfGhostLines);
+                                for( int axis=0; axis<c.numberOfDimensions(); axis++ )
+                                {
+                                    for( int side=0; side<=1; side++ )
+                                    {
+                              	const int is=1-2*side;
+                              	if( c.boundaryCondition(side,axis)>0 )
+                              	{
+            	  // set values on the two ghost lines
+                                	  if( side==0 )
+                                  	    Iv[axis]=Range(gridIndexRange(side,axis)-2,gridIndexRange(side,axis)-1);
+                                	  else
+                                  	    Iv[axis]=Range(gridIndexRange(side,axis)+1,gridIndexRange(side,axis)+2);
+                                	  if( parameters.dbase.get<bool >("twilightZoneFlow") )
+                                	  {
+            	    // *wdh* 050416 fn[nabPastTime][grid](I1,I2,I3,V)=e(c,I1,I2,I3,V,tp);
+            	    // fn[nabPastTime][grid](I1,I2,I3,V)=e(c,I1,I2,I3,V,tp);
+            	    // display(fn[nabPastTime][grid],"fn[nabPastTime][grid] before assign V on ghost",debugFile,"%5.2f ");
+            	    // e.gd(fn[nabPastTime][grid],0,0,0,0,I1,I2,I3,V,tp);
+                                  	    e.gd(fnLocal,xLocal,numberOfDimensions,isRectangular,0,0,0,0,I1,I2,I3,V,tp);
+            	    // display(fn[nabPastTime][grid],"fn[nabPastTime][grid] after assign V on ghost",debugFile,"%5.2f ");
+                                	  }
+                                	  else
+                                	  {
+                                  	    bool ok = ParallelUtility::getLocalArrayBounds(fng,fnLocal,I1,I2,I3);
+                                  	    if( ok )
+                                    	      fnLocal(I1,I2,I3,V)=uOldLocal(I1,I2,I3,V); // ***** fix this ****
+                                	  }
+                              	}
+                                    }
+                  // set back to gridIndexRange to avoid re-doing corners: *** is this ok for 3D ???
+                                    Iv[axis]=Range(gridIndexRange(0,axis),gridIndexRange(1,axis));
+                                }
+                            }  // end for grid 
+                        }
                     }
                 }
-            }
+            } // end OLD WAY
         }
         dtb=dt0;    // delta t to go from ub to ua
         dtp[0]=dt0;
@@ -960,7 +1134,10 @@ advanceAdamsPredictorCorrector( real & t0, real & dt0, int & numberOfSubSteps, i
         {
             checkArrays(" adamsPC : before move grids"); 
             if( debug() & 8 )
-                printf(" adamsPC: before moveTheGridsMacro: t0=%9.3e, gf[mNew].t=%9.3e, gf[mNew].gridVelocityTime=%9.3e\n",
+                printF(" adamsPC: before moveTheGridsMacro: t0=%9.3e, gf[mNew].t=%9.3e, gf[mNew].gridVelocityTime=%9.3e\n",
+                 	   t0,gf[mNew].t,gf[mNew].gridVelocityTime);
+            if( debug() & 4 )
+                fPrintF(debugFile," adamsPC: before moveTheGridsMacro: t0=%9.3e, gf[mNew].t=%9.3e, gf[mNew].gridVelocityTime=%9.3e\n",
                  	   t0,gf[mNew].t,gf[mNew].gridVelocityTime);
       // generate gf[mNew] from gf[mCur] (compute grid velocity on gf[mCur] and gf[mNew]
             moveGrids( t0,t0,t0+dt0,dt0,gf[mCur],gf[mCur],gf[mNew] ); 
@@ -1063,17 +1240,29 @@ advanceAdamsPredictorCorrector( real & t0, real & dt0, int & numberOfSubSteps, i
                     ExposedPoints exposedPoints;
           //            
           // exposedPoints.setExposedPointType(ExposedPoints::exposedDiscretization);
-                    exposedPoints.setAssumeInterpolationNeighboursAreAssigned(parameters.dbase.get<int >("extrapolateInterpolationNeighbours"));
-                    exposedPoints.initialize(gf[mOld].cg,gf[mNew].cg,parameters.dbase.get<int >("stencilWidthForExposedPoints"));
-                    exposedPoints.interpolate(gf[mOld].u,(twilightZoneFlow() ? parameters.dbase.get<OGFunction* >("exactSolution") : NULL),gf[mOld].t);
+                    const int extrapolateInterpolationNeighbours=parameters.dbase.get<int >("extrapolateInterpolationNeighbours");
+                    const int stencilWidthForExposedPoints=parameters.dbase.get<int >("stencilWidthForExposedPoints");
+                    if( debug() & 4 )
+                    {
+                        fPrintF(debugFile," ---- compute exposed for du/dt(t-dt), extrapolateInterpolationNeighbours=%i, "
+                                        "stencilWidthForExposedPoints=%i\n",extrapolateInterpolationNeighbours,stencilWidthForExposedPoints);
+                    }
+                    exposedPoints.setAssumeInterpolationNeighboursAreAssigned(extrapolateInterpolationNeighbours);
+                    exposedPoints.initialize(gf[mOld].cg,gf[mNew].cg,stencilWidthForExposedPoints);
+                    exposedPoints.interpolate(gf[mOld].u,(twilightZoneFlow() ? 
+                                                                        parameters.dbase.get<OGFunction* >("exactSolution") : NULL),gf[mOld].t);
           // For now recompute du/dt(t-dt) using the mask values from cg(t+dt)
                     for( int grid=0; grid<gf[mOld].cg.numberOfComponentGrids(); grid++ )
                     {
               	if( gridWasAdapted || exposedPoints.getNumberOfExposedPoints(grid)>0 )
               	{
                             if( debug() & 2 )
-                  	    printf(" ---- adamsPC: recompute du/dt(t-dt) for grid=%i t-dt = %9.3e  (%i exposed)-----\n",grid,gf[mOld].t,
+                            {
+                  	    printF(" ---- adamsPC: recompute du/dt(t-dt) for grid=%i t-dt = %9.3e  (%i exposed)-----\n",grid,gf[mOld].t,
                        		   exposedPoints.getNumberOfExposedPoints(grid));
+                                fPrintF(debugFile," ---- adamsPC: recompute du/dt(t-dt) for grid=%i t-dt = %9.3e  (%i exposed)-----\n",
+                                              grid,gf[mOld].t,exposedPoints.getNumberOfExposedPoints(grid));
+                            }
     	  // This is only necesssary if there are exposed points on this grid
                 	  rparam[0]=gf[mOld].t;
                 	  rparam[1]=gf[mOld].t;
@@ -1084,6 +1273,16 @@ advanceAdamsPredictorCorrector( real & t0, real & dt0, int & numberOfSubSteps, i
                 	  getUt(gf[mOld].u[grid],gf[mOld].getGridVelocity(grid),ub[grid],iparam,rparam,
                     		gf[mCur].u[grid],&gf[mNew].cg[grid]);
               	}
+                        else
+                        {
+                            if( debug() & 2 )
+                            {
+                  	    printF(" ---- adamsPC: fixp du/dt(t-dt) for grid=%i t-dt = %9.3e  (%i exposed) ...ok -----\n",
+                                              grid,gf[mOld].t,exposedPoints.getNumberOfExposedPoints(grid));
+                                fPrintF(debugFile," ---- adamsPC: fixp du/dt(t-dt) for grid=%i t-dt = %9.3e  (%i exposed) ...ok -----\n",
+                                              grid,gf[mOld].t,exposedPoints.getNumberOfExposedPoints(grid));
+                            }
+                        }
                     }
                     if( debug() & 4 )
                     {	
@@ -1222,7 +1421,11 @@ advanceAdamsPredictorCorrector( real & t0, real & dt0, int & numberOfSubSteps, i
     // *old way*
     // const real tForce = gf[mCur].t; // evaluate the body force at this time
     // computeBodyForcing( gf[mCur], tForce );
-
+        if( debug() & 4 )
+        {
+            fPrintF(debugFile,"--PC-- before getUt at t=%9.3e --- \n",gf[mCur].t);
+        }
+        
         for( grid=0; grid<gf[mCur].cg.numberOfComponentGrids(); grid++ )
         {
       	rparam[0]=gf[mCur].t;

@@ -72,6 +72,7 @@ coefficients $eps2 1. outerAnnulus (eps,mu,grid-name)
 coefficients $eps2 1. outerSquare (eps,mu,grid-name)
 *
 interface BC iterations $interfaceIterations
+omega for interface iterations 1.
 *
 * bc: Annulus=perfectElectricalConductor
 tFinal $tFinal

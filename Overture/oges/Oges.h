@@ -293,7 +293,7 @@ class Oges
   void equationToIndex( const int eqnNo0, int & n, int & i1, int & i2, int & i3, int & grid );
   
   // Return the equation number for given indices (inverse of equationToIndex)
-  inline int equationNo( const int n, const int i1, const int i2, const int i3, const int grid );
+  int equationNo( const int n, const int i1, const int i2, const int i3, const int grid );
   
 
   int numberOfIterations; // number of iterations used by iterative solvers
@@ -465,22 +465,6 @@ arrayDims(const int grid, const int side, const int axis )
   return cg[grid].dimension(side,axis);
 }
 
-
-inline int Oges::
-equationNo( const int n, const int i1, const int i2, const int i3, 
-	    const int grid )
-//=============================================================================
-  // Return the equation number for given indices
-  //  n : component number ( n=0,1,..,numberOfComponents-1 )
-  //  i1,i2,i3 : grid indices
-  //  grid : component grid number (grid=0,1,2..,numberOfCompoentGrids-1)   
-  //=============================================================================
-{
-  return n+1+   numberOfComponents*(i1-cg[grid].dimension(Start,axis1)+
-	(cg[grid].dimension(End,axis1)-cg[grid].dimension(Start,axis1)+1)*(i2-cg[grid].dimension(Start,axis2)+
-        (cg[grid].dimension(End,axis2)-cg[grid].dimension(Start,axis2)+1)*(i3-cg[grid].dimension(Start,axis3)
-							 ))) + gridEquationBase(grid);
-}
 
 
 #endif // OGES_H

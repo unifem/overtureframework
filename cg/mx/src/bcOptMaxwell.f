@@ -414,6 +414,67 @@ c To include derivatives of rx use OPTION=RX
 
 
 
+! ----- Here are macros for the dispersive plane wave -----
+! -*- mode: f90; -*-
+
+! **************************************************
+! Here are macros that define the:
+!      dispersive plane wave solution 
+! **************************************************
+
+
+
+! *************** Here is the 2D dispersive plane wave solution ******************************
+
+! #defineMacro planeWave2Dex0(x,y,t) sint*dpwc(0)
+! #defineMacro planeWave2Dey0(x,y,t) sint*dpwc(1)
+! #defineMacro planeWave2Dhz0(x,y,t) sint*dpwc() + cost*dpwc()
+! 
+! ! one time derivative:
+! #defineMacro planeWave2Dext0(x,y,t) (-twoPi*cc)*cos(twoPi*(kx*(x)+ky*(y)-cc*(t)))*pwc(0)
+! #defineMacro planeWave2Deyt0(x,y,t) (-twoPi*cc)*cos(twoPi*(kx*(x)+ky*(y)-cc*(t)))*pwc(1)
+! #defineMacro planeWave2Dhzt0(x,y,t) (-twoPi*cc)*cos(twoPi*(kx*(x)+ky*(y)-cc*(t)))*pwc(5)
+! 
+! ! two time derivatives:
+! #defineMacro planeWave2Dextt0(x,y,t) (-(twoPi*cc)**2*sin(twoPi*(kx*(x)+ky*(y)-cc*(t)))*pwc(0))
+! #defineMacro planeWave2Deytt0(x,y,t) (-(twoPi*cc)**2*sin(twoPi*(kx*(x)+ky*(y)-cc*(t)))*pwc(1))
+! #defineMacro planeWave2Dhztt0(x,y,t) (-(twoPi*cc)**2*sin(twoPi*(kx*(x)+ky*(y)-cc*(t)))*pwc(5))
+! 
+! 
+! ! Here are the slow start versions
+! #defineMacro planeWave2Dex(x,y,t) (ssf*planeWave2Dex0(x,y,t))
+! #defineMacro planeWave2Dey(x,y,t) (ssf*planeWave2Dey0(x,y,t))
+! #defineMacro planeWave2Dhz(x,y,t) (ssf*planeWave2Dhz0(x,y,t))
+! 
+! ! one time derivative:
+! #defineMacro planeWave2Dext(x,y,t) (ssf*planeWave2Dext0(x,y,t)+ssft*planeWave2Dex0(x,y,t))
+! #defineMacro planeWave2Deyt(x,y,t) (ssf*planeWave2Deyt0(x,y,t)+ssft*planeWave2Dey0(x,y,t))
+! #defineMacro planeWave2Dhzt(x,y,t) (ssf*planeWave2Dhzt0(x,y,t)+ssft*planeWave2Dhz0(x,y,t))
+
+! --------------------------------------------------------------------
+! Macro: Initialize values needed to eval the dispersive plane wave 
+! --------------------------------------------------------------------
+
+! --------------------------------------------------------------------
+! Macro: Evaluate the dispersive plane wave in 2D
+! 
+!  x,y,t (input) : point to evaluate at 
+!  numberOfTimeDerivatives : evaluate this time derivative
+!  ubc(.)  (output) : ubc(ex), etc. 
+! --------------------------------------------------------------------
+
+
+! --------------------------------------------------------------------
+! Evaluate the dispersive plane wave in 3D
+! 
+!  x,y,z,t (input) : point to evaluate at 
+!  numberOfTimeDerivatives : evaluate this time derivative
+!  ubc(.)  (output) : ubc(ex), etc. 
+! --------------------------------------------------------------------
+
+
+
+
 ! -------------------------------------------------------------------------------------------------------
 ! Macro: third-order extrapolation:
 ! -------------------------------------------------------------------------------------------------------

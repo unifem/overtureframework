@@ -433,8 +433,7 @@ mbuilder= mbuilder.o createMappings.o MappingBuilder.o LoftedSurfaceMapping.o
 mbuilder= mbuilder.o createMappings.o MappingBuilder.o NurbsMapping.o nurbsInterpolate.o
 mbuilder= mbuilder.o createMappings.o AnnulusMapping.o Mapping.o
 mbuilder= mbuilder.o createMappings.o NurbsMapping.o $(Overture)/Cad/nurbsCurveEditor.o $(Overture)/Cad/Point.o
-mbuilder= mbuilder.o createMappings.o NurbsMapping.o 
-mbuilder= mbuilder.o createMappings.o DataFormats.o
+mbuilder= mbuilder.o createMappings.o NurbsMapping.o readMappings.o
 mbuilder: $(mbuilder) 
 	$(CC) $(CCFLAGS) -o $@ $(mbuilder) $(CLIBS) $(FLIBS) $(GLIBS) $(ChimeraLib)
 

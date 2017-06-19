@@ -43,6 +43,9 @@ applyBoundaryConditions( int option, real dt, int current, int prev )
             userDefinedBoundaryValues( cgf.t,cgf,grid); // *new way* 12/02/20
         }
 
+    // Projection of velocity (for INS-SM AMP scheme) **FINISH ME**
+        projectInterface( grid, dt, current );
+
         assignBoundaryConditions( option, grid, t, dt, fieldCurrent, fieldPrev,current );
 
     }

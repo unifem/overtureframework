@@ -88,6 +88,9 @@ SRC = Oges.C ogesFiles.C OgesParameters.C formMatrix.C generateMatrix.C buildEqu
       toges.C subset.C SparseSolver.C tss.C
 
 
+PETScEquationSolver.C: PETScEquationSolver.bC; bpp PETScEquationSolver.bC
+
+
 PETScEquationSolver.o: PETScEquationSolver.C
 	$(CC) $(CCFLAGSF) -c $<
 

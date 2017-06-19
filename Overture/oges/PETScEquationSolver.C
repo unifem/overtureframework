@@ -277,8 +277,26 @@ initializePetscKSP()
       // Activate logging of PETSC's malloc call
       // *wdh* ierr = PetscSetUseTrMalloc_Private(); CHKERRQ(ierr);
       // ierr = PetscTrLog();                  CHKERRQ( ierr );
+      //ierr = PetscMallocDumpSetLog();                  CHKERRQ( ierr );
+
+      //To avoid error message, turn on the -malloc_log in .petscrc
+      printF("...After Petsc Initialized...\n");
+      PetscLogDouble space =0;
+      ierr =  PetscMallocGetCurrentUsage(&space);   CHKERRQ(ierr);
+      printF("Current space PetscMalloc()ed %i M\n",(int)(space/(1024.*1024.)));
+
+      ierr =  PetscMallocGetMaximumUsage(&space);   CHKERRQ(ierr);
+      printF("Max space PetscMalloced() %i M\n",(int)(space/(1024.*1024.)));
+
+      ierr =  PetscMemoryGetCurrentUsage(&space);   CHKERRQ(ierr);
+      printF("Current process memory %i M\n",(int)(space/(1024.*1024.)));
+
+      ierr =  PetscMemoryGetMaximumUsage(&space);   CHKERRQ(ierr);
+      printF("Max process memory %i M\n",(int)(space/(1024.*1024.)));                   
       ierr = PetscMallocDumpLog(stdout); CHKERRQ( ierr );
+      //ierr =  PetscMallocDump(stdout);          CHKERRQ(ierr);
     }
+
   }
   // ..Check that we are running on 1 proc.
   ierr=  MPI_Comm_size(comm, &numProcs); CHKERRQ(ierr);
@@ -569,7 +587,7 @@ setPetscParameters()
   dh_setParameters();  
 #endif 
 
-  //ierr = PCLUSetReuseReordering(pc, 1);          CHKERRQ(ierr);}
+  //ierr = PCLUSetReuseReordering(pc, 1);          CHKERRQ(ierr);
   //   optionsChanged=TRUE;
 
 //  PetscFunctionReturnVoid();
@@ -736,6 +754,26 @@ solve(realCompositeGridFunction & u,
 
   ierr = KSPSolve(ksp,brhs,xsol);CHKERRQ(ierr);
 
+  if( turnOnPETScMemoryTracing)
+  {
+    //To avoid error message, turn on the -malloc_log in .petscrc
+    printF("...After one KSPSolve...\n");
+    PetscLogDouble space =0;
+    ierr =  PetscMallocGetCurrentUsage(&space);   CHKERRQ(ierr);
+    printF("Current space PetscMalloc()ed %i M\n",(int)(space/(1024.*1024.)));
+
+    ierr =  PetscMallocGetMaximumUsage(&space);   CHKERRQ(ierr);
+    printF("Max space PetscMalloced() %i M\n",(int)(space/(1024.*1024.)));
+
+    ierr =  PetscMemoryGetCurrentUsage(&space);   CHKERRQ(ierr);
+    printF("Current process memory %i M\n",(int)(space/(1024.*1024.)));
+
+    ierr =  PetscMemoryGetMaximumUsage(&space);   CHKERRQ(ierr);
+    printF("Max process memory %i M\n",(int)(space/(1024.*1024.)));                   
+    ierr = PetscMallocDumpLog(stdout);            CHKERRQ(ierr);
+    //ierr =  PetscMallocDump(stdout);          CHKERRQ(ierr);
+  }
+
   KSPConvergedReason reason;
   ierr = KSPGetConvergedReason(ksp,&reason);
   if( reason<0 )
@@ -776,7 +814,7 @@ solve(realCompositeGridFunction & u,
 
     if( true ) // July 28, 2016 -- try this --
     {
-      if( reason==-3 || reason==-5 || reason==-6 )
+      if( reason==-3 || reason==-4 || reason==-5 || reason==-6 )
       {
 	printF("--PTSC-- KSP failed, try to solve again with zero initial guess...\n");
         PetscBool flg=PETSC_FALSE;  // the initial guess is ZERO
@@ -942,6 +980,7 @@ buildPetscMatrix()
   bool allocateSpace = TRUE;
   bool factorMatrixInPlace = FALSE; // allocate space for matrix only
 
+
   if( matrixFormat==Oges::other )
   {
     // in this case formMatrix will directly supply PETSc with the matrix elements
@@ -1061,6 +1100,9 @@ buildPetscMatrix()
     PetscScalar  v;
     // real rownorm;
 
+    const real coeffScale=1.;  // fix this 
+    real eps= parameters.rescaleRowNorms ? coeffScale*REAL_EPSILON*100. : 0.;  // cutoff tolerance for keeping coefficients
+
     if( Oges::debug & 2 )
       cout << "+++(PetscOverture)Building the Petsc matrix...\n";
     for( irowm1=0; irowm1<neq; irowm1++ ) {
@@ -1069,6 +1111,8 @@ buildPetscMatrix()
       for( j=ia_[irowm1]; j<=ia_[irowm1+1]-1; j++ ) 
       {
 	v=dsc*aval[ j-1 ];
+	if( fabs(v) <eps ) continue;   // *wdh* May 23, 2015 -- to catch small user supplied eqn coeffs
+	
 	jcolm1=ja_[ j-1 ]-1;
 	// rownorm = rownorm+ fabs(v);
 	// To matrix Amx, Insert row=irow, col=jcol, INSERT (NEW) VALUE 
@@ -1266,6 +1310,10 @@ buildRhsAndSolVector(realCompositeGridFunction & u,
 
       v=ovRhs[i]*dscale[i]; // SCALE rhs as the matrix!!
       ierr=VecSetValues(brhs,1,&i,&v,INSERT_VALUES); CHKERRQ(ierr);
+
+      if( Oges::debug & 2 )
+        printF("--PES-- RHS: i=%6i, ovRhs=%11.4e scale=%9.2e b=%11.4e\n",i,ovRhs[i],dscale[i],v);
+      
     }
   }
   else

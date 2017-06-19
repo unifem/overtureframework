@@ -1199,7 +1199,7 @@ c======================================================================
 c     ---- local variables -----
       integer c,e,i1,i2,i3,m1,m2,m3,j1,j2,j3,ghostLine,n,i1m,i2m,i3m,
      & i1p,i2p,i3p,ndu
-      integer side,axis,is1,is2,is3,mm,eqnTemp,debug,ntdc
+      integer side,axis,is1,is2,is3,mm,eqnTemp,debug,ntdc,normalAxis
       integer kd,kd3,orderOfAccuracy,gridIsMoving,orderOfExtrap,
      & orderOfExtrapolation,orderOfExtrapolationForOutflow
       integer numberOfComponentsForCoefficients,stencilSize
@@ -1213,7 +1213,7 @@ c     ---- local variables -----
       real dxi,dyi,dzi,dri,dsi,dti,dr2i,ds2i,dt2i
       real ad21,ad22,ad41,ad42,cd22,cd42,adc,adCoeff,adCoeffl
       real ad21n,ad22n,ad41n,ad42n,cd22n,cd42n
-      real yy,yEps, epsX
+      real yy,yEps, epsX, normalTol
       real an(0:2),anNorm, advectionCoefficient
       integer checkForInflowAtOutFlow, outflowOption
       integer ok,getInt,getReal
@@ -2085,6 +2085,7 @@ c     ---- local variables -----
       adcBoussinesq     =rpar(24) ! coefficient of artificial diffusion for Boussinesq T equation
       kThermal          =rpar(25)
       epsX = 1.e-30  ! epsilon used to avoid division by zero in the normal computation -- should be REAL_MIN*100 ??
+      normalTol=1.e-10  ! tolerance for a face being flat
       ncc=numberOfComponentsForCoefficients ! number of components for coefficients
       ok = getInt(pdb,'checkForInflowAtOutFlow',
      & checkForInflowAtOutFlow)
@@ -3378,17 +3379,344 @@ c      write(*,'("insImpINS: nd,uc,vc,wc,kc=",2i6)') nd,uc,vc,wc,kc
            end do
            end do
          else if( bc0.eq.inflowWithPandTV )then
-           ! -- pressure and tangential velocity given --
+           ! ------------------------------------------------
+           ! ---- pressure and tangential velocity given ----
+           ! ------------------------------------------------
           write(*,'("insImpINS: fill in BC pressure and tangential 
      & velocity ** check me** ")')
-          write(*,'(" fillCoefficientsScalarSystem=",i4)') 
-     & fillCoefficientsScalarSystem
           if( fillCoefficientsScalarSystem.ge.fillCoeffU .and. 
      & fillCoefficientsScalarSystem.le.fillCoeffW )then
-            write(*,'(" insImpINS: bc0.eq.inflowWithPandTV not 
-     & finished for scalar systems")')
-            stop 8140
-          end if
+           write(*,'(" fillCoefficientsScalarSystem=",i4)') 
+     & fillCoefficientsScalarSystem
+           ! --- fill coefficients for scalar systems ---
+           ! This only works if the boundary face is on a plane x=constant, y=constant or z=constant 
+           ! Added May 13, 2017 *wdh*
+            do i3=n3a,n3b
+            do i2=n2a,n2b
+            do i1=n1a,n1b
+             ! if( btest(mask(i1,i2,i3),28) )then
+             !   write(*,'("+++ Point i=(",3i5,") is an interiorBoundaryPoint")') i1,i2,i3
+             ! end if
+             if( mask(i1,i2,i3).gt.0 .and. .not.btest(mask(i1,i2,i3),
+     & 28) )then
+              ! Operator identity 
+               iCoeff(ma2(-1,-1, 0)) = 0
+               iCoeff(ma2( 0,-1, 0)) = 0
+               iCoeff(ma2( 1,-1, 0)) = 0
+               iCoeff(ma2(-1, 0, 0)) = 0
+               iCoeff(ma2( 0, 0, 0)) = 1.
+               iCoeff(ma2( 1, 0, 0)) = 0
+               iCoeff(ma2(-1, 1, 0)) = 0
+               iCoeff(ma2( 0, 1, 0)) = 0
+               iCoeff(ma2( 1, 1, 0)) = 0
+            ! -- The grid face should be in a coordinate direction,
+            !   normalAxis = 0,1, or 2 indicates this direction
+            if( abs(abs(an(0))-1.) .lt. normalTol )then
+             normalAxis=0
+            else if( abs(abs(an(1))-1.) .lt. normalTol )then
+             normalAxis=1
+            else if(  abs(abs(an(2))-1.) .lt. normalTol )then
+             normalAxis=2
+            else
+              write(*,'(" insImpINS: ERROR: inflowWithPandTV, scalar 
+     & systems but normals funny")')
+              write(*,'("  --> the normals should be in a coordinate 
+     & direction")')
+              stop 1287
+            end if
+            !  --- equations for u ---
+            if( fillCoefficientsScalarSystem.eq.fillCoeffU )then
+              if( normalAxis.eq.0 )then
+               ! boundary face is x=constant:
+               !  Give u.n = 0 
+                ! Evaluate the jacobian derivatives used by the coefficient and forward derivatives:
+                ! opEvalJacobianDerivatives(MAXDER) : MAXDER = max number of derivatives to precompute.
+                ! evaluate the coeff operators 
+                ! getCoeff(identity, iCoeff,aj)
+                  ! Operator x = ux
+                   xCoeff(ma2(-1,-1, 0)) = 0
+                   xCoeff(ma2( 0,-1, 0)) = 0
+                   xCoeff(ma2( 1,-1, 0)) = 0
+                   xCoeff(ma2(-1, 0, 0)) = -1./2./dx(0)
+                   xCoeff(ma2( 0, 0, 0)) = 0
+                   xCoeff(ma2( 1, 0, 0)) = 1./2./dx(0)
+                   xCoeff(ma2(-1, 1, 0)) = 0
+                   xCoeff(ma2( 0, 1, 0)) = 0
+                   xCoeff(ma2( 1, 1, 0)) = 0
+                  ! Operator y = uy
+                   yCoeff(ma2(-1,-1, 0)) = 0
+                   yCoeff(ma2( 0,-1, 0)) = -1./2./dx(1)
+                   yCoeff(ma2( 1,-1, 0)) = 0
+                   yCoeff(ma2(-1, 0, 0)) = 0
+                   yCoeff(ma2( 0, 0, 0)) = 0
+                   yCoeff(ma2( 1, 0, 0)) = 0
+                   yCoeff(ma2(-1, 1, 0)) = 0
+                   yCoeff(ma2( 0, 1, 0)) = 1./2./dx(1)
+                   yCoeff(ma2( 1, 1, 0)) = 0
+                  ! Operator identity 
+                   iCoeff(ma2(-1,-1, 0)) = 0
+                   iCoeff(ma2( 0,-1, 0)) = 0
+                   iCoeff(ma2( 1,-1, 0)) = 0
+                   iCoeff(ma2(-1, 0, 0)) = 0
+                   iCoeff(ma2( 0, 0, 0)) = 1.
+                   iCoeff(ma2( 1, 0, 0)) = 0
+                   iCoeff(ma2(-1, 1, 0)) = 0
+                   iCoeff(ma2( 0, 1, 0)) = 0
+                   iCoeff(ma2( 1, 1, 0)) = 0
+                i1m=i1-is1  ! ghost point
+                i2m=i2-is2
+                i3m=i3-is3
+                 do m3=-halfWidth3,halfWidth3
+                 do m2=-halfWidth,halfWidth
+                 do m1=-halfWidth,halfWidth
+                 m=ma2(m1,m2,m3)
+                 mm=mce2(m1,m2,m3,cmpu,eqnu)
+                  coeff(mm,i1m,i2m,i3m)=1.*(an(0)*xCoeff(m)+an(1)*
+     & yCoeff(m))+0.*iCoeff(m)
+                 ! The equation for pt (eqnu,i1m,i2m,i3m) is centered on (cmpu,i1,i2,i3): 
+                  equationNumber(mm,i1m,i2m,i3m)=(cmpu+1+
+     & numberOfComponentsForCoefficients*(i1+m1-equationNumberBase1+
+     & equationNumberLength1*(i2+m2-equationNumberBase2+
+     & equationNumberLength2*(i3+m3-equationNumberBase3)))+
+     & equationOffset)
+                 end do
+                 end do
+                 end do
+                 classify(i1m,i2m,i3m,eqnu)=ghost1
+              else
+               ! boundary face is y=constant, or z=constant : give u=0 
+               do m=ce(0,eqnu),ce(0,eqnu+1)-1
+                coeff(m,i1,i2,i3)=0.
+               end do
+                do m3=-halfWidth3,halfWidth3
+                do m2=-halfWidth,halfWidth
+                do m1=-halfWidth,halfWidth
+                  coeff(mce2(m1,m2,m3,cmpu,eqnu),i1,i2,i3)=(iCoeff(ma2(
+     & m1,m2,m3)))
+                end do
+                end do
+                end do
+                if( orderOfExtrapolation.lt.1 .or. 
+     & orderOfExtrapolation.gt.maxOrderOfExtrapolation )then
+                  stop 7734
+                end if
+                i1m=i1-is1*(1)  ! 1 point
+                i2m=i2-is2*(1)
+                i3m=i3-is3*(1)
+                do m=0,orderOfExtrapolation
+                 j1=i1m+is1*m  ! m-th point moving inward from the 1 point (i1,i2,i3)
+                 j2=i2m+is2*m
+                 j3=i3m+is3*m
+                 mm = ce(cmpu,eqnu)+m
+                 coeff(mm,i1m,i2m,i3m)=extrapCoeff(m,
+     & orderOfExtrapolation) ! m=0,1,2,..
+                  equationNumber(mm,i1m,i2m,i3m)=(cmpu+1+
+     & numberOfComponentsForCoefficients*(j1-equationNumberBase1+
+     & equationNumberLength1*(j2-equationNumberBase2+
+     & equationNumberLength2*(j3-equationNumberBase3)))+
+     & equationOffset)
+                end do
+                 classify(i1m,i2m,i3m,eqnu)=extrapolation
+              end if
+            !  --- equations for v ---
+            else if( fillCoefficientsScalarSystem.eq.fillCoeffV )then
+              if( normalAxis.eq.1 )then
+               ! boundary face is y=constant:
+               !  Give v.n = 0 
+                ! Evaluate the jacobian derivatives used by the coefficient and forward derivatives:
+                ! opEvalJacobianDerivatives(MAXDER) : MAXDER = max number of derivatives to precompute.
+                ! evaluate the coeff operators 
+                ! getCoeff(identity, iCoeff,aj)
+                  ! Operator x = ux
+                   xCoeff(ma2(-1,-1, 0)) = 0
+                   xCoeff(ma2( 0,-1, 0)) = 0
+                   xCoeff(ma2( 1,-1, 0)) = 0
+                   xCoeff(ma2(-1, 0, 0)) = -1./2./dx(0)
+                   xCoeff(ma2( 0, 0, 0)) = 0
+                   xCoeff(ma2( 1, 0, 0)) = 1./2./dx(0)
+                   xCoeff(ma2(-1, 1, 0)) = 0
+                   xCoeff(ma2( 0, 1, 0)) = 0
+                   xCoeff(ma2( 1, 1, 0)) = 0
+                  ! Operator y = uy
+                   yCoeff(ma2(-1,-1, 0)) = 0
+                   yCoeff(ma2( 0,-1, 0)) = -1./2./dx(1)
+                   yCoeff(ma2( 1,-1, 0)) = 0
+                   yCoeff(ma2(-1, 0, 0)) = 0
+                   yCoeff(ma2( 0, 0, 0)) = 0
+                   yCoeff(ma2( 1, 0, 0)) = 0
+                   yCoeff(ma2(-1, 1, 0)) = 0
+                   yCoeff(ma2( 0, 1, 0)) = 1./2./dx(1)
+                   yCoeff(ma2( 1, 1, 0)) = 0
+                  ! Operator identity 
+                   iCoeff(ma2(-1,-1, 0)) = 0
+                   iCoeff(ma2( 0,-1, 0)) = 0
+                   iCoeff(ma2( 1,-1, 0)) = 0
+                   iCoeff(ma2(-1, 0, 0)) = 0
+                   iCoeff(ma2( 0, 0, 0)) = 1.
+                   iCoeff(ma2( 1, 0, 0)) = 0
+                   iCoeff(ma2(-1, 1, 0)) = 0
+                   iCoeff(ma2( 0, 1, 0)) = 0
+                   iCoeff(ma2( 1, 1, 0)) = 0
+                i1m=i1-is1  ! ghost point
+                i2m=i2-is2
+                i3m=i3-is3
+                 do m3=-halfWidth3,halfWidth3
+                 do m2=-halfWidth,halfWidth
+                 do m1=-halfWidth,halfWidth
+                 m=ma2(m1,m2,m3)
+                 mm=mce2(m1,m2,m3,cmpv,eqnv)
+                  coeff(mm,i1m,i2m,i3m)=1.*(an(0)*xCoeff(m)+an(1)*
+     & yCoeff(m))+0.*iCoeff(m)
+                 ! The equation for pt (eqnv,i1m,i2m,i3m) is centered on (cmpv,i1,i2,i3): 
+                  equationNumber(mm,i1m,i2m,i3m)=(cmpv+1+
+     & numberOfComponentsForCoefficients*(i1+m1-equationNumberBase1+
+     & equationNumberLength1*(i2+m2-equationNumberBase2+
+     & equationNumberLength2*(i3+m3-equationNumberBase3)))+
+     & equationOffset)
+                 end do
+                 end do
+                 end do
+                 classify(i1m,i2m,i3m,eqnv)=ghost1
+              else
+               ! boundary face is x=constant, or z=constant : give v=0 
+               do m=ce(0,eqnv),ce(0,eqnv+1)-1
+                coeff(m,i1,i2,i3)=0.
+               end do
+                do m3=-halfWidth3,halfWidth3
+                do m2=-halfWidth,halfWidth
+                do m1=-halfWidth,halfWidth
+                  coeff(mce2(m1,m2,m3,cmpv,eqnv),i1,i2,i3)=(iCoeff(ma2(
+     & m1,m2,m3)))
+                end do
+                end do
+                end do
+                if( orderOfExtrapolation.lt.1 .or. 
+     & orderOfExtrapolation.gt.maxOrderOfExtrapolation )then
+                  stop 7734
+                end if
+                i1m=i1-is1*(1)  ! 1 point
+                i2m=i2-is2*(1)
+                i3m=i3-is3*(1)
+                do m=0,orderOfExtrapolation
+                 j1=i1m+is1*m  ! m-th point moving inward from the 1 point (i1,i2,i3)
+                 j2=i2m+is2*m
+                 j3=i3m+is3*m
+                 mm = ce(cmpv,eqnv)+m
+                 coeff(mm,i1m,i2m,i3m)=extrapCoeff(m,
+     & orderOfExtrapolation) ! m=0,1,2,..
+                  equationNumber(mm,i1m,i2m,i3m)=(cmpv+1+
+     & numberOfComponentsForCoefficients*(j1-equationNumberBase1+
+     & equationNumberLength1*(j2-equationNumberBase2+
+     & equationNumberLength2*(j3-equationNumberBase3)))+
+     & equationOffset)
+                end do
+                 classify(i1m,i2m,i3m,eqnv)=extrapolation
+              end if
+            !  --- equations for w ---
+            else if( fillCoefficientsScalarSystem.eq.fillCoeffW )then
+              if( normalAxis.eq.2 )then
+               ! boundary face is z=constant:
+               !  Give w.n = 0 
+                ! Evaluate the jacobian derivatives used by the coefficient and forward derivatives:
+                ! opEvalJacobianDerivatives(MAXDER) : MAXDER = max number of derivatives to precompute.
+                ! evaluate the coeff operators 
+                ! getCoeff(identity, iCoeff,aj)
+                  ! Operator x = ux
+                   xCoeff(ma2(-1,-1, 0)) = 0
+                   xCoeff(ma2( 0,-1, 0)) = 0
+                   xCoeff(ma2( 1,-1, 0)) = 0
+                   xCoeff(ma2(-1, 0, 0)) = -1./2./dx(0)
+                   xCoeff(ma2( 0, 0, 0)) = 0
+                   xCoeff(ma2( 1, 0, 0)) = 1./2./dx(0)
+                   xCoeff(ma2(-1, 1, 0)) = 0
+                   xCoeff(ma2( 0, 1, 0)) = 0
+                   xCoeff(ma2( 1, 1, 0)) = 0
+                  ! Operator y = uy
+                   yCoeff(ma2(-1,-1, 0)) = 0
+                   yCoeff(ma2( 0,-1, 0)) = -1./2./dx(1)
+                   yCoeff(ma2( 1,-1, 0)) = 0
+                   yCoeff(ma2(-1, 0, 0)) = 0
+                   yCoeff(ma2( 0, 0, 0)) = 0
+                   yCoeff(ma2( 1, 0, 0)) = 0
+                   yCoeff(ma2(-1, 1, 0)) = 0
+                   yCoeff(ma2( 0, 1, 0)) = 1./2./dx(1)
+                   yCoeff(ma2( 1, 1, 0)) = 0
+                  ! Operator identity 
+                   iCoeff(ma2(-1,-1, 0)) = 0
+                   iCoeff(ma2( 0,-1, 0)) = 0
+                   iCoeff(ma2( 1,-1, 0)) = 0
+                   iCoeff(ma2(-1, 0, 0)) = 0
+                   iCoeff(ma2( 0, 0, 0)) = 1.
+                   iCoeff(ma2( 1, 0, 0)) = 0
+                   iCoeff(ma2(-1, 1, 0)) = 0
+                   iCoeff(ma2( 0, 1, 0)) = 0
+                   iCoeff(ma2( 1, 1, 0)) = 0
+                i1m=i1-is1  ! ghost point
+                i2m=i2-is2
+                i3m=i3-is3
+                 do m3=-halfWidth3,halfWidth3
+                 do m2=-halfWidth,halfWidth
+                 do m1=-halfWidth,halfWidth
+                 m=ma2(m1,m2,m3)
+                 mm=mce2(m1,m2,m3,cmpw,eqnw)
+                  coeff(mm,i1m,i2m,i3m)=1.*(an(0)*xCoeff(m)+an(1)*
+     & yCoeff(m))+0.*iCoeff(m)
+                 ! The equation for pt (eqnw,i1m,i2m,i3m) is centered on (cmpw,i1,i2,i3): 
+                  equationNumber(mm,i1m,i2m,i3m)=(cmpw+1+
+     & numberOfComponentsForCoefficients*(i1+m1-equationNumberBase1+
+     & equationNumberLength1*(i2+m2-equationNumberBase2+
+     & equationNumberLength2*(i3+m3-equationNumberBase3)))+
+     & equationOffset)
+                 end do
+                 end do
+                 end do
+                 classify(i1m,i2m,i3m,eqnw)=ghost1
+              else
+               ! boundary face is x=constant, or y=constant : give w=0 
+               do m=ce(0,eqnw),ce(0,eqnw+1)-1
+                coeff(m,i1,i2,i3)=0.
+               end do
+                do m3=-halfWidth3,halfWidth3
+                do m2=-halfWidth,halfWidth
+                do m1=-halfWidth,halfWidth
+                  coeff(mce2(m1,m2,m3,cmpw,eqnw),i1,i2,i3)=(iCoeff(ma2(
+     & m1,m2,m3)))
+                end do
+                end do
+                end do
+                if( orderOfExtrapolation.lt.1 .or. 
+     & orderOfExtrapolation.gt.maxOrderOfExtrapolation )then
+                  stop 7734
+                end if
+                i1m=i1-is1*(1)  ! 1 point
+                i2m=i2-is2*(1)
+                i3m=i3-is3*(1)
+                do m=0,orderOfExtrapolation
+                 j1=i1m+is1*m  ! m-th point moving inward from the 1 point (i1,i2,i3)
+                 j2=i2m+is2*m
+                 j3=i3m+is3*m
+                 mm = ce(cmpw,eqnw)+m
+                 coeff(mm,i1m,i2m,i3m)=extrapCoeff(m,
+     & orderOfExtrapolation) ! m=0,1,2,..
+                  equationNumber(mm,i1m,i2m,i3m)=(cmpw+1+
+     & numberOfComponentsForCoefficients*(j1-equationNumberBase1+
+     & equationNumberLength1*(j2-equationNumberBase2+
+     & equationNumberLength2*(j3-equationNumberBase3)))+
+     & equationOffset)
+                end do
+                 classify(i1m,i2m,i3m,eqnw)=extrapolation
+              end if
+            else
+              write(*,'(" insImpINS: bc0.eq.inflowWithPandTV -- 
+     & unknown option")')
+              stop 8141
+            end if
+             end if
+            end do
+            end do
+            end do
+         else
+           ! ****** inflowWithPandTV: vector system *********
             ! Operator identity 
              iCoeff(ma2(-1,-1, 0)) = 0
              iCoeff(ma2( 0,-1, 0)) = 0
@@ -3492,6 +3820,7 @@ c      write(*,'("insImpINS: nd,uc,vc,wc,kc=",2i6)') nd,uc,vc,wc,kc
            end do
            end do
            end do
+         end if  ! end vector system
          else if( bc0.eq.axisymmetric )then
           if( fillCoefficientsScalarSystem.eq.fillCoeffU )then
            ! BC on an axisymmetric side : scalar matrix for U 
@@ -3508,7 +3837,7 @@ c      write(*,'("insImpINS: nd,uc,vc,wc,kc=",2i6)') nd,uc,vc,wc,kc
             ! getCoeff(identity, iCoeff,aj)
             !zeroMatrixCoefficients( coeff,eqnv,eqnv, i1,i2,i3 )  ! set v eqn coeffs to zero
             !setCoeff1(cmpv,eqnv,coeff,iCoeff)                ! dirichlet: V= 
-            !fillMatrixExtrapolation(coeff,cmpv,eqnv,i1,i2,i3,orderOfExtrapolation,1)  ! extrap ghost for V 
+            !fillMatrixExtrapolation(coe<ff,cmpv,eqnv,i1,i2,i3,orderOfExtrapolation,1)  ! extrap ghost for V 
              ! Evaluate the jacobian derivatives used by the coefficient and forward derivatives:
              ! opEvalJacobianDerivatives(MAXDER) : MAXDER = max number of derivatives to precompute.
              ! evaluate the coeff operators 
@@ -5751,17 +6080,428 @@ c      write(*,'("insImpINS: nd,uc,vc,wc,kc=",2i6)') nd,uc,vc,wc,kc
            end do
            end do
          else if( bc0.eq.inflowWithPandTV )then
-           ! -- pressure and tangential velocity given --
+           ! ------------------------------------------------
+           ! ---- pressure and tangential velocity given ----
+           ! ------------------------------------------------
           write(*,'("insImpINS: fill in BC pressure and tangential 
      & velocity ** check me** ")')
-          write(*,'(" fillCoefficientsScalarSystem=",i4)') 
-     & fillCoefficientsScalarSystem
           if( fillCoefficientsScalarSystem.ge.fillCoeffU .and. 
      & fillCoefficientsScalarSystem.le.fillCoeffW )then
-            write(*,'(" insImpINS: bc0.eq.inflowWithPandTV not 
-     & finished for scalar systems")')
-            stop 8140
-          end if
+           write(*,'(" fillCoefficientsScalarSystem=",i4)') 
+     & fillCoefficientsScalarSystem
+           ! --- fill coefficients for scalar systems ---
+           ! This only works if the boundary face is on a plane x=constant, y=constant or z=constant 
+           ! Added May 13, 2017 *wdh*
+            do i3=n3a,n3b
+            do i2=n2a,n2b
+            do i1=n1a,n1b
+             ! if( btest(mask(i1,i2,i3),28) )then
+             !   write(*,'("+++ Point i=(",3i5,") is an interiorBoundaryPoint")') i1,i2,i3
+             ! end if
+             if( mask(i1,i2,i3).gt.0 .and. .not.btest(mask(i1,i2,i3),
+     & 28) )then
+             ! this next call will define the jacobian and its derivatives (parameteric and spatial)
+             ajrx = rsxy(i1,i2,i3,0,0)
+             ajrxr = (-rsxy(i1-1,i2,i3,0,0)+rsxy(i1+1,i2,i3,0,0))/(2.*
+     & dr(0))
+             ajrxs = (-rsxy(i1,i2-1,i3,0,0)+rsxy(i1,i2+1,i3,0,0))/(2.*
+     & dr(1))
+             ajsx = rsxy(i1,i2,i3,1,0)
+             ajsxr = (-rsxy(i1-1,i2,i3,1,0)+rsxy(i1+1,i2,i3,1,0))/(2.*
+     & dr(0))
+             ajsxs = (-rsxy(i1,i2-1,i3,1,0)+rsxy(i1,i2+1,i3,1,0))/(2.*
+     & dr(1))
+             ajry = rsxy(i1,i2,i3,0,1)
+             ajryr = (-rsxy(i1-1,i2,i3,0,1)+rsxy(i1+1,i2,i3,0,1))/(2.*
+     & dr(0))
+             ajrys = (-rsxy(i1,i2-1,i3,0,1)+rsxy(i1,i2+1,i3,0,1))/(2.*
+     & dr(1))
+             ajsy = rsxy(i1,i2,i3,1,1)
+             ajsyr = (-rsxy(i1-1,i2,i3,1,1)+rsxy(i1+1,i2,i3,1,1))/(2.*
+     & dr(0))
+             ajsys = (-rsxy(i1,i2-1,i3,1,1)+rsxy(i1,i2+1,i3,1,1))/(2.*
+     & dr(1))
+             ajrxx = ajrx*ajrxr+ajsx*ajrxs
+             ajrxy = ajry*ajrxr+ajsy*ajrxs
+             ajsxx = ajrx*ajsxr+ajsx*ajsxs
+             ajsxy = ajry*ajsxr+ajsy*ajsxs
+             ajryx = ajrx*ajryr+ajsx*ajrys
+             ajryy = ajry*ajryr+ajsy*ajrys
+             ajsyx = ajrx*ajsyr+ajsx*ajsys
+             ajsyy = ajry*ajsyr+ajsy*ajsys
+              ! Operator identity 
+               iCoeff(ma2(-1,-1, 0)) = 0
+               iCoeff(ma2( 0,-1, 0)) = 0
+               iCoeff(ma2( 1,-1, 0)) = 0
+               iCoeff(ma2(-1, 0, 0)) = 0
+               iCoeff(ma2( 0, 0, 0)) = 1.
+               iCoeff(ma2( 1, 0, 0)) = 0
+               iCoeff(ma2(-1, 1, 0)) = 0
+               iCoeff(ma2( 0, 1, 0)) = 0
+               iCoeff(ma2( 1, 1, 0)) = 0
+                ! get the outward normal for curvilinear grids
+                an(0)=rsxy(i1,i2,i3,axis,0)
+                an(1)=rsxy(i1,i2,i3,axis,1)
+                  anNorm = (2*side-1)/max( epsX, sqrt( an(0)**2 + an(1)
+     & **2 ) )
+                  an(0)=an(0)*anNorm
+                  an(1)=an(1)*anNorm
+            ! -- The grid face should be in a coordinate direction,
+            !   normalAxis = 0,1, or 2 indicates this direction
+            if( abs(abs(an(0))-1.) .lt. normalTol )then
+             normalAxis=0
+            else if( abs(abs(an(1))-1.) .lt. normalTol )then
+             normalAxis=1
+            else if(  abs(abs(an(2))-1.) .lt. normalTol )then
+             normalAxis=2
+            else
+              write(*,'(" insImpINS: ERROR: inflowWithPandTV, scalar 
+     & systems but normals funny")')
+              write(*,'("  --> the normals should be in a coordinate 
+     & direction")')
+              stop 1287
+            end if
+            !  --- equations for u ---
+            if( fillCoefficientsScalarSystem.eq.fillCoeffU )then
+              if( normalAxis.eq.0 )then
+               ! boundary face is x=constant:
+               !  Give u.n = 0 
+                   ! get the outward normal for curvilinear grids
+                   an(0)=rsxy(i1,i2,i3,axis,0)
+                   an(1)=rsxy(i1,i2,i3,axis,1)
+                     anNorm = (2*side-1)/max( epsX, sqrt( an(0)**2 + 
+     & an(1)**2 ) )
+                     an(0)=an(0)*anNorm
+                     an(1)=an(1)*anNorm
+                ! Evaluate the jacobian derivatives used by the coefficient and forward derivatives:
+                ! opEvalJacobianDerivatives(MAXDER) : MAXDER = max number of derivatives to precompute.
+                 ! this next call will define the jacobian and its derivatives (parameteric and spatial)
+                 ajrx = rsxy(i1,i2,i3,0,0)
+                 ajsx = rsxy(i1,i2,i3,1,0)
+                 ajry = rsxy(i1,i2,i3,0,1)
+                 ajsy = rsxy(i1,i2,i3,1,1)
+                ! evaluate the coeff operators 
+                ! getCoeff(identity, iCoeff,aj)
+                  ! Operator x = rx*ur+sx*us
+                   cur = ajrx
+                   cus = ajsx
+                   xCoeff(ma2(-1,-1, 0)) = 0
+                   xCoeff(ma2( 0,-1, 0)) = -1./2.*cus/dr(1)
+                   xCoeff(ma2( 1,-1, 0)) = 0
+                   xCoeff(ma2(-1, 0, 0)) = -1./2.*cur/dr(0)
+                   xCoeff(ma2( 0, 0, 0)) = 0
+                   xCoeff(ma2( 1, 0, 0)) = 1./2.*cur/dr(0)
+                   xCoeff(ma2(-1, 1, 0)) = 0
+                   xCoeff(ma2( 0, 1, 0)) = 1./2.*cus/dr(1)
+                   xCoeff(ma2( 1, 1, 0)) = 0
+                  ! Operator y = ry*ur+sy*us
+                   cur = ajry
+                   cus = ajsy
+                   yCoeff(ma2(-1,-1, 0)) = 0
+                   yCoeff(ma2( 0,-1, 0)) = -1./2.*cus/dr(1)
+                   yCoeff(ma2( 1,-1, 0)) = 0
+                   yCoeff(ma2(-1, 0, 0)) = -1./2.*cur/dr(0)
+                   yCoeff(ma2( 0, 0, 0)) = 0
+                   yCoeff(ma2( 1, 0, 0)) = 1./2.*cur/dr(0)
+                   yCoeff(ma2(-1, 1, 0)) = 0
+                   yCoeff(ma2( 0, 1, 0)) = 1./2.*cus/dr(1)
+                   yCoeff(ma2( 1, 1, 0)) = 0
+                  ! Operator identity 
+                   iCoeff(ma2(-1,-1, 0)) = 0
+                   iCoeff(ma2( 0,-1, 0)) = 0
+                   iCoeff(ma2( 1,-1, 0)) = 0
+                   iCoeff(ma2(-1, 0, 0)) = 0
+                   iCoeff(ma2( 0, 0, 0)) = 1.
+                   iCoeff(ma2( 1, 0, 0)) = 0
+                   iCoeff(ma2(-1, 1, 0)) = 0
+                   iCoeff(ma2( 0, 1, 0)) = 0
+                   iCoeff(ma2( 1, 1, 0)) = 0
+                i1m=i1-is1  ! ghost point
+                i2m=i2-is2
+                i3m=i3-is3
+                 do m3=-halfWidth3,halfWidth3
+                 do m2=-halfWidth,halfWidth
+                 do m1=-halfWidth,halfWidth
+                 m=ma2(m1,m2,m3)
+                 mm=mce2(m1,m2,m3,cmpu,eqnu)
+                  coeff(mm,i1m,i2m,i3m)=1.*(an(0)*xCoeff(m)+an(1)*
+     & yCoeff(m))+0.*iCoeff(m)
+                 ! The equation for pt (eqnu,i1m,i2m,i3m) is centered on (cmpu,i1,i2,i3): 
+                  equationNumber(mm,i1m,i2m,i3m)=(cmpu+1+
+     & numberOfComponentsForCoefficients*(i1+m1-equationNumberBase1+
+     & equationNumberLength1*(i2+m2-equationNumberBase2+
+     & equationNumberLength2*(i3+m3-equationNumberBase3)))+
+     & equationOffset)
+                 end do
+                 end do
+                 end do
+                 classify(i1m,i2m,i3m,eqnu)=ghost1
+              else
+               ! boundary face is y=constant, or z=constant : give u=0 
+               do m=ce(0,eqnu),ce(0,eqnu+1)-1
+                coeff(m,i1,i2,i3)=0.
+               end do
+                do m3=-halfWidth3,halfWidth3
+                do m2=-halfWidth,halfWidth
+                do m1=-halfWidth,halfWidth
+                  coeff(mce2(m1,m2,m3,cmpu,eqnu),i1,i2,i3)=(iCoeff(ma2(
+     & m1,m2,m3)))
+                end do
+                end do
+                end do
+                if( orderOfExtrapolation.lt.1 .or. 
+     & orderOfExtrapolation.gt.maxOrderOfExtrapolation )then
+                  stop 7734
+                end if
+                i1m=i1-is1*(1)  ! 1 point
+                i2m=i2-is2*(1)
+                i3m=i3-is3*(1)
+                do m=0,orderOfExtrapolation
+                 j1=i1m+is1*m  ! m-th point moving inward from the 1 point (i1,i2,i3)
+                 j2=i2m+is2*m
+                 j3=i3m+is3*m
+                 mm = ce(cmpu,eqnu)+m
+                 coeff(mm,i1m,i2m,i3m)=extrapCoeff(m,
+     & orderOfExtrapolation) ! m=0,1,2,..
+                  equationNumber(mm,i1m,i2m,i3m)=(cmpu+1+
+     & numberOfComponentsForCoefficients*(j1-equationNumberBase1+
+     & equationNumberLength1*(j2-equationNumberBase2+
+     & equationNumberLength2*(j3-equationNumberBase3)))+
+     & equationOffset)
+                end do
+                 classify(i1m,i2m,i3m,eqnu)=extrapolation
+              end if
+            !  --- equations for v ---
+            else if( fillCoefficientsScalarSystem.eq.fillCoeffV )then
+              if( normalAxis.eq.1 )then
+               ! boundary face is y=constant:
+               !  Give v.n = 0 
+                   ! get the outward normal for curvilinear grids
+                   an(0)=rsxy(i1,i2,i3,axis,0)
+                   an(1)=rsxy(i1,i2,i3,axis,1)
+                     anNorm = (2*side-1)/max( epsX, sqrt( an(0)**2 + 
+     & an(1)**2 ) )
+                     an(0)=an(0)*anNorm
+                     an(1)=an(1)*anNorm
+                ! Evaluate the jacobian derivatives used by the coefficient and forward derivatives:
+                ! opEvalJacobianDerivatives(MAXDER) : MAXDER = max number of derivatives to precompute.
+                 ! this next call will define the jacobian and its derivatives (parameteric and spatial)
+                 ajrx = rsxy(i1,i2,i3,0,0)
+                 ajsx = rsxy(i1,i2,i3,1,0)
+                 ajry = rsxy(i1,i2,i3,0,1)
+                 ajsy = rsxy(i1,i2,i3,1,1)
+                ! evaluate the coeff operators 
+                ! getCoeff(identity, iCoeff,aj)
+                  ! Operator x = rx*ur+sx*us
+                   cur = ajrx
+                   cus = ajsx
+                   xCoeff(ma2(-1,-1, 0)) = 0
+                   xCoeff(ma2( 0,-1, 0)) = -1./2.*cus/dr(1)
+                   xCoeff(ma2( 1,-1, 0)) = 0
+                   xCoeff(ma2(-1, 0, 0)) = -1./2.*cur/dr(0)
+                   xCoeff(ma2( 0, 0, 0)) = 0
+                   xCoeff(ma2( 1, 0, 0)) = 1./2.*cur/dr(0)
+                   xCoeff(ma2(-1, 1, 0)) = 0
+                   xCoeff(ma2( 0, 1, 0)) = 1./2.*cus/dr(1)
+                   xCoeff(ma2( 1, 1, 0)) = 0
+                  ! Operator y = ry*ur+sy*us
+                   cur = ajry
+                   cus = ajsy
+                   yCoeff(ma2(-1,-1, 0)) = 0
+                   yCoeff(ma2( 0,-1, 0)) = -1./2.*cus/dr(1)
+                   yCoeff(ma2( 1,-1, 0)) = 0
+                   yCoeff(ma2(-1, 0, 0)) = -1./2.*cur/dr(0)
+                   yCoeff(ma2( 0, 0, 0)) = 0
+                   yCoeff(ma2( 1, 0, 0)) = 1./2.*cur/dr(0)
+                   yCoeff(ma2(-1, 1, 0)) = 0
+                   yCoeff(ma2( 0, 1, 0)) = 1./2.*cus/dr(1)
+                   yCoeff(ma2( 1, 1, 0)) = 0
+                  ! Operator identity 
+                   iCoeff(ma2(-1,-1, 0)) = 0
+                   iCoeff(ma2( 0,-1, 0)) = 0
+                   iCoeff(ma2( 1,-1, 0)) = 0
+                   iCoeff(ma2(-1, 0, 0)) = 0
+                   iCoeff(ma2( 0, 0, 0)) = 1.
+                   iCoeff(ma2( 1, 0, 0)) = 0
+                   iCoeff(ma2(-1, 1, 0)) = 0
+                   iCoeff(ma2( 0, 1, 0)) = 0
+                   iCoeff(ma2( 1, 1, 0)) = 0
+                i1m=i1-is1  ! ghost point
+                i2m=i2-is2
+                i3m=i3-is3
+                 do m3=-halfWidth3,halfWidth3
+                 do m2=-halfWidth,halfWidth
+                 do m1=-halfWidth,halfWidth
+                 m=ma2(m1,m2,m3)
+                 mm=mce2(m1,m2,m3,cmpv,eqnv)
+                  coeff(mm,i1m,i2m,i3m)=1.*(an(0)*xCoeff(m)+an(1)*
+     & yCoeff(m))+0.*iCoeff(m)
+                 ! The equation for pt (eqnv,i1m,i2m,i3m) is centered on (cmpv,i1,i2,i3): 
+                  equationNumber(mm,i1m,i2m,i3m)=(cmpv+1+
+     & numberOfComponentsForCoefficients*(i1+m1-equationNumberBase1+
+     & equationNumberLength1*(i2+m2-equationNumberBase2+
+     & equationNumberLength2*(i3+m3-equationNumberBase3)))+
+     & equationOffset)
+                 end do
+                 end do
+                 end do
+                 classify(i1m,i2m,i3m,eqnv)=ghost1
+              else
+               ! boundary face is x=constant, or z=constant : give v=0 
+               do m=ce(0,eqnv),ce(0,eqnv+1)-1
+                coeff(m,i1,i2,i3)=0.
+               end do
+                do m3=-halfWidth3,halfWidth3
+                do m2=-halfWidth,halfWidth
+                do m1=-halfWidth,halfWidth
+                  coeff(mce2(m1,m2,m3,cmpv,eqnv),i1,i2,i3)=(iCoeff(ma2(
+     & m1,m2,m3)))
+                end do
+                end do
+                end do
+                if( orderOfExtrapolation.lt.1 .or. 
+     & orderOfExtrapolation.gt.maxOrderOfExtrapolation )then
+                  stop 7734
+                end if
+                i1m=i1-is1*(1)  ! 1 point
+                i2m=i2-is2*(1)
+                i3m=i3-is3*(1)
+                do m=0,orderOfExtrapolation
+                 j1=i1m+is1*m  ! m-th point moving inward from the 1 point (i1,i2,i3)
+                 j2=i2m+is2*m
+                 j3=i3m+is3*m
+                 mm = ce(cmpv,eqnv)+m
+                 coeff(mm,i1m,i2m,i3m)=extrapCoeff(m,
+     & orderOfExtrapolation) ! m=0,1,2,..
+                  equationNumber(mm,i1m,i2m,i3m)=(cmpv+1+
+     & numberOfComponentsForCoefficients*(j1-equationNumberBase1+
+     & equationNumberLength1*(j2-equationNumberBase2+
+     & equationNumberLength2*(j3-equationNumberBase3)))+
+     & equationOffset)
+                end do
+                 classify(i1m,i2m,i3m,eqnv)=extrapolation
+              end if
+            !  --- equations for w ---
+            else if( fillCoefficientsScalarSystem.eq.fillCoeffW )then
+              if( normalAxis.eq.2 )then
+               ! boundary face is z=constant:
+               !  Give w.n = 0 
+                   ! get the outward normal for curvilinear grids
+                   an(0)=rsxy(i1,i2,i3,axis,0)
+                   an(1)=rsxy(i1,i2,i3,axis,1)
+                     anNorm = (2*side-1)/max( epsX, sqrt( an(0)**2 + 
+     & an(1)**2 ) )
+                     an(0)=an(0)*anNorm
+                     an(1)=an(1)*anNorm
+                ! Evaluate the jacobian derivatives used by the coefficient and forward derivatives:
+                ! opEvalJacobianDerivatives(MAXDER) : MAXDER = max number of derivatives to precompute.
+                 ! this next call will define the jacobian and its derivatives (parameteric and spatial)
+                 ajrx = rsxy(i1,i2,i3,0,0)
+                 ajsx = rsxy(i1,i2,i3,1,0)
+                 ajry = rsxy(i1,i2,i3,0,1)
+                 ajsy = rsxy(i1,i2,i3,1,1)
+                ! evaluate the coeff operators 
+                ! getCoeff(identity, iCoeff,aj)
+                  ! Operator x = rx*ur+sx*us
+                   cur = ajrx
+                   cus = ajsx
+                   xCoeff(ma2(-1,-1, 0)) = 0
+                   xCoeff(ma2( 0,-1, 0)) = -1./2.*cus/dr(1)
+                   xCoeff(ma2( 1,-1, 0)) = 0
+                   xCoeff(ma2(-1, 0, 0)) = -1./2.*cur/dr(0)
+                   xCoeff(ma2( 0, 0, 0)) = 0
+                   xCoeff(ma2( 1, 0, 0)) = 1./2.*cur/dr(0)
+                   xCoeff(ma2(-1, 1, 0)) = 0
+                   xCoeff(ma2( 0, 1, 0)) = 1./2.*cus/dr(1)
+                   xCoeff(ma2( 1, 1, 0)) = 0
+                  ! Operator y = ry*ur+sy*us
+                   cur = ajry
+                   cus = ajsy
+                   yCoeff(ma2(-1,-1, 0)) = 0
+                   yCoeff(ma2( 0,-1, 0)) = -1./2.*cus/dr(1)
+                   yCoeff(ma2( 1,-1, 0)) = 0
+                   yCoeff(ma2(-1, 0, 0)) = -1./2.*cur/dr(0)
+                   yCoeff(ma2( 0, 0, 0)) = 0
+                   yCoeff(ma2( 1, 0, 0)) = 1./2.*cur/dr(0)
+                   yCoeff(ma2(-1, 1, 0)) = 0
+                   yCoeff(ma2( 0, 1, 0)) = 1./2.*cus/dr(1)
+                   yCoeff(ma2( 1, 1, 0)) = 0
+                  ! Operator identity 
+                   iCoeff(ma2(-1,-1, 0)) = 0
+                   iCoeff(ma2( 0,-1, 0)) = 0
+                   iCoeff(ma2( 1,-1, 0)) = 0
+                   iCoeff(ma2(-1, 0, 0)) = 0
+                   iCoeff(ma2( 0, 0, 0)) = 1.
+                   iCoeff(ma2( 1, 0, 0)) = 0
+                   iCoeff(ma2(-1, 1, 0)) = 0
+                   iCoeff(ma2( 0, 1, 0)) = 0
+                   iCoeff(ma2( 1, 1, 0)) = 0
+                i1m=i1-is1  ! ghost point
+                i2m=i2-is2
+                i3m=i3-is3
+                 do m3=-halfWidth3,halfWidth3
+                 do m2=-halfWidth,halfWidth
+                 do m1=-halfWidth,halfWidth
+                 m=ma2(m1,m2,m3)
+                 mm=mce2(m1,m2,m3,cmpw,eqnw)
+                  coeff(mm,i1m,i2m,i3m)=1.*(an(0)*xCoeff(m)+an(1)*
+     & yCoeff(m))+0.*iCoeff(m)
+                 ! The equation for pt (eqnw,i1m,i2m,i3m) is centered on (cmpw,i1,i2,i3): 
+                  equationNumber(mm,i1m,i2m,i3m)=(cmpw+1+
+     & numberOfComponentsForCoefficients*(i1+m1-equationNumberBase1+
+     & equationNumberLength1*(i2+m2-equationNumberBase2+
+     & equationNumberLength2*(i3+m3-equationNumberBase3)))+
+     & equationOffset)
+                 end do
+                 end do
+                 end do
+                 classify(i1m,i2m,i3m,eqnw)=ghost1
+              else
+               ! boundary face is x=constant, or y=constant : give w=0 
+               do m=ce(0,eqnw),ce(0,eqnw+1)-1
+                coeff(m,i1,i2,i3)=0.
+               end do
+                do m3=-halfWidth3,halfWidth3
+                do m2=-halfWidth,halfWidth
+                do m1=-halfWidth,halfWidth
+                  coeff(mce2(m1,m2,m3,cmpw,eqnw),i1,i2,i3)=(iCoeff(ma2(
+     & m1,m2,m3)))
+                end do
+                end do
+                end do
+                if( orderOfExtrapolation.lt.1 .or. 
+     & orderOfExtrapolation.gt.maxOrderOfExtrapolation )then
+                  stop 7734
+                end if
+                i1m=i1-is1*(1)  ! 1 point
+                i2m=i2-is2*(1)
+                i3m=i3-is3*(1)
+                do m=0,orderOfExtrapolation
+                 j1=i1m+is1*m  ! m-th point moving inward from the 1 point (i1,i2,i3)
+                 j2=i2m+is2*m
+                 j3=i3m+is3*m
+                 mm = ce(cmpw,eqnw)+m
+                 coeff(mm,i1m,i2m,i3m)=extrapCoeff(m,
+     & orderOfExtrapolation) ! m=0,1,2,..
+                  equationNumber(mm,i1m,i2m,i3m)=(cmpw+1+
+     & numberOfComponentsForCoefficients*(j1-equationNumberBase1+
+     & equationNumberLength1*(j2-equationNumberBase2+
+     & equationNumberLength2*(j3-equationNumberBase3)))+
+     & equationOffset)
+                end do
+                 classify(i1m,i2m,i3m,eqnw)=extrapolation
+              end if
+            else
+              write(*,'(" insImpINS: bc0.eq.inflowWithPandTV -- 
+     & unknown option")')
+              stop 8141
+            end if
+             end if
+            end do
+            end do
+            end do
+         else
+           ! ****** inflowWithPandTV: vector system *********
             ! Operator identity 
              iCoeff(ma2(-1,-1, 0)) = 0
              iCoeff(ma2( 0,-1, 0)) = 0
@@ -5881,6 +6621,7 @@ c      write(*,'("insImpINS: nd,uc,vc,wc,kc=",2i6)') nd,uc,vc,wc,kc
            end do
            end do
            end do
+         end if  ! end vector system
          else if( bc0.eq.axisymmetric )then
           if( fillCoefficientsScalarSystem.eq.fillCoeffU )then
            ! BC on an axisymmetric side : scalar matrix for U 
@@ -5926,7 +6667,7 @@ c      write(*,'("insImpINS: nd,uc,vc,wc,kc=",2i6)') nd,uc,vc,wc,kc
             ! getCoeff(identity, iCoeff,aj)
             !zeroMatrixCoefficients( coeff,eqnv,eqnv, i1,i2,i3 )  ! set v eqn coeffs to zero
             !setCoeff1(cmpv,eqnv,coeff,iCoeff)                ! dirichlet: V= 
-            !fillMatrixExtrapolation(coeff,cmpv,eqnv,i1,i2,i3,orderOfExtrapolation,1)  ! extrap ghost for V 
+            !fillMatrixExtrapolation(coe<ff,cmpv,eqnv,i1,i2,i3,orderOfExtrapolation,1)  ! extrap ghost for V 
                 ! get the outward normal for curvilinear grids
                 an(0)=rsxy(i1,i2,i3,axis,0)
                 an(1)=rsxy(i1,i2,i3,axis,1)
@@ -8597,17 +9338,608 @@ c      write(*,'("insImpINS: nd,uc,vc,wc,kc=",2i6)') nd,uc,vc,wc,kc
            end do
            end do
          else if( bc0.eq.inflowWithPandTV )then
-           ! -- pressure and tangential velocity given --
+           ! ------------------------------------------------
+           ! ---- pressure and tangential velocity given ----
+           ! ------------------------------------------------
           write(*,'("insImpINS: fill in BC pressure and tangential 
      & velocity ** check me** ")')
-          write(*,'(" fillCoefficientsScalarSystem=",i4)') 
-     & fillCoefficientsScalarSystem
           if( fillCoefficientsScalarSystem.ge.fillCoeffU .and. 
      & fillCoefficientsScalarSystem.le.fillCoeffW )then
-            write(*,'(" insImpINS: bc0.eq.inflowWithPandTV not 
-     & finished for scalar systems")')
-            stop 8140
-          end if
+           write(*,'(" fillCoefficientsScalarSystem=",i4)') 
+     & fillCoefficientsScalarSystem
+           ! --- fill coefficients for scalar systems ---
+           ! This only works if the boundary face is on a plane x=constant, y=constant or z=constant 
+           ! Added May 13, 2017 *wdh*
+            do i3=n3a,n3b
+            do i2=n2a,n2b
+            do i1=n1a,n1b
+             ! if( btest(mask(i1,i2,i3),28) )then
+             !   write(*,'("+++ Point i=(",3i5,") is an interiorBoundaryPoint")') i1,i2,i3
+             ! end if
+             if( mask(i1,i2,i3).gt.0 .and. .not.btest(mask(i1,i2,i3),
+     & 28) )then
+              ! Operator identity 
+               iCoeff(ma3(-1,-1,-1)) = 0
+               iCoeff(ma3( 0,-1,-1)) = 0
+               iCoeff(ma3( 1,-1,-1)) = 0
+               iCoeff(ma3(-1, 0,-1)) = 0
+               iCoeff(ma3( 0, 0,-1)) = 0
+               iCoeff(ma3( 1, 0,-1)) = 0
+               iCoeff(ma3(-1, 1,-1)) = 0
+               iCoeff(ma3( 0, 1,-1)) = 0
+               iCoeff(ma3( 1, 1,-1)) = 0
+               iCoeff(ma3(-1,-1, 0)) = 0
+               iCoeff(ma3( 0,-1, 0)) = 0
+               iCoeff(ma3( 1,-1, 0)) = 0
+               iCoeff(ma3(-1, 0, 0)) = 0
+               iCoeff(ma3( 0, 0, 0)) = 1.
+               iCoeff(ma3( 1, 0, 0)) = 0
+               iCoeff(ma3(-1, 1, 0)) = 0
+               iCoeff(ma3( 0, 1, 0)) = 0
+               iCoeff(ma3( 1, 1, 0)) = 0
+               iCoeff(ma3(-1,-1, 1)) = 0
+               iCoeff(ma3( 0,-1, 1)) = 0
+               iCoeff(ma3( 1,-1, 1)) = 0
+               iCoeff(ma3(-1, 0, 1)) = 0
+               iCoeff(ma3( 0, 0, 1)) = 0
+               iCoeff(ma3( 1, 0, 1)) = 0
+               iCoeff(ma3(-1, 1, 1)) = 0
+               iCoeff(ma3( 0, 1, 1)) = 0
+               iCoeff(ma3( 1, 1, 1)) = 0
+            ! -- The grid face should be in a coordinate direction,
+            !   normalAxis = 0,1, or 2 indicates this direction
+            if( abs(abs(an(0))-1.) .lt. normalTol )then
+             normalAxis=0
+            else if( abs(abs(an(1))-1.) .lt. normalTol )then
+             normalAxis=1
+            else if(  abs(abs(an(2))-1.) .lt. normalTol )then
+             normalAxis=2
+            else
+              write(*,'(" insImpINS: ERROR: inflowWithPandTV, scalar 
+     & systems but normals funny")')
+              write(*,'("  --> the normals should be in a coordinate 
+     & direction")')
+              stop 1287
+            end if
+            !  --- equations for u ---
+            if( fillCoefficientsScalarSystem.eq.fillCoeffU )then
+              if( normalAxis.eq.0 )then
+               ! boundary face is x=constant:
+               !  Give u.n = 0 
+                ! Evaluate the jacobian derivatives used by the coefficient and forward derivatives:
+                ! opEvalJacobianDerivatives(MAXDER) : MAXDER = max number of derivatives to precompute.
+                ! evaluate the coeff operators 
+                ! getCoeff(identity, iCoeff,aj)
+                  ! Operator x = ux
+                   xCoeff(ma3(-1,-1,-1)) = 0
+                   xCoeff(ma3( 0,-1,-1)) = 0
+                   xCoeff(ma3( 1,-1,-1)) = 0
+                   xCoeff(ma3(-1, 0,-1)) = 0
+                   xCoeff(ma3( 0, 0,-1)) = 0
+                   xCoeff(ma3( 1, 0,-1)) = 0
+                   xCoeff(ma3(-1, 1,-1)) = 0
+                   xCoeff(ma3( 0, 1,-1)) = 0
+                   xCoeff(ma3( 1, 1,-1)) = 0
+                   xCoeff(ma3(-1,-1, 0)) = 0
+                   xCoeff(ma3( 0,-1, 0)) = 0
+                   xCoeff(ma3( 1,-1, 0)) = 0
+                   xCoeff(ma3(-1, 0, 0)) = -1./2./dx(0)
+                   xCoeff(ma3( 0, 0, 0)) = 0
+                   xCoeff(ma3( 1, 0, 0)) = 1./2./dx(0)
+                   xCoeff(ma3(-1, 1, 0)) = 0
+                   xCoeff(ma3( 0, 1, 0)) = 0
+                   xCoeff(ma3( 1, 1, 0)) = 0
+                   xCoeff(ma3(-1,-1, 1)) = 0
+                   xCoeff(ma3( 0,-1, 1)) = 0
+                   xCoeff(ma3( 1,-1, 1)) = 0
+                   xCoeff(ma3(-1, 0, 1)) = 0
+                   xCoeff(ma3( 0, 0, 1)) = 0
+                   xCoeff(ma3( 1, 0, 1)) = 0
+                   xCoeff(ma3(-1, 1, 1)) = 0
+                   xCoeff(ma3( 0, 1, 1)) = 0
+                   xCoeff(ma3( 1, 1, 1)) = 0
+                  ! Operator y = uy
+                   yCoeff(ma3(-1,-1,-1)) = 0
+                   yCoeff(ma3( 0,-1,-1)) = 0
+                   yCoeff(ma3( 1,-1,-1)) = 0
+                   yCoeff(ma3(-1, 0,-1)) = 0
+                   yCoeff(ma3( 0, 0,-1)) = 0
+                   yCoeff(ma3( 1, 0,-1)) = 0
+                   yCoeff(ma3(-1, 1,-1)) = 0
+                   yCoeff(ma3( 0, 1,-1)) = 0
+                   yCoeff(ma3( 1, 1,-1)) = 0
+                   yCoeff(ma3(-1,-1, 0)) = 0
+                   yCoeff(ma3( 0,-1, 0)) = -1./2./dx(1)
+                   yCoeff(ma3( 1,-1, 0)) = 0
+                   yCoeff(ma3(-1, 0, 0)) = 0
+                   yCoeff(ma3( 0, 0, 0)) = 0
+                   yCoeff(ma3( 1, 0, 0)) = 0
+                   yCoeff(ma3(-1, 1, 0)) = 0
+                   yCoeff(ma3( 0, 1, 0)) = 1./2./dx(1)
+                   yCoeff(ma3( 1, 1, 0)) = 0
+                   yCoeff(ma3(-1,-1, 1)) = 0
+                   yCoeff(ma3( 0,-1, 1)) = 0
+                   yCoeff(ma3( 1,-1, 1)) = 0
+                   yCoeff(ma3(-1, 0, 1)) = 0
+                   yCoeff(ma3( 0, 0, 1)) = 0
+                   yCoeff(ma3( 1, 0, 1)) = 0
+                   yCoeff(ma3(-1, 1, 1)) = 0
+                   yCoeff(ma3( 0, 1, 1)) = 0
+                   yCoeff(ma3( 1, 1, 1)) = 0
+                  ! Operator identity 
+                   iCoeff(ma3(-1,-1,-1)) = 0
+                   iCoeff(ma3( 0,-1,-1)) = 0
+                   iCoeff(ma3( 1,-1,-1)) = 0
+                   iCoeff(ma3(-1, 0,-1)) = 0
+                   iCoeff(ma3( 0, 0,-1)) = 0
+                   iCoeff(ma3( 1, 0,-1)) = 0
+                   iCoeff(ma3(-1, 1,-1)) = 0
+                   iCoeff(ma3( 0, 1,-1)) = 0
+                   iCoeff(ma3( 1, 1,-1)) = 0
+                   iCoeff(ma3(-1,-1, 0)) = 0
+                   iCoeff(ma3( 0,-1, 0)) = 0
+                   iCoeff(ma3( 1,-1, 0)) = 0
+                   iCoeff(ma3(-1, 0, 0)) = 0
+                   iCoeff(ma3( 0, 0, 0)) = 1.
+                   iCoeff(ma3( 1, 0, 0)) = 0
+                   iCoeff(ma3(-1, 1, 0)) = 0
+                   iCoeff(ma3( 0, 1, 0)) = 0
+                   iCoeff(ma3( 1, 1, 0)) = 0
+                   iCoeff(ma3(-1,-1, 1)) = 0
+                   iCoeff(ma3( 0,-1, 1)) = 0
+                   iCoeff(ma3( 1,-1, 1)) = 0
+                   iCoeff(ma3(-1, 0, 1)) = 0
+                   iCoeff(ma3( 0, 0, 1)) = 0
+                   iCoeff(ma3( 1, 0, 1)) = 0
+                   iCoeff(ma3(-1, 1, 1)) = 0
+                   iCoeff(ma3( 0, 1, 1)) = 0
+                   iCoeff(ma3( 1, 1, 1)) = 0
+                   ! Operator z = uz
+                    zCoeff(ma3(-1,-1,-1)) = 0
+                    zCoeff(ma3( 0,-1,-1)) = 0
+                    zCoeff(ma3( 1,-1,-1)) = 0
+                    zCoeff(ma3(-1, 0,-1)) = 0
+                    zCoeff(ma3( 0, 0,-1)) = -1./2./dx(2)
+                    zCoeff(ma3( 1, 0,-1)) = 0
+                    zCoeff(ma3(-1, 1,-1)) = 0
+                    zCoeff(ma3( 0, 1,-1)) = 0
+                    zCoeff(ma3( 1, 1,-1)) = 0
+                    zCoeff(ma3(-1,-1, 0)) = 0
+                    zCoeff(ma3( 0,-1, 0)) = 0
+                    zCoeff(ma3( 1,-1, 0)) = 0
+                    zCoeff(ma3(-1, 0, 0)) = 0
+                    zCoeff(ma3( 0, 0, 0)) = 0
+                    zCoeff(ma3( 1, 0, 0)) = 0
+                    zCoeff(ma3(-1, 1, 0)) = 0
+                    zCoeff(ma3( 0, 1, 0)) = 0
+                    zCoeff(ma3( 1, 1, 0)) = 0
+                    zCoeff(ma3(-1,-1, 1)) = 0
+                    zCoeff(ma3( 0,-1, 1)) = 0
+                    zCoeff(ma3( 1,-1, 1)) = 0
+                    zCoeff(ma3(-1, 0, 1)) = 0
+                    zCoeff(ma3( 0, 0, 1)) = 1./2./dx(2)
+                    zCoeff(ma3( 1, 0, 1)) = 0
+                    zCoeff(ma3(-1, 1, 1)) = 0
+                    zCoeff(ma3( 0, 1, 1)) = 0
+                    zCoeff(ma3( 1, 1, 1)) = 0
+                i1m=i1-is1  ! ghost point
+                i2m=i2-is2
+                i3m=i3-is3
+                 do m3=-halfWidth3,halfWidth3
+                 do m2=-halfWidth,halfWidth
+                 do m1=-halfWidth,halfWidth
+                 m=ma3(m1,m2,m3)
+                 mm=mce3(m1,m2,m3,cmpu,eqnu)
+                  coeff(mm,i1m,i2m,i3m)=1.*(an(0)*xCoeff(m)+an(1)*
+     & yCoeff(m)+an(2)*zCoeff(m))+0.*iCoeff(m)
+                 ! The equation for pt (eqnu,i1m,i2m,i3m) is centered on (cmpu,i1,i2,i3): 
+                  equationNumber(mm,i1m,i2m,i3m)=(cmpu+1+
+     & numberOfComponentsForCoefficients*(i1+m1-equationNumberBase1+
+     & equationNumberLength1*(i2+m2-equationNumberBase2+
+     & equationNumberLength2*(i3+m3-equationNumberBase3)))+
+     & equationOffset)
+                 end do
+                 end do
+                 end do
+                 classify(i1m,i2m,i3m,eqnu)=ghost1
+              else
+               ! boundary face is y=constant, or z=constant : give u=0 
+               do m=ce(0,eqnu),ce(0,eqnu+1)-1
+                coeff(m,i1,i2,i3)=0.
+               end do
+                do m3=-halfWidth3,halfWidth3
+                do m2=-halfWidth,halfWidth
+                do m1=-halfWidth,halfWidth
+                  coeff(mce3(m1,m2,m3,cmpu,eqnu),i1,i2,i3)=(iCoeff(ma3(
+     & m1,m2,m3)))
+                end do
+                end do
+                end do
+                if( orderOfExtrapolation.lt.1 .or. 
+     & orderOfExtrapolation.gt.maxOrderOfExtrapolation )then
+                  stop 7734
+                end if
+                i1m=i1-is1*(1)  ! 1 point
+                i2m=i2-is2*(1)
+                i3m=i3-is3*(1)
+                do m=0,orderOfExtrapolation
+                 j1=i1m+is1*m  ! m-th point moving inward from the 1 point (i1,i2,i3)
+                 j2=i2m+is2*m
+                 j3=i3m+is3*m
+                 mm = ce(cmpu,eqnu)+m
+                 coeff(mm,i1m,i2m,i3m)=extrapCoeff(m,
+     & orderOfExtrapolation) ! m=0,1,2,..
+                  equationNumber(mm,i1m,i2m,i3m)=(cmpu+1+
+     & numberOfComponentsForCoefficients*(j1-equationNumberBase1+
+     & equationNumberLength1*(j2-equationNumberBase2+
+     & equationNumberLength2*(j3-equationNumberBase3)))+
+     & equationOffset)
+                end do
+                 classify(i1m,i2m,i3m,eqnu)=extrapolation
+              end if
+            !  --- equations for v ---
+            else if( fillCoefficientsScalarSystem.eq.fillCoeffV )then
+              if( normalAxis.eq.1 )then
+               ! boundary face is y=constant:
+               !  Give v.n = 0 
+                ! Evaluate the jacobian derivatives used by the coefficient and forward derivatives:
+                ! opEvalJacobianDerivatives(MAXDER) : MAXDER = max number of derivatives to precompute.
+                ! evaluate the coeff operators 
+                ! getCoeff(identity, iCoeff,aj)
+                  ! Operator x = ux
+                   xCoeff(ma3(-1,-1,-1)) = 0
+                   xCoeff(ma3( 0,-1,-1)) = 0
+                   xCoeff(ma3( 1,-1,-1)) = 0
+                   xCoeff(ma3(-1, 0,-1)) = 0
+                   xCoeff(ma3( 0, 0,-1)) = 0
+                   xCoeff(ma3( 1, 0,-1)) = 0
+                   xCoeff(ma3(-1, 1,-1)) = 0
+                   xCoeff(ma3( 0, 1,-1)) = 0
+                   xCoeff(ma3( 1, 1,-1)) = 0
+                   xCoeff(ma3(-1,-1, 0)) = 0
+                   xCoeff(ma3( 0,-1, 0)) = 0
+                   xCoeff(ma3( 1,-1, 0)) = 0
+                   xCoeff(ma3(-1, 0, 0)) = -1./2./dx(0)
+                   xCoeff(ma3( 0, 0, 0)) = 0
+                   xCoeff(ma3( 1, 0, 0)) = 1./2./dx(0)
+                   xCoeff(ma3(-1, 1, 0)) = 0
+                   xCoeff(ma3( 0, 1, 0)) = 0
+                   xCoeff(ma3( 1, 1, 0)) = 0
+                   xCoeff(ma3(-1,-1, 1)) = 0
+                   xCoeff(ma3( 0,-1, 1)) = 0
+                   xCoeff(ma3( 1,-1, 1)) = 0
+                   xCoeff(ma3(-1, 0, 1)) = 0
+                   xCoeff(ma3( 0, 0, 1)) = 0
+                   xCoeff(ma3( 1, 0, 1)) = 0
+                   xCoeff(ma3(-1, 1, 1)) = 0
+                   xCoeff(ma3( 0, 1, 1)) = 0
+                   xCoeff(ma3( 1, 1, 1)) = 0
+                  ! Operator y = uy
+                   yCoeff(ma3(-1,-1,-1)) = 0
+                   yCoeff(ma3( 0,-1,-1)) = 0
+                   yCoeff(ma3( 1,-1,-1)) = 0
+                   yCoeff(ma3(-1, 0,-1)) = 0
+                   yCoeff(ma3( 0, 0,-1)) = 0
+                   yCoeff(ma3( 1, 0,-1)) = 0
+                   yCoeff(ma3(-1, 1,-1)) = 0
+                   yCoeff(ma3( 0, 1,-1)) = 0
+                   yCoeff(ma3( 1, 1,-1)) = 0
+                   yCoeff(ma3(-1,-1, 0)) = 0
+                   yCoeff(ma3( 0,-1, 0)) = -1./2./dx(1)
+                   yCoeff(ma3( 1,-1, 0)) = 0
+                   yCoeff(ma3(-1, 0, 0)) = 0
+                   yCoeff(ma3( 0, 0, 0)) = 0
+                   yCoeff(ma3( 1, 0, 0)) = 0
+                   yCoeff(ma3(-1, 1, 0)) = 0
+                   yCoeff(ma3( 0, 1, 0)) = 1./2./dx(1)
+                   yCoeff(ma3( 1, 1, 0)) = 0
+                   yCoeff(ma3(-1,-1, 1)) = 0
+                   yCoeff(ma3( 0,-1, 1)) = 0
+                   yCoeff(ma3( 1,-1, 1)) = 0
+                   yCoeff(ma3(-1, 0, 1)) = 0
+                   yCoeff(ma3( 0, 0, 1)) = 0
+                   yCoeff(ma3( 1, 0, 1)) = 0
+                   yCoeff(ma3(-1, 1, 1)) = 0
+                   yCoeff(ma3( 0, 1, 1)) = 0
+                   yCoeff(ma3( 1, 1, 1)) = 0
+                  ! Operator identity 
+                   iCoeff(ma3(-1,-1,-1)) = 0
+                   iCoeff(ma3( 0,-1,-1)) = 0
+                   iCoeff(ma3( 1,-1,-1)) = 0
+                   iCoeff(ma3(-1, 0,-1)) = 0
+                   iCoeff(ma3( 0, 0,-1)) = 0
+                   iCoeff(ma3( 1, 0,-1)) = 0
+                   iCoeff(ma3(-1, 1,-1)) = 0
+                   iCoeff(ma3( 0, 1,-1)) = 0
+                   iCoeff(ma3( 1, 1,-1)) = 0
+                   iCoeff(ma3(-1,-1, 0)) = 0
+                   iCoeff(ma3( 0,-1, 0)) = 0
+                   iCoeff(ma3( 1,-1, 0)) = 0
+                   iCoeff(ma3(-1, 0, 0)) = 0
+                   iCoeff(ma3( 0, 0, 0)) = 1.
+                   iCoeff(ma3( 1, 0, 0)) = 0
+                   iCoeff(ma3(-1, 1, 0)) = 0
+                   iCoeff(ma3( 0, 1, 0)) = 0
+                   iCoeff(ma3( 1, 1, 0)) = 0
+                   iCoeff(ma3(-1,-1, 1)) = 0
+                   iCoeff(ma3( 0,-1, 1)) = 0
+                   iCoeff(ma3( 1,-1, 1)) = 0
+                   iCoeff(ma3(-1, 0, 1)) = 0
+                   iCoeff(ma3( 0, 0, 1)) = 0
+                   iCoeff(ma3( 1, 0, 1)) = 0
+                   iCoeff(ma3(-1, 1, 1)) = 0
+                   iCoeff(ma3( 0, 1, 1)) = 0
+                   iCoeff(ma3( 1, 1, 1)) = 0
+                   ! Operator z = uz
+                    zCoeff(ma3(-1,-1,-1)) = 0
+                    zCoeff(ma3( 0,-1,-1)) = 0
+                    zCoeff(ma3( 1,-1,-1)) = 0
+                    zCoeff(ma3(-1, 0,-1)) = 0
+                    zCoeff(ma3( 0, 0,-1)) = -1./2./dx(2)
+                    zCoeff(ma3( 1, 0,-1)) = 0
+                    zCoeff(ma3(-1, 1,-1)) = 0
+                    zCoeff(ma3( 0, 1,-1)) = 0
+                    zCoeff(ma3( 1, 1,-1)) = 0
+                    zCoeff(ma3(-1,-1, 0)) = 0
+                    zCoeff(ma3( 0,-1, 0)) = 0
+                    zCoeff(ma3( 1,-1, 0)) = 0
+                    zCoeff(ma3(-1, 0, 0)) = 0
+                    zCoeff(ma3( 0, 0, 0)) = 0
+                    zCoeff(ma3( 1, 0, 0)) = 0
+                    zCoeff(ma3(-1, 1, 0)) = 0
+                    zCoeff(ma3( 0, 1, 0)) = 0
+                    zCoeff(ma3( 1, 1, 0)) = 0
+                    zCoeff(ma3(-1,-1, 1)) = 0
+                    zCoeff(ma3( 0,-1, 1)) = 0
+                    zCoeff(ma3( 1,-1, 1)) = 0
+                    zCoeff(ma3(-1, 0, 1)) = 0
+                    zCoeff(ma3( 0, 0, 1)) = 1./2./dx(2)
+                    zCoeff(ma3( 1, 0, 1)) = 0
+                    zCoeff(ma3(-1, 1, 1)) = 0
+                    zCoeff(ma3( 0, 1, 1)) = 0
+                    zCoeff(ma3( 1, 1, 1)) = 0
+                i1m=i1-is1  ! ghost point
+                i2m=i2-is2
+                i3m=i3-is3
+                 do m3=-halfWidth3,halfWidth3
+                 do m2=-halfWidth,halfWidth
+                 do m1=-halfWidth,halfWidth
+                 m=ma3(m1,m2,m3)
+                 mm=mce3(m1,m2,m3,cmpv,eqnv)
+                  coeff(mm,i1m,i2m,i3m)=1.*(an(0)*xCoeff(m)+an(1)*
+     & yCoeff(m)+an(2)*zCoeff(m))+0.*iCoeff(m)
+                 ! The equation for pt (eqnv,i1m,i2m,i3m) is centered on (cmpv,i1,i2,i3): 
+                  equationNumber(mm,i1m,i2m,i3m)=(cmpv+1+
+     & numberOfComponentsForCoefficients*(i1+m1-equationNumberBase1+
+     & equationNumberLength1*(i2+m2-equationNumberBase2+
+     & equationNumberLength2*(i3+m3-equationNumberBase3)))+
+     & equationOffset)
+                 end do
+                 end do
+                 end do
+                 classify(i1m,i2m,i3m,eqnv)=ghost1
+              else
+               ! boundary face is x=constant, or z=constant : give v=0 
+               do m=ce(0,eqnv),ce(0,eqnv+1)-1
+                coeff(m,i1,i2,i3)=0.
+               end do
+                do m3=-halfWidth3,halfWidth3
+                do m2=-halfWidth,halfWidth
+                do m1=-halfWidth,halfWidth
+                  coeff(mce3(m1,m2,m3,cmpv,eqnv),i1,i2,i3)=(iCoeff(ma3(
+     & m1,m2,m3)))
+                end do
+                end do
+                end do
+                if( orderOfExtrapolation.lt.1 .or. 
+     & orderOfExtrapolation.gt.maxOrderOfExtrapolation )then
+                  stop 7734
+                end if
+                i1m=i1-is1*(1)  ! 1 point
+                i2m=i2-is2*(1)
+                i3m=i3-is3*(1)
+                do m=0,orderOfExtrapolation
+                 j1=i1m+is1*m  ! m-th point moving inward from the 1 point (i1,i2,i3)
+                 j2=i2m+is2*m
+                 j3=i3m+is3*m
+                 mm = ce(cmpv,eqnv)+m
+                 coeff(mm,i1m,i2m,i3m)=extrapCoeff(m,
+     & orderOfExtrapolation) ! m=0,1,2,..
+                  equationNumber(mm,i1m,i2m,i3m)=(cmpv+1+
+     & numberOfComponentsForCoefficients*(j1-equationNumberBase1+
+     & equationNumberLength1*(j2-equationNumberBase2+
+     & equationNumberLength2*(j3-equationNumberBase3)))+
+     & equationOffset)
+                end do
+                 classify(i1m,i2m,i3m,eqnv)=extrapolation
+              end if
+            !  --- equations for w ---
+            else if( fillCoefficientsScalarSystem.eq.fillCoeffW )then
+              if( normalAxis.eq.2 )then
+               ! boundary face is z=constant:
+               !  Give w.n = 0 
+                ! Evaluate the jacobian derivatives used by the coefficient and forward derivatives:
+                ! opEvalJacobianDerivatives(MAXDER) : MAXDER = max number of derivatives to precompute.
+                ! evaluate the coeff operators 
+                ! getCoeff(identity, iCoeff,aj)
+                  ! Operator x = ux
+                   xCoeff(ma3(-1,-1,-1)) = 0
+                   xCoeff(ma3( 0,-1,-1)) = 0
+                   xCoeff(ma3( 1,-1,-1)) = 0
+                   xCoeff(ma3(-1, 0,-1)) = 0
+                   xCoeff(ma3( 0, 0,-1)) = 0
+                   xCoeff(ma3( 1, 0,-1)) = 0
+                   xCoeff(ma3(-1, 1,-1)) = 0
+                   xCoeff(ma3( 0, 1,-1)) = 0
+                   xCoeff(ma3( 1, 1,-1)) = 0
+                   xCoeff(ma3(-1,-1, 0)) = 0
+                   xCoeff(ma3( 0,-1, 0)) = 0
+                   xCoeff(ma3( 1,-1, 0)) = 0
+                   xCoeff(ma3(-1, 0, 0)) = -1./2./dx(0)
+                   xCoeff(ma3( 0, 0, 0)) = 0
+                   xCoeff(ma3( 1, 0, 0)) = 1./2./dx(0)
+                   xCoeff(ma3(-1, 1, 0)) = 0
+                   xCoeff(ma3( 0, 1, 0)) = 0
+                   xCoeff(ma3( 1, 1, 0)) = 0
+                   xCoeff(ma3(-1,-1, 1)) = 0
+                   xCoeff(ma3( 0,-1, 1)) = 0
+                   xCoeff(ma3( 1,-1, 1)) = 0
+                   xCoeff(ma3(-1, 0, 1)) = 0
+                   xCoeff(ma3( 0, 0, 1)) = 0
+                   xCoeff(ma3( 1, 0, 1)) = 0
+                   xCoeff(ma3(-1, 1, 1)) = 0
+                   xCoeff(ma3( 0, 1, 1)) = 0
+                   xCoeff(ma3( 1, 1, 1)) = 0
+                  ! Operator y = uy
+                   yCoeff(ma3(-1,-1,-1)) = 0
+                   yCoeff(ma3( 0,-1,-1)) = 0
+                   yCoeff(ma3( 1,-1,-1)) = 0
+                   yCoeff(ma3(-1, 0,-1)) = 0
+                   yCoeff(ma3( 0, 0,-1)) = 0
+                   yCoeff(ma3( 1, 0,-1)) = 0
+                   yCoeff(ma3(-1, 1,-1)) = 0
+                   yCoeff(ma3( 0, 1,-1)) = 0
+                   yCoeff(ma3( 1, 1,-1)) = 0
+                   yCoeff(ma3(-1,-1, 0)) = 0
+                   yCoeff(ma3( 0,-1, 0)) = -1./2./dx(1)
+                   yCoeff(ma3( 1,-1, 0)) = 0
+                   yCoeff(ma3(-1, 0, 0)) = 0
+                   yCoeff(ma3( 0, 0, 0)) = 0
+                   yCoeff(ma3( 1, 0, 0)) = 0
+                   yCoeff(ma3(-1, 1, 0)) = 0
+                   yCoeff(ma3( 0, 1, 0)) = 1./2./dx(1)
+                   yCoeff(ma3( 1, 1, 0)) = 0
+                   yCoeff(ma3(-1,-1, 1)) = 0
+                   yCoeff(ma3( 0,-1, 1)) = 0
+                   yCoeff(ma3( 1,-1, 1)) = 0
+                   yCoeff(ma3(-1, 0, 1)) = 0
+                   yCoeff(ma3( 0, 0, 1)) = 0
+                   yCoeff(ma3( 1, 0, 1)) = 0
+                   yCoeff(ma3(-1, 1, 1)) = 0
+                   yCoeff(ma3( 0, 1, 1)) = 0
+                   yCoeff(ma3( 1, 1, 1)) = 0
+                  ! Operator identity 
+                   iCoeff(ma3(-1,-1,-1)) = 0
+                   iCoeff(ma3( 0,-1,-1)) = 0
+                   iCoeff(ma3( 1,-1,-1)) = 0
+                   iCoeff(ma3(-1, 0,-1)) = 0
+                   iCoeff(ma3( 0, 0,-1)) = 0
+                   iCoeff(ma3( 1, 0,-1)) = 0
+                   iCoeff(ma3(-1, 1,-1)) = 0
+                   iCoeff(ma3( 0, 1,-1)) = 0
+                   iCoeff(ma3( 1, 1,-1)) = 0
+                   iCoeff(ma3(-1,-1, 0)) = 0
+                   iCoeff(ma3( 0,-1, 0)) = 0
+                   iCoeff(ma3( 1,-1, 0)) = 0
+                   iCoeff(ma3(-1, 0, 0)) = 0
+                   iCoeff(ma3( 0, 0, 0)) = 1.
+                   iCoeff(ma3( 1, 0, 0)) = 0
+                   iCoeff(ma3(-1, 1, 0)) = 0
+                   iCoeff(ma3( 0, 1, 0)) = 0
+                   iCoeff(ma3( 1, 1, 0)) = 0
+                   iCoeff(ma3(-1,-1, 1)) = 0
+                   iCoeff(ma3( 0,-1, 1)) = 0
+                   iCoeff(ma3( 1,-1, 1)) = 0
+                   iCoeff(ma3(-1, 0, 1)) = 0
+                   iCoeff(ma3( 0, 0, 1)) = 0
+                   iCoeff(ma3( 1, 0, 1)) = 0
+                   iCoeff(ma3(-1, 1, 1)) = 0
+                   iCoeff(ma3( 0, 1, 1)) = 0
+                   iCoeff(ma3( 1, 1, 1)) = 0
+                   ! Operator z = uz
+                    zCoeff(ma3(-1,-1,-1)) = 0
+                    zCoeff(ma3( 0,-1,-1)) = 0
+                    zCoeff(ma3( 1,-1,-1)) = 0
+                    zCoeff(ma3(-1, 0,-1)) = 0
+                    zCoeff(ma3( 0, 0,-1)) = -1./2./dx(2)
+                    zCoeff(ma3( 1, 0,-1)) = 0
+                    zCoeff(ma3(-1, 1,-1)) = 0
+                    zCoeff(ma3( 0, 1,-1)) = 0
+                    zCoeff(ma3( 1, 1,-1)) = 0
+                    zCoeff(ma3(-1,-1, 0)) = 0
+                    zCoeff(ma3( 0,-1, 0)) = 0
+                    zCoeff(ma3( 1,-1, 0)) = 0
+                    zCoeff(ma3(-1, 0, 0)) = 0
+                    zCoeff(ma3( 0, 0, 0)) = 0
+                    zCoeff(ma3( 1, 0, 0)) = 0
+                    zCoeff(ma3(-1, 1, 0)) = 0
+                    zCoeff(ma3( 0, 1, 0)) = 0
+                    zCoeff(ma3( 1, 1, 0)) = 0
+                    zCoeff(ma3(-1,-1, 1)) = 0
+                    zCoeff(ma3( 0,-1, 1)) = 0
+                    zCoeff(ma3( 1,-1, 1)) = 0
+                    zCoeff(ma3(-1, 0, 1)) = 0
+                    zCoeff(ma3( 0, 0, 1)) = 1./2./dx(2)
+                    zCoeff(ma3( 1, 0, 1)) = 0
+                    zCoeff(ma3(-1, 1, 1)) = 0
+                    zCoeff(ma3( 0, 1, 1)) = 0
+                    zCoeff(ma3( 1, 1, 1)) = 0
+                i1m=i1-is1  ! ghost point
+                i2m=i2-is2
+                i3m=i3-is3
+                 do m3=-halfWidth3,halfWidth3
+                 do m2=-halfWidth,halfWidth
+                 do m1=-halfWidth,halfWidth
+                 m=ma3(m1,m2,m3)
+                 mm=mce3(m1,m2,m3,cmpw,eqnw)
+                  coeff(mm,i1m,i2m,i3m)=1.*(an(0)*xCoeff(m)+an(1)*
+     & yCoeff(m)+an(2)*zCoeff(m))+0.*iCoeff(m)
+                 ! The equation for pt (eqnw,i1m,i2m,i3m) is centered on (cmpw,i1,i2,i3): 
+                  equationNumber(mm,i1m,i2m,i3m)=(cmpw+1+
+     & numberOfComponentsForCoefficients*(i1+m1-equationNumberBase1+
+     & equationNumberLength1*(i2+m2-equationNumberBase2+
+     & equationNumberLength2*(i3+m3-equationNumberBase3)))+
+     & equationOffset)
+                 end do
+                 end do
+                 end do
+                 classify(i1m,i2m,i3m,eqnw)=ghost1
+              else
+               ! boundary face is x=constant, or y=constant : give w=0 
+               do m=ce(0,eqnw),ce(0,eqnw+1)-1
+                coeff(m,i1,i2,i3)=0.
+               end do
+                do m3=-halfWidth3,halfWidth3
+                do m2=-halfWidth,halfWidth
+                do m1=-halfWidth,halfWidth
+                  coeff(mce3(m1,m2,m3,cmpw,eqnw),i1,i2,i3)=(iCoeff(ma3(
+     & m1,m2,m3)))
+                end do
+                end do
+                end do
+                if( orderOfExtrapolation.lt.1 .or. 
+     & orderOfExtrapolation.gt.maxOrderOfExtrapolation )then
+                  stop 7734
+                end if
+                i1m=i1-is1*(1)  ! 1 point
+                i2m=i2-is2*(1)
+                i3m=i3-is3*(1)
+                do m=0,orderOfExtrapolation
+                 j1=i1m+is1*m  ! m-th point moving inward from the 1 point (i1,i2,i3)
+                 j2=i2m+is2*m
+                 j3=i3m+is3*m
+                 mm = ce(cmpw,eqnw)+m
+                 coeff(mm,i1m,i2m,i3m)=extrapCoeff(m,
+     & orderOfExtrapolation) ! m=0,1,2,..
+                  equationNumber(mm,i1m,i2m,i3m)=(cmpw+1+
+     & numberOfComponentsForCoefficients*(j1-equationNumberBase1+
+     & equationNumberLength1*(j2-equationNumberBase2+
+     & equationNumberLength2*(j3-equationNumberBase3)))+
+     & equationOffset)
+                end do
+                 classify(i1m,i2m,i3m,eqnw)=extrapolation
+              end if
+            else
+              write(*,'(" insImpINS: bc0.eq.inflowWithPandTV -- 
+     & unknown option")')
+              stop 8141
+            end if
+             end if
+            end do
+            end do
+            end do
+         else
+           ! ****** inflowWithPandTV: vector system *********
             ! Operator identity 
              iCoeff(ma3(-1,-1,-1)) = 0
              iCoeff(ma3( 0,-1,-1)) = 0
@@ -8816,6 +10148,7 @@ c      write(*,'("insImpINS: nd,uc,vc,wc,kc=",2i6)') nd,uc,vc,wc,kc
            end do
            end do
            end do
+         end if  ! end vector system
          else if( bc0.eq.axisymmetric )then
           if( fillCoefficientsScalarSystem.eq.fillCoeffU )then
            ! BC on an axisymmetric side : scalar matrix for U 
@@ -8832,7 +10165,7 @@ c      write(*,'("insImpINS: nd,uc,vc,wc,kc=",2i6)') nd,uc,vc,wc,kc
             ! getCoeff(identity, iCoeff,aj)
             !zeroMatrixCoefficients( coeff,eqnv,eqnv, i1,i2,i3 )  ! set v eqn coeffs to zero
             !setCoeff1(cmpv,eqnv,coeff,iCoeff)                ! dirichlet: V= 
-            !fillMatrixExtrapolation(coeff,cmpv,eqnv,i1,i2,i3,orderOfExtrapolation,1)  ! extrap ghost for V 
+            !fillMatrixExtrapolation(coe<ff,cmpv,eqnv,i1,i2,i3,orderOfExtrapolation,1)  ! extrap ghost for V 
              ! Evaluate the jacobian derivatives used by the coefficient and forward derivatives:
              ! opEvalJacobianDerivatives(MAXDER) : MAXDER = max number of derivatives to precompute.
              ! evaluate the coeff operators 
@@ -12192,17 +13525,792 @@ c      write(*,'("insImpINS: nd,uc,vc,wc,kc=",2i6)') nd,uc,vc,wc,kc
            end do
            end do
          else if( bc0.eq.inflowWithPandTV )then
-           ! -- pressure and tangential velocity given --
+           ! ------------------------------------------------
+           ! ---- pressure and tangential velocity given ----
+           ! ------------------------------------------------
           write(*,'("insImpINS: fill in BC pressure and tangential 
      & velocity ** check me** ")')
-          write(*,'(" fillCoefficientsScalarSystem=",i4)') 
-     & fillCoefficientsScalarSystem
           if( fillCoefficientsScalarSystem.ge.fillCoeffU .and. 
      & fillCoefficientsScalarSystem.le.fillCoeffW )then
-            write(*,'(" insImpINS: bc0.eq.inflowWithPandTV not 
-     & finished for scalar systems")')
-            stop 8140
-          end if
+           write(*,'(" fillCoefficientsScalarSystem=",i4)') 
+     & fillCoefficientsScalarSystem
+           ! --- fill coefficients for scalar systems ---
+           ! This only works if the boundary face is on a plane x=constant, y=constant or z=constant 
+           ! Added May 13, 2017 *wdh*
+            do i3=n3a,n3b
+            do i2=n2a,n2b
+            do i1=n1a,n1b
+             ! if( btest(mask(i1,i2,i3),28) )then
+             !   write(*,'("+++ Point i=(",3i5,") is an interiorBoundaryPoint")') i1,i2,i3
+             ! end if
+             if( mask(i1,i2,i3).gt.0 .and. .not.btest(mask(i1,i2,i3),
+     & 28) )then
+             ! this next call will define the jacobian and its derivatives (parameteric and spatial)
+             ajrx = rsxy(i1,i2,i3,0,0)
+             ajrxr = (-rsxy(i1-1,i2,i3,0,0)+rsxy(i1+1,i2,i3,0,0))/(2.*
+     & dr(0))
+             ajrxs = (-rsxy(i1,i2-1,i3,0,0)+rsxy(i1,i2+1,i3,0,0))/(2.*
+     & dr(1))
+             ajrxt = (-rsxy(i1,i2,i3-1,0,0)+rsxy(i1,i2,i3+1,0,0))/(2.*
+     & dr(2))
+             ajsx = rsxy(i1,i2,i3,1,0)
+             ajsxr = (-rsxy(i1-1,i2,i3,1,0)+rsxy(i1+1,i2,i3,1,0))/(2.*
+     & dr(0))
+             ajsxs = (-rsxy(i1,i2-1,i3,1,0)+rsxy(i1,i2+1,i3,1,0))/(2.*
+     & dr(1))
+             ajsxt = (-rsxy(i1,i2,i3-1,1,0)+rsxy(i1,i2,i3+1,1,0))/(2.*
+     & dr(2))
+             ajtx = rsxy(i1,i2,i3,2,0)
+             ajtxr = (-rsxy(i1-1,i2,i3,2,0)+rsxy(i1+1,i2,i3,2,0))/(2.*
+     & dr(0))
+             ajtxs = (-rsxy(i1,i2-1,i3,2,0)+rsxy(i1,i2+1,i3,2,0))/(2.*
+     & dr(1))
+             ajtxt = (-rsxy(i1,i2,i3-1,2,0)+rsxy(i1,i2,i3+1,2,0))/(2.*
+     & dr(2))
+             ajry = rsxy(i1,i2,i3,0,1)
+             ajryr = (-rsxy(i1-1,i2,i3,0,1)+rsxy(i1+1,i2,i3,0,1))/(2.*
+     & dr(0))
+             ajrys = (-rsxy(i1,i2-1,i3,0,1)+rsxy(i1,i2+1,i3,0,1))/(2.*
+     & dr(1))
+             ajryt = (-rsxy(i1,i2,i3-1,0,1)+rsxy(i1,i2,i3+1,0,1))/(2.*
+     & dr(2))
+             ajsy = rsxy(i1,i2,i3,1,1)
+             ajsyr = (-rsxy(i1-1,i2,i3,1,1)+rsxy(i1+1,i2,i3,1,1))/(2.*
+     & dr(0))
+             ajsys = (-rsxy(i1,i2-1,i3,1,1)+rsxy(i1,i2+1,i3,1,1))/(2.*
+     & dr(1))
+             ajsyt = (-rsxy(i1,i2,i3-1,1,1)+rsxy(i1,i2,i3+1,1,1))/(2.*
+     & dr(2))
+             ajty = rsxy(i1,i2,i3,2,1)
+             ajtyr = (-rsxy(i1-1,i2,i3,2,1)+rsxy(i1+1,i2,i3,2,1))/(2.*
+     & dr(0))
+             ajtys = (-rsxy(i1,i2-1,i3,2,1)+rsxy(i1,i2+1,i3,2,1))/(2.*
+     & dr(1))
+             ajtyt = (-rsxy(i1,i2,i3-1,2,1)+rsxy(i1,i2,i3+1,2,1))/(2.*
+     & dr(2))
+             ajrz = rsxy(i1,i2,i3,0,2)
+             ajrzr = (-rsxy(i1-1,i2,i3,0,2)+rsxy(i1+1,i2,i3,0,2))/(2.*
+     & dr(0))
+             ajrzs = (-rsxy(i1,i2-1,i3,0,2)+rsxy(i1,i2+1,i3,0,2))/(2.*
+     & dr(1))
+             ajrzt = (-rsxy(i1,i2,i3-1,0,2)+rsxy(i1,i2,i3+1,0,2))/(2.*
+     & dr(2))
+             ajsz = rsxy(i1,i2,i3,1,2)
+             ajszr = (-rsxy(i1-1,i2,i3,1,2)+rsxy(i1+1,i2,i3,1,2))/(2.*
+     & dr(0))
+             ajszs = (-rsxy(i1,i2-1,i3,1,2)+rsxy(i1,i2+1,i3,1,2))/(2.*
+     & dr(1))
+             ajszt = (-rsxy(i1,i2,i3-1,1,2)+rsxy(i1,i2,i3+1,1,2))/(2.*
+     & dr(2))
+             ajtz = rsxy(i1,i2,i3,2,2)
+             ajtzr = (-rsxy(i1-1,i2,i3,2,2)+rsxy(i1+1,i2,i3,2,2))/(2.*
+     & dr(0))
+             ajtzs = (-rsxy(i1,i2-1,i3,2,2)+rsxy(i1,i2+1,i3,2,2))/(2.*
+     & dr(1))
+             ajtzt = (-rsxy(i1,i2,i3-1,2,2)+rsxy(i1,i2,i3+1,2,2))/(2.*
+     & dr(2))
+             ajrxx = ajrx*ajrxr+ajsx*ajrxs+ajtx*ajrxt
+             ajrxy = ajry*ajrxr+ajsy*ajrxs+ajty*ajrxt
+             ajrxz = ajrz*ajrxr+ajsz*ajrxs+ajtz*ajrxt
+             ajsxx = ajrx*ajsxr+ajsx*ajsxs+ajtx*ajsxt
+             ajsxy = ajry*ajsxr+ajsy*ajsxs+ajty*ajsxt
+             ajsxz = ajrz*ajsxr+ajsz*ajsxs+ajtz*ajsxt
+             ajtxx = ajrx*ajtxr+ajsx*ajtxs+ajtx*ajtxt
+             ajtxy = ajry*ajtxr+ajsy*ajtxs+ajty*ajtxt
+             ajtxz = ajrz*ajtxr+ajsz*ajtxs+ajtz*ajtxt
+             ajryx = ajrx*ajryr+ajsx*ajrys+ajtx*ajryt
+             ajryy = ajry*ajryr+ajsy*ajrys+ajty*ajryt
+             ajryz = ajrz*ajryr+ajsz*ajrys+ajtz*ajryt
+             ajsyx = ajrx*ajsyr+ajsx*ajsys+ajtx*ajsyt
+             ajsyy = ajry*ajsyr+ajsy*ajsys+ajty*ajsyt
+             ajsyz = ajrz*ajsyr+ajsz*ajsys+ajtz*ajsyt
+             ajtyx = ajrx*ajtyr+ajsx*ajtys+ajtx*ajtyt
+             ajtyy = ajry*ajtyr+ajsy*ajtys+ajty*ajtyt
+             ajtyz = ajrz*ajtyr+ajsz*ajtys+ajtz*ajtyt
+             ajrzx = ajrx*ajrzr+ajsx*ajrzs+ajtx*ajrzt
+             ajrzy = ajry*ajrzr+ajsy*ajrzs+ajty*ajrzt
+             ajrzz = ajrz*ajrzr+ajsz*ajrzs+ajtz*ajrzt
+             ajszx = ajrx*ajszr+ajsx*ajszs+ajtx*ajszt
+             ajszy = ajry*ajszr+ajsy*ajszs+ajty*ajszt
+             ajszz = ajrz*ajszr+ajsz*ajszs+ajtz*ajszt
+             ajtzx = ajrx*ajtzr+ajsx*ajtzs+ajtx*ajtzt
+             ajtzy = ajry*ajtzr+ajsy*ajtzs+ajty*ajtzt
+             ajtzz = ajrz*ajtzr+ajsz*ajtzs+ajtz*ajtzt
+              ! Operator identity 
+               iCoeff(ma3(-1,-1,-1)) = 0
+               iCoeff(ma3( 0,-1,-1)) = 0
+               iCoeff(ma3( 1,-1,-1)) = 0
+               iCoeff(ma3(-1, 0,-1)) = 0
+               iCoeff(ma3( 0, 0,-1)) = 0
+               iCoeff(ma3( 1, 0,-1)) = 0
+               iCoeff(ma3(-1, 1,-1)) = 0
+               iCoeff(ma3( 0, 1,-1)) = 0
+               iCoeff(ma3( 1, 1,-1)) = 0
+               iCoeff(ma3(-1,-1, 0)) = 0
+               iCoeff(ma3( 0,-1, 0)) = 0
+               iCoeff(ma3( 1,-1, 0)) = 0
+               iCoeff(ma3(-1, 0, 0)) = 0
+               iCoeff(ma3( 0, 0, 0)) = 1.
+               iCoeff(ma3( 1, 0, 0)) = 0
+               iCoeff(ma3(-1, 1, 0)) = 0
+               iCoeff(ma3( 0, 1, 0)) = 0
+               iCoeff(ma3( 1, 1, 0)) = 0
+               iCoeff(ma3(-1,-1, 1)) = 0
+               iCoeff(ma3( 0,-1, 1)) = 0
+               iCoeff(ma3( 1,-1, 1)) = 0
+               iCoeff(ma3(-1, 0, 1)) = 0
+               iCoeff(ma3( 0, 0, 1)) = 0
+               iCoeff(ma3( 1, 0, 1)) = 0
+               iCoeff(ma3(-1, 1, 1)) = 0
+               iCoeff(ma3( 0, 1, 1)) = 0
+               iCoeff(ma3( 1, 1, 1)) = 0
+                ! get the outward normal for curvilinear grids
+                an(0)=rsxy(i1,i2,i3,axis,0)
+                an(1)=rsxy(i1,i2,i3,axis,1)
+                  an(2)=rsxy(i1,i2,i3,axis,2)
+                  anNorm = (2*side-1)/max( epsX, sqrt( an(0)**2 + an(1)
+     & **2 + an(2)**2 ) )
+                  an(0)=an(0)*anNorm
+                  an(1)=an(1)*anNorm
+                  an(2)=an(2)*anNorm
+            ! -- The grid face should be in a coordinate direction,
+            !   normalAxis = 0,1, or 2 indicates this direction
+            if( abs(abs(an(0))-1.) .lt. normalTol )then
+             normalAxis=0
+            else if( abs(abs(an(1))-1.) .lt. normalTol )then
+             normalAxis=1
+            else if(  abs(abs(an(2))-1.) .lt. normalTol )then
+             normalAxis=2
+            else
+              write(*,'(" insImpINS: ERROR: inflowWithPandTV, scalar 
+     & systems but normals funny")')
+              write(*,'("  --> the normals should be in a coordinate 
+     & direction")')
+              stop 1287
+            end if
+            !  --- equations for u ---
+            if( fillCoefficientsScalarSystem.eq.fillCoeffU )then
+              if( normalAxis.eq.0 )then
+               ! boundary face is x=constant:
+               !  Give u.n = 0 
+                   ! get the outward normal for curvilinear grids
+                   an(0)=rsxy(i1,i2,i3,axis,0)
+                   an(1)=rsxy(i1,i2,i3,axis,1)
+                     an(2)=rsxy(i1,i2,i3,axis,2)
+                     anNorm = (2*side-1)/max( epsX, sqrt( an(0)**2 + 
+     & an(1)**2 + an(2)**2 ) )
+                     an(0)=an(0)*anNorm
+                     an(1)=an(1)*anNorm
+                     an(2)=an(2)*anNorm
+                ! Evaluate the jacobian derivatives used by the coefficient and forward derivatives:
+                ! opEvalJacobianDerivatives(MAXDER) : MAXDER = max number of derivatives to precompute.
+                 ! this next call will define the jacobian and its derivatives (parameteric and spatial)
+                 ajrx = rsxy(i1,i2,i3,0,0)
+                 ajsx = rsxy(i1,i2,i3,1,0)
+                 ajtx = rsxy(i1,i2,i3,2,0)
+                 ajry = rsxy(i1,i2,i3,0,1)
+                 ajsy = rsxy(i1,i2,i3,1,1)
+                 ajty = rsxy(i1,i2,i3,2,1)
+                 ajrz = rsxy(i1,i2,i3,0,2)
+                 ajsz = rsxy(i1,i2,i3,1,2)
+                 ajtz = rsxy(i1,i2,i3,2,2)
+                ! evaluate the coeff operators 
+                ! getCoeff(identity, iCoeff,aj)
+                  ! Operator x = rx*ur+sx*us+tx*ut
+                   cur = ajrx
+                   cus = ajsx
+                   cut = ajtx
+                   xCoeff(ma3(-1,-1,-1)) = 0
+                   xCoeff(ma3( 0,-1,-1)) = 0
+                   xCoeff(ma3( 1,-1,-1)) = 0
+                   xCoeff(ma3(-1, 0,-1)) = 0
+                   xCoeff(ma3( 0, 0,-1)) = -1./2.*cut/dr(2)
+                   xCoeff(ma3( 1, 0,-1)) = 0
+                   xCoeff(ma3(-1, 1,-1)) = 0
+                   xCoeff(ma3( 0, 1,-1)) = 0
+                   xCoeff(ma3( 1, 1,-1)) = 0
+                   xCoeff(ma3(-1,-1, 0)) = 0
+                   xCoeff(ma3( 0,-1, 0)) = -1./2.*cus/dr(1)
+                   xCoeff(ma3( 1,-1, 0)) = 0
+                   xCoeff(ma3(-1, 0, 0)) = -1./2.*cur/dr(0)
+                   xCoeff(ma3( 0, 0, 0)) = 0
+                   xCoeff(ma3( 1, 0, 0)) = 1./2.*cur/dr(0)
+                   xCoeff(ma3(-1, 1, 0)) = 0
+                   xCoeff(ma3( 0, 1, 0)) = 1./2.*cus/dr(1)
+                   xCoeff(ma3( 1, 1, 0)) = 0
+                   xCoeff(ma3(-1,-1, 1)) = 0
+                   xCoeff(ma3( 0,-1, 1)) = 0
+                   xCoeff(ma3( 1,-1, 1)) = 0
+                   xCoeff(ma3(-1, 0, 1)) = 0
+                   xCoeff(ma3( 0, 0, 1)) = 1./2.*cut/dr(2)
+                   xCoeff(ma3( 1, 0, 1)) = 0
+                   xCoeff(ma3(-1, 1, 1)) = 0
+                   xCoeff(ma3( 0, 1, 1)) = 0
+                   xCoeff(ma3( 1, 1, 1)) = 0
+                  ! Operator y = ry*ur+sy*us+ty*ut
+                   cur = ajry
+                   cus = ajsy
+                   cut = ajty
+                   yCoeff(ma3(-1,-1,-1)) = 0
+                   yCoeff(ma3( 0,-1,-1)) = 0
+                   yCoeff(ma3( 1,-1,-1)) = 0
+                   yCoeff(ma3(-1, 0,-1)) = 0
+                   yCoeff(ma3( 0, 0,-1)) = -1./2.*cut/dr(2)
+                   yCoeff(ma3( 1, 0,-1)) = 0
+                   yCoeff(ma3(-1, 1,-1)) = 0
+                   yCoeff(ma3( 0, 1,-1)) = 0
+                   yCoeff(ma3( 1, 1,-1)) = 0
+                   yCoeff(ma3(-1,-1, 0)) = 0
+                   yCoeff(ma3( 0,-1, 0)) = -1./2.*cus/dr(1)
+                   yCoeff(ma3( 1,-1, 0)) = 0
+                   yCoeff(ma3(-1, 0, 0)) = -1./2.*cur/dr(0)
+                   yCoeff(ma3( 0, 0, 0)) = 0
+                   yCoeff(ma3( 1, 0, 0)) = 1./2.*cur/dr(0)
+                   yCoeff(ma3(-1, 1, 0)) = 0
+                   yCoeff(ma3( 0, 1, 0)) = 1./2.*cus/dr(1)
+                   yCoeff(ma3( 1, 1, 0)) = 0
+                   yCoeff(ma3(-1,-1, 1)) = 0
+                   yCoeff(ma3( 0,-1, 1)) = 0
+                   yCoeff(ma3( 1,-1, 1)) = 0
+                   yCoeff(ma3(-1, 0, 1)) = 0
+                   yCoeff(ma3( 0, 0, 1)) = 1./2.*cut/dr(2)
+                   yCoeff(ma3( 1, 0, 1)) = 0
+                   yCoeff(ma3(-1, 1, 1)) = 0
+                   yCoeff(ma3( 0, 1, 1)) = 0
+                   yCoeff(ma3( 1, 1, 1)) = 0
+                  ! Operator identity 
+                   iCoeff(ma3(-1,-1,-1)) = 0
+                   iCoeff(ma3( 0,-1,-1)) = 0
+                   iCoeff(ma3( 1,-1,-1)) = 0
+                   iCoeff(ma3(-1, 0,-1)) = 0
+                   iCoeff(ma3( 0, 0,-1)) = 0
+                   iCoeff(ma3( 1, 0,-1)) = 0
+                   iCoeff(ma3(-1, 1,-1)) = 0
+                   iCoeff(ma3( 0, 1,-1)) = 0
+                   iCoeff(ma3( 1, 1,-1)) = 0
+                   iCoeff(ma3(-1,-1, 0)) = 0
+                   iCoeff(ma3( 0,-1, 0)) = 0
+                   iCoeff(ma3( 1,-1, 0)) = 0
+                   iCoeff(ma3(-1, 0, 0)) = 0
+                   iCoeff(ma3( 0, 0, 0)) = 1.
+                   iCoeff(ma3( 1, 0, 0)) = 0
+                   iCoeff(ma3(-1, 1, 0)) = 0
+                   iCoeff(ma3( 0, 1, 0)) = 0
+                   iCoeff(ma3( 1, 1, 0)) = 0
+                   iCoeff(ma3(-1,-1, 1)) = 0
+                   iCoeff(ma3( 0,-1, 1)) = 0
+                   iCoeff(ma3( 1,-1, 1)) = 0
+                   iCoeff(ma3(-1, 0, 1)) = 0
+                   iCoeff(ma3( 0, 0, 1)) = 0
+                   iCoeff(ma3( 1, 0, 1)) = 0
+                   iCoeff(ma3(-1, 1, 1)) = 0
+                   iCoeff(ma3( 0, 1, 1)) = 0
+                   iCoeff(ma3( 1, 1, 1)) = 0
+                   ! Operator z = rz*ur+sz*us+tz*ut
+                    cur = ajrz
+                    cus = ajsz
+                    cut = ajtz
+                    zCoeff(ma3(-1,-1,-1)) = 0
+                    zCoeff(ma3( 0,-1,-1)) = 0
+                    zCoeff(ma3( 1,-1,-1)) = 0
+                    zCoeff(ma3(-1, 0,-1)) = 0
+                    zCoeff(ma3( 0, 0,-1)) = -1./2.*cut/dr(2)
+                    zCoeff(ma3( 1, 0,-1)) = 0
+                    zCoeff(ma3(-1, 1,-1)) = 0
+                    zCoeff(ma3( 0, 1,-1)) = 0
+                    zCoeff(ma3( 1, 1,-1)) = 0
+                    zCoeff(ma3(-1,-1, 0)) = 0
+                    zCoeff(ma3( 0,-1, 0)) = -1./2.*cus/dr(1)
+                    zCoeff(ma3( 1,-1, 0)) = 0
+                    zCoeff(ma3(-1, 0, 0)) = -1./2.*cur/dr(0)
+                    zCoeff(ma3( 0, 0, 0)) = 0
+                    zCoeff(ma3( 1, 0, 0)) = 1./2.*cur/dr(0)
+                    zCoeff(ma3(-1, 1, 0)) = 0
+                    zCoeff(ma3( 0, 1, 0)) = 1./2.*cus/dr(1)
+                    zCoeff(ma3( 1, 1, 0)) = 0
+                    zCoeff(ma3(-1,-1, 1)) = 0
+                    zCoeff(ma3( 0,-1, 1)) = 0
+                    zCoeff(ma3( 1,-1, 1)) = 0
+                    zCoeff(ma3(-1, 0, 1)) = 0
+                    zCoeff(ma3( 0, 0, 1)) = 1./2.*cut/dr(2)
+                    zCoeff(ma3( 1, 0, 1)) = 0
+                    zCoeff(ma3(-1, 1, 1)) = 0
+                    zCoeff(ma3( 0, 1, 1)) = 0
+                    zCoeff(ma3( 1, 1, 1)) = 0
+                i1m=i1-is1  ! ghost point
+                i2m=i2-is2
+                i3m=i3-is3
+                 do m3=-halfWidth3,halfWidth3
+                 do m2=-halfWidth,halfWidth
+                 do m1=-halfWidth,halfWidth
+                 m=ma3(m1,m2,m3)
+                 mm=mce3(m1,m2,m3,cmpu,eqnu)
+                  coeff(mm,i1m,i2m,i3m)=1.*(an(0)*xCoeff(m)+an(1)*
+     & yCoeff(m)+an(2)*zCoeff(m))+0.*iCoeff(m)
+                 ! The equation for pt (eqnu,i1m,i2m,i3m) is centered on (cmpu,i1,i2,i3): 
+                  equationNumber(mm,i1m,i2m,i3m)=(cmpu+1+
+     & numberOfComponentsForCoefficients*(i1+m1-equationNumberBase1+
+     & equationNumberLength1*(i2+m2-equationNumberBase2+
+     & equationNumberLength2*(i3+m3-equationNumberBase3)))+
+     & equationOffset)
+                 end do
+                 end do
+                 end do
+                 classify(i1m,i2m,i3m,eqnu)=ghost1
+              else
+               ! boundary face is y=constant, or z=constant : give u=0 
+               do m=ce(0,eqnu),ce(0,eqnu+1)-1
+                coeff(m,i1,i2,i3)=0.
+               end do
+                do m3=-halfWidth3,halfWidth3
+                do m2=-halfWidth,halfWidth
+                do m1=-halfWidth,halfWidth
+                  coeff(mce3(m1,m2,m3,cmpu,eqnu),i1,i2,i3)=(iCoeff(ma3(
+     & m1,m2,m3)))
+                end do
+                end do
+                end do
+                if( orderOfExtrapolation.lt.1 .or. 
+     & orderOfExtrapolation.gt.maxOrderOfExtrapolation )then
+                  stop 7734
+                end if
+                i1m=i1-is1*(1)  ! 1 point
+                i2m=i2-is2*(1)
+                i3m=i3-is3*(1)
+                do m=0,orderOfExtrapolation
+                 j1=i1m+is1*m  ! m-th point moving inward from the 1 point (i1,i2,i3)
+                 j2=i2m+is2*m
+                 j3=i3m+is3*m
+                 mm = ce(cmpu,eqnu)+m
+                 coeff(mm,i1m,i2m,i3m)=extrapCoeff(m,
+     & orderOfExtrapolation) ! m=0,1,2,..
+                  equationNumber(mm,i1m,i2m,i3m)=(cmpu+1+
+     & numberOfComponentsForCoefficients*(j1-equationNumberBase1+
+     & equationNumberLength1*(j2-equationNumberBase2+
+     & equationNumberLength2*(j3-equationNumberBase3)))+
+     & equationOffset)
+                end do
+                 classify(i1m,i2m,i3m,eqnu)=extrapolation
+              end if
+            !  --- equations for v ---
+            else if( fillCoefficientsScalarSystem.eq.fillCoeffV )then
+              if( normalAxis.eq.1 )then
+               ! boundary face is y=constant:
+               !  Give v.n = 0 
+                   ! get the outward normal for curvilinear grids
+                   an(0)=rsxy(i1,i2,i3,axis,0)
+                   an(1)=rsxy(i1,i2,i3,axis,1)
+                     an(2)=rsxy(i1,i2,i3,axis,2)
+                     anNorm = (2*side-1)/max( epsX, sqrt( an(0)**2 + 
+     & an(1)**2 + an(2)**2 ) )
+                     an(0)=an(0)*anNorm
+                     an(1)=an(1)*anNorm
+                     an(2)=an(2)*anNorm
+                ! Evaluate the jacobian derivatives used by the coefficient and forward derivatives:
+                ! opEvalJacobianDerivatives(MAXDER) : MAXDER = max number of derivatives to precompute.
+                 ! this next call will define the jacobian and its derivatives (parameteric and spatial)
+                 ajrx = rsxy(i1,i2,i3,0,0)
+                 ajsx = rsxy(i1,i2,i3,1,0)
+                 ajtx = rsxy(i1,i2,i3,2,0)
+                 ajry = rsxy(i1,i2,i3,0,1)
+                 ajsy = rsxy(i1,i2,i3,1,1)
+                 ajty = rsxy(i1,i2,i3,2,1)
+                 ajrz = rsxy(i1,i2,i3,0,2)
+                 ajsz = rsxy(i1,i2,i3,1,2)
+                 ajtz = rsxy(i1,i2,i3,2,2)
+                ! evaluate the coeff operators 
+                ! getCoeff(identity, iCoeff,aj)
+                  ! Operator x = rx*ur+sx*us+tx*ut
+                   cur = ajrx
+                   cus = ajsx
+                   cut = ajtx
+                   xCoeff(ma3(-1,-1,-1)) = 0
+                   xCoeff(ma3( 0,-1,-1)) = 0
+                   xCoeff(ma3( 1,-1,-1)) = 0
+                   xCoeff(ma3(-1, 0,-1)) = 0
+                   xCoeff(ma3( 0, 0,-1)) = -1./2.*cut/dr(2)
+                   xCoeff(ma3( 1, 0,-1)) = 0
+                   xCoeff(ma3(-1, 1,-1)) = 0
+                   xCoeff(ma3( 0, 1,-1)) = 0
+                   xCoeff(ma3( 1, 1,-1)) = 0
+                   xCoeff(ma3(-1,-1, 0)) = 0
+                   xCoeff(ma3( 0,-1, 0)) = -1./2.*cus/dr(1)
+                   xCoeff(ma3( 1,-1, 0)) = 0
+                   xCoeff(ma3(-1, 0, 0)) = -1./2.*cur/dr(0)
+                   xCoeff(ma3( 0, 0, 0)) = 0
+                   xCoeff(ma3( 1, 0, 0)) = 1./2.*cur/dr(0)
+                   xCoeff(ma3(-1, 1, 0)) = 0
+                   xCoeff(ma3( 0, 1, 0)) = 1./2.*cus/dr(1)
+                   xCoeff(ma3( 1, 1, 0)) = 0
+                   xCoeff(ma3(-1,-1, 1)) = 0
+                   xCoeff(ma3( 0,-1, 1)) = 0
+                   xCoeff(ma3( 1,-1, 1)) = 0
+                   xCoeff(ma3(-1, 0, 1)) = 0
+                   xCoeff(ma3( 0, 0, 1)) = 1./2.*cut/dr(2)
+                   xCoeff(ma3( 1, 0, 1)) = 0
+                   xCoeff(ma3(-1, 1, 1)) = 0
+                   xCoeff(ma3( 0, 1, 1)) = 0
+                   xCoeff(ma3( 1, 1, 1)) = 0
+                  ! Operator y = ry*ur+sy*us+ty*ut
+                   cur = ajry
+                   cus = ajsy
+                   cut = ajty
+                   yCoeff(ma3(-1,-1,-1)) = 0
+                   yCoeff(ma3( 0,-1,-1)) = 0
+                   yCoeff(ma3( 1,-1,-1)) = 0
+                   yCoeff(ma3(-1, 0,-1)) = 0
+                   yCoeff(ma3( 0, 0,-1)) = -1./2.*cut/dr(2)
+                   yCoeff(ma3( 1, 0,-1)) = 0
+                   yCoeff(ma3(-1, 1,-1)) = 0
+                   yCoeff(ma3( 0, 1,-1)) = 0
+                   yCoeff(ma3( 1, 1,-1)) = 0
+                   yCoeff(ma3(-1,-1, 0)) = 0
+                   yCoeff(ma3( 0,-1, 0)) = -1./2.*cus/dr(1)
+                   yCoeff(ma3( 1,-1, 0)) = 0
+                   yCoeff(ma3(-1, 0, 0)) = -1./2.*cur/dr(0)
+                   yCoeff(ma3( 0, 0, 0)) = 0
+                   yCoeff(ma3( 1, 0, 0)) = 1./2.*cur/dr(0)
+                   yCoeff(ma3(-1, 1, 0)) = 0
+                   yCoeff(ma3( 0, 1, 0)) = 1./2.*cus/dr(1)
+                   yCoeff(ma3( 1, 1, 0)) = 0
+                   yCoeff(ma3(-1,-1, 1)) = 0
+                   yCoeff(ma3( 0,-1, 1)) = 0
+                   yCoeff(ma3( 1,-1, 1)) = 0
+                   yCoeff(ma3(-1, 0, 1)) = 0
+                   yCoeff(ma3( 0, 0, 1)) = 1./2.*cut/dr(2)
+                   yCoeff(ma3( 1, 0, 1)) = 0
+                   yCoeff(ma3(-1, 1, 1)) = 0
+                   yCoeff(ma3( 0, 1, 1)) = 0
+                   yCoeff(ma3( 1, 1, 1)) = 0
+                  ! Operator identity 
+                   iCoeff(ma3(-1,-1,-1)) = 0
+                   iCoeff(ma3( 0,-1,-1)) = 0
+                   iCoeff(ma3( 1,-1,-1)) = 0
+                   iCoeff(ma3(-1, 0,-1)) = 0
+                   iCoeff(ma3( 0, 0,-1)) = 0
+                   iCoeff(ma3( 1, 0,-1)) = 0
+                   iCoeff(ma3(-1, 1,-1)) = 0
+                   iCoeff(ma3( 0, 1,-1)) = 0
+                   iCoeff(ma3( 1, 1,-1)) = 0
+                   iCoeff(ma3(-1,-1, 0)) = 0
+                   iCoeff(ma3( 0,-1, 0)) = 0
+                   iCoeff(ma3( 1,-1, 0)) = 0
+                   iCoeff(ma3(-1, 0, 0)) = 0
+                   iCoeff(ma3( 0, 0, 0)) = 1.
+                   iCoeff(ma3( 1, 0, 0)) = 0
+                   iCoeff(ma3(-1, 1, 0)) = 0
+                   iCoeff(ma3( 0, 1, 0)) = 0
+                   iCoeff(ma3( 1, 1, 0)) = 0
+                   iCoeff(ma3(-1,-1, 1)) = 0
+                   iCoeff(ma3( 0,-1, 1)) = 0
+                   iCoeff(ma3( 1,-1, 1)) = 0
+                   iCoeff(ma3(-1, 0, 1)) = 0
+                   iCoeff(ma3( 0, 0, 1)) = 0
+                   iCoeff(ma3( 1, 0, 1)) = 0
+                   iCoeff(ma3(-1, 1, 1)) = 0
+                   iCoeff(ma3( 0, 1, 1)) = 0
+                   iCoeff(ma3( 1, 1, 1)) = 0
+                   ! Operator z = rz*ur+sz*us+tz*ut
+                    cur = ajrz
+                    cus = ajsz
+                    cut = ajtz
+                    zCoeff(ma3(-1,-1,-1)) = 0
+                    zCoeff(ma3( 0,-1,-1)) = 0
+                    zCoeff(ma3( 1,-1,-1)) = 0
+                    zCoeff(ma3(-1, 0,-1)) = 0
+                    zCoeff(ma3( 0, 0,-1)) = -1./2.*cut/dr(2)
+                    zCoeff(ma3( 1, 0,-1)) = 0
+                    zCoeff(ma3(-1, 1,-1)) = 0
+                    zCoeff(ma3( 0, 1,-1)) = 0
+                    zCoeff(ma3( 1, 1,-1)) = 0
+                    zCoeff(ma3(-1,-1, 0)) = 0
+                    zCoeff(ma3( 0,-1, 0)) = -1./2.*cus/dr(1)
+                    zCoeff(ma3( 1,-1, 0)) = 0
+                    zCoeff(ma3(-1, 0, 0)) = -1./2.*cur/dr(0)
+                    zCoeff(ma3( 0, 0, 0)) = 0
+                    zCoeff(ma3( 1, 0, 0)) = 1./2.*cur/dr(0)
+                    zCoeff(ma3(-1, 1, 0)) = 0
+                    zCoeff(ma3( 0, 1, 0)) = 1./2.*cus/dr(1)
+                    zCoeff(ma3( 1, 1, 0)) = 0
+                    zCoeff(ma3(-1,-1, 1)) = 0
+                    zCoeff(ma3( 0,-1, 1)) = 0
+                    zCoeff(ma3( 1,-1, 1)) = 0
+                    zCoeff(ma3(-1, 0, 1)) = 0
+                    zCoeff(ma3( 0, 0, 1)) = 1./2.*cut/dr(2)
+                    zCoeff(ma3( 1, 0, 1)) = 0
+                    zCoeff(ma3(-1, 1, 1)) = 0
+                    zCoeff(ma3( 0, 1, 1)) = 0
+                    zCoeff(ma3( 1, 1, 1)) = 0
+                i1m=i1-is1  ! ghost point
+                i2m=i2-is2
+                i3m=i3-is3
+                 do m3=-halfWidth3,halfWidth3
+                 do m2=-halfWidth,halfWidth
+                 do m1=-halfWidth,halfWidth
+                 m=ma3(m1,m2,m3)
+                 mm=mce3(m1,m2,m3,cmpv,eqnv)
+                  coeff(mm,i1m,i2m,i3m)=1.*(an(0)*xCoeff(m)+an(1)*
+     & yCoeff(m)+an(2)*zCoeff(m))+0.*iCoeff(m)
+                 ! The equation for pt (eqnv,i1m,i2m,i3m) is centered on (cmpv,i1,i2,i3): 
+                  equationNumber(mm,i1m,i2m,i3m)=(cmpv+1+
+     & numberOfComponentsForCoefficients*(i1+m1-equationNumberBase1+
+     & equationNumberLength1*(i2+m2-equationNumberBase2+
+     & equationNumberLength2*(i3+m3-equationNumberBase3)))+
+     & equationOffset)
+                 end do
+                 end do
+                 end do
+                 classify(i1m,i2m,i3m,eqnv)=ghost1
+              else
+               ! boundary face is x=constant, or z=constant : give v=0 
+               do m=ce(0,eqnv),ce(0,eqnv+1)-1
+                coeff(m,i1,i2,i3)=0.
+               end do
+                do m3=-halfWidth3,halfWidth3
+                do m2=-halfWidth,halfWidth
+                do m1=-halfWidth,halfWidth
+                  coeff(mce3(m1,m2,m3,cmpv,eqnv),i1,i2,i3)=(iCoeff(ma3(
+     & m1,m2,m3)))
+                end do
+                end do
+                end do
+                if( orderOfExtrapolation.lt.1 .or. 
+     & orderOfExtrapolation.gt.maxOrderOfExtrapolation )then
+                  stop 7734
+                end if
+                i1m=i1-is1*(1)  ! 1 point
+                i2m=i2-is2*(1)
+                i3m=i3-is3*(1)
+                do m=0,orderOfExtrapolation
+                 j1=i1m+is1*m  ! m-th point moving inward from the 1 point (i1,i2,i3)
+                 j2=i2m+is2*m
+                 j3=i3m+is3*m
+                 mm = ce(cmpv,eqnv)+m
+                 coeff(mm,i1m,i2m,i3m)=extrapCoeff(m,
+     & orderOfExtrapolation) ! m=0,1,2,..
+                  equationNumber(mm,i1m,i2m,i3m)=(cmpv+1+
+     & numberOfComponentsForCoefficients*(j1-equationNumberBase1+
+     & equationNumberLength1*(j2-equationNumberBase2+
+     & equationNumberLength2*(j3-equationNumberBase3)))+
+     & equationOffset)
+                end do
+                 classify(i1m,i2m,i3m,eqnv)=extrapolation
+              end if
+            !  --- equations for w ---
+            else if( fillCoefficientsScalarSystem.eq.fillCoeffW )then
+              if( normalAxis.eq.2 )then
+               ! boundary face is z=constant:
+               !  Give w.n = 0 
+                   ! get the outward normal for curvilinear grids
+                   an(0)=rsxy(i1,i2,i3,axis,0)
+                   an(1)=rsxy(i1,i2,i3,axis,1)
+                     an(2)=rsxy(i1,i2,i3,axis,2)
+                     anNorm = (2*side-1)/max( epsX, sqrt( an(0)**2 + 
+     & an(1)**2 + an(2)**2 ) )
+                     an(0)=an(0)*anNorm
+                     an(1)=an(1)*anNorm
+                     an(2)=an(2)*anNorm
+                ! Evaluate the jacobian derivatives used by the coefficient and forward derivatives:
+                ! opEvalJacobianDerivatives(MAXDER) : MAXDER = max number of derivatives to precompute.
+                 ! this next call will define the jacobian and its derivatives (parameteric and spatial)
+                 ajrx = rsxy(i1,i2,i3,0,0)
+                 ajsx = rsxy(i1,i2,i3,1,0)
+                 ajtx = rsxy(i1,i2,i3,2,0)
+                 ajry = rsxy(i1,i2,i3,0,1)
+                 ajsy = rsxy(i1,i2,i3,1,1)
+                 ajty = rsxy(i1,i2,i3,2,1)
+                 ajrz = rsxy(i1,i2,i3,0,2)
+                 ajsz = rsxy(i1,i2,i3,1,2)
+                 ajtz = rsxy(i1,i2,i3,2,2)
+                ! evaluate the coeff operators 
+                ! getCoeff(identity, iCoeff,aj)
+                  ! Operator x = rx*ur+sx*us+tx*ut
+                   cur = ajrx
+                   cus = ajsx
+                   cut = ajtx
+                   xCoeff(ma3(-1,-1,-1)) = 0
+                   xCoeff(ma3( 0,-1,-1)) = 0
+                   xCoeff(ma3( 1,-1,-1)) = 0
+                   xCoeff(ma3(-1, 0,-1)) = 0
+                   xCoeff(ma3( 0, 0,-1)) = -1./2.*cut/dr(2)
+                   xCoeff(ma3( 1, 0,-1)) = 0
+                   xCoeff(ma3(-1, 1,-1)) = 0
+                   xCoeff(ma3( 0, 1,-1)) = 0
+                   xCoeff(ma3( 1, 1,-1)) = 0
+                   xCoeff(ma3(-1,-1, 0)) = 0
+                   xCoeff(ma3( 0,-1, 0)) = -1./2.*cus/dr(1)
+                   xCoeff(ma3( 1,-1, 0)) = 0
+                   xCoeff(ma3(-1, 0, 0)) = -1./2.*cur/dr(0)
+                   xCoeff(ma3( 0, 0, 0)) = 0
+                   xCoeff(ma3( 1, 0, 0)) = 1./2.*cur/dr(0)
+                   xCoeff(ma3(-1, 1, 0)) = 0
+                   xCoeff(ma3( 0, 1, 0)) = 1./2.*cus/dr(1)
+                   xCoeff(ma3( 1, 1, 0)) = 0
+                   xCoeff(ma3(-1,-1, 1)) = 0
+                   xCoeff(ma3( 0,-1, 1)) = 0
+                   xCoeff(ma3( 1,-1, 1)) = 0
+                   xCoeff(ma3(-1, 0, 1)) = 0
+                   xCoeff(ma3( 0, 0, 1)) = 1./2.*cut/dr(2)
+                   xCoeff(ma3( 1, 0, 1)) = 0
+                   xCoeff(ma3(-1, 1, 1)) = 0
+                   xCoeff(ma3( 0, 1, 1)) = 0
+                   xCoeff(ma3( 1, 1, 1)) = 0
+                  ! Operator y = ry*ur+sy*us+ty*ut
+                   cur = ajry
+                   cus = ajsy
+                   cut = ajty
+                   yCoeff(ma3(-1,-1,-1)) = 0
+                   yCoeff(ma3( 0,-1,-1)) = 0
+                   yCoeff(ma3( 1,-1,-1)) = 0
+                   yCoeff(ma3(-1, 0,-1)) = 0
+                   yCoeff(ma3( 0, 0,-1)) = -1./2.*cut/dr(2)
+                   yCoeff(ma3( 1, 0,-1)) = 0
+                   yCoeff(ma3(-1, 1,-1)) = 0
+                   yCoeff(ma3( 0, 1,-1)) = 0
+                   yCoeff(ma3( 1, 1,-1)) = 0
+                   yCoeff(ma3(-1,-1, 0)) = 0
+                   yCoeff(ma3( 0,-1, 0)) = -1./2.*cus/dr(1)
+                   yCoeff(ma3( 1,-1, 0)) = 0
+                   yCoeff(ma3(-1, 0, 0)) = -1./2.*cur/dr(0)
+                   yCoeff(ma3( 0, 0, 0)) = 0
+                   yCoeff(ma3( 1, 0, 0)) = 1./2.*cur/dr(0)
+                   yCoeff(ma3(-1, 1, 0)) = 0
+                   yCoeff(ma3( 0, 1, 0)) = 1./2.*cus/dr(1)
+                   yCoeff(ma3( 1, 1, 0)) = 0
+                   yCoeff(ma3(-1,-1, 1)) = 0
+                   yCoeff(ma3( 0,-1, 1)) = 0
+                   yCoeff(ma3( 1,-1, 1)) = 0
+                   yCoeff(ma3(-1, 0, 1)) = 0
+                   yCoeff(ma3( 0, 0, 1)) = 1./2.*cut/dr(2)
+                   yCoeff(ma3( 1, 0, 1)) = 0
+                   yCoeff(ma3(-1, 1, 1)) = 0
+                   yCoeff(ma3( 0, 1, 1)) = 0
+                   yCoeff(ma3( 1, 1, 1)) = 0
+                  ! Operator identity 
+                   iCoeff(ma3(-1,-1,-1)) = 0
+                   iCoeff(ma3( 0,-1,-1)) = 0
+                   iCoeff(ma3( 1,-1,-1)) = 0
+                   iCoeff(ma3(-1, 0,-1)) = 0
+                   iCoeff(ma3( 0, 0,-1)) = 0
+                   iCoeff(ma3( 1, 0,-1)) = 0
+                   iCoeff(ma3(-1, 1,-1)) = 0
+                   iCoeff(ma3( 0, 1,-1)) = 0
+                   iCoeff(ma3( 1, 1,-1)) = 0
+                   iCoeff(ma3(-1,-1, 0)) = 0
+                   iCoeff(ma3( 0,-1, 0)) = 0
+                   iCoeff(ma3( 1,-1, 0)) = 0
+                   iCoeff(ma3(-1, 0, 0)) = 0
+                   iCoeff(ma3( 0, 0, 0)) = 1.
+                   iCoeff(ma3( 1, 0, 0)) = 0
+                   iCoeff(ma3(-1, 1, 0)) = 0
+                   iCoeff(ma3( 0, 1, 0)) = 0
+                   iCoeff(ma3( 1, 1, 0)) = 0
+                   iCoeff(ma3(-1,-1, 1)) = 0
+                   iCoeff(ma3( 0,-1, 1)) = 0
+                   iCoeff(ma3( 1,-1, 1)) = 0
+                   iCoeff(ma3(-1, 0, 1)) = 0
+                   iCoeff(ma3( 0, 0, 1)) = 0
+                   iCoeff(ma3( 1, 0, 1)) = 0
+                   iCoeff(ma3(-1, 1, 1)) = 0
+                   iCoeff(ma3( 0, 1, 1)) = 0
+                   iCoeff(ma3( 1, 1, 1)) = 0
+                   ! Operator z = rz*ur+sz*us+tz*ut
+                    cur = ajrz
+                    cus = ajsz
+                    cut = ajtz
+                    zCoeff(ma3(-1,-1,-1)) = 0
+                    zCoeff(ma3( 0,-1,-1)) = 0
+                    zCoeff(ma3( 1,-1,-1)) = 0
+                    zCoeff(ma3(-1, 0,-1)) = 0
+                    zCoeff(ma3( 0, 0,-1)) = -1./2.*cut/dr(2)
+                    zCoeff(ma3( 1, 0,-1)) = 0
+                    zCoeff(ma3(-1, 1,-1)) = 0
+                    zCoeff(ma3( 0, 1,-1)) = 0
+                    zCoeff(ma3( 1, 1,-1)) = 0
+                    zCoeff(ma3(-1,-1, 0)) = 0
+                    zCoeff(ma3( 0,-1, 0)) = -1./2.*cus/dr(1)
+                    zCoeff(ma3( 1,-1, 0)) = 0
+                    zCoeff(ma3(-1, 0, 0)) = -1./2.*cur/dr(0)
+                    zCoeff(ma3( 0, 0, 0)) = 0
+                    zCoeff(ma3( 1, 0, 0)) = 1./2.*cur/dr(0)
+                    zCoeff(ma3(-1, 1, 0)) = 0
+                    zCoeff(ma3( 0, 1, 0)) = 1./2.*cus/dr(1)
+                    zCoeff(ma3( 1, 1, 0)) = 0
+                    zCoeff(ma3(-1,-1, 1)) = 0
+                    zCoeff(ma3( 0,-1, 1)) = 0
+                    zCoeff(ma3( 1,-1, 1)) = 0
+                    zCoeff(ma3(-1, 0, 1)) = 0
+                    zCoeff(ma3( 0, 0, 1)) = 1./2.*cut/dr(2)
+                    zCoeff(ma3( 1, 0, 1)) = 0
+                    zCoeff(ma3(-1, 1, 1)) = 0
+                    zCoeff(ma3( 0, 1, 1)) = 0
+                    zCoeff(ma3( 1, 1, 1)) = 0
+                i1m=i1-is1  ! ghost point
+                i2m=i2-is2
+                i3m=i3-is3
+                 do m3=-halfWidth3,halfWidth3
+                 do m2=-halfWidth,halfWidth
+                 do m1=-halfWidth,halfWidth
+                 m=ma3(m1,m2,m3)
+                 mm=mce3(m1,m2,m3,cmpw,eqnw)
+                  coeff(mm,i1m,i2m,i3m)=1.*(an(0)*xCoeff(m)+an(1)*
+     & yCoeff(m)+an(2)*zCoeff(m))+0.*iCoeff(m)
+                 ! The equation for pt (eqnw,i1m,i2m,i3m) is centered on (cmpw,i1,i2,i3): 
+                  equationNumber(mm,i1m,i2m,i3m)=(cmpw+1+
+     & numberOfComponentsForCoefficients*(i1+m1-equationNumberBase1+
+     & equationNumberLength1*(i2+m2-equationNumberBase2+
+     & equationNumberLength2*(i3+m3-equationNumberBase3)))+
+     & equationOffset)
+                 end do
+                 end do
+                 end do
+                 classify(i1m,i2m,i3m,eqnw)=ghost1
+              else
+               ! boundary face is x=constant, or y=constant : give w=0 
+               do m=ce(0,eqnw),ce(0,eqnw+1)-1
+                coeff(m,i1,i2,i3)=0.
+               end do
+                do m3=-halfWidth3,halfWidth3
+                do m2=-halfWidth,halfWidth
+                do m1=-halfWidth,halfWidth
+                  coeff(mce3(m1,m2,m3,cmpw,eqnw),i1,i2,i3)=(iCoeff(ma3(
+     & m1,m2,m3)))
+                end do
+                end do
+                end do
+                if( orderOfExtrapolation.lt.1 .or. 
+     & orderOfExtrapolation.gt.maxOrderOfExtrapolation )then
+                  stop 7734
+                end if
+                i1m=i1-is1*(1)  ! 1 point
+                i2m=i2-is2*(1)
+                i3m=i3-is3*(1)
+                do m=0,orderOfExtrapolation
+                 j1=i1m+is1*m  ! m-th point moving inward from the 1 point (i1,i2,i3)
+                 j2=i2m+is2*m
+                 j3=i3m+is3*m
+                 mm = ce(cmpw,eqnw)+m
+                 coeff(mm,i1m,i2m,i3m)=extrapCoeff(m,
+     & orderOfExtrapolation) ! m=0,1,2,..
+                  equationNumber(mm,i1m,i2m,i3m)=(cmpw+1+
+     & numberOfComponentsForCoefficients*(j1-equationNumberBase1+
+     & equationNumberLength1*(j2-equationNumberBase2+
+     & equationNumberLength2*(j3-equationNumberBase3)))+
+     & equationOffset)
+                end do
+                 classify(i1m,i2m,i3m,eqnw)=extrapolation
+              end if
+            else
+              write(*,'(" insImpINS: bc0.eq.inflowWithPandTV -- 
+     & unknown option")')
+              stop 8141
+            end if
+             end if
+            end do
+            end do
+            end do
+         else
+           ! ****** inflowWithPandTV: vector system *********
             ! Operator identity 
              iCoeff(ma3(-1,-1,-1)) = 0
              iCoeff(ma3( 0,-1,-1)) = 0
@@ -12439,6 +14547,7 @@ c      write(*,'("insImpINS: nd,uc,vc,wc,kc=",2i6)') nd,uc,vc,wc,kc
            end do
            end do
            end do
+         end if  ! end vector system
          else if( bc0.eq.axisymmetric )then
           if( fillCoefficientsScalarSystem.eq.fillCoeffU )then
            ! BC on an axisymmetric side : scalar matrix for U 
@@ -12546,7 +14655,7 @@ c      write(*,'("insImpINS: nd,uc,vc,wc,kc=",2i6)') nd,uc,vc,wc,kc
             ! getCoeff(identity, iCoeff,aj)
             !zeroMatrixCoefficients( coeff,eqnv,eqnv, i1,i2,i3 )  ! set v eqn coeffs to zero
             !setCoeff1(cmpv,eqnv,coeff,iCoeff)                ! dirichlet: V= 
-            !fillMatrixExtrapolation(coeff,cmpv,eqnv,i1,i2,i3,orderOfExtrapolation,1)  ! extrap ghost for V 
+            !fillMatrixExtrapolation(coe<ff,cmpv,eqnv,i1,i2,i3,orderOfExtrapolation,1)  ! extrap ghost for V 
                 ! get the outward normal for curvilinear grids
                 an(0)=rsxy(i1,i2,i3,axis,0)
                 an(1)=rsxy(i1,i2,i3,axis,1)

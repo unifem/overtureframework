@@ -315,7 +315,7 @@ triplot: $(triplot)
             -L$(HDF)/lib -lmfhdf -ldf -ljpeg -lz  $(FLIBS) $(GLIBS)   
 
 # Main test routine
-dia = dia.o mogl.o
+dia = dia.o mogl.o GL_GraphicsInterface.o 
 dia: $(dia) 
 	$(CC) $(CCFLAGS) -o $@ $(dia) \
         $(CLIBS) $(FLIBS) $(GLIBS) 

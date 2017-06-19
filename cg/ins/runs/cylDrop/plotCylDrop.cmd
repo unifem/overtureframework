@@ -40,7 +40,7 @@ GetOptions( "show=s"=>\$show, "name=s"=>\$name,"solution=i"=>\$solution,"vorMin=
 #
 $show
 # 
-if( $option eq "SL" ){ $cmd="previous\n stream lines\n pause; }else{ $cmd="#"; }
+if( $option eq "SL" ){ $cmd="previous\n stream lines\n pause"; }else{ $cmd="#";}
 $cmd
 #
 plot sequence:rigid body 0

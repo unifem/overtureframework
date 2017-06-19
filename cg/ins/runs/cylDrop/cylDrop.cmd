@@ -1,7 +1,7 @@
 #
 # A dropping cylinder -- compare to the results frm Glowinski, Pan, et.al.dropping cylinders
 # Usage:
-#    cgins [-noplot] cylDrop -g=<name> -tp=<f> -tp=<f> -density=<f> ...
+#    cgins [-noplot] cylDrop -g=<name> -tp=<f> -tp=<f> -density=<f> -ts=[pc|im|...]  ...
 #          -bcOption=[walls|inflowOutflow|pressure|rampedPressure|rampedInflow] ...
 #        -sep=<f> -vIn=<f> -forceLimit=<f> -rampGravity=[0|1] -go[halt|go|og]
 #  
@@ -200,7 +200,7 @@ $grid
    debug: $debug
    #
    #      improve quality of interpolation
-   print moving body info 1
+   ## print moving body info 1
    # limit forces
    #  $forceLimit $forceLimit
    #
@@ -360,8 +360,11 @@ $grid
      10 
 #***************************************************
 #
+echo to terminal 1 
   pressure solver options
    # $ogesDebug=$debug; 
+   # define petscOption -mat_view ::asci_info
+   #
    $ogesSolver=$psolver; $ogesRtol=$rtolp; $ogesAtol=$atolp; $ogesIluLevels=$iluLevels;  $ogesDtol=1e20; 
    include $ENV{CG}/ins/cmd/ogesOptions.h
   exit
@@ -370,6 +373,7 @@ $grid
    $ogesSolver=$solver; $ogesRtol=$rtol; $ogesAtol=$atol; 
    include $ENV{CG}/ins/cmd/ogesOptions.h
   exit
+echo to terminal 1
 #
 #***************************************************
 #

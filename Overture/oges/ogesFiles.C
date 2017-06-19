@@ -96,6 +96,14 @@ findExtraEquations()
   if( numberOfExtraEquations <= 0 )
     return;
 
+  #ifdef USE_PPP
+
+    // *new* way in parallel: Have the PETScSolver compute the extra equations
+    equationSolver[parameters.solver]->findExtraEquations();
+    return;
+  #endif
+
+
   extraEquationNumber.redim(numberOfExtraEquations);
 
   int i1,i2,i3;
@@ -107,11 +115,13 @@ findExtraEquations()
   {
     MappedGrid & c = cg[grid];
     IntegerDistributedArray & classifyX = coeff[grid].sparse->classify;
+    // OV_GET_SERIAL_ARRAY(int,classifyX,classifyXLocal);
+    
     // kkc 060801 added another loop over components so that we get the right value when the number of components is >1
-    //            !!! we can either choose the first equation of all the components or the last; but the code in generateMatrix only
-    //                works if we use the very last equation so start from the end and work back
-    for ( int nc = classifyX.getLocalBound(axis3+1); nc>=classifyX.getLocalBase(axis3+1)&&i<numberOfExtraEquations; nc-- )
-      //    for ( int nc = classifyX.getLocalBase(axis3+1); nc<=classifyX.getLocalBound(axis3+1)&&i<numberOfExtraEquations; nc++ )
+    // !!! we can either choose the first equation of all the components or the last; but the code in 
+    //     generateMatrix only works if we use the very last equation so start from the end and work back
+    for ( int nc = classifyX.getLocalBound(axis3+1); 
+              nc>=classifyX.getLocalBase(axis3+1)&&i<numberOfExtraEquations; nc-- )
       {
 	for( i3 =c.dimension()(End  ,axis3);
 	     i3>=c.dimension()(Start,axis3) && i<numberOfExtraEquations; i3-- )
@@ -122,9 +132,8 @@ findExtraEquations()
 		for( i1 =c.dimension()(End  ,axis1);
 		     i1>=c.dimension()(Start,axis1) && i<numberOfExtraEquations; i1-- )
 		  {
-		    // classify already may have an extra eqn in it if, for example, initialize
-		    // was called twice
-		    // *wdh	  if( classifyX(i1,i2,i3)==unused && i<numberOfExtraEquations )  
+		    // classify already may have an extra eqn in it if, for example, initialize was called twice
+
 		    if( (classifyX(i1,i2,i3,nc)==SparseRepForMGF::unused 
 			 || classifyX(i1,i2,i3,nc) >= startingExtraEquationClassifyValue) && i<numberOfExtraEquations )
 		      {
@@ -140,12 +149,12 @@ findExtraEquations()
   }// end grid
   if( i < numberOfExtraEquations )
   {
-    cerr << "Oges:findExtraEquations:ERROR unable to find locations for extra equations" << endl;
-    cerr << "  This application is requesting numberOfExtraEquations ="
-         << numberOfExtraEquations << endl;
-    cerr << "  Extra equations are placed at unused points on the grid " << endl;
-    cerr << "  You could add an extra ghostline to one of the grids " << endl;
-    exit(1);
+    printF("Oges:findExtraEquations:ERROR unable to find locations for extra equations\n"
+           "  This application is requesting numberOfExtraEquations =%i\n"
+           "  Extra equations are placed at unused points on the grid.\n"
+           "  You could add an extra ghostline to one of the grids.\n",
+	   numberOfExtraEquations);
+    OV_ABORT("error");
   }    
 }
 

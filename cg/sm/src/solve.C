@@ -148,7 +148,7 @@ outputResultsAfterEachTimeStep( int current, real t, real dt, int stepNumber )
     userDefinedOutput( gf[current], stepNumber );
 
   // output to any probe files *new* way 
-  outputProbes( gf[current], stepNumber );
+  outputProbes( parameters, gf[current], stepNumber );
 
 
   if( probes.size(1)>0 && (stepNumber % frequencyToSaveProbes)==0 )

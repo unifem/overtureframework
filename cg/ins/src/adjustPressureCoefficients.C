@@ -77,8 +77,8 @@ for(i1=I1Base,j1=J1Base; i1<=I1Bound; i1++,j1++)
 
 // =======================================================================
 // =======================================================================
-#define setClassify(n,i1,i2,i3, type) \
-    classify(i1,i2,i3,n)=type
+// #define setClassify(n,i1,i2,i3, type) \
+//     classify(i1,i2,i3,n)=type
 
 // =======================================================================
 //  Macro to zero out the matrix coefficients for equations e1,e1+1,..,e2
@@ -104,6 +104,7 @@ adjustPressureCoefficients(CompositeGrid & cg0, GridFunction & cgf  )
 
   Index Ibv[3], &Ib1=Ibv[0], &Ib2=Ibv[1], &Ib3=Ibv[2];
   Index Jbv[3], &Jb1=Jbv[0], &Jb2=Jbv[1], &Jb3=Jbv[2];
+  Index Igv[3], &Ig1=Igv[0], &Ig2=Igv[1], &Ig3=Igv[2];
   int i1,i2,i3, j1,j2,j3, i1m,i2m,i3m, j1m,j2m,j3m, m1,m2,m3;
   int isv[3], &is1=isv[0], &is2=isv[1], &is3=isv[2];
   int jsv[3], &js1=jsv[0], &js2=jsv[1], &js3=jsv[2];
@@ -117,7 +118,7 @@ adjustPressureCoefficients(CompositeGrid & cg0, GridFunction & cgf  )
 
   const real & dt=parameters.dbase.get<real>("dt");
   if( numberOfDeformingBodies>0 && cgf.t<3.*dt )
-    printF("--INS-- adjustPressureCoefficients for two-sided beams (if any), t=%9.3e\n",cgf.t);
+    printF("--INS-- adjustPressureCoefficients for AMP schemes, t=%9.3e\n",cgf.t);
 
 
   if( numberOfDeformingBodies>0 )
@@ -126,7 +127,8 @@ adjustPressureCoefficients(CompositeGrid & cg0, GridFunction & cgf  )
     // =============== DEFORMING BODY AMP SCHEME ============================
     // ======================================================================
     
-    // -- construct the beam-fluid interface data needed for the AMP scheme for two-sided beams  --
+    // --- Look for any bodies that are BEAMS ----
+    // --- construct the beam-fluid interface data needed for the AMP scheme for two-sided beams  --
 
     // *** THIS ONLY NEEDS TO BE DONE ONCE ***
     // Longfei 20170119: moved to DeformingBodyMotion::initialize()
@@ -140,9 +142,6 @@ adjustPressureCoefficients(CompositeGrid & cg0, GridFunction & cgf  )
 
     if( true )   // *new* way
     {
-      if( cgf.t<3.*dt )
-	printF("--INS-- *NEW WAY* adjustPressureCoefficients for two-sided beams (if any), t=%9.3e\n",cgf.t);
-
       // -- NEW WAY --
       int iv[3], &i1=iv[0], &i2=iv[1], &i3=iv[2];
       const int numberOfComponentGrids = cg0.numberOfComponentGrids();
@@ -150,10 +149,15 @@ adjustPressureCoefficients(CompositeGrid & cg0, GridFunction & cgf  )
       for( int body=0; body<numberOfDeformingBodies; body++ )
       {
 	DeformingBodyMotion & deformingBody = movingGrids.getDeformingBody(body);
+
 	if( !deformingBody.beamModelHasFluidOnTwoSides() )
-	{ // this is NOT a beam model with fluid on two sides.
+	{ 
+          // ---- this is NOT a beam model with fluid on two sides ----
 	  continue;   
 	}
+
+	if( cgf.t<3.*dt )
+	  printF("--INS-- *NEW WAY* adjustPressureCoefficients for two-sided beams (if any), t=%9.3e\n",cgf.t);
 
 	DataBase & deformingBodyDataBase = deformingBody.deformingBodyDataBase;
 	const int & numberOfFaces = deformingBodyDataBase.get<int>("numberOfFaces");
@@ -656,7 +660,6 @@ adjustPressureCoefficients(CompositeGrid & cg0, GridFunction & cgf  )
     assert( pSolver.extraEquationNumber.getBound(0)==totalNumberOfExtraEquations-1 );
 
     Index Ib1,Ib2,Ib3;
-    Index Ig1,Ig2,Ig3;
 
     // integrate: holds the integration weights and 
     //   also the info on which grid faces are adjacent to the body (should fix this)
@@ -689,8 +692,14 @@ adjustPressureCoefficients(CompositeGrid & cg0, GridFunction & cgf  )
         const IntegerArray & gid = mg.gridIndexRange();
         int extra=1; // include the corner. is this needed??
 	getBoundaryIndex(gid,side,axis,Ib1,Ib2,Ib3,extra);
-	
-        int numSurfacePoints = Ib1.getLength()*Ib2.getLength()*Ib3.getLength();
+        
+        OV_GET_SERIAL_ARRAY(int,mg.mask(),maskLocal);
+	int includeGhost=0;
+	bool ok=ParallelUtility::getLocalArrayBounds(mg.mask(),maskLocal,Ib1,Ib2,Ib3,includeGhost);
+
+	int numSurfacePoints=0;
+	if( ok )
+          numSurfacePoints = Ib1.getLength()*Ib2.getLength()*Ib3.getLength();
 	
 	if( debug()& 4 || cgf.t <= dt )
 	  printF("--APC--- rigidBody %i: face=%i (side,axis,grid)=(%i,%i,%i) numSurfacePoints=%i\n",b,face,side,axis,grid,numSurfacePoints);
@@ -786,12 +795,12 @@ adjustPressureCoefficients(CompositeGrid & cg0, GridFunction & cgf  )
       //    A(3,3)*b3 + INT n_1 r_2 - n_2 r_1 ds + dt*Dwv(3,1)*a1 + D3v(3,2)*a2+  dt*Dww(3,3)*b3 = ...    
       //
       // --- 3D: AMP constraint equations are: ( e1=[1 0 0],  e2=[0 1 0], e3= [ 0 0 1] )
-      //    mb*a1 + INT p n_1 ds + dt*Dvv(1,1)*a1 = ...
-      //    mb*a2 + INT p n_2 ds = ...
-      //    mb*a3 + INT p n_3 ds = ...
-      //    A(1,1)*b1 + A(1,2)*b2 + A(1,3)*b3 + INT e1 . rv X (p nv) ds = ...
-      //    A(2,1)*b1 + A(2,2)*b2 + A(2,3)*b3 + INT e2 . rv X (p nv) ds = ... 
-      //    A(3,1)*b1 + A(3,2)*b2 + A(3,3)*b3 + INT e3 . rv X (p nv) ds = ...
+      //                        mb*a1 - INT p n_1 ds +    [     |     ][ a1 ]  = ...
+      //                        mb*a2 - INT p n_2 ds +    [ Dvv | Dvw ][ a2 ]  = ...
+      //                        mb*a3 - INT p n_3 ds + dt*[_____|_____][ a3 ]  = ...
+      //   [       ][ b1 ] - INT e1 . rv X (p nv) ds +    [     |     ][ b1 ]  = ...
+      //   [   A   ][ b2 ] - INT e2 . rv X (p nv) ds +    [ Dwv | Dww ][ b2 ]  = ... 
+      //   [       ][ b3 ] - INT e3 . rv X (p nv) ds +    [     |     ][ b3 ]  = ...
       //
       // -------------------------------------------------------------------------------------
 
@@ -895,7 +904,33 @@ adjustPressureCoefficients(CompositeGrid & cg0, GridFunction & cgf  )
 	  }
 	}
 	
-        OV_ABORT("**check me**");
+        if (false)
+        {	
+            ::display(adt,"--APC-- addedDamping =");
+        }
+
+        if( dt==0. || (t < 3.*dt) || (debug() & 4) )
+	{
+	  printF("--AdjustPressureCoefficients : dt=%9.2e, useAddedDampingAlgorithm=%i\n"
+		 "   Mass + dt(Added Damping) body=%i   \n"
+		 " -------------------------------------\n"
+		 "       [ %12.4e %12.4e %12.4e %12.4e %12.4e %12.4e] \n"
+		 "       [ %12.4e %12.4e %12.4e %12.4e %12.4e %12.4e] \n"
+		 " Amd = [ %12.4e %12.4e %12.4e %12.4e %12.4e %12.4e] \n"
+		 "       [ %12.4e %12.4e %12.4e %12.4e %12.4e %12.4e] \n"
+		 "       [ %12.4e %12.4e %12.4e %12.4e %12.4e %12.4e] \n"
+		 "       [ %12.4e %12.4e %12.4e %12.4e %12.4e %12.4e] \n",
+		 dt,(int)useAddedDampingAlgorithm,b,
+		 Amd(0,0),Amd(0,1),Amd(0,2),Amd(0,3),Amd(0,4),Amd(0,5),
+		 Amd(1,0),Amd(1,1),Amd(1,2),Amd(1,3),Amd(1,4),Amd(1,5),
+		 Amd(2,0),Amd(2,1),Amd(2,2),Amd(2,3),Amd(2,4),Amd(2,5), 
+		 Amd(3,0),Amd(3,1),Amd(3,2),Amd(3,3),Amd(3,4),Amd(3,5), 
+		 Amd(4,0),Amd(4,1),Amd(4,2),Amd(4,3),Amd(4,4),Amd(4,5), 
+		 Amd(5,0),Amd(5,1),Amd(5,2),Amd(5,3),Amd(5,4),Amd(5,5)) ;
+	  printF("  --APC-- dt=%9.3e, adt(0,0,vbc,vbc)=%12.5e, params.dt=%9.3e\n",dt,adt(0,0,vbc,vbc),
+                  parameters.dbase.get<real >("dt"));
+
+	}
       }
 
 
@@ -993,30 +1028,50 @@ adjustPressureCoefficients(CompositeGrid & cg0, GridFunction & cgf  )
 	    const IntegerArray & gid = mg.gridIndexRange();
 	
 	    mg.update(MappedGrid::THEvertexBoundaryNormal);
-            #ifdef USE_PPP
-	      const realSerialArray & normal = mg.vertexBoundaryNormalArray(side,axis);
-            #else
-	      const realSerialArray & normal = mg.vertexBoundaryNormal(side,axis);
-            #endif
+            OV_GET_VERTEX_BOUNDARY_NORMAL(mg,side,axis,normal);
+            
+            // #ifdef USE_PPP
+	    //   const realSerialArray & normal = mg.vertexBoundaryNormalArray(side,axis);
+            // #else
+	    //   const realSerialArray & normal = mg.vertexBoundaryNormal(side,axis);
+            // #endif
 
 	    int extra=1; // include the corner. is this needed??
 	    getBoundaryIndex(cg[grid].gridIndexRange(),side,axis,Ib1,Ib2,Ib3,1,extra); // boundary points
 	    getGhostIndex(cg[grid].gridIndexRange(),side,axis,Ig1,Ig2,Ig3,1,extra);    // ghost points
 
-	    // int includeGhost=0;  // do NOT include parallel ghost
-	    // ok = ParallelUtility::getLocalArrayBounds(u[grid],uLocal,Ib1,Ib2,Ib3,includeGhost);
-	    // ok = ParallelUtility::getLocalArrayBounds(u[grid],uLocal,Ig1,Ig2,Ig3,includeGhost);
-	    // if( !ok ) continue;
-	    
 	    OV_GET_SERIAL_ARRAY(real,mg.vertex(),xLocal);
 	    OV_GET_SERIAL_ARRAY(real,weights[grid],weightsLocal);
+
+	    int includeGhost=0;
+	    bool ok=ParallelUtility::getLocalArrayBounds(mg.vertex(),xLocal,Ib1,Ib2,Ib3,includeGhost);
+	    ok=ParallelUtility::getLocalArrayBounds(mg.vertex(),xLocal,Ig1,Ig2,Ig3,includeGhost);
+	    if( !ok ) continue;
+	    
+            // #ifdef USE_PPP
+	    //   // *TEMP FIX:
+            //   // -- Get a copy of the weights from all processors so that the user supplied equations
+            //   //    are the same on all processors. Do this until Oges is fixed to handle distributed user supplied equations
+            //   RealArray weightsLocal(Ig1,Ig2,Ig3);
+	    //   const int np=max(1,Communication_Manager::Number_Of_Processors);
+            //   IndexBox vBox[np]; // specifies bounds of weightsLocal on all processors
+	    //   for( int p=0; p<np; p++ )
+	    //   {
+            //     vBox[p].setBounds(Ig1.getBase(),Ig1.getBound(),
+	    // 			  Ig2.getBase(),Ig2.getBound(),
+	    // 			  Ig3.getBase(),Ig3.getBound());
+	    //   }
+            //   // Copy all weights into local array weightsLocal:
+	    //   CopyArray::copyArray(weights[grid],Igv,vBox,weightsLocal);
+            // #else
+            //   realArray & weightsLocal = weights[grid];
+            // #endif
+
 	    if( false && vbType==0 && dir==0 && face==0 )
 	    {
 	      ::display(weightsLocal(Ig1,Ig2,Ig3),"--APC-- Integration weights");
 	    }
-	
-
-	    //  integral(n)+=sum(uLocal(Ib1,Ib2,Ib3,n)*weightsLocal(I1,I2,I3));
+        
 
 	    FOR_3IJD(i1,i2,i3,Ib1,Ib2,Ib3,j1,j2,j3,Ig1,Ig2,Ig3)
 	    {
@@ -1067,10 +1122,14 @@ adjustPressureCoefficients(CompositeGrid & cg0, GridFunction & cgf  )
 		{
                   const int dirp1 = (dir+1) % numberOfDimensions;
      		  const int dirp2 = (dir+2) % numberOfDimensions;
-                  // *CHECK ME*
                   a(nnz)= - weightsLocal(j1,j2,j3)*(normal(i1,i2,i3,dirp2)*rv[dirp1]-normal(i1,i2,i3,dirp1)*rv[dirp2]);
 
-                  OV_ABORT("finish me");
+		  if( false && fabs(a(nnz))>1.e-7 )
+		  {
+		    // this entry should be zero for a sphere as well:
+		    printF(" --APC-- : t=%1.3e  dir=%i, weight*( nv X (rv-xvb)=%10.3e\n",
+                            t,dir,-a(nnz));
+		  }
 		}
 	      }
 	      
@@ -1145,17 +1204,15 @@ adjustPressureCoefficients(CompositeGrid & cg0, GridFunction & cgf  )
 
 	OV_GET_SERIAL_ARRAY(int,mg.mask(),maskLocal);
 	OV_GET_SERIAL_ARRAY(real,mg.vertex(),xLocal);
-#ifdef USE_PPP
-	const realSerialArray & normal = mg.vertexBoundaryNormalArray(side,axis);
-#else
-	const realSerialArray & normal = mg.vertexBoundaryNormal(side,axis);
-#endif
-
+        OV_GET_VERTEX_BOUNDARY_NORMAL(mg,side,axis,normal);
+ 	
 	realMappedGridFunction & coeff0 = coeff[grid];
+        OV_GET_SERIAL_ARRAY(real,coeff0,coeffLocal);
     
 	assert( coeff0.sparse!=NULL );
 	SparseRepForMGF & sparse = *coeff0.sparse;
-	intArray & equationNumber = sparse.equationNumber;
+	// intArray & equationNumber = sparse.equationNumber;
+        OV_GET_SERIAL_ARRAY(int,sparse.equationNumber,equationNumber);
 	intArray & classify = sparse.classify;
 	OV_GET_SERIAL_ARRAY(int,classify,classifyLocal);
 
@@ -1168,13 +1225,20 @@ adjustPressureCoefficients(CompositeGrid & cg0, GridFunction & cgf  )
 	//          3 4 5   12 13 14    21 22 23
 	//          0 1 2    9 10 11    18 19 20
 	int emptySpot[] = { 0,2,6,8, 9,11, 15, 17, 18, 19, 20, 21, 23, 24, 25, 26 };  // there are a few more in 3D
+
+	int includeGhost=0;
+	bool ok=ParallelUtility::getLocalArrayBounds(classify,classifyLocal,Ib1,Ib2,Ib3,includeGhost);
+	ok=ParallelUtility::getLocalArrayBounds(classify,classifyLocal,Ig1,Ig2,Ig3,includeGhost);
+        if( !ok ) continue;
+
 	FOR_3IJD(i1,i2,i3,Ib1,Ib2,Ib3,j1,j2,j3,Ig1,Ig2,Ig3)
 	{
 	  // (i1,i2,i3) : boundary pt
 	  // (j1,j2,j3) : ghost pt
 
 	  // classify: -2=periodic, -1=interpolation, 1=boundary, 2=interior
-	  bool neumannBC = classify(i1,i2,i3)==SparseRepForMGF::boundary || classify(i1,i2,i3)==SparseRepForMGF::interior;
+	  bool neumannBC = classifyLocal(i1,i2,i3)==SparseRepForMGF::boundary || 
+                           classifyLocal(i1,i2,i3)==SparseRepForMGF::interior;
 	  if( !neumannBC )
 	  {
 	    // -- skip this point : could be a ghost outside of periodic, interpolation or unused ---
@@ -1192,16 +1256,22 @@ adjustPressureCoefficients(CompositeGrid & cg0, GridFunction & cgf  )
 	    // The coefficients for p.n should be zero in the "corners" -- put the extra coefficients there 
 	    int me = emptySpot[dir]; // put the coefficient here in the stencil
 	     
-	    if(  coeff0(me,j1,j2,j3)!=0. )
+	    if(  coeffLocal(me,j1,j2,j3)!=0. )
 	    {
 	      printF("ERROR: me=%i (j1,j2,j3)=(%i,%i,%i) coeff=%9.2e mask(i1,i2,i3)=%i classify(i1,i2,i3)=%i classify(j1,j2,j3)=%i \n",
-		     me,j1,j2,j3,coeff0(me,j1,j2,j3),maskLocal(i1,i2,i3),classify(i1,i2,i3),classify(j1,j2,j3));
+		     me,j1,j2,j3,coeffLocal(me,j1,j2,j3),maskLocal(i1,i2,i3),classifyLocal(i1,i2,i3),classifyLocal(j1,j2,j3));
 	    }
 	    
-	    assert( coeff0(me,j1,j2,j3)==0. );
-	    coeff0(me,j1,j2,j3)=fluidDensity*normal(i1,i2,i3,dir);
+	    assert( coeffLocal(me,j1,j2,j3)==0. );
+	    coeffLocal(me,j1,j2,j3)=fluidDensity*normal(i1,i2,i3,dir);
 	    // we have changed the equation number 
 	    equationNumber(me,j1,j2,j3)=ieqn;   // we have set the coeff of a[dir]
+            if( true )
+            {
+              printF("--APC-- RB-AMP: p.n + c*a : dir=%i add term %10.3e to ieqn=%i, extraEqn=%i\n",
+                     dir,coeffLocal(me,j1,j2,j3),ieqn,extraEqn);
+            }
+            
 
 	    // --- add bv terms ---
 	    //     bv X ( xv - xb ) = cv . bv 
@@ -1215,9 +1285,9 @@ adjustPressureCoefficients(CompositeGrid & cg0, GridFunction & cgf  )
 		extraEqn = numberOfDimensions + dir + b*( numberOfExtraEquationsPerBody ); //  b-equation
 		ieqn = pSolver.extraEquationNumber(totalNumberOfExtraEquations - extraEqn -1);
 		me = emptySpot[numberOfDimensions + dir]; // put the coefficient here in the stencil
-		assert( coeff0(me,j1,j2,j3)==0. );
+		assert( coeffLocal(me,j1,j2,j3)==0. );
 	    
-		coeff0(me,j1,j2,j3)=fluidDensity*( normal(i1,i2,i3,1)*rv[0]-normal(i1,i2,i3,0)*rv[1] ); // coeff of b3
+		coeffLocal(me,j1,j2,j3)=fluidDensity*( normal(i1,i2,i3,1)*rv[0]-normal(i1,i2,i3,0)*rv[1] ); // coeff of b3
 		equationNumber(me,j1,j2,j3)=ieqn;   
 	      }
 	      
@@ -1228,11 +1298,11 @@ adjustPressureCoefficients(CompositeGrid & cg0, GridFunction & cgf  )
 	      extraEqn = numberOfDimensions + dir + b*( numberOfExtraEquationsPerBody ); //  b-equation
 	      ieqn = pSolver.extraEquationNumber(totalNumberOfExtraEquations - extraEqn -1);
 	      me = emptySpot[numberOfDimensions + dir]; // put the coefficient here in the stencil
-	      assert( coeff0(me,j1,j2,j3)==0. );
+	      assert( coeffLocal(me,j1,j2,j3)==0. );
 	    
 	      const int dirp1 = (dir+1) % numberOfDimensions;
 	      const int dirp2 = (dir+2) % numberOfDimensions;
-	      coeff0(me,j1,j2,j3)=fluidDensity*( normal(i1,i2,i3,dirp2)*rv[dirp1]-normal(i1,i2,i3,dirp1)*rv[dirp2] );
+	      coeffLocal(me,j1,j2,j3)=fluidDensity*( normal(i1,i2,i3,dirp2)*rv[dirp1]-normal(i1,i2,i3,dirp1)*rv[dirp2] );
               equationNumber(me,j1,j2,j3)=ieqn;   // we have set the coeff of b[dir]  
 	    }
 	    

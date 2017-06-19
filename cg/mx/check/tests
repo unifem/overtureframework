@@ -14,10 +14,10 @@ twoBoxInterface.check ../runs/interface/interface.cmd -g=twoBoxesInterfacee111.o
 #
 # dielectric sphere tests:
 #
-dielectricSphereFD22.check ../runs/dielectricCyl/dielectricCyl.cmd -cyl=0 -g=solidSphereInABoxe2.order2 -kx=1 -eps1=.25 -eps2=1. -method=fd -tp=.01 -tf=.01 -go=go 
-dielectricSphereSosup22.check ../runs/dielectricCyl/dielectricCyl.cmd -cyl=0 -g=solidSphereInABoxe2.order2 -kx=1 -eps1=.25 -eps2=1. -method=sosup -tp=.01 -tf=.01 -go=go 
-dielectricSphereFD44.check ../runs/dielectricCyl/dielectricCyl.cmd -cyl=0 -g=solidSphereInABoxe2.order4.ng3 -kx=1 -eps1=.25 -eps2=1. -method=fd -tp=.01 -tf=.01 -go=go
-dielectricSphereSosup44.check ../runs/dielectricCyl/dielectricCyl.cmd -cyl=0 -g=solidSphereInABoxe2.order4.ng3 -kx=1 -eps1=.25 -eps2=1. -method=sosup -tp=.01 -tf=.01 -go=go
+dielectricSphereFD22.check ../runs/dielectricCyl/dielectricCyl.cmd -cyl=0 -g=solidSphereInABoxe2.order2 -kx=1 -eps1=.25 -eps2=1.0 -method=fd -tp=.01 -tf=.01 -go=go 
+dielectricSphereSosup22.check ../runs/dielectricCyl/dielectricCyl.cmd -cyl=0 -g=solidSphereInABoxe2.order2 -kx=1 -eps1=.25 -eps2=1.0 -method=sosup -tp=.01 -tf=.01 -go=go 
+dielectricSphereFD44.check ../runs/dielectricCyl/dielectricCyl.cmd -cyl=0 -g=solidSphereInABoxe2.order4.ng3 -kx=1 -eps1=.25 -eps2=1.0 -method=fd -tp=.01 -tf=.01 -go=go
+dielectricSphereSosup44.check ../runs/dielectricCyl/dielectricCyl.cmd -cyl=0 -g=solidSphereInABoxe2.order4.ng3 -kx=1 -eps1=.25 -eps2=1.0 -method=sosup -tp=.01 -tf=.01 -go=go
 #
 # More sosup tests: 
 #
@@ -26,5 +26,5 @@ sq6sosup.check ../cmd/tz.cmd -g=square20.order6.ng4 -degreex=5 -degreet=5 -metho
 #
 # user defined forcing and user defined known solution
 #
-userDefined.check ../cmd/userDefinedKnownSolution.cmd -g=square16.order4 -beta=60 -rbc=dirichlet -diss=1. -tf=.1 -tp=.1 -useNewForcingMethod=1 -go=go
+userDefined.check ../cmd/userDefinedKnownSolution.cmd -g=square16.order4 -beta=60 -rbc=dirichlet -diss=1.0 -tf=.1 -tp=.1 -useNewForcingMethod=1 -go=go
 

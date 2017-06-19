@@ -82,13 +82,15 @@
 $noplot=""; $backGround="square"; $grid="square10"; $mu=1.; $lambda=1.;$method="NFDTD"; 
 $debug = 0;  $tPlot=.1; $diss=.1; $dissOrder=2; $bcn="pec"; $cons=0; $dm="none"; 
 $tz = "poly"; $degreex=2; $degreet=2; $fx=.5; $fy=$fx; $fz=$fx; $ft=$fx; $useTZmaterials=0;
-$order = 2; $go="run"; 
+$order = 2; $go="run"; $useSosupDissipation=0; $sosupParameter=1.; $sosupDissipationOption=0; 
 $tFinal=1.; $cfl=.9; 
 #
 # ----------------------------- get command line arguments ---------------------------------------
 GetOptions( "g=s"=>\$grid,"tf=f"=>\$tFinal,"degreex=i"=>\$degreex, "degreet=i"=>\$degreet,"diss=f"=>\$diss,\
  "tp=f"=>\$tPlot, "tz=s"=>\$tz, "show=s"=>\$show,"order=i"=>\$order,"debug=i"=>\$debug,"dissOrder=i"=>\$dissOrder, \
  "cfl=f"=>\$cfl, "bg=s"=>\$backGround,"bcn=s"=>\$bcn,"go=s"=>\$go,"noplot=s"=>\$noplot,\
+  "useSosupDissipation=i"=>\$useSosupDissipation,"sosupParameter=f"=>\$sosupParameter,\
+  "sosupDissipationOption=i"=>\$sosupDissipationOption,\
   "mu=f"=>\$mu,"lambda=f"=>\$lambda,"dtMax=f"=>\$dtMax, "cons=i"=>\$cons,"method=s"=>\$method,\
   "useTZmaterials=i"=>\$useTZmaterials,"fx=f"=>\$fx,"fy=f"=>\$fy,"fz=f"=>\$fz,"ft=f"=>\$ft,"dm=s"=>\$dm );
 # -------------------------------------------------------------------------------------------------
@@ -124,6 +126,11 @@ tPlot $tPlot
 tFinal $tFinal
 dissipation $diss
 order of dissipation $dissOrder
+#
+use sosup dissipation $useSosupDissipation
+sosup parameter $sosupParameter
+sosup dissipation option $sosupDissipationOption
+#
 cfl $cfl
 use conservative difference $cons
 #

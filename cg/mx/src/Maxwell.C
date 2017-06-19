@@ -13,6 +13,7 @@
 #include "Oges.h"
 #include "ParallelUtility.h"
 #include "DispersiveMaterialParameters.h"
+#include "ProbeInfo.h"
 
 aString Maxwell::
 bcName[numberOfBCNames]={
@@ -36,8 +37,14 @@ bcName[numberOfBCNames]={
 // =====================================================================================
 /// \brief Constructor for the Maxwell solver.
 // =====================================================================================
-Maxwell::
-Maxwell()
+// Maxwell:: 
+// Maxwell(CompositeGrid & cg_, 
+// 	GenericGraphicsInterface *ps /* =NULL */, 
+// 	Ogshow *show /* =NULL */ , 
+// 	const int & plotOption_ /* =1 */) 
+//   : DomainSolver(*(new MxParameters),cg_,ps,show,plotOption_)
+
+Maxwell:: Maxwell()
 {
   myid=max(0,Communication_Manager::My_Process_Number);
 
@@ -162,9 +169,11 @@ Maxwell()
   hz11=4;   
   numberOfComponentsCurvilinearGrid=5;
 
-  // component numbers for Q, R, C (dispersive models)
+  // component numbers for P, Q,R (P=polarization vector, Q=P'', etc.)
   // default = -1 : not used
   pxc=pyc=pzc=qxc=qyc=qzc=rxc=ryc=rzc=-1; 
+  // numberOfPolarizationVectors: The generalized dispersion model has multiple polarization vectors
+  dbase.put<int>("numberOfPolarizationVectors")=0; 
 
   artificialDissipation=0.;
   artificialDissipationCurvilinear=-1.; // set to non-negative to use this instead of the above
@@ -173,6 +182,17 @@ Maxwell()
   orderOfArtificialDissipation=4;
   divergenceDamping=0.;
   
+  parameters.dbase.put<int>("useSosupDissipation")=0; // 1= add SOSUP dissipation to FDxy scheme
+  // sosupDissipationOption:
+  //         0 = apply dissipation when updating the solution
+  //         1 = apply dissipation in a separate stage
+  parameters.dbase.put<int>("sosupDissipationOption")=0; 
+
+  // apply sosup dissipation every this many steps: 
+  parameters.dbase.put<int>("sosupDissipationFrequency")=1; 
+
+  parameters.dbase.put<real>("sosupParameter")=1.;    // scaling of sosup dissipation
+
   applyFilter=false;          // true : apply the high order filter
   orderOfFilter=-1;           // this means use default order
   filterFrequency=2;          // apply filter every this many steps 
@@ -226,6 +246,7 @@ Maxwell()
   dbase.put<int>("boundingBoxDecayAxis")=1; 
   boundingBoxDecayExponent=2.;  // initial condition has a smooth transition outside the bounding box
   
+  dbase.put<int>("smoothBoundingBox")=1; // 1 = smooth the IC at the bounding box edge
 
   nx[0]=21;   nx[1]=21;   nx[2]=21;
   xab[0][0]=0.;  xab[1][0]=1.;
@@ -305,8 +326,6 @@ Maxwell()
   pmlLayerStrength=30.;
   pmlErrorOffset=0;  // only check errors within this many lines of the pml
 
-  frequencyToSaveProbes=1;
-  
   vpml=NULL;
   
   normalPlaneMaterialInterface[0]=1.;
@@ -318,6 +337,7 @@ Maxwell()
   x0PlaneMaterialInterface[2]=0.;
 
   cgop=NULL;
+  gf=NULL; 
   cgfields=NULL;
   cgdissipation=NULL;
   e_cgdissipation=NULL;
@@ -462,6 +482,8 @@ Maxwell::
   
   delete [] fn;  
 
+  delete [] gf;
+  
   if ( mgp!=NULL )
   {
     delete [] fields;
@@ -520,12 +542,29 @@ Maxwell::
 }
 
 // =====================================================================================
+/// \brief Return dispersive materialparameters for a given domain.
+// =====================================================================================
+DispersiveMaterialParameters & 
+Maxwell::getDomainDispersiveMaterialParameters( const int domain )
+{
+  assert( cgp!=NULL );
+  CompositeGrid & cg = *cgp;
+
+  assert( domain>=0 && domain<cg.numberOfDomains() ); 
+  return  dbase.get<std::vector<DispersiveMaterialParameters> >("dispersiveMaterialParameters")[domain];
+}
+
+// =====================================================================================
 /// \brief Return dispersive materialparameters for a given grid.
 // =====================================================================================
 DispersiveMaterialParameters & 
 Maxwell::getDispersiveMaterialParameters( const int grid )
 {
-  return  dbase.get<std::vector<DispersiveMaterialParameters> >("dispersiveMaterialParameters")[grid];
+  assert( cgp!=NULL );
+  CompositeGrid & cg = *cgp;
+  assert( grid>=0 && grid<cg.numberOfComponentGrids() );
+  const int domain = cg.domainNumber(grid);  // this grid lives on this domain 
+  return  dbase.get<std::vector<DispersiveMaterialParameters> >("dispersiveMaterialParameters")[domain];
 }
 
 
@@ -1250,8 +1289,9 @@ buildTimeSteppingOptionsDialog(DialogData & dialog )
                           "project interpolation points",
                           "use new forcing method",
                           "use impedance interface projection",
+                          "use sosup dissipation",
  			  ""};
-  int tbState[15];
+  int tbState[20];
   tbState[0] = useConservative;
   tbState[1] = solveForElectricField;
   tbState[2] = solveForMagneticField;
@@ -1267,6 +1307,7 @@ buildTimeSteppingOptionsDialog(DialogData & dialog )
   tbState[12]= dbase.get<bool>("useNewForcingMethod");
   tbState[13]= dbase.get<int>("setDivergenceAtInterfaces");
   tbState[14]= dbase.get<int>("useImpedanceInterfaceProjection");
+  tbState[15]= parameters.dbase.get<int>("useSosupDissipation");
   
 
   int numColumns=2;
@@ -1353,6 +1394,18 @@ buildTimeSteppingOptionsDialog(DialogData & dialog )
    textCommands[nt] = "div cleaning coefficient";  
    textLabels[nt]=textCommands[nt]; sPrintF(textStrings[nt], "%g",divergenceCleaningCoefficient); nt++; 
 
+   const real & sosupParameter = parameters.dbase.get<real>("sosupParameter");    // scaling of sosup dissipation
+   textCommands[nt] = "sosup parameter";  
+   textLabels[nt]=textCommands[nt]; sPrintF(textStrings[nt], "%g",sosupParameter); nt++; 
+
+   const int & sosupDissipationOption = parameters.dbase.get<int>("sosupDissipationOption");
+   textCommands[nt] = "sosup dissipation option";  
+   textLabels[nt]=textCommands[nt]; sPrintF(textStrings[nt], "%i",sosupDissipationOption); nt++; 
+
+   const int & sosupDissipationFrequency = parameters.dbase.get<int>("sosupDissipationFrequency");
+   textCommands[nt] = "sosup dissipation option";  
+   textLabels[nt]=textCommands[nt]; sPrintF(textStrings[nt], "%i",sosupDissipationFrequency); nt++; 
+
   
   // null strings terminal list
   assert( nt<numberOfTextStrings );
@@ -1397,6 +1450,14 @@ buildInitialConditionsOptionsDialog(DialogData & dialog )
 
   dialog.addOptionMenu("initial conditions:", initialConditionOptionCommands, initialConditionOptionCommands, 
                             (int)initialConditionOption );
+
+  aString tbCommands[] = {"smooth bounding box",
+ 			  ""};
+  int tbState[10];
+  tbState[0] = dbase.get<int>("smoothBoundingBox");
+  int numColumns=2;
+  dialog.setToggleButtons(tbCommands, tbCommands, tbState, numColumns); 
+
 
   // ----- Text strings ------
   const int numberOfTextStrings=30;
@@ -1682,6 +1743,7 @@ buildInputOutputOptionsDialog(DialogData & dialog )
 //   Build the input-output options dialog.
 // ==========================================================================================
 {
+  const int & probeFileFrequency = parameters.dbase.get<int>("probeFileFrequency");
 
   aString gridTypeCommands[] = {"square", 
 				"rotatedSquare", 
@@ -1706,7 +1768,8 @@ buildInputOutputOptionsDialog(DialogData & dialog )
 
 
   // ************** PUSH BUTTONS *****************
-  aString pushButtonCommands[] = {"specify probes",
+  aString pushButtonCommands[] = {"create a probe...",
+                                  // old: "specify probes",
                                   "show file options...",
 				  ""};
   int numRows=3;
@@ -1725,10 +1788,10 @@ buildInputOutputOptionsDialog(DialogData & dialog )
   int nt=0;
 
   textCommands[nt] = "probe frequency";  
-  textLabels[nt]=textCommands[nt]; sPrintF(textStrings[nt], "%i",frequencyToSaveProbes); nt++; 
+  textLabels[nt]=textCommands[nt]; sPrintF(textStrings[nt], "%i",probeFileFrequency); nt++; 
 
-  textCommands[nt] = "probe file:";
-  textLabels[nt]=textCommands[nt]; sPrintF(textStrings[nt], "%s",(const char*)probeFileName); nt++; 
+  // textCommands[nt] = "probe file:";
+  // textLabels[nt]=textCommands[nt]; sPrintF(textStrings[nt], "%s",(const char*)probeFileName); nt++; 
 
   textCommands[nt] = "grid file:";
   textLabels[nt]=textCommands[nt]; sPrintF(textStrings[nt], "%s","none"); nt++; 
@@ -1756,10 +1819,12 @@ buildPdeParametersDialog(DialogData & dialog )
 {
 
   // ************** PUSH BUTTONS *****************
-  // aString pushButtonCommands[] = {"specify coefficients per grid",
-  //			  ""};
-  // int numRows=3;
-  // dialog.setPushButtons(pushButtonCommands,  pushButtonCommands, numRows ); 
+/* ----
+  aString pushButtonCommands[] = {"dispersion parameters...",
+ 	    		          ""};
+  int numRows=3;
+  dialog.setPushButtons(pushButtonCommands,  pushButtonCommands, numRows ); 
+  --- */
 
   // ----- Text strings ------
   const int numberOfTextStrings=30;
@@ -1777,6 +1842,10 @@ buildPdeParametersDialog(DialogData & dialog )
 
   textCommands[nt] = "coefficients";  
   textLabels[nt]=textCommands[nt]; sPrintF(textStrings[nt], "%g %g %s (eps,mu,grid/domain name)",eps,mu,"all"); nt++; 
+
+  real gamma=1., omegap=1.;
+  textCommands[nt] = "Drude params";  
+  textLabels[nt]=textCommands[nt]; sPrintF(textStrings[nt], "%g %g %s (gamma,omegap,domain-name)",gamma,omegap,"all"); nt++; 
 
   // null strings terminal list
   assert( nt<numberOfTextStrings );
@@ -1808,6 +1877,12 @@ interactiveUpdate(GL_GraphicsInterface &gi )
   BoundaryForcingEnum & boundaryForcingOption =dbase.get<BoundaryForcingEnum>("boundaryForcingOption");
   bool & solveForScatteredField = dbase.get<bool>("solveForScatteredField");
   ChirpedArrayType & cpw = dbase.get<ChirpedArrayType>("chirpedParameters");
+  int & smoothBoundingBox = dbase.get<int>("smoothBoundingBox");
+  int & probeFileFrequency = parameters.dbase.get<int>("probeFileFrequency");
+  int & useSosupDissipation = parameters.dbase.get<int>("useSosupDissipation");
+  real & sosupParameter = parameters.dbase.get<real>("sosupParameter");    // scaling of sosup dissipation
+  int & sosupDissipationOption = parameters.dbase.get<int>("sosupDissipationOption");
+  int & sosupDissipationFrequency = parameters.dbase.get<int>("sosupDissipationFrequency");
   
   GUIState gui;
 
@@ -2045,6 +2120,8 @@ interactiveUpdate(GL_GraphicsInterface &gi )
       }
       printF("Setting dispersion model=[%s]\n",(const char*)dispersionModelName);
       timeSteppingOptionsDialog.getOptionMenu("dispersion model:").setCurrentChoice((int)dispersionModel);
+
+      
     }
 
     else if( answer=="defaultInitialCondition" ||
@@ -2393,6 +2470,8 @@ interactiveUpdate(GL_GraphicsInterface &gi )
 						icBox(0,1),icBox(1,1),
 						icBox(0,2),icBox(1,2)));
     }
+    else if( initialConditionsOptionsDialog.getToggleValue(answer,"smooth bounding box",smoothBoundingBox) ){}
+
     else if( len=answer.matches("bounding box decay face") )
     {
       sScanF(answer(len,answer.length()-1),"%i %i",&boundingBoxDecaySide,&boundingBoxDecayAxis);
@@ -2464,8 +2543,11 @@ interactiveUpdate(GL_GraphicsInterface &gi )
     else if( plotOptionsDialog.getTextValue(answer,"pml error offset","%i",pmlErrorOffset) ){}//
     else if( plotOptionsDialog.getTextValue(answer,"reference show file:","%s",nameOfReferenceShowFile) ){}//
 
+    else if( inputOutputOptionsDialog.getTextValue(answer,"probe frequency","%i",probeFileFrequency) ){}//
+
+    // **OLD:
     else if( inputOutputOptionsDialog.getTextValue(answer,"probe file:","%s",probeFileName) ){}//
-    else if( inputOutputOptionsDialog.getTextValue(answer,"probe frequency","%i",frequencyToSaveProbes) ){}//
+
     else if( inputOutputOptionsDialog.getTextValue(answer,"error norm","%i",errorNorm) )
     { 
       printF("cgmx:INFO: errorNorm=0 : print max norm errors, \n"
@@ -2520,6 +2602,23 @@ interactiveUpdate(GL_GraphicsInterface &gi )
     else if( timeSteppingOptionsDialog.getTextValue(answer,"dissipation interval","%i",artificialDissipationInterval) ){}//
     else if( timeSteppingOptionsDialog.getTextValue(answer,"number of variable dissipation smooths","%i",
                                                     numberOfVariableDissipationSmooths) ){}//
+
+    else if( timeSteppingOptionsDialog.getToggleValue(answer,"use sosup dissipation",useSosupDissipation) )
+    {
+      if( useSosupDissipation )
+      {
+	printF("Use SOSUP style (wide-stencil) dissipation with the FD scheme. Setting normal dissipation=0.\n");
+	artificialDissipation=0.;  
+	if( artificialDissipationCurvilinear >0. ) artificialDissipationCurvilinear=0.;
+	timeSteppingOptionsDialog.setTextLabel("dissipation",sPrintF("%g",artificialDissipation));
+      }
+      else
+      {
+	printF("Do NOT use SOSUP style (wide-stencil) dissipation with the FD scheme.\n");
+      }
+      
+    }
+
     else if( timeSteppingOptionsDialog.getTextValue(answer,"divergence damping","%g",divergenceDamping) ){}//
     else if( timeSteppingOptionsDialog.getTextValue(answer,"accuracy in space","%i",orderOfAccuracyInSpace) ){}//
     else if( timeSteppingOptionsDialog.getTextValue(answer,"accuracy in time","%i",orderOfAccuracyInTime) ){}//
@@ -2527,7 +2626,18 @@ interactiveUpdate(GL_GraphicsInterface &gi )
     else if( plotOptionsDialog.getToggleValue(answer,"plot dissipation",plotDissipation) ){}//
 
     else if( timeSteppingOptionsDialog.getTextValue(answer,"dissipation (curvilinear)","%g",artificialDissipationCurvilinear) ){}//
-    else if( timeSteppingOptionsDialog.getTextValue(answer,"dissipation","%g",artificialDissipation) ){}//
+    else if( timeSteppingOptionsDialog.getTextValue(answer,"dissipation","%g",artificialDissipation) )
+    {
+      if( useSosupDissipation )
+      {
+	printF("INFO: using SOSUP style (wide-stencil) dissipation with the FD scheme."
+               " Setting normal dissipation=0.\n");
+	artificialDissipation=0.;  
+	timeSteppingOptionsDialog.setTextLabel("dissipation",sPrintF("%g",artificialDissipation));
+      }
+      
+    }
+    
 
     else if( timeSteppingOptionsDialog.getTextValue(answer,"max iterations for interpolation","%i",
 						    maximumNumberOfIterationsForImplicitInterpolation) )
@@ -2552,6 +2662,21 @@ interactiveUpdate(GL_GraphicsInterface &gi )
 						    numberOfDivergenceSmooths) ){}// 
     else if( timeSteppingOptionsDialog.getTextValue(answer,"div cleaning coefficient","%e",
 						    divergenceCleaningCoefficient) ){}// 
+    else if( timeSteppingOptionsDialog.getTextValue(answer,"sosup parameter","%e",
+						    sosupParameter) ){}// 
+    else if( timeSteppingOptionsDialog.getTextValue(answer,"sosup dissipation option","%i",
+						    sosupDissipationOption) )
+    {
+      printF(" sosupDissipationOption=%i: 0=apply sosup dissipation with update, 1=apply in separate stage\n",
+	     sosupDissipationOption);
+    }
+    else if( timeSteppingOptionsDialog.getTextValue(answer,"sosup dissipation frequency","%i",
+						    sosupDissipationFrequency) )
+    {
+      printF(" sosupDissipationFrequency=%i: apply sosup dissipation every this many steps.\n",
+	     sosupDissipationFrequency);
+    }
+
     else if( answer=="projection solver parameters..." )
     { // Specify parameters for the Elliptic solver used to project the fields, div(eps*E)=rho
       if( poisson==NULL )
@@ -2646,6 +2771,15 @@ interactiveUpdate(GL_GraphicsInterface &gi )
       
       forcingOptionsDialog.setTextLabel("TZ omega:",sPrintF(line,"%g %g %g %g (fx,fy,fz,ft)",omega[0],omega[1],omega[2],omega[3]));
     }
+
+    else if( len=answer.matches("dispersion parameters...") )
+    {
+      // --- assign parameters in the disperion models ---
+      printF("dispersion parameters: FINISH ME...");
+      setDispersionParameters(gi);
+
+    }
+
     else if( len=answer.matches("coefficients") )
     {
       char *buff = new char [answer.length()];
@@ -2774,6 +2908,69 @@ interactiveUpdate(GL_GraphicsInterface &gi )
 							      eps,mu,"all"));
 
     }
+
+
+    else if( len=answer.matches("Drude params") )
+    {
+
+      real gamma=0., omegap=0.; // default 
+
+      char *buff = new char [answer.length()];
+      sScanF(answer(len,answer.length()),"%e %e %s",&gamma,&omegap,buff);
+      aString domainName=buff;
+      delete [] buff;
+      printF("Drude parameters: gamma=%e, omegap=%e, domain=[%s]\n",gamma,omegap,(const char*)domainName);
+      
+      int domainStart=-1, domainEnd=-1;
+      if( domainName == "all" )
+      {
+	domainStart=0; domainEnd=cg.numberOfDomains()-1;
+      }
+      else
+      {
+	for( int domain=0; domain<cg.numberOfDomains(); domain++ )
+	{
+	  if( cg.getDomainName(domain)==domainName )
+	  {
+	    printF("--MX-- setting Drude parameters for domain number=%i name=[%s].\n",domain,(const char*)domainName);
+	    domainStart=domainEnd=domain;
+	    break;
+	  }
+	}
+      }
+      
+      if( domainStart<0  )
+      {
+	printF("--MX-- WARNING: There is no domain with name =[%s].\n",(const char*)domainName);
+      }
+      else
+      {
+	// --- Set parameters for the Drude dispersion model ---
+	std::vector<DispersiveMaterialParameters> & dmpVector = 
+	  dbase.get<std::vector<DispersiveMaterialParameters> >("dispersiveMaterialParameters");
+
+	// --- allocate the dispersion material parameters vector ---
+	if( dmpVector.size()<cg.numberOfDomains() )
+	{
+	  dmpVector.resize(cg.numberOfDomains());
+	}
+
+	for( int domain=domainStart; domain<=domainEnd; domain++ )
+	{
+	  DispersiveMaterialParameters & dmp = dmpVector[domain];
+	  printF(" Setting Drude parameters gamma=%9.3e, omegap=%9.3e for domain=[%s]\n",
+		 gamma,omegap,(const char*)cg.getDomainName(domain));
+	  dmp.gamma=gamma;
+	  dmp.omegap=omegap;
+	}
+      }
+      
+      pdeParametersDialog.setTextLabel("Drude params",sPrintF(textStrings[nt], "%g %g %s (gamma,omegap,domain-name)",
+							      gamma,omegap,"all"));
+
+    }
+
+
     else if( answer=="show file options..." )
     {
       updateShowFile();
@@ -2792,7 +2989,21 @@ interactiveUpdate(GL_GraphicsInterface &gi )
       inputOutputOptionsDialog.setTextLabel("maximum number of parallel sub-files",sPrintF(line,"%i",maxFiles));
       GenericDataBase::setMaximumNumberOfFilesForWriting(maxFiles);
     }
-    else if( answer=="specify probes" )
+
+    else if( answer=="create a probe..." ) // *NEW WAY*
+    {
+      // create a new probe : these are points or regions on the grid whose info is saved periodically to a file
+
+      if(!parameters.dbase.has_key("probeList") ) parameters.dbase.put<std::vector<ProbeInfo*> >("probeList");
+
+      std::vector<ProbeInfo* > & probeList = parameters.dbase.get<std::vector<ProbeInfo*> >("probeList");
+      ProbeInfo & probe = *( new ProbeInfo(parameters) );
+      probeList.push_back(&probe);
+      probe.update( cg,gi );
+    
+    }
+
+    else if( answer=="specify probes" )  // **OLD WAY***
     {
       // aString probeFileName;
       // gi.inputString(probeFileName,"Enter the name of the file for saving probe data");
@@ -3025,6 +3236,17 @@ interactiveUpdate(GL_GraphicsInterface &gi )
   // **** now build grid functions *****
   setupGridFunctions();
 
+  // Do this for now to initialize Paramters class (used by outputProbes)
+  const int numberOfComponents=cgfields[0][0].getLength(3);
+  parameters.dbase.get<int>("numberOfComponents")=numberOfComponents;
+  aString *& componentName = parameters.dbase.get<aString* >("componentName");
+  componentName= new aString [numberOfComponents];
+  for( int c=0; c<numberOfComponents; c++ )
+  {
+    componentName[c]=cgfields[0].getName(c);
+  }
+  
+
   initializePlaneMaterialInterface();
 
   initializeRadiationBoundaryConditions();
@@ -3244,3 +3466,15 @@ Maxwell::getCGField(Maxwell::FieldEnum f, int tn)
   return cgfields[tn];
 }
 
+
+
+//====================================================================================
+/// \brief Assign parameters in the disperion models.
+//====================================================================================
+int Maxwell::
+setDispersionParameters( GL_GraphicsInterface &gi )
+{
+  printF("dispersion parameters: FINISH ME...");
+
+  return 0;
+}

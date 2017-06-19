@@ -279,6 +279,15 @@ static Display     *dpy;
 static int OGLActiveWindow=-1, readyToPick=0, pickOption=0, pickWindow = -99;
 static real xRubberBandMin, xRubberBandMax, yRubberBandMin, yRubberBandMax;
 
+// ================================================================================
+// The user can specify the locations for the command,graphics and dialog window.
+//   -1 = use default
+static int commandWindowNx=-1, commandWindowNy=-1;
+static int graphicsWindowNx=-1, graphicsWindowNy=-1;
+static int dialogNx=-1, dialogNy=-1;
+static int dialogOffsetNx=10, dialogOffsetNy=0;  // shift new dialogs by this amount 
+static int currentDialogNx=0, currentDialogNy=0;  // increment this as dialogs are created
+
 // remember the last directory in the file selection dialog
 static XmString fileSelectionDirectory = NULL;
 
@@ -898,6 +907,13 @@ moglInit(int & argc, char *argv[],
   // printf("Command window border width: %i, screenHeight=%i, commandWindowHeight=%i\n", borderWidth,
   //            screenHeight,wProp.commandWindowHeight );
 
+  // Save some window properties into local variables to this file:
+  commandWindowNx =wProp.commandWindowNx;   commandWindowNy =wProp.commandWindowNy;
+  graphicsWindowNx=wProp.graphicsWindowNx;  graphicsWindowNy=wProp.graphicsWindowNy;
+  dialogNx        =wProp.dialogNx;                 dialogNy =wProp.dialogNy;
+  dialogOffsetNx  =wProp.dialogOffsetNx;     dialogOffsetNy =wProp.dialogOffsetNy;
+
+
   if (wProp.commandWindowWidth == -1)
     wProp.commandWindowWidth = screenWidth-2*borderWidth;
   else
@@ -908,6 +924,13 @@ moglInit(int & argc, char *argv[],
   else
     wProp.commandWindowHeight = max(100, min(wProp.commandWindowHeight, screenHeight/2));
 
+ Dimension xOffset=0, yOffset=screenHeight-wProp.commandWindowHeight;
+ if( commandWindowNx >=0 )
+    xOffset = commandWindowNx;
+  if( commandWindowNy >=0 )
+    yOffset = commandWindowNy;
+  // printF("mogl: commandWindowNy=%d, yOffset=%d\n",commandWindowNy,yOffset);
+  
   XtVaSetValues(textw,
 		XmNbaseWidth, 1,
 		XmNbaseHeight, 1, 
@@ -915,7 +938,8 @@ moglInit(int & argc, char *argv[],
 		XmNminWidth, 500, 
 		XmNheight, wProp.commandWindowHeight, 
 		XmNwidth, wProp.commandWindowWidth,
-                XmNy, screenHeight-wProp.commandWindowHeight,
+                XmNx, xOffset,
+                XmNy, yOffset,
 		NULL);
 
   showRubberBandBox=wProp.showRubberBandBox;    // *wdh* 020704
@@ -991,7 +1015,9 @@ moglInit(int & argc, char *argv[],
   {
     btn = XtVaCreateManagedWidget(SC fileMenuItems[i].c_str(), xmPushButtonWidgetClass, menupane, 
 				  XmNuserData, winInfo, NULL);
-    XtAddCallback(btn, XmNactivateCallback, popupCallback,(void*)(-(i+1)) ); // the position in the menu is the userdata
+    intptr_t idata = -(i+1);  // do this to safely cast to void*
+    XtAddCallback(btn, XmNactivateCallback, popupCallback,(void*)(idata) ); // the position in the menu is the userdata
+    // *wdh* 2017/04/21 XtAddCallback(btn, XmNactivateCallback, popupCallback,(void*)(-(i+1)) ); // the position in the menu is the userdata
   }
     
   XtSetArg(args[0], XmNsubMenuId, menupane); // the menupane that is attached to the CascadeButton
@@ -1006,7 +1032,9 @@ moglInit(int & argc, char *argv[],
   {
     btn = XtVaCreateManagedWidget(SC helpMenuItems[i].c_str(), xmPushButtonWidgetClass, menupane, 
 				  XmNuserData, winInfo, NULL);
-    XtAddCallback(btn, XmNactivateCallback, popupCallback,(void*)(-(i+1)) ); // the position in the menu is the userdata
+    intptr_t idata = -(i+1);  // do this to safely cast to void*
+    XtAddCallback(btn, XmNactivateCallback, popupCallback,(void*)(idata) ); // the position in the menu is the userdata
+    // *wdh* 2017/04/21  XtAddCallback(btn, XmNactivateCallback, popupCallback,(void*)(-(i+1)) ); // the position in the menu is the userdata
   }
     
   XtSetArg(args[0], XmNsubMenuId, menupane); // the menupane that is attached to the CascadeButton
@@ -1349,6 +1377,14 @@ makeGraphicsWindow(const aString &windowTitle,
   yOffset = 10*OGLNWindows;
   xOffset = 1 + 10*OGLNWindows;
   
+  if( graphicsWindowNx >=0 )
+    xOffset += graphicsWindowNx;
+  if( graphicsWindowNy >=0 )
+  {
+    yOffset += graphicsWindowNy;
+  }
+  
+
   WINDOW_REC *t;
   t = new WINDOW_REC;
 
@@ -1507,7 +1543,9 @@ makeGraphicsWindow(const aString &windowTitle,
   {
     btn = XtVaCreateManagedWidget(SC helpMenuItems[i].c_str(), xmPushButtonWidgetClass, menupane, 
 				   XmNuserData, winInfo, NULL);
-    XtAddCallback(btn, XmNactivateCallback, popupCallback,(void*)(-(i+1)) );
+    intptr_t idata = -(i+1);  // do this to safely cast to void*
+    XtAddCallback(btn, XmNactivateCallback, popupCallback,(void*)(idata) );
+    // XtAddCallback(btn, XmNactivateCallback, popupCallback,(void*)(-(i+1)) );
   }
     
   XtSetArg(args[0], XmNsubMenuId, menupane);
@@ -1751,7 +1789,7 @@ makeGraphicsWindow(const aString &windowTitle,
     t->plotStuff = XtVaCreateManagedWidget("plotStuff", glwMDrawingAreaWidgetClass,
 				      t->frame, GLwNvisualInfo, t->vi, NULL);
 
-  XtAddCallback(t->plotStuff, GLwNginitCallback, graphicsInit, (XtPointer) OGLCurrentWindow); 
+  XtAddCallback(t->plotStuff, GLwNginitCallback, graphicsInit, (XtPointer) ((intptr_t)OGLCurrentWindow)); 
   XtAddCallback(t->plotStuff, XmNexposeCallback, exposeOrResize, NULL);
   XtAddCallback(t->plotStuff, XmNresizeCallback, exposeOrResize, NULL);
   XtAddCallback(t->plotStuff, XmNinputCallback, drawAreaInput, NULL);
@@ -2061,7 +2099,9 @@ moglBuildUserMenu(const aString menuName[], const aString menuTitle, int win_num
   {
     btn = XtVaCreateManagedWidget(SC menuName[i].c_str(), xmPushButtonWidgetClass, menupane, 
 				  XmNuserData, winInfo, NULL);
-    XtAddCallback(btn, XmNactivateCallback, popupCallback, (void*)((i+1)) );
+    intptr_t idata = i+1;  // do this to safely cast to void*
+    XtAddCallback(btn, XmNactivateCallback, popupCallback, (void*)(idata) );
+    // XtAddCallback(btn, XmNactivateCallback, popupCallback, (void*)((i+1)) );
   }
 
 // delete any previous user defined pulldown menu
@@ -2272,7 +2312,8 @@ moglSetupPopup(Widget &baseWin, const aString menu[], Widget &popupMenu)
 						     XmNdepth, overlayDepth, 
 						     XmNcolormap, overlayColormap, NULL); 
       }
-      XtAddCallback(gidget, XmNactivateCallback, popupCallback, (void*)i);
+      intptr_t idata = i;  // do this to safely cast to void*
+      XtAddCallback(gidget, XmNactivateCallback, popupCallback, (void*)idata);
     }
     else if( menu[i][0]=='<' )
     {
@@ -2304,13 +2345,17 @@ moglSetupPopup(Widget &baseWin, const aString menu[], Widget &popupMenu)
         gidget = XtVaCreateManagedWidget(menu[i].c_str() + 1, xmPushButtonGadgetClass, widget[level], NULL);
         count[level]++;
       }
-      XtAddCallback(gidget,XmNactivateCallback,popupCallback,(void*)i);
+      intptr_t idata = i;  // do this to safely cast to void*
+      XtAddCallback(gidget,XmNactivateCallback,popupCallback,(void*)idata);
+      // XtAddCallback(gidget,XmNactivateCallback,popupCallback,(void*)i);
     }
     else
     { 
       gidget = XtVaCreateManagedWidget(SC menu[i].c_str(), xmPushButtonGadgetClass, widget[level], NULL);
       count[level]++;
-      XtAddCallback(gidget,XmNactivateCallback,popupCallback,(void*)i);
+      intptr_t idata = i;  // do this to safely cast to void*
+      XtAddCallback(gidget,XmNactivateCallback,popupCallback,(void*)idata);
+      // XtAddCallback(gidget,XmNactivateCallback,popupCallback,(void*)i);
     }
   }
   if( numberOfMenuEntries >= maximumNumberOfMenuEntries-1 )
@@ -4176,25 +4221,51 @@ changeNormal(Widget widget, XtPointer clinet_data, XtPointer call_data )
 
 }
 
+// =====================================================================================
+/// \brief call-back function to position a dialog on the screen
+/// \details The location of the dialog can be set from the .overturerc file.
+///   One can also set how much a new dialog is shifted from the previous.
+// =====================================================================================
 void
 positionDialog(Widget dialog, XtPointer client_data, XtPointer call_data )
 {
-  int positioned;
+
+  int positioned; // Keeps track if this dialog has already been positioned
   
   Dimension w, h;
   XtVaGetValues(dialog, XmNuserData, &positioned, XmNwidth, &w, XmNheight, &h, NULL );
   
-//  printf("positioned: %i\n", positioned);
+  //  printf("positioned: %i\n", positioned);
 
   if (!positioned)
   {
     int width = WidthOfScreen(XtScreen(dialog));
     int height = HeightOfScreen(XtScreen(dialog));
   
-// put the dialog in the top right corner of the screen
+    Dimension xPosition, yPosition;
+    // put the dialog in the top right corner of the screen
+    xPosition=width-w; yPosition=0;  // top right corner
+
+    // Could place dialog next to main graphics window? 
+    if( dialogNx>=0  )
+      xPosition=dialogNx;
+    if( dialogNx>=0 )
+      yPosition=dialogNy;
+    
+    // -- new dialogs are shifted in the x and y directions
+    xPosition+=currentDialogNx;
+    currentDialogNx += dialogOffsetNx;  
+    if( currentDialogNx>width-100 ) currentDialogNx=0;  // wrap if there are too many 
+
+    yPosition+=currentDialogNy;
+    currentDialogNy += dialogOffsetNy;
+    if( currentDialogNy>height-300 ) currentDialogNy=0;
+    
+    // printF("--MOGL-- positionDialog: currentDialogNx=%i currentDialogNy=%i\n",currentDialogNx,currentDialogNy);
+
     XtVaSetValues(dialog,
-		  XmNx, width - w,
-		  XmNy, 0,
+		  XmNx, xPosition,
+		  XmNy, yPosition,
 		  XmNuserData, (XtPointer) 1, // only position the dialog the first time
 		  NULL);
   }
@@ -4202,6 +4273,8 @@ positionDialog(Widget dialog, XtPointer client_data, XtPointer call_data )
 
 }
 
+// =====================================================================================
+// =====================================================================================
 void
 clippingPlanesDialog(Widget pb, XtPointer client_data, XtPointer call_data)
 {
@@ -5490,13 +5563,16 @@ viewCharacteristicsDialog(Widget pb, XtPointer client_data, XtPointer call_data)
   OGLWindowList[viewChar_->win_number]->viewCharOpen = 1;
 }
 
+// =====================================================================================
+/// \brief Destroy a user dialog 
+// =====================================================================================
 static void 
 destroyUserDialog( Widget w, XtPointer client_data, XtPointer call_data)
 {
-// Note that the dialog window is closed by calling closeDialog from the application.
+  // Note that the dialog window is closed by calling closeDialog from the application.
   DialogData & dialogSpec = *((DialogData *)client_data);
   
-// break out of the eventloop. 
+  // break out of the eventloop. 
   setMenuNameChosen(SC dialogSpec.getExitCommand().c_str());
   menuItemChosen=(dialogSpec.getBuiltInDialog())? -1:1;
   exitEventLoop=TRUE;
@@ -5936,12 +6012,15 @@ setSensitive(bool trueOrFalse, WidgetTypeEnum widgetType, const aString & label)
 }
 
 
+// ===============================================================================================
+/// \brief Close a dialog
+// ===============================================================================================
 void DialogData::
 closeDialog()
 {
   int i;
   
-  if (dialogWindow)
+  if( dialogWindow )
   {
 
     // *wdh* 100712 -- clean up these other objects: 
@@ -5949,12 +6028,23 @@ closeDialog()
     deleteToggleButtons();
     deleteInfoLabels();
 
+    if(XtIsManaged((Widget)dialogWindow) ) // this dialog is open 
+    {
+      // -- shift the current location for the dialog backward ---
+      currentDialogNx -= dialogOffsetNx;  
+      currentDialogNy -= dialogOffsetNy;
+      // printF("--MOGL-- closeDialog: currentDialogNx=%i currentDialogNy=%i\n",currentDialogNx,currentDialogNy);
+    }
+    
+
     for (i=0; i<n_text; i++)
     {
       XtDestroyWidget((Widget)textBoxes[i].textWidget);
       textBoxes[i].textWidget = NULL;
     }
     XtDestroyWidget((Widget)dialogWindow); // make sure it isn't closed twice!
+
+
   }
   
   dialogWindow = NULL; // remember that the dialog window now is closed
@@ -6559,6 +6649,11 @@ hideSibling()
   Widget d = (Widget) dialogWindow;
   if (d && XtIsManaged(d))
   {
+    // -- shift the current location for the dialog backward ---
+    currentDialogNx -= dialogOffsetNx;  
+    currentDialogNy -= dialogOffsetNy;
+    // printF("--MOGL-- hideSibling: currentDialogNx=%i currentDialogNy=%i\n",currentDialogNx,currentDialogNy);
+
     XtUnmanageChild(d);
     return 1;
   }

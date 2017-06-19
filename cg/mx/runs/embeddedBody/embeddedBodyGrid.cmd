@@ -71,7 +71,7 @@ $numGhost=-1;  # if this value is set, then use this number of ghost points
 GetOptions( "order=i"=>\$order,"factor=f"=>\$factor,"xa=f"=> \$xa,"xb=f"=> \$xb,"ya=f"=> \$ya,"yb=f"=> \$yb,\
             "xba=f"=> \$xba,"xbb=f"=> \$xbb,"yba=f"=> \$yba,"ybb=f"=> \$ybb,"interp=s"=> \$interp,\
             "prefix=s"=> \$prefix,"name=s"=> \$name,"numGhost=i"=>\$numGhost,"per=i"=>\$per,"theta=i"=>\$theta,\
-            "body=i"=>\$body );
+            "body=i"=>\$body,"sharp=f"=> \$sharp );
 #
 $xba=-.5*$width; $xbb=$xba+$width; $ybb=-$depth; $yba=$ybb-$height; # corners of embedded body
 #

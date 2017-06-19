@@ -2,10 +2,32 @@
 #include "App.h"
 #include "MappedGridOperators.h"
 #include "ParallelUtility.h"
+#include "StretchTransform.h"
 
 #include "EquationDomain.h"
 extern ListOfEquationDomains equationDomainList; // This is in the global name space for now.
 
+#define FOR_3D(i1,i2,i3,I1,I2,I3) \
+int I1Base =I1.getBase(),   I2Base =I2.getBase(),  I3Base =I3.getBase();  \
+int I1Bound=I1.getBound(),  I2Bound=I2.getBound(), I3Bound=I3.getBound(); \
+for(i3=I3Base; i3<=I3Bound; i3++) \
+for(i2=I2Base; i2<=I2Bound; i2++) \
+for(i1=I1Base; i1<=I1Bound; i1++)
+
+#define FOR_3(i1,i2,i3,I1,I2,I3) \
+I1Base =I1.getBase(),   I2Base =I2.getBase(),  I3Base =I3.getBase();  \
+I1Bound=I1.getBound(),  I2Bound=I2.getBound(), I3Bound=I3.getBound(); \
+for(i3=I3Base; i3<=I3Bound; i3++) \
+for(i2=I2Base; i2<=I2Bound; i2++) \
+for(i1=I1Base; i1<=I1Bound; i1++)
+
+
+#define FOR_3D_AND_OK(i1,i2,i3,I1,I2,I3) \
+int I1Base =I1.getBase(),   I2Base =I2.getBase(),  I3Base =I3.getBase();  \
+int I1Bound=I1.getBound(),  I2Bound=I2.getBound(), I3Bound=I3.getBound(); \
+for(i3=I3Base; i3<=I3Bound && ok; i3++) \
+for(i2=I2Base; i2<=I2Bound && ok; i2++) \
+for(i1=I1Base; i1<=I1Bound && ok; i1++)
 
 //\begin{>>CompositeGridSolverInclude.tex}{\subsection{applyBoundaryConditions}} 
 int DomainSolver::
@@ -458,3 +480,129 @@ getTimeDependentBoundaryConditions( MappedGrid & mg,
 
 
 
+// ======================================================================================================
+/// \brief Return true if the face corresponding to the side of a grid is parallel
+///   to an x, y, or z coordinate plane. This function is used, for example, to determine if a slip wall
+///   is really flat, in which case the boundary conditions may be simpler.
+///
+/// \param side, axis,grid  (input) : face to check
+/// \param cg (input) : Composite grid
+/// \param normalAxis (output) : 0,1 or 2 indicates coordinate axis (x,y, or z) in the normal direction.
+// ======================================================================================================
+bool DomainSolver::
+faceIsACoordinatePlane( const int side, const int axis, int grid, CompositeGrid & cg,
+                        int & normalAxis )
+{
+
+  int ok=false; // set to true if this face is parallel to a coordinate axis
+  normalAxis=axis; // default for Cartesian grids, "axis" is the normalAxis
+  
+
+  if( !parameters.gridIsMoving(grid) ) // for now assume moving grids do not satisfy the condition
+  {
+    MappedGrid & mg = cg[grid];
+    bool isRectangular = mg.isRectangular();
+    if( isRectangular )
+    {
+      ok=true;  // non-moving rectangular grid 
+    }
+    else
+    {
+      // non-rectangular grid 
+      // Check for:
+      //    1. stretched cartesian grid
+      //    2. flat end of a cylinder
+      Mapping & map = mg.mapping().getMapping();
+      if( map.getClassName()=="StretchTransform" )
+      {
+	MappingRC & map2 = ((StretchTransform&)map).map2;
+	const aString & mapClassName = map2.getClassName();
+	if( mapClassName=="SquareMapping" || mapClassName=="BoxMapping" )
+	{ // stretched square or box 
+	  ok=true;
+	}
+	else if( mapClassName=="CylinderMapping" )
+	{ // stretched cylinder
+           ok = axis==axis2;  // axis2 is the axial direction
+	}
+	
+      }
+      else if( map.getClassName()=="CylinderMapping" )
+      { // flat end of a cylinder
+	// CylinderMapping & cyl = (CylinderMapping&)map;
+	ok = axis==axis2;  // axis2 is the axial direction
+      }
+      else // general case 
+      {
+	// --- General case: check the normals on the face:
+        //    1. normals must be all the same (flat face)
+        //    2. normals must be in a coordinate direction
+
+	
+        // ***** check the  normals on the face ******
+        mg.update(MappedGrid::THEvertexBoundaryNormal);
+        OV_GET_VERTEX_BOUNDARY_NORMAL(mg,side,axis,normal)
+
+        const int numberOfDimensions=cg.numberOfDimensions();
+
+        Index Ib1,Ib2,Ib3;
+	getBoundaryIndex(mg.gridIndexRange(),side,axis,Ib1,Ib2,Ib3);     
+	OV_GET_SERIAL_ARRAY_CONST(int,mg.mask(),maskLocal);
+	int includeGhost=0;
+	bool localDataExist =ParallelUtility::getLocalArrayBounds(mg.mask(),maskLocal,Ib1,Ib2,Ib3,includeGhost);
+
+        ok=true;  // Assume true on all processors
+	if( localDataExist ) // this processor has data
+	{
+	  real nv0[3]; // normal at some point
+	  int i1=Ib1.getBase(), i2=Ib2.getBase(), i3=Ib3.getBase();
+	  for( int dir=0; dir<numberOfDimensions; dir++ ){ nv0[dir]=normal(i1,i2,i3,dir); } // 
+
+	  const real normalTol=REAL_EPSILON*1000.; // tolerance for normals being the same at different points 
+
+	  ok=false;
+	  // Normal must be in the direction of a coordinate axis (x, y, or z)
+	  for( int dir=0; dir<numberOfDimensions; dir++ )
+	  {
+	    if( fabs( fabs(nv0[dir])-1. ) < normalTol )  // one nv[dir] should be 1 or -1 
+	    {
+	      normalAxis=dir;
+	      ok=true;
+	      break;
+	    }
+	
+	  }
+	  if( ok )
+	  {
+	    // --- nv0 was in a coordinate direction, now check that all normals match
+      
+	    real diff=0.;
+	    FOR_3D_AND_OK(i1,i2,i3,Ib1,Ib2,Ib3)
+	    {
+	      for( int dir=0; dir<numberOfDimensions; dir++ )
+	      {  
+		diff=max(diff,fabs(normal(i1,i2,i3,dir)-nv0[dir]));  // normals should all match 
+	      }
+	      if( diff>normalTol )
+	      {
+		ok=false;  // normals do not match 
+		break;
+	      }
+	    }
+	  }
+	} // end localDataExist 
+      
+	ok = ParallelUtility::getMinValue(ok ); // all processors must agree
+
+      } // end else general case 
+      
+    }
+  }
+
+  if( ok && (debug() & 4) )
+    printF("--DS-- faceIsACoordinatePlane: INFO: face (side,axis,grid,name)=(%i,%i,%i,%s) is a coordinate plane,"
+           " normalAxis=%i.\n",
+	   side,axis,grid,(const char*)cg[grid].getName(),normalAxis);
+
+  return ok;
+}

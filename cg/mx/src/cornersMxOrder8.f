@@ -26,6 +26,7 @@
      & orderOfAccuracy,gridType,debug,grid,side,axis,useForcing,ex,ey,
      & ez,hx,hy,hz,useWhereMask,side1,side2,side3,m1,m2,m3,bc1,bc2,
      & forcingOption,fieldOption,boundaryForcingOption
+        integer polarizationOption,dispersionModel
         real dt,kx,ky,kz,eps,mu,c,cc,twoPi,slowStartInterval,ssf,ssft,
      & ssftt,ssfttt,ssftttt,tt
         real dr(0:2), dx(0:2), t, uv(0:5), uvm(0:5), uv0(0:5), uvp(0:5)
@@ -229,6 +230,19 @@
         real t90,t91,t92,t93,t94,t95,t96,t97,t98,t99
         real t100,t101,t102,t103,t104,t105,t106,t107,t108,t109
         real t110,t111,t112,t113,t114,t115,t116,t117,t118,t119
+      ! Fortran include file for dispersive Maxwells equations
+
+      ! variables for the dispersion model:
+      ! P equation is : P_tt + ap*P_t + bp*P = cp*E
+      real ap,bp,cp
+      real kk,ck2,sNormSq,sNorm4, pc,ps,hfactor,hs,hc
+      real si,sr,expt,sinxi,cosxi
+      real sinxip,cosxip, sinxid, cosxid, sinxid2, cosxid2, sinxid3, 
+     & cosxid3
+
+      ! Dispersion models
+      integer noDispersion,drude
+      parameter( noDispersion=0, drude=1 )
        !     --- start statement function ----
         integer kd,m,n
         real rx,ry,rz,sx,sy,sz,tx,ty,tz
@@ -1635,6 +1649,8 @@ c===============================================================================
         forcingOption        =ipar(21)
         fieldOption          =ipar(29)  ! 0=assign field, 1=assign time derivatives
         boundaryForcingOption=ipar(32)  ! option when solving for scattered field directly
+        polarizationOption   =ipar(33)
+        dispersionModel      =ipar(34)
         dx(0)                =rpar(0)
         dx(1)                =rpar(1)
         dx(2)                =rpar(2)
@@ -1666,6 +1682,9 @@ c===============================================================================
         cpwX0                =rpar(34)   ! x0
         cpwY0                =rpar(35)   ! y0
         cpwZ0                =rpar(36)   ! z0
+        ! variables for dispersive plane wave
+        sr                   =rpar(37)  ! Re(s)
+        si                   =rpar(38)  ! Im(s)
         dxa=dx(0)
         dya=dx(1)
         dza=dx(2)
@@ -1679,6 +1698,15 @@ c===============================================================================
         twoPi=8.*atan2(1.,1.)
         cc= c*sqrt( kx*kx+ky*ky+kz*kz )
         ! write(*,'(" ***assign corners: forcingOption=",i4," twoPi=",f18.14," cc=",f10.7)') forcingOption,twoPi,cc
+        if( fieldOption.ne.0 .and. fieldOption.ne.1 )then
+          write(*,'("bcMxCorners: error: fieldOption=",i6)') 
+     & fieldOption
+          stop 1673
+        end if
+        if( polarizationOption.ne.0 .and. t.le.2.*dt )then
+          write(*,'(" ***assign corners: polarizationOption=",i2,"ex,
+     & ey,hz=",3i2)') polarizationOption,ex,ey,hz
+        end if
         ! initialize parameters used in slow starts (e.g. for plane waves)
         ! write(*,'("initializeBoundaryForcing slowStartInterval=",e10.2)') slowStartInterval
         if( t.le.0 .and. slowStartInterval.gt.0. )then
@@ -1712,6 +1740,23 @@ c===============================================================================
           ssftt = 0.
           ssfttt = 0.
           ssftttt = 0.
+        end if
+        ! initialize dispersive plane wave parameters
+        if( dispersionModel .ne. noDispersion )then
+            ! --- pre-calculations for the dispersive plane wave ---
+            kk = twoPi*sqrt( kx*kx+ky*ky+kz*kz)
+            ck2 = (c*kk)**2
+            ! si=-si
+            ! s^2 E = -(ck)^2 E - (s^2/eps) P --> gives P = -eps*( 1 + (ck)^2/s^2 ) E 
+            sNormSq=sr**2+si**2
+            sNorm4=sNormSq*sNormSq
+            pc = -eps*( 2.*sr*si*ck2/sNorm4 )    ! check sign
+            ps = -eps*( 1. + ck2*(sr*sr-si*si)/sNorm4 )
+            ! (1/s) * (kx*Ey - ky*Ex )/mu
+            ! *check me*      
+            hfactor = twoPi*( kx*pwc(1) - ky*pwc(0) )/mu
+            hs =  hfactor*si/sNormSq
+            hc = -hfactor*sr/sNormSq  ! check sign
         end if
         numberOfGhostPoints=orderOfAccuracy/2
         extra=orderOfAccuracy/2  ! assign the extended boundary
@@ -1848,74 +1893,148 @@ c===============================================================================
      & boundaryForcingOption.eq.noBoundaryForcing )then
                          else if( 
      & boundaryForcingOption.eq.planeWaveBoundaryForcing )then
-                             if( numberOfTimeDerivatives==0 )then
-                               ubv(ex) = (ssf*sin(twoPi*(kx*(x0)+ky*(
+                           if( dispersionModel.eq.noDispersion )then
+                               if( numberOfTimeDerivatives==0 )then
+                                 ubv(ex) = (ssf*sin(twoPi*(kx*(x0)+ky*(
      & y0)-cc*(t)))*pwc(0))
-                               ubv(ey) = (ssf*sin(twoPi*(kx*(x0)+ky*(
+                                 ubv(ey) = (ssf*sin(twoPi*(kx*(x0)+ky*(
      & y0)-cc*(t)))*pwc(1))
-                               ubv(hz) = (ssf*sin(twoPi*(kx*(x0)+ky*(
+                                 ubv(hz) = (ssf*sin(twoPi*(kx*(x0)+ky*(
      & y0)-cc*(t)))*pwc(5))
-                             else if( numberOfTimeDerivatives==1 )then
-                               ubv(ex) = (ssf*(-twoPi*cc)*cos(twoPi*(
+                               else if( numberOfTimeDerivatives==1 )
+     & then
+                                 ubv(ex) = (ssf*(-twoPi*cc)*cos(twoPi*(
      & kx*(x0)+ky*(y0)-cc*(t)))*pwc(0)+ssft*sin(twoPi*(kx*(x0)+ky*(y0)
      & -cc*(t)))*pwc(0))
-                               ubv(ey) = (ssf*(-twoPi*cc)*cos(twoPi*(
+                                 ubv(ey) = (ssf*(-twoPi*cc)*cos(twoPi*(
      & kx*(x0)+ky*(y0)-cc*(t)))*pwc(1)+ssft*sin(twoPi*(kx*(x0)+ky*(y0)
      & -cc*(t)))*pwc(1))
-                               ubv(hz) = (ssf*(-twoPi*cc)*cos(twoPi*(
+                                 ubv(hz) = (ssf*(-twoPi*cc)*cos(twoPi*(
      & kx*(x0)+ky*(y0)-cc*(t)))*pwc(5)+ssft*sin(twoPi*(kx*(x0)+ky*(y0)
      & -cc*(t)))*pwc(5))
-                             else if( numberOfTimeDerivatives==2 )then
-                               ubv(ex) = (ssf*(-(twoPi*cc)**2*sin(
+                               else if( numberOfTimeDerivatives==2 )
+     & then
+                                 ubv(ex) = (ssf*(-(twoPi*cc)**2*sin(
      & twoPi*(kx*(x0)+ky*(y0)-cc*(t)))*pwc(0))+2.*ssft*(-twoPi*cc)*
      & cos(twoPi*(kx*(x0)+ky*(y0)-cc*(t)))*pwc(0)+ssftt*sin(twoPi*(kx*
      & (x0)+ky*(y0)-cc*(t)))*pwc(0))
-                               ubv(ey) = (ssf*(-(twoPi*cc)**2*sin(
+                                 ubv(ey) = (ssf*(-(twoPi*cc)**2*sin(
      & twoPi*(kx*(x0)+ky*(y0)-cc*(t)))*pwc(1))+2.*ssft*(-twoPi*cc)*
      & cos(twoPi*(kx*(x0)+ky*(y0)-cc*(t)))*pwc(1)+ssftt*sin(twoPi*(kx*
      & (x0)+ky*(y0)-cc*(t)))*pwc(1))
-                               ubv(hz) = (ssf*(-(twoPi*cc)**2*sin(
+                                 ubv(hz) = (ssf*(-(twoPi*cc)**2*sin(
      & twoPi*(kx*(x0)+ky*(y0)-cc*(t)))*pwc(5))+2.*ssft*(-twoPi*cc)*
      & cos(twoPi*(kx*(x0)+ky*(y0)-cc*(t)))*pwc(5)+ssftt*sin(twoPi*(kx*
      & (x0)+ky*(y0)-cc*(t)))*pwc(5))
-                             else if( numberOfTimeDerivatives==3 )then
-                               ubv(ex) = (ssf*((twoPi*cc)**3*cos(twoPi*
-     & (kx*(x0)+ky*(y0)-cc*(t)))*pwc(0))+3.*ssft*(-(twoPi*cc)**2*sin(
-     & twoPi*(kx*(x0)+ky*(y0)-cc*(t)))*pwc(0))+3.*ssftt*(-twoPi*cc)*
-     & cos(twoPi*(kx*(x0)+ky*(y0)-cc*(t)))*pwc(0)+ssfttt*sin(twoPi*(
-     & kx*(x0)+ky*(y0)-cc*(t)))*pwc(0))
-                               ubv(ey) = (ssf*((twoPi*cc)**3*cos(twoPi*
-     & (kx*(x0)+ky*(y0)-cc*(t)))*pwc(1))+3.*ssft*(-(twoPi*cc)**2*sin(
-     & twoPi*(kx*(x0)+ky*(y0)-cc*(t)))*pwc(1))+3.*ssftt*(-twoPi*cc)*
-     & cos(twoPi*(kx*(x0)+ky*(y0)-cc*(t)))*pwc(1)+ssfttt*sin(twoPi*(
-     & kx*(x0)+ky*(y0)-cc*(t)))*pwc(1))
-                               ubv(hz) = (ssf*((twoPi*cc)**3*cos(twoPi*
-     & (kx*(x0)+ky*(y0)-cc*(t)))*pwc(5))+3.*ssft*(-(twoPi*cc)**2*sin(
-     & twoPi*(kx*(x0)+ky*(y0)-cc*(t)))*pwc(5))+3.*ssftt*(-twoPi*cc)*
-     & cos(twoPi*(kx*(x0)+ky*(y0)-cc*(t)))*pwc(5)+ssfttt*sin(twoPi*(
-     & kx*(x0)+ky*(y0)-cc*(t)))*pwc(5))
-                             else if( numberOfTimeDerivatives==4 )then
-                               ubv(ex) = (ssf*((twoPi*cc)**4*sin(twoPi*
-     & (kx*(x0)+ky*(y0)-cc*(t)))*pwc(0))+4.*ssft*((twoPi*cc)**3*cos(
-     & twoPi*(kx*(x0)+ky*(y0)-cc*(t)))*pwc(0))+6.*ssftt*(-(twoPi*cc)**
-     & 2*sin(twoPi*(kx*(x0)+ky*(y0)-cc*(t)))*pwc(0))+4.*ssfttt*(-
+                               else if( numberOfTimeDerivatives==3 )
+     & then
+                                 ubv(ex) = (ssf*((twoPi*cc)**3*cos(
+     & twoPi*(kx*(x0)+ky*(y0)-cc*(t)))*pwc(0))+3.*ssft*(-(twoPi*cc)**
+     & 2*sin(twoPi*(kx*(x0)+ky*(y0)-cc*(t)))*pwc(0))+3.*ssftt*(-twoPi*
+     & cc)*cos(twoPi*(kx*(x0)+ky*(y0)-cc*(t)))*pwc(0)+ssfttt*sin(
+     & twoPi*(kx*(x0)+ky*(y0)-cc*(t)))*pwc(0))
+                                 ubv(ey) = (ssf*((twoPi*cc)**3*cos(
+     & twoPi*(kx*(x0)+ky*(y0)-cc*(t)))*pwc(1))+3.*ssft*(-(twoPi*cc)**
+     & 2*sin(twoPi*(kx*(x0)+ky*(y0)-cc*(t)))*pwc(1))+3.*ssftt*(-twoPi*
+     & cc)*cos(twoPi*(kx*(x0)+ky*(y0)-cc*(t)))*pwc(1)+ssfttt*sin(
+     & twoPi*(kx*(x0)+ky*(y0)-cc*(t)))*pwc(1))
+                                 ubv(hz) = (ssf*((twoPi*cc)**3*cos(
+     & twoPi*(kx*(x0)+ky*(y0)-cc*(t)))*pwc(5))+3.*ssft*(-(twoPi*cc)**
+     & 2*sin(twoPi*(kx*(x0)+ky*(y0)-cc*(t)))*pwc(5))+3.*ssftt*(-twoPi*
+     & cc)*cos(twoPi*(kx*(x0)+ky*(y0)-cc*(t)))*pwc(5)+ssfttt*sin(
+     & twoPi*(kx*(x0)+ky*(y0)-cc*(t)))*pwc(5))
+                               else if( numberOfTimeDerivatives==4 )
+     & then
+                                 ubv(ex) = (ssf*((twoPi*cc)**4*sin(
+     & twoPi*(kx*(x0)+ky*(y0)-cc*(t)))*pwc(0))+4.*ssft*((twoPi*cc)**3*
+     & cos(twoPi*(kx*(x0)+ky*(y0)-cc*(t)))*pwc(0))+6.*ssftt*(-(twoPi*
+     & cc)**2*sin(twoPi*(kx*(x0)+ky*(y0)-cc*(t)))*pwc(0))+4.*ssfttt*(-
      & twoPi*cc)*cos(twoPi*(kx*(x0)+ky*(y0)-cc*(t)))*pwc(0)+ssftttt*
      & sin(twoPi*(kx*(x0)+ky*(y0)-cc*(t)))*pwc(0))
-                               ubv(ey) = (ssf*((twoPi*cc)**4*sin(twoPi*
-     & (kx*(x0)+ky*(y0)-cc*(t)))*pwc(1))+4.*ssft*((twoPi*cc)**3*cos(
-     & twoPi*(kx*(x0)+ky*(y0)-cc*(t)))*pwc(1))+6.*ssftt*(-(twoPi*cc)**
-     & 2*sin(twoPi*(kx*(x0)+ky*(y0)-cc*(t)))*pwc(1))+4.*ssfttt*(-
+                                 ubv(ey) = (ssf*((twoPi*cc)**4*sin(
+     & twoPi*(kx*(x0)+ky*(y0)-cc*(t)))*pwc(1))+4.*ssft*((twoPi*cc)**3*
+     & cos(twoPi*(kx*(x0)+ky*(y0)-cc*(t)))*pwc(1))+6.*ssftt*(-(twoPi*
+     & cc)**2*sin(twoPi*(kx*(x0)+ky*(y0)-cc*(t)))*pwc(1))+4.*ssfttt*(-
      & twoPi*cc)*cos(twoPi*(kx*(x0)+ky*(y0)-cc*(t)))*pwc(1)+ssftttt*
      & sin(twoPi*(kx*(x0)+ky*(y0)-cc*(t)))*pwc(1))
-                               ubv(hz) = (ssf*((twoPi*cc)**4*sin(twoPi*
-     & (kx*(x0)+ky*(y0)-cc*(t)))*pwc(5))+4.*ssft*((twoPi*cc)**3*cos(
-     & twoPi*(kx*(x0)+ky*(y0)-cc*(t)))*pwc(5))+6.*ssftt*(-(twoPi*cc)**
-     & 2*sin(twoPi*(kx*(x0)+ky*(y0)-cc*(t)))*pwc(5))+4.*ssfttt*(-
+                                 ubv(hz) = (ssf*((twoPi*cc)**4*sin(
+     & twoPi*(kx*(x0)+ky*(y0)-cc*(t)))*pwc(5))+4.*ssft*((twoPi*cc)**3*
+     & cos(twoPi*(kx*(x0)+ky*(y0)-cc*(t)))*pwc(5))+6.*ssftt*(-(twoPi*
+     & cc)**2*sin(twoPi*(kx*(x0)+ky*(y0)-cc*(t)))*pwc(5))+4.*ssfttt*(-
      & twoPi*cc)*cos(twoPi*(kx*(x0)+ky*(y0)-cc*(t)))*pwc(5)+ssftttt*
      & sin(twoPi*(kx*(x0)+ky*(y0)-cc*(t)))*pwc(5))
-                             else
-                               stop 1738
-                             end if
+                               else
+                                 stop 1738
+                               end if
+                           else
+                               expt = exp(sr*t)
+                               xi = twoPi*(kx*(x0)+ky*(y0)) - si*(t)
+                               sinxi = sin(xi)*expt
+                               cosxi = cos(xi)*expt
+                               if( numberOfTimeDerivatives==0 )then
+                                 if( polarizationOption.eq.0 )then
+                                   ubv(ex) = sinxi*pwc(0)
+                                   ubv(ey) = sinxi*pwc(1)
+                                   ubv(hz) = hc*cosxi+hs*sinxi
+                                 else
+                                   ! polarization vector: (ex=pxc, ey=pyc) 
+                                   ubv(ex) = (pc*cosxi+ps*sinxi)*pwc(0)
+                                   ubv(ey) = (pc*cosxi+ps*sinxi)*pwc(1)
+                                  ! *check me* -- just repeat hz for now 
+                                   ubv(hz) = (hc*cosxi+hs*sinxi)*expt
+                                 end if
+                               else if( numberOfTimeDerivatives==1 )
+     & then
+                                 !write(*,'(" GDPW ntd=1 : fix me")')
+                                 !stop 2738
+                                 sinxip = -si*cosxi + sr*sinxi ! d(sinxi)/dt
+                                 cosxip =  si*sinxi + sr*cosxi ! d(cosxi)/dt
+                                 if( polarizationOption.eq.0 )then
+                                   ubv(ex) = sinxip*pwc(0)
+                                   ubv(ey) = sinxip*pwc(1)
+                                   ubv(hz) = hc*cosxip+hs*sinxip
+                                 else
+                                   ! polarization vector: (ex=pxc, ey=pyc) 
+                                   ubv(ex) = (pc*cosxip+ps*sinxip)*pwc(
+     & 0)
+                                   ubv(ey) = (pc*cosxip+ps*sinxip)*pwc(
+     & 1)
+                                   ! *check me* -- just repeat hz for now 
+                                   ubv(hz) = hc*cosxip+hs*sinxip
+                                 end if
+                               else if( numberOfTimeDerivatives==2 )
+     & then
+                                 ! write(*,'(" GDPW ntd=2 : fix me")')
+                                 ! stop 2738
+                                 sinxid = -si*cosxi + sr*sinxi ! d(sinxi)/dt
+                                 cosxid =  si*sinxi + sr*cosxi ! d(cosxi)/dt
+                                 sinxip = -si*cosxid + sr*sinxid ! d^2(sinxi)/dt^2
+                                 cosxip =  si*sinxid + sr*cosxid ! d^2(cosxi)/dt^2
+                                 if( polarizationOption.eq.0 )then
+                                   ubv(ex) = sinxip*pwc(0)
+                                   ubv(ey) = sinxip*pwc(1)
+                                   ubv(hz) = hc*cosxip+hs*sinxip
+                                 else
+                                   ! polarization vector: (ex=pxc, ey=pyc) 
+                                   ubv(ex) = (pc*cosxip+ps*sinxip)*pwc(
+     & 0)
+                                   ubv(ey) = (pc*cosxip+ps*sinxip)*pwc(
+     & 1)
+                                   ! *check me* -- just repeat hz for now 
+                                   ubv(hz) = hc*cosxip+hs*sinxip
+                                 end if
+                               else if( numberOfTimeDerivatives==3 )
+     & then
+                                 write(*,'(" GDPW ntd=3 : fix me")')
+                                 stop 2738
+                               else if( numberOfTimeDerivatives==4 )
+     & then
+                                 write(*,'(" GDPW ntd=4 : fix me")')
+                                 stop 2738
+                               else
+                                 stop 2738
+                               end if
+                           end if
                          else if(  
      & boundaryForcingOption.eq.chirpedPlaneWaveBoundaryForcing )then
                             xi0 = .5*(cpwTa+cpwTb)
@@ -2112,74 +2231,148 @@ c===============================================================================
      & boundaryForcingOption.eq.noBoundaryForcing )then
                          else if( 
      & boundaryForcingOption.eq.planeWaveBoundaryForcing )then
-                             if( numberOfTimeDerivatives==0 )then
-                               uv(ex) = (ssf*sin(twoPi*(kx*(x0)+ky*(y0)
+                           if( dispersionModel.eq.noDispersion )then
+                               if( numberOfTimeDerivatives==0 )then
+                                 uv(ex) = (ssf*sin(twoPi*(kx*(x0)+ky*(
+     & y0)-cc*(t)))*pwc(0))
+                                 uv(ey) = (ssf*sin(twoPi*(kx*(x0)+ky*(
+     & y0)-cc*(t)))*pwc(1))
+                                 uv(hz) = (ssf*sin(twoPi*(kx*(x0)+ky*(
+     & y0)-cc*(t)))*pwc(5))
+                               else if( numberOfTimeDerivatives==1 )
+     & then
+                                 uv(ex) = (ssf*(-twoPi*cc)*cos(twoPi*(
+     & kx*(x0)+ky*(y0)-cc*(t)))*pwc(0)+ssft*sin(twoPi*(kx*(x0)+ky*(y0)
      & -cc*(t)))*pwc(0))
-                               uv(ey) = (ssf*sin(twoPi*(kx*(x0)+ky*(y0)
+                                 uv(ey) = (ssf*(-twoPi*cc)*cos(twoPi*(
+     & kx*(x0)+ky*(y0)-cc*(t)))*pwc(1)+ssft*sin(twoPi*(kx*(x0)+ky*(y0)
      & -cc*(t)))*pwc(1))
-                               uv(hz) = (ssf*sin(twoPi*(kx*(x0)+ky*(y0)
+                                 uv(hz) = (ssf*(-twoPi*cc)*cos(twoPi*(
+     & kx*(x0)+ky*(y0)-cc*(t)))*pwc(5)+ssft*sin(twoPi*(kx*(x0)+ky*(y0)
      & -cc*(t)))*pwc(5))
-                             else if( numberOfTimeDerivatives==1 )then
-                               uv(ex) = (ssf*(-twoPi*cc)*cos(twoPi*(kx*
-     & (x0)+ky*(y0)-cc*(t)))*pwc(0)+ssft*sin(twoPi*(kx*(x0)+ky*(y0)-
-     & cc*(t)))*pwc(0))
-                               uv(ey) = (ssf*(-twoPi*cc)*cos(twoPi*(kx*
-     & (x0)+ky*(y0)-cc*(t)))*pwc(1)+ssft*sin(twoPi*(kx*(x0)+ky*(y0)-
-     & cc*(t)))*pwc(1))
-                               uv(hz) = (ssf*(-twoPi*cc)*cos(twoPi*(kx*
-     & (x0)+ky*(y0)-cc*(t)))*pwc(5)+ssft*sin(twoPi*(kx*(x0)+ky*(y0)-
-     & cc*(t)))*pwc(5))
-                             else if( numberOfTimeDerivatives==2 )then
-                               uv(ex) = (ssf*(-(twoPi*cc)**2*sin(twoPi*
-     & (kx*(x0)+ky*(y0)-cc*(t)))*pwc(0))+2.*ssft*(-twoPi*cc)*cos(
-     & twoPi*(kx*(x0)+ky*(y0)-cc*(t)))*pwc(0)+ssftt*sin(twoPi*(kx*(x0)
-     & +ky*(y0)-cc*(t)))*pwc(0))
-                               uv(ey) = (ssf*(-(twoPi*cc)**2*sin(twoPi*
-     & (kx*(x0)+ky*(y0)-cc*(t)))*pwc(1))+2.*ssft*(-twoPi*cc)*cos(
-     & twoPi*(kx*(x0)+ky*(y0)-cc*(t)))*pwc(1)+ssftt*sin(twoPi*(kx*(x0)
-     & +ky*(y0)-cc*(t)))*pwc(1))
-                               uv(hz) = (ssf*(-(twoPi*cc)**2*sin(twoPi*
-     & (kx*(x0)+ky*(y0)-cc*(t)))*pwc(5))+2.*ssft*(-twoPi*cc)*cos(
-     & twoPi*(kx*(x0)+ky*(y0)-cc*(t)))*pwc(5)+ssftt*sin(twoPi*(kx*(x0)
-     & +ky*(y0)-cc*(t)))*pwc(5))
-                             else if( numberOfTimeDerivatives==3 )then
-                               uv(ex) = (ssf*((twoPi*cc)**3*cos(twoPi*(
-     & kx*(x0)+ky*(y0)-cc*(t)))*pwc(0))+3.*ssft*(-(twoPi*cc)**2*sin(
-     & twoPi*(kx*(x0)+ky*(y0)-cc*(t)))*pwc(0))+3.*ssftt*(-twoPi*cc)*
-     & cos(twoPi*(kx*(x0)+ky*(y0)-cc*(t)))*pwc(0)+ssfttt*sin(twoPi*(
-     & kx*(x0)+ky*(y0)-cc*(t)))*pwc(0))
-                               uv(ey) = (ssf*((twoPi*cc)**3*cos(twoPi*(
-     & kx*(x0)+ky*(y0)-cc*(t)))*pwc(1))+3.*ssft*(-(twoPi*cc)**2*sin(
-     & twoPi*(kx*(x0)+ky*(y0)-cc*(t)))*pwc(1))+3.*ssftt*(-twoPi*cc)*
-     & cos(twoPi*(kx*(x0)+ky*(y0)-cc*(t)))*pwc(1)+ssfttt*sin(twoPi*(
-     & kx*(x0)+ky*(y0)-cc*(t)))*pwc(1))
-                               uv(hz) = (ssf*((twoPi*cc)**3*cos(twoPi*(
-     & kx*(x0)+ky*(y0)-cc*(t)))*pwc(5))+3.*ssft*(-(twoPi*cc)**2*sin(
-     & twoPi*(kx*(x0)+ky*(y0)-cc*(t)))*pwc(5))+3.*ssftt*(-twoPi*cc)*
-     & cos(twoPi*(kx*(x0)+ky*(y0)-cc*(t)))*pwc(5)+ssfttt*sin(twoPi*(
-     & kx*(x0)+ky*(y0)-cc*(t)))*pwc(5))
-                             else if( numberOfTimeDerivatives==4 )then
-                               uv(ex) = (ssf*((twoPi*cc)**4*sin(twoPi*(
-     & kx*(x0)+ky*(y0)-cc*(t)))*pwc(0))+4.*ssft*((twoPi*cc)**3*cos(
-     & twoPi*(kx*(x0)+ky*(y0)-cc*(t)))*pwc(0))+6.*ssftt*(-(twoPi*cc)**
-     & 2*sin(twoPi*(kx*(x0)+ky*(y0)-cc*(t)))*pwc(0))+4.*ssfttt*(-
+                               else if( numberOfTimeDerivatives==2 )
+     & then
+                                 uv(ex) = (ssf*(-(twoPi*cc)**2*sin(
+     & twoPi*(kx*(x0)+ky*(y0)-cc*(t)))*pwc(0))+2.*ssft*(-twoPi*cc)*
+     & cos(twoPi*(kx*(x0)+ky*(y0)-cc*(t)))*pwc(0)+ssftt*sin(twoPi*(kx*
+     & (x0)+ky*(y0)-cc*(t)))*pwc(0))
+                                 uv(ey) = (ssf*(-(twoPi*cc)**2*sin(
+     & twoPi*(kx*(x0)+ky*(y0)-cc*(t)))*pwc(1))+2.*ssft*(-twoPi*cc)*
+     & cos(twoPi*(kx*(x0)+ky*(y0)-cc*(t)))*pwc(1)+ssftt*sin(twoPi*(kx*
+     & (x0)+ky*(y0)-cc*(t)))*pwc(1))
+                                 uv(hz) = (ssf*(-(twoPi*cc)**2*sin(
+     & twoPi*(kx*(x0)+ky*(y0)-cc*(t)))*pwc(5))+2.*ssft*(-twoPi*cc)*
+     & cos(twoPi*(kx*(x0)+ky*(y0)-cc*(t)))*pwc(5)+ssftt*sin(twoPi*(kx*
+     & (x0)+ky*(y0)-cc*(t)))*pwc(5))
+                               else if( numberOfTimeDerivatives==3 )
+     & then
+                                 uv(ex) = (ssf*((twoPi*cc)**3*cos(
+     & twoPi*(kx*(x0)+ky*(y0)-cc*(t)))*pwc(0))+3.*ssft*(-(twoPi*cc)**
+     & 2*sin(twoPi*(kx*(x0)+ky*(y0)-cc*(t)))*pwc(0))+3.*ssftt*(-twoPi*
+     & cc)*cos(twoPi*(kx*(x0)+ky*(y0)-cc*(t)))*pwc(0)+ssfttt*sin(
+     & twoPi*(kx*(x0)+ky*(y0)-cc*(t)))*pwc(0))
+                                 uv(ey) = (ssf*((twoPi*cc)**3*cos(
+     & twoPi*(kx*(x0)+ky*(y0)-cc*(t)))*pwc(1))+3.*ssft*(-(twoPi*cc)**
+     & 2*sin(twoPi*(kx*(x0)+ky*(y0)-cc*(t)))*pwc(1))+3.*ssftt*(-twoPi*
+     & cc)*cos(twoPi*(kx*(x0)+ky*(y0)-cc*(t)))*pwc(1)+ssfttt*sin(
+     & twoPi*(kx*(x0)+ky*(y0)-cc*(t)))*pwc(1))
+                                 uv(hz) = (ssf*((twoPi*cc)**3*cos(
+     & twoPi*(kx*(x0)+ky*(y0)-cc*(t)))*pwc(5))+3.*ssft*(-(twoPi*cc)**
+     & 2*sin(twoPi*(kx*(x0)+ky*(y0)-cc*(t)))*pwc(5))+3.*ssftt*(-twoPi*
+     & cc)*cos(twoPi*(kx*(x0)+ky*(y0)-cc*(t)))*pwc(5)+ssfttt*sin(
+     & twoPi*(kx*(x0)+ky*(y0)-cc*(t)))*pwc(5))
+                               else if( numberOfTimeDerivatives==4 )
+     & then
+                                 uv(ex) = (ssf*((twoPi*cc)**4*sin(
+     & twoPi*(kx*(x0)+ky*(y0)-cc*(t)))*pwc(0))+4.*ssft*((twoPi*cc)**3*
+     & cos(twoPi*(kx*(x0)+ky*(y0)-cc*(t)))*pwc(0))+6.*ssftt*(-(twoPi*
+     & cc)**2*sin(twoPi*(kx*(x0)+ky*(y0)-cc*(t)))*pwc(0))+4.*ssfttt*(-
      & twoPi*cc)*cos(twoPi*(kx*(x0)+ky*(y0)-cc*(t)))*pwc(0)+ssftttt*
      & sin(twoPi*(kx*(x0)+ky*(y0)-cc*(t)))*pwc(0))
-                               uv(ey) = (ssf*((twoPi*cc)**4*sin(twoPi*(
-     & kx*(x0)+ky*(y0)-cc*(t)))*pwc(1))+4.*ssft*((twoPi*cc)**3*cos(
-     & twoPi*(kx*(x0)+ky*(y0)-cc*(t)))*pwc(1))+6.*ssftt*(-(twoPi*cc)**
-     & 2*sin(twoPi*(kx*(x0)+ky*(y0)-cc*(t)))*pwc(1))+4.*ssfttt*(-
+                                 uv(ey) = (ssf*((twoPi*cc)**4*sin(
+     & twoPi*(kx*(x0)+ky*(y0)-cc*(t)))*pwc(1))+4.*ssft*((twoPi*cc)**3*
+     & cos(twoPi*(kx*(x0)+ky*(y0)-cc*(t)))*pwc(1))+6.*ssftt*(-(twoPi*
+     & cc)**2*sin(twoPi*(kx*(x0)+ky*(y0)-cc*(t)))*pwc(1))+4.*ssfttt*(-
      & twoPi*cc)*cos(twoPi*(kx*(x0)+ky*(y0)-cc*(t)))*pwc(1)+ssftttt*
      & sin(twoPi*(kx*(x0)+ky*(y0)-cc*(t)))*pwc(1))
-                               uv(hz) = (ssf*((twoPi*cc)**4*sin(twoPi*(
-     & kx*(x0)+ky*(y0)-cc*(t)))*pwc(5))+4.*ssft*((twoPi*cc)**3*cos(
-     & twoPi*(kx*(x0)+ky*(y0)-cc*(t)))*pwc(5))+6.*ssftt*(-(twoPi*cc)**
-     & 2*sin(twoPi*(kx*(x0)+ky*(y0)-cc*(t)))*pwc(5))+4.*ssfttt*(-
+                                 uv(hz) = (ssf*((twoPi*cc)**4*sin(
+     & twoPi*(kx*(x0)+ky*(y0)-cc*(t)))*pwc(5))+4.*ssft*((twoPi*cc)**3*
+     & cos(twoPi*(kx*(x0)+ky*(y0)-cc*(t)))*pwc(5))+6.*ssftt*(-(twoPi*
+     & cc)**2*sin(twoPi*(kx*(x0)+ky*(y0)-cc*(t)))*pwc(5))+4.*ssfttt*(-
      & twoPi*cc)*cos(twoPi*(kx*(x0)+ky*(y0)-cc*(t)))*pwc(5)+ssftttt*
      & sin(twoPi*(kx*(x0)+ky*(y0)-cc*(t)))*pwc(5))
-                             else
-                               stop 1738
-                             end if
+                               else
+                                 stop 1738
+                               end if
+                           else
+                               expt = exp(sr*t)
+                               xi = twoPi*(kx*(x0)+ky*(y0)) - si*(t)
+                               sinxi = sin(xi)*expt
+                               cosxi = cos(xi)*expt
+                               if( numberOfTimeDerivatives==0 )then
+                                 if( polarizationOption.eq.0 )then
+                                   uv(ex) = sinxi*pwc(0)
+                                   uv(ey) = sinxi*pwc(1)
+                                   uv(hz) = hc*cosxi+hs*sinxi
+                                 else
+                                   ! polarization vector: (ex=pxc, ey=pyc) 
+                                   uv(ex) = (pc*cosxi+ps*sinxi)*pwc(0)
+                                   uv(ey) = (pc*cosxi+ps*sinxi)*pwc(1)
+                                  ! *check me* -- just repeat hz for now 
+                                   uv(hz) = (hc*cosxi+hs*sinxi)*expt
+                                 end if
+                               else if( numberOfTimeDerivatives==1 )
+     & then
+                                 !write(*,'(" GDPW ntd=1 : fix me")')
+                                 !stop 2738
+                                 sinxip = -si*cosxi + sr*sinxi ! d(sinxi)/dt
+                                 cosxip =  si*sinxi + sr*cosxi ! d(cosxi)/dt
+                                 if( polarizationOption.eq.0 )then
+                                   uv(ex) = sinxip*pwc(0)
+                                   uv(ey) = sinxip*pwc(1)
+                                   uv(hz) = hc*cosxip+hs*sinxip
+                                 else
+                                   ! polarization vector: (ex=pxc, ey=pyc) 
+                                   uv(ex) = (pc*cosxip+ps*sinxip)*pwc(
+     & 0)
+                                   uv(ey) = (pc*cosxip+ps*sinxip)*pwc(
+     & 1)
+                                   ! *check me* -- just repeat hz for now 
+                                   uv(hz) = hc*cosxip+hs*sinxip
+                                 end if
+                               else if( numberOfTimeDerivatives==2 )
+     & then
+                                 ! write(*,'(" GDPW ntd=2 : fix me")')
+                                 ! stop 2738
+                                 sinxid = -si*cosxi + sr*sinxi ! d(sinxi)/dt
+                                 cosxid =  si*sinxi + sr*cosxi ! d(cosxi)/dt
+                                 sinxip = -si*cosxid + sr*sinxid ! d^2(sinxi)/dt^2
+                                 cosxip =  si*sinxid + sr*cosxid ! d^2(cosxi)/dt^2
+                                 if( polarizationOption.eq.0 )then
+                                   uv(ex) = sinxip*pwc(0)
+                                   uv(ey) = sinxip*pwc(1)
+                                   uv(hz) = hc*cosxip+hs*sinxip
+                                 else
+                                   ! polarization vector: (ex=pxc, ey=pyc) 
+                                   uv(ex) = (pc*cosxip+ps*sinxip)*pwc(
+     & 0)
+                                   uv(ey) = (pc*cosxip+ps*sinxip)*pwc(
+     & 1)
+                                   ! *check me* -- just repeat hz for now 
+                                   uv(hz) = hc*cosxip+hs*sinxip
+                                 end if
+                               else if( numberOfTimeDerivatives==3 )
+     & then
+                                 write(*,'(" GDPW ntd=3 : fix me")')
+                                 stop 2738
+                               else if( numberOfTimeDerivatives==4 )
+     & then
+                                 write(*,'(" GDPW ntd=4 : fix me")')
+                                 stop 2738
+                               else
+                                 stop 2738
+                               end if
+                           end if
                          else if(  
      & boundaryForcingOption.eq.chirpedPlaneWaveBoundaryForcing )then
                             xi0 = .5*(cpwTa+cpwTb)
@@ -2393,8 +2586,8 @@ c===============================================================================
                    tau2=rsxy(i1,i2,i3,axisp1,1)
                    tau1DotU=(tau1*u(i1,i2,i3,ex)+tau2*u(i1,i2,i3,ey))/(
      & tau1**2+tau2**2)
-                     call ogf2dfo(ep,fieldOption,xy(i1    ,i2    ,i3,0)
-     & ,xy(i1    ,i2    ,i3,1),t, u0,v0,w0)
+                     call ogf2dfo(ep,ex,ey,hz,fieldOption,xy(i1    ,i2 
+     &    ,i3,0),xy(i1    ,i2    ,i3,1),t, u0,v0,w0)
                      tau1DotU = tau1DotU - ( tau1*u0 + tau2*v0 )/(tau1*
      & *2+tau2**2)
                    u(i1,i2,i3,ex)=u(i1,i2,i3,ex)-tau1DotU*tau1
@@ -2421,8 +2614,8 @@ c===============================================================================
                  do i3=n3a,n3b
                  do i2=n2a,n2b
                  do i1=n1a,n1b
-                     call ogf2dfo(ep,fieldOption,xy(i1    ,i2    ,i3,0)
-     & ,xy(i1    ,i2    ,i3,1),t, u0,v0,w0)
+                     call ogf2dfo(ep,ex,ey,hz,fieldOption,xy(i1    ,i2 
+     &    ,i3,0),xy(i1    ,i2    ,i3,1),t, u0,v0,w0)
                      uv(ex)=u0
                      uv(ey)=v0
                      u(i1,i2,i3,et1)=uv(et1)
@@ -2468,80 +2661,116 @@ c===============================================================================
      & boundaryForcingOption.eq.noBoundaryForcing )then
                          else if( 
      & boundaryForcingOption.eq.planeWaveBoundaryForcing )then
-                             if( numberOfTimeDerivatives==0 )then
-                               ubv(ex) = (ssf*sin(twoPi*(kx*(x0)+ky*(
+                           if( dispersionModel.eq.noDispersion )then
+                               if( numberOfTimeDerivatives==0 )then
+                                 ubv(ex) = (ssf*sin(twoPi*(kx*(x0)+ky*(
      & y0)+kz*(z0)-cc*(t)))*pwc(0))
-                               ubv(ey) = (ssf*sin(twoPi*(kx*(x0)+ky*(
+                                 ubv(ey) = (ssf*sin(twoPi*(kx*(x0)+ky*(
      & y0)+kz*(z0)-cc*(t)))*pwc(1))
-                               ubv(ez) = (ssf*sin(twoPi*(kx*(x0)+ky*(
+                                 ubv(ez) = (ssf*sin(twoPi*(kx*(x0)+ky*(
      & y0)+kz*(z0)-cc*(t)))*pwc(2))
-                             else if( numberOfTimeDerivatives==1 )then
-                               ubv(ex) = (ssf*(-twoPi*cc)*cos(twoPi*(
+                               else if( numberOfTimeDerivatives==1 )
+     & then
+                                 ubv(ex) = (ssf*(-twoPi*cc)*cos(twoPi*(
      & kx*(x0)+ky*(y0)+kz*(z0)-cc*(t)))*pwc(0)+ssft*sin(twoPi*(kx*(x0)
      & +ky*(y0)+kz*(z0)-cc*(t)))*pwc(0))
-                               ubv(ey) = (ssf*(-twoPi*cc)*cos(twoPi*(
+                                 ubv(ey) = (ssf*(-twoPi*cc)*cos(twoPi*(
      & kx*(x0)+ky*(y0)+kz*(z0)-cc*(t)))*pwc(1)+ssft*sin(twoPi*(kx*(x0)
      & +ky*(y0)+kz*(z0)-cc*(t)))*pwc(1))
-                               ubv(ez) = (ssf*(-twoPi*cc)*cos(twoPi*(
+                                 ubv(ez) = (ssf*(-twoPi*cc)*cos(twoPi*(
      & kx*(x0)+ky*(y0)+kz*(z0)-cc*(t)))*pwc(2)+ssft*sin(twoPi*(kx*(x0)
      & +ky*(y0)+kz*(z0)-cc*(t)))*pwc(2))
-                             else if( numberOfTimeDerivatives==2 )then
-                               ubv(ex) = (ssf*(-(twoPi*cc)**2*sin(
+                               else if( numberOfTimeDerivatives==2 )
+     & then
+                                 ubv(ex) = (ssf*(-(twoPi*cc)**2*sin(
      & twoPi*(kx*(x0)+ky*(y0)+kz*(z0)-cc*(t)))*pwc(0))+2.*ssft*(-
      & twoPi*cc)*cos(twoPi*(kx*(x0)+ky*(y0)+kz*(z0)-cc*(t)))*pwc(0)+
      & ssftt*sin(twoPi*(kx*(x0)+ky*(y0)+kz*(z0)-cc*(t)))*pwc(0))
-                               ubv(ey) = (ssf*(-(twoPi*cc)**2*sin(
+                                 ubv(ey) = (ssf*(-(twoPi*cc)**2*sin(
      & twoPi*(kx*(x0)+ky*(y0)+kz*(z0)-cc*(t)))*pwc(1))+2.*ssft*(-
      & twoPi*cc)*cos(twoPi*(kx*(x0)+ky*(y0)+kz*(z0)-cc*(t)))*pwc(1)+
      & ssftt*sin(twoPi*(kx*(x0)+ky*(y0)+kz*(z0)-cc*(t)))*pwc(1))
-                               ubv(ez) = (ssf*(-(twoPi*cc)**2*sin(
+                                 ubv(ez) = (ssf*(-(twoPi*cc)**2*sin(
      & twoPi*(kx*(x0)+ky*(y0)+kz*(z0)-cc*(t)))*pwc(2))+2.*ssft*(-
      & twoPi*cc)*cos(twoPi*(kx*(x0)+ky*(y0)+kz*(z0)-cc*(t)))*pwc(2)+
      & ssftt*sin(twoPi*(kx*(x0)+ky*(y0)+kz*(z0)-cc*(t)))*pwc(2))
-                             else if( numberOfTimeDerivatives==3 )then
-                               ubv(ex) = (ssf*((twoPi*cc)**3*cos(twoPi*
-     & (kx*(x0)+ky*(y0)+kz*(z0)-cc*(t)))*pwc(0))+3.*ssft*(-(twoPi*cc)*
-     & *2*sin(twoPi*(kx*(x0)+ky*(y0)+kz*(z0)-cc*(t)))*pwc(0))+3.*
-     & ssftt*(-twoPi*cc)*cos(twoPi*(kx*(x0)+ky*(y0)+kz*(z0)-cc*(t)))*
-     & pwc(0)+ssfttt*sin(twoPi*(kx*(x0)+ky*(y0)+kz*(z0)-cc*(t)))*pwc(
-     & 0))
-                               ubv(ey) = (ssf*((twoPi*cc)**3*cos(twoPi*
-     & (kx*(x0)+ky*(y0)+kz*(z0)-cc*(t)))*pwc(1))+3.*ssft*(-(twoPi*cc)*
-     & *2*sin(twoPi*(kx*(x0)+ky*(y0)+kz*(z0)-cc*(t)))*pwc(1))+3.*
-     & ssftt*(-twoPi*cc)*cos(twoPi*(kx*(x0)+ky*(y0)+kz*(z0)-cc*(t)))*
-     & pwc(1)+ssfttt*sin(twoPi*(kx*(x0)+ky*(y0)+kz*(z0)-cc*(t)))*pwc(
-     & 1))
-                               ubv(ez) = (ssf*((twoPi*cc)**3*cos(twoPi*
-     & (kx*(x0)+ky*(y0)+kz*(z0)-cc*(t)))*pwc(2))+3.*ssft*(-(twoPi*cc)*
-     & *2*sin(twoPi*(kx*(x0)+ky*(y0)+kz*(z0)-cc*(t)))*pwc(2))+3.*
-     & ssftt*(-twoPi*cc)*cos(twoPi*(kx*(x0)+ky*(y0)+kz*(z0)-cc*(t)))*
-     & pwc(2)+ssfttt*sin(twoPi*(kx*(x0)+ky*(y0)+kz*(z0)-cc*(t)))*pwc(
-     & 2))
-                             else if( numberOfTimeDerivatives==4 )then
-                               ubv(ex) = (ssf*((twoPi*cc)**4*sin(twoPi*
-     & (kx*(x0)+ky*(y0)+kz*(z0)-cc*(t)))*pwc(0))+4.*ssft*((twoPi*cc)**
-     & 3*cos(twoPi*(kx*(x0)+ky*(y0)+kz*(z0)-cc*(t)))*pwc(0))+6.*ssftt*
-     & (-(twoPi*cc)**2*sin(twoPi*(kx*(x0)+ky*(y0)+kz*(z0)-cc*(t)))*
-     & pwc(0))+4.*ssfttt*(-twoPi*cc)*cos(twoPi*(kx*(x0)+ky*(y0)+kz*(
-     & z0)-cc*(t)))*pwc(0)+ssftttt*sin(twoPi*(kx*(x0)+ky*(y0)+kz*(z0)-
-     & cc*(t)))*pwc(0))
-                               ubv(ey) = (ssf*((twoPi*cc)**4*sin(twoPi*
-     & (kx*(x0)+ky*(y0)+kz*(z0)-cc*(t)))*pwc(1))+4.*ssft*((twoPi*cc)**
-     & 3*cos(twoPi*(kx*(x0)+ky*(y0)+kz*(z0)-cc*(t)))*pwc(1))+6.*ssftt*
-     & (-(twoPi*cc)**2*sin(twoPi*(kx*(x0)+ky*(y0)+kz*(z0)-cc*(t)))*
-     & pwc(1))+4.*ssfttt*(-twoPi*cc)*cos(twoPi*(kx*(x0)+ky*(y0)+kz*(
-     & z0)-cc*(t)))*pwc(1)+ssftttt*sin(twoPi*(kx*(x0)+ky*(y0)+kz*(z0)-
-     & cc*(t)))*pwc(1))
-                               ubv(ez) = (ssf*((twoPi*cc)**4*sin(twoPi*
-     & (kx*(x0)+ky*(y0)+kz*(z0)-cc*(t)))*pwc(2))+4.*ssft*((twoPi*cc)**
-     & 3*cos(twoPi*(kx*(x0)+ky*(y0)+kz*(z0)-cc*(t)))*pwc(2))+6.*ssftt*
-     & (-(twoPi*cc)**2*sin(twoPi*(kx*(x0)+ky*(y0)+kz*(z0)-cc*(t)))*
-     & pwc(2))+4.*ssfttt*(-twoPi*cc)*cos(twoPi*(kx*(x0)+ky*(y0)+kz*(
-     & z0)-cc*(t)))*pwc(2)+ssftttt*sin(twoPi*(kx*(x0)+ky*(y0)+kz*(z0)-
-     & cc*(t)))*pwc(2))
-                             else
-                               stop 1739
-                             end if
+                               else if( numberOfTimeDerivatives==3 )
+     & then
+                                 ubv(ex) = (ssf*((twoPi*cc)**3*cos(
+     & twoPi*(kx*(x0)+ky*(y0)+kz*(z0)-cc*(t)))*pwc(0))+3.*ssft*(-(
+     & twoPi*cc)**2*sin(twoPi*(kx*(x0)+ky*(y0)+kz*(z0)-cc*(t)))*pwc(0)
+     & )+3.*ssftt*(-twoPi*cc)*cos(twoPi*(kx*(x0)+ky*(y0)+kz*(z0)-cc*(
+     & t)))*pwc(0)+ssfttt*sin(twoPi*(kx*(x0)+ky*(y0)+kz*(z0)-cc*(t)))*
+     & pwc(0))
+                                 ubv(ey) = (ssf*((twoPi*cc)**3*cos(
+     & twoPi*(kx*(x0)+ky*(y0)+kz*(z0)-cc*(t)))*pwc(1))+3.*ssft*(-(
+     & twoPi*cc)**2*sin(twoPi*(kx*(x0)+ky*(y0)+kz*(z0)-cc*(t)))*pwc(1)
+     & )+3.*ssftt*(-twoPi*cc)*cos(twoPi*(kx*(x0)+ky*(y0)+kz*(z0)-cc*(
+     & t)))*pwc(1)+ssfttt*sin(twoPi*(kx*(x0)+ky*(y0)+kz*(z0)-cc*(t)))*
+     & pwc(1))
+                                 ubv(ez) = (ssf*((twoPi*cc)**3*cos(
+     & twoPi*(kx*(x0)+ky*(y0)+kz*(z0)-cc*(t)))*pwc(2))+3.*ssft*(-(
+     & twoPi*cc)**2*sin(twoPi*(kx*(x0)+ky*(y0)+kz*(z0)-cc*(t)))*pwc(2)
+     & )+3.*ssftt*(-twoPi*cc)*cos(twoPi*(kx*(x0)+ky*(y0)+kz*(z0)-cc*(
+     & t)))*pwc(2)+ssfttt*sin(twoPi*(kx*(x0)+ky*(y0)+kz*(z0)-cc*(t)))*
+     & pwc(2))
+                               else if( numberOfTimeDerivatives==4 )
+     & then
+                                 ubv(ex) = (ssf*((twoPi*cc)**4*sin(
+     & twoPi*(kx*(x0)+ky*(y0)+kz*(z0)-cc*(t)))*pwc(0))+4.*ssft*((
+     & twoPi*cc)**3*cos(twoPi*(kx*(x0)+ky*(y0)+kz*(z0)-cc*(t)))*pwc(0)
+     & )+6.*ssftt*(-(twoPi*cc)**2*sin(twoPi*(kx*(x0)+ky*(y0)+kz*(z0)-
+     & cc*(t)))*pwc(0))+4.*ssfttt*(-twoPi*cc)*cos(twoPi*(kx*(x0)+ky*(
+     & y0)+kz*(z0)-cc*(t)))*pwc(0)+ssftttt*sin(twoPi*(kx*(x0)+ky*(y0)+
+     & kz*(z0)-cc*(t)))*pwc(0))
+                                 ubv(ey) = (ssf*((twoPi*cc)**4*sin(
+     & twoPi*(kx*(x0)+ky*(y0)+kz*(z0)-cc*(t)))*pwc(1))+4.*ssft*((
+     & twoPi*cc)**3*cos(twoPi*(kx*(x0)+ky*(y0)+kz*(z0)-cc*(t)))*pwc(1)
+     & )+6.*ssftt*(-(twoPi*cc)**2*sin(twoPi*(kx*(x0)+ky*(y0)+kz*(z0)-
+     & cc*(t)))*pwc(1))+4.*ssfttt*(-twoPi*cc)*cos(twoPi*(kx*(x0)+ky*(
+     & y0)+kz*(z0)-cc*(t)))*pwc(1)+ssftttt*sin(twoPi*(kx*(x0)+ky*(y0)+
+     & kz*(z0)-cc*(t)))*pwc(1))
+                                 ubv(ez) = (ssf*((twoPi*cc)**4*sin(
+     & twoPi*(kx*(x0)+ky*(y0)+kz*(z0)-cc*(t)))*pwc(2))+4.*ssft*((
+     & twoPi*cc)**3*cos(twoPi*(kx*(x0)+ky*(y0)+kz*(z0)-cc*(t)))*pwc(2)
+     & )+6.*ssftt*(-(twoPi*cc)**2*sin(twoPi*(kx*(x0)+ky*(y0)+kz*(z0)-
+     & cc*(t)))*pwc(2))+4.*ssfttt*(-twoPi*cc)*cos(twoPi*(kx*(x0)+ky*(
+     & y0)+kz*(z0)-cc*(t)))*pwc(2)+ssftttt*sin(twoPi*(kx*(x0)+ky*(y0)+
+     & kz*(z0)-cc*(t)))*pwc(2))
+                               else
+                                 stop 1739
+                               end if
+                           else
+                               write(*,'(" GDPW3D : fix me")')
+                               stop 2739
+                               if( numberOfTimeDerivatives==0 )then
+                                 ! ubv(ex) = planeWave3Dex(x0,y0,z0,t)
+                                 ! ubv(ey) = planeWave3Dey(x0,y0,z0,t)
+                                 ! ubv(ez) = planeWave3Dez(x0,y0,z0,t)
+                               else if( numberOfTimeDerivatives==1 )
+     & then
+                                 ! ubv(ex) = planeWave3Dext(x0,y0,z0,t)
+                                 ! ubv(ey) = planeWave3Deyt(x0,y0,z0,t)
+                                 ! ubv(ez) = planeWave3Dezt(x0,y0,z0,t)
+                               else if( numberOfTimeDerivatives==2 )
+     & then
+                                 ! ubv(ex) = planeWave3Dextt(x0,y0,z0,t)
+                                 ! ubv(ey) = planeWave3Deytt(x0,y0,z0,t)
+                                 ! ubv(ez) = planeWave3Deztt(x0,y0,z0,t)
+                               else if( numberOfTimeDerivatives==3 )
+     & then
+                                 ! ubv(ex) = planeWave3Dexttt(x0,y0,z0,t)
+                                 ! ubv(ey) = planeWave3Deyttt(x0,y0,z0,t)
+                                 ! ubv(ez) = planeWave3Dezttt(x0,y0,z0,t)
+                               else if( numberOfTimeDerivatives==4 )
+     & then
+                                 ! ubv(ex) = planeWave3Dextttt(x0,y0,z0,t)
+                                 ! ubv(ey) = planeWave3Deytttt(x0,y0,z0,t)
+                                 ! ubv(ez) = planeWave3Deztttt(x0,y0,z0,t)
+                               else
+                                 stop 2739
+                               end if
+                           end if
                          else if(  
      & boundaryForcingOption.eq.chirpedPlaneWaveBoundaryForcing )then
                             ! xi = kx*(x0)+ky*(y0)-cc*(t) - xi0 
@@ -2745,80 +2974,116 @@ c===============================================================================
      & boundaryForcingOption.eq.noBoundaryForcing )then
                          else if( 
      & boundaryForcingOption.eq.planeWaveBoundaryForcing )then
-                             if( numberOfTimeDerivatives==0 )then
-                               ubv(ex) = (ssf*sin(twoPi*(kx*(x0)+ky*(
+                           if( dispersionModel.eq.noDispersion )then
+                               if( numberOfTimeDerivatives==0 )then
+                                 ubv(ex) = (ssf*sin(twoPi*(kx*(x0)+ky*(
      & y0)+kz*(z0)-cc*(t)))*pwc(0))
-                               ubv(ey) = (ssf*sin(twoPi*(kx*(x0)+ky*(
+                                 ubv(ey) = (ssf*sin(twoPi*(kx*(x0)+ky*(
      & y0)+kz*(z0)-cc*(t)))*pwc(1))
-                               ubv(ez) = (ssf*sin(twoPi*(kx*(x0)+ky*(
+                                 ubv(ez) = (ssf*sin(twoPi*(kx*(x0)+ky*(
      & y0)+kz*(z0)-cc*(t)))*pwc(2))
-                             else if( numberOfTimeDerivatives==1 )then
-                               ubv(ex) = (ssf*(-twoPi*cc)*cos(twoPi*(
+                               else if( numberOfTimeDerivatives==1 )
+     & then
+                                 ubv(ex) = (ssf*(-twoPi*cc)*cos(twoPi*(
      & kx*(x0)+ky*(y0)+kz*(z0)-cc*(t)))*pwc(0)+ssft*sin(twoPi*(kx*(x0)
      & +ky*(y0)+kz*(z0)-cc*(t)))*pwc(0))
-                               ubv(ey) = (ssf*(-twoPi*cc)*cos(twoPi*(
+                                 ubv(ey) = (ssf*(-twoPi*cc)*cos(twoPi*(
      & kx*(x0)+ky*(y0)+kz*(z0)-cc*(t)))*pwc(1)+ssft*sin(twoPi*(kx*(x0)
      & +ky*(y0)+kz*(z0)-cc*(t)))*pwc(1))
-                               ubv(ez) = (ssf*(-twoPi*cc)*cos(twoPi*(
+                                 ubv(ez) = (ssf*(-twoPi*cc)*cos(twoPi*(
      & kx*(x0)+ky*(y0)+kz*(z0)-cc*(t)))*pwc(2)+ssft*sin(twoPi*(kx*(x0)
      & +ky*(y0)+kz*(z0)-cc*(t)))*pwc(2))
-                             else if( numberOfTimeDerivatives==2 )then
-                               ubv(ex) = (ssf*(-(twoPi*cc)**2*sin(
+                               else if( numberOfTimeDerivatives==2 )
+     & then
+                                 ubv(ex) = (ssf*(-(twoPi*cc)**2*sin(
      & twoPi*(kx*(x0)+ky*(y0)+kz*(z0)-cc*(t)))*pwc(0))+2.*ssft*(-
      & twoPi*cc)*cos(twoPi*(kx*(x0)+ky*(y0)+kz*(z0)-cc*(t)))*pwc(0)+
      & ssftt*sin(twoPi*(kx*(x0)+ky*(y0)+kz*(z0)-cc*(t)))*pwc(0))
-                               ubv(ey) = (ssf*(-(twoPi*cc)**2*sin(
+                                 ubv(ey) = (ssf*(-(twoPi*cc)**2*sin(
      & twoPi*(kx*(x0)+ky*(y0)+kz*(z0)-cc*(t)))*pwc(1))+2.*ssft*(-
      & twoPi*cc)*cos(twoPi*(kx*(x0)+ky*(y0)+kz*(z0)-cc*(t)))*pwc(1)+
      & ssftt*sin(twoPi*(kx*(x0)+ky*(y0)+kz*(z0)-cc*(t)))*pwc(1))
-                               ubv(ez) = (ssf*(-(twoPi*cc)**2*sin(
+                                 ubv(ez) = (ssf*(-(twoPi*cc)**2*sin(
      & twoPi*(kx*(x0)+ky*(y0)+kz*(z0)-cc*(t)))*pwc(2))+2.*ssft*(-
      & twoPi*cc)*cos(twoPi*(kx*(x0)+ky*(y0)+kz*(z0)-cc*(t)))*pwc(2)+
      & ssftt*sin(twoPi*(kx*(x0)+ky*(y0)+kz*(z0)-cc*(t)))*pwc(2))
-                             else if( numberOfTimeDerivatives==3 )then
-                               ubv(ex) = (ssf*((twoPi*cc)**3*cos(twoPi*
-     & (kx*(x0)+ky*(y0)+kz*(z0)-cc*(t)))*pwc(0))+3.*ssft*(-(twoPi*cc)*
-     & *2*sin(twoPi*(kx*(x0)+ky*(y0)+kz*(z0)-cc*(t)))*pwc(0))+3.*
-     & ssftt*(-twoPi*cc)*cos(twoPi*(kx*(x0)+ky*(y0)+kz*(z0)-cc*(t)))*
-     & pwc(0)+ssfttt*sin(twoPi*(kx*(x0)+ky*(y0)+kz*(z0)-cc*(t)))*pwc(
-     & 0))
-                               ubv(ey) = (ssf*((twoPi*cc)**3*cos(twoPi*
-     & (kx*(x0)+ky*(y0)+kz*(z0)-cc*(t)))*pwc(1))+3.*ssft*(-(twoPi*cc)*
-     & *2*sin(twoPi*(kx*(x0)+ky*(y0)+kz*(z0)-cc*(t)))*pwc(1))+3.*
-     & ssftt*(-twoPi*cc)*cos(twoPi*(kx*(x0)+ky*(y0)+kz*(z0)-cc*(t)))*
-     & pwc(1)+ssfttt*sin(twoPi*(kx*(x0)+ky*(y0)+kz*(z0)-cc*(t)))*pwc(
-     & 1))
-                               ubv(ez) = (ssf*((twoPi*cc)**3*cos(twoPi*
-     & (kx*(x0)+ky*(y0)+kz*(z0)-cc*(t)))*pwc(2))+3.*ssft*(-(twoPi*cc)*
-     & *2*sin(twoPi*(kx*(x0)+ky*(y0)+kz*(z0)-cc*(t)))*pwc(2))+3.*
-     & ssftt*(-twoPi*cc)*cos(twoPi*(kx*(x0)+ky*(y0)+kz*(z0)-cc*(t)))*
-     & pwc(2)+ssfttt*sin(twoPi*(kx*(x0)+ky*(y0)+kz*(z0)-cc*(t)))*pwc(
-     & 2))
-                             else if( numberOfTimeDerivatives==4 )then
-                               ubv(ex) = (ssf*((twoPi*cc)**4*sin(twoPi*
-     & (kx*(x0)+ky*(y0)+kz*(z0)-cc*(t)))*pwc(0))+4.*ssft*((twoPi*cc)**
-     & 3*cos(twoPi*(kx*(x0)+ky*(y0)+kz*(z0)-cc*(t)))*pwc(0))+6.*ssftt*
-     & (-(twoPi*cc)**2*sin(twoPi*(kx*(x0)+ky*(y0)+kz*(z0)-cc*(t)))*
-     & pwc(0))+4.*ssfttt*(-twoPi*cc)*cos(twoPi*(kx*(x0)+ky*(y0)+kz*(
-     & z0)-cc*(t)))*pwc(0)+ssftttt*sin(twoPi*(kx*(x0)+ky*(y0)+kz*(z0)-
-     & cc*(t)))*pwc(0))
-                               ubv(ey) = (ssf*((twoPi*cc)**4*sin(twoPi*
-     & (kx*(x0)+ky*(y0)+kz*(z0)-cc*(t)))*pwc(1))+4.*ssft*((twoPi*cc)**
-     & 3*cos(twoPi*(kx*(x0)+ky*(y0)+kz*(z0)-cc*(t)))*pwc(1))+6.*ssftt*
-     & (-(twoPi*cc)**2*sin(twoPi*(kx*(x0)+ky*(y0)+kz*(z0)-cc*(t)))*
-     & pwc(1))+4.*ssfttt*(-twoPi*cc)*cos(twoPi*(kx*(x0)+ky*(y0)+kz*(
-     & z0)-cc*(t)))*pwc(1)+ssftttt*sin(twoPi*(kx*(x0)+ky*(y0)+kz*(z0)-
-     & cc*(t)))*pwc(1))
-                               ubv(ez) = (ssf*((twoPi*cc)**4*sin(twoPi*
-     & (kx*(x0)+ky*(y0)+kz*(z0)-cc*(t)))*pwc(2))+4.*ssft*((twoPi*cc)**
-     & 3*cos(twoPi*(kx*(x0)+ky*(y0)+kz*(z0)-cc*(t)))*pwc(2))+6.*ssftt*
-     & (-(twoPi*cc)**2*sin(twoPi*(kx*(x0)+ky*(y0)+kz*(z0)-cc*(t)))*
-     & pwc(2))+4.*ssfttt*(-twoPi*cc)*cos(twoPi*(kx*(x0)+ky*(y0)+kz*(
-     & z0)-cc*(t)))*pwc(2)+ssftttt*sin(twoPi*(kx*(x0)+ky*(y0)+kz*(z0)-
-     & cc*(t)))*pwc(2))
-                             else
-                               stop 1739
-                             end if
+                               else if( numberOfTimeDerivatives==3 )
+     & then
+                                 ubv(ex) = (ssf*((twoPi*cc)**3*cos(
+     & twoPi*(kx*(x0)+ky*(y0)+kz*(z0)-cc*(t)))*pwc(0))+3.*ssft*(-(
+     & twoPi*cc)**2*sin(twoPi*(kx*(x0)+ky*(y0)+kz*(z0)-cc*(t)))*pwc(0)
+     & )+3.*ssftt*(-twoPi*cc)*cos(twoPi*(kx*(x0)+ky*(y0)+kz*(z0)-cc*(
+     & t)))*pwc(0)+ssfttt*sin(twoPi*(kx*(x0)+ky*(y0)+kz*(z0)-cc*(t)))*
+     & pwc(0))
+                                 ubv(ey) = (ssf*((twoPi*cc)**3*cos(
+     & twoPi*(kx*(x0)+ky*(y0)+kz*(z0)-cc*(t)))*pwc(1))+3.*ssft*(-(
+     & twoPi*cc)**2*sin(twoPi*(kx*(x0)+ky*(y0)+kz*(z0)-cc*(t)))*pwc(1)
+     & )+3.*ssftt*(-twoPi*cc)*cos(twoPi*(kx*(x0)+ky*(y0)+kz*(z0)-cc*(
+     & t)))*pwc(1)+ssfttt*sin(twoPi*(kx*(x0)+ky*(y0)+kz*(z0)-cc*(t)))*
+     & pwc(1))
+                                 ubv(ez) = (ssf*((twoPi*cc)**3*cos(
+     & twoPi*(kx*(x0)+ky*(y0)+kz*(z0)-cc*(t)))*pwc(2))+3.*ssft*(-(
+     & twoPi*cc)**2*sin(twoPi*(kx*(x0)+ky*(y0)+kz*(z0)-cc*(t)))*pwc(2)
+     & )+3.*ssftt*(-twoPi*cc)*cos(twoPi*(kx*(x0)+ky*(y0)+kz*(z0)-cc*(
+     & t)))*pwc(2)+ssfttt*sin(twoPi*(kx*(x0)+ky*(y0)+kz*(z0)-cc*(t)))*
+     & pwc(2))
+                               else if( numberOfTimeDerivatives==4 )
+     & then
+                                 ubv(ex) = (ssf*((twoPi*cc)**4*sin(
+     & twoPi*(kx*(x0)+ky*(y0)+kz*(z0)-cc*(t)))*pwc(0))+4.*ssft*((
+     & twoPi*cc)**3*cos(twoPi*(kx*(x0)+ky*(y0)+kz*(z0)-cc*(t)))*pwc(0)
+     & )+6.*ssftt*(-(twoPi*cc)**2*sin(twoPi*(kx*(x0)+ky*(y0)+kz*(z0)-
+     & cc*(t)))*pwc(0))+4.*ssfttt*(-twoPi*cc)*cos(twoPi*(kx*(x0)+ky*(
+     & y0)+kz*(z0)-cc*(t)))*pwc(0)+ssftttt*sin(twoPi*(kx*(x0)+ky*(y0)+
+     & kz*(z0)-cc*(t)))*pwc(0))
+                                 ubv(ey) = (ssf*((twoPi*cc)**4*sin(
+     & twoPi*(kx*(x0)+ky*(y0)+kz*(z0)-cc*(t)))*pwc(1))+4.*ssft*((
+     & twoPi*cc)**3*cos(twoPi*(kx*(x0)+ky*(y0)+kz*(z0)-cc*(t)))*pwc(1)
+     & )+6.*ssftt*(-(twoPi*cc)**2*sin(twoPi*(kx*(x0)+ky*(y0)+kz*(z0)-
+     & cc*(t)))*pwc(1))+4.*ssfttt*(-twoPi*cc)*cos(twoPi*(kx*(x0)+ky*(
+     & y0)+kz*(z0)-cc*(t)))*pwc(1)+ssftttt*sin(twoPi*(kx*(x0)+ky*(y0)+
+     & kz*(z0)-cc*(t)))*pwc(1))
+                                 ubv(ez) = (ssf*((twoPi*cc)**4*sin(
+     & twoPi*(kx*(x0)+ky*(y0)+kz*(z0)-cc*(t)))*pwc(2))+4.*ssft*((
+     & twoPi*cc)**3*cos(twoPi*(kx*(x0)+ky*(y0)+kz*(z0)-cc*(t)))*pwc(2)
+     & )+6.*ssftt*(-(twoPi*cc)**2*sin(twoPi*(kx*(x0)+ky*(y0)+kz*(z0)-
+     & cc*(t)))*pwc(2))+4.*ssfttt*(-twoPi*cc)*cos(twoPi*(kx*(x0)+ky*(
+     & y0)+kz*(z0)-cc*(t)))*pwc(2)+ssftttt*sin(twoPi*(kx*(x0)+ky*(y0)+
+     & kz*(z0)-cc*(t)))*pwc(2))
+                               else
+                                 stop 1739
+                               end if
+                           else
+                               write(*,'(" GDPW3D : fix me")')
+                               stop 2739
+                               if( numberOfTimeDerivatives==0 )then
+                                 ! ubv(ex) = planeWave3Dex(x0,y0,z0,t)
+                                 ! ubv(ey) = planeWave3Dey(x0,y0,z0,t)
+                                 ! ubv(ez) = planeWave3Dez(x0,y0,z0,t)
+                               else if( numberOfTimeDerivatives==1 )
+     & then
+                                 ! ubv(ex) = planeWave3Dext(x0,y0,z0,t)
+                                 ! ubv(ey) = planeWave3Deyt(x0,y0,z0,t)
+                                 ! ubv(ez) = planeWave3Dezt(x0,y0,z0,t)
+                               else if( numberOfTimeDerivatives==2 )
+     & then
+                                 ! ubv(ex) = planeWave3Dextt(x0,y0,z0,t)
+                                 ! ubv(ey) = planeWave3Deytt(x0,y0,z0,t)
+                                 ! ubv(ez) = planeWave3Deztt(x0,y0,z0,t)
+                               else if( numberOfTimeDerivatives==3 )
+     & then
+                                 ! ubv(ex) = planeWave3Dexttt(x0,y0,z0,t)
+                                 ! ubv(ey) = planeWave3Deyttt(x0,y0,z0,t)
+                                 ! ubv(ez) = planeWave3Dezttt(x0,y0,z0,t)
+                               else if( numberOfTimeDerivatives==4 )
+     & then
+                                 ! ubv(ex) = planeWave3Dextttt(x0,y0,z0,t)
+                                 ! ubv(ey) = planeWave3Deytttt(x0,y0,z0,t)
+                                 ! ubv(ez) = planeWave3Deztttt(x0,y0,z0,t)
+                               else
+                                 stop 2739
+                               end if
+                           end if
                          else if(  
      & boundaryForcingOption.eq.chirpedPlaneWaveBoundaryForcing )then
                             ! xi = kx*(x0)+ky*(y0)-cc*(t) - xi0 
@@ -3027,77 +3292,116 @@ c===============================================================================
      & boundaryForcingOption.eq.noBoundaryForcing )then
                          else if( 
      & boundaryForcingOption.eq.planeWaveBoundaryForcing )then
-                             if( numberOfTimeDerivatives==0 )then
-                               uv(ex) = (ssf*sin(twoPi*(kx*(x0)+ky*(y0)
-     & +kz*(z0)-cc*(t)))*pwc(0))
-                               uv(ey) = (ssf*sin(twoPi*(kx*(x0)+ky*(y0)
-     & +kz*(z0)-cc*(t)))*pwc(1))
-                               uv(ez) = (ssf*sin(twoPi*(kx*(x0)+ky*(y0)
-     & +kz*(z0)-cc*(t)))*pwc(2))
-                             else if( numberOfTimeDerivatives==1 )then
-                               uv(ex) = (ssf*(-twoPi*cc)*cos(twoPi*(kx*
-     & (x0)+ky*(y0)+kz*(z0)-cc*(t)))*pwc(0)+ssft*sin(twoPi*(kx*(x0)+
-     & ky*(y0)+kz*(z0)-cc*(t)))*pwc(0))
-                               uv(ey) = (ssf*(-twoPi*cc)*cos(twoPi*(kx*
-     & (x0)+ky*(y0)+kz*(z0)-cc*(t)))*pwc(1)+ssft*sin(twoPi*(kx*(x0)+
-     & ky*(y0)+kz*(z0)-cc*(t)))*pwc(1))
-                               uv(ez) = (ssf*(-twoPi*cc)*cos(twoPi*(kx*
-     & (x0)+ky*(y0)+kz*(z0)-cc*(t)))*pwc(2)+ssft*sin(twoPi*(kx*(x0)+
-     & ky*(y0)+kz*(z0)-cc*(t)))*pwc(2))
-                             else if( numberOfTimeDerivatives==2 )then
-                               uv(ex) = (ssf*(-(twoPi*cc)**2*sin(twoPi*
-     & (kx*(x0)+ky*(y0)+kz*(z0)-cc*(t)))*pwc(0))+2.*ssft*(-twoPi*cc)*
-     & cos(twoPi*(kx*(x0)+ky*(y0)+kz*(z0)-cc*(t)))*pwc(0)+ssftt*sin(
-     & twoPi*(kx*(x0)+ky*(y0)+kz*(z0)-cc*(t)))*pwc(0))
-                               uv(ey) = (ssf*(-(twoPi*cc)**2*sin(twoPi*
-     & (kx*(x0)+ky*(y0)+kz*(z0)-cc*(t)))*pwc(1))+2.*ssft*(-twoPi*cc)*
-     & cos(twoPi*(kx*(x0)+ky*(y0)+kz*(z0)-cc*(t)))*pwc(1)+ssftt*sin(
-     & twoPi*(kx*(x0)+ky*(y0)+kz*(z0)-cc*(t)))*pwc(1))
-                               uv(ez) = (ssf*(-(twoPi*cc)**2*sin(twoPi*
-     & (kx*(x0)+ky*(y0)+kz*(z0)-cc*(t)))*pwc(2))+2.*ssft*(-twoPi*cc)*
-     & cos(twoPi*(kx*(x0)+ky*(y0)+kz*(z0)-cc*(t)))*pwc(2)+ssftt*sin(
-     & twoPi*(kx*(x0)+ky*(y0)+kz*(z0)-cc*(t)))*pwc(2))
-                             else if( numberOfTimeDerivatives==3 )then
-                               uv(ex) = (ssf*((twoPi*cc)**3*cos(twoPi*(
-     & kx*(x0)+ky*(y0)+kz*(z0)-cc*(t)))*pwc(0))+3.*ssft*(-(twoPi*cc)**
-     & 2*sin(twoPi*(kx*(x0)+ky*(y0)+kz*(z0)-cc*(t)))*pwc(0))+3.*ssftt*
-     & (-twoPi*cc)*cos(twoPi*(kx*(x0)+ky*(y0)+kz*(z0)-cc*(t)))*pwc(0)+
-     & ssfttt*sin(twoPi*(kx*(x0)+ky*(y0)+kz*(z0)-cc*(t)))*pwc(0))
-                               uv(ey) = (ssf*((twoPi*cc)**3*cos(twoPi*(
-     & kx*(x0)+ky*(y0)+kz*(z0)-cc*(t)))*pwc(1))+3.*ssft*(-(twoPi*cc)**
-     & 2*sin(twoPi*(kx*(x0)+ky*(y0)+kz*(z0)-cc*(t)))*pwc(1))+3.*ssftt*
-     & (-twoPi*cc)*cos(twoPi*(kx*(x0)+ky*(y0)+kz*(z0)-cc*(t)))*pwc(1)+
-     & ssfttt*sin(twoPi*(kx*(x0)+ky*(y0)+kz*(z0)-cc*(t)))*pwc(1))
-                               uv(ez) = (ssf*((twoPi*cc)**3*cos(twoPi*(
-     & kx*(x0)+ky*(y0)+kz*(z0)-cc*(t)))*pwc(2))+3.*ssft*(-(twoPi*cc)**
-     & 2*sin(twoPi*(kx*(x0)+ky*(y0)+kz*(z0)-cc*(t)))*pwc(2))+3.*ssftt*
-     & (-twoPi*cc)*cos(twoPi*(kx*(x0)+ky*(y0)+kz*(z0)-cc*(t)))*pwc(2)+
-     & ssfttt*sin(twoPi*(kx*(x0)+ky*(y0)+kz*(z0)-cc*(t)))*pwc(2))
-                             else if( numberOfTimeDerivatives==4 )then
-                               uv(ex) = (ssf*((twoPi*cc)**4*sin(twoPi*(
-     & kx*(x0)+ky*(y0)+kz*(z0)-cc*(t)))*pwc(0))+4.*ssft*((twoPi*cc)**
-     & 3*cos(twoPi*(kx*(x0)+ky*(y0)+kz*(z0)-cc*(t)))*pwc(0))+6.*ssftt*
-     & (-(twoPi*cc)**2*sin(twoPi*(kx*(x0)+ky*(y0)+kz*(z0)-cc*(t)))*
-     & pwc(0))+4.*ssfttt*(-twoPi*cc)*cos(twoPi*(kx*(x0)+ky*(y0)+kz*(
-     & z0)-cc*(t)))*pwc(0)+ssftttt*sin(twoPi*(kx*(x0)+ky*(y0)+kz*(z0)-
-     & cc*(t)))*pwc(0))
-                               uv(ey) = (ssf*((twoPi*cc)**4*sin(twoPi*(
-     & kx*(x0)+ky*(y0)+kz*(z0)-cc*(t)))*pwc(1))+4.*ssft*((twoPi*cc)**
-     & 3*cos(twoPi*(kx*(x0)+ky*(y0)+kz*(z0)-cc*(t)))*pwc(1))+6.*ssftt*
-     & (-(twoPi*cc)**2*sin(twoPi*(kx*(x0)+ky*(y0)+kz*(z0)-cc*(t)))*
-     & pwc(1))+4.*ssfttt*(-twoPi*cc)*cos(twoPi*(kx*(x0)+ky*(y0)+kz*(
-     & z0)-cc*(t)))*pwc(1)+ssftttt*sin(twoPi*(kx*(x0)+ky*(y0)+kz*(z0)-
-     & cc*(t)))*pwc(1))
-                               uv(ez) = (ssf*((twoPi*cc)**4*sin(twoPi*(
-     & kx*(x0)+ky*(y0)+kz*(z0)-cc*(t)))*pwc(2))+4.*ssft*((twoPi*cc)**
-     & 3*cos(twoPi*(kx*(x0)+ky*(y0)+kz*(z0)-cc*(t)))*pwc(2))+6.*ssftt*
-     & (-(twoPi*cc)**2*sin(twoPi*(kx*(x0)+ky*(y0)+kz*(z0)-cc*(t)))*
-     & pwc(2))+4.*ssfttt*(-twoPi*cc)*cos(twoPi*(kx*(x0)+ky*(y0)+kz*(
-     & z0)-cc*(t)))*pwc(2)+ssftttt*sin(twoPi*(kx*(x0)+ky*(y0)+kz*(z0)-
-     & cc*(t)))*pwc(2))
-                             else
-                               stop 1739
-                             end if
+                           if( dispersionModel.eq.noDispersion )then
+                               if( numberOfTimeDerivatives==0 )then
+                                 uv(ex) = (ssf*sin(twoPi*(kx*(x0)+ky*(
+     & y0)+kz*(z0)-cc*(t)))*pwc(0))
+                                 uv(ey) = (ssf*sin(twoPi*(kx*(x0)+ky*(
+     & y0)+kz*(z0)-cc*(t)))*pwc(1))
+                                 uv(ez) = (ssf*sin(twoPi*(kx*(x0)+ky*(
+     & y0)+kz*(z0)-cc*(t)))*pwc(2))
+                               else if( numberOfTimeDerivatives==1 )
+     & then
+                                 uv(ex) = (ssf*(-twoPi*cc)*cos(twoPi*(
+     & kx*(x0)+ky*(y0)+kz*(z0)-cc*(t)))*pwc(0)+ssft*sin(twoPi*(kx*(x0)
+     & +ky*(y0)+kz*(z0)-cc*(t)))*pwc(0))
+                                 uv(ey) = (ssf*(-twoPi*cc)*cos(twoPi*(
+     & kx*(x0)+ky*(y0)+kz*(z0)-cc*(t)))*pwc(1)+ssft*sin(twoPi*(kx*(x0)
+     & +ky*(y0)+kz*(z0)-cc*(t)))*pwc(1))
+                                 uv(ez) = (ssf*(-twoPi*cc)*cos(twoPi*(
+     & kx*(x0)+ky*(y0)+kz*(z0)-cc*(t)))*pwc(2)+ssft*sin(twoPi*(kx*(x0)
+     & +ky*(y0)+kz*(z0)-cc*(t)))*pwc(2))
+                               else if( numberOfTimeDerivatives==2 )
+     & then
+                                 uv(ex) = (ssf*(-(twoPi*cc)**2*sin(
+     & twoPi*(kx*(x0)+ky*(y0)+kz*(z0)-cc*(t)))*pwc(0))+2.*ssft*(-
+     & twoPi*cc)*cos(twoPi*(kx*(x0)+ky*(y0)+kz*(z0)-cc*(t)))*pwc(0)+
+     & ssftt*sin(twoPi*(kx*(x0)+ky*(y0)+kz*(z0)-cc*(t)))*pwc(0))
+                                 uv(ey) = (ssf*(-(twoPi*cc)**2*sin(
+     & twoPi*(kx*(x0)+ky*(y0)+kz*(z0)-cc*(t)))*pwc(1))+2.*ssft*(-
+     & twoPi*cc)*cos(twoPi*(kx*(x0)+ky*(y0)+kz*(z0)-cc*(t)))*pwc(1)+
+     & ssftt*sin(twoPi*(kx*(x0)+ky*(y0)+kz*(z0)-cc*(t)))*pwc(1))
+                                 uv(ez) = (ssf*(-(twoPi*cc)**2*sin(
+     & twoPi*(kx*(x0)+ky*(y0)+kz*(z0)-cc*(t)))*pwc(2))+2.*ssft*(-
+     & twoPi*cc)*cos(twoPi*(kx*(x0)+ky*(y0)+kz*(z0)-cc*(t)))*pwc(2)+
+     & ssftt*sin(twoPi*(kx*(x0)+ky*(y0)+kz*(z0)-cc*(t)))*pwc(2))
+                               else if( numberOfTimeDerivatives==3 )
+     & then
+                                 uv(ex) = (ssf*((twoPi*cc)**3*cos(
+     & twoPi*(kx*(x0)+ky*(y0)+kz*(z0)-cc*(t)))*pwc(0))+3.*ssft*(-(
+     & twoPi*cc)**2*sin(twoPi*(kx*(x0)+ky*(y0)+kz*(z0)-cc*(t)))*pwc(0)
+     & )+3.*ssftt*(-twoPi*cc)*cos(twoPi*(kx*(x0)+ky*(y0)+kz*(z0)-cc*(
+     & t)))*pwc(0)+ssfttt*sin(twoPi*(kx*(x0)+ky*(y0)+kz*(z0)-cc*(t)))*
+     & pwc(0))
+                                 uv(ey) = (ssf*((twoPi*cc)**3*cos(
+     & twoPi*(kx*(x0)+ky*(y0)+kz*(z0)-cc*(t)))*pwc(1))+3.*ssft*(-(
+     & twoPi*cc)**2*sin(twoPi*(kx*(x0)+ky*(y0)+kz*(z0)-cc*(t)))*pwc(1)
+     & )+3.*ssftt*(-twoPi*cc)*cos(twoPi*(kx*(x0)+ky*(y0)+kz*(z0)-cc*(
+     & t)))*pwc(1)+ssfttt*sin(twoPi*(kx*(x0)+ky*(y0)+kz*(z0)-cc*(t)))*
+     & pwc(1))
+                                 uv(ez) = (ssf*((twoPi*cc)**3*cos(
+     & twoPi*(kx*(x0)+ky*(y0)+kz*(z0)-cc*(t)))*pwc(2))+3.*ssft*(-(
+     & twoPi*cc)**2*sin(twoPi*(kx*(x0)+ky*(y0)+kz*(z0)-cc*(t)))*pwc(2)
+     & )+3.*ssftt*(-twoPi*cc)*cos(twoPi*(kx*(x0)+ky*(y0)+kz*(z0)-cc*(
+     & t)))*pwc(2)+ssfttt*sin(twoPi*(kx*(x0)+ky*(y0)+kz*(z0)-cc*(t)))*
+     & pwc(2))
+                               else if( numberOfTimeDerivatives==4 )
+     & then
+                                 uv(ex) = (ssf*((twoPi*cc)**4*sin(
+     & twoPi*(kx*(x0)+ky*(y0)+kz*(z0)-cc*(t)))*pwc(0))+4.*ssft*((
+     & twoPi*cc)**3*cos(twoPi*(kx*(x0)+ky*(y0)+kz*(z0)-cc*(t)))*pwc(0)
+     & )+6.*ssftt*(-(twoPi*cc)**2*sin(twoPi*(kx*(x0)+ky*(y0)+kz*(z0)-
+     & cc*(t)))*pwc(0))+4.*ssfttt*(-twoPi*cc)*cos(twoPi*(kx*(x0)+ky*(
+     & y0)+kz*(z0)-cc*(t)))*pwc(0)+ssftttt*sin(twoPi*(kx*(x0)+ky*(y0)+
+     & kz*(z0)-cc*(t)))*pwc(0))
+                                 uv(ey) = (ssf*((twoPi*cc)**4*sin(
+     & twoPi*(kx*(x0)+ky*(y0)+kz*(z0)-cc*(t)))*pwc(1))+4.*ssft*((
+     & twoPi*cc)**3*cos(twoPi*(kx*(x0)+ky*(y0)+kz*(z0)-cc*(t)))*pwc(1)
+     & )+6.*ssftt*(-(twoPi*cc)**2*sin(twoPi*(kx*(x0)+ky*(y0)+kz*(z0)-
+     & cc*(t)))*pwc(1))+4.*ssfttt*(-twoPi*cc)*cos(twoPi*(kx*(x0)+ky*(
+     & y0)+kz*(z0)-cc*(t)))*pwc(1)+ssftttt*sin(twoPi*(kx*(x0)+ky*(y0)+
+     & kz*(z0)-cc*(t)))*pwc(1))
+                                 uv(ez) = (ssf*((twoPi*cc)**4*sin(
+     & twoPi*(kx*(x0)+ky*(y0)+kz*(z0)-cc*(t)))*pwc(2))+4.*ssft*((
+     & twoPi*cc)**3*cos(twoPi*(kx*(x0)+ky*(y0)+kz*(z0)-cc*(t)))*pwc(2)
+     & )+6.*ssftt*(-(twoPi*cc)**2*sin(twoPi*(kx*(x0)+ky*(y0)+kz*(z0)-
+     & cc*(t)))*pwc(2))+4.*ssfttt*(-twoPi*cc)*cos(twoPi*(kx*(x0)+ky*(
+     & y0)+kz*(z0)-cc*(t)))*pwc(2)+ssftttt*sin(twoPi*(kx*(x0)+ky*(y0)+
+     & kz*(z0)-cc*(t)))*pwc(2))
+                               else
+                                 stop 1739
+                               end if
+                           else
+                               write(*,'(" GDPW3D : fix me")')
+                               stop 2739
+                               if( numberOfTimeDerivatives==0 )then
+                                 ! uv(ex) = planeWave3Dex(x0,y0,z0,t)
+                                 ! uv(ey) = planeWave3Dey(x0,y0,z0,t)
+                                 ! uv(ez) = planeWave3Dez(x0,y0,z0,t)
+                               else if( numberOfTimeDerivatives==1 )
+     & then
+                                 ! uv(ex) = planeWave3Dext(x0,y0,z0,t)
+                                 ! uv(ey) = planeWave3Deyt(x0,y0,z0,t)
+                                 ! uv(ez) = planeWave3Dezt(x0,y0,z0,t)
+                               else if( numberOfTimeDerivatives==2 )
+     & then
+                                 ! uv(ex) = planeWave3Dextt(x0,y0,z0,t)
+                                 ! uv(ey) = planeWave3Deytt(x0,y0,z0,t)
+                                 ! uv(ez) = planeWave3Deztt(x0,y0,z0,t)
+                               else if( numberOfTimeDerivatives==3 )
+     & then
+                                 ! uv(ex) = planeWave3Dexttt(x0,y0,z0,t)
+                                 ! uv(ey) = planeWave3Deyttt(x0,y0,z0,t)
+                                 ! uv(ez) = planeWave3Dezttt(x0,y0,z0,t)
+                               else if( numberOfTimeDerivatives==4 )
+     & then
+                                 ! uv(ex) = planeWave3Dextttt(x0,y0,z0,t)
+                                 ! uv(ey) = planeWave3Deytttt(x0,y0,z0,t)
+                                 ! uv(ez) = planeWave3Deztttt(x0,y0,z0,t)
+                               else
+                                 stop 2739
+                               end if
+                           end if
                          else if(  
      & boundaryForcingOption.eq.chirpedPlaneWaveBoundaryForcing )then
                             ! xi = kx*(x0)+ky*(y0)-cc*(t) - xi0 
@@ -3373,8 +3677,8 @@ c===============================================================================
                      !       tn . E = tn . E0
                      ! then set
                      !     E(new) = E(old) + E0 - (n.E0) n 
-                     call ogf3dfo(ep,fieldOption,xy(i1,i2,i3,0),xy(i1,
-     & i2,i3,1),xy(i1,i2,i3,2),t, u0,v0,w0)
+                     call ogf3dfo(ep,ex,ey,ez,fieldOption,xy(i1,i2,i3,
+     & 0),xy(i1,i2,i3,1),xy(i1,i2,i3,2),t, u0,v0,w0)
                      nDotE0 = an(0)*u0 + an(1)*v0 + an(2)*w0
                      u(i1,i2,i3,ex) = u(i1,i2,i3,ex) + u0 - nDotE0*an(
      & 0)
@@ -3401,8 +3705,8 @@ c===============================================================================
                    tau23=rsxy(i1,i2,i3,axisp2,2)
                    tau2DotU=(tau21*u(i1,i2,i3,ex)+tau22*u(i1,i2,i3,ey)+
      & tau23*u(i1,i2,i3,ez))/(tau21**2+tau22**2+tau23**2)
-                     call ogf3dfo(ep,fieldOption,xy(i1,i2,i3,0),xy(i1,
-     & i2,i3,1),xy(i1,i2,i3,2),t, u0,v0,w0)
+                     call ogf3dfo(ep,ex,ey,ez,fieldOption,xy(i1,i2,i3,
+     & 0),xy(i1,i2,i3,1),xy(i1,i2,i3,2),t, u0,v0,w0)
                      tau1DotU = tau1DotU - ( tau11*u0 + tau12*v0 + 
      & tau13*w0 )/(tau11**2+tau12**2+tau13**2)
                      tau2DotU = tau2DotU - ( tau21*u0 + tau22*v0 + 
@@ -3433,8 +3737,8 @@ c===============================================================================
                  do i3=n3a,n3b
                  do i2=n2a,n2b
                  do i1=n1a,n1b
-                     call ogf3dfo(ep,fieldOption,xy(i1,i2,i3,0),xy(i1,
-     & i2,i3,1),xy(i1,i2,i3,2),t, u0,v0,w0)
+                     call ogf3dfo(ep,ex,ey,ez,fieldOption,xy(i1,i2,i3,
+     & 0),xy(i1,i2,i3,1),xy(i1,i2,i3,2),t, u0,v0,w0)
                      uv(ex)=u0
                      uv(ey)=v0
                      uv(ez)=w0
@@ -3547,12 +3851,12 @@ c===============================================================================
                   do m=1,numberOfGhostPoints
                     js1=is1*m  ! shift to ghost point "m"
                     js2=is2*m
-                       call ogf2dfo(ep,fieldOption,xy(i1,i2,i3,0),xy(
-     & i1,i2,i3,1),t, u0,v0,w0)
-                       call ogf2dfo(ep,fieldOption,xy(i1,i2-js2,i3,0),
-     & xy(i1,i2-js2,i3,1),t, um,vm,wm)
-                       call ogf2dfo(ep,fieldOption,xy(i1,i2+js2,i3,0),
-     & xy(i1,i2+js2,i3,1),t, up,vp,wp)
+                       call ogf2dfo(ep,ex,ey,hz,fieldOption,xy(i1,i2,
+     & i3,0),xy(i1,i2,i3,1),t, u0,v0,w0)
+                       call ogf2dfo(ep,ex,ey,hz,fieldOption,xy(i1,i2-
+     & js2,i3,0),xy(i1,i2-js2,i3,1),t, um,vm,wm)
+                       call ogf2dfo(ep,ex,ey,hz,fieldOption,xy(i1,i2+
+     & js2,i3,0),xy(i1,i2+js2,i3,1),t, up,vp,wp)
                        g1=um-2.*u0+up
                        g2=vm-vp
                        g3=wm-wp
@@ -3560,10 +3864,10 @@ c===============================================================================
      & js2,i3,ex) +g1
                        u(i1,i2-js2,i3,ey)=u(i1,i2+js2,i3,ey)+g2
                        u(i1,i2-js2,i3,hz)=u(i1,i2+js2,i3,hz)+g3
-                       call ogf2dfo(ep,fieldOption,xy(i1-js1,i2,i3,0),
-     & xy(i1-js1,i2,i3,1),t, um,vm,wm)
-                       call ogf2dfo(ep,fieldOption,xy(i1+js1,i2,i3,0),
-     & xy(i1+js1,i2,i3,1),t, up,vp,wp)
+                       call ogf2dfo(ep,ex,ey,hz,fieldOption,xy(i1-js1,
+     & i2,i3,0),xy(i1-js1,i2,i3,1),t, um,vm,wm)
+                       call ogf2dfo(ep,ex,ey,hz,fieldOption,xy(i1+js1,
+     & i2,i3,0),xy(i1+js1,i2,i3,1),t, up,vp,wp)
                        g1=um-up
                        g2=vm-2.*v0+vp
                        g3=wm-wp
@@ -4213,13 +4517,13 @@ c===============================================================================
                      do i3=n3a,n3b
                      do i2=n2a,n2b
                      do i1=n1a,n1b
-                          call ogf3dfo(ep,fieldOption,xy(i1,i2,i3,0),
-     & xy(i1,i2,i3,1),xy(i1,i2,i3,2),t,u0,v0,w0)
+                          call ogf3dfo(ep,ex,ey,ez,fieldOption,xy(i1,
+     & i2,i3,0),xy(i1,i2,i3,1),xy(i1,i2,i3,2),t,u0,v0,w0)
                       if( edgeDirection.ne.0 )then
-                            call ogf3dfo(ep,fieldOption,xy(i1-js1,i2,
-     & i3,0),xy(i1-js1,i2,i3,1),xy(i1-js1,i2,i3,2),t,um,vm,wm)
-                            call ogf3dfo(ep,fieldOption,xy(i1+js1,i2,
-     & i3,0),xy(i1+js1,i2,i3,1),xy(i1+js1,i2,i3,2),t,up,vp,wp)
+                            call ogf3dfo(ep,ex,ey,ez,fieldOption,xy(i1-
+     & js1,i2,i3,0),xy(i1-js1,i2,i3,1),xy(i1-js1,i2,i3,2),t,um,vm,wm)
+                            call ogf3dfo(ep,ex,ey,ez,fieldOption,xy(i1+
+     & js1,i2,i3,0),xy(i1+js1,i2,i3,1),xy(i1+js1,i2,i3,2),t,up,vp,wp)
                           g1=um-up
                           g2=vm-2.*v0+vp
                           g3=wm-2.*w0+wp
@@ -4231,10 +4535,10 @@ c===============================================================================
      & i2,i3,ez) +g3
                       end if
                       if( edgeDirection.ne.1 )then
-                            call ogf3dfo(ep,fieldOption,xy(i1,i2-js2,
-     & i3,0),xy(i1,i2-js2,i3,1),xy(i1,i2-js2,i3,2),t,um,vm,wm)
-                            call ogf3dfo(ep,fieldOption,xy(i1,i2+js2,
-     & i3,0),xy(i1,i2+js2,i3,1),xy(i1,i2+js2,i3,2),t,up,vp,wp)
+                            call ogf3dfo(ep,ex,ey,ez,fieldOption,xy(i1,
+     & i2-js2,i3,0),xy(i1,i2-js2,i3,1),xy(i1,i2-js2,i3,2),t,um,vm,wm)
+                            call ogf3dfo(ep,ex,ey,ez,fieldOption,xy(i1,
+     & i2+js2,i3,0),xy(i1,i2+js2,i3,1),xy(i1,i2+js2,i3,2),t,up,vp,wp)
                           g1=um-2.*u0+up
                           g2=vm-vp
                           g3=wm-2.*w0+wp
@@ -4246,10 +4550,10 @@ c===============================================================================
      & js2,i3,ez) +g3
                       end if
                       if( edgeDirection.ne.2 )then
-                            call ogf3dfo(ep,fieldOption,xy(i1,i2,i3-
-     & js3,0),xy(i1,i2,i3-js3,1),xy(i1,i2,i3-js3,2),t,um,vm,wm)
-                            call ogf3dfo(ep,fieldOption,xy(i1,i2,i3+
-     & js3,0),xy(i1,i2,i3+js3,1),xy(i1,i2,i3+js3,2),t,up,vp,wp)
+                            call ogf3dfo(ep,ex,ey,ez,fieldOption,xy(i1,
+     & i2,i3-js3,0),xy(i1,i2,i3-js3,1),xy(i1,i2,i3-js3,2),t,um,vm,wm)
+                            call ogf3dfo(ep,ex,ey,ez,fieldOption,xy(i1,
+     & i2,i3+js3,0),xy(i1,i2,i3+js3,1),xy(i1,i2,i3+js3,2),t,up,vp,wp)
                           g1=um-2.*u0+up
                           g2=vm-2.*v0+vp
                           g3=wm-wp
@@ -4422,14 +4726,14 @@ c===============================================================================
                      do i2=n2a,n2b
                      do i1=n1a,n1b
                        ! We could check the mask ***
-                          call ogf3dfo(ep,fieldOption,xy(i1,i2,i3,0),
-     & xy(i1,i2,i3,1),xy(i1,i2,i3,2),t,u0,v0,w0)
-                          call ogf3dfo(ep,fieldOption,xy(i1-js1,i2-js2,
-     & i3-js3,0),xy(i1-js1,i2-js2,i3-js3,1),xy(i1-js1,i2-js2,i3-js3,2)
-     & ,t,um,vm,wm)
-                          call ogf3dfo(ep,fieldOption,xy(i1+js1,i2+js2,
-     & i3+js3,0),xy(i1+js1,i2+js2,i3+js3,1),xy(i1+js1,i2+js2,i3+js3,2)
-     & ,t,up,vp,wp)
+                          call ogf3dfo(ep,ex,ey,ez,fieldOption,xy(i1,
+     & i2,i3,0),xy(i1,i2,i3,1),xy(i1,i2,i3,2),t,u0,v0,w0)
+                          call ogf3dfo(ep,ex,ey,ez,fieldOption,xy(i1-
+     & js1,i2-js2,i3-js3,0),xy(i1-js1,i2-js2,i3-js3,1),xy(i1-js1,i2-
+     & js2,i3-js3,2),t,um,vm,wm)
+                          call ogf3dfo(ep,ex,ey,ez,fieldOption,xy(i1+
+     & js1,i2+js2,i3+js3,0),xy(i1+js1,i2+js2,i3+js3,1),xy(i1+js1,i2+
+     & js2,i3+js3,2),t,up,vp,wp)
                         g1=um      -up
                         g2=vm-2.*v0+vp
                         g3=wm-2.*w0+wp
@@ -4449,14 +4753,14 @@ c===============================================================================
                      do i2=n2a,n2b
                      do i1=n1a,n1b
                        ! We could check the mask ***
-                          call ogf3dfo(ep,fieldOption,xy(i1,i2,i3,0),
-     & xy(i1,i2,i3,1),xy(i1,i2,i3,2),t,u0,v0,w0)
-                          call ogf3dfo(ep,fieldOption,xy(i1-js1,i2-js2,
-     & i3-js3,0),xy(i1-js1,i2-js2,i3-js3,1),xy(i1-js1,i2-js2,i3-js3,2)
-     & ,t,um,vm,wm)
-                          call ogf3dfo(ep,fieldOption,xy(i1+js1,i2+js2,
-     & i3+js3,0),xy(i1+js1,i2+js2,i3+js3,1),xy(i1+js1,i2+js2,i3+js3,2)
-     & ,t,up,vp,wp)
+                          call ogf3dfo(ep,ex,ey,ez,fieldOption,xy(i1,
+     & i2,i3,0),xy(i1,i2,i3,1),xy(i1,i2,i3,2),t,u0,v0,w0)
+                          call ogf3dfo(ep,ex,ey,ez,fieldOption,xy(i1-
+     & js1,i2-js2,i3-js3,0),xy(i1-js1,i2-js2,i3-js3,1),xy(i1-js1,i2-
+     & js2,i3-js3,2),t,um,vm,wm)
+                          call ogf3dfo(ep,ex,ey,ez,fieldOption,xy(i1+
+     & js1,i2+js2,i3+js3,0),xy(i1+js1,i2+js2,i3+js3,1),xy(i1+js1,i2+
+     & js2,i3+js3,2),t,up,vp,wp)
                         g1=um-2.*u0+up
                         g2=vm      -vp
                         g3=wm-2.*w0+wp
@@ -4476,14 +4780,14 @@ c===============================================================================
                      do i2=n2a,n2b
                      do i1=n1a,n1b
                        ! We could check the mask ***
-                          call ogf3dfo(ep,fieldOption,xy(i1,i2,i3,0),
-     & xy(i1,i2,i3,1),xy(i1,i2,i3,2),t,u0,v0,w0)
-                          call ogf3dfo(ep,fieldOption,xy(i1-js1,i2-js2,
-     & i3-js3,0),xy(i1-js1,i2-js2,i3-js3,1),xy(i1-js1,i2-js2,i3-js3,2)
-     & ,t,um,vm,wm)
-                          call ogf3dfo(ep,fieldOption,xy(i1+js1,i2+js2,
-     & i3+js3,0),xy(i1+js1,i2+js2,i3+js3,1),xy(i1+js1,i2+js2,i3+js3,2)
-     & ,t,up,vp,wp)
+                          call ogf3dfo(ep,ex,ey,ez,fieldOption,xy(i1,
+     & i2,i3,0),xy(i1,i2,i3,1),xy(i1,i2,i3,2),t,u0,v0,w0)
+                          call ogf3dfo(ep,ex,ey,ez,fieldOption,xy(i1-
+     & js1,i2-js2,i3-js3,0),xy(i1-js1,i2-js2,i3-js3,1),xy(i1-js1,i2-
+     & js2,i3-js3,2),t,um,vm,wm)
+                          call ogf3dfo(ep,ex,ey,ez,fieldOption,xy(i1+
+     & js1,i2+js2,i3+js3,0),xy(i1+js1,i2+js2,i3+js3,1),xy(i1+js1,i2+
+     & js2,i3+js3,2),t,up,vp,wp)
                         g1=um-2.*u0+up
                         g2=vm-2.*v0+vp
                         g3=wm      -wp
@@ -4585,14 +4889,14 @@ c===============================================================================
                     dta=dr(2)*js3
                      ! *wdh* 2015/07/12 -- I think this is wrong: *fix me*
                      !   For  PEC corner:  E(-dx,-dy,-dz) = E(dx,dy,dz) 
-                         call ogf3dfo(ep,fieldOption,xy(i1,i2,i3,0),xy(
-     & i1,i2,i3,1),xy(i1,i2,i3,2),t,u0,v0,w0)
-                         call ogf3dfo(ep,fieldOption,xy(i1-js1,i2-js2,
-     & i3-js3,0),xy(i1-js1,i2-js2,i3-js3,1),xy(i1-js1,i2-js2,i3-js3,2)
-     & ,t,um,vm,wm)
-                         call ogf3dfo(ep,fieldOption,xy(i1+js1,i2+js2,
-     & i3+js3,0),xy(i1+js1,i2+js2,i3+js3,1),xy(i1+js1,i2+js2,i3+js3,2)
-     & ,t,up,vp,wp)
+                         call ogf3dfo(ep,ex,ey,ez,fieldOption,xy(i1,i2,
+     & i3,0),xy(i1,i2,i3,1),xy(i1,i2,i3,2),t,u0,v0,w0)
+                         call ogf3dfo(ep,ex,ey,ez,fieldOption,xy(i1-
+     & js1,i2-js2,i3-js3,0),xy(i1-js1,i2-js2,i3-js3,1),xy(i1-js1,i2-
+     & js2,i3-js3,2),t,um,vm,wm)
+                         call ogf3dfo(ep,ex,ey,ez,fieldOption,xy(i1+
+     & js1,i2+js2,i3+js3,0),xy(i1+js1,i2+js2,i3+js3,1),xy(i1+js1,i2+
+     & js2,i3+js3,2),t,up,vp,wp)
                        g1=um-up
                        g2=vm-vp
                        g3=wm-wp
@@ -5781,9 +6085,9 @@ c===============================================================================
      & a32*a2DotU-a12*a21*a3DotU+a12*a2DotU*a31-a1DotU*a31*a22+a1DotU*
      & a32*a21)/detnt
                       if( .true. .or. debug.gt.0 )then
-                          call ogf3dfo(ep,fieldOption,xy(i1-ms1,i2-ms2,
-     & i3-ms3,0),xy(i1-ms1,i2-ms2,i3-ms3,1),xy(i1-ms1,i2-ms2,i3-ms3,2)
-     & ,t,uvm(0),uvm(1),uvm(2))
+                          call ogf3dfo(ep,ex,ey,ez,fieldOption,xy(i1-
+     & ms1,i2-ms2,i3-ms3,0),xy(i1-ms1,i2-ms2,i3-ms3,1),xy(i1-ms1,i2-
+     & ms2,i3-ms3,2),t,uvm(0),uvm(1),uvm(2))
                         if( debug.gt.0 )then
                           write(*,'(" corner-edge-8: ghost-pt=",3i4," 
      & ls=",3i3," error=",3e9.1)') i1-ms1,i2-ms2,i3-ms3,ls1,ls2,ls3,u(
@@ -5803,36 +6107,36 @@ c===============================================================================
                         write(*,'("  a3Dotu,true=",2e11.3," err=",
      & e10.2)') a3Dotu,(a31*uvm(0)+a32*uvm(1)+a33*uvm(2)),a3Dotu-(a31*
      & uvm(0)+a32*uvm(1)+a33*uvm(2))
-                         call ogf3dfo(ep,fieldOption,xy(i1-is1-js1,i2-
-     & is2-js2,i3-is3-js3,0),xy(i1-is1-js1,i2-is2-js2,i3-is3-js3,1),
-     & xy(i1-is1-js1,i2-is2-js2,i3-is3-js3,2),t,uvmm(0),uvmm(1),uvmm(
-     & 2))
-                         call ogf3dfo(ep,fieldOption,xy(i1-js1,i2-js2,
-     & i3-js3,0),xy(i1-js1,i2-js2,i3-js3,1),xy(i1-js1,i2-js2,i3-js3,2)
-     & ,t,uvzm(0),uvzm(1),uvzm(2))
-                         call ogf3dfo(ep,fieldOption,xy(i1+is1-js1,i2+
-     & is2-js2,i3+is3-js3,0),xy(i1+is1-js1,i2+is2-js2,i3+is3-js3,1),
-     & xy(i1+is1-js1,i2+is2-js2,i3+is3-js3,2),t,uvpm(0),uvpm(1),uvpm(
-     & 2))
-                         call ogf3dfo(ep,fieldOption,xy(i1-is1,i2-is2,
-     & i3-is3,0),xy(i1-is1,i2-is2,i3-is3,1),xy(i1-is1,i2-is2,i3-is3,2)
-     & ,t,uvmz(0),uvmz(1),uvmz(2))
-                         call ogf3dfo(ep,fieldOption,xy(i1,i2,i3,0),xy(
-     & i1,i2,i3,1),xy(i1,i2,i3,2),t,uvzz(0),uvzz(1),uvzz(2))
-                         call ogf3dfo(ep,fieldOption,xy(i1+is1,i2+is2,
-     & i3+is3,0),xy(i1+is1,i2+is2,i3+is3,1),xy(i1+is1,i2+is2,i3+is3,2)
-     & ,t,uvpz(0),uvpz(1),uvpz(2))
-                         call ogf3dfo(ep,fieldOption,xy(i1-is1+js1,i2-
-     & is2+js2,i3-is3+js3,0),xy(i1-is1+js1,i2-is2+js2,i3-is3+js3,1),
-     & xy(i1-is1+js1,i2-is2+js2,i3-is3+js3,2),t,uvmp(0),uvmp(1),uvmp(
-     & 2))
-                         call ogf3dfo(ep,fieldOption,xy(i1+js1,i2+js2,
-     & i3+js3,0),xy(i1+js1,i2+js2,i3+js3,1),xy(i1+js1,i2+js2,i3+js3,2)
-     & ,t,uvzp(0),uvzp(1),uvzp(2))
-                         call ogf3dfo(ep,fieldOption,xy(i1+is1+js1,i2+
-     & is2+js2,i3+is3+js3,0),xy(i1+is1+js1,i2+is2+js2,i3+is3+js3,1),
-     & xy(i1+is1+js1,i2+is2+js2,i3+is3+js3,2),t,uvpp(0),uvpp(1),uvpp(
-     & 2))
+                         call ogf3dfo(ep,ex,ey,ez,fieldOption,xy(i1-
+     & is1-js1,i2-is2-js2,i3-is3-js3,0),xy(i1-is1-js1,i2-is2-js2,i3-
+     & is3-js3,1),xy(i1-is1-js1,i2-is2-js2,i3-is3-js3,2),t,uvmm(0),
+     & uvmm(1),uvmm(2))
+                         call ogf3dfo(ep,ex,ey,ez,fieldOption,xy(i1-
+     & js1,i2-js2,i3-js3,0),xy(i1-js1,i2-js2,i3-js3,1),xy(i1-js1,i2-
+     & js2,i3-js3,2),t,uvzm(0),uvzm(1),uvzm(2))
+                         call ogf3dfo(ep,ex,ey,ez,fieldOption,xy(i1+
+     & is1-js1,i2+is2-js2,i3+is3-js3,0),xy(i1+is1-js1,i2+is2-js2,i3+
+     & is3-js3,1),xy(i1+is1-js1,i2+is2-js2,i3+is3-js3,2),t,uvpm(0),
+     & uvpm(1),uvpm(2))
+                         call ogf3dfo(ep,ex,ey,ez,fieldOption,xy(i1-
+     & is1,i2-is2,i3-is3,0),xy(i1-is1,i2-is2,i3-is3,1),xy(i1-is1,i2-
+     & is2,i3-is3,2),t,uvmz(0),uvmz(1),uvmz(2))
+                         call ogf3dfo(ep,ex,ey,ez,fieldOption,xy(i1,i2,
+     & i3,0),xy(i1,i2,i3,1),xy(i1,i2,i3,2),t,uvzz(0),uvzz(1),uvzz(2))
+                         call ogf3dfo(ep,ex,ey,ez,fieldOption,xy(i1+
+     & is1,i2+is2,i3+is3,0),xy(i1+is1,i2+is2,i3+is3,1),xy(i1+is1,i2+
+     & is2,i3+is3,2),t,uvpz(0),uvpz(1),uvpz(2))
+                         call ogf3dfo(ep,ex,ey,ez,fieldOption,xy(i1-
+     & is1+js1,i2-is2+js2,i3-is3+js3,0),xy(i1-is1+js1,i2-is2+js2,i3-
+     & is3+js3,1),xy(i1-is1+js1,i2-is2+js2,i3-is3+js3,2),t,uvmp(0),
+     & uvmp(1),uvmp(2))
+                         call ogf3dfo(ep,ex,ey,ez,fieldOption,xy(i1+
+     & js1,i2+js2,i3+js3,0),xy(i1+js1,i2+js2,i3+js3,1),xy(i1+js1,i2+
+     & js2,i3+js3,2),t,uvzp(0),uvzp(1),uvzp(2))
+                         call ogf3dfo(ep,ex,ey,ez,fieldOption,xy(i1+
+     & is1+js1,i2+is2+js2,i3+is3+js3,0),xy(i1+is1+js1,i2+is2+js2,i3+
+     & is3+js3,1),xy(i1+is1+js1,i2+is2+js2,i3+is3+js3,2),t,uvpp(0),
+     & uvpp(1),uvpp(2))
                        ur0= ( uvpz(0)-uvmz(0) )/(2.*dra)
                        us0= ( uvzp(0)-uvzm(0) )/(2.*dsa)
                        urr0= ( uvpz(0)-2.*uvzz(0)+uvmz(0) )/(dra**2)

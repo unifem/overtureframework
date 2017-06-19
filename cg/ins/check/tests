@@ -17,20 +17,20 @@ cicMove
 #
 # -- order=4, explicit time-stepping, poly degree=(4,3), exact: 
 #
-sq4e.check ../cmd/tz.cmd -g=square10.order4 -degreex=4 -degreet=3 -ts=pc4 -useNewImp=0 -bcn=noSlip -bc1=inflow -bc2=outflow -tp=.05 -tf=.05 -go=go
-box4e.check ../cmd/tz.cmd -g=box10.order4 -degreex=4 -degreet=3 -ts=pc4 -useNewImp=0 -bcn=noSlip -bc1=inflow -bc2=outflow -tp=.05 -tf=.05 -go=go
+sq4e.check ../runs/tz/tz.cmd -g=square10.order4 -degreex=4 -degreet=3 -ts=pc4 -useNewImp=0 -bcn=noSlip -bc1=inflow -bc2=outflow -tp=.05 -tf=.05 -go=go
+box4e.check ../runs/tz/tz.cmd -g=box10.order4 -degreex=4 -degreet=3 -ts=pc4 -useNewImp=0 -bcn=noSlip -bc1=inflow -bc2=outflow -tp=.05 -tf=.05 -go=go
 #
 # -- order=4, implicit time-stepping, poly degree=(4,1), exact: 
 #
-sq4i.check ../cmd/tz.cmd -g=square10.order4 -degreex=4 -degreet=1 -ts=im -iv=oldViscous -bcn=noSlip -bc1=inflow -bc2=outflow -tp=.05 -tf=.05 -go=go
-box4i.check ../cmd/tz.cmd -g=box10.order4 -degreex=4 -degreet=1 -ts=im -iv=oldViscous -bcn=noSlip -bc1=inflow -bc2=outflow -tp=.05 -tf=.05 -go=go
+sq4i.check ../runs/tz/tz.cmd -g=square10.order4 -degreex=4 -degreet=1 -ts=im -iv=oldViscous -bcn=noSlip -bc1=inflow -bc2=outflow -tp=.05 -tf=.05 -go=go
+box4i.check ../runs/tz/tz.cmd -g=box10.order4 -degreex=4 -degreet=1 -ts=im -iv=oldViscous -bcn=noSlip -bc1=inflow -bc2=outflow -tp=.05 -tf=.05 -go=go
 #
 # moving grids + explicit: (should be exact)
-slider.check ../cmd/slider.cmd -g=slideri1.order2.hdf -nu=.05 -tf=.05 -tp=.025 -ts="adams PC" -tz=poly -degreex=1 -degreet=1 -vShift=5. -go=go 
+slider.check ../cmd/slider.cmd -g=slideri1.order2.hdf -nu=.05 -tf=.05 -tp=.025 -ts="adams PC" -tz=poly -degreex=1 -degreet=1 -vShift=5.0 -go=go 
 # moving grids + implicit: (should be exact)
-sliderImp.check ../cmd/slider.cmd -g=slideri1.order2.hdf -nu=.05 -tf=.05 -tp=.025 -impGrids="all=implicit" -tz=poly -degreex=1 -degreet=1 -vShift=5. -go=go 
+sliderImp.check ../cmd/slider.cmd -g=slideri1.order2.hdf -nu=.05 -tf=.05 -tp=.025 -impGrids="all=implicit" -tz=poly -degreex=1 -degreet=1 -vShift=5.0 -go=go 
 # moving grids + semi-implicit: (should be exact)
-sliderSemiImp.check ../cmd/slider.cmd -g=slideri1.order2.hdf -nu=.05 -tf=.05 -tp=.025 -tz=poly -degreex=1 -degreet=1 -vShift=5. -go=go 
+sliderSemiImp.check ../cmd/slider.cmd -g=slideri1.order2.hdf -nu=.05 -tf=.05 -tp=.025 -tz=poly -degreex=1 -degreet=1 -vShift=5.0 -go=go 
 # -- 3D tests --
 box.ins
 bib.ins    # box in a box
@@ -40,23 +40,23 @@ axisymINS.check axisym.cmd -g=shortHalfCylinder.hdf -nu=.1 -tf=.2 -tp=.1 -model=
 axisymBous.check axisym.cmd -g=shortHalfCylinder.hdf -nu=.1 -tf=.2 -tp=.1 -model=boussinesq -tz=trig -project=0 -go=go
 axisymBousImp.check axisym.cmd -g=shortHalfCylinder.hdf -nu=.1 -tf=.2 -tp=.1 -dtMax=.05 -model=boussinesq -tz=trig -project=0 -go=go -ts=implicit
 # Here are some tz tests for the approximate factorization scheme
-tzAFS2Dp.check ../cmd/tz.cmd -boxorder=4 -grid_order=4 -order=4 -g=ogen -gf=square --N=21 --nx=21 -degreex=1 -degreet=0 -ts=afs -tz=trig -newts=1 -debug=0 --boxbc=p --squarebc=periodic -bcn="*" -fx=2 -fy=2 -fz=2 -ft=2 -advectionCoefficient=1 -nu=0.1 -tf=.2 -go=run -tp=.1 -dtMax=.1 -do=compact
-tzAFS2Dd.check ../cmd/tz.cmd --boxorder=4 -grid_order=4 -order=4 -g=ogen -gf=square --N=21 --nx=21 -degreex=1 -degreet=0 -ts=afs -tz=trig -newts=1 -debug=0 --boxbc=d --squarebc="" -bcn="*" -fx=2 -fy=2 -fz=2 -ft=2 -advectionCoefficient=1 -nu=0.1 -tf=.2 -go=run -tp=.1 -dtMax=.1 -do=compact
-tzAFS2Dd.annulus.check ../cmd/tz.cmd  --grid_factor=2 --boxorder=4 -grid_order=4 -order=4 -g=ogen -gf=annulus --N=41 --nx=41 -degreex=1 -degreet=0 -ts=afs -tz=trig -newts=1 -debug=0 --boxbc=d --squarebc="" -bcn="*" -fx=2 -fy=2 -fz=2 -ft=1 -advectionCoefficient=1 -nu=1e-2 -tf=.2 -go=run -tp=.1 -dtMax=.1 -do=compact
-tzAFS3Dp.check ../cmd/tz.cmd --boxorder=4 -grid_order=4 -order=4 -g=ogen -gf=box --N=20 --nx=20 -degreex=1 -degreet=0 -ts=afs -tz=trig -newts=1 -debug=0 --boxbc=p --squarebc=periodic -bcn="*" -fx=2 -fy=2 -fz=2 -ft=2 -advectionCoefficient=1 -nu=0.1 -tf=.2 -go=run -tp=.1 -dtMax=.1 -do=compact -psolver=best
-tzAFS3Dd.check ../cmd/tz.cmd --boxorder=4 -grid_order=4 -order=4 -g=ogen -gf=box --N=20 --nx=20 -degreex=1 -degreet=0 -ts=afs -tz=trig -newts=1 -debug=0 --boxbc=d --squarebc="" -bcn="*" -fx=2 -fy=2 -fz=2 -ft=2 -advectionCoefficient=1 -nu=0.1 -tf=.2 -go=run -tp=.1 -dtMax=.1 -do=compact -psolver=best
-tzAFS3Dd.cylinder.check ../cmd/tz.cmd --grid_factor=1 --boxorder=4 -grid_order=4 -order=4 -g=ogen -gf=cylinder --N=11 --nx=11 -degreex=1 -degreet=0 -ts=afs -tz=trig -newts=1 -debug=0 --boxbc=d --squarebc="" -bcn="*" -fx=2 -fy=2 -fz=2 -ft=1 -advectionCoefficient=1 -nu=1e-2 -tf=.1 -go=run -tp=.1 -dtMax=.1 -do=compact
-tzAFS3DdBous.check ../cmd/tz.cmd --boxorder=4 -grid_order=4 -order=2 -g=ogen -gf=box --N=20 --nx=20 -degreex=1 -degreet=0 -ts=afs -tz=trig -newts=1 -debug=0 --boxbc=d --squarebc="" -bcn="*" -fx=2 -fy=2 -fz=2 -ft=2 -advectionCoefficient=1 -nu=0.01 -tf=.2 -go=run -tp=.1 -dtMax=.1 -do=compact -psolver=best -model=boussinesq -kThermal=.01
-tzAFS3DdBous.cylinder.check ../cmd/tz.cmd --grid_factor=1 --boxorder=4 -grid_order=4 -order=2 -g=ogen -gf=cylinder --N=11 --nx=11 -degreex=1 -degreet=0 -ts=afs -tz=trig -newts=1 -debug=0 --boxbc=d --squarebc="" -bcn="*" -fx=2 -fy=2 -fz=2 -ft=1 -advectionCoefficient=1 -nu=1e-2 -tf=.1 -go=run -tp=.1 -dtMax=.1 -do=compact -model=boussinesq -kThermal=.01
-tzAFS2Dd.cic.4.check ../cmd/tz.cmd -g=cic.4 -nu=1e-2 -tf=.1 -dtMax=0.02 -model=ins -ts=afs -go=run -tz=trig 
-tzAFS2DdBous.cic.4.check ../cmd/tz.cmd -g=cic.4 -nu=1e-2 -tf=.1 -dtMax=0.02 -model=boussinesq -ts=afs -go=run -tz=trig 
-tzAFS2Dd.cic.move.check ../cmd/tz.cmd -g=cic -nu=1e-2 -tf=.1 -dtMax=0.02 -model=ins -ts=afs -go=run -tz=trig -move=shift -gridToMove=Annulus
-tzAFS2DdBous.cic.move.check ../cmd/tz.cmd -g=cic -nu=1e-2 -tf=.1 -dtMax=0.02 -model=boussinesq -ts=afs -go=run -tz=trig -move=shift -gridToMove=Annulus
-tzAFS2DnoSlip.cic.move.check ../cmd/tz.cmd -g=cic -bcn="all=noSlipWall" -nu=1e-2 -tf=.1 -dtMax=0.02 -model=ins -ts=afs -go=run -tz=trig -move=shift -gridToMove=Annulus
-#tzAFS2DnoSlipBous.cic.move.check ../cmd/tz.cmd -g=cic -bcn="all=noSlipWall" -nu=1e-2 -tf=.1 -dtMax=0.02 -model=boussinesq -ts=afs -go=run -tz=trig -move=shift -gridToMove=Annulus
-#tzAFS2Dd.cic.4.move.check ../cmd/tz.cmd -g=cic.4 -nu=1e-2 -tf=.1 -dtMax=0.02 -model=ins -ts=afs -go=run -tz=trig -move=shift -gridToMove=Annulus
-#tzAFS2DdBous.cic.4.move.check ../cmd/tz.cmd -g=cic.4 -nu=1e-2 -tf=.1 -dtMax=0.02 -model=boussinesq -ts=afs -go=run -tz=trig -move=shift -gridToMove=Annulus
-tzAFS2Dpenalty.cic.check ../cmd/tz.cmd -g=cic -nu=1e-2 -tf=.2 -dtMax=0.01 -model=ins -ts=afs -go=run -tz=trig -bcn=penaltySlip -bc1="square(0,0)=noSlipWall" -bc2="square(1,0)=noSlipWall"  
+tzAFS2Dp.check ../runs/tz/tz.cmd -boxorder=4 -grid_order=4 -order=4 -g=ogen -gf=square --N=21 --nx=21 -degreex=1 -degreet=0 -ts=afs -tz=trig -newts=1 -debug=0 --boxbc=p --squarebc=periodic -bcn="*" -fx=2 -fy=2 -fz=2 -ft=2 -advectionCoefficient=1 -nu=0.1 -tf=.2 -go=run -tp=.1 -dtMax=.1 -do=compact
+tzAFS2Dd.check ../runs/tz/tz.cmd --boxorder=4 -grid_order=4 -order=4 -g=ogen -gf=square --N=21 --nx=21 -degreex=1 -degreet=0 -ts=afs -tz=trig -newts=1 -debug=0 --boxbc=d --squarebc="" -bcn="*" -fx=2 -fy=2 -fz=2 -ft=2 -advectionCoefficient=1 -nu=0.1 -tf=.2 -go=run -tp=.1 -dtMax=.1 -do=compact
+tzAFS2Dd.annulus.check ../runs/tz/tz.cmd  --grid_factor=2 --boxorder=4 -grid_order=4 -order=4 -g=ogen -gf=annulus --N=41 --nx=41 -degreex=1 -degreet=0 -ts=afs -tz=trig -newts=1 -debug=0 --boxbc=d --squarebc="" -bcn="*" -fx=2 -fy=2 -fz=2 -ft=1 -advectionCoefficient=1 -nu=1e-2 -tf=.2 -go=run -tp=.1 -dtMax=.1 -do=compact
+tzAFS3Dp.check ../runs/tz/tz.cmd --boxorder=4 -grid_order=4 -order=4 -g=ogen -gf=box --N=20 --nx=20 -degreex=1 -degreet=0 -ts=afs -tz=trig -newts=1 -debug=0 --boxbc=p --squarebc=periodic -bcn="*" -fx=2 -fy=2 -fz=2 -ft=2 -advectionCoefficient=1 -nu=0.1 -tf=.2 -go=run -tp=.1 -dtMax=.1 -do=compact -psolver=best
+tzAFS3Dd.check ../runs/tz/tz.cmd --boxorder=4 -grid_order=4 -order=4 -g=ogen -gf=box --N=20 --nx=20 -degreex=1 -degreet=0 -ts=afs -tz=trig -newts=1 -debug=0 --boxbc=d --squarebc="" -bcn="*" -fx=2 -fy=2 -fz=2 -ft=2 -advectionCoefficient=1 -nu=0.1 -tf=.2 -go=run -tp=.1 -dtMax=.1 -do=compact -psolver=best
+tzAFS3Dd.cylinder.check ../runs/tz/tz.cmd --grid_factor=1 --boxorder=4 -grid_order=4 -order=4 -g=ogen -gf=cylinder --N=11 --nx=11 -degreex=1 -degreet=0 -ts=afs -tz=trig -newts=1 -debug=0 --boxbc=d --squarebc="" -bcn="*" -fx=2 -fy=2 -fz=2 -ft=1 -advectionCoefficient=1 -nu=1e-2 -tf=.1 -go=run -tp=.1 -dtMax=.1 -do=compact
+tzAFS3DdBous.check ../runs/tz/tz.cmd --boxorder=4 -grid_order=4 -order=2 -g=ogen -gf=box --N=20 --nx=20 -degreex=1 -degreet=0 -ts=afs -tz=trig -newts=1 -debug=0 --boxbc=d --squarebc="" -bcn="*" -fx=2 -fy=2 -fz=2 -ft=2 -advectionCoefficient=1 -nu=0.01 -tf=.2 -go=run -tp=.1 -dtMax=.1 -do=compact -psolver=best -model=boussinesq -kThermal=.01
+tzAFS3DdBous.cylinder.check ../runs/tz/tz.cmd --grid_factor=1 --boxorder=4 -grid_order=4 -order=2 -g=ogen -gf=cylinder --N=11 --nx=11 -degreex=1 -degreet=0 -ts=afs -tz=trig -newts=1 -debug=0 --boxbc=d --squarebc="" -bcn="*" -fx=2 -fy=2 -fz=2 -ft=1 -advectionCoefficient=1 -nu=1e-2 -tf=.1 -go=run -tp=.1 -dtMax=.1 -do=compact -model=boussinesq -kThermal=.01
+tzAFS2Dd.cic.4.check ../runs/tz/tz.cmd -g=cic.4 -nu=1e-2 -tf=.1 -dtMax=0.02 -model=ins -ts=afs -go=run -tz=trig 
+tzAFS2DdBous.cic.4.check ../runs/tz/tz.cmd -g=cic.4 -nu=1e-2 -tf=.1 -dtMax=0.02 -model=boussinesq -ts=afs -go=run -tz=trig 
+tzAFS2Dd.cic.move.check ../runs/tz/tz.cmd -g=cic -nu=1e-2 -tf=.1 -dtMax=0.02 -model=ins -ts=afs -go=run -tz=trig -move=shift -gridToMove=Annulus
+tzAFS2DdBous.cic.move.check ../runs/tz/tz.cmd -g=cic -nu=1e-2 -tf=.1 -dtMax=0.02 -model=boussinesq -ts=afs -go=run -tz=trig -move=shift -gridToMove=Annulus
+tzAFS2DnoSlip.cic.move.check ../runs/tz/tz.cmd -g=cic -bcn="all=noSlipWall" -nu=1e-2 -tf=.1 -dtMax=0.02 -model=ins -ts=afs -go=run -tz=trig -move=shift -gridToMove=Annulus
+#tzAFS2DnoSlipBous.cic.move.check ../runs/tz/tz.cmd -g=cic -bcn="all=noSlipWall" -nu=1e-2 -tf=.1 -dtMax=0.02 -model=boussinesq -ts=afs -go=run -tz=trig -move=shift -gridToMove=Annulus
+#tzAFS2Dd.cic.4.move.check ../runs/tz/tz.cmd -g=cic.4 -nu=1e-2 -tf=.1 -dtMax=0.02 -model=ins -ts=afs -go=run -tz=trig -move=shift -gridToMove=Annulus
+#tzAFS2DdBous.cic.4.move.check ../runs/tz/tz.cmd -g=cic.4 -nu=1e-2 -tf=.1 -dtMax=0.02 -model=boussinesq -ts=afs -go=run -tz=trig -move=shift -gridToMove=Annulus
+tzAFS2Dpenalty.cic.check ../runs/tz/tz.cmd -g=cic -nu=1e-2 -tf=.2 -dtMax=0.01 -model=ins -ts=afs -go=run -tz=trig -bcn=penaltySlip -bc1="square(0,0)=noSlipWall" -bc2="square(1,0)=noSlipWall"  
 #
 # nonlinear beam:
 turek_hron_fsi2.check ../runs/TurekHronFSI2/turek_hron_fsi2_run.cmd -g=turek_hron_fsi2e2.hdf -tf=2e-3 -tp=1e-3 -cfl=.5 -go=go
@@ -65,12 +65,20 @@ turek_hron_fsi2.check ../runs/TurekHronFSI2/turek_hron_fsi2_run.cmd -g=turek_hro
 # Longfei 20161219: new tests for beamins2d
 # beam in a channel (bic) tests:
 # AMP FD
-bic2dAMPFD.check ../runs/beamPaperRuns/oneBeamTests/oneBeamInAChannel.cmd -g=bicFixede1.order2.hdf -uIn=1.5 -BM1=FD  -tf=.01  -tp=.01 -rhoBeam=100 -E=2 -numElem=7 -outflowOption=neumann -nu=1.e-1  -addedMass=1 -ampProjectVelocity=1 -useApproximateAMPcondition=0 -useSameStencilSize=1  -numberOfCorrections=1 -saveProbe=1 -cfls=100. -ps=newmark2Implicit -cs=newmarkCorrector -smoothInterfaceVelocity=1 -nis=5 -smoothBeam=1 -numberOfBeamSmooths=5 -rampInflow=1  -recomputeGVOnCorrection=0 -saveProbe=0 -go=go
+bic2dAMPFD.check ../runs/beamPaperRuns/oneBeamTests/oneBeamInAChannel.cmd -g=bicFixede1.order2.hdf -uIn=1.5 -BM1=FD  -tf=.01  -tp=.01 -rhoBeam=100 -E=2 -numElem=7 -outflowOption=neumann -nu=1e-1  -addedMass=1 -ampProjectVelocity=1 -useApproximateAMPcondition=0 -useSameStencilSize=1  -numberOfCorrections=1 -saveProbe=1 -cfls=100.0 -ps=newmark2Implicit -cs=newmarkCorrector -smoothInterfaceVelocity=1 -nis=5 -smoothBeam=1 -numberOfBeamSmooths=5 -rampInflow=1  -recomputeGVOnCorrection=0 -saveProbe=0 -go=go
 # TP FD
-bic2dTPFD.check ../runs/beamPaperRuns/oneBeamTests/oneBeamInAChannel.cmd -g=bicFixede1.order2.hdf -uIn=1.5 -BM1=FD  -tf=.01  -tp=.01 -rhoBeam=100 -E=2 -numElem=7 -outflowOption=neumann -nu=1.e-1 -addedMass=0 -useTP=1 -addedMassRelaxation=0.1 -addedMassTol=1e-5 -numberOfCorrections=500 -useSameStencilSize=1  -saveProbe=1 -cfls=100. -ps=newmark2Implicit -cs=newmarkCorrector -smoothInterfaceVelocity=1 -nis=5 -smoothBeam=1 -numberOfBeamSmooths=5 -rampInflow=1  -recomputeGVOnCorrection=0 -ff=10 -show=testTPG1_check.show -saveProbe=0 -go=go
+bic2dTPFD.check ../runs/beamPaperRuns/oneBeamTests/oneBeamInAChannel.cmd -g=bicFixede1.order2.hdf -uIn=1.5 -BM1=FD  -tf=.01  -tp=.01 -rhoBeam=100 -E=2 -numElem=7 -outflowOption=neumann -nu=1e-1 -addedMass=0 -useTP=1 -addedMassRelaxation=0.1 -addedMassTol=1e-5 -numberOfCorrections=500 -useSameStencilSize=1  -saveProbe=1 -cfls=100.0 -ps=newmark2Implicit -cs=newmarkCorrector -smoothInterfaceVelocity=1 -nis=5 -smoothBeam=1 -numberOfBeamSmooths=5 -rampInflow=1  -recomputeGVOnCorrection=0 -ff=10 -show=testTPG1_check.show -saveProbe=0 -go=go
 # AMP FEM
-bic2dAMPFEM.check ../runs/beamPaperRuns/oneBeamTests/oneBeamInAChannel.cmd -g=bicFixede1.order2.hdf -uIn=1.5 -BM1=FEM  -tf=.01  -tp=.01 -rhoBeam=100 -E=2 -numElem=7 -outflowOption=neumann -nu=1.e-1  -addedMass=1 -ampProjectVelocity=1 -useApproximateAMPcondition=0 -useSameStencilSize=1  -numberOfCorrections=1 -saveProbe=1 -cfls=100. -ps=newmark2Implicit -cs=newmarkCorrector -smoothInterfaceVelocity=1 -nis=5 -smoothBeam=1 -numberOfBeamSmooths=5 -rampInflow=1  -recomputeGVOnCorrection=0 -saveProbe=0 -go=go
+bic2dAMPFEM.check ../runs/beamPaperRuns/oneBeamTests/oneBeamInAChannel.cmd -g=bicFixede1.order2.hdf -uIn=1.5 -BM1=FEM  -tf=.01  -tp=.01 -rhoBeam=100 -E=2 -numElem=7 -outflowOption=neumann -nu=1e-1  -addedMass=1 -ampProjectVelocity=1 -useApproximateAMPcondition=0 -useSameStencilSize=1  -numberOfCorrections=1 -saveProbe=1 -cfls=100.0 -ps=newmark2Implicit -cs=newmarkCorrector -smoothInterfaceVelocity=1 -nis=5 -smoothBeam=1 -numberOfBeamSmooths=5 -rampInflow=1  -recomputeGVOnCorrection=0 -saveProbe=0 -go=go
 # TP FEM
-bic2dTPFEM.check ../runs/beamPaperRuns/oneBeamTests/oneBeamInAChannel.cmd -g=bicFixede1.order2.hdf -uIn=1.5 -BM1=FEM  -tf=.01  -tp=.01 -rhoBeam=100 -E=2 -numElem=7 -outflowOption=neumann -nu=1.e-1 -addedMass=0 -useTP=1 -addedMassRelaxation=0.1 -addedMassTol=1e-5 -numberOfCorrections=500 -useSameStencilSize=1  -saveProbe=1 -cfls=100. -ps=newmark2Implicit -cs=newmarkCorrector -smoothInterfaceVelocity=1 -nis=5 -smoothBeam=1 -numberOfBeamSmooths=5 -rampInflow=1  -recomputeGVOnCorrection=0 -ff=10 -show=testTPG1_check.show -saveProbe=0 -go=go
+bic2dTPFEM.check ../runs/beamPaperRuns/oneBeamTests/oneBeamInAChannel.cmd -g=bicFixede1.order2.hdf -uIn=1.5 -BM1=FEM  -tf=.01  -tp=.01 -rhoBeam=100 -E=2 -numElem=7 -outflowOption=neumann -nu=1e-1 -addedMass=0 -useTP=1 -addedMassRelaxation=0.1 -addedMassTol=1e-5 -numberOfCorrections=500 -useSameStencilSize=1  -saveProbe=1 -cfls=100.0 -ps=newmark2Implicit -cs=newmarkCorrector -smoothInterfaceVelocity=1 -nis=5 -smoothBeam=1 -numberOfBeamSmooths=5 -rampInflow=1  -recomputeGVOnCorrection=0 -ff=10 -show=testTPG1_check.show -saveProbe=0 -go=go
+#
+# AMP-RB tests
+piston.ins.check ../runs/piston/piston.cmd -g=plug4.hdf -ts=im -dtMax=.01 -bodyDensity=.001 -inertia=.0 -tf=.15 -tp=.05 -relaxRigidBody=0 -numberOfCorrections=1 -solver=yale -psolver=yale -rtolp=1e-10 -rtol=1e-10 -addedMass=1 -addedDamping=1 -addedDampingCoeff=1 -scaleAddedDampingWithDt=1 -nu=.01 -useProvidedAcceleration=1 -gravity=0 -option=rigidBodyPiston -freqFullUpdate=1 -go=go 
+#
+slider.ins.check ../runs/piston/slider.cmd -g=shearBlock4.order2 -ts=im -dtMax=.05 -bodyDensity=0 -tf=.15 -tp=.05 -option=shearBlock -amp=1 -relaxRigidBody=0 -numberOfCorrections=2 -addedDampingProjectVelocity=1  -solver=yale -psolver=yale -addedMass=1 -addedDamping=1 -scaleAddedDampingWithDt=1 -inertia=1e100 -nu=.1 -useProvidedAcceleration=1 -gravity=0 -addedDampingCoeff=1 -freqFullUpdate=1 -go=go
+#
+cylDrop.ins.check ../runs/cylDrop/cylDrop.cmd -g=cylOffsetGridFixede2.order2.s3.hdf -tf=.3 -tp=.1 -dtMax=0.01 -nu=0.1 -ad2=0 -ts=im -density=0 -radius=.25 -bcOption=rampedPressure -d=0.1 -inflowPressure=1.25 -gravity=-4 -rampGravity=1 -cp0=1 -cpn=0 -numberOfCorrections=2 -addedMass=1 -useProvidedAcceleration=1 -addedDamping=1 -addedDampingCoeff=1 -addedDampingProjectVelocity=1 -scaleAddedDampingWithDt=1 -solver=yale -psolver=yale -freqFullUpdate=1 -go=go 
+
 
 

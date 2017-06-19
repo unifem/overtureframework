@@ -708,6 +708,7 @@ buildTimeSteppingDialog(DialogData & dialog )
           parameters.dbase.get<int>("maximumNumberOfIterationsForImplicitInterpolation");
   int & orderOfAccuracyInSpace = parameters.dbase.get<int>("orderOfAccuracy");
   int & orderOfAccuracyInTime  = parameters.dbase.get<int>("orderOfTimeAccuracy");
+  const bool & useAddedMassAlgorithm = parameters.dbase.get<bool>("useAddedMassAlgorithm");
 
   SmParameters::TimeSteppingMethodSm & timeSteppingMethodSm = 
                                    parameters.dbase.get<SmParameters::TimeSteppingMethodSm>("timeSteppingMethodSm");
@@ -737,11 +738,13 @@ buildTimeSteppingDialog(DialogData & dialog )
   aString tbCommands[] = {"use conservative difference",
                           "use variable dissipation",
                           "apply filter",
+                          "use added mass algorithm",
  			  ""};
   int tbState[10];
   tbState[0] = useConservative;
   tbState[1] = useVariableDissipation;
   tbState[2] = (int)parameters.dbase.get<bool >("applyFilter");
+  tbState[3] = useAddedMassAlgorithm;
 
   int numColumns=2;
   dialog.setToggleButtons(tbCommands, tbCommands, tbState, numColumns); 
@@ -812,6 +815,7 @@ getTimeSteppingOption(const aString & answer,
   int & orderOfAccuracyInSpace = parameters.dbase.get<int>("orderOfAccuracy");
   int & orderOfAccuracyInTime  = parameters.dbase.get<int>("orderOfTimeAccuracy");
   bool & applyFilter = parameters.dbase.get<bool >("applyFilter");
+  bool & useAddedMassAlgorithm = parameters.dbase.get<bool>("useAddedMassAlgorithm");
 
   int found=true; 
   char buff[180];
@@ -871,6 +875,14 @@ getTimeSteppingOption(const aString & answer,
       }
     }
   }//
+  else if( dialog.getToggleValue(answer,"use added mass algorithm",useAddedMassAlgorithm) )
+  {
+    if( useAddedMassAlgorithm )
+      printF("Use the added mass algorithm.\n");
+    else
+      printF("Do NOT use the added mass algorithm.\n");
+  }
+
   else if( dialog.getTextValue(answer,"divergence damping","%g",divergenceDamping) ){}//
   else if( answer=="defaultTimeStepping" ||
 	   answer=="adamsBashforthSymmetricThirdOrder" ||
@@ -2166,6 +2178,9 @@ writeParameterSummary( FILE * file )
 	  parameters.dbase.get<int>( "stressRelaxation" ), parameters.dbase.get<real>( "relaxAlpha" ),
 	  parameters.dbase.get<real>( "relaxDelta" ));
 
+  const bool & useAddedMassAlgorithm = parameters.dbase.get<bool>("useAddedMassAlgorithm");
+  fPrintF(file," useAddedMassAlgorithm=%i\n",(int)useAddedMassAlgorithm);
+  
   if( parameters.dbase.get<bool >("applyFilter") )
   {
     GridFunctionFilter *& gridFunctionFilter =parameters.dbase.get<GridFunctionFilter*>("gridFunctionFilter");

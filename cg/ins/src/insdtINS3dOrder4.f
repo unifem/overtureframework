@@ -747,6 +747,10 @@ c===============================================================================
                   ! INS, no AD
                     ! --- upwind approximations ---
                       ! --- upwind scheme ---
+                      ! for testing output this next message:
+                      if( t.le. 0. )then
+                        write(*,'(" getAdvection upwind scheme (7)")')
+                      end if
                         ! --- CARTESIAN GRID ---
                         !- agu(uc,uc)=UU(uc)*UX(uc)
                         !- agu(vc,uc)=UU(vc)*UY(uc)
@@ -813,6 +817,10 @@ c===============================================================================
                  ! INS, no AD
                    ! --- upwind approximations ---
                      ! --- upwind scheme ---
+                     ! for testing output this next message:
+                     if( t.le. 0. )then
+                       write(*,'(" getAdvection upwind scheme (7)")')
+                     end if
                        ! --- CARTESIAN GRID ---
                        !- agu(uc,uc)=UU(uc)*UX(uc)
                        !- agu(vc,uc)=UU(vc)*UY(uc)
@@ -882,6 +890,10 @@ c===============================================================================
                   ! INS, no AD
                     ! --- upwind approximations ---
                       ! --- upwind scheme ---
+                      ! for testing output this next message:
+                      if( t.le. 0. )then
+                        write(*,'(" getAdvection upwind scheme (7)")')
+                      end if
                         ! --- CARTESIAN GRID ---
                         !- agu(uc,uc)=UU(uc)*UX(uc)
                         !- agu(vc,uc)=UU(vc)*UY(uc)
@@ -948,6 +960,10 @@ c===============================================================================
                  ! INS, no AD
                    ! --- upwind approximations ---
                      ! --- upwind scheme ---
+                     ! for testing output this next message:
+                     if( t.le. 0. )then
+                       write(*,'(" getAdvection upwind scheme (7)")')
+                     end if
                        ! --- CARTESIAN GRID ---
                        !- agu(uc,uc)=UU(uc)*UX(uc)
                        !- agu(vc,uc)=UU(vc)*UY(uc)
@@ -1350,6 +1366,10 @@ c===============================================================================
                   ! INS, no AD
                     ! --- upwind approximations ---
                       ! --- upwind scheme ---
+                      ! for testing output this next message:
+                      if( t.le. 0. )then
+                        write(*,'(" getAdvection upwind scheme (7)")')
+                      end if
                         ! --- CURVILINEAR GRID ---
                       !  #If "3" eq "2"
                       !    au = rsxy(i1,i2,i3,0,0)*u(i1,i2,i3,uc)+rsxy(i1,i2,i3,0,1)*u(i1,i2,i3,vc)
@@ -1386,6 +1406,10 @@ c===============================================================================
                  ! INS, no AD
                    ! --- upwind approximations ---
                      ! --- upwind scheme ---
+                     ! for testing output this next message:
+                     if( t.le. 0. )then
+                       write(*,'(" getAdvection upwind scheme (7)")')
+                     end if
                        ! --- CURVILINEAR GRID ---
                      !  #If "3" eq "2"
                      !    au = rsxy(i1,i2,i3,0,0)*u(i1,i2,i3,uc)+rsxy(i1,i2,i3,0,1)*u(i1,i2,i3,vc)
@@ -1425,6 +1449,10 @@ c===============================================================================
                   ! INS, no AD
                     ! --- upwind approximations ---
                       ! --- upwind scheme ---
+                      ! for testing output this next message:
+                      if( t.le. 0. )then
+                        write(*,'(" getAdvection upwind scheme (7)")')
+                      end if
                         ! --- CURVILINEAR GRID ---
                       !  #If "3" eq "2"
                       !    au = rsxy(i1,i2,i3,0,0)*u(i1,i2,i3,uc)+rsxy(i1,i2,i3,0,1)*u(i1,i2,i3,vc)
@@ -1461,6 +1489,10 @@ c===============================================================================
                  ! INS, no AD
                    ! --- upwind approximations ---
                      ! --- upwind scheme ---
+                     ! for testing output this next message:
+                     if( t.le. 0. )then
+                       write(*,'(" getAdvection upwind scheme (7)")')
+                     end if
                        ! --- CURVILINEAR GRID ---
                      !  #If "3" eq "2"
                      !    au = rsxy(i1,i2,i3,0,0)*u(i1,i2,i3,uc)+rsxy(i1,i2,i3,0,1)*u(i1,i2,i3,vc)

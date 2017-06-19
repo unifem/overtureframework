@@ -669,7 +669,7 @@
 !      real dx(0:2),dr(0:2)
       real t,ep,dt,eps1,mu1,c1,eps2,mu2,c2,epsmu1,epsmu2,eta1,eta2,
      & eta1i,eta2i
-      real absoluteErrorTolerance
+      real absoluteErrorTolerance,omega
       integer axisp1,axisp2,i1,i2,i3,is1,is2,is3,j1,j2,j3,js1,js2,js3,
      & ks1,ks2,ks3,is,js,it,nit,k1,k2,k3,i,j
       integer ii1,ii2,ii3,numberOfIterations
@@ -1826,6 +1826,8 @@
       eps2                 =rpar(18)
       mu2                  =rpar(19)
       c2                   =rpar(20)
+      omega                =rpar(21)
+
       ! rpar(22) : averageInterfaceConvergenceRate : return value 
       ! rpar(23) : maxFinalResidual : return value 
 
@@ -8206,14 +8208,22 @@
      & 8e10.2)') i1,i2,(f(n)-q(n),n=0,7)
                end if
                ! '
-               u1(i1-is1,i2-is2,i3,ex)=f(0)
-               u1(i1-is1,i2-is2,i3,ey)=f(1)
-               u2(j1-js1,j2-js2,j3,ex)=f(2)
-               u2(j1-js1,j2-js2,j3,ey)=f(3)
-               u1(i1-2*is1,i2-2*is2,i3,ex)=f(4)
-               u1(i1-2*is1,i2-2*is2,i3,ey)=f(5)
-               u2(j1-2*js1,j2-2*js2,j3,ex)=f(6)
-               u2(j1-2*js1,j2-2*js2,j3,ey)=f(7)
+               u1(i1-is1,i2-is2,i3,ex)=(1.-omega)*u1(i1-is1,i2-is2,i3,
+     & ex) + omega*f(0)
+               u1(i1-is1,i2-is2,i3,ey)=(1.-omega)*u1(i1-is1,i2-is2,i3,
+     & ey) + omega*f(1)
+               u2(j1-js1,j2-js2,j3,ex)=(1.-omega)*u2(j1-js1,j2-js2,j3,
+     & ex) + omega*f(2)
+               u2(j1-js1,j2-js2,j3,ey)=(1.-omega)*u2(j1-js1,j2-js2,j3,
+     & ey) + omega*f(3)
+               u1(i1-2*is1,i2-2*is2,i3,ex)=(1.-omega)*u1(i1-2*is1,i2-2*
+     & is2,i3,ex) + omega*f(4)
+               u1(i1-2*is1,i2-2*is2,i3,ey)=(1.-omega)*u1(i1-2*is1,i2-2*
+     & is2,i3,ey) + omega*f(5)
+               u2(j1-2*js1,j2-2*js2,j3,ex)=(1.-omega)*u2(j1-2*js1,j2-2*
+     & js2,j3,ex) + omega*f(6)
+               u2(j1-2*js1,j2-2*js2,j3,ey)=(1.-omega)*u2(j1-2*js1,j2-2*
+     & js2,j3,ey) + omega*f(7)
                ! compute the maximum change in the solution for this iteration
                do n=0,7
                  err=max(err,abs(q(n)-f(n)))
@@ -10077,10 +10087,14 @@
                job=0
                call dgesl( aa4(0,0,0,nn), numberOfEquations, 
      & numberOfEquations, ipvt4(0,nn), f(0), job)
-               u1(i1-is1,i2-is2,i3,hz)=f(0)
-               u2(j1-js1,j2-js2,j3,hz)=f(1)
-               u1(i1-2*is1,i2-2*is2,i3,hz)=f(2)
-               u2(j1-2*js1,j2-2*js2,j3,hz)=f(3)
+               u1(i1-  is1,i2-  is2,i3,hz)=(1.-omega)*u1(i1-  is1,i2-  
+     & is2,i3,hz) + omega*f(0)
+               u2(j1-  js1,j2-  js2,j3,hz)=(1.-omega)*u2(j1-  js1,j2-  
+     & js2,j3,hz) + omega*f(1)
+               u1(i1-2*is1,i2-2*is2,i3,hz)=(1.-omega)*u1(i1-2*is1,i2-2*
+     & is2,i3,hz) + omega*f(2)
+               u2(j1-2*js1,j2-2*js2,j3,hz)=(1.-omega)*u2(j1-2*js1,j2-2*
+     & js2,j3,hz) + omega*f(3)
               ! compute the maximum change in the solution for this iteration
               do n=0,3
                 err=max(err,abs(q(n)-f(n)))
@@ -11174,18 +11188,18 @@
            if( it.eq.1 )then
              write(*,'("interface2d : t=",e10.3," (grid1,grid2)=(",i3,
      & ",",i3,"), it=",i3,", err=",e10.2,"           (omega=",f4.2,")
-     & ")') t,grid1,grid2,it,err,1.
+     & ")') t,grid1,grid2,it,err,omega
            else
              write(*,'("interface2d : t=",e10.3," (grid1,grid2)=(",i3,
      & ",",i3,"), it=",i3,", err=",e10.2," rate=",f5.2," (omega=",
-     & f4.2,")")') t,grid1,grid2,it,err,errRatio,1.
+     & f4.2,")")') t,grid1,grid2,it,err,errRatio,omega
            end if
           end if
 
           if( debug.gt.0 )then
             write(debugFile,'("interface2d : t=",e10.3," (grid1,grid2)
      & =(",i3,",",i3,"), it=",i3,", err=",e10.2," rate=",f5.2," (
-     & omega=",f4.2,")")') t,grid1,grid2,it,err,errRatio,1.
+     & omega=",f4.2,")")') t,grid1,grid2,it,err,errRatio,omega
           end if
 
           numberOfIterations=it

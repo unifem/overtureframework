@@ -53,6 +53,9 @@ ExposedPoints()
   isInitialized=false;
   ipogIsInitialized=false;
   
+  numberOfExposedPoints=0;
+  totalNumberOfExposedPoints=0;  // total for parallel
+
   interpolationWidth=3;
   numberOfValidGhostPoints=1; 
 
@@ -114,16 +117,16 @@ getNumberOfExposedPoints(const int grid /* =-1 */ ) const
 {
   if( grid==-1 )
   {
-    return numberOfExposedPoints;
+    return totalNumberOfExposedPoints;
   }
   else if( grid>=numberPerGrid.getBase(0) && grid<=numberPerGrid.getBound(0) )
   {
-    return numberPerGrid(grid);
+    return totalNumberPerGrid(grid);
   }
   else
   {
     printF("ExposedPoints::getNumberOfExposedPoints:ERROR: grid=%i is invalid\n",grid);
-    Overture::abort("error");
+    OV_ABORT("error");
   }
   return 0;
 }
@@ -1478,6 +1481,9 @@ initialize(CompositeGrid & cg1,
   numberPerGrid.redim(cg1.numberOfComponentGrids());
   numberPerGrid=0;
   
+  totalNumberPerGrid.redim(cg1.numberOfComponentGrids()); // total over all processors
+  totalNumberPerGrid=0;
+  
   ia_.redim(1000,5);
   int *iap = ia_.Array_Descriptor.Array_View_Pointer1;
   int iaDim0=ia_.getRawDataSize(0);
@@ -1486,6 +1492,7 @@ initialize(CompositeGrid & cg1,
   real maxError=0.;
   
   numberOfExposedPoints=0;
+  totalNumberOfExposedPoints=0;
   int numberNotFound=0;
   int grid;
 
@@ -1689,6 +1696,10 @@ initialize(CompositeGrid & cg1,
     numberPerGrid(grid)=numPerGrid;
   } // end for grid
   
+  // get total number over all processors
+  totalNumberOfExposedPoints=ParallelUtility::getSum(numberOfExposedPoints);
+  ParallelUtility::getSums(&numberPerGrid(0),&totalNumberPerGrid(0),numberPerGrid.getLength(0));
+
   if( debug & 4  )
   {
     fprintf(debugFile," ---Exposed: assumeInterpolationNeighboursAreAssigned=%i---\n",
@@ -1709,6 +1720,18 @@ initialize(CompositeGrid & cg1,
   }
 
   // printf(" @@@@@@@@@@@@@ numberOfExposedPoints=%i @@@@@@@@@@@@@@@@@\n",numberOfExposedPoints);
+  if( false )
+  {
+    printf("@@ EXPOSED POINTS@@ myid=%i numberOfExposedPoints=%i\n",myid,numberOfExposedPoints);
+    printf("@@ EXPOSED POINTS@@ myid=%i totalNumberOfExposedPoints=%i\n",myid,totalNumberOfExposedPoints);
+    // ::display(numberPerGrid,sPrintF("--EP-- numberPerGrid myid=%i",myid));
+    if( myid==0 )
+    {
+      ::display(totalNumberPerGrid,"--EP-- totalNumberPerGrid");
+    }
+    
+  }
+  
   
   if( numberOfExposedPoints>0 )
   {
@@ -2531,15 +2554,21 @@ interpolate(realCompositeGridFunction & u1,
   for( int grid=0; grid<cg1.numberOfComponentGrids(); grid++ )
   {
     // If there are any exposed points on this grid then we must perform a periodic update
-    if( useIPOG )
+    if( totalNumberPerGrid(grid)>0 )
     {
-      if( periodicUpdateNeeded(grid) )
-        u1[grid].periodicUpdate();  
-    }
-    else
-    {
-      if( numberPerGrid(grid)>0 )
-	u1[grid].periodicUpdate();  // *wdh* 040802  -- communication required here ---
+      // **we could do this more efficiently!  **DO THIS FOR NOW**
+      u1[grid].updateGhostBoundaries();  // *wdh* 2017/06/05 
+    
+      if( useIPOG )
+      {
+	if( periodicUpdateNeeded(grid) )
+	  u1[grid].periodicUpdate();  
+      }
+      else
+      {
+	if( numberPerGrid(grid)>0 )
+	  u1[grid].periodicUpdate();  // *wdh* 040802  -- communication required here ---
+      }
     }
   }
   

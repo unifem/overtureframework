@@ -3,7 +3,7 @@
 #
 # Usage:
 #   
-#  cgmx [-noplot] scattering -g=<name> -tf=<tFinal> -tp=<tPlot> -boundaryForing=[0|1]
+#  cgmx [-noplot] scattering -g=<name> -tf=<tFinal> -tp=<tPlot> -boundaryForcing=[0|1]
 #                      -kx=<num> -ky=<num> -kz=<num> -diss=<> ...
 #                      -bg=<back-ground> -rbc=[abcEM2|abcPML] -debug=<num> -cons=[0/1] ...
 #                      -plotIntensity=[0|1] -go=[run/halt/og]

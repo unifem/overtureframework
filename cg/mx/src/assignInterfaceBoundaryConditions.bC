@@ -125,6 +125,11 @@ initializeInterfaces()
   Index Iv[3], &I1=Iv[0], &I2=Iv[1], &I3=Iv[2];
   Index Jv[3], &J1=Jv[0], &J2=Jv[1], &J3=Jv[2];
 
+  // --- The matched array is used to avoid checking faces that have already been matched ---
+  //       matched(side,axis,grid)=1 if this face has been natched to another.
+  IntegerArray matched(2,cg.numberOfDimensions(),cg.numberOfComponentGrids());
+  matched=0;  
+  
   int grid1;
   for( grid1=0; grid1<cg.numberOfComponentGrids(); grid1++ )
   {
@@ -138,12 +143,12 @@ initializeInterfaces()
     {
       for( int side1=0; side1<=1; side1++ )
       {
-	if( bc1(side1,dir1)==interfaceBoundaryCondition )
+	if( bc1(side1,dir1)==interfaceBoundaryCondition && matched(side1,dir1,grid1)==0 )
 	{
           bool interfaceFound=false;
           for( int grid2=grid1+1; grid2<cg.numberOfComponentGrids(); grid2++ ) // only check higher numbered grids
 	  {
-            // When the are multiple domains, matching interfaces grids should not be in the same domain:
+            // When there are multiple domains, matching interfaces grids should not be in the same domain:
 	    if( cg.numberOfDomains()>1 && cg.domainNumber(grid1)==cg.domainNumber(grid2) )
 	      continue;
 
@@ -156,51 +161,98 @@ initializeInterfaces()
 	      for( int side2=0; side2<=1; side2++ )
 	      {
 		if( bc2(side2,dir2)==interfaceBoundaryCondition &&
-                    share1(side1,dir1)==share2(side2,dir2) )   // **** do this for now
+                    share1(side1,dir1)==share2(side2,dir2) && 
+                    matched(side2,dir2,grid2)==0 && 
+                    matched(side1,dir1,grid1)==0 )  
 		{
-		  // **** interface found *************
-		  if( interfaceFound )
-		  {
-		    printF("initializeInterfaces:ERROR: A second valid interface match has been found:\n"
-                           " (grid1,side1,dir1,share1)=(%i,%i,%i,%i) also matches"
-                           " (grid2,side2,dir2,share2)=(%i,%i,%i,%i).\n"
-                           " Matching interface grids should be marked with distinct share values.\n",
-			   grid1,side1,dir1,share1(side1,dir1), grid2,side2,dir2,share2(side2,dir2));
-                    Overture::abort("error");
-		  }
-                  // add an interface to the list: 
-                  interfaceFound=true;
-                  printF("--MX-- Interface found: (grid1,side,dir1)=(%i,%i,%i) matches (grid2,side2,dir2)=(%i,%i,%i)"
-                         " share=%i\n",
-			 grid1,side1,dir1,grid2,side2,dir2,share1(side1,dir1));
-                  interfaceInfo.push_back(InterfaceInfo(grid1,side1,dir1, grid2,side2,dir2));   
+                  // ********************************************
+		  // **** potential interface found *************
+                  // ********************************************
+
+                  // ---- Check that the interfaces are close in space ---- *wdh* 2017/05/06 
+		  Mapping & map1 = mg1.mapping().getMapping();
+		  Mapping & map2 = mg2.mapping().getMapping();
 		  
-                  // ***** Check that the valid points match on the interface ******
-                  //   *wdh* 2015/08/11
-                  const intArray & mask1 = mg1.mask();
-		  const intArray & mask2 = mg2.mask();
-		  OV_GET_SERIAL_ARRAY_CONST(int,mask1,mask1Local);
-		  OV_GET_SERIAL_ARRAY_CONST(int,mask2,mask2Local);
-		  getBoundaryIndex(mg1.dimension(),side1,dir1,I1,I2,I3);
-		  getBoundaryIndex(mg2.dimension(),side2,dir2,J1,J2,J3);
-                  int includeGhost=1;
-                  bool ok1 = ParallelUtility::getLocalArrayBounds(mask1,mask1Local,I1,I2,I3,includeGhost);
-                  bool ok2 = ParallelUtility::getLocalArrayBounds(mask2,mask2Local,J1,J2,J3,includeGhost);
-		  assert( ok1==ok2 );
-                  if( ok1 )
+		  RealArray r1(1,3), x1(1,3), r2(1,3), x2(1,3); x1=0.; x2=0.;
+		  r1=.5; r1(0,dir1)=side1;  // r-coords for a point on the middle of the face of grid1
+                  map1.mapS(r1,x1);           // x coords on grid 1
+		  r2=-1.;
+		  map2.inverseMapS(x1,r2);    // r-coords on grid 2
+		  map2.mapS(r2,x2);           // x-coords on grid 2
+		  real rDist=fabs( r2(0,dir2)-side2 );
+		  real xDist=fabs( x1(0,0)-x2(0,0) ) + fabs( x1(0,1)-x2(0,1) ) + fabs( x1(0,2)-x2(0,2) );
+                  const RealArray & bb = map1.getBoundingBox();
+                  real xNorm = fabs(bb(1,0)-bb(0,0)) + fabs(bb(1,1)-bb(0,1));
+		  if( numberOfDimensions==3 ) xNorm +=  fabs(bb(1,2)-bb(0,2));
+
+                  xDist /=max(REAL_MIN*100,xNorm);  // normalize x-distance 
+		  
+
+                  printF("--MX-- POTENTIAL Interface: %s=(grid1,side,dir1)=(%i,%i,%i) "
+                         "AND %s=(grid2,side2,dir2)=(%i,%i,%i) share=%i\n",
+			 (const char*)mg1.getName(),grid1,side1,dir1,
+                         (const char*)mg2.getName(),grid2,side2,dir2,share1(side1,dir1));
+		  printF(" grid1: r1=[%8.2e,%8.2e,%8.2e] x1=[%8.2e,%8.2e,%8.2e]\n"
+		         " grid2: r2=[%8.2e,%8.2e,%8.2e] x2=[%8.2e,%8.2e,%8.2e] .. rDist=%8.2e xDist=%8.2e, xNorm=%8.2e\n",
+			 r1(0,0),r1(0,1),r1(0,2), x1(0,0),x1(0,1),x1(0,2), 
+			 r2(0,0),r2(0,1),r2(0,2), x2(0,0),x2(0,1),x2(0,2), rDist, xDist, xNorm);
+
+                  // --- tolerances for surfaces to match ---
+		  const real rTol=1.e-2;
+		  const real xTol=1.e-5;
+		   
+		  if( rDist<rTol && xDist < xTol )
 		  {
-                    int maskDiff = max(abs(mask1Local(I1,I2,I3)-mask2Local(J1,J2,J3)));
-		    if( maskDiff > 0 )
+		    if( interfaceFound )
 		    {
-		      printF("       ERROR: the mask arrays do not match on the interface. This is currently required.\n");
-		      printF("       Try re-generating the grid with more lines in the normal direction, this sometimes fixes this problem.\n");
-		      OV_ABORT("ERROR");
+		      // -- ERROR a previous matching interface has already been found! ---
+
+		      printF("initializeInterfaces:ERROR: A second valid interface match has been found:\n"
+			     " (grid1,side1,dir1,share1)=(%i,%i,%i,%i) also matches"
+			     " (grid2,side2,dir2,share2)=(%i,%i,%i,%i).\n"
+			     " Matching interface grids should be marked with distinct share values.\n",
+			     grid1,side1,dir1,share1(side1,dir1), grid2,side2,dir2,share2(side2,dir2));
+		      OV_ABORT("error");
 		    }
-		    else
+
+		    // ---- ADD an interface to the list ----
+		    interfaceFound=true;
+		    matched(side1,dir1,grid1)=1; // indicates these faces have been matched
+		    matched(side2,dir2,grid2)=1;
+		    
+		    printF("--MX-- Interface found: %s=(grid1,side,dir1)=(%i,%i,%i) matches "
+                           "%s=(grid2,side2,dir2)=(%i,%i,%i) share=%i\n",
+			   (const char*)mg1.getName(),grid1,side1,dir1,
+                           (const char*)mg2.getName(),grid2,side2,dir2,share1(side1,dir1));
+		    interfaceInfo.push_back(InterfaceInfo(grid1,side1,dir1, grid2,side2,dir2));   
+		  
+		    // ***** Check that the valid points match on the interface ******
+		    //   *wdh* 2015/08/11
+		    const intArray & mask1 = mg1.mask();
+		    const intArray & mask2 = mg2.mask();
+		    OV_GET_SERIAL_ARRAY_CONST(int,mask1,mask1Local);
+		    OV_GET_SERIAL_ARRAY_CONST(int,mask2,mask2Local);
+		    getBoundaryIndex(mg1.dimension(),side1,dir1,I1,I2,I3);
+		    getBoundaryIndex(mg2.dimension(),side2,dir2,J1,J2,J3);
+		    int includeGhost=1;
+		    bool ok1 = ParallelUtility::getLocalArrayBounds(mask1,mask1Local,I1,I2,I3,includeGhost);
+		    bool ok2 = ParallelUtility::getLocalArrayBounds(mask2,mask2Local,J1,J2,J3,includeGhost);
+		    assert( ok1==ok2 );
+		    if( ok1 )
 		    {
-		      printF("       INFO: interface grid points match: mask arrays agree on the interface.\n");
+		      int maskDiff = max(abs(mask1Local(I1,I2,I3)-mask2Local(J1,J2,J3)));
+		      if( maskDiff > 0 )
+		      {
+			printF("       ERROR: the mask arrays do not match on the interface. This is currently required.\n");
+			printF("       Try re-generating the grid with more lines in the normal direction, this sometimes fixes this problem.\n");
+			OV_ABORT("ERROR");
+		      }
+		      else
+		      {
+			printF("       INFO: interface grid points match: mask arrays agree on the interface.\n\n");
+		      }
 		    }
-		  }
+		  } // end if rDist < rTol and xDist < xTol 
 		  
 		}
 	      }

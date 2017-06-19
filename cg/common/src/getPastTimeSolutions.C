@@ -49,7 +49,22 @@ getPastTimeSolutions( int current, int numberOfPast, int *previous  )
       movingGrids.getPastTimeGrid( gf[prev] );
 
       printF(" --DS-- getPastTimeSolutions: REGENERATE THE PAST-TIME OVERLAPPING GRID  ---\n\n");
+      if( debug() & 4 )
+      {
+        FILE *& debugFile =parameters.dbase.get<FILE* >("debugFile");
+        fPrintF(debugFile," --DS-- getPastTimeSolutions: REGENERATE THE PAST-TIME OVERLAPPING GRID  t=%9.3e---\n\n",
+                gf[prev].t );
+      }
+      
       parameters.regenerateOverlappingGrid( cg , cg, true );
+
+      if( debug() & 4 )
+      {
+        FILE *& debugFile =parameters.dbase.get<FILE* >("debugFile");
+        ::displayMask(cg[0].mask(),"Past time grid - mask on grid 0",debugFile);
+      }
+
+
 
     }
 

@@ -72,15 +72,20 @@ DEP += cgmx.d
 # 	ln -sf ../../common/dataBase/dbFunctions.f src/dbFunctions.f
 # 	ln -sf ../../common/dataBase/kk_ptr.cc src/kk_ptr.cc
 
+libCommon:=$(CGBUILDPREFIX)common/libCgCommon
+
 # make cgmx in the bin dir:
 PETSC_FILES_OBJ := $(addprefix $(OBJPREFIX),$(PETSC_FILES))
 CGMX_EXTRA_FILES = $(PETSC_FILES_OBJ)
 
 # $(BINDIR)cgmx: $(OBJDIR)cgmx.o $(OBJALL) $(CGMX_EXTRA_FILES) src/dbAccess.C
-$(BINDIR)cgmx: $(OBJDIR)cgmx.o $(OBJALL) $(CGMX_EXTRA_FILES) 
+$(BINDIR)cgmx: $(OBJDIR)cgmx.o $(OBJALL) $(CGMX_EXTRA_FILES) $(libCommon)
 	-@mkdir -p $(BINDIR)
 	$(CXX) $(CXX_FLAGS) -o $@ $(OBJDIR)cgmx.o $(CGMX) $(OBJALL) $(CGMX_EXTRA_FILES) $(LIBS)
 
+
+# build the library in cg/common
+$(libCommon):; @cd ../common; $(MAKE) lib
 
 $(DEPDIR)depdep: $(DEPDIR) $(BINDIR) $(LIBDIR) $(OBJDIR)
 	touch $(DEPDIR)depdep
@@ -92,6 +97,10 @@ doc:
 	-@mkdir doc
 
 check: 
+
+# remove all c and c++ .o files, dependencies and executables (but leave fortran .o files)
+cleanc: 
+	-rm -f $(DEPPREFIX)*.d $(COBJ) $(OBJCO) $(BINDIR)cgmx $(LIBDIR)*.a
 
 cleano:
 	-rm -f $(OBJPREFIX)*.o

@@ -1422,7 +1422,7 @@ printErrors( const aString & label,
     Range N(uc,uc+nd-1);
     if( parameters.dbase.get<bool >("twilightZoneFlow") )
     {
-      display(u0,sPrintF(buff,"applyBC4: Solution %s",(const char*)label),debugFile,"%5.2f ");
+      display(u0,sPrintF(buff,"applyBC4: Solution %s, grid=%i, t=%9.3e",(const char*)label,grid,t),debugFile,"%5.2f ");
 
       Range all;
       realMappedGridFunction err(mg,all,all,all,N);
@@ -1457,7 +1457,7 @@ printErrors( const aString & label,
     }
     else
     {
-      display(u0,sPrintF(buff,"applyBC4: Solution %s",(const char*)label),debugFile,"%5.2f ");
+      display(u0,sPrintF(buff,"applyBC4: Solution %s, grid=%i, t=%9.3e",(const char*)label,grid,t),debugFile,"%5.2f ");
       if( mg.numberOfDimensions()==2 )
       {
 	Range all;

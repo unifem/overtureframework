@@ -69,7 +69,10 @@ enum InitialStateOptionEnum
 {
   initialPosition,
   initialVelocity,
-  initialAcceleration
+  initialAcceleration,
+  initialBoundaryPosition,
+  initialBoundaryVelocity,
+  initialBoundaryAcceleration 
 };
 
 

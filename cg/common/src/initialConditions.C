@@ -83,13 +83,18 @@ projectInitialConditionsForMovingGrids(int gfIndex)
 int DomainSolver::
 assignInitialConditions(int gfIndex)
 {
-  // printF("DomainSolver::assignInitialConditions: initialConditionOption=%i\n",initialConditionOption);
+
   realCompositeGridFunction & u = gf[gfIndex].u;
   const real t = gf[gfIndex].t;
 
   CompositeGrid & cg = gf[gfIndex].cg;  // *wdh* 2013/10/02 
   
   Parameters::InitialConditionOption & initialConditionOption = parameters.dbase.get<Parameters::InitialConditionOption >("initialConditionOption");
+
+  if( debug() & 2 )
+    printF("DomainSolver::assignInitialConditions: gfIndex=%i t=%9.3e initialConditionOption=%i\n",
+	   gfIndex,t,initialConditionOption);
+
 
   // Look for the sub-directory in the data-base to store variables used here and in assignInitialConditions
   if( !parameters.dbase.get<DataBase >("modelData").has_key("initialConditionData") )

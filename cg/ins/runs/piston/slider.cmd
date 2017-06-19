@@ -223,30 +223,44 @@ if( $go eq "run" || $go eq "go" ){ $go = "movie mode\n finish"; }
    $cmd
    # pause
 # 
+#
+echo to terminal 0
   pressure solver options
-     $psolver
-     # these tolerances are chosen for PETSc
-     relative tolerance
-       $rtolp
-     absolute tolerance
-       $atolp
-     debug 
-       $debug
-    exit
+   $ogesSolver=$psolver; $ogesRtol=$rtolp; $ogesAtol=$atolp; $ogesDebug=$debug;
+   include $ENV{CG}/ins/cmd/ogesOptions.h
+  exit
 # 
   implicit time step solver options
-     $solver
-     # these tolerances are chosen for PETSc
-     relative tolerance
-       $rtol
-     absolute tolerance
-       $atol
-    exit
+   $ogesSolver=$solver; $ogesRtol=$rtol; $ogesAtol=$atol;  $ogesDebug=$debug;
+   include $ENV{CG}/ins/cmd/ogesOptions.h
+  exit
+# OLD: 2017/05/21
+#-  pressure solver options
+#-     $psolver
+#-     # these tolerances are chosen for PETSc
+#-     relative tolerance
+#-       $rtolp
+#-     absolute tolerance
+#-       $atolp
+#-     debug 
+#-       $debug
+#-    exit
+#-# 
+#-  implicit time step solver options
+#-     $solver
+#-     # these tolerances are chosen for PETSc
+#-     relative tolerance
+#-       $rtol
+#-     absolute tolerance
+#-       $atol
+#-    exit
+echo to terminal 1
 #
  cfl $cfl
 #
   boundary conditions
    all=noSlipWall
+   # all=dirichletBoundaryCondition
    # make top wall slip , bottom wall moves
    slider(1,1)=slipWall
   done

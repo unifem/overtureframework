@@ -146,7 +146,7 @@ $T0=0.;
 ## $bc = "all=noSlipWall uniform(u=.0,T=$T0)\n bcNumber3=slipWall\n bcNumber4=slipWall\n bcNumber1=inflowWithVelocityGiven, uniform(u=$u0,T=0.)\n bcNumber2=outflow, pressure(1.*p+.1*p.n=0.)\n bcNumber100=tractionInterface";
 ## $bc = "all=noSlipWall uniform(u=.0,T=$T0)\n bcNumber3=slipWall\n bcNumber4=slipWall\n bcNumber1=inflowWithVelocityGiven, parabolic(d=.1,u=$u0,T=0.)\n bcNumber2=outflow, pressure(1.*p+.1*p.n=0.)\n bcNumber100=tractionInterface";
 ### $bc = "all=noSlipWall uniform(u=.0,T=$T0)\n bcNumber3=slipWall\n bcNumber4=slipWall\n bcNumber1=inflowWithPressureAndTangentialVelocityGiven uniform(p=1.,v=0.T=0.)\n bcNumber2=outflow, pressure(1.*p+0.*p.n=0.)\n bcNumber100=tractionInterface";
-# -- beam under pressure: 
+# -- RAMP PRESSURE BC: 
 $bc = "all=$sideBC\n bcNumber100=noSlipWall uniform(u=.0,T=$T0)\n bcNumber100=tractionInterface";
     #
     # **** ramp the pressure on the bottom ****

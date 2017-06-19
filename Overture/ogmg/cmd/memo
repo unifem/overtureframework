@@ -1,5 +1,11 @@
 set ogmgt = $ogmg/ogmgt
 
+*****************************
+*** May 3, 2017
+
+$ogmgt tz -g=square128.order2 -predefined=1 -tz=trig -levels=2 -fmg=1 -debug=7
+
+
 
 ****************
 *** March 30, 2016

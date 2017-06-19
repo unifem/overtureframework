@@ -413,10 +413,14 @@ tcmge: $(tcmge)
 
 # Test coefficent matrices with user defined constraints 
 tcmConstraint = tcmConstraint.o Checker.o $(PETSC) Oges.o generateMatrix.o formMatrix.o OgesExtraEquations.o ogesFiles.o
-tcmConstraint = tcmConstraint.o Checker.o $(PETSC) 
+tcmConstraint = tcmConstraint.o Checker.o $(PETSC) formMatrix.o
 tcmConstraint: $(tcmConstraint) 
 	$(CC) $(CCFLAGS) -o tcmConstraint $(tcmConstraint) \
          $(CLIBS) $(PETSC_LIBS) $(FLIBS) $(GLIBS)
+
+# make parallel version and rename
+tcmp: tcmConstraint
+	mv tcmConstraint tcmConstraintp
 
 
 # linearized INS

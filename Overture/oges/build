@@ -25,7 +25,8 @@ cp {EquationSolver,PETScEquationSolver,PETScSolver,YaleEquationSolver,SlapEquati
 cp {MultigridEquationSolver}.h $OvertureInclude
 
 cp {Oges,ogesFiles,OgesParameters,formMatrix,generateMatrix,buildEquationSolvers,determineErrors,obsolete}.C  $OvertureOges
-cp {EquationSolver,PETScEquationSolver,PETScSolver,YaleEquationSolver,SlapEquationSolver,HarwellEquationSolver}.C    $OvertureOges
+cp {EquationSolver,PETScEquationSolver,YaleEquationSolver,SlapEquationSolver,HarwellEquationSolver}.C    $OvertureOges
+cp {PETScSolver.bC,PETScSolver.C}   $OvertureOges
 cp {MultigridEquationSolver,residual,OgesExtraEquations}.C   $OvertureOges
 
 cp {cgesl1234,slapFiles}.F                                                            $OvertureOges

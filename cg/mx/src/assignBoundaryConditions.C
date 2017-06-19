@@ -1,5 +1,6 @@
 // This file automatically generated from assignBoundaryConditions.bC with bpp.
 #include "Maxwell.h"
+#include "DispersiveMaterialParameters.h"
 #include "CompositeGridOperators.h"
 #include "display.h"
 #include "UnstructuredMapping.h"
@@ -305,6 +306,27 @@ updateghostandperiodic(realMappedGridFunction *&pu )
  // -- transmitted wave ---
  //  --- time derivative of transmitted wave ---
 
+// Macros for dispersive waves
+// -- dispersive plane wave solution
+//        w = wr + i wi   (complex dispersion relation)
+// You should define: 
+//    dpwExp := exp( wi* t )
+#define exDpw(x,y,t,dpwExp) sin(twoPi*(kx*(x)+ky*(y))-omegaDpwRe*(t))*(pwc[0]*(dpwExp))
+#define eyDpw(x,y,t,dpwExp) sin(twoPi*(kx*(x)+ky*(y))-omegaDpwRe*(t))*(pwc[1]*(dpwExp))
+#define hzDpw(x,y,t,dpwExp) sin(twoPi*(kx*(x)+ky*(y)-cc*(t)))*pwc[5]
+
+// ** FIX ME -- THIS IS WRONG
+// #define extDpw(x,y,t,dpwExp) (-twoPi*omegaDpwRe)*cos(twoPi*(kx*(x)+ky*(y)-omegaDpwRe*(t)))*(pwc[0]*(dpwExp))
+// #define eytDpw(x,y,t,dpwExp) (-twoPi*omegaDpwRe)*cos(twoPi*(kx*(x)+ky*(y)-omegaDpwRe*(t)))*(pwc[1]*(dpwExp))
+// #define hztDpw(x,y,t,dpwExp) (-twoPi*cc)*cos(twoPi*(kx*(x)+ky*(y)-cc*(t)))*pwc[5]
+
+// ====================================================================================
+/// Macro: Return the time-dependent coefficients for a known solution
+// 
+// NOTE: This next section is repeated in getInitialConditions.bC,
+//        getErrors.bC and assignBoundaryConditions.bC 
+// ====================================================================================
+
 // =============================================================================================================
 // /Description:
 //    Compute a new gridIndexRange, dimension
@@ -444,8 +466,9 @@ adjustBoundsForPML( MappedGrid & mg, Index Iv[3], int extra /* =0 */ )
 // =============================================================================================
 // Macro to apply optimized versions of BC's
 //
-// OPTION: OPTION==field : apply BC's to the fied variables Ex, Ey, ...
+// OPTION: OPTION==field           : apply BC's to the fied variables Ex, Ey, ...
 //         OPTION==timeDerivatives : apply BCs to the time-derivatives of the field (for SOSUP) 
+//         OPTION==polarization    : apply BC's to the polarization vectors
 // =============================================================================================
 
 // ============================================================================
@@ -493,6 +516,9 @@ assignBoundaryConditions( int option, int grid, real t, real dt, realMappedGridF
 
     const BoundaryForcingEnum & boundaryForcingOption =dbase.get<BoundaryForcingEnum>("boundaryForcingOption");
 
+    const int & useSosupDissipation = parameters.dbase.get<int>("useSosupDissipation");
+    bool addedExtraGhostLine = method==sosup || (method==nfdtd && useSosupDissipation);
+    
   // Do we need the grid points: 
   // const bool centerNeeded=(useForcing || forcingOption==planeWaveBoundaryForcing ||  // **************** fix this 
   //                          initialConditionOption==gaussianPlaneWave || 
@@ -647,7 +673,7 @@ assignBoundaryConditions( int option, int grid, real t, real dt, realMappedGridF
               // printF("method==nfdtd:applyBC dirichlet to (side,axis)=(%i,%i) t=%e\n",side,axis,t);
           	    
           	    int numberOfGhostLines = orderOfAccuracyInSpace/2;
-                        if( method==sosup ) numberOfGhostLines++;  // sosup uses one extra ghost line
+                        if( addedExtraGhostLine ) numberOfGhostLines++;  // sosup uses one extra ghost line
           	    
           	    int extra=numberOfGhostLines;
           	    getBoundaryIndex(mg.gridIndexRange(),side,axis,I1,I2,I3,extra);
@@ -1188,10 +1214,83 @@ assignBoundaryConditions( int option, int grid, real t, real dt, realMappedGridF
 
                 	      const real cc0= cGrid(0)*sqrt( kx*kx+ky*ky ); // NOTE: use grid 0 values for multi-materials
 
-            	      const real cost = cos(-twoPi*cc0*t);
-            	      const real sint = sin(-twoPi*cc0*t);
-            	      const real dcost =  twoPi*cc0*sint;  // d(sin(..))/dt 
-            	      const real dsint = -twoPi*cc0*cost;  // d(sin(..))/dt 	    
+	      // const real cost = cos(-twoPi*cc0*t);
+	      // const real sint = sin(-twoPi*cc0*t);
+	      // const real dcost =  twoPi*cc0*sint;  // d(sin(..))/dt 
+	      // const real dsint = -twoPi*cc0*cost;  // d(sin(..))/dt 	    
+
+                                real cost,sint,costm,sintm,dcost,dsint;
+                                real phiPc,phiPs, phiPcm,phiPsm;
+                                if( dispersionModel==noDispersion )
+                                {
+                                    cost = cos(-twoPi*cc0*t); // *wdh* 040626 add "-"
+                                    sint = sin(-twoPi*cc0*t); // *wdh* 040626 add "-"
+                                    costm= cos(-twoPi*cc0*(t-dt)); // *wdh* 040626 add "-"
+                                    sintm= sin(-twoPi*cc0*(t-dt)); // *wdh* 040626 add "-"
+                                    dcost =  twoPi*cc0*sint;  // d(sin(..))/dt 
+                                    dsint = -twoPi*cc0*cost;  // d(sin(..))/dt 
+                                }
+                                else
+                                {
+                  // -- dispersive model -- *CHECK ME*
+                  // Evaluate the dispersion relation for "s"
+                                    DispersiveMaterialParameters & dmp = getDispersiveMaterialParameters(grid);
+                                    const real kk = twoPi*cc0;  // Parameter in dispersion relation **check me**
+                                    real reS, imS;
+                                    dmp.computeDispersionRelation( c,eps,mu,kk, reS, imS );
+                                    real expS = exp(reS*t), expSm=exp(reS*(t-dt));
+                                    imS=-imS;  // flip sign    **** FIX ME ****
+                                    printF("--IC-- scatCyl imS=%g, Im(s)/(twoPi*cc0)=%g reS=%g\n",imS,imS/twoPi*cc0,reS);
+                                    cost = cos( imS*t )*expS;      // "cos(t)" for dispersive model 
+                                    sint = sin( imS*t )*expS;
+                                    costm = cos( imS*(t-dt) )*expS;
+                                    sintm = sin( imS*(t-dt) )*expS;
+                                    dcost = -imS*sint + reS*cost;  //  d/dt of "cost" 
+                                    dsint =  imS*cost + reS*sint;  //  d/dt of "cost" 
+                                    real alpha=reS, beta=imS;  // s= alpha + i*beta (
+                                    real a,b;   // psi = a + i*b 
+                  // P = Im{ psi(s)*E } = Im{ (a+i*b)*( Er + i*Ei)(cos(beta*t)+i*sin(beta*t))*exp(alpha*t) }
+                                    const real gamma=dmp.gamma, omegap=dmp.omegap;
+                                    const real cp = eps* omegap*omegap;
+                                    const real denom = (SQR(alpha)+SQR(beta))*( SQR((alpha+gamma)) + SQR(beta) );
+                                    a =  cp* (alpha*(alpha+gamma)-beta*beta)/denom;   
+                                    b = -cp* beta*(2.*alpha+gamma)/denom;
+                                    phiPc = a*cost-b*sint;
+                                    phiPs = a*sint+b*cost;
+                                    phiPcm = a*costm-b*sintm;
+                                    phiPsm = a*sintm+b*costm;
+                                }
+
+              // // NOTE: This next section is repeated in getInitialConditions.bC,
+              // //        getErrors.bC and assignBoundaryConditions.bC *FIX ME*
+              // real cost,sint,dcost,dsint;
+	      // if( dispersionModel==noDispersion )
+	      // {
+	      // 	cost = cos(-twoPi*cc0*t); 
+	      // 	sint = sin(-twoPi*cc0*t); 
+	      // 	dcost =  twoPi*cc0*sint;  // d(sin(..))/dt 
+	      // 	dsint = -twoPi*cc0*cost;  // d(sin(..))/dt 
+	      // }
+	      // else
+	      // {
+	      // 	// -- dispersive model --  *CHECK ME*
+
+	      // 	// Evaluate the dispersion relation for "s"
+	      // 	DispersiveMaterialParameters & dmp = getDispersiveMaterialParameters(grid);
+	      // 	const real kk = twoPi*cc0;  // Parameter in dispersion relation **check me**
+	      // 	real reS, imS;
+	      // 	dmp.computeDispersionRelation( c,eps,mu,kk, reS, imS );
+	      // 	real expS = exp(reS*t), expSm=exp(reS*(t-dt));
+	      // 	imS=-imS;  // flip sign 
+	      // 	printF("--ER-- scatCyl imS=%g, Im(s)/(twoPi*cc0)=%g reS=%g\n",imS,imS/twoPi*cc0,reS);
+
+	      // 	cost = cos( imS*t )*expS;      // "cos(t)" for dispersive model 
+	      // 	sint = sin( imS*t )*expS;
+
+	      // 	dcost = -imS*sint + reS*cost;  //  d/dt of "cost" 
+	      // 	dsint =  imS*cost + reS*sint;  //  d/dt of "cost" 
+          	    
+	      // }
 
                             if( debug & 4 ) printF("Set Dirichlet BC from known solution, grid,side,axis=%i,%i,%i\n",grid,side,axis);
             	      
@@ -1225,7 +1324,15 @@ assignBoundaryConditions( int option, int grid, real t, real dt, realMappedGridF
                 		    U(i1,i2,i3,eyt)=UG(i1,i2,i3,ey)*dsint+UG(i1,i2,i3,ey+3)*dcost;
                 		    U(i1,i2,i3,hzt)=UG(i1,i2,i3,hz)*dsint+UG(i1,i2,i3,hz+3)*dcost;
               		  }
-              		  
+            		}
+		// -- dispersion model components --
+            		if( dispersionModel!=noDispersion )
+            		{
+              		  FOR_3D(i1,i2,i3,I1,I2,I3)
+              		  {
+                		    U(i1,i2,i3,pxc)  = UG(i1,i2,i3,ex)*phiPs + UG(i1,i2,i3,ex+3)*phiPc;
+                		    U(i1,i2,i3,pyc)  = UG(i1,i2,i3,ey)*phiPs + UG(i1,i2,i3,ey+3)*phiPc;
+              		  }
             		}
             	      }
                             else
@@ -1245,6 +1352,18 @@ assignBoundaryConditions( int option, int grid, real t, real dt, realMappedGridF
                 		    }
               		  
               		  }
+
+		  // -- dispersion model components --
+              		  if( dispersionModel!=noDispersion )
+              		  {
+                		    FOR_3D(i1,i2,i3,I1,I2,I3)
+                		    {
+                  		      U(i1,i2,i3,pxc)  = UG(i1,i2,i3,ex)*phiPs + UG(i1,i2,i3,ex+3)*phiPc;
+                  		      U(i1,i2,i3,pyc)  = UG(i1,i2,i3,ey)*phiPs + UG(i1,i2,i3,ey+3)*phiPc;
+                  		      U(i1,i2,i3,pzc)  = UG(i1,i2,i3,ez)*phiPs + UG(i1,i2,i3,ez+3)*phiPc;
+                		    }
+              		  }
+
             		}
             		if( solveForMagneticField )
             		{
@@ -1687,7 +1806,7 @@ assignBoundaryConditions( int option, int grid, real t, real dt, realMappedGridF
             {
         // use optimised boundary conditions
                 int ipar[40];
-                real rpar[40];
+                real rpar[50];
                 int gridType = isRectangular ? 0 : 1;
                 int orderOfExtrapolation=orderOfAccuracyInSpace+1;  // not used
                 int useWhereMask=false;
@@ -1742,10 +1861,11 @@ assignBoundaryConditions( int option, int grid, real t, real dt, realMappedGridF
                 int bcSymmetryOption=1;     // This is the proper symmetry condition *wdh* Sept 6, 2016
                 ipar[27]= bcSymmetryOption;
                 ipar[28]=myid;
-          // apply BCs to field variables
-                    ipar[29]=0;  // fieldOption
+        // -- fieldOption: used for SOSUP to apply BCs to the field or its time-derivative  
+                int fieldOption=0;  // apply BCs to field variables
+                ipar[29]=fieldOption;
                 int numberOfGhostLines = orderOfAccuracyInSpace/2;
-                if( method==sosup ) numberOfGhostLines++;  // sosup uses one extra ghost line
+                if( addedExtraGhostLine ) numberOfGhostLines++;  // sosup uses one extra ghost line
                 ipar[30]=numberOfGhostLines;  // for symmetry BC in bcSymmetry
         // field we subtract off the incident field over this many points next to the boundary.
         // This value should take into account the width of extrapolation used at far-fields
@@ -1756,6 +1876,11 @@ assignBoundaryConditions( int option, int grid, real t, real dt, realMappedGridF
                     widthForAdjustFieldsForIncident+=1;  // *wdh* ABC 4th-order corners needs 1 more 
                 ipar[31]=widthForAdjustFieldsForIncident;
                 ipar[32]=boundaryForcingOption;
+        // supply polarizationOption for dispersive models *wdh* May 29, 2017
+                int polarizationOption=0;
+                ipar[33]=polarizationOption;
+                ipar[34]=dispersionModel;
+                ipar[35]=dbase.get<int>("smoothBoundingBox"); // 1= smooth the IC at the bounding box edge
                 rpar[0]=dx[0];       // for Cartesian grids          
                 rpar[1]=dx[1];                
                 rpar[2]=dx[2];                
@@ -1794,6 +1919,24 @@ assignBoundaryConditions( int option, int grid, real t, real dt, realMappedGridF
                 rpar[34]=cpw(5); // x0
                 rpar[35]=cpw(6); // y0
                 rpar[36]=cpw(7); // z0
+        // Dispersion parameters:
+                real sr=0.,si=0.;  // Re(s), Im(s) in exp(s*t) 
+                real ap=0., bp=0., cp=0.;
+                if( dispersionModel !=noDispersion )
+                {
+                    DispersiveMaterialParameters & dmp = getDispersiveMaterialParameters(grid);
+                    const real kk = twoPi*sqrt( kx*kx+ky*ky+kz*kz); // true wave-number (note factor of twoPi)
+                    dmp.computeDispersionRelation( c,eps,mu,kk, sr,si );
+          // P equation is P_t + ap*P_t + bp*P = cp*E 
+                    ap=dmp.gamma;
+                    bp=0.;
+                    cp=eps*SQR(dmp.omegap);
+                }
+                rpar[37]=sr;
+                rpar[38]=si;
+                rpar[39]=ap;
+                rpar[40]=bp;
+                rpar[41]=cp;
         // fprintf(pDebugFile,"**** pu= %i, %i...\n",&u,pu);
             #ifdef USE_PPP 
                 realSerialArray uu;    getLocalArrayWithGhostBoundaries(u,uu);
@@ -1909,8 +2052,8 @@ assignBoundaryConditions( int option, int grid, real t, real dt, realMappedGridF
                     nv[axis]=2*side-1;
           // Damp near the point xv0[] on the front
                     real xv0[3]={0.,0.,0.};  // normal to decay direction
-                    xv0[0] = .5*(initialConditionBoundingBox(1,0)+initialConditionBoundingBox(0,0));
-                    xv0[1] = .5*(initialConditionBoundingBox(1,1)+initialConditionBoundingBox(0,1));
+                    for( int dir=0; dir<numberOfDimensions; dir++ )
+                        xv0[dir] = .5*(initialConditionBoundingBox(1,dir)+initialConditionBoundingBox(0,dir));
                     xv0[axis]=initialConditionBoundingBox(side,axis);
                     rpar[29]=beta;
                     rpar[30]=nv[0];
@@ -2233,7 +2376,7 @@ assignBoundaryConditions( int option, int grid, real t, real dt, realMappedGridF
                 {
           // use optimised boundary conditions
                     int ipar[40];
-                    real rpar[40];
+                    real rpar[50];
                     int gridType = isRectangular ? 0 : 1;
                     int orderOfExtrapolation=orderOfAccuracyInSpace+1;  // not used
                     int useWhereMask=false;
@@ -2281,10 +2424,12 @@ assignBoundaryConditions( int option, int grid, real t, real dt, realMappedGridF
                     int bcSymmetryOption=1;     // This is the proper symmetry condition *wdh* Sept 6, 2016
                     ipar[27]= bcSymmetryOption;
                     ipar[28]=myid;
-            // apply BCs to time-derivatives
-                        ipar[29]=1;  // fieldOption
+          // -- fieldOption: used for SOSUP to apply BCs to the field or its time-derivative  
+                    int fieldOption=0;  // apply BCs to field variables
+                        fieldOption=1; // apply BCs to time-derivatives
+                    ipar[29]=fieldOption;
                     int numberOfGhostLines = orderOfAccuracyInSpace/2;
-                    if( method==sosup ) numberOfGhostLines++;  // sosup uses one extra ghost line
+                    if( addedExtraGhostLine ) numberOfGhostLines++;  // sosup uses one extra ghost line
                     ipar[30]=numberOfGhostLines;  // for symmetry BC in bcSymmetry
           // field we subtract off the incident field over this many points next to the boundary.
           // This value should take into account the width of extrapolation used at far-fields
@@ -2295,6 +2440,11 @@ assignBoundaryConditions( int option, int grid, real t, real dt, realMappedGridF
                         widthForAdjustFieldsForIncident+=1;  // *wdh* ABC 4th-order corners needs 1 more 
                     ipar[31]=widthForAdjustFieldsForIncident;
                     ipar[32]=boundaryForcingOption;
+          // supply polarizationOption for dispersive models *wdh* May 29, 2017
+                    int polarizationOption=0;
+                    ipar[33]=polarizationOption;
+                    ipar[34]=dispersionModel;
+                    ipar[35]=dbase.get<int>("smoothBoundingBox"); // 1= smooth the IC at the bounding box edge
                     rpar[0]=dx[0];       // for Cartesian grids          
                     rpar[1]=dx[1];                
                     rpar[2]=dx[2];                
@@ -2333,6 +2483,24 @@ assignBoundaryConditions( int option, int grid, real t, real dt, realMappedGridF
                     rpar[34]=cpw(5); // x0
                     rpar[35]=cpw(6); // y0
                     rpar[36]=cpw(7); // z0
+          // Dispersion parameters:
+                    real sr=0.,si=0.;  // Re(s), Im(s) in exp(s*t) 
+                    real ap=0., bp=0., cp=0.;
+                    if( dispersionModel !=noDispersion )
+                    {
+                        DispersiveMaterialParameters & dmp = getDispersiveMaterialParameters(grid);
+                        const real kk = twoPi*sqrt( kx*kx+ky*ky+kz*kz); // true wave-number (note factor of twoPi)
+                        dmp.computeDispersionRelation( c,eps,mu,kk, sr,si );
+            // P equation is P_t + ap*P_t + bp*P = cp*E 
+                        ap=dmp.gamma;
+                        bp=0.;
+                        cp=eps*SQR(dmp.omegap);
+                    }
+                    rpar[37]=sr;
+                    rpar[38]=si;
+                    rpar[39]=ap;
+                    rpar[40]=bp;
+                    rpar[41]=cp;
           // fprintf(pDebugFile,"**** pu= %i, %i...\n",&u,pu);
                 #ifdef USE_PPP 
                     realSerialArray uu;    getLocalArrayWithGhostBoundaries(u,uu);
@@ -2448,8 +2616,576 @@ assignBoundaryConditions( int option, int grid, real t, real dt, realMappedGridF
                         nv[axis]=2*side-1;
             // Damp near the point xv0[] on the front
                         real xv0[3]={0.,0.,0.};  // normal to decay direction
-                        xv0[0] = .5*(initialConditionBoundingBox(1,0)+initialConditionBoundingBox(0,0));
-                        xv0[1] = .5*(initialConditionBoundingBox(1,1)+initialConditionBoundingBox(0,1));
+                        for( int dir=0; dir<numberOfDimensions; dir++ )
+                            xv0[dir] = .5*(initialConditionBoundingBox(1,dir)+initialConditionBoundingBox(0,dir));
+                        xv0[axis]=initialConditionBoundingBox(side,axis);
+                        rpar[29]=beta;
+                        rpar[30]=nv[0];
+                        rpar[31]=nv[1];
+                        rpar[32]=nv[2];
+                        rpar[33]=xv0[0];
+                        rpar[34]=xv0[1];
+                        rpar[35]=xv0[2];
+                        adjustForIncident( mg.numberOfDimensions(),  
+                            		uu.getBase(0),uu.getBound(0),
+                            		uu.getBase(1),uu.getBound(1),
+                            		uu.getBase(2),uu.getBound(2),
+                            		*gid.getDataPointer(),
+                            		*uum.getDataPointer(), *uOldptr, *uptr, *maskptr,*rxptr, *xyptr,
+                            		*initialConditionBoundingBox.getDataPointer(),
+                            		bc0, *bc.getDataPointer(), ipar[0], rpar[0], ierr );
+                        ipar[25]=0;
+                        if( debug & 4 )
+                        {
+                            ::display(um(all,all,all,hz),sPrintF("um (Hz) after adjustForIncident grid=%i t=%e",grid,t),debugFile,"%9.2e ");
+                            ::display(uOld(all,all,all,hz),sPrintF("u  (Hz) after adjustForIncident grid=%i t=%e",grid,t),debugFile,"%9.2e ");
+                            ::display(u (all,all,all,hz),sPrintF("un (Hz) after adjustForIncident grid=%i t=%e",grid,t),debugFile,"%9.2e ");
+                        }
+                    }
+          // Non-reflecting and Absorbing boundary conditions
+          // ***NOTE*** symmetry corners and edges are assigned in this next routine *fix me*
+                    abcMaxwell( mg.numberOfDimensions(), 
+                            	      uu.getBase(0),uu.getBound(0),
+                            	      uu.getBase(1),uu.getBound(1),
+                            	      uu.getBase(2),uu.getBound(2),
+                            	      ff.getBase(0),ff.getBound(0),
+                            	      ff.getBase(1),ff.getBound(1),
+                            	      ff.getBase(2),ff.getBound(2),
+                            	      *gid.getDataPointer(),
+                            	      *uOldptr, *uptr, *fptr,*maskptr,*rxptr, *xyptr,
+                            	      bc0, *bc.getDataPointer(), ipar[0], rpar[0], ierr );
+          // ** we should probably assign the PML before all the other BC's since it is like an interior equation **
+          //   ** but watch out for the adjustment for the incident field ***
+                    if( usePML )
+                    {
+                            assert( cgp!=NULL );
+                            CompositeGrid & cg= *cgp;
+                            realMappedGridFunction & un = u;    // u[next];
+              // realMappedGridFunction & uu = uOld; // u[current];
+                            const int prev= (current-1+numberOfTimeLevels) % numberOfTimeLevels;
+                            const int next = (current+1) % numberOfTimeLevels;
+              // realMappedGridFunction & um =mgp!=NULL ? fields[prev] : cgfields[prev][grid];
+                            Range all;
+              // ::display(um(all,all,all,hz),"um before pml BC's","%9.2e ");
+              // ::display(u(all,all,all,hz) ,"u  before pml BC's","%9.2e ");
+              // ::display(un(all,all,all,hz),"un before pml BC's","%9.2e ");
+              // *********** In parallel we need to allocate local arrays **********
+              //   *** We then need to define a ghost boundary update for these serial arrays ***
+              // We should do this:  PML(n,side,axis,grid) -> time level n : vwpml(I1,I2,I3,0:1) <- store v,w in this array 
+              // current way: 
+              // PML(n,m,side,axis,grid)      n=time-level, m=v,w 
+                            const int numberOfPMLFunctions=2;  //  v and w
+                            const int numberOfComponentsPML=3; // store Ex, Ey, Hz or Ex,Ey,Ez
+                            #define PML(n,m,side,axis,grid) vpml[(n)+numberOfTimeLevels*(m+numberOfPMLFunctions*(side+2*(axis+3*(grid))))]
+                            #define VPML(n,side,axis,grid) PML(n,0,side,axis,grid)
+                            #define WPML(n,side,axis,grid) PML(n,1,side,axis,grid)
+                            if( vpml==NULL )
+                            {
+                // *** No need to allocate PML arrays for all grids !! ***
+                                vpml= new RealArray [cg.numberOfComponentGrids()*3*2*numberOfTimeLevels*numberOfPMLFunctions];
+                // pmlWasIntitialized[grid] = true if the PML arrays were allocated for this grid
+                                int *& pmlWasIntitialized =  dbase.put<int*>("pmlWasInitialized");
+                                pmlWasIntitialized= new int[cg.numberOfComponentGrids()];   // who will delete this ?
+                                for( int g=0; g<cg.numberOfComponentGrids(); g++ )
+                                    pmlWasIntitialized[g]=false;
+                            }
+              // pmlWasIntitialized[grid] = true if the PML arrays were allocated for this grid
+                            int *& pmlWasIntitialized =dbase.get<int*>("pmlWasInitialized");
+                            if( !pmlWasIntitialized[grid] )
+                            {
+                                pmlWasIntitialized[grid]=true;
+                                printF(" ****** assignBC: allocate vpml arrays grid=%i, numberOfTimeLevels=%i numberOfPMLFunctions=%i ***** \n",
+                               	 grid,numberOfTimeLevels,numberOfPMLFunctions);
+                                const int numGhost = orderOfAccuracyInSpace/2;  // we need ghost values in the PML functions *wdh* 2011/12/02
+                                for( int side=0; side<=1; side++ )
+                                {
+                                    for( int axis=0; axis<mg.numberOfDimensions(); axis++ )
+                                    {
+                                        if( mg.boundaryCondition(side,axis)==abcPML )
+                                        {
+                                	  for( int m=0; m<numberOfPMLFunctions; m++ )  // ********* FIX ********
+                                  	    for( int n=0; n<numberOfTimeLevels; n++ )
+                                  	    {
+                                    	      RealArray & vw = PML(n,m,side,axis,grid);
+                                    	      int ndr[2][3];
+                                    	      for( int dir=0; dir<3; dir++ )
+                                    	      {
+                                    		ndr[0][dir]=mg.dimension(0,dir);
+                                    		ndr[1][dir]=mg.dimension(1,dir);
+                                    	      }
+                                    	      if( side==0 )
+                                    	      {
+                                    		ndr[0][axis]=mg.dimension(side,axis);
+                                    		ndr[1][axis]=mg.gridIndexRange(side,axis)+numberLinesForPML-1 +numGhost;
+                                    	      }
+                                    	      else
+                                    	      {
+                                    		ndr[0][axis]=mg.gridIndexRange(side,axis)-numberLinesForPML+1 -numGhost;
+                                    		ndr[1][axis]=mg.dimension(side,axis);
+                                    	      }
+            	      // RealArray a;
+            	      // a.redim(Range(-2,10),Range(0,0));
+                                    	      vw .redim(Range(ndr[0][0],ndr[1][0]),
+                                          			Range(ndr[0][1],ndr[1][1]),
+                                          			Range(ndr[0][2],ndr[1][2]),numberOfComponentsPML);  // ********* FIX ********
+                                    	      vw=0.;
+                                  	    }
+                              	}
+                                    }
+                                }
+                            } // end if pmlWasInitialized
+                          #ifdef USE_PPP
+                            realSerialArray uum; getLocalArrayWithGhostBoundaries(um,uum);
+                            realSerialArray uu;  getLocalArrayWithGhostBoundaries(uOld,uu);
+                            realSerialArray uun; getLocalArrayWithGhostBoundaries(un,uun);
+            //   realSerialArray vram; getLocalArrayWithGhostBoundaries(VPML(prev   ,0,0,grid),vram); 
+            //   realSerialArray vrbm; getLocalArrayWithGhostBoundaries(VPML(prev   ,1,0,grid),vrbm); 
+            //   realSerialArray vsam; getLocalArrayWithGhostBoundaries(VPML(prev   ,0,1,grid),vsam); 
+            //   realSerialArray vsbm; getLocalArrayWithGhostBoundaries(VPML(prev   ,1,1,grid),vsbm); 
+            //   realSerialArray vtam; getLocalArrayWithGhostBoundaries(VPML(prev   ,0,2,grid),vtam); 
+            //   realSerialArray vtbm; getLocalArrayWithGhostBoundaries(VPML(prev   ,1,2,grid),vtbm); 
+            //   realSerialArray vra ; getLocalArrayWithGhostBoundaries(VPML(current,0,0,grid),vra ); 
+            //   realSerialArray vrb ; getLocalArrayWithGhostBoundaries(VPML(current,1,0,grid),vrb ); 
+            //   realSerialArray vsa ; getLocalArrayWithGhostBoundaries(VPML(current,0,1,grid),vsa ); 
+            //   realSerialArray vsb ; getLocalArrayWithGhostBoundaries(VPML(current,1,1,grid),vsb ); 
+            //   realSerialArray vta ; getLocalArrayWithGhostBoundaries(VPML(current,0,2,grid),vta ); 
+            //   realSerialArray vtb ; getLocalArrayWithGhostBoundaries(VPML(current,1,2,grid),vtb ); 
+            //   realSerialArray vran; getLocalArrayWithGhostBoundaries(VPML(next   ,0,0,grid),vran); 
+            //   realSerialArray vrbn; getLocalArrayWithGhostBoundaries(VPML(next   ,1,0,grid),vrbn); 
+            //   realSerialArray vsan; getLocalArrayWithGhostBoundaries(VPML(next   ,0,1,grid),vsan); 
+            //   realSerialArray vsbn; getLocalArrayWithGhostBoundaries(VPML(next   ,1,1,grid),vsbn); 
+            //   realSerialArray vtan; getLocalArrayWithGhostBoundaries(VPML(next   ,0,2,grid),vtan); 
+            //   realSerialArray vtbn; getLocalArrayWithGhostBoundaries(VPML(next   ,1,2,grid),vtbn); 
+            //   realSerialArray wram; getLocalArrayWithGhostBoundaries(WPML(prev   ,0,0,grid),wram); 
+            //   realSerialArray wrbm; getLocalArrayWithGhostBoundaries(WPML(prev   ,1,0,grid),wrbm); 
+            //   realSerialArray wsam; getLocalArrayWithGhostBoundaries(WPML(prev   ,0,1,grid),wsam); 
+            //   realSerialArray wsbm; getLocalArrayWithGhostBoundaries(WPML(prev   ,1,1,grid),wsbm); 
+            //   realSerialArray wtam; getLocalArrayWithGhostBoundaries(WPML(prev   ,0,2,grid),wtam); 
+            //   realSerialArray wtbm; getLocalArrayWithGhostBoundaries(WPML(prev   ,1,2,grid),wtbm); 
+            //   realSerialArray wra ; getLocalArrayWithGhostBoundaries(WPML(current,0,0,grid),wra ); 
+            //   realSerialArray wrb ; getLocalArrayWithGhostBoundaries(WPML(current,1,0,grid),wrb ); 
+            //   realSerialArray wsa ; getLocalArrayWithGhostBoundaries(WPML(current,0,1,grid),wsa ); 
+            //   realSerialArray wsb ; getLocalArrayWithGhostBoundaries(WPML(current,1,1,grid),wsb ); 
+            //   realSerialArray wta ; getLocalArrayWithGhostBoundaries(WPML(current,0,2,grid),wta ); 
+            //   realSerialArray wtb ; getLocalArrayWithGhostBoundaries(WPML(current,1,2,grid),wtb ); 
+            //   realSerialArray wran; getLocalArrayWithGhostBoundaries(WPML(next   ,0,0,grid),wran); 
+            //   realSerialArray wrbn; getLocalArrayWithGhostBoundaries(WPML(next   ,1,0,grid),wrbn); 
+            //   realSerialArray wsan; getLocalArrayWithGhostBoundaries(WPML(next   ,0,1,grid),wsan); 
+            //   realSerialArray wsbn; getLocalArrayWithGhostBoundaries(WPML(next   ,1,1,grid),wsbn); 
+            //   realSerialArray wtan; getLocalArrayWithGhostBoundaries(WPML(next   ,0,2,grid),wtan); 
+            //   realSerialArray wtbn; getLocalArrayWithGhostBoundaries(WPML(next   ,1,2,grid),wtbn); 
+                          #else
+                            const realSerialArray & uum = um;
+                            const realSerialArray & uu  = uOld;
+                            const realSerialArray & uun = un;
+                          #endif
+                            const realSerialArray & vram = VPML(prev   ,0,0,grid); 
+                            const realSerialArray & vrbm = VPML(prev   ,1,0,grid); 
+                            const realSerialArray & vsam = VPML(prev   ,0,1,grid); 
+                            const realSerialArray & vsbm = VPML(prev   ,1,1,grid); 
+                            const realSerialArray & vtam = VPML(prev   ,0,2,grid); 
+                            const realSerialArray & vtbm = VPML(prev   ,1,2,grid); 
+                            const realSerialArray & vra  = VPML(current,0,0,grid); 
+                            const realSerialArray & vrb  = VPML(current,1,0,grid); 
+                            const realSerialArray & vsa  = VPML(current,0,1,grid); 
+                            const realSerialArray & vsb  = VPML(current,1,1,grid); 
+                            const realSerialArray & vta  = VPML(current,0,2,grid); 
+                            const realSerialArray & vtb  = VPML(current,1,2,grid); 
+                            const realSerialArray & vran = VPML(next   ,0,0,grid); 
+                            const realSerialArray & vrbn = VPML(next   ,1,0,grid); 
+                            const realSerialArray & vsan = VPML(next   ,0,1,grid); 
+                            const realSerialArray & vsbn = VPML(next   ,1,1,grid); 
+                            const realSerialArray & vtan = VPML(next   ,0,2,grid); 
+                            const realSerialArray & vtbn = VPML(next   ,1,2,grid); 
+                            const realSerialArray & wram = WPML(prev   ,0,0,grid); 
+                            const realSerialArray & wrbm = WPML(prev   ,1,0,grid); 
+                            const realSerialArray & wsam = WPML(prev   ,0,1,grid); 
+                            const realSerialArray & wsbm = WPML(prev   ,1,1,grid); 
+                            const realSerialArray & wtam = WPML(prev   ,0,2,grid); 
+                            const realSerialArray & wtbm = WPML(prev   ,1,2,grid); 
+                            const realSerialArray & wra  = WPML(current,0,0,grid); 
+                            const realSerialArray & wrb  = WPML(current,1,0,grid); 
+                            const realSerialArray & wsa  = WPML(current,0,1,grid); 
+                            const realSerialArray & wsb  = WPML(current,1,1,grid); 
+                            const realSerialArray & wta  = WPML(current,0,2,grid); 
+                            const realSerialArray & wtb  = WPML(current,1,2,grid); 
+                            const realSerialArray & wran = WPML(next   ,0,0,grid); 
+                            const realSerialArray & wrbn = WPML(next   ,1,0,grid); 
+                            const realSerialArray & wsan = WPML(next   ,0,1,grid); 
+                            const realSerialArray & wsbn = WPML(next   ,1,1,grid); 
+                            const realSerialArray & wtan = WPML(next   ,0,2,grid); 
+                            const realSerialArray & wtbn = WPML(next   ,1,2,grid); 
+                            real *umptr, *uuptr, *unptr;   
+                            umptr=uum.getDataPointer();
+                            uuptr= uu.getDataPointer();  
+                            unptr=uun.getDataPointer();
+                            if( debug & 4 )
+                            {
+                                ::display(um(all,all,all,hz),sPrintF("um (Hz) before pml BC's grid=%i t=%e",grid,t),debugFile,"%9.2e ");
+                                ::display(uu(all,all,all,hz),sPrintF("u  (Hz) before pml BC's grid=%i t=%e",grid,t),debugFile,"%9.2e ");
+                                ::display(un(all,all,all,hz),sPrintF("un (Hz) before pml BC's grid=%i t=%e",grid,t),debugFile,"%9.2e ");
+                            }
+              // Here is the box outside of which the PML equations are applied.
+                            getBoundsForPML(mg,Iv);
+                            int includeGhost=0;
+                            bool ok = ParallelUtility::getLocalArrayBounds(uOld,uu,I1,I2,I3,includeGhost);
+                            if( ok )
+                            {
+                                ipar[2] =I1.getBase();
+                                ipar[3] =I1.getBound();
+                                ipar[4] =I2.getBase();
+                                ipar[5] =I2.getBound();
+                                ipar[6] =I3.getBase();
+                                ipar[7] =I3.getBound();
+                                assert( dx[0]>0. );
+                                int bc0=-1;  // not used
+                // ** for( int m=0; m<3; m++ )
+                                for( int m=0; m<3; m++ )
+                                {
+                              	ipar[12]=ex+m; // assign this component
+                              	pmlMaxwell( mg.numberOfDimensions(), 
+                                        		    uu.getBase(0),uu.getBound(0),
+                                        		    uu.getBase(1),uu.getBound(1),
+                                        		    uu.getBase(2),uu.getBound(2),
+                                        		    ff.getBase(0),ff.getBound(0),
+                                        		    ff.getBase(1),ff.getBound(1),
+                                        		    ff.getBase(2),ff.getBound(2),
+                                        		    *gid.getDataPointer(),
+                                        		    *dim.getDataPointer(),
+                                        		    *umptr, *uuptr, *unptr, 
+            		    // vra (left)
+                                        		    vra.getBase(0),vra.getBound(0),vra.getBase(1),vra.getBound(1),vra.getBase(2),vra.getBound(2),
+                                        		    *vram.getDataPointer(),*vra.getDataPointer(),*vran.getDataPointer(),
+                                        		    *wram.getDataPointer(),*wra.getDataPointer(),*wran.getDataPointer(),
+            		    // vrb (right)
+                                        		    vrb.getBase(0),vrb.getBound(0),vrb.getBase(1),vrb.getBound(1),vrb.getBase(2),vrb.getBound(2),
+                                        		    *vrbm.getDataPointer(),*vrb.getDataPointer(),*vrbn.getDataPointer(),
+                                        		    *wrbm.getDataPointer(),*wrb.getDataPointer(),*wrbn.getDataPointer(),
+            		    // vsa (bottom)
+                                        		    vsa.getBase(0),vsa.getBound(0),vsa.getBase(1),vsa.getBound(1),vsa.getBase(2),vsa.getBound(2),
+                                        		    *vsam.getDataPointer(),*vsa.getDataPointer(),*vsan.getDataPointer(),
+                                        		    *wsam.getDataPointer(),*wsa.getDataPointer(),*wsan.getDataPointer(),
+            		    // vsb 
+                                        		    vsb.getBase(0),vsb.getBound(0),vsb.getBase(1),vsb.getBound(1),vsb.getBase(2),vsb.getBound(2),
+                                        		    *vsbm.getDataPointer(),*vsb.getDataPointer(),*vsbn.getDataPointer(),
+                                        		    *wsbm.getDataPointer(),*wsb.getDataPointer(),*wsbn.getDataPointer(),
+            		    // vta
+                                        		    vta.getBase(0),vta.getBound(0),vta.getBase(1),vta.getBound(1),vta.getBase(2),vta.getBound(2),
+                                        		    *vtam.getDataPointer(),*vta.getDataPointer(),*vtan.getDataPointer(),
+                                        		    *wtam.getDataPointer(),*wta.getDataPointer(),*wtan.getDataPointer(),
+            		    // vtb 
+                                        		    vtb.getBase(0),vtb.getBound(0),vtb.getBase(1),vtb.getBound(1),vtb.getBase(2),vtb.getBound(2),
+                                        		    *vtbm.getDataPointer(),*vtb.getDataPointer(),*vtbn.getDataPointer(),
+                                        		    *wtbm.getDataPointer(),*wtb.getDataPointer(),*wtbn.getDataPointer(),
+                                        		    *fptr,*maskptr,*rxptr, *xyptr,
+                                        		    bc0, *bc.getDataPointer(), ipar[0], rpar[0], ierr );
+                                }  // end m
+                                ipar[12]=ex;
+                            }
+                            if( debug & 4 )
+                            {
+                                ::display(um(all,all,all,hz),sPrintF("um (Hz) after pml BC's grid=%i t=%e",grid,t),debugFile,"%9.2e ");
+                                ::display(uu(all,all,all,hz),sPrintF("u  (Hz) after pml BC's grid=%i t=%e",grid,t),debugFile,"%9.2e ");
+                                ::display(un(all,all,all,hz),sPrintF("un (Hz) after pml BC's grid=%i t=%e",grid,t),debugFile,"%9.2e ");
+                            }
+                    }
+          // *wdh* 090509 -- symmetry CORNERS BC's (like a straight PEC wall)
+                    bcOption=1; // 1=assign corners and edges only
+                    ipar[26]=bcOption; 
+                    bcSymmetry( mg.numberOfDimensions(), 
+                            	      uu.getBase(0),uu.getBound(0),
+                            	      uu.getBase(1),uu.getBound(1),
+                            	      uu.getBase(2),uu.getBound(2),
+                            	      *gid.getDataPointer(),
+                            	      *uptr, *maskptr,*rxptr, *xyptr,
+                            	      bc0, *bc.getDataPointer(), ipar[0], rpar[0], ierr );
+          // ::display(u,"u after pml BC's","%9.2e ");
+          // assign any radiation BC's
+                    for( int i=0; i<2; i++ )
+                    {
+            // ** FIX ME for SOSUP ***
+                        if( radbcGrid[i]==grid )
+                        {
+                            RadiationBoundaryCondition::debug=debug;
+                            radiationBoundaryCondition[i].tz=tz; // fix this 
+                            radiationBoundaryCondition[i].assignBoundaryConditions( u,t,dt,uOld );
+                        }
+                    }
+                    if( adjustFarFieldBoundariesForIncidentField(grid) )
+                    {
+                        ipar[25]=+1;  // add back the incident field
+                        ipar[26]=numberLinesForPML;
+                        ipar[27]=adjustThreeLevels;
+                        adjustForIncident( mg.numberOfDimensions(),  
+                            		uu.getBase(0),uu.getBound(0),
+                            		uu.getBase(1),uu.getBound(1),
+                            		uu.getBase(2),uu.getBound(2),
+                            		*gid.getDataPointer(),
+                            		*uum.getDataPointer(), *uOldptr, *uptr, *maskptr,*rxptr, *xyptr,
+                                                *initialConditionBoundingBox.getDataPointer(),
+                            		bc0, *bc.getDataPointer(), ipar[0], rpar[0], ierr );
+                        ipar[25]=0;
+                    }
+                } // end ok 
+            }
+
+            if( dispersionModel != noDispersion )
+            {
+        // -- apply BCs to the polarization vector
+        // *wdh* 2011/12/02 -- this next line was wrong -- side and axis are not correct here.
+        // *wdh* getBoundaryIndex(mg.gridIndexRange(),side,axis,I1,I2,I3);
+        // I1,I2,I3 are not used I don't think. We do check that there are any points on this processor
+                getIndex(mg.gridIndexRange(),I1,I2,I3);
+                bool ok = ParallelUtility::getLocalArrayBounds(u,uLocal,I1,I2,I3,includeGhost);
+                if( ok && useOpt )
+                {
+          // use optimised boundary conditions
+                    int ipar[40];
+                    real rpar[50];
+                    int gridType = isRectangular ? 0 : 1;
+                    int orderOfExtrapolation=orderOfAccuracyInSpace+1;  // not used
+                    int useWhereMask=false;
+                    int bcOrderOfAccuracy=orderOfAccuracyInSpace;
+                    if( method==sosup && orderOfAccuracyInSpace==6 )
+                    {
+            // NOTE: for now apply 4th order BC's for sosup order 6 on curvilinear grids:
+                        if( !isRectangular )
+                            bcOrderOfAccuracy=4;
+                    }
+                    realArray f;
+                    ipar[0] =0;
+                    ipar[1] =0;
+                    ipar[2] =I1.getBase();  // not used ???
+                    ipar[3] =I1.getBound();
+                    ipar[4] =I2.getBase();
+                    ipar[5] =I2.getBound();
+                    ipar[6] =I3.getBase();
+                    ipar[7] =I3.getBound();
+                    ipar[8] =gridType;
+                    ipar[9] =bcOrderOfAccuracy;
+                    ipar[10]=orderOfExtrapolation;
+                    ipar[11]=useForcing;
+            // apply BCs to polarization vectors
+                        ipar[12]=pxc;
+                        ipar[13]=pyc;
+                        ipar[14]=pzc;
+                        ipar[15]=qxc;
+                        ipar[16]=qyc;
+                        if( numberOfDimensions==2 )
+                            ipar[17]=hz;  // for now apply BCs to Hz again here 
+                        else
+                            ipar[17]=qzc;
+                    ipar[18]=useWhereMask;
+                    ipar[19]=grid;
+                    #ifdef USE_PPP
+                        ipar[20]= 0; // turn off debugging info in parallel -- this can cause trouble
+                    #else
+                        ipar[20]= debug; 
+                    #endif
+                    ipar[21]=(int)forcingOption;
+                    ipar[22]=pmlPower;
+                    ipar[23]=0;  // do not have pml routine assign interior points too
+                    ipar[24]=(int)useChargeDensity;
+                    ipar[25]= adjustFarFieldBoundariesForIncidentField(grid);
+          // ipar[26]=bcOpt;  // assigned below
+          // int bcSymmetryOption=0;     // 0=even symmetry, 1=even-odd symmetry
+                    int bcSymmetryOption=1;     // This is the proper symmetry condition *wdh* Sept 6, 2016
+                    ipar[27]= bcSymmetryOption;
+                    ipar[28]=myid;
+          // -- fieldOption: used for SOSUP to apply BCs to the field or its time-derivative  
+                    int fieldOption=0;  // apply BCs to field variables
+                    ipar[29]=fieldOption;
+                    int numberOfGhostLines = orderOfAccuracyInSpace/2;
+                    if( addedExtraGhostLine ) numberOfGhostLines++;  // sosup uses one extra ghost line
+                    ipar[30]=numberOfGhostLines;  // for symmetry BC in bcSymmetry
+          // field we subtract off the incident field over this many points next to the boundary.
+          // This value should take into account the width of extrapolation used at far-fields
+          // For order=2: we may extrap first ghost using 1 -3 3 1 
+          // For order=4: we may extrap first ghost using 1 -4 6 -4 1
+                    int widthForAdjustFieldsForIncident=orderOfAccuracyInSpace/2+1; 
+                    if( orderOfAccuracyInSpace>2 )
+                        widthForAdjustFieldsForIncident+=1;  // *wdh* ABC 4th-order corners needs 1 more 
+                    ipar[31]=widthForAdjustFieldsForIncident;
+                    ipar[32]=boundaryForcingOption;
+          // supply polarizationOption for dispersive models *wdh* May 29, 2017
+                    int polarizationOption=0;
+                        polarizationOption=1; // apply BCs to the polarization vector
+                    ipar[33]=polarizationOption;
+                    ipar[34]=dispersionModel;
+                    ipar[35]=dbase.get<int>("smoothBoundingBox"); // 1= smooth the IC at the bounding box edge
+                    rpar[0]=dx[0];       // for Cartesian grids          
+                    rpar[1]=dx[1];                
+                    rpar[2]=dx[2];                
+                    rpar[3]=mg.gridSpacing(0);
+                    rpar[4]=mg.gridSpacing(1);
+                    rpar[5]=mg.gridSpacing(2);
+                    rpar[6]=t;
+                    rpar[7]=(real &)tz;  // twilight zone pointer
+                    rpar[8]=dt;
+                    rpar[9]=c;
+                    rpar[10]=eps;
+                    rpar[11]=mu;
+                    rpar[12]=kx; // for plane wave scattering
+                    rpar[13]=ky;
+                    rpar[14]=kz;
+                    rpar[15]=slowStartInterval;
+                    rpar[16]=pmlLayerStrength;
+                    realArray *pu = &u;
+                    rpar[17]=(real&)(pu);  // pass pointer to u for calling updateGhostBoundaries
+                    rpar[20]=pwc[0];  // coeff. for plane wave solution
+                    rpar[21]=pwc[1];
+                    rpar[22]=pwc[2];
+                    rpar[23]=pwc[3];
+                    rpar[24]=pwc[4];
+                    rpar[25]=pwc[5];
+                    rpar[26]=xab[0][0];   // for Cartesian grids     
+                    rpar[27]=xab[0][1];
+                    rpar[28]=xab[0][2];
+          // Chirped plane-wave parameters
+                    const ChirpedArrayType & cpw = dbase.get<ChirpedArrayType>("chirpedParameters");
+                    rpar[29]=cpw(0); // ta 
+                    rpar[30]=cpw(1); // tb 
+                    rpar[31]=cpw(2); // alpha
+                    rpar[32]=cpw(3); // beta
+                    rpar[33]=cpw(4); // amp
+                    rpar[34]=cpw(5); // x0
+                    rpar[35]=cpw(6); // y0
+                    rpar[36]=cpw(7); // z0
+          // Dispersion parameters:
+                    real sr=0.,si=0.;  // Re(s), Im(s) in exp(s*t) 
+                    real ap=0., bp=0., cp=0.;
+                    if( dispersionModel !=noDispersion )
+                    {
+                        DispersiveMaterialParameters & dmp = getDispersiveMaterialParameters(grid);
+                        const real kk = twoPi*sqrt( kx*kx+ky*ky+kz*kz); // true wave-number (note factor of twoPi)
+                        dmp.computeDispersionRelation( c,eps,mu,kk, sr,si );
+            // P equation is P_t + ap*P_t + bp*P = cp*E 
+                        ap=dmp.gamma;
+                        bp=0.;
+                        cp=eps*SQR(dmp.omegap);
+                    }
+                    rpar[37]=sr;
+                    rpar[38]=si;
+                    rpar[39]=ap;
+                    rpar[40]=bp;
+                    rpar[41]=cp;
+          // fprintf(pDebugFile,"**** pu= %i, %i...\n",&u,pu);
+                #ifdef USE_PPP 
+                    realSerialArray uu;    getLocalArrayWithGhostBoundaries(u,uu);
+                    realSerialArray uuOld; getLocalArrayWithGhostBoundaries(uOld,uuOld);
+                    intSerialArray  mask;  getLocalArrayWithGhostBoundaries(mg.mask(),mask);
+                    realSerialArray rx;    if( !isRectangular ) getLocalArrayWithGhostBoundaries(mg.inverseVertexDerivative(),rx);
+                    realSerialArray xy;    if( centerNeeded ) getLocalArrayWithGhostBoundaries(mg.center(),xy);
+                    realSerialArray ff;    getLocalArrayWithGhostBoundaries(f,ff); 
+                    if( debug & 4 )
+                    {
+                        fprintf(pDebugFile,"\n **** grid=%i p=%i assignBC: gid=[%i,%i][%i,%i][%i,%i] bc=[%i,%i][%i,%i][%i,%i]"
+                          	    " bcg=[%i,%i][%i,%i][%i,%i]******\n\n",grid,Communication_Manager::My_Process_Number,
+                          	    gid(0,0),gid(1,0),gid(0,1),gid(1,1),gid(0,2),gid(1,2),
+                          	    bc(0,0),bc(1,0),bc(0,1),bc(1,1),bc(0,2),bc(1,2),
+                          	    bcg(0,0),bcg(1,0),bcg(0,1),bcg(1,1),bcg(0,2),bcg(1,2));
+                        fprintf(pDebugFile,"\n **** uu=[%i,%i] xy=[%i,%i] rsxy=[%i,%i]\n",
+                          	    uu.getBase(0),uu.getBound(0),xy.getBase(0),xy.getBound(0),rx.getBase(0),rx.getBound(0));
+                    }
+                #else
+                    const realSerialArray & uu    = u;
+                    const realSerialArray & uuOld = uOld;
+                    const realSerialArray & ff    = f;
+                    const intSerialArray  & mask  = mg.mask();
+                    const realSerialArray & rx = !isRectangular? mg.inverseVertexDerivative() : uu;
+                    const realSerialArray & xy = centerNeeded ? mg.center() : uu;
+                    const IntegerArray & gid = mg.gridIndexRange();
+                    const IntegerArray & dim = mg.dimension();
+                    const IntegerArray & bc = mg.boundaryCondition();
+                    if( debug & 1 )
+                    {
+                        const IntegerArray & bcg = mg.boundaryCondition();
+                        fprintf(pDebugFile,"\n **** grid=%i p=%i assignBC: gid=[%i,%i][%i,%i][%i,%i] bc=[%i,%i][%i,%i][%i,%i]"
+                          	    " bcg=[%i,%i][%i,%i][%i,%i]******\n\n",grid,Communication_Manager::My_Process_Number,
+                          	    gid(0,0),gid(1,0),gid(0,1),gid(1,1),gid(0,2),gid(1,2),
+                          	    bc(0,0),bc(1,0),bc(0,1),bc(1,1),bc(0,2),bc(1,2),
+                          	    bcg(0,0),bcg(1,0),bcg(0,1),bcg(1,1),bcg(0,2),bcg(1,2));
+                    }
+                #endif
+                    real *uptr   = uu.getDataPointer();
+                    real *fptr   = ff.getDataPointer();
+                    int *maskptr = mask.getDataPointer();
+                    real *rxptr  = rx.getDataPointer();
+                    real *xyptr  = centerNeeded ? xy.getDataPointer() : uptr;
+                    assert( xyptr!=NULL );
+                    if( !isRectangular )
+                    {
+            // display(mg.inverseVertexDerivative(),"inverseVertexDerivative","%7.4f ");
+            // displayMask(mg.mask());
+                    }
+          // Do this for now -- assumes all sides are PML
+                    bool usePML = (mg.boundaryCondition(0,0)==abcPML || mg.boundaryCondition(1,0)==abcPML ||
+                             		 mg.boundaryCondition(0,1)==abcPML || mg.boundaryCondition(1,1)==abcPML ||
+                             		 mg.boundaryCondition(0,2)==abcPML || mg.boundaryCondition(1,2)==abcPML);
+                    const int bc0=-1;  // do all boundaries.
+                    int ierr=0;
+          // *wdh* 090509 -- symmetry BC's (like a straight PEC wall)
+                    int bcOption=0;     // 0=assign all faces, 1=assign corners and edges
+                    ipar[26]=bcOption;
+                    bcSymmetry( mg.numberOfDimensions(), 
+                            	      uu.getBase(0),uu.getBound(0),
+                            	      uu.getBase(1),uu.getBound(1),
+                            	      uu.getBase(2),uu.getBound(2),
+                            	      *gid.getDataPointer(),
+                            	      *uptr, *maskptr,*rxptr, *xyptr,
+                            	      bc0, *bc.getDataPointer(), ipar[0], rpar[0], ierr );
+          // *** need to fix gridIndex Range and bc ***********************
+                    if( debug & 4 )
+                    {
+                        ::display(uu,sPrintF("uu before bcOptMaxwell, grid=%i, t=%e",grid,t),pDebugFile,"%8.1e ");
+                    }
+          // ***** NOTE: PEC boundary values are set in cornersMx routines *******
+                    bcOptMaxwell( mg.numberOfDimensions(), 
+                            		uu.getBase(0),uu.getBound(0),
+                            		uu.getBase(1),uu.getBound(1),
+                            		uu.getBase(2),uu.getBound(2),
+                            		ff.getBase(0),ff.getBound(0),
+                            		ff.getBase(1),ff.getBound(1),
+                            		ff.getBase(2),ff.getBound(2),
+                            		*gid.getDataPointer(),*dim.getDataPointer(),
+                            		*uptr,*fptr,*maskptr,*rxptr, *xyptr,
+                            		bc0, *bc.getDataPointer(), ipar[0], rpar[0], ierr );
+                    if( debug & 4  ) ::display(uu,sPrintF("uu after bcOptMaxwell, grid=%i, t=%e",grid,t),pDebugFile,"%8.1e ");
+                    real *uOldptr = uuOld.getDataPointer();
+          // Here we subtract off the incident field on points near non-reflecting boundaries
+          // that also have an incoming incident field. Then the NRBC only operates on the scattered 
+          // field portion of the total field.
+          // Later on below we add the incident field back on 
+                    realMappedGridFunction & um =mgp!=NULL ? fields[prev] : cgfields[prev][grid];
+                    #ifdef USE_PPP 
+                        realSerialArray uum;    getLocalArrayWithGhostBoundaries(um,uum);
+                    #else
+                        realSerialArray & uum =um;
+                    #endif
+                    const int adjustThreeLevels = usePML;
+                    if( true && adjustFarFieldBoundariesForIncidentField(grid) )
+                    {
+            // printF(" ***** adjustFarFieldBoundariesForIncidentField for grid %i ********\n",grid);
+                        if( debug & 4 )
+                        {
+                            ::display(um(all,all,all,hz),sPrintF("um (Hz) before adjustForIncident grid=%i t=%e",grid,t),debugFile,"%9.2e ");
+                            ::display(uOld(all,all,all,hz),sPrintF("u  (Hz) before adjustForIncident grid=%i t=%e",grid,t),debugFile,"%9.2e ");
+                            ::display(u (all,all,all,hz),sPrintF("un (Hz) before adjustForIncident grid=%i t=%e",grid,t),debugFile,"%9.2e ");
+                        }
+                        ipar[25]=-1;  // subtract the incident field
+                        ipar[26]=numberLinesForPML;
+                        ipar[27]=adjustThreeLevels;
+            // parameters for tanh smoothing near bounding box front:
+            // -- this must match the formula in getInitialConditions.bC
+                        const int & side = dbase.get<int>("boundingBoxDecaySide");
+                        const int & axis = dbase.get<int>("boundingBoxDecayAxis");
+                        real beta=boundingBoxDecayExponent/twoPi;
+                        real nv[3]={0.,0.,0.};  // normal to decay direction
+                        nv[axis]=2*side-1;
+            // Damp near the point xv0[] on the front
+                        real xv0[3]={0.,0.,0.};  // normal to decay direction
+                        for( int dir=0; dir<numberOfDimensions; dir++ )
+                            xv0[dir] = .5*(initialConditionBoundingBox(1,dir)+initialConditionBoundingBox(0,dir));
                         xv0[axis]=initialConditionBoundingBox(side,axis);
                         rpar[29]=beta;
                         rpar[30]=nv[0];
@@ -2772,7 +3508,7 @@ assignBoundaryConditions( int option, int grid, real t, real dt, realMappedGridF
     }
 
 
-    if( method==sosup )
+    if( addedExtraGhostLine )
     {
     // Extrapolate an extra ghost line for the wider upwind stencil in SOSUP
         BoundaryConditionParameters extrapParams;

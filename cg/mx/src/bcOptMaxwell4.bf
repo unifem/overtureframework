@@ -22,6 +22,8 @@
 ! ----- Here are macros for the chirped-plane wave -----
 #Include "chirpedPlaneWave.h"
 
+! ----- Here are macros for the dispersive plane wave -----
+#Include "dispersivePlaneWave.h"
 
 !===================================================================================
 !  Put the inner loop for the 4th-order BC here so we can repeat it for testing 

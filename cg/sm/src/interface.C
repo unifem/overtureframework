@@ -53,10 +53,18 @@ getInterfaceDataOptions( GridFaceDescriptor & info, int & interfaceDataOptions )
     else if( interfaceType(side,axis,grid)==Parameters::tractionInterface ) 
     {
         const bool projectInterface = parameters.dbase.get<bool>("projectInterface");
+        const bool useAddedMassAlgorithm = parameters.dbase.get<bool>("useAddedMassAlgorithm");
+        
+        if( true )
+        {
+            printP("--SM--getInterfaceDataOptions: useAddedMassAlgorithm = %i ***\n",(int)useAddedMassAlgorithm);
+
+        }
+        
         if( debug() & 2 )
             printP("*** Cgsm:getInterfaceDataOptions: projectInterface = %i ***\n",projectInterface);
 
-        if( !projectInterface )
+        if( !projectInterface && !useAddedMassAlgorithm )
         {
       // -- the standard interface approximation requires the traction from the fluid
 
@@ -64,8 +72,20 @@ getInterfaceDataOptions( GridFaceDescriptor & info, int & interfaceDataOptions )
             interfaceDataOptions=Parameters::tractionInterfaceData;
             numberOfItems+=numberOfDimensions;
         }
+        else if( useAddedMassAlgorithm )
+        {
+      // *wdh* May 26 2017
+      // We want the interface traction and velocity for the INS-SM amp-scheme
+            interfaceDataOptions = ( Parameters::velocityInterfaceData     |
+                         			       Parameters::tractionInterfaceData    
+                                                          );
+
+            numberOfItems+=2*numberOfDimensions;    
+        }
         else
         {
+      // *** HAS THIS OPTION EVER BEEN USED?? *wdh* May 26, 2017 ??
+
       // if we project the interface values then we need the following from the fluid:
 
             interfaceDataOptions = ( Parameters::positionInterfaceData     |
@@ -395,6 +415,26 @@ interfaceRightHandSide( InterfaceOptionsEnum option,
         	  printP("Cgsm:interfaceRightHandSide: interface velocity provided t=%9.3e\n",t);
 
       	C=Range(numSaved,numSaved+numberOfDimensions-1);
+
+                if( true || debug() & 4 )
+      	{
+        	  printP(">>> --SM-- interfaceRHS: interface velocity provided t=%9.3e  in C=[%i,%i]<<<\n",
+                                  t,C.getBase(),C.getBound());
+      	}
+	// -- for now save the velocity data in the dbase *wdh* May 26, 20-17
+                aString velocityDataName;
+      	sPrintF(velocityDataName,"velocityG%iS%iA%i",grid,side,axis);
+      	if( !parameters.dbase.has_key(velocityDataName) )
+      	{
+        	  InterfaceData & interfaceData = parameters.dbase.put<InterfaceData>(velocityDataName);
+        	  interfaceData.u.redim(bd.dimension(0),bd.dimension(1),bd.dimension(2),numberOfDimensions);
+        	  interfaceData.u=0;
+      	}
+      	InterfaceData & interfaceData = parameters.dbase.get<InterfaceData>(velocityDataName);
+      	interfaceData.t=t;
+      	Range Rx=numberOfDimensions;
+      	interfaceData.u(I1,I2,I3,Rx)=f(I1,I2,I3,C);  
+
 
         // the interface velocity is currently not used.
 	// bd(I1,I2,I3,Dc)=f(I1,I2,I3,C);     // where should we put this?          
@@ -856,3 +896,100 @@ interfaceRightHandSide( InterfaceOptionsEnum option,
 
     return 0;
 }
+
+
+
+
+// ================================================================================================
+/// \brief project interface values for the AMP scheme.
+/// \notes: Current this routine projects the velocity on the interface for the INS-SM AMP scheme.
+// ================================================================================================
+int Cgsm::
+projectInterface( int grid, real dt, int current )
+{
+    const bool useAddedMassAlgorithm = parameters.dbase.get<bool>("useAddedMassAlgorithm");
+
+    if( !useAddedMassAlgorithm )
+        return 0;
+    
+    const bool projectInterface = parameters.dbase.get<bool>("projectInterface");
+    GridFunction & cgf = gf[current];
+    const real t= cgf.t; 
+    if( t<2.*dt )
+        printF("--SM-- projectInterface: t=%9.2e, grid=%i useAddedMassAlgorithm=%i projectInterface=%i\n",
+         	   t,grid,useAddedMassAlgorithm,projectInterface);
+
+    realMappedGridFunction & u = gf[current].u[grid];
+    OV_GET_SERIAL_ARRAY(real,u,uLocal);
+    MappedGrid & mg = cgf.cg[grid];
+    const int numberOfDimensions=cg.numberOfDimensions();
+
+    IntegerArray & interfaceType = parameters.dbase.get<IntegerArray >("interfaceType");
+
+    Index Ibv[3], &Ib1=Ibv[0], &Ib2=Ibv[1], &Ib3=Ibv[2];
+    const int v1c = parameters.dbase.get<int >("v1c");
+    Range Vc(v1c,v1c+numberOfDimensions-1);
+    Range Rx = numberOfDimensions;
+      	
+    for( int axis=axis1; axis<mg.numberOfDimensions(); axis++ )
+    {
+        for( int side=Start; side<=End; side++ )
+        {
+            if( interfaceType(side,axis,grid)==Parameters::tractionInterface )
+            {
+      	if( t <= 2.*dt )
+        	  printF("--SM-- project velocity of (side,axis,grid)=(%i,%i,%i) bc=%i\n",
+             		 side,axis,grid,mg.boundaryCondition(side,axis));
+
+      	aString velocityDataName;
+      	sPrintF(velocityDataName,"velocityG%iS%iA%i",grid,side,axis);
+      	if( !parameters.dbase.has_key(velocityDataName) )
+      	{
+	  // -- At t=0 the interfaceData may not have been set yet, in this case call getInterfaceData
+
+        	  printF("--SM-- projectInterface::WARNING: interface data: [%s] not found, t=%9.3e!\n",
+                    (const char*)velocityDataName,t);
+        	  OV_ABORT("finish me");
+        	  
+	  // InterfaceData & interfaceData = parameters.dbase.put<InterfaceData>(velocityDataName);
+	  // Range C=numberOfDimensions;
+	  // interfaceData.u.redim(I1,I2,I3,C);
+	  // interfaceData.t=t0;
+	  // interfaceData.u=0;
+
+	  // // RealArray solidVelocity(I1,I2,I3,C);
+	  // int interfaceDataOptions = Parameters::velocityInterfaceData;
+        	  
+	  // getInterfaceData( t0, grid, side, axis, 
+	  // 		    interfaceDataOptions,
+	  // 		    interfaceData.u,
+	  // 		    parameters );
+
+      	}
+
+      	InterfaceData & interfaceData = parameters.dbase.get<InterfaceData>(velocityDataName);
+      	aString buff;
+      	if( t <= 2.*dt )
+        	  ::display(interfaceData.u,sPrintF(buff,"--SM-- projectInterface: interface velocity [%s] at ti=%9.3e (t=%9.3e)",
+                                  					    (const char*)velocityDataName,interfaceData.t,t),"%6.3f ");
+      	RealArray & interfaceVelocity =interfaceData.u;
+
+      	int extra=1;
+      	getBoundaryIndex(mg.gridIndexRange(),side,axis,Ib1,Ib2,Ib3,extra);  
+      	bool ok=ParallelUtility::getLocalArrayBounds(u,uLocal,Ib1,Ib2,Ib3,1);
+      	if( ok )
+      	{
+          // Set the velocity on the interface for the INS-SM AMP scheme.
+
+        	  uLocal(Ib1,Ib2,Ib3,Vc)=interfaceVelocity(Ib1,Ib2,Ib3,Rx);
+      	}
+            }
+        }
+    }
+    
+
+
+    return 0;
+    
+}
+    

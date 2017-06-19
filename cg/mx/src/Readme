@@ -33,6 +33,13 @@ Maxwell.C:
 outputHeader.C
  - outputHeader()  -- initial info banner
 
+plot.bC
+  - convertToVertexCentered
+  - getAugmentedSolution(int current, realCompositeGridFunction & v, const real t)
+  - buildRunTimeDialog()
+  - getTimeSteppingLabel( real dt, aString & label ) const
+  - plot(int current, real t, real dt )
+
 setup.C
  - computeTimeStep()
  - setupGrids()

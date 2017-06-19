@@ -1,0 +1,150 @@
+***********************
+***** June 1, 2017
+
+SOSUP + D0t seems stable CFL=1 but not more
+cgmx -noplot planeWave -g=square128.order4.ng3 -useSosupDissipation=1 -sosupDissipationOption=1 -kx=4 -tp=.1 -tf=5. -cfl=1, -go=og
+
+
+***********************
+***** May 29, 2017
+
+
+
+cgmx -noplot planeWave -g=square128.order4.ng3 -useSosupDissipation=1 -sosupDissipationOption=1 -kx=4 -tp=.1 -tf=5. -cfl=.95 -go=og
+
+
+***********************
+***** May 29, 2017
+
+SOSUP Dissipation in a separate stage
+
+**TEST TWO STAGE***
+
+CIC: OK: 
+cgmx -noplot planeWave -g=cice8.order4.ng3 -useSosupDissipation=1 -sosupDissipationOption=1 -kx=2 -tp=1 -tf=50. -cfl=.95 -go=og
+cgmx -noplot planeWave -g=cice4.order4.ng3 -useSosupDissipation=1 -sosupDissipationOption=1 -kx=2 -tp=.1 -tf=5. -cfl=.95 -go=og
+
+
+SIS 
+cgmx -noplot planeWave -g=sise4.order4.ng3 -useSosupDissipation=1 -sosupDissipationOption=1 -kx=4 -tp=.1 -tf=5. -cfl=.95 -go=og
+
+
+cgmx -noplot planeWave -g=nonSquare1024.order4.ng3 -useSosupDissipation=1 -sosupDissipationOption=1 -kx=4 -tp=.1 -tf=.1 -cfl=.95 -go=go
+
+FD44s -- curvilinear
+cgmx -noplot planeWave -g=nonSquare128.order4.ng3 -useSosupDissipation=1 -sosupDissipationOption=1 -kx=4 -tp=.1 -tf=5. -cfl=.95 -go=og
+
+
+FD44s -- cartesian
+cgmx -noplot planeWave -g=square128.order4.ng3 -useSosupDissipation=1 -sosupDissipationOption=1 -kx=4 -tp=.1 -tf=5. -cfl=.95 -go=og
+
+cgmx -noplot planeWave -g=square1024.order4.ng3 -useSosupDissipation=1 -sosupDissipationOption=1 -kx=4 -tp=.1 -tf=.1 -cfl=.95 -go=go
+
+
+
+cgmx -noplot planeWave -g=nonSquare128.order2 -useSosupDissipation=1 -sosupDissipationOption=0 -kx=4 -tp=.1 -tf=5. -cfl=.5 -go=og
+
+cgmx -noplot planeWave -g=square128.order2 -useSosupDissipation=1 -sosupDissipationOption=1 -kx=4 -tp=.1 -tf=5. -cfl=.5 -go=og
+
+cgmx -noplot planeWave -g=square1024.order2 -useSosupDissipation=1 -sosupDissipationOption=1 -kx=4 -tp=.1 -tf=.1 -diss=0. -cfl=.95 -go=go 
+
+
+***********************
+***** May 19, 2017
+
+
+FD44s cons
+cgmx -noplot planeWave -g=nonSquare1024.order4.ng3 -kx=4 -tp=.1 -tf=.1 -useSosupDissipation=1 -cfl=.5 -cons=1 -go=go > FD44sc.out
+
+cgmx -noplot planeWave -g=nonSquare128.order4.ng3 -kx=4 -tp=.01 -tf=.1 -useSosupDissipation=1 -cfl=.5 -cons=1 -go=og
+
+FD44 non-cons:
+cgmx -noplot planeWave -g=nonSquare1024.order4 -kx=4 -tp=.1 -tf=.1 -diss=1. -cfl=.9 -cons=0 -go=go > FD44nc.out
+
+FD44 cons:
+cgmx -noplot planeWave -g=nonSquare1024.order4 -kx=4 -tp=.1 -tf=.1 -diss=1. -cfl=.9 -cons=1 -go=go > FD44c.out
+
+
+FD22s : .1 s/step
+cgmx -noplot planeWave -g=nonSquare1024.order2 -useSosupDissipation=1 -kx=4 -tp=.1 -tf=.1 -diss=0. -cfl=.5 -go=go > FD22s.out 
+
+
+FD22:
+cgmx -noplot planeWave -g=nonSquare1024.order2 -kx=4 -tp=.1 -tf=.1 -diss=1. -cfl=.9 -go=go > FD22.out
+
+FD22s --OK
+cgmx -noplot planeWave -g=nonSquare128.order2 -useSosupDissipation=1 -kx=4 -tp=.1 -tf=5. -cfl=.5 -go=og
+
+***********************
+***** May 19, 2017
+
+Initial tests of FD + sosup dissipayion
+
+FD44s : .1 s/step
+cgmx -noplot planeWave -g=square1024.order4.ng3 -useSosupDissipation=1 -kx=4 -tp=.1 -tf=.1 -diss=0. -cfl=.5 -go=go > FD44s.out 
+
+FD44 : .046 
+cgmx -noplot planeWave -g=square1024.order4 -kx=4 -tp=.1 -tf=.1 -diss=1. -cfl=.9 -go=go > FD44.out
+
+
+OK: 
+cgmx planeWave -g=square128.order4.ng3 -useSosupDissipation=1 -sosupParameter=.25 -cfl=.7 -kx=4 -tp=.5 -tf=5. -diss=0. -go=halt 
+
+
+OK: 
+cgmx planeWave -g=square128.order4.ng3 -useSosupDissipation=1 -kx=4 -tp=.5 -tf=5. -diss=0. -cfl=.5 -go=halt 
+
+OK: cfl=.5
+cgmx planeWave -g=square128.order2 -useSosupDissipation=1 -kx=4 -tp=.5 -tf=5. -cfl=.5 -go=halt 
+
+
+cgmx planeWave -g=square128.order4 -kx=4 -tp=.5 -tf=5.  -go=halt 
+
+
+
+*********************************
+*****May 20, 2015
+
+CHECK MEMORY USAGE: 
+
+FIXED PLANE-WAVE IC:
+
+Memory usage: reals/grid-point =  15.00.
+
+
+
+
+cgmx -noplot planeWave -g=square1024.order4 -kx=2 -tp=.01 -tf=.05 -go=go
+
+              ---------Maxwell Summary------- 
+                       Wed May 20 07:28:31 2015
+               Grid:   /home/henshw/grids/square1024.order4.hdf 
+  ==== numberOfStepsTaken =       85, grids=1, gridpts =1.05884e+06, interp pts=0, processors=1 ==== 
+  ==== memory per-proc: [min=139.367,ave=139.367,max=139.367](Mb), max-recorded=171.629 (Mb), total=139.367 (Mb)
+   Timings:         (ave-sec/proc:)   seconds    sec/step   sec/step/pt     %     [max-s/proc] [min-s/proc]
+total time..........................  2.76e+01    3.25e-01    3.07e-07   100.000   2.761e+01   2.761e+01
+setup and initialize................  2.87e-02    3.38e-04    3.19e-10     0.104   2.874e-02   2.874e-02
+initial conditions..................  2.51e-01    2.96e-03    2.79e-09     0.910   2.512e-01   2.512e-01
+advance.............................  2.69e+01    3.16e-01    2.99e-07    97.328   2.687e+01   2.687e+01
+  advance rectangular grids.........  2.67e+01    3.14e-01    2.97e-07    96.763   2.671e+01   2.671e+01
+   (advOpt).........................  2.67e+01    3.14e-01    2.97e-07    96.758   2.671e+01   2.671e+01
+  boundary conditions...............  1.51e-01    1.78e-03    1.68e-09     0.549   1.515e-01   1.515e-01
+  interface bc......................  2.70e-05    3.18e-07    3.00e-13     0.000   2.700e-05   2.700e-05
+compute dt..........................  6.50e-05    7.65e-07    7.22e-13     0.000   6.500e-05   6.500e-05
+plotting............................  2.94e-01    3.46e-03    3.27e-09     1.067   2.944e-01   2.944e-01
+waiting (not counted)...............  2.96e-04    3.48e-06    3.29e-12     0.001   2.960e-04   2.960e-04
+-----------------------------------------------------------------------------------------
+ Memory usage: reals/grid-point =  17.25.
+
++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+---Computed geometry for square:
+  mask=no ,                 inverseVertexDerivative=no , inverseCenterDerivative=no ,
+  vertex=yes,               center=yes,                  corner=no , 
+  vertexDerivative=no ,     centerDerivative=no ,        vertexJacobian=no ,  
+  centerJacobian=no ,       cellVolume=no ,              centerNormal=no  
+  centerArea=no ,           faceNormal=no ,              faceArea=no , 
+  vertexBoundaryNormal=no , centerBoundaryNormal=no ,    centerBoundaryTangent=no  
+ +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+
+

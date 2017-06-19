@@ -13,15 +13,24 @@
 
 // =======================================================================================
 /// \brief Project the velocity on the interface for FSI problems. 
+///
+/// NOTE:
+//     To project the fluid interface velocity we set the gridVelocity on the boundary
+//   as this will later be used to set the values on the boundary.
 // =======================================================================================
 int Cgins::
 projectInterfaceVelocity(const real & t, realMappedGridFunction & u, 
 			realMappedGridFunction & gridVelocity,
 			const int & grid,
-			const real & dt /* =-1. */  )
+			const real & dt0 /* =-1. */  )
 {
-
-  if( t <= 0. )
+  real dt;
+  if( dt<= 0. )
+    dt = parameters.dbase.get<real>("dt");  // *wdh* 2017/05/31
+  // const real & dt = parameters.dbase.get<real>("dt");
+  assert( dt>0. );
+  
+  if( t <= 2.*dt )
     printF("--INS-- projectInterfaceVelocity: ADDED MASS ALGORITHM - project velocity at t=%8.2e\n",t);
 
   const bool & useAddedMassAlgorithm = parameters.dbase.get<bool>("useAddedMassAlgorithm");
@@ -73,45 +82,16 @@ projectInterfaceVelocity(const real & t, realMappedGridFunction & u,
 	    printF("--INS-- grid=%i, (side,axis)=(%i,%i) belongs to deforming body %i\n",grid,side,axis,body);
 
 	  DeformingBodyMotion & deform = movingGrids.getDeformingBody(body);
-	  real alpha=-1.;
-	  if( deform.isBeamModel() )
-	  {
-	    // ************ BEAM MODEL ******************                
- 
-
-	    BeamModel & beamModel = deform.getBeamModel();
-
-	    real beamMassPerUnitLength=-1.;
-	    beamModel.getMassPerUnitLength( beamMassPerUnitLength );
-
-	    alpha = 1./( 1. + beamMassPerUnitLength/(fluidDensity*fluidAddedMassLengthScale) );
-
-	    // alpha=0.; // ***************
-	    
-	    if( t<=0. )
-	      printF("--PIV-- alpha=%8.2e, beamMassPerUnitLength = %8.2e, fluidDensity=%8.2e hf=%8.2e\n",
-		     alpha,beamMassPerUnitLength,fluidDensity,fluidAddedMassLengthScale);
-	      
-	  }
-	  else if( deform.isBulkSolidModel() )
-	  {
-	    if( t<=0. )
-	      printF("--PIV-- SKIPPING INTERFACE VELOCITY PROJECTION FOR BULK SOLID MODEL\n");
-
-	    continue;
-	  }
-	  else
-	  {
-	    OV_ABORT("finish me");
-	  }
 
 
-	  assert( alpha>=0. );
 	  getBoundaryIndex(mg.gridIndexRange(),side,axis,Ib1,Ib2,Ib3);
 	  Range Rx=numberOfDimensions;
-#ifndef USE_PPP
-	  RealArray vSolid(Ib1,Ib2,Ib3,Rx); // holds velocity of solid on the boundary
-	  deform.getVelocityBC( t, grid, mg, Ib1,Ib2,Ib3, vSolid );
+	  realArray vSolid(Ib1,Ib2,Ib3,Rx); // holds velocity of solid on the boundary
+          #ifndef USE_PPP
+	    deform.getVelocityBC( t, grid, mg, Ib1,Ib2,Ib3, vSolid );
+          #else
+            OV_ABORT("finish me");
+          #endif
 
 	  OV_GET_SERIAL_ARRAY(real,gridVelocity,gridVelocityLocal);
 	  OV_GET_SERIAL_ARRAY(real,u,uLocal);
@@ -119,209 +99,271 @@ projectInterfaceVelocity(const real & t, realMappedGridFunction & u,
 
           if( projectNormalComponentOfAddedMassVelocity )
             mg.update(MappedGrid::THEvertexBoundaryNormal);
-          #ifdef USE_PPP
-            const realSerialArray & normal = mg.vertexBoundaryNormalArray(side,axis);
-          #else
-            const realSerialArray & normal = mg.vertexBoundaryNormal(side,axis);
-          #endif
 
-	  // --- Extract the "weight" array for weighting the velocity projection ---
-          //  This is used when we do not project the velocity on the ends of the beam
-	    RealArray *pWeight= &Overture::nullRealArray(); // set pWeight to a default value if it is not used.
-          if( !projectVelocityOnBeamEnds )
+          OV_GET_VERTEX_BOUNDARY_NORMAL(mg,side,axis,normal);
+	  
+          // #ifdef USE_PPP
+          //   const realSerialArray & normal = mg.vertexBoundaryNormalArray(side,axis);
+          // #else
+          //   const realSerialArray & normal = mg.vertexBoundaryNormal(side,axis);
+          // #endif
+
+          if( !deform.isBulkSolidModel() && !deform.isBeamModel() )
 	  {
-	    DeformingBodyMotion & deformingBody = movingGrids.getDeformingBody(body);
-	    DataBase & deformingBodyDataBase = deformingBody.deformingBodyDataBase;
-	    const int & numberOfFaces = deformingBodyDataBase.get<int>("numberOfFaces");
-	    const IntegerArray & boundaryFaces = deformingBodyDataBase.get<IntegerArray>("boundaryFaces");
+
+	    OV_ABORT("projectInterfaceVelocity::ERROR: un-expected deformation type");
+
+	  }
+	  else if( deform.isBulkSolidModel() )
+	  {
+            // *******************************************************************
+            // *************** PROJECT VELOCITY BULK SOLID ***********************
+            // *******************************************************************
+
+	    real zp;
+            deform.getBulkSolidParameters( zp );
+	    const real & fluidDensity = parameters.dbase.get<real >("fluidDensity");
 	    
-	    BeamFluidInterfaceData &  beamFluidInterfaceData = 
-	      deformingBodyDataBase.get<BeamFluidInterfaceData>("beamFluidInterfaceData");
-	    int face=-1;
-	    for( int face0=0; face0<numberOfFaces; face0++ )
-	    {
-	      const int side0=boundaryFaces(0,face0);
-	      const int axis0=boundaryFaces(1,face0);
-	      const int grid0=boundaryFaces(2,face0);
-	      if( grid==grid0 && side==side0 && axis==axis0 )
+            // fluid impedance = rho*H/dt 
+	    assert( dt>0. );
+
+            const real zf=fluidDensity/dt; // ****************** fix me ***************
+
+            const real alpha = zf/(zf+zp);
+	    if( t<=3.*dt )
+	      printF("--PIV-- PROJECT INTERFACE VELOCITY FOR BULK SOLID MODEL, alpha=%9.2e **FINISH ME**\n",alpha);
+
+            // ** do this for now****
+            // We should really scale tangential components by zs
+	    // --- set the gridVelocity to the desired BC for the fluid velocity
+            gridVelocityLocal(Ib1,Ib2,Ib3,Rx)= alpha*uLocal(Ib1,Ib2,Ib3,V) + (1.-alpha)*vSolidLocal(Ib1,Ib2,Ib3,Rx);
+
+	    continue;
+	  }
+	  else if( deform.isBeamModel() )
+	  {
+#ifndef USE_PPP
+
+            // **********************************************************
+	    // ************ PROJECT VELOCITY BEAM MODEL ******************                
+            // **********************************************************
+ 
+	    BeamModel & beamModel = deform.getBeamModel();
+
+	    real beamMassPerUnitLength=-1.;
+	    beamModel.getMassPerUnitLength( beamMassPerUnitLength );
+
+	    real alpha = 1./( 1. + beamMassPerUnitLength/(fluidDensity*fluidAddedMassLengthScale) );
+
+	    // alpha=0.; // ***************
+	    
+	    if( t<=0. )
+	      printF("--PIV-- alpha=%8.2e, beamMassPerUnitLength = %8.2e, fluidDensity=%8.2e hf=%8.2e\n",
+		     alpha,beamMassPerUnitLength,fluidDensity,fluidAddedMassLengthScale);
+
+	  
+	    // --- Extract the "weight" array for weighting the velocity projection ---
+	    //  This is used when we do not project the velocity on the ends of the beam
+	    RealArray *pWeight= &Overture::nullRealArray(); // set pWeight to a default value if it is not used.
+            if( !projectVelocityOnBeamEnds )
+    	    {
+	      DeformingBodyMotion & deformingBody = movingGrids.getDeformingBody(body);
+	      DataBase & deformingBodyDataBase = deformingBody.deformingBodyDataBase;
+	      const int & numberOfFaces = deformingBodyDataBase.get<int>("numberOfFaces");
+	      const IntegerArray & boundaryFaces = deformingBodyDataBase.get<IntegerArray>("boundaryFaces");
+	    
+	      BeamFluidInterfaceData &  beamFluidInterfaceData = 
+		deformingBodyDataBase.get<BeamFluidInterfaceData>("beamFluidInterfaceData");
+	      int face=-1;
+	      for( int face0=0; face0<numberOfFaces; face0++ )
 	      {
-		face=face0;
-		break;
+	        const int side0=boundaryFaces(0,face0);
+	        const int axis0=boundaryFaces(1,face0);
+	        const int grid0=boundaryFaces(2,face0);
+	        if( grid==grid0 && side==side0 && axis==axis0 )
+	        { 
+		  face=face0;
+		  break;
+	        }
 	      }
+
+	      assert( face>=0 && face<numberOfFaces);
+	      RealArray *& weightArray = beamFluidInterfaceData.dbase.get<RealArray*>("weightArray");
+	      pWeight = &(weightArray[face]);
+	    }
+	  
+	    RealArray & weight = *pWeight;
+	    if( (false && t<=max(0.,dt))  || debug() & 4 )
+	    {
+	      ::display(u(Ib1,Ib2,Ib3,V),sPrintF("---PIV-- fluid velocity at t=%9.3e",t),"%7.2e ");
+	      ::display(vSolid(Ib1,Ib2,Ib3,Rx),sPrintF("---PIV-- beam  velocity at t=%9.3e",t),"%7.2e ");
+	      ::display(gridVelocity(Ib1,Ib2,Ib3,Rx),sPrintF("---PIV-- grid velocity at t=%9.3e",t),"%7.2e ");
+	      if( !projectVelocityOnBeamEnds )
+		::display(weight(Ib1,Ib2,Ib3),sPrintF("---PIV-- weight at t=%9.3e",t),"%5.2f ");
 	    }
 
-	    assert( face>=0 && face<numberOfFaces);
-	    RealArray *& weightArray = beamFluidInterfaceData.dbase.get<RealArray*>("weightArray");
-            pWeight = &(weightArray[face]);
-	  }
-	  
-          RealArray & weight = *pWeight;
-	  if( (false && t<=max(0.,dt))  || debug() & 4 )
-	  {
-	    ::display(u(Ib1,Ib2,Ib3,V),sPrintF("---PIV-- fluid velocity at t=%9.3e",t),"%7.2e ");
-	    ::display(vSolid(Ib1,Ib2,Ib3,Rx),sPrintF("---PIV-- beam  velocity at t=%9.3e",t),"%7.2e ");
-	    ::display(gridVelocity(Ib1,Ib2,Ib3,Rx),sPrintF("---PIV-- grid velocity at t=%9.3e",t),"%7.2e ");
-	    if( !projectVelocityOnBeamEnds )
-	      ::display(weight(Ib1,Ib2,Ib3),sPrintF("---PIV-- weight at t=%9.3e",t),"%5.2f ");
-	  }
-
-	  if( true ) // project v and adjust the grid velocity
-	  {
-	    if( projectNormalComponentOfAddedMassVelocity )
+	    if( true ) // project v and adjust the grid velocity
 	    {
-	      // --- only project the normal component of the fluid velocity ---
-	      // Project the normal component by subtracting the current normal component and then adding the new
-	      //  vp = AMP projected velocity
-	      //   v = v - (n.v)n + (n.vp)n
-	      //     = v - (n.(vp-v))n 
-	      //
-	      if( t <= 10.*parameters.dbase.get<real>("dt") )
-		printF("--PIV--: project NORMAL component of velocity only, t=%9.3e\n",t);
-	    
-	      if( true )
+	      if( projectNormalComponentOfAddedMassVelocity )
 	      {
+		// --- only project the normal component of the fluid velocity ---
+		// Project the normal component by subtracting the current normal component and then adding the new
+		//  vp = AMP projected velocity
+		//   v = v - (n.v)n + (n.vp)n
+		//     = v - (n.(vp-v))n 
+		//
+		if( t <= 10.*dt )
+		  printF("--PIV--: project NORMAL component of velocity only, t=%9.3e\n",t);
+	    
+		if( true )
+		{
 
-		RealArray vp(Ib1,Ib2,Ib3,Rx), nDotV(Ib1,Ib2,Ib3);
-		// vp=( alpha*uLocal(Ib1,Ib2,Ib3,V) + (1.-alpha)*vSolidLocal(Ib1,Ib2,Ib3,Rx) -gridVelocityLocal(Ib1,Ib2,Ib3,Rx) );
-		// vp= (alpha-1.)*uLocal(Ib1,Ib2,Ib3,V) + (1.-alpha)*vSolidLocal(Ib1,Ib2,Ib3,Rx);
-		if( projectVelocityOnBeamEnds )
-		{
-		  vp= alpha*uLocal(Ib1,Ib2,Ib3,V) + (1.-alpha)*vSolidLocal(Ib1,Ib2,Ib3,Rx);
-		}
-		else
-		{
-		  // use solid velocity when the weight is zero: 
-		  for( int dir=0; dir<numberOfDimensions; dir++ )
-		    vp(Ib1,Ib2,Ib3,dir) = ( (   alpha*weight(Ib1,Ib2,Ib3))*uLocal(Ib1,Ib2,Ib3,uc+dir) + 
-					    (1.-alpha*weight(Ib1,Ib2,Ib3))*vSolidLocal(Ib1,Ib2,Ib3,dir) );
-		}
+		  RealArray vp(Ib1,Ib2,Ib3,Rx), nDotV(Ib1,Ib2,Ib3);
+		  // vp=( alpha*uLocal(Ib1,Ib2,Ib3,V) + (1.-alpha)*vSolidLocal(Ib1,Ib2,Ib3,Rx) -gridVelocityLocal(Ib1,Ib2,Ib3,Rx) );
+		  // vp= (alpha-1.)*uLocal(Ib1,Ib2,Ib3,V) + (1.-alpha)*vSolidLocal(Ib1,Ib2,Ib3,Rx);
+		  if( projectVelocityOnBeamEnds )
+		  {
+		    vp= alpha*uLocal(Ib1,Ib2,Ib3,V) + (1.-alpha)*vSolidLocal(Ib1,Ib2,Ib3,Rx);
+		  }
+		  else
+		  {
+		    // use solid velocity when the weight is zero: 
+		    for( int dir=0; dir<numberOfDimensions; dir++ )
+		      vp(Ib1,Ib2,Ib3,dir) = ( (   alpha*weight(Ib1,Ib2,Ib3))*uLocal(Ib1,Ib2,Ib3,uc+dir) + 
+					      (1.-alpha*weight(Ib1,Ib2,Ib3))*vSolidLocal(Ib1,Ib2,Ib3,dir) );
+		  }
 		
-		nDotV = (normal(Ib1,Ib2,Ib3,0)*vp(Ib1,Ib2,Ib3,0)+
-			 normal(Ib1,Ib2,Ib3,1)*vp(Ib1,Ib2,Ib3,1) );
-		if( numberOfDimensions==3 )
-		  nDotV += normal(Ib1,Ib2,Ib3,2)*vp(Ib1,Ib2,Ib3,2);
-
-		if( TRUE ) // *WDH* try this 2015/03/06
-		{
-                  // t.v = t.vs 
-                  gridVelocityLocal(Ib1,Ib2,Ib3,Rx)=vSolidLocal(Ib1,Ib2,Ib3,Rx);  // set all components equal to vs 
-
-                  nDotV -= (normal(Ib1,Ib2,Ib3,0)*vSolidLocal(Ib1,Ib2,Ib3,0)+
-			    normal(Ib1,Ib2,Ib3,1)*vSolidLocal(Ib1,Ib2,Ib3,1) );
+		  nDotV = (normal(Ib1,Ib2,Ib3,0)*vp(Ib1,Ib2,Ib3,0)+
+			   normal(Ib1,Ib2,Ib3,1)*vp(Ib1,Ib2,Ib3,1) );
 		  if( numberOfDimensions==3 )
-		    nDotV -= normal(Ib1,Ib2,Ib3,2)*vSolidLocal(Ib1,Ib2,Ib3,2);
+		    nDotV += normal(Ib1,Ib2,Ib3,2)*vp(Ib1,Ib2,Ib3,2);
 
-		  for( int dir=0; dir<numberOfDimensions; dir++ )
-		    gridVelocityLocal(Ib1,Ib2,Ib3,dir) += nDotV*normal(Ib1,Ib2,Ib3,dir);  // n.v = n.vp 
+		  if( TRUE ) // *WDH* try this 2015/03/06
+		  {
+		    // t.v = t.vs 
+		    gridVelocityLocal(Ib1,Ib2,Ib3,Rx)=vSolidLocal(Ib1,Ib2,Ib3,Rx);  // set all components equal to vs 
+
+		    nDotV -= (normal(Ib1,Ib2,Ib3,0)*vSolidLocal(Ib1,Ib2,Ib3,0)+
+			      normal(Ib1,Ib2,Ib3,1)*vSolidLocal(Ib1,Ib2,Ib3,1) );
+		    if( numberOfDimensions==3 )
+		      nDotV -= normal(Ib1,Ib2,Ib3,2)*vSolidLocal(Ib1,Ib2,Ib3,2);
+
+		    for( int dir=0; dir<numberOfDimensions; dir++ )
+		      gridVelocityLocal(Ib1,Ib2,Ib3,dir) += nDotV*normal(Ib1,Ib2,Ib3,dir);  // n.v = n.vp 
 
 
-		  // gridVelocityLocal(Ib1,Ib2,Ib3,Rx)=vSolidLocal(Ib1,Ib2,Ib3,Rx);  // **********
+		    // gridVelocityLocal(Ib1,Ib2,Ib3,Rx)=vSolidLocal(Ib1,Ib2,Ib3,Rx);  // **********
+		  }
+		  else
+		  {
+		    // t.v= ZERO
+
+		    // gridVelocityLocal(Ib1,Ib2,Ib3,Rx)=vSolidLocal(Ib1,Ib2,Ib3,Rx);
+		    // gridVelocityLocal(Ib1,Ib2,Ib3,Rx)=0.;
+		    for( int dir=0; dir<numberOfDimensions; dir++ )
+		      gridVelocityLocal(Ib1,Ib2,Ib3,dir) = nDotV*normal(Ib1,Ib2,Ib3,dir);
+		  }
 		}
-		else
+		else // ** FALSE ***
 		{
-                  // t.v= ZERO
+		  // new way
+		  RealArray vp(Ib1,Ib2,Ib3,Rx), nDotV(Ib1,Ib2,Ib3);
+		  // vp - v  ( note (alpha-1.) in first term )
 
+		  if( projectVelocityOnBeamEnds )
+		  {
+		    // vp= (alpha-1.)*uLocal(Ib1,Ib2,Ib3,V) + (1.-alpha)*vSolidLocal(Ib1,Ib2,Ib3,Rx);
+		    vp= (alpha)*uLocal(Ib1,Ib2,Ib3,V) + (1.-alpha)*vSolidLocal(Ib1,Ib2,Ib3,Rx);
+		  }
+		  else
+		  {
+		    // use solid velocity when the weight is zero: 
+		    for( int dir=0; dir<numberOfDimensions; dir++ )
+		      vp(Ib1,Ib2,Ib3,dir) = ( (   alpha*weight(Ib1,Ib2,Ib3))*uLocal(Ib1,Ib2,Ib3,uc+dir) + 
+					      (1.-alpha*weight(Ib1,Ib2,Ib3))*vSolidLocal(Ib1,Ib2,Ib3,dir) );
+		  }
+
+		  // vp=( alpha*uLocal(Ib1,Ib2,Ib3,V) + (1.-alpha)*vSolidLocal(Ib1,Ib2,Ib3,Rx) 
+		  // 		 -gridVelocityLocal(Ib1,Ib2,Ib3,Rx) );
+	    
+		  nDotV = (normal(Ib1,Ib2,Ib3,0)*vp(Ib1,Ib2,Ib3,0)+
+			   normal(Ib1,Ib2,Ib3,1)*vp(Ib1,Ib2,Ib3,1) );
+		  if( numberOfDimensions==3 )
+		    nDotV += normal(Ib1,Ib2,Ib3,2)*vp(Ib1,Ib2,Ib3,2);
+
+		  // if( !projectVelocityOnBeamEnds ) 
+		  // {
+		  //   nDotV *= weight(Ib1,Ib2,Ib3);  // turn off projection near beam ends 
+		  // }
+	    
 		  // gridVelocityLocal(Ib1,Ib2,Ib3,Rx)=vSolidLocal(Ib1,Ib2,Ib3,Rx);
-		  // gridVelocityLocal(Ib1,Ib2,Ib3,Rx)=0.;
+
+		  // -- set the normal component of the velocity ---
+		  // -- set tangential component of the velocity to zero --
 		  for( int dir=0; dir<numberOfDimensions; dir++ )
 		    gridVelocityLocal(Ib1,Ib2,Ib3,dir) = nDotV*normal(Ib1,Ib2,Ib3,dir);
 		}
-	      }
-	      else // ** FALSE ***
-	      {
-		// new way
-		RealArray vp(Ib1,Ib2,Ib3,Rx), nDotV(Ib1,Ib2,Ib3);
-		// vp - v  ( note (alpha-1.) in first term )
-
-		if( projectVelocityOnBeamEnds )
-		{
-		  // vp= (alpha-1.)*uLocal(Ib1,Ib2,Ib3,V) + (1.-alpha)*vSolidLocal(Ib1,Ib2,Ib3,Rx);
-		  vp= (alpha)*uLocal(Ib1,Ib2,Ib3,V) + (1.-alpha)*vSolidLocal(Ib1,Ib2,Ib3,Rx);
-		}
-		else
-		{
-		  // use solid velocity when the weight is zero: 
-		  for( int dir=0; dir<numberOfDimensions; dir++ )
-		    vp(Ib1,Ib2,Ib3,dir) = ( (   alpha*weight(Ib1,Ib2,Ib3))*uLocal(Ib1,Ib2,Ib3,uc+dir) + 
-					    (1.-alpha*weight(Ib1,Ib2,Ib3))*vSolidLocal(Ib1,Ib2,Ib3,dir) );
-		}
-
-		// vp=( alpha*uLocal(Ib1,Ib2,Ib3,V) + (1.-alpha)*vSolidLocal(Ib1,Ib2,Ib3,Rx) 
-		// 		 -gridVelocityLocal(Ib1,Ib2,Ib3,Rx) );
-	    
-		nDotV = (normal(Ib1,Ib2,Ib3,0)*vp(Ib1,Ib2,Ib3,0)+
-			 normal(Ib1,Ib2,Ib3,1)*vp(Ib1,Ib2,Ib3,1) );
-		if( numberOfDimensions==3 )
-		  nDotV += normal(Ib1,Ib2,Ib3,2)*vp(Ib1,Ib2,Ib3,2);
-
-		// if( !projectVelocityOnBeamEnds ) 
-		// {
-		//   nDotV *= weight(Ib1,Ib2,Ib3);  // turn off projection near beam ends 
-		// }
-	    
-		// gridVelocityLocal(Ib1,Ib2,Ib3,Rx)=vSolidLocal(Ib1,Ib2,Ib3,Rx);
-
-		// -- set the normal component of the velocity ---
-		// -- set tangential component of the velocity to zero --
-		for( int dir=0; dir<numberOfDimensions; dir++ )
-		  gridVelocityLocal(Ib1,Ib2,Ib3,dir) = nDotV*normal(Ib1,Ib2,Ib3,dir);
-	      }
 	    
 
-	    }
-	    else
-	    {
-	      if( projectVelocityOnBeamEnds ) 
-	      {
-		gridVelocityLocal(Ib1,Ib2,Ib3,Rx) = alpha*uLocal(Ib1,Ib2,Ib3,V) + (1.-alpha)*vSolidLocal(Ib1,Ib2,Ib3,Rx);
 	      }
 	      else
 	      {
-		for( int dir=0; dir<numberOfDimensions; dir++ )
+		if( projectVelocityOnBeamEnds ) 
 		{
-		  // use solid velocity when the weight is zero
-		  gridVelocityLocal(Ib1,Ib2,Ib3,dir) = ( alpha*weight(Ib1,Ib2,Ib3)*uLocal(Ib1,Ib2,Ib3,uc+dir) + 
-							 (1.-alpha*weight(Ib1,Ib2,Ib3))*vSolidLocal(Ib1,Ib2,Ib3,dir) );
+		  gridVelocityLocal(Ib1,Ib2,Ib3,Rx) = alpha*uLocal(Ib1,Ib2,Ib3,V) + (1.-alpha)*vSolidLocal(Ib1,Ib2,Ib3,Rx);
+		}
+		else
+		{
+		  for( int dir=0; dir<numberOfDimensions; dir++ )
+		  {
+		    // use solid velocity when the weight is zero
+		    gridVelocityLocal(Ib1,Ib2,Ib3,dir) = ( alpha*weight(Ib1,Ib2,Ib3)*uLocal(Ib1,Ib2,Ib3,uc+dir) + 
+							   (1.-alpha*weight(Ib1,Ib2,Ib3))*vSolidLocal(Ib1,Ib2,Ib3,dir) );
+		  }
 		}
 	      }
-	    }
-	  } // end if false
+	    } // end if false
+
 	  
-	  
-	  if( true )
-	  {
-	    if( t<=0. )
-              printF("--PIV-- ****TEST*** set gridVelocity=0 on ends\n");
-	    Index I1,I2,I3;
-	    getIndex(mg.gridIndexRange(),I1,I2,I3);
-	    const int axisp1 = (axis+1) % numberOfDimensions;
-            assert( axisp1==0 );
-	    for( int sidea=0; sidea<=1; sidea++ )
+	    if( true )
 	    {
-	      // *** FINISH ME ***
-	      if( mg.boundaryCondition(sidea,axisp1)==Parameters::noSlipWall )
+	      if( t<=0. )
+		printF("--PIV-- ****TEST*** set gridVelocity=0 on ends\n");
+	      Index I1,I2,I3;
+	      getIndex(mg.gridIndexRange(),I1,I2,I3);
+	      const int axisp1 = (axis+1) % numberOfDimensions;
+	      assert( axisp1==0 );
+	      for( int sidea=0; sidea<=1; sidea++ )
 	      {
-		int i1 = sidea==0 ? Ib1.getBase() : Ib1.getBound();
-		gridVelocityLocal(i1,I2,I3,Rx)=0.;  // set values on WHOLE FACE
-	      }
-	      else if( mg.boundaryCondition(sidea,axisp1)==Parameters::slipWall )
-	      {
-              	int i1 = sidea==0 ? Ib1.getBase() : Ib1.getBound();
-		gridVelocityLocal(i1,I2,I3,0)=0.; // set values on WHOLE FACE
-	      }
-	      else if( mg.boundaryCondition(sidea,axisp1)==InsParameters::inflowWithPressureAndTangentialVelocityGiven ||
-                       mg.boundaryCondition(sidea,axisp1)==InsParameters::inflowWithVelocityGiven ) // **FINISH ME**
-	      {
-		int i1 = sidea==0 ? Ib1.getBase() : Ib1.getBound();
-		gridVelocityLocal(i1,Ib2,Ib3,Rx)=0.; // set values on end point
+		// *** FINISH ME ***
+		if( mg.boundaryCondition(sidea,axisp1)==Parameters::noSlipWall )
+		{
+		  int i1 = sidea==0 ? Ib1.getBase() : Ib1.getBound();
+		  gridVelocityLocal(i1,I2,I3,Rx)=0.;  // set values on WHOLE FACE
+		}
+		else if( mg.boundaryCondition(sidea,axisp1)==Parameters::slipWall )
+		{
+		  int i1 = sidea==0 ? Ib1.getBase() : Ib1.getBound();
+		  gridVelocityLocal(i1,I2,I3,0)=0.; // set values on WHOLE FACE
+		}
+		else if( mg.boundaryCondition(sidea,axisp1)==InsParameters::inflowWithPressureAndTangentialVelocityGiven ||
+			 mg.boundaryCondition(sidea,axisp1)==InsParameters::inflowWithVelocityGiven ) // **FINISH ME**
+		{
+		  int i1 = sidea==0 ? Ib1.getBase() : Ib1.getBound();
+		  gridVelocityLocal(i1,Ib2,Ib3,Rx)=0.; // set values on end point
                 
-	      }
+		}
 	      
 	    
+	      }
 	    }
-	  }
+#else
+	  OV_ABORT("FINISH ME FOR PARALLEL");
+#endif
 	  
-         // *********** FIX ME -- THIS IS DUPLICATED ************
+	  } // end deform.isBeamModel() ************* END PROJECT BEAM MODEL ******************
+
+          // *********** FIX ME -- THIS IS DUPLICATED ************
           // -- Add a fourth-order filter to interface velocity --
 	  const bool & smoothInterfaceVelocity = parameters.dbase.get<bool>("smoothInterfaceVelocity");
 	  const int numberOfInterfaceVelocitySmooths=parameters.dbase.get<int>("numberOfInterfaceVelocitySmooths");
@@ -329,7 +371,7 @@ projectInterfaceVelocity(const real & t, realMappedGridFunction & u,
 	  {
 	    const real omega=1.; // .5;
 	    // real omega=.125; 
-            if( t <= 10.*parameters.dbase.get<real>("dt") )
+            if( t <= 10.*dt )
 	      printF("--PIV--: smooth interface velocity, numberOSmooths=%i (4th order filter, omega=%g) grid=%i t=%9.3e...\n",
 		     numberOfInterfaceVelocitySmooths,omega,grid,t);
 	    
@@ -368,10 +410,6 @@ projectInterfaceVelocity(const real & t, realMappedGridFunction & u,
 	    } // end smooths
 	  } // end smoothSurface
 	  
-
-#else
-	  OV_ABORT("FINISH ME FOR PARALLEL");
-#endif
 
 
 	}
@@ -471,7 +509,7 @@ assignInterfaceBoundaryConditions(GridFunction & cgf,
 	    {
 	      const real omega=1.; // .5 
 	      // real omega=.125; 
-	      if( cgf.t <= 10.*parameters.dbase.get<real>("dt") )
+	      if( cgf.t <= 10.*dt )
 		printF("--IBC--: smooth interface velocity, numberOSmooths=%i (4th order filter, omega=%g) grid=%i t=%9.3e...\n",
 		       numberOfInterfaceVelocitySmooths,omega,grid,cgf.t);
 	    

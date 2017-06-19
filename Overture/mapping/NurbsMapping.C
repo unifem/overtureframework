@@ -1831,7 +1831,7 @@ readFromIgesFile( IgesReader & iges, const int & item, bool normKnots /*=true*/ 
     int i,ii;
     Range R1(0,m1);
     uKnot(R1)=data(R1+7);
-    if( Mapping::debug & 4 ) uKnot.display("NurbsMapping::readFromIgesFile: Here is uKnot");
+    if( Mapping::debug & 4 ) uKnot.display("NurbsMapping::readFromIgesFile:rationalBSplineCurve Here is uKnot");
    
     R1=Range(0,n1);
 /* ---
@@ -1854,7 +1854,7 @@ readFromIgesFile( IgesReader & iges, const int & item, bool normKnots /*=true*/ 
     }
 
     if( Mapping::debug & 4 )
-       cPoint.display("NurbsMapping::readFromIgesFile Here is cPoint: NurbsMapping");
+       cPoint.display("NurbsMapping::readFromIgesFile:rationalBSplineCurve Here is cPoint: NurbsMapping");
 
     for( int axis=0; axis<rangeDimension; axis++ )
       cPoint(R1,axis)*=cPoint(R1,rangeDimension); // multiply by the weight
@@ -1892,13 +1892,36 @@ readFromIgesFile( IgesReader & iges, const int & item, bool normKnots /*=true*/ 
 
     }
 
-    int matrixTransform=iges.matrix(item);
-    if( matrixTransform!=0 )
-      printf("***NurbsMapping::readFromIgesFile:WARNING: matrixTransform!=0 for a rationalBSplineCurve\n");
+    int matrix=iges.matrix(item);
+    if( matrix!=0 )
+    {
+      // -- there may be a matrix transform -- check for one
+
+      // *wdh* 2017/04/05 -- read the transform  *** FINISH ME ***
+      if( false )
+      {
+	printF("--NRBS-- item=%i  matrix=iges.matrix(item)=trans_mtr=%i\n",item,iges.matrix(item));
+      
+	printF("--NRBS-- item name  =%s\n",(const char*)iges.entityName(iges.entity(item)));
+	printF("--NRBS-- matrix-name=%s\n",(const char*)iges.entityName(iges.entity(matrix)));
+	printF("--NRBS-- matrix-name=%s\n",(const char*)iges.entityName(iges.entity(iges.sequenceToItem(matrix))));
+      }
+      
+      matrix=iges.sequenceToItem(matrix);
+      RealArray matrixTransform(3,3), translation(3);
+      int returnValue=MappingsFromCAD::getTransformationMatrix(matrix,iges,matrixTransform,translation);
+      if( returnValue==0 && (true || Mapping::debug & 1) )
+      {
+        printF("***NurbsMapping::readFromIgesFile:WARNING: matrixTransform!=0 for a rationalBSplineCurve\n");
+      	::display(matrixTransform,"rationalBSplineCurve: matrixTransform");
+       	::display(translation,"rationalBSplineCurve: translation");
+      }
+    }
+    
   
     if( Mapping::debug & 4 )
       printf("NurbsMapping::readFromIgesFile: n1=%i, p1=%i, uMin=%e, uMax=%e, periodic= %i, mt=%i  \n",
-                n1,p1,uMin,uMax,periodicInU,matrixTransform);
+                n1,p1,uMin,uMax,periodicInU,matrix);
 
     setGridDimensions( axis1,max(11,n1*2) );
 
@@ -2127,7 +2150,12 @@ readFromIgesFile( IgesReader & iges, const int & item, bool normKnots /*=true*/ 
       }
     }
     
-
+    int matrix=iges.matrix(item);
+    if( matrix!=0 )
+    {
+      printF("***NurbsMapping::readFromIgesFile:WARNING: matrixTransform!=0 for a parametricSplineCurve\n");
+    }
+    
     setGridDimensions( axis1,max(11,n1) );
 
 // periodicity?
@@ -2320,11 +2348,24 @@ readFromIgesFile( IgesReader & iges, const int & item, bool normKnots /*=true*/ 
       printf(" ***** NurbsMapping: ua=%e, ub=%e, va=%e, vb=%e \n",ua,ub,va,vb);
     
 
-    int matrixTransformation=iges.matrix(item);
-  
+    int matrix=iges.matrix(item);
+    if( matrix!=0 )
+    {
+      printF("--NRBS -- **rationalBSplineSurface** matrix transform is found, matrix=%i\n",matrix);
+
+      matrix=iges.sequenceToItem(matrix);
+      RealArray transform(3,3), translation(3);
+      int returnValue=MappingsFromCAD::getTransformationMatrix(matrix,iges,transform,translation);
+      if( returnValue==0 && (true || Mapping::debug & 8) )
+      {
+	::display(transform,"rationalBSplineSurface: transform");
+	::display(translation,"rationalBSplineSurface: translation");
+      }
+    }
+    
     if( Mapping::debug & 4 )
       printf(" n1=%i, n2=%i, p1=%i, p2=%i, uMin=%e, uMax=%e, vMin=%e, vMax=%e, periodic= %i,%i, mt=%i  \n",n1,n2,p1,p2,
-	   uMin,uMax,vMin,vMax,periodicInU,periodicInV,matrixTransformation);
+	   uMin,uMax,vMin,vMax,periodicInU,periodicInV,matrix);
 
 
 
@@ -2908,7 +2949,13 @@ parametricCurve(const NurbsMapping & nurbs,
       cPoint(all,axis)=(cPoint(all,axis)-xMn[axis])/(xMx[axis]-xMn[axis]);
       cPoint(all,axis)*=cPoint(all,rangeDimension);
     }
-    
+    if( Mapping::debug & 4 )
+    {
+      printF(" ----parametricCurve: cPoint after scaling nurbs=[%s]\n",
+	     (const char*)getName(mappingName));
+      cout << " --> this = " << this << endl;
+      ::display(cPoint,"parametricCurve: cPoint after scaling nurbs");
+    }
     
   }
   setRangeSpace(parameterSpace);

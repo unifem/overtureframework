@@ -297,6 +297,10 @@ getInitialConditions(const aString & command /* = nullString */,
 	knownSolutionOption=annulusEigenfunctionKnownSolution;
 	
       }
+      else if( initialConditionOption==knownSolutionInitialCondition )
+      {
+	specialInitialConditionOption="knownSolutionInitialCondition";   // *wdh* 2017/05/25
+      }
       
 
       dialog.getOptionMenu("initial conditions:").setCurrentChoice((int)initialConditionOption);

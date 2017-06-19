@@ -296,15 +296,18 @@ int MovingGrids::
 assignInitialConditions( GridFunction & cgf )
 {
   // INITIALIZE THE GRIDS at past time levels
-  if( TRUE || debug() & 4 )
-     printF("--MvG--assignInitialConditions: INITIALIZING deformingGrid, past time levels.\n"); 
-
-  for( int b=0; b<numberOfDeformingBodies; b++ )
+  if( numberOfDeformingBodies>0 )
   {
-    real dt0=1.e-4;  // this should not be used 
-    deformingBodyList[b]->initializePast( cgf.t, dt0, cgf.cg);
-  }
+    if( TRUE || debug() & 4 )
+      printF("--MvG--assignInitialConditions: INITIALIZING deformingGrid, past time levels.\n"); 
 
+    for( int b=0; b<numberOfDeformingBodies; b++ )
+    {
+      real dt0=1.e-4;  // this should not be used 
+      deformingBodyList[b]->initializePast( cgf.t, dt0, cgf.cg);
+    }
+  }
+  
   return 0;
 }
 
@@ -654,17 +657,25 @@ int MovingGrids::getRigidBodyAddedDampingTensors( const int bodyNumber, RealArra
     getBoundaryIndex(c.gridIndexRange(),side,axis,Ib1,Ib2,Ib3); // boundary line 
     getGhostIndex(c.gridIndexRange(),side,axis,Ip1,Ip2,Ip3,-1); // first line in 
 
-    // Assume grid is nearly orthogonal -- we could check using the mask 
-    real dist=minGridSpacing;
-    if( numberOfDimensions==2 )
-      dist = sqrt( min(SQR(xLocal(Ip1,Ip2,Ip3,0)-xLocal(Ib1,Ib2,Ib3,0))+
-		       SQR(xLocal(Ip1,Ip2,Ip3,1)-xLocal(Ib1,Ib2,Ib3,1))) );
-    else
-      dist = sqrt( min(SQR(xLocal(Ip1,Ip2,Ip3,0)-xLocal(Ib1,Ib2,Ib3,0))+
-		       SQR(xLocal(Ip1,Ip2,Ip3,1)-xLocal(Ib1,Ib2,Ib3,1))+
-		       SQR(xLocal(Ip1,Ip2,Ip3,2)-xLocal(Ib1,Ib2,Ib3,2))) );
-    minGridSpacing=min(minGridSpacing,dist);
+    int includeGhost=0;
+    bool ok;
+    ok=ParallelUtility::getLocalArrayBounds(c.vertex(),xLocal,Ib1,Ib2,Ib3,includeGhost); // restrict bounds to this processor
+    ok=ParallelUtility::getLocalArrayBounds(c.vertex(),xLocal,Ip1,Ip2,Ip3,includeGhost);
 
+    // Assume grid is nearly orthogonal -- we could check using the mask 
+    if( ok )
+    {
+      real dist=minGridSpacing;
+      if( numberOfDimensions==2 )
+	dist = sqrt( min(SQR(xLocal(Ip1,Ip2,Ip3,0)-xLocal(Ib1,Ib2,Ib3,0))+
+			 SQR(xLocal(Ip1,Ip2,Ip3,1)-xLocal(Ib1,Ib2,Ib3,1))) );
+      else
+	dist = sqrt( min(SQR(xLocal(Ip1,Ip2,Ip3,0)-xLocal(Ib1,Ib2,Ib3,0))+
+			 SQR(xLocal(Ip1,Ip2,Ip3,1)-xLocal(Ib1,Ib2,Ib3,1))+
+			 SQR(xLocal(Ip1,Ip2,Ip3,2)-xLocal(Ib1,Ib2,Ib3,2))) );
+      minGridSpacing=min(minGridSpacing,dist);
+    }
+    
   }
   minGridSpacing=ParallelUtility::getMinValue(minGridSpacing);
   dn=minGridSpacing;
@@ -721,92 +732,98 @@ int MovingGrids::getRigidBodyAddedDampingTensors( const int bodyNumber, RealArra
       #endif
 
       getBoundaryIndex(c.gridIndexRange(),side,axis,Ib1,Ib2,Ib3); // boundary line 
+      int includeGhost=1;
+      bool ok=ParallelUtility::getLocalArrayBounds(c.vertex(),xLocal,Ib1,Ib2,Ib3,includeGhost); // restrict bounds to this processor
 
       // create space to save the added damping entries on the boundary
       if( face >= addedDampingMatrixList.getLength() )
 	addedDampingMatrixList.addElement();
       RealArray & adm = addedDampingMatrixList[face];
-      adm.redim(Ib1,Ib2,Ib3,numberOfAddedDampingMatrixEntries);
-
-      if( numberOfDimensions==2 )
+      if( ok )
       {
-        // normal = [n0 n1 0] 
-        // tangent = [-n1 n0 0] 
-	RealArray temp(Ib1,Ib2,Ib3);
+	adm.redim(Ib1,Ib2,Ib3,numberOfAddedDampingMatrixEntries);
 
-	// Compute (x-xb) X tv  = yv X tv = Rt  (only 1 nonzero entry in 3D)
-        //  tv = [ -n1, n0, 0]    :tangent vector in 2D for orthogonal!  *FIX ME*
-        //
-        //   [ i   j    k ]
-        //   [ y0  y1   0 ]
-        //   [-n1  n0   0 ]
-	RealArray yCrossT(Ib1,Ib2,Ib3);
-	yCrossT(Ib1,Ib2,Ib3) = ((xLocal(Ib1,Ib2,Ib3,0)-xCM(0))*normalLocal(Ib1,Ib2,Ib3,0) + 
-			        (xLocal(Ib1,Ib2,Ib3,1)-xCM(1))*normalLocal(Ib1,Ib2,Ib3,1) );
+	if( numberOfDimensions==2 )
+	{
+	  // normal = [n0 n1 0] 
+	  // tangent = [-n1 n0 0] 
+	  RealArray temp(Ib1,Ib2,Ib3);
 
-	// -- save added-damping matrix entries ( without mu/dn)  ---
-        // if dn varied in space we could include the effect here: (?)
+	  // Compute (x-xb) X tv  = yv X tv = Rt  (only 1 nonzero entry in 3D)
+	  //  tv = [ -n1, n0, 0]    :tangent vector in 2D for orthogonal!  *FIX ME*
+	  //
+	  //   [ i   j    k ]
+	  //   [ y0  y1   0 ]
+	  //   [-n1  n0   0 ]
+	  RealArray yCrossT(Ib1,Ib2,Ib3);
+	  yCrossT(Ib1,Ib2,Ib3) = ((xLocal(Ib1,Ib2,Ib3,0)-xCM(0))*normalLocal(Ib1,Ib2,Ib3,0) + 
+				  (xLocal(Ib1,Ib2,Ib3,1)-xCM(1))*normalLocal(Ib1,Ib2,Ib3,1) );
 
-        //  Dvv =  Int (mu/dn)  tv tv^T ds 
-        //  Dvw =  Int (mu/dn) tv (Rt)^t ds
-        //  Dwv = Dvw^T 
-        //  Dww =  Int (mu/dn) Rt Rt^T ds 
+	  // -- save added-damping matrix entries ( without mu/dn)  ---
+	  // if dn varied in space we could include the effect here: (?)
 
-	adm(Ib1,Ib2,Ib3,0) =  normalLocal(Ib1,Ib2,Ib3,1)*normalLocal(Ib1,Ib2,Ib3,1);  // Dvv(0,0)
-	adm(Ib1,Ib2,Ib3,1) = -normalLocal(Ib1,Ib2,Ib3,1)*normalLocal(Ib1,Ib2,Ib3,0);  // Dvv(0,1)=Dvv(1,0)
-	adm(Ib1,Ib2,Ib3,2) =  normalLocal(Ib1,Ib2,Ib3,0)*normalLocal(Ib1,Ib2,Ib3,0);  // Dvv(1,1)
+	  //  Dvv =  Int (mu/dn)  tv tv^T ds 
+	  //  Dvw =  Int (mu/dn) tv (Rt)^t ds
+	  //  Dwv = Dvw^T 
+	  //  Dww =  Int (mu/dn) Rt Rt^T ds 
 
-        adm(Ib1,Ib2,Ib3,3) = -normalLocal(Ib1,Ib2,Ib3,1)*yCrossT(Ib1,Ib2,Ib3);        // Dvw(0,2)=Dwv(2,0)
-        adm(Ib1,Ib2,Ib3,4) =  normalLocal(Ib1,Ib2,Ib3,0)*yCrossT(Ib1,Ib2,Ib3);        // Dvw(1,2)=Dwv(2,1)
+	  adm(Ib1,Ib2,Ib3,0) =  normalLocal(Ib1,Ib2,Ib3,1)*normalLocal(Ib1,Ib2,Ib3,1);  // Dvv(0,0)
+	  adm(Ib1,Ib2,Ib3,1) = -normalLocal(Ib1,Ib2,Ib3,1)*normalLocal(Ib1,Ib2,Ib3,0);  // Dvv(0,1)=Dvv(1,0)
+	  adm(Ib1,Ib2,Ib3,2) =  normalLocal(Ib1,Ib2,Ib3,0)*normalLocal(Ib1,Ib2,Ib3,0);  // Dvv(1,1)
 
-	adm(Ib1,Ib2,Ib3,5) = yCrossT(Ib1,Ib2,Ib3)*yCrossT(Ib1,Ib2,Ib3);               // Dww(2,2)
+	  adm(Ib1,Ib2,Ib3,3) = -normalLocal(Ib1,Ib2,Ib3,1)*yCrossT(Ib1,Ib2,Ib3);        // Dvw(0,2)=Dwv(2,0)
+	  adm(Ib1,Ib2,Ib3,4) =  normalLocal(Ib1,Ib2,Ib3,0)*yCrossT(Ib1,Ib2,Ib3);        // Dvw(1,2)=Dwv(2,1)
 
-      }
-      else
-      {
-        // normal = [n0 n1 n2] 
-	// Compute [x-xb]_x  (6 nonzero entry in 3D)
-        //   [ 0        -(x-xb)_2     (x-xb)_1 ]
-        //   [ (x-xb)_2  0           -(x-xb)_0 ]
-        //   [-(x-xb)_1  (x-xb)_0            0 ]
-	RealArray xFace(Ib1,Ib2,Ib3,3);
-	xFace(Ib1,Ib2,Ib3,0) = xLocal(Ib1,Ib2,Ib3,0)-xCM(0);
-	xFace(Ib1,Ib2,Ib3,1) = xLocal(Ib1,Ib2,Ib3,1)-xCM(1);
-	xFace(Ib1,Ib2,Ib3,2) = xLocal(Ib1,Ib2,Ib3,2)-xCM(2);
+	  adm(Ib1,Ib2,Ib3,5) = yCrossT(Ib1,Ib2,Ib3)*yCrossT(Ib1,Ib2,Ib3);               // Dww(2,2)
 
-	// -- save added-damping matrix entries ( without mu/dn)  ---
-        //  Dvv =  Int (mu/dn) (I-nv nv^t) ds 
-        //  Dvw =  Int (mu/dn) (I-nv nv^t)R^t ds
-        //  Dwv =  Dvw^T 
-        //  Dww =  Int (mu/dn) R(I-nv nv^t)R^t ds 
+	}
+	else
+	{
+	  // normal = [n0 n1 n2] 
+	  // Compute [x-xb]_x  (6 nonzero entry in 3D)
+	  //   [ 0        -(x-xb)_2     (x-xb)_1 ]
+	  //   [ (x-xb)_2  0           -(x-xb)_0 ]
+	  //   [-(x-xb)_1  (x-xb)_0            0 ]
+	  RealArray xFace(Ib1,Ib2,Ib3,3);
+	  xFace(Ib1,Ib2,Ib3,0) = xLocal(Ib1,Ib2,Ib3,0)-xCM(0);
+	  xFace(Ib1,Ib2,Ib3,1) = xLocal(Ib1,Ib2,Ib3,1)-xCM(1);
+	  xFace(Ib1,Ib2,Ib3,2) = xLocal(Ib1,Ib2,Ib3,2)-xCM(2);
 
-	// Dvv
-	adm(Ib1,Ib2,Ib3,0) =1.-normalLocal(Ib1,Ib2,Ib3,0)*normalLocal(Ib1,Ib2,Ib3,0);  // Dvv(0,0)
-	adm(Ib1,Ib2,Ib3,1) =  -normalLocal(Ib1,Ib2,Ib3,1)*normalLocal(Ib1,Ib2,Ib3,0);  // Dvv(0,1)=Dvv(1,0)
-	adm(Ib1,Ib2,Ib3,2) =  -normalLocal(Ib1,Ib2,Ib3,2)*normalLocal(Ib1,Ib2,Ib3,0);  // Dvv(0,2)=Dvv(2,0)
-        adm(Ib1,Ib2,Ib3,3) =1.-normalLocal(Ib1,Ib2,Ib3,1)*normalLocal(Ib1,Ib2,Ib3,1);  // Dvv(1,1)
-        adm(Ib1,Ib2,Ib3,4) =  -normalLocal(Ib1,Ib2,Ib3,2)*normalLocal(Ib1,Ib2,Ib3,1);  // Dvv(1,2)=Dvv(2,1)
-	adm(Ib1,Ib2,Ib3,5) =1.-normalLocal(Ib1,Ib2,Ib3,2)*normalLocal(Ib1,Ib2,Ib3,2);  // Dvv(2,2)
+	  // -- save added-damping matrix entries ( without mu/dn)  ---
+	  //  Dvv =  Int (mu/dn) (I-nv nv^t) ds 
+	  //  Dvw =  Int (mu/dn) (I-nv nv^t)R^t ds
+	  //  Dwv =  Dvw^T 
+	  //  Dww =  Int (mu/dn) R(I-nv nv^t)R^t ds 
 
-	// Dvw
-	adm(Ib1,Ib2,Ib3,6) =-adm(Ib1,Ib2,Ib3,1)*xFace(Ib1,Ib2,Ib3,2)+adm(Ib1,Ib2,Ib3,2)*xFace(Ib1,Ib2,Ib3,1);  // Dvw(0,0)
-	adm(Ib1,Ib2,Ib3,7) = adm(Ib1,Ib2,Ib3,0)*xFace(Ib1,Ib2,Ib3,2)-adm(Ib1,Ib2,Ib3,2)*xFace(Ib1,Ib2,Ib3,0);  // Dvw(0,1)
-	adm(Ib1,Ib2,Ib3,8) =-adm(Ib1,Ib2,Ib3,0)*xFace(Ib1,Ib2,Ib3,1)+adm(Ib1,Ib2,Ib3,1)*xFace(Ib1,Ib2,Ib3,0);  // Dvw(0,2)
-        adm(Ib1,Ib2,Ib3,9) =-adm(Ib1,Ib2,Ib3,3)*xFace(Ib1,Ib2,Ib3,2)+adm(Ib1,Ib2,Ib3,4)*xFace(Ib1,Ib2,Ib3,1);  // Dvw(1,0)
-        adm(Ib1,Ib2,Ib3,10)= adm(Ib1,Ib2,Ib3,1)*xFace(Ib1,Ib2,Ib3,2)-adm(Ib1,Ib2,Ib3,4)*xFace(Ib1,Ib2,Ib3,0);  // Dvw(1,1)
-	adm(Ib1,Ib2,Ib3,11)=-adm(Ib1,Ib2,Ib3,1)*xFace(Ib1,Ib2,Ib3,1)+adm(Ib1,Ib2,Ib3,3)*xFace(Ib1,Ib2,Ib3,0);  // Dvw(1,2)
-	adm(Ib1,Ib2,Ib3,12)=-adm(Ib1,Ib2,Ib3,4)*xFace(Ib1,Ib2,Ib3,2)+adm(Ib1,Ib2,Ib3,5)*xFace(Ib1,Ib2,Ib3,1);  // Dvw(2,0)
-	adm(Ib1,Ib2,Ib3,13)= adm(Ib1,Ib2,Ib3,2)*xFace(Ib1,Ib2,Ib3,2)-adm(Ib1,Ib2,Ib3,5)*xFace(Ib1,Ib2,Ib3,0);  // Dvw(2,1)
-	adm(Ib1,Ib2,Ib3,14)=-adm(Ib1,Ib2,Ib3,2)*xFace(Ib1,Ib2,Ib3,1)+adm(Ib1,Ib2,Ib3,4)*xFace(Ib1,Ib2,Ib3,0);  // Dvw(2,2)
+	  // Dvv
+	  adm(Ib1,Ib2,Ib3,0) =1.-normalLocal(Ib1,Ib2,Ib3,0)*normalLocal(Ib1,Ib2,Ib3,0);  // Dvv(0,0)
+	  adm(Ib1,Ib2,Ib3,1) =  -normalLocal(Ib1,Ib2,Ib3,1)*normalLocal(Ib1,Ib2,Ib3,0);  // Dvv(0,1)=Dvv(1,0)
+	  adm(Ib1,Ib2,Ib3,2) =  -normalLocal(Ib1,Ib2,Ib3,2)*normalLocal(Ib1,Ib2,Ib3,0);  // Dvv(0,2)=Dvv(2,0)
+	  adm(Ib1,Ib2,Ib3,3) =1.-normalLocal(Ib1,Ib2,Ib3,1)*normalLocal(Ib1,Ib2,Ib3,1);  // Dvv(1,1)
+	  adm(Ib1,Ib2,Ib3,4) =  -normalLocal(Ib1,Ib2,Ib3,2)*normalLocal(Ib1,Ib2,Ib3,1);  // Dvv(1,2)=Dvv(2,1)
+	  adm(Ib1,Ib2,Ib3,5) =1.-normalLocal(Ib1,Ib2,Ib3,2)*normalLocal(Ib1,Ib2,Ib3,2);  // Dvv(2,2)
 
- 	// Dww
-	adm(Ib1,Ib2,Ib3,15)= adm(Ib1,Ib2,Ib3,12)*xFace(Ib1,Ib2,Ib3,1)-adm(Ib1,Ib2,Ib3, 9)*xFace(Ib1,Ib2,Ib3,2);  // Dww(0,0)
-        adm(Ib1,Ib2,Ib3,16)=-adm(Ib1,Ib2,Ib3,10)*xFace(Ib1,Ib2,Ib3,2)+adm(Ib1,Ib2,Ib3,13)*xFace(Ib1,Ib2,Ib3,1);  // Dww(0,1)
-	adm(Ib1,Ib2,Ib3,17)=-adm(Ib1,Ib2,Ib3,11)*xFace(Ib1,Ib2,Ib3,2)+adm(Ib1,Ib2,Ib3,14)*xFace(Ib1,Ib2,Ib3,1);  // Dww(0,2)
-	adm(Ib1,Ib2,Ib3,18)=-adm(Ib1,Ib2,Ib3,13)*xFace(Ib1,Ib2,Ib3,0)+adm(Ib1,Ib2,Ib3, 7)*xFace(Ib1,Ib2,Ib3,2);  // Dww(1,1)
-	adm(Ib1,Ib2,Ib3,19)=-adm(Ib1,Ib2,Ib3,14)*xFace(Ib1,Ib2,Ib3,0)+adm(Ib1,Ib2,Ib3, 8)*xFace(Ib1,Ib2,Ib3,2);  // Dww(1,2)
-	adm(Ib1,Ib2,Ib3,20)= adm(Ib1,Ib2,Ib3,11)*xFace(Ib1,Ib2,Ib3,0)-adm(Ib1,Ib2,Ib3, 8)*xFace(Ib1,Ib2,Ib3,1);  // Dww(2,2)
-      }
+	  // Dvw
+	  adm(Ib1,Ib2,Ib3,6) =-adm(Ib1,Ib2,Ib3,1)*xFace(Ib1,Ib2,Ib3,2)+adm(Ib1,Ib2,Ib3,2)*xFace(Ib1,Ib2,Ib3,1);  // Dvw(0,0)
+	  adm(Ib1,Ib2,Ib3,7) = adm(Ib1,Ib2,Ib3,0)*xFace(Ib1,Ib2,Ib3,2)-adm(Ib1,Ib2,Ib3,2)*xFace(Ib1,Ib2,Ib3,0);  // Dvw(0,1)
+	  adm(Ib1,Ib2,Ib3,8) =-adm(Ib1,Ib2,Ib3,0)*xFace(Ib1,Ib2,Ib3,1)+adm(Ib1,Ib2,Ib3,1)*xFace(Ib1,Ib2,Ib3,0);  // Dvw(0,2)
+	  adm(Ib1,Ib2,Ib3,9) =-adm(Ib1,Ib2,Ib3,3)*xFace(Ib1,Ib2,Ib3,2)+adm(Ib1,Ib2,Ib3,4)*xFace(Ib1,Ib2,Ib3,1);  // Dvw(1,0)
+	  adm(Ib1,Ib2,Ib3,10)= adm(Ib1,Ib2,Ib3,1)*xFace(Ib1,Ib2,Ib3,2)-adm(Ib1,Ib2,Ib3,4)*xFace(Ib1,Ib2,Ib3,0);  // Dvw(1,1)
+	  adm(Ib1,Ib2,Ib3,11)=-adm(Ib1,Ib2,Ib3,1)*xFace(Ib1,Ib2,Ib3,1)+adm(Ib1,Ib2,Ib3,3)*xFace(Ib1,Ib2,Ib3,0);  // Dvw(1,2)
+	  adm(Ib1,Ib2,Ib3,12)=-adm(Ib1,Ib2,Ib3,4)*xFace(Ib1,Ib2,Ib3,2)+adm(Ib1,Ib2,Ib3,5)*xFace(Ib1,Ib2,Ib3,1);  // Dvw(2,0)
+	  adm(Ib1,Ib2,Ib3,13)= adm(Ib1,Ib2,Ib3,2)*xFace(Ib1,Ib2,Ib3,2)-adm(Ib1,Ib2,Ib3,5)*xFace(Ib1,Ib2,Ib3,0);  // Dvw(2,1)
+	  adm(Ib1,Ib2,Ib3,14)=-adm(Ib1,Ib2,Ib3,2)*xFace(Ib1,Ib2,Ib3,1)+adm(Ib1,Ib2,Ib3,4)*xFace(Ib1,Ib2,Ib3,0);  // Dvw(2,2)
+
+	  // Dww
+	  adm(Ib1,Ib2,Ib3,15)= adm(Ib1,Ib2,Ib3,12)*xFace(Ib1,Ib2,Ib3,1)-adm(Ib1,Ib2,Ib3, 9)*xFace(Ib1,Ib2,Ib3,2);  // Dww(0,0)
+	  adm(Ib1,Ib2,Ib3,16)=-adm(Ib1,Ib2,Ib3,10)*xFace(Ib1,Ib2,Ib3,2)+adm(Ib1,Ib2,Ib3,13)*xFace(Ib1,Ib2,Ib3,1);  // Dww(0,1)
+	  adm(Ib1,Ib2,Ib3,17)=-adm(Ib1,Ib2,Ib3,11)*xFace(Ib1,Ib2,Ib3,2)+adm(Ib1,Ib2,Ib3,14)*xFace(Ib1,Ib2,Ib3,1);  // Dww(0,2)
+	  adm(Ib1,Ib2,Ib3,18)=-adm(Ib1,Ib2,Ib3,13)*xFace(Ib1,Ib2,Ib3,0)+adm(Ib1,Ib2,Ib3, 7)*xFace(Ib1,Ib2,Ib3,2);  // Dww(1,1)
+	  adm(Ib1,Ib2,Ib3,19)=-adm(Ib1,Ib2,Ib3,14)*xFace(Ib1,Ib2,Ib3,0)+adm(Ib1,Ib2,Ib3, 8)*xFace(Ib1,Ib2,Ib3,2);  // Dww(1,2)
+	  adm(Ib1,Ib2,Ib3,20)= adm(Ib1,Ib2,Ib3,11)*xFace(Ib1,Ib2,Ib3,0)-adm(Ib1,Ib2,Ib3, 8)*xFace(Ib1,Ib2,Ib3,1);  // Dww(2,2)
+	}
+      } // end if ok 
+      
     } // end for face
     
     // Use this function for integrating the entries in the added damping tensors  **FIX ME**
@@ -831,7 +848,10 @@ int MovingGrids::getRigidBodyAddedDampingTensors( const int bodyNumber, RealArra
         RealArray & adm = addedDampingMatrixList[face];
 
         getBoundaryIndex(cg[grid].gridIndexRange(),side,axis,Ib1,Ib2,Ib3); // boundary line 
-		addedDampingCoeffLocal(Ib1,Ib2,Ib3,0)=adm(Ib1,Ib2,Ib3,ma);
+	int includeGhost=1;
+	bool ok=ParallelUtility::getLocalArrayBounds(addedDampingCoeff[grid],addedDampingCoeffLocal,Ib1,Ib2,Ib3,includeGhost);
+        if( ok )
+	  addedDampingCoeffLocal(Ib1,Ib2,Ib3,0)=adm(Ib1,Ib2,Ib3,ma);
       }
       
       // --- integrate the components of the added mass matrix -----
@@ -845,78 +865,78 @@ int MovingGrids::getRigidBodyAddedDampingTensors( const int bodyNumber, RealArra
       integrate->surfaceIntegral(addedDampingCoeff,R,adc,bodyNumber);
       
       if( numberOfDimensions==2 )
+      {
+	if( ma==0 )
 	{
-	      if( ma==0 )
-	      {
-	        addedDampingTensors(0,0,vbc,vbc)=adc(0);                                 // Dvv(0,0)
-	      }
-	      else if( ma==1 )
-	      {
-	        addedDampingTensors(0,1,vbc,vbc)=addedDampingTensors(1,0,vbc,vbc)=adc(0);  // Dvv(0,1)=Dvv(1,0)
-	      }
-	      else if( ma==2 )
-	      {
-	        addedDampingTensors(1,1,vbc,vbc)=adc(0);                                 // Dvv(1,1)
-	      }
-	      else if( ma==3 )
-	      {
-	        addedDampingTensors(0,2,vbc,wbc)=addedDampingTensors(2,0,wbc,vbc)=adc(0);  // Dvw(0,2)=Dwv(2,0)
-	      }
-	      else if( ma==4 )
-	      {
-	        addedDampingTensors(1,2,vbc,wbc)=addedDampingTensors(2,1,wbc,vbc)=adc(0);  // Dvw(1,2)=Dwv(2,1)
-	      }
-	      else if( ma==5 )
-	        addedDampingTensors(2,2,wbc,wbc)=adc(0);                                 // Dww(3,3)   
-	      else
-	      {
-		OV_ABORT("error");
-	      }
+	  addedDampingTensors(0,0,vbc,vbc)=adc(0);                                 // Dvv(0,0)
 	}
-	  else 
-      	{
-	      OV_ABORT("check it -QT");
-	      if( ma==0 || ma==15 )
-	      {
-		kLocal=ma<6 ? vbc:wbc;
-	        addedDampingTensors(0,0,kLocal,kLocal)=adc(0);						// Dvv(0,0) or Dww
-	      }
-	      else if( ma==1 || ma==16)
-	      {
-		kLocal=ma<6 ? vbc:wbc;
-	        addedDampingTensors(0,1,kLocal,kLocal)=addedDampingTensors(1,0,kLocal,kLocal)=adc(0);	// Dvv(0,1)=Dvv(1,0) or Dww
-	      }
-	      else if( ma==2 || ma==17)
-	      {
-		kLocal=ma<6 ? vbc:wbc;
-	        addedDampingTensors(0,2,kLocal,kLocal)=addedDampingTensors(2,0,kLocal,kLocal)=adc(0);   // Dvv(0,2)=Dvv(2,0) or Dww
-	      }
-	      else if( ma==3 || ma==18 )
-	      {
-		kLocal=ma<6 ? vbc:wbc;
-	        addedDampingTensors(1,1,kLocal,kLocal)=adc(0);						// Dvv(1,1) or Dww
-	      }      
-	      else if( ma==4 || ma==19)
-	      {
-		kLocal=ma<6 ? vbc:wbc;
-	        addedDampingTensors(1,2,kLocal,kLocal)=addedDampingTensors(2,1,kLocal,kLocal)=adc(0);   // Dvv(1,2)=Dvv(2,1) or Dww
-	      } 		  
-	      else if( ma==5 || ma==20)
-	      {
-		kLocal=ma<6 ? vbc:wbc;
-	        addedDampingTensors(2,2,kLocal,kLocal)=adc(0);						// Dvv(2,2) or Dww
-	      }     	  
-	      else if( ma>5 && ma<15)
-	      {
-		jLocal=(ma-6) % 3;
-		iLocal=(ma-6-jLocal)/3;
-	        addedDampingTensors(iLocal,jLocal,vbc,wbc)=addedDampingTensors(jLocal,iLocal,wbc,vbc)=adc(0);  // Dvw(i,j)=Dwv(j,i)
-	      }
-	      else
-	      {
-		OV_ABORT("error");
-	      }
-		}
+	else if( ma==1 )
+	{
+	  addedDampingTensors(0,1,vbc,vbc)=addedDampingTensors(1,0,vbc,vbc)=adc(0);  // Dvv(0,1)=Dvv(1,0)
+	}
+	else if( ma==2 )
+	{
+	  addedDampingTensors(1,1,vbc,vbc)=adc(0);                                 // Dvv(1,1)
+	}
+	else if( ma==3 )
+	{
+	  addedDampingTensors(0,2,vbc,wbc)=addedDampingTensors(2,0,wbc,vbc)=adc(0);  // Dvw(0,2)=Dwv(2,0)
+	}
+	else if( ma==4 )
+	{
+	  addedDampingTensors(1,2,vbc,wbc)=addedDampingTensors(2,1,wbc,vbc)=adc(0);  // Dvw(1,2)=Dwv(2,1)
+	}
+	else if( ma==5 )
+	  addedDampingTensors(2,2,wbc,wbc)=adc(0);                                 // Dww(3,3)   
+	else
+	{
+	  OV_ABORT("error");
+	}
+      }
+      else 
+      {
+	if( ma==0 || ma==15 )
+	{
+	  kLocal=ma<6 ? vbc:wbc;
+	  addedDampingTensors(0,0,kLocal,kLocal)=adc(0);						// Dvv(0,0) or Dww
+	}
+	else if( ma==1 || ma==16)
+	{
+	  kLocal=ma<6 ? vbc:wbc;
+	  addedDampingTensors(0,1,kLocal,kLocal)=addedDampingTensors(1,0,kLocal,kLocal)=adc(0);	// Dvv(0,1)=Dvv(1,0) or Dww
+	}
+	else if( ma==2 || ma==17)
+	{
+	  kLocal=ma<6 ? vbc:wbc;
+	  addedDampingTensors(0,2,kLocal,kLocal)=addedDampingTensors(2,0,kLocal,kLocal)=adc(0);   // Dvv(0,2)=Dvv(2,0) or Dww
+	}
+	else if( ma==3 || ma==18 )
+	{
+	  kLocal=ma<6 ? vbc:wbc;
+	  addedDampingTensors(1,1,kLocal,kLocal)=adc(0);						// Dvv(1,1) or Dww
+	}      
+	else if( ma==4 || ma==19)
+	{
+	  kLocal=ma<6 ? vbc:wbc;
+	  addedDampingTensors(1,2,kLocal,kLocal)=addedDampingTensors(2,1,kLocal,kLocal)=adc(0);   // Dvv(1,2)=Dvv(2,1) or Dww
+	} 		  
+	else if( ma==5 || ma==20)
+	{
+	  kLocal=ma<6 ? vbc:wbc;
+	  addedDampingTensors(2,2,kLocal,kLocal)=adc(0);						// Dvv(2,2) or Dww
+	}     	  
+	else if( ma>5 && ma<15)
+	{
+	  jLocal=(ma-6) % 3;
+	  iLocal=(ma-6-jLocal)/3;
+	  addedDampingTensors(iLocal,jLocal,vbc,wbc)=addedDampingTensors(jLocal,iLocal,wbc,vbc)=adc(0);  // Dvw(i,j)=Dwv(j,i)
+	}
+	else
+	{
+	  OV_ABORT("error");
+	}
+      }
+
     } // end for ma, loop over different added mass coefficients
     
     // if( true )  // ****************** TEST ***************************************************** TEMP 
@@ -950,7 +970,6 @@ int MovingGrids::getRigidBodyAddedDampingTensors( const int bodyNumber, RealArra
       real addedDampingScaleFactor=1.;
       body.setAddedDampingTensors( addedDampingTensors,t, addedDampingScaleFactor );
       body.displayAddedDampingTensors("--MVG--getRigidBodyAddedDampingTensors (Computed from surface integrals, no scaling by mu/dn) :",t);
-
     }
     
     if( true )
@@ -1284,8 +1303,16 @@ getPastTimeGrid( GridFunction & cgf  )
 	{
 	  printF("--MVG-- getPastGrid: transform rigid body: t0=%7.2e x1=xCM(t=0)=(%6.1e,%6.1e,%6.1e) pastTime=%7.2e"
 		  " x3=xCM(pastTime)-(%6.1e,%6.1e,%6.1e)\n",t0,x1(0),x1(1),x1(2),pastTime,x3(0),x3(1),x3(2),pastTime);
-          ::display(r,"rotation matrix at past time","%10.8f ");
-	}
+          // ::display(r,"rotation matrix at past time","%10.8f ");
+        }
+        
+        if( parameters.dbase.get<int>("debug") & 4 )
+        {
+          FILE *& debugFile =parameters.dbase.get<FILE* >("debugFile");
+          fPrintF(debugFile,"--MVG-- getPastGrid: transform rigid body: t0=%7.2e x1=xCM(t=0)=(%6.1e,%6.1e,%6.1e) pastTime=%7.2e"
+		  " x3=xCM(pastTime)-(%6.1e,%6.1e,%6.1e)\n",t0,x1(0),x1(1),x1(2),pastTime,x3(0),x3(1),x3(2),pastTime);
+        }
+
 	
 
         transform.reset();
@@ -1997,7 +2024,7 @@ getFluidMassOfBody( int b ) const
 /// \param torque(0:2,b) (output) : integrated torque on body b, b=0,1,..,numberOfRigidBodies-1
 ///        Note that in 2D the only torque component is torque(2,b) . 
 /// \param gf0 (input) : holds fluid solution (for pressure and viscous stresses)
-/// \param includeGravity (input) : if true, include gravitation force (buoyancy)
+/// \param includeExternal (input) : if true, include external forces including gravitation force (buoyancy)
 /// \param includeViscosity (input) : if true, include viscous tractions in force.
 //
 // Note: This code originally appeared in MovingGrids::rigidBodyMotion
@@ -2005,7 +2032,7 @@ getFluidMassOfBody( int b ) const
 //=================================================================================
 int MovingGrids::
 getForceOnRigidBodies( RealArray & force, RealArray & torque, GridFunction & gf0,
-                       bool includeGravity /*= true */, 
+                       bool includeExternal /*= true */, 
                        bool includeViscosity /* = true */ )
 {
   if( numberOfRigidBodies<=0 )
@@ -2124,8 +2151,8 @@ getForceOnRigidBodies( RealArray & force, RealArray & torque, GridFunction & gf0
     else
       torque(T,b) = forceTorque(T+torquec);
     
-    // --- Add gravity buoyancy force ---
-    if( includeGravity )
+    // --- Add external forces including gravity buoyancy force ---
+    if( includeExternal )
     {
       // ArraySimpleFixed<real,3,1,1,1> & gravity = parameters.dbase.get<ArraySimpleFixed<real,3,1,1,1> >("gravity");
 
@@ -2184,8 +2211,24 @@ getForceOnRigidBodies( RealArray & force, RealArray & torque, GridFunction & gf0
 	for( int d=0; d<cg.numberOfDimensions(); d++ )
 	  force(d,b) += gravity[d]*(bodyMass-fluidMass);  // add weight: mass*g 
       }
-      
-    } // end include gravity 
+
+       //add body force -QT
+       RealArray bodyForce(3), bodyTorque(3);
+       body[b]->getBodyForces( gf0.t,bodyForce,bodyTorque );
+    
+       force(F,b) +=bodyForce(F);
+       if( numberOfDimensions==2 )
+           torque(2,b)+=bodyTorque(torquec);  // in 2D there is only one component of the torque
+       else
+           torque(T,b)+=bodyTorque(T);
+
+       if( (debug() & 2) && TRUE ) 
+       {
+       printF("--MVG-- getForceOnRigidBodies: body b=%i: bodyTorque(2)=%8.4e\n",
+             b,bodyTorque(2));
+       }
+
+    } // end include external forces
     
   } // end for body 
   
@@ -2542,7 +2585,7 @@ getGridVelocity( GridFunction & gf0, const real & tGV )
   // ***********************************************
   //.. note that 'ForBoundary' uses c = link to gf0.cg[grid]
 #undef ForBoundary
-# define ForBoundary(side,axis)   for( axis=0; axis<c.numberOfDimensions(); axis++ ) \
+#define ForBoundary(side,axis)   for( axis=0; axis<c.numberOfDimensions(); axis++ ) \
     for( side=0; side<=1; side++ )
 
   for( grid=0; grid < gf0.cg.numberOfComponentGrids(); grid++ )
@@ -2637,7 +2680,7 @@ getGridVelocity( GridFunction & gf0, const real & tGV )
       } //end if deformingBody
     }
   } //end for -- deformingBodyGrids
-# undef  ForBoundary
+#undef  ForBoundary
 
   gf0.gridVelocityTime=tGV; // *wdh* 000517
   return 0;
@@ -3012,13 +3055,14 @@ gridAccelerationBC(const int grid, const int side, const int axis,
     
     if( parameters.dbase.get<bool>("printMovingBodyInfo") || debug() & 2 )
     {
-      RealArray vCM(3),w(3);
+      RealArray vCM(3),w(3),omegaDot(3);
       body[b]->getVelocity( t0,vCM  );
       body[b]->getAngularVelocities( t0,w );
+      body[b]->getAngularAcceleration( t0, omegaDot  );
       if( c.numberOfDimensions()==2 )
 	printF("--MVG--::gridAccelBC: t0=%9.2e, xCM=(%9.2e,%9.2e), vCM=(%9.2e,%9.2e), aCM=(%9.2e,%9.2e), "
-               "wCM=(0,0,%9.2e) \n",
-	       t0,xCM(0),xCM(1),vCM(0),vCM(1),aCM(0),aCM(1),w(2));
+               "wCM=(0,0,%9.2e),wDot=(0,0,%9.2e)\n",
+	       t0,xCM(0),xCM(1),vCM(0),vCM(1),aCM(0),aCM(1),w(2),omegaDot(2));
       else
 	printF("--MVG--::gridAccelBC: t0=%9.2e, vCM=(%9.2e,%9.2e,%9.2e), aCM=(%9.2e,%9.2e,%9.2e), wCM=(%9.2e,%9.2e,%9.2e) \n",
 	       t0,vCM(0),vCM(1),vCM(2),aCM(0),aCM(1),aCM(2),w(0),w(1),w(2));
@@ -3631,7 +3675,7 @@ rigidBodyMotion(const real & t1,
   const int numberOfForceAndTorqueComponents=numberOfStressComponents+numberOfTorqueComponents;
   const int torquec =numberOfStressComponents; // first Torque component sits here 
   RealCompositeGridFunction stress(cg,all,all,all,numberOfForceAndTorqueComponents); // **** fix this ****
-  stress=0.; // do we need this?
+  // stress=0.; // do we need this?
 
   // Save added mass matrix entries here: **FIX ME : just create smaller TEMP space **
   // NOTE: we can NOT save these coefficients in interior points of the stress since we INTERPOLATE the stress
@@ -3697,18 +3741,26 @@ rigidBodyMotion(const real & t1,
       
       const intArray & mask = c.mask();
       // OV_GET_SERIAL_ARRAY(real,amm[grid],ammLocal) 
-      #ifdef USE_PPP
-        realSerialArray & normalLocal = c.vertexBoundaryNormalArray(side,axis);
-        realSerialArray vertexLocal; getLocalArrayWithGhostBoundaries(c.vertex(),vertexLocal);
-        realSerialArray stressLocal; getLocalArrayWithGhostBoundaries(stress[grid],stressLocal);
-        intSerialArray  maskLocal;   getLocalArrayWithGhostBoundaries(mask,maskLocal);
+
+      OV_GET_VERTEX_BOUNDARY_NORMAL(c,side,axis,normalLocal);
+      OV_GET_SERIAL_ARRAY_CONST(int,mask,maskLocal);
+      OV_GET_SERIAL_ARRAY(real,c.vertex(),vertexLocal);
+
+      OV_GET_SERIAL_ARRAY(real,stress[grid],stressLocal);
+      stressLocal=0.;  // Is this needed? 
+
+      // #ifdef USE_PPP
+      //   realSerialArray & normalLocal = c.vertexBoundaryNormalArray(side,axis);
+      //   realSerialArray vertexLocal; getLocalArrayWithGhostBoundaries(c.vertex(),vertexLocal);
+      //   realSerialArray stressLocal; getLocalArrayWithGhostBoundaries(stress[grid],stressLocal);
+      //   intSerialArray  maskLocal;   getLocalArrayWithGhostBoundaries(mask,maskLocal);
 	
-      #else
-        realSerialArray & normalLocal = c.vertexBoundaryNormal(side,axis);
-        realSerialArray & vertexLocal = c.vertex();
-        realSerialArray & stressLocal = stress[grid];
-        const intSerialArray & maskLocal = mask;
-      #endif
+      // #else
+      //   realSerialArray & normalLocal = c.vertexBoundaryNormal(side,axis);
+      //   realSerialArray & vertexLocal = c.vertex();
+      //   realSerialArray & stressLocal = stress[grid];
+      //   const intSerialArray & maskLocal = mask;
+      // #endif
 
       getBoundaryIndex(c.gridIndexRange(),side,axis,Ib1,Ib2,Ib3,extraInTangential);
       int includeGhost=1;
@@ -3982,7 +4034,7 @@ rigidBodyMotion(const real & t1,
     
     const bool directProjectionAddedMass = body[b]->getDirectProjectionAddedMass();
     if( directProjectionAddedMass || debug() & 1 )
-	printF("--MVG:RB-- body %i : t2=%6.2e fCM=(%6.2e,%6.2e,%6.2e)"
+	printF("--MVG:RB-- body %i : t2=%8.4e fCM=(%6.2e,%6.2e,%6.2e)"
 		" torque=(%6.2e,%6.2e,%6.2e)\n",b,t2,f(0),f(1),f(2),g(0),g(1),g(2));
     // g=0.; 
     // integrate->surfaceIntegral(torque,T,g,b);

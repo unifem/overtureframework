@@ -4,104 +4,124 @@
 ! *******************************************************************************
 
 ! Here are macros that define the planeWave solution
-c **************************************************
-c Here are macros that define the:
-c      planeWave solution 
-c **************************************************
+! -*- mode: f90; -*-
 
-c ======================================================================
-c  Slow start function 
-c    tba = length of slow start interval (<0 mean no slow start)
-c ======================================================================
+! **************************************************
+! Here are macros that define the:
+!      planeWave solution 
+! **************************************************
 
-c cubic ramp
-c tba=max(REAL_EPSILON,tb-ta);
-c dta=t-ta;
+! ======================================================================
+!  Slow start function 
+!    tba = length of slow start interval (<0 mean no slow start)
+! ======================================================================
+
+! cubic ramp
+! tba=max(REAL_EPSILON,tb-ta);
+! dta=t-ta;
       
-c This (cubic) ramp has 1-derivative zero at t=0 and t=tba
+! This (cubic) ramp has 1-derivative zero at t=0 and t=tba
 
-c This ramp has 3-derivatives zero at t=0 and t=1
-c This is from ramp.maple
-c r=-84*t**5+35*t**4-20*t**7+70*t**6
-c rt=-420*t**4+140*t**3-140*t**6+420*t**5
-c rtt=-1680*t**3+420*t**2-840*t**5+2100*t**4
-c rttt=-5040*t**2+840*t-4200*t**4+8400*t**3
-
-
-c This ramp has 4-derivatives zero at t=0 and t=1
-c This is from ramp.maple
-c r=126*(t)**5-315*(t)**8+70*(t)**9-420*(t)**6+540*(t)**7
-c rt=630*(t)**4-2520*(t)**7+630*(t)**8-2520*(t)**5+3780*(t)**6
-c rtt=2520*(t)**3-17640*(t)**6+5040*(t)**7-12600*(t)**4+22680*(t)**5
-c rttt=7560*(t)**2-105840*(t)**5+35280*(t)**6-50400*(t)**3+113400*(t)**4
+! This ramp has 3-derivatives zero at t=0 and t=1
+! This is from ramp.maple
+! r=-84*t**5+35*t**4-20*t**7+70*t**6
+! rt=-420*t**4+140*t**3-140*t**6+420*t**5
+! rtt=-1680*t**3+420*t**2-840*t**5+2100*t**4
+! rttt=-5040*t**2+840*t-4200*t**4+8400*t**3
 
 
-c ============================================================
-c  Initialize parameters for the boundary forcing
-c   tba: slow start time interval -- no slow start if this is negative
-c ===========================================================
+! This ramp has 4-derivatives zero at t=0 and t=1
+! This is from ramp.maple
+! r=126*(t)**5-315*(t)**8+70*(t)**9-420*(t)**6+540*(t)**7
+! rt=630*(t)**4-2520*(t)**7+630*(t)**8-2520*(t)**5+3780*(t)**6
+! rtt=2520*(t)**3-17640*(t)**6+5040*(t)**7-12600*(t)**4+22680*(t)**5
+! rttt=7560*(t)**2-105840*(t)**5+35280*(t)**6-50400*(t)**3+113400*(t)**4
 
-c **************** Here is the new generic plane wave solution *******************
+
+! ============================================================
+!  Initialize parameters for the boundary forcing
+!   tba: slow start time interval -- no slow start if this is negative
+! ===========================================================
+
+! **************** Here is the new generic plane wave solution *******************
 
 ! component n=ex,ey,ez, hx,hy,hz (assumes ex=0)
 ! one time derivative:
 ! two time derivatives:
 ! three time derivatives:
 
-c *************** Here is the 2D planeWave solution ******************************
+! *************** Here is the 2D planeWave solution ******************************
 
 
-c one time derivative:
+! one time derivative:
 
-c two time derivatives:
+! two time derivatives:
 
-c three time derivatives:
+! three time derivatives:
 
-c four time derivatives:
+! four time derivatives:
 
-c Here are the slow start versions
+! Here are the slow start versions
 
-c one time derivative:
+! one time derivative:
 
-c two time derivatives:
+! two time derivatives:
 
-c three time derivatives:
+! three time derivatives:
 
-c four time derivatives:
-
-
-c **************** Here is the 3D planeWave solution ***************************************
+! four time derivatives:
 
 
-
-c one time derivative:
-
-
-c two time derivatives:
+! **************** Here is the 3D planeWave solution ***************************************
 
 
-c three time derivatives:
+
+! one time derivative:
 
 
-c four time derivatives:
+! two time derivatives:
 
 
-c Here are the slow start versions
+! three time derivatives:
 
 
-c one time derivative:
+! four time derivatives:
 
 
-c two time derivatives:
-
-c three time derivatives:
-
-c four time derivatives:
+! Here are the slow start versions
 
 
-c Helper function: Return minus the second time derivative
+! one time derivative:
 
 
+! two time derivatives:
+
+! three time derivatives:
+
+! four time derivatives:
+
+
+! -------------------------------------------------------------------
+! Helper function: Return minus the second time derivative
+! -------------------------------------------------------------------
+
+
+! --------------------------------------------------------------------
+! Evaluate the plane wave in 2D
+! 
+!  x,y,t (input) : point to evaluate at 
+!  numberOfTimeDerivatives : evaluate this time derivative
+!  ubc(.)  (output) : ubc(ex), etc. 
+! --------------------------------------------------------------------
+
+
+! --------------------------------------------------------------------
+! Evaluate the plane wave in 3D
+! 
+!  x,y,z,t (input) : point to evaluate at 
+!  numberOfTimeDerivatives : evaluate this time derivative
+!  ubc(.)  (output) : ubc(ex), etc. 
+! --------------------------------------------------------------------
 
 
 
@@ -111,7 +131,7 @@ c Helper function: Return minus the second time derivative
 ! ======================================================================
 
 
-! This formula must match the one in getInitialConditions.bC
+! These next formulae must match the one in getInitialConditions.bC
 
 ! ===================================================================================
 ! --- Subtract/add the incident wave, before/after applying the non-reflecting BC ---
@@ -189,6 +209,7 @@ c Helper function: Return minus the second time derivative
 
       ! parameters for tanh() in smooth transition for IC bounding box:
       real amp, beta, nv(0:2), xv0(0:2)
+      integer smoothBoundingBox
 
       ! boundary conditions parameters
 ! define BC parameters for fortran routines
@@ -269,6 +290,7 @@ c Helper function: Return minus the second time derivative
       adjustThreeLevels    =ipar(27)
 
       halfWidth            =ipar(31) ! *new* June 20, 2016 *wdh*
+      smoothBoundingBox    =ipar(35) ! smooth the IC at the bounding box edge
 
       dx(0)                =rpar(0)
       dx(1)                =rpar(1)
@@ -307,6 +329,8 @@ c Helper function: Return minus the second time derivative
       xv0(0) =rpar(33)
       xv0(1) =rpar(34)
       xv0(2) =rpar(35)
+
+
 
       if( abs(pwc(0))+abs(pwc(1))+abs(pwc(2)) .eq. 0. )then
         ! sanity check
@@ -423,9 +447,19 @@ c Helper function: Return minus the second time derivative
                  !  t0=planeWave2Dhz0(x,y,t-dt)
                  !  write(*,'("nrbc: adjust -: i=",2i3," Hz,true=",2e10.3)') i1,i2,u(i1,i2,i3,hz),t0
                  ! end if
-                 ! if( x.ge.icBoundingBox(0,0) .and. x.le.icBoundingBox(1,0) .and. !     y.ge.icBoundingBox(0,1) .and. y.le.icBoundingBox(1,1) )then
-                   amp = (.5*(1.-tanh(beta*twoPi*(nv(0)*((x)-xv0(0))+
-     & nv(1)*((y)-xv0(1))-cc*(t)))))
+                   if( x.ge.icBoundingBox(0,0) .and. 
+     & x.le.icBoundingBox(1,0) .and. y.ge.icBoundingBox(0,1) .and. 
+     & y.le.icBoundingBox(1,1) )then
+                     if( smoothBoundingBox.eq.1 )then
+                       amp = (.5*(1.-tanh(beta*twoPi*(nv(0)*((x)-xv0(0)
+     & )+nv(1)*((y)-xv0(1))-cc*(t)))))
+                     else
+                       amp=1.
+                     end if
+                   ! if( amp.gt. 1.e-9 )then
+                   !   if( x.gt.1.5 .and. y.gt.-.05 .and. y.lt.0.5 )then
+                   !     write(*,'(" x,amp=",2e10.2)') x,amp
+                   !   end if
                  u(i1,i2,i3,ex) = u(i1,i2,i3,ex) - amp*sin(twoPi*(kx*(
      & x)+ky*(y)-cc*(t-dt)))*pwc(0)
                  u(i1,i2,i3,ey) = u(i1,i2,i3,ey) - amp*sin(twoPi*(kx*(
@@ -446,7 +480,7 @@ c Helper function: Return minus the second time derivative
                   um(i1,i2,i3,hz) = um(i1,i2,i3,hz) - amp*sin(twoPi*(
      & kx*(x)+ky*(y)-cc*(t-2.*dt)))*pwc(5)
                  end if
-                 ! endif
+                  endif
                end do
                end do
                end do
@@ -467,25 +501,31 @@ c Helper function: Return minus the second time derivative
      & 1,0) .and. y.ge.icBoundingBox(0,1) .and. y.le.icBoundingBox(1,
      & 1) .and. z.ge.icBoundingBox(0,2) .and. z.le.icBoundingBox(1,2) 
      & )then
-                 u(i1,i2,i3,ex) = u(i1,i2,i3,ex) - sin(twoPi*(kx*(x)+
-     & ky*(y)+kz*(z)-cc*(t-dt)))*pwc(0)
-                 u(i1,i2,i3,ey) = u(i1,i2,i3,ey) - sin(twoPi*(kx*(x)+
-     & ky*(y)+kz*(z)-cc*(t-dt)))*pwc(1)
-                 u(i1,i2,i3,ez) = u(i1,i2,i3,ez) - sin(twoPi*(kx*(x)+
-     & ky*(y)+kz*(z)-cc*(t-dt)))*pwc(2)
-                 un(i1,i2,i3,ex)=un(i1,i2,i3,ex) - sin(twoPi*(kx*(x)+
-     & ky*(y)+kz*(z)-cc*(t)))*pwc(0)
-                 un(i1,i2,i3,ey)=un(i1,i2,i3,ey) - sin(twoPi*(kx*(x)+
-     & ky*(y)+kz*(z)-cc*(t)))*pwc(1)
-                 un(i1,i2,i3,ez)=un(i1,i2,i3,ez) - sin(twoPi*(kx*(x)+
-     & ky*(y)+kz*(z)-cc*(t)))*pwc(2)
+                   if( smoothBoundingBox.eq.1 )then
+                     amp = (.5*(1.-tanh(beta*twoPi*(nv(0)*((x)-xv0(0))+
+     & nv(1)*((y)-xv0(1))+nv(2)*((z)-xv0(2))-cc*(t)))))
+                   else
+                     amp=1.
+                   end if
+                 u(i1,i2,i3,ex) = u(i1,i2,i3,ex) - amp*sin(twoPi*(kx*(
+     & x)+ky*(y)+kz*(z)-cc*(t-dt)))*pwc(0)
+                 u(i1,i2,i3,ey) = u(i1,i2,i3,ey) - amp*sin(twoPi*(kx*(
+     & x)+ky*(y)+kz*(z)-cc*(t-dt)))*pwc(1)
+                 u(i1,i2,i3,ez) = u(i1,i2,i3,ez) - amp*sin(twoPi*(kx*(
+     & x)+ky*(y)+kz*(z)-cc*(t-dt)))*pwc(2)
+                 un(i1,i2,i3,ex)=un(i1,i2,i3,ex) - amp*sin(twoPi*(kx*(
+     & x)+ky*(y)+kz*(z)-cc*(t)))*pwc(0)
+                 un(i1,i2,i3,ey)=un(i1,i2,i3,ey) - amp*sin(twoPi*(kx*(
+     & x)+ky*(y)+kz*(z)-cc*(t)))*pwc(1)
+                 un(i1,i2,i3,ez)=un(i1,i2,i3,ez) - amp*sin(twoPi*(kx*(
+     & x)+ky*(y)+kz*(z)-cc*(t)))*pwc(2)
                  if( adjustThreeLevels.eq.1 )then
-                  um(i1,i2,i3,ex)=um(i1,i2,i3,ex) - sin(twoPi*(kx*(x)+
-     & ky*(y)+kz*(z)-cc*(t-2.*dt)))*pwc(0)
-                  um(i1,i2,i3,ey)=um(i1,i2,i3,ey) - sin(twoPi*(kx*(x)+
-     & ky*(y)+kz*(z)-cc*(t-2.*dt)))*pwc(1)
-                  um(i1,i2,i3,ez)=um(i1,i2,i3,ez) - sin(twoPi*(kx*(x)+
-     & ky*(y)+kz*(z)-cc*(t-2.*dt)))*pwc(2)
+                  um(i1,i2,i3,ex)=um(i1,i2,i3,ex) - amp*sin(twoPi*(kx*(
+     & x)+ky*(y)+kz*(z)-cc*(t-2.*dt)))*pwc(0)
+                  um(i1,i2,i3,ey)=um(i1,i2,i3,ey) - amp*sin(twoPi*(kx*(
+     & x)+ky*(y)+kz*(z)-cc*(t-2.*dt)))*pwc(1)
+                  um(i1,i2,i3,ez)=um(i1,i2,i3,ez) - amp*sin(twoPi*(kx*(
+     & x)+ky*(y)+kz*(z)-cc*(t-2.*dt)))*pwc(2)
                  end if
                  endif
                end do
@@ -619,25 +659,25 @@ c Helper function: Return minus the second time derivative
                    y=xy(i1,i2,i3,1)
                    z=xy(i1,i2,i3,2)
                  end if
-                 u(i1,i2,i3,ex) = u(i1,i2,i3,ex) - sin(twoPi*(kx*(x)+
-     & ky*(y)+kz*(z)-cc*(t-dt)))*pwc(0)
-                 u(i1,i2,i3,ey) = u(i1,i2,i3,ey) - sin(twoPi*(kx*(x)+
-     & ky*(y)+kz*(z)-cc*(t-dt)))*pwc(1)
-                 u(i1,i2,i3,ez) = u(i1,i2,i3,ez) - sin(twoPi*(kx*(x)+
-     & ky*(y)+kz*(z)-cc*(t-dt)))*pwc(2)
-                 un(i1,i2,i3,ex)=un(i1,i2,i3,ex) - sin(twoPi*(kx*(x)+
-     & ky*(y)+kz*(z)-cc*(t)))*pwc(0)
-                 un(i1,i2,i3,ey)=un(i1,i2,i3,ey) - sin(twoPi*(kx*(x)+
-     & ky*(y)+kz*(z)-cc*(t)))*pwc(1)
-                 un(i1,i2,i3,ez)=un(i1,i2,i3,ez) - sin(twoPi*(kx*(x)+
-     & ky*(y)+kz*(z)-cc*(t)))*pwc(2)
+                 u(i1,i2,i3,ex) = u(i1,i2,i3,ex) - amp*sin(twoPi*(kx*(
+     & x)+ky*(y)+kz*(z)-cc*(t-dt)))*pwc(0)
+                 u(i1,i2,i3,ey) = u(i1,i2,i3,ey) - amp*sin(twoPi*(kx*(
+     & x)+ky*(y)+kz*(z)-cc*(t-dt)))*pwc(1)
+                 u(i1,i2,i3,ez) = u(i1,i2,i3,ez) - amp*sin(twoPi*(kx*(
+     & x)+ky*(y)+kz*(z)-cc*(t-dt)))*pwc(2)
+                 un(i1,i2,i3,ex)=un(i1,i2,i3,ex) - amp*sin(twoPi*(kx*(
+     & x)+ky*(y)+kz*(z)-cc*(t)))*pwc(0)
+                 un(i1,i2,i3,ey)=un(i1,i2,i3,ey) - amp*sin(twoPi*(kx*(
+     & x)+ky*(y)+kz*(z)-cc*(t)))*pwc(1)
+                 un(i1,i2,i3,ez)=un(i1,i2,i3,ez) - amp*sin(twoPi*(kx*(
+     & x)+ky*(y)+kz*(z)-cc*(t)))*pwc(2)
                  if( adjustThreeLevels.eq.1 )then
-                  um(i1,i2,i3,ex)=um(i1,i2,i3,ex) - sin(twoPi*(kx*(x)+
-     & ky*(y)+kz*(z)-cc*(t-2.*dt)))*pwc(0)
-                  um(i1,i2,i3,ey)=um(i1,i2,i3,ey) - sin(twoPi*(kx*(x)+
-     & ky*(y)+kz*(z)-cc*(t-2.*dt)))*pwc(1)
-                  um(i1,i2,i3,ez)=um(i1,i2,i3,ez) - sin(twoPi*(kx*(x)+
-     & ky*(y)+kz*(z)-cc*(t-2.*dt)))*pwc(2)
+                  um(i1,i2,i3,ex)=um(i1,i2,i3,ex) - amp*sin(twoPi*(kx*(
+     & x)+ky*(y)+kz*(z)-cc*(t-2.*dt)))*pwc(0)
+                  um(i1,i2,i3,ey)=um(i1,i2,i3,ey) - amp*sin(twoPi*(kx*(
+     & x)+ky*(y)+kz*(z)-cc*(t-2.*dt)))*pwc(1)
+                  um(i1,i2,i3,ez)=um(i1,i2,i3,ez) - amp*sin(twoPi*(kx*(
+     & x)+ky*(y)+kz*(z)-cc*(t-2.*dt)))*pwc(2)
                  end if
                end do
                end do
@@ -737,9 +777,19 @@ c Helper function: Return minus the second time derivative
                  !  t0=planeWave2Dhz0(x,y,t-dt)
                  !  write(*,'("nrbc: adjust +: i=",2i3," Hz,true=",2e10.3)') i1,i2,u(i1,i2,i3,hz),t0
                  ! end if
-                 ! if( x.ge.icBoundingBox(0,0) .and. x.le.icBoundingBox(1,0) .and. !     y.ge.icBoundingBox(0,1) .and. y.le.icBoundingBox(1,1) )then
-                   amp = (.5*(1.-tanh(beta*twoPi*(nv(0)*((x)-xv0(0))+
-     & nv(1)*((y)-xv0(1))-cc*(t)))))
+                   if( x.ge.icBoundingBox(0,0) .and. 
+     & x.le.icBoundingBox(1,0) .and. y.ge.icBoundingBox(0,1) .and. 
+     & y.le.icBoundingBox(1,1) )then
+                     if( smoothBoundingBox.eq.1 )then
+                       amp = (.5*(1.-tanh(beta*twoPi*(nv(0)*((x)-xv0(0)
+     & )+nv(1)*((y)-xv0(1))-cc*(t)))))
+                     else
+                       amp=1.
+                     end if
+                   ! if( amp.gt. 1.e-9 )then
+                   !   if( x.gt.1.5 .and. y.gt.-.05 .and. y.lt.0.5 )then
+                   !     write(*,'(" x,amp=",2e10.2)') x,amp
+                   !   end if
                  u(i1,i2,i3,ex) = u(i1,i2,i3,ex) + amp*sin(twoPi*(kx*(
      & x)+ky*(y)-cc*(t-dt)))*pwc(0)
                  u(i1,i2,i3,ey) = u(i1,i2,i3,ey) + amp*sin(twoPi*(kx*(
@@ -760,7 +810,7 @@ c Helper function: Return minus the second time derivative
                   um(i1,i2,i3,hz) = um(i1,i2,i3,hz) + amp*sin(twoPi*(
      & kx*(x)+ky*(y)-cc*(t-2.*dt)))*pwc(5)
                  end if
-                 ! endif
+                  endif
                end do
                end do
                end do
@@ -781,25 +831,31 @@ c Helper function: Return minus the second time derivative
      & 1,0) .and. y.ge.icBoundingBox(0,1) .and. y.le.icBoundingBox(1,
      & 1) .and. z.ge.icBoundingBox(0,2) .and. z.le.icBoundingBox(1,2) 
      & )then
-                 u(i1,i2,i3,ex) = u(i1,i2,i3,ex) + sin(twoPi*(kx*(x)+
-     & ky*(y)+kz*(z)-cc*(t-dt)))*pwc(0)
-                 u(i1,i2,i3,ey) = u(i1,i2,i3,ey) + sin(twoPi*(kx*(x)+
-     & ky*(y)+kz*(z)-cc*(t-dt)))*pwc(1)
-                 u(i1,i2,i3,ez) = u(i1,i2,i3,ez) + sin(twoPi*(kx*(x)+
-     & ky*(y)+kz*(z)-cc*(t-dt)))*pwc(2)
-                 un(i1,i2,i3,ex)=un(i1,i2,i3,ex) + sin(twoPi*(kx*(x)+
-     & ky*(y)+kz*(z)-cc*(t)))*pwc(0)
-                 un(i1,i2,i3,ey)=un(i1,i2,i3,ey) + sin(twoPi*(kx*(x)+
-     & ky*(y)+kz*(z)-cc*(t)))*pwc(1)
-                 un(i1,i2,i3,ez)=un(i1,i2,i3,ez) + sin(twoPi*(kx*(x)+
-     & ky*(y)+kz*(z)-cc*(t)))*pwc(2)
+                   if( smoothBoundingBox.eq.1 )then
+                     amp = (.5*(1.-tanh(beta*twoPi*(nv(0)*((x)-xv0(0))+
+     & nv(1)*((y)-xv0(1))+nv(2)*((z)-xv0(2))-cc*(t)))))
+                   else
+                     amp=1.
+                   end if
+                 u(i1,i2,i3,ex) = u(i1,i2,i3,ex) + amp*sin(twoPi*(kx*(
+     & x)+ky*(y)+kz*(z)-cc*(t-dt)))*pwc(0)
+                 u(i1,i2,i3,ey) = u(i1,i2,i3,ey) + amp*sin(twoPi*(kx*(
+     & x)+ky*(y)+kz*(z)-cc*(t-dt)))*pwc(1)
+                 u(i1,i2,i3,ez) = u(i1,i2,i3,ez) + amp*sin(twoPi*(kx*(
+     & x)+ky*(y)+kz*(z)-cc*(t-dt)))*pwc(2)
+                 un(i1,i2,i3,ex)=un(i1,i2,i3,ex) + amp*sin(twoPi*(kx*(
+     & x)+ky*(y)+kz*(z)-cc*(t)))*pwc(0)
+                 un(i1,i2,i3,ey)=un(i1,i2,i3,ey) + amp*sin(twoPi*(kx*(
+     & x)+ky*(y)+kz*(z)-cc*(t)))*pwc(1)
+                 un(i1,i2,i3,ez)=un(i1,i2,i3,ez) + amp*sin(twoPi*(kx*(
+     & x)+ky*(y)+kz*(z)-cc*(t)))*pwc(2)
                  if( adjustThreeLevels.eq.1 )then
-                  um(i1,i2,i3,ex)=um(i1,i2,i3,ex) + sin(twoPi*(kx*(x)+
-     & ky*(y)+kz*(z)-cc*(t-2.*dt)))*pwc(0)
-                  um(i1,i2,i3,ey)=um(i1,i2,i3,ey) + sin(twoPi*(kx*(x)+
-     & ky*(y)+kz*(z)-cc*(t-2.*dt)))*pwc(1)
-                  um(i1,i2,i3,ez)=um(i1,i2,i3,ez) + sin(twoPi*(kx*(x)+
-     & ky*(y)+kz*(z)-cc*(t-2.*dt)))*pwc(2)
+                  um(i1,i2,i3,ex)=um(i1,i2,i3,ex) + amp*sin(twoPi*(kx*(
+     & x)+ky*(y)+kz*(z)-cc*(t-2.*dt)))*pwc(0)
+                  um(i1,i2,i3,ey)=um(i1,i2,i3,ey) + amp*sin(twoPi*(kx*(
+     & x)+ky*(y)+kz*(z)-cc*(t-2.*dt)))*pwc(1)
+                  um(i1,i2,i3,ez)=um(i1,i2,i3,ez) + amp*sin(twoPi*(kx*(
+     & x)+ky*(y)+kz*(z)-cc*(t-2.*dt)))*pwc(2)
                  end if
                  endif
                end do
@@ -933,25 +989,25 @@ c Helper function: Return minus the second time derivative
                    y=xy(i1,i2,i3,1)
                    z=xy(i1,i2,i3,2)
                  end if
-                 u(i1,i2,i3,ex) = u(i1,i2,i3,ex) + sin(twoPi*(kx*(x)+
-     & ky*(y)+kz*(z)-cc*(t-dt)))*pwc(0)
-                 u(i1,i2,i3,ey) = u(i1,i2,i3,ey) + sin(twoPi*(kx*(x)+
-     & ky*(y)+kz*(z)-cc*(t-dt)))*pwc(1)
-                 u(i1,i2,i3,ez) = u(i1,i2,i3,ez) + sin(twoPi*(kx*(x)+
-     & ky*(y)+kz*(z)-cc*(t-dt)))*pwc(2)
-                 un(i1,i2,i3,ex)=un(i1,i2,i3,ex) + sin(twoPi*(kx*(x)+
-     & ky*(y)+kz*(z)-cc*(t)))*pwc(0)
-                 un(i1,i2,i3,ey)=un(i1,i2,i3,ey) + sin(twoPi*(kx*(x)+
-     & ky*(y)+kz*(z)-cc*(t)))*pwc(1)
-                 un(i1,i2,i3,ez)=un(i1,i2,i3,ez) + sin(twoPi*(kx*(x)+
-     & ky*(y)+kz*(z)-cc*(t)))*pwc(2)
+                 u(i1,i2,i3,ex) = u(i1,i2,i3,ex) + amp*sin(twoPi*(kx*(
+     & x)+ky*(y)+kz*(z)-cc*(t-dt)))*pwc(0)
+                 u(i1,i2,i3,ey) = u(i1,i2,i3,ey) + amp*sin(twoPi*(kx*(
+     & x)+ky*(y)+kz*(z)-cc*(t-dt)))*pwc(1)
+                 u(i1,i2,i3,ez) = u(i1,i2,i3,ez) + amp*sin(twoPi*(kx*(
+     & x)+ky*(y)+kz*(z)-cc*(t-dt)))*pwc(2)
+                 un(i1,i2,i3,ex)=un(i1,i2,i3,ex) + amp*sin(twoPi*(kx*(
+     & x)+ky*(y)+kz*(z)-cc*(t)))*pwc(0)
+                 un(i1,i2,i3,ey)=un(i1,i2,i3,ey) + amp*sin(twoPi*(kx*(
+     & x)+ky*(y)+kz*(z)-cc*(t)))*pwc(1)
+                 un(i1,i2,i3,ez)=un(i1,i2,i3,ez) + amp*sin(twoPi*(kx*(
+     & x)+ky*(y)+kz*(z)-cc*(t)))*pwc(2)
                  if( adjustThreeLevels.eq.1 )then
-                  um(i1,i2,i3,ex)=um(i1,i2,i3,ex) + sin(twoPi*(kx*(x)+
-     & ky*(y)+kz*(z)-cc*(t-2.*dt)))*pwc(0)
-                  um(i1,i2,i3,ey)=um(i1,i2,i3,ey) + sin(twoPi*(kx*(x)+
-     & ky*(y)+kz*(z)-cc*(t-2.*dt)))*pwc(1)
-                  um(i1,i2,i3,ez)=um(i1,i2,i3,ez) + sin(twoPi*(kx*(x)+
-     & ky*(y)+kz*(z)-cc*(t-2.*dt)))*pwc(2)
+                  um(i1,i2,i3,ex)=um(i1,i2,i3,ex) + amp*sin(twoPi*(kx*(
+     & x)+ky*(y)+kz*(z)-cc*(t-2.*dt)))*pwc(0)
+                  um(i1,i2,i3,ey)=um(i1,i2,i3,ey) + amp*sin(twoPi*(kx*(
+     & x)+ky*(y)+kz*(z)-cc*(t-2.*dt)))*pwc(1)
+                  um(i1,i2,i3,ez)=um(i1,i2,i3,ez) + amp*sin(twoPi*(kx*(
+     & x)+ky*(y)+kz*(z)-cc*(t-2.*dt)))*pwc(2)
                  end if
                end do
                end do

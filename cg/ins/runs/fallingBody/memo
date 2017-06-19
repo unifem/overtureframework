@@ -2,6 +2,31 @@
 Falling body examples to test added mass and added damping
 =================================================================================
 
+*****************************************************
+************* June 5, 2017
+
+TEST PARALLEL
+
+-np=1,2,4 : Looks OK
+mpirun -np 1 $cginsp fallingBody.cmd -g=risingBodyGridFixede4.order2 -tf=2. -tp=.1 -nu=.05 -ts=im -density=.5 -radius=1. -gravity=-1. -amp=.1 -dtMax=.02 -project=0 -numberOfCorrections=2 -omega=.2 -addedMass=1 -addedDamping=1 -addedDampingCoeff=1 -scaleAddedDampingWithDt=1 -addedDampingProjectVelocity=1 -useProvidedAcceleration=1 -useTP=0 -debug=3 -solver=best -psolver=best -rtolp=1.e-5 -atolp=1.e-7 -rtol=1.e-5 -atol=1.e-5 -ad2=0  -freqFullUpdate=1 -improveQuality=0 -go=halt
+
+
+-np=1: 
+ >>> t =  1.000e-01, dt = 2.00e-02, cpu = 4.04e+00 seconds (5 steps)
+           p : (min,max)=(-3.386617e-04, 3.039463e-04) 
+           u : (min,max)=(-1.074520e-05, 1.074614e-05) 
+           v : (min,max)=(-1.003271e-05, 7.403229e-06) 
+
+
+-np=4
+>>> t =  1.000e-01, dt = 2.00e-02, cpu = 2.72e+00 seconds (5 steps)
+           p : (min,max)=(-3.388548e-04, 3.040747e-04) 
+           u : (min,max)=(-1.072129e-05, 1.072723e-05) 
+           v : (min,max)=(-9.981213e-06, 7.385853e-06) 
+
+
+
+
 ========================
 === NOV 4 -- REDO rising body with fixed dt
 

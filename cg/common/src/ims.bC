@@ -200,7 +200,8 @@ implicitSolve(const real & dt0,
 
       if( correction==0 )
       {
-        printF("IMEX BDF2 updateOptNew predictor mNew=%i mCur=%i mOld=%i...\n",mNew,mCur,mOld);
+	if( debug() & 4 )
+	  printF("IMEX BDF2 updateOptNew predictor mNew=%i mCur=%i mOld=%i...\n",mNew,mCur,mOld);
 
 	// --- PREDICTOR   (last term is already in the matrix)
 	//    u1 = (4/3)*uCur + (-1/3)*uOld + (4/3)*dt*utCur + (-2/3)*dt*utOld  [ + (2/3)*dt*utImplicit ]
@@ -247,7 +248,8 @@ implicitSolve(const real & dt0,
       }
       else
       {
-        printF("IMEX BDF2 updateOptNew corrector mNew=%i mCur=%i mOld=%i...\n",mNew,mCur,mOld);
+	if( debug() & 4 )
+          printF("IMEX BDF2 updateOptNew corrector mNew=%i mCur=%i mOld=%i...\n",mNew,mCur,mOld);
 
 	// ---- CORRECTOR   (last term is already in the matrix)
         // u1 = (4/3)*uCur + (-1/3)*uOld + (2/3)*dt*utNew   [ + (2/3)*dt*utImplicit ] 
@@ -306,9 +308,10 @@ implicitSolve(const real & dt0,
 
       if( correction==0 )
       {
-        printF("IMEX BDF4 updateOptNew predictor mNew=%i mCur=%i mOld=%i, "
-               "numberOfGridFunctions=%i numberOfTimeDerivativeLevels=%i\n",
-               mNew,mCur,mOld,numberOfGridFunctions,numberOfTimeDerivativeLevels);
+	if( debug() & 4 )
+	  printF("IMEX BDF4 updateOptNew predictor mNew=%i mCur=%i mOld=%i, "
+		 "numberOfGridFunctions=%i numberOfTimeDerivativeLevels=%i\n",
+		 mNew,mCur,mOld,numberOfGridFunctions,numberOfTimeDerivativeLevels);
 
         int nfeCur, nfeOld, nfeOld2, nfeOld3;
         int mf;
@@ -325,17 +328,18 @@ implicitSolve(const real & dt0,
         nfeOld3=mf;
 	OV_GET_SERIAL_ARRAY(real,fn[mf][grid],feOld3);  // F_E(t-3*dt)
       
-	if( false )
+	if( debug() & 4 )
 	{
-	  ::display(u0,"u0=uCur","%6.3f ");
-	  ::display(uOld,"uOld","%6.3f ");
-	  ::display(uOld2,"uOld2","%6.3f ");
-	  ::display(uOld3,"uOld3","%6.3f ");
+	  fPrintF(debugFile,"\n *********************** IMEX BDF PREDICTOR t=%9.3e *******************\n",gf[mCur].t);
+	  ::display(u0,"u0=uCur",debugFile,"%6.3f ");
+	  ::display(uOld,"uOld",debugFile,"%6.3f ");
+	  ::display(uOld2,"uOld2",debugFile,"%6.3f ");
+	  ::display(uOld3,"uOld3",debugFile,"%6.3f ");
 
-	  ::display(feCur,sPrintF("feCur fn[nf=%i]",nfeCur),"%6.3f ");
-	  ::display(feOld,sPrintF("feOld fn[nf=%i]",nfeOld),"%6.3f ");
-	  ::display(feOld2,sPrintF("feOld2 fn[nf=%i]",nfeOld2),"%6.3f ");
-	  ::display(feOld3,sPrintF("feOld3 fn[nf=%i]",nfeOld3),"%6.3f ");
+	  ::display(feCur,sPrintF("feCur fn[nf=%i]",nfeCur),debugFile,"%6.3f ");
+	  ::display(feOld,sPrintF("feOld fn[nf=%i]",nfeOld),debugFile,"%6.3f ");
+	  ::display(feOld2,sPrintF("feOld2 fn[nf=%i]",nfeOld2),debugFile,"%6.3f ");
+	  ::display(feOld3,sPrintF("feOld3 fn[nf=%i]",nfeOld3),debugFile,"%6.3f ");
 	}
 	
 	// --- PREDICTOR   (last term is already in the matrix)
@@ -378,8 +382,9 @@ implicitSolve(const real & dt0,
 		     *pu1,*pu2,*pu3,*pu4, *pu5,*pu6,*pu7,*pu8, *pu8,*pu8, // only first 8 arguments are used
 		     ipar[0], rpar[0], ierr );
 
-	if( true )
+	if( false )
 	{
+	  // -- initial testing:
 	  printF("\n___ IMEX-BDF4 : predictor after updateOptNew:\n");
 	  
           OGFunction & e = *(parameters.dbase.get<OGFunction* >("exactSolution"));
@@ -415,7 +420,8 @@ implicitSolve(const real & dt0,
       }
       else
       {
-        printF("IMEX BDF4 updateOptNew corrector mNew=%i mCur=%i mOld=%i...\n",mNew,mCur,mOld);
+	if( debug() & 4 )
+          printF("IMEX BDF4 updateOptNew corrector mNew=%i mCur=%i mOld=%i...\n",mNew,mCur,mOld);
 
         int mf;
 	mf = (nab3 + numberOfTimeDerivativeLevels ) % numberOfTimeDerivativeLevels;       // **CHECK nab3 ***
@@ -455,8 +461,9 @@ implicitSolve(const real & dt0,
 		     *pu1,*pu2,*pu3,*pu4,*pu5, *pu5,*pu5,*pu5,*pu5,*pu5, // only first 5 arguments are used
 		     ipar[0], rpar[0], ierr );
 
-	if( true )
+	if( false )
 	{
+	  // -- initial testing:
 	  printF("\n___ IMEX-BDF4 corrector: after updateOptNew:\n");
 	  
           OGFunction & e = *(parameters.dbase.get<OGFunction* >("exactSolution"));
@@ -568,8 +575,8 @@ advanceImplicitMultiStep( real & t0, real & dt0, int & numberOfSubSteps, int & i
 
   const int & numberOfSolutionLevels = parameters.dbase.get<int>("numberOfSolutionLevels");
   const int & numberOfTimeDerivativeLevels = parameters.dbase.get<int>("numberOfTimeDerivativeLevels");
-
-  assert( parameters.dbase.get<int >("orderOfPredictorCorrector")==2 );  // for now we just have 2nd-order in time
+  const int orderOfAccuracy = parameters.dbase.get<int >("orderOfAccuracy");
+  const int orderOfTimeAccuracy = parameters.dbase.get<int >("orderOfTimeAccuracy");
 
   if( !parameters.dbase.get<DataBase >("modelData").has_key("AdamsPCData") )
   {
@@ -586,13 +593,20 @@ advanceImplicitMultiStep( real & t0, real & dt0, int & numberOfSubSteps, int & i
   int &ndt0=adamsData.ndt0;
   real *dtp = adamsData.dtp;
 
-  const int orderOfAccuracy = parameters.dbase.get<int >("orderOfAccuracy");
-  const int orderOfTimeAccuracy = parameters.dbase.get<int >("orderOfTimeAccuracy");
-  
   int & predictorOrder = parameters.dbase.get<int>("predictorOrder");
+  int & orderOfPredictorCorrector= parameters.dbase.get<int >("orderOfPredictorCorrector");
+  if( implicitMethod==Parameters::implicitExplicitMultistep )
+  {
+    orderOfPredictorCorrector=orderOfTimeAccuracy;  // *FIX ME**
+    predictorOrder=orderOfTimeAccuracy;  // *FIX ME**
+  }
+
+  assert( orderOfPredictorCorrector==2 || 
+          orderOfPredictorCorrector==4    );
+
   if( predictorOrder==0 )
     predictorOrder=2; // default
-  if( predictorOrder<0 || predictorOrder>2 )
+  if( predictorOrder<0 || predictorOrder>orderOfTimeAccuracy )
   {
     if( init )
       printF("advanceImplicitMultiStep: ERROR: predictorOrder=%i!",predictorOrder);
@@ -602,7 +616,10 @@ advanceImplicitMultiStep( real & t0, real & dt0, int & numberOfSubSteps, int & i
   }
   if( init && debug() & 1 )
   {
-    printF("advanceImplicitMultiStep:INFO: predictorOrder=%i ( =0 -> use default, order=2)\n",predictorOrder);
+    printF("advanceImplicitMultiStep:INFO: predictorOrder=%i ( =0 -> use default, order=%i)\n",
+           predictorOrder,orderOfTimeAccuracy);
+    fPrintF(debugFile,"advanceImplicitMultiStep:INFO: predictorOrder=%i ( =0 -> use default, order=%i)\n",
+            predictorOrder,orderOfTimeAccuracy);
   }
   
   int numberOfCorrections=parameters.dbase.get<int>("numberOfPCcorrections"); 
@@ -663,7 +680,7 @@ advanceImplicitMultiStep( real & t0, real & dt0, int & numberOfSubSteps, int & i
   
   if( debug() & 2 )
   {
-    fprintf(debugFile," *** Entering advanceImplicitMultiStep: t0=%e, dt0=%e *** \n",t0,dt0);
+    fPrintF(debugFile," *** Entering advanceImplicitMultiStep: t0=%e, dt0=%e *** \n",t0,dt0);
  
     if( implicitMethod==Parameters::implicitExplicitMultistep && t0<5.*dt0 )
     {
@@ -708,7 +725,7 @@ advanceImplicitMultiStep( real & t0, real & dt0, int & numberOfSubSteps, int & i
   if( debug() & 2 )
   {
     printF(" *** Entering advanceImplicitMultiStep: t0=%e, dt0=%e dtb=%e*** \n",t0,dt0,dtb);
-    fprintf(debugFile," *** Entering advanceImplicitMultiStep: t0=%e, dt0=%e dtb=%e *** \n",t0,dt0,dtb);
+    fPrintF(debugFile," *** Entering advanceImplicitMultiStep: t0=%e, dt0=%e dtb=%e *** \n",t0,dt0,dtb);
   }
  
   
@@ -760,11 +777,8 @@ advanceImplicitMultiStep( real & t0, real & dt0, int & numberOfSubSteps, int & i
     }
   }
 
-  // * ----
-//   GridFunction gfl(&parameters);  // **** to hold current guess for nonlinear problems
-//   gfl.updateToMatchGrid(gf[mCur].cg);
-//   gfl.u= gf[mCur].u;
-  // * ----
+  const bool TESTING=false;
+  
 
   for( int mst=1; mst<=numberOfSubSteps; mst++ )
   {
@@ -782,6 +796,18 @@ advanceImplicitMultiStep( real & t0, real & dt0, int & numberOfSubSteps, int & i
     realCompositeGridFunction & fNew = fn[nNew];   // pointer to du/dt(t+dt)
     realCompositeGridFunction & fCur = fn[nCur];   // pointer to du/dt
     realCompositeGridFunction & fOld = fn[nOld];   // pointer to du/dt(t-dt)
+
+    // *new* June 7, 2017 *wdh* 
+    int nOld2=nOld, nOld3=nOld;  // not used for orderOfTimeAccuracy==2 
+    if( orderOfTimeAccuracy>2 )
+    {
+      // Fouth-order in time requires two more past levels for the boundaryConditionPredictor
+      nOld2 =nfni[-2];
+      nOld3 =nfni[-3];
+    }
+    realCompositeGridFunction & fOld2 = fn[nOld2];   // pointer to du/dt(t-2*dt)
+    realCompositeGridFunction & fOld3 = fn[nOld3];   // pointer to du/dt(t-3*dt)
+
 
     real ab1,ab2;
     if( predictorOrder==1 )
@@ -855,7 +881,10 @@ advanceImplicitMultiStep( real & t0, real & dt0, int & numberOfSubSteps, int & i
 	bool gridWasAdapted=false;
 
         real tb=gf[mCur].t-dtb, tc=tb-dtb, td=tc-dtb; // tc,td not used
-        assert( predictorOrder<=2 );
+        if( movingGridProblem() )
+	{
+          assert( predictorOrder<=2 );
+	}
         const int numberOfPastTimes=0;
         const int numberOfPastTimeDerivatives=predictorOrder-1; 
         // Fill in exposed points on (tb,ub), ...
@@ -865,7 +894,6 @@ advanceImplicitMultiStep( real & t0, real & dt0, int & numberOfSubSteps, int & i
 	// we need to rebuild the implicit time stepping matrix.
  	if( movingGridProblem() )
           parameters.dbase.get<int >("initializeImplicitTimeStepping")=true;
-
 
       }
 
@@ -877,6 +905,7 @@ advanceImplicitMultiStep( real & t0, real & dt0, int & numberOfSubSteps, int & i
       const int maba = correction==0 ? mCur : mNew;
       const int naba = correction==0 ? nCur : nNew;
 
+
       // --- Compute: fn[nab0] <- du/dt(t0)  or fn[nab1] <- du/dt(t+dt0) ---
 
       // -- evaluate any body forcing (this is saved in realCompositeGridFunction bodyForce found in the data-base) ---
@@ -885,6 +914,12 @@ advanceImplicitMultiStep( real & t0, real & dt0, int & numberOfSubSteps, int & i
 
       for( grid=0; grid<gf[mCur].cg.numberOfComponentGrids(); grid++ )
       {
+        // if( false && TESTING )
+        // {
+        //   gf[maba].u[grid].updateGhostBoundaries(); // TRY THIS June 5, 2017 +TEMP+
+        // }
+        
+
 	rparam[0]=gf[maba].t;
 	rparam[1]=gf[maba].t;     // tforce
 	rparam[2]=gf[maba].t+dt0; // tImplicit
@@ -898,7 +933,7 @@ advanceImplicitMultiStep( real & t0, real & dt0, int & numberOfSubSteps, int & i
 
       addArtificialDissipation(gf[maba].u,dt0);	// add "implicit" dissipation to u 
 
-      if( debug() & 16 || debug() & 64 )
+      if( (TESTING && debug() & 4) || debug() & 64 ) // turned 16 -> 4  June 5, 2017 +TEMP+
       {
 	for( grid=0; grid<gf[mCur].cg.numberOfComponentGrids(); grid++ )
 	{
@@ -941,7 +976,7 @@ advanceImplicitMultiStep( real & t0, real & dt0, int & numberOfSubSteps, int & i
       //  --------------------------------------------------------
       //  --- Assign the explicit or implicit time-step update ---
       //  --------------------------------------------------------
-      for( grid=0; grid<gf[mNew].cg.numberOfComponentGrids(); grid++ )
+      for( int grid=0; grid<gf[mNew].cg.numberOfComponentGrids(); grid++ )
       {
 
         const real dti = (1.-parameters.dbase.get<real >("implicitFactor"))*dt0;
@@ -1025,11 +1060,28 @@ advanceImplicitMultiStep( real & t0, real & dt0, int & numberOfSubSteps, int & i
 	determineErrors( gf[mNew],label );
       }
 
-      if( true && correction==0 )
+      if( correction==0 )
       {
-        // *wdh* for fourth-order we may need to extrapolate p in time at ghost points
-	const int orderOfExtrapolation = 3;
-	boundaryConditionPredictor( predictPressure,adamsData,orderOfExtrapolation, mNew,mCur,mOld,&fCur,&fOld );
+        // --- For fourth-order in space we need to extrapolate p in time at ghost points --
+        //    We extrapolate in time using 
+        //               uCur : t
+        //               uOld : t-dt
+        //               fCur : t-2*dt   (holds boundary p and u in unuesd ghost points)
+        //               fOld : t-3*dt   (holds boundary p and u in unused ghost points)
+        if( true )
+        {
+          // *new* way June 7, 2017 -- extrapolate in time to higher order ---
+          int orderOfExtrapolation = orderOfTimeAccuracy==2 ? 3 : 4;
+          // int orderOfExtrapolation = orderOfTimeAccuracy==2 ? 3 : 5;
+          boundaryConditionPredictor( predictPressure,adamsData,orderOfExtrapolation, 
+                                      mNew,mCur,mOld,&fCur,&fOld,&fOld2,&fOld3 );
+        }
+        else
+        {
+          const int orderOfExtrapolation = 3;
+          boundaryConditionPredictor( predictPressure,adamsData,orderOfExtrapolation, mNew,mCur,mOld,&fCur,&fOld );
+        }
+        
       }
       
       if( debug() & 64 ) 
@@ -1113,6 +1165,7 @@ advanceImplicitMultiStep( real & t0, real & dt0, int & numberOfSubSteps, int & i
 
       
     } // end corrections
+    
     
     // -----------------------------------------------
     // --- Shift cyclic indices for next sub-step ----

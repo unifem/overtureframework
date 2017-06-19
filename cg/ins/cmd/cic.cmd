@@ -2,7 +2,7 @@
 # cgins command file for flow past a cylinder
 #
 # Usage:
-#   cgins [-noplot] cic -g=<name> -tf=<> -tp=<> -nu=<> -ts=[pc|im|afs] -iv=[viscous|full] -tm=[les] ...
+#   cgins [-noplot] cic -g=<name> -tf=<> -tp=<> -nu=<> -ts=[pc|im|afs|bdf|imex] -iv=[viscous|full] -tm=[les] ...
 #          -solver=[best|yale|mg] -project=[0|1] -model=[ins|boussinesq] ...
 #         -psolver=[best|yale|mg] -pc=[ilu|lu] -inflow=[uniform|parabolic|control|pressure|radial] -oscillate=[0|1] ...
 #         -wall=[noSlip|slip] -cyl=[noSlip|slip] -ao=[centered|upwind|bweno] -upwindOrder=[1|2|...]
@@ -97,7 +97,7 @@ $psolver="yale"; $rtolp=1.e-5; $atolp=1.e-6; $pdebug=0;
 $recomputeDt=200; $refactorFrequency=1000; $userDefinedOutput=0; 
 $slowStartSteps=-1; $slowStartCFL=.5; $slowStartRecomputeDt=100; 
 $model="ins";  $restart="";
-$grid="cice2.order2.hdf"; $outflowOption="neumann";
+$grid="cice2.order2.hdf"; $outflowOption="neumann"; $orderInTime=-1;
 $order = -1;  # use default order of accuracy based on the grid
 $ad2=1; $ad21=.5; $ad22=.5;   $ad4=0; $ad41=1.;  $ad42=1.; 
 $pc="ilu"; 
@@ -130,7 +130,7 @@ GetOptions( "g=s"=>\$grid,"tf=f"=>\$tFinal,"tp=f"=>\$tPlot,"nu=f"=>\$nu,"recompu
             "iv=s"=>\$iv,"newts=i"=>\$newts,"cfl=f"=>\$cfl, "model=s"=>\$model,"oscillate=i"=>\$oscillate,\
             "restart=s"=>\$restart,"Kp=f"=>\$Kp,"Ki=f"=>\$Ki,"Kd=f"=>\$Kd,"uInflow=f"=>\$uInflow,\
             "fullImplicitSystem=i"=>\$fullImplicitSystem,"cgSolver=s"=>\$cgSolver,"append=i"=>\$append,\
-            "slowStartCFL=f"=>\$slowStartCFL,"slowStartSteps=i"=>\$slowStartSteps,\
+            "slowStartCFL=f"=>\$slowStartCFL,"slowStartSteps=i"=>\$slowStartSteps,"orderInTime=i"=>\$orderInTime,\
             "slowStartRecomputeDt=i"=>\$slowStartRecomputeDt,"ao=s"=>\$ao,"upwindOrder=i"=>\$upwindOrder );
 #
 $kThermal=$nu/$Prandtl;
@@ -149,6 +149,9 @@ if( $ts eq "pc" ){ $ts="adams PC"; }
 if( $ts eq "pc4" ){ $ts="adams PC order 4"; }
 if( $ts eq "mid"){ $ts="midpoint"; }  
 if( $ts eq "afs"){ $ts="approximate factorization"; $newts = 1;}
+if( $ts eq "bdf" ){ $ts="implicit BDF"; }
+if( $ts eq "imex" ){ $ts="implicit explicit multistep"; }
+#
 if( $iv eq "full" ){ $iv = "useNewImplicitMethod\n use full implicit system 1\n implicitFullLinearized"; }else{ $iv="#"; }
 if( $order eq "2" ){ $order = "second order accurate"; }elsif( $order eq "4" ){ $order = "fourth order accurate"; }else{ $order="#"; }
 if( $ao eq "centered" ){ $ao="centered advection"; }
@@ -190,6 +193,10 @@ $order
 #
 # choose the time stepping:
   $ts
+#
+  if( $orderInTime eq 4 ){ $cmd="fourth order accurate in time\n BDF order 4"; }else{ $cmd="#"; }
+  $cmd
+#
   $newts
   # advection option:
   $ao

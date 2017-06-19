@@ -101,8 +101,9 @@ end do
  end do
 #endMacro
 
-! This formula must match the one in getInitialConditions.bC
+! These next formulae must match the one in getInitialConditions.bC
 #defineMacro AMP2D(x,y,t) (.5*(1.-tanh(beta*twoPi*(nv(0)*((x)-xv0(0))+nv(1)*((y)-xv0(1))-cc*(t)))))
+#defineMacro AMP3D(x,y,z,t) (.5*(1.-tanh(beta*twoPi*(nv(0)*((x)-xv0(0))+nv(1)*((y)-xv0(1))+nv(2)*((z)-xv0(2))-cc*(t)))))
 
 ! ===================================================================================
 ! --- Subtract/add the incident wave, before/after applying the non-reflecting BC ---
@@ -129,9 +130,17 @@ end do
        !  write(*,'("nrbc: adjust OP: i=",2i3," Hz,true=",2e10.3)') i1,i2,u(i1,i2,i3,hz),t0
        ! end if
        #If #ADJUST eq "YES"
-       ! if( x.ge.icBoundingBox(0,0) .and. x.le.icBoundingBox(1,0) .and. \
-       !     y.ge.icBoundingBox(0,1) .and. y.le.icBoundingBox(1,1) )then
-         amp = AMP2D(x,y,t)
+         if( x.ge.icBoundingBox(0,0) .and. x.le.icBoundingBox(1,0) .and. \
+             y.ge.icBoundingBox(0,1) .and. y.le.icBoundingBox(1,1) )then
+           if( smoothBoundingBox.eq.1 )then
+             amp = AMP2D(x,y,t)
+           else
+             amp=1.
+           end if
+         ! if( amp.gt. 1.e-9 )then
+         !   if( x.gt.1.5 .and. y.gt.-.05 .and. y.lt.0.5 )then
+         !     write(*,'(" x,amp=",2e10.2)') x,amp
+         !   end if
        #Elif #ADJUST eq "NO"
        #Else
           ! ERROR
@@ -153,7 +162,7 @@ end do
        end if
 
        #If #ADJUST eq "YES"
-       ! endif
+        endif
        #End
      endLoops()
    else
@@ -172,20 +181,25 @@ end do
        if( x.ge.icBoundingBox(0,0) .and. x.le.icBoundingBox(1,0) .and. \
            y.ge.icBoundingBox(0,1) .and. y.le.icBoundingBox(1,1) .and. \
            z.ge.icBoundingBox(0,2) .and. z.le.icBoundingBox(1,2) )then
+         if( smoothBoundingBox.eq.1 )then
+           amp = AMP3D(x,y,z,t)
+         else
+           amp=1.
+         end if
        #End
 
-       u(i1,i2,i3,ex) = u(i1,i2,i3,ex) OP planeWave3Dex0(x,y,z,t-dt)
-       u(i1,i2,i3,ey) = u(i1,i2,i3,ey) OP planeWave3Dey0(x,y,z,t-dt)
-       u(i1,i2,i3,ez) = u(i1,i2,i3,ez) OP planeWave3Dez0(x,y,z,t-dt)
+       u(i1,i2,i3,ex) = u(i1,i2,i3,ex) OP amp*planeWave3Dex0(x,y,z,t-dt)
+       u(i1,i2,i3,ey) = u(i1,i2,i3,ey) OP amp*planeWave3Dey0(x,y,z,t-dt)
+       u(i1,i2,i3,ez) = u(i1,i2,i3,ez) OP amp*planeWave3Dez0(x,y,z,t-dt)
 
-       un(i1,i2,i3,ex)=un(i1,i2,i3,ex) OP planeWave3Dex0(x,y,z,t)
-       un(i1,i2,i3,ey)=un(i1,i2,i3,ey) OP planeWave3Dey0(x,y,z,t)
-       un(i1,i2,i3,ez)=un(i1,i2,i3,ez) OP planeWave3Dez0(x,y,z,t)
+       un(i1,i2,i3,ex)=un(i1,i2,i3,ex) OP amp*planeWave3Dex0(x,y,z,t)
+       un(i1,i2,i3,ey)=un(i1,i2,i3,ey) OP amp*planeWave3Dey0(x,y,z,t)
+       un(i1,i2,i3,ez)=un(i1,i2,i3,ez) OP amp*planeWave3Dez0(x,y,z,t)
 
        if( adjustThreeLevels.eq.1 )then
-        um(i1,i2,i3,ex)=um(i1,i2,i3,ex) OP planeWave3Dex0(x,y,z,t-2.*dt)
-        um(i1,i2,i3,ey)=um(i1,i2,i3,ey) OP planeWave3Dey0(x,y,z,t-2.*dt)
-        um(i1,i2,i3,ez)=um(i1,i2,i3,ez) OP planeWave3Dez0(x,y,z,t-2.*dt)
+        um(i1,i2,i3,ex)=um(i1,i2,i3,ex) OP amp*planeWave3Dex0(x,y,z,t-2.*dt)
+        um(i1,i2,i3,ey)=um(i1,i2,i3,ey) OP amp*planeWave3Dey0(x,y,z,t-2.*dt)
+        um(i1,i2,i3,ez)=um(i1,i2,i3,ez) OP amp*planeWave3Dez0(x,y,z,t-2.*dt)
        end if
        #If #ADJUST eq "YES"
        endif
@@ -261,6 +275,7 @@ end do
 
       ! parameters for tanh() in smooth transition for IC bounding box:
       real amp, beta, nv(0:2), xv0(0:2)
+      integer smoothBoundingBox
 
       ! boundary conditions parameters
       #Include "bcDefineFortranInclude.h"
@@ -334,6 +349,7 @@ end do
       adjustThreeLevels    =ipar(27)
 
       halfWidth            =ipar(31) ! *new* June 20, 2016 *wdh*
+      smoothBoundingBox    =ipar(35) ! smooth the IC at the bounding box edge
 
       dx(0)                =rpar(0)
       dx(1)                =rpar(1)
@@ -372,6 +388,8 @@ end do
       xv0(0) =rpar(33)
       xv0(1) =rpar(34)
       xv0(2) =rpar(35)
+
+      
 
       if( abs(pwc(0))+abs(pwc(1))+abs(pwc(2)) .eq. 0. )then
         ! sanity check

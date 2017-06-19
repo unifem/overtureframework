@@ -1,4 +1,4 @@
-! This file automatically generated from advOpt.bf with bpp.
+! This file automatically generated from advOptNew.bf with bpp.
         subroutine advMx2dOrder4r(nd,n1a,n1b,n2a,n2b,n3a,n3b,nd1a,nd1b,
      & nd2a,nd2b,nd3a,nd3b,nd4a,nd4b,mask,rsxy,  um,u,un,f,fa, v,vvt2,
      & ut3,vvt4,ut5,ut6,ut7, bc, dis, varDis, ipar, rpar, ierr )
@@ -36,7 +36,8 @@
         integer ipar(0:*)
         real rpar(0:*)
        !     ---- local variables -----
-        integer c,i1,i2,i3,n,gridType,orderOfAccuracy,orderInTime
+        integer c,i1,i2,i3,n,gridType,orderOfAccuracy,orderInTime,axis,
+     & dir
         integer addForcing,orderOfDissipation,option
         integer useWhereMask,useWhereMaskSave,solveForE,solveForH,grid,
      & useVariableDissipation
@@ -969,6 +970,9 @@
         real mxdc2d4cConsEx,mxdc2d4cConsEy,mxdc2d4cConsEz
         real mxdc3d4Ex,mxdc3d4Ey,mxdc3d4Ez,mxdc3d4Hx,mxdc3d4Hy,
      & mxdc3d4Hz
+        real maxwell2drSosup, maxwell2dr44meSosup
+        real dum,sosupDiss2d4r,sosupDiss2d4c,sosupDiss2d6r,
+     & sosupDiss2d6c
        ! real vr2,vs2,vrr2,vss2,vrs2,vLaplacian22
         real cdt4by360,cdt6by20160
         real lap2d2,lap3d2,lap2d4,lap3d4,lap2d6,lap3d6,lap2d8,lap3d8,
@@ -980,6 +984,10 @@
         ! forcing correction functions: 
         real lap2d2f,f2drme44, lap3d2f, f3drme44, f2dcme44, f3dcme44, 
      & ff
+        real cdSosupx,cdSosupy,cdSosupz, adSosup,sosupParameter, 
+     & adSosupCurv4, adSosupCurv6, adxSosup(0:2)
+        integer useSosupDissipation,sosupDissipationOption
+        integer updateSolution,updateDissipation
         ! div cleaning: 
         real dc,dcp,cdc0,cdc1,cdcxx,cdcyy,cdczz,cdcEdx,cdcEdy,cdcEdz,
      & cdcHdx,cdcHdy,cdcHdz,cdcf
@@ -987,6 +995,9 @@
         real cdcH,cdcHLap,cdcHLapsq,cdcHLapm
         ! dispersion
         integer dispersionModel,pxc,pyc,pzc,qxc,qyc,qzc,rxc,ryc,rzc
+        integer ec,pc
+        real gamma,omegap
+        real gammaDt,omegapDtSq,ptt, fe,fp
        ! real unxx22r,unyy22r,unxy22r,unx22r
        !.......statement functions for jacobian
         rx(i1,i2,i3)=rsxy(i1,i2,i3,0,0)
@@ -3075,6 +3086,61 @@ c===============================================================================
         maxwell2dr(i1,i2,i3,n)=2.*u(i1,i2,i3,n)-um(i1,i2,i3,n)+cdtdx*(
      & u(i1-1,i2,i3,n)+u(i1+1,i2,i3,n)-2.*u(i1,i2,i3,n))+cdtdy*(u(i1,
      & i2-1,i3,n)+u(i1,i2+1,i3,n)-2.*u(i1,i2,i3,n))
+        du(i1,i2,i3,c)=u(i1,i2,i3,c)-um(i1,i2,i3,c)
+        ! 4th-order SOSUP dissipation -- 2D, curvilinear grid 
+        adSosupCurv4(i1,i2,i3,n)=( -6.*du(i1,i2,i3,n)     +4.*(du(i1+1,
+     & i2,i3,n)+du(i1-1,i2,i3,n))     -(du(i1+2,i2,i3,n)+du(i1-2,i2,
+     & i3,n)) )*adxSosup(0) + ( -6.*du(i1,i2,i3,n)     +4.*(du(i1,i2+
+     & 1,i3,n)+du(i1,i2-1,i3,n))     -(du(i1,i2+2,i3,n)+du(i1,i2-2,i3,
+     & n)) )*adxSosup(1)
+        ! 6th-order SOSUP dissipation -- 2D, curvilinear grid 
+        adSosupCurv6(i1,i2,i3,n)=(-20.*du(i1,i2,i3,n)     +15.*(du(i1+
+     & 1,i2,i3,n)+du(i1-1,i2,i3,n))     -6.*(du(i1+2,i2,i3,n)+du(i1-2,
+     & i2,i3,n))     +(du(i1+3,i2,i3,n)+du(i1-3,i2,i3,n))  )*adxSosup(
+     & 0) + (-20.*du(i1,i2,i3,n)     +15.*(du(i1,i2+1,i3,n)+du(i1,i2-
+     & 1,i3,n))     -6.*(du(i1,i2+2,i3,n)+du(i1,i2-2,i3,n))     +(du(
+     & i1,i2+3,i3,n)+du(i1,i2-3,i3,n))  )*adxSosup(1)
+        ! 2nd-order in space and time with sosup dissipation
+        maxwell2drSosup(i1,i2,i3,n)=2.*u(i1,i2,i3,n)-um(i1,i2,i3,n)+
+     & cdtdx*(u(i1-1,i2,i3,n)+u(i1+1,i2,i3,n)-2.*u(i1,i2,i3,n))+cdtdy*
+     & (u(i1,i2-1,i3,n)+u(i1,i2+1,i3,n)-2.*u(i1,i2,i3,n))+( -6.*du(i1,
+     & i2,i3,n)     +4.*(du(i1+1,i2,i3,n)+du(i1-1,i2,i3,n))     -(du(
+     & i1+2,i2,i3,n)+du(i1-2,i2,i3,n)) )*cdSosupx + ( -6.*du(i1,i2,i3,
+     & n)     +4.*(du(i1,i2+1,i3,n)+du(i1,i2-1,i3,n))     -(du(i1,i2+
+     & 2,i3,n)+du(i1,i2-2,i3,n)) )*cdSosupy
+        ! add sosup dissipation (4th-order, rectangular grid)) to current time (using previous two levels)
+        ! assume un holds u(t-2*dt) on input:  (note factor of .5 moved from dum to cdSosupx)
+        ! Here is D0t:
+        dum(i1,i2,i3,n)=u(i1,i2,i3,n)-un(i1,i2,i3,n)
+        ! Try D-t : 
+        ! dum(i1,i2,i3,n)=(u(i1,i2,i3,n)-um(i1,i2,i3,n))*2.
+        sosupDiss2d4r(i1,i2,i3,n)=u(i1,i2,i3,n)+( -6.* dum(i1,i2,i3,n) 
+     &     +4.*(dum(i1+1,i2,i3,n)+dum(i1-1,i2,i3,n))     -(dum(i1+2,
+     & i2,i3,n)+dum(i1-2,i2,i3,n)) )*cdSosupx*.5 + ( -6.*dum(i1,i2,i3,
+     & n)     +4.*(dum(i1,i2+1,i3,n)+dum(i1,i2-1,i3,n))     -(dum(i1,
+     & i2+2,i3,n)+dum(i1,i2-2,i3,n)) )*cdSosupy*.5
+        ! add sosup dissipation (4th-order, curvilinear grid) to current time (using previous two levels)
+        sosupDiss2d4c(i1,i2,i3,n)=u(i1,i2,i3,n)+( -6.* dum(i1,i2,i3,n) 
+     &     +4.*(dum(i1+1,i2,i3,n)+dum(i1-1,i2,i3,n))     -(dum(i1+2,
+     & i2,i3,n)+dum(i1-2,i2,i3,n)) )*adxSosup(0)*.5 + ( -6.*dum(i1,i2,
+     & i3,n)     +4.*(dum(i1,i2+1,i3,n)+dum(i1,i2-1,i3,n))     -(dum(
+     & i1,i2+2,i3,n)+dum(i1,i2-2,i3,n)) )*adxSosup(1)*.5
+        ! add sosup dissipation (6th-order, rectangular grid) to current time (using previous two levels)
+        sosupDiss2d6r(i1,i2,i3,n)=u(i1,i2,i3,n)+(-20.*dum(i1,i2,i3,n)  
+     &    +15.*(dum(i1+1,i2,i3,n)+dum(i1-1,i2,i3,n))     -6.*(dum(i1+
+     & 2,i2,i3,n)+dum(i1-2,i2,i3,n))     +(dum(i1+3,i2,i3,n)+dum(i1-3,
+     & i2,i3,n))  )*cdSosupx*.5 + (-20.*dum(i1,i2,i3,n)     +15.*(dum(
+     & i1,i2+1,i3,n)+dum(i1,i2-1,i3,n))     -6.*(dum(i1,i2+2,i3,n)+
+     & dum(i1,i2-2,i3,n))     +(dum(i1,i2+3,i3,n)+dum(i1,i2-3,i3,n))  
+     & )*cdSosupy*.5
+        ! add sosup dissipation (6th-order, curvilinear grid) to current time (using previous two levels)
+        sosupDiss2d6c(i1,i2,i3,n)=u(i1,i2,i3,n)+(-20.*dum(i1,i2,i3,n)  
+     &    +15.*(dum(i1+1,i2,i3,n)+dum(i1-1,i2,i3,n))     -6.*(dum(i1+
+     & 2,i2,i3,n)+dum(i1-2,i2,i3,n))     +(dum(i1+3,i2,i3,n)+dum(i1-3,
+     & i2,i3,n))  )*adxSosup(0)*.5 + (-20.*dum(i1,i2,i3,n)     +15.*(
+     & dum(i1,i2+1,i3,n)+dum(i1,i2-1,i3,n))     -6.*(dum(i1,i2+2,i3,n)
+     & +dum(i1,i2-2,i3,n))     +(dum(i1,i2+3,i3,n)+dum(i1,i2-3,i3,n)) 
+     &  )*adxSosup(1)*.5
         maxwell3dr(i1,i2,i3,n)=2.*u(i1,i2,i3,n)-um(i1,i2,i3,n)+cdtdx*(
      & u(i1-1,i2,i3,n)+u(i1+1,i2,i3,n)-2.*u(i1,i2,i3,n))+cdtdy*(u(i1,
      & i2-1,i3,n)+u(i1,i2+1,i3,n)-2.*u(i1,i2,i3,n))+cdtdz*(u(i1,i2,i3-
@@ -3289,7 +3355,6 @@ c===============================================================================
      & i1-4,i2,i3,c))  +c040lap3d8*(u(i1,i2+4,i3,c)+u(i1,i2-4,i3,c)) +
      & c004lap3d8*(u(i1,i2,i3+4,c)+u(i1,i2,i3-4,c))
        ! ******* artificial dissipation ******
-        du(i1,i2,i3,c)=u(i1,i2,i3,c)-um(i1,i2,i3,c)
        !      (2nd difference)
         fd22d(i1,i2,i3,c)= (     ( du(i1-1,i2,i3,c)+du(i1+1,i2,i3,c)+
      & du(i1,i2-1,i3,c)+du(i1,i2+1,i3,c) ) -4.*du(i1,i2,i3,c) )
@@ -3340,6 +3405,15 @@ c===============================================================================
      & cdtsq*lap2d4(i1,i2,i3,n)+cdtsq12*lap2d2Pow2(i1,i2,i3,n)
         maxwell3dr44me(i1,i2,i3,n)=2.*u(i1,i2,i3,n)-um(i1,i2,i3,n)+
      & cdtsq*lap3d4(i1,i2,i3,n)+cdtsq12*lap3d2Pow2(i1,i2,i3,n)
+        ! Order=4, 2D, rectangular, sosup-dissipation **FINISH ME**
+        maxwell2dr44meSosup(i1,i2,i3,n)=2.*u(i1,i2,i3,n)-um(i1,i2,i3,n)
+     & +cdtsq*lap2d4(i1,i2,i3,n)+cdtsq12*lap2d2Pow2(i1,i2,i3,n)+(-20.*
+     & du(i1,i2,i3,n)     +15.*(du(i1+1,i2,i3,n)+du(i1-1,i2,i3,n))    
+     &  -6.*(du(i1+2,i2,i3,n)+du(i1-2,i2,i3,n))     +(du(i1+3,i2,i3,n)
+     & +du(i1-3,i2,i3,n))  )*cdSosupx + (-20.*du(i1,i2,i3,n)     +15.*
+     & (du(i1,i2+1,i3,n)+du(i1,i2-1,i3,n))     -6.*(du(i1,i2+2,i3,n)+
+     & du(i1,i2-2,i3,n))     +(du(i1,i2+3,i3,n)+du(i1,i2-3,i3,n))  )*
+     & cdSosupy
         maxwell2dr66me(i1,i2,i3,n)=2.*u(i1,i2,i3,n)-um(i1,i2,i3,n)+
      & cdtsq*lap2d6(i1,i2,i3,n)+cdtsq12  *lap2d4Pow2(i1,i2,i3,n)+
      & cdt4by360*lap2d2Pow3(i1,i2,i3,n)
@@ -3354,6 +3428,7 @@ c===============================================================================
      & cdtsq*lap3d8(i1,i2,i3,n)+cdtsq12*lap3d6Pow2(i1,i2,i3,n)+
      & cdt4by360*lap3d4Pow3(i1,i2,i3,n)+cdt6by20160*lap3d2Pow4(i1,i2,
      & i3,n)
+       ! *********NEW forcing method (for user defined forcing)**********
        !    -- forcing correction for modified equation method ---
        !        RHS = f + (dt^2/12)*( c^2 * Delta f + f_tt )
        !  Approximate the term in brackets to 2nd-order
@@ -3449,6 +3524,10 @@ c===============================================================================
         divergenceCleaningCoefficient=rpar(17)
         t     =rpar(18)
         rpar(20)=0.  ! return the time used for adding dissipation
+        ! Drude-Lorentz dispersion model:
+        gamma= rpar(21)
+        omegap=rpar(22)
+        sosupParameter=rpar(23)
         dy=dx(1)  ! Are these needed?
         dz=dx(2)
         ! timeForArtificialDissipation=rpar(6) ! return value
@@ -3486,6 +3565,10 @@ c===============================================================================
         rxc                 =ipar(31)
         ryc                 =ipar(32)
         rzc                 =ipar(33)
+        useSosupDissipation   =ipar(34)
+        sosupDissipationOption=ipar(35)
+        updateSolution        =ipar(36)
+        updateDissipation     =ipar(37)
         fprev = mod(fcur-1+numberOfForcingFunctions,max(1,
      & numberOfForcingFunctions))
         fnext = mod(fcur+1                         ,max(1,
@@ -3520,9 +3603,38 @@ c===============================================================================
         dzi4=1./(dz**4)
         dxdzi2=1./(dx(0)*dx(0)*dz*dz)
         dydzi2=1./(dy*dy*dz*dz)
+        gammaDt=gamma*dt
+        omegapDtSq=(omegap*dt)**2
         if( t.eq.0. .and. dispersionModel.ne.noDispersion )then
            write(*,'("--advOpt-- dispersionModel=",i4," px,py,pz=",3i2)
      & ') dispersionModel,pxc,pyc,pzc
+        end if
+        if( useSosupDissipation.ne.0 )then
+         ! Coefficients in the sosup dissipation from Jordan Angel
+         if( orderOfAccuracy.eq.2 )then
+          adSosup=cc*dt*1./8.
+         else if( orderOfAccuracy.eq.4 )then
+           adSosup=cc*dt*5./288.
+         else
+           stop 1005
+         end if
+         ! sosupParameter=gamma in sosup scheme  0<= gamma <=1   0=centered scheme
+         adSosup=sosupParameter*adSosup
+         if( t.le.2*dt )then
+           write(*,'("advOPT: useSosup dissipation, t,dt,adSosup=",
+     & 3e10.2)') t,dt,adSosup
+           write(*,'("advOPT: sosupDissipationOption=",i2)') 
+     & sosupDissipationOption
+           write(*,'("advOPT: updateDissipation=",i2)') 
+     & updateDissipation
+           write(*,'("advOPT: updateSolution=",i2)') updateSolution
+           write(*,'("advOPT: useNewForcingMethod=",i2)') 
+     & useNewForcingMethod
+         end if
+         ! Coefficients of the sosup dissipation with Cartesian grids:
+         cdSosupx= adSosup/dx(0)
+         cdSosupy= adSosup/dx(1)
+         cdSosupz= adSosup/dx(2)
         end if
         if( useDivergenceCleaning.eq.1 )then
           ! Here are the coefficients that define the div cleaning formulae
@@ -3704,7 +3816,394 @@ c===============================================================================
              !    2D : 4th order modified equation (rectangular)
              ! ------------------------------------------------------------------------------
              if( useDivergenceCleaning.eq.0 )then
-              if( useNewForcingMethod.eq.1 ) then
+              if( useSosupDissipation.ne.0 )then
+                ! ---- use sosup dissipation (wider stencil) ---
+                if( useNewForcingMethod.ne.0 )then
+                 write(*,'(" finish me: useSosupDissipation && 
+     & useNewForcingMethod")')
+                 stop 7733
+                end if
+               ! FD22 (rectangular grid) with Sosup (wide stencil dissiption)
+               if( sosupDissipationOption.eq.0 )then
+                ! advance + sosup dissipation: 
+                if( addForcing.eq.0 .and. .not.addDissipation )then
+                  if( useWhereMask.ne.0 )then
+                   do i3=n3a,n3b
+                   do i2=n2a,n2b
+                   do i1=n1a,n1b
+                    if( mask(i1,i2,i3).gt.0 )then
+                     un(i1,i2,i3,ex)=maxwell2dr44meSosup(i1,i2,i3,ex)
+                     un(i1,i2,i3,ey)=maxwell2dr44meSosup(i1,i2,i3,ey)
+                     un(i1,i2,i3,hz)=maxwell2dr44meSosup(i1,i2,i3,hz)
+
+
+
+
+
+
+                    end if
+                   end do
+                   end do
+                   end do
+                  else
+                   do i3=n3a,n3b
+                   do i2=n2a,n2b
+                   do i1=n1a,n1b
+                    un(i1,i2,i3,ex)=maxwell2dr44meSosup(i1,i2,i3,ex)
+                    un(i1,i2,i3,ey)=maxwell2dr44meSosup(i1,i2,i3,ey)
+                    un(i1,i2,i3,hz)=maxwell2dr44meSosup(i1,i2,i3,hz)
+
+
+
+
+
+
+                   end do
+                   end do
+                   end do
+                  end if
+                else if( addForcing.ne.0 .and. .not.addDissipation )
+     & then
+                ! add forcing to the first 3 equations
+                  if( useWhereMask.ne.0 )then
+                   do i3=n3a,n3b
+                   do i2=n2a,n2b
+                   do i1=n1a,n1b
+                    if( mask(i1,i2,i3).gt.0 )then
+                     un(i1,i2,i3,ex)=maxwell2dr44meSosup(i1,i2,i3,ex)+
+     & dtsq*f(i1,i2,i3,ex)
+                     un(i1,i2,i3,ey)=maxwell2dr44meSosup(i1,i2,i3,ey)+
+     & dtsq*f(i1,i2,i3,ey)
+                     un(i1,i2,i3,hz)=maxwell2dr44meSosup(i1,i2,i3,hz)+
+     & dtsq*f(i1,i2,i3,hz)
+
+
+
+
+
+
+                    end if
+                   end do
+                   end do
+                   end do
+                  else
+                   do i3=n3a,n3b
+                   do i2=n2a,n2b
+                   do i1=n1a,n1b
+                    un(i1,i2,i3,ex)=maxwell2dr44meSosup(i1,i2,i3,ex)+
+     & dtsq*f(i1,i2,i3,ex)
+                    un(i1,i2,i3,ey)=maxwell2dr44meSosup(i1,i2,i3,ey)+
+     & dtsq*f(i1,i2,i3,ey)
+                    un(i1,i2,i3,hz)=maxwell2dr44meSosup(i1,i2,i3,hz)+
+     & dtsq*f(i1,i2,i3,hz)
+
+
+
+
+
+
+                   end do
+                   end do
+                   end do
+                  end if
+                else if( addForcing.eq.0 .and. addDissipation )then
+                ! add dissipation to the first 3 equations
+                  if( useWhereMask.ne.0 )then
+                   do i3=n3a,n3b
+                   do i2=n2a,n2b
+                   do i1=n1a,n1b
+                    if( mask(i1,i2,i3).gt.0 )then
+                     un(i1,i2,i3,ex)=maxwell2dr44meSosup(i1,i2,i3,ex)+
+     & dis(i1,i2,i3,ex)
+                     un(i1,i2,i3,ey)=maxwell2dr44meSosup(i1,i2,i3,ey)+
+     & dis(i1,i2,i3,ey)
+                     un(i1,i2,i3,hz)=maxwell2dr44meSosup(i1,i2,i3,hz)+
+     & dis(i1,i2,i3,hz)
+
+
+
+
+
+
+                    end if
+                   end do
+                   end do
+                   end do
+                  else
+                   do i3=n3a,n3b
+                   do i2=n2a,n2b
+                   do i1=n1a,n1b
+                    un(i1,i2,i3,ex)=maxwell2dr44meSosup(i1,i2,i3,ex)+
+     & dis(i1,i2,i3,ex)
+                    un(i1,i2,i3,ey)=maxwell2dr44meSosup(i1,i2,i3,ey)+
+     & dis(i1,i2,i3,ey)
+                    un(i1,i2,i3,hz)=maxwell2dr44meSosup(i1,i2,i3,hz)+
+     & dis(i1,i2,i3,hz)
+
+
+
+
+
+
+                   end do
+                   end do
+                   end do
+                  end if
+                else
+                !  add forcing and dissipation
+                  if( useWhereMask.ne.0 )then
+                   do i3=n3a,n3b
+                   do i2=n2a,n2b
+                   do i1=n1a,n1b
+                    if( mask(i1,i2,i3).gt.0 )then
+                     un(i1,i2,i3,ex)=maxwell2dr44meSosup(i1,i2,i3,ex)+
+     & dtsq*f(i1,i2,i3,ex)+dis(i1,i2,i3,ex)
+                     un(i1,i2,i3,ey)=maxwell2dr44meSosup(i1,i2,i3,ey)+
+     & dtsq*f(i1,i2,i3,ey)+dis(i1,i2,i3,ey)
+                     un(i1,i2,i3,hz)=maxwell2dr44meSosup(i1,i2,i3,hz)+
+     & dtsq*f(i1,i2,i3,hz)+dis(i1,i2,i3,hz)
+
+
+
+
+
+
+                    end if
+                   end do
+                   end do
+                   end do
+                  else
+                   do i3=n3a,n3b
+                   do i2=n2a,n2b
+                   do i1=n1a,n1b
+                    un(i1,i2,i3,ex)=maxwell2dr44meSosup(i1,i2,i3,ex)+
+     & dtsq*f(i1,i2,i3,ex)+dis(i1,i2,i3,ex)
+                    un(i1,i2,i3,ey)=maxwell2dr44meSosup(i1,i2,i3,ey)+
+     & dtsq*f(i1,i2,i3,ey)+dis(i1,i2,i3,ey)
+                    un(i1,i2,i3,hz)=maxwell2dr44meSosup(i1,i2,i3,hz)+
+     & dtsq*f(i1,i2,i3,hz)+dis(i1,i2,i3,hz)
+
+
+
+
+
+
+                   end do
+                   end do
+                   end do
+                  end if
+                end if
+               else if( sosupDissipationOption.eq.1 )then
+                ! --- TWO STAGES ---
+                ! apply sosup dissipation to time n-1 using times n-1 and n-3
+                ! assume un holds u(t-2*dt) on input 
+                if( updateDissipation.eq.1 )then
+                 if( useWhereMask.ne.0 )then
+                   do i3=n3a,n3b
+                   do i2=n2a,n2b
+                   do i1=n1a,n1b
+                     if( mask(i1,i2,i3).gt.0 )then
+                       u(i1,i2,i3,ex)=sosupDiss2d6r(i1,i2,i3,ex)
+                       u(i1,i2,i3,ey)=sosupDiss2d6r(i1,i2,i3,ey)
+                       u(i1,i2,i3,hz)=sosupDiss2d6r(i1,i2,i3,hz)
+
+
+
+                     end if
+                   end do
+                   end do
+                   end do
+                 else
+                   do i3=n3a,n3b
+                   do i2=n2a,n2b
+                   do i1=n1a,n1b
+                       u(i1,i2,i3,ex)=sosupDiss2d6r(i1,i2,i3,ex)
+                       u(i1,i2,i3,ey)=sosupDiss2d6r(i1,i2,i3,ey)
+                       u(i1,i2,i3,hz)=sosupDiss2d6r(i1,i2,i3,hz)
+
+
+
+                   end do
+                   end do
+                   end do
+                 end if
+                end if
+                ! advance to time n+1
+                if( updateSolution.eq.1 )then
+                  if( addForcing.eq.0 .and. .not.addDissipation )then
+                    if( useWhereMask.ne.0 )then
+                     do i3=n3a,n3b
+                     do i2=n2a,n2b
+                     do i1=n1a,n1b
+                      if( mask(i1,i2,i3).gt.0 )then
+                       un(i1,i2,i3,ex)=maxwell2dr44me(i1,i2,i3,ex)
+                       un(i1,i2,i3,ey)=maxwell2dr44me(i1,i2,i3,ey)
+                       un(i1,i2,i3,hz)=maxwell2dr44me(i1,i2,i3,hz)
+
+
+
+
+
+
+                      end if
+                     end do
+                     end do
+                     end do
+                    else
+                     do i3=n3a,n3b
+                     do i2=n2a,n2b
+                     do i1=n1a,n1b
+                      un(i1,i2,i3,ex)=maxwell2dr44me(i1,i2,i3,ex)
+                      un(i1,i2,i3,ey)=maxwell2dr44me(i1,i2,i3,ey)
+                      un(i1,i2,i3,hz)=maxwell2dr44me(i1,i2,i3,hz)
+
+
+
+
+
+
+                     end do
+                     end do
+                     end do
+                    end if
+                  else if( addForcing.ne.0 .and. .not.addDissipation )
+     & then
+                  ! add forcing to the first 3 equations
+                    if( useWhereMask.ne.0 )then
+                     do i3=n3a,n3b
+                     do i2=n2a,n2b
+                     do i1=n1a,n1b
+                      if( mask(i1,i2,i3).gt.0 )then
+                       un(i1,i2,i3,ex)=maxwell2dr44me(i1,i2,i3,ex)+
+     & dtsq*f(i1,i2,i3,ex)
+                       un(i1,i2,i3,ey)=maxwell2dr44me(i1,i2,i3,ey)+
+     & dtsq*f(i1,i2,i3,ey)
+                       un(i1,i2,i3,hz)=maxwell2dr44me(i1,i2,i3,hz)+
+     & dtsq*f(i1,i2,i3,hz)
+
+
+
+
+
+
+                      end if
+                     end do
+                     end do
+                     end do
+                    else
+                     do i3=n3a,n3b
+                     do i2=n2a,n2b
+                     do i1=n1a,n1b
+                      un(i1,i2,i3,ex)=maxwell2dr44me(i1,i2,i3,ex)+dtsq*
+     & f(i1,i2,i3,ex)
+                      un(i1,i2,i3,ey)=maxwell2dr44me(i1,i2,i3,ey)+dtsq*
+     & f(i1,i2,i3,ey)
+                      un(i1,i2,i3,hz)=maxwell2dr44me(i1,i2,i3,hz)+dtsq*
+     & f(i1,i2,i3,hz)
+
+
+
+
+
+
+                     end do
+                     end do
+                     end do
+                    end if
+                  else if( addForcing.eq.0 .and. addDissipation )then
+                  ! add dissipation to the first 3 equations
+                    if( useWhereMask.ne.0 )then
+                     do i3=n3a,n3b
+                     do i2=n2a,n2b
+                     do i1=n1a,n1b
+                      if( mask(i1,i2,i3).gt.0 )then
+                       un(i1,i2,i3,ex)=maxwell2dr44me(i1,i2,i3,ex)+dis(
+     & i1,i2,i3,ex)
+                       un(i1,i2,i3,ey)=maxwell2dr44me(i1,i2,i3,ey)+dis(
+     & i1,i2,i3,ey)
+                       un(i1,i2,i3,hz)=maxwell2dr44me(i1,i2,i3,hz)+dis(
+     & i1,i2,i3,hz)
+
+
+
+
+
+
+                      end if
+                     end do
+                     end do
+                     end do
+                    else
+                     do i3=n3a,n3b
+                     do i2=n2a,n2b
+                     do i1=n1a,n1b
+                      un(i1,i2,i3,ex)=maxwell2dr44me(i1,i2,i3,ex)+dis(
+     & i1,i2,i3,ex)
+                      un(i1,i2,i3,ey)=maxwell2dr44me(i1,i2,i3,ey)+dis(
+     & i1,i2,i3,ey)
+                      un(i1,i2,i3,hz)=maxwell2dr44me(i1,i2,i3,hz)+dis(
+     & i1,i2,i3,hz)
+
+
+
+
+
+
+                     end do
+                     end do
+                     end do
+                    end if
+                  else
+                  !  add forcing and dissipation
+                    if( useWhereMask.ne.0 )then
+                     do i3=n3a,n3b
+                     do i2=n2a,n2b
+                     do i1=n1a,n1b
+                      if( mask(i1,i2,i3).gt.0 )then
+                       un(i1,i2,i3,ex)=maxwell2dr44me(i1,i2,i3,ex)+
+     & dtsq*f(i1,i2,i3,ex)+dis(i1,i2,i3,ex)
+                       un(i1,i2,i3,ey)=maxwell2dr44me(i1,i2,i3,ey)+
+     & dtsq*f(i1,i2,i3,ey)+dis(i1,i2,i3,ey)
+                       un(i1,i2,i3,hz)=maxwell2dr44me(i1,i2,i3,hz)+
+     & dtsq*f(i1,i2,i3,hz)+dis(i1,i2,i3,hz)
+
+
+
+
+
+
+                      end if
+                     end do
+                     end do
+                     end do
+                    else
+                     do i3=n3a,n3b
+                     do i2=n2a,n2b
+                     do i1=n1a,n1b
+                      un(i1,i2,i3,ex)=maxwell2dr44me(i1,i2,i3,ex)+dtsq*
+     & f(i1,i2,i3,ex)+dis(i1,i2,i3,ex)
+                      un(i1,i2,i3,ey)=maxwell2dr44me(i1,i2,i3,ey)+dtsq*
+     & f(i1,i2,i3,ey)+dis(i1,i2,i3,ey)
+                      un(i1,i2,i3,hz)=maxwell2dr44me(i1,i2,i3,hz)+dtsq*
+     & f(i1,i2,i3,hz)+dis(i1,i2,i3,hz)
+
+
+
+
+
+
+                     end do
+                     end do
+                     end do
+                    end if
+                  end if
+                end if
+               else
+                 write(*,'("advOpt: ERROR: unexpected 
+     & sosupDissipationOption=",i2)') sosupDissipationOption
+                 stop 1010
+               end if
+              else if( useNewForcingMethod.eq.1 ) then
                 ! fix forcing for ME scheme to be 4th-order
                 if( combineDissipationWithAdvance.eq.0 )then
                  write(*,*) 'advOpt: 2d, rect, 4th-order fix-force 

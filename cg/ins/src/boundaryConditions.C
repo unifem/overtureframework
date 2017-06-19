@@ -77,8 +77,14 @@ gridAccelerationBC(const int & grid,
 
   Index I1,I2,I3;
   Index I1g,I2g,I3g;
-  getGhostIndex( c.extendedIndexRange(),side,axis,I1 ,I2 ,I3 ,0);     // boundary line
-  getGhostIndex( c.extendedIndexRange(),side,axis,I1g,I2g,I3g,1);  // first ghost line
+
+  // Use egir: *wdh* May 27, 2017
+  const IntegerArray & egir = extendedGridIndexRange(c);
+  getGhostIndex( egir,side,axis,I1 ,I2 ,I3 ,0);     // boundary line
+  getGhostIndex( egir,side,axis,I1g,I2g,I3g,1);  // first ghost line
+
+  // getGhostIndex( c.extendedIndexRange(),side,axis,I1 ,I2 ,I3 ,0);     // boundary line
+  // getGhostIndex( c.extendedIndexRange(),side,axis,I1g,I2g,I3g,1);  // first ghost line
 
 
   if( parameters.gridIsMoving(grid) 
@@ -120,7 +126,7 @@ gridAccelerationBC(const int & grid,
 
 	  if( (true || debug() & 4) && t0 <= 2.*dt )
 	    printF("--INS-- gridAccelerationBC: t=%8.2e, BEAM: scale pressure BC by rhos*As/rho =%8.2e grid=%i,"
-                   " (side,axis)=(%i,%i:  mixedCoeff=%8.2e )\n",
+                   " (side,axis)=(%i,%i:  mixedCoeff=%12.5e )\n",
 		   t0,mixedNormalCoeff(pc,side,axis,grid),grid,side,axis, mixedCoeff(pc,side,axis,grid));
 	}
 	else if( deform.isBulkSolidModel() )
@@ -128,9 +134,9 @@ gridAccelerationBC(const int & grid,
 	  isAmpBulkSolidModel=true;
 
 	  if( (true || debug() & 4) && t0 <= 2.*dt )
-	    printF("\n--INS-- gridAccelerationBC: t=%8.2e, BULK-SOLID scale pressure BC by zp*dt/rho =%8.2e grid=%i, "
-                   "(side,axis)=(%i,%i:  mixedCoeff=%8.2e )\n",
-		   t0,mixedNormalCoeff(pc,side,axis,grid),grid,side,axis, mixedCoeff(pc,side,axis,grid));
+	    printF("\n--INS-- gridAccelerationBC: t=%8.2e, dt=%9.3e BULK-SOLID scale pressure BC"
+                   " by mixedNormalCoeff=zp*dt/rho =%12.5e grid=%i (side,axis)=(%i,%i:  mixedCoeff=%12.5e )\n",
+		   t0,dt,mixedNormalCoeff(pc,side,axis,grid),grid,side,axis, mixedCoeff(pc,side,axis,grid));
 	}
 	else
 	{
@@ -218,8 +224,9 @@ gridAccelerationBC(const int & grid,
 
 	  InterfaceData & interfaceData = parameters.dbase.get<InterfaceData>(tractionDataName);
 	  aString buff;
-	  ::display(interfaceData.u,sPrintF(buff,"--GABC-- interface traction [%s] at ti=%9.3e (t0=%9.3e)",
-					    (const char*)tractionDataName,interfaceData.t,t0),"%6.3f ");
+	  if( t0 <= 2.*dt )
+	    ::display(interfaceData.u,sPrintF(buff,"--GABC-- interface traction [%s] at ti=%9.3e (t0=%9.3e)",
+					      (const char*)tractionDataName,interfaceData.t,t0),"%6.3f ");
           RealArray & solidTraction=interfaceData.u;
 
 	  assert( fabs(interfaceData.t-t0) <= fabs(t0)*REAL_EPSILON*10. );
@@ -232,7 +239,8 @@ gridAccelerationBC(const int & grid,
 	  parameters.getNormalForce( gf0.u,stressLocal,ipar,rpar );
 
 	  // ::display(solidTraction,"--GABC-- Here is the solid traction","%6.3f ");
-	  ::display(stressLocal(I1,I2,I3,1),"--GABC-- Here is the fluid stress stressLocal(I1,I2,I3,1)","%6.3f ");
+	  if( t0 <= 2.*dt )
+	    ::display(stressLocal(I1,I2,I3,1),"--GABC-- Here is the fluid stress stressLocal(I1,I2,I3,1)","%6.3f ");
 
 	  const real fluidDensity = parameters.dbase.get<real>("fluidDensity")!=0. ? parameters.dbase.get<real>("fluidDensity") : 1.;
 	  OV_GET_SERIAL_ARRAY(real,u,uLocal);
@@ -757,17 +765,17 @@ setPressureConstraintValues( GridFunction & gf0, realCompositeGridFunction & f )
       //             using the current guess for the pressure.
 
       RealArray bodyForceFromPressure, bodyTorqueFromPressure;
-      bool includeGravity = false, includeViscosity = false;
-      movingGrids.getForceOnRigidBodies( bodyForceFromPressure,bodyTorqueFromPressure, gf0,includeGravity,includeViscosity );
+      bool includeExternal = false, includeViscosity = false;
+      movingGrids.getForceOnRigidBodies( bodyForceFromPressure,bodyTorqueFromPressure, gf0,includeExternal,includeViscosity );
 
       // ************* TESTING ***************
       // Compute force on body due to viscous stress
       RealArray bodyForceFromViscousStress, bodyTorqueFromViscousStress;
       includeViscosity = true;
-      // includeGravity = false; 
-      includeGravity = true;  // ************* INCLUDE GRAVITY
+      // includeExternal = false; 
+      includeExternal = true;  // ************* INCLUDE ALL EXTERNAL FORCES
       movingGrids.getForceOnRigidBodies( bodyForceFromViscousStress,bodyTorqueFromViscousStress, 
-                                         gf0,includeGravity,includeViscosity );
+                                         gf0,includeExternal,includeViscosity );
       bodyForceFromViscousStress-=bodyForceFromPressure;
       bodyTorqueFromViscousStress-=bodyTorqueFromPressure;
 

@@ -6,7 +6,7 @@
 #  cgmx [-noplot] planeWave  -g=<name> -tf=<tFinal> -tp=<tPlot> -kx=<num> -ky=<num> -kz=<num> -show=<name> ...
 #        -plotIntensity=[0|1] -eps1=<> -eps2=<> -interit=<> -diss=<> -filter=[0|1] -debug=<num> -cons=[0/1] ...
 #        -method=[nfdtd|Yee|sosup] -bcn=[default|d|abc] -plotHarmonicComponents=[0|1] ] -dm=[none|drude]
-#        -go=[run/halt/og]
+#        -useSosupDissipation=[0|1] -sosupParameter=[0-1] -sosupDissipationOption=[0|1] -go=[run/halt/og]
 # Arguments:
 #  -kx= -ky= -kz= : integer wave numbers of the incident wave
 #  -interit : number of iterations to solve the interface equations 
@@ -123,7 +123,7 @@ $eps=1.; $mu=1.;
 $show=" "; $backGround="backGround"; $useNewInterface=0; $checkErrors=0; 
 $interfaceIterations=3;
 $grid="innerOuter4.order4.hdf";
-$cons=0; $go="halt"; 
+$cons=1; $go="halt";  $useSosupDissipation=0; $sosupParameter=1.;  $sosupDissipationOption=0;
 # 
 # ----------------------------- get command line arguments ---------------------------------------
 GetOptions( "g=s"=>\$grid,"tf=f"=>\$tFinal,"diss=f"=>\$diss,"tp=f"=>\$tPlot,"show=s"=>\$show,"debug=i"=>\$debug, \
@@ -135,6 +135,8 @@ GetOptions( "g=s"=>\$grid,"tf=f"=>\$tFinal,"diss=f"=>\$diss,"tp=f"=>\$tPlot,"sho
     "abcDir=i"=>\$abcDir,"abcSide=i"=>\$abcSide,"dissOrder=i"=>\$dissOrder,"filter=i"=>\$filter,\
     "divClean=i"=>\$divClean,"divCleanCoeff=f"=>\$divCleanCoeff,"solveForH=i"=>\$solveForH,\
     "projectInterp=i"=>\$projectInterp,"plotHarmonicComponents=i"=>\$plotHarmonicComponents,\
+    "useSosupDissipation=i"=>\$useSosupDissipation,"sosupParameter=f"=>\$sosupParameter,\
+    "sosupDissipationOption=i"=>\$sosupDissipationOption,\
     "checkErrors=i"=>\$checkErrors,"dm=s"=>\$dm );
 # -------------------------------------------------------------------------------------------------
 #
@@ -224,10 +226,15 @@ order of dissipation $dissOrder
 divergence damping $divDamping
 project interpolation points $projectInterp
 #
+use sosup dissipation $useSosupDissipation
+sosup parameter $sosupParameter
+sosup dissipation option $sosupDissipationOption
+#
+#
 use divergence cleaning $divClean
 div cleaning coefficient $divCleanCoeff
 #
-# use conservative difference $cons 
+use conservative difference $cons 
 debug $debug
 #
 cfl $cfl 

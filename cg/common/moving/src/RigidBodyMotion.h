@@ -51,7 +51,8 @@ enum PositionConstraintEnum
   enum BodyForceTypeEnum
   {
     timePolynomialBodyForce=0,
-    timeFunctionBodyForce
+    timeFunctionBodyForce,
+    restrictAngle
   };
 
   enum

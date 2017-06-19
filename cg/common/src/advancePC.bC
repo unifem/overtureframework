@@ -566,7 +566,11 @@ advanceAdamsPredictorCorrector( real & t0, real & dt0, int & numberOfSubSteps, i
     // *old way*
     // const real tForce = gf[mCur].t; // evaluate the body force at this time
     // computeBodyForcing( gf[mCur], tForce );
-
+    if( debug() & 4 )
+    {
+      fPrintF(debugFile,"--PC-- before getUt at t=%9.3e --- \n",gf[mCur].t);
+    }
+    
     for( grid=0; grid<gf[mCur].cg.numberOfComponentGrids(); grid++ )
     {
 	rparam[0]=gf[mCur].t;

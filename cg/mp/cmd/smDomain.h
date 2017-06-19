@@ -54,6 +54,7 @@ if( $displacementDissipation eq "" ){ $displacementDissipation=.5; }
 if( $displacementDissipation1 eq "" ){ $displacementDissipation1=.0; }
 if( $relaxAlpha eq "" ){ $relaxAlpha=.1; }
 if( $relaxDelta eq "" ){ $relaxDelta=.1; }
+if( $addedMass eq "" ){ $addedMass=0; }
 #
 if( $godunovOrder eq "" ){ $godunovOrder=2; }
 if( $godunovType eq "" ){ $godunovType=0; }
@@ -100,6 +101,8 @@ SMPDE:relaxAlpha $relaxAlpha
 SMPDE:relaxDelta $relaxDelta
 SMPDE:tangential stress dissipation $tangentialStressDissipation  $tangentialStressDissipation1
 SMPDE:displacement dissipation $displacementDissipation $displacementDissipation1
+#
+use added mass algorithm $addedMass
 # --- start hemp parameters ---
 SMPDE:Rg $hempRg
 SMPDE:yield stress $hempYield

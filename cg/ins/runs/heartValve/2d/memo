@@ -1,0 +1,38 @@
+this is a 2d problem generalized from a bi-leaflet heart valve simulation
+
+++++++GRIDS++++++
+no rotation
+ogen -noplot heartValve2dGrid.cmd -interp=e -factor=2 -rStir=1 -hfStir=0.05 -sharp=80
+
+rotate 20 degree
+ogen -noplot heartValve2dGrid.cmd -interp=e -factor=2 -rStir=1 -hfStir=0.05 -sharp=80 -degree=-20 -ycenter=0.15
+
+one leaflet (it helps to run quick tests; we may reduce the size of the domain)
+ogen -noplot heartValve2dGrid.cmd -interp=e -factor=2 -rStir=1 -hfStir=0.05 -sharp=80 -degree=-20 -ycenter=0.15 -leaflets=1
+
+++++++PLOTS and RUNS++++++
+plotOne.cmd is enough for most cases unless the leaflets break the symmetric due to shedding
+
+$cgins -noplot heartValveMoving2d -g=heartValve2de2.order2.hdf -tf=1.5 -tp=.1 -dtMax=.01 -nu=.01 -mass=1e5 -inertia=.001 -move=1 -bcOption=inflowCardiacCycle -project=0 -numberOfCorrections=2 -addedMass=1 -useProvidedAcceleration=1 -addedDamping=1 -addedDampingCoeff=1.0 -addedDampingProjectVelocity=1 -scaleAddedDampingWithDt=1 -useTP=0 -freqFullUpdate=1 -flushFrequency=2 -ycenter=0.15 -pMax=100 -tP1=1 -pMin=-200 -tP2=0.5 -bodyForce=restrictAngleDamp -theta10=-1.05 -theta20=0.1 -delta1=0.05 -epsilon1=5.e-2 -delta2=0.08 -epsilon2=5.e-3 -damp1=20 -damp2=20 -go=go -show=cardiacG2.show > cardiacG2.out
+
+
+
+
+6/16
+the time step is somehow very small; it is okay for now
+
+FIXED. the code cannot restart, fix cgins: src/projectInterfaceVelocity.C:31: 
+
+$cgins -noplot heartValveMoving2d -g=heartValve2de4.order2.hdf -tf=1.5 -tp=.1 -dtMax=.005 -nu=.01 -mass=1e5 -inertia=.001 -move=1 -bcOption=inflowCardiacCycle -project=0 -numberOfCorrections=2 -addedMass=1 -useProvidedAcceleration=1 -addedDamping=1 -addedDampingCoeff=1.0 -addedDampingProjectVelocity=1 -scaleAddedDampingWithDt=1 -useTP=0 -freqFullUpdate=1 -flushFrequency=2 -ycenter=0.15 -pMax=100 -tP1=1 -pMin=-200 -tP2=0.5 -bodyForce=restrictAngleDamp -theta10=-1.05 -theta20=0.1 -delta1=0.0025 -epsilon1=5.e-2 -delta2=0.04 -epsilon2=5.e-3 -damp1=20 -damp2=20 -go=go -restart=cardiacG4.show -show=cardiacG4rs.show > cardiacG4rs.out
+
+
+6/15/2017
+let nu=0.01 for now (same for 3d test). the real problem has a smaller nu that leads to shedding
+
+choose ycenter=ycenter when generating the grid
+
+$cgins -noplot heartValveMoving2d -g=heartValve2de2.order2.hdf -tf=1.5 -tp=.1 -dtMax=.01 -nu=.01 -mass=1e5 -inertia=.001 -move=1 -bcOption=inflowCardiacCycle -project=0 -numberOfCorrections=2 -addedMass=1 -useProvidedAcceleration=1 -addedDamping=1 -addedDampingCoeff=1.0 -addedDampingProjectVelocity=1 -scaleAddedDampingWithDt=1 -useTP=0 -freqFullUpdate=1 -flushFrequency=2 -ycenter=0.15 -pMax=100 -tP1=1 -pMin=-200 -tP2=0.5 -bodyForce=restrictAngleDamp -theta10=-1.05 -theta20=0.1 -delta1=0.05 -epsilon1=5.e-2 -delta2=0.08 -epsilon2=5.e-3 -damp1=20 -damp2=20 -go=go -show=cardiacG2.show > cardiacG2.out
+
+$cgins -noplot heartValveMoving2d -g=heartValve2de4.order2.hdf -tf=1.5 -tp=.1 -dtMax=.005 -nu=.01 -mass=1e5 -inertia=.001 -move=1 -bcOption=inflowCardiacCycle -project=0 -numberOfCorrections=2 -addedMass=1 -useProvidedAcceleration=1 -addedDamping=1 -addedDampingCoeff=1.0 -addedDampingProjectVelocity=1 -scaleAddedDampingWithDt=1 -useTP=0 -freqFullUpdate=1 -flushFrequency=2 -ycenter=0.15 -pMax=100 -tP1=1 -pMin=-200 -tP2=0.5 -bodyForce=restrictAngleDamp -theta10=-1.05 -theta20=0.1 -delta1=0.0025 -epsilon1=5.e-2 -delta2=0.04 -epsilon2=5.e-3 -damp1=20 -damp2=20 -go=go -show=cardiacG4.show > cardiacG4.out
+
+mv twoStirMovingAngle.cmd heartValveMoving2d.cmd 

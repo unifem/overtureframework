@@ -25,6 +25,9 @@
 ! ----- Here are macros for the chirped-plane wave -----
 #Include "chirpedPlaneWave.h"
 
+! ----- Here are macros for the dispersive plane wave -----
+#Include "dispersivePlaneWave.h"
+
 ! -------------------------------------------------------------------------------------------------------
 ! Macro: third-order extrapolation:
 ! -------------------------------------------------------------------------------------------------------
@@ -171,10 +174,10 @@
 
      ! old: g2a=g2a+ wm-wp
 
-     call ogf2dfo(ep,fieldOption,xy(i1-is1,i2-is2,i3,0),xy(i1-is1,i2-is2,i3,1),t, um,vm,wm)
-     call ogf2dfo(ep,fieldOption,xy(i1+is1,i2+is2,i3,0),xy(i1+is1,i2+is2,i3,1),t, up,vp,wp)
-     call ogf2dfo(ep,fieldOption,xy(i1-js1,i2-js2,i3,0),xy(i1-js1,i2-js2,i3,1),t, uzm,vzm,wzm)
-     call ogf2dfo(ep,fieldOption,xy(i1+js1,i2+js2,i3,0),xy(i1+js1,i2+js2,i3,1),t, uzp,vzp,wzp)
+     call ogf2dfo(ep,ex,ey,hz,fieldOption,xy(i1-is1,i2-is2,i3,0),xy(i1-is1,i2-is2,i3,1),t, um,vm,wm)
+     call ogf2dfo(ep,ex,ey,hz,fieldOption,xy(i1+is1,i2+is2,i3,0),xy(i1+is1,i2+is2,i3,1),t, up,vp,wp)
+     call ogf2dfo(ep,ex,ey,hz,fieldOption,xy(i1-js1,i2-js2,i3,0),xy(i1-js1,i2-js2,i3,1),t, uzm,vzm,wzm)
+     call ogf2dfo(ep,ex,ey,hz,fieldOption,xy(i1+js1,i2+js2,i3,0),xy(i1+js1,i2+js2,i3,1),t, uzp,vzp,wzp)
      ws = (wzp-wzm)/(2.*dsa)  
      wr = (wp - wm)/(2.*dra)
      wx = rsxy(i1,i2,i3,axis,0)*wr + rsxy(i1,i2,i3,axisp1,0)*ws

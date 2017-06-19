@@ -89,8 +89,12 @@ boundaryConditionPredictor( const BoundaryConditionPredictorEnum bcpOption,
         assert( pc>= 0 && uc>=0 );
         const int numberOfGhostLines=2;
 
-        const int orderOfExtrapForP= orderOfPredictorCorrector==2 ? 3 : 4;  // -1 : means use exact soln
-        const int orderOfExtrapForU= orderOfPredictorCorrector==2 ? 3 : 4; 
+    // const int orderOfExtrapForP= orderOfPredictorCorrector==2 ? 3 : 4;  
+    // const int orderOfExtrapForU= orderOfPredictorCorrector==2 ? 3 : 4; 
+
+    // Use input order of extrapolation : June 8, 2017 *wdh*
+        const int orderOfExtrapForP=orderOfExtrapolation;  
+        const int orderOfExtrapForU=orderOfExtrapolation;
 
         if( debug() & 4 )
             fprintf(debugFile, " *** bcPredictor: orderOfPredictorCorrector=%i, orderOfExtrapForP=%i,"
@@ -312,10 +316,10 @@ boundaryConditionPredictor( const BoundaryConditionPredictorEnum bcpOption,
         	  }
           	    
 
-        	  if( false )
+        	  if( debug() & 2 && twilightZoneFlow() )
         	  {
           	    real maxErr=max(fabs(un(I1,I2,I3,pc)-e(mg0,I1,I2,I3,pc,t0+dt0)));
-          	    fprintf(debugFile," $$$$ Max error in extrapolating p at t=%8.2e is %8.2e\n",t0+dt0,maxErr);
+          	    fprintf(debugFile,"--BCP-- $$$$ Max error in extrapolating p at t=%8.2e is %8.2e\n",t0+dt0,maxErr);
           	    
 	    // unI1,I2,I3,pc)=e(mg0,I1,I2,I3,pc,t0+dt0); // **** do this for now ****
         	  }
@@ -441,12 +445,12 @@ boundaryConditionPredictor( const BoundaryConditionPredictorEnum bcpOption,
         	  fPrintF(debugFile,"*** After extrap ghost error in uv(t=%e)=%e (orderOfExtrapForU=%i)\n",gf[mNew].t,errMax0,
                                                       orderOfExtrapForU);
       	}
-      	if( debug() & 8  && parameters.dbase.get<bool >("twilightZoneFlow") )
+      	if( debug() & 4  && parameters.dbase.get<bool >("twilightZoneFlow") )
       	{
         	  Range PV(pc,uc+numberOfDimensions-1);
         	  MappedGrid & mgNew=gf[mNew].cg[grid];
         	  display(fabs(un(I1,I2,I3,PV)-e(mgNew,I1,I2,I3,PV,gf[mNew].t)),
-                                    sPrintF("ERROR after extrap p and ghost u in time to t=%9.3e",gf[mNew].t),debugFile,"%8.2e ");
+                                    sPrintF("--BCP-- ERROR after extrap p and ghost u in time to t=%9.3e",gf[mNew].t),debugFile,"%8.2e ");
       	}
 #endif
       	

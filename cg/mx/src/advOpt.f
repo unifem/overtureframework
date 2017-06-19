@@ -2,6 +2,7 @@
 !
 ! Optimized advance routines for cgmx
 !
+
 ! These next include files will define the macros that will define the difference approximations
 ! The actual macro is called below
 c Use this next macro to declare the statement functions that are defined below
@@ -111,9 +112,15 @@ c To include derivatives of rx use OPTION=RX
 
 
 
+! some newer version of these are created in advOpt.bf
 
+!      buildFile(advMx2dOrder2r,2,2,rectangular)
 
+!      buildFile(advMx2dOrder2c,2,2,curvilinear)
 
+!      buildFile(advMx2dOrder4r,2,4,rectangular)
+
+!      buildFile(advMx2dOrder4c,2,4,curvilinear)
 
 
        ! build these for testing symmetric operators -- BC's not implemented yet

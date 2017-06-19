@@ -624,7 +624,7 @@ output( GridFunction & gf0, int stepNumber )
     tracking( gf0, stepNumber );
 
   // output to any probe files
-  outputProbes( gf0, stepNumber );
+  outputProbes( parameters,gf0, stepNumber );
 
   // flush standard out in case it is being re-directed (and buffered) to a file
   fflush(stdout);

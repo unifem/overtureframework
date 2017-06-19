@@ -1,0 +1,67 @@
+this case is based on drop3d.cmd in SampleGrid
+
+++++++++GRIDS++++++++
+ogen -noplot drop3d -factor=1 -interp=e
+
+6/15
+
+serial test (G1 can run up to tfinal=7.3):
+$cgins -noplot sphereDrop -g=drop3de1.order2.hdf -tf=7.3 -tp=.5 -ts=im -radius=.5 -dropName=drop -channelName=channel -dtMax=.025 -project=0 -nu=0.67462470 -numberOfCorrections=2 -addedMass=1 -useProvidedAceration=1 -addedDamping=1 -addedDampingCoeff=1 -addedDampingProjectVelocity=1 -scaleAddedDampingWithDt=1 -useTP=0 -debug=3 -solver=best -psolver=best -rtol=1.e-7 -atol=1.e-9 -rtolp=1.e-5 -atolp=1.e-7 -freqFullUpdate=1 -bcOption=outflow -go=go -show=particleSettleG1.show > particleSettleG1.out &
+
+parallel test 
+mpirun -np 8 $cginsp -noplot sphereDrop -g=drop3de1.order2.hdf -tf=7.3 -tp=.5 -ts=im -radius=.5 -dropName=drop -channelName=channel -dtMax=.025 -project=0 -nu=0.67462470 -numberOfCorrections=2 -addedMass=1 -useProvidedAceration=1 -addedDamping=1 -addedDampingCoeff=1 -addedDampingProjectVelocity=1 -scaleAddedDampingWithDt=1 -useTP=0 -debug=3 -solver=best -psolver=best -rtol=1.e-7 -atol=1.e-9 -rtolp=1.e-5 -atolp=1.e-7 -freqFullUpdate=1 -bcOption=outflow -go=go -show=particleSettleG1np8.show > particleSettleG1np8.out &
+
+Issue 1: PETScSolver.C takes 10 seconds to build any pressure matrix if np=1, which takes more than half of the total computational time! np>1 it gets significantly reduced, 0.5s if np=4 on dev-intel16
+PETSc build matrix test (need turned off some output in PETScSolver.bC and generateMatrix.C, otherwise it is going to be too much):
+Compare np=1 vs np=4
+mpirun -np 4 $cginsp -noplot sphereDrop -g=drop3de1.order2.hdf -tf=1 -tp=.5 -ts=im -radius=.5 -dropName=drop -channelName=channel -dtMax=.025 -project=0 -nu=0.67462470 -numberOfCorrections=2 -addedMass=1 -useProvidedAceration=1 -addedDamping=1 -addedDampingCoeff=1 -addedDampingProjectVelocity=1 -scaleAddedDampingWithDt=1 -useTP=0 -debug=3 -solver=best -psolver=best -rtol=1.e-7 -atol=1.e-9 -rtolp=1.e-5 -atolp=1.e-7 -freqFullUpdate=1 -flushFrequency=10 -bcOption=outflow -go=go -ogesDebug=1
+
+serial test: build matrix is extremely fast
+$cgins -noplot sphereDrop -g=drop3de1.order2.hdf -tf=1 -tp=.5 -ts=im -radius=.5 -dropName=drop -channelName=channel -dtMax=.025 -project=0 -nu=0.67462470 -numberOfCorrections=2 -addedMass=1 -useProvidedAceration=1 -addedDamping=1 -addedDampingCoeff=1 -addedDampingProjectVelocity=1 -scaleAddedDampingWithDt=1 -useTP=0 -debug=3 -solver=best -psolver=best -rtol=1.e-7 -atol=1.e-9 -rtolp=1.e-5 -atolp=1.e-7 -freqFullUpdate=1 -flushFrequency=10 -bcOption=outflow -go=go -ogesDebug=3
+
+Issue 2: checkOG:ERROR occurs as long as the grid point is outside of domain; not seen in serial code
+see the parallel test; happens around t=7
+
+########### the following is my notes; ignore ################
+drop3d on hpcc=dropFine on cge; they both produced by drop3d
+
+explicit G1 can only run to tf=7.3 (implicit can run to tf=7.5)
+
+G1 (drop3de1)
+serial; run successfully to tf=7.3 without any error
+cpu=1.09e+03 memory=672.93 Mb, 405.9 reals/(grid-pt)
+$cgins -noplot sphereDrop -g=drop3de1.order2.hdf -tf=7.3 -tp=.5 -ts=im -radius=.5 -dropName=drop -channelName=channel -dtMax=.025 -project=0 -nu=0.67462470 -numberOfCorrections=2 -addedMass=1 -useProvidedAceration=1 -addedDamping=1 -addedDampingCoeff=1 -addedDampingProjectVelocity=1 -scaleAddedDampingWithDt=1 -useTP=0 -debug=3 -solver=best -psolver=best -rtol=1.e-7 -atol=1.e-9 -rtolp=1.e-5 -atolp=1.e-7 -freqFullUpdate=1 -flushFrequency=10 -bcOption=outflow -go=go -show=particleSettleG1.show > particleSettleG1.out &
+
+parallel
+conclusion: np=1 np=8 and serial results are very closed but checkOG:ERROR will appear as soon as the grid is out of bounds (verify it in 2D!!)
+its effects are not clear; certainly it fails to write the last show file; but I am not sure how much it will affect the solution
+
+np=1 particleSettleG1np1.out; very slow
+estimated cpu=4hours; estimated memory=1GB
+cpu= memory
+
+np=8 -show=particleSettleG1np8.show; 
+issue: checkOG:ERROR with negative interp weights
+cpu= memory=
+
+drop3di1
+
+np=8 a bug seems appear but cannot reproduce. very strange
+
+test np=1
+
+$cgins -noplot sphereDrop -g=drop3de1.order2.hdf -tf=1 -tp=.5 -ts=im -radius=.5 -dropName=drop -channelName=channel -dtMax=.025 -project=0 -nu=0.67462470 -numberOfCorrections=2 -addedMass=1 -useProvidedAceration=1 -addedDamping=1 -addedDampingCoeff=1 -addedDampingProjectVelocity=1 -scaleAddedDampingWithDt=1 -useTP=0 -debug=3 -solver=best -psolver=best -rtol=1.e-7 -atol=1.e-9 -rtolp=1.e-5 -atolp=1.e-7 -freqFullUpdate=1 -flushFrequency=10 -bcOption=outflow -go=go > testG1.out &
+
+mpirun -np 1 $cginsp -noplot sphereDrop -g=drop3de1.order2.hdf -tf=1 -tp=.5 -ts=im -radius=.5 -dropName=drop -channelName=channel -dtMax=.025 -project=0 -nu=0.67462470 -numberOfCorrections=2 -addedMass=1 -useProvidedAceration=1 -addedDamping=1 -addedDampingCoeff=1 -addedDampingProjectVelocity=1 -scaleAddedDampingWithDt=1 -useTP=0 -debug=3 -solver=best -psolver=best -rtol=1.e-7 -atol=1.e-9 -rtolp=1.e-5 -atolp=1.e-7 -freqFullUpdate=1 -flushFrequency=10 -bcOption=outflow -go=go > testG1np1.out &
+
+long time to build matrix
+1044 PETScSolver:: ... done build matrix, cpu=1.16e+01 
+1185 PETScSolver:: ... done build matrix, cpu=1.18e+01
+1488 PETScSolver:: ... done build matrix, cpu=1.24e+01
+1608 PETScSolver:: ... done build matrix, cpu=1.22e+01
+
+
+G2
+$cgins -noplot sphereDrop -g=drop3de2.order2.hdf -tf=8.5 -tp=.5 -ts=im -radius=.5 -dropName=drop -channelName=channel -dtMax=.025 -project=0 -nu=0.67462470 -numberOfCorrections=2 -addedMass=1 -useProvidedAceration=1 -addedDamping=1 -addedDampingCoeff=1 -addedDampingProjectVelocity=1 -scaleAddedDampingWithDt=1 -useTP=0 -debug=3 -solver=best -psolver=best -rtol=1.e-7 -atol=1.e-9 -rtolp=1.e-5 -atolp=1.e-7 -freqFullUpdate=1 -flushFrequency=10 -bcOption=outflow -go=go -show=particleSettleG2.show > particleSettleG2.out &
+
+

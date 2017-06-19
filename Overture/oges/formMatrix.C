@@ -242,7 +242,8 @@ initialize( )
     }
   }
   
-  if( parameters.solver!=OgesParameters::PETScNew )
+  if( TRUE ||  // *wdh* March 14, 2017 -- do this in parallel too --
+      parameters.solver!=OgesParameters::PETScNew )
   { // do not build a nullVector for the new PETSc interface -- at least for now
 
     if( parameters.compatibilityConstraint ||
@@ -263,17 +264,21 @@ initialize( )
          numberOfExtraEquations = 1;
       }
       
-      if (Oges::debug & 2) 
+      if( Oges::debug & 2 ) 
 	printF("--OGES--initialize: compatibilityConstraint=%i userSuppliedEquations=%i userSuppliedConstraint=%i numberOfExtraEquations=%i\n",
 	       (int)parameters.compatibilityConstraint,(int)parameters.userSuppliedEquations,userSuppliedConstraint,numberOfExtraEquations );
       
 
       findExtraEquations();
-      // *wdh* 060621 rightNullVector.updateToMatchGrid(cg,nullRange,nullRange,nullRange,1);  // positionOfComponent=3
-      makeRightNullVector();
 
-      if ( !coefficientsOfDenseExtraEquations ) // kkc 080725, the coefficients might be set differently from the rightNullVector
-	coefficientsOfDenseExtraEquations = &rightNullVector;
+      if( parameters.solver!=OgesParameters::PETScNew )
+      { // do not build a nullVector for the new PETSc interface
+	makeRightNullVector();
+
+	if ( !coefficientsOfDenseExtraEquations ) // kkc 080725, the coefficients might be set differently from the rightNullVector
+	  coefficientsOfDenseExtraEquations = &rightNullVector;
+      }
+      
     }
     else if(numberOfExtraEquations>0) 
     {
@@ -283,13 +288,15 @@ initialize( )
       coefficientsOfDenseExtraEquations =NULL;
     }
   }
+  // **** OLD: **********
   else if( parameters.solver==OgesParameters::PETScNew )
   {
     if( true )
     {
       // *wdh* 2017/02/24
-      printF("\n _____ formMatrix: PETScNew: parameters.compatibilityConstraint=%i, numberOfExtraEquations=%i\n",
-	     (int)parameters.compatibilityConstraint,numberOfExtraEquations);
+      if( Oges::debug & 2 )
+	printF("\n _____ formMatrix: PETScNew: parameters.compatibilityConstraint=%i, numberOfExtraEquations=%i\n",
+	       (int)parameters.compatibilityConstraint,numberOfExtraEquations);
 
       // ** In parallel the PETScSolver will generate the null vector directly ***
       // ** FIX ME if there are 
@@ -323,8 +330,8 @@ initialize( )
     
   }
 
-  initialized         = FALSE;
-  shouldBeInitialized = FALSE;
+  initialized         = false;
+  shouldBeInitialized = false;
   return(errorNumber);
 }
 

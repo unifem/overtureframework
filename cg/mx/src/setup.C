@@ -97,12 +97,60 @@ computeTimeStep()
   CompositeGrid & cg= *cgp;
   const int numberOfComponentGrids = cg.numberOfComponentGrids();
   const int numberOfDimensions = cg.numberOfDimensions();
-  
+
   deltaT=REAL_MAX*.01;
   
 //    RealArray dtGrid(numberOfComponentGrids);  // time step for each grid by itself
 //    dtGrid=REAL_MAX;
   
+  // ====== SOSUP STABILITY REGIONS =======
+  // SOSUP: dt depends on the order of accuracy
+  // Approximate stability regions:
+  //      (c*dt/dx)^sp + (c*dt/dy)^sp = lambda^sp
+  // Then
+  //     dt =  (lambda/c) / [  (1/dx)^sigma + (1/dy)^sigma )^(1/sigma) ]
+  // 
+  // where sp and lambda depend on the orderOfAccuracyInSpace:
+  //   sp     = sosupPower[orderOfAccuracyInSpace], 
+  //   lambda = sosupLambda[orderOfAccuracyInSpace], 
+  const int maxOrderOfAccuracy=10;
+  assert( orderOfAccuracyInSpace<=maxOrderOfAccuracy );
+  real sosupPower2d[maxOrderOfAccuracy]  = { 2., 2., 2., 2., 2., 2., 2., 2., 2., 2. }; // note: some entries not used
+  real sosupLambda2d[maxOrderOfAccuracy] = { 1., 1., 1., 1., 1., 1., 1., 1., 1., 1. }; // 
+  real sosupPower3d[maxOrderOfAccuracy]  = { 2., 2., 2., 2., 2., 2., 2., 2., 2., 2. }; // 
+  real sosupLambda3d[maxOrderOfAccuracy] = { 1., 1., 1., 1., 1., 1., 1., 1., 1., 1. }; // 
+    
+  // From Jeff Banks:
+  //  2nd order: sigma=1.35,   b=.605
+  //  4th order: sigma=2.175,  b=1.075
+  //  6th order: sigma=1.6,    b=1.275
+  //  6th order: sigma=1.5,    b=1.55 (Sept 2015)
+  sosupPower2d[2]=1.35;  sosupLambda2d[2]=.605;   // 2nd order 2D
+  sosupPower2d[4]=2.175; sosupLambda2d[4]=1.075;  // 4th order 2D, beta = 1
+  //sosupPower2d[4]=1.6;   sosupLambda2d[4]=1.4;    // 4th order 2D, beta = 0.8
+  //sosupPower2d[6]=1.6;   sosupLambda2d[6]=1.275;  // 6th order 2D
+  sosupPower2d[6]=1.5;   sosupLambda2d[6]=1.55;  // 6th order 2D (Sept 2015)
+    
+  // *finish me for 3D:*
+  sosupPower3d[2]=1.35;  sosupLambda3d[2]=.605;   // 2nd order 3D
+
+  // sosupPower3d[4]=2.175; sosupLambda3d[4]=1.075;  // 4th order 3D, beta = 1
+  // *wdh* July 1, 2016 -- reduced cfl seems to be needed (dieletric sphere G2)
+  // should be able to run at cfl=.95 with this: 
+  sosupPower3d[4]=2.175; sosupLambda3d[4]=1.075*.75;  // 4th order 3D, beta = 1 *wdh* reduce by .75 
+             
+  //sosupPower3d[4]=1.6;   sosupLambda3d[4]=1.4;    // 4th order 3D, beta = 0.8
+  //sosupPower3d[6]=1.6;   sosupLambda3d[6]=1.275;  // 6th order 3D
+  sosupPower3d[6]=1.5;   sosupLambda3d[6]=1.55;  // 6th order 3D (Sept 2015)
+
+
+  // ============== FD + SOSUP Dissipation ============
+  const int & useSosupDissipation = parameters.dbase.get<int>("useSosupDissipation");
+  const real & sosupParameter = parameters.dbase.get<real>("sosupParameter");    // scaling of sosup dissipation
+
+  // ** FINISH ME **
+  
+
   real cMax=max(cGrid);
   if( numberOfMaterialRegions>1 )
   { // Compute maximum c for variable eps and mu
@@ -124,44 +172,6 @@ computeTimeStep()
     if( numberOfMaterialRegions>1 )
       c=cMax;
 	
-    // SOSUP: dt depends on the order of accuracy
-    // Approximate stability regions:
-    //      (c*dt/dx)^sp + (c*dt/dy)^sp = lambda^sp
-    // Then
-    //     dt =  (lambda/c) / [  (1/dx)^sigma + (1/dy)^sigma )^(1/sigma) ]
-    // 
-    // where sp and lambda depend on the orderOfAccuracyInSpace:
-    //   sp     = sosupPower[orderOfAccuracyInSpace], 
-    //   lambda = sosupLambda[orderOfAccuracyInSpace], 
-    const int maxOrderOfAccuracy=10;
-    assert( orderOfAccuracyInSpace<=maxOrderOfAccuracy );
-    real sosupPower2d[maxOrderOfAccuracy]  = { 2., 2., 2., 2., 2., 2., 2., 2., 2., 2. }; // note: some entries not used
-    real sosupLambda2d[maxOrderOfAccuracy] = { 1., 1., 1., 1., 1., 1., 1., 1., 1., 1. }; // 
-    real sosupPower3d[maxOrderOfAccuracy]  = { 2., 2., 2., 2., 2., 2., 2., 2., 2., 2. }; // 
-    real sosupLambda3d[maxOrderOfAccuracy] = { 1., 1., 1., 1., 1., 1., 1., 1., 1., 1. }; // 
-    
-    // From Jeff Banks:
-    //  2nd order: sigma=1.35,   b=.605
-    //  4th order: sigma=2.175,  b=1.075
-    //  6th order: sigma=1.6,    b=1.275
-    //  6th order: sigma=1.5,    b=1.55 (Sept 2015)
-    sosupPower2d[2]=1.35;  sosupLambda2d[2]=.605;   // 2nd order 2D
-    sosupPower2d[4]=2.175; sosupLambda2d[4]=1.075;  // 4th order 2D, beta = 1
-    //sosupPower2d[4]=1.6;   sosupLambda2d[4]=1.4;    // 4th order 2D, beta = 0.8
-    //sosupPower2d[6]=1.6;   sosupLambda2d[6]=1.275;  // 6th order 2D
-    sosupPower2d[6]=1.5;   sosupLambda2d[6]=1.55;  // 6th order 2D (Sept 2015)
-    
-    // *finish me for 3D:*
-    sosupPower3d[2]=1.35;  sosupLambda3d[2]=.605;   // 2nd order 3D
-
-    // sosupPower3d[4]=2.175; sosupLambda3d[4]=1.075;  // 4th order 3D, beta = 1
-    // *wdh* July 1, 2016 -- reduced cfl seems to be needed (dieletric sphere G2)
-    // should be able to run at cfl=.95 with this: 
-    sosupPower3d[4]=2.175; sosupLambda3d[4]=1.075*.75;  // 4th order 3D, beta = 1 *wdh* reduce by .75 
-             
-    //sosupPower3d[4]=1.6;   sosupLambda3d[4]=1.4;    // 4th order 3D, beta = 0.8
-    //sosupPower3d[6]=1.6;   sosupLambda3d[6]=1.275;  // 6th order 3D
-    sosupPower3d[6]=1.5;   sosupLambda3d[6]=1.55;  // 6th order 3D (Sept 2015)
 
     real dtg=REAL_MAX*.01;
     if( mg.getGridType()==MappedGrid::structuredGrid )
@@ -389,6 +399,13 @@ computeTimeStep()
       // Curvilinear grids use: artificialDissipationCurvilinear
       const real artDiss = mg.isRectangular() ? artificialDissipation : artificialDissipationCurvilinear;
        
+      if( useSosupDissipation!=0 && artDiss !=0. )
+      {
+	printF("--MX-- getTimeStep: ERROR: useSosupDissipaton but normal artificial dissipation is also on!\n");
+	OV_ABORT("error");
+      }
+      
+
       if( artDiss>0. )
       {
 	// Here is the correction for artificial dissipation
@@ -1562,16 +1579,15 @@ setupGrids()
   sigmaEGrid.redim(numberOfComponentGrids);  sigmaEGrid=0.;
   sigmaHGrid.redim(numberOfComponentGrids);  sigmaHGrid=0.;
 
-  // Dispersive material parameters may vary from grid to grid (usually domain to domain)
-  std::vector<DispersiveMaterialParameters> & dispersiveMaterialParameters = 
+  // Dispersive material parameters may vary from domain to domain
+  std::vector<DispersiveMaterialParameters> & dmpVector = 
     dbase.get<std::vector<DispersiveMaterialParameters> >("dispersiveMaterialParameters");
 
-  dispersiveMaterialParameters.resize(numberOfComponentGrids);
-  // while( dispersiveMaterialParameters.size()< numberOfComponentGrids)
-  // {
-  //   dispersiveMaterialParameters.push_back(DispersiveMaterialParameters());
-  // }
- 
+  assert( cgp!=NULL );
+  CompositeGrid & cg = *cgp;
+
+  if( dmpVector.size()<cg.numberOfDomains() )
+    dmpVector.resize(cg.numberOfDomains());
 
  // subtract out the incident field before apply NRBC's
   adjustFarFieldBoundariesForIncidentField.redim(numberOfComponentGrids);

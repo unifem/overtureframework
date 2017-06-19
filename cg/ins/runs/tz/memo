@@ -1,0 +1,271 @@
+*************************************
+*********  June 8, 2017
+
+TEST IMEX-BDF44 - 
+
+**FIXED** exact degree=(4,3)
+cgins -noplot tz -g=square4.order4.ng3 -tz=poly -ts=imex -orderInTime=4 -nc=1 -bcn=noSlip -tp=.01 -tf=.02 -cfl=1 -useNewImp=0 -checkErrOnGhost=2  -debug=7 -go=go -degreex=4 -degreet=3
+
+IMEX-BDF44 -- *BROKEN*
+cgins -noplot tz -g=square4.order4.ng3 -tz=poly -ts=imex -orderInTime=4 -nc=1 -bcn=noSlip -tp=.01 -tf=.02 -cfl=1 -useNewImp=0 -checkErrOnGhost=2  -debug=7 -go=go -degreex=1 -degreet=1
+
+
+*************************************
+*********  June 6-7, 2017
+
+TEST IMEX-BDF44 - 
+
+IMEX-BDF44 -- OK now: exact for IMEX-BDF44 degree=(4,3)
+cgins -noplot tz -g=square4.order4.ng3 -tz=poly -ts=imex -orderInTime=4 -nc=1 -bcn=noSlip -tp=.01 -tf=.05 -cfl=1 -useNewImp=0 -checkErrOnGhost=2  -debug=3 -go=go -degreex=4 -degreet=3 
+
+
+DEBUG: 
+cgins -noplot tz -g=square4.order4.ng3 -tz=poly -ts=imex -orderInTime=4 -nc=1 -bcn=noSlip -tp=.01 -tf=.05 -cfl=1 -useNewImp=0 -checkErrOnGhost=2  -debug=3 -go=go -degreex=1 -degreet=0 
+
+TEST dirichlet BC's -- looks exact for degree(4,3)
+cgins -noplot tz -g=square4.order4.ng3 -tz=poly -ts=imex -orderInTime=4 -nc=1 -bcn=d -tp=.01 -tf=.05 -cfl=1 -debug=3 -useNewImp=0 -go=go -degreex=4 -degreet=3
+
+degree=(1,0) -- not exact 
+degree(0,4)=exact
+cgins -noplot tz -g=square4.order4.ng3 -tz=poly -ts=imex -orderInTime=4 -nc=1 -degreex=1 -degreet=0 -bcn=noSlip -tp=.01 -tf=.02 -cfl=1 -debug=7 -useNewImp=0 -go=go
+
+
+IMEX-BDF24
+cgins -noplot tz -g=square4.order4.ng3 -tz=poly -ts=imex -orderInTime=2 -nc=1 -degreex=2 -degreet=1 -bcn=noSlip -tp=.01 -tf=.03 -cfl=1 -debug=3  -useNewImp=0  -go=go
+
+************************************************
+******** April 3, 2017
+
+TEST upwind: 
+
+ cgins -noplot tz -g=square10.order2 -degreex=1 -degreet=1 -ts=pc -ao=upwind -upwindOrder=1 -cfl=.5 -bcn=d -tp=.05 -tf=.1 -go=go
+
+
+
+****************************
+*** Feb 9, 2017
+
+
+TEST IMEX-BDF4-MOVE: degree (1,1)=exact , (2,2)=exact (2,3)=NOT 
+cgins -noplot tz -g=square4.order2 -tz=poly -ts=imex -orderInTime=4 -nc=1 -degreex=1 -degreet=1 -bcn=noSlip -tp=.01 -tf=.03 -cfl=1 -debug=3 -move=shift -go=go 
+
+Convergence test: looks fourth -order in time
+cgins -noplot tz -g=square16.order2 -tz=poly -ts=imex -orderInTime=4 -nc=1 -degreex=2 -degreet=4 -bcn=noSlip -tp=.01 -tf=.05 -cfl=1 -debug=3 -move=shift -go=go 
+dt=.01
+   0.050 3.70e-08 9.36e-09 5.20e-09 7.66e-08  4.31e+00 1.00e-02 8.05e-02 
+dt=.05
+  0.050 2.16e-09 5.57e-10 3.03e-10 4.65e-09  4.31e+00 5.00e-03 1.46e-01 
+
+TEST IMEX-BDF2-MOVE: degree (1,1)=exact 
+cgins -noplot tz -g=square4.order2 -tz=poly -ts=imex -orderInTime=2 -nc=1 -degreex=2 -degreet=1 -bcn=noSlip -tp=.01 -tf=.03 -cfl=1 -debug=3 -move=shift -go=go 
+
+
+TEST IMEX-BDF4 + NOSLIP WALLS
+(2,3)=exact 
+cgins -noplot tz -g=square4.order2 -tz=poly -ts=imex -orderInTime=4 -nc=1 -degreex=1 -degreet=2 -bcn=noSlip -tp=.01 -tf=.03 -cfl=1 -debug=3 -go=go 
+
+TEST IMEX-BDF2 + NOSLIP WALLS
+
+EXACT degree = (1,2) or (2,1) 
+cgins -noplot tz -g=square4.order2 -tz=poly -ts=imex -orderInTime=2 -nc=1 -degreex=2 -degreet=1 -bcn=noSlip -tp=.01 -tf=.03 -cfl=1 -debug=3 -go=go 
+
+
+TEST IMEX-BDF4 -- multiple steps
+(0,4) = OK , (2,3)=exact,  (2,4)=very-small
+
+cgins -noplot tz -g=square4.order2 -tz=poly -ts=imex -orderInTime=4 -nc=0 -degreex=2 -degreet=3 -bcn=d -tp=.01 -tf=.02 -cfl=1 -debug=3 -go=go
+
+
+==== BASIC TESTS: ALL
+
+
+IM22 -move : 
+cgins -noplot tz -g=square4.order2 -tz=poly -ts=im -degreex=2 -degreet=1 -bcn=d -move=shift -tp=.005 -tf=.01 -debug=3 -go=go
+
+IM22: exact
+cgins -noplot tz -g=square4.order2 -tz=poly -ts=im -degreex=2 -degreet=1 -bcn=d -tp=.005 -tf=.01 -debug=3 -go=go
+
+
+
+
+****************************
+*** Feb 7, 2017
+
+** fixed**
+IM + moving grid is broken
+
+cgins noplot ./../cmd/tz.cmd -g=square10.order4 -degreex=4 -degreet=1 -ts=im -iv=oldViscous -bcn=noSlip -bc1=inflow -bc2=outflow -tp=.05 -tf=.05 -go=go 
+
+cgins slider.cmd -g=slideri1.order2.hdf -nu=.05 -tf=.05 -tp=.025 -impGrids="all=implicit" -tz=poly -degreex=1 -degreet=1 -vShift=5. -go=halt
+
+
+****************************
+*** Feb 4-5, 2017
+
+Normal IM -- BROKEN : 
+cgins -noplot tz -g=square4.order2 -tz=poly -ts=im -degreex=2 -degreet=1 -bcn=d -tp=.005 -tf=.01 -debug=3 -go=go
+
+
+
+IMEX-BDF Order 4 **TEST**
+
+PC: EXACT degree(0,4)
+cgins -noplot tz -g=square4.order2 -tz=poly -ts=imex -orderInTime=4 -nc=0 -degreex=0 -degreet=1 -bcn=d -tp=.1 -tf=.1 -cfl=10 -debug=3 -go=go > ! junk 
+
+
+PREDICTOR ONLY -- EXACT for degree(1,4), (3,3) , NOT-exact for (2,4)
+cgins -noplot tz -g=square4.order2 -tz=poly -ts=imex -orderInTime=4 -nc=0 -degreex=2 -degreet=3 -bcn=d -tp=.1 -tf=.1 -cfl=10 -debug=3 -go=go > ! junk   
+
+Degree (0,1) = exact 
+
+
+PREDICTOR ONLY
+cgins -noplot tz -g=square4.order2 -tz=poly -ts=imex -orderInTime=4 -nc=0 -degreex=0 -degreet=1 -bcn=d -tp=.005 -tf=.005 -debug=3 -go=go
+
+     t    err(p)   err(u)   err(v)    div       uMax     dt       cpu    (1 steps)
+   0.005 2.22e-16 2.78e-17 2.78e-17 5.55e-17  1.00e+00 5.00e-03 1.31e-02 
+
+
+IMEX-BDF2
+cgins -noplot tz -g=square16.order2 -tz=poly -ts=imex -nc=1 -degreex=2 -degreet=2 -bcn=d -tp=.005 -tf=.01 -debug=3 -go=go
+____-> IMEX AB-BDF scheme: numberOfCorrections=1 numberOfSolutionLevels=3 numberOfTimeDerivativeLevels=2 numberOfGridFunctions=3 numberOfExtraFunctionsToUse=3
+____-> mab0=0 mab1=1, nab0=0, nab1=1 mNew=2 mCur=0 mOld=1
+
+Normal IM
+cgins -noplot tz -g=square4.order2 -tz=poly -ts=im -degreex=2 -degreet=1 -bcn=d -tp=.005 -tf=.01 -debug=3 -go=go
+____-> IM scheme: numberOfCorrections=1 numberOfSolutionLevels=2 numberOfTimeDerivativeLevels=2 numberOfGridFunctions=2 numberOfExtraFunctionsToUse=3
+____-> mab0=0 mab1=1, nab0=0, nab1=1 mNew=1 mCur=0 mOld=1
+
+
+****************************
+*** Feb 3, 2017
+
+IMEX-BDF Order 4 **TEST**
+
+PREDICTOR ONLY
+cgins tz -g=square4.order2 -tz=poly -ts=imex -orderInTime=4 -nc=0 -degreex=0 -degreet=1 -bcn=d -tp=.005 -tf=1 -debug=3 -go=halt
+
+****************************
+*** Jan 29, 2017
+
+IMEX-BDF:
+
+PREDICTOR + CORRECTOR 
+cgins -noplot tz -g=square16.order2 -tz=poly -ts=imex -nc=1 -degreex=2 -degreet=2 -bcn=d -tp=.005 -tf=.01 -debug=3 -go=go
+     t    err(p)   err(u)   err(v)    div       uMax     dt       cpu    (1 steps)
+   0.005 1.77e-09 1.52e-09 3.35e-10 1.61e-08  4.01e+00 5.00e-03 6.42e+00 
+
+PREDICTOR ONLY
+cgins tz -g=square16.order2 -tz=poly -ts=imex -nc=0 -degreex=2 -degreet=2 -bcn=d -tp=.005 -tf=1 -debug=3 -go=halt
+
+    t    err(p)   err(u)   err(v)    div       uMax     dt       cpu    (1 steps)
+   0.005 1.47e-08 2.22e-08 1.33e-15 1.77e-07  4.01e+00 5.00e-03 2.78e+00 
+
+
+IM22:
+cgins tz -g=square16.order2 -tz=poly -ts=im -nc=0 -degreex=2 -degreet=2 -bcn=d -tp=.005 -tf=1 -debug=3 -go=halt
+     t    err(p)   err(u)   err(v)    div       uMax     dt       cpu    (1 steps)
+   0.005 1.09e-08 1.67e-08 6.66e-16 1.33e-07  4.01e+00 5.00e-03 2.81e+00 
+
+
+****************************
+*** Jan 28, 2017
+
+START work on IMEX AB-BDF scheme
+
+cgins tz -g=square16.order2 -tz=poly -ts=imex -nc=0 -degreex=2 -degreet=2 -bcn=d -tp=.001 -tf=1 -debug=3 -go=halt
+
+
+**************************************
+***** Dec 22-23, 2016
+
+
+==============  BC=dirichlet TZ=TRIG 
+
+**** errors are better, but funny results 
+            -- do time errors dominate?
+            -- u,v errors are better than order=4
+            -- p errors just oerv 3rd order
+
+
+cgins tz -g=square64.order4 -tz=trig -ts=pc4 -bcn=d -tp=.1 -tf=1 -go=halt -debug=3
+cgins tz -g=square32.order4 -tz=trig -ts=pc4 -bcn=d -tp=.1 -tf=1 -go=halt
+cgins tz -g=square16.order4 -tz=trig -ts=pc4 -bcn=d -tp=.1 -tf=1 -go=halt
+
+G64:
+    t    err(p)   err(u)   err(v)    div       uMax     dt       cpu    (3130 steps)
+   1.000 1.91e-07 2.50e-08 8.17e-09 7.93e-07  1.00e+00 3.05e-04 2.78e+01 
+G32
+    t    err(p)   err(u)   err(v)    div       uMax     dt       cpu    (790 steps)
+   1.000 2.55e-06 6.72e-07 1.79e-07 1.06e-05  1.00e+00 1.27e-03 6.31e+00 
+G16
+    t    err(p)   err(u)   err(v)    div       uMax     dt       cpu    (200 steps)
+   1.000 2.99e-05 1.58e-05 5.87e-06 1.02e-04  1.00e+00 5.00e-03 3.08e+00 
+
+cgins tz -g=square16.order4 -degreex=4 -degreet=3 -ts=pc4 -bcn=d -tp=.1 -tf=1 -go=halt
+
+    t    err(p)   err(u)   err(v)    div       uMax     dt       cpu    (369 steps)
+   1.000 7.55e-15 8.88e-15 5.33e-15 8.53e-14  1.19e+01 2.13e-03 3.80e+00 
+
+
+
+================ BC=noslip TZ=POLY 
+TZ44
+cgins tz -g=square16.order4 -degreex=4 -degreet=4 -ts=pc4 -useNewImp=0 -bcn=d -tp=.1 -tf=1 -go=halt
+
+G32
+    t    err(p)   err(u)   err(v)    div       uMax     dt       cpu    (1013 steps)
+   1.000 2.01e-12 1.37e-12 7.41e-13 2.58e-11  1.30e+01 7.75e-04 5.47e+00 
+G16
+    t    err(p)   err(u)   err(v)    div       uMax     dt       cpu    (374 steps)
+   1.000 3.94e-11 5.30e-11 2.90e-11 4.91e-10  1.30e+01 2.00e-03 2.00e+01 
+
+cgins tz -g=square16.order4 -degreex=4 -degreet=3 -ts=pc4 -useNewImp=0 -bcn=d -tp=.1 -tf=1 -go=halt
+    t    err(p)   err(u)   err(v)    div       uMax     dt       cpu    (369 steps)
+   1.000 7.55e-15 8.88e-15 5.33e-15 8.53e-14  1.19e+01 2.13e-03 1.05e+01 
+
+
+================ BC=noslip TZ=TRIG
+
+cgins tz -g=square16.order4.ng3 -tz=trig -ts=pc4 -bcn=noSlip -tp=.1 -tf=1 -debug=3 -go=halt
+
+G64
+    t    err(p)   err(u)   err(v)    div       uMax     dt       cpu    (3130 steps)
+   1.000 2.19e-07 2.74e-09 4.47e-09 8.22e-08  1.00e+00 3.05e-04 3.50e+01 
+
+G32
+    t    err(p)   err(u)   err(v)    div       uMax     dt       cpu    (790 steps)
+   1.000 3.45e-06 9.15e-08 2.18e-07 2.46e-06  1.00e+00 1.27e-03 6.84e+00 
+G16
+     t    err(p)   err(u)   err(v)    div       uMax     dt       cpu    (200 steps)
+   1.000 6.06e-05 4.41e-06 9.85e-06 6.17e-05  1.00e+00 5.00e-03 4.76e+00 
+
+
+=================================================
+CHECK PC44 scheme
+
+CHECK: **TROUBLE***
+
+PC44:
+cgins tz -g=square16.order4 -degreex=4 -degreet=3 -ts=pc4 -useNewImp=0 -bcn=noSlip -bc1=outflow -tp=.1 -tf=5 -go=halt
+
+
+PC24:
+cgins tz -g=square16.order4 -degreex=4 -degreet=3 -ts=pc -useNewImp=0 -bcn=noSlip -bc1=outflow -tp=.1 -tf=5 -go=halt
+
+**************************************
+***** June 11, 2016
+
+
+check accuracy at branch cut problem for translating disk
+
+cgins tz -g=annulus2.order2 -degreex=3 -degreet=2 -ts=im -iv=viscous -tp=.01 -tf=.1 -go=halt
+
+
+
+
+**********************************************8
+
+SIMPLE example for COMP-SCI folks 
+
+cgins -noplot tz -g=box1.order4 -degreex=4 -degreet=3 -ts=pc4 -useNewImp=0 -tp=.05 -tf=.1 -show=box.show -go=go

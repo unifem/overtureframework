@@ -27,6 +27,7 @@ getUserDefinedKnownSolution(real t, CompositeGrid & cg, int grid, realArray & ua
 
   MappedGrid & mg = cg[grid];
   const int numberOfDimensions = cg.numberOfDimensions();
+  const real & dt= deltaT;
   
   if( ! dbase.has_key("userDefinedKnownSolutionData") )
   {
@@ -317,7 +318,8 @@ getUserDefinedKnownSolution(real t, CompositeGrid & cg, int grid, realArray & ua
     real omegaDpwRe, omegaDpwIm;
     dmp.computeDispersivePlaneWaveParameters( c,eps,mu,kk, omegaDpwRe, omegaDpwIm );
 
-    printF("--UDKS:DPW-- t=%10.3e, omegar=%g, omegai=%g\n",t,omegaDpwRe, omegaDpwIm );
+    if( t<3.*dt )
+      printF("--UDKS:DPW-- t=%10.3e, omegar=%g, omegai=%g\n",t,omegaDpwRe, omegaDpwIm );
 
     const real dpwExp =exp(omegaDpwIm*t);
     
@@ -329,6 +331,8 @@ getUserDefinedKnownSolution(real t, CompositeGrid & cg, int grid, realArray & ua
     const real ck2 = SQR(c*kk);
 
     // compute coefficients of P :   s = sr+I*si = -I*omega = -I*( omegar + I omegai) = omegai - I*omegar
+    //     s^2 E = -(c*k)^2 E - (s^2/eps) * P 
+    // ->  P = -eps*( 1 + (c*k/s)^2 ) E 
     real sr = omegaDpwIm, si=-omegaDpwRe;
     real sNorm2=sr*sr+si*si, sNorm4=sNorm2*sNorm2;
     real pc = -eps*( -2.*sr*si*ck2/sNorm4 );
@@ -343,7 +347,8 @@ getUserDefinedKnownSolution(real t, CompositeGrid & cg, int grid, realArray & ua
     real hc = -factor*omegaDpwIm/omegaNorm2;
     
 
-    printF("--UDKS:DPW-- ck2=%10.3e, pc=%g, ps=%g, sr=%g, si=%g, hc=%g hs=%g\n",ck2,pc,ps,sr,si,hc,hs);
+    if( t<3.*dt )
+      printF("--UDKS:DPW-- ck2=%10.3e, pc=%g, ps=%g, sr=%g, si=%g, hc=%g hs=%g\n",ck2,pc,ps,sr,si,hc,hs);
 
     real x,y,z;
     if( numberOfTimeDerivatives==0 )
