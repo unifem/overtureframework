@@ -5,7 +5,7 @@
 #    cgmp [-noplot] elasticPiston -g=<name> -method=[ins|cns] -nu=<> -mu=<> -kappa=<num> -tf=<tFinal> -tp=<tPlot> ...
 #           -solver=[yale|best] -psolver=[yale|best] -ktcFluid=<> -ktcFluid=<> -tz=[poly/trig/none] -bg=<backGroundGrid> ...
 #           -degreex=<num> -degreet=<num> -ts=[fe|be|im|pc] -nc=[] -d1=<> -d2=<> -smVariation=[nc|c|g|h] ...
-#           -sideBC=[noSlipWall|slipWall]
+#           -sideBC=[noSlipWall|slipWall|dirichlet]
 # 
 #  -ktcFluid -ktcSolid : thermal conductivities 
 #  -ts = time-stepping-method, be=backward-Euler, fe=forward-Euler, im=implicit-multistep
@@ -17,7 +17,7 @@
 # 
 $grid="deformingChannelGrid4.order2"; $domain1="fluidDomain"; $domain2="solidDomain";
 $method="ins"; $probeFile="probeFile"; $multiDomainAlgorithm=0;  $pi=0; $pOffset=0.; 
-$tFinal=20.; $tPlot=.1;  $cfl=.9; $show="";  $pdebug=0; $debug=0; $go="halt"; 
+$tFinal=20.; $tPlot=.1;  $cfl=.9; $show="";  $pdebug=0; $debug=0; $go="halt"; $cdv=""; 
 $muFluid=0.; $rhoFluid=1.4; $pFluid=1.; $TFluid=$pFluid/$rhoFluid; 
 $nu=.1; $rhoSolid=1.; $prandtl=.72; $cnsVariation="jameson"; $ktcFluid=-1.; $u0=0.; $xShock=-1.5; $uShock=1.25; 
 $p0=1.; 
@@ -59,11 +59,15 @@ $ap=.01;
 $append=0; 
 # ------------------------- turn on added mass here ----------------
 $addedMass=0; 
-#
+# ---- piston parameters:  choose t0=1/(4*k) to make yI(0)=0 
+$Pi=4.*atan2(1.,1.);
+$amp=.1; $k=.5; $t0=1./(4*$k);  $H=1.; $Hbar=.5; $rho=1.; 
+$rampOrder=2;  # number of zero derivatives at start and end of the ramp
+$ra=.1; $rb=.6; # ramp interval -- actual interval shifted by Hbar/cp 
 # ----------------------------- get command line arguments ---------------------------------------
 GetOptions( "g=s"=>\$grid,"tf=f"=>\$tFinal,"nu=f"=>\$nu,"muFluid=f"=>\$muFluid,"kappa=f"=>\$kappa, "bg=s"=>\$backGround,\
  "tp=f"=>\$tPlot, "solver=s"=>\$solver, "psolver=s"=>\$psolver,"useTP=i"=> \$useTP,\
- "tz=s"=>\$tz,"degreex=i"=>\$degreex, "degreet=i"=>\$degreet,\
+ "tz=s"=>\$tz,"degreeSpace=i"=>\$degreeSpace, "degreeTime=i"=>\$degreeTime,\
  "show=s"=>\$show,"method=s"=>\$method,"ts=s"=>\$ts,"tsSM=s"=>\$tsSM,"noplot=s"=>\$noplot,"ktcFluid=f"=>\$ktcFluid,\
   "ktcSolid=f"=>\$ktcSolid,"muSolid=f"=>\$muSolid,"lambdaSolid=f"=>\$lambdaSolid, "T0=f"=>\$T0,"Twall=f"=>\$Twall,\
   "nc=i"=> \$numberOfCorrections, "numberOfCorrections=i"=> \$numberOfCorrections,"coupled=i"=>\$coupled,\
@@ -77,7 +81,8 @@ GetOptions( "g=s"=>\$grid,"tf=f"=>\$tFinal,"nu=f"=>\$nu,"muFluid=f"=>\$muFluid,"
    "stressRelaxation=f"=>\$stressRelaxation,"relaxAlpha=f"=>\$relaxAlpha,"relaxDelta=f"=>\$relaxDelta,\
    "p0=f"=>\$p0,"sideBC=s"=>\$sideBC,"iOmega=f"=>\$iOmega,"iTol=f"=>\$iTol,"addedMass=f"=>\$addedMass,\
    "projectInitialConditions=f"=>\$projectInitialConditions,"restart=s"=>\$restart,"append=i"=>\$append,\
-   "projectMultiDomainInitialConditions=f"=>\$projectMultiDomainInitialConditions );
+   "projectMultiDomainInitialConditions=f"=>\$projectMultiDomainInitialConditions,\
+   "amp=f"=>\$amp,"rampOrder=i"=>\$rampOrder,"ra=f"=>\$ra,"rb=f"=>\$rb,"cdv=f"=>\$cdv );
 # -------------------------------------------------------------------------------------------------
 if( $solver eq "best" ){ $solver="choose best iterative solver"; }
 if( $psolver eq "best" ){ $psolver="choose best iterative solver"; }
@@ -108,15 +113,18 @@ $grid
 # ----------  NOTE: we parameterize the boundary by index so grid points match! ---
 # **** NEW WAY TO SPECIFY DEFORMING BODY FOR A BULK SOLID 
 # $vInitial=-.54414;
-$numberOfPastTimeLevels=4; # 3 
+$numberOfPastTimeLevels=3; 
+if( $tz eq "none" ){ $useKnown=1; }else{ $useKnown=0; }
 $moveCmds = \
   "turn on moving grids\n" . \
   "specify grids to move\n" . \
   "    deforming body\n" . \
   "      bulk solid\n" . \
   "        debug\n $debug \n" . \
+  "      acceleration order of accuracy\n 1\n" . \
+  "      velocity order of accuracy\n 1\n" . \
   "      generate past history 1\n" . \
-  "      use known solution for initial conditions 1\n" . \
+  "      use known solution for initial conditions $useKnown\n" . \
   "      number of past time levels: $numberOfPastTimeLevels\n" . \
   "     done\n" . \
   "     choose grids by share flag\n" . \
@@ -141,6 +149,7 @@ $T0=0.;
 ## $bc = "all=noSlipWall uniform(u=.0,T=$T0)\n bcNumber3=slipWall\n bcNumber4=slipWall\n bcNumber1=inflowWithVelocityGiven, parabolic(d=.1,u=$u0,T=0.)\n bcNumber2=outflow, pressure(1.*p+.1*p.n=0.)\n bcNumber100=tractionInterface";
 ### $bc = "all=noSlipWall uniform(u=.0,T=$T0)\n bcNumber3=slipWall\n bcNumber4=slipWall\n bcNumber1=inflowWithPressureAndTangentialVelocityGiven uniform(p=1.,v=0.T=0.)\n bcNumber2=outflow, pressure(1.*p+0.*p.n=0.)\n bcNumber100=tractionInterface";
 # -- RAMP PRESSURE BC: 
+if( $sideBC eq "dirichlet" ){ $sideBC = "dirichletBoundaryCondition"; }
 $bc = "all=$sideBC\n bcNumber100=noSlipWall uniform(u=.0,T=$T0)\n bcNumber100=tractionInterface";
     #
     # **** ramp the pressure on the top ****
@@ -160,17 +169,18 @@ $bc = "all=$sideBC\n bcNumber100=noSlipWall uniform(u=.0,T=$T0)\n bcNumber100=tr
     "done";
 # if( $option ne "beamUnderPressure" ){ $cmdRamp = "bcNumber3=outflow, pressure(1.*p+0.*p.n=$p0)"; }
 # $bc = $bc . "\n" . $cmdRamp;
-$bc = $bc . "\n" . $cmdKnown;
+if( $tz eq "none" ){ $bc = $bc . "\n" . $cmdKnown; }
 #
 $ic="uniform flow\n" . "p=0., u=$u0, T=$T0";
-$Pi=4.*atan2(1.,1.);
-$amp=.1; $k=$Pi; $phase=.25; $H=1.; $Hbar=.5; $rho=1.; 
-# $phase=0; 
 $rhoBar=$rhoSolid*$scf; $lambdaBar=$lambdaSolid*$scf; $muBar=$muSolid*$scf;
 $ic="OBTZ:user defined known solution\n" .\
-    "bulk solid piston\n" .\
-    "$amp,$k,$phase,$H,$Hbar,$rho,$rhoBar,$lambdaBar,$muBar\n" .\
-    " done"; 
+    "choose a common known solution\n" .\
+    " bulk solid piston\n" .\
+    "  $amp,$k,$t0,$H,$Hbar,$rho,$rhoBar,$lambdaBar,$muBar\n" .\
+    "  $rampOrder $ra $rb\n" .\
+    " done\n" .\
+    "done"; 
+if( $tz ne "none" ){ $ic="#"; }
 #
 echo to terminal 0
 include $ENV{CG}/mp/cmd/insDomain.h
@@ -183,18 +193,23 @@ $domainName=$domain2; $solverName="solid";
 # $bcCommands="all=displacementBC\n bcNumber2=slipWall\n bcNumber100=tractionBC\n bcNumber100=tractionInterface"; 
 $bcCommands="all=tractionBC\n bcNumber1=displacementBC\n bcNumber2=displacementBC\n bcNumber100=tractionBC\n bcNumber100=tractionInterface"; 
 # -- slipWall on sides and displacement on bottom:
-$bcCommands="all=displacementBC\n bcNumber1=slipWall\n bcNumber2=slipWall\n bcNumber100=tractionBC\n bcNumber100=tractionInterface"; 
+if( $sideBC eq "dirichlet" ){ $sideBC = "dirichletBoundaryCondition"; }
+$bcCommands="all=displacementBC\n bcNumber1=$sideBC\n bcNumber2=$sideBC\n bcNumber100=tractionBC\n bcNumber100=tractionInterface"; 
 #  -- for noSlipWall's we use displacement on sides of solid
 if( $sideBC eq "noSlipWall" ){ $bcCommands="all=displacementBC\n  bcNumber100=tractionBC\n bcNumber100=tractionInterface"; }
 $exponent=10.; $x0=.5; $y0=.5; $z0=.5;  $rhoSolid=$rhoSolid*$scf; $lambda=$lambdaSolid*$scf; $mu=$muSolid*$scf; 
 # $initialConditionCommands="gaussianPulseInitialCondition\n Gaussian pulse: 10 2 $exponent $x0 $y0 $z0 (beta,scale,exponent,x0,y0,z0)";
 $initialConditionCommands="zeroInitialCondition";
 $initialConditionCommands=\
-  "OBTZ:user defined known solution\n" .\
-    "bulk solid piston\n" .\
-    "$amp,$k,$phase,$H,$Hbar,$rho,$rhoBar,$lambdaBar,$muBar\n" .\
+    "OBTZ:user defined known solution\n" .\
+    "choose a common known solution\n" .\
+    " bulk solid piston\n" .\
+    "  $amp,$k,$t0,$H,$Hbar,$rho,$rhoBar,$lambdaBar,$muBar\n" .\
+    "  $rampOrder $ra $rb\n" .\
+    " done\n" .\
   "done \n" .\
   "knownSolutionInitialCondition";
+if( $tz ne "none" ){ $initialConditionCommands="#"; }
 #
 $smCheckErrors=1;
 # 

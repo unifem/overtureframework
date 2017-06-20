@@ -204,6 +204,9 @@ SmParameters(const int & numberOfDimensions0) : Parameters(numberOfDimensions0)
   if( !dbase.has_key("pinBoundaryCondition") ) dbase.put<IntegerArray>("pinBoundaryCondition");
   if( !dbase.has_key("pinValues") ) dbase.put<RealArray>("pinValues");
 
+  // For FSI problems we save a time history of the velocity on an interface 
+  if( !dbase.has_key("currentInterfaceTimeLevel") ) dbase.put<int>("currentInterfaceTimeLevel")=-1;
+  if( !dbase.has_key("numberOfInterfaceTimeLevels") ) dbase.put<int>("numberOfInterfaceTimeLevels")=4;
 
   bcName[interpolation]="interpolation";
   bcName[displacementBC]="displacementBC";

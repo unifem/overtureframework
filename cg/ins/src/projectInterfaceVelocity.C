@@ -24,6 +24,11 @@ projectInterfaceVelocity(const real & t, realMappedGridFunction & u,
 			const int & grid,
 			const real & dt0 /* =-1. */  )
 {
+
+  MovingGrids & movingGrids = parameters.dbase.get<MovingGrids >("movingGrids");
+  if( movingGrids.getNumberOfDeformingBodies()==0 )
+    return 0;
+
   real dt;
   if( dt<= 0. )
     dt = parameters.dbase.get<real>("dt");  // *wdh* 2017/05/31
@@ -60,7 +65,6 @@ projectInterfaceVelocity(const real & t, realMappedGridFunction & u,
       
   // -- extract parameters from any deforming solids ---
 
-  MovingGrids & movingGrids = parameters.dbase.get<MovingGrids >("movingGrids");
       
   if( bd.dbase.has_key("deformingBodyNumber") )
   {
@@ -88,7 +92,7 @@ projectInterfaceVelocity(const real & t, realMappedGridFunction & u,
 	  Range Rx=numberOfDimensions;
 	  realArray vSolid(Ib1,Ib2,Ib3,Rx); // holds velocity of solid on the boundary
           #ifndef USE_PPP
-	    deform.getVelocityBC( t, grid, mg, Ib1,Ib2,Ib3, vSolid );
+          deform.getVelocityBC( t, side,axis,grid, mg, Ib1,Ib2,Ib3, vSolid );
           #else
             OV_ABORT("finish me");
           #endif
@@ -496,7 +500,7 @@ assignInterfaceBoundaryConditions(GridFunction & cgf,
 
 	    Range Rx=numberOfDimensions;
 	    RealArray vSolid(Ib1,Ib2,Ib3,Rx); // holds velocity of solid on the boundary
-	    deformingBody.getVelocityBC( cgf.t, grid, mg, Ib1,Ib2,Ib3, vSolid );
+	    deformingBody.getVelocityBC( cgf.t, side,axis,grid, mg, Ib1,Ib2,Ib3, vSolid );
 
 	    uLocal(Ib1,Ib2,Ib3,V)=vSolid(Ib1,Ib2,Ib3,Rx);
 

@@ -235,7 +235,9 @@ if( $tzType eq 1 && $godunovType eq 2 ){ $tzCmds = \
    "done"; }else{ $tzCmds ="*"; }
 # 
 if( $method eq "cns" ){ $mu=$muFluid; $kThermal=$muFluid/$prandtl; $cmd = "include $ENV{CG}/mp/cmd/cnsDomain.h"; }else{ $cmd ="*"; };
+echo to terminal 0
 $cmd
+echo to terminal 1
 # 
 # ------- specify elastic solid domain ----------
 # Cgsm: 
@@ -302,7 +304,9 @@ if( $tzType eq 1 && $godunovType eq 2 ){ $tzCmds = \
 # 
 # FOR TZ we also need to tell the solid how to move the interface: 
 if( $problem eq 0 ){ $tzCmds="SMPDE:TZ interface velocity $vg0 $vg1 $vg2\n SMPDE:TZ interface acceleration $ag0 $ag1 $ag2"; }
+echo to terminal 0
 include $ENV{CG}/mp/cmd/smDomain.h
+echo to terminal 1
 # 
 continue
 #

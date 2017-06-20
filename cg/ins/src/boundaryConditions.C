@@ -19,22 +19,6 @@ getInterfaceData( real t, int grid, int side, int axis,
                   Parameters & parameters );
 
 
-// void Cgins::
-// gridAccelerationBC(const int & grid,
-// 		   const real & t0,
-// 		   MappedGrid & c,
-// 		   realMappedGridFunction & u ,
-// 		   realMappedGridFunction & f ,
-// 		   realMappedGridFunction & gridVelocity ,
-// 		   realSerialArray & normal,
-// 		   const Index & I1,
-// 		   const Index & I2,
-// 		   const Index & I3,
-// 		   const Index & I1g,
-// 		   const Index & I2g,
-// 		   const Index & I3g,
-// 		   int side,
-//                    int axis   )
 //\begin{>>MappedGridSolverInclude.tex}{\subsection{gridAccelerationBC}} 
 void Cgins::
 gridAccelerationBC(const int & grid,

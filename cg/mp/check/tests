@@ -12,3 +12,11 @@ iaTwoSquare      # INS+AD in two domains
 # fluid-solid TZ with explicit and implicit time stepping
 twoSquareAdInsExp.check ../cmd/twoDomain.cmd -g=twoSquaresInterfacee1.order2.hdf -kappa1=1.0 -ktc1=1.0 -kappa2=.1 -ktc2=.1 -tf=.1 -tp=.05 -ts=pc -coupled=1 -tz=poly -degreet1=2 -degreet2=2 -debug=1 -method2=ins -go=go
 twoSquareAdInsImp.check ../cmd/twoDomain.cmd -g=twoSquaresInterfacee1.order2.hdf -kappa1=1.0 -ktc1=1.0 -kappa2=.1 -ktc2=.1 -tf=.1 -tp=.02 -dtMax=.02 -ts=im -nc=5 -coupled=0 -tz=poly -degreet1=2 -degreet2=2 -iTol=1e-9 -debug=1 -method2=ins -go=go
+#
+# ---- compressible fluid + elastic solid ----
+#  - receding piston: 
+recedingPiston.check ../runs/piston/elasticPiston.cmd -method=cns -cnsVariation=godunov -g=elasticPistonGrid2 -tp=.1 -tf=.1 -smVariation=g -debug=0 -pi=1 -go=go
+# rotating disk exact solution, nonlinear solid 
+rotatingDiskSVK.check ../runs/rotatingDisk/rotatingDisk.cmd -g=diskDeformFixedBig2e -method=cns -cfl=.75 -tp=.05 -tf=.05 -tz=none -problem=1 -cnsVariation=godunov -cnsGodunovOrder=2 -smVariation=g -pi=1 -en=max -adCns=10. -bcOption=4 -rotationRate=.1 -piGhostOption=3 -piOption=0 -godunovType=2 -stressRelaxation=1 -d1=outerDomain -d2=innerDomain -rho0=14 -pOffset=10 -lambdaSolid=1. -muSolid=1. -diss=1. -multiDomainAlgorithm=1 -show=rotatingDisk4a.show -go=go
+# shock hitting a Neo-Hookean solid 
+shockEllipseNeo.check ../runs/shockEllipse/shockCyl.cmd -method=cns -cnsVariation=godunov -smVariation=g  -g=deformingEllipseGride2 -scf=1. -tp=.01 -tf=.01 -nc=1 -d1="outerDomain" -d2="innerDomain" -fic=shock -a1=1.183215957 -Mshock=1.3 -pOffset=1. -lambdaSolid=4. -muSolid=4. -rhoSolid=.1  -diss=2. -tangentialDissipationSolid=1. -cfl=.9 -cnsGodunovOrder=2 -debug=1 -xShock=-1.500001 -a1= -flushFrequency=2 -godunovType=4 -pi=1 -piGhostOption=3 -multiDomainAlgorithm=1 -go=go

@@ -1,4 +1,556 @@
 *****************************************
+***********  Tues June 20, 2017 
+
+$cgmpx -noplot elasticPiston -method=ins -g=elasticPistonGride1.order2.hdf -addedMass=0 -scf=200. -u0=0. -nu=.1 -tp=.01 -tf=.05 -nc=1 -pOffset=0. -smVariation=g -rhoSolid=1. -lambdaSolid=1. -muSolid=1. -debug=1 -pi=0 -multiDomainAlgorithm=1 -uShock=0. -ap=.1 -flushFrequency=2 -bcOption=4 -debug=3 -sideBC=dirichlet -psolver=yale -ra=-10 -rb=-9 -cdv=1 -tz=poly -degreeSpace=0 -degreeTime=1 -go=go >! epTP1tz.out
+
+*****************************************
+***********  Mon June 19, 2017 
+
+
+START ON TZ TESTS --
+CHANGES MADE ...
+
+degree=(0,0) -- exact 
+
+*trouble* with sideBC=slipWall --> cgsm *checm me*
+
+NON-periodic GRID: sideBc=dirichlet
+$cgmpx -noplot elasticPiston -method=ins -g=elasticPistonGride1.order2.hdf -addedMass=0 -scf=200. -u0=0. -nu=.1 -tp=.01 -tf=.05 -nc=1 -pOffset=0. -smVariation=g -rhoSolid=1. -lambdaSolid=1. -muSolid=1. -debug=1 -pi=0 -multiDomainAlgorithm=1 -uShock=0. -ap=.1 -flushFrequency=2 -bcOption=4 -debug=3 -sideBC=dirichlet -psolver=yale -ra=-10 -rb=-9 -cdv=1 -tz=poly -degreeSpace=0 -degreeTime=1 -go=go >! epTP1tz.out
+
+NON-periodic GRID: 
+$cgmpx -noplot elasticPiston -method=ins -g=elasticPistonGride1.order2.hdf -addedMass=0 -scf=200. -u0=0. -nu=.1 -tp=.01 -tf=.05 -nc=1 -pOffset=0. -smVariation=g -rhoSolid=1. -lambdaSolid=1. -muSolid=1. -debug=1 -pi=0 -multiDomainAlgorithm=1 -uShock=0. -ap=.1 -flushFrequency=2 -bcOption=4 -debug=3 -sideBC=slipWall -psolver=yale -ra=-10 -rb=-9 -cdv=1 -tz=poly -degreeSpace=0 -degreeTime=1 -go=go >! epTP1tz.out
+
+
+degree=(0,0) -- exact 
+
+
+$cgmpx -noplot elasticPiston -method=ins -g=elasticPistonGride1.order2p.hdf -addedMass=0 -scf=200. -u0=0. -nu=.1 -tp=.01 -tf=.05 -nc=1 -pOffset=0. -smVariation=g -rhoSolid=1. -lambdaSolid=1. -muSolid=1. -debug=1 -pi=0 -multiDomainAlgorithm=1 -uShock=0. -ap=.1 -flushFrequency=2 -bcOption=4 -debug=3 -sideBC=slipWall -psolver=yale -ra=-10 -rb=-9 -cdv=1 -tz=poly -degreeSpace=0 -degreeTime=0 -go=go >! epTP1tz.out
+
+
+*****************************************
+***********  June 17-18, 2017 
+
+$cgmpx -noplot elasticPiston -method=ins -g=elasticPistonGride1.order2p.hdf -addedMass=0 -scf=200. -u0=0. -nu=.1 -tp=.01 -tf=.1 -nc=1 -pOffset=0. -smVariation=g -rhoSolid=1. -lambdaSolid=1. -muSolid=1. -debug=1 -pi=0 -multiDomainAlgorithm=1 -uShock=0. -ap=.1 -flushFrequency=2 -bcOption=4 -debug=3 -sideBC=slipWall -psolver=yale -ra=-10 -rb=-9 -cdv=1 -go=go >! epTP1b.out
+
+G1
+============= Cgsm time-step info for domain 0 (solidDomain)(solid) steps=10==================
+-->t=1.0000e-01 dt=1.0e-02 maxNorm errors:[7.3934e-17,5.1698e-05,1.3716e-02,1.6898e-14,1.6898e-14,1.2541e-02,2.6423e-18,5.0240e-06,], maxNorm(u):[7.39e-17,4.71e-01,2.24e+01,1.69e-14,1.69e-14,6.72e+01,2.64e-18,4.87e-02,]
+============= Cgins time-step info for domain 1 (fluidDomain)(fluid) steps=10==================
+ --UDKS--  ERROR IN INTERFACE POSITION = 5.024e-06 at t=1.000e-01
+--INS-- determineErrors: t=1.000e-01, maxNorm errors: [p,u,v,T]=[1.37e-03,3.03e-15,5.12e-05,0.00e+00]
+     t    err(p)   err(u)   err(v)    div       uMax     dt       cpu    (11 steps)
+   0.100 1.37e-03 3.03e-15 5.12e-05 1.50e-05  4.14e+01 1.00e-02 2.97e-01 
+
+
+G1: Exact traction-rate: 
+============= Cgsm time-step info for domain 0 (solidDomain)(solid) steps=10==================
+-->t=1.0000e-01 dt=1.0e-02 maxNorm errors:[5.9489e-17,5.3507e-05,1.3024e-02,1.2300e-14,1.2300e-14,1.2541e-02,2.7367e-18,4.7406e-06,], maxNorm(u):[5.95e-17,4.71e-01,2.24e+01,1.23e-14,1.23e-14,6.72e+01,2.74e-18,4.87e-02,]
+============= Cgins time-step info for domain 1 (fluidDomain)(fluid) steps=10==================
+ --UDKS--  ERROR IN INTERFACE POSITION = 4.741e-06 at t=1.000e-01
+--INS-- determineErrors: t=1.000e-01, maxNorm errors: [p,u,v,T]=[7.68e-04,2.38e-15,5.39e-05,0.00e+00]
+     t    err(p)   err(u)   err(v)    div       uMax     dt       cpu    (11 steps)
+   0.100 7.68e-04 2.38e-15 5.39e-05 2.10e-05  4.14e+01 1.00e-02 2.95e-01
+
+G2 -- exact traction-rate
+============= Cgsm time-step info for domain 0 (solidDomain)(solid) steps=30==================
+-->t=1.0000e-01 dt=3.3e-03 maxNorm errors:[3.8839e-16,1.2996e-05,3.3340e-03,7.5981e-14,7.5981e-14,2.4612e-03,9.0622e-18,2.6406e-07,], maxNorm(u):[3.88e-16,4.71e-01,2.24e+01,7.60e-14,7.60e-14,6.73e+01,9.06e-18,4.87e-02,]
+============= Cgins time-step info for domain 1 (fluidDomain)(fluid) steps=30==================
+ --UDKS--  ERROR IN INTERFACE POSITION = -1.222e-07 at t=1.000e-01
+--INS-- determineErrors: t=1.000e-01, maxNorm errors: [p,u,v,T]=[1.17e-04,5.61e-15,1.21e-05,0.00e+00]
+     t    err(p)   err(u)   err(v)    div       uMax     dt       cpu    (31 steps)
+   0.100 1.17e-04 5.61e-15 1.21e-05 2.84e-06  4.14e+01 3.33e-03 8.96e-01
+
+*****************************************
+***********  June 14, 2017 
+
+**** TP -- check traction-rate
+
+*TROUBLE*
+G2: 
+$cgmpx -noplot elasticPiston -method=ins -g=elasticPistonGride2.order2p.hdf -addedMass=0 -scf=200. -u0=0. -nu=.1 -tp=.01 -tf=.1 -nc=1 -pOffset=0. -smVariation=g -rhoSolid=1. -lambdaSolid=1. -muSolid=1. -debug=1 -pi=0 -multiDomainAlgorithm=1 -uShock=0. -ap=.1 -flushFrequency=2 -bcOption=4 -debug=3 -sideBC=slipWall -psolver=yale -ra=-10 -rb=-9 -cdv=1 -go=go >! epTP2b.out
+
+G1
+$cgmpx -noplot elasticPiston -method=ins -g=elasticPistonGride1.order2p.hdf -addedMass=0 -scf=200. -u0=0. -nu=.1 -tp=.01 -tf=.1 -nc=1 -pOffset=0. -smVariation=g -rhoSolid=1. -lambdaSolid=1. -muSolid=1. -debug=1 -pi=0 -multiDomainAlgorithm=1 -uShock=0. -ap=.1 -flushFrequency=2 -bcOption=4 -debug=3 -sideBC=slipWall -psolver=yale -ra=-10 -rb=-9 -cdv=1 -go=go >! epTP1b.out
+
+
+*****************************************
+***********  June 14, 2017 
+
+ELASTIC-PISTON 
+
+-- WROTE CONV-SCRIPT insElastic.conv 
+
+**** TP -- check traction-rate
+
+$cgmpx -noplot elasticPiston -method=ins -g=elasticPistonGride1.order2p.hdf -addedMass=0 -scf=200. -u0=0. -nu=.1 -tp=.01 -tf=.1 -nc=1 -pOffset=0. -smVariation=g -rhoSolid=1. -lambdaSolid=1. -muSolid=1. -debug=1 -pi=0 -multiDomainAlgorithm=1 -uShock=0. -ap=.1 -flushFrequency=2 -bcOption=4 -debug=3 -sideBC=slipWall -psolver=yale -ra=-10 -rb=-9 -cdv=1 -go=go >! epTP1b.out
+
+
+**FIRST-ORDER TRACTION-RATE
+============= Cgsm time-step info for domain 0 (solidDomain)(solid) steps=10==================
+-->t=1.0000e-01 dt=1.0e-02 maxNorm errors:[5.9695e-17,5.2497e-05,1.4355e-02,1.8436e-14,1.8436e-14,1.2541e-02,2.9865e-18,5.0325e-06,], maxNorm(u):[5.97e-17,4.71e-01,2.24e+01,1.84e-14,1.84e-14,6.72e+01,2.99e-18,4.87e-02,]
+============= Cgins time-step info for domain 1 (fluidDomain)(fluid) steps=10==================
+ --UDKS--  ERROR IN INTERFACE POSITION = 5.033e-06 at t=1.000e-01
+--INS-- determineErrors: t=1.000e-01, maxNorm errors: [p,u,v,T]=[3.69e-04,3.12e-15,5.16e-05,0.00e+00]
+     t    err(p)   err(u)   err(v)    div       uMax     dt       cpu    (11 steps)
+   0.100 3.69e-04 3.12e-15 5.16e-05 2.74e-05  4.14e+01 1.00e-02 2.98e-01 
+
+
+============= Cgsm time-step info for domain 0 (solidDomain)(solid) steps=10==================
+-->t=1.0000e-01 dt=1.0e-02 maxNorm errors:[9.4294e-17,5.1894e-05,2.3351e-02,1.7538e-14,1.7538e-14,1.2541e-02,2.7532e-18,6.4903e-06,], maxNorm(u):[9.43e-17,4.71e-01,2.24e+01,1.75e-14,1.75e-14,6.72e+01,2.75e-18,4.87e-02,]
+============= Cgins time-step info for domain 1 (fluidDomain)(fluid) steps=10==================
+ --UDKS--  ERROR IN INTERFACE POSITION = 6.490e-06 at t=1.000e-01
+--INS-- determineErrors: t=1.000e-01, maxNorm errors: [p,u,v,T]=[4.65e-04,3.09e-15,3.22e-06,0.00e+00]
+     t    err(p)   err(u)   err(v)    div       uMax     dt       cpu    (11 steps)
+   0.100 4.65e-04 3.09e-15 3.22e-06 1.94e-05  4.14e+01 1.00e-02 2.97e-01 
+
+
+** EXACT TRACTION-RATE
+============= Cgsm time-step info for domain 0 (solidDomain)(solid) steps=10==================
+-->t=1.0000e-01 dt=1.0e-02 maxNorm errors:[5.9489e-17,5.3507e-05,1.3024e-02,1.2300e-14,1.2300e-14,1.2541e-02,2.7367e-18,4.7406e-06,], maxNorm(u):[5.95e-17,4.71e-01,2.24e+01,1.23e-14,1.23e-14,6.72e+01,2.74e-18,4.87e-02,]
+============= Cgins time-step info for domain 1 (fluidDomain)(fluid) steps=10==================
+ --UDKS--  ERROR IN INTERFACE POSITION = 4.741e-06 at t=1.000e-01
+--INS-- determineErrors: t=1.000e-01, maxNorm errors: [p,u,v,T]=[7.68e-04,2.38e-15,5.39e-05,0.00e+00]
+     t    err(p)   err(u)   err(v)    div       uMax     dt       cpu    (11 steps)
+   0.100 7.68e-04 2.38e-15 5.39e-05 2.10e-05  4.14e+01 1.00e-02 2.95e-01 
+
+
+
+
+**** REVISIT AMP***  *TROUBLES** FIX ME
+
+G1: AMP 
+$cgmpx elasticPiston -method=ins -g=elasticPistonGride1.order2p.hdf -addedMass=1 -scf=200. -u0=0. -nu=.1 -tp=.01 -tf=.1 -nc=1 -pOffset=0. -smVariation=g -rhoSolid=1. -lambdaSolid=1. -muSolid=1. -debug=1 -pi=0 -multiDomainAlgorithm=1 -uShock=0. -ap=.1 -flushFrequency=2 -bcOption=4 -debug=3 -sideBC=slipWall -psolver=yale -ra=-10 -rb=-9 -cdv=1 -go=halt
+
+-- WE NEED TO GET A 2nd-order ACCURATE TP SCHEME
+
+Increase nu to smooth boundary layer in the error
+
+
+G1: 
+$cgmpx -noplot elasticPiston -method=ins -g=elasticPistonGride1.order2p.hdf -addedMass=0 -scf=200. -u0=0. -nu=.1 -tp=.01 -tf=.1 -nc=1 -pOffset=0. -smVariation=g -rhoSolid=1. -lambdaSolid=1. -muSolid=1. -debug=1 -pi=0 -multiDomainAlgorithm=1 -uShock=0. -ap=.1 -flushFrequency=2 -bcOption=4 -debug=3 -sideBC=slipWall -psolver=yale -ra=-10 -rb=-9 -cdv=1 -go=go >! epTP1a.out
+
+G2: 
+$cgmpx -noplot elasticPiston -method=ins -g=elasticPistonGride2.order2p.hdf -addedMass=0 -scf=200. -u0=0. -nu=.1 -tp=.01 -tf=.1 -nc=1 -pOffset=0. -smVariation=g -rhoSolid=1. -lambdaSolid=1. -muSolid=1. -debug=1 -pi=0 -multiDomainAlgorithm=1 -uShock=0. -ap=.1 -flushFrequency=2 -bcOption=4 -debug=3 -sideBC=slipWall -psolver=yale -ra=-10 -rb=-9 -cdv=1 -go=go >! epTP2a.out
+
+G4: 
+$cgmpx -noplot elasticPiston -method=ins -g=elasticPistonGride4.order2p.hdf -addedMass=0 -scf=200. -u0=0. -nu=.1 -tp=.01 -tf=.1 -nc=1 -pOffset=0. -smVariation=g -rhoSolid=1. -lambdaSolid=1. -muSolid=1. -debug=1 -pi=0 -multiDomainAlgorithm=1 -uShock=0. -ap=.1 -flushFrequency=2 -bcOption=4 -debug=3 -sideBC=slipWall -psolver=yale -ra=-10 -rb=-9 -cdv=1 -go=go >! epTP4a.out
+
+G8: 
+$cgmpx -noplot elasticPiston -method=ins -g=elasticPistonGride8.order2p.hdf -addedMass=0 -scf=200. -u0=0. -nu=.05 -tp=.01 -tf=.1 -nc=1 -pOffset=0. -smVariation=g -rhoSolid=1. -lambdaSolid=1. -muSolid=1. -debug=1 -pi=0 -multiDomainAlgorithm=1 -uShock=0. -ap=.1 -flushFrequency=2 -bcOption=4 -debug=3 -sideBC=slipWall -psolver=yale -ra=-10 -rb=-9 -go=go >! epTP8a.out
+
+
++++++++++++++++++++ EXACT solid-acceleration nu=.1, cdv=.2 --> looks 2nd-order *except* for p  +++++++++++++
+
+G1
+============= Cgsm time-step info for domain 0 (solidDomain)(solid) steps=10==================
+-->t=1.0000e-01 dt=1.0e-02 maxNorm errors:[4.5705e-17,5.5818e-05,1.2761e-02,1.4850e-14,1.4850e-14,1.2541e-02,2.7117e-18,4.5941e-06,], maxNorm(u):[4.57e-17,4.71e-01,2.24e+01,1.49e-14,1.49e-14,6.72e+01,2.71e-18,4.87e-02,]
+============= Cgins time-step info for domain 1 (fluidDomain)(fluid) steps=10==================
+ --UDKS--  ERROR IN INTERFACE POSITION = 4.594e-06 at t=1.000e-01
+--INS-- determineErrors: t=1.000e-01, maxNorm errors: [p,u,v,T]=[5.26e-05,2.85e-15,5.24e-05,0.00e+00]
+     t    err(p)   err(u)   err(v)    div       uMax     dt       cpu    (11 steps)
+   0.100 5.26e-05 2.85e-15 5.24e-05 2.51e-04  4.14e+01 1.00e-02 2.92e-01 
+
+
+g2
+============= Cgsm time-step info for domain 0 (solidDomain)(solid) steps=30==================
+-->t=1.0000e-01 dt=3.3e-03 maxNorm errors:[1.6444e-16,1.3246e-05,3.3114e-03,4.7700e-14,4.7700e-14,2.4612e-03,6.5614e-18,2.7638e-07,], maxNorm(u):[1.64e-16,4.71e-01,2.24e+01,4.77e-14,4.77e-14,6.73e+01,6.56e-18,4.87e-02,]
+============= Cgins time-step info for domain 1 (fluidDomain)(fluid) steps=30==================
+ --UDKS--  ERROR IN INTERFACE POSITION = -1.493e-07 at t=1.000e-01
+--INS-- determineErrors: t=1.000e-01, maxNorm errors: [p,u,v,T]=[4.86e-05,7.81e-15,1.20e-05,0.00e+00]
+     t    err(p)   err(u)   err(v)    div       uMax     dt       cpu    (31 steps)
+   0.100 4.86e-05 7.81e-15 1.20e-05 7.21e-05  4.14e+01 3.33e-03 9.19e-01
+
+G4
+============= Cgsm time-step info for domain 0 (solidDomain)(solid) steps=90==================
+-->t=1.0000e-01 dt=1.1e-03 maxNorm errors:[5.3882e-16,2.9501e-06,8.4461e-04,1.0304e-13,1.0304e-13,5.7739e-04,7.9106e-18,1.7647e-07,], maxNorm(u):[5.39e-16,4.71e-01,2.24e+01,1.03e-13,1.03e-13,6.73e+01,7.91e-18,4.87e-02,]
+============= Cgins time-step info for domain 1 (fluidDomain)(fluid) steps=90==================
+ --UDKS--  ERROR IN INTERFACE POSITION = -1.600e-07 at t=1.000e-01
+--INS-- determineErrors: t=1.000e-01, maxNorm errors: [p,u,v,T]=[2.29e-05,1.08e-14,2.75e-06,0.00e+00]
+     t    err(p)   err(u)   err(v)    div       uMax     dt       cpu    (91 steps)
+   0.100 2.29e-05 1.08e-14 2.75e-06 1.20e-05  4.14e+01 1.11e-03 3.52e+00 
+
+
++++++++++++++++++++++ EXACT solid-acceleration ++++++++++++++++++++++
+G1 
+============= Cgsm time-step info for domain 0 (solidDomain)(solid) steps=10==================
+-->t=1.0000e-01 dt=1.0e-02 maxNorm errors:[5.0756e-17,5.5561e-05,1.2800e-02,1.4137e-14,1.4137e-14,1.2541e-02,2.5228e-18,4.6065e-06,], maxNorm(u):[5.08e-17,4.71e-01,2.24e+01,1.41e-14,1.41e-14,6.72e+01,2.52e-18,4.87e-02,]
+============= Cgins time-step info for domain 1 (fluidDomain)(fluid) steps=10==================
+ --UDKS--  ERROR IN INTERFACE POSITION = 4.607e-06 at t=1.000e-01
+--INS-- determineErrors: t=1.000e-01, maxNorm errors: [p,u,v,T]=[2.03e-04,4.55e-15,5.19e-05,0.00e+00]
+     t    err(p)   err(u)   err(v)    div       uMax     dt       cpu    (11 steps)
+   0.100 2.03e-04 4.55e-15 5.19e-05 2.25e-04  4.14e+01 1.00e-02 2.96e-01 
+
+G2
+============= Cgsm time-step info for domain 0 (solidDomain)(solid) steps=20==================
+-->t=1.0000e-01 dt=5.0e-03 maxNorm errors:[2.9471e-16,1.3817e-05,3.3096e-03,5.6353e-14,5.6353e-14,1.2226e-03,8.4803e-18,9.7285e-07,], maxNorm(u):[2.95e-16,4.71e-01,2.24e+01,5.64e-14,5.64e-14,6.73e+01,8.48e-18,4.87e-02,]
+============= Cgins time-step info for domain 1 (fluidDomain)(fluid) steps=20==================
+ --UDKS--  ERROR IN INTERFACE POSITION = 9.729e-07 at t=1.000e-01
+--INS-- determineErrors: t=1.000e-01, maxNorm errors: [p,u,v,T]=[9.20e-05,1.05e-14,1.29e-05,0.00e+00]
+     t    err(p)   err(u)   err(v)    div       uMax     dt       cpu    (21 steps)
+   0.100 9.20e-05 1.05e-14 1.29e-05 7.65e-05  4.14e+01 5.00e-03 6.42e-01 
+
+G4
+============= Cgsm time-step info for domain 0 (solidDomain)(solid) steps=50==================
+-->t=1.0000e-01 dt=2.0e-03 maxNorm errors:[3.1086e-16,3.1394e-06,8.4553e-04,7.8347e-14,7.8347e-14,2.4892e-04,3.8198e-18,5.4468e-08,], maxNorm(u):[3.11e-16,4.71e-01,2.24e+01,7.83e-14,7.83e-14,6.73e+01,3.82e-18,4.87e-02,]
+============= Cgins time-step info for domain 1 (fluidDomain)(fluid) steps=50==================
+ --UDKS--  ERROR IN INTERFACE POSITION = 5.447e-08 at t=1.000e-01
+--INS-- determineErrors: t=1.000e-01, maxNorm errors: [p,u,v,T]=[2.83e-05,1.14e-14,3.00e-06,0.00e+00]
+     t    err(p)   err(u)   err(v)    div       uMax     dt       cpu    (51 steps)
+   0.100 2.83e-05 1.14e-14 3.00e-06 1.03e-05  4.14e+01 2.00e-03 1.92e+00 
+
+G8 
+============= Cgsm time-step info for domain 0 (solidDomain)(solid) steps=180==================
+-->t=1.0000e-01 dt=5.6e-04 maxNorm errors:[1.6329e-15,6.9418e-07,2.1304e-04,2.3913e-13,2.3913e-13,1.0564e-04,1.3045e-17,4.1491e-08,], maxNorm(u):[1.63e-15,4.71e-01,2.24e+01,2.39e-13,2.39e-13,6.73e+01,1.30e-17,4.87e-02,]
+============= Cgins time-step info for domain 1 (fluidDomain)(fluid) steps=180==================
+ --UDKS--  ERROR IN INTERFACE POSITION = -3.923e-08 at t=1.000e-01
+--INS-- determineErrors: t=1.000e-01, maxNorm errors: [p,u,v,T]=[5.90e-06,9.70e-15,6.64e-07,0.00e+00]
+     t    err(p)   err(u)   err(v)    div       uMax     dt       cpu    (181 steps)
+   0.100 5.90e-06 9.70e-15 6.64e-07 1.05e-06  4.14e+01 5.56e-04 1.58e+01 
+
+
+
+*****************************************
+***********  June 12-13, 2017 
+
+
+ELASTIC-PISTON
+
+G2: 
+$cgmpx -noplot elasticPiston -method=ins -g=elasticPistonGrid2.order2p.hdf -addedMass=0 -scf=200. -u0=0. -nu=.01 -tp=.01 -tf=.1 -nc=1 -pOffset=0. -smVariation=g -rhoSolid=1. -lambdaSolid=1. -muSolid=1. -debug=1 -pi=0 -multiDomainAlgorithm=1 -uShock=0. -ap=.1 -flushFrequency=2 -bcOption=4 -debug=3 -sideBC=slipWall -psolver=yale -ra=-10 -rb=-9 -go=go >! epTP2a.out
+
+G4: 
+$cgmpx -noplot elasticPiston -method=ins -g=elasticPistonGrid4.order2p.hdf -addedMass=0 -scf=200. -u0=0. -nu=.01 -tp=.01 -tf=.1 -nc=1 -pOffset=0. -smVariation=g -rhoSolid=1. -lambdaSolid=1. -muSolid=1. -debug=1 -pi=0 -multiDomainAlgorithm=1 -uShock=0. -ap=.1 -flushFrequency=2 -bcOption=4 -debug=3 -sideBC=slipWall -psolver=yale -ra=-10 -rb=-9 -go=go >! epTP4a.out
+G8: 
+$cgmpx -noplot elasticPiston -method=ins -g=elasticPistonGrid8.order2p.hdf -addedMass=0 -scf=200. -u0=0. -nu=.01 -tp=.01 -tf=.1 -nc=1 -pOffset=0. -smVariation=g -rhoSolid=1. -lambdaSolid=1. -muSolid=1. -debug=1 -pi=0 -multiDomainAlgorithm=1 -uShock=0. -ap=.1 -flushFrequency=2 -bcOption=4 -debug=3 -sideBC=slipWall -psolver=yale -ra=-10 -rb=-9 -go=go >! epTP8a.out
+
+G8 -- exact acceleration
+ --UDKS--  ERROR IN INTERFACE POSITION = 2.305e-07 at t=1.000e-01
+--INS-- determineErrors: t=1.000e-01, maxNorm errors: [p,u,v,T]=[1.35e-05,3.38e-14,1.25e-06,0.00e+00]
+     t    err(p)   err(u)   err(v)    div       uMax     dt       cpu    (51 steps)
+   0.100 1.35e-05 3.38e-14 1.25e-06 1.03e-05  4.14e+01 2.00e-03 5.05e+00 
+
+G8 --- accel(p) from Grid-Evolution order=1: 
+ --UDKS--  ERROR IN INTERFACE POSITION = -3.326e-07 at t=1.000e-01
+--INS-- determineErrors: t=1.000e-01, maxNorm errors: [p,u,v,T]=[2.64e-04,3.55e-14,1.80e-04,0.00e+00]
+     t    err(p)   err(u)   err(v)    div       uMax     dt       cpu    (51 steps)
+   0.100 2.64e-04 3.55e-14 1.80e-04 6.56e-03  4.14e+01 2.00e-03 5.53e+00 
+
+REWORK routines --
+
+(9)  2nd-order predicted solid-acceleration : 
+
+G2
+============= Cgsm time-step info for domain 0 (solidDomain)(solid) steps=20==================
+-->t=1.0000e-01 dt=5.0e-03 maxNorm errors:[2.4498e-16,1.3663e-05,3.3311e-03,4.6106e-14,4.6106e-14,1.2226e-03,4.3063e-18,9.9797e-07,], maxNorm(u):[2.45e-16,4.71e-01,2.24e+01,4.61e-14,4.61e-14,6.73e+01,4.31e-18,4.87e-02,]
+============= Cgins time-step info for domain 1 (fluidDomain)(fluid) steps=20==================
+ --UDKS--  ERROR IN INTERFACE POSITION = 9.980e-07 at t=1.000e-01
+--INS-- determineErrors: t=1.000e-01, maxNorm errors: [p,u,v,T]=[1.56e-04,1.31e-14,1.38e-05,0.00e+00]
+     t    err(p)   err(u)   err(v)    div       uMax     dt       cpu    (21 steps)
+   0.100 1.56e-04 1.31e-14 1.38e-05 1.07e-05  4.14e+01 5.00e-03 6.38e-01 
+
+
+G4
+============= Cgsm time-step info for domain 0 (solidDomain)(solid) steps=30==================
+-->t=1.0000e-01 dt=3.3e-03 maxNorm errors:[3.8520e-16,4.4520e-06,7.9812e-04,7.3816e-14,7.3816e-14,8.1974e-04,7.2915e-18,5.9360e-07,], maxNorm(u):[3.85e-16,4.71e-01,2.24e+01,7.38e-14,7.38e-14,6.73e+01,7.29e-18,4.87e-02,]
+============= Cgins time-step info for domain 1 (fluidDomain)(fluid) steps=30==================
+ --UDKS--  ERROR IN INTERFACE POSITION = 5.936e-07 at t=1.000e-01
+--INS-- determineErrors: t=1.000e-01, maxNorm errors: [p,u,v,T]=[5.55e-04,1.87e-14,4.45e-06,0.00e+00]
+     t    err(p)   err(u)   err(v)    div       uMax     dt       cpu    (31 steps)
+   0.100 5.55e-04 1.87e-14 4.45e-06 1.34e-06  4.14e+01 3.33e-03 1.37e+00 
+
+
+
+(8) Predict acceleration -- first order in time
+
+============= Cgsm time-step info for domain 0 (solidDomain)(solid) steps=30==================
+-->t=1.0000e-01 dt=3.3e-03 maxNorm errors:[6.2444e-16,1.9814e-05,1.8159e-03,9.8720e-14,9.8720e-14,5.4477e-03,1.1913e-17,4.4604e-07,], maxNorm(u):[6.24e-16,4.71e-01,2.24e+01,9.87e-14,9.87e-14,6.73e+01,1.19e-17,4.87e-02,]
+============= Cgins time-step info for domain 1 (fluidDomain)(fluid) steps=30==================
+ --UDKS--  ERROR IN INTERFACE POSITION = -3.350e-07 at t=1.000e-01
+--INS-- determineErrors: t=1.000e-01, maxNorm errors: [p,u,v,T]=[9.35e-04,2.15e-14,3.11e-04,0.00e+00]
+     t    err(p)   err(u)   err(v)    div       uMax     dt       cpu    (31 steps)
+   0.100 9.35e-04 2.15e-14 3.11e-04 6.29e-03  4.14e+01 3.33e-03 1.55e+00 
+
+
+(7) Compute solid acceleration from velocity time history:
+
+G2
+============= Cgsm time-step info for domain 0 (solidDomain)(solid) steps=20==================
+-->t=1.0000e-01 dt=5.0e-03 maxNorm errors:[2.4498e-16,1.3663e-05,3.3311e-03,4.6106e-14,4.6106e-14,1.2226e-03,4.3063e-18,9.9797e-07,], maxNorm(u):[2.45e-16,4.71e-01,2.24e+01,4.61e-14,4.61e-14,6.73e+01,4.31e-18,4.87e-02,]
+============= Cgins time-step info for domain 1 (fluidDomain)(fluid) steps=20==================
+ --UDKS--  ERROR IN INTERFACE POSITION = 9.980e-07 at t=1.000e-01
+--INS-- determineErrors: t=1.000e-01, maxNorm errors: [p,u,v,T]=[1.56e-04,1.31e-14,1.38e-05,0.00e+00]
+     t    err(p)   err(u)   err(v)    div       uMax     dt       cpu    (21 steps)
+   0.100 1.56e-04 1.31e-14 1.38e-05 1.07e-05  4.14e+01 5.00e-03 6.38e-01 
+
+G4
+============= Cgsm time-step info for domain 0 (solidDomain)(solid) steps=30==================
+-->t=1.0000e-01 dt=3.3e-03 maxNorm errors:[3.8520e-16,4.4520e-06,7.9812e-04,7.3816e-14,7.3816e-14,8.1974e-04,7.2915e-18,5.9360e-07,], maxNorm(u):[3.85e-16,4.71e-01,2.24e+01,7.38e-14,7.38e-14,6.73e+01,7.29e-18,4.87e-02,]
+============= Cgins time-step info for domain 1 (fluidDomain)(fluid) steps=30==================
+ --UDKS--  ERROR IN INTERFACE POSITION = 5.936e-07 at t=1.000e-01
+--INS-- determineErrors: t=1.000e-01, maxNorm errors: [p,u,v,T]=[5.55e-04,1.87e-14,4.45e-06,0.00e+00]
+     t    err(p)   err(u)   err(v)    div       uMax     dt       cpu    (31 steps)
+   0.100 5.55e-04 1.87e-14 4.45e-06 1.34e-06  4.14e+01 3.33e-03 1.37e+00 
+
+
+(6) USE EXACT interface acceleration computed in Cgsm::getInterfaceAcceleration *new*
+
+G2
+
+============= Cgsm time-step info for domain 0 (solidDomain)(solid) steps=20==================
+-->t=1.0000e-01 dt=5.0e-03 maxNorm errors:[3.3378e-16,1.3854e-05,3.3056e-03,4.4515e-14,4.4515e-14,1.2226e-03,7.3137e-18,9.7089e-07,], maxNorm(u):[3.34e-16,4.71e-01,2.24e+01,4.45e-14,4.45e-14,6.73e+01,7.31e-18,4.87e-02,]
+============= Cgins time-step info for domain 1 (fluidDomain)(fluid) steps=20==================
+ --UDKS--  ERROR IN INTERFACE POSITION = 9.709e-07 at t=1.000e-01
+--INS-- determineErrors: t=1.000e-01, maxNorm errors: [p,u,v,T]=[7.86e-05,1.21e-14,1.30e-05,0.00e+00]
+     t    err(p)   err(u)   err(v)    div       uMax     dt       cpu    (21 steps)
+   0.100 7.86e-05 1.21e-14 1.30e-05 8.99e-05  4.14e+01 5.00e-03 5.80e-01 
+
+
+G4
+============= Cgsm time-step info for domain 0 (solidDomain)(solid) steps=30==================
+-->t=1.0000e-01 dt=3.3e-03 maxNorm errors:[4.0087e-16,4.0680e-06,8.4326e-04,6.9119e-14,6.9119e-14,8.1974e-04,4.4404e-18,5.8726e-07,], maxNorm(u):[4.01e-16,4.71e-01,2.24e+01,6.91e-14,6.91e-14,6.73e+01,4.44e-18,4.87e-02,]
+============= Cgins time-step info for domain 1 (fluidDomain)(fluid) steps=30==================
+ --UDKS--  ERROR IN INTERFACE POSITION = 5.873e-07 at t=1.000e-01
+--INS-- determineErrors: t=1.000e-01, maxNorm errors: [p,u,v,T]=[3.75e-05,1.96e-14,3.99e-06,0.00e+00]
+     t    err(p)   err(u)   err(v)    div       uMax     dt       cpu    (31 steps)
+   0.100 3.75e-05 1.96e-14 3.99e-06 3.64e-05  4.14e+01 3.33e-03 1.52e+00 
+
+
+
+
+
+
+(5) Use actual traction-rate (first -order)
+     ** TROUBLE**
+
+(4) Use acceleration from grid-evolution
+============= Cgsm time-step info for domain 0 (solidDomain)(solid) steps=30==================
+-->t=1.0000e-01 dt=3.3e-03 maxNorm errors:[2.4288e-16,3.7369e-05,3.8367e-03,7.7839e-14,7.7839e-14,1.1510e-02,4.3743e-18,1.2847e-06,], maxNorm(u):[2.43e-16,4.71e-01,2.24e+01,7.78e-14,7.78e-14,6.73e+01,4.37e-18,4.87e-02,]
+============= Cgins time-step info for domain 1 (fluidDomain)(fluid) steps=30==================
+ --UDKS--  ERROR IN INTERFACE POSITION = -1.285e-06 at t=1.000e-01
+--INS-- determineErrors: t=1.000e-01, maxNorm errors: [p,u,v,T]=[1.75e-03,2.23e-14,6.32e-04,0.00e+00]
+     t    err(p)   err(u)   err(v)    div       uMax     dt       cpu    (31 steps)
+   0.100 1.75e-03 2.23e-14 6.32e-04 1.27e-02  4.14e+01 3.33e-03 1.34e+00 
+
+
+(3) use actual traction: 
+============= Cgsm time-step info for domain 0 (solidDomain)(solid) steps=30==================
+-->t=1.0000e-01 dt=3.3e-03 maxNorm errors:[4.0087e-16,4.0680e-06,8.4326e-04,6.9119e-14,6.9119e-14,8.1974e-04,4.4404e-18,5.8726e-07,], maxNorm(u):[4.01e-16,4.71e-01,2.24e+01,6.91e-14,6.91e-14,6.73e+01,4.44e-18,4.87e-02,]
+============= Cgins time-step info for domain 1 (fluidDomain)(fluid) steps=30==================
+ --UDKS--  ERROR IN INTERFACE POSITION = 5.873e-07 at t=1.000e-01
+--INS-- determineErrors: t=1.000e-01, maxNorm errors: [p,u,v,T]=[3.75e-05,1.96e-14,3.99e-06,0.00e+00]
+     t    err(p)   err(u)   err(v)    div       uMax     dt       cpu    (31 steps)
+   0.100 3.75e-05 1.96e-14 3.99e-06 3.64e-05  4.14e+01 3.33e-03 1.23e+00 
+
+(2) *** use actual interface position
+============= Cgsm time-step info for domain 0 (solidDomain)(solid) steps=30==================
+-->t=1.0000e-01 dt=3.3e-03 maxNorm errors:[2.2445e-16,4.1740e-06,8.3128e-04,7.8278e-14,7.8278e-14,8.1974e-04,4.9075e-18,5.8105e-07,], maxNorm(u):[2.24e-16,4.71e-01,2.24e+01,7.83e-14,7.83e-14,6.73e+01,4.91e-18,4.87e-02,]
+============= Cgins time-step info for domain 1 (fluidDomain)(fluid) steps=30==================
+ --UDKS--  ERROR IN INTERFACE POSITION = 5.810e-07 at t=1.000e-01
+--INS-- determineErrors: t=1.000e-01, maxNorm errors: [p,u,v,T]=[3.82e-05,1.97e-14,4.10e-06,0.00e+00]
+     t    err(p)   err(u)   err(v)    div       uMax     dt       cpu    (31 steps)
+   0.100 3.82e-05 1.97e-14 4.10e-06 3.71e-05  4.14e+01 3.33e-03 1.35e+00 
+
+
+(1) *** DeformingBodMotion: Use interface-velocity from cgsm instead of exact:
+============= Cgsm time-step info for domain 0 (solidDomain)(solid) steps=30==================
+-->t=1.0000e-01 dt=3.3e-03 maxNorm errors:[2.2445e-16,4.1740e-06,8.3128e-04,7.8278e-14,7.8278e-14,8.1974e-04,4.9075e-18,5.8105e-07,], maxNorm(u):[2.24e-16,4.71e-01,2.24e+01,7.83e-14,7.83e-14,6.73e+01,4.91e-18,4.87e-02,]
+============= Cgins time-step info for domain 1 (fluidDomain)(fluid) steps=30==================
+ --UDKS--  ERROR IN INTERFACE POSITION = 0.000e+00 at t=1.000e-01
+--INS-- determineErrors: t=1.000e-01, maxNorm errors: [p,u,v,T]=[3.82e-05,2.53e-14,4.10e-06,0.00e+00]
+     t    err(p)   err(u)   err(v)    div       uMax     dt       cpu    (31 steps)
+   0.100 3.82e-05 2.53e-14 4.10e-06 3.71e-05  4.14e+01 3.33e-03 1.42e+00 
+
+
+*** START: exact boundary velocity, acceleration etc.
+============= Cgsm time-step info for domain 0 (solidDomain)(solid) steps=30==================
+-->t=1.0000e-01 dt=3.3e-03 maxNorm errors:[2.2445e-16,4.1740e-06,8.3128e-04,7.8278e-14,7.8278e-14,8.1974e-04,4.9075e-18,5.8105e-07,], maxNorm(u):[2.24e-16,4.71e-01,2.24e+01,7.83e-14,7.83e-14,6.73e+01,4.91e-18,4.87e-02,]
+============= Cgins time-step info for domain 1 (fluidDomain)(fluid) steps=30==================
+ --UDKS--  ERROR IN INTERFACE POSITION = 0.000e+00 at t=1.000e-01
+--INS-- determineErrors: t=1.000e-01, maxNorm errors: [p,u,v,T]=[2.52e-06,2.45e-14,1.25e-07,0.00e+00]
+     t    err(p)   err(u)   err(v)    div       uMax     dt       cpu    (31 steps)
+   0.100 2.52e-06 2.45e-14 1.25e-07 2.48e-06  4.14e+01 3.33e-03 1.40e+00 
+
+
+*****************************************
+***********  June 11, 2017 
+
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+ASSIGN EXACT BOUNDARY VELOCITY (DeformingBodyMotion -> getVelocityBC)
+
+        
+G4 -- : errors are MUCH SMALLER
+cdv=1: 
+--INS-- determineErrors: t=1.000e-02, maxNorm errors: [p,u,v,T]=[4.48e-08,5.41e-16,4.61e-08,0.00e+00]
+     t    err(p)   err(u)   err(v)    div       uMax     dt       cpu    (4 steps)
+   0.010 4.48e-08 5.41e-16 4.61e-08 4.59e-07  4.21e+00 3.33e-03 3.06e+00 
+
+cdv=0: 
+--INS-- determineErrors: t=1.000e-02, maxNorm errors: [p,u,v,T]=[2.80e-13,6.17e-16,3.18e-08,0.00e+00]
+     t    err(p)   err(u)   err(v)    div       uMax     dt       cpu    (4 steps)
+   0.010 2.80e-13 6.17e-16 3.18e-08 6.21e-07  4.21e+00 3.33e-03 3.27e+00 
+
+
+
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+USE EXACT ACCELERATION (in deforming body motion)
+
+G2
+============= Cgsm time-step info for domain 0 (solidDomain)(solid) steps=20==================
+-->t=1.0000e-01 dt=5.0e-03 maxNorm errors:[1.5539e-16,1.4054e-05,3.2823e-03,4.4267e-14,4.4267e-14,1.2226e-03,6.7955e-18,9.5988e-07,], maxNorm(u):[1.55e-16,4.71e-01,2.24e+01,4.43e-14,4.43e-14,6.73e+01,6.80e-18,4.87e-02,]
+============= Cgins time-step info for domain 1 (fluidDomain)(fluid) steps=20==================
+--INS-- determineErrors: t=1.000e-01, maxNorm errors: [p,u,v,T]=[6.54e-03,1.14e-14,1.18e-03,0.00e+00]
+     t    err(p)   err(u)   err(v)    div       uMax     dt       cpu    (21 steps)
+   0.100 6.54e-03 1.14e-14 1.18e-03 7.49e-03  4.14e+01 5.00e-03 7.11e-01
+
+G4
+============= Cgsm time-step info for domain 0 (solidDomain)(solid) steps=30==================
+-->t=1.0000e-01 dt=3.3e-03 maxNorm errors:[2.2445e-16,4.1740e-06,8.3128e-04,7.8278e-14,7.8278e-14,8.1974e-04,4.9075e-18,5.8105e-07,], maxNorm(u):[2.24e-16,4.71e-01,2.24e+01,7.83e-14,7.83e-14,6.73e+01,4.91e-18,4.87e-02,]
+============= Cgins time-step info for domain 1 (fluidDomain)(fluid) steps=30==================
+--INS-- determineErrors: t=1.000e-01, maxNorm errors: [p,u,v,T]=[6.53e-03,2.09e-14,7.94e-04,0.00e+00]
+     t    err(p)   err(u)   err(v)    div       uMax     dt       cpu    (31 steps)
+   0.100 6.53e-03 2.09e-14 7.94e-04 6.31e-03  4.14e+01 3.33e-03 1.38e+00 
+
+G8
+
+============= Cgsm time-step info for domain 0 (solidDomain)(solid) steps=50==================
+-->t=1.0000e-01 dt=2.0e-03 maxNorm errors:[9.2072e-16,1.2997e-06,2.1025e-04,1.7059e-13,1.7059e-13,3.3779e-04,4.1990e-18,2.2761e-07,], maxNorm(u):[9.21e-16,4.71e-01,2.24e+01,1.71e-13,1.71e-13,6.73e+01,4.20e-18,4.87e-02,]
+============= Cgins time-step info for domain 1 (fluidDomain)(fluid) steps=50==================
+--INS-- determineErrors: t=1.000e-01, maxNorm errors: [p,u,v,T]=[4.37e-03,3.22e-14,4.79e-04,0.00e+00]
+     t    err(p)   err(u)   err(v)    div       uMax     dt       cpu    (51 steps)
+   0.100 4.37e-03 3.22e-14 4.79e-04 3.36e-03  4.14e+01 2.00e-03 4.98e+00 
+
+G8 -- with exact interface position
+============= Cgsm time-step info for domain 0 (solidDomain)(solid) steps=50==================
+-->t=1.0000e-01 dt=2.0e-03 maxNorm errors:[9.2072e-16,1.2997e-06,2.1025e-04,1.7059e-13,1.7059e-13,3.3779e-04,4.1990e-18,2.2761e-07,], maxNorm(u):[9.21e-16,4.71e-01,2.24e+01,1.71e-13,1.71e-13,6.73e+01,4.20e-18,4.87e-02,]
+============= Cgins time-step info for domain 1 (fluidDomain)(fluid) steps=50==================
+--INS-- determineErrors: t=1.000e-01, maxNorm errors: [p,u,v,T]=[4.39e-03,1.50e-12,4.77e-04,0.00e+00]
+     t    err(p)   err(u)   err(v)    div       uMax     dt       cpu    (51 steps)
+   0.100 4.39e-03 1.50e-12 4.77e-04 3.37e-03  4.14e+01 2.00e-03 5.50e+00 
+
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+USE EXACT TRACTION AND TRACTION-RATE IN INS, ADD PAHSE TO MAKE yI(0)=0
+ --> solid except u2 look close to 2nd=order
+ ---> fluid looks first order 
+G2
+============= Cgsm time-step info for domain 0 (solidDomain)(solid) steps=20==================
+-->t=1.0000e-01 dt=5.0e-03 maxNorm errors:[1.5539e-16,1.4054e-05,3.2823e-03,4.4267e-14,4.4267e-14,1.2226e-03,6.7955e-18,9.5988e-07,], maxNorm(u):[1.55e-16,4.71e-01,2.24e+01,4.43e-14,4.43e-14,6.73e+01,6.80e-18,4.87e-02,]
+============= Cgins time-step info for domain 1 (fluidDomain)(fluid) steps=20==================
+--INS-- determineErrors: t=1.000e-01, maxNorm errors: [p,u,v,T]=[1.54e-02,1.30e-14,1.95e-03,0.00e+00]
+     t    err(p)   err(u)   err(v)    div       uMax     dt       cpu    (21 steps)
+   0.100 1.54e-02 1.30e-14 1.95e-03 7.43e-03  4.14e+01 5.00e-03 7.04e-01 
+
+
+G4
+============= Cgsm time-step info for domain 0 (solidDomain)(solid) steps=30==================
+-->t=1.0000e-01 dt=3.3e-03 maxNorm errors:[2.2445e-16,4.1740e-06,8.3128e-04,7.8278e-14,7.8278e-14,8.1974e-04,4.9075e-18,5.8105e-07,], maxNorm(u):[2.24e-16,4.71e-01,2.24e+01,7.83e-14,7.83e-14,6.73e+01,4.91e-18,4.87e-02,]
+============= Cgins time-step info for domain 1 (fluidDomain)(fluid) steps=30==================
+--INS-- determineErrors: t=1.000e-01, maxNorm errors: [p,u,v,T]=[8.15e-03,2.04e-14,1.11e-03,0.00e+00]
+     t    err(p)   err(u)   err(v)    div       uMax     dt       cpu    (31 steps)
+   0.100 8.15e-03 2.04e-14 1.11e-03 6.33e-03  4.14e+01 3.33e-03 1.45e+00 
+
+
+
+G8
+============= Cgsm time-step info for domain 0 (solidDomain)(solid) steps=50==================
+-->t=1.0000e-01 dt=2.0e-03 maxNorm errors:[9.2072e-16,1.2997e-06,2.1025e-04,1.7059e-13,1.7059e-13,3.3779e-04,4.1990e-18,2.2761e-07,], maxNorm(u):[9.21e-16,4.71e-01,2.24e+01,1.71e-13,1.71e-13,6.73e+01,4.20e-18,4.87e-02,]
+============= Cgins time-step info for domain 1 (fluidDomain)(fluid) steps=50==================
+--INS-- determineErrors: t=1.000e-01, maxNorm errors: [p,u,v,T]=[4.43e-03,3.06e-14,5.70e-04,0.00e+00]
+     t    err(p)   err(u)   err(v)    div       uMax     dt       cpu    (51 steps)
+   0.100 4.43e-03 3.06e-14 5.70e-04 3.38e-03  4.14e+01 2.00e-03 4.97e+00 
+
++++++++++++++++++++++++++++++++++ scf=200 ++++++++++++++++++++++++++++++++++++++++++++
+
+REDO with scf=200 (otherwise G8 unstable)
+
+$cgmpx -noplot elasticPiston -method=ins -g=elasticPistonGrid2.order2p.hdf -addedMass=0 -scf=200. -u0=0. -nu=.01 -tp=.01 -tf=.1 -nc=1 -pOffset=0. -smVariation=g -rhoSolid=1. -lambdaSolid=1. -muSolid=1. -debug=1 -pi=0 -multiDomainAlgorithm=1 -uShock=0. -ap=.1 -flushFrequency=2 -bcOption=4 -debug=3 -sideBC=slipWall -psolver=yale -ra=-10 -rb=-9 -go=go >! epTP2a.out
+G4: 
+$cgmpx -noplot elasticPiston -method=ins -g=elasticPistonGrid4.order2p.hdf -addedMass=0 -scf=200. -u0=0. -nu=.01 -tp=.01 -tf=.1 -nc=1 -pOffset=0. -smVariation=g -rhoSolid=1. -lambdaSolid=1. -muSolid=1. -debug=1 -pi=0 -multiDomainAlgorithm=1 -uShock=0. -ap=.1 -flushFrequency=2 -bcOption=4 -debug=3 -sideBC=slipWall -psolver=yale -ra=-10 -rb=-9 -go=go >! epTP4a.out
+G8: 
+$cgmpx -noplot elasticPiston -method=ins -g=elasticPistonGrid8.order2p.hdf -addedMass=0 -scf=200. -u0=0. -nu=.01 -tp=.01 -tf=.1 -nc=1 -pOffset=0. -smVariation=g -rhoSolid=1. -lambdaSolid=1. -muSolid=1. -debug=1 -pi=0 -multiDomainAlgorithm=1 -uShock=0. -ap=.1 -flushFrequency=2 -bcOption=4 -debug=3 -sideBC=slipWall -psolver=yale -ra=-10 -rb=-9 -go=go >! epTP8a.out
+
+G2
+============= Cgsm time-step info for domain 0 (solidDomain)(solid) steps=20==================
+-->t=1.0000e-01 dt=5.0e-03 maxNorm errors:[5.8834e-16,6.0377e-05,8.0647e-03,1.4653e-13,1.4653e-13,2.4194e-02,1.9416e-17,7.3056e-06,], maxNorm(u):[5.88e-16,1.53e-01,6.90e+01,1.47e-13,1.47e-13,2.07e+02,1.94e-17,1.50e-01,]
+============= Cgins time-step info for domain 1 (fluidDomain)(fluid) steps=20==================
+--INS-- determineErrors: t=1.000e-01, maxNorm errors: [p,u,v,T]=[7.12e-03,5.91e-14,3.65e-03,0.00e+00]
+     t    err(p)   err(u)   err(v)    div       uMax     dt       cpu    (21 steps)
+   0.100 7.12e-03 5.91e-14 3.65e-03 1.66e-02  1.28e+02 5.00e-03 7.04e-01 
+
+
+G4
+============= Cgsm time-step info for domain 0 (solidDomain)(solid) steps=30==================
+-->t=1.0000e-01 dt=3.3e-03 maxNorm errors:[2.5015e-15,9.4275e-05,1.1250e-02,5.6212e-13,5.6212e-13,3.3749e-02,1.1083e-16,5.7111e-06,], maxNorm(u):[2.50e-15,1.53e-01,6.90e+01,5.62e-13,5.62e-13,2.07e+02,1.11e-16,1.50e-01,]
+============= Cgins time-step info for domain 1 (fluidDomain)(fluid) steps=30==================
+--INS-- determineErrors: t=1.000e-01, maxNorm errors: [p,u,v,T]=[3.02e-03,4.93e-14,2.45e-03,0.00e+00]
+     t    err(p)   err(u)   err(v)    div       uMax     dt       cpu    (31 steps)
+   0.100 3.02e-03 4.93e-14 2.45e-03 6.63e-03  1.28e+02 3.33e-03 1.50e+00 
+
+G8
+============= Cgsm time-step info for domain 0 (solidDomain)(solid) steps=50==================
+-->t=1.0000e-01 dt=2.0e-03 maxNorm errors:[8.0159e-15,1.2119e-04,1.4130e-02,1.1155e-12,1.1155e-12,4.2390e-02,4.9162e-17,3.7033e-06,], maxNorm(u):[8.02e-15,1.53e-01,6.90e+01,1.12e-12,1.12e-12,2.07e+02,4.92e-17,1.50e-01,]
+============= Cgins time-step info for domain 1 (fluidDomain)(fluid) steps=50==================
+--INS-- determineErrors: t=1.000e-01, maxNorm errors: [p,u,v,T]=[1.20e-03,9.53e-14,1.48e-03,0.00e+00]
+     t    err(p)   err(u)   err(v)    div       uMax     dt       cpu    (51 steps)
+   0.100 1.20e-03 9.53e-14 1.48e-03 1.04e-03  1.28e+02 2.00e-03 4.48e+00 
+
++++++++++++++++++++++++++++++++++ scf=100 ++++++++++++++++++++++++++++++++++++++++++++
+
+G2 
+============= Cgsm time-step info for domain 0 (solidDomain)(solid) steps=20==================
+-->t=1.0000e-01 dt=5.0e-03 maxNorm errors:[5.7486e-16,1.1722e-04,7.2654e-03,6.4672e-14,6.4672e-14,2.1796e-02,2.2411e-17,1.1673e-05,], maxNorm(u):[5.75e-16,1.53e-01,3.45e+01,6.47e-14,6.47e-14,1.03e+02,2.24e-17,1.50e-01,]
+============= Cgins time-step info for domain 1 (fluidDomain)(fluid) steps=20==================
+--INS-- determineErrors: t=1.000e-01, maxNorm errors: [p,u,v,T]=[7.44e-03,2.82e-14,3.62e-03,0.00e+00]
+     t    err(p)   err(u)   err(v)    div       uMax     dt       cpu    (21 steps)
+   0.100 7.44e-03 2.82e-14 3.62e-03 1.66e-02  6.38e+01 5.00e-03 7.10e-01 
+
+G4
+============= Cgsm time-step info for domain 0 (solidDomain)(solid) steps=30==================
+-->t=1.0000e-01 dt=3.3e-03 maxNorm errors:[1.6273e-15,1.7613e-04,1.0338e-02,3.1711e-13,3.1711e-13,3.1014e-02,1.1721e-16,1.0596e-05,], maxNorm(u):[1.63e-15,1.53e-01,3.45e+01,3.17e-13,3.17e-13,1.04e+02,1.17e-16,1.50e-01,]
+============= Cgins time-step info for domain 1 (fluidDomain)(fluid) steps=30==================
+--INS-- determineErrors: t=1.000e-01, maxNorm errors: [p,u,v,T]=[3.72e-03,2.80e-14,2.44e-03,0.00e+00]
+     t    err(p)   err(u)   err(v)    div       uMax     dt       cpu    (31 steps)
+   0.100 3.72e-03 2.80e-14 2.44e-03 6.64e-03  6.38e+01 3.33e-03 1.29e+00 
+
+
+TP - SLOW START
+$cgmpx elasticPiston -method=ins -g=elasticPistonGrid2.order2p.hdf -addedMass=0 -scf=100. -u0=0. -nu=.01 -tp=.01 -tf=.1 -nc=1 -pOffset=0. -smVariation=g -rhoSolid=1. -lambdaSolid=1. -muSolid=1. -debug=1 -pi=0 -multiDomainAlgorithm=1 -uShock=0. -ap=.1 -flushFrequency=2 -bcOption=4 -debug=3 -sideBC=slipWall -psolver=yale -go=halt
+
+TP -- NO SMOOTH  START
+$cgmpx -noplot elasticPiston -method=ins -g=elasticPistonGrid2.order2p.hdf -addedMass=0 -scf=100. -u0=0. -nu=.01 -tp=.01 -tf=.1 -nc=1 -pOffset=0. -smVariation=g -rhoSolid=1. -lambdaSolid=1. -muSolid=1. -debug=1 -pi=0 -multiDomainAlgorithm=1 -uShock=0. -ap=.1 -flushFrequency=2 -bcOption=4 -debug=3 -sideBC=slipWall -psolver=yale -ra=-10 -rb=-9 -go=go >! epTP2a.out
+G4: 
+$cgmpx -noplot elasticPiston -method=ins -g=elasticPistonGrid4.order2p.hdf -addedMass=0 -scf=100. -u0=0. -nu=.01 -tp=.01 -tf=.1 -nc=1 -pOffset=0. -smVariation=g -rhoSolid=1. -lambdaSolid=1. -muSolid=1. -debug=1 -pi=0 -multiDomainAlgorithm=1 -uShock=0. -ap=.1 -flushFrequency=2 -bcOption=4 -debug=3 -sideBC=slipWall -psolver=yale -ra=-10 -rb=-9 -go=go >! epTP4a.out
+G8: 
+$cgmpx -noplot elasticPiston -method=ins -g=elasticPistonGrid8.order2p.hdf -addedMass=0 -scf=100. -u0=0. -nu=.01 -tp=.01 -tf=.1 -nc=1 -pOffset=0. -smVariation=g -rhoSolid=1. -lambdaSolid=1. -muSolid=1. -debug=1 -pi=0 -multiDomainAlgorithm=1 -uShock=0. -ap=.1 -flushFrequency=2 -bcOption=4 -debug=3 -sideBC=slipWall -psolver=yale -ra=-10 -rb=-9 -go=go >! epTP8a.out
+
+G2
+============= Cgsm time-step info for domain 0 (solidDomain)(solid) steps=20==================
+-->t=1.0000e-01 dt=5.0e-03 maxNorm errors:[9.3075e-16,1.2534e-03,2.1145e-01,7.7459e-14,7.7459e-14,1.6064e-01,5.7180e-17,4.0078e-05,], maxNorm(u):[9.31e-16,1.52e-01,3.45e+01,7.75e-14,7.75e-14,1.03e+02,5.72e-17,1.50e-01,]
+============= Cgins time-step info for domain 1 (fluidDomain)(fluid) steps=20==================
+--INS-- determineErrors: t=1.000e-01, maxNorm errors: [p,u,v,T]=[1.31e-02,2.33e-14,4.54e-03,0.00e+00]
+     t    err(p)   err(u)   err(v)    div       uMax     dt       cpu    (21 steps)
+   0.100 1.31e-02 2.33e-14 4.54e-03 1.66e-02  6.38e+01 5.00e-03 6.76e-01 
+
+G4
+============= Cgsm time-step info for domain 0 (solidDomain)(solid) steps=30==================
+-->t=1.0000e-01 dt=3.3e-03 maxNorm errors:[3.8933e-15,7.7425e-04,1.4849e-01,1.4715e-13,1.4715e-13,1.0261e-01,8.9699e-17,1.6373e-05,], maxNorm(u):[3.89e-15,1.52e-01,3.45e+01,1.47e-13,1.47e-13,1.04e+02,8.97e-17,1.50e-01,]
+============= Cgins time-step info for domain 1 (fluidDomain)(fluid) steps=30==================
+--INS-- determineErrors: t=1.000e-01, maxNorm errors: [p,u,v,T]=[7.18e-03,3.33e-14,2.94e-03,0.00e+00]
+     t    err(p)   err(u)   err(v)    div       uMax     dt       cpu    (31 steps)
+   0.100 7.18e-03 3.33e-14 2.94e-03 6.64e-03  6.38e+01 3.33e-03 1.26e+00 
+
+
+*****************************************
+***********  June 10, 2017 
+
+REVIST ELASTIC PISTON FSI SOLUTION -- *NEW* solution with ramped slow start
+
+$cgmpx elasticPiston -method=ins -g=elasticPistonGrid2.order2p.hdf -addedMass=1 -scf=1. -u0=0. -nu=.01 -tp=.001 -tf=.001 -nc=1 -pOffset=0. -smVariation=g -rhoSolid=1. -lambdaSolid=1. -muSolid=1. -debug=1 -pi=0 -multiDomainAlgorithm=1 -uShock=0. -ap=.1 -flushFrequency=2 -bcOption=4 -debug=3 -sideBC=slipWall -psolver=yale -go=halt
+
+TP -- runs, NOTE p is large for scf=100
+$cgmpx elasticPiston -method=ins -g=elasticPistonGrid2.order2p.hdf -addedMass=0 -scf=100. -u0=0. -nu=.01 -tp=.01 -tf=1 -nc=1 -pOffset=0. -smVariation=g -rhoSolid=1. -lambdaSolid=1. -muSolid=1. -debug=1 -pi=0 -multiDomainAlgorithm=1 -uShock=0. -ap=.1 -flushFrequency=2 -bcOption=4 -debug=3 -sideBC=slipWall -psolver=yale -ra=-10 -rb=-9 -go=halt
+
+*****************************************
 ***********  May 28, 2017 
 
 

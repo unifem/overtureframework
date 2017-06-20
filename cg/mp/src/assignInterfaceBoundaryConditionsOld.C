@@ -936,9 +936,10 @@ getInterfaceResidualsOld( real t, real dt, std::vector<int> & gfIndex, std::vect
   FILE *& pDebugFile =parameters.dbase.get<FILE* >("pDebugFile");
   FILE *& interfaceFile =parameters.dbase.get<FILE* >("interfaceFile");
 
-  if( t<2.*dt )
+  if( t<2.*dt || debug() & 2 )
   {
-    printF("\n****** Entering *OLD* getInterfaceResidualsOld ********\n");
+    printF("\n   ----------- ENTERING *OLD* getInterfaceResidualsOld t=%9.3e saveInterfaceValues=%i --------------\n\n"             ,t,(int)saveInterfaceValues);
+
     fPrintF(interfaceFile,"\n****** Entering *OLD* getInterfaceResidualsOld t=%9.3e saveInterfaceValues=%i********\n",
 	    t,(int)saveInterfaceValues);
   }
@@ -1429,9 +1430,15 @@ getInterfaceResidualsOld( real t, real dt, std::vector<int> & gfIndex, std::vect
 	  if( true || debug() & 4 )
 	  {
 	    if( saveInterfaceValues==saveInterfaceTimeHistoryValues )
-	      fPrintF(interfaceFile,"Cgmp::getInterfaceResidualsOld: saving time history of traction: interface=%i, t=%9.3e\n",inter,t);
+            {
+	      fPrintF(interfaceFile,"Cgmp::getInterfaceResidualsOld: save time history for traction interface=%i,"
+                      " t=%9.3e (numData1=%i, numData2=%i)\n",inter,t,C1.getLength(),C2.getLength());
+              }
             else
+            {
 	      fPrintF(interfaceFile,"Cgmp::getInterfaceResidualsOld: saving interface iterate of traction: interface=%i, t=%9.3e\n",inter,t);
+            }
+            
 	  }
 	  
 	  for( int iface=0; iface<=1; iface++ )
@@ -1472,16 +1479,21 @@ getInterfaceResidualsOld( real t, real dt, std::vector<int> & gfIndex, std::vect
 	    id.t=t;
 	    id.f=ui;
 
-	    if( false )
+	    if( TRUE ) // *wdh* turn on June 19, 2017
 	    {
 	      aString label = saveInterfaceValues==saveInterfaceTimeHistoryValues ? "HISTORY" : "ITERATE";
 	      aString buff;
-	      ::display(id.f,sPrintF(buff," SAVE %s - INTERFACE TRACTION DATA current=%i t=%9.3e [domain %s] numToSave=%i overwrite=%i",
-				     (const char*)label,
-				     idh.current,id.t,
-				     (iface==0 ? (const char*)(domainSolver[d1]->getClassName()) : (const char*)(domainSolver[d2]->getClassName())), 
-				     numToSave,(int)overwriteHistory),
-			interfaceFile,"%9.3e ");
+              for( int io=0; io<=1; io++ )
+              {
+                FILE *file = io==0 ? stdout : interfaceFile;
+                ::display(id.f,sPrintF(buff," SAVE %s - INTERFACE TRACTION DATA current=%i t=%9.3e [domain %s] numToSave=%i overwrite=%i",
+                                       (const char*)label,
+                                       idh.current,id.t,
+                                       (iface==0 ? (const char*)(domainSolver[d1]->getClassName()) : (const char*)(domainSolver[d2]->getClassName())), 
+                                       numToSave,(int)overwriteHistory),
+                          file,"%9.3e ");
+              }
+              
 	    }
 	    
 
@@ -1500,6 +1512,12 @@ getInterfaceResidualsOld( real t, real dt, std::vector<int> & gfIndex, std::vect
       
     } // end for face
   } // end for inter
+
+
+  if( t<2.*dt || debug() & 2 )
+  {
+    printF("\n   ----------- LEAVING getInterfaceResidualsOld t=%9.3e saveInterfaceValues=%i --------------\n\n"             ,t,(int)saveInterfaceValues);
+  }
 
   parameters.dbase.get<RealArray>("timing")(parameters.dbase.get<int>("timeForInterfaces"))+=getCPU()-cpu0;
 

@@ -1,6 +1,12 @@
 
 ====== Body embedded in a dielectric =======
 
+**************************************
+
+Jordan's simulations made with sharp=100 
+
+ogen -noplot embeddedBodyGrid -prefix=embeddedBodySharpGrid -interp=e -order=2 -factor=8 -sharp=100
+
 ***************************************
 ******** June 9, 2017
 

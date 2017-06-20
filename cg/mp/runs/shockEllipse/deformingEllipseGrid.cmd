@@ -64,7 +64,7 @@ $diskNames ="#";
   $phi = -45.0;
   $rada = 1.25;
   $radb = .5;
-  include deformingEllipseGrid.h
+  include $ENV{CG}/mp/runs/shockEllipse/deformingEllipseGrid.h
 #
 #
   exit this menu

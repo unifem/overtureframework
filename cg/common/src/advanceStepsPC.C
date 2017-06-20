@@ -918,8 +918,16 @@ takeTimeStepPC( real & t0, real & dt0, int correction, AdvanceOptions & advanceO
     FILE *& debugFile =parameters.dbase.get<FILE* >("debugFile");
     FILE *& pDebugFile =parameters.dbase.get<FILE* >("pDebugFile");
 
-    if( debug() & 4 )
-        printP("DomainSolver::takeTimeStepPC t0=%e, dt0=%e correction=%i ++++\n",t0,dt0,correction );
+    const bool takeTimeStep =(advanceOptions.takeTimeStepOption==AdvanceOptions::takeStepAndApplyBoundaryConditions ||
+                      			    advanceOptions.takeTimeStepOption==AdvanceOptions::takeStepButDoNotApplyBoundaryConditions);
+    const bool applyBC = ( advanceOptions.takeTimeStepOption==AdvanceOptions::takeStepAndApplyBoundaryConditions ||
+                   			 advanceOptions.takeTimeStepOption==AdvanceOptions::applyBoundaryConditionsOnly );
+    if( debug() & 2 )
+    {
+        printP("\n++++++++++++ START: takeTimeStepPC t0=%e dt0=%e correction=%i takeTimeStep=%i applyBC=%i +++++++++++\n",
+                      t0,dt0,correction,(int)takeTimeStep,(int)applyBC );
+    }
+    
     if( debug() & 2 )
     {
         fPrintF(debugFile," *** takeTimeStepPC (start): t0=%e, dt0=%e correction=%i *** \n",t0,dt0,correction);
@@ -966,8 +974,10 @@ takeTimeStepPC( real & t0, real & dt0, int correction, AdvanceOptions & advanceO
     const int minimumNumberOfPCcorrections = parameters.dbase.get<int>("minimumNumberOfPCcorrections");
     
     if( debug() & 2 )
+    {
         fPrintF(debugFile," *** Entering takeTimeStepPC: t0=%e, dt0=%e *** \n",t0,dt0);
-  
+    }
+    
     int mInitial=mab0;  // save initial value
     
   // For moving grids we keep gf[mab0], gf[mab1] and gf[mab2]

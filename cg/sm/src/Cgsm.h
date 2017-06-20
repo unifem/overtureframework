@@ -259,6 +259,11 @@ getInitialConditions(const aString & command = nullString,
 		     GUIState *guiState = NULL,
 		     DialogState *dialogState = NULL );
 
+// Return the acceleration on the interface for FSI problems:
+int
+getInterfaceAcceleration( const real t, const int side, const int axis, const int grid, 
+                          MappedGrid & mg, const Index & I1, const Index & I2, const Index & I3, const Range & C, 
+                          RealArray & f );
 void 
 getMaxDivAndCurl( const int current, real t, 
 		  realCompositeGridFunction *pu=NULL, int component=0, 

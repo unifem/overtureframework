@@ -4,6 +4,12 @@
 
 REVISIT ROTAING DISK for regression test
 
+For check  -- 5 steps 
+$cgmpx -noplot rotatingDisk.cmd -g=diskDeformFixedBig2e -method=cns -cfl=.75 -tp=.05 -tf=.05 -tz=none -problem=1 -cnsVariation=godunov -cnsGodunovOrder=2 -smVariation=g -pi=1 -en=max -adCns=10. -bcOption=4 -rotationRate=.1 -piGhostOption=3 -piOption=0 -godunovType=2 -stressRelaxation=1 -d1=outerDomain -d2=innerDomain -rho0=14 -pOffset=10 -lambdaSolid=1. -muSolid=1. -diss=1. -multiDomainAlgorithm=1 -show=rotatingDisk4a.show -go=go
+
+
+FLUNSI RUN -- looks OK:
+$cgmpx -noplot rotatingDisk.cmd -g=diskDeformFixedBig4e -method=cns -cfl=.75 -tp=.1 -tf=1. -tz=none -problem=1 -cnsVariation=godunov -cnsGodunovOrder=2 -smVariation=g -pi=1 -en=max -adCns=10. -bcOption=4 -rotationRate=.1 -piGhostOption=3 -piOption=0 -godunovType=2 -stressRelaxation=1 -d1=outerDomain -d2=innerDomain -rho0=14 -pOffset=10 -lambdaSolid=1. -muSolid=1. -diss=1. -multiDomainAlgorithm=1 -show=rotatingDisk4a.show -go=go >! rotatingDisk4a.out
 
 SCF=.1 -- light solid
 $cgmpx rotatingDisk.cmd -g=diskDeformFixedBig4e -method=cns -cfl=.75 -tp=.01 -tf=.01 -tz=none -problem=1 -cnsVariation=godunov -cnsGodunovOrder=2 -smVariation=g -pi=1 -en=max -adCns=10. -bcOption=4 -rotationRate=.1 -piGhostOption=3 -piOption=0 -godunovType=2 -stressRelaxation=1 -d1=outerDomain -d2=innerDomain -rho0=14. -pOffset=10. -lambdaSolid=1. -muSolid=1. -diss=1. -multiDomainAlgorithm=1 -go=halt

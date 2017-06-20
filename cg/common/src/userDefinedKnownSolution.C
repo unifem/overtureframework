@@ -5,6 +5,7 @@
 #include "PistonMotion.h"
 #include "ParallelUtility.h"
 #include "TravelingWaveFsi.h"
+#include "TimeFunction.h"
 
 #include "../moving/src/BeamModel.h"
 
@@ -651,6 +652,7 @@ getUserDefinedKnownSolution(real t, CompositeGrid & cg, int grid, RealArray & ua
 /// \brief Return proerties of a known solution for rigid-body motions
 /// \param body (input) : body number
 /// \param t (input) : time
+/// \return value (output) : 1=solution was found, 0=solution was not found 
 // ===================================================================================================================
 int Parameters::
 getUserDefinedKnownSolutionRigidBody( int body, real t, 
@@ -669,37 +671,138 @@ getUserDefinedKnownSolutionRigidBody( int body, real t,
   return 0;
 }
 
+// Macro to get the vertex array
+#define GET_VERTEX_ARRAY(x)                                     \
+mg.update(MappedGrid::THEvertex | MappedGrid::THEcenter);       \
+OV_GET_SERIAL_ARRAY_CONST(real,mg.vertex(),x);                  \
+if( !thisProcessorHasPoints )                                   \
+  return 0; // no points on this processor
 
 // ==========================================================================================
 /// \brief Return the state of a known solution for a deforming body
 /// 
 /// \param body (input) : body number
 /// \param stateOption (input) : specify which information to return
-/// \param time (input) : time to evaluate the solution at 
-/// \param grid, mg, I1,I2,I3 (input) : 
+/// \param t (input) : time to evaluate the solution at 
+/// \param grid, mg, I1,I2,I3,C (input) :  assign values to state(I1,I2,I3,C)
 /// \param state (output) : return results here
+/// \return (output) : 1=solution was found, 0=solution was not found 
 // ==========================================================================================
 int Parameters::
 getUserDefinedDeformingBodyKnownSolution( 
   int body,
   DeformingBodyStateOptionEnum stateOption, 
-  const real time, const int grid, MappedGrid & mg, const Index &I1, const Index &I2, const Index &I3, 
-  realSerialArray & state )
+  const real t, const int grid, MappedGrid & mg, const Index &I1_, const Index &I2_, const Index &I3_, 
+  const Range & C, realSerialArray & state )
 {
+
+  const int numberOfDimensions = mg.numberOfDimensions();
   if( ! dbase.get<DataBase >("modelData").has_key("userDefinedKnownSolutionData") )
   {
-    printf("getUserDefinedDeformingBodyKnownSolution:ERROR: sub-directory `userDefinedKnownSolutionData' not found!\n");
+    printf("getUserDefinedKnownSolution:ERROR: sub-directory `userDefinedKnownSolutionData' not found!\n");
     OV_ABORT("error");
   }
   DataBase & db =  dbase.get<DataBase >("modelData").get<DataBase>("userDefinedKnownSolutionData");
 
   const aString & userKnownSolution = db.get<aString>("userKnownSolution");
+  const real dt = dbase.get<real>("dt");
+  
+  real *rpar = db.get<real[20]>("rpar");
+  int *ipar = db.get<int[20]>("ipar");
 
-  printF("Parameters::getUserDefinedDeformingBodyKnownSolution:ERROR: unknown userKnownSolution=[%s]\n",
-         (const char*)userKnownSolution);
+  // Adjust index bounds for parallel *wdh* 2017/05/31 
+  OV_GET_SERIAL_ARRAY_CONST(int,mg.mask(),mask);
+  Index I1=I1_, I2=I2_, I3=I3_;
+  int includeGhost=1;
+  bool thisProcessorHasPoints=ParallelUtility::getLocalArrayBounds(mg.mask(),mask,I1,I2,I3,includeGhost);
 
-  OV_ABORT("ERROR");
-  return 0;
+  if( userKnownSolution=="bulkSolidPiston" )
+  {
+    // ---- return the exact solution for the FSI INS+elastic piston ---
+    //     y_I(t) = F(t + Hbar/cp) - F(t - Hbar/cp)
+    //        F(z) = amp * R(z) * sin( 2*Pi*k(t-t0) )
+    //        R(z) = ramp function that smoothly transitions from 0 to 1 
+
+    // -- we could avoid building the vertex array on Cartesian grids ---
+    GET_VERTEX_ARRAY(xLocal);
+    const real & H        = rpar[0];
+    const real & Hbar     = rpar[1];
+    const real & rho      = rpar[2];
+    const real & rhoBar   = rpar[3];
+    const real & lambdaBar= rpar[4];
+    const real & muBar    = rpar[5];
+
+    const real cp = sqrt((lambdaBar+2.*muBar)/rhoBar);
+  
+    TimeFunction & bsp = db.get<TimeFunction>("timeFunctionBSP");
+
+    const real ys=0; // interface 
+    real xim,xip, fm,fp, fmd,fpd, fmdd,fpdd;
+    xim=t-(ys+Hbar)/cp;
+    xip=t+(ys+Hbar)/cp;  
+        
+    // eval F and F' at xim and xip:
+    bsp.eval(xim, fm,fmd );  // fmd = d(fm(xi))/d(xi)
+    bsp.eval(xip, fp,fpd );
+
+    // eval F''
+    bsp.evalDerivative(xim, fmdd, 2 ); // 2 derivatives 
+    bsp.evalDerivative(xip, fpdd, 2 );
+
+    const real yI =  fp - fm;        // interface position
+    const real vI =  fpd - fmd;      // interface velocity
+    const real aI =  fpdd - fmdd;    // interface acceleration
+
+    const real pI = -(lambdaBar+2.*muBar)*(fpd + fmd)/cp;  // interface p
+    const real pIt= -(lambdaBar+2.*muBar)*(fpdd + fmdd)/cp;  // interface p_t
+
+    
+    if( t <= 2.*dt )
+    {
+      printF("--INS-- getUserDefinedDeformingBodyKnownSolution: bulkSolidPiston, t=%9.3e fm=%9.3e fp=%9.3e\n",
+             t,fm,fp);
+    }
+
+    const int c0=C.getBase(), c1=c0+1;
+    if( stateOption==boundaryPosition )
+    {
+      state(I1,I2,I3,c0)=xLocal(I1,I2,I3,0);
+      state(I1,I2,I3,c1)=yI;
+    }
+    else if( stateOption==boundaryVelocity )
+    {
+      state(I1,I2,I3,c0)=0.;
+      state(I1,I2,I3,c1)=vI;
+    }
+    else if( stateOption==boundaryAcceleration )
+    {
+      state(I1,I2,I3,c0)=0.;
+      state(I1,I2,I3,c1)=aI;
+    }
+    else if( stateOption==boundaryTraction )
+    {
+      state(I1,I2,I3,c0)=0.;
+      state(I1,I2,I3,c1)=-pI;
+    }
+    else if( stateOption==boundaryTractionRate )
+    {
+      state(I1,I2,I3,c0)=0.;
+      state(I1,I2,I3,c1)=-pIt;
+    }
+
+    else
+    {
+      OV_ABORT("Unknown state option");
+    }
+
+  }
+  else
+  {
+    return 0;  // Not found
+  }
+  
+
+  return 1;   // solution was found
 }
 
 
@@ -748,6 +851,7 @@ updateUserDefinedKnownSolution(GenericGraphicsInterface & gi, CompositeGrid & cg
       "rotating elastic disk in a fluid",   // FSI exact solution
       "FSI traveling wave solution fluid",
       "FSI traveling wave solution solid",
+      "bulk solid piston",  // for INS+SM exact solution
       "done",
       ""
     }; 
@@ -1230,7 +1334,86 @@ updateUserDefinedKnownSolution(GenericGraphicsInterface & gi, CompositeGrid & cg
       
 
     }
-    
+
+    else if( answer=="bulk solid piston" )
+    {
+      // -- EXACT FSI Solution for INS + SM ---
+
+      // NOTE -- this function is implemented in 
+      //     ins/src/userDefinedKnownSolution 
+      //     sm/src/userDefinedKnownSolution 
+      //    
+
+      userKnownSolution="bulkSolidPiston";
+      dbase.get<bool>("knownSolutionIsTimeDependent")=true;  // known solution IS time dependent
+
+      real & H        = rpar[0];
+      real & Hbar     = rpar[1];
+      real & rho      = rpar[2];
+      real & rhoBar   = rpar[3];
+      real & lambdaBar= rpar[4];
+      real & muBar    = rpar[5];
+      
+      real amp,k,t0,ra,rb;
+      int rampOrder;
+
+      printF("--------------------------------------------------------------------------------\n"
+             "------ Exact solution for a bulk elastic solid adjacent to a fluid chamber -----\n\n"
+             "   y_I(t) = F(t + Hbar/cp) - F(t - Hbar/cp)\n"
+             "      F(z) = amp * R(z) * sin( 2*Pi*k(t-t0) ) \n"
+             "      R(z) = ramp function that smoothly transitions from 0 to 1  \n"
+             " Parameters: \n"
+             " amp : amplitude of the interface motion \n"
+             " k: wave number in solid domain (y-direction)\n"
+             " H,Hbar: Height of fluid and solid domains\n"
+             " t0 : determines the phase for time dependence\n"
+             " rhoBar,lambaBar,muBar : solid density and Lame parameters\n"
+             " rampOrder, ra,rb : order-of-ramp (1,2,3,4), start and end of ramp transition\n"
+             "--------------------------------------------------------------------------------\n"
+	);
+      gi.inputString(answer,"Enter amp, k,t0,H,Hbar,rho,rhoBar,lambdaBar,muBar");
+      sScanF(answer,"%e %e %e %e %e %e %e %e %e",&amp,&k,&t0,&H,&Hbar,&rho,&rhoBar,&lambdaBar,&muBar);
+
+      gi.inputString(answer,"Enter rampOrder,ra,rb");
+      sScanF(answer,"%i %e %e",&rampOrder,&ra,&rb);
+
+      printF("Setting amp=%g, k=%g,t0=%g,H=%g,Hbar=%g,rho=%g,lambdaBar=%g,muBar=%g,rhoBar=%g"
+               "  rampOrder=%i,ra=%g,rb=%g\n",
+             amp,k,t0,H,Hbar,rho,rhoBar,lambdaBar,muBar,rampOrder,ra,rb);
+
+
+      // The waveform for the exact solution is defined through a TimeFunction:
+      if( !db.has_key("timeFunctionBSP") )
+      {
+        db.put<TimeFunction>("timeFunctionBSP");
+        // db.put<TimeFunction>("rampFunctionBSP");
+      }
+      
+      const real cp2 = sqrt((lambdaBar+2.*muBar)/rhoBar);
+
+      TimeFunction & timeFunction = db.get<TimeFunction>("timeFunctionBSP");
+
+
+      //    f(t)=b0*sin(2.*Pi*f0*(t-t0));
+      real b0=amp, f0=k;
+      timeFunction.setSinusoidFunction( b0, f0, t0 );
+
+      TimeFunction & rampFunction = * new TimeFunction();  // TimeFunction compose will reference count 
+      rampFunction.incrementReferenceCount();
+      
+      real rampStart=0., rampEnd=1.; // Ramp  from 0 to 1
+      // Shift ramp start time to account for form of the solution. 
+      // ramp should only start after bar/cp2
+      real rampStartTime=Hbar/cp2+ra, rampEndTime=rampStartTime+rb; // Ramp up over [rampStartTime,rampEndTime]
+      rampFunction.setRampFunction( rampStart,rampEnd,rampStartTime,rampEndTime,rampOrder );
+
+      // F(t) = Ramp(t) * sin( ... )
+      timeFunction.compose(&rampFunction);  // "compose" the two TimeFunction's 
+      
+      if( rampFunction.decrementReferenceCount()==0 )
+        delete &rampFunction;
+      
+    }
     else
     {
       printF("unknown response=[%s]\n",(const char*)answer);

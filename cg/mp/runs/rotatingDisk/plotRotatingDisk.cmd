@@ -6,6 +6,9 @@
 # 
 #   plotStuff plotRotatingDisk -show=rotatingDisk8Narrow.show
 #
+# -- revisit : June 16, 2017: 
+#   plotStuff plotRotatingDisk -show=rotatingDisk4a.show
+#
 $show="rotatingDisk4.show"; $name="rotatingDisk4"; 
 $sc="stressNorm"; $fc="p"; # component names
 * ----------------------------- get command line arguments ---------------------------------------

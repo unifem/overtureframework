@@ -80,7 +80,12 @@ PETScEquationSolver(Oges & oges_) : EquationSolver(oges_)
   petscInitialized        =FALSE;
   turnOnPETScMemoryTracing=false; // *wdh* 010318 TRUE;
 
-  comm                    = max(1,PETSC_COMM_WORLD);  // PETSC_COMM_WORLD is only valid after PetscInitialize is called
+  // *wdh* 2017/06/11   comm  = max(1,PETSC_COMM_WORLD);  // PETSC_COMM_WORLD is only valid after PetscInitialize is called
+
+  if( PETSC_COMM_WORLD == MPI_COMM_NULL )
+    comm = MPI_COMM_WORLD;
+  else
+    comm = PETSC_COMM_WORLD;
 
   isMatrixAllocated       =FALSE;
   shouldUpdateMatrix      =FALSE;

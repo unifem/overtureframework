@@ -343,6 +343,8 @@ evalDerivative( const real t, real & fp, int derivative, bool computeComposed /*
       fp=b0*2.*Pi*f0*cos(arg);
     else if( derivative==2 ) 
       fp=-b0*SQR(2.*Pi*f0)*sin(arg);
+    else if( derivative==3 ) 
+      fp=-b0*pow(2.*Pi*f0,3)*cos(arg);
     else
     {
       OV_ABORT("TimeFunction::evalDerivative:finish me");
@@ -579,6 +581,24 @@ evalDerivative( const real t, real & fp, int derivative, bool computeComposed /*
 	preFunction->evalDerivative( t, f2tt,2 );
        
 	fp = f1tt*f2 + 2.*f1t*f2t + f1*f2tt;
+      }
+      else if( derivative==3 )
+      {
+        // *new* June 14, 2017
+	real f1,f1t,f1tt,f1ttt, f2,f2t,f2tt,f2ttt;
+
+	const bool compose=false;
+	evalDerivative( t,f1  ,0,compose ); // eval un-composed function
+	evalDerivative( t,f1t ,1,compose );
+	evalDerivative( t,f1tt,2,compose );
+	f1ttt=fp;
+
+	preFunction->evalDerivative( t, f2,   0 );
+	preFunction->evalDerivative( t, f2t,  1 );
+	preFunction->evalDerivative( t, f2tt, 2 );
+	preFunction->evalDerivative( t, f2ttt,3 );
+       
+	fp = f1ttt*f2 + 3.*(f1tt*f2t+f1t*f2tt) + f1*f2ttt;
       }
       else
       {

@@ -1,7 +1,45 @@
+************************************
+***** Fri. June 16, 2017
+
+REVISIT compressible fluid + elastic piston for regression tests
+
+
+
+linear POLY TZ: *runs*
+cgmp -noplot elasticPiston -method=cns -cnsVariation=godunov -g=elasticPistonGrid4 -tp=.05 -tf=.05 -smVariation=g -godunovType=0 -problem=0 -tz=poly -debug=3 -go=halt -piGhostOption=0 -pi=0 -go=go
+
+
+SVK + POLY or TRIG *TROUBLE* -- iamginary eigenvalue
+ cgmp -noplot elasticPiston -method=cns -cnsVariation=godunov -g="elasticPistonGridfx2fy2.hdf" -tp=.2 -tf=.2 -smVariation=g -godunovType=2 -problem=0 -tz=trig -debug=3 -piGhostOption=0 -pi=1 -scf=.01 -go=go
+
+
+RECEDING piston SVK *trouble*
+cgmp -noplot elasticPiston -method=cns -cnsVariation=godunov -g=elasticPistonGrid2 -tp=.1 -tf=.1 -smVariation=g -godunovType=2 -debug=0 -piGhostOption=0 -pi=1 -go=go
+
+RECEDING piston: 
+cgmp -noplot elasticPiston -method=cns -cnsVariation=godunov -g=elasticPistonGrid2 -tp=.1 -tf=.1 -smVariation=g -debug=0 -pi=1 -go=go
+
+cgmp -noplot elasticPiston -method=cns -cnsVariation=godunov -g="elasticPistonGrid4" -tp=.1 -tf=.1 -smVariation=g -debug
+=0 -pi=1 -go=go
+
+============= Cgcns time-step info for domain 0 (rightDomain)(fluid) steps=9==================
+determineErrors: t=1.000e-01, maxNorm errors: [rho,u,v,T]=[2.46e-06,2.46e-05,1.55e-16,7.03e-06]
+     t    err(r)   err(u)   err(v)   err(T)    uMax     dt       cpu  (cur,max)-mem (Gb)
+   0.100 2.46e-06 2.46e-05 1.55e-16 7.03e-06 7.14e-01 1.11e-02 2.12e-01 (      33,       0)
+
+****  printTimeStepInfo (t=1.000e-01): Number of A++ arrays has increased to 1605 
+
+============= Cgsm time-step info for domain 1 (leftDomain)(solid) steps=9==================
+-->t=1.0000e-01 dt=1.1e-02 maxNorm errors:[7.3934e-06,2.4672e-18,9.7204e-06,1.8524e-18,1.8524e-18,1.9858e-05,8.2056e-06,5.0318e-20,], maxNorm(u):[2.14e-01,2.47e-18,1.22e-01,1.85e-18,1.85e-18,4.05e-02,9.48e-03,5.03e-20,]
+
+
+
+
+
+
+
+=======================================================================
 ====== 2013/11/26 -- TEST NEW SVK projection from Don:
-
-
-
 
 
 ------------------------------------------------------------------------------------------

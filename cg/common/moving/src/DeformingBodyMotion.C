@@ -28,6 +28,7 @@
 #include "BodyForce.h"
 #include "xColours.h"
 #include "BeamFluidInterfaceData.h"
+#include "Interface.h" 
 
 namespace
 {
@@ -681,7 +682,7 @@ getInitialState( InitialStateOptionEnum stateOption,
 	  parameters.getUserDefinedDeformingBodyKnownSolution( 
 	    bodyNumber,
 	    Parameters::boundaryVelocity, 
-	    time, grid, mg,I1,I2,I3,state );
+	    time, grid, mg,I1,I2,I3,Rx,state );
 
 	  if( true || debug & 2 )
 	  {
@@ -718,16 +719,17 @@ getInitialState( InitialStateOptionEnum stateOption,
 	printF("-- DBM-- DeformingBodyMotion::getInitialState: knownSolution=%i\n",(int)knownSolution);
 	int bodyNumber=0; // fix me for multiple deforming bodies
 	    
+        Range Rx=mg.numberOfDimensions();
 	parameters.getUserDefinedDeformingBodyKnownSolution( 
 	  bodyNumber,
 	  Parameters::boundaryAcceleration, 
-	  time, grid, mg,I1,I2,I3,state );
+	  time, grid, mg,I1,I2,I3,Rx,state );
 
 	if( true || debug & 2 )
 	{
 	  printF("-- DBM-- DeformingBodyMotion::getInitialState: Setting acceleration from known solution"
 		 " at t=%9.3e.\n",time);
-	  ::display(state(I1,I2,I3,Range(0,numberOfDimensions-1)),"acceleration","%5.3f ");
+	  ::display(state(I1,I2,I3,Rx),"acceleration","%5.3f ");
 	}
 	    
       }
@@ -933,7 +935,8 @@ getVelocity( const real time0,
 /// \brief Return the grid velocity at specified points 
 // ===============================================================================================
 int DeformingBodyMotion::
-getVelocityBC( const real time0, const int grid, MappedGrid & mg, const Index &I1, const Index &I2, const Index &I3, 
+getVelocityBC( const real time0, const int side, const int axis, const int grid, MappedGrid & mg, 
+               const Index &I1, const Index &I2, const Index &I3, 
 	       realSerialArray & bcVelocity)
 {
   DeformingBodyType & deformingBodyType = 
@@ -989,7 +992,11 @@ getVelocityBC( const real time0, const int grid, MappedGrid & mg, const Index &I
     {
       // ---- Generic get velocity using the GridEvolution states ---
 
-      if( time0<=0 ) 
+      bool assignExact=FALSE;
+      if( assignExact )
+        printF("DeformingBodyMotion::getVelocityBC ASSIGN EXACT BNDRY VELOCITY ***TEMP** t=%9.3e\n",time0);
+
+      if( assignExact || time0<=0 ) 
       {
         const bool & useKnownSolutionForInitialConditions = 
                     deformingBodyDataBase.get<bool>("useKnownSolutionForInitialConditions");
@@ -1011,15 +1018,91 @@ getVelocityBC( const real time0, const int grid, MappedGrid & mg, const Index &I
       }
       else
       {
-	if( face>=0 && face<gridEvolution.size() )
-	{
-	  gridEvolution[face]->getVelocity(time0,bcVelocity,I1,I2,I3);
-	}
-	else
-	{
-	  if( true || debug&2 )
-	    printF("DeformingBodyMotion:getVelocityBC:WARNING: There is no velocity available for t=%9.3e\n",time0);
-	}
+        const IntegerArray & interfaceType = parameters.dbase.get<IntegerArray >("interfaceType");
+        if(  interfaceType(side,axis,grid)==Parameters::tractionInterface )
+        {
+          // --- This is an FSI interface ----
+          // New way June 2017. 
+          const real t=time0;
+          aString velocityDataName;
+          sPrintF(velocityDataName,"velocityG%iS%iA%i",grid,side,axis);
+          if( !parameters.dbase.has_key(velocityDataName) )
+          {
+            // -- At t=0 the interfaceData may not have been set yet, in this case call getInterfaceData
+
+            printF("--DBM-- getVelocityBC::WARNING: interface data: [%s] not found, t=%9.3e!\n",
+                   (const char*)velocityDataName,t);
+            // OV_ABORT("finish me");
+	  
+            // --- DEFAULT method: get velocity from the GridEvolution --
+            if( face>=0 && face<gridEvolution.size() )
+            {
+              gridEvolution[face]->getVelocity(time0,bcVelocity,I1,I2,I3);
+            }
+            else
+            {
+              if( true || debug&2 )
+                printF("DeformingBodyMotion:getVelocityBC:WARNING: There is no velocity available for t=%9.3e\n",time0);
+            }
+
+            // InterfaceData & interfaceData = parameters.dbase.put<InterfaceData>(velocityDataName);
+            // Range C=numberOfDimensions;
+            // interfaceData.u.redim(I1,I2,I3,C);
+            // interfaceData.t=t0;
+            // interfaceData.u=0;
+
+            // // RealArray solidVelocity(I1,I2,I3,C);
+            // int interfaceDataOptions = Parameters::velocityInterfaceData;
+	  
+            // getInterfaceData( t0, grid, side, axis, 
+            // 		    interfaceDataOptions,
+            // 		    interfaceData.u,
+            // 		    parameters );
+
+          }
+          else
+          {
+            
+            InterfaceData & interfaceData = parameters.dbase.get<InterfaceData>(velocityDataName);
+            const real & dt = parameters.dbase.get<real>("dt");
+            if( t <= 2.*dt )
+            {
+              printF("--DBM--getVelocityBC use velocity from interface (cgsm) t=%9.3e\n",time0);
+
+              if( debug & 4 )
+              {
+                aString buff;
+                ::display(interfaceData.u,sPrintF(buff,"--DBM-- getVelocityBC: use interface velocity [%s] "
+                                                  "at ti=%9.3e (t=%9.3e)",(const char*)velocityDataName,interfaceData.t,t),"%6.3f ");
+              }
+            
+            }
+            if( fabs(t-interfaceData.t) > REAL_EPSILON*100*(1.+fabs(t)) )
+            {
+              printF("---DBM--- getVelocityBC: ERROR: time for interface velocity=%9.3e does not match "
+                     "requested time t=%9.3e\n",interfaceData.t,t);
+            }
+            Range Rx=mg.numberOfDimensions();
+            RealArray & interfaceVelocity =interfaceData.u;
+            bcVelocity(I1,I2,I3,Rx)=interfaceVelocity(I1,I2,I3,Rx);
+          }
+          
+        }
+        else
+        {
+          // --- DEFAULT method: get velocity from the GridEvolution --
+
+          if( face>=0 && face<gridEvolution.size() )
+          {
+            gridEvolution[face]->getVelocity(time0,bcVelocity,I1,I2,I3);
+          }
+          else
+          {
+            if( true || debug&2 )
+              printF("DeformingBodyMotion:getVelocityBC:WARNING: There is no velocity available for t=%9.3e\n",time0);
+          }
+        }
+        
       }
     }
     
@@ -1150,8 +1233,16 @@ getAccelerationBC( const real time0, const int grid, const int side, const int a
       return 0;
     }
 
-    
-    if( time0<=0 ) 
+    if( true )
+    {
+      printF("DeformingBodyMotion::getAccelerationBC called for t=%9.3e\n",time0);
+    }
+
+    const bool assignExact=false;
+    if( assignExact )
+      printF("\n DeformingBodyMotion::getAccelerationBC ASSIGN EXACT ACCELERATION ***TEMP** t=%9.3e\n\n",time0);
+
+    if( assignExact ||  time0<=0 )  // *********** TEMP ********
     {
       const bool & useKnownSolutionForInitialConditions = 
 	deformingBodyDataBase.get<bool>("useKnownSolutionForInitialConditions");
@@ -1173,15 +1264,69 @@ getAccelerationBC( const real time0, const int grid, const int side, const int a
     }
     else
     {
-      if( face>=0 && face<gridEvolution.size() )
+      if( true )
       {
-	gridEvolution[face]->getAcceleration(time0,bcAcceleration,I1,I2,I3);
+        // *new* Get acceleration from values saved in interface.bC (from Cgsm or other) *wdh* June 12, 2017
+        const real t=time0;
+        aString accelerationDataName;
+        sPrintF(accelerationDataName,"accelerationG%iS%iA%i",grid,side,axis);
+        if( !parameters.dbase.has_key(accelerationDataName) )
+        {
+          // -- At t=0 the interfaceData may not have been set yet, in this case call getInterfaceData
+
+          printF("--DBM-- getAccelerationBC::WARNING: interface data: [%s] not found, t=%9.3e!\n",
+                 (const char*)accelerationDataName,t);
+          // --- compute acceleration using the GridEvolution class ---
+          if( face>=0 && face<gridEvolution.size() )
+          {
+            gridEvolution[face]->getAcceleration(time0,bcAcceleration,I1,I2,I3);
+          }
+          else
+          {
+            if( true || debug&2 )
+              printF("DeformingBodyMotion:getAccelerationBC:WARNING: There is no data available for t=%9.3e\n",time0);
+          }
+        }
+        else
+        {
+          InterfaceData & interfaceData = parameters.dbase.get<InterfaceData>(accelerationDataName);
+          const real & dt = parameters.dbase.get<real>("dt");
+          if( t <= 2.*dt )
+          {
+            printF("--DBM--getAccelerationBC use acceleration from interface (e.g. cgsm) t=%9.3e\n",time0);
+
+            if( debug & 4 )
+            {
+              aString buff;
+              ::display(interfaceData.u,sPrintF(buff,"--DBM-- getAccelerationBC: use interface acceleration [%s] "
+                                                "at ti=%9.3e (t=%9.3e)",(const char*)accelerationDataName,interfaceData.t,t),"%6.3f ");
+            }
+            
+          }
+          if( fabs(t-interfaceData.t) > REAL_EPSILON*100*(1.+fabs(t)) )
+          {
+            printF("---DBM--- getAccelerationBC: ERROR: time for interface acceleration=%9.3e does not match "
+                   "requested time t=%9.3e\n",interfaceData.t,t);
+          }
+          Range Rx=mg.numberOfDimensions();
+          RealArray & interfaceAcceleration =interfaceData.u;
+          bcAcceleration(I1,I2,I3,Rx)=interfaceAcceleration(I1,I2,I3,Rx);
+        }
       }
       else
       {
-	if( true || debug&2 )
-	  printF("DeformingBodyMotion:getAccelerationBC:WARNING: There is no data available for t=%9.3e\n",time0);
+        // --- compute acceleration using the GridEvolution class ---
+        if( face>=0 && face<gridEvolution.size() )
+        {
+          gridEvolution[face]->getAcceleration(time0,bcAcceleration,I1,I2,I3);
+        }
+        else
+        {
+          if( true || debug&2 )
+            printF("DeformingBodyMotion:getAccelerationBC:WARNING: There is no data available for t=%9.3e\n",time0);
+        }
       }
+      
     }
   }
   else
@@ -2159,18 +2304,20 @@ initializePast( real time00, real dt00, CompositeGrid & cg)
               numGhost=0;
               Index Ib1,Ib2,Ib3;
 	      getBoundaryIndex(mg.gridIndexRange(),sideToMove,axisToMove,Ib1,Ib2,Ib3,numGhost);
-	      xPast.redim(Ib1,Ib2,Ib3,numberOfDimensions);
+              Range Rx=numberOfDimensions;
+	      xPast.redim(Ib1,Ib2,Ib3,Rx);
 
 	      int bodyNumber=0; // fix me for multiple deforming bodies
 
 	      parameters.getUserDefinedDeformingBodyKnownSolution( 
-		bodyNumber,Parameters::boundaryPosition, pastTime, gridToMove, mg,Ib1,Ib2,Ib3,xPast );
+		bodyNumber,Parameters::boundaryPosition, pastTime, gridToMove, mg,Ib1,Ib2,Ib3,Rx,xPast );
 
 	      if( true || debug & 2 )
 	      {
 		printF("--DBM-- DeformingBodyMotion::initializePast: Setting position of interface at"
 		       " pastTime=%9.3e from KNOWN SOLUTION.\n",pastTime);
-		::display(xPast,"xPast","%9.2e ");
+                if( debug & 4 )
+                  ::display(xPast,"xPast","%9.2e ");
 	      }
 
 	    }

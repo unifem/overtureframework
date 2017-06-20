@@ -107,6 +107,7 @@ applyBoundaryConditions(const real & t, realMappedGridFunction & u,
     const int numberOfDimensions = mg.numberOfDimensions();
     
     const bool isRectangular = mg.isRectangular();
+    const bool twilightZoneFlow = parameters.dbase.get<bool >("twilightZoneFlow");
     
   // *** turn off for stretched c-grid at outflow 
     bool applyDivergenceBoundaryCondition=true; // false; // true;
@@ -381,7 +382,7 @@ applyBoundaryConditions(const real & t, realMappedGridFunction & u,
         // **check for local inflow at an outflow boundary**
         // where( inflow ) give u.n=0
                 Index I1,I2,I3;
-                if( !parameters.dbase.get<bool >("twilightZoneFlow") &&  assignOutflow && orderOfAccuracy==2 )
+                if( !twilightZoneFlow &&  assignOutflow && orderOfAccuracy==2 )
                 {
               	for( axis=0; axis<mg.numberOfDimensions(); axis++ )
               	{
@@ -2155,7 +2156,7 @@ applyBoundaryConditions(const real & t, realMappedGridFunction & u,
   // where( inflow ) give u.n=0
     Index I1,I2,I3;
         
-    if( !parameters.dbase.get<bool >("twilightZoneFlow") &&  
+    if( !twilightZoneFlow &&  
             assignOutflow && orderOfAccuracy==2 && 
             parameters.dbase.get<int>("outflowOption")==0 && 
             parameters.dbase.get<int >("checkForInflowAtOutFlow")==1 )
@@ -3356,7 +3357,7 @@ applyBoundaryConditions(const real & t, realMappedGridFunction & u,
 
 
         if( true // *wdh* 2012/07/24 -- turn this off : MAKE THIS AN OPTION 
-                && assignInflowWithVelocityGiven && !parameters.dbase.get<bool >("twilightZoneFlow") )
+                && assignInflowWithVelocityGiven && !twilightZoneFlow )
         {
       // --- At inflow with fourth-order : set ghost values equal to the boundary values ---
       //  (There can otherwise be trouble at inflow, cf. surfaceFlow.cmd)
@@ -3418,7 +3419,7 @@ applyBoundaryConditions(const real & t, realMappedGridFunction & u,
         }
 
         
-        if( true && parameters.dbase.get<bool >("twilightZoneFlow") && assignDirichletBoundaryCondition )
+        if( true && twilightZoneFlow && assignDirichletBoundaryCondition )
         { 
       // ** 110314 - make sure corners are set near dirichlet BC's
       //           - also set ghost points outside interp pts 

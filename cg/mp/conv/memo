@@ -1,3 +1,49 @@
+************************************
+********* June 14, 2017
+
+INS Elastic piston (INS+SM)
+
+
+*** AMP
+conv.p insElasticPiston.conv -tp=.1 -tf=.3 -cg=epgp -showAllComponents=0 -scf=300 -addedMass=1 -ng=2
+
+
+===================== NOTE: TP  computed interface traction-rate ========================
+
+conv.p insElasticPiston.conv -tp=.1 -tf=.2 -cg=epgp -showAllComponents=0 -ng=2
+
+
+===================== NOTE: TP + exact interface traction-rate ========================
+***USE predicted solid-accel fro m time-difference of vs *trouble G4 to t=.2 for scf=200 ??
+conv.p insElasticPiston.conv -tp=.1 -tf=.3 -cg=epgp -showAllComponents=0 -ng=3 -scf=300
+
+                grid  &    N &   $p$   & r &     $\vv$    & r &    $\usv$   & r &     $\vsv$   & r &   $\sigmavs$  & r 
+                epg1 &     1 & 3.96e-04 &      & 2.38e-04 &      & 1.88e-05 &      & 1.61e-04 &      & 4.65e-02 &      
+                epg2 &     2 & 1.03e-04 &  3.8 & 2.09e-05 & 11.4 & 4.78e-06 &  3.9 & 2.05e-05 &  7.9 & 1.63e-02 &  2.9 
+                epg4 &     4 & 2.75e-05 &  3.7 & 4.19e-06 &  5.0 & 1.80e-06 &  2.7 & 4.68e-06 &  4.4 & 5.55e-03 &  2.9 
+Convergence rates: c0=1.92 c1=2.91 c2=1.69 c3=2.55 c4=1.53 
+
+
+TEST -- use EXACT solid acceleration: 
+conv.p insElasticPiston.conv -tp=.1 -tf=.2 -cg=epgp -showAllComponents=0 -ng=2
+
+                grid  &    N &   $p$   & r &     $\vv$    & r &    $\usv$   & r &     $\vsv$   & r &   $\sigmavs$  & r 
+                epg1 &     1 & 4.73e-04 &      & 1.26e-04 &      & 2.58e-05 &      & 1.26e-04 &      & 2.55e-02 &      
+                epg2 &     2 & 7.54e-05 &  6.3 & 2.14e-05 &  5.9 & 1.49e-06 & 17.3 & 2.26e-05 &  5.6 & 6.14e-03 &  4.2 
+Convergence rates: c0=2.65 c1=2.56 c2=4.11 c3=2.48 c4=2.05 
+
+                grid  &    N &   $p$   & r &     $\vv$    & r &    $\usv$   & r &     $\vsv$   & r &   $\sigmavs$  & r 
+                epg1 &     1 & 4.73e-04 &      & 1.26e-04 &      & 2.58e-05 &      & 1.26e-04 &      & 2.55e-02 &      
+                epg2 &     2 & 7.54e-05 &  6.3 & 2.14e-05 &  5.9 & 1.49e-06 & 17.3 & 2.26e-05 &  5.6 & 6.14e-03 &  4.2 
+                epg4 &     4 & 1.09e-05 &  6.9 & 4.57e-06 &  4.7 & 8.32e-07 &  1.8 & 4.91e-06 &  4.6 & 1.75e-03 &  3.5 
+Convergence rates: c0=2.72 c1=2.39 c2=2.48 c3=2.34 c4=1.93 
+
+conv.p insElasticPiston.conv -tp=.1 -tf=.2 -cg=epgp -showAllComponents=1 -ng=2
+
+
+
+
+
 # ----- 2014/05/12
 
 

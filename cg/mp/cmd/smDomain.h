@@ -120,8 +120,8 @@ if( $tz eq "turn on twilight zone\n turn on polynomial" ){ $tzsm=1; $tzsmType="p
 if( $tz eq "turn on twilight zone\n turn on trigonometric" ){ $tzsm=1; $tzsmType="trigonometric"; $smCheckErrors=1; }
 OBTZ:$tzsmType
 OBTZ:twilight zone flow $tzsm
-OBTZ:degree in space $degreex
-OBTZ:degree in time $degreet
+OBTZ:degree in space $degreeSpace
+OBTZ:degree in time $degreeTime
 OBTZ:trigonometric scale factor $trigTzScaleFactor
 OBTZ:frequencies (x,y,z,t) $fx $fy $fz $ft
 $errorNorm
