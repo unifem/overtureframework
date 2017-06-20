@@ -1,0 +1,282 @@
+OLD VERSION OF THIS DIRECTORY IS IN shockEllipseOld
+
+*****************************************
+*********  June 16, 2017
+
+
+ADDED mp/runs/shockEllipse
+
+
+NEO- Hookean: 
+$cgmp shockCyl -method=cns -cnsVariation=godunov -smVariation=g  -g=deformingEllipseGride4 -scf=1. -tp=.01 -tf=4 -nc=1 -d1="outerDomain" -d2="innerDomain" -fic=shock -a1=1.183215957 -Mshock=1.3 -pOffset=1. -lambdaSolid=4. -muSolid=4. -rhoSolid=.1  -diss=2. -tangentialDissipationSolid=1. -cfl=.9 -cnsGodunovOrder=2 -debug=1 -xShock=-2.2500001 -a1= -flushFrequency=2 -godunovType=4 -pi=1 -piGhostOption=3 -multiDomainAlgorithm=1 -go=halt
+
+
+
+
+
+**** March 4, 2015
+
+MOVIES FOR DON 
+
+REMAKE GRIDS in shockEllipse/ 
+*NOTE* width not used:
+
+ogen noplot deformingEllipseGrid -factor=2 -interp=e -width=.25
+ogen noplot deformingEllipseGrid -factor=4 -interp=e -width=.25
+ogen noplot deformingEllipseGrid -factor=8 -interp=e -width=.25
+ogen noplot deformingEllipseGrid -factor=16 -interp=e -width=.25
+
+*** TODO:
+se2: G16 LE: 
+nohup $cgmp -noplot shockCyl -method=cns -cnsVariation=godunov -smVariation=g  -g=deformingEllipseGride16 -scf=1. -tp=.01 -tf=4 -nc=1 -d1="outerDomain" -d2="innerDomain" -fic=shock -a1=1.183215957 -Mshock=1.3 -pOffset=1. -lambdaSolid=4. -muSolid=4. -rhoSolid=.1  -diss=2.5 -tangentialDissipationSolid=1. -cfl=.9 -cnsGodunovOrder=2 -debug=1 -xShock=-2.2500001 -a1= -flushFrequency=2 -godunovType=0 -pi=1 -piGhostOption=3 -multiDomainAlgorithm=1 -show="deformingEllipse16LEm.show" -go=go >! deformingEllipse16LEm.out &
+
+** TODO: TEST MEDIUM: OK
+nohup $cgmp -noplot shockCyl -method=cns -cnsVariation=godunov -smVariation=g  -g=deformingEllipseGride8 -scf=1. -tp=.01 -tf=4 -nc=1 -d1="outerDomain" -d2="innerDomain" -fic=shock -a1=1.183215957 -Mshock=1.3 -pOffset=1. -lambdaSolid=4. -muSolid=4. -rhoSolid=.1  -diss=2.5 -tangentialDissipationSolid=1. -cfl=.9 -cnsGodunovOrder=2 -debug=1 -xShock=-2.2500001 -a1= -flushFrequency=2 -godunovType=0 -pi=1 -piGhostOption=3 -multiDomainAlgorithm=1 -show="deformingEllipse8LEm.show" -go=go >! deformingEllipse8LEm.out &
+
+** TEST COARSE: G4
+nohup $cgmp -noplot shockCyl -method=cns -cnsVariation=godunov -smVariation=g  -g=deformingEllipseGride4 -scf=1. -tp=.01 -tf=4 -nc=1 -d1="outerDomain" -d2="innerDomain" -fic=shock -a1=1.183215957 -Mshock=1.3 -pOffset=1. -lambdaSolid=4. -muSolid=4. -rhoSolid=.1  -diss=2.5 -tangentialDissipationSolid=1. -cfl=.9 -cnsGodunovOrder=2 -debug=1 -xShock=-2.2500001 -a1= -flushFrequency=2 -godunovType=0 -pi=1 -piGhostOption=3 -multiDomainAlgorithm=1 -show="deformingEllipse4LEm.show" -go=go >! deformingEllipse4LEm.out &
+
+**** 2014/07/10 ** RUN FOR MOVIE
+
+se1: G16 AP: 
+nohup $cgmp -noplot shockCyl -method=cns -cnsVariation=godunov -smVariation=g  -g=deformingEllipseGride16 -scf=1. -tp=.01 -tf=4 -nc=1 -d1="outerDomain" -d2="innerDomain" -fic=shock -a1=1.183215957 -Mshock=1.3 -pOffset=1. -lambdaSolid=4. -muSolid=4. -rhoSolid=.1  -diss=2. -tangentialDissipationSolid=1. -cfl=.9 -cnsGodunovOrder=2 -debug=1 -xShock=-2.2500001 -a1= -flushFrequency=2 -godunovType=4 -pi=1 -piGhostOption=3 -multiDomainAlgorithm=1 -show="deformingEllipse16APm.show" -go=go >! deformingEllipse16APm.out &
+
+
+
+*** 2014/05/19 RUN WITH Full projection?
+
+se1: G16 FP: 
+nohup $cgmp -noplot shockCyl -method=cns -cnsVariation=godunov -smVariation=g  -g=deformingEllipseGride16 -scf=1. -tp=.1 -tf=4 -nc=1 -d1="outerDomain" -d2="innerDomain" -fic=shock -a1=1.183215957 -Mshock=1.3 -pOffset=1. -lambdaSolid=4. -muSolid=4. -rhoSolid=.1  -diss=2. -tangentialDissipationSolid=1. -cfl=.9 -cnsGodunovOrder=2 -debug=1 -xShock=-2.2500001 -a1= -flushFrequency=2 -godunovType=4 -pi=1 -piGhostOption=3 -piOption=1 -multiDomainAlgorithm=1 -show="deformingEllipse16FP.show" -go=go >! deformingEllipse16FP.out &
+
+
+****** 2014/05/15
+
+CHANGE INITIAL STATE:  (to match Jeff -- before the shock speed was 1.5)
+
+Component 0 (rho) [min,max]=[1.00000000000000e+00,1.51569506726457e+00].
+Component 1 (u) [min,max]=[0.00000000000000e+00,5.23345519442308e-01].
+Component 2 (v) [min,max]=[0.00000000000000e+00,0.00000000000000e+00].
+Component 3 (T) [min,max]=[1.00000000064245e+00,1.19087278183016e+00].
+Component 4 (p) [min,max]=[1.00000000064245e+00,1.80500000115961e+00].
+
+M=1.3 shock -- go to time 4, grid size xb=5. 
+
+se2 G16 LEv2 USE LE option in SVK code : -godunovType=1 -- OK 
+nohup $cgmp -noplot shockCyl -method=cns -cnsVariation=godunov -smVariation=g  -g=deformingEllipseGride16 -scf=1. -tp=.1 -tf=4 -nc=1 -d1="outerDomain" -d2="innerDomain" -fic=shock -a1=1.183215957 -Mshock=1.3 -pOffset=1. -lambdaSolid=4. -muSolid=4. -rhoSolid=.1  -diss=2. -tangentialDissipationSolid=1. -cfl=.9 -cnsGodunovOrder=2 -debug=1 -xShock=-2.2500001 -a1= -flushFrequency=2 -godunovType=1 -pi=1 -piGhostOption=3 -multiDomainAlgorithm=1 -show="deformingEllipse16LEa.show" -go=go >! deformingEllipse16LEa.out &
+
+
+se2: G16 LE: small wiggles at end --
+nohup $cgmp -noplot shockCyl -method=cns -cnsVariation=godunov -smVariation=g  -g=deformingEllipseGride16 -scf=1. -tp=.1 -tf=4 -nc=1 -d1="outerDomain" -d2="innerDomain" -fic=shock -a1=1.183215957 -Mshock=1.3 -pOffset=1. -lambdaSolid=4. -muSolid=4. -rhoSolid=.1  -diss=2. -tangentialDissipationSolid=1. -cfl=.9 -cnsGodunovOrder=2 -debug=1 -xShock=-2.2500001 -a1= -flushFrequency=2 -godunovType=0 -pi=1 -piGhostOption=3 -multiDomainAlgorithm=1 -show="deformingEllipse16LE.show" -go=go >! deformingEllipse16LE.out &
+
+se1: G16 AP: 
+nohup $cgmp -noplot shockCyl -method=cns -cnsVariation=godunov -smVariation=g  -g=deformingEllipseGride16 -scf=1. -tp=.1 -tf=4 -nc=1 -d1="outerDomain" -d2="innerDomain" -fic=shock -a1=1.183215957 -Mshock=1.3 -pOffset=1. -lambdaSolid=4. -muSolid=4. -rhoSolid=.1  -diss=2. -tangentialDissipationSolid=1. -cfl=.9 -cnsGodunovOrder=2 -debug=1 -xShock=-2.2500001 -a1= -flushFrequency=2 -godunovType=4 -pi=1 -piGhostOption=3 -multiDomainAlgorithm=1 -show="deformingEllipse16AP.show" -go=go >! deformingEllipse16AP.out &
+
+
+se2: G8 LE: 
+nohup $cgmp -noplot shockCyl -method=cns -cnsVariation=godunov -smVariation=g  -g=deformingEllipseGride8 -scf=1. -tp=.1 -tf=4 -nc=1 -d1="outerDomain" -d2="innerDomain" -fic=shock -a1=1.183215957 -Mshock=1.3 -pOffset=1. -lambdaSolid=4. -muSolid=4. -rhoSolid=.1  -diss=2. -tangentialDissipationSolid=1. -cfl=.9 -cnsGodunovOrder=2 -debug=1 -xShock=-2.2500001 -a1= -flushFrequency=2 -godunovType=0 -pi=1 -piGhostOption=3 -multiDomainAlgorithm=1 -show="deformingEllipse8LE.show" -go=go >! deformingEllipse8LE.out &
+
+se1: G8 AP: 
+nohup $cgmp -noplot shockCyl -method=cns -cnsVariation=godunov -smVariation=g  -g=deformingEllipseGride8 -scf=1. -tp=.1 -tf=4 -nc=1 -d1="outerDomain" -d2="innerDomain" -fic=shock -a1=1.183215957 -Mshock=1.3 -pOffset=1. -lambdaSolid=4. -muSolid=4. -rhoSolid=.1  -diss=2. -tangentialDissipationSolid=1. -cfl=.9 -cnsGodunovOrder=2 -debug=1 -xShock=-2.2500001 -a1= -flushFrequency=2 -godunovType=4 -pi=1 -piGhostOption=3 -multiDomainAlgorithm=1 -show="deformingEllipse8AP.show" -go=go >! deformingEllipse8AP.out &
+
+
+se1: OK
+nohup $cgmp -noplot shockCyl -method=cns -cnsVariation=godunov -smVariation=g  -g=deformingEllipseGride4 -scf=1. -tp=.1 -tf=4 -nc=1 -d1="outerDomain" -d2="innerDomain" -fic=shock -a1=1.183215957 -Mshock=1.3 -pOffset=1. -lambdaSolid=4. -muSolid=4. -rhoSolid=.1  -diss=2. -tangentialDissipationSolid=1. -cfl=.9 -cnsGodunovOrder=2 -debug=1 -xShock=-2.2500001 -a1= -flushFrequency=2 -godunovType=4 -pi=1 -piGhostOption=3 -multiDomainAlgorithm=1 -show="deformingEllipse4APM1p3b.show" -go=go >! deformingEllipse4APM1p3b.out &
+
+
+
+nohup $cgmp -noplot shockCyl -method=cns -cnsVariation=godunov -smVariation=g  -g=deformingEllipseGride4 -scf=1. -tp=.1 -tf=5 -nc=1 -d1="outerDomain" -d2="innerDomain" -fic=shock -a1=1.183215957 -Mshock=1.3 -pOffset=1. -lambdaSolid=5. -muSolid=5. -rhoSolid=.1  -diss=2. -tangentialDissipationSolid=1. -cfl=.8 -cnsGodunovOrder=2 -debug=1 -xShock=-2.2500001 -a1= -flushFrequency=2 -godunovType=4 -pi=1 -piGhostOption=3 -multiDomainAlgorithm=1 -show="deformingEllipse4APM1p3a.show" -go=go >! deformingEllipse4APM1p3a.out &
+
+se: M=1.3 trouble at t=4.3 -- more diss needed
+nohup $cgmp -noplot shockCyl -method=cns -cnsVariation=godunov -smVariation=g  -g=deformingEllipseGride4 -scf=1. -tp=.1 -tf=5 -nc=1 -d1="outerDomain" -d2="innerDomain" -fic=shock -a1=1.183215957 -Mshock=1.3 -pOffset=1. -lambdaSolid=5. -muSolid=5. -rhoSolid=.1  -diss=1. -cfl=.9 -cnsGodunovOrder=2 -debug=1 -xShock=-2.2500001 -a1= -flushFrequency=2 -godunovType=4 -pi=1 -piGhostOption=3 -multiDomainAlgorithm=1 -show="deformingEllipse4APM1p3.show" -go=go >! deformingEllipse4APM1p3.out &
+
+
+se1: TROUBLE around t=3
+nohup $cgmp -noplot shockCyl -method=cns -cnsVariation=godunov -smVariation=g  -g=deformingEllipseGride4 -scf=1. -tp=.1 -tf=5 -nc=1 -d1="outerDomain" -d2="innerDomain" -fic=shock -a1=1.183215957 -Mshock=1.5 -pOffset=1. -lambdaSolid=8. -muSolid=8. -rhoSolid=.1  -diss=1. -cfl=.9 -cnsGodunovOrder=2 -debug=1 -xShock=-2.2500001 -a1= -flushFrequency=2 -godunovType=4 -pi=1 -piGhostOption=3 -multiDomainAlgorithm=1 -show="deformingEllipse4AP.show" -go=go >! deformingEllipse4AP.out &
+
+shockEllipse/  TROUBLE around t=3 
+nohup $cgmp -noplot shockCyl -method=cns -cnsVariation=godunov -smVariation=g  -g=deformingEllipseGride2 -scf=1. -tp=.1 -tf=5 -nc=1 -d1="outerDomain" -d2="innerDomain" -fic=shock -a1=1.183215957 -Mshock=1.5 -pOffset=1. -lambdaSolid=8. -muSolid=8. -rhoSolid=.1  -diss=1. -cfl=.9 -cnsGodunovOrder=2 -debug=1 -xShock=-2.2500001 -a1= -flushFrequency=2 -godunovType=4 -pi=1 -piGhostOption=3 -multiDomainAlgorithm=1 -show="deformingEllipse2AP.show" -go=go >! deformingEllipse2AP.out &
+
+
+Component 0 (rho) [min,max]=[1.00000000000000e+00,1.86206896551724e+00].
+Component 1 (u) [min,max]=[0.00000000000000e+00,8.21677747916667e-01].
+Component 2 (v) [min,max]=[0.00000000000000e+00,0.00000000000000e+00].
+Component 3 (T) [min,max]=[1.00000000064245e+00,1.32021605023089e+00].
+Component 4 (p) [min,max]=[1.00000000064245e+00,2.45833333491269e+00].
+
+
+****** 2014/05/13
+
+CHECK INITIAL STATE
+Component 0 (r) [min,max]=[1.00000000000000e+00,1.45945945874991e+00].
+Component 1 (u) [min,max]=[0.00000000000000e+00,4.72222221722541e-01].
+Component 2 (v) [min,max]=[0.00000000000000e+00,0.00000000000000e+00].
+Component 3 (T) [min,max]=[1.00000000064245e+00,1.17052469185374e+00].
+Component 4 (p) [min,max]=[1.00000000064245e+00,1.70833333322626e+00].
+
+
+$cgmp shockCyl -method=cns -cnsVariation=godunov -smVariation=g  -g=deformingEllipseGride8 -scf=1. -tp=.1 -tf=5 -nc=1 -d1="outerDomain" -d2="innerDomain" -fic=shock -a1=1.183215957 -pOffset=1. -lambdaSolid=5. -muSolid=5. -rhoSolid=.1  -diss=2. -cfl=.8 -cnsGodunovOrder=2 -debug=1 -xShock=-2.2500001 -a1= -flushFrequency=2 -godunovType=4 -pi=1 -piGhostOption=3 -multiDomainAlgorithm=1 -go=halt
+
+
+
+se1
+AP  - redo : -diss=2, -cfl=.8 ** STILL TROUBLE** at around t=1.5
+nohup $cgmp -noplot shockCyl -method=cns -cnsVariation=godunov -smVariation=g  -g=deformingEllipseGride16 -scf=1. -tp=.1 -tf=5 -nc=1 -d1="outerDomain" -d2="innerDomain" -fic=shock -a1=1.183215957 -pOffset=1. -lambdaSolid=5. -muSolid=5. -rhoSolid=.1  -diss=2. -cfl=.8 -cnsGodunovOrder=2 -debug=1 -xShock=-2.2500001 -a1= -flushFrequency=2 -godunovType=4 -pi=1 -piGhostOption=3 -multiDomainAlgorithm=1 -show="deformingEllipse16APd2.show" -go=go >! deformingEllipse16APd2.out &
+
+se3:
+nohup $cgmp -noplot shockCyl -method=cns -cnsVariation=godunov -smVariation=g  -g=deformingEllipseGride8 -scf=1. -tp=.1 -tf=5 -nc=1 -d1="outerDomain" -d2="innerDomain" -fic=shock -a1=1.183215957 -pOffset=1. -lambdaSolid=5. -muSolid=5. -rhoSolid=.1  -diss=1. -cfl=.9 -cnsGodunovOrder=2 -debug=1 -xShock=-2.2500001 -a1= -flushFrequency=2 -godunovType=4 -pi=1 -piGhostOption=3 -multiDomainAlgorithm=1 -show="deformingEllipse8AP.show" -go=go >! deformingEllipse8AP.out &
+
+se4:
+nohup $cgmp -noplot shockCyl -method=cns -cnsVariation=godunov -smVariation=g  -g=deformingEllipseGride8 -scf=1. -tp=.1 -tf=5 -nc=1 -d1="outerDomain" -d2="innerDomain" -fic=shock -a1=1.183215957 -pOffset=1. -lambdaSolid=5. -muSolid=5. -rhoSolid=.1  -diss=1. -cnsGodunovOrder=2 -debug=1 -xShock=-2.2500001 -a1= -flushFrequency=2 -godunovType=0 -pi=1 -piGhostOption=3 -multiDomainAlgorithm=1 -show="deformingEllipse8LE.show" -go=go >! deformingEllipse8LE.out & 
+
+****** 2014/05/12
+
+**** REDO (disk filled up)
+
+AP : TROUBLE: note - had set diss=1
+se1
+nohup $cgmp -noplot shockCyl -method=cns -cnsVariation=godunov -smVariation=g  -g=deformingEllipseGride16 -scf=1. -tp=.1 -tf=5 -nc=1 -d1="outerDomain" -d2="innerDomain" -fic=shock -a1=1.183215957 -pOffset=1. -lambdaSolid=5. -muSolid=5. -rhoSolid=.1  -diss=1. -cnsGodunovOrder=2 -debug=1 -xShock=-2.2500001 -a1= -flushFrequency=2 -godunovType=4 -pi=1 -piGhostOption=3 -multiDomainAlgorithm=1 -show="deformingEllipse16AP.show" -go=go >! deformingEllipse16AP.out & 
+
+LE: 
+se2
+nohup $cgmp -noplot shockCyl -method=cns -cnsVariation=godunov -smVariation=g  -g=deformingEllipseGride16 -scf=1. -tp=.1 -tf=5 -nc=1 -d1="outerDomain" -d2="innerDomain" -fic=shock -a1=1.183215957 -pOffset=1. -lambdaSolid=5. -muSolid=5. -rhoSolid=.1  -diss=1. -cnsGodunovOrder=2 -debug=1 -xShock=-2.2500001 -a1= -flushFrequency=2 -godunovType=0 -pi=1 -piGhostOption=3 -multiDomainAlgorithm=1 -show="deformingEllipse16LE.show" -go=go >! deformingEllipse16LE.out & 
+
+****** 2014/05/11
+
+Finer grids -- USE lambdas=mus=5 
+
+
+G16 AP: 
+se1
+nohup $cgmp -noplot shockCyl -method=cns -cnsVariation=godunov -smVariation=g  -g=deformingEllipseGride16 -scf=1. -tp=.1 -tf=5 -nc=1 -d1="outerDomain" -d2="innerDomain" -fic=shock -a1=1.183215957 -pOffset=1. -lambdaSolid=5. -muSolid=5. -rhoSolid=.1  -diss=2. -cnsGodunovOrder=2 -debug=1 -xShock=-2.2500001 -a1= -flushFrequency=2 -godunovType=4 -pi=1 -piGhostOption=3 -multiDomainAlgorithm=1 -show="deformingEllipse16AP.show" -go=go >! deformingEllipse16AP.out & 
+
+LE: 
+se2
+nohup $cgmp -noplot shockCyl -method=cns -cnsVariation=godunov -smVariation=g  -g=deformingEllipseGride16 -scf=1. -tp=.1 -tf=5 -nc=1 -d1="outerDomain" -d2="innerDomain" -fic=shock -a1=1.183215957 -pOffset=1. -lambdaSolid=5. -muSolid=5. -rhoSolid=.1  -diss=2. -cnsGodunovOrder=2 -debug=1 -xShock=-2.2500001 -a1= -flushFrequency=2 -godunovType=0 -pi=1 -piGhostOption=3 -multiDomainAlgorithm=1 -show="deformingEllipse16LE.show" -go=go >! deformingEllipse16LE.out & 
+
+
+TRY no -projection:
+TP 
+nohup $cgmp -noplot shockCyl -method=cns -cnsVariation=godunov -smVariation=g  -g=deformingEllipseGride8 -scf=1. -tp=.1 -tf=5 -nc=1 -d1="outerDomain" -d2="innerDomain" -fic=shock -a1=1.183215957 -pOffset=1. -lambdaSolid=5. -muSolid=5. -rhoSolid=.1  -diss=2. -cnsGodunovOrder=2 -debug=1 -xShock=-2.2500001 -a1= -flushFrequency=2 -godunovType=4 -pi=0 -piGhostOption=3 -multiDomainAlgorithm=1 -show="deformingEllipse8TP.show" -go=go >! deformingEllipse8TP.out & 
+
+
+G16 : AP: 
+se4
+nohup $cgmp -noplot shockCyl -method=cns -cnsVariation=godunov -smVariation=g  -g=deformingEllipseGride16 -scf=1. -tp=.1 -tf=5 -nc=1 -d1="outerDomain" -d2="innerDomain" -fic=shock -a1=1.183215957 -pOffset=1. -lambdaSolid=5. -muSolid=5. -rhoSolid=.1  -diss=2. -cnsGodunovOrder=2 -debug=1 -xShock=-2.2500001 -a1= -flushFrequency=2 -godunovType=4 -pi=1 -piGhostOption=3 -multiDomainAlgorithm=1 -show="deformingEllipse16AP.show" -go=go >! deformingEllipse16AP.out & 
+
+FP: 
+se3
+nohup $cgmp -noplot shockCyl -method=cns -cnsVariation=godunov -smVariation=g  -g=deformingEllipseGride8 -scf=1. -tp=.1 -tf=5 -nc=1 -d1="outerDomain" -d2="innerDomain" -fic=shock -a1=1.183215957 -pOffset=1. -lambdaSolid=5. -muSolid=5. -rhoSolid=.1  -diss=2. -cnsGodunovOrder=2 -debug=1 -xShock=-2.2500001 -a1= -flushFrequency=2 -godunovType=4 -pi=1 -piGhostOption=3 -piOption=1 -multiDomainAlgorithm=1 -show="deformingEllipse8FP.show" -go=go >! deformingEllipse8FP.out & 
+
+AP: 
+se1
+nohup $cgmp -noplot shockCyl -method=cns -cnsVariation=godunov -smVariation=g  -g=deformingEllipseGride8 -scf=1. -tp=.1 -tf=5 -nc=1 -d1="outerDomain" -d2="innerDomain" -fic=shock -a1=1.183215957 -pOffset=1. -lambdaSolid=5. -muSolid=5. -rhoSolid=.1  -diss=2. -cnsGodunovOrder=2 -debug=1 -xShock=-2.2500001 -a1= -flushFrequency=2 -godunovType=4 -pi=1 -piGhostOption=3 -multiDomainAlgorithm=1 -show="deformingEllipse8AP.show" -go=go >! deformingEllipse8AP.out & 
+
+LE: 
+se2
+nohup $cgmp -noplot shockCyl -method=cns -cnsVariation=godunov -smVariation=g  -g=deformingEllipseGride8 -scf=1. -tp=.1 -tf=5 -nc=1 -d1="outerDomain" -d2="innerDomain" -fic=shock -a1=1.183215957 -pOffset=1. -lambdaSolid=5. -muSolid=5. -rhoSolid=.1  -diss=2. -cnsGodunovOrder=2 -debug=1 -xShock=-2.2500001 -a1= -flushFrequency=2 -godunovType=0 -pi=1 -piGhostOption=3 -multiDomainAlgorithm=1 -show="deformingEllipse8LE.show" -go=go >! deformingEllipse8LE.out & 
+
+
+
+
+mu=lam=5 rho=.1: 
+nohup $cgmp -noplot shockCyl -method=cns -cnsVariation=godunov -smVariation=g  -g=deformingEllipseGride4 -scf=1. -tp=.1 -tf=5 -nc=1 -d1="outerDomain" -d2="innerDomain" -fic=shock -a1=1.183215957 -pOffset=1. -lambdaSolid=5. -muSolid=5. -rhoSolid=.1  -diss=2. -cnsGodunovOrder=2 -debug=1 -xShock=-2.2500001 -a1= -flushFrequency=2 -godunovType=4 -pi=1 -piGhostOption=3 -multiDomainAlgorithm=1 -show="deformingEllipse4APa.show" -go=go >! deformingEllipse4APa.out & 
+
+-- try a lighter ellipse trouble at t=.3
+nohup $cgmp -noplot shockCyl -method=cns -cnsVariation=godunov -smVariation=g  -g=deformingEllipseGride4 -scf=1. -tp=.1 -tf=5 -nc=1 -d1="outerDomain" -d2="innerDomain" -fic=shock -a1=1.183215957 -pOffset=1. -lambdaSolid=4. -muSolid=4. -rhoSolid=.1  -diss=2. -cnsGodunovOrder=2 -debug=1 -xShock=-2.2500001 -a1= -flushFrequency=2 -godunovType=4 -pi=1 -piGhostOption=3 -multiDomainAlgorithm=1 -show="deformingEllipse4Ars0p1P.show" -go=go >! deformingEllipse4APrs0p1.out & 
+
+-tf=5: 
+nohup $cgmp -noplot shockCyl -method=cns -cnsVariation=godunov -smVariation=g  -g=deformingEllipseGride4 -scf=1. -tp=.1 -tf=5 -nc=1 -d1="outerDomain" -d2="innerDomain" -fic=shock -a1=1.183215957 -pOffset=1. -lambdaSolid=4. -muSolid=4. -rhoSolid=.2  -diss=2. -cnsGodunovOrder=2 -debug=1 -xShock=-2.2500001 -a1= -flushFrequency=20 -godunovType=4 -pi=1 -piGhostOption=3 -multiDomainAlgorithm=1 -show="deformingEllipse4AP.show" -go=go >! deformingEllipse4AP.out & 
+
+
+
+**********  2014/05/10 -- use existing command files to run neo-Hookean cases etc.
+
+plotStuff plotDeformingEllipse.cmd -show=deformingEllipse4AP.show
+
+
+**** REDO grid an an extra line in the normal direction 
+
+TODO G16 lambda=mu=4: plotStuff plotDeformingEllipse.cmd -show=deformingEllipse8l4m4AP.show
+se1/
+nohup $cgmp -noplot shockCyl -method=cns -cnsVariation=godunov -smVariation=g  -g=deformingEllipseGride16 -scf=1. -tp=.1 -tf=2 -nc=1 -d1="outerDomain" -d2="innerDomain" -fic=shock -a1=1.183215957 -pOffset=1. -lambdaSolid=4. -muSolid=4. -rhoSolid=.2  -diss=2. -cnsGodunovOrder=2 -debug=1 -xShock=-2.2500001 -a1= -flushFrequency=4 -godunovType=4 -pi=1 -piGhostOption=3 -multiDomainAlgorithm=1 -show="deformingEllipse16l4m4AP.show" -go=go >! deformingEllipse16l4m4AP.out &
+
+
+Linear-elasticity:
+se2/
+nohup $cgmp -noplot shockCyl -method=cns -cnsVariation=godunov -smVariation=g  -g=deformingEllipseGride8 -scf=1. -tp=.1 -tf=2 -nc=1 -d1="outerDomain" -d2="innerDomain" -fic=shock -a1=1.183215957 -pOffset=1. -lambdaSolid=4. -muSolid=4. -rhoSolid=.2  -diss=2. -cnsGodunovOrder=2 -debug=1 -xShock=-2.2500001 -a1= -flushFrequency=4 -godunovType=0 -pi=1 -piGhostOption=1 -multiDomainAlgorithm=1 -show="deformingEllipse8LE.show" -go=go >! deformingEllips8LE.out &
+
+Linear-elasticity:
+se1/
+nohup $cgmp -noplot shockCyl -method=cns -cnsVariation=godunov -smVariation=g  -g=deformingEllipseGride4 -scf=1. -tp=.1 -tf=2 -nc=1 -d1="outerDomain" -d2="innerDomain" -fic=shock -a1=1.183215957 -pOffset=1. -lambdaSolid=4. -muSolid=4. -rhoSolid=.2  -diss=2. -cnsGodunovOrder=2 -debug=1 -xShock=-2.2500001 -a1= -flushFrequency=4 -godunovType=0 -pi=1 -piGhostOption=1 -multiDomainAlgorithm=1 -show="deformingEllipse4LE.show" -go=go >! deformingEllipse4LE.out &
+
+
+TRY Full projection:
+se1/ G4 lambda=mu=4: 
+nohup $cgmp -noplot shockCyl -method=cns -cnsVariation=godunov -smVariation=g  -g=deformingEllipseGride4 -scf=1. -tp=.1 -tf=2 -nc=1 -d1="outerDomain" -d2="innerDomain" -fic=shock -a1=1.183215957 -pOffset=1. -lambdaSolid=4. -muSolid=4. -rhoSolid=.2  -diss=2. -cnsGodunovOrder=2 -debug=1 -xShock=-2.2500001 -a1= -flushFrequency=4 -godunovType=4 -pi=1 -piGhostOption=3 -piOption=1 -multiDomainAlgorithm=1 -show="deformingEllipse4FP.show" -go=go >! deformingEllipse4FP.out
+
+
+
+../se1: lambda=mu=2 *TROUBLE* plotStuff plotDeformingEllipse.cmd deformingEllipse4APl2m2.show
+nohup $cgmp -noplot shockCyl -method=cns -cnsVariation=godunov -smVariation=g  -g=deformingEllipseGride4 -scf=1. -tp=.1 -tf=2 -nc=1 -d1="outerDomain" -d2="innerDomain" -fic=shock -a1=1.183215957 -pOffset=1. -lambdaSolid=2. -muSolid=2. -rhoSolid=.2  -diss=2. -cnsGodunovOrder=2 -debug=1 -xShock=-2.2500001 -a1= -flushFrequency=4 -godunovType=4 -pi=1 -piGhostOption=3 -multiDomainAlgorithm=1 -show="deformingEllipse4APl2m2.show" -go=go >! deformingEllipse4APl2m2.out &
+
+G8 lambda=mu=4: plotStuff plotDeformingEllipse.cmd -show=deformingEllipse8l4m4AP.show
+nohup $cgmp -noplot shockCyl -method=cns -cnsVariation=godunov -smVariation=g  -g=deformingEllipseGride8 -scf=1. -tp=.1 -tf=2 -nc=1 -d1="outerDomain" -d2="innerDomain" -fic=shock -a1=1.183215957 -pOffset=1. -lambdaSolid=4. -muSolid=4. -rhoSolid=.2  -diss=2. -cnsGodunovOrder=2 -debug=1 -xShock=-2.2500001 -a1= -flushFrequency=4 -godunovType=4 -pi=1 -piGhostOption=3 -multiDomainAlgorithm=1 -show="deformingEllipse8l4m4AP.show" -go=go >! deformingEllipse8l4m4AP.out &
+
+G4 lambda=mu=4: 
+nohup $cgmp -noplot shockCyl -method=cns -cnsVariation=godunov -smVariation=g  -g=deformingEllipseGride4 -scf=1. -tp=.1 -tf=2 -nc=1 -d1="outerDomain" -d2="innerDomain" -fic=shock -a1=1.183215957 -pOffset=1. -lambdaSolid=4. -muSolid=4. -rhoSolid=.2  -diss=2. -cnsGodunovOrder=2 -debug=1 -xShock=-2.2500001 -a1= -flushFrequency=4 -godunovType=4 -pi=1 -piGhostOption=3 -multiDomainAlgorithm=1 -show="deformingEllipse4AP.show" -go=go >! deformingEllipse4AP.out
+
+
+
+=== ellipse grid
+
+Finer: approximate projection: 
+nohup $cgmp -noplot shockCyl -method=cns -cnsVariation=godunov -smVariation=g  -g=deformingEllipsee8 -scf=1. -tp=.1 -tf=2 -nc=1 -d1="outerDomain" -d2="innerDomain" -fic=shock -a1=1.183215957 -pOffset=1. -lambdaSolid=5. -muSolid=5. -rhoSolid=.2  -diss=2. -cnsGodunovOrder=2 -debug=1 -xShock=-2.2500001 -a1= -flushFrequency=2 -godunovType=4 -pi=1 -piGhostOption=3 -multiDomainAlgorithm=1 -show="deformingEllipse8AP.show" -go=go >! deformingEllipse8AP.out &
+
+
+
+Finer: approximate projection: 
+nohup $cgmp -noplot shockCyl -method=cns -cnsVariation=godunov -smVariation=g  -g=deformingEllipsee4 -scf=1. -tp=.1 -tf=2 -nc=1 -d1="outerDomain" -d2="innerDomain" -fic=shock -a1=1.183215957 -pOffset=1. -lambdaSolid=5. -muSolid=5. -rhoSolid=.2  -diss=2. -cnsGodunovOrder=2 -debug=1 -xShock=-2.2500001 -a1= -flushFrequency=4 -godunovType=4 -pi=1 -piGhostOption=3 -multiDomainAlgorithm=1 -show="deformingEllipse4AP.show" -go=go >! deformingEllipse4AP.out
+
+
+
+less stiff?  -- OK
+$cgmp shockCyl -method=cns -cnsVariation=godunov -smVariation=g  -g=deformingEllipsee2 -scf=1. -tp=.05 -tf=2.5 -nc=1 -d1="outerDomain" -d2="innerDomain" -fic=shock -a1=1.183215957 -pOffset=1. -lambdaSolid=5. -muSolid=5. -rhoSolid=.2  -diss=2. -cnsGodunovOrder=2 -debug=1 -xShock=-2.2500001 -a1= -flushFrequency=50 -godunovType=4 -pi=1 -piGhostOption=3 -multiDomainAlgorithm=1  -go=halt
+
+MATCH JEFF: $a1=sqrt(1.4) -pOffset=1 , TURN ON 1/dt dissipation -- looks ok
+$cgmp shockCyl -method=cns -cnsVariation=godunov -smVariation=g  -g=deformingEllipsee2 -scf=1. -tp=.05 -tf=2.5 -nc=1 -d1="outerDomain" -d2="innerDomain" -fic=shock -a1=1.183215957 -pOffset=1. -lambdaSolid=10. -muSolid=10. -rhoSolid=.1  -diss=2. -cnsGodunovOrder=2 -debug=1 -xShock=-2.2500001 -a1= -flushFrequency=50 -godunovType=4 -pi=1 -piGhostOption=3 -multiDomainAlgorithm=1  -go=halt
+
+
+STIFFER LIGHTER -- deforms too much
+$cgmp shockCyl -method=cns -cnsVariation=godunov -smVariation=g  -g=deformingEllipsee2 -scf=1. -tp=.05 -tf=2.5 -nc=1 -d1="outerDomain" -d2="innerDomain" -fic=shock -pOffset=.71440 -lambdaSolid=10. -muSolid=10. -diss=2. -cnsGodunovOrder=2 -debug=1 -xShock=-2.2500001 -flushFrequency=50 -godunovType=4 -pi=1 -piGhostOption=3 -multiDomainAlgorithm=1  -go=halt
+
+
+LIGHTER -- deforms too much
+$cgmp shockCyl -method=cns -cnsVariation=godunov -smVariation=g  -g=deformingEllipsee2 -scf=1. -tp=.05 -tf=2.5 -nc=1 -d1="outerDomain" -d2="innerDomain" -fic=shock -pOffset=.71440 -lambdaSolid=5. -muSolid=5. -diss=2. -cnsGodunovOrder=2 -deb
+ug=1 -xShock=-2.2500001 -flushFrequency=50 -godunovType=4 -pi=1 -piGhostOption=3 -multiDomainAlgorithm=1  -go=halt
+
+
+Neo-Hookean: -godunovType=4 -diss=2. -cnsGodunovOrder=2 OK
+$cgmp shockCyl -method=cns -cnsVariation=godunov -smVariation=g  -g=deformingEllipsee2 -scf=5. -tp=.1 -tf=2.5 -nc=1 -d1="outerDomain" -d2="innerDomain" -fic=shock -pOffset=.71440 -lambdaSolid=5. -muSolid=5. -diss=2. -cnsGodunovOrder=2 -debug=1 -xShock=-2.2500001 -flushFrequency=50 -godunovType=4 -pi=1 -piGhostOption=3 -multiDomainAlgorithm=1  -go=halt
+
+
+Neo-Hookean: -godunovType=4  --OK 
+$cgmp shockCyl -method=cns -cnsVariation=godunov -smVariation=g  -g=deformingEllipsee2 -scf=5. -tp=.1 -tf=2.5 -nc=1 -d1="outerDomain" -d2="innerDomain" -fic=shock -pOffset=.71440 -lambdaSolid=5. -muSolid=5. -diss=5. -cnsGodunovOrder=1 -debug=1 -xShock=-2.2500001 -flushFrequency=50 -godunovType=4 -pi=1 -piGhostOption=3 -multiDomainAlgorithm=1  -go=halt
+
+Neo-Hookean: -godunovType=4  --OK for a while but ellipse deforms a lot
+$cgmp shockCyl -method=cns -cnsVariation=godunov -smVariation=g  -g=deformingEllipsee2 -scf=2. -tp=.1 -tf=2.5 -nc=1 -d1="outerDomain" -d2="innerDomain" -fic=shock -pOffset=.71440 -lambdaSolid=1. -muSolid=1. -diss=5. -cnsGodunovOrder=1 -debug=1 -xShock=-2.2500001 -flushFrequency=50 -godunovType=4 -pi=1 -piGhostOption=3 -multiDomainAlgorithm=1  -go=halt
+
+Linear-elasticity: M=1.5 shock
+$cgmp shockCyl -method=cns -cnsVariation=godunov -smVariation=g  -g=deformingEllipsee2 -scf=2. -tp=.1 -tf=2.5 -nc=1 -d1="outerDomain" -d2="innerDomain" -fic=shock -pOffset=.71440 -lambdaSolid=1. -muSolid=1. -diss=5. -cnsGodunovOrder=1 -debug=1 -xShock=-2.2500001 -flushFrequency=50 -pi=1 -piGhostOption=3 -multiDomainAlgorithm=1  -go=halt
+
+OK to t=1. at least
+$cgmp shockCyl -method=cns -cnsVariation=godunov -smVariation=g  -g=deformingEllipsee2 -scf=2. -tp=.1 -tf=2.5 -nc=1 -d1="outerDomain" -d2="innerDomain" -fic=shock -pOffset=.71440 -lambdaSolid=1. -muSolid=1. -diss=5. -cnsGodunovOrder=1 -debug=1 -xShock=-2.2500001 -flushFrequency=50 -pi=1 -piGhostOption=3 -multiDomainAlgorithm=1  -go=halt
+
+=== SOLID CYLINDER
+
+OK
+$cgmp shockCyl -method=cns -cnsVariation=godunov -smVariation=g  -g=diskDeformBig2e -scf=2. -tp=.1 -tf=2.5 -nc=1 -d1="outerDomain" -d2="innerDomain" -fic=shock -pOffset=.71440 -lambdaSolid=1. -muSolid=1. -diss=5. -cnsGodunovOrder=1 -debug=1 -show="shockCyl2.show" -flushFrequency=50 -pi=1 -piGhostOption=3 -multiDomainAlgorithm=1  -go=halt
+
+
+===== FLUID FILLED CYLINDER:
+Run and plot: 
+$cgmp elasticShockCyl -method=cns -cnsVariation=godunov -smVariation=g -g=diskDeformBig4e -scf=1. -tp=.05 -tf=1.5 -nc=1 -fic=shock -pOffset=0.714285714286 -lambdaSolid=1. -muSolid=1. -diss=0. -cnsGodunovOrder=2 -debug=1 -pi=1 -multiDomainAlgorithm=1 -xShock=-10.0000000000001 -uShock=0. -ap=.1 -flushFrequency=2 -bcOption=4 -stressRelaxation=4 -go=halt

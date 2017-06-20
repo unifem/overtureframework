@@ -1,0 +1,707 @@
+====== 2013/11/26 -- TEST NEW SVK projection from Don:
+
+
+
+
+
+------------------------------------------------------------------------------------------
+---> cgmp noplot elasticPiston -method=cns -cnsVariation=godunov -g="elasticPistonGridfx8fy8.hdf" -tp=.2 -tf=.2 -smVariation=g -godunovType=2 -problem=0 -tz=poly -debug=3 -piGhostOption=0 -pi=1 -scf=.01 -go=go
+
+
+============= Cgcns time-step info for domain 0 (rightDomain)(fluid) steps=63==================
+     t    err(r)   err(u)   err(v)   err(T)    uMax     dt       cpu  (cur,max)-mem (Gb)
+   0.200 1.51e-07 7.77e-06 6.72e-06 2.11e-06 1.58e+00 3.17e-03 7.85e+01 (      47,       0)
+
+****  printTimeStepInfo (t=2.000e-01): Number of A++ arrays has increased to 1444
+
+============= Cgsm time-step info for domain 1 (leftDomain)(solid) steps=63==================
+-->t=2.0000e-01 dt=3.2e-03 maxNorm errors:[3.0733e-06,7.6913e-06,5.3104e-08,8.3183e-08,7.9311e-08,3.7570e-07,1.4468e-07,6.6849e-07,], maxNorm(u):[6.87e-02,6.41e-02,6.53e-02,7.65e-02,6.70e-02,4.46e-02,7.16e-02,4.71e-02,]
+
+
+------------------------------------------------------------------------------------------
+--> cgmp noplot elasticPiston -method=cns -cnsVariation=godunov -g="elasticPistonGridfx4fy4.hdf" -tp=.2 -tf=.2 -smVariation=g -godunovType=2 -problem=0 -tz=poly -debug=3 -piGhostOption=0 -pi=1 -scf=.01 -go=go
+
+============= Cgcns time-step info for domain 0 (rightDomain)(fluid) steps=32==================
+     t    err(r)   err(u)   err(v)   err(T)    uMax     dt       cpu  (cur,max)-mem (Gb)
+   0.200 5.70e-07 2.97e-05 2.55e-05 7.84e-06 1.58e+00 6.25e-03 1.13e+01 (      34,       0)
+
+****  printTimeStepInfo (t=2.000e-01): Number of A++ arrays has increased to 1444
+
+============= Cgsm time-step info for domain 1 (leftDomain)(solid) steps=32==================
+-->t=2.0000e-01 dt=6.3e-03 maxNorm errors:[1.2140e-05,3.0095e-05,1.7772e-07,3.1648e-07,3.0970e-07,1.1632e-06,4.6146e-07,2.3076e-06,], maxNorm(u):[6.87e-02,6.41e-02,6.53e-02,7.65e-02,6.70e-02,4.46e-02,7.16e-02,4.71e-02,]
+
+
+------------------------------------------------------------------------------------------
+--->  cgmp noplot elasticPiston -method=cns -cnsVariation=godunov -g="elasticPistonGridfx2fy2.hdf" -tp=.2 -tf=.2 -smVariation=g -godunovType=2 -problem=0 -tz=poly -debug=3 -piGhostOption=0 -pi=1 -scf=.01 -go=go
+
+============= Cgcns time-step info for domain 0 (rightDomain)(fluid) steps=16==================
+     t    err(r)   err(u)   err(v)   err(T)    uMax     dt       cpu  (cur,max)-mem (Gb)
+   0.200 2.16e-06 1.12e-04 8.76e-05 3.28e-05 1.58e+00 1.25e-02 6.25e+00 (      39,       0)
+
+****  printTimeStepInfo (t=2.000e-01): Number of A++ arrays has increased to 1444
+
+============= Cgsm time-step info for domain 1 (leftDomain)(solid) steps=16==================
+-->t=2.0000e-01 dt=1.3e-02 maxNorm errors:[5.0152e-05,1.2969e-04,6.9791e-07,1.2542e-06,1.2265e-06,4.0384e-06,1.7389e-06,6.7422e-06,], maxNorm(u):[6.87e-02,6.41e-02,6.53e-02,7.65e-02,6.70e-02,4.46e-02,7.16e-02,4.71e-02,]
+
+
+
+
+
+
+
+
+
+
+====== 2013/11/08 -- SVK + real piston:
+
+==== 2013/01/04  PISTON PROBLEM FOR DON's new nonlinear FSI interface projection
+
+SVK: -pi=1 -- density is funny?
+cgmp elasticPiston -problem=2 -xShock=.5 -Mshock=1.5 -scf=10. -method=cns -cnsVariation=godunov -godunovType=2 -g=elasticPistonGrid8 -tp=.05 -tf=1.5 -smVariation=g -debug=0 -cfl=.5 -stressRelaxation=4 -relaxAlpha=.1 -relaxDelta=.1 -tangentialStressDissipation=1. -pi=1 -piGhostOption=0
+
+
+SVK: (no projection) -- OK:
+cgmp elasticPiston -problem=2 -xShock=.5 -Mshock=1.5 -scf=10. -method=cns -cnsVariation=godunov -godunovType=2 -g=elasticPistonGrid8 -tp=.05 -tf=1.5 -smVariation=g -debug=0 -cfl=.5 -stressRelaxation=4 -relaxAlpha=.1 -relaxDelta=.1 -tangentialStressDissipation=1. -pi=0 -piGhostOption=0 
+
+
+
+
+
+
+==== 2013/11/08 -- SVK test again
+
+****** PI=1, TZ=trig
+cgmp elasticPiston -method=cns -cnsVariation=godunov -g="elasticPistonGridfx8fy8" -tp=.001 -tf=.05 -smVariation=g -godunovType=2 -problem=0 -tz=trig -debug=3 -go=halt -piGhostOption=0 -pi=1
+
+============= Cgcns time-step info for domain 0 (rightDomain)(fluid) steps=1==================
+     t    err(r)   err(u)   err(v)   err(T)    uMax     dt       cpu  (cur,max)-mem (Gb)
+   0.001 9.47e-05 1.16e-04 8.75e-06 4.69e-05 1.25e+00 1.00e-03 1.79e+01 (      49,       0)
+
+****  printTimeStepInfo (t=1.000e-03): Number of A++ arrays has increased to 1457 
+
+============= Cgsm time-step info for domain 1 (leftDomain)(solid) steps=1==================
+-->t=1.0000e-03 dt=1.0e-03 maxNorm errors:[4.3856e-06,7.4345e-09,8.5872e-09,3.2794e-09,3.7479e-09,5.0004e-09,2.4540e-12,3.4552e-12,], maxNorm(u):[7.50e-04,2.50e-04,5.00e-04,4.00e-04,4.00e-04,6.00e-04,5.00e-04,5.00e-04,]
+
+
+
+****** PI=0, TZ=trig
+cgmp elasticPiston -method=cns -cnsVariation=godunov -g="elasticPistonGridfx8fy8" -tp=.001 -tf=.05 -smVariation=g -godunovType=2 -problem=0 -tz=trig -debug=3 -go=halt -piGhostOption=0 -pi=0
+
+
+============= Cgcns time-step info for domain 0 (rightDomain)(fluid) steps=1==================
+     t    err(r)   err(u)   err(v)   err(T)    uMax     dt       cpu  (cur,max)-mem (Gb)
+   0.001 9.47e-05 1.16e-04 8.75e-06 4.69e-05 1.25e+00 1.00e-03 6.50e+00 (      48,       0)
+
+****  printTimeStepInfo (t=1.000e-03): Number of A++ arrays has increased to 1455 
+
+============= Cgsm time-step info for domain 1 (leftDomain)(solid) steps=1==================
+-->t=1.0000e-03 dt=1.0e-03 maxNorm errors:[2.4950e-09,7.4345e-09,8.5872e-09,3.2794e-09,3.7479e-09,6.0033e-09,2.4540e-12,3.4552e-12,], maxNorm(u):[7.50e-04,2.50e-04,5.00e-04,4.00e-04,4.00e-04,6.00e-04,5.00e-04,5.00e-04,]
+
+
+
+==== 2013/11/01 -- SVK test again (RPI)
+
+TZ=trig
+cgmp elasticPiston -method=cns -cnsVariation=godunov -g="elasticPistonGridfx8fy8" -tp=.01 -tf=.05 -smVariation=g -godunovType=2 -problem=0 -tz=trig -debug=3 -go=halt -piGhostOption=0 -pi=0 
+
+============= Cgcns time-step info for domain 0 (rightDomain)(fluid) steps=20==================
+   0.050 5.65e-04 1.09e-03 3.92e-04 3.89e-04 1.24e+00 2.50e-03 5.71e+01 (      92,       0)
+============= Cgsm time-step info for domain 1 (leftDomain)(solid) steps=20==================
+-->t=5.0000e-02 dt=2.5e-03 maxNorm errors:[2.2773e-07,2.2117e-07,4.3514e-07,1.6599e-07,1.6646e-07,3.4417e-07,5.5622e-09,6.5400e-09,], maxNorm(u):[7.13e-04,2.38e-04,4.76e-04,3.80e-04,3.80e-04,5.71e-04,4.76e-04,4.76e-04,]
+ *** getAugmentedSolution: errors at t=5.000e-02 ****
+-->t=5.0000e-02 dt=2.5e-03 maxNorm errors:[2.2773e-07,2.2117e-07,4.3514e-07,1.6599e-07,1.6646e-07,3.4417e-07,5.5622e-09,6.5400e-09,], maxNorm(u):[7.13e-04,2.38e-04,4.76e-04,3.80e-04,3.80e-04,5.71e-04,4.76e-04,4.76e-04,]
+
+
+cgmp elasticPiston -method=cns -cnsVariation=godunov -g="elasticPistonGridfx4fy4" -tp=.01 -tf=.05 -smVariation=g -godunovType=2 -problem=0 -tz=trig -debug=3 -go=halt -piGhostOption=0 -pi=0 
+
+============= Cgcns time-step info for domain 0 (rightDomain)(fluid) steps=10==================
+   0.050 1.98e-03 4.26e-03 1.55e-03 1.37e-03 1.24e+00 5.00e-03 8.68e+00 (      52,       0)
+
+****  printTimeStepInfo (t=5.000e-02): Number of A++ arrays has increased to 1506 
+
+============= Cgsm time-step info for domain 1 (leftDomain)(solid) steps=10==================
+-->t=5.0000e-02 dt=5.0e-03 maxNorm errors:[8.6198e-07,1.1884e-06,1.7663e-06,6.5543e-07,6.7031e-07,1.3879e-06,1.9838e-08,3.2433e-08,], maxNorm(u):[7.13e-04,2.38e-04,4.76e-04,3.80e-04,3.80e-04,5.71e-04,4.76e-04,4.76e-04,]
+ *** getAugmentedSolution: errors at t=5.000e-02 ****
+-->t=5.0000e-02 dt=5.0e-03 maxNorm errors:[8.6198e-07,1.1884e-06,1.7663e-06,6.5543e-07,6.7031e-07,1.3879e-06,1.9838e-08,3.2433e-08,], maxNorm(u):[7.13e-04,2.38e-04,4.76e-04,3.80e-04,3.80e-04,5.71e-04,4.76e-04,4.76e-04,]
+
+
+==== 2013/09/13 -- SVK test
+
+--------------------------
+----------- SVK:
+
+cgmp elasticPiston -method=cns -cnsVariation=godunov -g="elasticPistonGridfx4fy4" -tp=.05 -tf=.05 -smVariation=g -godunovType=2 -problem=0 -tz=poly -debug=3 -go=halt -piGhostOption=0 -pi=0 
+
+Cgsm:endTimeStep: t=4.857e-02, dt=1.429e-03, current=0
+============= Cgcns time-step info for domain 0 (rightDomain)(fluid) steps=35==================
+     t    err(r)   err(u)   err(v)   err(T)    uMax     dt       cpu  (cur,max)-mem (Gb)
+   0.050 6.39e-05 1.14e-04 7.40e-05 9.07e-05 5.99e+00 1.43e-03 1.52e+01 (      40,       0)
+
+****  printTimeStepInfo (t=5.000e-02): Number of A++ arrays has increased to 1442
+
+============= Cgsm time-step info for domain 1 (leftDomain)(solid) steps=35==================
+-->t=5.0000e-02 dt=1.4e-03 maxNorm errors:[4.4798e-09,1.9116e-09,4.2597e-09,1.8020e-09,1.6104e-09,1.0630e-09,1.3772e-10,1.2425e-10,], maxNorm(u):[4.74e-03,5.21e-03,5.06e-03,6.18e-03,5.42e-03,3.41e-03,5.63e-03,3.55e-03,]
+
+
+cgmp elasticPiston -method=cns -cnsVariation=godunov -g="elasticPistonGridfx8fy8" -tp=.05 -tf=.05 -smVariation=g -godunovType=2 -problem=0 -tz=poly -debug=3 -go=halt -piGhostOption=0 -pi=0 
+
+Cgsm:endTimeStep: t=4.929e-02, dt=7.143e-04, current=1
+============= Cgcns time-step info for domain 0 (rightDomain)(fluid) steps=70==================
+     t    err(r)   err(u)   err(v)   err(T)    uMax     dt       cpu  (cur,max)-mem (Gb)
+   0.050 1.74e-05 2.91e-05 1.97e-05 2.31e-05 5.99e+00 7.14e-04 9.10e+01 (      53,       0)
+
+****  printTimeStepInfo (t=5.000e-02): Number of A++ arrays has increased to 1442
+
+============= Cgsm time-step info for domain 1 (leftDomain)(solid) steps=70==================
+-->t=5.0000e-02 dt=7.1e-04 maxNorm errors:[1.1223e-09,4.9022e-10,1.1890e-09,4.6996e-10,8.0240e-10,8.1056e-10,3.6242e-11,3.1538e-11,], maxNorm(u):[4.74e-03,5.21e-03,5.06e-03,6.18e-03,5.42e-03,3.41e-03,5.63e-03,3.55e-03,]
+
+
+--------------------------
+---------- LINEAR:
+
+cgmp elasticPiston -method=cns -cnsVariation=godunov -g="elasticPistonGridfx4fy4" -tp=.05 -tf=.05 -smVariation=g -godunovType=0 -problem=0 -tz=poly -debug=3 -go=halt -piGhostOption=0 -pi=0 
+
+Cgsm:endTimeStep: t=4.857e-02, dt=1.429e-03, current=0
+============= Cgcns time-step info for domain 0 (rightDomain)(fluid) steps=35==================
+     t    err(r)   err(u)   err(v)   err(T)    uMax     dt       cpu  (cur,max)-mem (Gb)
+   0.050 6.39e-05 1.14e-04 7.40e-05 9.07e-05 5.99e+00 1.43e-03 8.84e+00 (      41,       0)
+
+****  printTimeStepInfo (t=5.000e-02): Number of A++ arrays has increased to 1442
+
+============= Cgsm time-step info for domain 1 (leftDomain)(solid) steps=35==================
+-->t=5.0000e-02 dt=1.4e-03 maxNorm errors:[7.0849e-07,3.9958e-07,6.5205e-07,3.2428e-07,3.2428e-07,2.1348e-07,1.7637e-08,1.4700e-08,], maxNorm(u):[3.84e+00,2.95e+00,2.62e+00,2.45e+00,2.45e+00,2.28e+00,2.22e+00,2.18e+00,]
+
+
+cgmp elasticPiston -method=cns -cnsVariation=godunov -g="elasticPistonGridfx8fy8" -tp=.05 -tf=.05 -smVariation=g -godunovType=0 -problem=0 -tz=poly -debug=3 -go=halt -piGhostOption=0 -pi=0 
+
+
+Cgsm:endTimeStep: t=4.929e-02, dt=7.143e-04, current=1
+============= Cgcns time-step info for domain 0 (rightDomain)(fluid) steps=70==================
+     t    err(r)   err(u)   err(v)   err(T)    uMax     dt       cpu  (cur,max)-mem (Gb)
+   0.050 1.74e-05 2.91e-05 1.97e-05 2.31e-05 5.99e+00 7.14e-04 4.43e+01 (      53,       0)
+
+****  printTimeStepInfo (t=5.000e-02): Number of A++ arrays has increased to 1442
+
+============= Cgsm time-step info for domain 1 (leftDomain)(solid) steps=70==================
+-->t=5.0000e-02 dt=7.1e-04 maxNorm errors:[1.7687e-07,9.9854e-08,1.8305e-07,8.8012e-08,8.8012e-08,5.4495e-08,4.6842e-09,3.8420e-09,], maxNorm(u):[3.84e+00,2.95e+00,2.62e+00,2.45e+00,2.45e+00,2.28e+00,2.22e+00,2.18e+00,]
+
+
+
+
+
+
+
+*********** TEST FOR DON 
+
+-pi=1
+cgmp elasticPiston -method=cns -cnsVariation=godunov -g="elasticPistonGrid4" -tp=.05 -pi=1 -tf=1. -smVariation=g -problem=0 -tz=poly -debug=3 -go=halt -piGhostOption=0
+
+
+Cgsm:endTimeStep: t=4.737e-02, dt=2.632e-03, current=0
+============= Cgcns time-step info for domain 0 (rightDomain)(fluid) steps=19==================
+     t    err(r)   err(u)   err(v)   err(T)    uMax     dt       cpu  (cur,max)-mem (Gb)
+   0.050 1.92e-04 7.77e-04 7.40e-04 7.23e-04 5.99e+00 2.63e-03 2.09e+00 (      36,       0)
+
+****  printTimeStepInfo (t=5.000e-02): Number of A++ arrays has increased to 1444
+
+============= Cgsm time-step info for domain 1 (leftDomain)(solid) steps=19==================
+-->t=5.0000e-02 dt=2.6e-03 maxNorm errors:[2.0164e-04,5.9337e-06,1.4346e-04,4.1623e-06,4.1623e-06,4.0479e-05,4.4261e-06,9.1781e-08,], maxNorm(u):[3.84e+00,2.95e+00,2.62e+00,2.45e+00,2.45e+00,2.28e+00,2.22e+00,2.18e+00,]
+ *** getAugmentedSolution: errors at t=5.000e-02 ****
+-->t=5.0000e-02 dt=2.6e-03 maxNorm errors:[2.0164e-04,5.9337e-06,1.4346e-04,4.1623e-06,4.1623e-06,4.0479e-05,4.4261e-06,9.1781e-08,], maxNorm(u):[3.84e+00,2.95e+00,2.62e+00,2.45e+00,2.45e+00,2.28e+00,2.22e+00,2.18e+00,]
+
+
+
+cgmp elasticPiston -method=cns -cnsVariation=godunov -g="elasticPistonGrid8" -tp=.05 -pi=1 -tf=1. -smVariation=g -problem=0 -tz=poly -debug=3 -go=halt -piGhostOption=0
+
+
+
+-pi=0; OK:
+cgmp elasticPiston -method=cns -cnsVariation=godunov -g="elasticPistonGrid4" -tp=.05 -tf=1. -smVariation=g -problem=0 -tz=poly -debug=3 -go=halt
+
+
+Below are the results I get (after removing those bogus lines in interfaceCnsSm.bf
+that your student found).
+
+...Bill
+P.S. Jeff and I have been working hard on the 2D stability analysis for INS + acoustic solid,  which had some subtle issues, but i think we may now have
+things under control.
+
+
+============= Cgcns time-step info for domain 0 (rightDomain)(fluid) steps=19==================
+     t    err(r)   err(u)   err(v)   err(T)    uMax     dt cpu  (cur,max)-mem (Gb)
+   0.050 1.92e-04 7.77e-04 6.75e-04 7.23e-04 5.99e+00 2.63e-03 4.89e+00 (      36,       0)
+
+****  printTimeStepInfo (t=5.000e-02): Number of A++ arrays has increased to 1442
+
+============= Cgsm time-step info for domain 1 (leftDomain)(solid) steps=19==================
+-->t=5.0000e-02 dt=2.6e-03 maxNorm errors:[4.4845e-06,5.1860e-06,2.2671e-06,4.1541e-06,4.1541e-06,4.6850e-06,7.5451e-08,9.1249e-08,], maxNorm(u):[3.84e+00,2.95e+00,2.62e+00,2.45e+00,2.45e+00,2.28e+00,2.22e+00,2.18e+00,]
+
+
+
+
+
+
+==== 2013/01/17 -- Add option for extra BC's
+
+
+RECEDING piston: 
+cgmp elasticPiston -method=cns -cnsVariation=godunov -g="elasticPistonGrid4" -tp=.1 -tf=1. -smVariation=g -debug=0 -pi=1 >! recede.out
+
+
+
+-- LINEAR elasticity + M=2.5 SHOCK: (rho=lambda=mu=10) + PROJECTION
+cgmp elasticPiston -problem=2 -xShock=.5 -Mshock=2.5 -scf=10. -method=cns -cnsVariation=godunov -g="elasticPistonGrid8ny80" -tp=.05 -tf=1.5 -smVariation=g -debug=0 -cfl=.5 -stressRelaxation=4 -relaxAlpha=.1 -relaxDelta=.1 -tangentialStressDissipation=1. -pi=1
+
+
+==== 2013/01/04  PISTON PROBLEM FOR DON's new nonlinear FSI interface projection
+
+SVK: (no projection)
+cgmp elasticPiston -problem=2 -xShock=.5 -Mshock=1.5 -scf=10. -method=cns -cnsVariation=godunov -godunovType=2 -g=elasticPistonGrid8 -tp=.05 -tf=1.5 -smVariation=g -debug=0 -cfl=.5 -stressRelaxation=4 -relaxAlpha=.1 -relaxDelta=.1 -tangentialStressDissipation=1. -pi=0 
+
+LINEAR elasticity -- Project-interface: -pi=1, -scf=10 OK, -scf=.1 OK
+cgmp elasticPiston -problem=2 -xShock=.5 -Mshock=1.5 -scf=10. -method=cns -cnsVariation=godunov -g="elasticPistonGrid8" -tp=.05 -tf=1. -smVariation=g -debug=0 -pi=1
+
+=== 2012/09/04  FIXED Corners BC's in CGSM (FOS)
+
+BETTER- v2 starts very small but grows t=.5 : 7e-6 
+cgmp elasticPiston -problem=2 -xShock=.5 -Mshock=2.5 -scf=10. -method=cns -cnsVariation=godunov -godunovType=3 -g="elasticPistonGrid8ny80" -tp=.05 -tf=1.5 -smVariation=g -debug=0 -cfl=.5 -stressRelaxation=4 -relaxAlpha=.1 -relaxDelta=.1 -tangentialStressDissipation=1.
+
+OK: v2 remains round-off for a while t=.35 v2=2e-14 ... then symmetry-displacement corner goes bad
+cgmp elasticPiston -problem=2 -xShock=.5 -Mshock=2.5 -scf=10. -method=cns -cnsVariation=godunov -g="elasticPistonGrid8ny80" -tp=.05 -tf=1.5 -smVariation=g -debug=0 -cfl=.5 -stressRelaxation=4 -relaxAlpha=.1 -relaxDelta=.1 -tangentialStressDissipation=1. -pi=1
+
+=== 2012/09/03
+
+-- project interface -- values of v2 at interface corners are fairly small 4e-5 but still there
+-- LINEAR elasticity + M=2.5 SHOCK: (rho=lambda=mu=10) + PROJECTION
+cgmp elasticPiston -problem=2 -xShock=.5 -Mshock=2.5 -scf=10. -method=cns -cnsVariation=godunov -g="elasticPistonGrid8ny80" -tp=.05 -tf=1.5 -smVariation=g -debug=0 -cfl=.5 -stressRelaxation=4 -relaxAlpha=.1 -relaxDelta=.1 -tangentialStressDissipation=1. -pi=1
+
+
+
+
+==== 2012/09/02 REVISIT FSI-SVK
+
+
+---------------------------------------------------------------------------
+-- FINER grid in y-direction:
+ogen -noplot elasticPistonGrid -factor=8 -ny=80 -> elasticPistonGrid8ny80.hdf
+
+-- rotated linear + M=2.5 SHOCK: (rho=lambda=mu=10)
+   -- OK but wiggles in v2 near top/bottom interface -> trouble
+cgmp elasticPiston -problem=2 -xShock=.5 -Mshock=2.5 -scf=10. -method=cns -cnsVariation=godunov -godunovType=3 -g="elasticPistonGrid8ny80" -tp=.05 -tf=1.5 -smVariation=g -debug=0 -cfl=.5 -stressRelaxation=4 -relaxAlpha=.1 -relaxDelta=.1 -tangentialStressDissipation=1.
+
+-- LINEAR elasticity + M=2.5 SHOCK: (rho=lambda=mu=10)
+cgmp elasticPiston -problem=2 -xShock=.5 -Mshock=2.5 -scf=10. -method=cns -cnsVariation=godunov -g="elasticPistonGrid8ny80" -tp=.05 -tf=1.5 -smVariation=g -debug=0 -cfl=.5 -stressRelaxation=4 -relaxAlpha=.1 -relaxDelta=.1 -tangentialStressDissipation=1.
+
+
+-- rotated linear + M=2 SHOCK: (rho=lambda=mu=10)
+cgmp elasticPiston -problem=2 -xShock=.5 -Mshock=2. -scf=10. -method=cns -cnsVariation=godunov -godunovType=3 -g="elasticPistonGrid8ny80" -tp=.05 -tf=1.5 -smVariation=g -debug=0 -cfl=.5 -stressRelaxation=4 -relaxAlpha=.1 -relaxDelta=.1 -tangentialStressDissipation=1.
+
+
+-- LINEAR elasticity + M=2 SHOCK: (rho=lambda=mu=10)
+cgmp elasticPiston -problem=2 -xShock=.5 -Mshock=2. -scf=10. -method=cns -cnsVariation=godunov -g="elasticPistonGrid8ny80" -tp=.05 -tf=1.5 -smVariation=g -debug=0 -cfl=.5 -stressRelaxation=4 -relaxAlpha=.1 -relaxDelta=.1 -tangentialStressDissipation=1.
+
+
+
+---------------------
+3) rotated linear + M=2 SHOCK: (rho=lambda=mu=10)
+cgmp elasticPiston -problem=2 -xShock=.5 -Mshock=2. -scf=10. -method=cns -cnsVariation=godunov -godunovType=3 -g="elasticPistonGrid8" -tp=.05 -tf=1.5 -smVariation=g -debug=0 -cfl=.5 -stressRelaxation=4 -relaxAlpha=.1 -relaxDelta=.1 -tangentialStressDissipation=1.
+
+
+SVK + M=1.2 SHOCK: (rho=lambda=mu=10) .. OK
+cgmp elasticPiston -problem=2 -xShock=.5 -Mshock=1.2 -scf=10. -method=cns -cnsVariation=godunov -godunovType=2 -g="elasticPistonGrid4" -tp=.05 -tf=1. -smVariation=g -debug=0
+
+
+
+**** 2012/07/05
+
+
+ROTATED LINEAR -- M=2.5 BAD! -scf=20 OK!
+cgmp elasticPiston -problem=2 -xShock=.5 -Mshock=2.5 -scf=10. -method=cns -cnsVariation=godunov -godunovType=3 -g="elasticPistonGrid8" -tp=.05 -tf=1.5 -smVariation=g -debug=0 -cfl=.5 -stressRelaxation=4 -relaxAlpha=.1 -relaxDelta=.1 -tangentialStressDissipation=1.
+
+ROTATED LINEAR -- M=2.2 OK
+cgmp elasticPiston -problem=2 -xShock=.5 -Mshock=2.2 -scf=10. -method=cns -cnsVariation=godunov -godunovType=3 -g="elasticPistonGrid8" -tp=.05 -tf=1.5 -smVariation=g -debug=0 -cfl=.5 -stressRelaxation=4 -relaxAlpha=.1 -relaxDelta=.1 -tangentialStressDissipation=1.
+
+
+
+LINEAR elasticity -- interface projection -> no wiggles in solid v 
+cgmp elasticPiston -problem=2 -xShock=.5 -Mshock=1.5 -scf=10. -method=cns -cnsVariation=godunov -g="elasticPistonGrid4" -tp=.05 -tf=1. -smVariation=g -debug=0 -pi=1
+
+
+LINEAR elasticity -- no interface projection - cfl=.5 -- no wiggles
+cgmp elasticPiston -problem=2 -xShock=.5 -Mshock=1.5 -scf=10. -method=cns -cnsVariation=godunov -g="elasticPistonGrid4" -tp=.05 -tf=1. -smVariation=g -debug=0 -pi=0 -cfl=.5
+
+
+LINEAR elasticity -- no interface projection - OK but solid v wiggles
+cgmp elasticPiston -problem=2 -xShock=.5 -Mshock=1.5 -scf=10. -method=cns -cnsVariation=godunov -g="elasticPistonGrid4" -tp=.05 -tf=1. -smVariation=g -debug=0 -pi=0
+
+
+
+
+**** 2012/07/04 -- test Don's new capabilities for SVK, rotated-linear model
+
+-- See elasticPistonExamples.txt
+
+
+
+
+**** 2012/05/19 -- SVK + shock:
+
+GRID: 
+   ogen noplot elasticPistonGrid -factor=4
+
+SVK + M=1.5 SHOCK: (rho=lambda=mu=10) .. Error (smeig2d) : imaginary eigenvalue
+cgmp elasticPiston -problem=2 -xShock=.5 -Mshock=1.5 -scf=10. -method=cns -cnsVariation=godunov -godunovType=2 -g="elasticPistonGrid4" -tp=.05 -tf=1. -smVariation=g -debug=0
+
+SVK + M=1.2 SHOCK: (rho=lambda=mu=10) .. OK
+cgmp elasticPiston -problem=2 -xShock=.5 -Mshock=1.2 -scf=10. -method=cns -cnsVariation=godunov -godunovType=2 -g="elasticPistonGrid4" -tp=.05 -tf=1. -smVariation=g -debug=0
+
+LINEAR-ELASTICITY + M=2.0 SHOCK (rho=lambda=mu=20) .. OK
+cgmp elasticPiston -problem=2 -xShock=.5 -Mshock=1.5 -scf=20. -method=cns -cnsVariation=godunov -g="elasticPistonGrid4" -tp=.05 -tf=1. -smVariation=g -debug=0
+
+LINEAR-ELASTICITY + M=1.5 SHOCK (rho=lambda=mu=10) .. OK
+cgmp elasticPiston -problem=2 -xShock=.5 -Mshock=1.5 -scf=10. -method=cns -cnsVariation=godunov -g="elasticPistonGrid4" -tp=.05 -tf=1. -smVariation=g -debug=0
+
+
+
+SVK + RECEDING piston: OK 
+cgmp elasticPiston -method=cns -cnsVariation=godunov -godunovType=2 -g="elasticPistonGrid4" -tp=.1 -tf=1. -smVariation=g -debug=0
+
+
+*** 2012/04/24 OLD INTERFACE + SVK AGAIN
+
+SVK RUNS OK:
+cgmp elasticPiston -method=cns -cnsVariation=godunov -godunovType=2 -g="elasticPistonGrid4" -tp=.1 -tf=1. -smVariation=g -debug=0
+
+
+
+
+
+*** 2012/02/07 -- OLD INTERFACE + SVK 
+
+-- receding piston: 
+cgmp elasticPiston -method=cns -cnsVariation=godunov -g="elasticPistonGrid4" -tp=.1 -tf=1. -smVariation=g -debug=0
+
+
+
+
+*** 2011/08/12 -- check shock problem: do we need the nonlinear FSR?
+
+BETTER: (1) turn-off setting n.v=g in cnsBC.C for interfaces.
+        (2) limited-extrap for v in cnsSlipWallBC2.bf
+cgmp elasticPiston -method=cns -cnsVariation=godunov -g="elasticPistonGrid8" -tp=.01 -tf=1. -smVariation=g -pi=1 -piOption=1 -problem=2 -scf=.01 -debug=1 -go=halt
+
+
+Light solid: OK with NFSR
+cgmp elasticPiston -method=cns -cnsVariation=godunov -g="elasticPistonGrid8" -tp=.01 -tf=1. -smVariation=g -pi=1 -piOption=1 -problem=2 -scf=.01 -debug=1 -go=halt
+
+
+Medium solid, non-linear FSR:
+cgmp elasticPiston -method=cns -cnsVariation=godunov -g="elasticPistonGrid8" -tp=.01 -tf=1. -smVariation=g -pi=1 -piOption=1 -problem=2 -scf=1. -debug=1 -go=halt
+
+
+Medium: Goes bad:
+cgmp elasticPiston -method=cns -cnsVariation=godunov -g="elasticPistonGrid8" -tp=.01 -tf=1. -smVariation=g -pi=1 -problem=2 -scf=1. -debug=1 -go=halt
+
+OK: Heavy
+cgmp elasticPiston -method=cns -cnsVariation=godunov -g="elasticPistonGrid8" -tp=.05 -tf=1. -smVariation=g -pi=1 -problem=2 -scf=10. -debug=1 -go=halt
+
+
+
+**** 2011/07/06
+
+
+-- transfer more info across the interface:
+cgmp -noplot elasticPiston -method=cns -cnsVariation=godunov -g="elasticPistonGrid4" -tp=.1 -tf=.1 -smVariation=g -pi=1 -debug=0
+
+
+
++++ Fix the *new* interface routines: (assignInterfaceRHS and getInterfaceRHS)
+cgmp -noplot elasticPiston -method=cns -cnsVariation=godunov -g="elasticPistonGrid4" -tp=.1 -tf=.1 -smVariation=g -pi=1 -useNewInterfaceTransfer=1 -debug=0 
+
+++ fixed base/bound in interface data transfers
+
+cgmp -noplot elasticPiston -method=cns -cnsVariation=godunov -g="elasticPistonGrid4" -tp=.1 -tf=.1 -smVariation=g -pi=1 -debug=0 
+
+
+
+**** 2011/07/04
+
+cgmp -noplot elasticPiston -method=cns -cnsVariation=godunov -g="elasticPistonGrid4" -tp=.1 -tf=.1 -smVariation=g -pi=1 -debug=0 -go=go
+
+
+
+**** 2011/07/02 - re-organise the new interface projection
+
+>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+== starting point: new projection: 
+
+cgmp -noplot elasticPiston -method=cns -cnsVariation=godunov -g="elasticPistonGrid4" -tp=.1 -tf=.1 -smVariation=g -pi=1 -debug=0 
+============= Cgcns time-step info for domain 0 (rightDomain)(fluid) steps=9==================
+determineErrors: t=1.000e-01, maxNorm errors: [rho,u,v,T]=[2.04e-06,4.35e-05,3.57e-10,5.82e-06]
+     t    err(r)   err(u)   err(v)   err(T)    uMax     dt       cpu  (cur,max)-mem (Gb)
+   0.100 2.04e-06 4.35e-05 3.57e-10 5.82e-06 7.14e-01 1.11e-02 5.57e+00 (      36,       0)
+
+============= Cgsm time-step info for domain 1 (leftDomain)(solid) steps=9==================
+-->t=1.0000e-01 dt=1.1e-02 maxNorm errors:[8.6758e-06,1.2030e-08,8.6286e-06,1.2213e-08,1.2213e-08,2.8757e-06,6.9637e-06,7.2846e-10,], maxNorm(u):[2.14e-01,1.20e-08,1.22e-01,1.22e-08,1.22e-08,4.05e-02,9.48e-03,7.28e-10,]
+adjustGrid: using displacement components = [6,7,-1]
+>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+
+
+++++++++++++++++++++++++++++++++++++++++++++++++++
+== starting point : no projection:
+
+cgmp -noplot elasticPiston -method=cns -cnsVariation=godunov -g="elasticPistonGrid4" -tp=.1 -tf=.1 -smVariation=g -pi=0 -debug=0 
+
+
+============= Cgcns time-step info for domain 0 (rightDomain)(fluid) steps=9==================
+determineErrors: t=1.000e-01, maxNorm errors: [rho,u,v,T]=[1.10e-05,4.20e-05,1.30e-10,3.14e-05]
+     t    err(r)   err(u)   err(v)   err(T)    uMax     dt       cpu  (cur,max)-mem (Gb)
+   0.100 1.10e-05 4.20e-05 1.30e-10 3.14e-05 7.14e-01 1.11e-02 2.39e-01 (      30,       0)
+
+****  printTimeStepInfo (t=1.000e-01): Number of A++ arrays has increased to 1413
+
+============= Cgsm time-step info for domain 1 (leftDomain)(solid) steps=9==================
+-->t=1.0000e-01 dt=1.1e-02 maxNorm errors:[3.6499e-06,6.9345e-08,1.0954e-05,3.4684e-08,3.4684e-08,3.6510e-06,6.9637e-06,2.0535e-09,], maxNorm(u):[2.14e-01,6.93e-08,1.22e-01,3.47e-08,3.47e-08,4.05e-02,9.48e-03,2.05e-09,]
+
+++++++++++++++++++++++++++++++++++++++++++++++++++
+
+
+
+
+**** 110517 -- Make changes to allow elastic piston to be run at an angle so we can test the
+               2D version of the interface routines.
+
+
+$$$$$$$$$$$$$$  ROTATED piston: $$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
+
+------------- Angle=45 : New interface:  MATCHES angle=0  (multiple velocity-errors by 1.414 sqrt(2)
+cgmp elasticPiston -method=cns -cnsVariation=godunov -g="elasticPistonGridRotated4Angle45" -tp=.1 -tf=1. -smVariation=g -pi=1 -angle=45 -debug=0
+determineErrors: t=1.000e-01, maxNorm errors: [rho,u,v,T]=[2.04e-06,3.07e-05,3.07e-05,5.83e-06]
+
+-->t=1.0000e-01 dt=1.1e-02 maxNorm errors:[6.1166e-06,6.1166e-06,5.7684e-06,2.8838e-06,2.8838e-06,5.7684e-06,4.9241e-06,4.9241e-06,], maxNorm(u):[1.52e-01,1.52e-01,8.10e-02,4.05e-02,4.05e-02,8.10e-02,6.70e-03,6.70e-03,]
+
+
+
+------------- Angle=45 : Old interface:  MATCHES angle=0  (multiple velocity-errors by 1.414 sqrt(2)
+cgmp elasticPiston -method=cns -cnsVariation=godunov -g="elasticPistonGridRotated4Angle45" -tp=.1 -tf=1. -smVariation=g -pi=0 -angle=45 -debug=0
+determineErrors: t=1.000e-01, maxNorm errors: [rho,u,v,T]=[1.09e-05,2.95e-05,2.95e-05,3.12e-05]
+
+-->t=1.0000e-01 dt=1.1e-02 maxNorm errors:[2.5684e-06,2.5684e-06,7.2615e-06,3.6365e-06,3.6365e-06,7.2615e-06,4.9241e-06,4.9241e-06,], maxNorm(u):[1.52e-01,1.52e-01,8.10e-02,4.05e-02,4.05e-02,8.10e-02,6.70e-03,6.70e-03,]
+
+
+
+
+------------- Angle=90 : New interface: MATCHES angle=0
+cgmp elasticPiston -method=cns -cnsVariation=godunov -g="elasticPistonGridRotated4Angle90" -tp=.1 -tf=1. -smVariation=g -pi=1 -angle=90 -debug=0
+determineErrors: t=1.000e-01, maxNorm errors: [rho,u,v,T]=[2.04e-06,3.57e-10,4.35e-05,5.82e-06]
+
+-->t=1.0000e-01 dt=1.1e-02 maxNorm errors:[1.2030e-08,8.6758e-06,2.8756e-06,1.2213e-08,1.2213e-08,8.6285e-06,7.2829e-10,6.9637e-06,], maxNorm(u):[1.20e-08,2.14e-01,4.05e-02,1.22e-08,1.22e-08,1.22e-01,7.28e-10,9.48e-03,]
+
+
+------------- Angle=90 : Old interface:  MATCHES angle=0
+cgmp elasticPiston -method=cns -cnsVariation=godunov -g="elasticPistonGridRotated4Angle90" -tp=.1 -tf=1. -smVariation=g -pi=0 -angle=90 -debug=0
+determineErrors: t=1.000e-01, maxNorm errors: [rho,u,v,T]=[1.10e-05,1.30e-10,4.20e-05,3.14e-05]
+
+-->t=1.0000e-01 dt=1.1e-02 maxNorm errors:[6.9360e-08,3.6499e-06,3.6510e-06,3.4691e-08,3.4691e-08,1.0954e-05,2.0537e-09,6.9637e-06,], maxNorm(u):[6.94e-08,2.14e-01,4.05e-02,3.47e-08,3.47e-08,1.22e-01,2.05e-09,9.48e-03,]
+
+
+$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
+
+
+cgmp elasticPiston -method=cns -cnsVariation=godunov -g="elasticPistonGridRotated4Angle45" -tp=.1 -tf=1. -smVariation=g -pi=0 -angle=45 -debug=0
+-------------Old interface:
+============= Cgcns time-step info for domain 0 (rightDomain)(fluid) steps=9==================
+determineErrors: t=1.000e-01, maxNorm errors: [rho,u,v,T]=[9.99e-05,7.07e-04,7.07e-04,2.85e-04]
+
+============= Cgsm time-step info for domain 1 (leftDomain)(solid) steps=9==================
+-->t=1.0000e-01 dt=1.1e-02 maxNorm errors:[2.5684e-06,2.5684e-06,7.2615e-06,3.6365e-06,3.6365e-06,7.2615e-06,4.9241e-06,4.9241e-06,], maxNorm(u):[1.52e-01,1.52e-01,8.10e-02,4.05e-02,4.05e-02,8.10e-02,6.70e-03,6.70e-03,]
+
+
+
+---- new projection: 
+cgmp elasticPiston -method=cns -cnsVariation=godunov -g="elasticPistonGrid4" -tp=.1 -tf=1. -smVariation=g -pi=1 -debug=0
+
+determineErrors: t=1.000e-01, maxNorm errors: [rho,u,v,T]=[2.04e-06,4.35e-05,3.57e-10,5.82e-06]
+
+-->t=1.0000e-01 dt=1.1e-02 maxNorm errors:[8.6758e-06,1.2030e-08,8.6285e-06,1.2213e-08,1.2213e-08,2.8756e-06,6.9637e-06,7.2846e-10,], maxNorm(u):[2.14e-01,1.20e-08,1.22e-01,1.22e-08,1.22e-08,4.05e-02,9.48e-03,7.28e-10,]
+
+
+
+-------------Old interface:
+cgmp elasticPiston -method=cns -cnsVariation=godunov -g="elasticPistonGrid4" -tp=.1 -tf=1. -smVariation=g -debug=0
+
+============= Cgcns time-step info for domain 0 (rightDomain)(fluid) steps=9==================
+determineErrors: t=1.000e-01, maxNorm errors: [rho,u,v,T]=[1.10e-05,4.20e-05,1.30e-10,3.14e-05]
+
+============= Cgsm time-step info for domain 1 (leftDomain)(solid) steps=9==================
+-->t=1.0000e-01 dt=1.1e-02 maxNorm errors:[3.6499e-06,6.9345e-08,1.0954e-05,3.4684e-08,3.4684e-08,3.6510e-06,6.9637e-06,2.0535e-09,], maxNorm(u):[2.14e-01,6.93e-08,1.22e-01,3.47e-08,3.47e-08,4.05e-02,9.48e-03,2.05e-09,]
+
+
+
+
+
+
+*********************************************************************************************************************************
+*********************************************************************************************************************************
+*********************************************************************************************************************************
+
+***** 110111 - figures for grids
+
+cgmp -noplot elasticPiston -method=cns -cnsVariation=godunov -g="elasticPistonGrid2" -tp=.1 -tf=1. -smVariation=g -multiDomainAlgorithm=1 -show=elasticPiston2.show -debug=1 -go=go > ! elasticPiston2.out
+
+******** 101109 
+
+--- make figures:
+cgmp elasticPiston -method=cns -cnsVariation=godunov -g="elasticPistonGrid4" -tp=.1 -tf=1. -smVariation=g -multiDomainAlgorithm=1 -debug=1 -go=halt
+
+
+
+cgmp -noplot elasticPiston -method=cns -cnsVariation=godunov -g="elasticPistonGrid4" -tp=.1 -tf=1. -smVariation=g -multiDomainAlgorithm=1 -show=elasticPiston4.show -debug=1 -go=go > ! elasticPiston4.out
+
+
+
+********** 101029
+
+--- check new acceleration routine in GridEvolution: 
+
+cgmp elasticPiston -method=cns -cnsVariation=godunov -g="planeInterfacenp16" -tp=.05 -tf=.2 -smVariation=g -debug=0 -go=halt
+
+cgmp -noplot elasticPiston -method=cns -cnsVariation=godunov -g="planeInterfacenp16" -tp=.05 -tf=.5 -smVariation=g -debug=0 -go=go -show=fluidSolidPlaneInterface16g.show -probeFile="planeInterfaceProbe16g" >! junk16
+
+
+
+********* 101028 -- improve interface velocity order of accuracy
+
+cgmp -noplot elasticPiston -method=cns -cnsVariation=godunov -g="planeInterfacenp16" -tp=.1 -tf=.2 -smVariation=g -debug=0 -go=go
+
+cgmp -noplot elasticPiston -method=cns -cnsVariation=godunov -g="planeInterfacenp16" -tp=.1 -tf=.2 -smVariation=g -debug=0 -go=go
+
+** bcOption=4 + grid-velocity and grid-accel order =2 (I think)
+
+============= Cgcns time-step info for domain 0 (rightDomain)(fluid) steps=33==================
+determineErrors: t=1.000e-01, maxNorm errors: [rho,u,v,T]=[9.04e-06,9.05e-05,1.60e-06,2.58e-05]
+     t    err(r)   err(u)   err(v)   err(T)    uMax     dt       cpu  (cur,max)-mem (Gb)
+   0.100 9.04e-06 9.05e-05 1.60e-06 2.58e-05 7.14e-01 3.03e-03 1.27e+00 (      30,       0)
+
+============= Cgsm time-step info for domain 1 (leftDomain)(solid) steps=33==================
+-->t=1.0000e-01 dt=3.0e-03 maxNorm errors:[5.2448e-06,1.8569e-09,8.7674e-06,2.5473e-09,2.5473e-09,2.9226e-06,4.8489e-07,1.0969e-11,], 
+
+
+
+** velocity order=2 
+
+============= Cgcns time-step info for domain 0 (rightDomain)(fluid) steps=33==================
+determineErrors: t=1.000e-01, maxNorm errors: [rho,u,v,T]=[1.92e-05,1.63e-04,2.97e-06,5.49e-05]
+     t    err(r)   err(u)   err(v)   err(T)    uMax     dt       cpu  (cur,max)-mem (Gb)
+   0.100 1.92e-05 1.63e-04 2.97e-06 5.49e-05 7.14e-01 3.03e-03 1.45e+00 (      30,       0)
+
+============= Cgsm time-step info for domain 1 (leftDomain)(solid) steps=33==================
+-->t=1.0000e-01 dt=3.0e-03 maxNorm errors:[1.1271e-05,1.2429e-10,1.9224e-05,1.7499e-10,1.7499e-10,6.4078e-06,4.8489e-07,5.2902e-13,],
+
+*** velocity order=1: 
+
+============= Cgcns time-step info for domain 0 (rightDomain)(fluid) steps=33==================
+determineErrors: t=1.000e-01, maxNorm errors: [rho,u,v,T]=[2.28e-05,1.99e-04,3.65e-06,6.50e-05]
+     t    err(r)   err(u)   err(v)   err(T)    uMax     dt       cpu  (cur,max)-mem (Gb)
+   0.100 2.28e-05 1.99e-04 3.65e-06 6.50e-05 7.14e-01 3.03e-03 1.40e+00 (      30,       0)
+
+============= Cgsm time-step info for domain 1 (leftDomain)(solid) steps=33==================
+-->t=1.0000e-01 dt=3.0e-03 maxNorm errors:[1.3305e-05,9.9612e-11,2.2750e-05,1.5833e-10,1.5833e-10,7.5833e-06,4.8489e-07,4.2196e-13,],
+
+============= Cgcns time-step info for domain 0 (rightDomain)(fluid) steps=66==================
+determineErrors: t=2.000e-01, maxNorm errors: [rho,u,v,T]=[9.46e-05,6.12e-04,4.60e-05,2.72e-04]
+     t    err(r)   err(u)   err(v)   err(T)    uMax     dt       cpu  (cur,max)-mem (Gb)
+   0.200 9.46e-05 6.12e-04 4.60e-05 2.72e-04 7.14e-01 3.03e-03 2.78e+00 (      30,       0)
+============= Cgsm time-step info for domain 1 (leftDomain)(solid) steps=66==================
+-->t=2.0000e-01 dt=3.0e-03 maxNorm errors:[5.5191e-05,2.9492e-08,9.4592e-05,3.8322e-08,3.8322e-08,3.1540e-05,3.4309e-06,6.2010e-10,], 
+
+
+********* 101021
+
+
+cgmp elasticPiston -method=cns -cnsVariation=godunov -g="planeInterfacenp32" -tp=.05 -tf=1. -smVariation=g -debug=0 -bcOption=4
+->   0.200 3.85e-05 3.85e-04 1.01e-05 1.11e-04 7.14e-01 1.56e-03 1.86e+01 (      40,       0)
+->   1.000 1.77e-04 1.92e-03 4.89e-04 5.13e-04 9.93e-01 1.56e-03 1.32e+02 (      44,       0)
+cgmp elasticPiston -method=cns -cnsVariation=godunov -g="planeInterfacenp16" -tp=.05 -tf=1. -smVariation=g -debug=0 -bcOption=4
+->    0.200 6.27e-05 6.26e-04 2.69e-05 1.80e-04 7.14e-01 2.94e-03 5.62e+00 (      37,       0)
+->    1.000 2.99e-04 3.79e-03 8.98e-04 8.73e-04 9.87e-01 2.94e-03 2.08e+01 (      41,       0)
+
+cgmp elasticPiston -method=cns -cnsVariation=godunov -g="planeInterfacenp16" -tp=.05 -tf=.5 -nc=1 -smVariation=g -debug=0
+->    0.200 9.31e-05 6.75e-04 1.60e-05 2.67e-04 7.14e-01 2.94e-03 6.37e+00 (      37,       0)
+
+
+***** NEW piston problem where we can specify the piston motion:
+
+
+cgmp elasticPiston -method=cns -cnsVariation=godunov -g="planeInterfacenp32" -tp=.05 -tf=.5 -nc=1 -smVariation=g -debug=0 
+
+cgmp elasticPiston -method=cns -cnsVariation=godunov -g="planeInterfacenp16" -tp=.05 -tf=.5 -nc=1 -smVariation=g -debug=0 
+
+
+
+
+
+**** 101016 -- FOS has a funny bend near the top of the expansion fan in the fluid
+
+-- try setting the initial velocity of interface to it's constant value
+
+cgmp noplot fluidElastic.cmd -method=cns -cnsVariation=godunov -g="planeInterfacenp16" -tp=.05 -tf=.5 -nc=1 -smVariation=g -debug=0 -show=fluidSolidPlaneInterface16g.show -probeFile="planeInterfaceProbe16g" -vg0=-3.482883e-01 >! junk16g
+
+
+**** 101015 -- redo runs in prepartion for convergence tests 
+
+ *** NOTE: set solid scf=2
+
+cgmp noplot fluidElastic.cmd -method=cns -cnsVariation=godunov -g="planeInterfacenp16" -tp=.05 -tf=.5 -nc=1 -smVariation=g -debug=0 -show=fluidSolidPlaneInterface16g.show -probeFile="planeInterfaceProbe16g" -scf=2. >! junk16g
+
+cgmp noplot fluidElastic.cmd -method=cns -cnsVariation=godunov -g="planeInterfacenp8" -tp=.05 -tf=.5 -nc=1 -smVariation=g -debug=0 -show=fluidSolidPlaneInterface8g.show -probeFile="planeInterfaceProbe8g" -scf=2. >! junk8g
+
+
+
+**** 100530 -- test new interface transfer that supports multiple faces on the interface 
+               NOTE: we cannot use derivativePeriodic grids 
+
+
+cgmp -noplot fluidElastic.cmd -method=cns -cnsVariation=godunov -g="planeInterface4" -tp=.05 -tf=.1 -nc=1 -useNewInterfaceTransfer=1 -debug=3 -go=go
+
+Old way: 
+cgmp fluidElastic.cmd -method=cns -cnsVariation=godunov -g="planeInterface4" -tp=.05 -tf=.5 -nc=1 -debug=3
+
+
+
+**** 090430 -- redo: 
+
+
+$mp/bin/cgmp fluidElastic.cmd -method=cns -cnsVariation=godunov -g="planeInterfacenp8" -tp=.1  -tf=.5 -nc=1 -diss=5. -debug=3 -go=halt
+
+
+
+
+
+*************** NOT periodic in y :  ******************
+
+----  fluid=godunov, solid=NC
+
+$mp/bin/cgmp fluidElastic.cmd -method=cns -cnsVariation=godunov -g="planeInterface4" -tp=.01  -tf=.5 -nc=1 -debug=3 -diss=5. 
+
+
+$mp/bin/cgmp noplot fluidElastic.cmd -method=cns -cnsVariation=godunov -g="planeInterfacenp8" -tp=.1  -tf=.5 -nc=1 -debug=3 -show=fluidSolidPlaneInterface8.show -probeFile="planeInterfaceProbe8" -diss=5. >! junk8
+
+$mp/bin/cgmp noplot fluidElastic.cmd -method=cns -cnsVariation=godunov -g="planeInterfacenp16" -tp=.1  -tf=.5 -nc=1 -debug=1 -show=fluidSolidPlaneInterface16.show -probeFile="planeInterfaceProbe16" >! junk16
+
+
+---- fluid=godunov, solid=godunov ** NEED SLIP BC ***
+$mp/bin/cgmp fluidElastic.cmd -method=cns -cnsVariation=godunov -g="planeInterface4" -tp=.01 -tf=.5 -nc=1 -smVariation=g -debug=3
+
+
+**************** PERIODIC *********************
+
+
+---- fluid=godunov, solid=godunov
+
+cgmp noplot fluidElastic.cmd -method=cns -cnsVariation=godunov -g="planeInterfacenp8" -tp=.05 -tf=.5 -nc=1 -smVariation=g -debug=0 -show=fluidSolidPlaneInterface8g.show -probeFile="planeInterfaceProbe8g" >! junk8g
+
+
+---- fluid=godunov, solid=hemp
+
+cgmp noplot fluidElastic.cmd -method=cns -cnsVariation=godunov -g=planeInterfacenp8 -tp=.05 -tf=.5 -nc=1 -smVariation=h -cfl=.5 -show=fluidSolidPlaneInterface8h.show -probeFile=planeInterfaceProbe8h >! junk8h  
