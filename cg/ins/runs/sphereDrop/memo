@@ -3,8 +3,38 @@ this case is based on drop3d.cmd in SampleGrid
 ++++++++GRIDS++++++++
 ogen -noplot drop3d -factor=1 -interp=e
 
-6/15
+smaller domain for quick test
+ogen -noplot drop3d -factor=1 -interp=e -yb=5 -yr=3 -name=shortDrop3d
 
+-------QUICK TEST------
+quick test on a smaller domain (tfinal=2.25 and it only takes 2 mins to run)
+$cgins -noplot sphereDrop -g=shortDrop3de1.order2.hdf -tf=2.25 -tp=.5 -ts=im -radius=.5 -dropName=drop -channelName=channel -dtMax=.025 -project=0 -nu=0.67462470 -numberOfCorrections=2 -addedMass=1 -useProvidedAceration=1 -addedDamping=1 -addedDampingCoeff=1 -addedDampingProjectVelocity=1 -scaleAddedDampingWithDt=1 -useTP=0 -debug=3 -solver=best -psolver=best -rtol=1.e-7 -atol=1.e-9 -rtolp=1.e-5 -atolp=1.e-7 -freqFullUpdate=1 -bcOption=outflow -ogesDebug=1 -go=go > junk.out &
+
+compare to 
+mpirun -np 1 $cginsp noplot sphereDrop -g=shortDrop3de1.order2.hdf -tf=2.25 -tp=.5 -ts=im -radius=.5 -dropName=drop -channelName=channel -dtMax=.025 -project=0 -nu=0.67462470 -numberOfCorrections=2 -addedMass=1 -useProvidedAceration=1 -addedDamping=1 -addedDampingCoeff=1 -addedDampingProjectVelocity=1 -scaleAddedDampingWithDt=1 -useTP=0 -debug=3 -solver=best -psolver=best -rtol=1.e-7 -atol=1.e-9 -rtolp=1.e-5 -atolp=1.e-7 -freqFullUpdate=1 -bcOption=outflow -go=go -ogesDebug=1 > junknp1.out &
+
+issues in parallel code
+issue 1: build matrix is slow for pressure
+* np=1 build pressure matrix =5seconds while build velocity matrix only needs 0.1 second
+* serial only needs 1e-3 second to build 
+* it becomes more obvious when the grid becomes finer
+issue 2: there are checkOG:ERROR if spherical grids are out of the rectangular domain (may be okay)
+* the first error happens at t=1.925 for np=1 or 4 when two ghost points are out of domian
+* the issue is independent of np, which seems a good news
+
+
+-------FULL TEST------
+test in rbins3d.pdf
+G1 (needs 18 mins to run)
+$cgins -noplot sphereDrop -g=drop3de1.order2.hdf -tf=7.3 -tp=.5 -ts=im -radius=.5 -dropName=drop -channelName=channel -dtMax=.025 -project=0 -nu=0.67462470 -numberOfCorrections=2 -addedMass=1 -useProvidedAceration=1 -addedDamping=1 -addedDampingCoeff=1 -addedDampingProjectVelocity=1 -scaleAddedDampingWithDt=1 -useTP=0 -debug=3 -solver=best -psolver=best -rtol=1.e-7 -atol=1.e-9 -rtolp=1.e-5 -atolp=1.e-7 -freqFullUpdate=1 -bcOption=outflow -go=go -show=particleSettleG1.show > particleSettleG1.out &
+
+
+
+
+6/19
+add a short test
+
+6/15/2017
 serial test (G1 can run up to tfinal=7.3):
 $cgins -noplot sphereDrop -g=drop3de1.order2.hdf -tf=7.3 -tp=.5 -ts=im -radius=.5 -dropName=drop -channelName=channel -dtMax=.025 -project=0 -nu=0.67462470 -numberOfCorrections=2 -addedMass=1 -useProvidedAceration=1 -addedDamping=1 -addedDampingCoeff=1 -addedDampingProjectVelocity=1 -scaleAddedDampingWithDt=1 -useTP=0 -debug=3 -solver=best -psolver=best -rtol=1.e-7 -atol=1.e-9 -rtolp=1.e-5 -atolp=1.e-7 -freqFullUpdate=1 -bcOption=outflow -go=go -show=particleSettleG1.show > particleSettleG1.out &
 
