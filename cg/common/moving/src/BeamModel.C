@@ -736,12 +736,76 @@ addToElementIntegral( const real & tf,
       std::swap<real>(myx0,myx1);
     }
 
+
   //std::cout << elem1 << " " << elem2 << " " << eta1 << " " << eta2 << " " << p1 << " " << p2 << std::endl;
 
-  const real dx12 = max(fabs(myx0-myx1),REAL_MIN*100.); // distance between point_1 and point_2
 
   const int & orderOfGalerkinProjection = dbase.get<int>("orderOfGalerkinProjection");
 
+
+  if(true){
+    // ======================================================================================
+    //Longfei 20170622: try to do a better job at the beam tip:
+    // for beam tip points whose projection lies outside of the centerline domain [0,L]
+    // we interpolate the value at the point whose projection is right on the end of the centerline, i.e., 0 or L 
+    assert(myx0<=myx1); // make sure it's already swapped
+    if(myx0<0 && myx1>=0) // left point falls outside of the centerline, and the right on is insed  
+      {
+	real dx12 = max(fabs(myx0-myx1),REAL_MIN*100.); // distance between point_1 and point_2
+	// interpolate the p and px value at the beam surface point associated with the end point 0
+	real x0=0.;
+	real pa=0.,pax=0.;
+	if( orderOfGalerkinProjection==2 )
+	  {
+	    pa = p11 + (p22-p11)*(x0-myx0)/dx12;
+	  }
+	else
+	  {
+	    real xi= -1. + 2.*(x0-myx0)/dx12;
+	    std::vector<real> phi(4,0.); // 4 entries with 0. value
+	    std::vector<real> phix(4,0.); // 4 entries with 0. value
+	    hermiteBasis(xi,dx12,phi,phix);
+	    real &N1=phi[0],&N2=phi[1],&N3=phi[2],&N4=phi[3];
+	    real &N1x=phix[0],&N2x=phix[1],&N3x=phix[2],&N4x=phix[3];
+	    pa = p11*N1 + p11x*N2 + p22*N3 + p22x*N4; 
+	    pax = p11*N1x + p11x*N2x + p22*N3x + p22x*N4x;	  
+	  }
+	myx0=0.;
+	p11=pa;
+	p11x=pax;
+      
+      } 
+    if(myx1>L && myx0<=L) // right point falls outside of the centerline, and the left one is inside
+      {
+	real dx12 = max(fabs(myx0-myx1),REAL_MIN*100.); // distance between point_1 and point_2
+	// interpolate the p and px value at the beam surface point associated with the end point L
+	real x0=L;
+	real pb=0.,pbx=0.;
+	if( orderOfGalerkinProjection==2 )
+	  {
+	    pb = p11 + (p22-p11)*(x0-myx0)/dx12;
+	  }
+	else
+	  {
+	    real xi= -1. + 2.*(x0-myx0)/dx12;
+	    std::vector<real> phi(4,0.); // 4 entries with 0. value
+	    std::vector<real> phix(4,0.); // 4 entries with 0. value
+	    hermiteBasis(xi,dx12,phi,phix);
+	    real &N1=phi[0],&N2=phi[1],&N3=phi[2],&N4=phi[3];
+	    real &N1x=phix[0],&N2x=phix[1],&N3x=phix[2],&N4x=phix[3];
+	    pb = p11*N1 + p11x*N2 + p22*N3 + p22x*N4; 
+	    pbx = p11*N1x + p11x*N2x + p22*N3x + p22x*N4x;	  
+	  }
+	myx1=L;
+	p22=pb;
+	p22x=pbx;
+      
+      }
+    // ======================================================================================
+  }
+
+
+  const real dx12 = max(fabs(myx0-myx1),REAL_MIN*100.); // distance between point_1 and point_2
 
   
   //                 elem1            elem2
@@ -773,16 +837,25 @@ addToElementIntegral( const real & tf,
 	      //           -1      xi          +1
 	      real xi = -1. + 2.*(x0-myx0)/dx12;
 	      // ** CHECK ME ***
-	      real N1 = .25*(1.-xi)*(1.-xi)*(2.+xi);
-	      real N2 = .125*dx12*(1.-xi)*(1.-xi)*(1.+xi);
-	      real N3 = .25*(1.+xi)*(1.+xi)*(2.-xi);
-	      real N4 = .125*dx12*(1.+xi)*(1.+xi)*(xi-1.);
+	      // old:
+	      // real N1 = .25*(1.-xi)*(1.-xi)*(2.+xi);
+	      // real N2 = .125*dx12*(1.-xi)*(1.-xi)*(1.+xi);
+	      // real N3 = .25*(1.+xi)*(1.+xi)*(2.-xi);
+	      // real N4 = .125*dx12*(1.+xi)*(1.+xi)*(xi-1.);
 	
-	      real N1x = ( .5*(xi-1.)*(2.+xi)  + .25*(1.-xi)*(1.-xi) )*(2./dx12);
-	      real N2x = ( .25*(xi-1.)*(1.+xi) + .125*(1.-xi)*(1.-xi) )*2.;
-	      real N3x = ( .5*(1.+xi)*(2.-xi)  - .25*(1.+xi)*(1.+xi) )*(2./dx12) ;
-	      real N4x = ( .25*(1.+xi)*(xi-1.) + .125*(1.+xi)*(1.+xi) )*2.;
-	
+	      // real N1x = ( .5*(xi-1.)*(2.+xi)  + .25*(1.-xi)*(1.-xi) )*(2./dx12);
+	      // real N2x = ( .25*(xi-1.)*(1.+xi) + .125*(1.-xi)*(1.-xi) )*2.;
+	      // real N3x = ( .5*(1.+xi)*(2.-xi)  - .25*(1.+xi)*(1.+xi) )*(2./dx12) ;
+	      // real N4x = ( .25*(1.+xi)*(xi-1.) + .125*(1.+xi)*(1.+xi) )*2.;
+	      // new:
+	      std::vector<real> phi(4,0.); // 4 entries with 0. value
+	      std::vector<real> phix(4,0.); // 4 entries with 0. value
+	      hermiteBasis(xi,dx12,phi,phix);
+	      real &N1=phi[0],&N2=phi[1],&N3=phi[2],&N4=phi[3];
+	      real &N1x=phix[0],&N2x=phix[1],&N3x=phix[2],&N4x=phix[3];
+	      // printF("N1=%5.2f,N2=%5.2f,N3=%5.2f,N4=%5.2f\n",N1,N2,N3,N4);
+	      // printF("N1x=%5.2f,N2x=%5.2f,N3x=%5.2f,N4x=%5.2f\n",N1x,N2x,N3x,N4x);
+
 	      pa = p11*N1 + p11x*N2 + p22*N3 + p22x*N4; 
 	      pax = p11*N1x + p11x*N2x + p22*N3x + p22x*N4x; 
 
@@ -802,16 +875,25 @@ addToElementIntegral( const real & tf,
 	    {
 	      // -- evaluate the Hermite interpolant --
 	      real xi = -1. + 2.*(x1-myx0)/dx12;
-
-	      real N1 = .25*(1.-xi)*(1.-xi)*(2.+xi);
-	      real N2 = .125*dx12*(1.-xi)*(1.-xi)*(1.+xi);
-	      real N3 = .25*(1.+xi)*(1.+xi)*(2.-xi);
-	      real N4 = .125*dx12*(1.+xi)*(1.+xi)*(xi-1.);
+	      
+	      //old:
+	      // real N1 = .25*(1.-xi)*(1.-xi)*(2.+xi);
+	      // real N2 = .125*dx12*(1.-xi)*(1.-xi)*(1.+xi);
+	      // real N3 = .25*(1.+xi)*(1.+xi)*(2.-xi);
+	      // real N4 = .125*dx12*(1.+xi)*(1.+xi)*(xi-1.);
 	
-	      real N1x = ( .5*(xi-1.)*(2.+xi)  + .25*(1.-xi)*(1.-xi) )*(2./dx12);
-	      real N2x = ( .25*(xi-1.)*(1.+xi) + .125*(1.-xi)*(1.-xi) )*2.;
-	      real N3x = ( .5*(1.+xi)*(2.-xi)  - .25*(1.+xi)*(1.+xi) )*(2./dx12) ;
-	      real N4x = ( .25*(1.+xi)*(xi-1.) + .125*(1.+xi)*(1.+xi) )*2.;
+	      // real N1x = ( .5*(xi-1.)*(2.+xi)  + .25*(1.-xi)*(1.-xi) )*(2./dx12);
+	      // real N2x = ( .25*(xi-1.)*(1.+xi) + .125*(1.-xi)*(1.-xi) )*2.;
+	      // real N3x = ( .5*(1.+xi)*(2.-xi)  - .25*(1.+xi)*(1.+xi) )*(2./dx12) ;
+	      // real N4x = ( .25*(1.+xi)*(xi-1.) + .125*(1.+xi)*(1.+xi) )*2.;
+	      // new:
+	      std::vector<real> phi(4,0.); // 4 entries with 0. value
+	      std::vector<real> phix(4,0.); // 4 entries with 0. value
+	      hermiteBasis(xi,dx12,phi,phix);
+	      real &N1=phi[0],&N2=phi[1],&N3=phi[2],&N4=phi[3];
+	      real &N1x=phix[0],&N2x=phix[1],&N3x=phix[2],&N4x=phix[3];
+	      // printF("N1=%5.2f,N2=%5.2f,N3=%5.2f,N4=%5.2f\n",N1,N2,N3,N4);
+	      // printF("N1x=%5.2f,N2x=%5.2f,N3x=%5.2f,N4x=%5.2f\n",N1x,N2x,N3x,N4x);
 
 	      pb = p11*N1 + p11x*N2 + p22*N3 + p22x*N4; 
 	      pbx = p11*N1x + p11x*N2x + p22*N3x + p22x*N4x; 
@@ -3578,39 +3660,56 @@ interpolateSolution(const RealArray& X,
   //  le = L / numElem;
 
   // compute the shape functions.
-  real eta1 = 1.-eta;
-  real eta2 = 2.-eta;
-  real etap1 = eta+1.0;
-  real etap2 = eta+2.0;
+  // new: Longfei 20170622:
+  std::vector<real> sf(4,0.), sfd(4,0.);
+  hermiteBasis(eta,le,sf,sfd);
+  if(false)
+    {
+      printF("new way:\n");
+      printF("sf=[%5.2f,%5.2f,%5.2f,%5.2f], sfd=[%5.2f,%5.2f,%5.2f,%5.2f]\n",
+	     sf[0],sf[1],sf[2],sf[3],sfd[0],sfd[1],sfd[2],sfd[3]);
+    }
+
+  // old: Longfei 20170622
+  // if(false)
+  // {
+  // real eta1 = 1.-eta;
+  // real eta2 = 2.-eta;
+  // real etap1 = eta+1.0;
+  // real etap2 = eta+2.0;
   
-  real sf[4] = {0.25*eta1*eta1*etap2,
-		0.125*le*eta1*eta1*etap1,
-		0.25*etap1*etap1*eta2,
-		-0.125*le*eta1*etap1*etap1 };
+  // real sf[4] = {0.25*eta1*eta1*etap2,
+  // 		0.125*le*eta1*eta1*etap1,
+  // 		0.25*etap1*etap1*eta2,
+  // 		-0.125*le*eta1*etap1*etap1 };
 
 
-  //Longfei 20160802:
-  // this is wrong!!!
-  // real sfd[4] = {(-0.5*eta1*etap2+0.25*eta1*eta1)/le,
-  // 		 -0.25*eta1*etap1+0.25*eta1*eta1,
-  // 		 (0.5*etap1*eta2-0.25*etap1*etap1)/le,
-  // 		 -0.25*etap1*eta1+0.25*etap1*etap1 };
-  //new:  CHECKME.......THIS IS FIXED!
-  real sfd[4] = {(-0.5*eta1*etap2+0.25*eta1*eta1)*2./le,
-    		 -0.5*eta1*etap1+0.25*eta1*eta1,
-    		 (0.5*etap1*eta2-0.25*etap1*etap1)*2./le,
-    		 -0.5*etap1*eta1+0.25*etap1*etap1 };
-  if(debug()==-999){
-    // use the wrong shape functions just to show the error
-    printF("-- BM%i -- WARNING: use wrong shape functions for slopes in BeamModel::interpolateSolution.\n"
-	   "this run is to demonstrate the bug we had before\n",getBeamID());
-    sfd[0]=(-0.5*eta1*etap2+0.25*eta1*eta1)/le;
-    sfd[1]= -0.25*eta1*etap1+0.25*eta1*eta1;
-    sfd[2]= (0.5*etap1*eta2-0.25*etap1*etap1)/le;
-    sfd[3]= -0.25*etap1*eta1+0.25*etap1*etap1;
+  // //Longfei 20160802:
+  // // this is wrong!!!
+  // // real sfd[4] = {(-0.5*eta1*etap2+0.25*eta1*eta1)/le,
+  // // 		 -0.25*eta1*etap1+0.25*eta1*eta1,
+  // // 		 (0.5*etap1*eta2-0.25*etap1*etap1)/le,
+  // // 		 -0.25*etap1*eta1+0.25*etap1*etap1 };
+  // //new:  CHECKME.......THIS IS FIXED!
+  // real sfd[4] = {(-0.5*eta1*etap2+0.25*eta1*eta1)*2./le,
+  //   		 -0.5*eta1*etap1+0.25*eta1*eta1,
+  //   		 (0.5*etap1*eta2-0.25*etap1*etap1)*2./le,
+  //   		 -0.5*etap1*eta1+0.25*etap1*etap1 };
+  // if(debug()==-999){
+  //   // use the wrong shape functions just to show the error
+  //   printF("-- BM%i -- WARNING: use wrong shape functions for slopes in BeamModel::interpolateSolution.\n"
+  // 	   "this run is to demonstrate the bug we had before\n",getBeamID());
+  //   sfd[0]=(-0.5*eta1*etap2+0.25*eta1*eta1)/le;
+  //   sfd[1]= -0.25*eta1*etap1+0.25*eta1*eta1;
+  //   sfd[2]= (0.5*etap1*eta2-0.25*etap1*etap1)/le;
+  //   sfd[3]= -0.25*etap1*eta1+0.25*etap1*etap1;
 
-  }
+  // }
 
+  // printF("Old way:\n");
+  // printF("sf=[%5.2f,%5.2f,%5.2f,%5.2f], sfd=[%5.2f,%5.2f,%5.2f,%5.2f]\n",
+  // 	 sf[0],sf[1],sf[2],sf[3],sfd[0],sfd[1],sfd[2],sfd[3]);
+  // }
 	
   //Longfei 20160308:
   // solutions and slope at grid points elemNum and elemNum+1
@@ -4101,7 +4200,7 @@ setSurfaceForce(const real & t, const RealArray & x0, const RealArray & traction
 		       traction(Ib1,Ib2,Ib3,1)*normal2(Ib1,Ib2,Ib3,1) );
 
   const int & rangeDimension = dbase.get<int>("rangeDimension");
-  if(rangeDimension==3) return; //Longfei: for now, we do not att surface force to the beam. FIX ME!!!!!!
+  if(rangeDimension==3) return; //Longfei: for now, we do not add surface force to the beam. FIX ME!!!!!!
  
   if( false )
     {
@@ -6657,13 +6756,22 @@ getAugmentedSolution(real t, realMappedGridFunction & w)
   RealArray & uc = u[current];
   RealArray & vc = v[current];
   RealArray & ac = a[current];
-  RealArray & fc = f[current];
+  RealArray   fc = f[current]; // we need to change fc if FEM, so make copy to prevent f[current] being altered
 
 
+  const bool & xd = dbase.get<bool>("isCubicHermiteFEM");
+  
+  //Longfei 20170621: for FEM method, fc is load vector.
+  // we need to convert it back to nodal value for plot
+  if(xd)
+    {
+      //project the load vector to nodal values
+      solveBlockTridiagonal(fc, fc, "massMatrixSolverNoBC" ); 
+    }
+  
 
   bool plotErrors=exactSolutionOption!="none";
 
-  const bool & xd = dbase.get<bool>("isCubicHermiteFEM");
   // number of components: 
   int nv=4;    // [u,v,a,f]
   int compFactor=1;
@@ -7318,21 +7426,18 @@ update(CompositeGrid & cg, GenericGraphicsInterface & gi )
 	}
       else if( dialog.getTextValue(answer,"order of Galerkin projection:","%i",orderOfGalerkinProjection) )
 	{
-	  //Longfei 20160128: this option is for FEMBeamModel only
-	  if(isFEM)
+
+	  if( orderOfGalerkinProjection!=2 && orderOfGalerkinProjection!=4 )
 	    {
-	      if( orderOfGalerkinProjection!=2 && orderOfGalerkinProjection!=4 )
-		{
-		  printF("-- BM%i -- Error: orderOfGalerkinProjection=%i is invalid, must be 2 or 4. \n",getBeamID(),orderOfGalerkinProjection);
-		}
+	      printF("-- BM%i -- Warning: orderOfGalerkinProjection=%i is invalid, must be 2 or 4. \n",getBeamID(),orderOfGalerkinProjection);
+	      orderOfGalerkinProjection=4; // use default orderOfGalerkinProjection = 4
+	      printF("-- BM%i -- Warning: use default orderOfGalerkinProjection=%i. \n",getBeamID(),orderOfGalerkinProjection);
+	    }
 	  
-	      printF("Setting the order of accuracy of the Galerkin projection =%i (e.g. for the force integral)\n",
-		     orderOfGalerkinProjection);
-	    }
-	  else
-	    {
-	      printF("-- BM%i -- Warning: Option ignored. This is an FDBeamModel. orderOfGalerkinProjection is for FEMBeamModel only.\n",getBeamID());
-	    }
+	  printF("Setting the order of accuracy of the Galerkin projection =%i (e.g. for the force integral)\n",
+		 orderOfGalerkinProjection);
+	    
+
       
 	}
 
@@ -8287,6 +8392,34 @@ getRotationMatrix3D( RealArray & R, real * sol, real * solSlope, const real t, c
 }
 
 
+// Longfei 20170622: new function to evaluate hermite basis functions at xi in reference domain [-1,1]
+// =================================================================================================
+/// \brief  evaluate hermite basis functions at xi in reference domain [-1,1]
+/// \param xi (input) : coordinate in reference domain [-1,1]
+/// \param dx12(input): space between to data points in physical space
+/// \param phi(output): hermite basis evaluated at xi
+/// \param phix(output): slope of hermite basis evaluated at xi
+// =================================================================================================
+int BeamModel::
+hermiteBasis(const real& xi, const real& dx12, std::vector<real>& phi,  std::vector<real> &  phix)
+{
+  // ** CHECK ME ***
+  // basis functions in reference domain [-1,1]
+  phi[0] = .25*(1.-xi)*(1.-xi)*(2.+xi);
+  phi[1] = .125*dx12*(1.-xi)*(1.-xi)*(1.+xi);
+  phi[2] = .25*(1.+xi)*(1.+xi)*(2.-xi);
+  phi[3] = .125*dx12*(1.+xi)*(1.+xi)*(xi-1.);
+	
+  phix[0] = ( .5*(xi-1.)*(2.+xi)  + .25*(1.-xi)*(1.-xi) )*(2./dx12);
+  phix[1] = ( .25*(xi-1.)*(1.+xi) + .125*(1.-xi)*(1.-xi) )*2.;
+  phix[2] = ( .5*(1.+xi)*(2.-xi)  - .25*(1.+xi)*(1.+xi) )*(2./dx12) ;
+  phix[3] = ( .25*(1.+xi)*(xi-1.) + .125*(1.+xi)*(1.+xi) )*2.;
+	
+
+
+  return 0;
+}
+
 
 
 // ********************************************************************************************************************
@@ -8503,4 +8636,7 @@ void BeamModel::exactSolutionPressure(LocalReal x, LocalReal y,
 //   return result;
 
 // }
+
+
+
 

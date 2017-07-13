@@ -109,7 +109,23 @@ addForce( )
   Index J1=2*I1;  
   fc(I1,0,0,0) = sf(J1,0,0,0); // get the surfaceForce nodal values 
 
+  //Longfei: 20170625
+  // try extrapolate force at the end point with free bc (since there is no bc for force, we have some trouble with force at the free end)
+  const vector<BoundaryConditionEnum> & boundaryConditions = dbase.get<vector<BoundaryConditionEnum> >("boundaryConditions");
+  for(int side=0; side<=1;side++)
+    {
+      const BoundaryConditionEnum bc = boundaryConditions[side];
 
+      if(bc==freeBC || bc==slideBC)
+	{
+	  const int ib = side==0 ? 0 : numElem;              // boundary node
+	  const int is = 1-2*side;   // ib+is is the first interior line, ib+2*is is the second interior line
+	  fc(ib,0,0,0) = 3.*fc(ib+is,0,0,0)-3.*fc(ib+2*is)+fc(ib+3*is);
+	}
+    }
+
+
+  
   if( false )
     {
       const RealArray &time=dbase.get<RealArray>("time");

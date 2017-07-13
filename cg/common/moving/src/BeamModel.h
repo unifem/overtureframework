@@ -545,6 +545,9 @@ public:
   //  Return the RHS values for the boundary conditions.
   int getBoundaryValues( const real t, RealArray & g, const int ntd=0 );
 
+  // Longfei 20170622: hermite basis functions in reference domain [-1,1]
+  int hermiteBasis(const real& xi, const real& dx12, std::vector<real>& phi,  std::vector<real> &  phix);
+
   // Longfei 2016038: made change to this function so that it works for FDBeamModel as well. 
   // The interpolation for FEM and FD models are different
   // Compute the slope and displacement of the beam at a given
