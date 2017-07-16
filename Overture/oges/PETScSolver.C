@@ -338,7 +338,7 @@ getSolverName() const
         int ierr = PetscObjectTypeCompare((PetscObject)pc,PCBJACOBI,&isbjacobi);CHKERRQ(ierr);
         ierr = PetscObjectTypeCompare((PetscObject)pc,PCASM,&isasm);CHKERRQ(ierr);
 
-        if( Oges::debug & 1 )
+        if( Oges::debug & 4 )
         {
             printF(" PETScSolver:INFO: Using Block Jacobi =%i\n",(int)isbjacobi);
             printF(" PETScSolver:INFO: Using Additive Schwartz=%i\n",(int)isasm);
@@ -2887,7 +2887,7 @@ setPetscParameters()
         PetscBool isbjacobi=PETSC_FALSE, isasm=PETSC_FALSE;
     // v2.3.2 ierr = PetscTypeCompare((PetscObject)pc,PCBJACOBI,&isbjacobi);CHKERRQ(ierr);
         ierr = PetscObjectTypeCompare((PetscObject)pc,PCBJACOBI,&isbjacobi);CHKERRQ(ierr);
-        if( Oges::debug & 1 && isbjacobi )
+        if( Oges::debug & 4 && isbjacobi )
             printF(" PETScSolver::setPetscParameters:INFO: Using Block Jacobi\n");
         if( !isbjacobi ) 
         {
@@ -3684,7 +3684,7 @@ solve( realCompositeGridFunction & uu, realCompositeGridFunction & f )
     
 
 
-    if( firstSolve && Oges::debug & 1  )
+    if( firstSolve && Oges::debug & 4  )
     {
         aString name = getSolverName();
         printF("--PETSc-- solver: %s\n",(const char*)name);

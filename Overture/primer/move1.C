@@ -11,8 +11,7 @@
 //   o save solutions in a show file
 // 
 // Usage:
-//   move1 [-grid=<name>] [-numSteps=<>] [-shift] [-rotate] [-interpolate=[0|1]] [-saveShow=[0|1]] ...
-//         -deltaShiftX=<f> -debug=<i>
+//   move1 [-grid=<name>] [-numSteps=<>] [-shift] [-rotate] [-interpolate=[0|1]] [-saveShow=[0|1]]
 // 
 // Examples:
 //   move1 -grid=cic
@@ -30,7 +29,7 @@ main(int argc, char *argv[])
 {
   Overture::start(argc,argv);  // initialize Overture
 
-  Mapping::debug=0; // 7; 
+  Mapping::debug=0; 
   int debug=0;
   
   int numGhost=2;  // for second-order accurate (1 is good enough for implicit)
@@ -47,7 +46,7 @@ main(int argc, char *argv[])
 
   int numberOfSteps=20;
   real deltaAngle=5.*Pi/180.;
-  real deltaShiftX=-.01;
+  real deltaShift=-.01;
   int useFullAlgorithmInterval=10; // 10000;
   #ifdef USE_PPP
     useFullAlgorithmInterval=1;  // for now always use full algorithm for ogen
@@ -91,15 +90,6 @@ main(int argc, char *argv[])
       else if( len=line.matches("-interpolate=") )
       {
 	sScanF(line(len,line.length()-1),"%i",&interpolate);
-      }
-      else if( len=line.matches("-deltaShiftX=") )
-      {
-	sScanF(line(len,line.length()-1),"%e",&deltaShiftX);
-      }
-      else if( len=line.matches("-debug=") )
-      {
-	sScanF(line(len,line.length()-1),"%i",&debug);
-        Mapping::debug=debug;
       }
       else
       {
@@ -232,15 +222,13 @@ main(int argc, char *argv[])
       MatrixTransform & transform = newCG==0 ? *transform0[g] : *transform1[g];
       if( moveOption==rotate )
       {
-        if( g==0 )
-          angle += deltaAngle;
+	angle += deltaAngle;
 	transform.reset();  // reset transform since otherwise rotate is incremental
 	transform.rotate(axis3,angle);
       }
       else
       {
-        if( g==0 )
-          xShift += deltaShiftX;
+	xShift += deltaShift;
 	// printF(" xShift=%9.3e\n",xShift);
 	transform.reset();  // reset transform since otherwise shift is incremental
 	transform.shift(xShift,0.,0.);
@@ -256,24 +244,6 @@ main(int argc, char *argv[])
     }
     gridGenerator.updateOverlap(cg[newCG], cg[oldCG], hasMoved, option );
 
-    bool checkBoundingBoxes=true;  // testing 
-    if( checkBoundingBoxes )
-    {
-      CompositeGrid & cgNew = cg[newCG];
-      for( int grid=0; grid<cgNew.numberOfComponentGrids(); grid++ )
-      {
-        Mapping & map = cgNew[grid].mapping().getMapping();
-          
-        if( hasMoved(grid) )
-        {
-          RealArray bb; bb = map.getBoundingBox();
-          printF("grid=%i Mapping boundingBox=[%9.3e,%9.3e][%9.3e,%9.3e][%9.3e,%9.3e]\n",
-                 grid,bb(0,0),bb(1,0),bb(0,1),bb(1,1),bb(0,2),bb(1,2));
-        }
-      }    
-    }
-    
-
     if( interpolate )
     {
       interpolant.updateToMatchGrid(cg[newCG]);
@@ -286,8 +256,6 @@ main(int argc, char *argv[])
     {
       MappedGrid & mg = cg[newCG][grid];
       getIndex(mg.dimension(),I1,I2,I3);
-      mg.update(MappedGrid::THEvertex | MappedGrid::THEcenter );  // July 12, 2017 *wdh*
-      
       realSerialArray vertexLocal; getLocalArrayWithGhostBoundaries(mg.vertex(),vertexLocal);
       realSerialArray uLocal; getLocalArrayWithGhostBoundaries(u[grid],uLocal);
       bool ok = ParallelUtility::getLocalArrayBounds(u[grid],uLocal,I1,I2,I3,1);
