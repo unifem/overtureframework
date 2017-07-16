@@ -542,7 +542,8 @@ interfaceRightHandSide( InterfaceOptionsEnum option,
                         int interfaceDataOptions,
                         GridFaceDescriptor & info, 
                         GridFaceDescriptor & gfd,
-			int gfIndex, real t );
+			int gfIndex, real t,
+                        bool saveTimeHistory = false );
 
 virtual int 
 interpolate( GridFunction & cgf, const Range & R = nullRange );

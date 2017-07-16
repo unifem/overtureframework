@@ -27,7 +27,7 @@ int DomainSolver::
 getPastTimeSolutions( int current, int numberOfPast, int *previous  )
 {
 
-  printF("--DS-- DomainSolver::getPastTimeSolution: current=%i (t=%8.2e) numberOfPast=%i\n",
+  printF("\n --DS-- GET-PAST-TIME SOLUTIONS getPastTimeSolution: current=%i (t=%8.2e) numberOfPast=%i\n",
 	 current,gf[current].t, numberOfPast );
 
   for( int past=0; past<numberOfPast; past ++ )
@@ -64,17 +64,29 @@ getPastTimeSolutions( int current, int numberOfPast, int *previous  )
         ::displayMask(cg[0].mask(),"Past time grid - mask on grid 0",debugFile);
       }
 
-
-
-    }
+    } // end if movingGrid
+    
 
     // -- Assign the "initial" conditions --
     assignInitialConditions(prev);
-    
-    // -- compute the pressure on moving grids when the pressure and body accelerations are coupled --
-    // *wdh* 2015/06/08 
-    projectInitialConditionsForMovingGrids(prev);
 
+    if( debug() & 8 ) 
+    {
+      gf[prev].u.display(sPrintF("Past time solution prev=%i t=%9.3e BEFORE PROJECT \n",prev,gf[prev].t),"%6.2f ");
+    }
+    
+
+    // -- compute the pressure on moving grids when the pressure and body accelerations are coupled --
+    if( true ) // parameters.dbase.get<bool>("projectInitialConditions") )
+    {
+      projectInitialConditionsForMovingGrids(prev);
+
+      if( debug() & 8) 
+      {
+        gf[prev].u.display(sPrintF("Past time solution prev=%i t=%9.3e AFTER PROJECT \n",prev,gf[prev].t),"%6.2f ");
+      }
+    }
+    
     if( (false || debug() & 16)  && parameters.dbase.get<GUIState* >("runTimeDialog")!=NULL  )
     {
       // -- optionally plot the solution and grid --

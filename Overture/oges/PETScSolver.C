@@ -1064,7 +1064,7 @@ buildMatrix( realCompositeGridFunction & coeff, realCompositeGridFunction & uu )
     numberOfUnknownsThisProcessor=numberOfGridPointsThisProcessor*numberOfComponents;
 
     if (false)
-        printf("PETScSolver:INFO: myid=%i,unknows of this processor=%i\n",
+        printf("PETScSolver:INFO: myid=%i,unknowns of this processor=%i\n",
                     myid,numberOfUnknownsThisProcessor);
 
     int iv[3], &i1=iv[0], &i2=iv[1], &i3=iv[2]; 
@@ -1314,7 +1314,6 @@ buildMatrix( realCompositeGridFunction & coeff, realCompositeGridFunction & uu )
 
                 // Convert an Overture equation number "eqn" into a PETSc equation jg
                 // and find the processor p
-                // convertOvertureToPETSc(eqn,jg,grid);
                                     int jg,p;
                                     if( eqn<equationBounds(0,grid) || eqn>equationBounds(1,grid) )
                                     {
@@ -1362,7 +1361,6 @@ buildMatrix( realCompositeGridFunction & coeff, realCompositeGridFunction & uu )
                                 eqn = EQUATIONNUMBER(m,n,i1,i2,i3) - eqnBase;
 
                 // Convert an Overture equation number "eqn" into a PETSc equation jg
-                // convertOvertureToPETSc(eqn,jg,grid);
                                     int jg,p;
                                     if( eqn<equationBounds(0,grid) || eqn>equationBounds(1,grid) )
                                     {
@@ -1809,7 +1807,6 @@ buildMatrix( realCompositeGridFunction & coeff, realCompositeGridFunction & uu )
             	      eqn = EQUATIONNUMBER(m,n,i1,i2,i3)-eqnBase;
 
               // Convert an Overture equation number "eqn" into a PETSc equation jg
-              // convertOvertureToPETSc(eqn,jg,grid);
                                 int jg,p;
                                 if( eqn<equationBounds(0,grid) || eqn>equationBounds(1,grid) )
                                 {
@@ -1864,7 +1861,6 @@ buildMatrix( realCompositeGridFunction & coeff, realCompositeGridFunction & uu )
                             eqn = EQUATIONNUMBER(m,n,i1,i2,i3) - eqnBase;
 
               // Convert an Overture equation number "eqn" into a PETSc equation jg
-              // convertOvertureToPETSc(eqn,jg,grid);
                                 int jg,p;
                                 if( eqn<equationBounds(0,grid) || eqn>equationBounds(1,grid) )
                                 {
@@ -2108,6 +2104,7 @@ buildMatrix( realCompositeGridFunction & coeff, realCompositeGridFunction & uu )
 
                       delete [] jgv;
                       delete [] vv;
+
                 }
             }
             

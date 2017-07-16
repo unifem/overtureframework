@@ -55,6 +55,8 @@ multiDomainAdvanceNew( real &t, real & tFinal )
   int & init=parameters.dbase.get<DataBase >("modelData").get<int>("initializeAdvance");
 
   const int numberOfDomains = domainSolver.size(); 
+  const std::vector<int> & domainOrder =parameters.dbase.get<std::vector<int> >("domainOrder");
+  
   int numberOfSubSteps=parameters.dbase.get<int>("numberOfSubSteps");
 
   InterfaceList & interfaceList = parameters.dbase.get<InterfaceList>("interfaceList");
@@ -65,9 +67,9 @@ multiDomainAdvanceNew( real &t, real & tFinal )
 
   if( true || debug() & 4 )
     printF("\n"
-           " --------------------------------------------------------------------------------------------\n"
+           " -------------------------------------------------------------------------------------------------------\n"
            " ---- Cgmp::multiDomainAdvanceNew ---- t=%e, dt=%e, tFinal=%e, timeStepHasChanged=%i\n"
-           " --------------------------------------------------------------------------------------------\n\n",
+           " -------------------------------------------------------------------------------------------------------\n\n",
              t,dt,tFinal,(int)timeStepHasChanged);
   if( debug() & 2 )
     fprintf(debugFile," *** Cgmp::multiDomainAdvanceNew: t=%e, dt=%e, tFinal=%e, timeStepHasChanged=%i *** \n",t,dt,tFinal,(int)timeStepHasChanged);
@@ -281,7 +283,7 @@ multiDomainAdvanceNew( real &t, real & tFinal )
       if( gridHasChanged )
       { 
 	// we need to redefine the interfaces if the grid has changed
-	printF("\n *-*-* Cgmp::multiDomainAdvanceNew: The grids has CHANGED : re-init the interfaces *-*-*\n\n");
+	printF("\n *-*-* Cgmp::multiDomainAdvanceNew: The grid has CHANGED : re-init the interfaces *-*-*\n\n");
 	if( alwaysSetBoundaryData || !solveCoupledInterfaceEquations )
 	{
 	  initializeInterfaces(gfIndex); // this will re-define the interfaces

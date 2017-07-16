@@ -9,6 +9,106 @@
 #include "OGPulseFunction.h"
 #include "RadiationBoundaryCondition.h"
 #include "ParallelUtility.h"
+#include "Interface.h" 
+
+// --- put this forward declaration here for now ---
+// int
+// getInterfaceData( real t, int grid, int side, int axis, 
+// 		  int interfaceDataOptions,
+// 		  RealArray & data,
+//                   Parameters & parameters );
+
+#define ForBoundary(side,axis)   for( int axis=0; axis<mg.numberOfDimensions(); axis++ ) for( int side=0; side<=1; side++ )
+
+// =========================================================================================================
+/// \brief Get the interfce data need to assign boundary conditions.
+// =========================================================================================================
+int Cgsm::
+getInterfaceBoundaryData( int current )
+{
+    const Parameters::InterfaceCommunicationModeEnum & interfaceCommunicationMode= 
+        parameters.dbase.get<Parameters::InterfaceCommunicationModeEnum>("interfaceCommunicationMode");
+
+    if( interfaceCommunicationMode!=Parameters::requestInterfaceDataWhenNeeded )
+        return 0;
+
+    GridFunction & cgf = gf[current];
+    CompositeGrid & cg = cgf.cg;
+    const real t= cgf.t; 
+    const int numberOfDimensions = cg.numberOfDimensions();
+    
+    assert( parameters.dbase.has_key("interfaceType") );
+    
+    const IntegerArray & interfaceType = parameters.dbase.get<IntegerArray >("interfaceType");
+
+  // --- Here is the interface data we need ---
+    int interfaceDataOptions = Parameters::tractionInterfaceData;
+    int numberOfItems=numberOfDimensions;
+
+    SmParameters::PDEVariation & pdeVariation = parameters.dbase.get<SmParameters::PDEVariation>("pdeVariation");
+    if( pdeVariation==SmParameters::godunov )
+    {
+    // The godunov solver also needs the time derivative of the traction: 
+        interfaceDataOptions = interfaceDataOptions | Parameters::tractionRateInterfaceData;
+        numberOfItems+=numberOfDimensions;
+    }	  
+    Index Iv[3], &I1=Iv[0], &I2=Iv[1], &I3=Iv[2];
+    const int uc = parameters.dbase.get<int >("uc");
+    const int v1c = parameters.dbase.get<int >("v1c");
+    Range Dc(uc,uc+numberOfDimensions-1);    // displacement components
+    Range Vc(v1c,v1c+numberOfDimensions-1);  // velocity components
+    Range Rx = numberOfDimensions;
+    
+    InterfaceData interfaceData;
+    Range C=numberOfItems;
+    RealArray & ui = interfaceData.u;
+
+    for( int grid=0; grid<cg.numberOfComponentGrids(); grid++ )
+    {
+        MappedGrid & mg = cg[grid];
+        ForBoundary(side,axis)
+        {
+            if(  interfaceType(side,axis,grid)==Parameters::tractionInterface )
+            {
+        // --- This is an FSI interface ----
+
+        // *new* way June 25, 2017 -- explicitly request interface data from other solver (e.g. Cgins)
+                if( true )
+                    printF("--SM-- getInterfaceBoundaryData: REQUEST interface data (grid,side,axis)=(%i,%i,%i) "
+                                  "at t=%9.3e\n",grid,side,axis,t);
+                        
+                getBoundaryIndex(mg.gridIndexRange(),side,axis,I1,I2,I3);
+                
+                ui.redim(I1,I2,I3,C);
+                interfaceData.t=t;
+                interfaceData.u=0;
+
+                bool saveTimeHistory=true;  // do this for now
+                getInterfaceData( t, grid, side, axis, 
+                                                    interfaceDataOptions,
+                                                    interfaceData.u,
+                                                    parameters,saveTimeHistory );
+
+        // save the RHS values here:
+                RealArray & bd = parameters.getBoundaryData(side,axis,grid,mg);
+
+                bd(I1,I2,I3,Dc)=ui(I1,I2,I3,Rx); // save traction here
+                if( interfaceDataOptions & Parameters::tractionRateInterfaceData )
+                {
+                    bd(I1,I2,I3,Vc)=ui(I1,I2,I3,Rx+numberOfDimensions);
+                }
+                
+        // RealArray & interfaceVelocity =interfaceData.u;
+        // bcVelocity(I1,I2,I3,Rx)=interfaceVelocity(I1,I2,I3,Rx);
+
+            }
+        }
+    }
+
+    return 0;
+
+}
+
 
 // =========================================================================================================
 /// \brief High-level apply boundary conditions routine
@@ -24,6 +124,9 @@ applyBoundaryConditions( int option, real dt, int current, int prev )
 
     GridFunction & cgf = gf[current];
     const real t= cgf.t; 
+
+  // Get data for any interfaces 
+    getInterfaceBoundaryData( current );
 
     for( int grid=0; grid<cg.numberOfComponentGrids(); grid++ )
     {

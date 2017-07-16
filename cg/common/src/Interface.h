@@ -15,6 +15,25 @@
 #include <list.h>
 #endif
 
+#define KK_DEBUG
+#include "DBase.hh"
+using namespace DBase;
+
+// forward declaration
+class Parameters;
+
+// ------------------- forward declaration:
+int
+getInterfaceData( real tSource, int grid, int side, int axis, 
+		  int interfaceDataOptions,
+		  RealArray & data,
+                  Parameters & parameters,
+                  bool saveTimeHistory = false );
+
+// ------------------- forward declaration:
+Parameters & 
+getInterfaceParameters( int grid, int side, int axis, Parameters & parameters);
+
 // ==============================================================================
 /// \brief This class holds past interface values
 // ==============================================================================
@@ -64,6 +83,9 @@ RealArray *u;
 
 InterfaceDataHistory interfaceDataHistory;  // holds a history of interface values at past times
 InterfaceDataHistory interfaceDataIterates;  // interface values at past iterates for the current time.
+
+// the dbase can hold additional information for the interface
+mutable DataBase dbase; 
 
 };
   

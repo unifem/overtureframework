@@ -1,5 +1,7 @@
 #
 #  plotStuff plotRadial.cmd -show=radialG2.show -name=radialG2 -solution=6 -vMax=.015
+# 
+#  plotStuff plotRadial.cmd -show=repG4scf1.show -name=radialG4 -solution=10 -vMax=.25
 #
 $show="radialG2.hdf"; $vMax=""; $solution=1; 
 # ----------------------------- get command line arguments ---------------------------------------

@@ -6,6 +6,7 @@
 #include "ParallelOverlappingGridInterpolator.h"
 #include "SmParameters.h"
 #include "Regrid.h"
+#include "AdvanceOptions.h"
 
 // ======================================================================================================
 //  This macro will update the grids and grid functions when using AMR
@@ -61,7 +62,7 @@
 /// \brief Advance the solution one time step.
 // =============================================================================
 void Cgsm::
-advance(  int current, real t, real dt )
+advance(  int current, real t, real dt, AdvanceOptions *pAdvanceOptions /* =NULL*/  )
 {
     checkArrays("advanceLinearElasticity:start");
     int & globalStepNumber = parameters.dbase.get<int >("globalStepNumber");
@@ -106,6 +107,20 @@ advance(  int current, real t, real dt )
 
     const real cMax=max(lambdaGrid+muGrid)/rho;
 
+  // --- For FSI problems we may take a step and/or apply the BC's ----
+    const Parameters::InterfaceCommunicationModeEnum & interfaceCommunicationMode= 
+        parameters.dbase.get<Parameters::InterfaceCommunicationModeEnum>("interfaceCommunicationMode");
+
+    bool takeTimeStep=true, applyBC=true;
+    if( interfaceCommunicationMode==Parameters::requestInterfaceDataWhenNeeded && 
+            pAdvanceOptions!=NULL )
+    {
+        AdvanceOptions & advanceOptions = *pAdvanceOptions;
+        takeTimeStep =(advanceOptions.takeTimeStepOption==AdvanceOptions::takeStepAndApplyBoundaryConditions ||
+               		   advanceOptions.takeTimeStepOption==AdvanceOptions::takeStepButDoNotApplyBoundaryConditions);
+        applyBC = ( advanceOptions.takeTimeStepOption==AdvanceOptions::takeStepAndApplyBoundaryConditions ||
+            		advanceOptions.takeTimeStepOption==AdvanceOptions::applyBoundaryConditionsOnly );
+    }
 
     if( debug & 4 )
     {
@@ -114,162 +129,162 @@ advance(  int current, real t, real dt )
     }
 
   // ------ AMR -----
-  // --- Start AMR ---
-    const int regridFrequency = parameters.dbase.get<int >("amrRegridFrequency")>0 ? 
-                                                            parameters.dbase.get<int >("amrRegridFrequency") :
-                                                            parameters.dbase.get<Regrid* >("regrid")==NULL ? 2 : 
-                                                            parameters.dbase.get<Regrid* >("regrid")->getRefinementRatio();
-    if( parameters.isAdaptiveGridProblem() && ((globalStepNumber % regridFrequency) == 0) )
+    if( takeTimeStep )
     {
-    // ****************************************************************************
-    // ****************** Adaptive Grid Step  *************************************
-    // ****************************************************************************
-        if( debug & 2 )
+    // --- Start AMR ---
+        const int regridFrequency = parameters.dbase.get<int >("amrRegridFrequency")>0 ? 
+                                                                parameters.dbase.get<int >("amrRegridFrequency") :
+                                                                parameters.dbase.get<Regrid* >("regrid")==NULL ? 2 : 
+                                                                parameters.dbase.get<Regrid* >("regrid")->getRefinementRatio();
+        if( parameters.isAdaptiveGridProblem() && ((globalStepNumber % regridFrequency) == 0) )
         {
-            printP("***** advance: AMR regrid at step %i t=%e dt=%8.2e***** \n",globalStepNumber,t,dt);
-            fPrintF(debugFile,"***** advance: AMR regrid at step %i t=%e dt=%8.2e***** \n",globalStepNumber,t,dt);
-        }
-        real timea=getCPU();
-        if( debug & 4 )
-            fPrintF(debugFile,"\n ***** advance: AMR regrid at step %i ***** \n\n",globalStepNumber);
-        if( debug & 8 )
-        {
-            if( parameters.dbase.get<bool >("twilightZoneFlow") )
+      // ****************************************************************************
+      // ****************** Adaptive Grid Step  *************************************
+      // ****************************************************************************
+            if( debug & 2 )
             {
-                getErrors( current,t,dt,sPrintF(" advance: errors before regrid, t=%e \n",t) );
+                printP("***** advance: AMR regrid at step %i t=%e dt=%8.2e***** \n",globalStepNumber,t,dt);
+                fPrintF(debugFile,"***** advance: AMR regrid at step %i t=%e dt=%8.2e***** \n",globalStepNumber,t,dt);
             }
-            else
+            real timea=getCPU();
+            if( debug & 4 )
+                fPrintF(debugFile,"\n ***** advance: AMR regrid at step %i ***** \n\n",globalStepNumber);
+            if( debug & 8 )
             {
-                fPrintF(debugFile," ***advance: before regrid: solution ***\n");
-                outputSolution( gf[current].u,t );
+                if( parameters.dbase.get<bool >("twilightZoneFlow") )
+                {
+                    getErrors( current,t,dt,sPrintF(" advance: errors before regrid, t=%e \n",t) );
+                }
+                else
+                {
+                    fPrintF(debugFile," ***advance: before regrid: solution ***\n");
+                    outputSolution( gf[current].u,t );
+                }
             }
+            int numberToUpdate=0; // we need to update ub to live on the new grid, and interpolate values.
+            if( ((SmParameters&)parameters).isSecondOrderSystem() )
+            {
+                numberToUpdate=1;  // also update and interpolate prev solution to the new grid 
+            }
+            adaptGrids( gf[current], numberToUpdate,&(gf[prev].u), NULL );  // last arg is for work-space **fix me **
+      // *wdh* do this: 090315
+            cg.reference(gf[current].cg);
+                  gf[prev].cg.reference(gf[current].cg);
+                  gf[next].cg.reference(gf[current].cg);
+                  gf[next].u.updateToMatchGrid(cg);
+      // printF(" After adaptGrids: prev=%i, current=%i, next=%i\n",prev,current,next);
+            for( int n=0; n<numberOfTimeLevels; n++ )
+            {
+                if( n!=current )
+                {
+              	gf[n].cg.reference(gf[current].cg);  //
+              	if( n!=prev ) // this was already done for prev in adaptGrids
+                	  gf[n].u.updateToMatchGrid(gf[current].cg);
+                }
+                gf[n].u.setOperators(*cgop);
+        // printF(" After adaptGrids: gf[%i].cg.numberOfComponentGrids = %i\n",n,gf[n].cg.numberOfComponentGrids());
+        // printF(" After adaptGrids: gf[%i].u.getCompositeGrid()->numberOfComponentGrids = %i\n",n,gf[n].u.getCompositeGrid()->numberOfComponentGrids());
+            }
+      // ** do this for now ** fix me **
+            if( checkErrors )
+            {
+                assert( cgerrp!=NULL );
+                (*cgerrp).updateToMatchGrid(cg);
+            }
+      // the next has been moved into adaptGrids 070706
+      //     real time1=getCPU();
+      //     cgf1.cg.rcData->interpolant->updateToMatchGrid( cgf1.cg ); 
+      //     parameters.dbase.get<RealArray>("timing")(parameters.dbase.get<int>("timeForUpdateInterpolant"))+=getCPU()-time1;
+            real time1=getCPU();
+            if( debug & 8 )
+            {
+                outputSolution( gf[current].u,t,
+                                              sPrintF(" advance:after adaptGrids, before interpAndApplyBC at t=%11.4e \n",t) );
+            }
+            interpolateAndApplyBoundaryConditions( gf[current] );
+      // *wdh* 090829
+            if( numberToUpdate==1 )
+            {
+                interpolateAndApplyBoundaryConditions( gf[prev] );
+            }
+            parameters.dbase.get<RealArray>("timing")(parameters.dbase.get<int>("timeForAmrBoundaryConditions"))+=getCPU()-time1;    
+            if( debug & 4 )
+            {
+                if( parameters.dbase.get<bool >("twilightZoneFlow") )
+                {
+                    getErrors( prev   ,t-dt,dt,sPrintF(" advance: errors in prev    after regrid, t=%e \n",t-dt) );
+                    getErrors( current,t   ,dt,sPrintF(" advance: errors in current after regrid, t=%e \n",t) );
+                }
+                else
+                {
+                    fPrintF(debugFile," ***after regrid: solution ***\n");
+                    outputSolution( gf[current].u,t );
+                }
+            }
+            parameters.dbase.get<RealArray>("timing")(parameters.dbase.get<int>("timeForAmrRegrid"))+=getCPU()-timea;
         }
-        int numberToUpdate=0; // we need to update ub to live on the new grid, and interpolate values.
+    // --- End AMR ---
+    }
+    
+    if( takeTimeStep )
+    {
         if( ((SmParameters&)parameters).isSecondOrderSystem() )
         {
-            numberToUpdate=1;  // also update and interpolate prev solution to the new grid 
+      // advance the solution as a second-order system (do not apply BCs)
+            advanceSOS( current,t,dt );
         }
-        adaptGrids( gf[current], numberToUpdate,&(gf[prev].u), NULL );  // last arg is for work-space **fix me **
-    // *wdh* do this: 090315
-        cg.reference(gf[current].cg);
-              gf[prev].cg.reference(gf[current].cg);
-              gf[next].cg.reference(gf[current].cg);
-              gf[next].u.updateToMatchGrid(cg);
-    // printF(" After adaptGrids: prev=%i, current=%i, next=%i\n",prev,current,next);
-        for( int n=0; n<numberOfTimeLevels; n++ )
+        else
         {
-            if( n!=current )
-            {
-          	gf[n].cg.reference(gf[current].cg);  //
-          	if( n!=prev ) // this was already done for prev in adaptGrids
-            	  gf[n].u.updateToMatchGrid(gf[current].cg);
-            }
-            gf[n].u.setOperators(*cgop);
-      // printF(" After adaptGrids: gf[%i].cg.numberOfComponentGrids = %i\n",n,gf[n].cg.numberOfComponentGrids());
-      // printF(" After adaptGrids: gf[%i].u.getCompositeGrid()->numberOfComponentGrids = %i\n",n,gf[n].u.getCompositeGrid()->numberOfComponentGrids());
+      // advance the solution as a first order system
+            advanceFOS( current,t,dt );
         }
-    // ** do this for now ** fix me **
-        if( checkErrors )
-        {
-            assert( cgerrp!=NULL );
-            (*cgerrp).updateToMatchGrid(cg);
-        }
-    // the next has been moved into adaptGrids 070706
-    //     real time1=getCPU();
-    //     cgf1.cg.rcData->interpolant->updateToMatchGrid( cgf1.cg ); 
-    //     parameters.dbase.get<RealArray>("timing")(parameters.dbase.get<int>("timeForUpdateInterpolant"))+=getCPU()-time1;
-        real time1=getCPU();
-        if( debug & 8 )
-        {
-            outputSolution( gf[current].u,t,
-                                          sPrintF(" advance:after adaptGrids, before interpAndApplyBC at t=%11.4e \n",t) );
-        }
-        interpolateAndApplyBoundaryConditions( gf[current] );
-    // *wdh* 090829
-        if( numberToUpdate==1 )
-        {
-            interpolateAndApplyBoundaryConditions( gf[prev] );
-        }
-        parameters.dbase.get<RealArray>("timing")(parameters.dbase.get<int>("timeForAmrBoundaryConditions"))+=getCPU()-time1;    
-        if( debug & 4 )
-        {
-            if( parameters.dbase.get<bool >("twilightZoneFlow") )
-            {
-                getErrors( prev   ,t-dt,dt,sPrintF(" advance: errors in prev    after regrid, t=%e \n",t-dt) );
-                getErrors( current,t   ,dt,sPrintF(" advance: errors in current after regrid, t=%e \n",t) );
-            }
-            else
-            {
-                fPrintF(debugFile," ***after regrid: solution ***\n");
-                outputSolution( gf[current].u,t );
-            }
-        }
-        parameters.dbase.get<RealArray>("timing")(parameters.dbase.get<int>("timeForAmrRegrid"))+=getCPU()-timea;
-    }
-  // --- End AMR ---
-    
-
-    if( ((SmParameters&)parameters).isSecondOrderSystem() )
-    {
-    // advance the solution as a second-order system (do not apply BCs)
-        advanceSOS( current,t,dt );
-    }
-    else
-    {
-    // advance the solution as a first order system
-        advanceFOS( current,t,dt );
-
     }
     
-            
-//   if( orderOfAccuracyInTime>=4 )
-//   {
-//     assert( numberOfFunctions>0 );
-//     currentFn=(currentFn+orderOfAccuracyInTime-2)%numberOfFunctions;
-//   }
-    
-
-    if( true ||   // *wdh* 091205 -- interpolate will call periodicUpdate and updateGhost 
-            cg.numberOfComponentGrids()>1 )
-    {
-        real timei=getCPU();
-    
-        if( debug & 4 )
-            gf[next].u.display(sPrintF("Cgsm::advance: gf[next].u before interpolate, t=%8.2e",t+dt),debugFile,"%8.2e ");
-
-    // Note: interpolate performs a periodicUpdate and updateGhostBoundaries even if there is only one grid
-
-        gf[next].u.interpolate();
-  
-        if( debug & 4 )
-            gf[next].u.display(sPrintF("Cgsm::advance: gf[next].u after interpolate, t=%8.2e",t+dt),debugFile,"%8.2e ");
-
-        if( debug & 4 )
-        {
-            getErrors( next,t+dt,dt,sPrintF("\n ************** advance Errors after interpolate t=%9.3e ******\n",t+dt));
-        }
-
-        timing(parameters.dbase.get<int>("timeForInterpolate"))+=getCPU()-timei;
-    }
-
     gf[next].t=t+dt;
 
-
-  // ============= Boundary Conditions =============
-    int option=0; // not used.
-    applyBoundaryConditions( option, dt, next,current ); // apply BC to "next" (current=previous time step)
-    
-
-    if( debug & 8 )  // & 64
+    if( applyBC )
     {
-        gf[next].u.display(sPrintF("Cgsm::advance: gf[next].u after applyBC, t=%8.2e",gf[next].t),debugFile,"%8.2e ");
-    }
+        
+        if( true ||   // *wdh* 091205 -- interpolate will call periodicUpdate and updateGhost 
+                cg.numberOfComponentGrids()>1 )
+        {
+            real timei=getCPU();
+    
+            if( debug & 4 )
+                gf[next].u.display(sPrintF("Cgsm::advance: gf[next].u before interpolate, t=%8.2e",t+dt),debugFile,"%8.2e ");
+
+      // Note: interpolate performs a periodicUpdate and updateGhostBoundaries even if there is only one grid
+
+            gf[next].u.interpolate();
+  
+            if( debug & 4 )
+                gf[next].u.display(sPrintF("Cgsm::advance: gf[next].u after interpolate, t=%8.2e",t+dt),debugFile,"%8.2e ");
+
+            if( debug & 4 )
+            {
+                getErrors( next,t+dt,dt,sPrintF("\n ************** advance Errors after interpolate t=%9.3e ******\n",t+dt));
+            }
+
+            timing(parameters.dbase.get<int>("timeForInterpolate"))+=getCPU()-timei;
+        }
+
+
+
+    // ============= Boundary Conditions =============
+        int option=0; // not used.
+        applyBoundaryConditions( option, dt, next,current ); // apply BC to "next" (current=previous time step)
     
 
-  // ---- assign values at material interfaces ------
-  // *** this does nothing currently ***
-    assignInterfaceBoundaryConditions( next, t, dt );  // is this the right place to do this?
+        if( debug & 8 )  // & 64
+        {
+            gf[next].u.display(sPrintF("Cgsm::advance: gf[next].u after applyBC, t=%8.2e",gf[next].t),debugFile,"%8.2e ");
+        }
+    
 
+    // ---- assign values at material interfaces ------
+    // *** this does nothing currently ***
+        assignInterfaceBoundaryConditions( next, t, dt );  // is this the right place to do this?
+    }
     
 
     if( debug & 4 )

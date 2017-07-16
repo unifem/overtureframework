@@ -6,6 +6,7 @@
 #include "InsParameters.h"
 #include "Interface.h"  
 #include "ParallelUtility.h"
+#include "ArrayEvolution.h"       
 
 // include some interface bpp macros
 #Include "interfaceMacros.h"
@@ -204,7 +205,7 @@ enum UserDefinedKnownSolutionEnum
       
       Ctr=Ct+numberOfDimensions;
       f(I1,I2,I3,Ct)= traction(I1,I2,I3,D) + dtp*f0(I1,I2,I3,Ctr);
-      if( true || debug() & 2 )
+      if( debug() & 2 )
       {
         printF("   >>> PREDICT traction in time at t=%8.2e using traction and traction-rate from tp=%9.3e (prev=%i)\n",
                t,tp,prev);
@@ -316,14 +317,12 @@ enum UserDefinedKnownSolutionEnum
 
   RealArray tractionRate;
   const bool evalExactTractionRate=true;
-  const bool useExactTractionRate=false && !twilightZoneFlow;
+  const bool useExactTractionRate=useExactInterfaceValues && !twilightZoneFlow;
 
   if( evalExactTractionRate )  // ********* TESTING
   {
     tractionRate.redim(I1,I2,I3,Rx);
 
-    const Parameters::KnownSolutionsEnum & knownSolution = 
-      parameters.dbase.get<Parameters::KnownSolutionsEnum >("knownSolution"); 
     if( knownSolution==Parameters::userDefinedKnownSolution )
     {
       int body=0;
@@ -361,7 +360,7 @@ enum UserDefinedKnownSolutionEnum
     f(I1,I2,I3,Ctr)=tractionRate(I1,I2,I3,Rx);
       
     printF(" ********** TEST: SET traction-rate to EXACT : t=%9.3e *TEMP* *************\n",t);
-    ::display(f(I1,I2,I3,Ctr),sPrintF("traction-rate EXACT t=%9.3e, dt=%9.3e",t,dt),"%9.3e ");
+    // ::display(f(I1,I2,I3,Ctr),sPrintF("traction-rate EXACT t=%9.3e, dt=%9.3e",t,dt),"%9.3e ");
 
     
   }
@@ -618,7 +617,106 @@ enum UserDefinedKnownSolutionEnum
 #endMacro 
 
 
-// ===========================================================================
+// =============================================================================================
+// Macro: Compute the traction-rate using the interace data history *old way*
+// =============================================================================================
+#beginMacro getTractionRateFromInterfaceDataHistory()
+{
+  // A time history of interface values is saved here in the master list gfd: 
+  InterfaceDataHistory & idh = gfd.interfaceDataHistory;
+  InterfaceDataHistory & idi = gfd.interfaceDataIterates; // iterates of interface values from the predictor corrector 
+  if( idh.current>=0 && idh.current<idh.interfaceDataList.size() )
+  {
+
+    const int numberOfInterfaceHistoryValuesToSave=idh.interfaceDataList.size();
+	  
+    // find a previous time value we can use
+    int prev = idh.current;  // by default use this as the old solution
+    real tp = idh.interfaceDataList[prev].t;
+
+    dt = t -tp;
+    real dt0=t0-tp;  
+
+    if( fabs(dt0)<= REAL_EPSILON*1000. )
+    {
+      // if tp is the same as t0, look for an earlier time: 
+      if( numberOfInterfaceHistoryValuesToSave>1 )
+      {
+        prev = ( prev -1 + numberOfInterfaceHistoryValuesToSave ) %  numberOfInterfaceHistoryValuesToSave;
+        tp = idh.interfaceDataList[prev].t;
+        dt0=t0-tp;
+      }
+      else
+      {
+        printP("Cgins::interfaceRHS:WARNING: there are no previous history values to compute tractionRate.\n"
+               "  The only history value is at time tp=%9.3e, but gf[gfIndex=%i].t=%9.3e\n",tp,gfIndex,t0);
+        dt0=0.; 
+      }
+    }
+
+    // ---------------------------------------------------
+    // --- return the time derivative of the traction: ---
+    // ---------------------------------------------------
+    getTractionRate();
+
+  }
+  else
+  {
+    // -- there is no time history available to compute the traction rate --
+    if( interfaceDataOptions & Parameters::tractionRateInterfaceData )
+    {
+      if( twilightZoneFlow )
+      {
+        Range Rx=numberOfDimensions;
+        RealArray tractionRate(I1,I2,I3,Rx);
+        if( true )
+        { // For TZ "exact traction-rate" = tractionRateTZ - tractionRateTZ = 0 
+          tractionRate=0.;
+        }
+        else
+        {
+          int ntd=1;  // number of time derivatives
+          getTractionTZ(tractionRate,I1,I2,I3,t,ntd);
+        }
+        f(I1,I2,I3,Ctr)=tractionRate;
+              
+        if( true )
+        {
+          printF(" ********** SET traction-rate to EXACT TZ: t=%9.3e *************\n",t);
+          ::display(f(I1,I2,I3,Ctr),sPrintF("traction-rate EXACT TZ t=%9.3e, dt=%9.3e",t,dt),"%9.3e ");
+        }
+              
+      }
+      else if(  knownSolution==Parameters::userDefinedKnownSolution && (t<=0. || dt==0.) )
+      {
+
+        int body=0;
+        // RealArray state(I1,I2,I3,Rx);
+        parameters.getUserDefinedDeformingBodyKnownSolution( body,Parameters::boundaryTractionRate,
+                                                             t, grid, mg, I1,I2,I3,Ctr,f );
+        // f(I1,I2,I3,Ctr)=state(I1,I2,I3,Rx);
+      
+        printF(" ********** SET traction-rate to EXACT: t=%9.3e (No time history)*************\n",t);
+        ::display(f(I1,I2,I3,Ctr),sPrintF("traction-rate EXACT t=%9.3e, dt=%9.3e",t,dt),"%9.3e ");
+		
+      }
+      else
+      {
+        printF("\nCgins::interfaceRightHandSide:traction-rate: t=%9.3e **WARNING** There is NO time history. "
+               "idh.current=%i, size=%i dt=%8.2e. Setting traction-rate=0\n\n",
+               t,idh.current,idh.interfaceDataList.size(),dt);
+
+	      
+        f(I1,I2,I3,Ctr)=0.;
+      }
+	    
+    }
+
+  }
+}
+#endMacro
+
+// =================================================================================================
 /// \brief Set or get the right-hand-side for an interface boundary condition.
 /// \details This function is used when solving the interface equations 
 ///           by iteration.
@@ -631,14 +729,17 @@ enum UserDefinedKnownSolutionEnum
 /// \param gfd (input) : the master GridFaceDescriptor. 
 /// \param gfIndex (input) : use the solution from gf[gfIndex]
 /// \param t (input) : time at which the RHS values are required.
-// ===========================================================================
+/// \param saveTimeHistory (input) : if true, save a time-history of the requested data. This is the
+///    new way to save a time-history when interfaceCommunicationMode==requestInterfaceDataWhenNeeded
+// ===================================================================================================
 int
 Cgins::
 interfaceRightHandSide( InterfaceOptionsEnum option, 
                         int interfaceDataOptions,
                         GridFaceDescriptor & info, 
                         GridFaceDescriptor & gfd, 
-			int gfIndex, real t )
+			int gfIndex, real t,
+                        bool saveTimeHistory /* = false */ )
 {
   // return DomainSolver::interfaceRightHandSide(option,interfaceDataOptions,info,gfIndex,t);
   // *wdh* 081212 CompositeGrid & cg = gf[0].cg;
@@ -646,9 +747,65 @@ interfaceRightHandSide( InterfaceOptionsEnum option,
   FILE *& debugFile =parameters.dbase.get<FILE* >("debugFile");
   FILE *& pDebugFile =parameters.dbase.get<FILE* >("pDebugFile");
 
+  if( gfIndex==-1 )
+  {
+    // Find the solution that matches time=t
+    const int & currentGF = parameters.dbase.get<int>("currentGF");
+    const int & nextGF    = parameters.dbase.get<int>("nextGF");
+
+    assert( current>=0 );
+    if( gf[current].t == t )
+    {
+      gfIndex=current;
+    }
+    else if( currentGF<0 )   // do this for now
+    {
+      gfIndex=current;
+      printF("Cgsm: interfaceRightHandSide:WARNING cannot find gfIndex to match t=%9.3e, using current...\n",t);
+    }
+    else
+    {
+    
+      if( !(currentGF>=0 && nextGF>=0) )
+      {
+	printF("Cgsm: interfaceRightHandSide:ERROR: t=%9.2e, current=%i gf[current].t=%9.2e, currentGF=%i, nextGF=%i\n",
+	       t,current,gf[current].t,currentGF,nextGF);
+	OV_ABORT("FIX ME");
+      }
+
+      if( gf[currentGF].t == t )
+      {
+	gfIndex=currentGF;
+      }
+      else if( gf[nextGF].t == t )
+      {
+	gfIndex=nextGF;
+      }
+      else 
+      {
+	// ************** FIX ME ************
+	printF("Cgsm: interfaceRightHandSide:WARNING cannot find gfIndex to match t=%9.3e\n"
+	       "      currentGF=%i, gf[currentGF].t=%9.3e, nextGF=%i, gf[nextGF].t=%9.3e\n",
+	       t,currentGF,gf[currentGF].t,nextGF,gf[nextGF].t);
+	if( fabs(gf[currentGF].t-t) <  fabs(gf[nextGF].t-t) )
+	  gfIndex=currentGF; 
+	else
+	  gfIndex=nextGF; 
+	// OV_ABORT("fix me");
+      }
+    }
+    
+  }
+
+  const Parameters::InterfaceCommunicationModeEnum & interfaceCommunicationMode= 
+    parameters.dbase.get<Parameters::InterfaceCommunicationModeEnum>("interfaceCommunicationMode");
+
   CompositeGrid & cg = gf[gfIndex].cg;
   const int numberOfDimensions = cg.numberOfDimensions();
   const bool & twilightZoneFlow = parameters.dbase.get<bool >("twilightZoneFlow");
+  const Parameters::KnownSolutionsEnum & knownSolution = 
+    parameters.dbase.get<Parameters::KnownSolutionsEnum >("knownSolution"); 
+
 
   const IntegerArray & interfaceType = parameters.dbase.get<IntegerArray >("interfaceType");
 
@@ -735,9 +892,6 @@ interfaceRightHandSide( InterfaceOptionsEnum option,
 	if( debug() & 2 )
 	  printP("Cgins::interfaceRHS: Set interface positions at t=%9.3e in bd components V=[%i,%i] from C=[%i,%i]\n",
 		 gf[gfIndex].t,V.getBase(),V.getBound(),C.getBase(),C.getBound());
-
-        const Parameters::KnownSolutionsEnum & knownSolution = 
-          parameters.dbase.get<Parameters::KnownSolutionsEnum >("knownSolution"); 
 
         bool useExactInterfacePosition=FALSE;
         if( useExactInterfacePosition && knownSolution==Parameters::userDefinedKnownSolution ) // ****** TESTING 
@@ -882,6 +1036,13 @@ interfaceRightHandSide( InterfaceOptionsEnum option,
       realMappedGridFunction & u = gf[gfIndex].u[grid];
       OV_GET_SERIAL_ARRAY(real,u,uLocal);
 
+      // -------------------For TESTING return exact values (if known) --------------------
+      bool useExactInterfaceValues=FALSE;  
+
+      if( useExactInterfaceValues )
+      {
+        printF("--INS--IRHS: USING EXACT INTERFACE VALUES t=%9.3e ***TEMP***\n",t);
+      }
 
       // We could optimize this for rectangular grids 
       mg.update(MappedGrid::THEvertexBoundaryNormal);
@@ -908,6 +1069,7 @@ interfaceRightHandSide( InterfaceOptionsEnum option,
 	
 	numSaved+=numberOfDimensions;
       }
+
       if( interfaceDataOptions & Parameters::velocityInterfaceData )
       {
 	// -- return the interface velocity --
@@ -916,13 +1078,23 @@ interfaceRightHandSide( InterfaceOptionsEnum option,
 
 	C=Range(numSaved,numSaved+numberOfDimensions-1); // save displacement in these components of f
 
-	f(I1,I2,I3,C) = uLocal(I1,I2,I3,V);
-	
+        if( knownSolution==Parameters::userDefinedKnownSolution )
+        {
+          int body=0;
+          // RealArray state(I1,I2,I3,Rx);
+          parameters.getUserDefinedDeformingBodyKnownSolution( body,Parameters::boundaryVelocity,
+                                                               t, grid, mg, I1,I2,I3,C,f );
+        }
+        else
+        {
+          f(I1,I2,I3,C) = uLocal(I1,I2,I3,V);
+        }
+        
 	numSaved+=numberOfDimensions;
       }
       if( interfaceDataOptions & Parameters::accelerationInterfaceData )
       {
-	// -- return the position of the boundary --
+	// -- return the ACCELERATION of the boundary --
 	if( debug() & 4 )
 	  printP("Cgins:interfaceRightHandSide: Save the interface acceleration.\n");
 
@@ -930,6 +1102,7 @@ interfaceRightHandSide( InterfaceOptionsEnum option,
 	C=Range(numSaved,numSaved+numberOfDimensions-1); // save displacement in these components of f
 
 	printP("Cgins:interfaceRightHandSide: save acceleration - FINISH ME!\n");
+        OV_ABORT("error");
 	
 	numSaved+=numberOfDimensions;
       }
@@ -956,7 +1129,7 @@ interfaceRightHandSide( InterfaceOptionsEnum option,
       Range D=numberOfDimensions;
       Ct=Range(numSaved,numSaved+numberOfDimensions-1);  // save interface traction in these components
       
-      if( debug() & 2 )
+      if( debug() & 4 )
       {
         printP("Cgins::interfaceRHS: Get normal force (traction) at t=%9.3e\n",gf[gfIndex].t);
 	::display(traction(I1,I2,I3,D),sPrintF("--INS--IRHS traction from getNormalForce t=%8.2e",gf[gfIndex].t),"%5.2f ");
@@ -984,17 +1157,15 @@ interfaceRightHandSide( InterfaceOptionsEnum option,
 	if( debug() & 2 )
 	  printP("Cgins:interfaceRightHandSide: Eval the interface traction at t=%8.2e in components Ct=[%i,%i].\n",t,Ct.getBase(),Ct.getBound());
 
-        const Parameters::KnownSolutionsEnum & knownSolution = 
-          parameters.dbase.get<Parameters::KnownSolutionsEnum >("knownSolution"); 
 
-        bool useExactTraction=FALSE;
+        bool useExactTraction=useExactInterfaceValues;
         if( useExactTraction && knownSolution==Parameters::userDefinedKnownSolution ) // ********* TESTING 
         {
           int body=0;
           // RealArray state(I1,I2,I3,Rx);
           parameters.getUserDefinedDeformingBodyKnownSolution( body,Parameters::boundaryTraction,
                                                                t, grid, mg, I1,I2,I3,Ct,f );
-          // f(I1,I2,I3,Ct)=state(I1,I2,I3,Rx);
+          traction(I1,I2,I3,D)=f(I1,I2,I3,Ct);
       
           printF(" ********** TEST: SET traction to EXACT : t=%9.3e *TEMP* *************\n",t);
           ::display(f(I1,I2,I3,Ct),sPrintF("traction EXACT t=%9.3e, dt=%9.3e",t,dt),"%9.3e ");
@@ -1006,7 +1177,7 @@ interfaceRightHandSide( InterfaceOptionsEnum option,
           f(I1,I2,I3,Ct)=traction(I1,I2,I3,D);
         }
           
-	if( true || debug() & 4  )
+	if( debug() & 4  )
 	{
 	  printF("--INS--IRHS: interface data at t=%8.2e, traction from gfIndex=%i, gf[gfIndex].t=%9.3e--\n",
                   t,gfIndex, gf[gfIndex].t);
@@ -1017,6 +1188,25 @@ interfaceRightHandSide( InterfaceOptionsEnum option,
 	  ::display(f(I1,I2,I3,Ct),"--INS-- traction f",pDebugFile,"%9.3e ");
 	}
 	
+        // *new* way June 26, 2017 
+        if( saveTimeHistory )
+        {
+          if( interfaceDataOptions & Parameters::tractionInterfaceData )
+          {
+            // -- save a time history of the traction
+            if( !gfd.dbase.has_key("tractionHistory") )
+            {
+              gfd.dbase.put<ArrayEvolution>("tractionHistory");
+            }
+            ArrayEvolution & tractionHistory = gfd.dbase.get<ArrayEvolution>("tractionHistory");
+
+            // NOTE: array data may hold more than just the traction! **FIX ME**
+            printF("--IRHS-- Save traction time history at t=%9.3e\n",t);
+            tractionHistory.add( t, traction);  
+          }
+    
+        }
+
         numSaved+=numberOfDimensions;
       }
       
@@ -1080,109 +1270,76 @@ interfaceRightHandSide( InterfaceOptionsEnum option,
       {
 	// -- save the interface traction rate --
 	if( t<= 2.*dt || debug() & 4 )
-	  printP("--INS--Cgins:interfaceRightHandSide: EVAL the interface traction-rate, t=%9.3e.\n",t);
+	  printP("--INS--interfaceRightHandSide: EVAL the interface traction-rate, t=%9.3e.\n",t);
 
         C=Range(numSaved,numSaved+numberOfDimensions-1);
         Ctr=C;
 
 
-        // A time history of interface values is saved here in the master list gfd: 
-        InterfaceDataHistory & idh = gfd.interfaceDataHistory;
-        InterfaceDataHistory & idi = gfd.interfaceDataIterates; // iterates of interface values from the predictor corrector 
-        if( idh.current>=0 && idh.current<idh.interfaceDataList.size() )
-	{
+        if( interfaceCommunicationMode==Parameters::requestInterfaceDataWhenNeeded )
+        {
+          // --- evaluate the traction-rate from the traction time-history ---
+          // *new* way June 26, 2017
+          Range Rx=numberOfDimensions;
+          RealArray tractionRate(I1,I2,I3,Rx);
 
-          const int numberOfInterfaceHistoryValuesToSave=idh.interfaceDataList.size();
-	  
-	  // find a previous time value we can use
-          int prev = idh.current;  // by default use this as the old solution
-	  real tp = idh.interfaceDataList[prev].t;
-
-          dt = t -tp;
-          real dt0=t0-tp;  
-
-	  if( fabs(dt0)<= REAL_EPSILON*1000. )
-	  {
-            // if tp is the same as t0, look for an earlier time: 
-	    if( numberOfInterfaceHistoryValuesToSave>1 )
-	    {
-	      prev = ( prev -1 + numberOfInterfaceHistoryValuesToSave ) %  numberOfInterfaceHistoryValuesToSave;
-	      tp = idh.interfaceDataList[prev].t;
-              dt0=t0-tp;
-	    }
-	    else
-	    {
-	      printP("Cgins::interfaceRHS:WARNING: there are no previous history values to compute tractionRate.\n"
-		     "  The only history value is at time tp=%9.3e, but gf[gfIndex=%i].t=%9.3e\n",tp,gfIndex,t0);
-              dt0=0.; 
-	    }
-	  }
-
-          // ---------------------------------------------------
-          // --- return the time derivative of the traction: ---
-          // ---------------------------------------------------
-          getTractionRate();
-
-	}
-	else
-	{
-	  // -- there is no time history available to compute the traction rate --
-	  if( interfaceDataOptions & Parameters::tractionRateInterfaceData )
-	  {
-            const Parameters::KnownSolutionsEnum & knownSolution = 
-              parameters.dbase.get<Parameters::KnownSolutionsEnum >("knownSolution"); 
-            if( twilightZoneFlow )
+          if( gfd.dbase.has_key("tractionHistory") )
+          {
+            ArrayEvolution & tractionHistory = gfd.dbase.get<ArrayEvolution>("tractionHistory");
+            if( tractionHistory.getNumberOfTimeLevels() >1 )
             {
-              Range Rx=numberOfDimensions;
-              RealArray tractionRate(I1,I2,I3,Rx);
-              if( true )
-              { // For TZ "exact traction-rate" = tractionRateTZ - tractionRateTZ = 0 
+              const int numberOfTimeDerivatives=1; // eval 1 time derivative of the traction
+              const int orderOfAccuracyForTractionRate=2; // 
+              tractionHistory.eval(t,tractionRate,numberOfTimeDerivatives,orderOfAccuracyForTractionRate);
+            }
+            else
+            {
+              // If there are not enough time levels this could be first step
+              if( twilightZoneFlow )
+              {
+                Range Rx=numberOfDimensions;
+                RealArray tractionRate(I1,I2,I3,Rx);
+                // For TZ "exact traction-rate" = tractionRateTZ - tractionRateTZ = 0 
                 tractionRate=0.;
+                printF(" ********** SET traction-rate to EXACT: t=%9.3e (For TZ)*************\n",t);              
+              }
+              else if(  knownSolution==Parameters::userDefinedKnownSolution && (t<=0. || dt==0.) )
+              {
+
+                int body=0;
+                // RealArray state(I1,I2,I3,Rx);
+                parameters.getUserDefinedDeformingBodyKnownSolution( body,Parameters::boundaryTractionRate,
+                                                                     t, grid, mg, I1,I2,I3,Rx,tractionRate );
+      
+                printF(" ********** SET traction-rate to EXACT: t=%9.3e (No time history)*************\n",t);
+                ::display(tractionRate,sPrintF("traction-rate EXACT t=%9.3e, dt=%9.3e",t,dt),"%9.3e ");
+		
               }
               else
               {
-                int ntd=1;  // number of time derivatives
-                getTractionTZ(tractionRate,I1,I2,I3,t,ntd);
+                printF("\n--INS-IRHS: t=%9.3e **WARNING** Not enough time-history levels"
+                       "of the traction to compute the traction rate. Setting traction-rate=0\n\n",
+                       t);
+                tractionRate=0.;
               }
-              f(I1,I2,I3,Ctr)=tractionRate;
-              
-              if( true )
-              {
-                printF(" ********** SET traction-rate to EXACT TZ: t=%9.3e *************\n",t);
-                ::display(f(I1,I2,I3,Ctr),sPrintF("traction-rate EXACT TZ t=%9.3e, dt=%9.3e",t,dt),"%9.3e ");
-              }
-              
-            }
-            else if(  knownSolution==Parameters::userDefinedKnownSolution && (t<=0. || dt==0.) )
-	    {
-
-              int body=0;
-              // RealArray state(I1,I2,I3,Rx);
-              parameters.getUserDefinedDeformingBodyKnownSolution( body,Parameters::boundaryTractionRate,
-                                                                   t, grid, mg, I1,I2,I3,Ctr,f );
-              // f(I1,I2,I3,Ctr)=state(I1,I2,I3,Rx);
-      
-              printF(" ********** SET traction-rate to EXACT: t=%9.3e *************\n",t);
-              ::display(f(I1,I2,I3,Ctr),sPrintF("traction-rate EXACT t=%9.3e, dt=%9.3e",t,dt),"%9.3e ");
-		
-	    }
-	    else
-	    {
-	      printF("\nCgins::interfaceRightHandSide:traction-rate: t=%9.3e **WARNING** There is NO time history. "
-		     "idh.current=%i, size=%i dt=%8.2e. Setting traction-rate=0\n\n",
-                     t,idh.current,idh.interfaceDataList.size(),dt);
-
-	      
-	      f(I1,I2,I3,Ctr)=0.;
-	    }
 	    
-	  }
-	  
-	}
+            }
+          }
+          else
+          {
+            OV_ABORT("--INS---IRHS--Error: there is no tractionHistory to compute traction-rate");
+          }
+
+          f(I1,I2,I3,Ctr)=tractionRate;
+
+        }
+        else
+        {
+          // old way 
+          getTractionRateFromInterfaceDataHistory();
+        }
 	
       }
-      
-      
 
 
 // #ifndef USE_PPP

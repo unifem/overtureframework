@@ -1,4 +1,193 @@
 ***************************************************************************
+****** June 21, 201
+
+set tcm3p = $op/tests/tcm3
+
+OK: 
+mpirun -np 8 $tcm3p -g=sphereInABoxe2.order2 -solver=petsc -predefined -dirichlet -debug=1 -hypre
+
+-np=16: 
+PETScSolver:: ... done build matrix, cpu=8.80e+00
+*** max residual=4.91e-05, time for 1st solve of the Dirichlet problem = 1.34e+01 (iterations=18) ***
+
+
+-np=8:
+
+  0 KSP Residual norm 1.469593874811e+04 
+  1 KSP Residual norm 1.472487215815e+03 
+  2 KSP Residual norm 3.348992446759e+02 
+  3 KSP Residual norm 1.166775517819e+02 
+  4 KSP Residual norm 6.481240170094e+01 
+  5 KSP Residual norm 1.626359096344e+01 
+  6 KSP Residual norm 7.285976334596e+00 
+  7 KSP Residual norm 3.028336681741e+00 
+  8 KSP Residual norm 6.033370037976e-01 
+  9 KSP Residual norm 2.276687845151e-01 
+ 10 KSP Residual norm 8.366548331167e-02 
+ 11 KSP Residual norm 2.665167857718e-02 
+ 12 KSP Residual norm 1.035101935620e-02 
+ 13 KSP Residual norm 3.401610162266e-03 
+ 14 KSP Residual norm 1.275335077621e-03 
+ 15 KSP Residual norm 4.364253507439e-04 
+ 16 KSP Residual norm 1.441542358314e-04 
+PETScSolver::Time for solve=6.52e+00 (its=16) 
+--PETSc-- solver: ksp[gmres] pc[hypre-boomeramg]
+
+*** max residual=1.44e-04, time for 1st solve of the Dirichlet problem = 2.83e+01 (iterations=16) ***
+
+
+
+OK: *trouble -np=2** ??
+$tcm3p -g=sphereInABoxe2.order2 -solver=petsc -predefined -dirichlet -debug=1 -hypre
+*** -pc_type found in the options database: [hypre]
+  0 KSP Residual norm 1.504580129598e+04 
+  1 KSP Residual norm 1.042437246207e+03 
+  2 KSP Residual norm 1.247567022542e+02 
+  3 KSP Residual norm 3.843323126131e+01 
+  4 KSP Residual norm 1.284686522264e+01 
+  5 KSP Residual norm 7.287464088270e+00 
+  6 KSP Residual norm 3.058038323502e+00 
+  7 KSP Residual norm 6.211494531145e-01 
+  8 KSP Residual norm 3.124334411907e-01 
+  9 KSP Residual norm 9.721372129836e-02 
+ 10 KSP Residual norm 4.033251740458e-02 
+ 11 KSP Residual norm 1.769314060239e-02 
+ 12 KSP Residual norm 7.324545544134e-03 
+ 13 KSP Residual norm 3.893201613319e-03 
+ 14 KSP Residual norm 9.017060151107e-04 
+ 15 KSP Residual norm 2.288617256085e-04 
+ 16 KSP Residual norm 6.814668086022e-05 
+PETScSolver::Time for solve=1.71e+01 (its=16) 
+
+OK: 
+mpirun -np 4 $tcm3p -g=sphereInABoxe1.order2 -solver=petsc -predefined -dirichlet -debug=1 -hypre
+
+OK:
+mpirun -np 8 $tcm3p -g=cice16.order2 -solver=petsc -predefined -dirichlet -debug=1 -hypre
+
+OK: 
+$tcm3p -g=cice4.order2 -solver=petsc -predefined -dirichlet -debug=1 -hypre
+
+*** -pc_type found in the options database: [hypre]
+  0 KSP Residual norm 6.547554155602e+02 
+  1 KSP Residual norm 5.158686195998e+01 
+  2 KSP Residual norm 4.478637225667e+00 
+  3 KSP Residual norm 6.937503037368e-01 
+  4 KSP Residual norm 1.363014275258e-01 
+  5 KSP Residual norm 2.280934521198e-02 
+  6 KSP Residual norm 3.064811032451e-03 
+  7 KSP Residual norm 6.889056098088e-04 
+  8 KSP Residual norm 8.505328891671e-05 
+  9 KSP Residual norm 2.562108182655e-05 
+ 10 KSP Residual norm 3.095166775547e-06 
+PETScSolver::Time for solve=1.42e-01 (its=10) 
+--PETSc-- solver: ksp[gmres] pc[hypre-boomeramg]
+
+
+
+TEST HYPRE: works
+$tcm3p -g=square64.order2 -solver=petsc -predefined -dirichlet -debug=1 -hypre
+
+  0 KSP Residual norm 1.761875507209e+02 
+  1 KSP Residual norm 8.877005411439e+00 
+  2 KSP Residual norm 1.937521081133e-01 
+  3 KSP Residual norm 3.019956446744e-03 
+  4 KSP Residual norm 5.431298376278e-05 
+  5 KSP Residual norm 6.613549892860e-07 
+PETScSolver::Time for solve=1.55e-02 (its=5) 
+--PETSc-- solver: ksp[gmres] pc[hypre-boomeramg]
+
+*** max residual=6.61e-07, time for 1st solve of the Dirichlet problem = 2.84e-02 (iterations=5) ***
+
+
+tcm3p -g=square20.order2 -solver=petsc -predefined
+
+
+set tcmcp = $op/tests/tcmConstraintp
+set tcmcs = $op/tests/tcmConstraints
+
+TEST BOX:
+
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++=
+BOX4
+>>>>>>>>>  -np=1
+--PS-- start and end equation numbers for each grid:
+     grid=0 [eqnStart,eqnEnd]=[0,91124]
+--PS-- fill in extra eqn =0
+--PS-- time to insert 1682 values for eqn 0 is  1.43e+00
+--PS-- fill in extra eqn =1
+--PS-- time to insert 1682 values for eqn 1 is  1.32e+00
+--PES-- Time for filling user extra equations= 2.75e+00(s)
+PETScSolver:: ... done build matrix, cpu=3.01e+00
+PETScSolver::Time for solve=2.06e-01 (its=33) 
+
+>>>>>>>> -np=2
+-PS-- start and end equation numbers for each grid:
+     grid=0 [eqnStart,eqnEnd]=[0,91124]
+--PS-- fill in extra eqn =0
+--PS-- myid=0 time to insert 821 values for eqn 0 is  2.81e-05
+--PS-- myid=1 time to insert 862 values for eqn 0 is  2.49e-01
+--PS-- fill in extra eqn =1
+--PS-- myid=0 time to insert 821 values for eqn 1 is  1.91e-05
+--PS-- myid=1 time to insert 862 values for eqn 1 is  2.39e-01
+--PES-- Time for filling user extra equations= 4.89e-01(s)
+PETScSolver:: ... done build matrix, cpu=6.45e-01
+
+
+>>>>>> -np=4
+--PS-- fill in extra eqn =0
+--PS-- myid=1 time to insert 1 values for eqn 0 is  1.26e-05
+--PS-- myid=3 time to insert 1 values for eqn 0 is  9.54e-07
+--PS-- myid=0 time to insert 821 values for eqn 0 is  1.98e-05
+--PS-- myid=2 time to insert 862 values for eqn 0 is  1.81e-05
+--PS-- fill in extra eqn =1
+--PS-- myid=1 time to insert 1 values for eqn 1 is  4.77e-07
+--PS-- myid=3 time to insert 1 values for eqn 1 is  4.77e-07
+--PS-- myid=0 time to insert 821 values for eqn 1 is  1.03e-05
+--PS-- myid=2 time to insert 862 values for eqn 1 is  6.91e-06
+--PES-- Time for filling user extra equations= 7.93e-03(s)
+PETScSolver:: ... done build matrix, cpu=9.06e-02
+
+
+
+
+
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++=
+
+
+SERIAL
+$tcmcs box4.order2.hdf -solver=petsc -predefined -debug=1 
++Petsc TIMINGS (for 33 its, size of matrix n = 91125 ):
+ build=0.06125, precond=0.063491, solve=0.207083, total=0.331824.
+
+Neumann: 
++Petsc TIMINGS (for 56 its, size of matrix n = 91125 ):
+ build=0.098647, precond=0.948522, solve=0.2984, total=1.34557.
+
+PARALLEL: 
+mpirun -np 1 $tcmcp box4.order2.hdf -solver=petsc -predefined -debug=1 
+--PS-- start and end equation numbers for each grid:
+     grid=0 [eqnStart,eqnEnd]=[0,91124]
+--PES-- Time for filling user extra equations= 2.64e+00(s)
+PETScSolver:: ... done build matrix, cpu=2.89e+00
+PETScSolver::Time for solve=2.06e-01 (its=33) 
+
+Neumann ***
+PETScSolver:: build matrix... Oges::debug=1
+--PS-- start and end equation numbers for each grid:
+     grid=0 [eqnStart,eqnEnd]=[0,91124]
+--PES-- Time for filling user extra equations= 5.32e-05(s)
+PETScSolver:: ... done build matrix, cpu=5.74e+01
+PETScSolver::Time for solve=1.24e+00 (its=54) 
+
+
+
+mpirun -np 1 $tcmcp box2.order2.hdf -solver=petsc -predefined -debug=1 
+
+mpirun -np 1 $tcmcp square8.order2.hdf -solver=petsc -predefined -debug=1
+
+
+***************************************************************************
 ****** June 3,4 2017
 
 *** CHANGED PETSC-SOLVER TO USE OGES EQUATION NUMBERING TOO

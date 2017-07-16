@@ -887,7 +887,8 @@ main(int argc, char *argv[])
 	    FOR_3D(i1,i2,i3,Ib1,Ib2,Ib3) 
 	    {
 	      p=GET_PROCESSOR(iv,gride);
-	      printF(" extraEqn=%i pt=(%i,%i,%i) lives on p=%i\n",extraEqn,i1,i2,i3,p);
+              if( Oges::debug & 4 )
+                printF("--TCMC-- extraEqn=%i pt=(%i,%i,%i) lives on p=%i\n",extraEqn,i1,i2,i3,p);
 	      
               // Store the coefficient if the unknown lives on this processor 
 	      if( p==myid )

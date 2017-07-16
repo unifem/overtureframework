@@ -38,7 +38,7 @@ cp {interpolatePoints}.C                                                        
 cp {Ogen.h,UpdateRefinementData.h,ExplicitHoleCutter.h}                                       $OvertureInclude
 
 # .bC files
-cp {cutHolesNew,lastChance,markPointsNeeded}.bC $Overture/GridGenerator 
+cp {cutHolesNew,cutHolesNewer,lastChance,markPointsNeeded}.bC $Overture/GridGenerator 
 cp {updateRefinement,updateRefinementNew,updateRefinementNewer,updateRefineFillInterp}.bC     $Overture/GridGenerator
 
 # cp {Regrid,RotatedBox,ListOfRotatedBox}.C $Overture/GridGenerator
@@ -50,7 +50,7 @@ cp {generate.p,GridDescriptions}                                                
 
 cp {square,square5,square5CC,square10,square20,square40,cic,cic2,cicCC,cic.4,cicmg,cilc,cilcArg}.cmd   $sampleGrids
 cp {valve,valveCC,obstacle,inletOutlet,inletOutletCC,edgeRefinement,naca0012}.cmd                      $sampleGrids
-cp {mismatch,mismatchAnnulus,end,filletThree,stir,stirSplit,stir3d,twoBump}.cmd                        $sampleGrids
+cp {mismatch,mismatchAnnulus,end,filletThree,stir,stirSplit,stir3d,twoBump,stirArg}.cmd                $sampleGrids
 cp {sic,stretchedAnnulus,stretchedCube,box5,box10,box20,box40,line20}.cmd                              $sampleGrids
 cp {valve3d,valve3dCC,sphereInATube,tse,valvePort,bib,sis,sub,revolve}.cmd                             $sampleGrids
 cp {revolveCC,pipes,pipesCC,sib,sibCC,ellipsoid,ellipsoid1,ellipsoid2,ellipsoidCC}.cmd                 $sampleGrids

@@ -422,6 +422,10 @@ tcmConstraint: $(tcmConstraint)
 tcmp: tcmConstraint
 	mv tcmConstraint tcmConstraintp
 
+# make parallel version and rename
+tcms: tcmConstraint
+	mv tcmConstraint tcmConstraints
+
 
 # linearized INS
 lins = lins.o BoundaryOperators.o applyBCC.o

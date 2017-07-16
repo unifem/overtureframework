@@ -16,7 +16,7 @@
 # --- set default values for parameters ---
 # 
 $grid="deformingChannelGrid4.order2"; $domain1="fluidDomain"; $domain2="solidDomain";
-$method="ins"; $probeFile="probeFile"; $multiDomainAlgorithm=0;  $pi=0; $pOffset=0.; 
+$method="ins"; $probeFile="probeFile"; $multiDomainAlgorithm=1;  $pi=0; $pOffset=0.; 
 $tFinal=20.; $tPlot=.1;  $cfl=.9; $show="";  $pdebug=0; $debug=0; $go="halt"; $cdv=""; 
 $muFluid=0.; $rhoFluid=1.4; $pFluid=1.; $TFluid=$pFluid/$rhoFluid; 
 $nu=.1; $rhoSolid=1.; $prandtl=.72; $cnsVariation="jameson"; $ktcFluid=-1.; $u0=0.; $xShock=-1.5; $uShock=1.25; 
@@ -28,7 +28,7 @@ $lambdaSolid=1.; $muSolid=1.;
 $stressRelaxation=4; $relaxAlpha=.5; $relaxDelta=.5; 
 $scf=1.; # solidScaleFactor : scale rho,mu and lambda by this amount 
 $thermalExpansivity=1.; $T0=1.; $Twall=1.;  $kappa=.01; $ktcSolid=-1.; 
-$diss=.1;   # 2nd-order linear dissipation for cgsm
+$diss=.2;   # 2nd-order linear dissipation for cgsm --> increase from .1 to .2 : July 2, 2017
 $smVariation = "g"; 
 $tsSM="modifiedEquationTimeStepping";
 $tz="none"; $degreeSpace=1; $degreeTime=1;
@@ -37,25 +37,30 @@ $fic = "uniform";  # fluid initial condition
 $backGround="outerSquare"; $deformingGrid="interface"; 
 #
 $ts="pc";   # MP solver
+$tsINS="pc"; # INS time-stepping method 
 $numberOfCorrections=1;  # cgmp and cgins 
 $coupled=0; $iTol=1.e-3; $iOmega=1.; $flushFrequency=10; $useNewInterfaceTransfer=0; 
 $useTP=0; # 1=use traditional partitioned scheme
-$projectMultiDomainInitialConditions=0;
+$projectMultiDomainInitialConditions=0; 
+$useNewTimeSteppingStartup=1;  # *NEW* July 1, 2017
+$freqFullUpdate=1; # frequency for using full ogen update in moving grids 
+#
+$smoothInterface=0;  # smooth the interface (in DeformingBodyMotion.C )
+$numberOfInterfaceSmooths=4; 
 #
 # $option="beamUnderPressure"; # this currently means ramp the inflow
 $option="bulkSolidPiston"; # define pressure BC from known solution
 #
-$sideBC="noSlipWall"; # = "slipWall"; 
+$sideBC="slipWall"; 
 #
-$bcOption=0; 
-$orderOfExtrapForOutflow=2; $orderOfExtrapForGhost2=2; $orderOfExtrapForInterpNeighbours=2; 
+$bcOption=4;   # does this do anything ? I thibnk this is for cgcns
+$orderOfExtrapForOutflow=3; $orderOfExtrapForGhost2=2; $orderOfExtrapForInterpNeighbours=2; 
 $projectInitialConditions=0; # for INS
 # 
-$psolver="best"; 
-$solver="best"; 
+$psolver="yale"; 
+$solver="yale"; 
 $ksp="bcgs"; $pc="bjacobi"; $subksp="preonly"; $subpc="ilu"; $iluLevels=3;
 # -- p-wave strength: don't make too big or else solid may become inverted in the deformed space
-$ap=.01; 
 $append=0; 
 # ------------------------- turn on added mass here ----------------
 $addedMass=0; 
@@ -63,7 +68,7 @@ $addedMass=0;
 $Pi=4.*atan2(1.,1.);
 $amp=.1; $k=.5; $t0=1./(4*$k);  $H=1.; $Hbar=.5; $rho=1.; 
 $rampOrder=2;  # number of zero derivatives at start and end of the ramp
-$ra=.1; $rb=.6; # ramp interval -- actual interval shifted by Hbar/cp 
+$ra=-10.; $rb=-9.; # ramp interval -- actual interval shifted by Hbar/cp 
 # ----------------------------- get command line arguments ---------------------------------------
 GetOptions( "g=s"=>\$grid,"tf=f"=>\$tFinal,"nu=f"=>\$nu,"muFluid=f"=>\$muFluid,"kappa=f"=>\$kappa, "bg=s"=>\$backGround,\
  "tp=f"=>\$tPlot, "solver=s"=>\$solver, "psolver=s"=>\$psolver,"useTP=i"=> \$useTP,\
@@ -77,12 +82,15 @@ GetOptions( "g=s"=>\$grid,"tf=f"=>\$tFinal,"nu=f"=>\$nu,"muFluid=f"=>\$muFluid,"
    "cnsGodunovOrder=f"=>\$cnsGodunovOrder,"flushFrequency=i"=>\$flushFrequency,\
    "cnsEOS=s"=>\$cnsEOS,"cnsGammaStiff=f"=>\$cnsGammaStiff,"cnsPStiff=f"=>\$cnsPStiff,"u0=f"=>\$u0,\
    "useNewInterfaceTransfer=i"=>\$useNewInterfaceTransfer,"multiDomainAlgorithm=i"=>\$multiDomainAlgorithm,\
-   "pi=i"=>\$pi,"xShock=f"=>\$xShock,"uShock=f"=>\$uShock,"ap=f"=>\$ap,"bcOption=i"=>\$bcOption,"option=s"=>\$option,\
+   "pi=i"=>\$pi,"xShock=f"=>\$xShock,"uShock=f"=>\$uShock,"bcOption=i"=>\$bcOption,"option=s"=>\$option,\
    "stressRelaxation=f"=>\$stressRelaxation,"relaxAlpha=f"=>\$relaxAlpha,"relaxDelta=f"=>\$relaxDelta,\
    "p0=f"=>\$p0,"sideBC=s"=>\$sideBC,"iOmega=f"=>\$iOmega,"iTol=f"=>\$iTol,"addedMass=f"=>\$addedMass,\
    "projectInitialConditions=f"=>\$projectInitialConditions,"restart=s"=>\$restart,"append=i"=>\$append,\
    "projectMultiDomainInitialConditions=f"=>\$projectMultiDomainInitialConditions,\
-   "amp=f"=>\$amp,"rampOrder=i"=>\$rampOrder,"ra=f"=>\$ra,"rb=f"=>\$rb,"cdv=f"=>\$cdv );
+   "amp=f"=>\$amp,"rampOrder=i"=>\$rampOrder,"ra=f"=>\$ra,"rb=f"=>\$rb,"cdv=f"=>\$cdv,\
+   "useNewTimeSteppingStartup=i"=> \$useNewTimeSteppingStartup,"tsINS=s"=>\$tsINS,\
+   "freqFullUpdate=i"=>\$freqFullUpdate,"smoothInterface=i"=>\$smoothInterface,\
+   "numberOfInterfaceSmooths=i"=>\$numberOfInterfaceSmooths );
 # -------------------------------------------------------------------------------------------------
 if( $solver eq "best" ){ $solver="choose best iterative solver"; }
 if( $psolver eq "best" ){ $psolver="choose best iterative solver"; }
@@ -90,6 +98,17 @@ if( $ts eq "fe" ){ $ts="forward Euler"; }
 if( $ts eq "be" ){ $ts="backward Euler"; }
 if( $ts eq "im" ){ $ts="implicit"; }
 if( $ts eq "pc" ){ $ts="adams PC"; }
+#
+if( $tsINS eq "fe" ){ $tsINS="forward Euler";}
+if( $tsINS eq "be" ){ $tsINS="backward Euler"; }
+if( $tsINS eq "im" ){ $tsINS="implicit"; }
+if( $tsINS eq "bdf" ){ $tsINS="implicit BDF"; }
+if( $tsINS eq "imex" ){ $tsINS="implicit explicit multistep"; }
+if( $tsINS eq "pc" ){ $tsINS="adams PC"; }
+if( $tsINS eq "pc4" ){ $tsINS="adams PC order 4"; $useNewImp=0; } # NOTE: turn off new implicit for fourth order
+if( $tsINS eq "mid"){ $tsINS="midpoint"; }  
+if( $tsINS eq "afs"){ $tsINS="approximate factorization"; $newts=1;  $implicitVariation="full"; }
+#
 if( $tz eq "none" ){ $tz="turn off twilight zone"; }
 if( $tz eq "poly" ){ $tz="turn on twilight zone\n turn on polynomial"; $cdv=0.; }
 if( $tz eq "trig" ){ $tz="turn on twilight zone\n turn on trigonometric"; $cdv=0.; }
@@ -114,18 +133,22 @@ $grid
 # **** NEW WAY TO SPECIFY DEFORMING BODY FOR A BULK SOLID 
 # $vInitial=-.54414;
 $numberOfPastTimeLevels=3; 
-if( $tz eq "none" ){ $useKnown=1; }else{ $useKnown=0; }
+$gridEvolutionVelocityAccuracy=3; 
+$gridEvolutionAccelerationAccuracy=2; 
+if( $tz eq "turn off twilight zone" ){ $useKnown=1; }else{ $useKnown=0; }
 $moveCmds = \
   "turn on moving grids\n" . \
   "specify grids to move\n" . \
   "    deforming body\n" . \
   "      bulk solid\n" . \
   "        debug\n $debug \n" . \
-  "      acceleration order of accuracy\n 1\n" . \
-  "      velocity order of accuracy\n 1\n" . \
+  "      velocity order of accuracy\n $gridEvolutionVelocityAccuracy\n" . \
+  "      acceleration order of accuracy\n $gridEvolutionAccelerationAccuracy\n" . \
   "      generate past history 1\n" . \
   "      use known solution for initial conditions $useKnown\n" . \
   "      number of past time levels: $numberOfPastTimeLevels\n" . \
+  "      smooth surface $smoothInterface \n" . \
+  "      number of surface smooths: $numberOfInterfaceSmooths \n" . \
   "     done\n" . \
   "     choose grids by share flag\n" . \
   "        100 \n" . \
@@ -169,7 +192,7 @@ $bc = "all=$sideBC\n bcNumber100=noSlipWall uniform(u=.0,T=$T0)\n bcNumber100=tr
     "done";
 # if( $option ne "beamUnderPressure" ){ $cmdRamp = "bcNumber3=outflow, pressure(1.*p+0.*p.n=$p0)"; }
 # $bc = $bc . "\n" . $cmdRamp;
-if( $tz eq "none" ){ $bc = $bc . "\n" . $cmdKnown; }
+if( $tz eq "turn off twilight zone" ){ $bc = $bc . "\n" . $cmdKnown; }
 #
 $ic="uniform flow\n" . "p=0., u=$u0, T=$T0";
 $rhoBar=$rhoSolid*$scf; $lambdaBar=$lambdaSolid*$scf; $muBar=$muSolid*$scf;
@@ -180,7 +203,7 @@ $ic="OBTZ:user defined known solution\n" .\
     "  $rampOrder $ra $rb\n" .\
     " done\n" .\
     "done"; 
-if( $tz ne "none" ){ $ic="#"; }
+if( $tz ne "turn off twilight zone" ){ $ic="#"; }
 #
 echo to terminal 0
 include $ENV{CG}/mp/cmd/insDomain.h
@@ -209,7 +232,7 @@ $initialConditionCommands=\
     " done\n" .\
   "done \n" .\
   "knownSolutionInitialCondition";
-if( $tz ne "none" ){ $initialConditionCommands="#"; }
+if( $tz ne "turn off twilight zone" ){ $initialConditionCommands="#"; }
 #
 $smCheckErrors=1;
 # 
@@ -240,7 +263,19 @@ continue
   OBPDE:project interface $pi
   if( $multiDomainAlgorithm eq 1 ){ $cmd="OBPDE:step all then match advance"; }else{ $cmd="#"; }
   $cmd 
+  #
   $tz
+  # DEFINE THE MULTI_STAGE ALGORITHM --
+  OBPDE:multi-stage
+  actions=takeStep classNames=Cgsm
+  actions=takeStep,applyBC classNames=Cgins
+  actions=applyBC classNames=Cgsm
+  #actions=takeStep classNames=Cgsm,Cgins
+  #actions=takeStep,applyBC classNames=Cgins
+  #actions=takeStep,applyBC domainNames=fluidDomain
+  #actions=takeStep,applyBC domainNames=fluidDomain,solidDomain
+  done
+#
   debug $debug
   show file options
     if( $append eq 0 ){ $cmd="OBPSF:create new show file"; }else{ $cmd="OBPSF:append to old show file"; }

@@ -613,6 +613,7 @@ main(int argc, char *argv[])
 	  displayMask(cg[grid].mask(),"mask");
       }
 
+
       const int inflow=1, outflow=2, wall=3;
   
       // create a twilight-zone function for checking the errors

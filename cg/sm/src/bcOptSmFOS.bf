@@ -1105,7 +1105,7 @@ c ==============================================================================
      ! ********* Traction BC ********
      ! put "dirichlet parts of the traction BC here
 
-    if( debug.gt.3. .and. interfaceType(side,axis,grid).eq.tractionInterface )then
+    if( debug.gt.3 .and. interfaceType(side,axis,grid).eq.tractionInterface )then
      write(*,'("SMBC:INFO: assignPrimaryDirichletBC for an interface, (side,axis,grid)=(",3i3,")")') side,axis,grid
     end if
 

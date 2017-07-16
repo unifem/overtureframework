@@ -563,6 +563,9 @@ Parameters(const int & numberOfDimensions0) : pdeName("unknown"), numberOfBCName
   // We sometimes need to turn off application of the interface boundary conditions
   if( !dbase.has_key("applyInterfaceBoundaryConditions") ) dbase.put<int>("applyInterfaceBoundaryConditions",1);
 
+  // We sometimes need to turn off application of the interface boundary conditions
+  if( !dbase.has_key("interfaceCommunicationMode") ) dbase.put<InterfaceCommunicationModeEnum>("interfaceCommunicationMode")=autoRequestInterfaceData;
+
   // Apply a projection to the interface values
   if (!dbase.has_key("projectInterface")) dbase.put<bool>("projectInterface",false);
 

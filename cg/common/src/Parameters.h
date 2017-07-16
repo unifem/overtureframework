@@ -200,6 +200,14 @@ enum ImplicitOption
   computeAllWithWeightedImplicitTerms
 };
 
+// interface communication modes for multi-domain problems: 
+enum InterfaceCommunicationModeEnum
+{
+  autoRequestInterfaceData=0,
+  requestInterfaceDataWhenNeeded
+};
+  
+
  std::map<int,aString> bcNames, icNames, bcmNames;
 typedef std::map<int,aString>::iterator BCIterator;
 

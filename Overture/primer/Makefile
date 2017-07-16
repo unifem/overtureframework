@@ -226,6 +226,7 @@ pTest3: $(pTest3)
         $(CLIBS) $(FLIBS) $(GLIBS) 
 
 # A moving grid example
+move1 = move1.o ReparameterizationTransform.o Mapping.o OrthographicTransform.o ComposeMapping.o
 move1 = move1.o 
 move1: $(move1) 
 	$(CC) $(CCFLAGS) -o move1 $(move1) $(CLIBS) $(FLIBS) $(GLIBS)

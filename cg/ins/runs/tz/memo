@@ -1,4 +1,22 @@
 *************************************
+*********  July 16, 2017
+
+Initial tests of new traction or free-surface BC:
+
+PC22- BOX *trouble at t=0 on ghost 
+cgins tz -g=box1.order2 -degreex=2 -degreet=2 -ts=pc -bcn=d -bc1=freeSurface -tp=.01 -tf=1 -checkErrOnGhost=1 -go=halt
+
+cgins -noplot tz -g=box1.order2 -degreex=2 -degreet=2 -ts=pc -bcn=d -bc3=freeSurface -bc4=freeSurface -tp=.05 -tf=1 -go=og [ 
+cgins -noplot tz -g=box1.order2 -degreex=2 -degreet=2 -ts=pc -bcn=d -bc1=freeSurface -bc2=freeSurface -tp=.05 -tf=1 -go=og  [
+
+
+PC22: 
+cgins -noplot tz -g=square10.order2 -degreex=2 -degreet=2 -ts=pc -bcn=d -bc3=freeSurface -bc4=freeSurface -tp=.05 -tf=1 -go=og [exact 
+cgins -noplot tz -g=square10.order2 -degreex=2 -degreet=2 -ts=pc -bcn=d -bc1=freeSurface -bc2=freeSurface -tp=.05 -tf=1 -go=og  [exact
+
+
+
+*************************************
 *********  June 8, 2017
 
 TEST IMEX-BDF44 - 

@@ -7,9 +7,26 @@
 #include "DeformingBodyMotion.h"
 #include "BeamModel.h"
 #include "BeamFluidInterfaceData.h"
+#include "Interface.h"
+
+
 
 #define ForBoundary(side,axis)   for( axis=0; axis<mg.numberOfDimensions(); axis++ ) \
                                  for( side=0; side<=1; side++ )
+
+#define FOR_3D(i1,i2,i3,I1,I2,I3) \
+int I1Base =I1.getBase(),   I2Base =I2.getBase(),  I3Base =I3.getBase();  \
+int I1Bound=I1.getBound(),  I2Bound=I2.getBound(), I3Bound=I3.getBound(); \
+for(i3=I3Base; i3<=I3Bound; i3++) \
+for(i2=I2Base; i2<=I2Bound; i2++) \
+for(i1=I1Base; i1<=I1Bound; i1++)
+
+#define FOR_3(i1,i2,i3,I1,I2,I3) \
+I1Base =I1.getBase(),   I2Base =I2.getBase(),  I3Base =I3.getBase();  \
+I1Bound=I1.getBound(),  I2Bound=I2.getBound(), I3Bound=I3.getBound(); \
+for(i3=I3Base; i3<=I3Bound; i3++) \
+for(i2=I2Base; i2<=I2Bound; i2++) \
+for(i1=I1Base; i1<=I1Bound; i1++)
 
 // =======================================================================================
 /// \brief Project the velocity on the interface for FSI problems. 
@@ -29,14 +46,27 @@ projectInterfaceVelocity(const real & t, realMappedGridFunction & u,
   if( movingGrids.getNumberOfDeformingBodies()==0 )
     return 0;
 
-  real dt;
+  real dt=dt0;
   if( dt<= 0. )
     dt = parameters.dbase.get<real>("dt");  // *wdh* 2017/05/31
   // const real & dt = parameters.dbase.get<real>("dt");
-  assert( dt>0. );
+  const real epsT = REAL_EPSILON*10.;
+  assert( dt> epsT );
   
   if( t <= 2.*dt )
-    printF("--INS-- projectInterfaceVelocity: ADDED MASS ALGORITHM - project velocity at t=%8.2e\n",t);
+    printF("\n"
+           "--------------------------------------------------------------------------------------------------\n"
+           " --INS-- projectInterfaceVelocity: ADDED MASS ALGORITHM - PROJECT VELOCITY at t=%8.2e\n"
+           "--------------------------------------------------------------------------------------------------\n"
+            ,t);
+
+  // if( TRUE )
+  // {
+  //   printF("--INS-- DO NOT PROJECT THE INTERFACE VELOCITY ***TEMP****\n");
+  //   return 0;
+  // }
+  
+
 
   const bool & useAddedMassAlgorithm = parameters.dbase.get<bool>("useAddedMassAlgorithm");
   const bool & projectAddedMassVelocity = parameters.dbase.get<bool>("projectAddedMassVelocity");
@@ -63,9 +93,12 @@ projectInterfaceVelocity(const real & t, realMappedGridFunction & u,
   std::vector<BoundaryData> & boundaryDataArray =parameters.dbase.get<std::vector<BoundaryData> >("boundaryData");
   BoundaryData & bd = boundaryDataArray[grid];
       
+  const Parameters::InterfaceCommunicationModeEnum & interfaceCommunicationMode= 
+    parameters.dbase.get<Parameters::InterfaceCommunicationModeEnum>("interfaceCommunicationMode");
+
   // -- extract parameters from any deforming solids ---
 
-      
+  
   if( bd.dbase.has_key("deformingBodyNumber") )
   {
     const real & fluidDensity = parameters.dbase.get<real >("fluidDensity");
@@ -97,6 +130,8 @@ projectInterfaceVelocity(const real & t, realMappedGridFunction & u,
             OV_ABORT("finish me");
           #endif
 
+          
+
 	  OV_GET_SERIAL_ARRAY(real,gridVelocity,gridVelocityLocal);
 	  OV_GET_SERIAL_ARRAY(real,u,uLocal);
 	  OV_GET_SERIAL_ARRAY(real,vSolid,vSolidLocal);
@@ -106,12 +141,6 @@ projectInterfaceVelocity(const real & t, realMappedGridFunction & u,
 
           OV_GET_VERTEX_BOUNDARY_NORMAL(mg,side,axis,normal);
 	  
-          // #ifdef USE_PPP
-          //   const realSerialArray & normal = mg.vertexBoundaryNormalArray(side,axis);
-          // #else
-          //   const realSerialArray & normal = mg.vertexBoundaryNormal(side,axis);
-          // #endif
-
           if( !deform.isBulkSolidModel() && !deform.isBeamModel() )
 	  {
 
@@ -124,23 +153,117 @@ projectInterfaceVelocity(const real & t, realMappedGridFunction & u,
             // *************** PROJECT VELOCITY BULK SOLID ***********************
             // *******************************************************************
 
-	    real zp;
-            deform.getBulkSolidParameters( zp );
-	    const real & fluidDensity = parameters.dbase.get<real >("fluidDensity");
+            RealArray solidTraction;
+            if( interfaceCommunicationMode==Parameters::requestInterfaceDataWhenNeeded )
+            {
+              if( true )
+                printF("--INS-- PIV: REQUEST interface traction at t=%9.3e\n",t);
+
+              InterfaceData interfaceData;
+              Range Rx=numberOfDimensions;
+              interfaceData.u.redim(Ib1,Ib2,Ib3,Rx); // traction is returned here 
+              interfaceData.t=t;
+              interfaceData.u=0;
+
+              int interfaceDataOptions = Parameters::tractionInterfaceData;
+              bool saveTimeHistory=false; // what should this be ?
+              getInterfaceData( t, grid, side, axis, 
+                                interfaceDataOptions,
+                                interfaceData.u,
+                                parameters,saveTimeHistory );
+
+              solidTraction=interfaceData.u;
+              if( t <= 2.*dt && debug() & 4 )
+                ::display(solidTraction(Ib1,Ib2,Ib3,1),"--INS-- PIV: Here is the SOLID TRACTION (I1,I2,I3,1)","%6.3f ");
+            }
+            else
+            {
+              OV_ABORT("finish me");
+            }
+
+
+	    real zpOld;
+            // old way:
+            deform.getBulkSolidParameters( zpOld );
+
+            // new way:
+            // Retrieve the parameters from the bulk solid
+            // FIX ME -- lookup first time and then save locally 
+            Parameters & bulkSolidParams = getInterfaceParameters( grid,side,axis,parameters );
+            real rhoSolid=bulkSolidParams.dbase.get<real>("rho");
+            real lambdaSolid=bulkSolidParams.dbase.get<real>("lambda");
+            real muSolid=bulkSolidParams.dbase.get<real>("mu");
+            real cp=sqrt((lambdaSolid+2.*muSolid)/rhoSolid);
+            real cs=sqrt(muSolid/rhoSolid);
+          
+
+            real zp=rhoSolid*cp;
+            real zs=rhoSolid*cs;
+            if( t<=3.*dt )
+            {
+              printF("--INS-- PIV: rhoSolid=%9.3e cp=%9.3e cs=%9.3e zp=%9.3e (old: zp=%9.3e) zs=%9.3e\n",
+                     rhoSolid,cp,cs,zp,zpOld,zs);
+              // printF("  fluidAddedMassLengthScale=%9.3e\n",fluidAddedMassLengthScale);
+            }
+            
+	    // const real & fluidDensity = parameters.dbase.get<real >("fluidDensity");
 	    
             // fluid impedance = rho*H/dt 
 	    assert( dt>0. );
-
-            const real zf=fluidDensity/dt; // ****************** fix me ***************
-
+            const real zf=fluidDensity*fluidAddedMassLengthScale/dt; 
             const real alpha = zf/(zf+zp);
-	    if( t<=3.*dt )
-	      printF("--PIV-- PROJECT INTERFACE VELOCITY FOR BULK SOLID MODEL, alpha=%9.2e **FINISH ME**\n",alpha);
 
-            // ** do this for now****
-            // We should really scale tangential components by zs
-	    // --- set the gridVelocity to the desired BC for the fluid velocity
-            gridVelocityLocal(Ib1,Ib2,Ib3,Rx)= alpha*uLocal(Ib1,Ib2,Ib3,V) + (1.-alpha)*vSolidLocal(Ib1,Ib2,Ib3,Rx);
+	    if( true || t<=3.*dt )
+	      printF("--INS-- PIV PROJECT INTERFACE VELOCITY FOR BULK SOLID MODEL, t=%9.3e dt=%9.3e zf=%9.3e zp=%9.3e "
+                     "alpha=%9.2e **FINISH ME: PROJECT n.v , mixed BC for t.v **\n",t,dt,zf,zp,alpha);
+
+            if( true )
+            {
+              // ** do this for now****
+              // We should really scale tangential components by zs
+              // --- set the gridVelocity to the desired BC for the fluid velocity
+              gridVelocityLocal(Ib1,Ib2,Ib3,Rx)= alpha*uLocal(Ib1,Ib2,Ib3,V) + (1.-alpha)*vSolidLocal(Ib1,Ib2,Ib3,Rx);
+            }
+            else
+            {
+              // ---- assign all the interface conditions:
+              // 1) nv.vv = impedance-weighted
+              // 2) div( v ) = 0 
+	      // 3) tv . ( tauv.nv ) + zs tv.vv  = ....
+              // 4) Extrap tv.vv  or use tv.(Interior update) 
+
+              // RealArray vI(Rx), nDotV(Rx);
+              // FOR_3D(i1,i2,i3,Ib2,Ib2,Ib3)
+              // {
+              //   vI = alpha*uLocal(i1,i2,i3,V) + (1.-alpha)*vSolidLocal(i1,i2,i3,Rx);
+                
+              //   // tv. tauv . nv 
+
+              // }
+              
+              OV_ABORT("FINISH ME");
+
+            }
+            
+
+
+
+
+
+            if( FALSE )
+            {
+              printF("\n >>>>>>>> PIV **TEMP** TESTING set v_1=0 \n");
+              gridVelocityLocal(Ib1,Ib2,Ib3,0)= 0.; 
+            }
+            
+            if( debug() & 8 )
+            {
+              ::display(gridVelocityLocal(Ib1,Ib2,Ib3,Rx),sPrintF("PROJECTED interface velocity t=%9.3e",t),"%6.2f ");
+              ::display(uLocal(Ib1,Ib2,Ib3,V),sPrintF(" -> fluid portion t=%9.3e",t),"%7.3f ");
+              ::display(vSolidLocal(Ib1,Ib2,Ib3,Rx),sPrintF("--> solid velocity t=%9.3e",t),"%7.3f ");
+              ::display(fabs(uLocal(Ib1,Ib2,Ib3,V)-vSolidLocal(Ib1,Ib2,Ib3,Rx)),sPrintF("--> DIFF fluid-solid velocity t=%9.3e",t),"%8.2e ");
+            }
+            
 
 	    continue;
 	  }

@@ -83,7 +83,50 @@ moveGrids(const real & t1,
     const int fullUpdateFreq=max(1,parameters.dbase.get<int >("frequencyToUseFullUpdateForMovingGridGeneration"));
     bool resetToFirstPriority = (numberOfMoves % fullUpdateFreq) == (fullUpdateFreq-1); 
 
+    if( resetToFirstPriority )
+    {
+      if( debug() & 2 )
+	printF("\n --MVG-- use resetToFirstPriority (full update) in Ogen::updateOverlap t3=%9.3e+++++ \n",t3);
+    }
+    bool checkBoundingBox=FALSE; // for testing 
+    if( checkBoundingBox )
+    {
+      printF(" ****** TEMP update all mappings before ogen call t3=%9.3e***TEMP**\n",t3);
+        
+      for( int grid=0; grid<cgf3.cg.numberOfComponentGrids(); grid++ )
+      {
+        // cgf3.cg[grid].geometryHasChanged();
+        // cgf3.cg[grid].update(MappedGrid::THEmask | MappedGrid::THEvertex | MappedGrid::THEcenter);
+        Mapping & map = cgf3.cg[grid].mapping().getMapping();
+          
+        // map.reinitialize();
+        // map.mappingHasChanged();
+        // map.approximateGlobalInverse->initialize();
+        if( grid==1 )
+        {
+          RealArray bb; bb = map.getBoundingBox();
+          printF("grid=%i boundingBox=[%9.3e,%9.3e][%9.3e,%9.3e][%9.3e,%9.3e] *BEFORE OGEN*\n",
+                 grid,bb(0,0),bb(1,0),bb(0,1),bb(1,1),bb(0,2),bb(1,2));
+        }
+      }
+    }
+
     parameters.regenerateOverlappingGrid( cgf3.cg , cgf1.cg,resetToFirstPriority);
+
+    if( checkBoundingBox )
+    {
+      for( int grid=0; grid<cgf3.cg.numberOfComponentGrids(); grid++ )
+      {
+        Mapping & map = cgf3.cg[grid].mapping().getMapping();
+          
+        if( grid==1 )
+        {
+          RealArray bb; bb = map.getBoundingBox();
+          printF("grid=%i boundingBox=[%9.3e,%9.3e][%9.3e,%9.3e][%9.3e,%9.3e] *AFTER OGEN*\n",
+                 grid,bb(0,0),bb(1,0),bb(0,1),bb(1,1),bb(0,2),bb(1,2));
+        }
+      }
+    }
   }
   else
   {
@@ -92,8 +135,7 @@ moveGrids(const real & t1,
     Ogen *gridGenerator = parameters.dbase.get<Ogen* >("gridGenerator");
     // Now regenerate the grid
     IntegerArray hasMoved(cgf3.cg.numberOfComponentGrids()); 
-    int grid;
-    for( grid=0; grid<cgf3.cg.numberOfComponentGrids(); grid++ )
+    for( int grid=0; grid<cgf3.cg.numberOfComponentGrids(); grid++ )
       hasMoved(grid)=parameters.gridIsMoving(grid);
   
     if( debug() & 2 )

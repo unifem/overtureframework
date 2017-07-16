@@ -46,7 +46,12 @@ multiDomainAdvance( real &t, real & tFinal )
     // This new algorithm supports AMR: 
     return multiDomainAdvanceNew(t,tFinal);
   }
-  
+  else if(  multiDomainAlgorithm==MpParameters::multiStageAlgorithm )
+  {
+    // User-defined multi-stage algorithm 
+    return multiStageAdvance(t,tFinal);
+  }
+
 
   real cpu0=getCPU();
 
@@ -60,6 +65,7 @@ multiDomainAdvance( real &t, real & tFinal )
   int & init=parameters.dbase.get<DataBase >("modelData").get<int>("initializeAdvance");
 
   const int numberOfDomains = domainSolver.size(); 
+  const std::vector<int> & domainOrder =parameters.dbase.get<std::vector<int> >("domainOrder");
   int numberOfSubSteps=parameters.dbase.get<int>("numberOfSubSteps");
 
   InterfaceList & interfaceList = parameters.dbase.get<InterfaceList>("interfaceList");

@@ -46,6 +46,7 @@ projectInitialConditions( real t, real dt, std::vector<int> & gfIndex )
     FILE *& pDebugFile =parameters.dbase.get<FILE* >("pDebugFile");
     FILE *& interfaceFile =parameters.dbase.get<FILE* >("interfaceFile");
     const int numberOfDomains=domainSolver.size();
+    const std::vector<int> & domainOrder =parameters.dbase.get<std::vector<int> >("domainOrder");
     std::vector<AdvanceOptions> advanceOptions(numberOfDomains); 
 
     printF("\n--MP-PIC-- project initial conditions\n");

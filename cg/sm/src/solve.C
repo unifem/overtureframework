@@ -265,6 +265,11 @@ outputResults( int current, real t, real dt )
   Range C=numberOfComponents; 
 
   const int numberToOutput= numberOfComponents + 1 + int(saveVelocities) + int(saveStress); 
+  if( false )
+  {
+    printF("--SM-- Save check file t=%9.3e: numberToOutput=%i numberOfComponents=%i saveVelocities=%i saveSigma=%i\n",
+           t,numberToOutput,numberOfComponents,(int)saveVelocities,(int)saveStress);
+  }
   
   if( maximumError.getLength(0)>= numberOfComponents && myid==0 )
   {
@@ -276,14 +281,18 @@ outputResults( int current, real t, real dt )
     //   1. max error in all displacements
     //   2. max error in all velocities (FOS)
     //   3. max error in all stresses   (FOS)
+
+    // ---- Output the norm of the displacement ---
     err = (numberOfDimensions == 2 ? max(maximumError(uc),maximumError(vc)) : 
 	   max(maximumError(uc),maximumError(vc),maximumError(wc)) );
     uNorm= (numberOfDimensions == 2 ? max(solutionNorm(uc),solutionNorm(vc)) : 
 	    max(solutionNorm(uc),solutionNorm(vc),solutionNorm(wc)) );
 
     fPrintF(checkFile,"%i %9.2e %10.3e  ",cc,err,uNorm); cc++;
+
     if( saveVelocities )
     {
+      // ---- Output the norm of the velocity ---
       err = (numberOfDimensions == 2 ? max(maximumError(v1c),maximumError(v2c)) : 
 	     max(maximumError(v1c),maximumError(v2c),maximumError(v3c)) );
       uNorm= (numberOfDimensions == 2 ? max(solutionNorm(v1c),solutionNorm(v2c)) : 
@@ -292,6 +301,7 @@ outputResults( int current, real t, real dt )
     }
     if( saveStress )
     {
+      // ---- Output the norm of the stress ---
       if( numberOfDimensions == 2 )
       {
         err = max( maximumError(s11c),maximumError(s12c),maximumError(s21c),maximumError(s22c) );
@@ -312,7 +322,7 @@ outputResults( int current, real t, real dt )
       fPrintF(checkFile,"%i %9.2e %10.3e  ",cc,err,uNorm); cc++;
     }
     
-
+    // -- now output the components that were computed 
     for( c=0; c<numberOfComponents; c++ )
     {
       err = maximumError(c); // error(c) > checkFileCutoff(c) ? error(c) : 0.;

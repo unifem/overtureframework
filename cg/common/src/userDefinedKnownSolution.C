@@ -26,22 +26,6 @@ extern "C"
                         const int & nrwk, real & rwk );
 }
 
-// OLD WAY: *wdh* 2012/02/26
-// // Define new user-defined options here:
-// namespace
-// {
-// enum UserDefinedKnownSolutionEnum
-// {
-//   unknownSolution=0,
-//   specifiedPiston=1,
-//   forcedPiston=2,
-//   obliqueShockFlow=3,
-//   superSonicExpandingFlow=4,
-//   exactSolutionFromAFile=5,
-//   shockElasticPiston=6,
-//   pistonMotion=7 // *new way* for piston motion
-// };
-// }
 
 #define FOR_3D(i1,i2,i3,I1,I2,I3) \
 int I1Base =I1.getBase(),   I2Base =I2.getBase(),  I3Base =I3.getBase();  \
@@ -789,12 +773,133 @@ getUserDefinedDeformingBodyKnownSolution(
       state(I1,I2,I3,c0)=0.;
       state(I1,I2,I3,c1)=-pIt;
     }
+  }
+  else if( userKnownSolution=="radialElasticPiston" )
+  {
+    // ---- return the exact solution for radial elastic piston ----
 
-    else
+    // -- we could avoid building the vertex array on Cartesian grids ---
+    GET_VERTEX_ARRAY(xLocal);
+    const real & R        = rpar[0];
+    const real & Rbar     = rpar[1];
+    const real & rho      = rpar[2];
+    const real & rhoBar   = rpar[3];
+    const real & lambdaBar= rpar[4];
+    const real & muBar    = rpar[5];
+    const real & k        = rpar[6];
+
+    const real cp = sqrt((lambdaBar+2.*muBar)/rhoBar);
+    
+    // uI = uI(t) =  interface displacement in the radial direction 
+    // eval uI and vI = uI_t 
+    real uI,vI,aI;
+    TimeFunction & bsp = db.get<TimeFunction>("timeFunctionREP");
+    bsp.eval(t, uI,vI );  // fmd = d(fm(xi))/d(xi)
+    bsp.evalDerivative(t, aI, 2 ); // 2 derivatives 
+
+    if( t <= 2.*dt )
     {
-      OV_ABORT("Unknown state option");
+      printF("--DS-- getUserDefinedDeformingBodyKnownSolution: radialElasticPiston, t=%9.3e uI=%9.3e vI=%9.3e Rbar=%5.3f\n",
+             t,uI,vI,Rbar);
     }
 
+    // *** CHECK ME *****
+
+    real kr=k*Rbar;
+    real jnkr = jn(1,kr);
+    real jnkrp = .5*k*(jn(0,kr)-jn(2,kr));  // Jn' = .5*( J(n-1) - J(n+1) )
+
+    real ur = uI*jnkr;        // radial displacment in solid 
+    real vr = vI*jnkr;        // radial velocity in solid 
+    real ar = aI*jnkr;        // radial acceleration in solid 
+
+    real RI = Rbar+ur; // interface radius 
+    real sigmarr,sigmart,sigmatt;
+    if( stateOption==boundaryTraction )
+    {
+      real urr = uI*jnkrp;      // r-derivative of the radial displacement
+        
+      sigmarr = (lambdaBar+2.*muBar)*urr + lambdaBar*ur/Rbar;
+      sigmart=0.;
+      sigmatt = lambdaBar*urr  + (lambdaBar+2.*muBar)*ur/Rbar;
+    }
+    else if( stateOption==boundaryTractionRate )
+    {
+      real vrr = vI*jnkrp;      // r-derivative of the radial velocity
+        
+      sigmarr = (lambdaBar+2.*muBar)*vrr + lambdaBar*vr/Rbar;
+      sigmart=0.;
+      sigmatt = lambdaBar*vrr  + (lambdaBar+2.*muBar)*vr/Rbar;
+    }
+    
+
+    const int c0=C.getBase(), c1=c0+1;
+    int i1,i2,i3;
+    FOR_3D(i1,i2,i3,I1,I2,I3)
+    {
+      // Reference coordinates for solid or grid positions for the fluid -- we only need angle theta
+      real x= xLocal(i1,i2,i3,0);
+      real y= xLocal(i1,i2,i3,1);
+      real r = sqrt( SQR(x) + SQR(y) );
+      real ct=x/r, st=y/r;
+
+      // Normal is [cos(theta), sin(theta)]
+
+      if( stateOption==boundaryPosition )
+      {
+        state(i1,i2,i3,c0)=RI*ct;
+        state(i1,i2,i3,c1)=RI*st;
+      }
+      else if( stateOption==boundaryVelocity )
+      {
+        state(i1,i2,i3,c0)=vr*ct;
+        state(i1,i2,i3,c1)=vr*st;
+      }
+      else if( stateOption==boundaryAcceleration )
+      {
+        state(i1,i2,i3,c0)=ar*ct;
+        state(i1,i2,i3,c1)=ar*st;
+      }
+      else if( stateOption==boundaryTraction )
+      {
+        // traction: 
+        //       Sigma(r,theta). nv = traction(r,theta) = [tr, tt] , nv=[cos,sin]
+        //  traction(x,y) = tr*rHat + tt*thetaHat
+        //                = tr*[cos,sin] + tt*[-sin,cos]
+        // real tr = sigmarr*ct + sigmart*st;
+        // real tt = sigmart*ct + sigmatt*st;
+	real s11 = sigmarr*ct*ct - 2.*sigmart*ct*st + sigmatt*st*st;
+	real s12 = sigmarr*ct*st + sigmart*(ct*ct-st*st) - sigmatt*ct*st ;
+	real s21 = s12;
+	real s22 = sigmarr*st*st + 2.*sigmart*ct*st + sigmatt*ct*ct;
+        state(i1,i2,i3,c0)= s11*ct + s12*st;
+        state(i1,i2,i3,c1)= s21*ct + s22*st;
+
+      }
+      else if( stateOption==boundaryTractionRate )
+      {
+        // traction-rate: 
+	real s11 = sigmarr*ct*ct - 2.*sigmart*ct*st + sigmatt*st*st;
+	real s12 = sigmarr*ct*st + sigmart*(ct*ct-st*st) - sigmatt*ct*st ;
+	real s21 = s12;
+	real s22 = sigmarr*st*st + 2.*sigmart*ct*st + sigmatt*ct*ct;
+        state(i1,i2,i3,c0)= s11*ct + s12*st;
+        state(i1,i2,i3,c1)= s21*ct + s22*st;
+
+        // real tr = sigmarr*ct + sigmart*st;
+        // real tt = sigmart*ct + sigmatt*st;
+        // state(i1,i2,i3,c0)= tr*ct - tt*st;
+        // state(i1,i2,i3,c1)= tr*st + tt*ct;
+        // state(i1,i2,i3,c0)= (sigmarr*ct + sigmart*st);
+        // state(i1,i2,i3,c1)= (sigmart*ct + sigmatt*st);
+
+      }
+      else
+      {
+        OV_ABORT("Unknown state option");
+      }
+    }
+    
   }
   else
   {
@@ -852,6 +957,7 @@ updateUserDefinedKnownSolution(GenericGraphicsInterface & gi, CompositeGrid & cg
       "FSI traveling wave solution fluid",
       "FSI traveling wave solution solid",
       "bulk solid piston",  // for INS+SM exact solution
+      "radial elastic piston", // FSI : INS+SM
       "done",
       ""
     }; 
@@ -1360,7 +1466,7 @@ updateUserDefinedKnownSolution(GenericGraphicsInterface & gi, CompositeGrid & cg
       printF("--------------------------------------------------------------------------------\n"
              "------ Exact solution for a bulk elastic solid adjacent to a fluid chamber -----\n\n"
              "   y_I(t) = F(t + Hbar/cp) - F(t - Hbar/cp)\n"
-             "      F(z) = amp * R(z) * sin( 2*Pi*k(t-t0) ) \n"
+             "      F(z) = amp * R(z) * sin( 2*Pi*k(z-t0) ) \n"
              "      R(z) = ramp function that smoothly transitions from 0 to 1  \n"
              " Parameters: \n"
              " amp : amplitude of the interface motion \n"
@@ -1413,6 +1519,69 @@ updateUserDefinedKnownSolution(GenericGraphicsInterface & gi, CompositeGrid & cg
       if( rampFunction.decrementReferenceCount()==0 )
         delete &rampFunction;
       
+    }
+
+    else if( answer=="radial elastic piston" )
+    {
+      // -- RADIAL ELASTIC PISTON ----
+      //  EXACT FSI Solution for INS + SM ---
+
+      // NOTE -- this function is implemented in 
+      //     ins/src/userDefinedKnownSolution 
+      //     sm/src/userDefinedKnownSolution 
+      //    
+
+      userKnownSolution="radialElasticPiston";
+      dbase.get<bool>("knownSolutionIsTimeDependent")=true;  // known solution IS time dependent
+
+      real & R        = rpar[0];
+      real & Rbar     = rpar[1];
+      real & rho      = rpar[2];
+      real & rhoBar   = rpar[3];
+      real & lambdaBar= rpar[4];
+      real & muBar    = rpar[5];
+      real & kk       = rpar[6];
+      
+      real amp,t0,k;
+      int rampOrder;
+
+      printF("------------------------------------------------------------------------------------------\n"
+             "----------- Exact solution for a radial elastic piston and incompressible fluid ----------\n\n"
+             " The radial displacement in the solid is \n"
+             "   rHat.us = amp * J1(k*r)/J1(k*rBar) * sin( twoPi*cp*k*(t-t0) ) \n"
+             " Parameters: \n"
+             " amp : approximate amplitude of the interface motion \n"
+             " k: wave number in solid domain (r-direction)\n"
+             " R,Rbar: Radial widths (initial) of the fluid and solid domains\n"
+             " t0 : determines the phase for time dependence\n"
+             " rhoBar,lambaBar,muBar : solid density and Lame parameters\n"
+             "--------------------------------------------------------------------------------\n"
+	);
+      gi.inputString(answer,"Enter amp, k,t0,R,Rbar,rho,rhoBar,lambdaBar,muBar");
+      sScanF(answer,"%e %e %e %e %e %e %e %e %e",&amp,&k,&t0,&R,&Rbar,&rho,&rhoBar,&lambdaBar,&muBar);
+
+      printF("--UDKS-- Setting amp=%g, k=%g,t0=%g,R=%g,Rbar=%g,rho=%g,lambdaBar=%g,muBar=%g,rhoBar=%g\n",
+             amp,k,t0,R,Rbar,rho,rhoBar,lambdaBar,muBar);
+
+
+      // The waveform for the exact solution is defined through a TimeFunction:
+      if( !db.has_key("timeFunctionEP") )
+      {
+        db.put<TimeFunction>("timeFunctionREP");
+      }
+      
+      const real cp2 = sqrt((lambdaBar+2.*muBar)/rhoBar);
+
+      TimeFunction & timeFunction = db.get<TimeFunction>("timeFunctionREP");
+
+      // kk = twoPi*k 
+      kk = k*twoPi;
+      
+      //    f(t)=b0*sin(2.*Pi*f0*(t-t0)) --> amp/(J1(k*R)) * sin( (2*Pi*k)*cp*(t-t0 ))
+      const real jnRbar = jn(1,kk*Rbar);
+      const real b0=amp/jnRbar, f0=cp2*k;
+      timeFunction.setSinusoidFunction( b0, f0, t0 );
+
     }
     else
     {

@@ -247,7 +247,7 @@ getGrid( realArray & x, const real t ) const
   int level=-1;
   for(int j=0; j<numberOfTimeLevels; j++ )
   {
-    int l = (current - j + maximumNumberOfTimeLevels) % maximumNumberOfTimeLevels;
+    int l = ovmod( current-j ,maximumNumberOfTimeLevels);
     if( fabs(time(l)-t) <= REAL_EPSILON*100.*(1+fabs(t)) )
     {
       level=l;
@@ -256,14 +256,37 @@ getGrid( realArray & x, const real t ) const
   }
   if( level>=0 )
   {
+    // mathing timne level found 
     printF("GridEvolution::getGrid: grid at t=%8.2e found: level=%i\n",t,level);
+  }
+  else 
+  {
+    // find the closest grid -- we could interpolate/extrapolate ... 
+    real minDiff=REAL_MAX;
+    for(int j=0; j<numberOfTimeLevels; j++ )
+    {
+      int l = ovmod( current-j, maximumNumberOfTimeLevels);
+      if( fabs(time(l)-t) < minDiff )
+      {
+        minDiff=fabs(time(l)-t);
+        level=l;
+      }
+    }
+    printF("GridEvolution::getGrid: WARNING - no grid for time t=%8.2e was found. Using grid at time=%8.2e\n",
+           t,time(level));
+
+  }
+  assert( level>=0 );
+
+  if( level>=0 )
+  {
     x.redim(0);
     x.reference(gridList[level]);
     return 0;
   }
   else
   {
-    printF("GridEvolution::getGrid: WARNING - no grid for time t=%8.2e was found\n",t);
+    OV_ABORT("This should no happen");
     return 1;
   }
 
@@ -299,49 +322,41 @@ getVelocity( real t, realSerialArray & gridVelocity,
 
 
     Range Rx = gridVelocity.dimension(3);
-    if( velocityOrderOfAccuracy==1 || numberOfTimeLevels==2 )
+    if( velocityOrderOfAccuracy==1 || numberOfTimeLevels<=2 )
     {
       if( velocityOrderOfAccuracy != 1 )
-	printF("GridEvolution::getVelocity:WARNING: t=%9.3e : only computing the velocity to 1st order accuracy\n"
+	printF("GridEvolution::getVelocity:WARNING: t=%9.3e : only computing the grid velocity to 1st order accuracy\n"
 	       " since there are only 2 time levels available, requested accuracy=%i\n",t,velocityOrderOfAccuracy);
 
-      int ip1 = (i+1) % maximumNumberOfTimeLevels;
-      #ifdef USE_PPP
-        realSerialArray x0; getLocalArrayWithGhostBoundaries(gridList[i  ],x0);
-        realSerialArray x1; getLocalArrayWithGhostBoundaries(gridList[ip1],x1);
-      #else
-        realSerialArray & x0 = gridList[i  ];
-        realSerialArray & x1 = gridList[ip1];
-      #endif
+      const int ip1 = ovmod(i+1,maximumNumberOfTimeLevels);
+      OV_GET_SERIAL_ARRAY(real,gridList[i  ],x0);
+      OV_GET_SERIAL_ARRAY(real,gridList[ip1],x1);
+
       real dt0= time(ip1)-time(i);
       assert( dt0>0. );
+
+      printF("--GE-- gridVelocity: using levels (%i,%9.3e) (%i,%9.3e) t=%9.3e (first-order)\n",
+             i,time(i),ip1,time(ip1),t);
+
       gridVelocity(I1,I2,I3,Rx) = (x1(I1,I2,I3,Rx) - x0(I1,I2,I3,Rx))/dt0;
 
     }
-    else 
+    else if( velocityOrderOfAccuracy==2 || numberOfTimeLevels<=3 )
     {
       assert( numberOfTimeLevels>=3 );
       if( velocityOrderOfAccuracy != 2 )
-	printF("GridEvolution::getVelocity:WARNING: only computing the velocity to 2nd order accuracy"
+	printF("GridEvolution::getVelocity:WARNING: only computing the grid  velocity to 2nd order accuracy"
 	       " requested accuracy=%i\n",velocityOrderOfAccuracy);
 
-      int im1 = (i-1 + maximumNumberOfTimeLevels) % maximumNumberOfTimeLevels;
-      int ip1 = (i+1) % maximumNumberOfTimeLevels;
-      // realArray & x0 = gridList[im1];
-      // realArray & x1 = gridList[i];
-      // realArray & x2 = gridList[ip1];
-      #ifdef USE_PPP
-        realSerialArray x0; getLocalArrayWithGhostBoundaries(gridList[im1],x0);
-        realSerialArray x1; getLocalArrayWithGhostBoundaries(gridList[i  ],x1);
-        realSerialArray x2; getLocalArrayWithGhostBoundaries(gridList[ip1],x2);
-      #else
-        realSerialArray & x0 = gridList[im1];
-        realSerialArray & x1 = gridList[i  ];
-        realSerialArray & x2 = gridList[ip1];
-      #endif
+      const int im1 = ovmod(i-1,maximumNumberOfTimeLevels);
+      const int ip1 = ovmod(i+1,maximumNumberOfTimeLevels);
+
+      OV_GET_SERIAL_ARRAY(real,gridList[im1],x0);
+      OV_GET_SERIAL_ARRAY(real,gridList[i  ],x1);
+      OV_GET_SERIAL_ARRAY(real,gridList[ip1],x2);
+
       const real t0=time(im1), t1=time(i), t2=time(ip1);
-      real dt0= t1-t0;
-      real dt1= t2-t1;
+      real dt0= t1-t0, dt1= t2-t1;
       assert( dt0>0. && dt1>0. );
 
       // Compute the time derivative of the Lagrange polynomial: 
@@ -355,13 +370,46 @@ getVelocity( real t, realSerialArray & gridVelocity,
       real l1t = (2.*t-(t2+t0))/( (t1-t2)*(t1-t0) );
       real l2t = (2.*t-(t0+t1))/( (t2-t0)*(t2-t1) );
       
+      printF("--GE-- gridVelocity: using levels (%i,%9.3e) (%i,%9.3e) (%i,%9.3e) t=%9.3e current=%i (second-order)\n",
+             im1,t0,i,t1,ip1,t2,t,current);
+
       gridVelocity(I1,I2,I3,Rx) = l0t*x0(I1,I2,I3,Rx) + l1t*x1(I1,I2,I3,Rx) + l2t*x2(I1,I2,I3,Rx);
       
     }
+    else 
+    {
+      assert( numberOfTimeLevels>=4 );
+      if( velocityOrderOfAccuracy != 3 )
+	printF("GridEvolution::getVelocity:WARNING: only computing the grid velocity to 3rd order accuracy"
+	       " requested accuracy=%i\n",velocityOrderOfAccuracy);
+
+      const int im2 = ovmod(i-2,maximumNumberOfTimeLevels);
+      const int im1 = ovmod(i-1,maximumNumberOfTimeLevels);
+      const int ip1 = ovmod(i+1,maximumNumberOfTimeLevels);
     
-//     printf("GridEvolution::getVelocity: t=%9.3e, current=%i i,ip1=%i,%i, "
-// 	   "max(vel)=%8.2e min(vel)=%8.2e\n",t,current,i,ip1,max(gridVelocity(I1,I2,I3,Rx)),
-//            min(gridVelocity(I1,I2,I3,Rx)));
+      OV_GET_SERIAL_ARRAY(real,gridList[im2],x0);
+      OV_GET_SERIAL_ARRAY(real,gridList[im1],x1);
+      OV_GET_SERIAL_ARRAY(real,gridList[i  ],x2);
+      OV_GET_SERIAL_ARRAY(real,gridList[ip1],x3);
+ 
+      const real t0=time(im2), t1=time(im1), t2=time(i), t3=time(ip1);
+      real dt0= t1-t0, dt1= t2-t1, dt2= t3-t2;
+      assert( dt0>0. && dt1>0. && dt2>0. );
+
+      // Compute the time derivative of the Lagrange polynomial: 
+      real l0t = ( (t-t2)*(t-t3) + (t-t1)*(t-t3) + (t-t1)*(t-t2) )/( (t0-t1)*(t0-t2)*(t0-t3) );
+      real l1t = ( (t-t3)*(t-t0) + (t-t2)*(t-t0) + (t-t2)*(t-t3) )/( (t1-t2)*(t1-t3)*(t1-t0) );
+      real l2t = ( (t-t0)*(t-t1) + (t-t3)*(t-t1) + (t-t3)*(t-t0) )/( (t2-t3)*(t2-t0)*(t2-t1) );
+      real l3t = ( (t-t1)*(t-t2) + (t-t0)*(t-t2) + (t-t0)*(t-t1) )/( (t3-t0)*(t3-t1)*(t3-t2) );
+
+      printF("--GE-- gridVelocity: using levels (%i,%9.3e) (%i,%9.3e) (%i,%9.3e) (%i,%9.3e) "
+             "t=%9.3e current=%i (3rd-order)\n",
+             im2,t0,im1,t1,i,t2,ip1,t3,t,current);
+
+      gridVelocity(I1,I2,I3,Rx) = l0t*x0(I1,I2,I3,Rx) + l1t*x1(I1,I2,I3,Rx) + l2t*x2(I1,I2,I3,Rx)+ l3t*x3(I1,I2,I3,Rx);
+      
+    }
+
 
   }
   else

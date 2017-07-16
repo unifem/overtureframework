@@ -438,6 +438,13 @@ initializeSolution()
 	parameters.dbase.get<Ogen* >("gridGenerator")->updateRefinement(gf[current].cg);
 	// updateForAdaptiveGrids(gf[current].cg);
       }
+
+      // We should re-assign the initial conditions since the grid may have changed *wdh* July 8, 2017
+      if( true )
+      {
+        assignInitialConditions( current );
+      }
+      
     }
     
     // Note: below the initial conditions will be interpolated and BC's applied.

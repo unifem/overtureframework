@@ -5,6 +5,8 @@
 #include "Ogshow.h"
 #include "PlotStuff.h"
 #include "Interface.h"
+#include "AdvanceOptions.h"
+#include "DomainSolver.h"
 
 int
 addPrefix(const aString label[], const aString & prefix, aString cmd[], const int maxCommands);
@@ -129,6 +131,166 @@ setParameters(const int & numberOfDimensions0 /* =2 */,const aString & reactionN
 }
 
 
+
+
+// =====================================================================================
+/// \brief Setup the stages in the multi-stage algorithm
+// =====================================================================================
+int MpParameters::
+setupMultiStageAlgorithm(CompositeGrid & cg, DialogData & dialog )
+{
+  assert(  dbase.get<GenericGraphicsInterface* >("ps") !=NULL );
+  GenericGraphicsInterface & gi = * dbase.get<GenericGraphicsInterface* >("ps");
+  const std::vector<int> & domainOrder = dbase.get<std::vector<int> >("domainOrder");
+
+  // enum TakeTimeStepOptionEnum
+  // {
+  //   takeStepAndApplyBoundaryConditions,
+  //   takeStepButDoNotApplyBoundaryConditions,
+  //   applyBoundaryConditionsOnly
+  // };
+
+
+  // Here is the vector of domainSolvers:
+  std::vector<DomainSolver*> domainSolver = dbase.get<DomainSolver*>("domainSolver")->domainSolver; 
+
+  // Here is a list of the stages in the multi-stage algorithm 
+  if( !dbase.has_key("stageInfoList") )
+  {
+    std::vector<StageInfo> & stageInfoList = dbase.put<std::vector<StageInfo> >("stageInfoList");
+    stageInfoList.clear();
+  }
+
+  std::vector<StageInfo> & stageInfoList = dbase.get<std::vector<StageInfo> >("stageInfoList");
+
+  printF("++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++\n"
+         "+ Enter information defining the stages in the multi-domain algorithm.\n"
+         "+ For each stage enter a line of the form (enter `done' when finished)\n"
+         "+    actions=action1,action2,... classNames=[name,name,...] domainNames=[name,name,...]\n"
+         "+ where \n"
+         "+  action = [takeStep|applyBC]\n"
+         "+  classNames = list of class names involved in his step, e.g. Cgsm, Cgins, Cgcns, Cgad.\n"
+         "+             If a class name is given then all domains of this type will take part.\n"
+         "+  domainNames = list of domain names (if not all domains in a class are involved).\n"
+         "+ Examples:\n"
+         "+     actions=takeStep classNames=Cgsm\n"
+         "+     actions=takeStep,applyBC classNames=Cgins,Cgad\n"
+         "+     actions=applyBC classNames=Cgins domainNames=solidDomain1,solidDomain2\n"
+         "+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++\n"
+       );
+
+  aString answer,prompt="Enter stage, done to finish";
+  int numberOfStages=0;
+  for( ;; )
+  {
+    gi.inputString(answer,prompt);
+    if( answer=="done" )
+    {
+      break;
+    }
+    else
+    {
+      // --- add a new stage ---
+      stageInfoList.push_back(StageInfo());
+      StageInfo & stageInfo = stageInfoList[numberOfStages];  // new stage 
+
+      // Parse the stage info 
+      bool takeStep = answer.find("takeStep")!=std::string::npos;
+      bool applyBC  = answer.find("applyBC")!=std::string::npos;
+      
+      if( takeStep && applyBC )
+        stageInfo.action=AdvanceOptions::takeStepAndApplyBoundaryConditions;
+      else if( takeStep )
+        stageInfo.action=AdvanceOptions::takeStepButDoNotApplyBoundaryConditions;
+      else if( applyBC )
+        stageInfo.action=AdvanceOptions::applyBoundaryConditionsOnly;
+      else
+      {
+        OV_ABORT("fix me");
+      }
+
+      // -- Look for classNames=....  (note may include domainNames later in the string but his shouldn't matter ...)
+      aString classNames;
+      size_t found=answer.find("classNames=");
+      if( found!=std::string::npos )
+        classNames = answer(found,answer.length());
+
+      // bool updateCgsm  = classNames.find("Cgsm") !=std::string::npos;
+      // bool updateCgins = classNames.find("Cgins")!=std::string::npos;
+      // bool updateCgcns = classNames.find("Cgcns")!=std::string::npos;
+      // bool updateCgad  = classNames.find("Cgad") !=std::string::npos;
+
+      // -- Look for domainNames=.... 
+      aString domainNames;
+      found=answer.find("domainNames=");
+      if( found!=std::string::npos )
+        domainNames = answer(found,answer.length());
+
+      // printF(" stage=%i: takeStep=%i applyBC=%i Cgsm=%i, Cgins=%i Cgcns=%i\n",
+      //        numberOfStages,(int)takeStep,(int)applyBC,updateCgsm,updateCgins,updateCgcns);
+
+
+      ForDomainOrdered(d)
+      {
+        aString className = domainSolver[d]->getClassName();
+        aString domainName = cg.getDomainName(d);
+        if( classNames.find(className)   !=std::string::npos ||
+            domainNames.find(domainName) !=std::string::npos )
+        {
+          stageInfo.domainList.push_back(d);  // this domain takes part in this stage 
+        }
+        
+        // if( updateCgsm && className=="Cgsm" )
+        //   stageInfo.domainList.push_back(d);
+        // if( updateCgins && className=="Cgins" )
+        //   stageInfo.domainList.push_back(d);
+        // if( updateCgcns && className=="Cgcns" )
+        //   stageInfo.domainList.push_back(d);
+        // if( updateCgad && className=="Cgad" )
+        //   stageInfo.domainList.push_back(d);
+      }
+      numberOfStages++;
+    }
+  }
+
+  // -- output a summary of the multi-stage algorithm --
+  printF("\n  +-------------------------- MULT-STAGE ALGORITHM : numberOfStages=%i -----------------------\n",
+           numberOfStages);
+  for( int stage=0; stage<numberOfStages; stage++ )
+  {
+    StageInfo & stageInfo = stageInfoList[stage];
+    bool takeStep = (stageInfo.action == AdvanceOptions::takeStepAndApplyBoundaryConditions ||
+                     stageInfo.action == AdvanceOptions::takeStepButDoNotApplyBoundaryConditions);
+    bool applyBCs = (stageInfo.action == AdvanceOptions::takeStepAndApplyBoundaryConditions ||
+                     stageInfo.action == AdvanceOptions::applyBoundaryConditionsOnly );
+    printF("  | stage=%d : takeStep=%i applyBCs=%i domains=[",
+           stage,(int)takeStep,(int)applyBCs);
+    for( int dd=0; dd<stageInfo.domainList.size(); dd++ )
+    {
+      int d=stageInfo.domainList[dd];
+      printF(" domain=%d (%s:%s)",d,
+             (const char*)(domainSolver[d]->getClassName()),
+             (const char*)cg.getDomainName(d) );
+      if( d<stageInfo.domainList.size()-1) printF(","); 
+    }
+    printF(" ]\n");
+  }
+  printF("  +------------------------------------------------------------------------------------------\n\n");
+
+  // Set the interface communication mode -- 
+  InterfaceCommunicationModeEnum & interfaceCommunicationMode= 
+            dbase.get<InterfaceCommunicationModeEnum>("interfaceCommunicationMode");
+  interfaceCommunicationMode=requestInterfaceDataWhenNeeded;
+  ForDomainOrdered(d)
+  { // Set modes in each domain 
+    Parameters & par = domainSolver[d]->parameters;
+    par.dbase.get<InterfaceCommunicationModeEnum>("interfaceCommunicationMode")=requestInterfaceDataWhenNeeded;
+  }
+  
+  return 0;
+}
+
+
 int MpParameters::
 setPdeParameters(CompositeGrid & cg, const aString & command /* = nullString */,
                  DialogData *interface /* =NULL */ )
@@ -156,7 +318,8 @@ setPdeParameters(CompositeGrid & cg, const aString & command /* = nullString */,
 
   int & interfaceProjectionGhostOption = dbase.get<int>("interfaceProjectionGhostOption");
   bool & relaxCorrectionSteps= dbase.get<bool>("relaxCorrectionSteps");
-
+  MultiDomainAlgorithmEnum & multiDomainAlgorithm = dbase.get<MultiDomainAlgorithmEnum>("multiDomainAlgorithm");
+  
   GUIState gui;
   gui.setExitCommand("done", "continue");
   DialogData & dialog = interface!=NULL ? *interface : (DialogData &)gui;
@@ -172,10 +335,10 @@ setPdeParameters(CompositeGrid & cg, const aString & command /* = nullString */,
     // --- options for multi-domain advance:
     aString opCmd[] = {"default advance", 
 		       "step all then match advance" ,
+                       "multi-stage",
 		       "" };
     addPrefix(opCmd,prefix,cmd,maxCommands);
-    dialog.addOptionMenu("Multi-domain advance", cmd, opCmd, 
-                          (int)dbase.get<MultiDomainAlgorithmEnum>("multiDomainAlgorithm"));
+    dialog.addOptionMenu("Multi-domain advance", cmd, opCmd,multiDomainAlgorithm);
 
     // --- options for setting ghost points with the interface projection ---
     aString opCmd2[] = {"interface ghost from extrapolation", 
@@ -397,16 +560,28 @@ setPdeParameters(CompositeGrid & cg, const aString & command /* = nullString */,
       
     }
     else if( answer=="default advance" ||
-             answer=="step all then match advance" )
+             answer=="step all then match advance" ||
+             answer=="multi-stage" )
     {
       if( answer=="default advance" )
       {
-	dbase.get<MultiDomainAlgorithmEnum>("multiDomainAlgorithm")=defaultMultiDomainAlgorithm;
+	multiDomainAlgorithm=defaultMultiDomainAlgorithm;
       }
       else if( answer=="step all then match advance" )
       {
-	dbase.get<MultiDomainAlgorithmEnum>("multiDomainAlgorithm")=stepAllThenMatchMultiDomainAlgorithm;
+	multiDomainAlgorithm=stepAllThenMatchMultiDomainAlgorithm;
+        printF("Setting multiDomainAlgorithm=stepAllThenMatchMultiDomainAlgorithm\n");
       }
+      else if( answer=="multi-stage" )
+      {
+        multiDomainAlgorithm=multiStageAlgorithm;
+        printF("Setting multiDomainAlgorithm=multiStageAlgorithm\n");
+
+        // setup the stages in the multi-stage algorithm
+        setupMultiStageAlgorithm(cg,dialog);
+        
+      }
+      
       else
       {
 	OV_ABORT("ERROR: unexpected answer");

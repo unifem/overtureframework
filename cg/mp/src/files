@@ -1,4 +1,5 @@
-SRC_FILES += Cgmp.C multiDomainAdvanceNew.C multiDomainAdvance.C solve.C saveShow.C printTimeStepInfo.C \
+SRC_FILES += Cgmp.C multiStageAdvance.C multiDomainAdvanceNew.C multiDomainAdvance.C \
+             solve.C saveShow.C printTimeStepInfo.C \
              plot.C getTimeStep.C assignInterfaceBoundaryConditions.C setParametersInteractively.C advance.C \
              MpParameters.C timeSteppingDialog.C interfaceProjection.C assignInterfaceBoundaryConditionsOld.C \
              projectInitialConditions.C
@@ -9,6 +10,8 @@ FSRCO += interfaceCnsSm.f
 
 
 src/multiDomainAdvanceNew.C : src/multiDomainAdvanceNew.bC; $(BPP) -quiet -clean $<
+
+src/multiStageAdvance.C : src/multiStageAdvance.bC; $(BPP) -quiet -clean $<
 
 src/projectInitialConditions.C : src/projectInitialConditions.bC; $(BPP) -quiet -clean $<
 

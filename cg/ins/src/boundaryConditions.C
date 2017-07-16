@@ -12,11 +12,11 @@
 #define mixedNormalCoeff(component,side,axis,grid) bcData(component+numberOfComponents*(2),side,axis,grid)
 
 // --- put this forward declaration here for now ---
-int
-getInterfaceData( real t, int grid, int side, int axis, 
-		  int interfaceDataOptions,
-		  RealArray & data,
-                  Parameters & parameters );
+// int
+// getInterfaceData( real t, int grid, int side, int axis, 
+// 		  int interfaceDataOptions,
+// 		  RealArray & data,
+//                   Parameters & parameters );
 
 
 //\begin{>>MappedGridSolverInclude.tex}{\subsection{gridAccelerationBC}} 
@@ -37,6 +37,8 @@ gridAccelerationBC(const int & grid,
 //\end{MappedGridSolverInclude.tex}  
 //=================================================================================
 {
+  if( true )
+    printF("\n--INS-- +++++++ gridAccelerationBC: START : grid=%i, side=%i, axis=%i +++++++++++\n",grid,side,axis);
 
   MappedGrid & c = gf0.cg[grid];
   realMappedGridFunction & u = gf0.u[grid];
@@ -86,6 +88,10 @@ gridAccelerationBC(const int & grid,
 
     const bool & useAddedMassAlgorithm = parameters.dbase.get<bool>("useAddedMassAlgorithm");
     bool isAmpBeamModel=false, isAmpBulkSolidModel=false;
+
+    const Parameters::InterfaceCommunicationModeEnum & interfaceCommunicationMode= 
+      parameters.dbase.get<Parameters::InterfaceCommunicationModeEnum>("interfaceCommunicationMode");
+
     if( useAddedMassAlgorithm && numberOfDeformingBodies>0 )
     {
       // -------- DEFORMING BODY AMP STAGE I  --------------
@@ -118,7 +124,7 @@ gridAccelerationBC(const int & grid,
 	  isAmpBulkSolidModel=true;
 
 	  if( (true || debug() & 4) && t0 <= 2.*dt )
-	    printF("\n--INS-- gridAccelerationBC: t=%8.2e, dt=%9.3e BULK-SOLID scale pressure BC"
+	    printF("--INS-- gridAccelerationBC: t=%8.2e, dt=%9.3e BULK-SOLID scale pressure BC"
                    " by mixedNormalCoeff=zp*dt/rho =%12.5e grid=%i (side,axis)=(%i,%i:  mixedCoeff=%12.5e )\n",
 		   t0,dt,mixedNormalCoeff(pc,side,axis,grid),grid,side,axis, mixedCoeff(pc,side,axis,grid));
 	}
@@ -182,38 +188,67 @@ gridAccelerationBC(const int & grid,
           // --- the traction interface data is set in Cgins::interfaceRightHandSide ---
           // ---------------------------------------------------------------------------
 
-	  aString tractionDataName;
-	  sPrintF(tractionDataName,"tractionG%iS%iA%i",grid,side,axis);
-	  if( !parameters.dbase.has_key(tractionDataName) )
-	  {
-            // -- At t=0 the interfaceData may not have been set yet, in this case call getInterfaceData
+          RealArray solidTraction;
+          if( interfaceCommunicationMode==Parameters::requestInterfaceDataWhenNeeded )
+          {
+            // *new* way June 30, 2017 -- explicitly request interface traction from Cgsm...
+            if( true )
+              printF("--INS-- GABC: REQUEST interface traction at t0=%9.3e\n",t0);
 
-	    printF("WARNING: interface data: [%s] not found, t0=%9.3e!\n",(const char*)tractionDataName,t0);
 
-	    InterfaceData & interfaceData = parameters.dbase.put<InterfaceData>(tractionDataName);
-	    Range C=numberOfDimensions;
-	    interfaceData.u.redim(I1,I2,I3,C);
-	    interfaceData.t=t0;
-	    interfaceData.u=0;
+            InterfaceData interfaceData;
+            Range Rx=numberOfDimensions;
+            interfaceData.u.redim(I1,I2,I3,Rx); // traction is returned here 
+            interfaceData.t=t0;
+            interfaceData.u=0;
 
-	    // RealArray solidTraction(I1,I2,I3,C);
-	    int interfaceDataOptions = Parameters::tractionInterfaceData;
+            int interfaceDataOptions = Parameters::tractionInterfaceData;
+            bool saveTimeHistory=false; // what should this be ?
+            getInterfaceData( t0, grid, side, axis, 
+                              interfaceDataOptions,
+                              interfaceData.u,
+                              parameters,saveTimeHistory );
+
+            solidTraction=interfaceData.u;
+            if( t0 <= 2.*dt && debug() & 4 )
+              ::display(solidTraction(I1,I2,I3,1),"--GABC-- Here is the SOLID TRACTION (I1,I2,I3,1)","%6.3f ");
+          }
+          else // *old way*
+          {
+            aString tractionDataName;
+            sPrintF(tractionDataName,"tractionG%iS%iA%i",grid,side,axis);
+            if( !parameters.dbase.has_key(tractionDataName) )
+            {
+              // -- At t=0 the interfaceData may not have been set yet, in this case call getInterfaceData
+
+              printF("WARNING: interface data: [%s] not found, t0=%9.3e!\n",(const char*)tractionDataName,t0);
+
+              InterfaceData & interfaceData = parameters.dbase.put<InterfaceData>(tractionDataName);
+              Range C=numberOfDimensions;
+              interfaceData.u.redim(I1,I2,I3,C);
+              interfaceData.t=t0;
+              interfaceData.u=0;
+
+              // RealArray solidTraction(I1,I2,I3,C);
+              int interfaceDataOptions = Parameters::tractionInterfaceData;
 	  
-	    getInterfaceData( t0, grid, side, axis, 
-			      interfaceDataOptions,
-			      interfaceData.u,
-			      parameters );
-	    // OV_ABORT("fix me");
-	  }
+              getInterfaceData( t0, grid, side, axis, 
+                                interfaceDataOptions,
+                                interfaceData.u,
+                                parameters );
+              // OV_ABORT("fix me");
+            }
 
-	  InterfaceData & interfaceData = parameters.dbase.get<InterfaceData>(tractionDataName);
-	  aString buff;
-	  if( t0 <= 2.*dt )
-	    ::display(interfaceData.u,sPrintF(buff,"--GABC-- interface traction [%s] at ti=%9.3e (t0=%9.3e)",
-					      (const char*)tractionDataName,interfaceData.t,t0),"%6.3f ");
-          RealArray & solidTraction=interfaceData.u;
+            InterfaceData & interfaceData = parameters.dbase.get<InterfaceData>(tractionDataName);
+            aString buff;
+            if( t0 <= 2.*dt )
+              ::display(interfaceData.u,sPrintF(buff,"--GABC-- interface traction [%s] at ti=%9.3e (t0=%9.3e)",
+                                                (const char*)tractionDataName,interfaceData.t,t0),"%6.3f ");
+            solidTraction=interfaceData.u;
 
-	  assert( fabs(interfaceData.t-t0) <= fabs(t0)*REAL_EPSILON*10. );
+            assert( fabs(interfaceData.t-t0) <= fabs(t0)*REAL_EPSILON*10. );
+          }
+          
 	  
 	  // --- compute the forces on the surface ---
 	  // stressLocal = fluid-traction = p*normal - mu*( ... )
@@ -222,9 +257,6 @@ gridAccelerationBC(const int & grid,
 	  RealArray stressLocal(I1,I2,I3,numberOfDimensions);
 	  parameters.getNormalForce( gf0.u,stressLocal,ipar,rpar );
 
-	  // ::display(solidTraction,"--GABC-- Here is the solid traction","%6.3f ");
-	  if( t0 <= 2.*dt )
-	    ::display(stressLocal(I1,I2,I3,1),"--GABC-- Here is the fluid stress stressLocal(I1,I2,I3,1)","%6.3f ");
 
 	  const real fluidDensity = parameters.dbase.get<real>("fluidDensity")!=0. ? parameters.dbase.get<real>("fluidDensity") : 1.;
 	  OV_GET_SERIAL_ARRAY(real,u,uLocal);
@@ -236,19 +268,77 @@ gridAccelerationBC(const int & grid,
 	    // ADD viscous traction term (remove the pressure component) and solid-traction
 	    // AMP:   p + (zp*dt)/rho p.n =  n.tau.n - n.sigmaSolid.n + (zp*dt)*[ nu*n.Delta(v) -accel ] 
 	  
+
+
+            if( t0 <= 3.*dt && debug() & 8 )
+            {
+              ::display(stressLocal(I1,I2,I3,1),  sPrintF("--GABC-- AMP FLUID TRACTION t=%9.3e",t0),"%6.3f ");
+              ::display(solidTraction(I1,I2,I3,1),sPrintF("--GABC-- AMP SOLID TRACTION t=%9.3e",t0),"%6.3f ");
+            }
+          
+
             // **** CHECK SIGNS HERE OF VISCOUS STRESS ****
-
-            // stressLocal  = - sigma.n !
-            // solidTraction = sigmaSolid.nSolid = - sigmaSolid.nFluid
-
+            // NOTES: 
+            //     stressLocal  = - sigma.n = p*normal - tauv   **MINUS THE FLUID TRACION***!
+            //    solidTraction = sigmaSolid.nSolid = - sigmaSolid.nFluid
+             
+            //   F = F + [  (n.Sigma_f.n + p) - n.sigmas.n ]   
+            //  *CLEAN THIS UP  -- LOOKS CORRECT BUT SIGNS ARE ALL MESSED UP
 	    fLocal(I1g,I2g,I3g) -= (normal(I1,I2,I3,0)*(stressLocal(I1,I2,I3,0)-solidTraction(I1,I2,I3,0)) +  
 				    normal(I1,I2,I3,1)*(stressLocal(I1,I2,I3,1)-solidTraction(I1,I2,I3,1)) ) 
 	      -fluidDensity*uLocal(I1,I2,I3,pc);
 	    
 	    // Longfei 20170106: // For two sided beams we need to adjust the opposite side 
 	    
-	    if(false){::display( fLocal(I1g,I2g,I3g),"before adding opposite contribution:","%10.2e");}
+	    if( t0 <= 3.*dt && debug() & 8 )
+            {
+              ::display( fLocal(I1g,I2g,I3g),"--INS--GABC: acceleration BC for pressure:","%10.2e");
+            }
 
+
+            bool useExactPressureBC=false;
+            if( useExactPressureBC )
+            {
+              assert( isAmpBulkSolidModel );
+              // scale the acceleration term too for the AMP bulk-solid model
+              const int & numberOfComponents = parameters.dbase.get<int >("numberOfComponents");
+              RealArray & bcData = parameters.dbase.get<RealArray>("bcData");      
+
+              const Parameters::KnownSolutionsEnum & knownSolution = 
+                           parameters.dbase.get<Parameters::KnownSolutionsEnum >("knownSolution");
+              if( knownSolution==Parameters::userDefinedKnownSolution )
+              {
+                printF("\n--GABC-- SET MIXED-PRESSURE BC TO EXACT SOLUTION t=%9.3e *TEMP*\n",t0);
+                MappedGrid & mg = c;
+                
+                int body=0;
+                Range Rx=numberOfDimensions;
+                RealArray traction(I1,I2,I3,Rx);
+                parameters.getUserDefinedDeformingBodyKnownSolution( body,Parameters::boundaryTraction,
+                                                                     t0, grid, mg, I1,I2,I3,Rx,traction );
+                RealArray acceleration(I1,I2,I3,Rx);
+                parameters.getUserDefinedDeformingBodyKnownSolution( body,Parameters::boundaryAcceleration,
+                                                                     t0, grid, mg, I1,I2,I3,Rx,acceleration );
+                const real beta = fluidDensity*mixedNormalCoeff(pc,side,axis,grid);
+                
+                // f = p +(zp*dt/rho)*p.n = p - (zp*dt/rho)( -rho*v.t )
+               #ifndef USE_PPP
+                f(I1g,I2g,I3g) = (normal(I1,I2,I3,0)*traction(I1,I2,I3,0)+
+                                  normal(I1,I2,I3,1)*traction(I1,I2,I3,1))
+                  - beta*(normal(I1,I2,I3,0)*acceleration(I1,I2,I3,0)+
+                          normal(I1,I2,I3,1)*acceleration(I1,I2,I3,1));
+               #else
+                OV_ABORT("finish me");
+               #endif                 
+              }
+              
+
+            }
+            
+
+
+// >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+// ********** WHY IS THIS HERE -- THIS IS FOR THE BEAM ****************
 	    bool addDonorContribution=true;
 	    if(addDonorContribution)
 	    {
@@ -334,16 +424,19 @@ gridAccelerationBC(const int & grid,
 		    }
 		}
 	  
-	    }
+	    } // end if add donor contribution
+            
 	    if(false)
-	      {
-		::display( fLocal(I1g,I2g,I3g),"after adding opposite contribution:","%10.2e");
-	      }
+            {
+              ::display( fLocal(I1g,I2g,I3g),"after adding opposite contribution:","%10.2e");
+            }
+// <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 
 
-	  }
+          }
 	  else
 	  {
+            // ------- THREE DIMENSIONS BULK ---- 
 	    fLocal(I1g,I2g,I3g) -= (normal(I1,I2,I3,0)*(stressLocal(I1,I2,I3,0)-solidTraction(I1,I2,I3,0)) +  
 				    normal(I1,I2,I3,1)*(stressLocal(I1,I2,I3,1)-solidTraction(I1,I2,I3,1)) + 
 				    normal(I1,I2,I3,2)*(stressLocal(I1,I2,I3,2)-solidTraction(I1,I2,I3,2)) ) 

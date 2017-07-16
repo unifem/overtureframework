@@ -1,7 +1,7 @@
 SRC_FILES += MovingGrids.C RigidBodyMotion.C detectCollisions.C userDefinedMotion.C userDefinedDeformingSurface.C
 SRC_FILES += TimeFunction.C MatrixMotion.C PistonMotion.C EyeCurves.C
 
-SRC_FILES +=  DeformingBodyMotion.C DeformingGrid.C ElasticFilament.C GridEvolution.C
+SRC_FILES +=  DeformingBodyMotion.C DeformingGrid.C ElasticFilament.C GridEvolution.C ArrayEvolution.C
 
 SRC_FILES += BeamModel.C beamInitialConditions.C NonlinearBeamModel.C BeamFluidInterfaceData.C FEMBeamModel.C FDBeamModel.C
 

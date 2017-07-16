@@ -208,10 +208,12 @@ exit
 sub convertToNurbs\
 { local($old,$new,$angle)=@_; \
   $commands = "nurbs (surface)\n" . \
-              "interpolate from mapping with options\n" . "$old\n" . "parameterize by index (uniform)\n" . "done\n" . \
+              "interpolate from mapping with options\n" . "$old\n" . "parameterize by index (uniform)\n" . \
+              " number of ghost points to include\n $numGhost\n" . "done\n" . \
               "rotate\n" . "$angle 1\n" . "0 0 0\n" . \
               "mappingName\n" . "$new\n" . "exit\n"; \
 }
+$numGhost=$order/2; 
 #
 # Convert to nurbs for faster evaluation (I hope)
 #
@@ -219,6 +221,7 @@ convertToNurbs("stir1-orig","stir1",0.);
 $commands
 convertToNurbs("stir2-orig","stir2",0.);
 $commands
+
 #
 exit
 generate an overlapping grid

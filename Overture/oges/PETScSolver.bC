@@ -1124,7 +1124,7 @@ buildMatrix( realCompositeGridFunction & coeff, realCompositeGridFunction & uu )
   numberOfUnknownsThisProcessor=numberOfGridPointsThisProcessor*numberOfComponents;
 
   if (false)
-    printf("PETScSolver:INFO: myid=%i,unknows of this processor=%i\n",
+    printf("PETScSolver:INFO: myid=%i,unknowns of this processor=%i\n",
           myid,numberOfUnknownsThisProcessor);
 
   int iv[3], &i1=iv[0], &i2=iv[1], &i3=iv[2]; 
@@ -2084,6 +2084,7 @@ buildMatrix( realCompositeGridFunction & coeff, realCompositeGridFunction & uu )
 
            delete [] jgv;
            delete [] vv;
+
         }
       }
       

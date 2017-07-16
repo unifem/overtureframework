@@ -67,6 +67,9 @@ PETScEquationSolver.o : $(Oges)/PETScEquationSolver.C
 PETScSolver.o : $(Oges)/PETScSolver.C
 	$(CC) $(CCFLAGSP) -DOVERTURE_USE_PETSC -c $(Oges)/PETScSolver.C
 
+# For parallel tcm3 needs to be compiled with -DOVERTURE_USE_PETSC
+tcm3.o : tcm3.C
+	$(CC) $(CCFLAGSP) -DOVERTURE_USE_PETSC -c tcm3.C
 
 # Parallel tcm3 example: 
 # mpirun -np 2 tcm3 square20.hdf -solver=petsc -dirichlet

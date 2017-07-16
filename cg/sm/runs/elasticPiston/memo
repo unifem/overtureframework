@@ -1,0 +1,118 @@
+********************************
+***** July 8, 2017
+
+TEST Radial elastic piston
+
+cgsm radialElasticPiston -g=../../mp/elasticPiston/radialElasticPistonGride2.order2 -pv=g -amp=.1 -tp=.1 -tf=.5 -go=halt
+
+********************************
+***** July 8, 2017
+
+TEST Radial elastic piston
+
+cgsm -noplot radialElasticPiston -g=annulus4.order2 -pv=g -amp=.1 -tp=.1 -tf=.5 -go=go
+cgsm -noplot radialElasticPiston -g=annulus2.order2 -pv=g -amp=.1 -tp=.1 -tf=.5 -go=go
+
+++++ TRaction BC:
+
+
+
+++++++ Dirichlet BC ++++
+G2
+-->t=5.0000e-01 dt=1.0e-02 maxNorm errors:[8.8637e-04,8.8587e-04,1.6385e-03,6.2777e-04,6.2777e-04,1.6370e-03,2.4358e-04,2.4344e-04,], maxNorm(u):[1.19e+00,1.19e+00,6.32e-01,2.57e-01,2.57e-01,6.32e-01,9.82e-02,9.82e-02,]
+
+G4:
+-->t=5.0000e-01 dt=5.0e-03 maxNorm errors:[2.1763e-04,2.1763e-04,3.9572e-04,1.5743e-04,1.5743e-04,3.9572e-04,6.1683e-05,6.1683e-05,], maxNorm(u):[1.19e+00,1.19e+00,6.32e-01,2.58e-01,2.58e-01,6.32e-01,9.81e-02,9.81e-02,] 
+
+
+cgsm radialElasticPiston -g=annulus2.order2 -pv=g -amp=.1 -tp=.01 -tf=.5 -go=halt
+
+
+********************************
+***** May 25, 2017
+
+TEST INS + bulk elastic piston exact solution
+
+TEST TimeFunction -- ramp 
+
+FIXED TRUE SOLUTION -- was wrong
+
+test:
+cgsm -noplot elasticPiston -g=rect4.order2.hdf -pv=g -tp=.1 -amp=.1 -tf=.5 -go=go
+cgsm -noplot elasticPiston -g=rect8.order2.hdf -pv=g -tp=.1 -amp=.1 -tf=.5 -go=go
+
+
+G4: 
+-->t=5.0000e-01 dt=6.3e-03 maxNorm errors:[6.4140e-04,2.2648e-03,1.5451e-03,1.0389e-03,1.0389e-03,4.2026e-03,2.2518e-05,8.1196e-05,], maxNorm(u):[6.41e-04,9.93e-01,5.73e-01,1.04e-03,1.04e-03,1.72e+00,2.25e-05,3.72e-02,]
+
+G8:
+-->t=5.0000e-01 dt=3.2e-03 maxNorm errors:[9.8312e-05,3.8643e-04,2.7936e-04,1.4158e-04,1.4158e-04,6.7271e-04,3.1885e-06,1.5680e-05,], maxNorm(u):[9.83e-05,9.94e-01,5.74e-01,1.42e-04,1.42e-04,1.72e+00,3.19e-06,3.74e-02,]
+
+
+
+
+cgsm elasticPiston -g=rect8.order2.hdf -pv=g -tp=.1 -tf=1
+New solution F = sin()
+-->t=1.0000e-01 dt=3.2e-03 maxNorm errors:[2.8365e-08,1.6643e-07,6.8308e-08,8.8153e-08,8.8153e-08,2.0950e-07,1.2957e-09,2.6519e-07,], maxNorm(u):[2.84e-08,4.66e-02,1.63e-02,8.82e-08,8.82e-08,4.88e-02,1.30e-09,5.18e-03,]
+>>> Cgsm: GDLE: t=1.00e-01, steps=31, dt=3.2e-03 |div(U)|=1.63e-02, |curl(U)|=1.06e-05, |div(U)|/|grad(U)|=1.00e+00 |grad(U)|=1.63e-02, cpu=3.57e+01(s)
+
+
+
+Orginal elastic-piston soluition:
+-->t=1.0000e-01 dt=3.2e-03 maxNorm errors:[3.1651e-07,1.1966e-06,9.8870e-07,6.7151e-07,6.7151e-07,2.9606e-06,1.4414e-08,6.6699e-07,], maxNorm(u):[3.17e-07,2.82e-01,2.69e-01,6.72e-07,6.72e-07,8.06e-01,1.44e-08,8.56e-02,]
+>>> Cgsm: GDLE: t=1.00e-01, steps=31, dt=3.2e-03 |div(U)|=2.69e-01, |curl(U)|=2.61e-05, |div(U)|/|grad(U)|=1.00e+00 |grad(U)|=2.69e-01, cpu=1.00e+01(s)
+
+
+
+********************************
+***** May 25, 2017
+
+TEST INS + bulk elastic piston exact solution (solution from Dan Serino)
+
+Rectangle -- solid on bottom
+ogen -noplot rectangleArg  -order=2 -xa=0. -xb=1. -ya=-.5 -yb=0. -prefix=rect -factor=1
+ogen -noplot rectangleArg  -order=2 -xa=0. -xb=1. -ya=-.5 -yb=0. -prefix=rect -factor=2
+ogen -noplot rectangleArg  -order=2 -xa=0. -xb=1. -ya=-.5 -yb=0. -prefix=rect -factor=4
+ogen -noplot rectangleArg  -order=2 -xa=0. -xb=1. -ya=-.5 -yb=0. -prefix=rect -factor=8
+
+
+
+---GD---
+cgsm elasticPiston -g=rect8.order2.hdf -pv=g -tp=.1 -tf=.1
+cgsm elasticPiston -g=rect4.order2.hdf -pv=g -tp=.1 -tf=.1
+
+
+--NC--  --> OK
+cgsm elasticPiston -g=rect8.order2.hdf -pv=nc -tp=.1 -tf=.5
+cgsm elasticPiston -g=rect4.order2.hdf -pv=nc -tp=.1 -tf=.5
+
+G4-->t=5.0000e-01 dt=9.1e-03 maxNorm errors:[2.0087e-06,1.5520e-05,], maxNorm(u):[2.01e-06,9.13e-02,]
+G8 ->t=5.0000e-01 dt=4.5e-03 maxNorm errors:[5.0311e-07,3.8692e-06,], maxNorm(u):[5.03e-07,9.13e-02,]
+
+
+cgsm elasticPiston -g=rect4.order2.hdf -pv=g -tp=.001 -tf=1.
+     
+
+
+cgsm elasticPiston -g=rect1.order2.hdf -pv=g -tp=.1 -tf=1.
+     
+
+
+    
+
+
+********************************
+***** Dec 01, 2016
+
+Initial tests of the fake elastic piston solution
+
+cgsm elasticPiston -g=square20.order2.hdf -pv=g -tp=.1 -tf=1.
+
+
+G40
+-->t=1.0000e+00 dt=6.3e-03 maxNorm errors:[5.6681e-04,1.2802e-03,1.1599e-03,8.2660e-04,8.2660e-04,1.8518e-03,4.1490e-05,8.9299e-05,], maxNorm(u):[5.67e-04,1.09e+00,6.28e-01,8.27e-04,8.27e-04,1.88e+00,4.15e-05,9.99e-02,]
+>>> Cgsm: GDLE: t=1.00e+00, steps=160, dt=6.3e-03 |div(U)|=6.26e-01, |curl(U)|=1.02e-03, |div(U)|/|grad(U)|=1.00e+00 |grad(U)|=6.25e-01, cpu=5.24e+00(s)
+
+G20
+ -->t=1.0000e+00 dt=1.3e-02 maxNorm errors:[2.4665e-03,8.4988e-03,7.9754e-03,4.4829e-03,4.4829e-03,1.3019e-02,3.4839e-04,8.9728e-04,], maxNorm(u):[2.47e-03,1.08e+00,6.24e-01,4.48e-03,4.48e-03,1.87e+00,3.48e-04,9.94e-02,]
+>>> Cgsm: GDLE: t=1.00e+00, steps=80, dt=1.3e-02 |div(U)|=6.16e-01, |curl(U)|=6.00e-03, |div(U)|/|grad(U)|=1.00e+00 |grad(U)|=6.14e-01, cpu=2.01e+00(s)

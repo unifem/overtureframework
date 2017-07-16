@@ -1,0 +1,89 @@
+************************************
+****** June 20-21, 2017
+
+++++++GRIDS++++++
+ogen -noplot plug3d -interp=e -factor=1
+ogen -noplot plug3d -interp=e -factor=2
+ogen -noplot plug3d -interp=e -factor=4
+
+TEST piston-3d -- timings for pressure solve
+
+Add ogesDebug
+
+
+PARALLEL TP SCHEME
+$cginsp -noplot piston3D.cmd -option=piston3d -nu=.05 -tf=.02 -tp=.01 -cfl=0.9 -ts=im -dtMax=.04 -bodyDensity=10 -inertia=10 -relaxRigidBody=0 -numberOfCorrections=1 -solver=best -psolver=best -rtol=1.e-6 -atol=1.e-8 -rtolp=1.e-10 -atolp=1.e-10 -useTP=0 -addedMass=0 -addedDamping=0 -addedDampingCoeff=1 -scaleAddedDampingWithDt=1 -nu=.01 -useProvidedAcceleration=0 -gravity=0 -g=plug3de4.order2.hdf -freqFullUpdate=1 -ogesDebug=1 -go=go > plug3de4TPp.out
+
+TP- PARALLEL
+PETScSolver:: build matrix... Oges::debug=1
+--PS-- start and end equation numbers for each grid:
+     grid=0 [eqnStart,eqnEnd]=[0,192374]
+     grid=1 [eqnStart,eqnEnd]=[192375,242999]
+PETScSolver:: ... done build matrix, cpu=2.07e-01
+PETScSolver::Time for solve=7.11e-01 (its=55) 
+
+TP-  SERIAL: 
+++Petsc TIMINGS (for 55 its, size of matrix n = 243000 ):
+ build=0.077355, precond=0.09487, solve=0.617726, total=0.789951.
+
+
+PARALLEL
+mpirun -np 2 $cginsp -noplot piston3D.cmd -option=piston3d -nu=.05 -tf=.02 -tp=.01 -cfl=0.9 -ts=im -dtMax=.04 -bodyDensity=10 -inertia=10 -relaxRigidBody=0 -numberOfCorrections=1 -solver=best -psolver=best -rtol=1.e-6 -atol=1.e-8 -rtolp=1.e-10 -atolp=1.e-10 -useTP=0 -addedMass=1 -addedDamping=1 -addedDampingCoeff=1 -scaleAddedDampingWithDt=1 -nu=.01 -useProvidedAcceleration=1 -gravity=0 -g=plug3de4.order2.hdf -freqFullUpdate=1 -ogesDebug=1 -go=go > plug3de4p2.out
+
+PETScSolver:: build matrix... Oges::debug=1
+  >> -np=4 
+--PS-- start and end equation numbers for each grid:
+     grid=0 [eqnStart,eqnEnd]=[0,192374]
+     grid=1 [eqnStart,eqnEnd]=[192375,242999]
+Time for filling user extra equations= 5.95e-01(s)
+PETScSolver:: ... done build matrix, cpu=8.30e-01
+
+  >> -np=2
+PETScSolver:: build matrix... Oges::debug=1
+--PS-- start and end equation numbers for each grid:
+     grid=0 [eqnStart,eqnEnd]=[0,192374]
+     grid=1 [eqnStart,eqnEnd]=[192375,242999]
+Time for filling user extra equations= 3.22e+00(s)
+PETScSolver:: ... done build matrix, cpu=3.92e+00
+
+$cginsp -noplot piston3D.cmd -option=piston3d -nu=.05 -tf=.02 -tp=.01 -cfl=0.9 -ts=im -dtMax=.04 -bodyDensity=10 -inertia=10 -relaxRigidBody=0 -numberOfCorrections=1 -solver=best -psolver=best -rtol=1.e-6 -atol=1.e-8 -rtolp=1.e-10 -atolp=1.e-10 -useTP=0 -addedMass=1 -addedDamping=1 -addedDampingCoeff=1 -scaleAddedDampingWithDt=1 -nu=.01 -useProvidedAcceleration=1 -gravity=0 -g=plug3de4.order2.hdf -freqFullUpdate=1 -ogesDebug=1 -go=go > plug3de4p.out
+
+PETScSolver:: build matrix... Oges::debug=1
+--PS-- start and end equation numbers for each grid:
+     grid=0 [eqnStart,eqnEnd]=[0,192374]
+     grid=1 [eqnStart,eqnEnd]=[192375,242999]
+Time for filling user extra equations= 1.22e+01(s)
+PETScSolver:: ... done build matrix, cpu=1.24e+01
+PETScSolver::Time for solve=8.78e-01 (its=62) 
+
+G4
+PETScSolver:: build matrix... Oges::debug=1
+--PS-- start and end equation numbers for each grid:
+     grid=0 [eqnStart,eqnEnd]=[0,192374]
+     grid=1 [eqnStart,eqnEnd]=[192375,242999]
+PETScSolver:: ... done build matrix, cpu=1.23e+01  *** NOTE ****** TOO LONG
+PETScSolver::Time for solve=1.12e-01 (its=0) 
+--PETSc-- solver: ksp[unknown] pc[] sub-ksp[] sub-pc[]
+
+
+
+
+G4
+cgins -noplot piston3D.cmd -option=piston3d -nu=.05 -tf=.02 -tp=.01 -cfl=0.9 -ts=im -dtMax=.04 -bodyDensity=10 -inertia=10 -relaxRigidBody=0 -numberOfCorrections=1 -solver=best -psolver=best -rtol=1.e-6 -atol=1.e-8 -rtolp=1.e-10 -atolp=1.e-10 -useTP=0 -addedMass=1 -addedDamping=1 -addedDampingCoeff=1 -scaleAddedDampingWithDt=1 -nu=.01 -useProvidedAcceleration=1 -gravity=0 -g=plug3de4.order2.hdf -freqFullUpdate=1 -ogesDebug=1 -go=go > plug3de4.out
+
+Pressure 
+++Petsc TIMINGS (for 63 its, size of matrix n = 243000 ):
+ build=0.076671, precond=0.100711, solve=0.736405, total=0.913787.
+
+++Petsc TIMINGS (for 46 its, size of matrix n = 243000 ):
+ build=0.009878, precond=2e-06, solve=0.526807, total=0.536687.
+
+Velocity:
+++Petsc TIMINGS (for 1 its, size of matrix n = 729000 ):
+ build=0.298569, precond=0.324961, solve=0.070862, total=0.694392.
+
+G1
+cgins -noplot piston3D.cmd -option=piston3d -nu=.05 -tf=.02 -tp=.01 -cfl=0.9 -ts=im -dtMax=.04 -bodyDensity=10 -inertia=10 -relaxRigidBody=0 -numberOfCorrections=1 -solver=best -psolver=best -rtol=1.e-6 -atol=1.e-8 -rtolp=1.e-10 -atolp=1.e-10 -useTP=0 -addedMass=1 -addedDamping=1 -addedDampingCoeff=1 -scaleAddedDampingWithDt=1 -nu=.01 -useProvidedAcceleration=1 -gravity=0 -g=plug3de1.order2.hdf -freqFullUpdate=1 -ogesDebug=1 -go=go -show=plug3de1.show > plug3de1.out
+
+++Petsc TIMINGS (for 17 its, size of matrix n = 8550 ):
+ build=0.005031, precond=0.004224, solve=0.007451, total=0.016706.

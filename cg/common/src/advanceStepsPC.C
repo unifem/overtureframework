@@ -1062,134 +1062,139 @@ takeTimeStepPC( real & t0, real & dt0, int correction, AdvanceOptions & advanceO
     // **************** Predictor Step **********************
     // ******************************************************
 
-
-    // -------------------------------------------------
-    // --------------- adaptive grids ------------------
-    // -------------------------------------------------
-
-        bool useNew=false;
-
-        const int regridFrequency = parameters.dbase.get<int >("amrRegridFrequency")>0 ? parameters.dbase.get<int >("amrRegridFrequency") :
-            parameters.dbase.get<Regrid* >("regrid")==NULL ? 2 : parameters.dbase.get<Regrid* >("regrid")->getRefinementRatio();
-        bool gridWasAdapted=false; // set to true if we have performed an AMR regrid on this step
-        if( parameters.isAdaptiveGridProblem() && ((parameters.dbase.get<int >("globalStepNumber") % regridFrequency) == 0) )
+    // --- Advance the interior points ----
+        if( takeTimeStep ) 
         {
-            gridWasAdapted=true;
-
-            printF("\n ***** takeTimeStepPC: AMR regrid at step %i ***** \n\n",parameters.dbase.get<int >("globalStepNumber"));
             if( debug() & 2 )
-      	fPrintF(debugFile,"\n ***** takeTimeStepPC: AMR regrid at step %i ***** \n\n",
-                                parameters.dbase.get<int >("globalStepNumber"));
+                printP("++++++++++++ takeTimeStep: update interior points t0+dt0=%9.3e\n\n",t0+dt0);
+                
+      // -------------------------------------------------
+      // --------------- adaptive grids ------------------
+      // -------------------------------------------------
+
+            bool useNew=false;
+
+            const int regridFrequency = parameters.dbase.get<int >("amrRegridFrequency")>0 ? parameters.dbase.get<int >("amrRegridFrequency") :
+                parameters.dbase.get<Regrid* >("regrid")==NULL ? 2 : parameters.dbase.get<Regrid* >("regrid")->getRefinementRatio();
+            bool gridWasAdapted=false; // set to true if we have performed an AMR regrid on this step
+            if( parameters.isAdaptiveGridProblem() && ((parameters.dbase.get<int >("globalStepNumber") % regridFrequency) == 0) )
+            {
+                gridWasAdapted=true;
+
+                printF("\n ***** takeTimeStepPC: AMR regrid at step %i ***** \n\n",parameters.dbase.get<int >("globalStepNumber"));
+                if( debug() & 2 )
+                    fPrintF(debugFile,"\n ***** takeTimeStepPC: AMR regrid at step %i ***** \n\n",
+                                    parameters.dbase.get<int >("globalStepNumber"));
             
-            real timea=getCPU();
+                real timea=getCPU();
 
 
-            GridFunction & gf0= gf[mCur];
-            GridFunction & gf1= gf[mOld];
+                GridFunction & gf0= gf[mCur];
+                GridFunction & gf1= gf[mOld];
             
-            if( parameters.useConservativeVariables() )
-      	gf0.primitiveToConservative();  // *wdh* 010318  -- do amr interpolation on conservative variables.
+                if( parameters.useConservativeVariables() )
+                    gf0.primitiveToConservative();  // *wdh* 010318  -- do amr interpolation on conservative variables.
 
-            const int numberToUpdate=1; // we update one extra grid-function to live on the new AMR grid
+                const int numberToUpdate=1; // we update one extra grid-function to live on the new AMR grid
 
-            if( !useNew || !parameters.isMovingGridProblem() )  // 
-            { // for non-moving grids we interpolate uNew=du/dt(t-dt)
+                if( !useNew || !parameters.isMovingGridProblem() )  // 
+                { // for non-moving grids we interpolate uNew=du/dt(t-dt)
       	
-	// we need to extrapolate values on uNew since the interpolator may use these values
-      	uNew.setOperators(*gf[mCur].u.getOperators());
-      	uNew.interpolate(); // we need to interpolate uNew since we may use these values.
-      	uNew.applyBoundaryCondition(C,BCTypes::extrapolate,BCTypes::allBoundaries,0.);
-      	uNew.finishBoundaryConditions();
+          // we need to extrapolate values on uNew since the interpolator may use these values
+                    uNew.setOperators(*gf[mCur].u.getOperators());
+                    uNew.interpolate(); // we need to interpolate uNew since we may use these values.
+                    uNew.applyBoundaryCondition(C,BCTypes::extrapolate,BCTypes::allBoundaries,0.);
+                    uNew.finishBoundaryConditions();
 
-      	adaptGrids( gf0, numberToUpdate,&uNew ); 
-      	gf1.updateToMatchGrid(gf0.cg);  // *wdh* 040928
-            }
-            else
-            { // for moving grids we interpolate gf1 = u(t-dt)
-	// du/dt(t-dt) will be recomputed below in the moving grid section
+                    adaptGrids( gf0, numberToUpdate,&uNew ); 
+                    gf1.updateToMatchGrid(gf0.cg);  // *wdh* 040928
+                }
+                else
+                { // for moving grids we interpolate gf1 = u(t-dt)
+          // du/dt(t-dt) will be recomputed below in the moving grid section
 
-      	adaptGrids( gf0, numberToUpdate,&gf1.u ); 
-      	gf1.updateToMatchGrid(gf0.cg);
-            }
+                    adaptGrids( gf0, numberToUpdate,&gf1.u ); 
+                    gf1.updateToMatchGrid(gf0.cg);
+                }
 
-      // the next has been moved into adaptGrids 070706
-      // real time1=getCPU();
-      // gf0.cg.rcData->interpolant->updateToMatchGrid( gf0.cg ); 
-      // parameters.dbase.get<RealArray>("timing")(Parameters::timeForUpdateInterpolant)+=getCPU()-time1;
-            real time1=getCPU();
+        // the next has been moved into adaptGrids 070706
+        // real time1=getCPU();
+        // gf0.cg.rcData->interpolant->updateToMatchGrid( gf0.cg ); 
+        // parameters.dbase.get<RealArray>("timing")(Parameters::timeForUpdateInterpolant)+=getCPU()-time1;
+                real time1=getCPU();
 
-            if( debug() & 2 ) printf("takeTimeStepPC:adapt step: update gf0 for moving grids...\n");
-            updateForMovingGrids(gf0);  // ****
+                if( debug() & 2 ) printf("takeTimeStepPC:adapt step: update gf0 for moving grids...\n");
+                updateForMovingGrids(gf0);  // ****
 
-      // do here for now -- we shouldn't do this in updateForMovingGrids since this is not correct below
-      // when the grids are moved
-            gf0.gridVelocityTime=gf0.t -1.e10; 
+        // do here for now -- we shouldn't do this in updateForMovingGrids since this is not correct below
+        // when the grids are moved
+                gf0.gridVelocityTime=gf0.t -1.e10; 
 
-      // we need to recompute the grid velocity on AMR grids -- really only need to do refinements***
-            if( parameters.isMovingGridProblem() )
-            {
-	// recompute the grid velocity
-      	getGridVelocity( gf0, gf0.t );
-            }
+        // we need to recompute the grid velocity on AMR grids -- really only need to do refinements***
+                if( parameters.isMovingGridProblem() )
+                {
+          // recompute the grid velocity
+                    getGridVelocity( gf0, gf0.t );
+                }
 
-            interpolateAndApplyBoundaryConditions( gf0 );
-            parameters.dbase.get<RealArray>("timing")(parameters.dbase.get<int>("timeForAmrBoundaryConditions"))+=getCPU()-time1;
+                interpolateAndApplyBoundaryConditions( gf0 );
+                parameters.dbase.get<RealArray>("timing")(parameters.dbase.get<int>("timeForAmrBoundaryConditions"))+=getCPU()-time1;
             
-            if( debug() & 16 )
-            {
-      	if( parameters.dbase.get<bool >("twilightZoneFlow") )
-      	{
-        	  determineErrors( gf0,sPrintF(" takeTimeStepPC: errors after regrid, t=%e \n",gf0.t) ) ;
-      	}
-      	else
-      	{
-        	  outputSolution( gf0.u,gf0.t,sPrintF(" ***takeTimeStepPC: regrid: solution ***\n") );
-      	}
-            }
+                if( debug() & 16 )
+                {
+                    if( parameters.dbase.get<bool >("twilightZoneFlow") )
+                    {
+                        determineErrors( gf0,sPrintF(" takeTimeStepPC: errors after regrid, t=%e \n",gf0.t) ) ;
+                    }
+                    else
+                    {
+                        outputSolution( gf0.u,gf0.t,sPrintF(" ***takeTimeStepPC: regrid: solution ***\n") );
+                    }
+                }
 
-            ua.updateToMatchGrid(gf0.cg);
+                ua.updateToMatchGrid(gf0.cg);
 
-            gf1.updateToMatchGrid(gf0.cg);
-            if( !useNew || !parameters.isMovingGridProblem() )
-      	gf1.u.updateToMatchGrid(gf1.cg);
-      // gf1.u=0.;
-            gf1.u.setOperators(*gf0.u.getOperators());
+                gf1.updateToMatchGrid(gf0.cg);
+                if( !useNew || !parameters.isMovingGridProblem() )
+                    gf1.u.updateToMatchGrid(gf1.cg);
+        // gf1.u=0.;
+                gf1.u.setOperators(*gf0.u.getOperators());
             
-            if( debug() & 2 ) printF("takeTimeStepPC::adapt step: update gf1 for moving grids...\n");
-            updateForMovingGrids(gf1);
-      // do here for now -- we shouldn't do this in updateForMovingGrids since this is not correct below
-      // when the grids are moved
-            gf1.gridVelocityTime=gf1.t -1.e10;
+                if( debug() & 2 ) printF("takeTimeStepPC::adapt step: update gf1 for moving grids...\n");
+                updateForMovingGrids(gf1);
+        // do here for now -- we shouldn't do this in updateForMovingGrids since this is not correct below
+        // when the grids are moved
+                gf1.gridVelocityTime=gf1.t -1.e10;
 
             
-            if( numberOfGridFunctions==3 )
-            { 
-	// update gf2
-	// ***note: if we want to retain u(t-dt) then we must interpolate here instead, as was done
-	//          for uNew in the call to adaptGrids
+                if( numberOfGridFunctions==3 )
+                { 
+          // update gf2
+          // ***note: if we want to retain u(t-dt) then we must interpolate here instead, as was done
+          //          for uNew in the call to adaptGrids
 
-      	GridFunction & gf2= gf[mNew];
+                    GridFunction & gf2= gf[mNew];
 
-      	if( parameters.isMovingGridProblem() )
-      	{
-        	  gf2.cg=gf0.cg;  // we make a copy in this case
-      	}
-      	else
-      	{
-        	  gf2.updateToMatchGrid(gf0.cg);
-      	}
-      	gf2.u.updateToMatchGrid(gf2.cg);
-      	gf2.u=0.;
-      	gf2.u.setOperators(*gf0.u.getOperators());
+                    if( parameters.isMovingGridProblem() )
+                    {
+                        gf2.cg=gf0.cg;  // we make a copy in this case
+                    }
+                    else
+                    {
+                        gf2.updateToMatchGrid(gf0.cg);
+                    }
+                    gf2.u.updateToMatchGrid(gf2.cg);
+                    gf2.u=0.;
+                    gf2.u.setOperators(*gf0.u.getOperators());
             
-      	updateForMovingGrids(gf2);
-      	gf2.gridVelocityTime=gf2.t -1.e10;
+                    updateForMovingGrids(gf2);
+                    gf2.gridVelocityTime=gf2.t -1.e10;
 
-            }
+                }
             
 
-      // p has actually been interpolated ok ?? maybe ghost points are wrong?
-      // **** solveForTimeIndependentVariables( gf0 ); 
+        // p has actually been interpolated ok ?? maybe ghost points are wrong?
+        // **** solveForTimeIndependentVariables( gf0 ); 
 
 /* ================================ fix me =============================  move elsewhere =========================
       if( true )
@@ -1217,575 +1222,595 @@ takeTimeStepPC( real & t0, real & dt0, int correction, AdvanceOptions & advanceO
 
 */ 
             
-        } // end adaptive grids 
+            } // end adaptive grids 
         
 
-    // moveTheGridsMacro(adamsPC,gf[mCur].u); // *wdh* 090804 
+      // moveTheGridsMacro(adamsPC,gf[mCur].u); // *wdh* 090804 
         
         
-        real ab1,ab2;
-        if( predictorOrder==1 )
-        { // first order predictor
-            ab1=dt0;
-            ab2=0.;
-        }
-        else 
-        { // 2nd -order predictor
-            ab1= dt0*(1.+dt0/(2.*dtb));  // becomes 1.5*dt0  if dt0==dtb
-            ab2= -dt0*dt0/(2.*dtb);      //         -.5*dt0
-        }
+            real ab1,ab2;
+            if( predictorOrder==1 )
+            { // first order predictor
+                ab1=dt0;
+                ab2=0.;
+            }
+            else 
+            { // 2nd -order predictor
+                ab1= dt0*(1.+dt0/(2.*dtb));  // becomes 1.5*dt0  if dt0==dtb
+                ab2= -dt0*dt0/(2.*dtb);      //         -.5*dt0
+            }
     
-        dtp[ndt0]=dt0;
-        real dt1=dtp[(ndt0+1)%5];
-        real dt2=dtp[(ndt0+2)%5];
-        real dt3=dtp[(ndt0+3)%5];
-        real dt4=dtp[(ndt0+4)%5];
+            dtp[ndt0]=dt0;
+            real dt1=dtp[(ndt0+1)%5];
+            real dt2=dtp[(ndt0+2)%5];
+            real dt3=dtp[(ndt0+3)%5];
+            real dt4=dtp[(ndt0+4)%5];
 
-    // ------------------------------------------------------
-    // ----------------- Moving Grids -----------------------
-    // ------------------------------------------------------
+      // ------------------------------------------------------
+      // ----------------- Moving Grids -----------------------
+      // ------------------------------------------------------
 
-        real tb=gf[mCur].t-dt1, tc=tb-dt2, td=tc-dt3; // check me 
-        const int numberOfPastTimes=0;
-        const int numberOfPastTimeDerivatives=predictorOrder-1; 
-        if( movingGridProblem() )
-        {
-            checkArrays(" adamsPC : before move grids"); 
-            if( debug() & 8 )
-                printF(" adamsPC: before moveTheGridsMacro: t0=%9.3e, gf[mNew].t=%9.3e, gf[mNew].gridVelocityTime=%9.3e\n",
-                 	   t0,gf[mNew].t,gf[mNew].gridVelocityTime);
-            if( debug() & 4 )
-                fPrintF(debugFile," adamsPC: before moveTheGridsMacro: t0=%9.3e, gf[mNew].t=%9.3e, gf[mNew].gridVelocityTime=%9.3e\n",
-                 	   t0,gf[mNew].t,gf[mNew].gridVelocityTime);
-      // generate gf[mNew] from gf[mCur] (compute grid velocity on gf[mCur] and gf[mNew]
-            moveGrids( t0,t0,t0+dt0,dt0,gf[mCur],gf[mCur],gf[mNew] ); 
-            checkArrayIDs(sPrintF(" adamsPC : after move grids t=%9.3e",gf[mCur].t));
-            if( parameters.isAdaptiveGridProblem() )
+            real tb=gf[mCur].t-dt1, tc=tb-dt2, td=tc-dt3; // check me 
+            const int numberOfPastTimes=0;
+            const int numberOfPastTimeDerivatives=predictorOrder-1; 
+            if( movingGridProblem() )
             {
-        // both moving and AMR 
-                parameters.dbase.get<Ogen* >("gridGenerator")->updateRefinement(gf[mNew].cg);
-            }
-            if( debug() & 16 )
-            {
-                if( twilightZoneFlow() )
+                checkArrays(" adamsPC : before move grids"); 
+                if( debug() & 8 )
+                    printF(" adamsPC: before moveTheGridsMacro: t0=%9.3e, gf[mNew].t=%9.3e, gf[mNew].gridVelocityTime=%9.3e\n",
+                     	   t0,gf[mNew].t,gf[mNew].gridVelocityTime);
+                if( debug() & 4 )
+                    fPrintF(debugFile," adamsPC: before moveTheGridsMacro: t0=%9.3e, gf[mNew].t=%9.3e, gf[mNew].gridVelocityTime=%9.3e\n",
+                     	   t0,gf[mNew].t,gf[mNew].gridVelocityTime);
+        // generate gf[mNew] from gf[mCur] (compute grid velocity on gf[mCur] and gf[mNew]
+                moveGrids( t0,t0,t0+dt0,dt0,gf[mCur],gf[mCur],gf[mNew] ); 
+                checkArrayIDs(sPrintF(" adamsPC : after move grids t=%9.3e",gf[mCur].t));
+                if( parameters.isAdaptiveGridProblem() )
                 {
-                    fprintf(debugFile,"\n ---> adamsPC : Errors in u after moveGrids t=%e  \n",gf[mCur].t);
-                    determineErrors( gf[mCur] );
-                }
-            }
-            real cpu0=getCPU();
-            gf[mNew].cg.rcData->interpolant->updateToMatchGrid( gf[mNew].cg );  
-            parameters.dbase.get<RealArray>("timing")(parameters.dbase.get<int>("timeForUpdateInterpolant"))+=getCPU()-cpu0;
-            cpu0=getCPU();
-            gf[mNew].u.getOperators()->updateToMatchGrid(gf[mNew].cg); 
-            parameters.dbase.get<RealArray>("timing")(parameters.dbase.get<int>("timeForUpdateOperators"))+=getCPU()-cpu0;
-            if( debug() & 4 ) printf("adamsPC : step: update gf[mNew] for moving grids, gf[mNew].t=%9.3e,...\n",gf[mNew].t);
-            if( debug() & 16 )
-            {
-                if( twilightZoneFlow() )
-                {
-                    fprintf(debugFile,"\n ---> adamsPC: Errors in u before updateForMovingGrids t=%e  \n",gf[mCur].t);
-                    fprintf(debugFile,"*** mCur=%i mNew=%i numberOfGridFunctions=%i *** \n",
-                    	      mCur,mNew,numberOfGridFunctions);
-                    determineErrors( gf[mCur] );
-                }
-            }
-            updateForMovingGrids(gf[mNew]);
-      // ****      gf[mNew].u.updateToMatchGrid( gf[mNew].cg );  
-            checkArrayIDs(sPrintF(" adamsPC : after updateForMovingGrids t=%9.3e",gf[mCur].t));
-            if( debug() & 16 )
-            {
-                if( twilightZoneFlow() )
-                {
-                    fprintf(debugFile,"\n ---> adamsPC: Errors in u after updateForMovingGrids t=%e  \n",gf[mCur].t);
-                    determineErrors( gf[mCur] );
-                }
-            }
-      // get values for exposed points on gf[mCur]
-            if( parameters.useConservativeVariables() )
-                gf[mCur].primitiveToConservative();  // *wdh* 010318
-            cpu0=getCPU();
-            if( useNewExposedPoints && parameters.dbase.get<int>("simulateGridMotion")==0 )
-            {
-                if( Parameters::checkForFloatingPointErrors )
-                    checkSolution(gf[mCur].u,"Before interp exposed points",true);
-                if( debug() & 16 )
-                {
-                    if( twilightZoneFlow() )
-                    {
-              	fprintf(debugFile,"\n ---> adamsPC: Errors in u BEFORE interp exposed t=%e  \n",gf[mCur].t);
-              	determineErrors( gf[mCur] );
-                    }
-                }
-                ExposedPoints exposedPoints;
-                exposedPoints.setAssumeInterpolationNeighboursAreAssigned(parameters.dbase.get<int >("extrapolateInterpolationNeighbours"));
-                exposedPoints.initialize(gf[mCur].cg,gf[mNew].cg,parameters.dbase.get<int >("stencilWidthForExposedPoints"));
-                exposedPoints.interpolate(gf[mCur].u,(twilightZoneFlow() ? parameters.dbase.get<OGFunction* >("exactSolution") : NULL),t0);
-        // Added for BDF: *wdh* 2015/04/05
-                for( int kp=1; kp<=numberOfPastTimes; kp++ )
-                {
-                    const int mPast = (mCur -kp + numberOfGridFunctions) % numberOfGridFunctions; 
-                    exposedPoints.initialize(gf[mPast].cg,gf[mNew].cg,parameters.dbase.get<int >("stencilWidthForExposedPoints"));
-                    exposedPoints.interpolate(gf[mPast].u,(twilightZoneFlow() ? parameters.dbase.get<OGFunction* >("exactSolution") : NULL),t0);
+          // both moving and AMR 
+                    parameters.dbase.get<Ogen* >("gridGenerator")->updateRefinement(gf[mNew].cg);
                 }
                 if( debug() & 16 )
                 {
                     if( twilightZoneFlow() )
                     {
-              	fprintf(debugFile,"\n ---> adamsPC: Errors in u AFTER interp exposed t=%e  \n",gf[mCur].t);
-              	determineErrors( gf[mCur] );
+                        fprintf(debugFile,"\n ---> adamsPC : Errors in u after moveGrids t=%e  \n",gf[mCur].t);
+                        determineErrors( gf[mCur] );
                     }
                 }
-                if( predictorOrder>=2  )
+                real cpu0=getCPU();
+                gf[mNew].cg.rcData->interpolant->updateToMatchGrid( gf[mNew].cg );  
+                parameters.dbase.get<RealArray>("timing")(parameters.dbase.get<int>("timeForUpdateInterpolant"))+=getCPU()-cpu0;
+                cpu0=getCPU();
+                gf[mNew].u.getOperators()->updateToMatchGrid(gf[mNew].cg); 
+                parameters.dbase.get<RealArray>("timing")(parameters.dbase.get<int>("timeForUpdateOperators"))+=getCPU()-cpu0;
+                if( debug() & 4 ) printf("adamsPC : step: update gf[mNew] for moving grids, gf[mNew].t=%9.3e,...\n",gf[mNew].t);
+                if( debug() & 16 )
                 {
-          // -------------------------
-          // --- fixup du/dt(t-dt) ---
-          // -------------------------
-          // NOTE: we CANNOT directly interpolate points on du/dt since for moving grids
-          // du/dt includes the -gDot.grad(u) term which differs from grid to grid 
-          // Current procedure: 
-          //   1. Interpolate exposed points on u(t-dt)
-          //   2. Recompute du/dt(t-dt) 
-          // Optimizations: 
-          //   - only recompute du/dt(t-dt) on grids with exposed points
-          //   - could only compute du/dt(t-dt) on those points where is not already known.
-                    if( gf[mCur].t<=0. || debug() & 4 )
+                    if( twilightZoneFlow() )
                     {
-                        printF(" --- INFO: Fixup exposed points of u(t-dt) and recompute du/dt(t-dt) t=%9.3e, tb=%9.3e ----- \n"
-                                      "     The extra work involved in recomputing du/dt(t-dt) can be avoided by using "
-                                      "the option 'first order predictor'.\n",gf[mCur].t,tb);
+                        fprintf(debugFile,"\n ---> adamsPC: Errors in u before updateForMovingGrids t=%e  \n",gf[mCur].t);
+                        fprintf(debugFile,"*** mCur=%i mNew=%i numberOfGridFunctions=%i *** \n",
+                        	      mCur,mNew,numberOfGridFunctions);
+                        determineErrors( gf[mCur] );
                     }
-                    ExposedPoints exposedPoints;
-          //            
-          // exposedPoints.setExposedPointType(ExposedPoints::exposedDiscretization);
-                    const int extrapolateInterpolationNeighbours=parameters.dbase.get<int >("extrapolateInterpolationNeighbours");
-                    const int stencilWidthForExposedPoints=parameters.dbase.get<int >("stencilWidthForExposedPoints");
-                    if( debug() & 4 )
+                }
+                updateForMovingGrids(gf[mNew]);
+        // ****      gf[mNew].u.updateToMatchGrid( gf[mNew].cg );  
+                checkArrayIDs(sPrintF(" adamsPC : after updateForMovingGrids t=%9.3e",gf[mCur].t));
+                if( debug() & 16 )
+                {
+                    if( twilightZoneFlow() )
                     {
-                        fPrintF(debugFile," ---- compute exposed for du/dt(t-dt), extrapolateInterpolationNeighbours=%i, "
-                                        "stencilWidthForExposedPoints=%i\n",extrapolateInterpolationNeighbours,stencilWidthForExposedPoints);
+                        fprintf(debugFile,"\n ---> adamsPC: Errors in u after updateForMovingGrids t=%e  \n",gf[mCur].t);
+                        determineErrors( gf[mCur] );
                     }
-                    exposedPoints.setAssumeInterpolationNeighboursAreAssigned(extrapolateInterpolationNeighbours);
-                    exposedPoints.initialize(gf[mOld].cg,gf[mNew].cg,stencilWidthForExposedPoints);
-                    exposedPoints.interpolate(gf[mOld].u,(twilightZoneFlow() ? 
-                                                                        parameters.dbase.get<OGFunction* >("exactSolution") : NULL),gf[mOld].t);
-          // For now recompute du/dt(t-dt) using the mask values from cg(t+dt)
-                    for( int grid=0; grid<gf[mOld].cg.numberOfComponentGrids(); grid++ )
+                }
+        // get values for exposed points on gf[mCur]
+                if( parameters.useConservativeVariables() )
+                    gf[mCur].primitiveToConservative();  // *wdh* 010318
+                cpu0=getCPU();
+                if( useNewExposedPoints && parameters.dbase.get<int>("simulateGridMotion")==0 )
+                {
+                    if( Parameters::checkForFloatingPointErrors )
+                        checkSolution(gf[mCur].u,"Before interp exposed points",true);
+                    if( debug() & 16 )
                     {
-              	if( gridWasAdapted || exposedPoints.getNumberOfExposedPoints(grid)>0 )
-              	{
-                            if( debug() & 2 )
-                            {
-                  	    printF(" ---- adamsPC: recompute du/dt(t-dt) for grid=%i t-dt = %9.3e  (%i exposed)-----\n",grid,gf[mOld].t,
-                       		   exposedPoints.getNumberOfExposedPoints(grid));
-                                fPrintF(debugFile," ---- adamsPC: recompute du/dt(t-dt) for grid=%i t-dt = %9.3e  (%i exposed)-----\n",
-                                              grid,gf[mOld].t,exposedPoints.getNumberOfExposedPoints(grid));
-                            }
-    	  // This is only necesssary if there are exposed points on this grid
-                	  rparam[0]=gf[mOld].t;
-                	  rparam[1]=gf[mOld].t;
-                	  rparam[2]=gf[mCur].t; // tImplicit
-                	  iparam[0]=grid;
-                	  iparam[1]=gf[mOld].cg.refinementLevelNumber(grid);
-                	  iparam[2]=numberOfStepsTaken;
-                	  getUt(gf[mOld].u[grid],gf[mOld].getGridVelocity(grid),ub[grid],iparam,rparam,
-                    		gf[mCur].u[grid],&gf[mNew].cg[grid]);
-              	}
-                        else
+                        if( twilightZoneFlow() )
                         {
-                            if( debug() & 2 )
-                            {
-                  	    printF(" ---- adamsPC: fixp du/dt(t-dt) for grid=%i t-dt = %9.3e  (%i exposed) ...ok -----\n",
-                                              grid,gf[mOld].t,exposedPoints.getNumberOfExposedPoints(grid));
-                                fPrintF(debugFile," ---- adamsPC: fixp du/dt(t-dt) for grid=%i t-dt = %9.3e  (%i exposed) ...ok -----\n",
-                                              grid,gf[mOld].t,exposedPoints.getNumberOfExposedPoints(grid));
-                            }
+                  	fprintf(debugFile,"\n ---> adamsPC: Errors in u BEFORE interp exposed t=%e  \n",gf[mCur].t);
+                  	determineErrors( gf[mCur] );
                         }
                     }
-                    if( debug() & 4 )
-                    {	
-              	if( twilightZoneFlow() )
-              	{
-                	  fprintf(debugFile," ***adamsPC: gf[mOld] after interp exposed, gf[mOld].t=%e",gf[mOld].t);
-                	  for( int grid=0; grid<gf[mOld].cg.numberOfComponentGrids(); grid++ )
-                	  {
-                  	    display(gf[mOld].u[grid],sPrintF("\n ****gf[mOld].u[grid=%i]",grid),debugFile,"%7.1e ");
-                	  }
-                	  determineErrors( gf[mOld] );
-                	  fprintf(debugFile," ***adamsPC: du/dt(t-dt)  after interp exposed, gf[mOld].t=%e",gf[mOld].t);
-                	  for( int grid=0; grid<gf[mOld].cg.numberOfComponentGrids(); grid++ )
-                	  {
-                  	    display(ub[grid],sPrintF("\n ****ub[grid=%i]: du/dt(t-dt)",grid),debugFile,"%7.1e ");
-                	  }
-                	  determineErrors( ub,gf[mOld].gridVelocity, gf[mOld].t, 1, error );
-              	}
-                    }
-                    if( predictorOrder>=3 )
+                    ExposedPoints exposedPoints;
+                    exposedPoints.setAssumeInterpolationNeighboursAreAssigned(parameters.dbase.get<int >("extrapolateInterpolationNeighbours"));
+                    exposedPoints.initialize(gf[mCur].cg,gf[mNew].cg,parameters.dbase.get<int >("stencilWidthForExposedPoints"));
+                    exposedPoints.interpolate(gf[mCur].u,(twilightZoneFlow() ? parameters.dbase.get<OGFunction* >("exactSolution") : NULL),t0);
+          // Added for BDF: *wdh* 2015/04/05
+                    for( int kp=1; kp<=numberOfPastTimes; kp++ )
                     {
-                        OV_ABORT("adamsPC: moveTheGridsMacro:Error: finish me for predictorOrder>=3");
+                        const int mPast = (mCur -kp + numberOfGridFunctions) % numberOfGridFunctions; 
+                        exposedPoints.initialize(gf[mPast].cg,gf[mNew].cg,parameters.dbase.get<int >("stencilWidthForExposedPoints"));
+                        exposedPoints.interpolate(gf[mPast].u,(twilightZoneFlow() ? parameters.dbase.get<OGFunction* >("exactSolution") : NULL),t0);
                     }
-                } // end if predictorOrder>=2
-                if( Parameters::checkForFloatingPointErrors )
-                    checkSolution(gf[mCur].u,"adamsPC: After interp exposed points",true);
-            }
-            else if( parameters.dbase.get<int>("simulateGridMotion")==0  )
-            {
-        // *old way* 
-                interpolateExposedPoints(gf[mCur].cg,gf[mNew].cg,gf[mCur].u, 
-                               			     (twilightZoneFlow() ? parameters.dbase.get<OGFunction* >("exactSolution") : NULL),t0,
-                               			     false,Overture::nullIntArray(),Overture::nullIntegerDistributedArray(),
-                               			     parameters.dbase.get<int >("stencilWidthForExposedPoints") ); 
-            }
-            if( twilightZoneFlow() && false ) // **** wdh **** 
-            {
-        // for testing ***
-                OGFunction & e = *(parameters.dbase.get<OGFunction* >("exactSolution"));
-                int grid=0; 
-                MappedGrid & c = gf[mNew].cg[grid];
-                getIndex(c.dimension(),I1,I2,I3);
-                ub[grid](I1,I2,I3,N)=e.t(c,I1,I2,I3,N,t0-dt0); 
-            }
-            parameters.dbase.get<RealArray>("timing")(parameters.dbase.get<int>("timeForInterpolateExposedPoints"))+=getCPU()-cpu0;
-      // compute dudt now -- after exposed points have been computed!
-            checkArrayIDs(sPrintF(" adamsPC : after moving grids update t=%9.3e",gf[mCur].t));
-            if( debug() & 16 )
-            {
-                if( twilightZoneFlow() )
-                {
-                    fprintf(debugFile,"\n ---> adamsPC: Errors in u after move grids t=%e  \n",gf[mCur].t);
-                    determineErrors( gf[mCur] );
+                    if( debug() & 16 )
+                    {
+                        if( twilightZoneFlow() )
+                        {
+                  	fprintf(debugFile,"\n ---> adamsPC: Errors in u AFTER interp exposed t=%e  \n",gf[mCur].t);
+                  	determineErrors( gf[mCur] );
+                        }
+                    }
+                    if( predictorOrder>=2  )
+                    {
+            // -------------------------
+            // --- fixup du/dt(t-dt) ---
+            // -------------------------
+            // NOTE: we CANNOT directly interpolate points on du/dt since for moving grids
+            // du/dt includes the -gDot.grad(u) term which differs from grid to grid 
+            // Current procedure: 
+            //   1. Interpolate exposed points on u(t-dt)
+            //   2. Recompute du/dt(t-dt) 
+            // Optimizations: 
+            //   - only recompute du/dt(t-dt) on grids with exposed points
+            //   - could only compute du/dt(t-dt) on those points where is not already known.
+                        if( gf[mCur].t<=0. || debug() & 4 )
+                        {
+                            printF(" --- INFO: Fixup exposed points of u(t-dt) and recompute du/dt(t-dt) t=%9.3e, tb=%9.3e ----- \n"
+                                          "     The extra work involved in recomputing du/dt(t-dt) can be avoided by using "
+                                          "the option 'first order predictor'.\n",gf[mCur].t,tb);
+                        }
+                        ExposedPoints exposedPoints;
+            //            
+            // exposedPoints.setExposedPointType(ExposedPoints::exposedDiscretization);
+                        const int extrapolateInterpolationNeighbours=parameters.dbase.get<int >("extrapolateInterpolationNeighbours");
+                        const int stencilWidthForExposedPoints=parameters.dbase.get<int >("stencilWidthForExposedPoints");
+                        if( debug() & 4 )
+                        {
+                            fPrintF(debugFile," ---- compute exposed for du/dt(t-dt), extrapolateInterpolationNeighbours=%i, "
+                                            "stencilWidthForExposedPoints=%i\n",extrapolateInterpolationNeighbours,stencilWidthForExposedPoints);
+                        }
+                        exposedPoints.setAssumeInterpolationNeighboursAreAssigned(extrapolateInterpolationNeighbours);
+                        exposedPoints.initialize(gf[mOld].cg,gf[mNew].cg,stencilWidthForExposedPoints);
+                        exposedPoints.interpolate(gf[mOld].u,(twilightZoneFlow() ? 
+                                                                            parameters.dbase.get<OGFunction* >("exactSolution") : NULL),gf[mOld].t);
+            // For now recompute du/dt(t-dt) using the mask values from cg(t+dt)
+                        for( int grid=0; grid<gf[mOld].cg.numberOfComponentGrids(); grid++ )
+                        {
+                  	if( gridWasAdapted || exposedPoints.getNumberOfExposedPoints(grid)>0 )
+                  	{
+                                if( debug() & 2 )
+                                {
+                      	    printF(" ---- adamsPC: recompute du/dt(t-dt) for grid=%i t-dt = %9.3e  (%i exposed)-----\n",grid,gf[mOld].t,
+                           		   exposedPoints.getNumberOfExposedPoints(grid));
+                                    fPrintF(debugFile," ---- adamsPC: recompute du/dt(t-dt) for grid=%i t-dt = %9.3e  (%i exposed)-----\n",
+                                                  grid,gf[mOld].t,exposedPoints.getNumberOfExposedPoints(grid));
+                                }
+      	  // This is only necesssary if there are exposed points on this grid
+                    	  rparam[0]=gf[mOld].t;
+                    	  rparam[1]=gf[mOld].t;
+                    	  rparam[2]=gf[mCur].t; // tImplicit
+                    	  iparam[0]=grid;
+                    	  iparam[1]=gf[mOld].cg.refinementLevelNumber(grid);
+                    	  iparam[2]=numberOfStepsTaken;
+                    	  getUt(gf[mOld].u[grid],gf[mOld].getGridVelocity(grid),ub[grid],iparam,rparam,
+                        		gf[mCur].u[grid],&gf[mNew].cg[grid]);
+                  	}
+                            else
+                            {
+                                if( debug() & 2 )
+                                {
+                      	    printF(" ---- adamsPC: fixp du/dt(t-dt) for grid=%i t-dt = %9.3e  (%i exposed) ...ok -----\n",
+                                                  grid,gf[mOld].t,exposedPoints.getNumberOfExposedPoints(grid));
+                                    fPrintF(debugFile," ---- adamsPC: fixp du/dt(t-dt) for grid=%i t-dt = %9.3e  (%i exposed) ...ok -----\n",
+                                                  grid,gf[mOld].t,exposedPoints.getNumberOfExposedPoints(grid));
+                                }
+                            }
+                        }
+                        if( debug() & 4 )
+                        {	
+                  	if( twilightZoneFlow() )
+                  	{
+                    	  fprintf(debugFile," ***adamsPC: gf[mOld] after interp exposed, gf[mOld].t=%e",gf[mOld].t);
+                    	  for( int grid=0; grid<gf[mOld].cg.numberOfComponentGrids(); grid++ )
+                    	  {
+                      	    display(gf[mOld].u[grid],sPrintF("\n ****gf[mOld].u[grid=%i]",grid),debugFile,"%7.1e ");
+                    	  }
+                    	  determineErrors( gf[mOld] );
+                    	  fprintf(debugFile," ***adamsPC: du/dt(t-dt)  after interp exposed, gf[mOld].t=%e",gf[mOld].t);
+                    	  for( int grid=0; grid<gf[mOld].cg.numberOfComponentGrids(); grid++ )
+                    	  {
+                      	    display(ub[grid],sPrintF("\n ****ub[grid=%i]: du/dt(t-dt)",grid),debugFile,"%7.1e ");
+                    	  }
+                    	  determineErrors( ub,gf[mOld].gridVelocity, gf[mOld].t, 1, error );
+                  	}
+                        }
+                        if( predictorOrder>=3 )
+                        {
+                            OV_ABORT("adamsPC: moveTheGridsMacro:Error: finish me for predictorOrder>=3");
+                        }
+                    } // end if predictorOrder>=2
+                    if( Parameters::checkForFloatingPointErrors )
+                        checkSolution(gf[mCur].u,"adamsPC: After interp exposed points",true);
                 }
+                else if( parameters.dbase.get<int>("simulateGridMotion")==0  )
+                {
+          // *old way* 
+                    interpolateExposedPoints(gf[mCur].cg,gf[mNew].cg,gf[mCur].u, 
+                                   			     (twilightZoneFlow() ? parameters.dbase.get<OGFunction* >("exactSolution") : NULL),t0,
+                                   			     false,Overture::nullIntArray(),Overture::nullIntegerDistributedArray(),
+                                   			     parameters.dbase.get<int >("stencilWidthForExposedPoints") ); 
+                }
+                if( twilightZoneFlow() && false ) // **** wdh **** 
+                {
+          // for testing ***
+                    OGFunction & e = *(parameters.dbase.get<OGFunction* >("exactSolution"));
+                    int grid=0; 
+                    MappedGrid & c = gf[mNew].cg[grid];
+                    getIndex(c.dimension(),I1,I2,I3);
+                    ub[grid](I1,I2,I3,N)=e.t(c,I1,I2,I3,N,t0-dt0); 
+                }
+                parameters.dbase.get<RealArray>("timing")(parameters.dbase.get<int>("timeForInterpolateExposedPoints"))+=getCPU()-cpu0;
+        // compute dudt now -- after exposed points have been computed!
+                checkArrayIDs(sPrintF(" adamsPC : after moving grids update t=%9.3e",gf[mCur].t));
+                if( debug() & 16 )
+                {
+                    if( twilightZoneFlow() )
+                    {
+                        fprintf(debugFile,"\n ---> adamsPC: Errors in u after move grids t=%e  \n",gf[mCur].t);
+                        determineErrors( gf[mCur] );
+                    }
+                }
+                if( debug() & 16 )
+                    printf(" adamsPC: AFTER moveTheGridsMacro: t0=%9.3e, gf[mNew].t=%9.3e, gf[mNew].gridVelocityTime=%9.3e\n",
+                     	   t0,gf[mNew].t,gf[mNew].gridVelocityTime);
             }
-            if( debug() & 16 )
-                printf(" adamsPC: AFTER moveTheGridsMacro: t0=%9.3e, gf[mNew].t=%9.3e, gf[mNew].gridVelocityTime=%9.3e\n",
-                 	   t0,gf[mNew].t,gf[mNew].gridVelocityTime);
-        }
 
 
-    // coefficients for the 4th-order AdamsBashforth predictor for variable dt (from ab.maple)
-    // For dt=fixed these would be
-    // ab41 = ( 55./24.)*dt0;    
-    // ab42 = (-59./24.)*dt0;
-    // ab43 = ( 37./24.)*dt0;
-    // ab44 = ( -9./24.)*dt0;
-        const real ab41 = (6.0*dt0*dt2*dt2+12.0*dt2*dt2*dt1+8.0*dt0*dt0*dt2+24.0*dt2*dt0*dt1+
-                   		       12.0*dt2*dt1*dt3+6.0*dt3*dt2*dt0+24.0*dt1*dt1*dt2+12.0*dt0*dt3*dt1+18.0*dt0*dt1
-                   		       *dt1+4.0*dt0*dt0*dt3+12.0*dt1*dt1*dt3+3.0*dt0*dt0*dt0+12.0*dt0*dt0*dt1+12.0*dt1
-                   		       *dt1*dt1)*dt0/(dt1+dt2+dt3)/dt1/(dt1+dt2)/12.0;
-        const real ab42 = -dt0*dt0*(6.0*dt1*dt1+6.0*dt3*dt1+12.0*dt2*dt1+8.0*dt0*dt1+3.0*dt0*
-                        				dt0+6.0*dt2*dt3+4.0*dt0*dt3+8.0*dt2*dt0+6.0*dt2*dt2)/dt1/(dt2+dt3)/dt2/12.0;
-        const real ab43 = dt0*dt0*(6.0*dt1*dt1+6.0*dt2*dt1+6.0*dt3*dt1+8.0*dt0*dt1+3.0*dt0*dt0
-                         			       +4.0*dt2*dt0+4.0*dt0*dt3)/dt3/dt2/(dt1+dt2)/12.0;
-        const real ab44 = -(6.0*dt1*dt1+6.0*dt2*dt1+8.0*dt0*dt1+4.0*dt2*dt0+3.0*dt0*dt0)*dt0*
-            dt0/(dt1+dt2+dt3)/(dt2+dt3)/dt3/12.0;
+      // coefficients for the 4th-order AdamsBashforth predictor for variable dt (from ab.maple)
+      // For dt=fixed these would be
+      // ab41 = ( 55./24.)*dt0;    
+      // ab42 = (-59./24.)*dt0;
+      // ab43 = ( 37./24.)*dt0;
+      // ab44 = ( -9./24.)*dt0;
+            const real ab41 = (6.0*dt0*dt2*dt2+12.0*dt2*dt2*dt1+8.0*dt0*dt0*dt2+24.0*dt2*dt0*dt1+
+                                                  12.0*dt2*dt1*dt3+6.0*dt3*dt2*dt0+24.0*dt1*dt1*dt2+12.0*dt0*dt3*dt1+18.0*dt0*dt1
+                                                  *dt1+4.0*dt0*dt0*dt3+12.0*dt1*dt1*dt3+3.0*dt0*dt0*dt0+12.0*dt0*dt0*dt1+12.0*dt1
+                                                  *dt1*dt1)*dt0/(dt1+dt2+dt3)/dt1/(dt1+dt2)/12.0;
+            const real ab42 = -dt0*dt0*(6.0*dt1*dt1+6.0*dt3*dt1+12.0*dt2*dt1+8.0*dt0*dt1+3.0*dt0*
+                                                                    dt0+6.0*dt2*dt3+4.0*dt0*dt3+8.0*dt2*dt0+6.0*dt2*dt2)/dt1/(dt2+dt3)/dt2/12.0;
+            const real ab43 = dt0*dt0*(6.0*dt1*dt1+6.0*dt2*dt1+6.0*dt3*dt1+8.0*dt0*dt1+3.0*dt0*dt0
+                                                                  +4.0*dt2*dt0+4.0*dt0*dt3)/dt3/dt2/(dt1+dt2)/12.0;
+            const real ab44 = -(6.0*dt1*dt1+6.0*dt2*dt1+8.0*dt0*dt1+4.0*dt2*dt0+3.0*dt0*dt0)*dt0*
+                dt0/(dt1+dt2+dt3)/(dt2+dt3)/dt3/12.0;
 
-    // coefficients for the 3rd-order AdamsBashforth predictor for variable dt (from ab.maple)
-    // For dt=fixed these would be 
-    // ab31 = (23/12.)*dt0; 
-    // ab32 = ( -4/3.)*dt0; 
-    // ab33 = ( 5/12.)*dt0; 
-        const real ab31 = dt0*(2.0*dt0*dt0+6.0*dt0*dt1+3.0*dt2*dt0+6.0*dt1*dt1+6.0*dt2*dt1)/(dt1+dt2)/dt1/6.0;
-        const real ab32 = -(3.0*dt1+3.0*dt2+2.0*dt0)*dt0*dt0/dt2/dt1/6.0;
-        const real ab33 = dt0*dt0*(2.0*dt0+3.0*dt1)/(dt1+dt2)/dt2/6.0;
+      // coefficients for the 3rd-order AdamsBashforth predictor for variable dt (from ab.maple)
+      // For dt=fixed these would be 
+      // ab31 = (23/12.)*dt0; 
+      // ab32 = ( -4/3.)*dt0; 
+      // ab33 = ( 5/12.)*dt0; 
+            const real ab31 = dt0*(2.0*dt0*dt0+6.0*dt0*dt1+3.0*dt2*dt0+6.0*dt1*dt1+6.0*dt2*dt1)/(dt1+dt2)/dt1/6.0;
+            const real ab32 = -(3.0*dt1+3.0*dt2+2.0*dt0)*dt0*dt0/dt2/dt1/6.0;
+            const real ab33 = dt0*dt0*(2.0*dt0+3.0*dt1)/(dt1+dt2)/dt2/6.0;
 
 
-    // coefficients for 2nd order extrap:
-        const real cex2a=1.+dt0/dtb;       // -> 2.
-        const real cex2b=-dt0/dtb;         // -> -1.
-    // coefficients for third order extrapolation (from ab.maple)
-    //   These reduce to 3, -3, 1 for dt=constant
-        const real cex30= (dt0+dt1+dt2)*(dt0+dt1)/(dt1+dt2)/dt1;
-        const real cex31= -(dt0+dt1+dt2)/dt2*dt0/dt1;
-        const real cex32= (dt0+dt1)*dt0/dt2/(dt1+dt2);
+      // coefficients for 2nd order extrap:
+            const real cex2a=1.+dt0/dtb;       // -> 2.
+            const real cex2b=-dt0/dtb;         // -> -1.
+      // coefficients for third order extrapolation (from ab.maple)
+      //   These reduce to 3, -3, 1 for dt=constant
+            const real cex30= (dt0+dt1+dt2)*(dt0+dt1)/(dt1+dt2)/dt1;
+            const real cex31= -(dt0+dt1+dt2)/dt2*dt0/dt1;
+            const real cex32= (dt0+dt1)*dt0/dt2/(dt1+dt2);
 
-    // coefficients for 4th order extrapolation 
-    //   (corresponds to   4 -6 4 1 for dt=fixed)
-        const real cex40= (dt0+dt1+dt2+dt3)*(dt0+dt1+dt2)*(dt0+dt1)/(dt1+dt2+dt3)/(dt1+dt2)/dt1;
-        const real cex41= -(dt0+dt1+dt2+dt3)/(dt2+dt3)*(dt0+dt1+dt2)/dt2*dt0/dt1;
-        const real cex42= (dt0+dt1+dt2+dt3)*(dt0+dt1)*dt0/dt3/dt2/(dt1+dt2);
-        const real cex43= -(dt0+dt1+dt2)*(dt0+dt1)*dt0/dt3/(dt2+dt3)/(dt1+dt2+dt3);
+      // coefficients for 4th order extrapolation 
+      //   (corresponds to   4 -6 4 1 for dt=fixed)
+            const real cex40= (dt0+dt1+dt2+dt3)*(dt0+dt1+dt2)*(dt0+dt1)/(dt1+dt2+dt3)/(dt1+dt2)/dt1;
+            const real cex41= -(dt0+dt1+dt2+dt3)/(dt2+dt3)*(dt0+dt1+dt2)/dt2*dt0/dt1;
+            const real cex42= (dt0+dt1+dt2+dt3)*(dt0+dt1)*dt0/dt3/dt2/(dt1+dt2);
+            const real cex43= -(dt0+dt1+dt2)*(dt0+dt1)*dt0/dt3/(dt2+dt3)/(dt1+dt2+dt3);
 
-    // coefficients for fixth order extrapolation (exact for 4th order poly's)
-    // These reduce to 5, -10, 10, -5, 1 for dt=constant
+      // coefficients for fixth order extrapolation (exact for 4th order poly's)
+      // These reduce to 5, -10, 10, -5, 1 for dt=constant
 //    const real cex50=5., cex51=-10., cex52=10., cex53=-5., cex54=1.;
 //  const real cex50=4., cex51=-6., cex52=4., cex53=-1., cex54=0.;
 
-        const real cex50=(dt0+dt1+dt2+dt3+dt4)*(dt0+dt1+dt2+dt3)*(dt0+dt1+dt2)*(dt0+dt1)/
-            (dt1+dt2+dt3+dt4)/(dt1+dt2+dt3)/(dt1+dt2)/dt1;
-        const real cex51= -(dt0+dt1+dt2+dt3+dt4)/(dt2+dt3+dt4)*(dt0+dt1+dt2+dt3)/(dt2+dt3)*(
-            dt0+dt1+dt2)/dt2*dt0/dt1;
-        const real cex52= (dt0+dt1+dt2+dt3+dt4)*(dt0+dt1+dt2+dt3)*(dt0+dt1)*dt0/(dt3+dt4)/dt3/dt2/(dt1+dt2);
-        const real cex53= -(dt0+dt1+dt2+dt3+dt4)*(dt0+dt1+dt2)*(dt0+dt1)*dt0/dt4/dt3/(dt2+dt3)/(dt1+dt2+dt3);
-        const real cex54= (dt0+dt1+dt2+dt3)*(dt0+dt1+dt2)*(dt0+dt1)*dt0/dt4/(dt3+dt4)/
-            (dt2+dt3+dt4)/(dt1+dt2+dt3+dt4);
+            const real cex50=(dt0+dt1+dt2+dt3+dt4)*(dt0+dt1+dt2+dt3)*(dt0+dt1+dt2)*(dt0+dt1)/
+                (dt1+dt2+dt3+dt4)/(dt1+dt2+dt3)/(dt1+dt2)/dt1;
+            const real cex51= -(dt0+dt1+dt2+dt3+dt4)/(dt2+dt3+dt4)*(dt0+dt1+dt2+dt3)/(dt2+dt3)*(
+                dt0+dt1+dt2)/dt2*dt0/dt1;
+            const real cex52= (dt0+dt1+dt2+dt3+dt4)*(dt0+dt1+dt2+dt3)*(dt0+dt1)*dt0/(dt3+dt4)/dt3/dt2/(dt1+dt2);
+            const real cex53= -(dt0+dt1+dt2+dt3+dt4)*(dt0+dt1+dt2)*(dt0+dt1)*dt0/dt4/dt3/(dt2+dt3)/(dt1+dt2+dt3);
+            const real cex54= (dt0+dt1+dt2+dt3)*(dt0+dt1+dt2)*(dt0+dt1)*dt0/dt4/(dt3+dt4)/
+                (dt2+dt3+dt4)/(dt1+dt2+dt3+dt4);
         
 
 
-    // -- evaluate any body forcing (this is saved in realCompositeGridFunction bodyForce found in the data-base) ---
-        const real tForce = gf[mCur].t; // evaluate the body force at this time  
-        computeBodyForcing( gf[mCur], tForce );
+      // -- evaluate any body forcing (this is saved in realCompositeGridFunction bodyForce found in the data-base) ---
+            const real tForce = gf[mCur].t; // evaluate the body force at this time  
+            computeBodyForcing( gf[mCur], tForce );
 
-    // ********************************************************************
-    // ************  Compute ua = d(u(t)/dt  ******************************
-    // ********************************************************************
+      // ********************************************************************
+      // ************  Compute ua = d(u(t)/dt  ******************************
+      // ********************************************************************
 
-        if( parameters.useConservativeVariables() )    // *wdh* 010318 convert here. Should be do before interpExposed?
-            gf[mCur].primitiveToConservative();
-        for( grid=0; grid<gf[mCur].cg.numberOfComponentGrids(); grid++ )
-        {
-            rparam[0]=gf[mCur].t;
-            rparam[1]=gf[mCur].t; // tForce
-            rparam[2]=gf[mCur].t; // tImplicit
-            iparam[0]=grid;
-            iparam[1]=gf[mCur].cg.refinementLevelNumber(grid);
-            iparam[2]=numberOfStepsTaken;
+            if( parameters.useConservativeVariables() )    // *wdh* 010318 convert here. Should be do before interpExposed?
+                gf[mCur].primitiveToConservative();
+            for( grid=0; grid<gf[mCur].cg.numberOfComponentGrids(); grid++ )
+            {
+                rparam[0]=gf[mCur].t;
+                rparam[1]=gf[mCur].t; // tForce
+                rparam[2]=gf[mCur].t; // tImplicit
+                iparam[0]=grid;
+                iparam[1]=gf[mCur].cg.refinementLevelNumber(grid);
+                iparam[2]=numberOfStepsTaken;
 
-            getUt(gf[mCur].u[grid],gf[mCur].getGridVelocity(grid),ua[grid],iparam,rparam,
-          	    Overture::nullRealMappedGridFunction(),&gf[mNew].cg[grid]);
+                getUt(gf[mCur].u[grid],gf[mCur].getGridVelocity(grid),ua[grid],iparam,rparam,
+                            Overture::nullRealMappedGridFunction(),&gf[mNew].cg[grid]);
 
-        }
+            }
         
-        if( debug() & 4 || debug() & 64 )
-        {
-            if( parameters.dbase.get<int >("myid")==0 )
+            if( debug() & 4 || debug() & 64 )
             {
-                fprintf(parameters.dbase.get<FILE* >("debugFile"),"\n ----------------------------------------------------------------\n"); 
-                fprintf(parameters.dbase.get<FILE* >("debugFile"),"takeTimeStepPC:Aftercomputedu/dtinpredictor");
+                if( parameters.dbase.get<int >("myid")==0 )
+                {
+                    fprintf(parameters.dbase.get<FILE* >("debugFile"),"\n ----------------------------------------------------------------\n"); 
+                    fprintf(parameters.dbase.get<FILE* >("debugFile"),"takeTimeStepPC:Aftercomputedu/dtinpredictor");
+                }
             }
-        }
-        if( debug() & 64 )
-        {
-            for( grid=0; grid<gf[mab0].cg.numberOfComponentGrids(); grid++ )
+            if( debug() & 64 )
             {
-                aString buff;
-                display(ua[grid],sPrintF(buff,"\n ****ua grid=%i : du/dt(t)",grid),parameters.dbase.get<FILE* >("debugFile"),"%7.1e ");
-                display(ub[grid],sPrintF(buff,"\n ****ub grid=%i: du/dt(t-dt)",grid),parameters.dbase.get<FILE* >("debugFile"),"%7.1e ");
+                for( grid=0; grid<gf[mab0].cg.numberOfComponentGrids(); grid++ )
+                {
+                    aString buff;
+                    display(ua[grid],sPrintF(buff,"\n ****ua grid=%i : du/dt(t)",grid),parameters.dbase.get<FILE* >("debugFile"),"%7.1e ");
+                    display(ub[grid],sPrintF(buff,"\n ****ub grid=%i: du/dt(t-dt)",grid),parameters.dbase.get<FILE* >("debugFile"),"%7.1e ");
+                }
             }
-        }
-        if( debug() & 4 || debug() & 64 )
-        {
-            determineErrors( gf[mCur].u,gf[mCur].gridVelocity, gf[mCur].t, 0, error,
-                    sPrintF(" adams: errors in u at t=%e \n",gf[mCur].t) );
-            determineErrors( ua,gf[mCur].gridVelocity, t0, 1, error,
-                                              sPrintF(" adams: errors in ut (ua) at t=%e \n",t0) );
-            determineErrors( ub,gf[mOld].gridVelocity, t0-dtb, 1, error,
-                                            sPrintF(" adams: errors in ut (ub) at t=%e \n",t0-dtb) );
-            if( parameters.dbase.get<int >("orderOfPredictorCorrector")==4 )
+            if( debug() & 4 || debug() & 64 )
             {
-                determineErrors( uc,gf[mOld].gridVelocity, t0-2.*dtb, 1, error,
-                         		     sPrintF(" adams: errors in ut (uc) at t=%e \n",t0-2*dtb) );
-                determineErrors( ud,gf[mOld].gridVelocity, t0-3.*dtb, 1, error,
-                                    sPrintF(" adams: errors in ut (ud) at t=%e \n",t0-3*dtb) );
+                determineErrors( gf[mCur].u,gf[mCur].gridVelocity, gf[mCur].t, 0, error,
+                        sPrintF(" adams: errors in u at t=%e \n",gf[mCur].t) );
+                determineErrors( ua,gf[mCur].gridVelocity, t0, 1, error,
+                                                  sPrintF(" adams: errors in ut (ua) at t=%e \n",t0) );
+                determineErrors( ub,gf[mOld].gridVelocity, t0-dtb, 1, error,
+                                                sPrintF(" adams: errors in ut (ub) at t=%e \n",t0-dtb) );
+                if( parameters.dbase.get<int >("orderOfPredictorCorrector")==4 )
+                {
+                    determineErrors( uc,gf[mOld].gridVelocity, t0-2.*dtb, 1, error,
+                             		     sPrintF(" adams: errors in ut (uc) at t=%e \n",t0-2*dtb) );
+                    determineErrors( ud,gf[mOld].gridVelocity, t0-3.*dtb, 1, error,
+                                        sPrintF(" adams: errors in ut (ud) at t=%e \n",t0-3*dtb) );
+                }
+                if( debug() & 16 )
+                {
+                    label=sPrintF(" ***************** ab1=%8.2e ab2=%8.2e  *****************\n"
+                                                " ***Adams PC: gf[mOld] before advance interior t=%e\n",ab1,ab2,gf[mab1].t);
+                    if( twilightZoneFlow() )
+                        determineErrors( gf[mOld],label );
+                    else
+                        outputSolution( gf[mOld].u,gf[mOld].t,label );
+                    label=sPrintF(" ***Adams PC: gf[mCur] before advance interior t=%e\n",gf[mab0].t);
+                    if( twilightZoneFlow() )
+                        determineErrors( gf[mCur],label );
+                    else
+                        outputSolution( gf[mCur].u,gf[mCur].t,label );
+                }
             }
+
+            if( debug() & 64 )
+            {
+                for( grid=0; grid<gf[mCur].cg.numberOfComponentGrids(); grid++ )
+                    ::display(gf[mCur].u[grid],sPrintF(" ***takeTimeStepPC: u for predictor"
+                                                                                          " t=%9.4e grid=%i\n",gf[mCur].t,grid),debugFile,"%10.7f ");
+                for( grid=0; grid<gf[mCur].cg.numberOfComponentGrids(); grid++ )
+                    ::display(ua[grid],sPrintF(" ***takeTimeStepPC: du/dt (ua) for predictor"
+                                                                          " t=%9.4e grid=%i\n",gf[mCur].t,grid),debugFile,"%10.7f ");
+            }
+
+
+            addArtificialDissipation(gf[mCur].u,dt0);  // add "implicit" dissipation to u 
+
+            if( Parameters::checkForFloatingPointErrors )
+                checkSolution(gf[mCur].u,"AdamsPC: u0 before adding ut",true);
+
+            real cpu0=getCPU();
+      //  gf[1].u <- gf[mCur].u + dt*( 1.5* du(t)/dt - .5 du(t-dt)/dt
+            for( grid=0; grid<gf[mNew].cg.numberOfComponentGrids(); grid++ )
+            {
+                OV_GET_SERIAL_ARRAY(real,gf[mCur].u[grid],u0);
+                OV_GET_SERIAL_ARRAY(real,gf[mNew].u[grid],u1);
+                OV_GET_SERIAL_ARRAY(real,ua[grid],uta);
+                OV_GET_SERIAL_ARRAY(real,ub[grid],utb);
+                OV_GET_SERIAL_ARRAY(real,uc[grid],utc);
+                OV_GET_SERIAL_ARRAY(int,gf[mNew].cg[grid].mask(),mask1);
+
+        // #ifdef USE_PPP
+        // RealArray u0;  getLocalArrayWithGhostBoundaries(gf[mCur].u[grid],u0);
+        // RealArray u1;  getLocalArrayWithGhostBoundaries(gf[mNew].u[grid],u1);
+        // RealArray uta; getLocalArrayWithGhostBoundaries(ua[grid],uta);
+        // RealArray utb; getLocalArrayWithGhostBoundaries(ub[grid],utb);
+        // RealArray utc; getLocalArrayWithGhostBoundaries(uc[grid],utc);
+        // const intSerialArray & mask1 = gf[mNew].cg[grid].mask().getLocalArray();
+        // #else
+        // const RealArray & u0 = gf[mCur].u[grid];
+        // const RealArray & u1 = gf[mNew].u[grid];
+        // const RealArray & uta= ua[grid];
+        // const RealArray & utb= ub[grid];
+        // const RealArray & utc= uc[grid];
+        // const intSerialArray & mask1 = gf[mNew].cg[grid].mask(); 
+        // #endif
+
+                getIndex(gf[mNew].cg[grid].extendedIndexRange(),I1,I2,I3);
+        // ******************************** note: may need du/dt(t-dt) at more exposed points than we have ************
+
+                if( useOptUpdate )
+                {
+                    const int n1a=max(u1.getBase(0),I1.getBase()), n1b=min(u1.getBound(0),I1.getBound());  
+                    const int n2a=max(u1.getBase(1),I2.getBase()), n2b=min(u1.getBound(1),I2.getBound());
+                    const int n3a=max(u1.getBase(2),I3.getBase()), n3b=min(u1.getBound(2),I3.getBound());
+      	
+                    int ierr=0;
+                    const int maskOption=0; // assign pts where mask>0
+                    int ipar[]={0,maskOption,n1a,n1b,n2a,n2b,n3a,n3b,N.getBase(),N.getBound()}; //
+                    real rpar[5]={0.,0.,0.,0.,0.};
+                    if( orderOfPredictorCorrector==2 )
+                    {
+            // u1(I1,I2,I3,N)=u0(I1,I2,I3,N) + ab1*uta(I1,I2,I3,N) + ab2*utb(I1,I2,I3,N);
+                        ipar[0]=2;
+                        rpar[0]=ab1; rpar[1]=ab2;
+                    }
+                    else if( orderOfPredictorCorrector==4 )
+                    {
+            // here is the 4th-order predictor
+            //  gf[mNew].u[grid](I1,I2,I3,N)=gf[mCur].u[grid](I1,I2,I3,N) + 
+            //  ab41*ua[grid](I1,I2,I3,N) + ab42*ub[grid](I1,I2,I3,N) + ab43*uc[grid](I1,I2,I3,N) + ab44*ud[grid](I1,I2,I3,N);
+
+            // Here is the 3rd order predictor
+            // gf[mNew].u[grid](I1,I2,I3,N)=gf[mCur].u[grid](I1,I2,I3,N) + 
+            //   ab31*ua[grid](I1,I2,I3,N) + ab32*ub[grid](I1,I2,I3,N) + ab33*uc[grid](I1,I2,I3,N);
+
+            // u1(I1,I2,I3,N)=u0(I1,I2,I3,N) + ab31*uta(I1,I2,I3,N) + ab32*utb(I1,I2,I3,N) + ab33*utc(I1,I2,I3,N);
+                        ipar[0]=3;
+                        rpar[0]=ab31; rpar[1]=ab32; rpar[2]=ab33;
+                    }
+                    else
+                    {
+                        Overture::abort();
+                    }
+                    updateOpt(u0.getBase(0),u0.getBound(0),u0.getBase(1),u0.getBound(1),
+                                        u0.getBase(2),u0.getBound(2),u0.getBase(3),u0.getBound(3),
+                                        *mask1.getDataPointer(),  
+                                        *u0.getDataPointer(),*u1.getDataPointer(), 
+                                        *uta.getDataPointer(),*utb.getDataPointer(),*utc.getDataPointer(),*utc.getDataPointer(),
+                                        ipar[0], rpar[0], ierr );
+
+                }
+                else
+                {
+                    if( orderOfPredictorCorrector==2 ) 
+                    {
+            // gf[mNew].u[grid](I1,I2,I3,N)=gf[mCur].u[grid](I1,I2,I3,N) + 
+            //   ab1*ua[grid](I1,I2,I3,N) + ab2*ub[grid](I1,I2,I3,N);
+
+                        u1(I1,I2,I3,N)=u0(I1,I2,I3,N) + ab1*uta(I1,I2,I3,N) + ab2*utb(I1,I2,I3,N);
+                    }
+                    else if( orderOfPredictorCorrector==4 )
+                    {
+            // here is the 4th-order predictor
+            //  gf[mNew].u[grid](I1,I2,I3,N)=gf[mCur].u[grid](I1,I2,I3,N) + 
+            //  ab41*ua[grid](I1,I2,I3,N) + ab42*ub[grid](I1,I2,I3,N) + ab43*uc[grid](I1,I2,I3,N) + ab44*ud[grid](I1,I2,I3,N);
+
+            // Here is the 3rd order predictor
+            // gf[mNew].u[grid](I1,I2,I3,N)=gf[mCur].u[grid](I1,I2,I3,N) + 
+            //   ab31*ua[grid](I1,I2,I3,N) + ab32*ub[grid](I1,I2,I3,N) + ab33*uc[grid](I1,I2,I3,N);
+
+                        u1(I1,I2,I3,N)=u0(I1,I2,I3,N) + ab31*uta(I1,I2,I3,N) + ab32*utb(I1,I2,I3,N) + ab33*utc(I1,I2,I3,N);
+                    }
+                    else
+                    {
+                        Overture::abort();
+                    }
+                }
+            
+            }
+            gf[mNew].t=t0+dt0;  // gf[mNew] now lives at this time
+            gf[mNew].form=gf[mCur].form;
+
+            if( Parameters::checkForFloatingPointErrors )
+                checkSolution(gf[mNew].u,"takeTimeStepPC: u1 after adding ut",true);
+
             if( debug() & 16 )
             {
-                label=sPrintF(" ***************** ab1=%8.2e ab2=%8.2e  *****************\n"
-                                            " ***Adams PC: gf[mOld] before advance interior t=%e\n",ab1,ab2,gf[mab1].t);
-                if( twilightZoneFlow() )
-                    determineErrors( gf[mOld],label );
-                else
-                    outputSolution( gf[mOld].u,gf[mOld].t,label );
-                label=sPrintF(" ***Adams PC: gf[mCur] before advance interior t=%e\n",gf[mab0].t);
-                if( twilightZoneFlow() )
-                    determineErrors( gf[mCur],label );
-                else
-                    outputSolution( gf[mCur].u,gf[mCur].t,label );
+                for( grid=0; grid<gf[mCur].cg.numberOfComponentGrids(); grid++ )
+                    ::display(gf[mNew].u[grid],sPrintF(" ***takeTimeStepPC: uNew after predictor update"
+                                                                                          " t=%9.4e grid=%i\n",gf[mNew].t,grid),debugFile,"%10.7f ");
             }
-        }
 
-        if( debug() & 64 )
+            parameters.dbase.get<RealArray>("timing")(parameters.dbase.get<int>("timeForAddUt"))+=getCPU()-cpu0;
+        } // end if takeTimeStep 
+        
+    // ---- Apply Boundary Conditions ----
+        if( applyBC )
         {
-            for( grid=0; grid<gf[mCur].cg.numberOfComponentGrids(); grid++ )
-      	::display(gf[mCur].u[grid],sPrintF(" ***takeTimeStepPC: u for predictor"
-                                 					   " t=%9.4e grid=%i\n",gf[mCur].t,grid),debugFile,"%10.7f ");
-            for( grid=0; grid<gf[mCur].cg.numberOfComponentGrids(); grid++ )
-      	::display(ua[grid],sPrintF(" ***takeTimeStepPC: du/dt (ua) for predictor"
-                           				   " t=%9.4e grid=%i\n",gf[mCur].t,grid),debugFile,"%10.7f ");
-        }
-
-
-        addArtificialDissipation(gf[mCur].u,dt0);  // add "implicit" dissipation to u 
-
-        if( Parameters::checkForFloatingPointErrors )
-            checkSolution(gf[mCur].u,"AdamsPC: u0 before adding ut",true);
-
-        real cpu0=getCPU();
-    //  gf[1].u <- gf[mCur].u + dt*( 1.5* du(t)/dt - .5 du(t-dt)/dt
-        for( grid=0; grid<gf[mNew].cg.numberOfComponentGrids(); grid++ )
-        {
-#ifdef USE_PPP
-            RealArray u0;  getLocalArrayWithGhostBoundaries(gf[mCur].u[grid],u0);
-            RealArray u1;  getLocalArrayWithGhostBoundaries(gf[mNew].u[grid],u1);
-            RealArray uta; getLocalArrayWithGhostBoundaries(ua[grid],uta);
-            RealArray utb; getLocalArrayWithGhostBoundaries(ub[grid],utb);
-            RealArray utc; getLocalArrayWithGhostBoundaries(uc[grid],utc);
-            const intSerialArray & mask1 = gf[mNew].cg[grid].mask().getLocalArray();
-#else
-            const RealArray & u0 = gf[mCur].u[grid];
-            const RealArray & u1 = gf[mNew].u[grid];
-            const RealArray & uta= ua[grid];
-            const RealArray & utb= ub[grid];
-            const RealArray & utc= uc[grid];
-            const intSerialArray & mask1 = gf[mNew].cg[grid].mask(); 
-#endif
-
-            getIndex(gf[mNew].cg[grid].extendedIndexRange(),I1,I2,I3);
-      // ******************************** note: may need du/dt(t-dt) at more exposed points than we have ************
-
-            if( useOptUpdate )
-            {
-      	const int n1a=max(u1.getBase(0),I1.getBase()), n1b=min(u1.getBound(0),I1.getBound());  
-      	const int n2a=max(u1.getBase(1),I2.getBase()), n2b=min(u1.getBound(1),I2.getBound());
-      	const int n3a=max(u1.getBase(2),I3.getBase()), n3b=min(u1.getBound(2),I3.getBound());
-      	
-      	int ierr=0;
-      	const int maskOption=0; // assign pts where mask>0
-      	int ipar[]={0,maskOption,n1a,n1b,n2a,n2b,n3a,n3b,N.getBase(),N.getBound()}; //
-      	real rpar[5]={0.,0.,0.,0.,0.};
-      	if( orderOfPredictorCorrector==2 )
-      	{
-	  // u1(I1,I2,I3,N)=u0(I1,I2,I3,N) + ab1*uta(I1,I2,I3,N) + ab2*utb(I1,I2,I3,N);
-        	  ipar[0]=2;
-        	  rpar[0]=ab1; rpar[1]=ab2;
-      	}
-      	else if( orderOfPredictorCorrector==4 )
-      	{
-	  // here is the 4th-order predictor
-	  //  gf[mNew].u[grid](I1,I2,I3,N)=gf[mCur].u[grid](I1,I2,I3,N) + 
-	  //  ab41*ua[grid](I1,I2,I3,N) + ab42*ub[grid](I1,I2,I3,N) + ab43*uc[grid](I1,I2,I3,N) + ab44*ud[grid](I1,I2,I3,N);
-
-	  // Here is the 3rd order predictor
-	  // gf[mNew].u[grid](I1,I2,I3,N)=gf[mCur].u[grid](I1,I2,I3,N) + 
-	  //   ab31*ua[grid](I1,I2,I3,N) + ab32*ub[grid](I1,I2,I3,N) + ab33*uc[grid](I1,I2,I3,N);
-
-	  // u1(I1,I2,I3,N)=u0(I1,I2,I3,N) + ab31*uta(I1,I2,I3,N) + ab32*utb(I1,I2,I3,N) + ab33*utc(I1,I2,I3,N);
-        	  ipar[0]=3;
-        	  rpar[0]=ab31; rpar[1]=ab32; rpar[2]=ab33;
-      	}
-      	else
-      	{
-        	  Overture::abort();
-      	}
-      	updateOpt(u0.getBase(0),u0.getBound(0),u0.getBase(1),u0.getBound(1),
-              		  u0.getBase(2),u0.getBound(2),u0.getBase(3),u0.getBound(3),
-              		  *mask1.getDataPointer(),  
-              		  *u0.getDataPointer(),*u1.getDataPointer(), 
-              		  *uta.getDataPointer(),*utb.getDataPointer(),*utc.getDataPointer(),*utc.getDataPointer(),
-              		  ipar[0], rpar[0], ierr );
-
-            }
-            else
-            {
-      	if( orderOfPredictorCorrector==2 ) 
-      	{
-	  // gf[mNew].u[grid](I1,I2,I3,N)=gf[mCur].u[grid](I1,I2,I3,N) + 
-	  //   ab1*ua[grid](I1,I2,I3,N) + ab2*ub[grid](I1,I2,I3,N);
-
-        	  u1(I1,I2,I3,N)=u0(I1,I2,I3,N) + ab1*uta(I1,I2,I3,N) + ab2*utb(I1,I2,I3,N);
-      	}
-      	else if( orderOfPredictorCorrector==4 )
-      	{
-	  // here is the 4th-order predictor
-	  //  gf[mNew].u[grid](I1,I2,I3,N)=gf[mCur].u[grid](I1,I2,I3,N) + 
-	  //  ab41*ua[grid](I1,I2,I3,N) + ab42*ub[grid](I1,I2,I3,N) + ab43*uc[grid](I1,I2,I3,N) + ab44*ud[grid](I1,I2,I3,N);
-
-	  // Here is the 3rd order predictor
-	  // gf[mNew].u[grid](I1,I2,I3,N)=gf[mCur].u[grid](I1,I2,I3,N) + 
-	  //   ab31*ua[grid](I1,I2,I3,N) + ab32*ub[grid](I1,I2,I3,N) + ab33*uc[grid](I1,I2,I3,N);
-
-        	  u1(I1,I2,I3,N)=u0(I1,I2,I3,N) + ab31*uta(I1,I2,I3,N) + ab32*utb(I1,I2,I3,N) + ab33*utc(I1,I2,I3,N);
-      	}
-      	else
-      	{
-        	  Overture::abort();
-      	}
-            }
+            if( debug() & 2 )
+                printP("++++++++++++ apply BCs t0+dt0=%9.3e\n\n",t0+dt0);
             
-        }
-        gf[mNew].t=t0+dt0;  // gf[mNew] now lives at this time
-        gf[mNew].form=gf[mCur].form;
+      // --- predict values for boundary conditions -- ( e.g. for fractional-step methods) ---
+            const int orderOfExtrapolation = orderOfPredictorCorrector==2 ? 3 : 4;
+            boundaryConditionPredictor( predictPressureAndVelocity,adamsData,orderOfExtrapolation,
+                                                                    mNew,mCur,mOld,&ua,&ub,&uc,&ud );
 
-        if( Parameters::checkForFloatingPointErrors )
-            checkSolution(gf[mNew].u,"takeTimeStepPC: u1 after adding ut",true);
-
-        if( debug() & 16 )
-        {
-            for( grid=0; grid<gf[mCur].cg.numberOfComponentGrids(); grid++ )
-      	::display(gf[mNew].u[grid],sPrintF(" ***takeTimeStepPC: uNew after predictor update"
-                                 					   " t=%9.4e grid=%i\n",gf[mNew].t,grid),debugFile,"%10.7f ");
-        }
-
-
-    // --- predict values for boundary conditions -- ( e.g. for fractional-step methods) ---
-        const int orderOfExtrapolation = orderOfPredictorCorrector==2 ? 3 : 4;
-        boundaryConditionPredictor( predictPressureAndVelocity,adamsData,orderOfExtrapolation,
-                                                                mNew,mCur,mOld,&ua,&ub,&uc,&ud );
-
-        if( debug() & 16  )
-        {
-            label=sPrintF(" ***takeTimeStepPC: predictor: before interpolate t=%e\n",gf[mNew].t);
-            if( twilightZoneFlow() )
-      	determineErrors( gf[mNew],label );
-            else
-      	outputSolution( gf[mNew].u,gf[mNew].t,label );
-        }
-        parameters.dbase.get<RealArray>("timing")(parameters.dbase.get<int>("timeForAddUt"))+=getCPU()-cpu0;
+            if( debug() & 16  )
+            {
+                label=sPrintF(" ***takeTimeStepPC: predictor: before interpolate t=%e\n",gf[mNew].t);
+                if( twilightZoneFlow() )
+                    determineErrors( gf[mNew],label );
+                else
+                    outputSolution( gf[mNew].u,gf[mNew].t,label );
+            }
 
 
-        interpolateAndApplyBoundaryConditions( gf[mNew],&gf[mCur],dt0 );
+            interpolateAndApplyBoundaryConditions( gf[mNew],&gf[mCur],dt0 );
 
 
-        if( debug() & 8 )
-        {
-            label=sPrintF(" ***takeTimeStepPC: after boundary conditions in predictor, t=%e\n",gf[mNew].t);
-            if( twilightZoneFlow() )
-      	determineErrors( gf[mNew],label );
-            else
-      	outputSolution( gf[mNew].u,gf[mNew].t,label );
-        }
-        if( debug() & 4 || debug() & 64 )
-        {
-            for( grid=0; grid<gf[mNew].cg.numberOfComponentGrids(); grid++ )
-      	::display(gf[mNew].u[grid],sPrintF(" ***takeTimeStepPC: after apply boundary conditions in predictor"
-                                 					   " t=%9.4e grid=%i\n",gf[mNew].t,grid),debugFile,"%10.7f ");
-        }
+            if( debug() & 8 )
+            {
+                label=sPrintF(" ***takeTimeStepPC: after boundary conditions in predictor, t=%e\n",gf[mNew].t);
+                if( twilightZoneFlow() )
+                    determineErrors( gf[mNew],label );
+                else
+                    outputSolution( gf[mNew].u,gf[mNew].t,label );
+            }
+            if( debug() & 4 || debug() & 64 )
+            {
+                for( grid=0; grid<gf[mNew].cg.numberOfComponentGrids(); grid++ )
+                    ::display(gf[mNew].u[grid],sPrintF(" ***takeTimeStepPC: after apply boundary conditions in predictor"
+                                                                                          " t=%9.4e grid=%i\n",gf[mNew].t,grid),debugFile,"%10.7f ");
+            }
 
-        cpu0=getCPU();
-        if( true )
-        {  // extrapolate p in time as an initial guess for iterative solvers
-      // *new way* *wdh* 2015/01/21 
-            const int numberOfTimeLevels=3;
-            const int gfIndex[numberOfTimeLevels]={mNew,mCur,mOld}; // 
-            predictTimeIndependentVariables( numberOfTimeLevels,gfIndex );
-        }
+            if( debug() & 2 )
+                printP("++++++++++++ solve for time independt variables t0+dt0=%9.3e\n\n",t0+dt0);
+            
 
-        parameters.dbase.get<RealArray>("timing")(parameters.dbase.get<int>("timeForAddUt"))+=getCPU()-cpu0;
+            real cpu0=getCPU();
+            if( true )
+            {  // extrapolate p in time as an initial guess for iterative solvers
+        // *new way* *wdh* 2015/01/21 
+                const int numberOfTimeLevels=3;
+                const int gfIndex[numberOfTimeLevels]={mNew,mCur,mOld}; // 
+                predictTimeIndependentVariables( numberOfTimeLevels,gfIndex );
+            }
+
+            parameters.dbase.get<RealArray>("timing")(parameters.dbase.get<int>("timeForAddUt"))+=getCPU()-cpu0;
 
         
-        bool updateSolutionDependentEquations=true;  // e.g. for variable density, do update p eqn here 
-        solveForTimeIndependentVariables( gf[mNew],updateSolutionDependentEquations ); 
+            bool updateSolutionDependentEquations=true;  // e.g. for variable density, do update p eqn here 
+            solveForTimeIndependentVariables( gf[mNew],updateSolutionDependentEquations ); 
 
-    // correct for forces on moving bodies
-        if( movingGridProblem() )
-            correctMovingGrids( t0,t0+dt0,gf[mCur],gf[mNew] ); 
+      // correct for forces on moving bodies
+            if( movingGridProblem() )
+                correctMovingGrids( t0,t0+dt0,gf[mCur],gf[mNew] ); 
 
 
-        if( debug() & 4 )
-        {
-            real max1=max(fabs(gf[mNew].u)), max2=max(fabs(gf[mCur].u));
-            fPrintF(debugFile,
-            	      "takeTimeStepPC: After solve for time indep. vars: "
-            	      "max(fabs(gf[mNew]))=%e, max(fabs(gf[mCur]))=%e \n",
-            	      max1,max2); 
-        }
-        if( debug() & 8 )
-        {
-            label=sPrintF(" takeTimeStepPC: After Predictor, t0+dt0: t0=%e, dt0=%e  \n",t0,dt0);
-            if( twilightZoneFlow() )
-      	determineErrors( gf[mNew],label );
-            else
-      	outputSolution( gf[mNew].u,gf[mNew].t,label );
-        }
+            if( debug() & 4 )
+            {
+                real max1=max(fabs(gf[mNew].u)), max2=max(fabs(gf[mCur].u));
+                fPrintF(debugFile,
+                                "takeTimeStepPC: After solve for time indep. vars: "
+                                "max(fabs(gf[mNew]))=%e, max(fabs(gf[mCur]))=%e \n",
+                                max1,max2); 
+            }
+            if( debug() & 8 )
+            {
+                label=sPrintF(" takeTimeStepPC: After Predictor, t0+dt0: t0=%e, dt0=%e  \n",t0,dt0);
+                if( twilightZoneFlow() )
+                    determineErrors( gf[mNew],label );
+                else
+                    outputSolution( gf[mNew].u,gf[mNew].t,label );
+            }
+        
+        } // end applyBC 
         
     }
     
@@ -1800,274 +1825,298 @@ takeTimeStepPC( real & t0, real & dt0, int correction, AdvanceOptions & advanceO
         real dt1=dtp[(ndt0+1)%5];
         real dt2=dtp[(ndt0+2)%5];
 
-
-    // For constant dt the coefficients would be
-    //    am41=(9./24.)*dt0, am42=(19./24.)*dt0, am43=(-5./24.)*dt0, am44=(1./24.)*dt0;
-    // Here are the coeff for variable dt: (from ab.maple)
-        const real am41 = (6.0*dt1*dt1+6.0*dt2*dt1+8.0*dt0*dt1+4.0*dt2*dt0+3.0*dt0*dt0)*dt0/(
-            dt0+dt1+dt2)/(dt0+dt1)/12.0;
-        const real am42 = dt0*(dt0*dt0+4.0*dt0*dt1+2.0*dt2*dt0+6.0*dt1*dt1+6.0*dt2*dt1)/(dt1+dt2)/dt1/12.0;
-        const real am43 = -dt0*dt0*dt0*(dt0+2.0*dt1+2.0*dt2)/(dt0+dt1)/dt2/dt1/12.0;
-        const real am44 = (dt0+2.0*dt1)*dt0*dt0*dt0/(dt0+dt1+dt2)/(dt1+dt2)/dt2/12.0;
-
-    //       ---Adams Moulton Corrector
-    //          u(t+dt) <- u(t) + dt* ( (1/2) du(*)/dt + (1/2) du(t)/dt )
-    //          gf[mNew]  gf[mCur]              ub               ua
-        real am1=.5*dt0;
-        real am2=.5*dt0;
-
-    // real am41=(9./24.)*dt0, am42=(19./24.)*dt0, am43=(-5./24.)*dt0, am44=(1./24.)*dt0;
-
-    //       --- f(*) <- du(*)/dt(t)
-    //           uNew      d gf[mNew].u/dt
-        if( parameters.useConservativeVariables() )    // *wdh* 010318 convert here. 
+    // --- Advance the interior points ----
+        if( takeTimeStep ) 
         {
-            gf[mCur].primitiveToConservative();
-            gf[mNew].primitiveToConservative();
-        }
-            
-        for( grid=0; grid<gf[mNew].cg.numberOfComponentGrids(); grid++ )
-        {
-            rparam[0]=gf[mNew].t;
-            rparam[1]=gf[mNew].t;
-            rparam[2]=gf[mNew].t; // tImplicit
-            iparam[0]=grid;
-            iparam[1]=gf[mNew].cg.refinementLevelNumber(grid);
-            iparam[2]=numberOfStepsTaken;
+            if( debug() & 2 )
+                printP("++++++++++++ takeTimeStep: update interior points t0+dt0=%9.3e\n\n",t0+dt0);
 
-            getUt(gf[mNew].u[grid],gf[mNew].getGridVelocity(grid),uNew[grid],iparam,rparam,
-          	    Overture::nullRealMappedGridFunction(),&gf[mNew].cg[grid]);
-        }
+      // For constant dt the coefficients would be
+      //    am41=(9./24.)*dt0, am42=(19./24.)*dt0, am43=(-5./24.)*dt0, am44=(1./24.)*dt0;
+      // Here are the coeff for variable dt: (from ab.maple)
+            const real am41 = (6.0*dt1*dt1+6.0*dt2*dt1+8.0*dt0*dt1+4.0*dt2*dt0+3.0*dt0*dt0)*dt0/(
+                dt0+dt1+dt2)/(dt0+dt1)/12.0;
+            const real am42 = dt0*(dt0*dt0+4.0*dt0*dt1+2.0*dt2*dt0+6.0*dt1*dt1+6.0*dt2*dt1)/(dt1+dt2)/dt1/12.0;
+            const real am43 = -dt0*dt0*dt0*(dt0+2.0*dt1+2.0*dt2)/(dt0+dt1)/dt2/dt1/12.0;
+            const real am44 = (dt0+2.0*dt1)*dt0*dt0*dt0/(dt0+dt1+dt2)/(dt1+dt2)/dt2/12.0;
 
-        if( debug() & 8 || debug() & 64 )
-        {
-            determineErrors( ua,gf[mCur].gridVelocity, t0, 1, error,
-                   		       sPrintF(" takeTimeStepPC:corrector: errors in ut (ua) at t=%e \n",t0) );
+      //       ---Adams Moulton Corrector
+      //          u(t+dt) <- u(t) + dt* ( (1/2) du(*)/dt + (1/2) du(t)/dt )
+      //          gf[mNew]  gf[mCur]              ub               ua
+            real am1=.5*dt0;
+            real am2=.5*dt0;
 
-            fPrintF(debugFile," ****>> &uNew=%i &ub=%i\n",&uNew,&ub);
-      	
-            display(uNew[0],sPrintF("uNew[0] at t=%e\n",gf[mNew].t),debugFile,"%5.2f ");
-            if( parameters.isMovingGridProblem() )
-      	display(gf[mNew].getGridVelocity(0),sPrintF("gridVelocity[0] at t=%e\n",gf[mNew].t),
-            		debugFile,"%5.2f ");
-      	
-            determineErrors( uNew,gf[mNew].gridVelocity, gf[mNew].t, 1, error,
-                   		       sPrintF(" takeTimeStepPC:corrector: errors in ut (uNew) at t=%e \n",gf[mNew].t) );
+      // real am41=(9./24.)*dt0, am42=(19./24.)*dt0, am43=(-5./24.)*dt0, am44=(1./24.)*dt0;
 
-            if( orderOfPredictorCorrector==4 )
+      //       --- f(*) <- du(*)/dt(t)
+      //           uNew      d gf[mNew].u/dt
+            if( parameters.useConservativeVariables() )    // *wdh* 010318 convert here. 
             {
-      	if( parameters.isMovingGridProblem() )
-        	  determineErrors( uc,gf[mNew].gridVelocity, t0-2.*dtb, 1, error,
-                     			   sPrintF(" takeTimeStepPC:corrector: errors in ut (uc) at t=%e \n",t0-2*dtb) );
-
-      	determineErrors( ud,gf[mNew].gridVelocity, t0+dtb, 1, error,
-                   			 sPrintF(" takeTimeStepPC:corrector: errors in ut (ud) at t=%e \n",t0+dt) );
+                gf[mCur].primitiveToConservative();
+                gf[mNew].primitiveToConservative();
             }
-        }
+            
+            for( grid=0; grid<gf[mNew].cg.numberOfComponentGrids(); grid++ )
+            {
+                rparam[0]=gf[mNew].t;
+                rparam[1]=gf[mNew].t;
+                rparam[2]=gf[mNew].t; // tImplicit
+                iparam[0]=grid;
+                iparam[1]=gf[mNew].cg.refinementLevelNumber(grid);
+                iparam[2]=numberOfStepsTaken;
+
+                getUt(gf[mNew].u[grid],gf[mNew].getGridVelocity(grid),uNew[grid],iparam,rparam,
+                            Overture::nullRealMappedGridFunction(),&gf[mNew].cg[grid]);
+            }
+
+            if( debug() & 8 || debug() & 64 )
+            {
+                determineErrors( ua,gf[mCur].gridVelocity, t0, 1, error,
+                                                  sPrintF(" takeTimeStepPC:corrector: errors in ut (ua) at t=%e \n",t0) );
+
+                fPrintF(debugFile," ****>> &uNew=%i &ub=%i\n",&uNew,&ub);
+      	
+                display(uNew[0],sPrintF("uNew[0] at t=%e\n",gf[mNew].t),debugFile,"%5.2f ");
+                if( parameters.isMovingGridProblem() )
+                    display(gf[mNew].getGridVelocity(0),sPrintF("gridVelocity[0] at t=%e\n",gf[mNew].t),
+                                    debugFile,"%5.2f ");
+      	
+                determineErrors( uNew,gf[mNew].gridVelocity, gf[mNew].t, 1, error,
+                                                  sPrintF(" takeTimeStepPC:corrector: errors in ut (uNew) at t=%e \n",gf[mNew].t) );
+
+                if( orderOfPredictorCorrector==4 )
+                {
+                    if( parameters.isMovingGridProblem() )
+                        determineErrors( uc,gf[mNew].gridVelocity, t0-2.*dtb, 1, error,
+                                                          sPrintF(" takeTimeStepPC:corrector: errors in ut (uc) at t=%e \n",t0-2*dtb) );
+
+                    determineErrors( ud,gf[mNew].gridVelocity, t0+dtb, 1, error,
+                                                      sPrintF(" takeTimeStepPC:corrector: errors in ut (ud) at t=%e \n",t0+dt) );
+                }
+            }
         
-        addArtificialDissipation(gf[mNew].u,dt0);  // add "implicit" dissipation to u 
+            addArtificialDissipation(gf[mNew].u,dt0);  // add "implicit" dissipation to u 
           
-        if( Parameters::checkForFloatingPointErrors )
-            checkSolution(gf[mNew].u,"takeTimeStepPC: u1 before corrector",true);
+            if( Parameters::checkForFloatingPointErrors )
+                checkSolution(gf[mNew].u,"takeTimeStepPC: u1 before corrector",true);
 
-        real cpu0=getCPU();
-        for( grid=0; grid<gf[mNew].cg.numberOfComponentGrids(); grid++ )
-        {
-            getIndex(gf[mNew].cg[grid].extendedIndexRange(),I1,I2,I3);
-
-            if( useOptUpdate )
+            real cpu0=getCPU();
+            for( grid=0; grid<gf[mNew].cg.numberOfComponentGrids(); grid++ )
             {
-#ifdef USE_PPP
-      	RealArray u0;  getLocalArrayWithGhostBoundaries(gf[mCur].u[grid],u0);
-      	RealArray u1;  getLocalArrayWithGhostBoundaries(gf[mNew].u[grid],u1);
-      	RealArray uta; getLocalArrayWithGhostBoundaries(ua[grid],uta);
-      	RealArray utb; getLocalArrayWithGhostBoundaries(ub[grid],utb);
-      	RealArray utc; getLocalArrayWithGhostBoundaries(uc[grid],utc);
-      	RealArray utd; getLocalArrayWithGhostBoundaries(ud[grid],utd);
-      	const intSerialArray & mask1 = gf[mNew].cg[grid].mask().getLocalArray();
+                getIndex(gf[mNew].cg[grid].extendedIndexRange(),I1,I2,I3);
 
-#else
-      	const RealArray & u0 = gf[mCur].u[grid];
-      	const RealArray & u1 = gf[mNew].u[grid];
-      	const RealArray & uta= ua[grid];
-      	const RealArray & utb= ub[grid];
-      	const RealArray & utc= uc[grid];
-      	const RealArray & utd= ud[grid];
-      	const intSerialArray & mask1 = gf[mNew].cg[grid].mask(); 
-#endif
+                if( useOptUpdate )
+                {
+                    OV_GET_SERIAL_ARRAY(real,gf[mCur].u[grid],u0);
+                    OV_GET_SERIAL_ARRAY(real,gf[mNew].u[grid],u1);
+                    OV_GET_SERIAL_ARRAY(real,ua[grid],uta);
+                    OV_GET_SERIAL_ARRAY(real,ub[grid],utb);
+                    OV_GET_SERIAL_ARRAY(real,uc[grid],utc);
+                    OV_GET_SERIAL_ARRAY(real,ud[grid],utd);
+                    OV_GET_SERIAL_ARRAY(int,gf[mNew].cg[grid].mask(),mask1);
+                    
+          // #ifdef USE_PPP
+          // RealArray u0;  getLocalArrayWithGhostBoundaries(gf[mCur].u[grid],u0);
+          // RealArray u1;  getLocalArrayWithGhostBoundaries(gf[mNew].u[grid],u1);
+          // RealArray uta; getLocalArrayWithGhostBoundaries(ua[grid],uta);
+          // RealArray utb; getLocalArrayWithGhostBoundaries(ub[grid],utb);
+          // RealArray utc; getLocalArrayWithGhostBoundaries(uc[grid],utc);
+          // RealArray utd; getLocalArrayWithGhostBoundaries(ud[grid],utd);
+          // const intSerialArray & mask1 = gf[mNew].cg[grid].mask().getLocalArray();
 
-      	const int n1a=max(u1.getBase(0),I1.getBase()), n1b=min(u1.getBound(0),I1.getBound());  
-      	const int n2a=max(u1.getBase(1),I2.getBase()), n2b=min(u1.getBound(1),I2.getBound());
-      	const int n3a=max(u1.getBase(2),I3.getBase()), n3b=min(u1.getBound(2),I3.getBound());
+          // #else
+          // const RealArray & u0 = gf[mCur].u[grid];
+          // const RealArray & u1 = gf[mNew].u[grid];
+          // const RealArray & uta= ua[grid];
+          // const RealArray & utb= ub[grid];
+          // const RealArray & utc= uc[grid];
+          // const RealArray & utd= ud[grid];
+          // const intSerialArray & mask1 = gf[mNew].cg[grid].mask(); 
+          // #endif
+
+                    const int n1a=max(u1.getBase(0),I1.getBase()), n1b=min(u1.getBound(0),I1.getBound());  
+                    const int n2a=max(u1.getBase(1),I2.getBase()), n2b=min(u1.getBound(1),I2.getBound());
+                    const int n3a=max(u1.getBase(2),I3.getBase()), n3b=min(u1.getBound(2),I3.getBound());
       	
-      	int ierr=0;
-      	const int maskOption=0; // assign pts where mask>0
-      	int ipar[]={0,maskOption,n1a,n1b,n2a,n2b,n3a,n3b,N.getBase(),N.getBound()}; //
-      	real rpar[5]={0.,0.,0.,0.,0.};
-      	real *ut1p, *ut2p, *ut3p, *ut4p;
-      	if( orderOfPredictorCorrector==2 )
-      	{
-        	  ipar[0]=2;
-        	  rpar[0]=am1; rpar[1]=am2;
-        	  ut1p=utb.getDataPointer();
-        	  ut2p=uta.getDataPointer();
-        	  ut3p=ut2p;  // not used
-        	  ut4p=ut2p;  // not used
-      	}
-      	else if( orderOfPredictorCorrector==4 )
-      	{
-        	  ipar[0]=4;
-        	  rpar[0]=am41; rpar[1]=am42; rpar[2]=am43; rpar[3]=am44;
-        	  ut1p=utd.getDataPointer();
-        	  ut2p=uta.getDataPointer();
-        	  ut3p=utb.getDataPointer();
-        	  ut4p=utc.getDataPointer();
-      	}
-      	else
-      	{
-        	  Overture::abort();
-      	}
-      	updateOpt(u0.getBase(0),u0.getBound(0),u0.getBase(1),u0.getBound(1),
-              		  u0.getBase(2),u0.getBound(2),u0.getBase(3),u0.getBound(3),
-              		  *mask1.getDataPointer(),  
-              		  *u0.getDataPointer(),*u1.getDataPointer(), 
-              		  *ut1p, *ut2p, *ut3p, *ut4p,
-              		  ipar[0], rpar[0], ierr );
+                    int ierr=0;
+                    const int maskOption=0; // assign pts where mask>0
+                    int ipar[]={0,maskOption,n1a,n1b,n2a,n2b,n3a,n3b,N.getBase(),N.getBound()}; //
+                    real rpar[5]={0.,0.,0.,0.,0.};
+                    real *ut1p, *ut2p, *ut3p, *ut4p;
+                    if( orderOfPredictorCorrector==2 )
+                    {
+                        ipar[0]=2;
+                        rpar[0]=am1; rpar[1]=am2;
+                        ut1p=utb.getDataPointer();
+                        ut2p=uta.getDataPointer();
+                        ut3p=ut2p;  // not used
+                        ut4p=ut2p;  // not used
+                    }
+                    else if( orderOfPredictorCorrector==4 )
+                    {
+                        ipar[0]=4;
+                        rpar[0]=am41; rpar[1]=am42; rpar[2]=am43; rpar[3]=am44;
+                        ut1p=utd.getDataPointer();
+                        ut2p=uta.getDataPointer();
+                        ut3p=utb.getDataPointer();
+                        ut4p=utc.getDataPointer();
+                    }
+                    else
+                    {
+                        Overture::abort();
+                    }
+                    updateOpt(u0.getBase(0),u0.getBound(0),u0.getBase(1),u0.getBound(1),
+                                        u0.getBase(2),u0.getBound(2),u0.getBase(3),u0.getBound(3),
+                                        *mask1.getDataPointer(),  
+                                        *u0.getDataPointer(),*u1.getDataPointer(), 
+                                        *ut1p, *ut2p, *ut3p, *ut4p,
+                                        ipar[0], rpar[0], ierr );
 
+                }
+                else
+                {
+                    if( orderOfPredictorCorrector==2 )
+                    {
+                        gf[mNew].u[grid](I1,I2,I3,N)=gf[mCur].u[grid](I1,I2,I3,N)+am1*ub[grid](I1,I2,I3,N) 
+                            + am2*ua[grid](I1,I2,I3,N);
+                    }
+                    else if( orderOfPredictorCorrector==4 )
+                    {
+                        gf[mNew].u[grid](I1,I2,I3,N)=gf[mCur].u[grid](I1,I2,I3,N)+am41*ud[grid](I1,I2,I3,N) 
+                            +am42*ua[grid](I1,I2,I3,N) 
+                            +am43*ub[grid](I1,I2,I3,N) 
+                            +am44*uc[grid](I1,I2,I3,N);
+
+                    }
+                }
+      	
             }
-            else
+      // * gf[mNew].t=t0+dt0;  //  gf[mNew] now lives at this time
+            parameters.dbase.get<RealArray>("timing")(parameters.dbase.get<int>("timeForAddUt"))+=getCPU()-cpu0;
+
+            if( Parameters::checkForFloatingPointErrors )
+                checkSolution(gf[mNew].u,"takeTimeStepPC: u1 after corrector",true);
+
+        } // end if takeTimeStep
+        
+    // ---- Apply Boundary Conditions ----
+        if( applyBC )
+        {
+            if( debug() & 2 )
+                printP("++++++++++++ apply BCs t0+dt0=%9.3e\n\n",t0+dt0);
+            
+            if( debug() & 16  )
             {
-      	if( orderOfPredictorCorrector==2 )
-      	{
-        	  gf[mNew].u[grid](I1,I2,I3,N)=gf[mCur].u[grid](I1,I2,I3,N)+am1*ub[grid](I1,I2,I3,N) 
-          	    + am2*ua[grid](I1,I2,I3,N);
-      	}
-      	else if( orderOfPredictorCorrector==4 )
-      	{
-        	  gf[mNew].u[grid](I1,I2,I3,N)=gf[mCur].u[grid](I1,I2,I3,N)+am41*ud[grid](I1,I2,I3,N) 
-          	    +am42*ua[grid](I1,I2,I3,N) 
-          	    +am43*ub[grid](I1,I2,I3,N) 
-          	    +am44*uc[grid](I1,I2,I3,N);
-
-      	}
+                label=sPrintF(" ***takeTimeStepPC: corrector: before interpolate t=%e\n",gf[mNew].t);
+                if( twilightZoneFlow() )
+                    determineErrors( gf[mNew],label );
+                else
+                    outputSolution( gf[mNew].u,gf[mNew].t,label );
             }
-      	
-        }
-    // * gf[mNew].t=t0+dt0;  //  gf[mNew] now lives at this time
-        parameters.dbase.get<RealArray>("timing")(parameters.dbase.get<int>("timeForAddUt"))+=getCPU()-cpu0;
 
-        if( Parameters::checkForFloatingPointErrors )
-            checkSolution(gf[mNew].u,"takeTimeStepPC: u1 after corrector",true);
+            interpolateAndApplyBoundaryConditions( gf[mNew],&gf[mCur],dt0 );
 
-        if( debug() & 16  )
-        {
-            label=sPrintF(" ***takeTimeStepPC: corrector: before interpolate t=%e\n",gf[mNew].t);
-            if( twilightZoneFlow() )
-      	determineErrors( gf[mNew],label );
-            else
-      	outputSolution( gf[mNew].u,gf[mNew].t,label );
-        }
-
-        interpolateAndApplyBoundaryConditions( gf[mNew],&gf[mCur],dt0 );
-
-        if( debug() & 8 )
-        {
-            label=sPrintF("======takeTimeStepPC: After boundary conditions in corrector, t=%e \n",t0+dt0);
-            if( twilightZoneFlow() )
-      	determineErrors( gf[mNew],label );
-            else
-      	outputSolution( gf[mNew].u,gf[mNew].t,label );
-        }
+            if( debug() & 8 )
+            {
+                label=sPrintF("======takeTimeStepPC: After boundary conditions in corrector, t=%e \n",t0+dt0);
+                if( twilightZoneFlow() )
+                    determineErrors( gf[mNew],label );
+                else
+                    outputSolution( gf[mNew].u,gf[mNew].t,label );
+            }
         
             
-        bool updateSolutionDependentEquations=false;  // e.g. for variable density, do not update p eqn here 
-        solveForTimeIndependentVariables( gf[mNew],updateSolutionDependentEquations ); 
+            bool updateSolutionDependentEquations=false;  // e.g. for variable density, do not update p eqn here 
+            solveForTimeIndependentVariables( gf[mNew],updateSolutionDependentEquations ); 
 
-    // -- Correct for forces on moving bodies if we have more corrections --
-    //  *wdh* use macro: 2015/03/08
-      // Correct for forces on moving bodies if we have more corrections.
-            bool movingGridCorrectionsHaveConverged = false;
-            real delta =0.; // holds relative correction when we are sub-cycling 
-            const bool useMovingGridSubIterations= parameters.dbase.get<bool>("useMovingGridSubIterations");
-      // *wdh* 2015/12/16 -- explicitly check for useMovingGridSubIterations, otherwise we can do multiple
-      //                     corrections always if requested,
-            if( movingGridProblem() && (numberOfCorrections==1  // *wdh* 2015/05/24 -- this case was missing in new version
-                                			      || !useMovingGridSubIterations)  ) // *wdh* 2015/12/16 
-            {
-                if( numberOfCorrections>10 )
+      // -- Correct for forces on moving bodies if we have more corrections --
+      //  *wdh* use macro: 2015/03/08
+        // Correct for forces on moving bodies if we have more corrections.
+                bool movingGridCorrectionsHaveConverged = false;
+                real delta =0.; // holds relative correction when we are sub-cycling 
+                const bool useMovingGridSubIterations= parameters.dbase.get<bool>("useMovingGridSubIterations");
+        // *wdh* 2015/12/16 -- explicitly check for useMovingGridSubIterations, otherwise we can do multiple
+        //                     corrections always if requested,
+                if( movingGridProblem() && (numberOfCorrections==1  // *wdh* 2015/05/24 -- this case was missing in new version
+                                    			      || !useMovingGridSubIterations)  ) // *wdh* 2015/12/16 
                 {
-                    printF("WARNING: movingGrid problem, useMovingGridSubIterations=false but numberOfCorrections>10\n");
-                    OV_ABORT("ERROR: this is an error for now");
+                    if( numberOfCorrections>10 )
+                    {
+                        printF("WARNING: movingGrid problem, useMovingGridSubIterations=false but numberOfCorrections>10\n");
+                        OV_ABORT("ERROR: this is an error for now");
+                    }
+                    correctMovingGrids( t0,t0+dt0,gf[mCur],gf[mNew] ); 
                 }
-                correctMovingGrids( t0,t0+dt0,gf[mCur],gf[mNew] ); 
-            }
-    // else if( movingGridProblem() && (correction+1)<numberOfCorrections)
-            else if( movingGridProblem() )
-            {
-        // --- we may be iterating on the moving body motion (e.g.for light bodies) ---
-        //     After correcting for the motion, check for convergence
-                correctMovingGrids( t0,t0+dt0,gf[mCur],gf[mNew] ); 
-        // Check if the correction step has converged
-                bool isConverged = getMovingGridCorrectionHasConverged();
-                delta = getMovingGridMaximumRelativeCorrection();
-                if( debug() & 2 )
-                    printF("PC: moving grid correction step : delta =%8.2e (correction=%i, isConverged=%i)\n",
-                   	     delta,correction+1,(int)isConverged);
-                if( isConverged && (correction+1) >=minimumNumberOfPCcorrections )  // note correction+1 
+      // else if( movingGridProblem() && (correction+1)<numberOfCorrections)
+                else if( movingGridProblem() )
                 {
-                    movingGridCorrectionsHaveConverged=true;  // we have converged -- we can break from correction steps
-                    if( delta!=0. && debug() & 1 )
-              	printF("PC: moving grid correction step : sub-iterations converged after %i corrections, rel-err =%8.2e\n",
-                     	       correction+1,delta);
-          // break;  // we have converged -- break from correction steps
+          // --- we may be iterating on the moving body motion (e.g.for light bodies) ---
+          //     After correcting for the motion, check for convergence
+                    correctMovingGrids( t0,t0+dt0,gf[mCur],gf[mNew] ); 
+          // Check if the correction step has converged
+                    bool isConverged = getMovingGridCorrectionHasConverged();
+                    delta = getMovingGridMaximumRelativeCorrection();
+                    if( debug() & 2 )
+                        printF("PC: moving grid correction step : delta =%8.2e (correction=%i, isConverged=%i)\n",
+                       	     delta,correction+1,(int)isConverged);
+                    if( isConverged && (correction+1) >=minimumNumberOfPCcorrections )  // note correction+1 
+                    {
+                        movingGridCorrectionsHaveConverged=true;  // we have converged -- we can break from correction steps
+                        if( delta!=0. && debug() & 1 )
+                  	printF("PC: moving grid correction step : sub-iterations converged after %i corrections, rel-err =%8.2e\n",
+                         	       correction+1,delta);
+            // break;  // we have converged -- break from correction steps
+                    }
+                    if( (correction+1)>=numberOfCorrections )
+                    {
+                        printF("PC:ERROR: moving grid corrections have not converged! numberOfCorrections=%i, rel-err =%8.2e\n",
+                       	     correction+1,delta);
+                    }
                 }
-                if( (correction+1)>=numberOfCorrections )
+                else 
                 {
-                    printF("PC:ERROR: moving grid corrections have not converged! numberOfCorrections=%i, rel-err =%8.2e\n",
-                   	     correction+1,delta);
                 }
-            }
-            else 
-            {
-            }
-        advanceOptions.correctionIterationsHaveConverged=movingGridCorrectionsHaveConverged;  // we have converged 
+            advanceOptions.correctionIterationsHaveConverged=movingGridCorrectionsHaveConverged;  // we have converged 
 
-    // // correct for forces on moving bodies if we have more corrections.
-    // if( movingGridProblem() && (correction+1)<numberOfCorrections)
-    // {
-    //   correctMovingGrids( t0,t0+dt0,gf[mCur],gf[mNew] ); 
+      // // correct for forces on moving bodies if we have more corrections.
+      // if( movingGridProblem() && (correction+1)<numberOfCorrections)
+      // {
+      //   correctMovingGrids( t0,t0+dt0,gf[mCur],gf[mNew] ); 
 
-    //   // Check if the correction step has converged
-    //   bool isConverged = getMovingGridCorrectionHasConverged();
-    //   real delta = getMovingGridMaximumRelativeCorrection();
-    //   if( debug() & 2 )
-    // 	printF("PC: moving grid correction step : delta =%8.2e (correction=%i, isConverged=%i)\n",
-    // 	       delta,correction+1,(int)isConverged);
-    //   if( isConverged && (correction+1) >=minimumNumberOfPCcorrections )  // note correction+1 
-    //   {
-    // 	if( debug() & 1 )
-    // 	  printF("PC: moving grid correction step : sub-iterations converged after %i corrections, rel-err =%8.2e\n",
-    // 		 correction+1,delta);
-    //     advanceOptions.correctionIterationsHaveConverged=true;  // we have converged 
-    //   }
+      //   // Check if the correction step has converged
+      //   bool isConverged = getMovingGridCorrectionHasConverged();
+      //   real delta = getMovingGridMaximumRelativeCorrection();
+      //   if( debug() & 2 )
+      // 	printF("PC: moving grid correction step : delta =%8.2e (correction=%i, isConverged=%i)\n",
+      // 	       delta,correction+1,(int)isConverged);
+      //   if( isConverged && (correction+1) >=minimumNumberOfPCcorrections )  // note correction+1 
+      //   {
+      // 	if( debug() & 1 )
+      // 	  printF("PC: moving grid correction step : sub-iterations converged after %i corrections, rel-err =%8.2e\n",
+      // 		 correction+1,delta);
+      //     advanceOptions.correctionIterationsHaveConverged=true;  // we have converged 
+      //   }
             
-    // }
+      // }
         
-        if( debug() & 4 )
-            printf("takeTimeStepPC: After correction: max(fabs(gf[mNew]))=%e, max(fabs(gf[mCur]))=%e \n",
-           	     max(fabs(gf[mNew].u)),max(fabs(gf[mCur].u)));
+            if( debug() & 4 )
+                printf("takeTimeStepPC: After correction: max(fabs(gf[mNew]))=%e, max(fabs(gf[mCur]))=%e \n",
+                              max(fabs(gf[mNew].u)),max(fabs(gf[mCur].u)));
 
-        if( debug() & 8 )
-        {
-            if( twilightZoneFlow() )
+            if( debug() & 8 )
             {
-      	determineErrors( gf[mNew],sPrintF("======takeTimeStepPC: Errors After PECE, t0+dt0=%e \n",t0+dt0) );
+                if( twilightZoneFlow() )
+                {
+                    determineErrors( gf[mNew],sPrintF("======takeTimeStepPC: Errors After PECE, t0+dt0=%e \n",t0+dt0) );
+                }
+                else
+                {
+                    outputSolution( gf[mNew].u,gf[mNew].t,sPrintF( " ======takeTimeStepPC: solution after PECE, t0+dt0=%e \n",t0+dt0));
+                }
             }
-            else
-            {
-      	outputSolution( gf[mNew].u,gf[mNew].t,sPrintF( " ======takeTimeStepPC: solution after PECE, t0+dt0=%e \n",t0+dt0));
-            }
-        }
+
+        } // end if applyBC
+        
         
     }  // end if correction > 0 
 

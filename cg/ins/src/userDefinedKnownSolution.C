@@ -998,6 +998,93 @@ getUserDefinedKnownSolution(real t, CompositeGrid & cg, int grid, RealArray & ua
     
   }
 
+  else if( userKnownSolution=="radialElasticPiston" )
+  {
+    // ---- return the exact solution for radial elastic piston ----
+
+    // -- we could avoid building the vertex array on Cartesian grids ---
+    GET_VERTEX_ARRAY(xLocal);
+    const real & R        = rpar[0];
+    const real & Rbar     = rpar[1];
+    const real & rho      = rpar[2];
+    const real & rhoBar   = rpar[3];
+    const real & lambdaBar= rpar[4];
+    const real & muBar    = rpar[5];
+    const real & k        = rpar[6];
+
+    const real cp = sqrt((lambdaBar+2.*muBar)/rhoBar);
+  
+    const real mu = rho*nu;
+
+    // uI = uI(t) =  interface displacement in the radial direction 
+    // eval uI and vI = uI_t 
+    real uI,vI,aI;
+    TimeFunction & bsp = db.get<TimeFunction>("timeFunctionREP");
+    bsp.eval(t, uI,vI );
+    bsp.evalDerivative(t, aI, 2 ); // 2 derivatives 
+
+    if( t <= 2.*dt )
+    {
+      printF("--INS-- UD DB Known radialElasticPiston, t=%9.3e uI=%9.3e vI=%9.3e R=%6.3f Rbar=%6.3f\n"
+             "  grid=%i I1=[%i,%i] I2=[%i,%i]\n",
+             t,uI,vI,R,Rbar,grid,I1.getBase(),I1.getBound(),I2.getBase(),I2.getBound());
+      // if( grid==1 )
+      // {
+      //   int i1=0, i2=0, i3=0;
+      //   printF(" --> grid=%i: (x,y)(0,0) = (%9.3e,%9.3e)\n",grid,xLocal(i1,i2,i3,0),xLocal(i1,i2,i3,1));
+      // }
+
+    }
+
+    // FIrst eval the solid solution on the interface ar rs=rBar 
+    real kr=k*Rbar;
+    real jnkr = jn(1,kr);
+    real jnkrp = .5*k*(jn(0,kr)-jn(2,kr));  // Jn' = .5*( J(n-1) - J(n+1) )
+        
+    real ur = uI*jnkr;       // radial displacement in solid 
+    real urr= uI*jnkrp;      // r-derivative of the radial displacement
+    real vr = vI*jnkr;       // radial velocity 
+    real ar = aI*jnkr;       // radial acceleration
+
+    real RI = Rbar + ur;  // inner radius of the fluid region as a function of time 
+    real RIt = vr;        // d(RI)/dt
+    
+    // fluid radial velocity is Vr = f(t)/r 
+    // Interface condition is Vr(RI) = f(t)/RI = vr 
+    real f = RI*vr;                // f in notes 
+    real ft = RI*ar + RIt*vr;      // df/dt 
+
+    // Here is g(t) from notes 
+    real g = (.5*rho*f*f - 2.*mu*f)/(RI*RI) - (lambdaBar+2.*muBar)*urr - lambdaBar*ur/Rbar;
+
+    RealArray & u = ua;
+    int i1,i2,i3;
+    if( numberOfTimeDerivatives==0 )
+    {
+      FOR_3D(i1,i2,i3,I1,I2,I3)
+      {
+        real x= xLocal(i1,i2,i3,0);
+        real y= xLocal(i1,i2,i3,1);
+        real r = sqrt( SQR(x) + SQR(y) );
+        real cosTheta=x/r, sinTheta=y/r;
+    
+        real vR = f/r;        // radial velocity : vr = vI at r=RI 
+
+        ua(i1,i2,i3,uc) = vR*cosTheta;
+        ua(i1,i2,i3,vc) = vR*sinTheta;
+        ua(i1,i2,i3,pc) = g - rho*f*f/(2.*r*r) - rho*ft*log(r/RI);
+
+      }
+    }
+    else
+    {
+      OV_ABORT("FINISH ME");
+    }
+    
+
+
+  }
+
   else 
   {
     // look for a solution in the base class

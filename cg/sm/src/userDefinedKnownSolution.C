@@ -23,6 +23,12 @@ for(i3=I3Base; i3<=I3Bound; i3++) \
 for(i2=I2Base; i2<=I2Bound; i2++) \
 for(i1=I1Base; i1<=I1Bound; i1++)
 
+// Macro to get the vertex array
+#define GET_VERTEX_ARRAY(x)                                     \
+mg.update(MappedGrid::THEvertex | MappedGrid::THEcenter);       \
+OV_GET_SERIAL_ARRAY_CONST(real,mg.vertex(),x);
+
+
 int SmParameters::
 getUserDefinedKnownSolution(real t, CompositeGrid & cg, int grid, RealArray & ua, 
 			    const Index & I1, const Index &I2, const Index &I3, 
@@ -326,9 +332,110 @@ getUserDefinedKnownSolution(real t, CompositeGrid & cg, int grid, RealArray & ua
       
     }
 
-
   }
 
+  else if( userKnownSolution=="radialElasticPiston" )
+  {
+    // ---- return the exact solution for radial elastic piston ----
+
+    // -- we could avoid building the vertex array on Cartesian grids ---
+    GET_VERTEX_ARRAY(xLocal);
+    const real & R        = rpar[0];
+    const real & Rbar     = rpar[1];
+    const real & rho      = rpar[2];
+    const real & rhoBar   = rpar[3];
+    const real & lambdaBar= rpar[4];
+    const real & muBar    = rpar[5];
+    const real & k        = rpar[6];
+
+    const real cp = sqrt((lambdaBar+2.*muBar)/rhoBar);
+    
+    // uI = uI(t) =  interface displacement in the radial direction 
+    // eval uI and vI = uI_t 
+    real uI,vI;
+    TimeFunction & bsp = db.get<TimeFunction>("timeFunctionREP");
+    bsp.eval(t, uI,vI );  
+
+    if( t <= 2.*dt )
+    {
+      printF("--SM-- getUserDefinedDeformingBodyKnownSolution: radialElasticPiston, t=%9.3e uI=%9.3e vI=%9.3e, Rbar=%6.3f\n",
+             t,uI,vI,Rbar );
+    }
+
+    RealArray & u = ua;
+    const real eps = 10.*REAL_EPSILON;
+    const real sqrtEps = sqrt(REAL_EPSILON);
+    
+    int i1,i2,i3;
+    FOR_3D(i1,i2,i3,I1,I2,I3)
+    {
+      // Reference coordinates:
+      real x= xLocal(i1,i2,i3,0);
+      real y= xLocal(i1,i2,i3,1);
+      real r = sqrt( SQR(x) + SQR(y) );
+      real ct,st;
+      if( r>eps )
+      {
+        ct=x/r; st=y/r;
+      }
+      else
+      {
+        ct=1.; st=0.;  // at the origin we just pick an angle, should not matter
+      }
+      
+      
+      real kr=k*r;
+      real jnkr = jn(1,kr);
+      real ur = uI*jnkr;    // radial displacement 
+      real vr = vI*jnkr;    // radial velocity
+
+      u(i1,i2,i3,u1c)=ur*ct;
+      u(i1,i2,i3,u2c)=ur*st;
+
+      // velocities
+      if( assignVelocity )
+      {
+        u(i1,i2,i3,v1c)=vr*ct;
+        u(i1,i2,i3,v2c)=vr*st;
+      }
+      
+      // stresses
+      if( assignStress )
+      {
+        real jnkrp = .5*k*(jn(0,kr)-jn(2,kr));  // Jn' = .5*( J(n-1) - J(n+1) ) check me 
+        // real jnkrp = (jn(0,kr)-jnkr)/r;  // J1'(z) = (J0(z)-J1(z))/z
+        
+        // ur = amp*J_1(k*r)* ...
+        real urr=uI*jnkrp;      // r-derivative of the radial displacement
+        
+        real urByr;
+        if( fabs(r)>sqrtEps )
+          urByr=ur/r;
+        else
+        {
+          urByr=urr;  // for r small, ur/r = (ur(r)-ur(0))/r =  urr(r) + ...
+          // printF(" --UDKDBS: i=(%i,%i) r=%8.2e urr=%9.3e ur=%9.3e ct=%9.3e st=%9.3e\n",i1,i2,r,urr,ur,ct,st);
+        }
+        
+        real sigmarr = (lambdaBar+2.*muBar)*urr + lambdaBar*urByr;
+        real sigmart=0.;
+        real sigmatt = lambdaBar*urr +  (lambdaBar+2.*muBar)*urByr;
+
+        // Cartesian components of the stress tensor:
+        //  [ s11 s12 ] = srr rHat rHat^T + srt rHat thetaHat^T + str thetaHat^t rHat + stt thetaHat thetaHat^T
+        //  [ s21 s22 ]
+        // where
+        //   rHat=[cos,sin], thetaHat=[-sin,cos]
+        /// **CHECK ME**
+	u(i1,i2,i3,s11c)= sigmarr*ct*ct - 2.*sigmart*ct*st + sigmatt*st*st;
+	u(i1,i2,i3,s12c)= sigmarr*ct*st + sigmart*(ct*ct-st*st) - sigmatt*ct*st ;
+	u(i1,i2,i3,s21c)= u(i1,i2,i3,s12c);
+	u(i1,i2,i3,s22c)= sigmarr*st*st + 2.*sigmart*ct*st + sigmatt*ct*ct;
+      }
+      
+    }
+    
+  }
 
   else 
   {
