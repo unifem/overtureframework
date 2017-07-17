@@ -30,7 +30,7 @@ assignInitialConditions(int gfIndex)
 
     SmParameters::PDEVariation & pdeVariation = parameters.dbase.get<SmParameters::PDEVariation>("pdeVariation");
 
-    printP("--CGSM-IC-- ***assignInitialConditions: gfIndex=%i initialConditionOption=%i\n",gfIndex,(int)initialConditionOption);
+    printP("--SM-IC-- ***assignInitialConditions: gfIndex=%i initialConditionOption=%i\n",gfIndex,(int)initialConditionOption);
 
     if( initialConditionOption==twilightZoneInitialCondition )
     {

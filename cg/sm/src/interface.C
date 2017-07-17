@@ -3,6 +3,7 @@
 #include "SmParameters.h"
 #include "ParallelUtility.h"
 #include "Interface.h"  
+#include "ArrayEvolution.h"    
 
 // include some interface bpp macros
 //------------------------------------------------------------------------------------
@@ -119,7 +120,7 @@ getInterfaceDataOptions( GridFaceDescriptor & info, int & interfaceDataOptions )
     return numberOfItems;
 }
 
-// ===========================================================================
+// =======================================================================================================
 /// \brief Set or get the right-hand-side for an interface boundary condition.
 /// \details This function is used when solving the interface equations 
 ///           by iteration.
@@ -132,14 +133,17 @@ getInterfaceDataOptions( GridFaceDescriptor & info, int & interfaceDataOptions )
 /// \param gfd (input) : the master GridFaceDescriptor. 
 /// \param gfIndex (input) : use the solution from gf[gfIndex]
 /// \param t (input) : current time.
-// ===========================================================================
+/// \param saveTimeHistory (input) : if true, save a time-history of the requested data. This is the
+///    new way to save a time-history when interfaceCommunicationMode==requestInterfaceDataWhenNeeded
+// ==========================================================================================================
 int
 Cgsm::
 interfaceRightHandSide( InterfaceOptionsEnum option, 
                                                 int interfaceDataOptions,
                                                 GridFaceDescriptor & info, 
                                                 GridFaceDescriptor & gfd, 
-                  			int gfIndex, real t )
+                  			int gfIndex, real t,
+                                                bool saveTimeHistory /* = false */ )
 {
 
     if( gfIndex==-1 )
@@ -196,6 +200,7 @@ interfaceRightHandSide( InterfaceOptionsEnum option,
   // *wdh* 081212 CompositeGrid & cg = gf[0].cg;
     CompositeGrid & cg = gf[gfIndex].cg;
     const int numberOfDimensions = cg.numberOfDimensions();
+    const real epsT = REAL_EPSILON*100.*(1+fabs(t));
     
     const IntegerArray & interfaceType = parameters.dbase.get<IntegerArray >("interfaceType");
 
@@ -379,6 +384,9 @@ interfaceRightHandSide( InterfaceOptionsEnum option,
 
         const int uc = parameters.dbase.get<int >("uc");
         const int v1c = parameters.dbase.get<int >("v1c");
+
+        const bool methodComputesVelocity = v1c>=0;  // not all methods compute velocity directly
+
         Range Dc(uc,uc+numberOfDimensions-1);  // displacement components
         Range C, Cd;
         if( option==setInterfaceRightHandSide )
@@ -388,7 +396,6 @@ interfaceRightHandSide( InterfaceOptionsEnum option,
       // ------------ Fill in the bd array             -------
       // -----------------------------------------------------
       // **** set the RHS *****
-      //   (TZ is done below) <- todo 
 
             int numSaved=0; // keeps track of how many things we have saved in f 
 
@@ -421,7 +428,7 @@ interfaceRightHandSide( InterfaceOptionsEnum option,
         	  printP(">>> --SM-- interfaceRHS: interface velocity provided t=%9.3e  in C=[%i,%i]<<<\n",
                                   t,C.getBase(),C.getBound());
       	}
-	// -- for now save the velocity data in the dbase *wdh* May 26, 20-17
+	// -- for now save the velocity data in the dbase *wdh* May 26, 2017
                 aString velocityDataName;
       	sPrintF(velocityDataName,"velocityG%iS%iA%i",grid,side,axis);
       	if( !parameters.dbase.has_key(velocityDataName) )
@@ -509,11 +516,23 @@ interfaceRightHandSide( InterfaceOptionsEnum option,
       // *********************Return the interface data******************************
       // ****************************************************************************
 
-      // if( !(interfaceDataOptions & Parameters::positionInterfaceData) )
-      // {
-      // 	printP("interfaceRightHandSide:get:ERROR: interfaceDataOptions does not include positionInterfaceData??\n");
-      // 	OV_ABORT("error");
-      // }
+      // For TESTING return exact values (if known)
+            bool useExactInterfacePosition=false;
+            bool useExactInterfaceVelocity=false;
+            bool useExactInterfaceAcceleration=false;
+            bool useExactInterfaceTraction=false;  // 
+            
+            if( useExactInterfacePosition )
+                printF("--SM--IRHS: USING EXACT INTERFACE POSITIONS t=%9.3e ***TEMP***\n",t);
+            
+            if( useExactInterfaceVelocity )
+                printF("--SM--IRHS: USING EXACT INTERFACE VELOCITIES t=%9.3e ***TEMP***\n",t);
+            
+            if( useExactInterfaceAcceleration )
+                printF("--SM--IRHS: USING EXACT INTERFACE ACCELERATION t=%9.3e ***TEMP***\n",t);
+            if( useExactInterfaceTraction )
+                printF("--SM--IRHS: USING EXACT INTERFACE TRACTION t=%9.3e ***TEMP***\n",t);
+            
             
             realMappedGridFunction & u = gf[gfIndex].u[grid];
             OV_GET_SERIAL_ARRAY(real,u,uLocal);
@@ -540,36 +559,67 @@ interfaceRightHandSide( InterfaceOptionsEnum option,
       	const int u1c = parameters.dbase.get<int >("u1c");
       	assert( u1c>=0 );
       	Range Dc(u1c,u1c+numberOfDimensions-1);  // displacement components
+                RealArray displacement(I1,I2,I3,Rx);
+                
+                bool initialStateAssigned=false;
+                if( t<=epsT || useExactInterfacePosition )
+                {
+          // -- get initial or past-time state of the interface  --
+                    initialStateAssigned=getKnownInterfaceState(Parameters::boundaryPosition,t, side,axis,grid,
+                                                                                                            mg,I1,I2,I3,Rx,displacement );
 
-	// Some solid-mechanics solvers compute the displacements, others the full deformation.	
-      	bool methodComputesDisplacements=true;
-      	if( parameters.dbase.has_key("methodComputesDisplacements") )
-      	{
-        	  methodComputesDisplacements=parameters.dbase.get<bool>("methodComputesDisplacements");
-      	}
-      	if( methodComputesDisplacements )
-      	{
-        	  if( debug() & 4 )
-          	    printP("interfaceRightHandSide:get interface position and save in components [%i,%i] \n",C.getBase(),C.getBound());
+                }
+                if( !initialStateAssigned )
+                {
 
-        	  f(I1,I2,I3,C)=vertex(I1,I2,I3,Rx)+uLocal(I1,I2,I3,Dc);            // ***** fix me: f should take base 0 when we change
-	  // f(I1,I2,I3,Dc)=vertex(I1,I2,I3,Rx)+uLocal(I1,I2,I3,Dc);              // ***** fix me: f should take base 0 when we change
+          // Some solid-mechanics solvers compute the displacements, others the full deformation.	
+                    bool methodComputesDisplacements=true;
+                    if( parameters.dbase.has_key("methodComputesDisplacements") )
+                    {
+                        methodComputesDisplacements=parameters.dbase.get<bool>("methodComputesDisplacements");
+                    }
+                    if( methodComputesDisplacements )
+                    {
+                        if( debug() & 4 )
+                            printP("interfaceRightHandSide:get interface position and save in components [%i,%i] \n",
+                                          C.getBase(),C.getBound());
 
-      	}
-      	else
-      	{  // for now this is for Jeff's hemp code -- fix me --
-        	  if( true )
-        	  {
-	    // for linear elasticity, the displacement is saved in components u1c,u2c,u3c
-          	    f(I1,I2,I3,C)=vertex(I1,I2,I3,Rx)+uLocal(I1,I2,I3,Dc);
-        	  }
-        	  else
-        	  {
-          	    f(I1,I2,I3,C)=uLocal(I1,I2,I3,Dc);
-        	  }
+                        displacement=vertex(I1,I2,I3,Rx)+uLocal(I1,I2,I3,Dc);  
+
+                    }
+                    else
+                    {  // for now this is for Jeff's hemp code -- fix me --
+                        if( true )
+                        {
+              // for linear elasticity, the displacement is saved in components u1c,u2c,u3c
+                            displacement=vertex(I1,I2,I3,Rx)+uLocal(I1,I2,I3,Dc);
+                        }
+                        else
+                        {
+                            displacement=uLocal(I1,I2,I3,Dc);
+                        }
          	   
-      	}
-      	
+                    }
+                }
+                
+      	f(I1,I2,I3,C)=displacement;
+                
+                if( !methodComputesVelocity && saveTimeHistory )
+                {
+          // If the method does not compute the velocity then we save the time history of the displacement
+          // so that we can compute the velocity and acceleration 
+          // -- save a time history of the displacement
+                    if( !gfd.dbase.has_key("displacementHistory") )
+                    {
+                        gfd.dbase.put<ArrayEvolution>("displacementHistory");
+                    }
+                    ArrayEvolution & displacementHistory = gfd.dbase.get<ArrayEvolution>("displacementHistory");
+
+                    printF("--SM----IRHS-- Save displacement time history at t=%9.3e\n",t);
+                    displacementHistory.add( t, displacement);  
+
+                }
+
       	if( debug() & 8 )
       	{
         	  f(I1,I2,I3,C).display("interfaceRightHandSide:get: Here is the RHS (vertex+displacement)");
@@ -581,26 +631,142 @@ interfaceRightHandSide( InterfaceOptionsEnum option,
             
             if( interfaceDataOptions & Parameters::velocityInterfaceData )
             {
-	// -- save the interface velocity --
+        // ------------------------------------
+	// --- save the interface velocity ----
+        // ------------------------------------
+
       	if( debug() & 2 )
         	  printP("Cgsm:interfaceRightHandSide: Save the interface velocity.\n");
       	
-      	const int v1c = parameters.dbase.get<int >("v1c");
-      	assert( v1c>=0 );
-      	Range V(v1c,v1c+numberOfDimensions-1);           
-      	C=Range(numSaved,numSaved+numberOfDimensions-1);   // save velocity in these components of f
-      	f(I1,I2,I3,C)=uLocal(I1,I2,I3,V);
+                C=Range(numSaved,numSaved+numberOfDimensions-1);   // save velocity in these components of f
 
+      	const int v1c = parameters.dbase.get<int >("v1c");
+                Range Rx=numberOfDimensions;
+                RealArray velocity(I1,I2,I3,Rx);
+
+                bool initialStateAssigned=false;
+                if( t<=epsT || useExactInterfaceVelocity )
+                {
+          // -- get initial or past-time state of the interface  --
+                    initialStateAssigned=getKnownInterfaceState(Parameters::boundaryVelocity,t, side,axis,grid,
+                                                                                                            mg,I1,I2,I3,Rx,velocity );
+
+                }
+                if( !initialStateAssigned )
+                {
+                    if( v1c>=0 )
+                    {
+                        Range V(v1c,v1c+numberOfDimensions-1);           
+                        velocity=uLocal(I1,I2,I3,V);
+                    }
+                    else
+                    {
+            // Scheme does not compute velocities --- approximate by differences:
+            // const int u1c = parameters.dbase.get<int >("u1c");
+            // Range U(u1c,u1c+numberOfDimensions-1);         
+
+                        if( gfd.dbase.has_key("displacementHistory") )
+                        {
+                            ArrayEvolution & displacementHistory = gfd.dbase.get<ArrayEvolution>("displacementHistory");
+
+              // Do we need this to higher order so we can get the acceleration to 2nd order?
+                            int orderOfAccuracy=3;
+                            printF("--SM----IRHS-- EVAL the velocity as d(u)/dt from displacement time history, order=%i t=%9.3e\n",
+                                          orderOfAccuracy,t);
+                            int numberOfTimeDerivatives=1;
+                            
+                            displacementHistory.eval( t,velocity,numberOfTimeDerivatives,orderOfAccuracy );
+                        }
+                        else
+                        {
+                            OV_ABORT("ERROR: displacementHistory not found. finish me");
+                        }
+
+                    }
+                }
+                
+                f(I1,I2,I3,C)=velocity;
       	numSaved+=numberOfDimensions;
+
+
+        // Save a time history of the velocity on the interface that can be used to
+        // predict the acceleration
+                
+                if( saveTimeHistory )
+                {
+          // -- save a time history of the velocity
+                    if( !gfd.dbase.has_key("velocityHistory") )
+                    {
+                        gfd.dbase.put<ArrayEvolution>("velocityHistory");
+                    }
+                    ArrayEvolution & velocityHistory = gfd.dbase.get<ArrayEvolution>("velocityHistory");
+
+                    printF("--SM----IRHS-- Save velocity time history at t=%9.3e\n",t);
+                    velocityHistory.add( t, velocity);  
+
+                }
+
+                if( FALSE ) // **************** OLD *************
+                {
+                    const int & numberOfInterfaceTimeLevels=parameters.dbase.get<int>("numberOfInterfaceTimeLevels");
+                    aString velocityTimeHistoryName;
+                    sPrintF(velocityTimeHistoryName,"velocityTimeHistoryG%iS%iA%i",grid,side,axis);
+                    if( !parameters.dbase.has_key(velocityTimeHistoryName) )
+                    {
+                        std::vector<InterfaceData> & velocityTimeHistory =  
+                            parameters.dbase.put<std::vector<InterfaceData> >(velocityTimeHistoryName);
+                        velocityTimeHistory.resize(numberOfInterfaceTimeLevels); // allocate space 
+                        for( int i=0; i<numberOfInterfaceTimeLevels; i++ )
+                        {
+                            velocityTimeHistory[i].t=-REAL_MAX*.1;  // set negative bogus value for time 
+                        }
+                  
+                    }
+                    std::vector<InterfaceData> & velocityTimeHistory =
+                        parameters.dbase.get<std::vector<InterfaceData> >(velocityTimeHistoryName);
+                
+                    int & currentTimeLevel = parameters.dbase.get<int>("currentInterfaceTimeLevel");
+                    if( currentTimeLevel==-1 )
+                    {
+                        currentTimeLevel=0;
+                        velocityTimeHistory[currentTimeLevel].t =t;
+                    }
+                    else if( t > velocityTimeHistory[currentTimeLevel].t )
+                    {
+            // add a new time level in the history
+                        currentTimeLevel = ovmod(currentTimeLevel + 1, numberOfInterfaceTimeLevels);
+                    }
+              
+                    assert( currentTimeLevel>=0 && currentTimeLevel<velocityTimeHistory.size() );
+                    velocityTimeHistory[currentTimeLevel].t=t;
+          // ** June 28, 2017 velocityTimeHistory[currentTimeLevel].u=uLocal(I1,I2,I3,V);
+                    velocityTimeHistory[currentTimeLevel].u=velocity;
+                    printF("--SM-- *OLD* SET INTERFACE VELOCITY TIME HISTORY current=%i, t=%9.3e\n",currentTimeLevel,t);
+                }
+                
             }
         
             if( interfaceDataOptions & Parameters::accelerationInterfaceData )
             {
 	// -- save the interface acceleration --
-      	if( debug() & 2 )
-        	  printP("Cgsm:interfaceRightHandSide: Save the interface acceleration. FINISH ME \n");
-
       	C=Range(numSaved,numSaved+numberOfDimensions-1);   // save acceleration in these components of f
+
+      	if( true || debug() & 2 )
+        	  printP("Cgsm:interfaceRightHandSide: return the interface acceleration.  \n");
+
+                bool initialStateAssigned=false;
+                if( t<=epsT || useExactInterfaceAcceleration )
+                {
+          // -- get initial or past-time state of the interface  --
+                    initialStateAssigned=getKnownInterfaceState(Parameters::boundaryAcceleration,t, side,axis,grid,
+                                                                                                            mg,I1,I2,I3,C,f );
+
+                }
+                if( !initialStateAssigned )
+                {
+                    getInterfaceAcceleration( gfd, t, side,axis,grid, mg, I1,I2,I3,C, f );
+                }
+                
 
 	// f(I1,I2,I3,C)=uLocal(I1,I2,I3,V);
 
@@ -616,41 +782,62 @@ interfaceRightHandSide( InterfaceOptionsEnum option,
         	  printP(">>>Cgsm:interfaceRHS: Save interface traction.. t=%9.3e in C=[%i,%i] <<<\n",
                                     t,C.getBase(),C.getBound());
 
+                bool initialStateAssigned=false;
+                if( t<=epsT || useExactInterfaceTraction )
+                {
+          // -- get initial or past-time state of the interface  --
+                    initialStateAssigned=getKnownInterfaceState(Parameters::boundaryTraction,t, side,axis,grid,
+                                                                                                            mg,I1,I2,I3,C,f );
 
-                assert( pdeVariation == SmParameters::godunov );
-                const int pdeTypeForGodunovMethod = parameters.dbase.get<int >("pdeTypeForGodunovMethod");
-                assert( pdeTypeForGodunovMethod==0 ); // linear-elasticity
+                }
+                if( !initialStateAssigned )
+                {
 
-        // ------ get the traction  --------
-                const int s11c = parameters.dbase.get<int >("s11c"); assert( s11c>=0 );
-                const int s12c = parameters.dbase.get<int >("s12c"); assert( s12c>=0 );
-                const int s22c = parameters.dbase.get<int >("s22c"); assert( s22c>=0 );
+                    const int pdeTypeForGodunovMethod = parameters.dbase.get<int >("pdeTypeForGodunovMethod");
+                    if(  pdeTypeForGodunovMethod!=0 ) // nonlinear solid
+                    {
+                        printF("--SM-- get interface traction: WARNING: Not implemented for a nonlinear solid\n");
+                    }
+                    else if(  pdeTypeForGodunovMethod==0 ) // linear-elasticity
+                    {
+            // ------ get the traction  --------
+                        const int s11c = parameters.dbase.get<int >("s11c"); assert( s11c>=0 );
+                        const int s12c = parameters.dbase.get<int >("s12c"); assert( s12c>=0 );
+                        const int s22c = parameters.dbase.get<int >("s22c"); assert( s22c>=0 );
 
-        // -- here is the normal to the un-deformed surface -- do this for now
-      	mg.update(MappedGrid::THEvertexBoundaryNormal);
-                #ifdef USE_PPP
-                    realSerialArray & normal = mg.vertexBoundaryNormalArray(side,axis);
-                #else
-                    realSerialArray & normal = mg.vertexBoundaryNormal(side,axis);
-                #endif
-
-        // 
-        // traction:  nv^T sigma
-        // We need the normal and Cauchy stress tensor
-                if( numberOfDimensions==2 )
-      	{
+            // -- here is the normal to the un-deformed surface -- do this for now
+                        printF("\n --SM-- IRHS WARNING Using REFERENCE NORMAL FOR TRACTION ***FIX ME \n\n");
+                        
+                        mg.update(MappedGrid::THEvertexBoundaryNormal);
+                        OV_GET_VERTEX_BOUNDARY_NORMAL(mg,side,axis,normal);
+                    
+            // 
+            // traction:  nv^T sigma
+            // We need the normal and Cauchy stress tensor
+                        if( numberOfDimensions==2 )
+                        {
           	    
-        	  int c0=numSaved, c1=c0+1;
-        	  f(I1,I2,I3,c0)=( normal(I1,I2,I3,0)*uLocal(I1,I2,I3,s11c) +
-                      		 	   normal(I1,I2,I3,1)*uLocal(I1,I2,I3,s12c) );
+                            int c0=numSaved, c1=c0+1;
+                            f(I1,I2,I3,c0)=( normal(I1,I2,I3,0)*uLocal(I1,I2,I3,s11c) +
+                                                              normal(I1,I2,I3,1)*uLocal(I1,I2,I3,s12c) );
       	
-        	  f(I1,I2,I3,c1)=( normal(I1,I2,I3,0)*uLocal(I1,I2,I3,s12c) +
-                     			   normal(I1,I2,I3,1)*uLocal(I1,I2,I3,s22c) );
-      	}
-      	else
-      	{
-        	  OV_ABORT("finish me for 3D");
-      	}
+                            f(I1,I2,I3,c1)=( normal(I1,I2,I3,0)*uLocal(I1,I2,I3,s12c) +
+                                                              normal(I1,I2,I3,1)*uLocal(I1,I2,I3,s22c) );
+                        }
+                        else
+                        {
+                            OV_ABORT("finish me for 3D");
+                        }
+                    }
+                    
+                    if( debug() & 4 )
+                    {
+                        ::display(f(I1,I2,I3,Range(numSaved,numSaved+1)),"--SM--IRHS: Traction","%6.2f ");
+                    }
+                    
+                }
+
+                
       	
 
 //- // compute the solid normal (n1s,n2s)
@@ -909,6 +1096,12 @@ projectInterface( int grid, real dt, int current )
 {
     const bool useAddedMassAlgorithm = parameters.dbase.get<bool>("useAddedMassAlgorithm");
 
+  // if( FALSE && useAddedMassAlgorithm )
+  // {
+  //   printF("\n--SM-- projectInterfaceVelocity DO NOT PROJECT VELOCITY **TEMP***\n");
+  //   return 0;
+  // }
+    
     if( !useAddedMassAlgorithm )
         return 0;
     
@@ -923,6 +1116,8 @@ projectInterface( int grid, real dt, int current )
     OV_GET_SERIAL_ARRAY(real,u,uLocal);
     MappedGrid & mg = cgf.cg[grid];
     const int numberOfDimensions=cg.numberOfDimensions();
+    const Parameters::InterfaceCommunicationModeEnum & interfaceCommunicationMode= 
+        parameters.dbase.get<Parameters::InterfaceCommunicationModeEnum>("interfaceCommunicationMode");
 
     IntegerArray & interfaceType = parameters.dbase.get<IntegerArray >("interfaceType");
 
@@ -931,6 +1126,8 @@ projectInterface( int grid, real dt, int current )
     Range Vc(v1c,v1c+numberOfDimensions-1);
     Range Rx = numberOfDimensions;
       	
+    InterfaceData interfaceData;
+
     for( int axis=axis1; axis<mg.numberOfDimensions(); axis++ )
     {
         for( int side=Start; side<=End; side++ )
@@ -938,51 +1135,74 @@ projectInterface( int grid, real dt, int current )
             if( interfaceType(side,axis,grid)==Parameters::tractionInterface )
             {
       	if( t <= 2.*dt )
-        	  printF("--SM-- project velocity of (side,axis,grid)=(%i,%i,%i) bc=%i\n",
+        	  printF("\n--SM-- projectInterfaceVelocity for (side,axis,grid)=(%i,%i,%i) bc=%i\n",
              		 side,axis,grid,mg.boundaryCondition(side,axis));
 
-      	aString velocityDataName;
-      	sPrintF(velocityDataName,"velocityG%iS%iA%i",grid,side,axis);
-      	if( !parameters.dbase.has_key(velocityDataName) )
-      	{
-	  // -- At t=0 the interfaceData may not have been set yet, in this case call getInterfaceData
+                int extra=1;
+                getBoundaryIndex(mg.gridIndexRange(),side,axis,Ib1,Ib2,Ib3,extra);  
+                bool ok=ParallelUtility::getLocalArrayBounds(u,uLocal,Ib1,Ib2,Ib3,1);
 
-        	  printF("--SM-- projectInterface::WARNING: interface data: [%s] not found, t=%9.3e!\n",
-                    (const char*)velocityDataName,t);
-        	  OV_ABORT("finish me");
-        	  
-	  // InterfaceData & interfaceData = parameters.dbase.put<InterfaceData>(velocityDataName);
-	  // Range C=numberOfDimensions;
-	  // interfaceData.u.redim(I1,I2,I3,C);
-	  // interfaceData.t=t0;
-	  // interfaceData.u=0;
+                if( interfaceCommunicationMode==Parameters::requestInterfaceDataWhenNeeded )
+                {
+          // *new* way June 30, 2017 -- explicitly request interface data from Cgins, ...
+                    if( true )
+                        printF("--SM-- PIV: REQUEST interface velocity at t=%9.3e\n",t);
+                        
+                    if( ok )
+                        interfaceData.u.redim(Ib1,Ib2,Ib3,Rx);
+                    interfaceData.t=t;
+                    interfaceData.u=0;
 
-	  // // RealArray solidVelocity(I1,I2,I3,C);
-	  // int interfaceDataOptions = Parameters::velocityInterfaceData;
-        	  
-	  // getInterfaceData( t0, grid, side, axis, 
-	  // 		    interfaceDataOptions,
-	  // 		    interfaceData.u,
-	  // 		    parameters );
+                    int interfaceDataOptions = Parameters::velocityInterfaceData;
+                    bool saveTimeHistory=false; // what should this be ?
+                    getInterfaceData( t, grid, side, axis, 
+                                                        interfaceDataOptions,
+                                                        interfaceData.u,
+                                                        parameters,saveTimeHistory );
 
-      	}
+                    RealArray & interfaceVelocity =interfaceData.u;
 
-      	InterfaceData & interfaceData = parameters.dbase.get<InterfaceData>(velocityDataName);
-      	aString buff;
-      	if( t <= 2.*dt )
-        	  ::display(interfaceData.u,sPrintF(buff,"--SM-- projectInterface: interface velocity [%s] at ti=%9.3e (t=%9.3e)",
-                                  					    (const char*)velocityDataName,interfaceData.t,t),"%6.3f ");
-      	RealArray & interfaceVelocity =interfaceData.u;
+                    if( ok )
+                    {
+            // Set the velocity on the interface for the INS-SM AMP scheme.
 
-      	int extra=1;
-      	getBoundaryIndex(mg.gridIndexRange(),side,axis,Ib1,Ib2,Ib3,extra);  
-      	bool ok=ParallelUtility::getLocalArrayBounds(u,uLocal,Ib1,Ib2,Ib3,1);
-      	if( ok )
-      	{
-          // Set the velocity on the interface for the INS-SM AMP scheme.
+                        uLocal(Ib1,Ib2,Ib3,Vc)=interfaceVelocity(Ib1,Ib2,Ib3,Rx);
+                        if( t <= 2.*dt )
+                            ::display(interfaceVelocity(Ib1,Ib2,Ib3,1),"--SM--PIV-- Here is fluid velocity(Ib1,In2,Ib3,1)","%6.3f ");
 
-        	  uLocal(Ib1,Ib2,Ib3,Vc)=interfaceVelocity(Ib1,Ib2,Ib3,Rx);
-      	}
+                    }
+                    
+                }
+                else  // *OLD WAY
+                {
+                    aString velocityDataName;
+                    sPrintF(velocityDataName,"velocityG%iS%iA%i",grid,side,axis);
+                    if( !parameters.dbase.has_key(velocityDataName) )
+                    {
+            // -- At t=0 the interfaceData may not have been set yet, in this case call getInterfaceData
+
+                        printF("--SM-- projectInterface::WARNING: interface data: [%s] not found, t=%9.3e!\n",
+                                      (const char*)velocityDataName,t);
+                        OV_ABORT("finish me");
+
+
+                    }
+
+                    InterfaceData & interfaceData = parameters.dbase.get<InterfaceData>(velocityDataName);
+                    aString buff;
+                    if( t <= 2.*dt )
+                        ::display(interfaceData.u,sPrintF(buff,"--SM-- projectInterface: interface velocity [%s] at ti=%9.3e (t=%9.3e)",
+                                                                                            (const char*)velocityDataName,interfaceData.t,t),"%6.3f ");
+                    RealArray & interfaceVelocity =interfaceData.u;
+
+                    if( ok )
+                    {
+            // Set the velocity on the interface for the INS-SM AMP scheme.
+
+                        uLocal(Ib1,Ib2,Ib3,Vc)=interfaceVelocity(Ib1,Ib2,Ib3,Rx);
+                    }
+                }
+                
             }
         }
     }
@@ -993,3 +1213,270 @@ projectInterface( int grid, real dt, int current )
     
 }
     
+//============================================================================================================
+/// \brief Return the acceleration on the interface
+/// \param t (input) : time to eval the acceleration
+/// \param side,axis,grid : face
+/// \param mg (input) : MappedGrid
+/// \param I1,I2,I3,C (input) : assign points f(I1,I2,I3,C) 
+/// \param f (output) : put acceleration here 
+//============================================================================================================
+int Cgsm::
+getInterfaceAcceleration( GridFaceDescriptor & gfd, const real t, const int side, const int axis, const int grid, 
+                                                    MappedGrid & mg, const Index & I1, const Index & I2, const Index & I3, const Range & C, 
+                                                    RealArray & f )
+{
+    const bool & twilightZoneFlow = parameters.dbase.get<bool >("twilightZoneFlow");
+
+    const bool evalExactAcceleration=true; // eval exact accel. for testing 
+    const bool useExactAcceleration=false && !twilightZoneFlow;
+    bool useTimeHistory=!useExactAcceleration;
+    
+    RealArray accel;
+    
+    if( evalExactAcceleration )
+    {
+    // --- evaluate the exact acceleration for testing ---    
+        if( twilightZoneFlow )
+        {
+      // get exact acceleration from TZ
+            OGFunction & e = *(parameters.dbase.get<OGFunction* >("exactSolution"));
+            mg.update(MappedGrid::THEcenter | MappedGrid::THEvertex );
+            OV_GET_SERIAL_ARRAY(real,mg.vertex(),xLocal);
+            const int numberOfDimensions=mg.numberOfDimensions();
+            const int v1c = parameters.dbase.get<int >("v1c");
+            Range Vc(v1c,v1c+numberOfDimensions-1);
+            accel.redim(I1,I2,I3,Vc);
+            const bool isRectangular = false; // ** do this for now ** mg.isRectangular();
+            e.gd( accel,xLocal,numberOfDimensions,isRectangular,1,0,0,0,I1,I2,I3,Vc,t);  // (v)_t : exact solution 
+            
+        }
+        else
+        {
+            Range Rx=mg.numberOfDimensions();
+            accel.redim(I1,I2,I3,Rx);
+
+      // get exact accel from a known solution 
+            const Parameters::KnownSolutionsEnum & knownSolution = 
+                parameters.dbase.get<Parameters::KnownSolutionsEnum >("knownSolution");  
+            printF("--SM-- getInterfaceAcceleration: knownSolution=%i\n",(int)knownSolution);
+
+            int bodyNumber=0; // fix me for multiple deforming bodies
+          	    
+      // RealArray state(I1,I2,I3,Rx);   // Fix me -- could avoid a copy by passing C to the next function:
+            parameters.getUserDefinedDeformingBodyKnownSolution( 
+                bodyNumber,
+                Parameters::boundaryAcceleration, 
+                t, grid, mg,I1,I2,I3,Rx, accel );
+        }
+
+    }
+    if( useExactAcceleration )
+    {
+        f(I1,I2,I3,C)=accel;
+        
+        if( true || debug() & 2 )
+        {
+            printF("--SM-- getInterfaceAcceleration: Setting acceleration from EXACT known solution ***TEMP**"
+                          " at t=%9.3e.\n",t);
+            ::display(f(I1,I2,I3,C),sPrintF("--SM-- GIA EXACT acceleration, t=%9.3e",t),"%7.5f ");
+        }
+    }
+    else if( useTimeHistory )
+    {
+    
+    // --- Compute the acceleration from the velocity time history ----
+        if( true ) // *** NEW* June 29, 2017
+        {
+            ArrayEvolution & velocityHistory = gfd.dbase.get<ArrayEvolution>("velocityHistory");
+            Range Rx=mg.numberOfDimensions();
+            
+            RealArray acceleration(I1,I2,I3,Rx);
+            const int numberOfTimeDerivatives=1;
+            velocityHistory.eval( t, acceleration, numberOfTimeDerivatives );  
+            f(I1,I2,I3,C)=acceleration;
+
+            if( true || debug() & 2 )
+            {
+                printF("--SM-- getInterfaceAccel: ACCELERATION computed from VELOCITY TIME HISTORY t=%9.3e *NEW*\n",t);
+                if( evalExactAcceleration )
+                {
+                    real diff=max(fabs(acceleration-accel));
+                    printF("--> Max error in accel = %9.3e, |accel|=%8.2e\n",diff,max(fabs(accel)));
+                }
+                
+            }
+            
+        }
+        else  // *OLD TIME HISTORY
+        {
+            
+      // Look for the interface velocity 
+            aString velocityTimeHistoryName;
+            sPrintF(velocityTimeHistoryName,"velocityTimeHistoryG%iS%iA%i",grid,side,axis);
+            std::vector<InterfaceData> & velocityTimeHistory =
+                parameters.dbase.get<std::vector<InterfaceData> >(velocityTimeHistoryName);
+                
+            const int & numberOfInterfaceTimeLevels=parameters.dbase.get<int>("numberOfInterfaceTimeLevels");
+            const int & cur = parameters.dbase.get<int>("currentInterfaceTimeLevel");
+            assert (cur>=0 && cur<numberOfInterfaceTimeLevels );
+
+            int prev  = ovmod(cur-1,numberOfInterfaceTimeLevels);
+            int prev2 = ovmod(cur-2,numberOfInterfaceTimeLevels);
+            real t2 = velocityTimeHistory[cur  ].t;
+            real t1 = velocityTimeHistory[prev ].t;
+            real t0 = velocityTimeHistory[prev2].t;
+        
+      // Compute the time derivative of the Lagrange polynomial: 
+      //    v(t) = l0(t)*v0 + l1(t)*v1 + l2(t)*v2 
+      // where 
+      //   l0 = (t-t1)*(t-t2)/( (t0-t1)*(t0-t2) );
+      //   l1 = (t-t2)*(t-t0)/( (t1-t2)*(t1-t0) );
+      //   l2 = (t-t0)*(t-t1)/( (t2-t0)*(t2-t1) );
+
+      // const real t0=time(prev2), t1=time(prev), t2=time(current);
+            if( t0>=0.0 )
+            {
+        // enough previous levels exist for a 2nd-order approximation
+                real dt0= t1-t0;
+                real dt1= t2-t1;
+                assert( dt0>0. && dt1>0. );
+                assert( fabs(dt0-dt1)<dt0*1.e-6 );
+
+                assert( fabs(t2-t) < REAL_EPSILON*10.*(1.+t) );
+
+
+                RealArray & v2 = velocityTimeHistory[cur  ].u;
+                RealArray & v1 = velocityTimeHistory[prev ].u;
+                RealArray & v0 = velocityTimeHistory[prev2].u;
+                Range V = v0.dimension(3);
+
+                real l0t = (2.*t-(t1+t2))/( (t0-t1)*(t0-t2) );
+                real l1t = (2.*t-(t2+t0))/( (t1-t2)*(t1-t0) );
+                real l2t = (2.*t-(t0+t1))/( (t2-t0)*(t2-t1) );
+
+                RealArray aI(I1,I2,I3,V);  //**TEMP**
+                int orderOfApproximation=2;
+                if( orderOfApproximation==2 )
+                {
+          // second-order approx.
+                    aI(I1,I2,I3,V) = l0t*v0(I1,I2,I3,V) + l1t*v1(I1,I2,I3,V) + l2t*v2(I1,I2,I3,V);
+                }
+                else
+                { // first order accurate approx. 
+                    aI(I1,I2,I3,V) = (v2(I1,I2,I3,V) - v1(I1,I2,I3,V))/dt1;
+                }
+            
+                f(I1,I2,I3,C)= aI(I1,I2,I3,V);
+
+                if( true || debug() & 2 )
+                    printF("--SM-- getInterfaceAccel: acceleration computed from velocity time history t=%9.3e (order=%i)",
+                                  t,orderOfApproximation);
+            
+                if( debug() & 4 )
+                {
+                    ::display(aI,sPrintF("--SM-- GIA acceleration from velocity time history t=%9.3e (order=%i)",t,orderOfApproximation),"%7.5f ");
+                    ::display(accel,sPrintF("--SM-- GIA EXACT acceleration                      t=%9.3e ",t,orderOfApproximation),"%7.5f ");
+                }
+
+            }
+            else
+            {
+
+                if( evalExactAcceleration )
+                {
+                    f(I1,I2,I3,C)=accel;
+                }
+                else
+                {
+                    OV_ABORT("getInterfaceAccel - finish me");
+                }
+            
+                if( true || debug() & 2 )
+                {
+                    printF("--SM-- getInterfaceAcceleration: Setting acceleration from EXACT known solution ***TEMP**"
+                                  " at t=%9.3e.\n",t);
+                    ::display(f(I1,I2,I3,C),sPrintF("GIA EXACT acceleration, t=%9.3e",t),"%7.5f ");
+                }
+            }
+        
+        
+        
+            int numLevelsSet=0;
+            for( int i=0; i<numberOfInterfaceTimeLevels; i++ )
+            {
+                if( velocityTimeHistory[i].t >=0. ) numLevelsSet++;
+            }
+        
+            printF("--SM-- GIA: velocity time history: t=%9.3e, cur=%i velocityTimeHistory[cur].t=%9.3e numLevelsSet=%i\n",
+                          t,cur,velocityTimeHistory[cur].t,numLevelsSet);
+
+      // assert( current>=0 && current<velocityTimeHistory.size() );
+      // velocityTimeHistory[current].t=t;
+      // velocityTimeHistory[current].u=uLocal(I1,I2,I3,V);
+
+        }
+    
+    }
+    else
+    {
+        OV_ABORT("--SM-- getInterfaceAcceleration -- FINISH ME ");
+    }
+    
+
+    return 0;
+}
+
+//============================================================================================================
+/// \brief Return the state (position, velocity,acceleration) of the interface for known solutions
+///
+/// \param stateOption (input) : specify which information to return
+/// \param t (input) : time to eval the state
+/// \param side,axis,grid : face
+/// \param mg (input) : MappedGrid
+/// \param I1,I2,I3,C (input) : assign points f(I1,I2,I3,C) 
+/// \param f (output) : put acceleration here 
+///
+/// \Return value: 1= known solution was assigned, 0=no values were assigned
+//============================================================================================================
+int Cgsm::
+getKnownInterfaceState( Parameters::DeformingBodyStateOptionEnum stateOption,
+                                                const real t, const int side, const int axis, const int grid, 
+                                                MappedGrid & mg, const Index & I1, const Index & I2, const Index & I3, const Range & C, 
+                                                RealArray & state )
+{
+    int stateAssigned=0;
+    
+    const bool & twilightZoneFlow = parameters.dbase.get<bool >("twilightZoneFlow");
+
+    const Parameters::KnownSolutionsEnum & knownSolution = 
+        parameters.dbase.get<Parameters::KnownSolutionsEnum >("knownSolution"); 
+
+    if( twilightZoneFlow )
+    {
+        printF("--SM-- getKnownInterfaceState: finish me\n");
+    }
+    else if( knownSolution==Parameters::userDefinedKnownSolution )
+    {
+        printF("--SM-- getKnownInterfaceState: stateOption=%i setting knownSolution=%i at t=%9.3e\n",
+                      (int)stateOption,(int)knownSolution,t);
+
+        int bodyNumber=0; // fix me for multiple deforming bodies
+          	    
+        parameters.getUserDefinedDeformingBodyKnownSolution( 
+            bodyNumber,
+            stateOption,
+            t, grid, mg,I1,I2,I3,C, state );
+
+        stateAssigned=1;
+    }
+    else
+    {
+    // Return default state
+        printF("--SM-- getKnownInterfaceState: finish me\n");
+
+    }
+    
+
+    return stateAssigned;
+}

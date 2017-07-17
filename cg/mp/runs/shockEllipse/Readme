@@ -1,0 +1,17 @@
+--- Shock hitting an Elastic Piston : Compressible Fluid + Elastic Solid ---
+
+This directory contains examples for the FSI problem of coupling a
+compressible fluid (cgcns) with an elastic solid (cgsm)
+
+These examples are described in
+
+[1] @article{flunsi2016,
+   author={Jeffrey W. Banks and William D. Henshaw and A.K. Kapila and Donald W. Schwendeman},
+   title = "An Added-Mass Partitioned Algorithm for Fluid-Structure Interactions of Compressible Fluids and Nonlinear Solids",
+   journal=JCP,
+   volume = 305,                     
+   pages = "1037--1064",                     
+   note= {\url{publications/AddedMassPartitionedFSIofCompressibleFluidsAndNonlinearSolids_Banks_Henshaw_Kapila_Schwendeman_2016.pdf}},
+   year = "2016"}
+
+

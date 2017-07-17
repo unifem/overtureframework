@@ -37,7 +37,7 @@ FSRCO += insad2dr.f insad2dc.f insad3dr.f insad3dc.f
 
 FSRCO += lineSolveINS.f inspINS22.f inspINS23.f inspINS42.f insbcOpt4.f insLineSolve.f insLineSolveNew.f
 
-FSRCO += bcOptTemperature.f
+FSRCO += bcOptTemperature.f insTractionBC.f
 
 FSRCO += lineSolveNewINS.f lineSolveResidualINS.f
 
@@ -118,6 +118,8 @@ src/pressureEquation.C : src/pressureEquation.bC; $(BPP) -quiet -clean -I$(Overt
 # we need to add these explicitly since the implicit rule for %.bf doesn't work for some reason (?)
 src/insbcOpt4.f : src/insbcOpt4.bf; $(BPP) -quiet -clean -I$(Overture)/include $<
 src/inscr4.f : src/inscr4.bf; $(BPP) -quiet -clean -I$(Overture)/include $<
+
+src/insTractionBC.f : src/insTractionBC.bf; $(BPP) -quiet -clean -I$(Overture)/include $<
 
 src/bcOptTemperature.f : src//bcOptTemperature.bf; $(BPP) -quiet -clean -I$(Overture)/include $<
 

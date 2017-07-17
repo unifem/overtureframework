@@ -513,6 +513,10 @@ setup(const real & time)
   MpParameters::MultiDomainAlgorithmEnum multiDomainAlgorithm=
                  parameters.dbase.get<MpParameters::MultiDomainAlgorithmEnum>("multiDomainAlgorithm");
   
+  const Parameters::InterfaceCommunicationModeEnum & interfaceCommunicationMode= 
+    parameters.dbase.get<Parameters::InterfaceCommunicationModeEnum>("interfaceCommunicationMode");
+  const int & interfaceProjectionGhostOption = parameters.dbase.get<int>("interfaceProjectionGhostOption");
+  
   // output header info for Cgmp
   for( int output=0; output<=1; output++ )
   {
@@ -531,13 +535,14 @@ setup(const real & time)
 
     fprintf(file,"\n"
 	    " cfl = %f, tFinal=%e, tPrint = %e \n"
-	    " Time stepping method: %s.\n"
-	    " Solve coupled interface equations = %i.\n"
-            " Use %s interface transfer.\n"
-            " Relax correction steps = %i.\n"
-	    " Multi-domain algorithm = %s.\n"
-            " Project interface = %s. (interfaceProjectionOption=%i, interface-ghost=%s)\n"
-            " Project initial conditions = %i\n"
+	    " time stepping method: %s.\n"
+	    " solve coupled interface equations = %i.\n"
+            " use %s interface transfer.\n"
+            " relax correction steps = %i.\n"
+	    " multi-domain algorithm = %s.\n"
+            " interface communication mode= %s,\n"
+            " project interface = %s. (interfaceProjectionOption=%i, interface-ghost=%s)\n"
+            " project initial conditions = %i\n"
 	    ,
 	    parameters.dbase.get<real >("cfl"),
 	    parameters.dbase.get<real >("tFinal"),
@@ -546,14 +551,18 @@ setup(const real & time)
             (int)parameters.dbase.get<bool>("solveCoupledInterfaceEquations"),
 	    (parameters.dbase.get<bool>("useNewInterfaceTransfer") ? "new" : "old"),
 	    (int)parameters.dbase.get<bool>("relaxCorrectionSteps"),
-            (multiDomainAlgorithm==MpParameters::defaultMultiDomainAlgorithm ? "default" :
-             multiDomainAlgorithm== MpParameters::stepAllThenMatchMultiDomainAlgorithm ? "step all then match" : 
-             "unknown"),
+            (multiDomainAlgorithm==MpParameters::defaultMultiDomainAlgorithm          ? "default" :
+             multiDomainAlgorithm==MpParameters::stepAllThenMatchMultiDomainAlgorithm ? "step all then match" : 
+             multiDomainAlgorithm==MpParameters::multiStageAlgorithm                  ? "multi-stage" : 
+                                                                                        "unknown"),
+            (interfaceCommunicationMode==Parameters::autoRequestInterfaceData       ? "autoRequestInterfaceData" :
+             interfaceCommunicationMode==Parameters::requestInterfaceDataWhenNeeded ? "requestInterfaceDataWhenNeeded" :
+                                                                                      "unknown"),
             (parameters.dbase.get<bool>("projectInterface")? "true" : "false"),
             parameters.dbase.get<int>("interfaceProjectionOption"),
-            (parameters.dbase.get<int>("interfaceProjectionGhostOption")==0 ? "extrapolate" : 
-             parameters.dbase.get<int>("interfaceProjectionGhostOption")==1 ? "compatibility" : 
-             parameters.dbase.get<int>("interfaceProjectionGhostOption")==2 ? "exact" : "domain BC" ),
+            (interfaceProjectionGhostOption==0 ? "extrapolate" : 
+             interfaceProjectionGhostOption==1 ? "compatibility" : 
+             interfaceProjectionGhostOption==2 ? "exact" : "domain BC" ),
              parameters.dbase.get<bool>("projectMultiDomainInitialConditions")
              );
 

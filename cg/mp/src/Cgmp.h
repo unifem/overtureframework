@@ -8,14 +8,7 @@
 
 #include "DomainSolver.h"
 #include "Interface.h"
-
-// loop over the value domains in default order
-#define ForDomain(d) for( int d=0; d<domainSolver.size(); d++ )\
-                       if( domainSolver[d]!=NULL )
-
-// define a loop over all valid domains (in the order indicated by domainOrder): 
-#define ForDomainOrdered(d) for( int dd=0, d=0; dd<domainSolver.size(); dd++ )\
-                              if( domainSolver[d=parameters.dbase.get<std::vector<int> >("domainOrder")[dd]]!=NULL )
+#include "MpParameters.h"
 
 
 
@@ -113,6 +106,10 @@ multiDomainAdvance(real & t, real &tFinal );
 // here is the new multi-domain advance routine that works with AMR
 virtual int 
 multiDomainAdvanceNew(real & t, real &tFinal );
+
+// Here is the even newer multi-stage algorithm (user defined stages)
+int 
+multiStageAdvance( real &t, real & tFinal );
 
 virtual int
 plot(const real & t, const int & optionIn, real & tFinal );

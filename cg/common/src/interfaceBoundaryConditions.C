@@ -149,7 +149,7 @@ getInterfaceDataOptions( GridFaceDescriptor & info, int & interfaceDataOptions )
   return 0;
 }
 
-// ===========================================================================
+// ========================================================================================================
 /// \brief Set or get the right-hand-side for an interface boundary condition.
 /// \details This function is used when solving the interface equations 
 ///           by iteration.
@@ -162,14 +162,17 @@ getInterfaceDataOptions( GridFaceDescriptor & info, int & interfaceDataOptions )
 /// \param gfd (input) : the master GridFaceDescriptor. 
 /// \param gfIndex (input) : use the solution from gf[gfIndex]
 /// \param t (input) : current time.
-// ===========================================================================
+/// \param saveTimeHistory (input) : if true, save a time-history of the requested data. This is the
+///    new way to save a time-history when interfaceCommunicationMode==requestInterfaceDataWhenNeeded
+// ==========================================================================================================
 int
 DomainSolver::
 interfaceRightHandSide( InterfaceOptionsEnum option, 
                         int interfaceDataOptions,
                         GridFaceDescriptor & info, 
                         GridFaceDescriptor & gfd,
-			int gfIndex, real t )
+			int gfIndex, real t,
+                        bool saveTimeHistory /* = false */ )
 {
   // *wdh* 081212 CompositeGrid & cg = gf[0].cg;
   CompositeGrid & cg = gf[gfIndex].cg;

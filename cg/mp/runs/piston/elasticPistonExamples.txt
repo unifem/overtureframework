@@ -1,0 +1,49 @@
+WDH: 
+
+rotated linear + M=2.5 SHOCK: (rho=lambda=mu=10)  BAD  (linear OK: -godunovType=0)
+cgmp elasticPiston -problem=2 -xShock=.5 -Mshock=2.5 -scf=10. -method=cns -cnsVariation=godunov -godunovType=3 -g="elasticPistonGrid8" -tp=.05 -tf=1.5 -smVariation=g -debug=0 -cfl=.5 -stressRelaxation=4 -relaxAlpha=.1 -relaxDelta=.1 -tangentialStressDissipation=1. 
+
+
+
+
+=========================================================
+
+SVK + M=1.5 SHOCK: (rho=lambda=mu=10) .. Error (smeig2d) : imaginary eigenvalue
+cgmp elasticPiston -problem=2 -xShock=.5 -Mshock=1.5 -scf=10. -method=cns -cnsVariation=godunov -godunovType=2 -g="elasticPistonGrid4" -tp=.05 -tf=1. -smVariation=g -debug=0
+
+SVK + M=1.2 SHOCK: (rho=lambda=mu=10) .. OK
+cgmp elasticPiston -problem=2 -xShock=.5 -Mshock=1.2 -scf=10. -method=cns -cnsVariation=godunov -godunovType=2 -g="elasticPistonGrid4" -tp=.05 -tf=1. -smVariation=g -debug=0
+
+LINEAR-ELASTICITY + M=2.0 SHOCK (rho=lambda=mu=20) .. OK
+cgmp elasticPiston -problem=2 -xShock=.5 -Mshock=1.5 -scf=20. -method=cns -cnsVariation=godunov -g="elasticPistonGrid4" -tp=.05 -tf=1. -smVariation=g -debug=0
+
+LINEAR-ELASTICITY + M=1.5 SHOCK (rho=lambda=mu=10) .. OK
+cgmp elasticPiston -problem=2 -xShock=.5 -Mshock=1.5 -scf=10. -method=cns -cnsVariation=godunov -g="elasticPistonGrid4" -tp=.05 -tf=1. -smVariation=g -debug=0
+
+
+
+SVK + RECEDING piston: OK
+cgmp elasticPiston -method=cns -cnsVariation=godunov -godunovType=2 -g="elasticPistonGrid4" -tp=.1 -tf=1. -smVariation=g -debug=0
+
+
+
+** Successful cases **
+
+1) SVK + M=1.5 SHOCK: (rho=lambda=mu=10)
+
+cgmp elasticPiston -problem=2 -xShock=.5 -Mshock=1.5 -scf=10. -method=cns -cnsVariation=godunov -godunovType=2 -g="elasticPistonGrid8" -tp=.05 -tf=1.5 -smVariation=g -debug=0 -cfl=.5 -stressRelaxation=4 -relaxAlpha=.1 -relaxDelta=.1 -tangentialStressDissipation=1.
+
+cgmp elasticPiston -problem=2 -xShock=.5 -Mshock=1.5 -scf=10. -method=cns -cnsVariation=godunov -godunovType=2 -g="elasticPistonGrid16" -tp=.05 -tf=1.5 -smVariation=g -debug=0 -cfl=.5 -stressRelaxation=4 -relaxAlpha=.1 -relaxDelta=.1 -tangentialStressDissipation=1.
+
+2) SVK + M=1.2 SHOCK: (rho=lambda=mu=10)
+
+cgmp elasticPiston -problem=2 -xShock=.5 -Mshock=1.2 -scf=10. -method=cns -cnsVariation=godunov -godunovType=2 -g="elasticPistonGrid8" -tp=.05 -tf=1.35 -smVariation=g -debug=0 -cfl=.5 -stressRelaxation=4 -relaxAlpha=.1 -relaxDelta=.1 -tangentialStressDissipation=1.
+
+3) rotated linear + M=2 SHOCK: (rho=lambda=mu=10)
+
+cgmp elasticPiston -problem=2 -xShock=.5 -Mshock=2. -scf=10. -method=cns -cnsVariation=godunov -godunovType=3 -g="elasticPistonGrid8" -tp=.05 -tf=1.5 -smVariation=g -debug=0 -cfl=.5 -stressRelaxation=4 -relaxAlpha=.1 -relaxDelta=.1 -tangentialStressDissipation=1.
+
+Notes:
+
+1) elasticPiston.cmd and smDomain.h were modified to accept additional smog parameters
+2) the greater the compression in the solid, the greater the sensitivity => higher chance of instability

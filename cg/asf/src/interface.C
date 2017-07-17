@@ -70,7 +70,8 @@ interfaceRightHandSide( InterfaceOptionsEnum option,
                                                 int interfaceDataOptions,
                                                 GridFaceDescriptor & info, 
                                                 GridFaceDescriptor & gfd, 
-                  			int gfIndex, real t )
+                  			int gfIndex, real t,
+                                                bool saveTimeHistory /* = false */ )
 {
     return DomainSolver::interfaceRightHandSide(option,interfaceDataOptions,info,gfd,gfIndex,t);
 }

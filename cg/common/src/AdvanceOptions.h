@@ -1,6 +1,8 @@
 #ifndef ADVANCE_OPTIONS_H
 #define ADVANCE_OPTIONS_H
 
+#include "Overture.h"
+
 // This class holds options that are passed to the DomainSolver time stepping functions
 // such as takeTimeStep, takeTimeStepFE, takeTimeStepPC, ...
 
@@ -39,5 +41,14 @@ GridChangesEnum gridChanges;  // returned by startTimeStep to indicate if the gr
 bool correctionIterationsHaveConverged;
 
 };
+
+// This class holds info about each stage in a multi-stage algorithm (used by Cgmp)
+class StageInfo
+{
+public:
+  AdvanceOptions::TakeTimeStepOptionEnum action;
+  std::vector<int> domainList;
+};
+
 
 #endif

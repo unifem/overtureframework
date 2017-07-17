@@ -1928,6 +1928,15 @@ cutHolesNewer(CompositeGrid & cg)
           for( int grid2=0; grid2<numberOfBaseGrids; grid2++ )
 	  {
             MappedGrid & g2 = cg[grid2];
+            if( debug & 4 )
+            {
+              fprintf(plogFile,"\n +++++ grid %i (%s) (side,axis)=(%i,%i) try to cut holes in grid2=%i (%s)\n"
+      " mayCutHoles=%i mayInterpolate=%i isNew(grid)=%i isNew(grid2)=%i mapIntersects=%i\n",
+      grid,(const char*)g.getName(),side,axis,grid2,(const char*)g2.getName(),
+      cg.mayCutHoles(grid,grid2),cg.mayInterpolate(grid,grid2,0),isNew(grid), isNew(grid2),
+      map.intersects( g2.mapping().getMapping(), side,axis,-1,-1,.1 ) );
+            }
+            
 	    if( grid2!=grid && 
                 // *wdh* 990504 cg.mayCutHoles(grid,grid2) &&   // we need to check for interp points in this case
 		(cg.mayCutHoles(grid,grid2) || cg.mayInterpolate(grid,grid2,0)) && // *wdh* 020127

@@ -5,6 +5,7 @@
 #include "ParallelOverlappingGridInterpolator.h"
 #include "SmParameters.h"
 #include "Regrid.h"
+#include "AdvanceOptions.h"
 
 #Include "amrMacros.h"
 
@@ -64,7 +65,7 @@
 /// \brief Advance the solution one time step.
 // =============================================================================
 void Cgsm::
-advance(  int current, real t, real dt )
+advance(  int current, real t, real dt, AdvanceOptions *pAdvanceOptions /* =NULL*/  )
 {
   checkArrays("advanceLinearElasticity:start");
   int & globalStepNumber = parameters.dbase.get<int >("globalStepNumber");
@@ -109,6 +110,20 @@ advance(  int current, real t, real dt )
 
   const real cMax=max(lambdaGrid+muGrid)/rho;
 
+  // --- For FSI problems we may take a step and/or apply the BC's ----
+  const Parameters::InterfaceCommunicationModeEnum & interfaceCommunicationMode= 
+    parameters.dbase.get<Parameters::InterfaceCommunicationModeEnum>("interfaceCommunicationMode");
+
+  bool takeTimeStep=true, applyBC=true;
+  if( interfaceCommunicationMode==Parameters::requestInterfaceDataWhenNeeded && 
+      pAdvanceOptions!=NULL )
+  {
+    AdvanceOptions & advanceOptions = *pAdvanceOptions;
+    takeTimeStep =(advanceOptions.takeTimeStepOption==AdvanceOptions::takeStepAndApplyBoundaryConditions ||
+		   advanceOptions.takeTimeStepOption==AdvanceOptions::takeStepButDoNotApplyBoundaryConditions);
+    applyBC = ( advanceOptions.takeTimeStepOption==AdvanceOptions::takeStepAndApplyBoundaryConditions ||
+		advanceOptions.takeTimeStepOption==AdvanceOptions::applyBoundaryConditionsOnly );
+  }
 
   if( debug & 4 )
   {
@@ -117,70 +132,70 @@ advance(  int current, real t, real dt )
   }
 
   // ------ AMR -----
-  updateForAdaptiveGridsMacro();
-  
-
-  if( ((SmParameters&)parameters).isSecondOrderSystem() )
+  if( takeTimeStep )
   {
-    // advance the solution as a second-order system (do not apply BCs)
-    advanceSOS( current,t,dt );
-  }
-  else
-  {
-    // advance the solution as a first order system
-    advanceFOS( current,t,dt );
-
+    updateForAdaptiveGridsMacro();
   }
   
-      
-//   if( orderOfAccuracyInTime>=4 )
-//   {
-//     assert( numberOfFunctions>0 );
-//     currentFn=(currentFn+orderOfAccuracyInTime-2)%numberOfFunctions;
-//   }
-  
-
-  if( true ||   // *wdh* 091205 -- interpolate will call periodicUpdate and updateGhost 
-      cg.numberOfComponentGrids()>1 )
+  if( takeTimeStep )
   {
-    real timei=getCPU();
-  
-    if( debug & 4 )
-      gf[next].u.display(sPrintF("Cgsm::advance: gf[next].u before interpolate, t=%8.2e",t+dt),debugFile,"%8.2e ");
-
-    // Note: interpolate performs a periodicUpdate and updateGhostBoundaries even if there is only one grid
-
-    gf[next].u.interpolate();
- 
-    if( debug & 4 )
-      gf[next].u.display(sPrintF("Cgsm::advance: gf[next].u after interpolate, t=%8.2e",t+dt),debugFile,"%8.2e ");
-
-    if( debug & 4 )
+    if( ((SmParameters&)parameters).isSecondOrderSystem() )
     {
-      getErrors( next,t+dt,dt,sPrintF("\n ************** advance Errors after interpolate t=%9.3e ******\n",t+dt));
+      // advance the solution as a second-order system (do not apply BCs)
+      advanceSOS( current,t,dt );
     }
-
-    timing(parameters.dbase.get<int>("timeForInterpolate"))+=getCPU()-timei;
+    else
+    {
+      // advance the solution as a first order system
+      advanceFOS( current,t,dt );
+    }
   }
-
+  
   gf[next].t=t+dt;
 
-
-  // ============= Boundary Conditions =============
-  int option=0; // not used.
-  applyBoundaryConditions( option, dt, next,current ); // apply BC to "next" (current=previous time step)
-  
-
-  if( debug & 8 )  // & 64
+  if( applyBC )
   {
-    gf[next].u.display(sPrintF("Cgsm::advance: gf[next].u after applyBC, t=%8.2e",gf[next].t),debugFile,"%8.2e ");
-  }
+    
+    if( true ||   // *wdh* 091205 -- interpolate will call periodicUpdate and updateGhost 
+        cg.numberOfComponentGrids()>1 )
+    {
+      real timei=getCPU();
+  
+      if( debug & 4 )
+        gf[next].u.display(sPrintF("Cgsm::advance: gf[next].u before interpolate, t=%8.2e",t+dt),debugFile,"%8.2e ");
+
+      // Note: interpolate performs a periodicUpdate and updateGhostBoundaries even if there is only one grid
+
+      gf[next].u.interpolate();
+ 
+      if( debug & 4 )
+        gf[next].u.display(sPrintF("Cgsm::advance: gf[next].u after interpolate, t=%8.2e",t+dt),debugFile,"%8.2e ");
+
+      if( debug & 4 )
+      {
+        getErrors( next,t+dt,dt,sPrintF("\n ************** advance Errors after interpolate t=%9.3e ******\n",t+dt));
+      }
+
+      timing(parameters.dbase.get<int>("timeForInterpolate"))+=getCPU()-timei;
+    }
+
+
+
+    // ============= Boundary Conditions =============
+    int option=0; // not used.
+    applyBoundaryConditions( option, dt, next,current ); // apply BC to "next" (current=previous time step)
   
 
-  // ---- assign values at material interfaces ------
-  // *** this does nothing currently ***
-  assignInterfaceBoundaryConditions( next, t, dt );  // is this the right place to do this?
+    if( debug & 8 )  // & 64
+    {
+      gf[next].u.display(sPrintF("Cgsm::advance: gf[next].u after applyBC, t=%8.2e",gf[next].t),debugFile,"%8.2e ");
+    }
+  
 
+    // ---- assign values at material interfaces ------
+    // *** this does nothing currently ***
+    assignInterfaceBoundaryConditions( next, t, dt );  // is this the right place to do this?
+  }
   
 
   if( debug & 4 )

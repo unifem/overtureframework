@@ -294,8 +294,21 @@ $grid
     if( $bcOption eq "reversePulse" ){ $cmd="bcNumber5=inflowWithPressureAndTangentialVelocityGiven, userDefinedBoundaryData\n pressure pulse \n $pMax $tMax \n done \n bcNumber4=outflow, pressure(1.*p+0.*p.n=0.)";}
     if( $bcOption eq "inflowOutflow" ){ $cmd="bcNumber4=inflowWithVelocityGiven,  parabolic(d=$d,p=1,u=$uIn)\n bcNumber5=outflow, pressure(1.*p+0.*p.n=0.)"; }
     if( $bcOption eq "inflowGivenPressure" ){ $cmd="bcNumber4=inflowWithPressureAndTangentialVelocityGiven, uniform(v=0.,w=0.,p=$inflowPressure)\n bcNumber5=outflow, pressure(1.*p+0.*p.n=0.)";}
-    if( $bcOption eq "inflowPulsePressure" ){ $cmd="bcNumber4=inflowWithPressureAndTangentialVelocityGiven, userDefinedBoundaryData\n pressure pulse \n $pMax $tMax \n done \n bcNumber5=outflow, pressure(1.*p+0.*p.n=0.)";}
-    if( $bcOption eq "inflowCardiacCycle" ){ $cmd="bcNumber4=inflowWithPressureAndTangentialVelocityGiven, userDefinedBoundaryData\n cardiac cycle \n $pMax $tP1 $pMin $tP2 \n done \n bcNumber5=outflow, pressure(1.*p+0.*p.n=0.)";}
+    #
+    #old way (not woring througth share BC for userDefinedBC): 
+    #if( $bcOption eq "inflowCardiacCycle" ){ $cmd="bcNumber4=inflowWithPressureAndTangentialVelocityGiven, userDefinedBoundaryData\n cardiac cycle \n $pMax $tP1 $pMin $tP2 \n done \n bcNumber5=outflow, pressure(1.*p+0.*p.n=0.)";}
+    #if( $bcOption eq "inflowPulsePressure" ){ $cmd="bcNumber4=inflowWithPressureAndTangentialVelocityGiven, userDefinedBoundaryData\n pressure pulse \n $pMax $tMax \n done \n bcNumber5=outflow, pressure(1.*p+0.*p.n=0.)";}
+    #new way
+    if( $bcOption eq "inflowPulsePressure" ){ \
+        $cmd="core(0,0)=inflowWithPressureAndTangentialVelocityGiven, userDefinedBoundaryData\n pressure pulse \n $pMax $tMax \n done \n". \
+             "core(1,0)=outflow, pressure(1.*p+0.*p.n=0.)\n". \
+             "pipe(0,1)=inflowWithPressureAndTangentialVelocityGiven, userDefinedBoundaryData\n pressure pulse \n $pMax $tMax \n done \n". \
+             "pipe(1,1)=outflow, pressure(1.*p+0.*p.n=0.)";}
+    if( $bcOption eq "inflowCardiacCycle" ){ \
+        $cmd="core(0,0)=inflowWithPressureAndTangentialVelocityGiven, userDefinedBoundaryData\n cardiac cycle \n $pMax $tP1 $pMin $tP2 \n done \n". \
+             "core(1,0)=outflow, pressure(1.*p+0.*p.n=0.)\n". \
+             "pipe(0,1)=inflowWithPressureAndTangentialVelocityGiven, userDefinedBoundaryData\n cardiac cycle \n $pMax $tP1 $pMin $tP2 \n done \n". \
+             "pipe(1,1)=outflow, pressure(1.*p+0.*p.n=0.)";}
     $cmd 
     done
 #

@@ -51,7 +51,7 @@ $bcOption="walls";
 $inflowPressure=.1; # inflow pressure for $bcOption eq "rampedPressure"
 $cp0=.1; $cpn=1.; # coefficients in pressure outflow BC
 $option=""; 
-$freqFullUpdate=10; $flushFrequency=10; 
+$flushFrequency=10; 
 #
 $ampSinusoidalPressure=1.; $freqSinusoidalPressure=1.; # for sinusoidal pressure option
 #

@@ -1,3 +1,15 @@
+*****************************************
+***********  June 12, 2017 
+
+***** TEST ramped pressure in parallel 
+
+G2
+mpirun -np 1 $cginsp cylDrop -g=diskDropGride2.order2.s3.hdf -tf=10. -tp=.1 -nu=.1 -ad2=0 -ts=im -density=.001 -radius=.5 -dropName=drop -channelName=channel -bcOption=rampedPressure -inflowVelocity=-1. -gravity=-10. -rampGravity=1 -dtMax=.05 -project=0 -numberOfCorrections=2 -omega=.1 -addedMass=1  -useProvidedAcceleration=1 -addedDamping=1 -addedDampingCoeff=1. -addedDampingProjectVelocity=1  -scaleAddedDampingWithDt=1 -useTP=0 -debug=3  -solver=best -psolver=best -rtolp=1.e-5 -atolp=1.e-12 -rtol=1.e-5 -atol=1.e-10 -freqFullUpdate=1 -go=halt
+
+cgins cylDrop -g=diskDropGride2.order2.s3.hdf -tf=10. -tp=.1 -nu=.1 -ad2=0 -ts=im -density=.001 -radius=.5 -dropName=drop -channelName=channel -bcOption=rampedPressure -inflowVelocity=-1. -gravity=-10. -rampGravity=1 -dtMax=.05 -project=0 -numberOfCorrections=2 -omega=.1 -addedMass=1  -useProvidedAcceleration=1 -addedDamping=1 -addedDampingCoeff=1. -addedDampingProjectVelocity=1  -scaleAddedDampingWithDt=1 -useTP=0 -debug=3  -solver=best -psolver=best -rtolp=1.e-5 -atolp=1.e-12 -rtol=1.e-5 -atol=1.e-10 -freqFullUpdate=1 -go=halt
+
+
+
 *********************
 **** June 5, 2017 
 

@@ -27,6 +27,7 @@ OrthographicTransform( const real sa_   /* = 1. */,
   pole=(int)pole_;   // +1=north pole, -1=south pole
   tAxis=axis2;
   setBasicInverseOption(canInvert);  // basicInverse is available
+  inverseIsDistributed=false;  // *wdh* July 12, 2017
   mappingHasChanged();
 }
 

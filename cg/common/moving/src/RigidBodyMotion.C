@@ -5056,7 +5056,8 @@ getCoordinates( real t,
     if( t<=0. && useKnownSolution )
     {
       axesOfInertia(R,R)=ePast;
-      printF("\n ++++ --RBM-- getCoords: axesOfInertia evaluated at initial or past time t=%9.3e ++++\n\n",t);
+      if( false )
+        printF("\n ++++ --RBM-- getCoords: axesOfInertia evaluated at initial or past time t=%9.3e ++++\n\n",t);
       // display(axesOfInertia,"axesOfInertia");
     }
     else

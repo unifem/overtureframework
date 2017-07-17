@@ -154,7 +154,8 @@ int getVelocity( const real time0,
 		 realArray & gridVelocity);
 
 
-int getVelocityBC( const real time0, const int grid, MappedGrid & mg, const Index &I1, const Index &I2, const Index &I3, 
+int getVelocityBC( const real time0, const int side, const int axis, const int grid, MappedGrid & mg, 
+                   const Index &I1, const Index &I2, const Index &I3, 
 		   realSerialArray & bcVelocity);
 
 // return the order of accuracy used to compute the velocity 

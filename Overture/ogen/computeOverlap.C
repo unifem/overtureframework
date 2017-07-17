@@ -299,6 +299,18 @@ computeOverlap(CompositeGrid & cg_,
       numberOfErrors=-1;
 
       gi.stopReadingCommandFile();
+      if( true ) // *WDH* July 11, 2017
+      {
+        
+	printF(" **** Entering the interactive update so you can step through the grid computation\n");
+        // turn these off so we don't recursively call computeOverlap:
+        isMovingGridProblem=false; 
+	outputGridOnFailure=false;
+	MappingInformation mapInfo;
+	mapInfo.graphXInterface=NULL; // This means that we do not provide Mappings 
+	numberOfErrors = updateOverlap( cg, mapInfo );   
+      }
+
     }
 
     const int np= max(1,Communication_Manager::numberOfProcessors());

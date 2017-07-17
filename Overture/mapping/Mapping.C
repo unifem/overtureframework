@@ -1064,7 +1064,7 @@ getBoundingBox(const int & side /* = -1 */,
   //         (const char*)getName(Mapping::mappingName));
 
 #ifndef USE_PPP
-  // *wdh* 090705 -- do not use the ditributed inverse to compute the bounding box in serial
+  // *wdh* 090705 -- do not use the distributed inverse to compute the bounding box in serial
   //                 This was causing trouble with moving grids (drops)
   if( true ) 
 #else
@@ -1572,6 +1572,12 @@ getGridSerial(MappingParameters & params /* =Overture::nullMappingParameters() *
   if( usesDistributedInverse() )
   {
     // make the parallel grid (gridSerial will hold the local-array portion of grid)
+    if( Mapping::debug & 4 )
+    {
+      printF("Mapping:getGridSerial:mapping %s usesDistributedInverse. (remakeGridSerial=%i)\n",
+	     (const char*)getName(mappingName),remakeGridSerial);
+    }
+    
     getGrid(params,includeGhost);
     // return the local array version:
     return gridSerial;

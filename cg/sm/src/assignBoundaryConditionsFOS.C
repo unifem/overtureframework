@@ -1334,7 +1334,7 @@ assignBoundaryConditionsFOS( int option, int grid, real t, real dt, realMappedGr
 
 
   // ---------------------------------------------------------
-  // ---------- Apply the (optimize) real BC's ---------------
+  // ---------- Apply the (optimized) real BC's --------------
   // ---------------------------------------------------------
 
     getIndex(mg.gridIndexRange(),I1,I2,I3);

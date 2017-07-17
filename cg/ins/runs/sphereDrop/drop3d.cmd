@@ -10,9 +10,7 @@
 #   ogen -noplot drop3d -factor=4 -ml=2
 # 
 # smaller domain:
-#  ogen -noplot drop3d -factor=2 -yb=6.6666667 -yr=5 -name=shortDrop3d
-#  ogen -noplot drop3d -factor=2 -yb=5 -yr=3.3333333 -name=shortestDrop3d
-#  ogen -noplot drop3d -factor=2 -yb=5 -yr=4 -name=shortestDrop3d
+#  ogen -noplot drop3d -factor=1 -yb=5 -yr=2 -name=shortDrop3d
 #  
 #   ogen -noplot drop3d -interp=e -factor=1 -ml=1...
 #   -xa= -xb= -ya= -yb= -interp -name=  

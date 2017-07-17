@@ -1266,7 +1266,7 @@ adjustPressureCoefficients(CompositeGrid & cg0, GridFunction & cgf  )
 	    coeffLocal(me,j1,j2,j3)=fluidDensity*normal(i1,i2,i3,dir);
 	    // we have changed the equation number 
 	    equationNumber(me,j1,j2,j3)=ieqn;   // we have set the coeff of a[dir]
-            if( true )
+            if( false )
             {
               printF("--APC-- RB-AMP: p.n + c*a : dir=%i add term %10.3e to ieqn=%i, extraEqn=%i\n",
                      dir,coeffLocal(me,j1,j2,j3),ieqn,extraEqn);

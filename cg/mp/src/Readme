@@ -30,11 +30,31 @@ assignInterfaceBoundaryConditions.C
 
 
 Cgmp.C:
+  -- constructor
+  -- destructor
 
 getTimeStep.C:
  getTimeStep( GridFunction & gf)
 
+MpParameters.C
+  - setPdeParameters(CompositeGrid & cg, const aString & command, DialogData *interface )
+      --> Here is where most MP options are set
+  - displayPdeParameters(FILE *file /* = stdout */ )
+  - displayInterfaceInfo(FILE *file /* = stdout */ )
+  - saveParametersToShowFile()
+
+-- original multi-domain advance:
 multiDomainAdvance.C
+  multiDomainAdvance( real &t, real & tFinal )
+  checkInterfaceForConvergence( const int correct, ... )
+
+-- new multi-domain advance routine, version that should support AMR
+multiDomainAdvanceNew.bC 
+  multiDomainAdvanceNew( real &t, real & tFinal )
+
+-- new multi-domain advance routine, version that should support AMR
+multiDomainAdvanceNew.bC 
+  multiDomainAdvanceNew( real &t, real & tFinal )
 
 
 plot.C:
@@ -47,8 +67,11 @@ printTimeStepInfo.C:
  
 
 setParametersInteractively.C:
-   setupDomainSolverParameters:
+   setupDomainSolverParameters( int domain, std::vector<aString> & modelNames )
+       - Setup the solver and parameters for a given domain.
    setParametersInteractively: 
+       --> setup parameters for each domain
+       --> initialize interfaces
    setup: output header info
 
 

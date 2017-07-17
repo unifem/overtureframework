@@ -64,7 +64,7 @@ getAugmentedSolution(int current, realCompositeGridFunction & v, const real t)
 
   Range all;
 
-//  printF(">>>>getAugmentedSolution: numberOfComponents=%i\n",numberOfComponents);
+
   const int numberOfDimensions = cg.numberOfDimensions();
   const int & numberOfComponents = parameters.dbase.get<int >("numberOfComponents");
   const int & uc =  parameters.dbase.get<int >("uc");
@@ -72,6 +72,8 @@ getAugmentedSolution(int current, realCompositeGridFunction & v, const real t)
   const int & wc =  parameters.dbase.get<int >("wc");
   const int & rc =  parameters.dbase.get<int >("rc");
   const int & tc =  parameters.dbase.get<int >("tc");
+
+  // printF(">>>>getAugmentedSolution: numberOfComponents=%i plotVelocity=%i \n",numberOfComponents,(int)plotVelocity);
 
   // For the SVK model we compute the Cauchy stress
   const bool svkStressStrain = parameters.dbase.get<int >("pdeTypeForGodunovMethod")==2;

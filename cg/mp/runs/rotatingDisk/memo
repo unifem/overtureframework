@@ -1,0 +1,151 @@
+********************************************
+***** June 16, 2017
+
+
+REVISIT ROTAING DISK for regression test
+
+For check  -- 5 steps 
+$cgmpx -noplot rotatingDisk.cmd -g=diskDeformFixedBig2e -method=cns -cfl=.75 -tp=.05 -tf=.05 -tz=none -problem=1 -cnsVariation=godunov -cnsGodunovOrder=2 -smVariation=g -pi=1 -en=max -adCns=10. -bcOption=4 -rotationRate=.1 -piGhostOption=3 -piOption=0 -godunovType=2 -stressRelaxation=1 -d1=outerDomain -d2=innerDomain -rho0=14 -pOffset=10 -lambdaSolid=1. -muSolid=1. -diss=1. -multiDomainAlgorithm=1 -show=rotatingDisk4a.show -go=go
+
+
+FLUNSI RUN -- looks OK:
+$cgmpx -noplot rotatingDisk.cmd -g=diskDeformFixedBig4e -method=cns -cfl=.75 -tp=.1 -tf=1. -tz=none -problem=1 -cnsVariation=godunov -cnsGodunovOrder=2 -smVariation=g -pi=1 -en=max -adCns=10. -bcOption=4 -rotationRate=.1 -piGhostOption=3 -piOption=0 -godunovType=2 -stressRelaxation=1 -d1=outerDomain -d2=innerDomain -rho0=14 -pOffset=10 -lambdaSolid=1. -muSolid=1. -diss=1. -multiDomainAlgorithm=1 -show=rotatingDisk4a.show -go=go >! rotatingDisk4a.out
+
+SCF=.1 -- light solid
+$cgmpx rotatingDisk.cmd -g=diskDeformFixedBig4e -method=cns -cfl=.75 -tp=.01 -tf=.01 -tz=none -problem=1 -cnsVariation=godunov -cnsGodunovOrder=2 -smVariation=g -pi=1 -en=max -adCns=10. -bcOption=4 -rotationRate=.1 -piGhostOption=3 -piOption=0 -godunovType=2 -stressRelaxation=1 -d1=outerDomain -d2=innerDomain -rho0=14. -pOffset=10. -lambdaSolid=1. -muSolid=1. -diss=1. -multiDomainAlgorithm=1 -go=halt
+
+$cgmpx -noplot rotatingDisk.cmd -g=diskDeformFixedBig4e -method=cns -cfl=.75 -tp=.01 -tf=.01 -tz=none -problem=1 -cnsVariation=godunov -cnsGodunovOrder=2 -smVariation=g -pi=1 -en=max -adCns=10. -bcOption=4 -rotationRate=.1 -piGhostOption=3 -piOption=0 -godunovType=2 -stressRelaxation=1 -d1=outerDomain -d2=innerDomain -rho0=14. -pOffset=10. -lambdaSolid=1. -muSolid=1. -diss=1. -multiDomainAlgorithm=1 -go=go 
+
+
+============= Cgcns time-step info for domain 0 (outerDomain)(fluid) steps=3==================
+determineErrors: t=1.000e-02, maxNorm errors: [rho,u,v,T]=[2.31e-07,2.74e-08,2.74e-08,1.69e-08]
+     t    err(r)   err(u)   err(v)   err(T)    uMax     dt       cpu  (cur,max)-mem (Gb)
+   0.010 2.31e-07 2.74e-08 2.74e-08 1.69e-08 1.40e+01 3.33e-03 4.09e-01 (      53,       0)
+============= Cgsm time-step info for domain 1 (innerDomain)(solid) steps=3==================
+-->t=1.0000e-02 dt=3.3e-03 maxNorm errors:[1.5473e-05,1.5468e-05,8.4382e-06,7.0717e-06,7.0697e-06,9.3421e-06,1.4536e-07,1.4535e-07,], maxNorm(u):[5.27e-02,5.27e-02,2.67e-03,2.66e-03,2.66e-03,2.67e-03,5.28e-04,5.28e-04,]
+
+
+
+
+
+
+--- 2014/05/09 -- RE-RUN rotating disk for line plots
+
+plotStuff plotRotatingDiskLines -show=rotatingDisk8_scf0p1.show -name=rotatingDisk8_scf0p1
+plotStuff plotRotatingDiskLines -show=rotatingDisk8_scf1.show -name=rotatingDisk8_scf1
+plotStuff plotRotatingDiskLines -show=rotatingDisk8_scf10.show -name=rotatingDisk8_scf10
+
+
+SCF=10 dd8 -- medium heavy fluid -- FINER GRID 
+$cgmpx -noplot rotatingDisk.cmd -g=diskDeformFixedBig8e -method=cns -cfl=.75 -tp=.1 -tf=1. -tz=none -problem=1 -cnsVariation=godunov -cnsGodunovOrder=2 -smVariation=g -pi=1 -en=max -adCns=0. -bcOption=4 -rotationRate=.1 -piGhostOption=3 -piOption=0 -godunovType=2 -stressRelaxation=1 -d1=outerDomain -d2=innerDomain -rho0=.14 -pOffset=.10 -lambdaSolid=1. -muSolid=1. -diss=1. -multiDomainAlgorithm=1 -show=rotatingDisk8_scf10.show -go=go >! rotatingDisk8_scf10.out
+
+SCF=1 -- dd8  medium fluid 
+$cgmpx -noplot rotatingDisk.cmd -g=diskDeformFixedBig8e -method=cns -cfl=.75 -tp=.1 -tf=1. -tz=none -problem=1 -cnsVariation=godunov -cnsGodunovOrder=2 -smVariation=g -pi=1 -en=max -adCns=0. -bcOption=4 -rotationRate=.1 -piGhostOption=3 -piOption=0 -godunovType=2 -stressRelaxation=1 -d1=outerDomain -d2=innerDomain -rho0=1.4 -pOffset=1.0 -lambdaSolid=1. -muSolid=1. -diss=1. -multiDomainAlgorithm=1 -show=rotatingDisk8_scf1.show -go=go >! rotatingDisk8_scf1.out
+
+
+SCF=.1 -- dd8  light solid
+$cgmpx -noplot rotatingDisk.cmd -g=diskDeformFixedBig8e -method=cns -cfl=.75 -tp=.1 -tf=1. -tz=none -problem=1 -cnsVariation=godunov -cnsGodunovOrder=2 -smVariation=g -pi=1 -en=max -adCns=10. -bcOption=4 -rotationRate=.1 -piGhostOption=3 -piOption=0 -godunovType=2 -stressRelaxation=1 -d1=outerDomain -d2=innerDomain -rho0=14. -pOffset=10. -lambdaSolid=1. -muSolid=1. -diss=1. -multiDomainAlgorithm=1 -show=rotatingDisk8_scf0p1.show -go=go >! rotatingDisk8_scf0p1.out
+
+
+--- 2014/05/07 -- TRY LONG TIME RUN WITH WEAK dissipation
+
+
+WE SHOULD TEST A NON-FIXED GRID  --FAILED 
+$cgmpx -noplot rotatingDisk.cmd -g=diskDeformBig8e -method=cns -cfl=.75 -tp=.1 -tf=100. -tz=none -problem=1 -cnsVariation=godunov -cnsGodunovOrder=2 -smVariation=g -pi=1 -en=max -adCns=0. -bcOption=4 -rotationRate=.1 -piGhostOption=3 -piOption=0 -godunovType=2 -stressRelaxation=1 -d1=outerDomain -d2=innerDomain -rho0=.14 -pOffset=.10 -lambdaSolid=1. -muSolid=1. -diss=1. -multiDomainAlgorithm=1 -piOption=0 -show="rotatingDisk8Narrow.show" -flushFrequency=2 -go=go >! rotatingDisk8Narrow.out &
+
+
+WEAK form of dissipation : TSD and displacement
+$cgmpx -noplot rotatingDisk.cmd -g=diskDeformFixedBig8e -method=cns -cfl=.75 -tp=.5 -tf=100. -tz=none -problem=1 -cnsVariation=godunov -cnsGodunovOrder=2 -smVariation=g -pi=1 -en=max -adCns=0. -bcOption=4 -rotationRate=.1 -piGhostOption=3 -piOption=0 -godunovType=2 -stressRelaxation=1 -d1=outerDomain -d2=innerDomain -rho0=.14 -pOffset=.10 -lambdaSolid=1. -muSolid=1. -diss=1. -multiDomainAlgorithm=1 -piOption=0 -show="rotatingDisk8long.show" -go=go >! rotatingDisk8long.out &
+
+
+--- 2014/05/03 -- TRY beta0 tangential stress dissipation
+
+$cgmpx rotatingDisk.cmd -g=diskDeformFixedBig8e -method=cns -cfl=.75 -tp=.1 -tf=1. -tz=none -problem=1 -cnsVariation=godunov -cnsGodunovOrder=2 -smVariation=g -pi=1 -en=max -adCns=0. -bcOption=4 -rotationRate=.1 -piGhostOption=3 -piOption=0 -godunovType=2 -stressRelaxation=1 -d1=outerDomain -d2=innerDomain -rho0=.14 -pOffset=.10 -lambdaSolid=1. -muSolid=1. -diss=1. -multiDomainAlgorithm=1 -piOption=0 -go=halt
+
+
+--- 2014/05/03 -- test newsmog  dissipation
+
+**TEST" nonlinear" projection -piOption=1
+$cgmpx rotatingDisk.cmd -g=diskDeformFixedBig8e -method=cns -cfl=.75 -tp=.1 -tf=1. -tz=none -problem=1 -cnsVariation=godunov -cnsGodunovOrder=2 -smVariation=g -pi=1 -en=max -adCns=0. -bcOption=4 -rotationRate=.1 -piGhostOption=3 -piOption=0 -godunovType=2 -stressRelaxation=1 -d1=outerDomain -d2=innerDomain -rho0=.14 -pOffset=.10 -lambdaSolid=1. -muSolid=1. -diss=1. -multiDomainAlgorithm=1 -piOption=1 -go=halt
+
+$cgmpx rotatingDisk.cmd -g=diskDeformFixedBig8e -method=cns -cfl=.75 -tp=.1 -tf=1. -tz=none -problem=1 -cnsVariation=godunov -cnsGodunovOrder=2 -smVariation=g -pi=1 -en=max -adCns=0. -bcOption=4 -rotationRate=.1 -piGhostOption=3 -piOption=0 -godunovType=2 -stressRelaxation=1 -d1=outerDomain -d2=innerDomain -rho0=.14 -pOffset=.10 -lambdaSolid=1. -muSolid=1. -diss=1. -multiDomainAlgorithm=1 -go=halt
+
+--- 2014/04/25
+
+plotStuff plotRotatingDiskLines -show=rotatingDisk8_scf0p1.show -name=rotatingDisk8_scf0p1
+
+
+SCF=.1 -- dd8  light solid
+$cgmpx -noplot rotatingDisk.cmd -g=diskDeformFixedBig8e -method=cns -cfl=.75 -tp=.1 -tf=1. -tz=none -problem=1 -cnsVariation=godunov -cnsGodunovOrder=2 -smVariation=g -pi=1 -en=max -adCns=10. -bcOption=4 -rotationRate=.1 -piGhostOption=3 -piOption=0 -godunovType=2 -stressRelaxation=1 -d1=outerDomain -d2=innerDomain -rho0=14. -pOffset=10. -lambdaSolid=1. -muSolid=1. -diss=1. -multiDomainAlgorithm=1 -show=rotatingDisk8_scf0p1.show -go=go >! rotatingDisk8_scf0p1.out
+
+
+--- 2014/04/24
+
+plotStuff plotRotatingDiskLines -show=rotatingDisk8_scf1.show -name=rotatingDisk8_scf1
+
+
+SCF=1 -- dd8  medium fluid 
+$cgmpx -noplot rotatingDisk.cmd -g=diskDeformFixedBig8e -method=cns -cfl=.75 -tp=.1 -tf=1. -tz=none -problem=1 -cnsVariation=godunov -cnsGodunovOrder=2 -smVariation=g -pi=1 -en=max -adCns=0. -bcOption=4 -rotationRate=.1 -piGhostOption=3 -piOption=0 -godunovType=2 -stressRelaxation=1 -d1=outerDomain -d2=innerDomain -rho0=1.4 -pOffset=1.0 -lambdaSolid=1. -muSolid=1. -diss=1. -multiDomainAlgorithm=1 -show=rotatingDisk8_scf1.show -go=go >! rotatingDisk8_scf1.out
+
+
+
+plotStuff plotRotatingDiskLines -show=rotatingDisk8_scf10.show -name=rotatingDisk8_scf10
+
+
+--- 2014/04/23
+
+
+plotStuff plotRotatingDiskLines -show=rotatingDisk8_scf10.show -name=rotatingDisk8_scf10
+
+
+SCF=10 dd8 -- medium heavy fluid -- FINER GRID 
+$cgmpx -noplot rotatingDisk.cmd -g=diskDeformFixedBig8e -method=cns -cfl=.75 -tp=.1 -tf=1. -tz=none -problem=1 -cnsVariation=godunov -cnsGodunovOrder=2 -smVariation=g -pi=1 -en=max -adCns=0. -bcOption=4 -rotationRate=.1 -piGhostOption=3 -piOption=0 -godunovType=2 -stressRelaxation=1 -d1=outerDomain -d2=innerDomain -rho0=.14 -pOffset=.10 -lambdaSolid=1. -muSolid=1. -diss=1. -multiDomainAlgorithm=1 -show=rotatingDisk8_scf10.show -go=go >! rotatingDisk8_scf10.out
+
+plotStuff plotRotatingDiskLines -show=rotatingDisk4_scf10.show -name=rotatingDisk4_scf10
+SCF=10 -- medium heavy fluid
+$cgmpx -noplot rotatingDisk.cmd -g=diskDeformFixedBig4e -method=cns -cfl=.75 -tp=.1 -tf=1. -tz=none -problem=1 -cnsVariation=godunov -cnsGodunovOrder=2 -smVariation=g -pi=1 -en=max -adCns=0. -bcOption=4 -rotationRate=.1 -piGhostOption=3 -piOption=0 -godunovType=2 -stressRelaxation=1 -d1=outerDomain -d2=innerDomain -rho0=.14 -pOffset=.10 -lambdaSolid=1. -muSolid=1. -diss=1. -multiDomainAlgorithm=1 -show=rotatingDisk4_scf10.show -go=go >! rotatingDisk4_scf10.out
+
+
+Test fixes for plotting on grids adjusted for displacements
+
+plotStuff plotRotatingDiskLines -show=rotatingDisk4_scf10.show -name=rotatingDisk4_scf10
+
+plotStuff plotRotatingDiskLines -show=rotatingDisk4_scf1.show -name=rotatingDisk4_scf1
+
+SCF=1 -- medium fluid
+$cgmpx -noplot rotatingDisk.cmd -g=diskDeformFixedBig4e -method=cns -cfl=.75 -tp=.1 -tf=1. -tz=none -problem=1 -cnsVariation=godunov -cnsGodunovOrder=2 -smVariation=g -pi=1 -en=max -adCns=0. -bcOption=4 -rotationRate=.1 -piGhostOption=3 -piOption=0 -godunovType=2 -stressRelaxation=1 -d1=outerDomain -d2=innerDomain -rho0=1.4 -pOffset=1.0 -lambdaSolid=1. -muSolid=1. -diss=1. -multiDomainAlgorithm=1 -show=rotatingDisk4_scf1.show -go=go >! rotatingDisk4_scf1.out
+
+--- 2014/04/20 -- 
+
+smooth in : interfaceCnsSm -- adCns=5 OK to t=.5 
+cgmp rotatingDisk.cmd -g=diskDeformFixedBig8e -method=cns -cfl=.75 -tp=.05 -tf=.5 -tz=none -problem=1 -cnsVariation=godunov -cnsGodunovOrder=2 -smVariation=g -pi=1 -en=max -adCns=5. -bcOption=4 -rotationRate=.1 -piGhostOption=3 -piOption=0 -godunovType=2 -stressRelaxation=1 -d1=outerDomain -d2=innerDomain -rho0=14 -pOffset=10 -lambdaSolid=1. -muSolid=1. -diss=1. -multiDomainAlgorithm=1 -go=halt
+
+smooth in : interfaceCnsSm -- ok to t=.2 adCns=1
+cgmp rotatingDisk.cmd -g=diskDeformFixedBig8e -method=cns -cfl=.75 -tp=.05 -tf=.5 -tz=none -problem=1 -cnsVariation=godunov -cnsGodunovOrder=2 -smVariation=g -pi=1 -en=max -adCns=1. -bcOption=4 -rotationRate=.1 -piGhostOption=3 -piOption=0 -godunovType=2 -stressRelaxation=1 -d1=outerDomain -d2=innerDomain -rho0=14 -pOffset=10 -lambdaSolid=1. -muSolid=1. -diss=1. -multiDomainAlgorithm=1 -go=halt
+
+TRY interface smoothing in DeformingBodyMotion:
+cgmp rotatingDisk.cmd -g=diskDeformFixedBig8e -method=cns -cfl=.75 -tp=.01 -tf=.5 -tz=none -problem=1 -cnsVariation=godunov -cnsGodunovOrder=2 -smVariation=g -pi=1 -en=max -adCns=0. -bcOption=4 -rotationRate=.1 -piGhostOption=3 -piOption=0 -godunovType=2 -stressRelaxation=1 -d1=outerDomain -d2=innerDomain -rho0=14 -pOffset=10 -lambdaSolid=1. -muSolid=1. -diss=1. -multiDomainAlgorithm=1 -go=halt
+
+TO-DO: fix line plots to account for solid displacement
+
+plotStuff plotRotatingDiskLines -show=rotatingDisk4_scf10.show -name=rotatingDisk4_scf10
+
+--- 2014/04/19
+
+SCF=10 -- medium heavy fluid
+$cgmpx -noplot rotatingDisk.cmd -g=diskDeformFixedBig4e -method=cns -cfl=.75 -tp=.1 -tf=1. -tz=none -problem=1 -cnsVariation=godunov -cnsGodunovOrder=2 -smVariation=g -pi=1 -en=max -adCns=0. -bcOption=4 -rotationRate=.1 -piGhostOption=3 -piOption=0 -godunovType=2 -stressRelaxation=1 -d1=outerDomain -d2=innerDomain -rho0=.14 -pOffset=.10 -lambdaSolid=1. -muSolid=1. -diss=1. -multiDomainAlgorithm=1 -show=rotatingDisk4_scf10.show -go=go >! rotatingDisk4_scf10.out
+
+
+--- 2014/04/18 -- investigate heavy fluid oscillation
+
+adCns=0 -
+/home/henshw/cg.g/mp/bin/cgmp /home/henshw/overtureFramework/cg/mp/cmd/rotatingDisk.cmd -g=diskDeformFixedBig8e -method=cns -cfl=.75 -tp=.1 -tf=.5 -tz=none -problem=1 -cnsVariation=godunov -cnsGodunovOrder=2 -smVariation=g -pi=1 -en=max -adCns=0. -bcOption=4 -rotationRate=.1 -piGhostOption=3 -piOption=0 -godunovType=2 -stressRelaxation=1 -d1=outerDomain -d2=innerDomain -rho0=14 -pOffset=10 -lambdaSolid=1. -muSolid=1. -diss=1. -multiDomainAlgorithm=1 -go=halt
+
+adCns=10 -- looks ok:
+/home/henshw/cg.g/mp/bin/cgmp /home/henshw/overtureFramework/cg/mp/cmd/rotatingDisk.cmd -g=diskDeformFixedBig8e -method=cns -cfl=.75 -tp=.1 -tf=.5 -tz=none -problem=1 -cnsVariation=godunov -cnsGodunovOrder=2 -smVariation=g -pi=1 -en=max -adCns=10. -bcOption=4 -rotationRate=.1 -piGhostOption=3 -piOption=0 -godunovType=2 -stressRelaxation=1 -d1=outerDomain -d2=innerDomain -rho0=14 -pOffset=10 -lambdaSolid=1. -muSolid=1. -diss=1. -multiDomainAlgorithm=1 -go=halt
+
+
+
+--- 2014/04/14 - runs for plots for flunsi:
+
+$cgmpx -noplot rotatingDisk.cmd -g=diskDeformFixedBig4e -method=cns -cfl=.75 -tp=.1 -tf=1. -tz=none -problem=1 -cnsVariation=godunov -cnsGodunovOrder=2 -smVariation=g -pi=1 -en=max -adCns=10. -bcOption=4 -rotationRate=.1 -piGhostOption=3 -piOption=0 -godunovType=2 -stressRelaxation=1 -d1=outerDomain -d2=innerDomain -rho0=14 -pOffset=10 -lambdaSolid=1. -muSolid=1. -diss=1. -multiDomainAlgorithm=1 -show=rotatingDisk4.show -go=go >! rotatingDisk4.out

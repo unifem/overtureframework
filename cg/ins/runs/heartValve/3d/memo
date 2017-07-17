@@ -7,7 +7,24 @@ ogen -noplot heartValveGrid.cmd -interp=e -theta1=-20 -factor=1 -leaflets=1
 ++++++PLOTS and RUNS++++++
 $cgins -noplot heartValveMoving3d -g=heartValveGride1.order2.hdf -tf=1 -tp=.1 -dtMax=.025 -nu=.1 -mass=1e5 -inertia=.001 -xyinertia=1e5 -move=1 -bcOption=inflowGivenPressure -inflowPressure=10 -numberOfCorrections=2 -addedMass=1 -useProvidedAcceleration=1 -addedDamping=1 -addedDampingCoeff=1.0 -addedDampingProjectVelocity=1 -scaleAddedDampingWithDt=1 -solver=best -psolver=best -rtolp=1.e-5 -atolp=1.e-7 -rtol=1.e-7 -atol=1.e-9 -freqFullUpdate=1 -ycenter=0.15 -bodyForce=restrictAngleDamp -theta10=-1.05 -theta20=0.1 -delta1=0.1 -epsilon1=5.e-2 -delta2=0.1 -epsilon2=5.e-3 -damp1=20 -damp2=20 -show=heartValveG1.show -go=go -flushFrequency=2 > heartValveG1.out
 
+mpirun -np 8 $cginsp -noplot heartValveMoving3d -g=heartValveGride1.order2.hdf -tf=1 -tp=.1 -dtMax=.025 -nu=.1 -mass=1e5 -inertia=.001 -xyinertia=1e5 -move=1 -bcOption=inflowGivenPressure -inflowPressure=10 -numberOfCorrections=2 -addedMass=1 -useProvidedAcceleration=1 -addedDamping=1 -addedDampingCoeff=1.0 -addedDampingProjectVelocity=1 -scaleAddedDampingWithDt=1 -solver=best -psolver=best -rtolp=1.e-5 -atolp=1.e-7 -rtol=1.e-7 -atol=1.e-9 -freqFullUpdate=1 -ycenter=0.15 -bodyForce=restrictAngleDamp -theta10=-1.05 -theta20=0.1 -delta1=0.1 -epsilon1=5.e-2 -delta2=0.1 -epsilon2=5.e-3 -damp1=20 -damp2=20  -go=
+
 plotStuff plotMove -show=heartValveG1.show
 
+6/19
+case2 (almost identical to 2d run; the time step become much smaller than case2 due to large speed)
+potential issue: G1 is underresolved for nu=0.01
+$cgins -noplot heartValveMoving3d -g=heartValveGride1.order2.hdf -tf=1.5 -tp=.1 -dtMax=.025 -nu=.01 -mass=1e5 -inertia=.001 -xyinertia=1e5 -move=1 -bcOption=inflowCardiacCycle -pMax=100 -tP1=1 -pMin=-200 -tP2=0.5 -numberOfCorrections=2 -addedMass=1 -useProvidedAcceleration=1 -addedDamping=1 -addedDampingCoeff=1.0 -addedDampingProjectVelocity=1 -scaleAddedDampingWithDt=1 -solver=best -psolver=best -rtolp=1.e-5 -atolp=1.e-7 -rtol=1.e-7 -atol=1.e-9 -freqFullUpdate=1 -ycenter=0.15 -bodyForce=restrictAngleDamp -theta10=-1.05 -theta20=0.1 -delta1=0.1 -epsilon1=5.e-2 -delta2=0.1 -epsilon2=5.e-3 -damp1=20 -damp2=20 -show=cardiac3d2dG1.show -go=go -flushFrequency=2 > cardiac3d2dG1.out
+
+cardiac3d2dG1 and cardiac3d2dG1noad
+
+6/17
+runs
+heartValveG1
+cardiac3dG1
+
 6/16
+case1 for quicker testing (relatively small pressure gradient)
+$cgins -noplot heartValveMoving3d -g=heartValveGride1.order2.hdf -tf=.1 -tp=.1 -dtMax=.025 -nu=.1 -mass=1e5 -inertia=.001 -xyinertia=1e5 -move=1 -bcOption=inflowCardiacCycle -pMax=10 -tP1=1 -pMin=-20 -tP2=0.5 -numberOfCorrections=2 -addedMass=1 -useProvidedAcceleration=1 -addedDamping=1 -addedDampingCoeff=1.0 -addedDampingProjectVelocity=1 -scaleAddedDampingWithDt=1 -solver=best -psolver=best -rtolp=1.e-5 -atolp=1.e-7 -rtol=1.e-7 -atol=1.e-9 -freqFullUpdate=1 -ycenter=0.15 -bodyForce=restrictAngleDamp -theta10=-1.05 -theta20=0.1 -delta1=0.1 -epsilon1=5.e-2 -delta2=0.1 -epsilon2=5.e-3 -damp1=20 -damp2=20 -show=cardiac3dG1.show -go=go -flushFrequency=2 > cardiac3dG1.out
+
 heartValveGrid.cmd is heartValveGridFine.cmd on cge; it is a better grid for lower resolutions (to avoid some funny ogen errors)

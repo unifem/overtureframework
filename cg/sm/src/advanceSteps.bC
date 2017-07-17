@@ -126,6 +126,7 @@ takeTimeStep( real & t0, real & dt0, int correction, AdvanceOptions & advanceOpt
 
   const SmParameters::TimeSteppingMethodSm & timeSteppingMethod = 
     parameters.dbase.get< SmParameters::TimeSteppingMethodSm>("timeSteppingMethodSm");
+  RealArray & timing = parameters.dbase.get<RealArray >("timing");
 
   deltaT=dt0;
   
@@ -138,22 +139,33 @@ takeTimeStep( real & t0, real & dt0, int correction, AdvanceOptions & advanceOpt
       timeSteppingMethod==SmParameters::modifiedEquationTimeStepping)
   {
     // --- Space-time schemes ---
+
     if( correction==0 && takeTimeStep )
     {
-      advance(  current,t0,dt0 );
+      advance(  current,t0,dt0,&advanceOptions );
     }
     if( !takeTimeStep && applyBC )
     {
       // -- re-apply the boundary conditions --
       if( debug() & 2 ) 
-	printP("Cgsm:takeTimeStep:apply BC's ONLY: t=%9.3e, dt=%9.3e, correction=%i, current=%i\n",
-	       t0,dt0,correction,current);
+        printP("Cgsm:takeTimeStep:apply BC's ONLY: t=%9.3e, dt=%9.3e, correction=%i, current=%i\n",
+               t0,dt0,correction,current);
 
       const real dt=dt0;
 
       // check these: 
       const int prev = (current-1+numberOfTimeLevels) % numberOfTimeLevels;
       const int next = (current+1) % numberOfTimeLevels;
+
+      if( cg.numberOfComponentGrids()>1 )
+      {
+        real timei=getCPU();
+        // Note: interpolate performs a periodicUpdate and updateGhostBoundaries even if there is only one grid
+        gf[next].u.interpolate();
+
+        timing(parameters.dbase.get<int>("timeForInterpolate"))+=getCPU()-timei;
+      }
+
       int option=0; // not used.
       applyBoundaryConditions( option, dt, next,current ); // apply BC to "next" (current=previous time step)
     }
@@ -165,7 +177,6 @@ takeTimeStep( real & t0, real & dt0, int correction, AdvanceOptions & advanceOpt
   }
 
   
-  RealArray & timing = parameters.dbase.get<RealArray >("timing");
   timing(parameters.dbase.get<int>("totalTime"))+=getCPU()-time0;
 
   return 0;
@@ -182,7 +193,7 @@ takeTimeStep( real & t0, real & dt0, int correction, AdvanceOptions & advanceOpt
 int Cgsm::
 endTimeStep( real & t0, real & dt0, AdvanceOptions & advanceOptions )
 {
-  if( debug() & 2 ) printF("Cgsm:endTimeStep: t=%9.3e, dt=%9.3e, current=%i\n",t0,dt0,current);
+  if( debug() & 2 ) printF("Cgsm:endTimeStep: t0+dt0=%9.3e, dt=%9.3e, current=%i\n",t0+dt0,dt0,current);
 
   numberOfStepsTaken++;
   current= (current+1) % numberOfTimeLevels;

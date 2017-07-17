@@ -80,7 +80,12 @@ PETScEquationSolver(Oges & oges_) : EquationSolver(oges_)
   petscInitialized        =FALSE;
   turnOnPETScMemoryTracing=false; // *wdh* 010318 TRUE;
 
-  comm                    = max(1,PETSC_COMM_WORLD);  // PETSC_COMM_WORLD is only valid after PetscInitialize is called
+  // *wdh* 2017/06/11   comm  = max(1,PETSC_COMM_WORLD);  // PETSC_COMM_WORLD is only valid after PetscInitialize is called
+
+  if( PETSC_COMM_WORLD == MPI_COMM_NULL )
+    comm = MPI_COMM_WORLD;
+  else
+    comm = PETSC_COMM_WORLD;
 
   isMatrixAllocated       =FALSE;
   shouldUpdateMatrix      =FALSE;
@@ -875,7 +880,7 @@ solve(realCompositeGridFunction & u,
   dh_solveTime= dh_getCpuTime();
 #endif
 
-  if( Oges::debug & 2 ) 
+  if( Oges::debug & 1 ) 
   {
     cout << "++Petsc TIMINGS (for "<<oges.numberOfIterations<<" its, "
 	 <<  "size of matrix n = " << numberOfEquations << " ):\n";
@@ -1311,7 +1316,7 @@ buildRhsAndSolVector(realCompositeGridFunction & u,
       v=ovRhs[i]*dscale[i]; // SCALE rhs as the matrix!!
       ierr=VecSetValues(brhs,1,&i,&v,INSERT_VALUES); CHKERRQ(ierr);
 
-      if( Oges::debug & 2 )
+      if( false && Oges::debug & 2 )
         printF("--PES-- RHS: i=%6i, ovRhs=%11.4e scale=%9.2e b=%11.4e\n",i,ovRhs[i],dscale[i],v);
       
     }

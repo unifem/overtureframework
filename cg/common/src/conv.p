@@ -48,6 +48,8 @@ $debug=0; # set to 1 for debug info
 $caseName="junk";
 $numberOfComponents=-1;
 $numberOfDomains=1;      # cgmp can have multiple domains
+# domainOrder=[forward|backward],  backward=order domains from last to first
+$domainOrder="backward"; 
 @numberOfComponentsPerDomain = ();  # -- finish me ---
 $baseGridSpacing=1.;     # grid spacing = $baseGridSpacing/$res 
 $title="";
@@ -246,13 +248,26 @@ while( <FILE> )
     close(CHECKFILE);
     
     # concatenate results from the different domains (chop off start of subsequent lines: these start with time ...)
-    $line = $checkLine[$numberOfDomains-1]; 
-    for( $j=$numberOfDomains-2; $j>=0; $j-- )
-    { 
-      $extra = substr($checkLine[$j],12);
-      printf(" concatenate: add [$extra]\n");
-      $line = $line . $extra;
-    } 
+    if( $domainOrder eq "backward" ){
+     # order domains for last to first
+     $line = $checkLine[$numberOfDomains-1]; 
+     for( $j=$numberOfDomains-2; $j>=0; $j-- )
+     { 
+       $extra = substr($checkLine[$j],12);
+       printf(" concatenate: add [$extra]\n");
+       $line = $line . $extra;
+     } 
+    }
+    else{
+     # order domains from first to last 0,1,2,...
+     $line = $checkLine[0]; 
+     for( $j=1; $j<$numberOfDomains; $j++ )
+     { 
+       $extra = substr($checkLine[$j],12);
+       printf(" concatenate: add [$extra]\n");
+       $line = $line . $extra;
+     } 
+    }
 
     print "----------------------------------------------------------------------------------------------- \n";
     print "              t    nc c=0   err     max   c=1    err    max    c=2    err     max    c=3   err    max\n";
@@ -277,6 +292,7 @@ while( <FILE> )
     print RESULTS "$grid \&  $res ";
     for( $j=0; $j<$numberOfComponents; $j++ )
     {
+      # printf(" j=$j ignoreComponent=$ignoreComponent[$j]\n");
       if( $ignoreComponent[$j] ne 1 )
       {
         $error = $token[3+($j)*3];

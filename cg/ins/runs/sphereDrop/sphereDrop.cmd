@@ -212,7 +212,7 @@ if( $go eq "run" || $go eq "go" ){ $go = "movie mode\n finish"; }
     #  $forceLimit $forceLimit
     #
     rigid body
-    $logFile="particleSettle.dt$dtMax.log";
+    $logFile="rigidbody.dt$dtMax.log";
      log file:$logFile 
      density
        $density
@@ -257,6 +257,7 @@ if( $go eq "run" || $go eq "go" ){ $go = "movie mode\n finish"; }
      10
 #***************************************************
 #
+echo to terminal 0
   pressure solver options
   #$ogesDebug=$debug; 
    $ogmgDebugcg=$ogesDebug; $ogmgDebug=$ogesDebug;
@@ -271,6 +272,7 @@ if( $go eq "run" || $go eq "go" ){ $go = "movie mode\n finish"; }
    $ogesSolver=$solver; $ogesRtol=$rtol; $ogesAtol=$atol; 
    include $ENV{CG}/ins/cmd/ogesOptions.h
   exit
+echo to terminal 1
 #
 #***************************************************
 #

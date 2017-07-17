@@ -860,7 +860,7 @@ implicitSolve(const real & dt0,
 
 	if( debug() & 4 ) 
 	{
-	  v.display(sPrintF("Solution after implicit solve (n=%i)",n),debugFile,"%6.3f ");
+	  v.display(sPrintF("Solution after implicit solve (n=%i) t=%8.2e",n,cgf1.t),debugFile,"%6.3f ");
 	}
 	
 
@@ -886,7 +886,7 @@ implicitSolve(const real & dt0,
       {
 	if( debug() & 4 ) 
 	{
-	  v.display(sPrintF("RHS before implicit solve, component=%i",n),debugFile,"%6.3f ");
+	  v.display(sPrintF("RHS before implicit solve, component=%i, t=%8.2e",n,cgf1.t),debugFile,"%6.3f ");
 	  // fprintf(debugFile," ***Errors before solve for component=%i\n",n);
 	  // determineErrors( cgf1 );
 	}
@@ -895,7 +895,7 @@ implicitSolve(const real & dt0,
 
 	if( debug() & 4 )
 	{
-	  v.display(sPrintF("Solution after implicit solve, component=%i",n),debugFile,"%6.3f ");
+	  v.display(sPrintF("Solution after implicit solve, component=%i t=%8.2e",n,cgf1.t),debugFile,"%6.3f ");
 	  // fprintf(debugFile," ***Errors after solve for component=%i\n",n);
 	  // determineErrors( cgf1 );
 	}
@@ -2368,6 +2368,27 @@ applyBoundaryConditionsForImplicitTimeStepping(realMappedGridFunction & u,
       }
     }
 
+
+    // =======================================================================================================
+    //  Project the velocity on the interface for FSI problems
+    // =======================================================================================================
+    const bool & useAddedMassAlgorithm = parameters.dbase.get<bool>("useAddedMassAlgorithm");
+    const bool & projectAddedMassVelocity = parameters.dbase.get<bool>("projectAddedMassVelocity");
+    const bool & projectNormalComponentOfAddedMassVelocity =
+      parameters.dbase.get<bool>("projectNormalComponentOfAddedMassVelocity");
+    const int initialConditionsAreBeingProjected = parameters.dbase.get<int>("initialConditionsAreBeingProjected");
+    if( useAddedMassAlgorithm && projectAddedMassVelocity && parameters.gridIsMoving(grid)
+        && !initialConditionsAreBeingProjected 
+        && t!=0.  // ****************************************** TEST ********************
+      )
+    {
+      projectInterfaceVelocity( t,u,gridVelocity,grid,dt );
+      
+    } // end if useAddedMass 
+    // =======================================================================================================
+    // =======================================================================================================
+
+
     // ===============================================
     // === assign dirichlet BC's for the velocity ====
     // ===============================================
@@ -3581,6 +3602,12 @@ setOgesBoundaryConditions( GridFunction &cgf, IntegerArray & boundaryConditions,
 
   const bool & useFullSystemForImplicitTimeStepping = parameters.dbase.get<bool >("useFullSystemForImplicitTimeStepping");
   const int & scalarSystemForImplicitTimeStepping = parameters.dbase.get<int >("scalarSystemForImplicitTimeStepping");
+
+  if( TRUE && debug() & 1  )
+  {
+    printF("--INS-- Set BC's for implicit solver: imp=%i, t=%8.2e\n",imp,cgf.t);
+  }
+  
 
   if( debug() & 1 && solveForTemperture )
     printF("Cgins::setOgesBoundaryConditions: Solve for T imp=%i, numberOfImplicitSolvers=%i\n",imp,numberOfImplicitSolvers);

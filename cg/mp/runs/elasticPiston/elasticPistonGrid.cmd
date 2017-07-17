@@ -18,10 +18,12 @@
 #   -per = 0 = no-periodic in x,  1=periodic in x
 # 
 # examples:
+#     ogen -noplot elasticPistonGrid -factor=1
 #     ogen -noplot elasticPistonGrid -factor=2
 #     ogen -noplot elasticPistonGrid -factor=4
 #
 # -- periodic in x:
+#    ogen -noplot elasticPistonGrid -factor=1 -per=1
 #    ogen -noplot elasticPistonGrid -factor=2 -per=1
 #    ogen -noplot elasticPistonGrid -factor=4 -per=1
 #    ogen -noplot elasticPistonGrid -factor=8 -per=1

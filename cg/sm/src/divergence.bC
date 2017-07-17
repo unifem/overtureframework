@@ -432,7 +432,24 @@ getVelocityAndStress( const int current, real t,
   real velocityNorm=0., stressNorm=0.;
   
   const int prev = (current-1+numberOfTimeLevels) % numberOfTimeLevels;
-  const real dti = deltaT>0. ? 1./deltaT : 1.;
+  real dti = deltaT>0. ? 1./deltaT : 1.;
+
+  if( false )
+    printF("\n --SM-- getVelocityAndStress: t=%9.3e, deltaT=%9.3e dti=%9.3e, tcur=%9.3e tprev=%9.3e\n",
+           t,deltaT,dti,gf[current].t,gf[prev].t);
+
+  if( t==0. && gf[prev].t==0 )
+  {
+    // At t=0 the previous solution may not be assigned yet (For SOS this is done only after dt is computed)
+    // --> Evaluate the solution at some previous time
+    printF("--SM-- getVelocityAndStress:INFO: initial time t=%9.3e -- EVAL solution at past time for computing the velocity\n",t);
+
+    real dt=1.e-4;  // what should this be?
+    dti=1/dt;
+    gf[prev].t=t-dt;
+    assignInitialConditions(prev);
+  }
+  
 
   real & rho=parameters.dbase.get<real>("rho");
   RealArray & muGrid = parameters.dbase.get<RealArray>("muGrid");
@@ -540,11 +557,15 @@ getVelocityAndStress( const int current, real t,
 
     if( mg.numberOfDimensions()==2 )
     {
+      if( false )
+        printF("--SM-- Plot velocity by time differences of the displacement...\n");
+      
       FOR_3D(i1,i2,i3,I1,I2,I3)
       {
 	if( MASK(i1,i2,i3)>0 )
 	{ 
 	  // velocity: approximate by differences -- this is wrong at t=0 if there is no prev solution
+          // NOTE: For schemes that update the velocity this next option is not normally used (but could be turned on)
 	  V(i1,i2,i3,0) = (U(i1,i2,i3,uc) - UP(i1,i2,i3,uc))*dti;
 	  V(i1,i2,i3,1) = (U(i1,i2,i3,vc) - UP(i1,i2,i3,vc))*dti;
 	  
@@ -777,6 +798,7 @@ checkDisplacementAndStress( const int current, real t )
   RealArray & lambdaGrid = parameters.dbase.get<RealArray>("lambdaGrid");
 
   real stressErr[9]={0.,0.,0.,0.,0.,0.,0.,0.,0.};
+  real stressNorm[9]={0.,0.,0.,0.,0.,0.,0.,0.,0.};
 
   for( int grid=0; grid<cg.numberOfComponentGrids(); grid++ )
   {
@@ -874,14 +896,22 @@ checkDisplacementAndStress( const int current, real t )
 	  s21 = s12;
 	  s22 = lambda*div + 2.*mu*u2y;
           
-          // printF(" i1,i2=(%3i,%3i) s11=%9.3e, computed-from-u=%9.3e, diff=%8.2e\n",
-	  //   i1,i2,U(i1,i2,i3,s11c),s11,fabs(s11-U(i1,i2,i3,s11c)));
-
+          if( false )
+          {
+            printF(" i1,i2=(%3i,%3i) s11=%9.3e, computed-from-u=%9.3e, diff=%8.2e\n",
+	     i1,i2,U(i1,i2,i3,s11c),s11,fabs(s11-U(i1,i2,i3,s11c)));
+          }
+          
           stressErr[0] = max( stressErr[0], fabs(s11-U(i1,i2,i3,s11c)) );
           stressErr[1] = max( stressErr[1], fabs(s12-U(i1,i2,i3,s12c)) );
           stressErr[2] = max( stressErr[2], fabs(s21-U(i1,i2,i3,s21c)) );
           stressErr[3] = max( stressErr[3], fabs(s22-U(i1,i2,i3,s22c)) );
 
+          stressNorm[0]=max(stressNorm[0],fabs(s11));
+          stressNorm[1]=max(stressNorm[1],fabs(s12));
+          stressNorm[2]=max(stressNorm[2],fabs(s21));
+          stressNorm[3]=max(stressNorm[3],fabs(s22));
+          
 	}
       }
     }
@@ -929,6 +959,16 @@ checkDisplacementAndStress( const int current, real t )
           stressErr[7] = max( stressErr[7], fabs(s32-U(i1,i2,i3,s32c)) );
           stressErr[8] = max( stressErr[8], fabs(s33-U(i1,i2,i3,s33c)) );
 
+          stressNorm[0]=max(stressNorm[0],fabs(s11));
+          stressNorm[1]=max(stressNorm[1],fabs(s12));
+          stressNorm[2]=max(stressNorm[2],fabs(s13));
+          stressNorm[3]=max(stressNorm[3],fabs(s21));
+          stressNorm[4]=max(stressNorm[4],fabs(s22));
+          stressNorm[5]=max(stressNorm[5],fabs(s23));
+          stressNorm[6]=max(stressNorm[6],fabs(s31));
+          stressNorm[7]=max(stressNorm[7],fabs(s32));
+          stressNorm[8]=max(stressNorm[8],fabs(s33));
+
 	}
       }
     }
@@ -946,7 +986,8 @@ checkDisplacementAndStress( const int current, real t )
     printF("checkDisplacementAndStress: t=%9.3e : Max diff between stress and stress computed from u\n",t);
     for( int i=0; i<numberOfStressComponents; i++ )
     {
-      printF(" max diff stress[%i]  = %9.3e\n",i,stressErr[i]);
+      printF(" max diff stress[%i]  = %9.3e, norm=%8.2e relative-diff =%9.3e \n",
+            i,stressErr[i],stressNorm[i],stressErr[i]/max(1000.*REAL_MIN,stressNorm[i]));
     }
     
   }

@@ -151,7 +151,7 @@ interfaceRightHandSide( InterfaceOptionsEnum option,
                         int interfaceDataOptions,
                         GridFaceDescriptor & info,
                         GridFaceDescriptor & gfd, 
-			int gfIndex, real t );
+			int gfIndex, real t, bool saveTimeHistory = false );
 
 virtual real 
 maxMachNumber( realMappedGridFunction & u );

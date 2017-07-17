@@ -5,8 +5,20 @@
 #include "Insbc4WorkSpace.h"
 #include "App.h"
 #include "ParallelUtility.h"
+#include "ParallelGridUtility.h"
 #include "DeformingBodyMotion.h"
 #include "BeamModel.h"
+
+#define insTractionBC EXTERN_C_NAME(instractionbc)
+
+extern "C"
+{
+void insTractionBC(const int&bcOption,const int&nd,const int&nd1a,const int&nd1b,const int&nd2a,const int&nd2b,
+                                      const int&nd3a,const int&nd3b,const int&nd4a,const int&nd4b,
+                                      const int&ipar,const real&rpar, real&u, const int&mask, const real&x,const real&rx, 
+                                      const real &gridVelocity, const real&gtt,
+                                      const int&bc, const int&indexRange, const int&ierr );
+}
 
 #define ForBoundary(side,axis)   for( axis=0; axis<mg.numberOfDimensions(); axis++ ) for( side=0; side<=1; side++ )
 
@@ -40,6 +52,14 @@
 // ***********STEADY STATE BC's ************************
 // *****************************************************
 // ==========================================================================
+
+
+// ================================================================================================
+/// Macro: assignTractionBC
+///  Assign a free-surface or traction free BC
+// ================================================================================================
+
+
 
 static int numberOfOutflowPointsAtInflowMessages=0;
 
@@ -107,6 +127,7 @@ applyBoundaryConditions(const real & t, realMappedGridFunction & u,
     const int numberOfDimensions = mg.numberOfDimensions();
     
     const bool isRectangular = mg.isRectangular();
+    const bool twilightZoneFlow = parameters.dbase.get<bool >("twilightZoneFlow");
     
   // *** turn off for stretched c-grid at outflow 
     bool applyDivergenceBoundaryCondition=true; // false; // true;
@@ -184,11 +205,16 @@ applyBoundaryConditions(const real & t, realMappedGridFunction & u,
 
     bool assignInflowOutflow=false;
 
+    bool gridHasInterface=false; // set to true if there is any face on this grid that is an interface
+
     int side,axis;
     for( axis=0; axis<mg.numberOfDimensions(); axis++ )
     {
         for( side=0; side<=1; side++ )
         {
+            if( interfaceType(side,axis,grid)!=Parameters::noInterface) 
+                gridHasInterface=true;  // this grid has an interface
+
             int bc=mg.boundaryCondition(side,axis);
             switch (bc)
             {
@@ -381,7 +407,7 @@ applyBoundaryConditions(const real & t, realMappedGridFunction & u,
         // **check for local inflow at an outflow boundary**
         // where( inflow ) give u.n=0
                 Index I1,I2,I3;
-                if( !parameters.dbase.get<bool >("twilightZoneFlow") &&  assignOutflow && orderOfAccuracy==2 )
+                if( !twilightZoneFlow &&  assignOutflow && orderOfAccuracy==2 )
                 {
               	for( axis=0; axis<mg.numberOfDimensions(); axis++ )
               	{
@@ -1878,24 +1904,172 @@ applyBoundaryConditions(const real & t, realMappedGridFunction & u,
         }
     }
     
+    bool useNewTractionBC=false; // still testing the new traction BC
+    
+    if( useNewTractionBC )
+    {
+    // -- Assign a free surface or traction free BC -----
+    // *new way*
+        if( assignFreeSurfaceBoundaryCondition || assignTractionFree )
+        {
+      // test: u.applyBoundaryCondition(Rt,neumann,tractionFree,0.,t);  
+
+            {
+       // twilight always needs the vertex: 
+                bool vertexNeeded = !isRectangular || parameters.dbase.get<bool >("twilightZoneFlow");
+                OV_GET_SERIAL_ARRAY(real,u,uLocal);
+                real *pu = uLocal.getDataPointer();
+                OV_GET_SERIAL_ARRAY(int,mg.mask(),maskLocal);
+                const int *pmask = maskLocal.getDataPointer();
+                real temp;
+                real *pxy=&temp, *prsxy=&temp;
+                if( !isRectangular )
+                {
+                    OV_GET_SERIAL_ARRAY(real,mg.inverseVertexDerivative(),rxLocal);
+                    prsxy=rxLocal.getDataPointer();
+                }
+                if( vertexNeeded )
+                {
+                    OV_GET_SERIAL_ARRAY(real,mg.vertex(),xLocal);
+                    pxy=xLocal.getDataPointer();
+                }
+        // Index Iv[3], &I1=Iv[0], &I2=Iv[1], &I3=Iv[2];
+        // getIndex(mg.gridIndexRange(),I1,I2,I3);
+        // int includeGhost=1;
+        // bool ok = ParallelUtility::getLocalArrayBounds(u0,uLocal,I1,I2,I3,includeGhost);
+                OV_GET_SERIAL_ARRAY_CONDITIONAL(real,gridVelocity,gridVelocityLocal,parameters.gridIsMoving(grid));
+                realSerialArray gtt;  // holds the boundary acceleration
+        // if( parameters.gridIsMoving(grid) )
+        // {
+        //   // Moving grid problem: compute the acceleration on the boundary
+        //   MovingGrids & movingGrids = parameters.dbase.get<MovingGrids >("movingGrids");
+        //   int boundaryAccelerationOption=4; // return gtt
+        //   if( ok )
+        //   {
+        //     // note: insbc4 assumes gtt has the same first 3 dimensions as uLocal
+        //     gtt.redim(uLocal.dimension(0),uLocal.dimension(1),uLocal.dimension(2),numberOfDimensions);
+        //     gtt=0.;
+        //     movingGrids.getBoundaryAcceleration( mg, gtt, grid, t, boundaryAccelerationOption );
+        //   }
+        // }
+                real *pgt  = gridVelocityLocal.getDataPointer(); // pointer to the grid velocity, g'
+                real *pgtt = gtt.getDataPointer();               // pointer to the grid acceleration, g''
+        // check -- is it ok to use gid instead of ir?
+                IntegerArray indexRangeLocal(2,3), dimLocal(2,3), bcLocal(2,3);
+                ParallelGridUtility::getLocalIndexBoundsAndBoundaryConditions( u,indexRangeLocal,dimLocal,bcLocal ); 
+        // *wdh* 110311 - Add Boussinesq terms and boundary conditions for T
+                const InsParameters::PDEModel & pdeModel = parameters.dbase.get<InsParameters::PDEModel >("pdeModel");
+                const bool assignTemperature = pdeModel==InsParameters::BoussinesqModel ||
+                                                                              pdeModel==InsParameters::viscoPlasticModel;
+        // -- We may adjust the artificial dissipation since the fourth-order dissipation doesn't work too well ---
+                bool useSecondOrderArtificialDiffusion = parameters.dbase.get<bool >("useSecondOrderArtificialDiffusion");
+                bool useFourthOrderArtificialDiffusion = parameters.dbase.get<bool >("useFourthOrderArtificialDiffusion");
+                real ad21 = parameters.dbase.get<real >("ad21");
+                real ad22 = parameters.dbase.get<real >("ad22");
+                real ad41 = parameters.dbase.get<real >("ad41");
+                real ad42 = parameters.dbase.get<real >("ad42");
+                const int np = max(Communication_Manager::Number_Of_Processors,1);
+                int useWhereMask=false; // **NOTE** for  moving grids we may need to evaluate at more points than just mask >0 
+                real ajs=1.;  // is this used?
+        //   real ajs=getSignForJacobian(mg);
+                real thermalExpansivity=1.;
+        // parameters.dbase.get<ListOfShowFileParameters >("pdeParameters").getParameter("thermalExpansivity",thermalExpansivity)
+                real dx[3]={1.,1.,1.};
+                bool isRectangular=mg.isRectangular();
+                if( isRectangular )
+                {
+                    mg.getDeltaX(dx);
+                }
+                int gridType = isRectangular ? 0 : 1;
+                int iparam[] ={parameters.dbase.get<int >("pc"),
+                         		 parameters.dbase.get<int >("uc"),
+                         		 parameters.dbase.get<int >("vc"),
+                         		 parameters.dbase.get<int >("wc"),
+                         		 parameters.dbase.get<int >("sc"),
+                         		 grid,
+                         		 gridType,
+                         		 min(4,parameters.dbase.get<int >("orderOfAccuracy")),
+                         		 (int)parameters.gridIsMoving(grid),
+                         		 useWhereMask,
+                         		 parameters.getGridIsImplicit(grid),
+                         		 (int)parameters.dbase.get<Parameters::ImplicitMethod >("implicitMethod"),
+                         		 (int)parameters.dbase.get<Parameters::ImplicitOption >("implicitOption"),
+                         		 (int)parameters.isAxisymmetric(),
+                         		 useSecondOrderArtificialDiffusion,
+                         		 useFourthOrderArtificialDiffusion,
+                         		 (int)parameters.dbase.get<bool >("twilightZoneFlow"),
+                         		 np,
+                         		 parameters.dbase.get<int>("outflowOption"),
+                                              parameters.dbase.get<int >("orderOfExtrapolationForOutflow"),
+                                              parameters.dbase.get<int >("debug"),
+                         		 parameters.dbase.get<int >("myid"),
+                                              (int)assignTemperature,
+                                              parameters.dbase.get<int >("tc"),
+                                              parameters.dbase.get<int >("numberOfComponents")
+                };
+                const real adcPassiveScalar=1.; // coeff or linear artificial diffusion for the passive scalar ** add to params
+                real gravity[3];
+                real rparam[]={dx[0],dx[1],dx[2],
+                                              mg.gridSpacing(0),
+                                              mg.gridSpacing(1),
+                                              mg.gridSpacing(2),
+                                              parameters.dbase.get<real >("nu"),
+                                              t,
+                                              ad21, //kkc 101029 parameters.dbase.get<real >("ad21"),
+                                              ad22, //kkc 101029 parameters.dbase.get<real >("ad22"),
+                                              ad41, //kkc 101029 parameters.dbase.get<real >("ad41"),
+                                              ad42, //kkc 101029 parameters.dbase.get<real >("ad42"),
+                                              parameters.dbase.get<real >("nuPassiveScalar"),
+                                              adcPassiveScalar,
+                                              ajs,
+                                              gravity[0],
+                                              gravity[1],
+                                              gravity[2],
+                                              thermalExpansivity,
+                                              (real &)(parameters.dbase.get<OGFunction* >("exactSolution")), // pointer to TZ
+                                              REAL_MIN
+                };
+                int ierr=0;
+                int bcOption=0;
+                insTractionBC(bcOption,
+                   	 mg.numberOfDimensions(),
+                   	 uLocal.getBase(0),uLocal.getBound(0),uLocal.getBase(1),uLocal.getBound(1),
+                   	 uLocal.getBase(2),uLocal.getBound(2),uLocal.getBase(3),uLocal.getBound(3),
+                   	 iparam[0],rparam[0], *pu, *pmask, *pxy, *prsxy, *pgt, *pgtt,
+                   	 bcLocal(0,0), indexRangeLocal(0,0), ierr ) ;
+            }
+        }
+    }
+    else
+    {
+    // *OLD WAY*
+        if( assignFreeSurfaceBoundaryCondition )
+        {
+      // Free surface BC:
+      //    p = given
+      //    n. sigma . tau_m = 0 , 
+      //    div( v ) = 0 
+
+      // ::display(u,"insBC: solution BEFORE freeSurface",parameters.dbase.get<FILE* >("debugFile"),"%5.2f ");
+      // For now just apply a neumann BC  ***FIX ME**
+            u.applyBoundaryCondition(V,neumann,freeSurfaceBoundaryCondition,0.,t);  
+      //  u.applyBoundaryCondition(uc,neumann,freeSurfaceBoundaryCondition,0.,t);  
+      //  u.applyBoundaryCondition(vc,neumann,freeSurfaceBoundaryCondition,0.,t);  
+      // ::display(u,"insBC: solution AFTER freeSurface",parameters.dbase.get<FILE* >("debugFile"),"%5.2f ");
+        }
+    
+        if( assignTractionFree )
+        {
+      // tractionFree:
+      //   ** for now just apply a neumann BC **
+            u.applyBoundaryCondition(Rt,neumann,tractionFree,0.,t);  
+      // u.applyBoundaryCondition(V,extrapolate,tractionFree,0.,t);  
+        }
+    } // end old way 
+
     if( assignFreeSurfaceBoundaryCondition )
     {
-    // Free surface BC:
-    //    p = given
-    //    n. sigma . tau_m = 0 , 
-    //    div( v ) = 0 
-
-    // ::display(u,"insBC: solution BEFORE freeSurface",parameters.dbase.get<FILE* >("debugFile"),"%5.2f ");
-
-
-    // For now just apply a neumann BC  ***FIX ME**
-        u.applyBoundaryCondition(V,neumann,freeSurfaceBoundaryCondition,0.,t);  
-    //  u.applyBoundaryCondition(uc,neumann,freeSurfaceBoundaryCondition,0.,t);  
-    //  u.applyBoundaryCondition(vc,neumann,freeSurfaceBoundaryCondition,0.,t);  
-
-    // ::display(u,"insBC: solution AFTER freeSurface",parameters.dbase.get<FILE* >("debugFile"),"%5.2f ");
-
-   // Set any mixed Temperature BC's for the the free surface
+    // Set any mixed Temperature BC's for the the free surface
           if( assignTemperature )
           {
               FILE *& debugFile  =  parameters.dbase.get<FILE* >("debugFile");
@@ -2139,23 +2313,14 @@ applyBoundaryConditions(const real & t, realMappedGridFunction & u,
        // ************ try this ********* 080909
        // u.updateGhostBoundaries(); // this is done in finish boundary conditions now
           } // end if assignTemperature
-
     }
     
-
-    if( assignTractionFree )
-    {
-    // tractionFree:
-    //   ** for now just apply a neumann BC **
-        u.applyBoundaryCondition(Rt,neumann,tractionFree,0.,t);  
-    // u.applyBoundaryCondition(V,extrapolate,tractionFree,0.,t);  
-    }
     
   // **check for local inflow at an outflow boundary**
   // where( inflow ) give u.n=0
     Index I1,I2,I3;
         
-    if( !parameters.dbase.get<bool >("twilightZoneFlow") &&  
+    if( !twilightZoneFlow &&  
             assignOutflow && orderOfAccuracy==2 && 
             parameters.dbase.get<int>("outflowOption")==0 && 
             parameters.dbase.get<int >("checkForInflowAtOutFlow")==1 )
@@ -3091,7 +3256,8 @@ applyBoundaryConditions(const real & t, realMappedGridFunction & u,
             u.applyBoundaryCondition(V,generalizedDivergence,inflowWithVelocityGiven,0.,t);
         }
     
-        if( assignFreeSurfaceBoundaryCondition )
+    // newTractionBC already does div(v)=0
+        if( assignFreeSurfaceBoundaryCondition && !useNewTractionBC )
         { // *wdh* 2014/12/24
             u.applyBoundaryCondition(V,generalizedDivergence,freeSurfaceBoundaryCondition,0.,t);
         }
@@ -3194,7 +3360,8 @@ applyBoundaryConditions(const real & t, realMappedGridFunction & u,
             }
         }
 
-        if( assignTractionFree )
+    // newTractionBC already does div(v)=0
+        if( assignTractionFree && !useNewTractionBC )
             u.applyBoundaryCondition(V,generalizedDivergence,tractionFree,0.,t); 
     }
     
@@ -3356,7 +3523,7 @@ applyBoundaryConditions(const real & t, realMappedGridFunction & u,
 
 
         if( true // *wdh* 2012/07/24 -- turn this off : MAKE THIS AN OPTION 
-                && assignInflowWithVelocityGiven && !parameters.dbase.get<bool >("twilightZoneFlow") )
+                && assignInflowWithVelocityGiven && !twilightZoneFlow )
         {
       // --- At inflow with fourth-order : set ghost values equal to the boundary values ---
       //  (There can otherwise be trouble at inflow, cf. surfaceFlow.cmd)
@@ -3418,7 +3585,7 @@ applyBoundaryConditions(const real & t, realMappedGridFunction & u,
         }
 
         
-        if( true && parameters.dbase.get<bool >("twilightZoneFlow") && assignDirichletBoundaryCondition )
+        if( true && twilightZoneFlow && assignDirichletBoundaryCondition )
         { 
       // ** 110314 - make sure corners are set near dirichlet BC's
       //           - also set ghost points outside interp pts 

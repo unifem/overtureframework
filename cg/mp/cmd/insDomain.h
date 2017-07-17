@@ -6,7 +6,7 @@
 #   $modelNameINS : "none", "Boussinesq"
 #   $solverName : name given to the domain (e.g. "fluid")
 #   $tz, $degreeSpace, $degreeTime : 
-#   $ts
+#   $tsINS -- time-stepping method 
 #   $dtMax
 #   $nu, $kThermal, $gravity, $thermalExpansivity, $ktc
 #   $ic : specify initial condition commands
@@ -22,8 +22,11 @@
 #   $extraCmds : extra commands
 #   $checkForInflowAtOutflow = [0|1]   
 #   $useNeumannAtOutflow = [0|1]
+#   $useNewTimeSteppingStartup = [0|1]
+#   $orderOfExtrapForOutflow
 #
 # ------- start new domain ----------
+if( $tsINS eq "" ){ $tsINS=$ts; }
 if( $thermalExpansivity eq "" ){ $thermalExpansivity=1.; }
 if( $modelNameINS eq "" ){ $modelNameINS="Boussinesq model"; }elsif( $modelNameINS eq "none" ){ $modelNameINS="#"; } #
 if( $adcBoussinesq eq "" ){ $adcBoussinesq=0.; }
@@ -53,11 +56,13 @@ if( $implicitVariation eq "" ){ $implicitVariation = "implicitViscous"; }
 if( $projectInitialConditions eq "" ){ $projectInitialConditions="#";} 
 if( $extraCmds eq "" ){ $extraCmds="#"; }
 if( $moveCmds eq "" ){ $moveCmds="#"; }
+if( $useNewTimeSteppingStartup eq "" ){ $useNewTimeSteppingStartup=0; }
 if( $checkForInflowAtOutflow eq "" ){ $checkForInflowAtOutflow=0; }
 if( $useNeumannAtOutflow eq "" ){ $useNeumannAtOutflow=0; }
 if( $fluidDensity eq "" ){ $fluidDensity=1.; }
 if( $addedMass eq "" ){ $addedMass=0; }
 if( $ogesDtol eq "" ){ $ogesDtol=1e20; }
+if( $orderOfExtrapForOutflow eq "" ){ $orderOfExtrapForOutflow=2; }
 # 
 setup $domainName
  set solver Cgins
@@ -77,7 +82,7 @@ setup $domainName
   degree in time $degreeTime
   OBTZ:frequencies (x,y,z,t) $fx, $fy, $fz, $ft
 # 
-  $ts
+  $tsINS
 #
   if( $numberOfTimeStepCorrections ne "" ){ $cmd="number of PC corrections $numberOfTimeStepCorrections"; }else{ $cmd="#"; }
   $cmd
@@ -93,6 +98,9 @@ setup $domainName
   use added mass algorithm $addedMass
   # for now we let the solver know that the added mass algorithm needed predicted values for the pressure:
   predicted pressure needed $addedMass
+  use new time-stepping startup $useNewTimeSteppingStartup
+# 
+  frequency for full grid gen update $freqFullUpdate
 # 
   $moveCmds
 # 
@@ -148,7 +156,11 @@ $setAxi="";
      debug 
        $idebug
     exit
-# 
+#
+  boundary conditions...
+   order of extrap for outflow $orderOfExtrapForOutflow (-1=default)
+  done
+#
   boundary conditions
    $bc 
   done

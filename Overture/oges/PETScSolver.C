@@ -1,4 +1,5 @@
 // This file automatically generated from PETScSolver.bC with bpp.
+
 #ifdef OVERTURE_USE_PETSC
 
 // **************************************************************************
@@ -304,16 +305,22 @@ getSolverName() const
     const int maxLen=100;
     char buff[maxLen+1];
     PetscBool     flg;
-    PetscOptionsGetString(PETSC_NULL,"-ksp_type",buff,maxLen,&flg);
-    if( flg )
-        name = name + "ksp[" + buff + "]";
-    else
-        name = "ksp[unknown]";
+    if( ksp !=NULL ) // *new* way June 20, 2017
+    {
+        KSPType type;
+        KSPGetType(ksp,&type);
+        name = name + "ksp[" + type + "]";
+    }
     
-    PetscOptionsGetString(PETSC_NULL,"-pc_type",buff,maxLen,&flg);
-    aString pcType=buff;
-    name = name + " pc[" + pcType;
-
+    aString pcType;
+    if( pc!=NULL )
+    {
+        PCType type;
+        PCGetType(pc,&type);
+        name = name + " pc[" + type;
+        pcType=type;
+    }
+    
     if( pcType=="hypre" )
     {
         PetscOptionsGetString(PETSC_NULL,"-pc_hypre_type",buff,maxLen,&flg);
@@ -326,21 +333,45 @@ getSolverName() const
 
     if( pcType!="hypre" )
     {
-        PetscOptionsGetString(PETSC_NULL,"-sub_ksp_type",buff,maxLen,&flg);
-        name = name + " sub-ksp[" + buff + "]";
 
-        PetscOptionsGetString(PETSC_NULL,"-sub_pc_type",buff,maxLen,&flg);
-        aString subPCType=buff;
-        if( subPCType=="ilu" )
+        PetscBool isbjacobi=PETSC_FALSE, isasm=PETSC_FALSE;
+        int ierr = PetscObjectTypeCompare((PetscObject)pc,PCBJACOBI,&isbjacobi);CHKERRQ(ierr);
+        ierr = PetscObjectTypeCompare((PetscObject)pc,PCASM,&isasm);CHKERRQ(ierr);
+
+        if( Oges::debug & 4 )
         {
-//        PetscOptionsGetString(PETSC_NULL,"-sub_pc_ilu_levels",buff,maxLen,&flg);
-            PetscOptionsGetString(PETSC_NULL,"-sub_pc_factor_levels",buff,maxLen,&flg);
-            if( flg )
-      	name = name + "-" + subPCType + "(" + buff + ")";
+            printF(" PETScSolver:INFO: Using Block Jacobi =%i\n",(int)isbjacobi);
+            printF(" PETScSolver:INFO: Using Additive Schwartz=%i\n",(int)isasm);
         }
-        else
+        
+        KSP *subksp=NULL;     /* array of local KSP contexts on this processor */
+    // Extract the array of KSP contexts for the local blocks
+        PetscInt nlocal,first; 
+        if( isbjacobi )
+        { // Block-joacobi in parallel
+            ierr = PCBJacobiGetSubKSP(pc,&nlocal,&first,&subksp);CHKERRQ(ierr);
+        }
+        else if( isasm )
         {
-            name = name + " sub-pc[" + subPCType + "]";
+      // Alternating Schwartz
+            ierr = PCASMGetSubKSP(pc,&nlocal,&first,&subksp);CHKERRQ(ierr); 
+        }
+        
+        if( subksp!=NULL )
+        {
+            KSPType type;
+            KSPGetType(subksp[0],&type);  // get name from first block, assume these are all the same
+            name = name + " sub-ksp[" + type + "]";
+
+            PC subpc;
+            ierr = KSPGetPC(subksp[0],&subpc);CHKERRQ(ierr);
+            if( subpc!=NULL )
+            {
+                PCType type;
+                PCGetType(subpc,&type);
+                name = name + " sub-pc[" + type + "]";
+            }
+            
         }
             
     }
@@ -437,7 +468,7 @@ getGlobalIndex( int n, int *iv, int grid, realArray & ug ) const
 // NOTE: Equation numbers use a base of eqnBase=1.
 //=============================================================================
 void PETScSolver::
-equationToIndex( const int eqnNo0, int & n, int & i1, int & i2, int & i3, int & grid )
+equationToIndex( const int eqnNo0, int & n, int & i1, int & i2, int & i3, int & grid)
 {
     assert( pnab!=NULL ); // remove assert for performance after testing
 
@@ -662,7 +693,7 @@ int PETScSolver::findExtraEquations()
 	// extraEquationNumber(extraEqn)=getGlobalIndex( n, iv, grid, p ) + eqnBase;  // get the global index
 
                 classifyXLocal(i1,i2,i3,n)=startingExtraEquationClassifyValue+extraEqn;
-      	if( true )
+      	if( false )
       	{
                     int globalIndex = getGlobalIndex( n, iv, grid, p ) + eqnBase;  // get the global index
         	  printf("--PS--::findExtraEquations: p=%i extraEqn=%i grid=%i (i1,i2,i3,n)=(%i,%i,%i,%i) "
@@ -954,6 +985,25 @@ printSolverDescription( const aString & label, FILE *file /* = stdout */ ) const
 // =================================================================================
 
 
+#define arrayDims(grid,side,axis) cg[grid].dimension(side,axis)
+#define arraySize(grid,axis) (arrayDims(grid,1,axis)-arrayDims(grid,0,axis)+1)
+
+#define FOR3N(i1,i2,i3,n,n1a,n1b,n2a,n2b,n3a,n3b)       for( i3=n3a; i3<=n3b; i3++ )                        for( i2=n2a; i2<=n2b; i2++ )                      for( i1=n1a; i1<=n1b; i1++ )                    for( n=0; n<numberOfComponents; n++ )
+
+        int n,n1,eqn;     // component number
+
+#define EQUATIONNUMBER(m,n,i1,i2,i3) equationNumber(m+stencilDim*(n),i1,i2,i3)
+#define COEFF(m,n,i1,i2,i3) coeffLocal(m+stencilDim*(n),i1,i2,i3)
+
+#define initExplicitInterp EXTERN_C_NAME(initexplicitinterp)
+extern "C"
+{
+    void initExplicitInterp(const int&ndc1,const int&ndc2,const int&ndc3,const int&ndci,
+                    const int&ipar,real&coeff,const real&ci,real&pr,real&ps,real&pt,
+                    const real&gridSpacing,const int&indexStart,
+        	  const int&variableInterpolationWidth,const int&interpoleeLocation,const int&interpoleeGrid);
+}
+
 
 int PETScSolver::
 buildMatrix( realCompositeGridFunction & coeff, realCompositeGridFunction & uu )
@@ -1007,17 +1057,426 @@ buildMatrix( realCompositeGridFunction & coeff, realCompositeGridFunction & uu )
 
     const int fullStencilDimension=coeff[0].getLength(0);
     
-    
     if( Oges::debug & 2 )
         printF("PETScSolver:INFO: Total number of grid points is numberOfGridPoints=%i\n",numberOfGridPoints);
     
-
     numberOfUnknowns=numberOfGridPoints*numberOfComponents;
     numberOfUnknownsThisProcessor=numberOfGridPointsThisProcessor*numberOfComponents;
-    
+
+    if (false)
+        printf("PETScSolver:INFO: myid=%i,unknowns of this processor=%i\n",
+                    myid,numberOfUnknownsThisProcessor);
 
     int iv[3], &i1=iv[0], &i2=iv[1], &i3=iv[2]; 
     int jv[3], &j1=jv[0], &j2=jv[1], &j3=jv[2]; 
+    int kv[3], &k1=kv[0], &k2=kv[1], &k3=kv[2]; 
+
+    const bool fillInCount=true;
+    int  *d_nnzv = new int [numberOfUnknownsThisProcessor];
+    int  *o_nnzv = new int [numberOfUnknownsThisProcessor]();            //initialize o_nnzv to be 0
+    if (fillInCount)
+        for( int i=0; i<numberOfUnknownsThisProcessor; i++ ){ d_nnzv[i]=1; } //initialize d_nnzv to be 1 for safe
+        
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+  // the following parts are moved here -QT
+    if( oges.getCompatibilityConstraint() &&
+            problemIsSingular==notSingular )
+    {
+        problemIsSingular=addExtraEquation;
+        if( Oges::debug & 1 )
+            printF("PETScSolver:buildMatrix:INFO: problem is singular -- using addExtraEquation option\n");
+    }
+        
+  // Here is where the user has defined extra equations of over-ridden existing equations:
+    const bool & userSuppliedEquations = parameters.userSuppliedEquations;
+    OgesExtraEquations & extraEquations = oges.dbase.get<OgesExtraEquations>("extraEquations");
+    assert( (userSuppliedEquations && extraEquations.neq>0) || (!userSuppliedEquations && extraEquations.neq<=0 ) );
+        
+    const IntegerArray & eqnExtra =extraEquations.eqn;  // equation numbers for extra user eqn's (not dense)
+  // ::display(eqnExtra,"--OGES--PETScSolver-- eqnExtra");
+    const IntegerArray & iaExtra =extraEquations.ia;
+    const IntegerArray & jaExtra =extraEquations.ja;
+    const RealArray & aExtra =extraEquations.a;
+
+    const int & numberOfExtraEquations = oges.numberOfExtraEquations;
+    const IntegerArray & extraEquationNumber = oges.extraEquationNumber;
+
+  // If we have have extra equations and we need to rescale row norms then we need to save
+  // the scale factors for the extra equations:
+    if( !oges.dbase.has_key("extraEquationScaleFactor") )
+    {
+        oges.dbase.put<RealArray>("extraEquationScaleFactor");
+    }
+    if( parameters.rescaleRowNorms )
+    {
+        RealArray & extraEquationScaleFactor = oges.dbase.get<RealArray>("extraEquationScaleFactor");
+        extraEquationScaleFactor.redim(numberOfExtraEquations);
+        extraEquationScaleFactor=1.;
+    }
+    
+  // ****** find dense extra equations *****
+  // **fix me for multiple dense equations (fillInCount1 also needs to be fixed)**
+    int denseExtraEquation=-1, pDenseExtraEquation=-1;
+    if( problemIsSingular==addExtraEquation )
+    {
+    // *old* denseExtraEquation= extraEquationNumber(0)-eqnBase;
+
+        const int idense = extraEquationNumber(0);
+    // Convert an Oges equation number = idense to PETSc equation number= denseExtraEquation
+        int nj,gridj;
+        oges.equationToIndex( idense, nj,j1,j2,j3,gridj );
+        pDenseExtraEquation = uu[gridj].Array_Descriptor.findProcNum( jv );  // processor number
+        denseExtraEquation = getGlobalIndex( nj, jv, gridj, pDenseExtraEquation );
+
+        if (true)
+                printF("PETScSolver:denseExtraEquation=%i, processor=%i\n",
+                denseExtraEquation,pDenseExtraEquation);
+    }
+
+    real coeffScale=1.;  // fix this 
+    const real eps= coeffScale*REAL_EPSILON*100.;  // cutoff tolerance for keeping coefficients
+    const real deps=REAL_MIN*1000.;
+
+    if( parameters.rescaleRowNorms )
+    {
+        Range all;
+        delete diagonalScale;  // *wdh* 091128 
+        diagonalScale = new realCompositeGridFunction(cg,all,all,all,numberOfComponents);
+    }
+    
+  // equationBounds(0:1,grid) : 
+  // IntegerArray equationBounds(2,cg.numberOfComponentGrids());
+    int *eqnBound = new int [2*numberOfComponentGrids];
+#define equationBounds(side,grid) eqnBound[(side)+2*(grid)]
+    for( int grid=0; grid<cg.numberOfComponentGrids(); grid++ )
+    {
+        equationBounds(0,grid)=coeff[grid].sparse->equationOffset;
+        if( grid>0 )
+            equationBounds(1,grid-1)=equationBounds(0,grid)-1;
+    }
+    int grid= cg.numberOfComponentGrids()-1;
+    int numEntries = numberOfComponents*( (cg[grid].dimension(End,axis1)-cg[grid].dimension(Start,axis1)+1)
+                                                                              *(cg[grid].dimension(End,axis2)-cg[grid].dimension(Start,axis2)+1)
+                                                                              *(cg[grid].dimension(End,axis3)-cg[grid].dimension(Start,axis3)+1)  );
+    equationBounds(1,grid)=equationBounds(0,grid)+numEntries-1;
+    if( false )
+    {
+        printF("--PS-- start and end equation numbers for each grid:\n");
+        for( int grid=0; grid<cg.numberOfComponentGrids(); grid++ )
+        {
+            printF("     grid=%i [eqnStart,eqnEnd]=[%i,%i]\n",grid,equationBounds(0,grid),equationBounds(1,grid));
+        }
+    }
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+  //count fill in for MatCreateAIJ -QT
+    if (fillInCount)
+    {
+        real timeCount =getCPU();
+
+    //fillInCount PART I: count regular fill in and interpolation points
+        const bool interpolationPoints=(cg.numberOfBaseGrids() !=0 && max(cg.numberOfInterpolationPoints) > 0);
+        const int numberOfDimensions=cg.numberOfDimensions();
+        int maxWidth=1;
+
+        if( interpolationPoints )
+        {
+      // for now we use only one width per grid
+            IntegerArray width(3,cg.numberOfComponentGrids()); width=1;
+            Range NG(0,cg.numberOfComponentGrids()-1);
+            for( int grid=0; grid<cg.numberOfComponentGrids(); grid++ )
+            for( int axis=axis1; axis<numberOfDimensions; axis++ ) 
+                width(axis,grid)=max(width(axis,grid),max(cg.interpolationWidth(axis,grid,NG)));
+
+            maxWidth=max(width);
+        }
+
+        int numDense=0; //fix me for multiple dense extra equation
+
+        for( int grid=0; grid<cg.numberOfComponentGrids(); grid++ )
+        {  
+            const IntegerArray & gid = cg[grid].gridIndexRange();
+            const IntegerArray & ir = cg[grid].indexRange();
+
+            realArray & coeffg= coeff[grid];
+            realSerialArray coeffLocal; getLocalArrayWithGhostBoundaries(coeffg,coeffLocal); 
+            SparseRepForMGF & sparseRep = *coeff[grid].sparse;
+
+            realArray & ug= uu[grid];
+            realSerialArray uLocal; getLocalArrayWithGhostBoundaries(ug,uLocal);
+
+            intSerialArray mask; getLocalArrayWithGhostBoundaries(cg[grid].mask(),mask);
+
+            IntegerDistributedArray & equationNumberX = coeff[grid].sparse->equationNumber;
+            intSerialArray equationNumber; getLocalArrayWithGhostBoundaries(equationNumberX,equationNumber);
+
+            intSerialArray classify; getLocalArrayWithGhostBoundaries(coeff[grid].sparse->classify,classify);
+            realSerialArray ds;
+            if( parameters.rescaleRowNorms )
+            {
+                getLocalArrayWithGhostBoundaries((*diagonalScale)[grid],ds);
+            }
+
+            int n1a = uLocal.getBase(0) +ug.getGhostBoundaryWidth(0); 
+            int n1b = uLocal.getBound(0)-ug.getGhostBoundaryWidth(0);
+            int n2a = uLocal.getBase(1) +ug.getGhostBoundaryWidth(1); 
+            int n2b = uLocal.getBound(1)-ug.getGhostBoundaryWidth(1);
+            int n3a = uLocal.getBase(2) +ug.getGhostBoundaryWidth(2); 
+            int n3b = uLocal.getBound(2)-ug.getGhostBoundaryWidth(2); 
+
+            real denseEquationScaleFactor=1.;
+            if( problemIsSingular==addExtraEquation && parameters.rescaleRowNorms  )
+            {
+        // ---- There is a dense constraint equation with coeff=1 for all interior points ----
+        //  -- count the number of equations so we can scale the row 
+                RealArray & extraEquationScaleFactor = oges.dbase.get<RealArray>("extraEquationScaleFactor");
+                extraEquationScaleFactor(0)=denseEquationScaleFactor;
+            }
+
+            const int startingExtraEquationClassifyValue=10;
+            FOR3N(i1,i2,i3,n,n1a,n1b,n2a,n2b,n3a,n3b)
+            {
+
+                if( classify(i1,i2,i3,n) >= startingExtraEquationClassifyValue ) continue;  // extra eqn done later:  
+
+        //note the equation is on the current processor
+                int ig=getGlobalIndex( n, iv, grid, myid );  // get the global index (equation number, base 0)
+                if( ig==denseExtraEquation ) continue; 
+
+                int igLocal=ig-noffset(myid,0);  //get local PETSc index=ig-noffset(myid,grid=0)
+
+                if( classify(i1,i2,i3,n)==-1 )  // interp. points
+                {
+                    if (interpolationPoints)
+                    {
+                        d_nnzv[igLocal]=1 + pow(maxWidth,numberOfDimensions);
+                        o_nnzv[igLocal]=pow(maxWidth,numberOfDimensions);              
+                    }
+                    continue;
+                }
+                
+                if( classify(i1,i2,i3,n)==0 )
+                {
+          //unused
+          //here ig=jg; so d_nnzv(ig)=1, which has been counted.
+                    continue;
+                }
+                else
+                {      
+                    bool exteriorPoint = (i1<ir(0,0) || i1>ir(1,0) || 
+                                      		      i2<ir(0,1) || i2>ir(1,1) || 
+                                      		      i3<ir(0,2) || i3>ir(1,2));
+                    real dScale;
+                    if( parameters.rescaleRowNorms )
+                    {
+                        dScale=0.;
+                        for( int m=0; m<stencilDim; m++ )
+                        {
+              // Change row scaling to 1-norm to match serial PETScEquationSolver *wdh* April 1, 2017
+              // dScale=max(dScale,fabs(COEFF(m,n,i1,i2,i3)));
+                            dScale += fabs(COEFF(m,n,i1,i2,i3));
+                        }
+                        if( problemIsSingular==addExtraEquation && !exteriorPoint )
+                            dScale+=1.; // here is the extra entry when there is a dense constraint
+
+                        if( dScale>deps )
+                            dScale=1./dScale;
+                        else
+                            dScale=1.;  // all coefficients are small, just scale by 1.
+                        
+                        ds(i1,i2,i3,n)=dScale;  // save inverse of the scale factor
+                    }
+                    else
+                    {
+                        dScale=1.;
+                    }
+
+                    if( exteriorPoint )
+                    {
+            // ********************************************************************
+            // ******* count equations at ghost points or periodic points *********
+            // ********************************************************************
+                    
+                        for( int m=0; m<stencilDim; m++ )
+                        {
+                            if( COEFF(m,n,i1,i2,i3)!=0. )
+                            {
+                // *****************************************************************
+                // NOTE: equation-numbering in the sparseRep is DIFFERENT from the
+                //       equation-numbering in parallel PETScSolver
+                // *****************************************************************
+
+                                if( fabs(COEFF(m,n,i1,i2,i3)*dScale)<eps ) continue;
+
+                // Overture numbers equations with base eqnBase=1, shift to base=0: 
+                                eqn = EQUATIONNUMBER(m,n,i1,i2,i3)-eqnBase;
+
+                // Convert an Overture equation number "eqn" into a PETSc equation jg
+                // and find the processor p
+                                    int jg,p;
+                                    if( eqn<equationBounds(0,grid) || eqn>equationBounds(1,grid) )
+                                    {
+                                        if (false)
+                                                printF("--PS-- INFO: ig=%i, eqn=%i is out of bounds=[%i,%i] for pt(i1,i2,i3,grid)=(%i,%i,%i%i)\n",
+                                                      ig,eqn,equationBounds(0,grid),equationBounds(1,grid),i1,i2,i3,grid);
+                    // The point for this entry lies on a different grid. Locate which grid: 
+                                        int gridkk=grid;
+                                        while( eqn<equationBounds(0,gridkk) && gridkk>=0 ) gridkk--;
+                                        while( eqn>equationBounds(1,gridkk) && gridkk<numberOfComponentGrids ) gridkk++;
+                                        assert( eqn>=equationBounds(0,gridkk) && eqn<=equationBounds(1,gridkk) );
+                                        coeff[gridkk].sparse->equationToIndex(eqn,n1,j1,j2,j3);   // find the grid point
+                                        p= uu[gridkk].Array_Descriptor.findProcNum( jv );  // processor number
+                                        jg=getGlobalIndex( n1, jv, gridkk, p );  // get the global index
+                                    }
+                                    else
+                                    {
+                                        sparseRep.equationToIndex(eqn,n1,j1,j2,j3);   // find the grid point
+                                        p= ug.Array_Descriptor.findProcNum( jv );  // processor number
+                                        jg=getGlobalIndex( n1, jv, grid, p );  // get the global index
+                                    }
+
+                                if (p==myid)
+                                {
+                                    if (ig!=jg) d_nnzv[igLocal]++; //the diagnoal term has been counted
+                                }
+                                else
+                                  o_nnzv[igLocal]++;              
+                            }
+                        }
+                    }
+                    else 
+                    {
+            // ********************************************************************
+            // ******* count equations at interior or boundary points *************
+            // ********************************************************************
+
+                        for( int m=0; m<stencilDim; m++ )
+                        {
+                      
+                            if( COEFF(m,n,i1,i2,i3)!=0. )
+                            {
+                                if( fabs(COEFF(m,n,i1,i2,i3)*dScale)<eps ) continue;
+
+                                eqn = EQUATIONNUMBER(m,n,i1,i2,i3) - eqnBase;
+
+                // Convert an Overture equation number "eqn" into a PETSc equation jg
+                                    int jg,p;
+                                    if( eqn<equationBounds(0,grid) || eqn>equationBounds(1,grid) )
+                                    {
+                                        if (false)
+                                                printF("--PS-- INFO: ig=%i, eqn=%i is out of bounds=[%i,%i] for pt(i1,i2,i3,grid)=(%i,%i,%i%i)\n",
+                                                      ig,eqn,equationBounds(0,grid),equationBounds(1,grid),i1,i2,i3,grid);
+                    // The point for this entry lies on a different grid. Locate which grid: 
+                                        int gridkk=grid;
+                                        while( eqn<equationBounds(0,gridkk) && gridkk>=0 ) gridkk--;
+                                        while( eqn>equationBounds(1,gridkk) && gridkk<numberOfComponentGrids ) gridkk++;
+                                        assert( eqn>=equationBounds(0,gridkk) && eqn<=equationBounds(1,gridkk) );
+                                        coeff[gridkk].sparse->equationToIndex(eqn,n1,j1,j2,j3);   // find the grid point
+                                        p= uu[gridkk].Array_Descriptor.findProcNum( jv );  // processor number
+                                        jg=getGlobalIndex( n1, jv, gridkk, p );  // get the global index
+                                    }
+                                    else
+                                    {
+                                        sparseRep.equationToIndex(eqn,n1,j1,j2,j3);   // find the grid point
+                                        p= ug.Array_Descriptor.findProcNum( jv );  // processor number
+                                        jg=getGlobalIndex( n1, jv, grid, p );  // get the global index
+                                    }
+                                
+                                if( adjustPeriodicCoefficients && p==myid && classify(j1,j2,j3,n1)==-2 )
+                                {
+                                  eqn = EQUATIONNUMBER(1,n1,j1,j2,j3) - eqnBase;
+
+                                    sparseRep.equationToIndex(eqn,n1,j1,j2,j3); 
+                                    p= ug.Array_Descriptor.findProcNum( jv );  // processor number
+                                    jg=getGlobalIndex( n1, jv, grid, p );  // get the global index
+                                }
+
+                                if (p==myid)
+                                {
+                                    if (ig!=jg) d_nnzv[igLocal]++; //the diagnoal term has been counted
+                                }
+                                else
+                                  o_nnzv[igLocal]++;              
+                            }
+                                
+                        } // end for m
+                        
+                        if( problemIsSingular==addExtraEquation )
+                        {
+              // Fill in dense extra equation
+              //ierr = MatSetValues(A,1,&ig,1,&denseExtraEquation,&v,INSERT_VALUES);CHKERRQ(ierr);
+              //ierr = MatSetValues(A,1,&denseExtraEquation,1,&ig,&v,INSERT_VALUES);CHKERRQ(ierr);
+
+                            if (pDenseExtraEquation==myid)
+                            {
+                                    if (ig!=denseExtraEquation) //the diagnoal term has been counted
+                                    {
+                                          d_nnzv[igLocal]++;                             //count (ig,denseExtraEquation)
+                                          d_nnzv[denseExtraEquation-noffset(myid,0)]++;  //count (denseExtraEquation,ig)
+                                    }
+                            }
+                            else
+                            {
+                                    o_nnzv[igLocal]++;              
+                                    numDense++;
+                            }
+
+                        }
+                    }
+
+                    assert(d_nnzv[igLocal]>0);  //d_nnzv[igLocal] is at least 1
+                }
+            }
+            
+        }  // end for grid
+
+        if (problemIsSingular==addExtraEquation)
+        {
+            numDense=ParallelUtility::getSum(numDense);
+
+            if (pDenseExtraEquation==myid)
+                    o_nnzv[denseExtraEquation-noffset(myid,0)]=numDense;
+        }
+    // end for fillInCount PART I
+
+    // fillInCount PART II: user supplied extra equations
+        if( extraEquations.neq >0  )
+        {
+            for( int iExtraEquation=0; iExtraEquation<extraEquations.neq; iExtraEquation++ )
+            {
+                int nj,gridj;
+        // Convert an Oges equation number to PETSc equation number= ig 
+                oges.equationToIndex( eqnExtra(iExtraEquation), nj,j1,j2,j3,gridj );
+
+                int pi = uu[gridj].Array_Descriptor.findProcNum( jv );  // processor number for the extra equation
+                int ig = getGlobalIndex( nj, jv, gridj, pi );
+
+        // Fill in arrays (jgv[i],vv[i]) for all non-zero entries in this equation
+                int numPerRow = iaExtra(iExtraEquation+1)-iaExtra(iExtraEquation);
+
+        //a simple way to count
+                int igLocal=ig-noffset(myid,0);  //local PETSc index=ig-noffset(myid,grid=0)
+                if (pi==myid) 
+                {
+                    d_nnzv[igLocal]=numPerRow;
+                    numPerRow=0;
+                }
+
+                numPerRow=ParallelUtility::getSum(numPerRow);
+                if (pi==myid)
+                    o_nnzv[igLocal]=numPerRow;
+            }
+        }
+    // end for fillInCount PART II
+
+        timeCount = getCPU()-timeCount;
+        timeCount = ParallelUtility::getMaxValue(timeCount);
+        if( debug & 1 )
+            printF("--PES-- Time for counting equations=%9.2e(s)\n",timeCount);
+    } 
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+
 
     /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
           Compute the matrix and right-hand-side vector that define
@@ -1072,7 +1531,7 @@ buildMatrix( realCompositeGridFunction & coeff, realCompositeGridFunction & uu )
         int *o_nnz=PETSC_NULL;
       
     // --- We should first determine the actual number of non-zeros in each row to be more efficient ----
-
+        
         if( blockSize==1 )
         {
       // 	numberOfMats++;
@@ -1082,6 +1541,20 @@ buildMatrix( realCompositeGridFunction & coeff, realCompositeGridFunction & uu )
             {
 	// d_nz = fullStencilDimension;  // expected number of non-zero entries on this processor ("diagonal block")
 	// o_nz = fullStencilDimension;
+                if (fillInCount)
+                {
+        //d_nz and o_nz will be ignored when d_nnzv and o_nnzv are provided
+      	ierr = MatCreateAIJ(OGES_COMM,numberOfUnknownsThisProcessor,numberOfUnknownsThisProcessor,
+                      			    numberOfUnknowns,numberOfUnknowns,
+                      			    d_nz,d_nnzv,o_nz,o_nnzv,
+                      			    &A); CHKERRQ(ierr);
+
+        //turning on the following option will avoid PETSc malloc errors. However, Petsc fillin may become slow
+        //When the options is needed, it means the nonzeros are not counted correctly -QT
+        //MatSetOption(A,MAT_NEW_NONZERO_ALLOCATION_ERR,PETSC_FALSE);
+                }
+                else
+                {
       	ierr = MatCreateAIJ(OGES_COMM,numberOfUnknownsThisProcessor,numberOfUnknownsThisProcessor,
                       			    numberOfUnknowns,numberOfUnknowns,
                       			    d_nz,d_nnz,o_nz,o_nnz,
@@ -1089,6 +1562,7 @@ buildMatrix( realCompositeGridFunction & coeff, realCompositeGridFunction & uu )
         // This next line is needed to avoid error when malloc'ing an additional entry that was more
         // than the estimated number
                 MatSetOption(A,MAT_NEW_NONZERO_ALLOCATION_ERR,PETSC_FALSE);
+                }
             }
             else
             {
@@ -1116,6 +1590,7 @@ buildMatrix( realCompositeGridFunction & coeff, realCompositeGridFunction & uu )
       // nnz[] =number of non-zero blocks per block row (different for each row)
 
             printF("\n *** PETScSolver: build a block matrix BAIJ with blockSize=%i **** \n",blockSize);
+            printF("*** PETScSolver: finish me for fillInCount for BAIJ if build matrix is slow **** \n");
 
       // v 2.3.2
       // ierr = MatCreateMPIBAIJ(PETSC_COMM_SELF,blockSize,numberOfUnknownsThisProcessor,numberOfUnknownsThisProcessor,
@@ -1142,59 +1617,6 @@ buildMatrix( realCompositeGridFunction & coeff, realCompositeGridFunction & uu )
     
     ierr = MatSetFromOptions(A);CHKERRQ(ierr);
 
-    if( oges.getCompatibilityConstraint() &&
-            problemIsSingular==notSingular )
-    {
-        problemIsSingular=addExtraEquation;
-        if( Oges::debug & 1 )
-            printF("PETScSolver:buildMatrix:INFO: problem is singular -- using addExtraEquation option\n");
-    }
-    
-
-        
-  // Here is where the user has defined extra equations of over-ridden existing equations:
-    const bool & userSuppliedEquations = parameters.userSuppliedEquations;
-    OgesExtraEquations & extraEquations = oges.dbase.get<OgesExtraEquations>("extraEquations");
-    assert( (userSuppliedEquations && extraEquations.neq>0) || (!userSuppliedEquations && extraEquations.neq<=0 ) );
-        
-    const IntegerArray & eqnExtra =extraEquations.eqn;  // equation numbers for extra user eqn's (not dense)
-  // ::display(eqnExtra,"--OGES--PETScSolver-- eqnExtra");
-    const IntegerArray & iaExtra =extraEquations.ia;
-    const IntegerArray & jaExtra =extraEquations.ja;
-    const RealArray & aExtra =extraEquations.a;
-
-    const int & numberOfExtraEquations = oges.numberOfExtraEquations;
-    const IntegerArray & extraEquationNumber = oges.extraEquationNumber;
-
-  // If we have have extra equations and we need to rescale row norms then we need to save
-  // the scale factors for the extra equations:
-    if( !oges.dbase.has_key("extraEquationScaleFactor") )
-    {
-        oges.dbase.put<RealArray>("extraEquationScaleFactor");
-    }
-    if( parameters.rescaleRowNorms )
-    {
-        RealArray & extraEquationScaleFactor = oges.dbase.get<RealArray>("extraEquationScaleFactor");
-        extraEquationScaleFactor.redim(numberOfExtraEquations);
-        extraEquationScaleFactor=1.;
-    }
-    
-
-  // ****** find dense extra equations *****
-  // **fix me for multiple dense equations**
-    int denseExtraEquation=-1;
-    if( problemIsSingular==addExtraEquation )
-    {
-    // *old* denseExtraEquation= extraEquationNumber(0)-eqnBase;
-
-        const int idense = extraEquationNumber(0);
-    // Convert an Oges equation number = idense to PETSc equation number= denseExtraEquation
-        int nj,gridj;
-        oges.equationToIndex( idense, nj,j1,j2,j3,gridj );
-        const int pj = uu[gridj].Array_Descriptor.findProcNum( jv );  // processor number
-        denseExtraEquation = getGlobalIndex( nj, jv, gridj, pj );
-    }
-
     /* 
           Currently, all PETSc parallel matrix formats are partitioned by
           contiguous chunks of rows across the processors.  Determine which
@@ -1215,40 +1637,6 @@ buildMatrix( realCompositeGridFunction & coeff, realCompositeGridFunction & uu )
           would first do all variables for y = h, then y = 2h etc.
 
     */
-    real coeffScale=1.;  // fix this 
-    const real eps= coeffScale*REAL_EPSILON*100.;  // cutoff tolerance for keeping coefficients
-    const real deps=REAL_MIN*1000.;
-
-    if( parameters.rescaleRowNorms )
-    {
-        Range all;
-        delete diagonalScale;  // *wdh* 091128 
-        diagonalScale = new realCompositeGridFunction(cg,all,all,all,numberOfComponents);
-    }
-    
-  // equationBounds(0:1,grid) : 
-  // IntegerArray equationBounds(2,cg.numberOfComponentGrids());
-    int *eqnBound = new int [2*numberOfComponentGrids];
-#define equationBounds(side,grid) eqnBound[(side)+2*(grid)]
-    for( int grid=0; grid<cg.numberOfComponentGrids(); grid++ )
-    {
-        equationBounds(0,grid)=coeff[grid].sparse->equationOffset;
-        if( grid>0 )
-            equationBounds(1,grid-1)=equationBounds(0,grid)-1;
-    }
-    int grid= cg.numberOfComponentGrids()-1;
-    int numEntries = numberOfComponents*( (cg[grid].dimension(End,axis1)-cg[grid].dimension(Start,axis1)+1)
-                                                                              *(cg[grid].dimension(End,axis2)-cg[grid].dimension(Start,axis2)+1)
-                                                                              *(cg[grid].dimension(End,axis3)-cg[grid].dimension(Start,axis3)+1)  );
-    equationBounds(1,grid)=equationBounds(0,grid)+numEntries-1;
-    if( true )
-    {
-        printF("--PS-- start and end equation numbers for each grid:\n");
-        for( int grid=0; grid<cg.numberOfComponentGrids(); grid++ )
-        {
-            printF("     grid=%i [eqnStart,eqnEnd]=[%i,%i]\n",grid,equationBounds(0,grid),equationBounds(1,grid));
-        }
-    }
 
     for( int grid=0; grid<cg.numberOfComponentGrids(); grid++ )
     {  
@@ -1274,7 +1662,6 @@ buildMatrix( realCompositeGridFunction & coeff, realCompositeGridFunction & uu )
         {
             getLocalArrayWithGhostBoundaries((*diagonalScale)[grid],ds);
         }
-        
 
         int n1a = uLocal.getBase(0) +ug.getGhostBoundaryWidth(0); 
         int n1b = uLocal.getBound(0)-ug.getGhostBoundaryWidth(0);
@@ -1283,21 +1670,10 @@ buildMatrix( realCompositeGridFunction & coeff, realCompositeGridFunction & uu )
         int n3a = uLocal.getBase(2) +ug.getGhostBoundaryWidth(2); 
         int n3b = uLocal.getBound(2)-ug.getGhostBoundaryWidth(2);
 
-        if( debug & 4 )
+        if( false || debug & 4 )
             printf("PETScSolver:setMatrix: myid=%i n1a,n1b,n2a,n2b,n3a,n3b=[%i,%i][%i,%i][%i,%i]\n",
                           myid,n1a,n1b,n2a,n2b,n3a,n3b);
         
-
-#define arrayDims(grid,side,axis) cg[grid].dimension(side,axis)
-#define arraySize(grid,axis) (arrayDims(grid,1,axis)-arrayDims(grid,0,axis)+1)
-
-#define FOR3N(i1,i2,i3,n,n1a,n1b,n2a,n2b,n3a,n3b)       for( i3=n3a; i3<=n3b; i3++ )                        for( i2=n2a; i2<=n2b; i2++ )                      for( i1=n1a; i1<=n1b; i1++ )                    for( n=0; n<numberOfComponents; n++ )
-
-        int n,n1,eqn;     // component number
-
-#define EQUATIONNUMBER(m,n,i1,i2,i3) equationNumber(m+stencilDim*(n),i1,i2,i3)
-#define COEFF(m,n,i1,i2,i3) coeffLocal(m+stencilDim*(n),i1,i2,i3)
-
 
         real denseEquationScaleFactor=1.;
         if( problemIsSingular==addExtraEquation && parameters.rescaleRowNorms  )
@@ -1434,16 +1810,17 @@ buildMatrix( realCompositeGridFunction & coeff, realCompositeGridFunction & uu )
                                 int jg,p;
                                 if( eqn<equationBounds(0,grid) || eqn>equationBounds(1,grid) )
                                 {
-                                    printF("--PS-- INFO: ig=%i, eqn=%i is out of bounds=[%i,%i] for pt(i1,i2,i3,grid)=(%i,%i,%i%i)\n",
+                                    if (false)
+                                            printF("--PS-- INFO: ig=%i, eqn=%i is out of bounds=[%i,%i] for pt(i1,i2,i3,grid)=(%i,%i,%i%i)\n",
                                                   ig,eqn,equationBounds(0,grid),equationBounds(1,grid),i1,i2,i3,grid);
                   // The point for this entry lies on a different grid. Locate which grid: 
-                                    int gridj=grid;
-                                    while( eqn<equationBounds(0,gridj) && gridj>=0 ) gridj--;
-                                    while( eqn>equationBounds(1,gridj) && gridj<numberOfComponentGrids ) gridj++;
-                                    assert( eqn>=equationBounds(0,gridj) && eqn<=equationBounds(1,gridj) );
-                                    coeff[gridj].sparse->equationToIndex(eqn,n1,j1,j2,j3);   // find the grid point
-                                    p= uu[gridj].Array_Descriptor.findProcNum( jv );  // processor number
-                                    jg=getGlobalIndex( n1, jv, gridj, p );  // get the global index
+                                    int gridkk=grid;
+                                    while( eqn<equationBounds(0,gridkk) && gridkk>=0 ) gridkk--;
+                                    while( eqn>equationBounds(1,gridkk) && gridkk<numberOfComponentGrids ) gridkk++;
+                                    assert( eqn>=equationBounds(0,gridkk) && eqn<=equationBounds(1,gridkk) );
+                                    coeff[gridkk].sparse->equationToIndex(eqn,n1,j1,j2,j3);   // find the grid point
+                                    p= uu[gridkk].Array_Descriptor.findProcNum( jv );  // processor number
+                                    jg=getGlobalIndex( n1, jv, gridkk, p );  // get the global index
                                 }
                                 else
                                 {
@@ -1452,6 +1829,9 @@ buildMatrix( realCompositeGridFunction & coeff, realCompositeGridFunction & uu )
                                     jg=getGlobalIndex( n1, jv, grid, p );  // get the global index
                                 }
                             
+              //if (ig==1058 || ig==1057 || ig==1059 || ig==2116 || ig==2115 || ig==2117)
+              //  printF("(ig,jg)=(%i,%i) , ",ig,jg);
+
             	      ierr = MatSetValues(A,1,&ig,1,&jg,&v,INSERT_VALUES);CHKERRQ(ierr);
 
             	      if( debug & 8 ) 
@@ -1484,16 +1864,17 @@ buildMatrix( realCompositeGridFunction & coeff, realCompositeGridFunction & uu )
                                 int jg,p;
                                 if( eqn<equationBounds(0,grid) || eqn>equationBounds(1,grid) )
                                 {
-                                    printF("--PS-- INFO: ig=%i, eqn=%i is out of bounds=[%i,%i] for pt(i1,i2,i3,grid)=(%i,%i,%i%i)\n",
+                                    if (false)
+                                            printF("--PS-- INFO: ig=%i, eqn=%i is out of bounds=[%i,%i] for pt(i1,i2,i3,grid)=(%i,%i,%i%i)\n",
                                                   ig,eqn,equationBounds(0,grid),equationBounds(1,grid),i1,i2,i3,grid);
                   // The point for this entry lies on a different grid. Locate which grid: 
-                                    int gridj=grid;
-                                    while( eqn<equationBounds(0,gridj) && gridj>=0 ) gridj--;
-                                    while( eqn>equationBounds(1,gridj) && gridj<numberOfComponentGrids ) gridj++;
-                                    assert( eqn>=equationBounds(0,gridj) && eqn<=equationBounds(1,gridj) );
-                                    coeff[gridj].sparse->equationToIndex(eqn,n1,j1,j2,j3);   // find the grid point
-                                    p= uu[gridj].Array_Descriptor.findProcNum( jv );  // processor number
-                                    jg=getGlobalIndex( n1, jv, gridj, p );  // get the global index
+                                    int gridkk=grid;
+                                    while( eqn<equationBounds(0,gridkk) && gridkk>=0 ) gridkk--;
+                                    while( eqn>equationBounds(1,gridkk) && gridkk<numberOfComponentGrids ) gridkk++;
+                                    assert( eqn>=equationBounds(0,gridkk) && eqn<=equationBounds(1,gridkk) );
+                                    coeff[gridkk].sparse->equationToIndex(eqn,n1,j1,j2,j3);   // find the grid point
+                                    p= uu[gridkk].Array_Descriptor.findProcNum( jv );  // processor number
+                                    jg=getGlobalIndex( n1, jv, gridkk, p );  // get the global index
                                 }
                                 else
                                 {
@@ -1556,20 +1937,20 @@ buildMatrix( realCompositeGridFunction & coeff, realCompositeGridFunction & uu )
     
   // --- User supplied extra equations ----
   // *wdh* March 19, 2017
+    real timeExtra =getCPU();
     if( extraEquations.neq >0  )
     {
         RealArray & extraEquationScaleFactor = oges.dbase.get<RealArray>("extraEquationScaleFactor");
 
         for( int iExtraEquation=0; iExtraEquation<extraEquations.neq; iExtraEquation++ )
-    // for( int iExtraEquation=extraEquations.neq-1; iExtraEquation>=0; iExtraEquation-- )// add in reverse order
         {
       // Overture numbers equations with base eqnBase=1, shift to base=0: 
             const int ieqn = eqnExtra(iExtraEquation)-eqnBase; // row for this user supplied extra equation
 
-            if( true )
+            if( false )
       	printF("--PETScSolver--: Add user supplied extra eqn %i to row %i\n",iExtraEquation,ieqn);
             
-            real dScale=1.;
+            real dScale;
             if( parameters.rescaleRowNorms )
             {
       	const bool useMaxNorm=true;
@@ -1580,8 +1961,8 @@ buildMatrix( realCompositeGridFunction & coeff, realCompositeGridFunction & uu )
         	  for( int kk=iaExtra(iExtraEquation); kk<=iaExtra(iExtraEquation+1)-1; kk++ )
         	  {
           	    dScale =max(dScale,fabs(aExtra(kk)));
-        	  
         	  }
+
         	  if( extraEquationsAreDistributed )
         	  {
           	    dScale=ParallelUtility::getMaxValue(dScale);
@@ -1611,7 +1992,7 @@ buildMatrix( realCompositeGridFunction & coeff, realCompositeGridFunction & uu )
         // save inverse of the scale factor (needed to scale RHS)
 
         // We need to find the index for the extra equation in the main list of extra equations  
-        //    Do this for now, not very efficient ****** FIX ME ****
+        //    Do this for now, not very efficient ********************************************* FIX ME ****
       	int extra=-1;
       	for( int jj=0; jj<oges.numberOfExtraEquations; jj++ )
       	{
@@ -1624,7 +2005,7 @@ buildMatrix( realCompositeGridFunction & coeff, realCompositeGridFunction & uu )
       	assert( extra>=0 );
       	
         // extraEquationScaleFactor(iExtraEquation)=dScale;
-      	if( true )
+      	if( false )
         	  printF("--PETSc-- iExtraEquation=%i ieqn=%i extra=%i  extraEquationScaleFactor(%i)=%12.3e\n",
              		 iExtraEquation,ieqn,extra,extra,dScale);
       	
@@ -1632,38 +2013,112 @@ buildMatrix( realCompositeGridFunction & coeff, realCompositeGridFunction & uu )
 
             }
 
-            int nj,gridj;
+            int nj,gridj,jg,n1;
       // Convert an Oges equation number = ieqn  to PETSc equation number= ig 
             oges.equationToIndex( eqnExtra(iExtraEquation), nj,j1,j2,j3,gridj );
             int pj = uu[gridj].Array_Descriptor.findProcNum( jv );  // processor number
             int ig = getGlobalIndex( nj, jv, gridj, pj );
-
-            for( int kk=iaExtra(iExtraEquation); kk<=iaExtra(iExtraEquation+1)-1; kk++ )
+          
+            if (true)
             {
-	// *optimize me* -- add all entries in this row at once: 
-                v= aExtra(kk)*dScale;
-      	if( fabs(v)<eps ) continue; // skip very small elements
+        // ** non-vectorized ***
+                for( int kk=iaExtra(iExtraEquation); kk<=iaExtra(iExtraEquation+1)-1; kk++ )
+                {
+          // *optimize me* -- add all entries in this row at once: 
+                    v= aExtra(kk)*dScale;
+                    if( fabs(v)<eps ) continue; // skip very small elements
       	
-        // Convert an Oges equation number =jaExtra(kk)  to PETSc equation number= jg  
-                oges.equationToIndex( jaExtra(kk), nj,j1,j2,j3,gridj );
-                pj = uu[gridj].Array_Descriptor.findProcNum( jv );  // processor number
-                int jg = getGlobalIndex( nj, jv, gridj, pj );
-        // printf("  Extra eqn=%i myid=%i kk=%5i (j1,j2,j3)=(%i,%i,%i) pj=%i ig=%i jg=%i\n",
-        //       iExtraEquation,myid,kk,j1,j2,j3,pj,ig,jg );
+          // Convert an Oges equation number =jaExtra(kk)  to PETSc equation number= jg  
+                    oges.equationToIndex( jaExtra(kk), nj,j1,j2,j3,gridj );
+                    pj = uu[gridj].Array_Descriptor.findProcNum( jv );  // processor number
+                    jg = getGlobalIndex( nj, jv, gridj, pj );
+
+          // *old* const int jg = jaExtra(kk)-eqnBase;
+                    ierr = MatSetValues(A, 1,&ig, 1,&jg, &v,INSERT_VALUES);CHKERRQ(ierr);
+                    if( false )
+                    {
+                        printF("  Extra eqn=%i kk=%5i : (i,j,a)=(%i,%i,%12.4e) scale=%8.2e a/scale=%12.4e\n",
+                                      iExtraEquation,kk,ig,jg,aExtra(kk),dScale,v);
+                    }
                 
-	// *old* const int jg = jaExtra(kk)-eqnBase;
-                ierr = MatSetValues(A, 1,&ig, 1,&jg, &v,INSERT_VALUES);CHKERRQ(ierr);
-      	if( true )
-      	{
-        	  printF("  Extra eqn=%i kk=%5i : (i,j,a)=(%i,%i,%12.4e) scale=%8.2e a/scale=%12.4e\n",
-                                  iExtraEquation,kk,ig,jg,aExtra(kk),dScale,v);
-      	}
-      	
+                }
             }
+            else //vectorized is not necessary here after fillInCount are used
+            {
+                SparseRepForMGF *pSparseRep = oges.coeff[gridj].sparse;
+                realArray & uugj = uu[gridj];
+        // ** vectorized way ***
+        // Fill in arrays (jgv[i],vv[i]) for all non-zero entries in this equation
+                int numPerRow = iaExtra(iExtraEquation+1)-iaExtra(iExtraEquation);
+                if( numPerRow>0 )
+                {
+           //printF("--PS-- fill in extra eqn =%i\n",iExtraEquation);
+
+                      int  *jgv = new int [numPerRow];
+                      real *vv  = new real [numPerRow];
+                      int num=0; // counts entries in this row
+                      for( int kk=iaExtra(iExtraEquation); kk<=iaExtra(iExtraEquation+1)-1; kk++ )
+                      {
+                          v= aExtra(kk)*dScale;
+                          if( fabs(v)<eps ) continue; // skip very small elements
+      	
+             // Convert an Oges equation number =jaExtra(kk)  to PETSc equation number= jg  
+                          int eqn=jaExtra(kk);
+
+             // convertOvertureToPETScVersion2(eqn,jg,gridj);
+
+                          if( false )
+                          {
+                              jgv[num] = eqn-eqnBase;  // test -- no conversion needed
+                          }
+                          else  if( false )
+                          {
+                              pSparseRep->equationToIndex(eqn-eqnBase,n1,j1,j2,j3);
+                              pj = uugj.Array_Descriptor.findProcNum( jv );  // processor number
+                            jgv[num] = getGlobalIndex( nj, jv, gridj, pj );
+                          }
+                          else
+                          {
+                              oges.equationToIndex( eqn, nj,j1,j2,j3,gridj );
+                              pj = uu[gridj].Array_Descriptor.findProcNum( jv );  // processor number
+                              jgv[num] = getGlobalIndex( nj, jv, gridj, pj );
+                          }
+                          
+
+                          vv[num]=v;
+                          num++;
+                          
+                      }
+                      printf("--PS-- myid=%i for eqn %i, numPerRow=%i,num=%i, ig=%i\n",
+                      myid,iExtraEquation,numPerRow,num,ig);
+
+           //assert( num==numPerRow ); //this is not true in general
+           // fill in all entries in this row at once           
+           //real timeInsert=getCPU();
+                      ierr = MatSetValues(A, 1,&ig, numPerRow, jgv, vv ,INSERT_VALUES);CHKERRQ(ierr);
+
+
+           //timeInsert=getCPU()-timeInsert;
+           // timeInsert=ParallelUtility::getMaxValue(getCPU()-timeInsert);
+           //printf("--PS-- myid=%i time to insert %i values for eqn %i is %9.2e\n",myid,numPerRow,iExtraEquation,timeInsert);
+
+                      delete [] jgv;
+                      delete [] vv;
+
+                }
+            }
+            
         }
 
     }
-
+    if( userSuppliedEquations )
+    {
+        timeExtra = getCPU()-timeExtra;
+        timeExtra = ParallelUtility::getMaxValue(timeExtra);
+        if( debug & 1 )
+            printF("--PES-- Time for filling user extra equations=%9.2e(s)\n",timeExtra);
+    }
+    
     /* 
           Assemble matrix, using the 2-step process:
               MatAssemblyBegin(), MatAssemblyEnd()
@@ -1699,8 +2154,7 @@ buildMatrix( realCompositeGridFunction & coeff, realCompositeGridFunction & uu )
         PetscViewerSetFormat(viewer,PETSC_VIEWER_ASCII_MATLAB);
         ierr = MatView(A,viewer);CHKERRQ(ierr);
 
-    }
-    
+    } 
     /* 
           Create parallel vectors.
             - We form 1 vector from scratch and then duplicate as needed.
@@ -1847,9 +2301,22 @@ buildMatrix( realCompositeGridFunction & coeff, realCompositeGridFunction & uu )
 
     }
     
-    delete [] eqnBound;
+    if (false && fillInCount)
+    {
+    //print equations of many entries
+        for( int i=0; i<numberOfUnknownsThisProcessor; i++ )
+        {
+        if ((d_nnzv[i]+o_nnzv[i])>28)
+                printf("myid=%i,d_nnzv[%i]=%i,o_nnzv[%i]=%i\n",
+                myid,i,d_nnzv[i],i,o_nnzv[i]);
+        }
+    }
 
-    if( Oges::debug & 2 )
+    delete [] eqnBound;
+    delete [] d_nnzv;
+    delete [] o_nnzv;
+
+    if( Oges::debug & 1 )
     {
         time=ParallelUtility::getMaxValue(getCPU()-time,-1,OGES_COMM);
         printF("PETScSolver:: ... done build matrix, cpu=%8.2e\n",time);
@@ -2420,7 +2887,7 @@ setPetscParameters()
         PetscBool isbjacobi=PETSC_FALSE, isasm=PETSC_FALSE;
     // v2.3.2 ierr = PetscTypeCompare((PetscObject)pc,PCBJACOBI,&isbjacobi);CHKERRQ(ierr);
         ierr = PetscObjectTypeCompare((PetscObject)pc,PCBJACOBI,&isbjacobi);CHKERRQ(ierr);
-        if( Oges::debug & 1 && isbjacobi )
+        if( Oges::debug & 4 && isbjacobi )
             printF(" PETScSolver::setPetscParameters:INFO: Using Block Jacobi\n");
         if( !isbjacobi ) 
         {
@@ -2898,7 +3365,7 @@ solve( realCompositeGridFunction & uu, realCompositeGridFunction & f )
         // scale RHS if the equations are scaled.
                 const real dScale=  parameters.rescaleRowNorms ? extraEquationScaleFactor(extra) : 1.;
 
-      	if( true )
+      	if( false )
         	  printf("--PETSc-- solve: set RHS for extra eqn=%i eqnNumber=%i value=%9.3e scale=%9.2e myid=%i\n",
              		 extra,extraEquationNumber(extra),extraEquationRightHandSideValues(extra),dScale,myid);
         	  
@@ -2924,7 +3391,7 @@ solve( realCompositeGridFunction & uu, realCompositeGridFunction & f )
 
       	if( extraEqn>=Istart && extraEqn<=Iend )
       	{
-        	  if( true )
+        	  if( false )
           	    printf("--PETSc-- solve: set initial condition for extra eqn=%i eqnNumber=%i value=%9.3e myid=%i\n",
                		   extra,extraEquationNumber(extra),extraEquationInitialValues(extra),myid);
         	  
@@ -3009,6 +3476,39 @@ solve( realCompositeGridFunction & uu, realCompositeGridFunction & f )
         printF("NOTE: to see more information turn on the '-info' PETSc option (e.g. in your .petscrc)\n");
         printF("NOTE 2: to avoid the divergence error '-4' you can set the Oges option 'maximum allowable increase in the residual' \n");
 
+        if( true ) // This can help in some cases
+        {
+            if( reason==-3 || reason==-4 || reason==-5 || reason==-6 )
+            {
+      	printF("--PTSC-- KSP failed, try to solve again with zero initial guess...\n");
+                ierr = KSPSetInitialGuessNonzero(ksp,PETSC_FALSE); CHKERRQ(ierr); 
+
+                ierr = KSPSolve(ksp,b,x);CHKERRQ(ierr);
+
+      	ierr = KSPGetConvergedReason(ksp,&reason);
+      	if( reason<0 )
+      	{
+        	  printF("--PTSC--- SOLVE AGAIN: ERROR Solution diverged! reason=%i: \n",(int)reason);
+        	  printF("     KSP_DIVERGED_NULL                = -2,\n"
+             		 "     KSP_DIVERGED_ITS                 = -3,\n"
+             		 "     KSP_DIVERGED_DTOL                = -4,\n"
+             		 "     KSP_DIVERGED_BREAKDOWN           = -5,\n"
+             		 "     KSP_DIVERGED_BREAKDOWN_BICG      = -6,\n"
+             		 "     KSP_DIVERGED_NONSYMMETRIC        = -7,\n"
+             		 "     KSP_DIVERGED_INDEFINITE_PC       = -8,\n"
+             		 "     KSP_DIVERGED_NAN                  = -9,\n"
+             		 "     KSP_DIVERGED_INDEFINITE_MAT      = -10\n");
+        	  printF("NOTE 1: to see more information turn on the '-info' PETSc option (e.g. in your .petscrc)\n");
+        	  printF("NOTE 2: to avoid the divergence error '-4' you can set the Oges option 'maximum allowable increase in the residual' \n");
+      	}
+      	else
+      	{
+        	  printF("--PTSC-- Solve again WORKED!\n");
+                          	
+      	}
+      	
+            }
+        }
         if( reason==-3 )
             NUM_KSP_CONVERGED_ITS_ERRORS++;
         if( NUM_KSP_CONVERGED_ITS_ERRORS>=10 )
@@ -3122,7 +3622,7 @@ solve( realCompositeGridFunction & uu, realCompositeGridFunction & f )
         // extra value is stored on this processor
       	extraValues[i]=xv[iExtra-Istart];
 
-      	if( true ) printf(" --PETSc-- fill in extraEqn values after solve: myid=%i: iExtra=%i xv[iExtra]=%6.4f\n",
+      	if( false ) printf(" --PETSc-- fill in extraEqn values after solve: myid=%i: iExtra=%i xv[iExtra]=%6.4f\n",
                                                     myid,iExtra,extraValues[i]);
             }
             else
@@ -3184,7 +3684,7 @@ solve( realCompositeGridFunction & uu, realCompositeGridFunction & f )
     
 
 
-    if( firstSolve && Oges::debug & 1  )
+    if( firstSolve && Oges::debug & 4  )
     {
         aString name = getSolverName();
         printF("--PETSc-- solver: %s\n",(const char*)name);
@@ -3200,15 +3700,6 @@ solve( realCompositeGridFunction & uu, realCompositeGridFunction & f )
     return 0;
 }
 
-
-#define initExplicitInterp EXTERN_C_NAME(initexplicitinterp)
-extern "C"
-{
-    void initExplicitInterp(const int&ndc1,const int&ndc2,const int&ndc3,const int&ndci,
-                    const int&ipar,real&coeff,const real&ci,real&pr,real&ps,real&pt,
-                    const real&gridSpacing,const int&indexStart,
-        	  const int&variableInterpolationWidth,const int&interpoleeLocation,const int&interpoleeGrid);
-}
 
 int PETScSolver::
 fillInterpolationCoefficients(realCompositeGridFunction & uu)

@@ -5,7 +5,6 @@
 #include "PistonMotion.h"
 #include "ParallelUtility.h"
 #include "TimeFunction.h"
-
 #include "BeamModel.h"
 
 #define rotatingDiskSVK EXTERN_C_NAME(rotatingdisksvk)
@@ -23,6 +22,12 @@ int I1Bound=I1.getBound(),  I2Bound=I2.getBound(), I3Bound=I3.getBound(); \
 for(i3=I3Base; i3<=I3Bound; i3++) \
 for(i2=I2Base; i2<=I2Bound; i2++) \
 for(i1=I1Base; i1<=I1Bound; i1++)
+
+// Macro to get the vertex array
+#define GET_VERTEX_ARRAY(x)                                     \
+mg.update(MappedGrid::THEvertex | MappedGrid::THEcenter);       \
+OV_GET_SERIAL_ARRAY_CONST(real,mg.vertex(),x);
+
 
 int SmParameters::
 getUserDefinedKnownSolution(real t, CompositeGrid & cg, int grid, RealArray & ua, 
@@ -255,52 +260,33 @@ getUserDefinedKnownSolution(real t, CompositeGrid & cg, int grid, RealArray & ua
   else if( userKnownSolution=="bulkSolidPiston" )
   {
     // ---- return the exact solution for the FSI INS+elastic piston ---
+    //     y_I(t) = F(t + Hbar/cp) - F(t - Hbar/cp)
+    //        F(z) = amp * R(z) * sin( 2*Pi*k(t-t0) )
+    //        R(z) = ramp function that smoothly transitions from 0 to 1 
 
     // assert( v1c>=0 && u1c>=0 && s22c >=0 );
 
-    const real & amp      = rpar[0];
-    const real & k        = rpar[1];
-    const real & phase    = rpar[2];
-    const real & H        = rpar[3];
-    const real & Hbar     = rpar[4];
-    const real & rhoFluid = rpar[5];
-    const real & rhoBar   = rpar[6];
-    const real & lambdaBar= rpar[7];
-    const real & muBar    = rpar[8];
+    const real & H        = rpar[0];
+    const real & Hbar     = rpar[1];
+    const real & rhoFluid = rpar[2];
+    const real & rhoBar   = rpar[3];
+    const real & lambdaBar= rpar[4];
+    const real & muBar    = rpar[5];
 
     const real cp2 = sqrt((lambdaBar+2.*muBar)/rhoBar);
-    assert( cp==cp2 );
+    assert( cp==cp2 ); // sanity check
     
-    const real sint = sin(cp*k*t + twoPi*phase);
-    const real cost = cos(cp*k*t + twoPi*phase);
-
     if( t<= 2.*dt )
     {
-      printF("--SM-- userDefinedKnownSolution: bulkSolidPiston, amp=%g, k=%g, phase=%g, t=%9.3e\n",amp,k,phase,t);
-      printF("--SM-- cp=%g, k*hBar=%g, amp*cp*k*sin(k*hBar)=%g\n",cp,k*Hbar,amp*cp*k*sin(k*Hbar));
+      printF("--SM-- userDefinedKnownSolution: bulkSolidPiston, Hbar=%g, t=%9.3e\n",Hbar,t);
+      printF("--SM-- lambda   =%g mu   =%g rho   =%g\n",lambda,mu,rho);
+      printF("--SM-- lambdaBar=%g muBar=%g rhoBar=%g\n",lambdaBar,muBar,rhoBar);
+      
     }
-    
-   
     assert( lambda==lambdaBar && mu==muBar && rho==rhoBar );
-
     assert( numberOfTimeDerivatives==0 );
 
-    // for fluid 
-    // const real sinkHbar = sin(k*Hbar);
-    // const real pI = -amp*(lambdaBar+2.*muBar)*cp*k*sinkHbar*cost;
-    // const real yI =  amp*         sinkHbar*cost;    // interface position
-    // const real vI = -amp*cp*k*    sinkHbar*sint;    // interface velocity
-    // const real aI = -amp*SQR(cp*k)*sinkHbar*cost;   // interface acceleration
-    // const real p0 = pI - rhoFluid*H*aI*(1.-yI)/H;        // fluid pressure at y=H 
-    // const real pAmp = (p0-pI)/(H-yI);
-
-    // *new way*
-    //   u2(y,t) = F(y+H) * F( cp*t ) (which satisfies the wave eqaution w_tt = cp^2 w_yy )
-    bool useNew=true;
     TimeFunction & bsp = db.get<TimeFunction>("timeFunctionBSP");
-    real ft,ftp;
-    bsp.eval( cp*t, ft,ftp );  // ft = F(cp*t), ftp = d(ft)/dt
-    ftp *=cp;
 
     MappedGrid & mg = cg[grid];
     mg.update(MappedGrid::THEvertex | MappedGrid::THEcenter);
@@ -315,52 +301,28 @@ getUserDefinedKnownSolution(real t, CompositeGrid & cg, int grid, RealArray & ua
       // real x= center(i1,i2,i3,0);
       const real y= center(i1,i2,i3,1);
 
-      const real sinky = sin(k*(y+Hbar));
+      real xim,xip, fm,fp, fmd,fpd;
+      xim=t-(y+Hbar)/cp;
+      xip=t+(y+Hbar)/cp;  
+        
+      bsp.eval(xim, fm,fmd );  // fmd = d(fm(xi))/d(xi)
+      bsp.eval(xip, fp,fpd );
 
-      real fs,fsp;
-      bsp.eval( y+Hbar, fs,fsp );  // fs = F(y+H), fsp = d(fs)/dy
-
-      // displacement
-      if( useNew )
-      {
-        u(i1,i2,i3,u1c)=0.;
-        u(i1,i2,i3,u2c)= fs*ft;
-      }
-      else
-      {
-        u(i1,i2,i3,u1c)=0.;
-        u(i1,i2,i3,u2c)= amp * sinky * cost;
-      }
-      
+      u(i1,i2,i3,u1c)=0.;
+      u(i1,i2,i3,u2c)= fp - fm;
 
       // velocities
       if( assignVelocity )
       {
-        if( useNew )
-        {
-          u(i1,i2,i3,v1c)=0.;
-          u(i1,i2,i3,v2c)=fs*ftp;
-        }
-        else
-        {
-          u(i1,i2,i3,v1c)=0.;
-          u(i1,i2,i3,v2c)= -amp*cp*k*sinky*sint;
-        }
-        
+        u(i1,i2,i3,v1c)=0.;
+        u(i1,i2,i3,v2c)= fpd - fmd;
       }
       
       // stresses
       real u2y;
       if( assignStress )
       {
-        if( useNew )
-        {
-          u2y = fsp*ft;
-        }
-        else
-        {
-          u2y = amp * k*cos(k*(y+Hbar)) * cost;
-        }
+        u2y = (fpd + fmd)/cp; // note "+" sign
         
 	u(i1,i2,i3,s11c)=lambda*u2y;
 	u(i1,i2,i3,s12c)=0.;
@@ -370,9 +332,110 @@ getUserDefinedKnownSolution(real t, CompositeGrid & cg, int grid, RealArray & ua
       
     }
 
-
   }
 
+  else if( userKnownSolution=="radialElasticPiston" )
+  {
+    // ---- return the exact solution for radial elastic piston ----
+
+    // -- we could avoid building the vertex array on Cartesian grids ---
+    GET_VERTEX_ARRAY(xLocal);
+    const real & R        = rpar[0];
+    const real & Rbar     = rpar[1];
+    const real & rho      = rpar[2];
+    const real & rhoBar   = rpar[3];
+    const real & lambdaBar= rpar[4];
+    const real & muBar    = rpar[5];
+    const real & k        = rpar[6];
+
+    const real cp = sqrt((lambdaBar+2.*muBar)/rhoBar);
+    
+    // uI = uI(t) =  interface displacement in the radial direction 
+    // eval uI and vI = uI_t 
+    real uI,vI;
+    TimeFunction & bsp = db.get<TimeFunction>("timeFunctionREP");
+    bsp.eval(t, uI,vI );  
+
+    if( t <= 2.*dt )
+    {
+      printF("--SM-- getUserDefinedDeformingBodyKnownSolution: radialElasticPiston, t=%9.3e uI=%9.3e vI=%9.3e, Rbar=%6.3f\n",
+             t,uI,vI,Rbar );
+    }
+
+    RealArray & u = ua;
+    const real eps = 10.*REAL_EPSILON;
+    const real sqrtEps = sqrt(REAL_EPSILON);
+    
+    int i1,i2,i3;
+    FOR_3D(i1,i2,i3,I1,I2,I3)
+    {
+      // Reference coordinates:
+      real x= xLocal(i1,i2,i3,0);
+      real y= xLocal(i1,i2,i3,1);
+      real r = sqrt( SQR(x) + SQR(y) );
+      real ct,st;
+      if( r>eps )
+      {
+        ct=x/r; st=y/r;
+      }
+      else
+      {
+        ct=1.; st=0.;  // at the origin we just pick an angle, should not matter
+      }
+      
+      
+      real kr=k*r;
+      real jnkr = jn(1,kr);
+      real ur = uI*jnkr;    // radial displacement 
+      real vr = vI*jnkr;    // radial velocity
+
+      u(i1,i2,i3,u1c)=ur*ct;
+      u(i1,i2,i3,u2c)=ur*st;
+
+      // velocities
+      if( assignVelocity )
+      {
+        u(i1,i2,i3,v1c)=vr*ct;
+        u(i1,i2,i3,v2c)=vr*st;
+      }
+      
+      // stresses
+      if( assignStress )
+      {
+        real jnkrp = .5*k*(jn(0,kr)-jn(2,kr));  // Jn' = .5*( J(n-1) - J(n+1) ) check me 
+        // real jnkrp = (jn(0,kr)-jnkr)/r;  // J1'(z) = (J0(z)-J1(z))/z
+        
+        // ur = amp*J_1(k*r)* ...
+        real urr=uI*jnkrp;      // r-derivative of the radial displacement
+        
+        real urByr;
+        if( fabs(r)>sqrtEps )
+          urByr=ur/r;
+        else
+        {
+          urByr=urr;  // for r small, ur/r = (ur(r)-ur(0))/r =  urr(r) + ...
+          // printF(" --UDKDBS: i=(%i,%i) r=%8.2e urr=%9.3e ur=%9.3e ct=%9.3e st=%9.3e\n",i1,i2,r,urr,ur,ct,st);
+        }
+        
+        real sigmarr = (lambdaBar+2.*muBar)*urr + lambdaBar*urByr;
+        real sigmart=0.;
+        real sigmatt = lambdaBar*urr +  (lambdaBar+2.*muBar)*urByr;
+
+        // Cartesian components of the stress tensor:
+        //  [ s11 s12 ] = srr rHat rHat^T + srt rHat thetaHat^T + str thetaHat^t rHat + stt thetaHat thetaHat^T
+        //  [ s21 s22 ]
+        // where
+        //   rHat=[cos,sin], thetaHat=[-sin,cos]
+        /// **CHECK ME**
+	u(i1,i2,i3,s11c)= sigmarr*ct*ct - 2.*sigmart*ct*st + sigmatt*st*st;
+	u(i1,i2,i3,s12c)= sigmarr*ct*st + sigmart*(ct*ct-st*st) - sigmatt*ct*st ;
+	u(i1,i2,i3,s21c)= u(i1,i2,i3,s12c);
+	u(i1,i2,i3,s22c)= sigmarr*st*st + 2.*sigmart*ct*st + sigmatt*ct*ct;
+      }
+      
+    }
+    
+  }
 
   else 
   {
@@ -424,7 +487,6 @@ updateUserDefinedKnownSolution(GenericGraphicsInterface & gi, CompositeGrid & cg
       "no known solution",
       "rotating disk",  // for cgsm SVK model
       "linear beam exact solution",
-      "bulk solid piston",  // for INS+SM exact solution
       "choose a common known solution",
       "done",
       ""
@@ -523,48 +585,7 @@ updateUserDefinedKnownSolution(GenericGraphicsInterface & gi, CompositeGrid & cg
       sScanF(answer,"%e",&omega);
     }
 
-    else if( answer=="bulk solid piston" )
-    {
-      userKnownSolution="bulkSolidPiston";
-      dbase.get<bool>("knownSolutionIsTimeDependent")=true;  // known solution IS time dependent
 
-      real & amp      = rpar[0];
-      real & k        = rpar[1];
-      real & phase    = rpar[2];
-      real & H        = rpar[3];
-      real & Hbar     = rpar[4];
-      real & rho      = rpar[5];
-      real & rhoBar   = rpar[6];
-      real & lambdaBar= rpar[7];
-      real & muBar    = rpar[8];
-
-      printF("--- Exact solution for a bulk elastic solid adjacent to a fluid chamber ---\n"
-             "   y_I(t) = A sin(k Hbar) * cos( cp*k*t + 2*pi*phase )\n"
-             " Parameters: \n"
-             " amp : amplitude of the interface motion \n"
-             " k: wave number in solid domain (y-direction)\n"
-             " H,Hbar: Height of fluid and solid domains\n"
-             " phase: phase for time dependence\n"
-             " rhoBar,lambaBar,muBar : solid density and Lame parameters\n"
-	);
-      gi.inputString(answer,"Enter amp, k,phase,H,Hbar,rho,lambdaBar,muBar,rhoBar");
-      sScanF(answer,"%e %e %e %e %e %e %e %e %e",&amp,&k,&phase,&H,&Hbar,&rho,&rhoBar,&lambdaBar,&muBar);
-      printF("Setting amp=%g, k=%g,phase=%g,H=%g,Hbar=%g,rho=%g,lambdaBar=%g,muBar=%g,rhoBar=%g\n",
-                  amp,k,phase,H,Hbar,rho,rhoBar,lambdaBar,muBar);
-
-      // The waveform for the exact solution is defined through a TimeFunction:
-      if( !db.has_key("timeFunctionBSP") )
-        db.put<TimeFunction>("timeFunctionBSP");
-
-      TimeFunction & timeFunction = db.get<TimeFunction>("timeFunctionBSP");
-      real rampStart=0., rampEnd=1.; // Ramp from 0 to 1,
-      real rampStartTime=.1, rampEndTime=.6;
-      int rampOrder=3;
-      timeFunction.setRampFunction( rampStart,rampEnd,rampStartTime,rampEndTime,rampOrder );
-
-      // ** FINISH ME**  
-
-    }
     else
     {
       printF("unknown response=[%s]\n",(const char*)answer);

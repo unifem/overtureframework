@@ -25,8 +25,30 @@ advanceFOS.bC
   - getUtFOS(GridFunction & cgf, const real & t, RealCompositeGridFunction & ut, real tForce )
   - advanceFOS(  int current, real t, real dt, RealCompositeGridFunction *ut , real tForce )
 
+assignBoundaryConditions.bC
+  - getInterfaceBoundaryData( int current )
+  - applyBoundaryConditions(GridFunction & cgf, ... )
+  - assignBoundaryConditions( int option, int grid, real t, real dt, realMappedGridFunction & u ...)
+  - initializeInterfaces()
+
+
+assignInitialConditions.bC 
+  - assignInitialConditions(int gfIndex)
+
+divergence.bC
+  - getMaxDivAndCurl(
+  - checkDisplacementAndStress( const int current, real t )
+  - getVelocityAndStress
+
 getTimeStep.bC
   - getTimeStep( GridFunction & gf )
+
+interface.bC
+  - getInterfaceDataOptions( GridFaceDescriptor & info, int & interfaceDataOptions ) const
+  - interfaceRightHandSide( InterfaceOptionsEnum option,  ... )
+  - projectInterface( int grid, real dt, int current )
+  - getInterfaceAcceleration( GridFaceDescriptor & gfd, const real t, ... )
+  - getKnownInterfaceState( Parameters::DeformingBodyStateOptionEnum stateOption, .. )
 
 plot.bC
   - getAugmentedSolution(int current, realCompositeGridFunction & v, const real t)

@@ -168,7 +168,9 @@ $ic="OBTZ:user defined known solution\n" .\
 #   "knownSolutionInitialCondition";
 # ----
 if( $method eq "cns" ){ $mu=$muFluid; $kThermal=$muFluid/$prandtl; $cmd = "include $ENV{CG}/mp/cmd/cnsDomain.h"; }else{ $cmd ="*"; };
+echo to terminal 0
 $cmd
+echo to terminal 1
 # 
 # ------- specify elastic solid domain ----------
 $domainName=$domain2; $solverName="solid"; 
@@ -201,7 +203,9 @@ if( $smVariation eq "hemp" ){ $tsSM= "improvedEuler"; }
 #     "  nearest grid point to 0. .5 0.\n" . \
 #     "  exit";
 # 
+echo to terminal 0
 include $ENV{CG}/mp/cmd/smDomain.h
+echo to terminal 1
 # 
 continue
 #

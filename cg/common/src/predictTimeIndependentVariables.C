@@ -22,7 +22,7 @@ predictTimeIndependentVariables( const int numberOfTimeLevels, const int *gfInde
 
   const bool predictPressure = predictedPressureNeeded || (poisson!=NULL && poisson->isSolverIterative() && orderOfAccuracy!=4);
 
-  if( false )
+  if( TRUE || debug() & 4  )
     printF("--DS-- predictTimeIndependentVariables: predictPressure=%i (t=%8.2e)\n",
 	   (int)predictPressure,gf[gfIndex[0]].t);
   
@@ -68,8 +68,8 @@ predictTimeIndependentVariables( const int numberOfTimeLevels, const int *gfInde
    const real cex2b=-dt0/dtb;         // -> -1.
 
   if( gf[mNew].t <= 2.*dt0 )
-    printF("--DS-- predictTimeIndependentVariables (pressure) at t=%9.3e (dt0=%9.3e, dtb=%9.3e)\n",
-	   gf[mNew].t,dt0,dtb);
+    printF("--DS-- predictTimeIndependentVariables (pressure) at t=%9.3e (dt0=%9.3e, dtb=%9.3e) "
+           "cex2a=%5.2f cex2b=%5.2f mNew=%i mCur=%i mOld=%i\n", gf[mNew].t,dt0,dtb,cex2a,cex2b,mNew,mCur,mOld);
 
   // extrapolate p in time as an initial guess for iterative solvers
   const int & pc = parameters.dbase.get<int >("pc");
@@ -112,10 +112,10 @@ predictTimeIndependentVariables( const int numberOfTimeLevels, const int *gfInde
     
     if( debug() & 4 )
     {
-      Range all;
-      for( grid=0; grid<gf[mNew].cg.numberOfComponentGrids(); grid++ )
-	::display(gf[mNew].u[grid](all,all,all,pc),sPrintF("--PTIV-- predictTimeIndependentVariables: after extrap p in time"
-							   " t=%9.4e grid=%i\n",gf[mNew].t,grid),debugFile,"%10.7f ");
+      ::display(uNew(I1,I2,I3,pc),sPrintF("--PTIV-- predictTimeIndependentVariables: after extrap p in time"
+                                          " t=%9.4e grid=%i\n",gf[mNew].t,grid),debugFile,"%7.4f ");
+      ::display(uCur(I1,I2,I3,pc),sPrintF("--PTIV-- p(Current) t=%9.3e",gf[mCur].t),"%7.4f ");
+      ::display(uOld(I1,I2,I3,pc),sPrintF("--PTIV-- p(Old)     t=%9.3e",gf[mOld].t),"%7.4f ");
     }
 
   } // end for grid 

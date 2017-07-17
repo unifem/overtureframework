@@ -121,7 +121,7 @@ virtual int
 getUserDefinedDeformingBodyKnownSolution( 
   int body,
   DeformingBodyStateOptionEnum stateOption, 
-  const real time, const int grid, MappedGrid & mg, const Index &I1, const Index &I2, const Index &I3, 
+  const real time, const int grid, MappedGrid & mg, const Index &I1, const Index &I2, const Index &I3, const Range & C, 
   realSerialArray & state );
 
 int 

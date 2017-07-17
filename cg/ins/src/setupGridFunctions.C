@@ -128,6 +128,14 @@ projectInitialConditionsForMovingGrids(int gfIndex)
   const bool & twilightZoneFlow = parameters.dbase.get<bool >("twilightZoneFlow");
   const real & tInitial = parameters.dbase.get<real >("tInitial");
   
+  const bool & multiDomainProblem = parameters.dbase.get<int>("multiDomainProblem");
+  if( multiDomainProblem )
+  {
+    printF("--INS-- projectInitialConditionsForMovingGrids  NOT projecting initial conditions for a multidomain\n"
+           " problem. Finish me\n");
+    return 0;
+  }
+  
   if( !twilightZoneFlow && tInitial==0. )
   {
     // -- For moving grid problems we iterate on the initial conditions since the 

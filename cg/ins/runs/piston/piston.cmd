@@ -22,6 +22,7 @@ $freqFullUpdate=10; # frequency for using full ogen update in moving grids
 $rtolp=1.e-3; $atolp=1.e-4;  # tolerances for the pressure solve
 $rtol=1.e-4; $atol=1.e-5;    # tolerances for the implicit solver
 $ts="pc"; $numberOfCorrections=1; 
+$project=0; 
 $solver="choose best iterative solver"; 
 $psolver="choose best iterative solver";  
 $solver="yale"; $psolver="yale"; 
@@ -44,7 +45,7 @@ GetOptions( "g=s"=>\$grid,"tf=f"=>\$tFinal,"degreex=i"=>\$degreex, "degreet=i"=>
   "rtolc=f"=>\$rtolc,"atolc=f"=>\$atolc,"useProvidedAcceleration=i"=>\$useProvidedAcceleration,\
   "option=s"=>\$option,"gravity=f"=>\$gravity,"dtMax=f"=>\$dtMax,"addedDamping=f"=>\$addedDamping,\
   "addedDampingCoeff=f"=>\$addedDampingCoeff,"scaleAddedDampingWithDt=f"=>\$scaleAddedDampingWithDt,\
-  "addedDampingProjectVelocity=f"=>\$addedDampingProjectVelocity   );
+  "addedDampingProjectVelocity=f"=>\$addedDampingProjectVelocity,"project=i"=>\$project   );
 # -------------------------------------------------------------------------------------------------
 if( $solver eq "best" ){ $solver="choose best iterative solver"; }
 if( $solver eq "mg" ){ $solver="multigrid"; }
@@ -73,7 +74,8 @@ if( $go eq "run" || $go eq "go" ){ $go = "movie mode\n finish"; }
   final time $tFinal
   times to plot $tPlot
 # 
-##  project initial conditions
+if( $project eq "1" ){ $cmd="project initial conditions"; }else{ $cmd="#"; }
+$cmd
 #
   dtMax $dtMax
   # Generate past time grids: 

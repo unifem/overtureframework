@@ -98,8 +98,9 @@ solveForTimeIndependentVariables( GridFunction & cgf, bool updateSolutionDepende
     updatePressureEquation(cgf.cg, cgf );
   }
 
-  if( debug() & 8 )
-    printf("solveForTimeIndependentVariablesINS, t=%9.3e...\n",cgf.t);
+  if( debug() & 2 || debug() & 8 )
+    printf("--INS-- solveForTimeIndependentVariables, PRESSURE SOLVE t=%9.3e...\n",cgf.t);
+
   // real time=getCPU();  // keep track of the cpu time spent in this routine
 
   // this next also checks the memory usage if turned on
@@ -668,6 +669,7 @@ assignPressureRHS( const int grid, GridFunction & gf0, realCompositeGridFunction
   realMappedGridFunction & f = f0[grid];
   realMappedGridFunction & gridVelocity = gf0.getGridVelocity(grid);
   const real & t0 = gf0.t;
+  const bool & twilightZoneFlow = parameters.dbase.get<bool >("twilightZoneFlow");
 
   FILE *&debugFile = parameters.dbase.get<FILE* >("debugFile");
   FILE *&pDebugFile = parameters.dbase.get<FILE* >("pDebugFile");
@@ -899,7 +901,7 @@ assignPressureRHS( const int grid, GridFunction & gf0, realCompositeGridFunction
 		 includeADinPressure,
 		 pdeModel,                                                               // ipar[19]
 		 parameters.dbase.get<int >("vsc"),
-		 (int)parameters.dbase.get<bool >("twilightZoneFlow"),
+		 (int)twilightZoneFlow,
                  parameters.dbase.get<int >("rc"),
                  parameters.dbase.get<int>("initialConditionsAreBeingProjected"),
                  (int)parameters.dbase.get<bool >("turnOnBodyForcing"),
@@ -1019,7 +1021,7 @@ assignPressureRHS( const int grid, GridFunction & gf0, realCompositeGridFunction
   if( (parameters.gridIsMoving(grid) || 
        boundaryConditionsAreTimeDependent )  // *wdh* 2014/06/
       &&
-      !parameters.dbase.get<bool >("twilightZoneFlow")  )  // *wdh* 040914 
+      !twilightZoneFlow  )  // *wdh* 040914 
   {
     // add grid acceleration 
     // *wdh* 040914 -- for TZ no sense adding this on since we would have to subtract it off later  -- it
@@ -1140,7 +1142,7 @@ assignPressureRHS( const int grid, GridFunction & gf0, realCompositeGridFunction
   }
   
 
-  if( parameters.dbase.get<bool >("twilightZoneFlow") )
+  if( twilightZoneFlow )
   {
     // In the TZ case we subtract off n.u_t -- but then we add it back on later -- could just skip both 
 

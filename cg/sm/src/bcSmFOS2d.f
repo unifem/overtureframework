@@ -1938,7 +1938,7 @@ c      ! '
               else
                ! ********* Traction BC ********
                ! put "dirichlet parts of the traction BC here
-              if( debug.gt.3. .and. interfaceType(side,axis,grid)
+              if( debug.gt.3 .and. interfaceType(side,axis,grid)
      & .eq.tractionInterface )then
                write(*,'("SMBC:INFO: assignPrimaryDirichletBC for an 
      & interface, (side,axis,grid)=(",3i3,")")') side,axis,grid
@@ -9184,7 +9184,7 @@ c       end do
               else
                ! ********* Traction BC ********
                ! put "dirichlet parts of the traction BC here
-              if( debug.gt.3. .and. interfaceType(side,axis,grid)
+              if( debug.gt.3 .and. interfaceType(side,axis,grid)
      & .eq.tractionInterface )then
                write(*,'("SMBC:INFO: assignPrimaryDirichletBC for an 
      & interface, (side,axis,grid)=(",3i3,")")') side,axis,grid
@@ -10957,7 +10957,7 @@ c              an22=-is2*rx(i1,i2,i3,axis2,1)*aNormi2
               else
                ! ********* Traction BC ********
                ! put "dirichlet parts of the traction BC here
-              if( debug.gt.3. .and. interfaceType(side,axis,grid)
+              if( debug.gt.3 .and. interfaceType(side,axis,grid)
      & .eq.tractionInterface )then
                write(*,'("SMBC:INFO: assignPrimaryDirichletBC for an 
      & interface, (side,axis,grid)=(",3i3,")")') side,axis,grid

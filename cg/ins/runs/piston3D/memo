@@ -1,0 +1,46 @@
+piston 3d test
+
+++++++GRIDS++++++
+without annulus
+ogen -noplot plug3d -interp=e -factor=1
+with annulus
+ogen -noplot plug3d -interp=e -prefix=plugAnnulus -annulus=1 -factor=1
+
+++++++RUN++++++
+without annulus
+mpirun -n 1 $cginsp -noplot piston3D.cmd -option=piston3d -nu=.01 -tf=1 -tp=.2 -cfl=0.9 -ts=im -dtMax=.04 -bodyDensity=10 -inertia=10 -relaxRigidBody=0 -numberOfCorrections=1 -solver=best -psolver=best -rtol=1.e-6 -atol=1.e-8 -rtolp=1.e-10 -atolp=1.e-10 -useTP=0 -addedMass=1 -addedDamping=1 -addedDampingCoeff=1 -scaleAddedDampingWithDt=1 -nu=.01 -useProvidedAcceleration=1 -gravity=0 -g=plug3de1.order2.hdf -freqFullUpdate=1 -go=go -show=plug3de1.show > plug3de1.out
+
+with annulus
+mpirun -n 1 $cginsp -noplot piston3D.cmd -option=piston3dAnnulus -nu=.01 -tf=1 -tp=.2 -cfl=0.9 -ts=im -dtMax=.04 -bodyDensity=10 -inertia=10 -relaxRigidBody=0 -numberOfCorrections=1 -solver=best -psolver=best -rtol=1.e-6 -atol=1.e-8 -rtolp=1.e-10 -atolp=1.e-10 -useTP=0 -addedMass=1 -addedDamping=1 -addedDampingCoeff=1 -scaleAddedDampingWithDt=1 -nu=.01 -useProvidedAcceleration=1 -gravity=0 -g=plug3dAnnuluse1.order2.hdf -freqFullUpdate=1 -go=go -show=plug3de1.show > plug3de1.out
+
+6/19
+consistent with the results in rbins3D.pdf (tfinal=0.8)
+serial run G1, G2 are okay
+
+test build matrix (G4)
+$cgins -noplot piston3D.cmd -option=piston3d -nu=.01 -tf=.2 -tp=.2 -cfl=0.9 -ts=im -dtMax=.01 -bodyDensity=10 -inertia=10 -relaxRigidBody=0 -numberOfCorrections=1 -solver=best -psolver=best -rtol=1.e-6 -atol=1.e-8 -rtolp=1.e-10 -atolp=1.e-10 -useTP=0 -addedMass=1 -addedDamping=1 -addedDampingCoeff=1 -scaleAddedDampingWithDt=1 -nu=.01 -useProvidedAcceleration=1 -gravity=0 -g=plug3de4.order2.hdf -freqFullUpdate=1 -go=go -ogesDebug=3 > plug3de4.out &
+
+parallel
+mpirun -np 1 $cginsp -noplot piston3D.cmd -option=piston3d -nu=.01 -tf=.2 -tp=.2 -cfl=0.9 -ts=im -dtMax=.01 -bodyDensity=10 -inertia=10 -relaxRigidBody=0 -numberOfCorrections=1 -solver=best -psolver=best -rtol=1.e-6 -atol=1.e-8 -rtolp=1.e-10 -atolp=1.e-10 -useTP=0 -addedMass=1 -addedDamping=1 -addedDampingCoeff=1 -scaleAddedDampingWithDt=1 -nu=.01 -useProvidedAcceleration=1 -gravity=0 -g=plug3de4.order2.hdf -freqFullUpdate=1 -go=go -ogesDebug=1 > plug3de4np1.out &
+
+--------------G2----------------
+G2 is okay
+serial code: very fast building almost all the matrices
+build=0.022805, precond=0.018501, solve=0.046935, total=0.088241.
+(there are a couple times implicit solver require 20+ seconds to build matrix. probably okay)
+
+paralle code: 
+np=8 build matrix is very fast 1e-3seconds
+np=1 build matrix is also fast 1e-1seconds
+
+--------------G4----------------
+G4 shows the issue 
+serial code is very fast building matrices (most matrices only need 1e-1 to build)
+
+parallel code is very slow build matrices 
+np=1:
+build pressure matrix = 10 seconds
+build velocity matrix = 1 seconds
+
+np=4 and 8: 
+it scales well, so build is much faster

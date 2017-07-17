@@ -56,6 +56,8 @@ multiDomainAdvanceNew( real &t, real & tFinal )
     int & init=parameters.dbase.get<DataBase >("modelData").get<int>("initializeAdvance");
 
     const int numberOfDomains = domainSolver.size(); 
+    const std::vector<int> & domainOrder =parameters.dbase.get<std::vector<int> >("domainOrder");
+    
     int numberOfSubSteps=parameters.dbase.get<int>("numberOfSubSteps");
 
     InterfaceList & interfaceList = parameters.dbase.get<InterfaceList>("interfaceList");
@@ -65,7 +67,11 @@ multiDomainAdvanceNew( real &t, real & tFinal )
     bool & timeStepHasChanged = parameters.dbase.get<bool>("timeStepHasChanged");
 
     if( true || debug() & 4 )
-        printF(" ---- Cgmp::multiDomainAdvanceNew ---- t=%e, dt=%e, tFinal=%e, timeStepHasChanged=%i\n",t,dt,tFinal,(int)timeStepHasChanged);
+        printF("\n"
+                      " -------------------------------------------------------------------------------------------------------\n"
+                      " ---- Cgmp::multiDomainAdvanceNew ---- t=%e, dt=%e, tFinal=%e, timeStepHasChanged=%i\n"
+                      " -------------------------------------------------------------------------------------------------------\n\n",
+                          t,dt,tFinal,(int)timeStepHasChanged);
     if( debug() & 2 )
         fprintf(debugFile," *** Cgmp::multiDomainAdvanceNew: t=%e, dt=%e, tFinal=%e, timeStepHasChanged=%i *** \n",t,dt,tFinal,(int)timeStepHasChanged);
 
@@ -160,11 +166,20 @@ multiDomainAdvanceNew( real &t, real & tFinal )
     bool interfaceIterationsHaveConverged=false;
     std::vector<AdvanceOptions> advanceOptions(numberOfDomains);  
 
+    int & globalStepNumber = parameters.dbase.get<int >("globalStepNumber");
+
     for( int i=0; i<numberOfSubSteps; i++ )
     {
-        parameters.dbase.get<int >("globalStepNumber")++;
+        globalStepNumber++;
 
         const int next = (current+1) %2;
+
+        if( debug() & 2 )
+            printF("\n"
+                          "#######################################################################################################\n"
+                          "############ multiDomainAdvanceNew - START STEP %i, t=%8.2e -> t+dt=%8.2e ##########################\n"
+                          "#######################################################################################################\n\n",
+                          globalStepNumber,t,t+dt);
 
         std::vector<int> gfIndex(numberOfDomains,-1);  // keep track of which GridFunction to use for each domain
         int numberOfRequiredCorrectorSteps=0;          // The minimum number of corrector steps that we must take
@@ -193,7 +208,7 @@ multiDomainAdvanceNew( real &t, real & tFinal )
         {
             fPrintF(interfaceFile,
                             "\n --- Start of step: t=%9.3e globalStep=%i numberOfCorrectorSteps=%i required=%i coupled=%i ---\n",
-            	      t,parameters.dbase.get<int >("globalStepNumber"),numberOfCorrectorSteps,numberOfRequiredCorrectorSteps,
+            	      t,globalStepNumber,numberOfCorrectorSteps,numberOfRequiredCorrectorSteps,
                             int(solveCoupledInterfaceEquations));
         }
 
@@ -202,14 +217,20 @@ multiDomainAdvanceNew( real &t, real & tFinal )
                 && ( alwaysSetBoundaryData || !solveCoupledInterfaceEquations) ) // -- this is not right with AMR
         {
       // Check how well the interface equations are satisfied at the start of the step
-      // NOTE: interface history values are saved here
+
+      // **** NOTE: interface history values are saved here ****
+            if( debug() & 2 )
+                printF("\n"
+                              "+++++++++++++++++++++++++++ STEP=%i t=+dt=%8.2e GET INTERFACE RESIDUALS ++++++++++++++++++++++++++++++++++++++++\n\n",
+                              globalStepNumber,t+dt);
+
             getInterfaceResiduals( t, dt, gfIndex, maxResidual, saveInterfaceTimeHistoryValues );
             if( debug() & 2 )
             {
       	for( int inter=0; inter<maxResidual.size(); inter++ )
       	{
-        	  printF(" --- Before time step %i (t=%9.3e) : interface %i : max-interface-residual=%8.2e\n",
-             		 parameters.dbase.get<int >("globalStepNumber"),t,inter,maxResidual[inter]);
+        	  printF("--MP-- Before time step %i (t=%9.3e) : interface %i : max-interface-residual=%8.2e\n",
+             		 globalStepNumber,t,inter,maxResidual[inter]);
       	}
             }
         }
@@ -218,16 +239,36 @@ multiDomainAdvanceNew( real &t, real & tFinal )
 
         for( int correct=0; correct<=numberOfCorrectorSteps; correct++ )
         {
+        if( debug() & 2 )
+            printF("\n"
+                          "+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++\n"
+                          "+++++++++++++++++++++++ STEP=%i t=%8.2e -> t+dt=%8.2e START CORRECTION STAGE %i +++++++++++++++++++++++++++++++\n"
+                          "+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++\n\n",
+                          globalStepNumber,t,t+dt,correct);
+
       // Stage I: advance the solution but do not apply (interface) BC's
             bool gridHasChanged=false;
             ForDomainOrdered(d)
             {
+      	if( debug() & 2 )
+                    printF("\n"
+                                  "++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++\n"
+                                  "++++++ MDA: ASSIGN INTERFACE RHS for domain %s (d=%i,dd=%i) correct=%i t+dt=%8.2e ++++++\n"
+                                  "++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++\n\n",
+                                (const char*)domainSolver[d]->getName(),d,dd,correct,t+dt);
         // For FSI we need a guess for the new solid location *wdh* 101108 
         // -- could do better here: these values are not always needed  ---
       	if( alwaysSetBoundaryData || !solveCoupledInterfaceEquations )
       	{
         	  assignInterfaceRightHandSide( d, t+dt, dt, correct, gfIndex );
       	}
+
+      	if( debug() & 2 )
+                    printF("\n"
+                                  "++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++\n"
+                                  "++++++ MDA: takeTimeStep (no BCs) for domain %s (d=%i,dd=%i) correct=%i t+dt=%8.2e ++++++\n"
+                                  "++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++\n\n",
+                                (const char*)domainSolver[d]->getName(),d,dd,correct,t+dt);
 
                 advanceOptions[d].takeTimeStepOption=AdvanceOptions::takeStepButDoNotApplyBoundaryConditions;
 
@@ -242,7 +283,7 @@ multiDomainAdvanceNew( real &t, real & tFinal )
             if( gridHasChanged )
             { 
 	// we need to redefine the interfaces if the grid has changed
-      	printF("\n *-*-* Cgmp::multiDomainAdvanceNew: The grids has CHANGED : re-init the interfaces *-*-*\n\n");
+      	printF("\n *-*-* Cgmp::multiDomainAdvanceNew: The grid has CHANGED : re-init the interfaces *-*-*\n\n");
       	if( alwaysSetBoundaryData || !solveCoupledInterfaceEquations )
       	{
         	  initializeInterfaces(gfIndex); // this will re-define the interfaces
@@ -262,6 +303,13 @@ multiDomainAdvanceNew( real &t, real & tFinal )
       // Stage III: evaluate the interface conditions and apply the boundary conditions
             ForDomainOrdered(d)
             {
+      	if( debug() & 2 )
+                    printF("\n"
+                                  "++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++\n"
+                                  "++++++ MDA: ASSIGN INTERFACE RHS for domain %s (d=%i,dd=%i) correct=%i t+dt=%8.2e ++++++\n"
+                                  "++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++\n\n",
+                                (const char*)domainSolver[d]->getName(),d,dd,correct,t+dt);
+
 	// Assign the RHS for the interface equations on domain d 
         // We could extrapolate the values of the RHS from previous times as an inital guess (correct=0)
         // or use the current guess (correct >0)
@@ -269,11 +317,14 @@ multiDomainAdvanceNew( real &t, real & tFinal )
       	{
         	  assignInterfaceRightHandSide( d, t+dt, dt, correct, gfIndex );
       	}
-      	
-      	if( debug() & 2 )
-                    printF("\n *** multiDomainAdvanceNew: takeTimeStep for domain %s (d=%i,dd=%i) correct=%i t=%8.2e ***\n\n",
-                                (const char*)domainSolver[d]->getName(),d,dd,correct,t);
 
+      	if( debug() & 2 )
+                    printF("\n"
+                                  "++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++\n"
+                                  "++++++ MDA: APPLY BCS only for domain %s (d=%i,dd=%i) correct=%i t+dt=%8.2e ++++++\n"
+                                  "++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++\n\n",
+                                (const char*)domainSolver[d]->getName(),d,dd,correct,t+dt);
+      	
                 advanceOptions[d].takeTimeStepOption=AdvanceOptions::applyBoundaryConditionsOnly;
 
         // domainSolver[d]->parameters.dbase.get<int>("applyInterfaceBoundaryConditions")=0;  // *** TESTING
@@ -307,6 +358,10 @@ multiDomainAdvanceNew( real &t, real & tFinal )
              		 "Use domain solver BC routines\n");
             }
             
+        if( debug() & 2 )
+            printF("\n"
+                          "++++++++++++++++++++ STEP=%i t+dt=%8.2e CHECK FOR CONVERGENCE, CORRECTION %i ++++++++++++++++++++++++++++++\n\n",
+                          globalStepNumber,t+dt,correct);
             
 
       // -- check for convergence --
@@ -322,6 +377,11 @@ multiDomainAdvanceNew( real &t, real & tFinal )
             if( hasConverged ) break;
 
             
+        if( debug() & 2 )
+            printF("\n"
+                          "+++++++++++++++++++++ STEP=%i t+dt=%8.2e END CORRECTION STAGE %i +++++++++++++++++++++++++++++++++++++\n\n",
+                          globalStepNumber,t+dt,correct);
+
         } // end correct 
         
         ForDomainOrdered(d)

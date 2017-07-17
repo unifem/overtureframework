@@ -106,7 +106,7 @@ static int
 addPrefix(const aString label[], const aString & prefix, aString cmd[], const int maxCommands);
 
 void 
-advance( int current, real t, real dt );
+advance( int current, real t, real dt, AdvanceOptions *pAdvanceOptions=NULL );
   
 // advance the solution as a first-order system
 void 
@@ -253,11 +253,26 @@ getErrors( int current, real t, real dt, const aString & label =nullString );
 int 
 getForcing( int current, int grid, realArray & u , real t, real dt, int option=0 );
   
+int
+getKnownInterfaceState( Parameters::DeformingBodyStateOptionEnum stateOption,
+                        const real t, const int side, const int axis, const int grid, 
+                        MappedGrid & mg, const Index & I1, const Index & I2, const Index & I3, const Range & C, 
+                        RealArray & state );
+
 virtual int 
 getInitialConditions(const aString & command = nullString,
 		     DialogData *interface =NULL,
 		     GUIState *guiState = NULL,
 		     DialogState *dialogState = NULL );
+
+// Return the acceleration on the interface for FSI problems:
+int
+getInterfaceAcceleration( GridFaceDescriptor & gfd, const real t, const int side, const int axis, const int grid, 
+                          MappedGrid & mg, const Index & I1, const Index & I2, const Index & I3, const Range & C, 
+                          RealArray & f );
+
+int 
+getInterfaceBoundaryData( int current );
 
 void 
 getMaxDivAndCurl( const int current, real t, 
@@ -290,7 +305,7 @@ interfaceRightHandSide( InterfaceOptionsEnum option,
                         int interfaceDataOptions,
                         GridFaceDescriptor & info, 
 			GridFaceDescriptor & gfd, 
-			int gfIndex, real t );
+			int gfIndex, real t, bool saveTimeHistory = false );
 
 int 
 outputResults( int current, real t, real dt );

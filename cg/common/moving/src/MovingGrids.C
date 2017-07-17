@@ -2593,13 +2593,10 @@ getGridVelocity( GridFunction & gf0, const real & tGV )
     MappedGrid & c = gf0.cg[grid];
     //RealArray & gridVelocity = gf0.gridVelocity[grid];  OLD WAY **pf
     realArray & gridVelocity = gf0.getGridVelocity(grid);
-#ifdef USE_PPP
-    realSerialArray gridVelocityLocal; getLocalArrayWithGhostBoundaries(gridVelocity,gridVelocityLocal);
-#else
-    realSerialArray & gridVelocityLocal=gridVelocity;
-#endif
+    OV_GET_SERIAL_ARRAY(real,gridVelocity,gridVelocityLocal);
+    
 
-    if (movingGrid(grid))
+    if( movingGrid(grid) )
     {
       if ( deformingBody == moveOption(grid) ) 
       {
@@ -2640,7 +2637,7 @@ getGridVelocity( GridFunction & gf0, const real & tGV )
 	      getBoundaryIndex(c.gridIndexRange(),side,axis,Ib1,Ib2,Ib3);
 	      realSerialArray boundaryVelocity(Ib1,Ib2,Ib3, c.numberOfDimensions());
 	      boundaryVelocity  =  0.;
-	      deformingBodyList[b]->getVelocityBC( tGV, grid, c, Ib1,Ib2,Ib3, boundaryVelocity  );
+	      deformingBodyList[b]->getVelocityBC( tGV, side,axis, grid, c, Ib1,Ib2,Ib3, boundaryVelocity  );
 
 	      gridVelocityLocal(Ib1,Ib2,Ib3,Rx) = boundaryVelocity(Ib1,Ib2,Ib3,Rx); 
 
@@ -2662,7 +2659,7 @@ getGridVelocity( GridFunction & gf0, const real & tGV )
 		getBoundaryIndex(c.gridIndexRange(),side,axis,Ib1,Ib2,Ib3);
 		realSerialArray boundaryVelocity(Ib1,Ib2,Ib3, c.numberOfDimensions());
 		boundaryVelocity  =  0.;
-		deformingBodyList[b]->getVelocityBC( tGV, grid, c, Ib1,Ib2,Ib3, boundaryVelocity  );
+		deformingBodyList[b]->getVelocityBC( tGV, side,axis,grid, c, Ib1,Ib2,Ib3, boundaryVelocity  );
 
 		gridVelocityLocal(Ib1,Ib2,Ib3,Icoord) = boundaryVelocity(Ib1,Ib2,Ib3,Icoord);
 
