@@ -181,9 +181,7 @@ gridAccelerationBC(const int & grid,
 	  //    -  nv.sigmaSolid.nv
 	  //    - (zp*dt) nv.d(vSolid)/dt 
 
-	  // Add on traction term  from AMP BC
-	  // For two sided beams there are contributions from both sides
-	  // f +=  [ nv^T( tau ) nv]_+^-   //Longfei 20170105: FIX ME..... The other side not included!!!!!
+
           // ---------------------------------------------------------------------------
           // --- the traction interface data is set in Cgins::interfaceRightHandSide ---
           // ---------------------------------------------------------------------------
@@ -288,7 +286,6 @@ gridAccelerationBC(const int & grid,
 				    normal(I1,I2,I3,1)*(stressLocal(I1,I2,I3,1)-solidTraction(I1,I2,I3,1)) ) 
 	      -fluidDensity*uLocal(I1,I2,I3,pc);
 	    
-	    // Longfei 20170106: // For two sided beams we need to adjust the opposite side 
 	    
 	    if( t0 <= 3.*dt && debug() & 8 )
             {
@@ -336,103 +333,6 @@ gridAccelerationBC(const int & grid,
             }
             
 
-
-// >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-// ********** WHY IS THIS HERE -- THIS IS FOR THE BEAM ****************
-	    bool addDonorContribution=true;
-	    if(addDonorContribution)
-	    {
-	      // *NEW WAY*
-
-	      int iv[3], &i1=iv[0], &i2=iv[1], &i3=iv[2];
-	      int isv[3], &is1=isv[0], &is2=isv[1], &is3=isv[2];
-
-	      MappedGrid & mg = gf0.cg[grid];
-	      const IntegerArray & gid = mg.gridIndexRange();
-	      for( int dir=0; dir<3; dir++ ){ iv[dir]=gid(0,dir); } //
-	      const int axisp1= (axis +1) % numberOfDimensions;
-	  
-	      for( int body=0; body<numberOfDeformingBodies; body++ ) // *FIX* We know the body number from above ***
-		{
-		  DeformingBodyMotion & deformingBody = movingGrids.getDeformingBody(body);
-		  if( !deformingBody.beamModelHasFluidOnTwoSides() )
-		    { // this is NOT a beam model with fluid on two sides.
-		      continue;   
-		    }
-
-		  DataBase & deformingBodyDataBase = deformingBody.deformingBodyDataBase;
-		  const int & numberOfFaces = deformingBodyDataBase.get<int>("numberOfFaces");
-		  const IntegerArray & boundaryFaces = deformingBodyDataBase.get<IntegerArray>("boundaryFaces");
-
-		  // --- beam-fluid interface data is stored here:
-		  BeamFluidInterfaceData &  beamFluidInterfaceData = 
-		    deformingBodyDataBase.get<BeamFluidInterfaceData>("beamFluidInterfaceData");
-		  IntegerArray *& donorInfoArray = beamFluidInterfaceData.dbase.get<IntegerArray*>("donorInfoArray");
-
-		  is1=is2=is3=0;
-		  isv[axis]=1-2*side;
-
-		  for( int face=0; face<numberOfFaces; face++ )
-		    {
-		      const int side0=boundaryFaces(0,face);
-		      const int axis0=boundaryFaces(1,face);
-		      const int grid0=boundaryFaces(2,face); 
-		      if( grid0==grid && side0==side && axis0==axis )  // beam face is found
-			{
-			  const IntegerArray & donorInfo= donorInfoArray[face]; 
-			  Range I0=donorInfo.dimension(0);
-			  for( int i=I0.getBase(); i<=I0.getBound(); i++ )  // NOTE: loop index i is incremented below
-			    {
-			      // Here is the donor on the opposite face of the beam:
-			      const int grid1 = donorInfo(i,0), side1=donorInfo(i,1), axis1=donorInfo(i,2);
-
-			      if( grid1<0 )  // This means there is do opposite grid point -- could be the end of the beam
-				continue;
-
-			      assert( grid1>=0 && grid1<numberOfComponentGrids );
-		  
-			      const realArray & u1 = gf0.u[grid1];
-			      for( ; i<=I0.getBound(); i++ ) // NOTE: this increments "i" from the outer loop
-				{
-				  if( donorInfo(i,0)!=grid1 )
-				    {
-				      i--;
-				      break;
-				    }
-				  // closest grid pt on opposite side:
-				  const int j1=donorInfo(i,3), j2=donorInfo(i,4), j3=donorInfo(i,5); 
-
-				  iv[axisp1]=i+gid(0,axisp1); // index that varies along the interface of grid
-				  int i1m=i1-is1, i2m=i2-is2, i3m=i3-is3; //  ghost point is (i1m,i2m,i3m)
-				  fLocal(i1m,i2m,i3m) -= (normal(i1,i2,i3,0)*stressLocal(j1,j2,j3,0) +  
-							  normal(i1,i2,i3,1)*stressLocal(j1,j2,j3,1) ) 
-				    -fluidDensity*uLocal(j1,j2,j3,pc)*(normal(i1,i2,i3,0)*normal(j1,j2,j3,0)+normal(i1,i2,i3,1)*normal(j1,j2,j3,1));
-				  if(false)
-				    {
-				      printF("i1m=%d, i2m=%d, i3m=%d, i1=%d, i2=%d, i3=%d, j1=%d, j2=%d, j3=%d\n",i1m,i2m,i3m,i1,i2,i3,j1,j2,j3);
-				      cout << "normal(i1,i2,i3,0)=" << normal(i1,i2,i3,0) << endl;
-				      cout << "normal(i1,i2,i3,1)=" << normal(i1,i2,i3,1) << endl;
-				      cout << "stressLocal(j1,j2,j3,0)="<< stressLocal(j1,j2,j3,0) << endl;
-				      cout << "stressLocal(j1,j2,j3,1)="<< stressLocal(j1,j2,j3,1) << endl;
-				      cout << "uLocal(j1,j2,j3,pc)=" << uLocal(j1,j2,j3,pc) << endl;
-				      cout << "fLocal(i1m,i2m,i3m)=" << fLocal(i1m,i2m,i3m) << endl;
-				    }
-
-				}
-			    }
-			}
-		    }
-		}
-	  
-	    } // end if add donor contribution
-            
-	    if(false)
-            {
-              ::display( fLocal(I1g,I2g,I3g),"after adding opposite contribution:","%10.2e");
-            }
-// <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
-
-
           }
 	  else
 	  {
@@ -474,7 +374,7 @@ gridAccelerationBC(const int & grid,
 
 	      // Add on traction term  from AMP BC
 	      // For two sided beams there are contributions from both sides
-	      // f +=  [ nv^T( tau ) nv]_+^- 
+	      // f +=  [ nv^T( tau ) nv]_+^-   //Longfei 20170105: FIX ME..... The other side not included!!!!!
 
 	      // --- compute the forces on the surface ---
 	      int ipar[] = {grid,side,axis,gf0.form}; // 
@@ -486,33 +386,133 @@ gridAccelerationBC(const int & grid,
 	      OV_GET_SERIAL_ARRAY(real,u,uLocal);
 
 	      if( numberOfDimensions==2 )
-	      {
-		// ADD viscous traction term (remove the pressure component)
-		// AMP:   p + (rhos*hs)/rho p.n = L   + n^T tau n    (plus sign)
-		if( t0 < 10.*dt  )
 		{
-		  RealArray nTaun(I1,I2,I3);
-		  nTaun=(normal(I1,I2,I3,0)*stressLocal(I1,I2,I3,0) +  
-			 normal(I1,I2,I3,1)*stressLocal(I1,I2,I3,1) ) 
+		  // ADD viscous traction term (remove the pressure component)
+		  // AMP:   p + (rhos*hs)/rho p.n = L   + n^T tau n    (plus sign)
+		  if( t0 < 10.*dt  )
+		    {
+		      RealArray nTaun(I1,I2,I3);
+		      nTaun=(normal(I1,I2,I3,0)*stressLocal(I1,I2,I3,0) +  
+			     normal(I1,I2,I3,1)*stressLocal(I1,I2,I3,1) ) 
+			-fluidDensity*uLocal(I1,I2,I3,pc);
+
+		      printF("--INS-- Approx. AMP BC: (side,axis,grid)=(%i,%i,%i) t=%9.3e |n.taun|=%8.2e\n",side,axis,grid,t0,max(fabs(nTaun)));
+		    }
+	  
+		  if(false){::display( fLocal(I1g,I2g,I3g),"before add the stress:","%10.2e");}
+
+		  // **** CHECK SIGNS HERE OF VISCOUS STRESS**** *WDH* Nov 25, 2016
+		  // Longfei 20170104 change to -=  since what we computed is actually -nTaun (it was +=)
+		  fLocal(I1g,I2g,I3g) -= (normal(I1,I2,I3,0)*stressLocal(I1,I2,I3,0) +  
+					  normal(I1,I2,I3,1)*stressLocal(I1,I2,I3,1) ) 
 		    -fluidDensity*uLocal(I1,I2,I3,pc);
 
-		  printF("--INS-- Approx. AMP BC: (side,axis,grid)=(%i,%i,%i) t=%9.3e |n.taun|=%8.2e\n",side,axis,grid,t0,max(fabs(nTaun)));
-		}
-	  
-                // **** CHECK SIGNS HERE OF VISCOUS STRESS**** *WDH* Nov 25, 2016
-  	        // Longfei 20170104 change to -=  since what we computed is actually -nTaun (it was +=)
-	        fLocal(I1g,I2g,I3g) -= (normal(I1,I2,I3,0)*stressLocal(I1,I2,I3,0) +  
-				        normal(I1,I2,I3,1)*stressLocal(I1,I2,I3,1) ) 
-		                        -fluidDensity*uLocal(I1,I2,I3,pc);
+		  // old:
+		  // fLocal(I1g,I2g,I3g) += (normal(I1,I2,I3,0)*stressLocal(I1,I2,I3,0) +  
+		  // 			normal(I1,I2,I3,1)*stressLocal(I1,I2,I3,1) ) 
+		  //   -fluidDensity*uLocal(I1,I2,I3,pc);
 
-                // old:
-		// fLocal(I1g,I2g,I3g) += (normal(I1,I2,I3,0)*stressLocal(I1,I2,I3,0) +  
-		// 			normal(I1,I2,I3,1)*stressLocal(I1,I2,I3,1) ) 
-		//   -fluidDensity*uLocal(I1,I2,I3,pc);
-	      }
+		  // Longfei 20170106: // For two sided beams we need to adjust the opposite side 
+
+		  if(false){::display( fLocal(I1g,I2g,I3g),"before adding opposite contribution:","%10.2e");}
+
+		  bool addDonorContribution=true;
+		  if(addDonorContribution)
+		    {
+		      // *NEW WAY*
+
+		      int iv[3], &i1=iv[0], &i2=iv[1], &i3=iv[2];
+		      int isv[3], &is1=isv[0], &is2=isv[1], &is3=isv[2];
+
+		      MappedGrid & mg = gf0.cg[grid];
+		      const IntegerArray & gid = mg.gridIndexRange();
+		      for( int dir=0; dir<3; dir++ ){ iv[dir]=gid(0,dir); } //
+		      const int axisp1= (axis +1) % numberOfDimensions;
+	  
+		      for( int body=0; body<numberOfDeformingBodies; body++ ) // *FIX* We know the body number from above ***
+			{
+			  DeformingBodyMotion & deformingBody = movingGrids.getDeformingBody(body);
+			  if( !deformingBody.beamModelHasFluidOnTwoSides() )
+			    { // this is NOT a beam model with fluid on two sides.
+			      continue;   
+			    }
+
+			  DataBase & deformingBodyDataBase = deformingBody.deformingBodyDataBase;
+			  const int & numberOfFaces = deformingBodyDataBase.get<int>("numberOfFaces");
+			  const IntegerArray & boundaryFaces = deformingBodyDataBase.get<IntegerArray>("boundaryFaces");
+
+			  // --- beam-fluid interface data is stored here:
+			  BeamFluidInterfaceData &  beamFluidInterfaceData = 
+			    deformingBodyDataBase.get<BeamFluidInterfaceData>("beamFluidInterfaceData");
+			  IntegerArray *& donorInfoArray = beamFluidInterfaceData.dbase.get<IntegerArray*>("donorInfoArray");
+
+			  is1=is2=is3=0;
+			  isv[axis]=1-2*side;
+
+			  for( int face=0; face<numberOfFaces; face++ )
+			    {
+			      const int side0=boundaryFaces(0,face);
+			      const int axis0=boundaryFaces(1,face);
+			      const int grid0=boundaryFaces(2,face); 
+			      if( grid0==grid && side0==side && axis0==axis )  // beam face is found
+				{
+				  const IntegerArray & donorInfo= donorInfoArray[face]; 
+				  Range I0=donorInfo.dimension(0);
+				  for( int i=I0.getBase(); i<=I0.getBound(); i++ )  // NOTE: loop index i is incremented below
+				    {
+				      // Here is the donor on the opposite face of the beam:
+				      const int grid1 = donorInfo(i,0), side1=donorInfo(i,1), axis1=donorInfo(i,2);
+
+				      if( grid1<0 )  // This means there is do opposite grid point -- could be the end of the beam
+					continue;
+
+				      assert( grid1>=0 && grid1<numberOfComponentGrids );
+		  
+				      const realArray & u1 = gf0.u[grid1];
+				      for( ; i<=I0.getBound(); i++ ) // NOTE: this increments "i" from the outer loop
+					{
+					  if( donorInfo(i,0)!=grid1 )
+					    {
+					      i--;
+					      break;
+					    }
+					  // closest grid pt on opposite side:
+					  const int j1=donorInfo(i,3), j2=donorInfo(i,4), j3=donorInfo(i,5); 
+
+					  iv[axisp1]=i+gid(0,axisp1); // index that varies along the interface of grid
+					  int i1m=i1-is1, i2m=i2-is2, i3m=i3-is3; //  ghost point is (i1m,i2m,i3m)
+					  fLocal(i1m,i2m,i3m) -= (normal(i1,i2,i3,0)*stressLocal(j1,j2,j3,0) +  
+								  normal(i1,i2,i3,1)*stressLocal(j1,j2,j3,1) ) 
+					    -fluidDensity*uLocal(j1,j2,j3,pc)*(normal(i1,i2,i3,0)*normal(j1,j2,j3,0)+normal(i1,i2,i3,1)*normal(j1,j2,j3,1));
+					  if(false)
+					    {
+					      printF("i1m=%d, i2m=%d, i3m=%d, i1=%d, i2=%d, i3=%d, j1=%d, j2=%d, j3=%d\n",i1m,i2m,i3m,i1,i2,i3,j1,j2,j3);
+					      cout << "normal(i1,i2,i3,0)=" << normal(i1,i2,i3,0) << endl;
+					      cout << "normal(i1,i2,i3,1)=" << normal(i1,i2,i3,1) << endl;
+					      cout << "stressLocal(j1,j2,j3,0)="<< stressLocal(j1,j2,j3,0) << endl;
+					      cout << "stressLocal(j1,j2,j3,1)="<< stressLocal(j1,j2,j3,1) << endl;
+					      cout << "uLocal(j1,j2,j3,pc)=" << uLocal(j1,j2,j3,pc) << endl;
+					      cout << "fLocal(i1m,i2m,i3m)=" << fLocal(i1m,i2m,i3m) << endl;
+					    }
+
+					}
+				    }
+				}
+			    }
+			}
+	  
+		    } // end if add donor contribution
+            
+		  if(false)
+		    {
+		      ::display( fLocal(I1g,I2g,I3g),"after adding opposite contribution:","%10.2e");
+		    }
+		  
+		}
 	      else
 	      {
                 // **** CHECK SIGNS HERE OF VISCOUS STRESS**** *WDH* Nov 25, 2016
+		// Longfei 20170104 change to -=  since what we computed is actually -nTaun (it was +=)
 		fLocal(I1g,I2g,I3g) -= (normal(I1,I2,I3,0)*stressLocal(I1,I2,I3,0) +  
 					normal(I1,I2,I3,1)*stressLocal(I1,I2,I3,1) + 
 					normal(I1,I2,I3,2)*stressLocal(I1,I2,I3,2) ) 
