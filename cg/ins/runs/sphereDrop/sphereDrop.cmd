@@ -184,7 +184,7 @@ if( $go eq "run" || $go eq "go" ){ $go = "movie mode\n finish"; }
     OBPDE:divergence damping  $cdv
     # OBPDE:check for inflow at outflow
     # OBPDE:expect inflow at outflow
-    if( $bcOption eq "outflow" ){ $cmd = "use Neumann BC at outflow"; }else{ $cmd="#"; }
+    if( $bcOption eq "outflow" ||  $bcOption eq "outflowWall" ){ $cmd = "use Neumann BC at outflow"; }else{ $cmd="#"; }
     $cmd
     done
 # Gravity is done by adding a const forcing to the "v" equation 
@@ -218,8 +218,8 @@ if( $go eq "run" || $go eq "go" ){ $go = "movie mode\n finish"; }
        $density
      $pi=4.*atan2(1.,1.);
      $volume=4./3.*$pi*$radius**3; $mass=$density*$volume;
-#	 mass
-#	   $mass
+     mass
+	$mass
      $momentOfInertia=.4*$mass*$radius**2;
       moments of inertia
 	    $momentOfInertia $momentOfInertia $momentOfInertia
@@ -248,6 +248,10 @@ if( $go eq "run" || $go eq "go" ){ $go = "movie mode\n finish"; }
     all=noSlipWall
     $cmd="#";
     if( $bcOption eq "outflow"){$cmd="$channelName(1,1)=outflow, pressure(1.*p+0.*p.n=0.)\n";} 
+    #outflowWall: bottom neumann outflow and top noslipwall
+    if( $bcOption eq "outflowWall"){$cmd="$channelName(0,1)=outflow, pressure(1.*p+0.*p.n=0.)\n";} 
+    #inflowOutflow: bottom inflowWithPressureAndTangentialVelocityGiven (note p=0) and top outflow (extrapolation?)
+    if( $bcOption eq "inflowOutflow"){$cmd="$channelName(0,1)=inflowWithPressureAndTangentialVelocityGiven, uniform(u=0., w=0., p=0.)\n $channelName(1,1)=outflow\n";} 
     if( $bcOption eq "givenPressure" ){$cmd="$channelName(1,1)=inflowWithPressureAndTangentialVelocityGiven, uniform(u=0., w=0., p=1.)\n";}
     #"$channelName(1,1)=inflowWithPressureAndTangentialVelocityGiven, userDefinedBoundaryData\n";}
     $cmd
@@ -279,7 +283,8 @@ echo to terminal 1
 $project
 # 
 #
-if( $restart eq "" ){ $cmds = "uniform flow\n p=1, u=0, v=0, w=0"; }\
+#this uniform pressure can be dangerous. It is a very wild initial guess, only works for some cases
+if( $restart eq "" ){ $cmds = "uniform flow\n p=0, u=0, v=0, w=0"; }\
 else{ $cmds = "OBIC:show file name $restart\n OBIC:solution number -1 \n OBIC:assign solution from show file"; }
  initial conditions
   $cmds
@@ -290,7 +295,7 @@ else{ $cmds = "OBIC:show file name $restart\n OBIC:solution number -1 \n OBIC:as
 #
   plot:v
 #
-  # my slow start (this happens at between t=t0 to t=t0+tp) -QT
+  # my slow start (this happens between t=t0 to t=t0+tp) -QT
   if ($slowstartFactor ne 0){$cmds="continue\n plot:v\n dtMax $dtMax";}else{$cmds="#";}
   $cmds
   #if slowstartTime is defined, it needs get back to regular tPlot after slow start is finished

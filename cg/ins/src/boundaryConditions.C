@@ -899,6 +899,7 @@ setPressureConstraintValues( GridFunction & gf0, realCompositeGridFunction & f )
       for( int i=0; i<numberOfExtraEquations; i++ ){ value[i]=0.; }  // NOTE constraintValues are in reverse order
 
       // We provide an initial guess for the constraint equations for iterative solvers
+      // The initial guess is turned off if useAddedDampingAlgorithm is turned off
       real *initialGuess= new real[numberOfExtraEquations];
       for( int i=0; i<numberOfExtraEquations; i++ ){ initialGuess[i]=0.; }
 
@@ -967,8 +968,6 @@ setPressureConstraintValues( GridFunction & gf0, realCompositeGridFunction & f )
           int ival = totalNumberOfExtraEquations -extraEqn -1 -numberOfDenseExtraEquations;        // equations are stored in reverse order
 	  assert( ival<numberOfExtraEquations );
 
-          initialGuess[ival]=vDotPredicted(d);
-	  
 	  if( false )
 	  {
   	    value[ival] = mvDot(d) - bodyForceFromPressure(d,b);  // subtract off INT_B { -p nv } ds 
@@ -982,6 +981,7 @@ setPressureConstraintValues( GridFunction & gf0, realCompositeGridFunction & f )
 
 	  if( useAddedDampingAlgorithm )
 	  {
+            initialGuess[ival]=vDotPredicted(d);
 	    for( int dir2=0; dir2<3; dir2++ ) // note 3 for dimensions since AD tensor is always 3x3
 	    {
               value[ival] += dt*addedDampingTensors(d,dir2,vbc,vbc)*vDotPredicted(dir2);
@@ -995,7 +995,8 @@ setPressureConstraintValues( GridFunction & gf0, realCompositeGridFunction & f )
 	    printF("--INS--setPressureConstraintValues: body=%i, d=%i, m*a=%9.2e, bodyForce: "
                    "(pressure=%12.4e,viscous=%12.4e), value=%12.5e\n",
 		   b,d,mvDot(d),bodyForceFromPressure(d,b),bodyForceFromViscousStress(d,b),value[ival]);
-            printF(" dt=%9.3e, vDotPredicted=[%14.6e,%14.6e] addedDampingTensors(0,0,v,v)=%10.3e\n",
+	    if( useAddedDampingAlgorithm )
+                printF(" dt=%9.3e, vDotPredicted=[%14.6e,%14.6e] addedDampingTensors(0,0,v,v)=%10.3e\n",
 		   dt,vDotPredicted(0),vDotPredicted(1),addedDampingTensors(0,0,vbc,vbc));
 
 	  }
@@ -1009,8 +1010,6 @@ setPressureConstraintValues( GridFunction & gf0, realCompositeGridFunction & f )
 	  assert( ival<numberOfExtraEquations );
           int dir = numberOfDimensions==2 ? 2 : d;                    // In 2D we use component 2 of the angular acceleration
 
-          initialGuess[ival]=omegaDotPredicted(dir);
-
 	  if( false )
 	  {
      	    value[ival] = mOmegaDot(dir) - bodyTorqueFromPressure(dir,b);  
@@ -1023,6 +1022,7 @@ setPressureConstraintValues( GridFunction & gf0, realCompositeGridFunction & f )
 
 	  if( useAddedDampingAlgorithm )
 	  {
+            initialGuess[ival]=omegaDotPredicted(dir);
 	    for( int dir2=0; dir2<3; dir2++ )  // note 3 for dimensions since AD tensor is always 3x3
 	    {
 	      value[ival] += dt*addedDampingTensors(dir,dir2,wbc,vbc)*vDotPredicted(dir2);
@@ -1063,7 +1063,9 @@ setPressureConstraintValues( GridFunction & gf0, realCompositeGridFunction & f )
       {
 	initialGuess[0]=0.;  // initial guess for pressure mean unknown
       }
-      poisson->setExtraEquationValuesInitialGuess( initialGuess );
+
+      if( useAddedDampingAlgorithm )
+        poisson->setExtraEquationValuesInitialGuess( initialGuess );
 
       delete [] value;
       delete [] initialGuess;

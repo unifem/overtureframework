@@ -1002,7 +1002,11 @@ userDefinedBoundaryValues(const real & t,
 	}
 	else
 	{
+#ifndef USE_PPP
 	  mg.update(MappedGrid::THEvertex);
+#else
+	  OV_ABORT("mg.update may contain parallel call; may need fix");
+#endif
 	  const RealArray & vertex = mg.vertex().getLocalArray(); // no need to use if rectangular ************
 	  
 	  if( forcingType==computeForcing )
@@ -1089,10 +1093,11 @@ userDefinedBoundaryValues(const real & t,
 	// assign values for inflow velocity: The first 3 components are the values of (u,v,w) on the boundary.
 	numberOfSidesAssigned++;
 
+	mg.update(MappedGrid::THEvertex);
+
 	bool ok=ParallelUtility::getLocalArrayBounds(u,uLocal,Ib1,Ib2,Ib3,includeGhost);
 	if( !ok ) continue;  // no points on this processor
 
-	mg.update(MappedGrid::THEvertex);
         const RealArray & vertex = mg.vertex().getLocalArray();
 
 	RealArray & bd = parameters.getBoundaryData(side,axis,grid,mg);
@@ -1145,11 +1150,11 @@ userDefinedBoundaryValues(const real & t,
 	// assign values for inflow velocity: The first 3 components are the values of (u,v,w) on the boundary.
 	numberOfSidesAssigned++;
 
+	mg.update(MappedGrid::THEvertex);
+
 	bool ok=ParallelUtility::getLocalArrayBounds(u,uLocal,Ib1,Ib2,Ib3,includeGhost);
 	if( !ok ) continue;  // no points on this processor
 
-
-	mg.update(MappedGrid::THEvertex);
         const RealArray & vertex = mg.vertex().getLocalArray();
 
 	RealArray & bd = parameters.getBoundaryData(side,axis,grid,mg);
@@ -1191,11 +1196,12 @@ userDefinedBoundaryValues(const real & t,
 	// assign values for inflow velocity: The first 3 components are the values of (u,v,w) on the boundary.
 	numberOfSidesAssigned++;
 
+	mg.update(MappedGrid::THEvertex);
+
 	bool ok=ParallelUtility::getLocalArrayBounds(u,uLocal,Ib1,Ib2,Ib3,includeGhost);
 	if( !ok ) continue;  // no points on this processor
 
 
-	mg.update(MappedGrid::THEvertex);
         const RealArray & vertex = mg.vertex().getLocalArray();
 
 	RealArray & bd = parameters.getBoundaryData(side,axis,grid,mg);
@@ -1271,7 +1277,11 @@ userDefinedBoundaryValues(const real & t,
 	}
 	else
 	{
+#ifndef USE_PPP
 	  mg.update(MappedGrid::THEvertex);
+#else
+	  OV_ABORT("mg.update may contain parallel call; may need fix");
+#endif
 	  const RealArray & vertex = mg.vertex().getLocalArray();
 	  //	      RealArray scale(Ib1,Ib2,Ib3);
 
@@ -1306,6 +1316,7 @@ userDefinedBoundaryValues(const real & t,
 	int extra=1;
 	getBoundaryIndex(mg.gridIndexRange(),side,axis,Ib1,Ib2,Ib3,extra);
 
+	mg.update(MappedGrid::THEvertex);
 
 	bool ok=ParallelUtility::getLocalArrayBounds(u,uLocal,Ib1,Ib2,Ib3,includeGhost);
 	if( !ok ) continue;  // no points on this processor
@@ -1318,8 +1329,6 @@ userDefinedBoundaryValues(const real & t,
 	assert( tc>=0 );
 
 	// *** fix me for rectangular ***
-
-	mg.update(MappedGrid::THEvertex);
 	OV_GET_SERIAL_ARRAY_CONST(real,mg.vertex(),vertex);
 
 	int i1,i2,i3;
@@ -1473,10 +1482,11 @@ userDefinedBoundaryValues(const real & t,
 	real inflowTemperature=values(1);  // Temperature at inflow
 	
 	// Here is the (outward) normal -- We could optimize this for rectangular grids --
-	mg.update(MappedGrid::THEvertexBoundaryNormal);
         #ifdef USE_PPP
+	  OV_ABORT("mg.update may contain parallel call; may need fix");
 	  const realSerialArray & normal = mg.vertexBoundaryNormalArray(side,axis);
         #else
+	  mg.update(MappedGrid::THEvertexBoundaryNormal);
 	  const realSerialArray & normal = mg.vertexBoundaryNormal(side,axis);
         #endif
 
@@ -1754,12 +1764,13 @@ userDefinedBoundaryValues(const real & t,
 	real tMax=values(1);
 
         getBoundaryIndex(mg.gridIndexRange(),side,axis,Ib1,Ib2,Ib3);
+
+        // -- we could avoid building the vertex array on Cartesian grids ---
+	mg.update(MappedGrid::THEvertex | MappedGrid::THEcenter);
 	
 	bool ok=ParallelUtility::getLocalArrayBounds(u,uLocal,Ib1,Ib2,Ib3,includeGhost);
 	if( !ok ) continue;  // no points on this processor
 
-        // -- we could avoid building the vertex array on Cartesian grids ---
-	mg.update(MappedGrid::THEvertex | MappedGrid::THEcenter);
         OV_GET_SERIAL_ARRAY_CONST(real,mg.vertex(),x);
 
 
@@ -1813,18 +1824,19 @@ userDefinedBoundaryValues(const real & t,
 	real tP2 =values(3);
 
         getBoundaryIndex(mg.gridIndexRange(),side,axis,Ib1,Ib2,Ib3);
-	
-	bool ok=ParallelUtility::getLocalArrayBounds(u,uLocal,Ib1,Ib2,Ib3,includeGhost);
-	if( !ok ) continue;  // no points on this processor
 
         // -- we could avoid building the vertex array on Cartesian grids ---
 	mg.update(MappedGrid::THEvertex | MappedGrid::THEcenter);
+		
+	bool ok=ParallelUtility::getLocalArrayBounds(u,uLocal,Ib1,Ib2,Ib3,includeGhost);
+	if( !ok ) continue;  // no points on this processor
+
         OV_GET_SERIAL_ARRAY_CONST(real,mg.vertex(),x);
 
 	numberOfSidesAssigned++;
 
 	RealArray & bd = parameters.getBoundaryData(side,axis,grid,mg);
-        real factor=0.;
+        real factor;
 	if( forcingType==computeForcing )
 	{
           if( t>=0. && t<=tP1 )
@@ -1833,7 +1845,8 @@ userDefinedBoundaryValues(const real & t,
 	    factor=pMin*sin(Pi*(t-tP1)/tP2);
           else if (t>tP1+tP2/2.)
             factor=pMin;
-          //let factor=0 if t<0
+          else
+            factor=0.;
 	}
 	else 
 	{
@@ -1850,6 +1863,7 @@ userDefinedBoundaryValues(const real & t,
 	bd(Ib1,Ib2,Ib3,vc)=0.;
 	if( numberOfDimensions>2 )
 	  bd(Ib1,Ib2,Ib3,wc)=0.;	  
+
       }
       else if( userDefinedBoundaryValue=="polynomialInflowProfile" )
       {

@@ -48,6 +48,7 @@ $filter=0; $filterFrequency=1; $filterOrder=6; $filterStages=2;
 $option=""; 
 $freqFullUpdate=10; # frequency for using full ogen update in moving grids 
 $flushFrequency=10; 
+$imDebug=0;
 #
 $cp0=.1; $cpn=1.; # coefficients in pressure outflow BC (not supported)
 #
@@ -81,7 +82,7 @@ GetOptions( "g=s"=>\$grid,"tf=f"=>\$tFinal,"move=i"=>\$move,\
 "addedDamping=f"=>\$addedDamping,"addedDampingCoeff=f"=>\$addedDampingCoeff,\
 "scaleAddedDampingWithDt=f"=>\$scaleAddedDampingWithDt,"addedDampingProjectVelocity=f"=>\$addedDampingProjectVelocity,\
 "ycenter=f"=>\$ycenter,"inflowPressure=f"=>\$inflowPressure,\
-"bodyForce=s"=>\$bodyForce,"debug=i"=>\$debug,\
+"bodyForce=s"=>\$bodyForce,"debug=i"=>\$debug,"imDebug=i"=>\$imDebug,\
 "delta1=f"=>\$deltaAngle1,"epsilon1=f"=>\$epsilonAngle1,\
 "delta2=f"=>\$deltaAngle2,"epsilon2=f"=>\$epsilonAngle2,\
 "damp1=f"=>\$damp1,"damp2=f"=>\$damp2,\
@@ -318,14 +319,12 @@ $grid
 #
   pressure solver options
 #   $ogesDebug=$debug; $ogmgDebugcg=$debug; $ogmgDebug=$debug;
-   $imDebug=0;
    $ogesDebug=$imDebug; $ogmgDebugcg=$imDebug; $ogmgDebug=$imDebug;
    $ogesSolver=$psolver; $ogesRtol=$rtolp; $ogesAtol=$atolp; $ogesIluLevels=$iluLevels;  $ogesDtol=1e20; 
    include $ENV{CG}/ins/cmd/ogesOptions.h
   exit
 #
   implicit time step solver options
-   $imDebug=0;
    $ogesDebug=$imDebug; $ogmgDebugcg=$imDebug; $ogmgDebug=$imDebug;
    $ogesSolver=$solver; $ogesRtol=$rtol; $ogesAtol=$atol; 
    include $ENV{CG}/ins/cmd/ogesOptions.h

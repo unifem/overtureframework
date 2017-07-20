@@ -7,9 +7,103 @@ ogen -noplot heartValveGrid.cmd -interp=e -theta1=-20 -factor=1 -leaflets=1
 ++++++PLOTS and RUNS++++++
 $cgins -noplot heartValveMoving3d -g=heartValveGride1.order2.hdf -tf=1 -tp=.1 -dtMax=.025 -nu=.1 -mass=1e5 -inertia=.001 -xyinertia=1e5 -move=1 -bcOption=inflowGivenPressure -inflowPressure=10 -numberOfCorrections=2 -addedMass=1 -useProvidedAcceleration=1 -addedDamping=1 -addedDampingCoeff=1.0 -addedDampingProjectVelocity=1 -scaleAddedDampingWithDt=1 -solver=best -psolver=best -rtolp=1.e-5 -atolp=1.e-7 -rtol=1.e-7 -atol=1.e-9 -freqFullUpdate=1 -ycenter=0.15 -bodyForce=restrictAngleDamp -theta10=-1.05 -theta20=0.1 -delta1=0.1 -epsilon1=5.e-2 -delta2=0.1 -epsilon2=5.e-3 -damp1=20 -damp2=20 -show=heartValveG1.show -go=go -flushFrequency=2 > heartValveG1.out
 
-mpirun -np 8 $cginsp -noplot heartValveMoving3d -g=heartValveGride1.order2.hdf -tf=1 -tp=.1 -dtMax=.025 -nu=.1 -mass=1e5 -inertia=.001 -xyinertia=1e5 -move=1 -bcOption=inflowGivenPressure -inflowPressure=10 -numberOfCorrections=2 -addedMass=1 -useProvidedAcceleration=1 -addedDamping=1 -addedDampingCoeff=1.0 -addedDampingProjectVelocity=1 -scaleAddedDampingWithDt=1 -solver=best -psolver=best -rtolp=1.e-5 -atolp=1.e-7 -rtol=1.e-7 -atol=1.e-9 -freqFullUpdate=1 -ycenter=0.15 -bodyForce=restrictAngleDamp -theta10=-1.05 -theta20=0.1 -delta1=0.1 -epsilon1=5.e-2 -delta2=0.1 -epsilon2=5.e-3 -damp1=20 -damp2=20  -go=
+mpirun -np 8 $cginsp -noplot heartValveMoving3d -g=heartValveGride1.order2.hdf -tf=.1 -tp=.1 -dtMax=.025 -nu=.1 -mass=1e5 -inertia=.001 -xyinertia=1e5 -move=1 -bcOption=inflowGivenPressure -inflowPressure=10 -numberOfCorrections=2 -addedMass=1 -useProvidedAcceleration=1 -addedDamping=1 -addedDampingCoeff=1.0 -addedDampingProjectVelocity=1 -scaleAddedDampingWithDt=1 -solver=best -psolver=best -rtolp=1.e-5 -atolp=1.e-7 -rtol=1.e-7 -atol=1.e-9 -freqFullUpdate=1 -ycenter=0.15 -bodyForce=restrictAngleDamp -theta10=-1.05 -theta20=0.1 -delta1=0.1 -epsilon1=5.e-2 -delta2=0.1 -epsilon2=5.e-3 -damp1=20 -damp2=20  -go=go > heartValveG1np8.out
 
 plotStuff plotMove -show=heartValveG1.show
+
+7/12
+totalview to debug np=4
+grid 0, name=core. (Cartesian)
+grid 1, name=pipe. 
+grid 2, name=heartValveBottomUpper. 
+grid 3, name=heartValveBottomLower. 
+grid 4, name=heartValveTopUpper. 
+grid 5, name=heartValveTopLower. 
+grid 6, name=heartValveEdgeUpper. 
+grid 7, name=heartValveEdgeLower. 
+
+issue:
+update contains parallel call in userDefinedBoundaryConditions
+
+all the special boundary conditions work for multiple processors now
+
+after fix
+np=1
+cardiac3dG1np1fixed.out
+cpu=6.30e+03
+np=8
+cardiac3dG1np8fixed.out
+cpu=2.03e+03
+serial
+cardiac3dG1se.out
+cpu=6.37e+03
+
+it seems for this coarse grid the parallel code has a factor of 3.5 improvement compared to serial code (not compared to np=1)
+
+
+7/11
+parallel run (got stuck but the one in RUNS can run, why? not at bodyforce)
+$cgins -noplot heartValveMoving3d -g=heartValveGride1.order2.hdf -tf=.5 -tp=.1 -dtMax=.02 -nu=.1 -mass=1e5 -inertia=.001 -xyinertia=1e5 -move=1 -bcOption=inflowCardiacCycle -pMax=20 -tP1=1 -pMin=-40 -tP2=0.5 -numberOfCorrections=2 -addedMass=1 -useProvidedAcceleration=1 -addedDamping=1 -addedDampingCoeff=1.0 -addedDampingProjectVelocity=1 -scaleAddedDampingWithDt=1 -solver=best -psolver=best -rtolp=1.e-5 -atolp=1.e-7 -rtol=1.e-7 -atol=1.e-9 -freqFullUpdate=1 -ycenter=0.15 -bodyForce=restrictAngleDamp -theta10=-1.05 -theta20=0.1 -delta1=0.1 -epsilon1=5.e-2 -delta2=0.1 -epsilon2=5.e-3 -damp1=20 -damp2=20 -go=go > cardiac3dG1se.out
+
+np=2 OK
+np=4, 8 got stuck somewhere
+
+inflowPulsePressure behaves same
+np=2 OK
+np=4, 8 got stuck somewhere
+
+mpirun -np 4 $cginsp noplot heartValveMoving3d -g=heartValveGride1.order2.hdf -tf=.5 -tp=.1 -dtMax=.02 -nu=.1 -mass=1e5 -inertia=.001 -xyinertia=1e5 -move=1 -bcOption=inflowPulsePressure -pMax=20 -tMax=1 -numberOfCorrections=2 -addedMass=1 -useProvidedAcceleration=1 -addedDamping=1 -addedDampingCoeff=1.0 -addedDampingProjectVelocity=1 -scaleAddedDampingWithDt=1 -solver=best -psolver=best -rtolp=1.e-5 -atolp=1.e-7 -rtol=1.e-7 -atol=1.e-9 -freqFullUpdate=1 -ycenter=0.15 -bodyForce=restrictAngleDamp -theta10=-1.05 -theta20=0.1 -delta1=0.1  -epsilon2=5.e-3 -damp1=20 -damp2=20 -go=go -debug=1
+
+6/22
+generate movies G1
+cardiacG1movie.show
+
+6/21
+o fix grid generator (fullupdate=10); not helping
+* try multigrid
+* try other preconditioner: hypre
+
+note the body force is different from the 2d case!! todo: write a perl script to run cases (at least in 2D)
+
+debug the slow velocity solver (the result is reasonable)
+$cgins -noplot heartValveMoving3d -g=heartValveGride1.order2.hdf -tf=.5 -tp=.1 -dtMax=.02 -nu=.1 -mass=1e5 -inertia=.001 -xyinertia=1e5 -move=1 -bcOption=inflowCardiacCycle -pMax=20 -tP1=1 -pMin=-40 -tP2=0.5 -numberOfCorrections=2 -addedMass=1 -useProvidedAcceleration=1 -addedDamping=1 -addedDampingCoeff=1.0 -addedDampingProjectVelocity=1 -scaleAddedDampingWithDt=1 -solver=best -psolver=best -rtolp=1.e-5 -atolp=1.e-7 -rtol=1.e-7 -atol=1.e-9 -freqFullUpdate=1 -ycenter=0.15 -bodyForce=restrictAngleDamp -theta10=-1.05 -theta20=0.1 -delta1=0.1 -epsilon1=5.e-2 -delta2=0.1 -epsilon2=5.e-3 -damp1=20 -damp2=20 -go=go -flushFrequency=2 -imDebug=3 > cardiac3dG1debug.out
+------CPU RESULTS-------
+  ==== numberOfStepsTaken =85, number of grids=8, number of gridpts =908643, Np=1 (procs) ==== 
+  ==== tFinal=5.000e-01, tInitial=0.000e+00, dt(ave)=5.88e-03 ====
+  ==== memory/proc: [min=5880.38,ave=5880.38,max=5880.38]Mb, max-recorded=0 Mb, total=5880.38 Mb, 848.2 reals/(grid-pt)
+   Timings:           (ave-sec/proc:) seconds   sec/step    TPSM     TTS       %    [max-s/proc] [min-s/proc]
+total time.......................... 6.61e+03   7.77e+01  8.6e+01  3.6e+02  100.000   6.61e+03     6.61e+03
+setup and initialize................ 4.12e+01   4.84e-01  5.3e-01  2.3e+00    0.623   4.12e+01     4.12e+01
+advance............................. 6.57e+03   7.72e+01  8.5e+01  3.6e+02   99.377   6.57e+03     6.57e+03
+  compute du/dt..................... 3.83e+01   4.50e-01  5.0e-01  2.1e+00    0.580   3.83e+01     3.83e+01
+  boundary conditions............... 2.78e+00   3.27e-02  3.6e-02  1.5e-01    0.042   2.78e+00     2.78e+00
+  moving grids...................... 2.63e+03   3.10e+01  3.4e+01  1.4e+02   39.827   2.63e+03     2.63e+03
+    grid generation (ogen).......... 2.61e+03   3.07e+01  3.4e+01  1.4e+02   39.438   2.61e+03     2.61e+03
+  moving update grids,gf............ 2.53e-02   2.97e-04  3.3e-04  1.4e-03    0.000   2.53e-02     2.53e-02
+  moving update operators........... 2.92e+01   3.44e-01  3.8e-01  1.6e+00    0.442   2.92e+01     2.92e+01
+  moving update Interpolant......... 3.66e-03   4.31e-05  4.7e-05  2.0e-04    0.000   3.66e-03     3.66e-03
+  interpolate exposed pts........... 3.47e+01   4.08e-01  4.5e-01  1.9e+00    0.525   3.47e+01     3.47e+01
+  implicit time stepping............ 2.66e+03   3.13e+01  3.4e+01  1.5e+02   40.251   2.66e+03     2.66e+03
+  compute dt........................ 2.32e+01   2.72e-01  3.0e-01  1.3e+00    0.351   2.32e+01     2.32e+01
+  time independent variables........ 1.01e+03   1.19e+01  1.3e+01  5.6e+01   15.320   1.01e+03     1.01e+03
+    update pressure equation........ 6.57e+02   7.73e+00  8.5e+00  3.6e+01    9.948   6.57e+02     6.57e+02
+    pressure solve.................. 6.27e+02   7.37e+00  8.1e+00  3.4e+01    9.487   6.27e+02     6.27e+02
+    assign pressure rhs............. 5.67e+01   6.67e-01  7.3e-01  3.1e+00    0.858   5.67e+01     5.67e+01
+  plotting.......................... 9.25e-02   1.09e-03  1.2e-03  5.1e-03    0.001   9.25e-02     9.25e-02
+  showFile.......................... 1.00e-05   1.18e-07  1.3e-07  5.5e-07    0.000   1.00e-05     1.00e-05
+other............................... 2.00e-05   2.35e-07  2.6e-07  1.1e-06    0.000   2.00e-05     2.00e-05
+ waiting (not counted).............. 2.77e-04   3.26e-06  3.6e-06  1.5e-05    0.000   2.77e-04     2.77e-04
+
+change imDebug=0 and freqFullUpdate=1; see the results (this would be a shorter run)
+change imDebug=0 and freqFullUpdate=10; see the results
+
+***two old high-pressure 3DG1 run are deleted. too slow
+
+6/20 
+an slower case
+$cgins -noplot heartValveMoving3d -g=heartValveGride1.order2.hdf -tf=2 -tp=.1 -dtMax=.02 -nu=.1 -mass=1e5 -inertia=.001 -xyinertia=1e5 -move=1 -bcOption=inflowCardiacCycle -pMax=20 -tP1=1 -pMin=-40 -tP2=0.5 -numberOfCorrections=2 -addedMass=1 -useProvidedAcceleration=1 -addedDamping=1 -addedDampingCoeff=1.0 -addedDampingProjectVelocity=1 -scaleAddedDampingWithDt=1 -solver=best -psolver=best -rtolp=1.e-5 -atolp=1.e-7 -rtol=1.e-7 -atol=1.e-9 -freqFullUpdate=1 -ycenter=0.15 -bodyForce=restrictAngleDamp -theta10=-1.05 -theta20=0.1 -delta1=0.1 -epsilon1=5.e-2 -delta2=0.1 -epsilon2=5.e-3 -damp1=20 -damp2=20 -show=cardiac3dG1pre.show -go=go -flushFrequency=2 > cardiac3dG1pre.out
+
+G2 50 hours? no 6 days....
 
 6/19
 case2 (almost identical to 2d run; the time step become much smaller than case2 due to large speed)

@@ -1192,7 +1192,7 @@ buildMatrix( realCompositeGridFunction & coeff, realCompositeGridFunction & uu )
             maxWidth=max(width);
         }
 
-        int numDense=0; //fix me for multiple dense extra equation
+    //int numDense=0; it is not needed after dense equation fix
 
         for( int grid=0; grid<cg.numberOfComponentGrids(); grid++ )
         {  
@@ -1314,6 +1314,7 @@ buildMatrix( realCompositeGridFunction & coeff, realCompositeGridFunction & uu )
 
                 // Convert an Overture equation number "eqn" into a PETSc equation jg
                 // and find the processor p
+                // convertOvertureToPETSc(eqn,jg,grid);
                                     int jg,p;
                                     if( eqn<equationBounds(0,grid) || eqn>equationBounds(1,grid) )
                                     {
@@ -1361,6 +1362,7 @@ buildMatrix( realCompositeGridFunction & coeff, realCompositeGridFunction & uu )
                                 eqn = EQUATIONNUMBER(m,n,i1,i2,i3) - eqnBase;
 
                 // Convert an Overture equation number "eqn" into a PETSc equation jg
+                // convertOvertureToPETSc(eqn,jg,grid);
                                     int jg,p;
                                     if( eqn<equationBounds(0,grid) || eqn>equationBounds(1,grid) )
                                     {
@@ -1404,7 +1406,7 @@ buildMatrix( realCompositeGridFunction & coeff, realCompositeGridFunction & uu )
                         
                         if( problemIsSingular==addExtraEquation )
                         {
-              // Fill in dense extra equation
+              // Fill in the following equations
               //ierr = MatSetValues(A,1,&ig,1,&denseExtraEquation,&v,INSERT_VALUES);CHKERRQ(ierr);
               //ierr = MatSetValues(A,1,&denseExtraEquation,1,&ig,&v,INSERT_VALUES);CHKERRQ(ierr);
 
@@ -1419,7 +1421,7 @@ buildMatrix( realCompositeGridFunction & coeff, realCompositeGridFunction & uu )
                             else
                             {
                                     o_nnzv[igLocal]++;              
-                                    numDense++;
+                  //numDense++;
                             }
 
                         }
@@ -1431,13 +1433,15 @@ buildMatrix( realCompositeGridFunction & coeff, realCompositeGridFunction & uu )
             
         }  // end for grid
 
-        if (problemIsSingular==addExtraEquation)
+        /* the following part is not needed after the dense extra equation fix
+        if (problemIsSingular==addExtraEquation && numberOfProcessors>1)
         {
             numDense=ParallelUtility::getSum(numDense);
 
             if (pDenseExtraEquation==myid)
                     o_nnzv[denseExtraEquation-noffset(myid,0)]=numDense;
         }
+        */
     // end for fillInCount PART I
 
     // fillInCount PART II: user supplied extra equations
@@ -1807,6 +1811,7 @@ buildMatrix( realCompositeGridFunction & coeff, realCompositeGridFunction & uu )
             	      eqn = EQUATIONNUMBER(m,n,i1,i2,i3)-eqnBase;
 
               // Convert an Overture equation number "eqn" into a PETSc equation jg
+              // convertOvertureToPETSc(eqn,jg,grid);
                                 int jg,p;
                                 if( eqn<equationBounds(0,grid) || eqn>equationBounds(1,grid) )
                                 {
@@ -1829,9 +1834,6 @@ buildMatrix( realCompositeGridFunction & coeff, realCompositeGridFunction & uu )
                                     jg=getGlobalIndex( n1, jv, grid, p );  // get the global index
                                 }
                             
-              //if (ig==1058 || ig==1057 || ig==1059 || ig==2116 || ig==2115 || ig==2117)
-              //  printF("(ig,jg)=(%i,%i) , ",ig,jg);
-
             	      ierr = MatSetValues(A,1,&ig,1,&jg,&v,INSERT_VALUES);CHKERRQ(ierr);
 
             	      if( debug & 8 ) 
@@ -1861,6 +1863,7 @@ buildMatrix( realCompositeGridFunction & coeff, realCompositeGridFunction & uu )
                             eqn = EQUATIONNUMBER(m,n,i1,i2,i3) - eqnBase;
 
               // Convert an Overture equation number "eqn" into a PETSc equation jg
+              // convertOvertureToPETSc(eqn,jg,grid);
                                 int jg,p;
                                 if( eqn<equationBounds(0,grid) || eqn>equationBounds(1,grid) )
                                 {
@@ -1920,9 +1923,12 @@ buildMatrix( realCompositeGridFunction & coeff, realCompositeGridFunction & uu )
             // Add extra entry to each interior equation
                         ierr = MatSetValues(A,1,&ig,1,&denseExtraEquation,&v,INSERT_VALUES);CHKERRQ(ierr);
 
-            // Fill in dense extra equation:
-                        v=denseEquationScaleFactor;
-                        ierr = MatSetValues(A,1,&denseExtraEquation,1,&ig,&v,INSERT_VALUES);CHKERRQ(ierr);
+            // Fill in dense extra equation: only fill in on the last processor to avoid slow communications
+                        if (pDenseExtraEquation==myid)
+                        {
+                                v=denseEquationScaleFactor;
+                                ierr = MatSetValues(A,1,&denseExtraEquation,1,&ig,&v,INSERT_VALUES);CHKERRQ(ierr);
+                        }
                     }
 
                 }
@@ -2019,6 +2025,10 @@ buildMatrix( realCompositeGridFunction & coeff, realCompositeGridFunction & uu )
             int pj = uu[gridj].Array_Descriptor.findProcNum( jv );  // processor number
             int ig = getGlobalIndex( nj, jv, gridj, pj );
           
+      //For the extra equations with a lot of entries, this may lead to slow matrix assembly
+      //Ideally the equation should be filled in at the processor storing the equations
+      //Not sure if vectorizing will help much.
+
             if (true)
             {
         // ** non-vectorized ***
@@ -2102,6 +2112,7 @@ buildMatrix( realCompositeGridFunction & coeff, realCompositeGridFunction & uu )
            // timeInsert=ParallelUtility::getMaxValue(getCPU()-timeInsert);
            //printf("--PS-- myid=%i time to insert %i values for eqn %i is %9.2e\n",myid,numPerRow,iExtraEquation,timeInsert);
 
+           // the following vectors may be deleted too soon. PETSc matrix is likely prepared at MatAssembly
                       delete [] jgv;
                       delete [] vv;
 
@@ -2124,9 +2135,19 @@ buildMatrix( realCompositeGridFunction & coeff, realCompositeGridFunction & uu )
               MatAssemblyBegin(), MatAssemblyEnd()
           Computations can be done while messages are in transition
           by placing code between these two statements.
+          For the case that needs many communications across 
+          multiple processors, this step can be very slow.
     */
+    real cpu0=getCPU();
     ierr = MatAssemblyBegin(A,MAT_FINAL_ASSEMBLY);CHKERRQ(ierr);
     ierr = MatAssemblyEnd(A,MAT_FINAL_ASSEMBLY);CHKERRQ(ierr);
+    if (debug & 1)
+    {
+        cpu0 = getCPU()-cpu0;
+        cpu0 = ParallelUtility::getMaxValue(cpu0);
+        printF("--PES--- Time for assembling matrices=%9.2e(s)\n",cpu0);
+    }
+
 
     if( false && myid==0 )
     {
@@ -4091,7 +4112,15 @@ evaluateExtraEquation( const realCompositeGridFunction & u, real & value, real &
     sumOfExtraEquationCoefficients=0.;
     if( problemIsSingular==addExtraEquation )
     {
-        for( int grid=0; grid<cg.numberOfComponentGrids(); grid++ )
+      const IntegerArray & extraEquationNumber = oges.extraEquationNumber;
+      const int idense = extraEquationNumber(0);
+   // Convert an Oges equation number = idense to PETSc equation number= denseExtraEquation
+      int nj,gridj;
+      int jv[3], &j1=jv[0], &j2=jv[1], &j3=jv[2];
+      oges.equationToIndex( idense, nj,j1,j2,j3,gridj );
+      const int pDenseExtraEquation = u[gridj].Array_Descriptor.findProcNum( jv );  // processor number
+
+      for( int grid=0; grid<cg.numberOfComponentGrids(); grid++ )
         {
             const MappedGrid & mg = cg[grid];
 
@@ -4109,7 +4138,7 @@ evaluateExtraEquation( const realCompositeGridFunction & u, real & value, real &
             int i1,i2,i3,n=0;
             FOR_3D(i1,i2,i3,I1,I2,I3)
             {
-      	if( classify(i1,i2,i3,n)>0 )  // include interior and boundary 
+      	if( classify(i1,i2,i3,n)>0 && myid==pDenseExtraEquation)  // include interior and boundary 
       	{
         	  value+=uLocal(i1,i2,i3);
         	  sumOfExtraEquationCoefficients+=1;
