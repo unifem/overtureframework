@@ -2556,18 +2556,24 @@ projectInternalForce(const RealArray & internalForce,
   // interpolateSolution(ac, elemNum, eta, DDdisplacement, DDslope);
 
   
-  // Longfei 20170109:
-  // ******* TEST piecewise linear interpolation for internalForce, i.e., L(eta) **********
-  // BoundaryConditionEnum * boundaryConditions = dbase.get<BoundaryConditionEnum[2]>("boundaryConditions");
-  // BoundaryConditionEnum & bcLeft = boundaryConditions[0];
-  // BoundaryConditionEnum & bcRight = boundaryConditions[1];
-  // if(bcLeft==internalForceBC)
-  //   {
-  //     assert(bcRight==internalForceBC);
-  //     printF("-- BM%i -- use piecewise linear interpolation for L(eta)\n", getBeamID());
-  //     bool useLinearInterp=true; //use piece wise linear interpolation to avoid the need of (L(eta))_x
-  //     interpolateSolution(internalForce, elemNum, eta, DDdisplacement, DDslope,useLinearInterp);
-  //   }
+  // Longfei 20170720:
+  // ******* use piecewise linear interpolation for internalForce for FDBeamModel, i.e., L(eta) **********
+  // this seems to fix the bug for FDBeamModel+PBF(-useApproximateAMPcondition=1).
+  // There is no BC for L(eta), so the ghost points of L(eta) are invalid.
+  // So  L(eta)_x which is estimated using centered FD is invalid on the boundary nodes. 
+  // So we can not use hermite interpolation which needs valid L(eta)_x on boundary and interior nodes. 
+  vector<BoundaryConditionEnum> & boundaryConditions = dbase.get< vector<BoundaryConditionEnum> >("boundaryConditions");
+  BoundaryConditionEnum & bcLeft = boundaryConditions[0];
+  BoundaryConditionEnum & bcRight = boundaryConditions[1];
+  const bool & isFEM = dbase.get<bool>("isCubicHermiteFEM");
+  // for FDBeamModel, useLinearInterp for internalForce to avoid evaluationg L(eta))_x since we dont have correct bc for L. 
+  if(bcLeft==internalForceBC && !isFEM) 
+    {
+      assert(bcRight==internalForceBC);
+      if(debug() & 32){printF("-- BM%i -- use piecewise linear interpolation for L(eta)\n", getBeamID());}
+      bool useLinearInterp=true; //use piece wise linear interpolation to avoid the need of (L(eta))_x
+      interpolateSolution(internalForce, elemNum, eta, DDdisplacement, DDslope,useLinearInterp);
+    }
 
 
 

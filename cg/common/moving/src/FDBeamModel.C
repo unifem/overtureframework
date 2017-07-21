@@ -524,7 +524,8 @@ computeAcceleration(const real t,
 
   // Solve M a = rhs, M is determined by  tridiagonalSolver.
   solveTridiagonal(rhs, a, solverName );
-  if(solverName=="explicitSolver")  // M= I, bc for a is not implemented
+  // Longfei 20170719: do not need to scale a and assign bc if computing internalForce
+  if(solverName=="explicitSolver" && bcLeft != internalForceBC)  // M= I, bc for a is not implemented
     {
       a/=accelerationScaleFactor; // explicitSolver solves Abar*utt
       RealArray utemp=u,vtemp=v; // use the size of u,v
