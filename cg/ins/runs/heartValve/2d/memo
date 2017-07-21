@@ -15,6 +15,25 @@ plotOne.cmd is enough for most cases unless the leaflets break the symmetric due
 
 $cgins -noplot heartValveMoving2d -g=heartValve2de2.order2.hdf -tf=1.5 -tp=.1 -dtMax=.01 -nu=.01 -mass=1e5 -inertia=.001 -move=1 -bcOption=inflowCardiacCycle -project=0 -numberOfCorrections=2 -addedMass=1 -useProvidedAcceleration=1 -addedDamping=1 -addedDampingCoeff=1.0 -addedDampingProjectVelocity=1 -scaleAddedDampingWithDt=1 -useTP=0 -freqFullUpdate=1 -flushFrequency=2 -ycenter=0.15 -pMax=100 -tP1=1 -pMin=-200 -tP2=0.5 -bodyForce=restrictAngleDamp -theta10=-1.05 -theta20=0.1 -delta1=0.05 -epsilon1=5.e-2 -delta2=0.08 -epsilon2=5.e-3 -damp1=20 -damp2=20 -go=go -show=cardiacG2.show > cardiacG2.out
 
+6/21
+todo:try multigrid
+
+6/20
+run a slower case (time step is about 5 times larger than previous case)
+main difference: nu=0.1 and pre diff=20
+G2
+$cgins -noplot heartValveMoving2d -g=heartValve2de2.order2.hdf -tf=2 -tp=.1 -dtMax=.01 -nu=.1 -mass=1e5 -inertia=.001 -move=1 -bcOption=inflowCardiacCycle -project=0 -numberOfCorrections=2 -addedMass=1 -useProvidedAcceleration=1 -addedDamping=1 -addedDampingCoeff=1.0 -addedDampingProjectVelocity=1 -scaleAddedDampingWithDt=1 -useTP=0 -freqFullUpdate=1 -flushFrequency=2 -ycenter=0.15 -pMax=20 -tP1=1 -pMin=-40 -tP2=0.5 -bodyForce=restrictAngleDamp -theta10=-1.05 -theta20=0.1 -delta1=0.05 -epsilon1=5.e-2 -delta2=0.08 -epsilon2=5.e-3 -damp1=20 -damp2=20 -go=go -show=cardiacG2pre.show > cardiacG2pre.out
+
+no added damping
+$cgins -noplot heartValveMoving2d -g=heartValve2de2.order2.hdf -tf=2 -tp=.1 -dtMax=.01 -nu=.1 -mass=1e5 -inertia=.001 -move=1 -bcOption=inflowCardiacCycle -project=0 -numberOfCorrections=2 -addedMass=1 -useProvidedAcceleration=1 -addedDamping=0 -addedDampingCoeff=1.0 -addedDampingProjectVelocity=0 -scaleAddedDampingWithDt=1 -useTP=0 -freqFullUpdate=1 -flushFrequency=2 -ycenter=0.15 -pMax=20 -tP1=1 -pMin=-40 -tP2=0.5 -bodyForce=restrictAngleDamp -theta10=-1.05 -theta20=0.1 -delta1=0.05 -epsilon1=5.e-2 -delta2=0.08 -epsilon2=5.e-3 -damp1=20 -damp2=20 -go=go -show=cardiacG2preNA.show > cardiacG2preNA.out
+
+G1 (need the implicit grid)
+$cgins -noplot heartValveMoving2d -g=heartValve2di1.order2.hdf -tf=2 -tp=.1 -dtMax=.02 -nu=.1 -mass=1e5 -inertia=.001 -move=1 -bcOption=inflowCardiacCycle -project=0 -numberOfCorrections=2 -addedMass=1 -useProvidedAcceleration=1 -addedDamping=1 -addedDampingCoeff=1.0 -addedDampingProjectVelocity=1 -scaleAddedDampingWithDt=1 -useTP=0 -freqFullUpdate=1 -flushFrequency=2 -ycenter=0.15 -pMax=20 -tP1=1 -pMin=-40 -tP2=0.5 -bodyForce=restrictAngleDamp -theta10=-1.05 -theta20=0.1 -delta1=0.05 -epsilon1=5.e-2 -delta2=0.08 -epsilon2=5.e-3 -damp1=20 -damp2=20 -go=go -show=cardiacG1pre.show > cardiacG1pre.out
+
+G4 not very good to do refine study; so let us frozen the bodyForce parameters
+$cgins -noplot heartValveMoving2d -g=heartValve2de4.order2.hdf -tf=2 -tp=.1 -dtMax=.005 -nu=.1 -mass=1e5 -inertia=.001 -move=1 -bcOption=inflowCardiacCycle -project=0 -numberOfCorrections=2 -addedMass=1 -useProvidedAcceleration=1 -addedDamping=1 -addedDampingCoeff=1.0 -addedDampingProjectVelocity=1 -scaleAddedDampingWithDt=1 -useTP=0 -freqFullUpdate=1 -flushFrequency=2 -ycenter=0.15 -pMax=20 -tP1=1 -pMin=-40 -tP2=0.5 -bodyForce=restrictAngleDamp -theta10=-1.05 -theta20=0.1 -delta1=0.025 -epsilon1=5.e-2 -delta2=0.04 -epsilon2=5.e-3 -damp1=20 -damp2=20 -go=go -show=cardiacG2pre.show > cardiacG2pre.out
+
+$cgins -noplot heartValveMoving2d -g=heartValve2de4.order2.hdf -tf=2 -tp=.1 -dtMax=.005 -nu=.1 -mass=1e5 -inertia=.001 -move=1 -bcOption=inflowCardiacCycle -project=0 -numberOfCorrections=2 -addedMass=1 -useProvidedAcceleration=1 -addedDamping=1 -addedDampingCoeff=1.0 -addedDampingProjectVelocity=1 -scaleAddedDampingWithDt=1 -useTP=0 -freqFullUpdate=1 -flushFrequency=2 -ycenter=0.15 -pMax=20 -tP1=1 -pMin=-40 -tP2=0.5 -bodyForce=restrictAngleDamp -theta10=-1.05 -theta20=0.1 -delta1=0.05 -epsilon1=5.e-2 -delta2=0.08 -epsilon2=5.e-3 -damp1=20 -damp2=20 -go=go -show=cardiacG2bf.show > cardiacG2bf.out
 
 
 

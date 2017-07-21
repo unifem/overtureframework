@@ -85,9 +85,12 @@ this case is based on drop3d.cmd in SampleGrid
 
 ++++++++GRIDS++++++++
 ogen -noplot drop3d -factor=1 -interp=e
+ogen -noplot drop3d -factor=1 -yr=1.5 -interp=e -name=sphereRise3d
 
 smaller domain for quick test
 ogen -noplot drop3d -factor=1 -interp=e -yb=5 -yr=3 -name=shortDrop3d
+for rising case
+ogen -noplot drop3d -factor=1  -xa=-1.5 -xb=1.5 -za=-1.5 -zb=1.5 -yb=3.5 -yr=1.5 -interp=e -name=shortRise3d
 
 -------QUICK TEST------
 quick test on a smaller domain (tfinal=2.25 and it only takes 2 mins to run)
@@ -96,7 +99,35 @@ $cgins -noplot sphereDrop -g=shortDrop3de1.order2.hdf -tf=2.25 -tp=.5 -ts=im -ra
 compare to 
 mpirun -np 1 $cginsp noplot sphereDrop -g=shortDrop3de1.order2.hdf -tf=2.25 -tp=.5 -ts=im -radius=.5 -dropName=drop -channelName=channel -dtMax=.025 -project=0 -nu=0.67462470 -numberOfCorrections=2 -addedMass=1 -useProvidedAceration=1 -addedDamping=1 -addedDampingCoeff=1 -addedDampingProjectVelocity=1 -scaleAddedDampingWithDt=1 -useTP=0 -debug=3 -solver=best -psolver=best -rtol=1.e-7 -atol=1.e-9 -rtolp=1.e-5 -atolp=1.e-7 -freqFullUpdate=1 -bcOption=outflow -go=go -ogesDebug=1 > junknp1.out &
 
-issues in parallel code
+
+-------FULL TEST------
+test in rbins3d.pdf
+G1 (needs 18 mins to run)
+$cgins -noplot sphereDrop -g=drop3de1.order2.hdf -tf=7.3 -tp=.5 -ts=im -radius=.5 -dropName=drop -channelName=channel -dtMax=.025 -project=0 -nu=0.67462470 -numberOfCorrections=2 -addedMass=1 -useProvidedAceration=1 -addedDamping=1 -addedDampingCoeff=1 -addedDampingProjectVelocity=1 -scaleAddedDampingWithDt=1 -useTP=0 -debug=3 -solver=best -psolver=best -rtol=1.e-7 -atol=1.e-9 -rtolp=1.e-5 -atolp=1.e-7 -freqFullUpdate=1 -bcOption=outflow -go=go -show=particleSettleG1.show > particleSettleG1.out &
+
+7/19
+run a NEW refinement study
+G1 done
+$cgins -noplot sphereDrop -g=drop3di1.order2.hdf -tf=7.3 -tp=2 -ts=im -radius=.5 -dropName=drop -channelName=channel -dtMax=.025 -project=0 -nu=0.67462470 -numberOfCorrections=2 -addedMass=1 -useProvidedAceration=1 -addedDamping=1 -addedDampingCoeff=1 -addedDampingProjectVelocity=1 -scaleAddedDampingWithDt=1 -useTP=0 -debug=3 -solver=best -psolver=best -rtol=1.e-5 -atol=1.e-7 -rtolp=1.e-5 -atolp=1.e-7 -freqFullUpdate=1 -bcOption=outflow -go=go -show=particleSettleG1New.show > particleSettleG1New.out &
+
+$cgins -noplot sphereDrop -g=drop3di1.order2.hdf -tf=7.3 -tp=2 -ts=im -radius=.5 -dropName=drop -channelName=channel -dtMax=.025 -project=0 -nu=0.67462470 -numberOfCorrections=2 -addedMass=1 -useProvidedAceration=1 -addedDamping=1 -addedDampingCoeff=1 -addedDampingProjectVelocity=1 -scaleAddedDampingWithDt=1 -useTP=0 -solver=best -psolver=best -rtol=1.e-5 -atol=1.e-7 -rtolp=1.e-5 -atolp=1.e-7 -freqFullUpdate=10 -bcOption=outflow -go=go > particleSettleG1New2.out &
+
+G2 done total time.......................... 1.00e+04 (the time may be affected by other programs in the test node)
+mpirun -np 8 $cginsp -noplot sphereDrop -g=drop3di2.order2.hdf -tf=8.5 -tp=2 -ts=im -radius=.5 -dropName=drop -channelName=channel -dtMax=.0125 -project=0 -nu=0.67462470 -numberOfCorrections=2 -addedMass=1 -useProvidedAceration=1 -addedDamping=1 -addedDampingCoeff=1 -addedDampingProjectVelocity=1 -scaleAddedDampingWithDt=1 -useTP=0 -debug=3 -solver=best -psolver=best -rtol=1.e-6 -atol=1.e-8 -rtolp=1.e-6 -atolp=1.e-8 -freqFullUpdate=1 -bcOption=outflow -go=go -show=particleSettleG2New.show > particleSettleG2New.out &
+
+G4 estimate the memory first
+mpirun -np 8 $cginsp -noplot sphereDrop -g=drop3de4.order2.hdf -tf=.00625 -tp=2 -ts=im -radius=.5 -dropName=drop -channelName=channel -dtMax=.00625 -project=0 -nu=0.67462470 -numberOfCorrections=2 -addedMass=1 -useProvidedAceration=1 -addedDamping=1 -addedDampingCoeff=1 -addedDampingProjectVelocity=1 -scaleAddedDampingWithDt=1 -useTP=0 -debug=3 -solver=best -psolver=best -rtol=0.5e-6 -atol=0.5e-8 -rtolp=0.5e-6 -atolp=0.5e-8 -freqFullUpdate=1 -bcOption=outflow -go=go -show=particleSettleG4New.show > particleSettleG4New.out &
+
+7/19
+redo some runs for the paper
+1. added damping (this case can show added-damping is important)
+2. refinement study (self-convergence?) and plot of the solutions
+3. TP schemes: (serial code and coarse grid for now)
+
+mpirun -np 4 $cginsp noplot sphereDrop -g=drop3de1.order2.hdf -tf=2 -tp=.5 -ts=im -radius=.5 -dropName=drop -channelName=channel -dtMax=.025 -project=0 -nu=0.67462470 -numberOfCorrections=2 -addedMass=1 -useProvidedAceration=1 -addedDamping=0 -addedDampingCoeff=1 -addedDampingProjectVelocity=0 -scaleAddedDampingWithDt=1 -useTP=0 -solver=best -psolver=best -rtol=1.e-7 -atol=1.e-9 -rtolp=1.e-5 -atolp=1.e-7 -freqFullUpdate=1 -bcOption=outflow -go=go -debug=1 -show=particleSettleG1NoAD.show > particleSettleG1NoAD.out &
+
+
+issues in parallel code. Both are fixed. -QT 7/20/2017
 issue 1: build matrix is slow for pressure
 * np=1 build pressure matrix =5seconds while build velocity matrix only needs 0.1 second
 * serial only needs 1e-3 second to build 
@@ -106,11 +137,128 @@ issue 2: there are checkOG:ERROR if spherical grids are out of the rectangular d
 * the issue is independent of np, which seems a good news
 
 
--------FULL TEST------
-test in rbins3d.pdf
-G1 (needs 18 mins to run)
-$cgins -noplot sphereDrop -g=drop3de1.order2.hdf -tf=7.3 -tp=.5 -ts=im -radius=.5 -dropName=drop -channelName=channel -dtMax=.025 -project=0 -nu=0.67462470 -numberOfCorrections=2 -addedMass=1 -useProvidedAceration=1 -addedDamping=1 -addedDampingCoeff=1 -addedDampingProjectVelocity=1 -scaleAddedDampingWithDt=1 -useTP=0 -debug=3 -solver=best -psolver=best -rtol=1.e-7 -atol=1.e-9 -rtolp=1.e-5 -atolp=1.e-7 -freqFullUpdate=1 -bcOption=outflow -go=go -show=particleSettleG1.show > particleSettleG1.out &
+7/17
+mpirun -np 4 $cginsp noplot sphereDrop -g=drop3de2.order2.hdf -tf=2 -tp=.5 -ts=im -radius=.5 -dropName=drop -channelName=channel -dtMax=.0125 -project=0 -nu=0.67462470 -numberOfCorrections=2 -addedMass=1 -useProvidedAceration=1 -addedDamping=0 -addedDampingCoeff=1 -addedDampingProjectVelocity=0 -scaleAddedDampingWithDt=1 -useTP=0 -solver=best -psolver=best -rtol=1.e-7 -atol=1.e-9 -rtolp=1.e-5 -atolp=1.e-7 -freqFullUpdate=1 -bcOption=outflow -go=go -debug=1 -show=particleSettleG2NoAD.show > particleSettleG2NoAD.out &
 
+
+7/13
+ISSUE: when rho small,  the rising version of the original test does not work.
+GUESS: the first prediction is very wild, it is espeically amplified in the impusive starting case.
+
+CHANGE 1: rampedGravity; helps significantly
+rho=0.001, the rampedGravity version works (both in serial and parallel)
+rho=1e-5, the rampedGravity version works (both in serial and parallel)
+rho=1e-7, not working, pressure is huge at t=0
+rho=0 seems two issues, worried about later
+
+debugging this using a smaller problem: 
+$cgins sphereDrop -g=shortRise3de1.order2.hdf -density=0.001 -tf=2 -tp=.1 -ts=im -radius=.5 -dropName=drop -channelName=channel -dtMax=.025 -project=0 -nu=0.67462470 -numberOfCorrections=2 -addedMass=1 -useProvidedAceration=1 -addedDamping=1 -addedDampingCoeff=1 -addedDampingProjectVelocity=1 -scaleAddedDampingWithDt=1 -useTP=0 -debug=3 -solver=best -psolver=best -rtol=1.e-7 -atol=1.e-9 -rtolp=1.e-5 -atolp=1.e-7 -freqFullUpdate=1 -bcOption=outflowWall -rampGravity=1 -go=og
+
+>>>>>>rho=1e-3
+the first predictor gives:
+--MVG:RB-- body 0 : t2=0.0000e+00 fCM=(-4.17e-05,1.54e-04,-8.36e-04) torque=(-1.03e-17,-3.89e-18,-9.52e-18)
+--INS--setPressConstrnt: t= 0.00000e+00 vDotPred=[-8.28642e-02, 3.04843e-01,-1.66026e+00] omegaDotPred=[-1.96002e-13,-7.42207e-14,-1.81913e-13]
+...
+EquationSolver::setExtraEquationValues: f[2](22,22,8,0)= 7.9995402428e-12 (eqn-number=38054)
+EquationSolver::setExtraEquationValues: f[2](21,22,8,0)= 3.7190587922e-09 (eqn-number=38053)
+EquationSolver::setExtraEquationValues: f[2](20,22,8,0)= 1.3521285646e-08 (eqn-number=38052)
+EquationSolver::setExtraEquationValues: f[2](19,22,8,0)= -3.5626137039e-01 (eqn-number=38051)
+EquationSolver::setExtraEquationValues: f[2](18,22,8,0)= 6.5511366577e-02 (eqn-number=38050)
+EquationSolver::setExtraEquationValues: f[2](17,22,8,0)= -1.7808017648e-02 (eqn-number=38049)
+...
+ >>> t =  0.000e+00, dt = 2.50e-02, cpu = 1.64e-03 seconds (0 steps)
+           p : (min,max)=(-1.836641e-01, 1.959737e-01) 
+           u : (min,max)=( 0.000000e+00, 0.000000e+00) 
+           v : (min,max)=( 0.000000e+00, 0.000000e+00) 
+           w : (min,max)=( 0.000000e+00, 0.000000e+00) 
+
+>>>>>>rho=1e-7
+--MVG:RB-- body 0 : t2=0.0000e+00 fCM=(-4.17e-05,1.54e-04,-8.36e-04) torque=(-1.03e-17,-3.89e-18,-9.52e-18)
+--INS--setPressConstrnt: t= 0.00000e+00 vDotPred=[-8.28642e+02, 3.04843e+03,-1.66026e+04] omegaDotPred=[-1.96002e-09,-7.42207e-10,-1.81913e-09]
+...
+#this leads to large right hand side in the extra equations
+EquationSolver::setExtraEquationValues: f[2](22,22,8,0)= 7.9995402428e-08 (eqn-number=38054)
+EquationSolver::setExtraEquationValues: f[2](21,22,8,0)= 3.7190587922e-05 (eqn-number=38053)
+EquationSolver::setExtraEquationValues: f[2](20,22,8,0)= 1.3521285646e-04 (eqn-number=38052)
+EquationSolver::setExtraEquationValues: f[2](19,22,8,0)= -3.5626137039e+03 (eqn-number=38051)
+EquationSolver::setExtraEquationValues: f[2](18,22,8,0)= 6.5511366577e+02 (eqn-number=38050)
+EquationSolver::setExtraEquationValues: f[2](17,22,8,0)= -1.7808017648e+02 (eqn-number=38049)
+...
+ >>> t =  0.000e+00, dt = 2.50e-02, cpu = 1.38e-03 seconds (0 steps)
+           p : (min,max)=(-1.838525e+03, 1.962082e+03) 
+           u : (min,max)=( 0.000000e+00, 0.000000e+00) 
+           v : (min,max)=( 0.000000e+00, 0.000000e+00) 
+           w : (min,max)=( 0.000000e+00, 0.000000e+00) 
+
+***Now, questions are 
+1. How did we get away with that issue in 2d case? 
+2. How are the first fcm and torque predicted? It is probably just from the rigid body solver.
+The prediction does not depend on rhos or time step, it may be just a wild guess. 
+
+SOLUTION: initial condition (as a first guess) is off for this start. intial p=0 instead of p=1 in sphereDrop.cmd
+
+new boundary implemented: inflowOutlfow; Note the pressure on both ends should be close to zero. 
+
+what happens if there is no added-damping?? there seems a free paramters when addeddamping is not being set!!
+Found aDot and bDot are not set if added-damping are turned off... Not sure why is was working for heartvalve3d
+turned off and works. It shows added damping is needed for density small or close to 1.
+rho=0.5 unstable
+rho=0.9 unstable
+***this seems good enough to demonstrate added-damping effects
+
+cgins sphereDrop -g=shortRise3de1.order2.hdf -density=.9 -tf=1 -tp=.1 -ts=im -radius=.5 -dropName=drop -channelName=channel -dtMax=.02 -project=0 -nu=0.67462470 -numberOfCorrections=2 -addedMass=1 -useProvidedAceration=1 -addedDamping=0 -addedDampingCoeff=1 -addedDampingProjectVelocity=0 -scaleAddedDampingWithDt=1 -useTP=0 -solver=best -psolver=best -rtol=1.e-7 -atol=1.e-9 -rtolp=1.e-5 -atolp=1.e-7 -freqFullUpdate=1 -bcOption=inflowOutflow -rampGravity=1 -debug=3 -go=og -show=shortRiseNoAD.show > shortRiseNoAD.out
+
+
+7/12
+checkOG:ERROR has been fixed
+try density small, rho=0.1 is working but rho smaller has trouble; 
+1. need to change top and bottom boundary conditions first
+2. need the gravity be turned on smoothly
+
+$cgins sphereDrop -g=sphereRise3de1.order2.hdf -density=0.1 -tf=7.3 -tp=.5 -ts=im -radius=.5 -dropName=drop -channelName=channel -dtMax=.025 -project=0 -nu=0.67462470 -numberOfCorrections=2 -addedMass=1 -useProvidedAceration=1 -addedDamping=1 -addedDampingCoeff=1 -addedDampingProjectVelocity=1 -scaleAddedDampingWithDt=1 -useTP=0 -debug=3 -solver=best -psolver=best -rtol=1.e-7 -atol=1.e-9 -rtolp=1.e-5 -atolp=1.e-7 -freqFullUpdate=1 -bcOption=outflow -go=og
+
+
+7/11
+overall it performs well for a coarse grid. Expect it preforms better for finer grid
+ISSUE: 
+1.in parallel saving showFile takes a lot of time; maybe we should avoid saving a lot of showFiles in parallel for now
+Do we want to fix that? maybe not for now. Just avoid to save many showfile in parallel
+2. assign pressure rhs is slower for np=8, the rest are performing well
+
+mpirun -np 8 $cginsp -noplot sphereDrop -g=drop3de1.order2.hdf -tf=7.3 -tp=.5 -ts=im -radius=.5 -dropName=drop -channelName=channel -dtMax=.025 -project=0 -nu=0.67462470 -numberOfCorrections=2 -addedMass=1 -useProvidedAceration=1 -addedDamping=1 -addedDampingCoeff=1 -addedDampingProjectVelocity=1 -scaleAddedDampingWithDt=1 -useTP=0 -debug=3 -solver=best -psolver=best -rtol=1.e-7 -atol=1.e-9 -rtolp=1.e-5 -atolp=1.e-7 -freqFullUpdate=1 -bcOption=outflow -go=go -show=particleSettleG1np8.show > particleSettleG1np8.out &
+
+***profile: with ilu as the preconditioner; after counting fix
+serial
+cpu=1.09e+03
+parallel np=1
+cpu=1.23e+03
+np=8
+cpu=3.75e+02
+
+profile PETScSolver.bC
+after fix
+build matrix=0.6s
+before fix
+build matrix=10s
+
+7/10
+serial grid
+ogen -noplot drop3d -factor=1 -interp=e -yb=5 -yr=3 -name=shortDrop3d
+parallel grid
+ogenp -noplot drop3d -factor=1 -interp=e -yb=5 -yr=3 -name=shortDrop3dp
+
+compare results
+$cgins -noplot sphereDrop -g=shortDrop3de1.order2.hdf -tf=2.25 -tp=.5 -ts=im -radius=.5 -dropName=drop -channelName=channel -dtMax=.025 -project=0 -nu=0.67462470 -numberOfCorrections=2 -addedMass=1 -useProvidedAceration=1 -addedDamping=1 -addedDampingCoeff=1 -addedDampingProjectVelocity=1 -scaleAddedDampingWithDt=1 -useTP=0 -debug=3 -solver=best -psolver=best -rtol=1.e-7 -atol=1.e-9 -rtolp=1.e-5 -atolp=1.e-7 -freqFullUpdate=1 -bcOption=outflow -ogesDebug=1 -go=go > junk.out &
+cpu=2.34e+02
+
+mpirun -np 4 $cginsp -noplot sphereDrop -g=shortDrop3de1.order2.hdf -tf=1.9 -tp=.5 -ts=im -radius=.5 -dropName=drop -channelName=channel -dtMax=.025 -project=0 -nu=0.67462470 -numberOfCorrections=2 -addedMass=1 -useProvidedAceration=1 -addedDamping=1 -addedDampingCoeff=1 -addedDampingProjectVelocity=1 -scaleAddedDampingWithDt=1 -useTP=0 -debug=3 -solver=best -psolver=best -rtol=1.e-7 -atol=1.e-9 -rtolp=1.e-5 -atolp=1.e-7 -freqFullUpdate=1 -bcOption=outflow -ogesDebug=1 -go=go > junknp4.out &
+cpu=9.32e+01 seems okay
+
+test2 
+mpirun -np 4 $cginsp -noplot sphereDrop -g=shortDrop3de1.order2.hdf -tf=2 -tp=.5 -ts=im -radius=.5 -dropName=drop -channelName=channel -dtMax=.025 -project=0 -nu=0.67462470 -numberOfCorrections=2 -addedMass=1 -useProvidedAceration=1 -addedDamping=1 -addedDampingCoeff=1 -addedDampingProjectVelocity=1 -scaleAddedDampingWithDt=1 -useTP=0 -debug=3 -solver=best -psolver=best -rtol=1.e-7 -atol=1.e-9 -rtolp=1.e-5 -atolp=1.e-7 -freqFullUpdate=1 -bcOption=outflow -ogesDebug=1 -go=go > junknp4debug.out &
+
+mpirun -np 4 $cginsp -noplot sphereDrop -g=shortDrop3dpe1.order2.hdf -tf=1.9 -tp=.5 -ts=im -radius=.5 -dropName=drop -channelName=channel -dtMax=.025 -project=0 -nu=0.67462470 -numberOfCorrections=2 -addedMass=1 -useProvidedAceration=1 -addedDamping=1 -addedDampingCoeff=1 -addedDampingProjectVelocity=1 -scaleAddedDampingWithDt=1 -useTP=0 -debug=3 -solver=best -psolver=best -rtol=1.e-7 -atol=1.e-9 -rtolp=1.e-5 -atolp=1.e-7 -freqFullUpdate=1 -bcOption=outflow -ogesDebug=1 -go=go > junkpgridnp4.out &
+parallel grid seems a problem?? very slow and generate some strange errors. No, it is because the test node (intel16) has some issues in memory
 
 
 
@@ -130,12 +278,13 @@ Compare np=1 vs np=4
 mpirun -np 4 $cginsp -noplot sphereDrop -g=drop3de1.order2.hdf -tf=1 -tp=.5 -ts=im -radius=.5 -dropName=drop -channelName=channel -dtMax=.025 -project=0 -nu=0.67462470 -numberOfCorrections=2 -addedMass=1 -useProvidedAceration=1 -addedDamping=1 -addedDampingCoeff=1 -addedDampingProjectVelocity=1 -scaleAddedDampingWithDt=1 -useTP=0 -debug=3 -solver=best -psolver=best -rtol=1.e-7 -atol=1.e-9 -rtolp=1.e-5 -atolp=1.e-7 -freqFullUpdate=1 -flushFrequency=10 -bcOption=outflow -go=go -ogesDebug=1
 
 serial test: build matrix is extremely fast
+7/10
 $cgins -noplot sphereDrop -g=drop3de1.order2.hdf -tf=1 -tp=.5 -ts=im -radius=.5 -dropName=drop -channelName=channel -dtMax=.025 -project=0 -nu=0.67462470 -numberOfCorrections=2 -addedMass=1 -useProvidedAceration=1 -addedDamping=1 -addedDampingCoeff=1 -addedDampingProjectVelocity=1 -scaleAddedDampingWithDt=1 -useTP=0 -debug=3 -solver=best -psolver=best -rtol=1.e-7 -atol=1.e-9 -rtolp=1.e-5 -atolp=1.e-7 -freqFullUpdate=1 -flushFrequency=10 -bcOption=outflow -go=go -ogesDebug=3
 
 Issue 2: checkOG:ERROR occurs as long as the grid point is outside of domain; not seen in serial code
 see the parallel test; happens around t=7
 
-########### the following is my notes; ignore ################
+########### the following is my OLD notes; ignore ################
 drop3d on hpcc=dropFine on cge; they both produced by drop3d
 
 explicit G1 can only run to tf=7.3 (implicit can run to tf=7.5)

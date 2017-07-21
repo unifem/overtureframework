@@ -27,7 +27,11 @@ plot sequence:rigid body 0
   $cmd
 exit
 #
-plot:u
+derived types
+speed
+exit
+#
+plot:speed
 contour
 exit
 
