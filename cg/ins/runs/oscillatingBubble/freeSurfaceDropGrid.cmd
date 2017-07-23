@@ -15,16 +15,16 @@
 #
 # Examples:
 #
-#  ogen -noplot freeSurfaceDropGrid -interp=e -radx=1. -rady=1.25 -factor=2 -ml=1
-#  ogen -noplot freeSurfaceDropGrid -interp=e -factor=4 -ml=1
-#  ogen -noplot freeSurfaceDropGrid -interp=e -factor=8 -ml=2
-#  ogen -noplot freeSurfaceDropGrid -interp=e -factor=16 -ml=3
-#  ogen -noplot freeSurfaceDropGrid -interp=e -factor=32 -ml=3
+#  ogen -noplot freeSurfaceDropGrid -interp=e -radx=1. -rady=1.25 -factor=2 
+#  ogen -noplot freeSurfaceDropGrid -interp=e -factor=4 
+#  ogen -noplot freeSurfaceDropGrid -interp=e -factor=8 
+#  ogen -noplot freeSurfaceDropGrid -interp=e -factor=16
+#  ogen -noplot freeSurfaceDropGrid -interp=e -factor=32
 #
 #
 #
 $prefix = "freeSurfaceDropGrid"; 
-$amp=.0; $freq=1.; $periodic="p"; 
+$amp=.0; $freq=1.; 
 $factor=1; $name="";  $ml=0; 
 $interp="i"; $interpType = "implicit for all grids"; 
 $order=2; $orderOfAccuracy = "second order"; $ng=2; 
@@ -37,7 +37,7 @@ $freeSurfaceShare=100; # share value for free surface
 # get command line arguments
 GetOptions("name=s"=> \$name,"order=i"=>\$order,"factor=f"=>\$factor,"interp=s"=> \$interp,"case=s"=>\$case,\
            "xa=f"=>\$xa,"xb=f"=>\$xb,"ya=f"=>\$ya,"yb=f"=>\$yb,"nExtra=i"=>\$nExtra,"factor2=f"=>\$factor2,\
-           "amp=f"=>\$amp,"freq=f"=>\$freq,"ml=i"=>\$ml,"periodic=s"=>\$periodic,"prefix=s"=> \$prefix,\
+           "amp=f"=>\$amp,"freq=f"=>\$freq,"ml=i"=>\$ml,"prefix=s"=> \$prefix,\
            "radx=f"=>\$radx,"rady=f"=>\$rady );
 #
 # 
@@ -46,7 +46,6 @@ elsif( $order eq 6 ){ $orderOfAccuracy="sixth order"; $ng=4; }\
 elsif( $order eq 8 ){ $orderOfAccuracy="eighth order"; $ng=6; }
 if( $interp eq "e" ){ $interpType = "explicit for all grids"; }
 $suffix = ".order$order"; 
-if( $periodic eq "p" ){ $suffix .= ".p"; }
 if( $ml ne 0 ){ $suffix .= ".ml$ml"; }
 if( $name eq "" ){$name = $prefix . "$interp$factor" . $suffix . ".hdf";}
 #
@@ -110,18 +109,14 @@ create mappings
     $linesToMarch = $nr-1;
     lines to march $linesToMarch
     points on initial curve $ns
-#    if( $periodic eq "n" ){ $cmd="BC: left fix x, float y and z\n BC: right fix x, float y and z"; }else{ $cmd="#"; }
-#     $cmd
     spacing: geometric
     geometric stretch factor 1.05
     backward
     generate
     boundary conditions
-      if( $periodic eq "p" ){ $cmd="-1 -1 4 0"; }else{ $cmd="1 2 4 0"; }
-      $cmd
+      -1 -1 4 0 
     share
-      if( $periodic eq "n" ){ $cmd="1 2 $freeSurfaceShare 0"; }else{ $cmd="0 0 $freeSurfaceShare 0"; }
-      $cmd
+      0 0 $freeSurfaceShare 0
     # -- set the order of data point interpolation: 
     # fourth order
     # second order

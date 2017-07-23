@@ -2373,6 +2373,25 @@ initializePast( real time00, real dt00, CompositeGrid & cg)
 
 
 	  }
+          else if( userDefinedDeformingBodyMotionOption==freeSurface )
+	  {
+            // *new* wdh July 21, 2017
+
+            // -- free-surface motion --- 
+
+            MappedGrid & mg = cg[gridToMove];
+            numGhost=0;
+            Index Ib1,Ib2,Ib3;
+            getBoundaryIndex(mg.gridIndexRange(),sideToMove,axisToMove,Ib1,Ib2,Ib3,numGhost);
+            Range Rx=numberOfDimensions;
+            xPast.redim(Ib1,Ib2,Ib3,Rx);
+
+            int bodyNumber=0; // fix me for multiple surfaces
+
+            // free surface known solutions are defined here: 
+            parameters.getUserDefinedDeformingBodyKnownSolution( 
+              bodyNumber,Parameters::boundaryPosition, pastTime, gridToMove, mg,Ib1,Ib2,Ib3,Rx,xPast );
+          }
           else if( userDefinedDeformingBodyMotionOption==interfaceDeform )
 	  {
 	    const bool & useKnownSolutionForInitialConditions = 

@@ -1904,7 +1904,7 @@ applyBoundaryConditions(const real & t, realMappedGridFunction & u,
         }
     }
     
-    bool useNewTractionBC=false; // still testing the new traction BC
+    bool useNewTractionBC=true; // still testing the new traction BC
     
     if( useNewTractionBC )
     {

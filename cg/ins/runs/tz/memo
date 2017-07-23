@@ -1,4 +1,31 @@
 *************************************
+*********  July 17, 2017
+
+Traction free + curvilinear  *3D*
+
+cgins -noplot tz -g=nonBox1.order2 -degreex=2 -degreet=2 -ts=pc -bcn=d -bc5=freeSurface -bc6=freeSurface -tp=.05 -tf=1 -checkErrOnGhost=1 -go=og [exact
+
+cgins -noplot tz -g=nonBox1.order2 -degreex=2 -degreet=2 -ts=pc -bcn=d -bc3=freeSurface -bc4=freeSurface -tp=.05 -tf=1 -checkErrOnGhost=1 -go=og [exact
+
+cgins -noplot tz -g=nonBox1.order2 -degreex=2 -degreet=2 -ts=pc -bcn=d -bc1=freeSurface -bc2=freeSurface -tp=.05 -tf=1 -checkErrOnGhost=1
+ -go=og [exact
+
+*************************************
+*********  July 16, 2017
+
+Traction free + curvilinear
+PC22: 
+
+cgins -noplot tz -g=rotatedSquare8.order2 -degreex=2 -degreet=2 -ts=pc -bcn=d -bc3=freeSurface -bc4=freeSurface -tp=.05 -tf=1 -checkErrOnGhost=1 -go=og [exact
+
+cgins -noplot tz -g=rotatedSquare8.order2 -degreex=2 -degreet=2 -ts=pc -bcn=d -bc1=freeSurface -bc2=freeSurface -tp=.05 -tf=1 -checkErrOnGhost=1 -go=og [exact
+
+cgins -noplot tz -g=nonSquare10.order2 -degreex=2 -degreet=2 -ts=pc -bcn=d -bc3=freeSurface -bc4=freeSurface -tp=.05 -tf=1 -checkErrOnGhost=1 -go=og [exact
+
+cgins -noplot tz -g=nonSquare10.order2 -degreex=2 -degreet=2 -ts=pc -bcn=d -bc1=freeSurface -bc2=freeSurface -tp=.05 -tf=1 -checkErrOnGhost=1 -go=og [exact
+
+
+*************************************
 *********  July 16, 2017
 
 Initial tests of new traction or free-surface BC:

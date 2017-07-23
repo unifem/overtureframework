@@ -179,7 +179,7 @@ c To include derivatives of rx use OPTION=RX
 
 !     ---- local variables -----
       integer c,i1,i2,i3,n,gridType,orderOfAccuracy,orderInTime
-      integer addForcing,orderOfDissipation,option
+      integer addForcing,orderOfDissipation,option,useSosupDissipation
       integer useWhereMask,solveForE,solveForH,grid
       integer ex,ey,ez, hx,hy,hz
 
@@ -192,8 +192,11 @@ c To include derivatives of rx use OPTION=RX
 
       orderOfAccuracy    =ipar(2)
       gridType           =ipar(1)
+      useSosupDissipation=ipar(34)
 
-      if( orderOfAccuracy.eq.2 )then
+      if( useSosupDissipation.eq.0 )then
+       ! --old FD schemes -- no upwind dissipation 
+       if( orderOfAccuracy.eq.2 )then
 
         if( nd.eq.2 .and. gridType.eq.rectangular ) then
           call advMx2dOrder2r(nd,n1a,n1b,n2a,n2b,n3a,n3b,nd1a,nd1b,
@@ -215,7 +218,7 @@ c To include derivatives of rx use OPTION=RX
           stop 2271
         end if
 
-      else if( orderOfAccuracy.eq.4 ) then
+       else if( orderOfAccuracy.eq.4 ) then
         if( nd.eq.2 .and. gridType.eq.rectangular )then
           call advMx2dOrder4r(nd,n1a,n1b,n2a,n2b,n3a,n3b,nd1a,nd1b,
      & nd2a,nd2b,nd3a,nd3b,nd4a,nd4b,mask,rx, um,u,un,f,fa, v,vvt2,
@@ -237,7 +240,7 @@ c To include derivatives of rx use OPTION=RX
        end if
 
 !
-      else if( orderOfAccuracy.eq.6 ) then
+       else if( orderOfAccuracy.eq.6 ) then
         if( nd.eq.2 .and. gridType.eq.rectangular )then
           call advMx2dOrder6r(nd,n1a,n1b,n2a,n2b,n3a,n3b,nd1a,nd1b,
      & nd2a,nd2b,nd3a,nd3b,nd4a,nd4b,mask,rx, um,u,un,f,fa, v,vvt2,
@@ -258,7 +261,7 @@ c To include derivatives of rx use OPTION=RX
          stop 8843
        end if
 
-      else if( orderOfAccuracy.eq.8 ) then
+       else if( orderOfAccuracy.eq.8 ) then
 
         if( nd.eq.2 .and. gridType.eq.rectangular )then
           call advMx2dOrder8r(nd,n1a,n1b,n2a,n2b,n3a,n3b,nd1a,nd1b,
@@ -280,11 +283,68 @@ c To include derivatives of rx use OPTION=RX
          stop 8843
        end if
 
-      else
+       else
         write(*,'(" advMaxwell:ERROR: un-implemented order of accuracy 
      & =",i6)') orderOfAccuracy
           ! '
         stop 11122
+       end if
+
+      else
+        ! ========= FINITE DIFFERENCE WITH UPWIND DISSIPATION ========
+        ! *NEW July 23, 2017
+
+       if( orderOfAccuracy.eq.2 )then
+
+        if( nd.eq.2 .and. gridType.eq.rectangular ) then
+          call advMxUp2dOrder2r(nd,n1a,n1b,n2a,n2b,n3a,n3b,nd1a,nd1b,
+     & nd2a,nd2b,nd3a,nd3b,nd4a,nd4b,mask,rx, um,u,un,f,fa, v,vvt2,
+     & ut3,vvt4,ut5,ut6,ut7,bc, dis,varDis, ipar, rpar, ierr )
+        else if( nd.eq.2 .and. gridType.eq.curvilinear ) then
+          call advMxUp2dOrder2c(nd,n1a,n1b,n2a,n2b,n3a,n3b,nd1a,nd1b,
+     & nd2a,nd2b,nd3a,nd3b,nd4a,nd4b,mask,rx, um,u,un,f,fa, v,vvt2,
+     & ut3,vvt4,ut5,ut6,ut7,bc, dis,varDis, ipar, rpar, ierr )
+        else if( nd.eq.3 .and. gridType.eq.rectangular ) then
+          call advMxUp3dOrder2r(nd,n1a,n1b,n2a,n2b,n3a,n3b,nd1a,nd1b,
+     & nd2a,nd2b,nd3a,nd3b,nd4a,nd4b,mask,rx, um,u,un,f,fa, v,vvt2,
+     & ut3,vvt4,ut5,ut6,ut7,bc, dis,varDis, ipar, rpar, ierr )
+        else if( nd.eq.3 .and. gridType.eq.curvilinear ) then
+          call advMxUp3dOrder2c(nd,n1a,n1b,n2a,n2b,n3a,n3b,nd1a,nd1b,
+     & nd2a,nd2b,nd3a,nd3b,nd4a,nd4b,mask,rx, um,u,un,f,fa, v,vvt2,
+     & ut3,vvt4,ut5,ut6,ut7,bc, dis,varDis, ipar, rpar, ierr )
+        else
+          stop 6629
+        end if
+
+       else if( orderOfAccuracy.eq.4 ) then
+        if( nd.eq.2 .and. gridType.eq.rectangular )then
+          call advMxUp2dOrder4r(nd,n1a,n1b,n2a,n2b,n3a,n3b,nd1a,nd1b,
+     & nd2a,nd2b,nd3a,nd3b,nd4a,nd4b,mask,rx, um,u,un,f,fa, v,vvt2,
+     & ut3,vvt4,ut5,ut6,ut7,bc, dis,varDis, ipar, rpar, ierr )
+        else if(nd.eq.2 .and. gridType.eq.curvilinear )then
+          call advMxUp2dOrder4c(nd,n1a,n1b,n2a,n2b,n3a,n3b,nd1a,nd1b,
+     & nd2a,nd2b,nd3a,nd3b,nd4a,nd4b,mask,rx, um,u,un,f,fa, v,vvt2,
+     & ut3,vvt4,ut5,ut6,ut7,bc, dis,varDis, ipar, rpar, ierr )
+        else if(  nd.eq.3 .and. gridType.eq.rectangular )then
+          call advMxUp3dOrder4r(nd,n1a,n1b,n2a,n2b,n3a,n3b,nd1a,nd1b,
+     & nd2a,nd2b,nd3a,nd3b,nd4a,nd4b,mask,rx, um,u,un,f,fa, v,vvt2,
+     & ut3,vvt4,ut5,ut6,ut7,bc, dis,varDis, ipar, rpar, ierr )
+        else if(  nd.eq.3 .and. gridType.eq.curvilinear )then
+          call advMxUp3dOrder4c(nd,n1a,n1b,n2a,n2b,n3a,n3b,nd1a,nd1b,
+     & nd2a,nd2b,nd3a,nd3b,nd4a,nd4b,mask,rx, um,u,un,f,fa, v,vvt2,
+     & ut3,vvt4,ut5,ut6,ut7,bc, dis,varDis, ipar, rpar, ierr )
+       else
+         stop 9255
+       end if
+
+      else
+        write(*,'(" advMaxwell:ERROR: un-implemented order of accuracy 
+     & =",i6)') orderOfAccuracy
+          ! '
+        stop 20208
+       end if
+
+
       end if
 
       return

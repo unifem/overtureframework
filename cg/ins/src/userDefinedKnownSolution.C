@@ -1084,7 +1084,65 @@ getUserDefinedKnownSolution(real t, CompositeGrid & cg, int grid, RealArray & ua
 
 
   }
+  else if( userKnownSolution=="oscillatingBubble" )
+  {
+    // *** Bubble oscillating under surface tension *******
 
+    real & amp      = rpar[0];
+    real & R        = rpar[1];
+    real & k        = rpar[2];
+
+    if( true )
+    {
+      printF("--UDKS-- evaluate oscillatingBubble at t=%9.3e, amp=%9.3e *** FINISH ME*** \n",t,amp);
+    }
+    
+    
+
+    // -- we could avoid building the vertex array on Cartesian grids ---
+    GET_VERTEX_ARRAY(xLocal);
+
+    int i1,i2,i3;
+    if( numberOfTimeDerivatives==0 )
+    {
+      FOR_3D(i1,i2,i3,I1,I2,I3)
+      {
+        // **** JUST MAKE SOMETHING UP FOR NOW -- FINISH ME ***
+
+        real x= xLocal(i1,i2,i3,0);
+        real y= xLocal(i1,i2,i3,1);
+        real r = sqrt( SQR(x) + SQR(y) );
+        real cosTheta, sinTheta;
+        if( abs(r)>1.e-5 )
+        {
+          cosTheta=x/r; sinTheta=y/r;
+        }
+        else
+        {
+          cosTheta=1.; sinTheta=0.;
+        }
+        
+    
+        real kr = k*r;
+        
+        real j1 = jn(1,kr);  // Bessel function J_1
+
+
+        ua(i1,i2,i3,uc) = amp*j1*cosTheta;
+        ua(i1,i2,i3,vc) = amp*j1*sinTheta;
+        ua(i1,i2,i3,pc) = amp*j1;
+
+      }
+    }
+    else
+    {
+      // some options may need a time derivative ...
+      OV_ABORT("FINISH ME");
+    }
+    
+
+
+  }
   else 
   {
     // look for a solution in the base class
@@ -1338,25 +1396,131 @@ int InsParameters::
 getUserDefinedDeformingBodyKnownSolution( 
   int body,
   DeformingBodyStateOptionEnum stateOption, 
-  const real t, const int grid, MappedGrid & mg, const Index &I1, const Index &I2, const Index &I3, const Range & C, 
+  const real t, const int grid, MappedGrid & mg, const Index &I1_, const Index &I2_, const Index &I3_, const Range & C, 
   realSerialArray & state )
 {
 
-  // Look for a solution in the base class function:
+  // Look for a solution in the base class function (cg/common/userDefinedKnownSolution.C):
   // returns found=1 : solution was found, 0=solution was not found 
-  int found = Parameters::getUserDefinedDeformingBodyKnownSolution(body,stateOption,t,grid,mg,I1,I2,I3,C,state );
+  int found = Parameters::getUserDefinedDeformingBodyKnownSolution(body,stateOption,t,grid,mg,I1_,I2_,I3_,C,state );
+
+  if( found ) return found;
+  
+
+  if( ! dbase.get<DataBase >("modelData").has_key("userDefinedKnownSolutionData") )
+  {
+    printf("getUserDefinedKnownSolution:ERROR: sub-directory `userDefinedKnownSolutionData' not found!\n");
+    OV_ABORT("error");
+  }
+  DataBase & db =  dbase.get<DataBase >("modelData").get<DataBase>("userDefinedKnownSolutionData");
+  const aString & userKnownSolution = db.get<aString>("userKnownSolution");
+
+
+  const int numberOfDimensions = mg.numberOfDimensions();
+  const real dt = dbase.get<real>("dt");
+  
+  real *rpar = db.get<real[20]>("rpar");
+  int *ipar = db.get<int[20]>("ipar");
+
+  // Adjust index bounds for parallel *wdh* 2017/05/31 
+  OV_GET_SERIAL_ARRAY_CONST(int,mg.mask(),mask);
+  Index I1=I1_, I2=I2_, I3=I3_;
+  int includeGhost=1;
+  bool thisProcessorHasPoints=ParallelUtility::getLocalArrayBounds(mg.mask(),mask,I1,I2,I3,includeGhost);
+
+  found=1;
+  if( userKnownSolution=="oscillatingBubble" )
+  {
+
+    // ---  Bubble oscillating under surface tension ---
+    //   amp = amplitude of the motion  (solution only valid for small amp, eg. amp=1.e-4)
+    //   R = radius of the undeformed bubble
+    //   k = wave number
+
+    // -- we could avoid building the vertex array on Cartesian grids ---
+    GET_VERTEX_ARRAY(xLocal);
+    real & amp      = rpar[0];
+    real & R        = rpar[1];
+    real & k        = rpar[2];
+
+
+ 
+
+    if( t <= 2.*dt )
+    {
+      printF("--INS-- getUserDefinedDeformingBodyKnownSolution: oscillatingBubble, t=%9.3e amp=%9.3e R=%9.3e k=%5.3f\n",
+             t,amp,R,k );
+    }
+
+    // *** MAKE UP SOMETHING FOR NOW *****
+    // x = (R + amp*sin(2*pi*kt))*cos(theta)
+    // y = (R + amp*cos(2*pi*kt))*sin(theta)
+    real a = R + amp*sin(2.*Pi*k*t);
+    real b = R + amp*cos(2.*Pi*k*t);
+
+    real at = R + amp*2.*Pi*k*cos(2.*Pi*k*t);
+    real bt = R - amp*2.*Pi*k*sin(2.*Pi*k*t);
+
+    real att = R - amp*SQR(2.*Pi*k)*sin(2.*Pi*k*t);
+    real btt = R - amp*SQR(2.*Pi*k)*sin(2.*Pi*k*t);
+
+    const real eps = 10.*REAL_EPSILON;
+    
+    const int c0=C.getBase(), c1=c0+1;
+    int i1,i2,i3;
+    /// --- loop over the grid points on the interface ---
+    FOR_3D(i1,i2,i3,I1,I2,I3)
+    {
+      // Reference coordinates for solid or grid positions for the fluid -- we only need angle theta
+      real x= xLocal(i1,i2,i3,0);
+      real y= xLocal(i1,i2,i3,1);
+      real r = sqrt( SQR(x) + SQR(y) );
+      real ct,st;
+      if( r>eps )
+      {
+        ct=x/r; st=y/r;
+      }
+      else
+      {
+        ct=1.; st=0.;  // at the origin we just pick an angle, should not matter
+      }
+
+
+      if( stateOption==boundaryPosition )
+      {
+        // position of the interface:
+        state(i1,i2,i3,c0)=a*ct;   
+        state(i1,i2,i3,c1)=b*st;
+      }
+      else if( stateOption==boundaryVelocity )
+      {
+        // velocity of the interface:
+        state(i1,i2,i3,c0)=at*ct; 
+        state(i1,i2,i3,c1)=bt*st;
+      }
+      else if( stateOption==boundaryAcceleration )
+      {
+        // acceleration of the interface:
+        state(i1,i2,i3,c0)=att*ct;
+        state(i1,i2,i3,c1)=btt*st;
+      }
+
+      else
+      {
+        OV_ABORT("--INS-- UDKS: Unknown state option");
+      }
+    }
+    
+  }
+  else
+  {
+    found =0 ;  // Not found
+  }
+
 
   if( !found )
   {
-    if( ! dbase.get<DataBase >("modelData").has_key("userDefinedKnownSolutionData") )
-    {
-      printf("getUserDefinedKnownSolution:ERROR: sub-directory `userDefinedKnownSolutionData' not found!\n");
-      OV_ABORT("error");
-    }
-    DataBase & db =  dbase.get<DataBase >("modelData").get<DataBase>("userDefinedKnownSolutionData");
-    const aString & userKnownSolution = db.get<aString>("userKnownSolution");
-
-    printF("Parameters::getUserDefinedDeformingBodyKnownSolution:ERROR: unknown userKnownSolution=[%s]\n",
+    printF("--INS-- UDKS: getUserDefinedDeformingBodyKnownSolution:ERROR: unknown userKnownSolution=[%s]\n",
 	   (const char*)userKnownSolution);
     OV_ABORT("error");
   }
@@ -1407,6 +1571,7 @@ updateUserDefinedKnownSolution(GenericGraphicsInterface & gi, CompositeGrid & cg
       "rigid body piston",  // FSI solution for a rigid-body next to a fluid channel
       "shear block",   // INS-Rigid body FSI solution for a shearing block
       "rotating disk in disk", // INS-Rigid body FSI solution for a rotating disk in a disk
+      "oscillating bubble",  // oscillating bubble with a free surface and surface tension
       "done",
       ""
     }; 
@@ -1842,6 +2007,35 @@ updateUserDefinedKnownSolution(GenericGraphicsInterface & gi, CompositeGrid & cg
 
     }
  
+    else if( answer=="oscillating bubble" )
+    {
+      // **** FINISH ME *****
+      userKnownSolution="oscillatingBubble";
+      dbase.get<bool>("knownSolutionIsTimeDependent")=true;  // known solution IS time dependent
+
+      real & amp      = rpar[0];
+      real & R        = rpar[1];
+      real & k        = rpar[2];
+
+      printF("---  Bubble oscillating under surface tension ---\n"
+             "   amp = amplitude of the motion  (solution only valid for small amp, eg. amp=1.e-4)\n"
+             "   R = radius of the undeformed bubble\n"
+             "     k = wave number\n"); 
+
+      gi.inputString(answer,"Enter amp, R, k (amplitude, radius, wave number)");
+      sScanF(answer,"%e %e %e",&amp,&R,&k);
+
+      printF(" oscillatingBubble: setting amp=%9.3e, R=%9.3e, k=%9.3e\n",amp,R,k);
+      
+      // *** compute any eigenvalues here ***
+      //   --> could save in rpar[3], rpar[4], ...
+
+
+
+    }
+ 
+
+
     else
     {
       printF("unknown response=[%s]\n",(const char*)answer);

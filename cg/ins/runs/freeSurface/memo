@@ -1,4 +1,35 @@
+*******************************
+****** July 19, 2017
 
+***NOTE freeSurfaceDropGrid.cmd MOVED TO NEW DIRECTORY --- ins/runs/oscillating
+
+REVISIT FREE SURFACE with proper traction BC --> insTractionBC.bf 
+
+======== free surface on a square with surface tension (no gravity)
+
+PERIODIC ** BROKEN ***
+cgins freeSurface2d -g=freeSurfaceGrid2de2.order2p -dg="share=100" -nu=.01 -tf=10. -tp=.01 -model=ins -go=halt -surfaceTension=.5 -pGrad=0. -ad2=1 -go=halt
+
+
+SLIP WALL EDGES
+***check corners*** between free surface and slip wall **FIX ME**
+cgins freeSurface2d -g=freeSurfaceGrid2de2.order2.ml1 -dg="share=100" -nu=.01 -tf=10. -tp=.01 -model=ins -go=halt -surfaceTension=.1 -pGrad=0. -ad2=1 -go=halt
+
+============ Free surface DROP with surface tension ======
+
+Coarse Grid: 
+ogen -noplot freeSurfaceDropGrid -interp=e -radx=1. -rady=1.25 -factor=2 -ml=1
+
+Im22: runs .. may not not be correct 
+cgins freeSurface2d -g=freeSurfaceDropGride2.order2.p.ml1 -ts=im -dg="share=100" -nu=.05 -tf=30. -tp=.2 -model=ins -go=halt -surfaceTension=.1 -pGrad=0 -ad2=1 -go=halt
+
+PC22 -- runs  .. may not not be correct ?
+cgins freeSurface2d -g=freeSurfaceDropGride2.order2.p.ml1 -dg="share=100" -nu=.05 -tf=30. -tp=.2 -model=ins -go=halt -surfaceTension=.1 -pGrad=0 -ad2=1 -go=halt
+
+
+
+
+================================
  $cgins -noplot submergedCylinder -g=submergedCylinderGride4.order2.ml1.hdf -dg="share=100" -nu=.005 -tf=30. -tp=.1 -model=ins -numberOfSurfaceSmooths=5 -surfaceTension=.005 -pGrad=-5. -project=1 -ad2=1 -psolver=mg -solver=mg -go=halt
 
 *******************************

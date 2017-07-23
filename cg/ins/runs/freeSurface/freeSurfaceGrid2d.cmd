@@ -24,6 +24,9 @@
 #  ogen -noplot freeSurfaceGrid2d -interp=e -factor=16 -ml=3
 #  ogen -noplot freeSurfaceGrid2d -interp=e -factor=32 -ml=3
 #
+# -- periodic:
+#  ogen -noplot freeSurfaceGrid2d -interp=e -periodic=p -factor=2 
+#
 #  -- flat surface
 #   ogen -noplot freeSurfaceGrid2d -amp=0 -interp=e -factor=2 -ml=1
 #   ogen -noplot freeSurfaceGrid2d -amp=0 -interp=e -factor=4 -ml=1
@@ -48,7 +51,7 @@ elsif( $order eq 6 ){ $orderOfAccuracy="sixth order"; $ng=4; }\
 elsif( $order eq 8 ){ $orderOfAccuracy="eighth order"; $ng=6; }
 if( $interp eq "e" ){ $interpType = "explicit for all grids"; }
 $suffix = ".order$order"; 
-if( $periodic eq "p" ){ $suffix .= ".p"; }
+if( $periodic eq "p" ){ $suffix .= "p"; }
 if( $ml ne 0 ){ $suffix .= ".ml$ml"; }
 $prefix = "freeSurfaceGrid2d"; 
 if( $amp eq 0 ){ $prefix .= "Flat"; }

@@ -28,6 +28,7 @@ class DispersiveMaterialParameters;
 // Define the type of array we stored the chirped parameters in
 typedef ArraySimpleFixed<real,10,1,1,1> ChirpedArrayType;
 
+
 class Maxwell
 {
  public:
@@ -199,6 +200,17 @@ class Maxwell
   } dispersionModel;
 
   
+
+  enum StageOptionEnum
+  {
+    nullStageOperation=0,
+    computeUtInStage=1,
+    updateInteriorInStage=2,
+    addDissipationInStage=4,
+    applyBCInStage=8
+  };
+
+    
 
   Maxwell();
   ~Maxwell();
@@ -388,6 +400,8 @@ protected:
 
   int saveSequenceInfo( real t0, RealArray & sequenceData );
   int saveSequencesToShowFile();
+
+  int setupMultiStageAlgorithm( GL_GraphicsInterface &gi, DialogData & dialog );
 
 public: //  should be protected:
 

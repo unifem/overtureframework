@@ -1,7 +1,7 @@
-! This file automatically generated from advOptNew.bf with bpp.
-        subroutine advMx2dOrder2c(nd,n1a,n1b,n2a,n2b,n3a,n3b,nd1a,nd1b,
-     & nd2a,nd2b,nd3a,nd3b,nd4a,nd4b,mask,rsxy,  um,u,un,f,fa, v,vvt2,
-     & ut3,vvt4,ut5,ut6,ut7, bc, dis, varDis, ipar, rpar, ierr )
+! This file automatically generated from advMxUp.bf with bpp.
+        subroutine advMxUp2dOrder2r(nd,n1a,n1b,n2a,n2b,n3a,n3b,nd1a,
+     & nd1b,nd2a,nd2b,nd3a,nd3b,nd4a,nd4b,mask,rsxy,  um,u,un,f,fa, v,
+     & vvt2,ut3,vvt4,ut5,ut6,ut7, bc, dis, varDis, ipar, rpar, ierr )
        !======================================================================
        !   Advance a time step for Maxwells equations
        !     OPTIMIZED version for rectangular grids.
@@ -3550,8 +3550,8 @@ c===============================================================================
         gammaDt=gamma*dt
         omegapDtSq=(omegap*dt)**2
         if( t.eq.0. .and. dispersionModel.ne.noDispersion )then
-           write(*,'("--advOpt-- dispersionModel=",i4," px,py,pz=",3i2)
-     & ') dispersionModel,pxc,pyc,pzc
+           write(*,'("--advMxUp-- dispersionModel=",i4," px,py,pz=",
+     & 3i2)') dispersionModel,pxc,pyc,pzc
         end if
         if( useSosupDissipation.ne.0 )then
          ! Coefficients in the sosup dissipation from Jordan Angel
@@ -3566,14 +3566,14 @@ c===============================================================================
          ! sosupParameter=gamma in sosup scheme  0<= gamma <=1   0=centered scheme
          adSosup=sosupParameter*adSosup
          if( t.le.2*dt )then
-           write(*,'("advOPT: useSosup dissipation, t,dt,adSosup=",
+           write(*,'("advMxUp: useSosup dissipation, t,dt,adSosup=",
      & 3e10.2)') t,dt,adSosup
-           write(*,'("advOPT: sosupDissipationOption=",i2)') 
+           write(*,'("advMxUp: sosupDissipationOption=",i2)') 
      & sosupDissipationOption
-           write(*,'("advOPT: updateDissipation=",i2)') 
+           write(*,'("advMxUp: updateDissipation=",i2)') 
      & updateDissipation
-           write(*,'("advOPT: updateSolution=",i2)') updateSolution
-           write(*,'("advOPT: useNewForcingMethod=",i2)') 
+           write(*,'("advMxUp: updateSolution=",i2)') updateSolution
+           write(*,'("advMxUp: useNewForcingMethod=",i2)') 
      & useNewForcingMethod
          end if
          ! Coefficients of the sosup dissipation with Cartesian grids:
@@ -3606,9 +3606,9 @@ c===============================================================================
             cdcE = dc*dt**2/(eps)/dcp
             cdcH = dc*dt**2/(mu )/dcp
             if( t.eq.0. )then
-              write(*,'(" advOpt: order=2 : div clean: dc,cc,dt,eps,
+              write(*,'(" advMxUp: order=2 : div clean: dc,cc,dt,eps,
      & mu=",5e10.2)') dc,cc,dt,eps,mu
-              write(*,'(" advOpt: div clean: cdc0,cdc1,cdcxx,cdcyy,
+              write(*,'(" advMxUp: div clean: cdc0,cdc1,cdcxx,cdcyy,
      & cdcHdy,cdcHdx=",6e10.2)') cdc0,cdc1,cdcxx,cdcyy,cdcHdy,cdcHdx
             end if
           else if( orderOfAccuracy.eq.4 )then
@@ -3625,14 +3625,14 @@ c===============================================================================
             cdcHLapsq = ((cc*dt)**4/12./dcp)*( 1. + dc*dt/mu )
             cdcHLapm = ((cc*dt)**2/dcp)*( - dc*dt/(6.*mu ) )
             if( t.eq.0. )then
-              write(*,'(" advOpt: order=4 :  div clean: dc,cc,dt,eps,
+              write(*,'(" advMxUp: order=4 :  div clean: dc,cc,dt,eps,
      & mu=",5e10.2)') dc,cc,dt,eps,mu
-              write(*,'(" advOpt: div clean: cdc0,cdc1,cdcELap,
+              write(*,'(" advMxUp: div clean: cdc0,cdc1,cdcELap,
      & cdcELapsq,cdcE,cdcELapm=",8e10.2)') cdc0,cdc1,cdcELap,
      & cdcELapsq,cdcE,cdcELapm
             end if
           else
-           write(*,'(" advOpt.bf: un-implemented orderOfAccuracy for 
+           write(*,'(" advMxUp.bf: un-implemented orderOfAccuracy for 
      & div-cleaning")')
            stop 2277
           end if
@@ -3714,7 +3714,7 @@ c===============================================================================
           ! precompute "uDot" = dt*du/dt used in the dissipation and store in v 
           ! we uDot at enough ghost points for the dissipation operator 
           if( t.le.3.*dt )then
-            write(*,'(" advOPT>>> Eval uDot...")')
+            write(*,'(" advMxUp>>> Eval uDot...")')
           end if
           numGhost=orderOfAccuracy/2
           if( useSosupDissipation.eq.1 )then
@@ -3789,322 +3789,116 @@ c===============================================================================
          stop 83322
         end if
         if( gridType.eq.rectangular )then
-        else
        !       **********************************************
-       !       *************** curvilinear ******************
+       !       *************** rectangular ******************
        !       **********************************************
-          if( useCurvilinearOpt.eq.1 .and. useConservative.eq.0 )then
-           ! ****************************************************************************
-           ! *************** OPTIMIZED-CURVILINEAR AND NON-CONSERVATIVE *****************    
-           ! ****************************************************************************
-             ! --- Todo: non-conservative operators could be inlined here ---
-             !   -- these might be faster than precomputing 
-       !$$$     loopsFCD(un(i1,i2,i3,ex)=maxwellc22(i1,i2,i3,ex),!$$$              un(i1,i2,i3,ey)=maxwellc22(i1,i2,i3,ey),!$$$              un(i1,i2,i3,ez)=maxwellc22(i1,i2,i3,ez),!$$$               ,,,!$$$              un(i1,i2,i3,hx)=maxwellc22(i1,i2,i3,hx),!$$$              un(i1,i2,i3,hy)=maxwellc22(i1,i2,i3,hy),!$$$              un(i1,i2,i3,hz)=maxwellc22(i1,i2,i3,hz),!$$$              ,,)
-            stop 88044
-          else if( useCurvilinearOpt.eq.1 .and. useConservative.eq.1 )
-     & then
-           ! *************** conservative *****************    
-           stop 94422
-          else
-            ! **********************************************************************************
-            ! **************** USE PRE-COMPUTED SPATIAL OPERATORS ******************************
-            ! **********************************************************************************
-            !  --> The Laplacian and Laplacian squared have already been computed by the calling program 
-            !  --> For example, mainly when using conservative operators
-           if( useSosupDissipation.ne.0 )then
-             ! ---- use sosup dissipation (wider stencil) ---
-              if( t.le.2.*dt )then
-                write(*,'(" advOpt: FD22 + sosup-dissipation for 
-     & curvilinear")')
-              end if
-              if( useNewForcingMethod.ne.0 )then
-               write(*,'(" finish me: useSosupDissipation && 
-     & useNewForcingMethod")')
-               stop 7739
-              end if
-              ! FD22 (curvilinear grid) with Sosup (wide stencil dissiption)
-              if( updateSolution.eq.1 .and. updateDissipation.eq.1 )
-     & then
-               ! advance + sosup dissipation: 
-               ! note: forcing is already added to the rhs.
-               if( t.le.3.*dt )then
-                 write(*,'("advOPT>>>","FD22c-UP...update-solution-and-
-     & dissipation")')
-               end if
-               uDotFactor=1. ! for D-minus-t do not scale by .5
-                 do i3=n3a,n3b
-                 do i2=n2a,n2b
-                 do i1=n1a,n1b
-                   if( mask(i1,i2,i3).gt.0 )then
-                 do dir=0,1
-                   ! diss-coeff ~= 1/(change in x along direction r(dir) )
-                   ! Assuming a nearly orthogonal grid gives ||dx|| = || grad_x(r_i) || / dr_i 
-                   adxSosup(dir) = adSosup*uDotFactor*sqrt( rsxy(i1,i2,
-     & i3,dir,0)**2 + rsxy(i1,i2,i3,dir,1)**2 )/dr(dir)
-                 end do
-                do m=0,2 ! ex, ey, hz
-                  ec=ex+m
-                  un(i1,i2,i3,ec)=maxwellc22(i1,i2,i3,ec)+(-6.*DmtU(i1,
-     & i2,i3,ec)+4.*(DmtU(i1+1,i2,i3,ec)+DmtU(i1-1,i2,i3,ec))-(DmtU(
-     & i1+2,i2,i3,ec)+DmtU(i1-2,i2,i3,ec)))*adxSosup(0)+(-6.*DmtU(i1,
-     & i2,i3,ec)+4.*(DmtU(i1,i2+1,i3,ec)+DmtU(i1,i2-1,i3,ec))-(DmtU(
-     & i1,i2+2,i3,ec)+DmtU(i1,i2-2,i3,ec)))*adxSosup(1)
-                end do
-                   end if
-                 end do
-                 end do
-                 end do
-               uDotFactor=.5 ! reset
-             else if( updateSolution.eq.1 )then
-                ! advance to time n+1
-               if( t.le.3.*dt )then
-                 write(*,'("advOPT>>>","FD22c-UP...update-solution")')
-               end if
-               ! note: forcing is already added to the rhs.
-               if( updateSolution.eq.1 )then
-                  do i3=n3a,n3b
-                  do i2=n2a,n2b
-                  do i1=n1a,n1b
-                    if( mask(i1,i2,i3).gt.0 )then
-                 do m=0,2 ! ex, ey, hz
-                   ec=ex+m
-                   un(i1,i2,i3,ec)=maxwellc22(i1,i2,i3,ec)
-                 end do
-                    end if
-                  end do
-                  end do
-                  end do
-               end if
-              else if( updateDissipation.eq.1 )then
-               ! --- add dissipation only ----
-               if( sosupDissipationOption.eq.0 .and. computeUt.eq.1 )
-     & then
-                ! apply sosup dissipation to time n+1 (use precomputed v=uDot)
-                if( t.le.3.*dt )then
-                  write(*,'("advOPT>>>","FD22c-UP...update-un-with-
-     & dissipation-using-v")')
-                end if
-                  do i3=n3a,n3b
-                  do i2=n2a,n2b
-                  do i1=n1a,n1b
-                    if( mask(i1,i2,i3).gt.0 )then
-                  do dir=0,1
-                    ! diss-coeff ~= 1/(change in x along direction r(dir) )
-                    ! Assuming a nearly orthogonal grid gives ||dx|| = || grad_x(r_i) || / dr_i 
-                    adxSosup(dir) = adSosup*uDotFactor*sqrt( rsxy(i1,
-     & i2,i3,dir,0)**2 + rsxy(i1,i2,i3,dir,1)**2 )/dr(dir)
-                  end do
-                 do m=0,2 ! ex, ey, hz
-                   ec=ex+m
-                   un(i1,i2,i3,ec)=un(i1,i2,i3,ec)+(-6.*v(i1,i2,i3,ec)+
-     & 4.*(v(i1+1,i2,i3,ec)+v(i1-1,i2,i3,ec))-(v(i1+2,i2,i3,ec)+v(i1-
-     & 2,i2,i3,ec)))*adxSosup(0)+(-6.*v(i1,i2,i3,ec)+4.*(v(i1,i2+1,i3,
-     & ec)+v(i1,i2-1,i3,ec))-(v(i1,i2+2,i3,ec)+v(i1,i2-2,i3,ec)))*
-     & adxSosup(1)
-                 end do
-                    end if
-                  end do
-                  end do
-                  end do
-               else if( sosupDissipationOption.eq.0 .and. 
-     & computeUt.eq.0 )then
-                ! apply sosup dissipation to time n+1
-                if( t.le.3.*dt )then
-                  write(*,'("advOPT>>>","FD22c-UP...update-un-with-
-     & dissipation")')
-                end if
-                  do i3=n3a,n3b
-                  do i2=n2a,n2b
-                  do i1=n1a,n1b
-                    if( mask(i1,i2,i3).gt.0 )then
-                  do dir=0,1
-                    ! diss-coeff ~= 1/(change in x along direction r(dir) )
-                    ! Assuming a nearly orthogonal grid gives ||dx|| = || grad_x(r_i) || / dr_i 
-                    adxSosup(dir) = adSosup*uDotFactor*sqrt( rsxy(i1,
-     & i2,i3,dir,0)**2 + rsxy(i1,i2,i3,dir,1)**2 )/dr(dir)
-                  end do
-                 do m=0,2 ! ex, ey, hz
-                   ec=ex+m
-                   un(i1,i2,i3,ec)=un(i1,i2,i3,ec)+(-6.*DztU(i1,i2,i3,
-     & ec)+4.*(DztU(i1+1,i2,i3,ec)+DztU(i1-1,i2,i3,ec))-(DztU(i1+2,i2,
-     & i3,ec)+DztU(i1-2,i2,i3,ec)))*adxSosup(0)+(-6.*DztU(i1,i2,i3,ec)
-     & +4.*(DztU(i1,i2+1,i3,ec)+DztU(i1,i2-1,i3,ec))-(DztU(i1,i2+2,i3,
-     & ec)+DztU(i1,i2-2,i3,ec)))*adxSosup(1)
-                 end do
-                    end if
-                  end do
-                  end do
-                  end do
-               else
-                ! apply sosup dissipation to time n using times n-1 and n-2
-                ! assume un holds u(t-2*dt) on input 
-                ! NOTE: the dissipation is added to u in a Gauss-Siedel fashion
-                if( t.le.3.*dt )then
-                  write(*,'("advOPT>>>","FD22c-UP...update-u-with-
-     & dissipation")')
-                end if
-                  do i3=n3a,n3b
-                  do i2=n2a,n2b
-                  do i1=n1a,n1b
-                    if( mask(i1,i2,i3).gt.0 )then
-                  do dir=0,1
-                    ! diss-coeff ~= 1/(change in x along direction r(dir) )
-                    ! Assuming a nearly orthogonal grid gives ||dx|| = || grad_x(r_i) || / dr_i 
-                    adxSosup(dir) = adSosup*uDotFactor*sqrt( rsxy(i1,
-     & i2,i3,dir,0)**2 + rsxy(i1,i2,i3,dir,1)**2 )/dr(dir)
-                  end do
-                 do m=0,2 ! ex, ey, hz
-                   ec=ex+m
-                   u(i1,i2,i3,ec)=u(i1,i2,i3,ec)+(-6.*DzstU(i1,i2,i3,
-     & ec)+4.*(DzstU(i1+1,i2,i3,ec)+DzstU(i1-1,i2,i3,ec))-(DzstU(i1+2,
-     & i2,i3,ec)+DzstU(i1-2,i2,i3,ec)))*adxSosup(0)+(-6.*DzstU(i1,i2,
-     & i3,ec)+4.*(DzstU(i1,i2+1,i3,ec)+DzstU(i1,i2-1,i3,ec))-(DzstU(
-     & i1,i2+2,i3,ec)+DzstU(i1,i2-2,i3,ec)))*adxSosup(1)
-                 end do
-                    end if
-                  end do
-                  end do
-                  end do
-               end if
-              else
-                write(*,'("advOpt:FD22c-UP ERROR: unexpected option? 
-     & sosupDissipationOption=",i2)') sosupDissipationOption
-                stop 2020
-              end if
-           else if( dispersionModel.ne.noDispersion )then
-             ! --dispersive model --
-             write(*,'("--advOpt-- advance 2D curvilinear: dispersive 
-     & model")')
-             if( addDissipation )then
-               write(*,'(" -- finish me : dispersion and AD")')
-               stop 8256
-             end if
-             if( useNewForcingMethod.ne.0 )then
-              write(*,'(" finish me: dispersion && 
-     & useNewForcingMethod")')
-              stop 7733
-             end if
-             fp=0.
+           if( dispersionModel.ne.noDispersion )then
+             ! --dispersion model --
+             write(*,'("--advMxUp-- advance 2D dispersive model")')
+             fp=0
              fe=0.
                do i3=n3a,n3b
                do i2=n2a,n2b
                do i1=n1a,n1b
                  if( mask(i1,i2,i3).gt.0 )then
-               ! scheme from Jeff: 
                ! Advance Hz first:
                ! For now solve H_t = -(1/mu)*(  (E_y)_x - (E_x)_y )
                !   USE AB2 -- note: this is just a quadrature so stability is not an inssue
-               un(i1,i2,i3,hz) = u(i1,i2,i3,hz) -(dt/mu)*( 1.5*ux22(i1,
-     & i2,i3,ey) -.5*umx22(i1,i2,i3,ey) -1.5*uy22(i1,i2,i3,ex) +.5*
-     & umy22(i1,i2,i3,ex) )
+               un(i1,i2,i3,hz) = u(i1,i2,i3,hz) -(dt/mu)*( 1.5*ux22r(
+     & i1,i2,i3,ey) -.5*umx22r(i1,i2,i3,ey) -1.5*uy22r(i1,i2,i3,ex) +
+     & .5*umy22r(i1,i2,i3,ex) )
                if( addForcing.ne.0 )then
                  un(i1,i2,i3,hz) = un(i1,i2,i3,hz) + dt*f(i1,i2,i3,hz) ! first order only **FIX ME**
                end if
-               !  --- advance E and P ---
+               !   H_tt = c^2 Delta(H) + c^2 curl( P_t)  -- equation for H , *check me*
+               !  **finish me**
+               !  if( addForcing.eq.0 )then
+               !    un(i1,i2,i3,hz)=maxwell2dr(i1,i2,i3,hz)
+               !  else
+               !    un(i1,i2,i3,hz)=maxwell2dr(i1,i2,i3,hz)+dtsq*f(i1,i2,i3,hz)
+               !  end if
+               ! scheme from Jeff: 
                do m=0,1
                 pc=pxc+m
                 ec=ex+m
-                if( addForcing.ne.0 )then ! forcing in E equation already added to f
+                if( addForcing.ne.0 )then
                   fp = dtsq*f(i1,i2,i3,pc)
+                  fe = dtsq*f(i1,i2,i3,ec)
                 end if
                 un(i1,i2,i3,pc)=( 2.*u(i1,i2,i3,pc)- (1.-gammaDt*.5)*
      & um(i1,i2,i3,pc) + omegapDtSq*u(i1,i2,i3,ec) + fp )/(1.+gammaDt*
      & .5)
                 ptt = un(i1,i2,i3,pc)-2.*u(i1,i2,i3,pc)+um(i1,i2,i3,pc)
                 ! write(*,'(" ptt=",e10.2)') ptt
-                un(i1,i2,i3,ec)=maxwellc22(i1,i2,i3,ec) - ptt/eps
-                ! test: un(i1,i2,i3,ec)=maxwellc22(i1,i2,i3,ec) 
+                un(i1,i2,i3,ec)=maxwell2dr(i1,i2,i3,ec)+ fe - ptt/eps
                end do
                  end if
                end do
                end do
                end do
-           else if( useDivergenceCleaning.eq.0 )then
-            ! --- currently 2nd-order conservative and non-conservative opertaors are done here ---
-            ! --- non-dispersive ---
-            if( .not.addDissipation )then
-             if( nd.eq.2 )then
-              ! This next line assumes we solve for ex,ey and hz
-              if( useWhereMask.ne.0 )then
-               do i3=n3a,n3b
-               do i2=n2a,n2b
-               do i1=n1a,n1b
-                if( mask(i1,i2,i3).gt.0 )then
-                 un(i1,i2,i3,ex)=maxwellc22(i1,i2,i3,ex)
-                 un(i1,i2,i3,ey)=maxwellc22(i1,i2,i3,ey)
-
-
-                 un(i1,i2,i3,hz)=maxwellc22(i1,i2,i3,hz)
-
-
-
-
-                end if
-               end do
-               end do
-               end do
-              else
-               do i3=n3a,n3b
-               do i2=n2a,n2b
-               do i1=n1a,n1b
-                un(i1,i2,i3,ex)=maxwellc22(i1,i2,i3,ex)
-                un(i1,i2,i3,ey)=maxwellc22(i1,i2,i3,ey)
-
-
-                un(i1,i2,i3,hz)=maxwellc22(i1,i2,i3,hz)
-
-
-
-
-               end do
-               end do
-               end do
-              end if
-             else
-              if( solveForE.ne.0 .and. solveForH.ne.0 )then
-                if( useWhereMask.ne.0 )then
+           else if( useSosupDissipation.ne.0 )then
+            ! FD22s (rectangular grid) with upwind (sosup) dissipation (wide stencil dissiption)
+              adxSosup(0)=cdSosupx*uDotFactor
+              adxSosup(1)=cdSosupy*uDotFactor
+              if( updateSolution.eq.1 .and. updateDissipation.eq.1 )
+     & then
+               ! advance + sosup dissipation: 
+               if( t.le.3.*dt )then
+                 write(*,'("advMxUp>>>","FD22r-UP...update-solution-
+     & and-dissipation")')
+               end if
+               adxSosup(0)=cdSosupx ! for D-minus-t do not scale by .5
+               adxSosup(1)=cdSosupy
+               if( addForcing.eq.0 .and. .not.addDissipation )then
+                 if( useWhereMask.ne.0 )then
                   do i3=n3a,n3b
                   do i2=n2a,n2b
                   do i1=n1a,n1b
-                    if( mask(i1,i2,i3).gt.0 )then
-                      un(i1,i2,i3,ex)=maxwellc22(i1,i2,i3,ex)
-                      un(i1,i2,i3,ey)=maxwellc22(i1,i2,i3,ey)
-                      un(i1,i2,i3,ez)=maxwellc22(i1,i2,i3,ez)
+                   if( mask(i1,i2,i3).gt.0 )then
+                    un(i1,i2,i3,ex)=maxwell2dr(i1,i2,i3,ex)+(-6.*DmtU(
+     & i1,i2,i3,ex)+4.*(DmtU(i1+1,i2,i3,ex)+DmtU(i1-1,i2,i3,ex))-(
+     & DmtU(i1+2,i2,i3,ex)+DmtU(i1-2,i2,i3,ex)))*adxSosup(0)+(-6.*
+     & DmtU(i1,i2,i3,ex)+4.*(DmtU(i1,i2+1,i3,ex)+DmtU(i1,i2-1,i3,ex))-
+     & (DmtU(i1,i2+2,i3,ex)+DmtU(i1,i2-2,i3,ex)))*adxSosup(1)
+                    un(i1,i2,i3,ey)=maxwell2dr(i1,i2,i3,ey)+(-6.*DmtU(
+     & i1,i2,i3,ey)+4.*(DmtU(i1+1,i2,i3,ey)+DmtU(i1-1,i2,i3,ey))-(
+     & DmtU(i1+2,i2,i3,ey)+DmtU(i1-2,i2,i3,ey)))*adxSosup(0)+(-6.*
+     & DmtU(i1,i2,i3,ey)+4.*(DmtU(i1,i2+1,i3,ey)+DmtU(i1,i2-1,i3,ey))-
+     & (DmtU(i1,i2+2,i3,ey)+DmtU(i1,i2-2,i3,ey)))*adxSosup(1)
+                    un(i1,i2,i3,hz)=maxwell2dr(i1,i2,i3,hz)+(-6.*DmtU(
+     & i1,i2,i3,hz)+4.*(DmtU(i1+1,i2,i3,hz)+DmtU(i1-1,i2,i3,hz))-(
+     & DmtU(i1+2,i2,i3,hz)+DmtU(i1-2,i2,i3,hz)))*adxSosup(0)+(-6.*
+     & DmtU(i1,i2,i3,hz)+4.*(DmtU(i1,i2+1,i3,hz)+DmtU(i1,i2-1,i3,hz))-
+     & (DmtU(i1,i2+2,i3,hz)+DmtU(i1,i2-2,i3,hz)))*adxSosup(1)
 
 
 
-                      un(i1,i2,i3,hx)=maxwellc22(i1,i2,i3,hx)
-                      un(i1,i2,i3,hy)=maxwellc22(i1,i2,i3,hy)
-                      un(i1,i2,i3,hz)=maxwellc22(i1,i2,i3,hz)
 
 
 
-
-
-
-
-
-
-                    end if
+                   end if
                   end do
                   end do
                   end do
-                else
+                 else
                   do i3=n3a,n3b
                   do i2=n2a,n2b
                   do i1=n1a,n1b
-                      un(i1,i2,i3,ex)=maxwellc22(i1,i2,i3,ex)
-                      un(i1,i2,i3,ey)=maxwellc22(i1,i2,i3,ey)
-                      un(i1,i2,i3,ez)=maxwellc22(i1,i2,i3,ez)
-
-
-
-                      un(i1,i2,i3,hx)=maxwellc22(i1,i2,i3,hx)
-                      un(i1,i2,i3,hy)=maxwellc22(i1,i2,i3,hy)
-                      un(i1,i2,i3,hz)=maxwellc22(i1,i2,i3,hz)
-
-
-
+                   un(i1,i2,i3,ex)=maxwell2dr(i1,i2,i3,ex)+(-6.*DmtU(
+     & i1,i2,i3,ex)+4.*(DmtU(i1+1,i2,i3,ex)+DmtU(i1-1,i2,i3,ex))-(
+     & DmtU(i1+2,i2,i3,ex)+DmtU(i1-2,i2,i3,ex)))*adxSosup(0)+(-6.*
+     & DmtU(i1,i2,i3,ex)+4.*(DmtU(i1,i2+1,i3,ex)+DmtU(i1,i2-1,i3,ex))-
+     & (DmtU(i1,i2+2,i3,ex)+DmtU(i1,i2-2,i3,ex)))*adxSosup(1)
+                   un(i1,i2,i3,ey)=maxwell2dr(i1,i2,i3,ey)+(-6.*DmtU(
+     & i1,i2,i3,ey)+4.*(DmtU(i1+1,i2,i3,ey)+DmtU(i1-1,i2,i3,ey))-(
+     & DmtU(i1+2,i2,i3,ey)+DmtU(i1-2,i2,i3,ey)))*adxSosup(0)+(-6.*
+     & DmtU(i1,i2,i3,ey)+4.*(DmtU(i1,i2+1,i3,ey)+DmtU(i1,i2-1,i3,ey))-
+     & (DmtU(i1,i2+2,i3,ey)+DmtU(i1,i2-2,i3,ey)))*adxSosup(1)
+                   un(i1,i2,i3,hz)=maxwell2dr(i1,i2,i3,hz)+(-6.*DmtU(
+     & i1,i2,i3,hz)+4.*(DmtU(i1+1,i2,i3,hz)+DmtU(i1-1,i2,i3,hz))-(
+     & DmtU(i1+2,i2,i3,hz)+DmtU(i1-2,i2,i3,hz)))*adxSosup(0)+(-6.*
+     & DmtU(i1,i2,i3,hz)+4.*(DmtU(i1,i2+1,i3,hz)+DmtU(i1,i2-1,i3,hz))-
+     & (DmtU(i1,i2+2,i3,hz)+DmtU(i1,i2-2,i3,hz)))*adxSosup(1)
 
 
 
@@ -4114,146 +3908,98 @@ c===============================================================================
                   end do
                   end do
                   end do
-                end if
-              else if( solveForE.ne.0 ) then
-                if( useWhereMask.ne.0 )then
-                 do i3=n3a,n3b
-                 do i2=n2a,n2b
-                 do i1=n1a,n1b
-                  if( mask(i1,i2,i3).gt.0 )then
-                   un(i1,i2,i3,ex)=maxwellc22(i1,i2,i3,ex)
-                   un(i1,i2,i3,ey)=maxwellc22(i1,i2,i3,ey)
-                   un(i1,i2,i3,ez)=maxwellc22(i1,i2,i3,ez)
-
-
-
-
-
-
-                  end if
-                 end do
-                 end do
-                 end do
-                else
-                 do i3=n3a,n3b
-                 do i2=n2a,n2b
-                 do i1=n1a,n1b
-                  un(i1,i2,i3,ex)=maxwellc22(i1,i2,i3,ex)
-                  un(i1,i2,i3,ey)=maxwellc22(i1,i2,i3,ey)
-                  un(i1,i2,i3,ez)=maxwellc22(i1,i2,i3,ez)
-
-
-
-
-
-
-                 end do
-                 end do
-                 end do
-                end if
-              else
-                if( useWhereMask.ne.0 )then
-                 do i3=n3a,n3b
-                 do i2=n2a,n2b
-                 do i1=n1a,n1b
-                  if( mask(i1,i2,i3).gt.0 )then
-                   un(i1,i2,i3,hx)=maxwellc22(i1,i2,i3,hx)
-                   un(i1,i2,i3,hy)=maxwellc22(i1,i2,i3,hy)
-                   un(i1,i2,i3,hz)=maxwellc22(i1,i2,i3,hz)
-
-
-
-
-
-
-                  end if
-                 end do
-                 end do
-                 end do
-                else
-                 do i3=n3a,n3b
-                 do i2=n2a,n2b
-                 do i1=n1a,n1b
-                  un(i1,i2,i3,hx)=maxwellc22(i1,i2,i3,hx)
-                  un(i1,i2,i3,hy)=maxwellc22(i1,i2,i3,hy)
-                  un(i1,i2,i3,hz)=maxwellc22(i1,i2,i3,hz)
-
-
-
-
-
-
-                 end do
-                 end do
-                 end do
-                end if
-              end if
-             end if
-            else ! add dissipation too
-             if( nd.eq.2 )then
-              ! This next line assumes we solve for ex,ey and hz
-              if( useWhereMask.ne.0 )then
-               do i3=n3a,n3b
-               do i2=n2a,n2b
-               do i1=n1a,n1b
-                if( mask(i1,i2,i3).gt.0 )then
-                 un(i1,i2,i3,ex)=maxwellc22(i1,i2,i3,ex)+dis(i1,i2,i3,
-     & ex)
-                 un(i1,i2,i3,ey)=maxwellc22(i1,i2,i3,ey)+dis(i1,i2,i3,
-     & ey)
-
-
-                 un(i1,i2,i3,hz)=maxwellc22(i1,i2,i3,hz)+dis(i1,i2,i3,
-     & hz)
-
-
-
-
-                end if
-               end do
-               end do
-               end do
-              else
-               do i3=n3a,n3b
-               do i2=n2a,n2b
-               do i1=n1a,n1b
-                un(i1,i2,i3,ex)=maxwellc22(i1,i2,i3,ex)+dis(i1,i2,i3,
-     & ex)
-                un(i1,i2,i3,ey)=maxwellc22(i1,i2,i3,ey)+dis(i1,i2,i3,
-     & ey)
-
-
-                un(i1,i2,i3,hz)=maxwellc22(i1,i2,i3,hz)+dis(i1,i2,i3,
-     & hz)
-
-
-
-
-               end do
-               end do
-               end do
-              end if
-             else
-              if( solveForE.ne.0 .and. solveForH.ne.0 )then
-                if( useWhereMask.ne.0 )then
+                 end if
+               else if( addForcing.ne.0 .and. .not.addDissipation )then
+               ! add forcing to the first 3 equations
+                 if( useWhereMask.ne.0 )then
                   do i3=n3a,n3b
                   do i2=n2a,n2b
                   do i1=n1a,n1b
-                    if( mask(i1,i2,i3).gt.0 )then
-                      un(i1,i2,i3,ex)=maxwellc22(i1,i2,i3,ex)+dis(i1,
+                   if( mask(i1,i2,i3).gt.0 )then
+                    un(i1,i2,i3,ex)=maxwell2dr(i1,i2,i3,ex)+(-6.*DmtU(
+     & i1,i2,i3,ex)+4.*(DmtU(i1+1,i2,i3,ex)+DmtU(i1-1,i2,i3,ex))-(
+     & DmtU(i1+2,i2,i3,ex)+DmtU(i1-2,i2,i3,ex)))*adxSosup(0)+(-6.*
+     & DmtU(i1,i2,i3,ex)+4.*(DmtU(i1,i2+1,i3,ex)+DmtU(i1,i2-1,i3,ex))-
+     & (DmtU(i1,i2+2,i3,ex)+DmtU(i1,i2-2,i3,ex)))*adxSosup(1)+dtsq*f(
+     & i1,i2,i3,ex)
+                    un(i1,i2,i3,ey)=maxwell2dr(i1,i2,i3,ey)+(-6.*DmtU(
+     & i1,i2,i3,ey)+4.*(DmtU(i1+1,i2,i3,ey)+DmtU(i1-1,i2,i3,ey))-(
+     & DmtU(i1+2,i2,i3,ey)+DmtU(i1-2,i2,i3,ey)))*adxSosup(0)+(-6.*
+     & DmtU(i1,i2,i3,ey)+4.*(DmtU(i1,i2+1,i3,ey)+DmtU(i1,i2-1,i3,ey))-
+     & (DmtU(i1,i2+2,i3,ey)+DmtU(i1,i2-2,i3,ey)))*adxSosup(1)+dtsq*f(
+     & i1,i2,i3,ey)
+                    un(i1,i2,i3,hz)=maxwell2dr(i1,i2,i3,hz)+(-6.*DmtU(
+     & i1,i2,i3,hz)+4.*(DmtU(i1+1,i2,i3,hz)+DmtU(i1-1,i2,i3,hz))-(
+     & DmtU(i1+2,i2,i3,hz)+DmtU(i1-2,i2,i3,hz)))*adxSosup(0)+(-6.*
+     & DmtU(i1,i2,i3,hz)+4.*(DmtU(i1,i2+1,i3,hz)+DmtU(i1,i2-1,i3,hz))-
+     & (DmtU(i1,i2+2,i3,hz)+DmtU(i1,i2-2,i3,hz)))*adxSosup(1)+dtsq*f(
+     & i1,i2,i3,hz)
+
+
+
+
+
+
+                   end if
+                  end do
+                  end do
+                  end do
+                 else
+                  do i3=n3a,n3b
+                  do i2=n2a,n2b
+                  do i1=n1a,n1b
+                   un(i1,i2,i3,ex)=maxwell2dr(i1,i2,i3,ex)+(-6.*DmtU(
+     & i1,i2,i3,ex)+4.*(DmtU(i1+1,i2,i3,ex)+DmtU(i1-1,i2,i3,ex))-(
+     & DmtU(i1+2,i2,i3,ex)+DmtU(i1-2,i2,i3,ex)))*adxSosup(0)+(-6.*
+     & DmtU(i1,i2,i3,ex)+4.*(DmtU(i1,i2+1,i3,ex)+DmtU(i1,i2-1,i3,ex))-
+     & (DmtU(i1,i2+2,i3,ex)+DmtU(i1,i2-2,i3,ex)))*adxSosup(1)+dtsq*f(
+     & i1,i2,i3,ex)
+                   un(i1,i2,i3,ey)=maxwell2dr(i1,i2,i3,ey)+(-6.*DmtU(
+     & i1,i2,i3,ey)+4.*(DmtU(i1+1,i2,i3,ey)+DmtU(i1-1,i2,i3,ey))-(
+     & DmtU(i1+2,i2,i3,ey)+DmtU(i1-2,i2,i3,ey)))*adxSosup(0)+(-6.*
+     & DmtU(i1,i2,i3,ey)+4.*(DmtU(i1,i2+1,i3,ey)+DmtU(i1,i2-1,i3,ey))-
+     & (DmtU(i1,i2+2,i3,ey)+DmtU(i1,i2-2,i3,ey)))*adxSosup(1)+dtsq*f(
+     & i1,i2,i3,ey)
+                   un(i1,i2,i3,hz)=maxwell2dr(i1,i2,i3,hz)+(-6.*DmtU(
+     & i1,i2,i3,hz)+4.*(DmtU(i1+1,i2,i3,hz)+DmtU(i1-1,i2,i3,hz))-(
+     & DmtU(i1+2,i2,i3,hz)+DmtU(i1-2,i2,i3,hz)))*adxSosup(0)+(-6.*
+     & DmtU(i1,i2,i3,hz)+4.*(DmtU(i1,i2+1,i3,hz)+DmtU(i1,i2-1,i3,hz))-
+     & (DmtU(i1,i2+2,i3,hz)+DmtU(i1,i2-2,i3,hz)))*adxSosup(1)+dtsq*f(
+     & i1,i2,i3,hz)
+
+
+
+
+
+
+                  end do
+                  end do
+                  end do
+                 end if
+               else if( addForcing.eq.0 .and. addDissipation )then
+               ! add dissipation to the first 3 equations
+                 if( useWhereMask.ne.0 )then
+                  do i3=n3a,n3b
+                  do i2=n2a,n2b
+                  do i1=n1a,n1b
+                   if( mask(i1,i2,i3).gt.0 )then
+                    un(i1,i2,i3,ex)=maxwell2dr(i1,i2,i3,ex)+(-6.*DmtU(
+     & i1,i2,i3,ex)+4.*(DmtU(i1+1,i2,i3,ex)+DmtU(i1-1,i2,i3,ex))-(
+     & DmtU(i1+2,i2,i3,ex)+DmtU(i1-2,i2,i3,ex)))*adxSosup(0)+(-6.*
+     & DmtU(i1,i2,i3,ex)+4.*(DmtU(i1,i2+1,i3,ex)+DmtU(i1,i2-1,i3,ex))-
+     & (DmtU(i1,i2+2,i3,ex)+DmtU(i1,i2-2,i3,ex)))*adxSosup(1)+dis(i1,
      & i2,i3,ex)
-                      un(i1,i2,i3,ey)=maxwellc22(i1,i2,i3,ey)+dis(i1,
+                    un(i1,i2,i3,ey)=maxwell2dr(i1,i2,i3,ey)+(-6.*DmtU(
+     & i1,i2,i3,ey)+4.*(DmtU(i1+1,i2,i3,ey)+DmtU(i1-1,i2,i3,ey))-(
+     & DmtU(i1+2,i2,i3,ey)+DmtU(i1-2,i2,i3,ey)))*adxSosup(0)+(-6.*
+     & DmtU(i1,i2,i3,ey)+4.*(DmtU(i1,i2+1,i3,ey)+DmtU(i1,i2-1,i3,ey))-
+     & (DmtU(i1,i2+2,i3,ey)+DmtU(i1,i2-2,i3,ey)))*adxSosup(1)+dis(i1,
      & i2,i3,ey)
-                      un(i1,i2,i3,ez)=maxwellc22(i1,i2,i3,ez)+dis(i1,
-     & i2,i3,ez)
-
-
-
-                      un(i1,i2,i3,hx)=maxwellc22(i1,i2,i3,hx)+dis(i1,
-     & i2,i3,hx)
-                      un(i1,i2,i3,hy)=maxwellc22(i1,i2,i3,hy)+dis(i1,
-     & i2,i3,hy)
-                      un(i1,i2,i3,hz)=maxwellc22(i1,i2,i3,hz)+dis(i1,
+                    un(i1,i2,i3,hz)=maxwell2dr(i1,i2,i3,hz)+(-6.*DmtU(
+     & i1,i2,i3,hz)+4.*(DmtU(i1+1,i2,i3,hz)+DmtU(i1-1,i2,i3,hz))-(
+     & DmtU(i1+2,i2,i3,hz)+DmtU(i1-2,i2,i3,hz)))*adxSosup(0)+(-6.*
+     & DmtU(i1,i2,i3,hz)+4.*(DmtU(i1,i2+1,i3,hz)+DmtU(i1,i2-1,i3,hz))-
+     & (DmtU(i1,i2+2,i3,hz)+DmtU(i1,i2-2,i3,hz)))*adxSosup(1)+dis(i1,
      & i2,i3,hz)
 
 
@@ -4261,31 +4007,31 @@ c===============================================================================
 
 
 
-
-
-
-                    end if
+                   end if
                   end do
                   end do
                   end do
-                else
+                 else
                   do i3=n3a,n3b
                   do i2=n2a,n2b
                   do i1=n1a,n1b
-                      un(i1,i2,i3,ex)=maxwellc22(i1,i2,i3,ex)+dis(i1,
+                   un(i1,i2,i3,ex)=maxwell2dr(i1,i2,i3,ex)+(-6.*DmtU(
+     & i1,i2,i3,ex)+4.*(DmtU(i1+1,i2,i3,ex)+DmtU(i1-1,i2,i3,ex))-(
+     & DmtU(i1+2,i2,i3,ex)+DmtU(i1-2,i2,i3,ex)))*adxSosup(0)+(-6.*
+     & DmtU(i1,i2,i3,ex)+4.*(DmtU(i1,i2+1,i3,ex)+DmtU(i1,i2-1,i3,ex))-
+     & (DmtU(i1,i2+2,i3,ex)+DmtU(i1,i2-2,i3,ex)))*adxSosup(1)+dis(i1,
      & i2,i3,ex)
-                      un(i1,i2,i3,ey)=maxwellc22(i1,i2,i3,ey)+dis(i1,
+                   un(i1,i2,i3,ey)=maxwell2dr(i1,i2,i3,ey)+(-6.*DmtU(
+     & i1,i2,i3,ey)+4.*(DmtU(i1+1,i2,i3,ey)+DmtU(i1-1,i2,i3,ey))-(
+     & DmtU(i1+2,i2,i3,ey)+DmtU(i1-2,i2,i3,ey)))*adxSosup(0)+(-6.*
+     & DmtU(i1,i2,i3,ey)+4.*(DmtU(i1,i2+1,i3,ey)+DmtU(i1,i2-1,i3,ey))-
+     & (DmtU(i1,i2+2,i3,ey)+DmtU(i1,i2-2,i3,ey)))*adxSosup(1)+dis(i1,
      & i2,i3,ey)
-                      un(i1,i2,i3,ez)=maxwellc22(i1,i2,i3,ez)+dis(i1,
-     & i2,i3,ez)
-
-
-
-                      un(i1,i2,i3,hx)=maxwellc22(i1,i2,i3,hx)+dis(i1,
-     & i2,i3,hx)
-                      un(i1,i2,i3,hy)=maxwellc22(i1,i2,i3,hy)+dis(i1,
-     & i2,i3,hy)
-                      un(i1,i2,i3,hz)=maxwellc22(i1,i2,i3,hz)+dis(i1,
+                   un(i1,i2,i3,hz)=maxwell2dr(i1,i2,i3,hz)+(-6.*DmtU(
+     & i1,i2,i3,hz)+4.*(DmtU(i1+1,i2,i3,hz)+DmtU(i1-1,i2,i3,hz))-(
+     & DmtU(i1+2,i2,i3,hz)+DmtU(i1-2,i2,i3,hz)))*adxSosup(0)+(-6.*
+     & DmtU(i1,i2,i3,hz)+4.*(DmtU(i1,i2+1,i3,hz)+DmtU(i1,i2-1,i3,hz))-
+     & (DmtU(i1,i2+2,i3,hz)+DmtU(i1,i2-2,i3,hz)))*adxSosup(1)+dis(i1,
      & i2,i3,hz)
 
 
@@ -4293,66 +4039,174 @@ c===============================================================================
 
 
 
+                  end do
+                  end do
+                  end do
+                 end if
+               else
+               !  add forcing and dissipation
+                 if( useWhereMask.ne.0 )then
+                  do i3=n3a,n3b
+                  do i2=n2a,n2b
+                  do i1=n1a,n1b
+                   if( mask(i1,i2,i3).gt.0 )then
+                    un(i1,i2,i3,ex)=maxwell2dr(i1,i2,i3,ex)+(-6.*DmtU(
+     & i1,i2,i3,ex)+4.*(DmtU(i1+1,i2,i3,ex)+DmtU(i1-1,i2,i3,ex))-(
+     & DmtU(i1+2,i2,i3,ex)+DmtU(i1-2,i2,i3,ex)))*adxSosup(0)+(-6.*
+     & DmtU(i1,i2,i3,ex)+4.*(DmtU(i1,i2+1,i3,ex)+DmtU(i1,i2-1,i3,ex))-
+     & (DmtU(i1,i2+2,i3,ex)+DmtU(i1,i2-2,i3,ex)))*adxSosup(1)+dtsq*f(
+     & i1,i2,i3,ex)+dis(i1,i2,i3,ex)
+                    un(i1,i2,i3,ey)=maxwell2dr(i1,i2,i3,ey)+(-6.*DmtU(
+     & i1,i2,i3,ey)+4.*(DmtU(i1+1,i2,i3,ey)+DmtU(i1-1,i2,i3,ey))-(
+     & DmtU(i1+2,i2,i3,ey)+DmtU(i1-2,i2,i3,ey)))*adxSosup(0)+(-6.*
+     & DmtU(i1,i2,i3,ey)+4.*(DmtU(i1,i2+1,i3,ey)+DmtU(i1,i2-1,i3,ey))-
+     & (DmtU(i1,i2+2,i3,ey)+DmtU(i1,i2-2,i3,ey)))*adxSosup(1)+dtsq*f(
+     & i1,i2,i3,ey)+dis(i1,i2,i3,ey)
+                    un(i1,i2,i3,hz)=maxwell2dr(i1,i2,i3,hz)+(-6.*DmtU(
+     & i1,i2,i3,hz)+4.*(DmtU(i1+1,i2,i3,hz)+DmtU(i1-1,i2,i3,hz))-(
+     & DmtU(i1+2,i2,i3,hz)+DmtU(i1-2,i2,i3,hz)))*adxSosup(0)+(-6.*
+     & DmtU(i1,i2,i3,hz)+4.*(DmtU(i1,i2+1,i3,hz)+DmtU(i1,i2-1,i3,hz))-
+     & (DmtU(i1,i2+2,i3,hz)+DmtU(i1,i2-2,i3,hz)))*adxSosup(1)+dtsq*f(
+     & i1,i2,i3,hz)+dis(i1,i2,i3,hz)
+
+
+
+
+
+
+                   end if
+                  end do
+                  end do
+                  end do
+                 else
+                  do i3=n3a,n3b
+                  do i2=n2a,n2b
+                  do i1=n1a,n1b
+                   un(i1,i2,i3,ex)=maxwell2dr(i1,i2,i3,ex)+(-6.*DmtU(
+     & i1,i2,i3,ex)+4.*(DmtU(i1+1,i2,i3,ex)+DmtU(i1-1,i2,i3,ex))-(
+     & DmtU(i1+2,i2,i3,ex)+DmtU(i1-2,i2,i3,ex)))*adxSosup(0)+(-6.*
+     & DmtU(i1,i2,i3,ex)+4.*(DmtU(i1,i2+1,i3,ex)+DmtU(i1,i2-1,i3,ex))-
+     & (DmtU(i1,i2+2,i3,ex)+DmtU(i1,i2-2,i3,ex)))*adxSosup(1)+dtsq*f(
+     & i1,i2,i3,ex)+dis(i1,i2,i3,ex)
+                   un(i1,i2,i3,ey)=maxwell2dr(i1,i2,i3,ey)+(-6.*DmtU(
+     & i1,i2,i3,ey)+4.*(DmtU(i1+1,i2,i3,ey)+DmtU(i1-1,i2,i3,ey))-(
+     & DmtU(i1+2,i2,i3,ey)+DmtU(i1-2,i2,i3,ey)))*adxSosup(0)+(-6.*
+     & DmtU(i1,i2,i3,ey)+4.*(DmtU(i1,i2+1,i3,ey)+DmtU(i1,i2-1,i3,ey))-
+     & (DmtU(i1,i2+2,i3,ey)+DmtU(i1,i2-2,i3,ey)))*adxSosup(1)+dtsq*f(
+     & i1,i2,i3,ey)+dis(i1,i2,i3,ey)
+                   un(i1,i2,i3,hz)=maxwell2dr(i1,i2,i3,hz)+(-6.*DmtU(
+     & i1,i2,i3,hz)+4.*(DmtU(i1+1,i2,i3,hz)+DmtU(i1-1,i2,i3,hz))-(
+     & DmtU(i1+2,i2,i3,hz)+DmtU(i1-2,i2,i3,hz)))*adxSosup(0)+(-6.*
+     & DmtU(i1,i2,i3,hz)+4.*(DmtU(i1,i2+1,i3,hz)+DmtU(i1,i2-1,i3,hz))-
+     & (DmtU(i1,i2+2,i3,hz)+DmtU(i1,i2-2,i3,hz)))*adxSosup(1)+dtsq*f(
+     & i1,i2,i3,hz)+dis(i1,i2,i3,hz)
+
+
+
 
 
 
                   end do
                   end do
                   end do
-                end if
-              else if( solveForE.ne.0 ) then
-                if( useWhereMask.ne.0 )then
-                 do i3=n3a,n3b
-                 do i2=n2a,n2b
-                 do i1=n1a,n1b
-                  if( mask(i1,i2,i3).gt.0 )then
-                   un(i1,i2,i3,ex)=maxwellc22(i1,i2,i3,ex)+dis(i1,i2,
+                 end if
+               end if
+              else if( updateSolution.eq.1 )then
+                 ! advance to time n+1
+               if( t.le.3.*dt )then
+                 write(*,'("advMxUp>>>","FD22r-UP...update-solution")')
+               end if
+               if( addForcing.eq.0 .and. .not.addDissipation )then
+                 if( useWhereMask.ne.0 )then
+                  do i3=n3a,n3b
+                  do i2=n2a,n2b
+                  do i1=n1a,n1b
+                   if( mask(i1,i2,i3).gt.0 )then
+                    un(i1,i2,i3,ex)=maxwell2dr(i1,i2,i3,ex)
+                    un(i1,i2,i3,ey)=maxwell2dr(i1,i2,i3,ey)
+                    un(i1,i2,i3,hz)=maxwell2dr(i1,i2,i3,hz)
+
+
+
+
+
+
+                   end if
+                  end do
+                  end do
+                  end do
+                 else
+                  do i3=n3a,n3b
+                  do i2=n2a,n2b
+                  do i1=n1a,n1b
+                   un(i1,i2,i3,ex)=maxwell2dr(i1,i2,i3,ex)
+                   un(i1,i2,i3,ey)=maxwell2dr(i1,i2,i3,ey)
+                   un(i1,i2,i3,hz)=maxwell2dr(i1,i2,i3,hz)
+
+
+
+
+
+
+                  end do
+                  end do
+                  end do
+                 end if
+               else if( addForcing.ne.0 .and. .not.addDissipation )then
+               ! add forcing to the first 3 equations
+                 if( useWhereMask.ne.0 )then
+                  do i3=n3a,n3b
+                  do i2=n2a,n2b
+                  do i1=n1a,n1b
+                   if( mask(i1,i2,i3).gt.0 )then
+                    un(i1,i2,i3,ex)=maxwell2dr(i1,i2,i3,ex)+dtsq*f(i1,
+     & i2,i3,ex)
+                    un(i1,i2,i3,ey)=maxwell2dr(i1,i2,i3,ey)+dtsq*f(i1,
+     & i2,i3,ey)
+                    un(i1,i2,i3,hz)=maxwell2dr(i1,i2,i3,hz)+dtsq*f(i1,
+     & i2,i3,hz)
+
+
+
+
+
+
+                   end if
+                  end do
+                  end do
+                  end do
+                 else
+                  do i3=n3a,n3b
+                  do i2=n2a,n2b
+                  do i1=n1a,n1b
+                   un(i1,i2,i3,ex)=maxwell2dr(i1,i2,i3,ex)+dtsq*f(i1,
+     & i2,i3,ex)
+                   un(i1,i2,i3,ey)=maxwell2dr(i1,i2,i3,ey)+dtsq*f(i1,
+     & i2,i3,ey)
+                   un(i1,i2,i3,hz)=maxwell2dr(i1,i2,i3,hz)+dtsq*f(i1,
+     & i2,i3,hz)
+
+
+
+
+
+
+                  end do
+                  end do
+                  end do
+                 end if
+               else if( addForcing.eq.0 .and. addDissipation )then
+               ! add dissipation to the first 3 equations
+                 if( useWhereMask.ne.0 )then
+                  do i3=n3a,n3b
+                  do i2=n2a,n2b
+                  do i1=n1a,n1b
+                   if( mask(i1,i2,i3).gt.0 )then
+                    un(i1,i2,i3,ex)=maxwell2dr(i1,i2,i3,ex)+dis(i1,i2,
      & i3,ex)
-                   un(i1,i2,i3,ey)=maxwellc22(i1,i2,i3,ey)+dis(i1,i2,
+                    un(i1,i2,i3,ey)=maxwell2dr(i1,i2,i3,ey)+dis(i1,i2,
      & i3,ey)
-                   un(i1,i2,i3,ez)=maxwellc22(i1,i2,i3,ez)+dis(i1,i2,
-     & i3,ez)
-
-
-
-
-
-
-                  end if
-                 end do
-                 end do
-                 end do
-                else
-                 do i3=n3a,n3b
-                 do i2=n2a,n2b
-                 do i1=n1a,n1b
-                  un(i1,i2,i3,ex)=maxwellc22(i1,i2,i3,ex)+dis(i1,i2,i3,
-     & ex)
-                  un(i1,i2,i3,ey)=maxwellc22(i1,i2,i3,ey)+dis(i1,i2,i3,
-     & ey)
-                  un(i1,i2,i3,ez)=maxwellc22(i1,i2,i3,ez)+dis(i1,i2,i3,
-     & ez)
-
-
-
-
-
-
-                 end do
-                 end do
-                 end do
-                end if
-              else
-                if( useWhereMask.ne.0 )then
-                 do i3=n3a,n3b
-                 do i2=n2a,n2b
-                 do i1=n1a,n1b
-                  if( mask(i1,i2,i3).gt.0 )then
-                   un(i1,i2,i3,hx)=maxwellc22(i1,i2,i3,hx)+dis(i1,i2,
-     & i3,hx)
-                   un(i1,i2,i3,hy)=maxwellc22(i1,i2,i3,hy)+dis(i1,i2,
-     & i3,hy)
-                   un(i1,i2,i3,hz)=maxwellc22(i1,i2,i3,hz)+dis(i1,i2,
+                    un(i1,i2,i3,hz)=maxwell2dr(i1,i2,i3,hz)+dis(i1,i2,
      & i3,hz)
 
 
@@ -4360,19 +4214,354 @@ c===============================================================================
 
 
 
-                  end if
-                 end do
-                 end do
-                 end do
+                   end if
+                  end do
+                  end do
+                  end do
+                 else
+                  do i3=n3a,n3b
+                  do i2=n2a,n2b
+                  do i1=n1a,n1b
+                   un(i1,i2,i3,ex)=maxwell2dr(i1,i2,i3,ex)+dis(i1,i2,
+     & i3,ex)
+                   un(i1,i2,i3,ey)=maxwell2dr(i1,i2,i3,ey)+dis(i1,i2,
+     & i3,ey)
+                   un(i1,i2,i3,hz)=maxwell2dr(i1,i2,i3,hz)+dis(i1,i2,
+     & i3,hz)
+
+
+
+
+
+
+                  end do
+                  end do
+                  end do
+                 end if
+               else
+               !  add forcing and dissipation
+                 if( useWhereMask.ne.0 )then
+                  do i3=n3a,n3b
+                  do i2=n2a,n2b
+                  do i1=n1a,n1b
+                   if( mask(i1,i2,i3).gt.0 )then
+                    un(i1,i2,i3,ex)=maxwell2dr(i1,i2,i3,ex)+dtsq*f(i1,
+     & i2,i3,ex)+dis(i1,i2,i3,ex)
+                    un(i1,i2,i3,ey)=maxwell2dr(i1,i2,i3,ey)+dtsq*f(i1,
+     & i2,i3,ey)+dis(i1,i2,i3,ey)
+                    un(i1,i2,i3,hz)=maxwell2dr(i1,i2,i3,hz)+dtsq*f(i1,
+     & i2,i3,hz)+dis(i1,i2,i3,hz)
+
+
+
+
+
+
+                   end if
+                  end do
+                  end do
+                  end do
+                 else
+                  do i3=n3a,n3b
+                  do i2=n2a,n2b
+                  do i1=n1a,n1b
+                   un(i1,i2,i3,ex)=maxwell2dr(i1,i2,i3,ex)+dtsq*f(i1,
+     & i2,i3,ex)+dis(i1,i2,i3,ex)
+                   un(i1,i2,i3,ey)=maxwell2dr(i1,i2,i3,ey)+dtsq*f(i1,
+     & i2,i3,ey)+dis(i1,i2,i3,ey)
+                   un(i1,i2,i3,hz)=maxwell2dr(i1,i2,i3,hz)+dtsq*f(i1,
+     & i2,i3,hz)+dis(i1,i2,i3,hz)
+
+
+
+
+
+
+                  end do
+                  end do
+                  end do
+                 end if
+               end if
+              else if( updateDissipation.eq.1 )then
+               if( sosupDissipationOption.eq.0 .and. computeUt.eq.1 )
+     & then
+                ! apply sosup dissipation to time n+1 (use precomputed v=uDot)
+                if( t.le.3.*dt )then
+                  write(*,'("advMxUp>>>","FD22r-UP...update-un-with-
+     & dissipation-using-v")')
+                end if
+                if( useWhereMask.ne.0 )then
+                  do i3=n3a,n3b
+                  do i2=n2a,n2b
+                  do i1=n1a,n1b
+                    if( mask(i1,i2,i3).gt.0 )then
+                      un(i1,i2,i3,ex)=un(i1,i2,i3,ex)+(-6.*v(i1,i2,i3,
+     & ex)+4.*(v(i1+1,i2,i3,ex)+v(i1-1,i2,i3,ex))-(v(i1+2,i2,i3,ex)+v(
+     & i1-2,i2,i3,ex)))*adxSosup(0)+(-6.*v(i1,i2,i3,ex)+4.*(v(i1,i2+1,
+     & i3,ex)+v(i1,i2-1,i3,ex))-(v(i1,i2+2,i3,ex)+v(i1,i2-2,i3,ex)))*
+     & adxSosup(1)
+                      un(i1,i2,i3,ey)=un(i1,i2,i3,ey)+(-6.*v(i1,i2,i3,
+     & ey)+4.*(v(i1+1,i2,i3,ey)+v(i1-1,i2,i3,ey))-(v(i1+2,i2,i3,ey)+v(
+     & i1-2,i2,i3,ey)))*adxSosup(0)+(-6.*v(i1,i2,i3,ey)+4.*(v(i1,i2+1,
+     & i3,ey)+v(i1,i2-1,i3,ey))-(v(i1,i2+2,i3,ey)+v(i1,i2-2,i3,ey)))*
+     & adxSosup(1)
+                      un(i1,i2,i3,hz)=un(i1,i2,i3,hz)+(-6.*v(i1,i2,i3,
+     & hz)+4.*(v(i1+1,i2,i3,hz)+v(i1-1,i2,i3,hz))-(v(i1+2,i2,i3,hz)+v(
+     & i1-2,i2,i3,hz)))*adxSosup(0)+(-6.*v(i1,i2,i3,hz)+4.*(v(i1,i2+1,
+     & i3,hz)+v(i1,i2-1,i3,hz))-(v(i1,i2+2,i3,hz)+v(i1,i2-2,i3,hz)))*
+     & adxSosup(1)
+
+
+
+                    end if
+                  end do
+                  end do
+                  end do
                 else
-                 do i3=n3a,n3b
-                 do i2=n2a,n2b
-                 do i1=n1a,n1b
-                  un(i1,i2,i3,hx)=maxwellc22(i1,i2,i3,hx)+dis(i1,i2,i3,
-     & hx)
-                  un(i1,i2,i3,hy)=maxwellc22(i1,i2,i3,hy)+dis(i1,i2,i3,
-     & hy)
-                  un(i1,i2,i3,hz)=maxwellc22(i1,i2,i3,hz)+dis(i1,i2,i3,
+                  do i3=n3a,n3b
+                  do i2=n2a,n2b
+                  do i1=n1a,n1b
+                      un(i1,i2,i3,ex)=un(i1,i2,i3,ex)+(-6.*v(i1,i2,i3,
+     & ex)+4.*(v(i1+1,i2,i3,ex)+v(i1-1,i2,i3,ex))-(v(i1+2,i2,i3,ex)+v(
+     & i1-2,i2,i3,ex)))*adxSosup(0)+(-6.*v(i1,i2,i3,ex)+4.*(v(i1,i2+1,
+     & i3,ex)+v(i1,i2-1,i3,ex))-(v(i1,i2+2,i3,ex)+v(i1,i2-2,i3,ex)))*
+     & adxSosup(1)
+                      un(i1,i2,i3,ey)=un(i1,i2,i3,ey)+(-6.*v(i1,i2,i3,
+     & ey)+4.*(v(i1+1,i2,i3,ey)+v(i1-1,i2,i3,ey))-(v(i1+2,i2,i3,ey)+v(
+     & i1-2,i2,i3,ey)))*adxSosup(0)+(-6.*v(i1,i2,i3,ey)+4.*(v(i1,i2+1,
+     & i3,ey)+v(i1,i2-1,i3,ey))-(v(i1,i2+2,i3,ey)+v(i1,i2-2,i3,ey)))*
+     & adxSosup(1)
+                      un(i1,i2,i3,hz)=un(i1,i2,i3,hz)+(-6.*v(i1,i2,i3,
+     & hz)+4.*(v(i1+1,i2,i3,hz)+v(i1-1,i2,i3,hz))-(v(i1+2,i2,i3,hz)+v(
+     & i1-2,i2,i3,hz)))*adxSosup(0)+(-6.*v(i1,i2,i3,hz)+4.*(v(i1,i2+1,
+     & i3,hz)+v(i1,i2-1,i3,hz))-(v(i1,i2+2,i3,hz)+v(i1,i2-2,i3,hz)))*
+     & adxSosup(1)
+
+
+
+                  end do
+                  end do
+                  end do
+                end if
+               else if( sosupDissipationOption.eq.0 )then
+                ! apply sosup dissipation to time n+1
+                if( t.le.3.*dt )then
+                  write(*,'("advMxUp>>>","FD22r-UP...update-un-with-
+     & dissipation")')
+                end if
+                if( useWhereMask.ne.0 )then
+                  do i3=n3a,n3b
+                  do i2=n2a,n2b
+                  do i1=n1a,n1b
+                    if( mask(i1,i2,i3).gt.0 )then
+                      un(i1,i2,i3,ex)=un(i1,i2,i3,ex)+(-6.*DztU(i1,i2,
+     & i3,ex)+4.*(DztU(i1+1,i2,i3,ex)+DztU(i1-1,i2,i3,ex))-(DztU(i1+2,
+     & i2,i3,ex)+DztU(i1-2,i2,i3,ex)))*adxSosup(0)+(-6.*DztU(i1,i2,i3,
+     & ex)+4.*(DztU(i1,i2+1,i3,ex)+DztU(i1,i2-1,i3,ex))-(DztU(i1,i2+2,
+     & i3,ex)+DztU(i1,i2-2,i3,ex)))*adxSosup(1)
+                      un(i1,i2,i3,ey)=un(i1,i2,i3,ey)+(-6.*DztU(i1,i2,
+     & i3,ey)+4.*(DztU(i1+1,i2,i3,ey)+DztU(i1-1,i2,i3,ey))-(DztU(i1+2,
+     & i2,i3,ey)+DztU(i1-2,i2,i3,ey)))*adxSosup(0)+(-6.*DztU(i1,i2,i3,
+     & ey)+4.*(DztU(i1,i2+1,i3,ey)+DztU(i1,i2-1,i3,ey))-(DztU(i1,i2+2,
+     & i3,ey)+DztU(i1,i2-2,i3,ey)))*adxSosup(1)
+                      un(i1,i2,i3,hz)=un(i1,i2,i3,hz)+(-6.*DztU(i1,i2,
+     & i3,hz)+4.*(DztU(i1+1,i2,i3,hz)+DztU(i1-1,i2,i3,hz))-(DztU(i1+2,
+     & i2,i3,hz)+DztU(i1-2,i2,i3,hz)))*adxSosup(0)+(-6.*DztU(i1,i2,i3,
+     & hz)+4.*(DztU(i1,i2+1,i3,hz)+DztU(i1,i2-1,i3,hz))-(DztU(i1,i2+2,
+     & i3,hz)+DztU(i1,i2-2,i3,hz)))*adxSosup(1)
+
+
+
+                    end if
+                  end do
+                  end do
+                  end do
+                else
+                  do i3=n3a,n3b
+                  do i2=n2a,n2b
+                  do i1=n1a,n1b
+                      un(i1,i2,i3,ex)=un(i1,i2,i3,ex)+(-6.*DztU(i1,i2,
+     & i3,ex)+4.*(DztU(i1+1,i2,i3,ex)+DztU(i1-1,i2,i3,ex))-(DztU(i1+2,
+     & i2,i3,ex)+DztU(i1-2,i2,i3,ex)))*adxSosup(0)+(-6.*DztU(i1,i2,i3,
+     & ex)+4.*(DztU(i1,i2+1,i3,ex)+DztU(i1,i2-1,i3,ex))-(DztU(i1,i2+2,
+     & i3,ex)+DztU(i1,i2-2,i3,ex)))*adxSosup(1)
+                      un(i1,i2,i3,ey)=un(i1,i2,i3,ey)+(-6.*DztU(i1,i2,
+     & i3,ey)+4.*(DztU(i1+1,i2,i3,ey)+DztU(i1-1,i2,i3,ey))-(DztU(i1+2,
+     & i2,i3,ey)+DztU(i1-2,i2,i3,ey)))*adxSosup(0)+(-6.*DztU(i1,i2,i3,
+     & ey)+4.*(DztU(i1,i2+1,i3,ey)+DztU(i1,i2-1,i3,ey))-(DztU(i1,i2+2,
+     & i3,ey)+DztU(i1,i2-2,i3,ey)))*adxSosup(1)
+                      un(i1,i2,i3,hz)=un(i1,i2,i3,hz)+(-6.*DztU(i1,i2,
+     & i3,hz)+4.*(DztU(i1+1,i2,i3,hz)+DztU(i1-1,i2,i3,hz))-(DztU(i1+2,
+     & i2,i3,hz)+DztU(i1-2,i2,i3,hz)))*adxSosup(0)+(-6.*DztU(i1,i2,i3,
+     & hz)+4.*(DztU(i1,i2+1,i3,hz)+DztU(i1,i2-1,i3,hz))-(DztU(i1,i2+2,
+     & i3,hz)+DztU(i1,i2-2,i3,hz)))*adxSosup(1)
+
+
+
+                  end do
+                  end do
+                  end do
+                end if
+                else
+                ! apply sosup dissipation to time n using times n-1 and n-2
+                ! assume un holds u(t-2*dt) on input 
+                ! NOTE: the dissipation is added to u in a Gauss-Siedel fashion
+                if( t.le.3.*dt )then
+                  write(*,'("advMxUp>>>","FD22r-UP...update-u-with-
+     & dissipation")')
+                end if
+                if( useWhereMask.ne.0 )then
+                  do i3=n3a,n3b
+                  do i2=n2a,n2b
+                  do i1=n1a,n1b
+                    if( mask(i1,i2,i3).gt.0 )then
+                      u(i1,i2,i3,ex)=u(i1,i2,i3,ex)+(-6.*DzstU(i1,i2,
+     & i3,ex)+4.*(DzstU(i1+1,i2,i3,ex)+DzstU(i1-1,i2,i3,ex))-(DzstU(
+     & i1+2,i2,i3,ex)+DzstU(i1-2,i2,i3,ex)))*adxSosup(0)+(-6.*DzstU(
+     & i1,i2,i3,ex)+4.*(DzstU(i1,i2+1,i3,ex)+DzstU(i1,i2-1,i3,ex))-(
+     & DzstU(i1,i2+2,i3,ex)+DzstU(i1,i2-2,i3,ex)))*adxSosup(1)
+                      u(i1,i2,i3,ey)=u(i1,i2,i3,ey)+(-6.*DzstU(i1,i2,
+     & i3,ey)+4.*(DzstU(i1+1,i2,i3,ey)+DzstU(i1-1,i2,i3,ey))-(DzstU(
+     & i1+2,i2,i3,ey)+DzstU(i1-2,i2,i3,ey)))*adxSosup(0)+(-6.*DzstU(
+     & i1,i2,i3,ey)+4.*(DzstU(i1,i2+1,i3,ey)+DzstU(i1,i2-1,i3,ey))-(
+     & DzstU(i1,i2+2,i3,ey)+DzstU(i1,i2-2,i3,ey)))*adxSosup(1)
+                      u(i1,i2,i3,hz)=u(i1,i2,i3,hz)+(-6.*DzstU(i1,i2,
+     & i3,hz)+4.*(DzstU(i1+1,i2,i3,hz)+DzstU(i1-1,i2,i3,hz))-(DzstU(
+     & i1+2,i2,i3,hz)+DzstU(i1-2,i2,i3,hz)))*adxSosup(0)+(-6.*DzstU(
+     & i1,i2,i3,hz)+4.*(DzstU(i1,i2+1,i3,hz)+DzstU(i1,i2-1,i3,hz))-(
+     & DzstU(i1,i2+2,i3,hz)+DzstU(i1,i2-2,i3,hz)))*adxSosup(1)
+
+
+
+                    end if
+                  end do
+                  end do
+                  end do
+                else
+                  do i3=n3a,n3b
+                  do i2=n2a,n2b
+                  do i1=n1a,n1b
+                      u(i1,i2,i3,ex)=u(i1,i2,i3,ex)+(-6.*DzstU(i1,i2,
+     & i3,ex)+4.*(DzstU(i1+1,i2,i3,ex)+DzstU(i1-1,i2,i3,ex))-(DzstU(
+     & i1+2,i2,i3,ex)+DzstU(i1-2,i2,i3,ex)))*adxSosup(0)+(-6.*DzstU(
+     & i1,i2,i3,ex)+4.*(DzstU(i1,i2+1,i3,ex)+DzstU(i1,i2-1,i3,ex))-(
+     & DzstU(i1,i2+2,i3,ex)+DzstU(i1,i2-2,i3,ex)))*adxSosup(1)
+                      u(i1,i2,i3,ey)=u(i1,i2,i3,ey)+(-6.*DzstU(i1,i2,
+     & i3,ey)+4.*(DzstU(i1+1,i2,i3,ey)+DzstU(i1-1,i2,i3,ey))-(DzstU(
+     & i1+2,i2,i3,ey)+DzstU(i1-2,i2,i3,ey)))*adxSosup(0)+(-6.*DzstU(
+     & i1,i2,i3,ey)+4.*(DzstU(i1,i2+1,i3,ey)+DzstU(i1,i2-1,i3,ey))-(
+     & DzstU(i1,i2+2,i3,ey)+DzstU(i1,i2-2,i3,ey)))*adxSosup(1)
+                      u(i1,i2,i3,hz)=u(i1,i2,i3,hz)+(-6.*DzstU(i1,i2,
+     & i3,hz)+4.*(DzstU(i1+1,i2,i3,hz)+DzstU(i1-1,i2,i3,hz))-(DzstU(
+     & i1+2,i2,i3,hz)+DzstU(i1-2,i2,i3,hz)))*adxSosup(0)+(-6.*DzstU(
+     & i1,i2,i3,hz)+4.*(DzstU(i1,i2+1,i3,hz)+DzstU(i1,i2-1,i3,hz))-(
+     & DzstU(i1,i2+2,i3,hz)+DzstU(i1,i2-2,i3,hz)))*adxSosup(1)
+
+
+
+                  end do
+                  end do
+                  end do
+                end if
+               end if
+              else
+                write(*,'("advMxUp:FD22r-UP ERROR: unexpected option? 
+     & sosupDissipationOption=",i2)') sosupDissipationOption
+                stop 1010
+              end if
+           else if( useDivergenceCleaning.eq.0 )then
+            ! FD22 with no dissipation
+            if( addForcing.eq.0 .and. .not.addDissipation )then
+              if( useWhereMask.ne.0 )then
+               do i3=n3a,n3b
+               do i2=n2a,n2b
+               do i1=n1a,n1b
+                if( mask(i1,i2,i3).gt.0 )then
+                 un(i1,i2,i3,ex)=maxwell2dr(i1,i2,i3,ex)
+                 un(i1,i2,i3,ey)=maxwell2dr(i1,i2,i3,ey)
+                 un(i1,i2,i3,hz)=maxwell2dr(i1,i2,i3,hz)
+
+
+
+
+
+
+                end if
+               end do
+               end do
+               end do
+              else
+               do i3=n3a,n3b
+               do i2=n2a,n2b
+               do i1=n1a,n1b
+                un(i1,i2,i3,ex)=maxwell2dr(i1,i2,i3,ex)
+                un(i1,i2,i3,ey)=maxwell2dr(i1,i2,i3,ey)
+                un(i1,i2,i3,hz)=maxwell2dr(i1,i2,i3,hz)
+
+
+
+
+
+
+               end do
+               end do
+               end do
+              end if
+            else if( addForcing.ne.0 .and. .not.addDissipation )then
+            ! add forcing to the first 3 equations
+              if( useWhereMask.ne.0 )then
+               do i3=n3a,n3b
+               do i2=n2a,n2b
+               do i1=n1a,n1b
+                if( mask(i1,i2,i3).gt.0 )then
+                 un(i1,i2,i3,ex)=maxwell2dr(i1,i2,i3,ex)+dtsq*f(i1,i2,
+     & i3,ex)
+                 un(i1,i2,i3,ey)=maxwell2dr(i1,i2,i3,ey)+dtsq*f(i1,i2,
+     & i3,ey)
+                 un(i1,i2,i3,hz)=maxwell2dr(i1,i2,i3,hz)+dtsq*f(i1,i2,
+     & i3,hz)
+
+
+
+
+
+
+                end if
+               end do
+               end do
+               end do
+              else
+               do i3=n3a,n3b
+               do i2=n2a,n2b
+               do i1=n1a,n1b
+                un(i1,i2,i3,ex)=maxwell2dr(i1,i2,i3,ex)+dtsq*f(i1,i2,
+     & i3,ex)
+                un(i1,i2,i3,ey)=maxwell2dr(i1,i2,i3,ey)+dtsq*f(i1,i2,
+     & i3,ey)
+                un(i1,i2,i3,hz)=maxwell2dr(i1,i2,i3,hz)+dtsq*f(i1,i2,
+     & i3,hz)
+
+
+
+
+
+
+               end do
+               end do
+               end do
+              end if
+            else if( addForcing.eq.0 .and. addDissipation )then
+            ! add dissipation to the first 3 equations
+              if( useWhereMask.ne.0 )then
+               do i3=n3a,n3b
+               do i2=n2a,n2b
+               do i1=n1a,n1b
+                if( mask(i1,i2,i3).gt.0 )then
+                 un(i1,i2,i3,ex)=maxwell2dr(i1,i2,i3,ex)+dis(i1,i2,i3,
+     & ex)
+                 un(i1,i2,i3,ey)=maxwell2dr(i1,i2,i3,ey)+dis(i1,i2,i3,
+     & ey)
+                 un(i1,i2,i3,hz)=maxwell2dr(i1,i2,i3,hz)+dis(i1,i2,i3,
      & hz)
 
 
@@ -4380,345 +4569,127 @@ c===============================================================================
 
 
 
-                 end do
-                 end do
-                 end do
                 end if
+               end do
+               end do
+               end do
+              else
+               do i3=n3a,n3b
+               do i2=n2a,n2b
+               do i1=n1a,n1b
+                un(i1,i2,i3,ex)=maxwell2dr(i1,i2,i3,ex)+dis(i1,i2,i3,
+     & ex)
+                un(i1,i2,i3,ey)=maxwell2dr(i1,i2,i3,ey)+dis(i1,i2,i3,
+     & ey)
+                un(i1,i2,i3,hz)=maxwell2dr(i1,i2,i3,hz)+dis(i1,i2,i3,
+     & hz)
+
+
+
+
+
+
+               end do
+               end do
+               end do
               end if
-             end if
+            else
+            !  add forcing and dissipation
+              if( useWhereMask.ne.0 )then
+               do i3=n3a,n3b
+               do i2=n2a,n2b
+               do i1=n1a,n1b
+                if( mask(i1,i2,i3).gt.0 )then
+                 un(i1,i2,i3,ex)=maxwell2dr(i1,i2,i3,ex)+dtsq*f(i1,i2,
+     & i3,ex)+dis(i1,i2,i3,ex)
+                 un(i1,i2,i3,ey)=maxwell2dr(i1,i2,i3,ey)+dtsq*f(i1,i2,
+     & i3,ey)+dis(i1,i2,i3,ey)
+                 un(i1,i2,i3,hz)=maxwell2dr(i1,i2,i3,hz)+dtsq*f(i1,i2,
+     & i3,hz)+dis(i1,i2,i3,hz)
+
+
+
+
+
+
+                end if
+               end do
+               end do
+               end do
+              else
+               do i3=n3a,n3b
+               do i2=n2a,n2b
+               do i1=n1a,n1b
+                un(i1,i2,i3,ex)=maxwell2dr(i1,i2,i3,ex)+dtsq*f(i1,i2,
+     & i3,ex)+dis(i1,i2,i3,ex)
+                un(i1,i2,i3,ey)=maxwell2dr(i1,i2,i3,ey)+dtsq*f(i1,i2,
+     & i3,ey)+dis(i1,i2,i3,ey)
+                un(i1,i2,i3,hz)=maxwell2dr(i1,i2,i3,hz)+dtsq*f(i1,i2,
+     & i3,hz)+dis(i1,i2,i3,hz)
+
+
+
+
+
+
+               end do
+               end do
+               end do
+              end if
             end if
            else
-              ! 2D, 2nd-order, curvilinear, div cleaning:
-              !    D+tD-t( E ) + alpha*( D0t E ) = c^2 Delta(E) + alpha*( (1/eps) Curl ( H ) )
-             write(*,'("advMaxwell: 2D, 2nd-order, curv, div 
-     & cleaning... t=",e10.2,", adcdt=",e10.2 )') t,adcdt
-             if( .not.addDissipation )then
-              if( nd.eq.2 )then
-               ! This next line assumes we solve for ex,ey and hz
-               if( useWhereMask.ne.0 )then
-                do i3=n3a,n3b
-                do i2=n2a,n2b
-                do i1=n1a,n1b
-                 if( mask(i1,i2,i3).gt.0 )then
-                  un(i1,i2,i3,ex)=mxdc2d2cEx(i1,i2,i3)
-                  un(i1,i2,i3,ey)=mxdc2d2cEy(i1,i2,i3)
-
-
-                  un(i1,i2,i3,hz)=maxwellc22(i1,i2,i3,hz)
+            ! 2D, 2nd-order, div cleaning:
+            !    D+tD-t( E ) + alpha*( D0t E ) = c^2 Delta(E) + alpha*( (1/eps) Curl ( H ) )
+            write(*,'("advMaxwell: advance 2D, 2nd-order, rectangular, 
+     & div cleaning... t=",e10.2)') t
+            if( addForcing.eq.0 .and. .not.addDissipation )then
+              if( useWhereMask.ne.0 )then
+               do i3=n3a,n3b
+               do i2=n2a,n2b
+               do i1=n1a,n1b
+                if( mask(i1,i2,i3).gt.0 )then
+                 un(i1,i2,i3,ex)=mxdc2d2Ex(i1,i2,i3)
+                 un(i1,i2,i3,ey)=mxdc2d2Ey(i1,i2,i3)
+                 un(i1,i2,i3,hz)=maxwell2dr(i1,i2,i3,hz)
 
 
 
 
-                 end if
-                end do
-                end do
-                end do
-               else
-                do i3=n3a,n3b
-                do i2=n2a,n2b
-                do i1=n1a,n1b
-                 un(i1,i2,i3,ex)=mxdc2d2cEx(i1,i2,i3)
-                 un(i1,i2,i3,ey)=mxdc2d2cEy(i1,i2,i3)
 
 
-                 un(i1,i2,i3,hz)=maxwellc22(i1,i2,i3,hz)
-
-
-
-
-                end do
-                end do
-                end do
-               end if
+                end if
+               end do
+               end do
+               end do
               else
-               if( solveForE.ne.0 .and. solveForH.ne.0 )then
-                 if( useWhereMask.ne.0 )then
-                   do i3=n3a,n3b
-                   do i2=n2a,n2b
-                   do i1=n1a,n1b
-                     if( mask(i1,i2,i3).gt.0 )then
-                       un(i1,i2,i3,ex)=mxdc2d2cEx(i1,i2,i3)
-                       un(i1,i2,i3,ey)=mxdc2d2cEy(i1,i2,i3)
-                       un(i1,i2,i3,ez)=maxwellc22(i1,i2,i3,ez)
-
-
-
-                       un(i1,i2,i3,hx)=maxwellc22(i1,i2,i3,hx)
-                       un(i1,i2,i3,hy)=maxwellc22(i1,i2,i3,hy)
-                       un(i1,i2,i3,hz)=maxwellc22(i1,i2,i3,hz)
+               do i3=n3a,n3b
+               do i2=n2a,n2b
+               do i1=n1a,n1b
+                un(i1,i2,i3,ex)=mxdc2d2Ex(i1,i2,i3)
+                un(i1,i2,i3,ey)=mxdc2d2Ey(i1,i2,i3)
+                un(i1,i2,i3,hz)=maxwell2dr(i1,i2,i3,hz)
 
 
 
 
 
 
-
-
-
-                     end if
-                   end do
-                   end do
-                   end do
-                 else
-                   do i3=n3a,n3b
-                   do i2=n2a,n2b
-                   do i1=n1a,n1b
-                       un(i1,i2,i3,ex)=mxdc2d2cEx(i1,i2,i3)
-                       un(i1,i2,i3,ey)=mxdc2d2cEy(i1,i2,i3)
-                       un(i1,i2,i3,ez)=maxwellc22(i1,i2,i3,ez)
-
-
-
-                       un(i1,i2,i3,hx)=maxwellc22(i1,i2,i3,hx)
-                       un(i1,i2,i3,hy)=maxwellc22(i1,i2,i3,hy)
-                       un(i1,i2,i3,hz)=maxwellc22(i1,i2,i3,hz)
-
-
-
-
-
-
-
-
-
-                   end do
-                   end do
-                   end do
-                 end if
-               else if( solveForE.ne.0 ) then
-                 if( useWhereMask.ne.0 )then
-                  do i3=n3a,n3b
-                  do i2=n2a,n2b
-                  do i1=n1a,n1b
-                   if( mask(i1,i2,i3).gt.0 )then
-                    un(i1,i2,i3,ex)=mxdc2d2cEx(i1,i2,i3)
-                    un(i1,i2,i3,ey)=mxdc2d2cEy(i1,i2,i3)
-                    un(i1,i2,i3,ez)=maxwellc22(i1,i2,i3,ez)
-
-
-
-
-
-
-                   end if
-                  end do
-                  end do
-                  end do
-                 else
-                  do i3=n3a,n3b
-                  do i2=n2a,n2b
-                  do i1=n1a,n1b
-                   un(i1,i2,i3,ex)=mxdc2d2cEx(i1,i2,i3)
-                   un(i1,i2,i3,ey)=mxdc2d2cEy(i1,i2,i3)
-                   un(i1,i2,i3,ez)=maxwellc22(i1,i2,i3,ez)
-
-
-
-
-
-
-                  end do
-                  end do
-                  end do
-                 end if
-               else
-                 if( useWhereMask.ne.0 )then
-                  do i3=n3a,n3b
-                  do i2=n2a,n2b
-                  do i1=n1a,n1b
-                   if( mask(i1,i2,i3).gt.0 )then
-                    un(i1,i2,i3,hx)=maxwellc22(i1,i2,i3,hx)
-                    un(i1,i2,i3,hy)=maxwellc22(i1,i2,i3,hy)
-                    un(i1,i2,i3,hz)=maxwellc22(i1,i2,i3,hz)
-
-
-
-
-
-
-                   end if
-                  end do
-                  end do
-                  end do
-                 else
-                  do i3=n3a,n3b
-                  do i2=n2a,n2b
-                  do i1=n1a,n1b
-                   un(i1,i2,i3,hx)=maxwellc22(i1,i2,i3,hx)
-                   un(i1,i2,i3,hy)=maxwellc22(i1,i2,i3,hy)
-                   un(i1,i2,i3,hz)=maxwellc22(i1,i2,i3,hz)
-
-
-
-
-
-
-                  end do
-                  end do
-                  end do
-                 end if
-               end if
+               end do
+               end do
+               end do
               end if
-             else ! add dissipation too
-              if( nd.eq.2 )then
-               ! This next line assumes we solve for ex,ey and hz
-               if( useWhereMask.ne.0 )then
-                do i3=n3a,n3b
-                do i2=n2a,n2b
-                do i1=n1a,n1b
-                 if( mask(i1,i2,i3).gt.0 )then
-                  un(i1,i2,i3,ex)=mxdc2d2cEx(i1,i2,i3)+dis(i1,i2,i3,ex)
-                  un(i1,i2,i3,ey)=mxdc2d2cEy(i1,i2,i3)+dis(i1,i2,i3,ey)
-
-
-                  un(i1,i2,i3,hz)=maxwellc22(i1,i2,i3,hz)+dis(i1,i2,i3,
-     & hz)
-
-
-
-
-                 end if
-                end do
-                end do
-                end do
-               else
-                do i3=n3a,n3b
-                do i2=n2a,n2b
-                do i1=n1a,n1b
-                 un(i1,i2,i3,ex)=mxdc2d2cEx(i1,i2,i3)+dis(i1,i2,i3,ex)
-                 un(i1,i2,i3,ey)=mxdc2d2cEy(i1,i2,i3)+dis(i1,i2,i3,ey)
-
-
-                 un(i1,i2,i3,hz)=maxwellc22(i1,i2,i3,hz)+dis(i1,i2,i3,
-     & hz)
-
-
-
-
-                end do
-                end do
-                end do
-               end if
-              else
-               if( solveForE.ne.0 .and. solveForH.ne.0 )then
-                 if( useWhereMask.ne.0 )then
-                   do i3=n3a,n3b
-                   do i2=n2a,n2b
-                   do i1=n1a,n1b
-                     if( mask(i1,i2,i3).gt.0 )then
-                       un(i1,i2,i3,ex)=mxdc2d2cEx(i1,i2,i3)+dis(i1,i2,
-     & i3,ex)
-                       un(i1,i2,i3,ey)=mxdc2d2cEy(i1,i2,i3)+dis(i1,i2,
-     & i3,ey)
-                       un(i1,i2,i3,ez)=maxwellc22(i1,i2,i3,ez)+dis(i1,
-     & i2,i3,ez)
-
-
-
-                       un(i1,i2,i3,hx)=maxwellc22(i1,i2,i3,hx)+dis(i1,
-     & i2,i3,hx)
-                       un(i1,i2,i3,hy)=maxwellc22(i1,i2,i3,hy)+dis(i1,
-     & i2,i3,hy)
-                       un(i1,i2,i3,hz)=maxwellc22(i1,i2,i3,hz)+dis(i1,
-     & i2,i3,hz)
-
-
-
-
-
-
-
-
-
-                     end if
-                   end do
-                   end do
-                   end do
-                 else
-                   do i3=n3a,n3b
-                   do i2=n2a,n2b
-                   do i1=n1a,n1b
-                       un(i1,i2,i3,ex)=mxdc2d2cEx(i1,i2,i3)+dis(i1,i2,
-     & i3,ex)
-                       un(i1,i2,i3,ey)=mxdc2d2cEy(i1,i2,i3)+dis(i1,i2,
-     & i3,ey)
-                       un(i1,i2,i3,ez)=maxwellc22(i1,i2,i3,ez)+dis(i1,
-     & i2,i3,ez)
-
-
-
-                       un(i1,i2,i3,hx)=maxwellc22(i1,i2,i3,hx)+dis(i1,
-     & i2,i3,hx)
-                       un(i1,i2,i3,hy)=maxwellc22(i1,i2,i3,hy)+dis(i1,
-     & i2,i3,hy)
-                       un(i1,i2,i3,hz)=maxwellc22(i1,i2,i3,hz)+dis(i1,
-     & i2,i3,hz)
-
-
-
-
-
-
-
-
-
-                   end do
-                   end do
-                   end do
-                 end if
-               else if( solveForE.ne.0 ) then
-                 if( useWhereMask.ne.0 )then
-                  do i3=n3a,n3b
-                  do i2=n2a,n2b
-                  do i1=n1a,n1b
-                   if( mask(i1,i2,i3).gt.0 )then
-                    un(i1,i2,i3,ex)=mxdc2d2cEx(i1,i2,i3)+dis(i1,i2,i3,
+            else if( addForcing.ne.0 .and. .not.addDissipation )then
+            ! add forcing to the first 3 equations
+              if( useWhereMask.ne.0 )then
+               do i3=n3a,n3b
+               do i2=n2a,n2b
+               do i1=n1a,n1b
+                if( mask(i1,i2,i3).gt.0 )then
+                 un(i1,i2,i3,ex)=mxdc2d2Ex(i1,i2,i3)+dtsq*f(i1,i2,i3,
      & ex)
-                    un(i1,i2,i3,ey)=mxdc2d2cEy(i1,i2,i3)+dis(i1,i2,i3,
+                 un(i1,i2,i3,ey)=mxdc2d2Ey(i1,i2,i3)+dtsq*f(i1,i2,i3,
      & ey)
-                    un(i1,i2,i3,ez)=maxwellc22(i1,i2,i3,ez)+dis(i1,i2,
-     & i3,ez)
-
-
-
-
-
-
-                   end if
-                  end do
-                  end do
-                  end do
-                 else
-                  do i3=n3a,n3b
-                  do i2=n2a,n2b
-                  do i1=n1a,n1b
-                   un(i1,i2,i3,ex)=mxdc2d2cEx(i1,i2,i3)+dis(i1,i2,i3,
-     & ex)
-                   un(i1,i2,i3,ey)=mxdc2d2cEy(i1,i2,i3)+dis(i1,i2,i3,
-     & ey)
-                   un(i1,i2,i3,ez)=maxwellc22(i1,i2,i3,ez)+dis(i1,i2,
-     & i3,ez)
-
-
-
-
-
-
-                  end do
-                  end do
-                  end do
-                 end if
-               else
-                 if( useWhereMask.ne.0 )then
-                  do i3=n3a,n3b
-                  do i2=n2a,n2b
-                  do i1=n1a,n1b
-                   if( mask(i1,i2,i3).gt.0 )then
-                    un(i1,i2,i3,hx)=maxwellc22(i1,i2,i3,hx)+dis(i1,i2,
-     & i3,hx)
-                    un(i1,i2,i3,hy)=maxwellc22(i1,i2,i3,hy)+dis(i1,i2,
-     & i3,hy)
-                    un(i1,i2,i3,hz)=maxwellc22(i1,i2,i3,hz)+dis(i1,i2,
+                 un(i1,i2,i3,hz)=maxwell2dr(i1,i2,i3,hz)+dtsq*f(i1,i2,
      & i3,hz)
 
 
@@ -4726,19 +4697,17 @@ c===============================================================================
 
 
 
-                   end if
-                  end do
-                  end do
-                  end do
-                 else
-                  do i3=n3a,n3b
-                  do i2=n2a,n2b
-                  do i1=n1a,n1b
-                   un(i1,i2,i3,hx)=maxwellc22(i1,i2,i3,hx)+dis(i1,i2,
-     & i3,hx)
-                   un(i1,i2,i3,hy)=maxwellc22(i1,i2,i3,hy)+dis(i1,i2,
-     & i3,hy)
-                   un(i1,i2,i3,hz)=maxwellc22(i1,i2,i3,hz)+dis(i1,i2,
+                end if
+               end do
+               end do
+               end do
+              else
+               do i3=n3a,n3b
+               do i2=n2a,n2b
+               do i1=n1a,n1b
+                un(i1,i2,i3,ex)=mxdc2d2Ex(i1,i2,i3)+dtsq*f(i1,i2,i3,ex)
+                un(i1,i2,i3,ey)=mxdc2d2Ey(i1,i2,i3)+dtsq*f(i1,i2,i3,ey)
+                un(i1,i2,i3,hz)=maxwell2dr(i1,i2,i3,hz)+dtsq*f(i1,i2,
      & i3,hz)
 
 
@@ -4746,15 +4715,95 @@ c===============================================================================
 
 
 
-                  end do
-                  end do
-                  end do
-                 end if
-               end if
+               end do
+               end do
+               end do
               end if
-             end if
-           end if
-         end if
+            else if( addForcing.eq.0 .and. addDissipation )then
+            ! add dissipation to the first 3 equations
+              if( useWhereMask.ne.0 )then
+               do i3=n3a,n3b
+               do i2=n2a,n2b
+               do i1=n1a,n1b
+                if( mask(i1,i2,i3).gt.0 )then
+                 un(i1,i2,i3,ex)=mxdc2d2Ex(i1,i2,i3)+dis(i1,i2,i3,ex)
+                 un(i1,i2,i3,ey)=mxdc2d2Ey(i1,i2,i3)+dis(i1,i2,i3,ey)
+                 un(i1,i2,i3,hz)=maxwell2dr(i1,i2,i3,hz)+dis(i1,i2,i3,
+     & hz)
+
+
+
+
+
+
+                end if
+               end do
+               end do
+               end do
+              else
+               do i3=n3a,n3b
+               do i2=n2a,n2b
+               do i1=n1a,n1b
+                un(i1,i2,i3,ex)=mxdc2d2Ex(i1,i2,i3)+dis(i1,i2,i3,ex)
+                un(i1,i2,i3,ey)=mxdc2d2Ey(i1,i2,i3)+dis(i1,i2,i3,ey)
+                un(i1,i2,i3,hz)=maxwell2dr(i1,i2,i3,hz)+dis(i1,i2,i3,
+     & hz)
+
+
+
+
+
+
+               end do
+               end do
+               end do
+              end if
+            else
+            !  add forcing and dissipation
+              if( useWhereMask.ne.0 )then
+               do i3=n3a,n3b
+               do i2=n2a,n2b
+               do i1=n1a,n1b
+                if( mask(i1,i2,i3).gt.0 )then
+                 un(i1,i2,i3,ex)=mxdc2d2Ex(i1,i2,i3)+dtsq*f(i1,i2,i3,
+     & ex)+dis(i1,i2,i3,ex)
+                 un(i1,i2,i3,ey)=mxdc2d2Ey(i1,i2,i3)+dtsq*f(i1,i2,i3,
+     & ey)+dis(i1,i2,i3,ey)
+                 un(i1,i2,i3,hz)=maxwell2dr(i1,i2,i3,hz)+dtsq*f(i1,i2,
+     & i3,hz)+dis(i1,i2,i3,hz)
+
+
+
+
+
+
+                end if
+               end do
+               end do
+               end do
+              else
+               do i3=n3a,n3b
+               do i2=n2a,n2b
+               do i1=n1a,n1b
+                un(i1,i2,i3,ex)=mxdc2d2Ex(i1,i2,i3)+dtsq*f(i1,i2,i3,ex)
+     & +dis(i1,i2,i3,ex)
+                un(i1,i2,i3,ey)=mxdc2d2Ey(i1,i2,i3)+dtsq*f(i1,i2,i3,ey)
+     & +dis(i1,i2,i3,ey)
+                un(i1,i2,i3,hz)=maxwell2dr(i1,i2,i3,hz)+dtsq*f(i1,i2,
+     & i3,hz)+dis(i1,i2,i3,hz)
+
+
+
+
+
+
+               end do
+               end do
+               end do
+              end if
+            end if
+           endif
+        else
         end if
         return
         end

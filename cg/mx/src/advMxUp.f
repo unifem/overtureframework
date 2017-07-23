@@ -1,4 +1,4 @@
-! This file automatically generated from advOptNew.bf with bpp.
+! This file automatically generated from advMxUp.bf with bpp.
 !
 ! Optimized advance routines for cgmx
 !
@@ -146,16 +146,15 @@ c To include derivatives of rx use OPTION=RX
 
 
 
+    ! NOTE: For now 3D versions are just null versions below 
 
-! -- Most of these are built with advOpt.bf
-
-!      buildFile(advMx3dOrder2r,3,2,rectangular)
+!      buildFile(advMxUp3dOrder2r,3,2,rectangular)
 !
-!      buildFile(advMx3dOrder2c,3,2,curvilinear)
+!      buildFile(advMxUp3dOrder2c,3,2,curvilinear)
 !
-!      buildFile(advMx3dOrder4r,3,4,rectangular)
+!      buildFile(advMxUp3dOrder4r,3,4,rectangular)
 !
-!      buildFile(advMx3dOrder4c,3,4,curvilinear)
+!      buildFile(advMxUp3dOrder4c,3,4,curvilinear)
 !
 !      buildFile(advMx2dOrder6r,2,6,rectangular)
 !      buildFile(advMx3dOrder6r,3,6,rectangular)
@@ -177,22 +176,19 @@ c To include derivatives of rx use OPTION=RX
 
 
 
-!      buildFileNull(advMx2dOrder6r,2,6,rectangular)
-!      buildFileNull(advMx3dOrder6r,3,6,rectangular)
+! --- For now build null version is 3D for faster compiles ----
+!      buildFileNull(advMxUp2dOrder2r,2,2,rectangular)
 !
-!      buildFileNull(advMx2dOrder6c,2,6,curvilinear)
-!      buildFileNull(advMx3dOrder6c,3,6,curvilinear)
+!      buildFileNull(advMxUp2dOrder2c,2,2,curvilinear)
 !
-!      buildFileNull(advMx2dOrder8r,2,8,rectangular)
-!      buildFileNull(advMx3dOrder8r,3,8,rectangular)
+!      buildFileNull(advMxUp2dOrder4r,2,4,rectangular)
 !
-!      buildFileNull(advMx2dOrder8c,2,8,curvilinear)
-!      buildFileNull(advMx3dOrder8c,3,8,curvilinear)
+!      buildFileNull(advMxUp2dOrder4c,2,4,curvilinear)
 
 
 
 ! ******* THIS IS NOT CURRENTLY USED -- see verion in advOpt.bf *******************
-      subroutine advMaxwellNew(nd,n1a,n1b,n2a,n2b,n3a,n3b,nd1a,nd1b,
+      subroutine advMaxwellUp(nd,n1a,n1b,n2a,n2b,n3a,n3b,nd1a,nd1b,
      & nd2a,nd2b,nd3a,nd3b,nd4a,nd4b,mask,rx,  um,u,un,f,fa, v,vvt2,
      & ut3,vvt4,ut5,ut6,ut7, bc, dis, varDis, ipar, rpar, ierr )
 !======================================================================

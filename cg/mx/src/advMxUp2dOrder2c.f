@@ -1,7 +1,7 @@
-! This file automatically generated from advOptNew.bf with bpp.
-        subroutine advMx2dOrder2c(nd,n1a,n1b,n2a,n2b,n3a,n3b,nd1a,nd1b,
-     & nd2a,nd2b,nd3a,nd3b,nd4a,nd4b,mask,rsxy,  um,u,un,f,fa, v,vvt2,
-     & ut3,vvt4,ut5,ut6,ut7, bc, dis, varDis, ipar, rpar, ierr )
+! This file automatically generated from advMxUp.bf with bpp.
+        subroutine advMxUp2dOrder2c(nd,n1a,n1b,n2a,n2b,n3a,n3b,nd1a,
+     & nd1b,nd2a,nd2b,nd3a,nd3b,nd4a,nd4b,mask,rsxy,  um,u,un,f,fa, v,
+     & vvt2,ut3,vvt4,ut5,ut6,ut7, bc, dis, varDis, ipar, rpar, ierr )
        !======================================================================
        !   Advance a time step for Maxwells equations
        !     OPTIMIZED version for rectangular grids.
@@ -3550,8 +3550,8 @@ c===============================================================================
         gammaDt=gamma*dt
         omegapDtSq=(omegap*dt)**2
         if( t.eq.0. .and. dispersionModel.ne.noDispersion )then
-           write(*,'("--advOpt-- dispersionModel=",i4," px,py,pz=",3i2)
-     & ') dispersionModel,pxc,pyc,pzc
+           write(*,'("--advMxUp-- dispersionModel=",i4," px,py,pz=",
+     & 3i2)') dispersionModel,pxc,pyc,pzc
         end if
         if( useSosupDissipation.ne.0 )then
          ! Coefficients in the sosup dissipation from Jordan Angel
@@ -3566,14 +3566,14 @@ c===============================================================================
          ! sosupParameter=gamma in sosup scheme  0<= gamma <=1   0=centered scheme
          adSosup=sosupParameter*adSosup
          if( t.le.2*dt )then
-           write(*,'("advOPT: useSosup dissipation, t,dt,adSosup=",
+           write(*,'("advMxUp: useSosup dissipation, t,dt,adSosup=",
      & 3e10.2)') t,dt,adSosup
-           write(*,'("advOPT: sosupDissipationOption=",i2)') 
+           write(*,'("advMxUp: sosupDissipationOption=",i2)') 
      & sosupDissipationOption
-           write(*,'("advOPT: updateDissipation=",i2)') 
+           write(*,'("advMxUp: updateDissipation=",i2)') 
      & updateDissipation
-           write(*,'("advOPT: updateSolution=",i2)') updateSolution
-           write(*,'("advOPT: useNewForcingMethod=",i2)') 
+           write(*,'("advMxUp: updateSolution=",i2)') updateSolution
+           write(*,'("advMxUp: useNewForcingMethod=",i2)') 
      & useNewForcingMethod
          end if
          ! Coefficients of the sosup dissipation with Cartesian grids:
@@ -3606,9 +3606,9 @@ c===============================================================================
             cdcE = dc*dt**2/(eps)/dcp
             cdcH = dc*dt**2/(mu )/dcp
             if( t.eq.0. )then
-              write(*,'(" advOpt: order=2 : div clean: dc,cc,dt,eps,
+              write(*,'(" advMxUp: order=2 : div clean: dc,cc,dt,eps,
      & mu=",5e10.2)') dc,cc,dt,eps,mu
-              write(*,'(" advOpt: div clean: cdc0,cdc1,cdcxx,cdcyy,
+              write(*,'(" advMxUp: div clean: cdc0,cdc1,cdcxx,cdcyy,
      & cdcHdy,cdcHdx=",6e10.2)') cdc0,cdc1,cdcxx,cdcyy,cdcHdy,cdcHdx
             end if
           else if( orderOfAccuracy.eq.4 )then
@@ -3625,14 +3625,14 @@ c===============================================================================
             cdcHLapsq = ((cc*dt)**4/12./dcp)*( 1. + dc*dt/mu )
             cdcHLapm = ((cc*dt)**2/dcp)*( - dc*dt/(6.*mu ) )
             if( t.eq.0. )then
-              write(*,'(" advOpt: order=4 :  div clean: dc,cc,dt,eps,
+              write(*,'(" advMxUp: order=4 :  div clean: dc,cc,dt,eps,
      & mu=",5e10.2)') dc,cc,dt,eps,mu
-              write(*,'(" advOpt: div clean: cdc0,cdc1,cdcELap,
+              write(*,'(" advMxUp: div clean: cdc0,cdc1,cdcELap,
      & cdcELapsq,cdcE,cdcELapm=",8e10.2)') cdc0,cdc1,cdcELap,
      & cdcELapsq,cdcE,cdcELapm
             end if
           else
-           write(*,'(" advOpt.bf: un-implemented orderOfAccuracy for 
+           write(*,'(" advMxUp.bf: un-implemented orderOfAccuracy for 
      & div-cleaning")')
            stop 2277
           end if
@@ -3714,7 +3714,7 @@ c===============================================================================
           ! precompute "uDot" = dt*du/dt used in the dissipation and store in v 
           ! we uDot at enough ghost points for the dissipation operator 
           if( t.le.3.*dt )then
-            write(*,'(" advOPT>>> Eval uDot...")')
+            write(*,'(" advMxUp>>> Eval uDot...")')
           end if
           numGhost=orderOfAccuracy/2
           if( useSosupDissipation.eq.1 )then
@@ -3814,7 +3814,7 @@ c===============================================================================
            if( useSosupDissipation.ne.0 )then
              ! ---- use sosup dissipation (wider stencil) ---
               if( t.le.2.*dt )then
-                write(*,'(" advOpt: FD22 + sosup-dissipation for 
+                write(*,'(" advMxUp: FD22 + sosup-dissipation for 
      & curvilinear")')
               end if
               if( useNewForcingMethod.ne.0 )then
@@ -3828,8 +3828,8 @@ c===============================================================================
                ! advance + sosup dissipation: 
                ! note: forcing is already added to the rhs.
                if( t.le.3.*dt )then
-                 write(*,'("advOPT>>>","FD22c-UP...update-solution-and-
-     & dissipation")')
+                 write(*,'("advMxUp>>>","FD22c-UP...update-solution-
+     & and-dissipation")')
                end if
                uDotFactor=1. ! for D-minus-t do not scale by .5
                  do i3=n3a,n3b
@@ -3858,7 +3858,7 @@ c===============================================================================
              else if( updateSolution.eq.1 )then
                 ! advance to time n+1
                if( t.le.3.*dt )then
-                 write(*,'("advOPT>>>","FD22c-UP...update-solution")')
+                 write(*,'("advMxUp>>>","FD22c-UP...update-solution")')
                end if
                ! note: forcing is already added to the rhs.
                if( updateSolution.eq.1 )then
@@ -3881,7 +3881,7 @@ c===============================================================================
      & then
                 ! apply sosup dissipation to time n+1 (use precomputed v=uDot)
                 if( t.le.3.*dt )then
-                  write(*,'("advOPT>>>","FD22c-UP...update-un-with-
+                  write(*,'("advMxUp>>>","FD22c-UP...update-un-with-
      & dissipation-using-v")')
                 end if
                   do i3=n3a,n3b
@@ -3910,7 +3910,7 @@ c===============================================================================
      & computeUt.eq.0 )then
                 ! apply sosup dissipation to time n+1
                 if( t.le.3.*dt )then
-                  write(*,'("advOPT>>>","FD22c-UP...update-un-with-
+                  write(*,'("advMxUp>>>","FD22c-UP...update-un-with-
      & dissipation")')
                 end if
                   do i3=n3a,n3b
@@ -3940,7 +3940,7 @@ c===============================================================================
                 ! assume un holds u(t-2*dt) on input 
                 ! NOTE: the dissipation is added to u in a Gauss-Siedel fashion
                 if( t.le.3.*dt )then
-                  write(*,'("advOPT>>>","FD22c-UP...update-u-with-
+                  write(*,'("advMxUp>>>","FD22c-UP...update-u-with-
      & dissipation")')
                 end if
                   do i3=n3a,n3b
@@ -3967,13 +3967,13 @@ c===============================================================================
                   end do
                end if
               else
-                write(*,'("advOpt:FD22c-UP ERROR: unexpected option? 
+                write(*,'("advMxUp:FD22c-UP ERROR: unexpected option? 
      & sosupDissipationOption=",i2)') sosupDissipationOption
                 stop 2020
               end if
            else if( dispersionModel.ne.noDispersion )then
              ! --dispersive model --
-             write(*,'("--advOpt-- advance 2D curvilinear: dispersive 
+             write(*,'("--advMxUp-- advance 2D curvilinear: dispersive 
      & model")')
              if( addDissipation )then
                write(*,'(" -- finish me : dispersion and AD")')

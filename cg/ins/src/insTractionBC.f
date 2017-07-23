@@ -65,6 +65,23 @@ c To include derivatives of rx use OPTION=RX
 ! GRIDTYPE: rectangular, curvilinear
 !
 ! ==========================================================================================================
+! ====================== END TRACTION FREE 2D CURVILINEAR =========================
+
+
+! ==========================================================================================================
+! Apply the TRACTION FREE boundary condition to determine the velocity on the ghost points
+!  Curvilinear grid case **THREE-DIMENSIONS***
+! 
+! ORDER: 2 or 4
+! DIR = r,s,t
+! GRIDTYPE: rectangular, curvilinear
+!
+! ==========================================================================================================
+! ====================== END TRACTION FREE 3D Order=2 CURVILINEAR =========================
+
+
+
+
 
 
 ! ==========================================================================================================
@@ -100,7 +117,6 @@ c To include derivatives of rx use OPTION=RX
       integer ipar(0:*),ierr
 
 !.......local
-      logical useWallBC,useOutflowBC
       integer numberOfProcessors,outflowOption,
      & orderOfExtrapolationForOutflow,debug,myid
       integer kd,kd3,i1,i2,i3,n1a,n1b,n2a,n2b,n3a,n3b,c,nr0,nr1
@@ -124,9 +140,18 @@ c To include derivatives of rx use OPTION=RX
       real cd42,adCoeff4, cd22, adCoeff2
       real dr(0:2),dx(0:2),d14v(0:2),d24v(0:2), gravity(0:2)
       ! real vy,vxy,ux,uxy
-      real f1,f2,f3,a11,a12,a21,a22,det,alpha,beta,rxsq,rxsqr,ajs
+      real f1,f2,f3,det,alpha,beta,rxsq,rxsqr,ajs
+      real an1,an2,an3,aNormi, t1,t2,t3, b1,b2,b3, crxd,cryd,crzd, ux,
+     & uy, vx,vy,wx,wy,uz,vz,wz, um1,vm1,wm1
+      real csf1,csf2,csf3,epsX
       real rxd,ryd,rzd,sxd,syd,szd,txd,tyd,tzd,rxsqd
       real rxi,ryi,rzi,sxi,syi,szi,txi,tyi,tzi,rxxi,ryyi,rzzi
+      real a11,a12,a13,a21,a22,a23,a31,a32,a33
+      real div,div11,div12,div13
+      real dive,f1e,f2e,f3e,fMax,res1,res2,res3,resMax
+      real c11,c12,c13,c21,c22,c23,c31,c32,c33
+      real tvx,tvy,tvz, tvxe,tvye,tvze
+
       ! real u1,u2,v1,v2,w1,w2,f1u,f2u,f1v,f2v,f1w,f2w,uDotN1,uDotN2
 
       ! real u0,v0,w0, ux0,uy0,uz0, vx0,vy0,vz0, wx0,wy0,wz0
@@ -865,6 +890,8 @@ c===============================================================================
 
       ep                =rpar(19) ! pointer for exact solution
 
+      epsX = 1.e-30 ! fix me -- pass in
+
       if( .true. )then
         write(*,'("Inside insTractionBC nd=",i2," tz=",i2",t=",e9.2)') 
      & nd,twilightZone,t
@@ -925,8 +952,7 @@ c===============================================================================
        do side=0,1
          if( bc(side,axis).eq.tractionFree .or. bc(side,axis)
      & .eq.freeSurfaceBoundaryCondition )then
-           write(*,'(" insTractionBC: nd,side,axis,bc=",4i4)') nd,side,
-     & axis,bc(side,axis)
+           ! write(*,'(" insTractionBC: nd,side,axis,bc=",4i4)') nd,side,axis,bc(side,axis)
            n1a=gridIndexRange(0,0)
            n1b=gridIndexRange(1,0)
            n2a=gridIndexRange(0,1)
@@ -975,7 +1001,7 @@ c===============================================================================
            axisp1=mod(axis+1,nd)
            axisp2=mod(axis+2,nd)
            i3=n3a
-           if( .true. .or. debug.gt.7 )then
+           if( debug.gt.7 )then
              write(*,'(" insTractionBC: grid,side,axis=",3i3,", loop 
      & bounds: n1a,n1b,n2a,n2b,n3a,n3b=",6i3)') grid,side,axis,n1a,
      & n1b,n2a,n2b,n3a,n3b
@@ -1072,7 +1098,94 @@ c===============================================================================
 
         else if( gridType.eq.1 )then
           ! --- CURVILINEAR ----
-          stop 0909
+
+         if( orderOfAccuracy.eq.2 )then
+
+          do i3=n3a,n3b
+          do i2=n2a,n2b
+          do i1=n1a,n1b
+           i1m=i1-is1
+           i2m=i2-is2
+           i3m=i3-is3
+           i1p=i1+is1
+           i2p=i2+is2
+           i3p=i3+is3
+           ! *************** TRACTION BC CURVILINEAR GRIDS ****************
+           ! (rxd,ryd) : direction of the normal to r(axis)=const
+           rxd = rsxy(i1,i2,i3,  axis,0)
+           ryd = rsxy(i1,i2,i3,  axis,1)
+           sxd = rsxy(i1,i2,i3,axisp1,0)
+           syd = rsxy(i1,i2,i3,axisp1,1)
+            an1 = rsxy(i1,i2,i3,axis,0)
+            an2 = rsxy(i1,i2,i3,axis,1)
+            aNormi = -is/max(epsX,sqrt(an1**2 + an2**2))
+            an1=an1*aNormi
+            an2=an2*aNormi
+           ! tangent
+           t1=-an2
+           t2= an1
+           ux = ux22(i1,i2,i3,uc)
+           uy = uy22(i1,i2,i3,uc)
+           vx = ux22(i1,i2,i3,vc)
+           vy = uy22(i1,i2,i3,vc)
+           ! crxd = coeff of u(-1) in u.x  
+           ! cryd = coeff of u(-1) in u.y  
+           crxd=-is*rxd/(2.*dr(axis))
+           cryd=-is*ryd/(2.*dr(axis))
+           ! First evaluate div(u) using current ghost values 
+           !   f1 = ux+vy = a11*u(-1) + a12*v(-1) + rest
+           !   rest = f1(uCurrent) - a11*uCurrent(-1) + a12*vCurrent(-1)
+           f1 = ux+vy
+           a11 = -is*rxd/(2.*dr(axis))
+           a12 = -is*ryd/(2.*dr(axis))
+           ! First evaluate the zero tangential traction equation using current ghost values 
+           !  f2 = (1/mu) * tv.tauv.nv 
+           !     =  2*ux t1*n1 + (uy+vx)*(t1*n2+t2*n1) + 2* t2*n2* vy 
+           !     = csf1*ux + csf2*(uy+vx) + csf3*vy
+           !     = a21*u(-1) + a22*v(-1) + .... = f2
+           csf1= 2.*t1*an1
+           csf2=(t1*an2+t2*an1)
+           csf3= 2.*t2*an2
+           f2 = csf1*ux + csf2*(uy+vx) + csf3*vy
+           if( twilightZone.eq.1 )then
+             ! assume the TZ solution is divergence free so we do not need to change f1
+             call ogDeriv(ep,0,1,0,0,x(i1,i2,i3,0),x(i1,i2,i3,1),0.,t,
+     & uc,uxe )
+             call ogDeriv(ep,0,1,0,0,x(i1,i2,i3,0),x(i1,i2,i3,1),0.,t,
+     & vc,vxe )
+             call ogDeriv(ep,0,0,1,0,x(i1,i2,i3,0),x(i1,i2,i3,1),0.,t,
+     & uc,uye )
+             call ogDeriv(ep,0,0,1,0,x(i1,i2,i3,0),x(i1,i2,i3,1),0.,t,
+     & vc,vye )
+             ! Adjust for TZ:  
+             f2 = f2 - (csf1*uxe + csf2*(uye+vxe) + csf3*vye)
+           end if
+           a21 = csf1*crxd + csf2*cryd
+           a22 = csf2*crxd + csf3*cryd
+           b1 = a11*u(i1m,i2m,i3m,uc) + a12*u(i1m,i2m,i3m,vc) - f1
+           b2 = a21*u(i1m,i2m,i3m,uc) + a22*u(i1m,i2m,i3m,vc) - f2
+           ! write(*,'(" i1,i2=",2i3," rxd,ryd=",2f8.4," sxd,syd=",2f10.4)') i1,i2,rxd,ryd,sxd,syd
+           ! write(*,'(" i1,i2=",2i3," a11,a12=",2f8.4," a21,a22=",2f10.4)') i1,i2,a11,a12,a21,a22
+           ! Solve
+           !   [a11 a12 ][ u(-1)] = [ b1 ]
+           !   [a21 a22 ][ v(-1)] = [ b2 ]
+           !   
+           det=a11*a22-a12*a21
+           if( abs(det)<epsX )then
+             write(*,'("InsTractionBC: ERROR: det<epsX !")')
+             stop 6754
+           endif
+           um1 =( a22*b1-a12*b2)/det
+           vm1 =(-a21*b1+a11*b2)/det
+           u(i1m,i2m,i3m,uc)=um1
+           u(i1m,i2m,i3m,vc)=vm1
+          end do
+          end do
+          end do
+
+         else
+           stop 4455
+         end if
 
         else
 
@@ -1218,10 +1331,217 @@ c===============================================================================
         else if( gridType.eq.1 )then
           ! --- CURVILINEAR ----
 
-          stop 0909
+          f1e=0.
+          f2e=0.
+          f3e=0.
+          do i3=n3a,n3b
+          do i2=n2a,n2b
+          do i1=n1a,n1b
+           i1m=i1-is1
+           i2m=i2-is2
+           i3m=i3-is3
+           !i1p=i1+is1
+           !i2p=i2+is2
+           !i3p=i3+is3
+           ! *************** TRACTION BC CURVILINEAR GRIDS ****************
+           ! (rxd,ryd) : direction of the normal to r(axis)=const
+           rxd = rsxy(i1,i2,i3,  axis,0)
+           ryd = rsxy(i1,i2,i3,  axis,1)
+           rzd = rsxy(i1,i2,i3,  axis,2)
+           !sxd = rsxy(i1,i2,i3,axisp1,0)
+           !syd = rsxy(i1,i2,i3,axisp1,1)
+           !szd = rsxy(i1,i2,i3,axisp1,2)
+           !txd = rsxy(i1,i2,i3,axisp2,0)
+           !tyd = rsxy(i1,i2,i3,axisp2,1)
+           !tzd = rsxy(i1,i2,i3,axisp2,2)
+            an1 = rsxy(i1,i2,i3,axis,0)
+            an2 = rsxy(i1,i2,i3,axis,1)
+            an3 = rsxy(i1,i2,i3,axis,2)
+            aNormi = -is/max(epsX,sqrt(an1**2 + an2**2+ an3**2))
+            an1=an1*aNormi
+            an2=an2*aNormi
+            an3=an3*aNormi
+           ux = ux23(i1,i2,i3,uc)
+           uy = uy23(i1,i2,i3,uc)
+           uz = uz23(i1,i2,i3,uc)
+           vx = ux23(i1,i2,i3,vc)
+           vy = uy23(i1,i2,i3,vc)
+           vz = uz23(i1,i2,i3,vc)
+           wx = ux23(i1,i2,i3,wc)
+           wy = uy23(i1,i2,i3,wc)
+           wz = uz23(i1,i2,i3,wc)
+           ! divergence 
+           div=ux+vy+wz
+           ! traction vector = [tvx,tvy,tvz] (without mu)
+           tvx = (2.*ux)*an1 + (uy+vx)*an2 + (uz+wx)*an3
+           tvy = (uy+vx)*an1 + (2.*vy)*an2 + (vz+wy)*an3
+           tvz = (uz+wx)*an1 + (vz+wy)*an2 + (2.*wz)*an3
+           ! tvx = c11*u(-1) + c12*v(-1) + c13*w(-1)
+           c11 = ( 2.*rxd*an1 +ryd*an2 + rzd*an3 )*(-is/(2.*dr(axis)))
+           c12 = (             rxd*an2           )*(-is/(2.*dr(axis)))
+           c13 = (                       rxd*an3 )*(-is/(2.*dr(axis)))
+           ! tvy = c21*u(-1) + c22*v(-1) + c23*w(-1)
+           c21 = ( ryd*an1                       )*(-is/(2.*dr(axis)))
+           c22 = ( rxd*an1 +2.*ryd*an2 + rzd*an3 )*(-is/(2.*dr(axis)))
+           c23 = (                       ryd*an3 )*(-is/(2.*dr(axis)))
+           ! tvz = c31*u(-1) + c32*v(-1) + c33*w(-1)
+           c31 = ( rzd*an1                       )*(-is/(2.*dr(axis)))
+           c32 = (            rzd*an2            )*(-is/(2.*dr(axis)))
+           c33 = ( rxd*an1  + ryd*an2+2.*rzd*an3 )*(-is/(2.*dr(axis)))
+           ! 3 Equations are 
+           !  fv = [f1, f2, f3 ] = div * nv + [1-nv nv^T] tv = 0
+           ! Evaluate equations using current ghost values: 
+           f1 = div*an1 + (1.-an1*an1)*tvx      -an1*an2* tvy     -an1*
+     & an3 *tvz
+           f2 = div*an2      -an2*an1 *tvx + (1.-an2*an2)*tvy     -an2*
+     & an3 *tvz
+           f3 = div*an3      -an3*an1 *tvx      -an3*an2 *tvy +(1.-an3*
+     & an3)*tvz
+           ! determine a(i,j): (coefficients of ghost in equations f1,f2,f3)
+           ! f1 = a11*u(-1) + a12*v(-1) + a13*w(-1) + .....
+           ! f2 = a21*u(-1) + a22*v(-1) + a23*w(-1) + .....
+           ! f3 = a31*u(-1) + a32*v(-1) + a33*w(-1) + .....
+           ! div = d11*u(-1) + d12*v(-1) + d13*w(-1)
+           div11 = -is*rxd/(2.*dr(axis))
+           div12 = -is*ryd/(2.*dr(axis))
+           div13 = -is*rzd/(2.*dr(axis))
+           a11 = div11*an1 + (1.-an1*an1)*c11      -an1*an2* c21     -
+     & an1*an3 *c31 ! coeff of u(-1) in f1
+           a12 = div12*an1 + (1.-an1*an1)*c12      -an1*an2* c22     -
+     & an1*an3 *c32 ! coeff of v(-1) in f1
+           a13 = div13*an1 + (1.-an1*an1)*c13      -an1*an2* c23     -
+     & an1*an3 *c33 ! coeff of w(-1) in f1
+           a21 = div11*an2      -an2*an1 *c11 + (1.-an2*an2)*c21     -
+     & an2*an3 *c31
+           a22 = div12*an2      -an2*an1 *c12 + (1.-an2*an2)*c22     -
+     & an2*an3 *c32
+           a23 = div13*an2      -an2*an1 *c13 + (1.-an2*an2)*c23     -
+     & an2*an3 *c33
+           a31 = div11*an3      -an3*an1 *c11      -an3*an2 *c21 +(1.-
+     & an3*an3)*c31
+           a32 = div12*an3      -an3*an1 *c12      -an3*an2 *c22 +(1.-
+     & an3*an3)*c32
+           a33 = div13*an3      -an3*an1 *c13      -an3*an2 *c23 +(1.-
+     & an3*an3)*c33
+           ! current values on the ghost
+           um1 = u(i1m,i2m,i3m,uc)
+           vm1 = u(i1m,i2m,i3m,vc)
+           wm1 = u(i1m,i2m,i3m,wc)
+           ! right hand sides to A x = b 
+           b1 = a11*um1 + a12*vm1 + a13*wm1 -f1
+           b2 = a21*um1 + a22*vm1 + a23*wm1 -f2
+           b3 = a31*um1 + a32*vm1 + a33*wm1 -f3
+           if( twilightZone.eq.1 )then
+             ! ---- adjust RHS for TZ  ----
+             ! assume the TZ solution is divergence free so we do not need to change f1
+             call ogDeriv(ep,0,1,0,0,x(i1,i2,i3,0),x(i1,i2,i3,1),x(i1,
+     & i2,i3,2),t,uc,uxe )
+             call ogDeriv(ep,0,1,0,0,x(i1,i2,i3,0),x(i1,i2,i3,1),x(i1,
+     & i2,i3,2),t,vc,vxe )
+             call ogDeriv(ep,0,1,0,0,x(i1,i2,i3,0),x(i1,i2,i3,1),x(i1,
+     & i2,i3,2),t,wc,wxe )
+             call ogDeriv(ep,0,0,1,0,x(i1,i2,i3,0),x(i1,i2,i3,1),x(i1,
+     & i2,i3,2),t,uc,uye )
+             call ogDeriv(ep,0,0,1,0,x(i1,i2,i3,0),x(i1,i2,i3,1),x(i1,
+     & i2,i3,2),t,vc,vye )
+             call ogDeriv(ep,0,0,1,0,x(i1,i2,i3,0),x(i1,i2,i3,1),x(i1,
+     & i2,i3,2),t,wc,wye )
+             call ogDeriv(ep,0,0,0,1,x(i1,i2,i3,0),x(i1,i2,i3,1),x(i1,
+     & i2,i3,2),t,uc,uze )
+             call ogDeriv(ep,0,0,0,1,x(i1,i2,i3,0),x(i1,i2,i3,1),x(i1,
+     & i2,i3,2),t,vc,vze )
+             call ogDeriv(ep,0,0,0,1,x(i1,i2,i3,0),x(i1,i2,i3,1),x(i1,
+     & i2,i3,2),t,wc,wze )
+             dive = uxe+vye+wze
+             tvxe = ( 2.*uxe)*an1 + (uye+vxe)*an2 + (uze+wxe)*an3
+             tvye = (uye+vxe)*an1 + ( 2.*vye)*an2 + (vze+wye)*an3
+             tvze = (uze+wxe)*an1 + (vze+wye)*an2 + ( 2.*wze)*an3
+             f1e = dive*an1 + (1.-an1*an1)*tvxe      -an1*an2* tvye    
+     &  -an1*an3 *tvze
+             f2e = dive*an2      -an2*an1 *tvxe + (1.-an2*an2)*tvye    
+     &  -an2*an3 *tvze
+             f3e = dive*an3      -an3*an1 *tvxe      -an3*an2 *tvye +(
+     & 1.-an3*an3)*tvze
+             b1 = b1 + f1e
+             b2 = b2 + f2e
+             b3 = b3 + f3e
+           end if
+           ! write(*,'(" i1,i2=",2i3," rxd,ryd=",2f8.4," sxd,syd=",2f10.4)') i1,i2,rxd,ryd,sxd,syd
+           ! write(*,'(" i1,i2=",2i3," a11,a12=",2f8.4," a21,a22=",2f10.4)') i1,i2,a11,a12,a21,a22
+           ! Solve
+           !   [a11 a12 a13][ u(-1)] = [ b1 ]
+           !   [a21 a22 a23][ v(-1)] = [ b2 ]
+           !   [a31 a32 a33][ w(-1)] = [ b3 ]
+           !   
+           ! ***** check me
+           det=a33*a11*a22-a33*a12*a21-a13*a31*a22+a31*a23*a12+a13*a32*
+     & a21-a32*a23*a11
+           if( abs(det)<epsX )then
+             write(*,'("InsTractionBC: ERROR: det<epsX !")')
+             stop 3439
+           endif
+           ! solve by Cramers *check me*
+           um1=( a33*b1*a22-a13*b3*a22+a13*a32*b2+b3*a23*a12-a32*a23*
+     & b1-a33*a12*b2)/det
+           vm1=(-a23*a11*b3+a23*b1*a31+a11*a33*b2+a13*a21*b3-b1*a33*
+     & a21-a13*b2*a31)/det
+           wm1=( a11*b3*a22-a11*a32*b2-a12*a21*b3+a12*b2*a31-b1*a31*
+     & a22+b1*a32*a21)/det
+            if( .true. )then
+            ! check answer
+            res1 = a11*um1 + a12*vm1 + a13*wm1 -b1
+            res2 = a21*um1 + a22*vm1 + a23*wm1 -b2
+            res3 = a31*um1 + a32*vm1 + a33*wm1 -b3
+            fMax = max(abs(res1),abs(res2),abs(res3))
+            if( fMax.gt.1.e-10 )then
+              write(*,'(" *** TROUBLE SOLVING LINEAR SYSTEM:  *****")')
+              write(*,'(" i1,i2,i3=",3i3," res1,res2,res3=",3e9.2)') 
+     & i1,i2,i3,res1,res2,res3
+            end if
+           end if
+           u(i1m,i2m,i3m,uc)=um1
+           u(i1m,i2m,i3m,vc)=vm1
+           u(i1m,i2m,i3m,wc)=wm1
+           if( .true. )then
+            ! check answer
+            ux = ux23(i1,i2,i3,uc)
+            uy = uy23(i1,i2,i3,uc)
+            uz = uz23(i1,i2,i3,uc)
+            vx = ux23(i1,i2,i3,vc)
+            vy = uy23(i1,i2,i3,vc)
+            vz = uz23(i1,i2,i3,vc)
+            wx = ux23(i1,i2,i3,wc)
+            wy = uy23(i1,i2,i3,wc)
+            wz = uz23(i1,i2,i3,wc)
+            ! divergence 
+            div=ux+vy+wz
+            ! traction vector = [tvx,tvy,tvz] (without mu)
+            tvx = (2.*ux)*an1 + (uy+vx)*an2 + (uz+wx)*an3
+            tvy = (uy+vx)*an1 + (2.*vy)*an2 + (vz+wy)*an3
+            tvz = (uz+wx)*an1 + (vz+wy)*an2 + (2.*wz)*an3
+            ! Evaluate equations using current ghost values: 
+            f1 = div*an1 + (1.-an1*an1)*tvx      -an1*an2* tvy     -
+     & an1*an3 *tvz
+            f2 = div*an2      -an2*an1 *tvx + (1.-an2*an2)*tvy     -
+     & an2*an3 *tvz
+            f3 = div*an3      -an3*an1 *tvx      -an3*an2 *tvy +(1.-
+     & an3*an3)*tvz
+            res1 = f1 - f1e
+            res2 = f2 - f2e
+            res3 = f3 - f3e
+            resMax = max(abs(res1),abs(res2),abs(res3))
+            if( resMax.gt.1.e-10 )then
+              write(*,'(" i1,i2,i3=",3i3," res1,res2,res3=",3e9.2)') 
+     & i1,i2,i3,res1,res2,res3
+              write(*,'(" *** TROUBLE  WITH EQUATIONS *****")')
+            end if
+           end if
+          end do
+          end do
+          end do
 
         else
-
+          ! unknown gridType 
           stop 2222
         end if
        end if
@@ -1232,851 +1552,6 @@ c===============================================================================
        end do ! end axis
       ! ================= END LOOP OVER SIDES ===============================
 
-!-       ! for fourth-order dissipation:
-!-       cd42=ad42/(nd**2)
-!-       ! cd42=0. ! for testing
-!-       adCoeff4=0.
-!- 
-!-       ! For second-order dissipation:
-!-       cd22=ad22/(nd**2)
-!-       adCoeff2=0.
-!- 
-!-       if( .false. .and. use4thOrderAD.ne.0 .and. t.le.0. )then
-!-         write(*,'(" insbc4: t=",e10.2," use4thOrderAD=",i2," ad41,ad42=",2e10.2," outflowOption=",i2)') t,use4thOrderAD,ad41,ad42,outflowOption
-!-       end if
-!-       if( .false. .and. use2ndOrderAD.ne.0  .and. t.le.0. )then
-!-         write(*,'(" insbc4: t=",e10.2," use2ndOrderAD=",i2," ad21,ad22=",2e10.2)') t,use2ndOrderAD,ad21,ad22
-!-       end if
-!- 
-!- !       i1=2
-!- !       i2=2
-!- !       i3=0
-!- !       write(*,*) 'insbc4: x,y,u,err = ',x(i1,i2,i3,0),x(i1,i2,i3,1),ogf(exact,x(i1,i2,i3,0),x(i1,i2,i3,1),0.,uc,t),!- !                                     u(i1,i2,i3,uc)-ogf(exact,x(i1,i2,i3,0),x(i1,i2,i3,1),0.,uc,t)
-!- 
-!-       ! if( t.le.0.0001 .and. gridIsMoving.ne.0 .and. mod(bcOption,2).eq.1 )then
-!-       !   write(*,'("insbc4: *** Moving grids is on ***")')
-!-       ! end if
-!- 
-!-       if( outflowOption.ne.0 .and. outflowOption.ne.1 )then
-!-         write(*,'("insbc4: ERROR: unexpected outflowOption=",i6)') outflowOption
-!-         stop 1706
-!-       end if
-!- 
-!-       if( assignTemperature.ne.0 .and. tc.lt.0 .or. tc.gt.10000 )then
-!-         write(*,'("insbc4: ERROR: assignTemperature.ne.0 but tc=",i6)') tc
-!-         stop 1744
-!-       end if
-!- 
-!- 
-!-       if( mod(bcOption,2).eq.1  )then
-!- 
-!-       ! *************************************************************
-!-       ! ********Update ghost pts outside interpolation points********
-!-       ! *************************************************************
-!- 
-!- 
-!-       ! We cannot apply the standard BC's to get the points marked 'E' below
-!-       ! where the boundary points of a grid are interpolated
-!-       !  i2=0   ----I----I----X----X----X------------------------
-!-       !  i2=-1  ----E----E----G----G----G
-!-       !  i2=-2  ----E----E----G----G----G
-!- 
-!-       ! Include ghost points on interpolation boundaries
-!-       do axis=0,2
-!-       do side=0,1
-!-         is=1-2*side
-!-         if( axis.lt.nd .and. bc(side,axis).eq.0 )then
-!-           nr(side,axis)=indexRange(side,axis)-2*is
-!-         else
-!-           nr(side,axis)=indexRange(side,axis)
-!-         end if
-!-       end do
-!-       end do
-!- 
-!-       ! write(*,'(''*** insbc4 grid='',i4,'' nr='',6i3,'' bc='',6i3)') grid,nr,bc
-!- 
-!-       do kd1=0,nd-1
-!-       do ks1=0,1
-!-         nr0=nr(0,kd1)  ! save these values
-!-         nr1=nr(1,kd1)
-!-         nr(0,kd1)=indexRange(ks1,kd1)
-!-         nr(1,kd1)=nr(0,kd1)
-!-         bc1=bc(ks1,kd1)
-!-         is=1-2*ks1
-!-         if( bc1.eq.noSlipWall .or. bc1.eq.outflow .or. bc1.eq.inflowWithVelocityGiven )then
-!-    
-!-           ! For now extrapolate these points
-!-           ! We could do better -- on a noSlipWall we could use u.x=0 or v.y=0
-!-           if( kd1.eq.0 )then
-!-             loopse4NoMask(if( mask(i1,i2,i3).lt.0 )then,!-                           $extrapTwoGhost(5,r),!-                           end if,)
-!-           else if( kd1.eq.1 )then
-!-             loopse4NoMask(if( mask(i1,i2,i3).lt.0 )then,!-                           $extrapTwoGhost(5,s),!-                           end if,)
-!-           else
-!-             loopse4NoMask(if( mask(i1,i2,i3).lt.0 )then,!-                           $extrapTwoGhost(5,t),!-                           end if,)
-!-           end if     
-!-         end if
-!-         ! reset
-!-         nr(0,kd1)=nr0
-!-         nr(1,kd1)=nr1
-!-       end do
-!-       end do
-!- 
-!-       do axis=0,2
-!-       do side=0,1
-!-          nr(side,axis)=indexRange(side,axis)
-!-       end do
-!-       end do
-!- 
-!-       ! *************************************************************
-!-       ! *****************Update extended boundaries*****************
-!-       ! *************************************************************
-!-       do kd1=0,nd-1
-!-       do ks1=0,1
-!-        bc1=bc(ks1,kd1)
-!-        if( bc1.eq.slipWall .or. bc1.eq.outflow .or. bc1.eq.inflowWithVelocityGiven )then
-!- 	! In some cases we may need to assign values on the ghost points on the extended boundary
-!-         ! For a noSlipWall these values are already set (u=0)
-!-         !
-!-         !                |                      |
-!-         !                |                      |
-!-         !      X----X----|----------------------|----X----X
-!-         !                |                      |
-!-         !                |                      |
-!- 
-!- 
-!-         nr(0,kd1)=indexRange(ks1,kd1)
-!-         nr(1,kd1)=nr(0,kd1)
-!- 
-!- 	do kd2=0,nd-1
-!- 	if( kd2.ne.kd1 )then
-!- 	do ks2=0,1
-!-           bc2=bc(ks2,kd2)
-!- 
-!-           nr(0,kd2)=indexRange(ks2,kd2)
-!-           nr(1,kd2)=nr(0,kd2)
-!-           
-!-           is=1-2*ks2
-!- 
-!-           if( bc1.eq.slipWall .and. ( bc2.eq.outflow .or. bc2.eq.inflowWithVelocityGiven) )then
-!-             !  On the slip wall ghost points solve for the normal components:
-!-             !       u.x + v.y = 0
-!-             !      D+^p ( n.u ) = 0
-!- 		
-!-             !  printf(" Set points (%i,%i,%i),(%i,%i,%i) where slip wall meets outflow\n",
-!-             !                  i1+is1,i2+is2,i3,i1+2*is1,i2+2*is2,i3)
-!- 	    
-!-             !  u.x+v.y=0
-!-             !  D+4(u)=0
-!-             if( bc2.eq.outflow .and. outflowOption.eq.neumannAtOuflow )then
-!-             ! kkc 110311 added this adjustment for the special case of neumannAtOutflow
-!-                is1=0
-!-                is2=0
-!-                is3=0
-!-                if( kd2.eq.0 )then
-!-                   is1=is
-!-                else if( kd2.eq.1 )then
-!-                   is2=is
-!-                else
-!-                   is3=is
-!-                end if
-!-                loopse4($boundaryConditionNeumannOutflow(none,2),,,)
-!- 
-!-             else 
-!-              if( gridType.eq.rectangular )then
-!- 
-!-               if( nd.eq.2 )then
-!-                 if( kd2.eq.0 )then
-!- 	          loopse4(u(i1-is,i2,i3,uc)=-1.5*u(i1,i2,i3,uc)+3.*u(i1+is,i2,i3,uc)-.5*u(i1+2*is,i2,i3,uc)!- 	                +is*.25*dx(0)*12.*uy42r(i1,i2,i3,vc),!-                           u(i1-2*is,i2,i3,uc)=4.*(u(i1-is,i2,i3,uc)+u(i1+is,i2,i3,uc))-6.*u(i1,i2,i3,uc)-u(i1+2*is,i2,i3,uc),,)
-!-                 else 
-!- 	          loopse4(u(i1,i2-is,i3,vc)=-1.5*u(i1,i2,i3,vc)+3.*u(i1,i2+is,i3,vc)-.5*u(i1,i2+2*is,i3,vc)!-                           +is*.25*dx(1)*12.*ux42r(i1,i2,i3,uc),!-                           u(i1,i2-2*is,i3,vc)=4.*(u(i1,i2-is,i3,vc)+u(i1,i2+is,i3,vc))-6.*u(i1,i2,i3,vc)-u(i1,i2+2*is,i3,vc),,)
-!-                 end if
-!-               else ! 3D
-!-                 if( kd2.eq.0 )then
-!- 	          loopse4(u(i1-is,i2,i3,uc)=-1.5*u(i1,i2,i3,uc)+3.*u(i1+is,i2,i3,uc)-.5*u(i1+2*is,i2,i3,uc)!- 	                +is*.25*dx(0)*12.*(uy43r(i1,i2,i3,vc)+uz43r(i1,i2,i3,wc)),!-                           u(i1-2*is,i2,i3,uc)=4.*(u(i1-is,i2,i3,uc)+u(i1+is,i2,i3,uc))-6.*u(i1,i2,i3,uc)-u(i1+2*is,i2,i3,uc),,)
-!-                 else if( kd2.eq.1 )then
-!- 	          loopse4(u(i1,i2-is,i3,vc)=-1.5*u(i1,i2,i3,vc)+3.*u(i1,i2+is,i3,vc)-.5*u(i1,i2+2*is,i3,vc)!- 	                +is*.25*dx(1)*12.*(ux43r(i1,i2,i3,uc)+uz43r(i1,i2,i3,wc)),!-                          u(i1,i2-2*is,i3,vc)=4.*(u(i1,i2-is,i3,vc)+u(i1,i2+is,i3,vc))-6.*u(i1,i2,i3,vc)-u(i1,i2+2*is,i3,vc),,)
-!-                 else
-!- 	          loopse4(u(i1,i2,i3-is,wc)=-1.5*u(i1,i2,i3,wc)+3.*u(i1,i2,i3+is,wc)-.5*u(i1,i2,i3+2*is,wc)!- 	                +is*.25*dx(2)*12.*(ux43r(i1,i2,i3,uc)+uy43r(i1,i2,i3,vc)),!-                           u(i1,i2,i3-2*is,wc)=4.*(u(i1,i2,i3-is,wc)+u(i1,i2,i3+is,wc))-6.*u(i1,i2,i3,wc)-u(i1,i2,i3+2*is,wc),,)
-!-                 end if
-!-               end if
-!- 
-!-              else ! curvilinear
-!- 
-!-               extrapOrder=5
-!-  	      if( extrapOrder.eq.5 )then
-!-                 extrapolate(5)
-!-               else
-!- 	        write(*,*) 'insbc4:ERROR'
-!-                 stop 3
-!-               end if
-!- 
-!-               if( nd.eq.2 )then
-!-                if( kd2.eq.0 )then
-!-                  loopse4($divAndExtrap(r,2),,,)
-!-                else 
-!-                  loopse4($divAndExtrap(s,2),,,)
-!-                end if
-!-               else ! 3d
-!-                if( kd2.eq.0 )then
-!-                  loopse4($divAndExtrap(r,3),,,)
-!-                else if( kd2.eq.1 )then
-!-                  loopse4($divAndExtrap(s,3),,,)
-!-                else
-!-                  loopse4($divAndExtrap(t,3),,,)
-!-                end if
-!-               end if
-!-              end if
-!- 
-!-             end if ! end if block for neumannAtOutflow option
-!- 
-!-           else if( (bc1.eq.outflow .and. (bc2.eq.outflow .or. bc2.eq.noSlipWall)) .or. bc1.eq.inflowWithVelocityGiven )then
-!- 
-!-             ! printf(" Set points (%i,%i,%i),(%i,%i,%i) on outflow extended boundary...\n",
-!-             !     //                 i1+is,i2+is2,i3,i1+2*is1,i2+2*is2,i3)
-!- 		
-!-             ! if( bc1.eq.inflowWithVelocityGiven )then
-!-             !  write(*,'('' Set extended inflow boundary, nr='',6i3)') nr
-!-             ! end if
-!- 
-!-             ! write(*,*) 'Set outflow extended boundary, nr=',nr
-!-             extrapOrder=5
-!- 	    if( extrapOrder.eq.5 )then
-!-               extrapolate(5)
-!-             else
-!- 	      write(*,*) 'insbc4:ERROR'
-!-               stop 3
-!-             end if
-!-               		
-!- 	  else 
-!-           end if
-!-           nr(0,kd2)=indexRange(0,kd2) ! reset
-!-           nr(1,kd2)=indexRange(1,kd2)
-!- 
-!-         end do
-!-         end if
-!-         end do
-!- 
-!-         nr(0,kd1)=indexRange(0,kd1) ! reset
-!-         nr(1,kd1)=indexRange(1,kd1)
-!-        end if
-!-       end do
-!-       end do  
-!-       end if ! update extended boundaries
-!- 
-!-       ! ...Get values outside corners in 2D,3D and edges in 3D using values on the extended boundary
-!-       !      and values in the interior
-!-       !      The corner or edge is labelled as (kd1,ks1),(kd2,ks2)
-!-       if( mod(bcOption/2,2).eq.1 )then
-!-       if( gridType.eq.curvilinear )then
-!-         do axis=0,2
-!-           d14v(axis)=1./(12.*dr(axis))
-!-           d24v(axis)=1./(12.*dr(axis)**2)
-!-         end do
-!-       else
-!-         do axis=0,2
-!-           d14v(axis)=1./(12.*dx(axis))
-!-           d24v(axis)=1./(12.*dx(axis)**2)
-!-         end do
-!-       end if
-!-       do kd1=0,nd-2
-!-       do kd2=kd1+1,nd-1
-!-       do ks1=0,1
-!-       do ks2=0,1
-!- 
-!-         if( bc(ks1,kd1).gt.0 .and. bc(ks2,kd2).gt.0 )then
-!-           if( .true. )then
-!-             ! new version 
-!-             call inscr4( kd1+1,ks1+1,kd2+1,ks2+1,nd,indexRange,bc,nd1a,nd1b,nd2a,nd2b,nd3a,nd3b, !-                       ipar,rpar,u,t,d14v,d24v,ajs,x,rsxy,gridType )
-!-           else
-!-             call inscr( kd1+1,ks1+1,kd2+1,ks2+1,nd,indexRange,bc,nd1a,nd1b,nd2a,nd2b,nd3a,nd3b, !-                       u,t,d14v,d24v,ajs,x,rsxy )
-!-           end if
-!-         end if
-!- 
-!-       end do
-!-       end do
-!-       end do
-!-       end do
-!- 
-!-       end if ! update corners 
-!- 
-!- 
-!-       do axis=0,2
-!-       do side=0,1
-!-          nr(side,axis)=indexRange(side,axis)
-!-       end do
-!-       end do
-!- 
-!-       ! ***********************************************************
-!-       ! ***********Assign the tangential components****************
-!-       ! ***********************************************************
-!-       if( mod(bcOption/4,2).eq.1 )then
-!- 
-!-       do axis=0,nd-1
-!-        do kd=0,nd-1
-!-        do side=0,1
-!-          nr(side,kd)=indexRange(side,kd)
-!- 	 if( kd.ne.axis .and. 
-!-      &       (bc(side,kd).eq.noSlipWall .or.
-!-      &        bc(side,kd).eq.inflowWithVelocityGiven .or.
-!-      &        bc(side,kd).eq.slipWall) )then
-!- 
-!-            ! If the adjacent BC is a noSlipWall or inflow or slipWall then we do not need to assign
-!-            ! ghost points on extended boundaries because these have already been assigned (e.g. u=0 for a noSlipWall)
-!-         
-!-            nr(side,kd)=nr(side,kd)+1-2*side   
-!-          end if
-!-        end do
-!-        end do
-!-        do side=0,1
-!- 
-!-         is=1-2*side
-!-         nr(0,axis)=indexRange(side,axis)
-!-         nr(1,axis)=nr(0,axis)
-!- 
-!- 
-!- 
-!-         useWallBC = bc(side,axis).eq.noSlipWall .or. bc(side,axis).eq.inflowWithVelocityGiven
-!-         useOutflowBC = bc(side,axis).eq.outflow 
-!- 
-!-         if( .not.useWallBC .and. .not.useOutflowBC .and. bc(side,axis).ne.slipWall .and. !-             bc(side,axis).gt.0 .and. bc(side,axis).ne.dirichletBoundaryCondition .and. !-             bc(side,axis).ne.penaltyBoundaryCondition .and. bc(side,axis).ne.inflowWithPandTV )then
-!-           write(*,*) 'insbc4:ERROR: unknown boundary condition=',bc(side,axis)
-!-           stop 6
-!-         end if
-!- 
-!- 
-!-         ! Tangential components:
-!-         !   Wall:
-!-         !     Use equation plus extrapolation
-!-         !   Outflow:
-!-         !     outflowOption=0:
-!-         !       D+D_(t.u(0)) = 0 and ((D+)^6)u(-2) = 0 
-!-         !     outflowOption=1: (*wdh* 100613)
-!-         !       
-!-         !
-!-         !
-!- 
-!-         if( useOutflowBC .and. outflowOption.eq.neumannAtOuflow )then
-!-           ! Apply a Neumman like condition at outflow (Good for where there might be inflow locally)
-!-           is1=0
-!-           is2=0
-!-           is3=0
-!-           if( axis.eq.0 )then
-!-            is1=is
-!-           else if( axis.eq.1 )then
-!-            is2=is
-!-           else
-!-            is3=is
-!-           end if
-!-           if( t.le.0 .and. debug.gt.3 )then
-!-             if( myid.le.0 )then
-!-               write(*,'("insbc4: apply neumman outflow: side,axis,grid=",3i4," at t=",e10.2)') side,axis,grid,t
-!-             end if
-!-           end if
-!-           if( nd.eq.2 )then
-!-             if( twilightZone.eq.0 )then
-!-               loopse4($boundaryConditionNeumannOutflow(none,2),,,) 
-!-             else
-!-               loopse4($boundaryConditionNeumannOutflow(tz,2),,,) 
-!-             end if
-!-           else
-!-             if( twilightZone.eq.0 )then
-!-               loopse4($boundaryConditionNeumannOutflow(none,3),,,) 
-!-             else
-!-               loopse4($boundaryConditionNeumannOutflow(tz,3),,,) 
-!-             end if
-!-           end if
-!-         end if
-!- 
-!-         if( gridType.eq.rectangular )then
-!- 
-!-           if( axis.eq.0 )then
-!-             if( nd.eq.2 )then
-!-               if( twilightZone.eq.0 )then
-!-                 if( useWallBC )then
-!-                   loopse4($boundaryConditionNavierStokesAndExtrapRectangular(r,none,2),,,)
-!-                 else if( useOutflowBC )then
-!-                  if( outflowOption.eq.extrapolateOutflow )then
-!-                    loopse4($boundaryCondition2ndDifferenceAndExtrapRectangular(r,none,2),,,)
-!-                  else if( outflowOption.eq.neumannAtOuflow )then
-!-                    ! done above
-!-                  else
-!-                   write(*,'("insbc4: unknown outflowOption=",i6)') outflowOption
-!-                   stop 5105
-!-                  end if
-!-                 end if
-!-               else
-!-                 if( useWallBC )then
-!-                   loopse4($boundaryConditionNavierStokesAndExtrapRectangular(r,tz,2),,,)
-!-                 else if( useOutflowBC )then
-!-                  if( outflowOption.eq.extrapolateOutflow )then
-!-                   loopse4($boundaryCondition2ndDifferenceAndExtrapRectangular(r,tz,2),,,)
-!-                  else if( outflowOption.eq.neumannAtOuflow )then
-!-                    ! done above
-!-                  else
-!-                   write(*,'("insbc4: unknown outflowOption=",i6)') outflowOption
-!-                   stop 5105
-!-                  end if
-!-                 end if
-!-               end if
-!-             else ! nd==3
-!-               if( twilightZone.eq.0 )then
-!-                 if( useWallBC )then
-!-                   loopse4($boundaryConditionNavierStokesAndExtrapRectangular(r,none,3),,,)
-!-                 else if( useOutflowBC )then
-!-                  if( outflowOption.eq.extrapolateOutflow )then
-!-                   loopse4($boundaryCondition2ndDifferenceAndExtrapRectangular(r,none,3),,,)
-!-                  else if( outflowOption.eq.neumannAtOuflow )then
-!-                    ! done above
-!-                  else
-!-                   write(*,'("insbc4: unknown outflowOption=",i6)') outflowOption
-!-                   stop 5105
-!-                  end if
-!-                 end if
-!-               else
-!-                 if( useWallBC )then
-!-                   loopse4($boundaryConditionNavierStokesAndExtrapRectangular(r,tz,3),,,)
-!-                 else if( useOutflowBC )then
-!-                  if( outflowOption.eq.extrapolateOutflow )then
-!-                   loopse4($boundaryCondition2ndDifferenceAndExtrapRectangular(r,tz,3),,,)
-!-                  else if( outflowOption.eq.neumannAtOuflow )then
-!-                    ! done above
-!-                  else
-!-                   write(*,'("insbc4: unknown outflowOption=",i6)') outflowOption
-!-                   stop 5105
-!-                  end if
-!-                 end if
-!-               end if
-!- 
-!-             end if
-!- 
-!-           else if( axis.eq.1 )then
-!-             if( nd.eq.2 )then
-!-               if( twilightZone.eq.0 )then
-!-                 if( useWallBC )then
-!-                   loopse4($boundaryConditionNavierStokesAndExtrapRectangular(s,none,2),,,)
-!-                 else if( useOutflowBC )then
-!-                  if( outflowOption.eq.extrapolateOutflow )then
-!-                   loopse4($boundaryCondition2ndDifferenceAndExtrapRectangular(s,none,2),,,)
-!-                  else if( outflowOption.eq.neumannAtOuflow )then
-!-                    ! done above
-!-                  else
-!-                   write(*,'("insbc4: unknown outflowOption=",i6)') outflowOption
-!-                   stop 5105
-!-                  end if
-!-                 end if
-!-               else
-!-                 if( useWallBC )then
-!-                   loopse4($boundaryConditionNavierStokesAndExtrapRectangular(s,tz,2),,,)
-!-                 else if( useOutflowBC )then
-!-                  if( outflowOption.eq.extrapolateOutflow )then
-!-                   loopse4($boundaryCondition2ndDifferenceAndExtrapRectangular(s,tz,2),,,)
-!-                  else if( outflowOption.eq.neumannAtOuflow )then
-!-                    ! done above
-!-                  else
-!-                   write(*,'("insbc4: unknown outflowOption=",i6)') outflowOption
-!-                   stop 5105
-!-                  end if
-!-                 end if
-!-               end if
-!-             else ! nd==3
-!-               if( twilightZone.eq.0 )then
-!-                 if( useWallBC )then
-!-                   loopse4($boundaryConditionNavierStokesAndExtrapRectangular(s,none,3),,,)
-!-                 else if( useOutflowBC )then
-!-                  if( outflowOption.eq.extrapolateOutflow )then
-!-                   loopse4($boundaryCondition2ndDifferenceAndExtrapRectangular(s,none,3),,,)
-!-                  else if( outflowOption.eq.neumannAtOuflow )then
-!-                    ! done above
-!-                  else
-!-                   write(*,'("insbc4: unknown outflowOption=",i6)') outflowOption
-!-                   stop 5105
-!-                  end if
-!-                 end if
-!-               else
-!-                 if( useWallBC )then
-!-                   loopse4($boundaryConditionNavierStokesAndExtrapRectangular(s,tz,3),,,)
-!-                 else if( useOutflowBC )then
-!-                  if( outflowOption.eq.extrapolateOutflow )then
-!-                   loopse4($boundaryCondition2ndDifferenceAndExtrapRectangular(s,tz,3),,,)
-!-                  else if( outflowOption.eq.neumannAtOuflow )then
-!-                    ! done above
-!-                  else
-!-                   write(*,'("insbc4: unknown outflowOption=",i6)') outflowOption
-!-                   stop 5105
-!-                  end if
-!-                 end if
-!-               end if
-!-             end if
-!- 
-!-           else ! axis==2
-!-             if( twilightZone.eq.0 )then
-!-               if( useWallBC )then
-!-                 loopse4($boundaryConditionNavierStokesAndExtrapRectangular(t,none,3),,,)
-!-               else if( useOutflowBC )then
-!-                 if( outflowOption.eq.extrapolateOutflow )then
-!-                  loopse4($boundaryCondition2ndDifferenceAndExtrapRectangular(t,none,3),,,)
-!-                 else if( outflowOption.eq.neumannAtOuflow )then
-!-                   ! done above
-!-                 else
-!-                  write(*,'("insbc4: unknown outflowOption=",i6)') outflowOption
-!-                  stop 5105
-!-                 end if
-!-               end if
-!-             else
-!-               if( useWallBC )then
-!-                 loopse4($boundaryConditionNavierStokesAndExtrapRectangular(t,tz,3),,,)
-!-               else if( useOutflowBC )then
-!-                if( outflowOption.eq.extrapolateOutflow )then
-!-                 loopse4($boundaryCondition2ndDifferenceAndExtrapRectangular(t,tz,3),,,)
-!-                else if( outflowOption.eq.neumannAtOuflow )then
-!-                  ! done above
-!-                else
-!-                 write(*,'("insbc4: unknown outflowOption=",i6)') outflowOption
-!-                 stop 5105
-!-                end if
-!-               end if
-!-             end if
-!- 
-!-           end if
-!- 
-!-         else ! curvilinear
-!- 
-!-           ! *************************************************************************
-!-           ! *******************  Curvilinear  ***************************************
-!-           ! *************************************************************************
-!-           if( axis.eq.0 )then
-!-             if( nd.eq.2 )then
-!-               ! Solve
-!-               !   F1(u(-1),u(-2)) = a11.u(-1) + a12.u(-2) + g1 = nu*(u.xx+u.yy) - u*u.x - v*u.y - u.t
-!-               !   F2(u(-1),u(-2)) = a21.u(-1) + a22.u(-2) + g2 = D+^m( u(-2) ) 
-!-               ! for (u(-1),u(-2)) and (v(-1),v(-2))
-!-               ! Then adjust the tangential components
-!-               !    \uv <- \uv + (\uv_old-\uv).nv
-!-               
-!-               ! write(*,*) 'insbc4: curvilinear: assign wall tangential axis=0 wall nr=',nr 
-!-               if( twilightZone.eq.0 )then
-!-                 if( useWallBC )then
-!-                   loopse4($boundaryConditionNavierStokesAndExtrap2d(r,none),,,)                
-!-                 else if( useOutflowBC )then
-!-                  if( outflowOption.eq.extrapolateOutflow )then
-!-                   loopse4($boundaryCondition2ndDifferenceAndExtrap(is,0,0,r,none,2),,,)                
-!-                  else if( outflowOption.eq.neumannAtOuflow )then
-!-                    ! done above
-!-                  else
-!-                   write(*,'("insbc4: unknown outflowOption=",i6)') outflowOption
-!-                   stop 5105
-!-                  end if
-!-                 end if
-!-               else
-!-                 if( useWallBC )then
-!-                   loopse4($boundaryConditionNavierStokesAndExtrap2d(r,tz),,,)                
-!-                 else if( useOutflowBC )then
-!-                  if( outflowOption.eq.extrapolateOutflow )then
-!-                   loopse4($boundaryCondition2ndDifferenceAndExtrap(is,0,0,r,tz,2),,,)                
-!-                  else if( outflowOption.eq.neumannAtOuflow )then
-!-                    ! done above
-!-                  else
-!-                   write(*,'("insbc4: unknown outflowOption=",i6)') outflowOption
-!-                   stop 5105
-!-                  end if
-!-                 end if
-!-               end if
-!-             else ! nd==3
-!-               if( twilightZone.eq.0 )then
-!-                 if( useWallBC )then
-!-                   loopse4($boundaryConditionNavierStokesAndExtrap3d(r,none),,,)                
-!-                 else if( useOutflowBC )then
-!-                  if( outflowOption.eq.extrapolateOutflow )then
-!-                   loopse4($boundaryCondition2ndDifferenceAndExtrap(is,0,0,r,none,3),,,)                
-!-                  else if( outflowOption.eq.neumannAtOuflow )then
-!-                    ! done above
-!-                  else
-!-                   write(*,'("insbc4: unknown outflowOption=",i6)') outflowOption
-!-                   stop 5105
-!-                  end if
-!-                 end if
-!-               else
-!-                 if( useWallBC )then
-!-                   loopse4($boundaryConditionNavierStokesAndExtrap3d(r,tz),,,)                
-!-                 else if( useOutflowBC )then
-!-                  if( outflowOption.eq.extrapolateOutflow )then
-!-                   loopse4($boundaryCondition2ndDifferenceAndExtrap(is,0,0,r,tz,3),,,)                
-!-                  else if( outflowOption.eq.neumannAtOuflow )then
-!-                    ! done above
-!-                  else
-!-                   write(*,'("insbc4: unknown outflowOption=",i6)') outflowOption
-!-                   stop 5105
-!-                  end if
-!-                 end if
-!-               end if
-!-             end if
-!- 
-!-           else if( axis.eq.1 )then
-!-             if( nd.eq.2 )then
-!-               if( twilightZone.eq.0 )then
-!-                 if( useWallBC )then
-!-                   loopse4($boundaryConditionNavierStokesAndExtrap2d(s,none),,,)                
-!-                 else if( useOutflowBC )then
-!-                  if( outflowOption.eq.extrapolateOutflow )then
-!-                   loopse4($boundaryCondition2ndDifferenceAndExtrap(0,is,0,s,none,2),,,)                
-!-                  else if( outflowOption.eq.neumannAtOuflow )then
-!-                    ! done above
-!-                  else
-!-                   write(*,'("insbc4: unknown outflowOption=",i6)') outflowOption
-!-                   stop 5105
-!-                  end if
-!-                 end if
-!-               else
-!-                 if( useWallBC )then
-!-                   loopse4($boundaryConditionNavierStokesAndExtrap2d(s,tz),,,)                
-!-                 else if( useOutflowBC )then
-!-                  if( outflowOption.eq.extrapolateOutflow )then
-!-                   loopse4($boundaryCondition2ndDifferenceAndExtrap(0,is,0,s,tz,2),,,)                
-!-                  else if( outflowOption.eq.neumannAtOuflow )then
-!-                    ! done above
-!-                  else
-!-                   write(*,'("insbc4: unknown outflowOption=",i6)') outflowOption
-!-                   stop 5105
-!-                  end if
-!-                 end if
-!-               end if
-!-             else ! nd==3
-!-               if( twilightZone.eq.0 )then
-!-                 if( useWallBC )then
-!-                   loopse4($boundaryConditionNavierStokesAndExtrap3d(s,none),,,)                
-!-                 else if( useOutflowBC )then
-!-                  if( outflowOption.eq.extrapolateOutflow )then
-!-                   loopse4($boundaryCondition2ndDifferenceAndExtrap(0,is,0,s,none,3),,,)                
-!-                  else if( outflowOption.eq.neumannAtOuflow )then
-!-                    ! done above
-!-                  else
-!-                   write(*,'("insbc4: unknown outflowOption=",i6)') outflowOption
-!-                   stop 5105
-!-                  end if
-!-                 end if
-!-               else
-!-                 if( useWallBC )then
-!-                   loopse4($boundaryConditionNavierStokesAndExtrap3d(s,tz),,,)                
-!-                 else if( useOutflowBC )then
-!-                  if( outflowOption.eq.extrapolateOutflow )then
-!-                   loopse4($boundaryCondition2ndDifferenceAndExtrap(0,is,0,s,tz,3),,,)                
-!-                  else if( outflowOption.eq.neumannAtOuflow )then
-!-                    ! done above
-!-                  else
-!-                   write(*,'("insbc4: unknown outflowOption=",i6)') outflowOption
-!-                   stop 5105
-!-                  end if
-!-                 end if
-!-               end if
-!-             end if
-!- 
-!-           else ! axis==2
-!-               if( twilightZone.eq.0 )then
-!-                 if( useWallBC )then
-!-                   loopse4($boundaryConditionNavierStokesAndExtrap3d(t,none),,,)                
-!-                 else if( useOutflowBC )then
-!-                  if( outflowOption.eq.extrapolateOutflow )then
-!-                   loopse4($boundaryCondition2ndDifferenceAndExtrap(0,0,is,t,none,3),,,)                
-!-                  else if( outflowOption.eq.neumannAtOuflow )then
-!-                    ! done above
-!-                  else
-!-                   write(*,'("insbc4: unknown outflowOption=",i6)') outflowOption
-!-                   stop 5105
-!-                  end if
-!-                 end if
-!-               else
-!-                 if( useWallBC )then
-!-                   loopse4($boundaryConditionNavierStokesAndExtrap3d(t,tz),,,)                
-!-                 else if( useOutflowBC )then
-!-                  if( outflowOption.eq.extrapolateOutflow )then
-!-                   loopse4($boundaryCondition2ndDifferenceAndExtrap(0,0,is,t,tz,3),,,)                
-!-                  else if( outflowOption.eq.neumannAtOuflow )then
-!-                    ! done above
-!-                  else
-!-                   write(*,'("insbc4: unknown outflowOption=",i6)') outflowOption
-!-                   stop 5105
-!-                  end if
-!-                 end if
-!-               end if
-!- 
-!-           end if
-!- 
-!-         end if ! end if gridType
-!- 
-!-       end do
-!-       end do
-!-       end if
-!- 
-!- 
-!-       ! ***********************************************************
-!-       ! **************Assign the normal component******************
-!-       ! ***********************************************************
-!-       if( mod(bcOption/8,2).eq.1 )then
-!- 
-!-       
-!- 
-!-       do axis=0,nd-1
-!-        do kd=0,nd-1
-!-        do side=0,1
-!-          nr(side,kd)=indexRange(side,kd)
-!- 	 if( kd.ne.axis .and. 
-!-      &       (bc(side,kd).eq.noSlipWall .or.
-!-      &        bc(side,kd).eq.inflowWithVelocityGiven .or.
-!-      &        bc(side,kd).eq.slipWall) )then
-!- 
-!-            ! If the adjacent BC is a noSlipWall or inflow or slipWall then we do not need to assign
-!-            ! ghost points on extended boundaries because these have already been assigned (e.g. u=0 for a noSlipWall)
-!-         
-!-            nr(side,kd)=nr(side,kd)+1-2*side   
-!-          end if
-!-        end do
-!-        end do
-!-        do side=0,1
-!- 
-!-         is=1-2*side
-!-         nr(0,axis)=indexRange(side,axis)
-!-         nr(1,axis)=nr(0,axis)
-!- 
-!- 
-!-         if( bc(side,axis).eq.outflow .and. outflowOption.eq.neumannAtOuflow )then
-!-           ! do nothing in this case, Neumann BC's have already been applied above *wdh* 100827
-!- 
-!-         else if( bc(side,axis).eq.noSlipWall .or. bc(side,axis).eq.inflowWithVelocityGiven .or. !-             bc(side,axis).eq.outflow )then
-!- 
-!-           ! set 2 ghost lines from div(u)=0
-!- 
-!-           if( gridType.eq.rectangular )then
-!- 
-!-             if( axis.eq.0 )then
-!-               if( nd.eq.2 )then
-!-                if( bcOptionWallNormal.eq.doubleDiv )then
-!-                  loopse4(u(i1-  is,i2,i3,uc)=divBCr2d(i1+is),!-                          u(i1-2*is,i2,i3,uc)=divBCr2d(i1),,)
-!-                else
-!-                 ! u.x = -v.y
-!-                 ! u.xx = -v.xy
-!-                 ! write(*,*) 'assign axis==0 wall nr=',nr                
-!-                 loopse4(vy=uy42r(i1,i2,i3,vc),!-                         vxy=uxy42r(i1,i2,i3,vc),!-                         u(i1-  is,i2,i3,uc)=3.75*u(i1,i2,i3,uc)-3.*u(i1+is,i2,i3,uc)+.25*u(i1+2*is,i2,i3,uc)!-                                            -1.5*(is*dx(0)*vy+dx(0)**2*vxy),!-                         u(i1-2*is,i2,i3,uc)=30.*u(i1,i2,i3,uc)-32.*u(i1+is,i2,i3,uc)+3.*u(i1+2*is,i2,i3,uc)!-                                            -(24.*is*dx(0)*vy+12.*dx(0)**2*vxy))
-!-                end if
-!-               else ! nd==3
-!-                if( bcOptionWallNormal.eq.doubleDiv )then
-!-                  loopse4(u(i1-  is,i2,i3,uc)=divBCr3d(i1+is),!-                          u(i1-2*is,i2,i3,uc)=divBCr3d(i1),,)
-!-                else
-!-                 ! u.x = -v.y-w.z
-!-                 ! u.xx = -v.xy-w.xz
-!-                 ! write(*,*) 'assign axis==0 wall nr=',nr                
-!-                 loopse4(vy=  uy43r(i1,i2,i3,vc)+ uz43r(i1,i2,i3,wc),!-                         vxy=uxy43r(i1,i2,i3,vc)+uxz43r(i1,i2,i3,wc),!-                         u(i1-  is,i2,i3,uc)=3.75*u(i1,i2,i3,uc)-3.*u(i1+is,i2,i3,uc)+.25*u(i1+2*is,i2,i3,uc)!-                                            -1.5*(is*dx(0)*vy+dx(0)**2*vxy),!-                         u(i1-2*is,i2,i3,uc)=30.*u(i1,i2,i3,uc)-32.*u(i1+is,i2,i3,uc)+3.*u(i1+2*is,i2,i3,uc)!-                                            -(24.*is*dx(0)*vy+12.*dx(0)**2*vxy))
-!-                end if
-!- 
-!-               end if
-!- 
-!-             else if( axis.eq.1 )then
-!-               if( nd.eq.2 )then
-!-                if( bcOptionWallNormal.eq.doubleDiv )then
-!-                 loopse4(u(i1,i2-  is,i3,vc)=divBCs2d(i2+is),!-                         u(i1,i2-2*is,i3,vc)=divBCs2d(i2),,)
-!-                else
-!-                 ! write(*,*) 'assign axis==1 wall nr=',nr                
-!-                 loopse4(ux=ux42r(i1,i2,i3,uc),!-                         uxy=uxy42r(i1,i2,i3,uc),!-                         u(i1,i2-  is,i3,vc)=3.75*u(i1,i2,i3,vc)-3.*u(i1,i2+is,i3,vc)+.25*u(i1,i2+2*is,i3,vc)!-                                            -1.5*(is*dx(1)*ux+dx(1)**2*uxy),!-                         u(i1,i2-2*is,i3,vc)=30.*u(i1,i2,i3,vc)-32.*u(i1,i2+is,i3,vc)+3.*u(i1,i2+2*is,i3,vc)!-                                            -(24.*is*dx(1)*ux+12.*dx(1)**2*uxy))
-!-                end if
-!-               else ! nd==3
-!-                if( bcOptionWallNormal.eq.doubleDiv )then
-!-                 loopse4(u(i1,i2-  is,i3,vc)=divBCs3d(i2+is),!-                         u(i1,i2-2*is,i3,vc)=divBCs3d(i2),,)
-!-                else
-!-                 ! v.y  = -u.x-w.z
-!-                 ! v.yy = -u.xy-w.yz
-!-                 ! write(*,*) 'assign axis==1 wall nr=',nr                
-!-                 loopse4(ux=  ux43r(i1,i2,i3,uc)+ uz43r(i1,i2,i3,wc),!-                         uxy=uxy43r(i1,i2,i3,uc)+uyz43r(i1,i2,i3,wc),!-                         u(i1,i2-  is,i3,vc)=3.75*u(i1,i2,i3,vc)-3.*u(i1,i2+is,i3,vc)+.25*u(i1,i2+2*is,i3,vc)!-                                            -1.5*(is*dx(1)*ux+dx(1)**2*uxy),!-                         u(i1,i2-2*is,i3,vc)=30.*u(i1,i2,i3,vc)-32.*u(i1,i2+is,i3,vc)+3.*u(i1,i2+2*is,i3,vc)!-                                            -(24.*is*dx(1)*ux+12.*dx(1)**2*uxy))
-!-                end if
-!-               end if
-!- 
-!-             else ! axis==2
-!-                if( bcOptionWallNormal.eq.doubleDiv )then
-!-                  loopse4(u(i1,i2,i3,wc-  is)=divBCt3d(i3+is),!-                          u(i1,i2,i3,wc-2*is)=divBCt3d(i3),,)
-!-                else
-!-                 ! w.z = -u.x-v.y
-!-                 ! w.zz =-u.xz-v.yz 
-!-                 ! write(*,*) 'assign axis==0 wall nr=',nr                
-!-                 loopse4(vy=  ux43r(i1,i2,i3,uc)+ uy43r(i1,i2,i3,vc),!-                         vxy=uxz43r(i1,i2,i3,uc)+uyz43r(i1,i2,i3,vc),!-                         u(i1,i2,i3-  is,wc)=3.75*u(i1,i2,i3,wc)-3.*u(i1,i2,i3+is,wc)+.25*u(i1,i2,i3+2*is,wc)!-                                            -1.5*(is*dx(2)*vy+dx(2)**2*vxy),!-                         u(i1,i2,i3-2*is,wc)=30.*u(i1,i2,i3,wc)-32.*u(i1,i2,i3+is,wc)+3.*u(i1,i2,i3+2*is,wc)!-                                            -(24.*is*dx(2)*vy+12.*dx(2)**2*vxy))
-!-                end if
-!- 
-!-             end if
-!- 
-!-           else ! curvilinear
-!- 
-!-             ! *************************************************************************
-!-             ! *******************  Curvilinear  ***************************************
-!-             ! *************************************************************************
-!-             if( axis.eq.0 )then
-!-               if( nd.eq.2 )then
-!-                if( bcOptionWallNormal.eq.doubleDiv )then
-!-                 !* loopse4(u(i1-  is,i2,i3,uc)=divBCr2d(i1+is),!-                 !*         u(i1-2*is,i2,i3,uc)=divBCr2d(i1),,)
-!-                else
-!-                 ! F1(uv(-1),uv(-2)) = a11.uv(-1) + a12.uv(-2) + g1 = div(u) = rx*ur+sx*us + ry*vr+sy*vs
-!-                 ! F2(uv(-1),uv(-2)) = a21.uv(-1) + a22.uv(-2) + g2 = div(u).r =rx*u.rr+rx.r*u.r+...
-!-                 !   Choose  uv(-1) =  uv_old(-1) + alpha*(rx,ry)
-!-                 !           uv(-2) =  uv_old(-2) + beta *(rx,ry)
-!-                 ! So that F1=0 and F2=0 (note: (rx,ry) is parallel to the normal
-!-                 !   -> solve for 
-!-                 !    a11.(rx,ry)*alpha + a12.(rx,ry)*beta + F1(\uv_old) = 0 
-!-                 !    a21.(rx,ry)*alpha + a22.(rx,ry)*beta + F2(\uv_old) = 0 
-!-                 
-!-                 ! write(*,*) 'insbc4: curvilinear: assign wall normal axis=0 wall nr=',nr   
-!-                 loopse4($boundaryConditionDivAndDivN(r),,,)                
-!- 
-!-                end if
-!-               else ! nd==3
-!-                if( bcOptionWallNormal.eq.doubleDiv )then
-!-                  !* loopse4(u(i1-  is,i2,i3,uc)=divBCr3d(i1+is),!-                  !*         u(i1-2*is,i2,i3,uc)=divBCr3d(i1),,)
-!-                else
-!-                 ! u.x = -v.y-w.z
-!-                 ! u.xx = -v.xy-w.xz
-!-                 ! write(*,*) 'assign axis==0 wall nr=',nr                
-!- 
-!-                 loopse4($boundaryConditionDivAndDivN3d(r),,,)
-!-                end if
-!- 
-!-               end if
-!- 
-!-             else if( axis.eq.1 )then
-!-               if( nd.eq.2 )then
-!-                if( bcOptionWallNormal.eq.doubleDiv )then
-!-                 !* loopse4(u(i1,i2-  is,i3,vc)=divBCs2d(i2+is),!-                 !*         u(i1,i2-2*is,i3,vc)=divBCs2d(i2),,)
-!-                else
-!-                 loopse4($boundaryConditionDivAndDivN(s),,,)
-!-                end if
-!-               else ! nd==3
-!-                if( bcOptionWallNormal.eq.doubleDiv )then
-!-                 !* loopse4(u(i1,i2-  is,i3,vc)=divBCs3d(i2+is),!-                 !*         u(i1,i2-2*is,i3,vc)=divBCs3d(i2),,)
-!-                else
-!-                 ! v.y  = -u.x-w.z
-!-                 ! v.yy = -u.xy-w.yz
-!-                 loopse4($boundaryConditionDivAndDivN3d(s),,,)
-!-                end if
-!-               end if
-!- 
-!-             else ! axis==2
-!-                if( bcOptionWallNormal.eq.doubleDiv )then
-!-                 !*  loopse4(u(i1,i2,i3,wc-  is)=divBCt3d(i3+is),!-                 !*          u(i1,i2,i3,wc-2*is)=divBCt3d(i3),,)
-!-                else
-!-                 ! w.z = -u.x-v.y
-!-                 ! w.zz =-u.xz-v.yz 
-!-                 ! write(*,*) 'assign axis==0 wall nr=',nr                
-!-                 loopse4($boundaryConditionDivAndDivN3d(t),,,)
-!-                end if
-!- 
-!-             end if
-!- 
-!- 
-!-           end if
-!- 
-!-         else if( bc(side,axis).ne.slipWall .and. bc(side,axis).gt.0 .and. bc(side,axis).ne.dirichletBoundaryCondition .and. bc(side,axis).ne.penaltyBoundaryCondition .and. bc(side,axis).ne.inflowWithPandTV )then
-!- 
-!-           write(*,*) 'insbc4:ERROR: unknown boundary condition=',bc(side,axis)
-!-           stop 6
-!-         end if
-!- 
-!-       end do
-!-       end do
-!-       end if
 
       return
       end

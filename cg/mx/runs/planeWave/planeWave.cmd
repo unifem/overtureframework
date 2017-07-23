@@ -6,7 +6,8 @@
 #  cgmx [-noplot] planeWave  -g=<name> -tf=<tFinal> -tp=<tPlot> -kx=<num> -ky=<num> -kz=<num> -show=<name> ...
 #        -plotIntensity=[0|1] -eps1=<> -eps2=<> -interit=<> -diss=<> -filter=[0|1] -debug=<num> -cons=[0/1] ...
 #        -method=[nfdtd|Yee|sosup] -bcn=[default|d|abc] -plotHarmonicComponents=[0|1] ] -dm=[none|drude]
-#        -useSosupDissipation=[0|1] -sosupParameter=[0-1] -sosupDissipationOption=[0|1] -go=[run/halt/og]
+#        -useSosupDissipation=[0|1] -sosupParameter=[0-1] -sosupDissipationOption=[0|1] ...
+#        -stageOption=[IDB|IBDB|D-IB|...]         -go=[run/halt/og]
 # Arguments:
 #  -kx= -ky= -kz= : integer wave numbers of the incident wave
 #  -interit : number of iterations to solve the interface equations 
@@ -14,6 +15,7 @@
 #  -plotHarmonicComponents : plot the harmonic components of the E field
 #  -dm : dispersion model
 #
+echo to terminal 0
 # Examples: 
 #   cgmx planeWave -g=square10 -kx=1 -go=halt
 #   cgmx planeWave -g=box10 -kx=1 -go=halt
@@ -124,7 +126,7 @@ $show=" "; $backGround="backGround"; $useNewInterface=0; $checkErrors=0;
 $interfaceIterations=3;
 $grid="innerOuter4.order4.hdf";
 $cons=1; $go="halt";  $useSosupDissipation=0; $sosupParameter=1.;  $sosupDissipationOption=0;
-# 
+$stageOption ="IDB";
 # ----------------------------- get command line arguments ---------------------------------------
 GetOptions( "g=s"=>\$grid,"tf=f"=>\$tFinal,"diss=f"=>\$diss,"tp=f"=>\$tPlot,"show=s"=>\$show,"debug=i"=>\$debug, \
     "cfl=f"=>\$cfl, "bg=s"=>\$backGround,"bcn=s"=>\$bcn,"go=s"=>\$go,"noplot=s"=>\$noplot,"bg=s"=>\$bg,\
@@ -137,7 +139,7 @@ GetOptions( "g=s"=>\$grid,"tf=f"=>\$tFinal,"diss=f"=>\$diss,"tp=f"=>\$tPlot,"sho
     "projectInterp=i"=>\$projectInterp,"plotHarmonicComponents=i"=>\$plotHarmonicComponents,\
     "useSosupDissipation=i"=>\$useSosupDissipation,"sosupParameter=f"=>\$sosupParameter,\
     "sosupDissipationOption=i"=>\$sosupDissipationOption,\
-    "checkErrors=i"=>\$checkErrors,"dm=s"=>\$dm );
+    "checkErrors=i"=>\$checkErrors,"dm=s"=>\$dm,"stageOption=s"=>\$stageOption  );
 # -------------------------------------------------------------------------------------------------
 #
 if( $dm eq "none" ){ $dm="no dispersion"; }
@@ -147,12 +149,28 @@ if( $go eq "halt" ){ $go = "break"; }
 if( $go eq "og" ){ $go = "open graphics"; }
 if( $go eq "run" || $go eq "go" ){ $go = "movie mode\n finish"; }
 # 
+echo to terminal 1
 #
 $grid
 #
 $method
 # dispersion model:
 $dm
+# --- Define multi-stage time-step: 
+if( $stageOption eq "IDB" ){ $stages="updateInterior,addDissipation,applyBC"; }
+if( $stageOption eq "D-IB" ){ $stages="addDissipation\n updateInterior,applyBC"; }
+if( $stageOption eq "DB-IB" ){ $stages="addDissipation,applyBC\n updateInterior,applyBC"; }
+if( $stageOption eq "IB-DB" ){ $stages="updateInterior,applyBC\n addDissipation,applyBC"; }
+if( $stageOption eq "IB-D" ){ $stages="updateInterior,applyBC\n addDissipation"; }
+# -- options to precompute V=uDot used in the dissipation
+if( $stageOption eq "IVDB" ){ $stages="updateInterior,computeUt,addDissipation,applyBC"; }
+if( $stageOption eq "VD-IB" ){ $stages="computeUt,addDissipation\n updateInterior,applyBC"; }
+if( $stageOption eq "VDB-IB" ){ $stages="computeUt,addDissipation,applyBC\n updateInterior,applyBC"; }
+if( $stageOption eq "IB-VDB" ){ $stages="updateInterior,applyBC\n computeUt,addDissipation,applyBC"; }
+if( $stageOption eq "IB-VD" ){ $stages="updateInterior,applyBC\n computeUt,addDissipation"; }
+set stages...
+ $stages
+done
 # 
 planeWaveInitialCondition
 planeWaveKnownSolution

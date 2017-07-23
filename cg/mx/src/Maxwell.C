@@ -1271,8 +1271,9 @@ buildTimeSteppingOptionsDialog(DialogData & dialog )
                        (int)timeSteppingMethod );
 
   aString pushButtonCommands[] = {"projection solver parameters...",
+                                  "set stages...",
 				  ""};
-  int numRows=1;
+  int numRows=2;
   dialog.setPushButtons(pushButtonCommands,  pushButtonCommands, numRows ); 
 
   aString tbCommands[] = {"use conservative difference",
@@ -2687,6 +2688,13 @@ interactiveUpdate(GL_GraphicsInterface &gi )
       poisson->parameters.update(gi,*cgp);
     }
 
+    else if( answer=="set stages..." )
+    {
+      // Assign the stages in the FD algorithm  (experts only)
+      setupMultiStageAlgorithm( gi,dialog );
+    }
+    
+
     else if( plotOptionsDialog.getToggleValue(answer,"plot energy density",plotEnergyDensity) ){}//
     else if( plotOptionsDialog.getToggleValue(answer,"plot intensity",plotIntensity) ){}//
     else if( plotOptionsDialog.getToggleValue(answer,"plot harmonic E field",plotHarmonicElectricFieldComponents) ){}//
@@ -3475,6 +3483,91 @@ int Maxwell::
 setDispersionParameters( GL_GraphicsInterface &gi )
 {
   printF("dispersion parameters: FINISH ME...");
+
+  return 0;
+}
+
+
+
+// =====================================================================================
+/// \brief Setup the stages in the multi-stage FD algorithm
+// =====================================================================================
+int Maxwell::
+setupMultiStageAlgorithm( GL_GraphicsInterface &gi, DialogData & dialog )
+{
+  // enum StageOptionEnum
+  // {
+  //   nullStageOperation=0,
+  //   computeUtInStage=1,
+  //   updateInteriorInStage=2,
+  //   addDissipationInStage=4,
+  //   applyBCInStage=8
+  // };
+
+  // Here is a list of the stages in the multi-stage FD algorithm 
+  if( !dbase.has_key("stageInfoList") )
+  {
+    std::vector<StageOptionEnum> & stageInfoList = dbase.put<std::vector<StageOptionEnum> >("stageInfoList");
+  }
+  std::vector<StageOptionEnum> & stageInfoList = dbase.get<std::vector<StageOptionEnum> >("stageInfoList");
+
+  printF("++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++\n"
+         "+       ****** THIS OPTION IS FOR EXPERTS ONLY ***** \n"
+         "+ Enter information defining the stages in the multi-stage FD algorithm.\n"
+         "+ For each stage enter a line of the form (enter `done' when finished)\n"
+         "+    actions=action1,action2,... \n"
+         "+ where \n"
+         "+  action = [computeUt|updateInterior|addDissipation|applyBC]\n"
+         "+ Examples:\n"
+         "+     actions=updateInterior,applyBC\n"
+         "+     actions=updateInterior,addDissipation,applyBC\n"
+         "+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++\n"
+       );
+
+  aString answer,prompt="Enter stage, done to finish";
+  int numberOfStages=0;
+  for( ;; )
+  {
+    gi.inputString(answer,prompt);
+    if( answer=="done" )
+    {
+      break;
+    }
+    else
+    {
+      // --- add a new stage ---
+      StageOptionEnum newStageInfo;
+      stageInfoList.push_back(newStageInfo);
+      StageOptionEnum & stageInfo = stageInfoList[numberOfStages];  // new stage 
+      stageInfo=nullStageOperation;
+
+      // Parse the stage info 
+      bool computeUt = answer.find("computeUt")!=std::string::npos;
+      bool updateInterior = answer.find("updateInterior")!=std::string::npos;
+      bool addDissipation = answer.find("addDissipation")!=std::string::npos;
+      bool applyBC  = answer.find("applyBC")!=std::string::npos;
+      
+      if( computeUt )
+        stageInfo = StageOptionEnum(stageInfo | computeUtInStage);
+      if( updateInterior )
+        stageInfo = StageOptionEnum(stageInfo | updateInteriorInStage);
+      if( addDissipation )
+        stageInfo = StageOptionEnum(stageInfo | addDissipationInStage);
+      if( applyBC )
+        stageInfo = StageOptionEnum(stageInfo | applyBCInStage);      
+
+      numberOfStages++;
+    }
+  }
+  printF("    >>>>>>>>>>>>> Here are the stages: <<<<<<<<<<<<<<< \n");
+  for( int stage=0; stage<numberOfStages; stage++ )
+  { 
+    StageOptionEnum & stageInfo = stageInfoList[stage];
+
+    printF(" STAGE %i: stageInfo=%i : computeUt=%i updateInterior=%i addDissipation=%i applyBCs=%i\n",
+           stage,(int)stageInfo, (stageInfo & computeUtInStage ? 1:0),(stageInfo & updateInteriorInStage ? 1 : 0),
+           (stageInfo & addDissipationInStage ? 1:0),(stageInfo & applyBCInStage ? 1:0));
+  }
 
   return 0;
 }

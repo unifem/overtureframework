@@ -50,10 +50,20 @@ extern "C"
 // const real dtsq=dt*dt; 
 const real csq=c*c;
 // const real cdtsq=c*c*dt*dt;
+real adc = isRectangular ? c*artificialDissipation : c*artificialDissipationCurvilinear;  
 
+const bool addForcing = forcingOption!=noForcing; 
+
+bool useCurvilinearOpt=true && !isRectangular;   // use advOpt to advance curvilinear grids given the RHS
+
+// useCurvilinearOptNew: if true, use advOpt to advance full equations in curvilinear case
+//                       if false, evaluate RHS for curvilinear below and then use advOpt to update solution
+// bool useCurvilinearOptNew = !isRectangular && !useConservative && numberOfDimensions==2 ;
+bool useCurvilinearOptNew = !isRectangular && !useConservative && 
+  (orderOfAccuracyInSpace==4 || orderOfAccuracyInSpace==6);
 
 realArray f; // *** SAVE FORCING HERE ***
-if( lastStage )
+if( updateInterior )
 {
   
   if( addForcing || !useCurvilinearOptNew || (useNewForcingMethod && addForcing) )
@@ -167,7 +177,7 @@ if( lastStage )
       timing(timeForForcing) += getCPU()-timef;
     }
   }
-} // end if lastStage
+} // end if updateInterior
 
 #endMacro
 
@@ -203,8 +213,8 @@ if( lastStage )
 
   const int useWhereMask = numberOfComponentGrids>1;
       
-  const bool updateSolution = lastStage;
-  const bool updateDissipation = firstStage;
+ // const bool updateSolution = updateInterior;
+ // const bool updateDissipation = addDissipation;
 
 
   int gridType = isRectangular? 0 : 1;
@@ -232,8 +242,9 @@ if( lastStage )
 	      pxc,pyc,pzc, qxc,qyc,qzc, rxc,ryc,rzc,
 	      useSosupDissipation,
 	      sosupDissipationOption,
-	      updateSolution,
-	      updateDissipation
+	      updateInterior,
+	      addDissipation,
+              computeUt
              };  //
 
   real dx[3]={1.,1.,1.};
@@ -347,6 +358,16 @@ if( lastStage )
       }
     }
   }
+
+  RealArray uDot;
+  if( computeUt && addDissipation )
+  {
+    // We need storge for uDot  -- for now allocate a separate work space --FIX ME---
+    // In some cases we could use the array for forcing if the dissipation is a separate step
+    uDot.redim(uLocal);
+    ut1ptr =uDot.getDataPointer();
+  }
+
 
   intArray & mask = mg.mask();
   OV_GET_SERIAL_ARRAY(int,mask,maskLocal);
@@ -501,317 +522,357 @@ advanceNFDTD(  int numberOfStepsTaken, int current, real t, real dt )
   // -------------------- ADVANCE GRIDS ---------------------------
   // --------------------------------------------------------------
 
-  // -- we may advance in two stages for sosup dissipation --
-  const int numberOfStages= (useSosupDissipation && sosupDissipationOption==1 )? 2 : 1;
-
-  for( int stage=0; stage<numberOfStages; stage ++ ){ //
-  for( int grid=0; grid<cg.numberOfComponentGrids(); grid++ )
+  // Here is a list of the stages in the multi-stage FD algorithm 
+  if( !dbase.has_key("stageInfoList") )
   {
-    real time0=getCPU();
-    const bool firstStage = stage==0;
+    std::vector<StageOptionEnum> & stageInfoList = dbase.put<std::vector<StageOptionEnum> >("stageInfoList");
+    // -- defaults:
+    if( useSosupDissipation && sosupDissipationOption==1 )
+    {
+      // default two stage algorithm 
+      int numberOfStages=2;
+      stageInfoList.resize(numberOfStages);
+      stageInfoList[0]=StageOptionEnum( addDissipationInStage );
+      stageInfoList[1]=StageOptionEnum( updateInteriorInStage | applyBCInStage );
+    }
+    else
+    {
+      // default single stage algorithm 
+      int numberOfStages=1;
+      stageInfoList.resize(numberOfStages);
+      stageInfoList[0]=StageOptionEnum(updateInteriorInStage | addDissipationInStage | applyBCInStage );
+    }
+    
+    
+  }
+  std::vector<StageOptionEnum> & stageInfoList = dbase.get<std::vector<StageOptionEnum> >("stageInfoList");
+
+
+  // -- we may advance in two stages for sosup dissipation --
+  // const int numberOfStages= (useSosupDissipation && sosupDissipationOption==1 )? 2 : 1;
+  const int numberOfStages= stageInfoList.size();
+
+  // +++++++++++++++++++++++++ START STAGES +++++++++++++++++++++++++++++-
+  for( int stage=0; stage<numberOfStages; stage ++ ){ //
+ 
+    StageOptionEnum & stageInfo = stageInfoList[stage];
+    const bool computeUt      = stageInfo & computeUtInStage;
+    const bool updateInterior = stageInfo & updateInteriorInStage;
+    const bool addDissipation = stageInfo & addDissipationInStage;
+    const bool applyBC        = stageInfo & applyBCInStage;
+    
     const bool lastStage = stage==numberOfStages-1;
 
-    if( numberOfStages==2 && firstStage && ( numberOfStepsTaken % sosupDissipationFrequency != 0 ) )
+    // check me 
+    if( numberOfStages>1 && addDissipation && ( numberOfStepsTaken % sosupDissipationFrequency != 0 ) )
       continue;  // skip sosup dissipation 
-    
 
-    MappedGrid & mg = cg[grid];
-    assert( mgp==NULL || op!=NULL );
-    MappedGridOperators & mgop = mgp!=NULL ? *op : (*cgop)[grid];
-
-    getIndex(mg.gridIndexRange(),I1,I2,I3);
-
-  
-    getBoundsForPML( mg,Iv );
-
-    realMappedGridFunction & fieldPrev    =mgp!=NULL ? fields[prev]    : cgfields[prev][grid];
-    realMappedGridFunction & fieldCurrent =mgp!=NULL ? fields[current] : cgfields[current][grid];
-    realMappedGridFunction & fieldNext    =mgp!=NULL ? fields[next]    : cgfields[next][grid];
-
-
-    realArray & um = fieldPrev;
-    realArray & u  = fieldCurrent;
-    realArray & un = fieldNext;
-
-    if( debug & 8 )
+    if( numberOfStepsTaken<=4 )
     {
-      Communication_Manager::Sync();
-      fPrintF(debugFile," **** start of advanceNFDTD t=%8.2e\n",t);
-      display(um,sPrintF("um start of advanceNFDTD, t=%8.2e",t),debugFile,"%8.2e ");
-      display(u,sPrintF("u start of advanceNFDTD, t=%8.2e",t),debugFile,"%8.2e ");
-      Communication_Manager::Sync();
+      printF("\n +++++ FD t=%9.3e STAGE %i: computeUt=%i updateInterior=%i addDissipation=%i applyBCs=%i\n",
+             t+dt,stage,(stageInfo & computeUtInStage ? 1:0),(stageInfo & updateInteriorInStage ? 1 : 0),
+             (stageInfo & addDissipationInStage ? 1:0),(stageInfo & applyBCInStage ? 1:0));
     }
-
-    // 2D TEz mode:
-    //   (Ex).t = (1/eps)*[  (Hz).y ]
-    //   (Ey).t = (1/eps)*[ -(Hz).x ]
-    //   (Hz).t = (1/mu) *[ (Ex).y - (Ey).x ]
-
-    c = cGrid(grid);
-    eps = epsGrid(grid);
-    mu = muGrid(grid);
-    
-    if( numberOfStepsTaken<1 ) 
-      printF(" advanceNFDTD:INFO eps,mu,c=%8.2e %8.2e %8.2e for grid=%i (%s) \n",eps,mu,c,grid,
-	     (const char*)cg[grid].getName());
-    
-    const bool isRectangular=mg.isRectangular();
-
-    real adc = isRectangular ? c*artificialDissipation : c*artificialDissipationCurvilinear;  
-
-    const bool addForcing = forcingOption!=noForcing; 
-
-    bool useCurvilinearOpt=true && !isRectangular;   // use advOpt to advance curvilinear grids given the RHS
-
-    // useCurvilinearOptNew: if true, use advOpt to advance full equations in curvilinear case
-    //                       if false, evaluate RHS for curvilinear below and then use advOpt to update solution
-    // bool useCurvilinearOptNew = !isRectangular && !useConservative && numberOfDimensions==2 ;
-    bool useCurvilinearOptNew = !isRectangular && !useConservative && 
-      (orderOfAccuracyInSpace==4 || orderOfAccuracyInSpace==6);
-
-    // -------------------------------------------------------------------
-    // ------- Compute the RHS forcing and/or curvilinear operators ------
-    // -------------------------------------------------------------------
-    //     Note: Some curvilinear operators are now computed in advOpt if useCurvilinearOptNew==true
-    computeForcingAndCurvilinearOperators();
-    
-    // -----------------------------------------------
-    // ----- call the optimized advance routine ------
-    // -----------------------------------------------
-    callOptimizedAdvance();
-    
-    if( lastStage )
+    for( int grid=0; grid<cg.numberOfComponentGrids(); grid++ )
     {
-      // Is this the right place?
-      real timea=getCPU();
+      real time0=getCPU();
+
+      MappedGrid & mg = cg[grid];
+      assert( mgp==NULL || op!=NULL );
+      MappedGridOperators & mgop = mgp!=NULL ? *op : (*cgop)[grid];
+
+      getIndex(mg.gridIndexRange(),I1,I2,I3);
+
+  
+      getBoundsForPML( mg,Iv );
+
+      realMappedGridFunction & fieldPrev    =mgp!=NULL ? fields[prev]    : cgfields[prev][grid];
+      realMappedGridFunction & fieldCurrent =mgp!=NULL ? fields[current] : cgfields[current][grid];
+      realMappedGridFunction & fieldNext    =mgp!=NULL ? fields[next]    : cgfields[next][grid];
+
+
+      realArray & um = fieldPrev;
+      realArray & u  = fieldCurrent;
+      realArray & un = fieldNext;
+
       if( debug & 8 )
       {
-	Communication_Manager::Sync();
-	display(unLocal,sPrintF(" Before updateGhostBoundaries: t=%e",t),pDebugFile,"%8.2e ");
+        Communication_Manager::Sync();
+        fPrintF(debugFile," **** start of advanceNFDTD t=%8.2e\n",t);
+        display(um,sPrintF("um start of advanceNFDTD, t=%8.2e",t),debugFile,"%8.2e ");
+        display(u,sPrintF("u start of advanceNFDTD, t=%8.2e",t),debugFile,"%8.2e ");
+        Communication_Manager::Sync();
       }
+
+      // 2D TEz mode:
+      //   (Ex).t = (1/eps)*[  (Hz).y ]
+      //   (Ey).t = (1/eps)*[ -(Hz).x ]
+      //   (Hz).t = (1/mu) *[ (Ex).y - (Ey).x ]
+
+      c = cGrid(grid);
+      eps = epsGrid(grid);
+      mu = muGrid(grid);
+    
+      if( numberOfStepsTaken<1 ) 
+        printF(" advanceNFDTD:INFO eps,mu,c=%8.2e %8.2e %8.2e for grid=%i (%s) \n",eps,mu,c,grid,
+               (const char*)cg[grid].getName());
+    
+      const bool isRectangular=mg.isRectangular();
+
+      // -------------------------------------------------------------------
+      // ------- Compute the RHS forcing and/or curvilinear operators ------
+      // -------------------------------------------------------------------
+      //     Note: Some curvilinear operators are now computed in advOpt if useCurvilinearOptNew==true
+      computeForcingAndCurvilinearOperators();
+    
+      // -----------------------------------------------
+      // ----- call the optimized advance routine ------
+      // -----------------------------------------------
+      callOptimizedAdvance();
+    
+      if( applyBC )
+      {
+        // Is this the right place?
+        real timea=getCPU();
+        if( debug & 8 )
+        {
+          Communication_Manager::Sync();
+          display(unLocal,sPrintF(" Before updateGhostBoundaries: t=%e",t),pDebugFile,"%8.2e ");
+        }
       
-      // **** at this point we really only need to update interior-ghost points needed for
-      //      interpolation or boundary conditions
-      un.updateGhostBoundaries();
+        // **** at this point we really only need to update interior-ghost points needed for
+        //      interpolation or boundary conditions
+        un.updateGhostBoundaries();
 
-      if( debug & 8 )
-      {
-	display(unLocal,sPrintF(" After updateGhostBoundaries: t=%e",t),pDebugFile,"%8.2e ");
-      }
+        if( debug & 8 )
+        {
+          display(unLocal,sPrintF(" After updateGhostBoundaries: t=%e",t),pDebugFile,"%8.2e ");
+        }
       
-      timing(timeForUpdateGhostBoundaries)+=getCPU()-timea;
+        timing(timeForUpdateGhostBoundaries)+=getCPU()-timea;
 
-      if( debug & 8 )
-      {
-	display(u,sPrintF("u after advOpt and updateGhost, t=%8.2e",t),debugFile,"%8.2e ");
-      }
+        if( debug & 8 )
+        {
+          display(u,sPrintF("u after advOpt and updateGhost, t=%8.2e",t),debugFile,"%8.2e ");
+        }
 
 
-      if( debug & 16 )
-      {
-	if( addForcing ) 
-	  ::display(f,sPrintF("  *** advanceStructured: Here is the forcing f grid=%i t=%9.3e ********\n",grid,t),
-		    pDebugFile,"%7.4f ");
-	fprintf(pDebugFile," *** advanceStructured: After advance, before BC, grid=%i t=%9.3e ********\n",grid,t);
-	getErrors( next,t+dt,dt );
-      }
-    } // end if lastStage 
+        if( debug & 16 )
+        {
+          if( addForcing ) 
+            ::display(f,sPrintF("  *** advanceStructured: Here is the forcing f grid=%i t=%9.3e ********\n",grid,t),
+                      pDebugFile,"%7.4f ");
+          fprintf(pDebugFile," *** advanceStructured: After advance, before BC, grid=%i t=%9.3e ********\n",grid,t);
+          getErrors( next,t+dt,dt );
+        }
+      } // end if applyBC
     
 
-  } // end grid
-  } // end for stage 
-  
+    } // end grid
 
-  //    Communication_Manager::Sync();
+    if( applyBC )
+    {
+      // ------ APPLY BOUNDARY CONDITIONS ------
+      if( numberOfStages>1 && numberOfStepsTaken<=4 )
+      {
+        printF(" +++ apply boundary conditions...\n");
+      }
+      
 
-  if( orderOfAccuracyInTime>=4 )
-  {
-    currentFn=(currentFn+orderOfAccuracyInTime-2)%numberOfFunctions;
-  }
+      //    Communication_Manager::Sync();
+
+      if( orderOfAccuracyInTime>=4 )
+      {
+        currentFn=(currentFn+orderOfAccuracyInTime-2)%numberOfFunctions;
+      }
   
-  if( cg.numberOfComponentGrids()>1 )
-  {
-    real timei=getCPU();
+      if( cg.numberOfComponentGrids()>1 )
+      {
+        real timei=getCPU();
     
-    if( debug & 8 )
-      cgfields[next].display(sPrintF("cgfields[next] before interpolate, t=%8.2e",t),debugFile,"%8.2e ");
+        if( debug & 8 )
+          cgfields[next].display(sPrintF("cgfields[next] before interpolate, t=%8.2e",t),debugFile,"%8.2e ");
 
-    cgfields[next].interpolate();
+        cgfields[next].interpolate();
  
-    if( debug & 8 )
-      cgfields[next].display(sPrintF("cgfields[next] after interpolate, t=%8.2e",t),debugFile,"%8.2e ");
+        if( debug & 8 )
+          cgfields[next].display(sPrintF("cgfields[next] after interpolate, t=%8.2e",t),debugFile,"%8.2e ");
 
 
-    if( projectInterpolation )
-      projectInterpolationPoints( numberOfStepsTaken, next, t+dt, dt );
+        if( projectInterpolation )
+          projectInterpolationPoints( numberOfStepsTaken, next, t+dt, dt );
 
-    timing(timeForInterpolate)+=getCPU()-timei;
+        timing(timeForInterpolate)+=getCPU()-timei;
 
-  }
+      }
 
 
-  // ================= Project Fields =================================
+      // ================= Project Fields =================================
 
-  // Here we project the field to satisfy Gauss's Law  div(E)=0 or div(E) = stuff
-  // It seems important to project two steps in a row
+      // Here we project the field to satisfy Gauss's Law  div(E)=0 or div(E) = stuff
+      // It seems important to project two steps in a row
 
-  // We project fields here before the BC's -- to do this we use:
-  //    --> Boundary values of the field should be accurate
-  //    --> the divergence on the boundary is not needed for the projection
-  //    --> for 4th-order we do need values on the first ghost line
+      // We project fields here before the BC's -- to do this we use:
+      //    --> Boundary values of the field should be accurate
+      //    --> the divergence on the boundary is not needed for the projection
+      //    --> for 4th-order we do need values on the first ghost line
 
-  const bool projectBeforeBCs=false;
-  const bool projectThisStep = projectFields && (
-            ( (numberOfStepsTaken % frequencyToProjectFields) < numberOfConsecutiveStepsToProject ) ||
-	    numberOfStepsTaken < numberOfInitialProjectionSteps );
+      const bool projectBeforeBCs=false;
+      const bool projectThisStep = projectFields && (
+        ( (numberOfStepsTaken % frequencyToProjectFields) < numberOfConsecutiveStepsToProject ) ||
+        numberOfStepsTaken < numberOfInitialProjectionSteps );
 
-  if( projectBeforeBCs && projectThisStep )
-  {
+      if( lastStage && projectBeforeBCs && projectThisStep )
+      {
 
-    if( cg.numberOfComponentGrids()==1 )
-      cgfields[next].periodicUpdate();   // this seems to be needed
+        if( cg.numberOfComponentGrids()==1 )
+          cgfields[next].periodicUpdate();   // this seems to be needed
 
-    project( numberOfStepsTaken, next, t+dt , dt );
+        project( numberOfStepsTaken, next, t+dt , dt );
 
-    if( false )
-    {
-      // re-apply the BC;s
+        if( false )
+        {
+          // re-apply the BC;s
+          for( int grid=0; grid<cg.numberOfComponentGrids(); grid++ )
+          {
+            realMappedGridFunction & fieldNext    =mgp!=NULL ? fields[next]    : cgfields[next][grid];
+            realMappedGridFunction & fieldCurrent =mgp!=NULL ? fields[current] : cgfields[current][grid];
+
+            int option=0;
+            assignBoundaryConditions( option, grid, t+dt, dt, fieldNext, fieldCurrent,current );
+          }
+        }
+    
+      }
+
+      // ================================================================================
+      // ============== MATERIAL INTERFACES : STAGE I - BOUNDARY VALUES =================
+      // ================================================================================
+
+      // ---- Assign values on the material interfaces BOUNDARY (but not ghost)------
+      bool assignInterfaceValues=true;
+      bool assignInterfaceGhostValues=false;
+      assignInterfaceBoundaryConditions( current, t+dt, dt,assignInterfaceValues,assignInterfaceGhostValues );
+
+
+      // ======================================================================
+      // ====================== Boundary Conditions ===========================
+      // ======================================================================
+      BoundaryConditionParameters extrapParams;
+
       for( int grid=0; grid<cg.numberOfComponentGrids(); grid++ )
       {
-	realMappedGridFunction & fieldNext    =mgp!=NULL ? fields[next]    : cgfields[next][grid];
-	realMappedGridFunction & fieldCurrent =mgp!=NULL ? fields[current] : cgfields[current][grid];
+        realMappedGridFunction & fieldNext    =mgp!=NULL ? fields[next]    : cgfields[next][grid];
+        realMappedGridFunction & fieldCurrent =mgp!=NULL ? fields[current] : cgfields[current][grid];
 
-	int option=0;
-	assignBoundaryConditions( option, grid, t+dt, dt, fieldNext, fieldCurrent,current );
-      }
-    }
+
+        if( true )
+        {
+          // ** 050402 wdh: This next line seems to be needed for Hz (annulus.rbc) -- could fix in PEC
+          fieldNext.periodicUpdate(); 
+        }
     
-  }
+        int option=0; // not used.
+        assignBoundaryConditions( option, grid, t+dt, dt, fieldNext, fieldCurrent,current );
 
-  // ================================================================================
-  // ============== MATERIAL INTERFACES : STAGE I - BOUNDARY VALUES =================
-  // ================================================================================
-
-  // ---- Assign values on the material interfaces BOUNDARY (but not ghost)------
-  bool assignInterfaceValues=true;
-  bool assignInterfaceGhostValues=false;
-  assignInterfaceBoundaryConditions( current, t+dt, dt,assignInterfaceValues,assignInterfaceGhostValues );
-
-
-  // ======================================================================
-  // ====================== Boundary Conditions ===========================
-  // ======================================================================
-  BoundaryConditionParameters extrapParams;
-
-  for( int grid=0; grid<cg.numberOfComponentGrids(); grid++ )
-  {
-    realMappedGridFunction & fieldNext    =mgp!=NULL ? fields[next]    : cgfields[next][grid];
-    realMappedGridFunction & fieldCurrent =mgp!=NULL ? fields[current] : cgfields[current][grid];
-
-
-    if( true )
-    {
-      // ** 050402 wdh: This next line seems to be needed for Hz (annulus.rbc) -- could fix in PEC
-      fieldNext.periodicUpdate(); 
-    }
+        // Extrapolate neighbours of interpolation points for the wider upwind stencil
+        if( extrapolateInterpolationNeighbours ) 
+        {
+          extrapParams.orderOfExtrapolation=dbase.get<int>("orderOfExtrapolationForInterpolationNeighbours");
+          if( debug & 4 )
+            printf("***advSOSUP: orderOfExtrapolationForInterpolationNeighbours=%i\n",
+                   dbase.get<int>("orderOfExtrapolationForInterpolationNeighbours"));
     
-    int option=0; // not used.
-    assignBoundaryConditions( option, grid, t+dt, dt, fieldNext, fieldCurrent,current );
+          // MappedGridOperators & mgop = mgp!=NULL ? *op : (*cgop)[grid];
+          // fieldNext.setOperators(mgop);
+          fieldNext.applyBoundaryCondition(Ca,BCTypes::extrapolateInterpolationNeighbours,BCTypes::allBoundaries,0.,t+dt,
+                                           extrapParams,grid);
+        }
 
-    // Extrapolate neighbours of interpolation points for the wider upwind stencil
-    if( extrapolateInterpolationNeighbours ) 
-    {
-      extrapParams.orderOfExtrapolation=dbase.get<int>("orderOfExtrapolationForInterpolationNeighbours");
-      if( debug & 4 )
-	printf("***advSOSUP: orderOfExtrapolationForInterpolationNeighbours=%i\n",
-	       dbase.get<int>("orderOfExtrapolationForInterpolationNeighbours"));
-    
-      // MappedGridOperators & mgop = mgp!=NULL ? *op : (*cgop)[grid];
-      // fieldNext.setOperators(mgop);
-      fieldNext.applyBoundaryCondition(Ca,BCTypes::extrapolateInterpolationNeighbours,BCTypes::allBoundaries,0.,t+dt,
-			       extrapParams,grid);
-    }
+        // --------------- Update parallel ghost and periodic ----------------
+        real timeBC=getCPU();
+#ifdef USE_PPP
+        if( orderOfAccuracyInSpace>2 )  // this doesn't seem to be needed for 2nd order ?
+        {
+          real timea=getCPU();
+          fieldNext.updateGhostBoundaries();
+          timing(timeForUpdateGhostBoundaries)+=getCPU()-timea;
+        }
+#endif
 
-    // --------------- Update parallel ghost and periodic ----------------
-    real timeBC=getCPU();
-    #ifdef USE_PPP
-     if( orderOfAccuracyInSpace>2 )  // this doesn't seem to be needed for 2nd order ?
-     {
-       real timea=getCPU();
-       fieldNext.updateGhostBoundaries();
-       timing(timeForUpdateGhostBoundaries)+=getCPU()-timea;
-     }
-    #endif
-
-    fieldNext.periodicUpdate();
+        fieldNext.periodicUpdate();
       
-    timing(timeForBoundaryConditions)+=getCPU()-timeBC;
-    // display(fieldNext,"fieldNext after finishBoundaryConditions","%7.4f ");
+        timing(timeForBoundaryConditions)+=getCPU()-timeBC;
+        // display(fieldNext,"fieldNext after finishBoundaryConditions","%7.4f ");
     
 
-  }
-  if( debug & 4 )
-  {
-    if( mgp!=NULL )
-      display(fields[next],sPrintF("fields[next] after advanceNFDTD, t=%8.2e",t+dt),debugFile,"%8.2e ");
-    else
-      cgfields[next].display(sPrintF("cgfields[next] after advanceNFDTD, t=%8.2e",t+dt),debugFile,"%8.2e ");
-  }
-  
-  if( debug & 4 )
-  {
-    fPrintF(debugFile,"\n ***************** advanceStructured Errors BEFORE assignInterface t=%9.3e ********\n",t+dt);
-    fprintf(pDebugFile,"\n ***************** advanceStructured Errors BEFORE assignInterface t=%9.3e ********\n",t+dt);
-    getErrors( next,t+dt,dt );
-  }
-
-  // ================================================================================
-  // ================ MATERIAL INTERFACES : STAGE II - GHOST VALUES =================
-  // ================================================================================
-  assignInterfaceValues=false;      // do not project values on the interface
-  assignInterfaceGhostValues=true;  // assign ghost 
-  assignInterfaceBoundaryConditions( current, t+dt, dt,assignInterfaceValues,assignInterfaceGhostValues );  
-
-  if( debug & 4 )
-  {
-    fPrintF(debugFile,"\n ***************** advanceStructured Errors after assignInterface t=%9.3e ********\n",t+dt);
-    fprintf(pDebugFile,"\n ***************** advanceStructured Errors after assignInterface t=%9.3e ********\n",t+dt);
-    getErrors( next,t+dt,dt );
-  }
-  
-
-  // Here we project the field to satsify Gauss's Law  div(E)=0 or div(E) = stuff
-  // It seems important to project two steps in a row
-  if( !projectBeforeBCs && projectThisStep )
-  {
-    
-    project( numberOfStepsTaken, next, t+dt , dt );
-
-    if( true )
-    {
-      // re-apply the BC;s
-      for( int grid=0; grid<cg.numberOfComponentGrids(); grid++ )
-      {
-	realMappedGridFunction & fieldNext    =mgp!=NULL ? fields[next]    : cgfields[next][grid];
-	realMappedGridFunction & fieldCurrent =mgp!=NULL ? fields[current] : cgfields[current][grid];
-
-	int option=0;
-	assignBoundaryConditions( option, grid, t+dt, dt, fieldNext, fieldCurrent,current );
       }
-    }
+      if( debug & 4 )
+      {
+        if( mgp!=NULL )
+          display(fields[next],sPrintF("fields[next] after advanceNFDTD, t=%8.2e",t+dt),debugFile,"%8.2e ");
+        else
+          cgfields[next].display(sPrintF("cgfields[next] after advanceNFDTD, t=%8.2e",t+dt),debugFile,"%8.2e ");
+      }
+  
+      if( debug & 4 )
+      {
+        fPrintF(debugFile,"\n ***************** advanceStructured Errors BEFORE assignInterface t=%9.3e ********\n",t+dt);
+        fprintf(pDebugFile,"\n ***************** advanceStructured Errors BEFORE assignInterface t=%9.3e ********\n",t+dt);
+        getErrors( next,t+dt,dt );
+      }
 
-    const bool computeMaxNorms = numberOfStepsTaken<10  || (debug & 1);
-    if( computeMaxNorms )
-    {
-      getMaxDivergence(next,t+dt);
+      // ================================================================================
+      // ================ MATERIAL INTERFACES : STAGE II - GHOST VALUES =================
+      // ================================================================================
+      assignInterfaceValues=false;      // do not project values on the interface
+      assignInterfaceGhostValues=true;  // assign ghost 
+      assignInterfaceBoundaryConditions( current, t+dt, dt,assignInterfaceValues,assignInterfaceGhostValues );  
 
-      printF("===>> project: After project and BC's: |div(E)-rho|=%8.2e, |div(E)-rho|/|grad(E)|=%8.2e, step=%i, t=%9.3e\n",
-	       divEMax,divEMax/gradEMax,numberOfStepsTaken,t+dt);
+      if( debug & 4 )
+      {
+        fPrintF(debugFile,"\n ***************** advanceStructured Errors after assignInterface t=%9.3e ********\n",t+dt);
+        fprintf(pDebugFile,"\n ***************** advanceStructured Errors after assignInterface t=%9.3e ********\n",t+dt);
+        getErrors( next,t+dt,dt );
+      }
+  
+
+      // Here we project the field to satsify Gauss's Law  div(E)=0 or div(E) = stuff
+      // It seems important to project two steps in a row
+      if( !projectBeforeBCs && projectThisStep )
+      {
     
-    }    
+        project( numberOfStepsTaken, next, t+dt , dt );
 
-  }
+        if( true )
+        {
+          // re-apply the BC;s
+          for( int grid=0; grid<cg.numberOfComponentGrids(); grid++ )
+          {
+            realMappedGridFunction & fieldNext    =mgp!=NULL ? fields[next]    : cgfields[next][grid];
+            realMappedGridFunction & fieldCurrent =mgp!=NULL ? fields[current] : cgfields[current][grid];
 
+            int option=0;
+            assignBoundaryConditions( option, grid, t+dt, dt, fieldNext, fieldCurrent,current );
+          }
+        }
+
+        const bool computeMaxNorms = numberOfStepsTaken<10  || (debug & 1);
+        if( computeMaxNorms )
+        {
+          getMaxDivergence(next,t+dt);
+
+          printF("===>> project: After project and BC's: |div(E)-rho|=%8.2e, |div(E)-rho|/|grad(E)|=%8.2e, step=%i, t=%9.3e\n",
+                 divEMax,divEMax/gradEMax,numberOfStepsTaken,t+dt);
+    
+        }    
+
+      }
+
+    } // end if applyBC
+    
+  } // end for stage 
+  //  ----------------------- END STAGE -----------------------------------  
 
   if( useNewForcingMethod && numberOfForcingFunctions>0 )
     fCurrent = (fCurrent +1) % numberOfForcingFunctions;  // increment current forcing index

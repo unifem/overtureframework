@@ -1,0 +1,14 @@
+*******************************
+****** July 20, 2017
+
+try finer: NOTE: set dtMax for ts=im --> otherwise surface starts to develop instability 
+cgins oscillatingBubble -g=oscillatingBubbleGride4.order2 -ts=im -nu=.02 -tf=30. -tp=.2 -model=ins -go=halt -surfaceTension=.2 -ad2=1 -dtMax=.01 -go=halt
+
+cgins oscillatingBubble -g=oscillatingBubbleGride2.order2 -ts=im -nu=.02 -tf=30. -tp=.2 -model=ins -go=halt -surfaceTension=.2 -ad2=1 -go=halt
+
+*******************************
+****** July 19, 2017
+
+--- START ON OSCILLATING BUBBLE UNDER SURFACE TENSION -- KNOWN SOLUTION
+
+cgins oscillatingBubble -g=oscillatingBubbleGride2.order2 -ts=im -dg="share=100" -nu=.05 -tf=30. -tp=.2 -model=ins -go=halt -surfaceTension=.1 -ad2=1 -go=halt

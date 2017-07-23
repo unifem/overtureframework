@@ -1,8 +1,114 @@
 ***********************
+***** July 22, 2017
+
+TEST NEW multi-stage options 
+
+***NEW*** advMxUp.bf 
+
+FD44c-UP  IB-D scheme 
+cgmx -noplot planeWave -g=nonSquare64.order4.ng3 -stageOption=IB-D -useSosupDissipation=1 -sosupDissipationOption=0 -kx=4 -tp=.1 -tf=.1 -cfl=1 -checkErrors=1 -go=go
+>>> t=1.00e-01 dt=1.0e-02 max errors:[0.00e+00,4.16e-04,4.16e-04,], max (u):[0.00e+00,9.88e-01,9.88e-01,] (10 steps)
+
+
+FD22c-UP D-IB scheme 
+cgmx -noplot planeWave -g=nonSquare64.order2 -stageOption=D-IB -useSosupDissipation=1 -sosupDissipationOption=1 -kx=4 -tp=.1 -tf=.1 -cfl=1 -checkErrors=1 -go=go
+>>> t=1.00e-01 dt=1.0e-02 max errors:[0.00e+00,2.16e-02,2.16e-02,], max (u):[0.00e+00,9.88e-01,9.88e-01,] (10 steps)
+
+FD44r-UP D-IB scheme 
+cgmx -noplot planeWave -g=square64.order4.ng3 -stageOption=D-IB -useSosupDissipation=1 -sosupDissipationOption=1 -kx=4 -tp=.1 -tf=.1 -cfl=1 -checkErrors=1 -go=go
+
+>>> t=1.00e-01 dt=1.0e-02 max errors:[0.00e+00,3.99e-04,3.99e-04,], max (u):[0.00e+00,9.88e-01,9.88e-01,] (10 steps)
+
+
+
+************** CHECK CLEANED UP VERSION ***********
+
+FD44c-UP
+cgmx -noplot planeWave -g=nonSquare64.order4.ng3 -stageOption=IB-DB -useSosupDissipation=1 -sosupDissipationOption=0 -kx=4 -tp=.1 -tf=.1 -cfl=1 -checkErrors=1 -go=go
+>>> t=1.00e-01 dt=1.0e-02 max errors:[0.00e+00,4.20e-04,4.20e-04,], max (u):[0.00e+00,9.88e-01,9.88e-01,] (10 steps)
+
+FD44r-UP
+cgmx -noplot planeWave -g=square64.order4.ng3 -stageOption=IB-DB -useSosupDissipation=1 -sosupDissipationOption=0 -kx=4 -tp=.1 -tf=.1 -cfl=1 -checkErrors=1 -go=go
+>>> t=1.00e-01 dt=1.0e-02 max errors:[0.00e+00,4.20e-04,4.20e-04,], max (u):[0.00e+00,9.88e-01,9.88e-01,] (10 steps)
+
+
+FD22c-UP
+cgmx -noplot planeWave -g=nonSquare64.order2 -stageOption=IB-DB -useSosupDissipation=1 -sosupDissipationOption=0 -kx=4 -tp=.1 -tf=.1 -cfl=1 -checkErrors=1 -go=go
+>>> t=1.00e-01 dt=1.0e-02 max errors:[0.00e+00,2.30e-02,2.30e-02,], max (u):[0.00e+00,9.88e-01,9.88e-01,] (10 steps)
+
+
+FD22r-UP
+cgmx -noplot planeWave -g=square64.order2 -stageOption=IB-DB -useSosupDissipation=1 -sosupDissipationOption=0 -kx=4 -tp=.1 -tf=.1 -cfl=1 -checkErrors=1 -go=go
+
+>>> t=1.00e-01 dt=1.0e-02 max errors:[0.00e+00,2.30e-02,2.30e-02,], max (u):[0.00e+00,9.88e-01,9.88e-01,] (10 steps)
+
+
+****** CURVILINEAR *****
+
+
+cgmx -noplot planeWave -g=nonSquare64.order4.ng3 -stageOption=IB-VDB -useSosupDissipation=1 -sosupDissipationOption=0 -kx=4 -tp=.1 -tf=.1 -cfl=1 -checkErrors=1 -go=go
+>>> t=1.00e-01 dt=1.0e-02 max errors:[0.00e+00,3.85e-04,3.85e-04,], max (u):[0.00e+00,9.88e-01,9.88e-01,] (10 steps)
+
+cgmx -noplot planeWave -g=nonSquare64.order4.ng3 -stageOption=IDB -useSosupDissipation=1 -sosupDissipationOption=0 -kx=4 -tp=.1 -tf=.1 -cfl=1 -checkErrors=1 -go=go
+>>> t=1.00e-01 dt=1.0e-02 max errors:[0.00e+00,3.93e-04,3.93e-04,], max (u):[0.00e+00,9.88e-01,9.88e-01,] (10 steps)
+
+***********************
+***** July 22, 2017
+
+TEST NEW multi-stage options 
+
+NEW MEANING FOR sosupDissipationOption
+     sosupDissipationOption=0 : update u(n+1) = u(n) + DISS(u(n),u(n-1))
+     sosupDissipationOption=1 : update u(n)   = u(n) + DISS(u(n),u(n-1))   (Gauss-Seidel update)
+
+
+cgmx -noplot planeWave -g=square64.order4.ng3 -stageOption=IB-DB -useSosupDissipation=1 -sosupDissipationOption=0 -kx=4 -tp=.1 -tf=5. -cfl=1 -checkErrors=1 -go=og
+
+
+stageOption=IB-DB: PRECOMPUTE UDOT
+cgmx -noplot planeWave -g=square64.order4.ng3 -stageOption=IB-VDB -useSosupDissipation=1 -sosupDissipationOption=0 -kx=4 -tp=.1 -tf=.1 -cfl=1 -checkErrors=1 -go=go
+>>> t=1.00e-01 dt=1.0e-02 max errors:[0.00e+00,3.85e-04,3.85e-04,], max (u):[0.00e+00,9.88e-01,9.88e-01,] (10 steps)
+
+
+stageOption=D-IB
+cgmx -noplot planeWave -g=square64.order4.ng3 -stageOption=D-IB -useSosupDissipation=1 -sosupDissipationOption=1 -kx=4 -tp=.1 -tf=5. -cfl=1 -checkErrors=1 -go=og
+>>> t=1.00e-01 dt=1.0e-02 max errors:[0.00e+00,3.99e-04,3.99e-04,], max (u):[0.00e+00,9.88e-01,9.88e-01,] (10 steps)
+
+stageOption=IB-D
+cgmx -noplot planeWave -g=square64.order4.ng3 -stageOption=IB-D -useSosupDissipation=1 -sosupDissipationOption=0 -kx=4 -tp=.1 -tf=.1 -cfl=1 -checkErrors=1 -go=go 
+Dmt ? 
+>>> t=1.00e-01 dt=1.0e-02 max errors:[0.00e+00,3.90e-04,3.90e-04,], max (u):[0.00e+00,9.88e-01,9.88e-01,] (10 steps)
+D0t : 
+>>> t=1.00e-01 dt=1.0e-02 max errors:[0.00e+00,4.16e-04,4.16e-04,], max (u):[0.00e+00,9.88e-01,9.88e-01,] (10 steps)
+
+stageOption=IB-DB:
+cgmx -noplot planeWave -g=square64.order4.ng3 -stageOption=IB-DB -useSosupDissipation=1 -sosupDissipationOption=0 -kx=4 -tp=.1 -tf=.1 -cfl=1 -checkErrors=1 -go=go
+Dmt ? 
+>>> t=1.00e-01 dt=1.0e-02 max errors:[0.00e+00,3.93e-04,3.93e-04,], max (u):[0.00e+00,9.88e-01,9.88e-01,] (10 steps)
+D0t: 
+>>> t=1.00e-01 dt=1.0e-02 max errors:[0.00e+00,4.20e-04,4.20e-04,], max (u):[0.00e+00,9.88e-01,9.88e-01,] (10 steps)
+
+COMBINED: cfl=.5 
+cgmx -noplot planeWave -g=square64.order4.ng3 -stageOption=IDB -useSosupDissipation=1 -sosupDissipationOption=0 -kx=4 -tp=.1 -tf=.1 -cfl=.5 -checkErrors=1 -go=go
+>>> t=1.00e-01 dt=5.3e-03 max errors:[0.00e+00,4.35e-04,4.35e-04,], max (u):[0.00e+00,9.88e-01,9.88e-01,] (19 steps)
+
+
+
+
+STARTING BENCHMARK: 
+cgmx planeWave -g=square64.order4.ng3 -kx=4 -tp=.1 -tf=.5 -checkErrors=1 -go=halt
+
+>>> Cgmx:FD: t=1.00e-01 dt=9.1e-03 TS=ME ad4=0.50 |div(E)|/|grad(E)|=7.04e-04 (=1.75e-02/2.48e+01) 11 steps mem=30.7(Mb) cpu=5.45e+00(s)
+>>> t=1.00e-01 dt=9.1e-03 max errors:[0.00e+00,8.98e-04,8.98e-04,], max (u):[0.00e+00,9.88e-01,9.88e-01,] (11 steps)
+>>> Cgmx:FD: t=2.00e-01 dt=9.1e-03 TS=ME ad4=0.50 |div(E)|/|grad(E)|=1.14e-03 (=2.84e-02/2.50e+01) 22 steps mem=32.9(Mb) cpu=1.16e+01(s)
+>>> t=2.00e-01 dt=9.1e-03 max errors:[0.00e+00,1.64e-03,1.64e-03,], max (u):[0.00e+00,9.97e-01,9.97e-01,] (22 steps)
+
+
+***********************
 ***** June 1, 2017
 
 SOSUP + D0t seems stable CFL=1 but not more
-cgmx -noplot planeWave -g=square128.order4.ng3 -useSosupDissipation=1 -sosupDissipationOption=1 -kx=4 -tp=.1 -tf=5. -cfl=1, -go=og
+cgmx -noplot planeWave -g=square128.order4.ng3 -useSosupDissipation=1 -sosupDissipationOption=1 -kx=4 -tp=.1 -tf=5. -cfl=1 -go=og
 
 
 ***********************
