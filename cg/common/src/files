@@ -35,6 +35,9 @@ FSRCO += updateOpt.f dfmin.f dfmin2.f zeroin.f getDivAndNorms.f setupArtDissLine
 # fortran files the we always compile optimized and single precision
 FSRCSO += rotatingDiskSVK.f rotatingDiskInFluid.f
 
+# Bessel function of complex arguments for exact solutions 
+FSRCSO += cBessel.f zbsubs.f
+
 COMMON_SRC := src
 
 # This next line causes trouble when compiling a distribution:

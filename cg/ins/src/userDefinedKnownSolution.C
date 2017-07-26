@@ -12,12 +12,18 @@
 
 #define rotatingDiskSVK EXTERN_C_NAME(rotatingdisksvk)
 #define zeroin EXTERN_C_NAME(zeroin)
+#define cBesselJ EXTERN_C_NAME(cbesselj)
+#define cBesselY EXTERN_C_NAME(cbessely)
 
 extern "C"
 {
 // rotating disk (SVK) exact solution:
 void rotatingDiskSVK( const real & t, const int & numberOfGridPoints, real & uDisk, real & param,
 		      const int & nrwk, real & rwk );
+
+void cBesselJ( const real& nu, const real&zr, const real &zi, real &jr,real &ji );
+void cBesselY( const real& nu, const real&zr, const real &zi, real &yr,real &yi );
+
 }
 
 namespace
@@ -2027,6 +2033,19 @@ updateUserDefinedKnownSolution(GenericGraphicsInterface & gi, CompositeGrid & cg
 
       printF(" oscillatingBubble: setting amp=%9.3e, R=%9.3e, k=%9.3e\n",amp,R,k);
       
+      // *TEST THE BESSEL FUNCTIONS OF COMPLEX ARG ***
+      real fnu=1., zr,zi,jr,ji,yr,yi;
+      
+      zr=1.; zi=1.;
+      cBesselJ(  fnu, zr, zi, jr, ji );  // eval J_fnu(z)
+      printf(" *** BESSEL: fnu=%3.1f, z=(%e,%e) J=(%e,%e)\n",fnu,zr,zi,jr,ji);
+
+      zr=1.; zi=1.;
+      cBesselY(  fnu, zr, zi, yr, yi );  // eval Y_fnu(z)
+      printf(" *** BESSEL: fnu=%3.1f, z=(%e,%e) Y=(%e,%e)\n",fnu,zr,zi,yr,yi);
+
+      // OV_ABORT("stop for now");
+
       // *** compute any eigenvalues here ***
       //   --> could save in rpar[3], rpar[4], ...
 
