@@ -63,6 +63,15 @@ if( $solver eq "mg" ){ $solver="multigrid"; }
 if( $psolver eq "best" ){ $psolver="choose best iterative solver"; }
 if( $psolver eq "mg" ){ $psolver="multigrid"; }
 #
+if( $ts eq "fe" ){ $ts="forward Euler";}
+if( $ts eq "be" ){ $ts="backward Euler"; }
+if( $ts eq "im" ){ $ts="implicit"; }
+if( $ts eq "pc" ){ $ts="adams PC"; }
+if( $ts eq "afs"){ $ts="approximate factorization"; $newts=1;}
+if( $go eq "halt" ){ $go = "break"; }
+if( $go eq "og" ){ $go = "open graphics"; }
+if( $go eq "run" || $go eq "go" ){ $go = "movie mode\n finish"; }
+#
 if( $tz eq "none" ){ $tz="turn off twilight zone"; }
 if( $tz eq "poly" ){ $tz="turn on twilight zone\n turn on polynomial"; $cdv=0.; }
 if( $tz eq "trig" ){ $tz="turn on twilight zone\n turn on trigonometric"; $cdv=0.; }
@@ -213,9 +222,9 @@ $cmds
   initial conditions
    # ****** DEFINE THE KNOWN SOLUTION ******
    OBTZ:user defined known solution
-     $amp=.1; $R=1; $k=1.; 
+     $amp=.1; $casenumber=3;
      oscillating bubble
-      $amp,$R,$k
+      $amp,$casenumber
     done
   done
   debug $debug

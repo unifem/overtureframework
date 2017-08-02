@@ -1,4 +1,11 @@
 *******************************
+****** July 31, 2017
+Changed the parameters of the run
+
+cgins oscillatingBubble -g=oscillatingBubbleGride4.order2 -ts=pc -nu=.01 -tf=30. -tp=.2 -model=ins -go=halt -ad2=1 -dtMax=.015D -go=halt -surfaceTension=1.
+
+
+*******************************
 ****** July 20, 2017
 
 try finer: NOTE: set dtMax for ts=im --> otherwise surface starts to develop instability 

@@ -14,6 +14,7 @@
 #define zeroin EXTERN_C_NAME(zeroin)
 #define cBesselJ EXTERN_C_NAME(cbesselj)
 #define cBesselY EXTERN_C_NAME(cbessely)
+#define evalOscillatingBubble EXTERN_C_NAME(evaloscillatingbubble)
 
 extern "C"
 {
@@ -23,6 +24,14 @@ void rotatingDiskSVK( const real & t, const int & numberOfGridPoints, real & uDi
 
 void cBesselJ( const real& nu, const real&zr, const real &zi, real &jr,real &ji );
 void cBesselY( const real& nu, const real&zr, const real &zi, real &yr,real &yi );
+  void evalOscillatingBubble(const real& r, const real&R, 
+			     const int& n, const real& mu,
+			     const real& lr, const real& li,
+			     const real& cr, const real& ci,
+			     const real& dr, const real& di,
+			     real& vrr, real& vri,
+			     real& vtr, real& vti,
+			     real& pr, real& pi);
 
 }
 
@@ -1093,20 +1102,33 @@ getUserDefinedKnownSolution(real t, CompositeGrid & cg, int grid, RealArray & ua
   else if( userKnownSolution=="oscillatingBubble" )
   {
     // *** Bubble oscillating under surface tension *******
+    // DS here is the solution for velocity and pressure
 
-    real & amp      = rpar[0];
-    real & R        = rpar[1];
-    real & k        = rpar[2];
+    real & amp = rpar[0];
+    real & n = rpar[1];
+    real & R = rpar[2];
+    real & mu = rpar[3];
+    real & omegar = rpar[4];
+    real & omegai = rpar[5];
+    real & lr = rpar[6];
+    real & li = rpar[7];
+    real & cr = rpar[8];
+    real & ci = rpar[9];
+    real & dr = rpar[10];
+    real & di = rpar[11];
+    real & gamma = rpar[12];
+    real k = n;
 
     if( true )
     {
-      printF("--UDKS-- evaluate oscillatingBubble at t=%9.3e, amp=%9.3e *** FINISH ME*** \n",t,amp);
+      printF("--UDKS-- evaluate oscillatingBubble at t=%9.3e, amp=%9.3e \n",t,amp);
     }
     
     
 
     // -- we could avoid building the vertex array on Cartesian grids ---
     GET_VERTEX_ARRAY(xLocal);
+    const real eps = 10.*REAL_EPSILON;
 
     int i1,i2,i3;
     if( numberOfTimeDerivatives==0 )
@@ -1119,7 +1141,12 @@ getUserDefinedKnownSolution(real t, CompositeGrid & cg, int grid, RealArray & ua
         real y= xLocal(i1,i2,i3,1);
         real r = sqrt( SQR(x) + SQR(y) );
         real cosTheta, sinTheta;
-        if( abs(r)>1.e-5 )
+	real vrr, vri, vtr, vti, pr, pi;
+	real vr, vt, p;
+
+	// compute trig functions
+	real theta = atan2(y,x);
+        if( abs(r)>eps )
         {
           cosTheta=x/r; sinTheta=y/r;
         }
@@ -1127,16 +1154,41 @@ getUserDefinedKnownSolution(real t, CompositeGrid & cg, int grid, RealArray & ua
         {
           cosTheta=1.; sinTheta=0.;
         }
-        
-    
+
+
+	// get vrhat and vthetahat
+	evalOscillatingBubble( r, R, (int)round(n), mu, lr,li,
+			       cr,ci,dr,di,
+			       vrr,vri,vtr,vti,pr,pi);
+
+	// compute phase
+	real phi = n*theta-omegar*t;
+
+	// compute decay factor
+	real A = exp(omegai*t);
+
+	// evaluate real part
+	vr = (vrr*cos(phi)-vri*sin(phi))*A;
+	vt = (vtr*cos(phi)-vti*sin(phi))*A;
+	p  = ((pr)*cos(phi)-(pi)*sin(phi))*A+gamma/R;
+
+        ua(i1,i2,i3,uc) = vr*cosTheta-vt*sinTheta;
+        ua(i1,i2,i3,vc) = vr*sinTheta+vt*cosTheta;
+	ua(i1,i2,i3,pc) = p;
+
+        // ua(i1,i2,i3,uc) = 0.0;
+        // ua(i1,i2,i3,vc) = 0.0;
+        // ua(i1,i2,i3,pc) = 0.0;
+
         real kr = k*r;
         
         real j1 = jn(1,kr);  // Bessel function J_1
 
 
-        ua(i1,i2,i3,uc) = amp*j1*cosTheta;
-        ua(i1,i2,i3,vc) = amp*j1*sinTheta;
-        ua(i1,i2,i3,pc) = amp*j1;
+        // ua(i1,i2,i3,uc) = amp*j1*cosTheta;
+        // ua(i1,i2,i3,vc) = amp*j1*sinTheta;
+        // ua(i1,i2,i3,pc) = amp*j1;
+
 
       }
     }
@@ -1438,6 +1490,8 @@ getUserDefinedDeformingBodyKnownSolution(
   if( userKnownSolution=="oscillatingBubble" )
   {
 
+    // DS here this is defining deformed solution
+
     // ---  Bubble oscillating under surface tension ---
     //   amp = amplitude of the motion  (solution only valid for small amp, eg. amp=1.e-4)
     //   R = radius of the undeformed bubble
@@ -1445,13 +1499,21 @@ getUserDefinedDeformingBodyKnownSolution(
 
     // -- we could avoid building the vertex array on Cartesian grids ---
     GET_VERTEX_ARRAY(xLocal);
-    real & amp      = rpar[0];
-    real & R        = rpar[1];
-    real & k        = rpar[2];
-
-
- 
-
+    real & amp = rpar[0];
+    real & n = rpar[1];
+    real & R = rpar[2];
+    real & mu = rpar[3];
+    real & omegar = rpar[4];
+    real & omegai = rpar[5];
+    real & lr = rpar[6];
+    real & li = rpar[7];
+    real & cr = rpar[8];
+    real & ci = rpar[9];
+    real & dr = rpar[10];
+    real & di = rpar[11];
+    real & gamma = rpar[12];
+    real k = 0.;
+    amp = 0;
     if( t <= 2.*dt )
     {
       printF("--INS-- getUserDefinedDeformingBodyKnownSolution: oscillatingBubble, t=%9.3e amp=%9.3e R=%9.3e k=%5.3f\n",
@@ -1461,14 +1523,14 @@ getUserDefinedDeformingBodyKnownSolution(
     // *** MAKE UP SOMETHING FOR NOW *****
     // x = (R + amp*sin(2*pi*kt))*cos(theta)
     // y = (R + amp*cos(2*pi*kt))*sin(theta)
-    real a = R + amp*sin(2.*Pi*k*t);
-    real b = R + amp*cos(2.*Pi*k*t);
+    real a_ = R + amp*sin(2.*Pi*k*t);
+    real b_ = R + amp*cos(2.*Pi*k*t);
 
-    real at = R + amp*2.*Pi*k*cos(2.*Pi*k*t);
-    real bt = R - amp*2.*Pi*k*sin(2.*Pi*k*t);
+    real at_ = R + amp*2.*Pi*k*cos(2.*Pi*k*t);
+    real bt_ = R - amp*2.*Pi*k*sin(2.*Pi*k*t);
 
-    real att = R - amp*SQR(2.*Pi*k)*sin(2.*Pi*k*t);
-    real btt = R - amp*SQR(2.*Pi*k)*sin(2.*Pi*k*t);
+    real att_ = R - amp*SQR(2.*Pi*k)*sin(2.*Pi*k*t);
+    real btt_ = R - amp*SQR(2.*Pi*k)*sin(2.*Pi*k*t);
 
     const real eps = 10.*REAL_EPSILON;
     
@@ -1481,7 +1543,10 @@ getUserDefinedDeformingBodyKnownSolution(
       real x= xLocal(i1,i2,i3,0);
       real y= xLocal(i1,i2,i3,1);
       real r = sqrt( SQR(x) + SQR(y) );
+      real vrr, vri, vtr, vti, pr, pi;
       real ct,st;
+      // compute trig functions
+      real theta = atan2(y,x);
       if( r>eps )
       {
         ct=x/r; st=y/r;
@@ -1491,24 +1556,64 @@ getUserDefinedDeformingBodyKnownSolution(
         ct=1.; st=0.;  // at the origin we just pick an angle, should not matter
       }
 
+      // get vrhat and vthetahat
+      evalOscillatingBubble( r, R, (int)round(n), mu, lr,li,
+			     cr,ci,dr,di,
+			     vrr,vri,vtr,vti,pr,pi);
+
+      // compute phase
+      real phi = n*theta-omegar*t;
+
+      // compute decay factor
+      real A = exp(omegai*t);
+
+      // compute displacement
+      real ur = (A/(omegar*omegar+omegai*omegai)) 
+	*(  omegai*(vrr*cos(phi)-vri*sin(phi)) 
+          - omegar*(vrr*sin(phi)+vri*cos(phi)));
+      real ut = (A/(omegar*omegar+omegai*omegai)) 
+	*(  omegai*(vtr*cos(phi)-vti*sin(phi)) 
+          - omegar*(vtr*sin(phi)+vti*cos(phi)));
+
+      // compute velocity
+      real vr = (vrr*cos(phi)-vri*sin(phi))*A;
+      real vt = (vtr*cos(phi)-vri*sin(phi))*A;
+
+      // compute acceleration
+      real ar = (A/(omegar*omegar+omegai*omegai)) 
+	*(  omegai*(-vrr*cos(phi)+vri*sin(phi)) 
+          - omegar*( vrr*sin(phi)+vri*cos(phi)));
+      real at = (A/(omegar*omegar+omegai*omegai)) 
+	*(  omegai*(-vtr*cos(phi)+vti*sin(phi)) 
+          - omegar*( vtr*sin(phi)+vti*cos(phi)));
 
       if( stateOption==boundaryPosition )
       {
         // position of the interface:
-        state(i1,i2,i3,c0)=a*ct;   
-        state(i1,i2,i3,c1)=b*st;
+        state(i1,i2,i3,c0)=(ur+R)*ct-ut*st;
+        state(i1,i2,i3,c1)=(ur+R)*st+ut*ct;
+        // state(i1,i2,i3,c0)=a_*ct;   
+        // state(i1,i2,i3,c1)=b_*st;
+
       }
       else if( stateOption==boundaryVelocity )
       {
         // velocity of the interface:
-        state(i1,i2,i3,c0)=at*ct; 
-        state(i1,i2,i3,c1)=bt*st;
+        state(i1,i2,i3,c0)=vr*ct-vt*st; 
+        state(i1,i2,i3,c1)=vr*st+vt*ct;
+
+        // state(i1,i2,i3,c0)=at_*ct; 
+        // state(i1,i2,i3,c1)=bt_*st;
+
       }
       else if( stateOption==boundaryAcceleration )
       {
         // acceleration of the interface:
-        state(i1,i2,i3,c0)=att*ct;
-        state(i1,i2,i3,c1)=btt*st;
+        state(i1,i2,i3,c0)=ar*ct-at*st; 
+        state(i1,i2,i3,c1)=ar*st+at*ct;
+
+        // state(i1,i2,i3,c0)=att_*ct;
+        // state(i1,i2,i3,c1)=btt_*st;
       }
 
       else
@@ -2019,37 +2124,142 @@ updateUserDefinedKnownSolution(GenericGraphicsInterface & gi, CompositeGrid & cg
       userKnownSolution="oscillatingBubble";
       dbase.get<bool>("knownSolutionIsTimeDependent")=true;  // known solution IS time dependent
 
-      real & amp      = rpar[0];
-      real & R        = rpar[1];
-      real & k        = rpar[2];
+      // get parameters from database
+      const real nu  = dbase.get<real>("nu");
+      // const real rho = dbase.get<real>("fluidDensity");
+      real surfaceTension;
+      dbase.get<ListOfShowFileParameters >("pdeParameters")
+	.getParameter("surfaceTension",surfaceTension);
+
+      // define our needed parameters and get amp and casenumber 
+      real & amp = rpar[0];
+      int casenumber;
 
       printF("---  Bubble oscillating under surface tension ---\n"
-             "   amp = amplitude of the motion  (solution only valid for small amp, eg. amp=1.e-4)\n"
-             "   R = radius of the undeformed bubble\n"
-             "     k = wave number\n"); 
+             "   amp        = amplitude of the motion  (solution only valid \n"
+	     "                for small amp, eg. amp=1.e-4)\n"
+             "   casenumber = choose parameter set to use (n, rho, R, mu, gamma)\n"
+	     "                where n   = number of periods, \n"
+	     "                      rho = fluid density, \n"
+	     "                      R   = outer radius, \n"
+	     "                      mu  = viscosity, \n"
+	     "                      gamma = surface tension. \n"
+             "                1: (n, rho, R, mu, gamma) = (1, 1.0, 1.0, .01, .1)\n"
+	     "                2: (n, rho, R, mu, gamma) = (2, 1.0, 1.0, .01, .1)\n"
+	     "                3: (n, rho, R, mu, gamma) = (3, 1.0, 1.0, .01, .1)\n"
+	     "                4: (n, rho, R, mu, gamma) = (4, 1.0, 1.0, .01, .1)\n"
+	     "                5: (n, rho, R, mu, gamma) = (5, 1.0, 1.0, .01, .1)\n"
+	     "                6: (n, rho, R, mu, gamma) = (6, 1.0, 1.0, .01, .1)\n"); 
 
-      gi.inputString(answer,"Enter amp, R, k (amplitude, radius, wave number)");
-      sScanF(answer,"%e %e %e",&amp,&R,&k);
+      gi.inputString(answer,"Enter amp, casenumber (amplitude, casenumber)");
+      sScanF(answer,"%e %d",&amp,&casenumber);
+      
+      // now that we have casenumber, set the rest of the needed parameters
+      real & n = rpar[1];
+      real & R = rpar[2];
 
-      printF(" oscillatingBubble: setting amp=%9.3e, R=%9.3e, k=%9.3e\n",amp,R,k);
+      real rho;
+
+      real & mu = rpar[3];
+      real & omegar = rpar[4];
+      real & omegai = rpar[5];
+      real & lr = rpar[6];
+      real & li = rpar[7];
+      real & cr = rpar[8];
+      real & ci = rpar[9];
+      real & dr = rpar[10];
+      real & di = rpar[11];
+      real & gamma = rpar[12];
+
+      if (casenumber == 3) {
+	// parameters
+	n     = 3.0;
+	R     = 1.0;
+	rho   = 1.0;
+	mu    = 0.01;
+	gamma = 1.0;
+	
+	// solution to dispersion relation
+	omegar = 4.6365620808782628e+00;
+	omegai = 4.6345443179114088e-01;
+	lr = 1.4484841589202150e+01;
+	li =1.6004876726904033e+01;
+
+	// compute constants
+	cr = 8.1187297090945097e-10*.1;
+	ci = 8.5591544160255070e-10*.1;
+	dr = -4.5108888212150545e-03*.1;
+	di =-2.5364387076125397e-04*.1;
+
+      } else {
+	printF("***WARNING*** invalid casenumber entered. Using default values instead\n");
+	n     = 3.0;
+	R     = 1.0;
+	rho   = 1.0;
+	mu    = 0.01;
+	gamma = 0.1;
+
+	// solution to dispersion relation
+	omegar = .234;
+	omegai = .345;
+	lr = .123;
+	li = .567;
+
+	// compute constants
+	cr = .153;
+	ci = .634;
+	dr = .637;
+	di = .337;
+      }
+
+      // check if parameters agree with set parameters
+      real tol = 1.0e-12;
+      if (abs(nu*rho-mu) > tol) {
+	printF("***WARNING*** input viscosity does not agree with parameters in casenumber\n");
+      } 
+      if (abs(surfaceTension-gamma) > tol) {
+	printF("***WARNING*** input surface tension does not agree with parameters in casenumber\n");
+      }
+
+      // print all parameters
+      printF("oscillatingBubble parameters: \n"
+	     "  amp        = %9.3e \n"
+	     "  casenumber = %d \n"
+	     "  R          = %9.3e \n"
+	     "  n          = %9.3e \n"
+	     "  mu         = %9.3e \n"
+	     "  gamma      = %9.3e \n"
+	     "  rho        = %9.3e \n",amp,casenumber,R,n,mu,gamma,rho);
+
       
       // *TEST THE BESSEL FUNCTIONS OF COMPLEX ARG ***
       real fnu=1., zr,zi,jr,ji,yr,yi;
       
       zr=1.; zi=1.;
       cBesselJ(  fnu, zr, zi, jr, ji );  // eval J_fnu(z)
-      printf(" *** BESSEL: fnu=%3.1f, z=(%e,%e) J=(%e,%e)\n",fnu,zr,zi,jr,ji);
+      printf(" *** BESSEL: fnu=%3.1f, z=(%.16e,%.16e) J=(%.16e,%.16e)\n",fnu,zr,zi,jr,ji);
 
       zr=1.; zi=1.;
       cBesselY(  fnu, zr, zi, yr, yi );  // eval Y_fnu(z)
-      printf(" *** BESSEL: fnu=%3.1f, z=(%e,%e) Y=(%e,%e)\n",fnu,zr,zi,yr,yi);
+      printf(" *** BESSEL: fnu=%3.1f, z=(%.16e,%.16e) Y=(%.16e,%.16e)\n",fnu,zr,zi,yr,yi);
+
+      // * test evalOscillatingBubble solution * //
+      real r = .133;
+
+      real vrr, vri, vtr, vti, pr, pi;
+      evalOscillatingBubble( r, R, (int)round(n), mu, lr,li,
+			     cr,ci,dr,di,
+			     vrr,vri,vtr,vti,pr,pi);
+
+      printf(" *** OSCILLATINGBUBBLE: \n");
+      printf(" vr = %23.16e + %23.16e i\n",vrr,vri);
+      printf(" vt = %23.16e + %23.16e i\n",vtr,vti);
+      printf(" p  = %23.16e + %23.16e i\n",pr ,pi);
+      printf("--------------------------------\n");
+      printf("--------------------------------\n");
+      printf("--------------------------------\n\n");
 
       // OV_ABORT("stop for now");
-
-      // *** compute any eigenvalues here ***
-      //   --> could save in rpar[3], rpar[4], ...
-
-
 
     }
  
