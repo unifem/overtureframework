@@ -8,7 +8,7 @@
 #  cgmx [-noplot] cic.planeWaveBC -g=<name> -tf=<tFinal> -tp=<tPlot> -diss=<> -dissOrder=<> ...
 #        -debug=<num> -cons=[0/1] -method=[nfdtd|Yee|sosup] -errorNorm=[0|1|2]  -plotIntensity=[0|1]...
 #        -plotHarmonicComponents=[0|1] -rbc=[dirichlet|abcEM2|abcPML] -ic=[exact|zero] ...
-#        -dm=[none|drude] 
+#        -dm=[none|gdm] 
 #        -useSosupDissipation=[0|1] -sosupDissipationOption=[0|1] -sosupDissipationFrequency=<i> 
 #        -go=[run/halt/og]
 #
@@ -65,8 +65,10 @@ $plotIntensity=0;  # =1 : plot intensity of the scattered field (not total field
 $grid="sib1.order4.hdf"; $show=" "; 
 $cons=0; $go="halt"; $errorNorm=0;  $plotHarmonicComponents=0; $rbc="dirichlet"; $ic="exact"; 
 $pmlWidth=11; $pmlStrength=50.; $pmlPower=4.; 
-$dm="none"; $gamma=0.; $omegap=0.;  # (gamma,omegap) for Drude model
+#
 $useSosupDissipation=0; $sosupParameter=1.;  $sosupDissipationOption=1; $sosupDissipationFrequency=1;
+$selectiveDissipation=0;
+$dm="none"; $alphaP=1.; $a0=1.; $a1=0.; $b0=0.; $b1=1.;  # GDM parameters
 # ----------------------------- get command line arguments ---------------------------------------
 GetOptions( "g=s"=>\$grid,"tf=f"=>\$tFinal,"diss=f"=>\$diss,"tp=f"=>\$tPlot,"show=s"=>\$show,"debug=i"=>\$debug, \
  "cfl=f"=>\$cfl, "bg=s"=>\$backGround,"bcn=s"=>\$bcn,"go=s"=>\$go,"noplot=s"=>\$noplot,"errorNorm=i"=>\$errorNorm,\
@@ -75,11 +77,12 @@ GetOptions( "g=s"=>\$grid,"tf=f"=>\$tFinal,"diss=f"=>\$diss,"tp=f"=>\$tPlot,"sho
   "pmlWidth=f"=>\$pmlWidth,"pmlStrength=f"=>\$pmlStrength,"pmlPower=f"=>\$pmlPower,"ic=s"=>\$ic,\
   "useSosupDissipation=i"=>\$useSosupDissipation,"sosupParameter=f"=>\$sosupParameter,\
   "sosupDissipationOption=i"=>\$sosupDissipationOption,"sosupDissipationFrequency=i"=>\$sosupDissipationFrequency,\
-  "dm=s"=>\$dm,"gamma=f"=>\$gamma,"omegap=f"=>\$omegap  );
+  "selectiveDissipation=i"=>\$selectiveDissipation,\
+  "dm=s"=>\$dm,"alphaP=f"=>\$alphaP,"a0=f"=>\$a0,"a1=f"=>\$a1,"b0=f"=>\$b0,"b1=f"=>\$b1  );
 # -------------------------------------------------------------------------------------------------
 #
 if( $dm eq "none" ){ $dm="no dispersion"; }
-if( $dm eq"drude" || $dm eq "Drude" ){ $dm="Drude"; }
+if( $dm eq"gdm" ){ $dm="GDM"; }
 #
 if( $method eq "sosup" ){ $diss=0.; }
 if( $go eq "halt" ){ $go = "break"; }
@@ -93,7 +96,8 @@ $method
 # dispersion model:
 $dm
 # 
-Drude params $gamma $omegap all (gamma,omegap,domain-name)
+# Drude params 1 1 all (gamma,omegap,domain-name)
+GDM params $a0 $a1 $b0 $b1 all (a0,a1,b0,b1,domain-name)
 #
 planeWaveBoundaryForcing
 # ====
@@ -132,6 +136,9 @@ tPlot  $tPlot
 # 
 order of dissipation $dissOrder
 dissipation  $diss
+#
+if( $selectiveDissipation eq "1" ){ $cmd="selective dissipation...\n  turn off rectangular\n continue"; }else{ $cmd="#"; }
+$cmd 
 #
 use sosup dissipation $useSosupDissipation
 sosup parameter $sosupParameter

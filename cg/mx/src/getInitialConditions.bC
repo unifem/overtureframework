@@ -1024,31 +1024,68 @@ assignInitialConditions(int current, real t, real dt )
                   // evaluate the dispersion relation,  exp(i(k*x-omega*t))
                   //    omega is complex 
                   const real kk = twoPi*sqrt( kx*kx+ky*ky+kz*kz);
-		  real reS, imS, omegaDpwRe, omegaDpwIm;
-		  dmp.computeDispersionRelation( c,eps,mu,kk, reS, imS ); // s = reS + i*imS
-                  omegaDpwRe=imS; omegaDpwIm=reS;
+		  real sr, si;
+		  // dmp.computeDispersionRelation( c,eps,mu,kk, sr, si ); // s = sr + i*si
+
+                  // *new way*
+                  real psir,psii;
+		  dmp.evaluateDispersionRelation( c,kk, sr, si, psir,psii ); 
+                  // omegaDpwRe=imS; omegaDpwIm=reS;
 		  
 		  // dmp.computeDispersivePlaneWaveParameters( c,eps,mu,kk, omegaDpwRe, omegaDpwIm );
 
-		  printF("++++ IC: dispersion relation: omegar=%g, omegai=%g\n",omegaDpwRe, omegaDpwIm );
+		  printF("--MX--GIC dispersion: s=(%12.4e,%12.4e)\n",sr,si);
 
-		  const real dpwExp =exp(omegaDpwIm*tE);
-		  const real dpwExpm=exp(omegaDpwIm*(tE-dt));
-		    
-                  OV_ABORT("Finish me -- add eval of Px and Py");
-		  
+                  real expt=exp(sr*tE);
+                  real ct = cos(si*tE)*expt, st=sin(si*tE)*expt;
+
+                  real exptm=exp(sr*(tE-dt));
+                  real ctm = cos(si*(tE-dt))*exptm, stm=sin(si*(tE-dt))*exptm;
+
+                  // Hz = (i/s) * (-1) * (kx*Ey - ky*Ex )/mu
+                  real hFactor = -twoPi*( kx*pwc[1] - ky*pwc[0] )/mu;
+                  real sNormSq = sr*sr+si*si;
+                  //  hr + i*hi = (i/s)*hfactor
+                  real hr = hFactor*si/sNormSq;
+                  real hi = hFactor*sr/sNormSq;
+
 		  FOR_3D(i1,i2,i3,J1,J2,J3)
 		  {
 		    real x,y;
 		    getCoordinates2d(i1,i2,i3,x,y,xe,ye);
 		  
-		    UMEX(i1,i2,i3)=exDpw(x,y,tE-dt,dpwExpm);
-		    UMEY(i1,i2,i3)=eyDpw(x,y,tE-dt,dpwExpm);
-		    UMHZ(i1,i2,i3)=hzDpw(x,y,tH-dt,dpwExpm);
-		
-		    UEX(i1,i2,i3)=exDpw(x,y,tE,dpwExp);
-		    UEY(i1,i2,i3)=eyDpw(x,y,tE,dpwExp);
-		    UHZ(i1,i2,i3)=hzDpw(x,y,tH,dpwExp);
+                    real xi = twoPi*(kx*x+ky*y);
+                    real cx=cos(xi), sx=sin(xi);
+                    
+                    real amp=cx*ct-sx*st;
+		    UEX(i1,i2,i3)=pwc[0]*amp;
+		    UEY(i1,i2,i3)=pwc[1]*amp;
+
+                    real amph = (hr*ct-hi*st)*cx - (hr*st+hi*ct)*sx;
+		    UHZ(i1,i2,i3)=amph;
+
+                    amp=cx*ctm-sx*stm;
+		    UMEX(i1,i2,i3)=pwc[0]*amp;
+		    UMEY(i1,i2,i3)=pwc[1]*amp;
+
+                    amph = (hr*ctm-hi*stm)*cx - (hr*stm+hi*ctm)*sx;
+		    UMHZ(i1,i2,i3)=amph;
+
+                    // -- dispersion model components --
+                    if( pxc>=0 )
+                    {
+                      
+                      // amp=(psir*cx-psii*sx)*ctm - (psir*sx+psii*cx)*stm;
+                      amp=(psir*ctm-psii*stm)*cx - (psir*stm+psii*ctm)*sx;
+                      umLocal(i1,i2,i3,pxc) =pwc[0]*amp;
+                      umLocal(i1,i2,i3,pyc) =pwc[1]*amp;
+
+                      // amp=(psir*cx-psii*sx)*ct - (psir*sx+psii*cx)*st;
+                      amp=(psir*ct-psii*st)*cx - (psir*st+psii*ct)*sx;
+                      uLocal(i1,i2,i3,pxc) =pwc[0]*amp;
+                      uLocal(i1,i2,i3,pyc) =pwc[1]*amp;
+                    }
+
 		  }
 		} // end if noDispersion
 		
@@ -1544,6 +1581,8 @@ assignInitialConditions(int current, real t, real dt )
 	  {
             a1=1., a2=-1., a3=0.;  // For 2d, divergence free if a1+a2=0
 	    omega=c*sqrt(fx*fx+fy*fy);
+	    printF("\n\n>>>>>>>>> --MX-IC-- box eigenfunction: fx=%g Pi, fy=%g Pi omega=%g Pi.\n\n",
+		   fx/Pi, fy/Pi, omega/Pi);
 	    // x0=-.5, y0=-.5;   // for the square [-.5,.5]x[-.5,.5] 
 	  }
 	  else

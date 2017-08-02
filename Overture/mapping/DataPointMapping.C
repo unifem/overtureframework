@@ -2020,7 +2020,8 @@ get( const GenericDataBase & dir, const aString & name)
   subDir.get( nurbsDegree,"nurbsDegree" );
   subDir.get( nurbsOutOfDate,"nurbsOutOfDate" );
 
-  bool nurbsExists=false;
+  // *wdh* July 27, 2017 : bool generates bug with gcc 4.8.4 (?) bool nurbsExists=false;
+  int nurbsExists=false;
   subDir.get( nurbsExists,"nurbsExists" );
 
   // printF("--DPM-- get: nurbsExists=%i nurbsOutOfDate=%i\n",(int)nurbsExists,(int)nurbsOutOfDate);
@@ -2067,7 +2068,8 @@ put( GenericDataBase & dir, const aString & name) const
   subDir.put( nurbsDegree,"nurbsDegree" );
   subDir.put( nurbsOutOfDate,"nurbsOutOfDate" );
 
-  bool nurbsExists = dbase.has_key("nurbs") && dbase.get<NurbsMapping*>("nurbs")!=NULL;
+  // *wdh* July 27, 2017 : bool generates bug with gcc 4.8.4 (?) bool nurbsExists = dbase.has_key("nurbs") && dbase.get<NurbsMapping*>("nurbs")!=NULL;
+  int nurbsExists = dbase.has_key("nurbs") && dbase.get<NurbsMapping*>("nurbs")!=NULL;
   subDir.put( nurbsExists,"nurbsExists" );
   if( nurbsExists )
   {

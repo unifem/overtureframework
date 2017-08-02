@@ -122,6 +122,10 @@ advanceNFDTD(  int numberOfStepsTaken, int current, real t, real dt )
   // -------------------- ADVANCE GRIDS ---------------------------
   // --------------------------------------------------------------
 
+  // We may option turn off dissipation on some grids:
+    RealArray & useDissipation = parameters.dbase.get<RealArray>("useDissipation");
+    const bool selectiveDissipation = useDissipation.getLength(0)==cg.numberOfComponentGrids();
+
   // Here is a list of the stages in the multi-stage FD algorithm 
     if( !dbase.has_key("stageInfoList") )
     {
@@ -158,7 +162,7 @@ advanceNFDTD(  int numberOfStepsTaken, int current, real t, real dt )
         StageOptionEnum & stageInfo = stageInfoList[stage];
         const bool computeUt      = stageInfo & computeUtInStage;
         const bool updateInterior = stageInfo & updateInteriorInStage;
-        const bool addDissipation = stageInfo & addDissipationInStage;
+        bool addDissipation = stageInfo & addDissipationInStage;
         const bool applyBC        = stageInfo & applyBCInStage;
         
         const bool lastStage = stage==numberOfStages-1;
@@ -176,6 +180,30 @@ advanceNFDTD(  int numberOfStepsTaken, int current, real t, real dt )
         for( int grid=0; grid<cg.numberOfComponentGrids(); grid++ )
         {
             real time0=getCPU();
+
+            bool turnOffDissipation = selectiveDissipation && !useDissipation(grid);
+            if( turnOffDissipation )
+            {
+                if( addDissipation && !updateInterior )
+                {
+                    if( t<= 3.*dt && addDissipation )
+                        printF("--ADV-- Skip this dissipation stage for grid=%i (%s)\n",grid,(const char*)cg[grid].getName());
+
+          // skip this step 
+                    continue;
+                }
+                else if( addDissipation && updateInterior )
+                {
+                    if( t<= 3.*dt && addDissipation )
+                        printF("--ADV-- Turn off dissipation on grid=%i (%s)\n",grid,(const char*)cg[grid].getName());
+
+          // turn off dissipation
+                    addDissipation=false;
+                }
+                
+            }
+            
+            
 
             MappedGrid & mg = cg[grid];
             assert( mgp==NULL || op!=NULL );
@@ -403,10 +431,21 @@ advanceNFDTD(  int numberOfStepsTaken, int current, real t, real dt )
                 rpar[18]=t;
                 rpar[20]=0.;  // return cpu for dissipation
         // Dispersive material parameters
-                const DispersiveMaterialParameters & dispersiveMaterialParameters = getDispersiveMaterialParameters(grid);
-                rpar[21]=dispersiveMaterialParameters.gamma;
-                rpar[22]=dispersiveMaterialParameters.omegap;
-                rpar[23]=sosupParameter;
+                const DispersiveMaterialParameters & dmp = getDispersiveMaterialParameters(grid);
+                rpar[21]=dmp.gamma;
+                rpar[22]=dmp.omegap;
+        // ADD THIS AS AN OPTION
+                if( false && isRectangular )
+                    rpar[23]=0.;      // TEST-- turn off sosup diss on rectangular grids
+                else
+                    rpar[23]=sosupParameter;
+        // New way: GDM coefficients
+                const RealArray & mp = dmp.modelParameters;
+                rpar[24]=dmp.alphaP;
+                rpar[25]=mp(0,0); // a0 
+                rpar[26]=mp(1,0); // a1 
+                rpar[27]=mp(2,0); // b0 
+                rpar[28]=mp(3,0); // b1 
                 int ierr=0;
                 real *umptr=umLocal.getDataPointer();
                 real *uptr =uLocal.getDataPointer();

@@ -24,6 +24,9 @@ $cgmx = "$CGBUILDPREFIX/mx/bin/cgmx";  # command for cgmx
 $cmdDir="$ENV{CG}/mx/cmd";  
 $tf=.5; $tp=.1; $order = "2"; $ng=3; $m=2; $n=2; $interp="i"; $cfl=.9; $radius=.5; $bg="box"; 
 $ta=1.; $tb=1.5; # for chirp 
+$kx=1; $ky=0; 
+$alphaP=1.; $a0=1.; $a1=0.; $b0=0.; $b1=1.;  # GDM parameters
+$dm="none"; # dispersive model
 $diss=.0; $dissOrder=-1; 
 $errorNorm=0; $method="NFDTD"; 
 $alwaysCompute=1;
@@ -32,14 +35,19 @@ $numberOfDimensions=2;
 GetOptions( "name=s"=>\$name,"order=s"=>\$order,"ng=i"=>\$ng,"tf=f"=>\$tf,"interp=s"=>\$interp,"diss=f"=>\$diss,\
             "fixed=s"=>\$fixed,"cfl=f"=>\$cfl,"alwaysCompute=i"=>\$alwaysCompute,"method=s"=>\$method,"tp=f"=>\$tp,\
             "errorNorm=i"=>\$errorNorm,"m=f"=>\$m,"n=f"=>\$n,"dissOrder=i"=>\$dissOrder,"cg=s"=>\$cg,\
-            "radius=f"=>\$radius,"bg=s"=>\$bg,"option=s"=>\$option,"ta=f"=>\$ta,"tb=f"=>\$tb );
+            "radius=f"=>\$radius,"bg=s"=>\$bg,"option=s"=>\$option,"ta=f"=>\$ta,"tb=f"=>\$tb,"dm=s"=>\$dm,\
+            "alphaP=f"=>\$alphaP,"a0=f"=>\$a0,"a1=f"=>\$a1,"b0=f"=>\$b0,"b1=f"=>\$b1,\
+            "kx=i"=>\$kx,"ky=i"=>\$ky );
 # ------------------------ planeWave ------------------------------------------
 $name=$option; 
 if( $option eq "chirped" ){ $cmdFile="../runs/embeddedBody/chirped.cmd";  }
+if( $option eq "planeWave" ){ $cmdFile="../runs/planeWave/planeWave.cmd";  }
 if( $cg =~ /nonSquarenp/ ){ $bg="square"; }
+if( $cg =~ /nonSquare/ ){ $bg="square"; }
 if( $cg =~ /nonBoxnpp/ ){ $bg="box"; }
 #
-$caseName="$name$method$cg\Order$order"; 
+$caseName="$name$method$cg\Order$order";
+if( $dm ne "none" ){ $caseName.="GDM"; }
 if( $errorNorm eq 0 ){ $normName = "max"; }elsif( $errorNorm eq 1 ){ $normName = "L1";}\
    elsif( $errorNorm eq 2 ){ $normName = "L2"; }else{ $normName="UnknownNorm"; }
 $caseName .= $normName . "Norm";
@@ -48,19 +56,25 @@ if( $method eq "sosup" ){ $numberOfComponents=7; }
 # define the table heading and caption
 if( $numberOfComponents eq 4 && $numberOfDimensions eq 2 )\
   { $title= "grid  \& N \&  \$E_x\$ \&  \$E_y\$ \& \$H_z\$ \& \$\\grad\\cdot\\Ev\/\\grad\\Ev\$"; }
+#
 if( $numberOfComponents eq 7  && $numberOfDimensions eq 2 )\
   { $title= "grid  \& N \&  \$E_x\$ \&  \$E_y\$ \& \$H_z\$ \&  \$Ex_t\$ \&  \$Ey_t\$ \& \$Hz_t\$ \& \$\\grad\\cdot\\Ev\/\\grad\\Ev\$"; }
+#
 if( $numberOfComponents eq 4 && $numberOfDimensions eq 3 )\
   { $title= "grid  \& N \&  \$E_x\$ \&  \$E_y\$ \& \$E_z\$ \& \$\\grad\\cdot\\Ev\/\\grad\\Ev\$"; }
+#
 if( $numberOfComponents eq 7  && $numberOfDimensions eq 3 )\
   { $title= "grid  \& N \&  \$E_x\$ \&  \$E_y\$ \& \$E_z\$ \&  \$Ex_t\$ \&  \$Ey_t\$ \& \$Ez_t\$ \& \$\\grad\\cdot\\Ev\/\\grad\\Ev\$"; }
+#  -- Dispersive model 2D ---
+if( $numberOfComponents eq 4 && $numberOfDimensions eq 2 && $dm ne "none" )\
+  { $numberOfComponents=6; $title= "grid  \&  N  \&    \$E_x\$   \&    \$E_y\$   \&    \$H_z\$    \&    \$P_x\$   \&    \$P_y\$   \& \$\\grad\\cdot\\Ev\/\\grad\\Ev\$"; }
 # 
 $labelMethod=$method;
 if( $method eq "NFDTD" ){ $labelMethod="CGFD$order"; }
-$caption= "\\caption\{Cgmx, $name, method=$labelMethod, $normName norm, order=\$$order\$, \$t=$tf\$, cfl=\$$cfl\$, diss=\$$diss\$, dissOrder=\$$dissOrder\$, $date}\\label\{table:$name" . $method . "Order$order$normName}"; 
+$caption= "\\caption\{Cgmx, $name, method=$labelMethod, $normName norm, order=\$$order\$, \$t=$tf\$, cfl=\$$cfl\$, diss=\$$diss\$, dissOrder=\$$dissOrder\$, kx=$kx, ky=$ky, dm=$dm, alphaP=$alphaP, a0=$a0, a1=$a1, b0=$b0, b1=$b1 $date}\\label\{table:$name" . $method . "Order$order$normName}"; 
 $outputFile="$name$method$cg" . "Order$order" . $normName . "NormConvTable.tex"; 
 # 
-$options = "-diss=$diss -dissOrder=$dissOrder -radius=$radius -bg=$bg -cfl=$cfl -method=$method -errorNorm=$errorNorm -tf=$tf -tp=$tp -ta=$ta -tb=$tb -go=go";
+$options = "-diss=$diss -dissOrder=$dissOrder -dm=$dm -radius=$radius -bg=$bg -cfl=$cfl -method=$method -errorNorm=$errorNorm -tf=$tf -tp=$tp -ta=$ta -tb=$tb -alphaP=$alphaP -a0=$a0 -a1=$a1 -b0=$b0 -b1=$b1 -kx=$kx -ky=$ky -checkErrors=1 -go=go";
 #
 $suffix="";
 if( ($method eq "sosup") && ($order eq 4) ){ $suffix=".ng3"; }
@@ -87,6 +101,30 @@ $grid3=$cg . "4";   $gName3 = "nonBox8npp.order$order$suffix"; \
 $grid4=$cg . "8";   $gName4 = "nonBox16npp.order$order$suffix"; \
 $grid5=$cg . "16";  $gName5 = "nonBox32npp.order$order$suffix";\
 $grid6=$cg . "32";  $gName6 = "nonBox64npp.order$order$suffix";\
+}
+if( $cg =~ /squarep/ ){\
+$grid1=$cg . "8";   $gName1 = "square8p.order$order$suffix"; \
+$grid2=$cg . "16";   $gName2 = "square16p.order$order$suffix"; \
+$grid3=$cg . "32";   $gName3 = "square32p.order$order$suffix"; \
+$grid4=$cg . "64";   $gName4 = "square64p.order$order$suffix"; \
+$grid5=$cg . "128";  $gName5 = "square128p.order$order$suffix";\
+$grid6=$cg . "256";  $gName6 = "square256p.order$order$suffix";\
+}
+if( $cg =~ /nonSquare/ ){\
+$grid1=$cg . "8";   $gName1 = "nonSquare8.order$order$suffix"; \
+$grid2=$cg . "16";   $gName2 = "nonSquare16.order$order$suffix"; \
+$grid3=$cg . "32";   $gName3 = "nonSquare32.order$order$suffix"; \
+$grid4=$cg . "64";   $gName4 = "nonSquare64.order$order$suffix"; \
+$grid5=$cg . "128";  $gName5 = "nonSquare128.order$order$suffix";\
+$grid6=$cg . "256";  $gName6 = "nonSquare256.order$order$suffix";\
+}
+if( $cg =~ /nonSquarep/ ){\
+$grid1=$cg . "8";   $gName1 = "nonSquare8p.order$order$suffix"; \
+$grid2=$cg . "16";   $gName2 = "nonSquare16p.order$order$suffix"; \
+$grid3=$cg . "32";   $gName3 = "nonSquare32p.order$order$suffix"; \
+$grid4=$cg . "64";   $gName4 = "nonSquare64p.order$order$suffix"; \
+$grid5=$cg . "128";  $gName5 = "nonSquare128p.order$order$suffix";\
+$grid6=$cg . "256";  $gName6 = "nonSquare256p.order$order$suffix";\
 }
 # 
 if( $ng > 0 ){ $grid=$grid1; $res=1; $cmd="$cgmx -noplot $cmdDir/$cmdFile -g=$gName1 $options";  }

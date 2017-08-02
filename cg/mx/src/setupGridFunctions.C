@@ -530,7 +530,7 @@ setupGridFunctions()
         // fourth-order : store P and Q (vectors)
         // sixth-order  : store P,Q,R (vectors)
 	const int numberOfDispersiveFields = orderOfAccuracyInSpace/2;
-	if( dispersionModel==drude )
+	if( dispersionModel==drude || dispersionModel==GDM )
 	{
 	  numberOfComponents+= numberOfDimensions*numberOfDispersiveFields;
 	}

@@ -291,15 +291,31 @@ outputHeader()
       if( cg.numberOfDomains()==1 )
       {
 	const DispersiveMaterialParameters & dmp = getDomainDispersiveMaterialParameters(0);
-	fPrintF(file," Drude parameters: gamma=%9.3e, omegap=%9.3e\n",dmp.gamma,dmp.omegap);
+        const RealArray & mp = dmp.modelParameters;
+        const int numberOfPolarizationVectors = dmp.numberOfPolarizationVectors;
+        
+	// fPrintF(file," Drude parameters: gamma=%9.3e, omegap=%9.3e\n",dmp.gamma,dmp.omegap);
+	fPrintF(file," GDM parameters: alphaP=%9.3e, number of polarization vectors=%i\n",
+              dmp.alphaP,numberOfPolarizationVectors);
+        for( int npv=0; npv<numberOfPolarizationVectors; npv++ )
+          fPrintF(file,"   Polarization vector P(%i) : a0=%9.3e, a1=%9.3e, b0=%9.3e, b1=%9.3e\n",
+                  npv,mp(0,npv),mp(1,npv),mp(2,npv),mp(3,npv));
       }
       else
       {
 	for( int domain=0; domain<cg.numberOfDomains(); domain++ )
 	{
   	  const DispersiveMaterialParameters & dmp = getDomainDispersiveMaterialParameters(domain);
-	  fPrintF(file," Domain %i: Drude parameters: gamma=%9.3e, omegap=%9.3e (name=%s)\n",domain,
-		  dmp.gamma,dmp.omegap,(const char*)cg.getDomainName(domain) );
+          const RealArray & mp = dmp.modelParameters;
+          const int numberOfPolarizationVectors = dmp.numberOfPolarizationVectors;
+
+	  // fPrintF(file," Domain %i: Drude parameters: gamma=%9.3e, omegap=%9.3e (name=%s)\n",domain,
+	  //	  dmp.gamma,dmp.omegap,(const char*)cg.getDomainName(domain) );
+          fPrintF(file," Domain %i (%s) GDM parameters: alphaP=%9.3e, number of polarization vectors=%i\n",
+                  domain,(const char*)cg.getDomainName(domain),dmp.alphaP,numberOfPolarizationVectors);
+          for( int npv=0; npv<numberOfPolarizationVectors; npv++ )
+            fPrintF(file,"   Polarization vector P(%i) : a0=%9.3e, a1=%9.3e, b0=%9.3e, b1=%9.3e\n",
+                    npv,mp(0,npv),mp(1,npv),mp(2,npv),mp(3,npv));
 	}
       }
     }

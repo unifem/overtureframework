@@ -112,29 +112,22 @@
           stop 8843
         end if
 
-!
+! *wdh* turn these off for now so we don't have to compile
       else if( orderOfAccuracy.eq.6 ) then
-         if( nd.eq.2 .and. gridType.eq.rectangular )then
-           call advMxSOSUP2dOrder6r(nd,n1a,n1b,n2a,n2b,n3a,n3b,nd1a,
-     & nd1b,nd2a,nd2b,nd3a,nd3b,nd4a,nd4b,ndf4a,ndf4b,mask,rx, u,un,f,
-     &  bc, ipar, rpar, ierr )
-        else if(nd.eq.2 .and. gridType.eq.curvilinear )then
-           call advMxSOSUP2dOrder6c(nd,n1a,n1b,n2a,n2b,n3a,n3b,nd1a,
-     & nd1b,nd2a,nd2b,nd3a,nd3b,nd4a,nd4b,ndf4a,ndf4b,mask,rx, u,un,f,
-     &  bc, ipar, rpar, ierr )
-        else if(  nd.eq.3 .and. gridType.eq.rectangular )then
-           call advMxSOSUP3dOrder6r(nd,n1a,n1b,n2a,n2b,n3a,n3b,nd1a,
-     & nd1b,nd2a,nd2b,nd3a,nd3b,nd4a,nd4b,ndf4a,ndf4b,mask,rx, u,un,f,
-     &  bc, ipar, rpar, ierr )
-c          stop 2101
-        else if(  nd.eq.3 .and. gridType.eq.curvilinear )then
-           call advMxSOSUP3dOrder6c(nd,n1a,n1b,n2a,n2b,n3a,n3b,nd1a,
-     & nd1b,nd2a,nd2b,nd3a,nd3b,nd4a,nd4b,ndf4a,ndf4b,mask,rx, u,un,f,
-     &  bc, ipar, rpar, ierr )
-c          stop 2101
-        else
-          stop 8843
-       end if
+!          if( nd.eq.2 .and. gridType.eq.rectangular )then
+!            call advMxSOSUP2dOrder6r(nd,n1a,n1b,n2a,n2b,n3a,n3b,nd1a,nd1b,nd2a,nd2b,nd3a,nd3b,nd4a,nd4b,ndf4a,ndf4b,!                               mask,rx, u,un,f, bc, ipar, rpar, ierr )
+!         else if(nd.eq.2 .and. gridType.eq.curvilinear )then
+!            call advMxSOSUP2dOrder6c(nd,n1a,n1b,n2a,n2b,n3a,n3b,nd1a,nd1b,nd2a,nd2b,nd3a,nd3b,nd4a,nd4b,ndf4a,ndf4b,!                               mask,rx, u,un,f, bc, ipar, rpar, ierr )
+!         else if(  nd.eq.3 .and. gridType.eq.rectangular )then
+!            call advMxSOSUP3dOrder6r(nd,n1a,n1b,n2a,n2b,n3a,n3b,nd1a,nd1b,nd2a,nd2b,nd3a,nd3b,nd4a,nd4b,ndf4a,ndf4b,!                                mask,rx, u,un,f, bc, ipar, rpar, ierr )
+! c          stop 2101
+!         else if(  nd.eq.3 .and. gridType.eq.curvilinear )then
+!            call advMxSOSUP3dOrder6c(nd,n1a,n1b,n2a,n2b,n3a,n3b,nd1a,nd1b,nd2a,nd2b,nd3a,nd3b,nd4a,nd4b,ndf4a,ndf4b,!                                mask,rx, u,un,f, bc, ipar, rpar, ierr )
+! c          stop 2101
+!         else
+!          stop 8843
+!       end if
+       stop 8866
 
       else if( orderOfAccuracy.eq.8 ) then
 

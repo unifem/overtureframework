@@ -200,6 +200,10 @@ Maxwell:: Maxwell()
   filterCoefficient=1.;       // coefficient in the filter
 
 
+  // selective dissipation:
+  // Only add dissipation to selected grids 
+  parameters.dbase.put<RealArray>("useDissipation");
+
   useDivergenceCleaning=false;
   divergenceCleaningCoefficient=1.;
 
@@ -1257,7 +1261,7 @@ buildTimeSteppingOptionsDialog(DialogData & dialog )
   aString methodCommands[] = {"default", "Yee", "DSI", "new DSI", "DSI-MatVec", "NFDTD", "SOSUP", "" };
   dialog.addOptionMenu("method:", methodCommands, methodCommands, (int)method );
 
-  aString dispersionModelCommands[] = {"no dispersion", "Drude", "" };
+  aString dispersionModelCommands[] = {"no dispersion", "Drude", "GDM", "" };
   dialog.addOptionMenu("dispersion model:", dispersionModelCommands, dispersionModelCommands, (int)dispersionModel );
 
   aString timeSteppingMethodCommands[] = {"defaultTimeStepping", 
@@ -1272,6 +1276,7 @@ buildTimeSteppingOptionsDialog(DialogData & dialog )
 
   aString pushButtonCommands[] = {"projection solver parameters...",
                                   "set stages...",
+                                  "selective dissipation...",
 				  ""};
   int numRows=2;
   dialog.setPushButtons(pushButtonCommands,  pushButtonCommands, numRows ); 
@@ -1404,7 +1409,7 @@ buildTimeSteppingOptionsDialog(DialogData & dialog )
    textLabels[nt]=textCommands[nt]; sPrintF(textStrings[nt], "%i",sosupDissipationOption); nt++; 
 
    const int & sosupDissipationFrequency = parameters.dbase.get<int>("sosupDissipationFrequency");
-   textCommands[nt] = "sosup dissipation option";  
+   textCommands[nt] = "sosup dissipation frequency";  
    textLabels[nt]=textCommands[nt]; sPrintF(textStrings[nt], "%i",sosupDissipationFrequency); nt++; 
 
   
@@ -1847,6 +1852,9 @@ buildPdeParametersDialog(DialogData & dialog )
   real gamma=1., omegap=1.;
   textCommands[nt] = "Drude params";  
   textLabels[nt]=textCommands[nt]; sPrintF(textStrings[nt], "%g %g %s (gamma,omegap,domain-name)",gamma,omegap,"all"); nt++; 
+  real a0=1., a1=0., b0=0., b1=1.;
+  textCommands[nt] = "GDM params";  
+  textLabels[nt]=textCommands[nt]; sPrintF(textStrings[nt], "%g %g %g %g %s (a0,a1,b0,b1,domain-name)",a0,a1,b0,b1,"all"); nt++; 
 
   // null strings terminal list
   assert( nt<numberOfTextStrings );
@@ -2101,7 +2109,8 @@ interactiveUpdate(GL_GraphicsInterface &gi )
       }
     }
     else if( answer=="no dispersion" ||
-             answer=="Drude" )
+             answer=="Drude" ||
+             answer=="GDM" )
     {
       aString & dispersionModelName=dbase.get<aString>("dispersionModelName");
 
@@ -2109,6 +2118,11 @@ interactiveUpdate(GL_GraphicsInterface &gi )
       {
 	dispersionModel=drude;
 	dispersionModelName="Drude";
+      }
+      else if( answer=="GDM" )
+      {
+	dispersionModel=GDM;
+	dispersionModelName="GDM";
       }
       else if( answer=="no dispersion" )
       {
@@ -2694,6 +2708,12 @@ interactiveUpdate(GL_GraphicsInterface &gi )
       setupMultiStageAlgorithm( gi,dialog );
     }
     
+    else if( answer=="selective dissipation..." )
+    {
+      // Choose grids for selective dissipation
+      setupSelectiveDissipation( *cgp, gi );
+    }
+    
 
     else if( plotOptionsDialog.getToggleValue(answer,"plot energy density",plotEnergyDensity) ){}//
     else if( plotOptionsDialog.getToggleValue(answer,"plot intensity",plotIntensity) ){}//
@@ -2918,16 +2938,44 @@ interactiveUpdate(GL_GraphicsInterface &gi )
     }
 
 
-    else if( len=answer.matches("Drude params") )
+    else if( answer.matches("GDM params") ||
+             answer.matches("Drude params") )
     {
 
+      real a0=1., a1=0., b0=0., b1=1.;
       real gamma=0., omegap=0.; // default 
+      bool setGDM=false, setDrude=false;
+      aString domainName;
+      if( len=answer.matches("GDM params") )
+      {
+        setGDM=true;
+        char *buff = new char [answer.length()];
+        sScanF(answer(len,answer.length()),"%e %e %e %e %s",&a0,&a1,&b0,&b1,buff);
+        domainName=buff;
+        delete [] buff;
+        printF("GDM parameters: a0=%e, a1=%e, b0=%e, b1=%e, domain=[%s]\n",a0,a1,b0,b1,(const char*)domainName);
 
-      char *buff = new char [answer.length()];
-      sScanF(answer(len,answer.length()),"%e %e %s",&gamma,&omegap,buff);
-      aString domainName=buff;
-      delete [] buff;
-      printF("Drude parameters: gamma=%e, omegap=%e, domain=[%s]\n",gamma,omegap,(const char*)domainName);
+        // do this for now: 
+        gamma=b1;
+        omegap=sqrt(a0);
+      }
+      else
+      {
+        setDrude=true;
+        
+        char *buff = new char [answer.length()];
+        sScanF(answer(len,answer.length()),"%e %e %s",&gamma,&omegap,buff);
+        domainName=buff;
+        delete [] buff;
+        printF("Drude parameters: gamma=%e, omegap=%e, domain=[%s]\n",gamma,omegap,(const char*)domainName);
+        // convert to GDM
+        a0=omegap*omegap;
+        a1=0.;
+        b0=0.;
+        b1=gamma;
+        
+      }
+
       
       int domainStart=-1, domainEnd=-1;
       if( domainName == "all" )
@@ -2953,7 +3001,7 @@ interactiveUpdate(GL_GraphicsInterface &gi )
       }
       else
       {
-	// --- Set parameters for the Drude dispersion model ---
+	// --- Set parameters for the dispersion model ---
 	std::vector<DispersiveMaterialParameters> & dmpVector = 
 	  dbase.get<std::vector<DispersiveMaterialParameters> >("dispersiveMaterialParameters");
 
@@ -2966,8 +3014,21 @@ interactiveUpdate(GL_GraphicsInterface &gi )
 	for( int domain=domainStart; domain<=domainEnd; domain++ )
 	{
 	  DispersiveMaterialParameters & dmp = dmpVector[domain];
-	  printF(" Setting Drude parameters gamma=%9.3e, omegap=%9.3e for domain=[%s]\n",
-		 gamma,omegap,(const char*)cg.getDomainName(domain));
+          if( setDrude )
+          {
+            printF(" Setting Drude parameters gamma=%9.3e, omegap=%9.3e for domain=[%s]\n",
+                   gamma,omegap,(const char*)cg.getDomainName(domain));
+          }
+          else
+          {
+            printF(" Setting GDM parameters a0=%9.3e, a1=%9.3e, b0=%9.3e, b1=%9.3e for domain=[%s]\n",
+		 a0,a1,b0,b1,(const char*)cg.getDomainName(domain));
+          }
+
+          // real a0=omegap, a1=0., b0=0., b1=gamma;
+          dmp.setParameters( a0,a1,b0,b1 );
+          
+          // old way: 
 	  dmp.gamma=gamma;
 	  dmp.omegap=omegap;
 	}
@@ -3571,3 +3632,93 @@ setupMultiStageAlgorithm( GL_GraphicsInterface &gi, DialogData & dialog )
 
   return 0;
 }
+
+
+// =====================================================================================
+/// \brief Setup the stages in the multi-stage FD algorithm
+// =====================================================================================
+int Maxwell::
+setupSelectiveDissipation( CompositeGrid & cg, GL_GraphicsInterface &gi )
+{
+  const int & numberOfComponentGrids=cg.numberOfComponentGrids();
+
+  printF("--CGMX-- Selective dissipation: choose which grids use dissipaton\n"
+         "       THIS OPTION IS EXPERIEMENTAL \n");
+  
+  RealArray & useDissipation = parameters.dbase.get<RealArray>("useDissipation");
+  if( useDissipation.getLength(0)!=numberOfComponentGrids )
+  {
+    // By default all grids have dissipation on 
+    useDissipation.redim(numberOfComponentGrids);
+    useDissipation=true;
+  }
+  
+
+  GUIState gui;
+
+  DialogData & dialog=gui;
+
+  dialog.setWindowTitle("Selective Dissipation");
+  dialog.setExitCommand("continue", "continue");
+
+  aString pushButtonCommands[] = {"choose automatically",
+                                  "turn off rectangular",
+                                  "turn off by name",
+				  ""};
+  int numRows=3;
+  dialog.setPushButtons(pushButtonCommands,  pushButtonCommands, numRows ); 
+
+  gi.pushGUI(gui);
+  aString answer,line;
+  int len=0;
+  for(;;) 
+  {
+    gi.getAnswer(answer,"");      
+    
+    if( answer=="continue" || answer=="exit" )
+    {
+      break;
+    }
+    else if( answer=="choose automatically" )
+    {
+      // We should check the size of the grid too
+      printF("For now turn off dissipation on rectangular grids.\n");
+      
+      for( int grid=0; grid<numberOfComponentGrids; grid++ )
+      {
+        if( cg[grid].isRectangular() )
+        {
+          useDissipation(grid)=false;
+          printF(" Turn off dissipation on rectangular grid %i (%s)\n",grid,(const char*)cg[grid].getName());
+        }
+      }
+    }
+    else if( answer=="turn off rectangular" )
+    {
+      for( int grid=0; grid<numberOfComponentGrids; grid++ )
+      {
+        if( cg[grid].isRectangular() )
+        {
+          useDissipation(grid)=false;
+          printF(" Turn off dissipation on rectangular grid %i (%s)\n",grid,(const char*)cg[grid].getName());
+        }
+      }
+    }
+    else if( answer=="turn off by name" )
+    {
+      printF(" FINISH ME\n");
+    }
+    else
+    {
+      printF("Unknown command = [%s]\n",(const char*)answer);
+      gi.stopReadingCommandFile();
+       
+    }
+
+  }
+  
+  gi.popGUI();  // pop dialog
+
+  return 0;
+}
+

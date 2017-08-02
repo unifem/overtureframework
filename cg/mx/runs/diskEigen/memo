@@ -1,0 +1,25 @@
+********* EIGEN MODES OF A 2D DISK *********
+
+*******************
+*** July 30, 2017
+
+cgmx -noplot diskeigen -g=sice16.order2.hdf -dm=gdm -a0=1 -a1=0 -b0=0 =b1=1  -m=2 -n=2 -cons=1 -diss=.0 -tp=.1 -tf=1 -go=go -show=diskEigen16.show >! diskEigen16.out
+
+
+DISPERSIVE: 2nd-order
+cgmx -noplot diskeigen -g=sice16.order2.hdf -dm=gdm -a0=1 -a1=0 -b0=0 =b1=1  -m=2 -n=2 -cons=1 -diss=.0 -tp=.1 -tf=1 -go=og
+
+>>> Cgmx:FD: t=1.00e-01 dt=3.3e-03 TS=ME GDM |div(E)|/|grad(E)|=1.80e-04 (=4.38e-04/2.43e+00) 30 steps mem=72.2(Mb) cpu=2.86e+01(s)
+>>> t=1.00e-01 dt=3.3e-03 max errors:[9.32e-06,9.32e-06,2.73e-05,4.10e-08,4.10e-08,], max (u):[2.94e-01,2.94e-01,2.62e-01,3.09e-03,3.09e-03,] (30 steps)
+
+
+
+>>> t=1.00e-01 dt=1.4e-02 max errors:[1.72e-04,1.72e-04,3.00e-03,1.62e-06,1.62e-06,], max (u):[2.90e-01,2.90e-01,2.65e-01,3.04e-03,3.04e-03,] (7 steps)
+
+
+cgmx -noplot diskeigen -g=sice4.order4.hdf -m=2 -n=2 -diss=.1 -tp=.1 -tf=1 -go=og
+>>> t=1.00e-01 dt=1.4e-02 max errors:[4.49e-06,4.49e-06,6.66e-06,], max (u):[2.91e-01,2.91e-01,2.64e-01,] (7 steps)
+
+cgmx -noplot diskeigen -g=sice4.order4.hdf -m=1 -n=1 -go=og
+
+>>> t=1.00e-01 dt=1.4e-02 max errors:[3.25e-08,6.13e-08,1.04e-07,], max (u):[1.24e-01,2.54e-01,5.01e-01,] (7 steps)

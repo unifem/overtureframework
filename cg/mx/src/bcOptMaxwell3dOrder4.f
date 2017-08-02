@@ -214,11 +214,12 @@
 
       ! variables for the dispersion model:
       ! P equation is : P_tt + ap*P_t + bp*P = cp*E
-      real ap,bp,cp
+      ! real ap,bp,cp
       real kk,ck2,sNormSq,sNorm4, pc,ps,hfactor,hs,hc
       real si,sr,expt,sinxi,cosxi
       real sinxip,cosxip, sinxid, cosxid, sinxid2, cosxid2, sinxid3, 
      & cosxid3
+        real amph,sint,cost,sintp,costp,hr,hi,psir,psii
 
       ! Dispersion models
       integer noDispersion,drude
@@ -1687,10 +1688,9 @@ c===============================================================================
         ! variables for dispersive plane wave
         sr                   =rpar(37)  ! Re(s)
         si                   =rpar(38)  ! Im(s)
-        ! P equation is : P_tt + ap*P_t + bp*P = cp*E
-        ap                   =rpar(39)
-        bp                   =rpar(40)
-        cp                   =rpar(41)
+        ! P = psi*E , psi = psir + i*psii
+        psir                 =rpar(39)
+        psii                 =rpar(40)
         if( abs(pwc(0))+abs(pwc(1))+abs(pwc(2)) .eq. 0. )then
           ! sanity check
           stop 12345
@@ -1744,19 +1744,19 @@ c===============================================================================
         ! initialize dispersive plane wave parameters
         if( dispersionModel .ne. noDispersion )then
             ! --- pre-calculations for the dispersive plane wave ---
-            kk = twoPi*sqrt( kx*kx+ky*ky+kz*kz)
-            ck2 = (c*kk)**2
+            ! kk = twoPi*sqrt( kx*kx+ky*ky+kz*kz)
+            ! ck2 = (c*kk)**2
             ! si=-si
             ! s^2 E = -(ck)^2 E - (s^2/eps) P --> gives P = -eps*( 1 + (ck)^2/s^2 ) E 
             sNormSq=sr**2+si**2
-            sNorm4=sNormSq*sNormSq
-            pc = -eps*( 2.*sr*si*ck2/sNorm4 )    ! check sign
-            ps = -eps*( 1. + ck2*(sr*sr-si*si)/sNorm4 )
+            ! sNorm4=sNormSq*sNormSq
+            ! pc = -eps*( 2.*sr*si*ck2/sNorm4 )    ! check sign 
+            ! ps = -eps*( 1. + ck2*(sr*sr-si*si)/sNorm4 )
             ! (1/s) * (kx*Ey - ky*Ex )/mu
             ! *check me*      
             hfactor = twoPi*( kx*pwc(1) - ky*pwc(0) )/mu
-            hs =  hfactor*si/sNormSq
-            hc = -hfactor*sr/sNormSq  ! check sign
+            hr = hfactor*sr/sNormSq
+            hc = hfactor*si/sNormSq
         end if
         if( fieldOption.ne.0 .and. fieldOption.ne.1 )then
           write(*,'("bcOptMax: error: fieldOption=",i6)') fieldOption

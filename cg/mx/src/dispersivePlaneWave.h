@@ -39,21 +39,22 @@
 ! --------------------------------------------------------------------
 #beginMacro initializeDispersivePlaneWave()
   ! --- pre-calculations for the dispersive plane wave ---
-  kk = twoPi*sqrt( kx*kx+ky*ky+kz*kz)
-  ck2 = (c*kk)**2
+  ! kk = twoPi*sqrt( kx*kx+ky*ky+kz*kz)
+  ! ck2 = (c*kk)**2
 
   ! si=-si
   ! s^2 E = -(ck)^2 E - (s^2/eps) P --> gives P = -eps*( 1 + (ck)^2/s^2 ) E 
   sNormSq=sr**2+si**2
-  sNorm4=sNormSq*sNormSq
-  pc = -eps*( 2.*sr*si*ck2/sNorm4 )    ! check sign 
-  ps = -eps*( 1. + ck2*(sr*sr-si*si)/sNorm4 )
+  ! sNorm4=sNormSq*sNormSq
+  ! pc = -eps*( 2.*sr*si*ck2/sNorm4 )    ! check sign 
+  ! ps = -eps*( 1. + ck2*(sr*sr-si*si)/sNorm4 )
 
-  ! (1/s) * (kx*Ey - ky*Ex )/mu
+  ! Hz = (i/s) * (-1) * (kx*Ey - ky*Ex )/mu
   ! *check me*      
-  hfactor = twoPi*( kx*pwc(1) - ky*pwc(0) )/mu  
-  hs =  hfactor*si/sNormSq
-  hc = -hfactor*sr/sNormSq  ! check sign 
+  hfactor = -twoPi*( kx*pwc(1) - ky*pwc(0) )/mu  
+  ! hr + i*hi = (i/s)*hfactor
+  hr = hfactor*si/sNormSq
+  hi = hfactor*sr/sNormSq  
 #endMacro
 
 ! --------------------------------------------------------------------
@@ -65,64 +66,57 @@
 ! --------------------------------------------------------------------
 #beginMacro getDispersivePlaneWave2D(x,y,t,numberOfTimeDerivatives,ubv)
 
+  xi = twoPi*(kx*(x)+ky*(y))
+  sinxi = sin(xi)
+  cosxi = cos(xi)
   expt = exp(sr*t) 
-  xi = twoPi*(kx*(x)+ky*(y)) - si*(t)
-  sinxi = sin(xi)*expt 
-  cosxi = cos(xi)*expt 
+  cost=cos(si*t)*expt
+  sint=sin(si*t)*expt
 
   if( numberOfTimeDerivatives==0 )then
     if( polarizationOption.eq.0 )then
-      ubv(ex) = sinxi*pwc(0)
-      ubv(ey) = sinxi*pwc(1)
-      ubv(hz) = hc*cosxi+hs*sinxi
+      amp = cosxi*cost-sinxi*sint
+      ubv(ex) = pwc(0)*amp 
+      ubv(ey) = pwc(1)*amp 
+
+      amph = (hr*cost-hi*sint)*cosxi - (hr*sint+hi*cost)*sinxi
+      ubv(hz) = amph
     else
       ! polarization vector: (ex=pxc, ey=pyc) 
-      ubv(ex) = (pc*cosxi+ps*sinxi)*pwc(0)
-      ubv(ey) = (pc*cosxi+ps*sinxi)*pwc(1)
+      amp=(psir*cost-psii*sint)*cosxi - (psir*sint+psii*cost)*sinxi
+      ubv(ex) = pwc(0)*amp 
+      ubv(ey) = pwc(1)*amp 
 
      ! *check me* -- just repeat hz for now 
-      ubv(hz) = (hc*cosxi+hs*sinxi)*expt
+     !  ubv(hz) = (hc*cosxi+hs*sinxi)*expt
     end if
 
   else if( numberOfTimeDerivatives==1 )then
     !write(*,'(" GDPW ntd=1 : fix me")')
     !stop 2738
 
-    sinxip = -si*cosxi + sr*sinxi ! d(sinxi)/dt 
-    cosxip =  si*sinxi + sr*cosxi ! d(cosxi)/dt 
+    costp=-si*sint+sr*cost  ! d/dt( cost) 
+    sintp= si*cost+sr*sint ! d/dt 
     if( polarizationOption.eq.0 )then
-      ubv(ex) = sinxip*pwc(0)
-      ubv(ey) = sinxip*pwc(1)
-      ubv(hz) = hc*cosxip+hs*sinxip
+      amp = cosxi*costp-sinxi*sintp
+      ubv(ex) = pwc(0)*amp 
+      ubv(ey) = pwc(1)*amp 
+
+      amph = (hr*costp-hi*sintp)*cosxi - (hr*sintp+hi*costp)*sinxi
+      ubv(hz) = amph
+
     else
       ! polarization vector: (ex=pxc, ey=pyc) 
-      ubv(ex) = (pc*cosxip+ps*sinxip)*pwc(0)
-      ubv(ey) = (pc*cosxip+ps*sinxip)*pwc(1)
-      ! *check me* -- just repeat hz for now 
-      ubv(hz) = hc*cosxip+hs*sinxip
+      ! polarization vector: (ex=pxc, ey=pyc) 
+      amp=(psir*costp-psii*sintp)*cosxi - (psir*sintp+psii*costp)*sinxi
+      ubv(ex) = pwc(0)*amp 
+      ubv(ey) = pwc(1)*amp 
+
     end if
 
   else if( numberOfTimeDerivatives==2 )then
-    ! write(*,'(" GDPW ntd=2 : fix me")')
-    ! stop 2738
-
-    sinxid = -si*cosxi + sr*sinxi ! d(sinxi)/dt
-    cosxid =  si*sinxi + sr*cosxi ! d(cosxi)/dt
-
-    sinxip = -si*cosxid + sr*sinxid ! d^2(sinxi)/dt^2
-    cosxip =  si*sinxid + sr*cosxid ! d^2(cosxi)/dt^2 
-
-    if( polarizationOption.eq.0 )then
-      ubv(ex) = sinxip*pwc(0)
-      ubv(ey) = sinxip*pwc(1)
-      ubv(hz) = hc*cosxip+hs*sinxip
-    else
-      ! polarization vector: (ex=pxc, ey=pyc) 
-      ubv(ex) = (pc*cosxip+ps*sinxip)*pwc(0)
-      ubv(ey) = (pc*cosxip+ps*sinxip)*pwc(1)
-      ! *check me* -- just repeat hz for now 
-      ubv(hz) = hc*cosxip+hs*sinxip
-    end if
+    write(*,'(" GDPW ntd=2 : fix me")')
+    stop 2738
 
   else if( numberOfTimeDerivatives==3 )then
     write(*,'(" GDPW ntd=3 : fix me")')

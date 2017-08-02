@@ -44,20 +44,23 @@
 # 
 $tFinal=1.; $tPlot=.1; $diss=.0; $cfl=.95; $dissOrder=-1; $filter=0; $divClean=0; $divCleanCoeff=1; $projectInterp=0;
 $grid="box32.order4.hdf"; $method="NFDTD"; 
-$cons=0; $go="halt"; 
+$cons=0; $go="halt"; $show=" ";
 $mx=1; $my=1; $mz=1; $x0=0.; $y0=0.; $z0=0.;  # defines the eigenfunction 
 $dm="none"; $gamma=0.; $omegap=0.;  # (gamma,omegap) for Drude model
+$alphaP=1.; $a0=1.; $a1=0.; $b0=0.; $b1=1.;  # GDM parameters
 # ----------------------------- get command line arguments ---------------------------------------
 GetOptions( "g=s"=>\$grid,"tf=f"=>\$tFinal,"diss=f"=>\$diss,"tp=f"=>\$tPlot,"show=s"=>\$show,"debug=i"=>\$debug, \
- "cfl=f"=>\$cfl, "bg=s"=>\$backGround,"bcn=s"=>\$bcn,"go=s"=>\$go,"noplot=s"=>\$noplot,\
+ "cfl=f"=>\$cfl, "bg=s"=>\$backGround,"bcn=s"=>\$bcn,"go=s"=>\$go,"noplot=s"=>\$noplot,"show=s"=>\$show,\
   "dtMax=f"=>\$dtMax,"mx=f"=>\$mx,"my=f"=>\$my,"mz=f"=>\$mz, "cons=i"=>\$cons,"dissOrder=i"=>\$dissOrder,\
   "filter=i"=>\$filter,"divClean=i"=>\$divClean,"divCleanCoeff=f"=>\$divCleanCoeff,\
   "x0=f"=>\$x0,"y0=f"=>\$y0,"z0=f"=>\$z0,"projectInterp=i"=>\$projectInterp,"method=s"=>\$method,\
-  "dm=s"=>\$dm,"gamma=f"=>\$gamma,"omegap=f"=>\$omegap );
+  "dm=s"=>\$dm,"gamma=f"=>\$gamma,"omegap=f"=>\$omegapn,\
+    "alphaP=f"=>\$alphaP,"a0=f"=>\$a0,"a1=f"=>\$a1,"b0=f"=>\$b0,"b1=f"=>\$b1  );
 # -------------------------------------------------------------------------------------------------
 #
 if( $dm eq "none" ){ $dm="no dispersion"; }
 if( $dm eq"drude" || $dm eq "Drude" ){ $dm="Drude"; }
+if( $dm eq"gdm" ){ $dm="GDM"; }
 #
 if( $go eq "halt" ){ $go = "break"; }
 if( $go eq "og" ){ $go = "open graphics"; }
@@ -73,13 +76,14 @@ $grid
 $method
 # dispersion model:
 $dm
+#
+Drude params $gamma $omegap all (gamma,omegap,domain-name)
+GDM params $a0 $a1 $b0 $b1 all (a0,a1,b0,b1,domain-name)
+#
 #**
 solve for magnetic field 0
 #**
 # 
-Drude params $gamma $omegap all (gamma,omegap,domain-name)
-#
-#***
 bc: all=perfectElectricalConductor
 #**
 #****
@@ -104,5 +108,13 @@ use divergence cleaning $divClean
 div cleaning coefficient $divCleanCoeff
 project interpolation points $projectInterp
 #
+#*********************************
+show file options...
+  MXSF:compressed
+  MXSF:open
+  $show
+  MXSF:frequency to flush 20
+exit
+#**********************************
 continue
 $go

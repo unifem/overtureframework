@@ -996,6 +996,9 @@
         integer ec,pc
         real gamma,omegap
         real gammaDt,omegapDtSq,ptt, fe,fp
+        ! Generalized dispersion model parameters
+        real alphaP, a0,a1,b0,b1
+        real ev,evm,pv,pvm,deti,rhsE,rhsP
        ! real unxx22r,unyy22r,unxy22r,unx22r
        !.......statement functions for jacobian
         rx(i1,i2,i3)=rsxy(i1,i2,i3,0,0)
@@ -3471,6 +3474,11 @@ c===============================================================================
         gamma= rpar(21)
         omegap=rpar(22)
         sosupParameter=rpar(23)
+        alphaP=rpar(24)
+        a0    =rpar(25)
+        a1    =rpar(26)
+        b0    =rpar(27)
+        b1    =rpar(28)
         dy=dx(1)  ! Are these needed?
         dz=dx(2)
         ! timeForArtificialDissipation=rpar(6) ! return value
@@ -3550,8 +3558,11 @@ c===============================================================================
         gammaDt=gamma*dt
         omegapDtSq=(omegap*dt)**2
         if( t.eq.0. .and. dispersionModel.ne.noDispersion )then
-           write(*,'("--advOpt-- dispersionModel=",i4," px,py,pz=",3i2)
+          ! ---- Dispersive Maxwell ----
+          write(*,'("--advOpt-- dispersionModel=",i4," px,py,pz=",3i3)
      & ') dispersionModel,pxc,pyc,pzc
+          write(*,'("--advOpt-- GDM: alphaP,a0,a1,b0,b1=",5(1p,e10.2))
+     & ') alphaP,a0,a1,b0,b1
         end if
         if( useSosupDissipation.ne.0 )then
          ! Coefficients in the sosup dissipation from Jordan Angel

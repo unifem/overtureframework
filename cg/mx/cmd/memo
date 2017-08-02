@@ -1,3 +1,25 @@
+********************
+**** July 29, 2017
+
+TEST *NEW* GDM DISPERSIVE solution
+
+cgmx -noplot cic.planeWaveBC -g=cice4.order2.hdf -dm=gdm -a0=0 -a1=0 -b0=0 -b1=1 -diss=0 -tp=.1 -tf=1 -go=og
+
+
+********************
+**** July 28, 2017
+
+TEST NEW FD44s -- sosup dissipation
+
+
+STABLE 
+cgmx cic.planeWaveBC -g=cice4.order4.ng3.hdf -useSosupDissipation=1 -cons=1 -diss=.0 -tp=1. -tf=30
+
+Blows-up: zero dissipation
+cgmx cic.planeWaveBC -g=cice4.order4.hdf -diss=.0 -tp=1. -tf=30
+
+
+
 === 2014/06/19 -- add dirichlet BC for annulusEigenFunction for JWB
 
 **** SOSUP6:

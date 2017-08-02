@@ -243,8 +243,17 @@ outputResults( int current, real t, real dt )
 
   int numberOfComponents= C.length(); 
   int numberToOutput= numberOfComponents+1; // include div(E)
-//    printF("\n ***** outputResults: maximumError.getLength(0)=%i numberOfComponents=%i\n",
-//  	 maximumError.getLength(0),numberOfComponents);
+  if( dispersionModel != noDispersion )
+  {
+    // output errors in P too:
+    CompositeGrid & cg= *cgp;
+    numberToOutput += cg.numberOfDimensions();
+  }
+  
+
+  if( false )
+    printF("\n ***** outputResults: maximumError.getLength(0)=%i numberOfComponents=%i\n",
+           maximumError.getLength(0),numberOfComponents);
   
   if( maximumError.getLength(0)>= (numberToOutput-1) && myid==0 )
   {

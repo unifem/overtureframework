@@ -3109,19 +3109,31 @@ assignInitialConditions(int current, real t, real dt )
                   // evaluate the dispersion relation,  exp(i(k*x-omega*t))
                   //    omega is complex 
                                     const real kk = twoPi*sqrt( kx*kx+ky*ky+kz*kz);
-              		  real reS, imS, omegaDpwRe, omegaDpwIm;
-              		  dmp.computeDispersionRelation( c,eps,mu,kk, reS, imS ); // s = reS + i*imS
-                                    omegaDpwRe=imS; omegaDpwIm=reS;
+              		  real sr, si;
+		  // dmp.computeDispersionRelation( c,eps,mu,kk, sr, si ); // s = sr + i*si
+
+                  // *new way*
+                                    real psir,psii;
+              		  dmp.evaluateDispersionRelation( c,kk, sr, si, psir,psii ); 
+                  // omegaDpwRe=imS; omegaDpwIm=reS;
               		  
 		  // dmp.computeDispersivePlaneWaveParameters( c,eps,mu,kk, omegaDpwRe, omegaDpwIm );
 
-              		  printF("++++ IC: dispersion relation: omegar=%g, omegai=%g\n",omegaDpwRe, omegaDpwIm );
+              		  printF("--MX--GIC dispersion: s=(%12.4e,%12.4e)\n",sr,si);
 
-              		  const real dpwExp =exp(omegaDpwIm*tE);
-              		  const real dpwExpm=exp(omegaDpwIm*(tE-dt));
-                		    
-                                    OV_ABORT("Finish me -- add eval of Px and Py");
-              		  
+                                    real expt=exp(sr*tE);
+                                    real ct = cos(si*tE)*expt, st=sin(si*tE)*expt;
+
+                                    real exptm=exp(sr*(tE-dt));
+                                    real ctm = cos(si*(tE-dt))*exptm, stm=sin(si*(tE-dt))*exptm;
+
+                  // Hz = (i/s) * (-1) * (kx*Ey - ky*Ex )/mu
+                                    real hFactor = -twoPi*( kx*pwc[1] - ky*pwc[0] )/mu;
+                                    real sNormSq = sr*sr+si*si;
+                  //  hr + i*hi = (i/s)*hfactor
+                                    real hr = hFactor*si/sNormSq;
+                                    real hi = hFactor*sr/sNormSq;
+
               		  FOR_3D(i1,i2,i3,J1,J2,J3)
               		  {
                 		    real x,y;
@@ -3136,13 +3148,38 @@ assignInitialConditions(int current, real t, real dt )
                                       y = ye(i1,i2,i3);
                                   }
               		  
-                		    UMEX(i1,i2,i3)=exDpw(x,y,tE-dt,dpwExpm);
-                		    UMEY(i1,i2,i3)=eyDpw(x,y,tE-dt,dpwExpm);
-                		    UMHZ(i1,i2,i3)=hzDpw(x,y,tH-dt,dpwExpm);
-            		
-                		    UEX(i1,i2,i3)=exDpw(x,y,tE,dpwExp);
-                		    UEY(i1,i2,i3)=eyDpw(x,y,tE,dpwExp);
-                		    UHZ(i1,i2,i3)=hzDpw(x,y,tH,dpwExp);
+                                        real xi = twoPi*(kx*x+ky*y);
+                                        real cx=cos(xi), sx=sin(xi);
+                                        
+                                        real amp=cx*ct-sx*st;
+                		    UEX(i1,i2,i3)=pwc[0]*amp;
+                		    UEY(i1,i2,i3)=pwc[1]*amp;
+
+                                        real amph = (hr*ct-hi*st)*cx - (hr*st+hi*ct)*sx;
+                		    UHZ(i1,i2,i3)=amph;
+
+                                        amp=cx*ctm-sx*stm;
+                		    UMEX(i1,i2,i3)=pwc[0]*amp;
+                		    UMEY(i1,i2,i3)=pwc[1]*amp;
+
+                                        amph = (hr*ctm-hi*stm)*cx - (hr*stm+hi*ctm)*sx;
+                		    UMHZ(i1,i2,i3)=amph;
+
+                    // -- dispersion model components --
+                                        if( pxc>=0 )
+                                        {
+                                            
+                      // amp=(psir*cx-psii*sx)*ctm - (psir*sx+psii*cx)*stm;
+                                            amp=(psir*ctm-psii*stm)*cx - (psir*stm+psii*ctm)*sx;
+                                            umLocal(i1,i2,i3,pxc) =pwc[0]*amp;
+                                            umLocal(i1,i2,i3,pyc) =pwc[1]*amp;
+
+                      // amp=(psir*cx-psii*sx)*ct - (psir*sx+psii*cx)*st;
+                                            amp=(psir*ct-psii*st)*cx - (psir*st+psii*ct)*sx;
+                                            uLocal(i1,i2,i3,pxc) =pwc[0]*amp;
+                                            uLocal(i1,i2,i3,pyc) =pwc[1]*amp;
+                                        }
+
               		  }
             		} // end if noDispersion
             		
@@ -3858,6 +3895,8 @@ assignInitialConditions(int current, real t, real dt )
         	  {
                         a1=1., a2=-1., a3=0.;  // For 2d, divergence free if a1+a2=0
           	    omega=c*sqrt(fx*fx+fy*fy);
+          	    printF("\n\n>>>>>>>>> --MX-IC-- box eigenfunction: fx=%g Pi, fy=%g Pi omega=%g Pi.\n\n",
+               		   fx/Pi, fy/Pi, omega/Pi);
 	    // x0=-.5, y0=-.5;   // for the square [-.5,.5]x[-.5,.5] 
         	  }
         	  else
@@ -3901,50 +3940,60 @@ assignInitialConditions(int current, real t, real dt )
                             DispersiveMaterialParameters & dmp = getDispersiveMaterialParameters(grid);
               // Evaluate the dispersion relation for "s"
                             const real kk = omega/c;  // Parameter in dispersion relation **check me**
-                            real reS, imS;
-                            dmp.computeDispersionRelation( c,eps,mu,kk, reS, imS );
+              // real reS, imS;
+              // old dmp.computeDispersionRelation( c,eps,mu,kk, reS, imS );
+              // *new way*
+                            real sr,si,psir,psii;
+                            dmp.evaluateDispersionRelation( c,kk, sr, si, psir,psii ); 
                             if( t<3.*dt )
-                                printF("--IC:SQ-Eig-- (dispersive) t=%10.3e, reS=%g, imS=%g a1=%g a2=%g\n",t,reS,imS,a1,a2 );
+                                printF("--IC:SQ-Eig-- (dispersive) t=%10.3e, sr=%g, si=%g a1=%g a2=%g\n",t,sr,si,a1,a2 );
               // s = a + i b 
               // Time-factor = sin(b*tEm)*exp(a*tEm) 
-                            const real a = reS, b=imS, a2pb2=a*a+b*b;  // s = a + i b 
-                            real dpwExpE =exp(a*(tEm)); // decay part of time dependence
-                            real dpwExpH =exp(a*(tHm)); // decay part of time dependence
+                            const real a = sr, b=si, a2pb2=a*a+b*b;  // s = a + i b 
+                            real expE =exp(a*(tEm)); // decay part of time dependence
+                            real expH =exp(a*(tHm)); // decay part of time dependence
+                            real ste=sin(b*tEm)*expE , cte=cos(b*tEm)*expE ;
+                            real sth=sin(b*tHm)*expH, cth=cos(b*tHm)*expH;
                             if( numberOfDimensions==2 )
                             {
-                                phiEx = (a1/fx)*(   sin(b*(tEm))*dpwExpE ); 
-                                phiExt= (a1/fx)*( b*cos(b*(tEm))*dpwExpE ) + a*phiEx;
-                                phiEy = (a2/fy)*(   sin(b*(tEm))*dpwExpE ); 
-                                phiEyt= (a2/fy)*( b*cos(b*(tEm))*dpwExpE ) + a*phiEy;
+                                real scale= sqrt(fx*fx+fy*fy);
+                                real a1s= scale*a1/fx, a2s=scale*a2/fy;
+                                phiEx = a1s*(   ste ); 
+                                phiExt= a1s*( b*cte ) + a*phiEx; // time-deriv for sosup scheme 
+                                phiEy = a2s*(   ste ); 
+                                phiEyt= a2s*( b*cte ) + a*phiEy;
                 // mu * (Hz)_t = -(Ey)_x + (Ex)_y
                 // **** CHECK ME ****
-                                const real amp  = -(1./mu)*(a2*fx/fy-a1*fy/fx)*( a*  sin(b*(tHm)) - b*  cos(b*(tHm)) )/a2pb2;
-                                const real ampt = -(1./mu)*(a2*fx/fy-a1*fy/fx)*( a*b*cos(b*(tHm)) + b*b*sin(b*(tHm)) )/a2pb2;
-                                phiHz  =  amp*dpwExpH; 
-                                phiHzt =  ampt*dpwExpH + a*phiHz;
+                                const real amph  = -(1./mu)*(a2s*fx-a1s*fy)*( a*  sth - b*  cth )/a2pb2;
+                                const real ampht = -(1./mu)*(a2s*fx-a1s*fy)*( a*b*cth + b*b*sth )/a2pb2;
+                                phiHz  =  amph; 
+                                phiHzt =  ampht + a*amph;
                 // P = Chi * E = omegap^2/( s*(s+gamma) )* E 
                 //  Chi = omegap^2/( s*(s+gamma) )
                 //  Chi = omegap^2*[  sBar*(sBar+gamma)/( |s|^2 * |s+gamma|^2 ) ]
                 //      = omegap^2*[ (a-i*b)*( a+gamma - i*b)/( |s|^2 * |s+gamma|^2 ) ]
                 //      = omegap^2*[ (a)(a+gamma) -b^2 + i*( -a*b - b*(a+gamma) )/( |s|^2 * |s+gamma|^2 ) ]
                 // NOTE:    E = Im( Ehat(x,y)*exp( s*t ) )
-                                const real gamma=dmp.gamma, omegap=dmp.omegap;
-                                const real denom = (SQR(a)+SQR(b))*( SQR((a+gamma)) + SQR(b) );
-                                real reChi =  omegap*omegap* (a*(a+gamma)-b*b)/denom;   
-                                real imChi = -omegap*omegap* b*(2*a+gamma)/denom;
+                // const real gamma=dmp.gamma, omegap=dmp.omegap;
+                // const real denom = (SQR(a)+SQR(b))*( SQR((a+gamma)) + SQR(b) );
+                // real reChi =  omegap*omegap* (a*(a+gamma)-b*b)/denom;   
+                // real imChi = -omegap*omegap* b*(2*a+gamma)/denom;
+                // printF("--BOXEIG-- psir=%e psii=%e reCh=%e imChi=%e\n",psir,psii,reChi,imChi);
                 // phiP = Im(  Chi*( cos(beta*t) + i*sin(beta*t) )*exp(alpha*t )  ... s= alpha+i*beta
-                                real phiP = reChi*sin(b*(tEm))+ imChi*cos(b*(tEm));
-                                phiPx = (a1/fx)*( phiP )*dpwExpE; 
-                                phiPy = (a2/fy)*( phiP )*dpwExpE; 
+                                real phiP = psir*ste+ psii*cte;
+                                phiPx = a1s*( phiP );
+                                phiPy = a2s*( phiP );
                             }
                             else
                             {
-                                phiEx = (a1/fx)*(   sin(b*(tEm))*dpwExpE ); 
-                                phiExt= (a1/fx)*( b*cos(b*(tEm))*dpwExpE ) + a*phiEx ;
-                                phiEy = (a2/fy)*(   sin(b*(tEm))*dpwExpE ); 
-                                phiEyt= (a2/fy)*( b*cos(b*(tEm))*dpwExpE ) + a*phiEy;
-                                phiEz = (a3/fz)*(   sin(b*(tEm))*dpwExpE ); 
-                                phiEzt= (a3/fz)*( b*cos(b*(tEm))*dpwExpE ) + a*phiEz;
+                                real scale= sqrt(fx*fx+fy*fy+fz*fz);
+                                real a1s= scale*a1/fx, a2s=scale*a2/fy, a3s=scale*a3/fz;
+                                phiEx = a1s*(   ste ); 
+                                phiExt= a1s*( b*cte ) + a*phiEx ;
+                                phiEy = a2s*(   ste ); 
+                                phiEyt= a2s*( b*cte ) + a*phiEy;
+                                phiEz = a3s*(   ste ); 
+                                phiEzt= a3s*( b*cte ) + a*phiEz;
                             }
                         }
                         phiExm=phiEx; phiEym=phiEy; phiEzm=phiEz; phiHzm=phiHz; // save values at "minus" time
@@ -3974,50 +4023,60 @@ assignInitialConditions(int current, real t, real dt )
                             DispersiveMaterialParameters & dmp = getDispersiveMaterialParameters(grid);
               // Evaluate the dispersion relation for "s"
                             const real kk = omega/c;  // Parameter in dispersion relation **check me**
-                            real reS, imS;
-                            dmp.computeDispersionRelation( c,eps,mu,kk, reS, imS );
+              // real reS, imS;
+              // old dmp.computeDispersionRelation( c,eps,mu,kk, reS, imS );
+              // *new way*
+                            real sr,si,psir,psii;
+                            dmp.evaluateDispersionRelation( c,kk, sr, si, psir,psii ); 
                             if( t<3.*dt )
-                                printF("--IC:SQ-Eig-- (dispersive) t=%10.3e, reS=%g, imS=%g a1=%g a2=%g\n",t,reS,imS,a1,a2 );
+                                printF("--IC:SQ-Eig-- (dispersive) t=%10.3e, sr=%g, si=%g a1=%g a2=%g\n",t,sr,si,a1,a2 );
               // s = a + i b 
               // Time-factor = sin(b*tE)*exp(a*tE) 
-                            const real a = reS, b=imS, a2pb2=a*a+b*b;  // s = a + i b 
-                            real dpwExpE =exp(a*(tE)); // decay part of time dependence
-                            real dpwExpH =exp(a*(tH)); // decay part of time dependence
+                            const real a = sr, b=si, a2pb2=a*a+b*b;  // s = a + i b 
+                            real expE =exp(a*(tE)); // decay part of time dependence
+                            real expH =exp(a*(tH)); // decay part of time dependence
+                            real ste=sin(b*tE)*expE , cte=cos(b*tE)*expE ;
+                            real sth=sin(b*tH)*expH, cth=cos(b*tH)*expH;
                             if( numberOfDimensions==2 )
                             {
-                                phiEx = (a1/fx)*(   sin(b*(tE))*dpwExpE ); 
-                                phiExt= (a1/fx)*( b*cos(b*(tE))*dpwExpE ) + a*phiEx;
-                                phiEy = (a2/fy)*(   sin(b*(tE))*dpwExpE ); 
-                                phiEyt= (a2/fy)*( b*cos(b*(tE))*dpwExpE ) + a*phiEy;
+                                real scale= sqrt(fx*fx+fy*fy);
+                                real a1s= scale*a1/fx, a2s=scale*a2/fy;
+                                phiEx = a1s*(   ste ); 
+                                phiExt= a1s*( b*cte ) + a*phiEx; // time-deriv for sosup scheme 
+                                phiEy = a2s*(   ste ); 
+                                phiEyt= a2s*( b*cte ) + a*phiEy;
                 // mu * (Hz)_t = -(Ey)_x + (Ex)_y
                 // **** CHECK ME ****
-                                const real amp  = -(1./mu)*(a2*fx/fy-a1*fy/fx)*( a*  sin(b*(tH)) - b*  cos(b*(tH)) )/a2pb2;
-                                const real ampt = -(1./mu)*(a2*fx/fy-a1*fy/fx)*( a*b*cos(b*(tH)) + b*b*sin(b*(tH)) )/a2pb2;
-                                phiHz  =  amp*dpwExpH; 
-                                phiHzt =  ampt*dpwExpH + a*phiHz;
+                                const real amph  = -(1./mu)*(a2s*fx-a1s*fy)*( a*  sth - b*  cth )/a2pb2;
+                                const real ampht = -(1./mu)*(a2s*fx-a1s*fy)*( a*b*cth + b*b*sth )/a2pb2;
+                                phiHz  =  amph; 
+                                phiHzt =  ampht + a*amph;
                 // P = Chi * E = omegap^2/( s*(s+gamma) )* E 
                 //  Chi = omegap^2/( s*(s+gamma) )
                 //  Chi = omegap^2*[  sBar*(sBar+gamma)/( |s|^2 * |s+gamma|^2 ) ]
                 //      = omegap^2*[ (a-i*b)*( a+gamma - i*b)/( |s|^2 * |s+gamma|^2 ) ]
                 //      = omegap^2*[ (a)(a+gamma) -b^2 + i*( -a*b - b*(a+gamma) )/( |s|^2 * |s+gamma|^2 ) ]
                 // NOTE:    E = Im( Ehat(x,y)*exp( s*t ) )
-                                const real gamma=dmp.gamma, omegap=dmp.omegap;
-                                const real denom = (SQR(a)+SQR(b))*( SQR((a+gamma)) + SQR(b) );
-                                real reChi =  omegap*omegap* (a*(a+gamma)-b*b)/denom;   
-                                real imChi = -omegap*omegap* b*(2*a+gamma)/denom;
+                // const real gamma=dmp.gamma, omegap=dmp.omegap;
+                // const real denom = (SQR(a)+SQR(b))*( SQR((a+gamma)) + SQR(b) );
+                // real reChi =  omegap*omegap* (a*(a+gamma)-b*b)/denom;   
+                // real imChi = -omegap*omegap* b*(2*a+gamma)/denom;
+                // printF("--BOXEIG-- psir=%e psii=%e reCh=%e imChi=%e\n",psir,psii,reChi,imChi);
                 // phiP = Im(  Chi*( cos(beta*t) + i*sin(beta*t) )*exp(alpha*t )  ... s= alpha+i*beta
-                                real phiP = reChi*sin(b*(tE))+ imChi*cos(b*(tE));
-                                phiPx = (a1/fx)*( phiP )*dpwExpE; 
-                                phiPy = (a2/fy)*( phiP )*dpwExpE; 
+                                real phiP = psir*ste+ psii*cte;
+                                phiPx = a1s*( phiP );
+                                phiPy = a2s*( phiP );
                             }
                             else
                             {
-                                phiEx = (a1/fx)*(   sin(b*(tE))*dpwExpE ); 
-                                phiExt= (a1/fx)*( b*cos(b*(tE))*dpwExpE ) + a*phiEx ;
-                                phiEy = (a2/fy)*(   sin(b*(tE))*dpwExpE ); 
-                                phiEyt= (a2/fy)*( b*cos(b*(tE))*dpwExpE ) + a*phiEy;
-                                phiEz = (a3/fz)*(   sin(b*(tE))*dpwExpE ); 
-                                phiEzt= (a3/fz)*( b*cos(b*(tE))*dpwExpE ) + a*phiEz;
+                                real scale= sqrt(fx*fx+fy*fy+fz*fz);
+                                real a1s= scale*a1/fx, a2s=scale*a2/fy, a3s=scale*a3/fz;
+                                phiEx = a1s*(   ste ); 
+                                phiExt= a1s*( b*cte ) + a*phiEx ;
+                                phiEy = a2s*(   ste ); 
+                                phiEyt= a2s*( b*cte ) + a*phiEy;
+                                phiEz = a3s*(   ste ); 
+                                phiEzt= a3s*( b*cte ) + a*phiEz;
                             }
                         }
 
@@ -4300,13 +4359,65 @@ assignInitialConditions(int current, real t, real dt )
                       assert( m<mdbpz && n<ndbpz );
                       real omega = besselPrimeZeros[n][m];  // m'th zero of Jn' (excluding r=0 for J0)
         // printF("Annulus: Bessel function solution: n=%i, m=%i, omega=%e (c=%8.2e)\n",n,m,omega,c);
-                      const real eps=sqrt(REAL_EPSILON);
+                      const real epsilon=sqrt(REAL_EPSILON);
                       real np1Factorial=1.;
                       for( int k=2; k<=n+1; k++ )
                           np1Factorial*=k;              //  (n+1)!
                       int i1,i2,i3;
                       real r,gr,xd,yd,zd,bj,bjp,rx,ry,theta,thetax,thetay;
                       real cosTheta,sinTheta,bjThetax,bjThetay,uex,uey,cosn,sinn;
+                      real sint = sin(omega*t), cost = cos(omega*t);
+                      real sintp = omega*cost, costp = -omega*sint;
+                      real sintm = sin(omega*(t-dt)), costm = cos(omega*(t-dt));
+                      real sr,si,psir,psii, ct,st,expt, ctm,stm,exptm;
+                      real ampH, ampE, ampHm, ampEm, ampHp, ampEp, ampHmp, ampEmp;
+                      real ampP=0., ampPm=0.;
+                      if( dispersionModel==noDispersion )
+                      {
+                          ampH  = cost;   ampHp  =-omega*sint;
+                          ampE  = sint;   ampEp  = omega*cost;
+                          ampHm = costm;  ampHmp =-omega*sintm;
+                          ampEm = sintm;  ampEmp = omega*costm;
+                      }
+                      else 
+                      {
+             // --- DISPERSIVE ----
+                          DispersiveMaterialParameters & dmp = getDispersiveMaterialParameters(grid);
+             // Evaluate the dispersion relation for "s"
+                          const real kk = omega/c; //  *CHECK ME* 
+                          dmp.evaluateDispersionRelation( c,kk, sr, si, psir,psii ); 
+                          if( t<3.*dt )
+                              printF("--DISK-EIGEN-- (dispersive) t=%10.3e, sr=%g, si=%g psir=%g psii=%g\n",t,sr,si,psir,psii );
+                          expt =exp(sr*t);
+                          st=sin(si*t)*expt; ct=cos(si*t)*expt;
+             // const real stp= si*ct+sr*st , ctp=-si*st+sr*ct;
+                          const real tm=t-dt;
+                          exptm =exp(sr*tm);
+                          stm=sin(si*tm)*exptm; ctm=cos(si*tm)*exptm;
+             // const real stmp= si*ctm+sr*stm , ctmp=-si*stm+sr*ctm;
+                          const real sNormSq = sr*sr+si*si;
+                          ampH = ct;   
+             // ampHp = -si*st + sr*ct;
+             // E = Re( (1/(eps*s) * 1/( 1+alphaP*psi) * ( ct + i sint ) )
+             //   = Re( (phir+i*phii)*( ct + i sint )
+                          const real alphaP = dmp.alphaP;
+                          real chiNormSq = SQR(1.+alphaP*psir)+SQR(alphaP*psii); //   | 1+alphaP*psi|^2 
+             //  phi = (1/(eps*s) * 1/( 1+alphaP*psi)
+             //      = (sr-i*si)*( 1+alphaP*psir - i*alphaP*psii)/(eps* sNormSq*chiNormSq )
+             //      = phir +i*phii 
+                          real phir = ( sr*(1.+alphaP*psir)-si*alphaP*psii)/( eps*sNormSq*chiNormSq );
+                          real phii = (-si*(1.+alphaP*psir)-sr*alphaP*psii)/( eps*sNormSq*chiNormSq );
+                          ampE = phir*ct - phii*st;
+             // P = Re( (psir+i*psii)*(phir+i*phii)*( ct + i sint ) )
+             //   = Re( (psir+i*psii)*( phir*ct-phii*st + i*( phir*st +phii*ct )
+             //   = psir*( phir*ct-phii*st) -psii*(  phir*st +phii*ct )
+                          ampP = psir*(phir*ct-phii*st ) - psii*( phir*st +phii*ct);
+             // tm = t-dt 
+                          ampHm = ctm;  
+             // ampHp = -si*stm + sr*ctm;
+                          ampEm = phir*ctm - phii*stm;
+                          ampPm = psir*(phir*ctm-phii*stm ) - psii*( phir*stm +phii*ctm);
+                      }
                       FOR_3D(i1,i2,i3,J1,J2,J3)
                       {
                           xd=X(i1,i2,i3,0);
@@ -4322,13 +4433,21 @@ assignInitialConditions(int current, real t, real dt )
                           rx = cosTheta;  // x/r
                           ry = sinTheta;  // y/r
                           bj=jn(n,gr);  // Bessel function J of order n
-                          if( gr>eps )  // need asymptotic expansion for small gr ??
+                          if( gr>epsilon )  // need asymptotic expansion for small gr ??
                           {
                               bjp = -jn(n+1,gr) + n*bj/gr;  // from the recursion relation for Jn'
                               thetay= cosTheta/r;
                               thetax=-sinTheta/r;
-                              uex =  (1./omega)*(omega*ry*bjp*cosn -n*bj*thetay*sinn);
-                              uey = -(1./omega)*(omega*rx*bjp*cosn -n*bj*thetax*sinn);
+                              if( dispersionModel==noDispersion )
+                              {
+                                  uex =  (1./omega)*(omega*ry*bjp*cosn -n*bj*thetay*sinn); // Ex.t = Hz.y
+                                  uey = -(1./omega)*(omega*rx*bjp*cosn -n*bj*thetax*sinn); // Ey.t = - Hz.x
+                              }
+                              else
+                              {
+                                  uex =  (omega*ry*bjp*cosn -n*bj*thetay*sinn); // Ex.t = Hz.y
+                                  uey = -(omega*rx*bjp*cosn -n*bj*thetax*sinn); // Ey.t = - Hz.x
+                              }
                           }
                           else
                           {
@@ -4339,24 +4458,41 @@ assignInitialConditions(int current, real t, real dt )
                // bj/r = omega*bjp at r=0
                               bjThetay= omega*bjp*cosTheta;
                               bjThetax=-omega*bjp*sinTheta;
-                              uex =  (1./omega)*(omega*ry*bjp*cosn -n*bjThetay*sinn);  // Ex.t = Hz.y
-                              uey = -(1./omega)*(omega*rx*bjp*cosn -n*bjThetax*sinn);  // Ey.t = - Hz.x
+                              if( dispersionModel==noDispersion )
+                              {
+                                  uex =  (1./omega)*(omega*ry*bjp*cosn -n*bjThetay*sinn);  // Ex.t = Hz.y
+                                  uey = -(1./omega)*(omega*rx*bjp*cosn -n*bjThetax*sinn);  // Ey.t = - Hz.x
+                              }
+                              else
+                              {
+                                  uex =  (omega*ry*bjp*cosn -n*bjThetay*sinn);  // Ex.t = Hz.y
+                                  uey = -(omega*rx*bjp*cosn -n*bjThetax*sinn);  // Ey.t = - Hz.x
+                              }
                           }
-                          real sint = sin(omega*t), cost = cos(omega*t);
-                              UHZ(i1,i2,i3)  = bj*cosn*cost;
-                              UEX(i1,i2,i3) = uex*sint;  // Ex.t = Hz.y
-                              UEY(i1,i2,i3) = uey*sint;  // Ey.t = - Hz.x
+                              UHZ(i1,i2,i3)  = bj*cosn*ampH;
+                              UEX(i1,i2,i3) = uex*ampE;  // Ex.t = Hz.y
+                              UEY(i1,i2,i3) = uey*ampE;  // Ey.t = - Hz.x
                               if( method==nfdtd )
                               {
-                                  UMHZ(i1,i2,i3) = bj*cosn*cos(omega*(t-dt));
-                                  UMEX(i1,i2,i3) = uex*sin(omega*(t-dt)); 
-                                  UMEY(i1,i2,i3) = uey*sin(omega*(t-dt)); 
+                                  UMHZ(i1,i2,i3) = bj*cosn*ampHm;
+                                  UMEX(i1,i2,i3) = uex*ampEm;
+                                  UMEY(i1,i2,i3) = uey*ampEm;
                               }
                               else if( method==sosup )
                               {
-                                  uLocal(i1,i2,i3,hzt) = -omega*bj*cosn*sint;
-                                  uLocal(i1,i2,i3,ext) = omega*uex*cost;
-                                  uLocal(i1,i2,i3,eyt) = omega*uey*cost;
+                                  uLocal(i1,i2,i3,hzt) =  bj*cosn*ampHp;
+                                  uLocal(i1,i2,i3,ext) = uex*ampEp;
+                                  uLocal(i1,i2,i3,eyt) = uey*ampEp;
+                              }
+                              if( dispersionModel!=noDispersion )
+                              { // -- dispersive ---
+                                  uLocal(i1,i2,i3,pxc) = uex*ampP;
+                                  uLocal(i1,i2,i3,pyc) = uey*ampP;
+                                  if( method==nfdtd )
+                                  {
+                                      umLocal(i1,i2,i3,pxc) = uex*ampPm;
+                                      umLocal(i1,i2,i3,pyc) = uey*ampPm;
+                                  }
                               }
                     }
                   }
@@ -4372,7 +4508,7 @@ assignInitialConditions(int current, real t, real dt )
                       real omega = sqrt( SQR(k*Pi/cylinderLength) + lambda*lambda );
                       printF("***Cylinder: Bessel function soln: n=%i, m=%i, k=%i, lambda=%e, omega=%e (c=%8.2e) [za,zb]=[%4.2f,%4.2f]\n",
                                     n,m,k,lambda,omega,c,cylinderAxisStart,cylinderAxisEnd);
-                      const real eps=sqrt(REAL_EPSILON);
+                      const real epsilon=sqrt(REAL_EPSILON);
                       real np1Factorial=1.;
                       for( int k=2; k<=n+1; k++ )
                           np1Factorial*=k;              //  (n+1)!
@@ -4397,7 +4533,7 @@ assignInitialConditions(int current, real t, real dt )
                           rx = cosTheta;  // x/r
                           ry = sinTheta;  // y/r
                           bj=jn(n,gr);  // Bessel function J of order n
-                          if( gr>eps )  // need asymptotic expansion for small gr ??
+                          if( gr>epsilon )  // need asymptotic expansion for small gr ??
                           {
                               bjp = -jn(n+1,gr) + n*bj/gr;  // from the recursion relation for Jn'
                               thetay= cosTheta/r;
@@ -4487,29 +4623,63 @@ assignInitialConditions(int current, real t, real dt )
               // Evaluate the dispersion relation for "s"
                             DispersiveMaterialParameters & dmp = getDispersiveMaterialParameters(grid);
                             const real kk = twoPi*cc0;  // Parameter in dispersion relation **check me**
-                            real reS, imS;
-                            dmp.computeDispersionRelation( c,eps,mu,kk, reS, imS );
-                            real expS = exp(reS*t), expSm=exp(reS*(t-dt));
-                            imS=-imS;  // flip sign    **** FIX ME ****
-                            printF("--IC-- scatCyl imS=%g, Im(s)/(twoPi*cc0)=%g reS=%g\n",imS,imS/twoPi*cc0,reS);
-                            cost = cos( imS*t )*expS;      // "cos(t)" for dispersive model 
-                            sint = sin( imS*t )*expS;
-                            costm = cos( imS*(t-dt) )*expS;
-                            sintm = sin( imS*(t-dt) )*expS;
-                            dcost = -imS*sint + reS*cost;  //  d/dt of "cost" 
-                            dsint =  imS*cost + reS*sint;  //  d/dt of "cost" 
-                            real alpha=reS, beta=imS;  // s= alpha + i*beta (
-                            real a,b;   // psi = a + i*b 
-              // P = Im{ psi(s)*E } = Im{ (a+i*b)*( Er + i*Ei)(cos(beta*t)+i*sin(beta*t))*exp(alpha*t) }
-                            const real gamma=dmp.gamma, omegap=dmp.omegap;
-                            const real cp = eps* omegap*omegap;
-                            const real denom = (SQR(alpha)+SQR(beta))*( SQR((alpha+gamma)) + SQR(beta) );
-                            a =  cp* (alpha*(alpha+gamma)-beta*beta)/denom;   
-                            b = -cp* beta*(2.*alpha+gamma)/denom;
-                            phiPc = a*cost-b*sint;
-                            phiPs = a*sint+b*cost;
-                            phiPcm = a*costm-b*sintm;
-                            phiPsm = a*sintm+b*costm;
+              // *new way*
+                            real sr,si,psir,psii;
+                            dmp.evaluateDispersionRelation( c,kk, sr, si, psir,psii ); 
+              // real reS, imS;
+              // dmp.computeDispersionRelation( c,eps,mu,kk, reS, imS );
+              // real expS = exp(reS*t), expSm=exp(reS*(t-dt));
+              // si=-si;  // flip sign    **** FIX ME ****
+                            if( t<=3.*dt ) 
+                            {
+                                printF("--MX--GIC dispersion: s=(%12.4e,%12.4e) psi=(%12.4e,%12.4e)\n",sr,si,psir,psii);
+                                printF("--MX--GIC scatCyl si/(twoPi*cc0)=%g\n",si/twoPi*cc0);
+                            }
+              // Re( (Er+i*Ei)*( ct + i*st ) )
+              //   ct*Er - st*Ei 
+                            const real tm=t-dt;
+                            real expt=exp(sr*t), exptm=exp(sr*tm);
+                            real ct =cos( si*t  )*expt,  st =sin( si*t )*expt;
+                            real ctm=cos( si*tm )*exptm, stm=sin( si*tm )*exptm;
+                            cost =  ct;      // Coeff of Ei
+                            sint =  st;     // Coeff of Er
+                            costm =  ctm;
+                            sintm =  stm;
+                            dcost =  -si*st + sr*ct;  //  d/dt of "cost" 
+                            dsint =  (si*ct + sr*st);  //  d/dt of "cost" 
+              // real alpha=reS, beta=imS;  // s= alpha + i*beta (
+              // real a,b;   // psi = a + i*b 
+              // P = Re{ psi(s)*E } = Re{ (psir+i*psi)*( Er + i*Ei)( ct+i*st ) }
+                            phiPc =  psir*cost-psii*sint;  // Coeff of Er 
+                            phiPs = -psir*sint-psii*cost;  // coeff of Ei
+                            phiPcm =  psir*costm-psii*sintm;
+                            phiPsm = -psir*sintm-psii*costm;
+                // *** TEST ****
+                            if( true )
+                            {
+                                sint = ct;     // Coeff of Er    
+                                cost = -st;     // Coeff of Ei
+                                sintm = ctm;
+                                costm =-stm;
+                                dsint =  -si*st + sr*ct;  //  d/dt of "cost" 
+                                dcost =  -(si*ct + sr*st);  //  d/dt of "cost" 
+                            }
+              // *** TEST ****
+                            if( false )
+                            {
+                                cost = cos(-twoPi*cc0*t); // *wdh* 040626 add "-"
+                                sint = sin(-twoPi*cc0*t); // *wdh* 040626 add "-"
+                                costm= cos(-twoPi*cc0*(t-dt)); // *wdh* 040626 add "-"
+                                sintm= sin(-twoPi*cc0*(t-dt)); // *wdh* 040626 add "-"
+                                dcost =  twoPi*cc0*sint;  // d(sin(..))/dt 
+                                dsint = -twoPi*cc0*cost;  // d(sin(..))/dt 
+                                printF("--MX--GIC (cost,ct)=(%12.4e,%12.4e) (sint,st)=(%12.4e,%12.4e)\n",cost,ct,sint,st);
+                                printF("--MX--GIC (costm,ctm)=(%12.4e,%12.4e) (sintm,stm)=(%12.4e,%12.4e)\n",costm,ctm,sintm,stm);
+                                phiPc =  0.;
+                                phiPs =  0.;
+                                phiPcm = 0.;
+                                phiPsm = 0.;
+                            }
                         }
 
 	  //kkc XXX this only works for nfdtd right now (knownSolution will need to change a bit

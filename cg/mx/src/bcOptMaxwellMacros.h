@@ -1225,10 +1225,9 @@ do i1=nn1a,nn1b
  ! variables for dispersive plane wave
  sr                   =rpar(37)  ! Re(s)
  si                   =rpar(38)  ! Im(s) 
- ! P equation is : P_tt + ap*P_t + bp*P = cp*E
- ap                   =rpar(39)
- bp                   =rpar(40)
- cp                   =rpar(41)
+ ! P = psi*E , psi = psir + i*psii
+ psir                 =rpar(39)
+ psii                 =rpar(40)
 
  if( abs(pwc(0))+abs(pwc(1))+abs(pwc(2)) .eq. 0. )then
    ! sanity check

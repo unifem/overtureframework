@@ -1,4 +1,70 @@
 ***********************
+***** July 27, 2017
+
+More general GDM parameters:
+
+CURVILINEAR *NEW* -diss=0
+cgmx -noplot planeWave -g=nonSquare128.order2 -dm=gdm -b0=1 -b1=1 -a0=1 -a1=1  -kx=4 -tp=.01 -tf=.1 -cfl=1 -diss=0 -checkErrors=1 -go=og
+>>> t=1.00e-02 dt=5.0e-03 max errors:[0.00e+00,8.83e-05,6.95e-05,0.00e+00,2.55e-06,], max (u):[0.00e+00,9.94e-01,9.94e-01,0.00e+00,3.96e-02,] (2 steps)
+
+cgmx -noplot planeWave -g=square128.order2 -dm=gdm -b0=1 -b1=1 -a0=1 -a1=1  -kx=4 -tp=.01 -tf=.1 -cfl=1 -checkErrors=1 -go=og
+
+>>> t=1.00e-02 dt=5.0e-03 max errors:[0.00e+00,8.83e-05,6.95e-05,0.00e+00,2.55e-06,], max (u):[0.00e+00,9.94e-01,9.94e-01,0.00e+00,3.96e-02,] (2 steps)
+
+
+***********************
+***** July 27, 2017
+
+cgmx -noplot planeWave -g=square256p.order2 -dm=drude -kx=4 -tp=.01 -tf=.1 -cfl=1 -checkErrors=1 -go=og
+
+G128
+>>> t=4.00e-01 dt=4.8e-03 max errors:[0.00e+00,1.36e-03,2.66e-03,0.00e+00,3.20e-05,], max (u):[0.00e+00,9.98e-01,9.96e-01,0.00e+00,6.29e-03,] (84 steps)
+
+G256: 
+>>> t=4.00e-01 dt=2.4e-03 max errors:[0.00e+00,3.29e-04,3.35e-03,0.00e+00,7.93e-06,], max (u):[0.00e+00,9.99e-01,9.96e-01,0.00e+00,6.27e-03,] (164 steps)
+
+***********************
+***** July 27, 2017
+
+DISPERSIVE  ** ADD GDM ****
+
+PERIODIC: 
+cgmx -noplot planeWave -g=square32p.order2 -dm=drude -kx=4 -tp=.01 -tf=.1 -cfl=1 -checkErrors=1 -go=og
+>>> t=1.00e-02 dt=1.0e-02 max errors:[0.00e+00,2.85e-03,1.90e-02,0.00e+00,5.24e-07,], max (u):[0.00e+00,9.71e-01,9.72e-01,0.00e+00,1.51e-03,] (1 steps)
+
+
+
+***********************
+***** July 27, 2017
+
+DISPERSIVE  ** ADD GDM ****
+
+
+PERIODIC: 
+cgmx planeWave -g=square128p.order2 -dm=drude -kx=4 -tp=.01 -tf=.1 -cfl=1 -checkErrors=1 -go=og
+>>> t=1.00e-02 dt=5.0e-03 max errors:[0.00e+00,8.88e-05,2.11e-04,0.00e+00,9.92e-08,], max (u):[0.00e+00,9.99e-01,9.99e-01,0.00e+00,1.57e-03,] (2 steps)
+
+
+cgmx -noplot planeWave -g=square32.order2 -dm=drude -kx=4 -tp=.1 -tf=.1 -cfl=1 -checkErrors=1 -go=og
+
+ --MX-- assignInitialConditions: t=0.000e+00 initialConditionOption=1
+ *** planeWaveInitialCondition: t=0.000e+00 dt=2.000e-02 eps=1.000e+00 mu=1.000e+00 c=1.000e+00 ***
+ dispersion: eps=  0.1000E+01 gam=  0.1000E+01 |det|=  0.1803E-09
+--DispersiveMaterialParameters-- dispersion-relation: c=1 eps=1 mu=1 gamma=1 omegap=1 -> real(s)=-0.000789077, Im(s)=25.1526
+++++ IC: dispersion relation: omegar=25.1526, omegai=-0.000789077
+
+
+***********************
+***** July 25, 2017
+
+DISPERSIVE 
+
+cgmx -noplot planeWave -g=square64.order2 -dm=drude -kx=4 -tp=.1 -tf=.1 -cfl=1 -checkErrors=1 -go=og
+
+
+
+
+***********************
 ***** July 22, 2017
 
 TEST NEW multi-stage options 

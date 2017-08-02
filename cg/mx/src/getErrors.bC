@@ -342,26 +342,58 @@ getErrors( int current, real t, real dt )
 	else
 	{
 	  // --- dispersive plane wave ---
+          realSerialArray errLocal; getLocalArrayWithGhostBoundaries((*cgerrp)[grid],errLocal);
+
 	  // Dispersive material parameters
 	  DispersiveMaterialParameters & dmp = getDispersiveMaterialParameters(grid);
 
 	  // evaluate the dispersion relation,  exp(i(k*x-omega*t))
 	  //    omega is complex 
 	  const real kk = twoPi*sqrt( kx*kx+ky*ky+kz*kz);
-	  // real omegaDpwRe, omegaDpwIm;
-	  // dmp.computeDispersivePlaneWaveParameters( c,eps,mu,kk, omegaDpwRe, omegaDpwIm );
-	  real reS, imS, omegaDpwRe, omegaDpwIm;
-	  dmp.computeDispersionRelation( c,eps,mu,kk, reS, imS ); // s = reS + i*imS
-	  omegaDpwRe=imS; omegaDpwIm=reS;
 
-	  printF("++++ getErrors: dispersion relation: omegar=%g, omegai=%g\n",omegaDpwRe, omegaDpwIm );
+          // *new way*
+          real sr,si,psir,psii;
+          dmp.evaluateDispersionRelation( c,kk, sr, si, psir,psii ); 
+          real expt=exp(sr*t);
+          real ct = cos(si*t)*expt, st=sin(si*t)*expt;
+          //  Hz = (i/s) * (-1) * (kx*Ey - ky*Ex )/mu
+          real hFactor = - twoPi*( kx*pwc[1] - ky*pwc[0] )/mu;
+          real sNormSq = sr*sr+si*si;
+          //  hr + i*hi = (i/s)*hfactor
+          real hr = hFactor*si/sNormSq;
+          real hi = hFactor*sr/sNormSq;
 
-          OV_ABORT("Finish me -- add eval of Px and Py");
+          RealArray xi(Ie1,Ie2,Ie3), cx, sx, eHat(Ie1,Ie2,Ie3);
+          xi = twoPi*(kx*xe(Ie1,Ie2,Ie3)+ky*ye(Ie1,Ie2,Ie3));
+          cx=cos(xi); sx=sin(xi);
+          eHat = cx*ct - sx*st;
 
-	  const real dpwExp =exp(omegaDpwIm*tE);
-	  erre(Ie1,Ie2,Ie3,ex)  = ue(Ie1,Ie2,Ie3,ex)-exDpw(xe(Ie1,Ie2,Ie3),ye(Ie1,Ie2,Ie3),tE,dpwExp);
-	  erre(Ie1,Ie2,Ie3,ey)  = ue(Ie1,Ie2,Ie3,ey)-eyDpw(xe(Ie1,Ie2,Ie3),ye(Ie1,Ie2,Ie3),tE,dpwExp);
-	  errh(Ih1,Ih2,Ih3,hz)  = uh(Ih1,Ih2,Ih3,hz)-hzDpw(xh(Ih1,Ih2,Ih3),yh(Ih1,Ih2,Ih3),tH,dpwExp);
+     	  erre(Ie1,Ie2,Ie3,ex)  = ue(Ie1,Ie2,Ie3,ex)-pwc[0]*eHat;
+	  erre(Ie1,Ie2,Ie3,ey)  = ue(Ie1,Ie2,Ie3,ey)-pwc[1]*eHat;
+	  errh(Ih1,Ih2,Ih3,hz)  = uh(Ih1,Ih2,Ih3,hz)-( (hr*ct-hi*st)*cx - (hr*st+hi*ct)*sx);
+          // -- dispersion model components --
+          if( pxc>=0 )
+          {
+            eHat=(psir*ct-psii*st)*cx - (psir*st+psii*ct)*sx; // Phat 
+                      
+            errLocal(Ie1,Ie2,Ie3,pxc) = uLocal(Ie1,Ie2,Ie3,pxc) - pwc[0]*eHat;
+            errLocal(Ie1,Ie2,Ie3,pyc) = uLocal(Ie1,Ie2,Ie3,pyc) - pwc[1]*eHat;
+          }
+          
+	  // // real omegaDpwRe, omegaDpwIm;
+	  // // dmp.computeDispersivePlaneWaveParameters( c,eps,mu,kk, omegaDpwRe, omegaDpwIm );
+	  // real reS, imS, omegaDpwRe, omegaDpwIm;
+	  // dmp.computeDispersionRelation( c,eps,mu,kk, reS, imS ); // s = reS + i*imS
+	  // omegaDpwRe=imS; omegaDpwIm=reS;
+
+	  // printF("++++ getErrors: dispersion relation: omegar=%g, omegai=%g\n",omegaDpwRe, omegaDpwIm );
+
+          // OV_ABORT("Finish me -- add eval of Px and Py");
+
+	  // const real dpwExp =exp(omegaDpwIm*tE);
+	  // erre(Ie1,Ie2,Ie3,ex)  = ue(Ie1,Ie2,Ie3,ex)-exDpw(xe(Ie1,Ie2,Ie3),ye(Ie1,Ie2,Ie3),tE,dpwExp);
+	  // erre(Ie1,Ie2,Ie3,ey)  = ue(Ie1,Ie2,Ie3,ey)-eyDpw(xe(Ie1,Ie2,Ie3),ye(Ie1,Ie2,Ie3),tE,dpwExp);
+	  // errh(Ih1,Ih2,Ih3,hz)  = uh(Ih1,Ih2,Ih3,hz)-hzDpw(xh(Ih1,Ih2,Ih3),yh(Ih1,Ih2,Ih3),tH,dpwExp);
 
 	}
 	
@@ -638,6 +670,8 @@ getErrors( int current, real t, real dt )
       {
         a1=1., a2=-1., a3=0.;  // For 2d, divergence free if a1+a2=0
 	omega=c*sqrt(fx*fx+fy*fy);
+        printF("--MX-ER-- box eigenfunction: fx=%g Pi, fy=%g Pi omega=%g Pi.\n",
+               fx/Pi, fy/Pi, omega/Pi);
 	// x0=-.5, y0=-.5;   // for the square [-.5,.5]x[-.5,.5] 
       }
       else

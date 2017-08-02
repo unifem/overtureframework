@@ -671,9 +671,9 @@ if( ok && useOpt )
 
   // -- fieldOption: used for SOSUP to apply BCs to the field or its time-derivative  
   int fieldOption=0;  // apply BCs to field variables
-  #If #OPTION eq "timeDerivatives"
-    fieldOption=1; // apply BCs to time-derivatives
-  #End
+#If #OPTION eq "timeDerivatives"
+  fieldOption=1; // apply BCs to time-derivatives
+#End
   ipar[29]=fieldOption;
 
   int numberOfGhostLines = orderOfAccuracyInSpace/2;
@@ -692,10 +692,10 @@ if( ok && useOpt )
   ipar[32]=boundaryForcingOption;
 
   // supply polarizationOption for dispersive models *wdh* May 29, 2017
-  int polarizationOption=0;
-  #If #OPTION eq "polarization"
-    polarizationOption=1; // apply BCs to the polarization vector
-  #End
+int polarizationOption=0;
+#If #OPTION eq "polarization"
+  polarizationOption=1; // apply BCs to the polarization vector
+#End
   ipar[33]=polarizationOption;
   ipar[34]=dispersionModel;
   ipar[35]=dbase.get<int>("smoothBoundingBox"); // 1= smooth the IC at the bounding box edge
@@ -745,23 +745,29 @@ if( ok && useOpt )
   
   // Dispersion parameters:
   real sr=0.,si=0.;  // Re(s), Im(s) in exp(s*t) 
-  real ap=0., bp=0., cp=0.;
-  if( dispersionModel !=noDispersion )
+  real psir=0., psii=0.;   // For P = psi(s)*E 
+  if( dispersionModel !=noDispersion && assignPlaneWaveBoundaryCondition )
   {
+    
+    const real kk = twoPi*sqrt( kx*kx+ky*ky+kz*kz);
+    real sr, si, psir,psii;
     DispersiveMaterialParameters & dmp = getDispersiveMaterialParameters(grid);
-    const real kk = twoPi*sqrt( kx*kx+ky*ky+kz*kz); // true wave-number (note factor of twoPi)
-    dmp.computeDispersionRelation( c,eps,mu,kk, sr,si );
-    // P equation is P_t + ap*P_t + bp*P = cp*E 
-    ap=dmp.gamma;
-    bp=0.;
-    cp=eps*SQR(dmp.omegap);
+    dmp.evaluateDispersionRelation( c,kk, sr, si, psir,psii ); 
+    if( t<=3.*dt )
+      printF("--MX--BC dispersion: s=(%12.4e,%12.4e)\n",sr,si);
+
+    // DispersiveMaterialParameters & dmp = getDispersiveMaterialParameters(grid);
+    // const real kk = twoPi*sqrt( kx*kx+ky*ky+kz*kz); // true wave-number (note factor of twoPi)
+    // dmp.computeDispersionRelation( c,eps,mu,kk, sr,si );
+    // // P equation is P_t + ap*P_t + bp*P = cp*E 
+    // ap=dmp.gamma;
+    // bp=0.;
+    // cp=eps*SQR(dmp.omegap);
   }
   rpar[37]=sr;
   rpar[38]=si;
-  rpar[39]=ap;
-  rpar[40]=bp;
-  rpar[41]=cp;
-  
+  rpar[39]=psir;
+  rpar[40]=psii;
 
   
   // fprintf(pDebugFile,"**** pu= %i, %i...\n",&u,pu);
@@ -1207,6 +1213,7 @@ assignBoundaryConditions( int option, int grid, real t, real dt, realMappedGridF
     bool useOpt=true; //  && bcOption!=Maxwell::useAllDirichletBoundaryConditions;  // don't do parallel for now
 
     const int includeGhost=1;
+    bool assignPlaneWaveBoundaryCondition=false;
     
     for( int axis=axis1; axis<mg.numberOfDimensions(); axis++ )
     {
@@ -1236,6 +1243,8 @@ assignBoundaryConditions( int option, int grid, real t, real dt, realMappedGridF
 	  if( mg.boundaryCondition(side,axis)==dirichlet ||
               mg.boundaryCondition(side,axis)==planeWaveBoundaryCondition ) 
 	  {
+            assignPlaneWaveBoundaryCondition=true;
+
 	    // this is a fake BC where we give all variables equal to the true solution
 	    // assign all variables, vertex centred
   
@@ -1273,6 +1282,7 @@ assignBoundaryConditions( int option, int grid, real t, real dt, realMappedGridF
 #undef X
 #define X(i0,i1,i2,i3) xp[i0+xDim0*(i1+xDim1*(i2+xDim2*(i3)))]
 
+            
 	    if( initialConditionOption==planeWaveInitialCondition ||
                 mg.boundaryCondition(side,axis)==planeWaveBoundaryCondition ||
                 initialConditionOption==planeMaterialInterfaceInitialCondition ||
@@ -1287,7 +1297,7 @@ assignBoundaryConditions( int option, int grid, real t, real dt, realMappedGridF
 	      }
 	      if( initialConditionOption==planeMaterialInterfaceInitialCondition )
 	      {
-                #defineMacro XEP(i1,i2,i3,m) X(i1,i2,i3,m)
+#defineMacro XEP(i1,i2,i3,m) X(i1,i2,i3,m)
 		setPlaneMaterialInterfaceMacro(boundaryCondition,I1,I2,I3);
 		if( debug & 8 )
 		{
@@ -1312,34 +1322,86 @@ assignBoundaryConditions( int option, int grid, real t, real dt, realMappedGridF
 	      else
 	      { //planeWaveInitialCondition or planeWaveBoundaryCondition
 		  
+
 		int i1,i2,i3;
 		if( numberOfDimensions==2 )
 		{
-  
-		  FOR_3D(i1,i2,i3,I1,I2,I3)
-		  {
-                    real x0,y0;
-                    getCoordinates2d(i1,i2,i3,x0,y0,X);
-
-		    U(i1,i2,i3,ex)=exTrue(x0,y0,t); 
-		    U(i1,i2,i3,ey)=eyTrue(x0,y0,t);
-		    U(i1,i2,i3,hz)=hzTrue(x0,y0,t);
-		    // printF("new:BC: i=%i,%i,%i x=(%6.3f,%6.3f) u=(%8.2e,%8.2e,%8.2e)\n",i1,i2,i3,X(i1,i2,i3,0),X(i1,i2,i3,1),U(i1,i2,i3,ex),U(i1,i2,i3,ey),U(i1,i2,i3,hz));
-		  }
-		  if( method==sosup )
-		  {
-		    FOR_3D(i1,i2,i3,I1,I2,I3)
-		    {
+                  if( dispersionModel==noDispersion )
+                  {
+                    // ---- NON DISPERSIVE ---
+                    FOR_3D(i1,i2,i3,I1,I2,I3)
+                    {
                       real x0,y0;
                       getCoordinates2d(i1,i2,i3,x0,y0,X);
-		      U(i1,i2,i3,ext) =extTrue(x0,y0,t);
-		      U(i1,i2,i3,eyt) =eytTrue(x0,y0,t);
-		      U(i1,i2,i3,hzt) =hztTrue(x0,y0,t);
-		    }
-		  }
+
+                      U(i1,i2,i3,ex)=exTrue(x0,y0,t); 
+                      U(i1,i2,i3,ey)=eyTrue(x0,y0,t);
+                      U(i1,i2,i3,hz)=hzTrue(x0,y0,t);
+                      // printF("new:BC: i=%i,%i,%i x=(%6.3f,%6.3f) u=(%8.2e,%8.2e,%8.2e)\n",i1,i2,i3,X(i1,i2,i3,0),X(i1,i2,i3,1),U(i1,i2,i3,ex),U(i1,i2,i3,ey),U(i1,i2,i3,hz));
+                    }
+                    if( method==sosup )
+                    {
+                      FOR_3D(i1,i2,i3,I1,I2,I3)
+                      {
+                        real x0,y0;
+                        getCoordinates2d(i1,i2,i3,x0,y0,X);
+                        U(i1,i2,i3,ext) =extTrue(x0,y0,t);
+                        U(i1,i2,i3,eyt) =eytTrue(x0,y0,t);
+                        U(i1,i2,i3,hzt) =hztTrue(x0,y0,t);
+                      }
+                    }
+                  }
+                  else
+                  {
+                    // --- DISPERSIVE ---
+                    DispersiveMaterialParameters & dmp = getDispersiveMaterialParameters(grid);
+
+                    const real kk = twoPi*sqrt( kx*kx+ky*ky+kz*kz);
+                    real sr, si, psir,psii;
+                    dmp.evaluateDispersionRelation( c,kk, sr, si, psir,psii ); 
+                    if( t<=3.*dt )
+                      printF("--MX--Dirichlet BC dispersion: s=(%12.4e,%12.4e)\n",sr,si);
+
+                    real expt=exp(sr*t);
+                    real ct = cos(si*t)*expt, st=sin(si*t)*expt;
+                    // Hz = (i/s) * (-1) * (kx*Ey - ky*Ex )/mu
+                    real hFactor = -twoPi*( kx*pwc[1] - ky*pwc[0] )/mu;
+                    real sNormSq = sr*sr+si*si;
+                    //  hr + i*hi = (i/s)*hfactor
+                    real hr = hFactor*si/sNormSq;
+                    real hi = hFactor*sr/sNormSq;
+
+                    FOR_3D(i1,i2,i3,I1,I2,I3)
+                    {
+                      real x0,y0;
+                      getCoordinates2d(i1,i2,i3,x0,y0,X);
+                      real xi = twoPi*(kx*x0+ky*y0);
+                      real cx=cos(xi), sx=sin(xi);
+                    
+                      real amp=cx*ct-sx*st;
+                      U(i1,i2,i3,ex)=pwc[0]*amp;
+                      U(i1,i2,i3,ey)=pwc[1]*amp;
+                      real amph = (hr*ct-hi*st)*cx - (hr*st+hi*ct)*sx;
+                      U(i1,i2,i3,hz)=amph;
+                      
+                      // amp=(psir*cx-psii*sx)*ctm - (psir*sx+psii*cx)*stm;
+                      amp=(psir*ct-psii*st)*cx - (psir*st+psii*ct)*sx;
+                      U(i1,i2,i3,pxc) =pwc[0]*amp;
+                      U(i1,i2,i3,pyc) =pwc[1]*amp;
+
+                    }
+                  }
+
 		}
 		else
 		{
+                  // ------------ THREE DIMENSIONS ------------
+
+                  if( dispersionModel!=noDispersion )
+                  {
+                    OV_ABORT("--MX-- BC: finish dispersive plane wave BC");
+                  }
+
 		  if( solveForElectricField )
 		  {
 		    FOR_3D(i1,i2,i3,I1,I2,I3)
@@ -1523,16 +1585,16 @@ assignBoundaryConditions( int option, int grid, real t, real dt, realMappedGridF
               // *wdh* 041013: Do not use the next line -- P++ problems
               // *wdh*   u(I1,I2,I3,C)=ug(I1,I2,I3,C)*sint+ug(I1,I2,I3,C+3)*cost;
 
-              #ifdef USE_PPP
-  	        realSerialArray ugLocal; getLocalArrayWithGhostBoundaries(ug,ugLocal);
-              #else
-  	        const realSerialArray & ugLocal = ug; 
-              #endif
+#ifdef USE_PPP
+              realSerialArray ugLocal; getLocalArrayWithGhostBoundaries(ug,ugLocal);
+#else
+              const realSerialArray & ugLocal = ug; 
+#endif
 	      real *ugp = ugLocal.Array_Descriptor.Array_View_Pointer3;
 	      const int ugDim0=ugLocal.getRawDataSize(0);
 	      const int ugDim1=ugLocal.getRawDataSize(1);
 	      const int ugDim2=ugLocal.getRawDataSize(2);
-              #define UG(i0,i1,i2,i3) ugp[i0+ugDim0*(i1+ugDim1*(i2+ugDim2*(i3)))]
+#define UG(i0,i1,i2,i3) ugp[i0+ugDim0*(i1+ugDim1*(i2+ugDim2*(i3)))]
 		
 	      int i1,i2,i3;
 	      if( numberOfDimensions==2 )
@@ -1600,7 +1662,7 @@ assignBoundaryConditions( int option, int grid, real t, real dt, realMappedGridF
 		}
 		
 	      }
-	      #undef UG
+#undef UG
 
               // extrapolate the ghostline
               // getGhostIndex(mg.gridIndexRange(),side,axis,Ig1,Ig2,Ig3); // ghost line
@@ -1969,7 +2031,7 @@ assignBoundaryConditions( int option, int grid, real t, real dt, realMappedGridF
 	      }
 	      else
 	      {
-		throw "error";
+		OV_ABORT("ERROR");
 	      }
 	    }
 	    else
@@ -2029,7 +2091,7 @@ assignBoundaryConditions( int option, int grid, real t, real dt, realMappedGridF
         optimizedBoundaryConditionsMacro(timeDerivatives);
       }
 
-      if( dispersionModel != noDispersion )
+      if( FALSE && dispersionModel != noDispersion )
       {
         // -- apply BCs to the polarization vector
         optimizedBoundaryConditionsMacro(polarization);
@@ -2043,6 +2105,31 @@ assignBoundaryConditions( int option, int grid, real t, real dt, realMappedGridF
   else
   {
     // unstructured grid BC's
+  }
+
+
+  if( dispersionModel != noDispersion )
+  {
+    // ---- apply BCs to the polarization vector ----
+
+    // For now just extrapolate in space since P on the ghost are not used 
+
+    // DispersiveMaterialParameters & dmp = getDispersiveMaterialParameters(grid);
+    Range Pc(pxc,pxc+numberOfDimensions-1);
+    MappedGridOperators & mgop = mgp!=NULL ? *op : (*cgop)[grid];
+    u.setOperators(mgop);
+
+    int ghostStart=1, ghostEnd=orderOfAccuracyInSpace/2;
+    BoundaryConditionParameters extrapParams;
+    extrapParams.orderOfExtrapolation=orderOfAccuracyInSpace+1;  // what should this be ?
+    extrapParams.extraInTangentialDirections=ghostEnd;
+    for( int ghost=ghostStart; ghost<=ghostEnd; ghost++ )
+    {
+      extrapParams.ghostLineToAssign=ghost;
+      u.applyBoundaryCondition(Pc,BCTypes::extrapolate,BCTypes::allBoundaries,0.,t,extrapParams);
+    }
+    
+    
   }
 
 

@@ -1,3 +1,29 @@
+**********************************
+****** July 30, 2017
+
+Revisit dispersive eigen functions
+
+cgmx -noplot boxEigen -g=square128.order2 -mx=4 -my=4 -tp=.1 -tf=1 -dm=gdm -a0=1 -a1=0 -b0=0. -b1=1. -show=squareEigen128.show -go=go
+
+NEW SCALING:
+cgmx -noplot boxEigen -g=square32.order2 -mx=4 -my=4 -tf=.5 -dm=gdm -a0=1 -a1=0 -b0=0. -b1=1. -go=og 
+--IC:SQ-Eig-- (dispersive) t= 0.000e+00, sr=-0.00157321, si=-17.7996 a1=1 a2=-1
+>>> t=1.00e-01 dt=2.0e-02 max errors:[2.10e-03,2.10e-03,3.94e-02,3.26e-05,3.26e-05,], max (u):[1.39e+00,1.39e+00,4.54e-01,4.27e-03,4.27e-03,] (5 steps)
+
+cgmx -noplot boxEigen -g=square32.order2 -mx=2 -my=2 -tf=.5 -dm=gdm -a0=1 -a1=0 -b0=0. -b1=1. -go=og 
+
+>>> t=1.00e-01 dt=2.0e-02 max errors:[8.56e-06,8.56e-06,3.22e-04,3.26e-07,3.26e-07,], max (u):[1.24e-01,1.24e-01,1.40e-01,1.67e-03,1.67e-03,] (5 steps)
+
+>>>>>>>>> --MX-IC-- box eigenfunction: fx=2 Pi, fy=2 Pi omega=2.82843 Pi.
+
+--DMP-- GDM: RECOMPUTE root: rootComputed=0 c*k=8.885766e+00 ck0=0.000000e+00
+
+--MX-ER-- box eigenfunction: fx=2 Pi, fy=2 Pi omega=2.82843 Pi.
+
+
+cgmx -noplot boxEigen -g=square32.order2 -mx=2 -my=2 -tf=.5 -dm=drude -gamma=.5 -omegap=1. -go=og 
+
+
 ************************************
 ****** May 9, 2017
 

@@ -947,6 +947,117 @@ else if( updateSolution.eq.1 )then
 #endMacro 
 
 
+! ===========================================================================================
+! Macro:     DISPERSIVE: RECTANGULAR, 2D, ORDER 2
+! ===========================================================================================
+#beginMacro updateRectangular2dOrder2Dispersive()
+  INFO("FD44r-dispersive");
+  fp=0
+  fe=0.
+  beginLoopsMask(i1,i2,i3,n1a,n1b,n2a,n2b,n3a,n3b)
+
+    ! Advance Hz first:
+    ! For now solve H_t = -(1/mu)*(  (E_y)_x - (E_x)_y )
+    !   USE AB2 -- note: this is just a quadrature so stability is not an inssue
+    un(i1,i2,i3,hz) = u(i1,i2,i3,hz) -(dt/mu)*( 1.5*ux22r(i1,i2,i3,ey) -.5*umx22r(i1,i2,i3,ey) \
+                                               -1.5*uy22r(i1,i2,i3,ex) +.5*umy22r(i1,i2,i3,ex) )
+    if( addForcing.ne.0 )then
+      un(i1,i2,i3,hz) = un(i1,i2,i3,hz) + dt*f(i1,i2,i3,hz) ! first order only **FIX ME**
+    end if
+
+    do m=0,1
+     pc=pxc+m
+     ec=ex+m
+
+     if( addForcing.ne.0 )then
+       fp = dtsq*f(i1,i2,i3,pc) 
+       fe = dtsq*f(i1,i2,i3,ec) 
+     end if 
+     ! GDM: 
+     !   (E^{n+1} -2 E^n + E^{n-1})/dt^2 = c^2*Delta(E) -alphaP*(P^{n+1} -2 P^n + P^{n-1})/dt^2
+     !   (P^{n+1} -2 P^n + P^{n-1})/dt^2 + b1* (P^{n+1} - P^{n-1})/(2*dt) + b0*P^n =
+     !                             a0*E^n + a1*(E^{n+1} - E^{n-1})/(2*dt)
+     ! =>
+     !            E^{n+1} +       alphaP*P^{n+1} = rhsE
+     !  -.5*a1*dt*E^{n+1} + (1+.5*b1*dt)*P^{n+1} = rhsP
+     !
+     ev = u(i1,i2,i3,ec)
+     evm=um(i1,i2,i3,ec)
+     pv = u(i1,i2,i3,pc)
+     pvm=um(i1,i2,i3,pc)
+
+     rhsE = maxwell2dr(i1,i2,i3,ec) + alphaP*(2.*pv-pvm) + fe 
+     rhsP = 2.*pv-pvm + .5*dt*( b1*pvm -a1*evm ) + dt*dt*( -b0*pv + a0*ev ) + fp
+     deti = 1./(1.+.5*dt*(b1+alphaP*a1))
+     un(i1,i2,i3,ec) = ((1.+.5*dt*b1)*rhsE -alphaP*rhsP)*deti
+     un(i1,i2,i3,pc) = (.5*a1*dt*rhsE            + rhsP)*deti 
+
+    end do
+
+  endLoopsMask()
+#endMacro 
+
+! ===========================================================================================
+! Macro:     DISPERSIVE: CURVILINEAR, 2D, ORDER 2
+! ===========================================================================================
+#beginMacro updateCurvilinear2dOrder2Dispersive()
+  INFO("FD44c-dispersive");
+  if( addDissipation )then
+    write(*,'(" -- finish me : dispersion and AD")')
+    stop 8256
+  end if
+  if( useNewForcingMethod.ne.0 )then
+   write(*,'(" finish me: dispersion && useNewForcingMethod")')
+   stop 7733
+  end if 
+
+  fp=0.
+
+  fe=0.
+  beginLoopsMask(i1,i2,i3,n1a,n1b,n2a,n2b,n3a,n3b)
+
+    ! Advance Hz first:
+    ! For now solve H_t = -(1/mu)*(  (E_y)_x - (E_x)_y )
+    !   USE AB2 -- note: this is just a quadrature so stability is not an inssue
+    un(i1,i2,i3,hz) = u(i1,i2,i3,hz) -(dt/mu)*( 1.5*ux22(i1,i2,i3,ey) -.5*umx22(i1,i2,i3,ey) \
+                                               -1.5*uy22(i1,i2,i3,ex) +.5*umy22(i1,i2,i3,ex) )
+    if( addForcing.ne.0 )then
+      un(i1,i2,i3,hz) = un(i1,i2,i3,hz) + dt*f(i1,i2,i3,hz) ! first order only **FIX ME**
+    end if        
+
+    !  --- advance E and P ---
+    do m=0,1
+     pc=pxc+m
+     ec=ex+m
+
+     if( addForcing.ne.0 )then ! forcing in E equation already added to f 
+       fp = dtsq*f(i1,i2,i3,pc) 
+     end if 
+
+     ! GDM: 
+     !   (E^{n+1} -2 E^n + E^{n-1})/dt^2 = c^2*Delta(E) -alphaP*(P^{n+1} -2 P^n + P^{n-1})/dt^2
+     !   (P^{n+1} -2 P^n + P^{n-1})/dt^2 + b1* (P^{n+1} - P^{n-1})/(2*dt) + b0*P^n =
+     !                             a0*E^n + a1*(E^{n+1} - E^{n-1})/(2*dt)
+     ! =>
+     !            E^{n+1} +       alphaP*P^{n+1} = rhsE
+     !  -.5*a1*dt*E^{n+1} + (1+.5*b1*dt)*P^{n+1} = rhsP
+     !
+     ev = u(i1,i2,i3,ec)
+     evm=um(i1,i2,i3,ec)
+     pv = u(i1,i2,i3,pc)
+     pvm=um(i1,i2,i3,pc)
+
+     rhsE = maxwellc22(i1,i2,i3,ec) + alphaP*(2.*pv-pvm) + fe 
+     rhsP = 2.*pv-pvm + .5*dt*( b1*pvm -a1*evm ) + dt*dt*( -b0*pv + a0*ev ) + fp
+     deti = 1./(1.+.5*dt*(b1+alphaP*a1))
+     un(i1,i2,i3,ec) = ((1.+.5*dt*b1)*rhsE -alphaP*rhsP)*deti
+     un(i1,i2,i3,pc) = (.5*a1*dt*rhsE            + rhsP)*deti 
+
+    end do
+
+  endLoopsMask()
+#endMacro 
+
 
 ! **********************************************************************************
 ! Macro ADV_MAXWELL:
@@ -1099,6 +1210,9 @@ else if( updateSolution.eq.1 )then
  integer ec,pc
  real gamma,omegap
  real gammaDt,omegapDtSq,ptt, fe,fp
+ ! Generalized dispersion model parameters
+ real alphaP, a0,a1,b0,b1
+ real ev,evm,pv,pvm,deti,rhsE,rhsP
 
 ! real unxx22r,unyy22r,unxy22r,unx22r
 
@@ -1674,6 +1788,13 @@ f3dcme44(i1,i2,i3,n) = fa(i1,i2,i3,n,fcur)+cdtSqBy12*ffLaplacian23(i1,i2,i3,n) \
 
  sosupParameter=rpar(23)
 
+ alphaP=rpar(24)
+ a0    =rpar(25)
+ a1    =rpar(26)
+ b0    =rpar(27)
+ b1    =rpar(28)
+
+
  dy=dx(1)  ! Are these needed?
  dz=dx(2)
 
@@ -1767,7 +1888,9 @@ f3dcme44(i1,i2,i3,n) = fa(i1,i2,i3,n,fcur)+cdtSqBy12*ffLaplacian23(i1,i2,i3,n) \
  gammaDt=gamma*dt
  omegapDtSq=(omegap*dt)**2
  if( t.eq.0. .and. dispersionModel.ne.noDispersion )then
-    write(*,'("--advOpt-- dispersionModel=",i4," px,py,pz=",3i2)') dispersionModel,pxc,pyc,pzc
+   ! ---- Dispersive Maxwell ----
+   write(*,'("--advOpt-- dispersionModel=",i4," px,py,pz=",3i3)') dispersionModel,pxc,pyc,pzc
+   write(*,'("--advOpt-- GDM: alphaP,a0,a1,b0,b1=",5(1p,e10.2))') alphaP,a0,a1,b0,b1
  end if
 
  if( useSosupDissipation.ne.0 )then
@@ -1785,6 +1908,7 @@ f3dcme44(i1,i2,i3,n) = fa(i1,i2,i3,n,fcur)+cdtSqBy12*ffLaplacian23(i1,i2,i3,n) \
 
   ! sosupParameter=gamma in sosup scheme  0<= gamma <=1   0=centered scheme
   adSosup=sosupParameter*adSosup
+
   if( t.le.2*dt )then
     write(*,'("advOPT: useSosup dissipation, t,dt,adSosup=",3e10.2)') t,dt,adSosup
     write(*,'("advOPT: sosupDissipationOption=",i2)') sosupDissipationOption
@@ -2029,48 +2153,7 @@ f3dcme44(i1,i2,i3,n) = fa(i1,i2,i3,n,fcur)+cdtSqBy12*ffLaplacian23(i1,i2,i3,n) \
     if( dispersionModel.ne.noDispersion )then
       ! --dispersion model --
 
-
-      write(*,'("--advOpt-- advance 2D dispersive model")') 
-      fp=0
-      fe=0.
-      beginLoopsMask(i1,i2,i3,n1a,n1b,n2a,n2b,n3a,n3b)
- 
-        ! Advance Hz first:
-        ! For now solve H_t = -(1/mu)*(  (E_y)_x - (E_x)_y )
-        !   USE AB2 -- note: this is just a quadrature so stability is not an inssue
-        un(i1,i2,i3,hz) = u(i1,i2,i3,hz) -(dt/mu)*( 1.5*ux22r(i1,i2,i3,ey) -.5*umx22r(i1,i2,i3,ey) \
-                                                   -1.5*uy22r(i1,i2,i3,ex) +.5*umy22r(i1,i2,i3,ex) )
-        if( addForcing.ne.0 )then
-          un(i1,i2,i3,hz) = un(i1,i2,i3,hz) + dt*f(i1,i2,i3,hz) ! first order only **FIX ME**
-        end if
-
-        !   H_tt = c^2 Delta(H) + c^2 curl( P_t)  -- equation for H , *check me*
-        !  **finish me**
-        !  if( addForcing.eq.0 )then
-        !    un(i1,i2,i3,hz)=maxwell2dr(i1,i2,i3,hz)
-        !  else
-        !    un(i1,i2,i3,hz)=maxwell2dr(i1,i2,i3,hz)+dtsq*f(i1,i2,i3,hz)
-        !  end if
-
-        ! scheme from Jeff: 
-        
-        do m=0,1
-         pc=pxc+m
-         ec=ex+m
-
-         if( addForcing.ne.0 )then
-           fp = dtsq*f(i1,i2,i3,pc) 
-           fe = dtsq*f(i1,i2,i3,ec) 
-         end if 
-         un(i1,i2,i3,pc)=( 2.*u(i1,i2,i3,pc)- (1.-gammaDt*.5)*um(i1,i2,i3,pc) + omegapDtSq*u(i1,i2,i3,ec) + fp )/(1.+gammaDt*.5)
-         ptt = un(i1,i2,i3,pc)-2.*u(i1,i2,i3,pc)+um(i1,i2,i3,pc)
-         ! write(*,'(" ptt=",e10.2)') ptt
-         un(i1,i2,i3,ec)=maxwell2dr(i1,i2,i3,ec)+ fe - ptt/eps
-
-        end do
-
-
-      endLoopsMask()
+      updateRectangular2dOrder2Dispersive()
 
     else if( useSosupDissipation.ne.0 )then
 
@@ -2695,50 +2778,8 @@ f3dcme44(i1,i2,i3,n) = fa(i1,i2,i3,n,fcur)+cdtSqBy12*ffLaplacian23(i1,i2,i3,n) \
     else if( dispersionModel.ne.noDispersion )then
 
       ! --dispersive model --
+      updateCurvilinear2dOrder2Dispersive()
 
-      write(*,'("--advOpt-- advance 2D curvilinear: dispersive model")') 
-      if( addDissipation )then
-        write(*,'(" -- finish me : dispersion and AD")')
-        stop 8256
-      end if
-      if( useNewForcingMethod.ne.0 )then
-       write(*,'(" finish me: dispersion && useNewForcingMethod")')
-       stop 7733
-      end if 
-
-      fp=0.
-
-      fe=0.
-      beginLoopsMask(i1,i2,i3,n1a,n1b,n2a,n2b,n3a,n3b)
- 
-        ! scheme from Jeff: 
-
-        ! Advance Hz first:
-        ! For now solve H_t = -(1/mu)*(  (E_y)_x - (E_x)_y )
-        !   USE AB2 -- note: this is just a quadrature so stability is not an inssue
-        un(i1,i2,i3,hz) = u(i1,i2,i3,hz) -(dt/mu)*( 1.5*ux22(i1,i2,i3,ey) -.5*umx22(i1,i2,i3,ey) \
-                                                   -1.5*uy22(i1,i2,i3,ex) +.5*umy22(i1,i2,i3,ex) )
-        if( addForcing.ne.0 )then
-          un(i1,i2,i3,hz) = un(i1,i2,i3,hz) + dt*f(i1,i2,i3,hz) ! first order only **FIX ME**
-        end if        
-
-        !  --- advance E and P ---
-        do m=0,1
-         pc=pxc+m
-         ec=ex+m
-
-         if( addForcing.ne.0 )then ! forcing in E equation already added to f 
-           fp = dtsq*f(i1,i2,i3,pc) 
-         end if 
-         un(i1,i2,i3,pc)=( 2.*u(i1,i2,i3,pc)- (1.-gammaDt*.5)*um(i1,i2,i3,pc) + omegapDtSq*u(i1,i2,i3,ec) + fp )/(1.+gammaDt*.5)
-         ptt = un(i1,i2,i3,pc)-2.*u(i1,i2,i3,pc)+um(i1,i2,i3,pc)
-         ! write(*,'(" ptt=",e10.2)') ptt
-         un(i1,i2,i3,ec)=maxwellc22(i1,i2,i3,ec) - ptt/eps
-         ! test: un(i1,i2,i3,ec)=maxwellc22(i1,i2,i3,ec) 
-
-        end do
-
-      endLoopsMask()
 
     else if( useDivergenceCleaning.eq.0 )then
 

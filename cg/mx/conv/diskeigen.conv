@@ -29,11 +29,13 @@ $name="diskeigen";  $cg="sice";
 $cmdFile="diskeigen"; 
 $CGBUILDPREFIX=$ENV{CGBUILDPREFIX};
 $cgmx = "$CGBUILDPREFIX/mx/bin/cgmx";  # command for cgmx
-$cmdDir="$ENV{CG}/mx/cmd"; 
+$cmdDir="$ENV{CG}/mx/runs/diskEigen"; 
 #
 $tf=.5; $tp=.1; $order = "2"; $ng=3; $m=2; $n=2; $mk=1; $interp="e"; $cfl=.9; 
 $mx=1; $my=1; $mz=1; # for boxEigen
 $diss=.0; $dissOrder=-1; 
+$alphaP=1.; $a0=1.; $a1=0.; $b0=0.; $b1=1.;  # GDM parameters
+$dm="none"; # dispersive model
 $errorNorm=0; $method="NFDTD"; 
 $alwaysCompute=1;
 $gStart=2; # start at this grid factor 
@@ -41,7 +43,8 @@ $gStart=2; # start at this grid factor
 GetOptions( "name=s"=>\$name,"order=s"=>\$order,"ng=i"=>\$ng,"tf=f"=>\$tf,"interp=s"=>\$interp,"diss=f"=>\$diss,\
             "fixed=s"=>\$fixed,"cfl=f"=>\$cfl,"alwaysCompute=i"=>\$alwaysCompute,"method=s"=>\$method,"tp=f"=>\$tp,\
             "errorNorm=i"=>\$errorNorm,"m=f"=>\$m,"n=f"=>\$n,"mk=f"=>\$mk,"dissOrder=i"=>\$dissOrder,"cg=s"=>\$cg,\
-            "mx=f"=>\$mx,"my=f"=>\$my,"mz=f"=>\$mz );
+            "mx=f"=>\$mx,"my=f"=>\$my,"mz=f"=>\$mz,"dm=s"=>\$dm,\
+            "alphaP=f"=>\$alphaP,"a0=f"=>\$a0,"a1=f"=>\$a1,"b0=f"=>\$b0,"b1=f"=>\$b1 );
 # ------------------------ ------------------------------------------
 # eigenfunctions of a square:
 if( $cg =~ /square/ ){ $cmdFile = "../runs/boxEigen/boxEigen"; $gStart=16; $name="squareEigen"; }
@@ -51,6 +54,7 @@ if( $cg =~ /box*/ || $cg =~ /nonBox*/ || $cg =~ /unitBox*/ || $cg =~ /unitNonBox
 #
 if( $cg =~ /tube*/ || $cg =~ /splitTube*/  || $cg =~ /refineTube*/  ){ $cmdFile = "../cmd/cyleigen"; }
 $caseName="$name$method\Order$order"; 
+if( $dm ne "none" ){ $caseName .= "GDM"; }
 if( $errorNorm eq 0 ){ $normName = "max"; }elsif( $errorNorm eq 1 ){ $normName = "L1";}\
    elsif( $errorNorm eq 2 ){ $normName = "L2"; }else{ $normName="UnknownNorm"; }
 $caseName .= $normName . "Norm";
@@ -59,15 +63,20 @@ if( $method eq "sosup" ){ $numberOfComponents=7; }
 # define the table heading and caption
 if( $numberOfComponents eq 4 )\
   { $title= "grid  \& N \&  \$E_x\$ \&  \$E_y\$ \& \$H_z\$ \& \$\\grad\\cdot\\Ev\/\\grad\\Ev\$"; }
+#
 if( $numberOfComponents eq 7 )\
   { $title= "grid  \& N \&  \$E_x\$ \&  \$E_y\$ \& \$H_z\$ \&  \$Ex_t\$ \&  \$Ey_t\$ \& \$Hz_t\$ \& \$\\grad\\cdot\\Ev\/\\grad\\Ev\$"; }
+#  -- Dispersive model 2D ---
+if( $numberOfComponents eq 4  && $dm ne "none" )\
+  { $numberOfComponents=6; $title= "grid  \&  N  \&    \$E_x\$   \&    \$E_y\$   \&    \$H_z\$    \&    \$P_x\$   \&    \$P_y\$   \& \$\\grad\\cdot\\Ev\/\\grad\\Ev\$"; }
 # 
 $labelMethod=$method;
 if( $method eq "NFDTD" ){ $labelMethod="CGFD$order"; }
-$caption= "\\caption\{Cgmx, $name, CG=$cg, method=$labelMethod, $normName norm, order=\$$order\$, \$t=$tf\$, m=$m,  n=$n, mk=$mk, mx=$mx, my=$my, mz=$mz, cfl=\$$cfl\$, diss=\$$diss\$, dissOrder=\$$dissOrder\$, $date}\\label\{table:$name" . $method . "Order$order$normName}"; 
-$outputFile="$name$method" . "Order$order" . $normName . "NormConvTable.tex"; 
+$caption= "\\caption\{Cgmx, $name, CG=$cg, method=$labelMethod, $normName norm, order=\$$order\$, \$t=$tf\$, m=$m,  n=$n, mk=$mk, mx=$mx, my=$my, mz=$mz, cfl=\$$cfl\$, diss=\$$diss\$, dissOrder=\$$dissOrder\$, dm=$dm, alphaP=$alphaP, a0=$a0, a1=$a1, b0=$b0, b1=$b1, $date}\\label\{table:$name" . $method . "Order$order$normName}"; 
+# $outputFile="$name$method" . "Order$order" . $normName . "NormConvTable.tex"; 
+$outputFile=$caseName . "ConvTable.tex"; 
 # 
-$options = "-m=$m -n=$n -k=$mk -mx=$mx -my=$my -mz=$mz -diss=$diss  -dissOrder=$dissOrder -cfl=$cfl -method=$method -errorNorm=$errorNorm -tf=$tf -tp=$tp -go=go";
+$options = "-m=$m -n=$n -k=$mk -mx=$mx -my=$my -mz=$mz -diss=$diss  -dissOrder=$dissOrder -cfl=$cfl -method=$method -errorNorm=$errorNorm -tf=$tf -tp=$tp -dm=$dm -alphaP=$alphaP -a0=$a0 -a1=$a1 -b0=$b0 -b1=$b1 -go=go";
 #
 $suffix="";
 if( ($method eq "sosup") && ($order eq 4) ){ $suffix=".ng3"; }

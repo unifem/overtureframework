@@ -197,6 +197,7 @@ class Maxwell
   {
     noDispersion=0,
     drude,
+    GDM,
   } dispersionModel;
 
   
@@ -402,6 +403,8 @@ protected:
   int saveSequencesToShowFile();
 
   int setupMultiStageAlgorithm( GL_GraphicsInterface &gi, DialogData & dialog );
+
+  int setupSelectiveDissipation( CompositeGrid & cg, GL_GraphicsInterface &gi );
 
 public: //  should be protected:
 
