@@ -3722,7 +3722,8 @@ c===============================================================================
                       yrr = (-sxr*det + sxi*detr )*( deti**2 )
                       meanCurvature = -.5*( xr*yrr - yr*xrr )/( (xr**2 
      & + yr**2)**(1.5) )
-                  ! write(*,'(" i1,i2=",2i3," meanCurvature=",f6.2,)') i1,i2,meanCurvature
+                  write(*,'(" i1,i2=",2i3," meanCurvature=",f12.8)') 
+     & i1,i2,meanCurvature
                     else
                       stop 1009
                     end if

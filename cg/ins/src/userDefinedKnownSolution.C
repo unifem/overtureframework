@@ -1165,12 +1165,12 @@ getUserDefinedKnownSolution(real t, CompositeGrid & cg, int grid, RealArray & ua
 	real phi = n*theta-omegar*t;
 
 	// compute decay factor
-	real A = exp(omegai*t);
+	real A = exp(omegai*t)*amp; // *wdh* scale by amp too
 
 	// evaluate real part
 	vr = (vrr*cos(phi)-vri*sin(phi))*A;
 	vt = (vtr*cos(phi)-vti*sin(phi))*A;
-	p  = ((pr)*cos(phi)-(pi)*sin(phi))*A+gamma/R;
+	p  = ((pr)*cos(phi)-(pi)*sin(phi))*A  +gamma/R;
 
         ua(i1,i2,i3,uc) = vr*cosTheta-vt*sinTheta;
         ua(i1,i2,i3,vc) = vr*sinTheta+vt*cosTheta;
@@ -1180,9 +1180,9 @@ getUserDefinedKnownSolution(real t, CompositeGrid & cg, int grid, RealArray & ua
         // ua(i1,i2,i3,vc) = 0.0;
         // ua(i1,i2,i3,pc) = 0.0;
 
-        real kr = k*r;
+        // real kr = k*r;
         
-        real j1 = jn(1,kr);  // Bessel function J_1
+        // real j1 = jn(1,kr);  // Bessel function J_1
 
 
         // ua(i1,i2,i3,uc) = amp*j1*cosTheta;
@@ -1513,7 +1513,8 @@ getUserDefinedDeformingBodyKnownSolution(
     real & di = rpar[11];
     real & gamma = rpar[12];
     real k = 0.;
-    amp = 0;
+
+    // amp = 0;
     if( t <= 2.*dt )
     {
       printF("--INS-- getUserDefinedDeformingBodyKnownSolution: oscillatingBubble, t=%9.3e amp=%9.3e R=%9.3e k=%5.3f\n",
@@ -1565,30 +1566,18 @@ getUserDefinedDeformingBodyKnownSolution(
       real phi = n*theta-omegar*t;
 
       // compute decay factor
-      real A = exp(omegai*t);
-
-      // compute displacement
-      real ur = (A/(omegar*omegar+omegai*omegai)) 
-	*(  omegai*(vrr*cos(phi)-vri*sin(phi)) 
-          - omegar*(vrr*sin(phi)+vri*cos(phi)));
-      real ut = (A/(omegar*omegar+omegai*omegai)) 
-	*(  omegai*(vtr*cos(phi)-vti*sin(phi)) 
-          - omegar*(vtr*sin(phi)+vti*cos(phi)));
-
-      // compute velocity
-      real vr = (vrr*cos(phi)-vri*sin(phi))*A;
-      real vt = (vtr*cos(phi)-vri*sin(phi))*A;
-
-      // compute acceleration
-      real ar = (A/(omegar*omegar+omegai*omegai)) 
-	*(  omegai*(-vrr*cos(phi)+vri*sin(phi)) 
-          - omegar*( vrr*sin(phi)+vri*cos(phi)));
-      real at = (A/(omegar*omegar+omegai*omegai)) 
-	*(  omegai*(-vtr*cos(phi)+vti*sin(phi)) 
-          - omegar*( vtr*sin(phi)+vti*cos(phi)));
+      real A = exp(omegai*t)*amp; // *wdh* scale by amp too
 
       if( stateOption==boundaryPosition )
       {
+        // compute displacement
+        real ur = (A/(omegar*omegar+omegai*omegai)) 
+          *(  omegai*(vrr*cos(phi)-vri*sin(phi)) 
+              - omegar*(vrr*sin(phi)+vri*cos(phi)));
+        real ut = (A/(omegar*omegar+omegai*omegai)) 
+          *(  omegai*(vtr*cos(phi)-vti*sin(phi)) 
+              - omegar*(vtr*sin(phi)+vti*cos(phi)));
+
         // position of the interface:
         state(i1,i2,i3,c0)=(ur+R)*ct-ut*st;
         state(i1,i2,i3,c1)=(ur+R)*st+ut*ct;
@@ -1598,6 +1587,10 @@ getUserDefinedDeformingBodyKnownSolution(
       }
       else if( stateOption==boundaryVelocity )
       {
+        // compute velocity
+        real vr = (vrr*cos(phi)-vri*sin(phi))*A;
+        real vt = (vtr*cos(phi)-vri*sin(phi))*A;
+
         // velocity of the interface:
         state(i1,i2,i3,c0)=vr*ct-vt*st; 
         state(i1,i2,i3,c1)=vr*st+vt*ct;
@@ -1608,6 +1601,14 @@ getUserDefinedDeformingBodyKnownSolution(
       }
       else if( stateOption==boundaryAcceleration )
       {
+        // compute acceleration
+        real ar = (A/(omegar*omegar+omegai*omegai)) 
+          *(  omegai*(-vrr*cos(phi)+vri*sin(phi)) 
+              - omegar*( vrr*sin(phi)+vri*cos(phi)));
+        real at = (A/(omegar*omegar+omegai*omegai)) 
+          *(  omegai*(-vtr*cos(phi)+vti*sin(phi)) 
+              - omegar*( vtr*sin(phi)+vti*cos(phi)));
+
         // acceleration of the interface:
         state(i1,i2,i3,c0)=ar*ct-at*st; 
         state(i1,i2,i3,c1)=ar*st+at*ct;
@@ -1622,6 +1623,22 @@ getUserDefinedDeformingBodyKnownSolution(
       }
     }
     
+    if( stateOption==boundaryPosition )
+    {
+      const int c0=C.getBase(), c1=c0+1;
+      real & R = rpar[2];
+      real maxDisplacement = sqrt(max(fabs( SQR(state(I1,I2,I3,c0))+SQR(state(I1,I2,I3,c1)) -R*R )));
+      RealArray du;
+      du= sqrt(fabs(SQR(state(I1,I2,I3,c0))+SQR(state(I1,I2,I3,c1)) -R*R));
+      
+      ::display(du,"Boundary offset distance","%8.2e ");
+      // ::display(state(I1,I2,I3,c0),"Boundary position x","%5.2f ");
+      // ::display(state(I1,I2,I3,c1),"Boundary position y","%5.2f ");
+      
+      printF("\n >>> -UD-BD-KS-- boundaryPosition: R=%9.3e, max-displacement=%9.3e at t=%9.3e\n",R,maxDisplacement,t);
+      
+    }
+      
   }
   else
   {

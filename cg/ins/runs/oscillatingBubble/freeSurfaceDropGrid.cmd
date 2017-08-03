@@ -82,23 +82,31 @@ create mappings
 #
 # 
   spline
-    $n=21*$factor; 
+    # $n=21*$factor; 
+    # 
+    # Choose number of points to each point is exactly on the circle
+    #  ds = 2*pi/(n-1) 
+    $rad=.5*($radx+$rady); 
+    $n = int( 2.*$pi*$rad/$ds+1.5 );
+    periodicity
+      2
     enter spline points
       $n 
     $commands="";
     for( $i=0; $i<$n; $i++ ){ $theta=2.*$pi*$i/($n-1); $x=$radx*cos($theta)+$cx; $y=$rady*sin($theta)+$cy; \
                               $commands = $commands . "$x $y\n"; }
       $commands
+#
+    $ns=$n; 
     lines
-      # add a few extra points as the boundary deforms it gets longer
-      $stretchFactor=1.0; 
-      $length = $stretchFactor*( ($xb-$xa) + $amp*$freq*2 ); # approx. arc length of the free surface
-      $ns = intmg( $length/$ds+1.5 );
+#-      # add a few extra points as the boundary deforms it gets longer
+#-      $stretchFactor=1.0; 
+#-      $length = $stretchFactor*( ($xb-$xa) + $amp*$freq*2 ); # approx. arc length of the free surface
+#-      $ns = intmg( $length/$ds+1.5 );
+#
       $ns
-     periodicity
-       1
      $cmd
-     # open graphics
+    # open graphics
     # pause
     exit
 #  
@@ -108,9 +116,10 @@ create mappings
     distance to march $dist 
     $linesToMarch = $nr-1;
     lines to march $linesToMarch
+    # open graphics
     points on initial curve $ns
-    spacing: geometric
-    geometric stretch factor 1.05
+    # spacing: geometric
+    # geometric stretch factor 1.05
     backward
     generate
     boundary conditions
@@ -120,7 +129,11 @@ create mappings
     # -- set the order of data point interpolation: 
     # fourth order
     # second order
-    use robust inverse
+    # use robust inverse
+    #
+    # Try this: 
+    # evaluate as nurbs 1
+    #
     name freeSurface
     # pause
     # open graphics

@@ -348,6 +348,7 @@ Parameters(const int & numberOfDimensions0) : pdeName("unknown"), numberOfBCName
   if (!dbase.has_key("heatRelease")) dbase.put<real>("heatRelease");
   if (!dbase.has_key("ps")) dbase.put<GenericGraphicsInterface*>("ps");
   if (!dbase.has_key("errorNorm")) dbase.put<int>("errorNorm");
+  if (!dbase.has_key("projectInitialConditionsForMovingGrids")) dbase.put<bool>("projectInitialConditionsForMovingGrids")=true;
   if (!dbase.has_key("projectInitialConditions")) dbase.put<bool>("projectInitialConditions");
   if (!dbase.has_key("outputFile")) dbase.put<ArraySimpleFixed<FileOutput*,Parameters::maximumNumberOfOutputFiles,1,1,1> >("outputFile");
   if (!dbase.has_key("implicitOption")) dbase.put<Parameters::ImplicitOption>("implicitOption");

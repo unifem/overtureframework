@@ -125,6 +125,14 @@ initializeSolution()
 int Cgins::
 projectInitialConditionsForMovingGrids(int gfIndex)
 {
+  const bool projectInitialForMoving = parameters.dbase.get<bool>("projectInitialConditionsForMovingGrids");
+  if( !projectInitialForMoving )
+  {
+    printF("--INS-- projectInitialConditionsForMovingGrids  NOT projecting initial conditions\n");
+    printF("       since projectInitialConditionsForMovingGrids=false\n");
+    return 0;
+  } 
+  
   const bool & twilightZoneFlow = parameters.dbase.get<bool >("twilightZoneFlow");
   const real & tInitial = parameters.dbase.get<real >("tInitial");
   
@@ -144,7 +152,7 @@ projectInitialConditionsForMovingGrids(int gfIndex)
     // useMovingGridSubIterations : use multiple sub-iterations per time-step for moving grid problems with light bodies
     bool & useMovingGridSubIterations = parameters.dbase.get<bool>("useMovingGridSubIterations");
 
-    int numberOfCorrections=1;  
+    int numberOfCorrections=1;   // ** fix me ***
 
     if( movingGridProblem() )
     {

@@ -36,14 +36,16 @@ $debug = 0;   $maxIterations=100; $tol=1.e-16; $atol=1.e-16;
 $tz = "none"; $degreex=2; $degreet=2; $fx=1.; $fy=1.; $fz=1.; $ft=1.; $dtMax=.05; 
 $order = 2; $fullSystem=0; $go="halt"; 
 $ogesDebug=0; $project=0; $cdv=1.; $ad2=0; $ad22=2.; 
+$projectForMoving=0;
 $psolver="yale"; $solver="yale"; 
 $iluLevels=1; $ogesDebug=0; 
 $rtolp=1.e-4; $atolp=1.e-5;  # tolerances for the pressure solve
 $rtol=1.e-4; $atol=1.e-5;    # tolerances for the implicit solver
 $surfaceTension=.1; $pAtmosphere=0.;
-$smoothSurface=1; $numberOfSurfaceSmooths=3;
+$smoothSurface=0; $numberOfSurfaceSmooths=3;
 $freeSurfaceOption="none"; 
 # 
+$amp=1; $casenumber=3;
 #
 # ----------------------------- get command line arguments ---------------------------------------
 GetOptions( "g=s"=>\$grid,"tf=f"=>\$tFinal,"degreex=i"=>\$degreex, "degreet=i"=>\$degreet, "model=s"=>\$model,\
@@ -55,7 +57,8 @@ GetOptions( "g=s"=>\$grid,"tf=f"=>\$tFinal,"degreex=i"=>\$degreex, "degreet=i"=>
   "dg=s"=>\$deformingGrid,"dt=s"=>\$deformationType,\
   "surfaceTension=f"=>\$surfaceTension,"pAtmosphere=f"=>\$pAtmosphere,"pGrad=f"=>\$pGrad,\
   "smoothSurface=i"=>\$smoothSurface,"numberOfSurfaceSmooths=i"=>\$numberOfSurfaceSmooths,\
-  "freeSurfaceOption=s"=>\$freeSurfaceOption,"rtol=f"=>\$rtol,"atol=f"=>\$atol,"rtolp=f"=>\$rtolp,"atolp=f"=>\$atolp );
+  "freeSurfaceOption=s"=>\$freeSurfaceOption,"rtol=f"=>\$rtol,"atol=f"=>\$atol,"rtolp=f"=>\$rtolp,"atolp=f"=>\$atolp,\
+  "amp=f"=>\$amp,"casenumber=i"=>\$casenumber,"projectForMoving=i"=>\$projectForMoving );
 # -------------------------------------------------------------------------------------------------
 $kThermal=$nu/$Prandtl; 
 if( $solver eq "best" ){ $solver="choose best iterative solver"; }
@@ -222,13 +225,13 @@ $cmds
   initial conditions
    # ****** DEFINE THE KNOWN SOLUTION ******
    OBTZ:user defined known solution
-     $amp=.1; $casenumber=3;
      oscillating bubble
       $amp,$casenumber
     done
   done
   debug $debug
   $project
+  project initial conditions for moving grids $projectForMoving 
 #
 #-    output options...
 #-    frequency to save probes 2

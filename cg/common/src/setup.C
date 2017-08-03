@@ -96,7 +96,10 @@ displayParameters(FILE *file /* = stdout */ )
   fprintf(file,
          "initial conditions: (need to be specified when not using twilight zone flow)\n"
          "  project initial conditions is %s\n",
-         offOn[int(parameters.dbase.get<bool >("projectInitialConditions"))]);
+         "  project initial conditions for moving grids is %s\n",
+          offOn[int(parameters.dbase.get<bool >("projectInitialConditions"))],
+          offOn[int(parameters.dbase.get<bool >("projectInitialConditionsForMovingGrids"))]
+            );
   
   parameters.displayPdeParameters(file);
   
@@ -1002,10 +1005,12 @@ buildMovingGridOptionsDialog(DialogData & dialog )
 
   aString tbCommands[] = {"use moving grids",
                           "detect collisions",
+                          "project initial conditions for moving grids",
 			  ""};
   int tbState[10];
   tbState[0] = parameters.dbase.get<MovingGrids >("movingGrids").isMovingGridProblem();
   tbState[1] = parameters.dbase.get<bool >("detectCollisions");
+  tbState[1] = parameters.dbase.get<bool >("projectInitialConditionsForMovingGrids");
   
   int numColumns=1;
   dialog.setToggleButtons(tbCommands, tbCommands, tbState, numColumns); 
@@ -1071,6 +1076,8 @@ getMovingGridOption(const aString & answer,
     parameters.dbase.get<MovingGrids >("movingGrids").setIsMovingGridProblem(useMovingGrids);
   }
   else if( dialog.getToggleValue(answer,"detect collisions",parameters.dbase.get<bool >("detectCollisions") )){} //
+  else if( dialog.getToggleValue(answer,"project initial conditions for moving grids",
+               parameters.dbase.get<bool >("projectInitialConditionsForMovingGrids") )){} //
   else if( dialog.getTextValue(answer,"minimum separation for collisions","%e",
                                        parameters.dbase.get<real >("collisionDistance")) ){}//
   else if( dialog.getTextValue(answer,"frequency for full grid gen update","%i",

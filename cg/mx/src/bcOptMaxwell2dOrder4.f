@@ -1752,11 +1752,12 @@ c===============================================================================
             ! sNorm4=sNormSq*sNormSq
             ! pc = -eps*( 2.*sr*si*ck2/sNorm4 )    ! check sign 
             ! ps = -eps*( 1. + ck2*(sr*sr-si*si)/sNorm4 )
-            ! (1/s) * (kx*Ey - ky*Ex )/mu
+            ! Hz = (i/s) * (-1) * (kx*Ey - ky*Ex )/mu
             ! *check me*      
-            hfactor = twoPi*( kx*pwc(1) - ky*pwc(0) )/mu
-            hr = hfactor*sr/sNormSq
-            hc = hfactor*si/sNormSq
+            hfactor = -twoPi*( kx*pwc(1) - ky*pwc(0) )/mu
+            ! hr + i*hi = (i/s)*hfactor
+            hr = hfactor*si/sNormSq
+            hi = hfactor*sr/sNormSq
         end if
         if( fieldOption.ne.0 .and. fieldOption.ne.1 )then
           write(*,'("bcOptMax: error: fieldOption=",i6)') fieldOption
