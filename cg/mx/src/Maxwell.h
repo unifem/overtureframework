@@ -335,6 +335,8 @@ class Maxwell
 
   int outputResultsAfterEachTimeStep( int current, real t, real dt, int stepNumber, real nextTimeToPlot );
 
+  int outputUserDefinedProbes( int current, real t, real dt, int stepNumber );
+
   int plot(int current, real t, real dt );
   
   int printMemoryUsage(FILE *file = stdout );
@@ -372,6 +374,8 @@ class Maxwell
   int updateProjectionEquation();
 
   int updateUserDefinedKnownSolution(GenericGraphicsInterface & gi, CompositeGrid & cg);
+
+  int userDefinedProbe(GenericGraphicsInterface & gi );
 
   bool usingPMLBoundaryConditions() const;
 

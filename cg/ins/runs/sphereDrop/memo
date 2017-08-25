@@ -1,3 +1,11 @@
+**********************
+**** Aug 3, 2017
+
+CHECK SLIP WALL BC's and SCALAR VELOCITY SOLVES 
+
+cgins -noplot sphereDrop -g=shorterDrop3de1.order2.hdf -tf=.4 -tp=.05 -ts=im -radius=.5 -dropName=drop -channelName=channel -dtMax=.025 -project=0 -nu=0.67462470 -numberOfCorrections=2 -addedMass=1 -useProvidedAceration=1 -addedDamping=1 -addedDampingCoeff=1 -addedDampingProjectVelocity=1 -scaleAddedDampingWithDt=1 -useTP=0 -debug=3 -solver=best -psolver=best -rtol=1.e-7 -atol=1.e-9 -rtolp=1.e-5 -atolp=1.e-7 -freqFullUpdate=1 -bcOption=outflow  -ogesDebug=1 -show=sphereDrop.show -go=og
+
+
 *****************
 **** July 12, 2017
 

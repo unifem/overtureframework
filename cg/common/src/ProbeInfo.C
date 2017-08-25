@@ -2,7 +2,6 @@
 #include "GenericGraphicsInterface.h"
 #include "HDF_DataBase.h"
 #include "Parameters.h"
-#include "Parameters.h"
 #include "BodyForce.h"
 #include "Integrate.h"
 #include "InterpolatePointsOnAGrid.h"

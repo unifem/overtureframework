@@ -246,6 +246,7 @@ if( $go eq "run" || $go eq "go" ){ $go = "movie mode\n finish"; }
 #
   boundary conditions
     all=noSlipWall
+    # channel=slipWall
     $cmd="#";
     if( $bcOption eq "outflow"){$cmd="$channelName(1,1)=outflow, pressure(1.*p+0.*p.n=0.)\n";} 
     #outflowWall: bottom neumann outflow and top noslipwall

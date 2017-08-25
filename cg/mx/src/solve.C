@@ -142,6 +142,9 @@ outputResultsAfterEachTimeStep( int current, real t, real dt, int stepNumber, re
   // output to any probe files
   DomainSolver::outputProbes( parameters, gf[current], stepNumber );
 
+  // Output any CgMx user defined probes: 
+  outputUserDefinedProbes( current, t, dt, stepNumber );
+
   // **OLD WAY FOR PROBES: 
   const int & probeFileFrequency = parameters.dbase.get<int>("probeFileFrequency");
   if( probes.size(1)>0 && (stepNumber % probeFileFrequency)==0 )
@@ -676,7 +679,7 @@ solve(GL_GraphicsInterface &gi )
       current = next;
       next= (next+1) % numberOfTimeLevels;
 
-      outputResultsAfterEachTimeStep( current,t,dt,stepNumber,nextTimeToPlot );
+      outputResultsAfterEachTimeStep( current,t,dt,numberOfStepsTaken,nextTimeToPlot );
 
       numberOfStepsTaken++;
     }

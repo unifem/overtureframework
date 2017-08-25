@@ -23,7 +23,8 @@ enum ProbeTypesEnum
   probeAtLocation,   // probe is located at a fixed position
   probeBoundingBox,  // save probe data on the boundary of a box (for subsequent sub-domain computations)
   probeRegion,       // probe is some average or integral over a region
-  probeBoundarySurface // probe is some average or integral over a boundary surface.
+  probeBoundarySurface, // probe is some average or integral over a boundary surface.
+  probeUserDefined    // user defined probe
 };
 
 ProbeInfo(Parameters & par);

@@ -2287,7 +2287,7 @@ assignBoundaryConditions( int option, int grid, real t, real dt, realMappedGridF
             // current way: 
             // PML(n,m,side,axis,grid)      n=time-level, m=v,w 
                         const int numberOfPMLFunctions=2;  //  v and w
-                        const int numberOfComponentsPML=3; // store Ex, Ey, Hz or Ex,Ey,Ez
+                        const int numberOfComponentsPML= method!=sosup ? 3 : 6; // store Ex, Ey, Hz or Ex,Ey,Ez
                         #define PML(n,m,side,axis,grid) vpml[(n)+numberOfTimeLevels*(m+numberOfPMLFunctions*(side+2*(axis+3*(grid))))]
                         #define VPML(n,side,axis,grid) PML(n,0,side,axis,grid)
                         #define WPML(n,side,axis,grid) PML(n,1,side,axis,grid)
@@ -2350,42 +2350,6 @@ assignBoundaryConditions( int option, int grid, real t, real dt, realMappedGridF
                         realSerialArray uum; getLocalArrayWithGhostBoundaries(um,uum);
                         realSerialArray uu;  getLocalArrayWithGhostBoundaries(uOld,uu);
                         realSerialArray uun; getLocalArrayWithGhostBoundaries(un,uun);
-          //   realSerialArray vram; getLocalArrayWithGhostBoundaries(VPML(prev   ,0,0,grid),vram); 
-          //   realSerialArray vrbm; getLocalArrayWithGhostBoundaries(VPML(prev   ,1,0,grid),vrbm); 
-          //   realSerialArray vsam; getLocalArrayWithGhostBoundaries(VPML(prev   ,0,1,grid),vsam); 
-          //   realSerialArray vsbm; getLocalArrayWithGhostBoundaries(VPML(prev   ,1,1,grid),vsbm); 
-          //   realSerialArray vtam; getLocalArrayWithGhostBoundaries(VPML(prev   ,0,2,grid),vtam); 
-          //   realSerialArray vtbm; getLocalArrayWithGhostBoundaries(VPML(prev   ,1,2,grid),vtbm); 
-          //   realSerialArray vra ; getLocalArrayWithGhostBoundaries(VPML(current,0,0,grid),vra ); 
-          //   realSerialArray vrb ; getLocalArrayWithGhostBoundaries(VPML(current,1,0,grid),vrb ); 
-          //   realSerialArray vsa ; getLocalArrayWithGhostBoundaries(VPML(current,0,1,grid),vsa ); 
-          //   realSerialArray vsb ; getLocalArrayWithGhostBoundaries(VPML(current,1,1,grid),vsb ); 
-          //   realSerialArray vta ; getLocalArrayWithGhostBoundaries(VPML(current,0,2,grid),vta ); 
-          //   realSerialArray vtb ; getLocalArrayWithGhostBoundaries(VPML(current,1,2,grid),vtb ); 
-          //   realSerialArray vran; getLocalArrayWithGhostBoundaries(VPML(next   ,0,0,grid),vran); 
-          //   realSerialArray vrbn; getLocalArrayWithGhostBoundaries(VPML(next   ,1,0,grid),vrbn); 
-          //   realSerialArray vsan; getLocalArrayWithGhostBoundaries(VPML(next   ,0,1,grid),vsan); 
-          //   realSerialArray vsbn; getLocalArrayWithGhostBoundaries(VPML(next   ,1,1,grid),vsbn); 
-          //   realSerialArray vtan; getLocalArrayWithGhostBoundaries(VPML(next   ,0,2,grid),vtan); 
-          //   realSerialArray vtbn; getLocalArrayWithGhostBoundaries(VPML(next   ,1,2,grid),vtbn); 
-          //   realSerialArray wram; getLocalArrayWithGhostBoundaries(WPML(prev   ,0,0,grid),wram); 
-          //   realSerialArray wrbm; getLocalArrayWithGhostBoundaries(WPML(prev   ,1,0,grid),wrbm); 
-          //   realSerialArray wsam; getLocalArrayWithGhostBoundaries(WPML(prev   ,0,1,grid),wsam); 
-          //   realSerialArray wsbm; getLocalArrayWithGhostBoundaries(WPML(prev   ,1,1,grid),wsbm); 
-          //   realSerialArray wtam; getLocalArrayWithGhostBoundaries(WPML(prev   ,0,2,grid),wtam); 
-          //   realSerialArray wtbm; getLocalArrayWithGhostBoundaries(WPML(prev   ,1,2,grid),wtbm); 
-          //   realSerialArray wra ; getLocalArrayWithGhostBoundaries(WPML(current,0,0,grid),wra ); 
-          //   realSerialArray wrb ; getLocalArrayWithGhostBoundaries(WPML(current,1,0,grid),wrb ); 
-          //   realSerialArray wsa ; getLocalArrayWithGhostBoundaries(WPML(current,0,1,grid),wsa ); 
-          //   realSerialArray wsb ; getLocalArrayWithGhostBoundaries(WPML(current,1,1,grid),wsb ); 
-          //   realSerialArray wta ; getLocalArrayWithGhostBoundaries(WPML(current,0,2,grid),wta ); 
-          //   realSerialArray wtb ; getLocalArrayWithGhostBoundaries(WPML(current,1,2,grid),wtb ); 
-          //   realSerialArray wran; getLocalArrayWithGhostBoundaries(WPML(next   ,0,0,grid),wran); 
-          //   realSerialArray wrbn; getLocalArrayWithGhostBoundaries(WPML(next   ,1,0,grid),wrbn); 
-          //   realSerialArray wsan; getLocalArrayWithGhostBoundaries(WPML(next   ,0,1,grid),wsan); 
-          //   realSerialArray wsbn; getLocalArrayWithGhostBoundaries(WPML(next   ,1,1,grid),wsbn); 
-          //   realSerialArray wtan; getLocalArrayWithGhostBoundaries(WPML(next   ,0,2,grid),wtan); 
-          //   realSerialArray wtbn; getLocalArrayWithGhostBoundaries(WPML(next   ,1,2,grid),wtbn); 
                       #else
                         const realSerialArray & uum = um;
                         const realSerialArray & uu  = uOld;
@@ -2452,9 +2416,10 @@ assignBoundaryConditions( int option, int grid, real t, real dt, realMappedGridF
                             assert( dx[0]>0. );
                             int bc0=-1;  // not used
               // ** for( int m=0; m<3; m++ )
+                            const int firstComponent=ipar[12];  // normally ex (or ext)
                             for( int m=0; m<3; m++ )
                             {
-                          	ipar[12]=ex+m; // assign this component
+                          	ipar[12]=firstComponent+m; // assign this component
                           	pmlMaxwell( mg.numberOfDimensions(), 
                                     		    uu.getBase(0),uu.getBound(0),
                                     		    uu.getBase(1),uu.getBound(1),
@@ -2492,7 +2457,7 @@ assignBoundaryConditions( int option, int grid, real t, real dt, realMappedGridF
                                     		    *fptr,*maskptr,*rxptr, *xyptr,
                                     		    bc0, *bc.getDataPointer(), ipar[0], rpar[0], ierr );
                             }  // end m
-                            ipar[12]=ex;
+                            ipar[12]=firstComponent; // reset 
                         }
                         if( debug & 4 )
                         {
@@ -2856,7 +2821,7 @@ assignBoundaryConditions( int option, int grid, real t, real dt, realMappedGridF
               // current way: 
               // PML(n,m,side,axis,grid)      n=time-level, m=v,w 
                             const int numberOfPMLFunctions=2;  //  v and w
-                            const int numberOfComponentsPML=3; // store Ex, Ey, Hz or Ex,Ey,Ez
+                            const int numberOfComponentsPML= method!=sosup ? 3 : 6; // store Ex, Ey, Hz or Ex,Ey,Ez
                             #define PML(n,m,side,axis,grid) vpml[(n)+numberOfTimeLevels*(m+numberOfPMLFunctions*(side+2*(axis+3*(grid))))]
                             #define VPML(n,side,axis,grid) PML(n,0,side,axis,grid)
                             #define WPML(n,side,axis,grid) PML(n,1,side,axis,grid)
@@ -2919,42 +2884,6 @@ assignBoundaryConditions( int option, int grid, real t, real dt, realMappedGridF
                             realSerialArray uum; getLocalArrayWithGhostBoundaries(um,uum);
                             realSerialArray uu;  getLocalArrayWithGhostBoundaries(uOld,uu);
                             realSerialArray uun; getLocalArrayWithGhostBoundaries(un,uun);
-            //   realSerialArray vram; getLocalArrayWithGhostBoundaries(VPML(prev   ,0,0,grid),vram); 
-            //   realSerialArray vrbm; getLocalArrayWithGhostBoundaries(VPML(prev   ,1,0,grid),vrbm); 
-            //   realSerialArray vsam; getLocalArrayWithGhostBoundaries(VPML(prev   ,0,1,grid),vsam); 
-            //   realSerialArray vsbm; getLocalArrayWithGhostBoundaries(VPML(prev   ,1,1,grid),vsbm); 
-            //   realSerialArray vtam; getLocalArrayWithGhostBoundaries(VPML(prev   ,0,2,grid),vtam); 
-            //   realSerialArray vtbm; getLocalArrayWithGhostBoundaries(VPML(prev   ,1,2,grid),vtbm); 
-            //   realSerialArray vra ; getLocalArrayWithGhostBoundaries(VPML(current,0,0,grid),vra ); 
-            //   realSerialArray vrb ; getLocalArrayWithGhostBoundaries(VPML(current,1,0,grid),vrb ); 
-            //   realSerialArray vsa ; getLocalArrayWithGhostBoundaries(VPML(current,0,1,grid),vsa ); 
-            //   realSerialArray vsb ; getLocalArrayWithGhostBoundaries(VPML(current,1,1,grid),vsb ); 
-            //   realSerialArray vta ; getLocalArrayWithGhostBoundaries(VPML(current,0,2,grid),vta ); 
-            //   realSerialArray vtb ; getLocalArrayWithGhostBoundaries(VPML(current,1,2,grid),vtb ); 
-            //   realSerialArray vran; getLocalArrayWithGhostBoundaries(VPML(next   ,0,0,grid),vran); 
-            //   realSerialArray vrbn; getLocalArrayWithGhostBoundaries(VPML(next   ,1,0,grid),vrbn); 
-            //   realSerialArray vsan; getLocalArrayWithGhostBoundaries(VPML(next   ,0,1,grid),vsan); 
-            //   realSerialArray vsbn; getLocalArrayWithGhostBoundaries(VPML(next   ,1,1,grid),vsbn); 
-            //   realSerialArray vtan; getLocalArrayWithGhostBoundaries(VPML(next   ,0,2,grid),vtan); 
-            //   realSerialArray vtbn; getLocalArrayWithGhostBoundaries(VPML(next   ,1,2,grid),vtbn); 
-            //   realSerialArray wram; getLocalArrayWithGhostBoundaries(WPML(prev   ,0,0,grid),wram); 
-            //   realSerialArray wrbm; getLocalArrayWithGhostBoundaries(WPML(prev   ,1,0,grid),wrbm); 
-            //   realSerialArray wsam; getLocalArrayWithGhostBoundaries(WPML(prev   ,0,1,grid),wsam); 
-            //   realSerialArray wsbm; getLocalArrayWithGhostBoundaries(WPML(prev   ,1,1,grid),wsbm); 
-            //   realSerialArray wtam; getLocalArrayWithGhostBoundaries(WPML(prev   ,0,2,grid),wtam); 
-            //   realSerialArray wtbm; getLocalArrayWithGhostBoundaries(WPML(prev   ,1,2,grid),wtbm); 
-            //   realSerialArray wra ; getLocalArrayWithGhostBoundaries(WPML(current,0,0,grid),wra ); 
-            //   realSerialArray wrb ; getLocalArrayWithGhostBoundaries(WPML(current,1,0,grid),wrb ); 
-            //   realSerialArray wsa ; getLocalArrayWithGhostBoundaries(WPML(current,0,1,grid),wsa ); 
-            //   realSerialArray wsb ; getLocalArrayWithGhostBoundaries(WPML(current,1,1,grid),wsb ); 
-            //   realSerialArray wta ; getLocalArrayWithGhostBoundaries(WPML(current,0,2,grid),wta ); 
-            //   realSerialArray wtb ; getLocalArrayWithGhostBoundaries(WPML(current,1,2,grid),wtb ); 
-            //   realSerialArray wran; getLocalArrayWithGhostBoundaries(WPML(next   ,0,0,grid),wran); 
-            //   realSerialArray wrbn; getLocalArrayWithGhostBoundaries(WPML(next   ,1,0,grid),wrbn); 
-            //   realSerialArray wsan; getLocalArrayWithGhostBoundaries(WPML(next   ,0,1,grid),wsan); 
-            //   realSerialArray wsbn; getLocalArrayWithGhostBoundaries(WPML(next   ,1,1,grid),wsbn); 
-            //   realSerialArray wtan; getLocalArrayWithGhostBoundaries(WPML(next   ,0,2,grid),wtan); 
-            //   realSerialArray wtbn; getLocalArrayWithGhostBoundaries(WPML(next   ,1,2,grid),wtbn); 
                           #else
                             const realSerialArray & uum = um;
                             const realSerialArray & uu  = uOld;
@@ -3021,9 +2950,10 @@ assignBoundaryConditions( int option, int grid, real t, real dt, realMappedGridF
                                 assert( dx[0]>0. );
                                 int bc0=-1;  // not used
                 // ** for( int m=0; m<3; m++ )
+                                const int firstComponent=ipar[12];  // normally ex (or ext)
                                 for( int m=0; m<3; m++ )
                                 {
-                              	ipar[12]=ex+m; // assign this component
+                              	ipar[12]=firstComponent+m; // assign this component
                               	pmlMaxwell( mg.numberOfDimensions(), 
                                         		    uu.getBase(0),uu.getBound(0),
                                         		    uu.getBase(1),uu.getBound(1),
@@ -3061,7 +2991,7 @@ assignBoundaryConditions( int option, int grid, real t, real dt, realMappedGridF
                                         		    *fptr,*maskptr,*rxptr, *xyptr,
                                         		    bc0, *bc.getDataPointer(), ipar[0], rpar[0], ierr );
                                 }  // end m
-                                ipar[12]=ex;
+                                ipar[12]=firstComponent; // reset 
                             }
                             if( debug & 4 )
                             {
@@ -3429,7 +3359,7 @@ assignBoundaryConditions( int option, int grid, real t, real dt, realMappedGridF
               // current way: 
               // PML(n,m,side,axis,grid)      n=time-level, m=v,w 
                             const int numberOfPMLFunctions=2;  //  v and w
-                            const int numberOfComponentsPML=3; // store Ex, Ey, Hz or Ex,Ey,Ez
+                            const int numberOfComponentsPML= method!=sosup ? 3 : 6; // store Ex, Ey, Hz or Ex,Ey,Ez
                             #define PML(n,m,side,axis,grid) vpml[(n)+numberOfTimeLevels*(m+numberOfPMLFunctions*(side+2*(axis+3*(grid))))]
                             #define VPML(n,side,axis,grid) PML(n,0,side,axis,grid)
                             #define WPML(n,side,axis,grid) PML(n,1,side,axis,grid)
@@ -3492,42 +3422,6 @@ assignBoundaryConditions( int option, int grid, real t, real dt, realMappedGridF
                             realSerialArray uum; getLocalArrayWithGhostBoundaries(um,uum);
                             realSerialArray uu;  getLocalArrayWithGhostBoundaries(uOld,uu);
                             realSerialArray uun; getLocalArrayWithGhostBoundaries(un,uun);
-            //   realSerialArray vram; getLocalArrayWithGhostBoundaries(VPML(prev   ,0,0,grid),vram); 
-            //   realSerialArray vrbm; getLocalArrayWithGhostBoundaries(VPML(prev   ,1,0,grid),vrbm); 
-            //   realSerialArray vsam; getLocalArrayWithGhostBoundaries(VPML(prev   ,0,1,grid),vsam); 
-            //   realSerialArray vsbm; getLocalArrayWithGhostBoundaries(VPML(prev   ,1,1,grid),vsbm); 
-            //   realSerialArray vtam; getLocalArrayWithGhostBoundaries(VPML(prev   ,0,2,grid),vtam); 
-            //   realSerialArray vtbm; getLocalArrayWithGhostBoundaries(VPML(prev   ,1,2,grid),vtbm); 
-            //   realSerialArray vra ; getLocalArrayWithGhostBoundaries(VPML(current,0,0,grid),vra ); 
-            //   realSerialArray vrb ; getLocalArrayWithGhostBoundaries(VPML(current,1,0,grid),vrb ); 
-            //   realSerialArray vsa ; getLocalArrayWithGhostBoundaries(VPML(current,0,1,grid),vsa ); 
-            //   realSerialArray vsb ; getLocalArrayWithGhostBoundaries(VPML(current,1,1,grid),vsb ); 
-            //   realSerialArray vta ; getLocalArrayWithGhostBoundaries(VPML(current,0,2,grid),vta ); 
-            //   realSerialArray vtb ; getLocalArrayWithGhostBoundaries(VPML(current,1,2,grid),vtb ); 
-            //   realSerialArray vran; getLocalArrayWithGhostBoundaries(VPML(next   ,0,0,grid),vran); 
-            //   realSerialArray vrbn; getLocalArrayWithGhostBoundaries(VPML(next   ,1,0,grid),vrbn); 
-            //   realSerialArray vsan; getLocalArrayWithGhostBoundaries(VPML(next   ,0,1,grid),vsan); 
-            //   realSerialArray vsbn; getLocalArrayWithGhostBoundaries(VPML(next   ,1,1,grid),vsbn); 
-            //   realSerialArray vtan; getLocalArrayWithGhostBoundaries(VPML(next   ,0,2,grid),vtan); 
-            //   realSerialArray vtbn; getLocalArrayWithGhostBoundaries(VPML(next   ,1,2,grid),vtbn); 
-            //   realSerialArray wram; getLocalArrayWithGhostBoundaries(WPML(prev   ,0,0,grid),wram); 
-            //   realSerialArray wrbm; getLocalArrayWithGhostBoundaries(WPML(prev   ,1,0,grid),wrbm); 
-            //   realSerialArray wsam; getLocalArrayWithGhostBoundaries(WPML(prev   ,0,1,grid),wsam); 
-            //   realSerialArray wsbm; getLocalArrayWithGhostBoundaries(WPML(prev   ,1,1,grid),wsbm); 
-            //   realSerialArray wtam; getLocalArrayWithGhostBoundaries(WPML(prev   ,0,2,grid),wtam); 
-            //   realSerialArray wtbm; getLocalArrayWithGhostBoundaries(WPML(prev   ,1,2,grid),wtbm); 
-            //   realSerialArray wra ; getLocalArrayWithGhostBoundaries(WPML(current,0,0,grid),wra ); 
-            //   realSerialArray wrb ; getLocalArrayWithGhostBoundaries(WPML(current,1,0,grid),wrb ); 
-            //   realSerialArray wsa ; getLocalArrayWithGhostBoundaries(WPML(current,0,1,grid),wsa ); 
-            //   realSerialArray wsb ; getLocalArrayWithGhostBoundaries(WPML(current,1,1,grid),wsb ); 
-            //   realSerialArray wta ; getLocalArrayWithGhostBoundaries(WPML(current,0,2,grid),wta ); 
-            //   realSerialArray wtb ; getLocalArrayWithGhostBoundaries(WPML(current,1,2,grid),wtb ); 
-            //   realSerialArray wran; getLocalArrayWithGhostBoundaries(WPML(next   ,0,0,grid),wran); 
-            //   realSerialArray wrbn; getLocalArrayWithGhostBoundaries(WPML(next   ,1,0,grid),wrbn); 
-            //   realSerialArray wsan; getLocalArrayWithGhostBoundaries(WPML(next   ,0,1,grid),wsan); 
-            //   realSerialArray wsbn; getLocalArrayWithGhostBoundaries(WPML(next   ,1,1,grid),wsbn); 
-            //   realSerialArray wtan; getLocalArrayWithGhostBoundaries(WPML(next   ,0,2,grid),wtan); 
-            //   realSerialArray wtbn; getLocalArrayWithGhostBoundaries(WPML(next   ,1,2,grid),wtbn); 
                           #else
                             const realSerialArray & uum = um;
                             const realSerialArray & uu  = uOld;
@@ -3594,9 +3488,10 @@ assignBoundaryConditions( int option, int grid, real t, real dt, realMappedGridF
                                 assert( dx[0]>0. );
                                 int bc0=-1;  // not used
                 // ** for( int m=0; m<3; m++ )
+                                const int firstComponent=ipar[12];  // normally ex (or ext)
                                 for( int m=0; m<3; m++ )
                                 {
-                              	ipar[12]=ex+m; // assign this component
+                              	ipar[12]=firstComponent+m; // assign this component
                               	pmlMaxwell( mg.numberOfDimensions(), 
                                         		    uu.getBase(0),uu.getBound(0),
                                         		    uu.getBase(1),uu.getBound(1),
@@ -3634,7 +3529,7 @@ assignBoundaryConditions( int option, int grid, real t, real dt, realMappedGridF
                                         		    *fptr,*maskptr,*rxptr, *xyptr,
                                         		    bc0, *bc.getDataPointer(), ipar[0], rpar[0], ierr );
                                 }  // end m
-                                ipar[12]=ex;
+                                ipar[12]=firstComponent; // reset 
                             }
                             if( debug & 4 )
                             {

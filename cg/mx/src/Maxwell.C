@@ -1775,6 +1775,7 @@ buildInputOutputOptionsDialog(DialogData & dialog )
 
   // ************** PUSH BUTTONS *****************
   aString pushButtonCommands[] = {"create a probe...",
+                                  "create user defined probe...",
                                   // old: "specify probes",
                                   "show file options...",
 				  ""};
@@ -3071,6 +3072,10 @@ interactiveUpdate(GL_GraphicsInterface &gi )
       probe.update( cg,gi );
     
     }
+    else if( answer=="create user defined probe..." )
+    {
+      userDefinedProbe(gi);
+    }
 
     else if( answer=="specify probes" )  // **OLD WAY***
     {
@@ -3259,8 +3264,22 @@ interactiveUpdate(GL_GraphicsInterface &gi )
   if( fabs(ax)+fabs(ay)+fabs(az) == 0. )
   {
     // Coefficients of the plane wave solution were not set. Here are the default values:
-    epsPW=eps;
-    muPW=mu;
+    if( FALSE )
+    {
+      // This could use the wrong eps, mu
+      epsPW=eps; // *wdh* Aug 22, 2017
+      muPW=mu;
+    }
+    else
+    {
+      
+      if( epsPW==0. || muPW==0. )
+      {
+        epsPW=epsGrid(0);
+        muPW=muGrid(0);
+      }
+    }
+    
     const real c = 1./sqrt(epsPW*muPW);
     const real cc = c*kNorm;
     if( fabs(kx)+fabs(ky)>0. )
@@ -3302,6 +3321,12 @@ interactiveUpdate(GL_GraphicsInterface &gi )
   by = (kz*ax-kx*az)*bc;
   bz = (kx*ay-ky*ax)*bc;
   
+
+  if( true )
+    printF("\n >>>> plane wave solution: (kx,ky,kz)=(%8.2e,%8.2e,%8.2e), omega=%8.2e eps=%g mu=%g \n"
+            "     E: a=(%8.2e,%8.2e,%8.2e), H: b=(%8.2e,%8.2e,%8.2e)\n",
+           kx,ky,kz,omegaTimeHarmonic,eps,mu,pwc[0],pwc[1],pwc[2],pwc[3],pwc[4],pwc[5]);
+
   // **** now build grid functions *****
   setupGridFunctions();
 

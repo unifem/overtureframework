@@ -47,6 +47,13 @@ streamLines3d(GenericGraphicsInterface &gi, GridCollection & gc,
 
   int maximumNumberOfSteps=10000;
 
+  if( !parameters.dbase.has_key("tracerPointSize")  ) // *wdh* AUg 24, 2017
+  {
+    parameters.dbase.put<real>("tracerPointSize")=4.;
+  }
+  
+  real & tracerPointSize = parameters.dbase.get<real>("tracerPointSize"); 
+
   IntegerArray componentsToInterpolate;
   componentsToInterpolate.resize(3); 
 
@@ -167,7 +174,7 @@ streamLines3d(GenericGraphicsInterface &gi, GridCollection & gc,
     int numRows=3;
     dialog.setPushButtons( pbLabels, pbLabels, numRows ); 
     
-    const int numberOfTextStrings=6;
+    const int numberOfTextStrings=7;
     aString textLabels[numberOfTextStrings], textStrings[numberOfTextStrings];
 
 
@@ -202,6 +209,10 @@ streamLines3d(GenericGraphicsInterface &gi, GridCollection & gc,
 
     textLabels[nt] = "xScale, yScale, zScale";
     sPrintF(textStrings[nt], "%g %g %g",psp.xScaleFactor,psp.yScaleFactor,psp.zScaleFactor);
+    nt++;
+
+    textLabels[nt] = "point size";
+    sPrintF(textStrings[nt], "%g",tracerPointSize);
     nt++;
 
     textLabels[nt]=""; 
@@ -341,6 +352,8 @@ streamLines3d(GenericGraphicsInterface &gi, GridCollection & gc,
       if( answer=="erase and exit" )
        break;
     }
+    else if( dialog.getTextValue(answer,"point size","%e",tracerPointSize) ){} // 
+
     else if( answer=="compute tracers" )
     {
       plotStreamLines=true;
@@ -912,7 +925,7 @@ streamLines3d(GenericGraphicsInterface &gi, GridCollection & gc,
 
 	  // plot points at initial positions of the seeds
 	  glColor3(0.,0.,0.);
-	  glPointSize(4.);   
+	  glPointSize(tracerPointSize*gi.getLineWidthScaleFactor());   
 	  glBegin(GL_POINTS);  
 	  for( i=0; i<numberOfSeeds; i++ )
 	    glVertex3(XSCALE(seed(i,0)),YSCALE(seed(i,1)),ZSCALE(seed(i,2)));
