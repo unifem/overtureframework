@@ -30,26 +30,26 @@
 #include "BeamFluidInterfaceData.h"
 #include "Interface.h" 
 
-namespace
-{
+// namespace
+// {
 
-// ---- "user" defined motions ----
-enum UserDefinedDeformingBodyMotionEnum
-{
-  iceDeform,
-  ellipseDeform,
-  sphereDeform,
-  freeSurface,    // previously advectBody
-  elasticShell,
-  elasticBeam,
-  nonlinearBeam,
-  interfaceDeform,
-  userDeformingSurface,  // deforming surface is defined by the function: userDefinedDeformingSurface
-  linearDeform, // for testing the elastic piston problem 
-  cylDeform // beam cylinder
-}; 
+// // ---- "user" defined motions ----
+// enum UserDefinedDeformingBodyMotionEnum
+// {
+//   iceDeform,
+//   ellipseDeform,
+//   sphereDeform,
+//   freeSurface,    // previously advectBody
+//   elasticShell,
+//   elasticBeam,
+//   nonlinearBeam,
+//   interfaceDeform,
+//   userDeformingSurface,  // deforming surface is defined by the function: userDefinedDeformingSurface
+//   linearDeform, // for testing the elastic piston problem 
+//   cylDeform // beam cylinder
+// }; 
  
-}
+// }
 
 #define  FOR_3(i1,i2,i3,I1,I2,I3)\
   I1Base=I1.getBase(); I2Base=I2.getBase(); I3Base=I3.getBase();\
@@ -1749,94 +1749,69 @@ initialize( CompositeGrid & cg, real t /* = 0. */ )
       else if( userDefinedDeformingBodyMotionOption==freeSurface ||
                userDefinedDeformingBodyMotionOption==interfaceDeform )
       {
-	if( true ) // ************ IS THIS NEEDED?? *************
-	{
-	  // *new way that allows the initial grid to deform to match the solid* *wdh* 2014/07/11
-	  Index Ib1,Ib2,Ib3;
-	  const int numGhost=0;  // no ghost for now 
-	  getBoundaryIndex(cg[gridToMove].gridIndexRange(),sideToMove,axisToMove,Ib1,Ib2,Ib3,numGhost);
+        // *new way that allows the initial grid to deform to match the solid* *wdh* 2014/07/11
+        Index Ib1,Ib2,Ib3;
+        const int numGhost=0;  // no ghost for now 
+        getBoundaryIndex(cg[gridToMove].gridIndexRange(),sideToMove,axisToMove,Ib1,Ib2,Ib3,numGhost);
 
-	  Range Rx=numberOfDimensions;
-	  x0.redim(Ib1,Ib2,Ib3,Rx);
-	  cg[gridToMove].update(MappedGrid::THEvertex | MappedGrid::THEcenter); // do this for now 
+        Range Rx=numberOfDimensions;
+        x0.redim(Ib1,Ib2,Ib3,Rx);
+        cg[gridToMove].update(MappedGrid::THEvertex | MappedGrid::THEcenter); // do this for now 
 	
 #ifdef USE_PPP
-          RealArray vertex; getLocalArrayWithGhostBoundaries(cg[gridToMove].vertex(),vertex);
+        RealArray vertex; getLocalArrayWithGhostBoundaries(cg[gridToMove].vertex(),vertex);
 #else
-          RealArray & vertex = cg[gridToMove].vertex();
+        RealArray & vertex = cg[gridToMove].vertex();
 #endif
 
-	  // Here is the undeformed state
-	  x0=vertex(Ib1,Ib2,Ib3,Rx);
+        // Here is the undeformed state
+        x0=vertex(Ib1,Ib2,Ib3,Rx);
 
-	  ::display(x0,"--DBM-- initialize: x0 (initial state)","%8.2e ");
+        ::display(x0,"--DBM-- initialize: x0 (initial state)","%8.2e ");
 
-	  // --- Check for periodic boundary conditions --
-	  MappedGrid & mg = cg[gridToMove];
-	  BcArray & boundaryCondition = deformingBodyDataBase.get<BcArray>("boundaryCondition");
+        // --- Check for periodic boundary conditions --
+        MappedGrid & mg = cg[gridToMove];
+        BcArray & boundaryCondition = deformingBodyDataBase.get<BcArray>("boundaryCondition");
 
-	  const int axisp = (axisToMove+1) % 2;  // tangential direction (2D)
-	  if( mg.isPeriodic(axisp)!=Mapping::notPeriodic )
-	  {
-	    printF("--DBM--:initialize:INFO: Setting boundary conditions to PERIODIC.\n");
-	    boundaryCondition(0,axisp)=periodicBoundaryCondition;
-	    boundaryCondition(1,axisp)=periodicBoundaryCondition;
+        const int axisp = (axisToMove+1) % 2;  // tangential direction (2D)
+        if( mg.isPeriodic(axisp)!=Mapping::notPeriodic )
+        {
+          printF("--DBM--:initialize:INFO: Setting boundary conditions to PERIODIC.\n");
+          boundaryCondition(0,axisp)=periodicBoundaryCondition;
+          boundaryCondition(1,axisp)=periodicBoundaryCondition;
 
-            // *wdh* 2014/09/12
-	    printF("--DBM--:initialize:INFO: Setting startCurve to PERIODIC.\n");
-    	    NurbsMapping & startCurve = *((NurbsMapping*) surface[face]);
-   	    startCurve.setIsPeriodic(axisp, (Mapping::periodicType)mg.isPeriodic(axisp));
-	  }
+          // *wdh* 2014/09/12
+          printF("--DBM--:initialize:INFO: Setting startCurve to PERIODIC.\n");
+          NurbsMapping & startCurve = *((NurbsMapping*) surface[face]);
+          startCurve.setIsPeriodic(axisp, (Mapping::periodicType)mg.isPeriodic(axisp));
+        }
 
-	  Index I1=x0.dimension(0), I2=x0.dimension(1);
-	  if( numberOfDimensions==2 )
-	    x0.reshape(I1,numberOfDimensions);
-	  else 
-	    x0.reshape(I1,I2,numberOfDimensions);
+        Index I1=x0.dimension(0), I2=x0.dimension(1);
+        if( numberOfDimensions==2 )
+          x0.reshape(I1,numberOfDimensions);
+        else 
+          x0.reshape(I1,I2,numberOfDimensions);
 	
+        if( ! deformingBodyDataBase.has_key("currentFreeSurface") )
+        {
+          // numberOfTimeLevelsForFreeSurface: we could probably get away with 2, but keep 3 for now
+          deformingBodyDataBase.put<int>("numberOfTimeLevelsForFreeSurface")=3;
+          vector<int> & currentFreeSurface =  deformingBodyDataBase.put<vector<int> >("currentFreeSurface");
+          currentFreeSurface.resize(numberOfFaces);
+        }
+          
+        vector<int> & currentFreeSurface =  deformingBodyDataBase.get<vector<int> >("currentFreeSurface");
+        int cur=0;
+        currentFreeSurface[face]=cur;  // x0 = px[cur] = current solution
 
+        const int numberOfTimeLevelsForFreeSurface=deformingBodyDataBase.get<int>("numberOfTimeLevelsForFreeSurface");
 
-	}
-	else
-	{
-	  // *old way 
-	  Mapping & map = cg[gridToMove].mapping().getMapping();
-	  assert( map.getClassName()=="HyperbolicMapping" );
-	  HyperbolicMapping & hype = (HyperbolicMapping&)map;
+        const int prev = ovmod(cur-1,numberOfTimeLevelsForFreeSurface);
+        const int next = ovmod(cur+1,numberOfTimeLevelsForFreeSurface);
 
-	  Mapping *pStartSurface = (Mapping*)hype.getSurface();
-	  assert( pStartSurface!=NULL );
-	  Mapping & startSurface = *pStartSurface;
-
-	  GenericGraphicsInterface & gi = *Overture::getGraphicsInterface();
-
-	  if( false )
-	  {
-	    gi.stopReadingCommandFile();
-	    printF("DeformingBodyMotion:initialize: surface Mapping for hyperbolic grid=%i\n",
-		   gridToMove);
-	
-	    gi.erase();
-	    PlotIt::plot(gi,startSurface);
-	  }
-	
-	  NurbsMapping & surf = *((NurbsMapping*)surface[face]);
-
-	  int degree=3;
-	  surf.interpolate(startSurface,degree,NurbsMapping::parameterizeByIndex);
-
-	  realArray surfGrid; surfGrid = surf.getGrid();
-#ifdef USE_PPP
-	  getLocalArrayWithGhostBoundaries( surfGrid, x0 );
-#else
-	  x0.reference(surfGrid);
-#endif 
-	  Index I1=x0.dimension(0), I2=x0.dimension(1);
-	  if( numberOfDimensions==2 )
-	    x0.reshape(I1,numberOfDimensions);
-	  else 
-	    x0.reshape(I1,I2,numberOfDimensions);
-	}
+        // For now initialize past time grid to equal t=0: 
+        px[prev]=x0;  // this may be overriden by initializePast 
+        px[next]=x0;  // dimension next array too
 	
       }
       else if( userDefinedDeformingBodyMotionOption==elasticShell ||
@@ -2391,6 +2366,42 @@ initializePast( real time00, real dt00, CompositeGrid & cg)
             // free surface known solutions are defined here: 
             parameters.getUserDefinedDeformingBodyKnownSolution( 
               bodyNumber,Parameters::boundaryPosition, pastTime, gridToMove, mg,Ib1,Ib2,Ib3,Rx,xPast );
+
+            if( step==1 ) // t=-dt 
+            {
+              //  ------ ASSIGN PAST TIME FREE SURFACE ARRAY -----
+              //  *wdh* Aug 27, 2017 
+              printF("\n >>>>>> --DBM-- ASSIGN PAST TIME FREE SURFACE POSITION: t=%9.3e\n\n",pastTime);
+              
+
+              assert( deformingBodyDataBase.has_key("currentFreeSurface") );
+              const int numberOfTimeLevelsForFreeSurface= 
+                deformingBodyDataBase.get<int>("numberOfTimeLevelsForFreeSurface");
+              vector<int> & currentFreeSurface =  deformingBodyDataBase.get<vector<int> >("currentFreeSurface");
+              const int & cur = currentFreeSurface[face];// px[cur] = current solution
+              const int prev = ovmod(cur-1,numberOfTimeLevelsForFreeSurface);
+
+              vector<RealArray*> & surfaceArray = deformingBodyDataBase.get<vector<RealArray*> >("surfaceArray");
+              vector<real*> & surfaceArrayTime = deformingBodyDataBase.get<vector<real*> >("surfaceArrayTime"); 
+              assert( face<surfaceArray.size() );
+              RealArray *px = surfaceArray[face];
+
+              RealArray & xPrev = px[prev];
+              xPrev.redim(0);
+              xPrev=xPast;  
+              // reshape xPrev : (fix me for all cases) 
+              Index I1=xPrev.dimension(0), I2=xPrev.dimension(1);
+              if( numberOfDimensions==2 )
+                xPrev.reshape(I1,numberOfDimensions);
+              else 
+                xPrev.reshape(I1,I2,numberOfDimensions);
+      
+              surfaceArrayTime[face][prev]=pastTime;
+              
+            }
+
+
+
           }
           else if( userDefinedDeformingBodyMotionOption==interfaceDeform )
 	  {
@@ -4178,6 +4189,15 @@ integrate( real t1, real t2, real t3,
     return ierr;
    
   }
+  else if( deformingBodyType==userDefinedDeformingBody && 
+	     userDefinedDeformingBodyMotionOption==freeSurface )
+  {
+    // ---- advance FREE SURFACE -----
+    int option=0;  // predictor 
+    ierr=advanceFreeSurface(t1,t2,t3,cgf1,cgf2,cgf3,option);
+    return ierr;
+   
+  }
 
   for( int face=0; face<numberOfFaces; face++ )
   {
@@ -4197,13 +4217,12 @@ integrate( real t1, real t2, real t3,
     else if( deformingBodyType==userDefinedDeformingBody )
     {
 
-      if(  userDefinedDeformingBodyMotionOption==freeSurface )
+      if(  FALSE && userDefinedDeformingBodyMotionOption==freeSurface )
       {
+        // *** OLD **** this is now done in advanceFreeSurface
+
         // ---- FREE SURFACE: 
         // advect the surface from time t1 to t3 using velocity from time t2 
-
-	if( debug & 2 )
-	  printF("DeformingBodyMotion:integrate called for freeSurface motion at t=%9.3e\n",tNew);
 
 	const int uc = parameters.dbase.get<int >("uc");
 	const int vc = parameters.dbase.get<int >("vc");
@@ -4224,6 +4243,9 @@ integrate( real t1, real t2, real t3,
         tx0=t3; // x0 will now live at this time
         realArray & u = cgf2.u[gridToMove];
 	
+	if( debug & 2 || tNew < 5.*dt )
+	  printF("DeformingBodyMotion:integrate called for freeSurface motion at tNew=%9.3e\n",tNew);
+
 	Index Ib1,Ib2,Ib3;
 	getBoundaryIndex(cgf1.cg[gridToMove].gridIndexRange(),sideToMove,axisToMove,Ib1,Ib2,Ib3);
 
@@ -4256,17 +4278,12 @@ integrate( real t1, real t2, real t3,
 	  OV_ABORT("error");
 	}
 	
-        // int bc[4]={0,0,0,0};        // Boundary conditions, 0=Dirichlet, 1=Neumann, -1=periodic
-	// if( deformingBodyDataBase.has_key("freeSurfaceParameters") )
-	// {
-	//   real *par = deformingBodyDataBase.get<real [10]>("freeSurfaceParameters");
-	//   for( int axis=0; axis<3; axis++ ){ vScale[axis]=par[axis]; } //
-        //   int *abbc =  deformingBodyDataBase.get<int [4]>("freeSurfaceBoundaryConditions");
-	//   for( int k=0; k<4; k++ ){ bc[k]=abbc[k]; } //
-	// }
-
 	if( numberOfDimensions==2 )
 	{
+          if( true )
+            printF("--MVG-- advect free surface at tNew=%9.3e  **FORWARD EULER: FIX ME** \n",tNew);
+          
+
           assert( uc>=0 && vc>=0 );
           int axisp = (axisToMove + 1) % numberOfDimensions;
 	  Index I1=x0.dimension(0), I2=x0.dimension(1);
@@ -4280,17 +4297,20 @@ integrate( real t1, real t2, real t3,
 	    x0(j1,0) = x + dt*u0;
 	    x0(j1,1) = y + dt*v0;
 
-	    // printF("freeSurface: x=(%5.2f,%5.2f) u=(%5.2f,%5.2f) x0=(%5.2f,%5.2f)\n",x,y,u0,v0,x0(j1,0),x0(j1,1));
+            if( false )
+              printF("--DBM-- freeSurface: x=(%5.2f,%5.2f) u=(%5.2f,%5.2f) x0=(%5.2f,%5.2f)\n",
+                     x,y,u0,v0,x0(j1,0),x0(j1,1));
 	    
 	  }
 
           // -- Add a fourth-order filter to the new positions (free surface 2D) --
 	  if( smoothSurface )
 	  {
-	    printF("freeSurface: smooth the boundary curve, numberOfSurfaceSmooths=%i "
+	    printF("--DBM-- freeSurface: smooth the boundary curve, numberOfSurfaceSmooths=%i "
                    " (4th order filter) bc=[%i,%i]...\n",
                    numberOfSurfaceSmooths,boundaryCondition(0,0),boundaryCondition(1,0));
 	    
+            
             const int base=x0.getBase(0), bound=x0.getBound(0);
             RealArray x1(Range(base-2,bound+2),2);  // add 2 ghost points
             Range R2(0,1);
@@ -4307,8 +4327,17 @@ integrate( real t1, real t2, real t3,
 	    const int i1b= boundaryCondition(1,0)==dirichletBoundaryCondition ? bound-1 : bound;
             Range I(i1a,i1b);
 
-	    real omega=.5;
-	    for( int smooth=0; smooth<numberOfSurfaceSmooths; smooth++ )
+            // -- check if the grid is periodic in the tangential direction ---
+            const int isPeriodic = cg[gridToMove].isPeriodic(axisp);
+            real dist[2]={0.,0.};    // for derivative-periodic : length of periodic interval 
+            dist[axisp]= x0(bound,axisp)-x0(base,axisp);  // *check me*
+
+            if( true || isPeriodic==Mapping::derivativePeriodic )
+              printF("--DBM-- isPeriodic=%i dist=%9.3e\n",isPeriodic,dist[axisp]);
+            
+
+	    real omega=.5;	    
+            for( int smooth=0; smooth<numberOfSurfaceSmooths; smooth++ )
 	    {
               // -- boundary conditions  **FIX ME for derivative periodic**
               int side=0;
@@ -4327,9 +4356,15 @@ integrate( real t1, real t2, real t3,
 	      }
               else if( boundaryCondition(side,0)==periodicBoundaryCondition )
 	      {
-                // Periodic: FIX ME for derivative periodic **
+                // Periodic: 
                 x1(base-1,R2) = x1(bound-1,R2);
                 x1(base-2,R2) = x1(bound-2,R2);
+                if( isPeriodic==Mapping::derivativePeriodic )
+                {
+                  // derivative is periodic -- include spatial shift 
+                  x1(base-1,axisp) -= dist[axisp];
+                  x1(base-2,axisp) -= dist[axisp];
+                }                
 	      }
 	      else
 	      {
@@ -4357,6 +4392,13 @@ integrate( real t1, real t2, real t3,
                 x1(bound  ,R2) = x1(base  ,R2);
                 x1(bound+1,R2) = x1(base+1,R2);
                 x1(bound+2,R2) = x1(base+2,R2);
+                if( isPeriodic==Mapping::derivativePeriodic )
+                { // derivative periodic 
+                  x1(bound  ,axisp) += dist[axisp];
+                  x1(bound+1,axisp) += dist[axisp];
+                  x1(bound+2,axisp) += dist[axisp];
+                }
+                
 	      }
 	      else
 	      {
@@ -4891,6 +4933,12 @@ correct( real t1, real t2,
       int option=1;  // corrector 
       advanceInterfaceDeform( t1, t2,t2, cgf1, cgf2, cgf2, option  ) ;
 
+    }
+    else if(  userDefinedDeformingBodyMotionOption==freeSurface )
+    {
+      // ---- FREE SURFACE ---- 
+      int advanceOption=1;  // corrector 
+      advanceFreeSurface( t1, t2,t2, cgf1, cgf2, cgf2, advanceOption  ) ;
     }
     else
     {

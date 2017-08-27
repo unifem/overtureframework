@@ -880,50 +880,56 @@ assignPressureRHS( const int grid, GridFunction & gf0, realCompositeGridFunction
     // The next macro is in boundaryMacros.h
     extractBoundaryDataArrays()
 
-    int ipar[] ={parameters.dbase.get<int >("pc"),
-		 parameters.dbase.get<int >("uc"),
-		 parameters.dbase.get<int >("vc"),
-		 parameters.dbase.get<int >("wc"),
-		 parameters.dbase.get<int >("tc"),
-		 parameters.dbase.get<int >("kc"),  // for a turbulence model
+    int ipar[] ={parameters.dbase.get<int>("pc"),
+		 parameters.dbase.get<int>("uc"),
+		 parameters.dbase.get<int>("vc"),
+		 parameters.dbase.get<int>("wc"),
+		 parameters.dbase.get<int>("tc"),
+		 parameters.dbase.get<int>("kc"),  // for a turbulence model
 		 grid,
 		 orderOfAccuracy,
 		 (int)parameters.gridIsMoving(grid),
 		 useWhereMask,
 		 (int)parameters.isAxisymmetric(),  // ipar[10]
-		 (int)parameters.dbase.get<int >("pressureBoundaryCondition"),
-		 parameters.dbase.get<int >("numberOfComponents"),
+		 (int)parameters.dbase.get<int>("pressureBoundaryCondition"),
+		 parameters.dbase.get<int>("numberOfComponents"),
 		 (isRectangular? 0 : 1),
-		 parameters.dbase.get<Parameters::TurbulenceModel >("turbulenceModel"),  
-		 (int)parameters.dbase.get<bool >("useSecondOrderArtificialDiffusion"),  // ipar[15]
-		 (int)parameters.dbase.get<bool >("useFourthOrderArtificialDiffusion"),
-		 (int)parameters.dbase.get<bool >("useImplicitFourthArtificialDiffusion"),
+		 parameters.dbase.get<Parameters::TurbulenceModel>("turbulenceModel"),  
+		 (int)parameters.dbase.get<bool>("useSecondOrderArtificialDiffusion"),  // ipar[15]
+		 (int)parameters.dbase.get<bool>("useFourthOrderArtificialDiffusion"),
+		 (int)parameters.dbase.get<bool>("useImplicitFourthArtificialDiffusion"),
 		 includeADinPressure,
 		 pdeModel,                                                               // ipar[19]
-		 parameters.dbase.get<int >("vsc"),
+		 parameters.dbase.get<int>("vsc"),
 		 (int)twilightZoneFlow,
-                 parameters.dbase.get<int >("rc"),
+                 parameters.dbase.get<int>("rc"),
                  parameters.dbase.get<int>("initialConditionsAreBeingProjected"),
-                 (int)parameters.dbase.get<bool >("turnOnBodyForcing"),
+                 (int)parameters.dbase.get<bool>("turnOnBodyForcing"),
                  debug()
     }; //
 
+    real fluidDensity = parameters.dbase.get<real>("fluidDensity");
+    if( fluidDensity==0. ) fluidDensity=1.;
+
     real rpar[]={c.gridSpacing(0),c.gridSpacing(1),c.gridSpacing(2),
 		 dx[0],dx[1],dx[2],
-		 parameters.dbase.get<real >("nu"),
-		 parameters.dbase.get<real >("advectionCoefficient"),
-		 parameters.dbase.get<real >("inflowPressure"),
-		 parameters.dbase.get<real >("ad21"),
-		 parameters.dbase.get<real >("ad22"),
-		 parameters.dbase.get<real >("ad41"),
-		 parameters.dbase.get<real >("ad42") ,
+		 parameters.dbase.get<real>("nu"),
+		 parameters.dbase.get<real>("advectionCoefficient"),
+		 parameters.dbase.get<real>("inflowPressure"),
+		 parameters.dbase.get<real>("ad21"),
+		 parameters.dbase.get<real>("ad22"),
+		 parameters.dbase.get<real>("ad41"),
+		 parameters.dbase.get<real>("ad42") ,
 		 gravity[0],
 		 gravity[1],
 		 gravity[2],          // 15
 		 thermalExpansivity,  // 16 
 		 adcBoussinesq,       // 17
                  surfaceTension,      // 18
-                 pAtmosphere          // 19
+                 pAtmosphere,         // 19
+                 fluidDensity,        // 20 
+                 t0,
+                 dt 
     };
 
     int ierr=0;

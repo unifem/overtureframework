@@ -1,4 +1,12 @@
 *******************************
+****** Aug 27, 2017
+
+REVISIT with new advanceFreeSurface
+
+cgins -noplot oscillatingBubble -g=oscillatingBubbleGride2.order2 -ts=pc -nu=.01 -tf=30. -tp=1.e-5 -model=ins -go=halt -ad2=0 -dtMax=.015  -surfaceTension=1. -amp=1.e-2 -caseNumber=3 -go=og
+
+
+*******************************
 ****** Aug 3, 2017
 
 

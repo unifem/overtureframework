@@ -53,6 +53,22 @@ enum DeformingBodyType
   unknownBody
 };
 
+// ---- "user" defined motions ----
+enum UserDefinedDeformingBodyMotionEnum
+{
+  iceDeform,
+  ellipseDeform,
+  sphereDeform,
+  freeSurface,    // previously advectBody
+  elasticShell,
+  elasticBeam,
+  nonlinearBeam,
+  interfaceDeform,
+  userDeformingSurface,  // deforming surface is defined by the function: userDefinedDeformingSurface
+  linearDeform, // for testing the elastic piston problem 
+  cylDeform // beam cylinder
+}; 
+ 
 typedef ArraySimpleFixed<int,2,2,1,1> BcArray;
 enum DeformingBoundaryBoundaryConditionEnum
 {
@@ -245,19 +261,25 @@ int advanceElasticShell(real t1, real t2, real t3,
 			GridFunction & cgf2,
 			GridFunction & cgf3,
 			realCompositeGridFunction & stress,
-			int option );
+			int advanceOption );
 
 int advanceElasticBeam(real t1, real t2, real t3, 
 		       GridFunction & cgf1,
 		       GridFunction & cgf2,
 		       GridFunction & cgf3,
 		       realCompositeGridFunction & stress,
-		       int option );
+		       int advanceOption );
+
+int advanceFreeSurface(real t1, real t2, real t3, 
+                       GridFunction & cgf1,
+                       GridFunction & cgf2,
+                       GridFunction & cgf3,
+                       int advanceOption );
 
 int advanceNonlinearBeam(real t1, real t2, real t3, 
 			 GridFunction & cgf3,
 			 realCompositeGridFunction & stress,
-			 int option );
+			 int advanceOption );
 
   int getFace( int grid ) const;
 
@@ -271,7 +293,8 @@ int advanceNonlinearBeam(real t1, real t2, real t3,
 			  CompositeGrid & cg,
 			  realArray & gridVelocity);
 
-
+int smoothInterface( RealArray & x0, CompositeGrid & cg, 
+                     const int sideToMove, const int axisToMove, const int gridToMove, const real *vScale );
 
   ElasticFilament *pElasticFilament;  // the Mapping for an elastic filament 
   DeformingGrid *pDeformingGrid;      // The "grid" associated with the elastic filament

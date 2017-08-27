@@ -1,0 +1,160 @@
+%-----------------------------------------------------------------------
+%    Free surface notes
+%-----------------------------------------------------------------------
+\documentclass[11pt]{article}
+% \usepackage[bookmarks=true]{hyperref}  % this changes the page location !
+\usepackage[bookmarks=true,colorlinks=true,linkcolor=blue]{hyperref}
+
+% \input documentationPageSize.tex
+\hbadness=10000 
+\sloppy \hfuzz=30pt
+
+% \voffset=-.25truein
+% \hoffset=-1.25truein
+% \setlength{\textwidth}{7in}      % page width
+% \setlength{\textheight}{9.5in}    % page height
+
+\usepackage{calc}
+\usepackage[lmargin=.75in,rmargin=.75in,tmargin=.75in,bmargin=.75in]{geometry}
+
+% \input homeHenshaw
+\newcommand{\CgTexDir}{../../../common/tex}% Here are some common tex files
+
+\newcommand{\grad}{\nabla}
+\newcommand{\citeCount}[1]{}% for citation counts papers
+
+\newcommand{\blue}{\color{blue}}
+\newcommand{\green}{\color{green}}
+\newcommand{\red}{\color{red}}
+\newcommand{\black}{\color{black}}
+
+\newcommand{\tableFont}{\small}
+\newcommand{\num}[2]{#1e#2} % Use this macro to define the format of the numbers in the table
+\newcommand{\errFormat}[1]{$E_j^{(#1)}$}
+
+
+\usepackage{amsmath}
+\usepackage{amssymb}
+
+\usepackage{verbatim}
+% \usepackage{moreverb}
+
+\usepackage{graphics}    
+% \usepackage{ifthen}
+% \usepackage{float}
+
+\usepackage{tikz}
+% \usepackage{pgfplots}
+\input \CgTexDir/trimFig.tex
+
+
+% ---- we have lemmas and theorems in this paper ----
+%\newtheorem{assumption}{Assumption}
+%\newtheorem{definition}{Definition}
+
+\usepackage{listings}
+\lstset{
+basicstyle=\small\ttfamily,
+columns=flexible,
+breaklines=true
+}
+
+% \newcommand{\homeHenshaw}{/home/henshaw.0}
+
+% \newcommand{\Overture}{{\bf Over\-ture\ }}
+% \newcommand{\ogenDir}{\homeHenshaw/Overture/ogen}
+% 
+% \newcommand{\cgDoc}{\homeHenshaw/cgDoc}
+% \newcommand{\vpDir}{\homeHenshaw/cgDoc/ins/viscoPlastic}
+% 
+% \newcommand{\ovFigures}{\homeHenshaw/OvertureFigures}
+% \newcommand{\obFigures}{\homeHenshaw/res/OverBlown/docFigures}  % for figures
+% \newcommand{\convDir}{\homeHenshaw/cgDoc/ins/tables}
+% \newcommand{\insDocDir}{\homeHenshaw/cgDoc/ins}
+
+% *** See http://www.eng.cam.ac.uk/help/tpl/textprocessing/squeeze.html
+% By default, LaTeX doesn't like to fill more than 0.7 of a text page with tables and graphics, nor does it like too many figures per page. This behaviour can be changed by placing lines like the following before \begin{document}
+
+\renewcommand\floatpagefraction{.99}
+\renewcommand\topfraction{.99}
+\renewcommand\bottomfraction{.99}
+\renewcommand\textfraction{.01}   
+\setcounter{totalnumber}{50}
+\setcounter{topnumber}{50}
+\setcounter{bottomnumber}{50}
+
+\begin{document}
+
+\input \CgTexDir/wdhDefinitions.tex
+
+\newcommand{\dt}{{\Delta t}}
+\newcommand{\rhos}{{\rho_b}}
+\newcommand{\rhob}{{\rho_b}}
+
+\newcommand{\Bc}{{\mathcal B}}
+\newcommand{\Dc}{{\mathcal D}}
+\newcommand{\Ec}{{\mathcal E}}
+\newcommand{\Fc}{{\mathcal F}}
+\newcommand{\Gc}{{\mathcal G}}
+\newcommand{\Hc}{{\mathcal H}}
+\newcommand{\Ic}{{\mathcal I}}
+\newcommand{\Jc}{{\mathcal J}}
+\newcommand{\Lc}{{\mathcal L}}
+\newcommand{\Nc}{{\mathcal N}}
+\newcommand{\Pc}{{\mathcal P}}
+\newcommand{\Rc}{{\mathcal R}}
+\newcommand{\Sc}{{\mathcal S}}
+
+\newcommand{\bogus}[1]{}  % removes is argument completely
+
+\vspace{5\baselineskip}
+\begin{flushleft}
+{\LARGE
+Notes on free surface calculations with deforming grids using Cgins\\
+}
+\vspace{2\baselineskip}
+William D. Henshaw, \\
+% 
+\smallskip
+% \vspace{1\baselineskip}
+% 
+Department of Mathematical Sciences, \\
+Rensselaer Polytechnic Institute (RPI), \\
+Troy, NY, USA, 12180. \\
+\vspace{\baselineskip}
+\today\\
+
+\vspace{4\baselineskip}
+
+\noindent{\bf\large Abstract:}
+
+This document describes results for simulating free surface flows with deforming grids using the Cgins solver
+from Overture. 
+
+\end{flushleft}
+
+% \clearpage
+\tableofcontents
+% \listoffigures
+
+\clearpage
+% ================================================================================================================
+\section{Introduction}
+
+This document describes results for simulating free surface flows with deforming grids using the Cgins solver
+from Overture. 
+
+% rising disk in a counter flow
+\input tex/submergedCylinder
+
+
+% \clearpage
+% \bibliography{henshaw,henshawPapers}
+% \bibliographystyle{siam}
+
+
+
+\end{document}
+% **************************************************************************************************************
+% **************************************************************************************************************
+% **************************************************************************************************************

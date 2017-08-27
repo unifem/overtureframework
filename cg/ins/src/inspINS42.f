@@ -65,13 +65,14 @@
         !     ---- local variables -----
          integer c,i1,i2,i3,orderOfAccuracy,gridIsMoving,useWhereMask,
      & twilightZoneFlow,turnOnBodyForcing,debug
-         integer isAxisymmetric,is1,is2,is3,pressureBC,gridType,
+         integer isAxisymmetric,is,is1,is2,is3,pressureBC,gridType,
      & initialConditionsAreBeingProjected
          integer rc,pc,uc,vc,wc,grid,side,axis,bc0,numberOfComponents,
      & axisp1,axisp2,sidep1,sidep2,axisp
          integer nc,tc,vsc
          real nu,dt,advectionCoefficient,advectCoeff,inflowPressure,a1,
      & an(0:2)
+         real an1,an2,an3,aNormi,epsx, nTauN,mu,fluidDensity,t
          real gravity(0:2),thermalExpansivity,adcBoussinesq
          real adSelfAdjoint2dR,adSelfAdjoint3dR,adSelfAdjoint2dC,
      & adSelfAdjoint3dC
@@ -3057,15 +3058,21 @@ c===============================================================================
          adcBoussinesq       =rpar(17)
          surfaceTension      =rpar(18)
          pAtmosphere         =rpar(19)
+         fluidDensity        =rpar(20)
+         t                   =rpar(21)
+         dt                  =rpar(22)
         !  nuVP                =rpar(18) ! visco-plastic parameters
         !  etaVP               =rpar(19)
         !  yieldStressVP       =rpar(20)
         !  exponentVP          =rpar(21)
         !  epsVP               =rpar(22)
          detMin=1.e-30     ! **FIX ME**
-         if( debug.gt.3 .and. surfaceTension.ne.0. )then
-           write(*,'("inspf: surfaceTension=",e10.2," pAtmosphere=",
-     & e10.2)') surfaceTension,pAtmosphere
+         epsx  =1.e-30  ! for normal computation to prevent division by zero
+         mu = nu*fluidDensity
+         if( debug.gt.1 .and. surfaceTension.ne.0. .and. t .le. 3.*dt )
+     & then
+           write(*,'("inspf: t=%8.2e, dt=%8.2e, surfaceTension=",e10.2,
+     & " pAtmosphere=",e10.2)') t,dt,surfaceTension,pAtmosphere
          end if
          cd22=ad22/(nd**2)
          cd42=ad42/(nd**2)
@@ -3645,7 +3652,10 @@ c===============================================================================
      & bc0.eq.tractionFree )then
             ! Free surface and tractionFree are really the same thing *wdh* 2014/12/17
               ! The free surface BC for pressure is
-              !   p = p_a - n.sigma.n - surfaceTension * 2 *H 
+              !     n.sigma.n = gamma* kappa 
+              !     -(p-p_a) + n.tau.n = gamma*kappa 
+              ! 
+              !   p = p_a  n.sigma.n + surfaceTension * 2 *H 
               !   H = mean-curvature = .5( 1/R_1 + 1/R_2)
               !       2 H = - div( normal )
               !
@@ -3654,6 +3664,7 @@ c===============================================================================
                 write(*,'(" --inspf-- add RHS to traction (or free 
      & surface) BC")')
               end if
+              is = 1 -2*side ! for normal calculation to get outward normal
               do i3=n3a,n3b
               do i2=n2a,n2b
               do i1=n1a,n1b
@@ -3683,8 +3694,8 @@ c===============================================================================
                       dets = rxs*syi + rxi*sys - sxs*ryi - sxi*rys
                       xss = (-rys*det + ryi*dets )*( deti**2 )
                       yss = ( rxs*det - rxi*dets )*( deti**2 )
-                      meanCurvature = -.5*( xs*yss - ys*xss )/( (xs**2 
-     & + ys**2)**(1.5) )
+                      meanCurvature = .5*( xs*yss - ys*xss )/( (xs**2 +
+     &  ys**2)**(1.5) )
                   write(*,'(" i1,i2=",2i3," meanCurvature=",f6.2)') i1,
      & i2,meanCurvature
                     else if( axis.eq.1 )then
@@ -3696,21 +3707,40 @@ c===============================================================================
                       detr = rxr*syi + rxi*syr - sxr*ryi - sxi*ryr
                       xrr = ( syr*det - syi*detr )*( deti**2 )
                       yrr = (-sxr*det + sxi*detr )*( deti**2 )
-                      meanCurvature = -.5*( xr*yrr - yr*xrr )/( (xr**2 
-     & + yr**2)**(1.5) )
-                  write(*,'(" i1,i2=",2i3," meanCurvature=",f12.8)') 
-     & i1,i2,meanCurvature
+                      meanCurvature = .5*( xr*yrr - yr*xrr )/( (xr**2 +
+     &  yr**2)**(1.5) )
                     else
                       stop 1009
                     end if
+                    ! ---- add viscous stess contribution: n.tau.n ------
+                    !   tauv = mu [ 2*ux  (uy+vx) ]
+                    !             [ (uy+vx) 2*vy  ]
+                    ! nv.tauv.nv = 2*mu*[  ux*n1^2 + (uy+vx)*n1*n2 + vy*n2^2 ]
+                    ! *** CHECK ME ***
+                    ! normal vector (an1,an2): 
+                     an1 = rsxy(i1,i2,i3,axis,0)
+                     an2 = rsxy(i1,i2,i3,axis,1)
+                     aNormi = -is/max(epsx,sqrt(an1**2 + an2**2))
+                     an1=an1*aNormi
+                     an2=an2*aNormi
+                    u0x =  ux22(i1,i2,i3,uc)
+                    u0y =  uy22(i1,i2,i3,uc)
+                    v0x =  ux22(i1,i2,i3,vc)
+                    v0y =  uy22(i1,i2,i3,vc)
+                    nTauN = 2.*mu*( u0x*an1**2 + (u0y+v0x)*an1*an2 + 
+     & v0y*an2**2 )
                   else if( nd.eq.3 )then
                     ! finish me 
                     stop 8256
                   else
                     stop 8257
                   end if
-                  f(i1,i2,i3)= pAtmosphere - 2.*surfaceTension*
-     & meanCurvature
+                  if( t.le.10.*dt )then
+                    write(*,'(" i1,i2=",2i3," meanCurvature=",f12.8," 
+     & mu=",e9.3," n.tau.n=",e10.3)') i1,i2,meanCurvature,mu,nTauN
+                  end if
+                  f(i1,i2,i3)= pAtmosphere + 2.*surfaceTension*
+     & meanCurvature + nTauN
                 else
                   ! surfaceTension==0 : 
                   f(i1,i2,i3)= pAtmosphere

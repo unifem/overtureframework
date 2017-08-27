@@ -1,4 +1,31 @@
 *******************************
+****** Aug 26, 2017
+
+CLEAN UP FREE SURFACE 
+
+Periodic in y:
+cgins -noplot freeSurface2d -g=freeSurfaceGrid2de2.order2p -dg="share=100" -nu=.01 -tf=10. -tp=.01 -model=ins -go=halt -surfaceTension=.1 -pGrad=0. -ad2=1 -go=og
+
+
+*******************************
+****** Aug 26, 2017
+
+REVISIT FREE SURFACE with proper pressure condition (include n,.tau.n )
+
+FIXES MADE FOR FREE SURFACE
+
+STARTS TO WORK:
+
+FINISH ME: fix predictor and corrector 
+
+
+Periodic in y:
+cgins -noplot freeSurface2d -g=freeSurfaceGrid2de2.order2p -dg="share=100" -nu=.01 -tf=10. -tp=.01 -model=ins -go=halt -surfaceTension=.1 -pGrad=0. -ad2=1 -go=og
+
+issue at corners:
+cgins -noplot freeSurface2d -g=freeSurfaceGrid2de2.order2.ml1 -dg="share=100" -nu=.01 -tf=10. -tp=.01 -model=ins -go=halt -surfaceTension=.1 -pGrad=0. -ad2=1 -go=og
+
+*******************************
 ****** July 19, 2017
 
 ***NOTE freeSurfaceDropGrid.cmd MOVED TO NEW DIRECTORY --- ins/runs/oscillating

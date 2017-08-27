@@ -92,6 +92,7 @@ create mappings
 # 
   spline
     $n=21*$factor; 
+     if( $periodic eq "p" ){ $cmd="periodicity\n 1"; }else{ $cmd="periodicity\n 1"; }
     enter spline points
       $n 
     $x0=0.; $y0=0.;
@@ -105,7 +106,6 @@ create mappings
       $length = $stretchFactor*( ($xb-$xa) + $amp*$freq*2 ); # approx. arc length of the free surface
       $ns = intmg( $length/$ds+1.5 );
       $ns
-     if( $periodic eq "p" ){ $cmd="periodicity\n 1"; }else{ $cmd="periodicity\n 1"; }
      $cmd
      # open graphics
     exit
