@@ -355,6 +355,12 @@ advanceFreeSurface(real t1, real t2, real t3,
            advanceOption,t1,t2,t3,cgf1.t,cgf2.t,cgf3.t);
     
   }
+
+  if ( dt == 0. )
+    {
+      printF("advanceFreeSurface: dt=%e, returning...\n",dt);
+      return 0;
+    }
   
   // if( advanceOption==1 )
   // {
@@ -389,8 +395,8 @@ advanceFreeSurface(real t1, real t2, real t3,
 
     // New:
     //   xPrev = x(t-dt)
-    //   xCur = x(t   )
-    //   xNew = x(t+dt)
+    //   xCur  = x(t   )
+    //   xNew  = x(t+dt)
     //  
     // currentFreeSurface[face] = integer index into the px[] array indicating current time level 
     vector<int> & currentFreeSurface =  deformingBodyDataBase.get<vector<int> >("currentFreeSurface");
@@ -408,12 +414,12 @@ advanceFreeSurface(real t1, real t2, real t3,
     real & tNext= surfaceArrayTime[face][next];
     tNext=t3;
     printF("--> freeSurface: prev=%i cur=%i next=%i , tCur=%9.3e tNext=%9.3e\n",prev,cur,next,tCur,tNext);
-    
+    printF("numberOfTimeLevelsForFreeSurface=%d\n",numberOfTimeLevelsForFreeSurface);
 
     // const real dt = t3-tx0;   
     // tx0=t3; // x0 will now live at this time
 
-
+    realArray & uOld = cgf1.u[gridToMove];
     realArray & u    = cgf2.u[gridToMove];
     realArray & uNew = cgf3.u[gridToMove];  // for corrector, this is the updated solution
 	
@@ -461,11 +467,23 @@ advanceFreeSurface(real t1, real t2, real t3,
         int j1 = iv[axisp];  // j1 = i1 or i2 or i3 
         if( advanceOption==0 )
         {
+	  // printF("advanceFreeSurface.C - before predictor: (yNext,yCur,yPrev,vCur)=(%e,%e,%e,%e)\n",xNext(j1,1),xCur(j1,1),xPrev(j1,1),u(i1,i2,i3,vc));
           // --- predictor --- 
-          if( true )
+          if( false )
           { // Leap-frog 
             xNext(j1,0) = xPrev(j1,0) + 2.*dt*u(i1,i2,i3,uc)*vScale[0];
             xNext(j1,1) = xPrev(j1,1) + 2.*dt*u(i1,i2,i3,vc)*vScale[1];
+
+	    // AB2
+            // xNext(j1,0) = xCur(j1,0) 
+	    //   + 0.5*dt*(3.*u(i1,i2,i3,uc)-uOld(i1,i2,i3,uc))*vScale[0];
+            // xNext(j1,1) = xCur(j1,1) 
+	    //   + 0.5*dt*(3.*u(i1,i2,i3,vc)-uOld(i1,i2,i3,vc))*vScale[1];
+
+	    // debug
+	    // xNext(j1,0) = xCur(j1,0);
+	    // xNext(j1,1) = xCur(j1,1);
+
           }
           else
           {
@@ -473,20 +491,28 @@ advanceFreeSurface(real t1, real t2, real t3,
             xNext(j1,0) = xCur(j1,0) + dt*u(i1,i2,i3,uc)*vScale[0];
             xNext(j1,1) = xCur(j1,1) + dt*u(i1,i2,i3,vc)*vScale[1];
           }
-          
+	  // printF("advanceFreeSurface (predictor): (yNext,yCur,yPrev,vCur)=(%e,%e,%e,%e)\n",xNext(j1,1),xCur(j1,1),xPrev(j1,1),u(i1,i2,i3,vc));
         }
         else
         {
           // --- corrector ---
           // Trapezoidal rule: Note: xCur is now the solution at the new time
-          xCur(j1,0) = xPrev(j1,0) + .5*dt*( u(i1,i2,i3,uc)+uNew(i1,i2,i3,uc) )*vScale[0];
-          xCur(j1,1) = xPrev(j1,1) + .5*dt*( u(i1,i2,i3,vc)+uNew(i1,i2,i3,vc) )*vScale[1];
+	  // printF("advanceFreeSurface (before corrector): (yNext,yCur,yPrev,vOld,v,vNew)=(%e,%e,%e,%e,%e,%e)\n",
+	  // 	 xNext(j1,1),xCur(j1,1),xPrev(j1,1),uOld(i1,i2,i3,vc),u(i1,i2,i3,vc),uNew(i1,i2,i3,vc));
+
+          xCur(j1,0) = xPrev(j1,0) + .5*dt*( uOld(i1,i2,i3,uc)+uNew(i1,i2,i3,uc) )*vScale[0];
+          xCur(j1,1) = xPrev(j1,1) + .5*dt*( uOld(i1,i2,i3,vc)+uNew(i1,i2,i3,vc) )*vScale[1];
+
+	  // printF("advanceFreeSurface (corrector): (yNext,yCur,yPrev)=(%e,%e,%e)\n",xNext(j1,1),xCur(j1,1),xPrev(j1,1));
         }
         
+
+
+
         if( false )
           printF("--DBM-- freeSurface: xCur=(%5.2f,%5.2f) u=(%5.2f,%5.2f) xNext=(%5.2f,%5.2f)\n",
                   xCur(j1,0),xCur(j1,1),u(i1,i2,i3,uc),u(i1,i2,i3,vc),xNext(j1,0),xNext(j1,1));
-	    
+	
       }
 
       // -- Optionally smooth the interface ---
@@ -532,6 +558,7 @@ advanceFreeSurface(real t1, real t2, real t3,
         {
           // --- corrector ---
           // Trapezoidal rule: 
+	  printF("advanceFreeSurface (corrector): warning, may want to use uOld instead of u\n");
           xCur(j1,j2,0) = xPrev(j1,j2,0) + .5*dt*( u(i1,i2,i3,uc)+uNew(i1,i2,i3,uc) )*vScale[0];
           xCur(j1,j2,1) = xPrev(j1,j2,1) + .5*dt*( u(i1,i2,i3,vc)+uNew(i1,i2,i3,vc) )*vScale[1];
           xCur(j1,j2,2) = xPrev(j1,j2,2) + .5*dt*( u(i1,i2,i3,wc)+uNew(i1,i2,i3,wc) )*vScale[2];
@@ -555,7 +582,9 @@ advanceFreeSurface(real t1, real t2, real t3,
     assert( face<surface.size() );
     NurbsMapping & startCurve = *((NurbsMapping*)surface[face]);
 
-    if( advanceOption==0 )
+    // dt=0. if we are projecting initial condition
+    // printF("advanceFreeSurface: dt = %e\n",dt);
+    if (( advanceOption==0 ) && ( dt > 0. ))
     {
       cur = next; // increment time-level after predictor stage
     }

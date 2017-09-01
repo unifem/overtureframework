@@ -78,7 +78,7 @@
 
       subroutine evalOscillatingBubble(r,Rb, n, mu, lr,li, 
      +     cr,ci,dr,di,vrr,vri,vtr,vti,pr,pi)
-c     todo, need to consider r = 0...
+
       implicit none
       double precision r,Rb,mu,
      +     lr,li,cr,ci,dr,di,
@@ -168,4 +168,52 @@ c       assign vr, vt, and p
         pi  = dimag( p)
 
       return
+      end
+
+
+      subroutine evalCapillaryFlow(k,y,mu,alphar,alphai,ar,ai,br,bi,
+     +     cr,ci,dr,di,uhr,uhi,vhr,vhi,phr,phi)
+      implicit none
+      double precision k,y,mu,alphar,alphai,ar,ai,br,bi,
+     +     cr,ci,dr,di,uhr,uhi,vhr,vhi,phr,phi
+      complex*16 uh,vh,ph,
+     +     alpha,a,b,c,d,
+     +     kc,yc,muc,I
+
+c     get complex vars
+      alpha = dcmplx(alphar,alphai)
+      a     = dcmplx(ar    ,ai    )
+      b     = dcmplx(br    ,bi    )
+      c     = dcmplx(cr    ,ci    )
+      d     = dcmplx(dr    ,di    )
+      I = dcmplx(0.0d0,1.0d0)
+
+      kc  = dcmplx(k ,0.0d0)
+      yc  = dcmplx(y ,0.0d0)
+      muc = dcmplx(mu,0.0d0)
+
+c     get hat vars
+      uh = -c*alpha/(I*kc)*exp( alpha*yc)
+     +     +d*alpha/(I*kc)*exp(-alpha*yc)
+     +     -kc*a/(I*((k**2)-(alpha**2))*muc)*exp( k*y)
+     +     -kc*b/(I*((k**2)-(alpha**2))*muc)*exp(-k*y)
+
+      vh =  c*exp( alpha*yc)
+     +     +d*exp(-alpha*yc)
+     +     +kc*a/(((k**2)-(alpha**2))*muc)*exp( k*y)
+     +     -kc*b/(((k**2)-(alpha**2))*muc)*exp(-k*y)
+
+      ph =  a*exp( kc*yc)
+     +     +b*exp(-kc*yc)
+
+c     take real and imaginary parts of solution
+      uhr = dreal(uh)
+      uhi = dimag(uh)
+      vhr = dreal(vh)
+      vhi = dimag(vh)
+      phr = dreal(ph)
+      phi = dimag(ph)
+
+      
+      return 
       end

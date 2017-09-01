@@ -15,15 +15,15 @@
 #define cBesselJ EXTERN_C_NAME(cbesselj)
 #define cBesselY EXTERN_C_NAME(cbessely)
 #define evalOscillatingBubble EXTERN_C_NAME(evaloscillatingbubble)
-
+#define evalCapillaryFlow EXTERN_C_NAME(evalcapillaryflow)
 extern "C"
 {
-// rotating disk (SVK) exact solution:
-void rotatingDiskSVK( const real & t, const int & numberOfGridPoints, real & uDisk, real & param,
-		      const int & nrwk, real & rwk );
+  // rotating disk (SVK) exact solution:
+  void rotatingDiskSVK( const real & t, const int & numberOfGridPoints, real & uDisk, real & param,
+			const int & nrwk, real & rwk );
 
-void cBesselJ( const real& nu, const real&zr, const real &zi, real &jr,real &ji );
-void cBesselY( const real& nu, const real&zr, const real &zi, real &yr,real &yi );
+  void cBesselJ( const real& nu, const real&zr, const real &zi, real &jr,real &ji );
+  void cBesselY( const real& nu, const real&zr, const real &zi, real &yr,real &yi );
   void evalOscillatingBubble(const real& r, const real&R, 
 			     const int& n, const real& mu,
 			     const real& lr, const real& li,
@@ -32,6 +32,11 @@ void cBesselY( const real& nu, const real&zr, const real &zi, real &yr,real &yi 
 			     real& vrr, real& vri,
 			     real& vtr, real& vti,
 			     real& pr, real& pi);
+  void evalCapillaryFlow(const real& k, const real& y, const real& mu, 
+			 const real& alphar, const real& alphai, 
+			 const real& ar, const real& ai, const real& br, const real& bi,
+			 const real& cr, const real& ci, const real& dr, const real& di,
+			 real& uhr, real& uhi, real& vhr, real& vhi, real& phr, real& phi);
 
 }
 
@@ -1124,8 +1129,6 @@ getUserDefinedKnownSolution(real t, CompositeGrid & cg, int grid, RealArray & ua
       printF("--UDKS-- evaluate oscillatingBubble at t=%9.3e, amp=%9.3e \n",t,amp);
     }
     
-    
-
     // -- we could avoid building the vertex array on Cartesian grids ---
     GET_VERTEX_ARRAY(xLocal);
     const real eps = 10.*REAL_EPSILON;
@@ -1191,14 +1194,147 @@ getUserDefinedKnownSolution(real t, CompositeGrid & cg, int grid, RealArray & ua
 
 
       }
-    }
-    else
-    {
+    } else {
       // some options may need a time derivative ...
       OV_ABORT("FINISH ME");
     }
-    
+  } else if ( userKnownSolution=="capillaryFlow") {
 
+    // define our needed parameters and get amp and casenumber 
+    real & amp = rpar[0];
+    real & k = rpar[1];
+    real & R = rpar[2];
+    real & mu = rpar[3];
+    real & omegar = rpar[4];
+    real & omegai = rpar[5];
+    real & alphar = rpar[6];
+    real & alphai = rpar[7];
+    real & ar = rpar[8];
+    real & ai = rpar[9];
+    real & br = rpar[10];
+    real & bi = rpar[11];
+    real & cr = rpar[12];
+    real & ci = rpar[13];
+    real & dr = rpar[14];
+    real & di = rpar[15];
+    real & gamma = rpar[16];
+    
+    if( true )
+    {
+      printF("--UDKS-- evaluate capillaryFlow at t=%9.3e, amp=%9.3e \n",t,amp);
+    }
+
+    GET_VERTEX_ARRAY(xLocal);
+    int i1,i2,i3;
+    if( numberOfTimeDerivatives==0 ) {
+      FOR_3D(i1,i2,i3,I1,I2,I3) {
+	real x= xLocal(i1,i2,i3,0);
+	real y= xLocal(i1,i2,i3,1);
+
+	real uhr,uhi,vhr,vhi,phr,phi;
+	real v1,v2,p;
+
+	// get real and imag parts of hat variables
+	evalCapillaryFlow(k, y, mu, 
+			  alphar, alphai, 
+			  ar, ai, br, bi,
+			  cr, ci, dr, di,
+			  uhr, uhi, vhr, vhi, phr, phi);
+
+	// compute phase
+	real phase = k*x-omegar*t;
+
+	// compute decay factor
+	real A = exp(omegai*t)*amp; // *wdh* scale by amp too
+
+	// evaluate real part
+	v1 = (uhr*cos(phase)-uhi*sin(phase))*A;
+	v2 = (vhr*cos(phase)-vhi*sin(phase))*A;
+	p  = (phr*cos(phase)-phi*sin(phase))*A;
+
+	// combine
+	ua(i1,i2,i3,uc) = v1;
+	ua(i1,i2,i3,vc) = v2;
+	ua(i1,i2,i3,pc) =  p;
+      }
+    } else {
+      // some options may need a time derivative ...
+      OV_ABORT("FINISH ME");
+    }
+
+
+  } else if ( userKnownSolution=="freeSurfacePiston") {
+	
+    real & amp = rpar[0];
+    real & k   = rpar[1];
+    real & nu  = rpar[2];
+    real & H   = rpar[3];
+    real & amp1 = rpar[4];
+    real & amp2 = rpar[4];
+
+    if( true ) {
+      printF("--UDKS-- evaluate freeSurfacePiston at t=%9.3e, amp=%9.3e \n",t,amp);
+    }
+
+    GET_VERTEX_ARRAY(xLocal);
+    int i1,i2,i3;
+    if( numberOfTimeDerivatives==0 ) {
+      FOR_3D(i1,i2,i3,I1,I2,I3) {
+	real x= xLocal(i1,i2,i3,0);
+	real y= xLocal(i1,i2,i3,1);
+	
+	// real A = amp*10.;
+	// real B = amp*0.;
+
+	real yI = amp*sin(k*t) + amp1*t*t + amp2*t;
+	real v2 = k*amp*cos(k*t) + 2*amp1*t + amp2;
+	real v2p = -k*k*amp*sin(k*t) + 2*amp1;
+	
+	// below is a polynomial solution to check (should be exact)
+	// real yI = A*t*t+B*t;
+	// real v2 = 2.*A*t+B;
+	// real v2p = 2.*A;
+
+	real p = -(y-yI)*(v2p);
+
+	ua(i1,i2,i3,uc) = 0.;
+	ua(i1,i2,i3,vc) = v2;
+	ua(i1,i2,i3,pc) = p;
+
+      }
+    } else {
+      // some options may need a time derivative ...
+      OV_ABORT("FINISH ME");
+    }
+
+
+  } else if ( userKnownSolution=="parallelFlow") {
+	
+    real & amp = rpar[0];
+    real & n   = rpar[1];
+    real & nu  = rpar[2];
+    real & H   = rpar[3];
+    if( true ) {
+      printF("--UDKS-- evaluate parallelFlow at t=%9.3e, amp=%9.3e \n",t,amp);
+    }
+
+    GET_VERTEX_ARRAY(xLocal);
+    int i1,i2,i3;
+    if( numberOfTimeDerivatives==0 ) {
+      FOR_3D(i1,i2,i3,I1,I2,I3) {
+	real x= xLocal(i1,i2,i3,0);
+	real y= xLocal(i1,i2,i3,1);
+
+	ua(i1,i2,i3,uc) = amp
+	  *sin((2.*n-1.) * Pi * (y+1.) / (2.*H))
+	  *exp(-nu * pow((2.*n-1.)*Pi/(2.*H),2) * t);
+	ua(i1,i2,i3,vc) = 0.;
+	ua(i1,i2,i3,pc) = 0.;
+      }
+    } else {
+      // some options may need a time derivative ...
+      OV_ABORT("FINISH ME");
+    }
 
   }
   else 
@@ -1639,9 +1775,236 @@ getUserDefinedDeformingBodyKnownSolution(
       
     }
       
-  }
-  else
-  {
+  } else if (userKnownSolution=="freeSurfacePiston") {
+    
+    // --- we could avoid building the vertex array on Cartesian grids ---
+    GET_VERTEX_ARRAY(xLocal);
+    real & amp = rpar[0];
+    real & k   = rpar[1];
+    real & nu  = rpar[2];
+    real & H   = rpar[3];
+    real & amp1 = rpar[4];
+    real & amp2 = rpar[4];
+
+    if( t <= 2.*dt )
+    {
+
+      printF("--INS-- getUserDefinedDeformingBodyKnownSolution: freeSurfacePiston, t=%9.3e amp=%9.3e\n",
+             t,amp );
+    }
+
+    const int c0=C.getBase(), c1=c0+1;
+    int i1,i2,i3;
+    /// --- loop over the grid points on the interface ---
+    FOR_3D(i1,i2,i3,I1,I2,I3)
+      {
+	  
+	real x= xLocal(i1,i2,i3,0);
+	real y= xLocal(i1,i2,i3,1);
+	// real A = amp*10.;
+	// real B = amp*0.;
+
+	// real yI = amp*sin(k*t);
+	// real v2 = k*amp*cos(k*t);
+	// real v2p = -k*k*amp*sin(k*t);
+
+	real yI = amp*sin(k*t) + amp1*t*t + amp2*t;
+	real v2 = k*amp*cos(k*t) + 2*amp1*t + amp2;
+	real v2p = -k*k*amp*sin(k*t) + 2*amp1;
+
+	// below is a polynomial solution to check (should be exact)
+	// real yI = A*t*t+B*t;
+	// real v2 = 2.*A*t+B;
+	// real v2p = 2.*A;
+
+	if( stateOption==boundaryPosition )
+	  {
+
+	    // position of the interface:
+	    state(i1,i2,i3,c0)=x;
+	    state(i1,i2,i3,c1)=yI;
+	  }
+	else if( stateOption==boundaryVelocity )
+	  {
+
+	    // velocity of the interface:
+	    state(i1,i2,i3,c0)=0.;
+	    state(i1,i2,i3,c1)=v2;
+	  }
+	else if( stateOption==boundaryAcceleration )
+	  {
+
+	    // acceleration of the interface:
+	    state(i1,i2,i3,c0)=0.;
+	    state(i1,i2,i3,c1)=v2p;
+	  }
+
+	else
+	  {
+	    OV_ABORT("--INS-- UDKS: Unknown state option");
+	  }
+      }
+
+
+
+
+  } else if (userKnownSolution=="capillaryFlow") {
+    
+    // --- we could avoid building the vertex array on Cartesian grids ---
+    GET_VERTEX_ARRAY(xLocal);
+    real & amp = rpar[0];
+    real & k   = rpar[1];
+    real & R = rpar[2];
+    real & mu = rpar[3];
+    real & omegar = rpar[4];
+    real & omegai = rpar[5];
+    real & alphar = rpar[6];
+    real & alphai = rpar[7];
+    real & ar = rpar[8];
+    real & ai = rpar[9];
+    real & br = rpar[10];
+    real & bi = rpar[11];
+    real & cr = rpar[12];
+    real & ci = rpar[13];
+    real & dr = rpar[14];
+    real & di = rpar[15];
+    real & gamma = rpar[16];
+
+    if( t <= 2.*dt )
+    {
+
+      printF("--INS-- getUserDefinedDeformingBodyKnownSolution: capillaryFlow, t=%9.3e amp=%9.3e\n",
+             t,amp );
+    }
+
+    const int c0=C.getBase(), c1=c0+1;
+    int i1,i2,i3;
+    /// --- loop over the grid points on the interface ---
+    FOR_3D(i1,i2,i3,I1,I2,I3)
+      {
+	  
+	real x= xLocal(i1,i2,i3,0);
+	real y= xLocal(i1,i2,i3,1);
+
+	real uhr,uhi,vhr,vhi,phr,phi;
+	real v1,v2,p;
+
+	// get real and imag parts of hat variables
+	evalCapillaryFlow(k, y, mu, 
+			  alphar, alphai, 
+			  ar, ai, br, bi,
+			  cr, ci, dr, di,
+			  uhr, uhi, vhr, vhi, phr, phi);
+
+	// compute phase
+	real phase = k*x-omegar*t;
+
+	// compute decay factor
+	real A = exp(omegai*t)*amp; 
+
+
+	// left off here!
+	if( stateOption==boundaryPosition )
+	  {
+	    // compute displacement
+	    real u1 = (A/(omegar*omegar+omegai*omegai)) 
+	      *(  omegai*(uhr*cos(phase)-uhi*sin(phase)) 
+		  - omegar*(uhr*sin(phase)+uhi*cos(phase)));
+	    real u2 = (A/(omegar*omegar+omegai*omegai)) 
+	      *(  omegai*(vhr*cos(phase)-vhi*sin(phase)) 
+		  - omegar*(vhr*sin(phase)+vhi*cos(phase)));
+
+	    // position of the interface:
+	    state(i1,i2,i3,c0)=x +u2;// figure this out
+	    state(i1,i2,i3,c1)=0.+u1;
+
+	  }
+	else if( stateOption==boundaryVelocity )
+	  {
+
+	    // velocity of the interface:
+	    state(i1,i2,i3,c0)=0.;
+	    state(i1,i2,i3,c1)=0.;
+	  }
+	else if( stateOption==boundaryAcceleration )
+	  {
+
+	    // acceleration of the interface:
+	    state(i1,i2,i3,c0)=0.;
+	    state(i1,i2,i3,c1)=0.;
+	  }
+
+	else
+	  {
+	    OV_ABORT("--INS-- UDKS: Unknown state option");
+	  }
+      }
+  } else if (userKnownSolution=="parallelFlow") {
+    
+    // --- we could avoid building the vertex array on Cartesian grids ---
+    GET_VERTEX_ARRAY(xLocal);
+    real & amp = rpar[0];
+    real & n = rpar[1];
+
+    if( t <= 2.*dt )
+    {
+
+      // printF("------------------------------\n");
+      // printF("------------------------------\n");
+      printF("--INS-- getUserDefinedDeformingBodyKnownSolution: parallelFlow, t=%9.3e amp=%9.3e\n",
+             t,amp );
+      // printF("------------------------------\n");
+      // printF("------------------------------\n");
+
+      // printF("(%d,%d)\n",stateOption,boundaryPosition);
+    }
+
+    const int c0=C.getBase(), c1=c0+1;
+    int i1,i2,i3;
+    /// --- loop over the grid points on the interface ---
+    FOR_3D(i1,i2,i3,I1,I2,I3)
+      {
+	  
+	real x= xLocal(i1,i2,i3,0);
+	real y= xLocal(i1,i2,i3,1);
+
+
+	if( stateOption==boundaryPosition )
+	  {
+
+	    // position of the interface:
+	    state(i1,i2,i3,c0)=x;
+	    state(i1,i2,i3,c1)=0.;
+	    // printF("(x,y)=(%f,%f)\n",x,y);
+
+	  }
+	else if( stateOption==boundaryVelocity )
+	  {
+
+	    // velocity of the interface:
+	    state(i1,i2,i3,c0)=0.;
+	    state(i1,i2,i3,c1)=0.;
+	    // printF("boundary velocity\n");
+	  }
+	else if( stateOption==boundaryAcceleration )
+	  {
+
+	    // acceleration of the interface:
+	    state(i1,i2,i3,c0)=0.;
+	    state(i1,i2,i3,c1)=0.;
+	    // printF("boundary acceleration\n");
+	  }
+
+	else
+	  {
+	    OV_ABORT("--INS-- UDKS: Unknown state option");
+	  }
+      }
+
+
+
+
+  } else {
     found =0 ;  // Not found
   }
 
@@ -1700,6 +2063,9 @@ updateUserDefinedKnownSolution(GenericGraphicsInterface & gi, CompositeGrid & cg
       "shear block",   // INS-Rigid body FSI solution for a shearing block
       "rotating disk in disk", // INS-Rigid body FSI solution for a rotating disk in a disk
       "oscillating bubble",  // oscillating bubble with a free surface and surface tension
+      "capillary flow", // rectangular geometry under surface tension on top boundary with no slip bottom boundary
+      "parallel flow", // parallel flow free surface on top and no slip wall on bottom
+      "free surface piston", // deforming piston with free surface on top and pressure forcing on bottom
       "done",
       ""
     }; 
@@ -2137,7 +2503,6 @@ updateUserDefinedKnownSolution(GenericGraphicsInterface & gi, CompositeGrid & cg
  
     else if( answer=="oscillating bubble" )
     {
-      // **** FINISH ME *****
       userKnownSolution="oscillatingBubble";
       dbase.get<bool>("knownSolutionIsTimeDependent")=true;  // known solution IS time dependent
 
@@ -2277,10 +2642,156 @@ updateUserDefinedKnownSolution(GenericGraphicsInterface & gi, CompositeGrid & cg
       printf("--------------------------------\n\n");
 
       // OV_ABORT("stop for now");
-
+      
     }
- 
 
+    //******************************************************************//
+    else if (answer == "capillary flow")
+    {
+      userKnownSolution="capillaryFlow";
+      dbase.get<bool>("knownSolutionIsTimeDependent")=true;  // known solution IS time dependent
+
+      // get parameters from database
+      const real nu  = dbase.get<real>("nu");
+
+      real surfaceTension;
+      dbase.get<ListOfShowFileParameters >("pdeParameters")
+	.getParameter("surfaceTension",surfaceTension);
+
+      // define our needed parameters and get amp and casenumber 
+      real & amp = rpar[0];
+      real & k = rpar[1];
+      real & R = rpar[2];
+      real & mu = rpar[3];
+      real & omegar = rpar[4];
+      real & omegai = rpar[5];
+      real & alphar = rpar[6];
+      real & alphai = rpar[7];
+      real & ar = rpar[8];
+      real & ai = rpar[9];
+      real & br = rpar[10];
+      real & bi = rpar[11];
+      real & cr = rpar[12];
+      real & ci = rpar[13];
+      real & dr = rpar[14];
+      real & di = rpar[15];
+      real & gamma = rpar[16];
+
+
+      int casenumber;
+
+      printF("---  capillary waves in rectangular geometry ---\n"
+             "   amp        = amplitude of the motion  (solution only valid \n"
+	     "                for small amp, eg. amp=1.e-4)\n"
+             "   casenumber = choose parameter set to use (n, rho, H, mu, gamma)\n"
+	     "                where n   = number of periods, \n"
+	     "                      rho = fluid density, \n"
+	     "                      H   = height of domain, \n"
+	     "                      mu  = viscosity, \n"
+	     "                      gamma = surface tension. \n"
+             "                1: (n, rho, H, mu, gamma) = (1, 1.0, 1.0, .1, .1)\n");
+
+      gi.inputString(answer,"Enter amp, casenumber (amplitude, casenumber)");
+      sScanF(answer,"%e %d",&amp,&casenumber);
+      
+      // now that we have casenumber, set the rest of the needed parameters
+
+      real rho;
+
+      real n;
+      real H = 1.;
+      if (casenumber == 1) {
+	omegar =  2.6327730371658089e+00;
+	omegai = -2.5705601835278751e+00;
+	alphar =  4.6629087846975636e+00;
+	alphai = -2.8231015860806408e+00;
+	ar = amp*( 1.6408189489495698e-01);
+	ai = amp*( 5.7724681448045732e-02);
+	br = amp*(-7.2006869928791420e-06);
+	bi = amp*( 1.3988177151996081e-05);
+	cr = amp*(-3.9473503009392136e-01);
+	ci = amp*( 1.3347862201341571e-04);
+	dr = amp*(-4.9145949653947911e-05);
+	di = amp*(-1.3347862201368001e-04);
+	gamma = .1;
+	n = 1.;
+	mu = .1;
+	k = 2*Pi*n/H;
+      } else {
+	printF("***WARNING*** invalid casenumber entered. \n");
+	OV_ABORT("stop for now");
+      }
+
+      // print all parameters
+      printF("capillaryFlow parameters: \n"
+	     "  amp        = %9.3e \n"
+	     "  casenumber = %d \n"
+	     "  H          = %9.3e \n"
+	     "  k          = %9.3e \n"
+	     "  mu         = %9.3e \n"
+	     "  gamma      = %9.3e \n"
+	     "  rho        = %9.3e \n",amp,casenumber,R,k,mu,gamma,rho);
+
+
+      }
+ 
+    else if (answer == "free surface piston") 
+      {
+
+      //
+      userKnownSolution="freeSurfacePiston";
+      dbase.get<bool>("knownSolutionIsTimeDependent")=true;  // known solution IS time dependent
+
+      // get parameters from database
+      real & amp = rpar[0];
+      real & k   = rpar[1];
+      real & nu  = rpar[2];
+      real & H   = rpar[3];
+      real & amp1 = rpar[4];
+      real & amp2 = rpar[4];
+
+      nu = dbase.get<real>("nu");
+      H  = 1.;
+
+      printF("--- free surface piston ---\n"
+	     "Interface position = yI(t) = amp sin(k t) + amp2 t^2 + amp3 t"
+	     "   amp = amplitude of interface displacement "
+	     "   amp = amplitude of second degree polynomial in time"
+	     "   k   = frequency of interface displacement");
+      
+      gi.inputString(answer,"Enter (amp,amp1,amp2,k)");
+      sScanF(answer,"%e %e %e %e",&amp,&amp1,&amp2,&k);
+
+      printF("***freeSurfacePiston: recieved (amp,k)=(%e,%e)\n",amp,k);
+      
+      // OV_ABORT("stop for now");
+    }
+
+    else if (answer == "parallel flow") 
+    {
+      userKnownSolution="parallelFlow";
+      dbase.get<bool>("knownSolutionIsTimeDependent")=true;  // known solution IS time dependent
+
+      // get parameters from database
+      real & amp = rpar[0];
+      real & n   = rpar[1];
+      real & nu  = rpar[2];
+      real & H   = rpar[3];
+
+      nu = dbase.get<real>("nu");
+      H  = 1.;
+
+      printF("--- Parallel flow with free surface ---\n"
+	     "   amp = amplitude of initial "
+	     "   n   = number of periods");
+      
+      gi.inputString(answer,"Enter amp and n (amp,n)");
+      sScanF(answer,"%e %e",&amp,&n);
+
+      printF("***parallelFlow: recieved (amp,n)=(%e,%e)\n",amp,n);
+      
+      // OV_ABORT("stop for now");
+    }
 
     else
     {

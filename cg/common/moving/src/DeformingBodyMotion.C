@@ -2367,12 +2367,12 @@ initializePast( real time00, real dt00, CompositeGrid & cg)
             parameters.getUserDefinedDeformingBodyKnownSolution( 
               bodyNumber,Parameters::boundaryPosition, pastTime, gridToMove, mg,Ib1,Ib2,Ib3,Rx,xPast );
 
-            if( step==1 ) // t=-dt 
+            if (( step==1 ) || ( step==0 )) // t=-dt or t=0
+            // if (( step==1 )) // t=-dt 
             {
               //  ------ ASSIGN PAST TIME FREE SURFACE ARRAY -----
               //  *wdh* Aug 27, 2017 
               printF("\n >>>>>> --DBM-- ASSIGN PAST TIME FREE SURFACE POSITION: t=%9.3e\n\n",pastTime);
-              
 
               assert( deformingBodyDataBase.has_key("currentFreeSurface") );
               const int numberOfTimeLevelsForFreeSurface= 
@@ -2385,18 +2385,24 @@ initializePast( real time00, real dt00, CompositeGrid & cg)
               vector<real*> & surfaceArrayTime = deformingBodyDataBase.get<vector<real*> >("surfaceArrayTime"); 
               assert( face<surfaceArray.size() );
               RealArray *px = surfaceArray[face];
+	      
+	      int level = (step==0)?cur:prev;
 
-              RealArray & xPrev = px[prev];
-              xPrev.redim(0);
-              xPrev=xPast;  
-              // reshape xPrev : (fix me for all cases) 
-              Index I1=xPrev.dimension(0), I2=xPrev.dimension(1);
+	      printF("(cur,prev,level) = (%d,%d,%d)\n",cur,prev,level);
+
+              RealArray & xLevel = px[level];
+              xLevel.redim(0);
+              xLevel=xPast; 
+
+	      printF("(xLevel) = (%e)\n",xLevel(0,1));
+              // reshape xLevel : (fix me for all cases) 
+              Index I1=xLevel.dimension(0), I2=xLevel.dimension(1);
               if( numberOfDimensions==2 )
-                xPrev.reshape(I1,numberOfDimensions);
+                xLevel.reshape(I1,numberOfDimensions);
               else 
-                xPrev.reshape(I1,I2,numberOfDimensions);
-      
-              surfaceArrayTime[face][prev]=pastTime;
+                xLevel.reshape(I1,I2,numberOfDimensions);
+	      
+              surfaceArrayTime[face][level]=pastTime;
               
             }
 

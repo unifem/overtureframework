@@ -122,8 +122,8 @@ create mappings
     # Note: equidistribution doesn't work on periodic curves?
     ## if( $periodic eq "n" ){ $cmd="equidistribution 0.4 (in [0,1])"; }else{ $cmd="#"; }
     ## $cmd 
-    spacing: geometric
-    geometric stretch factor 1.05
+    #spacing: geometric
+    #geometric stretch factor 1.05
     generate
     boundary conditions
       if( $periodic eq "p" ){ $cmd="-1 -1 4 0"; }else{ $cmd="1 2 4 0"; }
