@@ -658,6 +658,15 @@ initializePlaneMaterialInterface()
 // Macro to compute the (x,y) coordinates - optimized for rectangular grids
 // ============================================================================
 
+
+// =============================================================
+//   MACRO : TZ INITIAL CONDITIONS
+// =============================================================
+
+
+
+
+
 //! Assign initial conditions
 //   (Ex).t = (1/eps)*[  (Hz).y ]
 //   (Ey).t = (1/eps)*[ -(Hz).x ]
@@ -677,6 +686,7 @@ assignInitialConditions(int current, real t, real dt )
     assert( cgp!=NULL );
     CompositeGrid & cg = *cgp;
     const int numberOfDimensions=cg.numberOfDimensions();
+    const int & maxNumberOfPolarizationVectors = parameters.dbase.get<int>("maxNumberOfPolarizationVectors");
 
     gf[current].t=t;
 
@@ -684,42 +694,47 @@ assignInitialConditions(int current, real t, real dt )
 
     if( forcingOption==twilightZoneForcing )
     {
-        int numberOfComponents=cgfields[0][0].getLength(3); 
+    // int numberOfComponents=cgfields[0][0].getLength(3); 
 
-    // int numberOfComponents;
-    // if( numberOfDimensions==2 )
-    //   numberOfComponents=3; 
-    // else
-    //   numberOfComponents=(int(solveForElectricField)+int(solveForMagneticField))*3;
-
-    // if( method==sosup )
-    // {
-    //   numberOfComponents= cgfields[0][0].getLength(3);
-    // }
+        const int & numberOfComponents = dbase.get<int>("numberOfComponents");
+        const int & numberOfComponentsForTZ = dbase.get<int>("numberOfComponentsForTZ");
         
-    // *wdh* 090516 : define variable coeff's for rho, eps, mu, sigmaE and sigmaH with TZ 
-        int numberOfComponentsForTZ=numberOfComponents+5;
-        assert( sigmaHc==(numberOfComponentsForTZ-1) );
+    // int numberOfComponentsForTZ=numberOfComponents;
 
+    // *wdh* 090516 : define variable coeff's for rho, eps, mu, sigmaE and sigmaH with TZ 
+    // numberOfComponentsForTZ=numberOfComponentsForTZ+5;
+        if( sigmaHc>=0 )
+        {
+            assert( sigmaHc==(numberOfComponentsForTZ-1) );
+        }
+        
         delete tz;
         if( twilightZoneOption==polynomialTwilightZone )
         {
             
             tz = new OGPolyFunction(degreeSpace,numberOfDimensions,numberOfComponentsForTZ,degreeTime);
             const int ndp=max(max(5,degreeSpace+1),degreeTime+1);
-            printF("\n $$$$$$$ assignInitialConditions: build OGPolyFunction: degreeSpace=%i, degreeTime=%i ndp=%i $$$$\n",
-                          degreeSpace,degreeTime,ndp);
+            printF("\n $$$$$$$ assignInitialConditions: build OGPolyFunction: numCompTz=%i degreeSpace=%i, degreeTime=%i ndp=%i $$$$\n",
+                          numberOfComponentsForTZ,degreeSpace,degreeTime,ndp);
+            if( pxc>=0 )
+            {
+                printF(" pxc=%i pyc=%i pzc=%i\n",pxc,pyc,pzc);
+            }
             RealArray spatialCoefficientsForTZ(ndp,ndp,ndp,numberOfComponentsForTZ);  
             spatialCoefficientsForTZ=0.;
             RealArray timeCoefficientsForTZ(ndp,numberOfComponentsForTZ);      
             timeCoefficientsForTZ=0.;
       // Default coefficients for eps, mu, sigmaE and sigmaH:
-            assert( epsc>=0 && muc>=0 && sigmaEc>=0 && sigmaHc>=0 );
-            printF(" *** numberOfComponentsForTZ=%i, epsc,muc,sigmaEc,sigmaHc=%i,%i,%i,%i, eps,mu=%e,%e\n",numberOfComponentsForTZ,epsc,muc,sigmaEc,sigmaHc,eps,mu);
-            spatialCoefficientsForTZ(0,0,0,epsc)=eps;
-            spatialCoefficientsForTZ(0,0,0,muc )=mu; 
-            spatialCoefficientsForTZ(0,0,0,sigmaEc)=0.;  
-            spatialCoefficientsForTZ(0,0,0,sigmaHc)=0.;
+            if( epsc>=0 )
+            {
+                assert( epsc>=0 && muc>=0 && sigmaEc>=0 && sigmaHc>=0 );
+                printF(" *** numberOfComponentsForTZ=%i, rc=%i, epsc,muc,sigmaEc,sigmaHc=%i,%i,%i,%i, eps,mu=%e,%e\n",
+                              numberOfComponentsForTZ,rc,epsc,muc,sigmaEc,sigmaHc,eps,mu);
+                spatialCoefficientsForTZ(0,0,0,epsc)=eps;
+                spatialCoefficientsForTZ(0,0,0,muc )=mu; 
+                spatialCoefficientsForTZ(0,0,0,sigmaEc)=0.;  
+                spatialCoefficientsForTZ(0,0,0,sigmaHc)=0.;
+            }
             if( numberOfDimensions==2 )
             {
                 if( degreeSpace==0 )
@@ -728,20 +743,14 @@ assignInitialConditions(int current, real t, real dt )
                     spatialCoefficientsForTZ(0,0,0,ey)= 2.;      // v=2
                     spatialCoefficientsForTZ(0,0,0,hz)=-1.;      // w=-1
           // -- dispersion components: 
-                    if( pxc>=0 )
+                    if( dispersionModel != noDispersion )
                     {
-                        spatialCoefficientsForTZ(0,0,0,pxc)=1.; 
-                        spatialCoefficientsForTZ(0,0,0,pyc)=2.; 
-                    }
-                    if( qxc>=0 )
-                    {
-                        spatialCoefficientsForTZ(0,0,0,qxc)=3.; 
-                        spatialCoefficientsForTZ(0,0,0,qyc)=4.; 
-                    }
-                    if( rxc>=0 )
-                    {
-                        spatialCoefficientsForTZ(0,0,0,rxc)=5.; 
-                        spatialCoefficientsForTZ(0,0,0,ryc)=6.; 
+                        for( int iv=0; iv<maxNumberOfPolarizationVectors; iv++ )
+                        {
+                            const int pc= iv*numberOfDimensions;
+                            spatialCoefficientsForTZ(0,0,0,pxc+pc)=1.; 
+                            spatialCoefficientsForTZ(0,0,0,pyc+pc)=2.; 
+                        }
                     }
                 }
                 else if( degreeSpace==1 )
@@ -756,33 +765,26 @@ assignInitialConditions(int current, real t, real dt )
                     spatialCoefficientsForTZ(1,0,0,hz)= 1.;
                     spatialCoefficientsForTZ(0,1,0,hz)= 1.;
           // eps and mu should remain positive but do this for now:
-                    spatialCoefficientsForTZ(1,0,0,epsc)=eps*.01;  // x*eps*.01
-                    spatialCoefficientsForTZ(0,1,0,epsc)=eps*.02;  // y*eps*.02 
-                    spatialCoefficientsForTZ(1,0,0,muc )=mu*.015;   // x
-                    spatialCoefficientsForTZ(0,1,0,muc )=mu*.0125;  // y
+                    if( epsc>=0 )
+                    {
+                        spatialCoefficientsForTZ(1,0,0,epsc)=eps*.01;  // x*eps*.01
+                        spatialCoefficientsForTZ(0,1,0,epsc)=eps*.02;  // y*eps*.02 
+                        spatialCoefficientsForTZ(1,0,0,muc )=mu*.015;   // x
+                        spatialCoefficientsForTZ(0,1,0,muc )=mu*.0125;  // y
+                    }
           // -- dispersion components: 
-                    if( pxc>=0 )
+                    if( dispersionModel != noDispersion )
                     {
-                        spatialCoefficientsForTZ(0,0,0,pxc)=1.; 
-                        spatialCoefficientsForTZ(1,0,0,pxc)=.5;
-                        spatialCoefficientsForTZ(0,1,0,pxc)=.4;
-                        spatialCoefficientsForTZ(0,0,0,pyc)=2.; 
-                        spatialCoefficientsForTZ(1,0,0,pyc)=-.5;
-                        spatialCoefficientsForTZ(0,1,0,pyc)=.5;
-                    }
-                    if( qxc>=0 )
-                    {
-                        spatialCoefficientsForTZ(0,0,0,qxc)=3.; 
-                        spatialCoefficientsForTZ(0,0,0,qyc)=4.; 
-                        spatialCoefficientsForTZ(1,0,0,qxc)=.25;
-                        spatialCoefficientsForTZ(0,1,0,qxc)=.35;
-                    }
-                    if( rxc>=0 )
-                    {
-                        spatialCoefficientsForTZ(0,0,0,rxc)=5.; 
-                        spatialCoefficientsForTZ(0,0,0,ryc)=6.; 
-                        spatialCoefficientsForTZ(1,0,0,rxc)=.55;
-                        spatialCoefficientsForTZ(0,1,0,rxc)=.45;
+                        for( int iv=0; iv<maxNumberOfPolarizationVectors; iv++ )
+                        {
+                            const int pc= iv*numberOfDimensions;
+                            spatialCoefficientsForTZ(0,0,0,pxc+pc)=1.; 
+                            spatialCoefficientsForTZ(1,0,0,pxc+pc)=.5;
+                            spatialCoefficientsForTZ(0,1,0,pxc+pc)=.4;
+                            spatialCoefficientsForTZ(0,0,0,pyc+pc)=2.; 
+                            spatialCoefficientsForTZ(1,0,0,pyc+pc)=-.5;
+                            spatialCoefficientsForTZ(0,1,0,pyc+pc)=.5;
+                        }
                     }
                 }
                 else if( degreeSpace==2 )
@@ -798,62 +800,32 @@ assignInitialConditions(int current, real t, real dt )
                     spatialCoefficientsForTZ(0,0,0,hz)=-1.; 
                     spatialCoefficientsForTZ(1,1,0,hz)= .5;
           // eps and mu should remain positive 
-                    spatialCoefficientsForTZ(1,0,0,epsc)=eps*.01;  // x
-                    spatialCoefficientsForTZ(0,1,0,epsc)=eps*.02;  // y
-                    spatialCoefficientsForTZ(2,0,0,epsc)=eps*.1;   // x^2
-                    spatialCoefficientsForTZ(0,2,0,epsc)=eps*.15;  // y^2        
-                    spatialCoefficientsForTZ(1,0,0,muc )=mu*.015;   // x
-                    spatialCoefficientsForTZ(0,1,0,muc )=mu*.0125;  // y
-                    spatialCoefficientsForTZ(2,0,0,muc )=mu*.125;   // x^2
-                    spatialCoefficientsForTZ(0,2,0,muc )=mu*.15;    // y^2
+                    if( epsc>=0 )
+                    {
+                        spatialCoefficientsForTZ(1,0,0,epsc)=eps*.01;  // x
+                        spatialCoefficientsForTZ(0,1,0,epsc)=eps*.02;  // y
+                        spatialCoefficientsForTZ(2,0,0,epsc)=eps*.1;   // x^2
+                        spatialCoefficientsForTZ(0,2,0,epsc)=eps*.15;  // y^2        
+                        spatialCoefficientsForTZ(1,0,0,muc )=mu*.015;   // x
+                        spatialCoefficientsForTZ(0,1,0,muc )=mu*.0125;  // y
+                        spatialCoefficientsForTZ(2,0,0,muc )=mu*.125;   // x^2
+                        spatialCoefficientsForTZ(0,2,0,muc )=mu*.15;    // y^2
+                    }
           // -- dispersion components: 
-                    if( pxc>=0 )
+                    if( dispersionModel != noDispersion )
                     {
-            // Corner extrapolation may assume that div(E)=0 
-                        spatialCoefficientsForTZ(2,0,0,pxc)=1.*.5;      // px=(x^2 + 2xy + y^2)*.5
-                        spatialCoefficientsForTZ(1,1,0,pxc)=2.*.5;
-                        spatialCoefficientsForTZ(0,2,0,pxc)=1.*.5;
-                        spatialCoefficientsForTZ(2,0,0,pyc)= 1.*.5;      // py=(x^2 -2xy - y^2)*.5
-                        spatialCoefficientsForTZ(1,1,0,pyc)=-2.*.5;
-                        spatialCoefficientsForTZ(0,2,0,pyc)=-1.*.5;
-            // spatialCoefficientsForTZ(0,0,0,pxc)=1.; 
-            // spatialCoefficientsForTZ(1,0,0,pxc)=.1; 
-            // spatialCoefficientsForTZ(0,1,0,pxc)=.3; 
-            // spatialCoefficientsForTZ(2,0,0,pxc)=.1; 
-            // spatialCoefficientsForTZ(0,2,0,pxc)=-.1; 
-            // spatialCoefficientsForTZ(0,0,0,pyc)=2.; 
-            // spatialCoefficientsForTZ(1,0,0,pyc)=.1; 
-            // spatialCoefficientsForTZ(0,1,0,pyc)=.2; 
-            // spatialCoefficientsForTZ(2,0,0,pyc)=-.1; 
-            // spatialCoefficientsForTZ(0,2,0,pyc)=.1; 
-                    }
-                    if( qxc>=0 )
-                    {
-            // *** FIX ME: Make div(q)=0 ****
-                        spatialCoefficientsForTZ(0,0,0,qxc)=3.; 
-                        spatialCoefficientsForTZ(1,0,0,qxc)=-.1; 
-                        spatialCoefficientsForTZ(0,1,0,qxc)=.2; 
-                        spatialCoefficientsForTZ(2,0,0,qxc)=.2; 
-                        spatialCoefficientsForTZ(0,2,0,qxc)=-.15; 
-                        spatialCoefficientsForTZ(0,0,0,qyc)=4.; 
-                        spatialCoefficientsForTZ(1,0,0,qyc)=.2; 
-                        spatialCoefficientsForTZ(0,1,0,qyc)=-.3; 
-                        spatialCoefficientsForTZ(2,0,0,qyc)=.2; 
-                        spatialCoefficientsForTZ(0,2,0,qyc)=-.1; 
-                    }
-                    if( rxc>=0 )
-                    {
-            // *** FIX ME: Make div(r)=0 ****
-                        spatialCoefficientsForTZ(0,0,0,rxc)=5.; 
-                        spatialCoefficientsForTZ(1,0,0,rxc)=-.1; 
-                        spatialCoefficientsForTZ(0,1,0,rxc)=.2; 
-                        spatialCoefficientsForTZ(2,0,0,rxc)=.1; 
-                        spatialCoefficientsForTZ(0,2,0,rxc)=-.1; 
-                        spatialCoefficientsForTZ(0,0,0,ryc)=6.; 
-                        spatialCoefficientsForTZ(1,0,0,ryc)=.1; 
-                        spatialCoefficientsForTZ(0,1,0,ryc)=-.2; 
-                        spatialCoefficientsForTZ(2,0,0,ryc)=-.1; 
-                        spatialCoefficientsForTZ(0,2,0,ryc)=.1; 
+                        printF("\n >>>> set TZ for P maxNumberOfPolarizationVectors=%i <<<<\n\n",maxNumberOfPolarizationVectors);
+                        for( int iv=0; iv<maxNumberOfPolarizationVectors; iv++ )
+                        {
+                            const int pc= iv*numberOfDimensions;
+              // Corner extrapolation may assume that div(E)=0 
+                            spatialCoefficientsForTZ(2,0,0,pxc+pc)=1.*.5;      // px=(x^2 + 2xy + y^2)*.5
+                            spatialCoefficientsForTZ(1,1,0,pxc+pc)=2.*.5;
+                            spatialCoefficientsForTZ(0,2,0,pxc+pc)=1.*.5;
+                            spatialCoefficientsForTZ(2,0,0,pyc+pc)= 1.*.5;      // py=(x^2 -2xy - y^2)*.5
+                            spatialCoefficientsForTZ(1,1,0,pyc+pc)=-2.*.5;
+                            spatialCoefficientsForTZ(0,2,0,pyc+pc)=-1.*.5;
+                        }
                     }
                 }
                 else if( degreeSpace==3 )
@@ -880,20 +852,21 @@ assignInitialConditions(int current, real t, real dt )
                     spatialCoefficientsForTZ(0,3,0,hz)=-.25;
           // -- dispersion components: 
           // ** FINISH ME **
-                    if( pxc>=0 )
+                    if( dispersionModel != noDispersion )
                     {
-                        spatialCoefficientsForTZ(0,0,0,pxc)=1.; 
-                        spatialCoefficientsForTZ(0,0,0,pyc)=2.; 
-                    }
-                    if( qxc>=0 )
-                    {
-                        spatialCoefficientsForTZ(0,0,0,qxc)=3.; 
-                        spatialCoefficientsForTZ(0,0,0,qyc)=4.; 
-                    }
-                    if( rxc>=0 )
-                    {
-                        spatialCoefficientsForTZ(0,0,0,rxc)=5.; 
-                        spatialCoefficientsForTZ(0,0,0,ryc)=6.; 
+                        printF("\n >>>> set TZ for P maxNumberOfPolarizationVectors=%i ** FINISH ME ** <<<<\n\n",
+                              maxNumberOfPolarizationVectors);
+                        for( int iv=0; iv<maxNumberOfPolarizationVectors; iv++ )
+                        {
+                            const int pc= iv*numberOfDimensions;
+              // Corner extrapolation may assume that div(E)=0 
+                            spatialCoefficientsForTZ(2,0,0,pxc+pc)=1.*.5;      // px=(x^2 + 2xy + y^2)*.5
+                            spatialCoefficientsForTZ(1,1,0,pxc+pc)=2.*.5;
+                            spatialCoefficientsForTZ(0,2,0,pxc+pc)=1.*.5;
+                            spatialCoefficientsForTZ(2,0,0,pyc+pc)= 1.*.5;      // py=(x^2 -2xy - y^2)*.5
+                            spatialCoefficientsForTZ(1,1,0,pyc+pc)=-2.*.5;
+                            spatialCoefficientsForTZ(0,2,0,pyc+pc)=-1.*.5;
+                        }
                     }
                 }
                 else if( degreeSpace==4 || degreeSpace==5 )
@@ -920,20 +893,21 @@ assignInitialConditions(int current, real t, real dt )
                     spatialCoefficientsForTZ(3,1,0,ey)=-.8;
           // -- dispersion components: 
           // ** FINISH ME **
-                    if( pxc>=0 )
+                    if( dispersionModel != noDispersion )
                     {
-                        spatialCoefficientsForTZ(0,0,0,pxc)=1.; 
-                        spatialCoefficientsForTZ(0,0,0,pyc)=2.; 
-                    }
-                    if( qxc>=0 )
-                    {
-                        spatialCoefficientsForTZ(0,0,0,qxc)=3.; 
-                        spatialCoefficientsForTZ(0,0,0,qyc)=4.; 
-                    }
-                    if( rxc>=0 )
-                    {
-                        spatialCoefficientsForTZ(0,0,0,rxc)=5.; 
-                        spatialCoefficientsForTZ(0,0,0,ryc)=6.; 
+                        printF("\n >>>> set TZ for P maxNumberOfPolarizationVectors=%i ** FINISH ME ** <<<<\n\n",
+                              maxNumberOfPolarizationVectors);
+                        for( int iv=0; iv<maxNumberOfPolarizationVectors; iv++ )
+                        {
+                            const int pc= iv*numberOfDimensions;
+              // Corner extrapolation may assume that div(E)=0 
+                            spatialCoefficientsForTZ(2,0,0,pxc+pc)=1.*.5;      // px=(x^2 + 2xy + y^2)*.5
+                            spatialCoefficientsForTZ(1,1,0,pxc+pc)=2.*.5;
+                            spatialCoefficientsForTZ(0,2,0,pxc+pc)=1.*.5;
+                            spatialCoefficientsForTZ(2,0,0,pyc+pc)= 1.*.5;      // py=(x^2 -2xy - y^2)*.5
+                            spatialCoefficientsForTZ(1,1,0,pyc+pc)=-2.*.5;
+                            spatialCoefficientsForTZ(0,2,0,pyc+pc)=-1.*.5;
+                        }
                     }
                 }
                 else if( degreeSpace>=6 )
@@ -984,20 +958,21 @@ assignInitialConditions(int current, real t, real dt )
                     spatialCoefficientsForTZ(5,1,0,ey)=-.6;
           // -- dispersion components: 
           // ** FINISH ME **
-                    if( pxc>=0 )
+                    if( dispersionModel != noDispersion )
                     {
-                        spatialCoefficientsForTZ(0,0,0,pxc)=1.; 
-                        spatialCoefficientsForTZ(0,0,0,pyc)=2.; 
-                    }
-                    if( qxc>=0 )
-                    {
-                        spatialCoefficientsForTZ(0,0,0,qxc)=3.; 
-                        spatialCoefficientsForTZ(0,0,0,qyc)=4.; 
-                    }
-                    if( rxc>=0 )
-                    {
-                        spatialCoefficientsForTZ(0,0,0,rxc)=5.; 
-                        spatialCoefficientsForTZ(0,0,0,ryc)=6.; 
+                        printF("\n >>>> set TZ for P maxNumberOfPolarizationVectors=%i ** FINISH ME ** <<<<\n\n",
+                              maxNumberOfPolarizationVectors);
+                        for( int iv=0; iv<maxNumberOfPolarizationVectors; iv++ )
+                        {
+                            const int pc= iv*numberOfDimensions;
+              // Corner extrapolation may assume that div(E)=0 
+                            spatialCoefficientsForTZ(2,0,0,pxc+pc)=1.*.5;      // px=(x^2 + 2xy + y^2)*.5
+                            spatialCoefficientsForTZ(1,1,0,pxc+pc)=2.*.5;
+                            spatialCoefficientsForTZ(0,2,0,pxc+pc)=1.*.5;
+                            spatialCoefficientsForTZ(2,0,0,pyc+pc)= 1.*.5;      // py=(x^2 -2xy - y^2)*.5
+                            spatialCoefficientsForTZ(1,1,0,pyc+pc)=-2.*.5;
+                            spatialCoefficientsForTZ(0,2,0,pyc+pc)=-1.*.5;
+                        }
                     }
                 }
                 else
@@ -1549,368 +1524,12 @@ assignInitialConditions(int current, real t, real dt )
                         }
           // *** end the initialize3DPolyTW bpp macro 
                 }
-                if( qxc>=0 ) 
-                {
-            // -----------------------------------------------------------------------------
-            // --------------------- DEFINE POLYNOMIAL TZ SOLUTIONS ------------------------
-            // -----------------------------------------------------------------------------
-            // Always include linear terms in TZ if degreSpace>=1 *wdh* Sept 18, 2016 
-                        if( degreeSpace >=1 )
-                        {
-                            spatialCoefficientsForTZ(0,0,0,qxc)=1.;      // u=1 + x + y + z
-                            spatialCoefficientsForTZ(1,0,0,qxc)=1.;
-                            spatialCoefficientsForTZ(0,1,0,qxc)=1.;
-                            spatialCoefficientsForTZ(0,0,1,qxc)=1.;
-                            spatialCoefficientsForTZ(0,0,0,qyc)= 2.;      // v=2+x-2y+z
-                            spatialCoefficientsForTZ(1,0,0,qyc)= 1.;
-                            spatialCoefficientsForTZ(0,1,0,qyc)=-2.;
-                            spatialCoefficientsForTZ(0,0,1,qyc)= 1.;
-                            spatialCoefficientsForTZ(1,0,0,qzc)=-1.;      // w=-x+y+z
-                            spatialCoefficientsForTZ(0,1,0,qzc)= 1.;
-                            spatialCoefficientsForTZ(0,0,1,qzc)= 1.;
-              // eps and mu should remain positive 
-                            spatialCoefficientsForTZ(1,0,0,epsc)=eps*.01;  // x
-                            spatialCoefficientsForTZ(0,1,0,epsc)=eps*.02;  // y
-                            spatialCoefficientsForTZ(0,0,1,epsc)=eps*.12;  // z
-                            spatialCoefficientsForTZ(1,0,0,muc )=mu*.015;   // x
-                            spatialCoefficientsForTZ(0,1,0,muc )=mu*.0125;  // y
-                            spatialCoefficientsForTZ(0,0,1,muc )=mu*.095;   // z
-                        }
-                        if( degreeSpace==2 )
-                        {
-                            spatialCoefficientsForTZ(2,0,0,qxc)=1.;      // u=x^2 + 2xy + y^2 + xz  - .25*yz -.5*z^2
-                            spatialCoefficientsForTZ(1,1,0,qxc)=2.;
-                            spatialCoefficientsForTZ(0,2,0,qxc)=1.;
-                            spatialCoefficientsForTZ(1,0,1,qxc)=1.;
-                            spatialCoefficientsForTZ(0,1,1,qxc)=-.25;
-                            spatialCoefficientsForTZ(0,0,2,qxc)=-.5;
-                            spatialCoefficientsForTZ(2,0,0,qyc)= 1.;      // v=x^2 -2xy - y^2 + 3yz + .25*xz +.5*z^2
-                            spatialCoefficientsForTZ(1,1,0,qyc)=-2.;
-                            spatialCoefficientsForTZ(0,2,0,qyc)=-1.;
-                            spatialCoefficientsForTZ(0,1,1,qyc)=+3.;
-                            spatialCoefficientsForTZ(1,0,1,qyc)=.25;
-                            spatialCoefficientsForTZ(0,0,2,qyc)=.5;
-                            spatialCoefficientsForTZ(2,0,0,qzc)= 1.;      // w=x^2 + y^2 - 2 z^2 + .25*xy 
-                            spatialCoefficientsForTZ(0,2,0,qzc)= 1.;
-                            spatialCoefficientsForTZ(0,0,2,qzc)=-2.;
-                            spatialCoefficientsForTZ(1,1,0,qzc)=.25;
-              // eps and mu should remain positive 
-                            spatialCoefficientsForTZ(1,0,0,epsc)=eps*.01;  // x
-                            spatialCoefficientsForTZ(0,1,0,epsc)=eps*.02;  // y
-                            spatialCoefficientsForTZ(0,0,1,epsc)=eps*.12;  // z
-                            spatialCoefficientsForTZ(2,0,0,epsc)=eps*.1;   // x^2
-                            spatialCoefficientsForTZ(0,2,0,epsc)=eps*.15;  // y^2        
-                            spatialCoefficientsForTZ(0,0,2,epsc)=eps*.11;  // z^2        
-                            spatialCoefficientsForTZ(1,0,0,muc )=mu*.015;   // x
-                            spatialCoefficientsForTZ(0,1,0,muc )=mu*.0125;  // y
-                            spatialCoefficientsForTZ(0,0,1,muc )=mu*.095;   // z
-                            spatialCoefficientsForTZ(2,0,0,muc )=mu*.125;   // x^2
-                            spatialCoefficientsForTZ(0,2,0,muc )=mu*.15;    // y^2
-                            spatialCoefficientsForTZ(0,0,2,muc )=mu*.13;    // z^2
-                        }
-                        else if( degreeSpace==0 )
-                        {
-                            spatialCoefficientsForTZ(0,0,0,qxc)=1.; // -1.; 
-                            spatialCoefficientsForTZ(0,0,0,qyc)=1.; //-.5;
-                            spatialCoefficientsForTZ(0,0,0,qzc)=1.; //.75; 
-                        }
-                        else if( degreeSpace==3 )
-                        {
-                            spatialCoefficientsForTZ(2,0,0,qxc)=1.;      // u=x^2 + 2xy + y^2 + xz 
-                            spatialCoefficientsForTZ(1,1,0,qxc)=2.;    //        + .125( x^3 + y^3 + z^3 ) -.75*x*y^2 + x^2*z +.4yz
-                            spatialCoefficientsForTZ(0,2,0,qxc)=1.;
-                            spatialCoefficientsForTZ(1,0,1,qxc)=1.;
-                            spatialCoefficientsForTZ(3,0,0,qxc)=.125; 
-                            spatialCoefficientsForTZ(0,3,0,qxc)=.125; 
-                            spatialCoefficientsForTZ(0,0,3,qxc)=.125; 
-                            spatialCoefficientsForTZ(1,2,0,qxc)=-.75;
-                            spatialCoefficientsForTZ(2,0,1,qxc)=+1.; 
-                            spatialCoefficientsForTZ(0,1,1,qxc)=.4; 
-                            spatialCoefficientsForTZ(2,0,0,qyc)= 1.;      // v=x^2 -2xy - y^2 + 3yz 
-                            spatialCoefficientsForTZ(1,1,0,qyc)=-2.;      //    + .25( x^3 + y^3 + z^3 ) -.375*x^2 y  -.375*y*z^2  
-                            spatialCoefficientsForTZ(0,2,0,qyc)=-1.;
-                            spatialCoefficientsForTZ(0,1,1,qyc)=+3.;
-                            spatialCoefficientsForTZ(3,0,0,qyc)=.25; 
-                            spatialCoefficientsForTZ(0,3,0,qyc)=.25; 
-                            spatialCoefficientsForTZ(0,0,3,qyc)=.25; 
-                            spatialCoefficientsForTZ(2,1,0,qyc)=-3.*.125; 
-                            spatialCoefficientsForTZ(0,1,2,qyc)=-3.*.125; 
-                            spatialCoefficientsForTZ(2,0,0,qzc)= 1.;      // w=x^2 + y^2 - 2 z^2 
-                            spatialCoefficientsForTZ(0,2,0,qzc)= 1.;      //      + .25x^3 -.2y^3 +.125 z^3 - x z^2 -.6*xy^2
-                            spatialCoefficientsForTZ(0,0,2,qzc)=-2.;
-                            spatialCoefficientsForTZ(3,0,0,qzc)=.25; 
-                            spatialCoefficientsForTZ(0,3,0,qzc)=-.2; 
-                            spatialCoefficientsForTZ(0,0,3,qzc)=.125; 
-                            spatialCoefficientsForTZ(1,0,2,qzc)=-1.;
-                            spatialCoefficientsForTZ(1,2,0,qzc)=-.6;
-                        }
-                        else if( degreeSpace==4 )
-                        {
-                            spatialCoefficientsForTZ(2,0,0,qxc)=1.;      // u=x^2 + 2xy + y^2 + xz
-                            spatialCoefficientsForTZ(1,1,0,qxc)=2.;
-                            spatialCoefficientsForTZ(0,2,0,qxc)=1.;
-                            spatialCoefficientsForTZ(1,0,1,qxc)=1.;
-                            spatialCoefficientsForTZ(3,0,0,qxc)=.5;      // + .5*x^3
-                            spatialCoefficientsForTZ(4,0,0,qxc)=.125;    // + .125*x^4 + .125*y^4 + .125*z^4  -.5*xz^3
-                            spatialCoefficientsForTZ(0,4,0,qxc)=.125;    
-                            spatialCoefficientsForTZ(0,0,4,qxc)=.125; 
-                            spatialCoefficientsForTZ(1,0,3,qxc)=-.5; 
-                            spatialCoefficientsForTZ(0,1,3,qxc)=.25;    // + .25*y*z^3 -.25*y^2*z^2 +.25*y^3z
-                            spatialCoefficientsForTZ(0,2,2,qxc)=-.25; 
-                            spatialCoefficientsForTZ(0,3,1,qxc)=.25; 
-                            spatialCoefficientsForTZ(2,0,0,qyc)= 1.;      // v=x^2 -2xy - y^2 + 3yz
-                            spatialCoefficientsForTZ(1,1,0,qyc)=-2.;
-                            spatialCoefficientsForTZ(0,2,0,qyc)=-1.;
-                            spatialCoefficientsForTZ(0,1,1,qyc)=+3.;
-                            spatialCoefficientsForTZ(2,1,0,qyc)=-1.5;     // -1.5x^2*y
-                            spatialCoefficientsForTZ(4,0,0,qyc)=.25; 
-                            spatialCoefficientsForTZ(0,4,0,qyc)=.25; 
-                            spatialCoefficientsForTZ(0,0,4,qyc)=.25; 
-                            spatialCoefficientsForTZ(3,1,0,qyc)=-.5; 
-                            spatialCoefficientsForTZ(1,0,3,qyc)=.25;    // + .25*x*z^3 -.25*x^2*z^2 +.25*x^3z
-                            spatialCoefficientsForTZ(2,0,2,qyc)=-.25; 
-                            spatialCoefficientsForTZ(3,0,1,qyc)=.25; 
-                            spatialCoefficientsForTZ(2,0,0,qzc)= 1.;      // w=x^2 + y^2 - 2 z^2
-                            spatialCoefficientsForTZ(0,2,0,qzc)= 1.;
-                            spatialCoefficientsForTZ(0,0,2,qzc)=-2.;
-                            spatialCoefficientsForTZ(4,0,0,qzc)=.25; 
-                            spatialCoefficientsForTZ(0,4,0,qzc)=-.2; 
-                            spatialCoefficientsForTZ(0,0,4,qzc)=.125; 
-                            spatialCoefficientsForTZ(0,3,1,qzc)=-1.;
-                            spatialCoefficientsForTZ(1,3,0,qzc)=.25;    // + .25*x*y^3 -.25*x^2*y^2 +.25*x^3y
-                            spatialCoefficientsForTZ(2,2,0,qzc)=-.25; 
-                            spatialCoefficientsForTZ(3,1,0,qzc)=.25; 
-                        }
-                        else if( degreeSpace>=5 )
-                        {
-                            if( true || degreeSpace!=5 ) printF(" ****WARNING***** using a TZ function with degree=5 in space *****\n");
-                            spatialCoefficientsForTZ(2,0,0,qxc)=1.;      // u=x^2 + 2xy + y^2 + xz
-                            spatialCoefficientsForTZ(1,1,0,qxc)=2.;
-                            spatialCoefficientsForTZ(0,2,0,qxc)=1.;
-                            spatialCoefficientsForTZ(1,0,1,qxc)=1.;
-                            spatialCoefficientsForTZ(4,0,0,qxc)=.125;    // + .125*x^4 + .125*y^4 + .125*z^4  -.5*xz^3
-                            spatialCoefficientsForTZ(0,4,0,qxc)=.125;    
-                            spatialCoefficientsForTZ(0,0,4,qxc)=.125; 
-                            spatialCoefficientsForTZ(1,0,3,qxc)=-.5; 
-                            spatialCoefficientsForTZ(0,1,3,qxc)=.25;    // + .25*y*z^3 -.25*y^2*z^2 +.25*y^3z
-                            spatialCoefficientsForTZ(0,2,2,qxc)=-.25; 
-                            spatialCoefficientsForTZ(0,3,1,qxc)=.25; 
-                            spatialCoefficientsForTZ(0,5,0,qxc)=.125;   // y^5
-                            spatialCoefficientsForTZ(2,0,0,qyc)= 1.;      // v=x^2 -2xy - y^2 + 3yz
-                            spatialCoefficientsForTZ(1,1,0,qyc)=-2.;
-                            spatialCoefficientsForTZ(0,2,0,qyc)=-1.;
-                            spatialCoefficientsForTZ(0,1,1,qyc)=+3.;
-                            spatialCoefficientsForTZ(4,0,0,qyc)=.25; 
-                            spatialCoefficientsForTZ(0,4,0,qyc)=.25; 
-                            spatialCoefficientsForTZ(0,0,4,qyc)=.25; 
-                            spatialCoefficientsForTZ(3,1,0,qyc)=-.5; 
-                            spatialCoefficientsForTZ(1,0,3,qyc)=.25;    // + .25*x*z^3 -.25*x^2*z^2 +.25*x^3z
-                            spatialCoefficientsForTZ(2,0,2,qyc)=-.25; 
-                            spatialCoefficientsForTZ(3,0,1,qyc)=.25; 
-              // spatialCoefficientsForTZ(5,0,0,qyc)=.125;  // x^5
-                            spatialCoefficientsForTZ(2,0,0,qzc)= 1.;      // w=x^2 + y^2 - 2 z^2
-                            spatialCoefficientsForTZ(0,2,0,qzc)= 1.;
-                            spatialCoefficientsForTZ(0,0,2,qzc)=-2.;
-                            spatialCoefficientsForTZ(4,0,0,qzc)=.25; 
-                            spatialCoefficientsForTZ(0,4,0,qzc)=-.2; 
-                            spatialCoefficientsForTZ(0,0,4,qzc)=.125; 
-                            spatialCoefficientsForTZ(0,3,1,qzc)=-1.;
-                            spatialCoefficientsForTZ(1,3,0,qzc)=.25;    // + .25*x*y^3 -.25*x^2*y^2 +.25*x^3y
-                            spatialCoefficientsForTZ(2,2,0,qzc)=-.25; 
-                            spatialCoefficientsForTZ(3,1,0,qzc)=.25; 
-              // spatialCoefficientsForTZ(5,0,0,qzc)=.125;
-                        }
-                        else
-                        {
-                            printF("Maxwell:: not implemented for degree in space =%i \n",degreeSpace);
-                            Overture::abort("error");
-                        }
-          // *** end the initialize3DPolyTW bpp macro 
-                }
-                if( rxc>=0 ) 
-                {
-            // -----------------------------------------------------------------------------
-            // --------------------- DEFINE POLYNOMIAL TZ SOLUTIONS ------------------------
-            // -----------------------------------------------------------------------------
-            // Always include linear terms in TZ if degreSpace>=1 *wdh* Sept 18, 2016 
-                        if( degreeSpace >=1 )
-                        {
-                            spatialCoefficientsForTZ(0,0,0,rxc)=1.;      // u=1 + x + y + z
-                            spatialCoefficientsForTZ(1,0,0,rxc)=1.;
-                            spatialCoefficientsForTZ(0,1,0,rxc)=1.;
-                            spatialCoefficientsForTZ(0,0,1,rxc)=1.;
-                            spatialCoefficientsForTZ(0,0,0,ryc)= 2.;      // v=2+x-2y+z
-                            spatialCoefficientsForTZ(1,0,0,ryc)= 1.;
-                            spatialCoefficientsForTZ(0,1,0,ryc)=-2.;
-                            spatialCoefficientsForTZ(0,0,1,ryc)= 1.;
-                            spatialCoefficientsForTZ(1,0,0,rzc)=-1.;      // w=-x+y+z
-                            spatialCoefficientsForTZ(0,1,0,rzc)= 1.;
-                            spatialCoefficientsForTZ(0,0,1,rzc)= 1.;
-              // eps and mu should remain positive 
-                            spatialCoefficientsForTZ(1,0,0,epsc)=eps*.01;  // x
-                            spatialCoefficientsForTZ(0,1,0,epsc)=eps*.02;  // y
-                            spatialCoefficientsForTZ(0,0,1,epsc)=eps*.12;  // z
-                            spatialCoefficientsForTZ(1,0,0,muc )=mu*.015;   // x
-                            spatialCoefficientsForTZ(0,1,0,muc )=mu*.0125;  // y
-                            spatialCoefficientsForTZ(0,0,1,muc )=mu*.095;   // z
-                        }
-                        if( degreeSpace==2 )
-                        {
-                            spatialCoefficientsForTZ(2,0,0,rxc)=1.;      // u=x^2 + 2xy + y^2 + xz  - .25*yz -.5*z^2
-                            spatialCoefficientsForTZ(1,1,0,rxc)=2.;
-                            spatialCoefficientsForTZ(0,2,0,rxc)=1.;
-                            spatialCoefficientsForTZ(1,0,1,rxc)=1.;
-                            spatialCoefficientsForTZ(0,1,1,rxc)=-.25;
-                            spatialCoefficientsForTZ(0,0,2,rxc)=-.5;
-                            spatialCoefficientsForTZ(2,0,0,ryc)= 1.;      // v=x^2 -2xy - y^2 + 3yz + .25*xz +.5*z^2
-                            spatialCoefficientsForTZ(1,1,0,ryc)=-2.;
-                            spatialCoefficientsForTZ(0,2,0,ryc)=-1.;
-                            spatialCoefficientsForTZ(0,1,1,ryc)=+3.;
-                            spatialCoefficientsForTZ(1,0,1,ryc)=.25;
-                            spatialCoefficientsForTZ(0,0,2,ryc)=.5;
-                            spatialCoefficientsForTZ(2,0,0,rzc)= 1.;      // w=x^2 + y^2 - 2 z^2 + .25*xy 
-                            spatialCoefficientsForTZ(0,2,0,rzc)= 1.;
-                            spatialCoefficientsForTZ(0,0,2,rzc)=-2.;
-                            spatialCoefficientsForTZ(1,1,0,rzc)=.25;
-              // eps and mu should remain positive 
-                            spatialCoefficientsForTZ(1,0,0,epsc)=eps*.01;  // x
-                            spatialCoefficientsForTZ(0,1,0,epsc)=eps*.02;  // y
-                            spatialCoefficientsForTZ(0,0,1,epsc)=eps*.12;  // z
-                            spatialCoefficientsForTZ(2,0,0,epsc)=eps*.1;   // x^2
-                            spatialCoefficientsForTZ(0,2,0,epsc)=eps*.15;  // y^2        
-                            spatialCoefficientsForTZ(0,0,2,epsc)=eps*.11;  // z^2        
-                            spatialCoefficientsForTZ(1,0,0,muc )=mu*.015;   // x
-                            spatialCoefficientsForTZ(0,1,0,muc )=mu*.0125;  // y
-                            spatialCoefficientsForTZ(0,0,1,muc )=mu*.095;   // z
-                            spatialCoefficientsForTZ(2,0,0,muc )=mu*.125;   // x^2
-                            spatialCoefficientsForTZ(0,2,0,muc )=mu*.15;    // y^2
-                            spatialCoefficientsForTZ(0,0,2,muc )=mu*.13;    // z^2
-                        }
-                        else if( degreeSpace==0 )
-                        {
-                            spatialCoefficientsForTZ(0,0,0,rxc)=1.; // -1.; 
-                            spatialCoefficientsForTZ(0,0,0,ryc)=1.; //-.5;
-                            spatialCoefficientsForTZ(0,0,0,rzc)=1.; //.75; 
-                        }
-                        else if( degreeSpace==3 )
-                        {
-                            spatialCoefficientsForTZ(2,0,0,rxc)=1.;      // u=x^2 + 2xy + y^2 + xz 
-                            spatialCoefficientsForTZ(1,1,0,rxc)=2.;    //        + .125( x^3 + y^3 + z^3 ) -.75*x*y^2 + x^2*z +.4yz
-                            spatialCoefficientsForTZ(0,2,0,rxc)=1.;
-                            spatialCoefficientsForTZ(1,0,1,rxc)=1.;
-                            spatialCoefficientsForTZ(3,0,0,rxc)=.125; 
-                            spatialCoefficientsForTZ(0,3,0,rxc)=.125; 
-                            spatialCoefficientsForTZ(0,0,3,rxc)=.125; 
-                            spatialCoefficientsForTZ(1,2,0,rxc)=-.75;
-                            spatialCoefficientsForTZ(2,0,1,rxc)=+1.; 
-                            spatialCoefficientsForTZ(0,1,1,rxc)=.4; 
-                            spatialCoefficientsForTZ(2,0,0,ryc)= 1.;      // v=x^2 -2xy - y^2 + 3yz 
-                            spatialCoefficientsForTZ(1,1,0,ryc)=-2.;      //    + .25( x^3 + y^3 + z^3 ) -.375*x^2 y  -.375*y*z^2  
-                            spatialCoefficientsForTZ(0,2,0,ryc)=-1.;
-                            spatialCoefficientsForTZ(0,1,1,ryc)=+3.;
-                            spatialCoefficientsForTZ(3,0,0,ryc)=.25; 
-                            spatialCoefficientsForTZ(0,3,0,ryc)=.25; 
-                            spatialCoefficientsForTZ(0,0,3,ryc)=.25; 
-                            spatialCoefficientsForTZ(2,1,0,ryc)=-3.*.125; 
-                            spatialCoefficientsForTZ(0,1,2,ryc)=-3.*.125; 
-                            spatialCoefficientsForTZ(2,0,0,rzc)= 1.;      // w=x^2 + y^2 - 2 z^2 
-                            spatialCoefficientsForTZ(0,2,0,rzc)= 1.;      //      + .25x^3 -.2y^3 +.125 z^3 - x z^2 -.6*xy^2
-                            spatialCoefficientsForTZ(0,0,2,rzc)=-2.;
-                            spatialCoefficientsForTZ(3,0,0,rzc)=.25; 
-                            spatialCoefficientsForTZ(0,3,0,rzc)=-.2; 
-                            spatialCoefficientsForTZ(0,0,3,rzc)=.125; 
-                            spatialCoefficientsForTZ(1,0,2,rzc)=-1.;
-                            spatialCoefficientsForTZ(1,2,0,rzc)=-.6;
-                        }
-                        else if( degreeSpace==4 )
-                        {
-                            spatialCoefficientsForTZ(2,0,0,rxc)=1.;      // u=x^2 + 2xy + y^2 + xz
-                            spatialCoefficientsForTZ(1,1,0,rxc)=2.;
-                            spatialCoefficientsForTZ(0,2,0,rxc)=1.;
-                            spatialCoefficientsForTZ(1,0,1,rxc)=1.;
-                            spatialCoefficientsForTZ(3,0,0,rxc)=.5;      // + .5*x^3
-                            spatialCoefficientsForTZ(4,0,0,rxc)=.125;    // + .125*x^4 + .125*y^4 + .125*z^4  -.5*xz^3
-                            spatialCoefficientsForTZ(0,4,0,rxc)=.125;    
-                            spatialCoefficientsForTZ(0,0,4,rxc)=.125; 
-                            spatialCoefficientsForTZ(1,0,3,rxc)=-.5; 
-                            spatialCoefficientsForTZ(0,1,3,rxc)=.25;    // + .25*y*z^3 -.25*y^2*z^2 +.25*y^3z
-                            spatialCoefficientsForTZ(0,2,2,rxc)=-.25; 
-                            spatialCoefficientsForTZ(0,3,1,rxc)=.25; 
-                            spatialCoefficientsForTZ(2,0,0,ryc)= 1.;      // v=x^2 -2xy - y^2 + 3yz
-                            spatialCoefficientsForTZ(1,1,0,ryc)=-2.;
-                            spatialCoefficientsForTZ(0,2,0,ryc)=-1.;
-                            spatialCoefficientsForTZ(0,1,1,ryc)=+3.;
-                            spatialCoefficientsForTZ(2,1,0,ryc)=-1.5;     // -1.5x^2*y
-                            spatialCoefficientsForTZ(4,0,0,ryc)=.25; 
-                            spatialCoefficientsForTZ(0,4,0,ryc)=.25; 
-                            spatialCoefficientsForTZ(0,0,4,ryc)=.25; 
-                            spatialCoefficientsForTZ(3,1,0,ryc)=-.5; 
-                            spatialCoefficientsForTZ(1,0,3,ryc)=.25;    // + .25*x*z^3 -.25*x^2*z^2 +.25*x^3z
-                            spatialCoefficientsForTZ(2,0,2,ryc)=-.25; 
-                            spatialCoefficientsForTZ(3,0,1,ryc)=.25; 
-                            spatialCoefficientsForTZ(2,0,0,rzc)= 1.;      // w=x^2 + y^2 - 2 z^2
-                            spatialCoefficientsForTZ(0,2,0,rzc)= 1.;
-                            spatialCoefficientsForTZ(0,0,2,rzc)=-2.;
-                            spatialCoefficientsForTZ(4,0,0,rzc)=.25; 
-                            spatialCoefficientsForTZ(0,4,0,rzc)=-.2; 
-                            spatialCoefficientsForTZ(0,0,4,rzc)=.125; 
-                            spatialCoefficientsForTZ(0,3,1,rzc)=-1.;
-                            spatialCoefficientsForTZ(1,3,0,rzc)=.25;    // + .25*x*y^3 -.25*x^2*y^2 +.25*x^3y
-                            spatialCoefficientsForTZ(2,2,0,rzc)=-.25; 
-                            spatialCoefficientsForTZ(3,1,0,rzc)=.25; 
-                        }
-                        else if( degreeSpace>=5 )
-                        {
-                            if( true || degreeSpace!=5 ) printF(" ****WARNING***** using a TZ function with degree=5 in space *****\n");
-                            spatialCoefficientsForTZ(2,0,0,rxc)=1.;      // u=x^2 + 2xy + y^2 + xz
-                            spatialCoefficientsForTZ(1,1,0,rxc)=2.;
-                            spatialCoefficientsForTZ(0,2,0,rxc)=1.;
-                            spatialCoefficientsForTZ(1,0,1,rxc)=1.;
-                            spatialCoefficientsForTZ(4,0,0,rxc)=.125;    // + .125*x^4 + .125*y^4 + .125*z^4  -.5*xz^3
-                            spatialCoefficientsForTZ(0,4,0,rxc)=.125;    
-                            spatialCoefficientsForTZ(0,0,4,rxc)=.125; 
-                            spatialCoefficientsForTZ(1,0,3,rxc)=-.5; 
-                            spatialCoefficientsForTZ(0,1,3,rxc)=.25;    // + .25*y*z^3 -.25*y^2*z^2 +.25*y^3z
-                            spatialCoefficientsForTZ(0,2,2,rxc)=-.25; 
-                            spatialCoefficientsForTZ(0,3,1,rxc)=.25; 
-                            spatialCoefficientsForTZ(0,5,0,rxc)=.125;   // y^5
-                            spatialCoefficientsForTZ(2,0,0,ryc)= 1.;      // v=x^2 -2xy - y^2 + 3yz
-                            spatialCoefficientsForTZ(1,1,0,ryc)=-2.;
-                            spatialCoefficientsForTZ(0,2,0,ryc)=-1.;
-                            spatialCoefficientsForTZ(0,1,1,ryc)=+3.;
-                            spatialCoefficientsForTZ(4,0,0,ryc)=.25; 
-                            spatialCoefficientsForTZ(0,4,0,ryc)=.25; 
-                            spatialCoefficientsForTZ(0,0,4,ryc)=.25; 
-                            spatialCoefficientsForTZ(3,1,0,ryc)=-.5; 
-                            spatialCoefficientsForTZ(1,0,3,ryc)=.25;    // + .25*x*z^3 -.25*x^2*z^2 +.25*x^3z
-                            spatialCoefficientsForTZ(2,0,2,ryc)=-.25; 
-                            spatialCoefficientsForTZ(3,0,1,ryc)=.25; 
-              // spatialCoefficientsForTZ(5,0,0,ryc)=.125;  // x^5
-                            spatialCoefficientsForTZ(2,0,0,rzc)= 1.;      // w=x^2 + y^2 - 2 z^2
-                            spatialCoefficientsForTZ(0,2,0,rzc)= 1.;
-                            spatialCoefficientsForTZ(0,0,2,rzc)=-2.;
-                            spatialCoefficientsForTZ(4,0,0,rzc)=.25; 
-                            spatialCoefficientsForTZ(0,4,0,rzc)=-.2; 
-                            spatialCoefficientsForTZ(0,0,4,rzc)=.125; 
-                            spatialCoefficientsForTZ(0,3,1,rzc)=-1.;
-                            spatialCoefficientsForTZ(1,3,0,rzc)=.25;    // + .25*x*y^3 -.25*x^2*y^2 +.25*x^3y
-                            spatialCoefficientsForTZ(2,2,0,rzc)=-.25; 
-                            spatialCoefficientsForTZ(3,1,0,rzc)=.25; 
-              // spatialCoefficientsForTZ(5,0,0,rzc)=.125;
-                        }
-                        else
-                        {
-                            printF("Maxwell:: not implemented for degree in space =%i \n",degreeSpace);
-                            Overture::abort("error");
-                        }
-          // *** end the initialize3DPolyTW bpp macro 
-                }
             }
             else
             {
                 OV_ABORT("ERROR:unimplemented number of dimensions");
             }
-            for( int n=0; n<numberOfComponents; n++ )
+            for( int n=0; n<numberOfComponentsForTZ; n++ )
             {
                 for( int i=0; i<ndp; i++ )
                     timeCoefficientsForTZ(i,n)= i<=degreeTime ? 1./(i+1) : 0. ;
@@ -1932,11 +1551,21 @@ assignInitialConditions(int current, real t, real dt )
                 }
             }
       // Make eps, mu, .. constant in time : 
-            timeCoefficientsForTZ(0,rc)=1.;
-            timeCoefficientsForTZ(0,epsc)=1.;
-            timeCoefficientsForTZ(0,muc)=1.;
-            timeCoefficientsForTZ(0,sigmaEc)=1.;
-            timeCoefficientsForTZ(0,sigmaHc)=1.;
+            Range all;
+            if( rc>=0 )
+            {
+                timeCoefficientsForTZ(all,rc)=0.;
+                timeCoefficientsForTZ(0,rc)=1.;
+            }
+            if( epsc>=0 )
+            {
+                timeCoefficientsForTZ(all,epsc   )=0.; timeCoefficientsForTZ(0,epsc)   =1.;
+                timeCoefficientsForTZ(all,muc    )=0.; timeCoefficientsForTZ(0,muc)    =1.;
+                timeCoefficientsForTZ(all,sigmaEc)=0.; timeCoefficientsForTZ(0,sigmaEc)=1.;
+                timeCoefficientsForTZ(all,sigmaHc)=0.; timeCoefficientsForTZ(0,sigmaHc)=1.;
+            }
+      // printF("TZ: rc=%i epsc=%i\n",rc,epsc);
+      // ::display(timeCoefficientsForTZ,"timeCoefficientsForTZ","%6.2f ");
       // ::display(spatialCoefficientsForTZ,"spatialCoefficientsForTZ","%6.2f ");
             ((OGPolyFunction*)tz)->setCoefficients( spatialCoefficientsForTZ,timeCoefficientsForTZ ); 
       // real epsEx = ((OGPolyFunction*)tz)->gd(0,0,0,0,.0,0.,0.,epsc,0.);
@@ -2153,6 +1782,11 @@ assignInitialConditions(int current, real t, real dt )
 #define X0(i0,i1,i2) (xa+dx0*(i0-i0a))
 #define X1(i0,i1,i2) (ya+dy0*(i1-i1a))
 #define X2(i0,i1,i2) (za+dz0*(i2-i2a))
+
+
+    // dispersionModelGridFunction[domain][numTimeLevels] : 
+        realCompositeGridFunction **& dmgf = 
+            parameters.dbase.get<realCompositeGridFunction**>("dispersionModelGridFunction");
 
 
         for( int grid=0; grid<numberOfComponentGrids; grid++ )
@@ -2770,6 +2404,45 @@ assignInitialConditions(int current, real t, real dt )
             #define XEP(i0,i1,i2,i3) xep[i0+xeDim0*(i1+xeDim1*(i2+xeDim2*(i3)))]
             #endif
 
+            const int domain = cg.domainNumber(grid);
+            const DispersiveMaterialParameters & dmp = getDomainDispersiveMaterialParameters(domain);
+            const int numberOfPolarizationVectors = dmp.numberOfPolarizationVectors;      
+
+      // --- Get Arrays for the dispersive model ----
+            realMappedGridFunction & pCur = getDispersionModelMappedGridFunction( grid,current );
+            realMappedGridFunction & pPrev= getDispersionModelMappedGridFunction( grid,prev );
+
+            RealArray pLocal,pmLocal;
+            if( numberOfPolarizationVectors>0 )
+            {
+                OV_GET_SERIAL_ARRAY(real, pCur,pLoc);
+                OV_GET_SERIAL_ARRAY(real,pPrev,pmLoc);
+                pLocal.reference(pLoc);
+                pmLocal.reference(pmLoc);
+                
+        // ::display(pLocal,"pLocal");
+            }
+
+
+      // RealArray pLocal,pmLocal;
+      // if( numberOfPolarizationVectors>0 )
+      // {
+      //   realCompositeGridFunction & pCur  = dmgf[domain][current];
+      //   realCompositeGridFunction & pPrev = dmgf[domain][prev];
+
+      //   IntegerArray & domainGridNumber = parameters.dbase.get<IntegerArray>("domainGridNumber");
+      //   const int gridDomain=domainGridNumber(grid); // cg[grid] -> cg.domain[d][gridDomain] 
+      //   printF("IC: domain=%i grid=%i --> gridDomain=%i\n",domain,grid,gridDomain);
+                
+      //   OV_GET_SERIAL_ARRAY(real, pCur[gridDomain],pLoc);
+      //   OV_GET_SERIAL_ARRAY(real,pPrev[gridDomain],pmLoc);
+
+      //   pLocal.reference(pLoc);
+      //   pmLocal.reference(pmLoc);
+                
+      //   // ::display(pLocal,"pLocal");
+      // }
+            
             const int i0a=mg.gridIndexRange(0,0);
             const int i1a=mg.gridIndexRange(0,1);
             const int i2a=mg.gridIndexRange(0,2);
@@ -2786,7 +2459,7 @@ assignInitialConditions(int current, real t, real dt )
             uh = umh = 0;
             ue = ume = 0;
 
-            #define FN(m) fn[m+numberOfFunctions*(grid)]
+#define FN(m) fn[m+numberOfFunctions*(grid)]
 
             if( true /*numberOfComponents==3 || method==nfdtd*/ )
             {
@@ -2811,250 +2484,189 @@ assignInitialConditions(int current, real t, real dt )
 
       	if( forcingOption==twilightZoneForcing )
       	{
-          // ==================================================
-	  // ================== TZ FORCING ====================
-          // ==================================================
-
-        	  assert( tz!=NULL );
-        	  OGFunction & e = *tz;
-          	    
-        	  if( mg.numberOfDimensions()==2 )
-        	  {
-            
-	    // these ranges should work since we get the u*Dim* from the local raw data sizes (??!!)
-          	    J1 = Range(max(Ie1.getBase(),uel.getBase(0)),min(Ie1.getBound(),uel.getBound(0)));
-          	    J2 = Range(max(Ie2.getBase(),uel.getBase(1)),min(Ie2.getBound(),uel.getBound(1)));
-          	    J3 = Range(max(Ie3.getBase(),uel.getBase(2)),min(Ie3.getBound(),uel.getBound(2)));
-
-
-          	    FOR_3D(i1,i2,i3,J1,J2,J3)
-          	    {
-
-            	      real xe0 = XEP(i1,i2,i3,0);
-            	      real ye0 = XEP(i1,i2,i3,1);
-
-            	      UEX(i1,i2,i3) =e(xe0,ye0,0.,ex,tE);
-            	      UEY(i1,i2,i3) =e(xe0,ye0,0.,ey,tE);
-                            if( method==sosup )
-            	      {
-            		uLocal(i1,i2,i3,ext) =e(xe0,ye0,0.,ext,tE);
-              	        uLocal(i1,i2,i3,eyt) =e(xe0,ye0,0.,eyt,tE);
-            	      }
-            	      
-
-              // -- dispersion model components --
-            	      if( pxc>=0 )
-            	      {
-                                uLocal(i1,i2,i3,pxc) =e(xe0,ye0,0.,pxc,tE);
-                                uLocal(i1,i2,i3,pyc) =e(xe0,ye0,0.,pyc,tE);
-                            }
-            	      if( qxc>=0 )
-            	      {
-                                uLocal(i1,i2,i3,qxc) =e(xe0,ye0,0.,qxc,tE);
-                                uLocal(i1,i2,i3,qyc) =e(xe0,ye0,0.,qyc,tE);
-                            }
-            	      if( rxc>=0 )
-            	      {
-                                uLocal(i1,i2,i3,rxc) =e(xe0,ye0,0.,rxc,tE);
-                                uLocal(i1,i2,i3,ryc) =e(xe0,ye0,0.,ryc,tE);
-                            }
-            	      
-            	      
-          	    }
-            		
-          	    if ( method!=sosup )
-          	    {
-            	      FOR_3D(i1,i2,i3,J1,J2,J3)
-            	      {
-            		real xe0 = XEP(i1,i2,i3,0);
-            		real ye0 = XEP(i1,i2,i3,1);
-            		UMEX(i1,i2,i3)=e(xe0,ye0,0.,ex,tE-dt);
-            		UMEY(i1,i2,i3)=e(xe0,ye0,0.,ey,tE-dt);
+          // =============================================================
+	  // ================== TZ INITIAL CONDITIONS ====================
+          // =============================================================
+                    {
+                        assert( tz!=NULL );
+                        OGFunction & e = *tz;
+                        if( mg.numberOfDimensions()==2 )
+                        {
+              // these ranges should work since we get the u*Dim* from the local raw data sizes (??!!)
+                            J1 = Range(max(Ie1.getBase(),uel.getBase(0)),min(Ie1.getBound(),uel.getBound(0)));
+                            J2 = Range(max(Ie2.getBase(),uel.getBase(1)),min(Ie2.getBound(),uel.getBound(1)));
+                            J3 = Range(max(Ie3.getBase(),uel.getBase(2)),min(Ie3.getBound(),uel.getBound(2)));
+                            FOR_3D(i1,i2,i3,J1,J2,J3)
+                            {
+                                real xe0 = XEP(i1,i2,i3,0);
+                                real ye0 = XEP(i1,i2,i3,1);
+                                UEX(i1,i2,i3) =e(xe0,ye0,0.,ex,tE);
+                                UEY(i1,i2,i3) =e(xe0,ye0,0.,ey,tE);
+                                if( method==sosup )
+                                {
+                                    uLocal(i1,i2,i3,ext) =e(xe0,ye0,0.,ext,tE);
+                                    uLocal(i1,i2,i3,eyt) =e(xe0,ye0,0.,eyt,tE);
+                                }
                 // -- dispersion model components --
-              	        if( pxc>=0 )
-              	        {
-                                    umLocal(i1,i2,i3,pxc) =e(xe0,ye0,0.,pxc,tE-dt);
-                                    umLocal(i1,i2,i3,pyc) =e(xe0,ye0,0.,pyc,tE-dt);
+                                if( dispersionModel != noDispersion )
+                                {
+                  // *new way:
+                                    for( int iv=0; iv<numberOfPolarizationVectors; iv++ )
+                                    {
+                                        const int pc= iv*numberOfDimensions;
+                                        pLocal(i1,i2,i3,pc  ) =e(xe0,ye0,0.,pxc+pc,tE);
+                                        pLocal(i1,i2,i3,pc+1) =e(xe0,ye0,0.,pyc+pc,tE);
+                    // printF(" IC: PV: pxc=%i (i1,i2)=(%i,%i) p=(%e,%e)\n",pxc,i1,i2,i3,pLocal(i1,i2,i3,pc  ),pLocal(i1,i2,i3,pc+1));
+                                    }
                                 }
-              	        if( qxc>=0 )
-              	        {
-                                    umLocal(i1,i2,i3,qxc) =e(xe0,ye0,0.,qxc,tE-dt);
-                                    umLocal(i1,i2,i3,qyc) =e(xe0,ye0,0.,qyc,tE-dt);
+                            } // end for_3d 
+                            if ( method!=sosup )
+                            {
+                                FOR_3D(i1,i2,i3,J1,J2,J3)
+                                {
+                                    real xe0 = XEP(i1,i2,i3,0);
+                                    real ye0 = XEP(i1,i2,i3,1);
+                                    UMEX(i1,i2,i3)=e(xe0,ye0,0.,ex,tE-dt);
+                                    UMEY(i1,i2,i3)=e(xe0,ye0,0.,ey,tE-dt);
+                  // -- dispersion model components --
+                                    if( dispersionModel != noDispersion )
+                                    {
+                                        for( int iv=0; iv<numberOfPolarizationVectors; iv++ )
+                                        {
+                                            const int pc= iv*numberOfDimensions;
+                                            pmLocal(i1,i2,i3,pc  ) =e(xe0,ye0,0.,pxc+pc,tE-dt);
+                                            pmLocal(i1,i2,i3,pc+1) =e(xe0,ye0,0.,pyc+pc,tE-dt);
+                                        }
+                                    }
                                 }
-              	        if( rxc>=0 )
-              	        {
-                                    umLocal(i1,i2,i3,rxc) =e(xe0,ye0,0.,rxc,tE-dt);
-                                    umLocal(i1,i2,i3,ryc) =e(xe0,ye0,0.,ryc,tE-dt);
+                            }
+                            J1 = Range(max(Ih1.getBase(),uhl.getBase(0)),min(Ih1.getBound(),uhl.getBound(0)));
+                            J2 = Range(max(Ih2.getBase(),uhl.getBase(1)),min(Ih2.getBound(),uhl.getBound(1)));
+                            J3 = Range(max(Ih3.getBase(),uhl.getBase(2)),min(Ih3.getBound(),uhl.getBound(2)));
+                            FOR_3(i1,i2,i3,J1,J2,J3)
+                            {
+                                real xh0 = XHP(i1,i2,i3,0);
+                                real yh0 = XHP(i1,i2,i3,1);
+                                UHZ(i1,i2,i3) =e(xh0,yh0,0.,hz,tH);
+                                if( method==sosup )
+                                {
+                                    uLocal(i1,i2,i3,hzt) =e(xh0,yh0,0.,hzt,tH);
                                 }
-            	      }
-          	    }
+                            }
+                            if ( method!=sosup )
+                            {
+                                FOR_3(i1,i2,i3,J1,J2,J3)
+                                {
+                                    real xh0 = XHP(i1,i2,i3,0);
+                                    real yh0 = XHP(i1,i2,i3,1);
+                                    UMHZ(i1,i2,i3)=e(xh0,yh0,0.,hz,t-dt);
+                                }
+                            }
+                        }
+                        else
+                        { // ***** 3D TZ IC's ****
+                            if( solveForElectricField )
+                            {
+                // these ranges should work since we get the u*Dim* from the local raw data sizes (??!!)
+                                J1 = Range(max(Ie1.getBase(),uel.getBase(0)),min(Ie1.getBound(),uel.getBound(0)));
+                                J2 = Range(max(Ie2.getBase(),uel.getBase(1)),min(Ie2.getBound(),uel.getBound(1)));
+                                J3 = Range(max(Ie3.getBase(),uel.getBase(2)),min(Ie3.getBound(),uel.getBound(2)));
+                                if ( method!=sosup )
+                                {
+                                    FOR_3D(i1,i2,i3,J1,J2,J3)
+                                    {
+                                        real x0 = XEP(i1,i2,i3,0);
+                                        real y0 = XEP(i1,i2,i3,1);
+                                        real z0 = XEP(i1,i2,i3,2);
+                                        UEX(i1,i2,i3) =e(x0,y0,z0,ex,tE);
+                                        UMEX(i1,i2,i3)=e(x0,y0,z0,ex,tE-dt);
+                                        UEY(i1,i2,i3) =e(x0,y0,z0,ey,tE);
+                                        UMEY(i1,i2,i3)=e(x0,y0,z0,ey,tE-dt);
+                                        UEZ(i1,i2,i3) =e(x0,y0,z0,ez,tE);
+                                        UMEZ(i1,i2,i3)=e(x0,y0,z0,ez,tE-dt);
+                                    }
+                                }
+                                else
+                                {
+                                    FOR_3D(i1,i2,i3,J1,J2,J3)
+                                    {
+                                        real x0 = XEP(i1,i2,i3,0);
+                                        real y0 = XEP(i1,i2,i3,1);
+                                        real z0 = XEP(i1,i2,i3,2);
+                    // assign the field:
+                                        UEX(i1,i2,i3) =e(x0,y0,z0,ex,tE);
+                                        UEY(i1,i2,i3) =e(x0,y0,z0,ey,tE);
+                                        UEZ(i1,i2,i3) =e(x0,y0,z0,ez,tE);
+                    // assign time derivatives:
+                                        uLocal(i1,i2,i3,ext) =e(x0,y0,z0,ext,tE);
+                                        uLocal(i1,i2,i3,eyt) =e(x0,y0,z0,eyt,tE);
+                                        uLocal(i1,i2,i3,ezt) =e(x0,y0,z0,ezt,tE);
+                                    }
+                                }
+                                if( dispersionModel != noDispersion )
+                                {
+                  // -- dispersion model components --
+                                    FOR_3D(i1,i2,i3,J1,J2,J3)
+                                    {
+                                        real x0 = XEP(i1,i2,i3,0);
+                                        real y0 = XEP(i1,i2,i3,1);
+                                        real z0 = XEP(i1,i2,i3,2);
+                    // -- dispersion model components --
+                                        for( int iv=0; iv<numberOfPolarizationVectors; iv++ )
+                                        {
+                                            const int pc= iv*numberOfDimensions;
+                                            pLocal(i1,i2,i3,pc  ) =e(x0,y0,z0,pxc+pc,tE);
+                                            pLocal(i1,i2,i3,pc+1) =e(x0,y0,z0,pyc+pc,tE);
+                                            pLocal(i1,i2,i3,pc+2) =e(x0,y0,z0,pzc+pc,tE);
+                                        }
+                                        for( int iv=0; iv<numberOfPolarizationVectors; iv++ )
+                                        {
+                                            const int pc= iv*numberOfDimensions;
+                      // Do this for now -- set all vectors to be the same: 
+                                            pmLocal(i1,i2,i3,pc  ) =e(x0,y0,z0,pxc+pc,tE-dt);
+                                            pmLocal(i1,i2,i3,pc+1) =e(x0,y0,z0,pyc+pc,tE-dt);
+                                            pmLocal(i1,i2,i3,pc+2) =e(x0,y0,z0,pzc+pc,tE-dt);
+                                        }
+                                    }
+                                } // end if dispersion model 
+                            } // end if solve for electric field
+                            if ( solveForMagneticField )
+                            {
+                                J1 = Range(max(Ih1.getBase(),uhl.getBase(0)),min(Ih1.getBound(),uhl.getBound(0)));
+                                J2 = Range(max(Ih2.getBase(),uhl.getBase(1)),min(Ih2.getBound(),uhl.getBound(1)));
+                                J3 = Range(max(Ih3.getBase(),uhl.getBase(2)),min(Ih3.getBound(),uhl.getBound(2)));
+                                FOR_3D(i1,i2,i3,J1,J2,J3)
+                                {
+                                    real x0 = XHP(i1,i2,i3,0);
+                                    real y0 = XHP(i1,i2,i3,1);
+                                    real z0 = XHP(i1,i2,i3,2);
+                                    UHX(i1,i2,i3) =e(x0,y0,z0,hx,tH);
+                                    UMHX(i1,i2,i3)=e(x0,y0,z0,hx,tH-dt);
+                                    UHY(i1,i2,i3) =e(x0,y0,z0,hy,tH);
+                                    UMHY(i1,i2,i3)=e(x0,y0,z0,hy,tH-dt);
+                                    UHZ(i1,i2,i3) =e(x0,y0,z0,hz,tH);
+                                    UMHZ(i1,i2,i3)=e(x0,y0,z0,hz,tH-dt);
+                                }
+                            }
+                        }
+                        if( saveExtraForcingLevels )
+                        {
+              // we need to save the "RHS" at some previous times.
+                            for( int m=0; m<numberOfFunctions; m++ )
+                            {
+                    #ifdef USE_PPP
+                                realSerialArray fnLocal; getLocalArrayWithGhostBoundaries(FN(m),fnLocal);
+                                OV_ABORT("finish me for parallel");
+                    #else
+                                realSerialArray & fnLocal = FN(m);
+                    #endif
+                                FN(m)(I1,I2,I3,C)=csq*e.laplacian(mg,I1,I2,I3,C,t-dt*(m+1));
+                                getForcing( current, grid,FN(m),t-dt*(m+1),dt );
+                            }
+                        }
+                    }
+                    
 
-        	  J1 = Range(max(Ih1.getBase(),uhl.getBase(0)),min(Ih1.getBound(),uhl.getBound(0)));
-        	  J2 = Range(max(Ih2.getBase(),uhl.getBase(1)),min(Ih2.getBound(),uhl.getBound(1)));
-        	  J3 = Range(max(Ih3.getBase(),uhl.getBase(2)),min(Ih3.getBound(),uhl.getBound(2)));
-
-        	  FOR_3(i1,i2,i3,J1,J2,J3)
-        	  {
-          	    real xh0 = XHP(i1,i2,i3,0);
-          	    real yh0 = XHP(i1,i2,i3,1);
-            		
-          	    UHZ(i1,i2,i3) =e(xh0,yh0,0.,hz,tH);
-          	    if( method==sosup )
-          	    {
-            	      uLocal(i1,i2,i3,hzt) =e(xh0,yh0,0.,hzt,tH);
-          	    }
-        	  }
-
-        	  if ( method!=sosup )
-        	  {
-          	    FOR_3(i1,i2,i3,J1,J2,J3)
-          	    {
-            	      real xh0 = XHP(i1,i2,i3,0);
-            	      real yh0 = XHP(i1,i2,i3,1);
-            	      UMHZ(i1,i2,i3)=e(xh0,yh0,0.,hz,t-dt);
-          	    }
-        	  }
-
-
-        	  }
-        	  else
-        	  { // ***** 3D TZ IC's ****
-
-          	    if( solveForElectricField )
-          	    {
-	      // these ranges should work since we get the u*Dim* from the local raw data sizes (??!!)
-            	      J1 = Range(max(Ie1.getBase(),uel.getBase(0)),min(Ie1.getBound(),uel.getBound(0)));
-            	      J2 = Range(max(Ie2.getBase(),uel.getBase(1)),min(Ie2.getBound(),uel.getBound(1)));
-            	      J3 = Range(max(Ie3.getBase(),uel.getBase(2)),min(Ie3.getBound(),uel.getBound(2)));
-
-            	      if ( method!=sosup )
-            	      {
-            		FOR_3D(i1,i2,i3,J1,J2,J3)
-            		{
-              		  real x0 = XEP(i1,i2,i3,0);
-              		  real y0 = XEP(i1,i2,i3,1);
-              		  real z0 = XEP(i1,i2,i3,2);
-              		  UEX(i1,i2,i3) =e(x0,y0,z0,ex,tE);
-              		  UMEX(i1,i2,i3)=e(x0,y0,z0,ex,tE-dt);
-
-              		  UEY(i1,i2,i3) =e(x0,y0,z0,ey,tE);
-              		  UMEY(i1,i2,i3)=e(x0,y0,z0,ey,tE-dt);
-                  			
-              		  UEZ(i1,i2,i3) =e(x0,y0,z0,ez,tE);
-              		  UMEZ(i1,i2,i3)=e(x0,y0,z0,ez,tE-dt);
-            		}
-            	      }
-            	      else
-            	      {
-            		FOR_3D(i1,i2,i3,J1,J2,J3)
-            		{
-              		  real x0 = XEP(i1,i2,i3,0);
-              		  real y0 = XEP(i1,i2,i3,1);
-              		  real z0 = XEP(i1,i2,i3,2);
-                  // assign the field:
-              		  UEX(i1,i2,i3) =e(x0,y0,z0,ex,tE);
-              		  UEY(i1,i2,i3) =e(x0,y0,z0,ey,tE);
-              		  UEZ(i1,i2,i3) =e(x0,y0,z0,ez,tE);
-                  // assign time derivatives:
-                                    uLocal(i1,i2,i3,ext) =e(x0,y0,z0,ext,tE);
-                                    uLocal(i1,i2,i3,eyt) =e(x0,y0,z0,eyt,tE);
-                                    uLocal(i1,i2,i3,ezt) =e(x0,y0,z0,ezt,tE);
-
-            		}
-            	      }
-            	      if( dispersionModel != noDispersion )
-            	      {
-		// -- dispersion model components --
-            		FOR_3D(i1,i2,i3,J1,J2,J3)
-            		{
-                                    real x0 = XEP(i1,i2,i3,0);
-              		  real y0 = XEP(i1,i2,i3,1);
-              		  real z0 = XEP(i1,i2,i3,2);
-              		  if( pxc>=0 )
-              		  {
-                		    uLocal(i1,i2,i3,pxc) =e(x0,y0,z0,pxc,tE);
-                		    uLocal(i1,i2,i3,pyc) =e(x0,y0,z0,pyc,tE);
-                		    uLocal(i1,i2,i3,pzc) =e(x0,y0,z0,pzc,tE);
-                		    if ( method!=sosup )
-                		    {
-                  		      umLocal(i1,i2,i3,pxc) =e(x0,y0,z0,pxc,tE-dt);
-                  		      umLocal(i1,i2,i3,pyc) =e(x0,y0,z0,pyc,tE-dt);
-                  		      umLocal(i1,i2,i3,pzc) =e(x0,y0,z0,pzc,tE-dt);
-                		    }
-                		    
-              		  }
-              		  if( qxc>=0 )
-              		  {
-                		    uLocal(i1,i2,i3,qxc) =e(x0,y0,z0,qxc,tE);
-                		    uLocal(i1,i2,i3,qyc) =e(x0,y0,z0,qyc,tE);
-                		    uLocal(i1,i2,i3,qzc) =e(x0,y0,z0,qzc,tE);
-                		    if ( method!=sosup )
-                		    {
-                  		      umLocal(i1,i2,i3,qxc) =e(x0,y0,z0,qxc,tE-dt);
-                  		      umLocal(i1,i2,i3,qyc) =e(x0,y0,z0,qyc,tE-dt);
-                  		      umLocal(i1,i2,i3,qzc) =e(x0,y0,z0,qzc,tE-dt);
-                		    }
-              		  }
-              		  if( rxc>=0 )
-              		  {
-                		    uLocal(i1,i2,i3,rxc) =e(x0,y0,z0,rxc,tE);
-                		    uLocal(i1,i2,i3,ryc) =e(x0,y0,z0,ryc,tE);
-                		    uLocal(i1,i2,i3,rzc) =e(x0,y0,z0,rzc,tE);
-                		    if ( method!=sosup )
-                		    {
-                  		      umLocal(i1,i2,i3,rxc) =e(x0,y0,z0,rxc,tE-dt);
-                  		      umLocal(i1,i2,i3,ryc) =e(x0,y0,z0,ryc,tE-dt);
-                  		      umLocal(i1,i2,i3,rzc) =e(x0,y0,z0,rzc,tE-dt);
-                		    }
-              		  }
-            		}
-            		
-
-            	      }
-            	      
-
-            	      
-          	    }
-            		
-          	    if ( solveForMagneticField )
-          	    {
-            	      J1 = Range(max(Ih1.getBase(),uhl.getBase(0)),min(Ih1.getBound(),uhl.getBound(0)));
-            	      J2 = Range(max(Ih2.getBase(),uhl.getBase(1)),min(Ih2.getBound(),uhl.getBound(1)));
-            	      J3 = Range(max(Ih3.getBase(),uhl.getBase(2)),min(Ih3.getBound(),uhl.getBound(2)));
-            	      FOR_3D(i1,i2,i3,J1,J2,J3)
-            	      {
-            		real x0 = XHP(i1,i2,i3,0);
-            		real y0 = XHP(i1,i2,i3,1);
-            		real z0 = XHP(i1,i2,i3,2);
-            		UHX(i1,i2,i3) =e(x0,y0,z0,hx,tH);
-            		UMHX(i1,i2,i3)=e(x0,y0,z0,hx,tH-dt);
-            		UHY(i1,i2,i3) =e(x0,y0,z0,hy,tH);
-            		UMHY(i1,i2,i3)=e(x0,y0,z0,hy,tH-dt);
-            		UHZ(i1,i2,i3) =e(x0,y0,z0,hz,tH);
-            		UMHZ(i1,i2,i3)=e(x0,y0,z0,hz,tH-dt);
-            	      }
-          	    }
-        	  
-        	  }
-            	      
-            
-      	
-        	  if( saveExtraForcingLevels )
-        	  {
-	    // we need to save the "RHS" at some previous times.
-          	    for( int m=0; m<numberOfFunctions; m++ )
-          	    {
-#ifdef USE_PPP
-            	      realSerialArray fnLocal; getLocalArrayWithGhostBoundaries(FN(m),fnLocal);
-            	      OV_ABORT("finish me for parallel");
-#else
-            	      realSerialArray & fnLocal = FN(m);
-#endif
-
-            	      FN(m)(I1,I2,I3,C)=csq*e.laplacian(mg,I1,I2,I3,C,t-dt*(m+1));
-            	      getForcing( current, grid,FN(m),t-dt*(m+1),dt );
-          	    }
-        	  }
       	} // end if forcing option == twilightzone
       	else if( initialConditionOption==planeWaveInitialCondition )
       	{
@@ -3166,18 +2778,32 @@ assignInitialConditions(int current, real t, real dt )
                 		    UMHZ(i1,i2,i3)=amph;
 
                     // -- dispersion model components --
-                                        if( pxc>=0 )
+                                        if( dispersionModel != noDispersion  )
                                         {
-                                            
-                      // amp=(psir*cx-psii*sx)*ctm - (psir*sx+psii*cx)*stm;
-                                            amp=(psir*ctm-psii*stm)*cx - (psir*stm+psii*ctm)*sx;
-                                            umLocal(i1,i2,i3,pxc) =pwc[0]*amp;
-                                            umLocal(i1,i2,i3,pyc) =pwc[1]*amp;
+                                            real ampm=(psir*ctm-psii*stm)*cx - (psir*stm+psii*ctm)*sx;
+                                            real amp =(psir*ct -psii*st )*cx - (psir*st +psii*ct )*sx;
 
-                      // amp=(psir*cx-psii*sx)*ct - (psir*sx+psii*cx)*st;
-                                            amp=(psir*ct-psii*st)*cx - (psir*st+psii*ct)*sx;
-                                            uLocal(i1,i2,i3,pxc) =pwc[0]*amp;
-                                            uLocal(i1,i2,i3,pyc) =pwc[1]*amp;
+                      // *new way:
+                                            for( int iv=0; iv<numberOfPolarizationVectors; iv++ )
+                                            {
+                                                const int pc= iv*numberOfDimensions;
+              
+                        // Do this for now -- set all vectors to be the same: 
+                                                pLocal(i1,i2,i3,pc  ) =pwc[0]*amp;
+                                                pLocal(i1,i2,i3,pc+1) =pwc[1]*amp;
+
+                                                pmLocal(i1,i2,i3,pc  ) =pwc[0]*ampm;
+                                                pmLocal(i1,i2,i3,pc+1) =pwc[1]*ampm;
+                                            }
+
+                      // // amp=(psir*cx-psii*sx)*ctm - (psir*sx+psii*cx)*stm;
+                      // umLocal(i1,i2,i3,pxc) =pwc[0]*ampm;
+                      // umLocal(i1,i2,i3,pyc) =pwc[1]*ampm;
+
+                      // // amp=(psir*cx-psii*sx)*ct - (psir*sx+psii*cx)*st;
+                      // amp=(psir*ct-psii*st)*cx - (psir*st+psii*ct)*sx;
+                      // uLocal(i1,i2,i3,pxc) =pwc[0]*amp;
+                      // uLocal(i1,i2,i3,pyc) =pwc[1]*amp;
                                         }
 
               		  }
@@ -4125,8 +3751,22 @@ assignInitialConditions(int current, real t, real dt )
             		{
               		  real xde=X0(i1,i2,i3)-x0;
               		  real yde=X1(i1,i2,i3)-y0;
-              		  uLocal(i1,i2,i3,pxc) =cos(fx*xde)*sin(fy*yde)*phiPx;
-              		  uLocal(i1,i2,i3,pyc) =sin(fx*xde)*cos(fy*yde)*phiPy;
+
+                  // *new way:
+                                    for( int iv=0; iv<numberOfPolarizationVectors; iv++ )
+                                    {
+                                        const int pc= iv*numberOfDimensions;
+              
+                    // Do this for now -- set all vectors to be the same: 
+                                        pLocal(i1,i2,i3,pc  ) = cos(fx*xde)*sin(fy*yde)*phiPx;
+                                        pLocal(i1,i2,i3,pc+1) = sin(fx*xde)*cos(fy*yde)*phiPy;
+                                    }
+
+                  // *old way:
+		  // uLocal(i1,i2,i3,pxc) =cos(fx*xde)*sin(fy*yde)*phiPx;
+		  // uLocal(i1,i2,i3,pyc) =sin(fx*xde)*cos(fy*yde)*phiPy;
+
+
             		}
             	      }
             	      
@@ -4185,8 +3825,19 @@ assignInitialConditions(int current, real t, real dt )
               		  {
                 		    real xde=X0(i1,i2,i3)-x0;
                 		    real yde=X1(i1,i2,i3)-y0;
-                		    umLocal(i1,i2,i3,pxc) =cos(fx*xde)*sin(fy*yde)*phiPxm;
-                		    umLocal(i1,i2,i3,pyc) =sin(fx*xde)*cos(fy*yde)*phiPym;
+
+                                        for( int iv=0; iv<numberOfPolarizationVectors; iv++ )
+                                        {
+                                            const int pc= iv*numberOfDimensions;
+              
+                      // Do this for now -- set all vectors to be the same: 
+                                            pmLocal(i1,i2,i3,pc  ) = cos(fx*xde)*sin(fy*yde)*phiPxm;
+                                            pmLocal(i1,i2,i3,pc+1) = sin(fx*xde)*cos(fy*yde)*phiPym;
+                                        }
+
+
+		    // umLocal(i1,i2,i3,pxc) =cos(fx*xde)*sin(fy*yde)*phiPxm;
+		    // umLocal(i1,i2,i3,pyc) =sin(fx*xde)*cos(fy*yde)*phiPym;
               		  }
             		}
 
@@ -4486,13 +4137,25 @@ assignInitialConditions(int current, real t, real dt )
                               }
                               if( dispersionModel!=noDispersion )
                               { // -- dispersive ---
-                                  uLocal(i1,i2,i3,pxc) = uex*ampP;
-                                  uLocal(i1,i2,i3,pyc) = uey*ampP;
-                                  if( method==nfdtd )
+                                  for( int iv=0; iv<numberOfPolarizationVectors; iv++ )
                                   {
-                                      umLocal(i1,i2,i3,pxc) = uex*ampPm;
-                                      umLocal(i1,i2,i3,pyc) = uey*ampPm;
+                                      const int pc= iv*numberOfDimensions;
+                   // Do this for now -- set all vectors to be the same: 
+                                      pLocal(i1,i2,i3,pc  ) = uex*ampP;
+                                      pLocal(i1,i2,i3,pc+1) = uey*ampP;
+                                      if( method==nfdtd )
+                                      {
+                                          pmLocal(i1,i2,i3,pc  ) = uex*ampPm;
+                                          pmLocal(i1,i2,i3,pc+1) = uey*ampPm;
+                                      }
                                   }
+                 // uLocal(i1,i2,i3,pxc) = uex*ampP;
+                 // uLocal(i1,i2,i3,pyc) = uey*ampP;
+                 // if( method==nfdtd )
+                 // {
+                 //   umLocal(i1,i2,i3,pxc) = uex*ampPm;
+                 //   umLocal(i1,i2,i3,pyc) = uey*ampPm;
+                 // }
                               }
                     }
                   }
@@ -4749,11 +4412,23 @@ assignInitialConditions(int current, real t, real dt )
             		{
               		  FOR_3D(i1,i2,i3,J1,J2,J3)
               		  {
-                		    uLocal(i1,i2,i3,pxc)  = UG(i1,i2,i3,ex)*phiPs + UG(i1,i2,i3,ex+3)*phiPc;
-                		    uLocal(i1,i2,i3,pyc)  = UG(i1,i2,i3,ey)*phiPs + UG(i1,i2,i3,ey+3)*phiPc;
+                                        for( int iv=0; iv<numberOfPolarizationVectors; iv++ )
+                                        {
+                                            const int pc= iv*numberOfDimensions;
+              
+                      // Do this for now -- set all vectors to be the same: 
+                                            pLocal(i1,i2,i3,pc  ) = UG(i1,i2,i3,ex)*phiPs + UG(i1,i2,i3,ex+3)*phiPc;  
+                                            pLocal(i1,i2,i3,pc+1) = UG(i1,i2,i3,ey)*phiPs + UG(i1,i2,i3,ey+3)*phiPc;  
+                                                                                                                                                                                                
+                                            pmLocal(i1,i2,i3,pc  ) =UG(i1,i2,i3,ex)*phiPsm + UG(i1,i2,i3,ex+3)*phiPcm;
+                                            pmLocal(i1,i2,i3,pc+1) =UG(i1,i2,i3,ey)*phiPsm + UG(i1,i2,i3,ey+3)*phiPcm;
+                                        }
 
-                		    umLocal(i1,i2,i3,pxc) = UG(i1,i2,i3,ex)*phiPsm + UG(i1,i2,i3,ex+3)*phiPcm;
-                		    umLocal(i1,i2,i3,pyc) = UG(i1,i2,i3,ey)*phiPsm + UG(i1,i2,i3,ey+3)*phiPcm;
+		    // uLocal(i1,i2,i3,pxc)  = UG(i1,i2,i3,ex)*phiPs + UG(i1,i2,i3,ex+3)*phiPc;
+		    // uLocal(i1,i2,i3,pyc)  = UG(i1,i2,i3,ey)*phiPs + UG(i1,i2,i3,ey+3)*phiPc;
+
+		    // umLocal(i1,i2,i3,pxc) = UG(i1,i2,i3,ex)*phiPsm + UG(i1,i2,i3,ex+3)*phiPcm;
+		    // umLocal(i1,i2,i3,pyc) = UG(i1,i2,i3,ey)*phiPsm + UG(i1,i2,i3,ey+3)*phiPcm;
               		  }
             		}
             	      }
@@ -4784,13 +4459,28 @@ assignInitialConditions(int current, real t, real dt )
                 		    {
                   		      FOR_3D(i1,i2,i3,J1,J2,J3)
                   		      {
-                  			uLocal(i1,i2,i3,pxc)  = UG(i1,i2,i3,ex)*phiPs + UG(i1,i2,i3,ex+3)*phiPc;
-                  			uLocal(i1,i2,i3,pyc)  = UG(i1,i2,i3,ey)*phiPs + UG(i1,i2,i3,ey+3)*phiPc;
-                  			uLocal(i1,i2,i3,pzc)  = UG(i1,i2,i3,ez)*phiPs + UG(i1,i2,i3,ez+3)*phiPc;
 
-                  			umLocal(i1,i2,i3,pxc) = UG(i1,i2,i3,ex)*phiPsm + UG(i1,i2,i3,ex+3)*phiPcm;
-                  			umLocal(i1,i2,i3,pyc) = UG(i1,i2,i3,ey)*phiPsm + UG(i1,i2,i3,ey+3)*phiPcm;
-                  			umLocal(i1,i2,i3,pzc) = UG(i1,i2,i3,ez)*phiPsm + UG(i1,i2,i3,ez+3)*phiPcm;
+                                                for( int iv=0; iv<numberOfPolarizationVectors; iv++ )
+                                                {
+                                                    const int pc= iv*numberOfDimensions;
+              
+                          // Do this for now -- set all vectors to be the same: 
+                                                    pLocal(i1,i2,i3,pc  ) = UG(i1,i2,i3,ex)*phiPs + UG(i1,i2,i3,ex+3)*phiPc;  
+                                                    pLocal(i1,i2,i3,pc+1) = UG(i1,i2,i3,ey)*phiPs + UG(i1,i2,i3,ey+3)*phiPc;  
+                                                    pLocal(i1,i2,i3,pc+2) = UG(i1,i2,i3,ez)*phiPs + UG(i1,i2,i3,ez+3)*phiPc;  
+                                                                                                                                                                                                        
+                                                    pmLocal(i1,i2,i3,pc  ) =UG(i1,i2,i3,ex)*phiPsm + UG(i1,i2,i3,ex+3)*phiPcm;
+                                                    pmLocal(i1,i2,i3,pc+1) =UG(i1,i2,i3,ey)*phiPsm + UG(i1,i2,i3,ey+3)*phiPcm;
+                                                    pmLocal(i1,i2,i3,pc+2) =UG(i1,i2,i3,ez)*phiPsm + UG(i1,i2,i3,ez+3)*phiPcm;
+                                                }
+
+			// uLocal(i1,i2,i3,pxc)  = UG(i1,i2,i3,ex)*phiPs + UG(i1,i2,i3,ex+3)*phiPc;
+			// uLocal(i1,i2,i3,pyc)  = UG(i1,i2,i3,ey)*phiPs + UG(i1,i2,i3,ey+3)*phiPc;
+			// uLocal(i1,i2,i3,pzc)  = UG(i1,i2,i3,ez)*phiPs + UG(i1,i2,i3,ez+3)*phiPc;
+
+			// umLocal(i1,i2,i3,pxc) = UG(i1,i2,i3,ex)*phiPsm + UG(i1,i2,i3,ex+3)*phiPcm;
+			// umLocal(i1,i2,i3,pyc) = UG(i1,i2,i3,ey)*phiPsm + UG(i1,i2,i3,ey+3)*phiPcm;
+			// umLocal(i1,i2,i3,pzc) = UG(i1,i2,i3,ez)*phiPsm + UG(i1,i2,i3,ez+3)*phiPcm;
                   		      }
                 		    }
               		  }
@@ -5215,6 +4905,11 @@ assignInitialConditions(int current, real t, real dt )
             #endif 
             #undef EXTGFP_SENTINEL
             
+            if( FALSE && numberOfPolarizationVectors>0 )
+            {
+                ::display(pLocal,"--IC-- pLocal");
+            }
+
         } // end for grid
         
     } // end ! userDefinedIC

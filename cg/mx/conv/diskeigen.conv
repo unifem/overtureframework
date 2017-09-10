@@ -47,10 +47,10 @@ GetOptions( "name=s"=>\$name,"order=s"=>\$order,"ng=i"=>\$ng,"tf=f"=>\$tf,"inter
             "alphaP=f"=>\$alphaP,"a0=f"=>\$a0,"a1=f"=>\$a1,"b0=f"=>\$b0,"b1=f"=>\$b1 );
 # ------------------------ ------------------------------------------
 # eigenfunctions of a square:
-if( $cg =~ /square/ ){ $cmdFile = "../runs/boxEigen/boxEigen"; $gStart=16; $name="squareEigen"; }
+if( $cg =~ /square/ ){ $cmdFile = "../../runs/boxEigen/boxEigen"; $gStart=16; $name="squareEigen"; }
 #
 # eigenfunctions of a box:
-if( $cg =~ /box*/ || $cg =~ /nonBox*/ || $cg =~ /unitBox*/ || $cg =~ /unitNonBox*/ || $cg =~ /refineBox*/ || $cg =~ /refineNonBox*/ ){ $cmdFile = "../runs/boxEigen/boxEigen"; }
+if( $cg =~ /box*/ || $cg =~ /nonBox*/ || $cg =~ /unitBox*/ || $cg =~ /unitNonBox*/ || $cg =~ /refineBox*/ || $cg =~ /refineNonBox*/ ){ $cmdFile = "../../runs/boxEigen/boxEigen"; }
 #
 if( $cg =~ /tube*/ || $cg =~ /splitTube*/  || $cg =~ /refineTube*/  ){ $cmdFile = "../cmd/cyleigen"; }
 $caseName="$name$method\Order$order"; 
@@ -68,7 +68,7 @@ if( $numberOfComponents eq 7 )\
   { $title= "grid  \& N \&  \$E_x\$ \&  \$E_y\$ \& \$H_z\$ \&  \$Ex_t\$ \&  \$Ey_t\$ \& \$Hz_t\$ \& \$\\grad\\cdot\\Ev\/\\grad\\Ev\$"; }
 #  -- Dispersive model 2D ---
 if( $numberOfComponents eq 4  && $dm ne "none" )\
-  { $numberOfComponents=6; $title= "grid  \&  N  \&    \$E_x\$   \&    \$E_y\$   \&    \$H_z\$    \&    \$P_x\$   \&    \$P_y\$   \& \$\\grad\\cdot\\Ev\/\\grad\\Ev\$"; }
+  { $numberOfComponents=5; $title= "grid  \&  N  \&    \$E_x\$   \&    \$E_y\$   \&    \$H_z\$    \&     \$|\\Pv|\$   \& \$\\grad\\cdot\\Ev\/\\grad\\Ev\$"; }
 # 
 $labelMethod=$method;
 if( $method eq "NFDTD" ){ $labelMethod="CGFD$order"; }

@@ -1,6 +1,16 @@
 ********* EIGEN MODES OF A 2D DISK *********
 
 *******************
+*** Sept 3, 217
+
+AFTER polarization RE-ORG 
+cgmx -noplot diskeigen -g=sice16.order2.hdf -dm=gdm -a0=1 -a1=0 -b0=0 =b1=1  -m=2 -n=2 -cons=1 -diss=.0 -tp=.1 -tf=1 -go=og
+
+
+
+
+
+*******************
 *** July 30, 2017
 
 cgmx -noplot diskeigen -g=sice16.order2.hdf -dm=gdm -a0=1 -a1=0 -b0=0 =b1=1  -m=2 -n=2 -cons=1 -diss=.0 -tp=.1 -tf=1 -go=go -show=diskEigen16.show >! diskEigen16.out

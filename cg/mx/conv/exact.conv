@@ -67,7 +67,7 @@ if( $numberOfComponents eq 7  && $numberOfDimensions eq 3 )\
   { $title= "grid  \& N \&  \$E_x\$ \&  \$E_y\$ \& \$E_z\$ \&  \$Ex_t\$ \&  \$Ey_t\$ \& \$Ez_t\$ \& \$\\grad\\cdot\\Ev\/\\grad\\Ev\$"; }
 #  -- Dispersive model 2D ---
 if( $numberOfComponents eq 4 && $numberOfDimensions eq 2 && $dm ne "none" )\
-  { $numberOfComponents=6; $title= "grid  \&  N  \&    \$E_x\$   \&    \$E_y\$   \&    \$H_z\$    \&    \$P_x\$   \&    \$P_y\$   \& \$\\grad\\cdot\\Ev\/\\grad\\Ev\$"; }
+  { $numberOfComponents=5; $title= "grid  \&  N  \&    \$E_x\$   \&    \$E_y\$   \&    \$H_z\$    \&    \$|\\Pv|\$   \&    \$\\grad\\cdot\\Ev\/\\grad\\Ev\$"; }
 # 
 $labelMethod=$method;
 if( $method eq "NFDTD" ){ $labelMethod="CGFD$order"; }

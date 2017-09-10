@@ -29,6 +29,11 @@ public:
   int 
   computeDispersionRelation( const real cc, const real eps, const real mu, const real k, 
                              real & reS, real & imS );
+
+  int setNumberOfPolarizationVectors( const int numPolarizationVectors );
+  int setParameters( const int eqn, const real a0, const real a1, const real b0, const real b1 );
+
+
   //  *OLD*
   int 
   computeDispersivePlaneWaveParameters( const real cc, const real eps, const real mu, const real k, 

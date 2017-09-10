@@ -482,6 +482,230 @@ initializePlaneMaterialInterface()
  }
 #endMacro
 
+
+// =============================================================
+//   MACRO : TZ INITIAL CONDITIONS
+// =============================================================
+#beginMacro initialConditionsTZ()
+{
+          
+  assert( tz!=NULL );
+  OGFunction & e = *tz;
+	    
+  if( mg.numberOfDimensions()==2 )
+  {
+      
+    // these ranges should work since we get the u*Dim* from the local raw data sizes (??!!)
+    J1 = Range(max(Ie1.getBase(),uel.getBase(0)),min(Ie1.getBound(),uel.getBound(0)));
+    J2 = Range(max(Ie2.getBase(),uel.getBase(1)),min(Ie2.getBound(),uel.getBound(1)));
+    J3 = Range(max(Ie3.getBase(),uel.getBase(2)),min(Ie3.getBound(),uel.getBound(2)));
+
+
+    FOR_3D(i1,i2,i3,J1,J2,J3)
+    {
+
+      real xe0 = XEP(i1,i2,i3,0);
+      real ye0 = XEP(i1,i2,i3,1);
+
+      UEX(i1,i2,i3) =e(xe0,ye0,0.,ex,tE);
+      UEY(i1,i2,i3) =e(xe0,ye0,0.,ey,tE);
+      if( method==sosup )
+      {
+        uLocal(i1,i2,i3,ext) =e(xe0,ye0,0.,ext,tE);
+        uLocal(i1,i2,i3,eyt) =e(xe0,ye0,0.,eyt,tE);
+      }
+	      
+
+      // -- dispersion model components --
+      if( dispersionModel != noDispersion )
+      {
+        // *new way:
+        for( int iv=0; iv<numberOfPolarizationVectors; iv++ )
+        {
+          const int pc= iv*numberOfDimensions;
+       
+          pLocal(i1,i2,i3,pc  ) =e(xe0,ye0,0.,pxc+pc,tE);
+          pLocal(i1,i2,i3,pc+1) =e(xe0,ye0,0.,pyc+pc,tE);
+
+          // printF(" IC: PV: pxc=%i (i1,i2)=(%i,%i) p=(%e,%e)\n",pxc,i1,i2,i3,pLocal(i1,i2,i3,pc  ),pLocal(i1,i2,i3,pc+1));
+        }
+      }
+    } // end for_3d 
+		
+    if ( method!=sosup )
+    {
+      FOR_3D(i1,i2,i3,J1,J2,J3)
+      {
+        real xe0 = XEP(i1,i2,i3,0);
+        real ye0 = XEP(i1,i2,i3,1);
+        UMEX(i1,i2,i3)=e(xe0,ye0,0.,ex,tE-dt);
+        UMEY(i1,i2,i3)=e(xe0,ye0,0.,ey,tE-dt);
+        // -- dispersion model components --
+        if( dispersionModel != noDispersion )
+        {
+          for( int iv=0; iv<numberOfPolarizationVectors; iv++ )
+          {
+            const int pc= iv*numberOfDimensions;
+            pmLocal(i1,i2,i3,pc  ) =e(xe0,ye0,0.,pxc+pc,tE-dt);
+            pmLocal(i1,i2,i3,pc+1) =e(xe0,ye0,0.,pyc+pc,tE-dt);
+          }
+        }
+        
+      }
+    }
+
+    J1 = Range(max(Ih1.getBase(),uhl.getBase(0)),min(Ih1.getBound(),uhl.getBound(0)));
+    J2 = Range(max(Ih2.getBase(),uhl.getBase(1)),min(Ih2.getBound(),uhl.getBound(1)));
+    J3 = Range(max(Ih3.getBase(),uhl.getBase(2)),min(Ih3.getBound(),uhl.getBound(2)));
+
+    FOR_3(i1,i2,i3,J1,J2,J3)
+    {
+      real xh0 = XHP(i1,i2,i3,0);
+      real yh0 = XHP(i1,i2,i3,1);
+		
+      UHZ(i1,i2,i3) =e(xh0,yh0,0.,hz,tH);
+      if( method==sosup )
+      {
+        uLocal(i1,i2,i3,hzt) =e(xh0,yh0,0.,hzt,tH);
+      }
+    }
+
+    if ( method!=sosup )
+    {
+      FOR_3(i1,i2,i3,J1,J2,J3)
+      {
+        real xh0 = XHP(i1,i2,i3,0);
+        real yh0 = XHP(i1,i2,i3,1);
+        UMHZ(i1,i2,i3)=e(xh0,yh0,0.,hz,t-dt);
+      }
+    }
+
+
+  }
+  else
+  { // ***** 3D TZ IC's ****
+
+    if( solveForElectricField )
+    {
+      // these ranges should work since we get the u*Dim* from the local raw data sizes (??!!)
+      J1 = Range(max(Ie1.getBase(),uel.getBase(0)),min(Ie1.getBound(),uel.getBound(0)));
+      J2 = Range(max(Ie2.getBase(),uel.getBase(1)),min(Ie2.getBound(),uel.getBound(1)));
+      J3 = Range(max(Ie3.getBase(),uel.getBase(2)),min(Ie3.getBound(),uel.getBound(2)));
+
+      if ( method!=sosup )
+      {
+        FOR_3D(i1,i2,i3,J1,J2,J3)
+        {
+          real x0 = XEP(i1,i2,i3,0);
+          real y0 = XEP(i1,i2,i3,1);
+          real z0 = XEP(i1,i2,i3,2);
+          UEX(i1,i2,i3) =e(x0,y0,z0,ex,tE);
+          UMEX(i1,i2,i3)=e(x0,y0,z0,ex,tE-dt);
+
+          UEY(i1,i2,i3) =e(x0,y0,z0,ey,tE);
+          UMEY(i1,i2,i3)=e(x0,y0,z0,ey,tE-dt);
+			
+          UEZ(i1,i2,i3) =e(x0,y0,z0,ez,tE);
+          UMEZ(i1,i2,i3)=e(x0,y0,z0,ez,tE-dt);
+        }
+      }
+      else
+      {
+        FOR_3D(i1,i2,i3,J1,J2,J3)
+        {
+          real x0 = XEP(i1,i2,i3,0);
+          real y0 = XEP(i1,i2,i3,1);
+          real z0 = XEP(i1,i2,i3,2);
+          // assign the field:
+          UEX(i1,i2,i3) =e(x0,y0,z0,ex,tE);
+          UEY(i1,i2,i3) =e(x0,y0,z0,ey,tE);
+          UEZ(i1,i2,i3) =e(x0,y0,z0,ez,tE);
+          // assign time derivatives:
+          uLocal(i1,i2,i3,ext) =e(x0,y0,z0,ext,tE);
+          uLocal(i1,i2,i3,eyt) =e(x0,y0,z0,eyt,tE);
+          uLocal(i1,i2,i3,ezt) =e(x0,y0,z0,ezt,tE);
+
+        }
+      }
+      if( dispersionModel != noDispersion )
+      {
+        // -- dispersion model components --
+        FOR_3D(i1,i2,i3,J1,J2,J3)
+        {
+          real x0 = XEP(i1,i2,i3,0);
+          real y0 = XEP(i1,i2,i3,1);
+          real z0 = XEP(i1,i2,i3,2);
+          // -- dispersion model components --
+          for( int iv=0; iv<numberOfPolarizationVectors; iv++ )
+          {
+            const int pc= iv*numberOfDimensions;
+            pLocal(i1,i2,i3,pc  ) =e(x0,y0,z0,pxc+pc,tE);
+            pLocal(i1,i2,i3,pc+1) =e(x0,y0,z0,pyc+pc,tE);
+            pLocal(i1,i2,i3,pc+2) =e(x0,y0,z0,pzc+pc,tE);
+          }
+
+          for( int iv=0; iv<numberOfPolarizationVectors; iv++ )
+          {
+            const int pc= iv*numberOfDimensions;
+       
+            // Do this for now -- set all vectors to be the same: 
+            pmLocal(i1,i2,i3,pc  ) =e(x0,y0,z0,pxc+pc,tE-dt);
+            pmLocal(i1,i2,i3,pc+1) =e(x0,y0,z0,pyc+pc,tE-dt);
+            pmLocal(i1,i2,i3,pc+2) =e(x0,y0,z0,pzc+pc,tE-dt);
+          }
+
+        }
+      } // end if dispersion model 
+      
+    } // end if solve for electric field
+    
+		
+    if ( solveForMagneticField )
+    {
+      J1 = Range(max(Ih1.getBase(),uhl.getBase(0)),min(Ih1.getBound(),uhl.getBound(0)));
+      J2 = Range(max(Ih2.getBase(),uhl.getBase(1)),min(Ih2.getBound(),uhl.getBound(1)));
+      J3 = Range(max(Ih3.getBase(),uhl.getBase(2)),min(Ih3.getBound(),uhl.getBound(2)));
+      FOR_3D(i1,i2,i3,J1,J2,J3)
+      {
+        real x0 = XHP(i1,i2,i3,0);
+        real y0 = XHP(i1,i2,i3,1);
+        real z0 = XHP(i1,i2,i3,2);
+        UHX(i1,i2,i3) =e(x0,y0,z0,hx,tH);
+        UMHX(i1,i2,i3)=e(x0,y0,z0,hx,tH-dt);
+        UHY(i1,i2,i3) =e(x0,y0,z0,hy,tH);
+        UMHY(i1,i2,i3)=e(x0,y0,z0,hy,tH-dt);
+        UHZ(i1,i2,i3) =e(x0,y0,z0,hz,tH);
+        UMHZ(i1,i2,i3)=e(x0,y0,z0,hz,tH-dt);
+      }
+    }
+	  
+  }
+	      
+      
+	
+  if( saveExtraForcingLevels )
+  {
+    // we need to save the "RHS" at some previous times.
+    for( int m=0; m<numberOfFunctions; m++ )
+    {
+#ifdef USE_PPP
+      realSerialArray fnLocal; getLocalArrayWithGhostBoundaries(FN(m),fnLocal);
+      OV_ABORT("finish me for parallel");
+#else
+      realSerialArray & fnLocal = FN(m);
+#endif
+
+      FN(m)(I1,I2,I3,C)=csq*e.laplacian(mg,I1,I2,I3,C,t-dt*(m+1));
+      getForcing( current, grid,FN(m),t-dt*(m+1),dt );
+    }
+  }
+}
+#endMacro
+
+
+
+
+
 //! Assign initial conditions
 //   (Ex).t = (1/eps)*[  (Hz).y ]
 //   (Ey).t = (1/eps)*[ -(Hz).x ]
@@ -501,6 +725,7 @@ assignInitialConditions(int current, real t, real dt )
   assert( cgp!=NULL );
   CompositeGrid & cg = *cgp;
   const int numberOfDimensions=cg.numberOfDimensions();
+  const int & maxNumberOfPolarizationVectors = parameters.dbase.get<int>("maxNumberOfPolarizationVectors");
 
   gf[current].t=t;
 
@@ -508,23 +733,20 @@ assignInitialConditions(int current, real t, real dt )
 
   if( forcingOption==twilightZoneForcing )
   {
-    int numberOfComponents=cgfields[0][0].getLength(3); 
+    // int numberOfComponents=cgfields[0][0].getLength(3); 
 
-    // int numberOfComponents;
-    // if( numberOfDimensions==2 )
-    //   numberOfComponents=3; 
-    // else
-    //   numberOfComponents=(int(solveForElectricField)+int(solveForMagneticField))*3;
-
-    // if( method==sosup )
-    // {
-    //   numberOfComponents= cgfields[0][0].getLength(3);
-    // }
+    const int & numberOfComponents = dbase.get<int>("numberOfComponents");
+    const int & numberOfComponentsForTZ = dbase.get<int>("numberOfComponentsForTZ");
     
-    // *wdh* 090516 : define variable coeff's for rho, eps, mu, sigmaE and sigmaH with TZ 
-    int numberOfComponentsForTZ=numberOfComponents+5;
-    assert( sigmaHc==(numberOfComponentsForTZ-1) );
+    // int numberOfComponentsForTZ=numberOfComponents;
 
+    // *wdh* 090516 : define variable coeff's for rho, eps, mu, sigmaE and sigmaH with TZ 
+    // numberOfComponentsForTZ=numberOfComponentsForTZ+5;
+    if( sigmaHc>=0 )
+    {
+      assert( sigmaHc==(numberOfComponentsForTZ-1) );
+    }
+    
     delete tz;
     if( twilightZoneOption==polynomialTwilightZone )
     {
@@ -599,6 +821,11 @@ assignInitialConditions(int current, real t, real dt )
 #define X0(i0,i1,i2) (xa+dx0*(i0-i0a))
 #define X1(i0,i1,i2) (ya+dy0*(i1-i1a))
 #define X2(i0,i1,i2) (za+dz0*(i2-i2a))
+
+
+    // dispersionModelGridFunction[domain][numTimeLevels] : 
+    realCompositeGridFunction **& dmgf = 
+      parameters.dbase.get<realCompositeGridFunction**>("dispersionModelGridFunction");
 
 
     for( int grid=0; grid<numberOfComponentGrids; grid++ )
@@ -694,6 +921,45 @@ assignInitialConditions(int current, real t, real dt )
       // call the bpp macro to define the E and H field gridfunctions and cpp macros
       EXTRACT_GFP(IC);
 
+      const int domain = cg.domainNumber(grid);
+      const DispersiveMaterialParameters & dmp = getDomainDispersiveMaterialParameters(domain);
+      const int numberOfPolarizationVectors = dmp.numberOfPolarizationVectors;      
+
+      // --- Get Arrays for the dispersive model ----
+      realMappedGridFunction & pCur = getDispersionModelMappedGridFunction( grid,current );
+      realMappedGridFunction & pPrev= getDispersionModelMappedGridFunction( grid,prev );
+
+      RealArray pLocal,pmLocal;
+      if( numberOfPolarizationVectors>0 )
+      {
+        OV_GET_SERIAL_ARRAY(real, pCur,pLoc);
+        OV_GET_SERIAL_ARRAY(real,pPrev,pmLoc);
+        pLocal.reference(pLoc);
+        pmLocal.reference(pmLoc);
+        
+        // ::display(pLocal,"pLocal");
+      }
+
+
+      // RealArray pLocal,pmLocal;
+      // if( numberOfPolarizationVectors>0 )
+      // {
+      //   realCompositeGridFunction & pCur  = dmgf[domain][current];
+      //   realCompositeGridFunction & pPrev = dmgf[domain][prev];
+
+      //   IntegerArray & domainGridNumber = parameters.dbase.get<IntegerArray>("domainGridNumber");
+      //   const int gridDomain=domainGridNumber(grid); // cg[grid] -> cg.domain[d][gridDomain] 
+      //   printF("IC: domain=%i grid=%i --> gridDomain=%i\n",domain,grid,gridDomain);
+        
+      //   OV_GET_SERIAL_ARRAY(real, pCur[gridDomain],pLoc);
+      //   OV_GET_SERIAL_ARRAY(real,pPrev[gridDomain],pmLoc);
+
+      //   pLocal.reference(pLoc);
+      //   pmLocal.reference(pmLoc);
+        
+      //   // ::display(pLocal,"pLocal");
+      // }
+      
       const int i0a=mg.gridIndexRange(0,0);
       const int i1a=mg.gridIndexRange(0,1);
       const int i2a=mg.gridIndexRange(0,2);
@@ -710,7 +976,7 @@ assignInitialConditions(int current, real t, real dt )
       uh = umh = 0;
       ue = ume = 0;
 
-      #define FN(m) fn[m+numberOfFunctions*(grid)]
+#define FN(m) fn[m+numberOfFunctions*(grid)]
 
       if( true /*numberOfComponents==3 || method==nfdtd*/ )
       {
@@ -735,250 +1001,12 @@ assignInitialConditions(int current, real t, real dt )
 
 	if( forcingOption==twilightZoneForcing )
 	{
-          // ==================================================
-	  // ================== TZ FORCING ====================
-          // ==================================================
+          // =============================================================
+	  // ================== TZ INITIAL CONDITIONS ====================
+          // =============================================================
+          initialConditionsTZ();
+          
 
-	  assert( tz!=NULL );
-	  OGFunction & e = *tz;
-	    
-	  if( mg.numberOfDimensions()==2 )
-	  {
-      
-	    // these ranges should work since we get the u*Dim* from the local raw data sizes (??!!)
-	    J1 = Range(max(Ie1.getBase(),uel.getBase(0)),min(Ie1.getBound(),uel.getBound(0)));
-	    J2 = Range(max(Ie2.getBase(),uel.getBase(1)),min(Ie2.getBound(),uel.getBound(1)));
-	    J3 = Range(max(Ie3.getBase(),uel.getBase(2)),min(Ie3.getBound(),uel.getBound(2)));
-
-
-	    FOR_3D(i1,i2,i3,J1,J2,J3)
-	    {
-
-	      real xe0 = XEP(i1,i2,i3,0);
-	      real ye0 = XEP(i1,i2,i3,1);
-
-	      UEX(i1,i2,i3) =e(xe0,ye0,0.,ex,tE);
-	      UEY(i1,i2,i3) =e(xe0,ye0,0.,ey,tE);
-              if( method==sosup )
-	      {
-		uLocal(i1,i2,i3,ext) =e(xe0,ye0,0.,ext,tE);
-	        uLocal(i1,i2,i3,eyt) =e(xe0,ye0,0.,eyt,tE);
-	      }
-	      
-
-              // -- dispersion model components --
-	      if( pxc>=0 )
-	      {
-                uLocal(i1,i2,i3,pxc) =e(xe0,ye0,0.,pxc,tE);
-                uLocal(i1,i2,i3,pyc) =e(xe0,ye0,0.,pyc,tE);
-              }
-	      if( qxc>=0 )
-	      {
-                uLocal(i1,i2,i3,qxc) =e(xe0,ye0,0.,qxc,tE);
-                uLocal(i1,i2,i3,qyc) =e(xe0,ye0,0.,qyc,tE);
-              }
-	      if( rxc>=0 )
-	      {
-                uLocal(i1,i2,i3,rxc) =e(xe0,ye0,0.,rxc,tE);
-                uLocal(i1,i2,i3,ryc) =e(xe0,ye0,0.,ryc,tE);
-              }
-	      
-	      
-	    }
-		
-	    if ( method!=sosup )
-	    {
-	      FOR_3D(i1,i2,i3,J1,J2,J3)
-	      {
-		real xe0 = XEP(i1,i2,i3,0);
-		real ye0 = XEP(i1,i2,i3,1);
-		UMEX(i1,i2,i3)=e(xe0,ye0,0.,ex,tE-dt);
-		UMEY(i1,i2,i3)=e(xe0,ye0,0.,ey,tE-dt);
-                // -- dispersion model components --
-	        if( pxc>=0 )
-	        {
-                  umLocal(i1,i2,i3,pxc) =e(xe0,ye0,0.,pxc,tE-dt);
-                  umLocal(i1,i2,i3,pyc) =e(xe0,ye0,0.,pyc,tE-dt);
-                }
-	        if( qxc>=0 )
-	        {
-                  umLocal(i1,i2,i3,qxc) =e(xe0,ye0,0.,qxc,tE-dt);
-                  umLocal(i1,i2,i3,qyc) =e(xe0,ye0,0.,qyc,tE-dt);
-                }
-	        if( rxc>=0 )
-	        {
-                  umLocal(i1,i2,i3,rxc) =e(xe0,ye0,0.,rxc,tE-dt);
-                  umLocal(i1,i2,i3,ryc) =e(xe0,ye0,0.,ryc,tE-dt);
-                }
-	      }
-	    }
-
-	  J1 = Range(max(Ih1.getBase(),uhl.getBase(0)),min(Ih1.getBound(),uhl.getBound(0)));
-	  J2 = Range(max(Ih2.getBase(),uhl.getBase(1)),min(Ih2.getBound(),uhl.getBound(1)));
-	  J3 = Range(max(Ih3.getBase(),uhl.getBase(2)),min(Ih3.getBound(),uhl.getBound(2)));
-
-	  FOR_3(i1,i2,i3,J1,J2,J3)
-	  {
-	    real xh0 = XHP(i1,i2,i3,0);
-	    real yh0 = XHP(i1,i2,i3,1);
-		
-	    UHZ(i1,i2,i3) =e(xh0,yh0,0.,hz,tH);
-	    if( method==sosup )
-	    {
-	      uLocal(i1,i2,i3,hzt) =e(xh0,yh0,0.,hzt,tH);
-	    }
-	  }
-
-	  if ( method!=sosup )
-	  {
-	    FOR_3(i1,i2,i3,J1,J2,J3)
-	    {
-	      real xh0 = XHP(i1,i2,i3,0);
-	      real yh0 = XHP(i1,i2,i3,1);
-	      UMHZ(i1,i2,i3)=e(xh0,yh0,0.,hz,t-dt);
-	    }
-	  }
-
-
-	  }
-	  else
-	  { // ***** 3D TZ IC's ****
-
-	    if( solveForElectricField )
-	    {
-	      // these ranges should work since we get the u*Dim* from the local raw data sizes (??!!)
-	      J1 = Range(max(Ie1.getBase(),uel.getBase(0)),min(Ie1.getBound(),uel.getBound(0)));
-	      J2 = Range(max(Ie2.getBase(),uel.getBase(1)),min(Ie2.getBound(),uel.getBound(1)));
-	      J3 = Range(max(Ie3.getBase(),uel.getBase(2)),min(Ie3.getBound(),uel.getBound(2)));
-
-	      if ( method!=sosup )
-	      {
-		FOR_3D(i1,i2,i3,J1,J2,J3)
-		{
-		  real x0 = XEP(i1,i2,i3,0);
-		  real y0 = XEP(i1,i2,i3,1);
-		  real z0 = XEP(i1,i2,i3,2);
-		  UEX(i1,i2,i3) =e(x0,y0,z0,ex,tE);
-		  UMEX(i1,i2,i3)=e(x0,y0,z0,ex,tE-dt);
-
-		  UEY(i1,i2,i3) =e(x0,y0,z0,ey,tE);
-		  UMEY(i1,i2,i3)=e(x0,y0,z0,ey,tE-dt);
-			
-		  UEZ(i1,i2,i3) =e(x0,y0,z0,ez,tE);
-		  UMEZ(i1,i2,i3)=e(x0,y0,z0,ez,tE-dt);
-		}
-	      }
-	      else
-	      {
-		FOR_3D(i1,i2,i3,J1,J2,J3)
-		{
-		  real x0 = XEP(i1,i2,i3,0);
-		  real y0 = XEP(i1,i2,i3,1);
-		  real z0 = XEP(i1,i2,i3,2);
-                  // assign the field:
-		  UEX(i1,i2,i3) =e(x0,y0,z0,ex,tE);
-		  UEY(i1,i2,i3) =e(x0,y0,z0,ey,tE);
-		  UEZ(i1,i2,i3) =e(x0,y0,z0,ez,tE);
-                  // assign time derivatives:
-                  uLocal(i1,i2,i3,ext) =e(x0,y0,z0,ext,tE);
-                  uLocal(i1,i2,i3,eyt) =e(x0,y0,z0,eyt,tE);
-                  uLocal(i1,i2,i3,ezt) =e(x0,y0,z0,ezt,tE);
-
-		}
-	      }
-	      if( dispersionModel != noDispersion )
-	      {
-		// -- dispersion model components --
-		FOR_3D(i1,i2,i3,J1,J2,J3)
-		{
-                  real x0 = XEP(i1,i2,i3,0);
-		  real y0 = XEP(i1,i2,i3,1);
-		  real z0 = XEP(i1,i2,i3,2);
-		  if( pxc>=0 )
-		  {
-		    uLocal(i1,i2,i3,pxc) =e(x0,y0,z0,pxc,tE);
-		    uLocal(i1,i2,i3,pyc) =e(x0,y0,z0,pyc,tE);
-		    uLocal(i1,i2,i3,pzc) =e(x0,y0,z0,pzc,tE);
-		    if ( method!=sosup )
-		    {
-		      umLocal(i1,i2,i3,pxc) =e(x0,y0,z0,pxc,tE-dt);
-		      umLocal(i1,i2,i3,pyc) =e(x0,y0,z0,pyc,tE-dt);
-		      umLocal(i1,i2,i3,pzc) =e(x0,y0,z0,pzc,tE-dt);
-		    }
-		    
-		  }
-		  if( qxc>=0 )
-		  {
-		    uLocal(i1,i2,i3,qxc) =e(x0,y0,z0,qxc,tE);
-		    uLocal(i1,i2,i3,qyc) =e(x0,y0,z0,qyc,tE);
-		    uLocal(i1,i2,i3,qzc) =e(x0,y0,z0,qzc,tE);
-		    if ( method!=sosup )
-		    {
-		      umLocal(i1,i2,i3,qxc) =e(x0,y0,z0,qxc,tE-dt);
-		      umLocal(i1,i2,i3,qyc) =e(x0,y0,z0,qyc,tE-dt);
-		      umLocal(i1,i2,i3,qzc) =e(x0,y0,z0,qzc,tE-dt);
-		    }
-		  }
-		  if( rxc>=0 )
-		  {
-		    uLocal(i1,i2,i3,rxc) =e(x0,y0,z0,rxc,tE);
-		    uLocal(i1,i2,i3,ryc) =e(x0,y0,z0,ryc,tE);
-		    uLocal(i1,i2,i3,rzc) =e(x0,y0,z0,rzc,tE);
-		    if ( method!=sosup )
-		    {
-		      umLocal(i1,i2,i3,rxc) =e(x0,y0,z0,rxc,tE-dt);
-		      umLocal(i1,i2,i3,ryc) =e(x0,y0,z0,ryc,tE-dt);
-		      umLocal(i1,i2,i3,rzc) =e(x0,y0,z0,rzc,tE-dt);
-		    }
-		  }
-		}
-		
-
-	      }
-	      
-
-	      
-	    }
-		
-	    if ( solveForMagneticField )
-	    {
-	      J1 = Range(max(Ih1.getBase(),uhl.getBase(0)),min(Ih1.getBound(),uhl.getBound(0)));
-	      J2 = Range(max(Ih2.getBase(),uhl.getBase(1)),min(Ih2.getBound(),uhl.getBound(1)));
-	      J3 = Range(max(Ih3.getBase(),uhl.getBase(2)),min(Ih3.getBound(),uhl.getBound(2)));
-	      FOR_3D(i1,i2,i3,J1,J2,J3)
-	      {
-		real x0 = XHP(i1,i2,i3,0);
-		real y0 = XHP(i1,i2,i3,1);
-		real z0 = XHP(i1,i2,i3,2);
-		UHX(i1,i2,i3) =e(x0,y0,z0,hx,tH);
-		UMHX(i1,i2,i3)=e(x0,y0,z0,hx,tH-dt);
-		UHY(i1,i2,i3) =e(x0,y0,z0,hy,tH);
-		UMHY(i1,i2,i3)=e(x0,y0,z0,hy,tH-dt);
-		UHZ(i1,i2,i3) =e(x0,y0,z0,hz,tH);
-		UMHZ(i1,i2,i3)=e(x0,y0,z0,hz,tH-dt);
-	      }
-	    }
-	  
-	  }
-	      
-      
-	
-	  if( saveExtraForcingLevels )
-	  {
-	    // we need to save the "RHS" at some previous times.
-	    for( int m=0; m<numberOfFunctions; m++ )
-	    {
-#ifdef USE_PPP
-	      realSerialArray fnLocal; getLocalArrayWithGhostBoundaries(FN(m),fnLocal);
-	      OV_ABORT("finish me for parallel");
-#else
-	      realSerialArray & fnLocal = FN(m);
-#endif
-
-	      FN(m)(I1,I2,I3,C)=csq*e.laplacian(mg,I1,I2,I3,C,t-dt*(m+1));
-	      getForcing( current, grid,FN(m),t-dt*(m+1),dt );
-	    }
-	  }
 	} // end if forcing option == twilightzone
 	else if( initialConditionOption==planeWaveInitialCondition )
 	{
@@ -1072,18 +1100,32 @@ assignInitialConditions(int current, real t, real dt )
 		    UMHZ(i1,i2,i3)=amph;
 
                     // -- dispersion model components --
-                    if( pxc>=0 )
+                    if( dispersionModel != noDispersion  )
                     {
-                      
-                      // amp=(psir*cx-psii*sx)*ctm - (psir*sx+psii*cx)*stm;
-                      amp=(psir*ctm-psii*stm)*cx - (psir*stm+psii*ctm)*sx;
-                      umLocal(i1,i2,i3,pxc) =pwc[0]*amp;
-                      umLocal(i1,i2,i3,pyc) =pwc[1]*amp;
+                      real ampm=(psir*ctm-psii*stm)*cx - (psir*stm+psii*ctm)*sx;
+                      real amp =(psir*ct -psii*st )*cx - (psir*st +psii*ct )*sx;
 
-                      // amp=(psir*cx-psii*sx)*ct - (psir*sx+psii*cx)*st;
-                      amp=(psir*ct-psii*st)*cx - (psir*st+psii*ct)*sx;
-                      uLocal(i1,i2,i3,pxc) =pwc[0]*amp;
-                      uLocal(i1,i2,i3,pyc) =pwc[1]*amp;
+                      // *new way:
+                      for( int iv=0; iv<numberOfPolarizationVectors; iv++ )
+                      {
+                        const int pc= iv*numberOfDimensions;
+       
+                        // Do this for now -- set all vectors to be the same: 
+                        pLocal(i1,i2,i3,pc  ) =pwc[0]*amp;
+                        pLocal(i1,i2,i3,pc+1) =pwc[1]*amp;
+
+                        pmLocal(i1,i2,i3,pc  ) =pwc[0]*ampm;
+                        pmLocal(i1,i2,i3,pc+1) =pwc[1]*ampm;
+                      }
+
+                      // // amp=(psir*cx-psii*sx)*ctm - (psir*sx+psii*cx)*stm;
+                      // umLocal(i1,i2,i3,pxc) =pwc[0]*ampm;
+                      // umLocal(i1,i2,i3,pyc) =pwc[1]*ampm;
+
+                      // // amp=(psir*cx-psii*sx)*ct - (psir*sx+psii*cx)*st;
+                      // amp=(psir*ct-psii*st)*cx - (psir*st+psii*ct)*sx;
+                      // uLocal(i1,i2,i3,pxc) =pwc[0]*amp;
+                      // uLocal(i1,i2,i3,pyc) =pwc[1]*amp;
                     }
 
 		  }
@@ -1655,8 +1697,22 @@ assignInitialConditions(int current, real t, real dt )
 		{
 		  real xde=X0(i1,i2,i3)-x0;
 		  real yde=X1(i1,i2,i3)-y0;
-		  uLocal(i1,i2,i3,pxc) =cos(fx*xde)*sin(fy*yde)*phiPx;
-		  uLocal(i1,i2,i3,pyc) =sin(fx*xde)*cos(fy*yde)*phiPy;
+
+                  // *new way:
+                  for( int iv=0; iv<numberOfPolarizationVectors; iv++ )
+                  {
+                    const int pc= iv*numberOfDimensions;
+       
+                    // Do this for now -- set all vectors to be the same: 
+                    pLocal(i1,i2,i3,pc  ) = cos(fx*xde)*sin(fy*yde)*phiPx;
+                    pLocal(i1,i2,i3,pc+1) = sin(fx*xde)*cos(fy*yde)*phiPy;
+                  }
+
+                  // *old way:
+		  // uLocal(i1,i2,i3,pxc) =cos(fx*xde)*sin(fy*yde)*phiPx;
+		  // uLocal(i1,i2,i3,pyc) =sin(fx*xde)*cos(fy*yde)*phiPy;
+
+
 		}
 	      }
 	      
@@ -1715,8 +1771,19 @@ assignInitialConditions(int current, real t, real dt )
 		  {
 		    real xde=X0(i1,i2,i3)-x0;
 		    real yde=X1(i1,i2,i3)-y0;
-		    umLocal(i1,i2,i3,pxc) =cos(fx*xde)*sin(fy*yde)*phiPxm;
-		    umLocal(i1,i2,i3,pyc) =sin(fx*xde)*cos(fy*yde)*phiPym;
+
+                    for( int iv=0; iv<numberOfPolarizationVectors; iv++ )
+                    {
+                      const int pc= iv*numberOfDimensions;
+       
+                      // Do this for now -- set all vectors to be the same: 
+                      pmLocal(i1,i2,i3,pc  ) = cos(fx*xde)*sin(fy*yde)*phiPxm;
+                      pmLocal(i1,i2,i3,pc+1) = sin(fx*xde)*cos(fy*yde)*phiPym;
+                    }
+
+
+		    // umLocal(i1,i2,i3,pxc) =cos(fx*xde)*sin(fy*yde)*phiPxm;
+		    // umLocal(i1,i2,i3,pyc) =sin(fx*xde)*cos(fy*yde)*phiPym;
 		  }
 		}
 
@@ -1983,11 +2050,23 @@ assignInitialConditions(int current, real t, real dt )
 		{
 		  FOR_3D(i1,i2,i3,J1,J2,J3)
 		  {
-		    uLocal(i1,i2,i3,pxc)  = UG(i1,i2,i3,ex)*phiPs + UG(i1,i2,i3,ex+3)*phiPc;
-		    uLocal(i1,i2,i3,pyc)  = UG(i1,i2,i3,ey)*phiPs + UG(i1,i2,i3,ey+3)*phiPc;
+                    for( int iv=0; iv<numberOfPolarizationVectors; iv++ )
+                    {
+                      const int pc= iv*numberOfDimensions;
+       
+                      // Do this for now -- set all vectors to be the same: 
+                      pLocal(i1,i2,i3,pc  ) = UG(i1,i2,i3,ex)*phiPs + UG(i1,i2,i3,ex+3)*phiPc;  
+                      pLocal(i1,i2,i3,pc+1) = UG(i1,i2,i3,ey)*phiPs + UG(i1,i2,i3,ey+3)*phiPc;  
+                                                                                                
+                      pmLocal(i1,i2,i3,pc  ) =UG(i1,i2,i3,ex)*phiPsm + UG(i1,i2,i3,ex+3)*phiPcm;
+                      pmLocal(i1,i2,i3,pc+1) =UG(i1,i2,i3,ey)*phiPsm + UG(i1,i2,i3,ey+3)*phiPcm;
+                    }
 
-		    umLocal(i1,i2,i3,pxc) = UG(i1,i2,i3,ex)*phiPsm + UG(i1,i2,i3,ex+3)*phiPcm;
-		    umLocal(i1,i2,i3,pyc) = UG(i1,i2,i3,ey)*phiPsm + UG(i1,i2,i3,ey+3)*phiPcm;
+		    // uLocal(i1,i2,i3,pxc)  = UG(i1,i2,i3,ex)*phiPs + UG(i1,i2,i3,ex+3)*phiPc;
+		    // uLocal(i1,i2,i3,pyc)  = UG(i1,i2,i3,ey)*phiPs + UG(i1,i2,i3,ey+3)*phiPc;
+
+		    // umLocal(i1,i2,i3,pxc) = UG(i1,i2,i3,ex)*phiPsm + UG(i1,i2,i3,ex+3)*phiPcm;
+		    // umLocal(i1,i2,i3,pyc) = UG(i1,i2,i3,ey)*phiPsm + UG(i1,i2,i3,ey+3)*phiPcm;
 		  }
 		}
 	      }
@@ -2018,13 +2097,28 @@ assignInitialConditions(int current, real t, real dt )
 		    {
 		      FOR_3D(i1,i2,i3,J1,J2,J3)
 		      {
-			uLocal(i1,i2,i3,pxc)  = UG(i1,i2,i3,ex)*phiPs + UG(i1,i2,i3,ex+3)*phiPc;
-			uLocal(i1,i2,i3,pyc)  = UG(i1,i2,i3,ey)*phiPs + UG(i1,i2,i3,ey+3)*phiPc;
-			uLocal(i1,i2,i3,pzc)  = UG(i1,i2,i3,ez)*phiPs + UG(i1,i2,i3,ez+3)*phiPc;
 
-			umLocal(i1,i2,i3,pxc) = UG(i1,i2,i3,ex)*phiPsm + UG(i1,i2,i3,ex+3)*phiPcm;
-			umLocal(i1,i2,i3,pyc) = UG(i1,i2,i3,ey)*phiPsm + UG(i1,i2,i3,ey+3)*phiPcm;
-			umLocal(i1,i2,i3,pzc) = UG(i1,i2,i3,ez)*phiPsm + UG(i1,i2,i3,ez+3)*phiPcm;
+                        for( int iv=0; iv<numberOfPolarizationVectors; iv++ )
+                        {
+                          const int pc= iv*numberOfDimensions;
+       
+                          // Do this for now -- set all vectors to be the same: 
+                          pLocal(i1,i2,i3,pc  ) = UG(i1,i2,i3,ex)*phiPs + UG(i1,i2,i3,ex+3)*phiPc;  
+                          pLocal(i1,i2,i3,pc+1) = UG(i1,i2,i3,ey)*phiPs + UG(i1,i2,i3,ey+3)*phiPc;  
+                          pLocal(i1,i2,i3,pc+2) = UG(i1,i2,i3,ez)*phiPs + UG(i1,i2,i3,ez+3)*phiPc;  
+                                                                                                    
+                          pmLocal(i1,i2,i3,pc  ) =UG(i1,i2,i3,ex)*phiPsm + UG(i1,i2,i3,ex+3)*phiPcm;
+                          pmLocal(i1,i2,i3,pc+1) =UG(i1,i2,i3,ey)*phiPsm + UG(i1,i2,i3,ey+3)*phiPcm;
+                          pmLocal(i1,i2,i3,pc+2) =UG(i1,i2,i3,ez)*phiPsm + UG(i1,i2,i3,ez+3)*phiPcm;
+                        }
+
+			// uLocal(i1,i2,i3,pxc)  = UG(i1,i2,i3,ex)*phiPs + UG(i1,i2,i3,ex+3)*phiPc;
+			// uLocal(i1,i2,i3,pyc)  = UG(i1,i2,i3,ey)*phiPs + UG(i1,i2,i3,ey+3)*phiPc;
+			// uLocal(i1,i2,i3,pzc)  = UG(i1,i2,i3,ez)*phiPs + UG(i1,i2,i3,ez+3)*phiPc;
+
+			// umLocal(i1,i2,i3,pxc) = UG(i1,i2,i3,ex)*phiPsm + UG(i1,i2,i3,ex+3)*phiPcm;
+			// umLocal(i1,i2,i3,pyc) = UG(i1,i2,i3,ey)*phiPsm + UG(i1,i2,i3,ey+3)*phiPcm;
+			// umLocal(i1,i2,i3,pzc) = UG(i1,i2,i3,ez)*phiPsm + UG(i1,i2,i3,ez+3)*phiPcm;
 		      }
 		    }
 		  }
@@ -2193,6 +2287,11 @@ assignInitialConditions(int current, real t, real dt )
       // should the above periodic updates be done in this macro too?
       EXTRACT_GFP_END(IC);
       
+      if( FALSE && numberOfPolarizationVectors>0 )
+      {
+        ::display(pLocal,"--IC-- pLocal");
+      }
+
     } // end for grid
     
   } // end ! userDefinedIC

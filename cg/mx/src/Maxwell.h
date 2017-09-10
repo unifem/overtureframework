@@ -357,7 +357,8 @@ class Maxwell
 
   int setBoundaryCondition( aString & answer, GL_GraphicsInterface & gi, IntegerArray & originalBoundaryCondition );
 
-  int setDispersionParameters( GL_GraphicsInterface &gi );
+  int setDispersionParameters( aString & domainName, int numberOfPolarizationVectors, int eqn, 
+                               real a0, real a1, real b0, real b1  );
 
   int setupGrids();
 
@@ -394,14 +395,21 @@ class Maxwell
 
 
 protected:
-  int buildTimeSteppingOptionsDialog(DialogData & dialog );
+
+  int buildDispersionParametersDialog(DialogData & dialog );
   int buildForcingOptionsDialog(DialogData & dialog );
   int buildInitialConditionsOptionsDialog(DialogData & dialog );
-  int buildPlotOptionsDialog(DialogData & dialog );
   int buildInputOutputOptionsDialog(DialogData & dialog );
-  int buildPdeParametersDialog(DialogData & dialog);
-
   int buildParametersDialog(DialogData & dialog ); // parameters that can be changed at run time.
+  int buildPdeParametersDialog(DialogData & dialog);
+  int buildPlotOptionsDialog(DialogData & dialog );
+  int buildTimeSteppingOptionsDialog(DialogData & dialog );
+
+  realCompositeGridFunction* getDispersionModelCompositeGridFunction( const int domain, const int timeLevel );
+
+  realMappedGridFunction&  getDispersionModelMappedGridFunction( const int grid, const int timeLevel );
+
+  int plotPolarization( int current, real t, real dt );
 
   int saveSequenceInfo( real t0, RealArray & sequenceData );
   int saveSequencesToShowFile();

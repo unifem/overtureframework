@@ -9,6 +9,7 @@
 #include "UnstructuredMapping.h"
 #include "ParallelUtility.h"
 #include "GridStatistics.h"
+#include "DispersiveMaterialParameters.h"
 
 #include "ULink.h"
 
@@ -226,7 +227,10 @@ setupGridFunctions()
       numberOfTimeLevels=3;  // needed for PML and ABC's 
   }
 
-  int numberOfComponents=-1;  // defines how many components are stored in the grid functions
+  int & numberOfComponents      = dbase.get<int>("numberOfComponents");
+  int & numberOfComponentsForTZ = dbase.get<int>("numberOfComponentsForTZ");
+  
+  numberOfComponents=-1;  // defines how many components are stored in the grid functions
 
   if( method!=nfdtd && method!=sosup )
   {// both fields are needed by the staggered schemes
@@ -279,7 +283,8 @@ setupGridFunctions()
       // With sosup we also advance/store the time-derivative of the fields
       numberOfComponents*= 2;
     }
-
+    numberOfComponentsForTZ=numberOfComponents;
+    
 
     //kkc 040304 ops apparently needed now for all schemes
     MappedGridOperators *ops = new MappedGridOperators(mg);
@@ -521,26 +526,6 @@ setupGridFunctions()
       {
 	numberOfComponents=(int(solveForElectricField)+int(solveForMagneticField))*3;
       }
-	
-      if( dispersionModel!=noDispersion )
-      {
-	// -- add components for the dispersion model ---
-
-        // second-order : we store P (vector)
-        // fourth-order : store P and Q (vectors)
-        // sixth-order  : store P,Q,R (vectors)
-	const int numberOfDispersiveFields = orderOfAccuracyInSpace/2;
-	if( dispersionModel==drude || dispersionModel==GDM )
-	{
-	  numberOfComponents+= numberOfDimensions*numberOfDispersiveFields;
-	}
-	else
-	{
-	  OV_ABORT("Unexpected dispersion model -- finish me");
-	}
-      
-
-      }
 
       if( method==sosup )
       {
@@ -548,9 +533,128 @@ setupGridFunctions()
 	numberOfComponents*= 2;
       }
 
+      numberOfComponentsForTZ=numberOfComponents;
+	
+      // dispersionModelGridFunction[domain][numTimeLevels] : 
+      realCompositeGridFunction **& dmgf = 
+                   parameters.dbase.get<realCompositeGridFunction**>("dispersionModelGridFunction");
+
+      const int & numberOfDomains = cg.numberOfDomains();
+      const int numberOfComponentGrids = cg.numberOfComponentGrids();
+      
+      int & maxNumberOfPolarizationVectors = parameters.dbase.get<int>("maxNumberOfPolarizationVectors");
+      
+      if( dispersionModel!=noDispersion )
+      {
+	// -- add Grid functions to hold the data for the dispersion models ---
+        //    We only create grid functions on domains that are dispersive
+        assert( dmgf==NULL );
+        assert( numberOfDomains>=1 );
+        
+        // dispersionModelGridFunction[domain][numTimeLevels] : 
+        dmgf = new realCompositeGridFunction* [numberOfDomains];
+
+        cg.update(GridCollection::THEdomain); // create CG's for each domain
+        
+        maxNumberOfPolarizationVectors=0; // keep track of the max number of polarization vectors for TZ
+        for( int domain=0; domain<cg.numberOfDomains(); domain++ ) 
+        {
+          dmgf[domain]=NULL;  // default 
+          
+  	  const DispersiveMaterialParameters & dmp = getDomainDispersiveMaterialParameters(domain);
+          const int numberOfPolarizationVectors = dmp.numberOfPolarizationVectors;
+          maxNumberOfPolarizationVectors=max(maxNumberOfPolarizationVectors,numberOfPolarizationVectors);
+
+          if( numberOfPolarizationVectors>0 )
+          {
+            dmgf[domain] = new realCompositeGridFunction [numberOfTimeLevels];
+
+            CompositeGrid & cgd = cg.domain[domain]; // Here is the CompositeGrid for just this domain
+            for( int n=0; n<numberOfTimeLevels; n++ )
+            {
+              
+              realCompositeGridFunction & u = dmgf[domain][n];
+              const int numComp = numberOfPolarizationVectors*numberOfDimensions;
+              u.updateToMatchGrid(cgd,all,all,all,numComp);
+              u=0.;
+              for( int iv=0; iv<numberOfPolarizationVectors; iv++ )
+              {
+                int pc = iv*numberOfDimensions;
+                u.setName(sPrintF("Px%i",iv),pc);   pc++;
+                u.setName(sPrintF("Py%i",iv),pc);   pc++;
+                if( numberOfDimensions==3 )
+                {
+                  u.setName(sPrintF("Pz%i",iv),pc);  pc++;
+                }
+              }
+              
+
+            }
+            
+          }
+          
+        }
+
+        pxc=numberOfComponents;
+        pyc=pxc+1;
+        if( numberOfDimensions==3 ) pzc=pyc+1;
+        
+        numberOfComponentsForTZ += numberOfDimensions*maxNumberOfPolarizationVectors;
+        
+        // We need the mapping from global "grid" number to the domain grid number
+        //       cg[grid] <-> cg.domain[domainGridNumber(grid)]
+        IntegerArray & domainGridNumber = parameters.dbase.put<IntegerArray>("domainGridNumber");
+        domainGridNumber.redim(numberOfComponentGrids);
+        IntegerArray nG(numberOfDomains); nG=0;  // nG = counts grids per domain 
+        for( int grid=0; grid<numberOfComponentGrids; grid++ ) 
+        {
+          int d = cg.domainNumber(grid);      // domain number 
+          domainGridNumber(grid) = nG(d);     //  gc[grid] <-> gc.domain[domainGridNumber(grid)]
+          nG(d)++;
+        }
+
+
+        // **** OLD WAY -- Keep this as we transition to the new way ---
+
+        // second-order : we store P (vector)
+        // fourth-order : store P and Q (vectors)
+        // sixth-order  : store P,Q,R (vectors)
+        if( FALSE )
+        {
+          
+          const int numberOfDispersiveFields = orderOfAccuracyInSpace/2;
+          if( dispersionModel==drude || dispersionModel==GDM )
+          {
+            numberOfComponents+= numberOfDimensions*numberOfDispersiveFields;
+          }
+          else
+          {
+            OV_ABORT("Unexpected dispersion model -- finish me");
+          }
+        }
+        
+
+      }
+
+
+      printF("\n >>>>>>>>>>> setupGridFunctions: numberOfDomains=%i\n",numberOfDomains);
+      if( numberOfDomains>1 )
+      {
+        for( int domain=0; domain<cg.numberOfDomains(); domain++ )
+	{
+  	  const DispersiveMaterialParameters & dmp = getDomainDispersiveMaterialParameters(domain);
+          const int numberOfPolarizationVectors = dmp.numberOfPolarizationVectors;
+
+          printF(" Domain %i (%s) number of polarization vectors=%i\n",
+                  domain,(const char*)cg.getDomainName(domain),numberOfPolarizationVectors);
+	}
+
+      }
+      
+
       if( true || method==yee || method==sosup )
-	printF("\n *********** setupGridFunctions: numberOfComponents=%i numberOfTimeLevels=%i\n\n",numberOfComponents,
-	       numberOfTimeLevels);
+	printF("\n *********** setupGridFunctions: numberOfComponents=%i numberOfTimeLevels=%i dispersionModel=%i\n\n",
+               numberOfComponents, numberOfTimeLevels,(int)dispersionModel);
 
       numberOfFields=2;
 	
@@ -566,7 +670,53 @@ setupGridFunctions()
         gf[n].u.reference(cgfields[n]);
         gf[n].setParameters(parameters);
 
-	cgfields[n].updateToMatchGrid(cg,all,all,all,numberOfComponents);
+        if( TRUE || numberOfDomains==1 || dispersionModel==noDispersion )
+        {
+          cgfields[n].updateToMatchGrid(cg,all,all,all,numberOfComponents);
+        }
+        else
+        {
+          // ---- Allocate grid functions for the dispersive model ----
+          // Different domains will have possibly different numbers of components since 
+          //    each domain can have a different number of polarization vectors 
+
+          // first allocate with minimal number of components
+          cgfields[n].updateToMatchGrid(cg,all,all,all,numberOfComponents);
+
+ 	  for( int domain=0; domain<cg.numberOfDomains(); domain++ )
+          {
+            const DispersiveMaterialParameters & dmp = getDomainDispersiveMaterialParameters(domain);
+            const int numberOfPolarizationVectors = dmp.numberOfPolarizationVectors;
+
+            if( numberOfPolarizationVectors==0 )
+            {
+              printF(" Domain %i (%s) number of polarization vectors=%i, numberOfComponents=%i\n",
+                     domain,(const char*)cg.getDomainName(domain),numberOfPolarizationVectors,numberOfComponents);
+
+            }
+            else if( numberOfPolarizationVectors>0 )
+            {
+              const int numComp = numberOfComponents + numberOfDimensions*numberOfPolarizationVectors;
+              printF(" Domain %i (%s) number of polarization vectors=%i, --> numComp=%i\n",
+                     domain,(const char*)cg.getDomainName(domain),numberOfPolarizationVectors,numComp);
+
+              for( int grid=0; grid<cg.numberOfComponentGrids(); grid++ )
+              {
+                if( cg.domainNumber(grid)==domain )
+                {
+                  realMappedGridFunction & ud = cgfields[n][grid];
+                  ud.updateToMatchGrid(cg[grid],all,all,all,numComp);
+                }
+              }
+            }
+            
+            // CompositeGrid & cgd = cg.domain[domain];
+            // realCompositeGridFunction & ud = cgfields[n].domain[domain];
+            // ud.updateToMatchGrid(cgd,all,all,all,numberOfComponents);
+          }
+          
+        }
+        
 	cgfields[n]=0.;
 	    
         int c=0; // counts components
@@ -657,35 +807,37 @@ setupGridFunctions()
 	    }
 	  }
 	}
-	if( dispersionModel!=noDispersion )
-	{
+
+
+        if( FALSE && dispersionModel!=noDispersion )
+        {
           // --- assign dispersion component names ---
           pxc=c; cgfields[n].setName("Px",pxc);   c++;
           pyc=c; cgfields[n].setName("Py",pyc);   c++;
-	  if( numberOfDimensions==3 )
-	  {
-	    pzc=c; cgfields[n].setName("Pz",pzc);   c++;
-	  }
-	  if( orderOfAccuracyInSpace==4 )
-	  {
-	    qxc=c; cgfields[n].setName("Qx",qxc);   c++;
-	    qyc=c; cgfields[n].setName("Qy",qyc);   c++;
-	    if( numberOfDimensions==3 )
-	    {
-	      qzc=c; cgfields[n].setName("Qz",qzc);   c++;
-	    }
-	  }
-	  if( orderOfAccuracyInSpace==6 )
-	  {
-	    rxc=c; cgfields[n].setName("Rx",rxc);   c++;
-	    ryc=c; cgfields[n].setName("Ry",ryc);   c++;
-	    if( numberOfDimensions==3 )
-	    {
-	      rzc=c; cgfields[n].setName("Rz",rzc);   c++;
-	    }
-	  }
-	  
-	}
+          if( numberOfDimensions==3 )
+          {
+            pzc=c; cgfields[n].setName("Pz",pzc);   c++;
+          }
+          // if( orderOfAccuracyInSpace==4 )
+          // {
+          //   qxc=c; cgfields[n].setName("Qx",qxc);   c++;
+          //   qyc=c; cgfields[n].setName("Qy",qyc);   c++;
+          //   if( numberOfDimensions==3 )
+          //   {
+          //     qzc=c; cgfields[n].setName("Qz",qzc);   c++;
+          //   }
+          // }
+          // if( orderOfAccuracyInSpace==6 )
+          // {
+          //   rxc=c; cgfields[n].setName("Rx",rxc);   c++;
+          //   ryc=c; cgfields[n].setName("Ry",ryc);   c++;
+          //   if( numberOfDimensions==3 )
+          //   {
+          //     rzc=c; cgfields[n].setName("Rz",rzc);   c++;
+          //   }
+          // }
+
+        }
 	
       } // end for n
       
@@ -893,20 +1045,31 @@ setupGridFunctions()
       
   }
 
-  rc=numberOfComponents;  // position of density in TZ functions
-
-  if( useChargeDensity && pRho==NULL )
+  if( useChargeDensity )
   {
-    // allocate the grid function that holds the charge density
-    pRho=new realCompositeGridFunction(cg);
+    
+    rc=numberOfComponentsForTZ;  // position of density in TZ functions
+
+    if( useChargeDensity && pRho==NULL )
+    {
+      // allocate the grid function that holds the charge density
+      pRho=new realCompositeGridFunction(cg);
+    }
+    numberOfComponentsForTZ += 1;
+    
   }
+  if( useTwilightZoneMaterials ) 
+  {
+    // for variable coefficients we define eps, mu, sigmaE and sigmaH with TZ functions:
+    // ** FIX ME -- only do if we have variable coefficients ?? ***
+    epsc   =rc+1;
+    muc    =epsc+1;
+    sigmaEc=muc+1;
+    sigmaHc=sigmaEc+1;
 
-  // for variable coefficients we define eps, mu, sigmaE and sigmaH with TZ functions:
-  epsc   =rc+1;
-  muc    =epsc+1;
-  sigmaEc=muc+1;
-  sigmaHc=sigmaEc+1;
-
+    numberOfComponentsForTZ += 4;
+  }
+  
   numberOfSequences=numberOfComponents;
   if( computeEnergy )
     numberOfSequences+=2; // save the energy and delta(energy)

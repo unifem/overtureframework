@@ -21,9 +21,9 @@ dielectricSphereSosup44.check ../runs/dielectricCyl/dielectricCyl.cmd -cyl=0 -g=
 #
 # More sosup tests: 
 #
-sq4sosup.check ../cmd/tz.cmd -g=square20.order4.ng3 -degreex=3 -degreet=3 -method=sosup -tf=.1 -tp=.1 -bc=d -go=go
+sq4sosup.check ../runs/tz/tz.cmd -g=square20.order4.ng3 -degreex=3 -degreet=3 -method=sosup -tf=.1 -tp=.1 -bc=d -go=go
 # turn off order 6 test for now since we no-longer compile this
-# sq6sosup.check ../cmd/tz.cmd -g=square20.order6.ng4 -degreex=5 -degreet=5 -method=sosup -tf=.1 -tp=.1 -bc=d -go=go
+# sq6sosup.check ../runs/tz/tz.cmd -g=square20.order6.ng4 -degreex=5 -degreet=5 -method=sosup -tf=.1 -tp=.1 -bc=d -go=go
 #
 # user defined forcing and user defined known solution
 #

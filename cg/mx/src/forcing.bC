@@ -562,28 +562,32 @@ getForcing(int current, int grid, realArray & u , real t, real dt, int option /*
 	  
 	}
 	
-	if( dispersionModel != noDispersion )
+        // *** DO THIS IN advOpt ***
+	if( FALSE && dispersionModel != noDispersion )
 	{
 	  // -- Dispersion model --
           const DispersiveMaterialParameters & dmp = getDispersiveMaterialParameters(grid);
-	  const real eps=epsGrid(grid), gamma=dmp.gamma, omegap=dmp.omegap; 
+	  // const real eps=epsGrid(grid), gamma=dmp.gamma, omegap=dmp.omegap; 
+	  const real alphaP=dmp.alphaP;
 
 	  Range P(pxc,pxc+numberOfDimensions-1);
 	    
-	  if( option==1 )
-	  {
-	    uLocal(I1,I2,I3,P)=0.;
-	  }
+	  // if( option==1 )
+	  // {
+	  //   uLocal(I1,I2,I3,P)=0.;
+	  // }
 
-	  RealArray ptt(I1,I2,I3,P), pt(I1,I2,I3,P);
-          RealArray &ue=utt; // reuse space 
+	  RealArray ptt(I1,I2,I3,P);
+	  // RealArray ptt(I1,I2,I3,P), pt(I1,I2,I3,P);
+          // RealArray &ue=utt; // reuse space 
 
+          // fix me for multiple P's 
 	  e.gd( ptt ,xLocal,numberOfDimensions,isRectangular,2,0,0,0,I1,I2,I3,P,t);  // P_tt
-	  e.gd( pt  ,xLocal,numberOfDimensions,isRectangular,1,0,0,0,I1,I2,I3,P,t);  // P_t 
-	  e.gd( ue  ,xLocal,numberOfDimensions,isRectangular,0,0,0,0,I1,I2,I3,E,t);  // E
+	  // e.gd( pt  ,xLocal,numberOfDimensions,isRectangular,1,0,0,0,I1,I2,I3,P,t);  // P_t 
+	  //y e.gd( ue  ,xLocal,numberOfDimensions,isRectangular,0,0,0,0,I1,I2,I3,E,t);  // E
 
-	  uLocal(I1,I2,I3,E) += (1./eps)*ptt;
-	  uLocal(I1,I2,I3,P) += ptt + gamma*pt - (omegap*omegap)*ue(I1,I2,I3,E);
+	  uLocal(I1,I2,I3,E) += alphaP*ptt;
+	  // uLocal(I1,I2,I3,P) += ptt + gamma*pt - (omegap*omegap)*ue(I1,I2,I3,E);
 	}
 
       }

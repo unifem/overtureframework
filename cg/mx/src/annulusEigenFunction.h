@@ -193,13 +193,28 @@
        
        if( dispersionModel!=noDispersion )
        { // -- dispersive ---
-         uLocal(i1,i2,i3,pxc) = uex*ampP;
-         uLocal(i1,i2,i3,pyc) = uey*ampP;
-         if( method==nfdtd )
+
+         for( int iv=0; iv<numberOfPolarizationVectors; iv++ )
          {
-           umLocal(i1,i2,i3,pxc) = uex*ampPm;
-           umLocal(i1,i2,i3,pyc) = uey*ampPm;
+           const int pc= iv*numberOfDimensions;
+       
+           // Do this for now -- set all vectors to be the same: 
+           pLocal(i1,i2,i3,pc  ) = uex*ampP;
+           pLocal(i1,i2,i3,pc+1) = uey*ampP;
+           if( method==nfdtd )
+           {
+             pmLocal(i1,i2,i3,pc  ) = uex*ampPm;
+             pmLocal(i1,i2,i3,pc+1) = uey*ampPm;
+           }
          }
+
+         // uLocal(i1,i2,i3,pxc) = uex*ampP;
+         // uLocal(i1,i2,i3,pyc) = uey*ampP;
+         // if( method==nfdtd )
+         // {
+         //   umLocal(i1,i2,i3,pxc) = uex*ampPm;
+         //   umLocal(i1,i2,i3,pyc) = uey*ampPm;
+         // }
          
        }
        
@@ -211,8 +226,15 @@
        uLocal(i1,i2,i3,ey) = uey*ampE;  // Ey.t = - Hz.x
        if( dispersionModel!=noDispersion )
        { // -- dispersive ---
-         uLocal(i1,i2,i3,pxc) = uex*ampP;
-         uLocal(i1,i2,i3,pyc) = uey*ampP;
+         for( int iv=0; iv<numberOfPolarizationVectors; iv++ )
+         {
+           const int pc= iv*numberOfDimensions;
+           // Do this for now -- set all vectors to be the same: 
+           pLocal(i1,i2,i3,pc  ) = uex*ampP;
+           pLocal(i1,i2,i3,pc+1) = uey*ampP;
+         }
+         // uLocal(i1,i2,i3,pxc) = uex*ampP;
+         // uLocal(i1,i2,i3,pyc) = uey*ampP;
        }
      
        if( method==sosup )
@@ -228,8 +250,16 @@
        ERREY(i1,i2,i3) = UEY(i1,i2,i3) - uey*ampE;  // Ey.t = - Hz.x
        if( dispersionModel!=noDispersion )
        { // -- dispersive ---
-         errLocal(i1,i2,i3,pxc) = uLocal(i1,i2,i3,pxc) - uex*ampP;
-         errLocal(i1,i2,i3,pyc) = uLocal(i1,i2,i3,pyc) - uey*ampP;
+         for( int iv=0; iv<numberOfPolarizationVectors; iv++ )
+         {
+           const int pc= iv*numberOfDimensions;
+           // Do this for now -- set all vectors to be the same: 
+           errPolarization(i1,i2,i3,pc  ) = pLocal(i1,i2,i3,pc  ) - uex*ampP;
+           errPolarization(i1,i2,i3,pc+1) = pLocal(i1,i2,i3,pc+1) - uey*ampP;
+         }
+
+         // errLocal(i1,i2,i3,pxc) = uLocal(i1,i2,i3,pxc) - uex*ampP;
+         // errLocal(i1,i2,i3,pyc) = uLocal(i1,i2,i3,pyc) - uey*ampP;
        }
        if( method==sosup )
        {

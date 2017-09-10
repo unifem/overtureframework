@@ -480,6 +480,30 @@ adjustBoundsForPML( MappedGrid & mg, Index Iv[3], int extra /* =0 */ )
 // ============================================================================
 
 
+
+// ============================================================================
+// Macro:  Assign the dirichlet (i.e. exact solution) BC for a plane wave or plane wave scattered field 
+// ============================================================================
+
+// ============================================================================
+// Macro: Assign BC's for Rod Sterling.
+// ============================================================================
+
+// ============================================================================
+// Macro: Assign BC's for the Yee scheme
+// ============================================================================
+
+// ============================================================================
+// Macro: Assign BC's for the DSI scheme
+// ============================================================================
+
+
+// ============================================================================
+// Macro: Assign BC's for a Dirichlet BC or plane Wave -- HOW IS THIS DIFFERENT FROM planeWaveBC ?? 
+// ============================================================================
+
+
+
 // ================================================================================================================
 /// \brief Apply boundary conditions.
 ///
@@ -606,6 +630,20 @@ assignBoundaryConditions( int option, int grid, real t, real dt, realMappedGridF
           const realSerialArray & xLocal = centerNeeded ? x : uLocal;
         #endif
     
+    // --- Get Arrays for the dispersive model ----
+        const DispersiveMaterialParameters & dmp = getDispersiveMaterialParameters(grid);
+        const int numberOfPolarizationVectors = dmp.numberOfPolarizationVectors;      
+
+        realMappedGridFunction & pv = getDispersionModelMappedGridFunction( grid,next );
+
+        RealArray pLocal;
+        if( numberOfPolarizationVectors>0 )
+        {
+            OV_GET_SERIAL_ARRAY(real, pv,pLoc);
+            pLocal.reference(pLoc);
+      // ::display(pLocal,"pLocal");
+        }
+
         const IntegerArray & bcg = mg.boundaryCondition();
         IntegerArray gid, dim, bc;
         getLocalBoundsAndBoundaryConditions( u, gid, dim, bc );
@@ -668,7 +706,7 @@ assignBoundaryConditions( int option, int grid, real t, real dt, realMappedGridF
         	  if( mg.boundaryCondition(side,axis)==dirichlet ||
                             mg.boundaryCondition(side,axis)==planeWaveBoundaryCondition ) 
         	  {
-                        assignPlaneWaveBoundaryCondition=true;
+                        assignPlaneWaveBoundaryCondition=mg.boundaryCondition(side,axis)==planeWaveBoundaryCondition;
 
 	    // this is a fake BC where we give all variables equal to the true solution
 	    // assign all variables, vertex centred
@@ -981,8 +1019,15 @@ assignBoundaryConditions( int option, int grid, real t, real dt, realMappedGridF
                                       uLocal(i1,i2,i3,ey) = uey*ampE;  // Ey.t = - Hz.x
                                       if( dispersionModel!=noDispersion )
                                       { // -- dispersive ---
-                                          uLocal(i1,i2,i3,pxc) = uex*ampP;
-                                          uLocal(i1,i2,i3,pyc) = uey*ampP;
+                                          for( int iv=0; iv<numberOfPolarizationVectors; iv++ )
+                                          {
+                                              const int pc= iv*numberOfDimensions;
+                       // Do this for now -- set all vectors to be the same: 
+                                              pLocal(i1,i2,i3,pc  ) = uex*ampP;
+                                              pLocal(i1,i2,i3,pc+1) = uey*ampP;
+                                          }
+                     // uLocal(i1,i2,i3,pxc) = uex*ampP;
+                     // uLocal(i1,i2,i3,pyc) = uey*ampP;
                                       }
                                       if( method==sosup )
                                       {
@@ -1073,34 +1118,13 @@ assignBoundaryConditions( int option, int grid, real t, real dt, realMappedGridF
             	      else
             	      { //planeWaveInitialCondition or planeWaveBoundaryCondition
               		  
-
-            		int i1,i2,i3;
-            		if( numberOfDimensions==2 )
-            		{
-                                    if( dispersionModel==noDispersion )
+                                {
+                                    int i1,i2,i3;
+                                    if( numberOfDimensions==2 )
                                     {
-                    // ---- NON DISPERSIVE ---
-                                        FOR_3D(i1,i2,i3,I1,I2,I3)
+                                        if( dispersionModel==noDispersion )
                                         {
-                                            real x0,y0;
-                                              if( isRectangular )
-                                              {
-                                                  x0 = XC0(i1,i2,i3);
-                                                  y0 = XC1(i1,i2,i3);
-                                              }
-                                              else
-                                              {
-                                                  x0 = X(i1,i2,i3,0);
-                                                  y0 = X(i1,i2,i3,1);
-                                              }
-
-                                            U(i1,i2,i3,ex)=exTrue(x0,y0,t); 
-                                            U(i1,i2,i3,ey)=eyTrue(x0,y0,t);
-                                            U(i1,i2,i3,hz)=hzTrue(x0,y0,t);
-                      // printF("new:BC: i=%i,%i,%i x=(%6.3f,%6.3f) u=(%8.2e,%8.2e,%8.2e)\n",i1,i2,i3,X(i1,i2,i3,0),X(i1,i2,i3,1),U(i1,i2,i3,ex),U(i1,i2,i3,ey),U(i1,i2,i3,hz));
-                                        }
-                                        if( method==sosup )
-                                        {
+                      // ---- NON DISPERSIVE ---
                                             FOR_3D(i1,i2,i3,I1,I2,I3)
                                             {
                                                 real x0,y0;
@@ -1114,146 +1138,161 @@ assignBoundaryConditions( int option, int grid, real t, real dt, realMappedGridF
                                                       x0 = X(i1,i2,i3,0);
                                                       y0 = X(i1,i2,i3,1);
                                                   }
-                                                U(i1,i2,i3,ext) =extTrue(x0,y0,t);
-                                                U(i1,i2,i3,eyt) =eytTrue(x0,y0,t);
-                                                U(i1,i2,i3,hzt) =hztTrue(x0,y0,t);
+                                                U(i1,i2,i3,ex)=exTrue(x0,y0,t); 
+                                                U(i1,i2,i3,ey)=eyTrue(x0,y0,t);
+                                                U(i1,i2,i3,hz)=hzTrue(x0,y0,t);
+                        // printF("new:BC: i=%i,%i,%i x=(%6.3f,%6.3f) u=(%8.2e,%8.2e,%8.2e)\n",i1,i2,i3,X(i1,i2,i3,0),X(i1,i2,i3,1),U(i1,i2,i3,ex),U(i1,i2,i3,ey),U(i1,i2,i3,hz));
+                                            }
+                                            if( method==sosup )
+                                            {
+                                                FOR_3D(i1,i2,i3,I1,I2,I3)
+                                                {
+                                                    real x0,y0;
+                                                      if( isRectangular )
+                                                      {
+                                                          x0 = XC0(i1,i2,i3);
+                                                          y0 = XC1(i1,i2,i3);
+                                                      }
+                                                      else
+                                                      {
+                                                          x0 = X(i1,i2,i3,0);
+                                                          y0 = X(i1,i2,i3,1);
+                                                      }
+                                                    U(i1,i2,i3,ext) =extTrue(x0,y0,t);
+                                                    U(i1,i2,i3,eyt) =eytTrue(x0,y0,t);
+                                                    U(i1,i2,i3,hzt) =hztTrue(x0,y0,t);
+                                                }
+                                            }
+                                        }
+                                        else
+                                        {
+                      // --- DISPERSIVE ---
+                                            DispersiveMaterialParameters & dmp = getDispersiveMaterialParameters(grid);
+                                            const real kk = twoPi*sqrt( kx*kx+ky*ky+kz*kz);
+                                            real sr, si, psir,psii;
+                                            dmp.evaluateDispersionRelation( c,kk, sr, si, psir,psii ); 
+                                            if( t<=3.*dt )
+                                                printF("--MX--Dirichlet BC dispersion: s=(%12.4e,%12.4e)\n",sr,si);
+                                            real expt=exp(sr*t);
+                                            real ct = cos(si*t)*expt, st=sin(si*t)*expt;
+                      // Hz = (i/s) * (-1) * (kx*Ey - ky*Ex )/mu
+                                            real hFactor = -twoPi*( kx*pwc[1] - ky*pwc[0] )/mu;
+                                            real sNormSq = sr*sr+si*si;
+                      //  hr + i*hi = (i/s)*hfactor
+                                            real hr = hFactor*si/sNormSq;
+                                            real hi = hFactor*sr/sNormSq;
+                                            FOR_3D(i1,i2,i3,I1,I2,I3)
+                                            {
+                                                real x0,y0;
+                                                  if( isRectangular )
+                                                  {
+                                                      x0 = XC0(i1,i2,i3);
+                                                      y0 = XC1(i1,i2,i3);
+                                                  }
+                                                  else
+                                                  {
+                                                      x0 = X(i1,i2,i3,0);
+                                                      y0 = X(i1,i2,i3,1);
+                                                  }
+                                                real xi = twoPi*(kx*x0+ky*y0);
+                                                real cx=cos(xi), sx=sin(xi);
+                                                real amp=cx*ct-sx*st;
+                                                U(i1,i2,i3,ex)=pwc[0]*amp;
+                                                U(i1,i2,i3,ey)=pwc[1]*amp;
+                                                real amph = (hr*ct-hi*st)*cx - (hr*st+hi*ct)*sx;
+                                                U(i1,i2,i3,hz)=amph;
+                        // amp=(psir*cx-psii*sx)*ctm - (psir*sx+psii*cx)*stm;
+                                                amp=(psir*ct-psii*st)*cx - (psir*st+psii*ct)*sx;
+                                                for( int iv=0; iv<numberOfPolarizationVectors; iv++ )
+                                                {
+                                                    const int pc= iv*numberOfDimensions;
+                          // *fix* me for numberOfPolarizationVectors>1 
+                                                    pLocal(i1,i2,i3,pc  ) = pwc[0]*amp;
+                                                    pLocal(i1,i2,i3,pc+1) = pwc[1]*amp;
+                                                }
+                        // U(i1,i2,i3,pxc) =pwc[0]*amp;
+                        // U(i1,i2,i3,pyc) =pwc[1]*amp;
                                             }
                                         }
                                     }
                                     else
                                     {
-                    // --- DISPERSIVE ---
-                                        DispersiveMaterialParameters & dmp = getDispersiveMaterialParameters(grid);
-
-                                        const real kk = twoPi*sqrt( kx*kx+ky*ky+kz*kz);
-                                        real sr, si, psir,psii;
-                                        dmp.evaluateDispersionRelation( c,kk, sr, si, psir,psii ); 
-                                        if( t<=3.*dt )
-                                            printF("--MX--Dirichlet BC dispersion: s=(%12.4e,%12.4e)\n",sr,si);
-
-                                        real expt=exp(sr*t);
-                                        real ct = cos(si*t)*expt, st=sin(si*t)*expt;
-                    // Hz = (i/s) * (-1) * (kx*Ey - ky*Ex )/mu
-                                        real hFactor = -twoPi*( kx*pwc[1] - ky*pwc[0] )/mu;
-                                        real sNormSq = sr*sr+si*si;
-                    //  hr + i*hi = (i/s)*hfactor
-                                        real hr = hFactor*si/sNormSq;
-                                        real hi = hFactor*sr/sNormSq;
-
-                                        FOR_3D(i1,i2,i3,I1,I2,I3)
+                    // ------------ THREE DIMENSIONS ------------
+                                        if( dispersionModel!=noDispersion )
                                         {
-                                            real x0,y0;
-                                              if( isRectangular )
-                                              {
-                                                  x0 = XC0(i1,i2,i3);
-                                                  y0 = XC1(i1,i2,i3);
-                                              }
-                                              else
-                                              {
-                                                  x0 = X(i1,i2,i3,0);
-                                                  y0 = X(i1,i2,i3,1);
-                                              }
-                                            real xi = twoPi*(kx*x0+ky*y0);
-                                            real cx=cos(xi), sx=sin(xi);
-                                        
-                                            real amp=cx*ct-sx*st;
-                                            U(i1,i2,i3,ex)=pwc[0]*amp;
-                                            U(i1,i2,i3,ey)=pwc[1]*amp;
-                                            real amph = (hr*ct-hi*st)*cx - (hr*st+hi*ct)*sx;
-                                            U(i1,i2,i3,hz)=amph;
-                                            
-                      // amp=(psir*cx-psii*sx)*ctm - (psir*sx+psii*cx)*stm;
-                                            amp=(psir*ct-psii*st)*cx - (psir*st+psii*ct)*sx;
-                                            U(i1,i2,i3,pxc) =pwc[0]*amp;
-                                            U(i1,i2,i3,pyc) =pwc[1]*amp;
-
+                                            OV_ABORT("--MX-- BC: finish dispersive plane wave BC");
+                                        }
+                                        if( solveForElectricField )
+                                        {
+                                            FOR_3D(i1,i2,i3,I1,I2,I3)
+                                            {
+                                                real x0,y0,z0;
+                                                  if( isRectangular )
+                                                  {
+                                                      x0 = XC0(i1,i2,i3);
+                                                      y0 = XC1(i1,i2,i3);
+                                                      z0 = XC2(i1,i2,i3);
+                                                  }
+                                                  else
+                                                  {
+                                                      x0 = X(i1,i2,i3,0);
+                                                      y0 = X(i1,i2,i3,1);
+                                                      z0 = X(i1,i2,i3,2);
+                                                  }
+                                                U(i1,i2,i3,ex)=exTrue3d(x0,y0,z0,t);
+                                                U(i1,i2,i3,ey)=eyTrue3d(x0,y0,z0,t);
+                                                U(i1,i2,i3,ez)=ezTrue3d(x0,y0,z0,t);
+                                            }
+                                            if( method==sosup )
+                                            {
+                                                FOR_3D(i1,i2,i3,I1,I2,I3)
+                                                {
+                                                    real x0,y0,z0;
+                                                      if( isRectangular )
+                                                      {
+                                                          x0 = XC0(i1,i2,i3);
+                                                          y0 = XC1(i1,i2,i3);
+                                                          z0 = XC2(i1,i2,i3);
+                                                      }
+                                                      else
+                                                      {
+                                                          x0 = X(i1,i2,i3,0);
+                                                          y0 = X(i1,i2,i3,1);
+                                                          z0 = X(i1,i2,i3,2);
+                                                      }
+                                                    U(i1,i2,i3,ext) =extTrue3d(x0,y0,z0,t);
+                                                    U(i1,i2,i3,eyt) =eytTrue3d(x0,y0,z0,t);
+                                                    U(i1,i2,i3,ezt) =eztTrue3d(x0,y0,z0,t);
+                                                }
+                                            }
+                                        }
+                                        if( solveForMagneticField )
+                                        {
+                                            FOR_3D(i1,i2,i3,I1,I2,I3)
+                                            {
+                                                real x0,y0,z0;
+                                                  if( isRectangular )
+                                                  {
+                                                      x0 = XC0(i1,i2,i3);
+                                                      y0 = XC1(i1,i2,i3);
+                                                      z0 = XC2(i1,i2,i3);
+                                                  }
+                                                  else
+                                                  {
+                                                      x0 = X(i1,i2,i3,0);
+                                                      y0 = X(i1,i2,i3,1);
+                                                      z0 = X(i1,i2,i3,2);
+                                                  }
+                                                U(i1,i2,i3,hx)=hxTrue3d(x0,y0,z0,t);
+                                                U(i1,i2,i3,hy)=hyTrue3d(x0,y0,z0,t);
+                                                U(i1,i2,i3,hz)=hzTrue3d(x0,y0,z0,t);
+                                            }
                                         }
                                     }
+                                }
 
-            		}
-            		else
-            		{
-                  // ------------ THREE DIMENSIONS ------------
-
-                                    if( dispersionModel!=noDispersion )
-                                    {
-                                        OV_ABORT("--MX-- BC: finish dispersive plane wave BC");
-                                    }
-
-              		  if( solveForElectricField )
-              		  {
-                		    FOR_3D(i1,i2,i3,I1,I2,I3)
-                		    {
-                  		      real x0,y0,z0;
-                                      if( isRectangular )
-                                      {
-                                          x0 = XC0(i1,i2,i3);
-                                          y0 = XC1(i1,i2,i3);
-                                          z0 = XC2(i1,i2,i3);
-                                      }
-                                      else
-                                      {
-                                          x0 = X(i1,i2,i3,0);
-                                          y0 = X(i1,i2,i3,1);
-                                          z0 = X(i1,i2,i3,2);
-                                      }
-
-                  		      U(i1,i2,i3,ex)=exTrue3d(x0,y0,z0,t);
-                  		      U(i1,i2,i3,ey)=eyTrue3d(x0,y0,z0,t);
-                  		      U(i1,i2,i3,ez)=ezTrue3d(x0,y0,z0,t);
-                		    }
-                		    if( method==sosup )
-                		    {
-                  		      FOR_3D(i1,i2,i3,I1,I2,I3)
-                  		      {
-                    		        real x0,y0,z0;
-                                          if( isRectangular )
-                                          {
-                                              x0 = XC0(i1,i2,i3);
-                                              y0 = XC1(i1,i2,i3);
-                                              z0 = XC2(i1,i2,i3);
-                                          }
-                                          else
-                                          {
-                                              x0 = X(i1,i2,i3,0);
-                                              y0 = X(i1,i2,i3,1);
-                                              z0 = X(i1,i2,i3,2);
-                                          }
-
-                  			U(i1,i2,i3,ext) =extTrue3d(x0,y0,z0,t);
-                  			U(i1,i2,i3,eyt) =eytTrue3d(x0,y0,z0,t);
-                  			U(i1,i2,i3,ezt) =eztTrue3d(x0,y0,z0,t);
-
-                  		      }
-                		    }
-                		    
-              		  }
-              		  if( solveForMagneticField )
-              		  {
-                		    FOR_3D(i1,i2,i3,I1,I2,I3)
-                		    {
-                  		      real x0,y0,z0;
-                                      if( isRectangular )
-                                      {
-                                          x0 = XC0(i1,i2,i3);
-                                          y0 = XC1(i1,i2,i3);
-                                          z0 = XC2(i1,i2,i3);
-                                      }
-                                      else
-                                      {
-                                          x0 = X(i1,i2,i3,0);
-                                          y0 = X(i1,i2,i3,1);
-                                          z0 = X(i1,i2,i3,2);
-                                      }
-
-                  		      U(i1,i2,i3,hx)=hxTrue3d(x0,y0,z0,t);
-                  		      U(i1,i2,i3,hy)=hyTrue3d(x0,y0,z0,t);
-                  		      U(i1,i2,i3,hz)=hzTrue3d(x0,y0,z0,t);
-                		    }
-                		    
-              		  }
-            		}
-            	      }
+                            }
+                                
             	      
               // printF(" assign BC: I1,I2,I3=[%i,%i][%i,%i][%i,%i] \n",
               //            I1.getBase(),I1.getBound(),I2.getBase(),I2.getBound(),I3.getBase(),I3.getBound());
@@ -1264,70 +1303,67 @@ assignBoundaryConditions( int option, int grid, real t, real dt, realMappedGridF
           	    } // end if( initialConditionOption==planeWaveInitialCondition || ...
           	    else if( forcingOption==twilightZoneForcing )
           	    {
-            	      assert( tz!=NULL );
-            	      OGFunction & e = *tz;
-            	      Range C(ex,hz);
+                            {
+                                assert( tz!=NULL );
+                                OGFunction & e = *tz;
+                                Range C(ex,hz);
+                                if( true )
+                                {
+                                    int i1,i2,i3;
+                                    if( mg.numberOfDimensions()==2 )
+                                    {
+                                        FOR_3D(i1,i2,i3,I1,I2,I3)
+                                        {
+                                            real x0 = X(i1,i2,i3,0);
+                                            real y0 = X(i1,i2,i3,1);
+                                            U(i1,i2,i3,ex) =e(x0,y0,0.,ex,t);
+                                            U(i1,i2,i3,ey) =e(x0,y0,0.,ey,t);
+                                            U(i1,i2,i3,hz) =e(x0,y0,0.,hz,t);
+                                        }
+                                        if( method==sosup )
+                                        {
+                                            FOR_3D(i1,i2,i3,I1,I2,I3)
+                                            {
+                                                real x0 = X(i1,i2,i3,0);
+                                                real y0 = X(i1,i2,i3,1);
+                                                U(i1,i2,i3,ext) =e(x0,y0,0.,ext,t);
+                                                U(i1,i2,i3,eyt) =e(x0,y0,0.,eyt,t);
+                                                U(i1,i2,i3,hzt) =e(x0,y0,0.,hzt,t);
+                                            }
+                                        }
+                                    }
+                                    else
+                                    {
+                                        assert( !solveForMagneticField ); // this case to do..
+                                        FOR_3D(i1,i2,i3,I1,I2,I3)
+                                        {
+                                            real x0 = X(i1,i2,i3,0);
+                                            real y0 = X(i1,i2,i3,1);
+                                            real z0 = X(i1,i2,i3,2);
+                                            U(i1,i2,i3,ex) =e(x0,y0,z0,ex,t);
+                                            U(i1,i2,i3,ey) =e(x0,y0,z0,ey,t);
+                                            U(i1,i2,i3,ez) =e(x0,y0,z0,ez,t);
+                                        }
+                                        if( method==sosup )
+                                        {
+                                            FOR_3D(i1,i2,i3,I1,I2,I3)
+                                            {
+                                                real x0 = X(i1,i2,i3,0);
+                                                real y0 = X(i1,i2,i3,1);
+                                                real z0 = X(i1,i2,i3,2);
+                                                U(i1,i2,i3,ext) =e(x0,y0,z0,ext,t);
+                                                U(i1,i2,i3,eyt) =e(x0,y0,z0,eyt,t);
+                                                U(i1,i2,i3,ezt) =e(x0,y0,z0,ezt,t);
+                                            }
+                                        }
+                                    }
+                                }
+                                else // old way -- trouble with PPP
+                                {
+                                    u(I1,I2,I3,C)=e(mg,I1,I2,I3,C,t);
+                                }
+                            }
 
-            	      if( true )
-            	      {
-            		
-            		int i1,i2,i3;
-            		if( mg.numberOfDimensions()==2 )
-            		{
-              		  FOR_3D(i1,i2,i3,I1,I2,I3)
-              		  {
-                		    real x0 = X(i1,i2,i3,0);
-                		    real y0 = X(i1,i2,i3,1);
-                		    U(i1,i2,i3,ex) =e(x0,y0,0.,ex,t);
-                		    U(i1,i2,i3,ey) =e(x0,y0,0.,ey,t);
-                		    U(i1,i2,i3,hz) =e(x0,y0,0.,hz,t);
-              		  }
-              		  if( method==sosup )
-              		  {
-                		    FOR_3D(i1,i2,i3,I1,I2,I3)
-                		    {
-                  		      real x0 = X(i1,i2,i3,0);
-                  		      real y0 = X(i1,i2,i3,1);
-                  		      U(i1,i2,i3,ext) =e(x0,y0,0.,ext,t);
-                  		      U(i1,i2,i3,eyt) =e(x0,y0,0.,eyt,t);
-                  		      U(i1,i2,i3,hzt) =e(x0,y0,0.,hzt,t);
-                		    }
-              		  }
-              		  
-            		}
-            		else
-            		{
-              		  assert( !solveForMagneticField ); // this case to do..
-              		  FOR_3D(i1,i2,i3,I1,I2,I3)
-              		  {
-                		    real x0 = X(i1,i2,i3,0);
-                		    real y0 = X(i1,i2,i3,1);
-                		    real z0 = X(i1,i2,i3,2);
-                		    U(i1,i2,i3,ex) =e(x0,y0,z0,ex,t);
-                		    U(i1,i2,i3,ey) =e(x0,y0,z0,ey,t);
-                		    U(i1,i2,i3,ez) =e(x0,y0,z0,ez,t);
-              		  }
-              		  if( method==sosup )
-              		  {
-                		    FOR_3D(i1,i2,i3,I1,I2,I3)
-                		    {
-                  		      real x0 = X(i1,i2,i3,0);
-                  		      real y0 = X(i1,i2,i3,1);
-                  		      real z0 = X(i1,i2,i3,2);
-                  		      U(i1,i2,i3,ext) =e(x0,y0,z0,ext,t);
-                  		      U(i1,i2,i3,eyt) =e(x0,y0,z0,eyt,t);
-                  		      U(i1,i2,i3,ezt) =e(x0,y0,z0,ezt,t);
-                		    }
-              		  }
-              		  
-            		}
-            	      
-            	      }
-            	      else // old way -- trouble with PPP
-            	      {
-            		u(I1,I2,I3,C)=e(mg,I1,I2,I3,C,t);
-            	      }
-          	    
           	    }
           	    else if( initialConditionOption==gaussianPlaneWave )
           	    {
@@ -1343,79 +1379,20 @@ assignBoundaryConditions( int option, int grid, real t, real dt, realMappedGridF
           	    {
               // --- Assign the dirichlet (i.e. exact solution) BC for a plane wave or plane wave scattered field ---
 
-            	      if( knownSolution==NULL )
-            	      {
-            		initializeKnownSolution();
-            	      }
-            	      const realArray & ug = (*knownSolution)[grid];
-
-                	      const real cc0= cGrid(0)*sqrt( kx*kx+ky*ky ); // NOTE: use grid 0 values for multi-materials
-
-	      // const real cost = cos(-twoPi*cc0*t);
-	      // const real sint = sin(-twoPi*cc0*t);
-	      // const real dcost =  twoPi*cc0*sint;  // d(sin(..))/dt 
-	      // const real dsint = -twoPi*cc0*cost;  // d(sin(..))/dt 	    
-
-                                real cost,sint,costm,sintm,dcost,dsint;
-                                real phiPc,phiPs, phiPcm,phiPsm;
-                                if( dispersionModel==noDispersion )
+                            {
+                                if( knownSolution==NULL )
                                 {
-                                    cost = cos(-twoPi*cc0*t); // *wdh* 040626 add "-"
-                                    sint = sin(-twoPi*cc0*t); // *wdh* 040626 add "-"
-                                    costm= cos(-twoPi*cc0*(t-dt)); // *wdh* 040626 add "-"
-                                    sintm= sin(-twoPi*cc0*(t-dt)); // *wdh* 040626 add "-"
-                                    dcost =  twoPi*cc0*sint;  // d(sin(..))/dt 
-                                    dsint = -twoPi*cc0*cost;  // d(sin(..))/dt 
+                                    initializeKnownSolution();
                                 }
-                                else
-                                {
-                  // -- dispersive model -- *CHECK ME*
-                  // Evaluate the dispersion relation for "s"
-                                    DispersiveMaterialParameters & dmp = getDispersiveMaterialParameters(grid);
-                                    const real kk = twoPi*cc0;  // Parameter in dispersion relation **check me**
-                  // *new way*
-                                    real sr,si,psir,psii;
-                                    dmp.evaluateDispersionRelation( c,kk, sr, si, psir,psii ); 
-                  // real reS, imS;
-                  // dmp.computeDispersionRelation( c,eps,mu,kk, reS, imS );
-                  // real expS = exp(reS*t), expSm=exp(reS*(t-dt));
-                  // si=-si;  // flip sign    **** FIX ME ****
-                                    if( t<=3.*dt ) 
-                                    {
-                                        printF("--MX--GIC dispersion: s=(%12.4e,%12.4e) psi=(%12.4e,%12.4e)\n",sr,si,psir,psii);
-                                        printF("--MX--GIC scatCyl si/(twoPi*cc0)=%g\n",si/twoPi*cc0);
-                                    }
-                  // Re( (Er+i*Ei)*( ct + i*st ) )
-                  //   ct*Er - st*Ei 
-                                    const real tm=t-dt;
-                                    real expt=exp(sr*t), exptm=exp(sr*tm);
-                                    real ct =cos( si*t  )*expt,  st =sin( si*t )*expt;
-                                    real ctm=cos( si*tm )*exptm, stm=sin( si*tm )*exptm;
-                                    cost =  ct;      // Coeff of Ei
-                                    sint =  st;     // Coeff of Er
-                                    costm =  ctm;
-                                    sintm =  stm;
-                                    dcost =  -si*st + sr*ct;  //  d/dt of "cost" 
-                                    dsint =  (si*ct + sr*st);  //  d/dt of "cost" 
-                  // real alpha=reS, beta=imS;  // s= alpha + i*beta (
-                  // real a,b;   // psi = a + i*b 
-                  // P = Re{ psi(s)*E } = Re{ (psir+i*psi)*( Er + i*Ei)( ct+i*st ) }
-                                    phiPc =  psir*cost-psii*sint;  // Coeff of Er 
-                                    phiPs = -psir*sint-psii*cost;  // coeff of Ei
-                                    phiPcm =  psir*costm-psii*sintm;
-                                    phiPsm = -psir*sintm-psii*costm;
-                    // *** TEST ****
-                                    if( true )
-                                    {
-                                        sint = ct;     // Coeff of Er    
-                                        cost = -st;     // Coeff of Ei
-                                        sintm = ctm;
-                                        costm =-stm;
-                                        dsint =  -si*st + sr*ct;  //  d/dt of "cost" 
-                                        dcost =  -(si*ct + sr*st);  //  d/dt of "cost" 
-                                    }
-                  // *** TEST ****
-                                    if( false )
+                                const realArray & ug = (*knownSolution)[grid];
+                                const real cc0= cGrid(0)*sqrt( kx*kx+ky*ky ); // NOTE: use grid 0 values for multi-materials
+                // const real cost = cos(-twoPi*cc0*t);
+                // const real sint = sin(-twoPi*cc0*t);
+                // const real dcost =  twoPi*cc0*sint;  // d(sin(..))/dt 
+                // const real dsint = -twoPi*cc0*cost;  // d(sin(..))/dt 	    
+                                    real cost,sint,costm,sintm,dcost,dsint;
+                                    real phiPc,phiPs, phiPcm,phiPsm;
+                                    if( dispersionModel==noDispersion )
                                     {
                                         cost = cos(-twoPi*cc0*t); // *wdh* 040626 add "-"
                                         sint = sin(-twoPi*cc0*t); // *wdh* 040626 add "-"
@@ -1423,148 +1400,205 @@ assignBoundaryConditions( int option, int grid, real t, real dt, realMappedGridF
                                         sintm= sin(-twoPi*cc0*(t-dt)); // *wdh* 040626 add "-"
                                         dcost =  twoPi*cc0*sint;  // d(sin(..))/dt 
                                         dsint = -twoPi*cc0*cost;  // d(sin(..))/dt 
-                                        printF("--MX--GIC (cost,ct)=(%12.4e,%12.4e) (sint,st)=(%12.4e,%12.4e)\n",cost,ct,sint,st);
-                                        printF("--MX--GIC (costm,ctm)=(%12.4e,%12.4e) (sintm,stm)=(%12.4e,%12.4e)\n",costm,ctm,sintm,stm);
-                                        phiPc =  0.;
-                                        phiPs =  0.;
-                                        phiPcm = 0.;
-                                        phiPsm = 0.;
+                                    }
+                                    else
+                                    {
+                    // -- dispersive model -- *CHECK ME*
+                    // Evaluate the dispersion relation for "s"
+                                        DispersiveMaterialParameters & dmp = getDispersiveMaterialParameters(grid);
+                                        const real kk = twoPi*cc0;  // Parameter in dispersion relation **check me**
+                    // *new way*
+                                        real sr,si,psir,psii;
+                                        dmp.evaluateDispersionRelation( c,kk, sr, si, psir,psii ); 
+                    // real reS, imS;
+                    // dmp.computeDispersionRelation( c,eps,mu,kk, reS, imS );
+                    // real expS = exp(reS*t), expSm=exp(reS*(t-dt));
+                    // si=-si;  // flip sign    **** FIX ME ****
+                                        if( t<=3.*dt ) 
+                                        {
+                                            printF("--MX--GIC dispersion: s=(%12.4e,%12.4e) psi=(%12.4e,%12.4e)\n",sr,si,psir,psii);
+                                            printF("--MX--GIC scatCyl si/(twoPi*cc0)=%g\n",si/twoPi*cc0);
+                                        }
+                    // Re( (Er+i*Ei)*( ct + i*st ) )
+                    //   ct*Er - st*Ei 
+                                        const real tm=t-dt;
+                                        real expt=exp(sr*t), exptm=exp(sr*tm);
+                                        real ct =cos( si*t  )*expt,  st =sin( si*t )*expt;
+                                        real ctm=cos( si*tm )*exptm, stm=sin( si*tm )*exptm;
+                                        cost =  ct;      // Coeff of Ei
+                                        sint =  st;     // Coeff of Er
+                                        costm =  ctm;
+                                        sintm =  stm;
+                                        dcost =  -si*st + sr*ct;  //  d/dt of "cost" 
+                                        dsint =  (si*ct + sr*st);  //  d/dt of "cost" 
+                    // real alpha=reS, beta=imS;  // s= alpha + i*beta (
+                    // real a,b;   // psi = a + i*b 
+                    // P = Re{ psi(s)*E } = Re{ (psir+i*psi)*( Er + i*Ei)( ct+i*st ) }
+                                        phiPc =  psir*cost-psii*sint;  // Coeff of Er 
+                                        phiPs = -psir*sint-psii*cost;  // coeff of Ei
+                                        phiPcm =  psir*costm-psii*sintm;
+                                        phiPsm = -psir*sintm-psii*costm;
+                      // *** TEST ****
+                                        if( true )
+                                        {
+                                            sint = ct;     // Coeff of Er    
+                                            cost = -st;     // Coeff of Ei
+                                            sintm = ctm;
+                                            costm =-stm;
+                                            dsint =  -si*st + sr*ct;  //  d/dt of "cost" 
+                                            dcost =  -(si*ct + sr*st);  //  d/dt of "cost" 
+                                        }
+                    // *** TEST ****
+                                        if( false )
+                                        {
+                                            cost = cos(-twoPi*cc0*t); // *wdh* 040626 add "-"
+                                            sint = sin(-twoPi*cc0*t); // *wdh* 040626 add "-"
+                                            costm= cos(-twoPi*cc0*(t-dt)); // *wdh* 040626 add "-"
+                                            sintm= sin(-twoPi*cc0*(t-dt)); // *wdh* 040626 add "-"
+                                            dcost =  twoPi*cc0*sint;  // d(sin(..))/dt 
+                                            dsint = -twoPi*cc0*cost;  // d(sin(..))/dt 
+                                            printF("--MX--GIC (cost,ct)=(%12.4e,%12.4e) (sint,st)=(%12.4e,%12.4e)\n",cost,ct,sint,st);
+                                            printF("--MX--GIC (costm,ctm)=(%12.4e,%12.4e) (sintm,stm)=(%12.4e,%12.4e)\n",costm,ctm,sintm,stm);
+                                            phiPc =  0.;
+                                            phiPs =  0.;
+                                            phiPcm = 0.;
+                                            phiPsm = 0.;
+                                        }
+                                    }
+                // // NOTE: This next section is repeated in getInitialConditions.bC,
+                // //        getErrors.bC and assignBoundaryConditions.bC *FIX ME*
+                // real cost,sint,dcost,dsint;
+                // if( dispersionModel==noDispersion )
+                // {
+                // 	cost = cos(-twoPi*cc0*t); 
+                // 	sint = sin(-twoPi*cc0*t); 
+                // 	dcost =  twoPi*cc0*sint;  // d(sin(..))/dt 
+                // 	dsint = -twoPi*cc0*cost;  // d(sin(..))/dt 
+                // }
+                // else
+                // {
+                // 	// -- dispersive model --  *CHECK ME*
+                // 	// Evaluate the dispersion relation for "s"
+                // 	DispersiveMaterialParameters & dmp = getDispersiveMaterialParameters(grid);
+                // 	const real kk = twoPi*cc0;  // Parameter in dispersion relation **check me**
+                // 	real reS, imS;
+                // 	dmp.computeDispersionRelation( c,eps,mu,kk, reS, imS );
+                // 	real expS = exp(reS*t), expSm=exp(reS*(t-dt));
+                // 	imS=-imS;  // flip sign 
+                // 	printF("--ER-- scatCyl imS=%g, Im(s)/(twoPi*cc0)=%g reS=%g\n",imS,imS/twoPi*cc0,reS);
+                // 	cost = cos( imS*t )*expS;      // "cos(t)" for dispersive model 
+                // 	sint = sin( imS*t )*expS;
+                // 	dcost = -imS*sint + reS*cost;  //  d/dt of "cost" 
+                // 	dsint =  imS*cost + reS*sint;  //  d/dt of "cost" 
+                // }
+                                if( debug & 4 ) printF("Set Dirichlet BC from known solution, grid,side,axis=%i,%i,%i\n",grid,side,axis);
+                // getBoundaryIndex(mg.gridIndexRange(),side,axis,I1,I2,I3);
+                // *wdh* 041013: Do not use the next line -- P++ problems
+                // *wdh*   u(I1,I2,I3,C)=ug(I1,I2,I3,C)*sint+ug(I1,I2,I3,C+3)*cost;
+                            #ifdef USE_PPP
+                                realSerialArray ugLocal; getLocalArrayWithGhostBoundaries(ug,ugLocal);
+                            #else
+                                const realSerialArray & ugLocal = ug; 
+                            #endif
+                                real *ugp = ugLocal.Array_Descriptor.Array_View_Pointer3;
+                                const int ugDim0=ugLocal.getRawDataSize(0);
+                                const int ugDim1=ugLocal.getRawDataSize(1);
+                                const int ugDim2=ugLocal.getRawDataSize(2);
+                            #define UG(i0,i1,i2,i3) ugp[i0+ugDim0*(i1+ugDim1*(i2+ugDim2*(i3)))]
+                                int i1,i2,i3;
+                                if( numberOfDimensions==2 )
+                                {
+                                    FOR_3D(i1,i2,i3,I1,I2,I3)
+                                    {
+                                        U(i1,i2,i3,ex)=UG(i1,i2,i3,ex)*sint+UG(i1,i2,i3,ex+3)*cost;
+                                        U(i1,i2,i3,ey)=UG(i1,i2,i3,ey)*sint+UG(i1,i2,i3,ey+3)*cost;
+                                        U(i1,i2,i3,hz)=UG(i1,i2,i3,hz)*sint+UG(i1,i2,i3,hz+3)*cost;
+                                        if( method==sosup )
+                                        { // time derivatives: 
+                                            U(i1,i2,i3,ext)=UG(i1,i2,i3,ex)*dsint+UG(i1,i2,i3,ex+3)*dcost;
+                                            U(i1,i2,i3,eyt)=UG(i1,i2,i3,ey)*dsint+UG(i1,i2,i3,ey+3)*dcost;
+                                            U(i1,i2,i3,hzt)=UG(i1,i2,i3,hz)*dsint+UG(i1,i2,i3,hz+3)*dcost;
+                                        }
+                                    }
+                  // -- dispersion model components --
+                                    if( dispersionModel!=noDispersion )
+                                    {
+                                        FOR_3D(i1,i2,i3,I1,I2,I3)
+                                        {
+                                            for( int iv=0; iv<numberOfPolarizationVectors; iv++ )
+                                            {
+                                                const int pc= iv*numberOfDimensions;
+                        // *fix* me for numberOfPolarizationVectors>1 
+                                                pLocal(i1,i2,i3,pc  ) = UG(i1,i2,i3,ex)*phiPs + UG(i1,i2,i3,ex+3)*phiPc;
+                                                pLocal(i1,i2,i3,pc+1) = UG(i1,i2,i3,ey)*phiPs + UG(i1,i2,i3,ey+3)*phiPc;
+                                            }
+                      // U(i1,i2,i3,pxc)  = UG(i1,i2,i3,ex)*phiPs + UG(i1,i2,i3,ex+3)*phiPc;
+                      // U(i1,i2,i3,pyc)  = UG(i1,i2,i3,ey)*phiPs + UG(i1,i2,i3,ey+3)*phiPc;
+                                        }
                                     }
                                 }
-
-              // // NOTE: This next section is repeated in getInitialConditions.bC,
-              // //        getErrors.bC and assignBoundaryConditions.bC *FIX ME*
-              // real cost,sint,dcost,dsint;
-	      // if( dispersionModel==noDispersion )
-	      // {
-	      // 	cost = cos(-twoPi*cc0*t); 
-	      // 	sint = sin(-twoPi*cc0*t); 
-	      // 	dcost =  twoPi*cc0*sint;  // d(sin(..))/dt 
-	      // 	dsint = -twoPi*cc0*cost;  // d(sin(..))/dt 
-	      // }
-	      // else
-	      // {
-	      // 	// -- dispersive model --  *CHECK ME*
-
-	      // 	// Evaluate the dispersion relation for "s"
-	      // 	DispersiveMaterialParameters & dmp = getDispersiveMaterialParameters(grid);
-	      // 	const real kk = twoPi*cc0;  // Parameter in dispersion relation **check me**
-	      // 	real reS, imS;
-	      // 	dmp.computeDispersionRelation( c,eps,mu,kk, reS, imS );
-	      // 	real expS = exp(reS*t), expSm=exp(reS*(t-dt));
-	      // 	imS=-imS;  // flip sign 
-	      // 	printF("--ER-- scatCyl imS=%g, Im(s)/(twoPi*cc0)=%g reS=%g\n",imS,imS/twoPi*cc0,reS);
-
-	      // 	cost = cos( imS*t )*expS;      // "cos(t)" for dispersive model 
-	      // 	sint = sin( imS*t )*expS;
-
-	      // 	dcost = -imS*sint + reS*cost;  //  d/dt of "cost" 
-	      // 	dsint =  imS*cost + reS*sint;  //  d/dt of "cost" 
-          	    
-	      // }
-
-                            if( debug & 4 ) printF("Set Dirichlet BC from known solution, grid,side,axis=%i,%i,%i\n",grid,side,axis);
-            	      
-              // getBoundaryIndex(mg.gridIndexRange(),side,axis,I1,I2,I3);
-
-              // *wdh* 041013: Do not use the next line -- P++ problems
-              // *wdh*   u(I1,I2,I3,C)=ug(I1,I2,I3,C)*sint+ug(I1,I2,I3,C+3)*cost;
-
-#ifdef USE_PPP
-                            realSerialArray ugLocal; getLocalArrayWithGhostBoundaries(ug,ugLocal);
-#else
-                            const realSerialArray & ugLocal = ug; 
-#endif
-            	      real *ugp = ugLocal.Array_Descriptor.Array_View_Pointer3;
-            	      const int ugDim0=ugLocal.getRawDataSize(0);
-            	      const int ugDim1=ugLocal.getRawDataSize(1);
-            	      const int ugDim2=ugLocal.getRawDataSize(2);
-#define UG(i0,i1,i2,i3) ugp[i0+ugDim0*(i1+ugDim1*(i2+ugDim2*(i3)))]
-            		
-            	      int i1,i2,i3;
-            	      if( numberOfDimensions==2 )
-            	      {
-            		FOR_3D(i1,i2,i3,I1,I2,I3)
-            		{
-              		  U(i1,i2,i3,ex)=UG(i1,i2,i3,ex)*sint+UG(i1,i2,i3,ex+3)*cost;
-              		  U(i1,i2,i3,ey)=UG(i1,i2,i3,ey)*sint+UG(i1,i2,i3,ey+3)*cost;
-              		  U(i1,i2,i3,hz)=UG(i1,i2,i3,hz)*sint+UG(i1,i2,i3,hz+3)*cost;
-              		  if( method==sosup )
-              		  { // time derivatives: 
-                		    U(i1,i2,i3,ext)=UG(i1,i2,i3,ex)*dsint+UG(i1,i2,i3,ex+3)*dcost;
-                		    U(i1,i2,i3,eyt)=UG(i1,i2,i3,ey)*dsint+UG(i1,i2,i3,ey+3)*dcost;
-                		    U(i1,i2,i3,hzt)=UG(i1,i2,i3,hz)*dsint+UG(i1,i2,i3,hz+3)*dcost;
-              		  }
-            		}
-		// -- dispersion model components --
-            		if( dispersionModel!=noDispersion )
-            		{
-              		  FOR_3D(i1,i2,i3,I1,I2,I3)
-              		  {
-                		    U(i1,i2,i3,pxc)  = UG(i1,i2,i3,ex)*phiPs + UG(i1,i2,i3,ex+3)*phiPc;
-                		    U(i1,i2,i3,pyc)  = UG(i1,i2,i3,ey)*phiPs + UG(i1,i2,i3,ey+3)*phiPc;
-              		  }
-            		}
-            	      }
-                            else
-            	      {
-                                if( solveForElectricField )
-            		{
-              		  FOR_3D(i1,i2,i3,I1,I2,I3)
-              		  {
-                		    U(i1,i2,i3,ex)=UG(i1,i2,i3,ex)*sint+UG(i1,i2,i3,ex+3)*cost;
-                		    U(i1,i2,i3,ey)=UG(i1,i2,i3,ey)*sint+UG(i1,i2,i3,ey+3)*cost;
-                		    U(i1,i2,i3,ez)=UG(i1,i2,i3,ez)*sint+UG(i1,i2,i3,ez+3)*cost;
-                		    if( method==sosup )
-                		    { // time derivatives:
-                  		      U(i1,i2,i3,ext)=UG(i1,i2,i3,ex)*dsint+UG(i1,i2,i3,ex+3)*dcost;
-                  		      U(i1,i2,i3,eyt)=UG(i1,i2,i3,ey)*dsint+UG(i1,i2,i3,ey+3)*dcost;
-                  		      U(i1,i2,i3,ezt)=UG(i1,i2,i3,ez)*dsint+UG(i1,i2,i3,ez+3)*dcost;
-                		    }
-              		  
-              		  }
-
-		  // -- dispersion model components --
-              		  if( dispersionModel!=noDispersion )
-              		  {
-                		    FOR_3D(i1,i2,i3,I1,I2,I3)
-                		    {
-                  		      U(i1,i2,i3,pxc)  = UG(i1,i2,i3,ex)*phiPs + UG(i1,i2,i3,ex+3)*phiPc;
-                  		      U(i1,i2,i3,pyc)  = UG(i1,i2,i3,ey)*phiPs + UG(i1,i2,i3,ey+3)*phiPc;
-                  		      U(i1,i2,i3,pzc)  = UG(i1,i2,i3,ez)*phiPs + UG(i1,i2,i3,ez+3)*phiPc;
-                		    }
-              		  }
-
-            		}
-            		if( solveForMagneticField )
-            		{
-              		  FOR_3D(i1,i2,i3,I1,I2,I3)
-              		  {
-                		    U(i1,i2,i3,hx)=UG(i1,i2,i3,hx)*sint+UG(i1,i2,i3,hx+3)*cost;
-                		    U(i1,i2,i3,hy)=UG(i1,i2,i3,hy)*sint+UG(i1,i2,i3,hy+3)*cost;
-                		    U(i1,i2,i3,hz)=UG(i1,i2,i3,hz)*sint+UG(i1,i2,i3,hz+3)*cost;
-              		  }
-            		}
-            		
-            	      }
-#undef UG
-
-              // extrapolate the ghostline
-              // getGhostIndex(mg.gridIndexRange(),side,axis,Ig1,Ig2,Ig3); // ghost line
-              // u(Ig1,Ig2,Ig3,C)=2.*u(Ig1+is1,Ig2+is2,Ig3,C)-u(Ig1+2*is1,Ig2+2*is2,Ig3,C);
-
-              // u(Ig1,Ig2,Ig3,C)=2.*( ug(I1,I2,I3,C)*sint+ug(I1,I2,I3,C+3)*cost )
-              //                       -u(Ig1+2*is1,Ig2+2*is2,Ig3,C);
-          	    
-          	    }
+                                else
+                                {
+                                    if( solveForElectricField )
+                                    {
+                                        FOR_3D(i1,i2,i3,I1,I2,I3)
+                                        {
+                                            U(i1,i2,i3,ex)=UG(i1,i2,i3,ex)*sint+UG(i1,i2,i3,ex+3)*cost;
+                                            U(i1,i2,i3,ey)=UG(i1,i2,i3,ey)*sint+UG(i1,i2,i3,ey+3)*cost;
+                                            U(i1,i2,i3,ez)=UG(i1,i2,i3,ez)*sint+UG(i1,i2,i3,ez+3)*cost;
+                                            if( method==sosup )
+                                            { // time derivatives:
+                                                U(i1,i2,i3,ext)=UG(i1,i2,i3,ex)*dsint+UG(i1,i2,i3,ex+3)*dcost;
+                                                U(i1,i2,i3,eyt)=UG(i1,i2,i3,ey)*dsint+UG(i1,i2,i3,ey+3)*dcost;
+                                                U(i1,i2,i3,ezt)=UG(i1,i2,i3,ez)*dsint+UG(i1,i2,i3,ez+3)*dcost;
+                                            }
+                                        }
+                    // -- dispersion model components --
+                                        if( dispersionModel!=noDispersion )
+                                        {
+                                            FOR_3D(i1,i2,i3,I1,I2,I3)
+                                            {
+                                                for( int iv=0; iv<numberOfPolarizationVectors; iv++ )
+                                                {
+                                                    const int pc= iv*numberOfDimensions;
+                          // *fix* me for numberOfPolarizationVectors>1 
+                                                    pLocal(i1,i2,i3,pc  ) = UG(i1,i2,i3,ex)*phiPs + UG(i1,i2,i3,ex+3)*phiPc;
+                                                    pLocal(i1,i2,i3,pc+1) = UG(i1,i2,i3,ey)*phiPs + UG(i1,i2,i3,ey+3)*phiPc;
+                                                    pLocal(i1,i2,i3,pc+2) = UG(i1,i2,i3,ez)*phiPs + UG(i1,i2,i3,ez+3)*phiPc;
+                                                }
+                        // U(i1,i2,i3,pxc)  = UG(i1,i2,i3,ex)*phiPs + UG(i1,i2,i3,ex+3)*phiPc;
+                        // U(i1,i2,i3,pyc)  = UG(i1,i2,i3,ey)*phiPs + UG(i1,i2,i3,ey+3)*phiPc;
+                        // U(i1,i2,i3,pzc)  = UG(i1,i2,i3,ez)*phiPs + UG(i1,i2,i3,ez+3)*phiPc;
+                                            }
+                                        }
+                                    }
+                                    if( solveForMagneticField )
+                                    {
+                                        FOR_3D(i1,i2,i3,I1,I2,I3)
+                                        {
+                                            U(i1,i2,i3,hx)=UG(i1,i2,i3,hx)*sint+UG(i1,i2,i3,hx+3)*cost;
+                                            U(i1,i2,i3,hy)=UG(i1,i2,i3,hy)*sint+UG(i1,i2,i3,hy+3)*cost;
+                                            U(i1,i2,i3,hz)=UG(i1,i2,i3,hz)*sint+UG(i1,i2,i3,hz+3)*cost;
+                                        }
+                                    }
+                                }
+                            #undef UG
+                // extrapolate the ghostline
+                // getGhostIndex(mg.gridIndexRange(),side,axis,Ig1,Ig2,Ig3); // ghost line
+                // u(Ig1,Ig2,Ig3,C)=2.*u(Ig1+is1,Ig2+is2,Ig3,C)-u(Ig1+2*is1,Ig2+2*is2,Ig3,C);
+                // u(Ig1,Ig2,Ig3,C)=2.*( ug(I1,I2,I3,C)*sint+ug(I1,I2,I3,C+3)*cost )
+                //                       -u(Ig1+2*is1,Ig2+2*is2,Ig3,C);
+                            }
+                        }
+                        
                         else if( true )
-          	    {
+                        {
                             uLocal(I1,I2,I3,C)=0.;
-          	    }
-          	    else
-          	    {
-            	      OV_ABORT("Maxwell::assignBoundaryConditions:dirichlet unknown forcing option");
-          	    }
+                        }
+                        else
+                        {
+                            OV_ABORT("Maxwell::assignBoundaryConditions:dirichlet unknown forcing option");
+                        }
 
         	  } // end if( bc(side,axis)==dirichlet || bc(side,axis)==planeWaveBoundaryCondition ) 
         	  
@@ -1632,134 +1666,122 @@ assignBoundaryConditions( int option, int grid, real t, real dt, realMappedGridF
           // *****************************************************************
           // **************** Yee Method *************************************
           // *****************************************************************
-        	  if( mg.boundaryCondition(side,axis)==dirichlet )
-        	  {
-	    // this is a fake BC where we give all variables equal to the true solution
-        	  
-                        if( option==1 )
-          	    {
-            	      getBoundaryIndex(mg.gridIndexRange(),side,axis,I1,I2,I3);
-                            getGhostIndex(mg.gridIndexRange(),side,axis,Ig1,Ig2,Ig3,1); // ghost line
 
-            	      bool ok = ParallelUtility::getLocalArrayBounds(u,uLocal,I1,I2,I3,includeGhost);
-            	      if( !ok ) continue;
-            	      ok = ParallelUtility::getLocalArrayBounds(u,uLocal,Ig1,Ig2,Ig3,includeGhost);
-            	      if( !ok ) continue;
-
-            	      realSerialArray xe(I1,I2,I3,mg.numberOfDimensions());
-          	    
-            	      if( axis==0 )
-            	      {
-		// left or right side
-            		xe=.5*(xLocal(I1,I2+1,I3,all)+xLocal(I1,I2,I3,all));  // face center
-            		uLocal(I1,I2,I3,ey)=eyTrue(xe(I1,I2,I3,0),xe(I1,I2,I3,1),t+dtb2);
-
-                // extrapolate ghost line values for plotting:
-                                uLocal(Ig1,Ig2,Ig3,ey)=2.*uLocal(Ig1+is1,Ig2+is2,Ig3,ey)-uLocal(Ig1+2*is1,Ig2+2*is2,Ig3,ey);
-
-                                if( side==1 ) // adjust for face-centredness
+                    {
+                        if( mg.boundaryCondition(side,axis)==dirichlet )
+                        {
+              // this is a fake BC where we give all variables equal to the true solution
+                            if( option==1 )
+                            {
+                                getBoundaryIndex(mg.gridIndexRange(),side,axis,I1,I2,I3);
+                                getGhostIndex(mg.gridIndexRange(),side,axis,Ig1,Ig2,Ig3,1); // ghost line
+                                bool ok = ParallelUtility::getLocalArrayBounds(u,uLocal,I1,I2,I3,includeGhost);
+                                if( !ok ) continue;
+                                ok = ParallelUtility::getLocalArrayBounds(u,uLocal,Ig1,Ig2,Ig3,includeGhost);
+                                if( !ok ) continue;
+                                realSerialArray xe(I1,I2,I3,mg.numberOfDimensions());
+                                if( axis==0 )
+                                {
+                  // left or right side
+                                    xe=.5*(xLocal(I1,I2+1,I3,all)+xLocal(I1,I2,I3,all));  // face center
+                                    uLocal(I1,I2,I3,ey)=eyTrue(xe(I1,I2,I3,0),xe(I1,I2,I3,1),t+dtb2);
+                  // extrapolate ghost line values for plotting:
+                                    uLocal(Ig1,Ig2,Ig3,ey)=2.*uLocal(Ig1+is1,Ig2+is2,Ig3,ey)-uLocal(Ig1+2*is1,Ig2+2*is2,Ig3,ey);
+                                    if( side==1 ) // adjust for face-centredness
+                                        getGhostIndex(mg.gridIndexRange(),side,axis,Ig1,Ig2,Ig3,0);
+                                    uLocal(Ig1,Ig2,Ig3,ex)=2.*uLocal(Ig1+is1,Ig2+is2,Ig3,ex)-uLocal(Ig1+2*is1,Ig2+2*is2,Ig3,ex);
+                                }
+                                else if( axis==1 )
+                                {
+                  // bottom or top
+                                    xe=.5*(xLocal(I1+1,I2,I3,all)+xLocal(I1,I2,I3,all));  // face center
+                                    uLocal(I1,I2,I3,ex)=exTrue(xe(I1,I2,I3,0),xe(I1,I2,I3,1),t+dtb2);
+                  // extrapolate ghost line values for plotting:
+                                    uLocal(Ig1,Ig2,Ig3,ex)=2.*uLocal(Ig1+is1,Ig2+is2,Ig3,ex)-uLocal(Ig1+2*is1,Ig2+2*is2,Ig3,ex);
+                                    if( side==1 )// adjust for face-centredness
+                                        getGhostIndex(mg.gridIndexRange(),side,axis,Ig1,Ig2,Ig3,0);
+                                    uLocal(Ig1,Ig2,Ig3,ey)=2.*uLocal(Ig1+is1,Ig2+is2,Ig3,ey)-uLocal(Ig1+2*is1,Ig2+2*is2,Ig3,ey);
+                                }
+                                else
+                                {
+                                    throw "error";
+                                }
+                            }
+                            else
+                            {
+                // BC for H 
+                // there is no BC for H -- just extrapolate ghost line values for plotting
+                                if( side==0 ) 
+                                    getGhostIndex(mg.gridIndexRange(),side,axis,Ig1,Ig2,Ig3,1);
+                                else // adjust for face-centredness
                                     getGhostIndex(mg.gridIndexRange(),side,axis,Ig1,Ig2,Ig3,0);
-                                uLocal(Ig1,Ig2,Ig3,ex)=2.*uLocal(Ig1+is1,Ig2+is2,Ig3,ex)-uLocal(Ig1+2*is1,Ig2+2*is2,Ig3,ex);
-            	      }
-            	      else if( axis==1 )
-            	      {
-		// bottom or top
-            		xe=.5*(xLocal(I1+1,I2,I3,all)+xLocal(I1,I2,I3,all));  // face center
-            		uLocal(I1,I2,I3,ex)=exTrue(xe(I1,I2,I3,0),xe(I1,I2,I3,1),t+dtb2);
-
-                // extrapolate ghost line values for plotting:
-                                uLocal(Ig1,Ig2,Ig3,ex)=2.*uLocal(Ig1+is1,Ig2+is2,Ig3,ex)-uLocal(Ig1+2*is1,Ig2+2*is2,Ig3,ex);
-                                if( side==1 )// adjust for face-centredness
-                                    getGhostIndex(mg.gridIndexRange(),side,axis,Ig1,Ig2,Ig3,0);
-              	        uLocal(Ig1,Ig2,Ig3,ey)=2.*uLocal(Ig1+is1,Ig2+is2,Ig3,ey)-uLocal(Ig1+2*is1,Ig2+2*is2,Ig3,ey);
-
-            	      }
-            	      else
-            	      {
-            		throw "error";
-            	      }
-          	    }
-          	    else
-          	    {
-	      // BC for H 
-              // there is no BC for H -- just extrapolate ghost line values for plotting
-                            if( side==0 ) 
-                                getGhostIndex(mg.gridIndexRange(),side,axis,Ig1,Ig2,Ig3,1);
-                            else // adjust for face-centredness
-                                getGhostIndex(mg.gridIndexRange(),side,axis,Ig1,Ig2,Ig3,0);
-                                
-            	      bool ok = ParallelUtility::getLocalArrayBounds(u,uLocal,Ig1,Ig2,Ig3,includeGhost);
-            	      if( !ok ) continue;
-
-                            uLocal(Ig1,Ig2,Ig3,hz)=2.*uLocal(Ig1+is1,Ig2+is2,Ig3,hz)-uLocal(Ig1+2*is1,Ig2+2*is2,Ig3,hz);
-//               uLocal(Ig1,Ig2,Ig3,hz)=3.*uLocal(Ig1+is1,Ig2+is2,Ig3,hz)-3.*uLocal(Ig1+2*is1,Ig2+2*is2,Ig3,hz)+
-//                                    uLocal(Ig1+3*is1,Ig2+3*is2,Ig3,hz);
-            	      
+                                bool ok = ParallelUtility::getLocalArrayBounds(u,uLocal,Ig1,Ig2,Ig3,includeGhost);
+                                if( !ok ) continue;
+                                uLocal(Ig1,Ig2,Ig3,hz)=2.*uLocal(Ig1+is1,Ig2+is2,Ig3,hz)-uLocal(Ig1+2*is1,Ig2+2*is2,Ig3,hz);
+          //               uLocal(Ig1,Ig2,Ig3,hz)=3.*uLocal(Ig1+is1,Ig2+is2,Ig3,hz)-3.*uLocal(Ig1+2*is1,Ig2+2*is2,Ig3,hz)+
+          //                                    uLocal(Ig1+3*is1,Ig2+3*is2,Ig3,hz);
+                            }
                         }
-        	  }
-        	  else if( mg.boundaryCondition(side,axis)==perfectElectricalConductor ) 
-        	  {
-            // --- YEE ---
-	    // (1) tangential components of E are zero
-	    // (2) normal derivative of the normal component of E is zero ??
-	    // (3) normal component of magnetic field is zero
-
-                        if( option==1 )
-          	    {
-            	      getBoundaryIndex(mg.gridIndexRange(),side,axis,I1,I2,I3);
-                            getGhostIndex(mg.gridIndexRange(),side,axis,Ig1,Ig2,Ig3,1); // ghost line
-          	    
-            	      bool ok = ParallelUtility::getLocalArrayBounds(u,uLocal,I1,I2,I3,includeGhost);
-            	      if( !ok ) continue;
-            	      ok = ParallelUtility::getLocalArrayBounds(u,uLocal,Ig1,Ig2,Ig3,includeGhost);
-            	      if( !ok ) continue;
-
-            	      if( axis==0 )
-            	      {
-		// left or right side
-            		uLocal(I1,I2,I3,ey)=0.;
-                // extrapolate ghost line values for plotting:
-                                uLocal(Ig1,Ig2,Ig3,ey)=2.*uLocal(Ig1+is1,Ig2+is2,Ig3,ey)-uLocal(Ig1+2*is1,Ig2+2*is2,Ig3,ey);
-                                if( side==1 ) // adjust for face-centredness
+                        else if( mg.boundaryCondition(side,axis)==perfectElectricalConductor ) 
+                        {
+              // --- YEE ---
+              // (1) tangential components of E are zero
+              // (2) normal derivative of the normal component of E is zero ??
+              // (3) normal component of magnetic field is zero
+                            if( option==1 )
+                            {
+                                getBoundaryIndex(mg.gridIndexRange(),side,axis,I1,I2,I3);
+                                getGhostIndex(mg.gridIndexRange(),side,axis,Ig1,Ig2,Ig3,1); // ghost line
+                                bool ok = ParallelUtility::getLocalArrayBounds(u,uLocal,I1,I2,I3,includeGhost);
+                                if( !ok ) continue;
+                                ok = ParallelUtility::getLocalArrayBounds(u,uLocal,Ig1,Ig2,Ig3,includeGhost);
+                                if( !ok ) continue;
+                                if( axis==0 )
+                                {
+                  // left or right side
+                                    uLocal(I1,I2,I3,ey)=0.;
+                  // extrapolate ghost line values for plotting:
+                                    uLocal(Ig1,Ig2,Ig3,ey)=2.*uLocal(Ig1+is1,Ig2+is2,Ig3,ey)-uLocal(Ig1+2*is1,Ig2+2*is2,Ig3,ey);
+                                    if( side==1 ) // adjust for face-centredness
+                                        getGhostIndex(mg.gridIndexRange(),side,axis,Ig1,Ig2,Ig3,0);
+                                    uLocal(Ig1,Ig2,Ig3,ex)=2.*uLocal(Ig1+is1,Ig2+is2,Ig3,ex)-uLocal(Ig1+2*is1,Ig2+2*is2,Ig3,ex);
+                                }
+                                else if( axis==1 )
+                                {
+                  // bottom or top
+                                    uLocal(I1,I2,I3,ex)=0.;
+                  // extrapolate ghost line values for plotting:
+                                    uLocal(Ig1,Ig2,Ig3,ex)=2.*uLocal(Ig1+is1,Ig2+is2,Ig3,ex)-uLocal(Ig1+2*is1,Ig2+2*is2,Ig3,ex);
+                                    if( side==1 )// adjust for face-centredness
+                                        getGhostIndex(mg.gridIndexRange(),side,axis,Ig1,Ig2,Ig3,0);
+                                    uLocal(Ig1,Ig2,Ig3,ey)=2.*uLocal(Ig1+is1,Ig2+is2,Ig3,ey)-uLocal(Ig1+2*is1,Ig2+2*is2,Ig3,ey);
+                                }
+                                else
+                                {
+                                    throw "error";
+                                }
+                            }
+                            else
+                            {
+                // BC for H 
+                // there is no BC for H -- just extrapolate ghost line values for plotting
+                                if( side==0 ) 
+                                    getGhostIndex(mg.gridIndexRange(),side,axis,Ig1,Ig2,Ig3,1);
+                                else // adjust for face-centredness
                                     getGhostIndex(mg.gridIndexRange(),side,axis,Ig1,Ig2,Ig3,0);
-                                uLocal(Ig1,Ig2,Ig3,ex)=2.*uLocal(Ig1+is1,Ig2+is2,Ig3,ex)-uLocal(Ig1+2*is1,Ig2+2*is2,Ig3,ex);
-            	      }
-            	      else if( axis==1 )
-            	      {
-		// bottom or top
-            		uLocal(I1,I2,I3,ex)=0.;
-                // extrapolate ghost line values for plotting:
-                                uLocal(Ig1,Ig2,Ig3,ex)=2.*uLocal(Ig1+is1,Ig2+is2,Ig3,ex)-uLocal(Ig1+2*is1,Ig2+2*is2,Ig3,ex);
-                                if( side==1 )// adjust for face-centredness
-                                    getGhostIndex(mg.gridIndexRange(),side,axis,Ig1,Ig2,Ig3,0);
-              	        uLocal(Ig1,Ig2,Ig3,ey)=2.*uLocal(Ig1+is1,Ig2+is2,Ig3,ey)-uLocal(Ig1+2*is1,Ig2+2*is2,Ig3,ey);
-            	      }
-            	      else
-            	      {
-            		throw "error";
-            	      }
-          	    }
-          	    else
-          	    {
-	      // BC for H 
-              // there is no BC for H -- just extrapolate ghost line values for plotting
-                            if( side==0 ) 
-                                getGhostIndex(mg.gridIndexRange(),side,axis,Ig1,Ig2,Ig3,1);
-                            else // adjust for face-centredness
-                                getGhostIndex(mg.gridIndexRange(),side,axis,Ig1,Ig2,Ig3,0);
-                                
-            	      bool ok = ParallelUtility::getLocalArrayBounds(u,uLocal,Ig1,Ig2,Ig3,includeGhost);
-            	      if( !ok ) continue;
-
-                            uLocal(Ig1,Ig2,Ig3,hz)=2.*uLocal(Ig1+is1,Ig2+is2,Ig3,hz)-uLocal(Ig1+2*is1,Ig2+2*is2,Ig3,hz);
+                                bool ok = ParallelUtility::getLocalArrayBounds(u,uLocal,Ig1,Ig2,Ig3,includeGhost);
+                                if( !ok ) continue;
+                                uLocal(Ig1,Ig2,Ig3,hz)=2.*uLocal(Ig1+is1,Ig2+is2,Ig3,hz)-uLocal(Ig1+2*is1,Ig2+2*is2,Ig3,hz);
+                            }
                         }
-        	  }
-        	  else // bc
-        	  {
-          	    printF("applyBoundaryConditions:ERROR: unknown boundaryCondition(%i,%i)=%i\n",
-               		   side,axis,mg.boundaryCondition(side,axis));
-          	    Overture::abort("applyBoundaryConditions:ERROR");
-        	  }
+                        else // bc
+                        {
+                            printF("applyBoundaryConditions:ERROR: unknown boundaryCondition(%i,%i)=%i\n",
+                                          side,axis,mg.boundaryCondition(side,axis));
+                            Overture::abort("applyBoundaryConditions:ERROR");
+                        }
+                    }
+
       	}  // *********************** END YEE ************************
       	
       	else if( method==dsi )
@@ -1767,178 +1789,161 @@ assignBoundaryConditions( int option, int grid, real t, real dt, realMappedGridF
           // *****************************************************************
           // **************** DSI Method *************************************
           // *****************************************************************
-        	  if( mg.boundaryCondition(side,axis)==dirichlet )
-        	  {
-	  // this is a fake BC where we give all variables equal to the true solution
-                        getBoundaryIndex(mg.gridIndexRange(),side,axis,I1,I2,I3);
-                        getGhostIndex(mg.gridIndexRange(),side,axis,Ig1,Ig2,Ig3,1); // ghost line
 
-          	    bool ok = ParallelUtility::getLocalArrayBounds(u,uLocal,I1,I2,I3,includeGhost);
-          	    if( !ok ) continue;
-          	    ok = ParallelUtility::getLocalArrayBounds(u,uLocal,Ig1,Ig2,Ig3,includeGhost);
-          	    if( !ok ) continue;
+                    {
+                        if( mg.boundaryCondition(side,axis)==dirichlet )
+                        {
+              // this is a fake BC where we give all variables equal to the true solution
+                            getBoundaryIndex(mg.gridIndexRange(),side,axis,I1,I2,I3);
+                            getGhostIndex(mg.gridIndexRange(),side,axis,Ig1,Ig2,Ig3,1); // ghost line
+                            bool ok = ParallelUtility::getLocalArrayBounds(u,uLocal,I1,I2,I3,includeGhost);
+                            if( !ok ) continue;
+                            ok = ParallelUtility::getLocalArrayBounds(u,uLocal,Ig1,Ig2,Ig3,includeGhost);
+                            if( !ok ) continue;
+                            realSerialArray xe(I1,I2,I3,mg.numberOfDimensions());
+                            if( option==1 )
+                            {
+                                if( axis==0 )
+                                {
+                  // left or right side
+                                    xe=.5*(xLocal(I1,I2+1,I3,all)+xLocal(I1,I2,I3,all));  // face center
+                                    uLocal(I1,I2,I3,ex01)=exTrue(xe(I1,I2,I3,0),xe(I1,I2,I3,1),t+dtb2);
+                                    uLocal(I1,I2,I3,ey01)=eyTrue(xe(I1,I2,I3,0),xe(I1,I2,I3,1),t+dtb2);
+                  // extrapolate ghost line values for plotting:
+                                    uLocal(Ig1,Ig2,Ig3,ex01)=2.*uLocal(Ig1+is1,Ig2+is2,Ig3,ex01)-uLocal(Ig1+2*is1,Ig2+2*is2,Ig3,ex01);
+                                    uLocal(Ig1,Ig2,Ig3,ey01)=2.*uLocal(Ig1+is1,Ig2+is2,Ig3,ey01)-uLocal(Ig1+2*is1,Ig2+2*is2,Ig3,ey01);
+                                    if( side==1 ) // adjust for face-centredness
+                                        getGhostIndex(mg.gridIndexRange(),side,axis,Ig1,Ig2,Ig3,0);
+                                    uLocal(Ig1,Ig2,Ig3,ex10)=2.*uLocal(Ig1+is1,Ig2+is2,Ig3,ex10)-uLocal(Ig1+2*is1,Ig2+2*is2,Ig3,ex10);
+                                    uLocal(Ig1,Ig2,Ig3,ey10)=2.*uLocal(Ig1+is1,Ig2+is2,Ig3,ey10)-uLocal(Ig1+2*is1,Ig2+2*is2,Ig3,ey10);
+                                }
+                                else if( axis==1 )
+                                {
+                  // bottom or top
+                                    xe=.5*(xLocal(I1+1,I2,I3,all)+xLocal(I1,I2,I3,all));  // face center
+                                    uLocal(I1,I2,I3,ex10)=exTrue(xe(I1,I2,I3,0),xe(I1,I2,I3,1),t+dtb2);
+                                    uLocal(I1,I2,I3,ey10)=eyTrue(xe(I1,I2,I3,0),xe(I1,I2,I3,1),t+dtb2);
+                                    uLocal(Ig1,Ig2,Ig3,ex10)=2.*uLocal(Ig1+is1,Ig2+is2,Ig3,ex10)-uLocal(Ig1+2*is1,Ig2+2*is2,Ig3,ex10);
+                                    uLocal(Ig1,Ig2,Ig3,ey10)=2.*uLocal(Ig1+is1,Ig2+is2,Ig3,ey10)-uLocal(Ig1+2*is1,Ig2+2*is2,Ig3,ey10);
+                                    if( side==1 ) // adjust for face-centredness
+                                        getGhostIndex(mg.gridIndexRange(),side,axis,Ig1,Ig2,Ig3,0);
+                                    uLocal(Ig1,Ig2,Ig3,ex01)=2.*uLocal(Ig1+is1,Ig2+is2,Ig3,ex01)-uLocal(Ig1+2*is1,Ig2+2*is2,Ig3,ex01);
+                                    uLocal(Ig1,Ig2,Ig3,ey01)=2.*uLocal(Ig1+is1,Ig2+is2,Ig3,ey01)-uLocal(Ig1+2*is1,Ig2+2*is2,Ig3,ey01);
+                                }
+                                else
+                                {
+                                    throw "error";
+                                }
+                            }
+                            else
+                            {
+                // BC for H 
+                // there is no BC for H -- just extrapolate ghost line values for plotting
+                                if( side==0 ) 
+                                    getGhostIndex(mg.gridIndexRange(),side,axis,Ig1,Ig2,Ig3,1);
+                                else // adjust for face-centredness
+                                    getGhostIndex(mg.gridIndexRange(),side,axis,Ig1,Ig2,Ig3,0);
+                                bool ok = ParallelUtility::getLocalArrayBounds(u,uLocal,Ig1,Ig2,Ig3,includeGhost);
+                                if( !ok ) continue;
+                                uLocal(Ig1,Ig2,Ig3,hz11)=2.*uLocal(Ig1+is1,Ig2+is2,Ig3,hz11)-uLocal(Ig1+2*is1,Ig2+2*is2,Ig3,hz11);
+                            }
+                        }
+                        else if( mg.boundaryCondition(side,axis)==perfectElectricalConductor )
+                        {
+              // ***** DSI : Perfect Electrical Conductor *****
+                            getBoundaryIndex(mg.gridIndexRange(),side,axis,I1,I2,I3);
+                            getGhostIndex(mg.gridIndexRange(),side,axis,Ig1,Ig2,Ig3,1); // ghost line
+                            bool ok = ParallelUtility::getLocalArrayBounds(u,uLocal,I1,I2,I3,includeGhost);
+                            if( !ok ) continue;
+                            ok = ParallelUtility::getLocalArrayBounds(u,uLocal,Ig1,Ig2,Ig3,includeGhost);
+                            if( !ok ) continue;
+                            if( option==0 )
+                            {
+                                if( axis==0 )
+                                {
+                  // left or right side
+                  // tangential component is zero.
+                                    uLocal(I1,I2,I3,ex)=0.;  // **** finish this ****
+                                    uLocal(I1,I2,I3,ey)=0.;
+                  // extrapolate ghost line values for plotting:
+                  //		uLocal(Ig1,Ig2,Ig3,ex)=2.*uLocal(Ig1+is1,Ig2+is2,Ig3,ex)-uLocal(Ig1+2*is1,Ig2+2*is2,Ig3,ex);
+                  //		uLocal(Ig1,Ig2,Ig3,ey)=2.*uLocal(Ig1+is1,Ig2+is2,Ig3,ey)-uLocal(Ig1+2*is1,Ig2+2*is2,Ig3,ey);
+                                    if( side==1 ) // adjust for face-centredness
+                                        getGhostIndex(mg.gridIndexRange(),side,axis,Ig1,Ig2,Ig3,0);
+                  //		uLocal(Ig1,Ig2,Ig3,ex)=2.*uLocal(Ig1+is1,Ig2+is2,Ig3,ex)-uLocal(Ig1+2*is1,Ig2+2*is2,Ig3,ex);
+                  //		uLocal(Ig1,Ig2,Ig3,ey)=2.*uLocal(Ig1+is1,Ig2+is2,Ig3,ey)-uLocal(Ig1+2*is1,Ig2+2*is2,Ig3,ey);
+                                }
+                                else if( axis==1 )
+                                {
+                  // bottom or top
+                                    uLocal(I1,I2,I3,ex)=0.;
+                                    uLocal(I1,I2,I3,ey)=0.;
+                  //uLocal(Ig1,Ig2,Ig3,ex)=2.*uLocal(Ig1+is1,Ig2+is2,Ig3,ex)-uLocal(Ig1+2*is1,Ig2+2*is2,Ig3,ex);
+                  //uLocal(Ig1,Ig2,Ig3,ey)=2.*uLocal(Ig1+is1,Ig2+is2,Ig3,ey)-uLocal(Ig1+2*is1,Ig2+2*is2,Ig3,ey);
+                                    if( side==1 ) // adjust for face-centredness
+                                        getGhostIndex(mg.gridIndexRange(),side,axis,Ig1,Ig2,Ig3,0);
+                  //		uLocal(Ig1,Ig2,Ig3,ex)=2.*uLocal(Ig1+is1,Ig2+is2,Ig3,ex)-uLocal(Ig1+2*is1,Ig2+2*is2,Ig3,ex);
+                  //		uLocal(Ig1,Ig2,Ig3,ey)=2.*uLocal(Ig1+is1,Ig2+is2,Ig3,ey)-uLocal(Ig1+2*is1,Ig2+2*is2,Ig3,ey);
+                                }
+                                else
+                                {
+                                    throw "error";
+                                }
+                            }
+                            else if(option==1)
+                            {
+                                if( axis==0 )
+                                {
+                  // left or right side
+                  // tangential component is zero.
+                                    uLocal(I1,I2,I3,ex)=0.;  // **** finish this ****
+                                    uLocal(I1,I2,I3,ey)=0.;
+                  // extrapolate ghost line values for plotting:
+                  //uLocal(Ig1,Ig2,Ig3,ex)=2.*uLocal(Ig1+is1,Ig2+is2,Ig3,ex)-uLocal(Ig1+2*is1,Ig2+2*is2,Ig3,ex);
+                  //uLocal(Ig1,Ig2,Ig3,ey)=2.*uLocal(Ig1+is1,Ig2+is2,Ig3,ey)-uLocal(Ig1+2*is1,Ig2+2*is2,Ig3,ey);
+                                    if( side==1 ) // adjust for face-centredness
+                                        getGhostIndex(mg.gridIndexRange(),side,axis,Ig1,Ig2,Ig3,0);
+                  //uLocal(Ig1,Ig2,Ig3,ex)=2.*uLocal(Ig1+is1,Ig2+is2,Ig3,ex)-uLocal(Ig1+2*is1,Ig2+2*is2,Ig3,ex);
+                  //uLocal(Ig1,Ig2,Ig3,ey)=2.*uLocal(Ig1+is1,Ig2+is2,Ig3,ey)-uLocal(Ig1+2*is1,Ig2+2*is2,Ig3,ey);
+                                }
+                                else if( axis==1 )
+                                {
+                  // bottom or top
+                                    uLocal(I1,I2,I3,ex)=0.;
+                                    uLocal(I1,I2,I3,ey)=0.;
+                  //uLocal(Ig1,Ig2,Ig3,ex)=2.*uLocal(Ig1+is1,Ig2+is2,Ig3,ex)-uLocal(Ig1+2*is1,Ig2+2*is2,Ig3,ex);
+                  //uLocal(Ig1,Ig2,Ig3,ey)=2.*uLocal(Ig1+is1,Ig2+is2,Ig3,ey)-uLocal(Ig1+2*is1,Ig2+2*is2,Ig3,ey);
+                                    if( side==1 ) // adjust for face-centredness
+                                        getGhostIndex(mg.gridIndexRange(),side,axis,Ig1,Ig2,Ig3,0);
+                  //uLocal(Ig1,Ig2,Ig3,ex)=2.*uLocal(Ig1+is1,Ig2+is2,Ig3,ex)-uLocal(Ig1+2*is1,Ig2+2*is2,Ig3,ex);
+                  //uLocal(Ig1,Ig2,Ig3,ey)=2.*uLocal(Ig1+is1,Ig2+is2,Ig3,ey)-uLocal(Ig1+2*is1,Ig2+2*is2,Ig3,ey);
+                                }
+                                else
+                                {
+                                    OV_ABORT("ERROR");
+                                }
+                            }
+                            else
+                            {
+                // BC for H 
+                // there is no BC for H -- just extrapolate ghost line values for plotting
+                                if( side==0 ) 
+                                    getGhostIndex(mg.gridIndexRange(),side,axis,Ig1,Ig2,Ig3,1);
+                                else // adjust for face-centredness
+                                    getGhostIndex(mg.gridIndexRange(),side,axis,Ig1,Ig2,Ig3,0);
+                                bool ok = ParallelUtility::getLocalArrayBounds(u,uLocal,Ig1,Ig2,Ig3,includeGhost);
+                                if( !ok ) continue;
+                                uLocal(Ig1,Ig2,Ig3)=2.*uLocal(Ig1+is1,Ig2+is2,Ig3)-uLocal(Ig1+2*is1,Ig2+2*is2,Ig3);
+                            }
+                        }
+                        else if( mg.boundaryCondition(side,axis)>0 )
+                        {
+                            printF("applyBoundaryConditions:ERROR: unknown boundaryCondition(%i,%i)=%i\n",
+                                          side,axis,mg.boundaryCondition(side,axis));
+                        }
+                    }
 
-                        realSerialArray xe(I1,I2,I3,mg.numberOfDimensions());
-          	    
-          	    if( option==1 )
-          	    {
-            	      if( axis==0 )
-            	      {
-		// left or right side
-            		xe=.5*(xLocal(I1,I2+1,I3,all)+xLocal(I1,I2,I3,all));  // face center
-            		uLocal(I1,I2,I3,ex01)=exTrue(xe(I1,I2,I3,0),xe(I1,I2,I3,1),t+dtb2);
-            		uLocal(I1,I2,I3,ey01)=eyTrue(xe(I1,I2,I3,0),xe(I1,I2,I3,1),t+dtb2);
 
-	      // extrapolate ghost line values for plotting:
-            		uLocal(Ig1,Ig2,Ig3,ex01)=2.*uLocal(Ig1+is1,Ig2+is2,Ig3,ex01)-uLocal(Ig1+2*is1,Ig2+2*is2,Ig3,ex01);
-            		uLocal(Ig1,Ig2,Ig3,ey01)=2.*uLocal(Ig1+is1,Ig2+is2,Ig3,ey01)-uLocal(Ig1+2*is1,Ig2+2*is2,Ig3,ey01);
-
-            		if( side==1 ) // adjust for face-centredness
-              		  getGhostIndex(mg.gridIndexRange(),side,axis,Ig1,Ig2,Ig3,0);
-            		uLocal(Ig1,Ig2,Ig3,ex10)=2.*uLocal(Ig1+is1,Ig2+is2,Ig3,ex10)-uLocal(Ig1+2*is1,Ig2+2*is2,Ig3,ex10);
-            		uLocal(Ig1,Ig2,Ig3,ey10)=2.*uLocal(Ig1+is1,Ig2+is2,Ig3,ey10)-uLocal(Ig1+2*is1,Ig2+2*is2,Ig3,ey10);
-            	      }
-            	      else if( axis==1 )
-            	      {
-		// bottom or top
-            		xe=.5*(xLocal(I1+1,I2,I3,all)+xLocal(I1,I2,I3,all));  // face center
-            		uLocal(I1,I2,I3,ex10)=exTrue(xe(I1,I2,I3,0),xe(I1,I2,I3,1),t+dtb2);
-            		uLocal(I1,I2,I3,ey10)=eyTrue(xe(I1,I2,I3,0),xe(I1,I2,I3,1),t+dtb2);
-
-            		uLocal(Ig1,Ig2,Ig3,ex10)=2.*uLocal(Ig1+is1,Ig2+is2,Ig3,ex10)-uLocal(Ig1+2*is1,Ig2+2*is2,Ig3,ex10);
-            		uLocal(Ig1,Ig2,Ig3,ey10)=2.*uLocal(Ig1+is1,Ig2+is2,Ig3,ey10)-uLocal(Ig1+2*is1,Ig2+2*is2,Ig3,ey10);
-            		if( side==1 ) // adjust for face-centredness
-              		  getGhostIndex(mg.gridIndexRange(),side,axis,Ig1,Ig2,Ig3,0);
-            		uLocal(Ig1,Ig2,Ig3,ex01)=2.*uLocal(Ig1+is1,Ig2+is2,Ig3,ex01)-uLocal(Ig1+2*is1,Ig2+2*is2,Ig3,ex01);
-            		uLocal(Ig1,Ig2,Ig3,ey01)=2.*uLocal(Ig1+is1,Ig2+is2,Ig3,ey01)-uLocal(Ig1+2*is1,Ig2+2*is2,Ig3,ey01);
-
-            	      }
-            	      else
-            	      {
-            		throw "error";
-            	      }
-          	    }
-          	    else
-          	    {
-	      // BC for H 
-              // there is no BC for H -- just extrapolate ghost line values for plotting
-                            if( side==0 ) 
-                                getGhostIndex(mg.gridIndexRange(),side,axis,Ig1,Ig2,Ig3,1);
-                            else // adjust for face-centredness
-                                getGhostIndex(mg.gridIndexRange(),side,axis,Ig1,Ig2,Ig3,0);
-                                
-            	      bool ok = ParallelUtility::getLocalArrayBounds(u,uLocal,Ig1,Ig2,Ig3,includeGhost);
-            	      if( !ok ) continue;
-
-                            uLocal(Ig1,Ig2,Ig3,hz11)=2.*uLocal(Ig1+is1,Ig2+is2,Ig3,hz11)-uLocal(Ig1+2*is1,Ig2+2*is2,Ig3,hz11);
-          	    }
-        	  }
-        	  else if( mg.boundaryCondition(side,axis)==perfectElectricalConductor )
-        	  {
-	    // ***** DSI : Perfect Electrical Conductor *****
-
-                        getBoundaryIndex(mg.gridIndexRange(),side,axis,I1,I2,I3);
-                        getGhostIndex(mg.gridIndexRange(),side,axis,Ig1,Ig2,Ig3,1); // ghost line
-          	    
-          	    bool ok = ParallelUtility::getLocalArrayBounds(u,uLocal,I1,I2,I3,includeGhost);
-          	    if( !ok ) continue;
-          	    ok = ParallelUtility::getLocalArrayBounds(u,uLocal,Ig1,Ig2,Ig3,includeGhost);
-          	    if( !ok ) continue;
-
-          	    if( option==0 )
-          	    {
-            	      if( axis==0 )
-            	      {
-		// left or right side
-                // tangential component is zero.
-            		uLocal(I1,I2,I3,ex)=0.;  // **** finish this ****
-            		uLocal(I1,I2,I3,ey)=0.;
-
-	        // extrapolate ghost line values for plotting:
-		//		uLocal(Ig1,Ig2,Ig3,ex)=2.*uLocal(Ig1+is1,Ig2+is2,Ig3,ex)-uLocal(Ig1+2*is1,Ig2+2*is2,Ig3,ex);
-		//		uLocal(Ig1,Ig2,Ig3,ey)=2.*uLocal(Ig1+is1,Ig2+is2,Ig3,ey)-uLocal(Ig1+2*is1,Ig2+2*is2,Ig3,ey);
-
-            		if( side==1 ) // adjust for face-centredness
-              		  getGhostIndex(mg.gridIndexRange(),side,axis,Ig1,Ig2,Ig3,0);
-		//		uLocal(Ig1,Ig2,Ig3,ex)=2.*uLocal(Ig1+is1,Ig2+is2,Ig3,ex)-uLocal(Ig1+2*is1,Ig2+2*is2,Ig3,ex);
-		//		uLocal(Ig1,Ig2,Ig3,ey)=2.*uLocal(Ig1+is1,Ig2+is2,Ig3,ey)-uLocal(Ig1+2*is1,Ig2+2*is2,Ig3,ey);
-            	      }
-            	      else if( axis==1 )
-            	      {
-		// bottom or top
-            		uLocal(I1,I2,I3,ex)=0.;
-            		uLocal(I1,I2,I3,ey)=0.;
-
-		//uLocal(Ig1,Ig2,Ig3,ex)=2.*uLocal(Ig1+is1,Ig2+is2,Ig3,ex)-uLocal(Ig1+2*is1,Ig2+2*is2,Ig3,ex);
-		//uLocal(Ig1,Ig2,Ig3,ey)=2.*uLocal(Ig1+is1,Ig2+is2,Ig3,ey)-uLocal(Ig1+2*is1,Ig2+2*is2,Ig3,ey);
-            		if( side==1 ) // adjust for face-centredness
-              		  getGhostIndex(mg.gridIndexRange(),side,axis,Ig1,Ig2,Ig3,0);
-		//		uLocal(Ig1,Ig2,Ig3,ex)=2.*uLocal(Ig1+is1,Ig2+is2,Ig3,ex)-uLocal(Ig1+2*is1,Ig2+2*is2,Ig3,ex);
-		//		uLocal(Ig1,Ig2,Ig3,ey)=2.*uLocal(Ig1+is1,Ig2+is2,Ig3,ey)-uLocal(Ig1+2*is1,Ig2+2*is2,Ig3,ey);
-
-            	      }
-            	      else
-            	      {
-            		throw "error";
-            	      }
-          	    }
-          	    else if(option==1)
-          	    {
-            	      if( axis==0 )
-            	      {
-		// left or right side
-		// tangential component is zero.
-            		uLocal(I1,I2,I3,ex)=0.;  // **** finish this ****
-            		uLocal(I1,I2,I3,ey)=0.;
-                		    
-		// extrapolate ghost line values for plotting:
-		//uLocal(Ig1,Ig2,Ig3,ex)=2.*uLocal(Ig1+is1,Ig2+is2,Ig3,ex)-uLocal(Ig1+2*is1,Ig2+2*is2,Ig3,ex);
-		//uLocal(Ig1,Ig2,Ig3,ey)=2.*uLocal(Ig1+is1,Ig2+is2,Ig3,ey)-uLocal(Ig1+2*is1,Ig2+2*is2,Ig3,ey);
-                		    
-            		if( side==1 ) // adjust for face-centredness
-              		  getGhostIndex(mg.gridIndexRange(),side,axis,Ig1,Ig2,Ig3,0);
-		//uLocal(Ig1,Ig2,Ig3,ex)=2.*uLocal(Ig1+is1,Ig2+is2,Ig3,ex)-uLocal(Ig1+2*is1,Ig2+2*is2,Ig3,ex);
-		//uLocal(Ig1,Ig2,Ig3,ey)=2.*uLocal(Ig1+is1,Ig2+is2,Ig3,ey)-uLocal(Ig1+2*is1,Ig2+2*is2,Ig3,ey);
-            	      }
-            	      else if( axis==1 )
-            	      {
-		// bottom or top
-            		uLocal(I1,I2,I3,ex)=0.;
-            		uLocal(I1,I2,I3,ey)=0.;
-                		    
-		//uLocal(Ig1,Ig2,Ig3,ex)=2.*uLocal(Ig1+is1,Ig2+is2,Ig3,ex)-uLocal(Ig1+2*is1,Ig2+2*is2,Ig3,ex);
-		//uLocal(Ig1,Ig2,Ig3,ey)=2.*uLocal(Ig1+is1,Ig2+is2,Ig3,ey)-uLocal(Ig1+2*is1,Ig2+2*is2,Ig3,ey);
-            		if( side==1 ) // adjust for face-centredness
-              		  getGhostIndex(mg.gridIndexRange(),side,axis,Ig1,Ig2,Ig3,0);
-		//uLocal(Ig1,Ig2,Ig3,ex)=2.*uLocal(Ig1+is1,Ig2+is2,Ig3,ex)-uLocal(Ig1+2*is1,Ig2+2*is2,Ig3,ex);
-		//uLocal(Ig1,Ig2,Ig3,ey)=2.*uLocal(Ig1+is1,Ig2+is2,Ig3,ey)-uLocal(Ig1+2*is1,Ig2+2*is2,Ig3,ey);
-                		    
-            	      }
-            	      else
-            	      {
-            		OV_ABORT("ERROR");
-            	      }
-          	    }
-          	    else
-          	    {
-	      // BC for H 
-              // there is no BC for H -- just extrapolate ghost line values for plotting
-                            if( side==0 ) 
-                                getGhostIndex(mg.gridIndexRange(),side,axis,Ig1,Ig2,Ig3,1);
-                            else // adjust for face-centredness
-                                getGhostIndex(mg.gridIndexRange(),side,axis,Ig1,Ig2,Ig3,0);
-                                
-            	      bool ok = ParallelUtility::getLocalArrayBounds(u,uLocal,Ig1,Ig2,Ig3,includeGhost);
-            	      if( !ok ) continue;
-
-                            uLocal(Ig1,Ig2,Ig3)=2.*uLocal(Ig1+is1,Ig2+is2,Ig3)-uLocal(Ig1+2*is1,Ig2+2*is2,Ig3);
-          	    }
-        	  }
-        	  else if( mg.boundaryCondition(side,axis)>0 )
-        	  {
-          	    printF("applyBoundaryConditions:ERROR: unknown boundaryCondition(%i,%i)=%i\n",
-               		   side,axis,mg.boundaryCondition(side,axis));
-        	  }
       	} // ************************** END DSI ************************************
       	
       	else
@@ -2096,7 +2101,7 @@ assignBoundaryConditions( int option, int grid, real t, real dt, realMappedGridF
                 if( dispersionModel !=noDispersion && assignPlaneWaveBoundaryCondition )
                 {
                     const real kk = twoPi*sqrt( kx*kx+ky*ky+kz*kz);
-                    real sr, si, psir,psii;
+                    real sr=0., si=1., psir=0.,psii=0.;
                     DispersiveMaterialParameters & dmp = getDispersiveMaterialParameters(grid);
                     dmp.evaluateDispersionRelation( c,kk, sr, si, psir,psii ); 
                     if( t<=3.*dt )
@@ -2630,7 +2635,7 @@ assignBoundaryConditions( int option, int grid, real t, real dt, realMappedGridF
                     if( dispersionModel !=noDispersion && assignPlaneWaveBoundaryCondition )
                     {
                         const real kk = twoPi*sqrt( kx*kx+ky*ky+kz*kz);
-                        real sr, si, psir,psii;
+                        real sr=0., si=1., psir=0.,psii=0.;
                         DispersiveMaterialParameters & dmp = getDispersiveMaterialParameters(grid);
                         dmp.evaluateDispersionRelation( c,kk, sr, si, psir,psii ); 
                         if( t<=3.*dt )
@@ -3168,7 +3173,7 @@ assignBoundaryConditions( int option, int grid, real t, real dt, realMappedGridF
                     if( dispersionModel !=noDispersion && assignPlaneWaveBoundaryCondition )
                     {
                         const real kk = twoPi*sqrt( kx*kx+ky*ky+kz*kz);
-                        real sr, si, psir,psii;
+                        real sr=0., si=1., psir=0.,psii=0.;
                         DispersiveMaterialParameters & dmp = getDispersiveMaterialParameters(grid);
                         dmp.evaluateDispersionRelation( c,kk, sr, si, psir,psii ); 
                         if( t<=3.*dt )
@@ -3595,20 +3600,46 @@ assignBoundaryConditions( int option, int grid, real t, real dt, realMappedGridF
 
     // For now just extrapolate in space since P on the ghost are not used 
 
-    // DispersiveMaterialParameters & dmp = getDispersiveMaterialParameters(grid);
-        Range Pc(pxc,pxc+numberOfDimensions-1);
-        MappedGridOperators & mgop = mgp!=NULL ? *op : (*cgop)[grid];
-        u.setOperators(mgop);
-
-        int ghostStart=1, ghostEnd=orderOfAccuracyInSpace/2;
-        BoundaryConditionParameters extrapParams;
-        extrapParams.orderOfExtrapolation=orderOfAccuracyInSpace+1;  // what should this be ?
-        extrapParams.extraInTangentialDirections=ghostEnd;
-        for( int ghost=ghostStart; ghost<=ghostEnd; ghost++ )
+        const DispersiveMaterialParameters & dmp = getDispersiveMaterialParameters(grid);
+        const int numberOfPolarizationVectors = dmp.numberOfPolarizationVectors;      
+        if( numberOfPolarizationVectors>0 )
         {
-            extrapParams.ghostLineToAssign=ghost;
-            u.applyBoundaryCondition(Pc,BCTypes::extrapolate,BCTypes::allBoundaries,0.,t,extrapParams);
+            realMappedGridFunction & p =  getDispersionModelMappedGridFunction( grid, next );
+            Range Pc = numberOfPolarizationVectors*numberOfDimensions;
+            MappedGridOperators & mgop = mgp!=NULL ? *op : (*cgop)[grid];
+            p.setOperators(mgop);
+
+            int ghostStart=1, ghostEnd=orderOfAccuracyInSpace/2;
+            BoundaryConditionParameters extrapParams;
+            extrapParams.orderOfExtrapolation=orderOfAccuracyInSpace+1;  // what should this be ?
+            extrapParams.extraInTangentialDirections=ghostEnd;
+            for( int ghost=ghostStart; ghost<=ghostEnd; ghost++ )
+            {
+                extrapParams.ghostLineToAssign=ghost;
+                p.applyBoundaryCondition(Pc,BCTypes::extrapolate,BCTypes::allBoundaries,0.,t,extrapParams);
+            }
+
         }
+
+    // ** OLD ****
+    // if( FALSE )
+    // {
+            
+    //   // DispersiveMaterialParameters & dmp = getDispersiveMaterialParameters(grid);
+    //   Range Pc(pxc,pxc+numberOfDimensions-1);
+    //   MappedGridOperators & mgop = mgp!=NULL ? *op : (*cgop)[grid];
+    //   u.setOperators(mgop);
+
+    //   int ghostStart=1, ghostEnd=orderOfAccuracyInSpace/2;
+    //   BoundaryConditionParameters extrapParams;
+    //   extrapParams.orderOfExtrapolation=orderOfAccuracyInSpace+1;  // what should this be ?
+    //   extrapParams.extraInTangentialDirections=ghostEnd;
+    //   for( int ghost=ghostStart; ghost<=ghostEnd; ghost++ )
+    //   {
+    //     extrapParams.ghostLineToAssign=ghost;
+    //     u.applyBoundaryCondition(Pc,BCTypes::extrapolate,BCTypes::allBoundaries,0.,t,extrapParams);
+    //   }
+    // }
         
         
     }

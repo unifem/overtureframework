@@ -333,6 +333,9 @@ getMaxDivergence( const int current, real t, realCompositeGridFunction *pdiv /* 
 
     if( computeMaxNorms && debug & 4 )
       fprintf(pDebugFile,"+++ divEMax=%8.2e max at i=(%i,%i,%i) grid=%i \n",divEMax,i1Max,i2Max,i3Max,gridMax);
+
+    // if( false ) // ****
+    //   printF("+++ divEMax=%8.2e max at i=(%i,%i,%i) grid=%i \n",divEMax,i1Max,i2Max,i3Max,gridMax);
       
 
     // Communication_Manager::Sync();

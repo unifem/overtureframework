@@ -285,9 +285,13 @@ outputHeader()
                       (const char*)cg[grid].getName());
       }
     }
+
+    // --- output dispersive material parameters ---
+    // std::vector<DispersiveMaterialParameters> & dmpVector = 
+    //   dbase.get<std::vector<DispersiveMaterialParameters> >("dispersiveMaterialParameters");
+    // if( dmpVector.size()!=0 ) // dispersionModel!=noDispersion )
     if( dispersionModel!=noDispersion )
     { 
-      // --- output dispersive material parameters ---
       if( cg.numberOfDomains()==1 )
       {
 	const DispersiveMaterialParameters & dmp = getDomainDispersiveMaterialParameters(0);
@@ -311,19 +315,22 @@ outputHeader()
 
 	  // fPrintF(file," Domain %i: Drude parameters: gamma=%9.3e, omegap=%9.3e (name=%s)\n",domain,
 	  //	  dmp.gamma,dmp.omegap,(const char*)cg.getDomainName(domain) );
-          fPrintF(file," Domain %i (%s) GDM parameters: alphaP=%9.3e, number of polarization vectors=%i\n",
-                  domain,(const char*)cg.getDomainName(domain),dmp.alphaP,numberOfPolarizationVectors);
-          for( int npv=0; npv<numberOfPolarizationVectors; npv++ )
-            fPrintF(file,"   Polarization vector P(%i) : a0=%9.3e, a1=%9.3e, b0=%9.3e, b1=%9.3e\n",
-                    npv,mp(0,npv),mp(1,npv),mp(2,npv),mp(3,npv));
+          if( numberOfPolarizationVectors>0 )
+          {
+            fPrintF(file," Domain %i (%s) GDM parameters: alphaP=%9.3e, number of polarization vectors=%i\n",
+                    domain,(const char*)cg.getDomainName(domain),dmp.alphaP,numberOfPolarizationVectors);
+            for( int npv=0; npv<numberOfPolarizationVectors; npv++ )
+              fPrintF(file,"   Polarization vector P(%i) : a0=%9.3e, a1=%9.3e, b0=%9.3e, b1=%9.3e\n",
+                      npv,mp(0,npv),mp(1,npv),mp(2,npv),mp(3,npv));
+          }
+          
 	}
       }
     }
     
     
-    fPrintF(file,"\n");
     if( method==sosup )
-      fPrintF(file," sosup: orderOfExtrapolationForInterpolationNeighbours=%i (-1 means used orderOfAccuracy+1)\n",
+      fPrintF(file,"\n sosup: orderOfExtrapolationForInterpolationNeighbours=%i (-1 means used orderOfAccuracy+1)\n",
 	      dbase.get<int>("orderOfExtrapolationForInterpolationNeighbours"));
 
     // -- output info about the projection Poisson solver 

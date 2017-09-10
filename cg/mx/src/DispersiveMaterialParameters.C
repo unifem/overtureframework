@@ -185,6 +185,55 @@ computeDispersivePlaneWaveParameters( const real c, const real eps, const real m
   return 0;
 }
 
+// ==========================================================================================
+/// \brief Specify the number of polarization vectors (number of GDM equation)
+// ==========================================================================================
+int DispersiveMaterialParameters::
+setNumberOfPolarizationVectors(  const int numPolarizationVectors )
+{
+  if( numberOfPolarizationVectors!=numPolarizationVectors )
+  {
+    numberOfPolarizationVectors=numPolarizationVectors;
+    numberOfModelParameters=4;     
+    modelParameters.redim(numberOfModelParameters,numberOfPolarizationVectors); 
+    modelParameters=0.;
+  }
+  return 0;
+}
+
+// ==========================================================================================
+/// \brief Set the parameters in the GDM model for equation "eqn"
+/// \param a0,a1,b0,b1 (input)
+/// 
+/// Generalized Dispersion Model:
+///       E_tt - c^2 Delta(E) = -alphaP P_tt
+///       Pi_tt + b1i Pi_1 + b0i = a0i*E + a1i*E_t    i=0,1,2,...,numPolarVectors-1
+// ==========================================================================================
+/// \brief Specify the number of polarization vectors (number of GDM equation)
+// ==========================================================================================
+int DispersiveMaterialParameters::
+setParameters( const int eqn, const real a0, const real a1, const real b0, const real b1 )
+{
+  if( eqn<0 || eqn>=numberOfPolarizationVectors )
+  {
+    printF("DispersiveMaterialParameters::setParameters:ERROR: Trying to GDM eqn=%i, "
+           "but numberOfPolarizationVectors=%i\n",eqn,numberOfPolarizationVectors);
+    return 1;
+    
+  }
+
+  printF("DispersiveMaterialParameters::setParameters: Setting GDM parameters eqn=%i: "
+         "a0=%9.3e, a1=%9.3e, b0=%9.3e, b1=%9.3e\n",eqn,a0,a1,b0,b1);
+
+  modelParameters(0,eqn)=a0;
+  modelParameters(1,eqn)=a1;
+  modelParameters(2,eqn)=b0;
+  modelParameters(3,eqn)=b1;
+
+  return 0;
+}
+
+
 
 // ==========================================================================================
 /// \brief Set the parameters in the GDM model for 1 polarization vector

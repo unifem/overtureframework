@@ -1,4 +1,25 @@
 ***********************
+***** Sept 3, 2017
+
+MULIPLE POLARIZATION vectors 
+
+cgmx planeWave -g=twoDisjointSquaresGride2.order2 -dm=gdm -b0=1 -b1=1 -a0=1 -a1=1  -kx=1 -tp=.01 -tf=.1 -cfl=1 -diss=0 -checkErrors=1 -go=og
+
+
+cgmx -noplot planeWave -g=square32p.order2 -dm=gdm -b0=1 -b1=1 -a0=1 -a1=1  -kx=1 -tp=.01 -tf=.1 -cfl=1 -diss=0 -checkErrors=1 -go=og
+
+
+***********************
+***** Sept 1, 2017
+
+START: two domains with different GDM parameters
+
+
+cgmx -noplot planeWave -g=twoDisjointSquaresGride2.order2 -dm=gdm -b0=1 -b1=1 -a0=1 -a1=1  -kx=1 -tp=.01 -tf=.1 -cfl=1 -diss=0 -checkErrors=1 -go=og
+
+
+
+***********************
 ***** July 27, 2017
 
 More general GDM parameters:

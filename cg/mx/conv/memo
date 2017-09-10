@@ -1,3 +1,53 @@
+*****************************
+***** Sept 4, 2017
+
+
+
+RE-WORK polarization vectors
+*****************************
+***** Sept 1-3, 2017
+
+RE-WORK polarization vectors
+
+
+DISK
+conv.p diskeigen.conv -dm=gdm -a0=1 -a1=1 -b0=1 -b1=1 -tp=.1 -tf=.5 -m=2 -n=2 -order=2 -ng=5
+                grid  &  N  &    $E_x$   & r &    $E_y$   & r &    $H_z$    & r &     $|\Pv|$   & r & $\grad\cdot\Ev/\grad\Ev$& r 
+               sice2 &     1 & 3.72e-03 &      & 3.89e-03 &      & 1.32e-02 &      & 1.32e-03 &      & 1.63e-02 &      
+               sice4 &     2 & 8.87e-04 &  4.2 & 8.87e-04 &  4.4 & 3.39e-03 &  3.9 & 3.02e-04 &  4.4 & 2.89e-03 &  5.6 
+               sice8 &     4 & 1.94e-04 &  4.6 & 1.94e-04 &  4.6 & 8.51e-04 &  4.0 & 7.41e-05 &  4.1 & 7.56e-04 &  3.8 
+              sice16 &     8 & 4.83e-05 &  4.0 & 4.83e-05 &  4.0 & 2.07e-04 &  4.1 & 1.88e-05 &  3.9 & 1.90e-04 &  4.0 
+              sice32 &    16 & 1.16e-05 &  4.2 & 1.16e-05 &  4.2 & 5.16e-05 &  4.0 & 4.68e-06 &  4.0 & 4.77e-05 &  4.0 
+Convergence rates: c0=2.08 c1=2.10 c2=2.00 c3=2.03 c4=2.08
+
+SQUARE EIGS
+conv.p diskeigen.conv -cg=square -dm=gdm -a0=1 -a1=1 -b0=1 =b1=1 -tp=.1 -tf=1 -mx=4 -my=4 -mz=4 -order=2 -ng=3
+                grid  &  N  &    $E_x$   & r &    $E_y$   & r &    $H_z$    & r &     $|\Pv|$   & r & $\grad\cdot\Ev/\grad\Ev$& r 
+            square16 &     1 & 7.22e-02 &      & 7.22e-02 &      & 3.47e-01 &      & 7.50e-03 &      & 1.32e-15 &      
+            square32 &     2 & 2.06e-02 &  3.5 & 2.06e-02 &  3.5 & 8.15e-02 &  4.3 & 2.59e-03 &  2.9 & 3.92e-15 &  0.3 
+            square64 &     4 & 3.93e-03 &  5.2 & 3.93e-03 &  5.2 & 1.83e-02 &  4.5 & 6.16e-04 &  4.2 & 1.14e-14 &  0.3 
+           square128 &     8 & 7.75e-04 &  5.1 & 7.75e-04 &  5.1 & 4.23e-03 &  4.3 & 1.53e-04 &  4.0 & 2.65e-14 &  0.4 
+Convergence rates: c0=2.20 c1=2.20 c2=2.12 c3=1.89 c4=-1.45 
+
+
+
+GDM: a0=1 a1=1 b0=1 b1=1 
+CURVILINEAR
+conv.p exact.conv -option=planeWave -cg=nonSquarep -dm=gdm -kx=2 -ky=2 -tf=.4 -tp=.4 -order=2 -a0=1 -b0=1 -ng=4
+
+CARTESIAN
+conv.p exact.conv -option=planeWave -cg=squarep -dm=gdm -kx=2 -ky=2 -tf=.4 -tp=.4 -order=2 -a0=1 -b0=1 -ng=4
+
+                grid  &  N  &    $E_x$   & r &    $E_y$   & r &    $H_z$    & r &    $|\Pv|$   & r &    $\grad\cdot\Ev/\grad\Ev$& r 
+            squarep8 &     1 & 1.88e-01 &      & 1.88e-01 &      & 3.22e-01 &      & 2.61e-03 &      & 1.03e-15 &      
+           squarep16 &     2 & 4.21e-02 &  4.5 & 4.21e-02 &  4.5 & 6.74e-02 &  4.8 & 6.18e-04 &  4.2 & 1.32e-15 &  0.8 
+           squarep32 &     4 & 7.84e-03 &  5.4 & 7.84e-03 &  5.4 & 1.36e-02 &  5.0 & 1.54e-04 &  4.0 & 3.08e-15 &  0.4 
+           squarep64 &     8 & 1.65e-03 &  4.8 & 1.65e-03 &  4.8 & 3.52e-03 &  3.9 & 3.85e-05 &  4.0 & 7.25e-15 &  0.4 
+Convergence rates: c0=2.29 c1=2.29 c2=2.19 c3=2.03 c4=-0.97
+
+
+
+
 ********************************
 *********** July 29-20, 2017
 

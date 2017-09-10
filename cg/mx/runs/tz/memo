@@ -1,0 +1,191 @@
+***************************
+******* Sept 4, 2017
+
+TWO DOMAINS 
+leftDomain=GDM
+cgmx -noplot tz -g=../planeWave/twoDisjointSquaresGride2.order2 -npv=2 -degreex=2 -degreet=2 -dm=gdm -domain=leftDomain -diss=0 -method=nfdtd -bc=d -tp=.05 -tf=.2 -go=og
+
+all=GDM
+cgmx -noplot tz -g=../planeWave/twoDisjointSquaresGride2.order2 -npv=2 -degreex=2 -degreet=2 -dm=gdm -domain=all -diss=0 -method=nfdtd -bc=d -tp=.05 -tf=.2 -go=og
+
+
+>> TZ with 2 PV
+
+cgmx -noplot tz -g=square16.order2 -npv=2 -degreex=2 -degreet=2 -dm=gdm -diss=0 -method=nfdtd -bc=d -tp=.05 -tf=.2 -go=og
+
+--getErrors: t=2.000e-01 domain=0 (domain0) numPolarizationVectors=2 P-norm=2.227e+00 max-err = 8.438e-15
+>>> t=2.00e-01 dt=2.5e-02 max errors:[4.22e-15,4.88e-15,3.44e-15,], max (u):[4.45e+00,2.23e+00,1.67e+00,] (8 steps)
+
+
+cgmx -noplot tz -g=square16.order2 -npv=1 -degreex=2 -degreet=2 -dm=gdm -diss=0 -method=nfdtd -bc=d -tp=.05 -tf=.2 -go=og
+
+***************************
+******* Sept 1-3, 2017
+
+START ON MULTIPLE P vectors
+
+cgmx -noplot planeWave -g=twoDisjointSquaresGride2.order2 -dm=gdm -b0=1 -b1=1 -a0=1 -a1=1  -kx=1 -tp=.01 -tf=.1 -cfl=1 -diss=0 -checkErrors=1 -go=og
+
+cgmx -noplot tz -g=square16.order2 -degreex=2 -degreet=2 -dm=gdm -diss=0 -method=nfdtd -bc=d -tp=.05 -tf=.2 -go=go
+
+FIX TO TZ forcing for Hz: 
+--getErrors: t=2.000e-01 domain=0 (domain0) numPolarizationVectors=1 max-err = 6.262e-14
+>>> t=2.00e-01 dt=1.0e-02 max errors:[1.82e-14,1.18e-14,1.27e-14,0.00e+00,0.00e+00,], max (u):[4.45e+00,2.23e+00,1.67e+00,2.23e+00,1.11e+00,] (20 steps)
+
+
+TROUBLE WITH HZ: -- need to fix TZ forcing 
+
+>> t=1.00e-02 dt=1.0e-02 max errors:[1.33e-15,4.44e-16,3.91e-02,6.66e-16,3.33e-16,], max (u):[4.02e+00,2.01e+00,1.51e+00,2.01e+00,1.01e+00,] (1 steps)
+
+
+***************************
+******* May 29, 2017
+
+Sosup-dissipation : ADD option to apply in a separate stage 
+
+*** ADDED TWO STAGE SOSUP ****
+
+
+
+
+FD44s: curvilinear
+cgmx -noplot tz -g=nonSquare16.order4.ng3 -degreex=2 -degreet=2 -useSosupDiss=1 -sosupDissipationOption=1 -sosupParameter=1 -diss=0 -method=nfdtd -cons=1 -bc=d -tp=.01 -tf=.2 -cfl=.5 -go=go
+
+FD44s: Cartesian
+cgmx -noplot tz -g=square16.order4.ng3 -degreex=2 -degreet=2 -useSosupDiss=1 -sosupDissipationOption=1 -sosupParameter=1 -diss=0 -method=nfdtd -cons=1 -bc=d -tp=.01 -tf=.2 -cfl=.5 -go=go
+
+
+FD22s: 
+cgmx -noplot tz -g=nonSquare16.order2 -degreex=2 -degreet=2 -useSosupDiss=1 -sosupDissipationOption=1 -sosupParameter=1 -diss=0 -method=nfdtd -bc=d -tp=.01 -tf=.2 -cfl=.5 -go=go
+
+FD22s -- cartesian
+cgmx -noplot tz -g=square16.order2 -degreex=2 -degreet=2 -useSosupDiss=1 -sosupDissipationOption=1 -sosupParameter=1 -diss=0 -method=nfdtd -bc=d -tp=.01 -tf=.2 -cfl=.5 -go=go
+
+***************************
+******* May 20 2017
+
+TEST 
+FD44+sosup + curvilinear + cons
+
+cgmx -noplot tz -g=nonSquare16.order4.ng3 -degreex=4 -degreet=4 -useSosupDiss=1 -sosupParameter=1 -cons=1 -diss=0 -method=nfdtd -bc=d -tp=.1 -tf=.2 -cfl=.5 -go=go
+
+
+FD22+sosup diss
+
+cgmx -noplot tz -g=nonSquare16.order2 -degreex=2 -degreet=2 -useSosupDiss=1 -sosupParameter=1 -diss=0 -method=nfdtd -bc=d -tp=.01 -tf=.2 -cfl=.5 -go=go
+
+
+CONS vs non-CONS scheme ?
+
+NON-CONS
+cgmx -noplot tz -g=nonSquare16.order2.hdf -degreex=2 -degreet=2 -diss=0. -tf=.5 -cons=0 -go=go
+
+*******************
+******* May 18-19, 2017
+
+START ON SOSUP DISSIPATION
+
+
+FD44+sosup 
+cgmx -noplot tz -g=square16.order4.ng3 -degreex=4 -degreet=4 -useSosupDiss=1 -sosupParameter=1 -diss=0 -method=nfdtd -bc=d -tp=.01 -tf=.2 -go=go [
+
+cgmx -noplot tz -g=square16.order4.ng3 -degreex=4 -degreet=4 -diss=0. -useSosupDiss=1 -sosupParameter=0. -tf=.5 -go=go 
+
+FD44: exact: 
+cgmx -noplot tz -g=square16.order4.ng3 -degreex=4 -degreet=4 -diss=0. -tf=.5 -go=go  
+
+
+FD22+sosup : OK
+cgmx -noplot tz -g=square16.order2 -degreex=2 -degreet=2 -useSosupDiss=1 -diss=0 -method=nfdtd -bc=d -tp=.01 -tf=.2 -go=go [exact
+
+cgmx -noplot tz -g=square16.order2 -degreex=2 -degreet=2 -diss=0. -method=nfdtd -bc=d -tp=.01 -tf=.2 -go=go [exact
+     	      
+
+
+
+*******************
+******* Feb 1, 2017
+
+TEST NEW TZ FORCING 
+
+NEW: 
+
+
+OLD: EXACT:
+cgmx -noplot tz -g=square16.order4 -degreex=4 -degreet=4 -diss=0. -tf=.5 -go=go
+
+
+************
+***** Jan 23, 2016
+
+
+FD66 curvilinear
+cgmx -noplot tz -g=nonSquare16.order6 -degreex=6 -degreet=6 -diss=0. -bc=d -tp=.01 -tf=.2 -go=go
+
+FD66 CONS
+cgmx -noplot tz -g=nonSquare16.order6 -degreex=6 -degreet=6 -diss=0. -cons=1 -bc=d -tp=.01 -tf=.2 -go=go
+
+
+************
+***** Jan 22, 2016
+
+TEST 6th-order and 8th-order
+
+
+SOSUP66 + PEC 
+cgmx noplot tz -g=square16.order6.ng4 -degreex=5 -degreet=5 -diss=0. -method=sosup -bc=pec -tp=.01 -tf=.2 -go=go [exact
+
+SOSUP44: 
+cgmx noplot tz -g=square16.order4.ng3 -degreex=3 -degreet=3 -diss=0. -method=sosup -bc=pec -tp=.01 -tf=.2 -go=go [exact
+     	       
+SOSUP66 
+cgmx noplot tz -g=square16.order6.ng4 -degreex=5 -degreet=5 -diss=0. -method=sosup -bc=d -tp=.01 -tf=.2 -go=go [exact
+
+
+
+FD88
+cgmx noplot tz -g=square16.order8 -degreex=6 -degreet=6 -diss=0. -bc=d -tp=.01 -tf=.2 -go=go [ not exact
+
+
+
+FD88
+cgmx noplot tz -g=square16.order8 -degreex=6 -degreet=6 -diss=0. -bc=d -tp=.1 -tf=.2 -go=go
+
+NOT exact for E, HZ is EXACT!!!
+cgmx noplot tz -g=square32.order6 -degreex=6 -degreet=6 -diss=0. -bc=d -tp=.005 -tf=.2 -go=go  [ blows with tp=.01
+>>> t=2.00e-01 dt=5.0e-03 max errors:[4.40e-07,3.65e-07,1.11e-14,], max (u):[6.97e+00,4.38e+00,5.24e+00,] (40 steps)
+
+cgmx noplot tz -g=square16.order6 -degreex=6 -degreet=6 -diss=0. -bc=d -tp=.01 -tf=.2 -go=go  [ not exact 
+>>> t=2.00e-01 dt=1.0e-02 max errors:[1.79e-06,1.49e-06,7.99e-15,], max (u):[6.97e+00,4.38e+00,5.24e+00,] (20 steps)
+
+cgmx noplot tz -g=square16.order6 -degreex=5 -degreet=5 -diss=0. -bc=d -tp=.01 -tf=.2 -go=go  [EXACT
+
+cgmx noplot tz -g=square16.order6 -degreex=4 -degreet=4 -diss=0. -bc=d -tp=.01 -tf=.2 -go=go  [EXACT
+
+cgmx noplot tz -g=square16.order4 -degreex=4 -degreet=4 -diss=0. -bc=d -tf=.5 -go=go [exact
+
+FD44
+cgmx noplot tz -g=square16.order4 -degreex=4 -degreet=4 -diss=0. -tf=.5 -go=go [exact
+
+
+*************
+****** July 11, 2015
+
+TEST SOSUP + BOX
+
+SPLIT-BOX - EXACT 
+cgmx -noplot tz -g=unitBoxSplite2.order4.ng3 -degreex=3 -degreet=3 -diss=0. -method=sosup -tf=.5 -tp=.01 -go=og [ EXACT
+
+BOX: EXACT
+cgmx -noplot tz -g=box4.order4.ng3 -degreex=3 -degreet=3 -diss=0. -method=sosup -tf=.5 -tp=.01 -go=og [ EXACT
+
+
+
+
+
+****** May 13, 2015 -- start fixing forcing for modified equations and fourth-order etc.
+
+
+CURRENT:
+
+cgmx noplot tz -g=square16.order4 -degreex=4 -degreet=4 -diss=0. -tf=.5 -go=go [EXACT 

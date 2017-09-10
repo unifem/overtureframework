@@ -75,6 +75,10 @@ Maxwell:: Maxwell()
   dispersionModel=noDispersion;
   dbase.put<aString>("dispersionModelName")="none";
   
+  int & numberOfComponents = dbase.put<int>("numberOfComponents")=0;
+  int & numberOfComponentsForTZ = dbase.put<int>("numberOfComponentsForTZ")=0;
+  int & numberOfErrorComponents = dbase.put<int>("numberOfErrorComponents")=0;
+
   bcOption=useGeneralBoundaryConditions; // *wdh* 040109 useAllPeriodicBoundaryConditions;
 
   initialConditionOption=defaultInitialCondition;
@@ -159,6 +163,7 @@ Maxwell:: Maxwell()
   hz=2;
   ez=hx=hy=-1;
   ext=eyt=ezt=hxt=hyt=hzt=-1;     // time derivatives (sosup)
+  rc=-1;
   epsc=muc=sigmaEc=sigmaHc=-1;    // components for eps, mu, sigmaE and sigmaH in TZ functions
   numberOfComponentsRectangularGrid=3;
 
@@ -169,11 +174,16 @@ Maxwell:: Maxwell()
   hz11=4;   
   numberOfComponentsCurvilinearGrid=5;
 
+  // --- Dispersion Model Data ----
+
+  // dispersionModelGridFunction[domain][numTimeLevels] : 
+  parameters.dbase.put<realCompositeGridFunction**>("dispersionModelGridFunction")=NULL;
+
   // component numbers for P, Q,R (P=polarization vector, Q=P'', etc.)
   // default = -1 : not used
   pxc=pyc=pzc=qxc=qyc=qzc=rxc=ryc=rzc=-1; 
-  // numberOfPolarizationVectors: The generalized dispersion model has multiple polarization vectors
-  dbase.put<int>("numberOfPolarizationVectors")=0; 
+  // The generalized dispersion model has multiple polarization vectors: Here is the max number over all domains:
+  parameters.dbase.put<int>("maxNumberOfPolarizationVectors")=0; 
 
   artificialDissipation=0.;
   artificialDissipationCurvilinear=-1.; // set to non-negative to use this instead of the above
@@ -484,6 +494,50 @@ Maxwell::
   //   printF(" Workspace: fn[%i] elementCount=%i\n",m,fn[m].elementCount());
   // }
   
+  // -- delete any Interpolants created for the dispersive domains ---
+  if( parameters.dbase.has_key("domainInterpolant") )
+  {
+    assert( cgp!=NULL );
+    CompositeGrid & cg= *cgp;
+
+    Interpolant **& domainInterpolant = parameters.dbase.get<Interpolant**>("domainInterpolant");
+    for( int domain=0; domain<cg.numberOfDomains(); domain++ )
+    {
+      if( domainInterpolant[domain]!=NULL && 
+          domainInterpolant[domain]->decrementReferenceCount()==0 )
+      {
+        printF("--MX DESTRUCTOR: delete domain Interpolant for domain=%i\n",domain);
+        
+        delete domainInterpolant[domain];
+      }
+    }
+    delete [] domainInterpolant;
+  }
+    
+
+
+  // dispersionModelGridFunction[domain][numTimeLevels] : 
+  realCompositeGridFunction **& dmgf = 
+    parameters.dbase.get<realCompositeGridFunction**>("dispersionModelGridFunction");
+
+  if( dmgf!=NULL )
+  {
+    // -- delete Grid Functions that hold data for the Dispersion Model ---
+    printF("--MX-- delete Dispersion model grid functions...\n");
+    
+    assert( cgp!=NULL );
+    CompositeGrid & cg= *cgp;
+
+    const int & numberOfDomains = cg.numberOfDomains();
+    assert( numberOfDomains>=1 );
+    for( int domain=0; domain<cg.numberOfDomains(); domain++ ) 
+    {
+      delete [] dmgf[domain];  // time levels 
+    }
+    delete [] dmgf;   // domains 
+  }
+  
+
   delete [] fn;  
 
   delete [] gf;
@@ -502,6 +556,8 @@ Maxwell::
     delete [] cgerrp;
     delete [] cgfn;
   }
+
+
 
   delete variableDissipation;
 
@@ -1826,12 +1882,10 @@ buildPdeParametersDialog(DialogData & dialog )
 {
 
   // ************** PUSH BUTTONS *****************
-/* ----
   aString pushButtonCommands[] = {"dispersion parameters...",
  	    		          ""};
-  int numRows=3;
+  int numRows=1;
   dialog.setPushButtons(pushButtonCommands,  pushButtonCommands, numRows ); 
-  --- */
 
   // ----- Text strings ------
   const int numberOfTextStrings=30;
@@ -1853,9 +1907,55 @@ buildPdeParametersDialog(DialogData & dialog )
   real gamma=1., omegap=1.;
   textCommands[nt] = "Drude params";  
   textLabels[nt]=textCommands[nt]; sPrintF(textStrings[nt], "%g %g %s (gamma,omegap,domain-name)",gamma,omegap,"all"); nt++; 
+
   real a0=1., a1=0., b0=0., b1=1.;
   textCommands[nt] = "GDM params";  
   textLabels[nt]=textCommands[nt]; sPrintF(textStrings[nt], "%g %g %g %g %s (a0,a1,b0,b1,domain-name)",a0,a1,b0,b1,"all"); nt++; 
+
+  // null strings terminal list
+  assert( nt<numberOfTextStrings );
+  textCommands[nt]="";   textLabels[nt]="";   textStrings[nt]="";  
+  dialog.setTextBoxes(textCommands, textLabels, textStrings);
+
+  return 0;
+}
+
+int Maxwell::
+buildDispersionParametersDialog(DialogData & dialog )
+// ==========================================================================================
+// /Description:
+//   Build the dispersion parameters dialog.
+// ==========================================================================================
+{
+
+  // ************** PUSH BUTTONS *****************
+
+/* ---
+  aString pushButtonCommands[] = {"dispersion parameters...",
+ 	    		          ""};
+  int numRows=1;
+  dialog.setPushButtons(pushButtonCommands,  pushButtonCommands, numRows ); 
+  -- */
+
+  // ----- Text strings ------
+  const int numberOfTextStrings=30;
+  aString textCommands[numberOfTextStrings];
+  aString textLabels[numberOfTextStrings];
+  aString textStrings[numberOfTextStrings];
+
+  int nt=0;
+
+  textCommands[nt] = "GDM domain name:";  
+  textLabels[nt]=textCommands[nt]; sPrintF(textStrings[nt], "%s","all"); nt++; 
+
+  int numberOfPolarizationVectors=1;
+  textCommands[nt] = "number of polarization vectors:";  
+  textLabels[nt]=textCommands[nt]; sPrintF(textStrings[nt], "%i",numberOfPolarizationVectors); nt++; 
+
+  int eqn=0; // GDM equation number
+  real a0=1., a1=0., b0=0., b1=1.;
+  textCommands[nt] = "GDM coeff:";  
+  textLabels[nt]=textCommands[nt]; sPrintF(textStrings[nt], "%i %g %g %g %g (eqn, a0,a1,b0,b1)",eqn,a0,a1,b0,b1); nt++; 
 
   // null strings terminal list
   assert( nt<numberOfTextStrings );
@@ -1894,6 +1994,10 @@ interactiveUpdate(GL_GraphicsInterface &gi )
   int & sosupDissipationOption = parameters.dbase.get<int>("sosupDissipationOption");
   int & sosupDissipationFrequency = parameters.dbase.get<int>("sosupDissipationFrequency");
   
+  // Thes next variables are used to set the dispersive model parameters
+  int numberOfPolarizationVectors=1;
+  aString gdmDomainName="all";
+
   GUIState gui;
 
   DialogData & dialog=gui;
@@ -1979,6 +2083,12 @@ interactiveUpdate(GL_GraphicsInterface &gi )
   pdeParametersDialog.setExitCommand("close pde parameters", "close");
   buildPdeParametersDialog(pdeParametersDialog);
 
+  // --- Build the sibling dialog for dispersionParameters options ---
+  DialogData & dispersionParametersDialog = gui.getDialogSibling();
+  dispersionParametersDialog.setWindowTitle("MX Dispersion Parameters Options");
+  dispersionParametersDialog.setExitCommand("close dispersion parameters", "close");
+  buildDispersionParametersDialog(dispersionParametersDialog);
+
 
   IntegerArray originalBoundaryCondition(2,3,cg.numberOfComponentGrids());
   for( int grid=0; grid<cg.numberOfComponentGrids(); grid++ )
@@ -2057,6 +2167,14 @@ interactiveUpdate(GL_GraphicsInterface &gi )
     else if( answer=="close pde parameters" )
     {
       pdeParametersDialog.hideSibling();
+    }
+    else if( answer=="dispersion parameters..." )
+    {
+      dispersionParametersDialog.showSibling();
+    }
+    else if( answer=="close dispersion parameters" )
+    {
+      dispersionParametersDialog.hideSibling();
     }
     else if( answer=="square" || answer=="rotatedSquare" || answer=="sineSquare"|| answer=="skewedSquare" || 
              answer=="chevron" || answer=="squareByTriangles" || answer=="squareByQuads" || answer=="sineByTriangles" ||
@@ -2801,14 +2919,6 @@ interactiveUpdate(GL_GraphicsInterface &gi )
       forcingOptionsDialog.setTextLabel("TZ omega:",sPrintF(line,"%g %g %g %g (fx,fy,fz,ft)",omega[0],omega[1],omega[2],omega[3]));
     }
 
-    else if( len=answer.matches("dispersion parameters...") )
-    {
-      // --- assign parameters in the disperion models ---
-      printF("dispersion parameters: FINISH ME...");
-      setDispersionParameters(gi);
-
-    }
-
     else if( len=answer.matches("coefficients") )
     {
       char *buff = new char [answer.length()];
@@ -2938,7 +3048,32 @@ interactiveUpdate(GL_GraphicsInterface &gi )
 
     }
 
+    // ------------ SET GDM PARAMETERS -----------
+    else if( dispersionParametersDialog.getTextValue(answer,"GDM domain name:","%s",gdmDomainName) )
+    {
+      printF("Setting GDM domain name = [%s]\n",(const char*)gdmDomainName);
+    }
+    else if( dispersionParametersDialog.getTextValue(answer,"number of polarization vectors:","%i",numberOfPolarizationVectors) )
+    {
+      printF("Setting numberOfPolarizationVectors=%i for GDM domain = [%s]\n",
+           numberOfPolarizationVectors,(const char*)gdmDomainName);
 
+    }
+    else if( len=answer.matches("GDM coeff:") )
+    {
+      int eqn=0;
+      real a0=1., a1=0., b0=0., b1=1.;
+      sScanF(answer(len,answer.length()),"%i %e %e %e %e %s",&eqn,&a0,&a1,&b0,&b1);
+      printF("GDM equation = %i, a0=%e, a1=%e, b0=%e, b1=%e, domain=[%s]\n",eqn,a0,a1,b0,b1,(const char*)gdmDomainName);
+
+      dispersionParametersDialog.setTextLabel("GDM coeff:",
+            sPrintF(textStrings[nt],"%i %g %g %g %g (eqn, a0,a1,b0,b1)",eqn,a0,a1,b0,b1));
+
+      setDispersionParameters( gdmDomainName, numberOfPolarizationVectors, eqn, a0,a1,b0,b1  );
+
+    }
+
+    // ** old way ***
     else if( answer.matches("GDM params") ||
              answer.matches("Drude params") )
     {
@@ -3027,6 +3162,7 @@ interactiveUpdate(GL_GraphicsInterface &gi )
           }
 
           // real a0=omegap, a1=0., b0=0., b1=gamma;
+          dmp.numberOfPolarizationVectors=1; // Do this for now 
           dmp.setParameters( a0,a1,b0,b1 );
           
           // old way: 
@@ -3331,7 +3467,8 @@ interactiveUpdate(GL_GraphicsInterface &gi )
   setupGridFunctions();
 
   // Do this for now to initialize Paramters class (used by outputProbes)
-  const int numberOfComponents=cgfields[0][0].getLength(3);
+  // const int numberOfComponents=cgfields[0][0].getLength(3);  // *wdh* 2017/09/01 
+  const int & numberOfComponents = dbase.get<int>("numberOfComponents");
   parameters.dbase.get<int>("numberOfComponents")=numberOfComponents;
   aString *& componentName = parameters.dbase.get<aString* >("componentName");
   componentName= new aString [numberOfComponents];
@@ -3563,12 +3700,67 @@ Maxwell::getCGField(Maxwell::FieldEnum f, int tn)
 
 
 //====================================================================================
-/// \brief Assign parameters in the disperion models.
+/// \brief Assign parameters in the dispersion models.
 //====================================================================================
 int Maxwell::
-setDispersionParameters( GL_GraphicsInterface &gi )
+setDispersionParameters( aString & domainName, int numberOfPolarizationVectors, int eqn, 
+                         real a0, real a1, real b0, real b1  )
 {
-  printF("dispersion parameters: FINISH ME...");
+  printF("--MX-- setDispersionParameters: domainName=[%s] numberOfPolarizationVectors=%i eqn=%i \n",
+         (const char*)domainName,numberOfPolarizationVectors,eqn);
+  
+  assert( cgp!=NULL );
+  CompositeGrid & cg= *cgp;
+  const int numberOfComponentGrids = cg.numberOfComponentGrids();
+
+  int domainStart=-1, domainEnd=-1;
+  if( domainName == "all" )
+  {
+    domainStart=0; domainEnd=cg.numberOfDomains()-1;
+  }
+  else
+  {
+    for( int domain=0; domain<cg.numberOfDomains(); domain++ )
+    {
+      if( cg.getDomainName(domain)==domainName )
+      {
+        printF("--MX:SDP-- setting GDM parameters for domain number=%i name=[%s].\n",domain,(const char*)domainName);
+        domainStart=domainEnd=domain;
+        break;
+      }
+    }
+  }
+      
+  if( domainStart<0  )
+  {
+    printF("--MX:SDP-- WARNING: There is no domain with name =[%s].\n",(const char*)domainName);
+    return 1;
+  }
+  else
+  {
+    // --- Set parameters for the dispersion model ---
+    std::vector<DispersiveMaterialParameters> & dmpVector = 
+      dbase.get<std::vector<DispersiveMaterialParameters> >("dispersiveMaterialParameters");
+
+    // --- allocate the dispersion material parameters vector ---
+    if( dmpVector.size()<cg.numberOfDomains() )
+    {
+      dmpVector.resize(cg.numberOfDomains());
+    }
+
+    for( int domain=domainStart; domain<=domainEnd; domain++ )
+    {
+      DispersiveMaterialParameters & dmp = dmpVector[domain];
+
+      printF(" Setting GDM parameters eqn=%i: a0=%9.3e, a1=%9.3e, b0=%9.3e, b1=%9.3e for domain=[%s]\n",
+             eqn,a0,a1,b0,b1,(const char*)cg.getDomainName(domain));
+
+      dmp.setNumberOfPolarizationVectors(numberOfPolarizationVectors); 
+
+      dmp.setParameters( eqn,a0,a1,b0,b1 );
+          
+    }
+  }
 
   return 0;
 }
@@ -3747,3 +3939,89 @@ setupSelectiveDissipation( CompositeGrid & cg, GL_GraphicsInterface &gi )
   return 0;
 }
 
+// =======================================================================================
+/// \brief Return the realMappedGridFunction (rMGF) that holds the data for the 
+///        dispersion model (polarization vectors). Return a NULL rMGF is there is
+///        no dispersion model data. 
+///
+/// \param grid (input) : return rMGF for this grid
+/// \param (input) timeLevel : return rMGF for this time level (0,1,,..,numberOfTimeLevels-1)
+// =======================================================================================
+realMappedGridFunction & 
+Maxwell::getDispersionModelMappedGridFunction( const int grid, const int timeLevel )
+{
+  
+  if( dispersionModel == noDispersion )
+    return Overture::nullRealMappedGridFunction();
+
+  // dispersionModelGridFunction[domain][numTimeLevels] : 
+  realCompositeGridFunction **& dmgf = 
+    parameters.dbase.get<realCompositeGridFunction**>("dispersionModelGridFunction");
+
+
+  assert( cgp!=NULL );
+  CompositeGrid & cg = *cgp;
+
+  assert( grid>=0 && grid<cg.numberOfComponentGrids() );
+
+  // --- Get info for the dispersive model ----
+  const int domain = cg.domainNumber(grid);
+  const DispersiveMaterialParameters & dmp = getDomainDispersiveMaterialParameters(domain);
+  const int numberOfPolarizationVectors = dmp.numberOfPolarizationVectors;   
+
+  if( numberOfPolarizationVectors>0 )
+  {
+    assert( timeLevel>=0 && timeLevel<numberOfTimeLevels );
+    
+
+    IntegerArray & domainGridNumber = parameters.dbase.get<IntegerArray>("domainGridNumber");
+    const int gridDomain=domainGridNumber(grid); // cg[grid] -> cg.domain[d][gridDomain] 
+    // printF("IC: domain=%i grid=%i --> gridDomain=%i\n",domain,grid,gridDomain);
+
+    return dmgf[domain][timeLevel][gridDomain];
+  }
+
+  return Overture::nullRealMappedGridFunction();
+}
+
+
+// =======================================================================================
+/// \brief Return a pointer to the realCompositeGridFunction (rCGF) that holds the data for the 
+///        dispersion model (polarization vectors). Return a NULL if there is
+///        no dispersion model data. 
+///
+/// \param domain (input) : return rCGF for this domain.
+/// \param (input) timeLevel : return rCGF for this time level (0,1,,..,numberOfTimeLevels-1)
+// =======================================================================================
+realCompositeGridFunction* 
+Maxwell::getDispersionModelCompositeGridFunction( const int domain, const int timeLevel )
+{
+  
+  if( dispersionModel == noDispersion )
+    return NULL;
+
+  // dispersionModelGridFunction[domain][numTimeLevels] : 
+  realCompositeGridFunction **& dmgf = 
+    parameters.dbase.get<realCompositeGridFunction**>("dispersionModelGridFunction");
+
+  assert( cgp!=NULL );
+  CompositeGrid & cg = *cgp;
+
+  // --- Get info for the dispersive model ----
+  const DispersiveMaterialParameters & dmp = getDomainDispersiveMaterialParameters(domain);
+  const int numberOfPolarizationVectors = dmp.numberOfPolarizationVectors;   
+
+  if( numberOfPolarizationVectors>0 )
+  {
+    assert( domain>=0 && domain<cg.numberOfDomains() );
+    assert( timeLevel>=0 && timeLevel<numberOfTimeLevels );
+
+    return &(dmgf[domain][timeLevel]);
+  }
+
+  return NULL;
+}
+
+  
+
+ 

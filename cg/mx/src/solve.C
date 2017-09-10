@@ -237,33 +237,39 @@ outputResults( int current, real t, real dt )
   // write to the check file for regression and convergence tests
   // *************************************************************
 
-  // kkc fix range to work with staggered schemes
-  int base = ex;
-  int bound = (method==nfdtd  || method==yee ) ? hz : max(ey,ez) + hz + 1;
-  if( method==sosup ) 
-    bound=cgfields[0][0].getBound(3);
-  Range C(base,bound);  // fix this 
+  // // kkc fix range to work with staggered schemes
+  // int base = ex;
+  // int bound = (method==nfdtd  || method==yee ) ? hz : max(ey,ez) + hz + 1;
+  // if( method==sosup ) 
+  //   bound=cgfields[0][0].getBound(3);
+  // Range C(base,bound);  // fix this 
+  // int numberOfComponents= C.length(); 
+  // int numberToOutput= numberOfComponents+1; // include div(E)
 
-  int numberOfComponents= C.length(); 
-  int numberToOutput= numberOfComponents+1; // include div(E)
-  if( dispersionModel != noDispersion )
-  {
-    // output errors in P too:
-    CompositeGrid & cg= *cgp;
-    numberToOutput += cg.numberOfDimensions();
-  }
+  const int & numberOfComponents= dbase.get<int>("numberOfComponents");
+  Range C = numberOfComponents;
+
+  const int & numberOfErrorComponents= dbase.get<int>("numberOfErrorComponents");
+  const int numberToOutput= numberOfErrorComponents+1; // include div(E)
+
+  // if( FALSE && dispersionModel != noDispersion )
+  // {
+  //   // output errors in P too:
+  //   CompositeGrid & cg= *cgp;
+  //   numberToOutput += cg.numberOfDimensions();
+  // }
   
 
   if( false )
-    printF("\n ***** outputResults: maximumError.getLength(0)=%i numberOfComponents=%i\n",
-           maximumError.getLength(0),numberOfComponents);
+    printF("\n ***** outputResults: maximumError.getLength(0)=%i numberOfComponents=%i numberToOutput=%i\n",
+           maximumError.getLength(0),numberOfComponents,numberToOutput);
   
   if( maximumError.getLength(0)>= (numberToOutput-1) && myid==0 )
   {
     fPrintF(checkFile,"%9.2e %i  ",t,numberToOutput);
     int c;
     real err,uc;
-    for( c=0; c<numberToOutput-1; c++ )
+    for( c=0; c<numberOfErrorComponents; c++ )
     {
       err = maximumError(c); // error(c) > checkFileCutoff(c) ? error(c) : 0.;
       uc = solutionNorm(c); 
@@ -280,11 +286,12 @@ outputResults( int current, real t, real dt )
       fPrintF(checkFile,"%i %9.2e %10.3e  ",c,divEMax,gradEMax); // kkc this is actually divEMax and divHMax (divH stored in gradE)
     fPrintF(checkFile,"\n");
 
+
     // *************************************************************
     if( computeEnergy )
     {
-      maximumError(numberOfComponents )=totalEnergy;
-      maximumError(numberOfComponents+1)=totalEnergy-initialTotalEnergy;
+      maximumError(numberOfErrorComponents )=totalEnergy;
+      maximumError(numberOfErrorComponents+1)=totalEnergy-initialTotalEnergy;
     }
     
     // saveSequenceInfo( t, maximumError );

@@ -8,6 +8,7 @@
 
 #define advMaxwell EXTERN_C_NAME(advmaxwell)
 #define mxFilter EXTERN_C_NAME(mxfilter)
+#define getGDMParameters EXTERN_C_NAME(getgdmparameters)
 
 extern "C"
 {
@@ -25,6 +26,51 @@ extern "C"
             const int & gridIndexRange, const real & u, const real & d, 
             const int&mask, const int&boundaryCondition, const int&ipar, const real&rpar, int&ierr );
 }
+
+static Maxwell *cgmxPointer=NULL; // for getGDMParameters
+
+extern "C"
+{
+
+// ================================================================================
+///  \brief Return the gdm parameters
+/// \param grid (input) : return parameters for this grid 
+/// \param gdm(0:maxNumberOfParameters-1, 0:maxNumberOfPolarizationVectors) : output
+///           return gdm(0:3,iv) = (a0,a1,b0,b1) iv=0,1,2...,numberOfPolarizationVectors-1
+// ================================================================================
+void getGDMParameters( int & grid, real *gdmPar, 
+                                              const int & maxNumberOfParameters, 
+                                              const int & maxNumberOfPolarizationVectors )
+{
+#define gdmVar(m,iv) gdmPar[(m)+maxNumberOfParameters*(iv)]
+
+    assert( cgmxPointer != NULL );
+
+    CompositeGrid *&cgp = cgmxPointer->cgp;
+    assert( cgp!=NULL );
+    CompositeGrid & cg= *cgp;
+
+    const int domain = cg.domainNumber(grid);
+    const DispersiveMaterialParameters & dmp =  cgmxPointer->getDomainDispersiveMaterialParameters(domain);
+
+    assert( dmp.numberOfPolarizationVectors>0 );
+    assert( dmp.numberOfPolarizationVectors<= maxNumberOfPolarizationVectors );
+    assert( dmp.numberOfModelParameters <= maxNumberOfParameters );
+
+    for( int iv=0; iv<dmp.numberOfPolarizationVectors; iv++ )
+    {
+        for( int m=0; m<dmp.numberOfModelParameters; m++ )
+        {
+            gdmVar(m,iv) = dmp.modelParameters(m,iv);
+        
+        }
+    }
+#undef gdmVar  
+}
+
+}
+
+
 
 // fourth order dissipation 2D: ***** NOTE: this is minus of the 4th difference:  -(D+D-)^2 *********
 #define FD4_2D(u,i1,i2,i3,c) (    -( u(i1-2,i2,i3,c)+u(i1+2,i2,i3,c)+u(i1,i2-2,i3,c)+u(i1,i2+2,i3,c) )   +4.*( u(i1-1,i2,i3,c)+u(i1+1,i2,i3,c)+u(i1,i2-1,i3,c)+u(i1,i2+1,i3,c) ) -12.*u(i1,i2,i3,c) )
@@ -63,6 +109,8 @@ advanceNFDTD(  int numberOfStepsTaken, int current, real t, real dt )
     const int numberOfDimensions = cg.numberOfDimensions();
     const int numberOfComponentGrids = cg.numberOfComponentGrids();
 
+    cgmxPointer = this; // for getGMDParameters 
+    
     Index Iv[3], &I1=Iv[0], &I2=Iv[1], &I3=Iv[2];
     Range C(ex,hz);
     const int numberOfComponents=cgfields[0][0].getLength(3);
@@ -328,11 +376,11 @@ advanceNFDTD(  int numberOfStepsTaken, int current, real t, real dt )
                         mgop.derivative(MappedGridOperators::laplacianOperator,u,f,I1,I2,I3,C);
             // * mgop.derivative(MappedGridOperators::laplacianOperator,u,f,I1,I2,I3);
                         f(I1,I2,I3,C)*=csq;
-                        if( dispersionModel != noDispersion )
-                        { // set f for dispersive modes to zero 
-                  	Range P(pxc,pxc+numberOfDimensions-1);
-                  	f(I1,I2,I3,P)=0.;
-                        }
+            // if( dispersionModel != noDispersion )
+            // { // set f for dispersive modes to zero 
+            //   Range P(pxc,pxc+numberOfDimensions-1);
+            //   f(I1,I2,I3,P)=0.;
+            // }
             // display(f,sPrintF("lap*csq t=%e processor=%i",t,myid),debugFile,"%6.2f ");
             //f = csq*f + (csq*cdt*cdt/12.)*lapSq;  // put all into f
                         option=0;  // append any forcing below to the "f" array
@@ -366,6 +414,31 @@ advanceNFDTD(  int numberOfStepsTaken, int current, real t, real dt )
                 #else
                   const realSerialArray & varDis = useVariableDissipation ? (*variableDissipation)[grid] : uLocal;
                 #endif
+        // --- Lookup info for the dispersion model ---
+                const int domain = cg.domainNumber(grid);
+                const DispersiveMaterialParameters & dmp = getDomainDispersiveMaterialParameters(domain);
+                const int numberOfPolarizationVectors = dmp.numberOfPolarizationVectors;      
+        // --- Get pointers to arrays for the dispersive model ----
+                real *pnptr=unLocal.getDataPointer();
+                real *pptr = uLocal.getDataPointer();
+                real *pmptr=umLocal.getDataPointer(); // set defaults if not used  -- just point to u 
+                if( numberOfPolarizationVectors>0 )
+                {
+          // --- Get grid functions for the dispersive model ----
+                    realMappedGridFunction & pNext= getDispersionModelMappedGridFunction( grid,next );
+                    realMappedGridFunction & pCur = getDispersionModelMappedGridFunction( grid,current );
+                    realMappedGridFunction & pPrev= getDispersionModelMappedGridFunction( grid,prev );
+                    if( numberOfPolarizationVectors>0 )
+                    {
+                        OV_GET_SERIAL_ARRAY(real,pNext,pnLocal);
+                        OV_GET_SERIAL_ARRAY(real, pCur,pLocal);
+                        OV_GET_SERIAL_ARRAY(real,pPrev,pmLocal);
+                        pnptr=pnLocal.getDataPointer();
+                        pptr = pLocal.getDataPointer();
+                        pmptr=pmLocal.getDataPointer();
+            // ::display(pLocal,"pLocal");
+                    }
+                }
                 bool ok = ParallelUtility::getLocalArrayBounds(u,uLocal,I1,I2,I3);
                 real timeAdv=getCPU();
         // In some cases we combine the artificial dissipation loop with the main loop
@@ -377,6 +450,8 @@ advanceNFDTD(  int numberOfStepsTaken, int current, real t, real dt )
                 const int useWhereMask = numberOfComponentGrids>1;
        // const bool updateSolution = updateInterior;
        // const bool updateDissipation = addDissipation;
+        // Each grid may or may not have dispersion model: 
+                const DispersionModelEnum dispersionModelLocal = numberOfPolarizationVectors>0 ? dispersionModel : noDispersion;
                 int gridType = isRectangular? 0 : 1;
                 int option=(isRectangular || useCurvilinearOpt) ? 0 : 1;   // 0=Maxwell+AD, 1=AD
                 int ipar[]={option,
@@ -398,13 +473,18 @@ advanceNFDTD(  int numberOfStepsTaken, int current, real t, real dt )
                         	      (int)useNewForcingMethod,
                         	      numberOfForcingFunctions,
                         	      fCurrent,
-                        	      dispersionModel,
-                        	      pxc,pyc,pzc, qxc,qyc,qzc, rxc,ryc,rzc,
+                        	      dispersionModelLocal,
+                        	      pxc,pyc,pzc, 
+                                        numberOfPolarizationVectors,grid,
+                                        0, 0,0,0,  // for future use
+                    // qxc,qyc,qzc, 
+                    // rxc,ryc,rzc,
                         	      useSosupDissipation,
                         	      sosupDissipationOption,
                         	      updateInterior,
                         	      addDissipation,
-                                        computeUt
+                                        computeUt,
+                                        (int)forcingOption
                                       };  //
                 real dx[3]={1.,1.,1.};
                 if( isRectangular )
@@ -429,9 +509,9 @@ advanceNFDTD(  int numberOfStepsTaken, int current, real t, real dt )
                 rpar[16]=sigmaHGrid(grid);
                 rpar[17]=divergenceCleaningCoefficient;
                 rpar[18]=t;
+                rpar[19]= (real &)tz;  // twilight zone pointer
                 rpar[20]=0.;  // return cpu for dissipation
         // Dispersive material parameters
-                const DispersiveMaterialParameters & dmp = getDispersiveMaterialParameters(grid);
                 rpar[21]=dmp.gamma;
                 rpar[22]=dmp.omegap;
         // ADD THIS AS AN OPTION
@@ -484,6 +564,10 @@ advanceNFDTD(  int numberOfStepsTaken, int current, real t, real dt )
                         const int m0=currentFn;
                         OV_GET_SERIAL_ARRAY(real,FN(m0),f0Local); ut1ptr=f0Local.getDataPointer();
                     }
+          // Dispersion model: polarization vector 
+                    ut2ptr = pmptr;
+                    ut3ptr = pptr;
+                    ut4ptr = pnptr;
                 }
                 else  // MOL time-stepping : Stoermer 
                 {
@@ -529,6 +613,15 @@ advanceNFDTD(  int numberOfStepsTaken, int current, real t, real dt )
                 {
                     OV_GET_SERIAL_ARRAY(real,mg.inverseVertexDerivative(),rxLocal);
                     rxptr = rxLocal.getDataPointer();
+                }
+                const bool centerNeeded = forcingOption == twilightZoneForcing;
+                if( centerNeeded && timeSteppingMethod==modifiedEquationTimeStepping )
+                {
+          // Pass the xy array for twilight-zone -- needed for dispersive models  *wdh* Sept 2, 2017
+                    OV_GET_SERIAL_ARRAY(real,mg.center(),xLocal);
+                    real *xyptr = xLocal.getDataPointer();
+                    assert( xyptr!=NULL );
+                    ut5ptr = xyptr;
                 }
         // int *maskptr = useWhereMask ? maskLocal.getDataPointer() : ipar;
                 int *maskptr = maskLocal.getDataPointer(); // *wdh* Jan 5, 2017 -- do this always
@@ -644,6 +737,42 @@ advanceNFDTD(  int numberOfStepsTaken, int current, real t, real dt )
 
                 cgfields[next].interpolate();
   
+                if( dispersionModel !=noDispersion )
+                {
+                    if( !parameters.dbase.has_key("domainInterpolant") )
+                    {
+            // Create Interpolants for the separate domains so we can interpolate the Polarization Vectors 
+
+                        Interpolant **& domainInterpolant = parameters.dbase.put<Interpolant**>("domainInterpolant");
+                        domainInterpolant = new Interpolant* [cg.numberOfDomains()];
+                    
+                        for( int domain=0; domain<cg.numberOfDomains(); domain++ )
+                        {
+                            domainInterpolant[domain]=NULL;
+                            const DispersiveMaterialParameters & dmp = getDomainDispersiveMaterialParameters(domain);
+                            if( dmp.numberOfPolarizationVectors>0 )
+                            {
+                                domainInterpolant[domain] = new Interpolant(cg.domain[domain]);
+                                domainInterpolant[domain]-> incrementReferenceCount();
+                            }
+                        }
+                        
+                    }
+                    
+
+                    for( int domain=0; domain<cg.numberOfDomains(); domain++ )
+                    {
+                        realCompositeGridFunction *ppNext= getDispersionModelCompositeGridFunction( domain,next );
+                        if( ppNext!=NULL )
+                        {
+                            ppNext->interpolate();
+                        }
+                        
+                    }
+                    
+                }
+                
+
                 if( debug & 8 )
                     cgfields[next].display(sPrintF("cgfields[next] after interpolate, t=%8.2e",t),debugFile,"%8.2e ");
 

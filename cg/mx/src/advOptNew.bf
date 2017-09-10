@@ -466,6 +466,19 @@ else ! add dissipation too
 end if
 #endMacro
 
+! ======================================================================================
+!   Evaluate the TZ exact solution in 2D
+! ======================================================================================
+#beginMacro OGDERIV2D( ntd,nxd,nyd,nzd,i1,i2,i3,t, n,val)
+  call ogDeriv(ep, ntd,nxd,nyd,nzd, xy(i1,i2,i3,0),xy(i1,i2,i3,1),0.,t, n,val )
+#endMacro
+
+! ======================================================================================
+!   Evaluate the TZ exact solution in 3D
+! ======================================================================================
+#beginMacro OGDERIV3D( ntd,nxd,nyd,nzd,i1,i2,i3,t, n,val)
+  call ogDeriv(ep, ntd,nxd,nyd,nzd, xy(i1,i2,i3,0),xy(i1,i2,i3,1),xy(i1,i2,i3,2),t, n,val )
+#endMacro
 
 
 #defineMacro LAP2D2(U,i1,i2,i3,c) \
@@ -946,33 +959,106 @@ else if( updateSolution.eq.1 )then
 
 #endMacro 
 
+! ========================================================================
+! Macro: Getting forcing for GDM in 2D
+! ========================================================================
+#beginMacro getGDMForcing2d()
+ if( addForcing.ne.0 )then
+   ! fp = dtsq*f(i1,i2,i3,pc) 
+   if( forcingOption.eq.twilightZoneForcing )then
+
+     OGDERIV2D( 0,0,0,0,i1,i2,i3,t, ec, e0  )
+     OGDERIV2D( 1,0,0,0,i1,i2,i3,t, ec, e0t )
+
+     do iv=0,numberOfPolarizationVectors-1
+       pce = pc+iv*nd 
+       OGDERIV2D( 0,0,0,0,i1,i2,i3,t, pce, p0  )
+       OGDERIV2D( 1,0,0,0,i1,i2,i3,t, pce, p0t )
+       OGDERIV2D( 2,0,0,0,i1,i2,i3,t, pce, p0tt)
+
+       fe = fe + dtsq*alphaP*p0tt 
+       fpv(iv) = dtsq*( p0tt + b1v(iv)*p0t + b0v(iv)*p0 - a0v(iv)*e0 - a1v(iv)*e0t )
+     end do 
+
+     !if( abs(fp-fp2).gt. 1.e-14 )then
+     !  write(*,'(" (i1,i2)=",2i6," fp,fp2,diff=",3e12.4)') i1,i2,fp,fp2,fp-fp2
+     !else
+     !  fp=fp2
+     !end if
+
+   else
+     do iv=0,numberOfPolarizationVectors-1
+       fpv(iv)=0. 
+     end do      
+   end if
+ end if 
+#endMacro
+
+! ========================================================================
+! Macro: Add forcing to Hz for GDM in 2D
+! ========================================================================
+#beginMacro addtForcingHz()
+ if( addForcing.ne.0 )then
+   if( forcingOption.eq.twilightZoneForcing )then
+     ! TESTING ...
+     ! OGDERIV2D( 0,0,0,0,i1,i2,i3,t+dt, hz, hz0)
+     ! un(i1,i2,i3,hz)=hz0
+
+
+     ! OGDERIV2D( ntd,nxd,nyd,nzd,i1,i2,i3,t, n,val)
+     ! OGDERIV2D( 1,0,0,0,i1,i2,i3,t+.5*dt, hz, hz0t)
+     ! OGDERIV2D( 0,1,0,0,i1,i2,i3,t+.5*dt, ey, ey0x)
+     ! OGDERIV2D( 0,0,1,0,i1,i2,i3,t+.5*dt, ex, ex0y)
+     ! fhz = ( ey0x - ex0y )/mu + hz0t 
+
+     OGDERIV2D( 1,0,0,0,i1,i2,i3,t-dt, hz, hz0t)
+     OGDERIV2D( 0,1,0,0,i1,i2,i3,t-dt, ey, ey0x)
+     OGDERIV2D( 0,0,1,0,i1,i2,i3,t-dt, ex, ex0y)
+     fhz = -.5*( ( ey0x - ex0y )/mu + hz0t )
+
+     OGDERIV2D( 1,0,0,0,i1,i2,i3,t   , hz, hz0t)
+     OGDERIV2D( 0,1,0,0,i1,i2,i3,t   , ey, ey0x)
+     OGDERIV2D( 0,0,1,0,i1,i2,i3,t   , ex, ex0y)
+     fhz = fhz + 1.5*( ( ey0x - ex0y )/mu + hz0t )
+
+     un(i1,i2,i3,hz)=un(i1,i2,i3,hz) + dt*fhz
+
+   else
+     un(i1,i2,i3,hz) = un(i1,i2,i3,hz) + dt*f(i1,i2,i3,hz) ! first order only **FIX ME**
+   end if
+ end if
+#endMacro
 
 ! ===========================================================================================
 ! Macro:     DISPERSIVE: RECTANGULAR, 2D, ORDER 2
 ! ===========================================================================================
 #beginMacro updateRectangular2dOrder2Dispersive()
-  INFO("FD44r-dispersive");
+
+ if( .true. .and. numberOfPolarizationVectors.eq.1 )then
+  INFO("FD22r-dispersive");
   fp=0
   fe=0.
+
   beginLoopsMask(i1,i2,i3,n1a,n1b,n2a,n2b,n3a,n3b)
 
     ! Advance Hz first:
     ! For now solve H_t = -(1/mu)*(  (E_y)_x - (E_x)_y )
-    !   USE AB2 -- note: this is just a quadrature so stability is not an inssue
+    !   USE AB2 -- note: this is just a quadrature so stability is not an issue
     un(i1,i2,i3,hz) = u(i1,i2,i3,hz) -(dt/mu)*( 1.5*ux22r(i1,i2,i3,ey) -.5*umx22r(i1,i2,i3,ey) \
                                                -1.5*uy22r(i1,i2,i3,ex) +.5*umy22r(i1,i2,i3,ex) )
-    if( addForcing.ne.0 )then
-      un(i1,i2,i3,hz) = un(i1,i2,i3,hz) + dt*f(i1,i2,i3,hz) ! first order only **FIX ME**
-    end if
+
+    addtForcingHz()
 
     do m=0,1
      pc=pxc+m
      ec=ex+m
 
      if( addForcing.ne.0 )then
-       fp = dtsq*f(i1,i2,i3,pc) 
-       fe = dtsq*f(i1,i2,i3,ec) 
-     end if 
+       fe = dtsq*f(i1,i2,i3,ec)
+       getGDMForcing2d()
+       fp=fpv(0)
+     end if
+
      ! GDM: 
      !   (E^{n+1} -2 E^n + E^{n-1})/dt^2 = c^2*Delta(E) -alphaP*(P^{n+1} -2 P^n + P^{n-1})/dt^2
      !   (P^{n+1} -2 P^n + P^{n-1})/dt^2 + b1* (P^{n+1} - P^{n-1})/(2*dt) + b0*P^n =
@@ -983,18 +1069,90 @@ else if( updateSolution.eq.1 )then
      !
      ev = u(i1,i2,i3,ec)
      evm=um(i1,i2,i3,ec)
-     pv = u(i1,i2,i3,pc)
-     pvm=um(i1,i2,i3,pc)
 
-     rhsE = maxwell2dr(i1,i2,i3,ec) + alphaP*(2.*pv-pvm) + fe 
-     rhsP = 2.*pv-pvm + .5*dt*( b1*pvm -a1*evm ) + dt*dt*( -b0*pv + a0*ev ) + fp
+     pv0 = p(i1,i2,i3,m)
+     pvm0=pm(i1,i2,i3,m)
+
+     rhsE = maxwell2dr(i1,i2,i3,ec) + alphaP*(2.*pv0-pvm0) + fe 
+     rhsP = 2.*pv0-pvm0 + .5*dt*( b1*pvm0 -a1*evm ) + dt*dt*( -b0*pv0 + a0*ev ) + fp
+
      deti = 1./(1.+.5*dt*(b1+alphaP*a1))
      un(i1,i2,i3,ec) = ((1.+.5*dt*b1)*rhsE -alphaP*rhsP)*deti
-     un(i1,i2,i3,pc) = (.5*a1*dt*rhsE            + rhsP)*deti 
+     pn(i1,i2,i3,m)  = (.5*a1*dt*rhsE            + rhsP)*deti 
 
     end do
-
   endLoopsMask()
+
+ else
+
+  ! ------- 2D DISPERSIVE RECTANGULAR MULTIPLE PV -------
+
+  INFO("FD22r-dispersive-MULTI-PV");
+
+  fe=0.
+  ! -- first compute some coefficients ---
+  beta=0. 
+  do iv=0,numberOfPolarizationVectors-1
+    betav(iv) = 1./( 1.+.5*dt*b1v(iv) )
+    beta = beta + .5*dt*a1v(iv)*betav(iv)
+    fpv(iv)=0.  ! initialize if not used 
+  end do
+
+  beginLoopsMask(i1,i2,i3,n1a,n1b,n2a,n2b,n3a,n3b)
+
+    ! Advance Hz first:
+    ! For now solve H_t = -(1/mu)*(  (E_y)_x - (E_x)_y )
+    !   USE AB2 -- note: this is just a quadrature so stability is not an issue
+    un(i1,i2,i3,hz) = u(i1,i2,i3,hz) -(dt/mu)*( 1.5*ux22r(i1,i2,i3,ey) -.5*umx22r(i1,i2,i3,ey) \
+                                               -1.5*uy22r(i1,i2,i3,ex) +.5*umy22r(i1,i2,i3,ex) )
+
+    addtForcingHz()
+
+    ! -- loop over components of the vector --
+    do m=0,1
+     pc=pxc+m
+     ec=ex+m
+
+     if( addForcing.ne.0 )then
+       fe = dtsq*f(i1,i2,i3,ec)
+       ! Compute fpv(iv) : 
+       getGDMForcing2d()
+     end if
+
+     ! GDM: 
+     !   (E^{n+1} -2 E^n + E^{n-1})/dt^2 = c^2*Delta(E) -alphaP*(P^{n+1} -2 P^n + P^{n-1})/dt^2
+     !   (P^{n+1} -2 P^n + P^{n-1})/dt^2 + b1* (P^{n+1} - P^{n-1})/(2*dt) + b0*P^n =
+     !                             a0*E^n + a1*(E^{n+1} - E^{n-1})/(2*dt)
+     ! =>
+     !            E^{n+1} +       alphaP*P^{n+1} = rhsE
+     !  -.5*a1*dt*E^{n+1} + (1+.5*b1*dt)*P^{n+1} = rhsP
+     !
+     ev = u(i1,i2,i3,ec)
+     evm=um(i1,i2,i3,ec)
+    
+     rhsP = 0.
+     pSum=0. 
+     do iv=0,numberOfPolarizationVectors-1
+       pv(iv) = p(i1,i2,i3,m+iv*nd)
+       pvm(iv)=pm(i1,i2,i3,m+iv*nd)
+
+       rhspv(iv) = 2.*pv(iv)-pvm(iv) + .5*dt*( b1v(iv)*pvm(iv) -a1v(iv)*evm ) + dtSq*( -b0v(iv)*pv(iv) + a0v(iv)*ev ) + fpv(iv)
+       rhsP = rhsP + betav(iv)*rhspv(iv) 
+       pSum = pSum + 2.*pv(iv) - pvm(iv) 
+     end do 
+
+     rhsE = maxwell2dr(i1,i2,i3,ec) + alphaP*( pSum - rhsP ) + fe 
+
+     evn = rhsE / (1.+ alphaP*beta)
+     un(i1,i2,i3,ec) = evn
+     do iv=0,numberOfPolarizationVectors-1
+       pn(i1,i2,i3,m+iv*nd)  = betav(iv)*( .5*dt*a1v(iv)*evn + rhspv(iv) )
+    end do
+
+   end do ! m=0,1
+  endLoopsMask()
+
+ end if
 #endMacro 
 
 ! ===========================================================================================
@@ -1002,18 +1160,19 @@ else if( updateSolution.eq.1 )then
 ! ===========================================================================================
 #beginMacro updateCurvilinear2dOrder2Dispersive()
   INFO("FD44c-dispersive");
-  if( addDissipation )then
-    write(*,'(" -- finish me : dispersion and AD")')
-    stop 8256
-  end if
-  if( useNewForcingMethod.ne.0 )then
-   write(*,'(" finish me: dispersion && useNewForcingMethod")')
-   stop 7733
-  end if 
+ if( addDissipation )then
+   write(*,'(" -- finish me : dispersion and AD")')
+   stop 8256
+ end if
+ if( useNewForcingMethod.ne.0 )then
+  write(*,'(" finish me: dispersion && useNewForcingMethod")')
+  stop 7733
+ end if 
 
-  fp=0.
+ fp=0.
+ fe=0.
 
-  fe=0.
+ if( numberOfPolarizationVectors.eq.1 )then
   beginLoopsMask(i1,i2,i3,n1a,n1b,n2a,n2b,n3a,n3b)
 
     ! Advance Hz first:
@@ -1021,9 +1180,7 @@ else if( updateSolution.eq.1 )then
     !   USE AB2 -- note: this is just a quadrature so stability is not an inssue
     un(i1,i2,i3,hz) = u(i1,i2,i3,hz) -(dt/mu)*( 1.5*ux22(i1,i2,i3,ey) -.5*umx22(i1,i2,i3,ey) \
                                                -1.5*uy22(i1,i2,i3,ex) +.5*umy22(i1,i2,i3,ex) )
-    if( addForcing.ne.0 )then
-      un(i1,i2,i3,hz) = un(i1,i2,i3,hz) + dt*f(i1,i2,i3,hz) ! first order only **FIX ME**
-    end if        
+    addtForcingHz()
 
     !  --- advance E and P ---
     do m=0,1
@@ -1031,8 +1188,10 @@ else if( updateSolution.eq.1 )then
      ec=ex+m
 
      if( addForcing.ne.0 )then ! forcing in E equation already added to f 
-       fp = dtsq*f(i1,i2,i3,pc) 
-     end if 
+       ! fp = dtsq*f(i1,i2,i3,pc) 
+       getGDMForcing2d()
+       fp=fpv(0)
+     end if
 
      ! GDM: 
      !   (E^{n+1} -2 E^n + E^{n-1})/dt^2 = c^2*Delta(E) -alphaP*(P^{n+1} -2 P^n + P^{n-1})/dt^2
@@ -1044,18 +1203,31 @@ else if( updateSolution.eq.1 )then
      !
      ev = u(i1,i2,i3,ec)
      evm=um(i1,i2,i3,ec)
-     pv = u(i1,i2,i3,pc)
-     pvm=um(i1,i2,i3,pc)
 
-     rhsE = maxwellc22(i1,i2,i3,ec) + alphaP*(2.*pv-pvm) + fe 
-     rhsP = 2.*pv-pvm + .5*dt*( b1*pvm -a1*evm ) + dt*dt*( -b0*pv + a0*ev ) + fp
+     pv0 = p(i1,i2,i3,m)
+     pvm0=pm(i1,i2,i3,m)
+
+     ! pv = u(i1,i2,i3,pc)
+     ! pvm=um(i1,i2,i3,pc)
+
+     rhsE = maxwellc22(i1,i2,i3,ec) + alphaP*(2.*pv0-pvm0) + fe 
+     rhsP = 2.*pv0-pvm0 + .5*dt*( b1*pvm0 -a1*evm ) + dt*dt*( -b0*pv0 + a0*ev ) + fp
      deti = 1./(1.+.5*dt*(b1+alphaP*a1))
      un(i1,i2,i3,ec) = ((1.+.5*dt*b1)*rhsE -alphaP*rhsP)*deti
-     un(i1,i2,i3,pc) = (.5*a1*dt*rhsE            + rhsP)*deti 
+     pn(i1,i2,i3,m)  = (.5*a1*dt*rhsE            + rhsP)*deti 
+
+     ! pn(i1,i2,i3,m) = un(i1,i2,i3,pc)
+     ! un(i1,i2,i3,pc) = pn(i1,i2,i3,m)
 
     end do
-
   endLoopsMask()
+
+ else
+
+  INFO("FINISH ME FOR numberOfPolarizationVectors>1")
+  stop 1234
+
+ end if
 #endMacro 
 
 
@@ -1068,7 +1240,7 @@ else if( updateSolution.eq.1 )then
 ! **********************************************************************************
 #beginMacro ADV_MAXWELL(NAME,DIM,ORDER,GRIDTYPE)
  subroutine NAME(nd,n1a,n1b,n2a,n2b,n3a,n3b,nd1a,nd1b,nd2a,nd2b,nd3a,nd3b,nd4a,nd4b,\
-                 mask,rsxy,  um,u,un,f,fa, v,vvt2,ut3,vvt4,ut5,ut6,ut7, bc, dis, varDis, ipar, rpar, ierr )
+                 mask,rsxy,  um,u,un,f,fa, v, pm,p,pn, xy, ut6,ut7, bc, dis, varDis, ipar, rpar, ierr )
 !======================================================================
 !   Advance a time step for Maxwells equations
 !     OPTIMIZED version for rectangular grids.
@@ -1089,10 +1261,13 @@ else if( updateSolution.eq.1 )then
  real f(nd1a:nd1b,nd2a:nd2b,nd3a:nd3b,nd4a:nd4b)
  real fa(nd1a:nd1b,nd2a:nd2b,nd3a:nd3b,nd4a:nd4b,0:*)  ! forcings at different times
  real v(nd1a:nd1b,nd2a:nd2b,nd3a:nd3b,nd4a:nd4b)
- real vvt2(nd1a:nd1b,nd2a:nd2b,nd3a:nd3b,nd4a:nd4b)
- real ut3(nd1a:nd1b,nd2a:nd2b,nd3a:nd3b,nd4a:nd4b)
- real vvt4(nd1a:nd1b,nd2a:nd2b,nd3a:nd3b,nd4a:nd4b)
- real ut5(nd1a:nd1b,nd2a:nd2b,nd3a:nd3b,nd4a:nd4b)
+ ! Polarization vectors 
+ real pm(nd1a:nd1b,nd2a:nd2b,nd3a:nd3b,0:*)
+ real p(nd1a:nd1b,nd2a:nd2b,nd3a:nd3b,0:*)
+ real pn(nd1a:nd1b,nd2a:nd2b,nd3a:nd3b,0:*)
+
+ real xy(nd1a:nd1b,nd2a:nd2b,nd3a:nd3b,0:*)
+
  real ut6(nd1a:nd1b,nd2a:nd2b,nd3a:nd3b,nd4a:nd4b)
  real ut7(nd1a:nd1b,nd2a:nd2b,nd3a:nd3b,nd4a:nd4b)
  real dis(nd1a:nd1b,nd2a:nd2b,nd3a:nd3b,nd4a:nd4b)
@@ -1118,6 +1293,8 @@ else if( updateSolution.eq.1 )then
  real dt4by12
  real eps,mu,sigmaE,sigmaH,kx,ky,kz,divergenceCleaningCoefficient
  logical addDissipation
+
+ real ep ! holds the pointer to the TZ function
 
  real dx(0:2),dr(0:2)
 
@@ -1156,6 +1333,9 @@ else if( updateSolution.eq.1 )then
  integer noDispersion,drude
  parameter( noDispersion=0, drude=1 )
 
+ ! forcing options
+      #Include "forcingDefineFortranInclude.h"
+
 !...........start statement function
  integer kd,m
  real rx,ry,rz,sx,sy,sz,tx,ty,tz
@@ -1185,6 +1365,14 @@ else if( updateSolution.eq.1 )then
 
  real DptU,DmtU,DztU, DzstU
 
+ real fhz 
+ real hz0t,hz0x,hz0y
+ real ex0,ex0t,ex0x,ex0y,ex0z
+ real ey0,ey0t,ey0x,ey0y,ey0z
+ real ez0,ez0t,ez0x,ez0y,ez0z
+
+ real p0,p0t,p0tt
+ real e0,e0t
 
  real cdt4by360,cdt6by20160
 
@@ -1198,7 +1386,7 @@ else if( updateSolution.eq.1 )then
 
  real cdSosupx,cdSosupy,cdSosupz, adSosup,sosupParameter, uDotFactor, adxSosup(0:2)
  integer useSosupDissipation,sosupDissipationOption
- integer updateSolution,updateDissipation,computeUt
+ integer updateSolution,updateDissipation,computeUt,forcingOption
 
  ! div cleaning: 
  real dc,dcp,cdc0,cdc1,cdcxx,cdcyy,cdczz,cdcEdx,cdcEdy,cdcEdz,cdcHdx,cdcHdy,cdcHdz,cdcf
@@ -1206,15 +1394,30 @@ else if( updateSolution.eq.1 )then
  real cdcH,cdcHLap,cdcHLapsq,cdcHLapm
 
  ! dispersion
- integer dispersionModel,pxc,pyc,pzc,qxc,qyc,qzc,rxc,ryc,rzc
- integer ec,pc
+ integer dispersionModel,numberOfPolarizationVectors,pxc,pyc,pzc,iv
+ integer ec,pc,pce
  real gamma,omegap
- real gammaDt,omegapDtSq,ptt, fe,fp
+ real gammaDt,omegapDtSq,ptt, fe,fp,fp2
  ! Generalized dispersion model parameters
  real alphaP, a0,a1,b0,b1
- real ev,evm,pv,pvm,deti,rhsE,rhsP
+ real ev,evm,evn,pv0,pvm0,deti,rhsE,rhsP
 
-! real unxx22r,unyy22r,unxy22r,unx22r
+ integer maxNumberOfParameters,maxNumberOfPolarizationVectors
+ parameter( maxNumberOfParameters=4, maxNumberOfPolarizationVectors=20 )
+ real gdmPar(0:maxNumberOfParameters-1,0:maxNumberOfPolarizationVectors-1)
+ real a0v,a1v,b0v,b1v
+ real beta, pSum
+ real pv(0:maxNumberOfPolarizationVectors-1)
+ real pvm(0:maxNumberOfPolarizationVectors-1)
+ real rhspv(0:maxNumberOfPolarizationVectors-1)
+ real betav(0:maxNumberOfPolarizationVectors-1)
+ real fpv(0:maxNumberOfPolarizationVectors-1)
+
+! .......statement functions for GDM parameters
+ a0v(iv) = gdmPar(0,iv)
+ a1v(iv) = gdmPar(1,iv)
+ b0v(iv) = gdmPar(2,iv)
+ b1v(iv) = gdmPar(3,iv)
 
 !.......statement functions for jacobian
  rx(i1,i2,i3)=rsxy(i1,i2,i3,0,0)
@@ -1371,30 +1574,30 @@ else if( updateSolution.eq.1 )then
 
 
 
- ! Stoermer: 4th order in space and 4th order in time:
- maxwellr44(i1,i2,i3,n)=2.*u(I1,I2,I3,n)-um(I1,I2,I3,n)+\
-    c40*lap(n)+c41*v(I1,I2,I3,n)+c42*vvt2(I1,I2,I3,n)+c43*ut3(I1,I2,I3,n)
-
- maxwellc44(i1,i2,i3,n)=2.*u(I1,I2,I3,n)-um(I1,I2,I3,n)+\
-    c40*f(i1,i2,i3,n)+c41*v(I1,I2,I3,n)+c42*vvt2(I1,I2,I3,n)+c43*ut3(I1,I2,I3,n)
-
- ! Stoermer: 6th order in space and 6th order in time:
- maxwellr66(i1,i2,i3,n)=2.*u(I1,I2,I3,n)-um(I1,I2,I3,n)+\
-    c60*lap(n)+c61*v(I1,I2,I3,n)+c62*vvt2(I1,I2,I3,n)+c63*ut3(I1,I2,I3,n)+\
-    c64*vvt4(I1,I2,I3,n)+c65*ut5(I1,I2,I3,n)
-
- maxwellc66(i1,i2,i3,n)=2.*u(I1,I2,I3,n)-um(I1,I2,I3,n)+\
-    c60*f(i1,i2,i3,n)+c61*v(I1,I2,I3,n)+c62*vvt2(I1,I2,I3,n)+c63*ut3(I1,I2,I3,n)+\
-    c64*vvt4(I1,I2,I3,n)+c65*ut5(I1,I2,I3,n)
-
- ! Stoermer: 8th order in space and 8th order in time:
- maxwellr88(i1,i2,i3,n)=2.*u(I1,I2,I3,n)-um(I1,I2,I3,n)+\
-    c80*lap(n)+c81*v(I1,I2,I3,n)+c82*vvt2(I1,I2,I3,n)+c83*ut3(I1,I2,I3,n)+\
-    c84*vvt4(I1,I2,I3,n)+c85*ut5(I1,I2,I3,n)+c86*ut6(I1,I2,I3,n)+c87*ut7(I1,I2,I3,n)
-
- maxwellc88(i1,i2,i3,n)=2.*u(I1,I2,I3,n)-um(I1,I2,I3,n)+\
-    c80*f(i1,i2,i3,n)+c81*v(I1,I2,I3,n)+c82*vvt2(I1,I2,I3,n)+c83*ut3(I1,I2,I3,n)+\
-    c84*vvt4(I1,I2,I3,n)+c85*ut5(I1,I2,I3,n)+c86*ut6(I1,I2,I3,n)+c87*ut7(I1,I2,I3,n)
+!- ! Stoermer: 4th order in space and 4th order in time:
+!- maxwellr44(i1,i2,i3,n)=2.*u(I1,I2,I3,n)-um(I1,I2,I3,n)+\
+!-    c40*lap(n)+c41*v(I1,I2,I3,n)+c42*vvt2(I1,I2,I3,n)+c43*ut3(I1,I2,I3,n)
+!-
+!- maxwellc44(i1,i2,i3,n)=2.*u(I1,I2,I3,n)-um(I1,I2,I3,n)+\
+!-    c40*f(i1,i2,i3,n)+c41*v(I1,I2,I3,n)+c42*vvt2(I1,I2,I3,n)+c43*ut3(I1,I2,I3,n)
+!-
+!- ! Stoermer: 6th order in space and 6th order in time:
+!- maxwellr66(i1,i2,i3,n)=2.*u(I1,I2,I3,n)-um(I1,I2,I3,n)+\
+!-    c60*lap(n)+c61*v(I1,I2,I3,n)+c62*vvt2(I1,I2,I3,n)+c63*ut3(I1,I2,I3,n)+\
+!-    c64*vvt4(I1,I2,I3,n)+c65*ut5(I1,I2,I3,n)
+!-
+!- maxwellc66(i1,i2,i3,n)=2.*u(I1,I2,I3,n)-um(I1,I2,I3,n)+\
+!-    c60*f(i1,i2,i3,n)+c61*v(I1,I2,I3,n)+c62*vvt2(I1,I2,I3,n)+c63*ut3(I1,I2,I3,n)+\
+!-    c64*vvt4(I1,I2,I3,n)+c65*ut5(I1,I2,I3,n)
+!-
+!- ! Stoermer: 8th order in space and 8th order in time:
+!- maxwellr88(i1,i2,i3,n)=2.*u(I1,I2,I3,n)-um(I1,I2,I3,n)+\
+!-    c80*lap(n)+c81*v(I1,I2,I3,n)+c82*vvt2(I1,I2,I3,n)+c83*ut3(I1,I2,I3,n)+\
+!-    c84*vvt4(I1,I2,I3,n)+c85*ut5(I1,I2,I3,n)+c86*ut6(I1,I2,I3,n)+c87*ut7(I1,I2,I3,n)
+!-
+!- maxwellc88(i1,i2,i3,n)=2.*u(I1,I2,I3,n)-um(I1,I2,I3,n)+\
+!-    c80*f(i1,i2,i3,n)+c81*v(I1,I2,I3,n)+c82*vvt2(I1,I2,I3,n)+c83*ut3(I1,I2,I3,n)+\
+!-    c84*vvt4(I1,I2,I3,n)+c85*ut5(I1,I2,I3,n)+c86*ut6(I1,I2,I3,n)+c87*ut7(I1,I2,I3,n)
 
 
  !    *** 2nd order ***
@@ -1779,7 +1982,7 @@ f3dcme44(i1,i2,i3,n) = fa(i1,i2,i3,n,fcur)+cdtSqBy12*ffLaplacian23(i1,i2,i3,n) \
  sigmaH=rpar(16)  ! magnetic conductivity
  divergenceCleaningCoefficient=rpar(17)
  t     =rpar(18)
-
+ ep    =rpar(19)  ! for TZ forcing  -- new *wdh* Sept 2, 2017
  rpar(20)=0.  ! return the time used for adding dissipation
 
  ! Drude-Lorentz dispersion model:
@@ -1828,18 +2031,19 @@ f3dcme44(i1,i2,i3,n) = fa(i1,i2,i3,n,fcur)+cdtSqBy12*ffLaplacian23(i1,i2,i3,n) \
  pxc                 =ipar(25)
  pyc                 =ipar(26)
  pzc                 =ipar(27)
- qxc                 =ipar(28)
- qyc                 =ipar(29)
- qzc                 =ipar(30)
- rxc                 =ipar(31)
- ryc                 =ipar(32)
- rzc                 =ipar(33)
+ numberOfPolarizationVectors =ipar(28)
+ grid                =ipar(29) 
+ ! qzc                 =ipar(30) ! for future use 
+ ! rxc                 =ipar(31) ! for future use 
+ ! ryc                 =ipar(32) ! for future use 
+ ! rzc                 =ipar(33) ! for future use 
 
  useSosupDissipation   =ipar(34)
  sosupDissipationOption=ipar(35)
  updateSolution        =ipar(36)
  updateDissipation     =ipar(37)
  computeUt             =ipar(38)
+ forcingOption         =ipar(39) ! new *wdh* Sept 2, 2017
 
  fprev = mod(fcur-1+numberOfForcingFunctions,max(1,numberOfForcingFunctions))
  fnext = mod(fcur+1                         ,max(1,numberOfForcingFunctions))
@@ -1887,10 +2091,22 @@ f3dcme44(i1,i2,i3,n) = fa(i1,i2,i3,n,fcur)+cdtSqBy12*ffLaplacian23(i1,i2,i3,n) \
 
  gammaDt=gamma*dt
  omegapDtSq=(omegap*dt)**2
- if( t.eq.0. .and. dispersionModel.ne.noDispersion )then
-   ! ---- Dispersive Maxwell ----
-   write(*,'("--advOpt-- dispersionModel=",i4," px,py,pz=",3i3)') dispersionModel,pxc,pyc,pzc
-   write(*,'("--advOpt-- GDM: alphaP,a0,a1,b0,b1=",5(1p,e10.2))') alphaP,a0,a1,b0,b1
+
+ if( dispersionModel.ne.noDispersion )then
+  ! get the gdm parameters
+  !   gdmPar(0:3,iv) = (a0,a1,b0,b1) 
+  call getGDMParameters( grid,gdmPar,maxNumberOfParameters,maxNumberOfPolarizationVectors )
+
+   if( t.eq.0. .and. dispersionModel.ne.noDispersion )then
+     ! ---- Dispersive Maxwell ----
+     write(*,'("--advOpt-- dispersionModel=",i4," px,py,pz=",3i3)') dispersionModel,pxc,pyc,pzc
+     write(*,'("--advOpt-- GDM: numberOfPolarizationVectors=",i4)') numberOfPolarizationVectors
+     write(*,'("--advOpt-- GDM: alphaP,a0,a1,b0,b1=",5(1p,e10.2))') alphaP,a0,a1,b0,b1
+
+     do iv=0,numberOfPolarizationVectors-1
+       write(*,'("GDM: eqn=",i3," a0,a1,b0,b1=",4(1p,e10.2))') iv,a0v(iv),a1v(iv),b0v(iv),b1v(iv)
+     end do 
+  end if
  end if
 
  if( useSosupDissipation.ne.0 )then
@@ -2036,32 +2252,33 @@ f3dcme44(i1,i2,i3,n) = fa(i1,i2,i3,n,fcur)+cdtSqBy12*ffLaplacian23(i1,i2,i3,n) \
    end if
  end if
 
- if( orderInTime.eq.4 )then
-   c40=( 7./6. )*dtsq
-   c41=(-5./12.)*dtsq
-   c42=( 1./3. )*dtsq
-   c43=(-1./12.)*dtsq
- else if( orderInTime.eq.6 )then
-   c60=( 317./240.)*dtsq    ! from stoermer.maple
-   c61=(-266./240.)*dtsq
-   c62=( 374./240.)*dtsq
-   c63=(-276./240.)*dtsq
-   c64=( 109./240.)*dtsq
-   c65=( -18./240.)*dtsq
- else if( orderInTime.eq.8 )then 
-
-!     g := 1/60480 (236568 fv[4] + 88324 fv[0] - 121797 fv[1] + 245598 fv[2] 
-!     + 33190 fv[6] - 4125 fv[7] - 300227 fv[3] - 117051 fv[5])
-
-   c80=(  88324./60480.)*dtsq ! from stoermer.maple
-   c81=(-121797./60480.)*dtsq
-   c82=( 245598./60480.)*dtsq
-   c83=(-300227./60480.)*dtsq
-   c84=( 236568./60480.)*dtsq
-   c85=(-117051./60480.)*dtsq
-   c86=(  33190./60480.)*dtsq
-   c87=(  -4125./60480.)*dtsq
- end if
+! ! For stoermer: -- no longer used
+! if( orderInTime.eq.4 )then
+!   c40=( 7./6. )*dtsq
+!   c41=(-5./12.)*dtsq
+!   c42=( 1./3. )*dtsq
+!   c43=(-1./12.)*dtsq
+! else if( orderInTime.eq.6 )then
+!   c60=( 317./240.)*dtsq    ! from stoermer.maple
+!   c61=(-266./240.)*dtsq
+!   c62=( 374./240.)*dtsq
+!   c63=(-276./240.)*dtsq
+!   c64=( 109./240.)*dtsq
+!   c65=( -18./240.)*dtsq
+! else if( orderInTime.eq.8 )then 
+!
+!!     g := 1/60480 (236568 fv[4] + 88324 fv[0] - 121797 fv[1] + 245598 fv[2] 
+!!     + 33190 fv[6] - 4125 fv[7] - 300227 fv[3] - 117051 fv[5])
+!
+!   c80=(  88324./60480.)*dtsq ! from stoermer.maple
+!   c81=(-121797./60480.)*dtsq
+!   c82=( 245598./60480.)*dtsq
+!   c83=(-300227./60480.)*dtsq
+!   c84=( 236568./60480.)*dtsq
+!   c85=(-117051./60480.)*dtsq
+!   c86=(  33190./60480.)*dtsq
+!   c87=(  -4125./60480.)*dtsq
+! end if
 
 
  if( computeUt.eq.1 .and. updateDissipation.eq.1 )then
@@ -2107,19 +2324,19 @@ f3dcme44(i1,i2,i3,n) = fa(i1,i2,i3,n,fcur)+cdtSqBy12*ffLaplacian23(i1,i2,i3,n) \
  if( nd.eq.2 .and. orderOfAccuracy.eq.2 )then
    call advMxDiss2dOrder2(nd,n1a,n1b,n2a,n2b,n3a,n3b,nd1a,\
      nd1b,nd2a,nd2b,nd3a,nd3b,nd4a,nd4b,mask,rsxy,  um,u,un,f, v,\
-     vvt2,ut3,vvt4,ut5,ut6,ut7, bc, dis, varDis, ipar, rpar, ierr )
+     pm,p,pn,xy,ut6,ut7, bc, dis, varDis, ipar, rpar, ierr )
  else if(  nd.eq.2 .and. orderOfAccuracy.eq.4 )then
    call advMxDiss2dOrder4(nd,n1a,n1b,n2a,n2b,n3a,n3b,nd1a,\
      nd1b,nd2a,nd2b,nd3a,nd3b,nd4a,nd4b,mask,rsxy,  um,u,un,f, v,\
-     vvt2,ut3,vvt4,ut5,ut6,ut7, bc, dis, varDis, ipar, rpar, ierr )
+     pm,p,pn,xy,ut6,ut7, bc, dis, varDis, ipar, rpar, ierr )
  else if( nd.eq.3 .and. orderOfAccuracy.eq.2 )then
    call advMxDiss3dOrder2(nd,n1a,n1b,n2a,n2b,n3a,n3b,nd1a,\
      nd1b,nd2a,nd2b,nd3a,nd3b,nd4a,nd4b,mask,rsxy,  um,u,un,f, v,\
-     vvt2,ut3,vvt4,ut5,ut6,ut7, bc, dis, varDis, ipar, rpar, ierr )
+     pm,p,pn,xy,ut6,ut7, bc, dis, varDis, ipar, rpar, ierr )
  else if(  nd.eq.3 .and. orderOfAccuracy.eq.4 )then
    call advMxDiss3dOrder4(nd,n1a,n1b,n2a,n2b,n3a,n3b,nd1a,\
      nd1b,nd2a,nd2b,nd3a,nd3b,nd4a,nd4b,mask,rsxy,  um,u,un,f, v,\
-     vvt2,ut3,vvt4,ut5,ut6,ut7, bc, dis, varDis, ipar, rpar, ierr )
+     pm,p,pn,xy,ut6,ut7, bc, dis, varDis, ipar, rpar, ierr )
  else
    if( (adc.gt.0. .and. combineDissipationWithAdvance.eq.0) .or. add.gt.0. )then
      stop 1116
@@ -2373,44 +2590,9 @@ f3dcme44(i1,i2,i3,n) = fa(i1,i2,i3,n,fcur)+cdtSqBy12*ffLaplacian23(i1,i2,i3,n) \
 
    else  ! not modified equation
 
-     #If #DIM eq "2"
-       ! 4th order in space and 4th order Stoermer
-       loopsF2D(f(i1,i2,i3,ex),f(i1,i2,i3,ey),f(i1,i2,i3,hz),\
-              lap(ex)=csq*lap2d4(i1,i2,i3,ex),\
-              lap(ey)=csq*lap2d4(i1,i2,i3,ey),\
-              lap(hz)=csq*lap2d4(i1,i2,i3,hz),\
-              un(i1,i2,i3,ex)=maxwellr44(i1,i2,i3,ex),\
-              un(i1,i2,i3,ey)=maxwellr44(i1,i2,i3,ey),\
-              un(i1,i2,i3,hz)=maxwellr44(i1,i2,i3,hz),\
-              ut3(i1,i2,i3,ex)=lap(ex),\
-              ut3(i1,i2,i3,ey)=lap(ey),\
-              ut3(i1,i2,i3,hz)=lap(hz))
-     #Else
-       ! 4th order in space and 4th order Stoermer
-       stop 55555
-       ! comment this ou to shorten the code
-!$$$       loopsF3D(f(i1,i2,i3,ex),f(i1,i2,i3,ey),f(i1,i2,i3,ez),\
-!$$$              lap(ex)=csq*lap3d4(i1,i2,i3,ex),\
-!$$$              lap(ey)=csq*lap3d4(i1,i2,i3,ey),\
-!$$$              lap(ez)=csq*lap3d4(i1,i2,i3,ez),\
-!$$$              un(i1,i2,i3,ex)=maxwellr44(i1,i2,i3,ex),\
-!$$$              un(i1,i2,i3,ey)=maxwellr44(i1,i2,i3,ey),\
-!$$$              un(i1,i2,i3,ez)=maxwellr44(i1,i2,i3,ez),\
-!$$$              ut3(i1,i2,i3,ex)=lap(ex),\
-!$$$              ut3(i1,i2,i3,ey)=lap(ey),\
-!$$$              ut3(i1,i2,i3,ez)=lap(ez),\
-!$$$              f(i1,i2,i3,hx),f(i1,i2,i3,hy),f(i1,i2,i3,hz),\
-!$$$              lap(hx)=csq*lap3d4(i1,i2,i3,hx),\
-!$$$              lap(hy)=csq*lap3d4(i1,i2,i3,hy),\
-!$$$              lap(hz)=csq*lap3d4(i1,i2,i3,hz),\
-!$$$              un(i1,i2,i3,hx)=maxwellr44(i1,i2,i3,hx),\
-!$$$              un(i1,i2,i3,hy)=maxwellr44(i1,i2,i3,hy),\
-!$$$              un(i1,i2,i3,hz)=maxwellr44(i1,i2,i3,hz),\
-!$$$              ut3(i1,i2,i3,hx)=lap(hx),\
-!$$$              ut3(i1,i2,i3,hy)=lap(hy),\
-!$$$              ut3(i1,i2,i3,hz)=lap(hz))
+     ! We no longer support Stoermer 
+     stop 4444
 
-     #End
    end if
 
  #Elif #ORDER eq "6" 
@@ -2445,41 +2627,9 @@ f3dcme44(i1,i2,i3,n) = fa(i1,i2,i3,n,fcur)+cdtSqBy12*ffLaplacian23(i1,i2,i3,n) \
 
    else
 
-     #If #DIM eq "2"
-       ! 6th order in space and 6th order Stoermer
-       loopsF2D(f(i1,i2,i3,ex),f(i1,i2,i3,ey),f(i1,i2,i3,hz),\
-              lap(ex)=csq*lap2d6(i1,i2,i3,ex),\
-              lap(ey)=csq*lap2d6(i1,i2,i3,ey),\
-              lap(hz)=csq*lap2d6(i1,i2,i3,hz),\
-              un(i1,i2,i3,ex)=maxwellr66(i1,i2,i3,ex),\
-              un(i1,i2,i3,ey)=maxwellr66(i1,i2,i3,ey),\
-              un(i1,i2,i3,hz)=maxwellr66(i1,i2,i3,hz),\
-              ut5(i1,i2,i3,ex)=lap(ex),\
-              ut5(i1,i2,i3,ey)=lap(ey),\
-              ut5(i1,i2,i3,hz)=lap(hz))
-     #Else
-       ! 6th order in space and 6th order Stoermer
-       loopsF3D(f(i1,i2,i3,ex),f(i1,i2,i3,ey),f(i1,i2,i3,ez),\
-              lap(ex)=csq*lap3d6(i1,i2,i3,ex),\
-              lap(ey)=csq*lap3d6(i1,i2,i3,ey),\
-              lap(ez)=csq*lap3d6(i1,i2,i3,ez),\
-              un(i1,i2,i3,ex)=maxwellr66(i1,i2,i3,ex),\
-              un(i1,i2,i3,ey)=maxwellr66(i1,i2,i3,ey),\
-              un(i1,i2,i3,ez)=maxwellr66(i1,i2,i3,ez),\
-              ut5(i1,i2,i3,ex)=lap(ex),\
-              ut5(i1,i2,i3,ey)=lap(ey),\
-              ut5(i1,i2,i3,ez)=lap(ez),\
-              f(i1,i2,i3,hx),f(i1,i2,i3,hy),f(i1,i2,i3,hz),\
-              lap(hx)=csq*lap3d6(i1,i2,i3,hx),\
-              lap(hy)=csq*lap3d6(i1,i2,i3,hy),\
-              lap(hz)=csq*lap3d6(i1,i2,i3,hz),\
-              un(i1,i2,i3,hx)=maxwellr66(i1,i2,i3,hx),\
-              un(i1,i2,i3,hy)=maxwellr66(i1,i2,i3,hy),\
-              un(i1,i2,i3,hz)=maxwellr66(i1,i2,i3,hz),\
-              ut5(i1,i2,i3,hx)=lap(hx),\
-              ut5(i1,i2,i3,hy)=lap(hy),\
-              ut5(i1,i2,i3,hz)=lap(hz))
-     #End
+    ! We no longer support Stoermer 
+     stop 4444
+
    end if
 
  #Elif #ORDER eq "8"
@@ -2514,41 +2664,9 @@ f3dcme44(i1,i2,i3,n) = fa(i1,i2,i3,n,fcur)+cdtSqBy12*ffLaplacian23(i1,i2,i3,n) \
 
    else
 
-     #If #DIM eq "2"
-       ! 8th order in space and 8th order Stoermer
-       loopsF2D(f(i1,i2,i3,ex),f(i1,i2,i3,ey),f(i1,i2,i3,hz),\
-              lap(ex)=csq*lap2d8(i1,i2,i3,ex),\
-              lap(ey)=csq*lap2d8(i1,i2,i3,ey),\
-              lap(hz)=csq*lap2d8(i1,i2,i3,hz),\
-              un(i1,i2,i3,ex)=maxwellr88(i1,i2,i3,ex),\
-              un(i1,i2,i3,ey)=maxwellr88(i1,i2,i3,ey),\
-              un(i1,i2,i3,hz)=maxwellr88(i1,i2,i3,hz),\
-              ut7(i1,i2,i3,ex)=lap(ex),\
-              ut7(i1,i2,i3,ey)=lap(ey),\
-              ut7(i1,i2,i3,hz)=lap(hz))
-     #Else
-       ! 8th order in space and 8th order Stoermer
-       loopsF3D(f(i1,i2,i3,ex),f(i1,i2,i3,ey),f(i1,i2,i3,ez),\
-              lap(ex)=csq*lap3d8(i1,i2,i3,ex),\
-              lap(ey)=csq*lap3d8(i1,i2,i3,ey),\
-              lap(ez)=csq*lap3d8(i1,i2,i3,ez),\
-              un(i1,i2,i3,ex)=maxwellr88(i1,i2,i3,ex),\
-              un(i1,i2,i3,ey)=maxwellr88(i1,i2,i3,ey),\
-              un(i1,i2,i3,ez)=maxwellr88(i1,i2,i3,ez),\
-              ut7(i1,i2,i3,ex)=lap(ex),\
-              ut7(i1,i2,i3,ey)=lap(ey),\
-              ut7(i1,i2,i3,ez)=lap(ez),\
-              f(i1,i2,i3,hx),f(i1,i2,i3,hy),f(i1,i2,i3,hz),\
-              lap(hx)=csq*lap3d8(i1,i2,i3,hx),\
-              lap(hy)=csq*lap3d8(i1,i2,i3,hy),\
-              lap(hz)=csq*lap3d8(i1,i2,i3,hz),\
-              un(i1,i2,i3,hx)=maxwellr88(i1,i2,i3,hx),\
-              un(i1,i2,i3,hy)=maxwellr88(i1,i2,i3,hy),\
-              un(i1,i2,i3,hz)=maxwellr88(i1,i2,i3,hz),\
-              ut7(i1,i2,i3,hx)=lap(hx),\
-              ut7(i1,i2,i3,hy)=lap(hy),\
-              ut7(i1,i2,i3,hz)=lap(hz))
-     #End
+    ! We no longer support Stoermer 
+     stop 4444
+
    end if
 
  #Else
@@ -2896,19 +3014,9 @@ f3dcme44(i1,i2,i3,n) = fa(i1,i2,i3,n,fcur)+cdtSqBy12*ffLaplacian23(i1,i2,i3,n) \
      else
        ! write(*,*) 'Inside advMaxwell curv, order=4...'
 
-       ! 4th order in space and 4th order Stoermer
-       loopsFCD(un(i1,i2,i3,ex)=maxwellc44(i1,i2,i3,ex),\
-             un(i1,i2,i3,ey)=maxwellc44(i1,i2,i3,ey),\
-             un(i1,i2,i3,ez)=maxwellc44(i1,i2,i3,ez),\
-             ut3(i1,i2,i3,ex)=f(i1,i2,i3,ex),\
-             ut3(i1,i2,i3,ey)=f(i1,i2,i3,ey),\
-             ut3(i1,i2,i3,ez)=f(i1,i2,i3,ez),\
-             un(i1,i2,i3,hx)=maxwellc44(i1,i2,i3,hx),\
-             un(i1,i2,i3,hy)=maxwellc44(i1,i2,i3,hy),\
-             un(i1,i2,i3,hz)=maxwellc44(i1,i2,i3,hz),\
-             ut3(i1,i2,i3,hx)=f(i1,i2,i3,hx),\
-             ut3(i1,i2,i3,hy)=f(i1,i2,i3,hy),\
-             ut3(i1,i2,i3,hz)=f(i1,i2,i3,hz))
+      ! We no longer support Stoermer 
+      stop 4444
+ 
 
      end if
 
@@ -2933,19 +3041,9 @@ f3dcme44(i1,i2,i3,n) = fa(i1,i2,i3,n,fcur)+cdtSqBy12*ffLaplacian23(i1,i2,i3,n) \
                un(i1,i2,i3,hz)=maxwellc66me(i1,i2,i3,hz),,,)
 
      else
-       ! 6th order in space and 6th order Stoermer
-       loopsFCD(un(i1,i2,i3,ex)=maxwellc66(i1,i2,i3,ex),\
-             un(i1,i2,i3,ey)=maxwellc66(i1,i2,i3,ey),\
-             un(i1,i2,i3,ez)=maxwellc66(i1,i2,i3,ez),\
-             ut5(i1,i2,i3,ex)=f(i1,i2,i3,ex),\
-             ut5(i1,i2,i3,ey)=f(i1,i2,i3,ey),\
-             ut5(i1,i2,i3,ez)=f(i1,i2,i3,ez),\
-             un(i1,i2,i3,hx)=maxwellc66(i1,i2,i3,hx),\
-             un(i1,i2,i3,hy)=maxwellc66(i1,i2,i3,hy),\
-             un(i1,i2,i3,hz)=maxwellc66(i1,i2,i3,hz),\
-             ut5(i1,i2,i3,hx)=f(i1,i2,i3,hx),\
-             ut5(i1,i2,i3,hy)=f(i1,i2,i3,hy),\
-             ut5(i1,i2,i3,hz)=f(i1,i2,i3,hz))
+      ! We no longer support Stoermer 
+      stop 4444
+
 
      end if
 
@@ -2970,18 +3068,9 @@ f3dcme44(i1,i2,i3,n) = fa(i1,i2,i3,n,fcur)+cdtSqBy12*ffLaplacian23(i1,i2,i3,n) \
                un(i1,i2,i3,hz)=maxwellc88me(i1,i2,i3,hz),,,)
 
      else
-       loopsFCD(un(i1,i2,i3,ex)=maxwellc88(i1,i2,i3,ex),\
-             un(i1,i2,i3,ey)=maxwellc88(i1,i2,i3,ey),\
-             un(i1,i2,i3,ez)=maxwellc88(i1,i2,i3,ez),\
-             ut7(i1,i2,i3,ex)=f(i1,i2,i3,ex),\
-             ut7(i1,i2,i3,ey)=f(i1,i2,i3,ey),\
-             ut7(i1,i2,i3,ez)=f(i1,i2,i3,ez),\
-             un(i1,i2,i3,hx)=maxwellc88(i1,i2,i3,hx),\
-             un(i1,i2,i3,hy)=maxwellc88(i1,i2,i3,hy),\
-             un(i1,i2,i3,hz)=maxwellc88(i1,i2,i3,hz),\
-             ut7(i1,i2,i3,hx)=f(i1,i2,i3,hx),\
-             ut7(i1,i2,i3,hy)=f(i1,i2,i3,hy),\
-             ut7(i1,i2,i3,hz)=f(i1,i2,i3,hz))
+
+      ! We no longer support Stoermer 
+      stop 4444
 
      end if
   #Else
@@ -3041,7 +3130,7 @@ f3dcme44(i1,i2,i3,n) = fa(i1,i2,i3,n,fcur)+cdtSqBy12*ffLaplacian23(i1,i2,i3,n) \
 ! build an empty version of high order files so we do not have to compile the full version
 #beginMacro ADV_MAXWELL_NULL(NAME,DIM,ORDER,GRIDTYPE)
  subroutine NAME(nd,n1a,n1b,n2a,n2b,n3a,n3b,nd1a,nd1b,nd2a,nd2b,nd3a,nd3b,nd4a,nd4b,\
-                 mask,rsxy,  um,u,un,f,fa, v,vvt2,ut3,vvt4,ut5,ut6,ut7, bc, dis, varDis, ipar, rpar, ierr )
+                 mask,rsxy,  um,u,un,f,fa, v, pm,p,pn, xy,ut6,ut7, bc, dis, varDis, ipar, rpar, ierr )
 !======================================================================
 !   Advance a time step for Maxwells eqution
 !     OPTIMIZED version for rectangular grids.

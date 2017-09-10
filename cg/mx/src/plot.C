@@ -10,6 +10,7 @@
 #include "CompositeGridOperators.h"
 #include "ParallelUtility.h"
 #include "display.h"
+#include "DispersiveMaterialParameters.h"
 
 #define FOR_3D(i1,i2,i3,I1,I2,I3) int I1Base =I1.getBase(),   I2Base =I2.getBase(),  I3Base =I3.getBase();  int I1Bound=I1.getBound(),  I2Bound=I2.getBound(), I3Bound=I3.getBound(); for(i3=I3Base; i3<=I3Bound; i3++) for(i2=I2Base; i2<=I2Bound; i2++) for(i1=I1Base; i1<=I1Bound; i1++)
 
@@ -386,33 +387,41 @@ getAugmentedSolution(int current, realCompositeGridFunction & v, const real t)
     const int numberOfDimensions = cg.numberOfDimensions();
     
   // const int numberOfComponents=mgp==NULL ? cgfields[current][0].getLength(3) : fields[current].getLength(3);
+
     int numberOfComponents;
-    if( mgp==NULL )
+    if( true )
     {
-        if( method!=dsiMatVec )
-        {
-            numberOfComponents=getCGField(HField,0)[0].getLength(3);
-            if ( method!=nfdtd  && method!=yee && method!=sosup )
-      	numberOfComponents+=getCGField(EField,0)[0].getLength(3);
-        }
-        else
-            numberOfComponents=cg.numberOfDimensions()==2 ? 3 : 6;
-        
+        numberOfComponents= dbase.get<int>("numberOfComponents"); // *new way* Sept 01, 2017 *wdh*
     }
     else
     {
-        MappedGrid & mg = *mgp;
-        if( mg.getGridType()==MappedGrid::structuredGrid )
+        if( mgp==NULL )
         {
-            numberOfComponents=fields[current].getLength(3);
-
-            if( method!=nfdtd && method!=yee && method!=sosup )
-      	numberOfComponents += fields[current+numberOfTimeLevels].getLength(3);
+            if( method!=dsiMatVec )
+            {
+                numberOfComponents=getCGField(HField,0)[0].getLength(3);
+                if ( method!=nfdtd  && method!=yee && method!=sosup )
+                    numberOfComponents+=getCGField(EField,0)[0].getLength(3);
+            }
+            else
+                numberOfComponents=cg.numberOfDimensions()==2 ? 3 : 6;
+        
         }
         else
         {
-      // unstructured grid
-            numberOfComponents=mg.numberOfDimensions()==2 ? 3 : 6;
+            MappedGrid & mg = *mgp;
+            if( mg.getGridType()==MappedGrid::structuredGrid )
+            {
+                numberOfComponents=fields[current].getLength(3);
+
+                if( method!=nfdtd && method!=yee && method!=sosup )
+                    numberOfComponents += fields[current+numberOfTimeLevels].getLength(3);
+            }
+            else
+            {
+        // unstructured grid
+                numberOfComponents=mg.numberOfDimensions()==2 ? 3 : 6;
+            }
         }
     }
     
@@ -932,7 +941,221 @@ getAugmentedSolution(int current, realCompositeGridFunction & v, const real t)
     
 }
 
-                   		       
+// =============================================================================================
+/// \brief Plot the polarization vectors for dispersion domains. Different domains will have
+///   potentially different numbers of polarization vectors.
+// =============================================================================================
+int Maxwell::
+plotPolarization( int current, real t, real dt )
+{
+    if( dispersionModel == noDispersion )
+    {
+        printF("There are no polarization vectors to plot. These only exist for dispersive models.\n");
+        return 0;
+    }
+
+    assert( cgp!=NULL );
+    CompositeGrid & cg = *cgp;
+    const int & numberOfDimensions = cg.numberOfDimensions();
+
+    GenericGraphicsInterface *& pps = gip; 
+    if( pps==NULL )
+        return 0;
+    GenericGraphicsInterface & gi = *pps;
+
+    aString domainName="all";
+    int gdmEquation=0;
+    int pvComponent=0;
+    bool plotErrors=false;
+    
+
+    GUIState dialog;
+
+    dialog.setWindowTitle("Plot Polarization");
+    dialog.setExitCommand("exit", "exit");
+
+    aString pushButtonCommands[] = {"plot",
+                                                                    "erase",
+                                                                    ""};
+    int numberOfPushButtons=2;  // number of entries in pushButtonCommands
+    int numRows=numberOfPushButtons; // (numberOfPushButtons+1)/2;
+    dialog.setPushButtons( pushButtonCommands, pushButtonCommands, numRows ); 
+
+    aString tbCommands[] = {"plot errors",
+                      			  ""};
+    int tbState[10];
+
+    tbState[0] = plotErrors;
+    int numColumns=1;
+    dialog.setToggleButtons(tbCommands, tbCommands, tbState, numColumns);
+
+
+  // ----- Text strings ------
+    const int numberOfTextStrings=10;
+    aString textCommands[numberOfTextStrings];
+    aString textLabels[numberOfTextStrings];
+    aString textStrings[numberOfTextStrings];
+
+    int nt=0;
+
+    
+    textCommands[nt] = "domain name:";  
+    textLabels[nt]=textCommands[nt]; sPrintF(textStrings[nt], "%s","all"); nt++; 
+
+    textCommands[nt] = "GDM equation:";  
+    textLabels[nt]=textCommands[nt]; sPrintF(textStrings[nt], "%i",gdmEquation); nt++; 
+
+    textCommands[nt] = "component:";  
+    textLabels[nt]=textCommands[nt]; sPrintF(textStrings[nt], "%i",pvComponent); nt++; 
+
+  // null strings terminal list
+    assert( nt<numberOfTextStrings );
+    textCommands[nt]="";   textLabels[nt]="";   textStrings[nt]="";  
+    dialog.setTextBoxes(textCommands, textLabels, textStrings);
+
+    gi.pushGUI(dialog);
+    gi.appendToTheDefaultPrompt("polarization>"); // set the default prompt
+
+    std::vector<DispersiveMaterialParameters> & dmpVector = 
+        dbase.get<std::vector<DispersiveMaterialParameters> >("dispersiveMaterialParameters");
+
+    bool plotObject=false;
+    aString answer,buff;
+    int len=0;
+    for( int it=0;; it++ )
+    {
+        if( it==0 && plotObject )
+            answer="plotObject";
+        else
+            gi.getAnswer(answer,"");  // gi.getMenuItem(menu,answer);
+  
+
+        if( dialog.getTextValue(answer,"domain name:","%s",domainName) )
+        {
+            printF("Setting domain name = [%s]\n",(const char*)domainName);
+        }
+        else if( dialog.getTextValue(answer,"GDM equation:","%i",gdmEquation) )
+        {
+            printF("Setting GDM equation number=%i\n",gdmEquation);
+        }
+        else if( dialog.getTextValue(answer,"component:","%i",pvComponent) )
+        {
+            pvComponent=max(0,min(numberOfDimensions,pvComponent));
+            
+            printF("Setting polarization vector component=%i\n",pvComponent);
+        }
+        else if( dialog.getToggleValue(answer,"plot errors",plotErrors) )
+        {
+            printF("Setting plotErrors=%i\n",(int)plotErrors);
+        }
+
+        else if( answer=="erase" )
+        {
+            gi.erase();
+            plotObject=false;
+        }
+        
+        else if( answer=="plot" || answer=="plotObject" )
+        {
+            plotObject=true;
+        }
+        else 
+        {
+            gi.outputString( sPrintF(buff,"Unknown response=%s",(const char*)answer) );
+            gi.stopReadingCommandFile();
+        }
+
+        if( plotObject )
+        {
+            int domainStart=-1, domainEnd=-1;
+            if( domainName == "all" )
+            {
+                domainStart=0; domainEnd=cg.numberOfDomains()-1;
+            }
+            else
+            {
+                for( int domain=0; domain<cg.numberOfDomains(); domain++ )
+                {
+                    if( cg.getDomainName(domain)==domainName )
+                    {
+                        printF("--MX:PP-- will plot polarization in domain number=%i name=[%s].\n",domain,(const char*)domainName);
+                        domainStart=domainEnd=domain;
+                        break;
+                    }
+                }
+            }
+            
+            if( domainStart<0  )
+            {
+                printF("--MX:PP-- WARNING: There is no domain with name =[%s].\n",(const char*)domainName);
+                printF("Valid domains are:\n");
+                for( int domain=0; domain<cg.numberOfDomains(); domain++ )
+                {
+                    DispersiveMaterialParameters & dmp = dmpVector[domain];
+                    printF("  domain=%i: name=[%s] numberOfPolarizationVectors=%i.\n",
+                      domain,(const char*)cg.getDomainName(domain),dmp.numberOfPolarizationVectors);
+                }
+                continue;
+            }
+            else
+            {
+                gi.erase();
+                psp.set(GI_PLOT_THE_OBJECT_AND_EXIT,true);
+                for( int domain=domainStart; domain<=domainEnd; domain++ )
+                {
+
+                    DispersiveMaterialParameters & dmp = dmpVector[domain];
+                    if( dmp.numberOfPolarizationVectors>0 )
+                    {
+                        const int component = pvComponent + numberOfDimensions*gdmEquation;
+                        if( gdmEquation <  dmp.numberOfPolarizationVectors )
+                        {
+                            psp.set(GI_COMPONENT_FOR_CONTOURS,component);
+
+                            realCompositeGridFunction & pv = *getDispersionModelCompositeGridFunction( domain,current );
+                            if( !plotErrors )
+                            {
+                                PlotIt::contour(gi,pv,psp);
+                            }
+                            else
+                            {
+                                /* -- we could eval on demand 
+                                CompositeGrid & cgd = cg.domain(domain);
+                                Range Npv=dmp.numberOfPolarizationVectors;
+                                realCompositeGridFunction pvErr(cgd,all,all,all,Npv);
+                                
+                                getPolarizationError( domain, current, pvErr );
+                                */ 
+                                printF("plotPolarization: FINISH ME -- plot errors\n");
+
+                            }
+                            
+                        }
+                        else
+                        {
+                            printF("plotPolarization:INFO: Not plotting P vector in domain=%i since gdmEquation=%i but "
+                                          "numberOfPolarizationVectors=%i.\n",
+                                          domain,gdmEquation,dmp.numberOfPolarizationVectors);
+                        }
+                        
+                    }
+                }
+                psp.set(GI_PLOT_THE_OBJECT_AND_EXIT,false);
+          
+            }
+    
+        } // end if plotObject 
+        
+
+    }
+
+    gi.unAppendTheDefaultPrompt();  // reset
+    gi.popGUI(); // restore the previous GUI
+
+
+    return 0;
+}
+
 
 int Maxwell::
 buildRunTimeDialog()
@@ -955,11 +1178,12 @@ buildRunTimeDialog()
                                             "grid", "erase",
                                             "plot options...",
                                             "parameters...",
+                                            "plot P...",
                       // "change the grid...",
                       // "show file options...","file output...",
                       // "pde parameters...",
                                             ""};
-        numberOfPushButtons=9;  // number of entries in cmds
+        numberOfPushButtons=10;  // number of entries in cmds
         int numRows=(numberOfPushButtons+1)/2;
         dialog.setPushButtons( cmds, cmds, numRows ); 
 
@@ -1164,7 +1388,7 @@ getTimeSteppingLabel( real dt, aString & label ) const
 
 
 int Maxwell::
-plot(int current, real t, real dt )
+plot( int current, real t, real dt )
 // ========================================================================================
 // /Description:
 //  plotOptions :  0 = no plotting
@@ -1465,6 +1689,11 @@ plot(int current, real t, real dt )
                     else
                         plotChoices &= ~1;
       	}
+                else if( answer=="plot P..." )
+                {
+                    plotPolarization( current,t,dt );
+                }
+
       	else if( answer=="E field lines" )
       	{
                     int uc,vc;
@@ -1506,6 +1735,7 @@ plot(int current, real t, real dt )
       	{
         	  parametersDialog.hideSibling();
       	}
+                
 //         else if( answer=="save a restart file" )
 // 	{
 // 	  ps.inputFileName(answer,sPrintF(buff,"Enter the restart file name (default value=%s)",
