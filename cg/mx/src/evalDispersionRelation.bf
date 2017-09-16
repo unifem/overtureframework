@@ -37,7 +37,7 @@
       real a(0:lda-1,0:lda-1), work(lwork), vr(1), vl(1)
       integer info 
 
-      complex*32 s, psi 
+      complex*16 s, psi 
 
       ck=c*k
       ck2=ck**2 
