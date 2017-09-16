@@ -4,7 +4,8 @@
 # Usage:
 #    cgmx [-noplot] interface -g=<name> -tf=<tFinal> -tp=<tPlot> -cfl=<> -diss=<> -eps1=<> -eps2=<> -ic=<> ...
 #                   -bc=[abcEM2|rbcNonLocal|abcPML|perfectElectricalConductor|symmetry] ...
-#                   -useNewInterface=[0|1] -method=[nfdtd|Yee] -errorNorm=[0|1|2] -interfaceIts=<i>
+#                   -useNewInterface=[0|1] -method=[nfdtd|Yee] -errorNorm=[0|1|2] -interfaceIts=<i> ...
+#                   -dm=[none|gdm] -npv=i i 
 # 
 # Examples:
 # 
@@ -89,6 +90,9 @@ $bc = "perfectElectricalConductor";
 $interfaceNormal = "1. 0. 0.";
 $interfacePoint = ".0 0. 0.";
 $tz = "*"; $go="halt";
+$dm="none"; @npv=(); $alphaP=1.; $modeGDM=-1; 
+@a01 = (); @a11=(); @b01=(); @b11=(); # these must be null for GetOptions to work, defaults are given below
+@a02 = (); @a12=(); @b02=(); @b12=(); 
 # ----------------------------- get command line arguments ---------------------------------------
 #  -- first get any commonly used options: (requires the env variable CG to be set)
 # $getCommonOptions = "$ENV{'CG'}/mp/cmd/getCommonOptions.h";
@@ -103,7 +107,10 @@ GetOptions("bc=s"=>\$bc,"cfl=f"=>\$cfl,"debug=i"=>\$debug,"diss=f"=>\$diss,"eps1
            "interfaceEquationOption=i"=>\$interfaceEquationOption,"interfaceOmega=f"=>\$interfaceOmega,"tz=s"=>\$tz,\
            "bc1=s"=>\$bc1,"bc2=s"=>\$bc2,"bc3=s"=>\$bc3,"bc4=s"=>\$bc4,"bc5=s"=>\$bc5,"bc6=s"=>\$bc6,\
            "bc7=s"=>\$bc7,"bc8=s"=>\$bc8,"setDivergenceAtInterfaces=s"=>\$setDivergenceAtInterfaces,\
-           "useImpedanceInterfaceProjection=s"=>\$useImpedanceInterfaceProjection);
+           "useImpedanceInterfaceProjection=s"=>\$useImpedanceInterfaceProjection,"modeGDM=i"=>\$modeGDM,\
+           "dm=s"=>\$dm,"npv=i{1,}"=>\@npv,"alphaP=f"=>\$alphaP,\
+           "a01=f{1,}"=>\@a01,"a11=f{1,}"=>\@a11,"b01=f{1,}"=>\@b01,"b11=f{1,}"=>\@b11,\
+           "a02=f{1,}"=>\@a02,"a12=f{1,}"=>\@a12,"b02=f{1,}"=>\@b02,"b12=f{1,}"=>\@b12);
 # -------------------------------------------------------------------------------------------------
 if( $go eq "halt" ){ $go = "break"; }
 if( $go eq "og" ){ $go = "open graphics"; }
@@ -116,9 +123,39 @@ if( $tz eq "trig" ){ $tz="trigonometric"; }
 if( $method eq "sosup" ){ $diss=0.; }
 # 
 #
+if( $dm eq "none" ){ $dm="no dispersion"; }
+if( $dm eq"gdm" ){ $dm="GDM"; }
+# Give defaults here for array arguments: 
+if( $npv[0] eq "" ){ @npv=(0,0); }
+if( $a01[0] eq "" ){ @a01=(1,0,0,0); }
+if( $a11[0] eq "" ){ @a11=(0,0,0,0); }
+if( $b01[0] eq "" ){ @b01=(0,0,0,0); }
+if( $b11[0] eq "" ){ @b11=(0,0,0,0); }
+#
+if( $a02[0] eq "" ){ @a02=(1,0,0,0); }
+if( $a12[0] eq "" ){ @a12=(0,0,0,0); }
+if( $b02[0] eq "" ){ @b02=(0,0,0,0); }
+if( $b12[0] eq "" ){ @b12=(0,0,0,0); }
+#
 $grid
 #
 $method
+# dispersion model:
+$dm
+# printf(" dm=$dm\n");
+#
+GDM mode: $modeGDM
+$domain="all"; 
+$cmd="#"; 
+if( $npv[0] == 1 ){ $cmd = "GDM params $a01[0] $a11[0] $b01[0] $b11[0] all (a0,a1,b0,b1,domain-name)"; }
+if( $npv[0] == 2 ){ \
+   $cmd  = "GDM domain name: $domain\n"; \
+   $cmd .= " number of polarization vectors: $npv[0]\n"; \
+   $cmd .= " GDM coeff: 0 $a01[0] $a11[0] $b01[0] $b11[0] (eqn, a0,a1,b0,b1)\n"; \
+   $cmd .= " GDM coeff: 1 $a01[1] $a11[1] $b01[1] $b11[1] (eqn, a0,a1,b0,b1)"; \
+      }
+$cmd
+# 
 $ic
 $tz 
 ** trigonometric

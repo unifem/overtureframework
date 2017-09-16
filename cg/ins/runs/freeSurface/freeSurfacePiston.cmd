@@ -48,6 +48,8 @@ $freeSurfaceOption="none";
 $generatePastHistory=4;
 # 
 $k=2.0; $amp=1.0e-01; $amp1=0.0; $amp2=0.0;
+$predictorOrder=0; # 0=use default 
+$useNewTimeSteppingStartup=1;  # this will regenerate past time grids and solutions
 #
 # ----------------------------- get command line arguments ---------------------------------------
 GetOptions( "g=s"=>\$grid,"tf=f"=>\$tFinal,"degreex=i"=>\$degreex, "degreet=i"=>\$degreet, "model=s"=>\$model,\
@@ -60,7 +62,8 @@ GetOptions( "g=s"=>\$grid,"tf=f"=>\$tFinal,"degreex=i"=>\$degreex, "degreet=i"=>
   "surfaceTension=f"=>\$surfaceTension,"pAtmosphere=f"=>\$pAtmosphere,"pGrad=f"=>\$pGrad,\
   "smoothSurface=i"=>\$smoothSurface,"numberOfSurfaceSmooths=i"=>\$numberOfSurfaceSmooths,\
   "freeSurfaceOption=s"=>\$freeSurfaceOption,"rtol=f"=>\$rtol,"atol=f"=>\$atol,"rtolp=f"=>\$rtolp,"atolp=f"=>\$atolp,\
-  "k=f"=>\$k,"amp=f"=>\$amp,"amp1=f"=>\$amp1,"amp2=f"=>\$amp2 );
+  "k=f"=>\$k,"amp=f"=>\$amp,"amp1=f"=>\$amp1,"amp2=f"=>\$amp2, "predictorOrder=s"=>\$predictorOrder,\
+  "useNewTimeSteppingStartup=i"=>\$useNewTimeSteppingStartup );
 # -------------------------------------------------------------------------------------------------
 $kThermal=$nu/$Prandtl; 
 if( $solver eq "best" ){ $solver="choose best iterative solver"; }
@@ -111,6 +114,12 @@ $grid
 # 
 # choose the time stepping:
   $ts
+#
+# -- testing: 
+use new time-stepping startup $useNewTimeSteppingStartup
+# test:
+if( $predictorOrder eq 1 ){ $predictorOrder = "first order predictor"; }else{ $predictorOrder="#"; }
+$predictorOrder
 # 
 #****************************
 if( $tz eq "turn off twilight zone" ){ $useKnown=1; }else{ $useKnown=0; }

@@ -1957,6 +1957,10 @@ buildDispersionParametersDialog(DialogData & dialog )
   textCommands[nt] = "GDM coeff:";  
   textLabels[nt]=textCommands[nt]; sPrintF(textStrings[nt], "%i %g %g %g %g (eqn, a0,a1,b0,b1)",eqn,a0,a1,b0,b1); nt++; 
 
+  int modeGDM=-1;
+  textCommands[nt] = "GDM mode:";  
+  textLabels[nt]=textCommands[nt]; sPrintF(textStrings[nt], "%i (-1=use default)",modeGDM); nt++; 
+
   // null strings terminal list
   assert( nt<numberOfTextStrings );
   textCommands[nt]="";   textLabels[nt]="";   textStrings[nt]="";  
@@ -1996,6 +2000,7 @@ interactiveUpdate(GL_GraphicsInterface &gi )
   
   // Thes next variables are used to set the dispersive model parameters
   int numberOfPolarizationVectors=1;
+  int modeGDM=-1;  // eigenmode number, choice of root "s"
   aString gdmDomainName="all";
 
   GUIState gui;
@@ -3059,6 +3064,12 @@ interactiveUpdate(GL_GraphicsInterface &gi )
            numberOfPolarizationVectors,(const char*)gdmDomainName);
 
     }
+    else if( dispersionParametersDialog.getTextValue(answer,"GDM mode:","%i",modeGDM) )
+    {
+      printF("Setting GDM mode = %i (-1 = use default)\n",modeGDM);
+      printf("The GDM mode determines which eigenvalue `s' to choose for exact solutions\n");
+      
+    }
     else if( len=answer.matches("GDM coeff:") )
     {
       int eqn=0;
@@ -3069,7 +3080,7 @@ interactiveUpdate(GL_GraphicsInterface &gi )
       dispersionParametersDialog.setTextLabel("GDM coeff:",
             sPrintF(textStrings[nt],"%i %g %g %g %g (eqn, a0,a1,b0,b1)",eqn,a0,a1,b0,b1));
 
-      setDispersionParameters( gdmDomainName, numberOfPolarizationVectors, eqn, a0,a1,b0,b1  );
+      setDispersionParameters( gdmDomainName, numberOfPolarizationVectors, eqn, a0,a1,b0,b1,modeGDM  );
 
     }
 
@@ -3704,7 +3715,7 @@ Maxwell::getCGField(Maxwell::FieldEnum f, int tn)
 //====================================================================================
 int Maxwell::
 setDispersionParameters( aString & domainName, int numberOfPolarizationVectors, int eqn, 
-                         real a0, real a1, real b0, real b1  )
+                         real a0, real a1, real b0, real b1, int modeGDM )
 {
   printF("--MX-- setDispersionParameters: domainName=[%s] numberOfPolarizationVectors=%i eqn=%i \n",
          (const char*)domainName,numberOfPolarizationVectors,eqn);
@@ -3752,12 +3763,13 @@ setDispersionParameters( aString & domainName, int numberOfPolarizationVectors, 
     {
       DispersiveMaterialParameters & dmp = dmpVector[domain];
 
-      printF(" Setting GDM parameters eqn=%i: a0=%9.3e, a1=%9.3e, b0=%9.3e, b1=%9.3e for domain=[%s]\n",
-             eqn,a0,a1,b0,b1,(const char*)cg.getDomainName(domain));
+      printF(" Setting GDM parameters eqn=%i: a0=%9.3e, a1=%9.3e, b0=%9.3e, b1=%9.3e, mode=%d for domain=[%s]\n",
+             eqn,a0,a1,b0,b1,modeGDM,(const char*)cg.getDomainName(domain));
 
       dmp.setNumberOfPolarizationVectors(numberOfPolarizationVectors); 
 
       dmp.setParameters( eqn,a0,a1,b0,b1 );
+      dmp.setMode( modeGDM );
           
     }
   }

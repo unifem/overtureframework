@@ -1,0 +1,472 @@
+**************************************
+******* Sept 1, 2017
+
+START ON dimensioning grid functions to account for VARYING number of polarization vectors 
+
+ONE BLOCK: GDM
+cgmx -noplot dielectricBodies -g=dielectricBlockGrid2de8.order4 -backGround=leftBackGround -dm=gdm -rbc=rbcNonLocal -kx=1 -eps1=8 -eps2=1. -diss=2 -tf=15 -tp=.1 -go=og
+
+TEST TWO BLOCK
+cgmx -noplot dielectricBodies -g=dielectricMultiBlockGrid2d2Blockse4.order4 -backGround=leftBackGround -rbc=abcEM2 -kx=1 -numBlocks=2 -eps1=2 -eps2=4 -diss=2 -tf=15 -tp=.1 -show="dieTwoBlockG8Eps2Eps4.show" -probeFileName=ProbeDieTwoBlockG8Eps2Eps4 -go=go > dieTwoBlockG8Eps2Eps4.out
+
+**************************************
+******* Aug 31, 2017
+
+RESURRECT TOM's exact RBC
+
+
+DISK: kx=.25
+cgmx -noplot dielectricBodies -g=diskInBoxYpe4.order2.hdf -backGround=outerSquare -rbc=rbcNonLocal -kx=.25 -eps1=8 -eps2=1. -diss=2 -tf=30 -tp=.1 -xLeftProbe=-5.2 -yLeftProbe=.0 -xRightProbe=5.1  -yRightProbe=.0 -xar=-5. -xbr=-4 -xat=4 -xbt=5. -xb=-2 -show="DibG4Eps8K0p25.show" -probeFileName=probeDibG4Eps8K0p25 -go=go >! DibG4Eps8K0p25.out 
+
+DISK: kx=.5
+cgmx -noplot dielectricBodies -g=diskInBoxYpe4.order2.hdf -backGround=outerSquare -rbc=rbcNonLocal -kx=.5 -eps1=8 -eps2=1. -diss=2 -tf=30 -tp=.1 -xLeftProbe=-5.2 -yLeftProbe=.0 -xRightProbe=5.1  -yRightProbe=.0 -xar=-5. -xbr=-4 -xat=4 -xbt=5. -xb=-2 -show="DibG4Eps8K0p5.show" -probeFileName=probeDibG4Eps8K0p5 -go=go >! DibG4Eps8K0p5.out 
+
+DISK -- middle frequency kx=1
+cgmx -noplot dielectricBodies -g=diskInBoxYpe4.order2.hdf -backGround=outerSquare -rbc=rbcNonLocal -kx=1 -eps1=8 -eps2=1. -diss=2 -tf=30 -tp=.1 -xLeftProbe=-5.2 -yLeftProbe=.0 -xRightProbe=5.1  -yRightProbe=.0 -xar=-5. -xbr=-4 -xat=4 -xbt=5. -show="DibG4Eps8K1.show" -probeFileName=probeDibG4Eps8K1 -go=go >! DibG4Eps8K1.out 
+
+DISK -- high frequency kx=4
+cgmx -noplot dielectricBodies -g=diskInBoxYpe4.order2.hdf -backGround=outerSquare -rbc=rbcNonLocal -kx=4 -eps1=8 -eps2=1. -diss=2 -tf=30 -tp=.1 -xLeftProbe=-5.2 -yLeftProbe=.0 -xRightProbe=5.1  -yRightProbe=.0 -xar=-5. -xbr=-4 -xat=4 -xbt=5. -show="DibG4Eps8K4.show" -probeFileName=probeDibG4Eps8K4 -go=go >! DibG4Eps8K4.out 
+
+Single BLOCK -- LOOKS OK:
+cgmx dielectricBodies -g=dielectricBlockGrid2de8.order4 -backGround=leftBackGround -rbc=rbcNonLocal -kx=1 -eps1=8 -eps2=1. -diss=2 -tf=15 -tp=.1 -go=halt
+
+
+*********************************
+*********** Aug 24, 2017
+
+cgmx dielectricBodies -g=diskInBoxYpe4.order2.hdf -backGround=outerSquare-rbc=abcEM2 -kx=.25 -eps1=8 -eps2=1. -diss=2 -tf=30 -tp=.1 -xLeftProbe=-5.2 -yLeftProbe=.0 -xRightProbe=5.1  -yRightProbe=.0 -xar=-5. -xbr=-4 -xat=4 -xbt=5. -go=halt
+
+
+*********************************
+*********** Aug 24, 2017
+
+Make probe boxes very narrow in x -- approximates integral along a line
+
+EPS=1 
+cgmx -noplot dielectricBodies -g=diskInBoxYpe4.order2.hdf -backGround=outerSquare-rbc=abcEM2 -kx=1 -eps1=1 -eps2=1. -diss=2 -tf=30 -tp=.1 -xLeftProbe=-5.1 -yLeftProbe=.0 -xRightProbe=5.1  -yRightProbe=.0 -xar=-5.2 -xbr=-5 -xat=5 -xbt=5.2  -show="DibG4Eps1.show" -probeFileName=probeDibG4Eps1 -go=go > diBG41.out
+
+
+EPS=8  -- thicker strip for least squares average.
+cgmx -noplot dielectricBodies -g=diskInBoxYpe4.order2.hdf -backGround=outerSquare-rbc=abcEM2 -kx=1 -eps1=8 -eps2=1. -diss=2 -tf=30 -tp=.1 -xLeftProbe=-5.2 -yLeftProbe=.0 -xRightProbe=5.1  -yRightProbe=.0 -xar=-5. -xbr=-4 -xat=4 -xbt=5.  -show="DibG4Eps8.show" -probeFileName=probeDibG4Eps8 -go=go > diBG48.out
+
+EPS=8  -- thin strip for least squares average
+cgmx -noplot dielectricBodies -g=diskInBoxYpe4.order2.hdf -backGround=outerSquare-rbc=abcEM2 -kx=1 -eps1=8 -eps2=1. -diss=2 -tf=20 -tp=.1 -xLeftProbe=-5.1 -yLeftProbe=.0 -xRightProbe=5.1  -yRightProbe=.0 -xar=-5.2 -xbr=-5 -xat=5 -xbt=5.2  -show="DibG4Eps8.show" -probeFileName=probeDibG4Eps8 -go=go > diBG48.out
+
+cgmx -noplot dielectricBodies -g=diskInBoxYpe4.order2.hdf -backGround=outerSquare-rbc=abcEM2 -kx=1 -eps1=8 -eps2=1. -diss=2 -tf=15 -tp=.1 -xRightProbe=1.6 -yRightProbe=.15 -xar=-2.8 -xbr=-2.8 -xat=2.8 -xbt=2.8  -show="DibG4Eps8.show" -probeFileName=probeDibG4Eps8 -go=halt
+
+
+
+
+*********************************
+*********** Aug 23, 2017
+
+
+Probes are too close to disk --
+
+cgmx -noplot dielectricBodies -g=diskInBoxYpe4.order2.hdf -backGround=outerSquare-rbc=abcEM2 -kx=1 -eps1=8 -eps2=1. -diss=2 -tf=15 -tp=.1 -xRightProbe=1.6 -yRightProbe=.15 -show="DibG4Eps8.show" -probeFileName=probeDibG4Eps8 -go=go > diBG48.out
+
+cgmx -noplot dielectricBodies -g=diskInBoxYpe4.order2.hdf -backGround=outerSquare-rbc=abcEM2 -kx=1 -eps1=8 -eps2=1. -diss=2 -tf=15 -tp=.1 -show="DibG4Eps8.show" -probeFileName=probeDibG4Eps8 -go=og
+
+
+
+
+
+
+TEST NEW LEAST SQUARE PROBES
+
+
+**FIXED BUG WITH initial conditions
+
+REDO EPS=8 
+cgmx -noplot dielectricBodies -g=dielectricBlockGrid2de8.order4 -backGround=leftBackGround -rbc=abcEM2 -kx=1 -eps1=8 -eps2=1. -diss=2 -tf=15 -tp=.1 -show="dieBlockG8Eps8a.show" -probeFileName=probeDieBlockG8Eps8a -go=go > dieBlockG8Eps8a.out
+
+
+REDO EPS=8 
+cgmx -noplot dielectricBodies -g=dielectricBlockGrid2de8.order4 -backGround=leftBackGround -rbc=abcEM2 -kx=1 -eps1=8 -eps2=1. -diss=2 -tf=15 -tp=.1 -show="dieBlockG8Eps8.show" -probeFileName=probeDieBlockG8Eps8 -go=go > dieBlockG8Eps8.out
+
+
+*********************************
+*********** Aug 20-22, 2017
+
+
+TEST USER DEFINED TRANSMISSION PROBE
+
+cgmx -noplot dielectricBodies -g=dielectricBlockGrid2de4.order4 -backGround=leftBackGround -rbc=abcEM2 -kx=1 -eps1=8 -eps2=1. -diss=2 -tf=15 -tp=.1 -go=go 
+
+REDO: 
+cgmx -noplot dielectricBodies -g=dielectricBlockGrid2de8.order4 -backGround=leftBackGround -rbc=abcEM2 -kx=1 -eps1=8 -eps2=1. -diss=2 -tf=15 -tp=.1 -show="dieBlockG8Eps8a.show" -probeFileName=probeDieBlockG8Eps8a -go=go > dieBlockG8Eps8a.out
+
+probe box index range: [60,100] X [0,80] X [0,0] (grid=2)
+ a11=1627.73, a12=-23.8053, a22=1693.27, f1=322.79, f2=386.336 det= 2.76e+06 kx=1
+ transmission probe: t=6.800e+00, T = (0.201685,0.230996)
+
+
+*********************************
+*********** Aug 20, 2017
+
+
+START ON USER DEFINED PROBE
+
+cgmx dielectricBodies -g=diskInBoxYpe4.order2.hdf -backGround=outerSquare -kx=4 -eps1=11.9025 -eps2=1. -probeFileName=ProbeDiskInBox -xb=-1 -go=halt
+
+*********************************
+*********** Aug 13, 2017
+
+Think about new probes to average over a box
+
+cgmx -noplot dielectricBodies -g=dielectricBlockGrid2de4.order4 -backGround=leftBackGround -rbc=abcEM2 -kx=1 -eps1=1 -eps2=1. -diss=2 -tf=15 -tp=.1 -go=og 
+
+
+*********************************
+*********** Aug 9 -- 
+
+
+TEST PEC CYLINDER
+
+
+PML -- TODO
+cgmx -noplot dielectricBodies -g=diskInAChannelGride4.order4 -backGround=backGround -bcBody=pec -rbc=abcPML -pmlLines=51 -pmlStrength=40 -kx=1 -eps1=4 -diss=2 -tf=15 -tp=.1 -show=pecDiskG4Eps4pml.show -probeFileName=ProbePecDiskG4Eps4pml -go=go > pecDiskG4Eps4pml.out
+
+
+REFERENCE RUN IN Cannel with no disk
+cgmx -noplot dielectricBodies -g=noPecDisk4np.order4 -backGround=rectangle -rbc=abcEM2 -kx=1 -eps1=4 -diss=2 -tf=25 -tp=.1 -show=noPecDisk4np.show -probeFileName=ProbeNoPecDisk4np -go=go > noPecDisk4np.out
+
+PEC DISK
+cgmx -noplot dielectricBodies -g=diskInAChannelGride4.order4 -backGround=backGround -bcBody=pec -rbc=abcEM2 -kx=1 -eps1=4 -diss=2 -tf=25 -tp=.1 -show=pecDiskG4Eps4.show -probeFileName=ProbePecDiskG4Eps4 -go=go > pecDiskG4Eps4.out
+
+
+
+Grid for a PEC cylinder
+
+ogen -noplot diskInAChannelGrid -interp=e -order=2 -factor=2
+
+
+try Yee scheme
+
+cgmx dielectricBodies -method=Yee -g=channel2np.order2 -backGround=leftBackGround -rbc=abcEM2 -kx=1 -numBlocks=2 -eps1=2 -eps2=4 -tf=15 -tp=.1 
+
+*********************************
+*********** Aug 8 two block runs
+
+TEST TWO BLOCK
+cgmx -noplot dielectricBodies -g=dielectricMultiBlockGrid2d2Blockse4.order4 -backGround=leftBackGround -rbc=abcEM2 -kx=1 -numBlocks=2 -eps1=2 -eps2=4 -diss=2 -tf=15 -tp=.1 -show="dieTwoBlockG8Eps2Eps4.show" -probeFileName=ProbeDieTwoBlockG8Eps2Eps4 -go=go > dieTwoBlockG8Eps2Eps4.out
+
+REFERENCE RUN" 
+cgmx -noplot dielectricBodies -g=dielectricMultiBlockGrid2d2Blockse4.order4 -backGround=leftBackGround -rbc=abcEM2 -kx=1 -numBlocks=2 -eps1=1 -eps2=1 -diss=2 -tf=15 -tp=.1 -show="dieTwoBlockG8Eps1Eps1.show" -probeFileName=ProbeDieTwoBlockG8Eps1Eps1 -go=go > dieTwoBlockG8Eps1Eps1.out
+
+*********************************
+*********** Aug 7, 2017
+
+TEST TWO BLOCK
+cgmx dielectricBodies -g=dielectricMultiBlockGrid2d2Blockse2.order4 -backGround=leftBackGround -rbc=abcEM2 -kx=1 -numBlocks=2 -eps1=2 -eps2=4 -diss=2 -tf=15 -tp=.1 
+
+
+
+MULTI-BLOCK 
+
+ogen dielectricMultiBlockGrid2d -numBlocks=3 -x1=-1 -x2=-.5 -x3=0 -x4=.5 -order=2 -interp=e -factor=2
+
+ogen dielectricMultiBlockGrid2d -numBlocks=2 -x1=-.5 -x2=.0 -x3=.5 -order=2 -interp=e -factor=2
+
+*********************************
+*********** Aug 6, 2017
+
+EPS=1 
+cgmx -noplot dielectricBodies -g=dielectricBlockGrid2de8.order4 -backGround=leftBackGround -rbc=abcEM2 -kx=1 -eps1=1 -eps2=1. -diss=2 -tf=15 -tp=.1 -show="dieBlockG8Eps1.show" -probeFileName=probeDieBlockG8Eps1 -go=go > dieBlockG8Eps1.out
+
+REDO EPS=8 
+cgmx -noplot dielectricBodies -g=dielectricBlockGrid2de8.order4 -backGround=leftBackGround -rbc=abcEM2 -kx=1 -eps1=8 -eps2=1. -diss=2 -tf=15 -tp=.1 -show="dieBlockG8Eps8.show" -probeFileName=probeDieBlockG8Eps8 -go=go > dieBlockG8Eps8.out
+
+
+*********************************
+*********** Aug 6, 2017
+
+
+cgmx -noplot dielectricBodies -g=dielectricBlockGrid2de8.order4 -backGround=leftBackGround -rbc=abcEM2 -kx=1 -eps1=4 -eps2=1. -diss=2 -tf=15 -tp=.1 -show="dieBlockG8Eps4.show" -probeFileName=probeDieBlockG8Eps4 -go=go > dieBlockG8Eps4.out
+
+
+*********************************
+*********** Aug 5 , 2017
+
+CONSIDER SIMULATIONS by Derek Olson
+
+Notes to Derek:
+    (1) Your airSlab grid is only built to 2nd-order accuracy
+
+-------------------- DIELECTRIC BLOCK
+
+cgmx -noplot dielectricBodies -g=dielectricBlockGrid2de8.order4 -backGround=leftBackGround -rbc=abcEM2 -kx=1 -eps1=8 -eps2=1. -diss=2 -tf=10 -tp=.1 -show="dieBlockG8.show" -go=go > dieBlockG8.out
+
+
+
+TRY SOSUP DISSIPATION -- order=4 **trouble : increase interface-iterations (?) **TROUBLE NEAR bottom periodic boundary
+cgmx -noplot dielectricBodies -g=dielectricBlockGrid2de8.order4.ng3 -backGround=leftBackGround -rbc=abcEM2 -kx=2 -eps1=8 -eps2=1. -diss=2 -tf=20 -tp=.5 -useSosupDissipation=1 -ii=10 -go=og
+
+TRY SOSUP DISSIPATION -- order=2 OK
+cgmx -noplot dielectricBodies -g=dielectricBlockGrid2de8.order2 -backGround=leftBackGround -rbc=abcEM2 -kx=2 -eps1=8 -eps2=1. -diss=2 -tf=20 -tp=.5 -useSosupDissipation=1 -go=og
+
+>>> Test dielectric block grid *NOTE* dissipation needed for interface 
+cgmx -noplot dielectricBodies -g=dielectricBlockGrid2de8.order4 -backGround=leftBackGround -rbc=abcEM2 -kx=2 -eps1=8 -eps2=1. -diss=2 -tf=20 -tp=.5 -go=og
+
+
+-------------------------   AIR SLAB: 
+
+>>>>>>>>>> ABC PML: 
+
+
+cgmx -noplot airSlab -g=airSlabGrid8np.order4.hdf -tf=10 -tp=.5 -xLoc=0 -probeLoc=2 -rbc=abcPML -pmlLines=81 -pmlStrength=40 -go=og -cfl=.7
+>>> t=1.00e+01 dt=6.2e-03 max errors:[0.00e+00,6.24e-04,6.24e-04,], max (u):[0.00e+00,5.12e-03,5.12e-03,] (1620 steps)
+
+cgmx -noplot airSlab -g=airSlabGrid4np.order4.hdf -tf=10 -tp=.5 -xLoc=0 -probeLoc=2 -rbc=abcPML -pmlLines=41 -go=og
+
+>>> t=9.50e+00 dt=1.6e-02 max errors:[0.00e+00,2.25e-03,2.25e-03,], max (u):[0.00e+00,1.49e-02,1.49e-02,] (608 steps)
+
+ABC EM2
+cgmx airSlab -g=airSlabGrid4np.order4.hdf -tf=10 -tp=.5 -xLoc=0 -probeLoc=2 -go=halt
+
+>>> t=6.50e+00 dt=1.6e-02 max errors:[0.00e+00,1.27e-04,1.27e-04,], max (u):[0.00e+00,1.27e-04,1.27e-04,] (416 steps)
+
+
+
+
+*********************************
+*********** June 20, 2017
+
+** Add sosup option **
+
+SOSUP + PML : *BROKEN* --FIX ME--
+cgmx dielectricBodies -g=diskInBoxYpe4.order4.ng3.hdf -backGround=outerSquare -method=sosup -xb=-1.25 -rbc=abcPML -kx=4 -eps1=11.9025 -eps2=1. -diss=0 -go=halt
+
+SOSUP : needs extra ghost *WORKS*
+cgmx dielectricBodies -g=diskInBoxYpe4.order4.ng3.hdf -backGround=outerSquare -method=sosup -xb=-1.25 -rbc=abcEM2 -kx=4 -eps1=11.9025 -eps2=1. -diss=0 -go=halt 
+
+
+*********************************
+*********** May 18, 2017
+
+
+Test *NEW* probes
+
+DISK+PML
+cgmx dielectricBodies -g=diskInBoxYpe8.order4.hdf -backGround=outerSquare -kx=4 -eps1=11.9025 -eps2=1. -probeFileName=ProbeDiskInBox -xb=-1 -rbc=abcPML -pmlLines=3 -diss=4 -go=halt
+
+cgmx dielectricBodies -g=diskInBoxYpe4.order4.hdf -backGround=outerSquare -kx=4 -eps1=11.9025 -eps2=1. -probeFileName=ProbeDiskInBox -xb=-1 -go=halt
+
+cgmx dielectricBodies -g=diskInBoxYpe4.order2.hdf -backGround=outerSquare -kx=4 -eps1=11.9025 -eps2=1. -probeFileName=ProbeDiskInBox -xb=-1 -go=halt
+
+RECTANGLE: -- no body -- by subtracting this solution, could be used to get scattered field
+cgmx dielectricBodies -g=rect8np.order4.hdf -backGround=rectangle -kx=4 -eps1=11.9025 -eps2=1. -probeFileName=ProbeRectangle -xb=-1 -go=halt
+cgmx dielectricBodies -g=rect4np.order4.hdf -backGround=rectangle -kx=4 -eps1=11.9025 -eps2=1. -probeFileName=ProbeRectangle -xb=-1 -go=halt
+
+cgmx dielectricBodies -g=diskInBoxYpe4.order2.hdf -backGround=outerSquare -kx=4 -eps1=11.9025 -eps2=1. -go=halt
+
+
+*********************************
+*********** May 16-17, 2017
+
+**TROUBLE WITH FAR-FIELD BC AND BOUNDING BOX INITIAL CONDITIONS ****
+
+---> FIX MADE : adjustForIncident -- clip to IC-Bounding box
+
+ORDER=4 DISK
+cgmx dielectricBodies -g=diskInBoxYpe8.order4.hdf -backGround=outerSquare -xb=-1.25 -rbc=abcPML -pmlLines=32 -kx=4 -eps1=11.9025 -eps2=1. -diss=4 -go=halt -pmlStrength=50. -pmlPower=5
+
+OK: 
+cgmx dielectricBodies -g=diskInBoxYpe8.order2.hdf -backGround=outerSquare -xb=-1.25 -rbc=abcPML -pmlLines=32 -kx=4 -eps1=11.9025 -eps2=1. -diss=4 -go=halt -pmlStrength=100. -pmlPower=3
+
+
+cgmx dielectricBodies -g=diskInBoxYpe8.order2.hdf -backGround=outerSquare -xb=-1.25 -rbc=abcPML -pmlLines=16 -kx=4 -eps1=11.9025 -eps2=1. -diss=4 -go=halt
+
+
+** OK if we turn off adjust box ar enough away ****
+cgmx dielectricBodies -g=diskInBoxYpe8.order2.hdf -backGround=outerSquare -rbc=abcPML -pmlLines=8 -kx=4 -eps1=11.9025 -eps2=1. -diss=4 -go=haltdisk
+
+TRY LEFTBC=planeWave and NO IC BB
+
+cgmx dielectricBodies -g=diskInBoxYpe8.order2.hdf -backGround=outerSquare -rbc=abcPML -leftBC=planeWave -pmlLines=32 -kx=4 -eps1=11.9025 -eps2=1. -go=halt
+
+
+**TROUBLE**
+cgmx dielectricBodies -g=diskInBoxYpe8.order2.hdf -backGround=outerSquare -rbc=abcPML -pmlLines=64 -kx=4 -eps1=11.9025 -eps2=1. -go=halt
+
+cgmx dielectricBodies -g=diskInBoxYpe4.order2.hdf -backGround=outerSquare -rbc=abcPML -kx=4 -eps1=11.9025 -eps2=1. -go=h
+alt
+
+Test probes -- seems ok
+
+cgmx dielectricBodies -g=diskInBoxYpe4.order2.hdf -backGround=outerSquare -kx=4 -eps1=11.9025 -eps2=1. -go=halt
+
+
+
+*********************************
+***********May 7, 2017
+
+check PML
+
+=== PIL BOX
+cgmx -noplot dielectricBodies -g=solidPillBoxGride6.order2 -bg=backGround -kx=2 -eps1=11.9025 -eps2=1. -diss=5 -show=solidPillBox.show -tf=4. -go=go >! solidPillBox.out 
+
+
+*** CROSS ****
+
+
+cgmx dielectricBodies -g=crossGride16.order2.hdf -eps1=11.9025 -eps2=1. -kx=2 -diss=8. -tp=.1 -tf=5 -go=halt
+
+
+cgmx dielectricBodies -g=crossGridi16.order4.hdf -eps1=11.9025 -eps2=1. -kx=2 -diss=8. -tp=.1 -tf=5 -show=crossG16.show  -go=halt
+
+
+*********************************
+***********May 6, 2017
+
+#  --- cross:
+#   ogen -noplot shapedDiskGrid -shape=cross -prefix=crossGrid -interp=e -order=2 -factor=16
+
+cgmx dielectricBodies -g=crossGride16.order2.hdf -eps1=11.9025 -eps2=1. -kx=2 -diss=8. -tp=.1 -tf=5 -go=halt
+
+
+*** ADDED omega RELAXATION to 2D order=4 ***
+
+***NEW ROD GRID -- USE HYPE ***
+*** IMPORTANT : GRID aspect ratio near corner ***
+
+
+cgmx dielectricBodies -g=rodGrid2de8.order4.hdf -eps1=11.9025 -eps2=1. -kx=2 -diss=8. -tp=.1 -tf=5 -go=halt
+
+
+cgmx dielectricBodies -g=rodGrid2de16.order4.hdf -eps1=11.9025 -eps2=1. -kx=2 -diss=8. -tp=.1 -tf=5 -go=halt
+
+
+STILL OSCILLATIONS AT INTERFACE: *WHY*
+cgmx dielectricBodies -g=rodGrid2de32.order4.hdf -eps1=11.9025 -eps2=1. -kx=2 -diss=16. -tp=.1 -tf=10 -go=halt
+
+
+*** FIXED INTERFACE CHECK****
+
+cgmx dielectricBodies -g=solidPillBoxGride6.order2 -bg=backGround -kx=2 -eps1=11.9025 -eps2=1. -diss=5 -show=pillBoxG6.show -go=halt
+
+==== STAR-FISH
+
+MOVIE:
+cgmx -noplot dielectricBodies -g=starFishGride128.order2.hdf -kx=8 -eps1=11.9025 -eps2=1. -diss=64 -tp=.01 -tf=5. -show=starFishMovie.show -go=go > starFishMovie.out
+
+
+
+
+cgmx -noplot dielectricBodies -g=starFishGride128.order2.hdf -kx=2 -eps1=11.9025 -eps2=1. -diss=64 -show=starFishG128.show -go=go > starFishG128.out
+
+
+
+=== NEW ELLIPSE GRID -- splines ---
+
+OK: 
+cgmx dielectricBodies -g=ellipticalGride8.order2.hdf -kx=2 -eps1=11.9025 -eps2=1. -show=ellipseG8.show -go=halt
+
+OK: ORDER=4
+cgmx dielectricBodies -g=ellipticalGride8.order4.hdf -kx=2 -eps1=11.9025 -eps2=1. -go=halt
+
+
+*********************************
+***********May 5, 2017
+
+=========== DIELECTRIC PILL-BOX ================
+
+ ogen -noplot solidPillBoxGrid.cmd -interp=e -nrMin=8 -factor=8 
+ ogen -noplot solidPillBoxGrid.cmd -interp=e -nrMin=6 -factor=6 
+ ogen -noplot solidPillBoxGrid.cmd -interp=e -factor=4 --> cgmx negative vols
+
+cgmx dielectricBodies -g=solidPillBoxGride6.order2 -bg=backGround -kx=1 -eps1=11.9025 -eps2=1. -diss=5 -go=halt
+
+============ DIELECTRIC SPHERE ====
+ogen -noplot solidSphereInABox -prefix=dielectricSphereGrid -xa=-3 -xb=3 -ya=-1.5 -yb=1.5 -za=-1.5 -zb=1.5 -outerBC=yzPeriodic -order=2 -interp=e -factor=2 
+
+ogen -noplot solidSphereInABox -prefix=dielectricSphereGrid -xa=-3 -xb=3 -ya=-1.5 -yb=1.5 -za=-1.5 -zb=1.5 -outerBC=yzPeriodic -order=2 -interp=e -factor=4
+
+ogen -noplot solidSphereInABox -prefix=dielectricSphereGrid -xa=-3 -xb=3 -ya=-1.5 -yb=1.5 -za=-1.5 -zb=1.5 -outerBC=yzPeriodic -order=4 -interp=e -nrMin=11 -factor=4
+
+cgmx dielectricBodies -g=dielectricSphereGride4.order4 -bg=outerBox -kx=1 -eps1=11.9025 -eps2=1. -diss=5 -go=halt
+
+cgmx dielectricBodies -g=dielectricSphereGride4.order4 -bg=outerBox -kx=1 -eps1=11.9025 -eps2=1. -diss=5 -go=halt
+
+
+cgmx dielectricBodies -g=dielectricSphereGride2.order2 -bg=outerBox -kx=2 -eps1=11.9025 -eps2=1. -go=halt
+
+cgmx dielectricBodies -g=dielectricSphereGride4.order2 -bg=outerBox -kx=1 -eps1=11.9025 -eps2=1. -diss=5 -tf=5. -show=sphereG4.show -go=halt
+
+*********************************
+***********May 4, 2017
+
+-- RENAME STUFF --
+
+**** 2D ELLIPTICAL GRID ***
+
+ogen -noplot ellipticalDiskGrid -interp=e -factor=8
+Circle: OK
+ogen -noplot ellipticalDiskGrid -radX=.5 -radY=.5 -interp=e -order=4 -factor=8
+
+ogen -noplot ellipticalDiskGrid -radX=.6 -radY=.4 -interp=e -order=4 -factor=8
+
+TROUBLE AT INTERFACE: 
+cgmx -noplot dielectricBodies -g=ellipticalDiskGride16.order4.hdf -kx=4 -eps1=11.9025 -eps2=1. -go=og
+
+OK: 
+cgmx dielectricBodies -g=ellipticalDiskGride8.order2.hdf -kx=2 -eps1=11.9025 -eps2=1. -show=ellipseG8.show -go=halt
+
+
+*** 2D dielectric DISK ****
+
+GRID
+ogen -noplot io -prefix=diskInBox -order=2 -interp=e -xa=-2. -xb=2. -ya=-.75 -yb=.75 -outerBC=yPeriodic -factor=4
+
+cgmx dielectricBodies -g=diskInBoxYpe8.order2.hdf -backGround=outerSquare -kx=2 -eps1=11.9025 -eps2=1. -tf=5 -show=diskInBoxG8.show -diss=4 -go=halt
+
+
+OK:
+cgmx dielectricBodies -g=diskInBoxYpe4.order2.hdf -backGround=outerSquare -kx=4 -eps1=11.9025 -eps2=1. -go=halt
+
+ogen -noplot io -prefix=diskInBox -order=4 -interp=e -xa=-2. -xb=2. -ya=-.75 -yb=.75 -outerBC=yPeriodic -factor=4
+
+OK
+cgmx dielectricBodies -g=diskInBoxYpe4.order4.hdf -backGround=outerSquare -kx=4 -eps1=11.9025 -eps2=1. -go=halt
+
+
+************* VERTICAL ROD ********
+ogen -noplot rodGrid2d -order=2 -interp=e -factor=8
+ogen -noplot rodGrid2d -order=4 -interp=e -factor=16
+
+cgmx dielectricBodies -g=rodGrid2de8.order2.hdf -eps1=11.9025 -eps2=1. -kx=2 -diss=1. -tp=.1 -tf=5 -show=rodG8.show -go=halt
+cgmx dielectricBodies -g=rodGrid2de16.order2.hdf -eps1=11.9025 -eps2=1. -kx=2 -diss=1. -tp=.1 -tf=10 -go=halt
+
+TROUBLE: -- ghost cells?
+cgmx dielectricBodies -g=rodGrid2de16.order4.hdf -eps1=11.9025 -eps2=1. -kx=4 -diss=5. -tp=.1 -tf=10 -go=halt
+
+*********************************
+***********May 2, 2017
+
+# Run: 
+#     glass  n=1.5 -> eps1= (1.5)^2 
+#   cgmx rod2d -g=rodGride8.order2.hdf -eps1=2.25 -eps2=1. -kx=5 -diss=1. -tp=.1 -tf=10 -go=halt
+#     silicon  n=3.45 -> eps1= (3.45)^2 =11.9025
+#   cgmx rod2d -g=rodGride8.order2.hdf -eps1=11.9025 -eps2=1. -kx=2 -diss=1. -tp=.1 -tf=10 -go=halt
+
+
+
+*********************************
+***********May 2, 2017
+
+2D version -- rod grid 
+
+# Grid:
+#   ogen -noplot rodGrid2d -order=2 -interp=e -factor=8 
+# Run: 
+cgmx rod2d -g=rodGride8.order2.hdf -eps1=2.25 -eps2=1. -kx=5 -diss=1. -tp=.1 -tf=10 -go=halt
+
+
+ogen -noplot rodGrid2d -order=2 -interp=e -factor=2
+
+*********************************
+***********May 2, 2017
+
+Start on a dielectric pill box
+
+ogen pillInABoxGrid.cmd -interp=e -thickness=.33333 -factor=2 

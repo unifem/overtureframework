@@ -23,7 +23,7 @@ public:
 
   // return the and imaginary parts of "s" in the dispersion relation
   int
-  evaluateDispersionRelation( const real c, const real k, real & sr, real & si, real & psir, real & psii  );
+  evaluateDispersionRelation( const real c, const real k, real & sr, real & si, real psir[], real psii[]  );
 
   // *old* return the and imaginary parts of "s" in the dispersion relation
   int 
@@ -32,6 +32,7 @@ public:
 
   int setNumberOfPolarizationVectors( const int numPolarizationVectors );
   int setParameters( const int eqn, const real a0, const real a1, const real b0, const real b1 );
+  int setMode( const int modeToChoose );
 
 
   //  *OLD*
@@ -59,8 +60,10 @@ public:
   RealArray modelParameters;
 
   // Save the root after it has been computed to save computations
+  int mode;  // which root to choose.
   bool rootComputed;
-  real ck0,sr0,si0,psir0,psii0;
+  real ck0,sr0,si0;
+  RealArray psir0,psii0;
 
   // The database is a place to store parameters
   mutable DataBase dbase;

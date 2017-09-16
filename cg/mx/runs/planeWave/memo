@@ -1,4 +1,84 @@
 ***********************
+***** Sept 13, 2017
+
+
+MULTI-PV CURVLINEAR -- SET DISS=0 FOR NOW
+cgmx -noplot planeWave -g=nonSquare128.order2 -dm=gdm -npv=2 -a0=1 1 -a1=0 0 -b0=1 0 -b1=0 0  -kx=4 -tp=.01 -tf=.1 -cfl=1 -checkErrors=1 -diss=0 -go=og
+
+--getErrors: t=1.000e-02 domain=0 (domain0) numPolarizationVectors=2 P-norm=1.578e-03 max-err = 9.959e-08
+>>> t=1.00e-02 dt=5.0e-03 max errors:[0.00e+00,8.86e-05,1.30e-04,], max (u):[0.00e+00,9.99e-01,9.97e-01,] (2 steps)
+
+
+
+RECTANGULAR
+cgmx -noplot planeWave -g=square128.order2 -dm=gdm -npv=2 -a0=1 1 -a1=0 0 -b0=1 0 -b1=0 0  -kx=4 -tp=.01 -tf=.1 -cfl=1 -checkErrors=1 -go=og
+
+--getErrors: t=1.000e-02 domain=0 (domain0) numPolarizationVectors=2 P-norm=1.578e-03 max-err = 9.959e-08
+>>> t=1.00e-02 dt=5.0e-03 max errors:[0.00e+00,8.86e-05,1.30e-04,], max (u):[0.00e+00,9.99e-01,9.97e-01,] (2 steps)
+
+
+***********************
+***** Sept 13, 2017
+
+TEST NEW GDM eigenvalue routine
+
+PASS ARRAY VALUES ON COMMAND LINE -- WORKS
+
+CHHOSE A DIFFERENT ROOT 
+cgmx -noplot planeWave -g=square128.order2 -dm=gdm -npv=2 -modeGDM=2 -a0=1 1 -a1=0 0 -b0=1 0 -b1=0 0  -kx=4 -tp=.01 -tf=.1 -cfl=1 -checkErrors=1 -go=og
+
+cgmx -noplot planeWave -g=square128.order2 -dm=gdm -npv=2 -a0=1 1 -a1=0 0 -b0=1 0 -b1=0 0  -kx=4 -tp=.01 -tf=.1 -cfl=1 -checkErrors=1 -go=og
+
+ evalEigGDM: i=  0 s=(  0.000000000000E+00,  2.517252991471E+01)
+ evalEigGDM: i=  1 s=(  0.000000000000E+00, -2.517252991471E+01)
+ evalEigGDM: i=  2 s=(  1.864827736675E-17,  9.992093688694E-01)
+ evalEigGDM: i=  3 s=(  1.864827736675E-17, -9.992093688694E-01)
+ evalEigGDM: i=  4 s=(  0.000000000000E+00,  0.000000000000E+00)
+ evalEigGDM: i=  5 s=(  0.000000000000E+00,  0.000000000000E+00)
+
+
+cgmx -noplot planeWave -g=square128.order2 -dm=gdm -npv=2 -a0=1 0 -a1=0 0 -b0=1 0 -b1=0 0  -kx=4 -tp=.01 -tf=.1 -cfl=1 -checkErrors=1 -go=og
+
+
+cgmx -noplot planeWave -g=square128.order2 -dm=gdm -npv=2 -kx=4 -tp=.01 -tf=.1 -cfl=1 -checkErrors=1 -go=og
+--getErrors: t=1.000e-02 domain=0 (domain0) numPolarizationVectors=2 P-norm=1.578e-03 max-err = 9.959e-08
+>>> t=1.00e-02 dt=5.0e-03 max errors:[0.00e+00,8.86e-05,1.30e-04,], max (u):[0.00e+00,9.99e-01,9.97e-01,] (2 steps)
+
+
+
+cgmx -noplot planeWave -g=square128.order2 -dm=gdm -npv=1 -kx=4 -tp=.01 -tf=.1 -cfl=1 -checkErrors=1 -go=og
+
+--getErrors: t=1.000e-02 domain=0 (domain0) numPolarizationVectors=1 P-norm=1.581e-03 max-err = 9.944e-08
+>>> t=1.00e-02 dt=5.0e-03 max errors:[0.00e+00,8.88e-05,1.29e-04,], max (u):[0.00e+00,9.99e-01,9.98e-01,] (2 steps)
+
+
+
+TEST ROOT FINDER
+
+Np=1: 
+--DMP-- GDM: s=(  0.000000000000e+00,  2.515265919956e+01) j=0 a0=1 a1=0 b0=1 b1=0 psir= -1.583139526530e-03 psii= -0.000000000000e+00 *NEW*
+
+
+
+
+--DMP-- GDM: OLD: c=1 k=25.1327 a0=1 a1=0 b0=0 b1=1-> real(s)=-0.000789077, Im(s)=-25.1526 psir= -1.578156449293e-03 psii=  6.264418536387e-05
+--MX--GIC dispersion: s=( -7.8908e-04, -2.5153e+01)
+
+
+
+--DMP-- GDM: OLD: c=1 k=25.1327 a0=1 a1=0 b0=1 b1=1-> real(s)=-0.00079157, Im(s)=-25.1526 psir= -1.580643102875e-03 psii=  6.284183052629e-05
+--MX--GIC dispersion: s=( -7.9157e-04, -2.5153e+01)
+
+
+
+TWO POLARIZATION VECTORS: 
+cgmx -noplot planeWave -g=square128.order2 -dm=gdm -npv=2 -kx=4 -tp=.01 -tf=.1 -cfl=1 -checkErrors=1 -go=og
+
+
+cgmx -noplot planeWave -g=square128.order2 -dm=gdm -b0=1 -b1=1 -a0=1 -a1=1  -kx=4 -tp=.01 -tf=.1 -cfl=1 -checkErrors=1 -go=og
+
+
+***********************
 ***** Sept 3, 2017
 
 MULIPLE POLARIZATION vectors 

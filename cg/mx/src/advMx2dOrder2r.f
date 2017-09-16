@@ -84,8 +84,8 @@
      & rungeKuttaFourthOrder=2,stoermerTimeStepping=3,
      & modifiedEquationTimeStepping=4)
         ! Dispersion models
-        integer noDispersion,drude
-        parameter( noDispersion=0, drude=1 )
+        integer noDispersion,drude,gdm
+        parameter( noDispersion=0, drude=1, gdm=2 )
         ! forcing options
       ! forcingOptions -- these should match ForcingEnum in Maxwell.h 
       integer noForcing,magneticSinusoidalPointSource,gaussianSource,
@@ -3596,7 +3596,9 @@ c===============================================================================
         if( dispersionModel.ne.noDispersion )then
          ! get the gdm parameters
          !   gdmPar(0:3,iv) = (a0,a1,b0,b1) 
-         call getGDMParameters( grid,gdmPar,maxNumberOfParameters,
+         ! This routine returns numberOfPolarizationVectors (no need to pass)
+         call getGDMParameters( grid,gdmPar,
+     & numberOfPolarizationVectors, maxNumberOfParameters,
      & maxNumberOfPolarizationVectors )
           if( t.eq.0. .and. dispersionModel.ne.noDispersion )then
             ! ---- Dispersive Maxwell ----
@@ -3607,8 +3609,8 @@ c===============================================================================
             write(*,'("--advOpt-- GDM: alphaP,a0,a1,b0,b1=",5(1p,e10.2)
      & )') alphaP,a0,a1,b0,b1
             do iv=0,numberOfPolarizationVectors-1
-              write(*,'("GDM: eqn=",i3," a0,a1,b0,b1=",4(1p,e10.2))') 
-     & iv,a0v(iv),a1v(iv),b0v(iv),b1v(iv)
+              write(*,'("--advOpt-- GDM: eqn=",i3," a0,a1,b0,b1=",4(1p,
+     & e10.2))') iv,a0v(iv),a1v(iv),b0v(iv),b1v(iv)
             end do
          end if
         end if

@@ -4,219 +4,229 @@
 // ===============================================================================================
 #beginMacro initialize3DPolyTW(ux,uy,uz)
 
-  // -----------------------------------------------------------------------------
-  // --------------------- DEFINE POLYNOMIAL TZ SOLUTIONS ------------------------
-  // -----------------------------------------------------------------------------
+// -----------------------------------------------------------------------------
+// --------------------- DEFINE POLYNOMIAL TZ SOLUTIONS ------------------------
+// -----------------------------------------------------------------------------
 
-  // Always include linear terms in TZ if degreSpace>=1 *wdh* Sept 18, 2016 
-  if( degreeSpace >=1 )
-  {
-    spatialCoefficientsForTZ(0,0,0,ux)=1.;      // u=1 + x + y + z
-    spatialCoefficientsForTZ(1,0,0,ux)=1.;
-    spatialCoefficientsForTZ(0,1,0,ux)=1.;
-    spatialCoefficientsForTZ(0,0,1,ux)=1.;
+// Always include linear terms in TZ if degreSpace>=1 *wdh* Sept 18, 2016 
+if( degreeSpace >=1 )
+{
+  spatialCoefficientsForTZ(0,0,0,ux)=1.;      // u=1 + x + y + z
+  spatialCoefficientsForTZ(1,0,0,ux)=1.;
+  spatialCoefficientsForTZ(0,1,0,ux)=1.;
+  spatialCoefficientsForTZ(0,0,1,ux)=1.;
 
-    spatialCoefficientsForTZ(0,0,0,uy)= 2.;      // v=2+x-2y+z
-    spatialCoefficientsForTZ(1,0,0,uy)= 1.;
-    spatialCoefficientsForTZ(0,1,0,uy)=-2.;
-    spatialCoefficientsForTZ(0,0,1,uy)= 1.;
+  spatialCoefficientsForTZ(0,0,0,uy)= 2.;      // v=2+x-2y+z
+  spatialCoefficientsForTZ(1,0,0,uy)= 1.;
+  spatialCoefficientsForTZ(0,1,0,uy)=-2.;
+  spatialCoefficientsForTZ(0,0,1,uy)= 1.;
     
-    spatialCoefficientsForTZ(1,0,0,uz)=-1.;      // w=-x+y+z
-    spatialCoefficientsForTZ(0,1,0,uz)= 1.;
-    spatialCoefficientsForTZ(0,0,1,uz)= 1.;
+  spatialCoefficientsForTZ(1,0,0,uz)=-1.;      // w=-x+y+z
+  spatialCoefficientsForTZ(0,1,0,uz)= 1.;
+  spatialCoefficientsForTZ(0,0,1,uz)= 1.;
 
-    // eps and mu should remain positive 
+  // eps and mu should remain positive 
+  if( epsc>=0 )
+  {
     spatialCoefficientsForTZ(1,0,0,epsc)=eps*.01;  // x
     spatialCoefficientsForTZ(0,1,0,epsc)=eps*.02;  // y
     spatialCoefficientsForTZ(0,0,1,epsc)=eps*.12;  // z
-
+  }
+  if( muc>=0 )
+  {
     spatialCoefficientsForTZ(1,0,0,muc )=mu*.015;   // x
     spatialCoefficientsForTZ(0,1,0,muc )=mu*.0125;  // y
     spatialCoefficientsForTZ(0,0,1,muc )=mu*.095;   // z
-
   }
+  
+}
 
-  if( degreeSpace==2 )
+if( degreeSpace==2 )
+{
+  spatialCoefficientsForTZ(2,0,0,ux)=1.;      // u=x^2 + 2xy + y^2 + xz  - .25*yz -.5*z^2
+  spatialCoefficientsForTZ(1,1,0,ux)=2.;
+  spatialCoefficientsForTZ(0,2,0,ux)=1.;
+  spatialCoefficientsForTZ(1,0,1,ux)=1.;
+  spatialCoefficientsForTZ(0,1,1,ux)=-.25;
+  spatialCoefficientsForTZ(0,0,2,ux)=-.5;
+      
+  spatialCoefficientsForTZ(2,0,0,uy)= 1.;      // v=x^2 -2xy - y^2 + 3yz + .25*xz +.5*z^2
+  spatialCoefficientsForTZ(1,1,0,uy)=-2.;
+  spatialCoefficientsForTZ(0,2,0,uy)=-1.;
+  spatialCoefficientsForTZ(0,1,1,uy)=+3.;
+  spatialCoefficientsForTZ(1,0,1,uy)=.25;
+  spatialCoefficientsForTZ(0,0,2,uy)=.5;
+      
+  spatialCoefficientsForTZ(2,0,0,uz)= 1.;      // w=x^2 + y^2 - 2 z^2 + .25*xy 
+  spatialCoefficientsForTZ(0,2,0,uz)= 1.;
+  spatialCoefficientsForTZ(0,0,2,uz)=-2.;
+  spatialCoefficientsForTZ(1,1,0,uz)=.25;
+
+  // eps and mu should remain positive 
+  if( epsc>=0 )
   {
-    spatialCoefficientsForTZ(2,0,0,ux)=1.;      // u=x^2 + 2xy + y^2 + xz  - .25*yz -.5*z^2
-    spatialCoefficientsForTZ(1,1,0,ux)=2.;
-    spatialCoefficientsForTZ(0,2,0,ux)=1.;
-    spatialCoefficientsForTZ(1,0,1,ux)=1.;
-    spatialCoefficientsForTZ(0,1,1,ux)=-.25;
-    spatialCoefficientsForTZ(0,0,2,ux)=-.5;
-      
-    spatialCoefficientsForTZ(2,0,0,uy)= 1.;      // v=x^2 -2xy - y^2 + 3yz + .25*xz +.5*z^2
-    spatialCoefficientsForTZ(1,1,0,uy)=-2.;
-    spatialCoefficientsForTZ(0,2,0,uy)=-1.;
-    spatialCoefficientsForTZ(0,1,1,uy)=+3.;
-    spatialCoefficientsForTZ(1,0,1,uy)=.25;
-    spatialCoefficientsForTZ(0,0,2,uy)=.5;
-      
-    spatialCoefficientsForTZ(2,0,0,uz)= 1.;      // w=x^2 + y^2 - 2 z^2 + .25*xy 
-    spatialCoefficientsForTZ(0,2,0,uz)= 1.;
-    spatialCoefficientsForTZ(0,0,2,uz)=-2.;
-    spatialCoefficientsForTZ(1,1,0,uz)=.25;
-
-    // eps and mu should remain positive 
     spatialCoefficientsForTZ(1,0,0,epsc)=eps*.01;  // x
     spatialCoefficientsForTZ(0,1,0,epsc)=eps*.02;  // y
     spatialCoefficientsForTZ(0,0,1,epsc)=eps*.12;  // z
     spatialCoefficientsForTZ(2,0,0,epsc)=eps*.1;   // x^2
     spatialCoefficientsForTZ(0,2,0,epsc)=eps*.15;  // y^2        
     spatialCoefficientsForTZ(0,0,2,epsc)=eps*.11;  // z^2        
-
+  }
+  if( muc>=0 )
+  {
     spatialCoefficientsForTZ(1,0,0,muc )=mu*.015;   // x
     spatialCoefficientsForTZ(0,1,0,muc )=mu*.0125;  // y
     spatialCoefficientsForTZ(0,0,1,muc )=mu*.095;   // z
     spatialCoefficientsForTZ(2,0,0,muc )=mu*.125;   // x^2
     spatialCoefficientsForTZ(0,2,0,muc )=mu*.15;    // y^2
     spatialCoefficientsForTZ(0,0,2,muc )=mu*.13;    // z^2
-
   }
-  else if( degreeSpace==0 )
-  {
-    spatialCoefficientsForTZ(0,0,0,ux)=1.; // -1.; 
-    spatialCoefficientsForTZ(0,0,0,uy)=1.; //-.5;
-    spatialCoefficientsForTZ(0,0,0,uz)=1.; //.75; 
-  }
-  else if( degreeSpace==3 )
-  {
-    spatialCoefficientsForTZ(2,0,0,ux)=1.;      // u=x^2 + 2xy + y^2 + xz 
-    spatialCoefficientsForTZ(1,1,0,ux)=2.;    //        + .125( x^3 + y^3 + z^3 ) -.75*x*y^2 + x^2*z +.4yz
-    spatialCoefficientsForTZ(0,2,0,ux)=1.;
-    spatialCoefficientsForTZ(1,0,1,ux)=1.;
+  
+}
+else if( degreeSpace==0 )
+{
+  spatialCoefficientsForTZ(0,0,0,ux)=1.; // -1.; 
+  spatialCoefficientsForTZ(0,0,0,uy)=1.; //-.5;
+  spatialCoefficientsForTZ(0,0,0,uz)=1.; //.75; 
+}
+else if( degreeSpace==3 )
+{
+  spatialCoefficientsForTZ(2,0,0,ux)=1.;      // u=x^2 + 2xy + y^2 + xz 
+  spatialCoefficientsForTZ(1,1,0,ux)=2.;    //        + .125( x^3 + y^3 + z^3 ) -.75*x*y^2 + x^2*z +.4yz
+  spatialCoefficientsForTZ(0,2,0,ux)=1.;
+  spatialCoefficientsForTZ(1,0,1,ux)=1.;
       
-    spatialCoefficientsForTZ(3,0,0,ux)=.125; 
-    spatialCoefficientsForTZ(0,3,0,ux)=.125; 
-    spatialCoefficientsForTZ(0,0,3,ux)=.125; 
-    spatialCoefficientsForTZ(1,2,0,ux)=-.75;
-    spatialCoefficientsForTZ(2,0,1,ux)=+1.; 
-    spatialCoefficientsForTZ(0,1,1,ux)=.4; 
+  spatialCoefficientsForTZ(3,0,0,ux)=.125; 
+  spatialCoefficientsForTZ(0,3,0,ux)=.125; 
+  spatialCoefficientsForTZ(0,0,3,ux)=.125; 
+  spatialCoefficientsForTZ(1,2,0,ux)=-.75;
+  spatialCoefficientsForTZ(2,0,1,ux)=+1.; 
+  spatialCoefficientsForTZ(0,1,1,ux)=.4; 
 
 
-    spatialCoefficientsForTZ(2,0,0,uy)= 1.;      // v=x^2 -2xy - y^2 + 3yz 
-    spatialCoefficientsForTZ(1,1,0,uy)=-2.;      //    + .25( x^3 + y^3 + z^3 ) -.375*x^2 y  -.375*y*z^2  
-    spatialCoefficientsForTZ(0,2,0,uy)=-1.;
-    spatialCoefficientsForTZ(0,1,1,uy)=+3.;
+  spatialCoefficientsForTZ(2,0,0,uy)= 1.;      // v=x^2 -2xy - y^2 + 3yz 
+  spatialCoefficientsForTZ(1,1,0,uy)=-2.;      //    + .25( x^3 + y^3 + z^3 ) -.375*x^2 y  -.375*y*z^2  
+  spatialCoefficientsForTZ(0,2,0,uy)=-1.;
+  spatialCoefficientsForTZ(0,1,1,uy)=+3.;
       
-    spatialCoefficientsForTZ(3,0,0,uy)=.25; 
-    spatialCoefficientsForTZ(0,3,0,uy)=.25; 
-    spatialCoefficientsForTZ(0,0,3,uy)=.25; 
-    spatialCoefficientsForTZ(2,1,0,uy)=-3.*.125; 
-    spatialCoefficientsForTZ(0,1,2,uy)=-3.*.125; 
+  spatialCoefficientsForTZ(3,0,0,uy)=.25; 
+  spatialCoefficientsForTZ(0,3,0,uy)=.25; 
+  spatialCoefficientsForTZ(0,0,3,uy)=.25; 
+  spatialCoefficientsForTZ(2,1,0,uy)=-3.*.125; 
+  spatialCoefficientsForTZ(0,1,2,uy)=-3.*.125; 
       
       
-    spatialCoefficientsForTZ(2,0,0,uz)= 1.;      // w=x^2 + y^2 - 2 z^2 
-    spatialCoefficientsForTZ(0,2,0,uz)= 1.;      //      + .25x^3 -.2y^3 +.125 z^3 - x z^2 -.6*xy^2
-    spatialCoefficientsForTZ(0,0,2,uz)=-2.;
+  spatialCoefficientsForTZ(2,0,0,uz)= 1.;      // w=x^2 + y^2 - 2 z^2 
+  spatialCoefficientsForTZ(0,2,0,uz)= 1.;      //      + .25x^3 -.2y^3 +.125 z^3 - x z^2 -.6*xy^2
+  spatialCoefficientsForTZ(0,0,2,uz)=-2.;
       
-    spatialCoefficientsForTZ(3,0,0,uz)=.25; 
-    spatialCoefficientsForTZ(0,3,0,uz)=-.2; 
-    spatialCoefficientsForTZ(0,0,3,uz)=.125; 
-    spatialCoefficientsForTZ(1,0,2,uz)=-1.;
-    spatialCoefficientsForTZ(1,2,0,uz)=-.6;
+  spatialCoefficientsForTZ(3,0,0,uz)=.25; 
+  spatialCoefficientsForTZ(0,3,0,uz)=-.2; 
+  spatialCoefficientsForTZ(0,0,3,uz)=.125; 
+  spatialCoefficientsForTZ(1,0,2,uz)=-1.;
+  spatialCoefficientsForTZ(1,2,0,uz)=-.6;
 
-  }
-  else if( degreeSpace==4 )
-  {
-    spatialCoefficientsForTZ(2,0,0,ux)=1.;      // u=x^2 + 2xy + y^2 + xz
-    spatialCoefficientsForTZ(1,1,0,ux)=2.;
-    spatialCoefficientsForTZ(0,2,0,ux)=1.;
-    spatialCoefficientsForTZ(1,0,1,ux)=1.;
-    spatialCoefficientsForTZ(3,0,0,ux)=.5;      // + .5*x^3
+}
+else if( degreeSpace==4 )
+{
+  spatialCoefficientsForTZ(2,0,0,ux)=1.;      // u=x^2 + 2xy + y^2 + xz
+  spatialCoefficientsForTZ(1,1,0,ux)=2.;
+  spatialCoefficientsForTZ(0,2,0,ux)=1.;
+  spatialCoefficientsForTZ(1,0,1,ux)=1.;
+  spatialCoefficientsForTZ(3,0,0,ux)=.5;      // + .5*x^3
 
-    spatialCoefficientsForTZ(4,0,0,ux)=.125;    // + .125*x^4 + .125*y^4 + .125*z^4  -.5*xz^3
-    spatialCoefficientsForTZ(0,4,0,ux)=.125;    
-    spatialCoefficientsForTZ(0,0,4,ux)=.125; 
-    spatialCoefficientsForTZ(1,0,3,ux)=-.5; 
-    spatialCoefficientsForTZ(0,1,3,ux)=.25;    // + .25*y*z^3 -.25*y^2*z^2 +.25*y^3z
-    spatialCoefficientsForTZ(0,2,2,ux)=-.25; 
-    spatialCoefficientsForTZ(0,3,1,ux)=.25; 
+  spatialCoefficientsForTZ(4,0,0,ux)=.125;    // + .125*x^4 + .125*y^4 + .125*z^4  -.5*xz^3
+  spatialCoefficientsForTZ(0,4,0,ux)=.125;    
+  spatialCoefficientsForTZ(0,0,4,ux)=.125; 
+  spatialCoefficientsForTZ(1,0,3,ux)=-.5; 
+  spatialCoefficientsForTZ(0,1,3,ux)=.25;    // + .25*y*z^3 -.25*y^2*z^2 +.25*y^3z
+  spatialCoefficientsForTZ(0,2,2,ux)=-.25; 
+  spatialCoefficientsForTZ(0,3,1,ux)=.25; 
       
       
-    spatialCoefficientsForTZ(2,0,0,uy)= 1.;      // v=x^2 -2xy - y^2 + 3yz
-    spatialCoefficientsForTZ(1,1,0,uy)=-2.;
-    spatialCoefficientsForTZ(0,2,0,uy)=-1.;
-    spatialCoefficientsForTZ(0,1,1,uy)=+3.;
+  spatialCoefficientsForTZ(2,0,0,uy)= 1.;      // v=x^2 -2xy - y^2 + 3yz
+  spatialCoefficientsForTZ(1,1,0,uy)=-2.;
+  spatialCoefficientsForTZ(0,2,0,uy)=-1.;
+  spatialCoefficientsForTZ(0,1,1,uy)=+3.;
       
-    spatialCoefficientsForTZ(2,1,0,uy)=-1.5;     // -1.5x^2*y
+  spatialCoefficientsForTZ(2,1,0,uy)=-1.5;     // -1.5x^2*y
       
-    spatialCoefficientsForTZ(4,0,0,uy)=.25; 
-    spatialCoefficientsForTZ(0,4,0,uy)=.25; 
-    spatialCoefficientsForTZ(0,0,4,uy)=.25; 
-    spatialCoefficientsForTZ(3,1,0,uy)=-.5; 
-    spatialCoefficientsForTZ(1,0,3,uy)=.25;    // + .25*x*z^3 -.25*x^2*z^2 +.25*x^3z
-    spatialCoefficientsForTZ(2,0,2,uy)=-.25; 
-    spatialCoefficientsForTZ(3,0,1,uy)=.25; 
+  spatialCoefficientsForTZ(4,0,0,uy)=.25; 
+  spatialCoefficientsForTZ(0,4,0,uy)=.25; 
+  spatialCoefficientsForTZ(0,0,4,uy)=.25; 
+  spatialCoefficientsForTZ(3,1,0,uy)=-.5; 
+  spatialCoefficientsForTZ(1,0,3,uy)=.25;    // + .25*x*z^3 -.25*x^2*z^2 +.25*x^3z
+  spatialCoefficientsForTZ(2,0,2,uy)=-.25; 
+  spatialCoefficientsForTZ(3,0,1,uy)=.25; 
       
       
-    spatialCoefficientsForTZ(2,0,0,uz)= 1.;      // w=x^2 + y^2 - 2 z^2
-    spatialCoefficientsForTZ(0,2,0,uz)= 1.;
-    spatialCoefficientsForTZ(0,0,2,uz)=-2.;
+  spatialCoefficientsForTZ(2,0,0,uz)= 1.;      // w=x^2 + y^2 - 2 z^2
+  spatialCoefficientsForTZ(0,2,0,uz)= 1.;
+  spatialCoefficientsForTZ(0,0,2,uz)=-2.;
       
-    spatialCoefficientsForTZ(4,0,0,uz)=.25; 
-    spatialCoefficientsForTZ(0,4,0,uz)=-.2; 
-    spatialCoefficientsForTZ(0,0,4,uz)=.125; 
-    spatialCoefficientsForTZ(0,3,1,uz)=-1.;
-    spatialCoefficientsForTZ(1,3,0,uz)=.25;    // + .25*x*y^3 -.25*x^2*y^2 +.25*x^3y
-    spatialCoefficientsForTZ(2,2,0,uz)=-.25; 
-    spatialCoefficientsForTZ(3,1,0,uz)=.25; 
-  }
-  else if( degreeSpace>=5 )
-  {
-    if( true || degreeSpace!=5 ) printF(" ****WARNING***** using a TZ function with degree=5 in space *****\n");
+  spatialCoefficientsForTZ(4,0,0,uz)=.25; 
+  spatialCoefficientsForTZ(0,4,0,uz)=-.2; 
+  spatialCoefficientsForTZ(0,0,4,uz)=.125; 
+  spatialCoefficientsForTZ(0,3,1,uz)=-1.;
+  spatialCoefficientsForTZ(1,3,0,uz)=.25;    // + .25*x*y^3 -.25*x^2*y^2 +.25*x^3y
+  spatialCoefficientsForTZ(2,2,0,uz)=-.25; 
+  spatialCoefficientsForTZ(3,1,0,uz)=.25; 
+}
+else if( degreeSpace>=5 )
+{
+  if( true || degreeSpace!=5 ) printF(" ****WARNING***** using a TZ function with degree=5 in space *****\n");
 	  
-    spatialCoefficientsForTZ(2,0,0,ux)=1.;      // u=x^2 + 2xy + y^2 + xz
-    spatialCoefficientsForTZ(1,1,0,ux)=2.;
-    spatialCoefficientsForTZ(0,2,0,ux)=1.;
-    spatialCoefficientsForTZ(1,0,1,ux)=1.;
+  spatialCoefficientsForTZ(2,0,0,ux)=1.;      // u=x^2 + 2xy + y^2 + xz
+  spatialCoefficientsForTZ(1,1,0,ux)=2.;
+  spatialCoefficientsForTZ(0,2,0,ux)=1.;
+  spatialCoefficientsForTZ(1,0,1,ux)=1.;
     
-    spatialCoefficientsForTZ(4,0,0,ux)=.125;    // + .125*x^4 + .125*y^4 + .125*z^4  -.5*xz^3
-    spatialCoefficientsForTZ(0,4,0,ux)=.125;    
-    spatialCoefficientsForTZ(0,0,4,ux)=.125; 
-    spatialCoefficientsForTZ(1,0,3,ux)=-.5; 
-    spatialCoefficientsForTZ(0,1,3,ux)=.25;    // + .25*y*z^3 -.25*y^2*z^2 +.25*y^3z
-    spatialCoefficientsForTZ(0,2,2,ux)=-.25; 
-    spatialCoefficientsForTZ(0,3,1,ux)=.25; 
+  spatialCoefficientsForTZ(4,0,0,ux)=.125;    // + .125*x^4 + .125*y^4 + .125*z^4  -.5*xz^3
+  spatialCoefficientsForTZ(0,4,0,ux)=.125;    
+  spatialCoefficientsForTZ(0,0,4,ux)=.125; 
+  spatialCoefficientsForTZ(1,0,3,ux)=-.5; 
+  spatialCoefficientsForTZ(0,1,3,ux)=.25;    // + .25*y*z^3 -.25*y^2*z^2 +.25*y^3z
+  spatialCoefficientsForTZ(0,2,2,ux)=-.25; 
+  spatialCoefficientsForTZ(0,3,1,ux)=.25; 
     
-    spatialCoefficientsForTZ(0,5,0,ux)=.125;   // y^5
-    
-    
-    spatialCoefficientsForTZ(2,0,0,uy)= 1.;      // v=x^2 -2xy - y^2 + 3yz
-    spatialCoefficientsForTZ(1,1,0,uy)=-2.;
-    spatialCoefficientsForTZ(0,2,0,uy)=-1.;
-    spatialCoefficientsForTZ(0,1,1,uy)=+3.;
-    
-    spatialCoefficientsForTZ(4,0,0,uy)=.25; 
-    spatialCoefficientsForTZ(0,4,0,uy)=.25; 
-    spatialCoefficientsForTZ(0,0,4,uy)=.25; 
-    spatialCoefficientsForTZ(3,1,0,uy)=-.5; 
-    spatialCoefficientsForTZ(1,0,3,uy)=.25;    // + .25*x*z^3 -.25*x^2*z^2 +.25*x^3z
-    spatialCoefficientsForTZ(2,0,2,uy)=-.25; 
-    spatialCoefficientsForTZ(3,0,1,uy)=.25; 
-    
-    // spatialCoefficientsForTZ(5,0,0,uy)=.125;  // x^5
+  spatialCoefficientsForTZ(0,5,0,ux)=.125;   // y^5
     
     
-    spatialCoefficientsForTZ(2,0,0,uz)= 1.;      // w=x^2 + y^2 - 2 z^2
-    spatialCoefficientsForTZ(0,2,0,uz)= 1.;
-    spatialCoefficientsForTZ(0,0,2,uz)=-2.;
+  spatialCoefficientsForTZ(2,0,0,uy)= 1.;      // v=x^2 -2xy - y^2 + 3yz
+  spatialCoefficientsForTZ(1,1,0,uy)=-2.;
+  spatialCoefficientsForTZ(0,2,0,uy)=-1.;
+  spatialCoefficientsForTZ(0,1,1,uy)=+3.;
     
-    spatialCoefficientsForTZ(4,0,0,uz)=.25; 
-    spatialCoefficientsForTZ(0,4,0,uz)=-.2; 
-    spatialCoefficientsForTZ(0,0,4,uz)=.125; 
-    spatialCoefficientsForTZ(0,3,1,uz)=-1.;
-    spatialCoefficientsForTZ(1,3,0,uz)=.25;    // + .25*x*y^3 -.25*x^2*y^2 +.25*x^3y
-    spatialCoefficientsForTZ(2,2,0,uz)=-.25; 
-    spatialCoefficientsForTZ(3,1,0,uz)=.25; 
+  spatialCoefficientsForTZ(4,0,0,uy)=.25; 
+  spatialCoefficientsForTZ(0,4,0,uy)=.25; 
+  spatialCoefficientsForTZ(0,0,4,uy)=.25; 
+  spatialCoefficientsForTZ(3,1,0,uy)=-.5; 
+  spatialCoefficientsForTZ(1,0,3,uy)=.25;    // + .25*x*z^3 -.25*x^2*z^2 +.25*x^3z
+  spatialCoefficientsForTZ(2,0,2,uy)=-.25; 
+  spatialCoefficientsForTZ(3,0,1,uy)=.25; 
     
-    // spatialCoefficientsForTZ(5,0,0,uz)=.125;
-  }
-  else
-  {
-    printF("Maxwell:: not implemented for degree in space =%i \n",degreeSpace);
-    Overture::abort("error");
-  }
+  // spatialCoefficientsForTZ(5,0,0,uy)=.125;  // x^5
+    
+    
+  spatialCoefficientsForTZ(2,0,0,uz)= 1.;      // w=x^2 + y^2 - 2 z^2
+  spatialCoefficientsForTZ(0,2,0,uz)= 1.;
+  spatialCoefficientsForTZ(0,0,2,uz)=-2.;
+    
+  spatialCoefficientsForTZ(4,0,0,uz)=.25; 
+  spatialCoefficientsForTZ(0,4,0,uz)=-.2; 
+  spatialCoefficientsForTZ(0,0,4,uz)=.125; 
+  spatialCoefficientsForTZ(0,3,1,uz)=-1.;
+  spatialCoefficientsForTZ(1,3,0,uz)=.25;    // + .25*x*y^3 -.25*x^2*y^2 +.25*x^3y
+  spatialCoefficientsForTZ(2,2,0,uz)=-.25; 
+  spatialCoefficientsForTZ(3,1,0,uz)=.25; 
+    
+  // spatialCoefficientsForTZ(5,0,0,uz)=.125;
+}
+else
+{
+  printF("Maxwell:: not implemented for degree in space =%i \n",degreeSpace);
+  OV_ABORT("error");
+}
 
 // *** end the initialize3DPolyTW bpp macro 
 #endMacro

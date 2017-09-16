@@ -25,6 +25,42 @@ current issue:
 
 
 *******************************
+****** Sept 10, 2017
+
+wdh: Look at Dan Serino's bug above.
+
+** useNewTimeSteppingStartup 
+cgins -noplot freeSurfacePiston.cmd -g=freeSurfaceGrid2de2.order2p -dg="share=100" -nu=.1 -tf=.0125 -tp=1.e-04 -model=ins -surfaceTension=.1 -pGrad=0. -ad2=0 -amp=0. -amp1=1.0 -amp2=1.0 -go=og -useNewTimeSteppingStartup=1
+
+
+
+*** firstOrderPredictor : seems to fix the problem:
+cgins -noplot freeSurfacePiston.cmd -g=freeSurfaceGrid2de2.order2p -dg="share=100" -nu=.1 -tf=.0125 -tp=1.e-04 -model=ins -surfaceTension=.1 -pGrad=0. -ad2=0 -amp=0. -amp1=1.0 -amp2=1.0 -go=og -predictorOrder=1
+     t    err(p)   err(u)   err(v)    div       uMax     dt       cpu    (1 steps)
+   0.000 2.00e-08 7.77e-19 1.00e-12 3.11e-15  2.00e+00 1.00e-04 2.84e+01 
+
+
+even-coarser
+cgins -noplot freeSurfacePiston.cmd -g=freeSurfaceGrid2de0.5.order2p -dg="share=100" -nu=.1 -tf=.05 -tp=5.e-02 -model=ins -surfaceTension=.1 -pGrad=0. -ad2=0 -amp=0. -amp1=1.0 -amp2=1.0 -go=og -debug=7 
+
+coarser
+cgins -noplot freeSurfacePiston.cmd -g=freeSurfaceGrid2de1.order2p -dg="share=100" -nu=.1 -tf=.0125 -tp=1.e-02 -model=ins -surfaceTension=.1 -pGrad=0. -ad2=0 -amp=0. -amp1=1.0 -amp2=1.0 -go=og -debug=7 
+     t    err(p)   err(u)   err(v)    div       uMax     dt       cpu    (1 steps)
+   0.010 7.13e-04 3.68e-04 3.69e-04 3.85e-03  2.02e+00 1.00e-02 7.83e+00 
+
+     t    err(p)   err(u)   err(v)    div       uMax     dt       cpu    (1 steps)
+   0.000 7.10e-08 3.69e-08 3.70e-08 3.85e-07  2.00e+00 1.00e-04 1.53e+01 
+
+cgins -noplot freeSurfacePiston.cmd -g=freeSurfaceGrid2de2.order2p -dg="share=100" -nu=.1 -tf=.0125 -tp=1.e-04 -model=ins -surfaceTension=.1 -pGrad=0. -ad2=0 -amp=0. -amp1=1.0 -amp2=1.0 -go=og 
+     t    err(p)   err(u)   err(v)    div       uMax     dt       cpu    (1 steps)
+   0.000 1.89e-03 5.18e-08 1.73e-06 2.63e-05  2.00e+00 1.00e-04 3.35e+01 
+
+-- flat: 
+cgins -noplot freeSurfacePiston.cmd -g=freeSurfaceGrid2dFlate2.order2p -dg="share=100" -nu=.1 -tf=.0125 -tp=1.e-04 -model=ins -surfaceTension=.1 -pGrad=0. -ad2=0 -amp=0. -amp1=1.0 -amp2=1.0 -go=og 
+     t    err(p)   err(u)   err(v)    div       uMax     dt       cpu    (1 steps)
+   0.000 2.00e-08 1.05e-18 1.00e-12 2.22e-15  2.00e+00 1.00e-04 1.04e+01 
+
+*******************************
 ****** Sept 1, 2017
 Fixed some bugs since Aug 28, 2017.
 

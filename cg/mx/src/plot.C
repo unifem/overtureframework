@@ -974,6 +974,16 @@ plotPolarization( int current, real t, real dt )
     dialog.setWindowTitle("Plot Polarization");
     dialog.setExitCommand("exit", "exit");
 
+    aString optionMenuCommands[] = {"Px",
+                                                                    "Py",
+                                                                    "Pz",
+                                                                    ""};
+
+    if( numberOfDimensions==2 )
+        optionMenuCommands[2]="";  // No Pz
+      
+    dialog.addOptionMenu("plot component:",optionMenuCommands,optionMenuCommands,pvComponent);
+
     aString pushButtonCommands[] = {"plot",
                                                                     "erase",
                                                                     ""};
@@ -1005,8 +1015,8 @@ plotPolarization( int current, real t, real dt )
     textCommands[nt] = "GDM equation:";  
     textLabels[nt]=textCommands[nt]; sPrintF(textStrings[nt], "%i",gdmEquation); nt++; 
 
-    textCommands[nt] = "component:";  
-    textLabels[nt]=textCommands[nt]; sPrintF(textStrings[nt], "%i",pvComponent); nt++; 
+  // textCommands[nt] = "component:";  
+  // textLabels[nt]=textCommands[nt]; sPrintF(textStrings[nt], "%i",pvComponent); nt++; 
 
   // null strings terminal list
     assert( nt<numberOfTextStrings );
@@ -1030,7 +1040,17 @@ plotPolarization( int current, real t, real dt )
             gi.getAnswer(answer,"");  // gi.getMenuItem(menu,answer);
   
 
-        if( dialog.getTextValue(answer,"domain name:","%s",domainName) )
+        if( answer == "exit" )
+        {
+            break;
+        }
+        else if( answer=="Px" || answer=="Py" || answer=="Pz" )
+        {
+            pvComponent = answer=="Px" ? 0 : answer=="Py" ? 1 : 2;
+            printF("Setting polarization vector component=%i\n",pvComponent);
+        }
+        
+        else if( dialog.getTextValue(answer,"domain name:","%s",domainName) )
         {
             printF("Setting domain name = [%s]\n",(const char*)domainName);
         }
@@ -1038,12 +1058,12 @@ plotPolarization( int current, real t, real dt )
         {
             printF("Setting GDM equation number=%i\n",gdmEquation);
         }
-        else if( dialog.getTextValue(answer,"component:","%i",pvComponent) )
-        {
-            pvComponent=max(0,min(numberOfDimensions,pvComponent));
+    // else if( dialog.getTextValue(answer,"component:","%i",pvComponent) )
+    // {
+    //   pvComponent=max(0,min(numberOfDimensions,pvComponent));
             
-            printF("Setting polarization vector component=%i\n",pvComponent);
-        }
+    //   printF("Setting polarization vector component=%i\n",pvComponent);
+    // }
         else if( dialog.getToggleValue(answer,"plot errors",plotErrors) )
         {
             printF("Setting plotErrors=%i\n",(int)plotErrors);

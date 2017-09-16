@@ -1,4 +1,248 @@
 ! This file automatically generated from evalDispersionRelation.bf with bpp.
+! =====================================================================================================
+! 
+! -----------------------------------------------------------------------------------
+! Evaluate the dispersion relation for the generalized dispersion model (GDM)
+!  With multiple polarization vectors 
+! -----------------------------------------------------------------------------------
+!
+!       E_tt - c^2 Delta(E) = -alphaP P_tt
+!       P_tt + b1 P_1 + b0 = a0*E + a1*E_t 
+!
+!  Input:
+!      mode : mode to choose, i.e. which root to choose. If mode=-1 then the default root is chosen.
+!                The default root is the onewith largest imaginary part.
+!      Np : number of polarization vectors  
+!      c,k, 
+!      a0(0:Np-1), a1(0:Np-1), b0(0:Np-1), b1(0:Np-1), alphaP : GDM parameters
+! Output:
+!      sr(0:nEig-1),si(0:nEig-1) : real and imaginary part of eigenvalues: nEig = 2*NpP+2 
+!      srm, sim : eigenvalue with largest imaginary part 
+!      psir(0:Np-1),psii(0:Np-1) : real and imaginary parts of psi : P = psi*E for s=(srm,sim) 
+!
+! =====================================================================================================
+      subroutine evalEigGDM( mode, Np, c,k, a0,a1,b0,b1,alphaP, sr,si, 
+     & srm,sim,psir,psii )
+
+      implicit none
+
+      integer mode, Np
+      real c,k, srm,sim
+      real a0(0:*),a1(0:*),b0(0:*),b1(0:*),alphaP, psir(0:*),psii(0:*)
+      real sr(0:*),si(0:*)
+
+      ! local variables 
+      real ck,ck2, eps
+      integer nd,lda, lwork, i, iMode, j
+      ! lwork>= 3*lda : for good performance lwork must generally be larger
+      parameter( lda=10, lwork=10*lda )
+      real a(0:lda-1,0:lda-1), work(lwork), vr(1), vl(1)
+      integer info
+
+      complex*32 s, psi
+
+      ck=c*k
+      ck2=ck**2
+      if( Np .eq. 1 )then
+        ! Companion matrix for GDM model Np=1, File written by CG/DMX/matlab/gdm.maple
+! Companion matrix for GDM model Np=1, File written by CG/DMX/matlab/gdm.maple
+      a(0,0) = 0
+      a(0,1) = 0
+      a(0,2) = 0
+      a(0,3) = -ck2*b0(0)
+      a(1,0) = 1
+      a(1,1) = 0
+      a(1,2) = 0
+      a(1,3) = -ck2*b1(0)
+      a(2,0) = 0
+      a(2,1) = 1
+      a(2,2) = 0
+      a(2,3) = -alphaP*a0(0)-b0(0)-ck2
+      a(3,0) = 0
+      a(3,1) = 0
+      a(3,2) = 1
+      a(3,3) = -alphaP*a1(0)-b1(0)
+      else if( Np .eq. 2 )then
+! Companion matrix for GDM model Np=2, File written by CG/DMX/matlab/gdm.maple
+      a(0,0) = 0
+      a(0,1) = 0
+      a(0,2) = 0
+      a(0,3) = 0
+      a(0,4) = 0
+      a(0,5) = -ck2*b0(0)*b0(1)
+      a(1,0) = 1
+      a(1,1) = 0
+      a(1,2) = 0
+      a(1,3) = 0
+      a(1,4) = 0
+      a(1,5) = -ck2*b1(0)*b0(1)-ck2*b0(0)*b1(1)
+      a(2,0) = 0
+      a(2,1) = 1
+      a(2,2) = 0
+      a(2,3) = 0
+      a(2,4) = 0
+      a(2,5) = -ck2*b0(0)-ck2*b1(0)*b1(1)-(ck2+b0(0))*b0(1)-alphaP*(a0(
+     & 1)*b0(0)+a0(0)*b0(1))
+      a(3,0) = 0
+      a(3,1) = 0
+      a(3,2) = 1
+      a(3,3) = 0
+      a(3,4) = 0
+      a(3,5) = -ck2*b1(0)-(ck2+b0(0))*b1(1)-b1(0)*b0(1)-alphaP*(a0(1)*
+     & b1(0)+a1(1)*b0(0)+a0(0)*b1(1)+a1(0)*b0(1))
+      a(4,0) = 0
+      a(4,1) = 0
+      a(4,2) = 0
+      a(4,3) = 1
+      a(4,4) = 0
+      a(4,5) = -b1(0)*b1(1)-b0(0)-b0(1)-ck2-alphaP*(a1(1)*b1(0)+a1(0)*
+     & b1(1)+a0(0)+a0(1))
+      a(5,0) = 0
+      a(5,1) = 0
+      a(5,2) = 0
+      a(5,3) = 0
+      a(5,4) = 1
+      a(5,5) = -b1(0)-b1(1)-alphaP*(a1(0)+a1(1))
+      else if( Np .eq. 3 )then
+! Companion matrix for GDM model Np=3, File written by CG/DMX/matlab/gdm.maple
+      a(0,0) = 0
+      a(0,1) = 0
+      a(0,2) = 0
+      a(0,3) = 0
+      a(0,4) = 0
+      a(0,5) = 0
+      a(0,6) = 0
+      a(0,7) = -ck2*b0(0)*b0(1)*b0(2)
+      a(1,0) = 1
+      a(1,1) = 0
+      a(1,2) = 0
+      a(1,3) = 0
+      a(1,4) = 0
+      a(1,5) = 0
+      a(1,6) = 0
+      a(1,7) = -ck2*b0(0)*b0(1)*b1(2)-(ck2*b1(0)*b0(1)+ck2*b0(0)*b1(1))
+     & *b0(2)
+      a(2,0) = 0
+      a(2,1) = 1
+      a(2,2) = 0
+      a(2,3) = 0
+      a(2,4) = 0
+      a(2,5) = 0
+      a(2,6) = 0
+      a(2,7) = -ck2*b0(0)*b0(1)-(ck2*b1(0)*b0(1)+ck2*b0(0)*b1(1))*b1(2)
+     & -(ck2*b0(0)+ck2*b1(0)*b1(1)+(ck2+b0(0))*b0(1))*b0(2)-alphaP*(
+     & a0(2)*b0(0)*b0(1)+a0(1)*b0(0)*b0(2)+a0(0)*b0(1)*b0(2))
+      a(3,0) = 0
+      a(3,1) = 0
+      a(3,2) = 1
+      a(3,3) = 0
+      a(3,4) = 0
+      a(3,5) = 0
+      a(3,6) = 0
+      a(3,7) = -ck2*b1(0)*b0(1)-ck2*b0(0)*b1(1)-(ck2*b0(0)+ck2*b1(0)*
+     & b1(1)+(ck2+b0(0))*b0(1))*b1(2)-(ck2*b1(0)+(ck2+b0(0))*b1(1)+b1(
+     & 0)*b0(1))*b0(2)-alphaP*(a0(0)*b0(1)*b1(2)+(a0(0)*b1(1)+a1(0)*
+     & b0(1))*b0(2)+a0(1)*b0(0)*b1(2)+(a0(1)*b1(0)+a1(1)*b0(0))*b0(2)+
+     & a0(2)*b0(0)*b1(1)+(a0(2)*b1(0)+a1(2)*b0(0))*b0(1))
+      a(4,0) = 0
+      a(4,1) = 0
+      a(4,2) = 0
+      a(4,3) = 1
+      a(4,4) = 0
+      a(4,5) = 0
+      a(4,6) = 0
+      a(4,7) = -ck2*b0(0)-ck2*b1(0)*b1(1)-(ck2+b0(0))*b0(1)-(ck2*b1(0)+
+     & (ck2+b0(0))*b1(1)+b1(0)*b0(1))*b1(2)-(b1(0)*b1(1)+b0(0)+b0(1)+
+     & ck2)*b0(2)-alphaP*(a0(0)*b0(1)+(a0(0)*b1(1)+a1(0)*b0(1))*b1(2)+
+     & (a1(0)*b1(1)+a0(0))*b0(2)+a0(1)*b0(0)+(a0(1)*b1(0)+a1(1)*b0(0))
+     & *b1(2)+(a1(1)*b1(0)+a0(1))*b0(2)+a0(2)*b0(0)+(a0(2)*b1(0)+a1(2)
+     & *b0(0))*b1(1)+(a1(2)*b1(0)+a0(2))*b0(1))
+      a(5,0) = 0
+      a(5,1) = 0
+      a(5,2) = 0
+      a(5,3) = 0
+      a(5,4) = 1
+      a(5,5) = 0
+      a(5,6) = 0
+      a(5,7) = -ck2*b1(0)-(ck2+b0(0))*b1(1)-b1(0)*b0(1)-(b1(0)*b1(1)+
+     & b0(0)+b0(1)+ck2)*b1(2)-(b1(0)+b1(1))*b0(2)-alphaP*(a0(0)*b1(1)+
+     & a1(0)*b0(1)+(a1(0)*b1(1)+a0(0))*b1(2)+a1(0)*b0(2)+a0(1)*b1(0)+
+     & a1(1)*b0(0)+(a1(1)*b1(0)+a0(1))*b1(2)+a1(1)*b0(2)+a0(2)*b1(0)+
+     & a1(2)*b0(0)+(a1(2)*b1(0)+a0(2))*b1(1)+a1(2)*b0(1))
+      a(6,0) = 0
+      a(6,1) = 0
+      a(6,2) = 0
+      a(6,3) = 0
+      a(6,4) = 0
+      a(6,5) = 1
+      a(6,6) = 0
+      a(6,7) = -b1(0)*b1(1)-b0(0)-b0(1)-ck2-(b1(0)+b1(1))*b1(2)-b0(2)-
+     & alphaP*(a1(1)*b1(0)+a1(2)*b1(0)+a1(0)*b1(1)+a1(0)*b1(2)+a1(2)*
+     & b1(1)+a1(1)*b1(2)+a0(0)+a0(1)+a0(2))
+      a(7,0) = 0
+      a(7,1) = 0
+      a(7,2) = 0
+      a(7,3) = 0
+      a(7,4) = 0
+      a(7,5) = 0
+      a(7,6) = 1
+      a(7,7) = -b1(0)-b1(1)-b1(2)-alphaP*(a1(0)+a1(1)+a1(2))
+      else
+        stop 1234
+      end if
+
+      nd = 2*Np+2 ! order of the matrix
+
+      ! Compute eigenvalues of a general non-symtreic matrix 
+      call dgeev( 'N','N',nd,a,lda,sr,si,vl,1,vr,1,work,lwork,info )
+      write(*,'("evalEigGDM: return from dgeev: info=",i8)') info
+
+      if( .true. )then
+          write(*,'(" evalEigGDM: input: mode=",i6)') mode
+        do i=0,nd-1
+          write(*,'(" evalEigGDM: i=",i3," s=(",1P,e20.12,",", 1P,
+     & e20.12,")")') i,sr(i),si(i)
+       end do
+      end if
+      if( mode.ge.0 )then
+       ! Take user supplied mode: 
+       iMode=min(mode,nd-1)
+      else
+        ! choose s with largest positive imaginary part
+        iMode=0
+        sim=si(iMode)
+        do i=0,nd-1
+          if( si(i) .gt. sim )then
+            iMode=i
+           sim=si(i)
+          end if
+        end do
+      end if
+      sim=si(iMode)
+      srm=sr(iMode)
+
+
+      ! P = psi(s)*E
+      eps=1.e-14 ! FIX ME
+      do j=0,Np-1
+        s = cmplx(srm,sim)
+        if( abs(real(s)) + abs(imag(s)) .gt.eps )then
+          psi = (a0(j)+a1(j)*s)/(s**2+b1(j)*s+b0(j))
+        else
+          psi=0.
+        end if
+
+        psir(j) = real(psi)
+        psii(j) = imag(psi)
+      end do
+
+      call flush(6)
+
+      return
+      end
+
+
+
 ! -----------------------------------------------------------------------------------
 ! Evaluate the dispersion relation for the generalized dispersion model (GDM)
 ! -----------------------------------------------------------------------------------

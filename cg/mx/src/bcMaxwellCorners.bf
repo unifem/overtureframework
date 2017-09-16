@@ -3924,6 +3924,7 @@
  real t100,t101,t102,t103,t104,t105,t106,t107,t108,t109
  real t110,t111,t112,t113,t114,t115,t116,t117,t118,t119
 
+ integer numberOfPolarizationVectors, iv, pxc
  #Include "dispersionFortranInclude.h"
 
 !     --- start statement function ----
@@ -4015,6 +4016,8 @@
  boundaryForcingOption=ipar(32)  ! option when solving for scattered field directly
  polarizationOption   =ipar(33)
  dispersionModel      =ipar(34)
+
+ numberOfPolarizationVectors=ipar(36)
 
  dx(0)                =rpar(0)
  dx(1)                =rpar(1)

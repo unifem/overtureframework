@@ -1137,7 +1137,8 @@ getErrors( int current, real t, real dt )
             //    omega is complex 
                         const real kk = twoPi*sqrt( kx*kx+ky*ky+kz*kz);
             // *new way*
-                        real sr,si,psir,psii;
+                        assert( numberOfPolarizationVectors<10 );
+                        real sr,si,psir[10],psii[10];
                         dmp.evaluateDispersionRelation( c,kk, sr, si, psir,psii ); 
                         real expt=exp(sr*t);
                         real ct = cos(si*t)*expt, st=sin(si*t)*expt;
@@ -1155,11 +1156,10 @@ getErrors( int current, real t, real dt )
                         erre(Ie1,Ie2,Ie3,ey)  = ue(Ie1,Ie2,Ie3,ey)-pwc[1]*eHat;
                         errh(Ih1,Ih2,Ih3,hz)  = uh(Ih1,Ih2,Ih3,hz)-( (hr*ct-hi*st)*cx - (hr*st+hi*ct)*sx);
             // -- dispersion model components --
-                        eHat=(psir*ct-psii*st)*cx - (psir*st+psii*ct)*sx; // Phat 
                         for( int iv=0; iv<numberOfPolarizationVectors; iv++ )
                         {
                             const int pc= iv*numberOfDimensions;
-              // *fix* me for numberOfPolarizationVectors>1 
+                            eHat =(psir[iv]*ct-psii[iv]*st)*cx - (psir[iv]*st+psii[iv]*ct)*sx; // Phat 
                             errPolarization(Ie1,Ie2,Ie3,pc  ) = pLocal(Ie1,Ie2,Ie3,pc  ) - pwc[0]*eHat;
                             errPolarization(Ie1,Ie2,Ie3,pc+1) = pLocal(Ie1,Ie2,Ie3,pc+1) - pwc[1]*eHat;
                         }
@@ -1429,9 +1429,9 @@ getErrors( int current, real t, real dt )
                     omega=c*sqrt(fx*fx+fy*fy+fz*fz);
                 }
         // Behaviour in time for Ex is  phiEx(t), phiExt = time-derivative
-                real phiEx, phiExt, phiPx;
-                real phiEy, phiEyt, phiPy;
-                real phiEz, phiEzt, phiPz;
+                real phiEx, phiExt, phiPx[10];
+                real phiEy, phiEyt, phiPy[10];
+                real phiEz, phiEzt, phiPz[10];
                 real phiHz, phiHzt;
                     if( dispersionModel==noDispersion )
                     {
@@ -1459,7 +1459,8 @@ getErrors( int current, real t, real dt )
             // real reS, imS;
             // old dmp.computeDispersionRelation( c,eps,mu,kk, reS, imS );
             // *new way*
-                        real sr,si,psir,psii;
+                        real sr,si,psir[10],psii[10];
+                        assert( dmp.numberOfPolarizationVectors<10 );
                         dmp.evaluateDispersionRelation( c,kk, sr, si, psir,psii ); 
                         if( t<3.*dt )
                             printF("--IC:SQ-Eig-- (dispersive) t=%10.3e, sr=%g, si=%g a1=%g a2=%g\n",t,sr,si,a1,a2 );
@@ -1496,12 +1497,16 @@ getErrors( int current, real t, real dt )
               // real imChi = -omegap*omegap* b*(2*a+gamma)/denom;
               // printF("--BOXEIG-- psir=%e psii=%e reCh=%e imChi=%e\n",psir,psii,reChi,imChi);
               // phiP = Im(  Chi*( cos(beta*t) + i*sin(beta*t) )*exp(alpha*t )  ... s= alpha+i*beta
-                            real phiP = psir*ste+ psii*cte;
-                            phiPx = a1s*( phiP );
-                            phiPy = a2s*( phiP );
+                            for( int iv=0; iv<numberOfPolarizationVectors; iv++ )
+                            {
+                                real phiP = psir[iv]*ste+ psii[iv]*cte;
+                                phiPx[iv] = a1s*( phiP );
+                                phiPy[iv] = a2s*( phiP );
+                            }
                         }
                         else
                         {
+              // ---- THREE DIMENSIONS ---
                             real scale= sqrt(fx*fx+fy*fy+fz*fz);
                             real a1s= scale*a1/fx, a2s=scale*a2/fy, a3s=scale*a3/fz;
                             phiEx = a1s*(   ste ); 
@@ -1510,6 +1515,14 @@ getErrors( int current, real t, real dt )
                             phiEyt= a2s*( b*cte ) + a*phiEy;
                             phiEz = a3s*(   ste ); 
                             phiEzt= a3s*( b*cte ) + a*phiEz;
+              // *check me*
+                            for( int iv=0; iv<numberOfPolarizationVectors; iv++ )
+                            {
+                                real phiP = psir[iv]*ste+ psii[iv]*cte;
+                                phiPx[iv] = a1s*( phiP );
+                                phiPy[iv] = a2s*( phiP );
+                                phiPz[iv] = a3s*( phiP );
+                            }
                         }
                     }
                 int i1,i2,i3;
@@ -1551,12 +1564,9 @@ getErrors( int current, real t, real dt )
                                 for( int iv=0; iv<numberOfPolarizationVectors; iv++ )
                                 {
                                     const int pc= iv*numberOfDimensions;
-                  // *fix* me for numberOfPolarizationVectors>1 
-                                    errPolarization(i1,i2,i3,pc  ) = pLocal(i1,i2,i3,pc  ) - cos(fx*xd)*sin(fy*yd)*phiPx;
-                                    errPolarization(i1,i2,i3,pc+1) = pLocal(i1,i2,i3,pc+1) - sin(fx*xd)*cos(fy*yd)*phiPy;
+                                    errPolarization(i1,i2,i3,pc  ) = pLocal(i1,i2,i3,pc  ) - cos(fx*xd)*sin(fy*yd)*phiPx[iv];
+                                    errPolarization(i1,i2,i3,pc+1) = pLocal(i1,i2,i3,pc+1) - sin(fx*xd)*cos(fy*yd)*phiPy[iv];
                                 }
-                // errLocal(i1,i2,i3,pxc) =uLocal(i1,i2,i3,pxc) - cos(fx*xd)*sin(fy*yd)*phiPx;
-                // errLocal(i1,i2,i3,pyc) =uLocal(i1,i2,i3,pyc) - sin(fx*xd)*cos(fy*yd)*phiPy;
                             }
                         }
                         if( method==sosup )
@@ -1718,9 +1728,9 @@ getErrors( int current, real t, real dt )
                   real sint = sin(omega*t), cost = cos(omega*t);
                   real sintp = omega*cost, costp = -omega*sint;
                   real sintm = sin(omega*(t-dt)), costm = cos(omega*(t-dt));
-                  real sr,si,psir,psii, ct,st,expt, ctm,stm,exptm;
+                  real sr,si,psir[10],psii[10], ct,st,expt, ctm,stm,exptm;
                   real ampH, ampE, ampHm, ampEm, ampHp, ampEp, ampHmp, ampEmp;
-                  real ampP=0., ampPm=0.;
+                  real ampP[10], ampPm[10];
                   if( dispersionModel==noDispersion )
                   {
                       ampH  = cost;   ampHp  =-omega*sint;
@@ -1733,10 +1743,11 @@ getErrors( int current, real t, real dt )
            // --- DISPERSIVE ----
                       DispersiveMaterialParameters & dmp = getDispersiveMaterialParameters(grid);
            // Evaluate the dispersion relation for "s"
+                      assert( dmp.numberOfPolarizationVectors<10 );
                       const real kk = omega/c; //  *CHECK ME* 
                       dmp.evaluateDispersionRelation( c,kk, sr, si, psir,psii ); 
                       if( t<3.*dt )
-                          printF("--DISK-EIGEN-- (dispersive) t=%10.3e, sr=%g, si=%g psir=%g psii=%g\n",t,sr,si,psir,psii );
+                          printF("--DISK-EIGEN-- (dispersive) t=%10.3e, sr=%g, si=%g psir[0]=%g psii[0]=%g\n",t,sr,si,psir[0],psii[0] );
                       expt =exp(sr*t);
                       st=sin(si*t)*expt; ct=cos(si*t)*expt;
            // const real stp= si*ct+sr*st , ctp=-si*st+sr*ct;
@@ -1747,25 +1758,40 @@ getErrors( int current, real t, real dt )
                       const real sNormSq = sr*sr+si*si;
                       ampH = ct;   
            // ampHp = -si*st + sr*ct;
+           // eps Ev_t = curl( Hv ) - alphaP*eps* SUM (Pv_j).t 
+           //   Pv_j = psi_j * Ev   
+           // eps*( 1 + alphaP*Sum psi_j) \Ev_t = curl ( Hv ) 
            // E = Re( (1/(eps*s) * 1/( 1+alphaP*psi) * ( ct + i sint ) )
            //   = Re( (phir+i*phii)*( ct + i sint )
                       const real alphaP = dmp.alphaP;
-                      real chiNormSq = SQR(1.+alphaP*psir)+SQR(alphaP*psii); //   | 1+alphaP*psi|^2 
+                      real psirSum=0., psiiSum=0.;
+                      for( int iv=0; iv<numberOfPolarizationVectors; iv++ )
+                      {
+                          psirSum += psir[iv]; 
+                          psiiSum += psii[iv];
+                      }
+                      real chiNormSq = SQR(1.+alphaP*psirSum)+SQR(alphaP*psiiSum); //   | 1+alphaP*psi|^2 
            //  phi = (1/(eps*s) * 1/( 1+alphaP*psi)
            //      = (sr-i*si)*( 1+alphaP*psir - i*alphaP*psii)/(eps* sNormSq*chiNormSq )
            //      = phir +i*phii 
-                      real phir = ( sr*(1.+alphaP*psir)-si*alphaP*psii)/( eps*sNormSq*chiNormSq );
-                      real phii = (-si*(1.+alphaP*psir)-sr*alphaP*psii)/( eps*sNormSq*chiNormSq );
+                      real phir = ( sr*(1.+alphaP*psirSum)-si*alphaP*psiiSum)/( eps*sNormSq*chiNormSq );
+                      real phii = (-si*(1.+alphaP*psirSum)-sr*alphaP*psiiSum)/( eps*sNormSq*chiNormSq );
                       ampE = phir*ct - phii*st;
            // P = Re( (psir+i*psii)*(phir+i*phii)*( ct + i sint ) )
            //   = Re( (psir+i*psii)*( phir*ct-phii*st + i*( phir*st +phii*ct )
            //   = psir*( phir*ct-phii*st) -psii*(  phir*st +phii*ct )
-                      ampP = psir*(phir*ct-phii*st ) - psii*( phir*st +phii*ct);
+                      for( int iv=0; iv<numberOfPolarizationVectors; iv++ )
+                      {
+                          ampP[iv] = psir[iv]*(phir*ct-phii*st ) - psii[iv]*( phir*st +phii*ct);
+                      }
            // tm = t-dt 
                       ampHm = ctm;  
            // ampHp = -si*stm + sr*ctm;
                       ampEm = phir*ctm - phii*stm;
-                      ampPm = psir*(phir*ctm-phii*stm ) - psii*( phir*stm +phii*ctm);
+                      for( int iv=0; iv<numberOfPolarizationVectors; iv++ )
+                      {
+                            ampPm[iv] = psir[iv]*(phir*ctm-phii*stm ) - psii[iv]*( phir*stm +phii*ctm);
+                      }
                   }
                   FOR_3D(i1,i2,i3,J1,J2,J3)
                   {
@@ -1827,8 +1853,8 @@ getErrors( int current, real t, real dt )
                               {
                                   const int pc= iv*numberOfDimensions;
                  // Do this for now -- set all vectors to be the same: 
-                                  errPolarization(i1,i2,i3,pc  ) = pLocal(i1,i2,i3,pc  ) - uex*ampP;
-                                  errPolarization(i1,i2,i3,pc+1) = pLocal(i1,i2,i3,pc+1) - uey*ampP;
+                                  errPolarization(i1,i2,i3,pc  ) = pLocal(i1,i2,i3,pc  ) - uex*ampP[iv];
+                                  errPolarization(i1,i2,i3,pc+1) = pLocal(i1,i2,i3,pc+1) - uey*ampP[iv];
                               }
                // errLocal(i1,i2,i3,pxc) = uLocal(i1,i2,i3,pxc) - uex*ampP;
                // errLocal(i1,i2,i3,pyc) = uLocal(i1,i2,i3,pyc) - uey*ampP;
@@ -2141,7 +2167,7 @@ getErrors( int current, real t, real dt )
                             DispersiveMaterialParameters & dmp = getDispersiveMaterialParameters(grid);
                             const real kk = twoPi*cc0;  // Parameter in dispersion relation **check me**
               // *new way*
-                            real sr,si,psir,psii;
+                            real sr,si,psir[10],psii[10];
                             dmp.evaluateDispersionRelation( c,kk, sr, si, psir,psii ); 
               // real reS, imS;
               // dmp.computeDispersionRelation( c,eps,mu,kk, reS, imS );
@@ -2149,7 +2175,7 @@ getErrors( int current, real t, real dt )
               // si=-si;  // flip sign    **** FIX ME ****
                             if( t<=3.*dt ) 
                             {
-                                printF("--MX--GIC dispersion: s=(%12.4e,%12.4e) psi=(%12.4e,%12.4e)\n",sr,si,psir,psii);
+                                printF("--MX--GIC dispersion: s=(%12.4e,%12.4e) psi=(%12.4e,%12.4e)\n",sr,si,psir[0],psii[0]);
                                 printF("--MX--GIC scatCyl si/(twoPi*cc0)=%g\n",si/twoPi*cc0);
                             }
               // Re( (Er+i*Ei)*( ct + i*st ) )
@@ -2167,10 +2193,10 @@ getErrors( int current, real t, real dt )
               // real alpha=reS, beta=imS;  // s= alpha + i*beta (
               // real a,b;   // psi = a + i*b 
               // P = Re{ psi(s)*E } = Re{ (psir+i*psi)*( Er + i*Ei)( ct+i*st ) }
-                            phiPc =  psir*cost-psii*sint;  // Coeff of Er 
-                            phiPs = -psir*sint-psii*cost;  // coeff of Ei
-                            phiPcm =  psir*costm-psii*sintm;
-                            phiPsm = -psir*sintm-psii*costm;
+                            phiPc =  psir[0]*cost-psii[0]*sint;  // Coeff of Er 
+                            phiPs = -psir[0]*sint-psii[0]*cost;  // coeff of Ei
+                            phiPcm =  psir[0]*costm-psii[0]*sintm;
+                            phiPsm = -psir[0]*sintm-psii[0]*costm;
                 // *** TEST ****
                             if( true )
                             {
@@ -2357,11 +2383,11 @@ getErrors( int current, real t, real dt )
       	
         if ( method==dsiMatVec && !energyOnly )
         { // punt here and use a special function that knows how to exclude uns. ghost points
-            #ifdef USE_PPP
-                Overture::abort("Error: finish me");
-            #else
-                computeDSIErrors( *this,mg, uh, uhpp, ue, uepp, errh, erre, solutionNorm, maximumError );
-            #endif
+#ifdef USE_PPP
+            Overture::abort("Error: finish me");
+#else
+            computeDSIErrors( *this,mg, uh, uhpp, ue, uepp, errh, erre, solutionNorm, maximumError );
+#endif
         }
         else if( radiusForCheckingErrors<= 0. && (method==nfdtd || method==sosup) && !energyOnly) 
         {
@@ -2398,132 +2424,147 @@ getErrors( int current, real t, real dt )
                         for( int iv=0; iv<numberOfPolarizationVectors; iv++ )
                         {
                             const int pc= iv*numberOfDimensions;
-                            maxErrPolarization(domain) = max(maxErrPolarization(domain),fabs(errPolarization(i1,i2,i3,pc)));
-
-                            solutionNorm(epc)=max(solutionNorm(epc),fabs(pLocal(i1,i2,i3,pc))); 
+                            for( int dir=0; dir<numberOfDimensions; dir++ )
+                            {
+                                maxErrPolarization(domain) = max(maxErrPolarization(domain),fabs(errPolarization(i1,i2,i3,pc+dir)));
+                                solutionNorm(epc)=max(solutionNorm(epc),fabs(pLocal(i1,i2,i3,pc+dir))); 
+                            }
+                            
                         }
                         
-        	  }
-      	}
-      	if( debug & 2 )
-      	{
-        	  fprintf(pDebugFile," *** Max errors on this processor for grid %i at t=%8.2e: ",grid,t);
-        	  for( int c=C.getBase(); c<=C.getBound(); c++ )
-          	    fprintf(pDebugFile,"%10.4e,",errMax(c));
-                    fprintf(pDebugFile,"\n");
-      	}
-      	for( int c=C.getBase(); c<=C.getBound(); c++ )
-      	{
+                    }
+          // ::display(pLocal,"pLocal","%8.1e ");
+                
+          // printF(">> getErr >>> maxErrPolarization(domain=%i)=%e solutionNorm=%e\n",domain,maxErrPolarization(domain),
+          //                solutionNorm(epc));
+                
+                    if( debug & 2 )
+                    {
+                        fprintf(pDebugFile," *** Max errors on this processor for grid %i at t=%8.2e: ",grid,t);
+                        for( int c=C.getBase(); c<=C.getBound(); c++ )
+                            fprintf(pDebugFile,"%10.4e,",errMax(c));
+                        fprintf(pDebugFile,"\n");
+                    }
+                    for( int c=C.getBase(); c<=C.getBound(); c++ )
+                    {
 // 	  errMax(c)=getMaxValue(errMax(c));
 // 	  solutionNorm(c)=getMaxValue(solutionNorm(c));
             	      
-        	  maximumError(c)=max(maximumError(c),errMax(c));  // max error over all grids
-      	}
+                        maximumError(c)=max(maximumError(c),errMax(c));  // max error over all grids
+                    }
           	    
+                }
             }
-        }
-        else // check inside radius
-        {
-      // printF(" Check errors within the sphere of radius %10.2e\n",radiusForCheckingErrors);
-        	  
-      // new way
-            const int ng=orderOfAccuracyInSpace/2;
-            const int ng3 = mg.numberOfDimensions()==2 ? 0 : ng;
-  
-            Index J1 = Range(max(I1.getBase(),uLocal.getBase(0)+ng ),min(I1.getBound(),uLocal.getBound(0)-ng ));
-            Index J2 = Range(max(I2.getBase(),uLocal.getBase(1)+ng ),min(I2.getBound(),uLocal.getBound(1)-ng ));
-            Index J3 = Range(max(I3.getBase(),uLocal.getBase(2)+ng3),min(I3.getBound(),uLocal.getBound(2)-ng3));
-
-            Index Ch = cg.numberOfDimensions()==2 ? Range(hz,hz) : Range(hx,hz);
-            Index Ce = cg.numberOfDimensions()==2 ? Range(ex,ey) : Range(ex,ez);
-          	    
-            if ( method==nfdtd )
+            else // check inside radius
             {
-      	const real radiusForCheckingErrorsSquared=SQR(radiusForCheckingErrors);
+        // printF(" Check errors within the sphere of radius %10.2e\n",radiusForCheckingErrors);
+        	  
+        // new way
+                const int ng=orderOfAccuracyInSpace/2;
+                const int ng3 = mg.numberOfDimensions()==2 ? 0 : ng;
+  
+                Index J1 = Range(max(I1.getBase(),uLocal.getBase(0)+ng ),min(I1.getBound(),uLocal.getBound(0)-ng ));
+                Index J2 = Range(max(I2.getBase(),uLocal.getBase(1)+ng ),min(I2.getBound(),uLocal.getBound(1)-ng ));
+                Index J3 = Range(max(I3.getBase(),uLocal.getBase(2)+ng3),min(I3.getBound(),uLocal.getBound(2)-ng3));
+
+                Index Ch = cg.numberOfDimensions()==2 ? Range(hz,hz) : Range(hx,hz);
+                Index Ce = cg.numberOfDimensions()==2 ? Range(ex,ey) : Range(ex,ez);
+          	    
+                if ( method==nfdtd )
+                {
+                    const real radiusForCheckingErrorsSquared=SQR(radiusForCheckingErrors);
             		
-      	real radius;
-      	int i1,i2,i3;
+                    real radius;
+                    int i1,i2,i3;
 #undef ERR
 #define ERR(i0,i1,i2,i3) errep[i0+ueDim0*(i1+ueDim1*(i2+ueDim2*(i3)))]
 #undef U
 #define U(i0,i1,i2,i3) uep[i0+ueDim0*(i1+ueDim1*(i2+ueDim2*(i3)))]
 
-      	if( isRectangular )
-      	{
-        	  FOR_3D(i1,i2,i3,J1,J2,J3)
-        	  {
-          	    radius = SQR(X0(i1,i2,i3))+SQR(X1(i1,i2,i3));
-          	    if( numberOfDimensions==3 ) radius+=SQR(X2(i1,i2,i3));
+                    if( isRectangular )
+                    {
+                        FOR_3D(i1,i2,i3,J1,J2,J3)
+                        {
+                            radius = SQR(X0(i1,i2,i3))+SQR(X1(i1,i2,i3));
+                            if( numberOfDimensions==3 ) radius+=SQR(X2(i1,i2,i3));
                   			
-          	    if( radius<radiusForCheckingErrorsSquared && MASK(i1,i2,i3)!=0 )
-          	    {
-            	      for( int c=C.getBase(); c<=C.getBound(); c++ )
-            	      {
-            		errMax(c)=max(errMax(c),fabs(ERR(i1,i2,i3,c)));           // this is the max err on this grid
-            		solutionNorm(c)=max(solutionNorm(c),fabs(U(i1,i2,i3,c)));
+                            if( radius<radiusForCheckingErrorsSquared && MASK(i1,i2,i3)!=0 )
+                            {
+                                for( int c=C.getBase(); c<=C.getBound(); c++ )
+                                {
+                                    errMax(c)=max(errMax(c),fabs(ERR(i1,i2,i3,c)));           // this is the max err on this grid
+                                    solutionNorm(c)=max(solutionNorm(c),fabs(U(i1,i2,i3,c)));
                         				
-            	      }
-                            for( int iv=0; iv<numberOfPolarizationVectors; iv++ )
-                            {
-                                const int pc= iv*numberOfDimensions;
-                                maxErrPolarization(domain) = max(maxErrPolarization(domain),fabs(errPolarization(i1,i2,i3,pc)));
-
-                                solutionNorm(epc)=max(solutionNorm(epc),fabs(pLocal(i1,i2,i3,pc))); 
+                                }
+                                for( int iv=0; iv<numberOfPolarizationVectors; iv++ )
+                                {
+                                    const int pc= iv*numberOfDimensions;
+                                    for( int dir=0; dir<numberOfDimensions; dir++ )
+                                    {
+                                        maxErrPolarization(domain) = max(maxErrPolarization(domain),fabs(errPolarization(i1,i2,i3,pc+dir)));
+                                        solutionNorm(epc)=max(solutionNorm(epc),fabs(pLocal(i1,i2,i3,pc+dir))); 
+                                    }
+                                
+                                }
                             }
-          	    }
-          	    else
-          	    {
-            	      for( int c=C.getBase(); c<=C.getBound(); c++ )
-            		ERR(i1,i2,i3,c)=0.;
-
-                            for( int iv=0; iv<numberOfPolarizationVectors; iv++ )
+                            else
                             {
-                                const int pc= iv*numberOfDimensions;
-                                errPolarization(i1,i2,i3,pc)=0.;
+                                for( int c=C.getBase(); c<=C.getBound(); c++ )
+                                    ERR(i1,i2,i3,c)=0.;
+
+                                for( int iv=0; iv<numberOfPolarizationVectors; iv++ )
+                                {
+                                    const int pc= iv*numberOfDimensions;
+                                    for( int dir=0; dir<numberOfDimensions; dir++ )
+                                        errPolarization(i1,i2,i3,pc+dir)=0.;
+                                }
                             }
-          	    }
+                        } // end FOR3D
+                    }
+                    else // curvilinear
+                    {
+                        FOR_3D(i1,i2,i3,J1,J2,J3)
+                        {
+                            radius = SQR(X(i1,i2,i3,0))+SQR(X(i1,i2,i3,1));
+                            if( numberOfDimensions==3 ) radius+=SQR(X(i1,i2,i3,2));
                   			
-        	  }
-      	}
-      	else // curvilinear
-      	{
-        	  FOR_3D(i1,i2,i3,J1,J2,J3)
-        	  {
-          	    radius = SQR(X(i1,i2,i3,0))+SQR(X(i1,i2,i3,1));
-          	    if( numberOfDimensions==3 ) radius+=SQR(X(i1,i2,i3,2));
-                  			
-          	    if( radius<radiusForCheckingErrorsSquared && MASK(i1,i2,i3)!=0 )
-          	    {
-            	      for( int c=C.getBase(); c<=C.getBound(); c++ )
-            	      {
-            		errMax(c)=max(errMax(c),fabs(ERR(i1,i2,i3,c)));           // this is the max err on this grid
-            		solutionNorm(c)=max(solutionNorm(c),fabs(U(i1,i2,i3,c)));
+                            if( radius<radiusForCheckingErrorsSquared && MASK(i1,i2,i3)!=0 )
+                            {
+                                for( int c=C.getBase(); c<=C.getBound(); c++ )
+                                {
+                                    errMax(c)=max(errMax(c),fabs(ERR(i1,i2,i3,c)));           // this is the max err on this grid
+                                    solutionNorm(c)=max(solutionNorm(c),fabs(U(i1,i2,i3,c)));
                         				
-            	      }
+                                }
 
-                            for( int iv=0; iv<numberOfPolarizationVectors; iv++ )
-                            {
-                                const int pc= iv*numberOfDimensions;
-                                maxErrPolarization(domain) = max(maxErrPolarization(domain),fabs(errPolarization(i1,i2,i3,pc)));
+                                for( int iv=0; iv<numberOfPolarizationVectors; iv++ )
+                                {
+                                    const int pc= iv*numberOfDimensions;
+                                    for( int dir=0; dir<numberOfDimensions; dir++ )
+                                    {
+                                        maxErrPolarization(domain) = max(maxErrPolarization(domain),fabs(errPolarization(i1,i2,i3,pc+dir)));
+                                        solutionNorm(epc)=max(solutionNorm(epc),fabs(pLocal(i1,i2,i3,pc+dir))); 
+                                    }
+                                }
 
-                                solutionNorm(epc)=max(solutionNorm(epc),fabs(pLocal(i1,i2,i3,pc))); 
                             }
-
-          	    }
-          	    else
-          	    {
-            	      for( int c=C.getBase(); c<=C.getBound(); c++ )
-            		ERR(i1,i2,i3,c)=0.;
-
-                            for( int iv=0; iv<numberOfPolarizationVectors; iv++ )
+                            else
                             {
-                                const int pc= iv*numberOfDimensions;
-                                errPolarization(i1,i2,i3,pc)=0.;
+                                for( int c=C.getBase(); c<=C.getBound(); c++ )
+                                    ERR(i1,i2,i3,c)=0.;
+
+                                for( int iv=0; iv<numberOfPolarizationVectors; iv++ )
+                                {
+                                    const int pc= iv*numberOfDimensions;
+                                    for( int dir=0; dir<numberOfDimensions; dir++ )
+                                        errPolarization(i1,i2,i3,pc+dir)=0.;
+                                }
                             }
-          	    }
                   			
-        	  }
-      	}
+                        }
+                    }
+                }
+                
 #undef ERR
 #undef U		
       	if( debug & 2 )
@@ -2543,6 +2584,7 @@ getErrors( int current, real t, real dt )
           	  maximumError(c)=max(maximumError(c),errMax(c));  // max error over all grids
         	}
             }
+        
         } // end else if inside radius
 
         bool computeErrorsAtGhost=true;

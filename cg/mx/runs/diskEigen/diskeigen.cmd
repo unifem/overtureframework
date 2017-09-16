@@ -31,17 +31,26 @@ $tFinal=1.; $tPlot=.1; $diss=.0; $cfl=.95; $dissOrder=-1; $filter=0; $divClean=0
 $grid="box32.order4.hdf"; $method="NFDTD"; 
 $cons=0; $go="halt"; 
 $m=1; $n=1;  # defines the eigenfunction 
-$dm="none"; $alphaP=1.; $a0=1.; $a1=0.; $b0=0.; $b1=1.;  # GDM parameters
+$dm="none"; 
+# $alphaP=1.; $a0=1.; $a1=0.; $b0=0.; $b1=1.;  # GDM parameters
+$npv=1; $alphaP=1.; $modeGDM=-1; 
+@a0 = (); @a1=(); @b0=(); @b1=(); # these must be null for GetOptions to work, defaults are given below   
 # ----------------------------- get command line arguments ---------------------------------------
 GetOptions( "g=s"=>\$grid,"tf=f"=>\$tFinal,"diss=f"=>\$diss,"tp=f"=>\$tPlot,"show=s"=>\$show,"debug=i"=>\$debug, \
  "cfl=f"=>\$cfl, "bg=s"=>\$backGround,"bcn=s"=>\$bcn,"go=s"=>\$go,"noplot=s"=>\$noplot,"bcn=s"=>\$bcn,\
   "dtMax=f"=>\$dtMax,"m=i"=>\$m,"n=i"=>\$n, "cons=i"=>\$cons,"dissOrder=i"=>\$dissOrder,\
   "filter=i"=>\$filter,"divClean=i"=>\$divClean,"divCleanCoeff=f"=>\$divCleanCoeff,\
   "x0=f"=>\$x0,"y0=f"=>\$y0,"z0=f"=>\$z0,"projectInterp=i"=>\$projectInterp,"method=s"=>\$method,\
-   "dm=s"=>\$dm,"alphaP=f"=>\$alphaP,"a0=f"=>\$a0,"a1=f"=>\$a1,"b0=f"=>\$b0,"b1=f"=>\$b1 );
+   "dm=s"=>\$dm,"alphaP=f"=>\$alphaP,"a0=f{1,}"=>\@a0,"a1=f{1,}"=>\@a1,"b0=f{1,}"=>\@b0,"b1=f{1,}"=>\@b1,\
+   "npv=i"=>\$npv,"modeGDM=i"=>\$modeGDM );
 # -------------------------------------------------------------------------------------------------
 if( $dm eq "none" ){ $dm="no dispersion"; }
 if( $dm eq"gdm" ){ $dm="GDM"; }
+# Give defaults here for array arguments: 
+if( $a0[0] eq "" ){ @a0=(1,0,0,0); }
+if( $a1[0] eq "" ){ @a1=(0,0,0,0); }
+if( $b0[0] eq "" ){ @b0=(0,0,0,0); }
+if( $b1[0] eq "" ){ @b1=(0,0,0,0); }
 # 
 if( $go eq "halt" ){ $go = "break"; }
 if( $go eq "og" ){ $go = "open graphics"; }
@@ -54,7 +63,18 @@ modifiedEquationTimeStepping
 $method
 # dispersion model:
 $dm
-GDM params $a0 $a1 $b0 $b1 all (a0,a1,b0,b1,domain-name)
+# GDM params $a0 $a1 $b0 $b1 all (a0,a1,b0,b1,domain-name)
+GDM mode: $modeGDM
+$domain="all"; 
+$cmd="#"; 
+if( $npv == 1 ){ $cmd = "GDM params $a0[0] $a1[0] $b0[0] $b1[0] all (a0,a1,b0,b1,domain-name)"; }
+if( $npv == 2 ){ \
+   $cmd  = "GDM domain name: $domain\n"; \
+   $cmd .= " number of polarization vectors: $npv\n"; \
+   $cmd .= " GDM coeff: 0 $a0[0] $a1[0] $b0[0] $b1[0] (eqn, a0,a1,b0,b1)\n"; \
+   $cmd .= " GDM coeff: 1 $a0[1] $a1[1] $b0[1] $b1[1] (eqn, a0,a1,b0,b1)"; \
+      }
+$cmd
 #
 #***
 if( $bcn eq "d" ){ $bcn = "bc: all=dirichlet"; }

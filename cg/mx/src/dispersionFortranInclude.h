@@ -6,7 +6,11 @@
       real kk,ck2,sNormSq,sNorm4, pc,ps,hfactor,hs,hc
       real si,sr,expt,sinxi,cosxi
       real sinxip,cosxip, sinxid, cosxid, sinxid2, cosxid2, sinxid3, cosxid3
-        real amph,sint,cost,sintp,costp,hr,hi,psir,psii
+      real amph,sint,cost,sintp,costp,hr,hi
+
+      integer maxNumberOfPolarizationVectors
+      parameter( maxNumberOfPolarizationVectors=20 )
+      real psir(0:maxNumberOfPolarizationVectors-1), psii(0:maxNumberOfPolarizationVectors-1)
 
       ! Dispersion models
       integer noDispersion,drude

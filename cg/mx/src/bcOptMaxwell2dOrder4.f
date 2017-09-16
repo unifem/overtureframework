@@ -210,6 +210,7 @@
         real urrrr2,ussss2
         real urrs4,urrt4,usst4,urss4,ustt4,urtt4
         real urrs2,urrt2,usst2,urss2,ustt2,urtt2
+        integer numberOfPolarizationVectors, iv, pxc
       ! Fortran include file for dispersive Maxwells equations
 
       ! variables for the dispersion model:
@@ -219,7 +220,12 @@
       real si,sr,expt,sinxi,cosxi
       real sinxip,cosxip, sinxid, cosxid, sinxid2, cosxid2, sinxid3, 
      & cosxid3
-        real amph,sint,cost,sintp,costp,hr,hi,psir,psii
+      real amph,sint,cost,sintp,costp,hr,hi
+
+      integer maxNumberOfPolarizationVectors
+      parameter( maxNumberOfPolarizationVectors=20 )
+      real psir(0:maxNumberOfPolarizationVectors-1), psii(
+     & 0:maxNumberOfPolarizationVectors-1)
 
       ! Dispersion models
       integer noDispersion,drude
@@ -1652,6 +1658,7 @@ c===============================================================================
         boundaryForcingOption=ipar(32)  ! option when solving for scattered field directly
         polarizationOption   =ipar(33)
         dispersionModel      =ipar(34)
+        numberOfPolarizationVectors=ipar(36)
         dx(0)                =rpar(0)
         dx(1)                =rpar(1)
         dx(2)                =rpar(2)
@@ -1689,8 +1696,8 @@ c===============================================================================
         sr                   =rpar(37)  ! Re(s)
         si                   =rpar(38)  ! Im(s)
         ! P = psi*E , psi = psir + i*psii
-        psir                 =rpar(39)
-        psii                 =rpar(40)
+        psir(0)                 =rpar(39)
+        psii(0)                 =rpar(40)
         if( abs(pwc(0))+abs(pwc(1))+abs(pwc(2)) .eq. 0. )then
           ! sanity check
           stop 12345
@@ -1743,6 +1750,9 @@ c===============================================================================
         end if
         ! initialize dispersive plane wave parameters
         if( dispersionModel .ne. noDispersion )then
+          ! Retrieve the values of psir(iv) and psii(iv) 
+          call getGDMPolarizationParameters( grid,psir,psii,
+     & maxNumberOfPolarizationVectors )
             ! --- pre-calculations for the dispersive plane wave ---
             ! kk = twoPi*sqrt( kx*kx+ky*ky+kz*kz)
             ! ck2 = (c*kk)**2
@@ -3005,10 +3015,13 @@ c===============================================================================
                                   ubv(hz) = amph
                                 else
                                   ! polarization vector: (ex=pxc, ey=pyc) 
-                                  amp=(psir*cost-psii*sint)*cosxi - (
-     & psir*sint+psii*cost)*sinxi
-                                  ubv(ex) = pwc(0)*amp
-                                  ubv(ey) = pwc(1)*amp
+                                  do iv=0,numberOfPolarizationVectors-1
+                                    pxc = ex + iv*nd
+                                    amp=(psir(iv)*cost-psii(iv)*sint)*
+     & cosxi - (psir(iv)*sint+psii(iv)*cost)*sinxi
+                                    ubv(pxc  ) = pwc(0)*amp
+                                    ubv(pxc+1) = pwc(1)*amp
+                                  end do
                                  ! *check me* -- just repeat hz for now 
                                  !  ubv(hz) = (hc*cosxi+hs*sinxi)*expt
                                 end if
@@ -3026,11 +3039,13 @@ c===============================================================================
                                   ubv(hz) = amph
                                 else
                                   ! polarization vector: (ex=pxc, ey=pyc) 
-                                  ! polarization vector: (ex=pxc, ey=pyc) 
-                                  amp=(psir*costp-psii*sintp)*cosxi - (
-     & psir*sintp+psii*costp)*sinxi
-                                  ubv(ex) = pwc(0)*amp
-                                  ubv(ey) = pwc(1)*amp
+                                  do iv=0,numberOfPolarizationVectors-1
+                                    pxc = ex + iv*nd
+                                    amp=(psir(iv)*costp-psii(iv)*sintp)
+     & *cosxi - (psir(iv)*sintp+psii(iv)*costp)*sinxi
+                                    ubv(pxc  ) = pwc(0)*amp
+                                    ubv(pxc+1) = pwc(1)*amp
+                                  end do
                                 end if
                               else if( numberOfTimeDerivatives==2 )then
                                 write(*,'(" GDPW ntd=2 : fix me")')
@@ -3279,10 +3294,13 @@ c===============================================================================
                                   ubv(hz) = amph
                                 else
                                   ! polarization vector: (ex=pxc, ey=pyc) 
-                                  amp=(psir*cost-psii*sint)*cosxi - (
-     & psir*sint+psii*cost)*sinxi
-                                  ubv(ex) = pwc(0)*amp
-                                  ubv(ey) = pwc(1)*amp
+                                  do iv=0,numberOfPolarizationVectors-1
+                                    pxc = ex + iv*nd
+                                    amp=(psir(iv)*cost-psii(iv)*sint)*
+     & cosxi - (psir(iv)*sint+psii(iv)*cost)*sinxi
+                                    ubv(pxc  ) = pwc(0)*amp
+                                    ubv(pxc+1) = pwc(1)*amp
+                                  end do
                                  ! *check me* -- just repeat hz for now 
                                  !  ubv(hz) = (hc*cosxi+hs*sinxi)*expt
                                 end if
@@ -3300,11 +3318,13 @@ c===============================================================================
                                   ubv(hz) = amph
                                 else
                                   ! polarization vector: (ex=pxc, ey=pyc) 
-                                  ! polarization vector: (ex=pxc, ey=pyc) 
-                                  amp=(psir*costp-psii*sintp)*cosxi - (
-     & psir*sintp+psii*costp)*sinxi
-                                  ubv(ex) = pwc(0)*amp
-                                  ubv(ey) = pwc(1)*amp
+                                  do iv=0,numberOfPolarizationVectors-1
+                                    pxc = ex + iv*nd
+                                    amp=(psir(iv)*costp-psii(iv)*sintp)
+     & *cosxi - (psir(iv)*sintp+psii(iv)*costp)*sinxi
+                                    ubv(pxc  ) = pwc(0)*amp
+                                    ubv(pxc+1) = pwc(1)*amp
+                                  end do
                                 end if
                               else if( numberOfTimeDerivatives==2 )then
                                 write(*,'(" GDPW ntd=2 : fix me")')
@@ -3553,10 +3573,13 @@ c===============================================================================
                                   ubv(hz) = amph
                                 else
                                   ! polarization vector: (ex=pxc, ey=pyc) 
-                                  amp=(psir*cost-psii*sint)*cosxi - (
-     & psir*sint+psii*cost)*sinxi
-                                  ubv(ex) = pwc(0)*amp
-                                  ubv(ey) = pwc(1)*amp
+                                  do iv=0,numberOfPolarizationVectors-1
+                                    pxc = ex + iv*nd
+                                    amp=(psir(iv)*cost-psii(iv)*sint)*
+     & cosxi - (psir(iv)*sint+psii(iv)*cost)*sinxi
+                                    ubv(pxc  ) = pwc(0)*amp
+                                    ubv(pxc+1) = pwc(1)*amp
+                                  end do
                                  ! *check me* -- just repeat hz for now 
                                  !  ubv(hz) = (hc*cosxi+hs*sinxi)*expt
                                 end if
@@ -3574,11 +3597,13 @@ c===============================================================================
                                   ubv(hz) = amph
                                 else
                                   ! polarization vector: (ex=pxc, ey=pyc) 
-                                  ! polarization vector: (ex=pxc, ey=pyc) 
-                                  amp=(psir*costp-psii*sintp)*cosxi - (
-     & psir*sintp+psii*costp)*sinxi
-                                  ubv(ex) = pwc(0)*amp
-                                  ubv(ey) = pwc(1)*amp
+                                  do iv=0,numberOfPolarizationVectors-1
+                                    pxc = ex + iv*nd
+                                    amp=(psir(iv)*costp-psii(iv)*sintp)
+     & *cosxi - (psir(iv)*sintp+psii(iv)*costp)*sinxi
+                                    ubv(pxc  ) = pwc(0)*amp
+                                    ubv(pxc+1) = pwc(1)*amp
+                                  end do
                                 end if
                               else if( numberOfTimeDerivatives==2 )then
                                 write(*,'(" GDPW ntd=2 : fix me")')
@@ -3892,10 +3917,13 @@ c===============================================================================
                                   ubv(hz) = amph
                                 else
                                   ! polarization vector: (ex=pxc, ey=pyc) 
-                                  amp=(psir*cost-psii*sint)*cosxi - (
-     & psir*sint+psii*cost)*sinxi
-                                  ubv(ex) = pwc(0)*amp
-                                  ubv(ey) = pwc(1)*amp
+                                  do iv=0,numberOfPolarizationVectors-1
+                                    pxc = ex + iv*nd
+                                    amp=(psir(iv)*cost-psii(iv)*sint)*
+     & cosxi - (psir(iv)*sint+psii(iv)*cost)*sinxi
+                                    ubv(pxc  ) = pwc(0)*amp
+                                    ubv(pxc+1) = pwc(1)*amp
+                                  end do
                                  ! *check me* -- just repeat hz for now 
                                  !  ubv(hz) = (hc*cosxi+hs*sinxi)*expt
                                 end if
@@ -3913,11 +3941,13 @@ c===============================================================================
                                   ubv(hz) = amph
                                 else
                                   ! polarization vector: (ex=pxc, ey=pyc) 
-                                  ! polarization vector: (ex=pxc, ey=pyc) 
-                                  amp=(psir*costp-psii*sintp)*cosxi - (
-     & psir*sintp+psii*costp)*sinxi
-                                  ubv(ex) = pwc(0)*amp
-                                  ubv(ey) = pwc(1)*amp
+                                  do iv=0,numberOfPolarizationVectors-1
+                                    pxc = ex + iv*nd
+                                    amp=(psir(iv)*costp-psii(iv)*sintp)
+     & *cosxi - (psir(iv)*sintp+psii(iv)*costp)*sinxi
+                                    ubv(pxc  ) = pwc(0)*amp
+                                    ubv(pxc+1) = pwc(1)*amp
+                                  end do
                                 end if
                               else if( numberOfTimeDerivatives==2 )then
                                 write(*,'(" GDPW ntd=2 : fix me")')
@@ -4166,10 +4196,13 @@ c===============================================================================
                                   ubv(hz) = amph
                                 else
                                   ! polarization vector: (ex=pxc, ey=pyc) 
-                                  amp=(psir*cost-psii*sint)*cosxi - (
-     & psir*sint+psii*cost)*sinxi
-                                  ubv(ex) = pwc(0)*amp
-                                  ubv(ey) = pwc(1)*amp
+                                  do iv=0,numberOfPolarizationVectors-1
+                                    pxc = ex + iv*nd
+                                    amp=(psir(iv)*cost-psii(iv)*sint)*
+     & cosxi - (psir(iv)*sint+psii(iv)*cost)*sinxi
+                                    ubv(pxc  ) = pwc(0)*amp
+                                    ubv(pxc+1) = pwc(1)*amp
+                                  end do
                                  ! *check me* -- just repeat hz for now 
                                  !  ubv(hz) = (hc*cosxi+hs*sinxi)*expt
                                 end if
@@ -4187,11 +4220,13 @@ c===============================================================================
                                   ubv(hz) = amph
                                 else
                                   ! polarization vector: (ex=pxc, ey=pyc) 
-                                  ! polarization vector: (ex=pxc, ey=pyc) 
-                                  amp=(psir*costp-psii*sintp)*cosxi - (
-     & psir*sintp+psii*costp)*sinxi
-                                  ubv(ex) = pwc(0)*amp
-                                  ubv(ey) = pwc(1)*amp
+                                  do iv=0,numberOfPolarizationVectors-1
+                                    pxc = ex + iv*nd
+                                    amp=(psir(iv)*costp-psii(iv)*sintp)
+     & *cosxi - (psir(iv)*sintp+psii(iv)*costp)*sinxi
+                                    ubv(pxc  ) = pwc(0)*amp
+                                    ubv(pxc+1) = pwc(1)*amp
+                                  end do
                                 end if
                               else if( numberOfTimeDerivatives==2 )then
                                 write(*,'(" GDPW ntd=2 : fix me")')
@@ -4479,10 +4514,13 @@ c===============================================================================
                                   ubv(hz) = amph
                                 else
                                   ! polarization vector: (ex=pxc, ey=pyc) 
-                                  amp=(psir*cost-psii*sint)*cosxi - (
-     & psir*sint+psii*cost)*sinxi
-                                  ubv(ex) = pwc(0)*amp
-                                  ubv(ey) = pwc(1)*amp
+                                  do iv=0,numberOfPolarizationVectors-1
+                                    pxc = ex + iv*nd
+                                    amp=(psir(iv)*cost-psii(iv)*sint)*
+     & cosxi - (psir(iv)*sint+psii(iv)*cost)*sinxi
+                                    ubv(pxc  ) = pwc(0)*amp
+                                    ubv(pxc+1) = pwc(1)*amp
+                                  end do
                                  ! *check me* -- just repeat hz for now 
                                  !  ubv(hz) = (hc*cosxi+hs*sinxi)*expt
                                 end if
@@ -4500,11 +4538,13 @@ c===============================================================================
                                   ubv(hz) = amph
                                 else
                                   ! polarization vector: (ex=pxc, ey=pyc) 
-                                  ! polarization vector: (ex=pxc, ey=pyc) 
-                                  amp=(psir*costp-psii*sintp)*cosxi - (
-     & psir*sintp+psii*costp)*sinxi
-                                  ubv(ex) = pwc(0)*amp
-                                  ubv(ey) = pwc(1)*amp
+                                  do iv=0,numberOfPolarizationVectors-1
+                                    pxc = ex + iv*nd
+                                    amp=(psir(iv)*costp-psii(iv)*sintp)
+     & *cosxi - (psir(iv)*sintp+psii(iv)*costp)*sinxi
+                                    ubv(pxc  ) = pwc(0)*amp
+                                    ubv(pxc+1) = pwc(1)*amp
+                                  end do
                                 end if
                               else if( numberOfTimeDerivatives==2 )then
                                 write(*,'(" GDPW ntd=2 : fix me")')
@@ -4753,10 +4793,13 @@ c===============================================================================
                                   ubv(hz) = amph
                                 else
                                   ! polarization vector: (ex=pxc, ey=pyc) 
-                                  amp=(psir*cost-psii*sint)*cosxi - (
-     & psir*sint+psii*cost)*sinxi
-                                  ubv(ex) = pwc(0)*amp
-                                  ubv(ey) = pwc(1)*amp
+                                  do iv=0,numberOfPolarizationVectors-1
+                                    pxc = ex + iv*nd
+                                    amp=(psir(iv)*cost-psii(iv)*sint)*
+     & cosxi - (psir(iv)*sint+psii(iv)*cost)*sinxi
+                                    ubv(pxc  ) = pwc(0)*amp
+                                    ubv(pxc+1) = pwc(1)*amp
+                                  end do
                                  ! *check me* -- just repeat hz for now 
                                  !  ubv(hz) = (hc*cosxi+hs*sinxi)*expt
                                 end if
@@ -4774,11 +4817,13 @@ c===============================================================================
                                   ubv(hz) = amph
                                 else
                                   ! polarization vector: (ex=pxc, ey=pyc) 
-                                  ! polarization vector: (ex=pxc, ey=pyc) 
-                                  amp=(psir*costp-psii*sintp)*cosxi - (
-     & psir*sintp+psii*costp)*sinxi
-                                  ubv(ex) = pwc(0)*amp
-                                  ubv(ey) = pwc(1)*amp
+                                  do iv=0,numberOfPolarizationVectors-1
+                                    pxc = ex + iv*nd
+                                    amp=(psir(iv)*costp-psii(iv)*sintp)
+     & *cosxi - (psir(iv)*sintp+psii(iv)*costp)*sinxi
+                                    ubv(pxc  ) = pwc(0)*amp
+                                    ubv(pxc+1) = pwc(1)*amp
+                                  end do
                                 end if
                               else if( numberOfTimeDerivatives==2 )then
                                 write(*,'(" GDPW ntd=2 : fix me")')
@@ -5066,10 +5111,13 @@ c===============================================================================
                                   ubv(hz) = amph
                                 else
                                   ! polarization vector: (ex=pxc, ey=pyc) 
-                                  amp=(psir*cost-psii*sint)*cosxi - (
-     & psir*sint+psii*cost)*sinxi
-                                  ubv(ex) = pwc(0)*amp
-                                  ubv(ey) = pwc(1)*amp
+                                  do iv=0,numberOfPolarizationVectors-1
+                                    pxc = ex + iv*nd
+                                    amp=(psir(iv)*cost-psii(iv)*sint)*
+     & cosxi - (psir(iv)*sint+psii(iv)*cost)*sinxi
+                                    ubv(pxc  ) = pwc(0)*amp
+                                    ubv(pxc+1) = pwc(1)*amp
+                                  end do
                                  ! *check me* -- just repeat hz for now 
                                  !  ubv(hz) = (hc*cosxi+hs*sinxi)*expt
                                 end if
@@ -5087,11 +5135,13 @@ c===============================================================================
                                   ubv(hz) = amph
                                 else
                                   ! polarization vector: (ex=pxc, ey=pyc) 
-                                  ! polarization vector: (ex=pxc, ey=pyc) 
-                                  amp=(psir*costp-psii*sintp)*cosxi - (
-     & psir*sintp+psii*costp)*sinxi
-                                  ubv(ex) = pwc(0)*amp
-                                  ubv(ey) = pwc(1)*amp
+                                  do iv=0,numberOfPolarizationVectors-1
+                                    pxc = ex + iv*nd
+                                    amp=(psir(iv)*costp-psii(iv)*sintp)
+     & *cosxi - (psir(iv)*sintp+psii(iv)*costp)*sinxi
+                                    ubv(pxc  ) = pwc(0)*amp
+                                    ubv(pxc+1) = pwc(1)*amp
+                                  end do
                                 end if
                               else if( numberOfTimeDerivatives==2 )then
                                 write(*,'(" GDPW ntd=2 : fix me")')
@@ -5365,10 +5415,13 @@ c===============================================================================
                                   ubv(hz) = amph
                                 else
                                   ! polarization vector: (ex=pxc, ey=pyc) 
-                                  amp=(psir*cost-psii*sint)*cosxi - (
-     & psir*sint+psii*cost)*sinxi
-                                  ubv(ex) = pwc(0)*amp
-                                  ubv(ey) = pwc(1)*amp
+                                  do iv=0,numberOfPolarizationVectors-1
+                                    pxc = ex + iv*nd
+                                    amp=(psir(iv)*cost-psii(iv)*sint)*
+     & cosxi - (psir(iv)*sint+psii(iv)*cost)*sinxi
+                                    ubv(pxc  ) = pwc(0)*amp
+                                    ubv(pxc+1) = pwc(1)*amp
+                                  end do
                                  ! *check me* -- just repeat hz for now 
                                  !  ubv(hz) = (hc*cosxi+hs*sinxi)*expt
                                 end if
@@ -5386,11 +5439,13 @@ c===============================================================================
                                   ubv(hz) = amph
                                 else
                                   ! polarization vector: (ex=pxc, ey=pyc) 
-                                  ! polarization vector: (ex=pxc, ey=pyc) 
-                                  amp=(psir*costp-psii*sintp)*cosxi - (
-     & psir*sintp+psii*costp)*sinxi
-                                  ubv(ex) = pwc(0)*amp
-                                  ubv(ey) = pwc(1)*amp
+                                  do iv=0,numberOfPolarizationVectors-1
+                                    pxc = ex + iv*nd
+                                    amp=(psir(iv)*costp-psii(iv)*sintp)
+     & *cosxi - (psir(iv)*sintp+psii(iv)*costp)*sinxi
+                                    ubv(pxc  ) = pwc(0)*amp
+                                    ubv(pxc+1) = pwc(1)*amp
+                                  end do
                                 end if
                               else if( numberOfTimeDerivatives==2 )then
                                 write(*,'(" GDPW ntd=2 : fix me")')
@@ -7399,10 +7454,13 @@ c===============================================================================
                                   ubv(hz) = amph
                                 else
                                   ! polarization vector: (ex=pxc, ey=pyc) 
-                                  amp=(psir*cost-psii*sint)*cosxi - (
-     & psir*sint+psii*cost)*sinxi
-                                  ubv(ex) = pwc(0)*amp
-                                  ubv(ey) = pwc(1)*amp
+                                  do iv=0,numberOfPolarizationVectors-1
+                                    pxc = ex + iv*nd
+                                    amp=(psir(iv)*cost-psii(iv)*sint)*
+     & cosxi - (psir(iv)*sint+psii(iv)*cost)*sinxi
+                                    ubv(pxc  ) = pwc(0)*amp
+                                    ubv(pxc+1) = pwc(1)*amp
+                                  end do
                                  ! *check me* -- just repeat hz for now 
                                  !  ubv(hz) = (hc*cosxi+hs*sinxi)*expt
                                 end if
@@ -7420,11 +7478,13 @@ c===============================================================================
                                   ubv(hz) = amph
                                 else
                                   ! polarization vector: (ex=pxc, ey=pyc) 
-                                  ! polarization vector: (ex=pxc, ey=pyc) 
-                                  amp=(psir*costp-psii*sintp)*cosxi - (
-     & psir*sintp+psii*costp)*sinxi
-                                  ubv(ex) = pwc(0)*amp
-                                  ubv(ey) = pwc(1)*amp
+                                  do iv=0,numberOfPolarizationVectors-1
+                                    pxc = ex + iv*nd
+                                    amp=(psir(iv)*costp-psii(iv)*sintp)
+     & *cosxi - (psir(iv)*sintp+psii(iv)*costp)*sinxi
+                                    ubv(pxc  ) = pwc(0)*amp
+                                    ubv(pxc+1) = pwc(1)*amp
+                                  end do
                                 end if
                               else if( numberOfTimeDerivatives==2 )then
                                 write(*,'(" GDPW ntd=2 : fix me")')
@@ -7673,10 +7733,13 @@ c===============================================================================
                                   ubv(hz) = amph
                                 else
                                   ! polarization vector: (ex=pxc, ey=pyc) 
-                                  amp=(psir*cost-psii*sint)*cosxi - (
-     & psir*sint+psii*cost)*sinxi
-                                  ubv(ex) = pwc(0)*amp
-                                  ubv(ey) = pwc(1)*amp
+                                  do iv=0,numberOfPolarizationVectors-1
+                                    pxc = ex + iv*nd
+                                    amp=(psir(iv)*cost-psii(iv)*sint)*
+     & cosxi - (psir(iv)*sint+psii(iv)*cost)*sinxi
+                                    ubv(pxc  ) = pwc(0)*amp
+                                    ubv(pxc+1) = pwc(1)*amp
+                                  end do
                                  ! *check me* -- just repeat hz for now 
                                  !  ubv(hz) = (hc*cosxi+hs*sinxi)*expt
                                 end if
@@ -7694,11 +7757,13 @@ c===============================================================================
                                   ubv(hz) = amph
                                 else
                                   ! polarization vector: (ex=pxc, ey=pyc) 
-                                  ! polarization vector: (ex=pxc, ey=pyc) 
-                                  amp=(psir*costp-psii*sintp)*cosxi - (
-     & psir*sintp+psii*costp)*sinxi
-                                  ubv(ex) = pwc(0)*amp
-                                  ubv(ey) = pwc(1)*amp
+                                  do iv=0,numberOfPolarizationVectors-1
+                                    pxc = ex + iv*nd
+                                    amp=(psir(iv)*costp-psii(iv)*sintp)
+     & *cosxi - (psir(iv)*sintp+psii(iv)*costp)*sinxi
+                                    ubv(pxc  ) = pwc(0)*amp
+                                    ubv(pxc+1) = pwc(1)*amp
+                                  end do
                                 end if
                               else if( numberOfTimeDerivatives==2 )then
                                 write(*,'(" GDPW ntd=2 : fix me")')
@@ -7947,10 +8012,13 @@ c===============================================================================
                                   ubv(hz) = amph
                                 else
                                   ! polarization vector: (ex=pxc, ey=pyc) 
-                                  amp=(psir*cost-psii*sint)*cosxi - (
-     & psir*sint+psii*cost)*sinxi
-                                  ubv(ex) = pwc(0)*amp
-                                  ubv(ey) = pwc(1)*amp
+                                  do iv=0,numberOfPolarizationVectors-1
+                                    pxc = ex + iv*nd
+                                    amp=(psir(iv)*cost-psii(iv)*sint)*
+     & cosxi - (psir(iv)*sint+psii(iv)*cost)*sinxi
+                                    ubv(pxc  ) = pwc(0)*amp
+                                    ubv(pxc+1) = pwc(1)*amp
+                                  end do
                                  ! *check me* -- just repeat hz for now 
                                  !  ubv(hz) = (hc*cosxi+hs*sinxi)*expt
                                 end if
@@ -7968,11 +8036,13 @@ c===============================================================================
                                   ubv(hz) = amph
                                 else
                                   ! polarization vector: (ex=pxc, ey=pyc) 
-                                  ! polarization vector: (ex=pxc, ey=pyc) 
-                                  amp=(psir*costp-psii*sintp)*cosxi - (
-     & psir*sintp+psii*costp)*sinxi
-                                  ubv(ex) = pwc(0)*amp
-                                  ubv(ey) = pwc(1)*amp
+                                  do iv=0,numberOfPolarizationVectors-1
+                                    pxc = ex + iv*nd
+                                    amp=(psir(iv)*costp-psii(iv)*sintp)
+     & *cosxi - (psir(iv)*sintp+psii(iv)*costp)*sinxi
+                                    ubv(pxc  ) = pwc(0)*amp
+                                    ubv(pxc+1) = pwc(1)*amp
+                                  end do
                                 end if
                               else if( numberOfTimeDerivatives==2 )then
                                 write(*,'(" GDPW ntd=2 : fix me")')
@@ -8286,10 +8356,13 @@ c===============================================================================
                                   ubv(hz) = amph
                                 else
                                   ! polarization vector: (ex=pxc, ey=pyc) 
-                                  amp=(psir*cost-psii*sint)*cosxi - (
-     & psir*sint+psii*cost)*sinxi
-                                  ubv(ex) = pwc(0)*amp
-                                  ubv(ey) = pwc(1)*amp
+                                  do iv=0,numberOfPolarizationVectors-1
+                                    pxc = ex + iv*nd
+                                    amp=(psir(iv)*cost-psii(iv)*sint)*
+     & cosxi - (psir(iv)*sint+psii(iv)*cost)*sinxi
+                                    ubv(pxc  ) = pwc(0)*amp
+                                    ubv(pxc+1) = pwc(1)*amp
+                                  end do
                                  ! *check me* -- just repeat hz for now 
                                  !  ubv(hz) = (hc*cosxi+hs*sinxi)*expt
                                 end if
@@ -8307,11 +8380,13 @@ c===============================================================================
                                   ubv(hz) = amph
                                 else
                                   ! polarization vector: (ex=pxc, ey=pyc) 
-                                  ! polarization vector: (ex=pxc, ey=pyc) 
-                                  amp=(psir*costp-psii*sintp)*cosxi - (
-     & psir*sintp+psii*costp)*sinxi
-                                  ubv(ex) = pwc(0)*amp
-                                  ubv(ey) = pwc(1)*amp
+                                  do iv=0,numberOfPolarizationVectors-1
+                                    pxc = ex + iv*nd
+                                    amp=(psir(iv)*costp-psii(iv)*sintp)
+     & *cosxi - (psir(iv)*sintp+psii(iv)*costp)*sinxi
+                                    ubv(pxc  ) = pwc(0)*amp
+                                    ubv(pxc+1) = pwc(1)*amp
+                                  end do
                                 end if
                               else if( numberOfTimeDerivatives==2 )then
                                 write(*,'(" GDPW ntd=2 : fix me")')
@@ -8560,10 +8635,13 @@ c===============================================================================
                                   ubv(hz) = amph
                                 else
                                   ! polarization vector: (ex=pxc, ey=pyc) 
-                                  amp=(psir*cost-psii*sint)*cosxi - (
-     & psir*sint+psii*cost)*sinxi
-                                  ubv(ex) = pwc(0)*amp
-                                  ubv(ey) = pwc(1)*amp
+                                  do iv=0,numberOfPolarizationVectors-1
+                                    pxc = ex + iv*nd
+                                    amp=(psir(iv)*cost-psii(iv)*sint)*
+     & cosxi - (psir(iv)*sint+psii(iv)*cost)*sinxi
+                                    ubv(pxc  ) = pwc(0)*amp
+                                    ubv(pxc+1) = pwc(1)*amp
+                                  end do
                                  ! *check me* -- just repeat hz for now 
                                  !  ubv(hz) = (hc*cosxi+hs*sinxi)*expt
                                 end if
@@ -8581,11 +8659,13 @@ c===============================================================================
                                   ubv(hz) = amph
                                 else
                                   ! polarization vector: (ex=pxc, ey=pyc) 
-                                  ! polarization vector: (ex=pxc, ey=pyc) 
-                                  amp=(psir*costp-psii*sintp)*cosxi - (
-     & psir*sintp+psii*costp)*sinxi
-                                  ubv(ex) = pwc(0)*amp
-                                  ubv(ey) = pwc(1)*amp
+                                  do iv=0,numberOfPolarizationVectors-1
+                                    pxc = ex + iv*nd
+                                    amp=(psir(iv)*costp-psii(iv)*sintp)
+     & *cosxi - (psir(iv)*sintp+psii(iv)*costp)*sinxi
+                                    ubv(pxc  ) = pwc(0)*amp
+                                    ubv(pxc+1) = pwc(1)*amp
+                                  end do
                                 end if
                               else if( numberOfTimeDerivatives==2 )then
                                 write(*,'(" GDPW ntd=2 : fix me")')
@@ -8873,10 +8953,13 @@ c===============================================================================
                                   ubv(hz) = amph
                                 else
                                   ! polarization vector: (ex=pxc, ey=pyc) 
-                                  amp=(psir*cost-psii*sint)*cosxi - (
-     & psir*sint+psii*cost)*sinxi
-                                  ubv(ex) = pwc(0)*amp
-                                  ubv(ey) = pwc(1)*amp
+                                  do iv=0,numberOfPolarizationVectors-1
+                                    pxc = ex + iv*nd
+                                    amp=(psir(iv)*cost-psii(iv)*sint)*
+     & cosxi - (psir(iv)*sint+psii(iv)*cost)*sinxi
+                                    ubv(pxc  ) = pwc(0)*amp
+                                    ubv(pxc+1) = pwc(1)*amp
+                                  end do
                                  ! *check me* -- just repeat hz for now 
                                  !  ubv(hz) = (hc*cosxi+hs*sinxi)*expt
                                 end if
@@ -8894,11 +8977,13 @@ c===============================================================================
                                   ubv(hz) = amph
                                 else
                                   ! polarization vector: (ex=pxc, ey=pyc) 
-                                  ! polarization vector: (ex=pxc, ey=pyc) 
-                                  amp=(psir*costp-psii*sintp)*cosxi - (
-     & psir*sintp+psii*costp)*sinxi
-                                  ubv(ex) = pwc(0)*amp
-                                  ubv(ey) = pwc(1)*amp
+                                  do iv=0,numberOfPolarizationVectors-1
+                                    pxc = ex + iv*nd
+                                    amp=(psir(iv)*costp-psii(iv)*sintp)
+     & *cosxi - (psir(iv)*sintp+psii(iv)*costp)*sinxi
+                                    ubv(pxc  ) = pwc(0)*amp
+                                    ubv(pxc+1) = pwc(1)*amp
+                                  end do
                                 end if
                               else if( numberOfTimeDerivatives==2 )then
                                 write(*,'(" GDPW ntd=2 : fix me")')
@@ -9147,10 +9232,13 @@ c===============================================================================
                                   ubv(hz) = amph
                                 else
                                   ! polarization vector: (ex=pxc, ey=pyc) 
-                                  amp=(psir*cost-psii*sint)*cosxi - (
-     & psir*sint+psii*cost)*sinxi
-                                  ubv(ex) = pwc(0)*amp
-                                  ubv(ey) = pwc(1)*amp
+                                  do iv=0,numberOfPolarizationVectors-1
+                                    pxc = ex + iv*nd
+                                    amp=(psir(iv)*cost-psii(iv)*sint)*
+     & cosxi - (psir(iv)*sint+psii(iv)*cost)*sinxi
+                                    ubv(pxc  ) = pwc(0)*amp
+                                    ubv(pxc+1) = pwc(1)*amp
+                                  end do
                                  ! *check me* -- just repeat hz for now 
                                  !  ubv(hz) = (hc*cosxi+hs*sinxi)*expt
                                 end if
@@ -9168,11 +9256,13 @@ c===============================================================================
                                   ubv(hz) = amph
                                 else
                                   ! polarization vector: (ex=pxc, ey=pyc) 
-                                  ! polarization vector: (ex=pxc, ey=pyc) 
-                                  amp=(psir*costp-psii*sintp)*cosxi - (
-     & psir*sintp+psii*costp)*sinxi
-                                  ubv(ex) = pwc(0)*amp
-                                  ubv(ey) = pwc(1)*amp
+                                  do iv=0,numberOfPolarizationVectors-1
+                                    pxc = ex + iv*nd
+                                    amp=(psir(iv)*costp-psii(iv)*sintp)
+     & *cosxi - (psir(iv)*sintp+psii(iv)*costp)*sinxi
+                                    ubv(pxc  ) = pwc(0)*amp
+                                    ubv(pxc+1) = pwc(1)*amp
+                                  end do
                                 end if
                               else if( numberOfTimeDerivatives==2 )then
                                 write(*,'(" GDPW ntd=2 : fix me")')
@@ -9460,10 +9550,13 @@ c===============================================================================
                                   ubv(hz) = amph
                                 else
                                   ! polarization vector: (ex=pxc, ey=pyc) 
-                                  amp=(psir*cost-psii*sint)*cosxi - (
-     & psir*sint+psii*cost)*sinxi
-                                  ubv(ex) = pwc(0)*amp
-                                  ubv(ey) = pwc(1)*amp
+                                  do iv=0,numberOfPolarizationVectors-1
+                                    pxc = ex + iv*nd
+                                    amp=(psir(iv)*cost-psii(iv)*sint)*
+     & cosxi - (psir(iv)*sint+psii(iv)*cost)*sinxi
+                                    ubv(pxc  ) = pwc(0)*amp
+                                    ubv(pxc+1) = pwc(1)*amp
+                                  end do
                                  ! *check me* -- just repeat hz for now 
                                  !  ubv(hz) = (hc*cosxi+hs*sinxi)*expt
                                 end if
@@ -9481,11 +9574,13 @@ c===============================================================================
                                   ubv(hz) = amph
                                 else
                                   ! polarization vector: (ex=pxc, ey=pyc) 
-                                  ! polarization vector: (ex=pxc, ey=pyc) 
-                                  amp=(psir*costp-psii*sintp)*cosxi - (
-     & psir*sintp+psii*costp)*sinxi
-                                  ubv(ex) = pwc(0)*amp
-                                  ubv(ey) = pwc(1)*amp
+                                  do iv=0,numberOfPolarizationVectors-1
+                                    pxc = ex + iv*nd
+                                    amp=(psir(iv)*costp-psii(iv)*sintp)
+     & *cosxi - (psir(iv)*sintp+psii(iv)*costp)*sinxi
+                                    ubv(pxc  ) = pwc(0)*amp
+                                    ubv(pxc+1) = pwc(1)*amp
+                                  end do
                                 end if
                               else if( numberOfTimeDerivatives==2 )then
                                 write(*,'(" GDPW ntd=2 : fix me")')
@@ -9759,10 +9854,13 @@ c===============================================================================
                                   ubv(hz) = amph
                                 else
                                   ! polarization vector: (ex=pxc, ey=pyc) 
-                                  amp=(psir*cost-psii*sint)*cosxi - (
-     & psir*sint+psii*cost)*sinxi
-                                  ubv(ex) = pwc(0)*amp
-                                  ubv(ey) = pwc(1)*amp
+                                  do iv=0,numberOfPolarizationVectors-1
+                                    pxc = ex + iv*nd
+                                    amp=(psir(iv)*cost-psii(iv)*sint)*
+     & cosxi - (psir(iv)*sint+psii(iv)*cost)*sinxi
+                                    ubv(pxc  ) = pwc(0)*amp
+                                    ubv(pxc+1) = pwc(1)*amp
+                                  end do
                                  ! *check me* -- just repeat hz for now 
                                  !  ubv(hz) = (hc*cosxi+hs*sinxi)*expt
                                 end if
@@ -9780,11 +9878,13 @@ c===============================================================================
                                   ubv(hz) = amph
                                 else
                                   ! polarization vector: (ex=pxc, ey=pyc) 
-                                  ! polarization vector: (ex=pxc, ey=pyc) 
-                                  amp=(psir*costp-psii*sintp)*cosxi - (
-     & psir*sintp+psii*costp)*sinxi
-                                  ubv(ex) = pwc(0)*amp
-                                  ubv(ey) = pwc(1)*amp
+                                  do iv=0,numberOfPolarizationVectors-1
+                                    pxc = ex + iv*nd
+                                    amp=(psir(iv)*costp-psii(iv)*sintp)
+     & *cosxi - (psir(iv)*sintp+psii(iv)*costp)*sinxi
+                                    ubv(pxc  ) = pwc(0)*amp
+                                    ubv(pxc+1) = pwc(1)*amp
+                                  end do
                                 end if
                               else if( numberOfTimeDerivatives==2 )then
                                 write(*,'(" GDPW ntd=2 : fix me")')

@@ -1,3 +1,39 @@
+***********************
+***** Sept 15, 2017
+
+NPV=2 
+cgmx -noplot diskeigen -g=sice16.order2.hdf -dm=gdm -npv=2 -a0=1 .5 -a1=.1 .2 -b0=.3 .4 -b1=.5 .25 -m=2 -n=2 -cons=1 -diss=.0 -tp=.1 -tf=1 -go=og
+--getErrors: t=1.000e-01 domain=0 (domain0) numPolarizationVectors=2 P-norm=5.017e-03 max-err = 3.513e-07
+>>> t=1.00e-01 dt=4.0e-03 max errors:[7.28e-06,7.28e-06,3.05e-05,], max (u):[2.94e-01,2.94e-01,2.57e-01,] (25 steps)
+
+
+NPV=2 
+cgmx -noplot diskeigen -g=sice16.order2.hdf -dm=gdm -npv=2 -a0=1 .5 -a1=0 0 -b0=.1 .2 -b1=.5 .25 -m=2 -n=2 -cons=1 -diss=.0 -tp=.1 -tf=1 -go=og
+
+--getErrors: t=1.000e-01 domain=0 (domain0) numPolarizationVectors=2 P-norm=2.934e-03 max-err = 7.870e-08
+>>> t=1.00e-01 dt=4.0e-03 max errors:[7.10e-06,7.10e-06,2.46e-05,], max (u):[2.96e-01,2.96e-01,2.61e-01,] (25 steps)
+
+***********************
+***** Sept 13, 2017
+
+START ON MULTIPLE PV VECTORS
+
+NPV=2 
+cgmx -noplot diskeigen -g=sice16.order2.hdf -dm=gdm -npv=2 -a0=1 .5 -a1=0 0 -b0=.1 .2 -b1=.5 .25 -m=2 -n=2 -cons=1 -diss=.0 -tp=.1 -tf=1 -go=og
+
+--getErrors: t=1.000e-01 domain=0 (domain0) numPolarizationVectors=2 P-norm=3.195e-03 max-err = 2.764e-04
+>>> t=1.00e-01 dt=4.0e-03 max errors:[6.52e-06,6.52e-06,1.11e-03,], max (u):[2.94e-01,2.94e-01,2.62e-01,] (25 steps)
+
+NPV=2 --> should match NPV=1 ?? TROUBLE 
+cgmx -noplot diskeigen -g=sice16.order2.hdf -dm=gdm -npv=2 -a0=1 .0 -a1=0 0 -b0=.1 .2 b1=.5 .25 -m=2 -n=2 -cons=1 -diss=.0 -tp=.1 -tf=1 -go=og
+--getErrors: t=1.000e-01 domain=0 (domain0) numPolarizationVectors=2 P-norm=3.490e-03 max-err = 5.535e-04
+>>> t=1.00e-01 dt=4.0e-03 max errors:[6.03e-06,6.03e-06,2.38e-05,], max (u):[2.95e-01,2.95e-01,2.62e-01,] (25 steps)
+
+NPV=1
+cgmx -noplot diskeigen -g=sice16.order2.hdf -dm=gdm -a0=1 -a1=0 -b0=0 =b1=1  -m=2 -n=2 -cons=1 -diss=.0 -tp=.1 -tf=1 -go=og
+--getErrors: t=1.000e-01 domain=0 (domain0) numPolarizationVectors=1 P-norm=2.933e-03 max-err = 7.792e-08
+>>> t=1.00e-01 dt=4.0e-03 max errors:[7.14e-06,7.14e-06,2.41e-05,], max (u):[2.94e-01,2.94e-01,2.62e-01,] (25 steps)
+
 ********* EIGEN MODES OF A 2D DISK *********
 
 *******************

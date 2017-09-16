@@ -25,7 +25,9 @@ $cmdDir="$ENV{CG}/mx/cmd";
 $tf=.5; $tp=.1; $order = "2"; $ng=3; $m=2; $n=2; $interp="i"; $cfl=.9; $radius=.5; $bg="box"; 
 $ta=1.; $tb=1.5; # for chirp 
 $kx=1; $ky=0; 
-$alphaP=1.; $a0=1.; $a1=0.; $b0=0.; $b1=1.;  # GDM parameters
+$npv=1; $modeGDM=-1; 
+$alphaP=1.; # $a0=1.; $a1=0.; $b0=0.; $b1=1.;  # GDM parameters
+@a0 = (); @a1=(); @b0=(); @b1=(); # these must be null for GetOptions to work, defaults are given below 
 $dm="none"; # dispersive model
 $diss=.0; $dissOrder=-1; 
 $errorNorm=0; $method="NFDTD"; 
@@ -37,7 +39,8 @@ GetOptions( "name=s"=>\$name,"order=s"=>\$order,"ng=i"=>\$ng,"tf=f"=>\$tf,"inter
             "errorNorm=i"=>\$errorNorm,"m=f"=>\$m,"n=f"=>\$n,"dissOrder=i"=>\$dissOrder,"cg=s"=>\$cg,\
             "radius=f"=>\$radius,"bg=s"=>\$bg,"option=s"=>\$option,"ta=f"=>\$ta,"tb=f"=>\$tb,"dm=s"=>\$dm,\
             "alphaP=f"=>\$alphaP,"a0=f"=>\$a0,"a1=f"=>\$a1,"b0=f"=>\$b0,"b1=f"=>\$b1,\
-            "kx=i"=>\$kx,"ky=i"=>\$ky );
+            "kx=i"=>\$kx,"ky=i"=>\$ky,"npv=i"=>\$npv,"modeGDM=i"=>\$modeGDM,\
+            "a0=f{1,}"=>\@a0,"a1=f{1,}"=>\@a1,"b0=f{1,}"=>\@b0,"b1=f{1,}"=>\@b1 );
 # ------------------------ planeWave ------------------------------------------
 $name=$option; 
 if( $option eq "chirped" ){ $cmdFile="../runs/embeddedBody/chirped.cmd";  }
@@ -45,9 +48,15 @@ if( $option eq "planeWave" ){ $cmdFile="../runs/planeWave/planeWave.cmd";  }
 if( $cg =~ /nonSquarenp/ ){ $bg="square"; }
 if( $cg =~ /nonSquare/ ){ $bg="square"; }
 if( $cg =~ /nonBoxnpp/ ){ $bg="box"; }
+# Give defaults here for array arguments: 
+if( $a0[0] eq "" ){ @a0=(1,0,0,0); }
+if( $a1[0] eq "" ){ @a1=(0,0,0,0); }
+if( $b0[0] eq "" ){ @b0=(0,0,0,0); }
+if( $b1[0] eq "" ){ @b1=(1,0,0,0); }
 #
 $caseName="$name$method$cg\Order$order";
 if( $dm ne "none" ){ $caseName.="GDM"; }
+if( $npv > 1 ){ $caseName.="Np$npv"; }
 if( $errorNorm eq 0 ){ $normName = "max"; }elsif( $errorNorm eq 1 ){ $normName = "L1";}\
    elsif( $errorNorm eq 2 ){ $normName = "L2"; }else{ $normName="UnknownNorm"; }
 $caseName .= $normName . "Norm";
@@ -71,10 +80,13 @@ if( $numberOfComponents eq 4 && $numberOfDimensions eq 2 && $dm ne "none" )\
 # 
 $labelMethod=$method;
 if( $method eq "NFDTD" ){ $labelMethod="CGFD$order"; }
-$caption= "\\caption\{Cgmx, $name, method=$labelMethod, $normName norm, order=\$$order\$, \$t=$tf\$, cfl=\$$cfl\$, diss=\$$diss\$, dissOrder=\$$dissOrder\$, kx=$kx, ky=$ky, dm=$dm, alphaP=$alphaP, a0=$a0, a1=$a1, b0=$b0, b1=$b1 $date}\\label\{table:$name" . $method . "Order$order$normName}"; 
-$outputFile="$name$method$cg" . "Order$order" . $normName . "NormConvTable.tex"; 
+$caption= "\\caption\{Cgmx, $name, method=$labelMethod, $normName norm, order=\$$order\$, \$t=$tf\$, cfl=\$$cfl\$, diss=\$$diss\$, dissOrder=\$$dissOrder\$, kx=$kx, ky=$ky, dm=$dm, alphaP=$alphaP, npv=$npv, modeGDM=$modeGDM a0=($a0[0],$a0[1],$a0[2]), a1=($a1[0],$a1[1],$a1[2]), b0=($b0[0],$b0[1],$b0[2]), b1=($b1[0],$b1[1],$b1[2]) $date}\\label\{table:$name" . $method . "Order$order$normName}"; 
+$extraLabel ="";
+if( $dm ne "none" ){ $extraLabel .= "GDMNp$npv"; }
+if( $modeGDM > 0 ){ $extraLabel .= "Mode$modeGDM"; }
+$outputFile="$name$method$cg$extraLabel" . "Order$order" . $normName . "NormConvTable.tex"; 
 # 
-$options = "-diss=$diss -dissOrder=$dissOrder -dm=$dm -radius=$radius -bg=$bg -cfl=$cfl -method=$method -errorNorm=$errorNorm -tf=$tf -tp=$tp -ta=$ta -tb=$tb -alphaP=$alphaP -a0=$a0 -a1=$a1 -b0=$b0 -b1=$b1 -kx=$kx -ky=$ky -checkErrors=1 -go=go";
+$options = "-diss=$diss -dissOrder=$dissOrder -dm=$dm -radius=$radius -bg=$bg -cfl=$cfl -method=$method -errorNorm=$errorNorm -tf=$tf -tp=$tp -ta=$ta -tb=$tb -alphaP=$alphaP -npv=$npv -modeGDM=$modeGDM -a0=$a0[0] $a0[1] $a0[2] -a1=$a1[0] $a1[1] $a1[2] -b0=$b0[0] $b0[1] $b0[2] -b1=$b1[0] $b1[1] $b1[2] -kx=$kx -ky=$ky -checkErrors=1 -go=go";
 #
 $suffix="";
 if( ($method eq "sosup") && ($order eq 4) ){ $suffix=".ng3"; }

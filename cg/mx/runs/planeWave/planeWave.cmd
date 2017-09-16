@@ -7,13 +7,15 @@
 #        -plotIntensity=[0|1] -eps1=<> -eps2=<> -interit=<> -diss=<> -filter=[0|1] -debug=<num> -cons=[0/1] ...
 #        -method=[nfdtd|Yee|sosup] -bcn=[default|d|abc] -plotHarmonicComponents=[0|1] ] -dm=[none|gdm]
 #        -useSosupDissipation=[0|1] -sosupParameter=[0-1] -sosupDissipationOption=[0|1] ...
-#        -stageOption=[IDB|IBDB|D-IB|...]         -go=[run/halt/og]
+#        -stageOption=[IDB|IBDB|D-IB|...] -a0= f f .. -a1=f f .. -b0= f f.. -b1=f f ..    -go=[run/halt/og]
+#
 # Arguments:
 #  -kx= -ky= -kz= : integer wave numbers of the incident wave
 #  -interit : number of iterations to solve the interface equations 
 #  -filter=1 : add the high order filter
 #  -plotHarmonicComponents : plot the harmonic components of the E field
 #  -dm : dispersion model
+#  -a0 : array values can be specified as -a0= 1 1.5 3.   (assign 3 array values)
 #
 echo to terminal 0
 # Examples: 
@@ -127,8 +129,13 @@ $interfaceIterations=3;
 $grid="innerOuter4.order4.hdf";
 $cons=1; $go="halt";  $useSosupDissipation=0; $sosupParameter=1.;  $sosupDissipationOption=0;
 $stageOption ="IDB";
-$alphaP=1.; $a0=1.; $a1=0.; $b0=0.; $b1=1.;  # GDM parameters
+# GDM parameters
+$npv=1; $alphaP=1.; $modeGDM=-1; 
+@a0 = (); @a1=(); @b0=(); @b1=(); # these must be null for GetOptions to work, defaults are given below 
 # ----------------------------- get command line arguments ---------------------------------------
+# GetOptions('a=s{2}' => \@opt_a, 'b=s{2}' => \@opt_b  );
+# printf(" opt_a[0]=[%s] opt_a[1]=[%s]\n",$opt_a[0],$opt_a[1]);
+# GetOptions("a0=f{2}"=>\@a0 );
 GetOptions( "g=s"=>\$grid,"tf=f"=>\$tFinal,"diss=f"=>\$diss,"tp=f"=>\$tPlot,"show=s"=>\$show,"debug=i"=>\$debug, \
     "cfl=f"=>\$cfl, "bg=s"=>\$backGround,"bcn=s"=>\$bcn,"go=s"=>\$go,"noplot=s"=>\$noplot,"bg=s"=>\$bg,\
     "divDamping=f"=>\$divDamping,"plotIntensity=i"=>\$plotIntensity,"intensityOption=i"=>\$intensityOption,\
@@ -139,10 +146,19 @@ GetOptions( "g=s"=>\$grid,"tf=f"=>\$tFinal,"diss=f"=>\$diss,"tp=f"=>\$tPlot,"sho
     "divClean=i"=>\$divClean,"divCleanCoeff=f"=>\$divCleanCoeff,"solveForH=i"=>\$solveForH,\
     "projectInterp=i"=>\$projectInterp,"plotHarmonicComponents=i"=>\$plotHarmonicComponents,\
     "useSosupDissipation=i"=>\$useSosupDissipation,"sosupParameter=f"=>\$sosupParameter,\
-    "sosupDissipationOption=i"=>\$sosupDissipationOption,\
+    "sosupDissipationOption=i"=>\$sosupDissipationOption,"modeGDM=i"=>\$modeGDM,\
     "checkErrors=i"=>\$checkErrors,"dm=s"=>\$dm,"stageOption=s"=>\$stageOption,\
-    "alphaP=f"=>\$alphaP,"a0=f"=>\$a0,"a1=f"=>\$a1,"b0=f"=>\$b0,"b1=f"=>\$b1  );
+    "alphaP=f"=>\$alphaP,"a0=f{1,}"=>\@a0,"a1=f{1,}"=>\@a1,"b0=f{1,}"=>\@b0,"b1=f{1,}"=>\@b1,"npv=i"=>\$npv);
 # -------------------------------------------------------------------------------------------------
+# printf(" opt_a[0]=[%s] opt_a[1]=[%s]\n",$opt_a[0],$opt_a[1]);
+# printf(" opt_b[0]=[%s] opt_b[1]=[%s]\n",$opt_b[0],$opt_b[1]);
+# Give defaults here for array arguments: 
+if( $a0[0] eq "" ){ @a0=(1,0,0,0); }
+if( $a1[0] eq "" ){ @a1=(0,0,0,0); }
+if( $b0[0] eq "" ){ @b0=(0,0,0,0); }
+if( $b1[0] eq "" ){ @b1=(0,0,0,0); }
+printf(" a0[0]=%f, a0[1]=%f\n",$a0[0],$a0[1]);
+printf(" b1[0]=%f, b1[1]=%f\n",$b1[0],$b1[1]);
 #
 if( $dm eq "none" ){ $dm="no dispersion"; }
 if( $dm eq"drude" || $dm eq "Drude" ){ $dm="Drude"; }
@@ -161,7 +177,18 @@ $method
 $dm
 # 
 # Drude params 1 1 all (gamma,omegap,domain-name)
-GDM params $a0 $a1 $b0 $b1 all (a0,a1,b0,b1,domain-name)
+#GDM params $a0 $a1 $b0 $b1 all (a0,a1,b0,b1,domain-name)
+GDM mode: $modeGDM
+$domain="all"; 
+$cmd="#"; 
+if( $npv == 1 ){ $cmd = "GDM params $a0[0] $a1[0] $b0[0] $b1[0] all (a0,a1,b0,b1,domain-name)"; }
+if( $npv == 2 ){ \
+   $cmd  = "GDM domain name: $domain\n"; \
+   $cmd .= " number of polarization vectors: $npv\n"; \
+   $cmd .= " GDM coeff: 0 $a0[0] $a1[0] $b0[0] $b1[0] (eqn, a0,a1,b0,b1)\n"; \
+   $cmd .= " GDM coeff: 1 $a0[1] $a1[1] $b0[1] $b1[1] (eqn, a0,a1,b0,b1)"; \
+      }
+$cmd
 #
 # --- Define multi-stage time-step: 
 if( $stageOption eq "IDB" ){ $stages="updateInterior,addDissipation,applyBC"; }

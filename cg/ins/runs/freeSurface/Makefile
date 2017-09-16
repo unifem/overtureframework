@@ -9,6 +9,8 @@ grids:
 	$(ogen) -noplot freeSurfaceGrid2d -interp=e -factor=8 -ml=2
 	$(ogen) -noplot freeSurfaceGrid2d -interp=e -factor=16 -ml=3
 	$(ogen) -noplot freeSurfaceGrid2d -interp=e -factor=32 -ml=3
+	$(ogen) -noplot freeSurfaceGrid2d -interp=e -periodic=p -factor=0.5
+	$(ogen) -noplot freeSurfaceGrid2d -interp=e -periodic=p -factor=1 
 	$(ogen) -noplot freeSurfaceGrid2d -interp=e -periodic=p -factor=2 
 	$(ogen) -noplot freeSurfaceGrid2d -interp=e -periodic=p -factor=4
 	$(ogen) -noplot freeSurfaceGrid2d -interp=e -periodic=p -factor=8 

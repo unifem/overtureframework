@@ -358,7 +358,7 @@ class Maxwell
   int setBoundaryCondition( aString & answer, GL_GraphicsInterface & gi, IntegerArray & originalBoundaryCondition );
 
   int setDispersionParameters( aString & domainName, int numberOfPolarizationVectors, int eqn, 
-                               real a0, real a1, real b0, real b1  );
+                               real a0, real a1, real b0, real b1, int modeGDM );
 
   int setupGrids();
 

@@ -1056,10 +1056,10 @@ assignInitialConditions(int current, real t, real dt )
 		  // dmp.computeDispersionRelation( c,eps,mu,kk, sr, si ); // s = sr + i*si
 
                   // *new way*
-                  real psir,psii;
+                  assert( numberOfPolarizationVectors<10 );
+                  real psir[10],psii[10];
 		  dmp.evaluateDispersionRelation( c,kk, sr, si, psir,psii ); 
                   // omegaDpwRe=imS; omegaDpwIm=reS;
-		  
 		  // dmp.computeDispersivePlaneWaveParameters( c,eps,mu,kk, omegaDpwRe, omegaDpwIm );
 
 		  printF("--MX--GIC dispersion: s=(%12.4e,%12.4e)\n",sr,si);
@@ -1102,13 +1102,14 @@ assignInitialConditions(int current, real t, real dt )
                     // -- dispersion model components --
                     if( dispersionModel != noDispersion  )
                     {
-                      real ampm=(psir*ctm-psii*stm)*cx - (psir*stm+psii*ctm)*sx;
-                      real amp =(psir*ct -psii*st )*cx - (psir*st +psii*ct )*sx;
-
                       // *new way:
                       for( int iv=0; iv<numberOfPolarizationVectors; iv++ )
                       {
                         const int pc= iv*numberOfDimensions;
+
+                        real ampm=(psir[iv]*ctm-psii[iv]*stm)*cx - (psir[iv]*stm+psii[iv]*ctm)*sx;
+                        real amp =(psir[iv]*ct -psii[iv]*st )*cx - (psir[iv]*st +psii[iv]*ct )*sx;
+
        
                         // Do this for now -- set all vectors to be the same: 
                         pLocal(i1,i2,i3,pc  ) =pwc[0]*amp;
@@ -1637,9 +1638,9 @@ assignInitialConditions(int current, real t, real dt )
 	  }
 	    
           // Behaviour in time for Ex is  phiEx(t), phiExt = time-derivative
-          real phiEx, phiExt, phiExm, phiPx, phiPxm;
-          real phiEy, phiEyt, phiEym, phiPy, phiPym;
-          real phiEz, phiEzt, phiEzm, phiPz, phiPzm;
+          real phiEx, phiExt, phiExm, phiPx[10], phiPxm[10];
+          real phiEy, phiEyt, phiEym, phiPy[10], phiPym[10];
+          real phiEz, phiEzt, phiEzm, phiPz[10], phiPzm[10];
           real phiHz, phiHzt, phiHzm;
 	  if( method==nfdtd )
 	  {
@@ -1647,7 +1648,11 @@ assignInitialConditions(int current, real t, real dt )
 	    real tEm=tE-dt, tHm=tH-dt;
 	    getBoxEigenfunctionCoefficients( tEm, tHm, omega );
             phiExm=phiEx; phiEym=phiEy; phiEzm=phiEz; phiHzm=phiHz; // save values at "minus" time
-            phiPxm=phiPx; phiPym=phiPy; phiPzm=phiPz ;
+            for( int iv=0; iv<numberOfPolarizationVectors; iv++ )
+            {
+              phiPxm[iv]=phiPx[iv]; phiPym[iv]=phiPy[iv]; phiPzm[iv]=phiPz[iv] ;
+            }
+            
 	  }
 	  
           getBoxEigenfunctionCoefficients( tE, tH, omega );
@@ -1698,35 +1703,16 @@ assignInitialConditions(int current, real t, real dt )
 		  real xde=X0(i1,i2,i3)-x0;
 		  real yde=X1(i1,i2,i3)-y0;
 
-                  // *new way:
                   for( int iv=0; iv<numberOfPolarizationVectors; iv++ )
                   {
                     const int pc= iv*numberOfDimensions;
-       
-                    // Do this for now -- set all vectors to be the same: 
-                    pLocal(i1,i2,i3,pc  ) = cos(fx*xde)*sin(fy*yde)*phiPx;
-                    pLocal(i1,i2,i3,pc+1) = sin(fx*xde)*cos(fy*yde)*phiPy;
+                    pLocal(i1,i2,i3,pc  ) = cos(fx*xde)*sin(fy*yde)*phiPx[iv];
+                    pLocal(i1,i2,i3,pc+1) = sin(fx*xde)*cos(fy*yde)*phiPy[iv];
                   }
-
-                  // *old way:
-		  // uLocal(i1,i2,i3,pxc) =cos(fx*xde)*sin(fy*yde)*phiPx;
-		  // uLocal(i1,i2,i3,pyc) =sin(fx*xde)*cos(fy*yde)*phiPy;
-
 
 		}
 	      }
 	      
-	      // if( qxc>=0 )
-	      // {
-              //   uLocal(i1,i2,i3,qxc) =e(xe0,ye0,0.,qxc,tE);
-              //   uLocal(i1,i2,i3,qyc) =e(xe0,ye0,0.,qyc,tE);
-              // }
-	      // if( rxc>=0 )
-	      // {
-              //   uLocal(i1,i2,i3,rxc) =e(xe0,ye0,0.,rxc,tE);
-              //   uLocal(i1,i2,i3,ryc) =e(xe0,ye0,0.,ryc,tE);
-              // }
-
               if( method==sosup )
 	      {
                 // ---- SOSUP -----
@@ -1776,14 +1762,10 @@ assignInitialConditions(int current, real t, real dt )
                     {
                       const int pc= iv*numberOfDimensions;
        
-                      // Do this for now -- set all vectors to be the same: 
-                      pmLocal(i1,i2,i3,pc  ) = cos(fx*xde)*sin(fy*yde)*phiPxm;
-                      pmLocal(i1,i2,i3,pc+1) = sin(fx*xde)*cos(fy*yde)*phiPym;
+                      pmLocal(i1,i2,i3,pc  ) = cos(fx*xde)*sin(fy*yde)*phiPxm[iv];
+                      pmLocal(i1,i2,i3,pc+1) = sin(fx*xde)*cos(fy*yde)*phiPym[iv];
                     }
 
-
-		    // umLocal(i1,i2,i3,pxc) =cos(fx*xde)*sin(fy*yde)*phiPxm;
-		    // umLocal(i1,i2,i3,pyc) =sin(fx*xde)*cos(fy*yde)*phiPym;
 		  }
 		}
 
@@ -1793,6 +1775,8 @@ assignInitialConditions(int current, real t, real dt )
 	    else // 3D
 	    {
 
+              assert( dispersionModel==noDispersion ); // FINISH ME
+              
 	      FOR_3D(i1,i2,i3,J1,J2,J3)
 	      {
 		real xde=X0(i1,i2,i3)-x0;
@@ -1839,6 +1823,7 @@ assignInitialConditions(int current, real t, real dt )
 	  else 
 	  {
 	    // --- curvilinear ---
+            assert( dispersionModel==noDispersion ); // FINISH ME
 
 	    if( numberOfDimensions==2 )
 	    {

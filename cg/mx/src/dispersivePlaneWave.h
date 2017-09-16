@@ -83,9 +83,12 @@
       ubv(hz) = amph
     else
       ! polarization vector: (ex=pxc, ey=pyc) 
-      amp=(psir*cost-psii*sint)*cosxi - (psir*sint+psii*cost)*sinxi
-      ubv(ex) = pwc(0)*amp 
-      ubv(ey) = pwc(1)*amp 
+      do iv=0,numberOfPolarizationVectors-1
+        pxc = ex + iv*nd
+        amp=(psir(iv)*cost-psii(iv)*sint)*cosxi - (psir(iv)*sint+psii(iv)*cost)*sinxi
+        ubv(pxc  ) = pwc(0)*amp 
+        ubv(pxc+1) = pwc(1)*amp 
+      end do 
 
      ! *check me* -- just repeat hz for now 
      !  ubv(hz) = (hc*cosxi+hs*sinxi)*expt
@@ -107,11 +110,12 @@
 
     else
       ! polarization vector: (ex=pxc, ey=pyc) 
-      ! polarization vector: (ex=pxc, ey=pyc) 
-      amp=(psir*costp-psii*sintp)*cosxi - (psir*sintp+psii*costp)*sinxi
-      ubv(ex) = pwc(0)*amp 
-      ubv(ey) = pwc(1)*amp 
-
+      do iv=0,numberOfPolarizationVectors-1
+        pxc = ex + iv*nd
+        amp=(psir(iv)*costp-psii(iv)*sintp)*cosxi - (psir(iv)*sintp+psii(iv)*costp)*sinxi
+        ubv(pxc  ) = pwc(0)*amp 
+        ubv(pxc+1) = pwc(1)*amp 
+      end do
     end if
 
   else if( numberOfTimeDerivatives==2 )then

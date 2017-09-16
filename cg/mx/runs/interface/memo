@@ -1,3 +1,32 @@
+
+******************************
+******** Sept 15, 2016
+
+START THINKING ABOUT GDM interfaces
+
+cgmx interface -g=twoSquaresInterfacee4.order2 -eps2=4. -kx=2 -ky=1 -tp=.1 -ic=pmic -diss=0. -bc=d -npv=1 -a01=.5 .5 -dm=gdm
+
+
+
+NON-SQUARES: 
+cgmx interface -g=twoNonSquaresInterfacee4.order2 -eps2=4. -kx=2 -ky=1 -tp=.1 -ic=pmic -diss=1. -bc=d 
+>>> t=1.00e-01 dt=1.4e-02 max errors:[6.37e-03,2.07e-02,4.10e-02,], max (u):[5.84e-01,1.16e+00,1.31e+00,] (7 steps)
+G8: 
+>>> t=1.00e-01 dt=7.7e-03 max errors:[1.53e-03,4.85e-03,9.95e-03,], max (u):[5.80e-01,1.16e+00,1.30e+00,] (13 steps)
+
+RECTANGULAR -- BUG FIXED
+cgmx interface -g=twoSquaresInterfacee4.order2 -eps2=4. -kx=2 -ky=1 -tp=.1 -ic=pmic -diss=1. -bc=d 
+>>> Cgmx:FD: t=1.00e-01 dt=1.4e-02 TS=ME ad2=1.00 |div(E)|/|grad(E)|=3.92e-02 (=6.57e-01/1.68e+01) 7 steps mem=30.4(Mb) cpu=1.80e+00(s)
+>>> t=1.00e-01 dt=1.4e-02 max errors:[6.37e-03,2.07e-02,2.93e-02,], max (u):[5.84e-01,1.16e+00,1.31e+00,] (7 steps)
+
+G8: 
+>>> t=1.00e-01 dt=7.7e-03 max errors:[1.53e-03,4.85e-03,4.26e-03,], max (u):[5.80e-01,1.16e+00,1.30e+00,] (13 steps)
+
+RECT -- OLD
+cgmx interface -g=twoSquaresInterfacee4.order2 -eps2=4. -kx=2 -ky=1 -tp=.1 -ic=pmic -diss=1. -bc=d 
+>>> t=1.00e-01 dt=1.4e-02 max errors:[6.37e-03,2.07e-02,4.00e-01,], max (u):[5.84e-01,1.16e+00,1.69e+00,] (7 steps)
+
+
 ******************************
 ******** Fri. July 1, 2016
 

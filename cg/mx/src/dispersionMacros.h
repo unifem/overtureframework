@@ -40,7 +40,7 @@
     DispersiveMaterialParameters & dmp = getDispersiveMaterialParameters(grid);
     const real kk = twoPi*cc0;  // Parameter in dispersion relation **check me**
     // *new way*
-    real sr,si,psir,psii;
+    real sr,si,psir[10],psii[10];
     dmp.evaluateDispersionRelation( c,kk, sr, si, psir,psii ); 
 
 
@@ -52,7 +52,7 @@
 
     if( t<=3.*dt ) 
     {
-      printF("--MX--GIC dispersion: s=(%12.4e,%12.4e) psi=(%12.4e,%12.4e)\n",sr,si,psir,psii);
+      printF("--MX--GIC dispersion: s=(%12.4e,%12.4e) psi=(%12.4e,%12.4e)\n",sr,si,psir[0],psii[0]);
       printF("--MX--GIC scatCyl si/(twoPi*cc0)=%g\n",si/twoPi*cc0);
     }
     
@@ -78,11 +78,11 @@
     // P = Re{ psi(s)*E } = Re{ (psir+i*psi)*( Er + i*Ei)( ct+i*st ) }
   
   
-    phiPc =  psir*cost-psii*sint;  // Coeff of Er 
-    phiPs = -psir*sint-psii*cost;  // coeff of Ei
+    phiPc =  psir[0]*cost-psii[0]*sint;  // Coeff of Er 
+    phiPs = -psir[0]*sint-psii[0]*cost;  // coeff of Ei
   	    
-    phiPcm =  psir*costm-psii*sintm;
-    phiPsm = -psir*sintm-psii*costm;
+    phiPcm =  psir[0]*costm-psii[0]*sintm;
+    phiPsm = -psir[0]*sintm-psii[0]*costm;
 
       // *** TEST ****
     if( true )

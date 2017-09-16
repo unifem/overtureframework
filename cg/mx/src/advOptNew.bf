@@ -1159,7 +1159,6 @@ else if( updateSolution.eq.1 )then
 ! Macro:     DISPERSIVE: CURVILINEAR, 2D, ORDER 2
 ! ===========================================================================================
 #beginMacro updateCurvilinear2dOrder2Dispersive()
-  INFO("FD44c-dispersive");
  if( addDissipation )then
    write(*,'(" -- finish me : dispersion and AD")')
    stop 8256
@@ -1173,6 +1172,9 @@ else if( updateSolution.eq.1 )then
  fe=0.
 
  if( numberOfPolarizationVectors.eq.1 )then
+  ! ------- 2D DISPERSIVE CURVILINEAR NP=1 ------
+  INFO("FD44c-dispersive")
+
   beginLoopsMask(i1,i2,i3,n1a,n1b,n2a,n2b,n3a,n3b)
 
     ! Advance Hz first:
@@ -1224,8 +1226,72 @@ else if( updateSolution.eq.1 )then
 
  else
 
-  INFO("FINISH ME FOR numberOfPolarizationVectors>1")
-  stop 1234
+  ! ------- 2D DISPERSIVE CURVILINEAR MULTIPLE PV -------
+
+  INFO("FD22c-dispersive-MULTI-PV");
+
+  fe=0.
+  ! -- first compute some coefficients ---
+  beta=0. 
+  do iv=0,numberOfPolarizationVectors-1
+    betav(iv) = 1./( 1.+.5*dt*b1v(iv) )
+    beta = beta + .5*dt*a1v(iv)*betav(iv)
+    fpv(iv)=0.  ! initialize if not used 
+  end do
+
+  beginLoopsMask(i1,i2,i3,n1a,n1b,n2a,n2b,n3a,n3b)
+
+    ! Advance Hz first:
+    ! For now solve H_t = -(1/mu)*(  (E_y)_x - (E_x)_y )
+    !   USE AB2 -- note: this is just a quadrature so stability is not an issue
+    un(i1,i2,i3,hz) = u(i1,i2,i3,hz) -(dt/mu)*( 1.5*ux22(i1,i2,i3,ey) -.5*umx22(i1,i2,i3,ey) \
+                                               -1.5*uy22(i1,i2,i3,ex) +.5*umy22(i1,i2,i3,ex) )
+
+    addtForcingHz()
+
+    ! -- loop over components of the vector --
+    do m=0,1
+     pc=pxc+m
+     ec=ex+m
+
+     if( addForcing.ne.0 )then
+       ! fe = dtsq*f(i1,i2,i3,ec)
+       ! Compute fpv(iv) : 
+       getGDMForcing2d()
+     end if
+
+     ! GDM: 
+     !   (E^{n+1} -2 E^n + E^{n-1})/dt^2 = c^2*Delta(E) -alphaP*(P^{n+1} -2 P^n + P^{n-1})/dt^2
+     !   (P^{n+1} -2 P^n + P^{n-1})/dt^2 + b1* (P^{n+1} - P^{n-1})/(2*dt) + b0*P^n =
+     !                             a0*E^n + a1*(E^{n+1} - E^{n-1})/(2*dt)
+     ! =>
+     !            E^{n+1} +       alphaP*P^{n+1} = rhsE
+     !  -.5*a1*dt*E^{n+1} + (1+.5*b1*dt)*P^{n+1} = rhsP
+     !
+     ev = u(i1,i2,i3,ec)
+     evm=um(i1,i2,i3,ec)
+    
+     rhsP = 0.
+     pSum=0. 
+     do iv=0,numberOfPolarizationVectors-1
+       pv(iv) = p(i1,i2,i3,m+iv*nd)
+       pvm(iv)=pm(i1,i2,i3,m+iv*nd)
+
+       rhspv(iv) = 2.*pv(iv)-pvm(iv) + .5*dt*( b1v(iv)*pvm(iv) -a1v(iv)*evm ) + dtSq*( -b0v(iv)*pv(iv) + a0v(iv)*ev ) + fpv(iv)
+       rhsP = rhsP + betav(iv)*rhspv(iv) 
+       pSum = pSum + 2.*pv(iv) - pvm(iv) 
+     end do 
+
+     rhsE = maxwellc22(i1,i2,i3,ec) + alphaP*( pSum - rhsP ) + fe 
+
+     evn = rhsE / (1.+ alphaP*beta)
+     un(i1,i2,i3,ec) = evn
+     do iv=0,numberOfPolarizationVectors-1
+       pn(i1,i2,i3,m+iv*nd)  = betav(iv)*( .5*dt*a1v(iv)*evn + rhspv(iv) )
+    end do
+
+   end do ! m=0,1
+  endLoopsMask()
 
  end if
 #endMacro 
@@ -1330,8 +1396,8 @@ else if( updateSolution.eq.1 )then
  parameter(defaultTimeStepping=0,adamsSymmetricOrder3=1,\
            rungeKuttaFourthOrder=2,stoermerTimeStepping=3,modifiedEquationTimeStepping=4)
  ! Dispersion models
- integer noDispersion,drude
- parameter( noDispersion=0, drude=1 )
+ integer noDispersion,drude,gdm
+ parameter( noDispersion=0, drude=1, gdm=2 )
 
  ! forcing options
       #Include "forcingDefineFortranInclude.h"
@@ -2095,7 +2161,8 @@ f3dcme44(i1,i2,i3,n) = fa(i1,i2,i3,n,fcur)+cdtSqBy12*ffLaplacian23(i1,i2,i3,n) \
  if( dispersionModel.ne.noDispersion )then
   ! get the gdm parameters
   !   gdmPar(0:3,iv) = (a0,a1,b0,b1) 
-  call getGDMParameters( grid,gdmPar,maxNumberOfParameters,maxNumberOfPolarizationVectors )
+  ! This routine returns numberOfPolarizationVectors (no need to pass)
+  call getGDMParameters( grid,gdmPar,numberOfPolarizationVectors, maxNumberOfParameters,maxNumberOfPolarizationVectors )
 
    if( t.eq.0. .and. dispersionModel.ne.noDispersion )then
      ! ---- Dispersive Maxwell ----
@@ -2104,7 +2171,7 @@ f3dcme44(i1,i2,i3,n) = fa(i1,i2,i3,n,fcur)+cdtSqBy12*ffLaplacian23(i1,i2,i3,n) \
      write(*,'("--advOpt-- GDM: alphaP,a0,a1,b0,b1=",5(1p,e10.2))') alphaP,a0,a1,b0,b1
 
      do iv=0,numberOfPolarizationVectors-1
-       write(*,'("GDM: eqn=",i3," a0,a1,b0,b1=",4(1p,e10.2))') iv,a0v(iv),a1v(iv),b0v(iv),b1v(iv)
+       write(*,'("--advOpt-- GDM: eqn=",i3," a0,a1,b0,b1=",4(1p,e10.2))') iv,a0v(iv),a1v(iv),b0v(iv),b1v(iv)
      end do 
   end if
  end if

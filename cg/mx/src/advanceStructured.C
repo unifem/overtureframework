@@ -35,10 +35,12 @@ extern "C"
 // ================================================================================
 ///  \brief Return the gdm parameters
 /// \param grid (input) : return parameters for this grid 
+/// \param numberOfPolarizationVectors (output) : 
 /// \param gdm(0:maxNumberOfParameters-1, 0:maxNumberOfPolarizationVectors) : output
 ///           return gdm(0:3,iv) = (a0,a1,b0,b1) iv=0,1,2...,numberOfPolarizationVectors-1
 // ================================================================================
 void getGDMParameters( int & grid, real *gdmPar, 
+                                              int & numberOfPolarizationVectors,
                                               const int & maxNumberOfParameters, 
                                               const int & maxNumberOfPolarizationVectors )
 {
@@ -52,11 +54,12 @@ void getGDMParameters( int & grid, real *gdmPar,
 
     const int domain = cg.domainNumber(grid);
     const DispersiveMaterialParameters & dmp =  cgmxPointer->getDomainDispersiveMaterialParameters(domain);
-
+    
     assert( dmp.numberOfPolarizationVectors>0 );
     assert( dmp.numberOfPolarizationVectors<= maxNumberOfPolarizationVectors );
     assert( dmp.numberOfModelParameters <= maxNumberOfParameters );
 
+    numberOfPolarizationVectors=dmp.numberOfPolarizationVectors;
     for( int iv=0; iv<dmp.numberOfPolarizationVectors; iv++ )
     {
         for( int m=0; m<dmp.numberOfModelParameters; m++ )
@@ -428,16 +431,13 @@ advanceNFDTD(  int numberOfStepsTaken, int current, real t, real dt )
                     realMappedGridFunction & pNext= getDispersionModelMappedGridFunction( grid,next );
                     realMappedGridFunction & pCur = getDispersionModelMappedGridFunction( grid,current );
                     realMappedGridFunction & pPrev= getDispersionModelMappedGridFunction( grid,prev );
-                    if( numberOfPolarizationVectors>0 )
-                    {
-                        OV_GET_SERIAL_ARRAY(real,pNext,pnLocal);
-                        OV_GET_SERIAL_ARRAY(real, pCur,pLocal);
-                        OV_GET_SERIAL_ARRAY(real,pPrev,pmLocal);
-                        pnptr=pnLocal.getDataPointer();
-                        pptr = pLocal.getDataPointer();
-                        pmptr=pmLocal.getDataPointer();
+                    OV_GET_SERIAL_ARRAY(real,pNext,pnLocal);
+                    OV_GET_SERIAL_ARRAY(real, pCur,pLocal);
+                    OV_GET_SERIAL_ARRAY(real,pPrev,pmLocal);
+                    pnptr=pnLocal.getDataPointer();
+                    pptr = pLocal.getDataPointer();
+                    pmptr=pmLocal.getDataPointer();
             // ::display(pLocal,"pLocal");
-                    }
                 }
                 bool ok = ParallelUtility::getLocalArrayBounds(u,uLocal,I1,I2,I3);
                 real timeAdv=getCPU();

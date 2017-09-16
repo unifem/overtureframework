@@ -115,6 +115,41 @@ updateghostandperiodic(realMappedGridFunction *&pu )
 } 
 }
 
+static Maxwell *cgmxPointer=NULL; // for getGDMParameters
+
+#define getGDMPolarizationParameters EXTERN_C_NAME(getgdmpolarizationparameters)
+extern "C"
+{
+
+// ================================================================================
+///  \brief Return the gdm parameters polarizarion psir(i), psii(i) 
+/// \param grid (input) : return parameters for this grid 
+/// \param psir(0:maxNumberOfPolarizationVectors), psii(0:maxNumberOfPolarizationVectors): output
+// ================================================================================
+void getGDMPolarizationParameters( int & grid, real *psir, real *psii, const int & maxNumberOfPolarizationVectors )
+{
+    assert( cgmxPointer != NULL );
+
+    CompositeGrid *&cgp = cgmxPointer->cgp;
+    assert( cgp!=NULL );
+    CompositeGrid & cg= *cgp;
+
+    const int domain = cg.domainNumber(grid);
+    const DispersiveMaterialParameters & dmp =  cgmxPointer->getDomainDispersiveMaterialParameters(domain);
+
+    assert( dmp.numberOfPolarizationVectors>0 );
+    assert( dmp.numberOfPolarizationVectors<= maxNumberOfPolarizationVectors );
+
+    for( int iv=0; iv<dmp.numberOfPolarizationVectors; iv++ )
+    {
+        psir[iv] = dmp.psir0(iv);
+        psii[iv] = dmp.psii0(iv);
+    }
+#undef gdmVar  
+}
+
+}
+
 #define FOR_3D(i1,i2,i3,I1,I2,I3) int I1Base =I1.getBase(),   I2Base =I2.getBase(),  I3Base =I3.getBase();  int I1Bound=I1.getBound(),  I2Bound=I2.getBound(), I3Bound=I3.getBound(); for(i3=I3Base; i3<=I3Bound; i3++) for(i2=I2Base; i2<=I2Bound; i2++) for(i1=I1Base; i1<=I1Bound; i1++)
 
 #define FOR_3(i1,i2,i3,I1,I2,I3) I1Base =I1.getBase(),   I2Base =I2.getBase(),  I3Base =I3.getBase();  I1Bound=I1.getBound(),  I2Bound=I2.getBound(), I3Bound=I3.getBound(); for(i3=I3Base; i3<=I3Bound; i3++) for(i2=I2Base; i2<=I2Bound; i2++) for(i1=I1Base; i1<=I1Bound; i1++)
@@ -536,6 +571,8 @@ assignBoundaryConditions( int option, int grid, real t, real dt, realMappedGridF
     
     const int numberOfDimensions = mg.numberOfDimensions();
     
+    cgmxPointer = this; // for getGMDParameters 
+
     const int useForcing = forcingOption==twilightZoneForcing;
 
     const BoundaryForcingEnum & boundaryForcingOption =dbase.get<BoundaryForcingEnum>("boundaryForcingOption");
@@ -913,9 +950,9 @@ assignBoundaryConditions( int option, int grid, real t, real dt, realMappedGridF
                               real sint = sin(omega*t), cost = cos(omega*t);
                               real sintp = omega*cost, costp = -omega*sint;
                               real sintm = sin(omega*(t-dt)), costm = cos(omega*(t-dt));
-                              real sr,si,psir,psii, ct,st,expt, ctm,stm,exptm;
+                              real sr,si,psir[10],psii[10], ct,st,expt, ctm,stm,exptm;
                               real ampH, ampE, ampHm, ampEm, ampHp, ampEp, ampHmp, ampEmp;
-                              real ampP=0., ampPm=0.;
+                              real ampP[10], ampPm[10];
                               if( dispersionModel==noDispersion )
                               {
                                   ampH  = cost;   ampHp  =-omega*sint;
@@ -928,10 +965,11 @@ assignBoundaryConditions( int option, int grid, real t, real dt, realMappedGridF
                  // --- DISPERSIVE ----
                                   DispersiveMaterialParameters & dmp = getDispersiveMaterialParameters(grid);
                  // Evaluate the dispersion relation for "s"
+                                  assert( dmp.numberOfPolarizationVectors<10 );
                                   const real kk = omega/c; //  *CHECK ME* 
                                   dmp.evaluateDispersionRelation( c,kk, sr, si, psir,psii ); 
                                   if( t<3.*dt )
-                                      printF("--DISK-EIGEN-- (dispersive) t=%10.3e, sr=%g, si=%g psir=%g psii=%g\n",t,sr,si,psir,psii );
+                                      printF("--DISK-EIGEN-- (dispersive) t=%10.3e, sr=%g, si=%g psir[0]=%g psii[0]=%g\n",t,sr,si,psir[0],psii[0] );
                                   expt =exp(sr*t);
                                   st=sin(si*t)*expt; ct=cos(si*t)*expt;
                  // const real stp= si*ct+sr*st , ctp=-si*st+sr*ct;
@@ -942,25 +980,40 @@ assignBoundaryConditions( int option, int grid, real t, real dt, realMappedGridF
                                   const real sNormSq = sr*sr+si*si;
                                   ampH = ct;   
                  // ampHp = -si*st + sr*ct;
+                 // eps Ev_t = curl( Hv ) - alphaP*eps* SUM (Pv_j).t 
+                 //   Pv_j = psi_j * Ev   
+                 // eps*( 1 + alphaP*Sum psi_j) \Ev_t = curl ( Hv ) 
                  // E = Re( (1/(eps*s) * 1/( 1+alphaP*psi) * ( ct + i sint ) )
                  //   = Re( (phir+i*phii)*( ct + i sint )
                                   const real alphaP = dmp.alphaP;
-                                  real chiNormSq = SQR(1.+alphaP*psir)+SQR(alphaP*psii); //   | 1+alphaP*psi|^2 
+                                  real psirSum=0., psiiSum=0.;
+                                  for( int iv=0; iv<numberOfPolarizationVectors; iv++ )
+                                  {
+                                      psirSum += psir[iv]; 
+                                      psiiSum += psii[iv];
+                                  }
+                                  real chiNormSq = SQR(1.+alphaP*psirSum)+SQR(alphaP*psiiSum); //   | 1+alphaP*psi|^2 
                  //  phi = (1/(eps*s) * 1/( 1+alphaP*psi)
                  //      = (sr-i*si)*( 1+alphaP*psir - i*alphaP*psii)/(eps* sNormSq*chiNormSq )
                  //      = phir +i*phii 
-                                  real phir = ( sr*(1.+alphaP*psir)-si*alphaP*psii)/( eps*sNormSq*chiNormSq );
-                                  real phii = (-si*(1.+alphaP*psir)-sr*alphaP*psii)/( eps*sNormSq*chiNormSq );
+                                  real phir = ( sr*(1.+alphaP*psirSum)-si*alphaP*psiiSum)/( eps*sNormSq*chiNormSq );
+                                  real phii = (-si*(1.+alphaP*psirSum)-sr*alphaP*psiiSum)/( eps*sNormSq*chiNormSq );
                                   ampE = phir*ct - phii*st;
                  // P = Re( (psir+i*psii)*(phir+i*phii)*( ct + i sint ) )
                  //   = Re( (psir+i*psii)*( phir*ct-phii*st + i*( phir*st +phii*ct )
                  //   = psir*( phir*ct-phii*st) -psii*(  phir*st +phii*ct )
-                                  ampP = psir*(phir*ct-phii*st ) - psii*( phir*st +phii*ct);
+                                  for( int iv=0; iv<numberOfPolarizationVectors; iv++ )
+                                  {
+                                      ampP[iv] = psir[iv]*(phir*ct-phii*st ) - psii[iv]*( phir*st +phii*ct);
+                                  }
                  // tm = t-dt 
                                   ampHm = ctm;  
                  // ampHp = -si*stm + sr*ctm;
                                   ampEm = phir*ctm - phii*stm;
-                                  ampPm = psir*(phir*ctm-phii*stm ) - psii*( phir*stm +phii*ctm);
+                                  for( int iv=0; iv<numberOfPolarizationVectors; iv++ )
+                                  {
+                                        ampPm[iv] = psir[iv]*(phir*ctm-phii*stm ) - psii[iv]*( phir*stm +phii*ctm);
+                                  }
                               }
                               FOR_3D(i1,i2,i3,I1,I2,I3)
                               {
@@ -1023,8 +1076,8 @@ assignBoundaryConditions( int option, int grid, real t, real dt, realMappedGridF
                                           {
                                               const int pc= iv*numberOfDimensions;
                        // Do this for now -- set all vectors to be the same: 
-                                              pLocal(i1,i2,i3,pc  ) = uex*ampP;
-                                              pLocal(i1,i2,i3,pc+1) = uey*ampP;
+                                              pLocal(i1,i2,i3,pc  ) = uex*ampP[iv];
+                                              pLocal(i1,i2,i3,pc+1) = uey*ampP[iv];
                                           }
                      // uLocal(i1,i2,i3,pxc) = uex*ampP;
                      // uLocal(i1,i2,i3,pyc) = uey*ampP;
@@ -1169,7 +1222,7 @@ assignBoundaryConditions( int option, int grid, real t, real dt, realMappedGridF
                       // --- DISPERSIVE ---
                                             DispersiveMaterialParameters & dmp = getDispersiveMaterialParameters(grid);
                                             const real kk = twoPi*sqrt( kx*kx+ky*ky+kz*kz);
-                                            real sr, si, psir,psii;
+                                            real sr, si, psir[10],psii[10];
                                             dmp.evaluateDispersionRelation( c,kk, sr, si, psir,psii ); 
                                             if( t<=3.*dt )
                                                 printF("--MX--Dirichlet BC dispersion: s=(%12.4e,%12.4e)\n",sr,si);
@@ -1201,12 +1254,10 @@ assignBoundaryConditions( int option, int grid, real t, real dt, realMappedGridF
                                                 U(i1,i2,i3,ey)=pwc[1]*amp;
                                                 real amph = (hr*ct-hi*st)*cx - (hr*st+hi*ct)*sx;
                                                 U(i1,i2,i3,hz)=amph;
-                        // amp=(psir*cx-psii*sx)*ctm - (psir*sx+psii*cx)*stm;
-                                                amp=(psir*ct-psii*st)*cx - (psir*st+psii*ct)*sx;
                                                 for( int iv=0; iv<numberOfPolarizationVectors; iv++ )
                                                 {
                                                     const int pc= iv*numberOfDimensions;
-                          // *fix* me for numberOfPolarizationVectors>1 
+                                                    amp=(psir[iv]*ct-psii[iv]*st)*cx - (psir[iv]*st+psii[iv]*ct)*sx;
                                                     pLocal(i1,i2,i3,pc  ) = pwc[0]*amp;
                                                     pLocal(i1,i2,i3,pc+1) = pwc[1]*amp;
                                                 }
@@ -1408,7 +1459,7 @@ assignBoundaryConditions( int option, int grid, real t, real dt, realMappedGridF
                                         DispersiveMaterialParameters & dmp = getDispersiveMaterialParameters(grid);
                                         const real kk = twoPi*cc0;  // Parameter in dispersion relation **check me**
                     // *new way*
-                                        real sr,si,psir,psii;
+                                        real sr,si,psir[10],psii[10];
                                         dmp.evaluateDispersionRelation( c,kk, sr, si, psir,psii ); 
                     // real reS, imS;
                     // dmp.computeDispersionRelation( c,eps,mu,kk, reS, imS );
@@ -1416,7 +1467,7 @@ assignBoundaryConditions( int option, int grid, real t, real dt, realMappedGridF
                     // si=-si;  // flip sign    **** FIX ME ****
                                         if( t<=3.*dt ) 
                                         {
-                                            printF("--MX--GIC dispersion: s=(%12.4e,%12.4e) psi=(%12.4e,%12.4e)\n",sr,si,psir,psii);
+                                            printF("--MX--GIC dispersion: s=(%12.4e,%12.4e) psi=(%12.4e,%12.4e)\n",sr,si,psir[0],psii[0]);
                                             printF("--MX--GIC scatCyl si/(twoPi*cc0)=%g\n",si/twoPi*cc0);
                                         }
                     // Re( (Er+i*Ei)*( ct + i*st ) )
@@ -1434,10 +1485,10 @@ assignBoundaryConditions( int option, int grid, real t, real dt, realMappedGridF
                     // real alpha=reS, beta=imS;  // s= alpha + i*beta (
                     // real a,b;   // psi = a + i*b 
                     // P = Re{ psi(s)*E } = Re{ (psir+i*psi)*( Er + i*Ei)( ct+i*st ) }
-                                        phiPc =  psir*cost-psii*sint;  // Coeff of Er 
-                                        phiPs = -psir*sint-psii*cost;  // coeff of Ei
-                                        phiPcm =  psir*costm-psii*sintm;
-                                        phiPsm = -psir*sintm-psii*costm;
+                                        phiPc =  psir[0]*cost-psii[0]*sint;  // Coeff of Er 
+                                        phiPs = -psir[0]*sint-psii[0]*cost;  // coeff of Ei
+                                        phiPcm =  psir[0]*costm-psii[0]*sintm;
+                                        phiPsm = -psir[0]*sintm-psii[0]*costm;
                       // *** TEST ****
                                         if( true )
                                         {
@@ -2057,6 +2108,7 @@ assignBoundaryConditions( int option, int grid, real t, real dt, realMappedGridF
                 ipar[33]=polarizationOption;
                 ipar[34]=dispersionModel;
                 ipar[35]=dbase.get<int>("smoothBoundingBox"); // 1= smooth the IC at the bounding box edge
+                ipar[36] = numberOfPolarizationVectors;
                 rpar[0]=dx[0];       // for Cartesian grids          
                 rpar[1]=dx[1];                
                 rpar[2]=dx[2];                
@@ -2097,11 +2149,11 @@ assignBoundaryConditions( int option, int grid, real t, real dt, realMappedGridF
                 rpar[36]=cpw(7); // z0
         // Dispersion parameters:
                 real sr=0.,si=0.;  // Re(s), Im(s) in exp(s*t) 
-                real psir=0., psii=0.;   // For P = psi(s)*E 
+                real psir[10], psii[10];   // For P = psi(s)*E 
                 if( dispersionModel !=noDispersion && assignPlaneWaveBoundaryCondition )
                 {
                     const real kk = twoPi*sqrt( kx*kx+ky*ky+kz*kz);
-                    real sr=0., si=1., psir=0.,psii=0.;
+                    real sr=0., si=1.;
                     DispersiveMaterialParameters & dmp = getDispersiveMaterialParameters(grid);
                     dmp.evaluateDispersionRelation( c,kk, sr, si, psir,psii ); 
                     if( t<=3.*dt )
@@ -2116,8 +2168,8 @@ assignBoundaryConditions( int option, int grid, real t, real dt, realMappedGridF
                 }
                 rpar[37]=sr;
                 rpar[38]=si;
-                rpar[39]=psir;
-                rpar[40]=psii;
+                rpar[39]=psir[0];  // *FIX ME*
+                rpar[40]=psii[0];
         // fprintf(pDebugFile,"**** pu= %i, %i...\n",&u,pu);
             #ifdef USE_PPP 
                 realSerialArray uu;    getLocalArrayWithGhostBoundaries(u,uu);
@@ -2591,6 +2643,7 @@ assignBoundaryConditions( int option, int grid, real t, real dt, realMappedGridF
                     ipar[33]=polarizationOption;
                     ipar[34]=dispersionModel;
                     ipar[35]=dbase.get<int>("smoothBoundingBox"); // 1= smooth the IC at the bounding box edge
+                    ipar[36] = numberOfPolarizationVectors;
                     rpar[0]=dx[0];       // for Cartesian grids          
                     rpar[1]=dx[1];                
                     rpar[2]=dx[2];                
@@ -2631,11 +2684,11 @@ assignBoundaryConditions( int option, int grid, real t, real dt, realMappedGridF
                     rpar[36]=cpw(7); // z0
           // Dispersion parameters:
                     real sr=0.,si=0.;  // Re(s), Im(s) in exp(s*t) 
-                    real psir=0., psii=0.;   // For P = psi(s)*E 
+                    real psir[10], psii[10];   // For P = psi(s)*E 
                     if( dispersionModel !=noDispersion && assignPlaneWaveBoundaryCondition )
                     {
                         const real kk = twoPi*sqrt( kx*kx+ky*ky+kz*kz);
-                        real sr=0., si=1., psir=0.,psii=0.;
+                        real sr=0., si=1.;
                         DispersiveMaterialParameters & dmp = getDispersiveMaterialParameters(grid);
                         dmp.evaluateDispersionRelation( c,kk, sr, si, psir,psii ); 
                         if( t<=3.*dt )
@@ -2650,8 +2703,8 @@ assignBoundaryConditions( int option, int grid, real t, real dt, realMappedGridF
                     }
                     rpar[37]=sr;
                     rpar[38]=si;
-                    rpar[39]=psir;
-                    rpar[40]=psii;
+                    rpar[39]=psir[0];  // *FIX ME*
+                    rpar[40]=psii[0];
           // fprintf(pDebugFile,"**** pu= %i, %i...\n",&u,pu);
                 #ifdef USE_PPP 
                     realSerialArray uu;    getLocalArrayWithGhostBoundaries(u,uu);
@@ -3129,6 +3182,7 @@ assignBoundaryConditions( int option, int grid, real t, real dt, realMappedGridF
                     ipar[33]=polarizationOption;
                     ipar[34]=dispersionModel;
                     ipar[35]=dbase.get<int>("smoothBoundingBox"); // 1= smooth the IC at the bounding box edge
+                    ipar[36] = numberOfPolarizationVectors;
                     rpar[0]=dx[0];       // for Cartesian grids          
                     rpar[1]=dx[1];                
                     rpar[2]=dx[2];                
@@ -3169,11 +3223,11 @@ assignBoundaryConditions( int option, int grid, real t, real dt, realMappedGridF
                     rpar[36]=cpw(7); // z0
           // Dispersion parameters:
                     real sr=0.,si=0.;  // Re(s), Im(s) in exp(s*t) 
-                    real psir=0., psii=0.;   // For P = psi(s)*E 
+                    real psir[10], psii[10];   // For P = psi(s)*E 
                     if( dispersionModel !=noDispersion && assignPlaneWaveBoundaryCondition )
                     {
                         const real kk = twoPi*sqrt( kx*kx+ky*ky+kz*kz);
-                        real sr=0., si=1., psir=0.,psii=0.;
+                        real sr=0., si=1.;
                         DispersiveMaterialParameters & dmp = getDispersiveMaterialParameters(grid);
                         dmp.evaluateDispersionRelation( c,kk, sr, si, psir,psii ); 
                         if( t<=3.*dt )
@@ -3188,8 +3242,8 @@ assignBoundaryConditions( int option, int grid, real t, real dt, realMappedGridF
                     }
                     rpar[37]=sr;
                     rpar[38]=si;
-                    rpar[39]=psir;
-                    rpar[40]=psii;
+                    rpar[39]=psir[0];  // *FIX ME*
+                    rpar[40]=psii[0];
           // fprintf(pDebugFile,"**** pu= %i, %i...\n",&u,pu);
                 #ifdef USE_PPP 
                     realSerialArray uu;    getLocalArrayWithGhostBoundaries(u,uu);

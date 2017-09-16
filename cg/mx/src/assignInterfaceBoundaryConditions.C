@@ -9,6 +9,7 @@
 #include "RadiationBoundaryCondition.h"
 #include "ParallelUtility.h"
 #include "ParallelGridUtility.h"
+#include "DispersiveMaterialParameters.h"
 
 #define interfaceMaxwell EXTERN_C_NAME(interfacemaxwell)
 #define newInterfaceMaxwell EXTERN_C_NAME(newinterfacemaxwell)
@@ -37,10 +38,10 @@ void newInterfaceMaxwell( const int&nd,
 void interface3dMaxwell( const int&nd, 
                                               const int&nd1a,const int&nd1b,const int&nd2a,const int&nd2b,const int&nd3a,const int&nd3b,
                    		       const int&gridIndexRange1, real&u1, const int&mask1,const real&rsxy1, const real&xy1, 
-                                              const int&boundaryCondition1, 
+                                              const real&p1, const int&boundaryCondition1, 
                    		       const int&md1a,const int&md1b,const int&md2a,const int&md2b,const int&md3a,const int&md3b,
                    		       const int&gridIndexRange2, real&u2, const int&mask2,const real&rsxy2, const real&xy2, 
-                                              const int&boundaryCondition2,
+                                              const real&p2, const int&boundaryCondition2,
                    		       const int&ipar, const real&rpar, 
                                               real&aa2, real&aa4, real&aa8, 
                                               int&ipvt2, int&ipvt4, int&ipvt8,
@@ -812,6 +813,32 @@ assignInterfaceBoundaryConditions( int current, real t, real dt,
             ::display(u2Local,sPrintF("u2Local before assignOptInterface grid2=%i, t=%8.2e",grid2,t),pDebugFile,"%8.2e ");
         }
 
+    // For dispersion materials, look up arrays of polarization vectors
+    // The number of Pv vectors may be different on either side
+    // --- Lookup info for the dispersion model ---
+        const DispersiveMaterialParameters & dmp1 = getDispersiveMaterialParameters(grid1);
+        const int numberOfPolarizationVectors1 = dmp1.numberOfPolarizationVectors; 
+
+        const DispersiveMaterialParameters & dmp2 = getDispersiveMaterialParameters(grid2);
+        const int numberOfPolarizationVectors2 = dmp2.numberOfPolarizationVectors; 
+
+    // --- Get pointers to arrays for the dispersive model ----
+        real *p1ptr = u1Local.getDataPointer();  // set default when not used
+        real *p2ptr = u2Local.getDataPointer();  // set default when not used
+
+        if( numberOfPolarizationVectors1>0 )
+        {
+            realMappedGridFunction & p1 = getDispersionModelMappedGridFunction( grid1,next );
+            OV_GET_SERIAL_ARRAY(real,p1,p1Local);
+            p1ptr=p1Local.getDataPointer();
+        }
+        if( numberOfPolarizationVectors2>0 )
+        {
+            realMappedGridFunction & p2 = getDispersionModelMappedGridFunction( grid2,next );
+            OV_GET_SERIAL_ARRAY(real,p2,p2Local);
+            p2ptr=p2Local.getDataPointer();
+        }
+
 
         int n1a=I1.getBase(),n1b=I1.getBound(),
             n2a=I2.getBase(),n2b=I2.getBound(),
@@ -872,6 +899,9 @@ assignInterfaceBoundaryConditions( int current, real t, real dt,
                 if( ok1 )
       	{
                     orderOfExtrapolation=extrapolationWidth1+1;
+          // Each grid may or may not have dispersion model: 
+                    const DispersionModelEnum dispersionModel1 = dmp1.numberOfPolarizationVectors>0 ? dispersionModel : noDispersion;
+                    const DispersionModelEnum dispersionModel2 = dmp2.numberOfPolarizationVectors>0 ? dispersionModel : noDispersion;
                     int ipar[]={ //
                         side1, dir1, grid1,         // keep side1,dir1 since we don't reverse the points.
                             n1a,n1b,n2a,n2b,n3a,n3b,
@@ -902,7 +932,9 @@ assignInterfaceBoundaryConditions( int current, real t, real dt,
                         (int)assignInterfaceGhostValues,
                         dbase.get<int>("setDivergenceAtInterfaces"),
                         dbase.get<int>("useImpedanceInterfaceProjection"),
-                        0   // numberOfInterfaceIterationsUsed : returned value ipar[43]
+                        0,   // numberOfInterfaceIterationsUsed : returned value ipar[43]
+                        dispersionModel1, // ipar[44]
+                        dispersionModel2  // ipar[45]
                     };
                 real rpar[]={ //
                     dx1[0],
@@ -984,14 +1016,14 @@ assignInterfaceBoundaryConditions( int current, real t, real dt,
                                     		        u1Local.getBase(0),u1Local.getBound(0),
                                     		        u1Local.getBase(1),u1Local.getBound(1),
                                     		        u1Local.getBase(2),u1Local.getBound(2),
-                                    		        mg1.gridIndexRange(0,0), *u1p, *mask1p,*prsxy1, *pxy1, bc1Local(0,0), 
+                                                                mg1.gridIndexRange(0,0), *u1p, *mask1p,*prsxy1, *pxy1, *p1ptr, bc1Local(0,0), 
                                     		        u2bLocal.getBase(0),u2bLocal.getBound(0),
                                     		        u2bLocal.getBase(1),u2bLocal.getBound(1),
                                     		        u2bLocal.getBase(2),u2bLocal.getBound(2),
         		        // note: use grid1 mesh data here ASSUMES GRIDS MATCH *FIX ME*
         		        // mg1.gridIndexRange(0,0), *u2bLocal.getDataPointer(), *mask1p,*prsxy1, *pxy1, bc1Local(0,0),
                                 // fixed version: but note bc1Local 
-                                    		        mg1.gridIndexRange(0,0), *u2bLocal.getDataPointer(), *pmask2b,*prsxy2b,*pxy2b, bc1Local(0,0),
+                                                                mg1.gridIndexRange(0,0), *u2bLocal.getDataPointer(), *pmask2b,*prsxy2b,*pxy2b, *p2ptr, bc1Local(0,0),
                                   		      ipar[0], rpar[0], 
                                   		      rwk[pa2],rwk[pa4],rwk[pa8], iwk[pipvt2],iwk[pipvt4],iwk[pipvt8],
                                   		      ierr );
@@ -1004,6 +1036,9 @@ assignInterfaceBoundaryConditions( int current, real t, real dt,
                 interface.averageFinalResidual+=rpar[23]/numSolvesPerStep;  // keeps sums of residuals 
         	  if( method==sosup )
         	  { // for sosup we assign E.t
+            // Each grid may or may not have dispersion model: 
+                        const DispersionModelEnum dispersionModel1 = dmp1.numberOfPolarizationVectors>0 ? dispersionModel : noDispersion;
+                        const DispersionModelEnum dispersionModel2 = dmp2.numberOfPolarizationVectors>0 ? dispersionModel : noDispersion;
                         int ipar[]={ //
                             side1, dir1, grid1,         // keep side1,dir1 since we don't reverse the points.
                                 n1a,n1b,n2a,n2b,n3a,n3b,
@@ -1034,7 +1069,9 @@ assignInterfaceBoundaryConditions( int current, real t, real dt,
                             (int)assignInterfaceGhostValues,
                             dbase.get<int>("setDivergenceAtInterfaces"),
                             dbase.get<int>("useImpedanceInterfaceProjection"),
-                            0   // numberOfInterfaceIterationsUsed : returned value ipar[43]
+                            0,   // numberOfInterfaceIterationsUsed : returned value ipar[43]
+                            dispersionModel1, // ipar[44]
+                            dispersionModel2  // ipar[45]
                         };
                     real rpar[]={ //
                         dx1[0],
@@ -1116,14 +1153,14 @@ assignInterfaceBoundaryConditions( int current, real t, real dt,
                                         		        u1Local.getBase(0),u1Local.getBound(0),
                                         		        u1Local.getBase(1),u1Local.getBound(1),
                                         		        u1Local.getBase(2),u1Local.getBound(2),
-                                        		        mg1.gridIndexRange(0,0), *u1p, *mask1p,*prsxy1, *pxy1, bc1Local(0,0), 
+                                                                    mg1.gridIndexRange(0,0), *u1p, *mask1p,*prsxy1, *pxy1, *p1ptr, bc1Local(0,0), 
                                         		        u2bLocal.getBase(0),u2bLocal.getBound(0),
                                         		        u2bLocal.getBase(1),u2bLocal.getBound(1),
                                         		        u2bLocal.getBase(2),u2bLocal.getBound(2),
           		        // note: use grid1 mesh data here ASSUMES GRIDS MATCH *FIX ME*
           		        // mg1.gridIndexRange(0,0), *u2bLocal.getDataPointer(), *mask1p,*prsxy1, *pxy1, bc1Local(0,0),
                                   // fixed version: but note bc1Local 
-                                        		        mg1.gridIndexRange(0,0), *u2bLocal.getDataPointer(), *pmask2b,*prsxy2b,*pxy2b, bc1Local(0,0),
+                                                                    mg1.gridIndexRange(0,0), *u2bLocal.getDataPointer(), *pmask2b,*prsxy2b,*pxy2b, *p2ptr, bc1Local(0,0),
                                       		      ipar[0], rpar[0], 
                                       		      rwk[pa2],rwk[pa4],rwk[pa8], iwk[pipvt2],iwk[pipvt4],iwk[pipvt8],
                                       		      ierr );
@@ -1141,6 +1178,9 @@ assignInterfaceBoundaryConditions( int current, real t, real dt,
       	if( ok2 )
       	{
                     orderOfExtrapolation=extrapolationWidth2+1;
+          // Each grid may or may not have dispersion model: 
+                    const DispersionModelEnum dispersionModel1 = dmp1.numberOfPolarizationVectors>0 ? dispersionModel : noDispersion;
+                    const DispersionModelEnum dispersionModel2 = dmp2.numberOfPolarizationVectors>0 ? dispersionModel : noDispersion;
                     int ipar[]={ //
                         side1, dir1, grid1,         // keep side1,dir1 since we don't reverse the points.
                             m1a,m1b,m2a,m2b,m3a,m3b,  // use grid2 dimensions for grid1 when we solve on grid2
@@ -1171,7 +1211,9 @@ assignInterfaceBoundaryConditions( int current, real t, real dt,
                         (int)assignInterfaceGhostValues,
                         dbase.get<int>("setDivergenceAtInterfaces"),
                         dbase.get<int>("useImpedanceInterfaceProjection"),
-                        0   // numberOfInterfaceIterationsUsed : returned value ipar[43]
+                        0,   // numberOfInterfaceIterationsUsed : returned value ipar[43]
+                        dispersionModel1, // ipar[44]
+                        dispersionModel2  // ipar[45]
                     };
                 real rpar[]={ //
                     dx1[0],
@@ -1256,11 +1298,11 @@ assignInterfaceBoundaryConditions( int current, real t, real dt,
         		        // note: use grid2 mesh data here  ASSUMES GRIDS MATCH *FIX ME*
                                 // mg2.gridIndexRange(0,0), *u1bLocal.getDataPointer(), *mask2p,*prsxy2, *pxy2, bc2Local(0,0),
                                 // fixed version: but note bc2Local 
-                                    		        mg2.gridIndexRange(0,0), *u1bLocal.getDataPointer(), *pmask1b,*prsxy1b,*pxy1b, bc2Local(0,0),
+                                                                mg2.gridIndexRange(0,0), *u1bLocal.getDataPointer(), *pmask1b,*prsxy1b,*pxy1b, *p1ptr, bc2Local(0,0),
                                     		        u2Local.getBase(0),u2Local.getBound(0),
                                     		        u2Local.getBase(1),u2Local.getBound(1),
                                     		        u2Local.getBase(2),u2Local.getBound(2),
-                                    		        mg2.gridIndexRange(0,0), *u2p, *mask2p,*prsxy2, *pxy2, bc2Local(0,0), 
+                                                                  mg2.gridIndexRange(0,0), *u2p, *mask2p,*prsxy2, *pxy2, *p2ptr, bc2Local(0,0), 
                                   		      ipar[0], rpar[0], 
                                   		      rwk[pa2],rwk[pa4],rwk[pa8], iwk[pipvt2],iwk[pipvt4],iwk[pipvt8],
                                   		      ierr );
@@ -1273,6 +1315,9 @@ assignInterfaceBoundaryConditions( int current, real t, real dt,
                 interface.averageFinalResidual+=rpar[23]/numSolvesPerStep;  // keeps sums of residuals 
         	  if( method==sosup )
         	  { // for sosup we assign E.t
+            // Each grid may or may not have dispersion model: 
+                        const DispersionModelEnum dispersionModel1 = dmp1.numberOfPolarizationVectors>0 ? dispersionModel : noDispersion;
+                        const DispersionModelEnum dispersionModel2 = dmp2.numberOfPolarizationVectors>0 ? dispersionModel : noDispersion;
                         int ipar[]={ //
                             side1, dir1, grid1,         // keep side1,dir1 since we don't reverse the points.
                                 m1a,m1b,m2a,m2b,m3a,m3b,  // use grid2 dimensions for grid1 when we solve on grid2
@@ -1303,7 +1348,9 @@ assignInterfaceBoundaryConditions( int current, real t, real dt,
                             (int)assignInterfaceGhostValues,
                             dbase.get<int>("setDivergenceAtInterfaces"),
                             dbase.get<int>("useImpedanceInterfaceProjection"),
-                            0   // numberOfInterfaceIterationsUsed : returned value ipar[43]
+                            0,   // numberOfInterfaceIterationsUsed : returned value ipar[43]
+                            dispersionModel1, // ipar[44]
+                            dispersionModel2  // ipar[45]
                         };
                     real rpar[]={ //
                         dx1[0],
@@ -1388,11 +1435,11 @@ assignInterfaceBoundaryConditions( int current, real t, real dt,
           		        // note: use grid2 mesh data here  ASSUMES GRIDS MATCH *FIX ME*
                                   // mg2.gridIndexRange(0,0), *u1bLocal.getDataPointer(), *mask2p,*prsxy2, *pxy2, bc2Local(0,0),
                                   // fixed version: but note bc2Local 
-                                        		        mg2.gridIndexRange(0,0), *u1bLocal.getDataPointer(), *pmask1b,*prsxy1b,*pxy1b, bc2Local(0,0),
+                                                                    mg2.gridIndexRange(0,0), *u1bLocal.getDataPointer(), *pmask1b,*prsxy1b,*pxy1b, *p1ptr, bc2Local(0,0),
                                         		        u2Local.getBase(0),u2Local.getBound(0),
                                         		        u2Local.getBase(1),u2Local.getBound(1),
                                         		        u2Local.getBase(2),u2Local.getBound(2),
-                                        		        mg2.gridIndexRange(0,0), *u2p, *mask2p,*prsxy2, *pxy2, bc2Local(0,0), 
+                                                                      mg2.gridIndexRange(0,0), *u2p, *mask2p,*prsxy2, *pxy2, *p2ptr, bc2Local(0,0), 
                                       		      ipar[0], rpar[0], 
                                       		      rwk[pa2],rwk[pa4],rwk[pa8], iwk[pipvt2],iwk[pipvt4],iwk[pipvt8],
                                       		      ierr );
@@ -1409,6 +1456,9 @@ assignInterfaceBoundaryConditions( int current, real t, real dt,
       	}
             #else
         // serial
+          // Each grid may or may not have dispersion model: 
+                    const DispersionModelEnum dispersionModel1 = dmp1.numberOfPolarizationVectors>0 ? dispersionModel : noDispersion;
+                    const DispersionModelEnum dispersionModel2 = dmp2.numberOfPolarizationVectors>0 ? dispersionModel : noDispersion;
                     int ipar[]={ //
                         side1, dir1, grid1,         // keep side1,dir1 since we don't reverse the points.
                             n1a,n1b,n2a,n2b,n3a,n3b,
@@ -1439,7 +1489,9 @@ assignInterfaceBoundaryConditions( int current, real t, real dt,
                         (int)assignInterfaceGhostValues,
                         dbase.get<int>("setDivergenceAtInterfaces"),
                         dbase.get<int>("useImpedanceInterfaceProjection"),
-                        0   // numberOfInterfaceIterationsUsed : returned value ipar[43]
+                        0,   // numberOfInterfaceIterationsUsed : returned value ipar[43]
+                        dispersionModel1, // ipar[44]
+                        dispersionModel2  // ipar[45]
                     };
                 real rpar[]={ //
                     dx1[0],
@@ -1518,11 +1570,11 @@ assignInterfaceBoundaryConditions( int current, real t, real dt,
                                     		        u1Local.getBase(0),u1Local.getBound(0),
                                     		        u1Local.getBase(1),u1Local.getBound(1),
                                     		        u1Local.getBase(2),u1Local.getBound(2),
-                                    		        mg1.gridIndexRange(0,0), *u1p, *mask1p,*prsxy1, *pxy1, bc1Local(0,0), 
+                                                                mg1.gridIndexRange(0,0), *u1p, *mask1p,*prsxy1, *pxy1, *p1ptr, bc1Local(0,0), 
                                     		        u2Local.getBase(0),u2Local.getBound(0),
                                     		        u2Local.getBase(1),u2Local.getBound(1),
                                     		        u2Local.getBase(2),u2Local.getBound(2),
-                                    		        mg2.gridIndexRange(0,0), *u2p, *mask2p,*prsxy2, *pxy2, bc2Local(0,0), 
+                                                                  mg2.gridIndexRange(0,0), *u2p, *mask2p,*prsxy2, *pxy2, *p2ptr, bc2Local(0,0), 
                                   		      ipar[0], rpar[0], 
                                   		      rwk[pa2],rwk[pa4],rwk[pa8], iwk[pipvt2],iwk[pipvt4],iwk[pipvt8],
                                   		      ierr );
@@ -1536,6 +1588,9 @@ assignInterfaceBoundaryConditions( int current, real t, real dt,
                 if( method==sosup )
       	{ // for sosup we assign E.t
           // printF("Assign interface values for sosup: E.t at t=%9.3e\n",t);
+            // Each grid may or may not have dispersion model: 
+                        const DispersionModelEnum dispersionModel1 = dmp1.numberOfPolarizationVectors>0 ? dispersionModel : noDispersion;
+                        const DispersionModelEnum dispersionModel2 = dmp2.numberOfPolarizationVectors>0 ? dispersionModel : noDispersion;
                         int ipar[]={ //
                             side1, dir1, grid1,         // keep side1,dir1 since we don't reverse the points.
                                 n1a,n1b,n2a,n2b,n3a,n3b,
@@ -1566,7 +1621,9 @@ assignInterfaceBoundaryConditions( int current, real t, real dt,
                             (int)assignInterfaceGhostValues,
                             dbase.get<int>("setDivergenceAtInterfaces"),
                             dbase.get<int>("useImpedanceInterfaceProjection"),
-                            0   // numberOfInterfaceIterationsUsed : returned value ipar[43]
+                            0,   // numberOfInterfaceIterationsUsed : returned value ipar[43]
+                            dispersionModel1, // ipar[44]
+                            dispersionModel2  // ipar[45]
                         };
                     real rpar[]={ //
                         dx1[0],
@@ -1645,11 +1702,11 @@ assignInterfaceBoundaryConditions( int current, real t, real dt,
                                         		        u1Local.getBase(0),u1Local.getBound(0),
                                         		        u1Local.getBase(1),u1Local.getBound(1),
                                         		        u1Local.getBase(2),u1Local.getBound(2),
-                                        		        mg1.gridIndexRange(0,0), *u1p, *mask1p,*prsxy1, *pxy1, bc1Local(0,0), 
+                                                                    mg1.gridIndexRange(0,0), *u1p, *mask1p,*prsxy1, *pxy1, *p1ptr, bc1Local(0,0), 
                                         		        u2Local.getBase(0),u2Local.getBound(0),
                                         		        u2Local.getBase(1),u2Local.getBound(1),
                                         		        u2Local.getBase(2),u2Local.getBound(2),
-                                        		        mg2.gridIndexRange(0,0), *u2p, *mask2p,*prsxy2, *pxy2, bc2Local(0,0), 
+                                                                      mg2.gridIndexRange(0,0), *u2p, *mask2p,*prsxy2, *pxy2, *p2ptr, bc2Local(0,0), 
                                       		      ipar[0], rpar[0], 
                                       		      rwk[pa2],rwk[pa4],rwk[pa8], iwk[pipvt2],iwk[pipvt4],iwk[pipvt8],
                                       		      ierr );
@@ -1675,6 +1732,9 @@ assignInterfaceBoundaryConditions( int current, real t, real dt,
             assert( mg1.numberOfDimensions()==2 );
 
       // macro: 
+        // Each grid may or may not have dispersion model: 
+                const DispersionModelEnum dispersionModel1 = dmp1.numberOfPolarizationVectors>0 ? dispersionModel : noDispersion;
+                const DispersionModelEnum dispersionModel2 = dmp2.numberOfPolarizationVectors>0 ? dispersionModel : noDispersion;
                 int ipar[]={ //
                     side1, dir1, grid1,         // keep side1,dir1 since we don't reverse the points.
                         n1a,n1b,n2a,n2b,n3a,n3b,
@@ -1705,7 +1765,9 @@ assignInterfaceBoundaryConditions( int current, real t, real dt,
                     (int)assignInterfaceGhostValues,
                     dbase.get<int>("setDivergenceAtInterfaces"),
                     dbase.get<int>("useImpedanceInterfaceProjection"),
-                    0   // numberOfInterfaceIterationsUsed : returned value ipar[43]
+                    0,   // numberOfInterfaceIterationsUsed : returned value ipar[43]
+                    dispersionModel1, // ipar[44]
+                    dispersionModel2  // ipar[45]
                 };
             real rpar[]={ //
                 dx1[0],

@@ -617,10 +617,10 @@
 
 
       subroutine interface3dMaxwell( nd, nd1a,nd1b,nd2a,nd2b,nd3a,nd3b,
-     & gridIndexRange1, u1, mask1,rsxy1, xy1, boundaryCondition1, 
+     & gridIndexRange1, u1, mask1,rsxy1, xy1, p1, boundaryCondition1, 
      & md1a,md1b,md2a,md2b,md3a,md3b,gridIndexRange2, u2, mask2,rsxy2,
-     &  xy2, boundaryCondition2, ipar, rpar, aa2,aa4,aa8, ipvt2,ipvt4,
-     & ipvt8, ierr )
+     &  xy2, p2, boundaryCondition2, ipar, rpar, aa2,aa4,aa8, ipvt2,
+     & ipvt4,ipvt8, ierr )
 ! ===================================================================================
 !  Interface boundary conditions for Maxwells Equations in 3D.
 !
@@ -640,12 +640,14 @@
      & ierr
 
       real u1(nd1a:nd1b,nd2a:nd2b,nd3a:nd3b,0:*)
+      real p1(nd1a:nd1b,nd2a:nd2b,nd3a:nd3b,0:*)
       integer mask1(nd1a:nd1b,nd2a:nd2b,nd3a:nd3b)
       real rsxy1(nd1a:nd1b,nd2a:nd2b,nd3a:nd3b,0:nd-1,0:nd-1)
       real xy1(nd1a:nd1b,nd2a:nd2b,nd3a:nd3b,0:nd-1)
       integer gridIndexRange1(0:1,0:2),boundaryCondition1(0:1,0:2)
 
       real u2(md1a:md1b,md2a:md2b,md3a:md3b,0:*)
+      real p2(md1a:md1b,md2a:md2b,md3a:md3b,0:*)
       integer mask2(md1a:md1b,md2a:md2b,md3a:md3b)
       real rsxy2(md1a:md1b,md2a:md2b,md3a:md3b,0:nd-1,0:nd-1)
       real xy2(md1a:md1b,md2a:md2b,md3a:md3b,0:nd-1)
@@ -787,8 +789,38 @@
       integer rectangular,curvilinear
       parameter(rectangular=0,curvilinear=1)
 
+      ! Dispersion models
+      integer noDispersion,drude,gdm
+      parameter( noDispersion=0, drude=1, gdm=2 )
+
+      integer dispersionModel1, dispersionModel2, jv
+      integer maxNumberOfParameters,maxNumberOfPolarizationVectors
+      parameter( maxNumberOfParameters=4, 
+     & maxNumberOfPolarizationVectors=20 )
+      integer numberOfPolarizationVectors1
+      real gdmPar1(0:maxNumberOfParameters-1,
+     & 0:maxNumberOfPolarizationVectors-1)
+      real a0v1,a1v1,b0v1,b1v1
+
+      integer numberOfPolarizationVectors2
+      real gdmPar2(0:maxNumberOfParameters-1,
+     & 0:maxNumberOfPolarizationVectors-1)
+      real a0v2,a1v2,b0v2,b1v2
 
 !     --- start statement function ----
+! .......statement functions for GDM parameters
+      a0v1(jv) = gdmPar1(0,jv)
+      a1v1(jv) = gdmPar1(1,jv)
+      b0v1(jv) = gdmPar1(2,jv)
+      b1v1(jv) = gdmPar1(3,jv)
+
+      a0v2(jv) = gdmPar2(0,jv)
+      a1v2(jv) = gdmPar2(1,jv)
+      b0v2(jv) = gdmPar2(2,jv)
+      b1v2(jv) = gdmPar2(3,jv)
+
+
+
       integer kd,m,n
 !     real rx,ry,rz,sx,sy,sz,tx,ty,tz
 !*      declareDifferenceNewOrder2(u1,rsxy1,dr1,dx1,RX)
@@ -1802,6 +1834,9 @@
       ! numberOfInterfaceIterationsUsed = ipar(43)  ! returned value 
       ipar(43)=0
 
+      dispersionModel1    = ipar(44)
+      dispersionModel2    = ipar(45)
+
 
       dx1(0)                =rpar(0)
       dx1(1)                =rpar(1)
@@ -1938,7 +1973,49 @@
       end if
 
 
+      if( dispersionModel1.ne.noDispersion )then
+        ! get the gdm parameters
+        !   gdmPar(0:3,jv) = (a0,a1,b0,b1) 
+        call getGDMParameters( grid1,gdmPar1,
+     & numberOfPolarizationVectors1, maxNumberOfParameters,
+     & maxNumberOfPolarizationVectors )
+        if( t.le. 1.5*dt )then
+          ! ---- Dispersive Maxwell ----
+          write(*,'("--interface3d-- dispersionModel1=",i4," grid1=",
+     & i4)') dispersionModel1,grid1
+          write(*,'("--interface3d-- GDM: 
+     & numberOfPolarizationVectors1=",i4)') 
+     & numberOfPolarizationVectors1
+          do jv=0,numberOfPolarizationVectors1-1
+            write(*,'("--interface3d-- GDM: eqn=",i3," a0,a1,b0,b1=",4(
+     & 1p,e10.2))') jv,a0v1(jv),a1v1(jv),b0v1(jv),b1v1(jv)
+          end do
+        end if
+      end if
 
+      if( dispersionModel2.ne.noDispersion )then
+        ! get the gdm parameters
+        !   gdmPar(0:3,jv) = (a0,a1,b0,b1) 
+        call getGDMParameters( grid2,gdmPar2,
+     & numberOfPolarizationVectors2, maxNumberOfParameters,
+     & maxNumberOfPolarizationVectors )
+        if( t.le. 1.5*dt )then
+          ! ---- Dispersive Maxwell ----
+          write(*,'("--interface3d-- dispersionModel2=",i4," grid2=",
+     & i4)') dispersionModel2,grid2
+          write(*,'("--interface3d-- GDM: 
+     & numberOfPolarizationVectors2=",i4)') 
+     & numberOfPolarizationVectors2
+          do jv=0,numberOfPolarizationVectors2-1
+            write(*,'("--interface3d-- GDM: eqn=",i3," a0,a1,b0,b1=",4(
+     & 1p,e10.2))') jv,a0v2(jv),a1v2(jv),b0v2(jv),b1v2(jv)
+          end do
+        end if
+
+        ! write(*,'(" interface: FINISH ME")') 
+        ! stop 1111
+
+      end if
 
       ! *** do this for now --- assume grids have equal spacing
 !      dx(0)=dx1(0)
@@ -2658,7 +2735,8 @@
              a2(0,0)=-is*(1./(2.*dx1(axis1)*eps1)) ! coeff of w1(-1) in [w.n/eps]=0
              a2(0,1)= js*(1./(2.*dx2(axis2)*eps2)) ! coeff of w2(-1) in [w.n/eps]=0
              a2(1,0)= 1./(dx1(axis1)**2*eps1)    ! coeff of w1(-1) in [Lap(w)/eps ]=0
-             a2(1,1)=-1./(dx2(axis2)**2*eps2)    ! coeff of w2(-1) in [Lap(w)/eps ]=0
+             ! *wdh* Sept 15, 2017 a2(1,1)=-1./(dx2(axis2)**2*eps2)    ! coeff of w2(-1) in [Lap(w)/eps ]=0 
+             a2(1,1)= 1./(dx2(axis2)**2*eps2)    ! coeff of w2(-1) in [Lap(w)/eps ]=0
              q(0) = u1(i1-is1,i2-is2,i3,hz)
              q(1) = u2(j1-js1,j2-js2,j3,hz)
              ! subtract off the contributions from the wrong values at the ghost points:

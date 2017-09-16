@@ -34,7 +34,8 @@
     // real reS, imS;
     // old dmp.computeDispersionRelation( c,eps,mu,kk, reS, imS );
     // *new way*
-    real sr,si,psir,psii;
+    real sr,si,psir[10],psii[10];
+    assert( dmp.numberOfPolarizationVectors<10 );
     dmp.evaluateDispersionRelation( c,kk, sr, si, psir,psii ); 
 
     if( t<3.*dt )
@@ -84,13 +85,17 @@
       
 
       // phiP = Im(  Chi*( cos(beta*t) + i*sin(beta*t) )*exp(alpha*t )  ... s= alpha+i*beta
-      real phiP = psir*ste+ psii*cte;
-      phiPx = a1s*( phiP );
-      phiPy = a2s*( phiP );
-
+      for( int iv=0; iv<numberOfPolarizationVectors; iv++ )
+      {
+        real phiP = psir[iv]*ste+ psii[iv]*cte;
+        phiPx[iv] = a1s*( phiP );
+        phiPy[iv] = a2s*( phiP );
+      }
+      
     }
     else
     {
+      // ---- THREE DIMENSIONS ---
       real scale= sqrt(fx*fx+fy*fy+fz*fz);
       real a1s= scale*a1/fx, a2s=scale*a2/fy, a3s=scale*a3/fz;
 
@@ -103,6 +108,14 @@
       phiEz = a3s*(   ste ); 
       phiEzt= a3s*( b*cte ) + a*phiEz;
 
+      // *check me*
+      for( int iv=0; iv<numberOfPolarizationVectors; iv++ )
+      {
+        real phiP = psir[iv]*ste+ psii[iv]*cte;
+        phiPx[iv] = a1s*( phiP );
+        phiPy[iv] = a2s*( phiP );
+        phiPz[iv] = a3s*( phiP );
+      }
     }
     
   }

@@ -2367,6 +2367,8 @@ initializePast( real time00, real dt00, CompositeGrid & cg)
             parameters.getUserDefinedDeformingBodyKnownSolution( 
               bodyNumber,Parameters::boundaryPosition, pastTime, gridToMove, mg,Ib1,Ib2,Ib3,Rx,xPast );
 
+            ::display(xPast,"--DBM-- initializePast: replace x0 with xPast","%9.3e ");
+
             if (( step==1 ) || ( step==0 )) // t=-dt or t=0
             // if (( step==1 )) // t=-dt 
             {
@@ -2613,6 +2615,9 @@ initializePast( real time00, real dt00, CompositeGrid & cg)
           assert( pdpm!=NULL );
 	  DataPointMapping & dpm = (DataPointMapping&)(*pdpm);
 
+          if( true )
+            printF(" --DBM-- initPastTime: add grid to gridEvolution at t=pastTime=%9.3e\n",pastTime);
+          
 	  gridEvolution[face]->addGrid(dpm.getDataPoints(),pastTime);
 
 	  // *wdh* 2014/07/11 -- mark the geometry as changed

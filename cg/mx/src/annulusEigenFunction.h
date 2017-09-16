@@ -40,9 +40,9 @@
 
    real sintm = sin(omega*(t-dt)), costm = cos(omega*(t-dt));
 
-   real sr,si,psir,psii, ct,st,expt, ctm,stm,exptm;
+   real sr,si,psir[10],psii[10], ct,st,expt, ctm,stm,exptm;
    real ampH, ampE, ampHm, ampEm, ampHp, ampEp, ampHmp, ampEmp;
-   real ampP=0., ampPm=0.;
+   real ampP[10], ampPm[10];
    if( dispersionModel==noDispersion )
    {
      ampH  = cost;   ampHp  =-omega*sint;
@@ -56,11 +56,13 @@
      DispersiveMaterialParameters & dmp = getDispersiveMaterialParameters(grid);
 
      // Evaluate the dispersion relation for "s"
+     assert( dmp.numberOfPolarizationVectors<10 );
+     
      const real kk = omega/c; //  *CHECK ME* 
      dmp.evaluateDispersionRelation( c,kk, sr, si, psir,psii ); 
 
      if( t<3.*dt )
-       printF("--DISK-EIGEN-- (dispersive) t=%10.3e, sr=%g, si=%g psir=%g psii=%g\n",t,sr,si,psir,psii );
+       printF("--DISK-EIGEN-- (dispersive) t=%10.3e, sr=%g, si=%g psir[0]=%g psii[0]=%g\n",t,sr,si,psir[0],psii[0] );
 
      expt =exp(sr*t);
      st=sin(si*t)*expt; ct=cos(si*t)*expt;
@@ -76,28 +78,48 @@
      ampH = ct;   
      // ampHp = -si*st + sr*ct;
 
+     // eps Ev_t = curl( Hv ) - alphaP*eps* SUM (Pv_j).t 
+     //   Pv_j = psi_j * Ev   
+     // eps*( 1 + alphaP*Sum psi_j) \Ev_t = curl ( Hv ) 
+  
      // E = Re( (1/(eps*s) * 1/( 1+alphaP*psi) * ( ct + i sint ) )
      //   = Re( (phir+i*phii)*( ct + i sint )
      const real alphaP = dmp.alphaP;
-     real chiNormSq = SQR(1.+alphaP*psir)+SQR(alphaP*psii); //   | 1+alphaP*psi|^2 
+
+     real psirSum=0., psiiSum=0.;
+     for( int iv=0; iv<numberOfPolarizationVectors; iv++ )
+     {
+       psirSum += psir[iv]; 
+       psiiSum += psii[iv];
+     }
+     
+     real chiNormSq = SQR(1.+alphaP*psirSum)+SQR(alphaP*psiiSum); //   | 1+alphaP*psi|^2 
+
      //  phi = (1/(eps*s) * 1/( 1+alphaP*psi)
      //      = (sr-i*si)*( 1+alphaP*psir - i*alphaP*psii)/(eps* sNormSq*chiNormSq )
      //      = phir +i*phii 
-     real phir = ( sr*(1.+alphaP*psir)-si*alphaP*psii)/( eps*sNormSq*chiNormSq );
-     real phii = (-si*(1.+alphaP*psir)-sr*alphaP*psii)/( eps*sNormSq*chiNormSq );
+
+     real phir = ( sr*(1.+alphaP*psirSum)-si*alphaP*psiiSum)/( eps*sNormSq*chiNormSq );
+     real phii = (-si*(1.+alphaP*psirSum)-sr*alphaP*psiiSum)/( eps*sNormSq*chiNormSq );
      
      ampE = phir*ct - phii*st;
 
      // P = Re( (psir+i*psii)*(phir+i*phii)*( ct + i sint ) )
      //   = Re( (psir+i*psii)*( phir*ct-phii*st + i*( phir*st +phii*ct )
      //   = psir*( phir*ct-phii*st) -psii*(  phir*st +phii*ct )
-     ampP = psir*(phir*ct-phii*st ) - psii*( phir*st +phii*ct);
+     for( int iv=0; iv<numberOfPolarizationVectors; iv++ )
+     {
+       ampP[iv] = psir[iv]*(phir*ct-phii*st ) - psii[iv]*( phir*st +phii*ct);
+     }
      
      // tm = t-dt 
      ampHm = ctm;  
      // ampHp = -si*stm + sr*ctm;
      ampEm = phir*ctm - phii*stm;
-     ampPm = psir*(phir*ctm-phii*stm ) - psii*( phir*stm +phii*ctm);
+     for( int iv=0; iv<numberOfPolarizationVectors; iv++ )
+     {
+        ampPm[iv] = psir[iv]*(phir*ctm-phii*stm ) - psii[iv]*( phir*stm +phii*ctm);
+     }
      
    }
    
@@ -199,22 +221,14 @@
            const int pc= iv*numberOfDimensions;
        
            // Do this for now -- set all vectors to be the same: 
-           pLocal(i1,i2,i3,pc  ) = uex*ampP;
-           pLocal(i1,i2,i3,pc+1) = uey*ampP;
+           pLocal(i1,i2,i3,pc  ) = uex*ampP[iv];
+           pLocal(i1,i2,i3,pc+1) = uey*ampP[iv];
            if( method==nfdtd )
            {
-             pmLocal(i1,i2,i3,pc  ) = uex*ampPm;
-             pmLocal(i1,i2,i3,pc+1) = uey*ampPm;
+             pmLocal(i1,i2,i3,pc  ) = uex*ampPm[iv];
+             pmLocal(i1,i2,i3,pc+1) = uey*ampPm[iv];
            }
          }
-
-         // uLocal(i1,i2,i3,pxc) = uex*ampP;
-         // uLocal(i1,i2,i3,pyc) = uey*ampP;
-         // if( method==nfdtd )
-         // {
-         //   umLocal(i1,i2,i3,pxc) = uex*ampPm;
-         //   umLocal(i1,i2,i3,pyc) = uey*ampPm;
-         // }
          
        }
        
@@ -230,8 +244,8 @@
          {
            const int pc= iv*numberOfDimensions;
            // Do this for now -- set all vectors to be the same: 
-           pLocal(i1,i2,i3,pc  ) = uex*ampP;
-           pLocal(i1,i2,i3,pc+1) = uey*ampP;
+           pLocal(i1,i2,i3,pc  ) = uex*ampP[iv];
+           pLocal(i1,i2,i3,pc+1) = uey*ampP[iv];
          }
          // uLocal(i1,i2,i3,pxc) = uex*ampP;
          // uLocal(i1,i2,i3,pyc) = uey*ampP;
@@ -254,8 +268,8 @@
          {
            const int pc= iv*numberOfDimensions;
            // Do this for now -- set all vectors to be the same: 
-           errPolarization(i1,i2,i3,pc  ) = pLocal(i1,i2,i3,pc  ) - uex*ampP;
-           errPolarization(i1,i2,i3,pc+1) = pLocal(i1,i2,i3,pc+1) - uey*ampP;
+           errPolarization(i1,i2,i3,pc  ) = pLocal(i1,i2,i3,pc  ) - uex*ampP[iv];
+           errPolarization(i1,i2,i3,pc+1) = pLocal(i1,i2,i3,pc+1) - uey*ampP[iv];
          }
 
          // errLocal(i1,i2,i3,pxc) = uLocal(i1,i2,i3,pxc) - uex*ampP;

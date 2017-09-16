@@ -1083,6 +1083,7 @@ do i1=nn1a,nn1b
  real urrs4,urrt4,usst4,urss4,ustt4,urtt4
  real urrs2,urrt2,usst2,urss2,ustt2,urtt2
 
+ integer numberOfPolarizationVectors, iv, pxc
 #Include "dispersionFortranInclude.h"
 
 #Include "declareJacobianDerivatives.h"
@@ -1186,6 +1187,8 @@ do i1=nn1a,nn1b
  polarizationOption   =ipar(33)
  dispersionModel      =ipar(34)
 
+ numberOfPolarizationVectors=ipar(36)
+
  dx(0)                =rpar(0)
  dx(1)                =rpar(1)
  dx(2)                =rpar(2)
@@ -1226,8 +1229,8 @@ do i1=nn1a,nn1b
  sr                   =rpar(37)  ! Re(s)
  si                   =rpar(38)  ! Im(s) 
  ! P = psi*E , psi = psir + i*psii
- psir                 =rpar(39)
- psii                 =rpar(40)
+ psir(0)                 =rpar(39)
+ psii(0)                 =rpar(40)
 
  if( abs(pwc(0))+abs(pwc(1))+abs(pwc(2)) .eq. 0. )then
    ! sanity check
@@ -1255,6 +1258,9 @@ do i1=nn1a,nn1b
 
  ! initialize dispersive plane wave parameters
  if( dispersionModel .ne. noDispersion )then
+   ! Retrieve the values of psir(iv) and psii(iv) 
+   call getGDMPolarizationParameters( grid,psir,psii,maxNumberOfPolarizationVectors )
+
    initializeDispersivePlaneWave()
  end if
 

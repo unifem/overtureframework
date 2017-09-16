@@ -1304,7 +1304,8 @@ getUserDefinedKnownSolution(real t, CompositeGrid & cg, int grid, RealArray & ua
       }
     } else {
       // some options may need a time derivative ...
-      OV_ABORT("FINISH ME");
+      printF("\n\n >>>>> --UDKS-- ERROR: FINISH ME -- time derivative <<<<<\n\n ");
+      // OV_ABORT("FINISH ME");
     }
 
 

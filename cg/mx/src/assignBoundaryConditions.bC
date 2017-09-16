@@ -114,6 +114,41 @@ updateghostandperiodic(realMappedGridFunction *&pu )
 } 
 }
 
+static Maxwell *cgmxPointer=NULL; // for getGDMParameters
+
+#define getGDMPolarizationParameters EXTERN_C_NAME(getgdmpolarizationparameters)
+extern "C"
+{
+
+// ================================================================================
+///  \brief Return the gdm parameters polarizarion psir(i), psii(i) 
+/// \param grid (input) : return parameters for this grid 
+/// \param psir(0:maxNumberOfPolarizationVectors), psii(0:maxNumberOfPolarizationVectors): output
+// ================================================================================
+void getGDMPolarizationParameters( int & grid, real *psir, real *psii, const int & maxNumberOfPolarizationVectors )
+{
+  assert( cgmxPointer != NULL );
+
+  CompositeGrid *&cgp = cgmxPointer->cgp;
+  assert( cgp!=NULL );
+  CompositeGrid & cg= *cgp;
+
+  const int domain = cg.domainNumber(grid);
+  const DispersiveMaterialParameters & dmp =  cgmxPointer->getDomainDispersiveMaterialParameters(domain);
+
+  assert( dmp.numberOfPolarizationVectors>0 );
+  assert( dmp.numberOfPolarizationVectors<= maxNumberOfPolarizationVectors );
+
+  for( int iv=0; iv<dmp.numberOfPolarizationVectors; iv++ )
+  {
+    psir[iv] = dmp.psir0(iv);
+    psii[iv] = dmp.psii0(iv);
+  }
+#undef gdmVar  
+}
+
+}
+
 #define FOR_3D(i1,i2,i3,I1,I2,I3) \
 int I1Base =I1.getBase(),   I2Base =I2.getBase(),  I3Base =I3.getBase();  \
 int I1Bound=I1.getBound(),  I2Bound=I2.getBound(), I3Bound=I3.getBound(); \
@@ -660,6 +695,8 @@ int polarizationOption=0;
   ipar[34]=dispersionModel;
   ipar[35]=dbase.get<int>("smoothBoundingBox"); // 1= smooth the IC at the bounding box edge
 
+  ipar[36] = numberOfPolarizationVectors;
+
   rpar[0]=dx[0];       // for Cartesian grids          
   rpar[1]=dx[1];                
   rpar[2]=dx[2];                
@@ -705,12 +742,12 @@ int polarizationOption=0;
   
   // Dispersion parameters:
   real sr=0.,si=0.;  // Re(s), Im(s) in exp(s*t) 
-  real psir=0., psii=0.;   // For P = psi(s)*E 
+  real psir[10], psii[10];   // For P = psi(s)*E 
   if( dispersionModel !=noDispersion && assignPlaneWaveBoundaryCondition )
   {
     
     const real kk = twoPi*sqrt( kx*kx+ky*ky+kz*kz);
-    real sr=0., si=1., psir=0.,psii=0.;
+    real sr=0., si=1.;
     DispersiveMaterialParameters & dmp = getDispersiveMaterialParameters(grid);
     dmp.evaluateDispersionRelation( c,kk, sr, si, psir,psii ); 
     if( t<=3.*dt )
@@ -726,8 +763,8 @@ int polarizationOption=0;
   }
   rpar[37]=sr;
   rpar[38]=si;
-  rpar[39]=psir;
-  rpar[40]=psii;
+  rpar[39]=psir[0];  // *FIX ME*
+  rpar[40]=psii[0];
 
   
   // fprintf(pDebugFile,"**** pu= %i, %i...\n",&u,pu);
@@ -1613,7 +1650,7 @@ int polarizationOption=0;
       DispersiveMaterialParameters & dmp = getDispersiveMaterialParameters(grid);
 
       const real kk = twoPi*sqrt( kx*kx+ky*ky+kz*kz);
-      real sr, si, psir,psii;
+      real sr, si, psir[10],psii[10];
       dmp.evaluateDispersionRelation( c,kk, sr, si, psir,psii ); 
       if( t<=3.*dt )
         printF("--MX--Dirichlet BC dispersion: s=(%12.4e,%12.4e)\n",sr,si);
@@ -1640,12 +1677,10 @@ int polarizationOption=0;
         real amph = (hr*ct-hi*st)*cx - (hr*st+hi*ct)*sx;
         U(i1,i2,i3,hz)=amph;
                       
-        // amp=(psir*cx-psii*sx)*ctm - (psir*sx+psii*cx)*stm;
-        amp=(psir*ct-psii*st)*cx - (psir*st+psii*ct)*sx;
         for( int iv=0; iv<numberOfPolarizationVectors; iv++ )
         {
           const int pc= iv*numberOfDimensions;
-          // *fix* me for numberOfPolarizationVectors>1 
+          amp=(psir[iv]*ct-psii[iv]*st)*cx - (psir[iv]*st+psii[iv]*ct)*sx;
           pLocal(i1,i2,i3,pc  ) = pwc[0]*amp;
           pLocal(i1,i2,i3,pc+1) = pwc[1]*amp;
         }
@@ -1743,6 +1778,8 @@ assignBoundaryConditions( int option, int grid, real t, real dt, realMappedGridF
   
   const int numberOfDimensions = mg.numberOfDimensions();
   
+  cgmxPointer = this; // for getGMDParameters 
+
   const int useForcing = forcingOption==twilightZoneForcing;
 
   const BoundaryForcingEnum & boundaryForcingOption =dbase.get<BoundaryForcingEnum>("boundaryForcingOption");

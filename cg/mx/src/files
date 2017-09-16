@@ -113,7 +113,7 @@ plot.C : forcing.h
 
 src/getInitialConditions.C : src/getInitialConditions.bC forcing.h annulusEigenFunction.h boxEigenFunction.h gaussianPulse.h polynomialTZ.h trigonometricTZ.h planeMaterialInterface.h dispersionMacros.h; $(BPP) -quiet -clean $<
 
-src/assignBoundaryConditions.C : src/assignBoundaryConditions.bC forcing.h planeMaterialInterface.h dispersionMacros.h; $(BPP) -quiet -clean $<
+src/assignBoundaryConditions.C : src/assignBoundaryConditions.bC forcing.h planeMaterialInterface.h annulusEigenFunction.h dispersionMacros.h; $(BPP) -quiet -clean $<
 src/assignInterfaceBoundaryConditions.C : src/assignInterfaceBoundaryConditions.bC; $(BPP) -quiet -clean -I$(Overture)/include $<
 
 src/getErrors.C : src/getErrors.bC forcing.h annulusEigenFunction.h boxEigenFunction.h planeMaterialInterface.h dispersionMacros.h; $(BPP) -quiet -clean $<

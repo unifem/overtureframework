@@ -1,0 +1,17 @@
+! Companion matrix for GDM model Np=1, File written by CG/DMX/matlab/gdm.maple
+      a(0,0) = 0
+      a(0,1) = 0
+      a(0,2) = 0
+      a(0,3) = -ck2*b0(0)
+      a(1,0) = 1
+      a(1,1) = 0
+      a(1,2) = 0
+      a(1,3) = -ck2*b1(0)
+      a(2,0) = 0
+      a(2,1) = 1
+      a(2,2) = 0
+      a(2,3) = -alphaP*a0(0)-b0(0)-ck2
+      a(3,0) = 0
+      a(3,1) = 0
+      a(3,2) = 1
+      a(3,3) = -alphaP*a1(0)-b1(0)

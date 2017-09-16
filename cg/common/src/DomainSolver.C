@@ -1461,6 +1461,8 @@ writeParameterSummary( FILE * file )
            parameters.dbase.get<real >("collisionDistance")  );
 
     fPrintF(file,"  Use moving grid sub-iterations = %i (e.g. for light solids).\n",(int)parameters.dbase.get<bool>("useMovingGridSubIterations"));
+    fPrintF(file,"  useNewTimeSteppingStartup=%i : 1= regenerate past time grids and solutions at startup.\n",
+            (int)parameters.dbase.get<bool>("useNewTimeSteppingStartup"));
   }
   
   Parameters::ReferenceFrameEnum & referenceFrame = 
