@@ -3,7 +3,8 @@
 #
 
 
-ogen = /home/henshw/Overture.g/bin/ogen
+# ogen = /home/henshw/Overture.g/bin/ogen
+ogen = $(Overture)/bin/ogen
 
 # Make the documentation:
 doc:
@@ -56,6 +57,15 @@ multiblock:
 	$(ogen) -noplot dielectricMultiBlockGrid2d -numBlocks=2 -x1=-.25 -x2=.0 -x3=.25 -order=4 -interp=e -factor=8
 	$(ogen) -noplot dielectricMultiBlockGrid2d -numBlocks=2 -x1=-.25 -x2=.0 -x3=.25 -order=4 -interp=e -factor=16
 
+
+# curved dielectric block 
+curvedBlock:
+	$(ogen) -noplot curvedBlockGrid2d -prefix=convexBlockGrid -order=2 -interp=e -width=.5 -deltaLeft=-.075 -deltaRight=.075 -factor=2
+	$(ogen) -noplot curvedBlockGrid2d -prefix=convexBlockGrid -order=2 -interp=e -width=.5 -deltaLeft=-.075 -deltaRight=.075 -factor=4
+	$(ogen) -noplot curvedBlockGrid2d -prefix=convexBlockGrid -order=2 -interp=e -width=.5 -deltaLeft=-.075 -deltaRight=.075 -factor=8
+	$(ogen) -noplot curvedBlockGrid2d -prefix=convexBlockGrid -order=4 -interp=e -width=.5 -deltaLeft=-.075 -deltaRight=.075 -factor=2
+	$(ogen) -noplot curvedBlockGrid2d -prefix=convexBlockGrid -order=4 -interp=e -width=.5 -deltaLeft=-.075 -deltaRight=.075 -factor=4
+	$(ogen) -noplot curvedBlockGrid2d -prefix=convexBlockGrid -order=4 -interp=e -width=.5 -deltaLeft=-.075 -deltaRight=.075 -factor=8
 
 pecDisk:
 	$(ogen) -noplot diskInAChannelGrid -xa=-3 -xb=3. -interp=e -order=2 -factor=2

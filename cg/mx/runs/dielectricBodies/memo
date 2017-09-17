@@ -1,4 +1,21 @@
 **************************************
+******* Sept 15, 2017
+
+CURVED DIELECTRIC BLOCK 
+
+"convex" lens: 
+cgmx -noplot dielectricBodies -g=convexBlockGride4.order4 -backGround=leftBackGround -rbc=rbcNonLocal -kx=2 -eps1=4 -eps2=1. -diss=2 -tf=15 -tp=.1 -xb=-1. -go=og
+
+
+cgmx -noplot dielectricBodies -g=convexBlockGride4.order4 -backGround=leftBackGround -rbc=rbcNonLocal -kx=4 -eps1=4 -eps2=1. -diss=2 -tf=15 -tp=.1 -xb=-1. -go=og
+
+
+cgmx -noplot dielectricBodies -g=curvedBlockGrid2de4.order4 -backGround=leftBackGround -rbc=rbcNonLocal -kx=4 -eps1=4 -eps2=1. -diss=2 -tf=15 -tp=.1 -go=og
+
+cgmx -noplot dielectricBodies -g=curvedBlockGrid2de4.order2 -backGround=leftBackGround -rbc=rbcNonLocal -kx=2 -eps1=4 -eps2=1. -diss=2 -tf=15 -tp=.1 -go=og
+
+
+**************************************
 ******* Sept 1, 2017
 
 START ON dimensioning grid functions to account for VARYING number of polarization vectors 

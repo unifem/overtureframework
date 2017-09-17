@@ -151,9 +151,19 @@ userDefinedProbe( GenericGraphicsInterface & gi )
     {
       sScanF(answer(len,answer.length()-1),"%e %e %e %e %e %e"
                 ,&box(0,0),&box(1,0), &box(0,1),&box(1,1), &box(0,2),&box(1,2));
+
       printf("userDefinedProbe: Setting transmission box: [%e,%e]X[%e,%e]X[%e,%e]\n",
              box(0,0),box(1,0), box(0,1),box(1,1), box(0,2),box(1,2));
 
+      for( int axis=0; axis<3; axis++ )
+      {
+        if( box(0,axis) > box(1,axis) )
+        {
+          printF("--PROBE-- ERROR: box(0,%i)=%g > box(1,%i)=%g\n",axis,box(0,axis),axis,box(1,axis));
+          OV_ABORT("ERROR");
+        }
+      }
+      
     }
       
     else if( answer=="reflection probe" ||
