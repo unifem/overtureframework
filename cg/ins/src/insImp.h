@@ -1,3 +1,4 @@
+!  -*- mode: F90 -*-
 ! ****************************************************************************************************
 !   Define macros that are used to build the full implicit matrices for the INS, VP etc. equations
 !
@@ -10,25 +11,25 @@
 ! ****************************************************************************************************
 
 
-c --- See --- op/fortranCoeff/opcoeff.bf 
-c             op/include/defineConservative.h
-c --- See --- mx/src/interfaceMacros.bf <-- mixes different orders of accuracy 
+! --- See --- op/fortranCoeff/opcoeff.bf 
+!             op/include/defineConservative.h
+! --- See --- mx/src/interfaceMacros.bf <-- mixes different orders of accuracy 
 
-c -- define bpp macros for coefficient operators (from op/src/stencilCoeff.maple)
+! -- define bpp macros for coefficient operators (from op/src/stencilCoeff.maple)
 #Include opStencilCoeffOrder2.h
 #Include opStencilCoeffOrder4.h
 #Include opStencilCoeffOrder6.h
 ! #Include opStencilCoeffOrder8.h
 
 
-c These next include file will define the macros that will define the difference approximations (in op/src)
-c Defines getDuDx2(u,aj,ff), getDuDxx2(u,aj,ff), getDuDx3(u,aj,ff), ...  etc. 
+! These next include file will define the macros that will define the difference approximations (in op/src)
+! Defines getDuDx2(u,aj,ff), getDuDxx2(u,aj,ff), getDuDx3(u,aj,ff), ...  etc. 
 #Include "derivMacroDefinitions.h"
 
-c Define 
-c    defineParametricDerivativeMacros(u,dr,dx,DIM,ORDER,COMPONENTS,MAXDERIV)
-c       defines -> ur2, us2, ux2, uy2, ...            (2D)
-c                  ur3, us3, ut3, ux3, uy3, uz3, ...  (3D)
+! Define 
+!    defineParametricDerivativeMacros(u,dr,dx,DIM,ORDER,COMPONENTS,MAXDERIV)
+!       defines -> ur2, us2, ux2, uy2, ...            (2D)
+!                  ur3, us3, ut3, ux3, uy3, uz3, ...  (3D)
 #Include "defineParametricDerivMacros.h"
 
 ! 2D, order=6, components=1
@@ -53,7 +54,7 @@ c                  ur3, us3, ut3, ux3, uy3, uz3, ...  (3D)
 !  defines getConservativeCoeff( OPERATOR,s,coeff ), OPERATOR=divScalarGrad, ...
 #Include "conservativeCoefficientMacros.h"
 
-c -- From opcoeff.bf
+! -- From opcoeff.bf
 
 #beginMacro beginLoops()
  do i3=n3a,n3b
@@ -770,29 +771,29 @@ end if
                       nde, equationNumber, classify, \
                       nr1a,nr1b,nr2a,nr2b,nr3a,nr3b, \
                       ipar, rpar, pdb, ierr )
-c======================================================================
-c 
-c             Incompressible Navier Stokes IMPlicit 
-c             -------------------------------------
-c
-c    1. Build the coefficient matrix for implicit methods
-c    2. Evaluate the right-hand-side and residual 
-c
-c nd : number of space dimensions
-c nd1a,nd1b,nd2a,nd2b,nd3a,nd3b : array dimensions
-c
-c mask : 
-c xy : 
-c rsxy : 
-c coeff(m,i1,i2,i3) : array holding the matrix coefficients
-c u : holds the current solution, used to form the coeff matrix.
-c fe : holds the explicit part when evaluating the RHS
-c fi : holds the implicit part when evaluating the RHS
-c ul : holds the linearized solution, used when evaluating the linearized operator and RHS
-c gv : gridVelocity for moving grids
-c dw : distance to the wall for some turbulence models
-c 
-c======================================================================
+!======================================================================
+! 
+!             Incompressible Navier Stokes IMPlicit 
+!             -------------------------------------
+!
+!    1. Build the coefficient matrix for implicit methods
+!    2. Evaluate the right-hand-side and residual 
+!
+! nd : number of space dimensions
+! nd1a,nd1b,nd2a,nd2b,nd3a,nd3b : array dimensions
+!
+! mask : 
+! xy : 
+! rsxy : 
+! coeff(m,i1,i2,i3) : array holding the matrix coefficients
+! u : holds the current solution, used to form the coeff matrix.
+! fe : holds the explicit part when evaluating the RHS
+! fi : holds the implicit part when evaluating the RHS
+! ul : holds the linearized solution, used when evaluating the linearized operator and RHS
+! gv : gridVelocity for moving grids
+! dw : distance to the wall for some turbulence models
+! 
+!======================================================================
       implicit none
       integer nd, ndc, n1a,n1b,n2a,n2b,n3a,n3b,
      & nd1a,nd1b,nd2a,nd2b,nd3a,nd3b,nd4a,nd4b
@@ -840,9 +841,9 @@ c======================================================================
       real matValpc(0:ndMatProp-1,0:*)
       real matVal(nd1a:nd1b,nd2a:nd2b,nd3a:nd3b,0:*)
 
-c     ---- local variables -----
+!     ---- local variables -----
       integer c,e,i1,i2,i3,m1,m2,m3,j1,j2,j3,ghostLine,n,i1m,i2m,i3m,i1p,i2p,i3p,ndu
-      integer side,axis,is1,is2,is3,mm,eqnTemp,debug,ntdc,normalAxis
+      integer side,axis,is1,is2,is3,mm,eqnTemp,debug,ntdc,normalAxis,axisp1,axisp2
       integer kd,kd3,orderOfAccuracy,gridIsMoving,orderOfExtrap,orderOfExtrapolation,orderOfExtrapolationForOutflow
       integer numberOfComponentsForCoefficients,stencilSize
       integer gridIsImplicit,implicitOption,implicitMethod,
@@ -1193,8 +1194,8 @@ c     ---- local variables -----
         stop 4
       end if
 
-c      write(*,'("NAME: turbulenceModel=",2i6)') turbulenceModel
-c      write(*,'("NAME: nd,uc,vc,wc,kc=",2i6)') nd,uc,vc,wc,kc
+!      write(*,'("NAME: turbulenceModel=",2i6)') turbulenceModel
+!      write(*,'("NAME: nd,uc,vc,wc,kc=",2i6)') nd,uc,vc,wc,kc
 
       if( turbulenceModel.eq.kEpsilon .and. (kc.lt.uc+nd .or. kc.gt.1000) )then
         write(*,'("NAME:ERROR in kc: nd,uc,vc,wc,kc=",2i6)') nd,uc,vc,wc,kc
@@ -1436,6 +1437,8 @@ c      write(*,'("NAME: nd,uc,vc,wc,kc=",2i6)') nd,uc,vc,wc,kc
 
         stop 9425
       end if
+
+      call flush(6)
 
       return
       end

@@ -1021,7 +1021,7 @@ c===============================================================================
           ! --- RECTANGULAR ----
           if( orderOfAccuracy.eq.2 )then
             if( axis.eq.0 )then
-              write(*,'("START TRACTION FREE LOOPS")')
+              ! write(*,'("START TRACTION FREE LOOPS")') 
               f1=0.
               f2=0.
               f3=0.
@@ -1057,7 +1057,7 @@ c===============================================================================
               end do
               end do
             else if( axis.eq.1 )then
-              write(*,'("START TRACTION FREE LOOPS")')
+              ! write(*,'("START TRACTION FREE LOOPS")') 
               f1=0.
               f2=0.
               f3=0.
@@ -1198,7 +1198,7 @@ c===============================================================================
           ! --- RECTANGULAR ----
           if( orderOfAccuracy.eq.2 )then
             if( axis.eq.0 )then
-              write(*,'("START TRACTION FREE LOOPS")')
+              ! write(*,'("START TRACTION FREE LOOPS")') 
               f1=0.
               f2=0.
               f3=0.
@@ -1245,7 +1245,7 @@ c===============================================================================
 
             else if( axis.eq.1 )then
               write(*,'("CALL TRACTION FREE Y")')
-              write(*,'("START TRACTION FREE LOOPS")')
+              ! write(*,'("START TRACTION FREE LOOPS")') 
               f1=0.
               f2=0.
               f3=0.
@@ -1284,7 +1284,7 @@ c===============================================================================
               end do
 
             else if( axis.eq.2 )then
-              write(*,'("START TRACTION FREE LOOPS")')
+              ! write(*,'("START TRACTION FREE LOOPS")') 
               f1=0.
               f2=0.
               f3=0.

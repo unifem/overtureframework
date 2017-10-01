@@ -25,6 +25,34 @@ current issue:
 
 
 *******************************
+****** Oct 1, 2017
+
+TEST NEW implicit free surface BC's 
+
+G4: reduce dt
+cgins -noplot freeSurfacePiston.cmd -g=freeSurfaceGrid2de4.order2p -dg="share=100" -ts=im -nu=.1 -tf=.5 -tp=.005 -model=ins -surfaceTension=.1 -pGrad=0. -ad2=0 -amp=0. -amp1=1.0 -amp2=1.0 -go=og
+     t    err(p)   err(u)   err(v)    div       uMax     dt       cpu    (1 steps)
+   0.005 5.00e-05 2.48e-16 1.24e-07 6.20e-14  2.01e+00 5.00e-03 8.58e+00 
+
+G2: note: dt comes from tp=.01
+cgins -noplot freeSurfacePiston.cmd -g=freeSurfaceGrid2de2.order2p -dg="share=100" -ts=im -nu=.1 -tf=.5 -tp=.01 -model=ins -surfaceTension=.1 -pGrad=0. -ad2=0 -amp=0. -amp1=1.0 -amp2=1.0 -go=og
+
+G4
+
+G2:
+     t    err(p)   err(u)   err(v)    div       uMax     dt       cpu    (1 steps)
+   0.010 2.00e-04 1.46e-16 9.90e-07 2.46e-14  2.02e+00 1.00e-02 2.94e+01 
+     t    err(p)   err(u)   err(v)    div       uMax     dt       cpu    (10 steps)
+   0.100 1.98e-04 6.25e-16 1.80e-05 4.09e-14  2.22e+00 1.00e-02 8.67e+01 
+
+*******************************
+****** Sept 26, 2017
+
+TEST IMPLICIT PLUS FREE SURFACE 
+cgins -noplot freeSurfacePiston.cmd -g=freeSurfaceGrid2de2.order2p -dg="share=100" -ts=im -nu=.1 -tf=.5 -tp=.01 -model=ins -surfaceTension=.1 -pGrad=0. -ad2=0 -amp=0. -amp1=1.0 -amp2=1.0 -go=og
+
+
+*******************************
 ****** Sept 10, 2017
 
 wdh: Look at Dan Serino's bug above.

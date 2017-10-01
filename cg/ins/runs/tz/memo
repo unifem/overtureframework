@@ -1,4 +1,71 @@
 *************************************
+*********  Oct 1, 2017
+
+TEST DECOUPLED FREE SURFACE BC's
+
+cgins -noplot tz -g=square5.order2 -degreex=2 -degreet=2 -ts=im -bcn=d -bc1=freeSurface -tp=.01 -decoupleImplicitBoundaryConditions=0 -tf=1 -go=og
+
+
+
+FREE SURFACE BC for IMPLICIT
+
+NON-BOX
+cgins -noplot tz -g=nonBox1.order2 -degreex=2 -degreet=1 -ts=im -bcn=d -bc1=freeSurface -bc2=freeSurface  -tp=.01 -tf=1 -go=og [exact
+
+cgins -noplot tz -g=nonBox1.order2 -degreex=2 -degreet=1 -ts=im -bcn=d -bc3=freeSurface -bc4=freeSurface  -tp=.01 -tf=1 -go=og [exact
+
+BOX 
+cgins -noplot tz -g=box1.order2 -degreex=2 -degreet=1 -ts=im -bcn=d -bc5=freeSurface -bc6=freeSurface  -tp=.01 -tf=1 -go=og [exact
+
+cgins -noplot tz -g=box1.order2 -degreex=2 -degreet=1 -ts=im -bcn=d -bc1=freeSurface -bc2=freeSurface  -tp=.01 -tf=1 -go=og [exact
+
+cgins -noplot tz -g=box1.order2 -degreex=2 -degreet=1 -ts=im -bcn=d -bc3=freeSurface -bc4=freeSurface  -tp=.01 -tf=1 -go=og [exact
+     t    err(p)   err(u)   err(v)   err(w)    div       uMax     dt       cpu    (2 steps)
+   0.010 8.66e-15 2.71e-14 7.55e-15 1.53e-14 2.58e-13  5.02e+00 5.00e-03 3.13e+01 
+
+ROTATED-SQUARE
+
+cgins -noplot tz -g=rotatedSquare16.order2 -degreex=2 -degreet=1 -ts=im -bcn=d -bc3=freeSurface -bc4=freeSurface  -tp=.01 -tf=1 -go=og [exact 
+
+SQUARE: Adjacent free-surface BC's is not imnplemented:
+cgins -noplot tz -g=square10.order2 -degreex=2 -degreet=1 -ts=im -bcn=d -bc1=freeSurface -bc3=freeSurface  -tp=.01 -tf=1 -go=og
+
+*************************************
+*********  Sept 30, 2017
+
+START ON FREE SURFACE BC for IMPLICIT 
+
+
+cgins -noplot tz -g=square10.order2 -degreex=2 -degreet=2 -ts=im -bcn=d -bc1=freeSurface -bc2=freeSurface -tp=.01 -tf=1 -go=og
+
+
+ROTATED-SQUARE
+
+
+NON-SQUARE
+cgins -noplot tz -g=nonSquare10.order2 -degreex=2 -degreet=1 -ts=im -bcn=d -bc3=freeSurface -bc4=freeSurface  -tp=.01 -tf=1 -go=og [EXACT
+
+cgins -noplot tz -g=nonSquare10.order2 -degreex=2 -degreet=1 -ts=im -bcn=d -bc1=freeSurface -bc2=freeSurface  -tp=.01 -tf=1 -go=og [EXACT
+
+SQUARE: 
+EXACT: degree=(1,0) (2,0), (2,1), (0,2) , (1,2) -- NOT (2,2)
+cgins -noplot tz -g=square10.order2 -degreex=2 -degreet=1 -ts=im -bcn=d -bc3=freeSurface -bc4=freeSurface  -tp=.01 -tf=1 -go=og
+
+cgins -noplot tz -g=square10.order2 -degreex=2 -degreet=1 -ts=im -bcn=d -bc1=freeSurface -bc2=freeSurface  -tp=.01 -tf=1 -go=og
+
+
+PRINT MATRIX FOR FREE SURFACE ON BOTTOM
+cgins -noplot tz -g=square3.order2 -degreex=0 -degreet=0 -ts=im -bcn=d -bc3=freeSurface -tp=.01 -tf=.01 -debug=15 -ogesDebug=63 -go=go >! junk.out
+
+cgins -noplot tz -g=square5.order2 -degreex=2 -degreet=2 -ts=im -bcn=d -bc1=freeSurface -tp=.01 -tf=1 -go=og
+
+
+START: Neumann BC only 
+cgins -noplot tz -g=square10.order2 -degreex=2 -degreet=2 -ts=im -bcn=d -bc3=freeSurface -bc4=freeSurface -tp=.05 -tf=1 -go=og
+     t    err(p)   err(u)   err(v)    div       uMax     dt       cpu    (4 steps)
+   0.050 2.33e-08 4.58e-08 2.76e-08 2.88e-07  4.10e+00 1.25e-02 1.44e+01 
+
+*************************************
 *********  July 17, 2017
 
 Traction free + curvilinear  *3D*

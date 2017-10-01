@@ -1,4 +1,33 @@
 **************************************
+******* Sept 28, 2017
+
+REDO runs for 6 month review -- larger wavelength
+
+cgmx -noplot dielectricBodies -g=ellipticalGride8.order4.hdf -eps1=4 -eps2=1. -kx=.25 -diss=8. -tp=.5 -tf=10 -rbc=rbcNonLocal -show=ellipse8kx0p25.show -go=go >! ellipse8kx0p25.out
+
+
+cgmx -noplot dielectricBodies -g=ellipticalGride16.order4.hdf -eps1=4 -eps2=1. -kx=.5 -diss=8. -tp=.5 -tf=10 -rbc=rbcNonLocal -show=ellipse16kx0p5.show -go=go >! ellipse16kx0p5.out
+
+cgmx -noplot dielectricBodies -g=ellipticalGride8.order4.hdf -eps1=4 -eps2=1. -kx=.5 -diss=8. -tp=.5 -tf=10 -rbc=rbcNonLocal -show=ellipse8kx0p5.show -go=go >! ellipse8kx0p5.out
+
+
+cgmx -noplot dielectricBodies -g=rodGrid2de16.order4.hdf -eps1=4 -eps2=1. -kx=.25 -diss=8. -tp=.5 -tf=10 -rbc=rbcNonLocal -show=rod16kx0p25.show -go=go >! rod16kx0p25.out
+
+cgmx -noplot dielectricBodies -g=rodGrid2de16.order4.hdf -eps1=4 -eps2=1. -kx=.5 -diss=8. -tp=.5 -tf=10 -rbc=rbcNonLocal -show=rod16kx0p5.show -go=go >! rod16kx0p5.out
+
+cgmx -noplot dielectricBodies -g=crossGridi16.order4.hdf -eps1=4 -eps2=1. -kx=.25 -diss=8. -tp=.5 -tf=10 -rbc=rbcNonLocal -show=cross16kx0p25.show -go=go >! cross16kx0p25.out
+
+cgmx -noplot dielectricBodies -g=crossGridi16.order4.hdf -eps1=4 -eps2=1. -kx=.5 -diss=8. -tp=.5 -tf=10 -rbc=rbcNonLocal -show=cross16kx0p5.show -go=go >! cross16kx0p5.out
+
+**************************************
+******* Sept 18, 2017
+
+FIX reflection probe for kx!=1 -- incidentAmplitude may be off
+
+Single BLOCK -- 
+cgmx dielectricBodies -g=dielectricBlockGrid2de4.order4 -backGround=leftBackGround -rbc=rbcNonLocal -kx=1 -eps1=8 -eps2=1. -diss=2 -tf=15 -tp=.1 -go=halt
+
+**************************************
 ******* Sept 15, 2017
 
 CURVED DIELECTRIC BLOCK 

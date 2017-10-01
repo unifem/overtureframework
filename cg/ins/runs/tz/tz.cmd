@@ -206,6 +206,8 @@ $freqFullUpdate=10; # frequency for using full ogen update in moving grids
 $tm = "#"; # turbulence model
 $checkErrOnGhost=0; # check errors on this many ghost lines
 $useNewImp=1; # use the new implicit method 
+# Decouple implicit BCs (e.g. free surface) so we can solve scalar velociity implicit equations
+$decoupleImplicitBoundaryConditions=0;
 $xshift=1.; $yshift=0.; $zshift=0.; # for moving grids, shift option
 #
 $ao="centered"; $upwindOrder=-1;
@@ -235,7 +237,8 @@ GetOptions( "g=s"=>\$grid,"gf=s"=>\$gridCmdFileName,"tf=f"=>\$tFinal,"degreex=i"
   "checkErrOnGhost=i"=>\$checkErrOnGhost,"mbpbc=i"=>\$mbpbc,"mbpbcc=f"=>\$mbpbcc,"nc=i"=>\$numberOfCorrections,\
   "aftol=f"=>\$aftol, "afit=i"=>\$afit,"project=i"=>\$project,"cp0=f"=>\$cp0,"varMat=i"=>\$varMat,\
   "thermalConductivity=i"=>\$thermalConductivity,"xshift=f"=>\$xshift,"yshift=f"=>\$yshift,"zshift=f"=>\$zshift,\
-  "uplot=s"=>\$uplot, "orderInTime=i"=>\$orderInTime,"ao=s"=>\$ao,"upwindOrder=i"=>\$upwindOrder );
+  "uplot=s"=>\$uplot, "orderInTime=i"=>\$orderInTime,"ao=s"=>\$ao,"upwindOrder=i"=>\$upwindOrder,\
+  "decoupleImplicitBoundaryConditions=i"=>\$decoupleImplicitBoundaryConditions );
 # -------------------------------------------------------------------------------------------------
 if( $solver eq "best" ){ $solver="choose best iterative solver"; }
 if( $solver eq "mg" ){ $solver="multigrid"; }
@@ -412,6 +415,8 @@ $order
    # This will use a Neumann BC at outflow: 
    use Neumann BC at outflow
   done
+# Decouple implicit BCs (e.g. free surface) so we can solve scalar velociity implicit equations
+  OBPDE:decouple implicit boundary conditions $decoupleImplicitBoundaryConditions
 # 
   OBPDE:use new fourth order boundary conditions 1
   OBPDE:use boundary dissipation in AF scheme 0
@@ -452,7 +457,7 @@ $cmd
 #
 echo to terminal 0
   pressure solver options
-   $ogesSolver=$psolver; $ogesRtol=$rtolp; $ogesAtol=$atolp; $ogesIluLevels=$iluLevels; $ogmgDebug=$ogesDebug; $ogmgCoarseGridSolver="best"; $ogmgRtolcg=$rtolp; $ogmgAtolcg=$atolp; $ogmgCmd = "maximum number of iterations\n$ogmgMaxIts"
+   $ogesSolver=$psolver; $ogesRtol=$rtolp; $ogesAtol=$atolp; $ogesIluLevels=$iluLevels; $ogmgDebug=$ogesDebug; $ogmgDebugcg=$ogesDebug; $ogmgCoarseGridSolver="best"; $ogmgRtolcg=$rtolp; $ogmgAtolcg=$atolp; $ogmgCmd = "maximum number of iterations\n$ogmgMaxIts"
    #$ogmgOpav=0;
    #$ogmgSsr=1; 
    #$ogesDtol=1.e6; 
@@ -461,11 +466,11 @@ echo to terminal 0
    include $ENV{CG}/ins/cmd/ogesOptions.h
   exit
 #
+echo to terminal 1
   implicit time step solver options
    $ogesSolver=$solver; $ogesRtol=$rtol; $ogesAtol=$atol; $ogmgOpav=0; $ogmgRtolcg=1.e-6;
    include $ENV{CG}/ins/cmd/ogesOptions.h
   exit
-echo to terminal 1
 #
   boundary conditions...
    order of extrap for outflow 3 (-1=default)

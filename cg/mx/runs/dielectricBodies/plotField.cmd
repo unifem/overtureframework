@@ -17,6 +17,15 @@
 #
 #    plotStuff plotField.cmd -show=pecDiskG4Eps4.show -solution=201 -name=pecDiskG4Eps4
 #
+#    plotStuff plotField.cmd -show=rod16kx0p5.show -solution=201 -name=rod16kx0p5
+#    plotStuff plotField.cmd -show=rod16kx0p25.show -solution=201 -name=rod16kx0p25
+# 
+#    plotStuff plotField.cmd -show=cross16kx0p5.show -solution=201 -name=cross16kx0p5
+#    plotStuff plotField.cmd -show=cross16kx0p25.show -solution=201 -name=cross16kx0p25
+#
+#    plotStuff plotField.cmd -show=ellipse16kx0p5.show -solution=201 -name=ellipse16kx0p5
+#    plotStuff plotField.cmd -show=ellipse8kx0p25.show -solution=201 -name=ellipse8kx0p25
+#
 $show="ellipseG8.hdf"; $solution="-1"; 
 # get command line arguments
 GetOptions( "show=s"=>\$show, "name=s"=>\$name, "solution=i"=>\$solution );
@@ -38,6 +47,15 @@ hardcopy horizontal resolution:0 2048
   line width scale factor:0 3
   plot
   $plotName = $name . "Ey.ps"; 
+  hardcopy file name:0 $plotName
+  hardcopy save:0
+# 
+plot:Ex
+  $plotName = $name . "Ex.ps"; 
+  hardcopy file name:0 $plotName
+  hardcopy save:0
+plot:Hz
+  $plotName = $name . "Hz.ps"; 
   hardcopy file name:0 $plotName
   hardcopy save:0
 # 

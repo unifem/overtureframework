@@ -508,7 +508,8 @@ outputUserDefinedProbes( int current, real t, real dt, int stepNumber )
 
       getIndex(boxIndexRange,I1,I2,I3);
 
-      real omega=1.; // FIX ME 
+      // c = omega/kx, assumes ky=0 
+      real omega=kx*cGrid(probeGrid); 
        
       real a11=0., a12=0., a22=0.;
       real f1=0., f2=0.;

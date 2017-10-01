@@ -250,7 +250,7 @@ end do
   stop 4444
 #End
 
-write(*,'("START TRACTION FREE LOOPS")') 
+! write(*,'("START TRACTION FREE LOOPS")') 
 
 f1=0.
 f2=0.

@@ -442,6 +442,7 @@ writeParameterSummary( FILE * file )
       fPrintF(file," useNewImplicitMethod=%i (1=use implicit RHS evaluation for dudt)\n",
 	      parameters.dbase.get<int>("useNewImplicitMethod"));
     
+      fPrintF(file," decouple implicit boundary conditions=%i\n",(int)parameters.dbase.get<bool>("decoupleImplicitBoundaryConditions"));
       fPrintF(file," refactor frequency=%i\n",parameters.dbase.get<int>("refactorFrequency"));
 
       int & numberOfImplicitVelocitySolvers = parameters.dbase.get<int>("numberOfImplicitVelocitySolvers");

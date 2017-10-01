@@ -84,20 +84,22 @@ disk:
 	$(ogen) -noplot io -prefix=diskInBox -order=2 -interp=e -xa=-5.5 -xb=5.5 -ya=-.75 -yb=.75 -outerBC=yPeriodic -fact	$(ogen) -noplot io -prefix=diskInBox -order=4 -interp=e -xa=-5.5 -xb=5.5 -ya=-.75 -yb=.75 -outerBC=yPeriodic -factor=8 -numGhost=3
 
 ellipse:
-	$(ogen) -noplot shapedDiskGrid -shape=ellipse -prefix=ellipticalGrid -interp=e -factor=4
-	$(ogen) -noplot shapedDiskGrid -shape=ellipse -prefix=ellipticalGrid -interp=e -factor=8
-	$(ogen) -noplot shapedDiskGrid -shape=ellipse -prefix=ellipticalGrid -interp=e -order=4 -factor=8
+	$(ogen) -noplot shapedDiskGrid -shape=ellipse -prefix=ellipticalGrid -xa=-5. -xb=5. -interp=e -factor=4
+	$(ogen) -noplot shapedDiskGrid -shape=ellipse -prefix=ellipticalGrid -xa=-5. -xb=5. -interp=e -factor=8
+	$(ogen) -noplot shapedDiskGrid -shape=ellipse -prefix=ellipticalGrid -xa=-5. -xb=5. -interp=e -order=4 -factor=8
+	$(ogen) -noplot shapedDiskGrid -shape=ellipse -prefix=ellipticalGrid -xa=-5. -xb=5. -interp=e -order=4 -factor=16
 
 rod:
-	$(ogen) -noplot rodGrid2d -order=2 -interp=e -factor=4
-	$(ogen) -noplot rodGrid2d -order=2 -interp=e -factor=8
-	$(ogen) -noplot rodGrid2d -order=2 -interp=e -factor=16
-	$(ogen) -noplot rodGrid2d -order=4 -interp=e -factor=8
-	$(ogen) -noplot rodGrid2d -order=4 -interp=e -factor=16
+	$(ogen) -noplot rodGrid2d -order=2 -xa=-5. -xb=5. -interp=e -factor=4
+	$(ogen) -noplot rodGrid2d -order=2 -xa=-5. -xb=5. -interp=e -factor=8
+	$(ogen) -noplot rodGrid2d -order=2 -xa=-5. -xb=5. -interp=e -factor=16
+	$(ogen) -noplot rodGrid2d -order=4 -xa=-5. -xb=5. -interp=e -factor=8
+	$(ogen) -noplot rodGrid2d -order=4 -xa=-5. -xb=5. -interp=e -factor=16
 
 cross:
-	$(ogen) -noplot shapedDiskGrid -shape=cross -prefix=crossGrid -interp=e -order=2 -factor=16
-	$(ogen) -noplot shapedDiskGrid -shape=cross -prefix=crossGrid -interp=i -order=4 -factor=16
+	$(ogen) -noplot shapedDiskGrid -shape=cross -prefix=crossGrid -xa=-5. -xb=5. -interp=e -order=2 -factor=16
+	$(ogen) -noplot shapedDiskGrid -shape=cross -prefix=crossGrid -xa=-5. -xb=5. -interp=i -order=4 -factor=16
+	$(ogen) -noplot shapedDiskGrid -shape=cross -prefix=crossGrid -xa=-5. -xb=5. -interp=e -order=4 -factor=16
 
 sphere:
 	$(ogen) -noplot solidSphereInABox -prefix=dielectricSphereGrid -xa=-3 -xb=3 -ya=-1.5 -yb=1.5 -za=-1.5 -zb=1.5 -outerBC=yzPeriodic -order=2 -interp=e -factor=2

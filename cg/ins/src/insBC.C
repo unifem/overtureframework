@@ -1913,6 +1913,7 @@ applyBoundaryConditions(const real & t, realMappedGridFunction & u,
         if( assignFreeSurfaceBoundaryCondition || assignTractionFree )
         {
       // test: u.applyBoundaryCondition(Rt,neumann,tractionFree,0.,t);  
+            printF("--INSBC-- Assign new free surface BC t=%9.3e\n",t);
 
             {
        // twilight always needs the vertex: 

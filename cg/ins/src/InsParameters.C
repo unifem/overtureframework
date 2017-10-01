@@ -118,6 +118,11 @@ InsParameters(const int & numberOfDimensions0) : Parameters(numberOfDimensions0)
   if (!dbase.has_key("thermalConductivityc")) dbase.put<int>("thermalConductivityc");
 
 
+  // Decouple implicit boundary conditions (e.g. slipWall or freeSurface) so that only scalar
+  // velocity systems are needed. *wdh* Oct 1, 2017
+  if ( !dbase.has_key("decoupleImplicitBoundaryConditions")) 
+     dbase.put<bool>("decoupleImplicitBoundaryConditions")=false;
+
   if ( !dbase.has_key("useBoundaryDissipationInAFScheme")) dbase.put<bool >("useBoundaryDissipationInAFScheme",false);
   if ( !dbase.has_key("stabilizeHighOrderBoundaryConditions")) dbase.put<bool >("stabilizeHighOrderBoundaryConditions",true);
 
@@ -1523,19 +1528,21 @@ setPdeParameters(CompositeGrid & cg, const aString & command /* = nullString */,
 			  "include artificial diffusion in pressure equation",
 			  "use boundary dissipation in AF scheme",
                           "stabilize high order boundary conditions",
+                          "decouple implicit boundary conditions",
 			  ""};
-    int tbState[11];
-    tbState[0] =  dbase.get<bool >("projectInitialConditions");
-    tbState[1] =  dbase.get<bool >("useSecondOrderArtificialDiffusion");
-    tbState[2] =  dbase.get<bool >("useFourthOrderArtificialDiffusion");
-    tbState[3] =  dbase.get<bool >("useSixthOrderArtificialDiffusion");
-    tbState[4] =  dbase.get<bool >("useImplicitFourthArtificialDiffusion");
-    tbState[5] =  dbase.get<int >("useSplitStepImplicitArtificialDiffusion");
-    tbState[6] =  dbase.get<int >("useNewFourthOrderBoundaryConditions"); 
-    tbState[7] =  dbase.get<bool >("includeArtificialDiffusionInPressureEquation");
-    tbState[8] =  dbase.get<bool >("useBoundaryDissipationInAFScheme");
-    tbState[9] =  dbase.get<bool >("stabilizeHighOrderBoundaryConditions");
-    tbState[10]=0;
+    int tbState[12];
+    tbState[ 0] =  dbase.get<bool>("projectInitialConditions");
+    tbState[ 1] =  dbase.get<bool>("useSecondOrderArtificialDiffusion");
+    tbState[ 2] =  dbase.get<bool>("useFourthOrderArtificialDiffusion");
+    tbState[ 3] =  dbase.get<bool>("useSixthOrderArtificialDiffusion");
+    tbState[ 4] =  dbase.get<bool>("useImplicitFourthArtificialDiffusion");
+    tbState[ 5] =  dbase.get<int>("useSplitStepImplicitArtificialDiffusion");
+    tbState[ 6] =  dbase.get<int>("useNewFourthOrderBoundaryConditions"); 
+    tbState[ 7] =  dbase.get<bool>("includeArtificialDiffusionInPressureEquation");
+    tbState[ 8] =  dbase.get<bool>("useBoundaryDissipationInAFScheme");
+    tbState[ 9] =  dbase.get<bool>("stabilizeHighOrderBoundaryConditions");
+    tbState[10] =  dbase.get<bool>("decoupleImplicitBoundaryConditions");
+    tbState[11]=0;
 
     int numColumns=1;
     addPrefix(tbLabels,prefix,cmd,maxCommands);
@@ -1802,6 +1809,14 @@ setPdeParameters(CompositeGrid & cg, const aString & command /* = nullString */,
 	printF("INFO: stabilizeHighOrderBoundaryConditions is on: use a lower order artificial dissipation in the fourth-order boundary conditions\n");
       }
     }
+
+    else if ( dialog.getToggleValue(answer,"decouple implicit boundary conditions",
+                                    dbase.get<bool >("decoupleImplicitBoundaryConditions")) )
+    {
+      printF("decoupleImplicitBoundaryConditions=%i\n",(int)dbase.get<bool >("decoupleImplicitBoundaryConditions"));
+    }
+    
+
     else if( answer=="turn on second order artificial diffusion" )
     {
        dbase.get<bool >("useSecondOrderArtificialDiffusion")=true;

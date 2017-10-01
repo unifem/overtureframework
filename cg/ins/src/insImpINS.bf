@@ -11,6 +11,268 @@
 #Include "consCoeff.h"
 
 
+! ======================================================================================================
+! Set up to 10 different local matrix operators to the global matrix coeff 
+! in equation "e" and component "c" IN THE GHOST POINT (i1m,i2m,i3m) 
+!
+! ALSO SET EQUATION NUMBERS and CLASSIFY  
+! 
+! (Leave final unused arguments empty)
+! ======================================================================================================
+#beginMacro setCoeffGhost10(c,e,coeff,op1,op2,op3,op4,op5,op6,op7,op8,op9,op10)
+ setClassify(e,i1m,i2m,i3m, ghost1)            !macro to set classify
+
+ do m3=-halfWidth3,halfWidth3
+ do m2=-halfWidth,halfWidth
+ do m1=-halfWidth,halfWidth
+#If #op10 ne ""
+   coeff(MCE(m1,m2,m3,c,e),i1m,i2m,i3m)=\
+       (op1(MA(m1,m2,m3)))+(op2(MA(m1,m2,m3)))+(op3(MA(m1,m2,m3)))+(op4(MA(m1,m2,m3)))+(op5(MA(m1,m2,m3)))+\
+       (op6(MA(m1,m2,m3)))+(op7(MA(m1,m2,m3)))+(op8(MA(m1,m2,m3)))+(op9(MA(m1,m2,m3)))+(op10(MA(m1,m2,m3)))
+#Elif #op9 ne ""
+   coeff(MCE(m1,m2,m3,c,e),i1m,i2m,i3m)=\
+       (op1(MA(m1,m2,m3)))+(op2(MA(m1,m2,m3)))+(op3(MA(m1,m2,m3)))+(op4(MA(m1,m2,m3)))+(op5(MA(m1,m2,m3)))+\
+       (op6(MA(m1,m2,m3)))+(op7(MA(m1,m2,m3)))+(op8(MA(m1,m2,m3)))+(op9(MA(m1,m2,m3)))
+#Elif #op8 ne ""
+   coeff(MCE(m1,m2,m3,c,e),i1m,i2m,i3m)=\
+       (op1(MA(m1,m2,m3)))+(op2(MA(m1,m2,m3)))+(op3(MA(m1,m2,m3)))+(op4(MA(m1,m2,m3)))+(op5(MA(m1,m2,m3)))+\
+       (op6(MA(m1,m2,m3)))+(op7(MA(m1,m2,m3)))+(op8(MA(m1,m2,m3)))
+#Elif #op7 ne ""
+   coeff(MCE(m1,m2,m3,c,e),i1m,i2m,i3m)=\
+       (op1(MA(m1,m2,m3)))+(op2(MA(m1,m2,m3)))+(op3(MA(m1,m2,m3)))+(op4(MA(m1,m2,m3)))+(op5(MA(m1,m2,m3)))+\
+       (op6(MA(m1,m2,m3)))+(op7(MA(m1,m2,m3)))
+#Elif #op6 ne ""
+   coeff(MCE(m1,m2,m3,c,e),i1m,i2m,i3m)=\
+       (op1(MA(m1,m2,m3)))+(op2(MA(m1,m2,m3)))+(op3(MA(m1,m2,m3)))+(op4(MA(m1,m2,m3)))+(op5(MA(m1,m2,m3)))+\
+       (op6(MA(m1,m2,m3)))
+#Elif #op5 ne ""
+   coeff(MCE(m1,m2,m3,c,e),i1m,i2m,i3m)=\
+       (op1(MA(m1,m2,m3)))+(op2(MA(m1,m2,m3)))+(op3(MA(m1,m2,m3)))+(op4(MA(m1,m2,m3)))+(op5(MA(m1,m2,m3)))
+#Elif #op4 ne ""
+   coeff(MCE(m1,m2,m3,c,e),i1m,i2m,i3m)=\
+       (op1(MA(m1,m2,m3)))+(op2(MA(m1,m2,m3)))+(op3(MA(m1,m2,m3)))+(op4(MA(m1,m2,m3)))
+#Elif #op3 ne ""
+   coeff(MCE(m1,m2,m3,c,e),i1m,i2m,i3m)=(op1(MA(m1,m2,m3)))+(op2(MA(m1,m2,m3)))+(op3(MA(m1,m2,m3)))
+#Elif #op2 ne ""
+   coeff(MCE(m1,m2,m3,c,e),i1m,i2m,i3m)=(op1(MA(m1,m2,m3)))+(op2(MA(m1,m2,m3)))
+#Else
+   coeff(MCE(m1,m2,m3,c,e),i1m,i2m,i3m)=(op1(MA(m1,m2,m3)))
+#End
+  ! The equation for pt (e,i1m,i2m,i3m) is centered on (c,i1,i2,i3): 
+  setEquationNumber(MCE(m1,m2,m3,c,e), e,i1m,i2m,i3m,  c,i1+m1,i2+m2,i3+m3 )  !macro to set equationNumber
+
+ end do
+ end do
+ end do
+#endMacro
+
+#beginMacro setCoeffGhost9(c,e,coeff,op1,op2,op3,op4,op5,op6,op7,op8,op9)
+setCoeffGhost10(c,e,coeff,op1,op2,op3,op4,op5,op6,op7,op8,op9,) 
+#endMacro
+#beginMacro setCoeffGhost8(c,e,coeff,op1,op2,op3,op4,op5,op6,op7,op8)
+setCoeffGhost10(c,e,coeff,op1,op2,op3,op4,op5,op6,op7,op8,,) 
+#endMacro
+#beginMacro setCoeffGhost7(c,e,coeff,op1,op2,op3,op4,op5,op6,op7)
+setCoeffGhost10(c,e,coeff,op1,op2,op3,op4,op5,op6,op7,,,) 
+#endMacro
+#beginMacro setCoeffGhost6(c,e,coeff,op1,op2,op3,op4,op5,op6)
+setCoeffGhost10(c,e,coeff,op1,op2,op3,op4,op5,op6,,,,) 
+#endMacro
+#beginMacro setCoeffGhost5(c,e,coeff,op1,op2,op3,op4,op5)
+setCoeffGhost10(c,e,coeff,op1,op2,op3,op4,op5,,,,,) 
+#endMacro
+#beginMacro setCoeffGhost4(c,e,coeff,op1,op2,op3,op4)
+setCoeffGhost10(c,e,coeff,op1,op2,op3,op4,,,,,,) 
+#endMacro
+#beginMacro setCoeffGhost3(c,e,coeff,op1,op2,op3)
+setCoeffGhost10(c,e,coeff,op1,op2,op3,,,,,,,) 
+#endMacro
+#beginMacro setCoeffGhost2(c,e,coeff,op1,op2)
+setCoeffGhost10(c,e,coeff,op1,op2,,,,,,,,) 
+#endMacro
+#beginMacro setCoeffGhost1(c,e,coeff,op1)
+setCoeffGhost10(c,e,coeff,op1,,,,,,,,,) 
+#endMacro
+
+! ======================================================================================================
+! Add up to 10 different local matrix operators to the global matrix coeff 
+! in equation "e" and component "c" IN THE GHOST POINT (i1m,i2m,i3m) 
+! 
+! (Leave final unused arguments empty)
+! ======================================================================================================
+#beginMacro addCoeffGhost10(c,e,coeff,op1,op2,op3,op4,op5,op6,op7,op8,op9,op10)
+ do m3=-halfWidth3,halfWidth3
+ do m2=-halfWidth,halfWidth
+ do m1=-halfWidth,halfWidth
+#If #op10 ne ""
+   coeff(MCE(m1,m2,m3,c,e),i1m,i2m,i3m)=coeff(MCE(m1,m2,m3,c,e),i1m,i2m,i3m)+\
+       (op1(MA(m1,m2,m3)))+(op2(MA(m1,m2,m3)))+(op3(MA(m1,m2,m3)))+(op4(MA(m1,m2,m3)))+(op5(MA(m1,m2,m3)))+\
+       (op6(MA(m1,m2,m3)))+(op7(MA(m1,m2,m3)))+(op8(MA(m1,m2,m3)))+(op9(MA(m1,m2,m3)))+(op10(MA(m1,m2,m3)))
+#Elif #op9 ne ""
+   coeff(MCE(m1,m2,m3,c,e),i1m,i2m,i3m)=coeff(MCE(m1,m2,m3,c,e),i1m,i2m,i3m)+\
+       (op1(MA(m1,m2,m3)))+(op2(MA(m1,m2,m3)))+(op3(MA(m1,m2,m3)))+(op4(MA(m1,m2,m3)))+(op5(MA(m1,m2,m3)))+\
+       (op6(MA(m1,m2,m3)))+(op7(MA(m1,m2,m3)))+(op8(MA(m1,m2,m3)))+(op9(MA(m1,m2,m3)))
+#Elif #op8 ne ""
+   coeff(MCE(m1,m2,m3,c,e),i1m,i2m,i3m)=coeff(MCE(m1,m2,m3,c,e),i1m,i2m,i3m)+\
+       (op1(MA(m1,m2,m3)))+(op2(MA(m1,m2,m3)))+(op3(MA(m1,m2,m3)))+(op4(MA(m1,m2,m3)))+(op5(MA(m1,m2,m3)))+\
+       (op6(MA(m1,m2,m3)))+(op7(MA(m1,m2,m3)))+(op8(MA(m1,m2,m3)))
+#Elif #op7 ne ""
+   coeff(MCE(m1,m2,m3,c,e),i1m,i2m,i3m)=coeff(MCE(m1,m2,m3,c,e),i1m,i2m,i3m)+\
+       (op1(MA(m1,m2,m3)))+(op2(MA(m1,m2,m3)))+(op3(MA(m1,m2,m3)))+(op4(MA(m1,m2,m3)))+(op5(MA(m1,m2,m3)))+\
+       (op6(MA(m1,m2,m3)))+(op7(MA(m1,m2,m3)))
+#Elif #op6 ne ""
+   coeff(MCE(m1,m2,m3,c,e),i1m,i2m,i3m)=coeff(MCE(m1,m2,m3,c,e),i1m,i2m,i3m)+\
+       (op1(MA(m1,m2,m3)))+(op2(MA(m1,m2,m3)))+(op3(MA(m1,m2,m3)))+(op4(MA(m1,m2,m3)))+(op5(MA(m1,m2,m3)))+\
+       (op6(MA(m1,m2,m3)))
+#Elif #op5 ne ""
+   coeff(MCE(m1,m2,m3,c,e),i1m,i2m,i3m)=coeff(MCE(m1,m2,m3,c,e),i1m,i2m,i3m)+\
+       (op1(MA(m1,m2,m3)))+(op2(MA(m1,m2,m3)))+(op3(MA(m1,m2,m3)))+(op4(MA(m1,m2,m3)))+(op5(MA(m1,m2,m3)))
+#Elif #op4 ne ""
+   coeff(MCE(m1,m2,m3,c,e),i1m,i2m,i3m)=coeff(MCE(m1,m2,m3,c,e),i1m,i2m,i3m)+\
+       (op1(MA(m1,m2,m3)))+(op2(MA(m1,m2,m3)))+(op3(MA(m1,m2,m3)))+(op4(MA(m1,m2,m3)))
+#Elif #op3 ne ""
+   coeff(MCE(m1,m2,m3,c,e),i1m,i2m,i3m)=coeff(MCE(m1,m2,m3,c,e),i1m,i2m,i3m)+(op1(MA(m1,m2,m3)))+(op2(MA(m1,m2,m3)))+(op3(MA(m1,m2,m3)))
+#Elif #op2 ne ""
+   coeff(MCE(m1,m2,m3,c,e),i1m,i2m,i3m)=coeff(MCE(m1,m2,m3,c,e),i1m,i2m,i3m)+(op1(MA(m1,m2,m3)))+(op2(MA(m1,m2,m3)))
+#Else
+   coeff(MCE(m1,m2,m3,c,e),i1m,i2m,i3m)=coeff(MCE(m1,m2,m3,c,e),i1m,i2m,i3m)+(op1(MA(m1,m2,m3)))
+#End
+  ! The equation for pt (e,i1m,i2m,i3m) is centered on (c,i1,i2,i3): 
+  setEquationNumber(MCE(m1,m2,m3,c,e), e,i1m,i2m,i3m,  c,i1+m1,i2+m2,i3+m3 )  !macro to set equationNumber
+ end do
+ end do
+ end do
+#endMacro
+
+#beginMacro addCoeffGhost9(c,e,coeff,op1,op2,op3,op4,op5,op6,op7,op8,op9)
+addCoeffGhost10(c,e,coeff,op1,op2,op3,op4,op5,op6,op7,op8,op9,) 
+#endMacro
+#beginMacro addCoeffGhost8(c,e,coeff,op1,op2,op3,op4,op5,op6,op7,op8)
+addCoeffGhost10(c,e,coeff,op1,op2,op3,op4,op5,op6,op7,op8,,) 
+#endMacro
+#beginMacro addCoeffGhost7(c,e,coeff,op1,op2,op3,op4,op5,op6,op7)
+addCoeffGhost10(c,e,coeff,op1,op2,op3,op4,op5,op6,op7,,,) 
+#endMacro
+#beginMacro addCoeffGhost6(c,e,coeff,op1,op2,op3,op4,op5,op6)
+addCoeffGhost10(c,e,coeff,op1,op2,op3,op4,op5,op6,,,,) 
+#endMacro
+#beginMacro addCoeffGhost5(c,e,coeff,op1,op2,op3,op4,op5)
+addCoeffGhost10(c,e,coeff,op1,op2,op3,op4,op5,,,,,) 
+#endMacro
+#beginMacro addCoeffGhost4(c,e,coeff,op1,op2,op3,op4)
+addCoeffGhost10(c,e,coeff,op1,op2,op3,op4,,,,,,) 
+#endMacro
+#beginMacro addCoeffGhost3(c,e,coeff,op1,op2,op3)
+addCoeffGhost10(c,e,coeff,op1,op2,op3,,,,,,,) 
+#endMacro
+#beginMacro addCoeffGhost2(c,e,coeff,op1,op2)
+addCoeffGhost10(c,e,coeff,op1,op2,,,,,,,,) 
+#endMacro
+#beginMacro addCoeffGhost1(c,e,coeff,op1)
+addCoeffGhost10(c,e,coeff,op1,,,,,,,,,) 
+#endMacro
+
+
+! Here are the coefficients of the free surface BCs -- needs normal an(0:2) and delta function
+#defineMacro CSF(n,a,b) (delta(a,b)*an(n) + delta(n,a)*an(b) + delta(n,b)*an(a) - 2.*an(n)*an(a)*an(b))
+
+! ===============================================================================================
+!  Add a FREE SURFACE (vector)  BC to the matrix
+!  Macro args:
+!   coeff : coefficient matrix to fill in.
+!   cmpu,eqnu : fill in equations eqnu,...,eqnu+nd-1 and components cmpu,...,cmpu+nd-1
+!   i1,i2,i3 : boundary point, will assign ghost point
+!
+! NOTES:
+!  See the file surfins.pdf for a derivation of the equations used here
+!    (div(v))*n + (I-n n^T)(tauv.n )/mu = RHS 
+!
+!   =>  sum_a sum_b  CSF(n,a,b) * (partial u_a/partial x_b)  = RHS(n),   n=0,1,2
+!  
+! ===============================================================================================
+#beginMacro fillMatrixFreeSurface(coeff, cmpu,eqnu, i1,i2,i3, an )
+
+ i1m=i1-is1  ! ghost point
+ i2m=i2-is2
+ i3m=i3-is3
+
+ getNormalForCurvilinearGrid(side,axis,i1,i2,i3)
+
+ ! write(*,'(" IMP: FREE SURFACE i1,i2=",2i2," ndu=",i4," normal=",2e10.2)') i1,i2,ndu,an(0),an(1)
+ ! write(*,'("    :              i1m,i2m,i3m=",3i3)') i1m,i2m,i3m
+ ! write(*,'("    : c000,c001,c010,c011=",4e10.2)') CSF(0,0,0),CSF(0,0,1),CSF(0,1,0),CSF(0,1,1)
+ ! write(*,'("    : c100,c101,c110,c111=",4e10.2)') CSF(1,0,0),CSF(1,0,1),CSF(1,1,0),CSF(1,1,1)
+
+ ! Evaluate the jacobian derivatives used by the coefficient and forward derivatives:
+ ! opEvalJacobianDerivatives(MAXDER) : MAXDER = max number of derivatives to precompute.
+ opEvalJacobianDerivatives(aj,0)
+
+ ! evaluate the coeff operators 
+ ! getCoeff(identity, iCoeff,aj)
+ getCoeff(x, xCoeff,aj)
+ getCoeff(y, yCoeff,aj)
+ #If $DIM == 3
+  getCoeff(z, zCoeff,aj)
+ #End
+
+ do m=0,ndc-1
+  coeff(m,i1m,i2m,i3m)=0.  ! init all elements to zero
+ end do
+ 
+ #If $DIM == 2
+  ! --- 2D ---
+  if( fillCoefficientsScalarSystem.eq.0 )then
+   ! Fill in the coupled equations for u and v  
+   do n=0,nd-1
+     ! equation n:  (equation numbers and classify  are set in these calls)
+     setCoeffGhost2(cmpu,eqnu+n,coeff,CSF(n,0,0)*xCoeff,CSF(n,0,1)*yCoeff)
+     addCoeffGhost2(cmpv,eqnu+n,coeff,CSF(n,1,0)*xCoeff,CSF(n,1,1)*yCoeff)
+   end do
+
+  else if( fillCoefficientsScalarSystem.eq.fillCoeffU )then
+    ! We decouple the coupled velocity components: Only add coefficients of u 
+    n=0 
+    setCoeffGhost2(cmpu,eqnu,coeff,CSF(n,0,0)*xCoeff,CSF(n,0,1)*yCoeff)
+
+  else if( fillCoefficientsScalarSystem.eq.fillCoeffv )then
+    ! We decouple the coupled velocity components: Only add components of v 
+    n=1 
+    setCoeffGhost2(cmpu,eqnu,coeff,CSF(n,1,0)*xCoeff,CSF(n,1,1)*yCoeff)
+
+  end if
+
+ #Else
+  ! ---  3D ---
+  if( fillCoefficientsScalarSystem.eq.0 )then
+   ! Fill in the coupled equations for u, v and w
+   do n=0,nd-1
+     ! equation n:   (equation numbers and classify  are set in these calls)
+     setCoeffGhost3(cmpu,eqnu+n,coeff,CSF(n,0,0)*xCoeff,CSF(n,0,1)*yCoeff,CSF(n,0,2)*zCoeff)
+     addCoeffGhost3(cmpv,eqnu+n,coeff,CSF(n,1,0)*xCoeff,CSF(n,1,1)*yCoeff,CSF(n,1,2)*zCoeff)
+     addCoeffGhost3(cmpw,eqnu+n,coeff,CSF(n,2,0)*xCoeff,CSF(n,2,1)*yCoeff,CSF(n,2,2)*zCoeff)
+   end do
+
+  else if( fillCoefficientsScalarSystem.eq.fillCoeffU )then
+    ! We decouple the coupled velocity components: Only add coefficients of u 
+    n=0 
+    setCoeffGhost3(cmpu,eqnu,coeff,CSF(n,0,0)*xCoeff,CSF(n,0,1)*yCoeff,CSF(n,0,2)*zCoeff)
+
+  else if( fillCoefficientsScalarSystem.eq.fillCoeffv )then
+    ! We decouple the coupled velocity components: Only add components of v 
+    n=1 
+    setCoeffGhost3(cmpu,eqnu,coeff,CSF(n,0,0)*xCoeff,CSF(n,0,1)*yCoeff,CSF(n,0,2)*zCoeff)
+
+  else if( fillCoefficientsScalarSystem.eq.fillCoeffw )then
+    ! We decouple the coupled velocity components: Only add components of w
+    n=2
+    setCoeffGhost3(cmpu,eqnu,coeff,CSF(n,0,0)*xCoeff,CSF(n,0,1)*yCoeff,CSF(n,0,2)*zCoeff)
+
+  end if  
+ #End
+ 
+#endMacro
+
+
 
 ! =============================================================
 ! macro to declare temporary variables:
@@ -1275,12 +1537,9 @@ else if( bc0.eq.outflow )then
    write(*,'("insImpINS: fill outflow BC into matrix: ERROR: outflowOption=",i6)') outflowOption
  end if
 
-else if( bc0.eq.neumannBoundaryCondition .or. \
-         bc0.eq.freeSurfaceBoundaryCondition )then
+else if( bc0.eq.neumannBoundaryCondition )then
 
   ! Neumann BC (used by slipWall and scalar systems)
-
-  ! **FREE SURFACE *** FIX ME 
 
   beginLoopsMixedBoundary()
    getNormalForCurvilinearGrid(side,axis,i1,i2,i3)
@@ -1288,6 +1547,34 @@ else if( bc0.eq.neumannBoundaryCondition .or. \
      fillMatrixNeumann(coeff, cmpu+n,eqnu+n, i1,i2,i3, an,0.,1. )
    end do
   endLoops()
+
+else if( bc0.eq.freeSurfaceBoundaryCondition )then
+
+  ! **FREE SURFACE BCs *** 
+
+  ! NEW way: proper free-surface conditions *wdh* Sept 30, 2017
+  beginLoopsMixedBoundary()
+    fillMatrixFreeSurface(coeff, cmpu,eqnu, i1,i2,i3, an )
+  endLoops()
+
+  ! Check for two adjacent free surface BCs -- not supported yet.
+  ! Use extrapolation or compatibility at corner since equations are duplicate:
+  !     u_x + v_y =0 
+  !     u_y + v_x =0
+  !Corner:
+  !     u_xx = - v_xy = u_yy  -> u_xx - u_yy = 0 
+  !     v_xx = - u_xy = v_yy  -> v_xx - v_yy = 0 
+  axisp1 = mod(axis+1,nd)
+  if( nd.eq.3 )then
+    axisp2 = mod(axis+2,nd) 
+  else
+    axisp2=axisp1
+  end if
+  if( bc(0,axisp1).eq.freeSurfaceBoundaryCondition .or. bc(1,axisp1).eq.freeSurfaceBoundaryCondition .or. \
+      bc(0,axisp2).eq.freeSurfaceBoundaryCondition .or. bc(1,axisp2).eq.freeSurfaceBoundaryCondition )then
+    write(*,'("insImpINS: ERROR: two free surfaces meet at a corner -- not implemented -- fix me")') 
+    stop 9099
+  end if
 
 else if( bc0.eq.slipWall )then
 
