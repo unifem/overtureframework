@@ -77,7 +77,7 @@
 #  cgmx interface -g=twoBoxesInterfaceRotated1.order2.hdf -eps2=.25 -tp=.1 -ic=tz -bc=d -diss=0. -left=leftBox -right=rightBox -debug=1 -degreex=2 -degreet=2   [exact]
 #  
 # -- set default values for parameters ---
-$kx=2; $ky=0; $kz=0; $left="leftSquare*"; $right="rightSquare*"; $degreex=2; $degreet=2; $method="NFDTD"; $tz="poly";
+$kx=2; $ky=0; $kz=0; $left="leftSquare*"; $right="rightSquare*"; $degreex=2; $degreet=2; $method="NFDTD";
 $tFinal=5.; $tPlot=.2; $cfl=.9; $show=" "; $interfaceIts=3; $debug=0; $diss=.1; $dissOrder=-1;
 $useNewInterface=1; $errorNorm=0; $interfaceEquationOption=1; $interfaceOmega=.7; $setDivergenceAtInterfaces=0; 
 $useImpedanceInterfaceProjection=1; 
@@ -89,8 +89,9 @@ $pmic = "planeMaterialInterfaceInitialCondition";
 $bc = "perfectElectricalConductor";
 $interfaceNormal = "1. 0. 0.";
 $interfacePoint = ".0 0. 0.";
-$tz = "*"; $go="halt";
-$dm="none"; @npv=(); $alphaP=1.; $modeGDM=-1; 
+$tz = "#"; $go="halt";
+$dm="none"; @npv=();  $modeGDM=-1; 
+$alphaP = 1.; # there is only one alphaP 
 @a01 = (); @a11=(); @b01=(); @b11=(); # these must be null for GetOptions to work, defaults are given below
 @a02 = (); @a12=(); @b02=(); @b12=(); 
 # ----------------------------- get command line arguments ---------------------------------------
@@ -146,15 +147,36 @@ $dm
 #
 GDM mode: $modeGDM
 $domain="all"; 
+GDM alphaP: $alphaP
+# ------------ Set GDM parameters on the left domain -----------
+GDM domain name: leftDomain
+  number of polarization vectors: $npv[0]
 $cmd="#"; 
-if( $npv[0] == 1 ){ $cmd = "GDM params $a01[0] $a11[0] $b01[0] $b11[0] all (a0,a1,b0,b1,domain-name)"; }
+if( $npv[0] == 1 ){ \
+   $cmd = " GDM coeff: 0 $a01[0] $a11[0] $b01[0] $b11[0] (eqn, a0,a1,b0,b1)\n"; \
+ }
 if( $npv[0] == 2 ){ \
-   $cmd  = "GDM domain name: $domain\n"; \
-   $cmd .= " number of polarization vectors: $npv[0]\n"; \
-   $cmd .= " GDM coeff: 0 $a01[0] $a11[0] $b01[0] $b11[0] (eqn, a0,a1,b0,b1)\n"; \
+   $cmd  = " GDM coeff: 0 $a01[0] $a11[0] $b01[0] $b11[0] (eqn, a0,a1,b0,b1)\n"; \
    $cmd .= " GDM coeff: 1 $a01[1] $a11[1] $b01[1] $b11[1] (eqn, a0,a1,b0,b1)"; \
       }
 $cmd
+# ------------ Set GDM parameters on the right domain -----------
+GDM domain name: rightDomain
+  number of polarization vectors: $npv[1]
+  GDM alphaP: $alphaP[1]
+$cmd="#"; 
+if( $npv[1] == 1 ){ \
+   $cmd = " GDM coeff: 0 $a02[0] $a12[0] $b02[0] $b12[0] (eqn, a0,a1,b0,b1)\n"; \
+ }
+if( $npv[1] == 2 ){ \
+   $cmd  = " GDM coeff: 0 $a02[0] $a12[0] $b02[0] $b12[0] (eqn, a0,a1,b0,b1)\n"; \
+   $cmd .= " GDM coeff: 1 $a02[1] $a12[1] $b02[1] $b12[1] (eqn, a0,a1,b0,b1)"; \
+      }
+$cmd
+# 
+#  The dispersive case is handled by a user defined known solution
+if( $dm ne "no dispersion" && $tz eq "#" ){\
+ $ic = "user defined known solution\n  dispersive plane wave interface\n done\n userDefinedKnownSolutionInitialCondition"; }
 # 
 $ic
 $tz 

@@ -1080,6 +1080,8 @@ else if( updateSolution.eq.1 )then
      un(i1,i2,i3,ec) = ((1.+.5*dt*b1)*rhsE -alphaP*rhsP)*deti
      pn(i1,i2,i3,m)  = (.5*a1*dt*rhsE            + rhsP)*deti 
 
+     ! write(*,'(" (i1,i2,m)=(",i3,i3,i2,") pvm0,pv0,,pn=",3e16.8)') i1,i2,m,pvm0,pv0,pn(i1,i2,i3,m)
+
     end do
   endLoopsMask()
 
@@ -1171,7 +1173,9 @@ else if( updateSolution.eq.1 )then
  fp=0.
  fe=0.
 
- if( numberOfPolarizationVectors.eq.1 )then
+ if( .true. .and. numberOfPolarizationVectors.eq.1 )then
+  ! **** PROBABLY NO NEED FOR THIS SPECIAL CASE ****
+
   ! ------- 2D DISPERSIVE CURVILINEAR NP=1 ------
   INFO("FD44c-dispersive")
 
@@ -1190,7 +1194,8 @@ else if( updateSolution.eq.1 )then
      ec=ex+m
 
      if( addForcing.ne.0 )then ! forcing in E equation already added to f 
-       ! fp = dtsq*f(i1,i2,i3,pc) 
+       ! fe = dtsq*f(i1,i2,i3,ec)  ! this term is already included
+       fe=0.
        getGDMForcing2d()
        fp=fpv(0)
      end if
@@ -1255,7 +1260,8 @@ else if( updateSolution.eq.1 )then
      ec=ex+m
 
      if( addForcing.ne.0 )then
-       ! fe = dtsq*f(i1,i2,i3,ec)
+       ! fe = dtsq*f(i1,i2,i3,ec)  ! this term is already include
+       fe=0. 
        ! Compute fpv(iv) : 
        getGDMForcing2d()
      end if
@@ -2057,6 +2063,7 @@ f3dcme44(i1,i2,i3,n) = fa(i1,i2,i3,n,fcur)+cdtSqBy12*ffLaplacian23(i1,i2,i3,n) \
 
  sosupParameter=rpar(23)
 
+ ! No need to pass these anymore: 
  alphaP=rpar(24)
  a0    =rpar(25)
  a1    =rpar(26)
@@ -2162,12 +2169,12 @@ f3dcme44(i1,i2,i3,n) = fa(i1,i2,i3,n,fcur)+cdtSqBy12*ffLaplacian23(i1,i2,i3,n) \
   ! get the gdm parameters
   !   gdmPar(0:3,iv) = (a0,a1,b0,b1) 
   ! This routine returns numberOfPolarizationVectors (no need to pass)
-  call getGDMParameters( grid,gdmPar,numberOfPolarizationVectors, maxNumberOfParameters,maxNumberOfPolarizationVectors )
+  call getGDMParameters( grid,alphaP,gdmPar,numberOfPolarizationVectors, maxNumberOfParameters,maxNumberOfPolarizationVectors )
 
    if( t.eq.0. .and. dispersionModel.ne.noDispersion )then
      ! ---- Dispersive Maxwell ----
      write(*,'("--advOpt-- dispersionModel=",i4," px,py,pz=",3i3)') dispersionModel,pxc,pyc,pzc
-     write(*,'("--advOpt-- GDM: numberOfPolarizationVectors=",i4)') numberOfPolarizationVectors
+     write(*,'("--advOpt-- GDM: numberOfPolarizationVectors=",i4," alphaP=",e8.2)') numberOfPolarizationVectors,alphaP
      write(*,'("--advOpt-- GDM: alphaP,a0,a1,b0,b1=",5(1p,e10.2))') alphaP,a0,a1,b0,b1
 
      do iv=0,numberOfPolarizationVectors-1

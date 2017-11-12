@@ -250,21 +250,24 @@ outputResults( int current, real t, real dt )
   Range C = numberOfComponents;
 
   const int & numberOfErrorComponents= dbase.get<int>("numberOfErrorComponents");
-  const int numberToOutput= numberOfErrorComponents+1; // include div(E)
+  int numberToOutput= numberOfErrorComponents+1; // include div(E)
 
-  // if( FALSE && dispersionModel != noDispersion )
-  // {
-  //   // output errors in P too:
-  //   CompositeGrid & cg= *cgp;
-  //   numberToOutput += cg.numberOfDimensions();
-  // }
+  // For dispersive models keep track of the maximum errors in the polarization vector per domain  
+  const RealArray & polarizationNorm  =  dbase.get<RealArray>("polarizationNorm");
+  const RealArray & maxErrPolarization =  dbase.get<RealArray>("maxErrPolarization");
+
+  if( dispersionModel != noDispersion )
+  {
+    // output errors in P too: (max value over all domains and all components)
+    numberToOutput += 1;
+  }
   
 
   if( false )
     printF("\n ***** outputResults: maximumError.getLength(0)=%i numberOfComponents=%i numberToOutput=%i\n",
            maximumError.getLength(0),numberOfComponents,numberToOutput);
   
-  if( maximumError.getLength(0)>= (numberToOutput-1) && myid==0 )
+  if( maximumError.getLength(0)>= numberOfErrorComponents && myid==0 )
   {
     fPrintF(checkFile,"%9.2e %i  ",t,numberToOutput);
     int c;
@@ -274,6 +277,15 @@ outputResults( int current, real t, real dt )
       err = maximumError(c); // error(c) > checkFileCutoff(c) ? error(c) : 0.;
       uc = solutionNorm(c); 
       // if( uc<checkFileCutoff(c) ) uc=0.;
+      fPrintF(checkFile,"%i %9.2e %10.3e  ",c,err,uc);
+    }
+
+    if( dispersionModel != noDispersion )
+    {
+      // output errors in P too: (max value over all domains and all components)
+      c=numberOfErrorComponents;
+      err = max(maxErrPolarization);
+      uc  = max(polarizationNorm);
       fPrintF(checkFile,"%i %9.2e %10.3e  ",c,err,uc);
     }
 

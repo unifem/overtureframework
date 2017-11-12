@@ -34,7 +34,7 @@ if ( -e $ovDir ) then
     echo "copying files into the existing directory"
     echo "copy skeleton files..."
     cd Overture
-    build $ovDir
+    ./build $ovDir
     cd ..
   endif
 else
@@ -48,106 +48,106 @@ endif
 
 echo "copy grid files..."
 cd grid
-build $ovDir
+./build $ovDir
 
 echo "copy ogshow files..."
 cd ../ogshow
-build $ovDir
+./build $ovDir
 
 echo "copy rap files..."
 cd ../rap
-build $ovDir
+./build $ovDir
 
 echo "copy gf files..."
 cd ../gf
-build $ovDir
+./build $ovDir
 
 echo "copy op files..."
 cd ../op
-build $ovDir
+./build $ovDir
 
 echo "copy doc files..."
 cd ../doc
-build $ovDir
+./build $ovDir
 
 echo "copy mapping files..."
 cd ../mapping
-build $ovDir
+./build $ovDir
 
 echo "copy hype files..."
 cd ../hype
-build $ovDir
+./build $ovDir
 
 echo "copy ogen files..."
 cd ../ogen
-build $ovDir
+./build $ovDir
 
 echo "copy ugen files..."
 cd ../ugen
-build $ovDir
+./build $ovDir
 
 echo "copy otherStuff files..."
 cd ../otherStuff
-build $ovDir
+./build $ovDir
 
 echo "copy oges files..."
 cd ../oges
-build $ovDir
+./build $ovDir
 
 echo "copy ogmg files..."
 cd ../ogmg
-build $ovDir
+./build $ovDir
 
 echo "copy primer files..."
 cd ../primer
-build $ovDir
+./build $ovDir
 
 echo "copy hdf files..."
 cd ../hdf
-build $ovDir
+./build $ovDir
 
 # We no longer support these files: wdh 051028
 # echo "copy fvo files..."
 # cd ../fvo
-# build $ovDir
+# ./build $ovDir
 
 echo "copy templates files..."
 cd ../templates
-build $ovDir
+./build $ovDir
 
 echo "copy boxlib files..."
 cd ../boxlib
-build $ovDir
+./build $ovDir
 
 echo "copy include files..."
 cd ../include
-build $ovDir
+./build $ovDir
 
 # echo "copy xCogToOverture files..."
 # cd ../xCogToOverture
-# build $ovDir
+# ./build $ovDir
 
 echo "copy amr files..."
 cd ../amr
-build $ovDir
+./build $ovDir
 
 echo "copy gui files..."
 cd ../gui
-build $ovDir
+./build $ovDir
 
 echo "copy perl modules..."
 cd ../perl
-build $ovDir
+./build $ovDir
 
 echo "copy parallel files..."
 cd ../parallel
-build $ovDir
+./build $ovDir
 
 # if ( $?GUIDir ) then
 #   if ( -e $GUIDir ) then
 #     echo "using gui in " $GUIDir
 #     cd $GUIDir
-#     build $ovDir
+#     ./build $ovDir
 #   endif
 # endif
 

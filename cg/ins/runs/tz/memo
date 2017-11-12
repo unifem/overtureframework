@@ -1,6 +1,13 @@
 *************************************
 *********  Oct 1, 2017
 
+TROUBLE near corners:  
+cgins -noplot tz -g=square5.order2 -degreex=2 -degreet=0 -ts=im -bcn=d -bc1=freeSurface -tp=.01 -decoupleImplicitBoundaryConditions=1 -tf=1 -go=og
+
+
+*************************************
+*********  Oct 1, 2017
+
 TEST DECOUPLED FREE SURFACE BC's
 
 cgins -noplot tz -g=square5.order2 -degreex=2 -degreet=2 -ts=im -bcn=d -bc1=freeSurface -tp=.01 -decoupleImplicitBoundaryConditions=0 -tf=1 -go=og

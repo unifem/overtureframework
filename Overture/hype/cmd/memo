@@ -1,3 +1,10 @@
+*******************
+****  Nov 12, 2017
+
+THERE IS A BUG in 3D -- doubly periodic boundary conditions, ghost values are bad
+
+
+
 
 *******************
 ****  Dec 8, 2015

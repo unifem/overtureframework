@@ -2,7 +2,7 @@
 #
 # ==== INTERFACE - PLANE WAVE SCATTERING ====
 # -- second order
-#   conv.p exact.conv -option=chirped -cg=twoSquareInterface -tf=.1 -tp=.1 -order=2 -ng=3
+#   conv.p interface.conv -cg=twoSquaresInterface -ic=pmic -tf=.1 -tp=.1 -order=2 -ng=3
 # -- fourth order
 #
 $check="mx.check";
@@ -13,13 +13,13 @@ $check="mx.check";
 #   -errorNorm:  set to 1 or 2 to show L1 and L2 norm errors
 # 
 # Set default parameters: 
-$cg="square"; $option="chirped"; 
+$cg="square"; $option="interface"; 
 $cmdFile="interface.cmd"; 
 $CGBUILDPREFIX=$ENV{CGBUILDPREFIX};
 $cgmx = "$CGBUILDPREFIX/mx/bin/cgmx";  # command for cgmx
 $cmdDir="$ENV{CG}/mx/runs/interface";  
 $tf=.5; $tp=.1; $order = "2"; $ng=3; $cfl=.9; $bg="box"; 
-$eps1=1.; $eps2=1.; 
+$eps1=1.; $eps2=1.; $ic="pmic"; $bc="d"; 
 $kx=1; $ky=0; 
 $modeGDM=-1; 
 $alphaP=1.;  @npv=(); # GDM parameters
@@ -33,7 +33,7 @@ $numberOfDimensions=2;
 GetOptions( "name=s"=>\$name,"order=s"=>\$order,"ng=i"=>\$ng,"tf=f"=>\$tf,"diss=f"=>\$diss,\
             "fixed=s"=>\$fixed,"cfl=f"=>\$cfl,"alwaysCompute=i"=>\$alwaysCompute,"method=s"=>\$method,"tp=f"=>\$tp,\
             "errorNorm=i"=>\$errorNorm,"m=f"=>\$m,"n=f"=>\$n,"dissOrder=i"=>\$dissOrder,"cg=s"=>\$cg,\
-            "radius=f"=>\$radius,"bg=s"=>\$bg,"option=s"=>\$option,"ta=f"=>\$ta,"tb=f"=>\$tb,"dm=s"=>\$dm,\
+            "bg=s"=>\$bg,"option=s"=>\$option,"ic=s"=>\$ic,"bc=s"=>\$bc,"dm=s"=>\$dm,\
             "alphaP=f"=>\$alphaP,"eps1=f"=>\$eps1,"eps2=f"=>\$eps2,\
             "kx=i"=>\$kx,"ky=i"=>\$ky,"npv=i{1,}"=>\@npv,"modeGDM=i"=>\$modeGDM,\
            "a01=f{1,}"=>\@a01,"a11=f{1,}"=>\@a11,"b01=f{1,}"=>\@b01,"b11=f{1,}"=>\@b11,\
@@ -43,16 +43,16 @@ $name=$option;
 # Give defaults here for array arguments: 
 if( $npv[0] eq "" ){ @npv=(0,0); }
 #
-if( $npv[0] eq "" ){ @npv=(0,0); }
+if( $npv[0] eq "" ){ @npv=(1,1); }
 if( $a01[0] eq "" ){ @a01=(1,0,0,0); }
-if( $a11[0] eq "" ){ @a11=(0,0,0,0); }
-if( $b01[0] eq "" ){ @b01=(0,0,0,0); }
-if( $b11[0] eq "" ){ @b11=(0,0,0,0); }
+if( $a11[0] eq "" ){ @a11=(.5,0,0,0); }
+if( $b01[0] eq "" ){ @b01=(.4,0,0,0); }
+if( $b11[0] eq "" ){ @b11=(.3,0,0,0); }
 #
-if( $a02[0] eq "" ){ @a02=(1,0,0,0); }
-if( $a12[0] eq "" ){ @a12=(0,0,0,0); }
-if( $b02[0] eq "" ){ @b02=(0,0,0,0); }
-if( $b12[0] eq "" ){ @b12=(0,0,0,0); }
+if( $a02[0] eq "" ){ @a02=(.9,0,0,0); }
+if( $a12[0] eq "" ){ @a12=(.7,0,0,0); }
+if( $b02[0] eq "" ){ @b02=(.3,0,0,0); }
+if( $b12[0] eq "" ){ @b12=(.1,0,0,0); }
 #
 $caseName="$name$method$cg\Order$order";
 if( $dm ne "none" ){ $caseName.="GDM"; }
@@ -80,13 +80,13 @@ if( $numberOfComponents eq 4 && $numberOfDimensions eq 2 && $dm ne "none" )\
 # 
 $labelMethod=$method;
 if( $method eq "NFDTD" ){ $labelMethod="CGFD$order"; }
-$caption= "\\caption\{Cgmx, $name, method=$labelMethod, $normName norm, order=\$$order\$, \$t=$tf\$, cfl=\$$cfl\$, diss=\$$diss\$, dissOrder=\$$dissOrder\$, kx=$kx, ky=$ky, dm=$dm, alphaP=$alphaP, npv=$npv[0],$npv[1], modeGDM=$modeGDM, a01=($a01[0],$a01[1],$a01[2]), a11=($a11[0],$a11[1],$a11[2]), b01=($b01[0],$b01[1],$b01[2]), b11=($b11[0],$b11[1],$b11[2]), a02=($a02[0],$a02[1],$a02[2]), a12=($a12[0],$a12[1],$a12[2]), b02=($b02[0],$b02[1],$b02[2]), b12=($b12[0],$b12[1],$b12[2]) $date}\\label\{table:$name" . $method . "Order$order$normName}"; 
+$caption= "\\caption\{Cgmx, $name, method=$labelMethod, $normName norm, order=\$$order\$, \$t=$tf\$, cfl=\$$cfl\$, diss=\$$diss\$, dissOrder=\$$dissOrder\$, kx=$kx, ky=$ky, ic=$ic, bc=$bc, dm=$dm, alphaP=$alphaP, npv=$npv[0],$npv[1], modeGDM=$modeGDM, a01=($a01[0],$a01[1],$a01[2]), a11=($a11[0],$a11[1],$a11[2]), b01=($b01[0],$b01[1],$b01[2]), b11=($b11[0],$b11[1],$b11[2]), a02=($a02[0],$a02[1],$a02[2]), a12=($a12[0],$a12[1],$a12[2]), b02=($b02[0],$b02[1],$b02[2]), b12=($b12[0],$b12[1],$b12[2]) $date}\\label\{table:$name" . $method . "Order$order$normName}"; 
 $extraLabel ="";
 if( $dm ne "none" ){ $extraLabel .= "GDMNp$npv"; }
 if( $modeGDM > 0 ){ $extraLabel .= "Mode$modeGDM"; }
 $outputFile="$name$method$cg$extraLabel" . "Order$order" . $normName . "NormConvTable.tex"; 
 # 
-$options = "-diss=$diss -dissOrder=$dissOrder -dm=$dm  -npv=1 1 1 -eps1=$eps1 -eps2=$eps2 -cfl=$cfl -method=$method -errorNorm=$errorNorm -tf=$tf -tp=$tp -alphaP=$alphaP -npv=$npv -modeGDM=$modeGDM -a01=$a01[0] $a01[1] $a01[2] -a11=$a11[0] $a11[1] $a11[2] -b01=$b01[0] $b01[1] $b01[2] -b11=$b11[0] $b11[1] $b11[2] -a02=$a02[0] $a02[1] $a02[2] -a12=$a12[0] $a12[1] $a12[2] -b02=$b02[0] $b02[1] $b02[2] -b12=$b12[0] $b12[1] $b12[2] -kx=$kx -ky=$ky -checkErrors=1 -go=go";
+$options = "-diss=$diss -dissOrder=$dissOrder -dm=$dm  -npv=1 1 1 -eps1=$eps1 -eps2=$eps2 -cfl=$cfl -method=$method -errorNorm=$errorNorm -tf=$tf -tp=$tp -ic=$ic -bc=$bc -alphaP=$alphaP -npv=$npv -modeGDM=$modeGDM -a01=$a01[0] $a01[1] $a01[2] -a11=$a11[0] $a11[1] $a11[2] -b01=$b01[0] $b01[1] $b01[2] -b11=$b11[0] $b11[1] $b11[2] -a02=$a02[0] $a02[1] $a02[2] -a12=$a12[0] $a12[1] $a12[2] -b02=$b02[0] $b02[1] $b02[2] -b12=$b12[0] $b12[1] $b12[2] -kx=$kx -ky=$ky -checkErrors=1 -go=go";
 #
 $suffix="";
 if( ($method eq "sosup") && ($order eq 4) ){ $suffix=".ng3"; }

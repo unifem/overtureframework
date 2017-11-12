@@ -427,11 +427,11 @@ getErrors( int current, real t, real dt )
     int & numberOfErrorComponents= dbase.get<int>("numberOfErrorComponents");
 
     numberOfErrorComponents=numberOfComponents;
-    const int epc = numberOfComponents;  // save P norm and errors in this component
-    if( dispersionModel != noDispersion )
-    {
-          numberOfErrorComponents++;  // save error in all polarization vectors 
-    }
+  // const int epc = numberOfComponents;  // save P norm and errors in this component
+  // if( dispersionModel != noDispersion )
+  // {
+  //    numberOfErrorComponents++;  // save error in all polarization vectors 
+  // }
     
     
     Range C=numberOfComponents;
@@ -463,8 +463,8 @@ getErrors( int current, real t, real dt )
         }
     }
 
-    maximumError=0.;
-    solutionNorm=1.;
+  // maximumError=0.;
+  // solutionNorm=1.;
     
     realCompositeGridFunction *uReference=NULL;
     if( compareToReferenceShowFile )
@@ -499,7 +499,15 @@ getErrors( int current, real t, real dt )
     assert( cgerrp!=NULL || errp!=NULL );
 
   // For dispersive models keep track of the maxium errors in the polarization vector per domain  
-    RealArray maxErrPolarization(cg.numberOfDomains());
+    RealArray & polarizationNorm   =  dbase.get<RealArray>("polarizationNorm");
+    RealArray & maxErrPolarization =  dbase.get<RealArray>("maxErrPolarization");
+    
+    if( polarizationNorm.getLength(0)!=cg.numberOfDomains() )
+    {
+        polarizationNorm.redim(cg.numberOfDomains());
+        maxErrPolarization.redim(cg.numberOfDomains());
+    }
+    polarizationNorm=0.;
     maxErrPolarization=0.;
     
 
@@ -1070,13 +1078,19 @@ getErrors( int current, real t, real dt )
       // ::display(pLocal,"pLocal");
         }
 
-    // --- Allocate arrays to hold errors in the polarization vectors  ----
+    // --- Get grid function tht holds the error in the polarization vector ----
+        bool getErrorGridFunction=true;
+        realMappedGridFunction & pErr = getDispersionModelMappedGridFunction( grid,current,getErrorGridFunction );
+
         RealArray errPolarization;
         if( numberOfPolarizationVectors>0 )
         {
-            Range Pc = numberOfPolarizationVectors*numberOfDimensions;
-            errPolarization.redim(uLocal.dimension(0),uLocal.dimension(1),uLocal.dimension(2),Pc);
-            errPolarization=0.;
+            OV_GET_SERIAL_ARRAY(real, pErr,pErrLocal );
+            errPolarization.reference(pErrLocal);
+
+      // Range Pc = numberOfPolarizationVectors*numberOfDimensions;
+      //       errPolarization.redim(uLocal.dimension(0),uLocal.dimension(1),uLocal.dimension(2),Pc);
+      //       errPolarization=0.;
         }    
 
 
@@ -1952,9 +1966,12 @@ getErrors( int current, real t, real dt )
       // ------------ macro for the plane material interface -------------------------
       // error: initialCondition, error, boundaryCondition
       // -----------------------------------------------------------------------------
-                int i1,i2,i3;
-                real tm=t-dt,x,y,z;
-                const real pmct=pmc[18]*twoPi; // for time derivative of exact solution
+            int i1,i2,i3;
+            real tm=t-dt,x,y,z;
+            const real pmct=pmc[18]*twoPi; // for time derivative of exact solution
+        // NOTE: dispersion version is a user defined known solution
+                assert( dispersionModel == noDispersion );
+        // ========= NON-DISPERSIVE PLANE MATERIAL INTERFACE ============
                 if( numberOfDimensions==2 )
                 {
                   z=0.;
@@ -2355,12 +2372,18 @@ getErrors( int current, real t, real dt )
             realCompositeGridFunction & cgerr = (*cgerrp);
             realSerialArray errLocal; getLocalArrayWithGhostBoundaries((*cgerrp)[grid],errLocal);      
 
-      // save exact solution in cgrerr: 
+      // NOTE: save exact solution in cgerr (and pErr for dispersive)
             int numberOfTimeDerivatives=0;
-            getUserDefinedKnownSolution(   t, cg,grid, cgerr[grid],I1,I2,I3,numberOfTimeDerivatives);
+            getUserDefinedKnownSolution( current, t, cg,grid, cgerr[grid],pErr, I1,I2,I3,numberOfTimeDerivatives);
 
             errLocal(I1,I2,I3,C) = errLocal(I1,I2,I3,C) -  uLocal(I1,I2,I3,C);
 
+            if( numberOfPolarizationVectors>0 )
+            {
+                Range Pc = numberOfPolarizationVectors*numberOfDimensions;
+                errPolarization(I1,I2,I3,Pc) -= pLocal(I1,I2,I3,Pc);
+            }
+            
         }
         else if( knownSolutionOption!=noKnownSolution )
         {
@@ -2427,7 +2450,7 @@ getErrors( int current, real t, real dt )
                             for( int dir=0; dir<numberOfDimensions; dir++ )
                             {
                                 maxErrPolarization(domain) = max(maxErrPolarization(domain),fabs(errPolarization(i1,i2,i3,pc+dir)));
-                                solutionNorm(epc)=max(solutionNorm(epc),fabs(pLocal(i1,i2,i3,pc+dir))); 
+                                polarizationNorm(domain)=max(polarizationNorm(domain),fabs(pLocal(i1,i2,i3,pc+dir))); 
                             }
                             
                         }
@@ -2502,7 +2525,7 @@ getErrors( int current, real t, real dt )
                                     for( int dir=0; dir<numberOfDimensions; dir++ )
                                     {
                                         maxErrPolarization(domain) = max(maxErrPolarization(domain),fabs(errPolarization(i1,i2,i3,pc+dir)));
-                                        solutionNorm(epc)=max(solutionNorm(epc),fabs(pLocal(i1,i2,i3,pc+dir))); 
+                                        polarizationNorm(domain)=max(polarizationNorm(domain),fabs(pLocal(i1,i2,i3,pc+dir))); 
                                     }
                                 
                                 }
@@ -2543,7 +2566,7 @@ getErrors( int current, real t, real dt )
                                     for( int dir=0; dir<numberOfDimensions; dir++ )
                                     {
                                         maxErrPolarization(domain) = max(maxErrPolarization(domain),fabs(errPolarization(i1,i2,i3,pc+dir)));
-                                        solutionNorm(epc)=max(solutionNorm(epc),fabs(pLocal(i1,i2,i3,pc+dir))); 
+                                        polarizationNorm(domain)=max(polarizationNorm(domain),fabs(pLocal(i1,i2,i3,pc+dir))); 
                                     }
                                 }
 
@@ -2713,14 +2736,13 @@ getErrors( int current, real t, real dt )
             const int numberOfPolarizationVectors = dmp.numberOfPolarizationVectors;  
 
             maxErrPolarization(domain) = getMaxValue(maxErrPolarization(domain)); // fix me -- could do all at once
-            maximumError(epc)=max(maximumError(epc),maxErrPolarization(domain));
-            solutionNorm(epc)=getMaxValue(solutionNorm(epc));
+            polarizationNorm(domain) = getMaxValue(polarizationNorm(domain)); // fix me -- could do all at once
 
             if( numberOfPolarizationVectors>0 )
             {
                 printF("--getErrors: t=%9.3e domain=%i (%s) numPolarizationVectors=%i P-norm=%9.3e max-err = %9.3e\n",
                               t,domain,(const char*)cg.getDomainName(domain), numberOfPolarizationVectors,
-                              solutionNorm(epc),maxErrPolarization(domain));
+                              polarizationNorm(domain),maxErrPolarization(domain));
             }
         }
         

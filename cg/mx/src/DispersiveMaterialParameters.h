@@ -25,12 +25,18 @@ public:
   int
   evaluateDispersionRelation( const real c, const real k, real & sr, real & si, real psir[], real psii[]  );
 
+  // Return the complex wave number given s=(sr,si)
+  int
+  evaluateComplexWaveNumber( const real c, const real & sr, const real & si, 
+                             real & kr, real &ki, real psir[], real psii[]  );
+
   // *old* return the and imaginary parts of "s" in the dispersion relation
   int 
   computeDispersionRelation( const real cc, const real eps, const real mu, const real k, 
                              real & reS, real & imS );
 
   int setNumberOfPolarizationVectors( const int numPolarizationVectors );
+  int setParameter( const real alphaP );
   int setParameters( const int eqn, const real a0, const real a1, const real b0, const real b1 );
   int setMode( const int modeToChoose );
 

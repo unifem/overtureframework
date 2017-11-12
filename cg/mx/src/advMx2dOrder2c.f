@@ -3509,6 +3509,7 @@ c===============================================================================
         gamma= rpar(21)
         omegap=rpar(22)
         sosupParameter=rpar(23)
+        ! No need to pass these anymore: 
         alphaP=rpar(24)
         a0    =rpar(25)
         a1    =rpar(26)
@@ -3597,7 +3598,7 @@ c===============================================================================
          ! get the gdm parameters
          !   gdmPar(0:3,iv) = (a0,a1,b0,b1) 
          ! This routine returns numberOfPolarizationVectors (no need to pass)
-         call getGDMParameters( grid,gdmPar,
+         call getGDMParameters( grid,alphaP,gdmPar,
      & numberOfPolarizationVectors, maxNumberOfParameters,
      & maxNumberOfPolarizationVectors )
           if( t.eq.0. .and. dispersionModel.ne.noDispersion )then
@@ -3605,7 +3606,7 @@ c===============================================================================
             write(*,'("--advOpt-- dispersionModel=",i4," px,py,pz=",
      & 3i3)') dispersionModel,pxc,pyc,pzc
             write(*,'("--advOpt-- GDM: numberOfPolarizationVectors=",
-     & i4)') numberOfPolarizationVectors
+     & i4," alphaP=",e8.2)') numberOfPolarizationVectors,alphaP
             write(*,'("--advOpt-- GDM: alphaP,a0,a1,b0,b1=",5(1p,e10.2)
      & )') alphaP,a0,a1,b0,b1
             do iv=0,numberOfPolarizationVectors-1
@@ -4048,7 +4049,8 @@ c===============================================================================
               end if
               fp=0.
               fe=0.
-              if( numberOfPolarizationVectors.eq.1 )then
+              if( .true. .and. numberOfPolarizationVectors.eq.1 )then
+               ! **** PROBABLY NO NEED FOR THIS SPECIAL CASE ****
                ! ------- 2D DISPERSIVE CURVILINEAR NP=1 ------
                if( t.le.3.*dt )then
                  write(*,'("advOPT>>>","FD44c-dispersive")')
@@ -4098,7 +4100,8 @@ c===============================================================================
                   pc=pxc+m
                   ec=ex+m
                   if( addForcing.ne.0 )then ! forcing in E equation already added to f
-                    ! fp = dtsq*f(i1,i2,i3,pc) 
+                    ! fe = dtsq*f(i1,i2,i3,ec)  ! this term is already included
+                    fe=0.
                      if( addForcing.ne.0 )then
                        ! fp = dtsq*f(i1,i2,i3,pc) 
                        if( forcingOption.eq.twilightZoneForcing )then
@@ -4219,7 +4222,8 @@ c===============================================================================
                   pc=pxc+m
                   ec=ex+m
                   if( addForcing.ne.0 )then
-                    ! fe = dtsq*f(i1,i2,i3,ec)
+                    ! fe = dtsq*f(i1,i2,i3,ec)  ! this term is already include
+                    fe=0.
                     ! Compute fpv(iv) : 
                      if( addForcing.ne.0 )then
                        ! fp = dtsq*f(i1,i2,i3,pc) 

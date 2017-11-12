@@ -1,4 +1,36 @@
 ***********************
+***** Oct 28, 2017
+
+TEST DISPERSIVE INTERFACE
+
+CURVILINEAR
+
+conv.p interface.conv -dm=gdm -kx=1 -ky=1 -ic=pmic -eps1=1 -eps2=2. -bc=d -cg=twoNonSquaresInterface -tf=.5 -tp=.5 -order=2 -ng=3
+
+***********************
+***** Oct 28, 2017
+
+TEST DISPERSIVE INTERFACE
+
+
+>>> Add interface projection -- OK
+                grid  &  N  &    $E_x$   & r &    $E_y$   & r &    $H_z$    & r &    $|\Pv|$   & r &    $\grad\cdot\Ev/\grad\Ev$& r 
+twoSquaresInterface2 &     1 & 1.35e-02 &      & 2.33e-02 &      & 3.76e-02 &      & 3.60e-03 &      & 4.14e-02 &      
+twoSquaresInterface4 &     2 & 3.41e-03 &  4.0 & 5.91e-03 &  3.9 & 9.35e-03 &  4.0 & 8.92e-04 &  4.0 & 1.04e-02 &  4.0 
+twoSquaresInterface8 &     4 & 8.32e-04 &  4.1 & 1.44e-03 &  4.1 & 2.37e-03 &  3.9 & 2.22e-04 &  4.0 & 3.14e-03 &  3.3 
+Convergence rates: c0=2.01 c1=2.01 c2=1.99 c3=2.01 c4=1.86 
+
+
+>>>>> No IP
+conv.p interface.conv -dm=gdm -kx=1 -ky=1 -ic=pmic -eps1=1 -eps2=2. -bc=d -cg=twoSquaresInterface -tf=.5 -tp=.5 -order=2 -ng=3
+
+                grid  &  N  &    $E_x$   & r &    $E_y$   & r &    $H_z$    & r &    $|\Pv|$   & r &    $\grad\cdot\Ev/\grad\Ev$& r 
+twoSquaresInterface2 &     1 & 1.35e-02 &      & 2.33e-02 &      & 3.76e-02 &      & 3.60e-03 &      & 4.10e-02 &      
+twoSquaresInterface4 &     2 & 3.41e-03 &  4.0 & 5.91e-03 &  3.9 & 9.35e-03 &  4.0 & 8.92e-04 &  4.0 & 1.04e-02 &  3.9 
+twoSquaresInterface8 &     4 & 8.32e-04 &  4.1 & 1.44e-03 &  4.1 & 2.37e-03 &  3.9 & 2.22e-04 &  4.0 & 2.60e-03 &  4.0 
+Convergence rates: c0=2.01 c1=2.01 c2=1.99 c3=2.01 c4=1.99 
+
+***********************
 ***** Sept 15, 2017
 
 

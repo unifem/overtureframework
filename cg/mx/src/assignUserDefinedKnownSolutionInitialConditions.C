@@ -73,16 +73,19 @@ assignUserDefinedKnownSolutionInitialConditions(int current, real t, real dt )
     if( method==nfdtd  ) 
     {
       // -- assign solution at time t:
-      getUserDefinedKnownSolution(   t, cg,grid, u[grid],I1,I2,I3,numberOfTimeDerivatives);
+      realMappedGridFunction & pv = getDispersionModelMappedGridFunction( grid,current );
+      getUserDefinedKnownSolution( current,t, cg,grid, u[grid],pv, I1,I2,I3,numberOfTimeDerivatives);
 
       // assign solution at time t-dt
-      getUserDefinedKnownSolution(t-dt, cg,grid,um[grid],I1,I2,I3,numberOfTimeDerivatives);
+      realMappedGridFunction & pvm = getDispersionModelMappedGridFunction( grid,prev );
+      getUserDefinedKnownSolution( prev,t-dt, cg,grid,um[grid],pvm,I1,I2,I3,numberOfTimeDerivatives);
 
     }
     else if( method==sosup )
     {
       // -- assign solution at time t:
-      getUserDefinedKnownSolution(   t, cg,grid, u[grid],I1,I2,I3,numberOfTimeDerivatives);
+      realMappedGridFunction & pv = getDispersionModelMappedGridFunction( grid,current );
+      getUserDefinedKnownSolution( current,t, cg,grid, u[grid],pv,I1,I2,I3,numberOfTimeDerivatives);
 
     }
     else

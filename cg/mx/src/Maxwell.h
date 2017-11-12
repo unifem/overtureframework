@@ -314,7 +314,8 @@ class Maxwell
 
   void getTimeSteppingLabel( real dt, aString & label ) const;
 
-  int getUserDefinedKnownSolution(real t, CompositeGrid & cg, int grid, realArray & ua, 
+  int getUserDefinedKnownSolution(int current, real t, CompositeGrid & cg, int grid, realArray & ua, 
+                                  realArray & pv,
 				  const Index & I1, const Index &I2, const Index &I3, int numberOfTimeDerivatives = 0 );
 
   int getValuesFDTD(int option, int *iparam, int current, real t, real dt, realCompositeGridFunction *v= NULL );
@@ -357,8 +358,10 @@ class Maxwell
 
   int setBoundaryCondition( aString & answer, GL_GraphicsInterface & gi, IntegerArray & originalBoundaryCondition );
 
-  int setDispersionParameters( aString & domainName, int numberOfPolarizationVectors, int eqn, 
+  int setDispersionParameters( const aString & domainName, int numberOfPolarizationVectors, int eqn, 
                                real a0, real a1, real b0, real b1, int modeGDM );
+
+  int setDispersionParameters( const aString & domainName, real alphaP );
 
   int setupGrids();
 
@@ -405,9 +408,11 @@ protected:
   int buildPlotOptionsDialog(DialogData & dialog );
   int buildTimeSteppingOptionsDialog(DialogData & dialog );
 
-  realCompositeGridFunction* getDispersionModelCompositeGridFunction( const int domain, const int timeLevel );
+  realCompositeGridFunction* getDispersionModelCompositeGridFunction( const int domain, const int timeLevel,
+                                                                      const bool getErrorGridFunction =false );
 
-  realMappedGridFunction&  getDispersionModelMappedGridFunction( const int grid, const int timeLevel );
+  realMappedGridFunction&  getDispersionModelMappedGridFunction( const int grid, const int timeLevel,
+                                                                 const bool getErrorGridFunction =false );
 
   int plotPolarization( int current, real t, real dt );
 

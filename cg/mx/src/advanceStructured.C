@@ -36,10 +36,11 @@ extern "C"
 ///  \brief Return the gdm parameters
 /// \param grid (input) : return parameters for this grid 
 /// \param numberOfPolarizationVectors (output) : 
+/// \param alphaP
 /// \param gdm(0:maxNumberOfParameters-1, 0:maxNumberOfPolarizationVectors) : output
 ///           return gdm(0:3,iv) = (a0,a1,b0,b1) iv=0,1,2...,numberOfPolarizationVectors-1
 // ================================================================================
-void getGDMParameters( int & grid, real *gdmPar, 
+void getGDMParameters( int & grid, real & alphaP, real *gdmPar, 
                                               int & numberOfPolarizationVectors,
                                               const int & maxNumberOfParameters, 
                                               const int & maxNumberOfPolarizationVectors )
@@ -59,6 +60,7 @@ void getGDMParameters( int & grid, real *gdmPar,
     assert( dmp.numberOfPolarizationVectors<= maxNumberOfPolarizationVectors );
     assert( dmp.numberOfModelParameters <= maxNumberOfParameters );
 
+    alphaP=dmp.alphaP;
     numberOfPolarizationVectors=dmp.numberOfPolarizationVectors;
     for( int iv=0; iv<dmp.numberOfPolarizationVectors; iv++ )
     {

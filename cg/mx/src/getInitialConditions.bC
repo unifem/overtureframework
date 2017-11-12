@@ -202,6 +202,7 @@ initializePlaneMaterialInterface()
   CompositeGrid & cg = *cgp;
   const int numberOfDimensions=cg.numberOfDimensions();
 
+
   // ------------------------------------------------------------
   // Here we compute the coefficients in the exact solution
   // 
@@ -394,6 +395,7 @@ initializePlaneMaterialInterface()
 
   }
   
+  
   printF("PMI: bv=(%8.2e,%8.2e,%8.2e)\n",bv[0],bv[1],bv[2]);
   printF("PMI: dv=(%8.2e,%8.2e,%8.2e)\n",dv[0],dv[1],dv[2]);
 
@@ -448,9 +450,9 @@ initializePlaneMaterialInterface()
   pmc[28]=x0PlaneMaterialInterface[0]; pmc[29]=x0PlaneMaterialInterface[1]; pmc[30]=x0PlaneMaterialInterface[2];
   pmc[30]=normalPlaneMaterialInterface[0]; pmc[31]=normalPlaneMaterialInterface[1]; pmc[32]=normalPlaneMaterialInterface[2];
 
-  
   return 0;
 }
+
 
 // ============================================================================
 // Macro to compute the (x,y) coordinates - optimized for rectangular grids

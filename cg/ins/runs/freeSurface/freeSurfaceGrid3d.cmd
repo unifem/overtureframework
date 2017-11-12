@@ -1,6 +1,6 @@
 # Ogen command file: Make a 3D grid for a free surface 
 #
-# Usage: ogen [-noplot] freeSurfaceGrid3d -factor=<num> -order=[2/4/6/8] -interp=[e/i] -ml=<> 
+# Usage: ogen [-noplot] freeSurfaceGrid3d -factor=<num> -order=[2/4/6/8] -interp=[e/i] -ml=<> -bc=[d|p]
 # 
 #
 # Examples:
@@ -12,6 +12,7 @@
 #
 #  Parameters: 
 $xa=0.; $xb=1.; $ya=0.; $yb=1.; $za=0; $zb=.5; 
+$bc = "d"; 
 $amp=.10; # amplitude of the surface bump
 #---------------------------------------------------------------------------------------------
 $order=2; $factor=1; $interp = "i";  $ml=0; # default values
@@ -21,14 +22,16 @@ $freeSurfaceShare=100; # share value for free surface
 #-----------------------------------------------------------------
 # get command line arguments
 GetOptions( "order=i"=>\$order,"factor=f"=> \$factor,"xa=f"=> \$xa,"xb=f"=> \$xb,"ya=f"=> \$ya,"yb=f"=> \$yb,\
-            "za=f"=> \$za,"interp=s"=> \$interp,"name=s"=> \$name,"ml=i"=>\$ml, "amp=f"=>\$amp );
+            "za=f"=> \$za,"interp=s"=> \$interp,"name=s"=> \$name,"ml=i"=>\$ml, "amp=f"=>\$amp,"bc=s"=> \$bc );
 # 
 if( $order eq 4 ){ $orderOfAccuracy="fourth order"; $ng=2; }\
 elsif( $order eq 6 ){ $orderOfAccuracy="sixth order"; $ng=4; }\
 elsif( $order eq 8 ){ $orderOfAccuracy="eighth order"; $ng=6; }
 if( $interp eq "e" ){ $interpType = "explicit for all grids"; }else{ $interpType = "implicit for all grids"; }
 # 
-$suffix = ".order$order"; 
+$suffix=""; 
+if( $bc eq "p" ){ $suffix .= "p"; }
+$suffix .= ".order$order"; 
 if( $ml ne 0 ){ $suffix .= ".ml$ml"; }
 if( $name eq "" ){ $name = "freeSurfaceGrid3d" . "$interp$factor" . $suffix . ".hdf";}
 # 
@@ -111,15 +114,19 @@ exit
      $ny = intmg( $terrainFactor*($yb-$ya)/$ds + 1.5 );
      # points on initial curve 183, 145
      points on initial curve $nx, $ny
+     if( $bc eq "d" ){ $bcCmd ="1 2 3 4 6 0"; }else{ $bcCmd ="-1 -1 -1 -1 6 0" }; 
      boundary conditions
-       1 2 3 4 6 0
+       $bcCmd
+       # 1 2 3 4 6 0
      share
        1 2 3 4 $freeSurfaceShare 0
      # We cannot use the boundary offset to shift the ghost points
      # since the resulting boundary faces will not flat. 
      boundary offset 0 0 0 0 0 1 (l r b t b f)
      # ---New 2011/10/03
-     normal blending 7, 7, 7, 7 (lines, left,right,bottom,top)
+     # FIX ME FOR PERIODIC: 
+     if( $bc eq "d" ){ $cmd="normal blending 7, 7, 7, 7 (lines, left,right,bottom,top)"; }else{ $cmd="#"; }
+     $cmd
      # I think we need to increase the number of volume smooths as we make the grid finer
      # ---New 2011/10/03
      $volSmooths=100*$factor; 
@@ -154,7 +161,9 @@ box
     $nz = intmg( ($zbc-$zac)/$ds +1.5 ); 
     $nx $ny $nz
   boundary conditions
-    1 2 3 4 5 0
+    if( $bc eq "d" ){ $bcCmd ="1 2 3 4 5 0"; }else{ $bcCmd ="-1 -1 -1 -1 5 0" }; 
+    $bcCmd
+    # 1 2 3 4 5 0
   share
     1 2 3 4 5 0 
   mappingName
@@ -180,7 +189,7 @@ generate an overlapping grid
   exit
   #  display intermediate results
   # open graphics
-#
+  #
   compute overlap
   #*  display computed geometry
   exit

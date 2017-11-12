@@ -1,6 +1,6 @@
 # Measure convergence rates for cgmx
 #
-% ==== CHIRPED PLANE WAVE ====
+# ==== CHIRPED PLANE WAVE ====
 # -- second order
 #   conv.p exact.conv -option=chirped -cg=nonSquare -tf=1. -tp=.1 -order=2 -ng=3
 # -- fourth order

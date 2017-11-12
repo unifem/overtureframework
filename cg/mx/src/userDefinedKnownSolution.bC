@@ -10,6 +10,37 @@ for(i3=I3Base; i3<=I3Bound; i3++) \
 for(i2=I2Base; i2<=I2Bound; i2++) \
 for(i1=I1Base; i1<=I1Bound; i1++)
 
+typedef ::real LocalReal;
+// utility routine (using complex numbers) defined at the bottom of the file.
+void
+getTransmisionWaveNumber( const LocalReal & kr,  const LocalReal & ki, 
+                          const LocalReal & kxr, const LocalReal & kxi, 
+                          const LocalReal & kyr, const LocalReal & kyi, 
+                          LocalReal & kxpr, LocalReal & kxpi, 
+                          LocalReal & kypr, LocalReal & kypi );
+
+void
+checkPlaneMaterialInterfaceJumps( 
+                          const LocalReal & c1, const LocalReal & c2,
+                          const LocalReal & eps1, const LocalReal & eps2,
+                          const LocalReal & mu1, const LocalReal & mu2,
+
+                          const LocalReal & sr, const LocalReal & si,
+                          const LocalReal & rr, const LocalReal & ri, 
+                          const LocalReal & taur, const LocalReal & taui, 
+
+                          const LocalReal & eps1Hatr, const LocalReal & eps1Hati,
+                          const LocalReal & eps2Hatr, const LocalReal & eps2Hati,
+
+                          const LocalReal & psiSum1r, const LocalReal & psiSum1i,
+                          const LocalReal & psiSum2r, const LocalReal & psiSum12i,
+                          const LocalReal & kxr, const LocalReal & kxi,
+                          const LocalReal & kyr, const LocalReal & kyi,
+                          const LocalReal & kxpr, const LocalReal & kxpi,
+                          const LocalReal & kypr, const LocalReal & kypi
+  );
+
+
 // ==========================================================================================
 /// \brief  Evaluate a user defined known solution.
 ///
@@ -18,8 +49,9 @@ for(i1=I1Base; i1<=I1Bound; i1++)
 //      to define boundary conditions 
 // ==========================================================================================
 int Maxwell::
-getUserDefinedKnownSolution(real t, CompositeGrid & cg, int grid, realArray & ua, 
-			    const Index & I1a, const Index &I2a, const Index &I3a, 
+getUserDefinedKnownSolution(int current, real t, CompositeGrid & cg, int grid, 
+                            realArray & ua, realArray & pv,
+                            const Index & I1a, const Index &I2a, const Index &I3a, 
                             int numberOfTimeDerivatives /* = 0 */ )
 {
   if( false )
@@ -302,120 +334,120 @@ getUserDefinedKnownSolution(real t, CompositeGrid & cg, int grid, realArray & ua
     
   }
   
-  else if( userKnownSolution=="dispersivePlaneWave" )
-  {
-    // -----------------------------------------------
-    // ---------- Dispersive plane wave  -------------
-    // -----------------------------------------------
+  // else if( userKnownSolution=="dispersivePlaneWave" )
+  // {
+  //   // -----------------------------------------------
+  //   // ---------- Dispersive plane wave  -------------
+  //   // -----------------------------------------------
 
-    assert( dispersionModel!=noDispersion );
+  //   assert( dispersionModel!=noDispersion );
 
-    DispersiveMaterialParameters & dmp = getDispersiveMaterialParameters(grid);
+  //   DispersiveMaterialParameters & dmp = getDispersiveMaterialParameters(grid);
 
-    // evaluate the dispersion relation,  exp(i(k*x-omega*t))
-    //    omega is complex 
-    const real kk = twoPi*sqrt( kx*kx+ky*ky+kz*kz); // true wave-number (note factor of twoPi)
-    real omegaDpwRe, omegaDpwIm;
-    dmp.computeDispersivePlaneWaveParameters( c,eps,mu,kk, omegaDpwRe, omegaDpwIm );
+  //   // evaluate the dispersion relation,  exp(i(k*x-omega*t))
+  //   //    omega is complex 
+  //   const real kk = twoPi*sqrt( kx*kx+ky*ky+kz*kz); // true wave-number (note factor of twoPi)
+  //   real omegaDpwRe, omegaDpwIm;
+  //   dmp.computeDispersivePlaneWaveParameters( c,eps,mu,kk, omegaDpwRe, omegaDpwIm );
 
-    if( t<3.*dt )
-      printF("--UDKS:DPW-- t=%10.3e, omegar=%g, omegai=%g\n",t,omegaDpwRe, omegaDpwIm );
+  //   if( t<3.*dt )
+  //     printF("--UDKS:DPW-- t=%10.3e, omegar=%g, omegai=%g\n",t,omegaDpwRe, omegaDpwIm );
 
-    const real dpwExp =exp(omegaDpwIm*t);
+  //   const real dpwExp =exp(omegaDpwIm*t);
     
-    const real c = cGrid(grid);
-    const real cc= c*sqrt( kx*kx+ky*ky+kz*kz);
+  //   const real c = cGrid(grid);
+  //   const real cc= c*sqrt( kx*kx+ky*ky+kz*kz);
 
-    const real eps = epsGrid(grid);
-    const real mu  = muGrid(grid);
-    const real ck2 = SQR(c*kk);
+  //   const real eps = epsGrid(grid);
+  //   const real mu  = muGrid(grid);
+  //   const real ck2 = SQR(c*kk);
 
-    // compute coefficients of P :   s = sr+I*si = -I*omega = -I*( omegar + I omegai) = omegai - I*omegar
-    //     s^2 E = -(c*k)^2 E - (s^2/eps) * P 
-    // ->  P = -eps*( 1 + (c*k/s)^2 ) E 
-    real sr = omegaDpwIm, si=-omegaDpwRe;
-    real sNorm2=sr*sr+si*si, sNorm4=sNorm2*sNorm2;
-    real pc = -eps*( -2.*sr*si*ck2/sNorm4 );
-    real ps = -eps*( 1. + ck2*(sr*sr-si*si)/sNorm4 );
+  //   // compute coefficients of P :   s = sr+I*si = -I*omega = -I*( omegar + I omegai) = omegai - I*omegar
+  //   //     s^2 E = -(c*k)^2 E - (s^2/eps) * P 
+  //   // ->  P = -eps*( 1 + (c*k/s)^2 ) E 
+  //   real sr = omegaDpwIm, si=-omegaDpwRe;
+  //   real sNorm2=sr*sr+si*si, sNorm4=sNorm2*sNorm2;
+  //   real pc = -eps*( -2.*sr*si*ck2/sNorm4 );
+  //   real ps = -eps*( 1. + ck2*(sr*sr-si*si)/sNorm4 );
 
-    //  mu * (Hz)_t = (Ex)_y - (Ey)_x
-    //  Hz = [hc*cos(xi) + hs*sin(xi) ]*exp(omegai*t)
-    // *check me*
-    real factor = twoPi*( kx*pwc[1] - ky*pwc[0] )/mu;  // (kx*Ey - ky*Ex )/mu
-    real omegaNorm2=SQR(omegaDpwRe)+SQR(omegaDpwIm);
-    real hs =  factor*omegaDpwRe/omegaNorm2;
-    real hc = -factor*omegaDpwIm/omegaNorm2;
+  //   //  mu * (Hz)_t = (Ex)_y - (Ey)_x
+  //   //  Hz = [hc*cos(xi) + hs*sin(xi) ]*exp(omegai*t)
+  //   // *check me*
+  //   real factor = twoPi*( kx*pwc[1] - ky*pwc[0] )/mu;  // (kx*Ey - ky*Ex )/mu
+  //   real omegaNorm2=SQR(omegaDpwRe)+SQR(omegaDpwIm);
+  //   real hs =  factor*omegaDpwRe/omegaNorm2;
+  //   real hc = -factor*omegaDpwIm/omegaNorm2;
     
 
-    if( t<3.*dt )
-      printF("--UDKS:DPW-- ck2=%10.3e, pc=%g, ps=%g, sr=%g, si=%g, hc=%g hs=%g\n",ck2,pc,ps,sr,si,hc,hs);
+  //   if( t<3.*dt )
+  //     printF("--UDKS:DPW-- ck2=%10.3e, pc=%g, ps=%g, sr=%g, si=%g, hc=%g hs=%g\n",ck2,pc,ps,sr,si,hc,hs);
 
-    real x,y,z;
-    if( numberOfTimeDerivatives==0 )
-    {
-      if( numberOfDimensions==2 )
-      {
-        // ----------- 2D --------------
-	FOR_3D(i1,i2,i3,I1,I2,I3)
-	{
-	  if( !isRectangular )
-	  {
-	   x= xLocal(i1,i2,i3,0);
-	   y= xLocal(i1,i2,i3,1);
-	  }
-	  else
-	  {
-            x=XC(iv,0);
-            y=XC(iv,1);
-	  }
- 	  real xi=twoPi*(kx*x+ky*y) -omegaDpwRe*t;
-	  real sinxi=sin(xi), cosxi=cos(xi);
+  //   real x,y,z;
+  //   if( numberOfTimeDerivatives==0 )
+  //   {
+  //     if( numberOfDimensions==2 )
+  //     {
+  //       // ----------- 2D --------------
+  //       FOR_3D(i1,i2,i3,I1,I2,I3)
+  //       {
+  //         if( !isRectangular )
+  //         {
+  //          x= xLocal(i1,i2,i3,0);
+  //          y= xLocal(i1,i2,i3,1);
+  //         }
+  //         else
+  //         {
+  //           x=XC(iv,0);
+  //           y=XC(iv,1);
+  //         }
+  //         real xi=twoPi*(kx*x+ky*y) -omegaDpwRe*t;
+  //         real sinxi=sin(xi), cosxi=cos(xi);
 
-	  uLocal(i1,i2,i3,ex) = sinxi*pwc[0]*dpwExp;
-	  uLocal(i1,i2,i3,ey) = sinxi*pwc[1]*dpwExp;
-	  uLocal(i1,i2,i3,hz) = (hc*cosxi+hs*sinxi)*dpwExp;
+  //         uLocal(i1,i2,i3,ex) = sinxi*pwc[0]*dpwExp;
+  //         uLocal(i1,i2,i3,ey) = sinxi*pwc[1]*dpwExp;
+  //         uLocal(i1,i2,i3,hz) = (hc*cosxi+hs*sinxi)*dpwExp;
 
-          // -- polarization vector --
-          uLocal(i1,i2,i3,pxc) = (pc*cosxi+ps*sinxi)*pwc[0]*dpwExp;
-          uLocal(i1,i2,i3,pyc) = (pc*cosxi+ps*sinxi)*pwc[1]*dpwExp;
+  //         // -- polarization vector --
+  //         uLocal(i1,i2,i3,pxc) = (pc*cosxi+ps*sinxi)*pwc[0]*dpwExp;
+  //         uLocal(i1,i2,i3,pyc) = (pc*cosxi+ps*sinxi)*pwc[1]*dpwExp;
 
-          if( method==sosup )
-	  {
-	    // supply time-derivatives for sosup scheme
-            OV_ABORT("finish me");
-	  }
-	}
-      }
-      else
-      {
-        // ----------- 3D --------------
-	FOR_3D(i1,i2,i3,I1,I2,I3)
-	{
-	  if( !isRectangular )
-	  {
-	    x= xLocal(i1,i2,i3,0);
-	    y= xLocal(i1,i2,i3,1);
-	    z= xLocal(i1,i2,i3,2);
-	  }
-	  else
-	  {
-	    x=XC(iv,0);
-	    y=XC(iv,1);
-	    z=XC(iv,2);
-	  }
+  //         if( method==sosup )
+  //         {
+  //           // supply time-derivatives for sosup scheme
+  //           OV_ABORT("finish me");
+  //         }
+  //       }
+  //     }
+  //     else
+  //     {
+  //       // ----------- 3D --------------
+  //       FOR_3D(i1,i2,i3,I1,I2,I3)
+  //       {
+  //         if( !isRectangular )
+  //         {
+  //           x= xLocal(i1,i2,i3,0);
+  //           y= xLocal(i1,i2,i3,1);
+  //           z= xLocal(i1,i2,i3,2);
+  //         }
+  //         else
+  //         {
+  //           x=XC(iv,0);
+  //           y=XC(iv,1);
+  //           z=XC(iv,2);
+  //         }
 
-	  OV_ABORT("finish me");
+  //         OV_ABORT("finish me");
       
-	}
-      }
-    }
-    else
-    {
-      OV_ABORT("finish me: numberOfTimeDerivatives1=0");
+  //       }
+  //     }
+  //   }
+  //   else
+  //   {
+  //     OV_ABORT("finish me: numberOfTimeDerivatives1=0");
 
-    }
+  //   }
     
-  }
+  // }
   
   else if( userKnownSolution=="dispersivePlaneWaveInterface" )
   {
@@ -431,11 +463,12 @@ getUserDefinedKnownSolution(real t, CompositeGrid & cg, int grid, realArray & ua
 
 
     real sr,si;
-    real kxr=kx, kxi=0., kyr=ky, kyi=0.;  // Incident wave number (complex)
-    real kxpr, kxpi, kypr, kypi;          // Transmitted wave number
+    real kxr, kxi, kyr, kyi;        // Incident wave number (complex)
+    real kxpr, kxpi, kypr, kypi;    // Transmitted wave number
   
     real psi1r[10],psi1i[10];
     real psi2r[10],psi2i[10];
+
     real psiSum1r=0.,psiSum1i=0;
     real psiSum2r=0.,psiSum2i=0;
  
@@ -460,12 +493,17 @@ getUserDefinedKnownSolution(real t, CompositeGrid & cg, int grid, realArray & ua
 
     int domain=0;
     DispersiveMaterialParameters & dmp1 = getDomainDispersiveMaterialParameters(domain);
-    assert( dmp1.numberOfPolarizationVectors<10 );
+    const int & numberOfPolarizationVectors1=dmp1.numberOfPolarizationVectors;
+    assert( numberOfPolarizationVectors1<10 );
+
+    kxr=twoPi*kx; kxi=0.; kyr=twoPi*ky; kyi=0.;  // Incident wave number (complex)
 
     const real kk = twoPi*sqrt( kx*kx+ky*ky+kz*kz );   
     dmp1.evaluateDispersionRelation( c1,kk, sr, si, psi1r,psi1i ); 
+    // si = -si; // reverse the direction NO -- changes psi1 !
+
     // Save the "sum" of the psi's times alphaP
-    psiSum1r=0.,psiSum1i=0;
+    psiSum1r=0.; psiSum1i=0;
     for( int iv=0; iv<dmp1.numberOfPolarizationVectors; iv++ )
     {
       psiSum1r += psi1r[iv];
@@ -477,17 +515,30 @@ getUserDefinedKnownSolution(real t, CompositeGrid & cg, int grid, realArray & ua
     // -- -right domain --
     domain=1;
     DispersiveMaterialParameters & dmp2 = getDomainDispersiveMaterialParameters(domain);
-    assert( dmp2.numberOfPolarizationVectors<10 );
+    const int & numberOfPolarizationVectors2=dmp2.numberOfPolarizationVectors;
+    assert( numberOfPolarizationVectors2<10 );
    
     real kr,ki;
     dmp2.evaluateComplexWaveNumber( c2,sr,si, kr,ki, psi2r,psi2i );
-    // do this for now -- assume normal incidence
-    assert( ky==0. );
-    kxpr=kr; kxpi=ki;
-    kypr=0.; kypi=0.;
+    //  kxp^2 + kyp^2 = (kr+I*ki)^2 = (kr^2-ki^2) + 2*I*kr*ki 
+    // kxp = kxpr + I*kpri = sqrt( (kr+I*ki)^2 - kyp^2 )
+    getTransmisionWaveNumber( kr,ki, kxr,kxi, kyr,kyi, kxpr,kxpi, kypr,kypi );
+    // // do this for now -- assume normal incidence
+    // assert( ky==0. );
+    // kxpr=kr; kxpi=ki;
+    // kypr=0.; kypi=0.;
    
-    // Save the "sum" of the psi's  times alphaP
-    psiSum2r=0.,psiSum2i=0;
+    if( t<3.*dt )
+    {
+      printF("\n --UDKS:DPWI-- t=%10.4e, grid=%i, s=(%16.10e,%16.10e) kx=(%16.10e,%16.10e) ky=(%16.10e,%16.10e) -> k2=(kr,ki)=(%16.10e,%16.10e) kxp=(%16.10e,%16.10e) kyp=(%16.10e,%16.10e)\n"
+             ,t,grid,sr,si,kxr,kxi,kyr,kyi,kr,ki,kxpr,kxpi,kypr,kypi);
+      printF("    psi1=(%16.10e,%16.10e), psi2=(%16.10e,%16.10e) \n",psi1r[0],psi1i[0],psi2r[0],psi2i[0]);
+      
+    }
+    
+
+    // // Save the "sum" of the psi's  times alphaP
+    psiSum2r=0.; psiSum2i=0;
     for( int iv=0; iv<dmp2.numberOfPolarizationVectors; iv++ )
     {
       psiSum2r += psi2r[iv];
@@ -496,11 +547,25 @@ getUserDefinedKnownSolution(real t, CompositeGrid & cg, int grid, realArray & ua
     psiSum2r *= dmp2.alphaP;
     psiSum2i *= dmp2.alphaP;
 
+    const real alphaP = dmp1.alphaP;
+    const real a= 1.; // amplitude *FIX ME**
 
-    if( t<3.*dt )
-      printF("--UDKS:DPWI-- sr=%g, si=%g\n",sr,si);
 
-    real x,y,z;
+    // domain number for this grid: 
+    const int myDomain = cg.domainNumber(grid);
+
+    // --- Get Arrays for the dispersive model ----
+
+    // realMappedGridFunction & pCur = getDispersionModelMappedGridFunction( grid,current );
+    RealArray pLocal;
+    if( (myDomain==0 && numberOfPolarizationVectors1>0) ||
+        (myDomain==1 && numberOfPolarizationVectors2>0)  )
+    {
+      OV_GET_SERIAL_ARRAY(real, pv,pLoc);
+      pLocal.reference(pLoc);
+    }
+
+    real x,y,z=0.;
     if( numberOfTimeDerivatives==0 )
     {
       if( numberOfDimensions==2 )
@@ -520,14 +585,67 @@ getUserDefinedKnownSolution(real t, CompositeGrid & cg, int grid, realArray & ua
 	  }
 
           // Here are the statements to eval the solution: 
-         // #Include "dispersivePlaneWaveInterface.h"
+          #Include "dispersivePlaneWaveInterface.h"
 
-          OV_ABORT("finish me");
+          if( false )
+          {
+            printF("(i1,i2)=(%3i,%3i): psiSum1=(%9.3e,%9.3e) psiSum2=(%9.3e,%9.3e) r=(%8.2e,%8.2e) "
+                   "tau=(%8.2e,%8.2e) khy=(%8.2e,%8.2e) khpy=(%8.2e,%8.2e): ",
+                   i1,i2,psiSum1r,psiSum1i,psiSum2r,psiSum2i,rr,ri,taur,taui,khyr,khyi,khypr,khypi);
+            real eps1Hatr = eps1*(1+psiSum1r), eps1Hati=eps1*(psiSum1i);
+            real eps2Hatr = eps2*(1+psiSum2r), eps2Hati=eps2*(psiSum2i);
 
-	  // uLocal(i1,i2,i3,ex) = sinxi*pwc[0]*dpwExp;
-	  // uLocal(i1,i2,i3,ey) = sinxi*pwc[1]*dpwExp;
-	  // uLocal(i1,i2,i3,hz) = (hc*cosxi+hs*sinxi)*dpwExp;
 
+            checkPlaneMaterialInterfaceJumps( 
+              c1,c2,eps1,eps2,mu1,mu2, sr,si, rr,ri, taur,taui, 
+              eps1Hatr,eps1Hati, eps2Hatr,eps2Hati,
+              psiSum1r,psiSum1i,psiSum2r,psiSum2i,
+              kxr,kxi, kyr,kyi, kxpr,kxpi, kypr,kypi );
+            
+            OV_ABORT("stop here for now");
+            
+          }
+          
+          if( false )
+          {
+            printF("(i1,i2)=(%3i,%3i): kNorm=%g, kpNorm=%g, kappa=(%g,%g) beta=(%g,%g)\n",
+                   i1,i2,kNorm,kpNorm,kappar,kappai,betar,betai);
+            printF("    : eps1=%g, eps2=%g, r=(%g,%g) tau=(%g,%g) \n",eps1,eps2,rr,ri,taur,taui);
+            // printF("    : psiSum1=(%g,%g) psiSum2=(%g,%g) \n",psiSum1r,psiSum1i,psiSum2r,psiSum2i);
+            printF("    : Exr=%g, Eyr=%g, Exi=%g, Eyi=%g Hzr=%g Hzi=%g\n",Exr,Eyr,Exi,Eyi,Hzr,Hzi);
+            printF("    : Expr=%g, Eypr=%g, Expi=%g, Eypi=%g Hzpr=%g Hzpi=%g\n",Expr,Eypr,Expi,Eypi,Hzpr,Hzpi);
+
+            OV_ABORT("finish me");
+          }
+          
+
+          if( myDomain==0 )
+          {
+            uLocal(i1,i2,i3,ex) = Exr;
+            uLocal(i1,i2,i3,ey) = Eyr;
+            uLocal(i1,i2,i3,hz) = Hzr;
+
+            for( int iv=0; iv<numberOfPolarizationVectors1; iv++ )
+            {
+              const int pc= iv*numberOfDimensions;
+              pLocal(i1,i2,i3,pc  ) = psi1r[iv]*Exr - psi1i[iv]*Exi;
+              pLocal(i1,i2,i3,pc+1) = psi1r[iv]*Eyr - psi1i[iv]*Eyi;
+            }
+
+          }
+          else
+          {
+            uLocal(i1,i2,i3,ex) = Expr;
+            uLocal(i1,i2,i3,ey) = Eypr;
+            uLocal(i1,i2,i3,hz) = Hzpr;
+            for( int iv=0; iv<numberOfPolarizationVectors2; iv++ )
+            {
+              const int pc= iv*numberOfDimensions;
+              pLocal(i1,i2,i3,pc  ) = psi2r[iv]*Expr - psi2i[iv]*Expi;
+              pLocal(i1,i2,i3,pc+1) = psi2r[iv]*Eypr - psi2i[iv]*Eypi;
+            }
+          }
+          
           // // -- polarization vector --
           // uLocal(i1,i2,i3,pxc) = (pc*cosxi+ps*sinxi)*pwc[0]*dpwExp;
           // uLocal(i1,i2,i3,pyc) = (pc*cosxi+ps*sinxi)*pwc[1]*dpwExp;
@@ -661,19 +779,20 @@ updateUserDefinedKnownSolution(GenericGraphicsInterface & gi, CompositeGrid & cg
       
     }
     
-    else if( answer=="dispersive plane wave" ) 
-    {
-      userKnownSolution="dispersivePlaneWave";
-      dbase.get<bool>("knownSolutionIsTimeDependent")=true;  // known solution depends on time
+    // replaced: 
+    // else if( answer=="dispersive plane wave" ) 
+    // {
+    //   userKnownSolution="dispersivePlaneWave";
+    //   dbase.get<bool>("knownSolutionIsTimeDependent")=true;  // known solution depends on time
       
 
-      printF("The dispersive plane wave is defined by: \n"
-             "    E = a*sin( k*x - omegar*t)*exp(omegai*t)\n"
-             "    P = [b*cos( k*x - omegar*t) + c*sin( k*x - omegar*t) ]*exp(omegai*t)\n"
-            );
+    //   printF("The dispersive plane wave is defined by: \n"
+    //          "    E = a*sin( k*x - omegar*t)*exp(omegai*t)\n"
+    //          "    P = [b*cos( k*x - omegar*t) + c*sin( k*x - omegar*t) ]*exp(omegai*t)\n"
+    //         );
       
       
-    }
+    // }
     else if( answer=="dispersive plane wave interface" ) 
     {
       userKnownSolution="dispersivePlaneWaveInterface";
@@ -696,4 +815,136 @@ updateUserDefinedKnownSolution(GenericGraphicsInterface & gi, CompositeGrid & cg
   gi.unAppendTheDefaultPrompt();
   bool knownSolutionChosen = userKnownSolution!="unknownSolution";
   return knownSolutionChosen;
+}
+
+
+// Include complex down here to minimize name conflicts
+#include <complex>
+
+typedef ::real OV_real;
+// =====================================================================================
+/// \brief Utility routine to do some complex arithemetic for the dispersive plane
+///    wave material interface.
+///
+///  Compute kxp=(kxpr,kxpi)  given (kr,ki), and kyp=(kypr,kypi)
+///  kxp^2 + kyp^2 = (kr+I*ki)^2 = (kr^2-ki^2) + 2*I*kr*ki 
+///  kxp = kxpr + I*kpri = sqrt( (kr+I*ki)^2 - kyp^2 )
+// =====================================================================================
+void
+getTransmisionWaveNumber( const LocalReal & kr,  const LocalReal & ki, 
+                          const LocalReal & kxr, const LocalReal & kxi, 
+                          const LocalReal & kyr, const LocalReal & kyi, 
+                          LocalReal & kxpr, LocalReal & kxpi, 
+                          LocalReal & kypr, LocalReal & kypi )
+{
+  // No jump in tangential field: kyp=ky : 
+  kypr=kyr;
+  kypi=kyi;
+
+  // std::complex<LocalReal> I(0.0,1.0); 
+  std::complex<LocalReal> ky(kyr,kyi);
+  std::complex<LocalReal> k(kr,ki);
+  std::complex<LocalReal> kxp,kyp(kypr,kypi);
+
+  // cout << "kyp=" << kyp << endl;
+
+  kxp = std::sqrt( k*k - kyp*kyp );
+
+  kxpr= std::real(kxp);
+  kxpi= std::imag(kxp);
+  
+  // printF("--getTransmisionWaveNumber--- kx=(%g,%g) ky=(%g,%g) (kr,ki)=(%g,%g) kxp=(%g,%g) kyp=(%g,%g)\n",
+  //            kxr,kxi,kyr,kyi,kr,ki,kxpr,kxpi,kypr,kypi);
+
+}
+
+
+// ---------------------------------------------------------------------------------------
+// Check routine : 
+//   Check the jump:
+//       eps1Hat*khyat*(1-r) = eps2Hat*kyHatp*tau
+// ---------------------------------------------------------------------------------------
+void
+checkPlaneMaterialInterfaceJumps( 
+                          const LocalReal & c1, const LocalReal & c2,
+                          const LocalReal & eps1, const LocalReal & eps2,
+                          const LocalReal & mu1, const LocalReal & mu2,
+
+                          const LocalReal & sr, const LocalReal & si,
+                          const LocalReal & rr, const LocalReal & ri, 
+                          const LocalReal & taur, const LocalReal & taui, 
+
+                          const LocalReal & eps1Hatr, const LocalReal & eps1Hati,
+                          const LocalReal & eps2Hatr, const LocalReal & eps2Hati,
+
+                          const LocalReal & psiSum1r, const LocalReal & psiSum1i,
+                          const LocalReal & psiSum2r, const LocalReal & psiSum2i,
+                          const LocalReal & kxr, const LocalReal & kxi,
+                          const LocalReal & kyr, const LocalReal & kyi,
+                          const LocalReal & kxpr, const LocalReal & kxpi,
+                          const LocalReal & kypr, const LocalReal & kypi
+
+                            )
+{
+
+  // std::complex<LocalReal> I(0.0,1.0); 
+  std::complex<LocalReal> psiSum1(psiSum1r,psiSum1i);
+  std::complex<LocalReal> psiSum2(psiSum2r,psiSum2i);
+
+  std::complex<LocalReal> eps1Hat(eps1Hatr,eps1Hati);
+  std::complex<LocalReal> eps2Hat(eps2Hatr,eps2Hati);
+  std::complex<LocalReal> s(sr,si);
+  std::complex<LocalReal> kx(kxr,kxi);
+  std::complex<LocalReal> ky(kyr,kyi);
+  std::complex<LocalReal> kxp(kxpr,kxpi);
+  std::complex<LocalReal> kyp(kypr,kypi);
+  std::complex<LocalReal> khx,khy, khpx,khpy;
+  std::complex<LocalReal> r(rr,ri), tau(taur,taui);
+  std::complex<LocalReal> dr1,dr2,jump;
+  
+  LocalReal kNorm = sqrt(kxr*kxr + kxi*kxi + kyr*kyr + kyi*kyi);
+  khx= (kxr + 1i*kxi)/kNorm;
+  khy= (kyr + 1i*kyi)/kNorm;
+  
+  LocalReal kpNorm = sqrt(kxpr*kxpr + kxpi*kxpi + kypr*kypr + kypi*kypi);
+  khpx=(kxpr + 1i*kxpi)/kpNorm;
+  khpy=(kypr + 1i*kypi)/kpNorm;
+  
+  printF("\n\n ** s=(%g,%g) kx=(%g,%g) ky=(%g,%g) c1=%g eps1=%g mu1=%g \n",sr,si,kxr,kxi,kyr,kyi,c1,eps1,mu1);
+  
+
+  jump = khx*(1.+r) - tau*khpx;
+  printF("khx*(1.+r) - tau*khpx                 =(%12.4e,%12.4e)\n",std::real(jump), std::imag(jump));
+  
+  jump =eps1Hat*khy*(1.-r) - eps2Hat*tau*khpy;
+  printF(" [epsHat khy(1-r)- epsHat*tau*khy'    =(%12.4e,%12.4e)\n",std::real(jump), std::imag(jump));
+  
+  // dispersion relations: 
+  dr1 = s*s + c1*c1*(kx*kx  +ky*ky  ) + s*s*psiSum1;
+  dr2 = s*s + c2*c2*(kxp*kxp+kyp*kyp) + s*s*psiSum2;
+
+  printF(" dispersion-relation1                 =(%12.4e,%12.4e)\n",std::real(dr1), std::imag(dr1));
+  printF(" dispersion-relation2                 =(%12.4e,%12.4e)\n",std::real(dr2), std::imag(dr2));
+
+  jump = (1.-r)*( ky*khy + kx*khx )/mu1 - tau*( kyp*khpy+kxp*khpx )/mu2;
+  printF(" (1-r)*( kSq )/mu1 - tau*( kpSq )/mu2'=(%12.4e,%12.4e)\n",std::real(jump), std::imag(jump));
+
+  jump = (1.-r)*( ky*ky + kx*kx )/(kNorm*mu1) - tau*( kyp*kyp+kxp*kxp )/(kpNorm*mu2);
+  printF(" (1-r)*( kSq )/mu1-tau*( kpSq )/mu2'  =(%12.4e,%12.4e)\n",std::real(jump), std::imag(jump));
+
+  jump = (1.-r)*( s*s*(1.+psiSum1)/(c1*c1) )/(kNorm*mu1) - tau*( s*s*(1.+psiSum2)/(c2*c2) )/(kpNorm*mu2);
+  printF(" (1-r)*( kSq )/mu1-tau*( kpSq )/mu2'  =(%12.4e,%12.4e)\n",std::real(jump), std::imag(jump));
+
+  jump = (1.-r)*( s*s*(1.+psiSum1)*(mu1*eps1) )/(kNorm*mu1) - tau*( s*s*(1.+psiSum2)*(mu2*eps2) )/(kpNorm*mu2);
+  printF(" (1-r)*( kSq )/mu1-tau*( kpSq )/mu2'  =(%12.4e,%12.4e)\n",std::real(jump), std::imag(jump));
+
+  jump = (1.-r)*( (1.+psiSum1)*(mu1*eps1) )/(kNorm*mu1) - tau*( (1.+psiSum2)*(mu2*eps2) )/(kpNorm*mu2);
+  printF(" (1-r)*( kSq )/mu1-tau*( kpSq )/mu2'  =(%12.4e,%12.4e)\n",std::real(jump), std::imag(jump));
+
+  jump = (1.-r)*( (1.+psiSum1)*(mu1*eps1) )*khy/(mu1) - tau*( (1.+psiSum2)*(mu2*eps2) )*khpy/(mu2);
+  printF(" (1-r)*( kSq )/mu1-tau*( kpSq )/mu2'  =(%12.4e,%12.4e)\n",std::real(jump), std::imag(jump));
+
+  jump = (1.-r)*( (1.+psiSum1)*(eps1) )*khy - tau*( (1.+psiSum2)*(eps2) )*khpy;
+  printF(" (1-r)*( kSq )/mu1-tau*( kpSq )/mu2'  =(%12.4e,%12.4e)\n",std::real(jump), std::imag(jump));
+
 }

@@ -1,4 +1,18 @@
 ***************************
+******* Oct 29, 2017
+
+TEST Poly TZ 
+
+BUG FOUND-- > fe=0. needed
+
+TROUBLE:
+cgmx -noplot tz -g=nonSquare8.order2 -npv=1 -degreex=2 -degreet=2 -dm=gdm -diss=0 -method=nfdtd -bc=d -tp=.05 -tf=.2 -go=og
+
+EXACT: 
+cgmx -noplot tz -g=square8.order2 -npv=1 -degreex=2 -degreet=2 -dm=gdm -diss=0 -method=nfdtd -bc=d -tp=.05 -tf=.2 -go=og
+
+
+***************************
 ******* Sept 15, 2017
 
 

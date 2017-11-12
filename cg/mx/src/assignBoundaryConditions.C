@@ -115,7 +115,7 @@ updateghostandperiodic(realMappedGridFunction *&pu )
 } 
 }
 
-static Maxwell *cgmxPointer=NULL; // for getGDMParameters
+static Maxwell *cgmxPointer=NULL; // for getGDMPolarizationParameters
 
 #define getGDMPolarizationParameters EXTERN_C_NAME(getgdmpolarizationparameters)
 extern "C"
@@ -139,12 +139,26 @@ void getGDMPolarizationParameters( int & grid, real *psir, real *psii, const int
 
     assert( dmp.numberOfPolarizationVectors>0 );
     assert( dmp.numberOfPolarizationVectors<= maxNumberOfPolarizationVectors );
-
-    for( int iv=0; iv<dmp.numberOfPolarizationVectors; iv++ )
+  // assert( dmp.psir0.getLength(0)>=dmp.numberOfPolarizationVectors );
+  // assert( dmp.psii0.getLength(0)>=dmp.numberOfPolarizationVectors );
+    if(  dmp.psir0.getLength(0)>=dmp.numberOfPolarizationVectors &&
+              dmp.psii0.getLength(0)>=dmp.numberOfPolarizationVectors )
     {
-        psir[iv] = dmp.psir0(iv);
-        psii[iv] = dmp.psii0(iv);
+        for( int iv=0; iv<dmp.numberOfPolarizationVectors; iv++ )
+        {
+            psir[iv] = dmp.psir0(iv);
+            psii[iv] = dmp.psii0(iv);
+        }
     }
+    else
+    {
+        for( int iv=0; iv<dmp.numberOfPolarizationVectors; iv++ )
+        {
+            psir[iv] = 0.;
+            psii[iv] = 0.;
+        }
+    }
+    
 #undef gdmVar  
 }
 
@@ -800,9 +814,12 @@ assignBoundaryConditions( int option, int grid, real t, real dt, realMappedGridF
             // ------------ macro for the plane material interface -------------------------
             // boundaryCondition: initialCondition, error, boundaryCondition
             // -----------------------------------------------------------------------------
-                            int i1,i2,i3;
-                            real tm=t-dt,x,y,z;
-                            const real pmct=pmc[18]*twoPi; // for time derivative of exact solution
+                        int i1,i2,i3;
+                        real tm=t-dt,x,y,z;
+                        const real pmct=pmc[18]*twoPi; // for time derivative of exact solution
+              // NOTE: dispersion version is a user defined known solution
+                            assert( dispersionModel == noDispersion );
+              // ========= NON-DISPERSIVE PLANE MATERIAL INTERFACE ============
                             if( numberOfDimensions==2 )
                             {
                               z=0.;
@@ -1163,9 +1180,10 @@ assignBoundaryConditions( int option, int grid, real t, real dt, realMappedGridF
             	      }
             	      else if( knownSolutionOption==userDefinedKnownSolution )
             	      {
+
                                 int numberOfTimeDerivatives=0;
                                 CompositeGrid & cg = *(cgfields[next].getCompositeGrid());
-            		getUserDefinedKnownSolution( t, cg,grid, u,I1,I2,I3,numberOfTimeDerivatives);
+            		getUserDefinedKnownSolution( next, t, cg,grid, u,pv,I1,I2,I3,numberOfTimeDerivatives);
   
             	      }
             	      else

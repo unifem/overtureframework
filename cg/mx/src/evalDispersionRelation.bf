@@ -10,7 +10,7 @@
 !
 !  Input:
 !      mode : mode to choose, i.e. which root to choose. If mode=-1 then the default root is chosen.
-!                The default root is the onewith largest imaginary part.
+!                The default root is the one with largest NEGATIVE imaginary part.
 !      Np : number of polarization vectors  
 !      c,k, 
 !      a0(0:Np-1), a1(0:Np-1), b0(0:Np-1), b1(0:Np-1), alphaP : GDM parameters
@@ -68,11 +68,11 @@
        ! Take user supplied mode: 
        iMode=min(mode,nd-1)
       else
-        ! choose s with largest positive imaginary part
+        ! choose s with largest NEGATIVE imaginary part
         iMode=0
         sim=si(iMode) 
         do i=0,nd-1
-          if( si(i) .gt. sim )then
+          if( si(i) .lt. sim )then
             iMode=i
            sim=si(i)
           end if
@@ -100,6 +100,71 @@
 
       return
       end  
+
+
+
+
+! =====================================================================================================
+! 
+! -----------------------------------------------------------------------------------
+! Evaluate the "INVERSE" dispersion relation (compute k=*(kr,ki) given s=(sr,si) 
+! for the generalized dispersion model (GDM) With multiple polarization vectors 
+! -----------------------------------------------------------------------------------
+!
+!       E_tt - c^2 Delta(E) = -alphaP P_tt
+!       P_tt + b1 P_1 + b0 = a0*E + a1*E_t 
+!
+!  Input:
+!      sr,si : s=(sr,si)
+!      Np : number of polarization vectors  
+!      c  : 
+!      a0(0:Np-1), a1(0:Np-1), b0(0:Np-1), b1(0:Np-1), alphaP : GDM parameters
+! Output:
+!      kr,ki : k=(kr,ki) = complex wave number 
+!      psir(0:Np-1),psii(0:Np-1) : real and imaginary parts of psi : P = psi*E for s=(srm,sim) 
+!
+! =====================================================================================================
+      subroutine evalInverseGDM( c, sr,si, Np, a0,a1,b0,b1,alphaP, kr,ki,psir,psii )
+
+      implicit none
+
+      real c,sr,si
+      integer Np
+      real a0(0:*),a1(0:*),b0(0:*),b1(0:*),alphaP, psir(0:*),psii(0:*)
+      real kr,ki
+
+      ! local variables 
+      real eps
+      integer j
+      complex*16 s, psi, sum , k
+
+      s=cmplx(sr,si)
+
+      sum = 0.
+      do j=0,Np-1
+        ! Phat = psi(s) * Ehat
+        psi = (a0(j)+a1(j)*s)/(s**2+b1(j)*s+b0(j))
+        psir(j) = real(psi)
+        psii(j) = imag(psi)  
+
+        sum =sum + psi
+      end do 
+  
+      ! (ck)^2 = -s^2 - alphaP* s^2 *sum_k{ psi_k(s) }
+      k = csqrt(-s*s -alphaP*s*s*( sum ) )/c 
+
+      kr = real(k)
+      ki = imag(k)
+
+      return
+      end  
+
+
+
+
+
+
+
 
 
 

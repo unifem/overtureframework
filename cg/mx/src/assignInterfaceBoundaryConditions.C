@@ -37,11 +37,16 @@ void newInterfaceMaxwell( const int&nd,
                    		       const int&ipar, const real&rpar, int&ierr );
 void interface3dMaxwell( const int&nd, 
                                               const int&nd1a,const int&nd1b,const int&nd2a,const int&nd2b,const int&nd3a,const int&nd3b,
-                   		       const int&gridIndexRange1, real&u1, const int&mask1,const real&rsxy1, const real&xy1, 
-                                              const real&p1, const int&boundaryCondition1, 
+                   		       const int&gridIndexRange1, 
+                                              real&u1, const real&u1n, const real&u1m, 
+                                              const int&mask1,const real&rsxy1, const real&xy1, 
+                                              real&p1, const real&p1n, const real&p1m, 
+                                              const int&boundaryCondition1, 
                    		       const int&md1a,const int&md1b,const int&md2a,const int&md2b,const int&md3a,const int&md3b,
-                   		       const int&gridIndexRange2, real&u2, const int&mask2,const real&rsxy2, const real&xy2, 
-                                              const real&p2, const int&boundaryCondition2,
+                                              const int&gridIndexRange2, real&u2, const real&u2n, const real&u2m, 
+                                              const int&mask2,const real&rsxy2, const real&xy2, 
+                                              real&p2, const real&p2n, const real&p2m,  
+                                              const int&boundaryCondition2,
                    		       const int&ipar, const real&rpar, 
                                               real&aa2, real&aa4, real&aa8, 
                                               int&ipvt2, int&ipvt4, int&ipvt8,
@@ -469,6 +474,12 @@ assignInterfaceBoundaryConditions( int current, real t, real dt,
         realArray & u1 = cgfields[next][grid1];
         realArray & u2 = cgfields[next][grid2];
 
+        realArray & u1n = cgfields[current][grid1];
+        realArray & u2n = cgfields[current][grid2];
+
+        realArray & u1m = cgfields[prev][grid1];
+        realArray & u2m = cgfields[prev][grid2];
+
 
         IntegerArray bc1Local(2,3), bc2Local(2,3);
         ParallelGridUtility::getLocalBoundaryConditions( cgfields[next][grid1],bc1Local );
@@ -578,6 +589,14 @@ assignInterfaceBoundaryConditions( int current, real t, real dt,
     // First try for parallel -- assume aligned grids
         realSerialArray u1Local; getLocalArrayWithGhostBoundaries(u1,u1Local);
         realSerialArray u2Local; getLocalArrayWithGhostBoundaries(u2,u2Local);
+        realSerialArray u1nLocal; getLocalArrayWithGhostBoundaries(u1n,u1nLocal);
+        realSerialArray u2nLocal; getLocalArrayWithGhostBoundaries(u2n,u2nLocal);
+        realSerialArray u1mLocal; getLocalArrayWithGhostBoundaries(u1m,u1mLocal);
+        realSerialArray u2mLocal; getLocalArrayWithGhostBoundaries(u2m,u2mLocal);
+        if( numberOfPolarizationVectors1>0 || numberOfPolarizationVectors2>0 )
+        {
+            OV_ABORT("--MX-- INTERFACE - finish me for dispersive and parallel");
+        }
     // *wdh* 081122 -- We need to check that the points are not traversed in the reverse order from one side to the other **** TODO ****
         if( dir1!=dir2 )
         {
@@ -805,6 +824,10 @@ assignInterfaceBoundaryConditions( int current, real t, real dt,
         #else
         realSerialArray & u1Local = u1;
         realSerialArray & u2Local = u2;
+        realSerialArray & u1nLocal = u1n;
+        realSerialArray & u2nLocal = u2n;
+        realSerialArray & u1mLocal = u1m;
+        realSerialArray & u2mLocal = u2m;
         #endif
 
         if( debug & 4 )
@@ -826,17 +849,39 @@ assignInterfaceBoundaryConditions( int current, real t, real dt,
         real *p1ptr = u1Local.getDataPointer();  // set default when not used
         real *p2ptr = u2Local.getDataPointer();  // set default when not used
 
+        real *p1nptr = u1Local.getDataPointer();  // set default when not used
+        real *p2nptr = u2Local.getDataPointer();  // set default when not used
+
+        real *p1mptr = u1Local.getDataPointer();  // set default when not used
+        real *p2mptr = u2Local.getDataPointer();  // set default when not used
+
         if( numberOfPolarizationVectors1>0 )
         {
             realMappedGridFunction & p1 = getDispersionModelMappedGridFunction( grid1,next );
             OV_GET_SERIAL_ARRAY(real,p1,p1Local);
             p1ptr=p1Local.getDataPointer();
+
+            realMappedGridFunction & p1n = getDispersionModelMappedGridFunction( grid1,current );
+            OV_GET_SERIAL_ARRAY(real,p1n,p1nLocal);
+            p1nptr=p1nLocal.getDataPointer();
+
+            realMappedGridFunction & p1m = getDispersionModelMappedGridFunction( grid1,prev );
+            OV_GET_SERIAL_ARRAY(real,p1m,p1mLocal);
+            p1mptr=p1mLocal.getDataPointer();
         }
         if( numberOfPolarizationVectors2>0 )
         {
             realMappedGridFunction & p2 = getDispersionModelMappedGridFunction( grid2,next );
             OV_GET_SERIAL_ARRAY(real,p2,p2Local);
             p2ptr=p2Local.getDataPointer();
+
+            realMappedGridFunction & p2n = getDispersionModelMappedGridFunction( grid2,current );
+            OV_GET_SERIAL_ARRAY(real,p2n,p2nLocal);
+            p2nptr=p2nLocal.getDataPointer();
+
+            realMappedGridFunction & p2m = getDispersionModelMappedGridFunction( grid2,prev );
+            OV_GET_SERIAL_ARRAY(real,p2m,p2mLocal);
+            p2mptr=p2mLocal.getDataPointer();
         }
 
 
@@ -862,11 +907,15 @@ assignInterfaceBoundaryConditions( int current, real t, real dt,
         #endif
 
         real *u1p=u1Local.getDataPointer();
+        real *u1np=u1nLocal.getDataPointer();
+        real *u1mp=u1mLocal.getDataPointer();
         real *prsxy1=isRectangular1 ? ptemp : mg1.inverseVertexDerivative().getLocalArray().getDataPointer();
         real *pxy1= centerNeeded ? mg1.center().getLocalArray().getDataPointer() : ptemp; 
         int *mask1p=mask1Local.getDataPointer();
 
         real *u2p=u2Local.getDataPointer();
+        real *u2np=u2nLocal.getDataPointer();
+        real *u2mp=u2mLocal.getDataPointer();
         real *prsxy2=isRectangular2 ? ptemp : mg2.inverseVertexDerivative().getLocalArray().getDataPointer();
         real *pxy2= centerNeeded ? mg2.center().getLocalArray().getDataPointer() : ptemp; 
         int *mask2p=mask2Local.getDataPointer();
@@ -934,7 +983,8 @@ assignInterfaceBoundaryConditions( int current, real t, real dt,
                         dbase.get<int>("useImpedanceInterfaceProjection"),
                         0,   // numberOfInterfaceIterationsUsed : returned value ipar[43]
                         dispersionModel1, // ipar[44]
-                        dispersionModel2  // ipar[45]
+                        dispersionModel2, // ipar[45]
+                        pxc               // ipar[46]
                     };
                 real rpar[]={ //
                     dx1[0],
@@ -1016,14 +1066,22 @@ assignInterfaceBoundaryConditions( int current, real t, real dt,
                                     		        u1Local.getBase(0),u1Local.getBound(0),
                                     		        u1Local.getBase(1),u1Local.getBound(1),
                                     		        u1Local.getBase(2),u1Local.getBound(2),
-                                                                mg1.gridIndexRange(0,0), *u1p, *mask1p,*prsxy1, *pxy1, *p1ptr, bc1Local(0,0), 
+                                                                mg1.gridIndexRange(0,0), 
+                                                                *u1p, *u1np, *u1mp,
+                                                                *mask1p,*prsxy1, *pxy1, 
+                                                                *p1ptr,*p1nptr,*p1mptr,  
+                                                                bc1Local(0,0), 
                                     		        u2bLocal.getBase(0),u2bLocal.getBound(0),
                                     		        u2bLocal.getBase(1),u2bLocal.getBound(1),
                                     		        u2bLocal.getBase(2),u2bLocal.getBound(2),
         		        // note: use grid1 mesh data here ASSUMES GRIDS MATCH *FIX ME*
         		        // mg1.gridIndexRange(0,0), *u2bLocal.getDataPointer(), *mask1p,*prsxy1, *pxy1, bc1Local(0,0),
                                 // fixed version: but note bc1Local 
-                                                                mg1.gridIndexRange(0,0), *u2bLocal.getDataPointer(), *pmask2b,*prsxy2b,*pxy2b, *p2ptr, bc1Local(0,0),
+                                                                mg1.gridIndexRange(0,0), 
+                                                                *u2bLocal.getDataPointer(), *u2np, *u2mp,  
+                                                                *pmask2b,*prsxy2b,*pxy2b, 
+                                                                *p2ptr,*p2nptr,*p2mptr, 
+                                                                bc1Local(0,0),
                                   		      ipar[0], rpar[0], 
                                   		      rwk[pa2],rwk[pa4],rwk[pa8], iwk[pipvt2],iwk[pipvt4],iwk[pipvt8],
                                   		      ierr );
@@ -1071,7 +1129,8 @@ assignInterfaceBoundaryConditions( int current, real t, real dt,
                             dbase.get<int>("useImpedanceInterfaceProjection"),
                             0,   // numberOfInterfaceIterationsUsed : returned value ipar[43]
                             dispersionModel1, // ipar[44]
-                            dispersionModel2  // ipar[45]
+                            dispersionModel2, // ipar[45]
+                            pxc               // ipar[46]
                         };
                     real rpar[]={ //
                         dx1[0],
@@ -1153,14 +1212,22 @@ assignInterfaceBoundaryConditions( int current, real t, real dt,
                                         		        u1Local.getBase(0),u1Local.getBound(0),
                                         		        u1Local.getBase(1),u1Local.getBound(1),
                                         		        u1Local.getBase(2),u1Local.getBound(2),
-                                                                    mg1.gridIndexRange(0,0), *u1p, *mask1p,*prsxy1, *pxy1, *p1ptr, bc1Local(0,0), 
+                                                                    mg1.gridIndexRange(0,0), 
+                                                                    *u1p, *u1np, *u1mp,
+                                                                    *mask1p,*prsxy1, *pxy1, 
+                                                                    *p1ptr,*p1nptr,*p1mptr,  
+                                                                    bc1Local(0,0), 
                                         		        u2bLocal.getBase(0),u2bLocal.getBound(0),
                                         		        u2bLocal.getBase(1),u2bLocal.getBound(1),
                                         		        u2bLocal.getBase(2),u2bLocal.getBound(2),
           		        // note: use grid1 mesh data here ASSUMES GRIDS MATCH *FIX ME*
           		        // mg1.gridIndexRange(0,0), *u2bLocal.getDataPointer(), *mask1p,*prsxy1, *pxy1, bc1Local(0,0),
                                   // fixed version: but note bc1Local 
-                                                                    mg1.gridIndexRange(0,0), *u2bLocal.getDataPointer(), *pmask2b,*prsxy2b,*pxy2b, *p2ptr, bc1Local(0,0),
+                                                                    mg1.gridIndexRange(0,0), 
+                                                                    *u2bLocal.getDataPointer(), *u2np, *u2mp,  
+                                                                    *pmask2b,*prsxy2b,*pxy2b, 
+                                                                    *p2ptr,*p2nptr,*p2mptr, 
+                                                                    bc1Local(0,0),
                                       		      ipar[0], rpar[0], 
                                       		      rwk[pa2],rwk[pa4],rwk[pa8], iwk[pipvt2],iwk[pipvt4],iwk[pipvt8],
                                       		      ierr );
@@ -1213,7 +1280,8 @@ assignInterfaceBoundaryConditions( int current, real t, real dt,
                         dbase.get<int>("useImpedanceInterfaceProjection"),
                         0,   // numberOfInterfaceIterationsUsed : returned value ipar[43]
                         dispersionModel1, // ipar[44]
-                        dispersionModel2  // ipar[45]
+                        dispersionModel2, // ipar[45]
+                        pxc               // ipar[46]
                     };
                 real rpar[]={ //
                     dx1[0],
@@ -1298,11 +1366,19 @@ assignInterfaceBoundaryConditions( int current, real t, real dt,
         		        // note: use grid2 mesh data here  ASSUMES GRIDS MATCH *FIX ME*
                                 // mg2.gridIndexRange(0,0), *u1bLocal.getDataPointer(), *mask2p,*prsxy2, *pxy2, bc2Local(0,0),
                                 // fixed version: but note bc2Local 
-                                                                mg2.gridIndexRange(0,0), *u1bLocal.getDataPointer(), *pmask1b,*prsxy1b,*pxy1b, *p1ptr, bc2Local(0,0),
+                                                                mg2.gridIndexRange(0,0), 
+                                                                *u1bLocal.getDataPointer(), *u1np,*u1mp,  
+                                                                *pmask1b,*prsxy1b,*pxy1b, 
+                                                                *p1ptr,*p1nptr,*p1mptr,   
+                                                                bc2Local(0,0),
                                     		        u2Local.getBase(0),u2Local.getBound(0),
                                     		        u2Local.getBase(1),u2Local.getBound(1),
                                     		        u2Local.getBase(2),u2Local.getBound(2),
-                                                                  mg2.gridIndexRange(0,0), *u2p, *mask2p,*prsxy2, *pxy2, *p2ptr, bc2Local(0,0), 
+                                                                mg2.gridIndexRange(0,0), 
+                                                                *u2p, *u2np, *u2mp, 
+                                                                *mask2p,*prsxy2, *pxy2, 
+                                                                *p2ptr,*p2nptr,*p2mptr, 
+                                                                bc2Local(0,0), 
                                   		      ipar[0], rpar[0], 
                                   		      rwk[pa2],rwk[pa4],rwk[pa8], iwk[pipvt2],iwk[pipvt4],iwk[pipvt8],
                                   		      ierr );
@@ -1350,7 +1426,8 @@ assignInterfaceBoundaryConditions( int current, real t, real dt,
                             dbase.get<int>("useImpedanceInterfaceProjection"),
                             0,   // numberOfInterfaceIterationsUsed : returned value ipar[43]
                             dispersionModel1, // ipar[44]
-                            dispersionModel2  // ipar[45]
+                            dispersionModel2, // ipar[45]
+                            pxc               // ipar[46]
                         };
                     real rpar[]={ //
                         dx1[0],
@@ -1435,11 +1512,19 @@ assignInterfaceBoundaryConditions( int current, real t, real dt,
           		        // note: use grid2 mesh data here  ASSUMES GRIDS MATCH *FIX ME*
                                   // mg2.gridIndexRange(0,0), *u1bLocal.getDataPointer(), *mask2p,*prsxy2, *pxy2, bc2Local(0,0),
                                   // fixed version: but note bc2Local 
-                                                                    mg2.gridIndexRange(0,0), *u1bLocal.getDataPointer(), *pmask1b,*prsxy1b,*pxy1b, *p1ptr, bc2Local(0,0),
+                                                                    mg2.gridIndexRange(0,0), 
+                                                                    *u1bLocal.getDataPointer(), *u1np,*u1mp,  
+                                                                    *pmask1b,*prsxy1b,*pxy1b, 
+                                                                    *p1ptr,*p1nptr,*p1mptr,   
+                                                                    bc2Local(0,0),
                                         		        u2Local.getBase(0),u2Local.getBound(0),
                                         		        u2Local.getBase(1),u2Local.getBound(1),
                                         		        u2Local.getBase(2),u2Local.getBound(2),
-                                                                      mg2.gridIndexRange(0,0), *u2p, *mask2p,*prsxy2, *pxy2, *p2ptr, bc2Local(0,0), 
+                                                                    mg2.gridIndexRange(0,0), 
+                                                                    *u2p, *u2np, *u2mp, 
+                                                                    *mask2p,*prsxy2, *pxy2, 
+                                                                    *p2ptr,*p2nptr,*p2mptr, 
+                                                                    bc2Local(0,0), 
                                       		      ipar[0], rpar[0], 
                                       		      rwk[pa2],rwk[pa4],rwk[pa8], iwk[pipvt2],iwk[pipvt4],iwk[pipvt8],
                                       		      ierr );
@@ -1491,7 +1576,8 @@ assignInterfaceBoundaryConditions( int current, real t, real dt,
                         dbase.get<int>("useImpedanceInterfaceProjection"),
                         0,   // numberOfInterfaceIterationsUsed : returned value ipar[43]
                         dispersionModel1, // ipar[44]
-                        dispersionModel2  // ipar[45]
+                        dispersionModel2, // ipar[45]
+                        pxc               // ipar[46]
                     };
                 real rpar[]={ //
                     dx1[0],
@@ -1570,11 +1656,19 @@ assignInterfaceBoundaryConditions( int current, real t, real dt,
                                     		        u1Local.getBase(0),u1Local.getBound(0),
                                     		        u1Local.getBase(1),u1Local.getBound(1),
                                     		        u1Local.getBase(2),u1Local.getBound(2),
-                                                                mg1.gridIndexRange(0,0), *u1p, *mask1p,*prsxy1, *pxy1, *p1ptr, bc1Local(0,0), 
+                                                                mg1.gridIndexRange(0,0), 
+                                                                *u1p, *u1np, *u1mp,
+                                                                *mask1p,*prsxy1, *pxy1, 
+                                                                *p1ptr,*p1nptr,*p1mptr,  
+                                                                bc1Local(0,0), 
                                     		        u2Local.getBase(0),u2Local.getBound(0),
                                     		        u2Local.getBase(1),u2Local.getBound(1),
                                     		        u2Local.getBase(2),u2Local.getBound(2),
-                                                                  mg2.gridIndexRange(0,0), *u2p, *mask2p,*prsxy2, *pxy2, *p2ptr, bc2Local(0,0), 
+                                                                mg2.gridIndexRange(0,0), 
+                                                                *u2p, *u2np, *u2mp, 
+                                                                *mask2p,*prsxy2, *pxy2, 
+                                                                *p2ptr,*p2nptr,*p2mptr, 
+                                                                bc2Local(0,0), 
                                   		      ipar[0], rpar[0], 
                                   		      rwk[pa2],rwk[pa4],rwk[pa8], iwk[pipvt2],iwk[pipvt4],iwk[pipvt8],
                                   		      ierr );
@@ -1623,7 +1717,8 @@ assignInterfaceBoundaryConditions( int current, real t, real dt,
                             dbase.get<int>("useImpedanceInterfaceProjection"),
                             0,   // numberOfInterfaceIterationsUsed : returned value ipar[43]
                             dispersionModel1, // ipar[44]
-                            dispersionModel2  // ipar[45]
+                            dispersionModel2, // ipar[45]
+                            pxc               // ipar[46]
                         };
                     real rpar[]={ //
                         dx1[0],
@@ -1702,11 +1797,19 @@ assignInterfaceBoundaryConditions( int current, real t, real dt,
                                         		        u1Local.getBase(0),u1Local.getBound(0),
                                         		        u1Local.getBase(1),u1Local.getBound(1),
                                         		        u1Local.getBase(2),u1Local.getBound(2),
-                                                                    mg1.gridIndexRange(0,0), *u1p, *mask1p,*prsxy1, *pxy1, *p1ptr, bc1Local(0,0), 
+                                                                    mg1.gridIndexRange(0,0), 
+                                                                    *u1p, *u1np, *u1mp,
+                                                                    *mask1p,*prsxy1, *pxy1, 
+                                                                    *p1ptr,*p1nptr,*p1mptr,  
+                                                                    bc1Local(0,0), 
                                         		        u2Local.getBase(0),u2Local.getBound(0),
                                         		        u2Local.getBase(1),u2Local.getBound(1),
                                         		        u2Local.getBase(2),u2Local.getBound(2),
-                                                                      mg2.gridIndexRange(0,0), *u2p, *mask2p,*prsxy2, *pxy2, *p2ptr, bc2Local(0,0), 
+                                                                    mg2.gridIndexRange(0,0), 
+                                                                    *u2p, *u2np, *u2mp, 
+                                                                    *mask2p,*prsxy2, *pxy2, 
+                                                                    *p2ptr,*p2nptr,*p2mptr, 
+                                                                    bc2Local(0,0), 
                                       		      ipar[0], rpar[0], 
                                       		      rwk[pa2],rwk[pa4],rwk[pa8], iwk[pipvt2],iwk[pipvt4],iwk[pipvt8],
                                       		      ierr );
@@ -1767,7 +1870,8 @@ assignInterfaceBoundaryConditions( int current, real t, real dt,
                     dbase.get<int>("useImpedanceInterfaceProjection"),
                     0,   // numberOfInterfaceIterationsUsed : returned value ipar[43]
                     dispersionModel1, // ipar[44]
-                    dispersionModel2  // ipar[45]
+                    dispersionModel2, // ipar[45]
+                    pxc               // ipar[46]
                 };
             real rpar[]={ //
                 dx1[0],

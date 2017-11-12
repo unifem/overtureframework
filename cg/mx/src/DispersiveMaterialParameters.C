@@ -7,6 +7,7 @@
 #define evalDispersionRelation EXTERN_C_NAME(evaldispersionrelation)
 #define evalGeneralizedDispersionRelation EXTERN_C_NAME(evalgeneralizeddispersionrelation)
 #define evalEigGDM EXTERN_C_NAME(evaleiggdm)
+#define evalInverseGDM EXTERN_C_NAME(evalinversegdm)
 
 
 extern "C"
@@ -22,6 +23,14 @@ extern "C"
   void evalEigGDM( const int & mode, const int & Np, const real& c, const real& k, const real& a0, const real& a1, 
                    const real& b0, const real& b1,const real& alphaP, 
                    real& reS, real& imS, real & srm, real & sim, real & psir, real & psi  );
+
+
+  // Evaluate the "INVERSE" dispersion relation (compute k=*(kr,ki) given s=(sr,si) 
+  // for the generalized dispersion model (GDM) With multiple polarization vectors 
+  void evalInverseGDM( const real&c, const real&sr,const real&si, const int&Np,
+                       const real&a0,const real&a1,const real&b0,const real&b1,const real&alphaP, 
+                       real&kr,real&ki,real&psir,real&psii );
+
 }
 
 
@@ -220,6 +229,53 @@ evaluateDispersionRelation( const real c, const real k, real & sr, real & si, re
   return 0;
 }
 
+// ==========================================================================================
+/// \brief Evaluate the "inverse" dispersion relation and 
+///       return the complex wave number k=(kr,ki) given s=(sr,si). Also return psi(j) 
+///
+/// \param kr,li (output) :
+/// \para, psir[k], psi[k] (output) : 
+// ==========================================================================================
+int DispersiveMaterialParameters::
+evaluateComplexWaveNumber( const real c, const real & sr, const real & si, 
+                           real & kr, real &ki, real psir[], real psii[]  )
+{
+
+  if( psir0.getLength(0)!=numberOfPolarizationVectors )
+  {
+    psir0.redim(numberOfPolarizationVectors); psir0=0.;
+    psii0.redim(numberOfPolarizationVectors); psii0=0.;
+  }
+
+  const int Np=numberOfPolarizationVectors;
+  RealArray a0v(Np), a1v(Np), b0v(Np), b1v(Np);
+  for( int j=0; j<Np; j++ )
+  {
+    a0v(j)=modelParameters(0,j); 
+    a1v(j)=modelParameters(1,j);
+    b0v(j)=modelParameters(2,j);
+    b1v(j)=modelParameters(3,j);
+  }
+
+  evalInverseGDM( c, sr,si, numberOfPolarizationVectors,a0v(0),a1v(0),b0v(0),b1v(0),alphaP, 
+                  kr,ki,psir0(0),psii0(0) );
+
+  printF("--DMP-- evaluateComplexWaveNumber: s=(%9.3e,%9.3e) --> k=(%9.3e,%9.3e)\n",sr,si,kr,ki);
+
+  for( int j=0; j<numberOfPolarizationVectors; j++ )
+  {
+    psir[j]=psir0(j);
+    psii[j]=psii0(j);
+        
+    if( true )
+      printF("evaluateComplexWaveNumber:  j=%d a0=%9.3e a1=%9.3e b0=%9.3e b1=%9.3e psir=%20.12e psii=%20.12e\n",
+             j,a0v(j),a1v(j), b0v(j), b1v(j), psir0(j),psii0(j));
+  }
+
+  return 0;
+}
+
+
 
 // ==========================================================================================
 /// \brief Compute the real and imaginary parts of the disperion relation parameter "s"
@@ -328,6 +384,23 @@ setParameters( const int eqn, const real a0, const real a1, const real b0, const
   modelParameters(2,eqn)=b0;
   modelParameters(3,eqn)=b1;
 
+  return 0;
+}
+
+// ==========================================================================================
+/// \brief Set the parameter alphapP in the GDM model 
+///
+/// Generalized Dispersion Model:
+///       E_tt - c^2 Delta(E) = -alphaP P_tt
+///       Pi_tt + b1i Pi_1 + b0i = a0i*E + a1i*E_t    i=0,1,2,...,numPolarVectors-1
+// ==========================================================================================
+/// \brief Specify the number of polarization vectors (number of GDM equation)
+// ==========================================================================================
+int DispersiveMaterialParameters::
+setParameter( const real alphaP_ )
+{
+  alphaP = alphaP_;
+  
   return 0;
 }
 

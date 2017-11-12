@@ -179,6 +179,9 @@ Maxwell:: Maxwell()
   // dispersionModelGridFunction[domain][numTimeLevels] : 
   parameters.dbase.put<realCompositeGridFunction**>("dispersionModelGridFunction")=NULL;
 
+  // dispersionModelErrorGridFunction[domain]: (holds errors)
+  parameters.dbase.put<realCompositeGridFunction*>("dispersionModelErrorGridFunction")=NULL;
+
   // component numbers for P, Q,R (P=polarization vector, Q=P'', etc.)
   // default = -1 : not used
   pxc=pyc=pzc=qxc=qyc=qzc=rxc=ryc=rzc=-1; 
@@ -426,7 +429,10 @@ Maxwell:: Maxwell()
   // Dispersive material parameters (may vary from grid to grid)
   dbase.put<std::vector<DispersiveMaterialParameters> >("dispersiveMaterialParameters");
 
-
+  // For dispersive models keep track of the maximum errors in the polarization vector per domain  
+  dbase.put<RealArray>("polarizationNorm");
+  dbase.put<RealArray>("maxErrPolarization");
+  
   // Time history of the forcing is stored here (when needed)
   //    forcingArray[numberOfForcingFunctions] 
   //    forcingArray[fCurrent]  : current forcing
@@ -537,6 +543,10 @@ Maxwell::
     delete [] dmgf;   // domains 
   }
   
+  // Delete the grid function that holds the error in the polarization vector
+  realCompositeGridFunction *& cgfErrArray = 
+    parameters.dbase.get<realCompositeGridFunction*>("dispersionModelErrorGridFunction");
+  delete [] cgfErrArray;
 
   delete [] fn;  
 
@@ -1957,6 +1967,10 @@ buildDispersionParametersDialog(DialogData & dialog )
   textCommands[nt] = "GDM coeff:";  
   textLabels[nt]=textCommands[nt]; sPrintF(textStrings[nt], "%i %g %g %g %g (eqn, a0,a1,b0,b1)",eqn,a0,a1,b0,b1); nt++; 
 
+  real alphaP=1.;
+  textCommands[nt] = "GDM alphaP:";  
+  textLabels[nt]=textCommands[nt]; sPrintF(textStrings[nt], "%g",alphaP); nt++; 
+
   int modeGDM=-1;
   textCommands[nt] = "GDM mode:";  
   textLabels[nt]=textCommands[nt]; sPrintF(textStrings[nt], "%i (-1=use default)",modeGDM); nt++; 
@@ -2109,6 +2123,7 @@ interactiveUpdate(GL_GraphicsInterface &gi )
   real epsPW=0.,muPW=0.;
   int & boundingBoxDecaySide = dbase.get<int>("boundingBoxDecaySide");
   int & boundingBoxDecayAxis = dbase.get<int>("boundingBoxDecayAxis");
+  real alphaP=1.; // default GDM model parameter
   
   gi.pushGUI(gui);
   aString answer,line;
@@ -3083,6 +3098,11 @@ interactiveUpdate(GL_GraphicsInterface &gi )
       setDispersionParameters( gdmDomainName, numberOfPolarizationVectors, eqn, a0,a1,b0,b1,modeGDM  );
 
     }
+    else if( dispersionParametersDialog.getTextValue(answer,"GDM alphaP:","%g",alphaP) )
+    {
+      setDispersionParameters( "all",alphaP );
+    }
+    
 
     // ** old way ***
     else if( answer.matches("GDM params") ||
@@ -3714,7 +3734,7 @@ Maxwell::getCGField(Maxwell::FieldEnum f, int tn)
 /// \brief Assign parameters in the dispersion models.
 //====================================================================================
 int Maxwell::
-setDispersionParameters( aString & domainName, int numberOfPolarizationVectors, int eqn, 
+setDispersionParameters( const aString & domainName, int numberOfPolarizationVectors, int eqn, 
                          real a0, real a1, real b0, real b1, int modeGDM )
 {
   printF("--MX-- setDispersionParameters: domainName=[%s] numberOfPolarizationVectors=%i eqn=%i \n",
@@ -3770,6 +3790,65 @@ setDispersionParameters( aString & domainName, int numberOfPolarizationVectors, 
 
       dmp.setParameters( eqn,a0,a1,b0,b1 );
       dmp.setMode( modeGDM );
+          
+    }
+  }
+
+  return 0;
+}
+
+//====================================================================================
+/// \brief Assign parameters in the dispersion models.
+//====================================================================================
+int Maxwell::
+setDispersionParameters( const aString & domainName, real alphaP )
+{
+  assert( cgp!=NULL );
+  CompositeGrid & cg= *cgp;
+  const int numberOfComponentGrids = cg.numberOfComponentGrids();
+
+  int domainStart=-1, domainEnd=-1;
+  if( domainName == "all" )
+  {
+    domainStart=0; domainEnd=cg.numberOfDomains()-1;
+  }
+  else
+  {
+    for( int domain=0; domain<cg.numberOfDomains(); domain++ )
+    {
+      if( cg.getDomainName(domain)==domainName )
+      {
+        // printF("--MX:SDP-- setting GDM parameters for domain number=%i name=[%s].\n",domain,(const char*)domainName);
+        domainStart=domainEnd=domain;
+        break;
+      }
+    }
+  }
+      
+  if( domainStart<0  )
+  {
+    printF("--MX:SDP-- WARNING: There is no domain with name =[%s].\n",(const char*)domainName);
+    return 1;
+  }
+  else
+  {
+    // --- Set parameters for the dispersion model ---
+    std::vector<DispersiveMaterialParameters> & dmpVector = 
+      dbase.get<std::vector<DispersiveMaterialParameters> >("dispersiveMaterialParameters");
+
+    // --- allocate the dispersion material parameters vector ---
+    if( dmpVector.size()<cg.numberOfDomains() )
+    {
+      dmpVector.resize(cg.numberOfDomains());
+    }
+
+    for( int domain=domainStart; domain<=domainEnd; domain++ )
+    {
+      DispersiveMaterialParameters & dmp = dmpVector[domain];
+
+      printF(" Setting GDM parameter alphaP=%g for domain=[%s]\n",alphaP,(const char*)cg.getDomainName(domain));
+
+      dmp.setParameter( alphaP );
           
     }
   }
@@ -3957,19 +4036,17 @@ setupSelectiveDissipation( CompositeGrid & cg, GL_GraphicsInterface &gi )
 ///        no dispersion model data. 
 ///
 /// \param grid (input) : return rMGF for this grid
-/// \param (input) timeLevel : return rMGF for this time level (0,1,,..,numberOfTimeLevels-1)
+/// \param timeLevel (input)l : return rMGF for this time level (0,1,,..,numberOfTimeLevels-1)
+/// \param getErrorGridFunction (input} :  if true return the grid function that holds the error in P (in which
+///   case timeLevel has no meaning.
 // =======================================================================================
 realMappedGridFunction & 
-Maxwell::getDispersionModelMappedGridFunction( const int grid, const int timeLevel )
+Maxwell::getDispersionModelMappedGridFunction( const int grid, const int timeLevel, 
+                                               const bool getErrorGridFunction /* =false */ )
 {
   
   if( dispersionModel == noDispersion )
     return Overture::nullRealMappedGridFunction();
-
-  // dispersionModelGridFunction[domain][numTimeLevels] : 
-  realCompositeGridFunction **& dmgf = 
-    parameters.dbase.get<realCompositeGridFunction**>("dispersionModelGridFunction");
-
 
   assert( cgp!=NULL );
   CompositeGrid & cg = *cgp;
@@ -3990,7 +4067,47 @@ Maxwell::getDispersionModelMappedGridFunction( const int grid, const int timeLev
     const int gridDomain=domainGridNumber(grid); // cg[grid] -> cg.domain[d][gridDomain] 
     // printF("IC: domain=%i grid=%i --> gridDomain=%i\n",domain,grid,gridDomain);
 
-    return dmgf[domain][timeLevel][gridDomain];
+    if( !getErrorGridFunction )
+    {
+      // dispersionModelGridFunction[domain][numTimeLevels] : 
+      realCompositeGridFunction **& dmgf = 
+        parameters.dbase.get<realCompositeGridFunction**>("dispersionModelGridFunction");
+      
+      return dmgf[domain][timeLevel][gridDomain];
+    }
+    else
+    {
+      // -- return the grid function for the Polarization error ---
+      realCompositeGridFunction & cgfErr = 
+        *getDispersionModelCompositeGridFunction(domain,timeLevel,getErrorGridFunction);
+      
+
+      // realCompositeGridFunction *& cgfErrArray = 
+      //   parameters.dbase.get<realCompositeGridFunction*>("dispersionModelErrorGridFunction");
+      // if( cgfErrArray==NULL )
+      // {
+      //   cgfErrArray = new realCompositeGridFunction[cg.numberOfDomains()];
+      //   // for( int d=0; d<cg.numberOfDomains(); d++ )
+      //   // {
+      //   // }
+        
+      // }
+      // realCompositeGridFunction & cgfErr = cgfErrArray[gridDomain];
+      // printF(" cgfErr.numberOfComponentGrids=%i, cgfErr.getComponentDimension(0)=%i\n",cgfErr.numberOfComponentGrids(),cgfErr.getComponentDimension(0));
+      
+      // if( cgfErr.numberOfComponentGrids()==0 )
+      // {
+      //   printF(" dimension: cgfErr domain=%i... \n",gridDomain);
+      //   CompositeGrid & cgd = cg.domain[domain]; // Here is the CompositeGrid for just this domain
+      //   Range all;
+      //   cgfErr.updateToMatchGrid( cgd,all,all,all,numberOfPolarizationVectors*cg.numberOfDimensions());
+      //   cgfErr=0.;
+      // }
+      
+      
+      return cgfErr[gridDomain];
+    }
+    
   }
 
   return Overture::nullRealMappedGridFunction();
@@ -4004,17 +4121,16 @@ Maxwell::getDispersionModelMappedGridFunction( const int grid, const int timeLev
 ///
 /// \param domain (input) : return rCGF for this domain.
 /// \param (input) timeLevel : return rCGF for this time level (0,1,,..,numberOfTimeLevels-1)
+/// \param getErrorGridFunction (input} :  if true return the grid function that holds the error in P (in which
+///   case timeLevel has no meaning.
 // =======================================================================================
 realCompositeGridFunction* 
-Maxwell::getDispersionModelCompositeGridFunction( const int domain, const int timeLevel )
+Maxwell::getDispersionModelCompositeGridFunction( const int domain, const int timeLevel, 
+                                                  const bool getErrorGridFunction /* =false */ )
 {
   
   if( dispersionModel == noDispersion )
     return NULL;
-
-  // dispersionModelGridFunction[domain][numTimeLevels] : 
-  realCompositeGridFunction **& dmgf = 
-    parameters.dbase.get<realCompositeGridFunction**>("dispersionModelGridFunction");
 
   assert( cgp!=NULL );
   CompositeGrid & cg = *cgp;
@@ -4028,7 +4144,49 @@ Maxwell::getDispersionModelCompositeGridFunction( const int domain, const int ti
     assert( domain>=0 && domain<cg.numberOfDomains() );
     assert( timeLevel>=0 && timeLevel<numberOfTimeLevels );
 
-    return &(dmgf[domain][timeLevel]);
+    if( !getErrorGridFunction )
+    {
+      // dispersionModelGridFunction[domain][numTimeLevels] : 
+      realCompositeGridFunction **& dmgf = 
+        parameters.dbase.get<realCompositeGridFunction**>("dispersionModelGridFunction");
+
+      return &(dmgf[domain][timeLevel]);
+    }
+    else
+    {
+      // -- return the grid function for tehe Polarization error ---
+      realCompositeGridFunction *& cgfErrArray = 
+        parameters.dbase.get<realCompositeGridFunction*>("dispersionModelErrorGridFunction");
+      if( cgfErrArray==NULL )
+      {
+        cgfErrArray = new realCompositeGridFunction[cg.numberOfDomains()];
+      }
+      realCompositeGridFunction & cgfErr = cgfErrArray[domain];
+      if( cgfErr.numberOfComponentGrids()==0 )
+      {
+        const int numberOfDimensions = cg.numberOfDimensions();
+        
+        CompositeGrid & cgd = cg.domain[domain]; // Here is the CompositeGrid for just this domain
+        Range all;
+        cgfErr.updateToMatchGrid( cgd,all,all,all,numberOfPolarizationVectors*numberOfDimensions);
+        cgfErr=0.;
+        for( int iv=0; iv<numberOfPolarizationVectors; iv++ )
+        {
+          int pc = iv*numberOfDimensions;
+          cgfErr.setName(sPrintF("Px%ierr",iv),pc);   pc++;
+          cgfErr.setName(sPrintF("Py%ierr",iv),pc);   pc++;
+          if( numberOfDimensions==3 )
+          {
+            cgfErr.setName(sPrintF("Pz%ierr",iv),pc);  pc++;
+          }
+        }
+
+      }
+      
+      
+      return &cgfErr;
+    }
+    
   }
 
   return NULL;

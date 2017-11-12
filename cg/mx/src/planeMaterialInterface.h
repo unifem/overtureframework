@@ -82,11 +82,15 @@ c Transmitted:
 // ------------ macro for the plane material interface -------------------------
 // OPTION: initialCondition, error, boundaryCondition
 // -----------------------------------------------------------------------------
-  int i1,i2,i3;
+int i1,i2,i3;
 
-  real tm=t-dt,x,y,z;
-  const real pmct=pmc[18]*twoPi; // for time derivative of exact solution
- 
+real tm=t-dt,x,y,z;
+const real pmct=pmc[18]*twoPi; // for time derivative of exact solution
+
+  // NOTE: dispersion version is a user defined known solution
+  assert( dispersionModel == noDispersion );
+
+  // ========= NON-DISPERSIVE PLANE MATERIAL INTERFACE ============
   if( numberOfDimensions==2 )
   {
    z=0.;
@@ -302,5 +306,6 @@ c Transmitted:
 
 
   }
+
 
 #endMacro

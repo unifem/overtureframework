@@ -240,25 +240,60 @@ smoothInterface( RealArray & x0, CompositeGrid & cg,
         }
         else if( boundaryCondition(side,axis)==periodicBoundaryCondition )
         {
-          // Periodic: FIX ME for derivative periodic **
+          // --- Periodic: ---
           const int ia=gid(0,axis), ib=gid(1,axis);
           if( axis==0 )
           {
-            x1(ia-1,Jb2,Rx) = x1(ib-1,Jb2,Rx);
-            x1(ia-2,Jb2,Rx) = x1(ib-2,Jb2,Rx);
+            if( cg[gridToMove].isPeriodic(axis)==Mapping::functionPeriodic )
+            {
+              x1(ia-1,Jb2,Rx) = x1(ib-1,Jb2,Rx);
+              x1(ia-2,Jb2,Rx) = x1(ib-2,Jb2,Rx);
 		    
-            x1(ib  ,Jb2,Rx) = x1(ia  ,Jb2,Rx);
-            x1(ib+1,Jb2,Rx) = x1(ia+1,Jb2,Rx);
-            x1(ib+2,Jb2,Rx) = x1(ia+2,Jb2,Rx);
+              x1(ib  ,Jb2,Rx) = x1(ia  ,Jb2,Rx);
+              x1(ib+1,Jb2,Rx) = x1(ia+1,Jb2,Rx);
+              x1(ib+2,Jb2,Rx) = x1(ia+2,Jb2,Rx);
+            }
+            else if( cg[gridToMove].isPeriodic(axis)==Mapping::derivativePeriodic )
+            {
+              x1(ia-1,Jb2,Rx) = x1(ib-1,Jb2,Rx) - ( x1(ib,Jb2,Rx)-x1(ia,Jb2,Rx) );
+              x1(ia-2,Jb2,Rx) = x1(ib-2,Jb2,Rx) - ( x1(ib,Jb2,Rx)-x1(ia,Jb2,Rx) );
+		    
+              // x1(ib  ,Jb2,Rx) = x1(ia  ,Jb2,Rx) + ( x1(ib,Jb2,Rx)-x1(ia,Jb2,Rx) );
+              x1(ib+1,Jb2,Rx) = x1(ia+1,Jb2,Rx) + ( x1(ib,Jb2,Rx)-x1(ia,Jb2,Rx) );
+              x1(ib+2,Jb2,Rx) = x1(ia+2,Jb2,Rx) + ( x1(ib,Jb2,Rx)-x1(ia,Jb2,Rx) );
+            }
+            else
+            {
+              OV_ABORT(" ERROR");
+            }
+            
           }
           else if( axis==1 )
           {
-            x1(Jb1,ia-1,Rx) = x1(Jb1,ib-1,Rx);
-            x1(Jb1,ia-2,Rx) = x1(Jb1,ib-2,Rx);
+            if( cg[gridToMove].isPeriodic(axis)==Mapping::functionPeriodic )
+            {
+              x1(Jb1,ia-1,Rx) = x1(Jb1,ib-1,Rx);
+              x1(Jb1,ia-2,Rx) = x1(Jb1,ib-2,Rx);
 
-            x1(Jb1,ib  ,Rx) = x1(Jb1,ia  ,Rx);
-            x1(Jb1,ib+1,Rx) = x1(Jb1,ia+1,Rx);
-            x1(Jb1,ib+2,Rx) = x1(Jb1,ia+2,Rx);
+              x1(Jb1,ib  ,Rx) = x1(Jb1,ia  ,Rx);
+              x1(Jb1,ib+1,Rx) = x1(Jb1,ia+1,Rx);
+              x1(Jb1,ib+2,Rx) = x1(Jb1,ia+2,Rx);
+            }
+            else if( cg[gridToMove].isPeriodic(axis)==Mapping::derivativePeriodic )
+            {
+              x1(Jb1,ia-1,Rx) = x1(Jb1,ib-1,Rx) - (x1(Jb1,ib,Rx)-x1(Jb1,ia,Rx));
+              x1(Jb1,ia-2,Rx) = x1(Jb1,ib-2,Rx) - (x1(Jb1,ib,Rx)-x1(Jb1,ia,Rx));
+
+              // x1(Jb1,ib  ,Rx) = x1(Jb1,ia  ,Rx) + (x1(Jb1,ib,Rx)-x1(Jb1,ia,Rx));
+              x1(Jb1,ib+1,Rx) = x1(Jb1,ia+1,Rx) + (x1(Jb1,ib,Rx)-x1(Jb1,ia,Rx));
+              x1(Jb1,ib+2,Rx) = x1(Jb1,ia+2,Rx) + (x1(Jb1,ib,Rx)-x1(Jb1,ia,Rx));
+            }
+            else
+            {
+              OV_ABORT(" ERROR");
+            }
+              
+            
           }
           else
           {

@@ -986,8 +986,9 @@ plotPolarization( int current, real t, real dt )
 
     aString pushButtonCommands[] = {"plot",
                                                                     "erase",
+                                                                    "contour",
                                                                     ""};
-    int numberOfPushButtons=2;  // number of entries in pushButtonCommands
+    int numberOfPushButtons=3;  // number of entries in pushButtonCommands
     int numRows=numberOfPushButtons; // (numberOfPushButtons+1)/2;
     dialog.setPushButtons( pushButtonCommands, pushButtonCommands, numRows ); 
 
@@ -1079,6 +1080,10 @@ plotPolarization( int current, real t, real dt )
         {
             plotObject=true;
         }
+        else if( answer=="contour" )
+        {
+            plotObject=true;
+        }
         else 
         {
             gi.outputString( sPrintF(buff,"Unknown response=%s",(const char*)answer) );
@@ -1113,14 +1118,19 @@ plotPolarization( int current, real t, real dt )
                 {
                     DispersiveMaterialParameters & dmp = dmpVector[domain];
                     printF("  domain=%i: name=[%s] numberOfPolarizationVectors=%i.\n",
-                      domain,(const char*)cg.getDomainName(domain),dmp.numberOfPolarizationVectors);
+                                  domain,(const char*)cg.getDomainName(domain),dmp.numberOfPolarizationVectors);
                 }
                 continue;
             }
             else
             {
                 gi.erase();
-                psp.set(GI_PLOT_THE_OBJECT_AND_EXIT,true);
+                if( answer!="contour" )
+                {
+                    psp.set(GI_PLOT_THE_OBJECT_AND_EXIT,true);
+                }
+                real pMin=REAL_MAX, pMax=-pMin;
+                
                 for( int domain=domainStart; domain<=domainEnd; domain++ )
                 {
 
@@ -1135,10 +1145,36 @@ plotPolarization( int current, real t, real dt )
                             realCompositeGridFunction & pv = *getDispersionModelCompositeGridFunction( domain,current );
                             if( !plotErrors )
                             {
+                                real uMin,uMax;
+                                PlotIt::getBounds(pv,uMin,uMax,psp,Range(component,component));
+                                
+                                pMin=min(pMin,uMin);
+                                pMax=max(pMax,uMax);
+
+                                printF("--MX--plot: domain=%i: (uMin,uMax=(%g,%g) (pMin,pMax=(%g,%g)\n",domain,uMin,uMax,pMin,pMax);
+                                
+                                psp.setMinAndMaxContourLevels( pMin,pMax,component);
                                 PlotIt::contour(gi,pv,psp);
                             }
                             else
                             {
+                // --- Plot the errors in P ----
+                                bool getErrorGridFunction=true;
+                                realCompositeGridFunction & pvErr = 
+                                            *getDispersionModelCompositeGridFunction( domain,current,getErrorGridFunction );
+
+                                real uMin,uMax;
+                                PlotIt::getBounds(pvErr,uMin,uMax,psp,Range(component,component));
+                                
+                                pMin=min(pMin,uMin);
+                                pMax=max(pMax,uMax);
+
+                                printF("--MX--plot: domain=%i: Error: (uMin,uMax=(%g,%g) (pMin,pMax=(%g,%g)\n",domain,uMin,uMax,pMin,pMax);
+                                
+                                psp.setMinAndMaxContourLevels( pMin,pMax,component);
+
+                                PlotIt::contour(gi,pvErr,psp);
+
                                 /* -- we could eval on demand 
                                 CompositeGrid & cgd = cg.domain(domain);
                                 Range Npv=dmp.numberOfPolarizationVectors;
@@ -1146,7 +1182,7 @@ plotPolarization( int current, real t, real dt )
                                 
                                 getPolarizationError( domain, current, pvErr );
                                 */ 
-                                printF("plotPolarization: FINISH ME -- plot errors\n");
+                // printF("plotPolarization: FINISH ME -- plot errors\n");
 
                             }
                             

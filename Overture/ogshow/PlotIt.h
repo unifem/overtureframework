@@ -133,6 +133,16 @@ buildColourDialog(DialogData & dialog);
 static bool
 getColour( const aString & answer_, DialogData & dialog, aString & colour );
 
+static void
+getBounds(const realGridCollectionFunction & u,
+          real & uMin, 
+          real & uMax,
+          GraphicsParameters & parameters,   
+          const Range & R0=nullRange,      // check these entries of component 0
+          const Range & R1=nullRange,      // check these entries of component 1
+          const Range & R2=nullRange,
+          const Range & R3=nullRange,
+          const Range & R4=nullRange);
 
 static void
 getGridBounds(const GridCollection & gc, GraphicsParameters & params, RealArray & xBound);
@@ -238,17 +248,6 @@ plotShadedFace(GenericGraphicsInterface &gi,
 
 static void
 contourCuts(GenericGraphicsInterface &gi, const realGridCollectionFunction & uGCF, GraphicsParameters & parameters);
-
-static void
-getBounds(const realGridCollectionFunction & u,
-          real & uMin, 
-          real & uMax,
-          GraphicsParameters & parameters,   
-          const Range & R0=nullRange,      // check these entries of component 0
-          const Range & R1=nullRange,      // check these entries of component 1
-          const Range & R2=nullRange,
-          const Range & R3=nullRange,
-          const Range & R4=nullRange);
 
 static void
 getPlotBounds(const GridCollection & gc, GraphicsParameters & params, RealArray & xBound);

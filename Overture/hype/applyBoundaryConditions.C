@@ -353,48 +353,79 @@ applyBoundaryConditions(const RealArray & x, const RealArray & x0,
     }
     
 
-    // do periodic boundaries last to get corners correct
+    // printF("applyBC: indexRange=[%i,%i][%i,%i] gid=[%i,%i][%i,%i] x=[%i,%i][%i,%i] xr=[%i,%i][%i,%i] "
+    //        "x0=[%i,%i][%i,%i]\n",
+    //        indexRange(0,0),indexRange(1,0), indexRange(0,1),indexRange(1,1),
+    //        gridIndexRange(0,0),gridIndexRange(1,0), gridIndexRange(0,1),gridIndexRange(1,1),
+    //        x.getBase(0),x.getBound(0),x.getBase(1),x.getBound(1),
+    //        xr.getBase(0),xr.getBound(0),xr.getBase(1),xr.getBound(1),
+    //        x0.getBase(0),x0.getBound(0),x0.getBase(1),x0.getBound(1)
+    //        );
+
+    // --- do periodic boundaries last to get corners correct ---
+    //    --- fixed Nov 12, 2017 for doubly derivative periodic --- *wdh* 
     Index Ib1,Ib2,Ib3;
+    Index Ig1,Ig2,Ig3;
+    // Index Ib1,Ib2,Ib3;
     for( axis=0; axis<domainDimension-1; axis++ )
     {
       for( int side=Start; side<=End; side++ )
       {
-	is[0]=is[1]=0;
-	is[axis]=1-2*side;
+	is[0]=is[1]=0; // *wdh* Nov 12, 2017
+        is[axis]=1-2*side; 
+	js[0]=js[1]=0;
 	if( (bool)getIsPeriodic(axis) )
 	{
-	  getBoundaryIndex(indexRange,side,axis,Ib1,Ib2,Ib3,extra);
+	  // getBoundaryIndex(indexRange,side,axis,Ib1,Ib2,Ib3,extra);
+	  // getGhostIndex(indexRange,side,axis,I1,I2,I3,1,extra);
 
-	  getGhostIndex(indexRange,side,axis,I1,I2,I3,1,extra);
+	  getBoundaryIndex(gridIndexRange,side,axis,Ib1,Ib2,Ib3,extra);
+	  getGhostIndex(gridIndexRange,side,axis,Ig1,Ig2,Ig3,1,extra);
+
 	  js[axis]=(gridIndexRange(End,axis)-gridIndexRange(Start,axis))*is[axis];
 
+          // printF("applyBC: [side,axis]=(%i,%i) extra=%i : Ib1=[%i,%i] Ib2=[%i,%i] I1=[%i,%i] I2=[%i,%i]"
+          //      " Ib=[%i,%i][%i,%i] Ig1=[%i,%i][%i,%i] js[axis]=%i \n",
+          //        side,axis,extra,
+          //        Ib1.getBase(),Ib1.getBound(),Ib2.getBase(),Ib2.getBound(), 
+          //        I1.getBase(),I1.getBound(),I2.getBase(),I2.getBound(),
+          //        Ib1.getBase(),Ib1.getBound(),Ib2.getBase(),Ib2.getBound(),
+          //        Ig1.getBase(),Ig1.getBound(),Ig2.getBase(),Ig2.getBound(),
+          //        js[axis]
+          //        );
+          
+          // ---- assign ghost points ----
  	  if( getIsPeriodic(axis)==Mapping::functionPeriodic )
-	    x(I1,I2,i3p,xAxes)=x(I1+js[0],I2+js[1],i3p,xAxes);
+          {
+            if( debug & 2 ){ printF("applyBC: apply function periodic BC\n");}  
+	    x(Ig1,Ig2,i3p,xAxes)=x(Ig1+js[0],Ig2+js[1],i3p,xAxes);
+          }
           else
 	  { // derivative periodic *wdh* 080521 
-            x(I1,I2,i3p,xAxes)=x(I1+js[0],I2+js[1],i3p,xAxes) +
+            x(Ig1,Ig2,i3p,xAxes)=x(Ig1+js[0],Ig2+js[1],i3p,xAxes) +
                  (x0(Ib1,Ib2,i3p,xAxes) - x0(Ib1+js[0],Ib2+js[1],i3p,xAxes));
 	  }
 	  
 	  // apply periodicity to normals and surface normals since they may have been changed by the above BC's
-	  normal(I1,I2,0,xAxes)=normal(I1+js[0],I2+js[1],0,xAxes);
+	  normal(Ig1,Ig2,0,xAxes)=normal(Ig1+js[0],Ig2+js[1],0,xAxes);
 	  if( surfaceGrid )
-	    xr(I1,I2,0,xAxes,1)=xr(I1+js[0],I2+js[1],0,xAxes,1);
+	    xr(Ig1,Ig2,0,xAxes,1)=xr(Ig1+js[0],Ig2+js[1],0,xAxes,1);
 	
 	  if( side==End )
 	  {
+            // --- Also set right-boundary values equal to left ---
 	    if( getIsPeriodic(axis)==Mapping::functionPeriodic )
-              x(I1-is[0],I2-is[1],i3p,xAxes)=x(I1+js[0]-is[0],I2+js[1]-is[1],i3p,xAxes);
+              x(Ib1,Ib2,i3p,xAxes)=x(Ib1+js[0],Ib2+js[1],i3p,xAxes);
 	    else
 	    {// derivative periodic *wdh* 080521 
-              x(I1-is[0],I2-is[1],i3p,xAxes)=x(I1+js[0]-is[0],I2+js[1]-is[1],i3p,xAxes) +
+              x(Ib1,Ib2,i3p,xAxes)=x(Ib1+js[0],Ib2+js[1],i3p,xAxes) +
                  (x0(Ib1,Ib2,i3p,xAxes) - x0(Ib1+js[0],Ib2+js[1],i3p,xAxes));
 	    }
 	    
           
-	    normal(I1-is[0],I2-is[1],0,xAxes)=normal(I1+js[0]-is[0],I2+js[1]-is[1],0,xAxes);
+	    normal(Ib1,Ib2,0,xAxes)=normal(Ib1+js[0],Ib2+js[1],0,xAxes);
 	    if( surfaceGrid )
-	      xr(I1-is[0],I2-is[1],0,xAxes,1)=xr(I1+js[0]-is[0],I2+js[1]-is[1],0,xAxes,1);
+	      xr(Ib1,Ib2,0,xAxes,1)=xr(Ib1+js[0],Ib2+js[1],0,xAxes,1);
 	  }
 	}
 	else if( surfaceGrid && !projectGhostPoints(side,axis) )

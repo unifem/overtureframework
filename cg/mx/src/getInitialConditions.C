@@ -404,6 +404,7 @@ initializePlaneMaterialInterface()
     CompositeGrid & cg = *cgp;
     const int numberOfDimensions=cg.numberOfDimensions();
 
+
   // ------------------------------------------------------------
   // Here we compute the coefficients in the exact solution
   // 
@@ -596,6 +597,7 @@ initializePlaneMaterialInterface()
 
     }
     
+    
     printF("PMI: bv=(%8.2e,%8.2e,%8.2e)\n",bv[0],bv[1],bv[2]);
     printF("PMI: dv=(%8.2e,%8.2e,%8.2e)\n",dv[0],dv[1],dv[2]);
 
@@ -650,9 +652,9 @@ initializePlaneMaterialInterface()
     pmc[28]=x0PlaneMaterialInterface[0]; pmc[29]=x0PlaneMaterialInterface[1]; pmc[30]=x0PlaneMaterialInterface[2];
     pmc[30]=normalPlaneMaterialInterface[0]; pmc[31]=normalPlaneMaterialInterface[1]; pmc[32]=normalPlaneMaterialInterface[2];
 
-    
     return 0;
 }
+
 
 // ============================================================================
 // Macro to compute the (x,y) coordinates - optimized for rectangular grids
@@ -4604,9 +4606,12 @@ assignInitialConditions(int current, real t, real dt )
           // ------------ macro for the plane material interface -------------------------
           // initialCondition: initialCondition, error, boundaryCondition
           // -----------------------------------------------------------------------------
-                        int i1,i2,i3;
-                        real tm=t-dt,x,y,z;
-                        const real pmct=pmc[18]*twoPi; // for time derivative of exact solution
+                    int i1,i2,i3;
+                    real tm=t-dt,x,y,z;
+                    const real pmct=pmc[18]*twoPi; // for time derivative of exact solution
+            // NOTE: dispersion version is a user defined known solution
+                        assert( dispersionModel == noDispersion );
+            // ========= NON-DISPERSIVE PLANE MATERIAL INTERFACE ============
                         if( numberOfDimensions==2 )
                         {
                           z=0.;
