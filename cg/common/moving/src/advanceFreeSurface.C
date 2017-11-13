@@ -464,6 +464,7 @@ advanceFreeSurface(real t1, real t2, real t3,
     real *par = deformingBodyDataBase.get<real [10]>("freeSurfaceParameters");
     real & surfaceTension = par[0];
     aString & surfaceGridMotion = deformingBodyDataBase.get<aString>("surfaceGridMotion");
+    aString & surfacePredictor = deformingBodyDataBase.get<aString>("surfacePredictor");
 
     BcArray & boundaryCondition = deformingBodyDataBase.get<BcArray>("boundaryCondition");
 
@@ -502,22 +503,12 @@ advanceFreeSurface(real t1, real t2, real t3,
         int j1 = iv[axisp];  // j1 = i1 or i2 or i3 
         if( advanceOption==0 )
         {
-	  // printF("advanceFreeSurface.C - before predictor: (yNext,yCur,yPrev,vCur)=(%e,%e,%e,%e)\n",xNext(j1,1),xCur(j1,1),xPrev(j1,1),u(i1,i2,i3,vc));
+
           // --- predictor --- 
-          if( false )
+          if( surfacePredictor == "free surface predictor leap-frog" )
           { // Leap-frog 
             xNext(j1,0) = xPrev(j1,0) + 2.*dt*u(i1,i2,i3,uc)*vScale[0];
             xNext(j1,1) = xPrev(j1,1) + 2.*dt*u(i1,i2,i3,vc)*vScale[1];
-
-	    // AB2
-            // xNext(j1,0) = xCur(j1,0) 
-	    //   + 0.5*dt*(3.*u(i1,i2,i3,uc)-uOld(i1,i2,i3,uc))*vScale[0];
-            // xNext(j1,1) = xCur(j1,1) 
-	    //   + 0.5*dt*(3.*u(i1,i2,i3,vc)-uOld(i1,i2,i3,vc))*vScale[1];
-
-	    // debug
-	    // xNext(j1,0) = xCur(j1,0);
-	    // xNext(j1,1) = xCur(j1,1);
 
           }
           else
@@ -526,24 +517,17 @@ advanceFreeSurface(real t1, real t2, real t3,
             xNext(j1,0) = xCur(j1,0) + dt*u(i1,i2,i3,uc)*vScale[0];
             xNext(j1,1) = xCur(j1,1) + dt*u(i1,i2,i3,vc)*vScale[1];
           }
-	  // printF("advanceFreeSurface (predictor): (yNext,yCur,yPrev,vCur)=(%e,%e,%e,%e)\n",xNext(j1,1),xCur(j1,1),xPrev(j1,1),u(i1,i2,i3,vc));
         }
         else
         {
           // --- corrector ---
           // Trapezoidal rule: Note: xCur is now the solution at the new time
-	  // printF("advanceFreeSurface (before corrector): (yNext,yCur,yPrev,vOld,v,vNew)=(%e,%e,%e,%e,%e,%e)\n",
-	  // 	 xNext(j1,1),xCur(j1,1),xPrev(j1,1),uOld(i1,i2,i3,vc),u(i1,i2,i3,vc),uNew(i1,i2,i3,vc));
 
           xCur(j1,0) = xPrev(j1,0) + .5*dt*( uOld(i1,i2,i3,uc)+uNew(i1,i2,i3,uc) )*vScale[0];
           xCur(j1,1) = xPrev(j1,1) + .5*dt*( uOld(i1,i2,i3,vc)+uNew(i1,i2,i3,vc) )*vScale[1];
 
-	  // printF("advanceFreeSurface (corrector): (yNext,yCur,yPrev)=(%e,%e,%e)\n",xNext(j1,1),xCur(j1,1),xPrev(j1,1));
         }
         
-
-
-
         if( false )
           printF("--DBM-- freeSurface: xCur=(%5.2f,%5.2f) u=(%5.2f,%5.2f) xNext=(%5.2f,%5.2f)\n",
                   xCur(j1,0),xCur(j1,1),u(i1,i2,i3,uc),u(i1,i2,i3,vc),xNext(j1,0),xNext(j1,1));
@@ -565,6 +549,7 @@ advanceFreeSurface(real t1, real t2, real t3,
       const int axisp1 = (axisToMove + 1) % numberOfDimensions;
       const int axisp2 = (axisToMove + 2) % numberOfDimensions;
       int iv[3], &i1=iv[0], &i2=iv[1], &i3=iv[2];
+
       FOR_3D(i1,i2,i3,Ib1,Ib2,Ib3)
       {
         int j1 = iv[axisp1];  // j1 = i1 or i2 or i3 
@@ -574,12 +559,13 @@ advanceFreeSurface(real t1, real t2, real t3,
         if( advanceOption==0 )
         {
           // --- predictor --- 
-          if( true )
+          if( surfacePredictor == "free surface predictor leap-frog" )
           { // Leap-frog 
+
             xNext(j1,j2,0) = xPrev(j1,j2,0) + 2.*dt*u(i1,i2,i3,uc)*vScale[0];
             xNext(j1,j2,1) = xPrev(j1,j2,1) + 2.*dt*u(i1,i2,i3,vc)*vScale[1];
             xNext(j1,j2,2) = xPrev(j1,j2,2) + 2.*dt*u(i1,i2,i3,wc)*vScale[2];
-          }
+         }
           else
           {
             // forward-Euler 
@@ -593,17 +579,12 @@ advanceFreeSurface(real t1, real t2, real t3,
         {
           // --- corrector ---
           // Trapezoidal rule: 
-	  printF("advanceFreeSurface (corrector): warning, may want to use uOld instead of u\n");
-          xCur(j1,j2,0) = xPrev(j1,j2,0) + .5*dt*( u(i1,i2,i3,uc)+uNew(i1,i2,i3,uc) )*vScale[0];
-          xCur(j1,j2,1) = xPrev(j1,j2,1) + .5*dt*( u(i1,i2,i3,vc)+uNew(i1,i2,i3,vc) )*vScale[1];
-          xCur(j1,j2,2) = xPrev(j1,j2,2) + .5*dt*( u(i1,i2,i3,wc)+uNew(i1,i2,i3,wc) )*vScale[2];
+
+          xCur(j1,j2,0) = xPrev(j1,j2,0) + .5*dt*( uOld(i1,i2,i3,uc)+uNew(i1,i2,i3,uc) )*vScale[0];
+          xCur(j1,j2,1) = xPrev(j1,j2,1) + .5*dt*( uOld(i1,i2,i3,vc)+uNew(i1,i2,i3,vc) )*vScale[1];
+          xCur(j1,j2,2) = xPrev(j1,j2,2) + .5*dt*( uOld(i1,i2,i3,wc)+uNew(i1,i2,i3,wc) )*vScale[2];
         }
 
-        // real u0=u(i1,i2,i3,uc)*vScale[0], v0=u(i1,i2,i3,vc)*vScale[1], w0=u(i1,i2,i3,wc)*vScale[2];
-
-        // xNext(j1,j2,0) = xCur(j1,0) + dt*u0;
-        // xNext(j1,j2,1) = xCur(j1,1) + dt*v0;
-        // xNext(j1,j2,2) = xCur(j1,2) + dt*w0;
 
       }
 	  
@@ -611,6 +592,11 @@ advanceFreeSurface(real t1, real t2, real t3,
       smoothInterface( xNext, cg, sideToMove, axisToMove, gridToMove, vScale );
 
     }
+
+    printF("\n\n---(zNext,zCur,zPrev,w,tCur) = "
+	   "(%e,%e,%e,%e,%e)---\n\n",
+	   xNext(0,0,2),xCur(0,0,2),xPrev(0,0,2),u(0,0,0,wc),tCur);
+
 	
     // The "surface" Mapping holds the start curve in 2D
     vector<Mapping*> & surface = deformingBodyDataBase.get<vector<Mapping*> >("surface");

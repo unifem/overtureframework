@@ -3,8 +3,8 @@
 #
 
 
-ogen = /home/henshw/Overture.g/bin/ogen
-
+# ogen = /home/henshw/Overture.g/bin/ogen
+ogen = /home/dan/Documents/Overture.sf3/bin/ogen
 
 grids: elasticPiston radial
 
@@ -26,3 +26,8 @@ radial:
 	$(ogen) -noplot radialElasticPistonGrid -interp=e -factor=4
 	$(ogen) -noplot radialElasticPistonGrid -interp=e -factor=8
 	$(ogen) -noplot radialElasticPistonGrid -interp=e -factor=16
+
+mp:
+	cd ../../; \
+	make
+

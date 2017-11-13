@@ -18,12 +18,29 @@ static int u1c=-1, u2c=-1, v1c=-1, v2c=-1, s11c=-1, s12c=-1, s21c=-1, s22c=-1;
 
 
 #define rotatingDiskSVK EXTERN_C_NAME(rotatingdisksvk)
+#define evalFibShearSolid EXTERN_C_NAME(evalfibshearsolid)
+#define evalFibShearSolidFull EXTERN_C_NAME(evalfibshearsolidfull)
 
 extern "C"
 {
   // rotating disk (SVK) exact solution:
   void rotatingDiskSVK( const real & t, const int & numberOfGridPoints, real & uDisk, real & param,
                         const int & nrwk, real & rwk );
+
+  // fsi shear motion exact solution (implemented in cBessel.f)
+  void evalFibShearSolid( const real & ksr, const real & ksi,
+			  const real & ar, const real & ai,
+			  const real & br, const real & bi,
+			  const real & y, 
+			  real & ur, real & ui, real & uyr, real & uyi);
+  void evalFibShearSolidFull( const real & ksr, const real & ksi,
+                              const real & ar, const real & ai,
+                              const real & br, const real & bi,
+                              const real & y, const real & t,
+                              real & ur, real & ui, 
+                              real & vr, real & vi, 
+                              real & uyr, real & uyi,
+                              const real & omegar, const real & omegai);
 }
 
 
@@ -901,6 +918,78 @@ getUserDefinedDeformingBodyKnownSolution(
     }
     
   }
+  else if ( userKnownSolution=="fibShear" ) {
+    // ---- return the exact solution for fib shear solution ----
+
+    const real & omegar = rpar[0];
+    const real & omegai = rpar[1];
+    const real & ar     = rpar[2];
+    const real & ai     = rpar[3];
+    const real & br     = rpar[4];
+    const real & bi     = rpar[5];
+    const real & cr     = rpar[6];
+    const real & ci     = rpar[7];
+    const real & dr     = rpar[8];
+    const real & di     = rpar[9];
+    const real & ksr    = rpar[10];
+    const real & ksi    = rpar[11];
+    const real & kfr    = rpar[12];
+    const real & kfi    = rpar[13];
+    const real & amp    = rpar[14];
+    real & mu = rpar[15];
+
+    // -- we could avoid building the vertex array on Cartesian grids ---
+    GET_VERTEX_ARRAY(xLocal);
+
+    printF("-- getUserDefinedDeformingBodyKnownSolution: fibShear, t=%9.3e\n",t);
+
+    const int c0=C.getBase(), c1=c0+1;
+    int i1,i2,i3;
+    FOR_3D(i1,i2,i3,I1,I2,I3)
+      {
+	// Reference coordinates for solid or grid positions for the fluid -- we only need angle theta
+	real x= xLocal(i1,i2,i3,0);
+	real y= xLocal(i1,i2,i3,1);
+
+        real ur,ui,vr,vi,uyr,uyi;
+	// evalFibShearSolid(ksr,ksi,ar,ai,br,bi,y,ur,ui,uyr,uyi);
+        // get the time dependent solution
+        evalFibShearSolidFull(ksr,ksi,ar,ai,br,bi,y,t,ur,ui,vr,vi,uyr,uyi,omegar,omegai);
+
+	if( stateOption==boundaryPosition )
+	  {
+	    state(i1,i2,i3,c0)=x+amp*ur;
+	    state(i1,i2,i3,c1)=0.;
+	  }
+	else if( stateOption==boundaryVelocity )
+	  {
+	    state(i1,i2,i3,c0)=amp*vr;
+	    state(i1,i2,i3,c1)=0.;
+	  }
+	else if( stateOption==boundaryAcceleration )
+	  {
+	    state(i1,i2,i3,c0)=amp*(omegai*vr+omegar*vi);
+	    state(i1,i2,i3,c1)=0.;
+	  }
+	else if( stateOption==boundaryTraction )
+	  {
+	    state(i1,i2,i3,c0)= amp*mu*uyr;
+	    state(i1,i2,i3,c1)= 0.;
+	  }
+	else if( stateOption==boundaryTractionRate )
+	  {
+	    // traction-rate: 
+	    state(i1,i2,i3,c0)= amp*mu*(omegai*uyr+omegar*uyi);
+	    state(i1,i2,i3,c1)= 0.;
+	  }
+	else
+	  {
+	    OV_ABORT("Unknown state option");
+	  }
+      }
+
+
+  }
   else
   {
     return 0;  // Not found
@@ -958,6 +1047,7 @@ updateUserDefinedKnownSolution(GenericGraphicsInterface & gi, CompositeGrid & cg
       "FSI traveling wave solution solid",
       "bulk solid piston",  // for INS+SM exact solution
       "radial elastic piston", // FSI : INS+SM
+      "shearing fluid and elastic solid", // FSI : INS+SM
       "done",
       ""
     }; 
@@ -1448,7 +1538,7 @@ updateUserDefinedKnownSolution(GenericGraphicsInterface & gi, CompositeGrid & cg
       // NOTE -- this function is implemented in 
       //     ins/src/userDefinedKnownSolution 
       //     sm/src/userDefinedKnownSolution 
-      //    
+      //     common/src/cBessel.f
 
       userKnownSolution="bulkSolidPiston";
       dbase.get<bool>("knownSolutionIsTimeDependent")=true;  // known solution IS time dependent
@@ -1581,6 +1671,91 @@ updateUserDefinedKnownSolution(GenericGraphicsInterface & gi, CompositeGrid & cg
       const real jnRbar = jn(1,kk*Rbar);
       const real b0=amp/jnRbar, f0=cp2*k;
       timeFunction.setSinusoidFunction( b0, f0, t0 );
+
+    }
+    else if ( answer=="shearing fluid and elastic solid" ) {
+      // -- Shear solution for elastic solid and fluid --
+      // Exact FSI solution for INS + SM
+      //
+      // NOTE -- this function is implemented in 
+      //     ins/src/userDefinedKnownSolution 
+      //     sm/src/userDefinedKnownSolution 
+      //    
+      
+      userKnownSolution="fibShear";
+      dbase.get<bool>("knownSolutionIsTimeDependent")=true;  // known solution IS time dependent
+
+      real & omegar = rpar[0];
+      real & omegai = rpar[1];
+      real & ar     = rpar[2];
+      real & ai     = rpar[3];
+      real & br     = rpar[4];
+      real & bi     = rpar[5];
+      real & cr     = rpar[6];
+      real & ci     = rpar[7];
+      real & dr     = rpar[8];
+      real & di     = rpar[9];
+      real & ksr    = rpar[10];
+      real & ksi    = rpar[11];
+      real & kfr    = rpar[12];
+      real & kfi    = rpar[13];
+      real & amp    = rpar[14];
+      real & mu = rpar[15];
+
+      printF("--------------------------------------------------------------------------------\n"
+             "------ Exact solution for a parallel flow shearing a bulk elastic solid --------\n\n"
+             " \bar{u}_1(y,t) = amp         exp(i omega t) (A cos(ks y) + B sin( ks y))\n"
+	     "     {v}_1(y,t) = amp i omega exp(i omega t) (C exp(kf y) + D exp(-kf y))\n"
+	     "             ks = omega / cs\n"
+	     "             kf = sqrt(i rho omega / mu)\n"
+             " Parameters: \n"
+             " amp    : maximum amplitude of the displacement \n"
+             " omega  : time frequency of solution \n"
+             " H,Hbar : Height of fluid and solid domains\n"
+             " rhoBar,lambaBar,muBar : solid density and Lame parameters\n"
+             "--------------------------------------------------------------------------------\n"
+	);
+      
+      int caseid = 0;
+      gi.inputString(answer,"Enter amp, case number\n");
+      sScanF(answer,"%e %d",&amp,&caseid);
+
+      real H, Hbar, rho, rhoBar, muBar;
+      if (caseid == 0) {
+	H      =  1.0;
+	Hbar   =  0.5;
+	rho    =  1.0;
+	rhoBar = 10.0;
+	muBar  = 10.0;
+	mu     = 10.0;
+
+	ksr =  2.3696802625735396e+00; ksi =  2.7422804696932346e+00; 
+	kfr =  2.1000127772389374e-01; kfi =  5.6420615347139857e-01; 
+	omegar =  2.3696802625735396e+00; omegai =  2.7422804696932346e+00; 
+	ar =  9.9999999999999978e-01; ai =  0.0000000000000000e+00; 
+	br =  8.1963580548694320e-02; bi = -9.0822504122626635e-01; 
+	cr =  1.7307707579616807e-01; ci =  6.8318696356195785e-01; 
+	dr =  8.2692292420383173e-01; di = -6.8318696356195796e-01; 
+      } else {
+	H      =  1.0;
+	Hbar   =  0.5;
+	rho    =  1.0;
+	rhoBar = 10.0;
+	muBar  = 10.0;
+	mu     = 10.0;
+
+	ksr =  2.3696802625735396e+00; ksi =  2.7422804696932346e+00; 
+	kfr =  2.1000127772389374e-01; kfi =  5.6420615347139857e-01; 
+	omegar =  2.3696802625735396e+00; omegai =  2.7422804696932346e+00; 
+	ar =  9.9999999999999978e-01; ai =  0.0000000000000000e+00; 
+	br =  8.1963580548694320e-02; bi = -9.0822504122626635e-01; 
+	cr =  1.7307707579616807e-01; ci =  6.8318696356195785e-01; 
+	dr =  8.2692292420383173e-01; di = -6.8318696356195796e-01; 
+      }
+
+      printF("Setting amp=%g, H=%g, Hbar=%g, rho=%g, rhoBar=%g, muBar=%g, mu=%g\n",
+	     amp,H,Hbar,rho,rhoBar,muBar,mu);
+      
 
     }
     else

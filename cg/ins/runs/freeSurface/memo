@@ -1,3 +1,8 @@
+*******************************
+****** Nov 12, 2017
+
+see Dropbox/CG/surfins for results
+
 *************************
 *** Sun Nov 12, 2017
 
@@ -21,6 +26,69 @@ ogen freeSurfaceGrid3d -interp=e -factor=1 -bc=p
 cgins freeSurface3d -g=freeSurfaceGrid3de1p.order2.hdf -nu=.02 -tf=2. -tp=.01 -model=ins -surfaceTension=.0 -pGrad=-5. -ad2=1 -go=halt
 
 
+
+
+*******************************
+****** Oct 3, 2017
+cgins freeSurfacePiston.cmd -g=freeSurfaceGrid2dFlate2.order2p -dg="share=100" -ts=im -nu=.1 -tf=.2 -tp=.01 -model=ins -go=halt -surfaceTension=.1 -pGrad=0. -ad2=0 -go=og -surfacePredictor="leap-frog"
+
+
+     t    err(p)   err(u)   err(v)    div       uMax     dt       cpu    (20 steps)
+   0.200 1.39e-07 9.71e-17 5.19e-07 5.13e-15  1.84e-01 1.00e-02 3.38e+00 
+     t    err(p)   err(u)   err(v)    div       uMax     dt       cpu    (40 steps)
+   0.200 4.20e-08 1.83e-16 1.29e-07 1.14e-14  1.84e-01 5.00e-03 3.24e+00 
+     t    err(p)   err(u)   err(v)    div       uMax     dt       cpu    (80 steps)
+   0.200 1.14e-08 2.64e-16 3.22e-08 3.02e-14  1.84e-01 2.50e-03 1.25e+01 
+     t    err(p)   err(u)   err(v)    div       uMax     dt       cpu    (160 steps)
+   0.200 2.96e-09 8.64e-16 8.03e-09 9.11e-14  1.84e-01 1.25e-03 1.37e+02 
+
+
+cgins freeSurfaceCapillaryFlow -g=freeSurfaceGrid2dFlate2.order2p -dg="share=100" -ts=im -nu=.1 -tf=.2 -tp=.01 -model=ins -go=halt -surfaceTension=.1 -pGrad=0. -ad2=0 -go=og -amp=.0001 -surfacePredictor="leap-frog"
+
+     t    err(p)   err(u)   err(v)    div       uMax     dt       cpu    (20 steps)
+   0.200 2.68e-07 8.63e-08 8.92e-08 1.86e-07  1.10e-05 1.00e-02 4.40e+00 
+     t    err(p)   err(u)   err(v)    div       uMax     dt       cpu    (40 steps)
+   0.200 7.36e-08 2.07e-08 1.86e-08 4.49e-08  1.10e-05 5.00e-03 3.90e+00 
+     t    err(p)   err(u)   err(v)    div       uMax     dt       cpu    (80 steps)
+   0.200 1.95e-08 4.63e-09 4.34e-09 1.60e-08  1.10e-05 2.50e-03 1.39e+01 
+     t    err(p)   err(u)   err(v)    div       uMax     dt       cpu    (160 steps)
+   0.200 4.83e-09 1.09e-09 1.08e-09 5.67e-09  1.10e-05 1.25e-03 1.53e+02 
+
+
+*******************************
+****** Oct 2, 2017
+- test implicit matrix
+
+capillary
+cgins freeSurfaceCapillaryFlow -g=freeSurfaceGrid2dFlate2.order2p -dg="share=100" -ts=im -nu=.1 -tf=.2 -tp=.01 -model=ins -go=halt -surfaceTension=.1 -pGrad=0. -ad2=0 -go=og -amp=.0001
+cgins freeSurfaceCapillaryFlow -g=freeSurfaceGrid2dFlate4.order2p -dg="share=100" -ts=im -nu=.1 -tf=.2 -tp=.005 -model=ins -go=halt -surfaceTension=.1 -pGrad=0. -ad2=0 -go=og -amp=.0001
+cgins freeSurfaceCapillaryFlow -g=freeSurfaceGrid2dFlate8.order2p -dg="share=100" -ts=im -nu=.1 -tf=.2 -tp=.0025 -model=ins -go=halt -surfaceTension=.1 -pGrad=0. -ad2=0 -go=og -amp=.0001
+cgins freeSurfaceCapillaryFlow -g=freeSurfaceGrid2dFlate16.order2p -dg="share=100" -ts=im -nu=.1 -tf=.2 -tp=.00125 -model=ins -go=halt -surfaceTension=.1 -pGrad=0. -ad2=0 -go=og -amp=.0001
+
+     t    err(p)   err(u)   err(v)    div       uMax     dt       cpu    (20 steps)
+   0.200 6.77e-07 1.15e-07 1.94e-07 2.14e-07  1.09e-05 1.00e-02 2.00e+00 
+     t    err(p)   err(u)   err(v)    div       uMax     dt       cpu    (40 steps)
+   0.200 1.73e-07 2.67e-08 3.44e-08 4.52e-08  1.10e-05 5.00e-03 3.79e+00 
+     t    err(p)   err(u)   err(v)    div       uMax     dt       cpu    (80 steps)
+   0.200 4.79e-08 1.03e-08 1.36e-08 1.59e-08  1.10e-05 2.50e-03 1.32e+01
+     t    err(p)   err(u)   err(v)    div       uMax     dt       cpu    (160 steps)
+   0.200 2.12e-08 4.81e-09 7.79e-09 5.71e-09  1.10e-05 1.25e-03 1.44e+02 
+
+free surface piston (sinusoidal interface motion):
+cgins freeSurfacePiston.cmd -g=freeSurfaceGrid2dFlate2.order2p -dg="share=100" -ts=im -nu=.1 -tf=.2 -tp=.01 -model=ins -go=halt -surfaceTension=.1 -pGrad=0. -ad2=0 -go=og 
+cgins freeSurfacePiston.cmd -g=freeSurfaceGrid2dFlate4.order2p -dg="share=100" -ts=im -nu=.1 -tf=.2 -tp=.005 -model=ins -go=halt -surfaceTension=.1 -pGrad=0. -ad2=0 -go=og 
+cgins freeSurfacePiston.cmd -g=freeSurfaceGrid2dFlate8.order2p -dg="share=100" -ts=im -nu=.1 -tf=.2 -tp=.0025 -model=ins -go=halt -surfaceTension=.1 -pGrad=0. -ad2=0 -go=og 
+cgins freeSurfacePiston.cmd -g=freeSurfaceGrid2dFlate16.order2p -dg="share=100" -ts=im -nu=.1 -tf=.2 -tp=.00125 -model=ins -go=halt -surfaceTension=.1 -pGrad=0. -ad2=0 -go=og 
+
+     t    err(p)   err(u)   err(v)    div       uMax     dt       cpu    (20 steps)
+   0.200 1.21e-05 1.06e-16 1.12e-06 4.25e-15  1.84e-01 1.00e-02 2.85e+00 
+     t    err(p)   err(u)   err(v)    div       uMax     dt       cpu    (40 steps)
+   0.200 6.10e-06 1.69e-16 4.31e-07 1.09e-14  1.84e-01 5.00e-03 3.41e+00 
+     t    err(p)   err(u)   err(v)    div       uMax     dt       cpu    (80 steps)
+   0.200 3.06e-06 2.89e-16 1.83e-07 2.61e-14  1.84e-01 2.50e-03 1.19e+01 
+     t    err(p)   err(u)   err(v)    div       uMax     dt       cpu    (160 steps)
+   0.200 1.53e-06 9.77e-16 8.36e-08 9.14e-14  1.84e-01 1.25e-03 1.32e+02 
+
 ***************************************************************************************8
 ***************************************************************************************8
 ***************************************************************************************8
@@ -43,17 +111,6 @@ list of work-arounds to fix issues:
      past time dt: $tPlot
    and choose a small dt. 
  - took away stretch factor for overlapping grid
-
-current issue:
- - run piston flow with a non-flat initial grid (polynomial solution):
-     cgins freeSurfacePiston.cmd -g=freeSurfaceGrid2de2.order2p -dg="share=100" -nu=.1 -tf=.0125 -tp=1.e-04 -model=ins -go=halt -surfaceTension=.1 -pGrad=0. -ad2=0 -go=og -amp=0. -amp1=1.0 -amp2=1.0
-   the solution should be exact and only a function of y, but the errors in the pressure are x-dependent after 1 step
-
-***************************************************************************************8
-***************************************************************************************8
-***************************************************************************************8
-
-
 
 
 
@@ -83,6 +140,81 @@ G2:
 
 TEST IMPLICIT PLUS FREE SURFACE 
 cgins -noplot freeSurfacePiston.cmd -g=freeSurfaceGrid2de2.order2p -dg="share=100" -ts=im -nu=.1 -tf=.5 -tp=.01 -model=ins -surfaceTension=.1 -pGrad=0. -ad2=0 -amp=0. -amp1=1.0 -amp2=1.0 -go=og
+
+
+*******************************
+****** Sept 11, 2017
+
+Free surface piston, polynomial solution (result is exact)
+cgins freeSurfacePiston.cmd -g=freeSurfaceGrid2de2.order2p -dg="share=100" -nu=.1 -tf=.0125 -tp=1.e-04 -model=ins -go=halt -surfaceTension=.1 -pGrad=0. -ad2=0 -go=og -amp=0. -amp1=1.0 -amp2=1.0
+
+     t    err(p)   err(u)   err(v)    div       uMax     dt       cpu    (125 steps)
+   0.013 7.77e-15 9.49e-17 3.11e-15 4.54e-15  2.03e+00 1.00e-04 3.85e+00 
+
+free surface piston (sinusoidal interface motion):
+cgins freeSurfacePiston.cmd -g=freeSurfaceGrid2dFlate2.order2p -dg="share=100" -nu=.1 -tf=.2 -tp=.1 -model=ins -go=halt -surfaceTension=.1 -pGrad=0. -ad2=0 -go=og 
+cgins freeSurfacePiston.cmd -g=freeSurfaceGrid2dFlate4.order2p -dg="share=100" -nu=.1 -tf=.2 -tp=.1 -model=ins -go=halt -surfaceTension=.1 -pGrad=0. -ad2=0 -go=og 
+cgins freeSurfacePiston.cmd -g=freeSurfaceGrid2dFlate8.order2p -dg="share=100" -nu=.1 -tf=.2 -tp=.1 -model=ins -go=halt -surfaceTension=.1 -pGrad=0. -ad2=0 -go=og 
+cgins freeSurfacePiston.cmd -g=freeSurfaceGrid2dFlate16.order2p -dg="share=100" -nu=.1 -tf=.2 -tp=.1 -model=ins -go=halt -surfaceTension=.1 -pGrad=0. -ad2=0 -go=og 
+
+    t    err(p)   err(u)   err(v)    div       uMax     dt       cpu    (66 steps)
+   0.200 3.71e-06 3.19e-17 2.30e-07 9.06e-16  1.84e-01 3.03e-03 5.87e+00
+     t    err(p)   err(u)   err(v)    div       uMax     dt       cpu    (264 steps)
+   0.200 9.30e-07 9.28e-17 4.87e-08 3.17e-15  1.84e-01 7.50e-04 5.98e+00 
+     t    err(p)   err(u)   err(v)    div       uMax     dt       cpu    (1054 steps)
+   0.200 2.33e-07 1.31e-16 1.17e-08 5.78e-15  1.84e-01 1.85e-04 5.21e+01 
+     t    err(p)   err(u)   err(v)    div       uMax     dt       cpu    (4210 steps)
+   0.200 5.84e-08 2.82e-16 2.88e-09 2.50e-14  1.84e-01 4.65e-05 1.02e+03 
+
+
+capillary:
+movie:
+cgins freeSurfaceCapillaryFlow -g=freeSurfaceGrid2dFlate2.order2p -dg="share=100" -nu=.1 -tf=7.5 -tp=.05 -model=ins -go=halt -surfaceTension=.1 -pGrad=0. -ad2=0 -go=og -amp=.1
+
+
+cgins freeSurfaceCapillaryFlow -g=freeSurfaceGrid2dFlate2.order2p -dg="share=100" -nu=.1 -tf=.2 -tp=.1 -model=ins -go=halt -surfaceTension=.1 -pGrad=0. -ad2=0 -go=og -amp=.0001
+cgins freeSurfaceCapillaryFlow -g=freeSurfaceGrid2dFlate4.order2p -dg="share=100" -nu=.1 -tf=.2 -tp=.1 -model=ins -go=halt -surfaceTension=.1 -pGrad=0. -ad2=0 -go=og -amp=.0001
+cgins freeSurfaceCapillaryFlow -g=freeSurfaceGrid2dFlate8.order2p -dg="share=100" -nu=.1 -tf=.2 -tp=.1 -model=ins -go=halt -surfaceTension=.1 -pGrad=0. -ad2=0 -go=og -amp=.0001
+cgins freeSurfaceCapillaryFlow -g=freeSurfaceGrid2dFlate16.order2p -dg="share=100" -nu=.1 -tf=.2 -tp=.1 -model=ins -go=halt -surfaceTension=.1 -pGrad=0. -ad2=0 -go=og -amp=.0001
+
+found a bug where u1 and u2 were switched
+     t    err(p)   err(u)   err(v)    div       uMax     dt       cpu    (66 steps)
+   0.200 1.53e-06 3.05e-07 5.93e-07 1.51e-07  1.05e-05 3.03e-03 3.30e+00 
+     t    err(p)   err(u)   err(v)    div       uMax     dt       cpu    (264 steps)
+   0.200 4.15e-07 8.34e-08 1.56e-07 4.21e-08  1.09e-05 7.50e-04 1.22e+01 
+     t    err(p)   err(u)   err(v)    div       uMax     dt       cpu    (1054 steps)
+   0.200 1.06e-07 2.23e-08 3.93e-08 1.88e-08  1.10e-05 1.85e-04 5.45e+01
+     t    err(p)   err(u)   err(v)    div       uMax     dt       cpu    (4210 steps)
+   0.200 2.67e-08 5.76e-09 9.78e-09 6.05e-09  1.10e-05 4.65e-05 1.10e+03 
+
+
+*******************************
+****** Sept 2, 2017
+list of work-arounds to fix issues:
+ - If the grid is not initially flat and we want to force grid to be flat, 
+   there can be some issues when
+   advancing in time (future grid may not be flat)
+ - For Projecting initial conditions, there was an issue where
+   the corrector was being called in advaceFreeSurface. Since the
+   corrector overwrites the "xCur" grid, xCur was inaccurate at later
+   times. Added a check to see if dt is 0, if it is 0, then the
+   function returns without going to corrector.
+ - In initializePast in DeformingBodyMotion.C, we had to add
+   if ((step==1) || (step==0)) so the grid is saved at time 0.
+ - In advaceFreeSurface corrector, I changed u to uOld in the 
+   trapezoidal rule formula. I didn't change the code for 3D,
+   but I added a warning.
+ - When computing past grids, the time step is hard coded. 
+   I use the command
+     past time dt: $tPlot
+   and choose a small dt. 
+ - took away stretch factor for overlapping grid
+
+current issue:
+ - run piston flow with a non-flat initial grid (polynomial solution):
+     cgins freeSurfacePiston.cmd -g=freeSurfaceGrid2de2.order2p -dg="share=100" -nu=.1 -tf=.0125 -tp=1.e-04 -model=ins -go=halt -surfaceTension=.1 -pGrad=0. -ad2=0 -go=og -amp=0. -amp1=1.0 -amp2=1.0
+   the solution should be exact and only a function of y, but the errors in the pressure are x-dependent after 1 step
+
 
 
 *******************************

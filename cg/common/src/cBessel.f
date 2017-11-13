@@ -217,3 +217,112 @@ c     take real and imaginary parts of solution
       
       return 
       end
+
+!
+!
+! Evaluate the solution for shear flow (FSI)
+!
+! u1  = amp    ( A cos(ks y) + B sin(ks y)) exp(i omega t)
+! u1y = amp ks (-A sin(ks y) + B cos(ks y)) exp(i omega t)
+!
+! Return:
+!  ur  = real( A cos(ks y) + B sin(ks y) )
+!  ui  = imag( A cos(ks y) + B sin(ks y) )
+!  uyr = real( ks (-A sin(ks y) + B cos(ks y)) )
+!  uyi = imag( ks (-A sin(ks y) + B cos(ks y)) )
+!
+      subroutine evalFibShearSolid(ksr,ksi,ar,ai,br,bi,y,ur,ui,uyr,uyi)
+      implicit none
+      double precision ksr,ksi,ar,ai,br,bi,y,ur,ui,uyr,uyi
+      complex*16 ks,a,b,u,uy,I,cosy,siny
+      
+c     get complex vars
+      ks = dcmplx(ksr,ksi)
+      a  = dcmplx(ar ,ai )
+      b  = dcmplx(br ,bi )
+      I  = dcmplx(0.0d0,1.0d0)
+
+c     get solution
+      cosy = 0.5d0*(exp(I*ks*y)+exp(-I*ks*y))
+      siny = 0.5d0*(exp(I*ks*y)-exp(-I*ks*y))
+
+      u  =    ( a*cos(ks*y)+b*sin(ks*y))
+      uy = ks*(-a*sin(ks*y)+b*cos(ks*y))
+
+c     take real and imaginary parts of the solution
+      ur  = dreal(u)
+      ui  = dimag(u)
+      uyr = dreal(uy)
+      uyi = dimag(uy)
+
+      return
+      end
+
+
+      subroutine evalFibShearSolidFull(ksr,ksi,ar,ai,br,bi,y,t,
+     +     ur,ui,vr,vi,uyr,uyi,omegar,omegai)
+      implicit none
+      double precision ksr,ksi,ar,ai,br,bi,y,ur,ui,uyr,uyi,
+     +     vr,vi,t,omegar,omegai
+
+      complex*16 ks,a,b,u,uy,I,cosy,siny,omega,v
+      
+c     get complex vars
+      ks = dcmplx(ksr,ksi)
+      a  = dcmplx(ar ,ai )
+      b  = dcmplx(br ,bi )
+      I  = dcmplx(0.0d0,1.0d0)
+      omega = dcmplx(omegar,omegai)
+
+c     get solution
+      cosy = 0.5d0*(exp(I*ks*y)+exp(-I*ks*y))
+      siny = 0.5d0*(exp(I*ks*y)-exp(-I*ks*y))
+
+      u  =          ( a*cos(ks*y)+b*sin(ks*y))*exp(-I*omega*t)
+      v  = -I*omega*( a*cos(ks*y)+b*sin(ks*y))*exp(-I*omega*t)
+      uy =       ks*(-a*sin(ks*y)+b*cos(ks*y))*exp(-I*omega*t)
+
+c     take real and imaginary parts of the solution
+      ur  = dreal(u)
+      ui  = dimag(u)
+      vr  = dreal(v)
+      vi  = dimag(v)
+      uyr = dreal(uy)
+      uyi = dimag(uy)
+c$$$      write(*,'("uy = ",2f10.3)')uyr,uyi
+      return
+      end
+
+
+!
+! v1  = amp i omega ( C exp(kf y) + D exp(-kf y)) exp(i omega t)
+!
+! Return:
+!  vr = real(i omega ( C exp(kf y) + D exp(-kf y)) exp(i omega t))
+!  vi = imag(i omega ( C exp(kf y) + D exp(-kf y)) exp(i omega t))
+!
+      subroutine evalFibShearFluid(kfr,kfi,omegar,omegai,cr,ci,dr,di,y,
+     +     vr,vi)
+      implicit none
+      double precision kfr,kfi,cr,ci,dr,di,y,vr,vi,omegar,omegai
+      complex*16 kf,c,d,v,I,omega
+      
+c     get complex vars
+      kf = dcmplx(kfr,kfi)
+      omega = dcmplx(omegar,omegai)
+      c  = dcmplx(cr ,ci )
+      d  = dcmplx(dr ,di )
+      I  = dcmplx(0.0d0,1.0d0)
+
+c     get solution
+      v = -I*omega*(c*exp(kf*y)+d*exp(-kf*y))
+      
+c     take real and imaginary parts
+      vr = dreal(v)
+      vi = dimag(v)
+
+
+      return
+      end
+
+

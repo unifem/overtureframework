@@ -245,8 +245,14 @@ addCoeffGhost10(c,e,coeff,op1,,,,,,,,,)
   ! ---  3D ---
   if( fillCoefficientsScalarSystem.eq.0 )then
    ! Fill in the coupled equations for u, v and w
+   ! write(*,'("(i1,i2,i3) = ",3i3)') i1,i2,i3
    do n=0,nd-1
      ! equation n:   (equation numbers and classify  are set in these calls)
+     ! write(*,'("n = ",1i3)') n
+     ! write(*,'("    : cn00,cn01,cn02",3e10.2)') CSF(n,0,0),CSF(n,0,1),CSF(n,0,2)
+     ! write(*,'("    : cn10,cn11,cn12",3e10.2)') CSF(n,1,0),CSF(n,1,1),CSF(n,1,2)
+     ! write(*,'("    : cn20,cn21,cn22",3e10.2)') CSF(n,2,0),CSF(n,2,1),CSF(n,2,2)
+
      setCoeffGhost3(cmpu,eqnu+n,coeff,CSF(n,0,0)*xCoeff,CSF(n,0,1)*yCoeff,CSF(n,0,2)*zCoeff)
      addCoeffGhost3(cmpv,eqnu+n,coeff,CSF(n,1,0)*xCoeff,CSF(n,1,1)*yCoeff,CSF(n,1,2)*zCoeff)
      addCoeffGhost3(cmpw,eqnu+n,coeff,CSF(n,2,0)*xCoeff,CSF(n,2,1)*yCoeff,CSF(n,2,2)*zCoeff)

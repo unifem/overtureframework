@@ -290,7 +290,8 @@ applyBoundaryConditions(const real & t, realMappedGridFunction & u,
                         parameters.dbase.get<Parameters::KnownSolutionsEnum >("knownSolution");
     
     realArray *uKnownPointer=NULL;
-    if( knownSolution!=InsParameters::noKnownSolution )
+  //if( knownSolution!=InsParameters::noKnownSolution )
+    if( (knownSolution!=InsParameters::noKnownSolution) && ((assignDirichletBoundaryCondition) || (assignInflowWithPressureAndTangentialVelocityGiven)) )
     {
         int extra=2;
         Index I1,I2,I3;
@@ -303,7 +304,7 @@ applyBoundaryConditions(const real & t, realMappedGridFunction & u,
             printF("--INSBC-- before getKnown: grid=%i: t=%12.5e, point (i1=0,i2=0) (x,y)=(%20.12e,%20.12e)\n",
            	     grid,t,x(i1,i2,i3,0),x(i1,i2,i3,1));
         }
-
+    //printF("--INSBC-- evaluate known ******************************\n");
         uKnownPointer = &parameters.getKnownSolution( t,grid,I1,I2,I3 );
     }
     realArray & uKnown = uKnownPointer!=NULL ? *uKnownPointer : u;

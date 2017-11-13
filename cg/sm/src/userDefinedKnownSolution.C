@@ -7,13 +7,32 @@
 #include "TimeFunction.h"
 #include "BeamModel.h"
 
-#define rotatingDiskSVK EXTERN_C_NAME(rotatingdisksvk)
+#define rotatingDiskSVK   EXTERN_C_NAME(rotatingdisksvk)
+#define evalFibShearSolid EXTERN_C_NAME(evalfibshearsolid)
+#define evalFibShearSolidFull EXTERN_C_NAME(evalfibshearsolidfull)
 
 extern "C"
 {
   // rotating disk (SVK) exact solution:
   void rotatingDiskSVK( const real & t, const int & numberOfGridPoints, real & uDisk, real & param,
                         const int & nrwk, real & rwk );
+
+  // exact fsi solution for shearing solid
+  void evalFibShearSolid( const real & ksr, const real & ksi,
+			  const real & ar, const real & ai,
+			  const real & br, const real & bi,
+			  const real & y, 
+			  real & ur, real & ui, real & uyr, real & uyi);
+
+  void evalFibShearSolidFull( const real & ksr, const real & ksi,
+                              const real & ar, const real & ai,
+                              const real & br, const real & bi,
+                              const real & y, const real & t,
+                              real & ur, real & ui, 
+                              real & vr, real & vi, 
+                              real & uyr, real & uyi,
+                              const real & omegar, const real & omegai);
+
 }
 
 #define FOR_3D(i1,i2,i3,I1,I2,I3) \
@@ -436,7 +455,110 @@ getUserDefinedKnownSolution(real t, CompositeGrid & cg, int grid, RealArray & ua
     }
     
   }
+  else if ( userKnownSolution == "fibShear" ) {
+    // --------------------------------------------------------------------------------
+    // ------ Exact solution for a parallel flow shearing a bulk elastic solid --------
+    //  \bar{u}_1(y,t) = amp         exp(i omega t) (A cos(ks y) + B sin( ks y))
+    //      {v}_1(y,t) = amp i omega exp(i omega t) (C exp(kf y) + D exp(-kf y))
+    //              ks = omega / cs
+    //              kf = sqrt(i rho omega / mu)
+    //  Parameters:
+    //  amp    : maximum amplitude of the displacement 
+    //  omega  : time frequency of solution 
+    //  H,Hbar : Height of fluid and solid domains
+    //  rhoBar,lambaBar,muBar : solid density and Lame parameters
+    // --------------------------------------------------------------------------------
 
+    const real & omegar = rpar[0];
+    const real & omegai = rpar[1];
+    const real & ar     = rpar[2];
+    const real & ai     = rpar[3];
+    const real & br     = rpar[4];
+    const real & bi     = rpar[5];
+    const real & cr     = rpar[6];
+    const real & ci     = rpar[7];
+    const real & dr     = rpar[8];
+    const real & di     = rpar[9];
+    const real & ksr    = rpar[10];
+    const real & ksi    = rpar[11];
+    const real & kfr    = rpar[12];
+    const real & kfi    = rpar[13];
+    const real & amp    = rpar[14];
+
+    printF("--SM-- userDefinedKnownSolution: fibShear, t=%9.3e, "
+	   "rhoBar=%9.3e, muBar=%9.3e\n",t,rho,mu);
+
+    // const real cs2 = sqrt((muBar)/rhoBar);
+
+    // sanity checks
+    // assert( cs==cs2 ); 
+    // assert( mu==muBar );
+    assert( numberOfTimeDerivatives==0 );
+
+
+    // fill in the solution
+    MappedGrid & mg = cg[grid];
+    mg.update(MappedGrid::THEvertex | MappedGrid::THEcenter);
+
+    const realArray & center = mg.center();
+    RealArray & u = ua;
+
+    real u0_r = amp*exp(-omegai*t)*cos(omegar*t);
+    real u0_i = amp*exp(-omegai*t)*sin(omegar*t);
+    real v0_r =  omegai*u0_r + omegar*u0_i;
+    real v0_i = -omegar*u0_r + omegai*u0_i;
+
+    int i1,i2,i3;
+    FOR_3D(i1,i2,i3,I1,I2,I3)
+    {
+      // Reference coordinates:
+      // const real x= center(i1,i2,i3,0);
+      const real y= center(i1,i2,i3,1);
+      
+      // Evaluate the solution for shear flow (FSI)
+      //
+      // u1  = amp    ( A cos(ks y) + B sin(ks y)) exp(-i omega t)
+      // u1y = amp ks (-A sin(ks y) + B cos(ks y)) exp(-i omega t)
+      //
+      // Return:
+      //  ur  = real( A cos(ks y) + B sin(ks y) )
+      //  ui  = imag( A cos(ks y) + B sin(ks y) )
+      //  uyr = real( ks (-A sin(ks y) + B cos(ks y)) )
+      //  uyi = imag( ks (-A sin(ks y) + B cos(ks y)) )
+
+      real ur,ui,vr,vi,uyr,uyi;
+      // evalFibShearSolid(ksr,ksi,ar,ai,br,bi,y,ur,ui,uyr,uyi);
+      evalFibShearSolidFull(ksr,ksi,ar,ai,br,bi,y,t,ur,ui,vr,vi,uyr,uyi,omegar,omegai);
+
+      // u(i1,i2,i3,u1c)=u0_r*ur-u0_i*ui;
+      u(i1,i2,i3,u1c)=amp*ur;
+      u(i1,i2,i3,u2c)=0.0;
+
+
+      // velocities
+      if( assignVelocity )
+      {
+        // u(i1,i2,i3,v1c)=v0_r*ur-v0_i*ui;
+        u(i1,i2,i3,v1c)=amp*vr;
+        u(i1,i2,i3,v2c)=0.;
+      }
+      
+      // stresses
+      if( assignStress )
+      {
+	u(i1,i2,i3,s11c)=0.;
+	// u(i1,i2,i3,s12c)=mu*(u0_r*uyr-u0_i*uyi);
+	// u(i1,i2,i3,s21c)=mu*(u0_r*uyr-u0_i*uyi);
+	u(i1,i2,i3,s22c)=0.;
+
+	u(i1,i2,i3,s12c)=amp*mu*uyr;
+	u(i1,i2,i3,s21c)=amp*mu*uyr;
+      }
+      
+    }
+
+
+  }
   else 
   {
     // look for a solution in the base class

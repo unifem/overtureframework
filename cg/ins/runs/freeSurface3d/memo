@@ -1,0 +1,27 @@
+*************************************
+*********  Nov 12, 2017
+
+Check new grids:
+Still issue with ghost points and double periodic
+
+make grids 
+
+cgins freeSurface3d -g=freeSurfaceGrid3de1p.order2.hdf -nu=.05 -tf=2. -tp=.001 -model=ins -surfaceTension=.0 -ad2=1 -go=halt -amp1=0.0 -amp2=.5 -surfacePredictor="leap-frog"
+
+*************************************
+*********  Nov 8, 2017
+
+Created periodic grids
+cgins freeSurface3d -g=freeSurfaceGrid3de2p.order2.ml1.hdf -nu=.05 -tf=2. -tp=.001 -model=ins -surfaceTension=.0 -ad2=1 -go=halt -amp1=0.0 -amp2=.5 -surfacePredictor="leap-frog"
+
+*************************************
+*********  Oct 17, 2017
+
+cgins freeSurface3d -g=freeSurfaceGrid3de2.order2.ml1.hdf -nu=.05 -tf=2. -tp=.001 -model=ins -surfaceTension=.0 -ad2=1 -go=halt -amp1=0.0 -amp2=.5 -surfacePredictor="leap-frog"
+
+
+*************************************
+*********  Oct 6, 2017
+
+cgins freeSurface3d -g=freeSurfaceGrid3de2.order2.ml1.hdf -nu=.05 -tf=2. -tp=.01 -model=ins -surfaceTension=.0 -ad2=1 -go=halt 
+

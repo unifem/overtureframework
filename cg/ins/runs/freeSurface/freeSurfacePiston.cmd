@@ -46,10 +46,13 @@ $surfaceTension=.1; $pAtmosphere=0.;
 $smoothSurface=1; $numberOfSurfaceSmooths=3;
 $freeSurfaceOption="none"; 
 $generatePastHistory=4;
+# Decouple implicit BCs (e.g. free surface) so we can solve scalar velociity implicit equations
+$decoupleImplicitBoundaryConditions=0;
 # 
 $k=2.0; $amp=1.0e-01; $amp1=0.0; $amp2=0.0;
 $predictorOrder=0; # 0=use default 
 $useNewTimeSteppingStartup=1;  # this will regenerate past time grids and solutions
+$surfacePredictor="leap-frog";
 #
 # ----------------------------- get command line arguments ---------------------------------------
 GetOptions( "g=s"=>\$grid,"tf=f"=>\$tFinal,"degreex=i"=>\$degreex, "degreet=i"=>\$degreet, "model=s"=>\$model,\
@@ -63,7 +66,9 @@ GetOptions( "g=s"=>\$grid,"tf=f"=>\$tFinal,"degreex=i"=>\$degreex, "degreet=i"=>
   "smoothSurface=i"=>\$smoothSurface,"numberOfSurfaceSmooths=i"=>\$numberOfSurfaceSmooths,\
   "freeSurfaceOption=s"=>\$freeSurfaceOption,"rtol=f"=>\$rtol,"atol=f"=>\$atol,"rtolp=f"=>\$rtolp,"atolp=f"=>\$atolp,\
   "k=f"=>\$k,"amp=f"=>\$amp,"amp1=f"=>\$amp1,"amp2=f"=>\$amp2, "predictorOrder=s"=>\$predictorOrder,\
-  "useNewTimeSteppingStartup=i"=>\$useNewTimeSteppingStartup );
+  "useNewTimeSteppingStartup=i"=>\$useNewTimeSteppingStartup,\
+  "decoupleImplicitBoundaryConditions=i"=>\$decoupleImplicitBoundaryConditions,\
+  "surfacePredictor=s"=>\$surfacePredictor );
 # -------------------------------------------------------------------------------------------------
 $kThermal=$nu/$Prandtl; 
 if( $solver eq "best" ){ $solver="choose best iterative solver"; }
@@ -135,6 +140,7 @@ if( $tz eq "turn off twilight zone" ){ $useKnown=1; }else{ $useKnown=0; }
         generate past history $generatePastHistory
         # turn on surface smoothing:
         smooth surface $smoothSurface
+	free surface predictor $surfacePredictor
         use known solution for initial conditions $useKnown
         number of surface smooths: $numberOfSurfaceSmooths
 	past time dt: $tPlot
@@ -175,6 +181,8 @@ $cmds
     OBPDE:ad21,ad22  $ad22, $ad22
     OBPDE:divergence damping  $cdv 
   done
+# Decouple implicit BCs (e.g. free surface) so we can solve scalar velociity implicit equations
+  OBPDE:decouple implicit boundary conditions $decoupleImplicitBoundaryConditions
 #
   maximum number of iterations for implicit interpolation
      10 

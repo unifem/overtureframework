@@ -111,6 +111,9 @@ $grid
 # 
 # choose the time stepping:
   $ts
+# -- testing: 
+$useNewTimeSteppingStartup=1; 
+use new time-stepping startup $useNewTimeSteppingStartup
 # 
 #****************************
 if( $tz eq "turn off twilight zone" ){ $useKnown=1; }else{ $useKnown=0; }

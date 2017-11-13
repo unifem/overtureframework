@@ -10,3 +10,6 @@ bubble:
 	$(ogen) -noplot freeSurfaceDropGrid -interp=e -radx=1. -rady=1. -prefix=oscillatingBubbleGrid -factor=8
 	$(ogen) -noplot freeSurfaceDropGrid -interp=e -radx=1. -rady=1. -prefix=oscillatingBubbleGrid -factor=16
 
+ins:
+	cd ../../; \
+	make

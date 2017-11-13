@@ -165,8 +165,10 @@ addGrid( const realArray & x, real t )
       {
         if( true || debug & 4 )
           printF("--GE-- addGrid: REPLACING current grid at t=%8.2e\n",t);
-	gridList[current]=x;
-
+	// gridList[current]=x;
+	// replace existing element:
+	gridList.deleteElement(current);
+	gridList.addElement(x,current);
 	return 1;
       }
       
@@ -181,7 +183,6 @@ addGrid( const realArray & x, real t )
   }
 
   current = (current +1) % maximumNumberOfTimeLevels;
-  
   
   if( numberOfTimeLevels<maximumNumberOfTimeLevels )
   {

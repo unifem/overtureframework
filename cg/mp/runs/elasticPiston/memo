@@ -1,4 +1,42 @@
 *****************************************
+***********  Oct 29, 2017
+
+cgmp elasticShear -g=elasticPistonGride2.order2p.hdf -addedMass=1 -scf=.1 -nu=.01 -tp=.01 -tf=2 -smVariation=g -debug=1 -debug=3 -tsINS=im -go=halt -cfl=.9
+
+*****************************************
+***********  Sept 20, 2017
+
+movie
+cgmp elasticPiston -g=elasticPistonGride2.order2p.hdf -addedMass=1 -scf=.1 -nu=.01 -tp=.01 -tf=2 -smVariation=g -debug=1 -debug=3 -tsINS=im -go=halt -cfl=.9
+
+- Nt does not double every grid doubling
+- Instability for mu=.1
+
+
+
+cgmp elasticPiston -g=elasticPistonGride2.order2p.hdf -addedMass=1 -scf=.1 -nu=.01 -tp=.01 -smVariation=g -debug=1 -debug=3 -tsINS=im -go=halt -tf=.25 -cfl=.9
+
+mu = .1, cfl = .4
+     t    err(p)   err(u)   err(v)    div       uMax     dt       cpu    (76 steps)
+   0.250 8.44e-06 1.49e-16 5.52e-07 1.10e-08  9.29e-01 3.33e-03 6.13e+00
+     t    err(p)   err(u)   err(v)    div       uMax     dt       cpu    (151 steps)
+   0.250 1.77e-06 1.80e-16 9.41e-08 4.23e-09  9.29e-01 1.67e-03 9.82e+00
+     t    err(p)   err(u)   err(v)    div       uMax     dt       cpu    (276 steps)
+   0.250 3.87e-07 4.26e-16 9.88e-10 1.17e-09  9.29e-01 9.09e-04 2.33e+01
+instability on last
+
+
+mu = .01, cfl = .9
+     t    err(p)   err(u)   err(v)    div       uMax     dt       cpu    (51 steps)
+   0.250 1.08e-05 5.30e-16 9.60e-07 2.11e-07  9.29e-01 5.00e-03 4.70e+00 
+     t    err(p)   err(u)   err(v)    div       uMax     dt       cpu    (76 steps)
+   0.250 3.64e-06 6.15e-16 7.31e-07 1.38e-07  9.29e-01 3.33e-03 6.05e+00 
+     t    err(p)   err(u)   err(v)    div       uMax     dt       cpu    (126 steps)
+   0.250 1.20e-06 5.83e-16 2.97e-07 4.27e-08  9.29e-01 2.00e-03 1.19e+01
+     t    err(p)   err(u)   err(v)    div       uMax     dt       cpu    (251 steps)
+   0.250 2.91e-07 7.61e-16 7.53e-08 6.63e-09  9.29e-01 1.00e-03 9.00e+01 
+
+*****************************************
 ***********  Thurs July 13, 2017
 
 START ON AMP VELOCITY BC 
@@ -7,6 +45,8 @@ $cgmpx -noplot elasticPiston -g=elasticPistonGride2.order2p.hdf -addedMass=1 -sc
 
 
 $cgmpx elasticPiston -g=elasticPistonGride2.order2p.hdf -addedMass=1 -scf=.1 -nu=.1 -tp=.01 -tf=2 -smVariation=g -debug=1 -debug=3 -tsINS=im -go=halt
+
+
 
 ============= Cgsm time-step info for domain 0 (solidDomain)(solid) steps=2==================
 -->t=1.0000e-02 dt=5.0e-03 maxNorm errors:[3.3209e-17,2.6266e-06,3.7731e-07,1.6638e-17,1.6638e-17,6.7701e-07,8.6811e-20,2.0174e-07,], maxNorm(u):[3.32e-17,4.95e-01,1.14e-03,1.66e-17,1.66e-17,3.42e-03,8.68e-20,4.95e-03,]
@@ -26,11 +66,11 @@ $cgmpx elasticPiston -g=elasticPistonGride2.order2p.hdf -addedMass=1 -scf=.1 -nu
 
 G8 - Wiggles on solid at interface --> OK if nu=.01 
 $cgmpx radialElasticPiston -g=radialElasticPistonGride8.order2.hdf -addedMass=1 -scf=1 -nu=.05 -tp=.01 -tf=2 -smVariation=g -debug=1 -tsINS=im -cdv=1 -smoothInterface=0 -go=halt
-
+cgmp radialElasticPiston -g=radialElasticPistonGride8.order2.hdf -addedMass=1 -scf=1 -nu=.05 -tp=.01 -tf=2 -smVariation=g -debug=1 -tsINS=im -cdv=1 -smoothInterface=0 -go=halt
 
 G4 -- OK
 $cgmpx radialElasticPiston -g=radialElasticPistonGride4.order2.hdf -addedMass=1 -scf=1 -nu=.05 -tp=.01 -tf=2 -smVariation=g -debug=1 -tsINS=im -cdv=1 -smoothInterface=0 -go=halt
-
+cgmp radialElasticPiston -g=radialElasticPistonGride4.order2.hdf -addedMass=1 -scf=1 -nu=.05 -tp=.01 -tf=2 -smVariation=g -debug=1 -tsINS=im -cdv=1 -smoothInterface=0 -go=halt
 
 *****************************************
 ***********  Sunday July 9, 2017

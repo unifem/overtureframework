@@ -1370,6 +1370,11 @@ c===============================================================================
            wx = ux23(i1,i2,i3,wc)
            wy = uy23(i1,i2,i3,wc)
            wz = uz23(i1,i2,i3,wc)
+           ! write(*,'("i1,i2,i3=",3i3)') i1,i2,i3
+           ! write(*,'("ux,uy,uz=",e12.3,e12.3,e12.3)') ux,uy,uz
+           ! write(*,'("vx,vy,vz=",e12.3,e12.3,e12.3)') vx,vy,vz
+           ! write(*,'("wx,wy,wz=",e12.3,e12.3,e12.3)') wx,wy,wz
+           ! write(*,'("n1,n2,n3=",e12.3,e12.3,e12.3)') an1,an2,an3
            ! divergence 
            div=ux+vy+wz
            ! traction vector = [tvx,tvy,tvz] (without mu)
@@ -1515,6 +1520,11 @@ c===============================================================================
             wz = uz23(i1,i2,i3,wc)
             ! divergence 
             div=ux+vy+wz
+            ! write(*,'("i1,i2,i3=",3i3)') i1,i2,i3
+            ! write(*,'("ux,uy,uz=",e12.3,e12.3,e12.3)') ux,uy,uz
+            ! write(*,'("vx,vy,vz=",e12.3,e12.3,e12.3)') vx,vy,vz
+            ! write(*,'("wx,wy,wz=",e12.3,e12.3,e12.3)') wx,wy,wz
+            ! write(*,'("n1,n2,n3=",e12.3,e12.3,e12.3)') an1,an2,an3
             ! traction vector = [tvx,tvy,tvz] (without mu)
             tvx = (2.*ux)*an1 + (uy+vx)*an2 + (uz+wx)*an3
             tvy = (uy+vx)*an1 + (2.*vy)*an2 + (vz+wy)*an3

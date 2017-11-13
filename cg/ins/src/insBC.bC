@@ -658,7 +658,8 @@ applyBoundaryConditions(const real & t, realMappedGridFunction & u,
             parameters.dbase.get<Parameters::KnownSolutionsEnum >("knownSolution");
   
   realArray *uKnownPointer=NULL;
-  if( knownSolution!=InsParameters::noKnownSolution )
+  //if( knownSolution!=InsParameters::noKnownSolution )
+  if( (knownSolution!=InsParameters::noKnownSolution) && ((assignDirichletBoundaryCondition) || (assignInflowWithPressureAndTangentialVelocityGiven)) )
   {
     int extra=2;
     Index I1,I2,I3;

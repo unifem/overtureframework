@@ -2274,8 +2274,6 @@ initializePast( real time00, real dt00, CompositeGrid & cg)
     
   } // end providePastHistory
   
-  
-
   // *********************************************************************
   // **************** Generate past time grids ***************************
   // *********************************************************************
@@ -2333,7 +2331,7 @@ initializePast( real time00, real dt00, CompositeGrid & cg)
 
           // const RealArray & xBeam = pBeamModel->position(); // current degree's of freedom **FIX ME**
 
-  	  ::display(x0,"--DBM-- initializePast: x0 (initial state)","%9.3e ");
+          ::display(x0,"--DBM-- initializePast: x0 (initial state)","%9.3e ");
 
 	  RealArray xPast;
 	  xPast.redim(x0);
@@ -2366,7 +2364,7 @@ initializePast( real time00, real dt00, CompositeGrid & cg)
             // free surface known solutions are defined here: 
             parameters.getUserDefinedDeformingBodyKnownSolution( 
               bodyNumber,Parameters::boundaryPosition, pastTime, gridToMove, mg,Ib1,Ib2,Ib3,Rx,xPast );
-
+	    
             ::display(xPast,"--DBM-- initializePast: replace x0 with xPast","%9.3e ");
 
             if (( step==1 ) || ( step==0 )) // t=-dt or t=0
@@ -2561,8 +2559,12 @@ initializePast( real time00, real dt00, CompositeGrid & cg)
 
     	  int axisp = (axisToMove + 1) % numberOfDimensions;  // axis in the tangential direction 
 	  Range Rx=numberOfDimensions;
-	  xPast.reshape(xPast.dimension(axisp),Rx);
-	
+	  Index I1=xPast.dimension(0), I2=xPast.dimension(1), I3=xPast.dimension(2);
+	  if( numberOfDimensions==2 )
+	    xPast.reshape(I1,numberOfDimensions);
+	  else 
+	    xPast.reshape(I1,I2,numberOfDimensions);
+
 #ifdef USE_PPP
 	  Overture::abort("fix me");
 #else
@@ -2571,7 +2573,7 @@ initializePast( real time00, real dt00, CompositeGrid & cg)
 	  startCurve.interpolate(xPast,option,Overture::nullRealDistributedArray(),degree,
 				 (NurbsMapping::ParameterizationTypeEnum)boundaryParameterization,numGhost);
 #endif
-	
+
           Index Ib1,Ib2,Ib3;
 	  getBoundaryIndex(cg[gridToMove].gridIndexRange(),sideToMove,axisToMove,Ib1,Ib2,Ib3,numGhost);
 	  xPast.reshape(Ib1,Ib2,Ib3,Rx);
@@ -2861,7 +2863,13 @@ getPastTimeGrid(  real pastTime , CompositeGrid & cg )
 
       int axisp = (axisToMove + 1) % numberOfDimensions;  // axis in the tangential direction 
       Range Rx=numberOfDimensions;
-      xPast.reshape(xPast.dimension(axisp),Rx);
+      Index I1=xPast.dimension(0), I2=xPast.dimension(1), I3=xPast.dimension(2);
+      if( numberOfDimensions==2 )
+	xPast.reshape(I1,numberOfDimensions);
+      else 
+	xPast.reshape(I1,I2,numberOfDimensions);
+
+
 	
 #ifdef USE_PPP
       Overture::abort("fix me");
@@ -6379,12 +6387,14 @@ buildFreeSurfaceOptionsDialog(DialogData & dialog )
     // -- set defaults ---
     for( int i=0; i<10; i++ ) { par[i]=0.; } // 
 
-    deformingBodyDataBase.put<aString>("surfaceGridMotion","free motion");
+    deformingBodyDataBase.put<aString>("surfaceGridMotion","free motion"  );
+    deformingBodyDataBase.put<aString>("surfacePredictor" ,"forward euler");
   }
   
   real *par = deformingBodyDataBase.get<real [10]>("freeSurfaceParameters");
   // real & surfaceTension = par[0];
   aString & surfaceGridMotion = deformingBodyDataBase.get<aString>("surfaceGridMotion");
+  aString & surfacePredictor  = deformingBodyDataBase.get<aString>("surfacePredictor" );
 
   dialog.setOptionMenuColumns(1);
   aString surfaceGridMotionCommands[] = { "free motion",
@@ -6392,6 +6402,14 @@ buildFreeSurfaceOptionsDialog(DialogData & dialog )
 					  "restrict to y direction",
 					  "restrict to z direction",
 					  "" };
+  aString surfacePredictorCommands[]  = { "forward euler",
+					  "leap-frog",
+					  "" };
+  aString surfacePredictorCmd[] = { "free surface predictor forward euler",
+				    "free surface predictor leap-frog", 
+				    ""};
+
+  // --- set default grid motion
   int option = -1;
   for( int i=0; surfaceGridMotionCommands[i]!=""; i++ )
   {
@@ -6411,6 +6429,24 @@ buildFreeSurfaceOptionsDialog(DialogData & dialog )
 
   dialog.addOptionMenu("Surface Grid Motion:",surfaceGridMotionCommands,surfaceGridMotionCommands,option );
 
+  // --- set default surface predictor
+  option = -1;
+  for( int i=0; surfacePredictorCommands[i]!=""; i++ )
+  {
+    if( surfacePredictor==surfacePredictorCommands[i] )
+    {
+      option=i;
+      break;
+    }
+  }
+  if( option==-1 )
+  {
+    printF("ERROR: unknown surfacePredictor=[%s], setting to `forward euler'\n",(const char*)surfacePredictor);
+    option=0;
+    surfacePredictor=surfacePredictorCommands[option];
+  }
+
+  dialog.addOptionMenu("Surface Predictor:",  surfacePredictorCmd, surfacePredictorCommands,option );
 
   // --- Boundary conditions are stored here:
   BcArray & boundaryCondition = deformingBodyDataBase.get<BcArray>("boundaryCondition");
@@ -6486,7 +6522,7 @@ getFreeSurfaceOption(const aString & answer,
   real *par = deformingBodyDataBase.get<real [10]>("freeSurfaceParameters");
   //  real & surfaceTension = par[0];
   aString & surfaceGridMotion = deformingBodyDataBase.get<aString>("surfaceGridMotion");
-
+  aString & surfacePredictor = deformingBodyDataBase.get<aString>("surfacePredictor");
   BcArray & boundaryCondition = deformingBodyDataBase.get<BcArray>("boundaryCondition");
 
   if( answer=="help" )
@@ -6500,6 +6536,7 @@ getFreeSurfaceOption(const aString & answer,
            "  conforms to the  end conditions of the geometry. For example, the surface\n"
            "  grid can be restricted to move in the y-direction if the sides of the surface grid\n"
            "  need to remain at constant values of x and z. \n"
+	   "surfacePredictor: the time stepping scheme used to predict the free surface motion \n"
            "-----------------------------------------------------------------------------------\n"
       );
   }
@@ -6522,6 +6559,12 @@ getFreeSurfaceOption(const aString & answer,
     printF("Setting the surface grid motion to %s\n",(const char*)surfaceGridMotion);
   }
   
+  else if( answer=="free surface predictor forward euler" ||
+	   answer=="free surface predictor leap-frog" )
+    {
+      surfacePredictor=answer;
+      printF("Setting the surface predictor to %s\n",(const char*)surfacePredictor);
+    }
   else if( answer.matches("BC left: ") ||
            answer.matches("BC right: ") ||
            answer.matches("BC bottom: ") ||
@@ -7400,6 +7443,12 @@ update(CompositeGrid & cg, GenericGraphicsInterface & gi )
     {
       elasticBeamOptionsDialog.hideSibling(); 
     }
+    else if( answer=="surface predictor" )
+      {
+
+	printF("this is the answer: %s \n",(const char*)answer);
+	freeSurfaceOptionsDialog.hideSibling(); 
+      }
     else
     {
       printF("DeformingBodyMotion::update:ERROR:unknown response=[%s]\n",(const char*)answer);

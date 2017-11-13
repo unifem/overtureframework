@@ -44,8 +44,13 @@ $rtol=1.e-4; $atol=1.e-5;    # tolerances for the implicit solver
 $surfaceTension=.1; $pAtmosphere=0.;
 $smoothSurface=0; $numberOfSurfaceSmooths=3;
 $freeSurfaceOption="none"; 
+# Decouple implicit BCs (e.g. free surface) so we can solve scalar velociity implicit equations
+$decoupleImplicitBoundaryConditions=0;
 # 
 $amp=1; $casenumber=3;
+$predictorOrder=0; # 0=use default 
+$useNewTimeSteppingStartup=1;  # this will regenerate past time grids and solutions
+$surfacePredictor="leap-frog";
 #
 # ----------------------------- get command line arguments ---------------------------------------
 GetOptions( "g=s"=>\$grid,"tf=f"=>\$tFinal,"degreex=i"=>\$degreex, "degreet=i"=>\$degreet, "model=s"=>\$model,\
@@ -58,7 +63,10 @@ GetOptions( "g=s"=>\$grid,"tf=f"=>\$tFinal,"degreex=i"=>\$degreex, "degreet=i"=>
   "surfaceTension=f"=>\$surfaceTension,"pAtmosphere=f"=>\$pAtmosphere,"pGrad=f"=>\$pGrad,\
   "smoothSurface=i"=>\$smoothSurface,"numberOfSurfaceSmooths=i"=>\$numberOfSurfaceSmooths,\
   "freeSurfaceOption=s"=>\$freeSurfaceOption,"rtol=f"=>\$rtol,"atol=f"=>\$atol,"rtolp=f"=>\$rtolp,"atolp=f"=>\$atolp,\
-  "amp=f"=>\$amp,"casenumber=i"=>\$casenumber,"projectForMoving=i"=>\$projectForMoving );
+  "amp=f"=>\$amp,"casenumber=i"=>\$casenumber,"projectForMoving=i"=>\$projectForMoving,\
+  "useNewTimeSteppingStartup=i"=>\$useNewTimeSteppingStartup,\
+  "decoupleImplicitBoundaryConditions=i"=>\$decoupleImplicitBoundaryConditions,\
+  "surfacePredictor=s"=>\$surfacePredictor );
 # -------------------------------------------------------------------------------------------------
 $kThermal=$nu/$Prandtl; 
 if( $solver eq "best" ){ $solver="choose best iterative solver"; }
@@ -118,6 +126,9 @@ $grid
 # 
 # choose the time stepping:
   $ts
+# -- testing: 
+$useNewTimeSteppingStartup=1; 
+use new time-stepping startup $useNewTimeSteppingStartup
 # 
 #**************************** START: DEFINE THE DEFORMING GRID *********************
 $generatePastHistory=1; # fix this for "advect-body" motion
@@ -136,11 +147,14 @@ if( $tz eq "turn off twilight zone" ){ $useKnown=1; }else{ $useKnown=0; }
         velocity order of accuracy\n $gridEvolutionVelocityAccuracy
         acceleration order of accuracy\n $gridEvolutionAccelerationAccuracy
         generate past history $generatePastHistory
-        use known solution for initial conditions $useKnown
-        number of past time levels: $numberOfPastTimeLevels
+        #use known solution for initial conditions $useKnown
+	#number of past time levels: $numberOfPastTimeLevels
         # optionally turn on surface smoothing:
         smooth surface $smoothSurface
+	free surface predictor $surfacePredictor
+        use known solution for initial conditions $useKnown
         number of surface smooths: $numberOfSurfaceSmooths
+	past time dt: $tPlot
       done
       if( $deformingGrid =~ /^share=/ ){ $deformingGrid =~ s/^share=//; \
                  $deformingGrid="choose grids by share flag\n $deformingGrid"; };
@@ -178,6 +192,8 @@ $cmds
     OBPDE:ad21,ad22  $ad22, $ad22
     OBPDE:divergence damping  $cdv 
   done
+# Decouple implicit BCs (e.g. free surface) so we can solve scalar velociity implicit equations
+  OBPDE:decouple implicit boundary conditions $decoupleImplicitBoundaryConditions
 #
   maximum number of iterations for implicit interpolation
      10 
@@ -201,25 +217,15 @@ $cmds
 # 
   boundary conditions
     $u=.0; $T=1.; 
-    # all=slipWall
-    # annulus(0,1)=noSlipWall, uniform(T=$T)
-    all=$bcn, uniform(T=$T)
-    #     all=slipWall, uniform(T=$T)
-    # $backGround=slipWall
-   bcNumber4=freeSurfaceBoundaryCondition
-# 
-     # pressure pulse: p = .5*pMax*[ 1 - cos(2*pi*t/tMax) ],  for 0 <=t<=tMax, p=0 other-wise
-    $pMax=.1; # =.1; 
-    if( $freeSurfaceOption eq "tractionForce" ){ $cmd="bcNumber4=freeSurfaceBoundaryCondition, userDefinedBoundaryData\n pressure pulse\n   $pMax 1 \n  done"; }else{ $cmd="bcNumber4=freeSurfaceBoundaryCondition"; }
+    all=$bcn
+    #
     $cmd
-# 
-    # bcNumber1=inflowWithVelocityGiven, uniform(u=$u,T=0.)
-    # bcNumber2=outflow
-    # bcNumber1=symmetry
-    # bcNumber2=symmetry
     bcNumber1=slipWall
     bcNumber2=slipWall
+    bcNumber3=slipWall
     # bcNumber3=inflowWithPressureAndTangentialVelocityGiven, uniform(p=0.)
+    bcNumber4=freeSurfaceBoundaryCondition
+    #bcNumber4=dirichletBoundaryCondition
   done
 # 
   initial conditions

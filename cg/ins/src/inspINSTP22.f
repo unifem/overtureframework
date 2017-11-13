@@ -73,6 +73,8 @@
          real nu,dt,advectionCoefficient,advectCoeff,inflowPressure,a1,
      & an(0:2)
          real an1,an2,an3,aNormi,epsx, nTauN,mu,fluidDensity,t
+         real an1r,an2r,an3r,an1s,an2s,an3s,an1t,an2t,an3t
+         real ayrys
          real gravity(0:2),thermalExpansivity,adcBoussinesq
          real adSelfAdjoint2dR,adSelfAdjoint3dR,adSelfAdjoint2dC,
      & adSelfAdjoint3dC
@@ -111,14 +113,19 @@
          real ad21,ad22,ad41,ad42,cd22,cd42
          real adCoeffu,adCoeffv,adCoeffw,adCoeff2,adCoeff4
          ! -- variables for the free surface: 
-         real det,deti,detMin,detr,dets
+         real det,deti,detMin,detr,dets,dett
          real xr,yr,zr,xs,ys,zs, xt,yt,zt
-         real xrr,yrr,xss,yss
+         real xrr,yrr,zrr,xss,yss,zss,xtt,ytt,ztt
+         real xrs,yrs,zrs,xrt,yrt,zrt,xst,yst,zst
          real rxi,ryi,rzi, sxi,syi,szi, txi,tyi,tzi
          real rxr,ryr,rzr, sxr,syr,szr, txr,tyr,tzr
          real rxs,rys,rzs, sxs,sys,szs, txs,tys,tzs
          real rxt,ryt,rzt, sxt,syt,szt, txt,tyt,tzt
+         real axrr,ayrr,azrr, axsr,aysr,azsr, axtr,aytr,aztr
+         real axrs,ayrs,azrs, axss,ayss,azss, axts,ayts,azts
+         real axrt,ayrt,azrt, axst,ayst,azst, axtt,aytt,aztt
          real pAtmosphere,surfaceTension,meanCurvature
+         real aEi,aFi,aGi,aLi,aMi,aNi
          ! -- variables for boundary forcing (bcData)
          integer dim(0:1,0:2,0:1,0:2), addBoundaryForcing(0:1,0:2)
          real bcf0(0:*)
@@ -3635,17 +3642,21 @@ c===============================================================================
               !   H = mean-curvature = .5( 1/R_1 + 1/R_2)
               !       2 H = - div( normal )
               !
+              !  E = xr .xr,   F = xr .xs,   G = xs .xs
+              !  L = xrr.n ,   M = xrs.n ,   N = xvv.n
+              !  2 H = (E*N - 2*F*M + G*L) / (E*G - F^2)
+              !
               if( addBoundaryForcing(side,axis).ne.0 .and. 
      & initialConditionsAreBeingProjected.eq.0 )then
                 write(*,'(" --inspf-- add RHS to traction (or free 
      & surface) BC")')
+                write(*,'("nd = ",1i3)') nd
               end if
               is = 1 -2*side ! for normal calculation to get outward normal
               do i3=n3a,n3b
               do i2=n2a,n2b
               do i1=n1a,n1b
                if( mask(i1,i2,i3).ne.0 )then
-                 ! FINISH ME -- ADD viscous stress contribution:
                  ! -- Compute the mean curvature --
                  !   Note: curvature is zero on a rectangular grid, so skip this part:
                  if( surfaceTension.ne.0. .and. 
@@ -3672,8 +3683,8 @@ c===============================================================================
                       yss = ( rxs*det - rxi*dets )*( deti**2 )
                       meanCurvature = .5*( xs*yss - ys*xss )/( (xs**2 +
      &  ys**2)**(1.5) )
-                  write(*,'(" i1,i2=",2i3," meanCurvature=",f6.2)') i1,
-     & i2,meanCurvature
+                      write(*,'(" i1,i2=",2i3," meanCurvature=",f6.2)')
+     &  i1,i2,meanCurvature
                     else if( axis.eq.1 )then
                       ! top or bottom side : tangential direction is "r"
                       rxr = rsxyr2(i1,i2,i3,0,0)
@@ -3703,17 +3714,223 @@ c===============================================================================
                     u0y =  uy22(i1,i2,i3,uc)
                     v0x =  ux22(i1,i2,i3,vc)
                     v0y =  uy22(i1,i2,i3,vc)
+                    ! write(*,'("ux,uy=",e12.3,e12.3)') u0x,u0y
+                    ! write(*,'("vx,vy=",e12.3,e12.3)') v0x,v0y
                     nTauN = 2.*mu*( u0x*an1**2 + (u0y+v0x)*an1*an2 + 
      & v0y*an2**2 )
                   else if( nd.eq.3 )then
-                    ! finish me 
-                    stop 8256
+                    ! ---- compute mean curvature ------
+                    ! 
+                    !   H = mean-curvature = .5( 1/R_1 + 1/R_2)
+                    !       2 H = - div( normal )
+                    !
+                    !  E = xr .xr,   F = xr .xs,   G = xs .xs
+                    !  L = xrr.n ,   M = xrs.n ,   N = xvv.n
+                    !  2 H = (E*N - 2*F*M + G*L) / (E*G - F^2)
+                    !
+                    ! todo, not all these computations are needed
+                    ! get components of jacobian
+                    rxi= rsxy(i1,i2,i3,0,0)
+                    ryi= rsxy(i1,i2,i3,0,1)
+                    rzi= rsxy(i1,i2,i3,0,2)
+                    sxi= rsxy(i1,i2,i3,1,0)
+                    syi= rsxy(i1,i2,i3,1,1)
+                    szi= rsxy(i1,i2,i3,1,2)
+                    txi= rsxy(i1,i2,i3,2,0)
+                    tyi= rsxy(i1,i2,i3,2,1)
+                    tzi= rsxy(i1,i2,i3,2,2)
+                    ! get r deriv of jacobian
+                    rxr= rsxyr2(i1,i2,i3,0,0)
+                    ryr= rsxyr2(i1,i2,i3,0,1)
+                    rzr= rsxyr2(i1,i2,i3,0,2)
+                    sxr= rsxyr2(i1,i2,i3,1,0)
+                    syr= rsxyr2(i1,i2,i3,1,1)
+                    szr= rsxyr2(i1,i2,i3,1,2)
+                    txr= rsxyr2(i1,i2,i3,2,0)
+                    tyr= rsxyr2(i1,i2,i3,2,1)
+                    tzr= rsxyr2(i1,i2,i3,2,2)
+                    ! get s deriv of jacobian
+                    rxs= rsxys2(i1,i2,i3,0,0)
+                    rys= rsxys2(i1,i2,i3,0,1)
+                    rzs= rsxys2(i1,i2,i3,0,2)
+                    sxs= rsxys2(i1,i2,i3,1,0)
+                    sys= rsxys2(i1,i2,i3,1,1)
+                    szs= rsxys2(i1,i2,i3,1,2)
+                    txs= rsxys2(i1,i2,i3,2,0)
+                    tys= rsxys2(i1,i2,i3,2,1)
+                    tzs= rsxys2(i1,i2,i3,2,2)
+                    ! get t deriv of jacobian
+                    rxt= rsxyt2(i1,i2,i3,0,0)
+                    ryt= rsxyt2(i1,i2,i3,0,1)
+                    rzt= rsxyt2(i1,i2,i3,0,2)
+                    sxt= rsxyt2(i1,i2,i3,1,0)
+                    syt= rsxyt2(i1,i2,i3,1,1)
+                    szt= rsxyt2(i1,i2,i3,1,2)
+                    txt= rsxyt2(i1,i2,i3,2,0)
+                    tyt= rsxyt2(i1,i2,i3,2,1)
+                    tzt= rsxyt2(i1,i2,i3,2,2)
+                    ! compute determinant
+                    det = rxi * syi * tzi - rxi * szi * tyi - ryi * 
+     & sxi * tzi + ryi * szi * txi + rzi * sxi * tyi - rzi * syi * txi
+                    deti= 1./det
+                    ! write(*,'("(x,y,z) = (",f20.16,f20.16,f20.16,")")') xy(i1,i2,i3,0),xy(i1,i2,i3,1),xy(i1,i2,i3,2)
+                    ! write(*,'("(rxi,ryi,rzi) = ",f20.16,f20.16,f20.16)') rxi,ryi,rzi
+                    ! write(*,'("(sxi,syi,szi) = ",f20.16,f20.16,f20.16)') sxi,syi,szi
+                    ! write(*,'("(txi,tyi,tzi) = ",f20.16,f20.16,f20.16)') txi,tyi,tzi
+                    ! write(*,'("(det,deti) = ",f20.16,f20.16)') det,deti
+                    ! get components of inverse jacobian
+                    xr= deti*(syi*tzi-szi*tyi)
+                    xs= deti*(-ryi*tzi+rzi*tyi)
+                    xt= deti*(ryi*szi-rzi*syi)
+                    yr= deti*(-sxi*tzi+szi*txi)
+                    ys= deti*(rxi*tzi-rzi*txi)
+                    yt= deti*(-rxi*szi+rzi*sxi)
+                    zr= deti*(sxi*tyi-syi*txi)
+                    zs= deti*(-rxi*tyi+ryi*txi)
+                    zt= deti*(rxi*syi-ryi*sxi)
+                    ! write(*,'("(xr,xs,xt) = ",f20.16,f20.16,f20.16)') xr,xs,xt
+                    ! write(*,'("(yr,ys,yt) = ",f20.16,f20.16,f20.16)') yr,ys,yt
+                    ! write(*,'("(zr,zs,zt) = ",f20.16,f20.16,f20.16)') zr,zs,zt
+                    ! get r derivatives of mapping terms 
+                    axrr = syi*tzr+syr*tzi-szi*tyr-szr*tyi
+                    axsr = -ryi*tzr-ryr*tzi+rzi*tyr+rzr*tyi
+                    axtr = ryi*szr+ryr*szi-rzi*syr-rzr*syi
+                    ayrr = -sxi*tzr-sxr*tzi+szi*txr+szr*txi
+                    aysr = rxi*tzr+rxr*tzi-rzi*txr-rzr*txi
+                    aytr = -rxi*szr-rxr*szi+rzi*sxr+rzr*sxi
+                    azrr = sxi*tyr+sxr*tyi-syi*txr-syr*txi
+                    azsr = -rxi*tyr-rxr*tyi+ryi*txr+ryr*txi
+                    aztr = rxi*syr+rxr*syi-ryi*sxr-ryr*sxi
+                    ! get s derivatives of mapping terms 
+                    axrs = syi*tzs+sys*tzi-szi*tys-szs*tyi
+                    axss = -ryi*tzs-rys*tzi+rzi*tys+rzs*tyi
+                    axts = ryi*szs+rys*szi-rzi*sys-rzs*syi
+                    ayrs = -sxi*tzs-sxs*tzi+szi*txs+szs*txi
+                    ayss = rxi*tzs+rxs*tzi-rzi*txs-rzs*txi
+                    ayts = -rxi*szs-rxs*szi+rzi*sxs+rzs*sxi
+                    azrs = sxi*tys+sxs*tyi-syi*txs-sys*txi
+                    azss = -rxi*tys-rxs*tyi+ryi*txs+rys*txi
+                    azts = rxi*sys+rxs*syi-ryi*sxs-rys*sxi
+                    ! get t derivatives of mapping terms 
+                    axrt = syi*tzt+syt*tzi-szi*tyt-szt*tyi
+                    axst = -ryi*tzt-ryt*tzi+rzi*tyt+rzt*tyi
+                    axtt = ryi*szt+ryt*szi-rzi*syt-rzt*syi
+                    ayrt = -sxi*tzt-sxt*tzi+szi*txt+szt*txi
+                    ayst = rxi*tzt+rxt*tzi-rzi*txt-rzt*txi
+                    aytt = -rxi*szt-rxt*szi+rzi*sxt+rzt*sxi
+                    azrt = sxi*tyt+sxt*tyi-syi*txt-syt*txi
+                    azst = -rxi*tyt-rxt*tyi+ryi*txt+ryt*txi
+                    aztt = rxi*syt+rxt*syi-ryi*sxt-ryt*sxi
+                    ! derivatives of the determinant
+                    detr = rxi*syi*tzr+rxi*syr*tzi-rxi*szi*tyr-rxi*szr*
+     & tyi+rxr*syi*tzi-rxr*szi*tyi-ryi*sxi*tzr-ryi*sxr*tzi+ryi*szi*
+     & txr+ryi*szr*txi-ryr*sxi*tzi+ryr*szi*txi+rzi*sxi*tyr+rzi*sxr*
+     & tyi-rzi*syi*txr-rzi*syr*txi+rzr*sxi*tyi-rzr*syi*txi
+                    dets = rxi*syi*tzs+rxi*sys*tzi-rxi*szi*tys-rxi*szs*
+     & tyi+rxs*syi*tzi-rxs*szi*tyi-ryi*sxi*tzs-ryi*sxs*tzi+ryi*szi*
+     & txs+ryi*szs*txi-rys*sxi*tzi+rys*szi*txi+rzi*sxi*tys+rzi*sxs*
+     & tyi-rzi*syi*txs-rzi*sys*txi+rzs*sxi*tyi-rzs*syi*txi
+                    dett = rxi*syi*tzt+rxi*syt*tzi-rxi*szi*tyt-rxi*szt*
+     & tyi+rxt*syi*tzi-rxt*szi*tyi-ryi*sxi*tzt-ryi*sxt*tzi+ryi*szi*
+     & txt+ryi*szt*txi-ryt*sxi*tzi+ryt*szi*txi+rzi*sxi*tyt+rzi*sxt*
+     & tyi-rzi*syi*txt-rzi*syt*txi+rzt*sxi*tyi-rzt*syi*txi
+                    ! compute second derivatives 
+                    xrr = deti*( -xr*detr + axrr )
+                    yrr = deti*( -yr*detr + ayrr )
+                    zrr = deti*( -zr*detr + azrr )
+                    xrs = deti*( -xr*dets + axrs )
+                    yrs = deti*( -yr*dets + ayrs )
+                    zrs = deti*( -zr*dets + azrs )
+                    xrt = deti*( -xr*dett + axrt )
+                    yrt = deti*( -yr*dett + ayrt )
+                    zrt = deti*( -zr*dett + azrt )
+                    xss = deti*( -xs*dets + axss )
+                    yss = deti*( -ys*dets + ayss )
+                    zss = deti*( -zs*dets + azss )
+                    xst = deti*( -xs*dett + axst )
+                    yst = deti*( -ys*dett + ayst )
+                    zst = deti*( -zs*dett + azst )
+                    xtt = deti*( -xt*dett + axtt )
+                    ytt = deti*( -yt*dett + aytt )
+                    ztt = deti*( -zt*dett + aztt )
+                    ! get normal and derivatives
+                     an1 = rsxy(i1,i2,i3,axis,0)
+                     an2 = rsxy(i1,i2,i3,axis,1)
+                     an3 = rsxy(i1,i2,i3,axis,2)
+                     aNormi = -is/max(epsx,sqrt(an1**2 + an2**2+ an3**
+     & 2))
+                     an1=an1*aNormi
+                     an2=an2*aNormi
+                     an3=an3*aNormi
+                    if( axis.eq.2 )then
+                      ! tangential directions are r and s
+                      ! calculate first fundamental form
+                      aEi = xr*xr+yr*yr+zr*zr
+                      aFi = xr*xs+yr*ys+zr*zs
+                      aGi = xs*xs+ys*ys+zs*zs
+                      ! write(*,'(" i1,i2,i3=",3i3," (xr,yr,zr)=",f20.16,f20.16,f20.16)') i1,i2,i3,xr,yr,zr
+                      ! calculate second fundamental form
+                      aLi = xrr*an1+yrr*an2+zrr*an3
+                      aMi = xrs*an1+yrs*an2+zrs*an3
+                      aNi = xss*an1+yss*an2+zss*an3
+                      meanCurvature = -.5*(aEi*aNi-2*aFi*aMi+aGi*aLi) 
+     & /(aEi*aGi-aFi*aFi)
+                      ! write(*,'(" i1,i2,i3=",3i3," (E,F,G)=",f20.16,f20.16,f20.16)') i1,i2,i3,aEi,aFi,aGi
+                      ! write(*,'(" i1,i2,i3=",3i3," (L,M,N)=",f20.16,f20.16,f20.16)') i1,i2,i3,aLi,aMi,aNi
+                      ! write(*,'(" i1,i2,i3=",3i3," meanCurvature=",f6.2)') i1,i2,i3,meanCurvature
+                    else if( axis.eq.1 )then
+                      ! tangential directions are r and t
+                      stop 1011
+                    else
+                      ! tangential directions are s and t
+                      stop 1012
+                    end if
+                    ! ---- add viscous stess contribution: n.tau.n ------
+                    !   tauv = mu [ 2*ux     (uy+vx)  (uz+wx)]
+                    !             [ (uy+vx)    2*vy   (vz+wy)]
+                    !             [ (uz+wx)  (vz+wy)    2*wz ]
+                    ! nv.tauv.nv = 2*mu*( n1^2*ux + n2^2*vy + n3^2*wz
+                    !                    +n1*n2*(uy+vx)
+                    !                    +n1*n3*(uz+wx)
+                    !                    +n2*n3*(vz+wy)               )
+                    !
+                    ! *** CHECK ME ***
+                    ! normal vector (an1,an2): 
+                     an1 = rsxy(i1,i2,i3,axis,0)
+                     an2 = rsxy(i1,i2,i3,axis,1)
+                     aNormi = -is/max(epsx,sqrt(an1**2 + an2**2))
+                     an1=an1*aNormi
+                     an2=an2*aNormi
+                    ! get derivatives
+                    u0x =  ux23(i1,i2,i3,uc)
+                    u0y =  uy23(i1,i2,i3,uc)
+                    u0z =  uz23(i1,i2,i3,uc)
+                    v0x =  ux23(i1,i2,i3,vc)
+                    v0y =  uy23(i1,i2,i3,vc)
+                    v0z =  uz23(i1,i2,i3,vc)
+                    w0x =  ux23(i1,i2,i3,wc)
+                    w0y =  uy23(i1,i2,i3,wc)
+                    w0z =  uz23(i1,i2,i3,wc)
+                    ! write(*,'("ux,uy,uz=",e12.3,e12.3,e12.3)') u0x,u0y,u0z
+                    ! write(*,'("vx,vy,vz=",e12.3,e12.3,e12.3)') v0x,v0y,v0z
+                    ! write(*,'("wx,wy,wz=",e12.3,e12.3,e12.3)') w0x,w0y,w0z
+                    ! write(*,'("n1,n2,n3=",e12.3,e12.3,e12.3)') an1,an2,an3
+                    ! write(*,'("mu=",e12.3)') mu
+                    nTauN = 2*mu*( u0x*an1**2 + v0y*an2**2 + w0z*an3**
+     & 2 +an1*an2*(u0y+v0x) +an1*an3*(u0z+w0x) +an2*an3*(v0z+w0y))
+                    ! write(*,'("nTauN=",e12.3)') nTauN
+                    ! write(*,'("comp1=",e12.3)') u0x*an1**2
+                    ! write(*,'("comp1=",e12.3)') v0y*an2**2
+                    ! write(*,'("comp1=",e12.3)') an1*an2*(u0y+v0x)
+                    ! nTauN = 2.*mu*( u0x*an1**2 + (u0y+v0x)*an1*an2 + v0y*an2**2 )
+                    ! write(*,'("nTauN=",e12.3)') nTauN
                   else
                     stop 8257
                   end if
                   if( t.le.10.*dt )then
-                    write(*,'(" i1,i2=",2i3," meanCurvature=",f12.8," 
-     & mu=",e9.3," n.tau.n=",e10.3)') i1,i2,meanCurvature,mu,nTauN
+                    write(*,'(" i1,i2,i3=",3i3," pAtm=",f12.8," 
+     & meanCurvature=",f12.8," mu=",e9.3," n.tau.n=",e10.3)') i1,i2,
+     & i3,pAtmosphere,meanCurvature,mu,nTauN
                   end if
                   f(i1,i2,i3)= pAtmosphere + 2.*surfaceTension*
      & meanCurvature + nTauN

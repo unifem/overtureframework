@@ -9675,8 +9675,25 @@
                ! ---  3D ---
                if( fillCoefficientsScalarSystem.eq.0 )then
                 ! Fill in the coupled equations for u, v and w
+                write(*,'("(i1,i2,i3) = ",3i3)') i1,i2,i3
                 do n=0,nd-1
                   ! equation n:   (equation numbers and classify  are set in these calls)
+                  write(*,'("n = ",1i3)') n
+                  write(*,'("    : cn00,cn01,cn02",3e10.2)') (delta(0,
+     & 0)*an(n)+delta(n,0)*an(0)+delta(n,0)*an(0)-2.*an(n)*an(0)*an(0)
+     & ),(delta(0,1)*an(n)+delta(n,0)*an(1)+delta(n,1)*an(0)-2.*an(n)*
+     & an(0)*an(1)),(delta(0,2)*an(n)+delta(n,0)*an(2)+delta(n,2)*an(
+     & 0)-2.*an(n)*an(0)*an(2))
+                  write(*,'("    : cn10,cn11,cn12",3e10.2)') (delta(1,
+     & 0)*an(n)+delta(n,1)*an(0)+delta(n,0)*an(1)-2.*an(n)*an(1)*an(0)
+     & ),(delta(1,1)*an(n)+delta(n,1)*an(1)+delta(n,1)*an(1)-2.*an(n)*
+     & an(1)*an(1)),(delta(1,2)*an(n)+delta(n,1)*an(2)+delta(n,2)*an(
+     & 1)-2.*an(n)*an(1)*an(2))
+                  write(*,'("    : cn20,cn21,cn22",3e10.2)') (delta(2,
+     & 0)*an(n)+delta(n,2)*an(0)+delta(n,0)*an(2)-2.*an(n)*an(2)*an(0)
+     & ),(delta(2,1)*an(n)+delta(n,2)*an(1)+delta(n,1)*an(2)-2.*an(n)*
+     & an(2)*an(1)),(delta(2,2)*an(n)+delta(n,2)*an(2)+delta(n,2)*an(
+     & 2)-2.*an(n)*an(2)*an(2))
                     classify(i1m,i2m,i3m,eqnu+n)=ghost1
                    do m3=-halfWidth3,halfWidth3
                    do m2=-halfWidth,halfWidth
@@ -14146,8 +14163,25 @@
                ! ---  3D ---
                if( fillCoefficientsScalarSystem.eq.0 )then
                 ! Fill in the coupled equations for u, v and w
+                write(*,'("(i1,i2,i3) = ",3i3)') i1,i2,i3
                 do n=0,nd-1
                   ! equation n:   (equation numbers and classify  are set in these calls)
+                  write(*,'("n = ",1i3)') n
+                  write(*,'("    : cn00,cn01,cn02",3e10.2)') (delta(0,
+     & 0)*an(n)+delta(n,0)*an(0)+delta(n,0)*an(0)-2.*an(n)*an(0)*an(0)
+     & ),(delta(0,1)*an(n)+delta(n,0)*an(1)+delta(n,1)*an(0)-2.*an(n)*
+     & an(0)*an(1)),(delta(0,2)*an(n)+delta(n,0)*an(2)+delta(n,2)*an(
+     & 0)-2.*an(n)*an(0)*an(2))
+                  write(*,'("    : cn10,cn11,cn12",3e10.2)') (delta(1,
+     & 0)*an(n)+delta(n,1)*an(0)+delta(n,0)*an(1)-2.*an(n)*an(1)*an(0)
+     & ),(delta(1,1)*an(n)+delta(n,1)*an(1)+delta(n,1)*an(1)-2.*an(n)*
+     & an(1)*an(1)),(delta(1,2)*an(n)+delta(n,1)*an(2)+delta(n,2)*an(
+     & 1)-2.*an(n)*an(1)*an(2))
+                  write(*,'("    : cn20,cn21,cn22",3e10.2)') (delta(2,
+     & 0)*an(n)+delta(n,2)*an(0)+delta(n,0)*an(2)-2.*an(n)*an(2)*an(0)
+     & ),(delta(2,1)*an(n)+delta(n,2)*an(1)+delta(n,1)*an(2)-2.*an(n)*
+     & an(2)*an(1)),(delta(2,2)*an(n)+delta(n,2)*an(2)+delta(n,2)*an(
+     & 2)-2.*an(n)*an(2)*an(2))
                     classify(i1m,i2m,i3m,eqnu+n)=ghost1
                    do m3=-halfWidth3,halfWidth3
                    do m2=-halfWidth,halfWidth
