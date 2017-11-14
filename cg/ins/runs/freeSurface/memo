@@ -6,7 +6,7 @@ see Dropbox/CG/surfins for results
 *************************
 *** Sun Nov 12, 2017
 
-FIX a bug in hype/applyBC's for doubly periodic (ghost pts were bad)
+FIXED a bug in hype/applyBC's for doubly periodic (ghost pts were bad)
 
 
 ogen -noplot freeSurfaceGrid3d -interp=e -factor=1 -bc=p
