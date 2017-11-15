@@ -4926,9 +4926,14 @@ update( MappingInformation & mapInfo )
 	    }
 	    else
 	    {
-	      printf("Mapping:info: setting periodicity=derivativePeriodic for axis=%i \n",axis);
-	      setIsPeriodic(axis,derivativePeriodic);
-	      mappingHasChanged(); 
+              printF("Mapping:info: setting periodicity=derivativePeriodic for axis=%i, "
+                     "periodVector=(%g,%g,%g) \n",axis,
+                     x(1,0)-x(0,0),x(1,1)-x(0,1),x(1,2)-x(0,2)  );
+              setIsPeriodic(axis,derivativePeriodic);
+              for( int dir=0; dir<rangeDimension; dir++ )
+                setPeriodVector(dir,axis,x(1,dir)-x(0,dir) );  // *wdh* Nov 15, 2017
+
+              mappingHasChanged(); 
 	    }
 	  }
 	}
@@ -5856,8 +5861,13 @@ getMappingParametersOption( const aString & answer,
 	  }
 	  else
 	  {
-	    printF("Mapping:info: setting periodicity=derivativePeriodic for axis=%i \n",axis);
+	    printF("Mapping:info: setting periodicity=derivativePeriodic for axis=%i, "
+               "periodVector=(%g,%g,%g) \n",axis,
+                   x(1,0)-x(0,0),x(1,1)-x(0,1),x(1,2)-x(0,2)  );
 	    setIsPeriodic(axis,derivativePeriodic);
+            for( int dir=0; dir<rangeDimension; dir++ )
+              setPeriodVector(dir,axis,x(1,dir)-x(0,dir) );  // *wdh* Nov 15, 2017
+
 	    mappingHasChanged(); 
 	  }
 	}

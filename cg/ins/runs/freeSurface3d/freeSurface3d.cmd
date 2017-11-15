@@ -44,6 +44,7 @@ $freeSurfaceOption="none";
 $generatePastHistory=4;
 # Decouple implicit BCs (e.g. free surface) so we can solve scalar velociity implicit equations
 $decoupleImplicitBoundaryConditions=0;
+$freqFullUpdate=1; # frequency for using full ogen update in moving grids 
 # 
 $k=2.0; $amp=0.0e-05; $amp1=1.0; $amp2=0.5;
 $predictorOrder=0; # 0=use default 
@@ -61,7 +62,7 @@ GetOptions( "g=s"=>\$grid,"tf=f"=>\$tFinal,"degreex=i"=>\$degreex, "degreet=i"=>
   "smoothSurface=i"=>\$smoothSurface,"numberOfSurfaceSmooths=i"=>\$numberOfSurfaceSmooths,\
   "freeSurfaceOption=s"=>\$freeSurfaceOption,"rtol=f"=>\$rtol,"atol=f"=>\$atol,"rtolp=f"=>\$rtolp,"atolp=f"=>\$atolp,\
   "k=f"=>\$k,"amp=f"=>\$amp,"amp1=f"=>\$amp1,"amp2=f"=>\$amp2, "predictorOrder=s"=>\$predictorOrder,\
-  "useNewTimeSteppingStartup=i"=>\$useNewTimeSteppingStartup,\
+  "useNewTimeSteppingStartup=i"=>\$useNewTimeSteppingStartup,"freqFullUpdate=i"=>\$freqFullUpdate,\
   "decoupleImplicitBoundaryConditions=i"=>\$decoupleImplicitBoundaryConditions,\
   "surfacePredictor=s"=>\$surfacePredictor );
 # -------------------------------------------------------------------------------------------------
@@ -110,6 +111,9 @@ $grid
 # 
 # choose the time stepping:
   $ts
+# 
+  frequency for full grid gen update $freqFullUpdate
+# 
 #
 # -- testing: 
 use new time-stepping startup $useNewTimeSteppingStartup

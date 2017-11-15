@@ -1,4 +1,48 @@
 *************************************
+*********  Nov 15, 2017
+
+FIXED BUGS: cutHoles.bC and Mapping.C
+
+ogen -noplot freeSurfaceGrid3dNew -interp=e -factor=1 -bc=p
+
+
+ogen checkGrid.cmd 
+
+*************************************
+*********  Nov 14, 2017
+
+WDH: check Dan's bug 
+
+freeSurfaceGrid3dNew: reduced extent of grids in the vertical
+
+G4: works:
+ogen -noplot freeSurfaceGrid3dNew -interp=e -factor=4 -bc=p
+cgins freeSurface3d -g=freeSurfaceGrid3dNewe4p.order2.hdf -nu=.05 -tf=2. -tp=.01 -model=ins -surfaceTension=.0 -ad2=1 -amp1=0.0 -amp2=.5 -surfacePredictor="leap-frog" -go=halt
+
+
+G2:
+ogen -noplot freeSurfaceGrid3dNew -interp=e -factor=2 -bc=p
+-tp=.01 -- OK
+cgins freeSurface3d -g=freeSurfaceGrid3dNewe2p.order2.hdf -nu=.05 -tf=2. -tp=.01 -model=ins -surfaceTension=.0 -ad2=1 -amp1=0.0 -amp2=.5 -surfacePredictor="leap-frog" -go=halt
+
+-tp=.001 -ok
+cgins freeSurface3d -g=freeSurfaceGrid3dNewe2p.order2.hdf -nu=.05 -tf=2. -tp=.001 -model=ins -surfaceTension=.0 -ad2=1 -amp1=0.0 -amp2=.5 -surfacePredictor="leap-frog" -go=halt
+
+
+COARSE --
+ogen -noplot freeSurfaceGrid3dNew -interp=e -factor=1 -bc=p
+tp=.01: OK 
+cgins freeSurface3d -g=freeSurfaceGrid3dNewe1p.order2.hdf -nu=.05 -tf=2. -tp=.01 -model=ins -surfaceTension=.0 -ad2=1 -amp1=0.0 -amp2=.5 -surfacePredictor="leap-frog" -go=halt
+-tp=.001 -- fails step 9
+cgins freeSurface3d -g=freeSurfaceGrid3dNewe1p.order2.hdf -nu=.05 -tf=2. -tp=.001 -model=ins -surfaceTension=.0 -ad2=1 -amp1=0.0 -amp2=.5 -surfacePredictor="leap-frog" -go=halt
+
+ogen -noplot freeSurfaceGrid3d -interp=e -factor=.25 -bc=p
+
+coarse grid 
+cgins freeSurface3d -g=freeSurfaceGrid3de.25p.order2.hdf -nu=.05 -tf=2. -tp=.001 -model=ins -surfaceTension=.0 -ad2=1 -amp1=0.0 -amp2=.5 -surfacePredictor="leap-frog" -go=halt
+
+
+*************************************
 *********  Nov 12, 2017
 
 Check new grids:

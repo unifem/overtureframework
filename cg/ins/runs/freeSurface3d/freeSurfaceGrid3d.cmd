@@ -22,7 +22,7 @@ $freeSurfaceShare=100; # share value for free surface
 #-----------------------------------------------------------------
 # get command line arguments
 GetOptions( "order=i"=>\$order,"factor=f"=> \$factor,"xa=f"=> \$xa,"xb=f"=> \$xb,"ya=f"=> \$ya,"yb=f"=> \$yb,\
-            "za=f"=> \$za,"interp=s"=> \$interp,"name=s"=> \$name,"ml=i"=>\$ml, "amp=f"=>\$amp,"bc=s"=> \$bc );
+            "za=f"=> \$za,"zb=f"=> \$zb,"interp=s"=> \$interp,"name=s"=> \$name,"ml=i"=>\$ml, "amp=f"=>\$amp,"bc=s"=> \$bc );
 # 
 if( $order eq 4 ){ $orderOfAccuracy="fourth order"; $ng=2; }\
 elsif( $order eq 6 ){ $orderOfAccuracy="sixth order"; $ng=4; }\
@@ -138,7 +138,7 @@ exit
      $dist = .75*$linesToMarch*$ds; 
      distance to march $dist
      backward
-     ## evaluate as nurbs 1
+     # evaluate as nurbs 1
      generate     
      # open graphics
      mappingName freeSurface
