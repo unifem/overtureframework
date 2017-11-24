@@ -2,6 +2,28 @@ cd /Users/henshaw/runs/mx/optimizer
 
 
 ****************************************
+**** Nov 24, 2017
+
+Moved optimized files to cg/mx/runs/optimizer
+
+
+RUN: "quiet" run -- change STARTING GUESS 
+optimizer -caseName=lens -probeType=transmission -kx=2 -eps1=4 -tf=5 -infoLevel=0 -plotGrid=0 -plotSolution=0 -method=fminsearch -objective=targetTransmission -targetFile=TargetLens.dat -tolFun=.001 -tolX=.05 -x0=-.2
+
+
+
+RUN: "quiet" run
+optimizer -caseName=lens -probeType=transmission -kx=2 -eps1=4 -tf=5 -infoLevel=0 -plotGrid=0 -plotSolution=0 -method=fminsearch -objective=targetTransmission -targetFile=TargetLens.dat -tolFun=.001 -tolX=.05
+
+
+RUN: plot grids 
+optimizer -caseName=lens -probeType=transmission -kx=2 -eps1=4 -tf=5 -infoLevel=3 -plotGrid=1 -plotSolution=0 -method=fminsearch -objective=targetTransmission -targetFile=TargetLens.dat -tolFun=.001 -tolX=.05
+
+TARGET RUN
+cgmx -noplot dielectricBodies -g=convexBlockGride4.order4 -backGround=leftBackGround -rbc=rbcNonLocal -kx=2 -eps1=4 -eps2=1. -diss=2 -tf=5. -tp=.5 -xb=-1. -probeFileName=TargetLens -show=lensG4.show -go=go >! lensG4.out
+
+
+****************************************
 **** Nov 23, 2017
 
 optimizer -caseName=lens -probeType=transmission -kx=2 -eps1=4 -tf=5 -infoLevel=3 -plotGrid=1 -plotSolution=0 -method=fminsearch -objective=targetTransmission -targetFile=TargetLens.dat -tolFun=.001 -tolX=.05

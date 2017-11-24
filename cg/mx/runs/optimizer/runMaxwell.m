@@ -151,7 +151,7 @@ function [ values ]  = runMaxwell( caseName,tFinal,probeType,gridFactor,infoLeve
     if( infoLevel>0 ) fprintf('..done ogen\n'); end; 
 
 
-    fprintf('runMaxwell: caseName=%s, tFinal=%9.3e probeType=%s, eps1=%g, kx=%g dxLeft=%g dxRight=%g\n',caseName,tFinal,probeType,eps1,kx,dxLeft,dxRight);
+    if( infoLevel>0 ) fprintf('runMaxwell: caseName=%s, tFinal=%9.3e probeType=%s, eps1=%g, kx=%g dxLeft=%g dxRight=%g\n',caseName,tFinal,probeType,eps1,kx,dxLeft,dxRight); end; 
 
     gridName = sprintf('lensOptGride%d.order4.hdf',gridFactor); 
     cgmxCommand = sprintf('%s -noplot dielectricBodies -g=%s -probeFileName=OptProbe -tf=%g -tp=.5 -kx=%g -backGround=leftBackGround -rbc=rbcNonLocal -eps1=%g -eps2=1. -diss=2 -xb=-1. -show=%s -go=go >! cgmxOptimzer.out ',...
@@ -206,6 +206,7 @@ function [ values ]  = runMaxwell( caseName,tFinal,probeType,gridFactor,infoLeve
   % fileName='leftOptProbe.dat';
 
 
+  figure(1); 
   if( strncmp(probeType,'point',length('point')) )
 
     % --- PLOT POINT PROBE RESULTS ----
@@ -257,7 +258,7 @@ function [ values ]  = runMaxwell( caseName,tFinal,probeType,gridFactor,infoLeve
     drawnow;
     if( plotOption>0 )
       plotFileName=sprintf('%sReflectionTransmission.eps',caseName);
-      fprintf('runMaxwell: save plot: %s\n',plotFileName); 
+      if( infoLevel>0 ) fprintf('runMaxwell: save plot: %s\n',plotFileName); end; 
       print('-depsc2',plotFileName); % save as an eps file
     end;   
     if( infoLevel>0 )

@@ -378,10 +378,56 @@ was saved as the {\em target transmission coefficient} (see Figure~\ref{fig:lens
 The objective of the optimization was then to start from a different lens shape and adjust the
 central control point on the right face of the lens to match the target transmission coefficient. 
 
+\medskip\noindent
 Here are the results from the optimizer using {\tt fminsearch}
-{\footnotesize
+{\scriptsize
 \begin{verbatim}
+>> optimizer -caseName=lens -probeType=transmission -kx=2 -eps1=4 -tf=5 -infoLevel=0 -plotGrid=0 -plotSolution=0
+              -method=fminsearch -objective=targetTransmission -targetFile=TargetLens.dat -tolFun=.001 -tolX=.05
+>>> optimizer: caseName=lens, method=fminsearch, objective=targetTransmission 
+     (targetFile=TargetLens.dat, tolFun=0.001, tolX=0.05), infoLevel=0, plotOption=1, plotGrid=0, plotSolution=0,
+     gridFactor=4, tFinal=5.000e+00, probeType=transmission,  : kx=2, blockWidth=0.5, eps1=4
+call fminsearch...
+runMaxwell: caseName=lens, RENGERATE THE GRID dxLeft=-0.2, dxRight=0.15
+runMaxwell: T=[0.275807,0.48255] : target: T=[0.164138,0.461024]
+ 
+ Iteration   Func-count     min f(x)         Procedure
+     0            1        0.0776809         
+runMaxwell: caseName=lens, RENGERATE THE GRID dxLeft=-0.2, dxRight=0.1475
+runMaxwell: T=[0.280504,0.483256] : target: T=[0.164138,0.461024]
+     1            2        0.0776809         initial simplex
+runMaxwell: caseName=lens, RENGERATE THE GRID dxLeft=-0.2, dxRight=0.1525
+runMaxwell: T=[0.271051,0.481862] : target: T=[0.164138,0.461024]
+runMaxwell: caseName=lens, RENGERATE THE GRID dxLeft=-0.2, dxRight=0.155
+runMaxwell: T=[0.266227,0.481184] : target: T=[0.164138,0.461024]
+     2            4        0.0703807         expand
+runMaxwell: caseName=lens, RENGERATE THE GRID dxLeft=-0.2, dxRight=0.16
+runMaxwell: T=[0.256353,0.479827] : target: T=[0.164138,0.461024]
+runMaxwell: caseName=lens, RENGERATE THE GRID dxLeft=-0.2, dxRight=0.165
+runMaxwell: T=[0.245877,0.478786] : target: T=[0.164138,0.461024]
+     3            6        0.0551227         expand
+runMaxwell: caseName=lens, RENGERATE THE GRID dxLeft=-0.2, dxRight=0.175
+runMaxwell: T=[0.224323,0.475484] : target: T=[0.164138,0.461024]
+runMaxwell: caseName=lens, RENGERATE THE GRID dxLeft=-0.2, dxRight=0.185
+runMaxwell: T=[0.201292,0.471001] : target: T=[0.164138,0.461024]
+     4            8         0.022929         expand
+runMaxwell: caseName=lens, RENGERATE THE GRID dxLeft=-0.2, dxRight=0.205
+runMaxwell: T=[0.151461,0.456368] : target: T=[0.164138,0.461024]
+runMaxwell: caseName=lens, RENGERATE THE GRID dxLeft=-0.2, dxRight=0.225
+runMaxwell: T=[0.100697,0.430896] : target: T=[0.164138,0.461024]
+     5           10       0.00711202         reflect
+runMaxwell: caseName=lens, RENGERATE THE GRID dxLeft=-0.2, dxRight=0.225
+runMaxwell: T=[0.100697,0.430896] : target: T=[0.164138,0.461024]
+runMaxwell: caseName=lens, RENGERATE THE GRID dxLeft=-0.2, dxRight=0.195
+runMaxwell: T=[0.176656,0.465031] : target: T=[0.164138,0.461024]
+     6           12       0.00711202         contract inside
+ 
+Optimization terminated:
+ the current x satisfies the termination criteria using OPTIONS.TolX of 5.000000e-02 
+ and F(X) satisfies the convergence criteria using OPTIONS.TolFun of 1.000000e-03 
 
+...DONE fminsearch: x=0.005, fval=0.00711202
+done
 \end{verbatim}
 }
 

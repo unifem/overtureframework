@@ -41,6 +41,8 @@ function optimizer(varargin)
  blockWidth=.5;    % default width of dielectric block
  eps1=4.;          % default block epsilon
  tolFun=.1; tolX=.1; % tolerences for fminserach
+ x0Default=-1234567.; 
+ x0 = x0Default;     % initial guess  set to a real number to chnge the default initial guess
 
   % --- read command line args ---
   for i = 1 : nargin
@@ -52,6 +54,7 @@ function optimizer(varargin)
     targetFile    = getString( line,'-targetFile',targetFile );
     tFinal        =   getReal( line,'-tf',tFinal );
     kx            =   getReal( line,'-kx',kx );
+    x0            =   getReal( line,'-x0',x0 );
     eps1          =   getReal( line,'-eps1',eps1 );
     tolFun        =   getReal( line,'-tolFun',tolFun );
     tolX          =   getReal( line,'-tolX',tolX );
@@ -63,7 +66,7 @@ function optimizer(varargin)
     gridFactor    =    getInt( line,'-gridFactor',gridFactor );
   end
 
-  fprintf('>>> optimizer: caseName=%s, method=%s, objective=%s (targetFile=%s, tolFun=%g, tolX=%g), infoLevel=%d, plotOption=%d, plotGrid=%d, plotSolution=%d, gridFactor=%d, tFinal=%9.3e, probeType=%s, \n',...
+  fprintf('>>> optimizer: caseName=%s, method=%s, \n objective=%s (targetFile=%s, tolFun=%g, tolX=%g), infoLevel=%d, \n plotOption=%d, plotGrid=%d, plotSolution=%d, gridFactor=%d, tFinal=%9.3e, probeType=%s, \n',...
                 caseName,method,objective,targetFile,tolFun,tolX,infoLevel,plotOption,plotGrid,plotSolution,gridFactor,tFinal,probeType);
   fprintf('             : kx=%g, blockWidth=%g, eps1=%g\n',kx,blockWidth,eps1);
 
@@ -117,12 +120,18 @@ function optimizer(varargin)
 
     % ---- Find minium using fminsearch: ----
 
-    options = optimset('Display','iter','TolFun',tolFun, 'TolX',tolX);
+    options = optimset('Display','iter','TolFun',tolFun, 'TolX',tolX,'PlotFcns',@optimplotfval);
 
+    % ------ INITIAL GUESS FOR fminsearch -----
     if( strcmp(objective,'targetTransmission') )
 
       % Lens: 
-      x0 = [ -.05 ]; % initial guess for dxRight
+
+      if( x0 == x0Default  )
+        x0 = [ -.05 ]; % initial guess for dxRight (offset from 'exact') 
+      else
+        x0 = [ x0 ];  % user specified initial guess 
+      end; 	
 
     elseif( strcmp(objective,'minimizeReflection') )
       
@@ -141,6 +150,7 @@ function optimizer(varargin)
     % fprintf('myObjectiveFunction: x0=%g, f=%g\n',x0(1),fval);
     
     fprintf('call fminsearch...\n');
+    figure(2); 
 
     % [x,fval] = fminsearch(myObjectiveFunction,x0,options);
     [x,fval] = fminsearch(ff,x0,options);
