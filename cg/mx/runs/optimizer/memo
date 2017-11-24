@@ -1,0 +1,139 @@
+cd /Users/henshaw/runs/mx/optimizer
+
+
+****************************************
+**** Nov 23, 2017
+
+optimizer -caseName=lens -probeType=transmission -kx=2 -eps1=4 -tf=5 -infoLevel=3 -plotGrid=1 -plotSolution=0 -method=fminsearch -objective=targetTransmission -targetFile=TargetLens.dat -tolFun=.001 -tolX=.05
+
+plotStuff plotSolution -show=lensG4.show
+
+****************************************
+**** Nov 22, 2017
+
+
+optimizer -caseName=lens -probeType=transmission -kx=2 -eps1=4 -tf=5 -infoLevel=3 -plotGrid=1 -plotSolution=0 -method=fminsearch -objective=targetTransmission -targetFile=TargetLens.dat -tolFun=.001 -tolX=.05
+
+TARGET RUN
+cgmx -noplot dielectricBodies -g=convexBlockGride4.order4 -backGround=leftBackGround -rbc=rbcNonLocal -kx=2 -eps1=4 -eps2=1. -diss=2 -tf=5. -tp=.5 -xb=-1. -probeFileName=TargetLens -show=lensG4.show -go=go >! lensG4.out 
+
+
+****************************************
+**** Nov 21, 2017
+
+ADD OBJECTIVES: Target objective file 
+
+
+TEST fminsearch -- optimized the right control point so we get a target solution (pre-computed)
+optimizer -caseName=lens -probeType=transmission -kx=2 -eps1=4 -tf=4 -infoLevel=3 -plotGrid=0 -plotSolution=1 -method=fminsearch -objective=targetTransmission -targetFile=TargetLens.dat -tolFun=.005 -tolX=.005
+
+
+optimizer -caseName=lens -probeType=transmission -kx=2 -eps1=4 -tf=4 -infoLevel=3 -plotGrid=0 -plotSolution=1 -method=fake -objective=targetTransmission -targetFile=TargetLens.dat
+
+optimizer -caseName=lens -probeType=transmission -kx=2 -tf=4 -infoLevel=3 -plotGrid=0 -plotSolution=1 -method=fake
+
+
+optimizer -caseName=lens -probeType=point -tf=2 -infoLevel=3 -plotGrid=1 -plotSolution=1 -method=fake
+
+cgmx -noplot dielectricBodies -g=convexBlockGride4.order4 -backGround=leftBackGround -rbc=rbcNonLocal -kx=2 -eps1=4 -eps2=1. -diss=2 -tf=5 -tp=.1 -xb=-1. -probeFileName=TargetLens -go=og
+
+****************************************
+**** Nov 20, 2017
+
+optimizer -caseName=lens -probeType=point -tf=2 -infoLevel=3 -plotGrid=1 -method=fake
+
+****************************************
+**** Nov 19, 2017
+
+
+optimizer -caseName=lens -probeType=point -tf=2 -infoLevel=3 -plotGrid=1 -method=fake
+
+
+
+cgmx -noplot dielectricBodies -g=convexBlockGride4.order4 -backGround=leftBackGround -rbc=rbcNonLocal -kx=2 -eps1=4 -eps2=1. -diss=2 -tf=15 -tp=.1 -xb=-1. -go=og
+
+Grid: -- see Makefile 
+ogen -noplot curvedBlockGrid2d -prefix=convexBlockGrid -order=4 -interp=e -width=.5 -interfaceGridWidth=.4 -dxLeft=0 0 0 -.2 0 0 0 -dxRight=0 0 0 .1 0 0 0  -factor=4
+
+
+****************************************
+**** Nov 18, 2017
+
+Start looking at the lens optimization
+
+NOTE -- There is an issue with changing the control points -- I don't think the curve is reparametertized **CHECK**
+
+
+"convex" lens: 
+cgmx -noplot dielectricBodies -g=convexBlockGride4.order4 -backGround=leftBackGround -rbc=rbcNonLocal -kx=2 -eps1=4 -eps2=1. -diss=2 -tf=15 -tp=.1 -xb=-1. -go=og
+
+Grid: -- see Makefile 
+ogen curvedBlockGrid2d -prefix=convexBlockGrid -order=4 -interp=e -width=.5 -interfaceGridWidth=.4 -dxLeft=0 0 0 -.2 0 0 0 -dxRight=0 0 0 .1 0 0 0  -factor=2
+
+ogen curvedBlockGrid2d -prefix=convexBlockGrid -order=4 -interp=e -width=.5 -deltaLeft=-.075 -deltaRight=.075 -factor=2
+
+
+****************************************
+**** Sept 19, 2017
+
+TEST CHANGING BLOCK WIDTH
+
+BLOCKWIDTH USE FMINSEARCH: : 
+optimizer -caseName=blockWidth -probeType=transmission -tf=10 -infoLevel=0 -method=fminsearch
+
+BLOCKWIDTH: 
+optimizer -caseName=blockWidth -probeType=transmission -tf=10 -infoLevel=0 -method=fake
+
+
+USE FMINSEARCH: 
+optimizer -caseName=block -probeType=transmission -tf=10 -infoLevel=0 -method=fminsearch
+
+
+
+FIX BUG WITH Refection probe -- incident wave is wrong for kx!=1
+
+
+cgmx -noplot dielectricBodies -g=dielectricBlockGrid2de4.order4 -backGround=leftBackGround -rbc=rbcNonLocal -kx=2 -eps1=1 -eps2=1. -diss=2 -tf=15 -tp=.1 -go=og
+
+****************************************
+**** Sept 17, 2017
+
+
+CURVED DIELECTRIC BLOCK 
+
+
+USE FMINSEARCH: 
+optimizer -caseName=block -probeType=transmission -tf=10 -infoLevel=0 -method=fminsearch
+
+
+optimizer -caseName=block -probeType=transmission -tf=5
+
+
+
+Scatter from a dielectric block
+optimizer -caseName=block
+
+Scattering from a cylinder: 
+optimizer -caseName=cyl
+
+
+"convex" lens: 
+cgmx -noplot dielectricBodies -g=convexBlockGride4.order4 -backGround=leftBackGround -rbc=rbcNonLocal -kx=2 -eps1=4 -eps2=1. -diss=2 -tf=15 -tp=.1 -xb=-1. -go=og
+
+SINGLE BLOCK:
+cgmx -noplot dielectricBodies -g=dielectricBlockGrid2de4.order4 -backGround=leftBackGround -rbc=rbcNonLocal -kx=1 -eps1=8 -eps2=1. -diss=2 -tf=15 -tp=.1 -go=og
+
+****************************************
+**** Sept 16, 2017
+
+
+START ON OPTIMZER
+
+
+cgmx -noplot dielectricBodies -g=diskInBoxYpe4.order2.hdf -backGround=outerSquare -rbc=rbcNonLocal -kx=.5 -eps1=8 -eps2=1. -diss=2 -tf=30 -tp=.1 -xLeftProbe=-5.2 -yLeftProbe=.0 -xRightProbe=5.1  -yRightProbe=.0 -xar=-5. -xbr=-4 -xat=4 -xbt=5. -xb=-2 -show="DibG4Eps8K0p25.show" -probeFileName=probeDibG4Eps8K0p25 -go=og 
+
+cgmx -noplot dielectricBodies -g=diskInBoxYpe4.order2.hdf -backGround=outerSquare -rbc=rbcNonLocal -kx=.25 -eps1=8 -eps2=1. -diss=2 -tf=30 -tp=.1 -xLeftProbe=-5.2 -yLeftProbe=.0 -xRightProbe=5.1  -yRightProbe=.0 -xar=-5. -xbr=-4 -xat=4 -xbt=5. -xb=-2 -show="DibG4Eps8K0p25.show" -probeFileName=probeDibG4Eps8K0p25 -go=go >! DibG4Eps8K0p25.out 
+
+
+
+cgmx cic.planeWaveBC -g=cice4.order4.hdf tf=10 -tp=.1

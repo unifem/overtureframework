@@ -1,0 +1,734 @@
+\renewcommand{\url}[1]{}% ******** Remove URL's from bibtex entries ********
+\newcommand{\citeCount}[1]{}% for citation counts papers for WDH citations
+% 
+\newcommand{\f}[2]{\frac{#1}{#2}}% \frac short form
+\newcommand{\p}{\partial}
+% short for for begin{align} and \end{align}
+\def\ba#1\ea{\begin{align}#1\end{align}}
+
+% short for for begin{align*} and \end{align*}
+\def\bas#1\eas{\begin{align*}#1\end{align*}}
+%
+\newtheorem{theorem}{Theorem}
+\newtheorem{Algorithm}{Algorithm}
+\newtheorem{procedure}{Procedure}
+\newtheorem{lemma}{Lemma}
+\newtheorem{definition}{Definition}
+\newtheorem{proposition}{Proposition}
+\newtheorem{assumption}{Assumption}
+\newtheorem{condition}{Condition}
+\newtheorem{conclusion}{Conclusion}
+
+\newcommand{\Nomega}{N_\omega}
+
+% \newcommand{\esup}{{(e)}}
+% \newcommand{\psup}{{(p)}}
+% \newcommand{\ksup}{{(k)}}
+
+\newcommand{\dx}{\Delta x}
+\newcommand{\dy}{\Delta y}
+\newcommand{\dt}{\Delta t}
+
+\newcommand{\dn}{\Delta n}
+\newcommand{\eps}{\epsilon}
+
+\newcommand{\Cnu}{\Cc_\nu}% viscous CFL number in 1D
+
+\newcommand{\Dp}{D_{+}}
+\newcommand{\Dm}{D_{-}}
+\newcommand{\Dz}{D_{0}}
+\newcommand{\Dpx}{D_{+x}}
+\newcommand{\Dmx}{D_{-x}}
+\newcommand{\Dpy}{D_{+y}}
+\newcommand{\Dmy}{D_{-y}}
+\newcommand{\DpyDmy}{D_{+y}D_{-y}}
+
+\newcommand{\erf}{\operatorname{erf}}
+
+\newcommand{\leapprox}{\overset{<}{\approx}}% approx >= 
+\newcommand{\geapprox}{\overset{>}{\approx}}% approx <=
+ 
+\newcommand{\bogus}[1]{{}}
+
+% ----- indent -----
+\newenvironment{myIndent}%
+ {\list{}{\leftmargin=0.1in\rightmargin=0.1in}\item[]}%
+  {\endlist}
+
+% ----- Define an indented procedure -----
+\newenvironment{myProcedure}[1]%
+{\noindent\textbf{Procedure~}{#1}\begin{myIndent}\em}% start 
+{\end{myIndent}}% end
+
+\newenvironment{centre}{\begin{center}}{\end{center}}
+
+% \newenvironment{myProcedure}[1]%
+% {\begin{procedure}{#1}\begin{myIndent}}% start 
+% {\end{myIndent}\end{procedure}}% end
+
+
+
+% -----Bill's common definitions-----
+
+\newcommand{\defeq}{\overset{{\rm def}}{=}}% definition = 
+\newcommand{\eqdef}{\overset{{\rm def}}{=}}% definition = 
+
+\newcommand{\qvb}{\qv_b}% solid state
+\newcommand{\cma}{\,,\,}% command with a little space
+
+\newcommand{\av}{\mathbf{ a}}
+\newcommand{\bv}{\mathbf{ b}}
+\newcommand{\cv}{\mathbf{ c}}
+\newcommand{\dv}{\mathbf{ d}}
+\newcommand{\ev}{\mathbf{ e}}
+\newcommand{\fv}{\mathbf{ f}}
+\newcommand{\gv}{\mathbf{ g}}
+\newcommand{\hv}{\mathbf{ h}}
+\newcommand{\iv}{\mathbf{ i}}
+\newcommand{\jv}{\mathbf{ j}}
+\newcommand{\kv}{\mathbf{ k}}
+\newcommand{\lv}{\mathbf{ l}}
+\newcommand{\mv}{\mathbf{ m}}
+\newcommand{\nv}{\mathbf{ n}}
+\newcommand{\ov}{\mathbf{ o}}
+\newcommand{\pv}{\mathbf{ p}}
+\newcommand{\qv}{\mathbf{ q}}
+\newcommand{\rv}{\mathbf{ r}}
+\newcommand{\sv}{\mathbf{ s}}
+\newcommand{\tv}{\mathbf{ t}}
+\newcommand{\uv}{\mathbf{ u}}
+\newcommand{\vv}{\mathbf{ v}}
+\newcommand{\wv}{\mathbf{ w}}
+\newcommand{\xv}{\mathbf{ x}}
+\newcommand{\yv}{\mathbf{ y}}
+\newcommand{\zv}{\mathbf{ z}}
+% 
+\newcommand{\Av}{\mathbf{ A}}
+\newcommand{\Bv}{\mathbf{ B}}
+\newcommand{\Cv}{\mathbf{ C}}
+\newcommand{\Dv}{\mathbf{ D}}
+\newcommand{\Ev}{\mathbf{ E}}
+\newcommand{\Fv}{\mathbf{ F}}
+\newcommand{\Gv}{\mathbf{ G}}
+\newcommand{\Hv}{\mathbf{ H}}
+\newcommand{\Iv}{\mathbf{ I}}
+\newcommand{\Jv}{\mathbf{ J}}
+\newcommand{\Kv}{\mathbf{ K}}
+\newcommand{\Lv}{\mathbf{ L}}
+\newcommand{\Mv}{\mathbf{ M}}
+\newcommand{\Nv}{\mathbf{ N}}
+\newcommand{\Ov}{\mathbf{ O}}
+\newcommand{\Pv}{\mathbf{ P}}
+\newcommand{\Qv}{\mathbf{ Q}}
+\newcommand{\Rv}{\mathbf{ R}}
+\newcommand{\Sv}{\mathbf{ S}}
+\newcommand{\Tv}{\mathbf{ T}}
+\newcommand{\Uv}{\mathbf{ U}}
+\newcommand{\Vv}{\mathbf{ V}}
+\newcommand{\Wv}{\mathbf{ W}}
+\newcommand{\Xv}{\mathbf{ X}}
+\newcommand{\Yv}{\mathbf{ Y}}
+\newcommand{\Zv}{\mathbf{ Z}}
+
+\newcommand{\collon}{:}  % note \colon already defined by someone.
+\newcommand{\ff}{\tt}
+
+% \newcommand{\lt}{{<}}
+% \newcommand{\grad}{\nabla}
+% \newcommand{\comma}{~~~,~~}
+% \newcommand{\calo}{{\cal O}}
+
+\newcommand{\half}{{1\over2}}
+
+\newcommand{\Real}{{\mathbb R}}
+\newcommand{\Imag}{\text{Im}}
+\newcommand{\Complex}{{\mathbb C}}
+
+\newcommand{\zerov}{\mathbf{0}}
+\newcommand{\kappav}{\boldsymbol{\kappa}}
+
+\newcommand{\Ac}{{\mathcal A}}
+\newcommand{\Bc}{{\mathcal B}}
+\newcommand{\Cc}{{\mathcal C}}
+\newcommand{\Dc}{{\mathcal D}}
+\newcommand{\Ec}{{\mathcal E}}
+\newcommand{\Fc}{{\mathcal F}}
+\newcommand{\Gc}{{\mathcal G}}
+\newcommand{\Gs}{{\mathcal G}}
+\newcommand{\Ic}{{\mathcal I}}
+\newcommand{\Jc}{{\mathcal J}}
+\newcommand{\Rc}{{\mathcal R}}
+\newcommand{\Lc}{{\mathcal L}}
+\newcommand{\Nc}{{\mathcal N}}
+\newcommand{\Oc}{{\mathcal O}}
+\newcommand{\Pc}{{\mathcal P}}
+\newcommand{\Qc}{{\mathcal Q}}
+\newcommand{\Sc}{{\mathcal S}}
+\newcommand{\Tc}{{\mathcal T}}
+\newcommand{\Vc}{{\mathcal V}}
+
+
+
+\newcommand{\deltav}{\boldsymbol{\delta}}
+\newcommand{\omegav}{\boldsymbol{\omega}}
+\newcommand{\tauv}{\boldsymbol{\tau}}
+\newcommand{\phiv}{\boldsymbol{\phi}}
+\newcommand{\psiv}{\boldsymbol{\psi}}
+\newcommand{\sigmav}{\boldsymbol{\sigma}}
+\newcommand{\chiv}{\boldsymbol{\chi}}
+
+
+\newcommand{\grad}{\nabla}
+
+\newcommand{\tableFont}{\scriptsize}
+\newcommand{\tableFontSize}{\scriptsize}
+\newcommand{\num}[2]{#1e#2} % Use this macro to define the format of the numbers in the table
+\newcommand{\eem}{e^{(j)}}
+\newcommand{\rateLabel}{rate}
+\newcommand{\captionFont}{\tiny}%for captions of automatically generated tables
+
+\clearpage
+\newcommand{\dtau}{\delta_\tau}
+\newcommand{\Gb}{G}
+
+
+\newcommand{\As}{\bar{A}}
+\newcommand{\Ks}{\bar{K}}
+% \newcommand{\Fs}{\bar{F}}
+
+\newcommand{\ms}{\bar{m}}
+\newcommand{\rhos}{\rho_b}% body density 
+\newcommand{\rhob}{\rho_b}% body density 
+\newcommand{\cp}{\bar{c}_p}
+\newcommand{\cs}{\bar{c}_s}
+\newcommand{\kappas}{{\rhos\cs^2}}
+\newcommand{\zs}{{\bar {z}}}  % solid impedance based on c_p
+\newcommand{\zp}{z_p}  % solid impedance based on c_s
+\newcommand{\us}{\bar{u}}
+\newcommand{\qs}{\bar{q}}
+\newcommand{\vs}{\bar{v}}
+\newcommand{\sigmas}{\bar{\sigma}}
+\newcommand{\xs}{\bar{x}}
+\newcommand{\xsv}{\bar{\xv}}
+\newcommand{\gsv}{\bar{\gv}}
+\newcommand{\rsv}{\bar{\rv}}
+\newcommand{\rs}{\bar{r}}
+\newcommand{\xf}{{x}}
+\newcommand{\dxs}{\Delta{\bar x}}
+\newcommand{\dxf}{{\Delta x}}
+\newcommand{\Ns}{\bar{N}}
+\newcommand{\Ls}{\bar{L}}
+\newcommand{\Nf}{{N}}
+\newcommand{\zf}{z_f}
+
+\newcommand{\usv}{\bar{\uv}}
+\newcommand{\vsv}{\bar{\vv}}
+\newcommand{\wsv}{\bar{\wv}}
+
+\newcommand{\ush}{\hat{\us}}
+\newcommand{\usvh}{\hat{\usv}}
+\newcommand{\vvh}{\hat{\vv}}
+\newcommand{\vh}{\hat{v}}
+\newcommand{\ph}{\hat{p}}
+
+\newcommand{\nsv}{\bar{\nv}}
+\newcommand{\vvs}{\bar{\vv}}
+\newcommand{\uvs}{\bar{\uv}}
+\newcommand{\xvs}{\bar{\xv}}
+\newcommand{\sigmavs}{\bar{\sigmav}}
+\newcommand{\sigmasv}{\bar{\sigmav}}
+\newcommand{\fsv}{\bar{\fv}}
+\newcommand{\qsv}{\bar{\qv}}
+
+\newcommand{\qsvp}{\qsv^p}
+\newcommand{\qsvI}{\qsv^I}
+\newcommand{\qvI}{\qv^I}
+
+\newcommand{\vvI}{\vv^I}
+\newcommand{\tauvI}{\tauv^I}
+\newcommand{\vvIf}{\vv^f}
+\newcommand{\tauvIf}{\tauv^f}
+% \newcommand{\vvIf}{\vv^{I,f}}
+\newcommand{\sigmavI}{\sigmav^I}
+\newcommand{\vsvIs}{\vsv^s}
+\newcommand{\sigmavIs}{\sigmav^s}
+
+\newcommand{\dvel}{{\delta_v}}
+\newcommand{\vDot}{\dot{v}}
+\newcommand{\vsDot}{\dot{\vs}}
+\newcommand{\vvDot}{\dot{\vv}}
+\newcommand{\vsvDot}{\dot{\vsv}}
+
+% \newcommand{\rb}{r_b} % a point on the body surface
+
+% \newcommand{\amp}{{\mathcal{A}}}
+\newcommand{\amp}{A}
+
+
+% \newcommand{\Energy}{\mathcal{E}}% Energy of the fluid
+% \newcommand{\Area}{\mathcal{A}_b}
+% \newcommand{\Area}{A_b}
+% \newcommand{\width}{\mathcal{W}}
+% \newcommand{\width}{w_b}
+
+
+\newcommand{\charSpeed}{s}% Char. speed
+\newcommand{\charVar}{\chi}% Char. variable
+
+
+\newcommand{\largess}{\sffamily\large}
+\newcommand{\Largess}{\sffamily\Large}
+\newcommand{\bfss}{\sffamily\bfseries}
+\newcommand{\smallss}{\sffamily\small}
+\newcommand{\normalss}{\sffamily}
+\newcommand{\scriptsizess}{\sffamily\scriptsize}
+
+\newcommand{\hs}{h_s}
+% \newcommand{\Hs}{H_s}
+\newcommand{\Hs}{\bar{H}}
+
+\newcommand{\kxHat}{\hat{k}_x}
+\newcommand{\kyHat}{\hat{k}_y}
+\newcommand{\omegaHat}{\hat{\omega}}
+\newcommand{\aHat}{\hat{a}}
+\newcommand{\bHat}{\hat{b}}
+
+\newcommand{\aTilde}{\tilde{a}}
+\newcommand{\bTilde}{\tilde{b}}
+
+\newcommand{\qsHat}{\hat{\qs}}
+\newcommand{\phase}{x_0}
+\newcommand{\phaset}{t_0}
+
+\newcommand{\as}{\bar{a}}
+\newcommand{\bs}{\bar{b}}
+% \newcommand{\ds}{\bar{d}}
+\newcommand{\ds}{\Delta s}
+\newcommand{\asHat}{\hat{\as}}
+\newcommand{\bsHat}{\hat{\bs}}
+\newcommand{\dsHat}{\hat{\ds}}
+
+\newcommand{\uHat}{\hat{u}}
+\newcommand{\vHat}{\hat{v}}
+\newcommand{\pHat}{\hat{p}}
+
+\newcommand{\dHat}{\hat{d}}
+\newcommand{\qHat}{\hat{q}}
+\newcommand{\vvHat}{\hat{\vv}}
+\newcommand{\vsHat}{\hat{\vs}}
+\newcommand{\sigmaHat}{\hat{\sigma}}
+\newcommand{\sigmasHat}{\hat{\sigmas}}
+
+\newcommand{\lambdas}{\bar{\lambda}}% solid Lame' parameter
+\newcommand{\mus}{\bar{\mu}}% solid Lame' parameter
+
+% \newcommand{\OmegaF}{\Omega^F}% fluid domain
+\newcommand{\OmegaF}{\Omega}% fluid domain
+\newcommand{\OmegaS}{\Omega^S}% solid domain
+
+% \newcommand{\OmegaB}{B}% domain of the body
+% \newcommand{\partialB}{{\partial\OmegaB}}% body boundary
+
+\newcommand{\OmegaB}{{\Omega_b}}% domain of the body
+\newcommand{\partialB}{\Gamma_b}% body boundary
+\newcommand{\GammaB}{\Gamma_b}% body boundary
+
+\newcommand{\OmegaFh}{\Omega^F_h}% fluid domain
+\newcommand{\OmegaSh}{\Omega^S_h}% solid domain
+
+\newcommand{\GammaI}{\Gamma}% Fluid-Solid Interface
+\newcommand{\GammaIh}{\Gamma_h}% Fluid-Solid Interface
+
+\renewcommand{\zp}{\bar{z}_p}
+\renewcommand{\zs}{\bar{z}_s}
+\newcommand{\zb}{\bar{z}}
+\newcommand{\Lt}{\tilde{L}}
+
+\newcommand{\MR}{M_r}% added mass ratio
+\newcommand{\Mr}{\mathcal{M}}% another added mass ratio
+
+\newcommand{\phis}{\phi_s}
+\newcommand{\phib}{\phi_b}
+% \newcommand{\phit}{\tilde{\phi}}
+% \newcommand{\phit}{\phi_<}
+
+\newcommand{\phim}{\phi_-}
+\newcommand{\phip}{\phi_+}
+
+
+\newcommand{\lambday}{\lambda}% 
+\newcommand{\lambdax}{\lambda_x}% 
+
+\newcommand{\cb}{\bar{c}}
+\newcommand{\kk}{k_x} % wave number of 2d analysis
+\newcommand{\kx}{k_x} % wave number of 2d analysis
+\newcommand{\ax}{\alpha \amp^{m+1}}
+\newcommand{\thetaj}{\theta} % Jeff's theta
+
+
+% Predicted states:
+% \newcommand{\vvp}{\vv^p}
+% \newcommand{\vp}{v^p}
+\newcommand{\sigmavp}{\sigmav^p}
+\newcommand{\sigmap}{\sigma^p}
+\newcommand{\tauvp}{\tauv^p}
+\newcommand{\taup}{\tau^p}
+\newcommand{\vsvp}{\vsv^p}
+\newcommand{\vsp}{\vs^p}
+\newcommand{\sigmasvp}{\sigmasv^p}
+\newcommand{\sigmasp}{\sigmas^p}
+
+
+\newcommand{\Ck}{C_k}
+\newcommand{\Sk}{S_k}
+\newcommand{\Ca}{C_\alpha}
+\newcommand{\Sa}{S_\alpha}
+
+\newcommand{\Sas}{S_a}
+\newcommand{\Cas}{C_a}
+\newcommand{\Sbs}{S_b}
+\newcommand{\Cbs}{C_b}
+
+\newcommand{\dsf}{\delta}
+
+
+\newcommand{\expkw}{e^{i(k x -\omega t)}}
+% \newcommand{\ampe}{\Ac_0}% amplitude of exact solution
+\newcommand{\ampe}{{\bar u_{{\rm max}}}}
+
+
+% \newcommand{\nus}{\bar\nu}
+\newcommand{\betas}{\bar\beta}
+% \newcommand{\ly}{\ell_y}
+% \newcommand{\lx}{\ell_x}
+% \newcommand{\ly}{\beta_y}
+% \newcommand{\lx}{\beta_x}
+% \newcommand{\ly}{\alpha_y}
+% \newcommand{\lx}{\alpha_x}
+\newcommand{\ly}{\lambda_y}
+\newcommand{\lx}{\lambda_x}
+% \newcommand{\ly}{\gamma_y}
+% \newcommand{\lx}{\gamma_x}
+
+\newcommand{\tanv}{\ev}% tangent 
+\newcommand{\blue}{\color{blue}}
+\newcommand{\red}{\color{red}}
+\newcommand{\green}{\color{green}}
+
+\newcommand{\strutt}{\rule{0pt}{9pt}}% strutt to make table column height bigger
+\newcommand{\tr}{\text{tr}}% trace
+
+
+\newcommand{\nd}{{n_d}} % number of space dims
+
+
+% JCP \newcommand{\Fig}{Fig.} % refer to figures this way
+\newcommand{\Fig}{Figure} % refer to figures this way
+\newcommand{\wvs}{\bar{\wv}}% solid `w
+% \newcommand{\wsv}{\bar{\wv}}% solid `w
+
+% \newcommand{\as}{c_p}% solid compression wave speed 
+% \newcommand{\azs}{c_p}% solid compression wave speed 
+
+\newcommand{\Pbar}{\bar{P}}
+\newcommand{\Fbar}{\bar{F}}
+\newcommand{\Ps}{\Pbar}
+\newcommand{\Fs}{\Fbar}
+
+
+\newcommand\Omegaf{{\Omega}}
+\newcommand\Omegas{{\bar\Omega}}
+\newcommand\Gammas{{\bar\Gamma}}
+\newcommand\ps{{\bar P}}
+\newcommand\fs{{\bar F}}
+\newcommand\ks{{\bar K}}
+\newcommand\js{{\bar J}}
+\newcommand\Ss{{\bar S}}
+\newcommand\es{{\bar E}}
+\newcommand\Cs{{\tilde E}}
+\newcommand\CC{{\bar C}}
+\newcommand\stressStrain{{\cal S}}
+
+\newcommand{\Js}{\bar{J}}
+
+
+\newcommand\Ts{{\bar T}}
+%\newcommand\tsv{{\bar\tv}}
+\newcommand\ns{{\bar n}}
+\newcommand\ts{{\bar\tau}}
+%\newcommand\ts{{\bar t}}
+\newcommand\leftv{{\bar\yv}}
+\newcommand\vvr{{\tilde\vv}}
+\newcommand\rotation{{R}}
+\newcommand\leftvr{{\tilde\yv}}
+\newcommand\vr{{\tilde v}}
+
+%\newcommand\stress{{\bar s}}
+%\newcommand\stressv{{\bar\sv}}
+%\newcommand\stressvr{{\tilde\sv}}
+%\newcommand\stressfv{{\sv}}
+%\newcommand\stressf{{s}}
+%\newcommand\stressr{{\tilde s}}
+\newcommand\stress{{\bar w}}
+\newcommand\stressv{{\bar\wv}}
+\newcommand\stressvr{{\tilde\wv}}
+\newcommand\stressfv{{\wv}}
+\newcommand\stressf{{w}}
+\newcommand\stressr{{\tilde w}}
+
+
+% -- prime variables
+\newcommand{\xp}{x'}
+\newcommand{\vp}{v'}
+\newcommand{\xsp}{\xs'}
+\newcommand{\Pp}{P'}
+\newcommand{\Tp}{T'}
+\newcommand{\qvp}{\qv'}
+\newcommand{\qpv}{\qvp}
+
+% interface point:
+\newcommand\Qs{{\bar Q}}
+\newcommand\Qf{{Q}}
+\newcommand{\interfacePoint}{\Qf}
+\newcommand{\interfacePointSolid}{\Qs}% in solid ref frame
+
+\newcommand{\Gcrd}{\Gc_{\rm{rd}}}% grid for the rotating disk 
+
+% \newcommand{\Gep}{\Gc_{ep}} % elastic piston grid
+% \newcommand{\Gd}{\Gc_{\text{rd}}}% rotating disk grid
+% \newcommand{\Ge}{\Gc_{e}} % deforming ellipse
+
+\newcommand\ths{{\bar\theta}}
+\newcommand\usr{{\us_r}}
+\newcommand\ust{{\us_\theta}}
+\newcommand\psr{{\tilde P}}
+\newcommand\Vr{{\bar V}}
+
+\newcommand\Jg{J_g}
+\newcommand\Jsg{\Js_g}
+
+\newcommand{\timeScale}{t^*}
+
+% tangent: 
+\newcommand\tn{{t}}
+\newcommand\tnv{{\mathbf{t}}}
+\newcommand\tns{{\bar\tn}}
+\newcommand\tnvs{{\bar\tnv}}
+\renewcommand\tv{\tnv}
+\newcommand\tsv{\tnvs}
+
+
+\newcommand\bsolid{{\bar b}}
+
+\newcommand{\shift}{E}% shift operator
+
+
+% \newcommand{\omegav}{\boldsymbol{\omega}}
+\newcommand{\cm}{{\rm cm}}
+\newcommand{\mrb}{m_{b}}% mass of the body
+% \newcommand{\xvcm}{\xv_{\rm cm}}% position of the center of mass
+% \newcommand{\vvcm}{\vv_{\rm cm}}% velocity of the center of mass
+% \newcommand{\avcm}{\av_{\rm cm}}% acceleration of the center of mass
+% \newcommand{\dotxvcm}{\dot\xv_{\rm cm}}% position of the center of mass
+% \newcommand{\dotvvcm}{\dot\vv_{\rm cm}}% velocity of the center of mass
+\newcommand{\xcm}{x_b}% position of the center of mass
+\newcommand{\vcm}{v_b}% position of the center of mass
+\newcommand{\acm}{a_b}% position of the center of mass
+\newcommand{\xb}{x_b}% position of the center of mass
+\newcommand{\vb}{v_b}% position of the center of mass
+\newcommand{\xvb}{\xv_b}% position of the center of mass
+\newcommand{\vvb}{\vv_b}% position of the center of mass
+\newcommand{\avb}{\av_b}% acceleration of the center of mass
+\newcommand{\bvb}{\bv_b}% angular acceleration of the center of mass
+\newcommand{\xvcm}{\xv_b}% position of the center of mass
+\newcommand{\vvcm}{\vv_b}% velocity of the center of mass
+\newcommand{\avcm}{\av_b}% acceleration of the center of mass
+\newcommand{\dotxcm}{\dot{x}_b}% position of the center of mass
+\newcommand{\dotrb}{\dot{r}_b}% position of the center of mass
+\newcommand{\dotvcm}{\dot{v}_b}% position of the center of mass
+\newcommand{\dotvb}{\dot{v}_b}% position of the center of mass
+\newcommand{\dotxvcm}{\dot\xv_b}% position of the center of mass
+\newcommand{\dotvvcm}{\dot\vv_b}% velocity of the center of mass
+\newcommand{\dotomegav}{\dot{\boldsymbol{\omega}}_b}
+
+\newcommand{\omegavb}{\omegav_b}% body angular acceleration
+\newcommand{\Eb}{E_b}% axes of inertial
+\newcommand{\fvbe}{\fv_e}% extranal force on body
+\newcommand{\gvbe}{\gv_e}% external torque on body
+
+% Added mass matrices
+\newcommand{\Ab}{{M_b}}
+\newcommand{\Avv}{A^{vv}}
+\newcommand{\Avw}{A^{v\omega}}
+\newcommand{\Awv}{A^{\omega v}}
+\newcommand{\Aww}{A^{\omega\omega}}
+%
+\newcommand{\avv}{a^{vv}}
+\newcommand{\avw}{a^{v\omega}}
+\newcommand{\awv}{a^{\omega v}}
+\newcommand{\aww}{a^{\omega\omega}}
+
+% \newcommand{\dtau}{\delta_\tau}
+% \newcommand{\Gb}{G}
+
+\newcommand{\OmegaMatrix}{W}
+\newcommand{\Force}{\mathcal{F}}
+\newcommand{\Forcev}{\boldsymbol{\Force}}
+\newcommand{\Forcevtilde}{\widetilde{\Forcev}}
+\newcommand{\Fvtilde}{\Forcevtilde}
+\newcommand{\Torque}{\mathcal{T}}
+\newcommand{\Torquev}{\boldsymbol{\Torque}}
+\newcommand{\Torquevtilde}{\widetilde{\Torquev}}
+\newcommand{\Gvtilde}{\Torquevtilde}
+\newcommand{\Ma}{A_m}
+
+\newcommand{\mb}{{m_b}}
+\newcommand{\mass}{{m_b}}
+\newcommand{\force}{\Force}
+
+% -- added damping
+\newcommand{\adc}{\beta_d}
+\newcommand{\Ivb}{\Ic^v}
+\newcommand{\Iwb}{\Ic^{\omega}}
+\newcommand{\dvb}{\delta\vvb}
+\newcommand{\dwb}{\delta\omegavb}
+\newcommand{\Da}{\Dc}% added damping matrix
+\newcommand{\Dvv}{\Da^{v v}}
+\newcommand{\Dvw}{\Da^{v \omega}}
+\newcommand{\Dwv}{\Da^{\omega v}}
+\newcommand{\Dww}{\Da^{\omega \omega}}
+\newcommand{\Dvva}{\tilde\Da^{v v}}
+\newcommand{\Dvwa}{\tilde\Da^{v \omega}}
+\newcommand{\Dwva}{\tilde\Da^{\omega v}}
+\newcommand{\Dwwa}{\tilde\Da^{\omega \omega}}
+%
+\newcommand{\uvp}{\vv^p}% predicted velocity
+%
+% \newcommand{\Ib}{A}% moment of inertia matr=ix
+\newcommand{\Ib}{\Iv_b}% moment of inertia matrix
+\newcommand{\Rx}{X^b}% matrix for (\rv-\xvb)\times
+
+\newcommand{\dArea}{dS}% area element for surface integrals
+\newcommand{\vvt}{\frac{\partial\vv}{\partial t}}
+\newcommand{\ampRB}{AMP-RB}% name of scheme
+
+% for added-damping 
+\newcommand{\alphas}{\bar{\alpha}}
+\newcommand{\vnp}{v}
+\newcommand{\vbnp}{\vcm}
+\newcommand{\Duu}{\Da^{u}}
+\newcommand{\Dun}{\Da^{u}_n}% added-damping coefficient based on \dn
+\newcommand{\Lw}{L^w}% in derivation of added-damping scale \dn
+\newcommand{\Duua}{{{\cal D}^\omega}}
+
+\newcommand{\ADtensor}{\Dv}% added damping composite tensor 
+\newcommand{\ADtensora}{\tilde\Dv}% added damping composite tensor 
+
+\newcommand{\Wvv}{\Wv^{v}}
+\newcommand{\Wvw}{\Wv^{\omega}}
+%\newcommand{\Wvv}{\Wv^{vv}}
+%\newcommand{\Wvw}{\Wv^{vw}}
+
+
+\newcommand{\vTheta}{v^{\theta}}% angular velocity for exact solutions
+\newcommand{\vRadial}{v^{r}}% radial velocity for exact solutions
+
+
+\newcommand{\dr}{\Delta r}
+
+
+\newcommand{\unp}{u}
+\newcommand{\ub}{u_b}
+\newcommand{\ucm}{u_b}
+\newcommand{\ubnp}{u_b}
+% \newcommand{\abnp}{a_b}
+% \newcommand{\ab}{a_b}
+\newcommand{\abnp}{\abu}
+\newcommand{\ab}{\abu}
+
+\newlength{\ycbTop}% For colour bar
+\newlength{\ycbMid}%
+
+\newcommand{\IntViscous}{\Ic}% symbol for integral of viscous tractions in added-damping formulation
+
+
+\newcommand{\state}[1]{\State\quad $#1$}% indented state
+\newcommand{\init}{*}
+\newcommand{\pred}{{p}}
+\newcommand{\cor}{{n+1}}
+\newcommand{\pHnp}{p_H(t^{n+1})}
+\newcommand{\gvnp}{g_v(t^{n+1})}
+\newcommand{\gunp}{g_u(t^{n+1})}
+
+
+\newcommand{\Dyh}{D_{yh}}
+\def\Dxi{\Delta\xi_0}	%old S
+\def\Deta{\Delta\eta_0} %old D
+\def\fdelta{\eta}
+\def\mbar{\bar{m}}
+\newcommand{\mbBar}{\bar{m}_b}
+
+
+% ---- here is the comment for the first stage of the algorithm
+% \newcommand{\bodyStepIComment}{Extrapolation step}
+% \newcommand{\bodyStepIComment}{Initial body evolution step}
+\newcommand{\bodyStepIComment}{Preliminary body evolution step}
+
+\newcommand{\wHat}{{\hat w}}
+\def\aa{r_1}
+\def\bb{r_2}
+\def\aab{\bar{r}_1}
+\def\bbb{\bar{r}_2}
+
+\newcommand{\dnu}{\dn_\nu} % dn based on nu*dt
+
+\newcommand{\cxi}{{C_\xi}}
+\newcommand{\ceta}{{C_\eta}}
+
+% stability polynomials in a rectangular geometry:
+\newcommand{\NAb}{\Nc_b}
+\newcommand{\NAv}{\Nc_v}
+% stability regions in a rectangular geometry:
+\newcommand{\SRb}{\Sc_{b}}
+\newcommand{\SRv}{\Sc_{v}}
+% stability polynomials in an annular geometry:
+\newcommand{\NAbt}{\widetilde\Nc_b}
+\newcommand{\NAvt}{\widetilde\Nc_v}
+
+\newcommand{\cone}{{\tilde C_1}}
+\newcommand{\ctwo}{{\tilde C_2}}
+\newcommand{\cmmm}{{\tilde C_m}}
+\newcommand{\IbBar}{{\bar I_b}}
+
+\newcommand{\abu}{a_u}% first component of body acceleration
+\newcommand{\abv}{a_v}% second component of body acceleration
+\newcommand{\tpRB}{{TP-RB}}
+
+\newcommand{\fap}{\fv}% advection and pressure terms
+
+\newcommand{\behaviour}{{behaviour}}
+\newcommand{\colour}{{colour}}
+
+\newcommand{\solidWidth}{\pistonWidth}
+\newcommand{\solidHeight}{\pistonHeight}
+\newcommand{\solidArea}{A_b}
+\newcommand{\rampFunction}{{\cal R}}
+
+\newcommand{\channelWidth}{{x_c}}
+\newcommand{\profileWidth}{{x_p}}
+\newcommand{\channelBottom}{{y_0}}
+\newcommand{\channelTop}{{y_1}}
+\newcommand{\diskRadius}{{R_b}}
+
+
+\newcommand{\errFormat}[1]{$E_j^{(#1)}$}
+
+\newcommand{\hj}{h^{(j)}}
+
+\newcommand{\channelRight}{L}% right end of the channel 
+\newcommand{\channelHeight}{H}% right end of the channel 
+\newcommand{\pistonWidth}{W_b}% width of piston
+\newcommand{\pistonHeight}{H_b}% height of piston
+\newcommand{\Gcp}{\Gc_p}% piston grid 
+\newcommand{\Amplitude}{\alpha_b}
+
