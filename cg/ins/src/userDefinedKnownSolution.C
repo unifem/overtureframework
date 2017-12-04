@@ -17,6 +17,7 @@
 #define evalOscillatingBubble EXTERN_C_NAME(evaloscillatingbubble)
 #define evalCapillaryFlow EXTERN_C_NAME(evalcapillaryflow)
 #define evalFibShearFluid EXTERN_C_NAME(evalfibshearfluid)
+#define evalFibCartWaveFluid EXTERN_C_NAME(evalfibcartwavefluid)
 
 extern "C"
 {
@@ -47,6 +48,15 @@ extern "C"
 			  const real & dr, const real & di,
 			  const real & y, 
 			  real & vr, real & vi);
+
+  void evalFibCartWaveFluid(const real & omegar, const real & omegai, const real & k,
+                            const real & mu, const real & rho, const real & mubar,
+                            const real & lambdabar, const real & Ar, const real & Ai,
+                            const real & Br, const real & Bi, const real & amp,
+                            const real & x, const real & y, const real & t, const real & H,
+                            real & v1r, real & v2r, real & pr);
+
+
 }
 
 namespace
@@ -1336,10 +1346,11 @@ getUserDefinedKnownSolution(real t, CompositeGrid & cg, int grid, RealArray & ua
     real & nu  = rpar[2];
     real & H   = rpar[3];
     real & amp1 = rpar[4];
-    real & amp2 = rpar[4];
+    real & amp2 = rpar[5];
 
     if( true ) {
-      printF("--UDKS-- evaluate freeSurfacePiston at t=%9.3e, amp=%9.3e \n",t,amp);
+      printF("--UDKS-- evaluate freeSurfacePiston at t=%9.3e, amp=%9.3e amp1=%9.3e amp2=%9.3e\n",
+             t,amp,amp1,amp2 );
     }
 
     GET_VERTEX_ARRAY(xLocal);
@@ -1480,6 +1491,62 @@ getUserDefinedKnownSolution(real t, CompositeGrid & cg, int grid, RealArray & ua
       // some options may need a time derivative ...
       OV_ABORT("FINISH ME");
     }
+
+  } else if (userKnownSolution=="fibCartWave") {
+    // -- traveling wave solution for elastic solid and linearized fluid --
+    // 
+    // linearized fluid: 0 < x < L,      0 < y < H
+    // solid reference:  0 < x < L,  -Hbar < y < 0
+
+    const real & omegar = rpar[0];
+    const real & omegai = rpar[1];
+    const real & k      = rpar[2];
+    const real & k1r    = rpar[3];
+    const real & k1i    = rpar[4];
+    const real & k2r    = rpar[5];
+    const real & k2i    = rpar[6];
+    const real & Ar     = rpar[7];
+    const real & Ai     = rpar[8];
+    const real & Br     = rpar[9];
+    const real & Bi     = rpar[10];
+    const real & amp    = rpar[11];
+    const real & mu     = rpar[12];
+    const real & rho    = rpar[13];
+    const real & muBar  = rpar[14];
+    const real & lambdaBar = rpar[15];
+    const real & rhoBar = rpar[16];
+    const real & H      = rpar[17];
+    const real & HBar   = rpar[18];
+
+    GET_VERTEX_ARRAY(xLocal);
+
+    printF("--INS-- evaluate fibCartWave at t=%9.3e \n",t);
+
+    int i1,i2,i3;
+    if( numberOfTimeDerivatives==0 ) {
+      FOR_3D(i1,i2,i3,I1,I2,I3) {
+        real x= xLocal(i1,i2,i3,0);
+        real y= xLocal(i1,i2,i3,1);
+	
+        real v1r, v2r, pr;
+
+        // need:
+        // mu, rho, mubar, lambdabar, H
+
+        evalFibCartWaveFluid(omegar,omegai,k,mu,rho,muBar,
+                             lambdaBar,Ar,Ai,Br,Bi,amp,
+                             x,y,t,H,
+                             v1r,v2r,pr);
+
+        ua(i1,i2,i3,uc) = v1r;
+        ua(i1,i2,i3,vc) = v2r;
+        ua(i1,i2,i3,pc) = pr;
+      }
+    } else {
+      // some options may need a time derivative ...
+      OV_ABORT("FINISH ME");
+    }
+      
 
   } else 
   {
@@ -1998,13 +2065,13 @@ getUserDefinedDeformingBodyKnownSolution(
     real & nu  = rpar[2];
     real & H   = rpar[3];
     real & amp1 = rpar[4];
-    real & amp2 = rpar[4];
+    real & amp2 = rpar[5];
 
     if( t <= 2.*dt )
     {
 
-      printF("--INS-- getUserDefinedDeformingBodyKnownSolution: freeSurfacePiston, t=%9.3e amp=%9.3e\n",
-             t,amp );
+      printF("--INS-- getUserDefinedDeformingBodyKnownSolution: freeSurfacePiston, t=%9.3e amp=%9.3e amp1=%9.3e amp2=%9.3e\n",
+             t,amp,amp1,amp2 );
     }
 
     const int c0=C.getBase(), c1=c0+1, c2=c1+1;
@@ -2990,22 +3057,22 @@ updateUserDefinedKnownSolution(GenericGraphicsInterface & gi, CompositeGrid & cg
       real & nu  = rpar[2];
       real & H   = rpar[3];
       real & amp1 = rpar[4];
-      real & amp2 = rpar[4];
+      real & amp2 = rpar[5];
 
       nu = dbase.get<real>("nu");
       H  = 1.;
 
       printF("--- free surface piston ---\n"
-	     "Interface position = yI(t) = amp sin(k t) + amp1 t^2 + amp2 t"
-	     "   amp = amplitude of interface displacement "
-	     "   amp1 = amplitude of t^2"
-	     "   amp2 = amplitude of t"
-	     "   k   = frequency of interface displacement");
+	     "Interface position = yI(t) = amp sin(k t) + amp1 t^2 + amp2 t\n"
+	     "   amp = amplitude of interface displacement \n"
+	     "   amp1 = amplitude of t^2\n"
+	     "   amp2 = amplitude of t\n"
+	     "   k   = frequency of interface displacement\n");
       
       gi.inputString(answer,"Enter (amp,amp1,amp2,k)");
       sScanF(answer,"%e %e %e %e",&amp,&amp1,&amp2,&k);
 
-      printF("***freeSurfacePiston: recieved (amp,k)=(%e,%e)\n",amp,k);
+      printF("***freeSurfacePiston: recieved (amp,amp1,amp2,k)=(%e,%e,%e,%e)\n",amp,amp1,amp2,k);
       
       // OV_ABORT("stop for now");
     }

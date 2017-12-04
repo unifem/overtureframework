@@ -278,9 +278,11 @@ c     get solution
       cosy = 0.5d0*(exp(I*ks*y)+exp(-I*ks*y))
       siny = 0.5d0*(exp(I*ks*y)-exp(-I*ks*y))
 
-      u  =          ( a*cos(ks*y)+b*sin(ks*y))*exp(-I*omega*t)
-      v  = -I*omega*( a*cos(ks*y)+b*sin(ks*y))*exp(-I*omega*t)
-      uy =       ks*(-a*sin(ks*y)+b*cos(ks*y))*exp(-I*omega*t)
+      u  =          ( a*cos(ks*y)+b*sin(ks*y))*exp(I*omega*t)
+      v  =  I*omega*( a*cos(ks*y)+b*sin(ks*y))*exp(I*omega*t)
+      uy =       ks*(-a*sin(ks*y)+b*cos(ks*y))*exp(I*omega*t)
+
+      
 
 c     take real and imaginary parts of the solution
       ur  = dreal(u)
@@ -289,7 +291,15 @@ c     take real and imaginary parts of the solution
       vi  = dimag(v)
       uyr = dreal(uy)
       uyi = dimag(uy)
+
+c$$$      write(*,'("ks  = ",2f10.3)')ks
+c$$$      write(*,'("a  = ",2f10.3)')a
+c$$$      write(*,'("b  = ",2f10.3)')b
+c$$$      write(*,'("omega  = ",2f10.3)')omega
+c$$$      write(*,'("(y,t)  = ",2f10.3)')y,t
+c$$$      write(*,'("v  = ",2f10.3)')vr,vi
 c$$$      write(*,'("uy = ",2f10.3)')uyr,uyi
+
       return
       end
 
@@ -315,7 +325,7 @@ c     get complex vars
       I  = dcmplx(0.0d0,1.0d0)
 
 c     get solution
-      v = -I*omega*(c*exp(kf*y)+d*exp(-kf*y))
+      v = I*omega*(c*exp(kf*y)+d*exp(-kf*y))
       
 c     take real and imaginary parts
       vr = dreal(v)
@@ -324,5 +334,172 @@ c     take real and imaginary parts
 
       return
       end
+
+
+      subroutine evalFibCartWaveFluid(omegar,omegai,k,mu,rho,mubar,
+     +     lambdabar,Ar,Ai,Br,Bi,epsilon,
+     +     x,y,t,H,
+     +     v1r,v2r,pr)
+      implicit none
+      double precision omegar,omegai,k,mu,rho,mubar,
+     +     lambdabar,Ar,Ai,Br,Bi,epsilon,
+     +     x,y,t,H,v1r,v2r,pr
+      complex*16 omega,A,B,A1,B1,A2,B2,r,v1,v2,p,i
+
+!     need 
+!     mubar, lambdabar,
+!     omega, k, mu, rho, A, B
+!     epsilon
+
+c     get complex vars
+      omega = dcmplx(omegar,omegai)
+      A     = dcmplx(Ar    ,Ai    )
+      B     = dcmplx(Br    ,Bi    )
+      i  = dcmplx(0.0d0,1.0d0)
+
+c     calculate quantities
+      r= i / mu * sqrt(i * mu * (i * k ** 2 * mu + omega * rho))
+
+      B1=-i*B*k**2*(lambdabar+2*mubar)/(rho*omega**2);
+      A1=-i*A*k**2*(lambdabar+2*mubar)/(rho*omega**2);
+      B2=-A*k**2*(lambdabar+2*mubar)/(rho*omega**2);
+      A2=-B*k**2*(lambdabar+2*mubar)/(rho*omega**2);
+
+c     get solution
+      v1 = i * epsilon * omega * ((A1 * sinh(k * (y - H))) + 
+     +     (B1 * cosh(k * (y - H))) - i * r * B2 / k * sinh(r * 
+     +     (y - H)) - (B1 * cosh(r * (y - H)))) * exp(i * (k * x - 
+     +     omega * t));
+      v2 = i * epsilon * omega * ((A2 * sinh(k * (y - H))) + 
+     +     (B2 * cosh(k * (y - H))) + i * k / r * B1 * sinh(r * 
+     +     (y - H)) - (B2 * cosh(r * (y - H)))) * exp(i * (k * x - 
+     +     omega * t));
+      p  = (A * sinh(k * (y - H)) + B * cosh(k * (y - H))) * k * epsilon 
+     +     * (lambdabar + 2 * mubar) * exp(i * (k * x - omega * t));
+
+c     take real part
+      v1r = dreal(v1)
+      v2r = dreal(v2)
+      pr  = dreal(p)
+
+
+      return
+      end
+
+      subroutine evalFibCartWaveSolid(omegar,omegai,k,mubar,rhobar,
+     +     lambdabar,k1r,k1i,k2r,k2i,epsilon,
+     +     x,y,t,Hbar, 
+     +     u1barr,u2barr,v1barr,v2barr,s11barr,s12barr,s22barr)
+      implicit none
+      double precision omegar,omegai,k,mubar,rhobar,
+     +     lambdabar,k1r,k1i,k2r,k2i,epsilon,cs,cp,
+     +     x,y,t,Hbar,
+     +     u1barr,u2barr,v1barr,v2barr,s11barr,s12barr,s22barr
+      complex*16 omega,k1,k2,k3,k4,alpha1,alpha2,alpha3,alpha4,
+     +     a1,a2,a3,a4,u1bar,u2bar,v1bar,v2bar,s11bar,s12bar,s22bar,i
+!     need 
+!     mubar, rhobar, lambdabar,
+!     omega, k
+!     k1,k2
+
+c     get complex vars
+      omega = dcmplx(omegar,omegai)
+      k1    = dcmplx(k1r   ,k1i   )
+      k2    = dcmplx(k2r   ,k2i   )
+      i  = dcmplx(0.0d0,1.0d0)
+
+c     calculate quantities
+      cs = sqrt(mubar/rhobar)
+      cp = sqrt((lambdabar+2*mubar)/rhobar)
+
+      alpha1=sqrt(k**2-omega**2/cs**2)
+      alpha2=sqrt(k**2-omega**2/cp**2)
+      alpha3=-sqrt(k**2-omega**2/cs**2)
+      alpha4=-sqrt(k**2-omega**2/cp**2)
+
+      a1= i*((-2*mubar-lambdabar)*k**2+alpha1**2*mubar+omega**2*rhobar)
+     +     /(k*(mubar+lambdabar)*alpha1)
+      a2= i*((-2*mubar-lambdabar)*k**2+alpha2**2*mubar+omega**2*rhobar)
+     +     /(k*(mubar+lambdabar)*alpha2)
+      a3= i*((-2*mubar-lambdabar)*k**2+alpha3**2*mubar+omega**2*rhobar)
+     +     /(k*(mubar+lambdabar)*alpha3)
+      a4= i*((-2*mubar-lambdabar)*k**2+alpha4**2*mubar+omega**2*rhobar)
+     +     /(k*(mubar+lambdabar)*alpha4)
+
+      k3 = (a1*k1+a2*k1+2*a2*k2)/(a1-a2)
+      k4 = -(2*a1*k1+a1*k2+a2*k2)/(a1-a2)
+
+c     get solution
+      u1bar = epsilon * (k1 * exp(alpha1 * (y + Hbar)) + k2 * exp(alpha2 
+     +     * (y + Hbar)) - (a1 * k1 + a2 * k2 - a4 * k1 - a4 * k2) / (a3 
+     +     - a4) * exp(-alpha1 * (y + Hbar)) + (a1 * k1 + a2 * k2 - a3 * 
+     +     k1 - a3 * k2) / (a3 - a4) * exp(-alpha2 * (y + Hbar))) * 
+     +     exp(i * (k * x - omega * t))
+      u2bar = epsilon * (a1 * k1 * exp(alpha1 * (y + Hbar)) + a2 * k2 * 
+     +     exp(alpha2 * (y + Hbar)) - a3 * (a1 * k1 + a2 * k2 - a4 * k1 
+     +     - a4 * k2) / (a3 - a4) * exp(-alpha1 * (y + Hbar)) + a4 * (a1 
+     +     * k1 + a2 * k2 - a3 * k1 - a3 * k2) / (a3 - a4) * exp(-alpha2 
+     +     * (y + Hbar))) * exp(i * (k * x - omega * t));
+      v1bar = -i * epsilon * (k1 * exp(alpha1 * (y + Hbar)) + k2 * 
+     +     exp(alpha2 * (y + Hbar)) - (a1 * k1 + a2 * k2 - a4 * k1 - 
+     +     a4 * k2) / (a3 - a4) * exp(-alpha1 * (y + Hbar)) + (a1 * k1 + 
+     +     a2 * k2 - a3 * k1 - a3 * k2) / (a3 - a4) * exp(-alpha2 * (y + 
+     +     Hbar))) * omega * exp(i * (k * x - omega * t))
+      v2bar = -i * epsilon * (a1 * k1 * exp(alpha1 * (y + Hbar)) + a2 * 
+     +     k2 * exp(alpha2 * (y + Hbar)) - a3 * (a1 * k1 + a2 * k2 - a4
+     +     * k1 - a4 * k2) / (a3 - a4) * exp(-alpha1 * (y + Hbar)) + a4 
+     +     * (a1 * k1 + a2 * k2 - a3 * k1 - a3 * k2) / (a3 - a4) * 
+     +     exp(-alpha2 * (y + Hbar))) * omega * exp(i * (k * x - omega 
+     +     * t))
+      s11bar = i * (lambdabar + 2 * mubar) * epsilon * (k1 * exp(alpha1 
+     +     * (y + Hbar)) + k2 * exp(alpha2 * (y + Hbar)) - (a1 * k1 + a2 
+     +     * k2 - a4 * k1 - a4 * k2) / (a3 - a4) * exp(-alpha1 * (y + 
+     +     Hbar)) + (a1 * k1 + a2 * k2 - a3 * k1 - a3 * k2) / (a3 - a4) 
+     +     * exp(-alpha2 * (y + Hbar))) * k * exp(i * (k * x - omega * t
+     +     )) + lambdabar * epsilon * (a1 * k1 * alpha1 * exp(alpha1 * 
+     +     (y + Hbar)) + a2 * k2 * alpha2 * exp(alpha2 * (y + Hbar)) + 
+     +     a3 * (a1 * k1 + a2 * k2 - a4 * k1 - a4 * k2) / (a3 - a4) * 
+     +     alpha1 * exp(-alpha1 * (y + Hbar)) - a4 * (a1 * k1 + a2 * k2
+     +     - a3 * k1 - a3 * k2) / (a3 - a4) * alpha2 * exp(-alpha2 * 
+     +     (y + Hbar))) * exp(i * (k * x - omega * t))
+
+      s12bar = mubar * (epsilon * (k1 * alpha1 * exp(alpha1 * (y + 
+     +     Hbar)) + k2 * alpha2 * exp(alpha2 * (y + Hbar)) + (a1 * k1 
+     +     + a2 * k2 - a4 * k1 - a4 * k2) / (a3 - a4) * alpha1 * 
+     +     exp(-alpha1 * (y + Hbar)) - (a1 * k1 + a2 * k2 - a3 * k1 - 
+     +     a3 * k2) / (a3 - a4) * alpha2 * exp(-alpha2 * (y + Hbar))) * 
+     +     exp(i * (k * x - omega * t)) + i * epsilon * (a1 * k1 * 
+     +     exp(alpha1 * (y + Hbar)) + a2 * k2 * exp(alpha2 * (y + Hbar))
+     +     - a3 * (a1 * k1 + a2 * k2 - a4 * k1 - a4 * k2) / (a3 - a4) * 
+     +     exp(-alpha1 * (y + Hbar)) + a4 * (a1 * k1 + a2 * k2 - a3 * k1 
+     +     - a3 * k2) / (a3 - a4) * exp(-alpha2 * (y + Hbar))) * k * 
+     +     exp(i * (k * x - omega * t)))
+
+      s22bar = (lambdabar + 2 * mubar) * epsilon * (a1 * k1 * alpha1 * 
+     +     exp(alpha1 * (y + Hbar)) + a2 * k2 * alpha2 * exp(alpha2 * (y 
+     +     + Hbar)) + a3 * (a1 * k1 + a2 * k2 - a4 * k1 - a4 * k2) / 
+     +     (a3 - a4) * alpha1 * exp(-alpha1 * (y + Hbar)) - a4 * (a1 * 
+     +     k1 + a2 * k2 - a3 * k1 - a3 * k2) / (a3 - a4) * alpha2 * 
+     +     exp(-alpha2 * (y + Hbar))) * exp(i * (k * x - omega * t)) + 
+     +     i * lambdabar * epsilon * (k1 * exp(alpha1 * (y + Hbar)) + 
+     +     k2 * exp(alpha2 * (y + Hbar)) - (a1 * k1 + a2 * k2 - a4 * k1 
+     +     - a4 * k2) / (a3 - a4) * exp(-alpha1 * (y + Hbar)) + (a1 * k1 
+     +     + a2 * k2 - a3 * k1 - a3 * k2) / (a3 - a4) * exp(-alpha2 * (y 
+     +     + Hbar))) * k * exp(i * (k * x - omega * t))
+
+
+c     take real part
+      u1barr = dreal(u1bar)
+      u2barr = dreal(u2bar)
+      v1barr = dreal(v1bar)
+      v2barr = dreal(v2bar)
+      s11barr = dreal(s11bar)
+      s12barr = dreal(s12bar)
+      s22barr = dreal(s22bar)
+
+
+      return
+      end
+
 
 

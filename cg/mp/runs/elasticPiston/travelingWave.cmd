@@ -1,5 +1,5 @@
 #
-# cgmp:   INS + Elasticity: elastic shear piston with exact solution
+# cgmp:   INS + Elasticity: traveling wave solution
 # 
 # Usage:
 #    cgmp [-noplot] elasticPiston -g=<name> -method=[ins|cns] -nu=<> -mu=<> -kappa=<num> -tf=<tFinal> -tp=<tPlot> ...
@@ -47,7 +47,6 @@ $freqFullUpdate=1; # frequency for using full ogen update in moving grids
 #
 $smoothInterface=0;  # smooth the interface (in DeformingBodyMotion.C )
 $numberOfInterfaceSmooths=4; 
-$caseid=0;
 #
 # $option="beamUnderPressure"; # this currently means ramp the inflow
 $option="bulkSolidPiston"; # define pressure BC from known solution
@@ -67,7 +66,8 @@ $append=0;
 $addedMass=0; 
 # ---- piston parameters:  choose t0=1/(4*k) to make yI(0)=0 
 $Pi=4.*atan2(1.,1.);
-$amp=.001; $k=.5; $t0=1./(4*$k);  $H=1.; $Hbar=.5; $rho=1.; 
+$amp=.0001; $k=.5; $t0=1./(4*$k);  $H=1.; $Hbar=.5; $rho=1.; 
+$caseid=0;
 $rampOrder=2;  # number of zero derivatives at start and end of the ramp
 $ra=-10.; $rb=-9.; # ramp interval -- actual interval shifted by Hbar/cp 
 # ----------------------------- get command line arguments ---------------------------------------
@@ -170,15 +170,14 @@ $modelNameINS="none";
 #
 $T0=0.; 
 # -- RAMP PRESSURE BC: 
-$sideBCFluid=DirichletBoundaryCondition;
-$bc = "all=$sideBC\n bcNumber4=dirichletBoundaryCondition\n bcNumber100=noSlipWall uniform(u=.0,T=$T0)\n bcNumber100=tractionInterface";
+$bc = "all=$sideBC\n bcNumber100=noSlipWall uniform(u=.0,T=$T0)\n bcNumber100=tractionInterface";
 #
 $ic="uniform flow\n" . "p=0., u=$u0, T=$T0";
 $rhoBar=$rhoSolid*$scf; $lambdaBar=$lambdaSolid*$scf; $muBar=$muSolid*$scf;
 $ic="OBTZ:user defined known solution\n" .\
     "choose a common known solution\n" .\
-    " shearing fluid and elastic solid\n" .\
-    "$amp, $rhoSolid\n" .\
+    "fib cartesian traveling wave\n" .\
+    "$amp $caseid \n" .\
     " done\n" .\
     "done"; 
 if( $tz ne "turn off twilight zone" ){ $ic="#"; }
@@ -192,15 +191,20 @@ echo to terminal 1
 $domainName=$domain2; $solverName="solid"; 
 # $bcCommands="all=displacementBC\n bcNumber100=tractionBC\n bcNumber100=tractionInterface"; 
 # $bcCommands="all=displacementBC\n bcNumber2=slipWall\n bcNumber100=tractionBC\n bcNumber100=tractionInterface"; 
-$bcCommands="all=tractionBC\n bcNumber1=displacementBC\n bcNumber2=displacementBC\n bcNumber3=dirichletBoundaryCondition\n bcNumber100=tractionBC\n bcNumber100=tractionInterface"; 
+$bcCommands="all=tractionBC\n bcNumber1=displacementBC\n bcNumber2=displacementBC\n bcNumber3=displacementBC\n bcNumber100=tractionBC\n bcNumber100=tractionInterface"; 
+# -- slipWall on sides and displacement on bottom:
+# if( $sideBC eq "dirichlet" ){ $sideBC = "dirichletBoundaryCondition"; }
+# $bcCommands="all=displacementBC\n bcNumber1=$sideBC\n bcNumber2=$sideBC\n bcNumber100=tractionBC\n bcNumber100=tractionInterface"; 
+#  -- for noSlipWall's we use displacement on sides of solid
+# if( $sideBC eq "noSlipWall" ){ $bcCommands="all=displacementBC\n  bcNumber100=tractionBC\n bcNumber100=tractionInterface"; }
 $exponent=10.; $x0=.5; $y0=.5; $z0=.5;  $rhoSolid=$rhoSolid*$scf; $lambda=$lambdaSolid*$scf; $mu=$muSolid*$scf; 
 # $initialConditionCommands="gaussianPulseInitialCondition\n Gaussian pulse: 10 2 $exponent $x0 $y0 $z0 (beta,scale,exponent,x0,y0,z0)";
 $initialConditionCommands="zeroInitialCondition";
 $initialConditionCommands=\
     "OBTZ:user defined known solution\n" .\
     "choose a common known solution\n" .\
-    " shearing fluid and elastic solid\n" .\
-    "$amp, $rhoSolid\n" .\
+    "fib cartesian traveling wave\n" .\
+    "$amp $caseid \n" .\
     " done\n" .\
   "done \n" .\
   "knownSolutionInitialCondition";

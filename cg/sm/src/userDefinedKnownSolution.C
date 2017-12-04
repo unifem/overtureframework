@@ -10,6 +10,7 @@
 #define rotatingDiskSVK   EXTERN_C_NAME(rotatingdisksvk)
 #define evalFibShearSolid EXTERN_C_NAME(evalfibshearsolid)
 #define evalFibShearSolidFull EXTERN_C_NAME(evalfibshearsolidfull)
+#define evalFibCartWaveSolid EXTERN_C_NAME(evalfibcartwavesolid)
 
 extern "C"
 {
@@ -33,6 +34,18 @@ extern "C"
                               real & uyr, real & uyi,
                               const real & omegar, const real & omegai);
 
+  void evalFibCartWaveSolid( const real & omegar, const real & omegai,
+                             const real & k, const real & mubar,
+                             const real & rhobar, const real & lambdabar,
+                             const real & k1r, const real & k1i,
+                             const real & k2r, const real & k2i,
+                             const real & amp, const real & x,
+                             const real & y, const real & t,
+                             const real & Hbar, 
+                             real & u1barr, real & u2barr, real & v1barr, 
+                             real & v2barr, real & s11barr, 
+                             real & s12barr, real & s22barr);
+  
 }
 
 #define FOR_3D(i1,i2,i3,I1,I2,I3) \
@@ -556,6 +569,86 @@ getUserDefinedKnownSolution(real t, CompositeGrid & cg, int grid, RealArray & ua
       }
       
     }
+
+
+  }
+  else if (userKnownSolution=="fibCartWave") 
+  {
+    // -- traveling wave solution for elastic solid and linearized fluid --
+    // 
+    // linearized fluid: 0 < x < L,      0 < y < H
+    // solid reference:  0 < x < L,  -Hbar < y < 0
+
+    const real & omegar = rpar[0];
+    const real & omegai = rpar[1];
+    const real & k      = rpar[2];
+    const real & k1r    = rpar[3];
+    const real & k1i    = rpar[4];
+    const real & k2r    = rpar[5];
+    const real & k2i    = rpar[6];
+    const real & Ar     = rpar[7];
+    const real & Ai     = rpar[8];
+    const real & Br     = rpar[9];
+    const real & Bi     = rpar[10];
+    const real & amp    = rpar[11];
+    const real & mu     = rpar[12];
+    const real & rho    = rpar[13];
+    const real & muBar  = rpar[14];
+    const real & lambdaBar = rpar[15];
+    const real & rhoBar = rpar[16];
+    const real & H      = rpar[17];
+    const real & HBar   = rpar[18];
+
+    printF("--SM-- userDefinedKnownSolution: fibCartWave, t=%9.3e, "
+	   "rhoBar=%9.3e, muBar=%9.3e\n",t,rho,mu);
+
+    assert( numberOfTimeDerivatives==0 );
+
+    // fill in the solution
+    MappedGrid & mg = cg[grid];
+    mg.update(MappedGrid::THEvertex | MappedGrid::THEcenter);
+
+    const realArray & center = mg.center();
+    RealArray & u = ua;
+
+    int i1,i2,i3;
+    FOR_3D(i1,i2,i3,I1,I2,I3)
+      {
+        // Reference coordinates:
+        const real x= center(i1,i2,i3,0);
+        const real y= center(i1,i2,i3,1);
+
+        real u1Barr, u2Barr, v1Barr, v2Barr, s11Barr, s12Barr, s22Barr;
+
+        evalFibCartWaveSolid(omegar, omegai, k, muBar,
+                             rhoBar, lambdaBar, k1r, k1i,
+                             k2r, k2i, amp, x, y, t, HBar, 
+                             u1Barr, u2Barr, v1Barr, 
+                             v2Barr, s11Barr, 
+                             s12Barr, s22Barr);
+
+        u(i1,i2,i3,u1c)=u1Barr;
+        u(i1,i2,i3,u2c)=u2Barr;
+
+
+        // velocities
+        if( assignVelocity )
+          {
+            u(i1,i2,i3,v1c)=v1Barr;
+            u(i1,i2,i3,v2c)=v2Barr;
+          }
+      
+        // stresses
+        if( assignStress )
+          {
+            u(i1,i2,i3,s11c)=s11Barr;
+            u(i1,i2,i3,s12c)=s12Barr;
+            u(i1,i2,i3,s21c)=s12Barr;
+            u(i1,i2,i3,s22c)=s22Barr;
+          }
+      
+      }
+
 
 
   }
