@@ -903,6 +903,75 @@
          real unyz42r
          real unlaplacian42r
          real unlaplacian43r
+         real umr4
+         real ums4
+         real umt4
+         real umrr4
+         real umss4
+         real umtt4
+         real umrs4
+         real umrt4
+         real umst4
+         real umx41
+         real umy41
+         real umz41
+         real umx42
+         real umy42
+         real umz42
+         real umx43
+         real umy43
+         real umz43
+         real umxx41
+         real umyy41
+         real umxy41
+         real umxz41
+         real umyz41
+         real umzz41
+         real umlaplacian41
+         real umxx42
+         real umyy42
+         real umxy42
+         real umxz42
+         real umyz42
+         real umzz42
+         real umlaplacian42
+         real umxx43
+         real umyy43
+         real umzz43
+         real umxy43
+         real umxz43
+         real umyz43
+         real umlaplacian43
+         real umx43r
+         real umy43r
+         real umz43r
+         real umxx43r
+         real umyy43r
+         real umzz43r
+         real umxy43r
+         real umxz43r
+         real umyz43r
+         real umx41r
+         real umy41r
+         real umz41r
+         real umxx41r
+         real umyy41r
+         real umzz41r
+         real umxy41r
+         real umxz41r
+         real umyz41r
+         real umlaplacian41r
+         real umx42r
+         real umy42r
+         real umz42r
+         real umxx42r
+         real umyy42r
+         real umzz42r
+         real umxy42r
+         real umxz42r
+         real umyz42r
+         real umlaplacian42r
+         real umlaplacian43r
          real vr4
          real vs4
          real vt4
@@ -973,7 +1042,7 @@
          real vlaplacian42r
          real vlaplacian43r
         real maxwell2dr,maxwell3dr,maxwellr44,maxwellr66,maxwellr88
-        real maxwellc22,maxwellc44,maxwellc66,maxwellc88
+        real maxwellc22,maxwellc44,maxwellc66,maxwellc88, maxwellc23
         real maxwell2dr44me,maxwell2dr66me,maxwell2dr88me
         real maxwell3dr44me,maxwell3dr66me,maxwell3dr88me
         real maxwellc44me,maxwellc66me,maxwellc88me
@@ -2876,6 +2945,187 @@ c===============================================================================
      & 1,i3,kd)  +um(i1,i2-1,i3,kd)  +um(i1,i2  ,i3+1,kd)+um(i1,i2  ,
      & i3-1,kd))   +2.*(um(i1,i2+1,i3+1,kd)+um(i1,i2-1,i3+1,kd)+um(i1,
      & i2+1,i3-1,kd)+um(i1,i2-1,i3-1,kd)) )/(dx(1)**2*dx(2)**2)
+        umr4(i1,i2,i3,kd)=(8.*(um(i1+1,i2,i3,kd)-um(i1-1,i2,i3,kd))-(
+     & um(i1+2,i2,i3,kd)-um(i1-2,i2,i3,kd)))*d14(0)
+        ums4(i1,i2,i3,kd)=(8.*(um(i1,i2+1,i3,kd)-um(i1,i2-1,i3,kd))-(
+     & um(i1,i2+2,i3,kd)-um(i1,i2-2,i3,kd)))*d14(1)
+        umt4(i1,i2,i3,kd)=(8.*(um(i1,i2,i3+1,kd)-um(i1,i2,i3-1,kd))-(
+     & um(i1,i2,i3+2,kd)-um(i1,i2,i3-2,kd)))*d14(2)
+        umrr4(i1,i2,i3,kd)=(-30.*um(i1,i2,i3,kd)+16.*(um(i1+1,i2,i3,kd)
+     & +um(i1-1,i2,i3,kd))-(um(i1+2,i2,i3,kd)+um(i1-2,i2,i3,kd)) )*
+     & d24(0)
+        umss4(i1,i2,i3,kd)=(-30.*um(i1,i2,i3,kd)+16.*(um(i1,i2+1,i3,kd)
+     & +um(i1,i2-1,i3,kd))-(um(i1,i2+2,i3,kd)+um(i1,i2-2,i3,kd)) )*
+     & d24(1)
+        umtt4(i1,i2,i3,kd)=(-30.*um(i1,i2,i3,kd)+16.*(um(i1,i2,i3+1,kd)
+     & +um(i1,i2,i3-1,kd))-(um(i1,i2,i3+2,kd)+um(i1,i2,i3-2,kd)) )*
+     & d24(2)
+        umrs4(i1,i2,i3,kd)=(8.*(umr4(i1,i2+1,i3,kd)-umr4(i1,i2-1,i3,kd)
+     & )-(umr4(i1,i2+2,i3,kd)-umr4(i1,i2-2,i3,kd)))*d14(1)
+        umrt4(i1,i2,i3,kd)=(8.*(umr4(i1,i2,i3+1,kd)-umr4(i1,i2,i3-1,kd)
+     & )-(umr4(i1,i2,i3+2,kd)-umr4(i1,i2,i3-2,kd)))*d14(2)
+        umst4(i1,i2,i3,kd)=(8.*(ums4(i1,i2,i3+1,kd)-ums4(i1,i2,i3-1,kd)
+     & )-(ums4(i1,i2,i3+2,kd)-ums4(i1,i2,i3-2,kd)))*d14(2)
+        umx41(i1,i2,i3,kd)= rx(i1,i2,i3)*umr4(i1,i2,i3,kd)
+        umy41(i1,i2,i3,kd)=0
+        umz41(i1,i2,i3,kd)=0
+        umx42(i1,i2,i3,kd)= rx(i1,i2,i3)*umr4(i1,i2,i3,kd)+sx(i1,i2,i3)
+     & *ums4(i1,i2,i3,kd)
+        umy42(i1,i2,i3,kd)= ry(i1,i2,i3)*umr4(i1,i2,i3,kd)+sy(i1,i2,i3)
+     & *ums4(i1,i2,i3,kd)
+        umz42(i1,i2,i3,kd)=0
+        umx43(i1,i2,i3,kd)=rx(i1,i2,i3)*umr4(i1,i2,i3,kd)+sx(i1,i2,i3)*
+     & ums4(i1,i2,i3,kd)+tx(i1,i2,i3)*umt4(i1,i2,i3,kd)
+        umy43(i1,i2,i3,kd)=ry(i1,i2,i3)*umr4(i1,i2,i3,kd)+sy(i1,i2,i3)*
+     & ums4(i1,i2,i3,kd)+ty(i1,i2,i3)*umt4(i1,i2,i3,kd)
+        umz43(i1,i2,i3,kd)=rz(i1,i2,i3)*umr4(i1,i2,i3,kd)+sz(i1,i2,i3)*
+     & ums4(i1,i2,i3,kd)+tz(i1,i2,i3)*umt4(i1,i2,i3,kd)
+        umxx41(i1,i2,i3,kd)=(rx(i1,i2,i3)**2)*umrr4(i1,i2,i3,kd)+(
+     & rxx42(i1,i2,i3))*umr4(i1,i2,i3,kd)
+        umyy41(i1,i2,i3,kd)=0
+        umxy41(i1,i2,i3,kd)=0
+        umxz41(i1,i2,i3,kd)=0
+        umyz41(i1,i2,i3,kd)=0
+        umzz41(i1,i2,i3,kd)=0
+        umlaplacian41(i1,i2,i3,kd)=umxx41(i1,i2,i3,kd)
+        umxx42(i1,i2,i3,kd)=(rx(i1,i2,i3)**2)*umrr4(i1,i2,i3,kd)+2.*(
+     & rx(i1,i2,i3)*sx(i1,i2,i3))*umrs4(i1,i2,i3,kd)+(sx(i1,i2,i3)**2)
+     & *umss4(i1,i2,i3,kd)+(rxx42(i1,i2,i3))*umr4(i1,i2,i3,kd)+(sxx42(
+     & i1,i2,i3))*ums4(i1,i2,i3,kd)
+        umyy42(i1,i2,i3,kd)=(ry(i1,i2,i3)**2)*umrr4(i1,i2,i3,kd)+2.*(
+     & ry(i1,i2,i3)*sy(i1,i2,i3))*umrs4(i1,i2,i3,kd)+(sy(i1,i2,i3)**2)
+     & *umss4(i1,i2,i3,kd)+(ryy42(i1,i2,i3))*umr4(i1,i2,i3,kd)+(syy42(
+     & i1,i2,i3))*ums4(i1,i2,i3,kd)
+        umxy42(i1,i2,i3,kd)=rx(i1,i2,i3)*ry(i1,i2,i3)*umrr4(i1,i2,i3,
+     & kd)+(rx(i1,i2,i3)*sy(i1,i2,i3)+ry(i1,i2,i3)*sx(i1,i2,i3))*
+     & umrs4(i1,i2,i3,kd)+sx(i1,i2,i3)*sy(i1,i2,i3)*umss4(i1,i2,i3,kd)
+     & +rxy42(i1,i2,i3)*umr4(i1,i2,i3,kd)+sxy42(i1,i2,i3)*ums4(i1,i2,
+     & i3,kd)
+        umxz42(i1,i2,i3,kd)=0
+        umyz42(i1,i2,i3,kd)=0
+        umzz42(i1,i2,i3,kd)=0
+        umlaplacian42(i1,i2,i3,kd)=(rx(i1,i2,i3)**2+ry(i1,i2,i3)**2)*
+     & umrr4(i1,i2,i3,kd)+2.*(rx(i1,i2,i3)*sx(i1,i2,i3)+ ry(i1,i2,i3)*
+     & sy(i1,i2,i3))*umrs4(i1,i2,i3,kd)+(sx(i1,i2,i3)**2+sy(i1,i2,i3)*
+     & *2)*umss4(i1,i2,i3,kd)+(rxx42(i1,i2,i3)+ryy42(i1,i2,i3))*umr4(
+     & i1,i2,i3,kd)+(sxx42(i1,i2,i3)+syy42(i1,i2,i3))*ums4(i1,i2,i3,
+     & kd)
+        umxx43(i1,i2,i3,kd)=rx(i1,i2,i3)**2*umrr4(i1,i2,i3,kd)+sx(i1,
+     & i2,i3)**2*umss4(i1,i2,i3,kd)+tx(i1,i2,i3)**2*umtt4(i1,i2,i3,kd)
+     & +2.*rx(i1,i2,i3)*sx(i1,i2,i3)*umrs4(i1,i2,i3,kd)+2.*rx(i1,i2,
+     & i3)*tx(i1,i2,i3)*umrt4(i1,i2,i3,kd)+2.*sx(i1,i2,i3)*tx(i1,i2,
+     & i3)*umst4(i1,i2,i3,kd)+rxx43(i1,i2,i3)*umr4(i1,i2,i3,kd)+sxx43(
+     & i1,i2,i3)*ums4(i1,i2,i3,kd)+txx43(i1,i2,i3)*umt4(i1,i2,i3,kd)
+        umyy43(i1,i2,i3,kd)=ry(i1,i2,i3)**2*umrr4(i1,i2,i3,kd)+sy(i1,
+     & i2,i3)**2*umss4(i1,i2,i3,kd)+ty(i1,i2,i3)**2*umtt4(i1,i2,i3,kd)
+     & +2.*ry(i1,i2,i3)*sy(i1,i2,i3)*umrs4(i1,i2,i3,kd)+2.*ry(i1,i2,
+     & i3)*ty(i1,i2,i3)*umrt4(i1,i2,i3,kd)+2.*sy(i1,i2,i3)*ty(i1,i2,
+     & i3)*umst4(i1,i2,i3,kd)+ryy43(i1,i2,i3)*umr4(i1,i2,i3,kd)+syy43(
+     & i1,i2,i3)*ums4(i1,i2,i3,kd)+tyy43(i1,i2,i3)*umt4(i1,i2,i3,kd)
+        umzz43(i1,i2,i3,kd)=rz(i1,i2,i3)**2*umrr4(i1,i2,i3,kd)+sz(i1,
+     & i2,i3)**2*umss4(i1,i2,i3,kd)+tz(i1,i2,i3)**2*umtt4(i1,i2,i3,kd)
+     & +2.*rz(i1,i2,i3)*sz(i1,i2,i3)*umrs4(i1,i2,i3,kd)+2.*rz(i1,i2,
+     & i3)*tz(i1,i2,i3)*umrt4(i1,i2,i3,kd)+2.*sz(i1,i2,i3)*tz(i1,i2,
+     & i3)*umst4(i1,i2,i3,kd)+rzz43(i1,i2,i3)*umr4(i1,i2,i3,kd)+szz43(
+     & i1,i2,i3)*ums4(i1,i2,i3,kd)+tzz43(i1,i2,i3)*umt4(i1,i2,i3,kd)
+        umxy43(i1,i2,i3,kd)=rx(i1,i2,i3)*ry(i1,i2,i3)*umrr4(i1,i2,i3,
+     & kd)+sx(i1,i2,i3)*sy(i1,i2,i3)*umss4(i1,i2,i3,kd)+tx(i1,i2,i3)*
+     & ty(i1,i2,i3)*umtt4(i1,i2,i3,kd)+(rx(i1,i2,i3)*sy(i1,i2,i3)+ry(
+     & i1,i2,i3)*sx(i1,i2,i3))*umrs4(i1,i2,i3,kd)+(rx(i1,i2,i3)*ty(i1,
+     & i2,i3)+ry(i1,i2,i3)*tx(i1,i2,i3))*umrt4(i1,i2,i3,kd)+(sx(i1,i2,
+     & i3)*ty(i1,i2,i3)+sy(i1,i2,i3)*tx(i1,i2,i3))*umst4(i1,i2,i3,kd)+
+     & rxy43(i1,i2,i3)*umr4(i1,i2,i3,kd)+sxy43(i1,i2,i3)*ums4(i1,i2,
+     & i3,kd)+txy43(i1,i2,i3)*umt4(i1,i2,i3,kd)
+        umxz43(i1,i2,i3,kd)=rx(i1,i2,i3)*rz(i1,i2,i3)*umrr4(i1,i2,i3,
+     & kd)+sx(i1,i2,i3)*sz(i1,i2,i3)*umss4(i1,i2,i3,kd)+tx(i1,i2,i3)*
+     & tz(i1,i2,i3)*umtt4(i1,i2,i3,kd)+(rx(i1,i2,i3)*sz(i1,i2,i3)+rz(
+     & i1,i2,i3)*sx(i1,i2,i3))*umrs4(i1,i2,i3,kd)+(rx(i1,i2,i3)*tz(i1,
+     & i2,i3)+rz(i1,i2,i3)*tx(i1,i2,i3))*umrt4(i1,i2,i3,kd)+(sx(i1,i2,
+     & i3)*tz(i1,i2,i3)+sz(i1,i2,i3)*tx(i1,i2,i3))*umst4(i1,i2,i3,kd)+
+     & rxz43(i1,i2,i3)*umr4(i1,i2,i3,kd)+sxz43(i1,i2,i3)*ums4(i1,i2,
+     & i3,kd)+txz43(i1,i2,i3)*umt4(i1,i2,i3,kd)
+        umyz43(i1,i2,i3,kd)=ry(i1,i2,i3)*rz(i1,i2,i3)*umrr4(i1,i2,i3,
+     & kd)+sy(i1,i2,i3)*sz(i1,i2,i3)*umss4(i1,i2,i3,kd)+ty(i1,i2,i3)*
+     & tz(i1,i2,i3)*umtt4(i1,i2,i3,kd)+(ry(i1,i2,i3)*sz(i1,i2,i3)+rz(
+     & i1,i2,i3)*sy(i1,i2,i3))*umrs4(i1,i2,i3,kd)+(ry(i1,i2,i3)*tz(i1,
+     & i2,i3)+rz(i1,i2,i3)*ty(i1,i2,i3))*umrt4(i1,i2,i3,kd)+(sy(i1,i2,
+     & i3)*tz(i1,i2,i3)+sz(i1,i2,i3)*ty(i1,i2,i3))*umst4(i1,i2,i3,kd)+
+     & ryz43(i1,i2,i3)*umr4(i1,i2,i3,kd)+syz43(i1,i2,i3)*ums4(i1,i2,
+     & i3,kd)+tyz43(i1,i2,i3)*umt4(i1,i2,i3,kd)
+        umlaplacian43(i1,i2,i3,kd)=(rx(i1,i2,i3)**2+ry(i1,i2,i3)**2+rz(
+     & i1,i2,i3)**2)*umrr4(i1,i2,i3,kd)+(sx(i1,i2,i3)**2+sy(i1,i2,i3)*
+     & *2+sz(i1,i2,i3)**2)*umss4(i1,i2,i3,kd)+(tx(i1,i2,i3)**2+ty(i1,
+     & i2,i3)**2+tz(i1,i2,i3)**2)*umtt4(i1,i2,i3,kd)+2.*(rx(i1,i2,i3)*
+     & sx(i1,i2,i3)+ ry(i1,i2,i3)*sy(i1,i2,i3)+rz(i1,i2,i3)*sz(i1,i2,
+     & i3))*umrs4(i1,i2,i3,kd)+2.*(rx(i1,i2,i3)*tx(i1,i2,i3)+ ry(i1,
+     & i2,i3)*ty(i1,i2,i3)+rz(i1,i2,i3)*tz(i1,i2,i3))*umrt4(i1,i2,i3,
+     & kd)+2.*(sx(i1,i2,i3)*tx(i1,i2,i3)+ sy(i1,i2,i3)*ty(i1,i2,i3)+
+     & sz(i1,i2,i3)*tz(i1,i2,i3))*umst4(i1,i2,i3,kd)+(rxx43(i1,i2,i3)+
+     & ryy43(i1,i2,i3)+rzz43(i1,i2,i3))*umr4(i1,i2,i3,kd)+(sxx43(i1,
+     & i2,i3)+syy43(i1,i2,i3)+szz43(i1,i2,i3))*ums4(i1,i2,i3,kd)+(
+     & txx43(i1,i2,i3)+tyy43(i1,i2,i3)+tzz43(i1,i2,i3))*umt4(i1,i2,i3,
+     & kd)
+c============================================================================================
+c Define derivatives for a rectangular grid
+c
+c============================================================================================
+        umx43r(i1,i2,i3,kd)=(8.*(um(i1+1,i2,i3,kd)-um(i1-1,i2,i3,kd))-(
+     & um(i1+2,i2,i3,kd)-um(i1-2,i2,i3,kd)))*h41(0)
+        umy43r(i1,i2,i3,kd)=(8.*(um(i1,i2+1,i3,kd)-um(i1,i2-1,i3,kd))-(
+     & um(i1,i2+2,i3,kd)-um(i1,i2-2,i3,kd)))*h41(1)
+        umz43r(i1,i2,i3,kd)=(8.*(um(i1,i2,i3+1,kd)-um(i1,i2,i3-1,kd))-(
+     & um(i1,i2,i3+2,kd)-um(i1,i2,i3-2,kd)))*h41(2)
+        umxx43r(i1,i2,i3,kd)=( -30.*um(i1,i2,i3,kd)+16.*(um(i1+1,i2,i3,
+     & kd)+um(i1-1,i2,i3,kd))-(um(i1+2,i2,i3,kd)+um(i1-2,i2,i3,kd)) )*
+     & h42(0)
+        umyy43r(i1,i2,i3,kd)=( -30.*um(i1,i2,i3,kd)+16.*(um(i1,i2+1,i3,
+     & kd)+um(i1,i2-1,i3,kd))-(um(i1,i2+2,i3,kd)+um(i1,i2-2,i3,kd)) )*
+     & h42(1)
+        umzz43r(i1,i2,i3,kd)=( -30.*um(i1,i2,i3,kd)+16.*(um(i1,i2,i3+1,
+     & kd)+um(i1,i2,i3-1,kd))-(um(i1,i2,i3+2,kd)+um(i1,i2,i3-2,kd)) )*
+     & h42(2)
+        umxy43r(i1,i2,i3,kd)=( (um(i1+2,i2+2,i3,kd)-um(i1-2,i2+2,i3,kd)
+     & - um(i1+2,i2-2,i3,kd)+um(i1-2,i2-2,i3,kd)) +8.*(um(i1-1,i2+2,
+     & i3,kd)-um(i1-1,i2-2,i3,kd)-um(i1+1,i2+2,i3,kd)+um(i1+1,i2-2,i3,
+     & kd) +um(i1+2,i2-1,i3,kd)-um(i1-2,i2-1,i3,kd)-um(i1+2,i2+1,i3,
+     & kd)+um(i1-2,i2+1,i3,kd))+64.*(um(i1+1,i2+1,i3,kd)-um(i1-1,i2+1,
+     & i3,kd)- um(i1+1,i2-1,i3,kd)+um(i1-1,i2-1,i3,kd)))*(h41(0)*h41(
+     & 1))
+        umxz43r(i1,i2,i3,kd)=( (um(i1+2,i2,i3+2,kd)-um(i1-2,i2,i3+2,kd)
+     & -um(i1+2,i2,i3-2,kd)+um(i1-2,i2,i3-2,kd)) +8.*(um(i1-1,i2,i3+2,
+     & kd)-um(i1-1,i2,i3-2,kd)-um(i1+1,i2,i3+2,kd)+um(i1+1,i2,i3-2,kd)
+     &  +um(i1+2,i2,i3-1,kd)-um(i1-2,i2,i3-1,kd)- um(i1+2,i2,i3+1,kd)+
+     & um(i1-2,i2,i3+1,kd)) +64.*(um(i1+1,i2,i3+1,kd)-um(i1-1,i2,i3+1,
+     & kd)-um(i1+1,i2,i3-1,kd)+um(i1-1,i2,i3-1,kd)) )*(h41(0)*h41(2))
+        umyz43r(i1,i2,i3,kd)=( (um(i1,i2+2,i3+2,kd)-um(i1,i2-2,i3+2,kd)
+     & -um(i1,i2+2,i3-2,kd)+um(i1,i2-2,i3-2,kd)) +8.*(um(i1,i2-1,i3+2,
+     & kd)-um(i1,i2-1,i3-2,kd)-um(i1,i2+1,i3+2,kd)+um(i1,i2+1,i3-2,kd)
+     &  +um(i1,i2+2,i3-1,kd)-um(i1,i2-2,i3-1,kd)-um(i1,i2+2,i3+1,kd)+
+     & um(i1,i2-2,i3+1,kd)) +64.*(um(i1,i2+1,i3+1,kd)-um(i1,i2-1,i3+1,
+     & kd)-um(i1,i2+1,i3-1,kd)+um(i1,i2-1,i3-1,kd)) )*(h41(1)*h41(2))
+        umx41r(i1,i2,i3,kd)= umx43r(i1,i2,i3,kd)
+        umy41r(i1,i2,i3,kd)= umy43r(i1,i2,i3,kd)
+        umz41r(i1,i2,i3,kd)= umz43r(i1,i2,i3,kd)
+        umxx41r(i1,i2,i3,kd)= umxx43r(i1,i2,i3,kd)
+        umyy41r(i1,i2,i3,kd)= umyy43r(i1,i2,i3,kd)
+        umzz41r(i1,i2,i3,kd)= umzz43r(i1,i2,i3,kd)
+        umxy41r(i1,i2,i3,kd)= umxy43r(i1,i2,i3,kd)
+        umxz41r(i1,i2,i3,kd)= umxz43r(i1,i2,i3,kd)
+        umyz41r(i1,i2,i3,kd)= umyz43r(i1,i2,i3,kd)
+        umlaplacian41r(i1,i2,i3,kd)=umxx43r(i1,i2,i3,kd)
+        umx42r(i1,i2,i3,kd)= umx43r(i1,i2,i3,kd)
+        umy42r(i1,i2,i3,kd)= umy43r(i1,i2,i3,kd)
+        umz42r(i1,i2,i3,kd)= umz43r(i1,i2,i3,kd)
+        umxx42r(i1,i2,i3,kd)= umxx43r(i1,i2,i3,kd)
+        umyy42r(i1,i2,i3,kd)= umyy43r(i1,i2,i3,kd)
+        umzz42r(i1,i2,i3,kd)= umzz43r(i1,i2,i3,kd)
+        umxy42r(i1,i2,i3,kd)= umxy43r(i1,i2,i3,kd)
+        umxz42r(i1,i2,i3,kd)= umxz43r(i1,i2,i3,kd)
+        umyz42r(i1,i2,i3,kd)= umyz43r(i1,i2,i3,kd)
+        umlaplacian42r(i1,i2,i3,kd)=umxx43r(i1,i2,i3,kd)+umyy43r(i1,i2,
+     & i3,kd)
+        umlaplacian43r(i1,i2,i3,kd)=umxx43r(i1,i2,i3,kd)+umyy43r(i1,i2,
+     & i3,kd)+umzz43r(i1,i2,i3,kd)
         ffr2(i1,i2,i3,kd)=(ff(i1+1,i2,i3,kd)-ff(i1-1,i2,i3,kd))*d12(0)
         ffs2(i1,i2,i3,kd)=(ff(i1,i2+1,i3,kd)-ff(i1,i2-1,i3,kd))*d12(1)
         fft2(i1,i2,i3,kd)=(ff(i1,i2,i3+1,kd)-ff(i1,i2,i3-1,kd))*d12(2)
@@ -3142,7 +3392,10 @@ c===============================================================================
      & u(i1-1,i2,i3,n)+u(i1+1,i2,i3,n)-2.*u(i1,i2,i3,n))+cdtdy*(u(i1,
      & i2-1,i3,n)+u(i1,i2+1,i3,n)-2.*u(i1,i2,i3,n))+cdtdz*(u(i1,i2,i3-
      & 1,n)+u(i1,i2,i3+1,n)-2.*u(i1,i2,i3,n))
+        ! these use pre-computed RHS in f 
         maxwellc22(i1,i2,i3,n)=2.*u(i1,i2,i3,n)-um(i1,i2,i3,n)+dtsq*f(
+     & i1,i2,i3,n)
+        maxwellc23(i1,i2,i3,n)=2.*u(i1,i2,i3,n)-um(i1,i2,i3,n)+dtsq*f(
      & i1,i2,i3,n)
         ! 2D, 2nd-order, div cleaning:
         !    D+tD-t( E ) + alpha*( D0t E ) = c^2 Delta(E) + alpha*( (1/eps) Curl ( H ) )
@@ -3865,7 +4118,281 @@ c===============================================================================
              ! ------------------------------------------------------------------------------
              !    2D : 4th order modified equation (rectangular)
              ! ------------------------------------------------------------------------------
-             if( useDivergenceCleaning.eq.0 )then
+             if( dispersionModel.ne.noDispersion )then
+               ! --dispersion model --
+                if( .true. .and. numberOfPolarizationVectors.eq.1 )then
+                 if( t.le.3.*dt )then
+                   write(*,'("advOPT>>>","FD44r-dispersive")')
+                 end if
+                 write(*,'(" DISPERSIVE: RECTANGULAR, 2D, ORDER 4: 
+     & FINISH ME  ")')
+                 fp=0
+                 fe=0.
+                   do i3=n3a,n3b
+                   do i2=n2a,n2b
+                   do i1=n1a,n1b
+                     if( mask(i1,i2,i3).gt.0 )then
+                   ! Advance Hz first:
+                   ! For now solve H_t = -(1/mu)*(  (E_y)_x - (E_x)_y )
+                   !   USE AB2 -- note: this is just a quadrature so stability is not an issue
+                   un(i1,i2,i3,hz) = u(i1,i2,i3,hz) -(dt/mu)*( 1.5*
+     & ux42r(i1,i2,i3,ey) -.5*umx42r(i1,i2,i3,ey) -1.5*uy42r(i1,i2,i3,
+     & ex) +.5*umy42r(i1,i2,i3,ex) )
+                    if( addForcing.ne.0 )then
+                      if( forcingOption.eq.twilightZoneForcing )then
+                        ! TESTING ...
+                        ! OGDERIV2D( 0,0,0,0,i1,i2,i3,t+dt, hz, hz0)
+                        ! un(i1,i2,i3,hz)=hz0
+                        ! OGDERIV2D( ntd,nxd,nyd,nzd,i1,i2,i3,t, n,val)
+                        ! OGDERIV2D( 1,0,0,0,i1,i2,i3,t+.5*dt, hz, hz0t)
+                        ! OGDERIV2D( 0,1,0,0,i1,i2,i3,t+.5*dt, ey, ey0x)
+                        ! OGDERIV2D( 0,0,1,0,i1,i2,i3,t+.5*dt, ex, ex0y)
+                        ! fhz = ( ey0x - ex0y )/mu + hz0t 
+                          call ogDeriv(ep, 1,0,0,0, xy(i1,i2,i3,0),xy(
+     & i1,i2,i3,1),0.,t-dt, hz,hz0t )
+                          call ogDeriv(ep, 0,1,0,0, xy(i1,i2,i3,0),xy(
+     & i1,i2,i3,1),0.,t-dt, ey,ey0x )
+                          call ogDeriv(ep, 0,0,1,0, xy(i1,i2,i3,0),xy(
+     & i1,i2,i3,1),0.,t-dt, ex,ex0y )
+                        fhz = -.5*( ( ey0x - ex0y )/mu + hz0t )
+                          call ogDeriv(ep, 1,0,0,0, xy(i1,i2,i3,0),xy(
+     & i1,i2,i3,1),0.,t, hz,hz0t )
+                          call ogDeriv(ep, 0,1,0,0, xy(i1,i2,i3,0),xy(
+     & i1,i2,i3,1),0.,t, ey,ey0x )
+                          call ogDeriv(ep, 0,0,1,0, xy(i1,i2,i3,0),xy(
+     & i1,i2,i3,1),0.,t, ex,ex0y )
+                        fhz = fhz + 1.5*( ( ey0x - ex0y )/mu + hz0t )
+                        un(i1,i2,i3,hz)=un(i1,i2,i3,hz) + dt*fhz
+                      else
+                        un(i1,i2,i3,hz) = un(i1,i2,i3,hz) + dt*f(i1,i2,
+     & i3,hz) ! first order only **FIX ME**
+                      end if
+                    end if
+                   do m=0,1
+                    pc=pxc+m
+                    ec=ex+m
+                    if( addForcing.ne.0 )then
+                      fe = dtsq*f(i1,i2,i3,ec)
+                       if( addForcing.ne.0 )then
+                         ! fp = dtsq*f(i1,i2,i3,pc) 
+                         if( forcingOption.eq.twilightZoneForcing )then
+                           if( nd.eq.2 )then
+                               call ogDeriv(ep, 0,0,0,0, xy(i1,i2,i3,0)
+     & ,xy(i1,i2,i3,1),0.,t, ec,e0 )
+                               call ogDeriv(ep, 1,0,0,0, xy(i1,i2,i3,0)
+     & ,xy(i1,i2,i3,1),0.,t, ec,e0t )
+                           else
+                               call ogDeriv(ep, 0,0,0,0, xy(i1,i2,i3,0)
+     & ,xy(i1,i2,i3,1),xy(i1,i2,i3,2),t, ec,e0 )
+                               call ogDeriv(ep, 1,0,0,0, xy(i1,i2,i3,0)
+     & ,xy(i1,i2,i3,1),xy(i1,i2,i3,2),t, ec,e0t )
+                           end if
+                           do iv=0,numberOfPolarizationVectors-1
+                             pce = pc+iv*nd
+                             if( nd.eq.2 )then
+                                 call ogDeriv(ep, 0,0,0,0, xy(i1,i2,i3,
+     & 0),xy(i1,i2,i3,1),0.,t, pce,p0 )
+                                 call ogDeriv(ep, 1,0,0,0, xy(i1,i2,i3,
+     & 0),xy(i1,i2,i3,1),0.,t, pce,p0t )
+                                 call ogDeriv(ep, 2,0,0,0, xy(i1,i2,i3,
+     & 0),xy(i1,i2,i3,1),0.,t, pce,p0tt )
+                             else
+                                 call ogDeriv(ep, 0,0,0,0, xy(i1,i2,i3,
+     & 0),xy(i1,i2,i3,1),xy(i1,i2,i3,2),t, pce,p0 )
+                                 call ogDeriv(ep, 1,0,0,0, xy(i1,i2,i3,
+     & 0),xy(i1,i2,i3,1),xy(i1,i2,i3,2),t, pce,p0t )
+                                 call ogDeriv(ep, 2,0,0,0, xy(i1,i2,i3,
+     & 0),xy(i1,i2,i3,1),xy(i1,i2,i3,2),t, pce,p0tt )
+                             end if
+                             fe = fe + dtsq*alphaP*p0tt
+                             fpv(iv) = dtsq*( p0tt + b1v(iv)*p0t + b0v(
+     & iv)*p0 - a0v(iv)*e0 - a1v(iv)*e0t )
+                           end do
+                           !if( abs(fp-fp2).gt. 1.e-14 )then
+                           !  write(*,'(" (i1,i2)=",2i6," fp,fp2,diff=",3e12.4)') i1,i2,fp,fp2,fp-fp2
+                           !else
+                           !  fp=fp2
+                           !end if
+                         else
+                           do iv=0,numberOfPolarizationVectors-1
+                             fpv(iv)=0.
+                           end do
+                         end if
+                       end if
+                      fp=fpv(0)
+                    end if
+                    ! GDM: 
+                    !   (E^{n+1} -2 E^n + E^{n-1})/dt^2 = c^2*Delta(E) -alphaP*(P^{n+1} -2 P^n + P^{n-1})/dt^2
+                    !   (P^{n+1} -2 P^n + P^{n-1})/dt^2 + b1* (P^{n+1} - P^{n-1})/(2*dt) + b0*P^n =
+                    !                             a0*E^n + a1*(E^{n+1} - E^{n-1})/(2*dt)
+                    ! =>
+                    !            E^{n+1} +       alphaP*P^{n+1} = rhsE
+                    !  -.5*a1*dt*E^{n+1} + (1+.5*b1*dt)*P^{n+1} = rhsP
+                    !
+                    ev = u(i1,i2,i3,ec)
+                    evm=um(i1,i2,i3,ec)
+                    pv0 = p(i1,i2,i3,m)
+                    pvm0=pm(i1,i2,i3,m)
+                    rhsE = maxwell2dr44me(i1,i2,i3,ec) + alphaP*(2.*
+     & pv0-pvm0) + fe
+                    rhsP = 2.*pv0-pvm0 + .5*dt*( b1*pvm0 -a1*evm ) + 
+     & dt*dt*( -b0*pv0 + a0*ev ) + fp
+                    deti = 1./(1.+.5*dt*(b1+alphaP*a1))
+                    un(i1,i2,i3,ec) = ((1.+.5*dt*b1)*rhsE -alphaP*rhsP)
+     & *deti
+                    pn(i1,i2,i3,m)  = (.5*a1*dt*rhsE            + rhsP)
+     & *deti
+                    ! write(*,'(" (i1,i2,m)=(",i3,i3,i2,") pvm0,pv0,,pn=",3e16.8)') i1,i2,m,pvm0,pv0,pn(i1,i2,i3,m)
+                   end do
+                     end if
+                   end do
+                   end do
+                   end do
+                else
+                 ! ------- 2D DISPERSIVE RECTANGULAR MULTIPLE PV -------
+                 if( t.le.3.*dt )then
+                   write(*,'("advOPT>>>","FD44r-dispersive-MULTI-PV")')
+                 end if
+                 write(*,'(" DISPERSIVE: RECTANGULAR, 2D, ORDER 4: 
+     & FINISH ME  ")')
+                 fe=0.
+                 ! -- first compute some coefficients ---
+                 beta=0.
+                 do iv=0,numberOfPolarizationVectors-1
+                   betav(iv) = 1./( 1.+.5*dt*b1v(iv) )
+                   beta = beta + .5*dt*a1v(iv)*betav(iv)
+                   fpv(iv)=0.  ! initialize if not used
+                 end do
+                   do i3=n3a,n3b
+                   do i2=n2a,n2b
+                   do i1=n1a,n1b
+                     if( mask(i1,i2,i3).gt.0 )then
+                   ! Advance Hz first:
+                   ! For now solve H_t = -(1/mu)*(  (E_y)_x - (E_x)_y )
+                   !   USE AB2 -- note: this is just a quadrature so stability is not an issue
+                   un(i1,i2,i3,hz) = u(i1,i2,i3,hz) -(dt/mu)*( 1.5*
+     & ux42r(i1,i2,i3,ey) -.5*umx42r(i1,i2,i3,ey) -1.5*uy42r(i1,i2,i3,
+     & ex) +.5*umy42r(i1,i2,i3,ex) )
+                    if( addForcing.ne.0 )then
+                      if( forcingOption.eq.twilightZoneForcing )then
+                        ! TESTING ...
+                        ! OGDERIV2D( 0,0,0,0,i1,i2,i3,t+dt, hz, hz0)
+                        ! un(i1,i2,i3,hz)=hz0
+                        ! OGDERIV2D( ntd,nxd,nyd,nzd,i1,i2,i3,t, n,val)
+                        ! OGDERIV2D( 1,0,0,0,i1,i2,i3,t+.5*dt, hz, hz0t)
+                        ! OGDERIV2D( 0,1,0,0,i1,i2,i3,t+.5*dt, ey, ey0x)
+                        ! OGDERIV2D( 0,0,1,0,i1,i2,i3,t+.5*dt, ex, ex0y)
+                        ! fhz = ( ey0x - ex0y )/mu + hz0t 
+                          call ogDeriv(ep, 1,0,0,0, xy(i1,i2,i3,0),xy(
+     & i1,i2,i3,1),0.,t-dt, hz,hz0t )
+                          call ogDeriv(ep, 0,1,0,0, xy(i1,i2,i3,0),xy(
+     & i1,i2,i3,1),0.,t-dt, ey,ey0x )
+                          call ogDeriv(ep, 0,0,1,0, xy(i1,i2,i3,0),xy(
+     & i1,i2,i3,1),0.,t-dt, ex,ex0y )
+                        fhz = -.5*( ( ey0x - ex0y )/mu + hz0t )
+                          call ogDeriv(ep, 1,0,0,0, xy(i1,i2,i3,0),xy(
+     & i1,i2,i3,1),0.,t, hz,hz0t )
+                          call ogDeriv(ep, 0,1,0,0, xy(i1,i2,i3,0),xy(
+     & i1,i2,i3,1),0.,t, ey,ey0x )
+                          call ogDeriv(ep, 0,0,1,0, xy(i1,i2,i3,0),xy(
+     & i1,i2,i3,1),0.,t, ex,ex0y )
+                        fhz = fhz + 1.5*( ( ey0x - ex0y )/mu + hz0t )
+                        un(i1,i2,i3,hz)=un(i1,i2,i3,hz) + dt*fhz
+                      else
+                        un(i1,i2,i3,hz) = un(i1,i2,i3,hz) + dt*f(i1,i2,
+     & i3,hz) ! first order only **FIX ME**
+                      end if
+                    end if
+                   ! -- loop over components of the vector --
+                   do m=0,1
+                    pc=pxc+m
+                    ec=ex+m
+                    if( addForcing.ne.0 )then
+                      fe = dtsq*f(i1,i2,i3,ec)
+                      ! Compute fpv(iv) : 
+                       if( addForcing.ne.0 )then
+                         ! fp = dtsq*f(i1,i2,i3,pc) 
+                         if( forcingOption.eq.twilightZoneForcing )then
+                           if( nd.eq.2 )then
+                               call ogDeriv(ep, 0,0,0,0, xy(i1,i2,i3,0)
+     & ,xy(i1,i2,i3,1),0.,t, ec,e0 )
+                               call ogDeriv(ep, 1,0,0,0, xy(i1,i2,i3,0)
+     & ,xy(i1,i2,i3,1),0.,t, ec,e0t )
+                           else
+                               call ogDeriv(ep, 0,0,0,0, xy(i1,i2,i3,0)
+     & ,xy(i1,i2,i3,1),xy(i1,i2,i3,2),t, ec,e0 )
+                               call ogDeriv(ep, 1,0,0,0, xy(i1,i2,i3,0)
+     & ,xy(i1,i2,i3,1),xy(i1,i2,i3,2),t, ec,e0t )
+                           end if
+                           do iv=0,numberOfPolarizationVectors-1
+                             pce = pc+iv*nd
+                             if( nd.eq.2 )then
+                                 call ogDeriv(ep, 0,0,0,0, xy(i1,i2,i3,
+     & 0),xy(i1,i2,i3,1),0.,t, pce,p0 )
+                                 call ogDeriv(ep, 1,0,0,0, xy(i1,i2,i3,
+     & 0),xy(i1,i2,i3,1),0.,t, pce,p0t )
+                                 call ogDeriv(ep, 2,0,0,0, xy(i1,i2,i3,
+     & 0),xy(i1,i2,i3,1),0.,t, pce,p0tt )
+                             else
+                                 call ogDeriv(ep, 0,0,0,0, xy(i1,i2,i3,
+     & 0),xy(i1,i2,i3,1),xy(i1,i2,i3,2),t, pce,p0 )
+                                 call ogDeriv(ep, 1,0,0,0, xy(i1,i2,i3,
+     & 0),xy(i1,i2,i3,1),xy(i1,i2,i3,2),t, pce,p0t )
+                                 call ogDeriv(ep, 2,0,0,0, xy(i1,i2,i3,
+     & 0),xy(i1,i2,i3,1),xy(i1,i2,i3,2),t, pce,p0tt )
+                             end if
+                             fe = fe + dtsq*alphaP*p0tt
+                             fpv(iv) = dtsq*( p0tt + b1v(iv)*p0t + b0v(
+     & iv)*p0 - a0v(iv)*e0 - a1v(iv)*e0t )
+                           end do
+                           !if( abs(fp-fp2).gt. 1.e-14 )then
+                           !  write(*,'(" (i1,i2)=",2i6," fp,fp2,diff=",3e12.4)') i1,i2,fp,fp2,fp-fp2
+                           !else
+                           !  fp=fp2
+                           !end if
+                         else
+                           do iv=0,numberOfPolarizationVectors-1
+                             fpv(iv)=0.
+                           end do
+                         end if
+                       end if
+                    end if
+                    ! GDM: 
+                    !   (E^{n+1} -2 E^n + E^{n-1})/dt^2 = c^2*Delta(E) -alphaP*(P^{n+1} -2 P^n + P^{n-1})/dt^2
+                    !   (P^{n+1} -2 P^n + P^{n-1})/dt^2 + b1* (P^{n+1} - P^{n-1})/(2*dt) + b0*P^n =
+                    !                             a0*E^n + a1*(E^{n+1} - E^{n-1})/(2*dt)
+                    ! =>
+                    !            E^{n+1} +       alphaP*P^{n+1} = rhsE
+                    !  -.5*a1*dt*E^{n+1} + (1+.5*b1*dt)*P^{n+1} = rhsP
+                    !
+                    ev = u(i1,i2,i3,ec)
+                    evm=um(i1,i2,i3,ec)
+                    rhsP = 0.
+                    pSum=0.
+                    do iv=0,numberOfPolarizationVectors-1
+                      pv(iv) = p(i1,i2,i3,m+iv*nd)
+                      pvm(iv)=pm(i1,i2,i3,m+iv*nd)
+                      rhspv(iv) = 2.*pv(iv)-pvm(iv) + .5*dt*( b1v(iv)*
+     & pvm(iv) -a1v(iv)*evm ) + dtSq*( -b0v(iv)*pv(iv) + a0v(iv)*ev ) 
+     & + fpv(iv)
+                      rhsP = rhsP + betav(iv)*rhspv(iv)
+                      pSum = pSum + 2.*pv(iv) - pvm(iv)
+                    end do
+                    rhsE = maxwell2dr44me(i1,i2,i3,ec) + alphaP*( pSum 
+     & - rhsP ) + fe
+                    evn = rhsE / (1.+ alphaP*beta)
+                    un(i1,i2,i3,ec) = evn
+                    do iv=0,numberOfPolarizationVectors-1
+                      pn(i1,i2,i3,m+iv*nd)  = betav(iv)*( .5*dt*a1v(iv)
+     & *evn + rhspv(iv) )
+                   end do
+                  end do ! m=0,1
+                     end if
+                   end do
+                   end do
+                   end do
+                end if
+             else if( useDivergenceCleaning.eq.0 )then
               if( useSosupDissipation.ne.0 )then
                 ! FD44 (rectangular grid) with Sosup dissipation (wide stencil dissiption)
                   if( useNewForcingMethod.ne.0 )then

@@ -256,6 +256,62 @@ without exact traction rate and acceleration
 -->t=5.0000e-01 dt=1.1e-03 maxNorm errors:[1.7902e-07,1.1724e-07,4.1052e-07,2.0633e-07,2.0633e-07,2.0812e-07,4.6908e-08,2.1689e-08,], maxNorm(u):[1.36e-04,4.05e-04,5.78e-04,2.47e-04,2.47e-04,4.86e-04,2.67e-05,7.94e-05,]
 
 
+=======
+***********  Dec 5, 2017
+
+cgmp -noplot elasticShear -g=elasticPistonGride1.order2p.hdf -addedMass=0 -scf=1000. -nu=10 -tp=.001 -tf=.005 -smVariation=g -debug=1 -debug=3 -tsINS=pc -cfl=.9 -go=go >! shear.out
+
+
+*****************************************
+***********  Dec 4, 2017
+
+TEST TP scheme + elastic piston -- Dan S. thinks this is broken
+
+cgmp elasticShear -g=elasticPistonGride2.order2p.hdf -tp=.0001 -tf=.0025 -smVariation=g -debug=1 -debug=3 -tsINS=pc -go=halt -cfl=.9 -muFluid=10. -muSolid=1000. -rhoSolid=1000. -nu=10. -lambdaSolid=1000. -useTP=1 -amp=.001 -addedMass=0
+
+
+** TROUBLE***  CHECK THAT fluid-velocity = solid-velocity 
+cgmp elasticShear -g=elasticPistonGride2.order2p.hdf -addedMass=0 -scf=1000. -nu=10 -tp=.0001 -tf=5 -smVariation=g -debug=1 -debug=3 -tsINS=pc -cfl=.9 -go=halt
+
+
+cgmp elasticShear -g=elasticPistonGride1.order2p.hdf -addedMass=0 -scf=1000. -nu=10 -tp=.05 -tf=5 -smVariation=g -debug=
+1 -debug=3 -tsINS=pc -cfl=.9 -go=halt
+
+TP - shear
+cgmp elasticShear -g=elasticPistonGride2.order2p.hdf -addedMass=0 -scf=10. -nu=.1 -tp=.05 -tf=5 -smVariation=g -debug=1 -debug=3 -tsINS=pc -cfl=.9 -go=halt
+
+cgmp elasticShear -g=elasticPistonGride1.order2p.hdf -addedMass=0 -scf=10. -nu=.1 -tp=.05 -tf=5 -smVariation=g -debug=1 -debug=3 -tsINS=pc -cfl=.9 -go=halt
+
+TP - shear
+cgmp elasticShear -g=elasticPistonGride1.order2p.hdf -addedMass=0 -scf=1000. -nu=.1 -tp=.01 -tf=2 -smVariation=g -debug=1 -debug=3 -tsINS=pc -cfl=.9 -go=halt
+
+INS-PC -- This looks ok: 
+cgmp elasticPiston -g=elasticPistonGride2.order2p.hdf -addedMass=0 -scf=1000 -nu=.01 -tp=.01 -tf=2 -smVariation=g -debug=1 -debug=3 -tsINS=pc -go=halt -cfl=.9
+
+
+INS-IM -- This looks ok: 
+cgmp elasticPiston -g=elasticPistonGride2.order2p.hdf -addedMass=0 -scf=1000 -nu=.01 -tp=.01 -tf=2 -smVariation=g -debug=1 -debug=3 -tsINS=im -go=halt -cfl=.9
+
+
+
+
+
+*****************************************
+***********  Nov 15, 2017
+
+WDH: Look at Dan's shear flow solution
+
+TP scheme
+cgmp elasticShear -g=elasticPistonGride1.order2p.hdf -addedMass=0 -scf=10. -nu=.1 -tp=.01 -tf=2 -smVariation=g -debug=1 -debug=3 -tsINS=pc -cfl=.9 -go=halt
+
+
+AMP:
+cgmp elasticShear -g=elasticPistonGride2.order2p.hdf -addedMass=1 -scf=.1 -nu=.01 -tp=.01 -tf=2 -smVariation=g -debug=1 -debug=3 -tsINS=im -go=halt -cfl=.9
+
+
+
+*****************************************
+>>>>>>> wdh: changes for GDM model in cgmx
 ***********  Oct 29, 2017
 
 cgmp elasticShear -g=elasticPistonGride2.order2p.hdf -addedMass=1 -tp=.01 -tf=2 -smVariation=g -debug=1 -debug=3 -tsINS=im -go=halt -cfl=.9
@@ -698,7 +754,6 @@ $cgmpx -noplot elasticPiston -method=ins -g=elasticPistonGride1.order2p.hdf -add
      t    err(p)   err(u)   err(v)    div       uMax     dt       cpu    (51 steps)
    0.500 1.42e-03 2.82e-13 1.98e-04 2.04e-04  5.36e+03 1.00e-02 7.55e-01 
 
-<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 
 $cgmpx -noplot elasticPiston -method=ins -g=elasticPistonGride1.order2p.hdf -addedMass=1 -scf=1 -u0=0. -nu=.1 -tp=.01 -tf=.5 -nc=1 -pOffset=0. -smVariation=g -rhoSolid=1. -lambdaSolid=1. -muSolid=1. -debug=1 -pi=0 -multiDomainAlgorithm=1 -flushFrequency=2 -bcOption=4 -debug=3 -sideBC=slipWall -psolver=yale -ra=-10 -rb=-9 -cdv=1 -useNewTimeSteppingStartup=1 -go=go >! epa1.out
 
@@ -778,7 +833,6 @@ $cgmpx -noplot elasticPiston -method=ins -g=elasticPistonGride1.order2p.hdf -add
      t    err(p)   err(u)   err(v)    div       uMax     dt       cpu    (8 steps)
    0.050 1.18e-09 7.63e-18 4.48e-07 7.67e-11  4.89e-01 1.00e-02 1.39e-01 
 
->>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 BASE-LINE : use EXACT FLUID AND SOLID INTERFACE VALUES
   **NOTE: For AMP we are using teh proper AMP pressure BC:
 
@@ -824,7 +878,6 @@ $cgmpx -noplot elasticPiston -method=ins -g=elasticPistonGride1.order2p.hdf -add
 
 
 
-<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 
 TEST AMP with EXACT SOLID VALUES
 $cgmpx -noplot elasticPiston -method=ins -g=elasticPistonGride1.order2p.hdf -addedMass=1 -scf=1600. -u0=0. -nu=.1 -tp=.01 -tf=.05 -nc=1 -pOffset=0. -smVariation=g -rhoSolid=1. -lambdaSolid=1. -muSolid=1. -debug=1 -pi=0 -multiDomainAlgorithm=1 -flushFrequency=2 -bcOption=4 -debug=3 -sideBC=slipWall -psolver=yale -ra=-10 -rb=-9 -cdv=1 -useNewTimeSteppingStartup=1 -go=go >! ep1e.out

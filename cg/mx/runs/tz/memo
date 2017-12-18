@@ -1,4 +1,52 @@
 ***************************
+******* Dec 17, 2017
+
+
+>>>>>>>>> START ON 3D ORDER 2 <<<<<<<<<<
+
+TEST 3D GDM -- 
+Bugs fixed..
+
+CURVILINEAR 3D EXACT : 
+cgmx -noplot tz -g=nonBox1.order2 -npv=1 -degreex=2 -degreet=2 -dm=gdm -a0=1 -a1=1 -b0=1 -b1=1 -diss=0 -method=nfdtd -bc=d -tp=.05 -tf=.2 -go=og
+>>> Cgmx:FD: t=1.00e-01 dt=5.0e-02 TS=ME GDM |div(E)|/|grad(E)|=7.66e-15 (=4.84e-14/6.32e+00) 2 steps mem=29.5(Mb) cpu=7.85e+00(s)
+--getErrors: t=1.000e-01 domain=0 (domain0) numPolarizationVectors=1 P-norm=8.690e+00 max-err = 5.329e-15
+>>> t=1.00e-01 dt=5.0e-02 max errors:[7.11e-15,6.22e-15,1.78e-15,], max (u):[8.69e+00,6.06e+00,2.50e+00,] (2 steps)
+
+
+CARTESIAN 3D EXACT : 
+cgmx -noplot tz -g=box5 -npv=1 -degreex=2 -degreet=2 -dm=gdm -a0=1 -a1=1 -b0=1 -b1=1 -diss=0 -method=nfdtd -bc=d -tp=.05 -tf=.2 -go=og
+>>> Cgmx:FD: t=1.00e-01 dt=5.0e-02 TS=ME GDM |div(E)|/|grad(E)|=4.20e-15 (=2.65e-14/6.32e+00) 2 steps mem=29(Mb) cpu=6.32e+00(s)
+--getErrors: t=1.000e-01 domain=0 (domain0) numPolarizationVectors=1 P-norm=8.690e+00 max-err = 5.329e-15
+>>> t=1.00e-01 dt=5.0e-02 max errors:[7.99e-15,3.55e-15,1.55e-15,], max (u):[8.69e+00,6.06e+00,2.50e+00,] (2 steps)
+
+
+>>>> INITIAL START ON FOURTH ORDER GDM
+>>>>>>>>>>>>. 4th-order MX, 2nd-order GDM:  <<<<<<<<<<<<<<<<<<<<
+
+
+CURVILINEAR: EXACT: degree(4,2)
+cgmx -noplot tz -g=nonSquare8.order4 -npv=1 -degreex=4 -degreet=2 -dm=gdm -a0=1 -a1=1 -b0=1 -b1=1 -diss=0 -method=nfdtd -bc=d -tp=.05 -tf=.2 -go=og
+ DISPERSIVE: CURVILINEAR, 2D, ORDER 4:      FINISH ME  
+>>> Cgmx:FD: t=1.00e-01 dt=5.0e-02 TS=ME GDM |div(E)|/|grad(E)|=1.03e-15 (=9.77e-15/9.48e+00) 2 steps mem=26.2(Mb) cpu=7.01e+00(s)
+--getErrors: t=1.000e-01 domain=0 (domain0) numPolarizationVectors=1 P-norm=2.107e+00 max-err = 8.882e-16
+>>> t=1.00e-01 dt=5.0e-02 max errors:[1.33e-15,8.88e-16,6.66e-16,], max (u):[6.00e+00,3.08e+00,3.37e+00,] (2 steps)
+
+CARTESIAN: EXACT: degree(4,2)
+cgmx -noplot tz -g=square8.order4 -npv=1 -degreex=4 -degreet=2 -dm=gdm -a0=1 -a1=1 -b0=1 -b1=1 -diss=0 -method=nfdtd -bc=d -tp=.05 -tf=.2 -go=og
+
+>>> Cgmx:FD: t=5.00e-02 dt=5.0e-02 TS=ME GDM |div(E)|/|grad(E)|=9.14e-16 (=8.44e-15/9.23e+00) 1 steps mem=22.5(Mb) cpu=1.49e+01(s)
+--getErrors: t=5.000e-02 domain=0 (domain0) numPolarizationVectors=1 P-norm=2.052e+00 max-err = 3.331e-16
+>>> t=5.00e-02 dt=5.0e-02 max errors:[1.33e-15,6.66e-16,2.22e-16,], max (u):[5.85e+00,3.00e+00,3.28e+00,] (1 steps)
+
+
+Revisit GDM
+
+POLY-TZ 
+cgmx -noplot tz -g=square8.order2 -npv=1 -degreex=2 -degreet=2 -dm=gdm -a0=1 -a1=1 -b0=1 -b1=1 -diss=0 -method=nfdtd -bc=d -tp=.05 -tf=.2 -go=og  [EXACT
+
+
+***************************
 ******* Oct 29, 2017
 
 TEST Poly TZ 

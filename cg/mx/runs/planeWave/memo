@@ -1,3 +1,24 @@
+***************************
+******* Dec 17, 2017
+
+
+------ TESTS FOR GDM 3D ORDER 2
+
+RECTANGULAR -- starts to work 
+cgmx -noplot planeWave -g=box2.order2 -dm=gdm -npv=1 -a0=1 1 -a1=0 0 -b0=1 0 -b1=0 0 -kx=2 -tp=.01 -tf=.1 -cfl=1 -checkErrors=1 -go=og
+
+>>> Cgmx:FD: t=1.00e-02 dt=1.0e-02 TS=ME GDM ad2=0.50 |div(E)|/|grad(E)|=1.77e-04 (=2.17e-03/1.23e+01) 1 steps mem=49.3(Mb) cpu=7.50e+00(s)
+--getErrors: t=1.000e-02 domain=0 (domain0) numPolarizationVectors=1 P-norm=6.282e-03 max-err = 1.332e-07
+>>> t=1.00e-02 dt=1.0e-02 max errors:[0.00e+00,1.08e-04,0.00e+00,], max (u):[0.00e+00,9.92e-01,0.00e+00,] (1 steps)
+
+
+check prelim 2d, order4 GMD
+
+cgmx -noplot planeWave -g=square128.order4 -dm=gdm -npv=2 -a0=1 1 -a1=0 0 -b0=1 0 -b1=0 0  -kx=4 -tp=.01 -tf=.1 -cfl=1 -checkErrors=1 -go=og
+>>> Cgmx:FD: t=1.00e-02 dt=5.0e-03 TS=ME GDM ad4=0.50 |div(E)|/|grad(E)|=5.26e-08 (=1.32e-06/2.51e+01) 2 steps mem=26.3(Mb) cpu=5.82e+00(s)
+--getErrors: t=1.000e-02 domain=0 (domain0) numPolarizationVectors=2 P-norm=1.578e-03 max-err = 9.885e-08
+>>> t=1.00e-02 dt=5.0e-03 max errors:[0.00e+00,1.76e-08,1.64e-03,], max (u):[0.00e+00,9.98e-01,9.97e-01,] (2 steps)
+
 ***********************
 ***** Sept 17, 2017
 

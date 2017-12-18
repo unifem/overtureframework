@@ -189,9 +189,7 @@ computeDSIErrors( Maxwell &mx, MappedGrid &mg, realArray &uh, realArray &uhp, re
   
   if( numberOfDimensions==2 )
   {
-// 	      err(I1,I2,I3,ex)=u(I1,I2,I3,ex)-exTrue(x,y,t);
-// 	      err(I1,I2,I3,ey)=u(I1,I2,I3,ey)-eyTrue(x,y,t);
-// 	      err(I1,I2,I3,hz)=u(I1,I2,I3,hz)-hzTrue(x,y,t);
+
     if( dispersionModel == noDispersion )
     {
       erre(Ie1,Ie2,Ie3,ex)  = ue(Ie1,Ie2,Ie3,ex)-exTrue(xe(Ie1,Ie2,Ie3),ye(Ie1,Ie2,Ie3),tE);
@@ -243,28 +241,6 @@ computeDSIErrors( Maxwell &mx, MappedGrid &mg, realArray &uh, realArray &uhp, re
         errPolarization(Ie1,Ie2,Ie3,pc+1) = pLocal(Ie1,Ie2,Ie3,pc+1) - pwc[1]*eHat;
       }
 
-      // *old* 
-      // if( pxc>=0 )
-      // {
-                      
-      //   errLocal(Ie1,Ie2,Ie3,pxc) = uLocal(Ie1,Ie2,Ie3,pxc) - pwc[0]*eHat;
-      //   errLocal(Ie1,Ie2,Ie3,pyc) = uLocal(Ie1,Ie2,Ie3,pyc) - pwc[1]*eHat;
-      // }
-          
-      // // real omegaDpwRe, omegaDpwIm;
-      // // dmp.computeDispersivePlaneWaveParameters( c,eps,mu,kk, omegaDpwRe, omegaDpwIm );
-      // real reS, imS, omegaDpwRe, omegaDpwIm;
-      // dmp.computeDispersionRelation( c,eps,mu,kk, reS, imS ); // s = reS + i*imS
-      // omegaDpwRe=imS; omegaDpwIm=reS;
-
-      // printF("++++ getErrors: dispersion relation: omegar=%g, omegai=%g\n",omegaDpwRe, omegaDpwIm );
-
-      // OV_ABORT("Finish me -- add eval of Px and Py");
-
-      // const real dpwExp =exp(omegaDpwIm*tE);
-      // erre(Ie1,Ie2,Ie3,ex)  = ue(Ie1,Ie2,Ie3,ex)-exDpw(xe(Ie1,Ie2,Ie3),ye(Ie1,Ie2,Ie3),tE,dpwExp);
-      // erre(Ie1,Ie2,Ie3,ey)  = ue(Ie1,Ie2,Ie3,ey)-eyDpw(xe(Ie1,Ie2,Ie3),ye(Ie1,Ie2,Ie3),tE,dpwExp);
-      // errh(Ih1,Ih2,Ih3,hz)  = uh(Ih1,Ih2,Ih3,hz)-hzDpw(xh(Ih1,Ih2,Ih3),yh(Ih1,Ih2,Ih3),tH,dpwExp);
 
     }
 	
@@ -282,24 +258,50 @@ computeDSIErrors( Maxwell &mx, MappedGrid &mg, realArray &uh, realArray &uhp, re
   }
   else // 3D
   {
-// 	      if( solveForElectricField )
-// 	      {
-// 		err(I1,I2,I3,ex)=u(I1,I2,I3,ex)-exTrue3d(x,y,z,t);
-// 		err(I1,I2,I3,ey)=u(I1,I2,I3,ey)-eyTrue3d(x,y,z,t);
-// 		err(I1,I2,I3,ez)=u(I1,I2,I3,ez)-ezTrue3d(x,y,z,t);
-// 	      }
-//               if( solveForMagneticField )
-// 	      {
-// 		err(I1,I2,I3,hx)=u(I1,I2,I3,hx)-hxTrue3d(x,y,z,t);
-// 		err(I1,I2,I3,hy)=u(I1,I2,I3,hy)-hyTrue3d(x,y,z,t);
-// 		err(I1,I2,I3,hz)=u(I1,I2,I3,hz)-hzTrue3d(x,y,z,t);
-// 	      }
+
     if( solveForElectricField )
     {
-      erre(Ie1,Ie2,Ie3,ex)=ue(Ie1,Ie2,Ie3,ex)-exTrue3d(xe(Ie1,Ie2,Ie3),ye(Ie1,Ie2,Ie3),ze(Ie1,Ie2,Ie3),tE);
-      erre(Ie1,Ie2,Ie3,ey)=ue(Ie1,Ie2,Ie3,ey)-eyTrue3d(xe(Ie1,Ie2,Ie3),ye(Ie1,Ie2,Ie3),ze(Ie1,Ie2,Ie3),tE);
-      erre(Ie1,Ie2,Ie3,ez)=ue(Ie1,Ie2,Ie3,ez)-ezTrue3d(xe(Ie1,Ie2,Ie3),ye(Ie1,Ie2,Ie3),ze(Ie1,Ie2,Ie3),tE);
+      if( dispersionModel == noDispersion )
+      {
+        erre(Ie1,Ie2,Ie3,ex)=ue(Ie1,Ie2,Ie3,ex)-exTrue3d(xe(Ie1,Ie2,Ie3),ye(Ie1,Ie2,Ie3),ze(Ie1,Ie2,Ie3),tE);
+        erre(Ie1,Ie2,Ie3,ey)=ue(Ie1,Ie2,Ie3,ey)-eyTrue3d(xe(Ie1,Ie2,Ie3),ye(Ie1,Ie2,Ie3),ze(Ie1,Ie2,Ie3),tE);
+        erre(Ie1,Ie2,Ie3,ez)=ue(Ie1,Ie2,Ie3,ez)-ezTrue3d(xe(Ie1,Ie2,Ie3),ye(Ie1,Ie2,Ie3),ze(Ie1,Ie2,Ie3),tE);
+      }
+      else
+      {
+        // ---- Compute errors in DISPERSIVE plane wave ---
+        realSerialArray errLocal; getLocalArrayWithGhostBoundaries((*cgerrp)[grid],errLocal);
+        const real kk = twoPi*sqrt( kx*kx+ky*ky+kz*kz);
 
+        assert( numberOfPolarizationVectors<10 );
+        real sr,si,psir[10],psii[10];
+        dmp.evaluateDispersionRelation( c,kk, sr, si, psir,psii ); 
+        real expt=exp(sr*t);
+        real ct = cos(si*t)*expt, st=sin(si*t)*expt;
+
+
+        RealArray xi(Ie1,Ie2,Ie3), cx, sx, eHat(Ie1,Ie2,Ie3);
+        xi = twoPi*(kx*xe(Ie1,Ie2,Ie3)+ky*ye(Ie1,Ie2,Ie3)+kz*ze(Ie1,Ie2,Ie3));
+        cx=cos(xi); sx=sin(xi);
+        eHat = cx*ct - sx*st;
+
+        erre(Ie1,Ie2,Ie3,ex)  = ue(Ie1,Ie2,Ie3,ex)-pwc[0]*eHat;
+        erre(Ie1,Ie2,Ie3,ey)  = ue(Ie1,Ie2,Ie3,ey)-pwc[1]*eHat;
+        erre(Ie1,Ie2,Ie3,ez)  = ue(Ie1,Ie2,Ie3,ez)-pwc[2]*eHat;
+
+        // --- POLARIZATION vectors ---
+        for( int iv=0; iv<numberOfPolarizationVectors; iv++ )
+        {
+          const int pc= iv*numberOfDimensions;
+          eHat =(psir[iv]*ct-psii[iv]*st)*cx - (psir[iv]*st+psii[iv]*ct)*sx; // Phat 
+
+          errPolarization(Ie1,Ie2,Ie3,pc  ) = pLocal(Ie1,Ie2,Ie3,pc  ) - pwc[0]*eHat;
+          errPolarization(Ie1,Ie2,Ie3,pc+1) = pLocal(Ie1,Ie2,Ie3,pc+1) - pwc[1]*eHat;
+          errPolarization(Ie1,Ie2,Ie3,pc+2) = pLocal(Ie1,Ie2,Ie3,pc+2) - pwc[2]*eHat;
+        }
+        
+      }
+      
       if( method==sosup )
       {
         realSerialArray errLocal; getLocalArrayWithGhostBoundaries((*cgerrp)[grid],errLocal);
@@ -474,8 +476,8 @@ computeDSIErrors( Maxwell &mx, MappedGrid &mg, realArray &uh, realArray &uhp, re
           const int pc= iv*numberOfDimensions;
           // *fix* me for numberOfPolarizationVectors>1 
           errPolarization(i1,i2,i3,pc  ) = pLocal(i1,i2,i3,pc  ) - e(x0,y0,z0,pxc+pc,tE);
-          errPolarization(i1,i2,i3,pc+1) = pLocal(i1,i2,i3,pc  ) - e(x0,y0,z0,pyc+pc,tE);
-          errPolarization(i1,i2,i3,pc+2) = pLocal(i1,i2,i3,pc+1) - e(x0,y0,z0,pzc+pc,tE);
+          errPolarization(i1,i2,i3,pc+1) = pLocal(i1,i2,i3,pc+1) - e(x0,y0,z0,pyc+pc,tE);
+          errPolarization(i1,i2,i3,pc+2) = pLocal(i1,i2,i3,pc+2) - e(x0,y0,z0,pzc+pc,tE);
         }
       }
     } // end if dispersion 

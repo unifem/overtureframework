@@ -1913,9 +1913,9 @@ cutHolesNew(CompositeGrid & cg)
                 
                 
 	      }
-              printF(" grid2=%i: isPeriodic2=[%i,%i,%i] isPeriodic2p=[%i,%i,%i]\n",grid2,
-                isPeriodic2[0],isPeriodic2[1],isPeriodic2[2],
-                isPeriodic2p[0],isPeriodic2p[1],isPeriodic2p[2]);
+              // printF(" grid2=%i: isPeriodic2=[%i,%i,%i] isPeriodic2p=[%i,%i,%i]\n",grid2,
+              //  isPeriodic2[0],isPeriodic2[1],isPeriodic2[2],
+              //  isPeriodic2p[0],isPeriodic2p[1],isPeriodic2p[2]);
               
 	      
 

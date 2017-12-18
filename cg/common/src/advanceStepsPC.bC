@@ -865,7 +865,7 @@ takeTimeStepPC( real & t0, real & dt0, int correction, AdvanceOptions & advanceO
       }
 
       if( debug() & 2 )
-        printP("++++++++++++ solve for time independt variables t0+dt0=%9.3e\n\n",t0+dt0);
+        printP("++++++++++++ solve for time independent variables t0+dt0=%9.3e\n\n",t0+dt0);
       
 
       real cpu0=getCPU();

@@ -1710,37 +1710,74 @@ int polarizationOption=0;
   {
     // ------------ THREE DIMENSIONS ------------
 
-    if( dispersionModel!=noDispersion )
+    if( dispersionModel==noDispersion )
     {
-      OV_ABORT("--MX-- BC: finish dispersive plane wave BC");
-    }
-
-    if( solveForElectricField )
-    {
-      FOR_3D(i1,i2,i3,I1,I2,I3)
-      {
-        real x0,y0,z0;
-        getCoordinates3d(i1,i2,i3,x0,y0,z0,X);
-
-        U(i1,i2,i3,ex)=exTrue3d(x0,y0,z0,t);
-        U(i1,i2,i3,ey)=eyTrue3d(x0,y0,z0,t);
-        U(i1,i2,i3,ez)=ezTrue3d(x0,y0,z0,t);
-      }
-      if( method==sosup )
+      if( solveForElectricField )
       {
         FOR_3D(i1,i2,i3,I1,I2,I3)
         {
           real x0,y0,z0;
           getCoordinates3d(i1,i2,i3,x0,y0,z0,X);
 
-          U(i1,i2,i3,ext) =extTrue3d(x0,y0,z0,t);
-          U(i1,i2,i3,eyt) =eytTrue3d(x0,y0,z0,t);
-          U(i1,i2,i3,ezt) =eztTrue3d(x0,y0,z0,t);
+          U(i1,i2,i3,ex)=exTrue3d(x0,y0,z0,t);
+          U(i1,i2,i3,ey)=eyTrue3d(x0,y0,z0,t);
+          U(i1,i2,i3,ez)=ezTrue3d(x0,y0,z0,t);
+        }
+        if( method==sosup )
+        {
+          FOR_3D(i1,i2,i3,I1,I2,I3)
+          {
+            real x0,y0,z0;
+            getCoordinates3d(i1,i2,i3,x0,y0,z0,X);
 
+            U(i1,i2,i3,ext) =extTrue3d(x0,y0,z0,t);
+            U(i1,i2,i3,eyt) =eytTrue3d(x0,y0,z0,t);
+            U(i1,i2,i3,ezt) =eztTrue3d(x0,y0,z0,t);
+
+          }
         }
       }
-		    
     }
+    else
+    {
+      // --- DISPERSIVE ---
+      DispersiveMaterialParameters & dmp = getDispersiveMaterialParameters(grid);
+
+      const real kk = twoPi*sqrt( kx*kx+ky*ky+kz*kz );
+      real sr, si, psir[10],psii[10];
+      dmp.evaluateDispersionRelation( c,kk, sr, si, psir,psii ); 
+      if( t<=3.*dt )
+        printF("--MX--Dirichlet BC dispersion: s=(%12.4e,%12.4e)\n",sr,si);
+
+      real expt=exp(sr*t);
+      real ct = cos(si*t)*expt, st=sin(si*t)*expt;
+
+      FOR_3D(i1,i2,i3,I1,I2,I3)
+      {
+        real x0,y0,z0;
+        getCoordinates3d(i1,i2,i3,x0,y0,z0,X);
+
+        real xi = twoPi*(kx*x0+ky*y0+kz*z0);
+        real cx=cos(xi), sx=sin(xi);
+                    
+        real amp=cx*ct-sx*st;
+        U(i1,i2,i3,ex)=pwc[0]*amp;
+        U(i1,i2,i3,ey)=pwc[1]*amp;
+        U(i1,i2,i3,ez)=pwc[2]*amp;
+                      
+        // --- errors in polarization vectors 3D ---
+        for( int iv=0; iv<numberOfPolarizationVectors; iv++ )
+        {
+          const int pc= iv*numberOfDimensions;
+          amp=(psir[iv]*ct-psii[iv]*st)*cx - (psir[iv]*st+psii[iv]*ct)*sx;
+          pLocal(i1,i2,i3,pc  ) = pwc[0]*amp;
+          pLocal(i1,i2,i3,pc+1) = pwc[1]*amp;
+          pLocal(i1,i2,i3,pc+2) = pwc[2]*amp;
+        }
+
+      }
+    }
+
     if( solveForMagneticField )
     {
       FOR_3D(i1,i2,i3,I1,I2,I3)

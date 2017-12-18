@@ -2558,7 +2558,7 @@ assignInitialConditions(int current, real t, real dt )
                                     }
                                 }
                             } // end for_3d 
-                            if ( method!=sosup )
+                            if( method!=sosup )
                             {
                                 FOR_3D(i1,i2,i3,J1,J2,J3)
                                 {
@@ -2660,7 +2660,6 @@ assignInitialConditions(int current, real t, real dt )
                                         for( int iv=0; iv<numberOfPolarizationVectors; iv++ )
                                         {
                                             const int pc= iv*numberOfDimensions;
-                      // Do this for now -- set all vectors to be the same: 
                                             pmLocal(i1,i2,i3,pc  ) =e(x0,y0,z0,pxc+pc,tE-dt);
                                             pmLocal(i1,i2,i3,pc+1) =e(x0,y0,z0,pyc+pc,tE-dt);
                                             pmLocal(i1,i2,i3,pc+2) =e(x0,y0,z0,pzc+pc,tE-dt);
@@ -2815,7 +2814,7 @@ assignInitialConditions(int current, real t, real dt )
                                         amph = (hr*ctm-hi*stm)*cx - (hr*stm+hi*ctm)*sx;
                 		    UMHZ(i1,i2,i3)=amph;
 
-                    // -- dispersion model components --
+                    // -- POLARIZATION Vectors --
                                         if( dispersionModel != noDispersion  )
                                         {
                       // *new way:
@@ -3024,34 +3023,115 @@ assignInitialConditions(int current, real t, real dt )
             	      {
             		if( method==nfdtd )
             		{
-		  // new way 
-              		  FOR_3D(i1,i2,i3,J1,J2,J3)
-              		  {
-		    // real x = XEP(i1,i2,i3,0);
-		    // real y = XEP(i1,i2,i3,1);
-		    // real z = XEP(i1,i2,i3,2);
-                		    real x,y,z;
-                                  if( isRectangular )
-                                  {
-                                      x = X0(i1,i2,i3);
-                                      y = X1(i1,i2,i3);
-                                      z = X2(i1,i2,i3);
-                                  }
-                                  else
-                                  {
-                                      x = XEP(i1,i2,i3,0);
-                                      y = XEP(i1,i2,i3,1);
-                                      z = XEP(i1,i2,i3,2);
-                                  }
+                                    if( dispersionModel == noDispersion )
+                                    {
+                                        FOR_3D(i1,i2,i3,J1,J2,J3)
+                                        {
+                      // real x = XEP(i1,i2,i3,0);
+                      // real y = XEP(i1,i2,i3,1);
+                      // real z = XEP(i1,i2,i3,2);
+                                            real x,y,z;
+                                              if( isRectangular )
+                                              {
+                                                  x = X0(i1,i2,i3);
+                                                  y = X1(i1,i2,i3);
+                                                  z = X2(i1,i2,i3);
+                                              }
+                                              else
+                                              {
+                                                  x = XEP(i1,i2,i3,0);
+                                                  y = XEP(i1,i2,i3,1);
+                                                  z = XEP(i1,i2,i3,2);
+                                              }
 
-                		    UMEX(i1,i2,i3)=exTrue3d(x,y,z,tE-dt);
-                		    UMEY(i1,i2,i3)=eyTrue3d(x,y,z,tE-dt);
-                		    UMEZ(i1,i2,i3)=ezTrue3d(x,y,z,tE-dt);
+                                            UMEX(i1,i2,i3)=exTrue3d(x,y,z,tE-dt);
+                                            UMEY(i1,i2,i3)=eyTrue3d(x,y,z,tE-dt);
+                                            UMEZ(i1,i2,i3)=ezTrue3d(x,y,z,tE-dt);
             		
-                		    UEX(i1,i2,i3)=exTrue3d(x,y,z,tE);
-                		    UEY(i1,i2,i3)=eyTrue3d(x,y,z,tE);
-                		    UEZ(i1,i2,i3)=ezTrue3d(x,y,z,tE);
-              		  }
+                                            UEX(i1,i2,i3)=exTrue3d(x,y,z,tE);
+                                            UEY(i1,i2,i3)=eyTrue3d(x,y,z,tE);
+                                            UEZ(i1,i2,i3)=ezTrue3d(x,y,z,tE);
+                                        }
+                                    }
+                                    else
+                                    {
+                    // --- dispersive plane wave ---
+                    // Dispersive material parameters
+                                        DispersiveMaterialParameters & dmp = getDispersiveMaterialParameters(grid);
+
+                    // evaluate the dispersion relation,  exp(i(k*x-omega*t))
+                    //    omega is complex 
+                                        const real kk = twoPi*sqrt( kx*kx+ky*ky+kz*kz);
+                                        real sr, si;
+                                        assert( numberOfPolarizationVectors<10 );
+                                        real psir[10],psii[10];
+                                        dmp.evaluateDispersionRelation( c,kk, sr, si, psir,psii ); 
+
+                                        printF("--MX--GIC : Plane-wave initial-condition: dispersion: s=(%12.4e,%12.4e)\n",sr,si);
+
+                                        real expt=exp(sr*tE);
+                                        real ct = cos(si*tE)*expt, st=sin(si*tE)*expt;
+
+                                        real exptm=exp(sr*(tE-dt));
+                                        real ctm = cos(si*(tE-dt))*exptm, stm=sin(si*(tE-dt))*exptm;
+
+
+                                        FOR_3D(i1,i2,i3,J1,J2,J3)
+                                        {
+                      // real x = XEP(i1,i2,i3,0);
+                      // real y = XEP(i1,i2,i3,1);
+                      // real z = XEP(i1,i2,i3,2);
+                                            real x,y,z;
+                                              if( isRectangular )
+                                              {
+                                                  x = X0(i1,i2,i3);
+                                                  y = X1(i1,i2,i3);
+                                                  z = X2(i1,i2,i3);
+                                              }
+                                              else
+                                              {
+                                                  x = XEP(i1,i2,i3,0);
+                                                  y = XEP(i1,i2,i3,1);
+                                                  z = XEP(i1,i2,i3,2);
+                                              }
+
+                                            real xi = twoPi*(kx*x+ky*y+kz*z);
+                                            real cx=cos(xi), sx=sin(xi);
+                                        
+                      // --- assign (Ex,Ey,Ez) at time t ---
+                                            real amp=cx*ct-sx*st;
+                                            UEX(i1,i2,i3)=pwc[0]*amp;
+                                            UEY(i1,i2,i3)=pwc[1]*amp;
+                                            UEZ(i1,i2,i3)=pwc[2]*amp;
+
+                      // --- assign (Ex,Ey,Ez) at time t-dt ---
+                                            real ampm=cx*ctm-sx*stm;
+                                            UMEX(i1,i2,i3)=pwc[0]*ampm;
+                                            UMEY(i1,i2,i3)=pwc[1]*ampm;
+                                            UMEZ(i1,i2,i3)=pwc[2]*ampm;
+
+                      // -- POLARIZATION Vectors --
+                                            for( int iv=0; iv<numberOfPolarizationVectors; iv++ )
+                                            {
+                                                const int pc= iv*numberOfDimensions;
+
+                                                real ampm=(psir[iv]*ctm-psii[iv]*stm)*cx - (psir[iv]*stm+psii[iv]*ctm)*sx;
+                                                real amp =(psir[iv]*ct -psii[iv]*st )*cx - (psir[iv]*st +psii[iv]*ct )*sx;
+              
+                        // Do this for now -- set all vectors to be the same: 
+                                                pLocal(i1,i2,i3,pc  ) =pwc[0]*amp;
+                                                pLocal(i1,i2,i3,pc+1) =pwc[1]*amp;
+                                                pLocal(i1,i2,i3,pc+2) =pwc[2]*amp;
+
+                                                pmLocal(i1,i2,i3,pc  ) =pwc[0]*ampm;
+                                                pmLocal(i1,i2,i3,pc+1) =pwc[1]*ampm;
+                                                pmLocal(i1,i2,i3,pc+2) =pwc[2]*ampm;
+                                            }
+                                            
+                                        }
+                                        
+                                    }
+                                    
             		}
             		else if( method==sosup )
             		{

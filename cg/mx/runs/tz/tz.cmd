@@ -85,8 +85,9 @@ $debug = 0;  $tPlot=.1; $diss=.1; $dissOrder=2; $bcn="pec"; $cons=0; $dm="none";
 $tz = "poly"; $degreex=2; $degreet=2; $fx=.5; $fy=$fx; $fz=$fx; $ft=$fx; $useTZmaterials=0;
 $order = 2; $go="run"; $useSosupDissipation=0; $sosupParameter=1.; $sosupDissipationOption=0; 
 $tFinal=1.; $cfl=.9; 
-$npv=1; $alphaP=1.; $a0=1.; $a1=0.; $b0=0.; $b1=1.;  # GDM parameters
-@a0v = (1.,1.); @a1v=(0.,0.); @b0v=(0,0.); @b1v=(1.,1.); 
+# GDM parameters
+$npv=1; $alphaP=1.; $modeGDM=-1; 
+@a0 = (); @a1=(); @b0=(); @b1=(); # these must be null for GetOptions to work, defaults are given below
 #
 # ----------------------------- get command line arguments ---------------------------------------
 GetOptions( "g=s"=>\$grid,"tf=f"=>\$tFinal,"degreex=i"=>\$degreex, "degreet=i"=>\$degreet,"diss=f"=>\$diss,\
@@ -96,8 +97,16 @@ GetOptions( "g=s"=>\$grid,"tf=f"=>\$tFinal,"degreex=i"=>\$degreex, "degreet=i"=>
   "sosupDissipationOption=i"=>\$sosupDissipationOption,"domain=s"=>\$domain,\
   "mu=f"=>\$mu,"lambda=f"=>\$lambda,"dtMax=f"=>\$dtMax, "cons=i"=>\$cons,"method=s"=>\$method,\
   "useTZmaterials=i"=>\$useTZmaterials,"fx=f"=>\$fx,"fy=f"=>\$fy,"fz=f"=>\$fz,"ft=f"=>\$ft,"dm=s"=>\$dm,\
-  "alphaP=f"=>\$alphaP,"a0=f"=>\$a0,"a1=f"=>\$a1,"b0=f"=>\$b0,"b1=f"=>\$b1,"npv=i"=>\$npv  );
+  "alphaP=f"=>\$alphaP,"a0=f{1,}"=>\@a0,"a1=f{1,}"=>\@a1,"b0=f{1,}"=>\@b0,"b1=f{1,}"=>\@b1,"npv=i"=>\$npv );
 # -------------------------------------------------------------------------------------------------
+# Give defaults here for array arguments: 
+if( $a0[0] eq "" ){ @a0=(1,0,0,0); }
+if( $a1[0] eq "" ){ @a1=(0,0,0,0); }
+if( $b0[0] eq "" ){ @b0=(0,0,0,0); }
+if( $b1[0] eq "" ){ @b1=(0,0,0,0); }
+printf(" a0[0]=%f, a0[1]=%f\n",$a0[0],$a0[1]);
+printf(" b1[0]=%f, b1[1]=%f\n",$b1[0],$b1[1]);
+# 
 if( $solver eq "best" ){ $solver="choose best iterative solver"; }
 if( $tz eq "poly" ){ $tz="polynomial"; }else{ $tz="trigonometric"; }
 if( $order eq "2" ){ $order = "second order accurate"; }else{ $order = "fourth order accurate"; }
@@ -121,12 +130,12 @@ $dm
 # 
 # Drude params 1 1 all (gamma,omegap,domain-name)
 $cmd="#"; 
-if( $npv == 1 ){ $cmd = "GDM params $a0 $a1 $b0 $b1 all (a0,a1,b0,b1,domain-name)"; }
+if( $npv == 1 ){ $cmd = "GDM params $a0[0] $a1[0] $b0[0] $b1[0] all (a0,a1,b0,b1,domain-name)"; }
 if( $npv == 2 ){ \
    $cmd  = "GDM domain name: $domain\n"; \
    $cmd .= " number of polarization vectors: $npv\n"; \
-   $cmd .= " GDM coeff: 0 $a0v[0] $a1v[0] $b0v[0] $b1v[0] (eqn, a0,a1,b0,b1)\n"; \
-   $cmd .= " GDM coeff: 1 $a0v[1] $a1v[1] $b0v[1] $b1v[1] (eqn, a0,a1,b0,b1)"; \
+   $cmd .= " GDM coeff: 0 $a0[0] $a1[0] $b0[0] $b1[0] (eqn, a0,a1,b0,b1)\n"; \
+   $cmd .= " GDM coeff: 1 $a0[1] $a1[1] $b0[1] $b1[1] (eqn, a0,a1,b0,b1)"; \
       }
 $cmd
 #

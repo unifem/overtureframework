@@ -960,22 +960,38 @@ else if( updateSolution.eq.1 )then
 #endMacro 
 
 ! ========================================================================
-! Macro: Getting forcing for GDM in 2D
+! Macro: Getting forcing for GDM 
+!  Input:
+!    ec : E component
+!    pc : P component
+!  Output:
+!    fe : forcing for E is updated
+!    fpv(iv) : forcing for polarization vector iv=0,1,2,...
 ! ========================================================================
-#beginMacro getGDMForcing2d()
+#beginMacro getGDMForcing(ec,pc)
  if( addForcing.ne.0 )then
    ! fp = dtsq*f(i1,i2,i3,pc) 
    if( forcingOption.eq.twilightZoneForcing )then
 
-     OGDERIV2D( 0,0,0,0,i1,i2,i3,t, ec, e0  )
-     OGDERIV2D( 1,0,0,0,i1,i2,i3,t, ec, e0t )
+     if( nd.eq.2 )then
+       OGDERIV2D( 0,0,0,0,i1,i2,i3,t, ec, e0  )
+       OGDERIV2D( 1,0,0,0,i1,i2,i3,t, ec, e0t )
+     else
+       OGDERIV3D( 0,0,0,0,i1,i2,i3,t, ec, e0  )
+       OGDERIV3D( 1,0,0,0,i1,i2,i3,t, ec, e0t )
+     end if
 
      do iv=0,numberOfPolarizationVectors-1
        pce = pc+iv*nd 
-       OGDERIV2D( 0,0,0,0,i1,i2,i3,t, pce, p0  )
-       OGDERIV2D( 1,0,0,0,i1,i2,i3,t, pce, p0t )
-       OGDERIV2D( 2,0,0,0,i1,i2,i3,t, pce, p0tt)
-
+       if( nd.eq.2 )then
+         OGDERIV2D( 0,0,0,0,i1,i2,i3,t, pce, p0  )
+         OGDERIV2D( 1,0,0,0,i1,i2,i3,t, pce, p0t )
+         OGDERIV2D( 2,0,0,0,i1,i2,i3,t, pce, p0tt)
+       else
+         OGDERIV3D( 0,0,0,0,i1,i2,i3,t, pce, p0  )
+         OGDERIV3D( 1,0,0,0,i1,i2,i3,t, pce, p0t )
+         OGDERIV3D( 2,0,0,0,i1,i2,i3,t, pce, p0tt)
+       end if
        fe = fe + dtsq*alphaP*p0tt 
        fpv(iv) = dtsq*( p0tt + b1v(iv)*p0t + b0v(iv)*p0 - a0v(iv)*e0 - a1v(iv)*e0t )
      end do 
@@ -1055,7 +1071,7 @@ else if( updateSolution.eq.1 )then
 
      if( addForcing.ne.0 )then
        fe = dtsq*f(i1,i2,i3,ec)
-       getGDMForcing2d()
+       getGDMForcing(ec,pc)
        fp=fpv(0)
      end if
 
@@ -1118,7 +1134,7 @@ else if( updateSolution.eq.1 )then
      if( addForcing.ne.0 )then
        fe = dtsq*f(i1,i2,i3,ec)
        ! Compute fpv(iv) : 
-       getGDMForcing2d()
+       getGDMForcing(ec,pc)
      end if
 
      ! GDM: 
@@ -1177,7 +1193,7 @@ else if( updateSolution.eq.1 )then
   ! **** PROBABLY NO NEED FOR THIS SPECIAL CASE ****
 
   ! ------- 2D DISPERSIVE CURVILINEAR NP=1 ------
-  INFO("FD44c-dispersive")
+  INFO("FD22c-dispersive")
 
   beginLoopsMask(i1,i2,i3,n1a,n1b,n2a,n2b,n3a,n3b)
 
@@ -1196,7 +1212,7 @@ else if( updateSolution.eq.1 )then
      if( addForcing.ne.0 )then ! forcing in E equation already added to f 
        ! fe = dtsq*f(i1,i2,i3,ec)  ! this term is already included
        fe=0.
-       getGDMForcing2d()
+       getGDMForcing(ec,pc)
        fp=fpv(0)
      end if
 
@@ -1263,7 +1279,7 @@ else if( updateSolution.eq.1 )then
        ! fe = dtsq*f(i1,i2,i3,ec)  ! this term is already include
        fe=0. 
        ! Compute fpv(iv) : 
-       getGDMForcing2d()
+       getGDMForcing(ec,pc)
      end if
 
      ! GDM: 
@@ -1301,6 +1317,545 @@ else if( updateSolution.eq.1 )then
 
  end if
 #endMacro 
+
+
+
+
+! ===========================================================================================
+! Macro:     DISPERSIVE: RECTANGULAR, 3D, ORDER 2
+!          *** THREE DIMENSIONS ***
+! ===========================================================================================
+#beginMacro updateRectangular3dOrder2Dispersive()
+
+ if( .true. .and. numberOfPolarizationVectors.eq.1 )then
+  INFO("FD22r-3D-dispersive");
+  fp=0
+  fe=0.
+
+  beginLoopsMask(i1,i2,i3,n1a,n1b,n2a,n2b,n3a,n3b)
+
+    do m=0,nd-1
+     pc=pxc+m
+     ec=ex+m
+
+     if( addForcing.ne.0 )then
+       fe = dtsq*f(i1,i2,i3,ec)
+       getGDMForcing(ec,pc)
+       fp=fpv(0)
+     end if
+
+     ! GDM: 
+     !   (E^{n+1} -2 E^n + E^{n-1})/dt^2 = c^2*Delta(E) -alphaP*(P^{n+1} -2 P^n + P^{n-1})/dt^2
+     !   (P^{n+1} -2 P^n + P^{n-1})/dt^2 + b1* (P^{n+1} - P^{n-1})/(2*dt) + b0*P^n =
+     !                             a0*E^n + a1*(E^{n+1} - E^{n-1})/(2*dt)
+     ! =>
+     !            E^{n+1} +       alphaP*P^{n+1} = rhsE
+     !  -.5*a1*dt*E^{n+1} + (1+.5*b1*dt)*P^{n+1} = rhsP
+     !
+     ev = u(i1,i2,i3,ec)
+     evm=um(i1,i2,i3,ec)
+
+     pv0 = p(i1,i2,i3,m)
+     pvm0=pm(i1,i2,i3,m)
+
+     rhsE = maxwell3dr(i1,i2,i3,ec) + alphaP*(2.*pv0-pvm0) + fe 
+     rhsP = 2.*pv0-pvm0 + .5*dt*( b1*pvm0 -a1*evm ) + dt*dt*( -b0*pv0 + a0*ev ) + fp
+
+     deti = 1./(1.+.5*dt*(b1+alphaP*a1))
+     un(i1,i2,i3,ec) = ((1.+.5*dt*b1)*rhsE -alphaP*rhsP)*deti
+     pn(i1,i2,i3,m)  = (.5*a1*dt*rhsE            + rhsP)*deti 
+
+     if( .false. )then
+       OGDERIV3D( 0,0,0,0,i1,i2,i3,t+dt, pc, p0  )  
+       write(*,'(" (i1,i2,m)=(",i3,i3,i2,") p,p0=",2e16.8)') i1,i2,m, pn(i1,i2,i3,m),p0
+       pn(i1,i2,i3,m)=p0
+     end if
+     ! write(*,'(" (i1,i2,m)=(",i3,i3,i2,") pvm0,pv0,,pn=",3e16.8)') i1,i2,m,pvm0,pv0,pn(i1,i2,i3,m)
+
+    end do
+  endLoopsMask()
+
+ else
+
+  ! ------- 3D DISPERSIVE RECTANGULAR MULTIPLE PV -------
+
+  INFO("FD22r-3D-dispersive-MULTI-PV");
+
+  fe=0.
+  ! -- first compute some coefficients ---
+  beta=0. 
+  do iv=0,numberOfPolarizationVectors-1
+    betav(iv) = 1./( 1.+.5*dt*b1v(iv) )
+    beta = beta + .5*dt*a1v(iv)*betav(iv)
+    fpv(iv)=0.  ! initialize if not used 
+  end do
+
+  beginLoopsMask(i1,i2,i3,n1a,n1b,n2a,n2b,n3a,n3b)
+
+    ! -- loop over components of the vector --
+    do m=0,nd-1
+     pc=pxc+m
+     ec=ex+m
+
+     if( addForcing.ne.0 )then
+       fe = dtsq*f(i1,i2,i3,ec)
+       ! Compute fpv(iv) : 
+       getGDMForcing(ec,pc)
+     end if
+
+     ! GDM: 
+     !   (E^{n+1} -2 E^n + E^{n-1})/dt^2 = c^2*Delta(E) -alphaP*(P^{n+1} -2 P^n + P^{n-1})/dt^2
+     !   (P^{n+1} -2 P^n + P^{n-1})/dt^2 + b1* (P^{n+1} - P^{n-1})/(2*dt) + b0*P^n =
+     !                             a0*E^n + a1*(E^{n+1} - E^{n-1})/(2*dt)
+     ! =>
+     !            E^{n+1} +       alphaP*P^{n+1} = rhsE
+     !  -.5*a1*dt*E^{n+1} + (1+.5*b1*dt)*P^{n+1} = rhsP
+     !
+     ev = u(i1,i2,i3,ec)
+     evm=um(i1,i2,i3,ec)
+    
+     rhsP = 0.
+     pSum=0. 
+     do iv=0,numberOfPolarizationVectors-1
+       pv(iv) = p(i1,i2,i3,m+iv*nd)
+       pvm(iv)=pm(i1,i2,i3,m+iv*nd)
+
+       rhspv(iv) = 2.*pv(iv)-pvm(iv) + .5*dt*( b1v(iv)*pvm(iv) -a1v(iv)*evm ) + dtSq*( -b0v(iv)*pv(iv) + a0v(iv)*ev ) + fpv(iv)
+       rhsP = rhsP + betav(iv)*rhspv(iv) 
+       pSum = pSum + 2.*pv(iv) - pvm(iv) 
+     end do 
+
+     rhsE = maxwell3dr(i1,i2,i3,ec) + alphaP*( pSum - rhsP ) + fe 
+
+     evn = rhsE / (1.+ alphaP*beta)
+     un(i1,i2,i3,ec) = evn
+     do iv=0,numberOfPolarizationVectors-1
+       pn(i1,i2,i3,m+iv*nd)  = betav(iv)*( .5*dt*a1v(iv)*evn + rhspv(iv) )
+    end do
+
+   end do ! m=0,1
+  endLoopsMask()
+
+ end if
+#endMacro 
+
+
+! ===========================================================================================
+! Macro:     DISPERSIVE: CURVILINEAR, 3D, ORDER 2
+!          *** THREE DIMENSIONS ***
+! ===========================================================================================
+#beginMacro updateCurvilinear3dOrder2Dispersive()
+ if( addDissipation )then
+   write(*,'(" -- finish me : dispersion and AD")')
+   stop 8256
+ end if
+ if( useNewForcingMethod.ne.0 )then
+  write(*,'(" finish me: dispersion && useNewForcingMethod")')
+  stop 7733
+ end if 
+
+ fp=0.
+ fe=0.
+
+ if( .true. .and. numberOfPolarizationVectors.eq.1 )then
+  ! **** PROBABLY NO NEED FOR THIS SPECIAL CASE ****
+
+  ! ------- 2D DISPERSIVE CURVILINEAR NP=1 ------
+  INFO("FD22c-3D-dispersive")
+
+  beginLoopsMask(i1,i2,i3,n1a,n1b,n2a,n2b,n3a,n3b)
+
+    !  --- advance E and P ---
+    do m=0,nd-1
+     pc=pxc+m
+     ec=ex+m
+
+     if( addForcing.ne.0 )then ! forcing in E equation already added to f 
+       ! fe = dtsq*f(i1,i2,i3,ec)  ! this term is already included
+       fe=0.
+       getGDMForcing(ec,pc)
+       fp=fpv(0)
+     end if
+
+     ! GDM: 
+     !   (E^{n+1} -2 E^n + E^{n-1})/dt^2 = c^2*Delta(E) -alphaP*(P^{n+1} -2 P^n + P^{n-1})/dt^2
+     !   (P^{n+1} -2 P^n + P^{n-1})/dt^2 + b1* (P^{n+1} - P^{n-1})/(2*dt) + b0*P^n =
+     !                             a0*E^n + a1*(E^{n+1} - E^{n-1})/(2*dt)
+     ! =>
+     !            E^{n+1} +       alphaP*P^{n+1} = rhsE
+     !  -.5*a1*dt*E^{n+1} + (1+.5*b1*dt)*P^{n+1} = rhsP
+     !
+     ev = u(i1,i2,i3,ec)
+     evm=um(i1,i2,i3,ec)
+
+     pv0 = p(i1,i2,i3,m)
+     pvm0=pm(i1,i2,i3,m)
+
+     ! pv = u(i1,i2,i3,pc)
+     ! pvm=um(i1,i2,i3,pc)
+
+     rhsE = maxwellc23(i1,i2,i3,ec) + alphaP*(2.*pv0-pvm0) + fe 
+     rhsP = 2.*pv0-pvm0 + .5*dt*( b1*pvm0 -a1*evm ) + dt*dt*( -b0*pv0 + a0*ev ) + fp
+     deti = 1./(1.+.5*dt*(b1+alphaP*a1))
+     un(i1,i2,i3,ec) = ((1.+.5*dt*b1)*rhsE -alphaP*rhsP)*deti
+     pn(i1,i2,i3,m)  = (.5*a1*dt*rhsE            + rhsP)*deti 
+
+    end do
+  endLoopsMask()
+
+ else
+
+  ! ------- 2D DISPERSIVE CURVILINEAR MULTIPLE PV -------
+
+  INFO("FD22c-3D-dispersive-MULTI-PV");
+
+  fe=0.
+  ! -- first compute some coefficients ---
+  beta=0. 
+  do iv=0,numberOfPolarizationVectors-1
+    betav(iv) = 1./( 1.+.5*dt*b1v(iv) )
+    beta = beta + .5*dt*a1v(iv)*betav(iv)
+    fpv(iv)=0.  ! initialize if not used 
+  end do
+
+  beginLoopsMask(i1,i2,i3,n1a,n1b,n2a,n2b,n3a,n3b)
+
+     ! -- loop over components of the vector --
+    do m=0,nd-1
+     pc=pxc+m
+     ec=ex+m
+
+     if( addForcing.ne.0 )then
+       ! fe = dtsq*f(i1,i2,i3,ec)  ! this term is already include
+       fe=0. 
+       ! Compute fpv(iv) : 
+       getGDMForcing(ec,pc)
+     end if
+
+     ! GDM: 
+     !   (E^{n+1} -2 E^n + E^{n-1})/dt^2 = c^2*Delta(E) -alphaP*(P^{n+1} -2 P^n + P^{n-1})/dt^2
+     !   (P^{n+1} -2 P^n + P^{n-1})/dt^2 + b1* (P^{n+1} - P^{n-1})/(2*dt) + b0*P^n =
+     !                             a0*E^n + a1*(E^{n+1} - E^{n-1})/(2*dt)
+     ! =>
+     !            E^{n+1} +       alphaP*P^{n+1} = rhsE
+     !  -.5*a1*dt*E^{n+1} + (1+.5*b1*dt)*P^{n+1} = rhsP
+     !
+     ev = u(i1,i2,i3,ec)
+     evm=um(i1,i2,i3,ec)
+    
+     rhsP = 0.
+     pSum=0. 
+     do iv=0,numberOfPolarizationVectors-1
+       pv(iv) = p(i1,i2,i3,m+iv*nd)
+       pvm(iv)=pm(i1,i2,i3,m+iv*nd)
+
+       rhspv(iv) = 2.*pv(iv)-pvm(iv) + .5*dt*( b1v(iv)*pvm(iv) -a1v(iv)*evm ) + dtSq*( -b0v(iv)*pv(iv) + a0v(iv)*ev ) + fpv(iv)
+       rhsP = rhsP + betav(iv)*rhspv(iv) 
+       pSum = pSum + 2.*pv(iv) - pvm(iv) 
+     end do 
+
+     rhsE = maxwellc23(i1,i2,i3,ec) + alphaP*( pSum - rhsP ) + fe 
+
+     evn = rhsE / (1.+ alphaP*beta)
+     un(i1,i2,i3,ec) = evn
+     do iv=0,numberOfPolarizationVectors-1
+       pn(i1,i2,i3,m+iv*nd)  = betav(iv)*( .5*dt*a1v(iv)*evn + rhspv(iv) )
+    end do
+
+   end do ! m=0,..,2
+  endLoopsMask()
+
+ end if
+#endMacro 
+
+
+
+! **********************************************************************************
+! ******************** FOURTH ORDER DISPERSIVE MACROS ******************************
+! **********************************************************************************
+
+! ===========================================================================================
+! Macro:     DISPERSIVE: RECTANGULAR, 2D, ORDER 4
+! ===========================================================================================
+#beginMacro updateRectangular2dOrder4Dispersive()
+
+ if( .true. .and. numberOfPolarizationVectors.eq.1 )then
+  INFO("FD44r-dispersive");
+
+  write(*,'(" DISPERSIVE: RECTANGULAR, 2D, ORDER 4: FINISH ME  ")')
+
+  fp=0
+  fe=0.
+
+  beginLoopsMask(i1,i2,i3,n1a,n1b,n2a,n2b,n3a,n3b)
+
+    ! Advance Hz first:
+    ! For now solve H_t = -(1/mu)*(  (E_y)_x - (E_x)_y )
+    !   USE AB2 -- note: this is just a quadrature so stability is not an issue
+    un(i1,i2,i3,hz) = u(i1,i2,i3,hz) -(dt/mu)*( 1.5*ux42r(i1,i2,i3,ey) -.5*umx42r(i1,i2,i3,ey) \
+                                               -1.5*uy42r(i1,i2,i3,ex) +.5*umy42r(i1,i2,i3,ex) )
+
+    addtForcingHz()
+
+    do m=0,1
+     pc=pxc+m
+     ec=ex+m
+
+     if( addForcing.ne.0 )then
+       fe = dtsq*f(i1,i2,i3,ec)
+       getGDMForcing(ec,pc)
+       fp=fpv(0)
+     end if
+
+     ! GDM: 
+     !   (E^{n+1} -2 E^n + E^{n-1})/dt^2 = c^2*Delta(E) -alphaP*(P^{n+1} -2 P^n + P^{n-1})/dt^2
+     !   (P^{n+1} -2 P^n + P^{n-1})/dt^2 + b1* (P^{n+1} - P^{n-1})/(2*dt) + b0*P^n =
+     !                             a0*E^n + a1*(E^{n+1} - E^{n-1})/(2*dt)
+     ! =>
+     !            E^{n+1} +       alphaP*P^{n+1} = rhsE
+     !  -.5*a1*dt*E^{n+1} + (1+.5*b1*dt)*P^{n+1} = rhsP
+     !
+     ev = u(i1,i2,i3,ec)
+     evm=um(i1,i2,i3,ec)
+
+     pv0 = p(i1,i2,i3,m)
+     pvm0=pm(i1,i2,i3,m)
+
+     rhsE = maxwell2dr44me(i1,i2,i3,ec) + alphaP*(2.*pv0-pvm0) + fe 
+     rhsP = 2.*pv0-pvm0 + .5*dt*( b1*pvm0 -a1*evm ) + dt*dt*( -b0*pv0 + a0*ev ) + fp
+
+     deti = 1./(1.+.5*dt*(b1+alphaP*a1))
+     un(i1,i2,i3,ec) = ((1.+.5*dt*b1)*rhsE -alphaP*rhsP)*deti
+     pn(i1,i2,i3,m)  = (.5*a1*dt*rhsE            + rhsP)*deti 
+
+     ! write(*,'(" (i1,i2,m)=(",i3,i3,i2,") pvm0,pv0,,pn=",3e16.8)') i1,i2,m,pvm0,pv0,pn(i1,i2,i3,m)
+
+    end do
+  endLoopsMask()
+
+ else
+
+  ! ------- 2D DISPERSIVE RECTANGULAR MULTIPLE PV -------
+
+  INFO("FD44r-dispersive-MULTI-PV");
+  write(*,'(" DISPERSIVE: RECTANGULAR, 2D, ORDER 4: FINISH ME  ")')
+
+  fe=0.
+  ! -- first compute some coefficients ---
+  beta=0. 
+  do iv=0,numberOfPolarizationVectors-1
+    betav(iv) = 1./( 1.+.5*dt*b1v(iv) )
+    beta = beta + .5*dt*a1v(iv)*betav(iv)
+    fpv(iv)=0.  ! initialize if not used 
+  end do
+
+  beginLoopsMask(i1,i2,i3,n1a,n1b,n2a,n2b,n3a,n3b)
+
+    ! Advance Hz first:
+    ! For now solve H_t = -(1/mu)*(  (E_y)_x - (E_x)_y )
+    !   USE AB2 -- note: this is just a quadrature so stability is not an issue
+    un(i1,i2,i3,hz) = u(i1,i2,i3,hz) -(dt/mu)*( 1.5*ux42r(i1,i2,i3,ey) -.5*umx42r(i1,i2,i3,ey) \
+                                               -1.5*uy42r(i1,i2,i3,ex) +.5*umy42r(i1,i2,i3,ex) )
+
+    addtForcingHz()
+
+    ! -- loop over components of the vector --
+    do m=0,1
+     pc=pxc+m
+     ec=ex+m
+
+     if( addForcing.ne.0 )then
+       fe = dtsq*f(i1,i2,i3,ec)
+       ! Compute fpv(iv) : 
+       getGDMForcing(ec,pc)
+     end if
+
+     ! GDM: 
+     !   (E^{n+1} -2 E^n + E^{n-1})/dt^2 = c^2*Delta(E) -alphaP*(P^{n+1} -2 P^n + P^{n-1})/dt^2
+     !   (P^{n+1} -2 P^n + P^{n-1})/dt^2 + b1* (P^{n+1} - P^{n-1})/(2*dt) + b0*P^n =
+     !                             a0*E^n + a1*(E^{n+1} - E^{n-1})/(2*dt)
+     ! =>
+     !            E^{n+1} +       alphaP*P^{n+1} = rhsE
+     !  -.5*a1*dt*E^{n+1} + (1+.5*b1*dt)*P^{n+1} = rhsP
+     !
+     ev = u(i1,i2,i3,ec)
+     evm=um(i1,i2,i3,ec)
+    
+     rhsP = 0.
+     pSum=0. 
+     do iv=0,numberOfPolarizationVectors-1
+       pv(iv) = p(i1,i2,i3,m+iv*nd)
+       pvm(iv)=pm(i1,i2,i3,m+iv*nd)
+
+       rhspv(iv) = 2.*pv(iv)-pvm(iv) + .5*dt*( b1v(iv)*pvm(iv) -a1v(iv)*evm ) + dtSq*( -b0v(iv)*pv(iv) + a0v(iv)*ev ) + fpv(iv)
+       rhsP = rhsP + betav(iv)*rhspv(iv) 
+       pSum = pSum + 2.*pv(iv) - pvm(iv) 
+     end do 
+
+     rhsE = maxwell2dr44me(i1,i2,i3,ec) + alphaP*( pSum - rhsP ) + fe 
+
+     evn = rhsE / (1.+ alphaP*beta)
+     un(i1,i2,i3,ec) = evn
+     do iv=0,numberOfPolarizationVectors-1
+       pn(i1,i2,i3,m+iv*nd)  = betav(iv)*( .5*dt*a1v(iv)*evn + rhspv(iv) )
+    end do
+
+   end do ! m=0,1
+  endLoopsMask()
+
+ end if
+#endMacro 
+
+
+! ===========================================================================================
+! Macro:     DISPERSIVE: CURVILINEAR, 2D, ORDER 4
+! ===========================================================================================
+#beginMacro updateCurvilinear2dOrder4Dispersive()
+ if( addDissipation )then
+   write(*,'(" -- finish me : dispersion and AD")')
+   stop 8256
+ end if
+ if( useNewForcingMethod.ne.0 )then
+  write(*,'(" finish me: dispersion && useNewForcingMethod")')
+  stop 7733
+ end if 
+
+  if( .not.(useCurvilinearOpt.eq.1 .and. useConservative.eq.0) )then
+    stop 7744
+  end if
+
+ fp=0.
+ fe=0.
+
+ if( .true. .and. numberOfPolarizationVectors.eq.1 )then
+  ! **** PROBABLY NO NEED FOR THIS SPECIAL CASE ****
+
+  ! ------- 2D DISPERSIVE CURVILINEAR NP=1 ------
+  INFO("FD44c-dispersive")
+  write(*,'(" DISPERSIVE: CURVILINEAR, 2D, ORDER 4: FINISH ME  ")')
+
+  beginLoopsMask(i1,i2,i3,n1a,n1b,n2a,n2b,n3a,n3b)
+
+    ! Advance Hz first:
+    ! For now solve H_t = -(1/mu)*(  (E_y)_x - (E_x)_y )
+    !   USE AB2 -- note: this is just a quadrature so stability is not an inssue
+    un(i1,i2,i3,hz) = u(i1,i2,i3,hz) -(dt/mu)*( 1.5*ux42(i1,i2,i3,ey) -.5*umx42(i1,i2,i3,ey) \
+                                               -1.5*uy42(i1,i2,i3,ex) +.5*umy42(i1,i2,i3,ex) )
+    addtForcingHz()
+
+    !  --- advance E and P ---
+    do m=0,1
+     pc=pxc+m
+     ec=ex+m
+
+     if( addForcing.ne.0 )then ! forcing in E equation already added to f 
+       fe = dtsq*f(i1,i2,i3,ec) 
+       getGDMForcing(ec,pc)
+       fp=fpv(0)
+     end if
+
+     ! GDM: 
+     !   (E^{n+1} -2 E^n + E^{n-1})/dt^2 = c^2*Delta(E) -alphaP*(P^{n+1} -2 P^n + P^{n-1})/dt^2
+     !   (P^{n+1} -2 P^n + P^{n-1})/dt^2 + b1* (P^{n+1} - P^{n-1})/(2*dt) + b0*P^n =
+     !                             a0*E^n + a1*(E^{n+1} - E^{n-1})/(2*dt)
+     ! =>
+     !            E^{n+1} +       alphaP*P^{n+1} = rhsE
+     !  -.5*a1*dt*E^{n+1} + (1+.5*b1*dt)*P^{n+1} = rhsP
+     !
+     ev = u(i1,i2,i3,ec)
+     evm=um(i1,i2,i3,ec)
+
+     pv0 = p(i1,i2,i3,m)
+     pvm0=pm(i1,i2,i3,m)
+
+     ! pv = u(i1,i2,i3,pc)
+     ! pvm=um(i1,i2,i3,pc)
+
+     rhsE = max2dc44me2(i1,i2,i3,ec) + alphaP*(2.*pv0-pvm0) + fe 
+     rhsP = 2.*pv0-pvm0 + .5*dt*( b1*pvm0 -a1*evm ) + dt*dt*( -b0*pv0 + a0*ev ) + fp
+     deti = 1./(1.+.5*dt*(b1+alphaP*a1))
+     un(i1,i2,i3,ec) = ((1.+.5*dt*b1)*rhsE -alphaP*rhsP)*deti
+     pn(i1,i2,i3,m)  = (.5*a1*dt*rhsE            + rhsP)*deti 
+
+     ! pn(i1,i2,i3,m) = un(i1,i2,i3,pc)
+     ! un(i1,i2,i3,pc) = pn(i1,i2,i3,m)
+
+    end do
+  endLoopsMask()
+
+ else
+
+  ! ------- 2D DISPERSIVE CURVILINEAR MULTIPLE PV -------
+
+  INFO("FD44c-dispersive-MULTI-PV");
+  write(*,'(" DISPERSIVE: CURVILINEAR, 2D, ORDER 4: FINISH ME  ")')
+
+  fe=0.
+  ! -- first compute some coefficients ---
+  beta=0. 
+  do iv=0,numberOfPolarizationVectors-1
+    betav(iv) = 1./( 1.+.5*dt*b1v(iv) )
+    beta = beta + .5*dt*a1v(iv)*betav(iv)
+    fpv(iv)=0.  ! initialize if not used 
+  end do
+
+  beginLoopsMask(i1,i2,i3,n1a,n1b,n2a,n2b,n3a,n3b)
+
+    ! Advance Hz first:
+    ! For now solve H_t = -(1/mu)*(  (E_y)_x - (E_x)_y )
+    !   USE AB2 -- note: this is just a quadrature so stability is not an issue
+    un(i1,i2,i3,hz) = u(i1,i2,i3,hz) -(dt/mu)*( 1.5*ux42(i1,i2,i3,ey) -.5*umx42(i1,i2,i3,ey) \
+                                               -1.5*uy42(i1,i2,i3,ex) +.5*umy42(i1,i2,i3,ex) )
+
+    addtForcingHz()
+
+    ! -- loop over components of the vector --
+    do m=0,1
+     pc=pxc+m
+     ec=ex+m
+
+     if( addForcing.ne.0 )then
+       fe = dtsq*f(i1,i2,i3,ec)  
+       ! Compute fpv(iv) : 
+       getGDMForcing(ec,pc)
+     end if
+
+     ! GDM: 
+     !   (E^{n+1} -2 E^n + E^{n-1})/dt^2 = c^2*Delta(E) -alphaP*(P^{n+1} -2 P^n + P^{n-1})/dt^2
+     !   (P^{n+1} -2 P^n + P^{n-1})/dt^2 + b1* (P^{n+1} - P^{n-1})/(2*dt) + b0*P^n =
+     !                             a0*E^n + a1*(E^{n+1} - E^{n-1})/(2*dt)
+     ! =>
+     !            E^{n+1} +       alphaP*P^{n+1} = rhsE
+     !  -.5*a1*dt*E^{n+1} + (1+.5*b1*dt)*P^{n+1} = rhsP
+     !
+     ev = u(i1,i2,i3,ec)
+     evm=um(i1,i2,i3,ec)
+    
+     rhsP = 0.
+     pSum=0. 
+     do iv=0,numberOfPolarizationVectors-1
+       pv(iv) = p(i1,i2,i3,m+iv*nd)
+       pvm(iv)=pm(i1,i2,i3,m+iv*nd)
+
+       rhspv(iv) = 2.*pv(iv)-pvm(iv) + .5*dt*( b1v(iv)*pvm(iv) -a1v(iv)*evm ) + dtSq*( -b0v(iv)*pv(iv) + a0v(iv)*ev ) + fpv(iv)
+       rhsP = rhsP + betav(iv)*rhspv(iv) 
+       pSum = pSum + 2.*pv(iv) - pvm(iv) 
+     end do 
+
+     rhsE = max2dc44me2(i1,i2,i3,ec) + alphaP*( pSum - rhsP ) + fe 
+
+     evn = rhsE / (1.+ alphaP*beta)
+     un(i1,i2,i3,ec) = evn
+     do iv=0,numberOfPolarizationVectors-1
+       pn(i1,i2,i3,m+iv*nd)  = betav(iv)*( .5*dt*a1v(iv)*evn + rhspv(iv) )
+    end do
+
+   end do ! m=0,1
+  endLoopsMask()
+
+ end if
+#endMacro 
+
 
 
 ! **********************************************************************************
@@ -1420,10 +1975,11 @@ else if( updateSolution.eq.1 )then
 
  declareDifferenceOrder4(u,RX)
  declareDifferenceOrder4(un,none)
+ declareDifferenceOrder4(um,none)
  declareDifferenceOrder4(v,none)
 
  real maxwell2dr,maxwell3dr,maxwellr44,maxwellr66,maxwellr88
- real maxwellc22,maxwellc44,maxwellc66,maxwellc88
+ real maxwellc22,maxwellc44,maxwellc66,maxwellc88, maxwellc23
  real maxwell2dr44me,maxwell2dr66me,maxwell2dr88me
  real maxwell3dr44me,maxwell3dr66me,maxwell3dr88me
  real maxwellc44me,maxwellc66me,maxwellc88me
@@ -1513,6 +2069,7 @@ else if( updateSolution.eq.1 )then
  defineDifferenceOrder4Components1(v,none)
 
  defineDifferenceOrder2Components1(um,none)
+ defineDifferenceOrder4Components1(um,none)
 
  defineDifferenceOrder2Components1(ff,none)
 
@@ -1542,7 +2099,9 @@ else if( updateSolution.eq.1 )then
             cdtdy*(u(i1,i2-1,i3,n)+u(i1,i2+1,i3,n)-2.*u(i1,i2,i3,n))+\
             cdtdz*(u(i1,i2,i3-1,n)+u(i1,i2,i3+1,n)-2.*u(i1,i2,i3,n))
 
+ ! these use pre-computed RHS in f 
  maxwellc22(i1,i2,i3,n)=2.*u(i1,i2,i3,n)-um(i1,i2,i3,n)+dtsq*f(i1,i2,i3,n)
+ maxwellc23(i1,i2,i3,n)=2.*u(i1,i2,i3,n)-um(i1,i2,i3,n)+dtsq*f(i1,i2,i3,n)
 
  ! 2D, 2nd-order, div cleaning:
  !    D+tD-t( E ) + alpha*( D0t E ) = c^2 Delta(E) + alpha*( (1/eps) Curl ( H ) )
@@ -2467,8 +3026,16 @@ f3dcme44(i1,i2,i3,n) = fa(i1,i2,i3,n,fcur)+cdtSqBy12*ffLaplacian23(i1,i2,i3,n) \
               un(i1,i2,i3,ey)=mxdc2d2Ey(i1,i2,i3),\
               un(i1,i2,i3,hz)=maxwell2dr(i1,i2,i3,hz),,,,,,)
     endif 
+
    #Else
-    if( useDivergenceCleaning.eq.0 )then
+    ! ****** RECTANGULAR THREE DIMENSIONS SECOND-ORDER ****
+
+    if( dispersionModel.ne.noDispersion )then
+      ! --dispersion model --
+
+      updateRectangular3dOrder2Dispersive()
+
+    else if( useDivergenceCleaning.eq.0 )then
      loopsF3DD(dtsq*f(i1,i2,i3,ex),dtsq*f(i1,i2,i3,ey),dtsq*f(i1,i2,i3,ez),\
               un(i1,i2,i3,ex)=maxwell3dr(i1,i2,i3,ex),\
               un(i1,i2,i3,ey)=maxwell3dr(i1,i2,i3,ey),\
@@ -2506,7 +3073,12 @@ f3dcme44(i1,i2,i3,n) = fa(i1,i2,i3,n,fcur)+cdtSqBy12*ffLaplacian23(i1,i2,i3,n) \
       !    2D : 4th order modified equation (rectangular)
       ! ------------------------------------------------------------------------------
 
-      if( useDivergenceCleaning.eq.0 )then
+      if( dispersionModel.ne.noDispersion )then
+        ! --dispersion model --
+
+        updateRectangular2dOrder4Dispersive()
+
+      else if( useDivergenceCleaning.eq.0 )then
 
        if( useSosupDissipation.ne.0 )then
 
@@ -2850,7 +3422,14 @@ f3dcme44(i1,i2,i3,n) = fa(i1,i2,i3,n,fcur)+cdtSqBy12*ffLaplacian23(i1,i2,i3,n) \
        n2b=n2b-1
        useWhereMask=useWhereMaskSave
        
-       if( useDivergenceCleaning.eq.0 )then
+       if( dispersionModel.ne.noDispersion )then
+
+        ! --dispersive model --
+         updateCurvilinear2dOrder4Dispersive()
+
+
+       else if( useDivergenceCleaning.eq.0 )then
+
         if( useNewForcingMethod.eq.1 ) then
           ! fix forcing for ME scheme to be 4th-order
           loopsF2DD(dtsq*f2dcme44(i1,i2,i3,ex),dtsq*f2dcme44(i1,i2,i3,ey),dtsq*f2dcme44(i1,i2,i3,hz),\
@@ -2965,19 +3544,27 @@ f3dcme44(i1,i2,i3,n) = fa(i1,i2,i3,n,fcur)+cdtSqBy12*ffLaplacian23(i1,i2,i3,n) \
     if( useSosupDissipation.ne.0 )then
 
       ! ---- use sosup dissipation (wider stencil) ---
-      updateUpwindDissipationCurvilinear2dOrder2()
+      #If #DIM eq "2"
+        updateUpwindDissipationCurvilinear2dOrder2()
+      #Else
+        write(*,'(" FINISH ME 3D")' )
+        stop 3313
+      #End
 
     else if( dispersionModel.ne.noDispersion )then
 
-      ! --dispersive model --
-      updateCurvilinear2dOrder2Dispersive()
-
+      ! -- dispersive model --
+      #If #DIM eq "2"
+       updateCurvilinear2dOrder2Dispersive()
+      #Else
+       updateCurvilinear3dOrder2Dispersive()
+      #End
 
     else if( useDivergenceCleaning.eq.0 )then
 
      ! --- currently 2nd-order conservative and non-conservative opertaors are done here ---
      ! --- non-dispersive ---
-
+     ! ---- THIS IS FOR 2D OR 3D -----
      loopsFCD(un(i1,i2,i3,ex)=maxwellc22(i1,i2,i3,ex),\
               un(i1,i2,i3,ey)=maxwellc22(i1,i2,i3,ey),\
               un(i1,i2,i3,ez)=maxwellc22(i1,i2,i3,ez),\
@@ -3021,6 +3608,11 @@ f3dcme44(i1,i2,i3,n) = fa(i1,i2,i3,n,fcur)+cdtSqBy12*ffLaplacian23(i1,i2,i3,n) \
        ! ---- use sosup dissipation (wider stencil) ---
        updateUpwindDissipationCurvilinear2dOrder4()
 
+
+     else if( dispersionModel.ne.noDispersion )then
+
+      ! --dispersive model --
+      stop 7777
 
      else if( timeSteppingMethod.eq.modifiedEquationTimeStepping )then
 
@@ -3170,14 +3762,13 @@ f3dcme44(i1,i2,i3,n) = fa(i1,i2,i3,n,fcur)+cdtSqBy12*ffLaplacian23(i1,i2,i3,n) \
 #endFile
 #endMacro
 
+! ----- Some of these are still  built with advOpt.bf -------
+
       buildFile(advMx2dOrder2r,2,2,rectangular)
-
-! -- Most of these are built with advOpt.bf
-
-!      buildFile(advMx3dOrder2r,3,2,rectangular)
+      buildFile(advMx3dOrder2r,3,2,rectangular)
 !
       buildFile(advMx2dOrder2c,2,2,curvilinear)
-!      buildFile(advMx3dOrder2c,3,2,curvilinear)
+      buildFile(advMx3dOrder2c,3,2,curvilinear)
 !
       buildFile(advMx2dOrder4r,2,4,rectangular)
 !      buildFile(advMx3dOrder4r,3,4,rectangular)

@@ -1,6 +1,11 @@
 *************************************
 *********  Nov 15, 2017
 
+make grids 
+
+cgins freeSurface3d -g=freeSurfaceGrid3de1p.order2.hdf -nu=.05 -tf=2. -tp=.001 -model=ins -surfaceTension=.0 -ad2=1 -go=halt -amp1=0.0 -amp2=.5 -surfacePredictor="leap-frog"
+
+
 FIXED BUGS: cutHoles.bC and Mapping.C
 
 ogen -noplot freeSurfaceGrid3dNew -interp=e -factor=1 -bc=p
