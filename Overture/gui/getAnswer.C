@@ -2104,7 +2104,7 @@ processSpecialMenuItems(aString & answer)
   {
     const char *cColon = strrchr(SC answer.c_str(),':');
     aString longAnswer;
-    if (cColon && cColon != '\0')
+    if (cColon && *cColon != '\0')
       longAnswer = menuBarItems[item] + cColon; /*answer*/
     else
       longAnswer = menuBarItems[item];
