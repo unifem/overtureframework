@@ -1,0 +1,129 @@
+#!/bin/csh -f
+
+# Directions for adding to cron:
+# copy /home/bmiller/res/expect/setup.sh somewhere.  Edit the file to
+# make the sender, recipients, and message of the email correct.
+# execute 'crontab -e' this will open your $EDITOR. type:
+# 15 3 * * 0-6 /home/bmiller/res/expect/setup.sh
+# with the path to setup.sh appropriately changed.  This will run
+# setup.sh at 3:15 every day of the week.
+# Save and quit the editor.  To check the crontab file type 'crontab -l'
+
+if ($#argv != 3) then
+     echo "Usage: remote_test_script softwarePackageName configurationParameterString targetArchitecture"
+     exit 1
+endif
+
+set hostName = `hostname`
+echo "Host Name = $hostName"
+
+set fileName = $argv[1]
+if ($status) then
+  echo "fatal error in $PWD"
+  exit 1
+endif
+
+echo "Software Package Name = $fileName"
+
+# check what compilers are in use!
+# which CC;
+# which CC-4.2;
+# which CC-5.0;
+
+# Use double quotes to save the complet option list (multiple options could be specified)
+set paramStr = "$argv[2]"
+if ($status) then
+  echo "fatal error in $PWD"
+  exit 1
+endif
+
+echo "Configuration Options = $paramStr"
+
+set targetArchitecture = $argv[3]
+if ($status) then
+  echo "fatal error in $PWD"
+  exit 1
+endif
+
+echo "Target Architecture = $targetArchitecture"
+
+# echo "Options setup exiting script to avoid calling configure, make, make test"
+# exit 1
+
+./configure $paramStr --prefix=`pwd`
+if ($status) then
+  echo "fatal error in $PWD"
+  exit 1
+endif
+
+nice -5 make
+if ($status) then
+  echo "fatal error in $PWD"
+  exit 1
+endif
+
+nice -5 make check
+if ($status) then
+  echo "status from nice -5 make check = $status"
+  set result=" not"
+else
+  echo "status from nice -5 make check = $status"
+  set result=""
+  # clean up 
+  #cd $HOME
+  #rm -rf $HOME/A++P++AUTOCHECKOUT
+endif
+
+nice -5 make install
+if ($status) then
+  echo "status from nice -5 make install = $status"
+  set result=" not"
+else
+  echo "status from nice -5 make install = $status"
+  set result=""
+endif
+
+# setenv PATH ".:/usr/casc/overture/bin/solaris/bin:/bin/:/usr/local/bin/:/opt/SUNWspro/bin:/usr/ccs/bin:/usr/local/ar/bin:/usr/local/mpi/mpich-1.1.1/lib/solaris/ch_p4:$path"
+# setenv LD_LIBRARY_PATH "/usr/local/lib:/opt/SUNWspro/lib:/usr/dt/lib"
+# setenv PATH $path
+
+# Don't CC anyone else for now!
+# CC: Brian Miller <bmiller@tikhonov.llnl.gov>
+
+echo "Sending email back to development team to report status ..."
+echo "   Test of A++P++ on $targetArchitecture ($hostName) was$result successful ..."
+
+# /bin/mail miller125@llnl.gov dquinlan@llnl.gov<<EOF
+/bin/mail dquinlan@llnl.gov<<EOF
+From: Dan Quinlan <dquinlan@llnl.gov>
+To: Dan Quinlan <dquinlan@llnl.gov>
+CC: Brian Miller <bmiller@tikhonov.llnl.gov>
+Subject: Test of A++P++ on $targetArchitecture ($hostName) was$result successful
+
+The test of A++P++ on $targetArchitecture ($hostName) was$result successful
+
+   Test options were:
+       configure $paramStr
+       make
+       make check
+       make install
+
+Output results are placed in:
+/usr/casc/overture/dquinlan/MACHINE_TESTS/$targetArchitecture
+every 24 hours.  (Actually this later part is not finished yet!)
+
+Dan
+
+EOF
+
+
+echo "Email send, exiting script ..."
+
+
+
+
+
+
+
+
+

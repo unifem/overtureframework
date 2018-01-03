@@ -1,0 +1,74 @@
+EXAMPLES/README:
+
+Future Organization:
+   DeveloperTests (former BUGS directory)
+      Non working bugs and tests are placed here (all these tests might fail), as they
+      are fixed they are moved to the TESTS directory (which should contain ONLY working tests.
+      Consider different developer test directories for each developer.
+
+   TESTS
+      Fixed bugs and all possible tests are placed here so that the EXAMPLES directory
+      contains meaningful examples only. This directory would contain all WORKING tests
+      non-working tests would be located in the DeveloperTests directory.
+
+
+
+
+
+
+    This directory contains some example A++/P++ applications.  This directory will contian more example 
+programs as they are written.
+
+   testcode.C:   A++ specific test code
+
+   testppp.C:    P++ specific test code
+
+   riemann.C:    This is the PPM algorithm (translated to A++ from a FORTRAN code, FORTRAN code by Dinshaw Balsara)
+                 applied to a shock tube problem.  It is documented.
+
+
+NOTE FOR SUN C++ users of P++:
+   The -lc flag is required when compiling (linking to be more exact)
+to avoid using the not thread safe libc library which the C++ compiler
+(but not the C compiler) would use.  The use of the right library is
+important when using more then 3 processors with MPI (strange but
+true, at least on the machines here at CASC, LLNL).
+
+   The reason it is required is because MPI internally switches to the
+use of threads for some number of processors (3, I think) and so the
+standard libc.{a,so} works fine up to that point.  Beyond this point
+(number of processors > 3) a thread safe version of libc.{a,so} is
+required.  If this seems like an obscure point, imagine how much
+trouble it was to figure out :-).
+
+   Autoconf will eventually detect this and properly add the -lc parameter to the link line.
+
+
+NOTE TO NEW USERS:
+   If you have compiled A++/P++ to use dynamic libraries (and the A++
+configuration has figured out how to compile A++ to use the dynamic
+libraries on your architecture) you STILL have to set the
+LD_LIBRARY_PATH environment variable on your machine.  We CAN'T
+automate this step for you!
+
+  Multiple test scripts are provided in this directory which we run as
+part of our automated tests of your A++/P++ installation.  Tis script
+sets the LD_LIBRARY_PATH (prepending the location of the A++ or P++
+dynamic libraries) to your existing LD_LIBRARY_PATH.  This does NOT
+change your setting of your LD_LIBARY_PATH, to set this variable
+properly you must set it in your .cshrc file (or use some equivalent
+mechanism).  The setting represented within the scripts can be used as
+a guide.
+
+
+   While Overture currently requires dynamic libraries, the use of
+dynamic libraires on any architecture is a more advanced subject
+(because it is more complex and far more architecture and compiler
+dependent).
+
+
+DON'T FORGET TO SET YOUR LD_LIBRARY_PATH ENVIRONMENT VARIALBE IN YOUR .cshrc FILE!
+
+Dan Quinlan
+
+

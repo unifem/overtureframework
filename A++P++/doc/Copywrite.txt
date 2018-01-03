@@ -1,0 +1,65 @@
+From jss@c3serve.c3.lanl.gov Tue May 21 17:50:20 1996
+From: Jeffrey Saltzman <jss@c3serve.c3.lanl.gov>
+To: dquinlan@seraphim.c3.lanl.gov
+Subject: found it
+Content-Length: 2083
+X-Lines: 56
+Status: RO
+
+                Section I
+
+REQUIRED STATEMENTS
+The subject software has received, or will receive, DOE's
+approval for the University of California to assert copyright.
+Therefore, there are special requirements now pertaining to
+this software which include this special copyright notice.
+
+REQUIREMENT/S:
+The following notice should appear on the title page of all of
+the documentation which will be deposited with the ESTSC.
+(Refer to Section V of this handbook.) Additionally, this
+notice should appear on both the exterior of the actual
+computer media and on the title screen of that computer
+media which also will be deposited with the ESTSC. (Refer
+to Section VI.)
+
+If the Industrial Partnership Office has not provided you with
+a assertion of copyright date required for this statement,
+please contact them. (Contact information is located on the
+cover sheet.)
+
+  NOTICE: The Government is granted for itself and
+  others acting on its behalf a paid-up, non-exclusive,
+  irrevocable worldwide license in this data to
+  reproduce, prepare derivative works, and perform
+  publicly and display publicly. Beginning five (5)
+  years after (date  permission  to  assert
+  copyright was obtained), subject to two possible
+  five year renewals, the Government is granted for
+  itself and others acting on its behalf a paid-up, non-
+  exclusive, irrevocable worldwide license in this data
+  to reproduce, prepare derivative works, distribute
+  copies to the public, perform publicly and display
+  publicly, and to permit others to do so. NEITHER
+  THE UNITED STATES NOR THE UNITED
+  STATES DEPARTMENT OF ENERGY, NOR ANY
+  OF  THEIR  EMPLOYEES,  MAKES  ANY
+  WARRANTY, EXPRESS OR IMPLIED, OR
+  ASSUMES  ANY LEGAL LIABILITY  OR
+  RESPONSIBILITY FOR THE ACCURACY,
+  COMPLETENESS, OR USEFULNESS OF ANY
+  INFORMATION, APPARATUS, PRODUCT, OR
+  PROCESS DISCLOSED, OR REPRESENTS THAT
+  ITS USE WOULD NOT INFRINGE PRIVATELY
+  OWNED RIGHTS.
+
+This notice may be used periodically throughout the
+computer media:
+
+    COPYRIGHT:
+
+    Copyright, 199_, The University of California
+
+                  
+
+

@@ -1,0 +1,708 @@
+# Makefile.in generated automatically by automake 1.5 from Makefile.am.
+
+# Copyright 1994, 1995, 1996, 1997, 1998, 1999, 2000, 2001
+# Free Software Foundation, Inc.
+# This Makefile.in is free software; the Free Software Foundation
+# gives unlimited permission to copy and/or distribute it,
+# with or without modifications, as long as this notice is preserved.
+
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY, to the extent permitted by law; without
+# even the implied warranty of MERCHANTABILITY or FITNESS FOR A
+# PARTICULAR PURPOSE.
+
+@SET_MAKE@
+
+
+#######################################################
+#           Used in A++/P++ Configuration
+#######################################################
+
+# This is required for some rules (e.g. all-recursive, and all in some directories)
+
+SHELL = @SHELL@
+
+srcdir = @srcdir@
+top_srcdir = @top_srcdir@
+VPATH = @srcdir@
+prefix = @prefix@
+exec_prefix = @exec_prefix@
+
+bindir = @bindir@
+sbindir = @sbindir@
+libexecdir = @libexecdir@
+datadir = @datadir@
+sysconfdir = @sysconfdir@
+sharedstatedir = @sharedstatedir@
+localstatedir = @localstatedir@
+libdir = @libdir@
+infodir = @infodir@
+mandir = @mandir@
+includedir = @includedir@
+oldincludedir = /usr/include
+pkgdatadir = $(datadir)/@PACKAGE@
+pkglibdir = $(libdir)/@PACKAGE@
+pkgincludedir = $(includedir)/@PACKAGE@
+top_builddir = ..
+
+ACLOCAL = @ACLOCAL@
+AUTOCONF = @AUTOCONF@
+AUTOMAKE = @AUTOMAKE@
+AUTOHEADER = @AUTOHEADER@
+
+INSTALL = @INSTALL@
+INSTALL_PROGRAM = @INSTALL_PROGRAM@
+INSTALL_DATA = @INSTALL_DATA@
+INSTALL_SCRIPT = @INSTALL_SCRIPT@
+INSTALL_HEADER = $(INSTALL_DATA)
+transform = @program_transform_name@
+NORMAL_INSTALL = :
+PRE_INSTALL = :
+POST_INSTALL = :
+NORMAL_UNINSTALL = :
+PRE_UNINSTALL = :
+POST_UNINSTALL = :
+host_alias = @host_alias@
+host_triplet = @host@
+AMTAR = @AMTAR@
+APP_BUILD_SHARED_LIB_TARGET = @APP_BUILD_SHARED_LIB_TARGET@
+AR = @AR@
+AR_EXTRACT = @AR_EXTRACT@
+AR_EXTRACT_FLAGS = @AR_EXTRACT_FLAGS@
+AR_UPDATE = @AR_UPDATE@
+AR_UPDATE_FLAGS = @AR_UPDATE_FLAGS@
+AWK = @AWK@
+AXX_RPATH = @AXX_RPATH@
+BUILD_SHARED_LIBS = @BUILD_SHARED_LIBS@
+CC = @CC@
+CPP = @CPP@
+CPPFLAGS = @CPPFLAGS@
+CXX = @CXX@
+CXXCPP = @CXXCPP@
+CXXLD = @CXXLD@
+CXX_DEBUG = @CXX_DEBUG@
+CXX_DL_COMPILE_FLAGS = @CXX_DL_COMPILE_FLAGS@
+CXX_DL_LINK_FLAGS = @CXX_DL_LINK_FLAGS@
+CXX_DYNAMIC_LINKER = @CXX_DYNAMIC_LINKER@
+CXX_OPT = @CXX_OPT@
+CXX_OPTIONS = @CXX_OPTIONS@
+CXX_SHARED_LIB_UPDATE = @CXX_SHARED_LIB_UPDATE@
+CXX_STATIC_LIB_UPDATE = @CXX_STATIC_LIB_UPDATE@
+CXX_TEMPLATES = @CXX_TEMPLATES@
+CXX_TEMPLATE_OBJECT_FILES = @CXX_TEMPLATE_OBJECT_FILES@
+CXX_TEMPLATE_REPOSITORY = @CXX_TEMPLATE_REPOSITORY@
+CXX_WARNINGS = @CXX_WARNINGS@
+C_DEBUG = @C_DEBUG@
+C_DL_COMPILE_FLAGS = @C_DL_COMPILE_FLAGS@
+C_DL_LINK_FLAGS = @C_DL_LINK_FLAGS@
+C_DYNAMIC_LINKER = @C_DYNAMIC_LINKER@
+C_OPT = @C_OPT@
+C_OPTIONS = @C_OPTIONS@
+C_WARNINGS = @C_WARNINGS@
+DEPDIR = @DEPDIR@
+EXEEXT = @EXEEXT@
+INCLUDES = @INCLUDES@
+INSTALL_STRIP_PROGRAM = @INSTALL_STRIP_PROGRAM@
+LD = @LD@
+LIBS = @LIBS@
+M4 = @M4@
+MDI_C_DEBUG = @MDI_C_DEBUG@
+MDI_C_OPT = @MDI_C_OPT@
+OBJEXT = @OBJEXT@
+PACKAGE = @PACKAGE@
+PTHREADS_LIB = @PTHREADS_LIB@
+PURIFY_EXECUTABLE = @PURIFY_EXECUTABLE@
+PURIFY_HOME = @PURIFY_HOME@
+PURIFY_OPTIONS = @PURIFY_OPTIONS@
+PURIFY_RUN_AT_EXIT = @PURIFY_RUN_AT_EXIT@
+PURIFY_WINDOWS_OPTION = @PURIFY_WINDOWS_OPTION@
+RANLIB = @RANLIB@
+RUNTIME_LOADER_FLAGS = @RUNTIME_LOADER_FLAGS@
+SHARED_LIBS = @SHARED_LIBS@
+SHARED_LIB_EXTENSION = @SHARED_LIB_EXTENSION@
+STATIC_LINKER = @STATIC_LINKER@
+STATIC_LINKER_FLAGS = @STATIC_LINKER_FLAGS@
+VERSION = @VERSION@
+am__include = @am__include@
+am__quote = @am__quote@
+install_sh = @install_sh@
+top_pwd = @top_pwd@
+
+CXX_TEMPLATE_REPOSITORY_PATH = .
+
+MAKE = gmake
+
+# Extensions to Automake's C and C++ compiler flags.
+CXXFLAGS = @CXXFLAGS@ $(CXX_DEBUG) $(CXX_DEFINES) $(CXX_OPTIONS) $(CXX_OPT) $(CXX_TEMPLATES) $(CXX_WARNINGS) $(CXX_DL_COMPILE_FLAGS)
+CFLAGS = @CFLAGS@ $(C_DEBUG) $(C_OPTIONS) $(C_OPT) $(C_WARNINGS) $(C_DL_COMPILE_FLAGS)
+
+RM = rm -f
+
+#######################################################
+#######################################################
+clean_shared_libs_and_templates = rm -f *.so; rm -rf $(CXX_TEMPLATE_REPOSITORY) Templates.DB cxx_repository SunWS_cache PI* ti_files ii_files
+
+# ARCH = @ARCH@
+# CC = @CC@
+# CXX = @CXX@
+APP_PATH_TO_SHARED_LIB = -L$(libdir)
+
+# DQ: (12/24/2000) need to avoid early specification of -lApp_static $(PTHREADS_LIB)
+# LDADD = $(APP_PATH_TO_SHARED_LIB) $(AXX_LIB_PATH) $(AXX_LIBS) -lApp_static $(PTHREADS_LIB)
+# LDADD = $(APP_PATH_TO_SHARED_LIB) $(AXX_LIB_PATH)
+LDADD = $(APP_PATH_TO_SHARED_LIB) $(AXX_RPATH)
+
+TESTCODES = testcode \
+     test2000_01 \
+     test2000_02 \
+     test2000_03 \
+     test2000_04 \
+     test2000_05 \
+     test2000_06 \
+     test2000_07 \
+     test2000_08 \
+     test2000_09 \
+     test2000_10 \
+     test2000_11 \
+     test2000_12 \
+     test2000_13 \
+     test2000_14 \
+     test2000_15 \
+     test2000_16 \
+     test2000_17 \
+     test2000_18 \
+     resize
+
+
+noinst_PROGRAMS = $(TESTCODES)
+
+testcode_SOURCES = testcode.C
+test2000_01_SOURCES = test2000_01.C
+test2000_02_SOURCES = test2000_02.C
+test2000_03_SOURCES = test2000_03.C
+test2000_04_SOURCES = test2000_04.C
+test2000_05_SOURCES = test2000_05.C
+test2000_06_SOURCES = test2000_06.C
+test2000_07_SOURCES = test2000_07.C
+test2000_08_SOURCES = test2000_08.C
+test2000_09_SOURCES = test2000_09.C
+test2000_10_SOURCES = test2000_10.C
+test2000_11_SOURCES = test2000_11.C
+test2000_12_SOURCES = test2000_12.C
+test2000_13_SOURCES = test2000_13.C
+test2000_14_SOURCES = test2000_14.C
+test2000_15_SOURCES = test2000_15.C
+test2000_16_SOURCES = test2000_16.C
+test2000_17_SOURCES = test2000_17.C
+test2000_18_SOURCES = test2000_18.C
+resize_SOURCES = resize.C
+
+testcode_DEPENDENCIES = 
+test2000_01_DEPENDENCIES = 
+test2000_02_DEPENDENCIES = 
+test2000_03_DEPENDENCIES = 
+test2000_04_DEPENDENCIES = 
+test2000_05_DEPENDENCIES = 
+test2000_06_DEPENDENCIES = 
+test2000_07_DEPENDENCIES = 
+test2000_08_DEPENDENCIES = 
+test2000_09_DEPENDENCIES = 
+test2000_10_DEPENDENCIES = 
+test2000_11_DEPENDENCIES = 
+test2000_12_DEPENDENCIES = 
+test2000_13_DEPENDENCIES = 
+test2000_14_DEPENDENCIES = 
+test2000_15_DEPENDENCIES = 
+test2000_16_DEPENDENCIES = 
+test2000_17_DEPENDENCIES = 
+test2000_18_DEPENDENCIES = 
+resize_DEPENDENCIES = 
+
+TESTS_ENVIRONMENT = REDIRECT_OUTPUT_TO='$$program.$$nproc.stdout' REDIRECT_ERRORS_TO='$$program.$$nproc.error' sh ../generalized-serial-run
+
+TESTS = $(TESTCODES)
+
+#user-makefile:
+#	./makefileDefs.sh "$(CC)" "$(CXX)" "$(CXX_DEBUG)" "$(CXXOPT)" "$(CXXOPTIONS)" \
+#	"$(CXXDEFINES)" "$(C_DEBUG)" "$(COPT)" "$(COPTIONS)" \
+#	"$(AXX_INCLUDES)" "$(AXX_LIBS)"	"$(AXX_LIB_PATH)" \
+#	"$(APP_PATH_TO_SHARED_LIB)" "$(DEFS)" "$(top_srcdir)" \
+#	"$(CXXFLAGS)" "$(CFLAGS)" "$(LDFLAGS)"
+#	./userMakefile.sh "testcode" "testcode.o"
+
+#install-data-local:
+#	cp Makefile.user.defs $(prefix)/A++/lib/$(ARCH)_$(CC)_$(CXX)/
+#	cp Makefile.user $(prefix)/A++/lib/$(ARCH)_$(CC)_$(CXX)/
+
+# EXTRA_DIST = \
+#   tarch
+
+# Need to remove all the tests codes plus the extra alt_test2000_01 we build to test the installed A++ library
+DISTCLEANFILES = $(TESTCODES) alt_test2000_01
+subdir = TESTS
+mkinstalldirs = $(SHELL) $(top_srcdir)/../mkinstalldirs
+CONFIG_HEADER = $(top_builddir)/config.h
+CONFIG_CLEAN_FILES =
+noinst_PROGRAMS = testcode$(EXEEXT) test2000_01$(EXEEXT) \
+	test2000_02$(EXEEXT) test2000_03$(EXEEXT) test2000_04$(EXEEXT) \
+	test2000_05$(EXEEXT) test2000_06$(EXEEXT) test2000_07$(EXEEXT) \
+	test2000_08$(EXEEXT) test2000_09$(EXEEXT) test2000_10$(EXEEXT) \
+	test2000_11$(EXEEXT) test2000_12$(EXEEXT) test2000_13$(EXEEXT) \
+	test2000_14$(EXEEXT) test2000_15$(EXEEXT) test2000_16$(EXEEXT) \
+	test2000_17$(EXEEXT) test2000_18$(EXEEXT) resize$(EXEEXT)
+PROGRAMS = $(noinst_PROGRAMS)
+
+am_resize_OBJECTS = resize.$(OBJEXT)
+resize_OBJECTS = $(am_resize_OBJECTS)
+resize_LDADD = $(LDADD)
+resize_LDFLAGS =
+am_test2000_01_OBJECTS = test2000_01.$(OBJEXT)
+test2000_01_OBJECTS = $(am_test2000_01_OBJECTS)
+test2000_01_LDADD = $(LDADD)
+test2000_01_LDFLAGS =
+am_test2000_02_OBJECTS = test2000_02.$(OBJEXT)
+test2000_02_OBJECTS = $(am_test2000_02_OBJECTS)
+test2000_02_LDADD = $(LDADD)
+test2000_02_LDFLAGS =
+am_test2000_03_OBJECTS = test2000_03.$(OBJEXT)
+test2000_03_OBJECTS = $(am_test2000_03_OBJECTS)
+test2000_03_LDADD = $(LDADD)
+test2000_03_LDFLAGS =
+am_test2000_04_OBJECTS = test2000_04.$(OBJEXT)
+test2000_04_OBJECTS = $(am_test2000_04_OBJECTS)
+test2000_04_LDADD = $(LDADD)
+test2000_04_LDFLAGS =
+am_test2000_05_OBJECTS = test2000_05.$(OBJEXT)
+test2000_05_OBJECTS = $(am_test2000_05_OBJECTS)
+test2000_05_LDADD = $(LDADD)
+test2000_05_LDFLAGS =
+am_test2000_06_OBJECTS = test2000_06.$(OBJEXT)
+test2000_06_OBJECTS = $(am_test2000_06_OBJECTS)
+test2000_06_LDADD = $(LDADD)
+test2000_06_LDFLAGS =
+am_test2000_07_OBJECTS = test2000_07.$(OBJEXT)
+test2000_07_OBJECTS = $(am_test2000_07_OBJECTS)
+test2000_07_LDADD = $(LDADD)
+test2000_07_LDFLAGS =
+am_test2000_08_OBJECTS = test2000_08.$(OBJEXT)
+test2000_08_OBJECTS = $(am_test2000_08_OBJECTS)
+test2000_08_LDADD = $(LDADD)
+test2000_08_LDFLAGS =
+am_test2000_09_OBJECTS = test2000_09.$(OBJEXT)
+test2000_09_OBJECTS = $(am_test2000_09_OBJECTS)
+test2000_09_LDADD = $(LDADD)
+test2000_09_LDFLAGS =
+am_test2000_10_OBJECTS = test2000_10.$(OBJEXT)
+test2000_10_OBJECTS = $(am_test2000_10_OBJECTS)
+test2000_10_LDADD = $(LDADD)
+test2000_10_LDFLAGS =
+am_test2000_11_OBJECTS = test2000_11.$(OBJEXT)
+test2000_11_OBJECTS = $(am_test2000_11_OBJECTS)
+test2000_11_LDADD = $(LDADD)
+test2000_11_LDFLAGS =
+am_test2000_12_OBJECTS = test2000_12.$(OBJEXT)
+test2000_12_OBJECTS = $(am_test2000_12_OBJECTS)
+test2000_12_LDADD = $(LDADD)
+test2000_12_LDFLAGS =
+am_test2000_13_OBJECTS = test2000_13.$(OBJEXT)
+test2000_13_OBJECTS = $(am_test2000_13_OBJECTS)
+test2000_13_LDADD = $(LDADD)
+test2000_13_LDFLAGS =
+am_test2000_14_OBJECTS = test2000_14.$(OBJEXT)
+test2000_14_OBJECTS = $(am_test2000_14_OBJECTS)
+test2000_14_LDADD = $(LDADD)
+test2000_14_LDFLAGS =
+am_test2000_15_OBJECTS = test2000_15.$(OBJEXT)
+test2000_15_OBJECTS = $(am_test2000_15_OBJECTS)
+test2000_15_LDADD = $(LDADD)
+test2000_15_LDFLAGS =
+am_test2000_16_OBJECTS = test2000_16.$(OBJEXT)
+test2000_16_OBJECTS = $(am_test2000_16_OBJECTS)
+test2000_16_LDADD = $(LDADD)
+test2000_16_LDFLAGS =
+am_test2000_17_OBJECTS = test2000_17.$(OBJEXT)
+test2000_17_OBJECTS = $(am_test2000_17_OBJECTS)
+test2000_17_LDADD = $(LDADD)
+test2000_17_LDFLAGS =
+am_test2000_18_OBJECTS = test2000_18.$(OBJEXT)
+test2000_18_OBJECTS = $(am_test2000_18_OBJECTS)
+test2000_18_LDADD = $(LDADD)
+test2000_18_LDFLAGS =
+am_testcode_OBJECTS = testcode.$(OBJEXT)
+testcode_OBJECTS = $(am_testcode_OBJECTS)
+testcode_LDADD = $(LDADD)
+testcode_LDFLAGS =
+
+DEFS = @DEFS@
+DEFAULT_INCLUDES =  -I. -I$(srcdir) -I$(top_builddir)
+CPPFLAGS = @CPPFLAGS@
+LDFLAGS = @LDFLAGS@
+LIBS = @LIBS@
+depcomp =
+CXXCOMPILE = $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) \
+	$(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS)
+CXXLINK = $(CXXLD) $(AM_CXXFLAGS) $(CXXFLAGS) $(AM_LDFLAGS) $(LDFLAGS) \
+	-o $@
+DIST_SOURCES = $(resize_SOURCES) $(test2000_01_SOURCES) \
+	$(test2000_02_SOURCES) $(test2000_03_SOURCES) \
+	$(test2000_04_SOURCES) $(test2000_05_SOURCES) \
+	$(test2000_06_SOURCES) $(test2000_07_SOURCES) \
+	$(test2000_08_SOURCES) $(test2000_09_SOURCES) \
+	$(test2000_10_SOURCES) $(test2000_11_SOURCES) \
+	$(test2000_12_SOURCES) $(test2000_13_SOURCES) \
+	$(test2000_14_SOURCES) $(test2000_15_SOURCES) \
+	$(test2000_16_SOURCES) $(test2000_17_SOURCES) \
+	$(test2000_18_SOURCES) $(testcode_SOURCES)
+DIST_COMMON = README Makefile.am Makefile.in
+SOURCES = $(resize_SOURCES) $(test2000_01_SOURCES) $(test2000_02_SOURCES) $(test2000_03_SOURCES) $(test2000_04_SOURCES) $(test2000_05_SOURCES) $(test2000_06_SOURCES) $(test2000_07_SOURCES) $(test2000_08_SOURCES) $(test2000_09_SOURCES) $(test2000_10_SOURCES) $(test2000_11_SOURCES) $(test2000_12_SOURCES) $(test2000_13_SOURCES) $(test2000_14_SOURCES) $(test2000_15_SOURCES) $(test2000_16_SOURCES) $(test2000_17_SOURCES) $(test2000_18_SOURCES) $(testcode_SOURCES)
+
+all: all-am
+
+.SUFFIXES:
+.SUFFIXES: .C .o .obj
+$(srcdir)/Makefile.in:  Makefile.am $(srcdir)/../../config/Makefile.config.in $(top_srcdir)/configure.in $(ACLOCAL_M4)
+	cd $(top_srcdir) && \
+	  $(AUTOMAKE) --foreign  --ignore-deps TESTS/Makefile
+Makefile:  $(srcdir)/Makefile.in  $(top_builddir)/config.status
+	cd $(top_builddir) && \
+	  CONFIG_HEADERS= CONFIG_LINKS= \
+	  CONFIG_FILES=$(subdir)/$@ $(SHELL) ./config.status
+
+clean-noinstPROGRAMS:
+	-test -z "$(noinst_PROGRAMS)" || rm -f $(noinst_PROGRAMS)
+resize$(EXEEXT): $(resize_OBJECTS) $(resize_DEPENDENCIES) 
+	@rm -f resize$(EXEEXT)
+	$(CXXLINK) $(resize_LDFLAGS) $(resize_OBJECTS) $(resize_LDADD) $(LIBS)
+test2000_01$(EXEEXT): $(test2000_01_OBJECTS) $(test2000_01_DEPENDENCIES) 
+	@rm -f test2000_01$(EXEEXT)
+	$(CXXLINK) $(test2000_01_LDFLAGS) $(test2000_01_OBJECTS) $(test2000_01_LDADD) $(LIBS)
+test2000_02$(EXEEXT): $(test2000_02_OBJECTS) $(test2000_02_DEPENDENCIES) 
+	@rm -f test2000_02$(EXEEXT)
+	$(CXXLINK) $(test2000_02_LDFLAGS) $(test2000_02_OBJECTS) $(test2000_02_LDADD) $(LIBS)
+test2000_03$(EXEEXT): $(test2000_03_OBJECTS) $(test2000_03_DEPENDENCIES) 
+	@rm -f test2000_03$(EXEEXT)
+	$(CXXLINK) $(test2000_03_LDFLAGS) $(test2000_03_OBJECTS) $(test2000_03_LDADD) $(LIBS)
+test2000_04$(EXEEXT): $(test2000_04_OBJECTS) $(test2000_04_DEPENDENCIES) 
+	@rm -f test2000_04$(EXEEXT)
+	$(CXXLINK) $(test2000_04_LDFLAGS) $(test2000_04_OBJECTS) $(test2000_04_LDADD) $(LIBS)
+test2000_05$(EXEEXT): $(test2000_05_OBJECTS) $(test2000_05_DEPENDENCIES) 
+	@rm -f test2000_05$(EXEEXT)
+	$(CXXLINK) $(test2000_05_LDFLAGS) $(test2000_05_OBJECTS) $(test2000_05_LDADD) $(LIBS)
+test2000_06$(EXEEXT): $(test2000_06_OBJECTS) $(test2000_06_DEPENDENCIES) 
+	@rm -f test2000_06$(EXEEXT)
+	$(CXXLINK) $(test2000_06_LDFLAGS) $(test2000_06_OBJECTS) $(test2000_06_LDADD) $(LIBS)
+test2000_07$(EXEEXT): $(test2000_07_OBJECTS) $(test2000_07_DEPENDENCIES) 
+	@rm -f test2000_07$(EXEEXT)
+	$(CXXLINK) $(test2000_07_LDFLAGS) $(test2000_07_OBJECTS) $(test2000_07_LDADD) $(LIBS)
+test2000_08$(EXEEXT): $(test2000_08_OBJECTS) $(test2000_08_DEPENDENCIES) 
+	@rm -f test2000_08$(EXEEXT)
+	$(CXXLINK) $(test2000_08_LDFLAGS) $(test2000_08_OBJECTS) $(test2000_08_LDADD) $(LIBS)
+test2000_09$(EXEEXT): $(test2000_09_OBJECTS) $(test2000_09_DEPENDENCIES) 
+	@rm -f test2000_09$(EXEEXT)
+	$(CXXLINK) $(test2000_09_LDFLAGS) $(test2000_09_OBJECTS) $(test2000_09_LDADD) $(LIBS)
+test2000_10$(EXEEXT): $(test2000_10_OBJECTS) $(test2000_10_DEPENDENCIES) 
+	@rm -f test2000_10$(EXEEXT)
+	$(CXXLINK) $(test2000_10_LDFLAGS) $(test2000_10_OBJECTS) $(test2000_10_LDADD) $(LIBS)
+test2000_11$(EXEEXT): $(test2000_11_OBJECTS) $(test2000_11_DEPENDENCIES) 
+	@rm -f test2000_11$(EXEEXT)
+	$(CXXLINK) $(test2000_11_LDFLAGS) $(test2000_11_OBJECTS) $(test2000_11_LDADD) $(LIBS)
+test2000_12$(EXEEXT): $(test2000_12_OBJECTS) $(test2000_12_DEPENDENCIES) 
+	@rm -f test2000_12$(EXEEXT)
+	$(CXXLINK) $(test2000_12_LDFLAGS) $(test2000_12_OBJECTS) $(test2000_12_LDADD) $(LIBS)
+test2000_13$(EXEEXT): $(test2000_13_OBJECTS) $(test2000_13_DEPENDENCIES) 
+	@rm -f test2000_13$(EXEEXT)
+	$(CXXLINK) $(test2000_13_LDFLAGS) $(test2000_13_OBJECTS) $(test2000_13_LDADD) $(LIBS)
+test2000_14$(EXEEXT): $(test2000_14_OBJECTS) $(test2000_14_DEPENDENCIES) 
+	@rm -f test2000_14$(EXEEXT)
+	$(CXXLINK) $(test2000_14_LDFLAGS) $(test2000_14_OBJECTS) $(test2000_14_LDADD) $(LIBS)
+test2000_15$(EXEEXT): $(test2000_15_OBJECTS) $(test2000_15_DEPENDENCIES) 
+	@rm -f test2000_15$(EXEEXT)
+	$(CXXLINK) $(test2000_15_LDFLAGS) $(test2000_15_OBJECTS) $(test2000_15_LDADD) $(LIBS)
+test2000_16$(EXEEXT): $(test2000_16_OBJECTS) $(test2000_16_DEPENDENCIES) 
+	@rm -f test2000_16$(EXEEXT)
+	$(CXXLINK) $(test2000_16_LDFLAGS) $(test2000_16_OBJECTS) $(test2000_16_LDADD) $(LIBS)
+test2000_17$(EXEEXT): $(test2000_17_OBJECTS) $(test2000_17_DEPENDENCIES) 
+	@rm -f test2000_17$(EXEEXT)
+	$(CXXLINK) $(test2000_17_LDFLAGS) $(test2000_17_OBJECTS) $(test2000_17_LDADD) $(LIBS)
+test2000_18$(EXEEXT): $(test2000_18_OBJECTS) $(test2000_18_DEPENDENCIES) 
+	@rm -f test2000_18$(EXEEXT)
+	$(CXXLINK) $(test2000_18_LDFLAGS) $(test2000_18_OBJECTS) $(test2000_18_LDADD) $(LIBS)
+testcode$(EXEEXT): $(testcode_OBJECTS) $(testcode_DEPENDENCIES) 
+	@rm -f testcode$(EXEEXT)
+	$(CXXLINK) $(testcode_LDFLAGS) $(testcode_OBJECTS) $(testcode_LDADD) $(LIBS)
+
+mostlyclean-compile:
+	-rm -f *.$(OBJEXT) core *.core
+
+distclean-compile:
+	-rm -f *.tab.c
+
+.C.o:
+	$(CXXCOMPILE) -c -o $@ `test -f $< || echo '$(srcdir)/'`$<
+
+.C.obj:
+	$(CXXCOMPILE) -c -o $@ `cygpath -w $<`
+uninstall-info-am:
+
+tags: TAGS
+
+ID: $(HEADERS) $(SOURCES) $(LISP) $(TAGS_FILES)
+	list='$(SOURCES) $(HEADERS) $(TAGS_FILES)'; \
+	unique=`for i in $$list; do \
+	    if test -f "$$i"; then echo $$i; else echo $(srcdir)/$$i; fi; \
+	  done | \
+	  $(AWK) '    { files[$$0] = 1; } \
+	       END { for (i in files) print i; }'`; \
+	mkid -fID $$unique $(LISP)
+
+TAGS:  $(HEADERS) $(SOURCES)  $(TAGS_DEPENDENCIES) \
+		$(TAGS_FILES) $(LISP)
+	tags=; \
+	here=`pwd`; \
+	list='$(SOURCES) $(HEADERS) $(TAGS_FILES)'; \
+	unique=`for i in $$list; do \
+	    if test -f "$$i"; then echo $$i; else echo $(srcdir)/$$i; fi; \
+	  done | \
+	  $(AWK) '    { files[$$0] = 1; } \
+	       END { for (i in files) print i; }'`; \
+	test -z "$(ETAGS_ARGS)$$unique$(LISP)$$tags" \
+	  || etags $(ETAGS_ARGS) $$tags  $$unique $(LISP)
+
+GTAGS:
+	here=`CDPATH=: && cd $(top_builddir) && pwd` \
+	  && cd $(top_srcdir) \
+	  && gtags -i $(GTAGS_ARGS) $$here
+
+distclean-tags:
+	-rm -f TAGS ID GTAGS GRTAGS GSYMS GPATH
+
+check-TESTS: $(TESTS)
+	@failed=0; all=0; xfail=0; xpass=0; \
+	srcdir=$(srcdir); export srcdir; \
+	list='$(TESTS)'; \
+	if test -n "$$list"; then \
+	  for tst in $$list; do \
+	    if test -f ./$$tst; then dir=./; \
+	    elif test -f $$tst; then dir=; \
+	    else dir="$(srcdir)/"; fi; \
+	    if $(TESTS_ENVIRONMENT) $${dir}$$tst; then \
+	      all=`expr $$all + 1`; \
+	      case " $(XFAIL_TESTS) " in \
+	      *" $$tst "*) \
+	        xpass=`expr $$xpass + 1`; \
+	        failed=`expr $$failed + 1`; \
+	        echo "XPASS: $$tst"; \
+	      ;; \
+	      *) \
+	        echo "PASS: $$tst"; \
+	      ;; \
+	      esac; \
+	    elif test $$? -ne 77; then \
+	      all=`expr $$all + 1`; \
+	      case " $(XFAIL_TESTS) " in \
+	      *" $$tst "*) \
+	        xfail=`expr $$xfail + 1`; \
+	        echo "XFAIL: $$tst"; \
+	      ;; \
+	      *) \
+	        failed=`expr $$failed + 1`; \
+	        echo "FAIL: $$tst"; \
+	      ;; \
+	      esac; \
+	    fi; \
+	  done; \
+	  if test "$$failed" -eq 0; then \
+	    if test "$$xfail" -eq 0; then \
+	      banner="All $$all tests passed"; \
+	    else \
+	      banner="All $$all tests behaved as expected ($$xfail expected failures)"; \
+	    fi; \
+	  else \
+	    if test "$$xpass" -eq 0; then \
+	      banner="$$failed of $$all tests failed"; \
+	    else \
+	      banner="$$failed of $$all tests did not behave as expected ($$xpass unexpected passes)"; \
+	    fi; \
+	  fi; \
+	  dashes=`echo "$$banner" | sed s/./=/g`; \
+	  echo "$$dashes"; \
+	  echo "$$banner"; \
+	  echo "$$dashes"; \
+	  test "$$failed" -eq 0; \
+	fi
+
+DISTFILES = $(DIST_COMMON) $(DIST_SOURCES) $(TEXINFOS) $(EXTRA_DIST)
+
+top_distdir = ..
+distdir = $(top_distdir)/$(PACKAGE)-$(VERSION)
+
+distdir: $(DISTFILES)
+	@for file in $(DISTFILES); do \
+	  if test -f $$file; then d=.; else d=$(srcdir); fi; \
+	  dir=`echo "$$file" | sed -e 's,/[^/]*$$,,'`; \
+	  if test "$$dir" != "$$file" && test "$$dir" != "."; then \
+	    $(mkinstalldirs) "$(distdir)/$$dir"; \
+	  fi; \
+	  if test -d $$d/$$file; then \
+	    cp -pR $$d/$$file $(distdir) \
+	    || exit 1; \
+	  else \
+	    test -f $(distdir)/$$file \
+	    || cp -p $$d/$$file $(distdir)/$$file \
+	    || exit 1; \
+	  fi; \
+	done
+check-am: all-am
+	$(MAKE) $(AM_MAKEFLAGS) check-TESTS
+check: check-am
+all-am: Makefile $(PROGRAMS)
+
+installdirs:
+
+install: install-am
+install-exec: install-exec-am
+install-data: install-data-am
+uninstall: uninstall-am
+
+install-am: all-am
+	@$(MAKE) $(AM_MAKEFLAGS) install-exec-am install-data-am
+install-strip:
+	$(MAKE) $(AM_MAKEFLAGS) INSTALL_PROGRAM="$(INSTALL_STRIP_PROGRAM)" \
+	  `test -z '$(STRIP)' || \
+	    echo "INSTALL_PROGRAM_ENV=STRIPPROG='$(STRIP)'"` install
+mostlyclean-generic:
+
+clean-generic:
+
+distclean-generic:
+	-rm -f Makefile $(CONFIG_CLEAN_FILES) stamp-h stamp-h[0-9]*
+	-test -z "$(DISTCLEANFILES)" || rm -f $(DISTCLEANFILES)
+
+maintainer-clean-generic:
+	@echo "This command is intended for maintainers to use"
+	@echo "it deletes files that may require special tools to rebuild."
+clean: clean-am
+
+clean-am: clean-generic clean-local clean-noinstPROGRAMS mostlyclean-am
+
+distclean: distclean-am
+
+distclean-am: clean-am distclean-compile distclean-generic \
+	distclean-tags
+
+dvi: dvi-am
+
+dvi-am:
+
+info: info-am
+
+info-am:
+
+install-data-am:
+
+install-exec-am:
+	@$(NORMAL_INSTALL)
+	$(MAKE) $(AM_MAKEFLAGS) install-exec-hook
+
+install-info: install-info-am
+
+install-man:
+
+installcheck-am:
+
+maintainer-clean: maintainer-clean-am
+
+maintainer-clean-am: distclean-am maintainer-clean-generic
+
+mostlyclean: mostlyclean-am
+
+mostlyclean-am: mostlyclean-compile mostlyclean-generic
+
+uninstall-am: uninstall-info-am
+
+.PHONY: GTAGS all all-am check check-TESTS check-am clean clean-generic \
+	clean-local clean-noinstPROGRAMS distclean distclean-compile \
+	distclean-generic distclean-tags distdir dvi dvi-am info \
+	info-am install install-am install-data install-data-am \
+	install-exec install-exec-am install-info install-info-am \
+	install-man install-strip installcheck installcheck-am \
+	installdirs maintainer-clean maintainer-clean-generic \
+	mostlyclean mostlyclean-compile mostlyclean-generic tags \
+	uninstall uninstall-am uninstall-info-am
+
+
+#############################################################################################
+######################   SPECIAL TARGET FOR BUILDING SOURCE CODE   ##########################
+#############################################################################################
+
+macros_and_source:
+	cd $(srcdir) && $(MAKE) -f makefile.build all_source
+
+source:
+	cd $(srcdir) && $(MAKE) -f makefile.build source
+
+templates-clean:
+	cd $(srcdir) && $(MAKE) -f makefile.build templates-clean
+
+all-but-MDI-clean:
+	cd $(srcdir) && $(MAKE) -f makefile.build all-but-MDI-clean
+
+MDI-source:
+	cd $(srcdir) && $(MAKE) -f makefile.build MDI-source
+
+OPERATORS-source:
+	cd $(srcdir) && $(MAKE) -f makefile.build OPERATORS-source
+
+all-source:
+	cd $(srcdir) && $(MAKE) -f makefile.build all-source
+
+entire-MDI-source:
+	cd $(srcdir) && $(MAKE) -f makefile.build entire-MDI-source
+
+entire-OPERATORS-source:
+	cd $(srcdir) && $(MAKE) -f makefile.build entire-OPERATORS-source
+
+entire-all-source:
+	cd $(srcdir) && $(MAKE) -f makefile.build entire-all-source
+
+MDI-source-clean:
+	cd $(srcdir) && $(MAKE) -f makefile.build MDI-source-clean
+
+OPERATORS-source-clean:
+	cd $(srcdir) && $(MAKE) -f makefile.build OPERATORS-source-clean
+
+all-source-clean:
+	cd $(srcdir) && $(MAKE) -f makefile.build all-source-clean
+
+#############################################################################################
+###################   SPECIAL TARGET FOR EVLUATING DISK SPACE USAGE   #######################
+#############################################################################################
+
+object_size:
+	echo "Size of Object Files = " `wc -c *.o | grep total | cut -d " " -f 2` 
+
+code_size:
+	echo "Size of Source Files = " `wc -c *.[c,C] | grep total | cut -d " " -f 2`
+
+# Rule to check the installation after it is run
+# (test compilation using the new installed header files and libraries)
+install-exec-hook: installcheck
+installcheck:
+	$(CXX) $(DEFS) $(CXX_OPTIONS) -I$(includedir) -c $(srcdir)/test2000_01.C -o alt_test2000_01.o
+#	Dec cxx compiler can't handle -R option
+#	$(CXXLD) -o alt_test2000_01  alt_test2000_01.o -L$(libdir) -R $(libdir) -lApp -lApp_static -lm
+	$(CXXLD) $(CXX_OPTIONS) -o alt_test2000_01  alt_test2000_01.o -L$(libdir) -lApp -lApp_static -lm
+
+# Purify related flags
+# PURIFY_USE_WINDOWS = -windows=yes
+# PURIFY_FLAGS  = $(PURIFY_USE_WINDOWS) -recursion-depth-limit=40000 -chain-length=12 -first-only=yes -leaks-at-exit=yes -inuse-at-exit=yes -always-use-cache-dir=yes -cache-dir=/home/dquinlan/tmp
+# PURIFY        = purify4.5 $(PURIFY_FLAGS)
+# New version of purify
+# PURIFY        = /usr/local/pure/purify-5.1-solaris2/purify $(PURIFY_FLAGS)
+
+clean-local:
+	rm -f *.*.stdout *.*.error
+	$(clean_shared_libs_and_templates)
+# Tell versions [3.59,3.63) of GNU make to not export all variables.
+# Otherwise a system limit (for SysV at least) may be exceeded.
+.NOEXPORT:

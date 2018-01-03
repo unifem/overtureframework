@@ -1,0 +1,16 @@
+#! /bin/csh
+
+# echo "makelinks build links to files that CVS does not support!"; \
+# echo "     run by CVS upon checkout of A++P++ module cvs checkout A++P++"; \
+# echo "     specified within A++P++_Repository/CVSROOT/modules"; \
+# echo "     line in A++P++_Repository/CVSROOT/modules A++P++ -o A++P++/makelinks A++P++"; \
+
+# Verifies the source is build and builds the Makefile.depend files
+makedepend
+
+# Rebuilds the Makefile.in using autoconf (to use the new Makefile.depend files)
+build
+
+# Regenerate the correct Makefile files from the new Makefile.in files
+configure
+

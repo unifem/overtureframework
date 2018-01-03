@@ -1,0 +1,137 @@
+/* config.hin.  Generated automatically from configure.in by autoheader.  */
+
+/* Make the name of the C++ compiler available at compile time. */
+#undef APP_CXX_Compiler
+
+/* Make the name of the C compiler available at compile time. */
+#undef APP_C_Compiler
+
+/* Define if bool type is not properly supported */
+#undef BOOL_IS_BROKEN
+
+/* Build true and false values for C++ compilers that don't have bool */
+#ifdef BOOL_IS_BROKEN
+#define true 1
+#define false 0
+#endif
+
+/* Trigger complete trip through all PADRE header files required for PADRE
+   compilation */
+#undef COMPILE_PADRE
+
+/* Trigger complete trip through all P++ header files required for P++
+   compilation */
+#undef COMPILE_PPP
+
+/* Not all compilers define bool as a type. */
+#undef HAVE_BOOL
+
+/* We assume all compilers can use explicit template instantiation. (required
+   for PADRE) */
+#undef HAVE_EXPLICIT_TEMPLATE_INSTANTIATION
+
+/* Not all compilers define name spaces. */
+#undef HAVE_NAMESPACE
+
+/* Define INLINE to be inline so that inlining will be done at compile-time.
+   */
+#undef INLINE
+
+/* Turn on use of A++/P++ debuging. */
+#undef INTERNALDEBUG
+
+/* Define LAM version of MPI */
+#undef MPI_IS_LAM
+
+/* Define MPICH version of MPI */
+#undef MPI_IS_MPICH
+
+/* Define if namespace is not properly supported */
+#undef NAMESPACE_IS_BROKEN
+
+/* Turn off use of assert everywhere. */
+#undef NDEBUG
+
+/* Define if not supporting GlobalArrays in PADRE */
+#undef NO_GlobalArrays
+
+/* Define if not supporting Kelp in PADRE */
+#undef NO_Kelp
+
+/* Define if not supporting Parti in PADRE */
+#undef NO_Parti
+
+/* Name of package */
+#undef PACKAGE
+
+/* Define to enable PADRE debug codes */
+#undef PADRE_DEBUG_IS_ENABLED
+
+/* Use PADRE in parallel environment. */
+#undef PARALLEL_PADRE
+
+/* Allow specification of MPI within P++ */
+#undef PXX_ENABLE_MP_INTERFACE_MPI
+
+/* Allow specification of PVM within P++ */
+#undef PXX_ENABLE_MP_INTERFACE_PVM
+
+/* PARTI requires this definition to select between varargs.h and stdarg.h. */
+#undef STD_COMPLIANT_COMPILER
+
+/* Header file for stl-algo */
+#undef STL_ALGO_HEADER_FILE
+
+/* The stl-algo header file is broken */
+#undef STL_ALGO_IS_BROKEN
+
+/* Header file for stl-iterator */
+#undef STL_ITERATOR_HEADER_FILE
+
+/* The stl-iterator header file is broken */
+#undef STL_ITERATOR_IS_BROKEN
+
+/* Header file for stl-list */
+#undef STL_LIST_HEADER_FILE
+
+/* The stl-list header file is broken */
+#undef STL_LIST_IS_BROKEN
+
+/* Header file for stl-map */
+#undef STL_MAP_HEADER_FILE
+
+/* The stl-map header file is broken */
+#undef STL_MAP_IS_BROKEN
+
+/* Header file for stl-string */
+#undef STL_STRING_HEADER_FILE
+
+/* The stl-string header file is broken */
+#undef STL_STRING_IS_BROKEN
+
+/* Header file for stl-vector */
+#undef STL_VECTOR_HEADER_FILE
+
+/* The stl-vector header file is broken */
+#undef STL_VECTOR_IS_BROKEN
+
+/* Use PADRE within P++. */
+#undef USE_PADRE
+
+/* Indirect addressing support. */
+#undef USE_PARALLEL_INDIRECT_ADDRESSING_SUPPORT
+
+/* Signal to user if P++ is used at comple time. */
+#undef USE_PPP
+
+/* Turn on use of internal Pthreads. */
+#undef USE_PTHREADS
+
+/* Turn on use of PURIFY */
+#undef USE_PURIFY
+
+/* trigger use of code that requires string.h (non-portable code) */
+#undef USE_STRING_SPECIFIC_CODE
+
+/* Version number of package */
+#undef VERSION

@@ -1,0 +1,440 @@
+# Makefile.in generated automatically by automake 1.5 from Makefile.am.
+
+# Copyright 1994, 1995, 1996, 1997, 1998, 1999, 2000, 2001
+# Free Software Foundation, Inc.
+# This Makefile.in is free software; the Free Software Foundation
+# gives unlimited permission to copy and/or distribute it,
+# with or without modifications, as long as this notice is preserved.
+
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY, to the extent permitted by law; without
+# even the implied warranty of MERCHANTABILITY or FITNESS FOR A
+# PARTICULAR PURPOSE.
+
+@SET_MAKE@
+
+
+# Override install-includeHEADERS rule usually provided by automake.
+# We are overiding the automake rule due to a bug in the rule generated.
+# The bug appends a relative path to the destination.  That is not needed
+# and causes some make programs to issue the wrong install commands.
+# BTNG.
+
+SHELL = @SHELL@
+
+srcdir = @srcdir@
+top_srcdir = @top_srcdir@
+VPATH = @srcdir@
+prefix = @prefix@
+exec_prefix = @exec_prefix@
+
+bindir = @bindir@
+sbindir = @sbindir@
+libexecdir = @libexecdir@
+datadir = @datadir@
+sysconfdir = @sysconfdir@
+sharedstatedir = @sharedstatedir@
+localstatedir = @localstatedir@
+libdir = @libdir@
+infodir = @infodir@
+mandir = @mandir@
+includedir = @includedir@
+oldincludedir = /usr/include
+pkgdatadir = $(datadir)/@PACKAGE@
+pkglibdir = $(libdir)/@PACKAGE@
+pkgincludedir = $(includedir)/@PACKAGE@
+top_builddir = ../..
+AUTOCONF = @AUTOCONF@
+AUTOMAKE = @AUTOMAKE@
+AUTOHEADER = @AUTOHEADER@
+
+INSTALL = @INSTALL@
+INSTALL_PROGRAM = @INSTALL_PROGRAM@
+INSTALL_DATA = @INSTALL_DATA@
+INSTALL_SCRIPT = @INSTALL_SCRIPT@
+INSTALL_HEADER = $(INSTALL_DATA)
+transform = @program_transform_name@
+NORMAL_INSTALL = :
+PRE_INSTALL = :
+POST_INSTALL = :
+NORMAL_UNINSTALL = :
+PRE_UNINSTALL = :
+POST_UNINSTALL = :
+host_alias = @host_alias@
+host_triplet = @host@
+AMTAR = @AMTAR@
+AR = @AR@
+AR_EXTRACT = @AR_EXTRACT@
+AR_EXTRACT_FLAGS = @AR_EXTRACT_FLAGS@
+AR_UPDATE = @AR_UPDATE@
+AR_UPDATE_FLAGS = @AR_UPDATE_FLAGS@
+AWK = @AWK@
+CC = @CC@
+CPP = @CPP@
+CPPFLAGS = @CPPFLAGS@
+CXX = @CXX@
+CXXCPP = @CXXCPP@
+CXXLD = @CXXLD@
+CXX_DEBUG = @CXX_DEBUG@
+CXX_DL_COMPILE_FLAGS = @CXX_DL_COMPILE_FLAGS@
+CXX_DL_LINK_FLAGS = @CXX_DL_LINK_FLAGS@
+CXX_DYNAMIC_LINKER = @CXX_DYNAMIC_LINKER@
+CXX_OPT = @CXX_OPT@
+CXX_OPTIONS = @CXX_OPTIONS@
+CXX_SHARED_LIB_UPDATE = @CXX_SHARED_LIB_UPDATE@
+CXX_STATIC_LIB_UPDATE = @CXX_STATIC_LIB_UPDATE@
+CXX_TEMPLATES = @CXX_TEMPLATES@
+CXX_TEMPLATE_OBJECT_FILES = @CXX_TEMPLATE_OBJECT_FILES@
+CXX_TEMPLATE_REPOSITORY = @CXX_TEMPLATE_REPOSITORY@
+CXX_WARNINGS = @CXX_WARNINGS@
+C_DEBUG = @C_DEBUG@
+C_DL_COMPILE_FLAGS = @C_DL_COMPILE_FLAGS@
+C_DL_LINK_FLAGS = @C_DL_LINK_FLAGS@
+C_DYNAMIC_LINKER = @C_DYNAMIC_LINKER@
+C_OPT = @C_OPT@
+C_OPTIONS = @C_OPTIONS@
+C_WARNINGS = @C_WARNINGS@
+DEPDIR = @DEPDIR@
+DOXYGEN_BIN = @DOXYGEN_BIN@
+DOXYSEARCH_BIN = @DOXYSEARCH_BIN@
+EXEEXT = @EXEEXT@
+Fortran_LIBS = @Fortran_LIBS@
+GlobalArrays_INCLUDES = @GlobalArrays_INCLUDES@
+GlobalArrays_LIBDIRS = @GlobalArrays_LIBDIRS@
+GlobalArrays_LIBLINKS = @GlobalArrays_LIBLINKS@
+GlobalArrays_LIBS = @GlobalArrays_LIBS@
+GlobalArrays_PREFIX = @GlobalArrays_PREFIX@
+INCLUDES = @INCLUDES@
+INSTALL_STRIP_PROGRAM = @INSTALL_STRIP_PROGRAM@
+IndirectAddressing_SUBDIRS = @IndirectAddressing_SUBDIRS@
+Kelp_INCLUDES = @Kelp_INCLUDES@
+Kelp_LIBS = @Kelp_LIBS@
+LD = @LD@
+LIBS = @LIBS@
+M4 = @M4@
+MDI_C_DEBUG = @MDI_C_DEBUG@
+MDI_C_OPT = @MDI_C_OPT@
+MPICC = @MPICC@
+MPICXX = @MPICXX@
+MPIF77 = @MPIF77@
+MPIF77NEEDSPP = @MPIF77NEEDSPP@
+MPIFLAGS = @MPIFLAGS@
+MPIINCLUDE = @MPIINCLUDE@
+MPILIBDIRS = @MPILIBDIRS@
+MPILIBS = @MPILIBS@
+MPIRUN_MACHINEFILE = @MPIRUN_MACHINEFILE@
+OBJEXT = @OBJEXT@
+OPTIONAL_INDIRECT_ADDRESSING_SUBDIRS = @OPTIONAL_INDIRECT_ADDRESSING_SUBDIRS@
+OPTIONAL_PADRE_SUBDIRS = @OPTIONAL_PADRE_SUBDIRS@
+PACKAGE = @PACKAGE@
+PADRE_DIR = @PADRE_DIR@
+PADRE_INCLUDES = @PADRE_INCLUDES@
+PADRE_LIBS = @PADRE_LIBS@
+PARTI_DIR = @PARTI_DIR@
+PARTI_INCLUDES = @PARTI_INCLUDES@
+PARTI_LIBS = @PARTI_LIBS@
+PERL = @PERL@
+PGSLIB_DIR = @PGSLIB_DIR@
+PGSLIB_INCLUDES = @PGSLIB_INCLUDES@
+PGSLIB_LIBS = @PGSLIB_LIBS@
+PPP_BUILD_SHARED_LIBS = @PPP_BUILD_SHARED_LIBS@
+PPP_BUILD_SHARED_LIB_TARGET = @PPP_BUILD_SHARED_LIB_TARGET@
+PTHREADS_LIB = @PTHREADS_LIB@
+PURIFY_EXECUTABLE = @PURIFY_EXECUTABLE@
+PURIFY_HOME = @PURIFY_HOME@
+PURIFY_OPTIONS = @PURIFY_OPTIONS@
+PURIFY_RUN_AT_EXIT = @PURIFY_RUN_AT_EXIT@
+PURIFY_WINDOWS_OPTION = @PURIFY_WINDOWS_OPTION@
+PXX_RPATH = @PXX_RPATH@
+PXX_SUBLIBS = @PXX_SUBLIBS@
+Parti_INCLUDES = @Parti_INCLUDES@
+Parti_LIBS = @Parti_LIBS@
+RANLIB = @RANLIB@
+RUNTIME_LOADER_FLAGS = @RUNTIME_LOADER_FLAGS@
+SHARED_LIBS = @SHARED_LIBS@
+SHARED_LIB_EXTENSION = @SHARED_LIB_EXTENSION@
+STATIC_LINKER = @STATIC_LINKER@
+STATIC_LINKER_FLAGS = @STATIC_LINKER_FLAGS@
+STL_DIR = @STL_DIR@
+STL_INCLUDES = @STL_INCLUDES@
+TEST_NPROCS = @TEST_NPROCS@
+VERSION = @VERSION@
+am__include = @am__include@
+am__quote = @am__quote@
+install_sh = @install_sh@
+lam_INCLUDES = @lam_INCLUDES@
+lam_LIBS = @lam_LIBS@
+lam_PREFIX = @lam_PREFIX@
+mpich_INCLUDES = @mpich_INCLUDES@
+mpich_LIBS = @mpich_LIBS@
+mpich_PREFIX = @mpich_PREFIX@
+mpirun = @mpirun@
+sla_INCLUDES = @sla_INCLUDES@
+sla_LIBS = @sla_LIBS@
+sla_PREFIX = @sla_PREFIX@
+
+ACLOCAL = @ACLOCAL@ -I ../config
+
+CXX_TEMPLATE_REPOSITORY_PATH = @CXX_TEMPLATE_REPOSITORY_PATH@
+
+# This is required for some rules (e.g. all-recursive, and all in some directories)
+# It is defined in A++P++/config/Makefile.config.in (but this Makefile.am does not
+# include that file).
+MAKE = gmake
+
+# Note: make sure aclocal options match those in build.
+CXXFLAGS = @CXXFLAGS@ $(CXX_DEBUG) $(CXX_DEFINES) $(CXX_OPTIONS) $(CXX_OPT) $(CXX_TEMPLATES) $(CXX_WARNINGS) $(CXX_DL_FLAGS) $(CXX_DL_COMPILE_FLAGS)
+
+CFLAGS = @CFLAGS@ $(C_DEBUG) $(C_OPTIONS) $(C_OPT) $(C_WARNINGS) $(C_DL_FLAGS) $(C_DL_COMPILE_FLAGS)
+
+libPADRE_PGSLIB_Source_a_SOURCES = \
+ attempt-receive-double.c \
+ constrained-send-rcv-int.c \
+ gather-real.c \
+ random-send-rcv-double.c \
+ scatter-int.c \
+ attempt-receive-int.c \
+ constrained-send-rcv-real.c \
+ random-send-rcv-int.c \
+ scatter-real.c \
+ attempt-receive-real.c \
+ gs-setup-c.c \
+ random-send-rcv-real.c \
+ gather-double.c \
+ gs-util-c.c \
+ utility-c.c \
+ constrained-send-rcv-double.c \
+ gather-int.c \
+ pgshash.c \
+ scatter-double.c
+
+
+noinst_LIBRARIES = libPADRE_PGSLIB_Source.a
+
+# All PADRE/PGSLIB header files.
+include_HEADERS = pgshash.h pgslib-names.h send-rcv.h gs-c.h pgslib-include-c.h pgslib-types.h utility-c.h
+
+EXTRA_DIST = attempt-receive.c constrained-send-rcv.c random-send-rcv.c scatter.c gather.c
+subdir = PADRE/PGSLIB
+mkinstalldirs = $(SHELL) $(top_srcdir)/../mkinstalldirs
+CONFIG_HEADER = $(top_builddir)/config.h
+CONFIG_CLEAN_FILES =
+LIBRARIES = $(noinst_LIBRARIES)
+
+libPADRE_PGSLIB_Source_a_AR = $(AR) cru
+libPADRE_PGSLIB_Source_a_LIBADD =
+am_libPADRE_PGSLIB_Source_a_OBJECTS = attempt-receive-double.$(OBJEXT) \
+	constrained-send-rcv-int.$(OBJEXT) gather-real.$(OBJEXT) \
+	random-send-rcv-double.$(OBJEXT) scatter-int.$(OBJEXT) \
+	attempt-receive-int.$(OBJEXT) \
+	constrained-send-rcv-real.$(OBJEXT) \
+	random-send-rcv-int.$(OBJEXT) scatter-real.$(OBJEXT) \
+	attempt-receive-real.$(OBJEXT) gs-setup-c.$(OBJEXT) \
+	random-send-rcv-real.$(OBJEXT) gather-double.$(OBJEXT) \
+	gs-util-c.$(OBJEXT) utility-c.$(OBJEXT) \
+	constrained-send-rcv-double.$(OBJEXT) gather-int.$(OBJEXT) \
+	pgshash.$(OBJEXT) scatter-double.$(OBJEXT)
+libPADRE_PGSLIB_Source_a_OBJECTS = \
+	$(am_libPADRE_PGSLIB_Source_a_OBJECTS)
+
+DEFS = @DEFS@
+DEFAULT_INCLUDES =  -I. -I$(srcdir) -I$(top_builddir)
+CPPFLAGS = @CPPFLAGS@
+LDFLAGS = @LDFLAGS@
+LIBS = @LIBS@
+depcomp =
+COMPILE = $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) \
+	$(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS)
+CCLD = $(CC)
+LINK = $(CCLD) $(AM_CFLAGS) $(CFLAGS) $(AM_LDFLAGS) $(LDFLAGS) -o $@
+DIST_SOURCES = $(libPADRE_PGSLIB_Source_a_SOURCES)
+HEADERS = $(include_HEADERS)
+
+DIST_COMMON = $(include_HEADERS) Makefile.am Makefile.in
+SOURCES = $(libPADRE_PGSLIB_Source_a_SOURCES)
+
+all: all-am
+
+.SUFFIXES:
+.SUFFIXES: .c .o .obj
+$(srcdir)/Makefile.in:  Makefile.am $(srcdir)/../config/Makefile.override.install.includeHEADERS $(top_srcdir)/configure.in $(ACLOCAL_M4)
+	cd $(top_srcdir) && \
+	  $(AUTOMAKE) --foreign  --ignore-deps PADRE/PGSLIB/Makefile
+Makefile:  $(srcdir)/Makefile.in  $(top_builddir)/config.status
+	cd $(top_builddir) && \
+	  CONFIG_HEADERS= CONFIG_LINKS= \
+	  CONFIG_FILES=$(subdir)/$@ $(SHELL) ./config.status
+
+AR = ar
+
+clean-noinstLIBRARIES:
+	-test -z "$(noinst_LIBRARIES)" || rm -f $(noinst_LIBRARIES)
+libPADRE_PGSLIB_Source.a: $(libPADRE_PGSLIB_Source_a_OBJECTS) $(libPADRE_PGSLIB_Source_a_DEPENDENCIES) 
+	-rm -f libPADRE_PGSLIB_Source.a
+	$(libPADRE_PGSLIB_Source_a_AR) libPADRE_PGSLIB_Source.a $(libPADRE_PGSLIB_Source_a_OBJECTS) $(libPADRE_PGSLIB_Source_a_LIBADD)
+	$(RANLIB) libPADRE_PGSLIB_Source.a
+
+mostlyclean-compile:
+	-rm -f *.$(OBJEXT) core *.core
+
+distclean-compile:
+	-rm -f *.tab.c
+
+.c.o:
+	$(COMPILE) -c `test -f $< || echo '$(srcdir)/'`$<
+
+.c.obj:
+	$(COMPILE) -c `cygpath -w $<`
+uninstall-info-am:
+
+uninstall-includeHEADERS:
+	@$(NORMAL_UNINSTALL)
+	@list='$(include_HEADERS)'; for p in $$list; do \
+	  f="`echo $$p | sed -e 's|^.*/||'`"; \
+	  echo " rm -f $(DESTDIR)$(includedir)/$$f"; \
+	  rm -f $(DESTDIR)$(includedir)/$$f; \
+	done
+
+tags: TAGS
+
+ID: $(HEADERS) $(SOURCES) $(LISP) $(TAGS_FILES)
+	list='$(SOURCES) $(HEADERS) $(TAGS_FILES)'; \
+	unique=`for i in $$list; do \
+	    if test -f "$$i"; then echo $$i; else echo $(srcdir)/$$i; fi; \
+	  done | \
+	  $(AWK) '    { files[$$0] = 1; } \
+	       END { for (i in files) print i; }'`; \
+	mkid -fID $$unique $(LISP)
+
+TAGS:  $(HEADERS) $(SOURCES)  $(TAGS_DEPENDENCIES) \
+		$(TAGS_FILES) $(LISP)
+	tags=; \
+	here=`pwd`; \
+	list='$(SOURCES) $(HEADERS) $(TAGS_FILES)'; \
+	unique=`for i in $$list; do \
+	    if test -f "$$i"; then echo $$i; else echo $(srcdir)/$$i; fi; \
+	  done | \
+	  $(AWK) '    { files[$$0] = 1; } \
+	       END { for (i in files) print i; }'`; \
+	test -z "$(ETAGS_ARGS)$$unique$(LISP)$$tags" \
+	  || etags $(ETAGS_ARGS) $$tags  $$unique $(LISP)
+
+GTAGS:
+	here=`CDPATH=: && cd $(top_builddir) && pwd` \
+	  && cd $(top_srcdir) \
+	  && gtags -i $(GTAGS_ARGS) $$here
+
+distclean-tags:
+	-rm -f TAGS ID GTAGS GRTAGS GSYMS GPATH
+
+DISTFILES = $(DIST_COMMON) $(DIST_SOURCES) $(TEXINFOS) $(EXTRA_DIST)
+
+top_distdir = ../..
+distdir = $(top_distdir)/$(PACKAGE)-$(VERSION)
+
+distdir: $(DISTFILES)
+	@for file in $(DISTFILES); do \
+	  if test -f $$file; then d=.; else d=$(srcdir); fi; \
+	  dir=`echo "$$file" | sed -e 's,/[^/]*$$,,'`; \
+	  if test "$$dir" != "$$file" && test "$$dir" != "."; then \
+	    $(mkinstalldirs) "$(distdir)/$$dir"; \
+	  fi; \
+	  if test -d $$d/$$file; then \
+	    cp -pR $$d/$$file $(distdir) \
+	    || exit 1; \
+	  else \
+	    test -f $(distdir)/$$file \
+	    || cp -p $$d/$$file $(distdir)/$$file \
+	    || exit 1; \
+	  fi; \
+	done
+check-am: all-am
+check: check-am
+all-am: Makefile $(LIBRARIES) $(HEADERS)
+
+installdirs:
+	$(mkinstalldirs) $(DESTDIR)$(includedir)
+
+install: install-am
+install-exec: install-exec-am
+install-data: install-data-am
+uninstall: uninstall-am
+
+install-am: all-am
+	@$(MAKE) $(AM_MAKEFLAGS) install-exec-am install-data-am
+
+installcheck: installcheck-am
+install-strip:
+	$(MAKE) $(AM_MAKEFLAGS) INSTALL_PROGRAM="$(INSTALL_STRIP_PROGRAM)" \
+	  `test -z '$(STRIP)' || \
+	    echo "INSTALL_PROGRAM_ENV=STRIPPROG='$(STRIP)'"` install
+mostlyclean-generic:
+
+clean-generic:
+
+distclean-generic:
+	-rm -f Makefile $(CONFIG_CLEAN_FILES) stamp-h stamp-h[0-9]*
+
+maintainer-clean-generic:
+	@echo "This command is intended for maintainers to use"
+	@echo "it deletes files that may require special tools to rebuild."
+clean: clean-am
+
+clean-am: clean-generic clean-noinstLIBRARIES mostlyclean-am
+
+distclean: distclean-am
+
+distclean-am: clean-am distclean-compile distclean-generic \
+	distclean-tags
+
+dvi: dvi-am
+
+dvi-am:
+
+info: info-am
+
+info-am:
+
+install-data-am: install-includeHEADERS
+
+install-exec-am:
+
+install-info: install-info-am
+
+install-man:
+
+installcheck-am:
+
+maintainer-clean: maintainer-clean-am
+
+maintainer-clean-am: distclean-am maintainer-clean-generic
+
+mostlyclean: mostlyclean-am
+
+mostlyclean-am: mostlyclean-compile mostlyclean-generic
+
+uninstall-am: uninstall-includeHEADERS uninstall-info-am
+
+.PHONY: GTAGS all all-am check check-am clean clean-generic \
+	clean-noinstLIBRARIES distclean distclean-compile \
+	distclean-generic distclean-tags distdir dvi dvi-am info \
+	info-am install install-am install-data install-data-am \
+	install-exec install-exec-am install-includeHEADERS \
+	install-info install-info-am install-man install-strip \
+	installcheck installcheck-am installdirs maintainer-clean \
+	maintainer-clean-generic mostlyclean mostlyclean-compile \
+	mostlyclean-generic tags uninstall uninstall-am \
+	uninstall-includeHEADERS uninstall-info-am
+
+
+install-includeHEADERS: $(include_HEADERS)
+	@$(NORMAL_INSTALL)
+	$(mkinstalldirs) $(DESTDIR)$(includedir)
+	@list='$(include_HEADERS)'; for p in $$list; do \
+	  if test -f "$$p"; then d= ; else d="$(srcdir)/"; fi; \
+	  echo " $(INSTALL_DATA) $$d$$p $(DESTDIR)$(includedir)"; \
+	  $(INSTALL_DATA) $$d$$p $(DESTDIR)$(includedir); \
+	done
+# Tell versions [3.59,3.63) of GNU make to not export all variables.
+# Otherwise a system limit (for SysV at least) may be exceeded.
+.NOEXPORT:

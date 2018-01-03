@@ -1,0 +1,10 @@
+#!/bin/sh
+# This is an example configuration line, the use can pick and choose among numerous 
+# options to control the compilation process in A++/P++.  These are useful scripts
+# which can be used as examples.
+
+# These options with the configure script select options specific for use of the 
+# EGCS C++ compiler.  In this case the internal debugging is also turned on.
+
+./configure --enable-PXX --with-CC=gcc --with-CXX=g++ --enable-SHARED_LIBS
+# ./configure --enable-PXX --with-CC=gcc --with-CXX=g++

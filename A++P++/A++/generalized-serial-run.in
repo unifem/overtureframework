@@ -1,0 +1,95 @@
+#!/bin/sh
+
+# This script will eventually be able to redirect output and error
+# like P++/generalized-parallel-run.
+#
+# script to set the LD_LIBRARY_PATH to include the path to
+# libApp.so and libApp.a and libApp_shared.a and run the example
+# program
+
+# Define a way to gracefully die from within this script.
+# The die function similar to Perl.
+# Arguments are: <exit_value> <exit_message>
+die () {
+    echo "ERROR_MESSAGE_FROM $script_name:"
+    if [ -n "$2" ]; then echo "Error $2"; fi
+    if [ -n "$1" ]; then exit $1; fi
+    exit 99
+}
+
+# Can't use user's LD_LIBRARY_PATH first since this can (and likely does) contain a reference
+# to an other (older) version of A++/P++ which would be used instead of the new version just
+# built and so we would test the wrong version of A++/P++.
+# However this is only an error for the user building and testing a new version of A++/P++
+# where he was also using an older version (so it does not effect new users).
+# LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$AXX_HOME/src:$AXX_HOME/lib/${ARCH}_${CC}_${CXX}/lib
+
+# LD_LIBRARY_PATH=$AXX_HOME/src:$AXX_HOME/lib/${ARCH}_${CC}_${CXX}/lib:$LD_LIBRARY_PATH
+
+LD_LIBRARY_PATH=@top_pwd@/src:@top_pwd@/lib/@ARCH@_@CC@_@CXX@/lib:$LD_LIBRARY_PATH
+export LD_LIBRARY_PATH
+
+# The name of this script
+script_name=`basename $0`
+
+# Get the program name from the next argument of this script.
+program=$1;
+test -x $program || die 1 "No execute permission on '$program'"
+
+# Check the redirection environment.
+# If REDIRECT_OUTPUT_TO is defined in the environment,
+# standard output of the program is redirected there.
+# Outputs directly from this script are NOT redirected.
+if [ -n "$REDIRECT_OUTPUT_TO" ]; then
+  output_redirection_string="1> $REDIRECT_OUTPUT_TO"
+else
+  unset output_redirection_string
+fi
+# If REDIRECT_ERRORS_TO is defined in the environment,
+# error output of the program is redirected there.
+# Outputs directly from this script are NOT redirected.
+if [ -n "$REDIRECT_ERRORS_TO" ]; then
+  errors_redirection_string="2> $REDIRECT_ERRORS_TO"
+else
+  unset errors_redirection_string
+fi
+
+# DQ: added use of redirection to files to support use of purify error checking
+# Run the A++ input test codes!
+# ./$1 > /dev/null 2> /dev/null
+# ./$1 $output_redirection_string $errors_redirection_string
+
+# Add certain directories to the load library path.
+# These are not likely to be in the environment set by the user
+# because they are specifically for running in this directory.
+additional_env="LD_LIBRARY_PATH=../src:${LD_LIBRARY_PATH}"
+
+# Define a way to gracefully die from within this script.
+# The die function similar to Perl.
+# Arguments are: <exit_value> <exit_message>
+die () {
+    echo "ERROR_MESSAGE_FROM $script_name:"
+    if [ -n "$2" ]; then echo "Error $2"; fi
+    if [ -n "$1" ]; then exit $1; fi
+    exit 99
+}
+
+# Simplest case
+run_test () {
+    com="$additional_env $program"
+    echo $com $output_redirection_string $errors_redirection_string
+    eval $com $output_redirection_string $errors_redirection_string
+    return $?
+}
+
+nproc_list='1'
+# Run the program.
+for nproc in $nproc_list; do
+  run_test $program $nproc || die 1 "FAIL running $program on $nproc processors"
+done
+echo "$program passed run with ($nproc_list) processors."
+
+
+
+
+

@@ -1,0 +1,12 @@
+This file is required for the autoconf mechanism to work properly!
+
+README: A++P++/P++/include
+
+   This directory contains the P++ header files.
+In the development version of A++/P++, these files are generated
+automatically from source that is shared between A++ and P++.
+The user should not modify the header files in this directory directly!
+
+Dan Quinlan
+dquinlan@llnl.gov
+Lawrence Livermore National Laboratory

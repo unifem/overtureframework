@@ -1,0 +1,61 @@
+A++_templates.o: A++_templates.C ../../include/A++.h \
+ ../../include/A++_notemplates.h
+abstract_op.o: abstract_op.C ../../include/A++.h \
+ ../../include/A++_notemplates.h ../../include/machine.h \
+ ../../include/array_domain.h ../../include/inline_support.h
+array_notemplates.o: array_notemplates.C ../../include/A++.h \
+ ../../include/A++_notemplates.h ../../include/machine.h \
+ ../../include/array_domain.h
+array_templates.o: array_templates.C ../../include/A++.h \
+ ../../include/A++_notemplates.h ../../include/machine.h \
+ ../../include/array_domain.h
+comm_man.o: comm_man.C ../../include/A++.h \
+ ../../include/A++_notemplates.h
+data_hash.o: data_hash.C ../../include/A++.h \
+ ../../include/A++_notemplates.h
+descriptor_cache.o: descriptor_cache.C ../../include/A++.h \
+ ../../include/A++_notemplates.h
+descriptor_notemplates.o: descriptor_notemplates.C ../../include/A++.h \
+ ../../include/A++_notemplates.h ../../include/machine.h \
+ ../../include/array_domain.h
+descriptor_templates.o: descriptor_templates.C ../../include/A++.h \
+ ../../include/A++_notemplates.h ../../include/machine.h \
+ ../../include/array_domain.h
+domain.o: domain.C ../../include/A++.h ../../include/A++_notemplates.h \
+ ../../include/machine.h ../../include/array_domain.h
+error_checking.o: error_checking.C ../../include/A++.h \
+ ../../include/A++_notemplates.h
+index.o: index.C ../../include/A++.h ../../include/A++_notemplates.h
+index_operator_notemplates.o: index_operator_notemplates.C \
+ ../../include/A++.h ../../include/A++_notemplates.h \
+ ../../include/machine.h ../../include/array_domain.h
+index_operator_templates.o: index_operator_templates.C \
+ ../../include/A++.h ../../include/A++_notemplates.h \
+ ../../include/machine.h ../../include/array_domain.h
+lazy_aggregate.o: lazy_aggregate.C ../../include/A++.h \
+ ../../include/A++_notemplates.h ../../include/machine.h \
+ ../../include/array_domain.h
+lazy_expression.o: lazy_expression.C ../../include/A++.h \
+ ../../include/A++_notemplates.h
+lazy_operand.o: lazy_operand.C ../../include/A++.h \
+ ../../include/A++_notemplates.h
+lazy_statement.o: lazy_statement.C ../../include/A++.h \
+ ../../include/A++_notemplates.h
+lazy_task.o: lazy_task.C ../../include/A++.h \
+ ../../include/A++_notemplates.h
+lazy_taskset.o: lazy_taskset.C ../../include/A++.h \
+ ../../include/A++_notemplates.h
+lazyarray.o: lazyarray.C ../../include/A++.h \
+ ../../include/A++_notemplates.h ../../include/machine.h \
+ ../../include/array_domain.h
+new_operators_notemplates.o: new_operators_notemplates.C \
+ ../../include/A++.h ../../include/A++_notemplates.h
+new_operators_templates.o: new_operators_templates.C \
+ ../../include/A++.h ../../include/A++_notemplates.h
+optimization.o: optimization.C ../../include/A++.h \
+ ../../include/A++_notemplates.h
+partitioning.o: partitioning.C ../../include/A++.h \
+ ../../include/A++_notemplates.h
+static_initialization.o: static_initialization.C ../../include/A++.h \
+ ../../include/A++_notemplates.h
+where.o: where.C ../../include/A++.h ../../include/A++_notemplates.h

@@ -1,0 +1,30 @@
+This is the PADRE Library.
+
+The purpose of PADRE is to handle the distribution of data and
+the communication that its manipulation requires.
+
+
+=======================================================
+
+Compiling with PADRE:
+
+PADRE uses a number of sublibraries.  Some (such as PARTI and PGSLIB)
+are distributed with PADRE, but others (such as GlobalArrays) are not.
+If you would like to use a sublibrary that is NOT distributed with PADRE,
+you are responsible for knowing where those sublibraries reside, the
+compiler flags used for them, etc.  There are some autoconf macros
+(located in config) to configure PADRE.  They are provided in the PADRE
+distribution with the idea that they may be useful to another library
+that uses PADRE.
+
+
+
+
+
+=======================================================
+
+Using the GlobalArrays sublibrary:
+
+PADRE's use of GlobalArrays is very experimental.  Much of the code
+is not even written yet.  We suggest that you do not use GlobalArrays
+until a later date.

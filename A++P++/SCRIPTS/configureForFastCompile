@@ -1,0 +1,12 @@
+#! /bin/csh
+
+# This is an example configuration line, the use can pick and choose among numerous 
+# options to control the compilation process in A++/P++.  These are useful scripts
+# which can be used as examples.
+
+# These options with the configure script override the default optimization levels
+# so that the compilation can be done as fast as possible.  This can be a handy
+# way of testing the configuration management (autoconf) mechanism within A++/P++.
+# In this case we leave the optional parameter blank.   Since we test P++ as well,
+# the --enable-PXX is included here.
+./configure --enable-PXX --enable-SHARED_LIBS --enable-INTERNALDEBUG --enable-STRING_SPECIFIC_CODE --enable-CXXOPT= --enable-COPT=

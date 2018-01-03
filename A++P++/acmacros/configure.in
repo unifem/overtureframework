@@ -1,0 +1,243 @@
+dnl $Id: configure.in,v 1.29 2001/12/20 22:05:59 gunney Exp $
+
+dnl This file is only for testing acmacros.
+dnl Unless you are developing acmacros, you only need the *.m4 files here;
+dnl ignore all the autoheader-, automake- and autoconf-related files.
+
+AC_INIT( arg-with-environment.m4 )
+
+AC_CANONICAL_SYSTEM
+
+AM_INIT_AUTOMAKE( acmacros, 0.1 )
+
+
+dnl Autoheader stuff
+AH_TOP([
+#ifndef INCLUDED_CONFIG_H
+#define INCLUDED_CONFIG_H
+])
+AH_BOTTOM( [#endif] )
+AM_CONFIG_HEADER( config.h )
+
+
+dnl Find programs used in testing.
+AC_PATH_PROG(SED,sed)
+AC_PATH_PROG(EGREP,egrep)
+
+
+# Define in the variable SUBST_SHOW names of configure
+# substitutions to be checked.
+# Define in the variable CONFIG_SHOW the config.h macros to be checked.
+SUBST_SHOW=
+CONFIG_SHOW=
+AC_SUBST(SUBST_SHOW)
+AC_SUBST(CONFIG_SHOW)
+dnl Define shorthands for appending to SUBST_SHOW and CONFIG_SHOW.
+dnl (Append a string only if it has not been appended yet.
+AC_DEFUN(ME_SHOW_SUBST,
+for i in $1; do
+  echo "$SUBST_SHOW" | grep " $i " > /dev/null || SUBST_SHOW="$SUBST_SHOW $i "
+done)
+AC_DEFUN(ME_SHOW_CONFIG,
+for i in $1; do
+  echo "$CONFIG_SHOW" | grep " $i " > /dev/null || CONFIG_SHOW="$CONFIG_SHOW $i "
+done)
+
+
+AC_PROG_CC
+AC_PROG_CXX
+ME_SHOW_SUBST(CC CXX)
+
+
+dnl Define a macro to append package variables to LIBS and INCLUDES.
+AC_DEFUN(ME_APPEND_PACKAGE_STR,
+[test -n "${$1_LIBS}" && LIBS="${$1_LIBS} $LIBS";
+test -n "${$1_INCLUDES}" && INCLUDES="$INCLUDES ${$1_INCLUDES}"])
+
+
+dnl Test the macros defined by acmacros.
+
+dnl Get the compiler ids.
+BTNG_INFO_CC_CXX_ID
+AC_SUBST(CC_ID)
+AC_SUBST(CC_VERSION)
+AC_SUBST(CXX_ID)
+AC_SUBST(CXX_VERSION)
+ME_SHOW_SUBST(CC_ID CXX_ID CC_VERSION CXX_VERSION)
+
+
+dnl Get C++ compiler commands to build static and shared libraries.
+BTNG_CXX_AR
+AC_SUBST(CXX_STATIC_LIB_UPDATE)
+AC_SUBST(CXX_SHARED_LIB_UPDATE)
+ME_SHOW_SUBST(CXX_STATIC_LIB_UPDATE CXX_SHARED_LIB_UPDATE)
+
+
+dnl Test for certain compiler behaviors.
+BTNG_TYPE_BOOL
+BTNG_TYPE_NAMESPACE
+ME_SHOW_CONFIG(BOOL_IS_BROKEN NAMESPACE_IS_BROKEN)
+
+
+dnl Test the macros in variable-header-filename.
+dnl
+AC_ARG_ENABLE(test-var-header-filenames,
+[  --enable-test-var-header-filenames
+		Test the variable header filenames macros],,
+enable_test_var_header_filenames=no)
+if test "$enable_test_var_header_filenames" = yes; then
+dnl
+  BTNG_STL_STRING_HEADER_FILENAME
+  ME_SHOW_CONFIG(STL_STRING_IS_BROKEN STL_STRING_HEADER_FILE)
+  dnl
+  BTNG_STL_SET_HEADER_FILENAME
+  ME_SHOW_CONFIG(STL_SET_IS_BROKEN STL_SET_HEADER_FILE)
+  dnl
+  BTNG_STL_STACK_HEADER_FILENAME
+  ME_SHOW_CONFIG(STL_STACK_IS_BROKEN STL_STACK_HEADER_FILE)
+  dnl
+  BTNG_STL_VECTOR_HEADER_FILENAME
+  ME_SHOW_CONFIG(STL_VECTOR_IS_BROKEN STL_VECTOR_HEADER_FILE)
+  dnl
+  BTNG_STL_LIST_HEADER_FILENAME
+  ME_SHOW_CONFIG(STL_LIST_IS_BROKEN STL_LIST_HEADER_FILE)
+  dnl
+  BTNG_STL_MAP_HEADER_FILENAME
+  ME_SHOW_CONFIG(STL_MAP_IS_BROKEN STL_MAP_HEADER_FILE)
+  dnl
+  BTNG_STL_ITERATOR_HEADER_FILENAME
+  ME_SHOW_CONFIG(STL_ITERATOR_IS_BROKEN STL_ITERATOR_HEADER_FILE)
+  dnl
+  BTNG_STL_ALGO_HEADER_FILENAME
+  ME_SHOW_CONFIG(STL_ALGO_IS_BROKEN STL_ALGO_HEADER_FILE)
+  dnl
+  BTNG_STL_NUMERIC_HEADER_FILENAME
+  ME_SHOW_CONFIG(STL_NUMERIC_IS_BROKEN STL_NUMERIC_HEADER_FILE)
+  dnl
+  BTNG_STL_FUNCTION_HEADER_FILENAME
+  ME_SHOW_CONFIG(STL_FUNCTION_IS_BROKEN STL_FUNCTION_HEADER_FILE)
+  dnl
+  BTNG_IOSTREAM_HEADER_FILENAME
+  ME_SHOW_CONFIG(IOSTREAM_IS_BROKEN IOSTREAM_HEADER_FILE)
+  dnl
+  BTNG_FSTREAM_HEADER_FILENAME
+  ME_SHOW_CONFIG(FSTREAM_IS_BROKEN FSTREAM_HEADER_FILE)
+  dnl
+  BTNG_IOMANIP_HEADER_FILENAME
+  ME_SHOW_CONFIG(IOMANIP_IS_BROKEN IOMANIP_HEADER_FILE)
+  dnl
+  BTNG_STL_STRINGSTREAM_HEADER_FILENAME
+  ME_SHOW_CONFIG(STRINGSTREAM_IS_BROKEN STRINGSTREAM_HEADER_FILE)
+  dnl
+  BTNG_STL_MULTIMAP_HEADER_FILENAME
+  ME_SHOW_CONFIG(STL_MULTIMAP_IS_BROKEN STL_MULTIMAP_HEADER_FILE)
+  dnl
+fi
+
+
+
+dnl Test the macros in compiling-stl.
+BTNG_STL_MAP_NEEDS
+ME_SHOW_CONFIG(STL_MAP_NEEDS_LESS STL_MAP_NEEDS_ALLOCATOR STL_MAP_IS_BROKEN)
+dnl
+BTNG_STL_MULTIMAP_NEEDS
+ME_SHOW_CONFIG(STL_MAP_NEEDS_LESS STL_MAP_NEEDS_ALLOCATOR STL_MULTIMAP_IS_BROKEN)
+
+
+dnl
+dnl Set low-level fortran library that will be required by the
+dnl checks for blas and lapack.
+BTNG_SUPPORT_FORTRAN_FROM_C
+LIBS="$LIBS $fortran_LIBS"
+
+
+
+dnl Test support for libz.
+BTNG_SUPPORT_LIBZ(1)
+AC_SUBST(libz_PREFIX)
+AC_SUBST(libz_LIBS)
+AC_SUBST(libz_INCLUDES)
+ME_APPEND_PACKAGE_STR(libz)
+ME_SHOW_SUBST(libz_PREFIX libz_LIBS libz_INCLUDES)
+
+
+
+dnl Test support for nsl (network services library).
+BTNG_SUPPORT_NSL(1)
+AC_SUBST(nsl_PREFIX)
+AC_SUBST(nsl_LIBS)
+AC_SUBST(nsl_INCLUDES)
+ME_APPEND_PACKAGE_STR(nsl)
+ME_SHOW_SUBST(nsl_PREFIX nsl_LIBS nsl_INCLUDES)
+
+
+
+dnl Test support for socket.
+BTNG_SUPPORT_SOCKET(1)
+AC_SUBST(socket_PREFIX)
+AC_SUBST(socket_LIBS)
+AC_SUBST(socket_INCLUDES)
+ME_APPEND_PACKAGE_STR(socket)
+ME_SHOW_SUBST(socket_PREFIX socket_LIBS socket_INCLUDES)
+
+
+
+dnl Test support for blas and lapack.
+BTNG_SUPPORT_BLASLAPACK
+AC_SUBST(blaslapack_PREFIX)
+AC_SUBST(blaslapack_LIBS)
+AC_SUBST(blaslapack_INCLUDES)
+ME_APPEND_PACKAGE_STR(blaslapack)
+ME_SHOW_SUBST(blaslapack_PREFIX blaslapack_LIBS blaslapack_INCLUDES)
+
+
+
+dnl Test ieee support.
+BTNG_C_IEEE_FLOAT
+ME_SHOW_CONFIG(NAN_IS_BROKEN FLT_SNAN_IS_BROKEN DBL_SNAN_IS_BROKEN FLT_MAX_IS_BROKEN DBL_MAX_IS_BROKEN)
+
+
+
+dnl Test support for hdf5.
+BTNG_SUPPORT_HDF5(1)
+AC_SUBST(hdf5_PREFIX)
+AC_SUBST(hdf5_LIBS)
+AC_SUBST(hdf5_INCLUDES)
+ME_APPEND_PACKAGE_STR(hdf5)
+ME_SHOW_SUBST(hdf5_PREFIX hdf5_LIBS hdf5_INCLUDES)
+
+
+
+dnl Add rpath syntax.
+BTNG_LIBS_ADD_RPATH(LIBS,LIBS,1)
+ME_SHOW_SUBST(LIBS)
+
+
+dnl This package does not have any C or C++ code.
+dnl So before using support for Insure, we invent some.
+syscmd(
+rm -rf t1 t2 t3
+mkdir t1 t2 t3
+touch t1/t1.C t2/t2.h t3/t1.C
+)
+dnl Test support for insure.
+BTNG_SUPPORT_INSURE(.psrc)
+BTNG_SUPPORT_INSURE_PSRC_ADD(.psrc,
+[# This is an addition to the .psrc file.
+# It is intended to test the BTNG_SUPPORT_INSURE_PSRC_ADD macro.
+# The BTNG_SUPPORT_INSURE_PSRC_ADD allows developers to add things
+# to the generated .psrc file.
+])
+ME_SHOW_SUBST(INSURE_BIN CC_WITHOUT_INSURE CXX_WITHOUT_INSURE btng_remove_auto_psrc_links INSURE_AUTO_PSRC_DIRS)
+
+
+dnl What the heck.  Also look at list of things we are looking at.
+ME_SHOW_SUBST(SUBST_SHOW CONFIG_SHOW)
+
+
+dnl
+AC_SUBST(LIBS)
+AC_SUBST(INCLUDES)
+ME_SHOW_SUBST(LIBS INCLUDES)
+
+AC_OUTPUT(Makefile .psrc)

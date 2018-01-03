@@ -1,0 +1,52 @@
+#! /bin/csh
+
+# echo "makelinks build links to files that CVS does not support!"; \
+# echo "     run by CVS upon checkout of A++P++ module cvs checkout A++P++"; \
+# echo "     specified within A++P++_Repository/CVSROOT/modules"; \
+# echo "     line in A++P++_Repository/CVSROOT/modules A++P++ -o A++P++/makelinks A++P++";
+
+# Remove the existing repository if it exists in the parent directory
+# rm -rf ../A++P++_Repository;
+# tar -cf ~/A++P++_Repository.backup.tar $1/A++P++_Repository
+# rm -rf $1/A++P++_Repository;
+
+# Clean out all files that are not a part of the repository
+cvsClean
+
+# Make the CVS Repository
+cd ..; \
+setenv CVSROOT $1/A++P++_Repository; \
+echo "New CVS Repository name: $CVSROOT"; \
+cd A++P++; \
+cvs init; \
+cvs import -m "Imported Source Files" A++P++ vendor_tag release_tag;
+
+# copy the original CVS modules file
+chmod +w $CVSROOT/CVSROOT/modules;
+cp  $CVSROOT/CVSROOT/modules $CVSROOT/CVSROOT/modules.bup
+
+# Add module A++P++ to modules file within CVS system admin files
+# echo "A++P++ -o A++P++/cvs_compile_script -u A++P++/makelinks A++P++" >> $CVSROOT/CVSROOT/modules
+echo "A++P++ -o A++P++/cvs_compile_script A++P++" >> $CVSROOT/CVSROOT/modules
+
+# Change the group ownership
+chgrp -R overture $1/A++P++_Repository;
+
+# Checkout from the repository
+echo "Current directory is $PWD"
+
+# mkdir $1/TEST_A++P++_REPOSITORY;
+# cd $1/TEST_A++P++_REPOSITORY; cvs checkout A++P++;
+rm -rf $1/TEST_DIR;
+mkdir $1/TEST_DIR;
+cd $1/TEST_DIR; cvs checkout A++P++;
+
+# make the source, compile it and test the library!
+# the cvs_make_script should be run by CVS checkout (so this is redundent)
+# cd A++P++; makeTest
+
+echo "DONE A++/P++ Compiled and tested."
+
+
+
+

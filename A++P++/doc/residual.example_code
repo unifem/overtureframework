@@ -1,0 +1,81 @@
+
+double PDE::L2_Norm ( doubleArray & Array )
+   {
+  // This is the most natural AND most efficient implementation using the array class!
+     return sqrt ( sum ( Array * Array ) );
+   }
+
+void PDE::Compute_Residuals ()
+   {
+  // The decision to implement the residual computation seperately is a design preference.
+
+     if (DEBUG > 0)
+          printf ("Compute Residuals! \n");
+
+  // Initialize the whole array (so the boundary will be initialized) to
+  // avoid Unitialized Memory Read warning from Purify!
+     Residual = 0.0;
+
+     double Scaling_Factor = 1.0 / (Mesh_Size * Mesh_Size);
+     if (Problem_Dimension == 1)
+        {
+          Residual (I) = Right_Hand_Side (I) + Scaling_Factor * (
+                         Solution (I+1) + Solution (I-1) - 2.0 * Solution (I) );
+        }
+       else
+        {
+          if (Problem_Dimension == 2)
+             {
+               if (Fully_Variational)
+                  {
+                    Residual (I,J) = Right_Hand_Side (I,J) + Scaling_Factor * (
+                                     Solution (I+1,J)   + Solution (I-1,J)   + Solution (I,J-1)   + Solution (I,J+1) +
+                                     Solution (I+1,J+1) + Solution (I-1,J+1) + Solution (I+1,J-1) + Solution (I-1,J-1) -
+                                     8.0 * Solution (I,J) );
+                  }
+                 else
+                  {
+                    Residual (I,J) = Right_Hand_Side (I,J) + Scaling_Factor * (
+                                     Solution (I+1,J) + Solution (I-1,J) +
+                                     Solution (I,J-1) + Solution (I,J+1) - 4.0 * Solution (I,J) );
+                  }
+             }
+            else
+             {
+               if (Problem_Dimension == 3)
+                  {
+                    if (Fully_Variational)
+                       {
+                         Residual (I,J,K) = Right_Hand_Side (I,J,K) + Scaling_Factor * (
+                                         // Center face
+                                            Solution (I+1,J,K)   + Solution (I-1,J,K)       +
+                                            Solution (I,J-1,K)   + Solution (I,J+1,K)       +
+                                            Solution (I+1,J+1,K) + Solution (I-1,J+1,K)     +
+                                            Solution (I+1,J-1,K) + Solution (I-1,J-1,K)     +
+                                         // Inner face
+                                            Solution (I+1,J,K-1)   + Solution (I-1,J,K-1)   +
+                                            Solution (I,J-1,K-1)   + Solution (I,J+1,K-1)   +
+                                            Solution (I+1,J+1,K-1) + Solution (I-1,J+1,K-1) +
+                                            Solution (I+1,J-1,K-1) + Solution (I-1,J-1,K-1) +
+                                         // Outer face
+                                            Solution (I+1,J,K+1)   + Solution (I-1,J,K+1)   +
+                                            Solution (I,J-1,K+1)   + Solution (I,J+1,K+1)   +
+                                            Solution (I+1,J+1,K+1) + Solution (I-1,J+1,K+1) +
+                                            Solution (I+1,J-1,K+1) + Solution (I-1,J-1,K+1) +
+                                         // Center point of Inner and Outer faces
+                                            Solution (I,J,K-1) + Solution (I,J,K+1) -
+                                          // Center point
+                                            26.0 * Solution (I,J,K) );
+                       }
+                      else
+                       {
+                         Residual (I,J,K) = Right_Hand_Side (I,J,K) + Scaling_Factor * (
+                                            Solution (I+1,J,K) + Solution (I-1,J,K) +
+                                            Solution (I,J-1,K) + Solution (I,J+1,K) + Solution (I,J,K-1) +
+                                            Solution (I,J,K+1) - 6.0 * Solution (I,J,K) );
+                       }
+                  }
+             }
+        }
+   }
+

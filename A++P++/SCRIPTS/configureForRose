@@ -1,0 +1,25 @@
+
+# --enable-PXX                  Turns on P++
+# --enable-SHARED_LIBS          Triggers use of shared libraries (required for Overture)
+# --enable-INTERNALDEBUG        Turns of internal debugging within A++/P++ (many internal tests are done)
+# --enable-STRING_SPECIFIC_CODE Turns on use of string specific functions (initialization of array from char string)
+# --enable-CXXOPT=              Turn off all optimization options (for fastest possible compilation)
+# --enable-COPT=                Turn off all optimization options (for fastest possible compilation)
+# --enable-CXXDEBUG=-g 
+# --enable-CDEBUG=-g 
+# --without-PADRE 
+# --enable-USE_PURIFY 
+# --enable-CXX_WARNINGS=+w2 
+# --enable-C_WARNINGS=+w2 
+# --with-ar=/usr/local/bin/ar
+
+# configure  --enable-PXX --enable-SHARED_LIBS --enable-INTERNALDEBUG --enable-STRING_SPECIFIC_CODE --enable-CXXOPT= --enable-COPT= --enable-CXXDEBUG=-g --enable-CDEBUG=-g --without-PADRE --enable-USE_PURIFY --enable-CXX_WARNINGS=+w2 --enable-C_WARNINGS=+w2 --with-ar=/usr/local/bin/ar
+
+# --with-CXX=rose          Use rose preprocessor to preprocess and then compile code
+# --enable-CXXOPT="-sage:enable_preinit_il -rose:version -rose:skip_transformation -rose:skip_unparse" 
+#                          Call preinit stage to process templates
+#                          Print the versioon number
+#                          Skip ROSE specific transformations
+#                          Skip unparsing the internal program tree (AST)
+
+configure --with-CXX=rose --enable-CXXOPT="-sage:enable_preinit_il -rose:version -rose:skip_transformation -rose:skip_unparse" --enable-INTERNALDEBUG

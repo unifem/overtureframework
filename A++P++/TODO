@@ -1,0 +1,55 @@
+* TODO file for A++/P++				-*- outline -*-
+
+Tell us if you feel like volunteering for any of these ideas, listed
+more or less in decreasing order of priority.  Some TODO items are
+implicit from received email.  Significant contributions require
+written assignments and disclaimers.
+
+ * Numerous issues remain regarding improving the configuration
+   (though much has been improved through the use of AutoConf and AutoMake).
+    + depend scripts need to be improved
+    + AutoConf macros need to be tested on more architectures
+
+ * Parallel Indirect addressing support is incomplete
+
+ * Template mechanism is not exposed to the user interface
+   (This is done to avoid the long compile times and portability
+    problems associated with templates).
+
+ * Greater support for use with TAU Performance monitoring tools
+
+ * ROSE Optimizing Preprocessor support is not yet available (it is in
+   development).
+
+ * Indirect addressing operator() indexing operator builds a 
+   parallel array descriptor which is not used except in
+   a relatively minor way.  This is a relatively heavy weight 
+   object to build and not used.  A better implementation would
+   avoid the construction of a redundent array_Descriptor object
+   (one is required to be built for each view, but we currently 
+   build two).  This is only a performance issue.
+
+ * code at the top of A++P++/Common_Code/domain.h_m4:
+   // This macro builds the mechanism by which we print internal warnings 
+   // about poor implementation details which are in the process of being fixed
+   // These are FALSE except during code development
+      #define PRINT_SOURCE_CODE_IMPLEMENTATION_WARNINGS FALSE
+
+   This marco turns on a small number of messages that complain about inefficient use of
+   resources within A++/P++.  These are all relatively minr, but should get fixed at some 
+   point. The is the present mechanism to identifing problems within A++/P++ which I would 
+   like to eventually fix.
+
+
+ * Need to remove older parts of the Benchmarking mechanism (A++P++/Benchmark, A++P++/P++/Benchmark
+   and A++P++/P++/PerformanceTest).
+
+ * When Diagnostic_Manager::setTrackArrayData() is turned on, we need to check that no previous arrays
+   have been allocated since these will cause an error in the error checking.  If there have been
+   previous arrays allocated then we nned to report the problem and exist.  This problem
+   was reported by Brian Miller.
+
+ * Brian Miller has suggested support functions for getLocalBase and getLocalBound which would subtract the
+   ghost boundary widths (getLocalBaseWithoutGhostBoundaries and getLocalBoundWithoutGhostBoundaries)
+   to support the local use of A++ arrays when using P++.
+

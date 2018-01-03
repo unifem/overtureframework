@@ -1,0 +1,193 @@
+#
+# File:        configure.in
+# Package:     A++/P++ build system (adapted from SAMRAI build system with great thanks)
+# Copyright:   (c) 1997-1999 The Regents of the University of California
+# Release:     $Name:  $
+# Revision:    $Revision: 1.28 $
+# Modified:    $Date: 2002/01/10 09:34:12 $
+# Description: autoconfig configuration file
+#
+
+AC_INIT
+AC_CONFIG_SRCDIR([README])
+
+PWD=`pwd`
+
+AXXPXX_VAR_VERSION
+AM_INIT_AUTOMAKE(A++,$AXXPXX_VERSION)
+
+# Build a config.h file (later rename this axxpxx_config.h)
+AM_CONFIG_HEADER(config.h:config.hin)
+
+# Trigger variable in config.h to allow source code to be written specific to A++ or P++
+AC_DEFINE([USE_PPP],0,[Signal to user if P++ is used at comple time.])
+
+echo "In A++P++/A++/configure.in (before setting INCLUDES variable): INCLUDES = $INCLUDES"
+INCLUDES="$INCLUDES -I. -I\$(srcdir) -I\$(top_srcdir)/include -I\$(top_builddir)/include"
+echo "In A++P++/A++/configure.in (after setting INCLUDES variable): INCLUDES = $INCLUDES"
+
+# Call the macro that is common to both A++ and P++
+APP_PPP_COMMON_AUTOCONFIG_MACRO
+
+# AC_CHECK_PROG(LD, ld,, ld)
+
+# Determine what C and C++ compiler are being used.
+# AC_MSG_CHECKING([what the compilers ${CC} and ${CXX} really are])
+# BTNG_INFO_CC_CXX_ID
+# AC_MSG_RESULT([$CC_ID-$CC_VERSION and $CXX_ID-$CXX_VERSION])
+
+# Determine how to build a C++ library.
+# AC_MSG_CHECKING([how to build C++ libraries (setting ar)])
+# BTNG_CXX_AR
+# if test "$CXX_ID" = ibm; then
+#   # IBM does not have a method for supporting shared libraries
+#   # Here is a kludge.
+#   CXX_SHARED_LIB_UPDATE="`cd ${srcdir}/../config && pwd`/mklib.aix -o"
+#   BTNG_AC_LOG(CXX_SHARED_LIB_UPDATE changed to $CXX_SHARED_LIB_UPDATE especially for the IBM)
+# fi
+# AC_MSG_RESULT([$CXX_STATIC_LIB_UPDATE and $CXX_SHARED_LIB_UPDATE])
+# AC_SUBST(CXX_STATIC_LIB_UPDATE)
+# AC_SUBST(CXX_SHARED_LIB_UPDATE)
+
+# Call build shared library check (not the same as the similar P++ test for working shared library mechanism)
+if test "$SHARED_LIBS" = yes; then
+     APP_BUILD_SHARED_LIBRARY_CHECK
+fi
+AC_SUBST(BUILD_SHARED_LIBS)
+
+AC_SUBST(INCLUDES)
+
+# DQ: (12/24/2000) Add in the A++ library path and libraries (and include -lm)
+# BTNG: (12/28/2000) -lm should be last.  I moved it below.
+# BTNG: riptide requires -lApp to follow -lApp_static.  I still kept the first
+# -lApp because removing it MAY break on other platforms.
+LIBS="$LIBS -L\$(top_builddir)/src -lApp -lApp_static -lApp"
+AC_SUBST(LIBS)
+
+# This is done in each directory where a config.h file is built
+AC_DEFINE([COMPILE_APP],1,[Trigger complete trip through all A++ header files required for A++ compilation])
+
+
+# set up for use of IS_AIX conditional
+AM_CONDITIONAL(IS_AIX, echo $host_os | grep '^aix' > /dev/null)
+
+# Set up for Dan Quinlan's development tests.
+# AC_ARG_ENABLE(dq-developer-tests,
+# [--enable-dq-developer-tests   Development option for Dan Quinlan (disregard).])
+# AM_CONDITIONAL(DQ_DEVELOPER_TESTS,test "$enable_dq_developer_tests" = yes)
+
+# set up for use of BUILD_SHARED_LIBS conditional
+AM_CONDITIONAL(IF_BUILD_SHARED_LIBS,test $SHARED_LIBS = yes)
+
+# Support for Purify
+# AXXPXX_SUPPORT_PURIFY
+
+top_pwd=$PWD
+AC_SUBST(top_pwd)
+
+# Add the math library after all the other libraries are represented.
+LIBS="$LIBS $PTHREADS_LIB -lm"
+
+
+# Set AXX_RPATH to point to indicate where P++ libraries are built.
+rpath=$PWD/src
+case $host_os in
+     solaris*)
+     # The solaris syntax for specifying AXX_RPATH.
+          AXX_RPATH="-R $rpath" ;;
+     *)
+     # Unless you know AXX_RPATH is required, set it to null.
+          AXX_RPATH= ;;
+esac
+AC_SUBST(AXX_RPATH)
+
+# Inclusion of PerformanceTests and/or its sublibraries.
+#if test "$with_PERFORMANCE_TESTS" = no; then
+#   # If PerformanceTests is not specified, then don't use it.
+#   echo "Skipping PerformanceTests!"
+#   OPTIONAL_PERFORMANCE_TESTS_SUBDIRS=""
+#else
+#   # If PADRE is specified, then configure in PERFORMANCE_TESTS
+#   # without regard to its sublibraries.
+#   echo "Setup PerformanceTests!"
+#   OPTIONAL_PERFORMANCE_TESTS_SUBDIRS="PerformanceTests"
+#   INCLUDES="$INCLUDES $PERFORMANCE_TESTS_INCLUDES -I$(top_srcdir)/../BenchmarkBase/STL-1995"
+#   LIBS="$LIBS $PERFORMANCE_TESTS_LIBS"
+#   # AC_CONFIG_SUBDIRS( PerformanceTests )
+#fi
+# OPTIONAL_PERFORMANCE_TESTS_SUBDIRS is used in Makefile.am to determine the SUBDIRS list.
+# AC_SUBST(OPTIONAL_PERFORMANCE_TESTS_SUBDIRS)
+# BTNG_AC_LOG(OPTIONAL_PERFORMANCE_TESTS_SUBDIRS is $OPTIONAL_PERFORMANCE_TESTS_SUBDIRS)
+# AC_CONFIG_SUBDIRS( $OPTIONAL_PERFORMANCE_TESTS_SUBDIRS )
+
+# BUGS/Makefile
+# config/Makefile
+
+# Note that I have added stamp-h so that we don't force config.status to be run after configure
+# Previously, config.h would always be unneccesarily rebuilt after rerunning configure.
+# However, Automake warns that stamp-h should not appear in the list of AC CONFIG FILE inputs.
+# stamp-h
+
+echo "In A++/configure.in: ARCH = $ARCH"
+
+AC_CONFIG_FILES([
+stamp-h
+Makefile
+PerformanceTests/Makefile
+src/Makefile
+src/array_src/Makefile
+src/OPERATORS/Makefile
+src/MDI/Makefile
+include/Makefile
+TESTS/Makefile
+EXAMPLES/Makefile
+serial_test_script
+EXAMPLES/Makefile.user.defs
+dqDeveloperTests/Makefile
+generalized-serial-run
+])
+
+AC_CONFIG_COMMANDS([default],[[
+# These are the commands that will execute after the file generations.
+chmod 750 generalized-serial-run
+# cp -f generalized-serial-run dqDeveloperTests
+cat config.h | sed 's/^\(.define COMPILE_APP\) ./\1 0/' > include/config.h
+cat config.h | sed 's/^\(.define COMPILE_APP\) ./\1 1/' > src/array_src/config.h
+cat config.h | sed 's/^\(.define COMPILE_APP\) ./\1 1/' > src/OPERATORS/config.h
+cat config.h | sed 's/^\(.define COMPILE_APP\) ./\1 1/' > src/MDI/config.h
+if test "$source_tree_is_not_compile_tree"; then
+  case "$srcdir" in
+  /*) # srcdir is a full path
+    srcdir_EXAMPLES="$srcdir/EXAMPLES"
+  ;;
+  *) # srcdir is a relative path
+    srcdir_EXAMPLES="../$srcdir/EXAMPLES"
+  ;;
+  esac
+  echo "Ensuring testcode.C in the compile tree."
+  test -r EXAMPLES/testcode.C || \
+    ln -s $srcdir_EXAMPLES/testcode.C EXAMPLES
+  echo "Ensuring Makefile.user in the compile tree."
+  test -r EXAMPLES/Makefile.user || \
+    ln -s $srcdir_EXAMPLES/Makefile.user EXAMPLES
+fi
+]],[[
+# These set the environment for commands executing after file generations.
+srcdir=$srcdir
+if test ! `cd $srcdir && pwd` = `pwd`; then
+  source_tree_is_not_compile_tree=1
+fi
+
+]])
+
+AC_OUTPUT
+
+# I want these files to be copied into my development directory in the compile tree
+if test "$enable_dq_developer_tests" = yes; then
+cp -f $srcdir/dqDeveloperTests/purify_access_errors dqDeveloperTests
+cp -f $srcdir/dqDeveloperTests/purify_bytes_leaked dqDeveloperTests
+cp -f $srcdir/dqDeveloperTests/purify_bytes_potentially_leaked dqDeveloperTests
+cp -f $srcdir/dqDeveloperTests/purify_check dqDeveloperTests
+fi
+
+

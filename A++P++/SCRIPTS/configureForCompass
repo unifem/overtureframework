@@ -1,0 +1,18 @@
+#! /bin/sh
+
+# This is an example configuration line, the use can pick and choose among numerous 
+# options to control the compilation process in A++/P++.  These are useful scripts
+# which can be used as examples.
+
+# These options with the configure script select option specific for the CASC Dec Cluster at
+# Lawrence Livermore National Laboratory. In this case the compiler name for the C++ compiler is
+# "cxx" instead of "CC" and MPI libraries and include directories are not located in a place where
+# the A++/P++ installation process would normally search (a common problem when trying to install
+# parallel libraries onto an arbitrary machine).
+
+# Don't use the dmpirun program
+# ./configure --enable-PXX --without-PADRE --with-CC=cc --with-CXX=cxx --enable-SHARED_LIBS --with-mpi-include=/usr/opt/MPI170/include --with-mpi-lib-dirs=/usr/opt/MPI170/lib --with-mpi-libs=mpi --with-mpirun=/usr/opt/MPI170/bin/dmpirun
+#
+
+# configure --enable-PXX --with-mpirun=mpirun --enable-SHARED_LIBS --without-PADRE --enable-CXXOPT= --enable-COPT=
+configure --enable-PXX --enable-INTERNALDEBUG --with-mpirun=mpirun --enable-SHARED_LIBS --enable-CXXOPT= --enable-COPT= 

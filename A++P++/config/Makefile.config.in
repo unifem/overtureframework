@@ -1,0 +1,85 @@
+#######################################################
+#           Used in A++/P++ Configuration
+#######################################################
+
+# This is required for some rules (e.g. all-recursive, and all in some directories)
+MAKE=gmake
+
+# Extensions to Automake's C and C++ compiler flags.
+CXXFLAGS      = @CXXFLAGS@ $(CXX_DEBUG) $(CXX_DEFINES) $(CXX_OPTIONS) $(CXX_OPT) $(CXX_TEMPLATES) $(CXX_WARNINGS) $(CXX_DL_COMPILE_FLAGS)
+CFLAGS        = @CFLAGS@ $(C_DEBUG) $(C_OPTIONS) $(C_OPT) $(C_WARNINGS) $(C_DL_COMPILE_FLAGS)
+
+RM            = rm -f
+
+#######################################################
+## additional clean rule for removing Templates.DB in
+## all directories.  Note that in the EXAMPLES directories
+## the $CXX_TEMPLATE_REPOSITORY_PATH is redefined so that
+## only the local repository is removed!
+#######################################################
+clean_shared_libs_and_templates = rm -f *.so; rm -rf $(CXX_TEMPLATE_REPOSITORY) Templates.DB cxx_repository SunWS_cache PI* ti_files ii_files
+
+
+#############################################################################################
+######################   SPECIAL TARGET FOR BUILDING SOURCE CODE   ##########################
+#############################################################################################
+
+## These are developer's rules for use by A++/P++ developers
+
+## Build all the M4 templates (macros) within the 
+## MDI and OPERATORS directories for A++ and P++
+macros_and_source:
+	cd $(srcdir) && $(MAKE) -f makefile.build all_source
+
+## Build the source for for A++ and P++ from the templates in the Common_code directory
+source:
+	cd $(srcdir) && $(MAKE) -f makefile.build source
+
+templates-clean:
+	cd $(srcdir) && $(MAKE) -f makefile.build templates-clean
+
+all-but-MDI-clean:
+	cd $(srcdir) && $(MAKE) -f makefile.build all-but-MDI-clean
+
+MDI-source:
+	cd $(srcdir) && $(MAKE) -f makefile.build MDI-source
+
+OPERATORS-source:
+	cd $(srcdir) && $(MAKE) -f makefile.build OPERATORS-source
+
+all-source:
+	cd $(srcdir) && $(MAKE) -f makefile.build all-source
+
+entire-MDI-source:
+	cd $(srcdir) && $(MAKE) -f makefile.build entire-MDI-source
+
+entire-OPERATORS-source:
+	cd $(srcdir) && $(MAKE) -f makefile.build entire-OPERATORS-source
+
+entire-all-source:
+	cd $(srcdir) && $(MAKE) -f makefile.build entire-all-source
+
+MDI-source-clean:
+	cd $(srcdir) && $(MAKE) -f makefile.build MDI-source-clean
+
+OPERATORS-source-clean:
+	cd $(srcdir) && $(MAKE) -f makefile.build OPERATORS-source-clean
+
+all-source-clean:
+	cd $(srcdir) && $(MAKE) -f makefile.build all-source-clean
+
+
+#############################################################################################
+###################   SPECIAL TARGET FOR EVLUATING DISK SPACE USAGE   #######################
+#############################################################################################
+
+## Example rule for computing the size of the objects built
+## Part of future compile test diagnostics to report for remote tests
+## At present I'm not sure how to total the results from all sub-directories.
+
+object_size:
+	echo "Size of Object Files = " `wc -c *.o | grep total | cut -d " " -f 2` 
+
+code_size:
+	echo "Size of Source Files = " `wc -c *.[c,C] | grep total | cut -d " " -f 2`
+

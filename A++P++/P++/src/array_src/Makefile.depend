@@ -1,0 +1,56 @@
+MPI_specific.o: MPI_specific.C ../../include/A++.h
+abstract_op.o: abstract_op.C ../../include/A++.h \
+ ../../include/machine.h ../../include/array_domain.h \
+ ../../include/inline_support.h
+allocate.o: allocate.C ../../include/A++.h
+array.o: array.C ../../include/A++.h ../../include/machine.h \
+ ../../include/array_domain.h
+arraylist.o: arraylist.C ../../include/A++.h
+cases.o: cases.C ../../include/A++.h
+comm_man.o: comm_man.C ../../include/A++.h
+conform_array_set.o: conform_array_set.C ../../include/A++.h
+conform_enforce.o: conform_enforce.C ../../include/A++.h
+data_hash.o: data_hash.C ../../include/A++.h
+descriptor.o: descriptor.C ../../include/A++.h ../../include/machine.h \
+ ../../include/array_domain.h
+descriptor_cache.o: descriptor_cache.C ../../include/A++.h
+domain.o: domain.C ../../include/A++.h ../../include/machine.h \
+ ../../include/array_domain.h
+error_checking.o: error_checking.C ../../include/A++.h
+index.o: index.C ../../include/A++.h
+index_operator.o: index_operator.C ../../include/A++.h \
+ ../../include/machine.h ../../include/array_domain.h
+indirect_addressing.o: indirect_addressing.C ../../include/A++.h
+lazy_aggregate.o: lazy_aggregate.C ../../include/A++.h \
+ ../../include/machine.h ../../include/array_domain.h
+lazy_expression.o: lazy_expression.C ../../include/A++.h
+lazy_operand.o: lazy_operand.C ../../include/A++.h
+lazy_statement.o: lazy_statement.C ../../include/A++.h
+lazy_task.o: lazy_task.C ../../include/A++.h
+lazy_taskset.o: lazy_taskset.C ../../include/A++.h
+lazyarray.o: lazyarray.C ../../include/A++.h ../../include/machine.h \
+ ../../include/array_domain.h
+map.o: map.C ../../include/A++.h
+new_operators.o: new_operators.C ../../include/A++.h
+optimization.o: optimization.C ../../include/A++.h
+p_abstract_op.o: p_abstract_op.C ../../include/A++.h
+p_array.o: p_array.C ../../include/A++.h ../../include/machine.h \
+ ../../include/array_domain.h
+p_data_hash.o: p_data_hash.C ../../include/A++.h
+p_descriptor.o: p_descriptor.C ../../include/A++.h \
+ ../../include/machine.h ../../include/array_domain.h
+p_domain.o: p_domain.C ../../include/A++.h ../../include/machine.h \
+ ../../include/array_domain.h
+p_error_checking.o: p_error_checking.C ../../include/A++.h
+p_index_operator.o: p_index_operator.C ../../include/A++.h \
+ ../../include/machine.h ../../include/array_domain.h
+p_lazy_aggregate.o: p_lazy_aggregate.C ../../include/A++.h \
+ ../../include/machine.h ../../include/array_domain.h
+p_lazy_operand.o: p_lazy_operand.C ../../include/A++.h
+p_lazyarray.o: p_lazyarray.C ../../include/A++.h \
+ ../../include/machine.h ../../include/array_domain.h
+p_new_operators.o: p_new_operators.C ../../include/A++.h
+partitioning.o: partitioning.C ../../include/A++.h
+partlist.o: partlist.C ../../include/A++.h
+static_initialization.o: static_initialization.C ../../include/A++.h
+where.o: where.C ../../include/A++.h

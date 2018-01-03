@@ -1,0 +1,32 @@
+#!/bin/csh
+
+# This script sets the release version tag
+#   It uses the cvs rtag option to set a name that
+#   is then associated with the current version 
+#   (we use this to mark releases within CVS).
+# Usage: release_script tag_name
+
+# could not get this to work!
+# if (($#argv < 1 || $#argv > 1) || ($#argv == 1 && $argv[1] == "-help")) then
+
+if ($#argv < 1 || $#argv > 2) then
+     echo "Usage: release_script [-help] version_name"
+     echo "      version_name should be of form associated with standard version numering (e.g. AppPpp-0-7-2e)"
+     echo "      Note: This script takes about an hour to run\!"
+     exit 1
+endif
+
+if ($argv[1] == "-help") then
+     echo "Usage: release_script version_name"
+     echo "      version_name should be of form associated with standard version numering (e.g. AppPpp-0-7-2e)"
+     echo "      Note: This script takes about an hour to run\!"
+     exit 1
+endif
+
+# use "cvs history -T <file>" to see all tags within the repository
+
+# Example Format
+# cvs rtag AppPpp-0-7-3d A++P++
+# cvs rtag $1 A++P++
+# for testing we just call echo!
+echo "NOT CALLING: cvs rtag $1 A++P++"

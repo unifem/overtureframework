@@ -1,0 +1,100 @@
+#!/usr/local/bin/expect
+#
+# Expect script to test new distribution
+#
+#    This script will test the distribution on the current machine
+#    (typically solaris in the development environment) and then 
+#    proceed to start tests on a nmber of other archetictures.
+#    This script is designed for the testing of our software on 
+#    different platforms and is a general part of our testing policy.
+#
+#
+
+# The rm, mv, and secure_copy can take a while so wait forever!
+# This also avoids any other commands from timing out (which makes the script more robust)
+set timeout -1
+
+# Error checking for command line
+if {$argc != 2} then {
+     spawn -noecho echo "\nUsage: gatherResults <fileName (minus '.tar.gz')> <machineName>\n\n"
+
+   # At this point we don't know what the wait for so just wait for a carrage return!
+   # expect -re $CASC_promptPattern
+     expect -re "\r"
+     exit
+   }
+
+# Include previously defined procedures so they can be used in this script
+# This script includes some global variables!
+source ./SCRIPTS/softwareTesting.expect
+
+# get the input command line parameter (a fragment of a filename (e.g. "A++P++-0.7.2g")
+set fileName [lindex $argv 0]
+
+# get the machine name where we want to test
+set inputTargetMachine [lindex $argv 1]
+
+# testOnMachine "$fileName" "$inputTargetMachine"
+
+switch -- $inputTargetMachine \
+     "ALL"  {
+            # Debugging to see if we have the names right
+              spawn -noecho echo "Using the default target mechanism"
+              expect -re $CASC_promptPattern
+
+            # Prompt for remote machine password (same for all remote machines)
+              set remotePassword [getPassword "Remote System Password"]
+
+            # Prompt for LC password
+              set LC_Password [getPassword "LC Password"]
+
+            # gatherTestResults "$fileName" "$inputTargetMachine" "" ""
+
+            # We don't need a password to login to the SUN machines where we test!
+              gatherTestResults "$fileName" "SUN"            "xxx"             "$LC_Password"
+              gatherTestResults "$fileName" "SUN_KCC"        "xxx"             "$LC_Password"
+              gatherTestResults "$fileName" "SUN_GNU"        "xxx"             "$LC_Password"
+              gatherTestResults "$fileName" "SUN_CCV5"       "xxx"             "$LC_Password"
+              gatherTestResults "$fileName" "SUN_CCV4_ON_V5" "xxx"             "$LC_Password"
+              gatherTestResults "$fileName" "NCSA"           "$remotePassword" "$LC_Password"
+              gatherTestResults "$fileName" "TERA"           "$LC_Password"    "$LC_Password"
+              gatherTestResults "$fileName" "LINUX"          "$remotePassword" "$LC_Password"
+            # Blue is down this morning!
+            # gatherTestResults "$fileName" "BLUE"           "$LC_Password"    "$LC_Password"
+              gatherTestResults "$fileName" "RIPTIDE"        "$LC_Password"    "$LC_Password"
+
+            # clear passwords
+              set LC_Password ""
+              set remotePassword ""
+   } default {
+            # Debugging to see if we have the names right
+              spawn -noecho echo "Using the default target mechanism"
+              expect -re $CASC_promptPattern
+
+              gatherTestResults "$fileName" "$inputTargetMachine" "" ""
+   }
+
+   # Specify the LC file system location where we will copy output files from the remote machine
+     set machineTestOutputDir "/usr/casc/overture/$userName/MACHINE_TESTS"
+
+   # Now copy the acumulated information to a more local file space on the CASC network
+     spawn cp -rf $machineTestOutputDir /home/$userName/A++P++/A++P++Source/
+     expect -re $CASC_promptPattern
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

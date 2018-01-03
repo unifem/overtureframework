@@ -1,0 +1,431 @@
+# Makefile.in generated automatically by automake 1.5 from Makefile.am.
+
+# Copyright 1994, 1995, 1996, 1997, 1998, 1999, 2000, 2001
+# Free Software Foundation, Inc.
+# This Makefile.in is free software; the Free Software Foundation
+# gives unlimited permission to copy and/or distribute it,
+# with or without modifications, as long as this notice is preserved.
+
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY, to the extent permitted by law; without
+# even the implied warranty of MERCHANTABILITY or FITNESS FOR A
+# PARTICULAR PURPOSE.
+
+@SET_MAKE@
+
+
+# Override install-includeHEADERS rule usually provided by automake.
+# We are overiding the automake rule due to a bug in the rule generated.
+# The bug appends a relative path to the destination.  That is not needed
+# and causes some make programs to issue the wrong install commands.
+# BTNG.
+
+
+#######################################################
+#           Used in A++/P++ Configuration
+#######################################################
+
+# This is required for some rules (e.g. all-recursive, and all in some directories)
+
+SHELL = @SHELL@
+
+srcdir = @srcdir@
+top_srcdir = @top_srcdir@
+VPATH = @srcdir@
+prefix = @prefix@
+exec_prefix = @exec_prefix@
+
+bindir = @bindir@
+sbindir = @sbindir@
+libexecdir = @libexecdir@
+datadir = @datadir@
+sysconfdir = @sysconfdir@
+sharedstatedir = @sharedstatedir@
+localstatedir = @localstatedir@
+libdir = @libdir@
+infodir = @infodir@
+mandir = @mandir@
+includedir = @includedir@
+oldincludedir = /usr/include
+pkgdatadir = $(datadir)/@PACKAGE@
+pkglibdir = $(libdir)/@PACKAGE@
+pkgincludedir = $(includedir)/@PACKAGE@
+top_builddir = ..
+
+ACLOCAL = @ACLOCAL@
+AUTOCONF = @AUTOCONF@
+AUTOMAKE = @AUTOMAKE@
+AUTOHEADER = @AUTOHEADER@
+
+INSTALL = @INSTALL@
+INSTALL_PROGRAM = @INSTALL_PROGRAM@
+INSTALL_DATA = @INSTALL_DATA@
+INSTALL_SCRIPT = @INSTALL_SCRIPT@
+INSTALL_HEADER = $(INSTALL_DATA)
+transform = @program_transform_name@
+NORMAL_INSTALL = :
+PRE_INSTALL = :
+POST_INSTALL = :
+NORMAL_UNINSTALL = :
+PRE_UNINSTALL = :
+POST_UNINSTALL = :
+host_alias = @host_alias@
+host_triplet = @host@
+AMTAR = @AMTAR@
+APP_BUILD_SHARED_LIB_TARGET = @APP_BUILD_SHARED_LIB_TARGET@
+AR = @AR@
+AR_EXTRACT = @AR_EXTRACT@
+AR_EXTRACT_FLAGS = @AR_EXTRACT_FLAGS@
+AR_UPDATE = @AR_UPDATE@
+AR_UPDATE_FLAGS = @AR_UPDATE_FLAGS@
+AWK = @AWK@
+AXX_RPATH = @AXX_RPATH@
+BUILD_SHARED_LIBS = @BUILD_SHARED_LIBS@
+CC = @CC@
+CPP = @CPP@
+CPPFLAGS = @CPPFLAGS@
+CXX = @CXX@
+CXXCPP = @CXXCPP@
+CXXLD = @CXXLD@
+CXX_DEBUG = @CXX_DEBUG@
+CXX_DL_COMPILE_FLAGS = @CXX_DL_COMPILE_FLAGS@
+CXX_DL_LINK_FLAGS = @CXX_DL_LINK_FLAGS@
+CXX_DYNAMIC_LINKER = @CXX_DYNAMIC_LINKER@
+CXX_OPT = @CXX_OPT@
+CXX_OPTIONS = @CXX_OPTIONS@
+CXX_SHARED_LIB_UPDATE = @CXX_SHARED_LIB_UPDATE@
+CXX_STATIC_LIB_UPDATE = @CXX_STATIC_LIB_UPDATE@
+CXX_TEMPLATES = @CXX_TEMPLATES@
+CXX_TEMPLATE_OBJECT_FILES = @CXX_TEMPLATE_OBJECT_FILES@
+CXX_TEMPLATE_REPOSITORY = @CXX_TEMPLATE_REPOSITORY@
+CXX_TEMPLATE_REPOSITORY_PATH = @CXX_TEMPLATE_REPOSITORY_PATH@
+CXX_WARNINGS = @CXX_WARNINGS@
+C_DEBUG = @C_DEBUG@
+C_DL_COMPILE_FLAGS = @C_DL_COMPILE_FLAGS@
+C_DL_LINK_FLAGS = @C_DL_LINK_FLAGS@
+C_DYNAMIC_LINKER = @C_DYNAMIC_LINKER@
+C_OPT = @C_OPT@
+C_OPTIONS = @C_OPTIONS@
+C_WARNINGS = @C_WARNINGS@
+DEPDIR = @DEPDIR@
+EXEEXT = @EXEEXT@
+INCLUDES = @INCLUDES@
+INSTALL_STRIP_PROGRAM = @INSTALL_STRIP_PROGRAM@
+LD = @LD@
+LIBS = @LIBS@
+M4 = @M4@
+MDI_C_DEBUG = @MDI_C_DEBUG@
+MDI_C_OPT = @MDI_C_OPT@
+OBJEXT = @OBJEXT@
+PACKAGE = @PACKAGE@
+PTHREADS_LIB = @PTHREADS_LIB@
+PURIFY_EXECUTABLE = @PURIFY_EXECUTABLE@
+PURIFY_HOME = @PURIFY_HOME@
+PURIFY_OPTIONS = @PURIFY_OPTIONS@
+PURIFY_RUN_AT_EXIT = @PURIFY_RUN_AT_EXIT@
+PURIFY_WINDOWS_OPTION = @PURIFY_WINDOWS_OPTION@
+RANLIB = @RANLIB@
+RUNTIME_LOADER_FLAGS = @RUNTIME_LOADER_FLAGS@
+SHARED_LIBS = @SHARED_LIBS@
+SHARED_LIB_EXTENSION = @SHARED_LIB_EXTENSION@
+STATIC_LINKER = @STATIC_LINKER@
+STATIC_LINKER_FLAGS = @STATIC_LINKER_FLAGS@
+VERSION = @VERSION@
+am__include = @am__include@
+am__quote = @am__quote@
+install_sh = @install_sh@
+top_pwd = @top_pwd@
+
+MAKE = gmake
+
+# Extensions to Automake's C and C++ compiler flags.
+CXXFLAGS = @CXXFLAGS@ $(CXX_DEBUG) $(CXX_DEFINES) $(CXX_OPTIONS) $(CXX_OPT) $(CXX_TEMPLATES) $(CXX_WARNINGS) $(CXX_DL_COMPILE_FLAGS)
+CFLAGS = @CFLAGS@ $(C_DEBUG) $(C_OPTIONS) $(C_OPT) $(C_WARNINGS) $(C_DL_COMPILE_FLAGS)
+
+RM = rm -f
+
+#######################################################
+#######################################################
+clean_shared_libs_and_templates = rm -f *.so; rm -rf $(CXX_TEMPLATE_REPOSITORY) Templates.DB cxx_repository SunWS_cache PI* ti_files ii_files
+
+
+# PLATFORM = @ARCH@
+# CC = @CC@
+# CXX = @CXX@
+# INSTALL_DIR = $(PLATFORM)_$(CC)_$(CXX)
+
+# INSTALL_BASE = $(exec_prefix)/A++/lib/$(INSTALL_DIR)
+# includedir = $(INSTALL_BASE)/include
+# includedir = $(prefix)/$(PACKAGE)/lib/$(INSTALL_DIR)/include
+include_HEADERS = \
+ A++.h A++_headers.h A++_templates.h A++_notemplates.h array_domain.h comm_man.h \
+ constants.h data_hash.h descriptor.h domain.h descriptor_notemplates.h descriptor_templates.h \
+ dimension_macros.h index.h expression_templates.h inline_func.h inline_expression_templates.h \
+ inline_support.h lazy_aggregate.h lazy_operand.h lazy_expression.h lazy_statement.h \
+ lazy_task.h lazy_taskset.h lazyarray.h machine.h max_array_dim.h mdi_typedef.h \
+ optimization.h partitioning.h where.h 
+
+
+# DQ: (12/25/2000) Remove this to fix bug when using Makefile.user.defs 
+# (which puts -I's in different order and tries to read this file).  
+# This is a generated file and does not belong here after "make distclean".
+DISTCLEANFILES = config.h
+subdir = include
+mkinstalldirs = $(SHELL) $(top_srcdir)/../mkinstalldirs
+CONFIG_HEADER = $(top_builddir)/config.h
+CONFIG_CLEAN_FILES =
+depcomp =
+DIST_SOURCES =
+HEADERS = $(include_HEADERS)
+
+DIST_COMMON = README $(include_HEADERS) Makefile.am Makefile.in
+all: all-am
+
+.SUFFIXES:
+$(srcdir)/Makefile.in:  Makefile.am $(srcdir)/../../config/Makefile.override.install.includeHEADERS $(srcdir)/../../config/Makefile.config.in $(top_srcdir)/configure.in $(ACLOCAL_M4)
+	cd $(top_srcdir) && \
+	  $(AUTOMAKE) --foreign  --ignore-deps include/Makefile
+Makefile:  $(srcdir)/Makefile.in  $(top_builddir)/config.status
+	cd $(top_builddir) && \
+	  CONFIG_HEADERS= CONFIG_LINKS= \
+	  CONFIG_FILES=$(subdir)/$@ $(SHELL) ./config.status
+uninstall-info-am:
+
+uninstall-includeHEADERS:
+	@$(NORMAL_UNINSTALL)
+	@list='$(include_HEADERS)'; for p in $$list; do \
+	  f="`echo $$p | sed -e 's|^.*/||'`"; \
+	  echo " rm -f $(DESTDIR)$(includedir)/$$f"; \
+	  rm -f $(DESTDIR)$(includedir)/$$f; \
+	done
+
+tags: TAGS
+
+ID: $(HEADERS) $(SOURCES) $(LISP) $(TAGS_FILES)
+	list='$(SOURCES) $(HEADERS) $(TAGS_FILES)'; \
+	unique=`for i in $$list; do \
+	    if test -f "$$i"; then echo $$i; else echo $(srcdir)/$$i; fi; \
+	  done | \
+	  $(AWK) '    { files[$$0] = 1; } \
+	       END { for (i in files) print i; }'`; \
+	mkid -fID $$unique $(LISP)
+
+TAGS:  $(HEADERS) $(SOURCES)  $(TAGS_DEPENDENCIES) \
+		$(TAGS_FILES) $(LISP)
+	tags=; \
+	here=`pwd`; \
+	list='$(SOURCES) $(HEADERS) $(TAGS_FILES)'; \
+	unique=`for i in $$list; do \
+	    if test -f "$$i"; then echo $$i; else echo $(srcdir)/$$i; fi; \
+	  done | \
+	  $(AWK) '    { files[$$0] = 1; } \
+	       END { for (i in files) print i; }'`; \
+	test -z "$(ETAGS_ARGS)$$unique$(LISP)$$tags" \
+	  || etags $(ETAGS_ARGS) $$tags  $$unique $(LISP)
+
+GTAGS:
+	here=`CDPATH=: && cd $(top_builddir) && pwd` \
+	  && cd $(top_srcdir) \
+	  && gtags -i $(GTAGS_ARGS) $$here
+
+distclean-tags:
+	-rm -f TAGS ID GTAGS GRTAGS GSYMS GPATH
+
+DISTFILES = $(DIST_COMMON) $(DIST_SOURCES) $(TEXINFOS) $(EXTRA_DIST)
+
+top_distdir = ..
+distdir = $(top_distdir)/$(PACKAGE)-$(VERSION)
+
+distdir: $(DISTFILES)
+	@for file in $(DISTFILES); do \
+	  if test -f $$file; then d=.; else d=$(srcdir); fi; \
+	  dir=`echo "$$file" | sed -e 's,/[^/]*$$,,'`; \
+	  if test "$$dir" != "$$file" && test "$$dir" != "."; then \
+	    $(mkinstalldirs) "$(distdir)/$$dir"; \
+	  fi; \
+	  if test -d $$d/$$file; then \
+	    cp -pR $$d/$$file $(distdir) \
+	    || exit 1; \
+	  else \
+	    test -f $(distdir)/$$file \
+	    || cp -p $$d/$$file $(distdir)/$$file \
+	    || exit 1; \
+	  fi; \
+	done
+check-am: all-am
+check: check-am
+all-am: Makefile $(HEADERS)
+
+installdirs:
+	$(mkinstalldirs) $(DESTDIR)$(includedir)
+
+install: install-am
+install-exec: install-exec-am
+install-data: install-data-am
+uninstall: uninstall-am
+
+install-am: all-am
+	@$(MAKE) $(AM_MAKEFLAGS) install-exec-am install-data-am
+
+installcheck: installcheck-am
+install-strip:
+	$(MAKE) $(AM_MAKEFLAGS) INSTALL_PROGRAM="$(INSTALL_STRIP_PROGRAM)" \
+	  `test -z '$(STRIP)' || \
+	    echo "INSTALL_PROGRAM_ENV=STRIPPROG='$(STRIP)'"` install
+mostlyclean-generic:
+
+clean-generic:
+
+distclean-generic:
+	-rm -f Makefile $(CONFIG_CLEAN_FILES) stamp-h stamp-h[0-9]*
+	-test -z "$(DISTCLEANFILES)" || rm -f $(DISTCLEANFILES)
+
+maintainer-clean-generic:
+	@echo "This command is intended for maintainers to use"
+	@echo "it deletes files that may require special tools to rebuild."
+clean: clean-am
+
+clean-am: clean-generic clean-local mostlyclean-am
+
+distclean: distclean-am
+
+distclean-am: clean-am distclean-generic distclean-tags
+
+dvi: dvi-am
+
+dvi-am:
+
+info: info-am
+
+info-am:
+
+install-data-am: install-data-local install-includeHEADERS
+
+install-exec-am:
+
+install-info: install-info-am
+
+install-man:
+
+installcheck-am:
+
+maintainer-clean: maintainer-clean-am
+
+maintainer-clean-am: distclean-am maintainer-clean-generic
+
+mostlyclean: mostlyclean-am
+
+mostlyclean-am: mostlyclean-generic
+
+uninstall-am: uninstall-includeHEADERS uninstall-info-am uninstall-local
+
+.PHONY: GTAGS all all-am check check-am clean clean-generic clean-local \
+	distclean distclean-generic distclean-tags distdir dvi dvi-am \
+	info info-am install install-am install-data install-data-am \
+	install-data-local install-exec install-exec-am \
+	install-includeHEADERS install-info install-info-am install-man \
+	install-strip installcheck installcheck-am installdirs \
+	maintainer-clean maintainer-clean-generic mostlyclean \
+	mostlyclean-generic tags uninstall uninstall-am \
+	uninstall-includeHEADERS uninstall-info-am uninstall-local
+
+
+install-includeHEADERS: $(include_HEADERS)
+	@$(NORMAL_INSTALL)
+	$(mkinstalldirs) $(DESTDIR)$(includedir)
+	@list='$(include_HEADERS)'; for p in $$list; do \
+	  if test -f "$$p"; then d= ; else d="$(srcdir)/"; fi; \
+	  echo " $(INSTALL_DATA) $$d$$p $(DESTDIR)$(includedir)"; \
+	  $(INSTALL_DATA) $$d$$p $(DESTDIR)$(includedir); \
+	done
+
+#############################################################################################
+######################   SPECIAL TARGET FOR BUILDING SOURCE CODE   ##########################
+#############################################################################################
+
+macros_and_source:
+	cd $(srcdir) && $(MAKE) -f makefile.build all_source
+
+source:
+	cd $(srcdir) && $(MAKE) -f makefile.build source
+
+templates-clean:
+	cd $(srcdir) && $(MAKE) -f makefile.build templates-clean
+
+all-but-MDI-clean:
+	cd $(srcdir) && $(MAKE) -f makefile.build all-but-MDI-clean
+
+MDI-source:
+	cd $(srcdir) && $(MAKE) -f makefile.build MDI-source
+
+OPERATORS-source:
+	cd $(srcdir) && $(MAKE) -f makefile.build OPERATORS-source
+
+all-source:
+	cd $(srcdir) && $(MAKE) -f makefile.build all-source
+
+entire-MDI-source:
+	cd $(srcdir) && $(MAKE) -f makefile.build entire-MDI-source
+
+entire-OPERATORS-source:
+	cd $(srcdir) && $(MAKE) -f makefile.build entire-OPERATORS-source
+
+entire-all-source:
+	cd $(srcdir) && $(MAKE) -f makefile.build entire-all-source
+
+MDI-source-clean:
+	cd $(srcdir) && $(MAKE) -f makefile.build MDI-source-clean
+
+OPERATORS-source-clean:
+	cd $(srcdir) && $(MAKE) -f makefile.build OPERATORS-source-clean
+
+all-source-clean:
+	cd $(srcdir) && $(MAKE) -f makefile.build all-source-clean
+
+#############################################################################################
+###################   SPECIAL TARGET FOR EVLUATING DISK SPACE USAGE   #######################
+#############################################################################################
+
+object_size:
+	echo "Size of Object Files = " `wc -c *.o | grep total | cut -d " " -f 2` 
+
+code_size:
+	echo "Size of Source Files = " `wc -c *.[c,C] | grep total | cut -d " " -f 2`
+
+# If this is the development version of A++P++ then include the 
+# dependence upon the files in A++P++/Common_Code so that the
+# source files in this directory are re-generated when the files
+# in A++P++/Common_Code are updated.
+
+# Note that white space is required before the "include" to avoid the automake error:
+#      "automake: Makefile.am: unterminated conditionals: @PXX_MAINTAINER_MODE_TRUE@"
+# This seems to be a bug in automake.
+
+@DEVELOPMENT_SPECIFIC_DEPENDENCIES_TRUE@ include $(top_srcdir)/../Common_Code/make_dependence_info.inc
+
+@DEVELOPMENT_SPECIFIC_DEPENDENCIES_TRUE@$(srcdir)/A++.h : $(srcdir)/../A++.h
+@DEVELOPMENT_SPECIFIC_DEPENDENCIES_TRUE@	cp $(srcdir)/../A++.h $(srcdir)/A++.h
+
+@DEVELOPMENT_SPECIFIC_DEPENDENCIES_TRUE@$(srcdir)/descriptor.h : $(srcdir)/../descriptor.h
+@DEVELOPMENT_SPECIFIC_DEPENDENCIES_TRUE@	cp $(srcdir)/../descriptor.h $(srcdir)/descriptor.h
+
+# We have explicity install config.h.  We cannot place it in include_HEADERS
+# because that list is only for files in the source tree.  (config.h is generated
+# in the compile tree.)  BTNG
+# DQ: (12/23/2000) Fixed this to permit compilation in the source tree which is 
+#     the default tested configuration.
+install-data-local:
+	$(INSTALL_DATA) config.h $(DESTDIR)/$(includedir)
+#install-data-local:
+#	p="config.h"; \
+#	if test -f "$$p"; then d= ; else d="$(srcdir)/"; fi; \
+#	$(INSTALL_DATA) $$d$$p $(DESTDIR)$(includedir)/$$p;
+
+uninstall-local:
+	rm -f $(DESTDIR)$(includedir)/config.h
+
+clean-local:
+	rm -f *.h
+# Tell versions [3.59,3.63) of GNU make to not export all variables.
+# Otherwise a system limit (for SysV at least) may be exceeded.
+.NOEXPORT:

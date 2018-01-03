@@ -1,0 +1,588 @@
+# Makefile.in generated automatically by automake 1.5 from Makefile.am.
+
+# Copyright 1994, 1995, 1996, 1997, 1998, 1999, 2000, 2001
+# Free Software Foundation, Inc.
+# This Makefile.in is free software; the Free Software Foundation
+# gives unlimited permission to copy and/or distribute it,
+# with or without modifications, as long as this notice is preserved.
+
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY, to the extent permitted by law; without
+# even the implied warranty of MERCHANTABILITY or FITNESS FOR A
+# PARTICULAR PURPOSE.
+
+@SET_MAKE@
+
+
+#######################################################
+#           Used in A++/P++ Configuration
+#######################################################
+
+# This is required for some rules (e.g. all-recursive, and all in some directories)
+
+
+SHELL = @SHELL@
+
+srcdir = @srcdir@
+top_srcdir = @top_srcdir@
+VPATH = @srcdir@
+prefix = @prefix@
+exec_prefix = @exec_prefix@
+
+bindir = @bindir@
+sbindir = @sbindir@
+libexecdir = @libexecdir@
+datadir = @datadir@
+sysconfdir = @sysconfdir@
+sharedstatedir = @sharedstatedir@
+localstatedir = @localstatedir@
+libdir = @libdir@
+infodir = @infodir@
+mandir = @mandir@
+includedir = @includedir@
+oldincludedir = /usr/include
+pkgdatadir = $(datadir)/@PACKAGE@
+pkglibdir = $(libdir)/@PACKAGE@
+pkgincludedir = $(includedir)/@PACKAGE@
+top_builddir = ../..
+
+ACLOCAL = @ACLOCAL@
+AUTOCONF = @AUTOCONF@
+AUTOMAKE = @AUTOMAKE@
+AUTOHEADER = @AUTOHEADER@
+
+INSTALL = @INSTALL@
+INSTALL_PROGRAM = @INSTALL_PROGRAM@
+INSTALL_DATA = @INSTALL_DATA@
+INSTALL_SCRIPT = @INSTALL_SCRIPT@
+INSTALL_HEADER = $(INSTALL_DATA)
+transform = @program_transform_name@
+NORMAL_INSTALL = :
+PRE_INSTALL = :
+POST_INSTALL = :
+NORMAL_UNINSTALL = :
+PRE_UNINSTALL = :
+POST_UNINSTALL = :
+host_alias = @host_alias@
+host_triplet = @host@
+AMTAR = @AMTAR@
+AR = @AR@
+AR_EXTRACT = @AR_EXTRACT@
+AR_EXTRACT_FLAGS = @AR_EXTRACT_FLAGS@
+AR_UPDATE = @AR_UPDATE@
+AR_UPDATE_FLAGS = @AR_UPDATE_FLAGS@
+AWK = @AWK@
+CC = @CC@
+CPP = @CPP@
+CPPFLAGS = @CPPFLAGS@
+CXX = @CXX@
+CXXCPP = @CXXCPP@
+CXXLD = @CXXLD@
+CXX_DEBUG = @CXX_DEBUG@
+CXX_DL_COMPILE_FLAGS = @CXX_DL_COMPILE_FLAGS@
+CXX_DL_LINK_FLAGS = @CXX_DL_LINK_FLAGS@
+CXX_DYNAMIC_LINKER = @CXX_DYNAMIC_LINKER@
+CXX_OPT = @CXX_OPT@
+CXX_OPTIONS = @CXX_OPTIONS@
+CXX_SHARED_LIB_UPDATE = @CXX_SHARED_LIB_UPDATE@
+CXX_STATIC_LIB_UPDATE = @CXX_STATIC_LIB_UPDATE@
+CXX_TEMPLATES = @CXX_TEMPLATES@
+CXX_TEMPLATE_OBJECT_FILES = @CXX_TEMPLATE_OBJECT_FILES@
+CXX_TEMPLATE_REPOSITORY = @CXX_TEMPLATE_REPOSITORY@
+CXX_TEMPLATE_REPOSITORY_PATH = @CXX_TEMPLATE_REPOSITORY_PATH@
+CXX_WARNINGS = @CXX_WARNINGS@
+C_DEBUG = @C_DEBUG@
+C_DL_COMPILE_FLAGS = @C_DL_COMPILE_FLAGS@
+C_DL_LINK_FLAGS = @C_DL_LINK_FLAGS@
+C_DYNAMIC_LINKER = @C_DYNAMIC_LINKER@
+C_OPT = @C_OPT@
+C_OPTIONS = @C_OPTIONS@
+C_WARNINGS = @C_WARNINGS@
+DEPDIR = @DEPDIR@
+DOXYGEN_BIN = @DOXYGEN_BIN@
+DOXYSEARCH_BIN = @DOXYSEARCH_BIN@
+EXEEXT = @EXEEXT@
+Fortran_LIBS = @Fortran_LIBS@
+GlobalArrays_INCLUDES = @GlobalArrays_INCLUDES@
+GlobalArrays_LIBDIRS = @GlobalArrays_LIBDIRS@
+GlobalArrays_LIBLINKS = @GlobalArrays_LIBLINKS@
+GlobalArrays_LIBS = @GlobalArrays_LIBS@
+GlobalArrays_PREFIX = @GlobalArrays_PREFIX@
+INCLUDES = @INCLUDES@
+INSTALL_STRIP_PROGRAM = @INSTALL_STRIP_PROGRAM@
+IndirectAddressing_SUBDIRS = @IndirectAddressing_SUBDIRS@
+Kelp_INCLUDES = @Kelp_INCLUDES@
+Kelp_LIBS = @Kelp_LIBS@
+LD = @LD@
+LIBS = @LIBS@
+M4 = @M4@
+MDI_C_DEBUG = @MDI_C_DEBUG@
+MDI_C_OPT = @MDI_C_OPT@
+MPICC = @MPICC@
+MPICXX = @MPICXX@
+MPIF77 = @MPIF77@
+MPIF77NEEDSPP = @MPIF77NEEDSPP@
+MPIFLAGS = @MPIFLAGS@
+MPIINCLUDE = @MPIINCLUDE@
+MPILIBDIRS = @MPILIBDIRS@
+MPILIBS = @MPILIBS@
+MPIRUN_MACHINEFILE = @MPIRUN_MACHINEFILE@
+OBJEXT = @OBJEXT@
+OPTIONAL_INDIRECT_ADDRESSING_SUBDIRS = @OPTIONAL_INDIRECT_ADDRESSING_SUBDIRS@
+OPTIONAL_PADRE_SUBDIRS = @OPTIONAL_PADRE_SUBDIRS@
+PACKAGE = @PACKAGE@
+PADRE_DIR = @PADRE_DIR@
+PADRE_INCLUDES = @PADRE_INCLUDES@
+PADRE_LIBS = @PADRE_LIBS@
+PARTI_DIR = @PARTI_DIR@
+PARTI_INCLUDES = @PARTI_INCLUDES@
+PARTI_LIBS = @PARTI_LIBS@
+PERL = @PERL@
+PGSLIB_DIR = @PGSLIB_DIR@
+PGSLIB_INCLUDES = @PGSLIB_INCLUDES@
+PGSLIB_LIBS = @PGSLIB_LIBS@
+PPP_BUILD_SHARED_LIBS = @PPP_BUILD_SHARED_LIBS@
+PPP_BUILD_SHARED_LIB_TARGET = @PPP_BUILD_SHARED_LIB_TARGET@
+PTHREADS_LIB = @PTHREADS_LIB@
+PURIFY_EXECUTABLE = @PURIFY_EXECUTABLE@
+PURIFY_HOME = @PURIFY_HOME@
+PURIFY_OPTIONS = @PURIFY_OPTIONS@
+PURIFY_RUN_AT_EXIT = @PURIFY_RUN_AT_EXIT@
+PURIFY_WINDOWS_OPTION = @PURIFY_WINDOWS_OPTION@
+PXX_RPATH = @PXX_RPATH@
+PXX_SUBLIBS = @PXX_SUBLIBS@
+Parti_INCLUDES = @Parti_INCLUDES@
+Parti_LIBS = @Parti_LIBS@
+RANLIB = @RANLIB@
+RUNTIME_LOADER_FLAGS = @RUNTIME_LOADER_FLAGS@
+SHARED_LIBS = @SHARED_LIBS@
+SHARED_LIB_EXTENSION = @SHARED_LIB_EXTENSION@
+STATIC_LINKER = @STATIC_LINKER@
+STATIC_LINKER_FLAGS = @STATIC_LINKER_FLAGS@
+STL_DIR = @STL_DIR@
+STL_INCLUDES = @STL_INCLUDES@
+TEST_NPROCS = @TEST_NPROCS@
+VERSION = @VERSION@
+am__include = @am__include@
+am__quote = @am__quote@
+install_sh = @install_sh@
+lam_INCLUDES = @lam_INCLUDES@
+lam_LIBS = @lam_LIBS@
+lam_PREFIX = @lam_PREFIX@
+mpich_INCLUDES = @mpich_INCLUDES@
+mpich_LIBS = @mpich_LIBS@
+mpich_PREFIX = @mpich_PREFIX@
+mpirun = @mpirun@
+sla_INCLUDES = @sla_INCLUDES@
+sla_LIBS = @sla_LIBS@
+sla_PREFIX = @sla_PREFIX@
+
+MAKE = gmake
+
+# Extensions to Automake's C and C++ compiler flags.
+CXXFLAGS = @CXXFLAGS@ $(CXX_DEBUG) $(CXX_DEFINES) $(CXX_OPTIONS) $(CXX_OPT) $(CXX_TEMPLATES) $(CXX_WARNINGS) $(CXX_DL_COMPILE_FLAGS)
+CFLAGS = @CFLAGS@ $(C_DEBUG) $(C_OPTIONS) $(C_OPT) $(C_WARNINGS) $(C_DL_COMPILE_FLAGS)
+
+RM = rm -f
+
+#######################################################
+#######################################################
+clean_shared_libs_and_templates = rm -f *.so; rm -rf $(CXX_TEMPLATE_REPOSITORY) Templates.DB cxx_repository SunWS_cache PI* ti_files ii_files
+
+# Libraries created in this directory.
+noinst_LIBRARIES = libPppSource.a libPppSource_static.a
+
+# Take this out to cutout use of PGSLIB
+# indirect_addressing.C
+
+# Specifications for libPppSource.a.
+libPppSource_a_SOURCES = \
+     MPI_specific.C \
+     allocate.C \
+     arraylist.C \
+     cases.C \
+     conform_array_set.C \
+     conform_enforce.C \
+     map.C \
+     p_array.C \
+     p_abstract_op.C \
+     p_descriptor.C \
+     p_domain.C \
+     p_error_checking.C \
+     p_data_hash.C \
+     p_index_operator.C \
+     p_lazy_aggregate.C \
+     p_lazy_operand.C \
+     p_lazyarray.C \
+     p_new_operators.C \
+     partlist.C \
+     array.C \
+     descriptor.C \
+     index_operator.C \
+     new_operators.C \
+     abstract_op.C \
+     comm_man.C \
+     domain.C \
+     descriptor_cache.C \
+     error_checking.C \
+     data_hash.C \
+     index.C \
+     lazy_aggregate.C \
+     lazy_expression.C \
+     lazy_operand.C \
+     lazy_statement.C \
+     lazy_task.C \
+     lazy_taskset.C \
+     lazyarray.C \
+     optimization.C \
+     partitioning.C \
+     where.C
+
+
+# Specifications for libPppSource_static.a.
+libPppSource_static_a_SOURCES = static_initialization.C
+
+EXTRA_DIST = Makefile.depend
+subdir = src/array_src
+mkinstalldirs = $(SHELL) $(top_srcdir)/../mkinstalldirs
+CONFIG_HEADER = $(top_builddir)/config.h
+CONFIG_CLEAN_FILES =
+LIBRARIES = $(noinst_LIBRARIES)
+
+libPppSource_a_AR = $(AR) cru
+libPppSource_a_LIBADD =
+am_libPppSource_a_OBJECTS = MPI_specific.$(OBJEXT) allocate.$(OBJEXT) \
+	arraylist.$(OBJEXT) cases.$(OBJEXT) conform_array_set.$(OBJEXT) \
+	conform_enforce.$(OBJEXT) map.$(OBJEXT) p_array.$(OBJEXT) \
+	p_abstract_op.$(OBJEXT) p_descriptor.$(OBJEXT) \
+	p_domain.$(OBJEXT) p_error_checking.$(OBJEXT) \
+	p_data_hash.$(OBJEXT) p_index_operator.$(OBJEXT) \
+	p_lazy_aggregate.$(OBJEXT) p_lazy_operand.$(OBJEXT) \
+	p_lazyarray.$(OBJEXT) p_new_operators.$(OBJEXT) \
+	partlist.$(OBJEXT) array.$(OBJEXT) descriptor.$(OBJEXT) \
+	index_operator.$(OBJEXT) new_operators.$(OBJEXT) \
+	abstract_op.$(OBJEXT) comm_man.$(OBJEXT) domain.$(OBJEXT) \
+	descriptor_cache.$(OBJEXT) error_checking.$(OBJEXT) \
+	data_hash.$(OBJEXT) index.$(OBJEXT) lazy_aggregate.$(OBJEXT) \
+	lazy_expression.$(OBJEXT) lazy_operand.$(OBJEXT) \
+	lazy_statement.$(OBJEXT) lazy_task.$(OBJEXT) \
+	lazy_taskset.$(OBJEXT) lazyarray.$(OBJEXT) \
+	optimization.$(OBJEXT) partitioning.$(OBJEXT) where.$(OBJEXT)
+libPppSource_a_OBJECTS = $(am_libPppSource_a_OBJECTS)
+libPppSource_static_a_AR = $(AR) cru
+libPppSource_static_a_LIBADD =
+am_libPppSource_static_a_OBJECTS = static_initialization.$(OBJEXT)
+libPppSource_static_a_OBJECTS = $(am_libPppSource_static_a_OBJECTS)
+
+DEFS = @DEFS@
+DEFAULT_INCLUDES =  -I. -I$(srcdir) -I$(top_builddir)
+CPPFLAGS = @CPPFLAGS@
+LDFLAGS = @LDFLAGS@
+LIBS = @LIBS@
+depcomp =
+CXXCOMPILE = $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) \
+	$(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS)
+CXXLINK = $(CXXLD) $(AM_CXXFLAGS) $(CXXFLAGS) $(AM_LDFLAGS) $(LDFLAGS) \
+	-o $@
+DIST_SOURCES = $(libPppSource_a_SOURCES) \
+	$(libPppSource_static_a_SOURCES)
+DIST_COMMON = Makefile.am Makefile.in
+SOURCES = $(libPppSource_a_SOURCES) $(libPppSource_static_a_SOURCES)
+
+all: all-am
+
+.SUFFIXES:
+.SUFFIXES: .C .o .obj
+$(srcdir)/Makefile.in:  Makefile.am $(srcdir)/../../../config/Makefile.config.in $(srcdir)/Makefile.depend $(top_srcdir)/configure.in $(ACLOCAL_M4)
+	cd $(top_srcdir) && \
+	  $(AUTOMAKE) --foreign  --ignore-deps src/array_src/Makefile
+Makefile:  $(srcdir)/Makefile.in  $(top_builddir)/config.status
+	cd $(top_builddir) && \
+	  CONFIG_HEADERS= CONFIG_LINKS= \
+	  CONFIG_FILES=$(subdir)/$@ $(SHELL) ./config.status
+
+AR = ar
+
+clean-noinstLIBRARIES:
+	-test -z "$(noinst_LIBRARIES)" || rm -f $(noinst_LIBRARIES)
+
+mostlyclean-compile:
+	-rm -f *.$(OBJEXT) core *.core
+
+distclean-compile:
+	-rm -f *.tab.c
+
+.C.o:
+	$(CXXCOMPILE) -c -o $@ `test -f $< || echo '$(srcdir)/'`$<
+
+.C.obj:
+	$(CXXCOMPILE) -c -o $@ `cygpath -w $<`
+uninstall-info-am:
+
+tags: TAGS
+
+ID: $(HEADERS) $(SOURCES) $(LISP) $(TAGS_FILES)
+	list='$(SOURCES) $(HEADERS) $(TAGS_FILES)'; \
+	unique=`for i in $$list; do \
+	    if test -f "$$i"; then echo $$i; else echo $(srcdir)/$$i; fi; \
+	  done | \
+	  $(AWK) '    { files[$$0] = 1; } \
+	       END { for (i in files) print i; }'`; \
+	mkid -fID $$unique $(LISP)
+
+TAGS:  $(HEADERS) $(SOURCES)  $(TAGS_DEPENDENCIES) \
+		$(TAGS_FILES) $(LISP)
+	tags=; \
+	here=`pwd`; \
+	list='$(SOURCES) $(HEADERS) $(TAGS_FILES)'; \
+	unique=`for i in $$list; do \
+	    if test -f "$$i"; then echo $$i; else echo $(srcdir)/$$i; fi; \
+	  done | \
+	  $(AWK) '    { files[$$0] = 1; } \
+	       END { for (i in files) print i; }'`; \
+	test -z "$(ETAGS_ARGS)$$unique$(LISP)$$tags" \
+	  || etags $(ETAGS_ARGS) $$tags  $$unique $(LISP)
+
+GTAGS:
+	here=`CDPATH=: && cd $(top_builddir) && pwd` \
+	  && cd $(top_srcdir) \
+	  && gtags -i $(GTAGS_ARGS) $$here
+
+distclean-tags:
+	-rm -f TAGS ID GTAGS GRTAGS GSYMS GPATH
+
+DISTFILES = $(DIST_COMMON) $(DIST_SOURCES) $(TEXINFOS) $(EXTRA_DIST)
+
+top_distdir = ../..
+distdir = $(top_distdir)/$(PACKAGE)-$(VERSION)
+
+distdir: $(DISTFILES)
+	@for file in $(DISTFILES); do \
+	  if test -f $$file; then d=.; else d=$(srcdir); fi; \
+	  dir=`echo "$$file" | sed -e 's,/[^/]*$$,,'`; \
+	  if test "$$dir" != "$$file" && test "$$dir" != "."; then \
+	    $(mkinstalldirs) "$(distdir)/$$dir"; \
+	  fi; \
+	  if test -d $$d/$$file; then \
+	    cp -pR $$d/$$file $(distdir) \
+	    || exit 1; \
+	  else \
+	    test -f $(distdir)/$$file \
+	    || cp -p $$d/$$file $(distdir)/$$file \
+	    || exit 1; \
+	  fi; \
+	done
+check-am: all-am
+check: check-am
+all-am: Makefile $(LIBRARIES)
+
+installdirs:
+
+install: install-am
+install-exec: install-exec-am
+install-data: install-data-am
+uninstall: uninstall-am
+
+install-am: all-am
+	@$(MAKE) $(AM_MAKEFLAGS) install-exec-am install-data-am
+
+installcheck: installcheck-am
+install-strip:
+	$(MAKE) $(AM_MAKEFLAGS) INSTALL_PROGRAM="$(INSTALL_STRIP_PROGRAM)" \
+	  `test -z '$(STRIP)' || \
+	    echo "INSTALL_PROGRAM_ENV=STRIPPROG='$(STRIP)'"` install
+mostlyclean-generic:
+
+clean-generic:
+
+distclean-generic:
+	-rm -f Makefile $(CONFIG_CLEAN_FILES) stamp-h stamp-h[0-9]*
+
+maintainer-clean-generic:
+	@echo "This command is intended for maintainers to use"
+	@echo "it deletes files that may require special tools to rebuild."
+clean: clean-am
+
+clean-am: clean-generic clean-local clean-noinstLIBRARIES mostlyclean-am
+
+distclean: distclean-am
+
+distclean-am: clean-am distclean-compile distclean-generic \
+	distclean-tags
+
+dvi: dvi-am
+
+dvi-am:
+
+info: info-am
+
+info-am:
+
+install-data-am:
+
+install-exec-am:
+
+install-info: install-info-am
+
+install-man:
+
+installcheck-am:
+
+maintainer-clean: maintainer-clean-am
+
+maintainer-clean-am: distclean-am maintainer-clean-generic
+
+mostlyclean: mostlyclean-am
+
+mostlyclean-am: mostlyclean-compile mostlyclean-generic
+
+uninstall-am: uninstall-info-am
+
+.PHONY: GTAGS all all-am check check-am clean clean-generic clean-local \
+	clean-noinstLIBRARIES distclean distclean-compile \
+	distclean-generic distclean-tags distdir dvi dvi-am info \
+	info-am install install-am install-data install-data-am \
+	install-exec install-exec-am install-info install-info-am \
+	install-man install-strip installcheck installcheck-am \
+	installdirs maintainer-clean maintainer-clean-generic \
+	mostlyclean mostlyclean-compile mostlyclean-generic tags \
+	uninstall uninstall-am uninstall-info-am
+
+
+#############################################################################################
+######################   SPECIAL TARGET FOR BUILDING SOURCE CODE   ##########################
+#############################################################################################
+
+macros_and_source:
+	cd $(srcdir) && $(MAKE) -f makefile.build all_source
+
+source:
+	cd $(srcdir) && $(MAKE) -f makefile.build source
+
+templates-clean:
+	cd $(srcdir) && $(MAKE) -f makefile.build templates-clean
+
+all-but-MDI-clean:
+	cd $(srcdir) && $(MAKE) -f makefile.build all-but-MDI-clean
+
+MDI-source:
+	cd $(srcdir) && $(MAKE) -f makefile.build MDI-source
+
+OPERATORS-source:
+	cd $(srcdir) && $(MAKE) -f makefile.build OPERATORS-source
+
+all-source:
+	cd $(srcdir) && $(MAKE) -f makefile.build all-source
+
+entire-MDI-source:
+	cd $(srcdir) && $(MAKE) -f makefile.build entire-MDI-source
+
+entire-OPERATORS-source:
+	cd $(srcdir) && $(MAKE) -f makefile.build entire-OPERATORS-source
+
+entire-all-source:
+	cd $(srcdir) && $(MAKE) -f makefile.build entire-all-source
+
+MDI-source-clean:
+	cd $(srcdir) && $(MAKE) -f makefile.build MDI-source-clean
+
+OPERATORS-source-clean:
+	cd $(srcdir) && $(MAKE) -f makefile.build OPERATORS-source-clean
+
+all-source-clean:
+	cd $(srcdir) && $(MAKE) -f makefile.build all-source-clean
+
+#############################################################################################
+###################   SPECIAL TARGET FOR EVLUATING DISK SPACE USAGE   #######################
+#############################################################################################
+
+object_size:
+	echo "Size of Object Files = " `wc -c *.o | grep total | cut -d " " -f 2` 
+
+code_size:
+	echo "Size of Source Files = " `wc -c *.[c,C] | grep total | cut -d " " -f 2`
+
+# If this is the development version of A++P++ then include the 
+# dependence upon the files in A++P++/Common_Code so that the
+# source files in this directory are re-generated when the files
+# in A++P++/Common_Code are updated.
+
+# Note that white space is required before the "include" to avoid the automake error:
+#      "automake: Makefile.am: unterminated conditionals: @PXX_MAINTAINER_MODE_TRUE@"
+# This seems to be a bug in automake.
+@DEVELOPMENT_SPECIFIC_DEPENDENCIES_TRUE@ include $(top_srcdir)/../Common_Code/make_dependence_info.inc
+
+libPppSource.a: $(libPppSource_a_OBJECTS) $(libPppSource_a_DEPENDENCIES)
+	-rm -f $@
+	$(CXX_STATIC_LIB_UPDATE) $@ $(libPppSource_a_OBJECTS) $(libPppSource_a_LIBADD)
+	test -f $@ || exit 1
+libPppSource_static.a: $(libPppSource_static_a_OBJECTS) $(libPppSource_static_a_DEPENDENCIES)
+	-rm -f $@
+	$(CXX_STATIC_LIB_UPDATE) $@ $(libPppSource_static_a_OBJECTS) $(libPppSource_static_a_LIBADD)
+	test -f $@ || exit 1
+
+MPI_specific.o: MPI_specific.C ../../include/A++.h
+abstract_op.o: abstract_op.C ../../include/A++.h \
+ ../../include/machine.h ../../include/array_domain.h \
+ ../../include/inline_support.h
+allocate.o: allocate.C ../../include/A++.h
+array.o: array.C ../../include/A++.h ../../include/machine.h \
+ ../../include/array_domain.h
+arraylist.o: arraylist.C ../../include/A++.h
+cases.o: cases.C ../../include/A++.h
+comm_man.o: comm_man.C ../../include/A++.h
+conform_array_set.o: conform_array_set.C ../../include/A++.h
+conform_enforce.o: conform_enforce.C ../../include/A++.h
+data_hash.o: data_hash.C ../../include/A++.h
+descriptor.o: descriptor.C ../../include/A++.h ../../include/machine.h \
+ ../../include/array_domain.h
+descriptor_cache.o: descriptor_cache.C ../../include/A++.h
+domain.o: domain.C ../../include/A++.h ../../include/machine.h \
+ ../../include/array_domain.h
+error_checking.o: error_checking.C ../../include/A++.h
+index.o: index.C ../../include/A++.h
+index_operator.o: index_operator.C ../../include/A++.h \
+ ../../include/machine.h ../../include/array_domain.h
+indirect_addressing.o: indirect_addressing.C ../../include/A++.h
+lazy_aggregate.o: lazy_aggregate.C ../../include/A++.h \
+ ../../include/machine.h ../../include/array_domain.h
+lazy_expression.o: lazy_expression.C ../../include/A++.h
+lazy_operand.o: lazy_operand.C ../../include/A++.h
+lazy_statement.o: lazy_statement.C ../../include/A++.h
+lazy_task.o: lazy_task.C ../../include/A++.h
+lazy_taskset.o: lazy_taskset.C ../../include/A++.h
+lazyarray.o: lazyarray.C ../../include/A++.h ../../include/machine.h \
+ ../../include/array_domain.h
+map.o: map.C ../../include/A++.h
+new_operators.o: new_operators.C ../../include/A++.h
+optimization.o: optimization.C ../../include/A++.h
+p_abstract_op.o: p_abstract_op.C ../../include/A++.h
+p_array.o: p_array.C ../../include/A++.h ../../include/machine.h \
+ ../../include/array_domain.h
+p_data_hash.o: p_data_hash.C ../../include/A++.h
+p_descriptor.o: p_descriptor.C ../../include/A++.h \
+ ../../include/machine.h ../../include/array_domain.h
+p_domain.o: p_domain.C ../../include/A++.h ../../include/machine.h \
+ ../../include/array_domain.h
+p_error_checking.o: p_error_checking.C ../../include/A++.h
+p_index_operator.o: p_index_operator.C ../../include/A++.h \
+ ../../include/machine.h ../../include/array_domain.h
+p_lazy_aggregate.o: p_lazy_aggregate.C ../../include/A++.h \
+ ../../include/machine.h ../../include/array_domain.h
+p_lazy_operand.o: p_lazy_operand.C ../../include/A++.h
+p_lazyarray.o: p_lazyarray.C ../../include/A++.h \
+ ../../include/machine.h ../../include/array_domain.h
+p_new_operators.o: p_new_operators.C ../../include/A++.h
+partitioning.o: partitioning.C ../../include/A++.h
+partlist.o: partlist.C ../../include/A++.h
+static_initialization.o: static_initialization.C ../../include/A++.h
+where.o: where.C ../../include/A++.h
+
+depend:
+#	$(MAKE_DEPEND) $(MAKE_DEPEND_OPTIONS) $(SRCS) $(MAKE_DEPEND_OUTPUT)
+	$(MAKE) -f makefile.build depend
+
+clean-local:
+	$(clean_shared_libs_and_templates)
+
+.NOEXPORT:

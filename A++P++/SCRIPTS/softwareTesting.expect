@@ -1,0 +1,963 @@
+# Expect Library File
+#
+# This file represents Expect procedures useful for testing software
+#
+# Written by Dan Quinlan (please send me any improved versions, dquinlan@llnl.gov)
+#
+# We use this for testing out A++/P++ libraries (and later ROSE and AMR++)
+#
+
+# The rm, mv, and secure_copy can take a while so wait forever!
+# This also avoids any other commands from timing out (which makes the script more robust)
+set timeout -1
+
+# Define global variables
+set sourceMachine ""
+set CASC_promptPattern ""
+set userName $env(USER)
+
+# set targetMachinePrompt ""
+# set targetMachineConfigureOptions ""
+# set temp_LC_dir ""
+
+proc setupEnvironment {} {
+   # setup global variables and environment
+     global CASC_promptPattern
+     global userName
+     global sourceMachine
+
+     upvar targetArchitecture targetArchitecture
+     upvar targetMachinePrompt targetMachinePrompt
+   # upvar targetMachinePrompt targetMachinePrompt
+
+   # This script used east.llnl.gov for the transfer of files to the remote location
+   # we will make the targetMachine an input variables at a later date
+     set sourceMachine "east.llnl.gov"
+   # set targetMachine "modi4.ncsa.uiuc.edu"
+   # set targetArchitecture "NCSA_SGI"
+   # set targetMachinePrompt "modi4 *% "
+   # set targetMachinePrompt "% "
+
+   # turn off terminal echo (because we input a password for the remote machine)
+   # stty -echo
+
+   # This somewhat specific to the prompts used at CASC (doesn't contain "%")
+   # This is a general problem in building expect scripts
+     set CASC_promptPattern "(\[a-zA-Z0-9\]+)\{(\[a-zA-Z0-9\]+)\}\[0-9\]+:"
+   # set CASC_promptPattern $prompt
+   # set CASC_promptPattern "$prompt $"
+   }
+
+proc printoutVariables {} {
+     upvar fileName fileName
+     upvar targetMachine targetMachine
+     upvar tarFileName tarFileName
+     upvar zipFileName zipFileName
+
+     upvar temp_LC_dir temp_LC_dir
+     upvar targetMachine targetMachine
+     upvar targetArchitecture targetArchitecture
+     upvar targetMachinePrompt targetMachinePrompt
+     upvar targetMachineConfigureOptions targetMachineConfigureOptions
+     upvar targetMachineOptimizedConfigureOptions targetMachineOptimizedConfigureOptions
+
+     global CASC_promptPattern
+
+     puts ""
+     puts "Internal script variables:"
+     puts "     Input file: $fileName"
+     puts "     Input machine: $targetMachine"
+     puts "     Tar file: $tarFileName"
+     puts "     Ziped tar file: $zipFileName"
+     puts "     temporary LC filesystem location: $temp_LC_dir"
+     puts "     local prompt: $CASC_promptPattern"
+     puts "     Target Machine Name: $targetMachine"
+     puts "     Target Architecture: $targetArchitecture"
+     puts "     Remote machine prompt: $targetMachinePrompt"
+     puts "     $targetArchitecture's configuration options: $targetMachineConfigureOptions"
+     puts "     $targetArchitecture's optimized configuration options: $targetMachineOptimizedConfigureOptions"
+     puts ""
+   }
+
+proc setupTargetMachineVariables {inputTargetMachine} {
+   # setup stuff that depends upon the machine name
+   # Add additional machines here!
+
+     upvar temp_LC_dir temp_LC_dir
+     upvar targetMachine targetMachine
+     upvar targetArchitecture targetArchitecture
+     upvar targetMachinePrompt targetMachinePrompt
+     upvar targetMachineConfigureOptions targetMachineConfigureOptions
+     upvar targetMachineOptimizedConfigureOptions targetMachineOptimizedConfigureOptions
+
+     global userName
+     global CASC_promptPattern
+
+   # Note that we set the configure options to permit 
+   # the fastest compiles while we test this script
+   # thus we specify empty optimization strings
+
+     switch -- $inputTargetMachine \
+          "NCSA" {
+                   set targetMachine "modi4.ncsa.uiuc.edu"
+                   set targetArchitecture "NCSA_SGI_ORIGIN_2000"
+                   set targetMachinePrompt "% "
+                 # set targetMachineConfigureOptions "--enable-CXX_OPT= --enable-C_OPT= --with-CC=cc --with-CXX=CC"
+                 # set targetMachineConfigureOptions "--enable-CXX_OPT= --enable-C_OPT= "
+                 # don't set --enable-USE_PTHREADS for SGI Origin 2000 machine (not available)
+                   set targetMachineConfigureOptions "--enable-PXX --enable-CXX_OPT= --enable-C_OPT= "
+                   set targetMachineOptimizedConfigureOptions "--enable-PXX "
+        } "RIPTIDE" {
+                   set targetMachine "riptide.llnl.gov"
+                   set targetArchitecture "RIPTIDE_SGI_ONYX2"
+                   set targetMachinePrompt $CASC_promptPattern
+                   set targetMachineConfigureOptions "--enable-PXX --enable-USE_PTHREADS --enable-CXX_OPT= --enable-C_OPT= "
+                   set targetMachineOptimizedConfigureOptions "--enable-PXX "
+        } "EAST" {
+                   set targetMachine "east.llnl.gov"
+                   set targetArchitecture "COMPASS_CLUSTER"
+                   set targetMachinePrompt $CASC_promptPattern
+                 # We don't have PADRE working properly on the decs yet
+                   set targetMachineConfigureOptions "--without-PADRE --enable-USE_PTHREADS --enable-CXX_OPT= --enable-C_OPT= "
+                   set targetMachineOptimizedConfigureOptions "--without-PADRE "
+        } "WEST" {
+                   set targetMachine "west.llnl.gov"
+                   set targetArchitecture "COMPASS_CLUSTER"
+                   set targetMachinePrompt $CASC_promptPattern
+                 # We don't have PADRE working properly on the decs yet
+                   set targetMachineConfigureOptions "--without-PADRE --enable-USE_PTHREADS --enable-CXX_OPT= --enable-C_OPT= "
+                   set targetMachineOptimizedConfigureOptions "--without-PADRE "
+        } "NORTH" {
+                   set targetMachine "north.llnl.gov"
+                   set targetArchitecture "COMPASS_CLUSTER"
+                   set targetMachinePrompt $CASC_promptPattern
+                 # We don't have PADRE working properly on the decs yet
+                   set targetMachineConfigureOptions "--without-PADRE --enable-USE_PTHREADS --enable-CXX_OPT= --enable-C_OPT= "
+                   set targetMachineOptimizedConfigureOptions "--without-PADRE "
+        } "SOUTH" {
+                   set targetMachine "south.llnl.gov"
+                   set targetArchitecture "COMPASS_CLUSTER"
+                   set targetMachinePrompt $CASC_promptPattern
+                   set targetMachineConfigureOptions "--without-PADRE --enable-USE_PTHREADS --enable-CXX_OPT= --enable-C_OPT= "
+                   set targetMachineOptimizedConfigureOptions "--without-PADRE "
+        } "BLUE" {
+                 # can't include the long form or it forces a request for 
+                 # confirmation (do to possible man-in-the-middle-attack)
+                 # set targetMachine "blue.llnl.gov"
+                   set targetMachine "blue"
+                   set targetArchitecture "BLUE_PACIFIC"
+                   set targetMachinePrompt $CASC_promptPattern
+                 # mpcc_r is required for batch jobs only (mpcc should work if we run interactively)!
+                   set targetMachineConfigureOptions "--enable-PXX --without-PADRE --enable-USE_PTHREADS --enable-CXX_OPT= --enable-C_OPT= --with-CC=mpcc_r --with-CXX=mpCC_r"
+                   set targetMachineOptimizedConfigureOptions "--enable-PXX --without-PADRE --with-CC=mpcc_r --with-CXX=mpCC_r"
+        } "TERA" {
+                   set targetMachine "tc01.llnl.gov"
+                   set targetArchitecture "TERA_CLUSTER"
+                   set targetMachinePrompt $CASC_promptPattern
+                 # Use of Brian Gunney's new path requires the use of dmpirun instead of mpirun
+                 # set targetMachineConfigureOptions "--enable-PXX --with-mpirun=mpirun --enable-USE_PTHREADS --enable-CXX_OPT= --enable-C_OPT= "
+                   set targetMachineConfigureOptions "--enable-PXX --with-mpirun=dmpirun --enable-USE_PTHREADS --enable-CXX_OPT= --enable-C_OPT= "
+                   set targetMachineOptimizedConfigureOptions "--enable-PXX "
+        } "SUN" {
+                 # David Brown's new machine
+                 # set targetMachine "koch"
+                 # set targetMachine "bloch"
+                 # set targetMachine "glaisher"
+                   set targetMachine "bobalek"
+                 # set targetMachine "nisus"
+                 # set targetMachine "darius"
+                   set targetArchitecture "SUN"
+                   set targetMachinePrompt $CASC_promptPattern
+                   set targetMachineConfigureOptions "--enable-PXX --enable-USE_PTHREADS --enable-CXX_OPT= --enable-C_OPT= "
+                   set targetMachineOptimizedConfigureOptions "--enable-PXX --with-ar=/usr/local/bin/ar "
+        } "SUN_GALERKIN" {
+                 # weyl is down (can't login)
+                 # set targetMachine "weyl"
+                   set targetMachine "galerkin"
+                 # set targetMachine "bobalek"
+                   set targetArchitecture "SUN"
+                   set targetMachinePrompt $CASC_promptPattern
+                   set targetMachineConfigureOptions "--enable-PXX --enable-USE_PTHREADS --enable-CXX_OPT= --enable-C_OPT= "
+                   set targetMachineOptimizedConfigureOptions "--enable-PXX --with-ar=/usr/local/bin/ar"
+        } "SUN_KCC" {
+                 # weyl is down (can't login)
+                 # set targetMachine "yukawa"
+                   set targetMachine "rabi"
+                 # set targetMachine "bobalek"
+                 # set targetMachine "rieman"
+                 # set targetMachine "stark"
+                 # set targetMachine "nisus"
+                   set targetArchitecture "SUN_KCC"
+                   set targetMachinePrompt $CASC_promptPattern
+                   set targetMachineConfigureOptions "--enable-PXX --enable-USE_PTHREADS --with-CC=cc --with-CXX=KCC --enable-CXX_OPT= --enable-C_OPT= "
+                   set targetMachineOptimizedConfigureOptions "--enable-PXX --with-CC=cc --with-CXX=KCC "
+        } "SUN_GNU" {
+                 # weyl is down (can't login)
+                 # set targetMachine "weyl"
+                 # set targetMachine "nisus"
+                 # set targetMachine "stark"
+                   set targetMachine "rabi"
+                 # set targetMachine "koch"
+                   set targetArchitecture "SUN_GNU"
+                   set targetMachinePrompt $CASC_promptPattern
+                   set targetMachineConfigureOptions "--enable-PXX --enable-USE_PTHREADS --with-CC=gcc --with-CXX=g++ --enable-CXX_OPT= --enable-C_OPT= "
+                   set targetMachineOptimizedConfigureOptions "--enable-PXX --with-CC=gcc --with-CXX=g++ "
+        } "SUN_CCV5" {
+                 # This is a machine configured to use version 5 of the C++ compiler by default
+                 # set targetMachine "juventas"
+                 # set targetMachine "bobalek"
+                   set targetMachine "rabi"
+                   set targetArchitecture "SUN_CCV5"
+                   set targetMachinePrompt $CASC_promptPattern
+                 # The CC-5.0 name no longer exists so we specify the compiler explicitly
+                   set targetMachineConfigureOptions "--with-CC=/opt/SUNWspro/SC5.0/bin/cc --with-CXX=/opt/SUNWspro/SC5.0/bin/CC --enable-USE_PTHREADS --enable-CXX_OPT= --enable-C_OPT= "
+
+                   set targetMachineOptimizedConfigureOptions "--with-CC=/opt/SUNWspro/SC5.0/bin/cc --with-CXX=/opt/SUNWspro/SC5.0/bin/CC "
+        } "SUN_CCV4_ON_V5" {
+                 # This is a machine configured to use version 5 of the C++ compiler by default
+                 # we want to test the optional use of version 4.2 of the C++ compiler where 
+                 # version 5 is the default
+                 # set targetMachine "juventas"
+                   set targetMachine "bobalek"
+                   set targetArchitecture "SUN_CCV4_ON_V5"
+                   set targetMachinePrompt $CASC_promptPattern
+                   set targetMachineConfigureOptions "--with-CC=cc-4.2 --with-CXX=CC-4.2 --enable-USE_PTHREADS --enable-CXX_OPT= --enable-C_OPT= "
+                   set targetMachineOptimizedConfigureOptions "--with-CC=cc-4.2 --with-CXX=CC-4.2 "
+        } "SUN_WITHOUT_PADRE" {
+                 # weyl is down (can't login)
+                 # set targetMachine "koch"
+                   set targetMachine "bobalek"
+                 # set targetMachine "darius"
+                   set targetArchitecture "SUN_WITHOUT_PADRE"
+                   set targetMachinePrompt $CASC_promptPattern
+                   set targetMachineConfigureOptions "--enable-PXX --without-PADRE --enable-USE_PTHREADS --enable-CXX_OPT= --enable-C_OPT= "
+                   set targetMachineOptimizedConfigureOptions "--enable-PXX --without-PADRE --with-ar=/usr/local/bin/ar "
+        } "LINUX_DEC" {
+                 # MPI is not available on grashof
+                   set targetMachine "grashof.engr.colostate.edu"
+                   set targetArchitecture "LINUX"
+                 # set targetMachinePrompt "(\[a-zA-Z0-9\]+)\{(\[a-zA-Z0-9\]+)\}\[0-9\]+:"
+                   set targetMachinePrompt $CASC_promptPattern
+                 # MPI is unavailable on this machine so don't test P++
+                   set targetMachineConfigureOptions "--enable-CXX_OPT= --enable-C_OPT= "
+                   set targetMachineOptimizedConfigureOptions " "
+        } "LINUX_INTEL" {
+                   set targetMachine "tux03"
+                   set targetArchitecture "LINUX"
+                 # set targetMachinePrompt "(\[a-zA-Z0-9\]+)\{(\[a-zA-Z0-9\]+)\}\[0-9\]+:"
+                   set targetMachinePrompt $CASC_promptPattern
+                 # MPI is unavailable on this machine so don't test P++
+                   set targetMachineConfigureOptions "--enable-PXX --enable-CXX_OPT= --enable-C_OPT= "
+                   set targetMachineOptimizedConfigureOptions " "
+        } default {
+                   set targetMachine $inputTargetMachine
+                   set targetArchitecture $inputTargetMachine
+                   set targetMachinePrompt "% "
+                   set targetMachineConfigureOptions "--enable-CXX_OPT= --enable-C_OPT= "
+                   set targetMachineOptimizedConfigureOptions " "
+
+                 # Debugging to see if we have the names right
+                   puts "Using the default target mechanism"
+                 }
+
+   # Enable/disable P++ tests on remote machines (do this after we have tested scripts with P++)
+   # set targetMachineConfigureOptions "--enable-PXX $targetMachineConfigureOptions"
+
+   # Enable INTERNALDEBUG when doing all tests! This provides a higher level of internal consistancy checking.
+   # set targetMachineConfigureOptions "--enable-SHARED_LIBS --enable-USE_PTHREADS --enable-INTERNALDEBUG $targetMachineConfigureOptions"
+   # set targetMachineConfigureOptions "--enable-USE_PTHREADS --enable-INTERNALDEBUG $targetMachineConfigureOptions"
+   # Don't use USE_PTHREADS on the DEC LINUX machine (it is not available there) so it is removeds as a default option
+     set targetMachineConfigureOptions "--enable-INTERNALDEBUG $targetMachineConfigureOptions"
+
+   # (9/22/2000) Retest without shared libraries
+   # set targetMachineConfigureOptions "--enable-INTERNALDEBUG $targetMachineConfigureOptions"
+
+   # Don't mix optimizations with the --enable-INTERNALDEBUG option
+   # set targetMachineOptimizedConfigureOptions "--enable-SHARED_LIBS --enable-USE_PTHREADS $targetMachineOptimizedConfigureOptions"
+   # set targetMachineOptimizedConfigureOptions "--enable-USE_PTHREADS $targetMachineOptimizedConfigureOptions"
+   # Don't use USE_PTHREADS on the DEC LINUX machine (it is not available there) so it is removeds as a default option
+     set targetMachineOptimizedConfigureOptions "$targetMachineOptimizedConfigureOptions"
+
+   # Declare a location on the LC file system where we can
+   # copy the file we want to place onto the remore system
+   # set temp_LC_dir "/usr/casc/overture/$userName/tmp/$targetArchitecture"
+
+   # Here we could tak advantage of the use of the local network to avoid copying to the LC file system.
+     switch -- $targetArchitecture \
+          "SUN"   {
+                  # Use a location on the local network (NON LC)
+                    set temp_LC_dir "/usr/casc/overture/$userName/tmp/$targetArchitecture"
+        } default {
+                    set temp_LC_dir "/usr/casc/overture/$userName/tmp/$targetArchitecture"
+                  }
+
+     spawn -noecho mkdir -p $temp_LC_dir
+
+   # Release process ids used
+#     expect eof; wait -nowait;
+
+     expect -re $CASC_promptPattern
+   }
+
+proc copyFileTo_LC_Filesystem {zipFileName} {
+   # ssh does not work on CASC systems to the outside world so copy to
+   # the file to the LC file system This proceedure also sets up the
+   # directory where the output from the remote machine will be copied
+   # back to the CASC system
+     global userName
+
+   # caller scoped variables used in this proceedure
+     upvar targetArchitecture  targetArchitecture
+     upvar CASC_promptPattern CASC_promptPattern
+     upvar temp_LC_dir temp_LC_dir
+
+     puts "Inside of copyFileTo_LC_Filesystem: temp_LC_dir = $temp_LC_dir"
+
+   # Build a place to copy the file on the local CASC file system
+   # Can't use the "~" in a string (I don't know why)
+   # set CASC_directory "~/A++P++/A++P++Source/MACHINE_TESTS/$targetArchitecture"
+     set CASC_directory "/home/$userName/A++P++/A++P++Source/MACHINE_TESTS/$targetArchitecture"
+     spawn -noecho mkdir -p $CASC_directory
+
+   # Release process ids used
+#    expect eof; wait -nowait;
+
+     expect -re $CASC_promptPattern
+
+     spawn -noecho mkdir -p $temp_LC_dir
+
+   # Release process ids used
+#     expect eof; wait -nowait;
+
+     expect -re $CASC_promptPattern
+
+   # Copy the file to the LC file system
+     spawn cp $zipFileName $temp_LC_dir/$zipFileName
+
+   # Release process ids used
+#    expect eof; wait -nowait;
+
+     expect -re $CASC_promptPattern
+
+   # Copy the testing script out of the SCRIPTS directory and to the 
+   # same location at the same level as the zip file.
+     spawn cp -f SCRIPTS/testScript $temp_LC_dir/testScript
+
+   # Release process ids used
+#    expect eof; wait -nowait;
+
+     expect -re $CASC_promptPattern
+   }
+
+proc getPassword {label} {
+   # ask for the password for the remote machine
+   # upvar password password
+
+     stty -echo
+     send_user "$label? "
+     expect_user -re "(.*)\n"
+
+   # save the password (for the remote machine) 
+     send_user "\n"
+     set password $expect_out(1,string)
+
+   # clear the password
+   # set password ""
+     return $password
+   }
+
+# proc loginToRemoteSystem {targetMachine password targetMachinePrompt} {
+
+proc loginToRemoteSystem {targetMachine remotePassword targetMachinePrompt} {
+   # We need to use the global scope's version of spawn_id 
+   # so to spawn a process within a proceedure
+     global spawn_id
+     global user_spawn_id
+
+     upvar CASC_promptPattern CASC_promptPattern
+     upvar targetArchitecture targetArchitecture
+
+   # Avoid timeouts while logging in to remote machine
+   # I think we have to set the timeout explicitly in this new proceedure scope
+     set timeout -1
+
+   # spawn echo "targetMachinePrompt = $targetMachinePrompt\n"
+
+   # Logon to the remote machine (cron jobs require the explicit 
+   # path since the usual path is not setup ???)
+     spawn /usr/local/bin/ssh $targetMachine
+
+   # Release process ids used
+#    expect eof; wait -nowait;
+
+   # Call password proceedure
+     expectPassword $remotePassword "$targetMachinePrompt"
+   }
+
+proc expectPassword {password targetMachinePrompt} {
+   # This expect waits for a password request (if it comes)
+   # This also avoids placing the input password (and LC password) into any variable
+   # we simply switch to interactive mode so that the user can inter his password
+   # normally and the restart the expect stuff afterward (copied from page 201 of the 
+   # Expect book).  So this can't be any sort of security violation.
+
+     global user_spawn_id
+     upvar targetMachine targetMachine
+
+   # global targetArchitecture
+     upvar targetArchitecture targetArchitecture
+
+   # Avoid timeouts while logging in to remote machine
+   # I think we have to set the timeout explicitly in this new proceedure scope
+   # set timeout -1
+
+     switch -- $targetArchitecture \
+          "SUN"   {
+                  # on the local SUNs we assume there will be no password required
+                  # this avoids the processing of the "stty" command where we want 
+                  # to automate local builds through the use of cron jobs
+                  # there might be a better way of handling this detail
+                    expect -re $targetMachinePrompt
+        } "BLUE_PACIFIC"   {
+                    expect -re $targetMachinePrompt
+        } "TERA_CLUSTER"   {
+                    expect -re $targetMachinePrompt
+        } "SUN_WITHOUT_PADRE"   {
+                    expect -re $targetMachinePrompt
+        } "SUN_KCC"   {
+                    expect -re $targetMachinePrompt
+        } "SUN_GNU"   {
+                    expect -re $targetMachinePrompt
+        } "SUN_CCV5"  {
+                    expect -re $targetMachinePrompt
+        } "SUN_CCV4_ON_V5" {
+                    expect -re $targetMachinePrompt
+        } default {
+                  # wait for the password (or the prompt if not password is required)
+
+                  # Set to raw mode to handle answerback mechanism if required
+                    stty raw -echo
+
+                  # Alternative answerback mechanism (could not make it work for this situation)
+                  # interact -o -nobuffer -re "$targetMachine{.+}.+:" return
+                  # interact -o -nobuffer -re "$targetMachine" return
+
+                  # Note: As best I can tell the scp command's prompt for a password does not timeout
+                    expect {
+                         assword: {
+                            # Must define this a a global variable
+                              global timeout
+                            # Turn off echo so we can enter the password securely
+                              stty -raw -echo
+                            # Now ask the user for the LC password
+                            # send_user "LC password (for [exec whoami]): "
+
+                            # avoid any possible timeout (wait forever)
+                              set old_timeout $timeout; set timeout -1
+                            # send "$expect_out(1,string)\r"
+                              if {[string length $password] == 0} {
+                                   expect_user -re "(.*)\n"
+                                   send_user "\n"
+                                   send "$expect_out(1,string)\r"
+                                 } else {
+                                   send "$password\r"
+                                 }
+
+                              set timeout $old_timeout
+
+                            # The example program (page 201 of Expect book) includes 
+                            # "exp_continue" but it does not work (I think)
+                            # exp_continue
+                            # wait until the scp command is done (and check that it worked)!
+                            # We can only check for "Exit status 0" if we use the "-v" option to scp
+                            # expect -re "Exit status 0"
+                            # Wait for final completion of transfer and the prompt afterward
+                              expect -re $targetMachinePrompt
+                            } "Bad host name: " {
+                              send_user "invalid host specified\n"
+                              exit
+                            } "Time out occured" {
+                              send_user "Time out occured (exiting ...)\n"
+                              exit
+                            } -re "$targetMachinePrompt" {
+                            } -i $user_spawn_id -re ".+" {
+                               send $expect_out(buffer)
+                               exp_continue
+                            } "time out" {
+                              send_user "time out\n"
+                            # exit
+                            } eof {
+                              send_user "connection to host failed: \n"
+                              send_user "$expect_out(buffer)"
+                            } -re "$targetMachinePrompt"
+                       }
+
+                  # Turn on the normal stty stuff
+                    stty -raw echo
+                  }
+   }
+
+proc secure_copy_from_LC {sourceMachine sourceFile targetArchitecture targetMachine targetFile targetMachinePrompt password} {
+   # This procedure calls the secure copy command (scp) and then 
+   # returns control to the user so that a password can be entered
+   # Note that on LLNL systems the port number is required (maybe that should be an input parameter?)
+
+   set timeout -1
+
+   # start the secure copy command
+   # Can't seem to specify the targetMachine on the scp command line???
+   # send "scp -v -P922 dquinlan@$sourceMachine:$sourceFile dquinlan@$targetMachine:$targetFile\r"
+   # send "scp -v -P922 dquinlan@$sourceMachine:$sourceFile $targetFile\r"
+
+   # send "scp -v -P922 dquinlan@$sourceMachine:$sourceFile $targetFile\r"
+     switch -- $targetArchitecture \
+          "SUN"   {
+                  # Use a location on the local network (NON LC file system)
+                  # This avoids any password requirements so that local 
+                  # network tests can be run as cron jobs
+                    send "cp $sourceFile $targetFile\r"
+                    expect -re $targetMachinePrompt
+        } "BLUE_PACIFIC"   {
+                    send "cp $sourceFile $targetFile\r"
+                    expect -re $targetMachinePrompt
+        } "TERA_CLUSTER"   {
+                    send "cp $sourceFile $targetFile\r"
+                    expect -re $targetMachinePrompt
+        } "SUN_WITHOUT_PADRE"   {
+                    send "cp $sourceFile $targetFile\r"
+                    expect -re $targetMachinePrompt
+        } "SUN_KCC"   {
+                    send "cp $sourceFile $targetFile\r"
+                    expect -re $targetMachinePrompt
+        } "SUN_GNU"   {
+                    send "cp $sourceFile $targetFile\r"
+                    expect -re $targetMachinePrompt
+        } "SUN_CCV5"  {
+                    send "cp $sourceFile $targetFile\r"
+                    expect -re $targetMachinePrompt
+        } "SUN_CCV4_ON_V5" {
+                    send "cp $sourceFile $targetFile\r"
+                    expect -re $targetMachinePrompt
+        } default {
+                    send "scp -v -P922 dquinlan@$sourceMachine:$sourceFile $targetFile\r"
+                  # wait for the password (or the prompt if not password is required)
+                    expectPassword "$password" "$targetMachinePrompt"
+                  }
+
+   # wait for the password (or the prompt if not password is required)
+   # expectPassword "$password" "$targetMachinePrompt"
+   }
+
+proc secure_copy_to_LC {sourceMachine sourceFile targetMachine targetFile targetMachinePrompt password} {
+   # This procedure calls the secure copy command (scp) and then 
+   # returns control to the user so that a password can be entered
+   # Note that on LLNL systems the port number is required (maybe that should be an input parameter?)
+
+     global userName
+     upvar targetArchitecture targetArchitecture
+
+   # printoutVariables
+
+     puts "sourceMachine       = $sourceMachine"
+     puts "sourceFile          = $sourceFile"
+     puts "targetMachine       = $targetMachine"
+     puts "targetFile          = $targetFile"
+     puts "targetMachinePrompt = $targetMachinePrompt"
+     puts "password            = $password"
+
+   # start the secure copy command
+   # Can't seem to specify the targetMachine on the scp command line???
+   # send "scp -v -P922 dquinlan@$sourceMachine:$sourceFile dquinlan@$targetMachine:$targetFile\r"
+   # send "scp -v -P922 dquinlan@$sourceMachine:$sourceFile $targetFile\r"
+   # send "scp -v -P922 $configureOutputFile $userName@$sourceMachine:$machineTestOutputDir/$configureOutputFile\r"
+   # send "scp -v -P922 $sourceFile $userName@$sourceMachine:$targetFile\r"
+
+     switch -- $targetArchitecture \
+          "SUN"   {
+                  # Use a location on the local network (NON LC file system)
+                  # This avoids any password requirements so that local 
+                  # network tests can be run as cron jobs
+                    send "cp -r $sourceFile $targetFile\r"
+                    expect -re $targetMachinePrompt
+        } "BLUE_PACIFIC"   {
+                    send "cp -r $sourceFile $targetFile\r"
+                    expect -re $targetMachinePrompt
+        } "TERA_CLUSTER"   {
+                    send "cp -r $sourceFile $targetFile\r"
+                    expect -re $targetMachinePrompt
+        } "SUN_WITHOUT_PADRE"   {
+                    send "cp -r $sourceFile $targetFile\r"
+                    expect -re $targetMachinePrompt
+        } "SUN_KCC"   {
+                    send "cp -r $sourceFile $targetFile\r"
+                    expect -re $targetMachinePrompt
+        } "SUN_GNU"   {
+                    send "cp -r $sourceFile $targetFile\r"
+                    expect -re $targetMachinePrompt
+        } "SUN_CCV5"  {
+                    send "cp -r $sourceFile $targetFile\r"
+                    expect -re $targetMachinePrompt
+        } "SUN_CCV4_ON_V5" {
+                    send "cp -r $sourceFile $targetFile\r"
+                    expect -re $targetMachinePrompt
+        } default {
+                    send "scp -v -P922 -r $sourceFile $userName@$sourceMachine:$targetFile\r"
+                  # wait for the password (or the prompt if not password is required)
+                    expectPassword "$password" "$targetMachinePrompt"
+                  }
+
+   # wait for the password (or the prompt if not password is required)
+   # set targetArchitecture = "yyy"
+   # expectPassword "$password" "$targetMachinePrompt"
+   }
+
+proc removeProjectTest {fileName targetMachineForTest remotePassword LC_Password} {
+   # Collect up the results of tests on different machines
+     set targetMachine ""
+     set targetMachinePrompt ""
+     set targetArchitecture ""
+     set targetMachineConfigureOptions ""
+     set temp_LC_dir ""
+
+   # Required variable for local scopes to call spawn!
+     global spawn_id
+
+     global sourceMachine
+     global CASC_promptPattern
+
+     upvar userName userName
+
+   # Call setup of global variables 
+     setupEnvironment
+
+   # setup the TargetMachine name, TargetArchitecture, and targetMachinePrompt
+     setupTargetMachineVariables "$targetMachineForTest"
+
+   # Tell the user what we are doing
+     puts "Remove Previous versions of $fileName on $targetMachine!"
+   # expect -re $CASC_promptPattern
+
+   # Specify the LC file system location where we will copy output files from the remote machine
+   # set machineTestOutputDir "/usr/casc/overture/$userName/MACHINE_TESTS/$targetArchitecture"
+
+   # spawn -noecho mkdir -p $machineTestOutputDir
+   # expect -re $CASC_promptPattern
+
+   # set remotePassword [getPassword "Remote System Password"]
+     loginToRemoteSystem "$targetMachine" "$remotePassword" "$targetMachinePrompt"
+   # loginToRemoteSystem "$targetMachine" "" "$targetMachinePrompt"
+
+     send "unalias cd; unalias rm; cd AUTOMATED_SOFTWARE_TESTS/$targetArchitecture; ls -l; rm -rf $fileName*; ls -l\r"
+     expect -re $targetMachinePrompt
+
+   # send "unalias cd\r"
+   # expect -re $targetMachinePrompt
+
+   # cd into the top level of the software package
+   # send "cd AUTOMATED_SOFTWARE_TESTS/$targetArchitecture\r"
+   # expect -re $targetMachinePrompt
+
+   # Specify the name of the log file where we will place all output
+   # set configureOutputFile "configure.log"
+   # set configureOutputFile "$fileName-test.log"
+   # set configureOutputFile "*.log"
+   # set configureOutputFile "LOGFILES"
+
+   # Remove previous log files
+   #  send "rm -rf $configureOutputFile\r"
+   #  expect -re $$targetMachinePrompt
+
+   # send "unalias rm\r"
+   # expect -re $targetMachinePrompt
+
+   # send "ls -l\r"
+   # expect -re $$targetMachinePrompt
+
+   # Remove previously installed versions of A++/P++ 
+   # (we need to make this more general to any project!)
+   # send "rm -rf A++P++-*\r"
+   # expect -re $$targetMachinePrompt
+
+   # Now logout from remote machine
+     send "logout\r"
+     expect -re $CASC_promptPattern
+
+   # spawn "cp -rfp $machineTestOutputDir/$configureOutputFile /home/$userName/A++P++/A++P++Source/MACHINE_TESTS/$targetArchitecture"
+   # spawn cp -rfp $machineTestOutputDir/configure.log /home/$userName/A++P++/A++P++Source/MACHINE_TESTS/$targetArchitecture
+   # expect -re $CASC_promptPattern
+}
+
+
+proc gatherTestResults {fileName targetMachineForTest remotePassword LC_Password} {
+   # Collect up the results of tests on different machines
+     set targetMachine ""
+     set targetMachinePrompt ""
+     set targetArchitecture ""
+     set targetMachineConfigureOptions ""
+     set temp_LC_dir ""
+
+   # Required variable for local scopes to call spawn!
+     global spawn_id
+
+     global sourceMachine
+     global CASC_promptPattern
+
+     upvar userName userName
+
+   # Call setup of global variables 
+     setupEnvironment
+
+   # setup the TargetMachine name, TargetArchitecture, and targetMachinePrompt
+     setupTargetMachineVariables "$targetMachineForTest"
+
+   # Tell the user what we are doing
+     puts "Gather data from build of $fileName on $targetMachine!"
+   # expect -re $CASC_promptPattern
+
+   # Specify the LC file system location where we will copy output files from the remote machine
+     set machineTestOutputDir "/usr/casc/overture/$userName/MACHINE_TESTS/$targetArchitecture"
+
+     spawn -noecho mkdir -p $machineTestOutputDir
+
+   # Release process ids used
+#    expect eof; wait -nowait;
+
+     expect -re $CASC_promptPattern
+
+   # set remotePassword [getPassword "Remote System Password"]
+     loginToRemoteSystem "$targetMachine" "$remotePassword" "$targetMachinePrompt"
+   # loginToRemoteSystem "$targetMachine" "" "$targetMachinePrompt"
+
+     send "unalias cd\r"
+     expect -re $targetMachinePrompt
+
+   # cd into the top level of the software package
+     send "cd AUTOMATED_SOFTWARE_TESTS/$targetArchitecture\r"
+     expect -re $targetMachinePrompt
+
+   # Specify the name of the log file where we will place all output
+   # set configureOutputFile "configure.log"
+   # set configureOutputFile "$fileName-test.log"
+   # set configureOutputFile "*.log"
+     set configureOutputFile "LOGFILES"
+
+   # Call our secure copy command
+   # proc secure_copy_to_LC {sourceMachine sourceFile targetMachine targetFile targetMachinePrompt password}
+
+   # set localLCPassword [getPassword "Local LC System Password"]
+   # secure_copy_to_LC "$sourceMachine" "$configureOutputFile" "$targetMachine" "$machineTestOutputDir/$configureOutputFile" "$targetMachinePrompt" ""
+   # secure_copy_to_LC "$sourceMachine" "$configureOutputFile" "$targetMachine" "$machineTestOutputDir/$configureOutputFile" "$targetMachinePrompt" "$LC_Password"
+     secure_copy_to_LC "$sourceMachine" "$configureOutputFile" "$targetMachine" "$machineTestOutputDir" "$targetMachinePrompt" "$LC_Password"
+
+   # Now logout from remote machine
+     send "logout\r"
+     expect -re $CASC_promptPattern
+
+   # spawn "cp -rfp $machineTestOutputDir/$configureOutputFile /home/$userName/A++P++/A++P++Source/MACHINE_TESTS/$targetArchitecture"
+   # spawn cp -rfp $machineTestOutputDir/configure.log /home/$userName/A++P++/A++P++Source/MACHINE_TESTS/$targetArchitecture
+   # expect -re $CASC_promptPattern
+}
+
+proc testOnMachine {fileName targetMachineForTest remotePassword LC_Password} {
+   # Test the given software package on the specified machine
+
+     set targetMachine ""
+     set targetMachinePrompt ""
+     set targetArchitecture ""
+     set targetMachineConfigureOptions ""
+     set temp_LC_dir ""
+
+   # Required variable for local scopes to call spawn!
+     global spawn_id
+
+     global sourceMachine
+     global CASC_promptPattern
+
+     upvar userName userName
+
+   # Call setup of global variables 
+     setupEnvironment
+
+   # setup the TargetMachine name, TargetArchitecture, and targetMachinePrompt
+     setupTargetMachineVariables "$targetMachineForTest"
+
+   # exit
+
+   # setup variables for the different forms of the fileName
+     set tarFileName $fileName\.tar
+     set zipFileName $tarFileName\.gz
+
+   # Print out variables for debugging
+     printoutVariables
+
+   # Tell the user what we are doing
+     puts ""
+     puts "Copy $zipFileName to $targetMachine, untar $tarFileName and launch compilation of $fileName"
+     puts ""
+
+   # ssh does not work on CASC systems to the outside world so copy to the file to the LC file system
+     copyFileTo_LC_Filesystem "$zipFileName"
+
+   # exit
+
+   # set password [getPassword]
+   # loginToRemoteSystem "$targetMachine" "$password" "$targetMachinePrompt"
+     loginToRemoteSystem "$targetMachine" "$remotePassword" "$targetMachinePrompt"
+
+   # debug the portion above before continuing
+   # interactive
+   # exit
+
+   # Many systems alias the cd to output the resulting directory path (this causes a problem for us).
+   # unalias the cd command (since it is difficult (or impossible) to capture 
+   # its output in a file and there is no terminal after we logoff (so the 
+   # process ends in an error and the remote_test_script is not called!!!).
+   # Take care of all the common commands we use in this script
+     send "unalias cd\r"
+     expect -re $targetMachinePrompt
+     send "unalias rm\r"
+     expect -re $targetMachinePrompt
+     send "unalias mv\r"
+     expect -re $targetMachinePrompt
+
+   # stty -raw echo
+
+   # The build process can take forever!
+   # set timeout -1
+
+   # Build a architecture specific path to do the tests so that multiple architectures
+   # on a common network can be tested asynchronously.
+     set testPathName "AUTOMATED_SOFTWARE_TESTS/$targetArchitecture"
+     send "mkdir -p $testPathName\r"
+     expect -re $targetMachinePrompt
+
+     send "cd $testPathName\r"
+     expect -re $targetMachinePrompt
+
+   # We need to save disk space so remove the previously installed version
+   # Currently we are exceeding our disk quota on many machines
+
+   # Remove any existing ziped files for this project
+     send "rm -rf $tarFileName.gz\r"
+     expect -re $targetMachinePrompt
+
+   # Remove existing tar files (software package)
+     send "rm -rf $tarFileName.old\r"
+     expect -re $targetMachinePrompt
+   # send "mv -f $tarFileName $tarFileName.old\r"
+     send "rm -rf $tarFileName\r"
+     expect -re $targetMachinePrompt
+
+   # Remove existing version (of software package)
+     send "rm -rf $fileName.old\r"
+     expect -re $targetMachinePrompt
+
+   # Move it and then run remove in the background to we can get on with the install
+     send "mv -f $fileName $fileName.old\r"
+     expect -re $targetMachinePrompt
+     send "rm -rf $fileName.old\r"
+     expect -re $targetMachinePrompt
+
+   # Call our secure copy command
+     secure_copy_from_LC "$sourceMachine" "$temp_LC_dir/$zipFileName" "$targetArchitecture" "$targetMachine" "$zipFileName" "$targetMachinePrompt" "$LC_Password"
+     secure_copy_from_LC "$sourceMachine" "$temp_LC_dir/testScript" "$targetArchitecture" "$targetMachine" "testScript" "$targetMachinePrompt" "$LC_Password"
+
+   # Build a unique file name (neat trick)
+     send "setenv log_file_directory LOGFILES/`date '+DATE-%m-%d-%y-TIME-%H-%M-%S'` \r"
+     expect -re $targetMachinePrompt
+
+     send "mkdir -p \$log_file_directory \r"
+     expect -re $targetMachinePrompt
+
+     set configureOutputFile "\$log_file_directory/configure.log"
+
+   # send "touch $configureOutputFile \r"
+   # expect -re $targetMachinePrompt
+
+   # send "ls -ld \r"
+   # expect -re $targetMachinePrompt
+
+   # Specify the name of the log file where we will place all output
+   # set configureOutputFile "$fileName-test.log"
+
+   # spawn -noecho echo "Now call: remote_test_script $fileName $targetMachineConfigureOptions $targetArchitecture >& $configureOutputFile"
+   # expect -re $CASC_promptPattern
+
+   # Remove any existing log file (from previous tests)
+     send "rm -f $configureOutputFile\r"
+     expect -re $targetMachinePrompt
+
+   # send "pwd; ls\r"
+   # expect -re $targetMachinePrompt
+
+   # Note: the location of the $configureOutputFile is in the parent directory.
+   # So it must be overwritten because it could already exist!
+   # send "(gunzip -f $zipFileName; && tar -xf $tarFileName && cd $fileName && (remote_test_script $fileName \"$targetMachineConfigureOptions\" $targetArchitecture)) >!& $configureOutputFile &\r"
+
+   # Consider the use of nohup as a way to avoid the some problems on the IBM machine!
+   # send "(gunzip -vf $zipFileName >& $configureOutputFile && tar -xvf $tarFileName  >>& $configureOutputFile && cd $fileName >>& $configureOutputFile && (nohup SCRIPTS/remote_test_script $fileName \"$targetMachineConfigureOptions\" $targetArchitecture >>& ../$configureOutputFile)) &\r"
+
+   # send "nohup `(gunzip -vf $zipFileName >& $configureOutputFile; \
+   #            && tar -xvf $tarFileName  >>& $configureOutputFile; \
+   #               echo \"TAR exit status = \$status \" >>& $configureOutputFile; \
+   #            && cd $fileName >>& $configureOutputFile; \
+   #               echo \"configure exit status = \$status \" >>& $configureOutputFile; \
+   #            && (nohup SCRIPTS/remote_test_script $fileName \"$targetMachineConfigureOptions\" \
+   #                                                 $targetArchitecture >>& ../$configureOutputFile))` &\r"
+
+   # I don't know if we need the "nohup now that we have placed everything into a separate script
+     send "nohup ./testScript $fileName \
+                            \"$targetMachineConfigureOptions\" \
+                            $targetArchitecture >&! $configureOutputFile &\r"
+   # send "ls -l >&! $configureOutputFile \r"
+     expect -re $targetMachinePrompt
+
+   # I think this might help on the SUN (solaris) where it seems that the background process
+   # dies when the script exits (so try to logout properly to leave the background process
+   # in the background in a more conventional manner.  Note that this is not an issue on the SGI.
+     send "logout\r"
+     expect -re $CASC_promptPattern
+
+   # End this script and run a 2nd script to gather the final results on
+   # the remote machine when they are available
+   }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

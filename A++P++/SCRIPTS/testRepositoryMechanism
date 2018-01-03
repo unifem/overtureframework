@@ -1,0 +1,13 @@
+#! /bin/csh
+
+# This script builds an A++P++_Repository and checks 
+# out the files, compiles and test the library
+
+# setenv TEST_PATH /home/dquinlan/TEST
+setenv TEST_PATH /usr/casc/overture/A++P++/A++P++CVS
+rm -rf $TEST_PATH; mkdir $TEST_PATH;
+echo "TEST_PATH for CVS respository and library installation:" $TEST_PATH
+makeCVS_Repository $TEST_PATH >&! $TEST_PATH/CVS_TEST_OUTPUT_FILE
+
+
+
