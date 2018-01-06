@@ -1,7 +1,7 @@
 #default leaves make commands visible
 COPTS := " [mode=verbose|concise]"
-mode := verbose
-# mode := concise
+# mode := verbose
+mode := concise
 
 # to time the compiles: 
 # TIME := time
