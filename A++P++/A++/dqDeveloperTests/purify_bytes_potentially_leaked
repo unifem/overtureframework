@@ -1,3 +1,0 @@
-#! /bin/csh -f
-
-grep "bytes potentially leaked" *.error

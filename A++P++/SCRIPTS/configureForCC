@@ -1,2 +1,0 @@
-#! /bin/csh
-./configure --enable-PXX --without-PADRE --enable-SHARED_LIBS --with-CC=cc --with-CXX=CC
