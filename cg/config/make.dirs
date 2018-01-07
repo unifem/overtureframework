@@ -14,7 +14,6 @@ endif
 
 
 ifneq ($(CGBUILDPREFIX),)
-
   # Append a '/' to the end of CGBUILDPREFIX: 
   CGBUILDPREFIX := $(CGBUILDPREFIX)/
   # Change '//' to '/' if we have appended twice (NOTE: this will change all '//')
