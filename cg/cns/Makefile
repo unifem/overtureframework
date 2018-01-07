@@ -19,7 +19,7 @@ include $(CONFIGDIR)/make.$(OS)
 include $(CONFIGDIR)/make.rules
 # Over-ride default compile flags here: (or setenv COMPILE [dbg/opt/optdbg] from the shell)
 #    compile:=[default/dbg/opt/optdbg]
-#    profile:=[on/off]   
+#    profile:=[on/off]
 # compile=dbg
 include $(CONFIGDIR)/make.options
 include make
@@ -32,18 +32,18 @@ PKGS := src ../common/chemistry src/godunov src/multicomponent src/jameson
 vpath % $(PKGS) $(GUIDIR)/src $(Overture)/Oges $(OvertureCheckout)/oges $(OvertureCheckout)/ogshow ../common/chemistry
 VPATH = $(PKGS) $(GUIDIR)/src $(Overture)/Oges $(OvertureCheckout)/oges $(OvertureCheckout)/ogshow ../common/chemistry
 
-SRC_FILES := 
+SRC_FILES :=
 FSRC :=
 FSRCO :=
 FSRCNO :=
-TESTS := 
+TESTS :=
 PKG_INCLUDE := $(foreach p, $(PKGS), $(p)/files)
 
 all: $(BINDIR)cgcns
 
 cgcns: $(BINDIR)cgcns
 
-usage: 
+usage:
 	-@echo "usage : "
 	-@echo "        % make " $(COPTS) "<all|cgcns>"
 
@@ -52,7 +52,7 @@ config_os:
 
 include $(PKG_INCLUDE)
 
-# This next include defines how to compile the lists: 
+# This next include defines how to compile the lists:
 #  SRC_FILES : list of C++, C, and fortran files that are to be compiled in the default way.
 #  CSRCO : list of C++ files that are to be compiled optimized by default
 #  FSCRO : list of Fortran files that are to be compiled optimized by default
@@ -106,7 +106,7 @@ $(LIBDIR)libCgcns: $(LIB_OBJS)
 	  touch $@
 
 # build the library in cg/common
-$(libCommon):; @cd ../common; $(MAKE) 
+$(libCommon):; @cd ../common; $(MAKE)
 
 $(DEPDIR)depdep: $(DEPDIR) $(BINDIR) $(LIBDIR) $(OBJDIR)
 	touch $(DEPDIR)depdep
@@ -121,7 +121,7 @@ $(OBJN) : $(OBJPREFIX)%.o : %.f
 doc:
 	-@mkdir doc
 
-check: 
+check:
 
 cleano:
 	-rm -f $(OBJPREFIX)*.o
@@ -134,13 +134,11 @@ clean:
 	-@cd doc; $(MAKE) clean
 
 # remove all c and c++ .o files, dependencies and executables (but leave fortran .o files)
-cleanc: 
+cleanc:
 	-rm -f $(DEPPREFIX)*.d $(COBJ) $(BINDIR)cgcns $(LIBDIR)*.a
 
-# include dependencies except for a list of commands 
+# include dependencies except for a list of commands
 ifeq ($(NODEP),)
 -include $(DEPDIR)depdep
 -include $(DEP)
 endif
-
-

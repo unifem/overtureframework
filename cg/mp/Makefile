@@ -10,7 +10,7 @@ NODEP := $(strip $(filter usage doc clean cleano cleanc cleandep,$(MAKECMDGOALS)
 
 
 # sparse solver packages:
-usePETSc   := on
+usePETSc   := off
 ifeq ($(usePETSc),)
 usePETSc   := off
 useSuperLU := off
@@ -34,15 +34,19 @@ PKGS := src
 vpath % $(PKGS) $(GUIDIR)/src $(Overture)/Oges $(OvertureCheckout)/oges
 VPATH = $(PKGS) $(GUIDIR)/src $(Overture)/Oges $(OvertureCheckout)/oges
 
-SRC_FILES := 
-TESTS := 
+SRC_FILES :=
+TESTS :=
 PKG_INCLUDE := $(foreach p, $(PKGS), $(p)/files)
 
 all: $(BINDIR)cgmp
 
 cgmp: $(BINDIR)cgmp
 
-usage: 
+# make the library
+lib_build: $(LIBDIR)libCgmp
+	touch lib_build
+
+usage:
 	-@echo "usage : "
 	-@echo "        % make " $(COPTS) "<all|cgmp|mp>"
 
@@ -51,7 +55,7 @@ config_os:
 
 include $(PKG_INCLUDE)
 
-# This next include defines how to compile the lists: 
+# This next include defines how to compile the lists:
 #  SRC_FILES : list of C++, C, and fortran files that are to be compiled in the default way.
 #  CSRCO : list of C++ files that are to be compiled optimized by default
 #  FSCRO : list of Fortran files that are to be compiled optimized by default
@@ -63,41 +67,47 @@ include $(CONFIGDIR)/make.src
 DEP += cgmpMain.d
 
 #* QSRC := $(SRC_FILES)
-#* 
+#*
 #* OBJ := $(patsubst %.cc, %.o, $(QSRC))
 #* OBJ := $(patsubst %.c, %.o, $(OBJ))
 #* OBJ := $(patsubst %.C, %.o, $(OBJ))
-#* OBJ := $(patsubst %.f, %.o, $(OBJ)) 
-#* OBJ := $(patsubst %.F, %.o, $(OBJ)) 
+#* OBJ := $(patsubst %.f, %.o, $(OBJ))
+#* OBJ := $(patsubst %.F, %.o, $(OBJ))
 #* DEP := $(patsubst %.o, %.d, $(OBJ))
 #* DEP += cgmpMain.d
-#* 
+#*
 #* OBJ := $(addprefix $(OBJPREFIX),$(OBJ))
-#* DEP := $(addprefix $(DEPPREFIX),$(DEP)) 
+#* DEP := $(addprefix $(DEPPREFIX),$(DEP))
 
 .PHONY: doc cgmp
 
 # here is a list of the different types of object files
 LIB_OBJS = $(OBJ) $(OBJCO) $(OBJN) $(OBJO) $(OBJSO)
 
+SHARED_LIBRARY = $(LIBDIR)libCgmp$(SHARED_LIBRARY_EXT)
+
+$(LIBDIR)libCgmp: $(LIB_OBJS)
+	  $(SHARED_LIBRARY_COMMAND) -o $(SHARED_LIBRARY) $(SHARED_LIBRARY_FLAGS) $(LIB_OBJS) $(SHARED_LIBRARY_LOAD_LIBS)
+	  touch $@
+
 # make cgmp in the bin dir:
 # CGMP = /home/henshaw/Overture/gf/Interpolant.o /home/henshaw/Overture/grid/CompositeGrid.o
 PETSC_FILES_OBJ := $(addprefix $(OBJPREFIX),$(PETSC_FILES))
-# CGMP_EXTRA_FILES = $(PETSC_FILES_OBJ) /home/henshaw.0/Overture/hype/generate.o /home/henshaw.0/Overture/hype/HyperbolicMapping.o 
+# CGMP_EXTRA_FILES = $(PETSC_FILES_OBJ) /home/henshaw.0/Overture/hype/generate.o /home/henshaw.0/Overture/hype/HyperbolicMapping.o
 CGMP_EXTRA_FILES = $(PETSC_FILES_OBJ)  /home/henshaw.0/Overture/gf/InterpolatePointsOnAGrid.o
 CGMP_EXTRA_FILES = $(PETSC_FILES_OBJ) /home/henshaw.0/Overture/gf/Interpolant.o
-CGMP_EXTRA_FILES = $(PETSC_FILES_OBJ) /home/henshaw.0/Overture/ogshow/ShowFileReader.o 
+CGMP_EXTRA_FILES = $(PETSC_FILES_OBJ) /home/henshaw.0/Overture/ogshow/ShowFileReader.o
 CGMP_EXTRA_FILES = $(PETSC_FILES_OBJ)
 
 # libCommon:=$(CGBUILDPREFIX)common/lib/libCgCommon.so
 libCommon:=$(CGBUILDPREFIX)common/libCgCommon
 
-$(BINDIR)cgmp: $(OBJDIR)cgmpMain.o $(LIB_OBJS) $(CGMP_EXTRA_FILES) SOLVER_LIBS $(libCommon)
-	-@mkdir $(BINDIR)
-	$(CXX) $(CXX_FLAGS) -o $@ $(OBJDIR)cgmpMain.o $(CGMP) $(LIB_OBJS) $(CGMP_EXTRA_FILES) $(LIBS)
+$(BINDIR)cgmp: $(OBJDIR)cgmpMain.o lib_build $(CGMP_EXTRA_FILES) SOLVER_LIBS $(libCommon)
+	-@mkdir -p $(BINDIR)
+	$(CXX) $(CXX_FLAGS) -o $@ $(OBJDIR)cgmpMain.o $(CGMP_EXTRA_FILES) $(LIBS)
 
 # Here is the test routine for multi-physics and multi-domain problems
-MPOBJ = 
+MPOBJ =
 mp: $(OBJDIR)mp.o $(MPOBJ)
 	-@mkdir $(BINDIR)
 	$(CXX) $(CXX_FLAGS) -o $(BINDIR)$@ $(OBJDIR)mp.o  $(MPOBJ) $(LIBS)
@@ -121,7 +131,7 @@ $(BINDIR) $(LIBDIR) $(DEPDIR) $(OBJDIR):
 doc:
 	-@mkdir doc
 
-check: 
+check:
 
 cleano:
 	-rm -f $(OBJPREFIX)*.o
@@ -129,11 +139,10 @@ cleandep:
 	-rm -f $(OBJPREFIX)*.d
 clean:
 	-rm -f *~ */*~ $(OBJPREFIX)*.o $(DEPPREFIX)*.d $(BINDIR)cgmp $(BINDIR)mp  \
-         cmd/*.show* cmd/*.debug cmd/*.check cmd/*.log cmd/*.move cmd/cgmp.cmd 
+         cmd/*.show* cmd/*.debug cmd/*.check cmd/*.log cmd/*.move cmd/cgmp.cmd
 
-# include dependencies except for a list of commands 
+# include dependencies except for a list of commands
 ifeq ($(NODEP),)
 -include $(DEPDIR)depdep
 -include $(DEP)
 endif
-

@@ -5,7 +5,8 @@
 # setenv CGBUILDPREFIX /some/other/dir will put the obj/lib/bin in /some/other/dir/{common,cgad...}/{lib,obj,dep,bin}
 #
 
-all : libCommon cgad cgcns cgins cgasf cgsm cgmp unitTests cgmx message
+all : libCommon cgad cgcns cgins cgasf cgsm cgmp 
+#unitTests cgmx message
 
 everything: all 
 
