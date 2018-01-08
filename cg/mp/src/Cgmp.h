@@ -20,21 +20,21 @@ Cgmp(CompositeGrid & cg, GenericGraphicsInterface *ps=NULL, Ogshow *show=NULL, c
 
 virtual ~Cgmp();
 
-virtual int 
-assignInterfaceBoundaryConditions(std::vector<int> & newIndex, 
+virtual int
+assignInterfaceBoundaryConditions(std::vector<int> & newIndex,
 				  const real dt );
 
-virtual int 
+virtual int
 assignInterfaceRightHandSide( int d, real t, real dt, int correct, std::vector<int> & gfIndex );
 
-// Old version: 
-virtual int 
+// Old version:
+virtual int
 assignInterfaceRightHandSideOld( int d, real t, real dt, int correct, std::vector<int> & gfIndex );
 
-virtual DomainSolver* 
+virtual DomainSolver*
 buildModel( const aString & modelName, CompositeGrid & cg, GenericGraphicsInterface *ps=NULL, Ogshow *show=NULL, const int & plotOption=1 );
 
-virtual int 
+virtual int
 buildRunTimeDialog();
 
 virtual int
@@ -54,15 +54,15 @@ checkInterfaceForConvergence( const int correct,
                               bool & interfaceIterationsHaveConverged );
 
 /// last minute checks and setups prior to actually running
-virtual int 
+virtual int
 cycleZero();
 
-bool 
+bool
 checkIfInterfacesMatch(Mapping &map1, int &dir1, int &side1, Mapping &map2, int &dir2, int &side2);
 
 /// perform tasks needed right after an advance (nothing right now), returns nonzero if the computation is finished
-virtual int 
-finishAdvance(); 
+virtual int
+finishAdvance();
 
 enum InterfaceValueEnum
 {
@@ -70,54 +70,54 @@ enum InterfaceValueEnum
   saveInterfaceTimeHistoryValues,
   saveInterfaceIterateValues
 };
-  
-virtual int 
-getInterfaceResiduals( real t, real dt, std::vector<int> & gfIndex, std::vector<real> & maxResidual, 
+
+virtual int
+getInterfaceResiduals( real t, real dt, std::vector<int> & gfIndex, std::vector<real> & maxResidual,
                        InterfaceValueEnum saveInterfaceValues=doNotSaveInterfaceValues );
 
-// OLD version -- only for interfaces with a single face: 
-virtual int 
-getInterfaceResidualsOld( real t, real dt, std::vector<int> & gfIndex, std::vector<real> & maxResidual, 
+// OLD version -- only for interfaces with a single face:
+virtual int
+getInterfaceResidualsOld( real t, real dt, std::vector<int> & gfIndex, std::vector<real> & maxResidual,
                           InterfaceValueEnum saveInterfaceValues=doNotSaveInterfaceValues );
 
-virtual int 
+virtual int
 getModelInfo( std::vector<aString> & modelName );
 
-virtual real 
-getTimeStep( GridFunction & gf); 
+virtual real
+getTimeStep( GridFunction & gf);
 
 virtual int
 getTimeSteppingOption(const aString & answer, DialogData & dialog );
 
-virtual int 
+virtual int
 initializeInterfaceBoundaryConditions( real t, real dt, std::vector<int> & gfIndex );
 
 virtual int
 initializeInterfaces(std::vector<int> & newIndex);
 
-virtual int 
+virtual int
 interfaceProjection( real t, real dt, int correct, std::vector<int> & gfIndex, int option );
 
-// The next routine is used to advance solutions on multi-domains and supports forward-Euler, 
+// The next routine is used to advance solutions on multi-domains and supports forward-Euler,
 // predictor-corrector, implicit methods etc.
-virtual int 
+virtual int
 multiDomainAdvance(real & t, real &tFinal );
 
 // here is the new multi-domain advance routine that works with AMR
-virtual int 
+virtual int
 multiDomainAdvanceNew(real & t, real &tFinal );
 
 // Here is the even newer multi-stage algorithm (user defined stages)
-int 
+int
 multiStageAdvance( real &t, real & tFinal );
 
 virtual int
 plot(const real & t, const int & optionIn, real & tFinal );
 
-int 
+int
 plotDomainQuantities( std::vector<realCompositeGridFunction*> u, real t );
 
-virtual int 
+virtual int
 printStatistics(FILE *file = stdout);
 
 virtual void
@@ -130,13 +130,13 @@ virtual int
 setParametersInteractively(bool runSetupOnExit=true);
 
 /// perform tasks needed prior to an actual advance (file io stuff mostly), returns nonzero if the computation is finished
-virtual int 
-setupAdvance(); 
+virtual int
+setupAdvance();
 
-virtual int 
+virtual int
 setupDomainSolverParameters( int domain, std::vector<aString> & modelNames );
 
-virtual int 
+virtual int
 setupPde(aString & reactionName,bool restartChosen, IntegerArray & originalBoundaryCondition);
 
 virtual void setup(const real & time = 0.);
@@ -147,7 +147,7 @@ setTopLabel(std::vector<realCompositeGridFunction*> u, real t);
 virtual void
 saveShow( GridFunction & gf );
 
-virtual int 
+virtual int
 advance(real &tFinal);
 
 virtual int
@@ -169,5 +169,9 @@ private:
 
 
 };
+
+
+int
+cgmpMain(int argc, char *argv[]);
 
 #endif

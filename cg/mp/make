@@ -8,14 +8,15 @@ SHARED_LIBRARY_LOAD_LIBS += -L$(CGBUILDPREFIX)common/lib -lCgCommon
 endif
 
 ifneq ($(OV_RPATH),)
-LIBS := $(OV_RPATH)$(CGBUILDPREFIX)mp/lib -L$(CGBUILDPREFIX)mp/lib $(CgcnsStaticLib) -lCgmp \
-        $(OV_RPATH)$(CGBUILDPREFIX)cns/lib -L$(CGBUILDPREFIX)cns/lib $(CgcnsStaticLib) -lCgcns \
+LIBS := $(OV_RPATH)$(CGBUILDPREFIX)cns/lib -L$(CGBUILDPREFIX)cns/lib $(CgcnsStaticLib) -lCgcns \
         $(OV_RPATH)$(CGBUILDPREFIX)ins/lib -L$(CGBUILDPREFIX)ins/lib $(CginsStaticLib) -lCgins \
         $(OV_RPATH)$(CGBUILDPREFIX)ad/lib -L$(CGBUILDPREFIX)ad/lib $(CgadStaticLib) -lCgad \
         $(OV_RPATH)$(CGBUILDPREFIX)asf/lib -L$(CGBUILDPREFIX)asf/lib $(CgasfStaticLib) -lCgasf \
         $(OV_RPATH)$(CGBUILDPREFIX)sm/lib -L$(CGBUILDPREFIX)sm/lib -lCgsm \
         $(OV_RPATH)$(CGBUILDPREFIX)common/lib -L$(CGBUILDPREFIX)common/lib  $(CgCommonStaticLib) -lCgCommon \
         $(LIBS)
+
+LIB_MP =	$(OV_RPATH)$(CGBUILDPREFIX)mp/lib -L$(CGBUILDPREFIX)mp/lib $(CgcnsStaticLib) -lCgmp
 else
 LIBS :=  -L$(CGBUILDPREFIX)cns/lib $(CgcnsStaticLib) -lCgcns \
          -L$(CGBUILDPREFIX)ins/lib $(CginsStaticLib) -lCgins \
@@ -24,4 +25,6 @@ LIBS :=  -L$(CGBUILDPREFIX)cns/lib $(CgcnsStaticLib) -lCgcns \
          -L$(CGBUILDPREFIX)sm/lib -lCgsm \
          -L$(CGBUILDPREFIX)common/lib  $(CgCommonStaticLib) -lCgCommon \
         $(LIBS)
+
+LIB_MP =	-L$(CGBUILDPREFIX)mp/lib -lCgmp
 endif
