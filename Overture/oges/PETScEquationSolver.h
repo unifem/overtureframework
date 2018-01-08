@@ -5,7 +5,7 @@
 //  Petsc solvers in Overture  **** SERIAL VERSION ****
 //
 //  $Id: PETScEquationSolver.h,v 1.12 2008/12/03 17:54:53 chand Exp $
-// 
+//
 
 //kkc 081124 #include <iostream.h>
 #include <iostream>
@@ -19,13 +19,15 @@
 #include "EquationSolver.h"
 
 // krb do not use extern "C" if PETSc is linked using BOPT=g_c++
-extern "C"
-{
-// *wdh* 2015/09/31  To avoid having PETSc include complex.h do this: 
+//extern "C"
+//{
+// *xmj* 01/08/2018  Request PETSc to skip complex
+#define PETSC_SKIP_COMPLEX
+// *wdh* 2015/09/31  To avoid having PETSc include complex.h do this:
 #include "petscconf.h"
 #undef PETSC_HAVE_CXX_COMPLEX
 #include "petscksp.h"
-}
+//}
 
 
 // Experimental Preconditioner from David Hysom (Summer 2000)
@@ -52,7 +54,7 @@ class PETScEquationSolver : public EquationSolver
 			       realCompositeGridFunction & u,
 			       realCompositeGridFunction & f);
 
-  virtual real sizeOf( FILE *file=NULL ); // return number of bytes allocated 
+  virtual real sizeOf( FILE *file=NULL ); // return number of bytes allocated
 
   MPI_Comm comm;
   KSP           ksp;      // Linear solver ConTeXt, Krylov Space solver ctx
@@ -60,9 +62,9 @@ class PETScEquationSolver : public EquationSolver
   Vec           xsol,brhs;
   Mat           Amx;
 
-  virtual real getMaximumResidual(); 
+  virtual real getMaximumResidual();
 
-  int getNumberOfIterations() const; 
+  int getNumberOfIterations() const;
 
   int allocateMatrix(int,int,int,int);
   int setMatrixElement(int,int,int,real);
@@ -95,10 +97,10 @@ class PETScEquationSolver : public EquationSolver
   real          timeSolve;
 
   //private:
-  //..The remaining data is essentially PRIVATE, 
+  //..The remaining data is essentially PRIVATE,
   //  shouldn't be accessed or modified directly from outside the class
   //......N.B: if you want to modify these objects, write
-  //......     access routines -- irect modification from 
+  //......     access routines -- irect modification from
   //......     outside the class is discouraged, and may not
   //......     supported in future revisions.
 
@@ -132,7 +134,7 @@ class PETScEquationSolver : public EquationSolver
   int gmresRestartLength;
 
 
-  // 
+  //
   // Information for new Hysom/Chow preconditioners
   //
   bool isDHPreconditioner;
@@ -153,16 +155,16 @@ class PETScEquationSolver : public EquationSolver
   void dh_setParameters();
 
   void dh_computeResidualReduction( double & residReduction );
-  
+
   static EquationSolver* newPETScEquationSolver(Oges &oges);
 
 
 private:
-  int  ierr; 
+  int  ierr;
 
 };
 
-// Note: The following macro will be distributed in versions of 
+// Note: The following macro will be distributed in versions of
 //       PETSc after version 2.0.28, so this is included here to allow linking
 //       with version 2.0.28 and earlier.
 // *wdh* ?? #if !defined(PetscFunctionReturnVoid())

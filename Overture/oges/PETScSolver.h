@@ -7,6 +7,8 @@
 
 // extern "C"
 // {
+#define PETSC_SKIP_COMPLEX
+#undef PETSC_HAVE_CXX_COMPLEX
 #include "petscksp.h"
 // }
 
