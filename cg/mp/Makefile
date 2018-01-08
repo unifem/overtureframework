@@ -86,25 +86,27 @@ LIB_OBJS = $(OBJ) $(OBJCO) $(OBJN) $(OBJO) $(OBJSO)
 
 SHARED_LIBRARY = $(LIBDIR)libCgmp$(SHARED_LIBRARY_EXT)
 
-$(LIBDIR)libCgmp: $(LIB_OBJS)
-	  $(SHARED_LIBRARY_COMMAND) -o $(SHARED_LIBRARY) $(SHARED_LIBRARY_FLAGS) $(LIB_OBJS) $(SHARED_LIBRARY_LOAD_LIBS)
-	  touch $@
-
 # make cgmp in the bin dir:
 # CGMP = /home/henshaw/Overture/gf/Interpolant.o /home/henshaw/Overture/grid/CompositeGrid.o
 PETSC_FILES_OBJ := $(addprefix $(OBJPREFIX),$(PETSC_FILES))
 # CGMP_EXTRA_FILES = $(PETSC_FILES_OBJ) /home/henshaw.0/Overture/hype/generate.o /home/henshaw.0/Overture/hype/HyperbolicMapping.o
-CGMP_EXTRA_FILES = $(PETSC_FILES_OBJ)  /home/henshaw.0/Overture/gf/InterpolatePointsOnAGrid.o
-CGMP_EXTRA_FILES = $(PETSC_FILES_OBJ) /home/henshaw.0/Overture/gf/Interpolant.o
-CGMP_EXTRA_FILES = $(PETSC_FILES_OBJ) /home/henshaw.0/Overture/ogshow/ShowFileReader.o
+# CGMP_EXTRA_FILES = $(PETSC_FILES_OBJ)  /home/henshaw.0/Overture/gf/InterpolatePointsOnAGrid.o
+# CGMP_EXTRA_FILES = $(PETSC_FILES_OBJ) /home/henshaw.0/Overture/gf/Interpolant.o
+# CGMP_EXTRA_FILES = $(PETSC_FILES_OBJ) /home/henshaw.0/Overture/ogshow/ShowFileReader.o
 CGMP_EXTRA_FILES = $(PETSC_FILES_OBJ)
 
 # libCommon:=$(CGBUILDPREFIX)common/lib/libCgCommon.so
 libCommon:=$(CGBUILDPREFIX)common/libCgCommon
 
-$(BINDIR)cgmp: $(OBJDIR)cgmpMain.o lib_build $(CGMP_EXTRA_FILES) SOLVER_LIBS $(libCommon)
+$(LIBDIR)libCgmp: $(LIB_OBJS)
+	  $(SHARED_LIBRARY_COMMAND) -o $(SHARED_LIBRARY) $(SHARED_LIBRARY_FLAGS) \
+		     $(LIB_OBJS) $(SHARED_LIBRARY_LOAD_LIBS) $(CGMP_EXTRA_FILES) $(LIBS)
+	  touch $@
+
+$(BINDIR)cgmp: $(OBJDIR)cgmpMain.o lib_build $(CGMP_EXTRA_FILES) $(libCommon) SOLVER_LIBS
 	-@mkdir -p $(BINDIR)
-	$(CXX) $(CXX_FLAGS) -o $@ $(OBJDIR)cgmpMain.o $(CGMP_EXTRA_FILES) $(LIBS)
+	$(CXX) $(CXX_FLAGS) -o $@ $(OBJDIR)cgmpMain.o $(LIB_MP)
+
 
 # Here is the test routine for multi-physics and multi-domain problems
 MPOBJ =
@@ -138,8 +140,8 @@ cleano:
 cleandep:
 	-rm -f $(OBJPREFIX)*.d
 clean:
-	-rm -f *~ */*~ $(OBJPREFIX)*.o $(DEPPREFIX)*.d $(BINDIR)cgmp $(BINDIR)mp  \
-         cmd/*.show* cmd/*.debug cmd/*.check cmd/*.log cmd/*.move cmd/cgmp.cmd
+	-rm -f *~ */*~ $(OBJPREFIX)*.o $(DEPPREFIX)*.d $(LIBDIR)libCgmp* $(BINDIR)cgmp \
+  $(BINDIR)mp cmd/*.show* cmd/*.debug cmd/*.check cmd/*.log cmd/*.move cmd/cgmp.cmd
 
 # include dependencies except for a list of commands
 ifeq ($(NODEP),)
