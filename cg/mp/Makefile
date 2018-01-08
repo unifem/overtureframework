@@ -44,6 +44,7 @@ cgmp: $(BINDIR)cgmp
 
 # make the library
 lib_build: $(LIBDIR)libCgmp
+	touch lib_build
 
 usage:
 	-@echo "usage : "
