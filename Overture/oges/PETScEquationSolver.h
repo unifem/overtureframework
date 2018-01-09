@@ -22,10 +22,10 @@
 //extern "C"
 //{
 // *xmj* 01/08/2018  Request PETSc to skip complex
-#define PETSC_SKIP_COMPLEX
 // *wdh* 2015/09/31  To avoid having PETSc include complex.h do this:
 #include "petscconf.h"
 #undef PETSC_HAVE_CXX_COMPLEX
+#define PETSC_SKIP_COMPLEX
 #include "petscksp.h"
 //}
 
