@@ -5,46 +5,24 @@ endif
 
 # ==============================================================
 # ===================  Options for PETSc =======================
-# To use PETSc define the env variables PETSC_DIR and PETSC_ARCH
-# (To also use Hypre define the Hypre libraries with HYPRE_LIBS)
+# To use PETSc define the env variables PETSC_DIR and PETSC_LIB
 # ==============================================================
 
 ifeq ($(usePETSc),on)
   # use PETSc
   ifeq ($(PETSC_DIR),) 
-    $(error ERROR: usePETSc requires PETSC_DIR (and PETSC_ARCH) to be defined.)
+    $(error ERROR: usePETSc requires PETSC_DIR (and PETSC_LIB) to be defined.)
   endif
-  ifeq ($(PETSC_ARCH),) 
-    $(error ERROR: usePETSc requires PETSC_ARCH to be defined.)
+  ifeq ($(PETSC_LIB),) 
+    $(error ERROR: usePETSc requires PETSC_LIB to be defined.)
   endif
 
-  ifneq ($(OV_USE_PETSC_3),)
-    # for PETSc v3 
-     # from $(PETSC_DIR)/$(PETSC_ARCH)/lib/petsc/conf/petscvariables: 
-     PETSC_CC_INCLUDES = -I/home/henshw/software/petsc-3.6.1-serial/include -I/home/henshw/software/petsc-3.6.1-serial/linux-gnu-opt/include -I/home/henshw/software/petsc-3.6.1-serial/include/petsc/mpiuni
-
-    PETSC_INCLUDE := -I$(PETSC_DIR)/include  -I$(PETSC_DIR)/$(PETSC_ARCH)/include -I$(PETSC_DIR)/include/petsc/mpiuni -DOVERTURE_USE_PETSC -I$(PETSC_LIB)/include
-    ifneq ($(OV_RPATH),)
-      PETSC_LIBS := $(OV_RPATH)$(PETSC_LIB) -L$(PETSC_LIB) $(OV_RPATH)$(PETSC_LIB)/lib -L$(PETSC_LIB)/lib -lpetsc
-    else
-      PETSC_LIBS := -L$(PETSC_LIB) -L$(PETSC_LIB)/lib -lpetsc
-    endif
+  # for PETSc v3 
+  PETSC_INCLUDE := -I$(PETSC_DIR)/include  -I$(PETSC_DIR)/include/petsc/mpiuni -DOVERTURE_USE_PETSC -I$(PETSC_LIB)/include
+  ifneq ($(OV_RPATH),)
+     PETSC_LIBS := $(OV_RPATH)$(PETSC_LIB) -L$(PETSC_LIB) $(OV_RPATH)$(PETSC_LIB)/lib -L$(PETSC_LIB)/lib -lpetsc
   else
-    # PETSc v2
-    PETSC_INCLUDE := -I$(PETSC_DIR)/include  -I$(PETSC_DIR)/bmake/$(PETSC_ARCH) -DOVERTURE_USE_PETSC -I$(PETSC_LIB)/include
-    ifneq ($(OV_RPATH),)
-      PETSC_LIBS := $(OV_RPATH)$(PETSC_LIB) -L$(PETSC_LIB) $(OV_RPATH)$(PETSC_LIB)/lib -L$(PETSC_LIB)/lib -lpetscksp -lpetscdm -lpetscmat -lpetscvec -lpetsc 
-    else
-      PETSC_LIBS := -L$(PETSC_LIB) -L$(PETSC_LIB)/lib -lpetscksp -lpetscdm -lpetscmat -lpetscvec -lpetsc 
-    endif
-
-    # Look for the Hypre library compiled with PETSc
-    ifeq ($(useHypre),on)
-      HYPRE = $(PETSC_DIR)/externalpackages/hypre-1.11.1b/linux-gnu-opt
-      HYPRE_LIBS = -Wl,-rpath,$(HYPRE)/lib -L$(HYPRE)/lib -lHYPRE_DistributedMatrix -lHYPRE_DistributedMatrixPilutSolver -lHYPRE_Euclid -lHYPRE_IJ_mv -lHYPRE_LSI -lHYPRE_MatrixMatrix -lHYPRE_ParaSails -lHYPRE_krylov -lHYPRE_parcsr_ls -lHYPRE_parcsr_mv -lHYPRE_seq_mv -lHYPRE_sstruct_ls -lHYPRE_sstruct_mv -lHYPRE_struct_ls -lHYPRE_struct_mv
-
-      PETSC_LIBS += $(HYPRE_LIBS)
-    endif
+     PETSC_LIBS := -L$(PETSC_LIB) -L$(PETSC_LIB)/lib -lpetsc
   endif
 
   PETSC_FILES := buildEquationSolvers.o \
@@ -53,18 +31,12 @@ ifeq ($(usePETSc),on)
   ifeq ($(OV_PARALLEL),parallel)
     # parallel version
      PETSC_FILES += PETScSolver.o
-     PETSC_LIBS += $(HYPRE_LIBS)
   else
     # serial version
     PETSC_INCLUDE += -I$(PETSC_DIR)/include/mpiuni
-ifeq ($(OV_USE_PETSC_3),)
-    PETSC_LIBS += -lmpiuni 
-endif
   endif
-  ifeq ($(useSuperLU),on)
-    PETSC_LIBS += /home/henshaw/software/SuperLU_DIST_2.0/superlulinux.a
-  endif
-endif
+
+
 # ==============================================================
 
 # ===================  Options for linking to Ogmg =======================
@@ -72,7 +44,7 @@ ifeq ($(usePETSc),on)
   OGMG_FILES :=  
 else
   OGMG_FILES :=  buildEquationSolvers.o \
- 	           MultigridEquationSolver.o
+	         MultigridEquationSolver.o
 endif 
 OGMG_LIB = Ogmg
 OGMG_LIBS = -Wl,-rpath,$(Overture)/lib -L$(Overture)/lib -l$(OGMG_LIB)
@@ -120,17 +92,3 @@ LIBS += $(OVERTURE_LIBRARIES) \
         $(OV_X_LIBRARIES) \
         $(OV_PERL_LIBRARIES) 
 
-#LIBS += $(OV_RPATH)$(Overture)/lib -L$(Overture)/lib -lOverture -lOverture_static \
-#        $(OV_RPATH)$(OpenGL)/$(LIB64) -L$(OpenGL)/$(LIB64) $(GL_LIBS) \
-#        $(OV_RPATH)$(APlusPlus)/lib -L$(APlusPlus)/lib -lApp -lApp_static \
-#        $(OV_RPATH)$(HDF)/lib -L$(HDF)/lib $(HDF_LIBS) -L$(MOTIF)/$(LIB64)  $(FLIBS) \
-#        -L$(XLIBS)/$(LIB64)  -lXm -lXt $(OV_PERL_LIBRARIES) 
-
-
-
-# ifneq ($(PETSC_LIB),)
-# MPI_INCLUDE = -I$(PETSC_DIR)/include/mpiuni
-# PETSC_INCLUDE = -I$(PETSC_DIR)/include  -I$(PETSC_DIR)/bmake/$(PETSC_ARCH) $(MPI_INCLUDE)
-# CXX_FLAGS := -DOVERTURE_USE_PETSC $(PETSC_INCLUDE) $(CXX_FLAGS)
-# LIBS += -L$(PETSC_LIB) -lpetscksp -lpetscdm -lpetscmat -lpetscvec -lpetsc -lmpiuni /home/henshaw/software/SuperLU_DIST# _2.0/superlulinux.a
-# endif
