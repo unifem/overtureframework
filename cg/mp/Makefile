@@ -87,23 +87,18 @@ LIB_OBJS = $(OBJ) $(OBJCO) $(OBJN) $(OBJO) $(OBJSO)
 SHARED_LIBRARY = $(LIBDIR)libCgmp$(SHARED_LIBRARY_EXT)
 
 # make cgmp in the bin dir:
-# CGMP = /home/henshaw/Overture/gf/Interpolant.o /home/henshaw/Overture/grid/CompositeGrid.o
 PETSC_FILES_OBJ := $(addprefix $(OBJPREFIX),$(PETSC_FILES))
-# CGMP_EXTRA_FILES = $(PETSC_FILES_OBJ) /home/henshaw.0/Overture/hype/generate.o /home/henshaw.0/Overture/hype/HyperbolicMapping.o
-# CGMP_EXTRA_FILES = $(PETSC_FILES_OBJ)  /home/henshaw.0/Overture/gf/InterpolatePointsOnAGrid.o
-# CGMP_EXTRA_FILES = $(PETSC_FILES_OBJ) /home/henshaw.0/Overture/gf/Interpolant.o
-# CGMP_EXTRA_FILES = $(PETSC_FILES_OBJ) /home/henshaw.0/Overture/ogshow/ShowFileReader.o
 CGMP_EXTRA_FILES = $(PETSC_FILES_OBJ)
 
 # libCommon:=$(CGBUILDPREFIX)common/lib/libCgCommon.so
 libCommon:=$(CGBUILDPREFIX)common/libCgCommon
 
-$(LIBDIR)libCgmp: $(LIB_OBJS)
+$(LIBDIR)libCgmp: $(LIB_OBJS) $(CGMP_EXTRA_FILES)
 	  $(SHARED_LIBRARY_COMMAND) -o $(SHARED_LIBRARY) $(SHARED_LIBRARY_FLAGS) \
 		     $(LIB_OBJS) $(SHARED_LIBRARY_LOAD_LIBS) $(CGMP_EXTRA_FILES) $(LIBS)
 	  touch $@
 
-$(BINDIR)cgmp: $(OBJDIR)cgmpMain.o lib_build $(CGMP_EXTRA_FILES) $(libCommon) SOLVER_LIBS
+$(BINDIR)cgmp: $(OBJDIR)cgmpMain.o lib_build $(libCommon) SOLVER_LIBS
 	-@mkdir -p $(BINDIR)
 	$(CXX) $(CXX_FLAGS) -o $@ $(OBJDIR)cgmpMain.o $(LIB_MP)
 
