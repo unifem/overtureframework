@@ -35,7 +35,7 @@ ifeq ($(usePETSc),on)
     # serial version
     PETSC_INCLUDE += -I$(PETSC_DIR)/include/mpiuni
   endif
-
+endif
 
 # ==============================================================
 
