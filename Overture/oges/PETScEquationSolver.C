@@ -3,9 +3,9 @@
 //
 //  Petsc solvers in Overture **** SERIAL VERSION ****
 //
-// Author: Petri Fast 
+// Author: Petri Fast
 // Changes: Bill Henshaw, Kristopher Buschelman..
-// 
+//
 //
 //
 
@@ -16,7 +16,7 @@ typedef MatOrderingType MatReorderingType;
 #define ORDER_RCM MATORDERING_RCM
 
 #define OVCSORT EXTERN_C_NAME(ovcsort)
-extern "C" 
+extern "C"
 {
   extern int PetscSetUseTrMalloc_Private(void);
   int OVCSORT(int &n, real &a, int &ja, int &ia, int &iwork);
@@ -27,17 +27,17 @@ extern "C"
 //  //\no function header:
 //
 //   The {\tt PETScEquationSolver} class can be used to solve a problem with PETSc\cite{petsc-user-guide}.
-// 
-//\end{PETScEquationSolverInclude.tex} 
+//
+//\end{PETScEquationSolverInclude.tex}
 
 // =============================================================================
 //  \brief Here is the function that Overture::finish() calls to shutdown PETSc
 // =============================================================================
-static void 
+static void
 finalizePETSc()
 {
   #ifdef OVERTURE_USE_PETSC
-  int ierr = PetscFinalize(); 
+  int ierr = PetscFinalize();
   #endif
 }
 
@@ -66,12 +66,12 @@ initPETSc()
 
 #undef __FUNC__
 #define __FUNC__ "PETScEquationSolver::PETScEquationSolver"
-//\begin{>>PETScEquationSolverInclude.tex}{\subsection{constructor}} 
+//\begin{>>PETScEquationSolverInclude.tex}{\subsection{constructor}}
 PETScEquationSolver::
-PETScEquationSolver(Oges & oges_) : EquationSolver(oges_) 
+PETScEquationSolver(Oges & oges_) : EquationSolver(oges_)
 //==================================================================================
 // /Description:
-//\end{PETScEquationSolverInclude.tex} 
+//\end{PETScEquationSolverInclude.tex}
 //==================================================================================
 {
 //  PetscFunctionBegin;
@@ -102,13 +102,13 @@ PETScEquationSolver(Oges & oges_) : EquationSolver(oges_)
       printf("PETScEquationSolver: solving for transpose\n");
     matrixFormat=Oges::compressedRow;  // requires building the (ia,ja,a) arrays
   }
-  
+
   solverMethod              =-1;
   preconditioner            =-1;             // initialize to an invalid value so we assign it later
   matrixOrdering            =-1;
   numberOfIncompleteLULevels=-1;
   gmresRestartLength        =-1;
-  
+
   Amx=NULL;
 
   // If we are using double precision then we can avoid copying the solution from PETSc
@@ -139,7 +139,7 @@ PETScEquationSolver::
 ~PETScEquationSolver()
 {
 //  PetscFunctionBegin;
-  
+
   delete [] dscale;
   delete [] nzzAlloc;
   delete [] iWorkRow;
@@ -156,18 +156,18 @@ PETScEquationSolver::
   if ( dh_ctx != NULL ) MyILU_destroy( dh_ctx );
 #endif
 
-  if( petscInitialized ) // i.e., if PETSc was initialized by Overture... 
-  { 
-      
+  if( petscInitialized ) // i.e., if PETSc was initialized by Overture...
+  {
+
     // *new* way 10026
     Overture::decrementReferenceCountForPETSc();
     petscInitialized=false;
-    
-    // PetscStackPop; 
+
+    // PetscStackPop;
     // if( Oges::debug & 1 ) printf("PETScEquationSolver:call PetscFinalize...\n");
-    // PetscFinalize(); 
+    // PetscFinalize();
   }
-  
+
 //  PetscFunctionReturnVoid();
 }
 
@@ -176,19 +176,19 @@ PETScEquationSolver::
 #define __FUNC__ "PETScEquationSolver::sizeOf"
 real PETScEquationSolver::
 sizeOf( FILE *file /* =NULL */  )
-// return number of bytes allocated 
+// return number of bytes allocated
 {
 //  PetscFunctionBegin;
 
   FILE *outputFile = file==NULL ? stdout : file;
-  
-  real size=0.;  
+
+  real size=0.;
   MatInfo matInfo;
   if( Amx!=NULL )
   {
     ierr=MatGetInfo(Amx,MAT_GLOBAL_SUM,&matInfo); CHKERRQ(ierr);
   }
-  
+
   // 2.2.1  PetscLogDouble space=0, fragments=0, maximumBytes=0, mem=0;
   PetscLogDouble mem=0;
   if( turnOnPETScMemoryTracing )
@@ -196,14 +196,14 @@ sizeOf( FILE *file /* =NULL */  )
     // 2.2.1 ierr = PetscTrSpace( &space, &fragments, &maximumBytes);  CHKERRQ(ierr);
     // 2.2.1 PetscGetResidentSetSize(&mem); //  maximum memory used
     PetscMemoryGetMaximumUsage(&mem);       //  maximum memory used
-    
+
     size=mem;
   }
   else
   {
     size=matInfo.memory;
   }
-  
+
 
   if( Oges::debug & 2 )
   {
@@ -212,7 +212,7 @@ sizeOf( FILE *file /* =NULL */  )
     // 2.2.1  	    "  matrix=%e Kbytes, fragments=%e\n",
     // 2.2.1  	    space*.001,maximumBytes*.001,mem*.001,matInfo.memory*.001,fragments);
     fprintf(outputFile,">> PETSC: maximum memory used=%e (Kbytes)\n",mem/1000);
-    
+
   }
 
   if( Oges::debug & 4 )
@@ -226,7 +226,7 @@ sizeOf( FILE *file /* =NULL */  )
 //   PCGetFactoredMatrix(pc,factoredMatrix);
 //   MatGetInfo(*factoredMatrix,MAT_GLOBAL_SUM,&matInfo);
 //   printf("petsc: ILU matrix memory= %i \n",(int)matInfo.memory);
- 
+
 //  PetscFunctionReturn(size);
   return size;
 }
@@ -260,13 +260,13 @@ initializePetscKSP()
     return 0;
     //     PetscFunctionReturnVoid();
   }
-  
+
   petscInitialized=TRUE;
   int ierr;
   int numProcs;
   // *wdh* if( !petscInitialized )
   // The following doesn't hurt, but better can be written to work with PetscFinalize
-  if (!PetscInitializeCalled) 
+  if (!PetscInitializeCalled)
   {
     if( Oges::debug & 2 ) printf("Initialize PETSc, oges.argc=%i...\n",oges.argc);
 
@@ -297,7 +297,7 @@ initializePetscKSP()
       printF("Current process memory %i M\n",(int)(space/(1024.*1024.)));
 
       ierr =  PetscMemoryGetMaximumUsage(&space);   CHKERRQ(ierr);
-      printF("Max process memory %i M\n",(int)(space/(1024.*1024.)));                   
+      printF("Max process memory %i M\n",(int)(space/(1024.*1024.)));
       ierr = PetscMallocDumpLog(stdout); CHKERRQ( ierr );
       //ierr =  PetscMallocDump(stdout);          CHKERRQ(ierr);
     }
@@ -309,10 +309,10 @@ initializePetscKSP()
   {
     SETERRQ(comm,1,"This is a uniprocessor code ONLY!!");
   }
-  
+
   // Add options to PETSc's list of options
-  ListOfShowFileParameters & petscOptions = oges.parameters.petscOptions; 
-  std::list<ShowFileParameter>::iterator iter; 
+  ListOfShowFileParameters & petscOptions = oges.parameters.petscOptions;
+  std::list<ShowFileParameter>::iterator iter;
   for(iter = petscOptions.begin(); iter!=petscOptions.end(); iter++ )
   {
     ShowFileParameter & param = *iter;
@@ -322,20 +322,20 @@ initializePetscKSP()
     if( type==ShowFileParameter::stringParameter )
     {
       printF("PETScSolver::buildSolver: INFO: adding option=[%s] value=[%s]\n",(const char*)name,(const char*)stringValue);
-      PetscOptionsSetValue(name,stringValue);
+      PetscOptionsSetValue(NULL,name,stringValue);
     }
     else
     {
-      Overture::abort("error"); 
+      Overture::abort("error");
     }
   }
 
   // ..Create linear solver context, and init from params.
-  
+
 //  isMatrixAllocated=FALSE;
 //  nzzAlloc=NULL;
 //  dscale=NULL;
-  
+
   ierr = KSPCreate(comm , &ksp); CHKERRQ(ierr);
   ierr = KSPGetPC(ksp, &pc);    CHKERRQ(ierr);
 
@@ -343,10 +343,10 @@ initializePetscKSP()
   // set any parameters that have changed
   setPetscParameters();
 
-  if( Oges::debug & 2 ) 
+  if( Oges::debug & 2 )
     cout << "...Set command line options\n";
   //.. allow use of command line arguments
-  ierr = KSPSetFromOptions(ksp); CHKERRQ(ierr); 
+  ierr = KSPSetFromOptions(ksp); CHKERRQ(ierr);
 
   return 0; // PetscFunctionReturnVoid();
 }
@@ -354,7 +354,7 @@ initializePetscKSP()
 #undef __FUNC__
 #define __FUNC__ "PETScEquationSolver::setPetscParameters"
 int PETScEquationSolver::
-setPetscParameters() 
+setPetscParameters()
   //....Solver options (from PETSc, see the documentation, Chap. 4)
   // KSP Options:
   //   KSPRICHARDSON   = Richardson iter.
@@ -425,11 +425,11 @@ setPetscParameters()
     }
     if( false && parameters.solveForTranspose ) // this didn't seem to work
     {
-      krylovSpaceMethod = KSPPREONLY; 
-      if (Oges::debug & 2) 
+      krylovSpaceMethod = KSPPREONLY;
+      if (Oges::debug & 2)
         printf("Solution of transpose requires krylovSpaceMethod = KSPPREONLY\n");
     }
-    if( Oges::debug & 2 ) 
+    if( Oges::debug & 2 )
       printf(" ********** PETScEquationSolver: set krylov space method ***********\n");
 
     ierr = KSPSetType(ksp, krylovSpaceMethod); CHKERRQ(ierr);
@@ -492,17 +492,17 @@ setPetscParameters()
       printf("****WARNING**** Unknown preconditionner for PETSc\n");
       petscPreconditioner=PCILU;
     }
-    if( Oges::debug & 2 ) 
+    if( Oges::debug & 2 )
       printf(" ********** PETScEquationSolver: set preconditioner ***********\n");
     ierr = PCSetType(pc,      petscPreconditioner);  CHKERRQ(ierr);
     preconditioner=parameters.preconditioner;
-  
+
   }
-  
-  if( parameters.matrixOrdering!=matrixOrdering && 
+
+  if( parameters.matrixOrdering!=matrixOrdering &&
       parameters.preconditioner==OgesParameters::incompleteLUPreconditioner)
   {
-    MatOrderingType  matOrdering;           //  == ORDER_RCM default;  
+    MatOrderingType  matOrdering;           //  == ORDER_RCM default;
     switch( parameters.matrixOrdering )
     {
     case OgesParameters::naturalOrdering:
@@ -529,7 +529,7 @@ setPetscParameters()
     }
     if( parameters.preconditioner==OgesParameters::incompleteLUPreconditioner ) // ******* fix other cases *****
     {
-      if( Oges::debug & 2 ) 
+      if( Oges::debug & 2 )
 	printf(" ********** PETScEquationSolver: set matrix ordering ***********\n");
 
       // 2.2.1 ierr = PCILUSetMatReordering(pc, matOrdering); CHKERRQ(ierr);
@@ -540,14 +540,14 @@ setPetscParameters()
 #endif
       matrixOrdering=parameters.matrixOrdering;
     }
-    if( isDHPreconditioner ) 
+    if( isDHPreconditioner )
     {
       if( Oges::debug & 2 )
-	printf(" ******** PETScEquationSolver: can NOT set matrix reordering for DHILU ****\n"); 
+	printf(" ******** PETScEquationSolver: can NOT set matrix reordering for DHILU ****\n");
     }
-    
+
   }
-  
+
   if( parameters.solverMethod==OgesParameters::gmres && parameters.gmresRestartLength!=gmresRestartLength )
   {
     ierr = KSPGMRESSetRestart(ksp, parameters.gmresRestartLength); CHKERRQ(ierr);
@@ -560,23 +560,23 @@ setPetscParameters()
   //    convergence:  | r_k |_2 < max( rtol*| r_0 |_2, atol )
 
   double rtol=parameters.relativeTolerance>0. ? parameters.relativeTolerance : REAL_EPSILON*1000.;
-  double atol=parameters.absoluteTolerance>0. ? parameters.absoluteTolerance : 
+  double atol=parameters.absoluteTolerance>0. ? parameters.absoluteTolerance :
               max( real(numberOfEquations),500.)*REAL_EPSILON;
   double dtol=parameters.maximumAllowableIncreaseInResidual;
   int maxits = parameters.maximumNumberOfIterations > 0 ?  parameters.maximumNumberOfIterations : 900;
-  
+
 //   if( parameters.solveForTranspose )
 //     dtol=DBL_MAX; // ** assume we are solving for the left null vector
 
-  if( Oges::debug & 1 ) 
+  if( Oges::debug & 1 )
      printf(" PETScEquationSolver: rtol=%e, atol=%e, dtol=%e\n",rtol,atol,dtol);
-  
+
   ierr = KSPSetTolerances(ksp, rtol, atol, dtol, maxits); CHKERRQ(ierr);
 
   if( parameters.numberOfIncompleteLULevels!=numberOfIncompleteLULevels &&
       parameters.preconditioner==OgesParameters::incompleteLUPreconditioner )
   {
-    if( Oges::debug & 2 )  
+    if( Oges::debug & 2 )
       printf(" ********** PETScEquationSolver: set ilu levels =%i ***********\n",parameters.numberOfIncompleteLULevels);
 
     // 2.2.1 ierr = PCILUSetLevels(pc, parameters.numberOfIncompleteLULevels);  CHKERRQ(ierr);
@@ -589,8 +589,8 @@ setPetscParameters()
   }
 
 #ifdef USE_DH_PRECONDITIONER
-  dh_setParameters();  
-#endif 
+  dh_setParameters();
+#endif
 
   //ierr = PCLUSetReuseReordering(pc, 1);          CHKERRQ(ierr);
   //   optionsChanged=TRUE;
@@ -602,33 +602,33 @@ setPetscParameters()
 
 
 int PETScEquationSolver::
-setPetscRunTimeParameters() 
+setPetscRunTimeParameters()
 {
   const int myid=Communication_Manager::My_Process_Number;
 
   bool parametersHaveChanged=false;  // set to true if any parameters have changed
-  
+
 //   if( true ) return 0; // ************************************************************************ 051112 * temp
-  
+
   // rtol : reduce residual by this factor.
   // atol : absolute tolerance
   // dtol : divergence detector
   //    convergence:  | r_k |_2 < max( rtol*| r_0 |_2, atol )
 
   double rtol=parameters.relativeTolerance>0. ? parameters.relativeTolerance : REAL_EPSILON*1000.;
-  double atol=parameters.absoluteTolerance>0. ? parameters.absoluteTolerance : 
+  double atol=parameters.absoluteTolerance>0. ? parameters.absoluteTolerance :
               max( real(numberOfEquations),500.)*REAL_EPSILON;
   double dtol=parameters.maximumAllowableIncreaseInResidual;
   int maxits = parameters.maximumNumberOfIterations > 0 ?  parameters.maximumNumberOfIterations : 900;
-  
+
 //   if( parameters.solveForTranspose )
 //     dtol=DBL_MAX; // ** assume we are solving for the left null vector
 
-  if( Oges::debug & 4 ) 
+  if( Oges::debug & 4 )
      printF(" PETScSolver: rtol=%e, atol=%e, dtol=%e\n",rtol,atol,dtol);
-  
+
   ierr = KSPSetTolerances(ksp, rtol, atol, dtol, maxits); CHKERRQ(ierr);
-  
+
   return ierr;
 }
 
@@ -653,7 +653,7 @@ int PETScEquationSolver::
 getNumberOfIterations() const
 {
   return oges.numberOfIterations;
-} 
+}
 
 
 #undef __FUNC__
@@ -662,7 +662,7 @@ int PETScEquationSolver::
 solve(realCompositeGridFunction & u,
       realCompositeGridFunction & f)
 // ======================================================================================================
-/// \brief Solve the equations. 
+/// \brief Solve the equations.
 // ======================================================================================================
 {
 //  PetscFunctionBegin;
@@ -677,19 +677,19 @@ solve(realCompositeGridFunction & u,
   {
     shouldUpdateMatrix=TRUE;  // is this correct?
   }
-  
+
   real timeBuild=getCPU();
 
 //   // set any parameters that have changed
 //   setPetscParameters();
-  
 
-//   if( Oges::debug & 2 ) 
+
+//   if( Oges::debug & 2 )
 //     cout << "...Set command line options\n";
 //   //.. allow use of command line arguments
-//   ierr = KSPSetFromOptions(ksp); CHKERRQ(ierr); 
+//   ierr = KSPSetFromOptions(ksp); CHKERRQ(ierr);
 
-  if( shouldUpdateMatrix ) 
+  if( shouldUpdateMatrix )
   {
     if( Oges::debug & 2 ) cout << "...Build Matrix\n";
 
@@ -698,18 +698,18 @@ solve(realCompositeGridFunction & u,
     if( Oges::debug & 2 ) cout << "...Set operators\n";
     if ( oges.recomputePreconditioner )
     {
-      // *v3.4.5 
-      ierr = KSPSetOperators(ksp,Amx,Amx,DIFFERENT_NONZERO_PATTERN);  CHKERRQ(ierr);
+      // *v3.4.5
+      ierr = KSPSetOperators(ksp,Amx,Amx);  CHKERRQ(ierr);
       // *** FIX ME: 3.6.1 is not working yet
-      // *v3.6.1: 
+      // *v3.6.1:
       // printF(" --PETSC-- KSPSetOperators ksp=%i\n",ksp);
       // ierr = KSPSetReusePreconditioner(ksp,PETSC_FALSE);  CHKERRQ(ierr);
       // ierr = KSPSetOperators(ksp,Amx,Amx);  CHKERRQ(ierr);
     }
     else
     {
-      // *wdh* v2.3.2 
-      ierr = KSPSetOperators(ksp,Amx,Amx,SAME_PRECONDITIONER);  CHKERRQ(ierr);
+      // *wdh* v2.3.2
+      ierr = KSPSetOperators(ksp,Amx,Amx);  CHKERRQ(ierr);
 
       // *** FIX ME: 3.6.1 is not working yet
       // reuse the current preconditioner:
@@ -718,7 +718,7 @@ solve(realCompositeGridFunction & u,
 
     }
 
-    if( parameters.rescaleRowNorms && matrixFormat==Oges::other ) 
+    if( parameters.rescaleRowNorms && matrixFormat==Oges::other )
     {
       ierr = KSPSetDiagonalScale(ksp,PETSC_TRUE); CHKERRQ(ierr);
     }
@@ -730,7 +730,7 @@ solve(realCompositeGridFunction & u,
   // set any run time parameters that may have changed (e.g. tolerances) *wdh* 061111
   setPetscRunTimeParameters();
 
-  if( Oges::debug & 2 ) 
+  if( Oges::debug & 2 )
   {
     cout << "...Build RHS, numberOfEquations="  << numberOfEquations << endl;
   }
@@ -738,7 +738,7 @@ solve(realCompositeGridFunction & u,
   timeBuild=getCPU()-timeBuild;
 
   PetscBool flg=PETSC_TRUE;  // the initial guess is non-zero
-  ierr = KSPSetInitialGuessNonzero(ksp,flg); CHKERRQ(ierr); 
+  ierr = KSPSetInitialGuessNonzero(ksp,flg); CHKERRQ(ierr);
 
   real time0=getCPU();
   if( Oges::debug & 2 ) cout << "...Preconditioner\n";
@@ -751,7 +751,7 @@ solve(realCompositeGridFunction & u,
   dh_start();
 #endif
 
-  time0=getCPU(); 
+  time0=getCPU();
   if( Oges::debug & 2 ) cout << "...Actually solving...\n";
   oges.numberOfIterations=0;
 
@@ -774,7 +774,7 @@ solve(realCompositeGridFunction & u,
     printF("Current process memory %i M\n",(int)(space/(1024.*1024.)));
 
     ierr =  PetscMemoryGetMaximumUsage(&space);   CHKERRQ(ierr);
-    printF("Max process memory %i M\n",(int)(space/(1024.*1024.)));                   
+    printF("Max process memory %i M\n",(int)(space/(1024.*1024.)));
     ierr = PetscMallocDumpLog(stdout);            CHKERRQ(ierr);
     //ierr =  PetscMallocDump(stdout);          CHKERRQ(ierr);
   }
@@ -800,7 +800,7 @@ solve(realCompositeGridFunction & u,
     //               KSP_DIVERGED_INDEFINITE_PC       = -8,
     //               KSP_DIVERGED_NAN                 = -9,
     //               KSP_DIVERGED_INDEFINITE_MAT      = -10,
-    //  
+    //
     //               KSP_CONVERGED_ITERATING          =  0} KSPConvergedReason;
 
     printF("PETScEquationSolver:ERROR: Solution diverged! reason=%i: \n",(int)reason);
@@ -823,7 +823,7 @@ solve(realCompositeGridFunction & u,
       {
 	printF("--PTSC-- KSP failed, try to solve again with zero initial guess...\n");
         PetscBool flg=PETSC_FALSE;  // the initial guess is ZERO
-        ierr = KSPSetInitialGuessNonzero(ksp,flg); CHKERRQ(ierr); 
+        ierr = KSPSetInitialGuessNonzero(ksp,flg); CHKERRQ(ierr);
 
         ierr = KSPSolve(ksp,brhs,xsol);CHKERRQ(ierr);
 
@@ -846,17 +846,17 @@ solve(realCompositeGridFunction & u,
 	else
 	{
 	  printF("--PTSC-- Solve again WORKED!\n");
-          	
+
 	}
-	
+
       }
-      
+
     }
-    
+
 
 
   }
-  
+
 
   PetscInt its;
   ierr = KSPGetIterationNumber(ksp,&its);CHKERRQ(ierr);
@@ -880,7 +880,7 @@ solve(realCompositeGridFunction & u,
   dh_solveTime= dh_getCpuTime();
 #endif
 
-  if( Oges::debug & 1 ) 
+  if( Oges::debug & 1 )
   {
     cout << "++Petsc TIMINGS (for "<<oges.numberOfIterations<<" its, "
 	 <<  "size of matrix n = " << numberOfEquations << " ):\n";
@@ -891,9 +891,9 @@ solve(realCompositeGridFunction & u,
     // View solver info; we could instead use the option -ksp_view
     // *wdh* KSPView(ksp,PETSC_VIEWER_STDOUT_WORLD);
   }
-  
+
   // *Take soln --> stick it to Overture vector & Move soln to the grid.
-  
+
   PetscScalar *soln;
   if( copyOfSolutionNeeded || (matrixFormat!=Oges::other && parameters.rescaleRowNorms)  )
   {
@@ -905,17 +905,17 @@ solve(realCompositeGridFunction & u,
     for( i=0; i<oges.numberOfEquations; i++)   // can we avoid this copy?
       ovSol[i]=soln[i];
 
-    if( Oges::debug & 32  ) 
+    if( Oges::debug & 32  )
     {
       printF("PETSC: sol: ");
       for( i=0; i<oges.numberOfEquations; i++)   // can we avoid this copy?
 	printF("(%i,%7.3f)",i,soln[i]);
       printF("\n");
-    
+
     }
 
   }
-  
+
   // Save values from the extra equations *wdh* May 8, 2016
   if( oges.numberOfExtraEquations>0 )
   {
@@ -932,7 +932,7 @@ solve(realCompositeGridFunction & u,
       extraEquationValues(i)=sol(oges.extraEquationNumber(i)-1);
       // printF("--PETScEQ-- Extra equation %i: eqn=%d value=%12.4e\n",
       //        i,oges.extraEquationNumber(i)-1,extraEquationValues(i));
-      
+
     }
   }
 
@@ -951,7 +951,7 @@ solve(realCompositeGridFunction & u,
 void PETScEquationSolver::
 getCsortWorkspace(int nWorkSpace00)
 {
-  if( nWorkSpace00>nWorkRow ) 
+  if( nWorkSpace00>nWorkRow )
   {
     if( Oges::debug & 2 )
       cout << "+++(PetscOverture)Reallocating workrow for Csort,"
@@ -963,10 +963,10 @@ getCsortWorkspace(int nWorkSpace00)
   }
 }
 
- 
+
 //..Build Petsc MATRIX: rescale & prealloc the matrix
 #undef __FUNC__
-#define __FUNC__ "PETScEquationSolver::buildPetscMatrix" 
+#define __FUNC__ "PETScEquationSolver::buildPetscMatrix"
 int PETScEquationSolver::
 buildPetscMatrix()
 {
@@ -995,12 +995,12 @@ buildPetscMatrix()
     ierr = MatAssemblyBegin(Amx,MAT_FINAL_ASSEMBLY);CHKERRQ(ierr);
     ierr = MatAssemblyEnd(Amx,MAT_FINAL_ASSEMBLY);CHKERRQ(ierr);
 
-    shouldUpdateMatrix=FALSE; 
+    shouldUpdateMatrix=FALSE;
   }
   else
   {
     // in this option the matrix will first be loaded into (ia,ja,a)
-    
+
     if( !oges.solvingSparseSubset )
       oges.formMatrix(numberOfEquations,numberOfNonzeros,Oges::compressedRow,allocateSpace,factorMatrixInPlace);
     else
@@ -1022,7 +1022,7 @@ buildPetscMatrix()
 
     //..Allocate Petsc matrix
     int & neq=numberOfEquations; // ..shorthand for convenience
-    int & nnz=numberOfNonzeros; 
+    int & nnz=numberOfNonzeros;
 
     InsertMode insrtOrAdd; // for Petsc MatSetValues
     //.........ALWAYS get rid of old matrix!!
@@ -1044,7 +1044,7 @@ buildPetscMatrix()
 
       PetscInt blockSize=parameters.blockSize;
       PetscBool optionWasSet;
-      PetscOptionsGetInt(PETSC_NULL,"-mat_block_size",&blockSize,&optionWasSet);
+      PetscOptionsGetInt(NULL,PETSC_NULL,"-mat_block_size",&blockSize,&optionWasSet);
       if( optionWasSet )
       {
         if( Oges::debug & 2 ) printF("PETScEquationSolver:Using -mat_block_size option: block size = %i\n"
@@ -1055,7 +1055,7 @@ buildPetscMatrix()
 	blockSize=parameters.blockSize;
         if( Oges::debug & 2 ) printF("PETScEquationSolver:Using blockSize=%i from OgesParameters\n",blockSize);
       }
-      
+
       preallocRowStorage(blockSize); assert(nzzAlloc!=NULL);
 
       if( blockSize==1 )
@@ -1076,13 +1076,13 @@ buildPetscMatrix()
 	int nz=0;  // not used ?
 	ierr = MatCreateSeqBAIJ(PETSC_COMM_SELF,blockSize,neq,neq,nz,nzzAlloc,&Amx); CHKERRQ(ierr);
       }
-      
+
 
       if( Oges::debug & 2 )
       {
         printF("PETScEquationSolver::buildPetscMatrix: Allocate xsol and brhs using VecCreateSeq\n");
       }
-      
+
 
       ierr = VecCreateSeq(PETSC_COMM_SELF,neq,&xsol); CHKERRQ(ierr);
       ierr = VecCreateSeq(PETSC_COMM_SELF,neq,&brhs); CHKERRQ(ierr);
@@ -1105,7 +1105,7 @@ buildPetscMatrix()
     PetscScalar  v;
     // real rownorm;
 
-    const real coeffScale=1.;  // fix this 
+    const real coeffScale=1.;  // fix this
     real eps= parameters.rescaleRowNorms ? coeffScale*REAL_EPSILON*100. : 0.;  // cutoff tolerance for keeping coefficients
 
     if( Oges::debug & 2 )
@@ -1113,21 +1113,21 @@ buildPetscMatrix()
     for( irowm1=0; irowm1<neq; irowm1++ ) {
       dsc=dscale[irowm1];
       // rownorm=0.0;
-      for( j=ia_[irowm1]; j<=ia_[irowm1+1]-1; j++ ) 
+      for( j=ia_[irowm1]; j<=ia_[irowm1+1]-1; j++ )
       {
 	v=dsc*aval[ j-1 ];
 	if( fabs(v) <eps ) continue;   // *wdh* May 23, 2015 -- to catch small user supplied eqn coeffs
-	
+
 	jcolm1=ja_[ j-1 ]-1;
 	// rownorm = rownorm+ fabs(v);
-	// To matrix Amx, Insert row=irow, col=jcol, INSERT (NEW) VALUE 
+	// To matrix Amx, Insert row=irow, col=jcol, INSERT (NEW) VALUE
 	ierr=MatSetValues(Amx,1,&irowm1,1,&jcolm1,&v,insrtOrAdd); CHKERRQ(ierr);
-      } 
+      }
     }
     //..Finish up Matrix Assembly, set updateMX flag
     ierr = MatAssemblyBegin(Amx,MAT_FINAL_ASSEMBLY); CHKERRQ(ierr);
     ierr = MatAssemblyEnd(Amx,MAT_FINAL_ASSEMBLY);   CHKERRQ(ierr);
-    shouldUpdateMatrix=FALSE; 
+    shouldUpdateMatrix=FALSE;
 
     if( !parameters.keepSparseMatrix )
     {
@@ -1137,7 +1137,7 @@ buildPetscMatrix()
 	oges.ja.redim(0);
 	oges.a.redim(0);
       #endif
-      
+
     }
   }
 
@@ -1154,11 +1154,11 @@ buildPetscMatrix()
     PetscViewerASCIIOpen(PETSC_COMM_WORLD,"petscMatrix.m",&viewer);
     PetscViewerSetFormat(viewer,PETSC_VIEWER_ASCII_MATLAB);
     ierr = MatView(Amx,viewer);CHKERRQ(ierr);
-      
+
   }
 
   return 0;
-  
+
 }
 
 void PETScEquationSolver::
@@ -1172,19 +1172,19 @@ preallocRowStorage(int blockSize)
   int i,j;
   int & neq=numberOfEquations; // shorthand
   int & nnz=numberOfNonzeros;
-  
+
 
   delete [] nzzAlloc;
 
   assert( neq % blockSize == 0 );  // sanity check
 
   int numBlocks = neq/blockSize;
-  
+
   nzzAlloc = new int [numBlocks]; assert( nzzAlloc != NULL );
 
   if( blockSize==1 )
   {
-    for( i=0; i<neq; i++) 
+    for( i=0; i<neq; i++)
     {
       assert( (ia_[i]<=nnz+1) && (ia_[i+1]<=nnz+1) );
       nzzAlloc[i]=ia_[i+1]-ia_[i];
@@ -1197,7 +1197,7 @@ preallocRowStorage(int blockSize)
     for( int jb=0; jb<numBlocks; jb++ ) blockIsUsed[jb]=0;
 
     i=0;
-    for( int b=0; b<numBlocks; b++,i+=blockSize ) 
+    for( int b=0; b<numBlocks; b++,i+=blockSize )
     {
       // look at all the rows in this row-block b
       for ( int k=0; k<blockSize; k++ )
@@ -1207,28 +1207,28 @@ preallocRowStorage(int blockSize)
 	int j1=ia_[i+k], j2=ia_[i+k+1]-1;
 	for( int j=j1; j<=j2; j++ )
 	{
-	  int jblock = (ja_[j-1]-1)/blockSize;   // there is an entry in block "jblock" 
+	  int jblock = (ja_[j-1]-1)/blockSize;   // there is an entry in block "jblock"
 	  blockIsUsed[jblock]=1;           // mark this block as used
 
 	  // printf(" block=%i row=i+k=%i j=%i ja-1=%i jblock=%i\n",b,i+k,j,ja_[j]-1,jblock);
-	   
+
 	}
       }
-      int numberOfBlocksThisRow=0;  // count blocks 
+      int numberOfBlocksThisRow=0;  // count blocks
       for( int jb=0; jb<numBlocks; jb++ )
       {
 	numberOfBlocksThisRow+=blockIsUsed[jb];
 	blockIsUsed[jb]=0;  // reset for next row-block
       }
-      
+
       nzzAlloc[b]=numberOfBlocksThisRow;
       // printf(" preallocRowStorage: block=%i number-of-nonzero-blocks = %i \n",b,nzzAlloc[b]);
-      
+
     }
     delete [] blockIsUsed;
-    
+
   }
-  
+
 }
 
 //..Allocate space for diag scaling, set to 1 if no scaling,
@@ -1239,28 +1239,28 @@ computeDiagScaling()
   int i,j;
   real rownorm;
   int & neq=numberOfEquations; // shorthand
-  int & nnz=numberOfNonzeros;  
+  int & nnz=numberOfNonzeros;
 
   delete [] dscale;
   dscale = new real [neq]; assert( dscale != NULL );
 
-  if (!parameters.rescaleRowNorms) 
+  if (!parameters.rescaleRowNorms)
   {     //..... don't scale the rows in the Matrix
     if( Oges::debug & 4 ) cout << "+++++++++++ NOT SCALING ROWS +++++++++++\n";
-    for( i=0; i<neq; i++) 
+    for( i=0; i<neq; i++)
       dscale[i]=1.0;
-  } 
-  else 
+  }
+  else
   {                 //..... scale the rows
     if( Oges::debug & 4 ) cout << "+++++++++++ SCALING the ROWS +++++++++++\n";
     for( i=0; i<neq; i++)
     {
       rownorm=0.0;
       assert( (ia_[i]<=nnz+1) && (ia_[i+1]<=nnz+1) );
-      for( j=ia_[i]; j<ia_[i+1]; j++) 
+      for( j=ia_[i]; j<ia_[i+1]; j++)
       {
 	rownorm += fabs( aval[j-1] );
-      } 
+      }
       assert( rownorm > 1.0e-15);
       dscale[i] = 1.0/rownorm;
     }
@@ -1282,7 +1282,7 @@ buildRhsAndSolVector(realCompositeGridFunction & u,
     printF("PETScEquationSolver::buildRhsAndSolVector:START: rescaleRowNorms=%i, copyOfSolutionNeeded=%i\n",
 	   (int)parameters.rescaleRowNorms,(int)copyOfSolutionNeeded);
 
-  if (!isMatrixAllocated) 
+  if (!isMatrixAllocated)
   {
     cout << "---------ERROR(petscOverture): Can't build RHS" << " if it is not allocated! ..Exiting..\n";
     exit(-77);
@@ -1294,7 +1294,7 @@ buildRhsAndSolVector(realCompositeGridFunction & u,
   {
     ierr=oges.formRhsAndSolutionVectors(u,f); assert(ierr==0);
   }
-  
+
   real *ovSol, *ovRhs; // Overture solution and rhs
   ovSol= oges.sol.getDataPointer();
   ovRhs= oges.rhs.getDataPointer();
@@ -1308,7 +1308,7 @@ buildRhsAndSolVector(realCompositeGridFunction & u,
 
     PetscScalar v;
     int i;
-    for( i=0; i<numberOfEquations; i++) 
+    for( i=0; i<numberOfEquations; i++)
     {
       v=ovSol[i];
       ierr=VecSetValues(xsol,1,&i,&v,INSERT_VALUES); CHKERRQ(ierr);
@@ -1318,7 +1318,7 @@ buildRhsAndSolVector(realCompositeGridFunction & u,
 
       if( false && Oges::debug & 2 )
         printF("--PES-- RHS: i=%6i, ovRhs=%11.4e scale=%9.2e b=%11.4e\n",i,ovRhs[i],dscale[i],v);
-      
+
     }
   }
   else
@@ -1335,7 +1335,7 @@ buildRhsAndSolVector(realCompositeGridFunction & u,
     ierr = VecCreateSeqWithArray(comm,blockSize,n,ovSol,&xsol);CHKERRQ(ierr);
 #endif
   }
-  
+
   // Insert initial guess for extra equations *wdh* July 29, 2016
   if( oges.numberOfExtraEquations>0 )
   {
@@ -1360,8 +1360,8 @@ buildRhsAndSolVector(realCompositeGridFunction & u,
 	printF("--PES-- extra equation %i: eqn=%i guess in ovSol=%12.4e\n",j,i,ovSol[i]);
       }
     }
-    
-    
+
+
   }
 
   ierr = VecAssemblyBegin(xsol); CHKERRQ(ierr);
@@ -1379,17 +1379,17 @@ int PETScEquationSolver::
 allocateMatrix(int ndia,int ndja,int nda,int N)
 {
 //  PetscFunctionBegin;
-  
-  if (isMatrixAllocated) 
+
+  if (isMatrixAllocated)
   {
     ierr = MatDestroy(&Amx);CHKERRQ(ierr);
     ierr = VecDestroy(&xsol);CHKERRQ(ierr);
     ierr = VecDestroy(&brhs);CHKERRQ(ierr);
     isMatrixAllocated = FALSE;
   }
-  if (!isMatrixAllocated) 
+  if (!isMatrixAllocated)
   {
-    if (Oges::debug & 2) 
+    if (Oges::debug & 2)
     {
       cout << "+++(PetscOverture)Allocating the matrix, matrixFormat=" << matrixFormat << "...\n";
     }
@@ -1411,13 +1411,13 @@ setMatrixElement(int nzcounter,int i,int j,real val)
 
   i--;
   j--;
-#ifdef OV_USE_DOUBLE 
+#ifdef OV_USE_DOUBLE
   ierr = MatSetValues(Amx,1,&i,1,&j,&val,INSERT_VALUES);CHKERRQ(ierr);
 #else
   PetscScalar sval=val;
   ierr = MatSetValues(Amx,1,&i,1,&j,&sval,INSERT_VALUES);CHKERRQ(ierr);
 #endif
-  
+
   return ierr; //  PetscFunctionReturn(ierr);
 }
 
@@ -1431,7 +1431,7 @@ displayMatrix()
   ierr = MatView(Amx,PETSC_VIEWER_STDOUT_WORLD);CHKERRQ(ierr);
 
   return 0;
-  
+
 }
 
 //
@@ -1450,7 +1450,7 @@ saveBinaryMatrix(aString filename00,
   if( !petscInitialized )
   {
     initializePetscKSP();
-    if( Oges::debug & 2 ) 
+    if( Oges::debug & 2 )
       cout << "...Set command line options\n";
     //.. allow use of command line arguments
     ierr = KSPSetFromOptions(ksp); CHKERRQ(ierr);
@@ -1459,23 +1459,23 @@ saveBinaryMatrix(aString filename00,
   {
     shouldUpdateMatrix=TRUE;  // is this correct?
   }
-  
+
   real timeBuild=getCPU();
 
-  // optionsChanged = preconditioner!=oges.parameters.preconditioner || 
+  // optionsChanged = preconditioner!=oges.parameters.preconditioner ||
   //                    matrixOrdering!=oges.parameters.matrixOrdering;
   //  shouldUpdateMatrix=shouldUpdateMatrix || optionsChanged; // *****
 
   // set any parameters that have changed
   setPetscParameters();
 
-  if(shouldUpdateMatrix) 
+  if(shouldUpdateMatrix)
   {
     if( Oges::debug & 2 ) cout << "...Build Matrix\n";
     buildPetscMatrix();
     if( Oges::debug & 2 ) cout << "...Set operators\n";
-    ierr = KSPSetOperators(ksp,Amx,Amx,DIFFERENT_NONZERO_PATTERN);
-    // *v3.6.1: 
+    ierr = KSPSetOperators(ksp,Amx,Amx);
+    // *v3.6.1:
     // ierr = KSPSetOperators(ksp,Amx,Amx);
     CHKERRQ(ierr);
 
@@ -1519,12 +1519,12 @@ setupPreconditioner(KSP ksp00, Vec brhs00, Vec xsol00 )
   return ierr;
 #else
   int ierr;
-  if ( isDHPreconditioner ) 
+  if ( isDHPreconditioner )
   {
     // NOTE: the CHKERRQ(ierr)'s should be left for the calling prog!!
-    if (parameters.incompleteLUTypeInDH ) 
+    if (parameters.incompleteLUTypeInDH )
     {
-      if ( dh_ctx != NULL ) MyILU_destroy( dh_ctx );    
+      if ( dh_ctx != NULL ) MyILU_destroy( dh_ctx );
       ierr = MyILU_create(&dh_ctx);       CHKERRQ(ierr);
       dh_initialize();
       dh_setParameters();
@@ -1532,11 +1532,11 @@ setupPreconditioner(KSP ksp00, Vec brhs00, Vec xsol00 )
       //dh_ctx->A = Amx;                // ditto
       ierr = PCSetType(pc,PCSHELL);       CHKERRQ(ierr);
       ierr = PCShellSetApply(pc,MyILU_apply,(void*)dh_ctx); CHKERRQ(ierr);
-      
+
       /* "extracts" (i.e, copies) matrix from A, and
 	 optionally applies sparcification */
       ierr = MyILU_setup(dh_ctx, Amx);  CHKERRQ(ierr);
-      
+
       dh_start();
       ierr = MyILU_factor(dh_ctx); CHKERRQ(ierr);
       dh_stop();
@@ -1567,7 +1567,7 @@ PETScEquationSolver::dh_initialize()
 {
 #ifndef USE_DH_PRECONDITIONER
   cout << "ERROR --"
-       << " PETScEquationSolver::dh_initialize called -- Not Available!" 
+       << " PETScEquationSolver::dh_initialize called -- Not Available!"
        << endl;
   cout << "      -- Compile with -DUSE_DH_PRECONDITIONER"<<endl;
 #else
@@ -1577,17 +1577,17 @@ PETScEquationSolver::dh_initialize()
 #endif
 }
 
-void 
+void
 PETScEquationSolver::dh_setParameters()
 {
 #ifndef USE_DH_PRECONDITIONER
   cout << "ERROR --"
-       << " PETScEquationSolver::dh_setParameters called -- Not Available!" 
+       << " PETScEquationSolver::dh_setParameters called -- Not Available!"
        << endl;
   cout << "      -- Compile with -DUSE_DH_PRECONDITIONER"<<endl;
 #else
 
-  if( isDHPreconditioner ) 
+  if( isDHPreconditioner )
   {
     if ( dh_ctx != NULL )
     {
@@ -1612,7 +1612,7 @@ PETScEquationSolver::dh_computeResidualReduction( double & residReduction )
 #ifndef USE_DH_PRECONDITIONER
   cout << "ERROR --"
        << " PETScEquationSolver::dh_computeResidualReduction called --"
-       << " Not Available!" 
+       << " Not Available!"
        << endl;
   cout << "      -- Compile with -DUSE_DH_PRECONDITIONER"<<endl;
   residReduction = 0.;
@@ -1621,16 +1621,15 @@ PETScEquationSolver::dh_computeResidualReduction( double & residReduction )
   double r_norm, b_norm;
   double neg_one=-1.;
   Vec residVec;
-  int ierr; 
+  int ierr;
   ierr = VecDuplicate(brhs,&residVec); CHKERRQ(ierr);
   ierr = VecNorm(brhs,  NORM_2, &b_norm); CHKERRQ(ierr);/* starting residual norm, since x_init=0 */
-  ierr = MatMult(Amx, xsol, residVec); CHKERRQ(ierr);              
+  ierr = MatMult(Amx, xsol, residVec); CHKERRQ(ierr);
   ierr = VecAXPY(&neg_one, brhs, residVec); CHKERRQ(ierr);       /* u is final residual */
   ierr = VecNorm(residVec,  NORM_2, &r_norm); CHKERRQ(ierr);
-  residReduction = r_norm / b_norm; 
-  
+  residReduction = r_norm / b_norm;
+
 #endif
 }
 
 #endif /*  OVERTURE_USE_PETSC */
-

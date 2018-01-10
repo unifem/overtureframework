@@ -5,6 +5,8 @@
 # setenv CGBUILDPREFIX /some/other/dir will put the obj/lib/bin in /some/other/dir/{common,cgad...}/{lib,obj,dep,bin}
 #
 
+include config/make.dirs
+
 all : libCommon cgad cgcns cgins cgasf cgsm cgmp 
 #unitTests cgmx message
 
@@ -14,31 +16,38 @@ message : cgad cgcns cgins cgasf cgsm cgmp unitTests cgmx
 	@echo "CG:INFO: type \"make check-quiet\" or \"make -j8 check-quiet\" or \"make check\" to run regression tests"	
 
 libCommon:
+	@mkdir -p $(CGBUILDPREFIX)/common/dep
 	@cd common; $(MAKE) 
 
 # advection-diffusion
 cgad: libCommon
+	@mkdir -p $(CGBUILDPREFIX)/ad/dep
 	@cd ad;     $(MAKE) 
 
 # all-speed compressible Navier-Stokes
 cgasf: libCommon
+	@mkdir -p $(CGBUILDPREFIX)/asf/dep
 	@cd asf;  $(MAKE) 
 
 # compressible Navier-Stokes
 cgcns: libCommon
+	@mkdir -p $(CGBUILDPREFIX)/cns/dep
 	@cd cns;    $(MAKE) 
 
 # incompressible Navier-Stokes
 cgins: libCommon
+	@mkdir -p $(CGBUILDPREFIX)/ins/dep
 	@cd ins;    $(MAKE) 
 
 
 # multi-physics solver
 cgmp: cgins cgcns cgad libCommon
+	@mkdir -p $(CGBUILDPREFIX)/mp/dep
 	@cd mp;     $(MAKE) 
 
 # Maxwell solver
 cgmx: 
+	@mkdir -p $(CGBUILDPREFIX)/mx/dep
 	@cd mx;     $(MAKE) 
 
 # Solid mechanics:
