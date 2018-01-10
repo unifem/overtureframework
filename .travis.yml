@@ -6,5 +6,4 @@ before_script:
   - git clone https://$GIT_USER:$GIT_TOKEN@github.com/xmjiao/ci-util.git
 
 script:
-  - ./ci-util/trigger.sh unifem/overture-desktop framework
   - ./ci-util/trigger.sh unifem/coupler-desktop framework
