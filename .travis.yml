@@ -1,9 +1,12 @@
 os: linux
 language: python
-sudo: false
+services: docker
+
+env:
+   - CHILDREN=CHILDREN_${TRAVIS_BRANCH}
 
 before_script:
-  - git clone https://$GIT_USER:$GIT_TOKEN@github.com/xmjiao/ci-util.git
+  - git clone --depth=1 https://$GIT_TOKEN@github.com/xmjiao/ci-util.git
 
 script:
-  - ./ci-util/trigger.sh unifem/overture-desktop framework
+  - ./ci-util/trigger-via-api.sh ${!CHILDREN}
