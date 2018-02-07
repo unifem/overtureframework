@@ -878,39 +878,31 @@ userDefinedBoundaryValues(const real & t,
       /////////////////////////////////////////////////////////////////
       if (userDefinedBoundaryValue=="externalTemperatureValues")
       {
-        // we expect no slip wall
-        if( mg.boundaryCondition(side,axis)==Parameters::noSlipWall) {
-          numberOfSidesAssigned++;
-          // get the index FIXME no ghost...
-          getBoundaryIndex(mg.gridIndexRange(),side,axis,Ib1,Ib2,Ib3);
+        numberOfSidesAssigned++;
+        // get the index FIXME no ghost...
+        getBoundaryIndex(mg.gridIndexRange(),side,axis,Ib1,Ib2,Ib3);
 
-          // bypass expensive copying and memory allocation,
-          // directly touch to the database
-          // see common/src/Parameters.C line 2012-2029, the
-          // getUserBoundaryConditionParameters defination
-          RealArray &values =
-            parameters.dbase.get<RealArray >("userBoundaryConditionParameters");
+        // bypass expensive copying and memory allocation,
+        // directly touch to the database
+        // see common/src/Parameters.C line 2012-2029, the
+        // getUserBoundaryConditionParameters defination
+        RealArray &values =
+          parameters.dbase.get<RealArray >("userBoundaryConditionParameters");
 
-          // get the boundary data
-          RealArray & bd = parameters.getBoundaryData(side,axis,grid,mg);
+        // get the boundary data
+        RealArray & bd = parameters.getBoundaryData(side,axis,grid,mg);
 
-          int mygrid = grid;
-          if (grid >= values.getLength(3))
-            mygrid = 0;
-          int i1, i2, i3, count = 0;
-          // NOTE that we expect the external data loop through x, then y
-          // finally z, this aligns with the macro FOR_3D
-          // tc is temperature component number
-          FOR_3D(i1, i2, i3, Ib1,Ib2,Ib3)
-          {
-            bd(i1, i2, i3, tc) = values(count, side, axis, mygrid);
-            ++count;
-          }
-        }
-        else
+        int mygrid = grid;
+        if (grid >= values.getLength(3))
+          mygrid = 0;
+        int i1, i2, i3, count = 0;
+        // NOTE that we expect the external data loop through x, then y
+        // finally z, this aligns with the macro FOR_3D
+        // tc is temperature component number
+        FOR_3D(i1, i2, i3, Ib1,Ib2,Ib3)
         {
-          printF("The external temperature boundary only works for no slip walls\n");
-          OV_ABORT("ERROR");
+          bd(i1, i2, i3, tc) = values(count, side, axis, mygrid);
+          ++count;
         }
       }
       /////////////////////////////////////////////////////////////////
