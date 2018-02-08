@@ -888,7 +888,7 @@ userDefinedBoundaryValues(const real & t,
         RealArray & bd = parameters.getBoundaryData(side,axis,grid,mg);
 
         // assume no slip walls with no mesh motion
-        Range C(uc, uc+numberOfComponents-1);
+        Range C(uc, uc+numberOfDimensions-1);
         bd(Ib1, Ib2, Ib3, C) = 0.0;
 
         int i1, i2, i3, count = 0;
