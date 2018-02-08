@@ -892,9 +892,11 @@ userDefinedBoundaryValues(const real & t,
         // get the boundary data
         RealArray & bd = parameters.getBoundaryData(side,axis,grid,mg);
 
-        // we probably need to explicitly keep all boundary data
-        for (int c = 0; c < numberOfComponents; ++c)
-          bd(Ib1, Ib2, Ib3, c) = uLocal(Ib1, Ib2, Ib3, c);
+        // assume no slip walls with no mesh motion
+        bd(Ib1, Ib2, Ib3, uc) = 0.0;
+        bd(Ib1, Ib2, Ib3, vc) = 0.0;
+        if (numberOfDimensions > 2)
+          bd(Ib1, Ib2, Ib3, wc) = 0.0;
 
         int mygrid = grid;
         if (grid >= values.getLength(3))
