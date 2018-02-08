@@ -140,22 +140,6 @@ chooseUserDefinedBoundaryValues(int side, int axis, int grid, CompositeGrid & cg
       // time dep
       parameters.setBcIsTimeDependent(side,axis,grid,true);
 
-      // put a dummy value in, size must be greater than 0
-      // see common/Parameters.C line 1989 for setUserBoundaryConditionParameters
-      RealArray values(1);
-
-      values = 0.0;
-
-      parameters.setUserBoundaryConditionParameters(side, axis, grid, values);
-
-      // the whole idea is to create a dummy vector,
-      // then once the solver is set up, we can resize the user boundary data
-      // array in parameter dbase.get<RealArray >("userBoundaryConditionParameters")
-      // to proper size, see common/Parameters.C lines 1997&1998
-
-      // TODO try another idea, which is directly write the boundary value to
-      // the grid function itself
-
       printF("**External temperature setup!");
     }
     /////////////////////////////////////////////////////////////////
@@ -879,35 +863,29 @@ userDefinedBoundaryValues(const real & t,
       if (userDefinedBoundaryValue=="externalTemperatureValues")
       {
         numberOfSidesAssigned++;
-        // get the index FIXME no ghost...
+        // get the index FIXME ghost line needed?
         getBoundaryIndex(mg.gridIndexRange(),side,axis,Ib1,Ib2,Ib3);
+        bool ok=ParallelUtility::getLocalArrayBounds(u,uLocal,Ib1,Ib2,Ib3,includeGhost);
+      	if( !ok ) continue;
+        const int sz = Ib1.length()*Ib2.length()*Ib3.length();
+        RealArray values(sz);
 
-        // bypass expensive copying and memory allocation,
-        // directly touch to the database
-        // see common/src/Parameters.C line 2012-2029, the
-        // getUserBoundaryConditionParameters defination
-        RealArray &values =
-          parameters.dbase.get<RealArray >("userBoundaryConditionParameters");
+        parameters.getUserBoundaryConditionParameters(side,axis,grid,values);
 
         // get the boundary data
         RealArray & bd = parameters.getBoundaryData(side,axis,grid,mg);
 
         // assume no slip walls with no mesh motion
-        bd(Ib1, Ib2, Ib3, uc) = 0.0;
-        bd(Ib1, Ib2, Ib3, vc) = 0.0;
-        if (numberOfDimensions > 2)
-          bd(Ib1, Ib2, Ib3, wc) = 0.0;
+        Range C(uc, uc+numberOfComponents-1);
+        bd(Ib1, Ib2, Ib3, C) = 0.0;
 
-        int mygrid = grid;
-        if (grid >= values.getLength(3))
-          mygrid = 0;
         int i1, i2, i3, count = 0;
         // NOTE that we expect the external data loop through x, then y
         // finally z, this aligns with the macro FOR_3D
         // tc is temperature component number
         FOR_3D(i1, i2, i3, Ib1,Ib2,Ib3)
         {
-          bd(i1, i2, i3, tc) = values(count, side, axis, mygrid);
+          bd(i1, i2, i3, tc) = values(count);
           ++count;
         }
       }
@@ -1386,7 +1364,7 @@ userDefinedBoundaryValues(const real & t,
 	printF("***userDefinedBoundaryValues: assign (side,axis,grid)=(%i,%i,%i) variable T: T1=%f, T2=%f, y0=%f\n",
 	       side,axis,grid,q1,q2,y0);
 
-	int extra=1;
+	int extra=0; // **MODIFIED by QC for testing ghost line
 	getBoundaryIndex(mg.gridIndexRange(),side,axis,Ib1,Ib2,Ib3,extra);
 
 	mg.update(MappedGrid::THEvertex);
