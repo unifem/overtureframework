@@ -892,6 +892,10 @@ userDefinedBoundaryValues(const real & t,
         // get the boundary data
         RealArray & bd = parameters.getBoundaryData(side,axis,grid,mg);
 
+        // we probably need to explicitly keep all boundary data
+        for (int c = 0; c < numberOfComponents; ++c)
+          bd(Ib1, Ib2, Ib3, c) = uLocal(Ib1, Ib2, Ib3, c);
+
         int mygrid = grid;
         if (grid >= values.getLength(3))
           mygrid = 0;
