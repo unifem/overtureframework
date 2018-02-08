@@ -140,6 +140,18 @@ chooseUserDefinedBoundaryValues(int side, int axis, int grid, CompositeGrid & cg
       // time dep
       parameters.setBcIsTimeDependent(side,axis,grid,true);
 
+      Index Ib1, Ib2, Ib3;
+
+      MappedGrid &mg = cg[grid];
+
+      getBoundaryIndex(mg.gridIndexRange(), side, axis, Ib1, Ib2, Ib3);
+
+      const int sz = Ib1.length()*Ib2.length()*Ib3.length();
+
+      RealArray values(sz);
+      values = 0.0;
+      parameters.setUserBoundaryConditionParameters(side,axis,grid,values);
+
       printF("**External temperature setup!");
     }
     /////////////////////////////////////////////////////////////////
