@@ -10,6 +10,8 @@
 #include "BoundaryLayerProfile.h"
 #include "TimeFunction.h"
 
+#include <vector>
+
 // *OLD WAY*  2015/03/27 *WDH*
 namespace
 {
@@ -112,6 +114,8 @@ chooseUserDefinedBoundaryValues(int side, int axis, int grid, CompositeGrid & cg
     "time function option",
     "polynomial inflow profile",
     "external temperature values", // **Added QC**
+    "external flux values", // ** Added QC**
+    "external robin coeffs", // ** Added QC **
     "done",
     ""
   };
@@ -132,10 +136,10 @@ chooseUserDefinedBoundaryValues(int side, int axis, int grid, CompositeGrid & cg
     /////////////////////////////////////////////////////////////////
     // **Added QC**
     /////////////////////////////////////////////////////////////////
-    else if (answer == "external temperature values")
+    else if (answer == "external temperature values" || answer == "external flux values")
     {
       // boundary tag when applying iterator
-      userDefinedBoundaryValue = "externalTemperatureValues";
+      userDefinedBoundaryValue = "externalHeatValues";
 
       // time dep
       parameters.setBcIsTimeDependent(side,axis,grid,true);
@@ -152,7 +156,28 @@ chooseUserDefinedBoundaryValues(int side, int axis, int grid, CompositeGrid & cg
       values = 0.0;
       parameters.setUserBoundaryConditionParameters(side,axis,grid,values);
 
-      printF("**External temperature setup!");
+      printF("**External heat resource setup!");
+    }
+    else if (answer=="external robin coeffs")
+    {
+      // boundary tag when applying iterator
+      userDefinedBoundaryValue = "externalRobinCoeffs";
+
+      // time dep
+      parameters.setBcIsTimeDependent(side,axis,grid,true);
+
+      Index Ib1, Ib2, Ib3;
+
+      MappedGrid &mg = cg[grid];
+
+      getBoundaryIndex(mg.gridIndexRange(), side, axis, Ib1, Ib2, Ib3);
+
+      const int sz = Ib1.length()*Ib2.length()*Ib3.length();
+      RealArray values(2*sz); // first sz for ambient temp, rest for h
+      values = 0.0;
+      parameters.setUserBoundaryConditionParameters(side,axis,grid,values);
+
+      printF("**External heat robin coefficients setup!");
     }
     /////////////////////////////////////////////////////////////////
     // **Finished QC**
@@ -872,7 +897,7 @@ userDefinedBoundaryValues(const real & t,
       /////////////////////////////////////////////////////////////////
       // **Added QC**
       /////////////////////////////////////////////////////////////////
-      if (userDefinedBoundaryValue=="externalTemperatureValues")
+      if (userDefinedBoundaryValue=="externalHeatValues")
       {
         numberOfSidesAssigned++;
         // get the index FIXME ghost line needed?
@@ -899,6 +924,63 @@ userDefinedBoundaryValues(const real & t,
         {
           bd(i1, i2, i3, tc) = values(count);
           ++count;
+        }
+      }
+      else if (userDefinedBoundaryValue=="externalRobinCoeffs")
+      {
+        numberOfSidesAssigned++;
+        getBoundaryIndex(mg.gridIndexRange(),side,axis,Ib1,Ib2,Ib3);
+        bool ok=ParallelUtility::getLocalArrayBounds(u,uLocal,Ib1,Ib2,Ib3,includeGhost);
+      	if( !ok ) continue;
+        const int sz = Ib1.length()*Ib2.length()*Ib3.length();
+        RealArray values(2*sz); // agian half for temp, half for h
+        parameters.getUserBoundaryConditionParameters(side,axis,grid,values);
+
+        // The formula reads
+        //      kappa * dT/dn + h * (T - T_inf) = 0
+        //  =>  kappa * dT/dn + h * T = h * T_inf
+        // where h is the heat transfer coeff from other side, T_inf is
+        // the so-called ambient tempereature.
+        // For Overture, this is called mixed BC with the general formulation
+        // of a1 * dT/dn + a2 * T = g
+        // So in our case,
+        //    a1 = kappa
+        //    a2 = h
+        //    g = h * T_inf
+
+        const real kappa = parameters.dbase.get<real>("thermalConductivity");
+
+        // get the boundary data
+        RealArray & bd = parameters.getBoundaryData(side,axis,grid,mg);
+        // assume no slip walls with no mesh motion
+        Range C(uc, uc+numberOfDimensions-1);
+        bd(Ib1, Ib2, Ib3, C) = 0.0;
+
+        int i1, i2, i3, count_temp = 0, count_h = sz;
+        // NOTE that we expect the external data loop through x, then y
+        // finally z, this aligns with the macro FOR_3D
+        // tc is temperature component number
+        FOR_3D(i1, i2, i3, Ib1,Ib2,Ib3)
+        {
+          bd(i1, i2, i3, tc) = values(count_temp)*values(count_h);
+          ++count_temp;
+          ++count_h;
+        }
+
+        // NOTE that bd stores the rhs g
+
+        BoundaryData &BD = parameters.dbase.get<std::vector<BoundaryData> >("boundaryData")[grid];
+
+        RealArray &varCoeff = BD.getVariableCoefficientBoundaryConditionArray(
+          BoundaryData::variableCoefficientTemperatureBC, side, axis);
+
+        count_h = sz;
+
+        FOR_3(i1,i2,i3,Ib1,Ib2,Ib3)
+        {
+          varCoeff(i1,i2,i3,0) = kappa;
+          varCoeff(i1,i2,i3,1) = values(count_h);
+          ++count_h;
         }
       }
       /////////////////////////////////////////////////////////////////
