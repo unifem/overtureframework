@@ -942,10 +942,10 @@ userDefinedBoundaryValues(const real & t,
         // where h is the heat transfer coeff from other side, T_inf is
         // the so-called ambient tempereature.
         // For Overture, this is called mixed BC with the general formulation
-        // of a1 * dT/dn + a2 * T = g
+        // of a1 * T + a2 * dT/dn = g
         // So in our case,
-        //    a1 = kappa
-        //    a2 = h
+        //    a1 = h
+        //    a2 = kappa
         //    g = h * T_inf
 
         const real kappa = parameters.dbase.get<real>("thermalConductivity");
@@ -983,8 +983,8 @@ userDefinedBoundaryValues(const real & t,
 
         FOR_3(i1,i2,i3,Ib1,Ib2,Ib3)
         {
-          varCoeff(i1,i2,i3,0) = kappa;
-          varCoeff(i1,i2,i3,1) = values(count_h);
+          varCoeff(i1,i2,i3,0) = values(count_h);
+          varCoeff(i1,i2,i3,1) = kappa;
           ++count_h;
         }
       }
