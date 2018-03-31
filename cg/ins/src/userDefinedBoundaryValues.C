@@ -971,7 +971,7 @@ userDefinedBoundaryValues(const real & t,
 
         BoundaryData &BD = parameters.dbase.get<std::vector<BoundaryData> >("boundaryData")[grid];
 
-        printF("**Begin to copy external coefficients");
+        //printF("**Begin to copy external coefficients");
 
         RealArray &varCoeff = BD.getVariableCoefficientBoundaryConditionArray(
           BoundaryData::variableCoefficientTemperatureBC, side, axis);
