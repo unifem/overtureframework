@@ -144,6 +144,13 @@ chooseUserDefinedBoundaryValues(int side, int axis, int grid, CompositeGrid & cg
       // time dep
       parameters.setBcIsTimeDependent(side,axis,grid,true);
 
+      gi.inputString(answer2,"Enter initial values T or Flux");
+      real vvv = 0.0;
+      if( answer2!="" )
+      {
+	sScanF(answer2,"%e",&vvv);
+      }
+
       Index Ib1, Ib2, Ib3;
 
       MappedGrid &mg = cg[grid];
@@ -153,7 +160,7 @@ chooseUserDefinedBoundaryValues(int side, int axis, int grid, CompositeGrid & cg
       const int sz = Ib1.length()*Ib2.length()*Ib3.length();
 
       RealArray values(sz);
-      values = 0.0;
+      values = vvv;
       parameters.setUserBoundaryConditionParameters(side,axis,grid,values);
 
       printF("**External heat resource setup!");
@@ -166,6 +173,13 @@ chooseUserDefinedBoundaryValues(int side, int axis, int grid, CompositeGrid & cg
       // time dep
       parameters.setBcIsTimeDependent(side,axis,grid,true);
 
+      gi.inputString(answer2,"Enter initial value T_am and h_coeff");
+      real ta = 0.0, h_coeff = 0.0;
+      if( answer2!="" )
+      {
+	sScanF(answer2,"%e %e",&ta, &h_coeff);
+      }
+
       Index Ib1, Ib2, Ib3;
 
       MappedGrid &mg = cg[grid];
@@ -174,7 +188,10 @@ chooseUserDefinedBoundaryValues(int side, int axis, int grid, CompositeGrid & cg
 
       const int sz = Ib1.length()*Ib2.length()*Ib3.length();
       RealArray values(2*sz); // first sz for ambient temp, rest for h
-      values = 0.0;
+      for (int i = 0; i< sz; ++i)
+        values(i) = ta;
+      for (int i = sz; i < 2*sz ;++i)
+        values(i) = h_coeff;
       parameters.setUserBoundaryConditionParameters(side,axis,grid,values);
 
       printF("**External heat robin coefficients setup!");
